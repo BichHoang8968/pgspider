@@ -208,6 +208,7 @@ struct pg_result
 	PGresult_data *curBlock;	/* most recently allocated block */
 	int			curOffset;		/* start offset of free space in block */
 	int			spaceLeft;		/* number of free bytes remaining in block */
+	double		pq_progress;	/* Progress value pointer */
 };
 
 /* PGAsyncStatusType defines the state of the query-execution state machine */
@@ -218,7 +219,10 @@ typedef enum
 	PGASYNC_READY,				/* result ready for PQgetResult */
 	PGASYNC_COPY_IN,			/* Copy In data transfer in progress */
 	PGASYNC_COPY_OUT,			/* Copy Out data transfer in progress */
-	PGASYNC_COPY_BOTH			/* Copy In/Out data transfer in progress */
+	PGASYNC_COPY_BOTH,			/* Copy In/Out data transfer in progress */
+	PGASYNC_PROGRESS_OUT,		/* Received progress message */
+	PGASYNC_PROGRESS_IDLE,		/* Idle state while processing progress */
+	PGASYNC_PROGRESS_READY		/* ready to read result */
 } PGAsyncStatusType;
 
 /* PGQueryClass tracks which query protocol we are now executing */
@@ -492,6 +496,7 @@ struct pg_conn
 
 	/* Buffer for receiving various parts of messages */
 	PQExpBufferData workBuffer; /* expansible string */
+	int nCursorIndex;          /*Total number of tuples informed to User */
 };
 
 /* PGcancel stores all data necessary to cancel a connection. A copy of this

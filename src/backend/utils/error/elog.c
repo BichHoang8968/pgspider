@@ -85,9 +85,9 @@
 
 
 /* Global variables */
-ErrorContextCallback *error_context_stack = NULL;
+__thread ErrorContextCallback *error_context_stack = NULL;
 
-sigjmp_buf *PG_exception_stack = NULL;
+__thread sigjmp_buf *PG_exception_stack = NULL;
 
 extern bool redirection_done;
 

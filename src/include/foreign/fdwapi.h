@@ -44,6 +44,7 @@ typedef void (*BeginForeignScan_function) (ForeignScanState *node,
 										   int eflags);
 
 typedef TupleTableSlot *(*IterateForeignScan_function) (ForeignScanState *node);
+typedef Datum (*ForeignAgg_function) (AggState *node, void * aggstate);
 
 typedef bool (*RecheckForeignScan_function) (ForeignScanState *node,
 											 TupleTableSlot *slot);
@@ -179,6 +180,7 @@ typedef struct FdwRoutine
 	GetForeignPlan_function GetForeignPlan;
 	BeginForeignScan_function BeginForeignScan;
 	IterateForeignScan_function IterateForeignScan;
+	ForeignAgg_function ForeignAgg;
 	ReScanForeignScan_function ReScanForeignScan;
 	EndForeignScan_function EndForeignScan;
 

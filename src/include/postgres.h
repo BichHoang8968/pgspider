@@ -117,6 +117,12 @@ typedef enum vartag_external
 	VARTAG_ONDISK = 18
 } vartag_external;
 
+/* GetResult flag to get the current ResultSet */
+extern bool getResultFlag;
+
+/* GetResult flag to get Intermediate aggregation query ResultSet */
+extern bool getAggResultFlag;
+
 /* this test relies on the specific tag values above */
 #define VARTAG_IS_EXPANDED(tag) \
 	(((tag) & ~1) == VARTAG_EXPANDED_RO)
@@ -280,6 +286,9 @@ typedef struct
 #define VARDATA_4B_C(PTR)	(((varattrib_4b *) (PTR))->va_compressed.va_data)
 #define VARDATA_1B(PTR)		(((varattrib_1b *) (PTR))->va_data)
 #define VARDATA_1B_E(PTR)	(((varattrib_1b_e *) (PTR))->va_data)
+
+#define NUM_QUERIES_ONE 1
+#define NUM_QUERIES_TWO 2
 
 #define VARRAWSIZE_4B_C(PTR) \
 	(((varattrib_4b *) (PTR))->va_compressed.va_rawsize)

@@ -71,6 +71,7 @@ static PGresult *PQexecFinish(PGconn *conn);
 static int PQsendDescribe(PGconn *conn, char desc_type,
 			   const char *desc_target);
 static int	check_field_number(const PGresult *res, int field_num);
+static PGresult *pqGetProgressResult(PGconn *conn);
 
 
 /* ----------------
@@ -166,7 +167,7 @@ PQmakeEmptyPGresult(PGconn *conn, ExecStatusType status)
 	result->curBlock = NULL;
 	result->curOffset = 0;
 	result->spaceLeft = 0;
-
+	result->pq_progress = 0.0;
 	if (conn)
 	{
 		/* copy connection data we might need for operations on PGresult */
@@ -412,6 +413,76 @@ dupEvents(PGEvent *events, int count)
 	return newEvents;
 }
 
+
+/*
+ * Sets the value for a tuple field. new tuple is created and
+ * added to the result.
+ * Returns a non-zero value for success and zero for failure.
+ */
+int
+PQsetvalueFromIndex(PGresult *res, int tup_num, int field_num, char *value, int len, int StartIndex)
+{
+	PGresAttValue *attval;
+	int index;
+
+	if (!check_field_number(res, field_num))
+		return FALSE;
+
+	/* Invalid tup_num, must be <= ntups */
+	if (tup_num < 0  || (tup_num-StartIndex) > res->ntups)
+		return FALSE;
+
+	index = res->ntups;
+	/* need to allocate a new tuple ?*/
+	if((tup_num-StartIndex) == res->ntups)
+	{
+		PGresAttValue *tup;
+		int			i;
+
+		tup = (PGresAttValue *)
+		pqResultAlloc(res, res->numAttributes * sizeof(PGresAttValue),
+		TRUE);
+
+		if (!tup)
+			return FALSE;
+
+		/* initialize each column to NULL */
+		for (i = 0; i < res->numAttributes; i++)
+		{
+			tup[i].len = NULL_LEN;
+			tup[i].value = res->null_field;
+		}
+
+		/* add it to the array */
+		if (!pqAddTuple(res, tup))
+			return FALSE;
+	}
+
+	attval = &res->tuples[tup_num-StartIndex][field_num];
+
+	/* treat either NULL_LEN or NULL value pointer as a NULL field */
+	if (len == NULL_LEN || value == NULL)
+	{
+		attval->len = NULL_LEN;
+		attval->value = res->null_field;
+	}
+	else if (len <= 0)
+	{
+		attval->len = 0;
+		attval->value = res->null_field;
+	}
+	else
+	{
+		attval->value = (char *) pqResultAlloc(res, len + 1, TRUE);
+		if (!attval->value)
+		return FALSE;
+		attval->len = len;
+		memcpy(attval->value, value, len);
+		attval->value[len] = '\0';
+	}
+
+	return TRUE;
+}
 
 /*
  * Sets the value for a tuple field.  The tup_num must be less than or
@@ -1268,6 +1339,225 @@ PQsendQueryParams(PGconn *conn,
 						   resultFormat);
 }
 
+/* PQgetProgress
+ *		Get the progress of requested query execution
+ * Returns:  1 Success
+ *			 0 Fail
+ * */
+int
+PQgetProgress(PGconn *conn, double *progress)
+{
+	PGresult   *res = NULL;
+
+	if (progress == NULL || conn == NULL)
+		return 0;
+
+	if (conn->asyncStatus == PGASYNC_BUSY)
+	{
+		/* construct the outgoing Query message */
+		if (pqPutMsgStart('G', false, conn) < 0 ||
+			pqPutMsgEnd(conn) < 0)
+		{
+			pqHandleSendFailure(conn);
+			return 0;
+		}
+
+		/*
+		 * Give the data a push.  In nonblock mode, don't complain if we're
+		 * unable to send it all; pqGetProgressResult() will do any additional
+		 * flushing needed.
+		 */
+
+		if (pqFlush(conn) < 0)
+		{
+			pqHandleSendFailure(conn);
+			return 0;
+		}
+
+		res = pqGetProgressResult(conn);
+		if (res != NULL)
+			*progress = res->pq_progress;
+		else
+		{
+			/* In case of Null, no need of retrning result */
+			return 0;
+		}
+	}
+	else
+	{
+		/*
+		 * PGASYNC_IDLE - confirms that there is no query in execution
+		 * PGASYNC_PROGRESS_IDLE/PGASYNC_PROGRESS_READY - query execution
+		 * completed
+		 */
+		if (conn->asyncStatus == PGASYNC_IDLE)
+		{
+			*progress = 0.0;
+			printfPQExpBuffer(&conn->errorMessage,
+						   libpq_gettext("No SELECT Query in execution.\n"));
+			return 0;
+		}
+	}
+	return 1;
+}
+
+
+PGresult *
+PQcopyResultFromCursorPosition(const PGresult *src, int flags, int cursor_position)
+{
+	PGresult   *dest;
+	int			i;
+
+	if (!src)
+		return NULL;
+
+	dest = PQmakeEmptyPGresult(NULL, PGRES_TUPLES_OK);
+	if (!dest)
+		return NULL;
+
+	/* Always copy these over.  Is cmdStatus really useful here? */
+	dest->client_encoding = src->client_encoding;
+	strcpy(dest->cmdStatus, src->cmdStatus);
+
+	/* Wants attrs? */
+	if (flags & (PG_COPYRES_ATTRS | PG_COPYRES_TUPLES))
+	{
+		if (!PQsetResultAttrs(dest, src->numAttributes, src->attDescs))
+		{
+			PQclear(dest);
+			return NULL;
+		}
+	}
+
+	/* Wants to copy tuples? */
+	if (flags & PG_COPYRES_TUPLES)
+	{
+		int			tup,
+					field;
+
+		for (tup = cursor_position; tup < src->ntups; tup++)
+		{
+			for (field = 0; field < src->numAttributes; field++)
+			{
+				if (!PQsetvalueFromIndex(dest, tup, field,
+								src->tuples[tup][field].value,
+								src->tuples[tup][field].len,cursor_position))
+				{
+					PQclear(dest);
+					return NULL;
+				}
+			}
+		}
+	}
+
+	return dest;
+}
+
+/* PQgetCurrentResult
+ *		Get the Result of requested query execution
+ * Returns:  PGresult Success
+ *			 NULL Fail
+ * */
+PGresult*
+PQgetCurrentResult(PGconn *conn, bool continueFlag, bool needCompleteResultSet, bool *isFinalResult)
+{
+	PGresult   *res = NULL;
+
+	if (conn == NULL)
+		return NULL;
+
+	if (conn->asyncStatus == PGASYNC_BUSY)
+	{
+		if (!continueFlag)
+		{
+			/* construct the outgoing Query message */
+			if (pqPutMsgStart('R', false, conn) < 0 ||
+					pqPutMsgEnd(conn) < 0)
+			{
+				pqHandleSendFailure(conn);
+				return 0;
+			}
+			/*
+			** Give the data a push.  In nonblock mode, don't complain if we're
+			** unable to send it all; pqGetProgressResult() will do any additional
+			** flushing needed.
+                   **/
+			if (pqFlush(conn) < 0)
+			{
+				pqHandleSendFailure(conn);
+				return 0;
+			}
+			res = PQgetResult(conn);
+		}
+		else 
+        {
+			/* construct the outgoing Query message */
+			if (pqPutMsgStart('G', false, conn) < 0 ||
+				pqPutMsgEnd(conn) < 0)
+			{
+				pqHandleSendFailure(conn);
+				return 0;
+			}
+
+			/*
+			** Give the data a push.  In nonblock mode, don't complain if we're
+			** unable to send it all; pqGetProgressResult() will do any additional
+			** flushing needed.
+			**/
+			if (pqFlush(conn) < 0)
+			{
+				pqHandleSendFailure(conn);
+				return 0;
+			}
+
+			PGresult   *tempRes = NULL;
+			tempRes = pqGetProgressResult(conn);
+			if (tempRes != NULL) 
+			{
+				if(!needCompleteResultSet && conn->nCursorIndex > 0)
+				{
+					/* Diff result set */
+					res = PQcopyResultFromCursorPosition(tempRes, PG_COPYRES_ATTRS | 
+					PG_COPYRES_TUPLES , conn->nCursorIndex+1);
+				}
+				else
+				{
+					/* Full Result Set */
+					res = tempRes;
+				}
+				conn->nCursorIndex = tempRes->ntups;
+			}
+			else
+			{
+				printfPQExpBuffer(&conn->errorMessage,
+				libpq_gettext("No Query execution or failed to retreive result set\n"));
+			}
+			*isFinalResult = false;
+		}
+    }
+	else
+	{
+		/*
+		 * PGASYNC_IDLE - confirms that there is no query in execution
+		 * PGASYNC_PROGRESS_IDLE/PGASYNC_PROGRESS_READY - query execution
+		 * completed
+		 */
+                
+		if (conn->asyncStatus == PGASYNC_PROGRESS_READY)
+		{
+			res = conn->result;
+			*isFinalResult = true;
+		}
+		if (conn->asyncStatus == PGASYNC_IDLE)
+		{
+			printfPQExpBuffer(&conn->errorMessage,
+						   libpq_gettext("No SELECT Query in execution.\n"));
+			return NULL;
+		}
+	}
+	return res;
+}
+
 /*
  * PQsendPrepare
  *	 Submit a Parse message, but don't wait for it to finish
@@ -1753,17 +2043,23 @@ PGresult *
 PQgetResult(PGconn *conn)
 {
 	PGresult   *res;
+	int			flushResult;
 
 	if (!conn)
 		return NULL;
 
 	/* Parse any available data, if our state permits. */
+	if ((conn->asyncStatus != PGASYNC_PROGRESS_READY) &&
+		(conn->asyncStatus != PGASYNC_PROGRESS_IDLE))
+
 	parseInput(conn);
 
 	/* If not ready to return something, block until we are. */
-	while (conn->asyncStatus == PGASYNC_BUSY)
+	while ((conn->asyncStatus == PGASYNC_BUSY) ||
+		   (conn->asyncStatus == PGASYNC_PROGRESS_OUT))
 	{
-		int			flushResult;
+		if (conn->asyncStatus == PGASYNC_PROGRESS_OUT)
+			conn->asyncStatus = PGASYNC_BUSY;
 
 		/*
 		 * If data remains unsent, send it.  Else we might be waiting for the
@@ -1800,9 +2096,13 @@ PQgetResult(PGconn *conn)
 	switch (conn->asyncStatus)
 	{
 		case PGASYNC_IDLE:
+		case PGASYNC_PROGRESS_IDLE:
 			res = NULL;			/* query is complete */
+			conn->asyncStatus = PGASYNC_IDLE;
 			break;
 		case PGASYNC_READY:
+		case PGASYNC_PROGRESS_READY:
+		case PGASYNC_PROGRESS_OUT:
 			res = pqPrepareAsyncResult(conn);
 			/* Set the state back to BUSY, allowing parsing to proceed. */
 			conn->asyncStatus = PGASYNC_BUSY;
@@ -1849,6 +2149,85 @@ PQgetResult(PGconn *conn)
 	}
 
 	return res;
+}
+
+/*
+ * pqGetProgressResult() Get the next result containing progress.  Returns NULL if no
+ * query work remains or an error.
+ *
+ */
+static PGresult *
+pqGetProgressResult(PGconn *conn)
+{
+	/* Return existing result, if C or Z is processed while PQgetProgress */
+	if ((conn->asyncStatus == PGASYNC_PROGRESS_READY) ||
+		(conn->asyncStatus == PGASYNC_PROGRESS_IDLE))
+		return conn->result;
+
+	parseInput(conn);
+
+	/* If not ready to return something, block until we are. */
+	while (conn->asyncStatus == PGASYNC_BUSY)
+	{
+		int			flushResult;
+
+		/*
+		 * If data remains unsent, send it.  Else we might be waiting for the
+		 * result of a command the backend hasn't even got yet.
+		 */
+		while ((flushResult = pqFlush(conn)) > 0)
+		{
+			if (pqWait(FALSE, TRUE, conn))
+			{
+				flushResult = -1;
+				break;
+			}
+		}
+
+		/* Wait for some more data, and load it. */
+		if (flushResult ||
+			pqWait(TRUE, FALSE, conn) ||
+			pqReadData(conn) < 0)
+		{
+			/*
+			 * conn->errorMessage has been set by pqWait or pqReadData. We
+			 * want to append it to any already-received error message.
+			 */
+			pqSaveErrorResult(conn);
+			conn->asyncStatus = PGASYNC_IDLE;
+			return pqPrepareAsyncResult(conn);
+		}
+
+		/* Parse it. */
+		parseInput(conn);
+	}
+
+	/* Update the current Progress state */
+
+	switch (conn->asyncStatus)
+	{
+		case PGASYNC_IDLE:
+			conn->asyncStatus = PGASYNC_PROGRESS_IDLE;
+			break;
+		case PGASYNC_READY:
+
+			/*
+			 * Progress value set to 100.00, since command(select) has already
+			 * finished.
+			 */
+			conn->result->pq_progress = 100.00;
+			conn->asyncStatus = PGASYNC_PROGRESS_READY;
+			break;
+		case PGASYNC_PROGRESS_OUT:
+			conn->asyncStatus = PGASYNC_BUSY;
+			break;
+		default:
+			printfPQExpBuffer(&conn->errorMessage,
+			  libpq_gettext("Unhandled asyncStatus for Progress API : %d\n"),
+							  (int) conn->asyncStatus);
+			break;
+	}
+	return conn->result;
 }
 
 /*

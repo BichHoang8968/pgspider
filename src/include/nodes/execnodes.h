@@ -414,6 +414,15 @@ typedef struct ResultRelInfo
 	Relation	ri_PartitionRoot;
 } ResultRelInfo;
 
+typedef struct ProgressState
+{
+	uint64_t		ps_totalRows;
+	int				ps_fetchedRows;
+	bool 			ps_aggQuery;
+	TupleTableSlot	*ps_aggResult;
+	void 			*dest; /*Destination receiver */
+}	ProgressState;
+
 /* ----------------
  *	  EState information
  *
@@ -506,7 +515,8 @@ typedef struct EState
 	HeapTuple  *es_epqTuple;	/* array of EPQ substitute tuples */
 	bool	   *es_epqTupleSet; /* true if EPQ tuple is provided */
 	bool	   *es_epqScanDone; /* true if EPQ tuple has been fetched */
-
+	ProgressState *es_progressState;	/* Get progress operations */
+	bool		agg_query;	/* To Indicate the type of the query, ForeignScan or Agg */
 	/* The per-query shared memory area to use for parallel execution. */
 	struct dsa_area *es_query_dsa;
 
@@ -882,6 +892,7 @@ typedef struct PlanState
 	TupleTableSlot *ps_ResultTupleSlot; /* slot for my result tuples */
 	ExprContext *ps_ExprContext;	/* node's expression-evaluation context */
 	ProjectionInfo *ps_ProjInfo;	/* info for doing tuple projection */
+	void * ddsfAggQry; /*Currently used to point to queryDesc */
 } PlanState;
 
 /* ----------------
@@ -1548,6 +1559,8 @@ typedef struct ForeignScanState
 	/* use struct pointer to avoid including fdwapi.h here */
 	struct FdwRoutine *fdwroutine;
 	void	   *fdw_state;		/* foreign-data wrapper can keep state here */
+	void       *ddsf_fsstate;
+	struct PGconn     *conn;               /* To refer ForeignServer Connection, To use in PGcancel */
 } ForeignScanState;
 
 /* ----------------

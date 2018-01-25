@@ -55,10 +55,13 @@
 #include "utils/rel.h"
 #include "utils/typcache.h"
 
+#define GETPROGRESS_ENABLED 
 
 static void ShutdownExprContext(ExprContext *econtext, bool isCommit);
 
-
+#ifdef GETPROGRESS_ENABLED
+extern ProgressState *gl_progressPtr;	/* Global Progress state */
+#endif
 /* ----------------------------------------------------------------
  *				 Executor state and memory management functions
  * ----------------------------------------------------------------
@@ -155,8 +158,9 @@ CreateExecutorState(void)
 	estate->es_epqTupleSet = NULL;
 	estate->es_epqScanDone = NULL;
 	estate->es_sourceText = NULL;
-
-	estate->es_use_parallel_mode = false;
+#ifdef GETPROGRESS_ENABLED
+	estate->es_progressState = gl_progressPtr;	/* Get progress initialization */
+#endif
 
 	/*
 	 * Return the executor state structure

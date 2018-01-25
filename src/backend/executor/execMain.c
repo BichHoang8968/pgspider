@@ -354,6 +354,8 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 	/*
 	 * run plan
 	 */
+	/* Modified to Add reference to queryDesc in Plan to fetch the original query in FDW*/
+	queryDesc->planstate->ddsfAggQry = (void*)queryDesc;
 	if (!ScanDirectionIsNoMovement(direction))
 	{
 		if (execute_once && queryDesc->already_executed)
@@ -1005,6 +1007,7 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 	estate->es_epqTuple = NULL;
 	estate->es_epqTupleSet = NULL;
 	estate->es_epqScanDone = NULL;
+	estate->agg_query = false;
 
 	/*
 	 * Initialize private state information for each SubPlan.  We must do this

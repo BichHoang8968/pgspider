@@ -2321,6 +2321,9 @@ _copyRangeTblEntry(const RangeTblEntry *from)
 	COPY_BITMAPSET_FIELD(insertedCols);
 	COPY_BITMAPSET_FIELD(updatedCols);
 	COPY_NODE_FIELD(securityQuals);
+	if(from->url != NULL){
+		newnode->url= pstrdup(from->url);
+	}
 
 	return newnode;
 }

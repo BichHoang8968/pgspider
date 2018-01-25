@@ -240,7 +240,7 @@ typedef struct ErrorContextCallback
 	void	   *arg;
 } ErrorContextCallback;
 
-extern PGDLLIMPORT ErrorContextCallback *error_context_stack;
+extern PGDLLIMPORT __thread ErrorContextCallback *error_context_stack;
 
 
 /*----------

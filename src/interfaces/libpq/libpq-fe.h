@@ -421,6 +421,11 @@ extern int PQsendQueryPrepared(PGconn *conn,
 extern int	PQsetSingleRowMode(PGconn *conn);
 extern PGresult *PQgetResult(PGconn *conn);
 
+ /* API for getting current progress of SELECT Query */
+extern PGresult *PQgetCurrentResult(PGconn *conn, bool continueFlag, bool needCompleteResultSet, bool *isFinalResult); 
+ /* API for getting progress of SELECT Query */
+extern int	PQgetProgress(PGconn *conn, double *progress);
+
 /* Routines for managing an asynchronous query */
 extern int	PQisBusy(PGconn *conn);
 extern int	PQconsumeInput(PGconn *conn);

@@ -18,6 +18,9 @@
 
 extern DestReceiver *printtup_create_DR(CommandDest dest);
 
+extern bool FinalizeTup(TupleTableSlot *slot, DestReceiver *self, int attrNum);
+
+
 extern void SetRemoteDestReceiverParams(DestReceiver *self, Portal portal);
 
 extern void SendRowDescriptionMessage(TupleDesc typeinfo, List *targetlist,

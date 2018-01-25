@@ -295,6 +295,68 @@ printtup_prepare_info(DR_printtup *myState, TupleDesc typeinfo, int numAttrs)
  *		printtup --- print a tuple in protocol 3.0
  * ----------------
  */
+bool
+FinalizeTup(TupleTableSlot *slot, DestReceiver *self, int attrNum)
+{
+	TupleDesc	typeinfo = slot->tts_tupleDescriptor;
+	DR_printtup *myState = (DR_printtup *) self;
+	MemoryContext oldcontext;
+	StringInfoData buf;
+	int			natts = typeinfo->natts;
+	int			i;
+	char	   *outputstr;
+
+	/* Set or update my derived attribute info, if needed */
+	if (myState->attrinfo != typeinfo || myState->nattrs != natts)
+		printtup_prepare_info(myState, typeinfo, natts);
+
+	/* Make sure the tuple is fully deconstructed */
+	slot_getallattrs(slot);
+
+	/* Switch into per-row context so we can recover memory below */
+	oldcontext = MemoryContextSwitchTo(myState->tmpcontext);
+
+
+	/*
+	 * Get the finalized attributes of this tuple
+	 */
+	PrinttupAttrInfo *thisState = myState->myinfo + attrNum;
+	Datum		attr = slot->tts_values[attrNum];
+
+	if (slot->tts_isnull[attrNum])
+	{
+		return false;
+	}
+
+	/*
+	 * Here we catch undefined bytes in datums that are returned to the
+	 * client without hitting disk; see comments at the related check in
+	 * PageAddItem().  This test is most useful for uncompressed,
+	 * non-external datums, but we're quite likely to see such here when
+	 * testing new C functions.
+	 */
+	if (thisState->typisvarlena)
+		VALGRIND_CHECK_MEM_IS_DEFINED(DatumGetPointer(attr),
+									  VARSIZE_ANY(attr));
+
+	if (thisState->format == 0)
+	{
+		outputstr = OutputFunctionCall(&thisState->finfo, attr);
+		slot->tts_values[attrNum] = PointerGetDatum(outputstr);
+		slot->tts_values[attrNum] = outputstr;
+	}
+
+	/* Return to caller's context, and flush row's temporary memory */
+	MemoryContextSwitchTo(oldcontext);
+	MemoryContextReset(myState->tmpcontext);
+
+	return true;
+}
+
+/* ----------------
+ *		printtup --- print a tuple in protocol 3.0
+ * ----------------
+ */
 static bool
 printtup(TupleTableSlot *slot, DestReceiver *self)
 {

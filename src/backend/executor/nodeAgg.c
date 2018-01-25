@@ -229,6 +229,10 @@
 #include "utils/datum.h"
 
 
+#include "utils/rel.h"
+#include "foreign/foreign.h"
+#include "foreign/fdwapi.h"
+#include "executor/nodeForeignscan.h"
 /*
  * AggStatePerTransData - per aggregate state value information
  *
@@ -2144,7 +2148,36 @@ ExecAgg(PlanState *pstate)
 				break;
 			case AGG_PLAIN:
 			case AGG_SORTED:
+#ifdef FOREIGN_AGGREGATE_TSIP_IMPL
+				if(node->phase->aggnode->isForeign)
+				{
+					ForeignScanState * frgn_scan_node = ((ForeignScanState *)outerPlanState(node));
+					Oid relID = ((RelationData*)(frgn_scan_node->ss.ss_currentRelation))->rd_node.relNode;
+					ForeignServer * frgn_server = GetForeignServer(GetForeignServerIdByRelId(relID));
+					
+					if(strcasecmp(frgn_server->servername, "DDSF") == 0)//Only If the foreign table belongs to DDSF 
+					{
+						if(ForeignAggregate(node)){
+							result = project_aggregates(node);
+							node->ss.ps.ps_ProjInfo->pi_slot->tts_values=node->ss.ps.ps_ExprContext->ecxt_aggvalues;
+							node->ss.ps.ps_ProjInfo->pi_slot->tts_isnull=node->ss.ps.ps_ExprContext->ecxt_aggnulls; 
+							node->agg_done = true;
+						}else{
+							result = agg_retrieve_direct(node);
+						}
+					}
+					else
+					{
+						result = agg_retrieve_direct(node);
+					}
+				}
+				else
+				{
+					result = agg_retrieve_direct(node);
+				}
+#else
 				result = agg_retrieve_direct(node);
+#endif
 				break;
 		}
 
@@ -2720,6 +2753,11 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 	 */
 	aggstate = makeNode(AggState);
 	aggstate->ss.ps.plan = (Plan *) node;
+#ifdef FOREIGN_AGGREGATE_TSIP_IMPL
+	estate->agg_query = true;
+#else
+	estate->agg_query = false; // full scan mode.
+#endif
 	aggstate->ss.ps.state = estate;
 	aggstate->ss.ps.ExecProcNode = ExecAgg;
 
