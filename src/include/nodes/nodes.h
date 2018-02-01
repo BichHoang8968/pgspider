@@ -617,7 +617,7 @@ extern void *copyObjectImpl(const void *obj);
 
 /* cast result back to argument type, if supported by compiler */
 #ifdef HAVE_TYPEOF
-#define copyObject(obj) ((typeof(obj)) copyObjectImpl(obj))
+#define copyObject(obj) ((__typeof__(obj)) copyObjectImpl(obj))
 #else
 #define copyObject(obj) copyObjectImpl(obj)
 #endif

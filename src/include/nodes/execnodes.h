@@ -419,6 +419,7 @@ typedef struct ProgressState
 	uint64_t		ps_totalRows;
 	int				ps_fetchedRows;
 	bool 			ps_aggQuery;
+	Datum		    *ps_aggvalues;
 	TupleTableSlot	*ps_aggResult;
 	void 			*dest; /*Destination receiver */
 }	ProgressState;
