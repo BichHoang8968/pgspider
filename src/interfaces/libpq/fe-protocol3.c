@@ -407,6 +407,7 @@ pqParseInput3(PGconn *conn)
 					 * the COPY command.
 					 */
 					break;
+#ifdef GETPROGRESS_ENABLED
 				case 'P':
 					{
 						conn->asyncStatus = PGASYNC_PROGRESS_OUT;
@@ -439,6 +440,7 @@ pqParseInput3(PGconn *conn)
 						conn->inStart = conn->inCursor;
 					}
 					return;
+#endif
 				default:
 					printfPQExpBuffer(&conn->errorMessage,
 									  libpq_gettext(
