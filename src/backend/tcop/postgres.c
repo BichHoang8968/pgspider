@@ -81,9 +81,9 @@
 #include <pthread.h>
 #include <sys/syscall.h>
 
-#define GETPROGRESS_ENABLED
+//#define GETPROGRESS_ENABLED
 /* ----------------
- *		global variables
+ *....		global variables
  * ----------------
  */
 const char *debug_query_string; /* client-supplied query string */
@@ -487,7 +487,6 @@ SocketBackend(StringInfo inBuf)
 						(errcode(ERRCODE_PROTOCOL_VIOLATION),
 						 errmsg("invalid frontend message type %d", qtype)));
 			break;
-#endif
 		case 'R':				/* GetResult query type */
 			doing_extended_query_message = false;
 			if (PG_PROTOCOL_MAJOR(FrontendProtocol) < 3)
@@ -495,6 +494,7 @@ SocketBackend(StringInfo inBuf)
 						(errcode(ERRCODE_PROTOCOL_VIOLATION),
 						 errmsg("invalid frontend message type %d", qtype)));
 			break;
+#endif
 		default:
 
 			/*
@@ -4125,8 +4125,9 @@ PostgresMain(int argc, char *argv[],
 		 */
 		doing_extended_query_message = false;
 		/* set the flag to false in the begining of the Query */
+#ifdef GETPROGRESS_ENABLED
 		getResultFlag = false;
-
+#endif
 		/*
 		 * Release storage left over from prior query cycle, and create a new
 		 * query input buffer in the cleared MessageContext.
@@ -4250,6 +4251,8 @@ PostgresMain(int argc, char *argv[],
 			firstchar = ReadCommand(&input_message);
 		}
 		pthread_mutex_unlock(&prgThread_mutex);
+#else
+		firstchar = ReadCommand(&input_message);
 #endif
 
 		/*
@@ -4548,6 +4551,7 @@ PostgresMain(int argc, char *argv[],
 				 * is still sending data.
 				 */
 				break;
+#ifdef GETPROGRESS_ENABLED
 			case 'G':
 				{
 					ereport(ERROR, (errcode(ERRCODE_PROTOCOL_VIOLATION),
@@ -4562,7 +4566,7 @@ PostgresMain(int argc, char *argv[],
 					send_ready_for_query = false;
 				}    
 				break;
-
+#endif
 			default:
 				ereport(FATAL,
 						(errcode(ERRCODE_PROTOCOL_VIOLATION),
@@ -4571,7 +4575,9 @@ PostgresMain(int argc, char *argv[],
 		}
 	}							/* end of input-reading loop */
 	/* Deleting Progress Context */
+#ifdef GETPROGRESS_ENABLED
 	MemoryContextDelete(ProgressMemoryContext);	
+#endif
 }
 
 /*

@@ -55,7 +55,7 @@
 #include "utils/rel.h"
 #include "utils/typcache.h"
 
-#define GETPROGRESS_ENABLED 
+//#define GETPROGRESS_ENABLED 
 
 static void ShutdownExprContext(ExprContext *econtext, bool isCommit);
 
@@ -160,6 +160,8 @@ CreateExecutorState(void)
 	estate->es_sourceText = NULL;
 #ifdef GETPROGRESS_ENABLED
 	estate->es_progressState = gl_progressPtr;	/* Get progress initialization */
+#else
+	estate->es_use_parallel_mode = false;
 #endif
 
 	/*

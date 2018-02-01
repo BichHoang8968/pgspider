@@ -1792,6 +1792,9 @@ finalize_aggregates(AggState *aggstate,
 			finalize_aggregate(aggstate, peragg, pergroupstate,
 							   &aggvalues[aggno], &aggnulls[aggno]);
 	}
+#if 1
+	aggstate->ss.ps.state->es_progressState->ps_aggvalues = aggvalues;
+#endif
 }
 
 /*
@@ -2148,7 +2151,8 @@ ExecAgg(PlanState *pstate)
 				break;
 			case AGG_PLAIN:
 			case AGG_SORTED:
-#ifdef FOREIGN_AGGREGATE_TSIP_IMPL
+//#ifdef FOREIGN_AGGREGATE_TSIP_IMPL
+#if 0
 				if(node->phase->aggnode->isForeign)
 				{
 					ForeignScanState * frgn_scan_node = ((ForeignScanState *)outerPlanState(node));
@@ -4269,4 +4273,14 @@ aggregate_dummy(PG_FUNCTION_ARGS)
 	elog(ERROR, "aggregate function %u called as normal function",
 		 fcinfo->flinfo->fn_oid);
 	return (Datum) 0;			/* keep compiler quiet */
+}
+
+/**
+ * Extern of agg_retrieve_direct
+ * 
+ */
+TupleTableSlot *
+ExecRetreiveDirect(AggState *node)
+{
+	return agg_retrieve_direct(node);
 }

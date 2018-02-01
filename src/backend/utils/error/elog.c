@@ -443,6 +443,7 @@ errfinish(int dummy,...)
 	 */
 	if (elevel == ERROR)
 	{
+	    //pg_usleep(1000*1000L);
 		/*
 		 * We do some minimal cleanup before longjmp'ing so that handlers can
 		 * execute in a reasonably sane state.

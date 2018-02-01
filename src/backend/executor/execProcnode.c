@@ -278,7 +278,9 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 		case T_ForeignScan:
 			result = (PlanState *) ExecInitForeignScan((ForeignScan *) node,
 													   estate, eflags);
+#ifdef GETPROGRESS_ENABLED
 			isForeignScan = true;
+#endif
 			break;
 
 		case T_CustomScan:
