@@ -75,8 +75,6 @@ extern PGDLLEXPORT void _PG_init(void);
 bool sqlite_load_library(void);
 static void sqlite_fdw_exit(int code, Datum arg);
 
-
-
 PG_MODULE_MAGIC;
 
 
@@ -346,7 +344,6 @@ sqlitePrepare(sqlite3 *db, char *query, sqlite3_stmt **result,
 			(errcode(ERRCODE_FDW_UNABLE_TO_CREATE_EXECUTION),
 			 errmsg("SQL error during prepare: %s %s", sqlite3_errmsg(db), query)
 			));
-
 	}
 }
 
@@ -360,6 +357,10 @@ sqliteGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntable
 	double               rows = 0;
 	SqliteFdwRelationInfo *fpinfo;
 	ListCell             *lc;
+	RangeTblEntry *rte = planner_rt_fetch(baserel->relid, root);
+	const char *namespace;
+	const char *relname;
+	const char *refname;
 	elog(DEBUG1,"entering function %s",__func__);
 	fpinfo = (SqliteFdwRelationInfo *) palloc0(sizeof(SqliteFdwRelationInfo));
 	baserel->fdw_private = (void *) fpinfo;
@@ -401,6 +402,24 @@ sqliteGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntable
 	
 	baserel->rows = rows;
 	baserel->tuples = rows;
+
+
+	/*
+	 * Set the name of relation in fpinfo, while we are constructing it here.
+	 * It will be used to build the string describing the join relation in
+	 * EXPLAIN output. We can't know whether VERBOSE option is specified or
+	 * not, so always schema-qualify the foreign table name.
+	 */
+	fpinfo->relation_name = makeStringInfo();
+	namespace = get_namespace_name(get_rel_namespace(foreigntableid));
+	relname = get_rel_name(foreigntableid);
+	refname = rte->eref->aliasname;
+	appendStringInfo(fpinfo->relation_name, "%s.%s",
+					 quote_identifier(namespace),
+					 quote_identifier(relname));
+	if (*refname && strcmp(refname, relname) != 0)
+		appendStringInfo(fpinfo->relation_name, " %s",
+						 quote_identifier(rte->eref->aliasname));
 }
 
 
@@ -815,8 +834,8 @@ sqliteIterateForeignScan(ForeignScanState *node)
 			}
 			else if (SQLITE_DONE == rc)
 			{
-				break;
 				/* No more rows/data exists */
+				break;
 			}
 			else
 			{
@@ -968,7 +987,7 @@ sqliteAddForeignUpdateTargets(Query *parsetree,
 	if (!has_key)
 		ereport(ERROR,
 				(errcode(ERRCODE_FDW_UNABLE_TO_CREATE_EXECUTION),
-				 errmsg("no primary key column specified for foreign Oracle table"),
+				 errmsg("no primary key column specified for foreign table"),
 				 errdetail("For UPDATE or DELETE, at least one foreign table column must be marked as primary key column."),
 				 errhint("Set the option \"%s\" on the columns that belong to the primary key.", "key")));
 
@@ -1034,7 +1053,6 @@ sqlitePlanForeignModify(PlannerInfo *root,
 	
 			targetAttrs = lappend_int(targetAttrs, col);
 		}
-
 	}
 	else
 	{
@@ -1159,6 +1177,7 @@ sqliteBeginForeignModify(ModifyTableState *mtstate,
 	/* Prepare sqlite statment */
 	sqlitePrepare(fmstate->conn, fmstate->query, &fmstate->stmt, NULL);
 	resultRelInfo->ri_FdwState = fmstate;
+	
 	fmstate->junk_idx = palloc0(RelationGetDescr(rel)->natts * sizeof(AttrNumber));
 	/* loop through table columns */
 	for (i=0; i<RelationGetDescr(rel)->natts; ++i)
@@ -1335,7 +1354,6 @@ sqliteExecForeignDelete(EState *estate,
 		foreach (option, options)
 		{
 			DefElem *def = (DefElem *)lfirst(option);
-
 			if (IS_KEY_COLUMN(def))
 			{
 				/* Get the id that was passed up as a resjunk column */
@@ -1836,8 +1854,6 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 	{
 		List	   *aggvars = NIL;
 		ListCell   *lc;
-		//List	   *aggvars = pull_var_clause((Node *) fpinfo->local_conds,
-		//									  PVC_INCLUDE_AGGREGATES);
 
 		foreach(lc, fpinfo->local_conds)
 		{
@@ -1902,8 +1918,8 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 	 * output of corresponding ForeignScan.
 	 */
 	fpinfo->relation_name = makeStringInfo();
-	//appendStringInfo(fpinfo->relation_name, "Aggregate on (%s)",
-					 //ofpinfo->relation_name->data);
+	appendStringInfo(fpinfo->relation_name, "Aggregate on (%s)",
+					 ofpinfo->relation_name->data);
 
 	return true;
 }

@@ -65,7 +65,6 @@ static void sqlitefdw_subxact_callback(SubXactEvent event,
 					   SubTransactionId mySubid,
 					   SubTransactionId parentSubid,
 					   void *arg);
-static void sqlitefdw_inval_callback(Datum arg, int cacheid, uint32 hashvalue);
 
 /*
  * sqlite_get_connection:
@@ -127,24 +126,26 @@ sqlite_get_connection(ForeignServer *server)
 	if (entry->conn == NULL)
 	{
 		int rc;
+		char *err;
 		entry->xact_depth = 0;
 		rc = sqlite3_open(dbpath, &entry->conn);
 		if (rc != SQLITE_OK)
 			ereport(ERROR,
-				  (errcode(ERRCODE_FDW_UNABLE_TO_ESTABLISH_CONNECTION),
-				   errmsg("failed to open SQLite DB. rc=%d",rc)
-				   ));
+					(errcode(ERRCODE_FDW_UNABLE_TO_ESTABLISH_CONNECTION),
+					 errmsg("failed to open SQLite DB. rc=%d path=%s", rc, dbpath)));
 		/* make 'LIKE' of SQLite case sensitive like PostgreSQL */
 		rc = sqlite3_exec(entry->conn, "pragma case_sensitive_like=1",
-						  NULL, NULL, NULL);
-	  	if (rc != SQLITE_OK) {
-		  sqlite3_close(entry->conn);
-		  entry->conn = NULL;
-		  ereport(ERROR,
-				  (errcode(ERRCODE_FDW_UNABLE_TO_ESTABLISH_CONNECTION),
-				   errmsg("failed to open SQLite DB. rc=%d",rc)
-				   ));
-	  }
+						  NULL, NULL, &err);
+		if (rc != SQLITE_OK)
+		{
+			char *perr = pstrdup(err);
+			sqlite3_free(err);
+			sqlite3_close(entry->conn);
+			entry->conn = NULL;
+			ereport(ERROR,
+					(errcode(ERRCODE_FDW_UNABLE_TO_ESTABLISH_CONNECTION),
+					 errmsg("failed to open SQLite DB. err=%s rc=%d", perr, rc)));
+		}
 	}
 	/*
 	 * Start a new transaction or subtransaction if needed.
