@@ -1,6 +1,6 @@
 CREATE EXTENSION sqlite_fdw;
 CREATE SERVER sqlite_svr FOREIGN DATA WRAPPER sqlite_fdw
-OPTIONS (database '/home/mochizuki/ddsf/master/sqlite_fdw/test.db');
+OPTIONS (database '../../test.db');
 CREATE FOREIGN TABLE department(department_id int OPTIONS (key 'true'), department_name text) SERVER sqlite_svr; 
 CREATE FOREIGN TABLE employee(emp_id int OPTIONS (key 'true'), emp_name text, emp_dept_id int) SERVER sqlite_svr;
 CREATE FOREIGN TABLE empdata(emp_id int OPTIONS (key 'true'), emp_dat bytea) SERVER sqlite_svr;
@@ -173,10 +173,10 @@ explain (costs off, verbose) select sum(b),max(b), min(b), avg(b) from multiprim
 select sum(b)/2 from multiprimary group by b/2 order by b/2;
 explain (costs off, verbose) select sum(b)/2 from multiprimary group by b/2 order by b/2;
 
-select sum(a) from multiprimary group by b having sum(a) > 0;
+select sum(a) from multiprimary group by b having sum(a) > 0 order by sum(a);
 explain (costs off, verbose) select sum(a) from multiprimary group by b having sum(a) > 0;
 
-select sum(a) from multiprimary group by b having avg(abs(a)) > 0 and sum(a) > 0;
+select sum(a) A from multiprimary group by b having avg(abs(a)) > 0 and sum(a) > 0 order by A;
 explain (costs off, verbose) select sum(a) from multiprimary group by b having avg(a^2) > 0 and sum(a) > 0;
 
 select * from multiprimary, numbers where multiprimary.a=numbers.a;
