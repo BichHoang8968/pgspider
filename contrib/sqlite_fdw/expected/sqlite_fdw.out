@@ -1,0 +1,725 @@
+CREATE EXTENSION sqlite_fdw;
+CREATE SERVER sqlite_svr FOREIGN DATA WRAPPER sqlite_fdw
+OPTIONS (database '/home/mochizuki/ddsf/master/sqlite_fdw/test.db');
+CREATE FOREIGN TABLE department(department_id int OPTIONS (key 'true'), department_name text) SERVER sqlite_svr; 
+CREATE FOREIGN TABLE employee(emp_id int OPTIONS (key 'true'), emp_name text, emp_dept_id int) SERVER sqlite_svr;
+CREATE FOREIGN TABLE empdata(emp_id int OPTIONS (key 'true'), emp_dat bytea) SERVER sqlite_svr;
+CREATE FOREIGN TABLE numbers(a int OPTIONS (key 'true'), b varchar(255)) SERVER sqlite_svr;
+CREATE FOREIGN TABLE multiprimary(a int, b int OPTIONS (key 'true'), c int OPTIONS(key 'true')) SERVER sqlite_svr;
+SELECT * FROM department LIMIT 10;
+ department_id | department_name 
+---------------+-----------------
+(0 rows)
+
+SELECT * FROM employee LIMIT 10;
+ emp_id | emp_name | emp_dept_id 
+--------+----------+-------------
+(0 rows)
+
+SELECT * FROM empdata LIMIT 10;
+ emp_id | emp_dat 
+--------+---------
+(0 rows)
+
+INSERT INTO department VALUES(generate_series(1,100), 'dept - ' || generate_series(1,100));
+INSERT INTO employee VALUES(generate_series(1,100), 'emp - ' || generate_series(1,100), generate_series(1,100));
+INSERT INTO empdata  VALUES(1, decode ('01234567', 'hex'));
+insert into numbers values(1, 'One');
+insert into numbers values(2, 'Two');
+insert into numbers values(3, 'Three');
+insert into numbers values(4, 'Four');
+insert into numbers values(5, 'Five');
+insert into numbers values(6, 'Six');
+insert into numbers values(7, 'Seven');
+insert into numbers values(8, 'Eight');
+insert into numbers values(9, 'Nine');
+SELECT count(*) FROM department;
+ count 
+-------
+   100
+(1 row)
+
+SELECT count(*) FROM employee;
+ count 
+-------
+   100
+(1 row)
+
+SELECT count(*) FROM empdata;
+ count 
+-------
+     1
+(1 row)
+
+EXPLAIN (COSTS FALSE) SELECT * FROM department d, employee e WHERE d.department_id = e.emp_dept_id LIMIT 10;
+                       QUERY PLAN                       
+--------------------------------------------------------
+ Limit
+   ->  Nested Loop
+         Join Filter: (d.department_id = e.emp_dept_id)
+         ->  Foreign Scan on department d
+               SQLite plan: SCAN TABLE department
+         ->  Materialize
+               ->  Foreign Scan on employee e
+                     SQLite plan: SCAN TABLE employee
+(8 rows)
+
+EXPLAIN (COSTS FALSE) SELECT * FROM department d, employee e WHERE d.department_id IN (SELECT department_id FROM department) LIMIT 10;
+                                                   QUERY PLAN                                                    
+-----------------------------------------------------------------------------------------------------------------
+ Limit
+   ->  Nested Loop
+         ->  Nested Loop Semi Join
+               Join Filter: (d.department_id = department.department_id)
+               ->  Foreign Scan on department d
+                     SQLite plan: SCAN TABLE department
+               ->  Materialize
+                     ->  Foreign Scan on department
+                           SQLite plan: SCAN TABLE department USING COVERING INDEX sqlite_autoindex_department_1
+         ->  Materialize
+               ->  Foreign Scan on employee e
+                     SQLite plan: SCAN TABLE employee
+(12 rows)
+
+SELECT * FROM department d, employee e WHERE d.department_id = e.emp_dept_id LIMIT 10;
+ department_id | department_name | emp_id | emp_name | emp_dept_id 
+---------------+-----------------+--------+----------+-------------
+             1 | dept - 1        |      1 | emp - 1  |           1
+             2 | dept - 2        |      2 | emp - 2  |           2
+             3 | dept - 3        |      3 | emp - 3  |           3
+             4 | dept - 4        |      4 | emp - 4  |           4
+             5 | dept - 5        |      5 | emp - 5  |           5
+             6 | dept - 6        |      6 | emp - 6  |           6
+             7 | dept - 7        |      7 | emp - 7  |           7
+             8 | dept - 8        |      8 | emp - 8  |           8
+             9 | dept - 9        |      9 | emp - 9  |           9
+            10 | dept - 10       |     10 | emp - 10 |          10
+(10 rows)
+
+SELECT * FROM department d, employee e WHERE d.department_id IN (SELECT department_id FROM department) LIMIT 10;
+ department_id | department_name | emp_id | emp_name | emp_dept_id 
+---------------+-----------------+--------+----------+-------------
+             1 | dept - 1        |      1 | emp - 1  |           1
+             1 | dept - 1        |      2 | emp - 2  |           2
+             1 | dept - 1        |      3 | emp - 3  |           3
+             1 | dept - 1        |      4 | emp - 4  |           4
+             1 | dept - 1        |      5 | emp - 5  |           5
+             1 | dept - 1        |      6 | emp - 6  |           6
+             1 | dept - 1        |      7 | emp - 7  |           7
+             1 | dept - 1        |      8 | emp - 8  |           8
+             1 | dept - 1        |      9 | emp - 9  |           9
+             1 | dept - 1        |     10 | emp - 10 |          10
+(10 rows)
+
+SELECT * FROM empdata;
+ emp_id |  emp_dat   
+--------+------------
+      1 | \x01234567
+(1 row)
+
+DELETE FROM employee WHERE emp_id = 10;
+SELECT COUNT(*) FROM department LIMIT 10;
+ count 
+-------
+   100
+(1 row)
+
+SELECT COUNT(*) FROM employee WHERE emp_id = 10;
+ count 
+-------
+     0
+(1 row)
+
+UPDATE employee SET emp_name = 'Updated emp' WHERE emp_id = 20;
+SELECT emp_id, emp_name FROM employee WHERE emp_name like 'Updated emp';
+ emp_id |  emp_name   
+--------+-------------
+     20 | Updated emp
+(1 row)
+
+UPDATE empdata SET emp_dat = decode ('0123', 'hex');
+SELECT * FROM empdata;
+ emp_id | emp_dat 
+--------+---------
+      1 | \x0123
+(1 row)
+
+SELECT * FROM employee LIMIT 10;
+ emp_id | emp_name | emp_dept_id 
+--------+----------+-------------
+      1 | emp - 1  |           1
+      2 | emp - 2  |           2
+      3 | emp - 3  |           3
+      4 | emp - 4  |           4
+      5 | emp - 5  |           5
+      6 | emp - 6  |           6
+      7 | emp - 7  |           7
+      8 | emp - 8  |           8
+      9 | emp - 9  |           9
+     11 | emp - 11 |          11
+(10 rows)
+
+SELECT * FROM employee WHERE emp_id IN (1);
+ emp_id | emp_name | emp_dept_id 
+--------+----------+-------------
+      1 | emp - 1  |           1
+(1 row)
+
+SELECT * FROM employee WHERE emp_id IN (1,3,4,5);
+ emp_id | emp_name | emp_dept_id 
+--------+----------+-------------
+      1 | emp - 1  |           1
+      3 | emp - 3  |           3
+      4 | emp - 4  |           4
+      5 | emp - 5  |           5
+(4 rows)
+
+SELECT * FROM employee WHERE emp_id IN (10000,1000);
+ emp_id | emp_name | emp_dept_id 
+--------+----------+-------------
+(0 rows)
+
+SELECT * FROM employee WHERE emp_id NOT IN (1) LIMIT 5;
+ emp_id | emp_name | emp_dept_id 
+--------+----------+-------------
+      2 | emp - 2  |           2
+      3 | emp - 3  |           3
+      4 | emp - 4  |           4
+      5 | emp - 5  |           5
+      6 | emp - 6  |           6
+(5 rows)
+
+SELECT * FROM employee WHERE emp_id NOT IN (1,3,4,5) LIMIT 5;
+ emp_id | emp_name | emp_dept_id 
+--------+----------+-------------
+      2 | emp - 2  |           2
+      6 | emp - 6  |           6
+      7 | emp - 7  |           7
+      8 | emp - 8  |           8
+      9 | emp - 9  |           9
+(5 rows)
+
+SELECT * FROM employee WHERE emp_id NOT IN (10000,1000) LIMIT 5;
+ emp_id | emp_name | emp_dept_id 
+--------+----------+-------------
+      1 | emp - 1  |           1
+      2 | emp - 2  |           2
+      3 | emp - 3  |           3
+      4 | emp - 4  |           4
+      5 | emp - 5  |           5
+(5 rows)
+
+SELECT * FROM employee WHERE emp_id NOT IN (SELECT emp_id FROM employee WHERE emp_id IN (1,10));
+ emp_id |  emp_name   | emp_dept_id 
+--------+-------------+-------------
+      2 | emp - 2     |           2
+      3 | emp - 3     |           3
+      4 | emp - 4     |           4
+      5 | emp - 5     |           5
+      6 | emp - 6     |           6
+      7 | emp - 7     |           7
+      8 | emp - 8     |           8
+      9 | emp - 9     |           9
+     11 | emp - 11    |          11
+     12 | emp - 12    |          12
+     13 | emp - 13    |          13
+     14 | emp - 14    |          14
+     15 | emp - 15    |          15
+     16 | emp - 16    |          16
+     17 | emp - 17    |          17
+     18 | emp - 18    |          18
+     19 | emp - 19    |          19
+     20 | Updated emp |          20
+     21 | emp - 21    |          21
+     22 | emp - 22    |          22
+     23 | emp - 23    |          23
+     24 | emp - 24    |          24
+     25 | emp - 25    |          25
+     26 | emp - 26    |          26
+     27 | emp - 27    |          27
+     28 | emp - 28    |          28
+     29 | emp - 29    |          29
+     30 | emp - 30    |          30
+     31 | emp - 31    |          31
+     32 | emp - 32    |          32
+     33 | emp - 33    |          33
+     34 | emp - 34    |          34
+     35 | emp - 35    |          35
+     36 | emp - 36    |          36
+     37 | emp - 37    |          37
+     38 | emp - 38    |          38
+     39 | emp - 39    |          39
+     40 | emp - 40    |          40
+     41 | emp - 41    |          41
+     42 | emp - 42    |          42
+     43 | emp - 43    |          43
+     44 | emp - 44    |          44
+     45 | emp - 45    |          45
+     46 | emp - 46    |          46
+     47 | emp - 47    |          47
+     48 | emp - 48    |          48
+     49 | emp - 49    |          49
+     50 | emp - 50    |          50
+     51 | emp - 51    |          51
+     52 | emp - 52    |          52
+     53 | emp - 53    |          53
+     54 | emp - 54    |          54
+     55 | emp - 55    |          55
+     56 | emp - 56    |          56
+     57 | emp - 57    |          57
+     58 | emp - 58    |          58
+     59 | emp - 59    |          59
+     60 | emp - 60    |          60
+     61 | emp - 61    |          61
+     62 | emp - 62    |          62
+     63 | emp - 63    |          63
+     64 | emp - 64    |          64
+     65 | emp - 65    |          65
+     66 | emp - 66    |          66
+     67 | emp - 67    |          67
+     68 | emp - 68    |          68
+     69 | emp - 69    |          69
+     70 | emp - 70    |          70
+     71 | emp - 71    |          71
+     72 | emp - 72    |          72
+     73 | emp - 73    |          73
+     74 | emp - 74    |          74
+     75 | emp - 75    |          75
+     76 | emp - 76    |          76
+     77 | emp - 77    |          77
+     78 | emp - 78    |          78
+     79 | emp - 79    |          79
+     80 | emp - 80    |          80
+     81 | emp - 81    |          81
+     82 | emp - 82    |          82
+     83 | emp - 83    |          83
+     84 | emp - 84    |          84
+     85 | emp - 85    |          85
+     86 | emp - 86    |          86
+     87 | emp - 87    |          87
+     88 | emp - 88    |          88
+     89 | emp - 89    |          89
+     90 | emp - 90    |          90
+     91 | emp - 91    |          91
+     92 | emp - 92    |          92
+     93 | emp - 93    |          93
+     94 | emp - 94    |          94
+     95 | emp - 95    |          95
+     96 | emp - 96    |          96
+     97 | emp - 97    |          97
+     98 | emp - 98    |          98
+     99 | emp - 99    |          99
+    100 | emp - 100   |         100
+(98 rows)
+
+SELECT * FROM employee WHERE emp_name NOT IN ('emp - 1', 'emp - 2') LIMIT 5;
+ emp_id | emp_name | emp_dept_id 
+--------+----------+-------------
+      3 | emp - 3  |           3
+      4 | emp - 4  |           4
+      5 | emp - 5  |           5
+      6 | emp - 6  |           6
+      7 | emp - 7  |           7
+(5 rows)
+
+SELECT * FROM employee WHERE emp_name NOT IN ('emp - 10') LIMIT 5;
+ emp_id | emp_name | emp_dept_id 
+--------+----------+-------------
+      1 | emp - 1  |           1
+      2 | emp - 2  |           2
+      3 | emp - 3  |           3
+      4 | emp - 4  |           4
+      5 | emp - 5  |           5
+(5 rows)
+
+create or replace function test_param_where() returns void as $$
+DECLARE
+  n varchar;
+BEGIN
+  FOR x IN 1..9 LOOP
+    select b into n from numbers where a=x;
+    raise notice 'Found number %', n;
+  end loop;
+  return;
+END
+$$ LANGUAGE plpgsql;
+SELECT test_param_where();
+NOTICE:  Found number One
+NOTICE:  Found number Two
+NOTICE:  Found number Three
+NOTICE:  Found number Four
+NOTICE:  Found number Five
+NOTICE:  Found number Six
+NOTICE:  Found number Seven
+NOTICE:  Found number Eight
+NOTICE:  Found number Nine
+ test_param_where 
+------------------
+ 
+(1 row)
+
+select b from numbers where a=1;
+  b  
+-----
+ One
+(1 row)
+
+EXPLAIN(COSTS OFF) select b from numbers where a=1;
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Foreign Scan on numbers
+   SQLite plan: SEARCH TABLE numbers USING INDEX sqlite_autoindex_numbers_1 (a=?)
+(2 rows)
+
+SELECT a FROM numbers WHERE b = (SELECT NULL::text);
+ a 
+---
+(0 rows)
+
+PREPARE stmt1 (int, int) AS
+  SELECT * FROM numbers WHERE a=$1 or a=$2;
+EXECUTE stmt1(1,2);
+ a |  b  
+---+-----
+ 1 | One
+ 2 | Two
+(2 rows)
+
+EXECUTE stmt1(2,2); 
+ a |  b  
+---+-----
+ 2 | Two
+(1 row)
+
+EXECUTE stmt1(3,2); 
+ a |   b   
+---+-------
+ 2 | Two
+ 3 | Three
+(2 rows)
+
+EXECUTE stmt1(4,2); 
+ a |  b   
+---+------
+ 2 | Two
+ 4 | Four
+(2 rows)
+
+EXECUTE stmt1(5,2); -- generic plan
+ a |  b   
+---+------
+ 2 | Two
+ 5 | Five
+(2 rows)
+
+EXECUTE stmt1(6,2); 
+ a |  b  
+---+-----
+ 2 | Two
+ 6 | Six
+(2 rows)
+
+EXECUTE stmt1(7,2); 
+ a |   b   
+---+-------
+ 2 | Two
+ 7 | Seven
+(2 rows)
+
+DELETE FROM employee;
+DELETE FROM department;
+DELETE FROM empdata;
+DELETE FROM numbers;
+BEGIN;
+insert into numbers values(1, 'One');
+insert into numbers values(2, 'Two');
+COMMIT;
+select * from numbers;
+ a |  b  
+---+-----
+ 1 | One
+ 2 | Two
+(2 rows)
+
+BEGIN;
+insert into numbers values(3, 'Three');
+ROLLBACK;
+select * from numbers;
+ a |  b  
+---+-----
+ 1 | One
+ 2 | Two
+(2 rows)
+
+BEGIN;
+insert into numbers values(4, 'Four');
+SAVEPOINT my_savepoint;
+insert into numbers values(5, 'Five');
+ROLLBACK TO SAVEPOINT my_savepoint;
+insert into numbers values(6, 'Six');
+COMMIT;
+select * from numbers;
+ a |  b   
+---+------
+ 1 | One
+ 2 | Two
+ 4 | Four
+ 6 | Six
+(4 rows)
+
+insert into numbers values(1, 'One');
+ERROR:  failed to execute remote SQL: rc=1 SQL logic error or missing database 
+   sql=INSERT INTO main."numbers"("a", "b") VALUES (?, ?)
+delete from numbers;
+BEGIN;
+insert into numbers values(1, 'One');
+insert into numbers values(2, 'Two');
+COMMIT;
+-- violate unique constraint
+update numbers set b='Two' where a = 1; 
+ERROR:  failed to execute remote SQL: rc=1 SQL logic error or missing database 
+   sql=UPDATE main."numbers" SET "b" = ? WHERE a = ?
+select * from numbers;
+ a |  b  
+---+-----
+ 1 | One
+ 2 | Two
+(2 rows)
+
+-- push down
+explain (costs off) select * from numbers where  a = any(ARRAY[2,3,4,5]::int[]);
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Foreign Scan on numbers
+   SQLite plan: SEARCH TABLE numbers USING INDEX sqlite_autoindex_numbers_1 (a=?)
+   SQLite plan: EXECUTE LIST SUBQUERY 1
+(3 rows)
+
+-- (1,2,3) is pushed down
+explain (costs off) select * from numbers where a in (1,2,3) and (1,2) < (a,5);
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Foreign Scan on numbers
+   Filter: (ROW(1, 2) < ROW(a, 5))
+   SQLite plan: SEARCH TABLE numbers USING INDEX sqlite_autoindex_numbers_1 (a=?)
+   SQLite plan: EXECUTE LIST SUBQUERY 1
+(4 rows)
+
+-- not push down
+explain (costs off) select * from numbers where a in (a+2*a,5);
+            QUERY PLAN             
+-----------------------------------
+ Foreign Scan on numbers
+   SQLite plan: SCAN TABLE numbers
+(2 rows)
+
+explain (costs off) select * from numbers where  a = any(ARRAY[1,2,a]::int[]);
+              QUERY PLAN              
+--------------------------------------
+ Foreign Scan on numbers
+   Filter: (a = ANY (ARRAY[1, 2, a]))
+   SQLite plan: SCAN TABLE numbers
+(3 rows)
+
+select * from numbers where  a = any(ARRAY[2,3,4,5]::int[]);
+ a |  b  
+---+-----
+ 2 | Two
+(1 row)
+
+select * from numbers where  a = any(ARRAY[1,2,a]::int[]);
+ a |  b  
+---+-----
+ 1 | One
+ 2 | Two
+(2 rows)
+
+insert into multiprimary values(1,2,3);
+insert into multiprimary values(1,2,4);
+update multiprimary set b = 10 where c = 3;
+select * from multiprimary;
+ a | b  | c 
+---+----+---
+ 1 | 10 | 3
+ 1 |  2 | 4
+(2 rows)
+
+update multiprimary set a = 10 where a = 1;
+select * from multiprimary;
+ a  | b  | c 
+----+----+---
+ 10 | 10 | 3
+ 10 |  2 | 4
+(2 rows)
+
+update multiprimary set a = 100, b=200, c=300 where a=10 and b=10;
+select * from multiprimary;
+  a  |  b  |  c  
+-----+-----+-----
+ 100 | 200 | 300
+  10 |   2 |   4
+(2 rows)
+
+update multiprimary set a = 1234;
+select * from multiprimary;
+  a   |  b  |  c  
+------+-----+-----
+ 1234 | 200 | 300
+ 1234 |   2 |   4
+(2 rows)
+
+update multiprimary set a = a+1, b=b+1 where b=200 and c=300;
+select * from multiprimary;
+  a   |  b  |  c  
+------+-----+-----
+ 1235 | 201 | 300
+ 1234 |   2 |   4
+(2 rows)
+
+delete from multiprimary where a = 1235;
+select * from multiprimary;
+  a   | b | c 
+------+---+---
+ 1234 | 2 | 4
+(1 row)
+
+delete from multiprimary where b = 2;
+select * from multiprimary;
+ a | b | c 
+---+---+---
+(0 rows)
+
+insert into multiprimary values(1,2,3);
+insert into multiprimary values(1,2,4);
+insert into multiprimary values(1,10,20);
+insert into multiprimary values(2,20,40);
+select count(distinct a) from multiprimary;
+ count 
+-------
+     2
+(1 row)
+
+explain (costs off, verbose) select count(distinct a) from multiprimary;
+                             QUERY PLAN                              
+---------------------------------------------------------------------
+ Foreign Scan
+   Output: (count(DISTINCT a))
+   SQLite query: SELECT count(DISTINCT "a") FROM main."multiprimary"
+   SQLite plan: SCAN TABLE multiprimary
+(4 rows)
+
+select sum(b),max(b), min(b), avg(b) from multiprimary;
+ sum | max | min | avg 
+-----+-----+-----+-----
+  34 |  20 |   2 | 8.5
+(1 row)
+
+explain (costs off, verbose) select sum(b),max(b), min(b), avg(b) from multiprimary;
+                                         QUERY PLAN                                          
+---------------------------------------------------------------------------------------------
+ Foreign Scan
+   Output: (sum(b)), (max(b)), (min(b)), (avg(b))
+   SQLite query: SELECT sum("b"), max("b"), min("b"), avg("b") FROM main."multiprimary"
+   SQLite plan: SCAN TABLE multiprimary USING COVERING INDEX sqlite_autoindex_multiprimary_1
+(4 rows)
+
+select sum(b)/2 from multiprimary group by b/2 order by b/2;
+ ?column? 
+----------
+        2
+        5
+       10
+(3 rows)
+
+explain (costs off, verbose) select sum(b)/2 from multiprimary group by b/2 order by b/2;
+                                              QUERY PLAN                                              
+------------------------------------------------------------------------------------------------------
+ Sort
+   Output: ((sum(b) / 2)), ((b / 2))
+   Sort Key: ((multiprimary.b / 2))
+   ->  Foreign Scan
+         Output: ((sum(b) / 2)), ((b / 2))
+         SQLite query: SELECT (sum("b") / 2), ("b" / 2) FROM main."multiprimary" GROUP BY (("b" / 2))
+         SQLite plan: SCAN TABLE multiprimary USING COVERING INDEX sqlite_autoindex_multiprimary_1
+         SQLite plan: USE TEMP B-TREE FOR GROUP BY
+(8 rows)
+
+select sum(a) from multiprimary group by b having sum(a) > 0;
+ sum 
+-----
+   2
+   1
+   2
+(3 rows)
+
+explain (costs off, verbose) select sum(a) from multiprimary group by b having sum(a) > 0;
+                                             QUERY PLAN                                             
+----------------------------------------------------------------------------------------------------
+ Foreign Scan
+   Output: (sum(a)), b
+   SQLite query: SELECT sum("a"), "b" FROM main."multiprimary" GROUP BY "b" HAVING ((sum("a") > 0))
+   SQLite plan: SCAN TABLE multiprimary USING INDEX sqlite_autoindex_multiprimary_1
+(4 rows)
+
+select sum(a) from multiprimary group by b having avg(abs(a)) > 0 and sum(a) > 0;
+ sum 
+-----
+   1
+   2
+   2
+(3 rows)
+
+explain (costs off, verbose) select sum(a) from multiprimary group by b having avg(a^2) > 0 and sum(a) > 0;
+                                                              QUERY PLAN                                                               
+---------------------------------------------------------------------------------------------------------------------------------------
+ HashAggregate
+   Output: sum(a), b
+   Group Key: multiprimary.b
+   Filter: ((avg(((multiprimary.a)::double precision ^ '2'::double precision)) > '0'::double precision) AND (sum(multiprimary.a) > 0))
+   ->  Foreign Scan on public.multiprimary
+         Output: a, b, c
+         SQLite query: SELECT "a", "b" FROM main."multiprimary"
+         SQLite plan: SCAN TABLE multiprimary
+(8 rows)
+
+select * from multiprimary, numbers where multiprimary.a=numbers.a;
+ a | b  | c  | a |  b  
+---+----+----+---+-----
+ 1 |  2 |  3 | 1 | One
+ 1 |  2 |  4 | 1 | One
+ 1 | 10 | 20 | 1 | One
+ 2 | 20 | 40 | 2 | Two
+(4 rows)
+
+explain (costs off, verbose) select * from multiprimary, numbers where multiprimary.a=numbers.a;
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
+ Merge Join
+   Output: multiprimary.a, multiprimary.b, multiprimary.c, numbers.a, numbers.b
+   Merge Cond: (multiprimary.a = numbers.a)
+   ->  Sort
+         Output: multiprimary.a, multiprimary.b, multiprimary.c
+         Sort Key: multiprimary.a
+         ->  Foreign Scan on public.multiprimary
+               Output: multiprimary.a, multiprimary.b, multiprimary.c
+               SQLite query: SELECT "a", "b", "c" FROM main."multiprimary"
+               SQLite plan: SCAN TABLE multiprimary
+   ->  Materialize
+         Output: numbers.a, numbers.b
+         ->  Sort
+               Output: numbers.a, numbers.b
+               Sort Key: numbers.a
+               ->  Foreign Scan on public.numbers
+                     Output: numbers.a, numbers.b
+                     SQLite query: SELECT "a", "b" FROM main."numbers"
+                     SQLite plan: SCAN TABLE numbers
+(19 rows)
+
+DROP FUNCTION test_param_where();
+DROP FOREIGN TABLE numbers;
+DROP FOREIGN TABLE department;
+DROP FOREIGN TABLE employee;
+DROP FOREIGN TABLE empdata;
+DROP FOREIGN TABLE multiprimary;
+DROP SERVER sqlite_svr;
+DROP EXTENSION sqlite_fdw CASCADE;

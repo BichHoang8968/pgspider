@@ -1,0 +1,526 @@
+drop database postgres;
+create database postgres;
+\c postgres postgres;
+CREATE EXTENSION sqlite_fdw;
+CREATE SERVER sqlite_svr FOREIGN DATA WRAPPER sqlite_fdw
+OPTIONS (dbname '/home/mochizuki/ddsf/sqlite_fdw/test.db');
+CREATE SERVER sqlite2 FOREIGN DATA WRAPPER sqlite_fdw;
+IMPORT FOREIGN SCHEMA public FROM SERVER sqlite_svr INTO public;
+INFO:  open /home/mochizuki/ddsf/sqlite_fdw/test.db
+
+INFO:  tbl type_STRING CREATE FOREIGN TABLE public."type_STRING" (
+col text
+) SERVER sqlite_svr
+OPTIONS (table_name '"type_STRING"')
+
+INFO:  tbl type_BOOLEAN CREATE FOREIGN TABLE public."type_BOOLEAN" (
+col boolean
+) SERVER sqlite_svr
+OPTIONS (table_name '"type_BOOLEAN"')
+
+INFO:  tbl type_BYTE CREATE FOREIGN TABLE public."type_BYTE" (
+col char
+) SERVER sqlite_svr
+OPTIONS (table_name '"type_BYTE"')
+
+INFO:  tbl type_SINT CREATE FOREIGN TABLE public."type_SINT" (
+col smallint
+) SERVER sqlite_svr
+OPTIONS (table_name '"type_SINT"')
+
+INFO:  tbl type_BINT CREATE FOREIGN TABLE public."type_BINT" (
+col bigint
+) SERVER sqlite_svr
+OPTIONS (table_name '"type_BINT"')
+
+INFO:  tbl type_INTEGER CREATE FOREIGN TABLE public."type_INTEGER" (
+col bigint
+) SERVER sqlite_svr
+OPTIONS (table_name '"type_INTEGER"')
+
+INFO:  tbl type_FLOAT CREATE FOREIGN TABLE public."type_FLOAT" (
+col real
+) SERVER sqlite_svr
+OPTIONS (table_name '"type_FLOAT"')
+
+INFO:  tbl type_DOUBLE CREATE FOREIGN TABLE public."type_DOUBLE" (
+col double precision
+) SERVER sqlite_svr
+OPTIONS (table_name '"type_DOUBLE"')
+
+INFO:  tbl type_TIMESTAMP CREATE FOREIGN TABLE public."type_TIMESTAMP" (
+col timestamp
+) SERVER sqlite_svr
+OPTIONS (table_name '"type_TIMESTAMP"')
+
+INFO:  tbl type_BLOB CREATE FOREIGN TABLE public."type_BLOB" (
+col bytea
+) SERVER sqlite_svr
+OPTIONS (table_name '"type_BLOB"')
+
+INFO:  tbl typetest1 CREATE FOREIGN TABLE public.typetest1 (
+id bigint,
+c character(10),
+nc character(10),
+vc character varying(10),
+nvc character varying(10),
+lc text,
+r bytea,
+u uuid,
+lb bytea,
+lr bytea,
+b boolean,
+num numeric(7,5),
+fl float,
+db double precision,
+d date,
+ts timestamp with time zone,
+ids interval,
+iym interval
+) SERVER sqlite_svr
+OPTIONS (table_name 'typetest1')
+
+INFO:  tbl shorty CREATE FOREIGN TABLE public.shorty (
+id bigint,
+c character(10)
+) SERVER sqlite_svr
+OPTIONS (table_name 'shorty')
+
+INFO:  tbl longy CREATE FOREIGN TABLE public.longy (
+id bigint,
+c character(10),
+nc character(10),
+vc character varying(10),
+nvc character varying(10),
+lc text,
+r bytea,
+u uuid,
+lb bytea,
+lr bytea,
+b boolean,
+num numeric(7,5),
+fl float,
+db double precision,
+d date,
+ts timestamp with time zone,
+ids interval,
+iym interval,
+x bigint
+) SERVER sqlite_svr
+OPTIONS (table_name 'longy')
+
+/*
+CREATE TABLE "type_STRING" (col text)
+CREATE TABLE "type_BOOLEAN" (col boolean)
+CREATE TABLE "type_BYTE" (col char)
+CREATE TABLE "type_SHORT" (col short)
+CREATE TABLE "type_INTEGER" (col integer)
+CREATE TABLE "type_LONG" (col long)
+CREATE TABLE "type_FLOAT" (col float)
+CREATE TABLE "type_DOUBLE" (col double)
+CREATE TABLE "type_TIMESTAMP" (col timestamp)
+-- CREATE TABLE "type_GEOMETRY" (col geometry)
+CREATE TABLE "type_BLOB" (col blob)
+*/
+INSERT INTO "type_STRING"(col) VALUES ('string');
+ERROR:  failed to execute the Sqlite query: 
+rc=19:UNIQUE constraint failed: type_STRING.col
+INSERT INTO "type_BOOLEAN"(col) VALUES (TRUE);
+ERROR:  failed to execute the Sqlite query: 
+rc=19:UNIQUE constraint failed: type_BOOLEAN.col
+INSERT INTO "type_BYTE"(col) VALUES ('c');
+ERROR:  failed to execute the Sqlite query: 
+rc=19:UNIQUE constraint failed: type_BYTE.col
+--INSERT INTO "type_SHORT"(col) VALUES (1);
+INSERT INTO "type_SINT"(col) VALUES (32767);
+ERROR:  failed to execute the Sqlite query: 
+rc=19:UNIQUE constraint failed: type_SINT.col
+INSERT INTO "type_BINT"(col) VALUES (2147483648);
+ERROR:  failed to execute the Sqlite query: 
+rc=19:UNIQUE constraint failed: type_BINT.col
+INSERT INTO "type_INTEGER"(col) VALUES (32768);
+ERROR:  failed to execute the Sqlite query: 
+rc=19:UNIQUE constraint failed: type_INTEGER.col
+INSERT INTO "type_FLOAT"(col) VALUES (3.1415);
+ERROR:  failed to execute the Sqlite query: 
+rc=19:UNIQUE constraint failed: type_FLOAT.col
+INSERT INTO "type_DOUBLE"(col) VALUES (3.14159265);
+ERROR:  failed to execute the Sqlite query: 
+rc=19:UNIQUE constraint failed: type_DOUBLE.col
+INSERT INTO "type_TIMESTAMP"(col) VALUES ('2017.11.06 12:34:56.789');
+-- INSERT INTO "type_GEOMETRY"(col) VALUES ('');                                            todo Geometry
+INSERT INTO "type_BLOB"(col) VALUES (bytea('\xDEADBEEF'));
+ERROR:  failed to execute the Sqlite query: 
+rc=19:UNIQUE constraint failed: type_BLOB.col
+SELECT * FROM "type_STRING";
+  col   
+--------
+ string
+(1 row)
+
+SELECT * FROM "type_BOOLEAN";
+ col 
+-----
+ t
+(1 row)
+
+SELECT * FROM "type_BYTE";
+ col 
+-----
+ c
+(1 row)
+
+SELECT * FROM "type_SINT";
+  col  
+-------
+ 32767
+(1 row)
+
+SELECT * FROM "type_BINT";
+    col     
+------------
+ 2147483648
+(1 row)
+
+SELECT * FROM "type_INTEGER";
+  col  
+-------
+ 32768
+(1 row)
+
+SELECT * FROM "type_FLOAT";
+  col   
+--------
+ 3.1415
+(1 row)
+
+SELECT * FROM "type_DOUBLE";
+    col     
+------------
+ 3.14159265
+(1 row)
+
+SELECT * FROM "type_TIMESTAMP";
+             col              
+------------------------------
+ Mon Nov 06 12:34:56.789 2017
+ Mon Nov 06 12:34:56.789 2017
+(2 rows)
+
+-- SELECT * FROM "type_GEOMETRY";
+SELECT * FROM "type_BLOB";
+    col     
+------------
+ \xdeadbeef
+(1 row)
+
+/*
+ * Empty the table and INSERT some samples.
+ */
+DELETE FROM typetest1;
+INSERT INTO typetest1 (id, c, nc, vc, nvc, lc, r, u, lb, lr, b, num, fl, db, d, ts, ids, iym) VALUES (
+   1,
+   'fixed char',
+   'nat''l char',
+   'varlena',
+   'nat''l var',
+   'character large object',
+   bytea('\xDEADBEEF'),
+   uuid('055e26fa-f1d8-771f-e053-1645990add93'),
+   bytea('\xDEADBEEF'),
+   bytea('\xDEADBEEF'),
+   TRUE,
+   3.14159,
+   3.14159,
+   3.14159,
+   '1968-10-20',
+   '2009-01-26 15:02:54.893532 PST',
+   '1 day 2 hours 30 seconds 1 microsecond',
+   '-6 months'
+);
+ERROR:  cannot convert constant value to Sqlite value
+HINT:  Constant value data type: 2950
+INSERT INTO shorty (id, c) VALUES (2, NULL);
+ERROR:  failed to execute the Sqlite query: 
+rc=19:UNIQUE constraint failed: shorty.id
+INSERT INTO typetest1 (id, c, nc, vc, nvc, lc, r, u, lb, lr, b, num, fl, db, d, ts, ids, iym) VALUES (
+   3,
+   E'a\u001B\u0007\u000D\u007Fb',
+   E'a\u001B\u0007\u000D\u007Fb',
+   E'a\u001B\u0007\u000D\u007Fb',
+   E'a\u001B\u0007\u000D\u007Fb',
+   E'a\u001B\u0007\u000D\u007Fb ABC' || repeat('X', 9000),
+   bytea('\xDEADF00D'),
+   uuid('055f3b32-a02c-4532-e053-1645990a6db2'),
+   bytea('\xDEADF00DDEADF00DDEADF00D'),
+   bytea('\xDEADF00DDEADF00DDEADF00D'),
+   FALSE,
+   -2.71828,
+   -2.71828,
+   -2.71828,
+   '0044-03-15 BC',
+   '0044-03-15 12:00:00 BC',
+   '-2 days -12 hours -30 minutes',
+   '-2 years -6 months'
+);
+ERROR:  cannot convert constant value to Sqlite value
+HINT:  Constant value data type: 2950
+INSERT INTO typetest1 (id, c, nc, vc, nvc, lc, r, u, lb, lr, b, num, fl, db, d, ts, ids, iym) VALUES (
+   4,
+   'short',
+   'short',
+   'short',
+   'short',
+   'short',
+   bytea('\xDEADF00D'),
+   uuid('0560ee34-2ef9-1137-e053-1645990ac874'),
+   bytea('\xDEADF00D'),
+   bytea('\xDEADF00D'),
+   NULL,
+   0,
+   0,
+   0,
+   NULL,
+   NULL,
+   '23:59:59.999999',
+   '3 years'
+);
+ERROR:  cannot convert constant value to Sqlite value
+HINT:  Constant value data type: 2950
+/*
+ * Test SELECT, UPDATE ... RETURNING, DELETE and transactions.
+ */
+-- simple SELECT
+SELECT id, c, nc, vc, nvc, length(lc), r, u, length(lb), length(lr), b, num, fl, db, d, ts, ids, iym, x FROM longy ORDER BY id;
+ id | c | nc | vc | nvc | length | r | u | length | length | b | num | fl | db | d | ts | ids | iym | x 
+----+---+----+----+-----+--------+---+---+--------+--------+---+-----+----+----+---+----+-----+-----+---
+(0 rows)
+
+-- mass UPDATE
+WITH upd (id, c, lb, d, ts) AS
+   (UPDATE longy SET c = substr(c, 1, 9) || 'u',
+                    lb = lb || bytea('\x00'),
+                    lr = lr || bytea('\x00'),
+                     d = d + 1,
+                    ts = ts + '1 day'
+   WHERE id < 3 RETURNING id + 1, c, lb, d, ts)
+SELECT * FROM upd ORDER BY id;
+ERROR:  RETURNING is not supported by this FDW
+-- transactions
+BEGIN;
+DELETE FROM shorty WHERE id = 2;
+SAVEPOINT one;
+-- will cause an error
+INSERT INTO shorty (id, c) VALUES (1, 'c');
+ERROR:  failed to execute the Sqlite query: 
+rc=19:UNIQUE constraint failed: shorty.id
+ROLLBACK TO one;
+INSERT INTO shorty (id, c) VALUES (2, 'c');
+ROLLBACK TO one;
+COMMIT;
+-- see if the correct data are in the table
+SELECT id, c FROM typetest1 ORDER BY id;
+ id | c 
+----+---
+(0 rows)
+
+-- try to update the nonexistant column (should cause an error)
+UPDATE longy SET x = NULL WHERE id = 1;
+-- check that UPDATES work with "date" in Oracle and "timestamp" in PostgreSQL
+BEGIN;
+ALTER FOREIGN TABLE typetest1 ALTER COLUMN d TYPE timestamp(0) without time zone;
+UPDATE typetest1 SET d = '1968-10-10 12:00:00' WHERE id = 1 RETURNING d;
+ERROR:  RETURNING is not supported by this FDW
+ROLLBACK;
+-- test if "IN" or "= ANY" expressions are pushed down correctly
+SELECT id FROM typetest1 WHERE vc = ANY (ARRAY['short', (SELECT 'varlena'::varchar)]) ORDER BY id;
+ id 
+----
+(0 rows)
+
+EXPLAIN (COSTS off) SELECT id FROM typetest1 WHERE vc = ANY (ARRAY['short', (SELECT 'varlena'::varchar)]) ORDER BY id;
+                                      QUERY PLAN                                      
+--------------------------------------------------------------------------------------
+ Sort
+   Sort Key: id
+   InitPlan 1 (returns $0)
+     ->  Result
+   ->  Foreign Scan on typetest1
+         Filter: ((vc)::text = ANY ((ARRAY['short'::character varying, $0])::text[]))
+         sqlite plan: SCAN TABLE typetest1
+(7 rows)
+
+/*
+ * Test EXPLAIN support.
+ */
+EXPLAIN (COSTS off) UPDATE typetest1 SET lc = current_timestamp WHERE id < 4 RETURNING id + 1;
+ERROR:  RETURNING is not supported by this FDW
+EXPLAIN (VERBOSE on, COSTS off) SELECT * FROM shorty;
+                     QUERY PLAN                      
+-----------------------------------------------------
+ Foreign Scan on public.shorty
+   Output: id, c
+   sqlite query: SELECT `id`, `c` FROM main.`shorty`
+   sqlite plan: SCAN TABLE shorty
+(4 rows)
+
+-- this should fetch all columns from the foreign table
+EXPLAIN (COSTS off) SELECT typetest1 FROM typetest1;
+             QUERY PLAN              
+-------------------------------------
+ Foreign Scan on typetest1
+   sqlite plan: SCAN TABLE typetest1
+(2 rows)
+
+/*
+ * Test parameters.
+ */
+PREPARE stmt(integer, date, timestamp) AS SELECT d FROM typetest1 WHERE id = $1 AND d < $2 AND ts < $3;
+-- six executions to switch to generic plan
+EXECUTE stmt(1, '2011-03-09', '2011-03-09 05:00:00');
+ d 
+---
+(0 rows)
+
+EXECUTE stmt(1, '2011-03-09', '2011-03-09 05:00:00');
+ d 
+---
+(0 rows)
+
+EXECUTE stmt(1, '2011-03-09', '2011-03-09 05:00:00');
+ d 
+---
+(0 rows)
+
+EXECUTE stmt(1, '2011-03-09', '2011-03-09 05:00:00');
+ d 
+---
+(0 rows)
+
+EXECUTE stmt(1, '2011-03-09', '2011-03-09 05:00:00');
+ d 
+---
+(0 rows)
+
+EXPLAIN (COSTS off) EXECUTE stmt(1, '2011-03-09', '2011-03-09 05:00:00');
+ERROR:  unrecognized node type: 217
+EXECUTE stmt(1, '2011-03-09', '2011-03-09 05:00:00');
+ERROR:  unrecognized node type: 217
+DEALLOCATE stmt;
+-- test NULL parameters
+SELECT id FROM typetest1 WHERE vc = (SELECT NULL::text);
+ERROR:  unrecognized node type: 217
+/*
+ * Test current_timestamp.
+ */
+SELECT id FROM typetest1
+   WHERE d < current_date
+     AND ts < now()
+     AND ts < current_timestamp
+     AND ts < 'now'::timestamp
+ORDER BY id;
+ id 
+----
+(0 rows)
+
+/*
+ * Test foreign table based on SELECT statement.
+ */
+/*
+CREATE FOREIGN TABLE qtest (
+   id  integer OPTIONS (key 'yes') NOT NULL,
+   vc  character varying(10),
+   num numeric(7,5)
+) SERVER sqlite OPTIONS (table '(SELECT id, vc, num FROM typetest1)');
+*/
+-- INSERT works with simple "view"
+INSERT INTO qtest (id, vc, num) VALUES (5, 'via query', -12.5);
+ERROR:  relation "qtest" does not exist
+LINE 12: INSERT INTO qtest (id, vc, num) VALUES (5, 'via query', -12....
+                     ^
+ALTER FOREIGN TABLE qtest OPTIONS (SET table '(SELECT id, SUBSTR(vc, 1, 3), num FROM typetest1)');
+ERROR:  relation "qtest" does not exist
+-- SELECT and DELETE should also work with derived columns
+SELECT * FROM qtest ORDER BY id;
+ERROR:  relation "qtest" does not exist
+LINE 1: SELECT * FROM qtest ORDER BY id;
+                      ^
+DELETE FROM qtest WHERE id = 5;
+ERROR:  relation "qtest" does not exist
+LINE 1: DELETE FROM qtest WHERE id = 5;
+                    ^
+/*
+ * Test triggers on foreign tables.
+ */
+-- trigger function
+CREATE FUNCTION shorttrig() RETURNS trigger LANGUAGE plpgsql AS
+$$BEGIN
+   RAISE WARNING 'trigger % % OLD row: id = %, c = %', TG_WHEN, TG_OP, OLD.id, OLD.c;
+   RAISE WARNING 'trigger % % NEW row: id = %, c = %', TG_WHEN, TG_OP, NEW.id, NEW.c;
+   RETURN NEW;
+END;$$;
+-- test BEFORE trigger
+CREATE TRIGGER shorttrig BEFORE UPDATE ON shorty FOR EACH ROW EXECUTE PROCEDURE shorttrig();
+BEGIN;
+UPDATE shorty SET id = id + 1 WHERE id = 4;
+ERROR:  row identifier column update is not supported
+ROLLBACK;
+-- test AFTER trigger
+DROP TRIGGER shorttrig ON shorty;
+CREATE TRIGGER shorttrig AFTER UPDATE ON shorty FOR EACH ROW EXECUTE PROCEDURE shorttrig();
+BEGIN;
+UPDATE shorty SET id = id + 1 WHERE id = 4;
+ERROR:  row identifier column update is not supported
+ROLLBACK;
+/*
+ * Test ORDER BY pushdown.
+ */
+-- don't push down string data types
+EXPLAIN (COSTS off) SELECT id FROM typetest1 ORDER BY id, vc;
+                QUERY PLAN                 
+-------------------------------------------
+ Sort
+   Sort Key: id, vc
+   ->  Foreign Scan on typetest1
+         sqlite plan: SCAN TABLE typetest1
+(4 rows)
+
+-- push down complicated expressions
+EXPLAIN (COSTS off) SELECT id FROM typetest1 ORDER BY length(vc), CASE WHEN vc IS NULL THEN 0 ELSE 1 END, ts DESC NULLS FIRST FOR UPDATE;
+                                         QUERY PLAN                                          
+---------------------------------------------------------------------------------------------
+ LockRows
+   ->  Sort
+         Sort Key: (length((vc)::text)), (CASE WHEN (vc IS NULL) THEN 0 ELSE 1 END), ts DESC
+         ->  Foreign Scan on typetest1
+               sqlite plan: SCAN TABLE typetest1
+(5 rows)
+
+SELECT id FROM typetest1 ORDER BY length(vc), CASE WHEN vc IS NULL THEN 0 ELSE 1 END, ts DESC NULLS FIRST FOR UPDATE;
+ id 
+----
+(0 rows)
+
+/*
+ * Test that incorrect type mapping throws an error.
+ */
+-- create table with bad type matches
+CREATE FOREIGN TABLE badtypes (
+   id  integer OPTIONS (key 'yes') NOT NULL,
+   c   xml,
+   nc  xml
+) SERVER sqlite OPTIONS (table 'TYPETEST1');
+ERROR:  server "sqlite" does not exist
+-- should fail for column "nc", as "c" is not used
+SELECT id, nc FROM badtypes WHERE id = 1;
+ERROR:  relation "badtypes" does not exist
+LINE 1: SELECT id, nc FROM badtypes WHERE id = 1;
+                           ^
+-- this will fail for inserting a NULL in column "c"
+INSERT INTO badtypes (id, nc) VALUES (42, XML '<empty/>');
+ERROR:  relation "badtypes" does not exist
+LINE 1: INSERT INTO badtypes (id, nc) VALUES (42, XML '<empty/>');
+                    ^
+-- remove foreign table
+DROP FOREIGN TABLE badtypes;
+ERROR:  foreign table "badtypes" does not exist
