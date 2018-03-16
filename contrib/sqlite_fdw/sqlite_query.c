@@ -17,13 +17,8 @@
 
 #include "sqlite_fdw.h"
 #include <stdio.h>
-#include <sys/stat.h>
-#include <unistd.h>
 
 #include <sqlite3.h>
-
-
-
 
 #include "foreign/fdwapi.h"
 
@@ -140,11 +135,39 @@ sqlite_convert_to_pg(Oid pgtyp, int pgtypmod, sqlite3_stmt *stmt, int attnum)
 			SET_VARSIZE(value_datum, blobsize + VARHDRSZ);
 			return PointerGetDatum(value_datum);
 	}
-		case VARBITOID:
-		case BITOID:
-			sprintf(str, "%d", dec_bin(sqlite3_column_int(stmt, attnum)));
-			valueDatum = CStringGetDatum((char*)str);
+	case VARBITOID:
+	case BITOID:
+		sprintf(str, "%d", dec_bin(sqlite3_column_int(stmt, attnum)));
+		valueDatum = CStringGetDatum((char *)str);
 		break;
+	case INT2OID:
+	{
+		int value = sqlite3_column_int(stmt, attnum);
+		return Int16GetDatum(value);
+	}
+	case INT4OID:
+	{
+		int value = sqlite3_column_int(stmt, attnum);
+		return Int32GetDatum(value);
+	}
+	case INT8OID:
+	{
+		sqlite3_int64 value = sqlite3_column_int64(stmt, attnum);
+		return Int64GetDatum(value);
+	}
+	case FLOAT4OID:
+
+	{
+		double value = sqlite3_column_double(stmt, attnum);
+		return Float4GetDatum((float4)value);
+		break;
+	}
+	case FLOAT8OID:
+	{
+		double value = sqlite3_column_double(stmt, attnum);
+		return Float8GetDatum((float8)value);
+		break;
+	}
 	default:
 		valueDatum = CStringGetDatum((char*)sqlite3_column_text(stmt, attnum));
 	}
