@@ -22,16 +22,18 @@
 #include "access/heapam.h"
 #include "access/htup_details.h"
 #include "access/sysattr.h"
-#include "access/transam.h"
+#include "catalog/pg_aggregate.h"
+//#include "access/transam.h"
 #include "catalog/pg_collation.h"
 #include "catalog/pg_namespace.h"
 #include "catalog/pg_operator.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
-#include "catalog/pg_aggregate.h"
+
 #include "commands/defrem.h"
-#include "datatype/timestamp.h"
+//#include "datatype/timestamp.h"
 #include "nodes/nodeFuncs.h"
+#include "nodes/plannodes.h"
 #include "optimizer/clauses.h"
 #include "optimizer/var.h"
 #include "optimizer/tlist.h"
@@ -121,7 +123,9 @@ static void sqlite_deparse_target_list(StringInfo buf, PlannerInfo *root, Index 
 					Bitmapset *attrs_used, List **retrieved_attrs);
 static void sqlite_deparse_column_ref(StringInfo buf, int varno, int varattno, PlannerInfo *root);
 static void sqlite_deparse_select(List *tlist, List **retrieved_attrs, deparse_expr_cxt *context);
-
+static void deparseFromExprForRel(StringInfo buf, PlannerInfo *root,
+						RelOptInfo *foreignrel,
+					  bool use_alias, List **params_list);
 static void deparseFromExpr(List *quals, deparse_expr_cxt *context);
 static void deparseAggref(Aggref *node, deparse_expr_cxt *context);
 static void appendConditions(List *exprs, deparse_expr_cxt *context);
@@ -220,17 +224,14 @@ is_foreign_expr(PlannerInfo *root,
 	 * because the upperrel's own relids currently aren't set to anything
 	 * meaningful by the core code.  For other relation, use their own relids.
 	 */
-	if (baserel->reloptkind == RELOPT_UPPER_REL)
+	if (IS_UPPER_REL(baserel))
 		glob_cxt.relids = fpinfo->outerrel->relids;
 	else
 		glob_cxt.relids = baserel->relids;
 	loc_cxt.collation = InvalidOid;
 	loc_cxt.state = FDW_COLLATE_NONE;
-	if (!foreign_expr_walker((Node *)expr, &glob_cxt, &loc_cxt))
+	if (!foreign_expr_walker((Node *) expr, &glob_cxt, &loc_cxt))
 		return false;
-	/* Expressions examined here should be boolean, ie noncollatable */
-	//Assert(loc_cxt.collation == InvalidOid);
-	//Assert(loc_cxt.state == FDW_COLLATE_NONE);
 
 	/*
 		 * If the expression has a valid collation that does not arise from a
@@ -246,7 +247,7 @@ is_foreign_expr(PlannerInfo *root,
 		 * be able to make this choice with more granularity.  (We check this last
 		 * because it requires a lot of expensive catalog lookups.)
 		 */
-	if (contain_mutable_functions((Node *)expr))
+	if (contain_mutable_functions((Node *) expr))
 		return false;
 
 	/* OK to evaluate on the remote server */
@@ -278,21 +279,7 @@ foreign_expr_walker(Node *node,
 	HeapTuple      tuple;
 	Form_pg_operator   form;
 	char *cur_opname;
-#if 0
-	/* Print schema name only if it's not pg_catalog */
-	if (opform->oprnamespace != PG_CATALOG_NAMESPACE)
-	{
-		const char *opnspname;
 
-		opnspname = get_namespace_name(opform->oprnamespace);
-		/* Print fully qualified operator name. */
-		appendStringInfo(buf, "OPERATOR(%s.%s)",
-						 sqlite_quote_identifier(opnspname, QUOTE), cur_opname);
-	}
-	else
-	{
-		if (strcmp(cur_opname, "~~") == 0)
-#endif
 	/* Need do nothing for empty subexpressions */
 	if (node == NULL)
 		return true;
@@ -356,35 +343,6 @@ foreign_expr_walker(Node *node,
 						state = FDW_COLLATE_UNSAFE;
 					}
 				}
-				#if 0
-				Var		   *var = (Var *) node;
-
-				/*
-				 * If the Var is from the foreign table, we consider its
-				 * collation (if any) safe to use.  If it is from another
-				 * table, we treat its collation the same way as we would a
-				 * Param's collation, ie it's not safe for it to have a
-				 * non-default collation.
-				 */
-				if (bms_is_member(var->varno, glob_cxt->relids) &&
-					var->varlevelsup == 0)
-				{
-					/* Var belongs to foreign table */
-					collation = var->varcollid;
-					state = OidIsValid(collation) ? FDW_COLLATE_SAFE : FDW_COLLATE_NONE;
-				}
-				else
-				{
-					/* Var belongs to some other table */
-					if (var->varcollid != InvalidOid &&
-						var->varcollid != DEFAULT_COLLATION_OID)
-						return false;
-
-					/* We can consider that it doesn't set collation */
-					collation = InvalidOid;
-					state = FDW_COLLATE_NONE;
-				}
-				#endif
 			}
 			break;
 		case T_Const:
@@ -648,7 +606,7 @@ foreign_expr_walker(Node *node,
 				ListCell   *lc;
 
 				/* Not safe to pushdown when not in grouping context */
-				if (glob_cxt->foreignrel->reloptkind != RELOPT_UPPER_REL)
+				if (!IS_UPPER_REL(glob_cxt->foreignrel))
 					return false;
 
 				/* Only non-split aggregates are pushable. */
@@ -682,25 +640,7 @@ foreign_expr_walker(Node *node,
 				 */
 				if (agg->aggorder)
 				{
-					ListCell   *lc;
-
-					foreach(lc, agg->aggorder)
-					{
-						SortGroupClause *srt = (SortGroupClause *) lfirst(lc);
-						Oid			sortcoltype;
-						TypeCacheEntry *typentry;
-						TargetEntry *tle;
-
-						tle = get_sortgroupref_tle(srt->tleSortGroupRef,
-												   agg->args);
-						sortcoltype = exprType((Node *) tle->expr);
-						typentry = lookup_type_cache(sortcoltype,
-										TYPECACHE_LT_OPR | TYPECACHE_GT_OPR);
-						/* Check shippability of non-default sort operator. */
-						if (srt->sortop != typentry->lt_opr &&
-							srt->sortop != typentry->gt_opr)
-							return false;
-					}
+					return false;
 				}
 
 				/* Check aggregate filter */
@@ -818,12 +758,13 @@ build_tlist_to_deparse(RelOptInfo *foreignrel)
 {
 	List	   *tlist = NIL;
 	SqliteFdwRelationInfo *fpinfo = (SqliteFdwRelationInfo *) foreignrel->fdw_private;
+	ListCell   *lc;
 
 	/*
 	 * For an upper relation, we have already built the target list while
 	 * checking shippability, so just return that.
 	 */
-	if (foreignrel->reloptkind == RELOPT_UPPER_REL)
+	if (IS_UPPER_REL(foreignrel))
 		return fpinfo->grouped_tlist;
 
 	/*
@@ -833,10 +774,15 @@ build_tlist_to_deparse(RelOptInfo *foreignrel)
 	tlist = add_to_flat_tlist(tlist,
 					   pull_var_clause((Node *) foreignrel->reltarget->exprs,
 									   PVC_RECURSE_PLACEHOLDERS));
-	tlist = add_to_flat_tlist(tlist,
-							  pull_var_clause((Node *) fpinfo->local_conds,
-											  PVC_RECURSE_PLACEHOLDERS));
+	foreach(lc, fpinfo->local_conds)
+	{
+		RestrictInfo *rinfo = lfirst_node(RestrictInfo, lc);
 
+		tlist = add_to_flat_tlist(tlist,
+								  pull_var_clause((Node *) rinfo->clause,
+												  PVC_RECURSE_PLACEHOLDERS));
+	}
+	
 	return tlist;
 }
 
@@ -862,7 +808,7 @@ build_tlist_to_deparse(RelOptInfo *foreignrel)
  *
  * List of columns selected is returned in retrieved_attrs.
  */
-extern void
+ void
 deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
 						List *tlist, List *remote_conds, List *pathkeys,
 						bool is_subquery, List **retrieved_attrs,
@@ -876,17 +822,13 @@ deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
 	 * We handle relations for foreign tables, joins between those and upper
 	 * relations.
 	 */
-	Assert(rel->reloptkind == RELOPT_JOINREL ||
-		   rel->reloptkind == RELOPT_BASEREL ||
-		   rel->reloptkind == RELOPT_OTHER_MEMBER_REL ||
-		   rel->reloptkind == RELOPT_UPPER_REL);
+	Assert(IS_JOIN_REL(rel) || IS_SIMPLE_REL(rel) || IS_UPPER_REL(rel));
 
 	/* Fill portions of context common to upper, join and base relation */
 	context.buf = buf;
 	context.root = root;
 	context.foreignrel = rel;
-	context.scanrel = (rel->reloptkind == RELOPT_UPPER_REL) ?
-		fpinfo->outerrel : rel;
+	context.scanrel = IS_UPPER_REL(rel) ? fpinfo->outerrel : rel;
 	context.params_list = params_list;
 
 	/* Construct SELECT clause */
@@ -897,7 +839,7 @@ deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
 	 * conditions of the underlying scan relation; otherwise, we can use the
 	 * supplied list of remote conditions directly.
 	 */
-	if (rel->reloptkind == RELOPT_UPPER_REL)
+	if (IS_UPPER_REL(rel))
 	{
 		SqliteFdwRelationInfo *ofpinfo;
 
@@ -910,7 +852,7 @@ deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
 	/* Construct FROM and WHERE clauses */
 	deparseFromExpr(quals, &context);
 
-	if (rel->reloptkind == RELOPT_UPPER_REL)
+	if (IS_UPPER_REL(rel))
 	{
 		/* Append GROUP BY clause */
 		appendGroupByClause(tlist, &context);
@@ -937,75 +879,39 @@ deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
 static void
 sqlite_deparse_select(List *tlist, List **retrieved_attrs, deparse_expr_cxt *context)
 {
-	Relation	rel;
 	StringInfo	buf = context->buf;
 	PlannerInfo *root = context->root;
 	RelOptInfo *foreignrel = context->foreignrel;
 	SqliteFdwRelationInfo *fpinfo = (SqliteFdwRelationInfo *) foreignrel->fdw_private;
+
 	/*
-	 * Core code already has some lock on each rel being planned, so we can
-	 * use NoLock here.
+	 * Construct SELECT list
 	 */
-
-
 	appendStringInfoString(buf, "SELECT ");
 
-	if (foreignrel->reloptkind == RELOPT_JOINREL ||
-		foreignrel->reloptkind == RELOPT_UPPER_REL)
+	if (IS_JOIN_REL(foreignrel) || IS_UPPER_REL(foreignrel))
 	{
-		/* For a join relation use the input tlist */
+		/*
+		 * For a join or upper relation the input tlist gives the list of
+		 * columns required to be fetched from the foreign server.
+		 */
 		deparseExplicitTargetList(tlist, retrieved_attrs, context);
 	}
 	else
 	{
-		RangeTblEntry *rte = planner_rt_fetch(foreignrel->relid, root);
-		rel = heap_open(rte->relid, NoLock);
-		sqlite_deparse_target_list(buf, root, foreignrel->relid, rel, fpinfo->attrs_used, retrieved_attrs);
 		/*
-	 	* Construct FROM clause
-	 	*/
-		//appendStringInfoString(buf, " FROM ");
-		//sqlite_deparse_relation(buf, rel);
-		heap_close(rel, NoLock);
-	}
-}
-
-/*
- * Construct FROM clause for given relation
- *
- * The function constructs ... JOIN ... ON ... for join relation. For a base
- * relation it just returns schema-qualified tablename, with the appropriate
- * alias if so requested.
- */
-static void
-deparseFromExprForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *foreignrel,
-					  bool use_alias, List **params_list)
-{
-	Assert(!use_alias);
-	if (IS_JOIN_REL(foreignrel))
-	{
-		/* Join pushdown not supported */
-		Assert(false);
-	}
-	else
-	{
+		 * For a base relation fpinfo->attrs_used gives the list of columns
+		 * required to be fetched from the foreign server.
+		 */
 		RangeTblEntry *rte = planner_rt_fetch(foreignrel->relid, root);
-
+		
 		/*
 		 * Core code already has some lock on each rel being planned, so we
 		 * can use NoLock here.
 		 */
 		Relation	rel = heap_open(rte->relid, NoLock);
-
-		sqlite_deparse_relation(buf, rel);
-
-		/*
-		 * Add a unique alias to avoid any conflict in relation names due to
-		 * pulled up subqueries in the query being built for a pushed down
-		 * join.
-		 */
-		//if (use_alias)
-			//appendStringInfo(buf, " %s%d", REL_ALIAS_PREFIX, foreignrel->relid);
+		
+		sqlite_deparse_target_list(buf, root, foreignrel->relid, rel, fpinfo->attrs_used, retrieved_attrs);
 
 		heap_close(rel, NoLock);
 	}
@@ -1021,13 +927,11 @@ static void
 deparseFromExpr(List *quals, deparse_expr_cxt *context)
 {
 	StringInfo	buf = context->buf;
-	RelOptInfo *foreignrel = context->foreignrel;
 	RelOptInfo *scanrel = context->scanrel;
 
 	/* For upper relations, scanrel must be either a joinrel or a baserel */
-	Assert(foreignrel->reloptkind != RELOPT_UPPER_REL ||
-		   scanrel->reloptkind == RELOPT_JOINREL ||
-		   scanrel->reloptkind == RELOPT_BASEREL);
+	Assert(!IS_UPPER_REL(context->foreignrel) ||
+		   IS_JOIN_REL(scanrel) || IS_SIMPLE_REL(scanrel));
 
 	/* Construct FROM clause */
 	appendStringInfoString(buf, " FROM ");
@@ -1065,16 +969,9 @@ appendConditions(List *exprs, deparse_expr_cxt *context)
 	{
 		Expr	   *expr = (Expr *) lfirst(lc);
 
-		/*
-		 * Extract clause from RestrictInfo, if required. See comments in
-		 * declaration of PgFdwRelationInfo for details.
-		 */
+		/* Extract clause from RestrictInfo, if required */
 		if (IsA(expr, RestrictInfo))
-		{
-			RestrictInfo *ri = (RestrictInfo *) expr;
-
-			expr = ri->clause;
-		}
+			expr = ((RestrictInfo *) expr)->clause;
 
 		/* Connect expressions with "AND" and parenthesize each condition. */
 		if (!is_first)
@@ -1111,10 +1008,7 @@ deparseExplicitTargetList(List *tlist, List **retrieved_attrs,
 
 	foreach(lc, tlist)
 	{
-		TargetEntry *tle = (TargetEntry *) lfirst(lc);
-
-		/* Extract expression if TargetEntry node */
-		Assert(IsA(tle, TargetEntry));
+		TargetEntry *tle = lfirst_node(TargetEntry, lc);
 
 		if (i > 0)
 			appendStringInfoString(buf, ", ");
@@ -1128,6 +1022,40 @@ deparseExplicitTargetList(List *tlist, List **retrieved_attrs,
 		appendStringInfoString(buf, "NULL");
 }
 
+
+/*
+ * Construct FROM clause for given relation
+ *
+ * The function constructs ... JOIN ... ON ... for join relation. For a base
+ * relation it just returns schema-qualified tablename, with the appropriate
+ * alias if so requested.
+ */
+static void
+deparseFromExprForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *foreignrel,
+					  bool use_alias, List **params_list)
+{
+	Assert(!use_alias);
+	if (IS_JOIN_REL(foreignrel))
+	{
+		/* Join pushdown not supported */
+		Assert(false);
+	}
+	else
+	{
+		RangeTblEntry *rte = planner_rt_fetch(foreignrel->relid, root);
+
+		/*
+		 * Core code already has some lock on each rel being planned, so we
+		 * can use NoLock here.
+		 */
+		Relation	rel = heap_open(rte->relid, NoLock);
+
+		sqlite_deparse_relation(buf, rel);
+
+		heap_close(rel, NoLock);
+	}
+}
+
 /*
  * deparse remote INSERT statement
  *
@@ -1137,12 +1065,12 @@ deparseExplicitTargetList(List *tlist, List **retrieved_attrs,
  */
 void
 sqlite_deparse_insert(StringInfo buf, PlannerInfo *root,
-				 Index rtindex, Relation rel,
-				 List *targetAttrs)
+				 	 Index rtindex, Relation rel,
+					 List *targetAttrs)
 {
-	AttrNumber  pindex;
-	bool        first;
-	ListCell    *lc;
+	AttrNumber	pindex;
+	bool		first;
+	ListCell	*lc;
 
 	appendStringInfoString(buf, "INSERT INTO ");
 	sqlite_deparse_relation(buf, rel);

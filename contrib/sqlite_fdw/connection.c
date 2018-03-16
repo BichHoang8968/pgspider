@@ -56,9 +56,7 @@ static HTAB *ConnectionHash = NULL;
 static bool xact_got_connection = false;
 
 
-static bool
-do_sql_command(sqlite3 *conn, const char *sql, int level);
-//static void do_sql_command(sqlite3 *conn, const char *sql);
+static bool do_sql_command(sqlite3 *conn, const char *sql, int level);
 static void begin_remote_xact(ConnCacheEntry *entry);
 static void sqlitefdw_xact_callback(XactEvent event, void *arg);
 static void sqlitefdw_subxact_callback(SubXactEvent event,
@@ -189,21 +187,6 @@ sqlite_cleanup_connection(void)
 	}
 }
 
-/*
- * Release connection created by calling GetConnection.
- */
-void
-sqlite_rel_connection(sqlite3 *conn)
-{
-	/*
-	 * Currently, we don't actually track connection references because all
-	 * cleanup is managed on a transaction or subtransaction basis instead. So
-	 * there's nothing to do here.
-	 */
-
-	return;
-}
-
 
 /*
  * Convenience subroutine to issue a non-data-returning SQL command to remote
@@ -218,7 +201,7 @@ do_sql_command(sqlite3 *conn, const char *sql, int level)
 		char *perr = pstrdup(err);
 		sqlite3_free(err);
 		ereport(level,
-				(errcode(ERRCODE_FDW_OUT_OF_MEMORY),
+				(errcode(ERRCODE_FDW_ERROR),
 				 errmsg("failed to execute sql: %s", perr)
 				 ));
 		pfree(err);
@@ -229,13 +212,6 @@ do_sql_command(sqlite3 *conn, const char *sql, int level)
 
 /*
  * Start remote transaction or subtransaction, if needed.
- *
- * Note that we always use at least REPEATABLE READ in the remote session.
- * This is so that, if a query initiates multiple scans of the same or
- * different foreign tables, we will get snapshot-consistent results from
- * those scans.  A disadvantage is that we can't provide sane emulation of
- * READ COMMITTED behavior --- it would be nice if we had some other way to
- * control which remote queries share a snapshot.
  */
 static void
 begin_remote_xact(ConnCacheEntry *entry)
@@ -287,7 +263,7 @@ sqlitefdw_report_error(int elevel, sqlite3_stmt *stmt, sqlite3 *conn,
 		message = pstrdup(message);
 
 	if (!sql && stmt)
-		sql = sqlite3_sql(stmt);
+		sql = pstrdup(sqlite3_sql(stmt));
 
 	if (stmt)
 		sqlite3_finalize(stmt);
