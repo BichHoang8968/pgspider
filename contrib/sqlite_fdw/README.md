@@ -55,3 +55,10 @@ Now, to get the contents of the remote table, you just need to execute a SELECT 
 <pre>
 SELECT * FROM local_t1;
 </pre>
+
+Test
+-----------
+<pre>
+./init.sh
+make check
+</pre>
