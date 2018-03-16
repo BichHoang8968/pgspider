@@ -1,9 +1,6 @@
-drop database postgres;
-create database postgres;
-\c postgres postgres;
 CREATE EXTENSION sqlite_fdw;
 CREATE SERVER sqlite_svr FOREIGN DATA WRAPPER sqlite_fdw
-OPTIONS (database '/home/mochizuki/ddsf/dds-10.1/contrib/sqlite_fdw/test.db');
+OPTIONS (database '../../test.db');
 
 CREATE SERVER sqlite2 FOREIGN DATA WRAPPER sqlite_fdw;
 
@@ -13,12 +10,15 @@ INSERT INTO "type_STRING"(col) VALUES ('string');
 INSERT INTO "type_BOOLEAN"(col) VALUES (TRUE);
 INSERT INTO "type_BYTE"(col) VALUES ('c');
 INSERT INTO "type_SINT"(col) VALUES (32767);
-INSERT INTO "type_BINT"(col) VALUES (2147483648);
-INSERT INTO "type_INTEGER"(col) VALUES (32768);
+INSERT INTO "type_SINT"(col) VALUES (-32768);
+INSERT INTO "type_BINT"(col) VALUES (9223372036854775807);
+INSERT INTO "type_BINT"(col) VALUES (-9223372036854775808);
+INSERT INTO "type_INTEGER"(col) VALUES (9223372036854775807);
 
 INSERT INTO "type_FLOAT"(col) VALUES (3.1415);
 INSERT INTO "type_DOUBLE"(col) VALUES (3.14159265);
-INSERT INTO "type_TIMESTAMP" VALUES ('2017.11.06 12:34:56.789', '2017.11.06');--, '2017.11.06');
+INSERT INTO "type_TIMESTAMP" VALUES ('2017.11.06 12:34:56.789', '2017.11.06');
+INSERT INTO "type_TIMESTAMP" VALUES ('2017.11.06 1:3:0', '2017.11.07');
 INSERT INTO "type_BLOB"(col) VALUES (bytea('\xDEADBEEF'));
 
 SELECT * FROM "type_STRING";
@@ -40,20 +40,24 @@ select * from bitt;
 
 insert into "type_STRING" values('TYPE');
 insert into "type_STRING" values('type');
---push down but not match with postgres semantics, like in sqlite is case-insensitive,
--- but not is postgress
-select  *from "type_STRING" where col like 'TYP%'; -- not pushdown
+
+-- not pushdown
+select  *from "type_STRING" where col like 'TYP%';
 explain select  *from "type_STRING" where col like 'TYP%';
---pushdown because ilike same semantics of sqlite like
+-- pushdown
 select  *from "type_STRING" where col ilike 'typ%';
 explain select  *from "type_STRING" where col ilike 'typ%';
 
 select  *from "type_STRING" where col ilike 'typ%' and col like 'TYPE';
 explain select  *from "type_STRING" where col ilike 'typ%' and col like 'TYPE';
 
+select * from "type_TIMESTAMP";
 
-explain select * from  "type_TIMESTAMP" where col > date ('2017.11.06 12:34:56.789') ;
+explain (VERBOSE, COSTS OFF) select * from  "type_TIMESTAMP" where col > date ('2017.11.06 12:34:56.789') ;
 select * from  "type_TIMESTAMP" where col > date ('2017.11.06 12:34:56.789') ;
-explain select * from  "type_TIMESTAMP" where col::text > date ('2017.11.06 12:34:56.789')::text ;
+explain (VERBOSE, COSTS OFF) select * from  "type_TIMESTAMP" where col::text > date ('2017.11.06 12:34:56.789')::text ;
 select * from  "type_TIMESTAMP" where col::text > date ('2017.11.06 12:34:56.789')::text ;
-select * from  "type_TIMESTAMP" where col > b - interval '1 hour'; 
+explain  (VERBOSE, COSTS OFF) select * from  "type_TIMESTAMP" where col > b - interval '1 hour'; 
+select * from  "type_TIMESTAMP" where col > b - interval '1 hour';
+explain (VERBOSE, COSTS OFF) select * from  "type_TIMESTAMP" where col > b;
+select * from  "type_TIMESTAMP" where col > b;
