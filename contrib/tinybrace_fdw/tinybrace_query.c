@@ -129,7 +129,6 @@ tinybrace_convert_to_pg(Oid pgtyp, int pgtypmod, TBC_DATA *column)
 
 	switch (pgtyp)
 	{
-#if 0
 		/*
 		 * MySQL gives BIT / BIT(n) data type as decimal value. The only way to
 		 * retrieve this value is to use BIN, OCT or HEX function in MySQL, otherwise
@@ -149,15 +148,18 @@ tinybrace_convert_to_pg(Oid pgtyp, int pgtypmod, TBC_DATA *column)
 		 * value 9 hence PostgreSQL reports error. The solution is to convert the decimal number
 		 * into equivalent binary string.
 		 */
-		case BYTEAOID:
-			SET_VARSIZE(column->value, column->length + VARHDRSZ);
-			return PointerGetDatum(column->value);
-
-		case BITOID:
-			sprintf(str, "%d", dec_bin(*((int*)column->value)));
-			valueDatum = CStringGetDatum((char*)str);
+	case BYTEAOID:{
+      		int blobsize = column->value;
+			value_datum = (Datum) palloc0(blobsize + VARHDRSZ);
+			memcpy(VARDATA(value_datum), column->value + 4, blobsize);
+			SET_VARSIZE(value_datum, blobsize + VARHDRSZ);
+			return PointerGetDatum(value_datum);
+	}
+	case VARBITOID:
+	case BITOID:
+		sprintf(str, "%d", dec_bin(column->value));
+		valueDatum = CStringGetDatum((char*)str);
 		break;
-#endif
 	case INT2OID:
 	case INT4OID:
 	case INT8OID:
@@ -191,22 +193,16 @@ tinybrace_from_pgtyp(Oid type)
 	{
 		case INT2OID:
 			return TBC_INT;
-
 		case INT4OID:
 			return TBC_INT;
-
 		case INT8OID:
 			return TBC_INT64;
-
 		case FLOAT4OID:
 			return TBC_FLOAT;
-
 		case FLOAT8OID:
 			return TBC_DOUBLE;
-
 		case NUMERICOID:
 			return TBC_DOUBLE;
-
 		case BOOLOID:
 			return TBC_INT;
 		case BPCHAROID:
@@ -299,8 +295,14 @@ tinybrace_bind_sql_var(Oid type, int attnum, Datum value, TBC_QUERY_HANDLE qHand
 		{
 			Datum valueDatum = DirectFunctionCall1(numeric_float8, value);
 			float8 dat = DatumGetFloat8(valueDatum);
-			ret = TBC_bind_stmt(connect, qHandle, attnum, TBC_NUMERIC, 0, (void*)&dat);
+			ret = TBC_bind_stmt(connect, qHandle, attnum, TBC_DOUBLE, 0, (void*)&dat);
 			break;
+#if 0
+			//Datum valueDatum = DirectFunctionCall1(numeric_float8, value);
+			float8 dat = DatumGetFloat8(valueDatum);
+			ret = TBC_bind_stmt(connect, qHandle, attnum, TBC_DOUBLE, 0, (void*)&dat);
+			break;
+#endif
 		}
 		case BOOLOID:
 		{
@@ -324,7 +326,7 @@ tinybrace_bind_sql_var(Oid type, int attnum, Datum value, TBC_QUERY_HANDLE qHand
 			bool typeVarLength = false;
 			getTypeOutputInfo(type, &outputFunctionId, &typeVarLength);
 			outputString = OidOutputFunctionCall(outputFunctionId, value);
-			ret = TBC_bind_stmt(connect, qHandle, attnum, TBC_STRING, -1, (void*)outputString);
+			ret = TBC_bind_stmt(connect, qHandle, attnum, TBC_STRING, 0, (void*)outputString);
 			break;
 		}
 

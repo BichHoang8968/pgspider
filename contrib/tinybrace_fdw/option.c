@@ -72,6 +72,7 @@ static struct TinyBraceFdwOption valid_options[] =
 	{ "secure_auth",    ForeignServerRelationId },
 	{ "max_blob_size",  ForeignTableRelationId },
 	{ "use_remote_estimate",    ForeignServerRelationId },
+	{ "key", AttributeRelationId},
 	/* Sentinel */
 	{ NULL,			InvalidOid }
 };

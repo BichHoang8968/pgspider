@@ -51,6 +51,7 @@ typedef struct foreign_glob_cxt
 {
 	PlannerInfo *root;			/* global planner state */
 	RelOptInfo *foreignrel;		/* the foreign relation we are planning for */
+	Relids		relids;			/* relids of base relations in the underlying*/
 } foreign_glob_cxt;
 
 /*
@@ -580,7 +581,6 @@ deparseExpr(Expr *node, deparse_expr_cxt *context)
 			break;
 		case T_Aggref:
 			elog(INFO, "T_Aggref: ");
-			fprintf(stderr,"T_Aggref:");
 			deparseAggref((Aggref *) node, context);
 			break;
 		default:
@@ -655,11 +655,12 @@ do { \
 void
 tinybrace_deparse_update(StringInfo buf, PlannerInfo *root,
 				 Index rtindex, Relation rel,
-				 List *targetAttrs, char *attname)
+				 List *targetAttrs, List *attname)
 {
 	AttrNumber  pindex;
 	bool        first;
 	ListCell    *lc;
+	int i=0;
 
 	appendStringInfoString(buf, "UPDATE ");
 	tinybrace_deparse_relation(buf, rel);
@@ -670,8 +671,6 @@ tinybrace_deparse_update(StringInfo buf, PlannerInfo *root,
 	foreach(lc, targetAttrs)
 	{
 		int attnum = lfirst_int(lc);
-		if (attnum == 1)
-			continue;
 
 		if (!first)
 			appendStringInfoString(buf, ", ");
@@ -681,7 +680,17 @@ tinybrace_deparse_update(StringInfo buf, PlannerInfo *root,
 		appendStringInfo(buf, " = ?");
 		pindex++;
 	}
-	appendStringInfo(buf, " WHERE %s = ?", attname);
+	i = 0;
+	foreach(lc, attname)
+	{
+		if (i == 0)
+			appendStringInfo(buf, " WHERE %s = ?", (char*)lfirst(lc));
+		else
+			appendStringInfo(buf, " AND %s = ?", (char*)lfirst(lc));
+
+		i++;
+	}
+
 }
 
 
@@ -727,9 +736,9 @@ static void
 tinybrace_deparse_var(Var *node, deparse_expr_cxt *context)
 {
 	StringInfo	buf = context->buf;
+	Relids		relids = context->scanrel->relids;
 
-	if (node->varno == context->foreignrel->relid &&
-		node->varlevelsup == 0)
+	if (bms_is_member(node->varno, relids) && node->varlevelsup == 0)
 	{
 		/* Var belongs to foreign table */
 	  tinybrace_deparse_column_ref(buf, node->varno, node->varattno, context->root);
@@ -1046,35 +1055,20 @@ tinybrace_deparse_operator_name(StringInfo buf, Form_pg_operator opform)
 	{
 		if (strcmp(cur_opname, "~~") == 0)
 		{
-			appendStringInfoString(buf, "LIKE BINARY");
-		}
-		else if (strcmp(cur_opname, "~~*") == 0)
-		{
 			appendStringInfoString(buf, "LIKE");
 		}
 		else if (strcmp(cur_opname, "!~~") == 0)
 		{
-			appendStringInfoString(buf, "NOT LIKE BINARY");
-		}
-		else if (strcmp(cur_opname, "!~~*") == 0)
-		{
 			appendStringInfoString(buf, "NOT LIKE");
 		}
-		else if (strcmp(cur_opname, "~") == 0)
+		else if (strcmp(cur_opname, "~~*") == 0 ||
+				 strcmp(cur_opname, "!~~*") == 0 ||
+				 strcmp(cur_opname, "~") == 0 ||
+				 strcmp(cur_opname, "!~") == 0 ||
+				 strcmp(cur_opname, "~*") == 0 ||
+				 strcmp(cur_opname, "!~*") == 0)
 		{
-			appendStringInfoString(buf, "REGEXP BINARY");
-		}
-		else if (strcmp(cur_opname, "~*") == 0)
-		{
-			appendStringInfoString(buf, "REGEXP");
-		}
-		else if (strcmp(cur_opname, "!~") == 0)
-		{
-			appendStringInfoString(buf, "NOT REGEXP BINARY");
-		}
-		else if (strcmp(cur_opname, "!~*") == 0)
-		{
-			appendStringInfoString(buf, "NOT REGEXP");
+			elog(ERROR, "OPERATOR is not supported");
 		}
 		else
 		{
@@ -1335,7 +1329,10 @@ foreign_expr_walker(Node *node,
 	foreign_loc_cxt inner_cxt;
 	Oid			collation;
 	FDWCollateState state;
-
+	HeapTuple      tuple;
+	Form_pg_operator   form;
+	char *cur_opname;
+	
 	/* Need do nothing for empty subexpressions */
 	if (node == NULL)
 		return true;
@@ -1357,23 +1354,47 @@ foreign_expr_walker(Node *node,
 				 * Param's collation, ie it's not safe for it to have a
 				 * non-default collation.
 				 */
-				if (var->varno == glob_cxt->foreignrel->relid &&
+				if (bms_is_member(var->varno, glob_cxt->relids) &&
 					var->varlevelsup == 0)
 				{
 					/* Var belongs to foreign table */
+
+					/*
+					 * System columns other than ctid and oid should not be
+					 * sent to the remote, since we don't make any effort to
+					 * ensure that local and remote values match (tableoid, in
+					 * particular, almost certainly doesn't match).
+					 */
+					if (var->varattno < 0 &&
+						var->varattno != SelfItemPointerAttributeNumber &&
+						var->varattno != ObjectIdAttributeNumber)
+						return false;
+
+					/* Else check the collation */
 					collation = var->varcollid;
 					state = OidIsValid(collation) ? FDW_COLLATE_SAFE : FDW_COLLATE_NONE;
 				}
 				else
 				{
 					/* Var belongs to some other table */
-					if (var->varcollid != InvalidOid &&
-						var->varcollid != DEFAULT_COLLATION_OID)
-						return false;
-
-					/* We can consider that it doesn't set collation */
-					collation = InvalidOid;
-					state = FDW_COLLATE_NONE;
+					collation = var->varcollid;
+					if (collation == InvalidOid ||
+						collation == DEFAULT_COLLATION_OID)
+					{
+						/*
+						 * It's noncollatable, or it's safe to combine with a
+						 * collatable foreign Var, so set state to NONE.
+						 */
+						state = FDW_COLLATE_NONE;
+					}
+					else
+					{
+						/*
+						 * Do not fail right away, since the Var might appear
+						 * in a collation-insensitive context.
+						 */
+						state = FDW_COLLATE_UNSAFE;
+					}
 				}
 			}
 			break;
@@ -1447,53 +1468,7 @@ foreign_expr_walker(Node *node,
 					state = FDW_COLLATE_UNSAFE;
 			}
 			break;
-		case T_FuncExpr:
-			{
-				FuncExpr   *fe = (FuncExpr *) node;
-
-				/*
-				 * If function used by the expression is not built-in, it
-				 * can't be sent to remote because it might have incompatible
-				 * semantics on remote side.
-				 */
-				if (!is_builtin(fe->funcid))
-					return false;
-
-				/*
-				 * Recurse to input subexpressions.
-				 */
-				if (!foreign_expr_walker((Node *) fe->args,
-										 glob_cxt, &inner_cxt))
-					return false;
-
-				/*
-				 * If function's input collation is not derived from a foreign
-				 * Var, it can't be sent to remote.
-				 */
-				if (fe->inputcollid == InvalidOid)
-					 /* OK, inputs are all noncollatable */ ;
-				else if (inner_cxt.state != FDW_COLLATE_SAFE ||
-						 fe->inputcollid != inner_cxt.collation)
-					return false;
-
-				/*
-				 * Detect whether node is introducing a collation not derived
-				 * from a foreign Var.  (If so, we just mark it unsafe for now
-				 * rather than immediately returning false, since the parent
-				 * node might not care.)
-				 */
-				collation = fe->funccollid;
-				if (collation == InvalidOid)
-					state = FDW_COLLATE_NONE;
-				else if (inner_cxt.state == FDW_COLLATE_SAFE &&
-						 collation == inner_cxt.collation)
-					state = FDW_COLLATE_SAFE;
-				else
-					state = FDW_COLLATE_UNSAFE;
-			}
-			break;
 		case T_OpExpr:
-		case T_DistinctExpr:	/* struct-equivalent to OpExpr */
 			{
 				OpExpr	   *oe = (OpExpr *) node;
 
@@ -1504,7 +1479,20 @@ foreign_expr_walker(Node *node,
 				 */
 				if (!is_builtin(oe->opno))
 					return false;
-
+				
+				tuple = SearchSysCache1(OPEROID, ObjectIdGetDatum(oe->opno));
+				if (!HeapTupleIsValid(tuple))
+					elog(ERROR, "cache lookup failed for operator %u", oe->opno);
+				form = (Form_pg_operator) GETSTRUCT(tuple);
+				
+				/* opname is not a SQL identifier, so we should not quote it. */
+				cur_opname = NameStr(form->oprname);
+				/* ILIKE cannot be pushed down to SQLite */
+				if (strcmp(cur_opname, "~~*") == 0 || strcmp(cur_opname, "!~~*") == 0) {
+					ReleaseSysCache(tuple);
+					return false;
+				}
+				ReleaseSysCache(tuple);
 				/*
 				 * Recurse to input subexpressions.
 				 */
@@ -1622,31 +1610,6 @@ foreign_expr_walker(Node *node,
 				state = FDW_COLLATE_NONE;
 			}
 			break;
-		case T_ArrayExpr:
-			{
-				ArrayExpr  *a = (ArrayExpr *) node;
-
-				/*
-				 * Recurse to input subexpressions.
-				 */
-				if (!foreign_expr_walker((Node *) a->elements,
-										 glob_cxt, &inner_cxt))
-					return false;
-
-				/*
-				 * ArrayExpr must not introduce a collation not derived from
-				 * an input foreign Var.
-				 */
-				collation = a->array_collid;
-				if (collation == InvalidOid)
-					state = FDW_COLLATE_NONE;
-				else if (inner_cxt.state == FDW_COLLATE_SAFE &&
-						 collation == inner_cxt.collation)
-					state = FDW_COLLATE_SAFE;
-				else
-					state = FDW_COLLATE_UNSAFE;
-			}
-			break;
 		case T_List:
 			{
 				List	   *l = (List *) node;
@@ -1673,6 +1636,104 @@ foreign_expr_walker(Node *node,
 				check_type = false;
 			}
 			break;
+		case T_Aggref:
+			{
+				Aggref	   *agg = (Aggref *) node;
+				ListCell   *lc;
+
+				/* Not safe to pushdown when not in grouping context */
+				if (!IS_UPPER_REL(glob_cxt->foreignrel))
+					return false;
+
+				/* Only non-split aggregates are pushable. */
+				if (agg->aggsplit != AGGSPLIT_SIMPLE)
+					return false;
+
+				/*
+				 * Recurse to input args. aggdirectargs, aggorder and
+				 * aggdistinct are all present in args, so no need to check
+				 * their shippability explicitly.
+				 */
+				foreach(lc, agg->args)
+				{
+					Node	   *n = (Node *) lfirst(lc);
+
+					/* If TargetEntry, extract the expression from it */
+					if (IsA(n, TargetEntry))
+					{
+						TargetEntry *tle = (TargetEntry *) n;
+
+						n = (Node *) tle->expr;
+					}
+
+					if (!foreign_expr_walker(n, glob_cxt, &inner_cxt))
+						return false;
+				}
+
+				/*
+				 * For aggorder elements, check whether the sort operator, if
+				 * specified, is shippable or not.
+				 */
+				if (agg->aggorder)
+				{
+					ListCell   *lc;
+
+					foreach(lc, agg->aggorder)
+					{
+						SortGroupClause *srt = (SortGroupClause *) lfirst(lc);
+						Oid			sortcoltype;
+						TypeCacheEntry *typentry;
+						TargetEntry *tle;
+
+						tle = get_sortgroupref_tle(srt->tleSortGroupRef,
+												   agg->args);
+						sortcoltype = exprType((Node *) tle->expr);
+						typentry = lookup_type_cache(sortcoltype,
+													 TYPECACHE_LT_OPR | TYPECACHE_GT_OPR);
+						/* Check shippability of non-default sort operator. */
+						if (srt->sortop != typentry->lt_opr &&
+							srt->sortop != typentry->gt_opr)
+							return false;
+					}
+				}
+
+				/* Check aggregate filter */
+				if (!foreign_expr_walker((Node *) agg->aggfilter,
+										 glob_cxt, &inner_cxt))
+					return false;
+
+				/*
+				 * If aggregate's input collation is not derived from a
+				 * foreign Var, it can't be sent to remote.
+				 */
+				if (agg->inputcollid == InvalidOid)
+					 /* OK, inputs are all noncollatable */ ;
+				else if (inner_cxt.state != FDW_COLLATE_SAFE ||
+						 agg->inputcollid != inner_cxt.collation)
+					return false;
+
+				/*
+				 * Detect whether node is introducing a collation not derived
+				 * from a foreign Var.  (If so, we just mark it unsafe for now
+				 * rather than immediately returning false, since the parent
+				 * node might not care.)
+				 */
+				collation = agg->aggcollid;
+				if (collation == InvalidOid)
+					state = FDW_COLLATE_NONE;
+				else if (inner_cxt.state == FDW_COLLATE_SAFE &&
+						 collation == inner_cxt.collation)
+					state = FDW_COLLATE_SAFE;
+				else if (collation == DEFAULT_COLLATION_OID)
+					state = FDW_COLLATE_NONE;
+				else
+					state = FDW_COLLATE_UNSAFE;
+			}
+			break;
+		case T_FuncExpr:
+		case T_ArrayExpr:
+		case T_DistinctExpr:
+			return false;
 		default:
 
 			/*
@@ -1746,28 +1807,80 @@ is_foreign_expr(PlannerInfo *root,
                                 RelOptInfo *baserel,
                                 Expr *expr)
 {
-        foreign_glob_cxt glob_cxt;
-        foreign_loc_cxt loc_cxt;
+	foreign_glob_cxt glob_cxt;
+	foreign_loc_cxt loc_cxt;
+	TinyBraceFdwRelationInfo *fpinfo = (TinyBraceFdwRelationInfo *) (baserel->fdw_private);
 
-        /*
-         * Check that the expression consists of nodes that are safe to execute
-         * remotely.
-         */
-        glob_cxt.root = root;
-        glob_cxt.foreignrel = baserel;
-        loc_cxt.collation = InvalidOid;
-        loc_cxt.state = FDW_COLLATE_NONE;
-        if (!foreign_expr_walker((Node *) expr, &glob_cxt, &loc_cxt))
-                return false;
+	/*
+	 * Check that the expression consists of nodes that are safe to execute
+	 * remotely.
+	 */
+	glob_cxt.root = root;
+	glob_cxt.foreignrel = baserel;
 
-        /* Expressions examined here should be boolean, ie noncollatable */
-        Assert(loc_cxt.collation == InvalidOid);
-        Assert(loc_cxt.state == FDW_COLLATE_NONE);
+	if (IS_UPPER_REL(baserel))
+		glob_cxt.relids = fpinfo->outerrel->relids;
+	else
+		glob_cxt.relids = baserel->relids;
+	loc_cxt.collation = InvalidOid;
+	loc_cxt.state = FDW_COLLATE_NONE;
+	if (!foreign_expr_walker((Node *) expr, &glob_cxt, &loc_cxt))
+		return false;
 
-        /* OK to evaluate on the remote server */
-        return true;
+	/*
+	 * If the expression has a valid collation that does not arise from a
+	 * foreign var, the expression can not be sent over.
+	 */
+	if (loc_cxt.state == FDW_COLLATE_UNSAFE)
+		return false;
+
+	/*
+	 * An expression which includes any mutable functions can't be sent over
+	 * because its result is not stable.  For example, sending now() remote
+	 * side could cause confusion from clock offsets.  Future versions might
+	 * be able to make this choice with more granularity.  (We check this last
+	 * because it requires a lot of expensive catalog lookups.)
+	 */
+	if (contain_mutable_functions((Node *) expr))
+		return false;
+
+	/* OK to evaluate on the remote server */
+	return true;
 }
 
+
+/*
+ * appendFunctionName
+ *		Deparses function name from given function oid.
+ */
+static void
+appendFunctionName(Oid funcid, deparse_expr_cxt *context)
+{
+	StringInfo	buf = context->buf;
+	HeapTuple	proctup;
+	Form_pg_proc procform;
+	const char *proname;
+
+	proctup = SearchSysCache1(PROCOID, ObjectIdGetDatum(funcid));
+	if (!HeapTupleIsValid(proctup))
+		elog(ERROR, "cache lookup failed for function %u", funcid);
+	procform = (Form_pg_proc) GETSTRUCT(proctup);
+
+	/* Print schema name only if it's not pg_catalog */
+	if (procform->pronamespace != PG_CATALOG_NAMESPACE)
+	{
+		const char *schemaname;
+
+		schemaname = get_namespace_name(procform->pronamespace);
+		appendStringInfo(buf, "%s.", quote_identifier(schemaname));
+	}
+
+	/* Always print the function name */
+	proname = NameStr(procform->proname);
+	appendStringInfo(buf, "%s", quote_identifier(proname));
+
+	ReleaseSysCache(proctup);
+}
 
 /*
  * Deparse an Aggref node.
@@ -1775,7 +1888,6 @@ is_foreign_expr(PlannerInfo *root,
 static void
 deparseAggref(Aggref *node, deparse_expr_cxt *context)
 {
-#if 0
 	StringInfo	buf = context->buf;
 	bool		use_variadic;
 
@@ -1860,7 +1972,6 @@ deparseAggref(Aggref *node, deparse_expr_cxt *context)
 	}
 
 	appendStringInfoChar(buf, ')');
-#endif
 }
 
 /*

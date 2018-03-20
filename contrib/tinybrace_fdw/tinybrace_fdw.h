@@ -107,6 +107,7 @@ typedef struct TinyBraceFdwExecState
 {
 	TBC_CLIENT_HANDLE *conn;              /* TinyBrace connection handle */
 	TBC_QUERY_HANDLE qHandle;              /* MySQL prepared stament handle */
+	TBC_QUERY_HANDLE uqHandle;              /* MySQL prepared stament handle */
 	tinybrace_table *table;
 	int current_row;
 	char            *query;             /* Query string */
@@ -127,6 +128,12 @@ typedef struct TinyBraceFdwExecState
 
 	List            *attr_list;         /* query attribute list */
 	List            *column_list;       /* Column list of MySQL Column structures */
+	int64			row_nums;			/* number of rows */
+	Datum			**rows;				/* all rows of scan */
+	bool			**rows_isnull;		/* is null */
+
+	int64			rowidx;				/* current index of rows */
+	bool 			for_update;			/* true if this scan is update target */
 
 	/* working memory context */
 	MemoryContext   temp_cxt;           /* context for per-tuple temporary data */
@@ -203,7 +210,6 @@ typedef struct TinyBraceFdwRelationInfo
 										 * subquery? */
 	Relids		lower_subquery_rels;	/* all relids appearing in lower
 										 * subqueries */
-
 	/*
 	 * Index of the relation.  It is used to create an alias to a subquery
 	 * representing the relation.
@@ -278,7 +284,7 @@ extern tinybrace_opt *tinybrace_get_options(Oid foreigntableid);
 
 /* depare.c headers */
 extern void tinybrace_deparse_insert(StringInfo buf, PlannerInfo *root, Index rtindex, Relation rel, List *targetAttrs);
-extern void tinybrace_deparse_update(StringInfo buf, PlannerInfo *root, Index rtindex, Relation rel, List *targetAttrs, char *attname);
+extern void tinybrace_deparse_update(StringInfo buf, PlannerInfo *root, Index rtindex, Relation rel, List *targetAttrs, List *attname);
 extern void tinybrace_deparse_delete(StringInfo buf, PlannerInfo *root,
 				 Index rtindex, Relation rel,
 									 List *name);
