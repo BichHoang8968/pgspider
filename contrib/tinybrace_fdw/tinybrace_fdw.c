@@ -722,7 +722,7 @@ tinybraceIterateForeignScan(ForeignScanState *node)
 					(errcode(ERRCODE_FDW_UNABLE_TO_CREATE_EXECUTION),
 					 errmsg("failed to tbc_execute %d\n",rtn)));
 		}
-		festate-> table ->result_set = (TBC_RESULT_SET *)MemoryContextAlloc(econtext->ecxt_per_tuple_memory,sizeof(TBC_RESULT_SET));
+		festate-> table ->result_set = (TBC_RESULT_SET *)MemoryContextAlloc(econtext->es_query_cxt,sizeof(TBC_RESULT_SET));
 
 		rtn = TBC_store_result(festate->conn->connect,festate->qHandle, festate->table->result_set);
 		if(rtn != TBC_OK){
