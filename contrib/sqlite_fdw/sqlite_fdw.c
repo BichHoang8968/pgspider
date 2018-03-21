@@ -614,7 +614,7 @@ sqliteGetForeignPlan(
 	 * expressions to be sent as parameters.
 	 */
 	initStringInfo(&sql);
-	deparseSelectStmtForRel(&sql, root, baserel, fdw_scan_tlist,
+	sqliteDeparseSelectStmtForRel(&sql, root, baserel, fdw_scan_tlist,
 							remote_exprs, best_path->path.pathkeys,
 							false, &retrieved_attrs, &params_list);
 

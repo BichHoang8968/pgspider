@@ -158,7 +158,7 @@ extern bool is_foreign_expr(PlannerInfo *root,
 extern sqlite_opt *sqlite_get_options(Oid foreigntableid);
 
 /* depare.c headers */
-extern void deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
+extern void sqliteDeparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
 						List *tlist, List *remote_conds, List *pathkeys,
 						bool is_subquery, List **retrieved_attrs,
 						List **params_list);													 
