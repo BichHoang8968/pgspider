@@ -162,7 +162,7 @@ tinybrace_get_options(Oid foreignoid)
 	UserMapping *f_mapping;
 	List *options;
 	ListCell *lc;
-  tinybrace_opt *opt;
+	tinybrace_opt *opt;
 
 	opt = (tinybrace_opt*) palloc(sizeof(tinybrace_opt));
 	memset(opt, 0, sizeof(tinybrace_opt));

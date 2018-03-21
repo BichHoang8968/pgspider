@@ -1,11 +1,13 @@
 /*-------------------------------------------------------------------------
  *
  * deparse.c
- * 		Foreign-data wrapper for remote MySQL servers
+ * 		Foreign-data wrapper for remote Tinybrace servers
  *
  * Portions Copyright (c) 2012-2014, PostgreSQL Global Development Group
  *
  * Portions Copyright (c) 2004-2014, EnterpriseDB Corporation.
+ *
+ * Portions Copyright (c) 2017-2018, Toshiba Corporation.
  *
  * IDENTIFICATION
  * 		deparse.c
@@ -168,8 +170,7 @@ tinybrace_deparse_relation(StringInfo buf, Relation rel)
 	if (relname == NULL)
 		relname = RelationGetRelationName(rel);
 
-	//appendStringInfo(buf, "%s.%s", tinybrace_quote_identifier(nspname, '`'), tinybrace_quote_identifier(relname, '`'));
-	appendStringInfo(buf, "%s", tinybrace_quote_identifier(relname, '`'));
+	appendStringInfo(buf, "%s", tinybrace_quote_identifier(relname, '"'));
 }
 
 static char *
@@ -193,7 +194,7 @@ tinybrace_quote_identifier(const char *s , char q)
 
 
 static void
-deparseExplicitTargetList(List *tlist, List **retrieved_attrs, deparse_expr_cxt *context)
+tinybrace_deparseExplicitTargetList(List *tlist, List **retrieved_attrs, deparse_expr_cxt *context)
 {
 	ListCell   *lc;
 	StringInfo	buf = context->buf;
@@ -244,9 +245,9 @@ tinybrace_deparse_select(List *tlist, List **retrieved_attrs, deparse_expr_cxt *
 	if (foreignrel->reloptkind == RELOPT_JOINREL ||
 		foreignrel->reloptkind == RELOPT_UPPER_REL)
 	{
-		elog(INFO,"RELOPT_UPPER_REL");
+		elog(DEBUG1,"RELOPT_UPPER_REL");
 		/* For a join relation use the input tlist */
-		deparseExplicitTargetList(tlist, retrieved_attrs, context);
+		tinybrace_deparseExplicitTargetList(tlist, retrieved_attrs, context);
 	}
 	else
 	{
@@ -469,7 +470,7 @@ tinybrace_deparse_column_ref(StringInfo buf, int varno, int varattno, PlannerInf
 	if (colname == NULL)
 		colname = get_relid_attribute_name(rte->relid, varattno);
 
-	appendStringInfoString(buf, tinybrace_quote_identifier(colname, '`'));
+	appendStringInfoString(buf, tinybrace_quote_identifier(colname, '"'));
 }
 
 
@@ -580,7 +581,7 @@ deparseExpr(Expr *node, deparse_expr_cxt *context)
 			tinybrace_deparse_array_expr((ArrayExpr *) node, context);
 			break;
 		case T_Aggref:
-			elog(INFO, "T_Aggref: ");
+			elog(DEBUG1, "T_Aggref: ");
 			deparseAggref((Aggref *) node, context);
 			break;
 		default:
@@ -720,7 +721,7 @@ tinybrace_deparse_delete(StringInfo buf, PlannerInfo *root,
 
 		i++;
 	}
-	elog(INFO, "delete:%s",buf->data);
+	elog(DEBUG3, "delete:%s",buf->data);
 
 }
 
@@ -824,14 +825,14 @@ tinybrace_deparse_const(Const *node, deparse_expr_cxt *context)
 		case BITOID:
 		case VARBITOID:
 			extval = OidOutputFunctionCall(typoutput, node->constvalue);
-			appendStringInfo(buf, "B'%s'", extval);
+			appendStringInfo(buf, "x'%s'", extval);
 			break;
 		case BOOLOID:
 			extval = OidOutputFunctionCall(typoutput, node->constvalue);
 			if (strcmp(extval, "t") == 0)
-				appendStringInfoString(buf, "true");
+				appendStringInfoString(buf, "1");
 			else
-				appendStringInfoString(buf, "false");
+				appendStringInfoString(buf, "0");
 			break;
 		case INTERVALOID:
 			deparse_interval(buf, node->constvalue);
@@ -1049,7 +1050,7 @@ tinybrace_deparse_operator_name(StringInfo buf, Form_pg_operator opform)
 		opnspname = get_namespace_name(opform->oprnamespace);
 		/* Print fully qualified operator name. */
 		appendStringInfo(buf, "OPERATOR(%s.%s)",
-						 tinybrace_quote_identifier(opnspname, '`'), cur_opname);
+						 tinybrace_quote_identifier(opnspname, '"'), cur_opname);
 	}
 	else
 	{
@@ -1432,42 +1433,7 @@ foreign_expr_walker(Node *node,
 			}
 			break;
 		case T_ArrayRef:
-			{
-				ArrayRef   *ar = (ArrayRef *) node;;
-
-				/* Assignment should not be in restrictions. */
-				if (ar->refassgnexpr != NULL)
-					return false;
-
-				/*
-				 * Recurse to remaining subexpressions.  Since the array
-				 * subscripts must yield (noncollatable) integers, they won't
-				 * affect the inner_cxt state.
-				 */
-				if (!foreign_expr_walker((Node *) ar->refupperindexpr,
-										 glob_cxt, &inner_cxt))
-					return false;
-				if (!foreign_expr_walker((Node *) ar->reflowerindexpr,
-										 glob_cxt, &inner_cxt))
-					return false;
-				if (!foreign_expr_walker((Node *) ar->refexpr,
-										 glob_cxt, &inner_cxt))
-					return false;
-
-				/*
-				 * Array subscripting should yield same collation as input,
-				 * but for safety use same logic as for function nodes.
-				 */
-				collation = ar->refcollid;
-				if (collation == InvalidOid)
-					state = FDW_COLLATE_NONE;
-				else if (inner_cxt.state == FDW_COLLATE_SAFE &&
-						 collation == inner_cxt.collation)
-					state = FDW_COLLATE_SAFE;
-				else
-					state = FDW_COLLATE_UNSAFE;
-			}
-			break;
+			return false;
 		case T_OpExpr:
 			{
 				OpExpr	   *oe = (OpExpr *) node;
@@ -1674,29 +1640,12 @@ foreign_expr_walker(Node *node,
 				 * For aggorder elements, check whether the sort operator, if
 				 * specified, is shippable or not.
 				 */
-				if (agg->aggorder)
-				{
-					ListCell   *lc;
-
-					foreach(lc, agg->aggorder)
-					{
-						SortGroupClause *srt = (SortGroupClause *) lfirst(lc);
-						Oid			sortcoltype;
-						TypeCacheEntry *typentry;
-						TargetEntry *tle;
-
-						tle = get_sortgroupref_tle(srt->tleSortGroupRef,
-												   agg->args);
-						sortcoltype = exprType((Node *) tle->expr);
-						typentry = lookup_type_cache(sortcoltype,
-													 TYPECACHE_LT_OPR | TYPECACHE_GT_OPR);
-						/* Check shippability of non-default sort operator. */
-						if (srt->sortop != typentry->lt_opr &&
-							srt->sortop != typentry->gt_opr)
-							return false;
-					}
-				}
-
+				/* Add ORDER BY */
+				if (agg->aggorder != NIL)
+					return false;
+				/* Add FILTER (WHERE ..) */
+				if (agg->aggfilter != NULL)
+					return false;
 				/* Check aggregate filter */
 				if (!foreign_expr_walker((Node *) agg->aggfilter,
 										 glob_cxt, &inner_cxt))
@@ -1923,7 +1872,6 @@ deparseAggref(Aggref *node, deparse_expr_cxt *context)
 		}
 
 		appendStringInfoString(buf, ") WITHIN GROUP (ORDER BY ");
-		//appendAggOrderBy(node->aggorder, node->args, context);
 	}
 	else
 	{
@@ -1955,21 +1903,8 @@ deparseAggref(Aggref *node, deparse_expr_cxt *context)
 				deparseExpr((Expr *) n, context);
 			}
 		}
-
-		/* Add ORDER BY */
-		if (node->aggorder != NIL)
-		{
-			appendStringInfoString(buf, " ORDER BY ");
-			//appendAggOrderBy(node->aggorder, node->args, context);
-		}
 	}
 
-	/* Add FILTER (WHERE ..) */
-	if (node->aggfilter != NULL)
-	{
-		appendStringInfoString(buf, ") FILTER (WHERE ");
-		deparseExpr((Expr *) node->aggfilter, context);
-	}
 
 	appendStringInfoChar(buf, ')');
 }
@@ -2297,7 +2232,7 @@ deparseFromExpr(List *quals, deparse_expr_cxt *context)
 
 
 extern void
-deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
+tinybrace_deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
 						List *tlist, List *remote_conds, List *pathkeys,
 						bool is_subquery, List **retrieved_attrs,
 						List **params_list)
@@ -2310,8 +2245,7 @@ deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
 	 * We handle relations for foreign tables, joins between those and upper
 	 * relations.
 	 */
-	Assert(rel->reloptkind == RELOPT_JOINREL ||
-		   rel->reloptkind == RELOPT_BASEREL ||
+	Assert(rel->reloptkind == RELOPT_BASEREL ||
 		   rel->reloptkind == RELOPT_OTHER_MEMBER_REL ||
 		   rel->reloptkind == RELOPT_UPPER_REL);
 

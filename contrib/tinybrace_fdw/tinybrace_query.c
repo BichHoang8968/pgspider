@@ -1,11 +1,13 @@
 /*-------------------------------------------------------------------------
  *
- * mysql_query.c
- * 		Foreign-data wrapper for remote MySQL servers
+ * tinybrace_query.c
+ * 		Foreign-data wrapper for remote Tinybrace servers
  *
  * Portions Copyright (c) 2012-2014, PostgreSQL Global Development Group
  *
  * Portions Copyright (c) 2004-2014, EnterpriseDB Corporation.
+ *
+ * Portions Copyright (c) 2017-2018, Toshiba Corporation.
  *
  * IDENTIFICATION
  * 		tinybrace_query.c
@@ -21,7 +23,6 @@
 #include <unistd.h>
 
 #include <tinybrace.h>
-//#include <tinybrace_com.h>
 
 #include "access/reloptions.h"
 #include "catalog/pg_type.h"
@@ -87,7 +88,7 @@
 #include "tinybrace_query.h"
 
 
-#define DATE_MYSQL_PG(x, y) \
+#define DATE_TINYBRACE_PG(x, y) \
 do { \
 x->year = y.tm_year; \
 x->month = y.tm_mon; \
@@ -104,7 +105,7 @@ static int bin_dec(int n);
 
 
 /*
- * convert_tinybrace_to_pg: Convert MySQL data into PostgreSQL's compatible data types
+ * convert_tinybrace_to_pg: Convert Tinybrace data into PostgreSQL's compatible data types
  */
 Datum
 tinybrace_convert_to_pg(Oid pgtyp, int pgtypmod, TBC_DATA *column)
@@ -115,6 +116,7 @@ tinybrace_convert_to_pg(Oid pgtyp, int pgtypmod, TBC_DATA *column)
 	HeapTuple tuple;
 	int typemod;
 	char *str;
+	int rtn;
 	
     str = palloc(sizeof (char) * MAXDATELEN);
 
@@ -127,13 +129,14 @@ tinybrace_convert_to_pg(Oid pgtyp, int pgtypmod, TBC_DATA *column)
 	typemod  = ((Form_pg_type)GETSTRUCT(tuple))->typtypmod;
 	ReleaseSysCache(tuple);
 
+	rtn = tinybrace_from_pgtyp(pgtyp);
 	switch (pgtyp)
 	{
 		/*
-		 * MySQL gives BIT / BIT(n) data type as decimal value. The only way to
-		 * retrieve this value is to use BIN, OCT or HEX function in MySQL, otherwise
-		 * mysql client shows the actual decimal value, which could be a non - printable character.
-		 * For exmple in MySQL
+		 * Tinybrace gives BIT / BIT(n) data type as decimal value. The only way to
+		 * retrieve this value is to use BIN, OCT or HEX function in Tinybrace, otherwise
+		 * tinybrace client shows the actual decimal value, which could be a non - printable character.
+		 * For exmple in Tinybrace
 		 *
 		 * CREATE TABLE t (b BIT(8));
 		 * INSERT INTO t SET b = b'1001';
@@ -144,14 +147,14 @@ tinybrace_convert_to_pg(Oid pgtyp, int pgtypmod, TBC_DATA *column)
 		 * | 1001   |
 		 * +--------+
 		 *
-		 * PostgreSQL expacts all binary data to be composed of either '0' or '1'. MySQL gives
+		 * PostgreSQL expacts all binary data to be composed of either '0' or '1'. Tinybrace gives
 		 * value 9 hence PostgreSQL reports error. The solution is to convert the decimal number
 		 * into equivalent binary string.
 		 */
 	case BYTEAOID:{
       		int blobsize = column->value;
 			value_datum = (Datum) palloc0(blobsize + VARHDRSZ);
-			memcpy(VARDATA(value_datum), column->value + 4, blobsize);
+			memcpy(VARDATA(value_datum), column->value + INTVAL_LEN, blobsize);
 			SET_VARSIZE(value_datum, blobsize + VARHDRSZ);
 			return PointerGetDatum(value_datum);
 	}
@@ -184,7 +187,7 @@ tinybrace_convert_to_pg(Oid pgtyp, int pgtypmod, TBC_DATA *column)
 
 
 /*
- * mysql_from_pgtyp: Give MySQL data type for PG type
+ * tinybrace_from_pgtyp: Give Tinybrace data type for PG type
  */
 static int32
 tinybrace_from_pgtyp(Oid type)
@@ -242,14 +245,13 @@ tinybrace_from_pgtyp(Oid type)
  * bind_sql_var: 
  * Bind the values provided as DatumBind the values and nulls to modify the target table (INSERT/UPDATE)
  */
-#if 1
 void 
 tinybrace_bind_sql_var(Oid type, int attnum, Datum value, TBC_QUERY_HANDLE qHandle, bool *isnull,TBC_CONNECT_HANDLE connect)
 {
 
 	TBC_RTNCODE ret = TBC_OK;
 	attnum++;
-	elog(INFO, "bind %d", attnum);
+	elog(DEBUG1, "bind %d", attnum);
 	/* Avoid to bind buffer in case value is NULL */
 	if (*isnull) {
 		ret = TBC_bind_stmt(connect, qHandle, attnum, TBC_NULL, 0, NULL);
@@ -260,7 +262,7 @@ tinybrace_bind_sql_var(Oid type, int attnum, Datum value, TBC_QUERY_HANDLE qHand
 	{
 		case INT2OID:
 		{
-			int16 dat = DatumGetInt16(value);
+			int32 dat = DatumGetInt32(value);
 			ret = TBC_bind_stmt(connect, qHandle, attnum, TBC_INT, 0, (void*)&dat);
 			break;
 		}
@@ -297,20 +299,7 @@ tinybrace_bind_sql_var(Oid type, int attnum, Datum value, TBC_QUERY_HANDLE qHand
 			float8 dat = DatumGetFloat8(valueDatum);
 			ret = TBC_bind_stmt(connect, qHandle, attnum, TBC_DOUBLE, 0, (void*)&dat);
 			break;
-#if 0
-			//Datum valueDatum = DirectFunctionCall1(numeric_float8, value);
-			float8 dat = DatumGetFloat8(valueDatum);
-			ret = TBC_bind_stmt(connect, qHandle, attnum, TBC_DOUBLE, 0, (void*)&dat);
-			break;
-#endif
 		}
-		case BOOLOID:
-		{
-			int32 dat = DatumGetInt32(value);
-			ret = TBC_bind_stmt(connect, qHandle, attnum, TBC_INT, 0, (void*)&dat);
-			break;
-		}
-
 		case BPCHAROID:
 		case VARCHAROID:
 		case TEXTOID:
@@ -379,37 +368,6 @@ tinybrace_bind_sql_var(Oid type, int attnum, Datum value, TBC_QUERY_HANDLE qHand
 	
 }
 
-#if 0
-/*
- * mysql_bind_result: Bind the value and null pointers to get
- * the data from remote mysql table (SELECT)
- */
-void
-tinybrace_bind_result(Oid pgtyp, int pgtypmod, MYSQL_FIELD *field, mysql_column *column)
-{
-	MYSQL_BIND *mbind = column->_mysql_bind;
-	mbind->is_null = &column->is_null;
-	mbind->length = &column->length;
-	mbind->error = &column->error;
-
-	switch (pgtyp)
-	{
-			case BYTEAOID:
-					mbind->buffer_type = MYSQL_TYPE_BLOB;
-					/* leave room at front for bytea buffer length prefix */
-					column->value = (Datum) palloc0(MAX_BLOB_WIDTH + VARHDRSZ);
-					mbind->buffer = VARDATA(column->value);
-					mbind->buffer_length = MAX_BLOB_WIDTH;
-					break;
-
-			default:
-					mbind->buffer_type = MYSQL_TYPE_VAR_STRING;
-					column->value = (Datum) palloc0(MAXDATALEN);
-					mbind->buffer = (char *) column->value;
-					mbind->buffer_length = MAXDATALEN;
-	}
-}
-#endif
 static
 int dec_bin(int n)
 {
@@ -442,4 +400,3 @@ bin_dec(int n)
 	}
 	return dec;
 }
-#endif

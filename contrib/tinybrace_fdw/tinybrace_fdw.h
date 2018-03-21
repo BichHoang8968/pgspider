@@ -293,7 +293,7 @@ extern void tinybrace_append_where_clause(StringInfo buf, PlannerInfo *root, Rel
 extern void tinybrace_deparse_analyze(StringInfo buf, char *dbname, char *relname);
 
 extern void
-deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
+tinybrace_deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
 						List *tlist, List *remote_conds, List *pathkeys,
 						bool is_subquery, List **retrieved_attrs,
 						List **params_list);
