@@ -77,8 +77,10 @@
 #include "optimizer/restrictinfo.h"
 #include "optimizer/planmain.h"
 
+#define DEFAULT_ESTIMATED_LINES 1000000
 #define DEFAULTE_NUM_ROWS    1000
-
+#define IS_KEY_COLUMN(A)	((strcmp(A->defname, "key") == 0) && \
+							 (strcmp(((Value *)(A->arg))->val.str, "true") == 0))
 PG_MODULE_MAGIC;
 
 
