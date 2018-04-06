@@ -1,15 +1,11 @@
 /*-------------------------------------------------------------------------
  *
- *                foreign-data wrapper  sqlite
+ * SQLite Foreign Data Wrapper for PostgreSQL
  *
- * Copyright (c) 2013-2016, Guillaume Lelarge
- *
- * This software is released under the PostgreSQL Licence
- *
- * Author:  Guillaume Lelarge <guillaume@lelarge.info>
+ * Portions Copyright (c) 2018, TOSHIBA COOPERATION
  *
  * IDENTIFICATION
- *                sqlite_fdw/=sqlite_fdw.sql
+ *        sqlite_fdw--1.0.sql
  *
  *-------------------------------------------------------------------------
  */

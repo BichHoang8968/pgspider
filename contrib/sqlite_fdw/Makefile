@@ -13,7 +13,7 @@ MODULE_big = sqlite_fdw
 OBJS = connection.o option.o deparse.o sqlite_query.o sqlite_fdw.o
 
 EXTENSION = sqlite_fdw
-DATA = sqlite_fdw--0.0.1.sql
+DATA = sqlite_fdw--1.0.sql
 
 REGRESS = sqlite_fdw type 
 
