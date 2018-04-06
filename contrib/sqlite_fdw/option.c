@@ -1,14 +1,11 @@
 /*-------------------------------------------------------------------------
  *
- * options.c
- * 		Foreign-data wrapper for remote Sqlite servers
+ * SQLite Foreign Data Wrapper for PostgreSQL
  *
- * Portions Copyright (c) 2012-2014, PostgreSQL Global Development Group
- *
- * Portions Copyright (c) 2004-2014, EnterpriseDB Corporation.
+ * Portions Copyright (c) 2018, TOSHIBA COOPERATION
  *
  * IDENTIFICATION
- * 		options.c
+ *        option.c
  *
  *-------------------------------------------------------------------------
  */
@@ -170,9 +167,6 @@ sqlite_get_options(Oid foreignoid)
 	if (f_table)
 		options = list_concat(options, f_table->options);
 	options = list_concat(options, f_server->options);
-
-	/* Default secure authentication is true */
-	opt->svr_sa = true;
 
 	opt->use_remote_estimate = false;
 

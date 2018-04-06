@@ -55,9 +55,12 @@ select * from "type_TIMESTAMP";
 
 explain (VERBOSE, COSTS OFF) select * from  "type_TIMESTAMP" where col > date ('2017.11.06 12:34:56.789') ;
 select * from  "type_TIMESTAMP" where col > date ('2017.11.06 12:34:56.789') ;
+
 explain (VERBOSE, COSTS OFF) select * from  "type_TIMESTAMP" where col::text > date ('2017.11.06 12:34:56.789')::text ;
 select * from  "type_TIMESTAMP" where col::text > date ('2017.11.06 12:34:56.789')::text ;
+
 explain  (VERBOSE, COSTS OFF) select * from  "type_TIMESTAMP" where col > b - interval '1 hour'; 
 select * from  "type_TIMESTAMP" where col > b - interval '1 hour';
+
 explain (VERBOSE, COSTS OFF) select * from  "type_TIMESTAMP" where col > b;
 select * from  "type_TIMESTAMP" where col > b;

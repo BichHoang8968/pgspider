@@ -1,15 +1,11 @@
 /*-------------------------------------------------------------------------
  *
- * sqlite Foreign Data Wrapper for PostgreSQL
+ * SQLite Foreign Data Wrapper for PostgreSQL
  *
- * Copyright (c) 2013-2016 Guillaume Lelarge
- *
- * This software is released under the PostgreSQL Licence
- *
- * Author: Guillaume Lelarge <guillaume@lelarge.info>
+ * Portions Copyright (c) 2018, TOSHIBA COOPERATION
  *
  * IDENTIFICATION
- *        sqlite_fdw/src/sqlite_fdw.c
+ *        sqlite_fdw.c
  *
  *-------------------------------------------------------------------------
  */
@@ -19,7 +15,7 @@
 #include "sqlite_fdw.h"
 
 #include <sqlite3.h>
-
+#include <stdio.h>
 
 #include "access/reloptions.h"
 #include "access/htup_details.h"
@@ -65,9 +61,6 @@
 #include "utils/selfuncs.h"
 #include "sqlite_query.h"
 
-#include <stdio.h>
-
-
 
 extern PGDLLEXPORT void _PG_init(void);
 
@@ -94,8 +87,6 @@ extern Datum sqlite_fdw_validator(PG_FUNCTION_ARGS);
 PG_FUNCTION_INFO_V1(sqlite_fdw_handler);
 
 
-/* callback functions */
-#if (PG_VERSION_NUM >= 90200)
 static void sqliteGetForeignRelSize(PlannerInfo *root,
 						   RelOptInfo *baserel,
 						   Oid foreigntableid);
@@ -115,9 +106,7 @@ static ForeignScan *sqliteGetForeignPlan(PlannerInfo *root,
 #else
 						List *scan_clauses);
 #endif
-#else
-static FdwPlan *sqlitePlanForeignScan(Oid foreigntableid, PlannerInfo *root, RelOptInfo *baserel);
-#endif
+
 
 static void sqliteBeginForeignScan(ForeignScanState *node,
 						  int eflags);
@@ -128,7 +117,7 @@ static void sqliteReScanForeignScan(ForeignScanState *node);
 
 static void sqliteEndForeignScan(ForeignScanState *node);
 
-#if (PG_VERSION_NUM >= 90300)
+
 static void sqliteAddForeignUpdateTargets(Query *parsetree,
 								 RangeTblEntry *target_rte,
 								 Relation target_relation);
@@ -161,24 +150,24 @@ static TupleTableSlot *sqliteExecForeignDelete(EState *estate,
 
 static void sqliteEndForeignModify(EState *estate,
 						  ResultRelInfo *rinfo);
-#endif
+
 
 static void sqliteExplainForeignScan(ForeignScanState *node,
 							struct ExplainState *es);
 
-#if (PG_VERSION_NUM >= 90300)
+
 static void sqliteExplainForeignModify(ModifyTableState *mtstate,
 							  ResultRelInfo *rinfo,
 							  List *fdw_private,
 							  int subplan_index,
 							  struct ExplainState *es);
-#endif
 
-#if (PG_VERSION_NUM >= 90200)
+
+
 static bool sqliteAnalyzeForeignTable(Relation relation,
 							 AcquireSampleRowsFunc *func,
 							 BlockNumber *totalpages);
-#endif
+
 
 #if (PG_VERSION_NUM >= 90500)
 static List *sqliteImportForeignSchema(ImportForeignSchemaStmt *stmt,
@@ -224,18 +213,11 @@ static void add_foreign_grouping_paths(PlannerInfo *root,
 						   RelOptInfo *grouped_rel);
 
 
-/*
- * structures used by the FDW
- *
- * These next two are not actually used by sqlite, but something like this
- * will be needed by anything more complicated that does actual work.
- *
- */
 
 /*
  * Describes the valid options for objects that use this wrapper.
  */
-struct SQLiteFdwOption
+struct SQLiteFdwOption2
 {
 	const char	*optname;
 	Oid		optcontext;	/* Oid of catalog in which option may appear */
@@ -879,18 +861,18 @@ sqliteEndForeignScan(ForeignScanState *node)
 	}
 }
 
-
+/*
+ * Restart the scan from the beginning. Note that any parameters the scan
+ * depends on may have changed value, so the new scan does not necessarily
+ * return exactly the same rows.
+ */
 static void
 sqliteReScanForeignScan(ForeignScanState *node)
 {
-	/*
-	 * Restart the scan from the beginning. Note that any parameters the scan
-	 * depends on may have changed value, so the new scan does not necessarily
-	 * return exactly the same rows.
-	 */
-	SqliteFdwExecState *festate = (SqliteFdwExecState *) node->fdw_state;
-	elog(DEBUG1,"entering function %s",__func__);
-	
+
+	SqliteFdwExecState *festate = (SqliteFdwExecState *)node->fdw_state;
+	elog(DEBUG1, "entering function %s", __func__);
+
 	if (festate->stmt)
 	{
 		sqlite3_reset(festate->stmt);
@@ -1162,7 +1144,7 @@ sqliteBeginForeignModify(ModifyTableState *mtstate,
 }
 
 /*
- * postgresExecForeignInsert
+ * sqliteExecForeignInsert
  *		Insert one row into a foreign table
  */
 static TupleTableSlot *
@@ -1250,7 +1232,7 @@ static void bindJunkColumnValue(SqliteFdwExecState *fmstate,
 }
 
 /*
- * postgresExecForeignUpdate
+ * sqliteExecForeignUpdate
  *		Update one row in a foreign table
  */
 static TupleTableSlot *
@@ -1346,16 +1328,6 @@ static void
 sqliteExplainForeignScan(ForeignScanState *node,
 							struct ExplainState *es)
 {
-	/*
-	 * Print additional EXPLAIN output for a foreign table scan. This function
-	 * can call ExplainPropertyText and related functions to add fields to the
-	 * EXPLAIN output. The flag fields in es can be used to determine what to
-	 * print, and the state of the ForeignScanState node can be inspected to
-	 * provide run-time statistics in the EXPLAIN ANALYZE case.
-	 *
-	 * If the ExplainForeignScan pointer is set to NULL, no additional
-	 * information is printed during EXPLAIN.
-	 */
 	sqlite3					   *db;
 	sqlite3_stmt			   *result;
 	char					   *query;
@@ -1422,20 +1394,7 @@ sqliteExplainForeignModify(ModifyTableState *mtstate,
 							  int subplan_index,
 							  struct ExplainState *es)
 {
-	/*
-	 * Print additional EXPLAIN output for a foreign table update. This
-	 * function can call ExplainPropertyText and related functions to add
-	 * fields to the EXPLAIN output. The flag fields in es can be used to
-	 * determine what to print, and the state of the ModifyTableState node can
-	 * be inspected to provide run-time statistics in the EXPLAIN ANALYZE
-	 * case. The first four arguments are the same as for BeginForeignModify.
-	 *
-	 * If the ExplainForeignModify pointer is set to NULL, no additional
-	 * information is printed during EXPLAIN.
-	 */
-
 	elog(DEBUG1,"entering function %s",__func__);
-
 }
 #endif
 
@@ -1446,18 +1405,7 @@ sqliteAnalyzeForeignTable(Relation relation,
 							 AcquireSampleRowsFunc *func,
 							 BlockNumber *totalpages)
 {
-	/* ----
-	 * This function is called when ANALYZE is executed on a foreign table. If
-	 * the FDW can collect statistics for this foreign table, it should return
-	 * true, and provide a pointer to a function that will collect sample rows
-	 * from the table in func, plus the estimated size of the table in pages
-	 * in totalpages. Otherwise, return false.
-	 *
-	 * ----
-	 */
-
 	elog(DEBUG1,"entering function %s",__func__);
-
 	return false;
 }
 #endif
@@ -1995,45 +1943,32 @@ GetEstimatedRows(Oid foreigntableid)
 	server = GetForeignServer(table->serverid);
 	/* Get db handle */
 	db = sqlite_get_connection(server);
+	
+	rows = DEFAULT_ESTIMATED_LINES;
 
 	/* Check that the sqlite_stat1 table exists */
 	sqlitePrepare(db, "SELECT 1 FROM sqlite_master WHERE name='sqlite_stat1'", &result, &pzTail);
 	if (sqlite3_step(result) != SQLITE_ROW)
 	{
-		ereport(DEBUG1,
-			(errcode(ERRCODE_FDW_TABLE_NOT_FOUND),
-			errmsg("The sqlite3 database has not been analyzed."),
-			errhint("Run ANALYZE on table \"%s\", database \"%s\".", svr_table, svr_database)
-			));
-		/* Free the query results */
 		sqlite3_finalize(result);
-		/*
-		 * The sqlite database doesn't have any statistics.
-		 * There's not much we can do, except using a hardcoded one.
-		 * Using a foreign table option might be a better solution.
-		 */
-		rows = DEFAULT_ESTIMATED_LINES;
+		elog(DEBUG1, "sqlite_stat1 not found");
 	} else {		
 		/* sqlite_stat1 exists */
 		
-		/* Free the query results */
 		sqlite3_finalize(result);
 		
 		/* Build the query */
 	    len = strlen(svr_table) + 60;
 	    query = (char *)palloc(len);
 	    snprintf(query, len, "SELECT stat FROM sqlite_stat1 WHERE tbl='%s' AND idx IS NULL", svr_table);
-	    elog(LOG, "query:%s", query);
-
+	    
 	    /* Execute the query */
 		sqlitePrepare(db, query, &result, &pzTail);
 
+		rows = DEFAULT_ESTIMATED_LINES;
 		/* get the next record, if any, and fill in the slot */
 		if (sqlite3_step(result) == SQLITE_ROW)
 			rows = sqlite3_column_int(result, 0);
-		else
-			rows = DEFAULT_ESTIMATED_LINES;
-
 		/* Free the query results */
 		sqlite3_finalize(result);
 	}
@@ -2043,7 +1978,7 @@ GetEstimatedRows(Oid foreigntableid)
 
 #if (PG_VERSION_NUM >= 90500)
 /*
- * Translate sqlite type name to sqlite compatible one and append it to
+ * Translate SQlite type name to sqlite compatible one and append it to
  * given StringInfo
  */
 static void

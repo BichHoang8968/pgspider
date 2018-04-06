@@ -1,14 +1,11 @@
 ######################################################################-------------------------------------------------------------------------
 #
-# mysql_fdw.c
-# 		Foreign-data wrapper for remote MySQL servers
+# SQLite Foreign Data Wrapper for PostgreSQL
 #
-# Portions Copyright (c) 2012-2014, PostgreSQL Global Development Group
-#
-# Portions Copyright (c) 2004-2014, EnterpriseDB Corporation.
+# Portions Copyright (c) 2018, TOSHIBA COOPERATION
 #
 # IDENTIFICATION
-# 		sqlite_fdw.c
+# 		Makefile
 #
 ##########################################################################
 

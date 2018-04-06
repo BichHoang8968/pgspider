@@ -1,14 +1,11 @@
 /*-------------------------------------------------------------------------
  *
- * deparse.c
- * 		Foreign-data wrapper for remote Sqlite servers
+ * SQLite Foreign Data Wrapper for PostgreSQL
  *
- * Portions Copyright (c) 2012-2014, PostgreSQL Global Development Group
- *
- * Portions Copyright (c) 2004-2014, EnterpriseDB Corporation.
+ * Portions Copyright (c) 2018, TOSHIBA COOPERATION
  *
  * IDENTIFICATION
- * 		deparse.c
+ *        deparse.c
  *
  *-------------------------------------------------------------------------
  */
@@ -18,26 +15,21 @@
 #include "sqlite_fdw.h"
 
 #include "pgtime.h"
-
 #include "access/heapam.h"
 #include "access/htup_details.h"
 #include "access/sysattr.h"
 #include "catalog/pg_aggregate.h"
-//#include "access/transam.h"
 #include "catalog/pg_collation.h"
 #include "catalog/pg_namespace.h"
 #include "catalog/pg_operator.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
-
 #include "commands/defrem.h"
-//#include "datatype/timestamp.h"
 #include "nodes/nodeFuncs.h"
 #include "nodes/plannodes.h"
 #include "optimizer/clauses.h"
 #include "optimizer/var.h"
 #include "optimizer/tlist.h"
-
 #include "parser/parsetree.h"
 #include "utils/builtins.h"
 #include "utils/lsyscache.h"
@@ -139,7 +131,7 @@ static Node *deparseSortGroupClause(Index ref, List *tlist,
 static void
 deparseExplicitTargetList(List *tlist, List **retrieved_attrs,
 						  deparse_expr_cxt *context);
-static Expr *find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel)	;			   
+static Expr *find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel);			   
 static bool is_builtin(Oid objectId);
 
 /*
@@ -383,50 +375,7 @@ foreign_expr_walker(Node *node,
 
 		case T_FuncExpr:
 			{
-				//FuncExpr   *fe = (FuncExpr *) node;
-				/* some PostgreSQL function cannot be used in SQLite */
 				return false;
-#if 0			
-				/*
-				 * If function used by the expression is not built-in, it
-				 * can't be sent to remote because it might have incompatible
-				 * semantics on remote side.
-				 */
-				if (!is_builtin(fe->funcid))
-					return false;
-
-				/*
-				 * Recurse to input subexpressions.
-				 */
-				if (!foreign_expr_walker((Node *) fe->args,
-										 glob_cxt, &inner_cxt))
-					return false;
-
-				/*
-				 * If function's input collation is not derived from a foreign
-				 * Var, it can't be sent to remote.
-				 */
-				if (fe->inputcollid == InvalidOid)
-					 /* OK, inputs are all noncollatable */ ;
-				else if (inner_cxt.state != FDW_COLLATE_SAFE ||
-						 fe->inputcollid != inner_cxt.collation)
-					return false;
-
-				/*
-				 * Detect whether node is introducing a collation not derived
-				 * from a foreign Var.  (If so, we just mark it unsafe for now
-				 * rather than immediately returning false, since the parent
-				 * node might not care.)
-				 */
-				collation = fe->funccollid;
-				if (collation == InvalidOid)
-					state = FDW_COLLATE_NONE;
-				else if (inner_cxt.state == FDW_COLLATE_SAFE &&
-						 collation == inner_cxt.collation)
-					state = FDW_COLLATE_SAFE;
-				else
-					state = FDW_COLLATE_UNSAFE;
-#endif
 			}
 			break;
 		case T_OpExpr:

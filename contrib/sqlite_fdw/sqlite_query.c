@@ -1,11 +1,8 @@
 /*-------------------------------------------------------------------------
  *
- * sqlite_query.c
- * 		Foreign-data wrapper for remote Sqlite servers
+ * SQLite Foreign Data Wrapper for PostgreSQL
  *
- * Portions Copyright (c) 2012-2014, PostgreSQL Global Development Group
- *
- * Portions Copyright (c) 2004-2014, EnterpriseDB Corporation.
+ * Portions Copyright (c) 2018, TOSHIBA COOPERATION
  *
  * IDENTIFICATION
  * 		sqlite_query.c
@@ -16,12 +13,13 @@
 #include "postgres.h"
 
 #include "sqlite_fdw.h"
+#include "sqlite_query.h"
+
 #include <stdio.h>
 
 #include <sqlite3.h>
 
 #include "foreign/fdwapi.h"
-
 #include "foreign/foreign.h"
 #include "nodes/makefuncs.h"
 #include "storage/ipc.h"
@@ -44,7 +42,6 @@
 #include "commands/defrem.h"
 #include "commands/explain.h"
 #include "commands/vacuum.h"
-
 #include "funcapi.h"
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
@@ -66,8 +63,7 @@
 #include "storage/fd.h"
 #include "catalog/pg_type.h"
 
-#include "sqlite_fdw.h"
-#include "sqlite_query.h"
+
 
 
 #define DATE_SQLITE_PG(x, y) \

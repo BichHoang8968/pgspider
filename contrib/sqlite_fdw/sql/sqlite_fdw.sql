@@ -86,8 +86,9 @@ PREPARE stmt1 (int, int) AS
 EXECUTE stmt1(1,2);
 EXECUTE stmt1(2,2); 
 EXECUTE stmt1(3,2); 
-EXECUTE stmt1(4,2); 
-EXECUTE stmt1(5,2); -- generic plan
+EXECUTE stmt1(4,2);
+-- generic plan
+EXECUTE stmt1(5,2); 
 EXECUTE stmt1(6,2); 
 EXECUTE stmt1(7,2); 
 
@@ -137,6 +138,7 @@ explain (costs off) select * from numbers where a in (1,2,3) and (1,2) < (a,5);
 
 -- not push down
 explain (costs off) select * from numbers where a in (a+2*a,5);
+-- not push down
 explain (costs off) select * from numbers where  a = any(ARRAY[1,2,a]::int[]);
 
 select * from numbers where  a = any(ARRAY[2,3,4,5]::int[]);
@@ -153,6 +155,7 @@ select * from multiprimary;
 update multiprimary set a = 1234;
 select * from multiprimary;
 update multiprimary set a = a+1, b=b+1 where b=200 and c=300;
+
 select * from multiprimary;
 delete from multiprimary where a = 1235;
 select * from multiprimary;
@@ -170,8 +173,8 @@ explain (costs off, verbose) select count(distinct a) from multiprimary;
 select sum(b),max(b), min(b), avg(b) from multiprimary;
 explain (costs off, verbose) select sum(b),max(b), min(b), avg(b) from multiprimary;
 
-select sum(b)/2 from multiprimary group by b/2 order by b/2;
-explain (costs off, verbose) select sum(b)/2 from multiprimary group by b/2 order by b/2;
+select sum(b+5)+2 from multiprimary group by b/2 order by b/2;
+explain (costs off, verbose) select sum(b+5)+2 from multiprimary group by b/2 order by b/2;
 
 select sum(a) from multiprimary group by b having sum(a) > 0 order by sum(a);
 explain (costs off, verbose) select sum(a) from multiprimary group by b having sum(a) > 0;
@@ -180,7 +183,6 @@ select sum(a) A from multiprimary group by b having avg(abs(a)) > 0 and sum(a) >
 explain (costs off, verbose) select sum(a) from multiprimary group by b having avg(a^2) > 0 and sum(a) > 0;
 
 select * from multiprimary, numbers where multiprimary.a=numbers.a;
-explain (costs off, verbose) select * from multiprimary, numbers where multiprimary.a=numbers.a;
 
 DROP FUNCTION test_param_where();
 DROP FOREIGN TABLE numbers;

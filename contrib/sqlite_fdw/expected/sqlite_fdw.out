@@ -398,14 +398,15 @@ EXECUTE stmt1(3,2);
  3 | Three
 (2 rows)
 
-EXECUTE stmt1(4,2); 
+EXECUTE stmt1(4,2);
  a |  b   
 ---+------
  2 | Two
  4 | Four
 (2 rows)
 
-EXECUTE stmt1(5,2); -- generic plan
+-- generic plan
+EXECUTE stmt1(5,2); 
  a |  b   
 ---+------
  2 | Two
@@ -513,6 +514,7 @@ explain (costs off) select * from numbers where a in (a+2*a,5);
    SQLite plan: SCAN TABLE numbers
 (2 rows)
 
+-- not push down
 explain (costs off) select * from numbers where  a = any(ARRAY[1,2,a]::int[]);
               QUERY PLAN              
 --------------------------------------
@@ -623,23 +625,23 @@ explain (costs off, verbose) select sum(b),max(b), min(b), avg(b) from multiprim
    SQLite plan: SCAN TABLE multiprimary USING COVERING INDEX sqlite_autoindex_multiprimary_1
 (4 rows)
 
-select sum(b)/2 from multiprimary group by b/2 order by b/2;
+select sum(b+5)+2 from multiprimary group by b/2 order by b/2;
  ?column? 
 ----------
-        2
-        5
-       10
+       16
+       17
+       27
 (3 rows)
 
-explain (costs off, verbose) select sum(b)/2 from multiprimary group by b/2 order by b/2;
-                                              QUERY PLAN                                              
-------------------------------------------------------------------------------------------------------
+explain (costs off, verbose) select sum(b+5)+2 from multiprimary group by b/2 order by b/2;
+                                                 QUERY PLAN                                                 
+------------------------------------------------------------------------------------------------------------
  Sort
-   Output: ((sum(b) / 2)), ((b / 2))
+   Output: ((sum((b + 5)) + 2)), ((b / 2))
    Sort Key: ((multiprimary.b / 2))
    ->  Foreign Scan
-         Output: ((sum(b) / 2)), ((b / 2))
-         SQLite query: SELECT (sum("b") / 2), ("b" / 2) FROM main."multiprimary" GROUP BY (("b" / 2))
+         Output: ((sum((b + 5)) + 2)), ((b / 2))
+         SQLite query: SELECT (sum(("b" + 5)) + 2), ("b" / 2) FROM main."multiprimary" GROUP BY (("b" / 2))
          SQLite plan: SCAN TABLE multiprimary USING COVERING INDEX sqlite_autoindex_multiprimary_1
          SQLite plan: USE TEMP B-TREE FOR GROUP BY
 (8 rows)
@@ -690,30 +692,6 @@ select * from multiprimary, numbers where multiprimary.a=numbers.a;
  1 | 10 | 20 | 1 | One
  2 | 20 | 40 | 2 | Two
 (4 rows)
-
-explain (costs off, verbose) select * from multiprimary, numbers where multiprimary.a=numbers.a;
-                                   QUERY PLAN                                   
---------------------------------------------------------------------------------
- Merge Join
-   Output: multiprimary.a, multiprimary.b, multiprimary.c, numbers.a, numbers.b
-   Merge Cond: (multiprimary.a = numbers.a)
-   ->  Sort
-         Output: multiprimary.a, multiprimary.b, multiprimary.c
-         Sort Key: multiprimary.a
-         ->  Foreign Scan on public.multiprimary
-               Output: multiprimary.a, multiprimary.b, multiprimary.c
-               SQLite query: SELECT "a", "b", "c" FROM main."multiprimary"
-               SQLite plan: SCAN TABLE multiprimary
-   ->  Materialize
-         Output: numbers.a, numbers.b
-         ->  Sort
-               Output: numbers.a, numbers.b
-               Sort Key: numbers.a
-               ->  Foreign Scan on public.numbers
-                     Output: numbers.a, numbers.b
-                     SQLite query: SELECT "a", "b" FROM main."numbers"
-                     SQLite plan: SCAN TABLE numbers
-(19 rows)
 
 DROP FUNCTION test_param_where();
 DROP FOREIGN TABLE numbers;

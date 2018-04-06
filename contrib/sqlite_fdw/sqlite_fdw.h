@@ -1,14 +1,11 @@
 /*-------------------------------------------------------------------------
  *
- * sqlite_fdw.h
- * 		Foreign-data wrapper for remote Sqlite servers
+ * SQLite Foreign Data Wrapper for PostgreSQL
  *
- * Portions Copyright (c) 2012-2014, PostgreSQL Global Development Group
- *
- * Portions Copyright (c) 2004-2014, EnterpriseDB Corporation.
+ * Portions Copyright (c) 2018, TOSHIBA COOPERATION
  *
  * IDENTIFICATION
- * 		sqlite_fdw.h
+ *        sqlite_fdw.h
  *
  *-------------------------------------------------------------------------
  */
@@ -40,24 +37,14 @@
  */
 typedef struct sqlite_opt
 {
-  	//char          *db_name;           /* Sqlite server ip address */
-	int           svr_port;               /* Sqlite port number */
-	char          *svr_address;           /* Sqlite server ip address */
-	char          *svr_username;          /* Sqlite user name */
-	char          *svr_password;          /* Sqlite password */
-	char          *svr_database;          /* Sqlite database name */
-	char          *svr_table;             /* Sqlite table name */
-	bool          svr_sa;                 /* Sqlite secure authentication */
-	char          *svr_init_command;      /* Sqlite SQL statement to execute when connecting to the Sqlite server. */
+	int           svr_port;               /* SQLite port number */
+	char          *svr_address;           /* SQLite server ip address */
+
+	char          *svr_database;          /* SQLite database name */
+	char          *svr_table;             /* SQLite table name */
+	char          *svr_init_command;      /* SQLite SQL statement to execute when connecting to the SQLite server. */
 	unsigned long max_blob_size;          /* Max blob size to read without truncation */
 	bool          use_remote_estimate;    /* use remote estimate for rows */
-	
-	// SSL parameters; unused options may be given as NULL
-	char          *ssl_key;               /* Sqlite SSL: path to the key file */
-	char          *ssl_cert;              /* Sqlite SSL: path to the certificate file */
-	char          *ssl_ca;                /* Sqlite SSL: path to the certificate authority file */
-	char          *ssl_capath;            /* Sqlite SSL: path to a directory that contains trusted SSL CA certificates in PEM format */
-	char          *ssl_cipher;            /* Sqlite SSL: list of permissible ciphers to use for SSL encryption */
 } sqlite_opt;
 
 
@@ -65,10 +52,10 @@ typedef struct sqlite_opt
  * FDW-specific information for ForeignScanState 
  * fdw_state.
  */
-typedef struct SqliteFdwExecState
+typedef struct SQLiteFdwExecState
 {
-	sqlite3          *conn;              /* Sqlite connection handle */
-	sqlite3_stmt     *stmt;              /* Sqlite prepared stament handle */
+	sqlite3          *conn;              /* SQLite connection handle */
+	sqlite3_stmt     *stmt;              /* SQLite prepared stament handle */
 	char            *query;             /* Query string */
 	Relation        rel;                /* relcache entry for the foreign table */
 	List            *retrieved_attrs;   /* list of target attribute numbers */
@@ -83,10 +70,10 @@ typedef struct SqliteFdwExecState
 	int             p_nums;             /* number of parameters to transmit */
 	FmgrInfo        *p_flinfo;          /* output conversion functions for them */
 
-	sqlite_opt       *sqliteFdwOptions;   /* Sqlite FDW options */
+	sqlite_opt       *sqliteFdwOptions;   /* SQLite FDW options */
 
 	List            *attr_list;         /* query attribute list */
-	List            *column_list;       /* Column list of Sqlite Column structures */
+	List            *column_list;       /* Column list of SQLite Column structures */
 
 	int64			row_nums;			/* number of rows */
 	Datum			**rows;				/* all rows of scan */
@@ -154,7 +141,6 @@ extern bool is_foreign_expr(PlannerInfo *root,
 
 
 /* option.c headers */
-//extern bool sqlite_is_valid_option(const char *option, Oid context);
 extern sqlite_opt *sqlite_get_options(Oid foreigntableid);
 
 /* depare.c headers */
@@ -178,12 +164,11 @@ sqlite3 *sqlite_connect(char *svr_address, char *svr_username, char *svr_passwor
 							 int svr_port, bool svr_sa, char *svr_init_command,
 							 char *ssl_key, char *ssl_cert, char *ssl_ca, char *ssl_capath,
 							 char *ssl_cipher);
-void  sqlite_cleanup_connection(void);
+void sqlite_cleanup_connection(void);
 void sqlite_rel_connection(sqlite3 *conn);
-void
-sqlitefdw_report_error(int elevel, sqlite3_stmt *stmt, sqlite3 *conn,
-				      const char *sql, int rc);
+void sqlitefdw_report_error(int elevel, sqlite3_stmt *stmt, sqlite3 *conn, const char *sql, int rc);
 
 Datum sqlite_convert_to_pg(Oid pgtyp, int pgtypmod, sqlite3_stmt *stmt, int attnum);
 
+void sqlite_bind_sql_var(Oid type, int attnum, Datum value, sqlite3_stmt *stmt, bool *isnull);
 #endif /* SQLITE_FDW_H */
