@@ -123,12 +123,11 @@ ddsf_get_node_num(ForeignScanState *node){
 
 	i = SPI_execute(query, true, 0);
 	if(i != SPI_OK_SELECT)
-		fprintf(stderr,"error\n");
+		elog(INFO,"error ddsf_get_node_num");
 	for (i = 0; i < SPI_processed; i++)
 	{
 	}
 	SPI_finish();
-	fprintf(stderr,"ddsf_get_node_nu = %d\n",i);
 	return i;
 }
 
@@ -445,8 +444,7 @@ ddsf_get_node_options(const char *node_name, PGconn *self_conn, char *options)
 	/* Get UserMapping Options */
 	memset(query, 0, BUFFER_SIZE);
 	sprintf(query, UMOPT_QRY, node_name);
-    fprintf(stdout,"query is %s\n",query);
-	res = PQexec(conn, query);
+    res = PQexec(conn, query);
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
 		/* Query Execution failed */
@@ -653,44 +651,6 @@ ddsf_agg_count(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 void
 ddsf_agg_avg(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 {
-#if 0
-	int			i;
-	float8		dsum = 0;
-	float4		fsum = 0;
-	int count = 0;
-	Datum		sm=0;
-	Datum		cnt=0;
-
-	for (i = 0; i < num_aggs; i++)
-	{
-		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR)		/* Consider a result
-																 * only if operation be
-																 * FDW was Successful */
-		{
-			if (agginfodata[i].result[attr].typid == FLOAT4OID)
-			{
-				fsum += agginfodata[i].result[attr].aggdata.avg.sum.realType;
-			}
-			else
-			{
-				dsum += agginfodata[i].result[attr].aggdata.avg.sum.bigint_val;
-			}
-			count +=agginfodata[i].result[attr].aggdata.avg.count.value;
-		}
-	}
-	if (agginfodata[0].result[attr].typid == FLOAT4OID)
-	{
-		sm += DirectFunctionCall1(float8_numeric, Float4GetDatumFast(fsum));
-	}
-	else
-	{
-		sm += DirectFunctionCall1(float8_numeric, Float8GetDatumFast(dsum));
-	}
-
-	cnt = DirectFunctionCall1(int8_numeric, Int64GetDatumFast(count));
-
-	agginfodata[0].result[attr].finalResult = DirectFunctionCall2(numeric_div, sm, cnt);
-#endif
 	int			i;
 	int64		sum = 0;
 	float4		fsum = 0;
@@ -790,25 +750,6 @@ ddsf_agg_max(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 			}
 			else if (agginfodata[i].result[attr].typid == ANYENUMOID)
 			{
-#if 0
-				if (strMinMax == NULL)
-				{
-					strMinMax = agginfodata[i].result[0].aggdata.maxmin.strMinMax;
-					StrDatum = CStringGetDatum(strMinMax);
-					MinMaxOid = DatumGetObjectId(DirectFunctionCall2(enum_in, StrDatum, ObjectIdGetDatum(enumtypeId)));
-				}
-				else
-				{
-					StrDatum = CStringGetDatum(agginfodata[i].result[0].aggdata.maxmin.strMinMax);
-					TMinMax = DirectFunctionCall2(enum_in, StrDatum, ObjectIdGetDatum(enumtypeId));
-					if ((DatumGetObjectId(TMinMax) > MinMaxOid))
-					{
-						MinMaxOid = DatumGetObjectId(TMinMax);
-						strMinMax = agginfodata[i].result[0].aggdata.maxmin.strMinMax;
-					}
-
-				}
-#endif
 			}
 			else if (agginfodata[i].result[attr].typid == FLOAT4OID)
 			{
@@ -838,9 +779,6 @@ ddsf_agg_max(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 	}
 	else if (agginfodata[0].result[attr].typid == ANYENUMOID)
 	{
-#if 0
-		PG_RETURN_OID(DirectFunctionCall2(enum_in, CStringGetDatum(strMinMax), ObjectIdGetDatum(enumtypeId)));
-#endif
 	}
 	else if (agginfodata[0].result[attr].typid == FLOAT4OID)
 	{
@@ -916,25 +854,6 @@ ddsf_agg_min(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 			}
 			else if (agginfodata[i].result[attr].typid == ANYENUMOID)
 			{
-#if 0
-				if (strMinMax == NULL)
-				{
-					strMinMax = agginfodata[i].result[attr].aggdata.maxmin.strMinMax;
-					StrDatum = CStringGetDatum(strMinMax);
-					MinMaxOid = DatumGetObjectId(DirectFunctionCall2(enum_in, StrDatum, ObjectIdGetDatum(enumtypeId)));
-				}
-				else
-				{
-					StrDatum = CStringGetDatum(agginfodata[i].result[attr].aggdata.maxmin.strMinMax);
-					TMinMax = DirectFunctionCall2(enum_in, StrDatum, ObjectIdGetDatum(enumtypeId));
-					if ((DatumGetObjectId(TMinMax) < MinMaxOid))
-					{
-						MinMaxOid = DatumGetObjectId(TMinMax);
-						strMinMax = agginfodata[i].result[attr].aggdata.maxmin.strMinMax;
-					}
-
-				}
-#endif
 			}
 			else if (agginfodata[i].result[attr].typid == FLOAT4OID)
 			{
@@ -1232,42 +1151,6 @@ ddsf_agg_string_agg(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 void
 ddsf_agg_stddev(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 {
-#if 0
-	int			i;
-	float8		dsum = 0;
-	float4		fsum = 0;
-	int count = 0;
-	Datum		sm=0;
-	Datum		cnt=0;
-
-	for (i = 0; i < num_aggs; i++)
-	{
-		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR)		/* Consider a result
-																 * only if operation be
-																 * FDW was Successful */
-		{
-			if (agginfodata[i].result[attr].typid == FLOAT4OID)
-			{
-				fsum += agginfodata[i].result[attr].aggdata.stddev.sum.realType * agginfodata[i].result[attr].aggdata.stddev.sum.realType;
-			}
-			else
-			{
-				dsum += agginfodata[i].result[attr].aggdata.stddev.sum.value * agginfodata[i].result[attr].aggdata.stddev.sum.value;
-			}
-		}
-	}
-	if (agginfodata[0].result[attr].typid == FLOAT4OID)
-	{
-		sm = DirectFunctionCall1(float8_numeric, Float4GetDatumFast(fsum));
-	}
-	else
-	{
-    	sm = DirectFunctionCall1(float8_numeric, Float8GetDatumFast(dsum));
-	}
-	cnt = DirectFunctionCall1(int8_numeric, Int64GetDatumFast(count));
-	agginfodata[0].result[attr].finalResult = DirectFunctionCall1(numeric_sqrt,
-	                                          DirectFunctionCall2(numeric_div, sm, cnt));
-#else
 	int			i;
 	float8		dsum = 0;
 	float4		fsum = 0;
@@ -1313,14 +1196,9 @@ ddsf_agg_stddev(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 	{
     	sm = DirectFunctionCall1(float8_numeric, Float8GetDatumFast(dsum));
 	}
-	/*
-	  agginfodata[0].result[attr].finalResult = DirectFunctionCall1(numeric_sqrt,
-	                                          DirectFunctionCall2(numeric_div, sm, cnt));
-	*/
-	elog(INFO, "left rigth %lf",count);
+	elog(DEBUG1, "left rigth %lf",count);
 	DirectFunctionCall1(float8_numeric, Float8GetDatumFast(dsum));
 	agginfodata[0].result[attr].finalResult = DirectFunctionCall1(float8_numeric, Float8GetDatumFast(sqrt((left+right)/count)));
-#endif
 }
 
 /*
@@ -1426,7 +1304,7 @@ ddsf_agg_variance(ForeignAggInfo * agginfodata, int num_aggs,int attr)
 	  agginfodata[0].result[attr].finalResult = DirectFunctionCall1(numeric_sqrt,
 	                                          DirectFunctionCall2(numeric_div, sm, cnt));
 	*/
-	elog(INFO, "left rigth %lf",count);
+	elog(DEBUG1, "left rigth %lf",count);
 	DirectFunctionCall1(float8_numeric, Float8GetDatumFast(dsum));
 	agginfodata[0].result[attr].finalResult = DirectFunctionCall1(float8_numeric, Float8GetDatumFast((left+right)/count));
 }
@@ -1788,16 +1666,18 @@ ddsf_combine_agg_new(ForeignAggInfo * agginfodata, int num_aggs, int natts)
 void ddsf_get_agg_Info_push(TupleTableSlot *aggSlot, const ForeignScanState *node, int count, ForeignAggInfo *agginfodata)
 {
 	int natts;
+	int natts_real=0;
 	bool isnull = false;
 	Datum datum;
 	
 	for(natts=0;natts < aggSlot->tts_tupleDescriptor->natts; natts++)
 	{
+		natts_real++;
 		/**
 		 * @todo must analyze plan tree for aggregation type and
 		 * value types.
 		 */
-		DdsfAggType type = ddsf_get_agg_type_new_push(node, natts+1);
+		DdsfAggType type = ddsf_get_agg_type_new_push(node, natts_real);
 		if(type != AGG_DEFAULT)
 		{
 			agginfodata[count-1].result[natts].type = type;
@@ -1824,7 +1704,7 @@ void ddsf_get_agg_Info_push(TupleTableSlot *aggSlot, const ForeignScanState *nod
 				
 				case AGG_AVG:
 				{
-					FinalizeTup(aggSlot, ((QueryDesc *)node->ss.ps.ddsfAggQry)->dest, natts);				
+					FinalizeTup(aggSlot, ((QueryDesc *)node->ss.ps.ddsfAggQry)->dest, natts);
 					char	   *outputstr;	
 					//datum = slot_getattr(aggSlot, natts+2, &isnull);
 /*
@@ -1835,24 +1715,25 @@ void ddsf_get_agg_Info_push(TupleTableSlot *aggSlot, const ForeignScanState *nod
 
 					//outputstr = DatumGetCString(slot_getattr(aggSlot, natts+1, &isnull));
 					//agginfodata[count-1].result[natts].aggdata.avg.count.value = strtod(outputstr, NULL);
-					agginfodata[count-1].result[natts].aggdata.avg.count.value = DatumGetInt64(slot_getattr(aggSlot, natts+2, &isnull));
-					outputstr = DatumGetCString(slot_getattr(aggSlot, natts+1, &isnull));
+					agginfodata[count-1].result[natts].aggdata.avg.count.value = DatumGetInt64(slot_getattr(aggSlot, natts_real+1, &isnull));
+					outputstr = DatumGetCString(slot_getattr(aggSlot, natts_real, &isnull));
 					switch(agginfodata[count-1].result[natts].typid)
 					{
 						case FLOAT4OID:
 							agginfodata[count-1].result[natts].aggdata.avg.sum.realType = strtof(outputstr, NULL);
-							elog(INFO,"float sum=%f",agginfodata[count-1].result[natts].aggdata.avg.sum.realType);
+							elog(DEBUG1,"float sum=%f",agginfodata[count-1].result[natts].aggdata.avg.sum.realType);
 						break;
 						case FLOAT8OID:
 							agginfodata[count-1].result[natts].aggdata.avg.sum.value = strtod(outputstr, NULL);
-							elog(INFO,"float8 sum=%f",agginfodata[count-1].result[natts].aggdata.avg.sum.realType);
+							elog(DEBUG1,"float8 sum=%f",agginfodata[count-1].result[natts].aggdata.avg.sum.realType);
 						break;
 						default:
 							agginfodata[count-1].result[natts].aggdata.avg.sum.bigint_val = strtod(outputstr, NULL);
-							elog(INFO,"defo sum=%s",outputstr);
+							elog(DEBUG1,"defo sum=%s",outputstr);
 						break;
 					}
-					elog(INFO,"count=%lld",agginfodata[count-1].result[natts].aggdata.avg.count.value);
+					natts_real++;
+					elog(DEBUG1,"count=%lld",agginfodata[count-1].result[natts].aggdata.avg.count.value);
 				}
 				break;
 
@@ -1881,8 +1762,8 @@ void ddsf_get_agg_Info_push(TupleTableSlot *aggSlot, const ForeignScanState *nod
 					float8 hoge=0.0;
 					hoge = DatumGetFloat8(DirectFunctionCall1(numeric_float8, a));
 					agginfodata[count-1].result[natts].aggdata.var.var.value=hoge;
-					elog(INFO, "varval %llf ",agginfodata[count-1].result[natts].aggdata.var.var.value);
-					elog(INFO, "varval %lf ",hoge);
+					elog(DEBUG1, "varval %llf ",agginfodata[count-1].result[natts].aggdata.var.var.value);
+					elog(DEBUG1, "varval %lf ",hoge);
 				}
 				break;
 				case AGG_STDDEV:
@@ -1919,8 +1800,8 @@ void ddsf_get_agg_Info_push(TupleTableSlot *aggSlot, const ForeignScanState *nod
 					float8 hoge=0.0;
 					hoge = DatumGetFloat8(DirectFunctionCall1(numeric_float8, a));
 					agginfodata[count-1].result[natts].aggdata.stddev.stddev.value=hoge;
-					elog(INFO, "varval %llf ",agginfodata[count-1].result[natts].aggdata.stddev.stddev.value);
-					elog(INFO, "varval %lf ",hoge);
+					elog(DEBUG1, "varval %llf ",agginfodata[count-1].result[natts].aggdata.stddev.stddev.value);
+					elog(DEBUG1, "varval %lf ",hoge);
 				}
 				break;
 
@@ -2136,9 +2017,10 @@ void ddsf_get_agg_Info(ForeignScanThreadInfo thrdInfo, const ForeignScanState *n
 	DdsfAggType type[nTotalAtts];
 	//ddsf_get_agg_type_new(node, nTotalAtts, &type);
     ddsf_get_agg_type_new(node, nTotalAtts, &type);
-
+	int avg_count=0;
 	for(natts=0;natts < nTotalAtts; natts++)
 	{
+		avg_count++;
 		/**
 		 * @todo must analyze plan tree for aggregation type and
 		 * value types.
@@ -2150,7 +2032,7 @@ void ddsf_get_agg_Info(ForeignScanThreadInfo thrdInfo, const ForeignScanState *n
 			{
 				case AGG_SUM:
 				{
-					datum = slot_getattr(aggSlot, natts+1, &isnull);
+					datum = slot_getattr(aggSlot, avg_count, &isnull);
 					agginfodata[count-1].result[natts].typid= aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
 					switch(agginfodata[count-1].result[natts].typid)
 					{
@@ -2161,7 +2043,8 @@ void ddsf_get_agg_Info(ForeignScanThreadInfo thrdInfo, const ForeignScanState *n
 							agginfodata[count-1].result[natts].aggdata.sum.value = DatumGetFloat8(datum);
 						break;
 						default:
-							agginfodata[count-1].result[natts].aggdata.sum.bigint_val = DatumGetInt64(datum);				
+							agginfodata[count-1].result[natts].aggdata.sum.bigint_val = DatumGetInt64(datum);
+							elog(DEBUG1,"float =%d",agginfodata[count-1].result[natts].aggdata.sum.bigint_val);
 						break;
 					}
 				}
@@ -2169,24 +2052,28 @@ void ddsf_get_agg_Info(ForeignScanThreadInfo thrdInfo, const ForeignScanState *n
 				
 				case AGG_AVG:
 				{
-						agginfodata[count-1].result[natts].typid= aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-						switch(agginfodata[count-1].result[natts].typid)
-						{						
-							case FLOAT4OID:
-								agginfodata[count-1].result[natts].aggdata.avg.sum.realType = 
-									DatumGetFloat4(thrdInfo.fsstate->ss.ps.state->es_progressState->ps_aggvalues[0]);
-							break;
-							case FLOAT8OID:
-								agginfodata[count-1].result[natts].aggdata.avg.sum.value = 
-									DatumGetFloat8(thrdInfo.fsstate->ss.ps.state->es_progressState->ps_aggvalues[0]);
-							break;
-							default:								
-								agginfodata[count-1].result[natts].aggdata.var.sum.bigint_val = 
-									DatumGetInt64(thrdInfo.fsstate->ss.ps.state->es_progressState->ps_aggvalues[0]);
-							break;
-						}
-						agginfodata[count-1].result[natts].aggdata.avg.count.value = 
-																thrdInfo.fsstate->ss.ps.state->es_progressState->ps_aggvalues[1];
+					datum = slot_getattr(aggSlot, avg_count, &isnull);
+					agginfodata[count-1].result[natts].typid= aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
+					switch(agginfodata[count-1].result[natts].typid)
+					{						
+					case FLOAT4OID:
+						agginfodata[count-1].result[natts].aggdata.avg.sum.realType = 
+							DatumGetFloat4(datum);
+						break;
+					case FLOAT8OID:
+						agginfodata[count-1].result[natts].aggdata.avg.sum.value = 
+							DatumGetFloat8(datum);
+						break;
+					default:								
+						agginfodata[count-1].result[natts].aggdata.avg.sum.bigint_val = 
+							DatumGetInt64(datum);
+						elog(DEBUG1,"natts = %d,float sum=%lld",avg_count, agginfodata[count-1].result[natts].aggdata.avg.sum.bigint_val);
+						break;
+					}
+					avg_count++;
+					datum = slot_getattr(aggSlot, avg_count, &isnull);
+					agginfodata[count-1].result[natts].aggdata.avg.count.value = DatumGetInt64(datum);
+					elog(DEBUG1,"natts = %d,float count=%d",avg_count,agginfodata[count-1].result[natts].aggdata.avg.count.value);
 					agginfodata[count-1].result[natts].status = DDSF_FRG_OK;
 				}
 				break;
@@ -2194,8 +2081,10 @@ void ddsf_get_agg_Info(ForeignScanThreadInfo thrdInfo, const ForeignScanState *n
 				case AGG_COUNT:
 				{
 					agginfodata[count-1].result[natts].typid= aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-					datum = slot_getattr(aggSlot, natts+1, &isnull);
+					datum = slot_getattr(aggSlot, avg_count, &isnull);
 					agginfodata[count-1].result[natts].aggdata.count.value = DatumGetInt64(datum);
+					//agginfodata[count-1].result[natts].aggdata.count.value ++;
+					elog(DEBUG1,"natts = %d, float count=%d",avg_count,agginfodata[count-1].result[natts].aggdata.count.value);
 				}
 				break;
 				
@@ -2248,7 +2137,7 @@ void ddsf_get_agg_Info(ForeignScanThreadInfo thrdInfo, const ForeignScanState *n
 					bool		typisvarlena;
 
 					agginfodata[count-1].result[natts].typid= aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-					datum = slot_getattr(aggSlot, natts+1, &isnull);
+					datum = slot_getattr(aggSlot, avg_count, &isnull);
 					state = (StringInfo) palloc(sizeof(StringInfoData));
 					if (!state)
 					{
@@ -2289,7 +2178,7 @@ void ddsf_get_agg_Info(ForeignScanThreadInfo thrdInfo, const ForeignScanState *n
 					Oid			typoutput;
 					bool		typisvarlena;
 					agginfodata[count-1].result[natts].typid= aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-					datum = slot_getattr(aggSlot, natts+1, &isnull);
+					datum = slot_getattr(aggSlot, avg_count, &isnull);
 
 					getTypeOutputInfo(agginfodata[count-1].result[natts].typid,
 									  &typoutput, &typisvarlena);
@@ -2325,7 +2214,7 @@ void ddsf_get_agg_Info(ForeignScanThreadInfo thrdInfo, const ForeignScanState *n
 						Oid 		typoutput;
 						bool		typisvarlena;
 						agginfodata[count-1].result[natts].typid= aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-						datum = slot_getattr(aggSlot, natts+1, &isnull);
+						datum = slot_getattr(aggSlot, avg_count, &isnull);
 
 						getTypeOutputInfo(agginfodata[count-1].result[natts].typid,
 																	  &typoutput, &typisvarlena);
@@ -2379,7 +2268,7 @@ void ddsf_get_agg_Info(ForeignScanThreadInfo thrdInfo, const ForeignScanState *n
 				case AGG_MIN:
 				{
 					agginfodata[count-1].result[natts].typid= aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-					datum = slot_getattr(aggSlot, natts+1, &isnull);
+					datum = slot_getattr(aggSlot, avg_count, &isnull);
 					switch(agginfodata[count-1].result[natts].typid)
 					{
 						case FLOAT4OID:
@@ -2435,7 +2324,8 @@ void ddsf_get_agg_Info(ForeignScanThreadInfo thrdInfo, const ForeignScanState *n
 						break;
 			
 						default:
-							agginfodata[count-1].result[natts].aggdata.maxmin.value = DatumGetInt64(datum);				
+							agginfodata[count-1].result[natts].aggdata.maxmin.value = DatumGetInt64(datum);
+							elog(DEBUG1,"maxmin default=%d",agginfodata[count-1].result[natts].aggdata.maxmin.value);
 						break;
 					}
 					break;

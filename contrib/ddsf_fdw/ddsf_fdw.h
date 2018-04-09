@@ -21,8 +21,8 @@
 #include "libpq-fe.h"
 
 /* in ddsf_fdw.c */
-extern int	set_transmission_modes(void);
-extern void reset_transmission_modes(int nestlevel);
+extern int	dds_set_transmission_modes(void);
+extern void dds_reset_transmission_modes(int nestlevel);
 
 /* in connection.c */
 extern PGconn *GetConnection(ForeignServer *server, UserMapping *user,
@@ -39,40 +39,40 @@ extern int ExtractConnectionOptions(List *defelems,
 						 const char **values);
 
 /* in deparse.c */
-extern void classifyConditions(PlannerInfo *root,
+extern void dds_classifyConditions(PlannerInfo *root,
 				   RelOptInfo *baserel,
 				   List *input_conds,
 				   List **remote_conds,
 				   List **local_conds);
-extern bool is_foreign_expr(PlannerInfo *root,
+extern bool dds_is_foreign_expr(PlannerInfo *root,
 				RelOptInfo *baserel,
 				Expr *expr);
-extern void deparseSelectSql(StringInfo buf,
+extern void dds_deparseSelectSql(StringInfo buf,
 				 PlannerInfo *root,
 				 RelOptInfo *baserel,
 				 Bitmapset *attrs_used,
 				 List **retrieved_attrs);
-extern void appendWhereClause(StringInfo buf,
+extern void dds_appendWhereClause(StringInfo buf,
 				  PlannerInfo *root,
 				  RelOptInfo *baserel,
 				  List *exprs,
 				  bool is_first,
 				  List **params);
-extern void deparseInsertSql(StringInfo buf, PlannerInfo *root,
+extern void dds_deparseInsertSql(StringInfo buf, PlannerInfo *root,
 				 Index rtindex, Relation rel,
 				 List *targetAttrs, bool doNothing, List *returningList,
 				 List **retrieved_attrs);
-extern void deparseUpdateSql(StringInfo buf, PlannerInfo *root,
+extern void dds_deparseUpdateSql(StringInfo buf, PlannerInfo *root,
 				 Index rtindex, Relation rel,
 				 List *targetAttrs, List *returningList,
 				 List **retrieved_attrs);
-extern void deparseDeleteSql(StringInfo buf, PlannerInfo *root,
+extern void dds_deparseDeleteSql(StringInfo buf, PlannerInfo *root,
 				 Index rtindex, Relation rel,
 				 List *returningList,
 				 List **retrieved_attrs);
-extern void deparseAnalyzeSizeSql(StringInfo buf, Relation rel);
-extern void deparseAnalyzeSql(StringInfo buf, Relation rel,
+extern void dds_deparseAnalyzeSizeSql(StringInfo buf, Relation rel);
+extern void dds_deparseAnalyzeSql(StringInfo buf, Relation rel,
 				  List **retrieved_attrs);
-extern void deparseStringLiteral(StringInfo buf, const char *val);
+extern void dds_deparseStringLiteral(StringInfo buf, const char *val);
 
 #endif   /* DDSF_FDW_H */

@@ -212,18 +212,18 @@ ddsf_spi_exec(Oid foreigntableid,int *nums,Datum *oid){
 	if ((ret = SPI_connect()) < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
 
-	sprintf(query,"select oid,relname from pg_class where relname like (select relname from pg_class where oid = %d)||'_%%' order by relname;",foreigntableid);
-	elog(DEBUG3,"execute spi exec %s \n",query);
+	sprintf(query,"select oid,relname from pg_class where relname like (select relname from pg_class where oid = %d)||'\\_\\_%%' order by relname;",foreigntableid);
+	elog(DEBUG1,"execute spi exec %s ",query);
 
 	ret = SPI_execute(query, true, 0);
 	if(ret != SPI_OK_SELECT)
-		elog(ERROR,"spi exec is failed. sql is %s \n",query);
+		elog(ERROR,"spi exec is failed. sql is %s ",query);
 
 	for (i = 0; i < SPI_processed; i++)
 	{
 		bool		isnull;
 	    oid[i] = SPI_getbinval(SPI_tuptable->vals[i],SPI_tuptable->tupdesc,1,&isnull);
-		elog(DEBUG3,"ddsf chiled foreign tabe oid = %d\n",(int)oid[i]);
+		elog(DEBUG1,"ddsf chiled foreign tabe oid = %d",(int)oid[i]);
 	}
 	SPI_finish();
 	*nums = i;
@@ -247,7 +247,7 @@ ddsf_spi_exec_datasource_oid(Datum foreigntableid){
     /* get relation name */
 
 	sprintf(query,"select oid,srvname from pg_foreign_server where srvname=(select foreign_server_name from information_schema._pg_foreign_tables where foreign_table_name = (select relname from pg_class where oid = %d)) order by srvname;",(int)foreigntableid);
-	elog(DEBUG3,"%s: execute sql = %s\n",__FUNCTION__, query);
+	elog(DEBUG1,"%s: execute sql = %s\n",__FUNCTION__, query);
 
 	if ((i = SPI_connect()) < 0)
 		elog(ERROR, "SPI connect failure - returned %d", i);
@@ -256,7 +256,7 @@ ddsf_spi_exec_datasource_oid(Datum foreigntableid){
 		elog(ERROR,"error SPIexecute filure -returned - %d\n", i);
 
 	oid = SPI_getbinval(SPI_tuptable->vals[0],SPI_tuptable->tupdesc,1, &isnull);
-	elog(DEBUG3,"ddsf child datasource oid = %d\n",(int)oid);
+	elog(DEBUG1,"ddsf child datasource oid = %d",(int)oid);
 
 	SPI_finish();
 	return oid;
@@ -284,16 +284,16 @@ ddsf_spi_exec_datasource_name(Datum foreigntableid, char *srvname){
 
 	sprintf(query,"select foreign_server_name from information_schema._pg_foreign_tables where foreign_table_name = (select relname from pg_class where oid = %d) order by foreign_server_name;",(int)foreigntableid);
 
-	elog(DEBUG3,"%s: execute sql = %s\n",__FUNCTION__, query);
+	elog(DEBUG1,"%s: execute sql = %s",__FUNCTION__, query);
 
 	i = SPI_execute(query, true, 0);
 	if(i != SPI_OK_SELECT)
-		elog(DEBUG3,"error %d\n", i);
+		elog(DEBUG1,"error %d\n", i);
 
 	temp = SPI_getvalue(SPI_tuptable->vals[0],SPI_tuptable->tupdesc, 1);
 
 	strcpy(srvname,temp);
-	elog(DEBUG3,"ddsf child datasource srvname = %s\n", srvname);
+	elog(DEBUG1,"ddsf child datasource srvname = %s", srvname);
 
 	SPI_finish();
 	return ;
@@ -360,7 +360,7 @@ ddsf_ForeignScan_thread(void *arg)
 		lock_taken = 0;
 #ifdef MEASURE_TIME
 		gettimeofday(&e, NULL);
-		elog(DEBUG3,"thread%d begin foreign scan time = %lf\n",fssthrdInfo->serverId ,(e.tv_sec - s.tv_sec) + (e.tv_usec - s.tv_usec)*1.0E-6);
+		elog(DEBUG1,"thread%d begin foreign scan time = %lf\n",fssthrdInfo->serverId ,(e.tv_sec - s.tv_sec) + (e.tv_usec - s.tv_usec)*1.0E-6);
 #endif
 	}
 	PG_CATCH();
@@ -371,7 +371,7 @@ ddsf_ForeignScan_thread(void *arg)
 			pthread_mutex_unlock(&scan_mutex);
 			pthread_mutex_unlock(&fssthrdInfo->nodeMutex);
 		}
-		elog(DEBUG3, "Thread error occurred during BeginForeignScan(). %s:%d\n",
+		elog(DEBUG1, "Thread error occurred during BeginForeignScan(). %s:%d\n",
 				__FILE__, __LINE__);
 	}
 	PG_END_TRY();
@@ -387,7 +387,7 @@ RESCAN:
      */
 	if(fssthrdInfo->queryRescan &&
 	   fssthrdInfo->state != DDSF_FS_STATE_BEGIN){
-		elog(DEBUG3, "Rescan is queried\n");
+		elog(DEBUG1, "Rescan is queried\n");
 		pthread_mutex_lock(&scan_mutex);
 		lock_taken = 1;
 		fssthrdInfo->fdwroutine->ReScanForeignScan(fssthrdInfo->fsstate);
@@ -401,9 +401,11 @@ RESCAN:
 
 	if(list_member_oid(fdw_private->pPseudoAggList,fssthrdInfo->serverId))
 	{
+
 		aggState = SPI_execIntiAgg(
 			fdw_private->pAgg,
 			fssthrdInfo->fsstate->ss.ps.state, 0);
+
 	}
 
 	PG_TRY();
@@ -429,14 +431,12 @@ RESCAN:
 				}
 				else
 				{
-					/* Retreives tuples from underlying data source */
 					slot = fssthrdInfo->fdwroutine->IterateForeignScan(
 						fssthrdInfo->fsstate);
 				}
 				pthread_mutex_unlock(&fssthrdInfo->nodeMutex);
 
 				if(slot == NULL){
-					/* @todo no tuple? execretrievedirect may return NULL */
 					fssthrdInfo->iFlag = false;
 					fssthrdInfo->tuple = NULL;
 					break;
@@ -487,11 +487,10 @@ RESCAN:
 			res = PQcancel(cancel, errbuf, 256);
 			PQfreeCancel(cancel);
 		}
-		elog(DEBUG3, "Thread error occurred during IterateForeignScan(). %s:%d\n",
+		elog(DEBUG1, "Thread error occurred during IterateForeignScan(). %s:%d\n",
 				__FILE__, __LINE__);
 	}
 	PG_END_TRY();
-	
 	if(errflag){
 		goto THREAD_EXIT;
 	}
@@ -501,7 +500,7 @@ RESCAN:
 	}
 #ifdef MEASURE_TIME
 	gettimeofday(&e1, NULL);
-	elog(DEBUG3,"thread%d end ite time = %lf\n",fssthrdInfo->serverId ,(e1.tv_sec - e.tv_sec) + (e1.tv_usec - e.tv_usec)*1.0E-6);
+	elog(DEBUG1,"thread%d end ite time = %lf\n",fssthrdInfo->serverId ,(e1.tv_sec - e.tv_sec) + (e1.tv_usec - e.tv_usec)*1.0E-6);
 #endif
 	/* End of the ForeignScan */
 	fssthrdInfo->state = DDSF_FS_STATE_END;
@@ -512,9 +511,7 @@ RESCAN:
 			if (fssthrdInfo->EndFlag || errflag )
 			{
 				pthread_mutex_lock(&fssthrdInfo->nodeMutex);
-				//pthread_mutex_lock(&scan_mutex);
 				fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
-				//pthread_mutex_unlock(&scan_mutex);
 				pthread_mutex_unlock(&fssthrdInfo->nodeMutex);
 				fssthrdInfo->EndFlag = false;
 				break;
@@ -531,7 +528,7 @@ RESCAN:
 	}
 	PG_CATCH();
 	{
-		elog(DEBUG3, "Thread error occurred during EndForeignScan(). %s:%d\n",
+		elog(DEBUG1, "Thread error occurred during EndForeignScan(). %s:%d\n",
 				__FILE__, __LINE__);
 		pthread_mutex_unlock(&scan_mutex);
 	}
@@ -548,7 +545,7 @@ THREAD_EXIT:
 	pthread_mutex_unlock(&fssthrdInfo->nodeMutex);
 #ifdef MEASURE_TIME
 	gettimeofday(&e, NULL);
-	elog(DEBUG3,"thread%d all time = %lf\n",fssthrdInfo->serverId ,(e.tv_sec - s.tv_sec) + (e.tv_usec - s.tv_usec)*1.0E-6);
+	elog(DEBUG1,"thread%d all time = %lf\n",fssthrdInfo->serverId ,(e.tv_sec - s.tv_sec) + (e.tv_usec - s.tv_usec)*1.0E-6);
 #endif
  	pthread_exit(NULL);
 }
@@ -581,7 +578,7 @@ ddsf_ParseUrl(char *url_str, DdsfFdwPrivate *fdw_private){
 		return;
 #if 1
 	tp = strtok_r(url_option,"/", &next);
-	elog(DEBUG3,"fist parse = %s\n",tp);
+	elog(DEBUG1,"fist parse = %s\n",tp);
 	if(tp == NULL )
 		return;
 	else{
@@ -592,10 +589,10 @@ ddsf_ParseUrl(char *url_str, DdsfFdwPrivate *fdw_private){
 	    fdw_private->list_parse = lappend(fdw_private->list_parse, tp);
 		if(p+1 != strlen(url_str)){
 			entry_parse2 = palloc(sizeof(char) * strlen(url_str)+1);
-			elog(DEBUG3,"entry parse3 length = %d\n",(int)strlen(url_str));
+			elog(DEBUG1,"entry parse3 length = %d\n",(int)strlen(url_str));
 			strcpy(entry_parse2, &url_str[p]);
 			entry_parse1 = strtok_r(NULL,"/", &next);
-			elog(DEBUG3,"e1 = %s,e2 = %s, e3 = %s \n",tp, entry_parse1, entry_parse2);
+			elog(DEBUG1,"e1 = %s,e2 = %s, e3 = %s \n",tp, entry_parse1, entry_parse2);
 			fdw_private->list_parse = lappend(fdw_private->list_parse, entry_parse1);
 			fdw_private->list_parse = lappend(fdw_private->list_parse, entry_parse2);
 		}
@@ -606,6 +603,7 @@ ddsf_ParseUrl(char *url_str, DdsfFdwPrivate *fdw_private){
  * ddsf_GetForeignRelSize populates baserel with a ddsf relation size.
  * This function called at first using fdw.
  */
+
 static void
 ddsf_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 {
@@ -647,7 +645,7 @@ ddsf_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntablei
 	for(int i=0;i<nums;i++){
 		fdw_private->ft_oid_list = lappend_int(fdw_private->ft_oid_list,
 											   oid[i]);
-		elog(DEBUG3,"append \n");
+		elog(DEBUG1,"append \n");
 	}
 
    /* Check to UNDER phrase and execute only UNDER URL server */
@@ -660,7 +658,7 @@ ddsf_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntablei
 		if(fdw_private->list_parse == NIL ||
 		   fdw_private->list_parse->length < 1){
 			/* DO NOTHING */
-			elog(DEBUG3, "NO URL is detected");
+			elog(DEBUG1, "NO URL is detected");
 		}else{
 			char *srvname = palloc(sizeof(char)*(512));
 			/* entry is first parsing word(/foo/bar/, then entry is "foo",entry2 is "bar") */
@@ -679,7 +677,7 @@ ddsf_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntablei
 				Datum temp_oid = list_nth_oid(fdw_private->ft_oid_list,
 											  i-d_count);
 				ddsf_spi_exec_datasource_name(temp_oid, srvname);
-				elog(DEBUG3,"srv_name = %s, entry1 = %s\n",srvname,entry);
+				elog(DEBUG1,"srv_name = %s, entry1 = %s\n",srvname,entry);
 				if(entry == NULL){
 					break;
 				}
@@ -687,7 +685,7 @@ ddsf_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntablei
 					/* If UNDER clause is used, then store to parsing url */
 					if(strcmp(entry, srvname) != 0){
 						nums = nums - 1;
-						elog(DEBUG3,"delete \n");
+						elog(DEBUG1,"delete \n");
 						list_delete_int(fdw_private->ft_oid_list,temp_oid);
 						d_count++;
 					}
@@ -697,10 +695,10 @@ ddsf_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntablei
 						if(entry2 !=NULL){
 							char temp[QUERY_LENGTH];
 							sprintf(temp,"/%s/",entry2);
-							elog(DEBUG3,"temp new under url = %s\n",temp);
+							elog(DEBUG1,"temp new under url = %s\n",temp);
 							new_underurl = palloc(sizeof(char)*(QUERY_LENGTH));
 							strcpy(new_underurl,entry3);
-							elog(DEBUG3,"new under url = %s\n",new_underurl);
+							elog(DEBUG1,"new under url = %s\n",new_underurl);
 						}
 						else{
 						}
@@ -731,7 +729,6 @@ ddsf_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntablei
 					/* Set up mostly-dummy planner state */
 					query = makeNode(Query);
 					query->commandType = CMD_SELECT;
-					
 					glob = makeNode(PlannerGlobal);
 
 					dummy_root = makeNode(PlannerInfo);
@@ -755,17 +752,14 @@ ddsf_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntablei
 					if(new_underurl != NULL){
 						rte->url = palloc(sizeof(char)*strlen(new_underurl));
 						strcpy(rte->url,new_underurl);
-						elog(DEBUG3,"rte->url = %s\n",new_underurl);
+						elog(DEBUG1,"rte->url = %s\n",new_underurl);
 					}
-
 					query->rtable = list_make1(rte);
 					for(k=1; k<baserel->relid; k++){
 						query->rtable = lappend(query->rtable, rte);
 					}
-					
 					/* Set up RTE/RelOptInfo arrays */
 					setup_simple_rel_arrays(dummy_root);
-					
 					/* Build RelOptInfo */
 					entry_baserel = build_simple_rel(dummy_root, baserel->relid, RELOPT_BASEREL);
 					entry_baserel->reltarget->exprs = copyObject(baserel->reltarget->exprs);
@@ -775,7 +769,7 @@ ddsf_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntablei
 					pthread_mutex_lock(&scan_mutex);
 					fdwroutine->GetForeignRelSize(dummy_root, entry_baserel, DatumGetObjectId(rel_oid));
 					pthread_mutex_unlock(&scan_mutex);
-					elog(INFO,"base add");
+					elog(DEBUG1,"base add");
 					fdw_private->base_rel_list = lappend( fdw_private->base_rel_list, entry_baserel);
 					fdw_private->dummy_root_list = lappend( fdw_private->dummy_root_list, dummy_root);
 					fdw_private->dummy_list_enable = lappend_int( fdw_private->dummy_list_enable, TRUE);
@@ -784,7 +778,7 @@ ddsf_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntablei
 				{
 					pthread_mutex_unlock(&scan_mutex);
 					fdw_private->dummy_list_enable = lappend_int( fdw_private->dummy_list_enable,FALSE);
-					elog(INFO,"base NOT add");
+					elog(DEBUG1,"base NOT add");
 				}
 				PG_END_TRY();
 				}
@@ -805,13 +799,13 @@ ddsf_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntablei
 			fdwroutine = GetFdwRoutineByServerId(oid_server);
 			fdwroutine->GetForeignRelSize(root, entry,  DatumGetObjectId(rel_oid));
 			//pthread_mutex_unlock(&scan_mutex);
-			elog(DEBUG3,"base add\n");
+			elog(DEBUG1,"base add\n");
 			i++;
 		}
 	}
 	MemoryContextSwitchTo(oldcontext);
 	if(fdw_private->base_rel_list == NIL){
-		elog(INFO,"Can not connect to child node");
+		elog(DEBUG1,"Can not connect to child node");
 	}
 
 
@@ -885,7 +879,8 @@ ddsf_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	fdw_private->pPseudoAggPushList = NIL;
 	fdw_private->pPseudoAggList = NIL;
 	fdw_private->pPseudoAggTypeList = NIL;
-
+	fdw_private->agg_query = true;
+	
 	/* Call the below FDW's GetForeignUpperPaths */
 	if(in_fdw_private->base_rel_list != NIL){
 		ListCell *l;
@@ -894,6 +889,7 @@ ddsf_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 		int i=0;
 		
 		foreach(l,in_fdw_private->base_rel_list){
+			List *newList=NIL;
 			Oid rel_oid = list_nth_oid(fdw_private->ft_oid_list,i);
 			RelOptInfo *entry = (RelOptInfo *) lfirst(l);
 			PlannerInfo *dummy_root =
@@ -926,6 +922,7 @@ ddsf_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 					copy_pathtarget(root->upper_targets[UPPERREL_FINAL]);
                 /* @todo make correct targetlist */
 				grouping_target = root->upper_targets[UPPERREL_GROUP_AGG];
+				int listn=0;
 				foreach(lc, grouping_target->exprs)
 				{
 					Expr	   *expr = (Expr *) lfirst(lc);
@@ -933,6 +930,8 @@ ddsf_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 					ListCell   *l;
 					Aggref *aggref;
 					aggref = (Aggref*)expr;
+					Expr *hoge = list_nth(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs, listn);
+					listn++;
 					if ((aggref->aggfnoid >= 2100 && aggref->aggfnoid <=2106 ) )
 					{
 						/*Prepare SUM Query */
@@ -947,11 +946,9 @@ ddsf_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 						Aggref* temp = copyObject(tempSUM);
 						temp->aggfnoid = 2803;
 						temp->aggargtypes = NULL;
-						dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = list_delete_first(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs);
-						/* Add SUM Query to the Pushdown Plan */
-					    dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = lappend(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs, tempSUM);
-						/* Add Count Query to the Pushdown Plan */
-					    dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = lappend(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs, temp);
+						elog(DEBUG1,"insert avg expr");
+						newList = lappend(newList, tempSUM);
+						newList = lappend(newList, temp);
 					}
 					else if((aggref->aggfnoid >= 2154 && aggref->aggfnoid <=2159) ||
 							(aggref->aggfnoid >= 2148 && aggref->aggfnoid <=2153))
@@ -971,43 +968,53 @@ ddsf_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 						tempvar->aggfnoid = 2148;
 						tempvar->aggargtypes = NULL;
 
-						dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = list_delete_first(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs);
+						dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs =
+							list_delete_first(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs);
 						/* Add SUM Query to the Pushdown Plan */
-					    dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = lappend(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs, tempSUM);
+						newList = lappend(newList, tempSUM);
 						/* Add Count Query to the Pushdown Plan */
-					    dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = lappend(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs, temp);
-					    dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = lappend(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs, tempvar);
+						newList = lappend(newList, temp);
 					}
 					else{
-						//dummy_tlist = copy_pathtarget(root->upper_targets[UPPERREL_WINDOW]);
+						dummy_root = copy_pathtarget(root->upper_targets[UPPERREL_WINDOW]);
+						elog(DEBUG1,"insert orign expr");
+						newList = lappend(newList, hoge);
 					}
 				}
+				
+				foreach(lc,dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs){
+					dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs =
+						list_delete_first(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs);
+				}
+				foreach(lc,newList){
+					Expr	   *expr = (Expr *) lfirst(lc);
+					elog(DEBUG1,"insert expr");
+					dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs =
+						lappend(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs, expr);
+				}
+
 				fdwroutine->GetForeignUpperPaths(
 					dummy_root,
 					stage, entry, dummy_output_rel);
-
 				fdw_private->base_rel_list =
 					lappend(fdw_private->base_rel_list,
 							dummy_output_rel);
 				fdw_private->pPseudoAggPushList = lappend_oid(fdw_private->pPseudoAggPushList, oid_server);
 			}else{
-				/* @todo not pushdown suitable FDW. 
-				   So no need to make output rel */
+                /*
 				fdwroutine->GetForeignPaths(
 					dummy_root, entry, rel_oid);
+				*/
 				fdw_private->base_rel_list =
 					lappend(fdw_private->base_rel_list,
 							entry);
  				fdw_private->pPseudoAggList = lappend_oid(fdw_private->pPseudoAggList, oid_server);
 			}
-			
 			//pthread_mutex_unlock(&scan_mutex);
-			elog(DEBUG3,"upperpath add\n");
+			elog(DEBUG1,"upperpath add\n");
 			i++;
 		}
 	}
-
-	
 	fdw_private->rinfo.pushdown_safe = false;
 	output_rel->fdw_private = fdw_private;
 	output_rel->relid = input_rel->relid;
@@ -1059,11 +1066,6 @@ add_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	if (!foreign_grouping_ok(root, grouped_rel))
 		return;
 
-#if 0
-	/* Estimate the cost of push down */
-	estimate_path_cost_size(root, grouped_rel, NIL, NIL, &rows,
-							&width, &startup_cost, &total_cost);
-#endif
 	rows = 0;
 	width = 0;
 	startup_cost = 0;
@@ -1363,411 +1365,6 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 	return true;
 }
 
-#if 0
-/*
- * estimate_path_cost_size
- *		Get cost and size estimates for a foreign scan on given foreign relation
- *		either a base relation or a join between foreign relations or an upper
- *		relation containing foreign relations.
- *
- * param_join_conds are the parameterization clauses with outer relations.
- * pathkeys specify the expected sort order if any for given path being costed.
- *
- * The function returns the cost and size estimates in p_row, p_width,
- * p_startup_cost and p_total_cost variables.
- */
-static void
-estimate_path_cost_size(PlannerInfo *root,
-						RelOptInfo *foreignrel,
-						List *param_join_conds,
-						List *pathkeys,
-						double *p_rows, int *p_width,
-						Cost *p_startup_cost, Cost *p_total_cost)
-{
-	DdsfFdwPrivate *fpinfo = (DdsfFdwPrivate *) foreignrel->fdw_private;
-	double		rows;
-	double		retrieved_rows;
-	int			width;
-	Cost		startup_cost;
-	Cost		total_cost;
-	Cost		cpu_per_tuple;
-
-	/*
-	 * If the table or the server is configured to use remote estimates,
-	 * connect to the foreign server and execute EXPLAIN to estimate the
-	 * number of rows selected by the restriction+join clauses.  Otherwise,
-	 * estimate rows using whatever statistics we have locally, in a way
-	 * similar to ordinary tables.
-	 */
-	if (fpinfo->use_remote_estimate)
-	{
-		List	   *remote_param_join_conds;
-		List	   *local_param_join_conds;
-		StringInfoData sql;
-		PGconn	   *conn;
-		Selectivity local_sel;
-		QualCost	local_cost;
-		List	   *fdw_scan_tlist = NIL;
-		List	   *remote_conds;
-
-		/* Required only to be passed to deparseSelectStmtForRel */
-		List	   *retrieved_attrs;
-
-		/*
-		 * param_join_conds might contain both clauses that are safe to send
-		 * across, and clauses that aren't.
-		 */
-		classifyConditions(root, foreignrel, param_join_conds,
-						   &remote_param_join_conds, &local_param_join_conds);
-
-		/* Build the list of columns to be fetched from the foreign server. */
-		if (IS_JOIN_REL(foreignrel) || IS_UPPER_REL(foreignrel))
-			fdw_scan_tlist = build_tlist_to_deparse(foreignrel);
-		else
-			fdw_scan_tlist = NIL;
-
-		/*
-		 * The complete list of remote conditions includes everything from
-		 * baserestrictinfo plus any extra join_conds relevant to this
-		 * particular path.
-		 */
-		remote_conds = list_concat(list_copy(remote_param_join_conds),
-								   fpinfo->remote_conds);
-
-#if 0
-		/*
-		 * Construct EXPLAIN query including the desired SELECT, FROM, and
-		 * WHERE clauses. Params and other-relation Vars are replaced by dummy
-		 * values, so don't request params_list.
-		 */
-		initStringInfo(&sql);
-		appendStringInfoString(&sql, "EXPLAIN ");
-		deparseSelectStmtForRel(&sql, root, foreignrel, fdw_scan_tlist,
-								remote_conds, pathkeys, false,
-								&retrieved_attrs, NULL);
-
-		/* Get the remote estimate */
-		conn = GetConnection(fpinfo->user, false);
-		get_remote_estimate(sql.data, conn, &rows, &width,
-							&startup_cost, &total_cost);
-		ReleaseConnection(conn);
-#endif
-		
-		retrieved_rows = rows;
-
-		/* Factor in the selectivity of the locally-checked quals */
-		local_sel = clauselist_selectivity(root,
-										   local_param_join_conds,
-										   foreignrel->relid,
-										   JOIN_INNER,
-										   NULL);
-		local_sel *= fpinfo->local_conds_sel;
-
-		rows = clamp_row_est(rows * local_sel);
-
-		/* Add in the eval cost of the locally-checked quals */
-		startup_cost += fpinfo->local_conds_cost.startup;
-		total_cost += fpinfo->local_conds_cost.per_tuple * retrieved_rows;
-		cost_qual_eval(&local_cost, local_param_join_conds, root);
-		startup_cost += local_cost.startup;
-		total_cost += local_cost.per_tuple * retrieved_rows;
-	}
-	else
-	{
-		Cost		run_cost = 0;
-
-		/*
-		 * We don't support join conditions in this mode (hence, no
-		 * parameterized paths can be made).
-		 */
-		Assert(param_join_conds == NIL);
-
-		/*
-		 * Use rows/width estimates made by set_baserel_size_estimates() for
-		 * base foreign relations and set_joinrel_size_estimates() for join
-		 * between foreign relations.
-		 */
-		rows = foreignrel->rows;
-		width = foreignrel->reltarget->width;
-
-		/* Back into an estimate of the number of retrieved rows. */
-		retrieved_rows = clamp_row_est(rows / fpinfo->local_conds_sel);
-
-		/*
-		 * We will come here again and again with different set of pathkeys
-		 * that caller wants to cost. We don't need to calculate the cost of
-		 * bare scan each time. Instead, use the costs if we have cached them
-		 * already.
-		 */
-		if (fpinfo->rel_startup_cost > 0 && fpinfo->rel_total_cost > 0)
-		{
-			startup_cost = fpinfo->rel_startup_cost;
-			run_cost = fpinfo->rel_total_cost - fpinfo->rel_startup_cost;
-		}
-		else if (IS_JOIN_REL(foreignrel))
-		{
-			DdsfFdwPrivate *fpinfo_i;
-			DdsfFdwPrivate *fpinfo_o;
-			QualCost	join_cost;
-			QualCost	remote_conds_cost;
-			double		nrows;
-
-			/* For join we expect inner and outer relations set */
-			Assert(fpinfo->innerrel && fpinfo->outerrel);
-
-			fpinfo_i = (DdsfFdwPrivate *) fpinfo->innerrel->fdw_private;
-			fpinfo_o = (DdsfFdwPrivate *) fpinfo->outerrel->fdw_private;
-
-			/* Estimate of number of rows in cross product */
-			nrows = fpinfo_i->rows * fpinfo_o->rows;
-			/* Clamp retrieved rows estimate to at most size of cross product */
-			retrieved_rows = Min(retrieved_rows, nrows);
-
-			/*
-			 * The cost of foreign join is estimated as cost of generating
-			 * rows for the joining relations + cost for applying quals on the
-			 * rows.
-			 */
-
-			/*
-			 * Calculate the cost of clauses pushed down to the foreign server
-			 */
-			cost_qual_eval(&remote_conds_cost, fpinfo->remote_conds, root);
-			/* Calculate the cost of applying join clauses */
-			cost_qual_eval(&join_cost, fpinfo->joinclauses, root);
-
-			/*
-			 * Startup cost includes startup cost of joining relations and the
-			 * startup cost for join and other clauses. We do not include the
-			 * startup cost specific to join strategy (e.g. setting up hash
-			 * tables) since we do not know what strategy the foreign server
-			 * is going to use.
-			 */
-			startup_cost = fpinfo_i->rel_startup_cost + fpinfo_o->rel_startup_cost;
-			startup_cost += join_cost.startup;
-			startup_cost += remote_conds_cost.startup;
-			startup_cost += fpinfo->local_conds_cost.startup;
-
-			/*
-			 * Run time cost includes:
-			 *
-			 * 1. Run time cost (total_cost - startup_cost) of relations being
-			 * joined
-			 *
-			 * 2. Run time cost of applying join clauses on the cross product
-			 * of the joining relations.
-			 *
-			 * 3. Run time cost of applying pushed down other clauses on the
-			 * result of join
-			 *
-			 * 4. Run time cost of applying nonpushable other clauses locally
-			 * on the result fetched from the foreign server.
-			 */
-			run_cost = fpinfo_i->rel_total_cost - fpinfo_i->rel_startup_cost;
-			run_cost += fpinfo_o->rel_total_cost - fpinfo_o->rel_startup_cost;
-			run_cost += nrows * join_cost.per_tuple;
-			nrows = clamp_row_est(nrows * fpinfo->joinclause_sel);
-			run_cost += nrows * remote_conds_cost.per_tuple;
-			run_cost += fpinfo->local_conds_cost.per_tuple * retrieved_rows;
-		}
-		else if (IS_UPPER_REL(foreignrel))
-		{
-			DdsfFdwPrivate *ofpinfo;
-			PathTarget *ptarget = root->upper_targets[UPPERREL_GROUP_AGG];
-			AggClauseCosts aggcosts;
-			double		input_rows;
-			int			numGroupCols;
-			double		numGroups = 1;
-
-			/*
-			 * This cost model is mixture of costing done for sorted and
-			 * hashed aggregates in cost_agg().  We are not sure which
-			 * strategy will be considered at remote side, thus for
-			 * simplicity, we put all startup related costs in startup_cost
-			 * and all finalization and run cost are added in total_cost.
-			 *
-			 * Also, core does not care about costing HAVING expressions and
-			 * adding that to the costs.  So similarly, here too we are not
-			 * considering remote and local conditions for costing.
-			 */
-
-			ofpinfo = (DdsfFdwPrivate *) fpinfo->outerrel->fdw_private;
-
-			/* Get rows and width from input rel */
-			input_rows = ofpinfo->rows;
-			width = ofpinfo->width;
-
-			/* Collect statistics about aggregates for estimating costs. */
-			MemSet(&aggcosts, 0, sizeof(AggClauseCosts));
-			if (root->parse->hasAggs)
-			{
-				get_agg_clause_costs(root, (Node *) fpinfo->grouped_tlist,
-									 AGGSPLIT_SIMPLE, &aggcosts);
-				get_agg_clause_costs(root, (Node *) root->parse->havingQual,
-									 AGGSPLIT_SIMPLE, &aggcosts);
-			}
-
-			/* Get number of grouping columns and possible number of groups */
-			numGroupCols = list_length(root->parse->groupClause);
-			numGroups = estimate_num_groups(root,
-											get_sortgrouplist_exprs(root->parse->groupClause,
-																	fpinfo->grouped_tlist),
-											input_rows, NULL);
-
-			/*
-			 * Number of rows expected from foreign server will be same as
-			 * that of number of groups.
-			 */
-			rows = retrieved_rows = numGroups;
-
-			/*-----
-			 * Startup cost includes:
-			 *	  1. Startup cost for underneath input * relation
-			 *	  2. Cost of performing aggregation, per cost_agg()
-			 *	  3. Startup cost for PathTarget eval
-			 *-----
-			 */
-			startup_cost = ofpinfo->rel_startup_cost;
-			startup_cost += aggcosts.transCost.startup;
-			startup_cost += aggcosts.transCost.per_tuple * input_rows;
-			startup_cost += (cpu_operator_cost * numGroupCols) * input_rows;
-			startup_cost += ptarget->cost.startup;
-
-			/*-----
-			 * Run time cost includes:
-			 *	  1. Run time cost of underneath input relation
-			 *	  2. Run time cost of performing aggregation, per cost_agg()
-			 *	  3. PathTarget eval cost for each output row
-			 *-----
-			 */
-			run_cost = ofpinfo->rel_total_cost - ofpinfo->rel_startup_cost;
-			run_cost += aggcosts.finalCost * numGroups;
-			run_cost += cpu_tuple_cost * numGroups;
-			run_cost += ptarget->cost.per_tuple * numGroups;
-		}
-		else
-		{
-			/* Clamp retrieved rows estimates to at most foreignrel->tuples. */
-			retrieved_rows = Min(retrieved_rows, foreignrel->tuples);
-
-			/*
-			 * Cost as though this were a seqscan, which is pessimistic.  We
-			 * effectively imagine the local_conds are being evaluated
-			 * remotely, too.
-			 */
-			startup_cost = 0;
-			run_cost = 0;
-			run_cost += seq_page_cost * foreignrel->pages;
-
-			startup_cost += foreignrel->baserestrictcost.startup;
-			cpu_per_tuple = cpu_tuple_cost + foreignrel->baserestrictcost.per_tuple;
-			run_cost += cpu_per_tuple * foreignrel->tuples;
-		}
-
-		/*
-		 * Without remote estimates, we have no real way to estimate the cost
-		 * of generating sorted output.  It could be free if the query plan
-		 * the remote side would have chosen generates properly-sorted output
-		 * anyway, but in most cases it will cost something.  Estimate a value
-		 * high enough that we won't pick the sorted path when the ordering
-		 * isn't locally useful, but low enough that we'll err on the side of
-		 * pushing down the ORDER BY clause when it's useful to do so.
-		 */
-		if (pathkeys != NIL)
-		{
-			startup_cost *= DEFAULT_FDW_SORT_MULTIPLIER;
-			run_cost *= DEFAULT_FDW_SORT_MULTIPLIER;
-		}
-
-		total_cost = startup_cost + run_cost;
-	}
-
-	/*
-	 * Cache the costs for scans without any pathkeys or parameterization
-	 * before adding the costs for transferring data from the foreign server.
-	 * These costs are useful for costing the join between this relation and
-	 * another foreign relation or to calculate the costs of paths with
-	 * pathkeys for this relation, when the costs can not be obtained from the
-	 * foreign server. This function will be called at least once for every
-	 * foreign relation without pathkeys and parameterization.
-	 */
-	if (pathkeys == NIL && param_join_conds == NIL)
-	{
-		fpinfo->rel_startup_cost = startup_cost;
-		fpinfo->rel_total_cost = total_cost;
-	}
-
-	/*
-	 * Add some additional cost factors to account for connection overhead
-	 * (fdw_startup_cost), transferring data across the network
-	 * (fdw_tuple_cost per retrieved row), and local manipulation of the data
-	 * (cpu_tuple_cost per retrieved row).
-	 */
-	startup_cost += fpinfo->fdw_startup_cost;
-	total_cost += fpinfo->fdw_startup_cost;
-	total_cost += fpinfo->fdw_tuple_cost * retrieved_rows;
-	total_cost += cpu_tuple_cost * retrieved_rows;
-
-	/* Return results. */
-	*p_rows = rows;
-	*p_width = width;
-	*p_startup_cost = startup_cost;
-	*p_total_cost = total_cost;
-}
-#endif
-
-#if 0
-/*
- * Estimate costs of executing a SQL statement remotely.
- * The given "sql" must be an EXPLAIN command.
- */
-static void
-get_remote_estimate(const char *sql, PGconn *conn,
-					double *rows, int *width,
-					Cost *startup_cost, Cost *total_cost)
-{
-	PGresult   *volatile res = NULL;
-
-	/* PGresult must be released before leaving this function. */
-	PG_TRY();
-	{
-		char	   *line;
-		char	   *p;
-		int			n;
-
-		/*
-		 * Execute EXPLAIN remotely.
-		 */
-	    res = pgfdw_exec_query(conn, sql);
-		if (PQresultStatus(res) != PGRES_TUPLES_OK)
-			pgfdw_report_error(ERROR, res, conn, false, sql);
-
-		/*
-		 * Extract cost numbers for topmost plan node.  Note we search for a
-		 * left paren from the end of the line to avoid being confused by
-		 * other uses of parentheses.
-		 */
-		line = PQgetvalue(res, 0, 0);
-		p = strrchr(line, '(');
-		if (p == NULL)
-			elog(ERROR, "could not interpret EXPLAIN output: \"%s\"", line);
-		n = sscanf(p, "(cost=%lf..%lf rows=%lf width=%d)",
-				   startup_cost, total_cost, rows, width);
-		if (n != 4)
-			elog(ERROR, "could not interpret EXPLAIN output: \"%s\"", line);
-
-		PQclear(res);
-		res = NULL;
-	}
-	PG_CATCH();
-	{
-		if (res)
-			PQclear(res);
-		PG_RE_THROW();
-	}
-	PG_END_TRY();
-}
-#endif
 
 /*
  * ddsf_GetForeignPaths adds a single ddsf foreign path to baserel.
@@ -1787,6 +1384,7 @@ ddsf_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 	DdsfFdwPrivate *fdw_private = (DdsfFdwPrivate*)baserel->fdw_private;
 	Cost startup_cost;
 	Cost total_cost;
+	ListCell *lc;
 	
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 
@@ -1796,6 +1394,7 @@ ddsf_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 
     /* Create Foreign paths using base_rel_list to each child node.*/
 	for(i=0;i<fdw_private->base_rel_list->length;i++){
+		elog(DEBUG1,"ddsf_GetForeignPaths %d",i);
 		RelOptInfo *entry;
 		if(list_nth_int(fdw_private->dummy_list_enable,i) != TRUE){
 			continue;
@@ -1810,16 +1409,24 @@ ddsf_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 		else{
 			break;
 		}
+		
+		PlannerInfo *dummy_root =(PlannerInfo*)list_nth(fdw_private->dummy_root_list, i);
+		List *dummy_tlist2 = NIL;
+		dummy_tlist2 = dummy_root->processed_tlist;
+		foreach(lc,dummy_tlist2){
+			lappend(dummy_root->processed_tlist,lc);
+		}
 		fdwroutine = GetFdwRoutineByServerId(server_oid);
+
 		PG_TRY();{
-			fdwroutine->GetForeignPaths((PlannerInfo*)list_nth(fdw_private->dummy_root_list, i), entry,  DatumGetObjectId(oid[i]));
+			fdwroutine->GetForeignPaths(dummy_root, entry,  DatumGetObjectId(oid[i]));
 		}
 		PG_CATCH();
 		{
 			ListCell *l;
 			l = list_nth_cell(fdw_private->dummy_root_list, i);
 			l->data.int_value = FALSE;
-			elog(INFO,"fdw GetForeignPaths error is occurred\n");
+			elog(DEBUG1,"fdw GetForeignPaths error is occurred\n");
 		}
 		PG_END_TRY();
 	}
@@ -1834,17 +1441,27 @@ ddsf_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 											   startup_cost, total_cost, NIL,
 													   NULL, NIL));
 #else
-	add_path(baserel, (Path *) create_foreignscan_path(root, baserel, NULL, baserel->rows,
-											   startup_cost, total_cost, NIL,
+	PlannerInfo *dummy_root =(PlannerInfo*)list_nth(root, i);
+	List *dummy_tlist2 = NIL;
+	dummy_tlist2 = root->processed_tlist;
+	lfirst_node(dummy_tlist2,lc);
+	lappend(dummy_root->processed_tlist,lc);
+	add_path(baserel, (Path *) create_foreignscan_path(dummy_root, baserel, NULL, baserel->rows,
+													   startup_cost, total_cost, NIL,
 													   NULL, NULL, NIL));
+
 #endif
 #endif
 #endif
 #if 1
     startup_cost = 0;
 	total_cost = startup_cost + baserel->rows;
+	PlannerInfo *dummy_root = root;
+	List *dummy_tlist2 = NIL;
+	dummy_tlist2 = copyObject(root->processed_tlist);
+	//lappend(dummy_root->processed_tlist,dummy_tlist2->head);
 	add_path(baserel, (Path *) create_foreignscan_path(root, baserel, NULL, baserel->rows,
-											   startup_cost, total_cost, NIL,
+													   startup_cost, total_cost, NIL,
 													   NULL, NULL, NIL));
 #endif
 }
@@ -1892,6 +1509,7 @@ ddsf_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		 */
 		fdw_scan_tlist = fdw_private->rinfo.grouped_tlist;
 	}
+	fdw_scan_tlist = fdw_private->rinfo.grouped_tlist;
 	fdw_private->tList = list_copy(tlist);
 
     /* Create Foreign Plans using base_rel_list to each child. */
@@ -1916,19 +1534,12 @@ ddsf_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			break;
 		}
 		fdwroutine = GetFdwRoutineByServerId(server_oid);
-		if(list_member_oid(fdw_private->pPseudoAggList,server_oid)||list_member_oid(fdw_private->pPseudoAggPushList,server_oid)) {
+		if(list_member_oid(fdw_private->pPseudoAggPushList,server_oid)) {
 			/*
 			 * Temporary create TargetEntry: 
 			 * @todo make correct targetenrty, as if it is 
 			 * the correct aggregation. (count, max, etc..)
 			 */
-			/*
-			  dummy_tlist1 is a targetentry for 
-			  scanning foreign table.
-			  dummy_tlist2 is a targetentry for 
-			  aggregation (Need Aggref) 
-			  which aggregation source should be OUTER_VAR
-			*/
 			TargetEntry *tle;
 			Var *var;
 			Aggref *aggref;
@@ -1940,14 +1551,15 @@ ddsf_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				tle = lfirst_node(TargetEntry, lc);
 				if(IsA(tle->expr, Aggref)){
 					aggref = (Aggref*)tle->expr;
-					if(aggref->args){
+					if(aggref->args) {
 						if((aggref->aggfnoid >= 2100 && aggref->aggfnoid <=2106) /*AVG Query */
 						   ||  (aggref->aggfnoid >= 2718 && aggref->aggfnoid <=2729) /*VARIANCE,STDDEV HISTORICAL & POPULAR Query */
 						   ||  (aggref->aggfnoid >= 2148 && aggref->aggfnoid <=2159) /*STDDEV, VARIANCE Historical & POPULAR Query */
 							)
 						{
 							/*Prepare SUM Query */
-							/* TODO: Appropriate aggfnoid should be choosen based on type */						                			fdw_private->agg_query = true;
+							/* TODO: Appropriate aggfnoid should be choosen based on type */
+							fdw_private->agg_query = true;
 	
 							TargetEntry *tle_var;
 							tle_var =  lfirst_node(Var, aggref->args->head);
@@ -1982,13 +1594,12 @@ ddsf_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 							tleTemp->expr = copyObject(tempSUM);
 							
 							/*Prepare Count Query */
-							/* TODO: Appropriate aggfnoid should be choosen based on type */
 							TargetEntry *tempCount = copyObject(tleTemp);
 							Aggref* temp = copyObject(tempSUM);
 							temp->aggfnoid = 2803;
 							temp->aggargtypes = NULL;
 							temp->args = NULL;
-							temp->aggstar = 1;
+							//temp->aggstar = 1;
 							tempCount->expr = copyObject(temp);
 							if(aggref->aggfnoid >= 2148 && aggref->aggfnoid <=2153 || 
 							   aggref->aggfnoid >= 2718 && aggref->aggfnoid <=2723)
@@ -2001,14 +1612,13 @@ ddsf_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 								dummy_tlist2 = lappend(dummy_tlist2, tempVar);
 								fdw_private->pPseudoAggTypeList = lappend_oid(fdw_private->pPseudoAggTypeList, 2154);
 							}
-							else if(aggref->aggfnoid >= 2154 && aggref->aggfnoid <=2159 || 
+							else if(aggref->aggfnoid >= 2154 && aggref->aggfnoid <=2159 ||
 									aggref->aggfnoid >= 2724 && aggref->aggfnoid <=2729)
-							{								
+							{
 								TargetEntry *tempVar = copyObject(tleTemp);
 								Aggref* tempVariance = copyObject(aggref);
 								tempVariance->aggfnoid -= 6;
 								tempVar->expr = copyObject(tempVariance);
-								
 								/* Add STDDEV Query to the Pushdown Plan */							
 								dummy_tlist2 = lappend(dummy_tlist2, tempVar);
 								fdw_private->pPseudoAggTypeList = lappend_oid(fdw_private->pPseudoAggTypeList, 2154);
@@ -2058,8 +1668,149 @@ ddsf_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 						var->varattno = att;
 				}
 			}
-}
- else{
+		}
+		else if(list_member_oid(fdw_private->pPseudoAggList,server_oid)) {
+			/*
+			 * Temporary create TargetEntry: 
+			 * @todo make correct targetenrty, as if it is 
+			 * the correct aggregation. (count, max, etc..)
+			 */
+			TargetEntry *tle;
+			Var *var;
+			Aggref *aggref;
+			ListCell *lc;
+			int att = 0;
+			
+			dummy_tlist2 = copyObject(tlist);
+			foreach(lc, dummy_tlist2) {
+				tle = lfirst_node(TargetEntry, lc);
+				if(IsA(tle->expr, Aggref)){
+					aggref = (Aggref*)tle->expr;
+					if(aggref->args) {
+						if((aggref->aggfnoid >= 2100 && aggref->aggfnoid <=2106) /*AVG Query */
+						   ||  (aggref->aggfnoid >= 2718 && aggref->aggfnoid <=2729) /*VARIANCE,STDDEV HISTORICAL & POPULAR Query */
+						   ||  (aggref->aggfnoid >= 2148 && aggref->aggfnoid <=2159) /*STDDEV, VARIANCE Historical & POPULAR Query */
+							)
+						{
+							/*Prepare SUM Query */
+							/* TODO: Appropriate aggfnoid should be choosen based on type */
+							fdw_private->agg_query = true;
+	
+							TargetEntry *tle_var;
+							tle_var =  lfirst_node(Var, aggref->args->head);
+							var = (Var*)tle_var->expr;
+							
+							TargetEntry *tleTemp = copyObject(tle);
+							Aggref* tempSUM = copyObject(aggref);
+							tempSUM->aggtype = var->vartype;
+							dummy_tlist2 = list_delete_first(dummy_tlist2);
+#if 0
+							switch(tempSUM->aggtype)
+							{
+							case 20: /*int8 big int*/
+								tempSUM->aggfnoid = 2107;
+								break;							
+							case 21: /*int2 small int*/
+								tempSUM->aggfnoid = 2109;
+								break;
+							case 23: /*	int4 */
+								tempSUM->aggfnoid = 2108;
+								break;
+							case 700: /*float 4 - real*/
+								tempSUM->aggfnoid = 2110;
+								break;
+							case 701: /*float 8 - double precision*/
+								tempSUM->aggfnoid = 2111;
+								break;							
+							case 1700: /*numeric*/
+								tempSUM->aggfnoid = 2114;
+								break;
+							}
+#endif
+							tempSUM->aggfnoid = 2108;
+							tempSUM->aggtranstype= var->vartype;
+							tleTemp->expr = copyObject(tempSUM);
+							
+							/*Prepare Count Query */
+							TargetEntry *tempCount = copyObject(tleTemp);
+							Aggref* temp = copyObject(tempSUM);
+							temp->aggtranstype = 20;
+							temp->aggtype = 20;
+                            temp->aggfnoid = 2147;
+							//temp->aggargtypes = NULL;
+							//temp->args = NULL;
+							temp->location = temp->location*2;
+							//temp->aggstar = 1;
+							tempCount->expr = copyObject(temp);
+							if(aggref->aggfnoid >= 2148 && aggref->aggfnoid <=2153 || 
+							   aggref->aggfnoid >= 2718 && aggref->aggfnoid <=2723)
+							{
+								TargetEntry *tempVar = copyObject(tleTemp);
+								Aggref* tempVariance = copyObject(aggref);
+								tempVar->expr = copyObject(tempVariance);
+								
+								/* Add VARIANCE Query to the Pushdown Plan */							
+								dummy_tlist2 = lappend(dummy_tlist2, tempVar);
+								fdw_private->pPseudoAggTypeList = lappend_oid(fdw_private->pPseudoAggTypeList, 2154);
+							}
+							else if(aggref->aggfnoid >= 2154 && aggref->aggfnoid <=2159 ||
+									aggref->aggfnoid >= 2724 && aggref->aggfnoid <=2729)
+							{
+								TargetEntry *tempVar = copyObject(tleTemp);
+								Aggref* tempVariance = copyObject(aggref);
+								tempVariance->aggfnoid -= 6;
+								tempVar->expr = copyObject(tempVariance);
+								/* Add STDDEV Query to the Pushdown Plan */							
+								dummy_tlist2 = lappend(dummy_tlist2, tempVar);
+								fdw_private->pPseudoAggTypeList = lappend_oid(fdw_private->pPseudoAggTypeList, 2154);
+							}
+							else{
+								fdw_private->pPseudoAggTypeList = lappend_oid(fdw_private->pPseudoAggTypeList, 2100);
+							}
+							/* Add Count Query to the Pushdown Plan */
+							dummy_tlist2 = lappend(dummy_tlist2, tempCount);
+							/* Add SUM Query to the Pushdown Plan */							
+							dummy_tlist2 = lappend(dummy_tlist2, tleTemp);
+							/* Query Segregation needed */
+							break;
+						}
+					}
+				}
+			}
+			foreach(lc, dummy_tlist2){
+				tle = lfirst_node(TargetEntry, lc);
+				if(IsA(tle->expr, Aggref)){
+					aggref = (Aggref*)tle->expr;
+					if(aggref->args){
+						tle = lfirst_node(Var, aggref->args->head);
+						if(!list_member(dummy_tlist, tle)){
+							TargetEntry *copy_tle = copyObject(tle);
+							att++;
+							copy_tle->resno = att;
+							dummy_tlist = lappend(dummy_tlist, copy_tle);
+						}
+						/* Modify VAR of dummy_tlist2 for OUTER_VAR */
+						var = (Var*)tle->expr;
+						var->varno = OUTER_VAR;
+						var->varattno = att;
+					}
+				}
+				else if(IsA(tle->expr, Var))
+				{
+						if(!list_member(dummy_tlist, tle)){
+							TargetEntry *copy_tle = copyObject(tle);
+							att++;
+							copy_tle->resno = att;
+							dummy_tlist = lappend(dummy_tlist, copy_tle);
+						}
+						/* Modify VAR of dummy_tlist2 for OUTER_VAR */
+						var = (Var*)tle->expr;
+						var->varno = OUTER_VAR;
+						var->varattno = att;
+				}
+			}
+		}
+		else{
 			dummy_tlist = tlist;
 			dummy_tlist2 = tlist;
 			/* Group by clause for Pushdown case need to be added in dummy_root_list
@@ -2072,8 +1823,13 @@ ddsf_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		    }
 		}
 		PG_TRY();{
+			PlannerInfo *dummy_root = (PlannerInfo*)list_nth(fdw_private->dummy_root_list,i);
+			List *dummy_tlist2 = NIL;
+			dummy_tlist2 = copyObject(root->processed_tlist);
+			lappend(dummy_root->processed_tlist,dummy_tlist2->head);
 			temp_obj = fdwroutine->GetForeignPlan(
-				(PlannerInfo*)list_nth(fdw_private->dummy_root_list,i),
+				//(PlannerInfo*)list_nth(fdw_private->dummy_root_list,i),
+				dummy_root,
 				entry,  DatumGetObjectId(oid[i]),
 				best_path, dummy_tlist, scan_clauses, outer_plan);
 		}
@@ -2081,7 +1837,7 @@ ddsf_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			ListCell *l;
 			l = list_nth_cell(fdw_private->dummy_root_list, i);
 			l->data.int_value = FALSE;
-			elog(INFO,"dummy plan list failed \n");
+			elog(DEBUG1,"dummy plan list failed \n");
 		}
 		PG_END_TRY();
 		if(list_member_oid(fdw_private->pPseudoAggList,
@@ -2098,31 +1854,14 @@ ddsf_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				best_path->path.rows,
 				temp_obj);
 		}
-		else if(list_member_oid(fdw_private->pPseudoAggPushList,
-						   server_oid)){
-			fdw_private->pAgg = make_agg(
-				dummy_tlist2,
-				NULL,
-				AGG_SORTED, AGGSPLIT_SIMPLE,
-				list_length(root->parse->groupClause), 
-				extract_grouping_cols(root->parse->groupClause,	tlist), 
-				extract_grouping_ops(root->parse->groupClause), 
-				root->parse->groupingSets, NIL,
-				best_path->path.rows,
-				temp_obj);
-		}
-		
 		fdw_private->dummy_plan_list = lappend(fdw_private->dummy_plan_list,
 											   temp_obj);
-		
-		elog(DEBUG3,"append dummy plan list %d\n",(int)oid[i]);
-		elog(DEBUG3,
-				"fdw_private->dummy_plan_list list head = %d context=%s 525\n",
-				fdw_private->dummy_plan_list->length,
-				CurrentMemoryContext->name);
+		elog(DEBUG1,"append dummy plan list %d\n",(int)oid[i]);
+		elog(DEBUG1,
+			 "fdw_private->dummy_plan_list list head = %d context=%s 525\n",
+			 fdw_private->dummy_plan_list->length,
+			 CurrentMemoryContext->name);
 	}
-
-
 #else
 	Index scan_relid = baserel->relid;
 	scan_clauses = extract_actual_clauses(scan_clauses, false);
@@ -2170,7 +1909,6 @@ ddsf_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
  */
 static void
 ddsf_BeginForeignScan(ForeignScanState *node, int eflags, Oid srvID) { 
-
 	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
 	FdwRoutine *fdwroutine;
 	int         node_incr;
@@ -2191,27 +1929,26 @@ ddsf_BeginForeignScan(ForeignScanState *node, int eflags, Oid srvID) {
 	fdw_private = (DdsfFdwPrivate*)
 		((Value*)list_nth(fsplan->fdw_private, 0))->val.ival;
 
-#if 1
   /* get oids mapped relation  */
 	oid = (Datum *)palloc (sizeof(Datum) * 256);
-
+	
 	if(fdw_private->list_parse != NIL ){
 		entry = (char *) list_nth(fdw_private->list_parse, 0);
 	}
-	elog(DEBUG3,"underflag = %d\n",fdw_private->under_flag);
+	elog(DEBUG1,"underflag = %d\n",fdw_private->under_flag);
 
 	if(fdw_private->under_flag == 0){
 		sprintf(query,"select relname,oid from pg_class where relname LIKE \\
-                '%s__\%%' order by relname;",
+                '%s\\_\\_\%%' order by relname;",
 				fdw_private->base_relation_name);
 	}
 	else{
 		sprintf(query,"select relname,oid from pg_class where relname LIKE \\
-                '%s_%s_\%%' order by relname;",
+                '%s\\_\\_%s\\_\\_\%%' order by relname;",
 				fdw_private->base_relation_name,entry);
 	}
-	elog(DEBUG3,"relation name = %s\n", fdw_private->base_relation_name);
-	elog(DEBUG3,"sql = %s\n",query);
+	elog(DEBUG1,"relation name = %s\n", fdw_private->base_relation_name);
+	elog(DEBUG1,"sql = %s\n",query);
 
 
 	pthread_mutex_lock(&scan_mutex);
@@ -2220,7 +1957,7 @@ ddsf_BeginForeignScan(ForeignScanState *node, int eflags, Oid srvID) {
 	
 	i = SPI_execute(query, true, 0);
 	if(i != SPI_OK_SELECT)
-		elog(DEBUG3,"error\n");
+		elog(DEBUG1,"error\n");
 
 	for (i = 0; i < SPI_processed; i++)
 	{
@@ -2246,7 +1983,6 @@ ddsf_BeginForeignScan(ForeignScanState *node, int eflags, Oid srvID) {
 	else{
 		fdw_private->node_num = 0;
 	}
-#endif
 	/*Type of Query to be used for computing intermediate results */
 	if(fdw_private->agg_query) {
 		node->ss.ps.state->es_progressState->ps_aggQuery = true;
@@ -2255,13 +1991,13 @@ ddsf_BeginForeignScan(ForeignScanState *node, int eflags, Oid srvID) {
 		node->ss.ps.state->es_progressState->ps_aggQuery = false;
 	}
 
-	elog(DEBUG3,"agg query%d\n",node->ss.ps.state->agg_query);
+	elog(DEBUG1,"agg query%d\n",node->ss.ps.state->agg_query);
 	node->ss.ps.state->agg_query = 0;
 	if (!node->ss.ps.state->agg_query)
 	{
 		if (getResultFlag)
 		{
-			elog(DEBUG3,"get result flag\n");
+			elog(DEBUG1,"get result flag\n");
 			return;
 		}
 		/*Get all the foreign nodes from conf file*/
@@ -2274,7 +2010,7 @@ ddsf_BeginForeignScan(ForeignScanState *node, int eflags, Oid srvID) {
 		node->ss.ps.state->es_progressState->ps_fetchedRows = 0;
 
 		pthread_mutex_lock(&scan_mutex);
-		elog(DEBUG3,"main thread lock scan mutex \n");
+		elog(DEBUG1,"main thread lock scan mutex \n");
 
 		node_incr = 0;
 
@@ -2304,12 +2040,12 @@ ddsf_BeginForeignScan(ForeignScanState *node, int eflags, Oid srvID) {
 
 			fsplan = (ForeignScan *) fssThrdInfo[node_incr].fsstate->ss.ps.plan;
 			if(list_nth_int(fdw_private->dummy_list_enable,node_incr) != TRUE){
-				elog(INFO,"fdw_private->dummy_plan_list list nothing %d",node_incr);
+				elog(DEBUG1,"fdw_private->dummy_plan_list list nothing %d",node_incr);
 				node_incr++;
 				continue;
 			}
 			else{
-				elog(INFO,"fdw_private->dummy_plan_list list found %d",node_incr);
+				elog(DEBUG1,"fdw_private->dummy_plan_list list found %d",node_incr);
 			}
 
 			fsplan->fdw_private = ((ForeignScan *)list_nth(fdw_private->dummy_plan_list, node_incr))->fdw_private;
@@ -2336,7 +2072,7 @@ ddsf_BeginForeignScan(ForeignScanState *node, int eflags, Oid srvID) {
 
 			fssThrdInfo[node_incr].eflags = eflags;
 
-/*TODO : Modify child plan */
+/* Modify child plan */
 			int 		natts;
 			bool		hasoid;
 			Form_pg_attribute *attrs;
@@ -2345,27 +2081,23 @@ ddsf_BeginForeignScan(ForeignScanState *node, int eflags, Oid srvID) {
 			Datum		server_type;
 			natts = node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->natts;
 			if(list_member_oid(fdw_private->pPseudoAggPushList,server_oid)||list_member_oid(fdw_private->pPseudoAggList,server_oid)){
-				if(list_member_oid(fdw_private->pPseudoAggTypeList,2154)){
-					natts += 2;
-				}
-				else if(list_member_oid(fdw_private->pPseudoAggTypeList,2100)){
+			    if(list_member_oid(fdw_private->pPseudoAggTypeList,2100)){
 					natts += 1;
 				}
+				elog(DEBUG1,"natts %d",natts);
 				/* Extract attribute details. The tupledesc made here is just transient. */
 				attrs = palloc(natts * sizeof(Form_pg_attribute));
 				for (i = 0; i < natts; i++)
 				{
 					attrs[i] = palloc(sizeof(FormData_pg_attribute));
 					memcpy(attrs[i], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[0], sizeof(FormData_pg_attribute));
-					elog(INFO,"attrs[i]->atttypid= %d",attrs[i]->atttypid);
-					if(i!=2){
-						attrs[i]->atttypid=20;
-						attrs[i]->attlen=8;
-						attrs[i]->attnum=i;
-						attrs[i]->attbyval=1;
-						attrs[i]->attstorage=112;
-						attrs[i]->attalign=100;
-					}
+					elog(DEBUG1,"attrs[i]->atttypid = %d",attrs[i]->atttypid);
+					attrs[i]->atttypid=20;
+					attrs[i]->attlen=8;
+					attrs[i]->attnum=i;
+					attrs[i]->attbyval=1;
+					attrs[i]->attstorage=112;
+					attrs[i]->attalign=100;
 				}
 				/* Construct TupleDesc, and assign a local typmod. */
 				tupledesc = CreateTupleDesc(natts, true, attrs);
@@ -2389,11 +2121,8 @@ ddsf_BeginForeignScan(ForeignScanState *node, int eflags, Oid srvID) {
 			fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_isnull = (bool *)
 				MemoryContextAlloc(node->ss.ss_ScanTupleSlot->tts_mcxt, node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->natts * sizeof(bool));
 		    rd = RelationIdGetRelation(DatumGetObjectId(oid[node_incr]));
-			elog(DEBUG3,"oid = %d\n",DatumGetObjectId(oid[node_incr]));
 			fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation = rd;
-			elog(DEBUG3,"oid = %d\n",
-				 fssThrdInfo[node_incr].fsstate->
-				 ss.ss_currentRelation->rd_node.relNode);
+			elog(DEBUG1,"oid = %d",fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation->rd_node.relNode);
 
 			fssThrdInfo[node_incr].iFlag = true;
 			fssThrdInfo[node_incr].EndFlag = false;
@@ -2401,13 +2130,12 @@ ddsf_BeginForeignScan(ForeignScanState *node, int eflags, Oid srvID) {
 			fssThrdInfo[node_incr].nodeIndex = node_incr;
 
 			serverId = server_oid;
-			elog(DEBUG3,"serveroid %d\n",serverId);
+			elog(DEBUG1,"serveroid %d\n",serverId);
 
 			fssThrdInfo[node_incr].serverId = serverId;
 			fdwroutine = GetFdwRoutineByServerId(server_oid);
 			fssThrdInfo[node_incr].fdwroutine = fdwroutine;
 			memset(contextStr, 0, BUFFERSIZE);
-			sprintf(contextStr, "ForeignScanthreadMemoryContext_%d", node_incr);
 			fssThrdInfo[node_incr].threadMemoryContext =
 				AllocSetContextCreate(TopMemoryContext,
 									  contextStr,
@@ -2429,7 +2157,7 @@ ddsf_BeginForeignScan(ForeignScanState *node, int eflags, Oid srvID) {
 			node_incr++;
 		}
 		pthread_mutex_unlock(&scan_mutex);
-		elog(DEBUG3,"main thread unlock scan mutex \n");
+		elog(DEBUG1,"main thread unlock scan mutex \n");
 
 	    nThreads = node_incr;
 		Assert(fdw_private->base_rel_list->length == nThreads);
@@ -2464,8 +2192,12 @@ ddsf_IterateForeignScan(ForeignScanState *node)
 	ForeignScanThreadInfo *fssThrdInfo = node->ddsf_fsstate;
 	bool 			icheck = false;
 	TupleTableSlot *slot = NULL, *tempSlot = NULL;
-	ForeignAggInfo agginfodata[NODES_MAX];
+	ForeignAggInfo *agginfodata;
+	int aggflag=false;
 
+
+	agginfodata = palloc(sizeof(ForeignAggInfo) * NODES_MAX);
+	memset(agginfodata, 0, sizeof(ForeignAggInfo) * NODES_MAX);
 	DdsfFdwPrivate *fdw_private = fssThrdInfo->private;
 	int run = 1; /* '1' is for no aggregation query */
 	if (getResultFlag && !fdw_private->agg_query)
@@ -2520,6 +2252,8 @@ ddsf_IterateForeignScan(ForeignScanState *node)
 					ddsf_get_agg_Info(fssThrdInfo[count-1].tuple, node, count, agginfodata);
 #else
 					ddsf_get_agg_Info(fssThrdInfo[count-1], node, count, agginfodata);
+					run++;
+					aggflag=true;
 #endif
 				}
 				else if(list_member_oid(fdw_private->pPseudoAggPushList,fssThrdInfo[count-1].serverId)){
@@ -2569,6 +2303,7 @@ ddsf_IterateForeignScan(ForeignScanState *node)
 		slot = node->ss.ss_ScanTupleSlot;
 		ExecClearTuple(slot);
 	}
+	pfree(agginfodata);
 	return slot;	
 }
 
@@ -2639,7 +2374,7 @@ ddsf_EndForeignScan(ForeignScanState *node) {
 		{
 			return;
 		}
-	    elog(DEBUG3, "EndForeignScan\n");
+	    elog(DEBUG1, "EndForeignScan\n");
 		for (node_incr = 0; node_incr < nThreads; node_incr++)
 		{
 			fssThrdInfo[node_incr].EndFlag = true;
@@ -2673,180 +2408,4 @@ ddsf_EndForeignScan(ForeignScanState *node) {
 static Datum
 ddsf_ForeignAgg(AggState *aggnode, void *state)
 {
-	Datum ret = 0;
-#if 0
-	FdwRoutine *fdwroutine[NODES_MAX];
-	ForeignServer *frgnsrv;
-	UserMapping *user;
-	char	   *list[NODES_MAX] = {0},
-			   *queryList = NULL;
-	DdsfAggType aggtype;
-	ForeignAggInfo agginfodata[NODES_MAX];
-	int			num_qry = 0,
-				num_node,
-				node_incr;
-	pthread_t	thr[NODES_MAX];
-	DdsfFDWThreadData thrdata[NODES_MAX];
-	PGconn	   *self_conn = NULL;
-	Datum		ret;
-	char 		contextStr[BUFFERSIZE];
-
-	/* Get connection to self to read system catalog */
-	self_conn = ddsf_create_self_node_conn(aggnode);
-	if (self_conn == NULL)
-		return (Datum) 0;
-	/*
-	 * Get All Foreign Server Name from Config file Default Configuration file
-	 * created At "/usr/local/pgsql/share/extension/ddsf_server_nodes.conf"
-	 */
-
-	/* Get all the foreign nodes from conf file */
-	num_node = ddsf_get_node_list(list);
-	if (num_node <= 0)
-	{
-		ddsf_stop_self_node_conn(self_conn);
-		ereport(ERROR, (errmsg("Foreign nodes does not exist in Configuration file ( ddsf_server_nodes.conf ) ")));
-	}
-
-	/*
-	 * get agg type and Original Query String and transform the same into
-	 * multiple queries based on Aggtype
-	 */
-	queryList = pstrdup(((QueryDesc *) ((PlanState *) aggnode)->ddsfAggQry)->sourceText);
-	if (queryList == NULL)
-	{
-		FreeNodes(list, num_node);
-		ddsf_stop_self_node_conn(self_conn);
-		return (Datum) 0;
-	}
-
-	/* queryList need to be expand for the case of STDDEV and VARIANCE */
-	queryList = (char *) repalloc(queryList, strlen(queryList) + sizeof(int *) * sizeof(int));
-	if (queryList == NULL)
-	{
-		FreeNodes(list, num_node);
-		ddsf_stop_self_node_conn(self_conn);
-		return (Datum) 0;
-	}
-	memset(queryList + strlen(queryList), 0, (sizeof(int *) * sizeof(int)) - 1);
-
-	aggtype = ddsf_get_agg_type(aggnode);
-	if (aggtype == AGG_DEFAULT)
-	{
-		FreeNodes(list, num_node);
-		ddsf_stop_self_node_conn(self_conn);
-		pfree(queryList);
-		return (Datum) 0;
-	}
-
-	/* Query transformation */
-	switch (aggtype)			/* TODO Create a module */
-	{
-		case AGG_AVG:
-			find_and_replicate(queryList, "AVG", "FROM", ",");	/* convert "AVG(...)" to
-																 * "AVG(...), AVG(...)" */
-			replace(queryList, "AVG", "SUM", false);	/* convert "AVG(...),
-														 * AVG(...)" to
-														 * "SUM(...), AVG(...)" */
-			replace(queryList, "AVG", "COUNT", false);	/* convert "AVG(...),
-														 * AVG(...)" to
-														 * "SUM(...),
-														 * COUNT(...)" */
-			break;
-		case AGG_SUM:
-		case AGG_COUNT:
-			break;
-		case AGG_STDDEV:
-			replace(queryList, "STDDEV", "VARIANCE", false);
-		case AGG_VAR:
-			find_and_replicate(queryList, "VARIANCE", "FROM", ",");
-			find_and_replicate(queryList, "VARIANCE", ",", ",");
-			replace(queryList, "VARIANCE", "SUM", false);
-			replace(queryList, "VARIANCE", "COUNT", false);
-			break;
-		default:
-			break;
-	}
-	num_qry = NUM_QUERIES_ONE;
-
-	/* For each Foreign Server do following */
-	for (node_incr = 0; node_incr < num_node; node_incr++)
-	{
-		char		options[BUFFER_SIZE] = {0};
-
-		/*
-		 * Get server and usermapping options to create connection params for
-		 * FDW
-		 */
-		ddsf_get_node_options(list[node_incr], self_conn, options);
-
-		/* Create agginfodata to be shared with the called FDWs */
-
-		/*
-		 * agginfodata will contain Accumulated Datums that should be combined
-		 * based on Agg type.
-		 */
-
-		fdwroutine[node_incr] = GetFdwRoutineByServerId(get_foreign_server_oid(list[node_incr], true));
-
-		/* Check FDW type and then invoke connection sequence TODO */
-
-		/*
-		 * Connection to remote servers done by the dedicated FDW... This
-		 * layer should take care only for sharing the options
-		 */
-		frgnsrv = GetForeignServerByName(list[node_incr], true);
-		user = GetUserMapping(GetUserId(), frgnsrv->serverid);
-		agginfodata[node_incr].server = frgnsrv;
-		agginfodata[node_incr].user = user;
-
-		/* Set Query options for Pushdown */
-		strcpy(agginfodata[node_incr].transquery[0], queryList);
-		agginfodata[node_incr].transquery_num = num_qry;
-		agginfodata[node_incr].result[0].type = aggtype;
-		agginfodata[node_incr].result[0].status = DDSF_FRG_OK;		/* initialize the result
-																 * status */
-
-		/* Set FDW details for thread */
-		thrdata[node_incr].fdwroutine = fdwroutine[node_incr];
-
-		/*
-		 * Set in and out object needed by thread to provide to foreignAgg
-		 * functions as arguments for FDW
-		 */
-		thrdata[node_incr].agginfodata = &agginfodata[node_incr];
-		thrdata[node_incr].aggnode = aggnode;
-		memset(contextStr, 0, BUFFERSIZE);
-		sprintf(contextStr, "AggthreadMemoryContext_%d", node_incr);
-		thrdata[node_incr].threadMemoryContext = AllocSetContextCreate(TopMemoryContext,
-						  			          	contextStr,
-				  				           	   ALLOCSET_DEFAULT_MINSIZE,
-										   ALLOCSET_DEFAULT_INITSIZE,
-										   ALLOCSET_DEFAULT_MAXSIZE);
-		/*
-		 * Create worker threads for each Server and invoke
-		 * fdwroutine->ForeignAgg using respective routine
-		 */
-		pthread_create(&thr[node_incr], NULL, Ddsf_FDW_thread, (void *) &thrdata[node_incr]);
-	}
-	/* Wait for all the threads to finish */
-	for (node_incr = 0; node_incr < num_node; node_incr++)
-	{
-		pthread_join(thr[node_incr], NULL);
-	}
-
-	/* Combined and finalized Datum should be returned from here. */
-	ret = ddsf_combine_agg(agginfodata, num_node, self_conn);
-
-	ddsf_stop_self_node_conn(self_conn);
-	for (node_incr = 0; node_incr < num_node; node_incr++)
-	{
-		pfree(agginfodata[node_incr].server);
-		pfree(agginfodata[node_incr].user);
-		MemoryContextDelete(thrdata[node_incr].threadMemoryContext);
-	}
-	FreeNodes(list, num_node);
-	pfree(queryList);
-#endif
-	return ret;
 }
