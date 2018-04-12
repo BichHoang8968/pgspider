@@ -15,15 +15,15 @@ INSERT INTO department VALUES(generate_series(1,100), 'dept - ' || generate_seri
 INSERT INTO employee VALUES(generate_series(1,100), 'emp - ' || generate_series(1,100), generate_series(1,100));
 INSERT INTO empdata  VALUES(1, decode ('01234567', 'hex'));
 
-insert into numbers values(1, 'One');
-insert into numbers values(2, 'Two');
-insert into numbers values(3, 'Three');
-insert into numbers values(4, 'Four');
-insert into numbers values(5, 'Five');
-insert into numbers values(6, 'Six');
-insert into numbers values(7, 'Seven');
-insert into numbers values(8, 'Eight');
-insert into numbers values(9, 'Nine');
+INSERT INTO numbers VALUES(1, 'One');
+INSERT INTO numbers VALUES(2, 'Two');
+INSERT INTO numbers VALUES(3, 'Three');
+INSERT INTO numbers VALUES(4, 'Four');
+INSERT INTO numbers VALUES(5, 'Five');
+INSERT INTO numbers VALUES(6, 'Six');
+INSERT INTO numbers VALUES(7, 'Seven');
+INSERT INTO numbers VALUES(8, 'Eight');
+INSERT INTO numbers VALUES(9, 'Nine');
 
 SELECT count(*) FROM department;
 SELECT count(*) FROM employee;
@@ -42,8 +42,8 @@ DELETE FROM employee WHERE emp_id = 10;
 SELECT COUNT(*) FROM department LIMIT 10;
 SELECT COUNT(*) FROM employee WHERE emp_id = 10;
 
-UPDATE employee SET emp_name = 'Updated emp' WHERE emp_id = 20;
-SELECT emp_id, emp_name FROM employee WHERE emp_name like 'Updated emp';
+UPDATE employee SET emp_name = 'UPDATEd emp' WHERE emp_id = 20;
+SELECT emp_id, emp_name FROM employee WHERE emp_name like 'UPDATEd emp';
 
 UPDATE empdata SET emp_dat = decode ('0123', 'hex');
 SELECT * FROM empdata;
@@ -62,21 +62,21 @@ SELECT * FROM employee WHERE emp_name NOT IN ('emp - 1', 'emp - 2') LIMIT 5;
 SELECT * FROM employee WHERE emp_name NOT IN ('emp - 10') LIMIT 5;
 
 
-create or replace function test_param_where() returns void as $$
+create or replace function test_param_WHERE() returns void as $$
 DECLARE
   n varchar;
 BEGIN
   FOR x IN 1..9 LOOP
-    select b into n from numbers where a=x;
+    SELECT b INTO n from numbers WHERE a=x;
     raise notice 'Found number %', n;
   end loop;
   return;
 END
 $$ LANGUAGE plpgsql;
-SELECT test_param_where();
+SELECT test_param_WHERE();
 
-select b from numbers where a=1;
-EXPLAIN(COSTS OFF) select b from numbers where a=1;
+SELECT b from numbers WHERE a=1;
+EXPLAIN(COSTS OFF) SELECT b from numbers WHERE a=1;
 
 SELECT a FROM numbers WHERE b = (SELECT NULL::text);
 
@@ -98,93 +98,86 @@ DELETE FROM empdata;
 DELETE FROM numbers;
 
 BEGIN;
-insert into numbers values(1, 'One');
-insert into numbers values(2, 'Two');
+INSERT INTO numbers VALUES(1, 'One');
+INSERT INTO numbers VALUES(2, 'Two');
 COMMIT;
 
-select * from numbers;
+SELECT * from numbers;
 
 BEGIN;
-insert into numbers values(3, 'Three');
+INSERT INTO numbers VALUES(3, 'Three');
 ROLLBACK;
-select * from numbers;
+SELECT * from numbers;
 
 BEGIN;
-insert into numbers values(4, 'Four');
+INSERT INTO numbers VALUES(4, 'Four');
 SAVEPOINT my_savepoint;
-insert into numbers values(5, 'Five');
+INSERT INTO numbers VALUES(5, 'Five');
 ROLLBACK TO SAVEPOINT my_savepoint;
-insert into numbers values(6, 'Six');
+INSERT INTO numbers VALUES(6, 'Six');
 COMMIT;
 
-select * from numbers;
+SELECT * from numbers;
 
-insert into numbers values(1, 'One');
-delete from numbers;
+-- duplicate key
+INSERT INTO numbers VALUES(1, 'One');
+DELETE from numbers;
 
 BEGIN;
-insert into numbers values(1, 'One');
-insert into numbers values(2, 'Two');
+INSERT INTO numbers VALUES(1, 'One');
+INSERT INTO numbers VALUES(2, 'Two');
 COMMIT;
-
 -- violate unique constraint
-update numbers set b='Two' where a = 1; 
-select * from numbers;
+UPDATE numbers SET b='Two' WHERE a = 1; 
+SELECT * from numbers;
 
 -- push down
-explain (costs off) select * from numbers where  a = any(ARRAY[2,3,4,5]::int[]);
+explain (costs off) SELECT * from numbers WHERE  a = any(ARRAY[2,3,4,5]::int[]);
 -- (1,2,3) is pushed down
-explain (costs off) select * from numbers where a in (1,2,3) and (1,2) < (a,5);
+explain (costs off) SELECT * from numbers WHERE a in (1,2,3) AND (1,2) < (a,5);
 
 -- not push down
-explain (costs off) select * from numbers where a in (a+2*a,5);
+explain (costs off) SELECT * from numbers WHERE a in (a+2*a,5);
 -- not push down
-explain (costs off) select * from numbers where  a = any(ARRAY[1,2,a]::int[]);
+explain (costs off) SELECT * from numbers WHERE  a = any(ARRAY[1,2,a]::int[]);
 
-select * from numbers where  a = any(ARRAY[2,3,4,5]::int[]);
-select * from numbers where  a = any(ARRAY[1,2,a]::int[]);
+SELECT * from numbers WHERE  a = any(ARRAY[2,3,4,5]::int[]);
+SELECT * from numbers WHERE  a = any(ARRAY[1,2,a]::int[]);
 
-insert into multiprimary values(1,2,3);
-insert into multiprimary values(1,2,4);
-update multiprimary set b = 10 where c = 3;
-select * from multiprimary;
-update multiprimary set a = 10 where a = 1;
-select * from multiprimary;
-update multiprimary set a = 100, b=200, c=300 where a=10 and b=10;
-select * from multiprimary;
-update multiprimary set a = 1234;
-select * from multiprimary;
-update multiprimary set a = a+1, b=b+1 where b=200 and c=300;
+INSERT INTO multiprimary VALUES(1,2,3);
+INSERT INTO multiprimary VALUES(1,2,4);
+UPDATE multiprimary SET b = 10 WHERE c = 3;
+SELECT * from multiprimary;
+UPDATE multiprimary SET a = 10 WHERE a = 1;
+SELECT * from multiprimary;
+UPDATE multiprimary SET a = 100, b=200, c=300 WHERE a=10 AND b=10;
+SELECT * from multiprimary;
+UPDATE multiprimary SET a = 1234;
+SELECT * from multiprimary;
+UPDATE multiprimary SET a = a+1, b=b+1 WHERE b=200 AND c=300;
 
-select * from multiprimary;
-delete from multiprimary where a = 1235;
-select * from multiprimary;
-delete from multiprimary where b = 2;
-select * from multiprimary;
+SELECT * from multiprimary;
+DELETE from multiprimary WHERE a = 1235;
+SELECT * from multiprimary;
+DELETE from multiprimary WHERE b = 2;
+SELECT * from multiprimary;
 
-insert into multiprimary values(1,2,3);
-insert into multiprimary values(1,2,4);
-insert into multiprimary values(1,10,20);
-insert into multiprimary values(2,20,40);
+INSERT INTO multiprimary VALUES(1,2,3);
+INSERT INTO multiprimary VALUES(1,2,4);
+INSERT INTO multiprimary VALUES(1,10,20);
+INSERT INTO multiprimary VALUES(2,20,40);
 
-select count(distinct a) from multiprimary;
-explain (costs off, verbose) select count(distinct a) from multiprimary;
 
-select sum(b),max(b), min(b), avg(b) from multiprimary;
-explain (costs off, verbose) select sum(b),max(b), min(b), avg(b) from multiprimary;
 
-select sum(b+5)+2 from multiprimary group by b/2 order by b/2;
-explain (costs off, verbose) select sum(b+5)+2 from multiprimary group by b/2 order by b/2;
+SELECT count(distinct a) from multiprimary;
+SELECT sum(b),max(b), min(b) from multiprimary;
+SELECT sum(b+5)+2 from multiprimary group by b/2 order by b/2;
+SELECT sum(a) from multiprimary group by b having sum(a) > 0 order by sum(a);
+SELECT sum(a) A from multiprimary group by b having avg(abs(a)) > 0 AND sum(a) > 0 order by A;
 
-select sum(a) from multiprimary group by b having sum(a) > 0 order by sum(a);
-explain (costs off, verbose) select sum(a) from multiprimary group by b having sum(a) > 0;
+SELECT * from multiprimary, numbers WHERE multiprimary.a=numbers.a;
 
-select sum(a) A from multiprimary group by b having avg(abs(a)) > 0 and sum(a) > 0 order by A;
-explain (costs off, verbose) select sum(a) from multiprimary group by b having avg(a^2) > 0 and sum(a) > 0;
-
-select * from multiprimary, numbers where multiprimary.a=numbers.a;
-
-DROP FUNCTION test_param_where();
+DROP FUNCTION test_param_WHERE();
 DROP FOREIGN TABLE numbers;
 DROP FOREIGN TABLE department;
 DROP FOREIGN TABLE employee;

@@ -82,7 +82,7 @@ SELECT * FROM "type_BLOB";
 
 CREATE FOREIGN TABLE BitT (p integer, a BIT(3), b BIT VARYING(5)) SERVER sqlite_svr;
 insert into bitt values(1, B'100', B'10111');
-select * from bitt;
+SELECT * FROM bitt;
  p |  a  |   b   
 ---+-----+-------
  1 | 100 | 10111
@@ -91,13 +91,13 @@ select * from bitt;
 insert into "type_STRING" values('TYPE');
 insert into "type_STRING" values('type');
 -- not pushdown
-select  *from "type_STRING" where col like 'TYP%';
+SELECT  *FROM "type_STRING" WHERE col like 'TYP%';
  col  
 ------
  TYPE
 (1 row)
 
-explain select  *from "type_STRING" where col like 'TYP%';
+EXPLAIN SELECT  *FROM "type_STRING" WHERE col like 'TYP%';
                                                   QUERY PLAN                                                   
 ---------------------------------------------------------------------------------------------------------------
  Foreign Scan on "type_STRING"  (cost=10.00..1000000.00 rows=1000000 width=32)
@@ -105,14 +105,14 @@ explain select  *from "type_STRING" where col like 'TYP%';
 (2 rows)
 
 -- pushdown
-select  *from "type_STRING" where col ilike 'typ%';
+SELECT  *FROM "type_STRING" WHERE col ilike 'typ%';
  col  
 ------
  TYPE
  type
 (2 rows)
 
-explain select  *from "type_STRING" where col ilike 'typ%';
+EXPLAIN SELECT  *FROM "type_STRING" WHERE col ilike 'typ%';
                                   QUERY PLAN                                   
 -------------------------------------------------------------------------------
  Foreign Scan on "type_STRING"  (cost=10.00..1000000.00 rows=1000000 width=32)
@@ -120,13 +120,13 @@ explain select  *from "type_STRING" where col ilike 'typ%';
    SQLite plan: SCAN TABLE type_STRING
 (3 rows)
 
-select  *from "type_STRING" where col ilike 'typ%' and col like 'TYPE';
+SELECT  *FROM "type_STRING" WHERE col ilike 'typ%' and col like 'TYPE';
  col  
 ------
  TYPE
 (1 row)
 
-explain select  *from "type_STRING" where col ilike 'typ%' and col like 'TYPE';
+EXPLAIN SELECT  *FROM "type_STRING" WHERE col ilike 'typ%' and col like 'TYPE';
                                                   QUERY PLAN                                                   
 ---------------------------------------------------------------------------------------------------------------
  Foreign Scan on "type_STRING"  (cost=10.00..1000000.00 rows=1000000 width=32)
@@ -134,14 +134,14 @@ explain select  *from "type_STRING" where col ilike 'typ%' and col like 'TYPE';
    SQLite plan: SEARCH TABLE type_STRING USING COVERING INDEX sqlite_autoindex_type_STRING_1 (col>? AND col<?)
 (3 rows)
 
-select * from "type_TIMESTAMP";
+SELECT * FROM "type_TIMESTAMP";
            col           |          b          
 -------------------------+---------------------
  2017-11-06 12:34:56.789 | 2017-11-06 00:00:00
  2017-11-06 01:03:00     | 2017-11-07 00:00:00
 (2 rows)
 
-explain (VERBOSE, COSTS OFF) select * from  "type_TIMESTAMP" where col > date ('2017.11.06 12:34:56.789') ;
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM  "type_TIMESTAMP" WHERE col > date ('2017.11.06 12:34:56.789') ;
                                             QUERY PLAN                                            
 --------------------------------------------------------------------------------------------------
  Foreign Scan on public."type_TIMESTAMP"
@@ -150,14 +150,14 @@ explain (VERBOSE, COSTS OFF) select * from  "type_TIMESTAMP" where col > date ('
    SQLite plan: SEARCH TABLE type_TIMESTAMP USING INDEX sqlite_autoindex_type_TIMESTAMP_1 (col>?)
 (4 rows)
 
-select * from  "type_TIMESTAMP" where col > date ('2017.11.06 12:34:56.789') ;
+SELECT * FROM  "type_TIMESTAMP" WHERE col > date ('2017.11.06 12:34:56.789') ;
            col           |          b          
 -------------------------+---------------------
  2017-11-06 01:03:00     | 2017-11-07 00:00:00
  2017-11-06 12:34:56.789 | 2017-11-06 00:00:00
 (2 rows)
 
-explain (VERBOSE, COSTS OFF) select * from  "type_TIMESTAMP" where col::text > date ('2017.11.06 12:34:56.789')::text ;
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM  "type_TIMESTAMP" WHERE col::text > date ('2017.11.06 12:34:56.789')::text ;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
  Foreign Scan on public."type_TIMESTAMP"
@@ -167,14 +167,14 @@ explain (VERBOSE, COSTS OFF) select * from  "type_TIMESTAMP" where col::text > d
    SQLite plan: SCAN TABLE type_TIMESTAMP
 (5 rows)
 
-select * from  "type_TIMESTAMP" where col::text > date ('2017.11.06 12:34:56.789')::text ;
+SELECT * FROM  "type_TIMESTAMP" WHERE col::text > date ('2017.11.06 12:34:56.789')::text ;
            col           |          b          
 -------------------------+---------------------
  2017-11-06 12:34:56.789 | 2017-11-06 00:00:00
  2017-11-06 01:03:00     | 2017-11-07 00:00:00
 (2 rows)
 
-explain  (VERBOSE, COSTS OFF) select * from  "type_TIMESTAMP" where col > b - interval '1 hour'; 
+EXPLAIN  (VERBOSE, COSTS OFF) SELECT * FROM  "type_TIMESTAMP" WHERE col > b - interval '1 hour'; 
                                    QUERY PLAN                                   
 --------------------------------------------------------------------------------
  Foreign Scan on public."type_TIMESTAMP"
@@ -184,13 +184,13 @@ explain  (VERBOSE, COSTS OFF) select * from  "type_TIMESTAMP" where col > b - in
    SQLite plan: SCAN TABLE type_TIMESTAMP
 (5 rows)
 
-select * from  "type_TIMESTAMP" where col > b - interval '1 hour';
+SELECT * FROM  "type_TIMESTAMP" WHERE col > b - interval '1 hour';
            col           |          b          
 -------------------------+---------------------
  2017-11-06 12:34:56.789 | 2017-11-06 00:00:00
 (1 row)
 
-explain (VERBOSE, COSTS OFF) select * from  "type_TIMESTAMP" where col > b;
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM  "type_TIMESTAMP" WHERE col > b;
                                      QUERY PLAN                                     
 ------------------------------------------------------------------------------------
  Foreign Scan on public."type_TIMESTAMP"
@@ -199,7 +199,7 @@ explain (VERBOSE, COSTS OFF) select * from  "type_TIMESTAMP" where col > b;
    SQLite plan: SCAN TABLE type_TIMESTAMP
 (4 rows)
 
-select * from  "type_TIMESTAMP" where col > b;
+SELECT * FROM  "type_TIMESTAMP" WHERE col > b;
            col           |          b          
 -------------------------+---------------------
  2017-11-06 12:34:56.789 | 2017-11-06 00:00:00

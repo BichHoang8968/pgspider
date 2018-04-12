@@ -36,31 +36,33 @@ SELECT * FROM "type_BLOB";
 
 CREATE FOREIGN TABLE BitT (p integer, a BIT(3), b BIT VARYING(5)) SERVER sqlite_svr;
 insert into bitt values(1, B'100', B'10111');
-select * from bitt;
+SELECT * FROM bitt;
 
 insert into "type_STRING" values('TYPE');
 insert into "type_STRING" values('type');
 
 -- not pushdown
-select  *from "type_STRING" where col like 'TYP%';
-explain select  *from "type_STRING" where col like 'TYP%';
+SELECT  *FROM "type_STRING" WHERE col like 'TYP%';
+EXPLAIN SELECT  *FROM "type_STRING" WHERE col like 'TYP%';
 -- pushdown
-select  *from "type_STRING" where col ilike 'typ%';
-explain select  *from "type_STRING" where col ilike 'typ%';
+SELECT  *FROM "type_STRING" WHERE col ilike 'typ%';
+EXPLAIN SELECT  *FROM "type_STRING" WHERE col ilike 'typ%';
 
-select  *from "type_STRING" where col ilike 'typ%' and col like 'TYPE';
-explain select  *from "type_STRING" where col ilike 'typ%' and col like 'TYPE';
+SELECT  *FROM "type_STRING" WHERE col ilike 'typ%' and col like 'TYPE';
+EXPLAIN SELECT  *FROM "type_STRING" WHERE col ilike 'typ%' and col like 'TYPE';
 
-select * from "type_TIMESTAMP";
+SELECT * FROM "type_TIMESTAMP";
 
-explain (VERBOSE, COSTS OFF) select * from  "type_TIMESTAMP" where col > date ('2017.11.06 12:34:56.789') ;
-select * from  "type_TIMESTAMP" where col > date ('2017.11.06 12:34:56.789') ;
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM  "type_TIMESTAMP" WHERE col > date ('2017.11.06 12:34:56.789') ;
+SELECT * FROM  "type_TIMESTAMP" WHERE col > date ('2017.11.06 12:34:56.789') ;
 
-explain (VERBOSE, COSTS OFF) select * from  "type_TIMESTAMP" where col::text > date ('2017.11.06 12:34:56.789')::text ;
-select * from  "type_TIMESTAMP" where col::text > date ('2017.11.06 12:34:56.789')::text ;
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM  "type_TIMESTAMP" WHERE col::text > date ('2017.11.06 12:34:56.789')::text ;
+SELECT * FROM  "type_TIMESTAMP" WHERE col::text > date ('2017.11.06 12:34:56.789')::text ;
 
-explain  (VERBOSE, COSTS OFF) select * from  "type_TIMESTAMP" where col > b - interval '1 hour'; 
-select * from  "type_TIMESTAMP" where col > b - interval '1 hour';
+EXPLAIN  (VERBOSE, COSTS OFF) SELECT * FROM  "type_TIMESTAMP" WHERE col > b - interval '1 hour'; 
+SELECT * FROM  "type_TIMESTAMP" WHERE col > b - interval '1 hour';
 
-explain (VERBOSE, COSTS OFF) select * from  "type_TIMESTAMP" where col > b;
-select * from  "type_TIMESTAMP" where col > b;
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM  "type_TIMESTAMP" WHERE col > b;
+SELECT * FROM  "type_TIMESTAMP" WHERE col > b;
+
+
