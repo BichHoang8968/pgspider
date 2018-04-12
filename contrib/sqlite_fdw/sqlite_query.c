@@ -13,7 +13,6 @@
 #include "postgres.h"
 
 #include "sqlite_fdw.h"
-#include "sqlite_query.h"
 
 #include <stdio.h>
 
@@ -169,7 +168,7 @@ sqlite_convert_to_pg(Oid pgtyp, int pgtypmod, sqlite3_stmt *stmt, int attnum)
 	}
 	/* convert string value to appropriate type value*/
 	value_datum = OidFunctionCall3(typeinput, valueDatum, ObjectIdGetDatum(InvalidOid), Int32GetDatum(typemod));
-	Assert(valueDatum!=value_datum);
+
 	return value_datum;
 }
 

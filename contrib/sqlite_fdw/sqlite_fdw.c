@@ -59,7 +59,6 @@
 #include "parser/parsetree.h"
 #include "utils/typcache.h"
 #include "utils/selfuncs.h"
-#include "sqlite_query.h"
 
 
 extern PGDLLEXPORT void _PG_init(void);
@@ -294,7 +293,7 @@ sqlite_fdw_handler(PG_FUNCTION_ARGS)
 	/* support for IMPORT FOREIGN SCHEMA */
 	fdwroutine->ImportForeignSchema = sqliteImportForeignSchema;
 #endif
-#if (PG_VERSION_NUM >= 90600)
+#if (PG_VERSION_NUM >= 100000)
 	/* Support functions for upper relation push-down */
 	fdwroutine->GetForeignUpperPaths = sqliteGetForeignUpperPaths;
 #endif
@@ -483,7 +482,8 @@ sqliteGetForeignPlan(
 	 * local_exprs list, since appendWhereClause expects a list of
 	 * RestrictInfos.
 	 */
-	if (IS_SIMPLE_REL(baserel))
+	if (baserel->reloptkind == RELOPT_BASEREL ||
+		baserel->reloptkind == RELOPT_OTHER_MEMBER_REL)
 	{
 		foreach (lc, scan_clauses)
 		{
@@ -569,8 +569,7 @@ sqliteGetForeignPlan(
 			 * joins. Queries involving aggregates or grouping do not require
 			 * EPQ mechanism, hence should not have an outer plan here.
 			 */
-			Assert(!IS_UPPER_REL(baserel));
-
+			Assert(baserel->reloptkind != RELOPT_UPPER_REL);
 			outer_plan->targetlist = fdw_scan_tlist;
 
 			foreach (lc, local_exprs)
@@ -613,7 +612,8 @@ sqliteGetForeignPlan(
 	 * Items in the list must match enum FdwScanPrivateIndex, above.
 	 */
 	fdw_private = list_make3(makeString(sql.data), retrieved_attrs, makeInteger(for_update));
-	if (IS_JOIN_REL(baserel) || IS_UPPER_REL(baserel))
+	if (baserel->reloptkind == RELOPT_JOINREL ||
+		baserel->reloptkind == RELOPT_UPPER_REL)
 		fdw_private = lappend(fdw_private,
 							  makeString(fpinfo->relation_name->data));
 	/*
@@ -1576,15 +1576,11 @@ sqliteImportForeignSchema(ImportForeignSchemaStmt *stmt,
 	{
 		if (tbls)
 			sqlite3_finalize(tbls);
-		if (db)
-			sqlite3_close(db);
-
 		PG_RE_THROW();
 	}
 	PG_END_TRY();
 
 	sqlite3_finalize(tbls);
-	sqlite3_close(db);
 
 	return commands;
 }
@@ -1719,8 +1715,9 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 		foreach(lc, (List *) query->havingQual)
 		{
 			Expr	   *expr = (Expr *) lfirst(lc);
-			RestrictInfo *rinfo;
 
+#if (PG_VERSION_NUM >= 100000)
+			RestrictInfo *rinfo;
 			/*
 			 * Currently, the core code doesn't wrap havingQuals in
 			 * RestrictInfos, so we must make our own.
@@ -1734,10 +1731,17 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 									  grouped_rel->relids,
 									  NULL,
 									  NULL);
+
 			if (is_foreign_expr(root, grouped_rel, expr))
 				fpinfo->remote_conds = lappend(fpinfo->remote_conds, rinfo);
 			else
 				fpinfo->local_conds = lappend(fpinfo->local_conds, rinfo);
+#else
+			if (!is_foreign_expr(root, grouped_rel, expr))
+				fpinfo->local_conds = lappend(fpinfo->local_conds, expr);
+			else
+				fpinfo->remote_conds = lappend(fpinfo->remote_conds, expr);
+#endif
 		}
 	}
 
@@ -2130,8 +2134,11 @@ prepare_query_params(PlanState *node,
 	 * benefit, and it'd require sqlite_fdw to know more than is desirable
 	 * about Param evaluation.)
 	 */
+#if PG_VERSION_NUM >= 100000
 	*param_exprs = (List *) ExecInitExprList(fdw_exprs, node);
-
+#else
+	*param_exprs = (List *) ExecInitExpr((Expr *) fdw_exprs, node);
+#endif
 	/* Allocate buffer for text form of query parameters. */
 	*param_values = (const char **) palloc0(numParams * sizeof(char *));
 }

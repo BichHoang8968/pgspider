@@ -167,20 +167,25 @@ sqlite_cleanup_connection(void)
 	hash_seq_init(&scan, ConnectionHash);
 	while ((entry = (ConnCacheEntry *) hash_seq_search(&scan)))
 	{
+		sqlite3_stmt *cur = NULL;
 		if (entry->conn == NULL)
 			continue;
 
+		while ((cur = sqlite3_next_stmt(entry->conn, cur)) != NULL)
+		{
+			elog(DEBUG1, "finalize %s", sqlite3_sql(cur));
+			sqlite3_finalize(cur);
+		}
 		elog(DEBUG1, "disconnecting sqlite_fdw connection %p", entry->conn);
 		rc = sqlite3_close(entry->conn);
-
+		entry->conn = NULL;
 		if (rc != SQLITE_OK)
 		{
 			ereport(ERROR,
 					(errcode(ERRCODE_FDW_UNABLE_TO_CREATE_EXECUTION),
 					 errmsg("close connection failed: %s rc=%d", sqlite3_errmsg(entry->conn), rc)
 					 ));
-		}
-		entry->conn = NULL;
+		}	
 	}
 }
 
@@ -191,17 +196,21 @@ sqlite_cleanup_connection(void)
 static bool
 do_sql_command(sqlite3 *conn, const char *sql, int level)
 {
-	char *err;
+	char *err = NULL;
 	elog(DEBUG3, "do_sql_commnad %s", sql);
 
 	if (sqlite3_exec(conn, sql, NULL, NULL, &err) != SQLITE_OK) {
-		char *perr = pstrdup(err);
-		sqlite3_free(err);
+		char *perr = NULL;
+		if (err) {
+			perr  = pstrdup(err);
+			sqlite3_free(err);
+		}
 		ereport(level,
 				(errcode(ERRCODE_FDW_ERROR),
-				 errmsg("failed to execute sql: %s", perr)
+				 errmsg("failed to execute sql: %s %s", sql, perr)
 				 ));
-		pfree(err);
+		if (perr)
+			pfree(perr);
 		return false;
 	}
 	return true;
@@ -310,8 +319,10 @@ sqlitefdw_xact_callback(XactEvent event, void *arg)
 			{
 				case XACT_EVENT_PARALLEL_PRE_COMMIT:
 				case XACT_EVENT_PRE_COMMIT:
+
 					/* Commit all remote transactions during pre-commit */
-					do_sql_command(entry->conn, "COMMIT", ERROR);
+					if (!sqlite3_get_autocommit(entry->conn))
+						do_sql_command(entry->conn, "COMMIT", ERROR);
 					break;
 				case XACT_EVENT_PRE_PREPARE:
 
