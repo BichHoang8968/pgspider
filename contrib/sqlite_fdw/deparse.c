@@ -216,7 +216,7 @@ is_foreign_expr(PlannerInfo *root,
 	 * because the upperrel's own relids currently aren't set to anything
 	 * meaningful by the core code.  For other relation, use their own relids.
 	 */
-	if (IS_UPPER_REL(baserel))
+	if (baserel->reloptkind == RELOPT_UPPER_REL)
 		glob_cxt.relids = fpinfo->outerrel->relids;
 	else
 		glob_cxt.relids = baserel->relids;
@@ -555,7 +555,7 @@ foreign_expr_walker(Node *node,
 				ListCell   *lc;
 
 				/* Not safe to pushdown when not in grouping context */
-				if (!IS_UPPER_REL(glob_cxt->foreignrel))
+				if (glob_cxt->foreignrel->reloptkind != RELOPT_UPPER_REL)
 					return false;
 
 				/* Only non-split aggregates are pushable. */
@@ -713,7 +713,7 @@ build_tlist_to_deparse(RelOptInfo *foreignrel)
 	 * For an upper relation, we have already built the target list while
 	 * checking shippability, so just return that.
 	 */
-	if (IS_UPPER_REL(foreignrel))
+	if (foreignrel->reloptkind == RELOPT_UPPER_REL)
 		return fpinfo->grouped_tlist;
 
 	/*
@@ -771,13 +771,16 @@ sqliteDeparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel
 	 * We handle relations for foreign tables, joins between those and upper
 	 * relations.
 	 */
-	Assert(IS_JOIN_REL(rel) || IS_SIMPLE_REL(rel) || IS_UPPER_REL(rel));
-
+	Assert(rel->reloptkind == RELOPT_JOINREL ||
+		   rel->reloptkind == RELOPT_BASEREL ||
+		   rel->reloptkind == RELOPT_OTHER_MEMBER_REL ||
+		   rel->reloptkind == RELOPT_UPPER_REL);
 	/* Fill portions of context common to upper, join and base relation */
 	context.buf = buf;
 	context.root = root;
 	context.foreignrel = rel;
-	context.scanrel = IS_UPPER_REL(rel) ? fpinfo->outerrel : rel;
+	context.scanrel = (rel->reloptkind == RELOPT_UPPER_REL) ?
+		fpinfo->outerrel : rel;
 	context.params_list = params_list;
 
 	/* Construct SELECT clause */
@@ -788,7 +791,7 @@ sqliteDeparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel
 	 * conditions of the underlying scan relation; otherwise, we can use the
 	 * supplied list of remote conditions directly.
 	 */
-	if (IS_UPPER_REL(rel))
+	if (rel->reloptkind == RELOPT_UPPER_REL)
 	{
 		SqliteFdwRelationInfo *ofpinfo;
 
@@ -801,7 +804,7 @@ sqliteDeparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel
 	/* Construct FROM and WHERE clauses */
 	deparseFromExpr(quals, &context);
 
-	if (IS_UPPER_REL(rel))
+	if (rel->reloptkind == RELOPT_UPPER_REL)
 	{
 		/* Append GROUP BY clause */
 		appendGroupByClause(tlist, &context);
@@ -838,7 +841,8 @@ sqlite_deparse_select(List *tlist, List **retrieved_attrs, deparse_expr_cxt *con
 	 */
 	appendStringInfoString(buf, "SELECT ");
 
-	if (IS_JOIN_REL(foreignrel) || IS_UPPER_REL(foreignrel))
+	if (foreignrel->reloptkind == RELOPT_JOINREL ||
+		foreignrel->reloptkind == RELOPT_UPPER_REL)
 	{
 		/*
 		 * For a join or upper relation the input tlist gives the list of
@@ -876,11 +880,13 @@ static void
 deparseFromExpr(List *quals, deparse_expr_cxt *context)
 {
 	StringInfo	buf = context->buf;
+	RelOptInfo *foreignrel = context->foreignrel;
 	RelOptInfo *scanrel = context->scanrel;
 
 	/* For upper relations, scanrel must be either a joinrel or a baserel */
-	Assert(!IS_UPPER_REL(context->foreignrel) ||
-		   IS_JOIN_REL(scanrel) || IS_SIMPLE_REL(scanrel));
+	Assert(foreignrel->reloptkind != RELOPT_UPPER_REL ||
+		   scanrel->reloptkind == RELOPT_JOINREL ||
+		   scanrel->reloptkind == RELOPT_BASEREL);
 
 	/* Construct FROM clause */
 	appendStringInfoString(buf, " FROM ");
@@ -984,7 +990,7 @@ deparseFromExprForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *foreignrel,
 					  bool use_alias, List **params_list)
 {
 	Assert(!use_alias);
-	if (IS_JOIN_REL(foreignrel))
+	if (foreignrel->reloptkind == RELOPT_JOINREL)
 	{
 		/* Join pushdown not supported */
 		Assert(false);
