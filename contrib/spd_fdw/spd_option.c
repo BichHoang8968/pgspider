@@ -25,7 +25,7 @@
 
 
 void
-SpdFdwCreateSpi(char *sql_text,int expect_ret);
+			SpdFdwCreateSpi(char *sql_text, int expect_ret);
 
 
 /*
@@ -36,13 +36,13 @@ typedef struct SpdFdwOption
 	const char *keyword;
 	Oid			optcontext;		/* OID of catalog in which option may appear */
 	bool		is_libpq_opt;	/* true if it's used in libpq */
-} SpdFdwOption;
+}			SpdFdwOption;
 
 /*
  * Valid options for spd_fdw.
  * Allocated and filled in InitSpdFdwOptions.
  */
-static SpdFdwOption *spd_fdw_options;
+static SpdFdwOption * spd_fdw_options;
 
 /*
  * Valid options for libpq.
@@ -58,32 +58,36 @@ static bool is_valid_option(const char *keyword, Oid context);
 static bool is_libpq_option(const char *keyword);
 
 
-typedef struct hashkey {
-    int num;
-} HashKey;
+typedef struct hashkey
+{
+	int			num;
+}			HashKey;
 
-typedef struct list_column {
-  char *column_name;
-  char *column_type;
-}list_column;
+typedef struct list_column
+{
+	char	   *column_name;
+	char	   *column_type;
+}			list_column;
 
 
-typedef struct list_tables {
-  char *dist_table_name; /* source table name */
-  char *db_name;         /* */
-  char *table_name;      /* */
-  List *columns;
-}list_tables;
+typedef struct list_tables
+{
+	char	   *dist_table_name;	/* source table name */
+	char	   *db_name;		/* */
+	char	   *table_name;		/* */
+	List	   *columns;
+}			list_tables;
 
-typedef struct list_ds {
-char *datasource;
-    char *driver;
-    char *host;
-    char *port;
-    char *user;
-    char *pass;
-    List *listtables; /* list of tables */
-}list_ds;
+typedef struct list_ds
+{
+	char	   *datasource;
+	char	   *driver;
+	char	   *host;
+	char	   *port;
+	char	   *user;
+	char	   *pass;
+	List	   *listtables;		/* list of tables */
+}			list_ds;
 
 
 
@@ -159,13 +163,14 @@ spd_fdw_validator(PG_FUNCTION_ARGS)
 						 errmsg("%s requires a non-negative numeric value",
 								def->defname)));
 		}
-		else if (strcmp(def->defname, "config_file") == 0){
-			char sql[512];
+		else if (strcmp(def->defname, "config_file") == 0)
+		{
+			char		sql[512];
 
-            /* CREATE SERVER */
+			/* CREATE SERVER */
 			ereport(INFO,
 					(errcode(ERRCODE_SYNTAX_ERROR),
-					 errmsg("config name = %s",sql)));
+					 errmsg("config name = %s", sql)));
 		}
 	}
 
@@ -173,7 +178,8 @@ spd_fdw_validator(PG_FUNCTION_ARGS)
 }
 
 void
-SpdFdwCreateSpi(char *sql_text,int expect_ret){
+SpdFdwCreateSpi(char *sql_text, int expect_ret)
+{
 	StringInfoData buf;
 	int			ret;
 
@@ -185,7 +191,7 @@ SpdFdwCreateSpi(char *sql_text,int expect_ret){
 	ereport(INFO,
 			(errcode(ERRCODE_CARDINALITY_VIOLATION),
 			 errmsg("create forreing another table")));
-	appendStringInfoString(&buf,sql_text);
+	appendStringInfoString(&buf, sql_text);
 	ret = SPI_exec(buf.data, 1);
 	pfree(buf.data);
 	SPI_finish();
@@ -216,7 +222,7 @@ InitSpdFdwOptions(void)
 		/* updatable is available on both server and table */
 		{"updatable", ForeignServerRelationId, false},
 		{"updatable", ForeignTableRelationId, false},
-		{"config_file",ForeignServerRelationId,false},
+		{"config_file", ForeignServerRelationId, false},
 		{"config_file", ForeignTableRelationId, false},
 		{NULL, InvalidOid, false}
 	};
@@ -237,7 +243,7 @@ InitSpdFdwOptions(void)
 		ereport(ERROR,
 				(errcode(ERRCODE_FDW_OUT_OF_MEMORY),
 				 errmsg("out of memory"),
-			 errdetail("could not get libpq's default connection options")));
+				 errdetail("could not get libpq's default connection options")));
 
 	/* Count how many libpq options are available. */
 	num_libpq_opts = 0;
@@ -245,13 +251,12 @@ InitSpdFdwOptions(void)
 		num_libpq_opts++;
 
 	/*
-	 * Construct an array which consists of all valid options for
-	 * spd_fdw, by appending FDW-specific options to libpq options.
+	 * Construct an array which consists of all valid options for spd_fdw, by
+	 * appending FDW-specific options to libpq options.
 	 *
-	 * We use plain malloc here to allocate spd_fdw_options because it
-	 * lives as long as the backend process does.  Besides, keeping
-	 * libpq_options in memory allows us to avoid copying every keyword
-	 * string.
+	 * We use plain malloc here to allocate spd_fdw_options because it lives
+	 * as long as the backend process does.  Besides, keeping libpq_options in
+	 * memory allows us to avoid copying every keyword string.
 	 */
 	spd_fdw_options = (SpdFdwOption *)
 		malloc(sizeof(SpdFdwOption) * num_libpq_opts +
@@ -299,13 +304,13 @@ is_valid_option(const char *keyword, Oid context)
 {
 	SpdFdwOption *opt;
 
-	Assert(spd_fdw_options);		/* must be initialized already */
+	Assert(spd_fdw_options);	/* must be initialized already */
 
 	for (opt = spd_fdw_options; opt->keyword; opt++)
 	{
 		ereport(INFO,
 				(errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
-				 errmsg("option name = \"%s\" key word = %s", opt->keyword,keyword)));
+				 errmsg("option name = \"%s\" key word = %s", opt->keyword, keyword)));
 		if (context == opt->optcontext && strcmp(opt->keyword, keyword) == 0)
 			return true;
 	}
@@ -321,7 +326,7 @@ is_libpq_option(const char *keyword)
 {
 	SpdFdwOption *opt;
 
-	Assert(spd_fdw_options);		/* must be initialized already */
+	Assert(spd_fdw_options);	/* must be initialized already */
 
 	for (opt = spd_fdw_options; opt->keyword; opt++)
 	{
