@@ -1969,9 +1969,9 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 											   temp_obj);
 		elog(DEBUG1, "append dummy plan list %d\n", (int) oid[i]);
 		elog(DEBUG1,
-			 "fdw_private->dummy_plan_list list head = %d context=%s 525\n",
-			 fdw_private->dummy_plan_list->length,
-			 CurrentMemoryContext->name);
+		"fdw_private->dummy_plan_list list head = %d context=%s\n",
+		 fdw_private->dummy_plan_list->length,
+		 CurrentMemoryContext->name);
 	}
 
 	if (root->parse->hasAggs)
@@ -1986,17 +1986,30 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	{
 		scan_relid = baserel->relid;	/* Not aggregation pushdown... */
 	}
-
 	MemoryContextSwitchTo(oldcontext);
-
+/*
+ * TODO: Following is main thread's foreign plan.
+ * If all FDW use where clauses, NIL is OK.
+ * But FileFDW, SqliteFDW and some FDW can not use where clauses.
+ * If it is NIL, then can not get record from there.
+ *
+ * Following is resolution plan.
+ * 1. change NIL to scan_clauses
+ * 2. Add filter for can not use where clauses FDW.
+ *
+ * 1. is redundancy operation for where clauses avaiable FDW.
+ * 2. is change iterate foreign scan and check to remote expars.
+ * Modify cost is so big, currently solution is 1.
+ */
 	return make_foreignscan(tlist,
-							scan_clauses, //scan_clauses,
-							scan_relid,
-							NIL, //param list
-							list_make1(makeInteger((long) fdw_private)),
-							fdw_scan_tlist,
-							NIL, //recheck qual
-							outer_plan);
+		//scan_clauses, //scan_clauses,
+		NIL,
+		scan_relid,
+		NIL, //param list
+		list_make1(makeInteger((long) fdw_private)),
+		fdw_scan_tlist,
+		NIL, //recheck qual
+		outer_plan);
 }
 
 
@@ -2029,7 +2042,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	SpdFdwPrivate *fdw_private;
 	ListCell   *l;
 	MemoryContext oldcontext;
-	
+
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 
 	node->spd_fsstate = NULL;
