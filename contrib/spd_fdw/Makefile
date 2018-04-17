@@ -25,4 +25,18 @@ top_builddir = ../..
 include $(top_builddir)/src/Makefile.global
 include $(top_srcdir)/contrib/contrib-global.mk
 endif
+VPATH = fdws
+FILES = file_fdw.so
+DSTDIR=outdir
+
+OUTFILES=$(FILES:%=$(DSTDIR)/%)
+
+check: temp-install
+
+temp-install: EXTRA_INSTALL=contrib/postgres_fdw contrib/spd_fdw contrib/file_fdw contrib/tinybrace_fdw contrib/sqlite_fdw contrib/mysql_fdw
+
+#check: copyfdw
+copyfdw:
+	$(OUTFILES):: $(FILES)
+	cp $? $(DSTDIR)/
 
