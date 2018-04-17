@@ -316,8 +316,8 @@ void
 spd_agg_min(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 {
 	int			i;
-	int64		Min = PG_INT64_MAX,
-	Value = 0;
+	int64		Min = PG_INT64_MAX;
+	int64       Value = 0;
 	char	   *strMinMax = NULL;
 	Datum		TMinMax = 0,
 				StrDatum;
@@ -870,46 +870,10 @@ cutAtQuery(char *query, int pos, char *delim)
 SpdAggType
 spd_get_agg_type_new_push(const ForeignScanState *node, const int attNum)
 {
-	SpdAggType	ret;
-	char	   *sql2;
-
-	/**
-	 * @todo We must analyze plan tree for aggregation type.
-	 * Currently analyzing sourceText is VERY fragile because
-	 * it needs complete parser of SQL queries if we support
-	 * complex queries such as subquery, join, etc..
-	 *
-	 * and, query is already parsed by PostgreSQL engine.
-	 * Therefore we think it is better to check plan tree than
-	 * parsing SQL query "by hand" again.
-	 *
-	 * The following code is just PoC to check behavior.
-	 * Check target list for Aggref.
-	 */
-
-	const char *query_org = ((QueryDesc *) node->ss.ps.spdAggQry)->sourceText;
-	int			length = strlen(query_org);
-	char	   *query = malloc(length + 1);
-	char	   *sql;
-
-	memcpy(query, query_org, length);
-
-	/* Pass the query to get the aggregation query token string */
-	sql = cutAtQuery(query, attNum, ",");
-	if (sql == NULL)
-	{
-		return AGG_DEFAULT;
-	}
-
-	/* Pass the token to get the exact aggregation query string */
-	sql = cutAtQuery(sql, 1, "(");
-
-	sql2 = cutAtQuery(sql, 2, " ");
-	if (sql2)
-		sql = sql2;
-
-	trim(sql);
-
+	TargetEntry *test = (TargetEntry*)list_nth(node->ss.ps.plan->targetlist,attNum);
+	char *sql = test->resname;
+	int ret;
+	elog(DEBUG1,"resname = %s",test->resname);
 	if (!strcmpi(sql, "AVG"))
 		ret = AGG_AVG;
 	else if (!strcmpi(sql, "SUM"))
@@ -951,23 +915,15 @@ spd_get_agg_type_new_push(const ForeignScanState *node, const int attNum)
  * @param[in] attNum - number of attribute
  *
  */
-
 void
-spd_get_agg_type_new(const ForeignScanState *node, const int nTotalAtts, SpdAggType * aggType)
-{
-	const char *query_org = ((QueryDesc *) node->ss.ps.spdAggQry)->sourceText;
-	int			length = strlen(query_org);
-	char	   *query = palloc(length + 1);
-	int			nAtt = 0;
-	SpdAggType	ret;
-	char	   *token;
-	char	   *save;
-
-	memcpy(query, query_org, length);
-
-	token = strtok_r(query, ",", &save);
-
-	while (token != NULL && nAtt != nTotalAtts)
+spd_get_agg_type_new(const ForeignScanState *node, const int nTotalAtts, SpdAggType * aggType) {
+#if 0
+	TargetEntry *test = (TargetEntry*)list_nth(node->ss.ps.plan->targetlist,attNum);
+	char *sql = test->resname;
+	int ret;
+	elog(DEBUG1,"resname = %s",test->resname);
+	if (!strcmpi(sql, "AVG"))
+	while (sql != NULL && nAtt != nTotalAtts)
 	{
 		if (strcasestr(token, "AVG"))
 			ret = AGG_AVG;
@@ -1005,8 +961,8 @@ spd_get_agg_type_new(const ForeignScanState *node, const int nTotalAtts, SpdAggT
 		token = strtok_r(NULL, ",", &save);
 	}
 	pfree(query);
+#endif
 }
-
 Datum
 spd_combine_agg_new(ForeignAggInfo * agginfodata, int num_aggs, int natts)
 {
@@ -1081,7 +1037,7 @@ spd_get_agg_Info_push(TupleTableSlot *aggSlot, const ForeignScanState *node, int
 	bool		isnull = false;
 	Datum		datum;
 
-	for (natts = 0; natts < aggSlot->tts_tupleDescriptor->natts; natts++)
+	for (natts = 0; natts < node->ss.ps.plan->targetlist->length; natts++)
 	{
 		/**
 		 * @todo must analyze plan tree for aggregation type and
@@ -1110,6 +1066,7 @@ spd_get_agg_Info_push(TupleTableSlot *aggSlot, const ForeignScanState *node, int
 							break;
 						default:
 							agginfodata[count - 1].result[natts].aggdata.sum.bigint_val = DatumGetInt64(datum);
+							elog(INFO,"push sum %d",agginfodata[count - 1].result[natts].aggdata.sum.bigint_val);
 							break;
 					}
 				}
@@ -1153,8 +1110,8 @@ spd_get_agg_Info_push(TupleTableSlot *aggSlot, const ForeignScanState *node, int
 					char	   *outputstr;
 
 					FinalizeTup(aggSlot, ((QueryDesc *) node->ss.ps.spdAggQry)->dest, natts);
-					agginfodata[count - 1].result[natts].aggdata.var.count.value = DatumGetInt64(slot_getattr(aggSlot, natts + 2, &isnull));
-					outputstr = DatumGetCString(slot_getattr(aggSlot, natts + 1, &isnull));
+					agginfodata[count - 1].result[natts].aggdata.var.count.value = DatumGetInt64(slot_getattr(aggSlot, natts + 1, &isnull));
+					outputstr = DatumGetCString(slot_getattr(aggSlot, natts, &isnull));
 					switch (agginfodata[count - 1].result[natts].typid)
 					{
 						case FLOAT4OID:
@@ -1165,17 +1122,17 @@ spd_get_agg_Info_push(TupleTableSlot *aggSlot, const ForeignScanState *node, int
 							break;
 					}
 					a = DatumGetNumeric(slot_getattr(aggSlot, natts, &isnull));
-					agginfodata[count - 1].result[natts].aggdata.var.var.value = DatumGetFloat8(DirectFunctionCall1(numeric_float8, a));
+					agginfodata[count - 1].result[natts].aggdata.var.var.value = DatumGetFloat8(DirectFunctionCall1(numeric_float8, NumericGetDatum(a)));
 				}
 				break;
 			case AGG_STDDEV:
 				{
-					char	   *outputstr;
 					Numeric		a;
+					char	   *outputstr;
 
 					FinalizeTup(aggSlot, ((QueryDesc *) node->ss.ps.spdAggQry)->dest, natts);
-					agginfodata[count - 1].result[natts].aggdata.stddev.count.value = DatumGetInt64(slot_getattr(aggSlot, natts + 2, &isnull));
-					outputstr = DatumGetCString(slot_getattr(aggSlot, natts + 1, &isnull));
+					agginfodata[count - 1].result[natts].aggdata.stddev.count.value = DatumGetInt64(slot_getattr(aggSlot, natts + 1, &isnull));
+					outputstr = DatumGetCString(slot_getattr(aggSlot, natts, &isnull));
 					switch (agginfodata[count - 1].result[natts].typid)
 					{
 						case FLOAT4OID:
@@ -1186,7 +1143,7 @@ spd_get_agg_Info_push(TupleTableSlot *aggSlot, const ForeignScanState *node, int
 							break;
 					}
 					a = DatumGetNumeric(slot_getattr(aggSlot, natts, &isnull));
-					agginfodata[count - 1].result[natts].aggdata.stddev.stddev.value = DatumGetFloat8(DirectFunctionCall1(numeric_float8, a));;
+					agginfodata[count - 1].result[natts].aggdata.stddev.stddev.value = DatumGetFloat8(DirectFunctionCall1(numeric_float8, NumericGetDatum(a)));
 				}
 				break;
 
@@ -1442,6 +1399,7 @@ spd_get_agg_Info(ForeignScanThreadInfo thrdInfo, const ForeignScanState *node, i
 						default:
 							agginfodata[count - 1].result[natts].aggdata.sum.bigint_val = DatumGetInt64(datum);
 							break;
+							elog(INFO,"not push sum %d",agginfodata[count - 1].result[natts].aggdata.sum.bigint_val);
 					}
 				}
 				break;
