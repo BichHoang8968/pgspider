@@ -2493,6 +2493,7 @@ spd_ReScanForeignScan(ForeignScanState *node)
 	int			node_incr;
 	ForeignScanThreadInfo *fssThrdInfo;
 	int			nThreads;
+	ListCell   *l;
 
 	fssThrdInfo = node->spd_fsstate;
 	fdw_private = fssThrdInfo->private;
