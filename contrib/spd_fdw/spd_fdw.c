@@ -1989,12 +1989,12 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	MemoryContextSwitchTo(oldcontext);
 /*
  * TODO: Following is main thread's foreign plan.
- * If all FDW use where clauses, NIL is OK.
+ * If all FDW use where clauses, scan_clauses is OK.
  * But FileFDW, SqliteFDW and some FDW can not use where clauses.
- * If it is NIL, then can not get record from there.
+ * If it is not NIL, then can not get record from there.
  *
  * Following is resolution plan.
- * 1. change NIL to scan_clauses
+ * 1. change NIL
  * 2. Add filter for can not use where clauses FDW.
  *
  * 1. is redundancy operation for where clauses avaiable FDW.
@@ -2002,7 +2002,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
  * Modify cost is so big, currently solution is 1.
  */
 	return make_foreignscan(tlist,
-		//scan_clauses, //scan_clauses,
+		//scan_clauses,
 		NIL,
 		scan_relid,
 		NIL, //param list
