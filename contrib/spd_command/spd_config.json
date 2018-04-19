@@ -1,0 +1,48 @@
+{
+    "SPD_SETTING":{
+        "SPD_IP" : "127.0.0.1",
+        "SPD_PORT" : "5432",
+        "SPD_USER" : "postgres",
+        "SPD_PASS" : "postgres",
+        "SPD_DBPATH" : "/home/lx_user/install/"
+    },
+    "nodes":[ 
+       {
+            "FDW":"tinybrace",
+            "Name":"tiny1",
+            "IP":"127.0.0.1",
+            "Port":"5100",
+            "user":"user",
+            "password":"testuser",
+            "dbname":"test.db"
+        },
+        {
+            "FDW":"postgres",
+            "Name":"post1",
+            "IP":"127.0.0.1",
+            "Port":"15432",
+            "user":"postgres",
+            "password":"postgres"
+        },
+	      {
+            "FDW":"filefdw",
+            "FilePath":"/home/lx_user/csv/",
+            "Column":"i int, t text"
+	      },
+	      {
+            "FDW":"sqlite",
+	          "Name":"sqlite1",
+	          "dbname":"test.db",
+            "dbpath":"/home/lx_user/sqlite/test.db"
+	      },
+	      {
+            "FDW":"mysql",
+	          "Name":"mysql1",
+            "IP":"127.0.0.1",
+            "Port":"3306",
+            "user":"root",
+            "password":"mysql",
+            "dbname":"test"
+	      }
+    ]
+}
