@@ -703,7 +703,7 @@ foreign_expr_walker(Node *node,
  * foreign server.
  */
 List *
-build_tlist_to_deparse(RelOptInfo *foreignrel)
+sqlite_build_tlist_to_deparse(RelOptInfo *foreignrel)
 {
 	List	   *tlist = NIL;
 	SqliteFdwRelationInfo *fpinfo = (SqliteFdwRelationInfo *) foreignrel->fdw_private;

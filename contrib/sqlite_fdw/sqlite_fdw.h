@@ -155,9 +155,9 @@ extern void sqlite_append_where_clause(StringInfo buf, PlannerInfo *root, RelOpt
 							 bool is_first,List **params);
 extern void sqlite_deparse_analyze(StringInfo buf, char *dbname, char *relname);
 extern void sqlite_deparse_string_literal(StringInfo buf, const char *val);
-extern List *build_tlist_to_deparse(RelOptInfo *foreignrel);
-int set_transmission_modes(void);
-void reset_transmission_modes(int nestlevel);
+extern List *sqlite_build_tlist_to_deparse(RelOptInfo *foreignrel);
+int sqlite_set_transmission_modes(void);
+void sqlite_reset_transmission_modes(int nestlevel);
 /* connection.c headers */
 sqlite3 *sqlite_get_connection(ForeignServer *server);
 sqlite3 *sqlite_connect(char *svr_address, char *svr_username, char *svr_password, char *svr_database,

@@ -550,7 +550,7 @@ sqliteGetForeignPlan(
 		 */
 
 		/* Build the list of columns to be fetched from the foreign server. */
-		fdw_scan_tlist = build_tlist_to_deparse(baserel);
+		fdw_scan_tlist = sqlite_build_tlist_to_deparse(baserel);
 
 		/*
 		 * Ensure that the outer plan produces a tuple whose descriptor
@@ -1169,7 +1169,7 @@ sqliteExecForeignInsert(EState *estate,
 
 	isnull = (bool*) palloc0(sizeof(bool) * n_params);
 
-	nestlevel = set_transmission_modes();
+	nestlevel = sqlite_set_transmission_modes();
 	foreach(lc, fmstate->retrieved_attrs)
 	{
 		int attnum = lfirst_int(lc) - 1;
@@ -1177,7 +1177,7 @@ sqliteExecForeignInsert(EState *estate,
 		value = slot_getattr(slot, attnum + 1, &isnull[attnum]);
 		sqlite_bind_sql_var(type, attnum, value, fmstate->stmt, &isnull[attnum]);
 	}
-	reset_transmission_modes(nestlevel);
+	sqlite_reset_transmission_modes(nestlevel);
 
 	/* Execute the query */
 	rc = sqlite3_step(fmstate->stmt);
@@ -2058,7 +2058,7 @@ sqliteTranslateType(StringInfo str, char *typname)
  * reset_transmission_modes() to undo things.
  */
 int
-set_transmission_modes(void)
+sqlite_set_transmission_modes(void)
 {
 	int			nestlevel = NewGUCNestLevel();
 
@@ -2087,7 +2087,7 @@ set_transmission_modes(void)
  * Undo the effects of set_transmission_modes().
  */
 void
-reset_transmission_modes(int nestlevel)
+sqlite_reset_transmission_modes(int nestlevel)
 {
 	AtEOXact_GUC(true, nestlevel);
 }
@@ -2158,7 +2158,7 @@ process_query_params(ExprContext *econtext,
 	int			i;
 	ListCell   *lc;
 	int			nestlevel;
-	nestlevel = set_transmission_modes();
+	nestlevel = sqlite_set_transmission_modes();
 	i = 0;
 	foreach(lc, param_exprs)
 	{
@@ -2185,7 +2185,7 @@ process_query_params(ExprContext *econtext,
 			param_values[i] = OutputFunctionCall(&param_flinfo[i], expr_value);
 		i++;
 	}
-	reset_transmission_modes(nestlevel);
+	sqlite_reset_transmission_modes(nestlevel);
 }
 
 /*
