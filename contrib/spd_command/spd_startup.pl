@@ -329,7 +329,7 @@ eval{
    close $fh;
    $data = decode_json( $json_txt );
    if(!$data->{SPD_SETTING}){
-       do_delete();
+       printf("Invalid JSON text. Can not find 'SPD_SETTING'"); 
        return;
    }
    foreach my $item ($data->{SPD_SETTING}){
@@ -364,7 +364,8 @@ eval{
            $fdw_name = $items->{FDW};
            $server_name = $items->{Name};
            if(!$items->{FDW}){
-               do_delete();
+               printf("Invalid JSON text. Can not find 'FDW'"); 
+               delete_allserver();
                return;
            }
            if($items->{FDW} eq "postgres") {
