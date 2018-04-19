@@ -101,21 +101,21 @@ typedef enum
 	AGG_STDDEV,					/* stddev Type */
 	AGG_DEFAULT					/* Undefined Agg Type */
 
-}	DdsfAggType;
+}	SpdAggType;
 
-typedef struct ForeignDdsfSum
+typedef struct ForeignSpdSum
 {
 	float8		value;
 	/* For double precision */
 	float4		realType;
 	/* For real data type */
 	int64		bigint_val;
-}	ForeignDdsfSum;
+}	ForeignSpdSum;
 
-typedef struct ForeignDdsfCount
+typedef struct ForeignSpdCount
 {
 	int64		value;
-}	ForeignDdsfCount;
+}	ForeignSpdCount;
 
 typedef struct ForeignDate
 {
@@ -131,103 +131,103 @@ typedef struct ForeignMaxMin
 	float4		realVal;
 	float8		dpVal;
 	char		strMinMax[MAX_CHAR];
-}	ForeignDdsfMaxMin;
+}	ForeignSpdMaxMin;
 
-typedef struct ForeignDdsfVariance
+typedef struct ForeignSpdVariance
 {
 	long double value;
-}	ForeignDdsfVariance;
+}	ForeignSpdVariance;
 
 /* Not needed till variance is directly used for calculating stddev*/
-typedef struct ForeignDdsfStddev
+typedef struct ForeignSpdStddev
 {
 	long double value;
-}	ForeignDdsfStddev;
+}	ForeignSpdStddev;
 
-typedef struct ForeignDdsfAverage
+typedef struct ForeignSpdAverage
 {
-	ForeignDdsfSum sum;
-	ForeignDdsfCount count;
-}	ForeignDdsfAverage;
-typedef struct ForeignDdsfBitAndBitor
+	ForeignSpdSum sum;
+	ForeignSpdCount count;
+}	ForeignSpdAverage;
+typedef struct ForeignSpdBitAndBitor
 {
-	int64		bitall;			/* Store the value of DDSF query */
-}	ForeignDdsfBitAndBitor;
+	int64		bitall;			/* Store the value of SPD query */
+}	ForeignSpdBitAndBitor;
 
-typedef struct ForeignDdsfBoolAndBoolOrEvery
+typedef struct ForeignSpdBoolAndBoolOrEvery
 {
-	bool		boolall;		/* Store the bool value of DDSF query */
-}	ForeignDdsfBoolAndBoolOrEvery;
+	bool		boolall;		/* Store the bool value of SPD query */
+}	ForeignSpdBoolAndBoolOrEvery;
 
-typedef struct ForeignDdsfStringAgg
+typedef struct ForeignSpdStringAgg
 {
 	StringInfo	state;			/* Store the stringinfo state information of
-								 * DDSF query */
-}	ForeignDdsfStringAgg;
-typedef struct ForeignDdsfVarianceCumltv		/* Cumulative variance struct */
+								 * SPD query */
+}	ForeignSpdStringAgg;
+typedef struct ForeignSpdVarianceCumltv		/* Cumulative variance struct */
 {
-	ForeignDdsfSum sum;
-	ForeignDdsfCount count;
-	ForeignDdsfVariance var;
-}	ForeignDdsfVarianceCumltv;
+	ForeignSpdSum sum;
+	ForeignSpdCount count;
+	ForeignSpdVariance var;
+}	ForeignSpdVarianceCumltv;
 
-typedef struct ForeignDdsfStddevCumltv
+typedef struct ForeignSpdStddevCumltv
 {
-	ForeignDdsfSum sum;
-	ForeignDdsfCount count;
-	ForeignDdsfStddev stddev;
-}	ForeignDdsfStddevCumltv;
+	ForeignSpdSum sum;
+	ForeignSpdCount count;
+	ForeignSpdStddev stddev;
+}	ForeignSpdStddevCumltv;
 
-typedef union ForeignDdsfValue
+typedef union ForeignSpdValue
 {
-		ForeignDdsfAverage avg;
-		ForeignDdsfSum sum;
-		ForeignDdsfCount count;
-		ForeignDdsfMaxMin maxmin;
-		ForeignDdsfBitAndBitor bitvar;		/* used for Bit And and OR */
-		ForeignDdsfBoolAndBoolOrEvery boolvar;		/* Used for Bool And, OR and
+		ForeignSpdAverage avg;
+		ForeignSpdSum sum;
+		ForeignSpdCount count;
+		ForeignSpdMaxMin maxmin;
+		ForeignSpdBitAndBitor bitvar;		/* used for Bit And and OR */
+		ForeignSpdBoolAndBoolOrEvery boolvar;		/* Used for Bool And, OR and
 													 * every */
-		ForeignDdsfStringAgg stringagg;		/* Used for string agg */
-		ForeignDdsfStringAgg bit_op;
-		ForeignDdsfVarianceCumltv var;
-		ForeignDdsfStddevCumltv stddev;		/* Not needed till variance is
+		ForeignSpdStringAgg stringagg;		/* Used for string agg */
+		ForeignSpdStringAgg bit_op;
+		ForeignSpdVarianceCumltv var;
+		ForeignSpdStddevCumltv stddev;		/* Not needed till variance is
 												 * directly used for calculating
 												 * stddev */
-}	ForeignDdsfValue;
+}	ForeignSpdValue;
 
-typedef enum DdsfResStatus
+typedef enum SpdResStatus
 {
-	DDSF_FRG_ERROR = 0,
-	DDSF_FRG_OK
-}	DdsfResStatus;
+	SPD_FRG_ERROR = 0,
+	SPD_FRG_OK
+}	SpdResStatus;
 
-typedef struct ForeignDdsfAggregate
+typedef struct ForeignSpdAggregate
 {
 	Oid			typid;
-	DdsfAggType type;
-	ForeignDdsfValue aggdata;
-	DdsfResStatus status;
+	SpdAggType type;
+	ForeignSpdValue aggdata;
+	SpdResStatus status;
 	Datum finalResult;
-}	ForeignDdsfAggregate;
+}	ForeignSpdAggregate;
 
 typedef struct ForeignAggInfo
 {
 	void	   *conn;
 	ForeignServer *server;
 	UserMapping *user;
-	ForeignDdsfAggregate result[10];	/* return value */	
+	ForeignSpdAggregate result[10];	/* return value */	
 	char		transquery[1024];
 	Oid			typid;
 }	ForeignAggInfo;
 
 typedef enum{
-	DDSF_FS_STATE_INIT,
-	DDSF_FS_STATE_BEGIN,
-	DDSF_FS_STATE_ITERATE,
-	DDSF_FS_STATE_END,
-	DDSF_FS_STATE_FINISH,
-	DDSF_FS_STATE_ERROR,
-}DdsfForeignScanThreadState;
+	SPD_FS_STATE_INIT,
+	SPD_FS_STATE_BEGIN,
+	SPD_FS_STATE_ITERATE,
+	SPD_FS_STATE_END,
+	SPD_FS_STATE_FINISH,
+	SPD_FS_STATE_ERROR,
+}SpdForeignScanThreadState;
 typedef struct ForeignScanThreadInfo
 {
 	struct FdwRoutine * fdwroutine; /* Foreign Data wrapper  routine */
@@ -242,7 +242,7 @@ typedef struct ForeignScanThreadInfo
 	int nodeIndex; /* Index of the node */
     MemoryContext threadMemoryContext;
 	pthread_mutex_t nodeMutex; /* Use for ReScan call */
-    DdsfForeignScanThreadState state;
+    SpdForeignScanThreadState state;
 	pthread_t me;
 	ResourceOwner thrd_ResourceOwner;	
 	void *private;

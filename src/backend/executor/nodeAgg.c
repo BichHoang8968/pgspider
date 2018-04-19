@@ -1793,7 +1793,7 @@ finalize_aggregates(AggState *aggstate,
 							   &aggvalues[aggno], &aggnulls[aggno]);
 	}
 #if 1
-	aggstate->ss.ps.state->es_progressState->ps_aggvalues = aggvalues;
+	//aggstate->ss.ps.state->es_progressState->ps_aggvalues = aggvalues;
 #endif
 }
 
@@ -2151,37 +2151,7 @@ ExecAgg(PlanState *pstate)
 				break;
 			case AGG_PLAIN:
 			case AGG_SORTED:
-//#ifdef FOREIGN_AGGREGATE_TSIP_IMPL
-#if 0
-				if(node->phase->aggnode->isForeign)
-				{
-					ForeignScanState * frgn_scan_node = ((ForeignScanState *)outerPlanState(node));
-					Oid relID = ((RelationData*)(frgn_scan_node->ss.ss_currentRelation))->rd_node.relNode;
-					ForeignServer * frgn_server = GetForeignServer(GetForeignServerIdByRelId(relID));
-					
-					if(strcasecmp(frgn_server->servername, "DDSF") == 0)//Only If the foreign table belongs to DDSF 
-					{
-						if(ForeignAggregate(node)){
-							result = project_aggregates(node);
-							node->ss.ps.ps_ProjInfo->pi_slot->tts_values=node->ss.ps.ps_ExprContext->ecxt_aggvalues;
-							node->ss.ps.ps_ProjInfo->pi_slot->tts_isnull=node->ss.ps.ps_ExprContext->ecxt_aggnulls; 
-							node->agg_done = true;
-						}else{
-							result = agg_retrieve_direct(node);
-						}
-					}
-					else
-					{
-						result = agg_retrieve_direct(node);
-					}
-				}
-				else
-				{
-					result = agg_retrieve_direct(node);
-				}
-#else
 				result = agg_retrieve_direct(node);
-#endif
 				break;
 		}
 

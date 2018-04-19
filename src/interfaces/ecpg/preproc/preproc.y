@@ -1126,6 +1126,7 @@ add_typedef(char *name, char *dimension, char *length, enum ECPGttype type_enum,
 %type <str> from_clause
 %type <str> from_list
 %type <str> table_ref
+%type <str> url
 %type <str> joined_table
 %type <str> alias_clause
 %type <str> opt_alias_clause
@@ -1501,7 +1502,7 @@ add_typedef(char *name, char *dimension, char *length, enum ECPGttype type_enum,
  TIME TIMESTAMP TO TRAILING TRANSACTION TRANSFORM TREAT TRIGGER TRIM TRUE_P
  TRUNCATE TRUSTED TYPE_P TYPES_P
 
- UNBOUNDED UNCOMMITTED UNENCRYPTED UNION UNIQUE UNKNOWN UNLISTEN UNLOGGED
+ UNBOUNDED UNCOMMITTED UNDER UNENCRYPTED UNION UNIQUE UNKNOWN UNLISTEN UNLOGGED
  UNTIL UPDATE USER USING
 
  VACUUM VALID VALIDATE VALIDATOR VALUE_P VALUES VARCHAR VARIADIC VARYING
@@ -9417,6 +9418,10 @@ EXECUTE prepared_name execute_param_clause execute_rest
  { 
  $$ = cat_str(3,$1,mm_strdup("as"),$3);
 }
+|  qualified_name UNDER url
+ { 
+ $$ = cat_str(3,$1,mm_strdup("under"),$3);
+}
 ;
 
 
@@ -10407,6 +10412,10 @@ RETURNING target_list opt_ecpg_into
  { 
  $$ = cat_str(2,$1,$2);
 }
+|  relation_expr UNDER url opt_alias_clause
+ { 
+ $$ = cat_str(4,$1,mm_strdup("under"),$3,$4);
+}
 |  relation_expr opt_alias_clause tablesample_clause
  { 
  $$ = cat_str(3,$1,$2,$3);
@@ -10448,6 +10457,14 @@ RETURNING target_list opt_ecpg_into
 |  '(' joined_table ')' alias_clause
  { 
  $$ = cat_str(4,mm_strdup("("),$2,mm_strdup(")"),$4);
+}
+;
+
+
+ url:
+ SCONST
+ { 
+ $$ = mm_strdup("sconst");
 }
 ;
 
@@ -10621,6 +10638,10 @@ RETURNING target_list opt_ecpg_into
 |  relation_expr AS ColId
  { 
  $$ = cat_str(3,$1,mm_strdup("as"),$3);
+}
+|  relation_expr UNDER url
+ { 
+ $$ = cat_str(3,$1,mm_strdup("under"),$3);
 }
 ;
 
@@ -13978,6 +13999,10 @@ mmerror(PARSE_ERROR, ET_WARNING, "unsupported feature will be passed to server")
 |  UNCOMMITTED
  { 
  $$ = mm_strdup("uncommitted");
+}
+|  UNDER
+ { 
+ $$ = mm_strdup("under");
 }
 |  UNENCRYPTED
  { 

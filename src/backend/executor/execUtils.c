@@ -55,7 +55,7 @@
 #include "utils/rel.h"
 #include "utils/typcache.h"
 
-//#define GETPROGRESS_ENABLED 
+#define GETPROGRESS_ENABLED 
 
 static void ShutdownExprContext(ExprContext *econtext, bool isCommit);
 

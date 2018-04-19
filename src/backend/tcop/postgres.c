@@ -81,7 +81,7 @@
 #include <pthread.h>
 #include <sys/syscall.h>
 
-//#define GETPROGRESS_ENABLED
+#define GETPROGRESS_ENABLED
 /* ----------------
  *....		global variables
  * ----------------
@@ -3670,7 +3670,7 @@ ProgressMessageProcessor(void *arg)
 					while (getAggResultFlag == true)
 					{
 						/* Wait until agg result are filled to ProgressState during Iterate ForeignScan 
-						getAggResultFlag flag will be set to false in ddsf_IterateForeignScan */
+						getAggResultFlag flag will be set to false in spd_IterateForeignScan */
 						usleep(100);
 					}
 					if(gl_progressPtr->ps_aggResult != NULL)
@@ -3734,6 +3734,7 @@ ProgressMessageProcessor(void *arg)
 			usleep(1000);
 		}
 	}
+	MemoryContextSwitchTo(oldContext);
 	return NULL;
 }
 #endif

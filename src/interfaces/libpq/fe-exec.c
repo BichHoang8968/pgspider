@@ -71,9 +71,10 @@ static PGresult *PQexecFinish(PGconn *conn);
 static int PQsendDescribe(PGconn *conn, char desc_type,
 			   const char *desc_target);
 static int	check_field_number(const PGresult *res, int field_num);
-#ifdef GETPROGRESS_ENABLED
+
 static PGresult *pqGetProgressResult(PGconn *conn);
-#endif
+static int PQsetvalueFromIndex(PGresult *res, int tup_num, int field_num, char *value, int len, int StartIndex);
+static PGresult *PQcopyResultFromCursorPosition(const PGresult *src, int flags, int cursor_position);
 
 /* ----------------
  * Space management for PGresult.
@@ -168,9 +169,7 @@ PQmakeEmptyPGresult(PGconn *conn, ExecStatusType status)
 	result->curBlock = NULL;
 	result->curOffset = 0;
 	result->spaceLeft = 0;
-#ifdef GETPROGRESS_ENABLED
 	result->pq_progress = 0.0;
-#endif
 	if (conn)
 	{
 		/* copy connection data we might need for operations on PGresult */
@@ -417,18 +416,16 @@ dupEvents(PGEvent *events, int count)
 }
 
 
-#ifdef GETPROGRESS_ENABLED
 /*
  * Sets the value for a tuple field. new tuple is created and
  * added to the result.
  * Returns a non-zero value for success and zero for failure.
  */
-int
+static int
 PQsetvalueFromIndex(PGresult *res, int tup_num, int field_num, char *value, int len, int StartIndex)
 {
 	PGresAttValue *attval;
-	int index;
-    char **errmsgp;
+     char **errmsgp=NULL;
 
 	if (!check_field_number(res, field_num))
 		return FALSE;
@@ -437,7 +434,6 @@ PQsetvalueFromIndex(PGresult *res, int tup_num, int field_num, char *value, int 
 	if (tup_num < 0  || (tup_num-StartIndex) > res->ntups)
 		return FALSE;
 
-	index = res->ntups;
 	/* need to allocate a new tuple ?*/
 	if((tup_num-StartIndex) == res->ntups)
 	{
@@ -459,7 +455,7 @@ PQsetvalueFromIndex(PGresult *res, int tup_num, int field_num, char *value, int 
 		}
 
 		/* add it to the array */
-		if (!pqAddTuple(res, tup, errmsgp))
+		if (!pqAddTuple(res, tup, (const char **)errmsgp))
 			return FALSE;
 	}
 
@@ -488,7 +484,6 @@ PQsetvalueFromIndex(PGresult *res, int tup_num, int field_num, char *value, int 
 
 	return TRUE;
 }
-#endif GETPROGRESS_ENABLED
 
 /*
  * Sets the value for a tuple field.  The tup_num must be less than or
@@ -1345,7 +1340,6 @@ PQsendQueryParams(PGconn *conn,
 						   resultFormat);
 }
 
-#ifdef GETPROGRESS_ENABLED
 /* PQgetProgress
  *		Get the progress of requested query execution
  * Returns:  1 Success
@@ -1409,11 +1403,10 @@ PQgetProgress(PGconn *conn, double *progress)
 }
 
 
-PGresult *
+static PGresult *
 PQcopyResultFromCursorPosition(const PGresult *src, int flags, int cursor_position)
 {
 	PGresult   *dest;
-	int			i;
 
 	if (!src)
 		return NULL;
@@ -1469,7 +1462,7 @@ PGresult*
 PQgetCurrentResult(PGconn *conn, bool continueFlag, bool needCompleteResultSet, bool *isFinalResult)
 {
 	PGresult   *res = NULL;
-
+	PGresult   *tempRes=NULL;
 	if (conn == NULL)
 		return NULL;
 
@@ -1517,7 +1510,7 @@ PQgetCurrentResult(PGconn *conn, bool continueFlag, bool needCompleteResultSet, 
 				return 0;
 			}
 
-			PGresult   *tempRes = NULL;
+		    tempRes = NULL;
 			tempRes = pqGetProgressResult(conn);
 			if (tempRes != NULL) 
 			{
@@ -1564,7 +1557,6 @@ PQgetCurrentResult(PGconn *conn, bool continueFlag, bool needCompleteResultSet, 
 	}
 	return res;
 }
-#endif
 /*
  * PQsendPrepare
  *	 Submit a Parse message, but don't wait for it to finish
@@ -2050,31 +2042,21 @@ PGresult *
 PQgetResult(PGconn *conn)
 {
 	PGresult   *res;
-#ifdef GETPROGRESS_ENABLED
 	int			flushResult;
-#endif
 	if (!conn)
 		return NULL;
 
-#ifdef GETPROGRESS_ENABLED
 	/* Parse any available data, if our state permits. */
 	if ((conn->asyncStatus != PGASYNC_PROGRESS_READY) &&
 		(conn->asyncStatus != PGASYNC_PROGRESS_IDLE))
-#endif
 	parseInput(conn);
 
-#ifdef GETPROGRESS_ENABLED
 	/* If not ready to return something, block until we are. */
 	while ((conn->asyncStatus == PGASYNC_BUSY) ||
 		   (conn->asyncStatus == PGASYNC_PROGRESS_OUT))
 	{
 		if (conn->asyncStatus == PGASYNC_PROGRESS_OUT)
 			conn->asyncStatus = PGASYNC_BUSY;
-#else
-	while (conn->asyncStatus == PGASYNC_BUSY)
-	{
-		int			flushResult;
-#endif
 		/*
 		 * If data remains unsent, send it.  Else we might be waiting for the
 		 * result of a command the backend hasn't even got yet.
@@ -2110,7 +2092,6 @@ PQgetResult(PGconn *conn)
 	switch (conn->asyncStatus)
 	{
 		case PGASYNC_IDLE:
-#ifdef GETPROGRESS_ENABLED
 		case PGASYNC_PROGRESS_IDLE:
 			res = NULL;			/* query is complete */
 			conn->asyncStatus = PGASYNC_IDLE;
@@ -2118,11 +2099,6 @@ PQgetResult(PGconn *conn)
 		case PGASYNC_READY:
 		case PGASYNC_PROGRESS_READY:
 		case PGASYNC_PROGRESS_OUT:
-#else
-			res = NULL;			/* query is complete */
-			break;
-		case PGASYNC_READY:
-#endif
 			res = pqPrepareAsyncResult(conn);
 			/* Set the state back to BUSY, allowing parsing to proceed. */
 			conn->asyncStatus = PGASYNC_BUSY;
@@ -2179,7 +2155,6 @@ PQgetResult(PGconn *conn)
 static PGresult *
 pqGetProgressResult(PGconn *conn)
 {
-#ifdef GETPROGRESS_ENABLED
 	/* Return existing result, if C or Z is processed while PQgetProgress */
 	if ((conn->asyncStatus == PGASYNC_PROGRESS_READY) ||
 		(conn->asyncStatus == PGASYNC_PROGRESS_IDLE))
@@ -2249,7 +2224,6 @@ pqGetProgressResult(PGconn *conn)
 			break;
 	}
 	return conn->result;
-#endif
 }
 
 /*

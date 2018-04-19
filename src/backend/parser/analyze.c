@@ -881,6 +881,9 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt)
 	qry->hasSubLinks = pstate->p_hasSubLinks;
 
 	assign_query_collations(pstate, qry);
+	if(stmt->relation->spd_url != NULL){
+		rte->url = pstrdup(stmt->relation->spd_url);
+	}
 
 	return qry;
 }
@@ -2253,6 +2256,9 @@ transformUpdateStmt(ParseState *pstate, UpdateStmt *stmt)
 	qry->hasSubLinks = pstate->p_hasSubLinks;
 
 	assign_query_collations(pstate, qry);
+	if(stmt->relation->spd_url != NULL){
+	    pstate->p_target_rangetblentry->url = pstrdup(stmt->relation->spd_url);
+	}
 
 	return qry;
 }

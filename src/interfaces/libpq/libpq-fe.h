@@ -21,6 +21,11 @@ extern "C"
 #endif
 
 #include <stdio.h>
+#ifdef WIN32
+#include "win32.h"
+#else
+#include <unistd.h>
+#endif
 
 /*
  * postgres_ext.h defines the backend's externally visible types,
@@ -422,7 +427,7 @@ extern int	PQsetSingleRowMode(PGconn *conn);
 extern PGresult *PQgetResult(PGconn *conn);
 
  /* API for getting current progress of SELECT Query */
-extern PGresult *PQgetCurrentResult(PGconn *conn, bool continueFlag, bool needCompleteResultSet, bool *isFinalResult); 
+extern PGresult *PQgetCurrentResult(PGconn *conn, pqbool continueFlag, pqbool needCompleteResultSet, pqbool *isFinalResult); 
  /* API for getting progress of SELECT Query */
 extern int	PQgetProgress(PGconn *conn, double *progress);
 

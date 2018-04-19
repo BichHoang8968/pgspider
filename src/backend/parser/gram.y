@@ -10463,6 +10463,12 @@ insert_target:
 					$1->alias = makeAlias($3, NIL);
 					$$ = $1;
 				}
+            | qualified_name UNDER url
+				{
+					$1->spd_url = $3;
+					(void)$2;
+				    $$ = $1;
+				}
 		;
 
 insert_rest:
@@ -10660,7 +10666,7 @@ UpdateStmt: opt_with_clause UPDATE relation_expr_opt_alias
 			from_clause
 			where_or_current_clause
 			returning_clause
-				{
+            {
 					UpdateStmt *n = makeNode(UpdateStmt);
 					n->relation = $3;
 					n->targetList = $5;
@@ -10721,7 +10727,6 @@ set_target_list:
 			set_target								{ $$ = list_make1($1); }
 			| set_target_list ',' set_target		{ $$ = lappend($1,$3); }
 		;
-
 
 /*****************************************************************************
  *
@@ -11404,11 +11409,12 @@ table_ref:	relation_expr opt_alias_clause
             | relation_expr UNDER url opt_alias_clause
 			{
 				$1->alias = $4;
-				$1->ddsf_url = $3;
+				$1->spd_url = $3;
 				(void)$2;
 				$$ = (Node *) $1;
 			}
-			| relation_expr opt_alias_clause tablesample_clause
+
+            | relation_expr opt_alias_clause tablesample_clause
 				{
 					RangeTableSample *n = (RangeTableSample *) $3;
 					$1->alias = $2;
@@ -11753,6 +11759,13 @@ relation_expr_opt_alias: relation_expr					%prec UMINUS
 					$1->alias = alias;
 					$$ = $1;
 				}
+            | relation_expr UNDER url
+				{
+					$1->spd_url = $3;
+					(void)$2;
+				    $$ = $1;
+				}
+
 		;
 
 /*

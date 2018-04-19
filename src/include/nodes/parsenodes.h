@@ -440,6 +440,7 @@ typedef struct ResTarget
 	List	   *indirection;	/* subscripts, field names, and '*', or NIL */
 	Node	   *val;			/* the value expression to compute or assign */
 	int			location;		/* token location, or -1 if unknown */
+	char       *url;
 } ResTarget;
 
 /*

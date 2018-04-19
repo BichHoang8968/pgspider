@@ -1122,8 +1122,8 @@ transformFromClauseItem(ParseState *pstate, Node *n,
 		rtr = makeNode(RangeTblRef);
 		rtr->rtindex = rtindex;
 		/* hirose add 17/6/24. Add URL query */
-		if(rv->ddsf_url != NULL){
-			rte->url = pstrdup(rv->ddsf_url);
+		if(rv->spd_url != NULL){
+			rte->url = pstrdup(rv->spd_url);
 		}
 		return (Node *) rtr;
 	}

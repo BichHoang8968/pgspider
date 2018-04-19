@@ -893,7 +893,7 @@ typedef struct PlanState
 	TupleTableSlot *ps_ResultTupleSlot; /* slot for my result tuples */
 	ExprContext *ps_ExprContext;	/* node's expression-evaluation context */
 	ProjectionInfo *ps_ProjInfo;	/* info for doing tuple projection */
-	void * ddsfAggQry; /*Currently used to point to queryDesc */
+	void * spdAggQry; /*Currently used to point to queryDesc */
 } PlanState;
 
 /* ----------------
@@ -1560,8 +1560,8 @@ typedef struct ForeignScanState
 	/* use struct pointer to avoid including fdwapi.h here */
 	struct FdwRoutine *fdwroutine;
 	void	   *fdw_state;		/* foreign-data wrapper can keep state here */
-	void       *ddsf_fsstate;
-	struct PGconn     *conn;               /* To refer ForeignServer Connection, To use in PGcancel */
+	void       *spd_fsstate;
+	void     *conn;               /* cast to PGconn. To refer ForeignServer Connection, To use in PGcancel */
 } ForeignScanState;
 
 /* ----------------

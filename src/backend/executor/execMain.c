@@ -355,7 +355,7 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 	 * run plan
 	 */
 	/* Modified to Add reference to queryDesc in Plan to fetch the original query in FDW*/
-	queryDesc->planstate->ddsfAggQry = (void*)queryDesc;
+	queryDesc->planstate->spdAggQry = (void*)queryDesc;
 	if (!ScanDirectionIsNoMovement(direction))
 	{
 		if (execute_once && queryDesc->already_executed)

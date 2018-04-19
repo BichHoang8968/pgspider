@@ -301,11 +301,17 @@ FinalizeTup(TupleTableSlot *slot, DestReceiver *self, int attrNum)
 	TupleDesc	typeinfo = slot->tts_tupleDescriptor;
 	DR_printtup *myState = (DR_printtup *) self;
 	MemoryContext oldcontext;
-	StringInfoData buf;
 	int			natts = typeinfo->natts;
 	int			i;
 	char	   *outputstr;
+	PrinttupAttrInfo *thisState;
+	Datum		attr;
 
+	for(i=0;i<natts;i++){
+		if(myState->portal->formats[i] != 0 && myState->portal->formats[i] != 1){
+			myState->portal->formats[i] = 0;
+		}
+	}
 	/* Set or update my derived attribute info, if needed */
 	if (myState->attrinfo != typeinfo || myState->nattrs != natts)
 		printtup_prepare_info(myState, typeinfo, natts);
@@ -320,8 +326,8 @@ FinalizeTup(TupleTableSlot *slot, DestReceiver *self, int attrNum)
 	/*
 	 * Get the finalized attributes of this tuple
 	 */
-	PrinttupAttrInfo *thisState = myState->myinfo + attrNum;
-	Datum		attr = slot->tts_values[attrNum];
+	thisState = myState->myinfo + attrNum;
+	attr = slot->tts_values[attrNum];
 
 	if (slot->tts_isnull[attrNum])
 	{
@@ -343,7 +349,7 @@ FinalizeTup(TupleTableSlot *slot, DestReceiver *self, int attrNum)
 	{
 		outputstr = OutputFunctionCall(&thisState->finfo, attr);
 		slot->tts_values[attrNum] = PointerGetDatum(outputstr);
-		slot->tts_values[attrNum] = outputstr;
+		//slot->tts_values[attrNum] = outputstr;
 	}
 
 	/* Return to caller's context, and flush row's temporary memory */
