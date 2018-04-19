@@ -12,10 +12,6 @@ my $spd_dbpath;
 my @spd_extensions;
 
 my @enable_extensions;
-my $enable_sqlite=0;
-my $enable_tinybrace=0;
-my $enable_mysql=0;
-my $enable_griddb=0;
 
 $spd_extensions[0]="file_fdw";
 $spd_extensions[1]="spd_fdw";
@@ -24,6 +20,14 @@ $spd_extensions[3]="sqlite_fdw";
 $spd_extensions[4]="tinybrace_fdw";
 $spd_extensions[5]="mysql_fdw";
 $spd_extensions[6]="griddb_fdw";
+
+
+GetOptions(
+    'enable_sqlite'  => \$enable_extensions[0],
+    'enable_tinybrace'  => \$enable_extensions[1],
+    'enable_mysql'  => \$enable_extensions[2],
+    'enable_griddb'  => \$enable_extensions[3]
+    );
 
 sub rewrite_setting(){
     open (FH, ">> $spd_dbpath/postgresql.conf");
@@ -34,7 +38,6 @@ sub rewrite_setting(){
 
 sub initdb_spd(){
     $cmd = "./initdb -D ".$spd_dbpath.";";
-    print "$spd_dbpath $cmd\n";
     if (-d $spd_dbpath) {
         print "db dir is exist. skip initdb\n";
     }
@@ -46,7 +49,6 @@ sub initdb_spd(){
         }
         rewrite_setting();
     }
-    printf("result = %d %s\n", $result,$cmd);
 }
 
 sub start_spd(){
@@ -98,12 +100,10 @@ sub delete_allserver{
 #delete all foreign servers
     foreach my $item (@rlist2){
         chomp($item);
-#        printf "drop server %s\n", $item;
         if($item){
             $sql = "DROP SERVER ".$item." CASCADE;";
             $cmd = "./psql postgres -t -c \"".$sql."\"\n";
             $result = system($cmd);
-#            printf("result = %d \n", $result);
             if($result != 0 ){
                 printf("Failed to add node %s. Please check setting.json. \n",$fdw_name);
                 exit();
@@ -115,7 +115,6 @@ sub delete_allserver{
         $result = system($cmd);
         #		printf("drop extention = %d \n", $result);
     }
-    stop_spd();
 	  printf("-------------------------------------------\nCompliete delete all spd settings. Please check error message. \n");
 }
 
@@ -125,7 +124,6 @@ sub create_extention{
        	if($i<3 || ($i>=3 && $enable_extensions[$i-3] eq 1)){
             $cmd = "./psql postgres -c \"CREATE EXTENSION ".$item.";\"";
             $result = system($cmd);
-            printf("create extention %s = %d \n",$cmd, $result);
             if($result != 0){
                 delete_allserver();
                 exit(0);
@@ -143,7 +141,6 @@ sub import_schema{
 
     $cmd = "./psql postgres -c \"DROP SCHEMA if exists temp_schema;\"";
     $result = system($cmd);
- #   printf("drop schema = %d \n", $result);
     if($result !=0){
         delete_allserver;
         exit(0);
@@ -151,7 +148,6 @@ sub import_schema{
 
     $cmd = "./psql postgres -c \"CREATE SCHEMA temp_schema;\"";
     $result = system($cmd);
-#    printf("create schema = %d \n", $result);
     if($result !=0){
         delete_allserver;
         exit(0);
@@ -165,7 +161,6 @@ sub import_schema{
 	}
 	
     $result = system($cmd);
-#    printf("import result = %d \n", $result);
     if($result !=0){
         delete_allserver;
         exit(0);
@@ -175,21 +170,17 @@ sub import_schema{
 sub load_filefdw{
 	#delete_allserver();
 	my @file= glob "$_[0]*.csv";
-	#    my $result = join '', @file;
-	#    my @rlist = split(/\n/, $result);
 	
-	#	printf "%s\n",$result;
 	foreach my $item (@file) {
 		($tempitem = $item) =~ s/^\/*//;
 		($filename = $tempitem) =~s!.*/|.*\\(.*)$!$1!;
 		@splitemp = split(/\./,$tempitem);
 		($tablename = $splitemp[0]) =~ tr/\//_/;
 		
-		#		printf "hoge %s %s %s\n",$filename,$splitemp[0],$tablename;
 		$command = "./spd_command/spd_node_set ".$spd_ip." ".$spd_port." ".$spd_user." ".$spd_pass." file ".$tablename.";";
-		#		printf "%s\n",$command;
+
 		$result = system($command);
-		#		printf("result = %d \n", $result);
+
 		if($result != 0 ){
 		    printf("Failed to add node %s. Please check setting.json. \n",$fdw_name); 
 		    delete_allserver();
@@ -198,16 +189,13 @@ sub load_filefdw{
 		my $sql3 = "CREATE FOREIGN TABLE IF NOT EXISTS ".$tablename."(".$_[1].")server spd;";
 		my $cmd3 = "./psql postgres -t -c \"".$sql3."\"\n";
 		$result = system($cmd3);
-		#		printf("%s result = %d \n",$sql3, $result);
 		if($result !=0){
 			delete_allserver;
 			exit(0);
 		}
 		$command = "./spd_command/spd_mapping_set ".$spd_ip." ".$spd_port." ".$spd_user." ".$spd_pass." ".$tablename." '".$_[1]."' ".$tablename." ".$item." csv";
-#		printf("csv mapping command = %s \n",$command);
 
 		$result = system($command);
-#		printf("%s result = %d \n",$command, $result);
 		if($result !=0){
 			#delete_allserver;
 			exit(0);
@@ -226,135 +214,109 @@ sub rename_foreign_table{
     open my $rs, "$cmd2 2>&1 |";
     my @rlists2 = <$rs>;
     close $rs;
-#delete all foreign servers
+
     my $result = join '', @rlists;
     my @rlist = split(/\n/, $result);
 
-#	printf "%s\n",$result;
-	
     my $result2 = join '', @rlists2;
     my @rlist2 = split(/\n/, $result2);
 
     my $childtable = shift(@rlit2);
-#    print $result2;
     chomp($childtable);
     $childtable =~ s/^\s*//;
-#   printf "hboge%s\n", $childtable;
 
     foreach my $item (@rlist) {
         chomp($item);
         if($item) {
-			my $cmd1;
-			my $cmd2;
-			my $sql1;
-			my $sql2;
-			
+            my $cmd1;
+            my $cmd2;
+            my $sql1;
+            my $sql2;
             $item =~ s/^\s*//;
-#            printf "item=%s\n",$item;
             $newtable = $item."__".$_[0]."__0";
+            
+            #Get spd table
+            $sql1="select column_name from information_schema.columns where table_name = '".$item."';";
+            $cmd1 = "./psql postgres -t -c \"".$sql1."\"\n";
+            open my $rs, "$cmd1 2>&1 |";
+            my @attr_rlists = <$rs>;
+            close $rs;
+            my $column_result = join '', @attr_rlists;
 
-#Get spd table
-			$sql1="select column_name from information_schema.columns where table_name = '".$item."';";
-			$cmd1 = "./psql postgres -t -c \"".$sql1."\"\n";
-			open my $rs, "$cmd1 2>&1 |";
-			my @attr_rlists = <$rs>;
-			close $rs;
-			my $column_result = join '', @attr_rlists;
-
-			$sql2="select data_type from information_schema.columns where table_name = '".$item."';";
-			$cmd2 = "./psql postgres -t -c \"".$sql2."\"\n";
-			open my $rs, "$cmd2 2>&1 |";
-			my @type_rlists = <$rs>;
-			close $rs;
-			my $type_result = join '', @type_rlists;
-			
-#change table name			
+            $sql2="select data_type from information_schema.columns where table_name = '".$item."';";
+            $cmd2 = "./psql postgres -t -c \"".$sql2."\"\n";
+            open my $rs, "$cmd2 2>&1 |";
+            my @type_rlists = <$rs>;
+            close $rs;
+            my $type_result = join '', @type_rlists;
+            
+            #change table name			
             $sql = "ALTER TABLE temp_schema.".$item." RENAME to ".$newtable.";";
             $cmd = "./psql postgres -t -c \"".$sql."\"\n";
-			$result = system($cmd);
-#			printf("%s result = %d \n",$cmd, $result);
-			if($result !=0){
-				delete_allserver;
-				exit(0);
-			}
-			
-#change schema name	
+            $result = system($cmd);
+            #			printf("%s result = %d \n",$cmd, $result);
+            if($result !=0){
+                delete_allserver;
+                exit(0);
+            }
+            
+            #change schema name	
             $sql = "ALTER TABLE temp_schema.".$newtable." set schema public;";
             $cmd = "./psql postgres -t -c \"".$sql."\"\n";
-			$result = system($cmd);
-#			printf("%s result = %d \n",$cmd, $result);
-			if($result !=0){
-				delete_allserver;
-				exit(0);
-			}
+            $result = system($cmd);
+            if($result !=0){
+                delete_allserver;
+                exit(0);
+            }
             if ($items->{FDW} eq "tinybrace") {
                 $sql = "ALTER TABLE ".$newtable." options (set table_name '".$item."');";
                 $cmd = "./psql postgres -t -c \"".$sql."\"\n";
-		$result = system($cmd);
-		$result = system($cmd);
-		#				printf("%s result = %d \n",$cmd, $result);
-		if($result !=0){
-		    delete_allserver;
-		    exit(0);
-		}
+                $result = system($cmd);
+                $result = system($cmd);
+                if($result !=0){
+                    delete_allserver;
+                    exit(0);
+                }
             }
             elsif($items->{FDW} eq "mysql") {
                 $sql = "ALTER TABLE ".$newtable." options (set tablename '".$item."');";
                 $cmd = "./psql postgres -t -c \"".$sql."\"\n";
-		$result = system($cmd);
-		#				printf("%s result = %d \n",$cmd, $result);
-		if($result !=0){
-		    delete_allserver;
-		    exit(0);
-		}
+                $result = system($cmd);
+                if($result !=0){
+                    delete_allserver;
+                    exit(0);
+                }
             }
             elsif($items->{FDW} eq "sqlite") {
                 $sql = "ALTER TABLE ".$newtable." options (set table '".$item."');";
                 $cmd = "./psql postgres -t -c \"".$sql."\"\n";
-		$result = system($cmd);
-		#				printf("%s result = %d \n",$cmd, $result);
-		if($result !=0){
-		    delete_allserver;
-		    exit(0);
-		}
-	    }
-			my @typelist = split(/\n/, $type_result);
-			my @columnlist = split(/\n/, $column_result);
-			my $i=0;
-			my $sql3 = "CREATE FOREIGN TABLE IF NOT EXISTS ".$item."(";
-			foreach my $item (@typelist) {
-			    if($i != 0){
+                $result = system($cmd);
+                if($result !=0){
+                    delete_allserver;
+                    exit(0);
+                }
+            }
+            my @typelist = split(/\n/, $type_result);
+            my @columnlist = split(/\n/, $column_result);
+            my $i=0;
+            my $sql3 = "CREATE FOREIGN TABLE IF NOT EXISTS ".$item."(";
+            foreach my $item (@typelist) {
+                if($i != 0){
 				$sql3 = $sql3.",";
 			    }
 			    $sql3 = $sql3.$columnlist[$i].$item;
 			    $i+=1;
-			}
-			$sql3 = $sql3." )server spd;";
-			my $cmd3 = "./psql postgres -t -c \"".$sql3."\"\n";
-			$result = system($cmd3);
-			#			printf("%s result = %d \n",$sql3, $result);
-			if($result !=0){
-			    delete_allserver;
-			    exit(0);
-			}
-	}
+            }
+            $sql3 = $sql3." )server spd;";
+            my $cmd3 = "./psql postgres -t -c \"".$sql3."\"\n";
+            $result = system($cmd3);
+            if($result !=0){
+                delete_allserver;
+                exit(0);
+            }
+        }
     }
 }
-
-sub retrun_err(){
-
-}
-GetOptions(
-  'enable_sqlite'  => \$enable_sqlite,
-  'enable_tinybrace'  => \$enable_tinybrace,
-  'enable_mysql'  => \$enable_mysql,
-  'enable_griddb'  => \$enable_griddb
-);
-
-$enable_extensions[0]=$enable_sqlite;
-$enable_extensions[1]=$enable_tinybrace;
-$enable_extensions[2]=$enable_mysql;
-$enable_extensions[3]=$enable_griddb;
 
 #main
 eval{
@@ -365,7 +327,6 @@ eval{
 
    close $fh;
    $data = decode_json( $json_txt );
-#   printf "%s",$json_txt;
    if(!$data->{SPD_SETTING}){
        do_delete();
        return;
@@ -376,15 +337,8 @@ eval{
        $spd_user = $item->{SPD_USER};
        $spd_pass = $item->{SPD_PASS};
        $spd_dbpath = $item->{SPD_DBPATH};
-       
-       #initdb
-       initdb_spd();
-       #start up server
-       start_spd();
-       #create roll
-       create_roll();
-       #create extention
-       create_extention();
+
+		   delete_allserver();
 
        $command = "./spd_command/spd_node_set ".$spd_ip." ".$spd_port." ".$spd_user." ".$spd_pass." spd ". "spd ".$spd_ip." ".$spd_port." ".$spd_user." ".$spd_pass;
        printf("%s %s %s %s",$spd_ip." ".$spd_port." ".$spd_user." ".$spd_pass);
@@ -461,9 +415,7 @@ eval{
 		   }
        }
    }
-   stop_spd();
-   print "-------------------------------------------\nSuccess To SPD initialize!\n";
-   print "server start command: \"pg_ctl start -D ".$spd_dbpath."\"\n";
+   print "-------------------------------------------\nSuccess To SPD update!\n";
 };
 
 if ( $@ ) {
