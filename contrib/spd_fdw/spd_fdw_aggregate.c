@@ -29,8 +29,6 @@
 #include "access/htup_details.h"
 #include "access/printtup.h"
 
-static char *cutAtQuery(char *query, int pos, char *delim);
-static void trim(char *s);
 static int	strcmpi(char *s1, char *s2);
 
 /**
@@ -810,20 +808,6 @@ Spd_FDW_thread(void *arg)
 	return NULL;
 }
 
-static void
-trim(char *s)
-{
-	char	   *p = s;
-	int			l = strlen(p);
-
-	while (isspace(p[l - 1]))
-		p[--l] = 0;
-	while (*p && isspace(*p))
-		++p, --l;
-
-	memmove(s, p, l + 1);
-}
-
 
 static int
 strcmpi(char *s1, char *s2)
@@ -840,23 +824,6 @@ strcmpi(char *s1, char *s2)
 	return 0;
 }
 
-static char *
-cutAtQuery(char *query, int pos, char *delim)
-{
-	char	   *token;
-
-	token = strtok(query, delim);
-
-	if (pos == 1)
-		return token;
-
-	while (token != NULL && --pos)
-	{
-		/* Get next token:    */
-		token = strtok(NULL, delim);
-	}
-	return token;
-}
 
 #if 1
 /**
@@ -1066,7 +1033,6 @@ spd_get_agg_Info_push(TupleTableSlot *aggSlot, const ForeignScanState *node, int
 							break;
 						default:
 							agginfodata[count - 1].result[natts].aggdata.sum.bigint_val = DatumGetInt64(datum);
-							elog(INFO,"push sum %d",agginfodata[count - 1].result[natts].aggdata.sum.bigint_val);
 							break;
 					}
 				}
@@ -1352,8 +1318,8 @@ spd_get_agg_Info_push(TupleTableSlot *aggSlot, const ForeignScanState *node, int
  * All datasources set into agginfodata, calc final result at spd_combine_agg_new().
  * This is NOT push down datasouce cases.
  *
- * @param[in] thrdInfo -
- * @param[in] node -
+ * @param[in] thrdInfo - child node result info 
+ * @param[in] node - child node scan state
  * @param[in] count - count of datasources.
  * @param[out] agginfodata - All datasources result.
  *
@@ -1399,7 +1365,6 @@ spd_get_agg_Info(ForeignScanThreadInfo thrdInfo, const ForeignScanState *node, i
 						default:
 							agginfodata[count - 1].result[natts].aggdata.sum.bigint_val = DatumGetInt64(datum);
 							break;
-							elog(INFO,"not push sum %d",agginfodata[count - 1].result[natts].aggdata.sum.bigint_val);
 					}
 				}
 				break;
