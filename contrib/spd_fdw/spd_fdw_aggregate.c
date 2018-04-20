@@ -315,7 +315,7 @@ spd_agg_min(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 {
 	int			i;
 	int64		Min = PG_INT64_MAX;
-	int64       Value = 0;
+	int64 Value = 0;
 	char	   *strMinMax = NULL;
 	Datum		TMinMax = 0,
 				StrDatum;
@@ -822,10 +822,11 @@ strcmpi(char *s1, char *s2)
 SpdAggType
 spd_get_agg_type_new_push(const ForeignScanState *node, const int attNum)
 {
-	TargetEntry *test = (TargetEntry*)list_nth(node->ss.ps.plan->targetlist,attNum);
-	char *sql = test->resname;
-	int ret;
-	elog(DEBUG1,"resname = %s",test->resname);
+	TargetEntry *test = (TargetEntry *) list_nth(node->ss.ps.plan->targetlist, attNum);
+	char	   *sql = test->resname;
+	int			ret;
+
+	elog(DEBUG1, "resname = %s", test->resname);
 	if (!strcmpi(sql, "AVG"))
 		ret = AGG_AVG;
 	else if (!strcmpi(sql, "SUM"))
@@ -926,7 +927,7 @@ spd_combine_agg_new(ForeignAggInfo * agginfodata, int num_aggs, int natts)
  * Set result of one datasource's aggregation into agginfodata from result slot.
  * All datasources set into agginfodata, calc final result at spd_combine_agg_new().
  *
- * @param[in] aggSlot - Slot of aggregation 
+ * @param[in] aggSlot - Slot of aggregation
  * @param[in] node - ForeignScanState
  * @param[in] count - count of datasources.
  * @param[out] agginfodata - All of datasources aggregation result

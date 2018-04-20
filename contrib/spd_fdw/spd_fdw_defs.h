@@ -12,4 +12,4 @@
 /*End defs*/
 
 
-#endif /*SPD_FDW_DEFS*/
+#endif							/* SPD_FDW_DEFS */

@@ -40,7 +40,7 @@ typedef struct SpdFDWThreadData
 	ForeignAggInfo *agginfodata;
 	AggState   *aggnode;
 	MemoryContext threadMemoryContext;
-}	SpdFDWThreadData;
+}			SpdFDWThreadData;
 
 
 void		spd_maxmin_merge(ForeignSpdMaxMin a[], int i1, int j1, int i2, int j2);
@@ -49,27 +49,27 @@ void		spd_mergesort(ForeignSpdMaxMin a[], int i, int j);
 void		find_and_replicate(char *o_string, char *start_string, char *end_string, char *delim_string);
 void		replace(char *o_string, char *s_string, char *r_string, bool recursive);
 int			spd_get_node_list(char **list);
-PGconn	   *spd_create_self_node_conn(AggState *aggnode);
-PGconn * spd_create_self_scannode_conn_rel_ID(Oid frgnrelID);
-PGconn * spd_create_self_scannode_conn(ForeignScanState *node);
-void		spd_stop_self_node_conn(PGconn *self_conn);
-int			spd_get_node_options(const char *node_name, PGconn *self_conn, char *options);
+PGconn	   *spd_create_self_node_conn(AggState * aggnode);
+PGconn	   *spd_create_self_scannode_conn_rel_ID(Oid frgnrelID);
+PGconn	   *spd_create_self_scannode_conn(ForeignScanState * node);
+void		spd_stop_self_node_conn(PGconn * self_conn);
+int			spd_get_node_options(const char *node_name, PGconn * self_conn, char *options);
 void		spd_free_node_list(char **list);
 void		spd_mergesort(ForeignSpdMaxMin a[], int i, int j);
 void		spd_maxmin_merge(ForeignSpdMaxMin a[], int i1, int j1, int i2, int j2);
 Datum		spd_combine_agg(ForeignAggInfo * agginfodata, int num_aggs, void *self_conn);
 #if 0
-Datum	    spd_combine_agg_new(ForeignAggInfo * agginfodata, int num_aggs);
-void 	    spd_get_agg_Info(TupleTableSlot *aggSlot, const ForeignScanState *node, 
-	                                                   int count, ForeignAggInfo *agginfodata);
+Datum		spd_combine_agg_new(ForeignAggInfo * agginfodata, int num_aggs);
+void spd_get_agg_Info(TupleTableSlot * aggSlot, const ForeignScanState * node,
+				 int count, ForeignAggInfo * agginfodata);
 #else
 
-Datum	    spd_combine_agg_new(ForeignAggInfo * agginfodata, int num_aggs, int natts);
-void        spd_get_agg_Info(ForeignScanThreadInfo thrdInfo, const ForeignScanState *node, int count, ForeignAggInfo *agginfodata);
-void spd_get_agg_Info_push(TupleTableSlot *aggSlot, const ForeignScanState *node, int count, ForeignAggInfo *agginfodata);
+Datum		spd_combine_agg_new(ForeignAggInfo * agginfodata, int num_aggs, int natts);
+void		spd_get_agg_Info(ForeignScanThreadInfo thrdInfo, const ForeignScanState * node, int count, ForeignAggInfo * agginfodata);
+void		spd_get_agg_Info_push(TupleTableSlot * aggSlot, const ForeignScanState * node, int count, ForeignAggInfo * agginfodata);
 #endif
-TupleTableSlot* spd_get_agg_tuple(ForeignAggInfo * agginfodata, TupleTableSlot *dest);
-SpdAggType spd_get_agg_type(AggState *aggnode);
+TupleTableSlot *spd_get_agg_tuple(ForeignAggInfo * agginfodata, TupleTableSlot * dest);
+SpdAggType	spd_get_agg_type(AggState * aggnode);
 void	   *Spd_FDW_thread(void *arg);
 
 Datum		spd_agg_sum(ForeignAggInfo * agginfodata, int num_aggs, int attr);
@@ -84,8 +84,8 @@ void		spd_agg_bool_or(ForeignAggInfo * agginfodata, int num_aggs, int attr);
 void		spd_agg_string_agg(ForeignAggInfo * agginfodata, int num_aggs, int attr);
 void		spd_agg_stddev(ForeignAggInfo * agginfodata, int num_aggs, int attr);
 void		spd_agg_variance(ForeignAggInfo * agginfodata, int num_aggs, int attr);
-void        spd_get_agg_type_new(const ForeignScanState *node, const int nTotalAtts, SpdAggType *aggType);
-SpdAggType
-spd_get_agg_type_new_push(const ForeignScanState *node, const int attNum);
-	
-#endif   /* SPD_FDW_AGGREGATE_H */
+void		spd_get_agg_type_new(const ForeignScanState * node, const int nTotalAtts, SpdAggType * aggType);
+
+SpdAggType	spd_get_agg_type_new_push(const ForeignScanState * node, const int attNum);
+
+#endif							/* SPD_FDW_AGGREGATE_H */
