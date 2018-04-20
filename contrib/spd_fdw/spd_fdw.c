@@ -62,13 +62,12 @@ PG_MODULE_MAGIC;
 #include "funcapi.h"
 #include "../postgres_fdw/postgres_fdw.h"
 
-#define BUFFERSIZE			1024
+#define BUFFERSIZE 1024
 #define QUERY_LENGTH 512
 #define ENABLE_MERGE_RESULT
 #define MAX_TABLE_NUM 1024
 #define MAX_URL_LENGTH	256
 
-#define AGG_TYPE_OID 20
 #define COUNT_OID 2108
 #define SUM_OID 2803
 #define STD_OID 2148
@@ -80,15 +79,21 @@ PG_MODULE_MAGIC;
 #define STD_MIN_OID 2153
 #define STD_MAX_OID 2159
 
-#define SUM_BIGINT_OID 2107;
-#define SUM_INT4_OID 2108;
-#define SUM_INT2_OID 2109;
-#define SUM_FLOAT4_OID 2110;
-#define SUM_FLOAT8_OID 2111;
-#define SUM_NUMERI_OID 2114;
+#define SUM_BIGINT_OID 2107
+#define SUM_INT4_OID 2108
+#define SUM_INT2_OID 2109
+#define SUM_FLOAT4_OID 2110
+#define SUM_FLOAT8_OID 2111
+#define SUM_NUMERI_OID 2114
+
+#define BIGINT_OID 20
+#define SMALLINT_OID 21
+#define INT_OID 23
+#define FLOAT_OID 700
+#define FLOAT8_OID 701
+#define NUMERIC_OID 1700
 
 #define POSTGRES_FDW_NAME "postgres_fdw"
-
 
 /* local function forward declarations */
 static void spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel,
@@ -1213,7 +1218,6 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
  * corresponding operations are safe to push down.
  *
  * Right now, we only support aggregate, grouping and having clause pushdown.
- * spd_GetForeignRelSize
  *
  * @param[in] root - base planner infromation
  * @param[in] stage - not use
@@ -1313,7 +1317,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 					aggref = (Aggref *) expr;
 					temp_expr = list_nth(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs, listn);
 					listn++;
-					if ((aggref->aggfnoid >= AVG_MIN_OID && aggref->aggfnoid <= AVG_MAX_OID))
+					if ((aggref->aggfnoid >= AVG_MIN_OID && aggref->aggfnoid <= AVG_MAX_OID)||(aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)||(aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
 					{
 						/* Prepare SUM Query */
 						/*
@@ -1324,41 +1328,15 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 						Aggref	   *temp;
 
 						tempSUM->aggfnoid = COUNT_OID;
-						tempSUM->aggtype = AGG_TYPE_OID;
-						tempSUM->aggtranstype = AGG_TYPE_OID;
+						tempSUM->aggtype = BIGINT_OID;
+						tempSUM->aggtranstype = BIGINT_OID;
 
 						/* Prepare Count Query */
-
-						/*
-						 * TODO: Appropriate aggfnoid should be choosen based
-						 * on type
-						 */
 						temp = copyObject(tempSUM);
 						temp->aggfnoid = SUM_OID;
 						temp->aggargtypes = NULL;
 						elog(DEBUG1, "insert avg expr");
 						newList = lappend(newList, tempSUM);
-						newList = lappend(newList, temp);
-					}
-					else if ((aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID) ||
-							 (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
-					{
-						Aggref	   *tempSUM = copyObject(aggref);
-						Aggref	   *temp;
-
-						tempSUM->aggfnoid = COUNT_OID;
-						tempSUM->aggtype = AGG_TYPE_OID;
-						tempSUM->aggtranstype = AGG_TYPE_OID;
-						/* Prepare SUM Query */
-						temp = copyObject(tempSUM);
-						temp->aggfnoid = SUM_OID;
-						temp->aggargtypes = NULL;
-
-						dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs =
-							list_delete_first(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs);
-						/* Add SUM Query to the Pushdown Plan */
-						newList = lappend(newList, tempSUM);
-						/* Add Count Query to the Pushdown Plan */
 						newList = lappend(newList, temp);
 					}
 					else
@@ -1866,22 +1844,22 @@ spd_createPushDownPlan(List *tlist, bool *agg_query, List *pPseudoAggTypeList)
 					dummy_tlist2 = list_delete_first(dummy_tlist2);
 					switch (tempSUM->aggtype)
 					{
-					case 20:	/* int8 big int */
+					case BIGINT_OID:	/* int8 big int */
 						tempSUM->aggfnoid = SUM_BIGINT_OID ;
 						break;
-					case 21:	/* int2 small int */
+					case SMALLINT_OID:	/* int2 small int */
 						tempSUM->aggfnoid = SUM_INT2_OID;
 						break;
-					case 23:	/* int4 */
+					case INT_OID:	/* int4 */
 						tempSUM->aggfnoid = SUM_INT4_OID;
 						break;
-					case 700:	/* float 4 - real */
+					case FLOAT_OID:	/* float 4 - real */
 						tempSUM->aggfnoid = SUM_FLOAT4_OID;
 						break;
-					case 701:	/* float 8 - double precision */
+					case FLOAT8_OID:	/* float 8 - double precision */
 						tempSUM->aggfnoid = SUM_FLOAT8_OID;
 						break;
-					case 1700:	/* numeric */
+					case NUMERIC_OID:	/* numeric */
 						tempSUM->aggfnoid = SUM_NUMERI_OID;
 						break;
 					}
@@ -1895,30 +1873,14 @@ spd_createPushDownPlan(List *tlist, bool *agg_query, List *pPseudoAggTypeList)
 					temp->aggargtypes = NULL;
 					temp->args = NULL;
 					tempCount->expr = (Expr *)copyObject(temp);
-					if ((aggref->aggfnoid >= 2148 && aggref->aggfnoid <= 2153) ||
-						(aggref->aggfnoid >= 2718 && aggref->aggfnoid <= 2723))
+					/* set command oid */
+					if (aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
 					{
-						TargetEntry *tempVar = copyObject(tleTemp);
-						Aggref	   *tempVariance = copyObject(aggref);
-
-						tempVar->expr = (Expr *)copyObject(tempVariance);
-
-						/* Add VARIANCE Query to the Pushdown Plan */
-						dummy_tlist2 = lappend(dummy_tlist2, tempVar);
-						pPseudoAggTypeList = lappend_oid(pPseudoAggTypeList, 2154);
+						pPseudoAggTypeList = lappend_oid(pPseudoAggTypeList, VAR_MIN_OID);
 					}
-					else if ((aggref->aggfnoid >= 2154 && aggref->aggfnoid <= 2159) ||
-							 (aggref->aggfnoid >= 2724 && aggref->aggfnoid <= 2729))
-					{
-						TargetEntry *tempVar = copyObject(tleTemp);
-						Aggref	   *tempVariance = copyObject(aggref);
-
-						tempVariance->aggfnoid = VAR_MIN_OID;
-						tempVar->expr = (Expr *)copyObject(tempVariance);
-						/* Add STDDEV Query to the Pushdown Plan */
-						dummy_tlist2 = lappend(dummy_tlist2, tempVar);
-						pPseudoAggTypeList = lappend_oid(pPseudoAggTypeList, 2154);
-					}
+					else if (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID) {
+							pPseudoAggTypeList = lappend_oid(pPseudoAggTypeList, STD_MIN_OID);
+						}
 					else
 					{
 						pPseudoAggTypeList = lappend_oid(pPseudoAggTypeList, AVG_MIN_OID);
@@ -1982,9 +1944,9 @@ spd_createPushDownPlan(List *tlist, bool *agg_query, List *pPseudoAggTypeList)
  * @param[in] root - base planner infromation
  * @param[in] baserel - base relation option
  * @param[in] foreigntableid - Parent foreing table id
- * @param[in] ForeignPath *best_path
- * @param[in] List *tlist
- * @param[in] List *scan_clauses
+ * @param[in] ForeignPath *best_path - path of 
+ * @param[in] List *tlist - target_list
+ * @param[in] List *scan_clauses where
  *
  */
 static ForeignScan *
@@ -2211,11 +2173,12 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 								 * fssThrdInfo. */
 	int			private_incr;	/* private_incr is variable of number of
 								 * fdw_private */
+	int pushlist_count=0;
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	node->spd_fsstate = NULL;
 	fdw_private = (SpdFdwPrivate *)
-		((Value *) list_nth(fsplan->fdw_private, 0))->val.ival;
+		((Value *) list_nth(fsplan->fdw_private, FdwScanPrivateSelectSql))->val.ival;
 	/* get child nodes server oid */
 	spd_spi_exec_child_relname(RelationGetRelationName(node->ss.ss_currentRelation), fdw_private, &oid);
 	elog(DEBUG1, "agg query %d", node->ss.ps.state->agg_query);
@@ -2330,7 +2293,9 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			natts = node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->natts;
 			if (list_member_oid(fdw_private->pPseudoAggPushList, server_oid) || list_member_oid(fdw_private->pPseudoAggList, server_oid))
 			{
-				if (list_member_oid(fdw_private->pPseudoAggTypeList, AVG_MIN_OID))
+				Datum *aggoid = list_nth(fdw_private->pPseudoAggTypeList, pushlist_count);
+
+				if (*aggoid == AVG_MIN_OID || *aggoid == VAR_MIN_OID|| *aggoid == STD_MIN_OID)
 				{
 					natts += 1;
 				}
@@ -2346,12 +2311,10 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 					attrs[i] = palloc(sizeof(FormData_pg_attribute));
 					memcpy(attrs[i], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[0], sizeof(FormData_pg_attribute));
 					elog(DEBUG1, "attrs[i]->atttypid = %d", attrs[i]->atttypid);
-					attrs[i]->atttypid = 20;
-					attrs[i]->attlen = 8;
+					attrs[i]->atttypid = BIGINT_OID;
+					attrs[i]->attlen = 1;
 					attrs[i]->attnum = i;
 					attrs[i]->attbyval = 1;
-					attrs[i]->attstorage = 112;
-					attrs[i]->attalign = 100;
 				}
 				/* Construct TupleDesc, and assign a local typmod. */
 				tupledesc = CreateTupleDesc(natts, true, attrs);
@@ -2458,8 +2421,6 @@ spd_IterateForeignScan(ForeignScanState *node)
 	SpdFdwPrivate *fdw_private;
 	int			run;
 
-	agginfodata = palloc(sizeof(ForeignAggInfo) * NODES_MAX);
-	memset(agginfodata, 0, sizeof(ForeignAggInfo) * NODES_MAX);
 	fdw_private = fssThrdInfo->private;
 	run = 1;					/* '1' is for no aggregation query */
 
@@ -2471,9 +2432,11 @@ spd_IterateForeignScan(ForeignScanState *node)
 	/* Get all the foreign nodes from conf file */
 	if (fdw_private == NULL)
 	{
-	elog(ERROR, "can't find node in iterateforeignscan");
+		elog(ERROR, "can't find node in iterateforeignscan");
     }
 	nThreads = fdw_private->dummy_base_rel_list->length;
+	agginfodata = palloc(sizeof(ForeignAggInfo) * nThreads);
+	memset(agginfodata, 0, sizeof(ForeignAggInfo) * nThreads);
 
 	/*
 	 * run aggregation query for all data source threads and combine
@@ -2512,7 +2475,6 @@ spd_IterateForeignScan(ForeignScanState *node)
 		{
 			if (list_member_oid(fdw_private->pPseudoAggList, fssThrdInfo[count - 1].serverId))
 			{
-				//spd_get_agg_Info(fssThrdInfo[count - 1], node, count, agginfodata);
 				spd_get_agg_Info_push(fssThrdInfo[count - 1].tuple, node, count, agginfodata);
 			}
 			else if (list_member_oid(fdw_private->pPseudoAggPushList, fssThrdInfo[count - 1].serverId))

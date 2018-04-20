@@ -480,8 +480,8 @@ spd_agg_bit_or(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 }
 
 /**
- * spd_agg_bit_or
- * Combine the aggs and return the result of the bit_or
+ * spd_agg_bit_and
+ * Combine the aggs and return the result of the bit_and
  *
  * @param[in,out] agginfodata - All child table agg result
  * @param[in] num_aggs - number of aggs
@@ -795,20 +795,6 @@ spd_get_node_connection_PG(const char *options)
 	return conn;
 }
 
-/*
- * Spd_FDW_thread
- * Create a new thread and execute foreign agg
- */
-void *
-Spd_FDW_thread(void *arg)
-{
-	SpdFDWThreadData *thrdata = (SpdFDWThreadData *) arg;
-
-	thrdata->fdwroutine->ForeignAgg(thrdata->aggnode, (void *) thrdata->agginfodata);
-	return NULL;
-}
-
-
 static int
 strcmpi(char *s1, char *s2)
 {
@@ -825,10 +811,9 @@ strcmpi(char *s1, char *s2)
 }
 
 
-#if 1
 /**
  * spd_get_agg_type_new_push
- * returns the typeid of the enum the spd server
+ * returns the typeid of the enum the postgres server
  *
  * @param[out] node - All child table agg result
  * @param[in] attNum - number of attribute
@@ -872,64 +857,16 @@ spd_get_agg_type_new_push(const ForeignScanState *node, const int attNum)
 
 	return ret;
 }
-#endif
 
 /**
- * spd_get_agg_type_new_push
- * returns the typeid of the enum the spd server
+ * spd_combine_agg_new
+ * Execute the function from result type
  *
- * @param[out] node - All child table agg result
- * @param[in] attNum - number of attribute
+ * @param[in] agginfodata - Result of aggregation
+ * @param[in] num_aggs - Attribute number
+ * @param[in] natts - Number of attribute
  *
  */
-void
-spd_get_agg_type_new(const ForeignScanState *node, const int nTotalAtts, SpdAggType * aggType) {
-#if 0
-	TargetEntry *test = (TargetEntry*)list_nth(node->ss.ps.plan->targetlist,attNum);
-	char *sql = test->resname;
-	int ret;
-	elog(DEBUG1,"resname = %s",test->resname);
-	if (!strcmpi(sql, "AVG"))
-	while (sql != NULL && nAtt != nTotalAtts)
-	{
-		if (strcasestr(token, "AVG"))
-			ret = AGG_AVG;
-		else if (strcasestr(token, "SUM"))
-			ret = AGG_SUM;
-		else if (strcasestr(token, "COUNT"))
-			ret = AGG_COUNT;
-		else if (strcasestr(token, "MAX"))
-			ret = AGG_MAX;
-		else if (strcasestr(token, "MIN"))
-			ret = AGG_MIN;
-		else if (strcasestr(token, "BIT_OR"))
-			ret = AGG_BIT_OR;
-		else if (strcasestr(token, "BIT_AND"))
-			ret = AGG_BIT_AND;
-		else if (strcasestr(token, "BOOL_AND"))
-			ret = AGG_BOOL_AND;
-		else if (strcasestr(token, "BOOL_OR"))
-			ret = AGG_BOOL_OR;
-		else if (strcasestr(token, "EVERY"))
-			ret = AGG_EVERY;
-		else if (strcasestr(token, "STRING_AGG"))
-			ret = AGG_STRING_AGG;
-		else if (strcasestr(token, "VARIANCE"))
-			ret = AGG_VAR;
-		else if (strcasestr(token, "STDDEV"))
-			ret = AGG_STDDEV;
-		else
-			ret = AGG_DEFAULT;
-		if (ret != AGG_DEFAULT)
-		{
-			aggType[nAtt] = ret;
-			nAtt++;
-		}
-		token = strtok_r(NULL, ",", &save);
-	}
-	pfree(query);
-#endif
-}
 Datum
 spd_combine_agg_new(ForeignAggInfo * agginfodata, int num_aggs, int natts)
 {
@@ -986,14 +923,13 @@ spd_combine_agg_new(ForeignAggInfo * agginfodata, int num_aggs, int natts)
 }
 
 /**
- * Set result of one datasource's aggregation into agginfodata.
+ * Set result of one datasource's aggregation into agginfodata from result slot.
  * All datasources set into agginfodata, calc final result at spd_combine_agg_new().
- * This is push down datasouce cases.
  *
- * @param[in] thrdInfo -
- * @param[in] node -
+ * @param[in] aggSlot - Slot of aggregation 
+ * @param[in] node - ForeignScanState
  * @param[in] count - count of datasources.
- * @param[out] agginfodata - All datasources result.
+ * @param[out] agginfodata - All of datasources aggregation result
  *
  */
 void
@@ -1308,347 +1244,6 @@ spd_get_agg_Info_push(TupleTableSlot *aggSlot, const ForeignScanState *node, int
 					}
 					break;
 				}
-		}
-		agginfodata[count - 1].result[natts].status = SPD_FRG_OK;
-	}
-}
-
-/**
- * Set result of one datasource's aggregation into agginfodata.
- * All datasources set into agginfodata, calc final result at spd_combine_agg_new().
- * This is NOT push down datasouce cases.
- *
- * @param[in] thrdInfo - child node result info 
- * @param[in] node - child node scan state
- * @param[in] count - count of datasources.
- * @param[out] agginfodata - All datasources result.
- *
- */
-void
-spd_get_agg_Info(ForeignScanThreadInfo thrdInfo, const ForeignScanState *node, int count, ForeignAggInfo * agginfodata)
-{
-	TupleTableSlot *aggSlot = thrdInfo.tuple;
-	int			natts;
-	int			nTotalAtts = aggSlot->tts_tupleDescriptor->natts;
-	int			avg_count = 0;
-	bool		isnull = false;
-	Datum		datum;
-	SpdAggType type[nTotalAtts];
-
-	spd_get_agg_type_new(node, nTotalAtts, type);
-	for (natts = 0; natts < nTotalAtts; natts++)
-	{
-		avg_count++;
-		/**
-		 * @todo must analyze plan tree for aggregation type and
-		 * value types.
-		 */
-		agginfodata[count - 1].result[natts].type = type[natts];
-
-		switch (agginfodata[count - 1].result[natts].type)
-		{
-			case AGG_DEFAULT:
-				break;
-
-			case AGG_SUM:
-				{
-					datum = slot_getattr(aggSlot, avg_count, &isnull);
-					agginfodata[count - 1].result[natts].typid = aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-					switch (agginfodata[count - 1].result[natts].typid)
-					{
-						case FLOAT4OID:
-							agginfodata[count - 1].result[natts].aggdata.sum.realType = DatumGetFloat4(datum);
-							break;
-						case FLOAT8OID:
-							agginfodata[count - 1].result[natts].aggdata.sum.value = DatumGetFloat8(datum);
-							break;
-						default:
-							agginfodata[count - 1].result[natts].aggdata.sum.bigint_val = DatumGetInt64(datum);
-							break;
-					}
-				}
-				break;
-
-			case AGG_AVG:
-				{
-					datum = slot_getattr(aggSlot, avg_count, &isnull);
-					agginfodata[count - 1].result[natts].typid = aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-					switch (agginfodata[count - 1].result[natts].typid)
-					{
-						case FLOAT4OID:
-							agginfodata[count - 1].result[natts].aggdata.avg.sum.realType =
-								DatumGetFloat4(datum);
-							break;
-						case FLOAT8OID:
-							agginfodata[count - 1].result[natts].aggdata.avg.sum.value =
-								DatumGetFloat8(datum);
-							break;
-						default:
-							agginfodata[count - 1].result[natts].aggdata.avg.sum.bigint_val =
-								DatumGetInt64(datum);
-							break;
-					}
-					avg_count++;
-					datum = slot_getattr(aggSlot, avg_count, &isnull);
-					agginfodata[count - 1].result[natts].aggdata.avg.count.value = DatumGetInt64(datum);
-					agginfodata[count - 1].result[natts].status = SPD_FRG_OK;
-				}
-				break;
-
-			case AGG_COUNT:
-				{
-					agginfodata[count - 1].result[natts].typid = aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-					datum = slot_getattr(aggSlot, avg_count, &isnull);
-					agginfodata[count - 1].result[natts].aggdata.count.value = DatumGetInt64(datum);
-				}
-				break;
-
-			case AGG_VAR:
-			case AGG_STDDEV:
-				{
-					char	   *value;
-					Oid			typoutput;
-					bool		typisvarlena;
-
-					agginfodata[count - 1].result[natts].typid = aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-					switch (agginfodata[count - 1].result[natts].typid)
-					{
-						case FLOAT4OID:
-							agginfodata[count - 1].result[natts].aggdata.var.sum.value =
-								DatumGetFloat4(thrdInfo.fsstate->ss.ps.state->es_progressState->ps_aggvalues[0]);
-							break;
-						case FLOAT8OID:
-							agginfodata[count - 1].result[natts].aggdata.var.sum.value =
-								DatumGetFloat8(thrdInfo.fsstate->ss.ps.state->es_progressState->ps_aggvalues[0]);
-							break;
-						default:
-							agginfodata[count - 1].result[natts].aggdata.var.sum.value =
-								DatumGetInt64(thrdInfo.fsstate->ss.ps.state->es_progressState->ps_aggvalues[0]);
-							break;
-					}
-
-					agginfodata[count - 1].result[natts].aggdata.var.count.value =
-						thrdInfo.fsstate->ss.ps.state->es_progressState->ps_aggvalues[1];
-
-					datum =
-						thrdInfo.fsstate->ss.ps.state->es_progressState->ps_aggvalues[2];
-
-					getTypeOutputInfo(agginfodata[count - 1].result[natts].typid,
-									  &typoutput, &typisvarlena);
-
-					value = OidOutputFunctionCall(typoutput, datum);
-					agginfodata[count - 1].result[natts].aggdata.var.var.value = strtold(value, NULL);
-					agginfodata[count - 1].result[natts].status = SPD_FRG_OK;
-
-					pfree(value);
-				}
-				break;
-			case AGG_STRING_AGG:
-				{
-					int			string_len;
-					StringInfo	state;
-					char	   *value;
-					Oid			typoutput;
-					bool		typisvarlena;
-
-					agginfodata[count - 1].result[natts].typid = aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-					datum = slot_getattr(aggSlot, avg_count, &isnull);
-					state = (StringInfo) palloc(sizeof(StringInfoData));
-					if (!state)
-					{
-						agginfodata[count - 1].result[natts].status = SPD_FRG_ERROR;
-						ereport(NOTICE, (errmsg("Memory Allocation Failed ")));
-						return;
-					}
-					agginfodata[count - 1].result[natts].aggdata.stringagg.state = state;
-
-					getTypeOutputInfo(agginfodata[count - 1].result[natts].typid,
-									  &typoutput, &typisvarlena);
-
-					value = OidOutputFunctionCall(typoutput, datum);
-					string_len = strlen(value);
-
-					agginfodata[count - 1].result[natts].aggdata.stringagg.state->len = string_len;
-					agginfodata[count - 1].result[natts].aggdata.stringagg.state->data = (char *) palloc(sizeof(char) * string_len + 1);
-					if (!agginfodata[count - 1].result[natts].aggdata.stringagg.state->data)
-					{
-						agginfodata[count - 1].result[natts].status = SPD_FRG_ERROR;
-						ereport(NOTICE, (errmsg("Memory Allocation Failed ")));
-						return;
-					}
-					memset(agginfodata[count - 1].result[natts].aggdata.stringagg.state->data, 0, string_len + 1);
-					if (string_len >= 0)
-					{
-						strncpy(agginfodata[count - 1].result[natts].aggdata.stringagg.state->data, value, string_len);
-					}
-					pfree(value);
-				}
-				break;
-
-			case AGG_BOOL_AND:
-			case AGG_BOOL_OR:
-			case AGG_EVERY:
-				{
-					char	   *value;
-					Oid			typoutput;
-					bool		typisvarlena;
-
-					agginfodata[count - 1].result[natts].typid = aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-					datum = slot_getattr(aggSlot, avg_count, &isnull);
-
-					getTypeOutputInfo(agginfodata[count - 1].result[natts].typid,
-									  &typoutput, &typisvarlena);
-
-					value = OidOutputFunctionCall(typoutput, datum);
-
-					switch (*value)
-					{
-						case 'T':
-						case 't':
-						case 'Y':
-						case 'y':
-						case '1':
-							agginfodata[count - 1].result[natts].aggdata.boolvar.boolall = true;
-							break;
-						case 'F':
-						case 'f':
-						case 'N':
-						case 'n':
-						case '0':
-							agginfodata[count - 1].result[natts].aggdata.boolvar.boolall = false;
-							break;
-						default:
-							agginfodata[count - 1].result[natts].aggdata.boolvar.boolall = false;
-					}
-				}
-				break;
-			case AGG_BIT_AND:
-			case AGG_BIT_OR:
-				{
-					int			string_len;
-					char	   *value;
-					Oid			typoutput;
-					bool		typisvarlena;
-
-					agginfodata[count - 1].result[natts].typid = aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-					datum = slot_getattr(aggSlot, avg_count, &isnull);
-
-					getTypeOutputInfo(agginfodata[count - 1].result[natts].typid,
-									  &typoutput, &typisvarlena);
-
-					value = OidOutputFunctionCall(typoutput, datum);
-					string_len = strlen(value);
-
-					if (agginfodata[count - 1].result[natts].typid == BITOID)
-					{
-						StringInfo	state;
-
-						state = (StringInfo) palloc(sizeof(StringInfoData));
-						if (!state)
-						{
-							agginfodata[count - 1].result[natts].status = SPD_FRG_ERROR;
-							ereport(NOTICE, (errmsg("Memory Allocation Failed ")));
-							return;
-						}
-						agginfodata[count - 1].result[natts].aggdata.bit_op.state = state;
-
-						agginfodata[count - 1].result[natts].aggdata.bit_op.state->len = string_len;
-						agginfodata[count - 1].result[natts].aggdata.bit_op.state->data = (char *) palloc(sizeof(char) * string_len + 1);
-						if (!agginfodata[count - 1].result[natts].aggdata.bit_op.state->data)
-						{
-							agginfodata[count - 1].result[natts].status = SPD_FRG_ERROR;
-							ereport(NOTICE, (errmsg("Memory Allocation Failed ")));
-							return;
-						}
-						memset(agginfodata[count - 1].result[natts].aggdata.bit_op.state->data, 0, string_len + 1);
-						if (string_len >= 0)
-						{
-							strncpy(agginfodata[count - 1].result[natts].aggdata.bit_op.state->data, value, string_len);
-						}
-						agginfodata[count - 1].typid = BITOID;
-					}
-					else
-					{
-						agginfodata[count - 1].result[natts].aggdata.bitvar.bitall = strtol(value, NULL, BASE_TEN);
-
-						/*
-						 * Checking for the range of the value after the
-						 * conversion
-						 */
-						if ((errno == ERANGE && (agginfodata[count - 1].result[natts].aggdata.bitvar.bitall == LONG_MAX ||
-												 agginfodata[count - 1].result[natts].aggdata.bitvar.bitall == LONG_MIN)))
-						{
-							agginfodata[count - 1].result[natts].status = SPD_FRG_ERROR;
-							ereport(NOTICE, (errmsg("Out of Range ")));
-						}
-					}
-				}
-				break;
-			case AGG_MAX:
-			case AGG_MIN:
-				{
-					agginfodata[count - 1].result[natts].typid = aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-					datum = slot_getattr(aggSlot, avg_count, &isnull);
-					switch (agginfodata[count - 1].result[natts].typid)
-					{
-						case FLOAT4OID:
-							agginfodata[count - 1].result[natts].aggdata.maxmin.realVal = DatumGetFloat4(datum);
-							break;
-						case FLOAT8OID:
-							agginfodata[count - 1].result[natts].aggdata.maxmin.dpVal = DatumGetFloat8(datum);
-							break;
-						case DATEOID:
-							{
-								char	   *dateStr,
-										   *dateTok,
-										   *save;
-								Oid			typoutput;
-								bool		typisvarlena;
-
-								getTypeOutputInfo(agginfodata[count - 1].result[natts].typid,
-												  &typoutput, &typisvarlena);
-
-								dateStr = OidOutputFunctionCall(typoutput, datum);
-
-								if (!dateStr)
-								{
-									agginfodata[count - 1].result[natts].status = SPD_FRG_ERROR;
-									ereport(NOTICE, (errmsg("Memory allocation is failed: ")));
-									return;
-								}
-								dateTok = strtok_r(dateStr, "-", &save);
-								agginfodata[count - 1].result[natts].aggdata.maxmin.fDate.year = atoi(dateTok);
-								dateTok = strtok_r(NULL, "-", &save);
-								agginfodata[count - 1].result[natts].aggdata.maxmin.fDate.mon = atoi(dateTok);
-								dateTok = strtok_r(NULL, "-", &save);
-								agginfodata[count - 1].result[natts].aggdata.maxmin.fDate.mday = atoi(dateTok);
-							}
-							break;
-
-						case TEXTOID:
-							{
-								char	   *value;
-								Oid			typoutput;
-								bool		typisvarlena;
-
-								getTypeOutputInfo(agginfodata[count - 1].result[natts].typid,
-												  &typoutput, &typisvarlena);
-
-								value = OidOutputFunctionCall(typoutput, datum);
-								StrNCpy(agginfodata[count - 1].result[natts].aggdata.maxmin.strMinMax, value, strlen(value) + 1);
-								pfree(value);
-							}
-							break;
-
-						case ANYENUMOID:
-							break;
-						default:
-							agginfodata[count - 1].result[natts].aggdata.maxmin.value = DatumGetInt64(datum);
-							break;
-					}
-					break;
-				}
-
 		}
 		agginfodata[count - 1].result[natts].status = SPD_FRG_OK;
 	}
