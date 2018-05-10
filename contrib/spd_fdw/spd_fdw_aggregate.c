@@ -17,6 +17,7 @@
 #include "catalog/pg_type.h"
 #include "catalog/pg_collation.h"
 #include "utils/int8.h"
+#include "postgres.h"
 #include "utils/bytea.h"
 #include "utils/varbit.h"
 #include "utils/cash.h"
@@ -28,6 +29,27 @@
 #include "executor/spi.h"
 #include "access/htup_details.h"
 #include "access/printtup.h"
+
+
+static char *
+getDelimiter(char *query)
+{
+	char	   *delimptr;
+
+	delimptr = strcasestr(query, "string_agg");
+	delimptr = strcasestr(delimptr, "\'");
+	delimptr += 1;
+	if (*delimptr == '\'')
+	{
+		delimptr = pstrdup("");
+	}
+	else
+	{
+		delimptr = strtok(delimptr, "\'");
+		delimptr = pstrdup(delimptr);
+	}
+	return delimptr;
+}
 
 static int	strcmpi(char *s1, char *s2);
 
@@ -215,6 +237,7 @@ spd_agg_max(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 
 	for (i = 0; i < num_aggs; i++)
 	{
+		
 		if (agginfodata[i].result[0].status != SPD_FRG_ERROR)	/* Consider a result
 																 * only if operation be
 																 * FDW was Successful */

@@ -3,7 +3,7 @@
  * pgspd
  * contrib/spd_fdw/spd_fdw.c
  *
- * Portions Copyright (c) 2018, TOSHIBA COOPERATION
+ * Portions Copyright (c) 2018, TOSHIBA CORPERATION
  *
  *-------------------------------------------------------------------------
  */
@@ -60,7 +60,7 @@ PG_MODULE_MAGIC;
 #include "spd_fdw_defs.h"
 #include "spd_fdw_aggregate.h"
 #include "funcapi.h"
-#include "../postgres_fdw/postgres_fdw.h"
+#include "postgres_fdw/postgres_fdw.h"
 
 #define BUFFERSIZE 1024
 #define QUERY_LENGTH 512
@@ -203,9 +203,9 @@ typedef struct SpdFdwPrivate
 }			SpdFdwPrivate;
 
 Oid			tempoid;
-
 pthread_mutex_t scan_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t error_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 
 static bool
 is_foreign_expr2(PlannerInfo *root, RelOptInfo *baserel, Expr *expr)
@@ -223,13 +223,9 @@ spd_AllocatePrivate()
 	 * Take from TopTransactionContext
 	 */
 	SpdFdwPrivate *p = (SpdFdwPrivate *)
-	MemoryContextAlloc(
-					   TopTransactionContext,
-					   sizeof(*p));
-
-	memset(p, 0, sizeof(*p));
+    MemoryContextAllocZero(TopTransactionContext,sizeof(*p));
 	p->thread_resource_owner = ResourceOwnerCreate(
-												   NULL, "SPD fdw resource owner"
+		NULL, "SPD fdw resource owner"
 		);
 	return p;
 }
@@ -286,7 +282,7 @@ spd_fdw_handler(PG_FUNCTION_ARGS)
  *
  * SPI_exec is used by main thread,  it is not need for lock.
  *
- * 1. spd_spi_exec() - get child table nums and oids from foreigntableid
+ * 1. spd_spi_exec_datasouce_num() - get child table nums and oids from foreigntableid
  * 2. spd_spi_exec_datasource_oid() - Get parent node oid from child node oid.
  * 3. spd_spi_exec_datasource_name() - Get child table's foreign server name from foreign table id(child table oid)
  * 4. spd_spi_exec_child_relname() - Get child Table oid's using parentTableName
@@ -296,29 +292,32 @@ spd_fdw_handler(PG_FUNCTION_ARGS)
  * Get chiled nodes oid and nums using parent node oid.
  *
  * @param[in] foreigntableid
+ * @param[in] context
  * @param[out] nums
  * @param[out] oid
  */
 static void
-spd_spi_exec(Oid foreigntableid, int *nums, Datum **oid)
+spd_spi_exec_datasouce_num(Oid foreigntableid, int *nums, Datum **oid)
 {
 	char		query[QUERY_LENGTH];
 	int			ret;
 	int			i;
 	int			spi_temp;
 	MemoryContext oldcontext;
+	MemoryContext spicontext;
 
+	oldcontext = CurrentMemoryContext;
 	ret = SPI_connect();
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
 
 	/*
-	 * child table name is "ParentTableName_NodeName_sequenceNum" There SQL
-	 * search child tables which name like "ParentTableName_...".
+	 * child table name is "ParentTableName_NodeName_sequenceNum". This SQL
+	 * searches child tables whose name is like "ParentTableName_...".
 	 * Foreigntableid is parent table oid.
 	 */
 
-	sprintf(query, "SELECT oid,relname FROM pg_class WHERE relname LIKE (select relname from pg_class where oid = %d)||'\\_\\_%%' ORDER BY relname;", foreigntableid);
+	sprintf(query, "SELECT oid,relname FROM pg_class WHERE relname LIKE (SELECT relname FROM pg_class WHERE oid = %d)||'\\_\\_%%' ORDER BY relname;", foreigntableid);
 	elog(DEBUG1, "execute spi exec %s", query);
 
 	ret = SPI_execute(query, true, 0);
@@ -328,9 +327,9 @@ spd_spi_exec(Oid foreigntableid, int *nums, Datum **oid)
 		SPI_finish();
 	}
 	spi_temp = SPI_processed;
-	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
+	spicontext = MemoryContextSwitchTo(oldcontext);
 	*oid = (Datum *) palloc(sizeof(Datum) * spi_temp);
-	MemoryContextSwitchTo(oldcontext);
+	MemoryContextSwitchTo(spicontext);
 	for (i = 0; i < SPI_processed; i++)
 	{
 		bool		isnull;
@@ -359,7 +358,7 @@ spd_spi_exec_datasource_oid(Datum foreigntableid)
 	Datum		oid = 0;
 
 	/*
-	 * child table name is "ParentTableName_NodeName_sequenceNum" There SQL
+	 * child table name is "ParentTableName_NodeName_sequenceNum". This SQL
 	 * search child tables which name is "ParentTableName_xxx".
 	 */
 	sprintf(query, "SELECT oid,srvname FROM pg_foreign_server WHERE srvname=(SELECT foreign_server_name FROM information_schema._pg_foreign_tables WHERE foreign_table_name = (SELECT relname FROM pg_class WHERE oid = %d)) ORDER BY srvname;", (int) foreigntableid);
@@ -376,7 +375,7 @@ spd_spi_exec_datasource_oid(Datum foreigntableid)
 	if (SPI_processed != 1)
 	{
 		SPI_finish();
-		elog(ERROR, "error SPIexecute can not find datasource ");
+		elog(ERROR, "error SPIexecute can not find datasource");
 	}
 	oid = SPI_getbinval(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1, &isnull);
 	elog(DEBUG1, "spd child datasource oid = %d", (int) oid);
@@ -398,20 +397,20 @@ spd_spi_exec_datasource_name(Datum foreigntableid, char *srvname)
 {
 	char		query[QUERY_LENGTH];
 	char	   *temp;
+	int         ret;
 
-	int			i;
-
-	if ((i = SPI_connect()) < 0)
-		elog(ERROR, "SPI connect failure - returned %d", i);
+	ret = SPI_connect();
+	if (ret < 0)
+		elog(ERROR, "SPI connect failure - returned %d", ret);
 
 	/* get child server name from child's foreign table id */
-	sprintf(query, "select foreign_server_name from information_schema._pg_foreign_tables where foreign_table_name = (select relname from pg_class where oid = %d) order by foreign_server_name;", (int) foreigntableid);
+	sprintf(query, "SELECT foreign_server_name FROM information_schema._pg_foreign_tables WHERE foreign_table_name = (SELECT relname FROM pg_class WHERE oid = %d) ORDER BY foreign_server_name;", (int) foreigntableid);
 
 	elog(DEBUG1, "%s: execute sql = %s", __FUNCTION__, query);
 
-	i = SPI_execute(query, true, 0);
-	if (i != SPI_OK_SELECT)
-		elog(DEBUG1, "error %d\n", i);
+	ret = SPI_execute(query, true, 0);
+	if (ret != SPI_OK_SELECT)
+		elog(DEBUG1, "error %d", ret);
 
 	temp = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
 
@@ -440,7 +439,9 @@ spd_spi_exec_child_relname(char *parentTableName, SpdFdwPrivate * fdw_private, D
 	int			i;
 	int			ret;
 	MemoryContext oldcontext;
+	MemoryContext spicontext;
 
+    oldcontext = CurrentMemoryContext;
 	if (fdw_private->url_parse_list != NIL)
 	{
 		entry = (char *) list_nth(fdw_private->url_parse_list, 0);
@@ -450,13 +451,13 @@ spd_spi_exec_child_relname(char *parentTableName, SpdFdwPrivate * fdw_private, D
 	/* get child server name from child's foreign table id */
 	if (fdw_private->under_flag == 0)
 	{
-		sprintf(query, "SELECT relname,oid from pg_class WHERE relname LIKE \
+		sprintf(query, "SELECT oid from pg_class WHERE relname LIKE \
                 '%s\\_\\_\%%' ORDER BY relname;", parentTableName);
 	}
 	else
 	{
 		/* if UNDER clause is used, then return UNDER child tables only, */
-		sprintf(query, "SELECT relname,oid from pg_class WHERE relname LIKE \
+		sprintf(query, "SELECT oid from pg_class WHERE relname LIKE \
                 '%s\\_\\_%s\\_\\_\%%' ORDER BY relname;", parentTableName, entry);
 	}
 	elog(DEBUG1, "relation name = %s", parentTableName);
@@ -476,23 +477,18 @@ spd_spi_exec_child_relname(char *parentTableName, SpdFdwPrivate * fdw_private, D
 		SPI_finish();
 		elog(ERROR, "error SPIexecute failure child table not found");
 	}
-	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
+	spicontext = MemoryContextSwitchTo(oldcontext);
 	*oid = (Datum *) palloc(sizeof(Datum) * SPI_processed);
-	MemoryContextSwitchTo(oldcontext);
+	MemoryContextSwitchTo(spicontext);
 	for (i = 0; i < SPI_processed; i++)
 	{
-		char	   *text;
 		bool		isnull;
 
-		text = SPI_getvalue(SPI_tuptable->vals[i],
-							SPI_tuptable->tupdesc,
-							1);
-
-		oid[0][i] = SPI_getbinval(SPI_tuptable->vals[i],
+		(*oid)[i] = SPI_getbinval(SPI_tuptable->vals[i],
 								  SPI_tuptable->tupdesc,
-								  2,
+								  1,
 								  &isnull);
-		pfree(text);
+		elog(DEBUG1, "fdw_private->node_num = %d", fdw_private->node_num);
 	}
 	fdw_private->node_num = SPI_processed;
 	SPI_finish();
@@ -544,6 +540,8 @@ spd_ForeignScan_thread(void *arg)
 	SpdFdwPrivate *fdw_private = fssthrdInfo->private;
 	AggState   *aggState = NULL;
 
+	elog(DEBUG1, "entering function %s", __func__);
+
 	CurrentResourceOwner = fdw_private->thread_resource_owner;
 
 	fssthrdInfo->me = pthread_self();
@@ -571,7 +569,7 @@ spd_ForeignScan_thread(void *arg)
 		lock_taken = 0;
 #ifdef MEASURE_TIME
 		gettimeofday(&e, NULL);
-		elog(DEBUG1, "thread%d begin foreign scan time = %lf\n", fssthrdInfo->serverId, (e.tv_sec - s.tv_sec) + (e.tv_usec - s.tv_usec) * 1.0E-6);
+		elog(DEBUG1, "thread%d begin foreign scan time = %lf", fssthrdInfo->serverId, (e.tv_sec - s.tv_sec) + (e.tv_usec - s.tv_usec) * 1.0E-6);
 #endif
 	}
 	PG_CATCH();
@@ -583,7 +581,7 @@ spd_ForeignScan_thread(void *arg)
 			pthread_mutex_unlock(&scan_mutex);
 			pthread_mutex_unlock(&fssthrdInfo->nodeMutex);
 		}
-		elog(DEBUG1, "Thread error occurred during BeginForeignScan(). %s:%d\n",
+		elog(DEBUG1, "Thread error occurred during BeginForeignScan(). %s:%d",
 			 __FILE__, __LINE__);
 	}
 	PG_END_TRY();
@@ -607,7 +605,7 @@ RESCAN:
 	if (fssthrdInfo->queryRescan &&
 		fssthrdInfo->state != SPD_FS_STATE_BEGIN)
 	{
-		elog(DEBUG1, "Rescan is queried\n");
+		elog(DEBUG1, "Rescan is queried");
 		pthread_mutex_lock(&scan_mutex);
 		lock_taken = 1;
 		fssthrdInfo->fdwroutine->ReScanForeignScan(fssthrdInfo->fsstate);
@@ -714,7 +712,7 @@ RESCAN:
 				elog(WARNING, " Failed to PQgetCancel");
 			PQfreeCancel(cancel);
 		}
-		elog(DEBUG1, "Thread error occurred during IterateForeignScan(). %s:%d\n",
+		elog(DEBUG1, "Thread error occurred during IterateForeignScan(). %s:%d",
 			 __FILE__, __LINE__);
 	}
 	PG_END_TRY();
@@ -729,7 +727,7 @@ RESCAN:
 	}
 #ifdef MEASURE_TIME
 	gettimeofday(&e1, NULL);
-	elog(DEBUG1, "thread%d end ite time = %lf\n", fssthrdInfo->serverId, (e1.tv_sec - e.tv_sec) + (e1.tv_usec - e.tv_usec) * 1.0E-6);
+	elog(DEBUG1, "thread%d end ite time = %lf", fssthrdInfo->serverId, (e1.tv_sec - e.tv_sec) + (e1.tv_usec - e.tv_usec) * 1.0E-6);
 #endif
 	/* End of the ForeignScan */
 	fssthrdInfo->state = SPD_FS_STATE_END;
@@ -758,7 +756,7 @@ RESCAN:
 	}
 	PG_CATCH();
 	{
-		elog(DEBUG1, "Thread error occurred during EndForeignScan(). %s:%d\n",
+		elog(DEBUG1, "Thread error occurred during EndForeignScan(). %s:%d",
 			 __FILE__, __LINE__);
 		pthread_mutex_unlock(&scan_mutex);
 	}
@@ -776,7 +774,7 @@ THREAD_EXIT:
 	pthread_mutex_unlock(&fssthrdInfo->nodeMutex);
 #ifdef MEASURE_TIME
 	gettimeofday(&e, NULL);
-	elog(DEBUG1, "thread%d all time = %lf\n", fssthrdInfo->serverId, (e.tv_sec - s.tv_sec) + (e.tv_usec - s.tv_usec) * 1.0E-6);
+	elog(DEBUG1, "thread%d all time = %lf", fssthrdInfo->serverId, (e.tv_sec - s.tv_sec) + (e.tv_usec - s.tv_usec) * 1.0E-6);
 #endif
 	MemoryContextSwitchTo(oldcontext);
 	pthread_exit(NULL);
@@ -794,8 +792,8 @@ THREAD_EXIT:
  * Pattern3 Url = ""
  *  List head NULL List tail = NULL
  *
- * @param[in] url_str - url
- * @param[out] fdw_private - store to parsing url
+ * @param[in] url_str - URL
+ * @param[out] fdw_private - store to parsing URL
  */
 static void
 spd_ParseUrl(char *url_str, SpdFdwPrivate * fdw_private)
@@ -803,52 +801,50 @@ spd_ParseUrl(char *url_str, SpdFdwPrivate * fdw_private)
 	char	   *tp;
 	char	   *url_option = palloc(sizeof(char) * strlen(url_str));
 	char	   *next = NULL;
+	char	   *first_url = NULL;
+	char	   *throwing_url = NULL;
+	int			p;
 
 	strcpy(url_option, url_str);
 
 	if (url_option == NULL)
 		return;
 	tp = strtok_r(url_option, "/", &next);
-	elog(DEBUG1, "fist parse = %s\n", tp);
-	if (tp != NULL)
+	elog(DEBUG1, "fist parse = %s", tp);
+	if (tp == NULL)
 	{
-		char	   *first_url = NULL;
-		char	   *throwing_url = NULL;
-		int			p = strlen(url_option);
-
-		fdw_private->url_parse_list = lappend(fdw_private->url_parse_list, tp);
-		if (p + 1 != strlen(url_str))
-		{
-			throwing_url = palloc(sizeof(char) * strlen(url_str) + 1);
-			elog(DEBUG1, "url length = %d", (int) strlen(url_str));
-			strcpy(throwing_url, &url_str[p]);
-			first_url = strtok_r(NULL, "/", &next);
-			elog(DEBUG1, "first = %s,throwing = %s, orig = %s", first_url, throwing_url, tp);
-			fdw_private->url_parse_list = lappend(fdw_private->url_parse_list, first_url);
-			fdw_private->url_parse_list = lappend(fdw_private->url_parse_list, throwing_url);
-		}
+		return;
+	}
+	p = strlen(url_option);
+	fdw_private->url_parse_list = lappend(fdw_private->url_parse_list, tp);
+	if (p + 1 != strlen(url_str))
+	{
+		throwing_url = pstrdup(&url_str[p]);
+		first_url = strtok_r(NULL, "/", &next);
+		elog(DEBUG1, "first = %s,throwing = %s, orig = %s", first_url, throwing_url, tp);
+		fdw_private->url_parse_list = lappend(fdw_private->url_parse_list, first_url);
+		fdw_private->url_parse_list = lappend(fdw_private->url_parse_list, throwing_url);
 	}
 }
 
 
 /**
- * Get URL from RangeTableEntry and create new url with deleting first url.
+ * Get URL from RangeTableEntry and create new URL with deleting first URL.
  *
  * @param[in] nums - num of child tables
- * @param[in] url_str - old url
- * @param[in] fdw_private - store to parsing url
- * @param[out] new_underurl - new url
+ * @param[in] url_str - old URL
+ * @param[in] fdw_private - store to parsing URL
+ * @param[out] new_underurl - new URL
  *
  */
 static void
 spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_private, char **new_underurl)
 {
-	MemoryContext oldcontext;
-
-	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
+	char *original_url;
+	char *throwing_url;
+	char *first_url;
 
 	elog(DEBUG1, "spd_create_child_url");
-	spd_ParseUrl(r_entry->url, fdw_private);
 	if (r_entry->url == NULL)
 	{
 		/* DO NOTHING */
@@ -859,86 +855,75 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 			elog(DEBUG1, "set alive_node is true");
 			fdw_private->child_table_alive = lappend_int(fdw_private->child_table_alive, TRUE);
 		}
+		return;
 	}
-	else if (fdw_private->url_parse_list == NULL)
+	/*
+	 * entry is first parsing word(/foo/bar/, then entry is "foo",entry2
+	 * is "bar")
+	 */
+	spd_ParseUrl(r_entry->url, fdw_private);
+	if (fdw_private->url_parse_list == NULL)
 	{
 		elog(ERROR, "UNDER Clause use but can not find url. Please set UNDER string.");
 	}
-	else
+	if (fdw_private->url_parse_list->length == 0)
 	{
-		/*
-		 * entry is first parsing word(/foo/bar/, then entry is "foo",entry2
-		 * is "bar")
-		 */
-		char	   *original_url = NULL;	/* original URL */
-		char	   *first_url = NULL;	/* header of URL */
-		char	   *throwing_url = NULL;	/* throwing url */
-		int			d_count = 0;
-
-		if (fdw_private->url_parse_list->length == 0)
-		{
-			for (int i = 0; i < childnums; i++)
-			{
-				elog(DEBUG1, "set alive_node is true");
-				fdw_private->child_table_alive = lappend_int(fdw_private->child_table_alive, TRUE);
-			}
-			return;
-		}
-		original_url = (char *) list_nth(fdw_private->url_parse_list, 0);
-		if (fdw_private->url_parse_list->length > 2)
-		{
-			first_url = (char *) list_nth(fdw_private->url_parse_list, 1);
-			elog(DEBUG1, "first_url = %s", first_url);
-			throwing_url = (char *) list_nth(fdw_private->url_parse_list, 2);
-			elog(DEBUG1, "throwing_url = %s", throwing_url);
-		}
-		/* If UNDER Clause is used, then store to parsing url */
 		for (int i = 0; i < childnums; i++)
 		{
-			char		srvname[NAMEDATALEN];
-			Datum		temp_oid = list_nth_oid(fdw_private->ft_oid_list,
-												i - d_count);
-			Oid			temp_tableid;
-			ForeignServer *temp_server;
-			ForeignDataWrapper *temp_fdw;
-
-			spd_spi_exec_datasource_name(temp_oid, srvname);
-			elog(DEBUG1, "srv_name = %s, original_url = %s %s %s", srvname, original_url, first_url, throwing_url);
-			if (strcmp(original_url, srvname) != 0)
-			{
-				elog(DEBUG1, "srvname is not same. set alive_node is false");
-				fdw_private->child_table_alive = lappend_int(fdw_private->child_table_alive, FALSE);
-				continue;
-			}
 			elog(DEBUG1, "set alive_node is true");
-			if (first_url == NULL)
+			fdw_private->child_table_alive = lappend_int(fdw_private->child_table_alive, TRUE);
+		}
+		return;
+	}
+	
+	original_url = (char *) list_nth(fdw_private->url_parse_list, 0);
+	if (fdw_private->url_parse_list->length > 2)
+	{
+		first_url = (char *) list_nth(fdw_private->url_parse_list, 1);
+		elog(DEBUG1, "first_url = %s", first_url);
+		throwing_url = (char *) list_nth(fdw_private->url_parse_list, 2);
+		elog(DEBUG1, "throwing_url = %s", throwing_url);
+	}
+	/* If UNDER Clause is used, then store to parsing url */
+	for (int i = 0; i < childnums; i++)
+	{
+		char		srvname[NAMEDATALEN];
+		Datum		temp_oid = list_nth_oid(fdw_private->ft_oid_list, i);
+		Oid			temp_tableid;
+		ForeignServer *temp_server;
+		ForeignDataWrapper *temp_fdw;
+
+		spd_spi_exec_datasource_name(temp_oid, srvname);
+		elog(DEBUG1, "srv_name = %s, original_url = %s %s %s", srvname, original_url, first_url, throwing_url);
+		if (strcmp(original_url, srvname) != 0)
+		{
+			elog(DEBUG1, "srvname is not same. set alive_node is false");
+			fdw_private->child_table_alive = lappend_int(fdw_private->child_table_alive, FALSE);
+			continue;
+		}
+		fdw_private->child_table_alive = lappend_int(fdw_private->child_table_alive, TRUE);
+		/*
+		 * if child-child node is exist, then create New UNDER clause. New
+		 * UNDER clause is used by child spd server.
+		 */
+
+		if (throwing_url != NULL)
+		{
+			if(strcmp(temp_fdw->fdwname, POSTGRES_FDW_NAME) != 0)
 			{
-				fdw_private->child_table_alive = lappend_int(fdw_private->child_table_alive, TRUE);
+				elog(ERROR, "Child node is not spd");
 			}
-
-			/*
-			 * if child-child node is exist, then create New UNDER clause. New
-			 * UNDER clause is used by child spd server.
-			 */
-
 			/* check child table fdw is spd or not */
 			temp_tableid = GetForeignServerIdByRelId(temp_oid);
 			temp_server = GetForeignServer(temp_tableid);
 			temp_fdw = GetForeignDataWrapper(temp_server->fdwid);
-
-			if (strcmp(temp_fdw->fdwname, POSTGRES_FDW_NAME) == 0 && throwing_url != NULL)
-			{
-				/* if child table fdw is spd, then execute operation */
-				fdw_private->under_flag = 1;
-				*new_underurl = pstrdup(first_url);
-				elog(DEBUG1, "new under url = %s", *new_underurl);
-			}
+			/* if child table fdw is spd, then execute operation */
+			fdw_private->under_flag = 1;
+			*new_underurl = pstrdup(first_url);
+			elog(DEBUG1, "new under url = %s", *new_underurl);
 		}
 	}
-	MemoryContextSwitchTo(oldcontext);
-
 }
-
 /**
  * spd_CreateDummyRoot
  *
@@ -962,134 +947,127 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Datum *oid, int oid_
 	ListCell   *l;
 	Datum		oid_server;
 	int			i = 0;
-	MemoryContext oldcontext;
-
-	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 
 	if (fdw_private->dummy_base_rel_list == NIL)
 	{
 		for (i = 0; i < oid_nums; i++)
 		{
 			Oid			rel_oid = 0;
+			PlannerInfo *dummy_root = NULL;
+			Query	   *query;
+			PlannerGlobal *glob;
+			RangeTblEntry *rte;
+			int			k;
 
 			rel_oid = list_nth_oid(fdw_private->ft_oid_list, i);
-			if (rel_oid != 0)
+			if (rel_oid == 0)
 			{
-				PlannerInfo *dummy_root = NULL;
-
-				oid_server = spd_spi_exec_datasource_oid(rel_oid);
-				fdwroutine = GetFdwRoutineByServerId(oid_server);
-				{
-					Query	   *query;
-					PlannerGlobal *glob;
-					RangeTblEntry *rte;
-					int			k;
-
-					/*
-					 * Set up mostly-dummy planner state PlannerInfo can not
-					 * deep copy with copyObject(). BUt It should create dummy
-					 * PlannerInfo for each child tables. Following code is
-					 * copy from plan_cluster_use_sort(), it create simple
-					 * PlannerInfo.
-					 */
-					query = makeNode(Query);
-					query->commandType = CMD_SELECT;
-					glob = makeNode(PlannerGlobal);
-
-					dummy_root = makeNode(PlannerInfo);
-					dummy_root->parse = query;
-					dummy_root->glob = glob;
-					dummy_root->query_level = 1;
-					dummy_root->planner_cxt = CurrentMemoryContext;
-					dummy_root->wt_param_id = -1;
-
-					/* Build a minimal RTE for the rel */
-					rte = makeNode(RangeTblEntry);
-					rte->rtekind = RTE_RELATION;
-					rte->relid = rel_oid;
-					rte->relkind = RELKIND_RELATION;	/* Don't be too picky. */
-					rte->eref = makeNode(Alias);
-					rte->eref->aliasname = pstrdup("");
-					rte->lateral = false;
-					rte->inh = false;
-					rte->inFromCl = true;
-					rte->eref = makeAlias(pstrdup(""), NIL);
-
-					/*
-					 * if child node is spd and UNDER clause is used, then
-					 * should set new UNDER clause URL at child node planner
-					 * URL.
-					 */
-					if (new_underurl != NULL)
-					{
-						rte->url = palloc(sizeof(char) * strlen(new_underurl));
-						strcpy(rte->url, new_underurl);
-						elog(DEBUG1, "rte->url = %s\n", new_underurl);
-					}
-
-					/*
-					 * Create child range table
-					 */
-					query->rtable = list_make1(rte);
-					for (k = 1; k < baserel->relid; k++)
-					{
-						query->rtable = lappend(query->rtable, rte);
-					}
-					/* Set up RTE/RelOptInfo arrays */
-					setup_simple_rel_arrays(dummy_root);
-
-					/*
-					 * Build RelOptInfo Build simple relation and copy target
-					 * list and strict info from root information.
-					 */
-					entry_baserel = build_simple_rel(dummy_root, baserel->relid, RELOPT_BASEREL);
-					entry_baserel->reltarget->exprs = copyObject(baserel->reltarget->exprs);
-					entry_baserel->baserestrictinfo = copyObject(baserel->baserestrictinfo);
-				}
-				PG_TRY();
-				{
-					fdwroutine->GetForeignRelSize(dummy_root, entry_baserel, DatumGetObjectId(rel_oid));
-					elog(DEBUG1, "base add");
-					fdw_private->dummy_base_rel_list = lappend(fdw_private->dummy_base_rel_list, entry_baserel);
-					fdw_private->dummy_root_list = lappend(fdw_private->dummy_root_list, dummy_root);
-				}
-				PG_CATCH();
-				{
-					/*
-					 * Even If fail to create dummy_root_list, then append
-					 * dummy_base_rel_list and dummy_root_list success to
-					 * creating. But spd should stop following step for failed
-					 * child table, so, set fdw_private->child_table_alive to
-					 * FALSE
-					 *
-					 * spd_beginForeignScan() get information of child tables
-					 * from system table and compare it with
-					 * fdw_private->dummy_base_rel_list. That's why, the
-					 * length of fdw_private->dummy_base_rel_list should match
-					 * the number of all of the child tables belong to parent
-					 * table.
-					 */
-					fdw_private->dummy_base_rel_list = lappend(fdw_private->dummy_base_rel_list, entry_baserel);
-					fdw_private->dummy_root_list = lappend(fdw_private->dummy_root_list, dummy_root);
-					l = list_nth_cell(fdw_private->child_table_alive, i);
-					l->data.int_value = FALSE;
-					elog(DEBUG1, "base NOT add");
-				}
-				PG_END_TRY();
+				continue;
 			}
+
+			oid_server = spd_spi_exec_datasource_oid(rel_oid);
+			fdwroutine = GetFdwRoutineByServerId(oid_server);
+
+			/*
+			 * Set up mostly-dummy planner state PlannerInfo can not
+			 * deep copy with copyObject(). BUt It should create dummy
+			 * PlannerInfo for each child tables. Following code is
+			 * copy from plan_cluster_use_sort(), it create simple
+			 * PlannerInfo.
+			 */
+			query = makeNode(Query);
+			query->commandType = CMD_SELECT;
+			glob = makeNode(PlannerGlobal);
+
+			dummy_root = makeNode(PlannerInfo);
+			dummy_root->parse = query;
+			dummy_root->glob = glob;
+			dummy_root->query_level = 1;
+			dummy_root->planner_cxt = CurrentMemoryContext;
+			dummy_root->wt_param_id = -1;
+
+			/* Build a minimal RTE for the rel */
+			rte = makeNode(RangeTblEntry);
+			rte->rtekind = RTE_RELATION;
+			rte->relid = rel_oid;
+			rte->relkind = RELKIND_RELATION;	/* Don't be too picky. */
+			rte->eref = makeNode(Alias);
+			rte->eref->aliasname = pstrdup("");
+			rte->lateral = false;
+			rte->inh = false;
+			rte->inFromCl = true;
+			rte->eref = makeAlias(pstrdup(""), NIL);
+
+			/*
+			 * if child node is spd and UNDER clause is used, then
+			 * should set new UNDER clause URL at child node planner
+			 * URL.
+			 */
+			if (new_underurl != NULL)
+			{
+				rte->url = palloc(sizeof(char) * strlen(new_underurl));
+				strcpy(rte->url, new_underurl);
+				elog(DEBUG1, "rte->url = %s", new_underurl);
+			}
+
+			/*
+			 * Create child range table
+			 */
+			query->rtable = list_make1(rte);
+			for (k = 1; k < baserel->relid; k++)
+			{
+				query->rtable = lappend(query->rtable, rte);
+			}
+			/* Set up RTE/RelOptInfo arrays */
+			setup_simple_rel_arrays(dummy_root);
+
+			/*
+			 * Build RelOptInfo Build simple relation and copy target
+			 * list and strict info from root information.
+			 */
+			entry_baserel = build_simple_rel(dummy_root, baserel->relid, RELOPT_BASEREL);
+			entry_baserel->reltarget->exprs = copyObject(baserel->reltarget->exprs);
+			entry_baserel->baserestrictinfo = copyObject(baserel->baserestrictinfo);
+			PG_TRY();
+			{
+				fdwroutine->GetForeignRelSize(dummy_root, entry_baserel, DatumGetObjectId(rel_oid));
+				elog(DEBUG1, "base add");
+				fdw_private->dummy_base_rel_list = lappend(fdw_private->dummy_base_rel_list, entry_baserel);
+				fdw_private->dummy_root_list = lappend(fdw_private->dummy_root_list, dummy_root);
+			}
+			PG_CATCH();
+			{
+				/*
+				 * Even If fail to create dummy_root_list, then append
+				 * dummy_base_rel_list and dummy_root_list success to
+				 * creating. But spd should stop following step for failed
+				 * child table, so, set fdw_private->child_table_alive to
+				 * FALSE
+				 *
+				 * spd_beginForeignScan() get information of child tables
+				 * from system table and compare it with
+				 * fdw_private->dummy_base_rel_list. That's why, the
+				 * length of fdw_private->dummy_base_rel_list should match
+				 * the number of all of the child tables belong to parent
+				 * table.
+				 */
+				fdw_private->dummy_base_rel_list = lappend(fdw_private->dummy_base_rel_list, entry_baserel);
+				fdw_private->dummy_root_list = lappend(fdw_private->dummy_root_list, dummy_root);
+				l = list_nth_cell(fdw_private->child_table_alive, i);
+				l->data.int_value = FALSE;
+				elog(DEBUG1, "base NOT add");
+			}
+			PG_END_TRY();
 		}
-		if (fdw_private->dummy_base_rel_list == NIL &&
-			r_entry->url != NULL &&
-			strcmp(r_entry->url, "/") != 0)
+		/* If child node can not find */
+		if (fdw_private->dummy_base_rel_list == NIL && r_entry->url != NULL && strcmp(r_entry->url, "/") != 0)
 		{
 			ereport(ERROR, (errmsg("Cannot find the URL")));
 		}
-
 	}
 	else
 	{
 		int			i = 0;
-
 		foreach(l, fdw_private->dummy_base_rel_list)
 		{
 			PG_TRY();
@@ -1100,7 +1078,7 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Datum *oid, int oid_
 				oid_server = spd_spi_exec_datasource_oid(rel_oid);
 				fdwroutine = GetFdwRoutineByServerId(oid_server);
 				fdwroutine->GetForeignRelSize(root, entry, DatumGetObjectId(rel_oid));
-				elog(DEBUG1, "base add\n");
+				elog(DEBUG1, "base add");
 				i++;
 			}
 			PG_CATCH();
@@ -1111,7 +1089,6 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Datum *oid, int oid_
 			PG_END_TRY();
 		}
 	}
-	MemoryContextSwitchTo(oldcontext);
 }
 
 /**
@@ -1125,10 +1102,10 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Datum *oid, int oid_
  * SPD should create child node plan information, main thread create it using this function.
  *
  *
- * @param[in] root - base planner infromation
+ * @param[in] root - base planner information
  * @param[in] baserel - base relation option
  * @param[in] foreigntableid - Parent foreing table id
- * @param[out] fdw_private - store to parsing url
+ * @param[out] fdw_private - store to parsing URL
  */
 
 static void
@@ -1153,22 +1130,21 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	fdw_private->rinfo.pushdown_safe = true;
 	baserel->fdw_private = (void *) fdw_private;
 
-	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
+	oldcontext = MemoryContextSwitchTo(CurrentMemoryContext);
 	/* get child datasouce oid and nums */
-	spd_spi_exec(foreigntableid, &nums, &oid);
+    spd_spi_exec_datasouce_num(foreigntableid, &nums, &oid);
 	if (nums == 0)
 	{
-		ereport(ERROR, (errmsg("Cannot Find child datasources. \n")));
+		ereport(ERROR, (errmsg("Cannot Find child datasources. ")));
 	}
 
 	for (int i = 0; i < nums; i++)
 	{
 		fdw_private->ft_oid_list = lappend_int(fdw_private->ft_oid_list,
 											   oid[i]);
-		elog(DEBUG1, "append \n");
+		elog(DEBUG1, "append ");
 	}
-
-	/* Check to UNDER phrase and execute only UNDER URL server */
+	pfree(oid);
 	Assert(baserel->reloptkind == RELOPT_BASEREL);
 	r_entry = root->simple_rte_array[baserel->relid];
 	Assert(r_entry != NULL);
@@ -1269,7 +1245,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	fdw_private->pPseudoAggPushList = NIL;
 	fdw_private->pPseudoAggList = NIL;
 	fdw_private->pPseudoAggTypeList = NIL;
-	fdw_private->agg_query = true;
 
 	/* Call the below FDW's GetForeignUpperPaths */
 	if (in_fdw_private->dummy_base_rel_list != NIL)
@@ -1290,102 +1265,98 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			oid_server = spd_spi_exec_datasource_oid(rel_oid);
 			/* pthread_mutex_lock(&scan_mutex); */
 			fdwroutine = GetFdwRoutineByServerId(oid_server);
-			/* Push Down case */
-			if (fdwroutine->GetForeignUpperPaths)
+			RelOptInfo *dummy_output_rel;
+			PathTarget *grouping_target;
+			ListCell   *lc;
+			int			listn = 0;
+			
+			/* Currently dummy. @todo more better parsed object. */
+			dummy_root->parse->hasAggs = true;
+			
+			/* Call below FDW to check it is OK to pushdown or not. */
+			/* refer relnode.c fetch_upper_rel() */
+			dummy_output_rel = makeNode(RelOptInfo);
+			dummy_output_rel->reloptkind = RELOPT_UPPER_REL;
+			dummy_output_rel->relids = bms_copy(entry->relids);
+			dummy_output_rel->reltarget = create_empty_pathtarget();
+			dummy_root->upper_rels[UPPERREL_GROUP_AGG] =
+				lappend(dummy_root->upper_rels[UPPERREL_GROUP_AGG],
+						dummy_output_rel);
+			/* make pathtarget */
+			dummy_root->upper_targets[UPPERREL_GROUP_AGG] =
+				copy_pathtarget(root->upper_targets[UPPERREL_GROUP_AGG]);
+			dummy_root->upper_targets[UPPERREL_WINDOW] =
+				copy_pathtarget(root->upper_targets[UPPERREL_WINDOW]);
+			dummy_root->upper_targets[UPPERREL_FINAL] =
+				copy_pathtarget(root->upper_targets[UPPERREL_FINAL]);
+			grouping_target = root->upper_targets[UPPERREL_GROUP_AGG];
+			foreach(lc, grouping_target->exprs)
 			{
-				RelOptInfo *dummy_output_rel;
-				PathTarget *grouping_target;
-				ListCell   *lc;
-				int			listn = 0;
-
-				/* Currently dummy. @todo more better parsed object. */
-				dummy_root->parse->hasAggs = true;
-
-				/* Call below FDW to check it is OK to pushdown or not. */
-				/* refer relnode.c fetch_upper_rel() */
-				dummy_output_rel = makeNode(RelOptInfo);
-				dummy_output_rel->reloptkind = RELOPT_UPPER_REL;
-				dummy_output_rel->relids = bms_copy(entry->relids);
-				dummy_output_rel->reltarget = create_empty_pathtarget();
-				dummy_root->upper_rels[UPPERREL_GROUP_AGG] =
-					lappend(dummy_root->upper_rels[UPPERREL_GROUP_AGG],
-							dummy_output_rel);
-				/* make pathtarget */
-				dummy_root->upper_targets[UPPERREL_GROUP_AGG] =
-					copy_pathtarget(root->upper_targets[UPPERREL_GROUP_AGG]);
-				dummy_root->upper_targets[UPPERREL_WINDOW] =
-					copy_pathtarget(root->upper_targets[UPPERREL_WINDOW]);
-				dummy_root->upper_targets[UPPERREL_FINAL] =
-					copy_pathtarget(root->upper_targets[UPPERREL_FINAL]);
-				grouping_target = root->upper_targets[UPPERREL_GROUP_AGG];
-				foreach(lc, grouping_target->exprs)
+				Expr	   *expr = (Expr *) lfirst(lc);
+				Aggref	   *aggref;
+				Expr	   *temp_expr;
+				
+				aggref = (Aggref *) expr;
+				temp_expr = list_nth(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs, listn);
+				listn++;
+				if ((aggref->aggfnoid >= AVG_MIN_OID && aggref->aggfnoid <= AVG_MAX_OID) ||
+					(aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID) ||
+					(aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
 				{
-					Expr	   *expr = (Expr *) lfirst(lc);
-					Aggref	   *aggref;
-					Expr	   *temp_expr;
-
-					aggref = (Aggref *) expr;
-					temp_expr = list_nth(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs, listn);
-					listn++;
-					if ((aggref->aggfnoid >= AVG_MIN_OID && aggref->aggfnoid <= AVG_MAX_OID) || (aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID) || (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
-					{
-						/* Prepare SUM Query */
+					/* Prepare SUM Query */
 						/*
 						 * TODO: Appropriate aggfnoid should be choosen based
 						 * on type
 						 */
-						Aggref	   *tempSUM = copyObject(aggref);
-						Aggref	   *temp;
-
-						tempSUM->aggfnoid = COUNT_OID;
-						tempSUM->aggtype = BIGINT_OID;
-						tempSUM->aggtranstype = BIGINT_OID;
-
-						/* Prepare Count Query */
-						temp = copyObject(tempSUM);
-						temp->aggfnoid = SUM_OID;
-						temp->aggargtypes = NULL;
-						elog(DEBUG1, "insert avg expr");
-						newList = lappend(newList, tempSUM);
-						newList = lappend(newList, temp);
-					}
-					else
-					{
-						dummy_root->upper_targets[UPPERREL_WINDOW] = copy_pathtarget(root->upper_targets[UPPERREL_WINDOW]);
-						elog(DEBUG1, "insert orign expr");
-						newList = lappend(newList, temp_expr);
-					}
+					Aggref	   *tempSUM = copyObject(aggref);
+					Aggref	   *temp;
+					
+					tempSUM->aggfnoid = COUNT_OID;
+					tempSUM->aggtype = BIGINT_OID;
+					tempSUM->aggtranstype = BIGINT_OID;
+					
+					/* Prepare Count Query */
+					temp = copyObject(tempSUM);
+					temp->aggfnoid = SUM_OID;
+					temp->aggargtypes = NULL;
+					elog(DEBUG1, "insert avg expr");
+					newList = lappend(newList, tempSUM);
+					newList = lappend(newList, temp);
 				}
-				foreach(lc, dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs)
+				else
 				{
-					dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs =
-						list_delete_first(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs);
+					dummy_root->upper_targets[UPPERREL_WINDOW] = copy_pathtarget(root->upper_targets[UPPERREL_WINDOW]);
+					elog(DEBUG1, "insert orign expr");
+					newList = lappend(newList, temp_expr);
 				}
-				foreach(lc, newList)
-				{
-					Expr	   *expr = (Expr *) lfirst(lc);
-
-					elog(DEBUG1, "insert expr");
-					dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs =
-						lappend(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs, expr);
-				}
-
+			}
+			foreach(lc, dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs)
+			{
+				dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs =
+					list_delete_first(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs);
+			}
+			foreach(lc, newList)
+			{
+				Expr	   *expr = (Expr *) lfirst(lc);
+				elog(DEBUG1, "insert expr");
+				dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs =
+					lappend(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs, expr);
+			}
+			if(fdwroutine->GetForeignUpperPaths!=NULL){
 				fdwroutine->GetForeignUpperPaths(
-												 dummy_root,
-												 stage, entry, dummy_output_rel);
+					dummy_root,
+					stage, entry, dummy_output_rel);
 				fdw_private->dummy_base_rel_list =
 					lappend(fdw_private->dummy_base_rel_list,
 							dummy_output_rel);
 				fdw_private->pPseudoAggPushList = lappend_oid(fdw_private->pPseudoAggPushList, oid_server);
-			}
-			else
-			{
+			}else{
 				/* Not Push Down case */
 				fdw_private->dummy_base_rel_list = lappend(fdw_private->dummy_base_rel_list, entry);
 				fdw_private->pPseudoAggList = lappend_oid(fdw_private->pPseudoAggList, oid_server);
 			}
 			/* pthread_mutex_unlock(&scan_mutex); */
-			elog(DEBUG1, "upperpath add\n");
+			elog(DEBUG1, "upperpath add");
 			i++;
 		}
 	}
@@ -1403,7 +1374,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
  * Given input_rel represents the underlying scan.  The paths are added to the
  * given grouped_rel.
  *
- * @param[in] root - base planner infromation
+ * @param[in] root - base planner information
  * @param[in] input_rel - input RelOptInfo
  * @param[in] grouped_rel - grouped relation RelOptInfo
  */
@@ -1476,7 +1447,7 @@ add_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
  * down to the foreign server.  As a side effect, save information we obtain in
  * this function to SpdFdwPrivate of the input relation.
  *
- * @param[in] root - base planner infromation
+ * @param[in] root - base planner information
  * @param[in] grouped_rel - grouped relation RelOptInfo
  */
 static bool
@@ -1721,9 +1692,9 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 	ListCell   *oid_l;
 	ListCell   *alive_l;
 
-	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
+	oldcontext = MemoryContextSwitchTo(CurrentMemoryContext);
 
-	spd_spi_exec(foreigntableid, &nums, &oid);
+    spd_spi_exec_datasouce_num(foreigntableid, &nums, &oid);
 
 
 	/*
@@ -1794,9 +1765,9 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 }
 
 /**
- * spd_GetForeignPaths
+ * spd_createPushDownPlan
  *
- * build aggregation plan for each NOT push down cases.
+ * build aggregation plan for each push down cases.
  * saving each foreign plan into base rel list
  *
  * @param[in] tlist               - target list
@@ -1827,84 +1798,81 @@ spd_createPushDownPlan(List *tlist, bool *agg_query, List *pPseudoAggTypeList)
 		if (IsA(tle->expr, Aggref))
 		{
 			aggref = (Aggref *) tle->expr;
-			if (aggref->args)
+			if (aggref->args &&((aggref->aggfnoid >= AVG_MIN_OID && aggref->aggfnoid <= AVG_MAX_OID)	/* AVG Query */
+								|| (aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
+								|| (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID)) /* STDDEV, VARIANCE */
+				)
 			{
-				if ((aggref->aggfnoid >= AVG_MIN_OID && aggref->aggfnoid <= AVG_MAX_OID)	/* AVG Query */
-					|| (aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
-					|| (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID) /* STDDEV, VARIANCE */
-					)
+				/* Prepare SUM Query */
+				/*
+				 * TODO: Appropriate aggfnoid should be choosen based on
+				 * type
+				 */
+				TargetEntry *tle_var;
+				TargetEntry *tleTemp;
+				TargetEntry *tempCount;
+				Aggref	   *tempSUM;
+				Aggref	   *temp;
+
+				*agg_query = true;
+
+				tle_var = (TargetEntry *) lfirst_node(Var, aggref->args->head);
+				var = (Var *) tle_var->expr;
+
+				tleTemp = copyObject(tle);
+				tempSUM = copyObject(aggref);
+				tempSUM->aggtype = var->vartype;
+				dummy_tlist2 = list_delete_first(dummy_tlist2);
+				switch (tempSUM->aggtype)
 				{
-					/* Prepare SUM Query */
-					/*
-					 * TODO: Appropriate aggfnoid should be choosen based on
-					 * type
-					 */
-					TargetEntry *tle_var;
-					TargetEntry *tleTemp;
-					TargetEntry *tempCount;
-					Aggref	   *tempSUM;
-					Aggref	   *temp;
-
-					*agg_query = true;
-
-					tle_var = (TargetEntry *) lfirst_node(Var, aggref->args->head);
-					var = (Var *) tle_var->expr;
-
-					tleTemp = copyObject(tle);
-					tempSUM = copyObject(aggref);
-					tempSUM->aggtype = var->vartype;
-					dummy_tlist2 = list_delete_first(dummy_tlist2);
-					switch (tempSUM->aggtype)
-					{
-						case BIGINT_OID:	/* int8 big int */
-							tempSUM->aggfnoid = SUM_BIGINT_OID;
-							break;
-						case SMALLINT_OID:	/* int2 small int */
-							tempSUM->aggfnoid = SUM_INT2_OID;
-							break;
-						case INT_OID:	/* int4 */
-							tempSUM->aggfnoid = SUM_INT4_OID;
-							break;
-						case FLOAT_OID: /* float 4 - real */
-							tempSUM->aggfnoid = SUM_FLOAT4_OID;
-							break;
-						case FLOAT8_OID:	/* float 8 - double precision */
-							tempSUM->aggfnoid = SUM_FLOAT8_OID;
-							break;
-						case NUMERIC_OID:	/* numeric */
-							tempSUM->aggfnoid = SUM_NUMERI_OID;
-							break;
-					}
-					tempSUM->aggtranstype = var->vartype;
-					tleTemp->expr = (Expr *) copyObject(tempSUM);
-
-					/* Prepare Count Query */
-					tempCount = copyObject(tleTemp);
-					temp = copyObject(tempSUM);
-					temp->aggfnoid = SUM_OID;
-					temp->aggargtypes = NULL;
-					temp->args = NULL;
-					tempCount->expr = (Expr *) copyObject(temp);
-					/* set command oid */
-					if (aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
-					{
-						pPseudoAggTypeList = lappend_oid(pPseudoAggTypeList, VAR_MIN_OID);
-					}
-					else if (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID)
-					{
-						pPseudoAggTypeList = lappend_oid(pPseudoAggTypeList, STD_MIN_OID);
-					}
-					else
-					{
-						pPseudoAggTypeList = lappend_oid(pPseudoAggTypeList, AVG_MIN_OID);
-					}
-					/* Add Count Query to the Pushdown Plan */
-					dummy_tlist2 = lappend(dummy_tlist2, tempCount);
-					/* Add SUM Query to the Pushdown Plan */
-					dummy_tlist2 = lappend(dummy_tlist2, tleTemp);
-					/* Query Segregation needed */
+				case BIGINT_OID:	/* int8 big int */
+					tempSUM->aggfnoid = SUM_BIGINT_OID;
+					break;
+				case SMALLINT_OID:	/* int2 small int */
+					tempSUM->aggfnoid = SUM_INT2_OID;
+					break;
+				case INT_OID:	/* int4 */
+					tempSUM->aggfnoid = SUM_INT4_OID;
+					break;
+				case FLOAT_OID: /* float 4 - real */
+					tempSUM->aggfnoid = SUM_FLOAT4_OID;
+					break;
+				case FLOAT8_OID:	/* float 8 - double precision */
+					tempSUM->aggfnoid = SUM_FLOAT8_OID;
+					break;
+				case NUMERIC_OID:	/* numeric */
+					tempSUM->aggfnoid = SUM_NUMERI_OID;
 					break;
 				}
+				tempSUM->aggtranstype = var->vartype;
+				tleTemp->expr = (Expr *) copyObject(tempSUM);
+
+				/* Prepare Count Query */
+				tempCount = copyObject(tleTemp);
+				temp = copyObject(tempSUM);
+				temp->aggfnoid = SUM_OID;
+				temp->aggargtypes = NULL;
+				temp->args = NULL;
+				tempCount->expr = (Expr *) copyObject(temp);
+				/* set command oid */
+				if (aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
+				{
+					pPseudoAggTypeList = lappend_oid(pPseudoAggTypeList, VAR_MIN_OID);
+				}
+				else if (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID)
+				{
+					pPseudoAggTypeList = lappend_oid(pPseudoAggTypeList, STD_MIN_OID);
+				}
+				else
+				{
+					pPseudoAggTypeList = lappend_oid(pPseudoAggTypeList, AVG_MIN_OID);
+				}
+				/* Add Count Query to the Pushdown Plan */
+				dummy_tlist2 = lappend(dummy_tlist2, tempCount);
+				/* Add SUM Query to the Pushdown Plan */
+				dummy_tlist2 = lappend(dummy_tlist2, tleTemp);
+				/* Query Segregation needed */
+				break;
 			}
 		}
 	}
@@ -1983,9 +1951,9 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	ListCell   *oid_l;
 	ListCell   *alive_l;
 
-	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
+	oldcontext = MemoryContextSwitchTo(CurrentMemoryContext);
 
-	spd_spi_exec(foreigntableid, &nums, &oid);
+    spd_spi_exec_datasouce_num(foreigntableid, &nums, &oid);
 
 	if (fdw_private->dummy_base_rel_list->length != fdw_private->ft_oid_list->length || fdw_private->dummy_base_rel_list->length != fdw_private->child_table_alive->length)
 	{
@@ -2016,47 +1984,32 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		List	   *dummy_tlist2 = NIL;
 
 		/* skip to can not access child table at spd_GetForeignRelSize. */
-		if (fdw_private->dummy_base_rel_list != NIL)
+		if (fdw_private->dummy_base_rel_list == NIL)
 		{
-			if (alive_l->data.int_value != TRUE)
-			{
-				base_l = base_l->next;
-				root_l = root_l->next;
-				oid_l = oid_l->next;
-				alive_l = alive_l->next;
-				elog(DEBUG1, "skip spd_GetForeignPlan %d", i);
-				continue;
-			}
+ 			break;
 		}
-		else
+		if (alive_l->data.int_value != TRUE)
 		{
-			break;
+			base_l = base_l->next;
+			root_l = root_l->next;
+			oid_l = oid_l->next;
+			alive_l = alive_l->next;
+			elog(DEBUG1, "skip spd_GetForeignPlan %d", i);
+			continue;
 		}
 		/* get child node's oid. */
 		server_oid = spd_spi_exec_datasource_oid(list_nth_oid(fdw_private->ft_oid_list, i));
-		if (fdw_private->dummy_base_rel_list != NULL)
+		entry = (RelOptInfo *) list_nth(fdw_private->dummy_base_rel_list, i);
+		if (entry == NULL)
 		{
-			entry = (RelOptInfo *) list_nth(fdw_private->dummy_base_rel_list, i);
-			if (entry == NULL)
-			{
-				continue;
-			}
-			if (list_nth_int(fdw_private->child_table_alive, i) != TRUE)
-			{
-				continue;
-			}
-		}
-		else
-		{
-			break;
+			continue;
 		}
 		fdwroutine = GetFdwRoutineByServerId(server_oid);
-		if (list_member_oid(fdw_private->pPseudoAggPushList, server_oid) || list_member_oid(fdw_private->pPseudoAggList, server_oid))
+		if (list_member_oid(fdw_private->pPseudoAggPushList, server_oid) ||
+			list_member_oid(fdw_private->pPseudoAggList, server_oid))
 		{
 			spd_createPushDownPlan(tlist, &fdw_private->agg_query, fdw_private->pPseudoAggTypeList);
-		}
-		else
-		{
+		} else {
 			dummy_tlist = tlist;
 			dummy_tlist2 = tlist;
 
@@ -2110,7 +2063,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		}
 		fdw_private->dummy_plan_list = lappend(fdw_private->dummy_plan_list,
 											   temp_obj);
-		elog(DEBUG1, "append dummy plan list %d\n", (int) oid[i]);
+		elog(DEBUG1, "append dummy plan list %d", (int) oid[i]);
 		base_l = base_l->next;
 		root_l = root_l->next;
 		oid_l = oid_l->next;
@@ -2119,11 +2072,14 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
 	if (root->parse->hasAggs)
 	{
+#if 0
 		scan_relid = 0;			/* when aggregation pushdown... */
 		if (root->parse->groupClause == NULL)
 		{
 			fdw_private->agg_query = true;
 		}
+#endif
+		scan_relid = baserel->relid;
 	}
 	else
 	{
@@ -2145,7 +2101,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
  * Modify cost is so big, currently solution is 1.
  */
 	return make_foreignscan(tlist,
-							NIL, //scan_clauses,
+							NIL, /* scan_clauses,*/
 							scan_relid,
 							NIL,
 							list_make1(makeInteger((long) fdw_private)),
@@ -2183,17 +2139,19 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	SpdFdwPrivate *fdw_private;
 	ListCell   *l;
 	MemoryContext oldcontext;
-	int			node_incr;		/* node_incr is valiable of number of
+	int			node_incr;		/* node_incr is variable of number of
 								 * fssThrdInfo. */
 	int			private_incr;	/* private_incr is variable of number of
 								 * fdw_private */
 	int			pushlist_count = 0;
+	elog(DEBUG1, "entering function %s", __func__);
 
-	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
+	oldcontext = MemoryContextSwitchTo(CurrentMemoryContext);
 	node->spd_fsstate = NULL;
 	fdw_private = (SpdFdwPrivate *)
 		((Value *) list_nth(fsplan->fdw_private, FdwScanPrivateSelectSql))->val.ival;
 	/* get child nodes server oid */
+
 	spd_spi_exec_child_relname(RelationGetRelationName(node->ss.ss_currentRelation), fdw_private, &oid);
 	elog(DEBUG1, "agg query %d", node->ss.ps.state->agg_query);
 
@@ -2207,30 +2165,28 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		node->ss.ps.state->es_progressState->ps_aggQuery = false;
 	}
 
-	elog(DEBUG1, "agg query%d\n", node->ss.ps.state->agg_query);
+	elog(DEBUG1, "agg query%d", node->ss.ps.state->agg_query);
 	node->ss.ps.state->agg_query = 0;
 	if (!node->ss.ps.state->agg_query)
 	{
 		if (getResultFlag)
 		{
-			elog(DEBUG1, "get result flag\n");
+			elog(DEBUG1, "get result flag");
 			return;
 		}
 		/* Get all the foreign nodes from conf file */
-		fssThrdInfo = (ForeignScanThreadInfo *) palloc(
+		fssThrdInfo = (ForeignScanThreadInfo *) palloc0(
 													   sizeof(ForeignScanThreadInfo) * fdw_private->node_num);
-		memset(fssThrdInfo, 0, sizeof(*fssThrdInfo) * fdw_private->node_num);
 		node->spd_fsstate = fssThrdInfo;
 		/* Supporting for Progress */
 		node->ss.ps.state->es_progressState->ps_totalRows = 0;
 		node->ss.ps.state->es_progressState->ps_fetchedRows = 0;
 
-		pthread_mutex_lock(&scan_mutex);
-		elog(DEBUG1, "main thread lock scan mutex \n");
+		//pthread_mutex_lock(&scan_mutex);
+		elog(DEBUG1, "main thread lock scan mutex ");
 
 		node_incr = 0;
 		private_incr = 0;
-
 
 		foreach(l, fdw_private->dummy_base_rel_list)
 		{
@@ -2280,16 +2236,13 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			}
 			fsplan = (ForeignScan *) fssThrdInfo[node_incr].fsstate->ss.ps.plan;
 			fsplan->fdw_private = ((ForeignScan *) list_nth(fdw_private->dummy_plan_list, node_incr))->fdw_private;
-
 			fssThrdInfo[node_incr].fsstate->ss.ps.state = CreateExecutorState();
-
 			fssThrdInfo[node_incr].fsstate->ss.ps.state->es_top_eflags = eflags;
 
 			/* This should be a new RTE list. coming from dummy rtable */
 			fssThrdInfo[node_incr].fsstate->ss.ps.state->es_range_table =
 				((PlannerInfo *) list_nth(fdw_private->dummy_root_list, private_incr))
 				->parse->rtable;
-
 
 			fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt =
 				copyObject(node->ss.ps.state->es_plannedstmt);
@@ -2305,30 +2258,44 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 			/* Modify child plan */
 			natts = node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->natts;
-			if (list_member_oid(fdw_private->pPseudoAggPushList, server_oid) || list_member_oid(fdw_private->pPseudoAggList, server_oid))
+			if (IS_UPPER_REL((RelOptInfo*)l))
 			{
 				Datum	   *aggoid = list_nth(fdw_private->pPseudoAggTypeList, pushlist_count);
-
-				if (*aggoid == AVG_MIN_OID || *aggoid == VAR_MIN_OID || *aggoid == STD_MIN_OID)
-				{
-					natts += 1;
-				}
-				elog(DEBUG1, "natts %d", natts);
-
+				int  org_attrincr=0;
+				int org_natts = natts;
 				/*
 				 * Extract attribute details. The tupledesc made here is just
 				 * transient.
 				 */
 				attrs = palloc(natts * sizeof(Form_pg_attribute));
-				for (i = 0; i < natts; i++)
+				for (i = 0; i < org_natts; i++)
 				{
+					elog(DEBUG1, "natts %d", natts);
+
 					attrs[i] = palloc(sizeof(FormData_pg_attribute));
-					memcpy(attrs[i], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[0], sizeof(FormData_pg_attribute));
+					memcpy(attrs[i], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[org_attrincr],
+						   sizeof(FormData_pg_attribute));
 					elog(DEBUG1, "attrs[i]->atttypid = %d", attrs[i]->atttypid);
-					attrs[i]->atttypid = BIGINT_OID;
-					attrs[i]->attlen = 1;
-					attrs[i]->attnum = i;
-					attrs[i]->attbyval = 1;
+					/*
+					 * Extend tuple desc when AVG,STD,VAR operation is occurred.
+					 *
+					 */
+					if ((attrs[org_attrincr]->atttypid >= AVG_MIN_OID &&
+						 attrs[org_attrincr]->atttypid <= AVG_MAX_OID) ||
+						(attrs[org_attrincr]->atttypid >= VAR_MIN_OID &&
+						 attrs[org_attrincr]->atttypid <= VAR_MAX_OID) ||
+						(attrs[org_attrincr]->atttypid >= STD_MIN_OID &&
+						 attrs[org_attrincr]->atttypid <= STD_MIN_OID))
+					{
+						natts += 1;
+						i++;
+						attrs = palloc_extended(natts * sizeof(Form_pg_attribute),
+												MCXT_ALLOC_NO_OOM | MCXT_ALLOC_ZERO);
+						attrs[i] = palloc(sizeof(FormData_pg_attribute));
+						memcpy(attrs[i], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[org_attrincr],
+							   sizeof(FormData_pg_attribute));
+					}
+					org_attrincr++;
 				}
 				/* Construct TupleDesc, and assign a local typmod. */
 				tupledesc = CreateTupleDesc(natts, true, attrs);
@@ -2336,15 +2303,15 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 				fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
 					MakeSingleTupleTableSlot(
-											 CreateTupleDescCopy(
-																 tupledesc));
+						CreateTupleDescCopy(
+							tupledesc));
 			}
 			else
 			{
 				fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
 					MakeSingleTupleTableSlot(
-											 CreateTupleDescCopy(
-																 node->ss.ss_ScanTupleSlot->tts_tupleDescriptor));
+						CreateTupleDescCopy(
+							node->ss.ss_ScanTupleSlot->tts_tupleDescriptor));
 			}
 			fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_mcxt = node->ss.ss_ScanTupleSlot->tts_mcxt;
 
@@ -2367,7 +2334,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			fssThrdInfo[node_incr].nodeIndex = node_incr;
 
 			serverId = server_oid;
-			elog(DEBUG1, "serveroid %d\n", serverId);
+			elog(DEBUG1, "serveroid %d", serverId);
 
 			fssThrdInfo[node_incr].serverId = serverId;
 			fdwroutine = GetFdwRoutineByServerId(server_oid);
@@ -2395,8 +2362,8 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			private_incr++;
 			node_incr++;
 		}
-		pthread_mutex_unlock(&scan_mutex);
-		elog(DEBUG1, "main thread unlock scan mutex \n");
+		//pthread_mutex_unlock(&scan_mutex);
+		elog(DEBUG1, "main thread unlock scan mutex ");
 
 		nThreads = node_incr;
 		Assert(fdw_private->dummy_base_rel_list->length == nThreads);
@@ -2406,7 +2373,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		{
 			if (fssThrdInfo[node_incr].state == SPD_FS_STATE_INIT)
 			{
-				usleep(1);
+				pthread_yield();
 				node_incr--;
 				continue;
 			}
@@ -2414,6 +2381,128 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	}
 	MemoryContextSwitchTo(oldcontext);
 	return;
+}
+
+static void spd_spi_ddl_table(char *query){
+	int			ret;
+	int			i;
+	int			spi_temp;
+	MemoryContext oldcontext;
+	MemoryContext spicontext;
+
+	oldcontext = CurrentMemoryContext;
+	ret = SPI_connect();
+	if (ret < 0)
+		elog(ERROR, "SPI connect failure - returned %d", ret);
+
+	elog(DEBUG1, "execute spi exec %s", query);
+
+	ret = SPI_exec(query, 1);
+	if(ret != SPI_OK_UTILITY) {
+		elog(ERROR,"execute spi CREATE TEMP TABLE failed ");
+	}
+	SPI_finish();
+}
+
+static void spd_spi_insert_table(TupleTableSlot *slot){
+	int			ret;
+	int			i;
+	int			spi_temp;
+	bool isnull = false;
+	MemoryContext oldcontext;
+	MemoryContext spicontext;
+	StringInfo  sql = makeStringInfo();
+
+	oldcontext = CurrentMemoryContext;
+	ret = SPI_connect();
+	if (ret < 0)
+		elog(ERROR, "SPI connect failure - returned %d", ret);
+
+	appendStringInfo(sql, "INSERT INTO __spd__temptable VALUES( ");
+	for(i=0;i <slot->tts_tupleDescriptor->natts;i ){
+		if(i != 0){
+			appendStringInfo(sql, ",");
+		}
+		if(slot->tts_isnull){
+			appendStringInfo(sql, " ");
+		}
+		else{
+			Datum		attr;
+			char	   *value;
+			bool		isnull;
+			Oid			typoutput;
+			bool		typisvarlena;
+
+			attr = slot_getattr(slot, i + 1, &isnull);
+			if (isnull)
+				continue;
+
+			getTypeOutputInfo(slot->tts_tupleDescriptor->attrs[i]->atttypid,
+							  &typoutput, &typisvarlena);
+			value = OidOutputFunctionCall(typoutput, attr);
+			appendStringInfo(sql, "%s",value);
+		}
+	}
+	appendStringInfo(sql, ")");
+
+	ret = SPI_exec(sql, 1);
+	if(ret != SPI_OK_INSERT) {
+		elog(ERROR,"execute spi INSERT TEMP TABLE failed ");
+	}
+	SPI_finish();
+}
+
+static void spd_spi_select_table(TupleTableSlot *slot,ForeignScanState *node){
+	int			ret;
+	int			i;
+	int			spi_temp;
+	bool isnull = false;
+	MemoryContext oldcontext;
+	MemoryContext spicontext;
+	StringInfo  sql = makeStringInfo();
+
+	oldcontext = CurrentMemoryContext;
+	ret = SPI_connect();
+	if (ret < 0)
+		elog(ERROR, "SPI connect failure - returned %d", ret);
+
+	appendStringInfo(sql, "SELECT ");
+	for(i = 0; i < slot->tts_tupleDescriptor->natts; i++){
+		if(i != 0) {
+			appendStringInfo(sql, ",");
+		}
+		if(slot->tts_isnull){
+			appendStringInfo(sql, " ");
+		}
+		else{
+			Datum		attr;
+			char	   *value;
+			bool		isnull;
+			Oid			typoutput;
+			bool		typisvarlena;
+
+			attr = slot_getattr(slot, i + 1, &isnull);
+			if (isnull)
+				continue;
+
+			getTypeOutputInfo(slot->tts_tupleDescriptor->attrs[i]->atttypid,
+							  &typoutput, &typisvarlena);
+			value = OidOutputFunctionCall(typoutput, attr);
+			appendStringInfo(sql, "%s",value);
+		}
+	}
+	appendStringInfo(sql, " FROM __spd__temptable");
+
+	/* group by clause */
+	if(ret != 0){
+		appendStringInfo(sql, " GROUP BY ");
+	}
+	/* execute select */
+	ret = SPI_exec(sql, 1);
+	if(ret != SPI_OK_SELECT) {
+		elog(ERROR,"execute spi SELECT TEMP TABLE failed ");
+	}
+	SPI_finish();
 }
 
 
@@ -2427,22 +2516,25 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 static TupleTableSlot *
 spd_IterateForeignScan(ForeignScanState *node)
 {
-
 	static int	count = 0;
 	int			node_incr;
 	int			nThreads;
+	StringInfo	create_sql = makeStringInfo();
+
 	ForeignScanThreadInfo *fssThrdInfo = node->spd_fsstate;
 	bool		icheck = false;
 	TupleTableSlot *slot = NULL,
 			   *tempSlot = NULL;
 	ForeignAggInfo *agginfodata;
 	SpdFdwPrivate *fdw_private;
-	int			run;
+	int	run;
+	int i;
+	int *fin_flag;
+	int fin_count;
 
 	fdw_private = fssThrdInfo->private;
-	run = 1;					/* '1' is for no aggregation query */
 
-	if (getResultFlag && !fdw_private->agg_query)
+	if (getResultFlag)
 	{
 		return NULL;
 	}
@@ -2453,19 +2545,55 @@ spd_IterateForeignScan(ForeignScanState *node)
 		elog(ERROR, "can't find node in iterateforeignscan");
 	}
 	nThreads = fdw_private->dummy_base_rel_list->length;
-	agginfodata = palloc(sizeof(ForeignAggInfo) * nThreads);
-	memset(agginfodata, 0, sizeof(ForeignAggInfo) * nThreads);
+	agginfodata = palloc0(sizeof(ForeignAggInfo) * nThreads);
 
 	/*
 	 * run aggregation query for all data source threads and combine results
 	 */
-	if (fdw_private->agg_query)
-	{
+	if(fdw_private->agg_query) {
 		run = nThreads;
+		fin_flag = palloc0(sizeof(int)*nThreads);
 		node->ss.ps.state->es_progressState->dest = (void *) ((QueryDesc *) node->ss.ps.spdAggQry)->dest;
 		strcpy(agginfodata[0].transquery, ((QueryDesc *) node->ss.ps.spdAggQry)->sourceText);
+		/* Create temp table */
+		appendStringInfo(create_sql, "CREATE TEMP TABLE __spd__temptable( ");
+		for(i=0;i < node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->natts ;i++) {
+			TargetEntry *target = (TargetEntry *) list_nth(node->ss.ps.plan->targetlist, i);
+			if(i != 0) {
+				appendStringInfo(create_sql, ",");
+			}
+			/* append aggregate string */
+			appendStringInfo(create_sql, target->resname);
+			/* append column name and column type */
+			if(node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[i]->atttypid == NUMERICOID) {
+				appendStringInfo(create_sql, " numeric");
+			}
+			if(node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[i]->atttypid == TEXTOID) {
+				appendStringInfo(create_sql, " text");
+			}
+			if(node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[i]->atttypid == FLOAT4OID) {
+				appendStringInfo(create_sql, " float");
+			}
+			if(node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[i]->atttypid == FLOAT8OID) {
+				appendStringInfo(create_sql, " double");
+			}
+			if(node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[i]->atttypid == INT2OID) {
+				appendStringInfo(create_sql, " smallint");
+			}
+			if(node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[i]->atttypid == INT4OID) {
+				appendStringInfo(create_sql, " int");
+			}
+			if(node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[i]->atttypid == INT8OID) {
+				appendStringInfo(create_sql, " bigint");
+			}
+			if(node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[i]->atttypid == BITOID) {
+				appendStringInfo(create_sql, " bit");
+			}
+		}
+		appendStringInfo(create_sql, ")");
+		spd_spi_ddl_table(create_sql->data);
 	}
-	while (run)
+    for(;;)
 	{
 		for (; fssThrdInfo[count++].tuple == NULL;)
 		{
@@ -2491,44 +2619,35 @@ spd_IterateForeignScan(ForeignScanState *node)
 		}
 		if (fssThrdInfo[count - 1].tuple != NULL && fdw_private->agg_query)
 		{
-			if (list_member_oid(fdw_private->pPseudoAggList, fssThrdInfo[count - 1].serverId))
-			{
-				spd_get_agg_Info_push(fssThrdInfo[count - 1].tuple, node, count, agginfodata);
-			}
-			else if (list_member_oid(fdw_private->pPseudoAggPushList, fssThrdInfo[count - 1].serverId))
-			{
-				spd_get_agg_Info_push(fssThrdInfo[count - 1].tuple, node, count, agginfodata);
+			/* if this child node finished, update finish flag */
+			spd_spi_insert_table(fssThrdInfo[count - 1].tuple);
+		}
+		else if(fssThrdInfo[count - 1].tuple == NULL && fdw_private->agg_query) {
+			/* if this child node finished, update finish flag */
+			if(fin_flag[count-1] == 0) {
+				fin_count++;
+				fin_flag[count-1]=1;
 			}
 		}
 		tempSlot = fssThrdInfo[count - 1].tuple;
 		fssThrdInfo[count - 1].tuple = NULL;
-		if (count >= nThreads)
+        /* Intermediate results for aggregation query requested */
+		if (getAggResultFlag && fin_count == nThreads || getResultFlag )
 		{
-			count = 0;
-		}
-		if (getResultFlag)
-
 			/*
 			 * Aggregation Query Cancellation : Return existing intermediate
 			 * result
 			 */
-		{
-			run = 0;
+			break;
 		}
-		else
+		count++;
+		if (count >= nThreads)
 		{
-			run--;
-		}
-		/* Intermediate results for aggregation query requested */
-		if (getAggResultFlag)
-		{
-			slot = node->ss.ss_ScanTupleSlot;
-			if (spd_combine_agg_new(agginfodata, nThreads, tempSlot->tts_tupleDescriptor->natts))
-			{
-				node->ss.ps.state->es_progressState->ps_aggResult = spd_get_agg_tuple(agginfodata, slot);
+			/* if NOT agg query */
+			if(!fdw_private->agg_query){
+				break;
 			}
-			node->ss.ps.state->es_progressState->ps_aggResult = NULL;
-			getAggResultFlag = false;
+			count = 0;
 		}
 	}
 	slot = node->ss.ss_ScanTupleSlot;
@@ -2541,10 +2660,14 @@ spd_IterateForeignScan(ForeignScanState *node)
 	{
 		ExecCopySlot(slot, tempSlot);
 	}
+	if(fdw_private->agg_query){
+		resetStringInfo(create_sql);
+		appendStringInfo(create_sql, "DROP TABLE __spd__temptable");
+		spd_spi_ddl_table(create_sql->data);
+	}
 	pfree(agginfodata);
 	return slot;
 }
-
 
 /**
  * spd_ReScanForeignScan
@@ -2597,7 +2720,6 @@ spd_ReScanForeignScan(ForeignScanState *node)
 		}
 	}
 	return;
-
 }
 
 /**
@@ -2611,9 +2733,10 @@ static void
 spd_EndForeignScan(ForeignScanState *node)
 {
 	int			node_incr;
+	int rtn;
+	int			nThreads = 0;
 	ForeignScanThreadInfo *fssThrdInfo;
 	SpdFdwPrivate *fdw_private;
-	int			nThreads = 0;
 	ListCell   *l;
 
 	if (!node->ss.ps.state->agg_query)
@@ -2629,7 +2752,7 @@ spd_EndForeignScan(ForeignScanState *node)
 		{
 			return;
 		}
-		elog(DEBUG1, "EndForeignScan\n");
+		elog(DEBUG1, "EndForeignScan");
 		for (node_incr = 0; node_incr < nThreads; node_incr++)
 		{
 			fssThrdInfo[node_incr].EndFlag = true;
@@ -2639,7 +2762,9 @@ spd_EndForeignScan(ForeignScanState *node)
 		for (node_incr = 0; node_incr < nThreads; node_incr++)
 		{
 			/* Cleanup the thread-local structures */
-			pthread_join(fdw_private->foreign_scan_threads[node_incr], NULL);
+			rtn = pthread_join(fdw_private->foreign_scan_threads[node_incr], NULL);
+			if(rtn != 0)
+				elog(WARNING,"error is occurred, pthread_join fail in EndForeignScan. ");
 			ExecDropSingleTupleTableSlot(fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot);
 			if (fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation)
 			{
@@ -2723,10 +2848,10 @@ spd_AddForeignUpdateTargets(Query *parsetree,
 				char		temp[QUERY_LENGTH];
 
 				sprintf(temp, "/%s/", target_url);
-				elog(DEBUG1, "temp new under url = %s\n", temp);
+				elog(DEBUG1, "temp new under url = %s", temp);
 				new_underurl = palloc(sizeof(char) * (QUERY_LENGTH));
 				strcpy(new_underurl, throwing_url);
-				elog(DEBUG1, "new under url = %s\n", new_underurl);
+				elog(DEBUG1, "new under url = %s", new_underurl);
 			}
 			pfree(srvname);
 		}
@@ -2738,7 +2863,7 @@ spd_AddForeignUpdateTargets(Query *parsetree,
 	spd_spi_exec_child_relname(RelationGetRelationName(target_relation), fdw_private, &oid);
 	if (fdw_private->node_num == 0)
 	{
-		ereport(ERROR, (errmsg("Cannot Find child datasources. \n")));
+		ereport(ERROR, (errmsg("Cannot Find child datasources. ")));
 	}
 	MemoryContextSwitchTo(oldcontext);
 	if (oid[0] != 0)
@@ -2823,10 +2948,10 @@ spd_PlanForeignModify(PlannerInfo *root,
 				char		temp[QUERY_LENGTH];
 
 				sprintf(temp, "/%s/", target_url);
-				elog(DEBUG1, "temp new under url = %s\n", temp);
+				elog(DEBUG1, "temp new under url = %s", temp);
 				new_underurl = palloc(sizeof(char) * (QUERY_LENGTH));
 				strcpy(new_underurl, throwing_url);
-				elog(DEBUG1, "new under url = %s\n", new_underurl);
+				elog(DEBUG1, "new under url = %s", new_underurl);
 			}
 			pfree(srvname);
 		}
@@ -2840,7 +2965,7 @@ spd_PlanForeignModify(PlannerInfo *root,
 	spd_spi_exec_child_relname(RelationGetRelationName(rel), fdw_private, &oid);
 	if (fdw_private->node_num == 0)
 	{
-		ereport(ERROR, (errmsg("Cannot Find child datasources. \n")));
+		ereport(ERROR, (errmsg("Cannot Find child datasources. ")));
 	}
 	MemoryContextSwitchTo(oldcontext);
 	if (oid[0] != 0)
@@ -2932,7 +3057,6 @@ spd_ExecForeignUpdate(EState *estate,
 	elog(DEBUG1, "entering function %s", __func__);
 	fdwroutine = GetFdwRoutineByServerId(oid_server);
 	return fdwroutine->ExecForeignUpdate(estate, resultRelInfo, slot, planSlot);
-
 }
 
 /**

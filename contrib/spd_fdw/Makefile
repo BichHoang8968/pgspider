@@ -4,7 +4,7 @@ MODULE_big = spd_fdw
 OBJS = spd_fdw.o spd_option.o spd_fdw_aggregate.o spd_util.o $(WIN32RES)
 PGFILEDESC = "spd_fdw - foreign data wrapper for PostgreSQL"
 
-PG_CPPFLAGS = -I$(libpq_srcdir)  -lpostgres_fdw -lpthread -lpq -lm -z defs -std=c99
+PG_CPPFLAGS = -I$(libpq_srcdir) -I../  -lpostgres_fdw -lpthread -lpq -lm -z defs -std=c99
 SHLIB_LINK = $(libpq) 
 
 #LIBS = -lpostgres_fdw
