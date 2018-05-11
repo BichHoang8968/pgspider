@@ -2383,6 +2383,21 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	return;
 }
 
+static int
+strcmpi(char *s1, char *s2)
+{
+	int			i;
+
+	if (strlen(s1) != strlen(s2))
+		return -1;
+	for (i = 0; i < strlen(s1); i++)
+	{
+		if (toupper(s1[i]) != toupper(s2[i]))
+			return s1[i] - s2[i];
+	}
+	return 0;
+}
+
 static void spd_spi_ddl_table(char *query){
 	int			ret;
 	int			i;
@@ -2475,6 +2490,9 @@ static void spd_spi_select_table(TupleTableSlot *slot,ForeignScanState *node){
 			appendStringInfo(sql, " ");
 		}
 		else{
+			TargetEntry *target = (TargetEntry *) list_nth(node->ss.ps.plan->targetlist, attNum);
+			char	   *agg_command = test->resname;
+
 			Datum		attr;
 			char	   *value;
 			bool		isnull;
@@ -2484,7 +2502,13 @@ static void spd_spi_select_table(TupleTableSlot *slot,ForeignScanState *node){
 			attr = slot_getattr(slot, i + 1, &isnull);
 			if (isnull)
 				continue;
-
+			if (!strcmpi(agg_command, "SUM")||!strcmpi(agg_command, "COUNT"))
+				appendStringInfo(sql, "SUM(");
+			else if (!strcmpi(agg_command, "MAX") || !strcmpi(agg_command, "MIN") ||!strcmpi(agg_command, "BIT_OR")||!strcmpi(agg_command, "BIT_AND") || !strcmpi(agg_command, "BOOL_AND") || !strcmpi(agg_command, "BOOL_OR") ||!strcmpi(agg_command, "EVERY")||!strcmpi(agg_command, "STRING_AGG"))
+				appendStringInfo(sql, "%s(",);
+			else if (!strcmpi(agg_command, "AVG")||!strcmpi(agg_command, "VARIANCE")||!strcmpi(agg_command, "STDDEV"))
+				appendStringInfo(sql, "SUM(%s),COUNT(");
+			appendStringInfo(sql, "%s)",i);
 			getTypeOutputInfo(slot->tts_tupleDescriptor->attrs[i]->atttypid,
 							  &typoutput, &typisvarlena);
 			value = OidOutputFunctionCall(typoutput, attr);
@@ -2495,7 +2519,7 @@ static void spd_spi_select_table(TupleTableSlot *slot,ForeignScanState *node){
 
 	/* group by clause */
 	if(ret != 0){
-		appendStringInfo(sql, " GROUP BY ");
+		// appendStringInfo(sql, " GROUP BY ");
 	}
 	/* execute select */
 	ret = SPI_exec(sql, 1);
