@@ -1,12 +1,17 @@
 sqlite_fdw
 ==========
 
-Foreign Data Wrapper for sqlite
+PostgreSQL Foreign Data Wrapper for SQLite
 
-Compilation
+Feature
 -----------
+- Support update to foreign table
+- WHERE pushdown
+- Aggregate pushdown
+- Transaction
 
-
+Install
+-----------
 <pre>
 make
 make install
@@ -17,7 +22,6 @@ Usage
 --------
 
 Load extension:
-
 <pre>
 CREATE EXTENSION sqlite_fdw;
 </pre>
@@ -26,7 +30,7 @@ Create server with specifying SQLite database path as option:
 <pre>
 CREATE SERVER sqlite_server
   FOREIGN DATA WRAPPER sqlite_fdw
-  OPTIONS (database '/var/lib/pgsql/test.db');
+  OPTIONS (database '/tmp/test.db');
 </pre>
 
 
@@ -34,16 +38,16 @@ Create foreign table:
 <pre>
 CREATE FOREIGN TABLE t1(a integer, b text)
   SERVER sqlite_server
-  OPTIONS (table 'table_name_of_sqlite');
+  OPTIONS (table 't1_sqlite');
 </pre>
 
-
+Or you can use import foreign schema:
 <pre>
 IMPORT FOREIGN SCHEMA public FROM SERVER sqlite_server INTO public;
 </pre>
 
-Now, to get the contents of the remote table, you just need to execute a SELECT query on it:
 
+Access foregin table:
 <pre>
 SELECT * FROM t1;
 </pre>
@@ -54,3 +58,12 @@ Test
 ./init.sh
 make check
 </pre>
+
+License
+--------
+Copyright (c) 2017-2018, TOSHIBA Corporation
+Copyright (c) 2011 - 2016, EnterpriseDB Corporation
+
+Permission to use, copy, modify, and distribute this software and its documentation for any purpose, without fee, and without a written agreement is hereby granted, provided that the above copyright notice and this paragraph and the following two paragraphs appear in all copies.
+
+See the LICENSE file for full details.
