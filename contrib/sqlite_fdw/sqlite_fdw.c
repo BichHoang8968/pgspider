@@ -60,7 +60,6 @@
 #include "utils/typcache.h"
 #include "utils/selfuncs.h"
 
-
 extern PGDLLEXPORT void _PG_init(void);
 
 bool sqlite_load_library(void);
@@ -1427,11 +1426,6 @@ sqliteImportForeignSchema(ImportForeignSchemaStmt *stmt,
 
 	elog(DEBUG1,"entering function %s",__func__);
 
-	/*
-	 * The only legit sqlite schema are temp and main (or name of an attached
-	 * database, which can't happen here).  Authorize only legit "main" schema,
-	 * and "public" just in case.
-	 */
 	if (strcmp(stmt->remote_schema, "public") != 0 &&
 		strcmp(stmt->remote_schema, "main") != 0)
 	{
@@ -1459,7 +1453,6 @@ sqliteImportForeignSchema(ImportForeignSchemaStmt *stmt,
 	/* get the db filename */
 	f_server = GetForeignServerByName(stmt->server_name, false);
 
-
 	/* Connect to the server */
 	db = sqlite_get_connection(f_server);
 
@@ -1467,10 +1460,10 @@ sqliteImportForeignSchema(ImportForeignSchemaStmt *stmt,
 	{
 		/* You want all tables, except system tables */
 		initStringInfo(&query_tbl);
-		appendStringInfo(&query_tbl, "SELECT name FROM sqlite_master WHERE type = 'table'");
-		appendStringInfo(&query_tbl, " AND name NOT LIKE 'sqlite_%%'");
+		appendStringInfo(&query_tbl, "SELECT name FROM sqlite_master WHERE type = 'table'"
+									 " AND name NOT LIKE 'sqlite_%%'");
 
-		/* Handle LIMIT TO / EXCEPT clauses in IMPORT FOREIGN SCHEMA statement */
+		/* Apply restrictions for LIMIT TO and EXCEPT */
 		if (stmt->list_type == FDW_IMPORT_SCHEMA_LIMIT_TO ||
 			stmt->list_type == FDW_IMPORT_SCHEMA_EXCEPT)
 		{
@@ -1504,13 +1497,8 @@ sqliteImportForeignSchema(ImportForeignSchemaStmt *stmt,
 			char		   *tbl_name;
 			char		   *query_cols;
 			StringInfoData	cft_stmt;
-			int				i = 0;
-
+			bool		first_item = true;
 			tbl_name = (char *) sqlite3_column_text(tbls, 0);
-			/*
-			 * user-defined list of tables has been handled in main query, don't
-			 * try to do the job here again
-			 */
 
 			/* start building the CFT stmt */
 			initStringInfo(&cft_stmt);
@@ -1520,7 +1508,7 @@ sqliteImportForeignSchema(ImportForeignSchemaStmt *stmt,
 			query_cols = palloc0(strlen(tbl_name) + 19 + 1);
 			sprintf(query_cols, "PRAGMA table_info(%s)", tbl_name);
 
-			sqlitePrepare(db, query_cols, &cols, &pzTail);
+			sqlitePrepare(db, query_cols, &cols, NULL);
 			while (sqlite3_step(cols) == SQLITE_ROW)
 			{
 				char   *col_name;
@@ -1533,8 +1521,11 @@ sqliteImportForeignSchema(ImportForeignSchemaStmt *stmt,
 				not_null = (sqlite3_column_int(cols, 3) == 1);
 				default_val = (char *) sqlite3_column_text(cols, 4);
 				primary_key = sqlite3_column_int(cols, 5);
-				if (i != 0)
-					appendStringInfo(&cft_stmt, ",\n");
+
+				if (first_item)
+					first_item = false;
+				else
+					appendStringInfoString(&cft_stmt, ",\n");
 
 				/* table name */
 				appendStringInfo(&cft_stmt, "%s ",
@@ -1552,25 +1543,17 @@ sqliteImportForeignSchema(ImportForeignSchemaStmt *stmt,
 				/* part of the primary key */
 				if (primary_key)
 					appendStringInfo(&cft_stmt, " OPTIONS (key 'true')");
-				i++;
+
 			}
-			appendStringInfo(&cft_stmt, "\n) SERVER %s\n"
-							 "OPTIONS (table ",
+			appendStringInfo(&cft_stmt, "\n) SERVER %s\nOPTIONS (table ",
 							 quote_identifier(stmt->server_name));
 			sqlite_deparse_string_literal(&cft_stmt,tbl_name);
 			appendStringInfoString(&cft_stmt, ");");
-							   
+			commands = lappend(commands, pstrdup(cft_stmt.data));
+			
 			elog(DEBUG1, "IMPORT FOREIGN SCHEMA: %s\n", pstrdup(cft_stmt.data));
-			commands = lappend(commands,
-					pstrdup(cft_stmt.data));
-
-			/* free per-table allocated data */
-			pfree(query_cols);
-			pfree(cft_stmt.data);
 		}
 
-		/* Free all needed data and close connection*/
-		pfree(query_tbl.data);
 	}
 	PG_CATCH();
 	{
@@ -1928,52 +1911,47 @@ GetEstimatedRows(Oid foreigntableid)
 {
 	sqlite3		   *db;
 	sqlite3_stmt   *result;
-	char		   *svr_database = NULL;
 	char		   *svr_table = NULL;
 	char		   *query;
 	size_t			len;
-	const char	   *pzTail;
 	sqlite_opt *opt;
 	int rows = 0;
 	ForeignTable      *table;
-	ForeignServer     *server;
 
 	/* Fetch options  */
 	opt = sqlite_get_options(foreigntableid);
-	svr_database = opt->svr_database;
 	svr_table = opt->svr_table;
 	
 	table = GetForeignTable(foreigntableid);
-	server = GetForeignServer(table->serverid);
+	
 	/* Get db handle */
-	db = sqlite_get_connection(server);
+	db = sqlite_get_connection(GetForeignServer(table->serverid));
 	
 	rows = DEFAULT_ESTIMATED_LINES;
 
 	/* Check that the sqlite_stat1 table exists */
-	sqlitePrepare(db, "SELECT 1 FROM sqlite_master WHERE name='sqlite_stat1'", &result, &pzTail);
+	sqlitePrepare(db, "SELECT 1 FROM sqlite_master WHERE name='sqlite_stat1'", &result, NULL);
 	if (sqlite3_step(result) != SQLITE_ROW)
 	{
 		sqlite3_finalize(result);
 		elog(DEBUG1, "sqlite_stat1 not found");
 	} else {		
 		/* sqlite_stat1 exists */
-		
-		sqlite3_finalize(result);
-		
+
+		sqlite3_finalize(result);		
 		/* Build the query */
 	    len = strlen(svr_table) + 60;
 	    query = (char *)palloc(len);
 	    snprintf(query, len, "SELECT stat FROM sqlite_stat1 WHERE tbl='%s' AND idx IS NULL", svr_table);
 	    
 	    /* Execute the query */
-		sqlitePrepare(db, query, &result, &pzTail);
+		sqlitePrepare(db, query, &result, NULL);
 
 		rows = DEFAULT_ESTIMATED_LINES;
-		/* get the next record, if any, and fill in the slot */
+
 		if (sqlite3_step(result) == SQLITE_ROW)
 			rows = sqlite3_column_int(result, 0);
-		/* Free the query results */
+
 		sqlite3_finalize(result);
 	}
 
