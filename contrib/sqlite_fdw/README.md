@@ -3,11 +3,13 @@ sqlite_fdw
 
 PostgreSQL Foreign Data Wrapper for SQLite
 
+Currently this FDW is tested on PG10 and 9.6.
+
 Feature
 -----------
 - Support update to foreign table
 - WHERE pushdown
-- Aggregate pushdown
+- Aggregate pushdown(PostgreSQL10 only)
 - Transaction
 
 Install

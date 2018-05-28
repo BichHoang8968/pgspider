@@ -2,7 +2,7 @@
  *
  * SQLite Foreign Data Wrapper for PostgreSQL
  *
- * Portions Copyright (c) 2018, TOSHIBA COOPERATION
+ * Portions Copyright (c) 2018, TOSHIBA CORPORATION
  *
  * IDENTIFICATION
  *        sqlite_fdw.h
