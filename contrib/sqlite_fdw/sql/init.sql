@@ -21,7 +21,7 @@ CREATE TABLE "type_DOUBLE" (col double primary key);
 CREATE TABLE "type_TIMESTAMP" (col timestamp primary key, b timestamp);--, c date);
 CREATE TABLE "type_BLOB" (col blob primary key);
 CREATE TABLE BitT (p integer primary key, a BIT(3), b BIT VARYING(5));
-
+CREATE TABLE notype (a);
 
 -- a table that is missing some fields
 CREATE TABLE shorty (

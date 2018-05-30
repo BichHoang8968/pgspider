@@ -8,6 +8,7 @@ IMPORT FOREIGN SCHEMA public FROM SERVER sqlite_svr INTO public;
 
 INSERT INTO "type_STRING"(col) VALUES ('string');
 INSERT INTO "type_BOOLEAN"(col) VALUES (TRUE);
+INSERT INTO "type_BOOLEAN"(col) VALUES (FALSE);
 INSERT INTO "type_BYTE"(col) VALUES ('c');
 INSERT INTO "type_SINT"(col) VALUES (32767);
 INSERT INTO "type_SINT"(col) VALUES (-32768);
