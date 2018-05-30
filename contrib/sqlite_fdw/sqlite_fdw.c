@@ -71,7 +71,7 @@ PG_MODULE_MAGIC;
 /* The number of default estimated rows for table which does not exist in sqlite1_stat1
  * See sqlite3ResultSetOfSelect in select.c of SQLite
  */
-#define DEFAULT_ESTIMATED_LINES 1000000
+#define DEFAULT_ROW_ESTIMATE 1000000
 #define DEFAULTE_NUM_ROWS    1000
 #define IS_KEY_COLUMN(A)	((strcmp(A->defname, "key") == 0) && \
 							 (strcmp(((Value *)(A->arg))->val.str, "true") == 0))
@@ -255,16 +255,14 @@ sqlite_fdw_handler(PG_FUNCTION_ARGS)
 	PG_RETURN_POINTER(fdwroutine);
 }
 
-/*
- * Prepare the given query. If case of error, close the db and throw an error
- */
+/* Wrapper for sqlite3_prepare */
 static void
-sqlite_prepare_wrapper(sqlite3 *db, char *query, sqlite3_stmt **result,
+sqlite_prepare_wrapper(sqlite3 *db, char *query, sqlite3_stmt **stmt,
 		const char **pzTail)
 {
 	int rc;
-	elog(DEBUG1, "sqlite_fdw : sqlite3_prepare %s\n", query);
-	rc = sqlite3_prepare(db, query, -1, result, pzTail);
+	elog(DEBUG1, "sqlite_fdw : %s %s\n", __func__, query);
+	rc = sqlite3_prepare(db, query, -1, stmt, pzTail);
 	if (rc != SQLITE_OK)
 	{
 		ereport(ERROR,
@@ -1491,7 +1489,7 @@ sqliteImportForeignSchema(ImportForeignSchemaStmt *stmt,
 			appendStringInfoString(&buf, ");");
 			commands = lappend(commands, pstrdup(buf.data));
 			
-			elog(DEBUG1, "IMPORT FOREIGN SCHEMA: %s\n", pstrdup(buf.data));
+			elog(DEBUG1, "sqlite_fdw : %s %s",__func__, pstrdup(buf.data));
 		}
 
 	}
@@ -1859,7 +1857,7 @@ get_estimate(Oid foreigntableid)
 	char		   *query;
 	size_t			len;
 	sqlite_opt *opt;
-	int rows = DEFAULT_ESTIMATED_LINES;
+	int rows = DEFAULT_ROW_ESTIMATE;
 	ForeignTable      *table;
 	int rc;
 
@@ -1875,10 +1873,9 @@ get_estimate(Oid foreigntableid)
 	rc = sqlite3_prepare_v2(db, query, -1, &stmt, NULL);
 	if (rc != SQLITE_OK) {
 		const char * err = sqlite3_errmsg(db);
-		if (strcmp(err, "no such table: sqlite_stat1") == 0)
-			return rows;
-		else
+		if (strcmp(err, "no such table: sqlite_stat1") != 0)
 			elog(ERROR, "prepare failed with rc=%d msg=%s", rc, err);
+		return DEFAULT_ROW_ESTIMATE;
 	}
 
 	rc = sqlite3_step(stmt);
@@ -1892,31 +1889,64 @@ get_estimate(Oid foreigntableid)
 	return rows;
 }
 
+
+
 static void
 sqlite_to_pg_type(StringInfo str, char *type)
 {
 	int i;
-	static const char *conversion[][2] = {
-		{"tinyint", "smallint"},
-		{"mediumint", "integer"},
-		{"tinyint", "smallint"},
-		{"integer", "bigint"},
+	/* type conversion based on SQLite affiniy https://www.sqlite.org/datatype3.html */
+	static const char *affinity[][2] = {
+		{"int", "bigint"},
+		{"char", "text"},
+		{"clob", "text"},
+		{"text", "text"},
 		{"blob", "bytea"},
-		{"double","double precision"},
-		{"float", "float4"},
-		{NULL,NULL}
+		{"real", "double precision"},
+		{"floa", "double precision"},
+		{"doub", "double precision"},
+		{NULL, NULL}};
+
+	static const char *pg_type[] = {
+		"time",
+		"date",
+		"bit", /*  bit(n) and bit varying(n) */
+		"boolean",
+		NULL
 	};
+
+	if (type == NULL || type[0] == '\0')
+	{
+		/* If no type, use blob affinity */
+		appendStringInfoString(str, "bytea");
+		return;
+	}
+
 	type = str_tolower(type, strlen(type), C_COLLATION_OID);
-	for (i = 0; conversion[i][0] != NULL; i++) {
-		if (strcmp(type, conversion[i][0]) == 0)
+
+	for (i = 0; affinity[i][0] != NULL; i++)
+	{
+		if (strstr(type, affinity[i][0]) != 0)
 		{
+			appendStringInfoString(str, affinity[i][1]);
 			pfree(type);
-			appendStringInfoString(str, conversion[i][1]);
 			return;
 		}
 	}
-	/* Not convert */
-	appendStringInfoString(str, type);
+
+	for (i = 0; pg_type[i] != NULL; i++)
+	{
+		if (strncmp(type, pg_type[i], strlen(pg_type[i])) == 0)
+		{
+			/* Pass type to PostgreSQL as it is */
+			appendStringInfoString(str, type);
+			pfree(type);
+			return;
+		}
+	}
+
+	/* decimal for numeric affinity */
+	appendStringInfoString(str, "decimal");
 	pfree(type);
 }
 
