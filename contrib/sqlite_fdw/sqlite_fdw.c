@@ -303,7 +303,7 @@ sqliteGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntable
 	{
 		RestrictInfo *ri = (RestrictInfo *) lfirst(lc);
 
-		if (is_foreign_expr(root, baserel, ri->clause))
+		if (sqlite_sqlite_is_foreign_expr(root, baserel, ri->clause))
 			fpinfo->remote_conds = lappend(fpinfo->remote_conds, ri);
 		else
 			fpinfo->local_conds = lappend(fpinfo->local_conds, ri);
@@ -447,7 +447,7 @@ sqliteGetForeignPlan(
 			}
 			else if (list_member_ptr(fpinfo->local_conds, rinfo))
 				local_exprs = lappend(local_exprs, rinfo->clause);
-			else if (is_foreign_expr(root, baserel, rinfo->clause))
+			else if (sqlite_is_foreign_expr(root, baserel, rinfo->clause))
 			{
 				remote_conds = lappend(remote_conds, rinfo);
 				remote_exprs = lappend(remote_exprs, rinfo->clause);
@@ -1575,7 +1575,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 			 * If any of the GROUP BY expression is not shippable we can not
 			 * push down aggregation to the foreign server.
 			 */
-			if (!is_foreign_expr(root, grouped_rel, expr))
+			if (!sqlite_is_foreign_expr(root, grouped_rel, expr))
 				return false;
 
 			/* Pushable, add to tlist */
@@ -1584,7 +1584,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 		else
 		{
 			/* Check entire expression whether it is pushable or not */
-			if (is_foreign_expr(root, grouped_rel, expr))
+			if (sqlite_is_foreign_expr(root, grouped_rel, expr))
 			{
 				/* Pushable, add to tlist */
 				tlist = add_to_flat_tlist(tlist, list_make1(expr));
@@ -1603,7 +1603,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 				aggvars = pull_var_clause((Node *) expr,
 										  PVC_INCLUDE_AGGREGATES);
 
-				if (!is_foreign_expr(root, grouped_rel, (Expr *) aggvars))
+				if (!sqlite_is_foreign_expr(root, grouped_rel, (Expr *) aggvars))
 					return false;
 
 				/*
@@ -1658,12 +1658,12 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 									  NULL,
 									  NULL);
 
-			if (is_foreign_expr(root, grouped_rel, expr))
+			if (sqlite_is_foreign_expr(root, grouped_rel, expr))
 				fpinfo->remote_conds = lappend(fpinfo->remote_conds, rinfo);
 			else
 				fpinfo->local_conds = lappend(fpinfo->local_conds, rinfo);
 #else
-			if (!is_foreign_expr(root, grouped_rel, expr))
+			if (!sqlite_is_foreign_expr(root, grouped_rel, expr))
 				fpinfo->local_conds = lappend(fpinfo->local_conds, expr);
 			else
 				fpinfo->remote_conds = lappend(fpinfo->remote_conds, expr);
@@ -1701,7 +1701,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 			 */
 			if (IsA(expr, Aggref))
 			{
-				if (!is_foreign_expr(root, grouped_rel, expr))
+				if (!sqlite_is_foreign_expr(root, grouped_rel, expr))
 					return false;
 
 				tlist = add_to_flat_tlist(tlist, list_make1(expr));
