@@ -197,7 +197,7 @@ sqlite_quote_identifier(const char *s , char q)
  * Returns true if given expr is safe to evaluate on the foreign server.
  */
 bool
-is_foreign_expr(PlannerInfo *root,
+sqlite_is_foreign_expr(PlannerInfo *root,
                                 RelOptInfo *baserel,
                                 Expr *expr)
 {

@@ -135,7 +135,7 @@ typedef struct SqliteFdwRelationInfo
 } SqliteFdwRelationInfo;
 
 
-extern bool is_foreign_expr(PlannerInfo *root,
+extern bool sqlite_is_foreign_expr(PlannerInfo *root,
                                 RelOptInfo *baserel,
                                 Expr *expr);
 

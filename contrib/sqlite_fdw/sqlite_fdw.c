@@ -303,7 +303,7 @@ sqliteGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntable
 	{
 		RestrictInfo *ri = (RestrictInfo *) lfirst(lc);
 
-		if (sqlite_sqlite_is_foreign_expr(root, baserel, ri->clause))
+		if (sqlite_is_foreign_expr(root, baserel, ri->clause))
 			fpinfo->remote_conds = lappend(fpinfo->remote_conds, ri);
 		else
 			fpinfo->local_conds = lappend(fpinfo->local_conds, ri);
