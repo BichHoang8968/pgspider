@@ -35,8 +35,8 @@ typedef Oid ConnCacheKey;
 
 typedef struct ConnCacheEntry
 {
-	ConnCacheKey key;       /* hash key (must be first) */
-	sqlite3 *conn;            /* connection to foreign server, or NULL */
+	ConnCacheKey key;			/* hash key (must be first) */
+	sqlite3    *conn;			/* connection to foreign server, or NULL */
 	/* Remaining fields are invalid when conn is NULL: */
 	int			xact_depth;		/* 0 = no xact open, 1 = main xact open, 2 =
 								 * one level of subxact open, etc */
@@ -49,17 +49,18 @@ typedef struct ConnCacheEntry
  * Connection cache (initialized on first use)
  */
 static HTAB *ConnectionHash = NULL;
+
 /* tracks whether any work is needed in callback functions */
 static bool xact_got_connection = false;
 
 
-static bool do_sql_command(sqlite3 *conn, const char *sql, int level);
+static bool do_sql_command(sqlite3 * conn, const char *sql, int level);
 static void begin_remote_xact(ConnCacheEntry *entry);
 static void sqlitefdw_xact_callback(XactEvent event, void *arg);
 static void sqlitefdw_subxact_callback(SubXactEvent event,
-					   SubTransactionId mySubid,
-					   SubTransactionId parentSubid,
-					   void *arg);
+						   SubTransactionId mySubid,
+						   SubTransactionId parentSubid,
+						   void *arg);
 
 /*
  * sqlite_get_connection:
@@ -67,19 +68,20 @@ static void sqlitefdw_subxact_callback(SubXactEvent event,
  * the remote Sqlite server with the user's authorization. A new connection
  * is established if we don't already have a suitable one.
  */
-sqlite3*
+sqlite3 *
 sqlite_get_connection(ForeignServer *server)
 {
 	const char *dbpath = NULL;
-	bool found;
+	bool		found;
 	ConnCacheEntry *entry;
 	ConnCacheKey key;
-	ListCell *lc;
+	ListCell   *lc;
 
 	/* First time through, initialize connection cache hashtable */
 	if (ConnectionHash == NULL)
 	{
-		HASHCTL	ctl;
+		HASHCTL		ctl;
+
 		MemSet(&ctl, 0, sizeof(ctl));
 		ctl.keysize = sizeof(ConnCacheKey);
 		ctl.entrysize = sizeof(ConnCacheEntry);
@@ -87,8 +89,9 @@ sqlite_get_connection(ForeignServer *server)
 		/* allocate ConnectionHash in the cache context */
 		ctl.hcxt = CacheMemoryContext;
 		ConnectionHash = hash_create("sqlite_fdw connections", 8,
-									&ctl,
+									 &ctl,
 									 HASH_ELEM | HASH_BLOBS | HASH_CONTEXT);
+
 		/*
 		 * Register some callback functions that manage connection cleanup.
 		 * This should be done just once in each backend.
@@ -103,25 +106,29 @@ sqlite_get_connection(ForeignServer *server)
 	/* Loop through the options, and get the server/port */
 	foreach(lc, server->options)
 	{
-		DefElem *def = (DefElem *) lfirst(lc);
+		DefElem    *def = (DefElem *) lfirst(lc);
+
 		if (strcmp(def->defname, "database") == 0)
 			dbpath = defGetString(def);
 	}
 
 	Assert(dbpath);
 	key = server->serverid;
+
 	/*
 	 * Find or create cached entry for requested connection.
 	 */
 	entry = hash_search(ConnectionHash, &key, HASH_ENTER, &found);
-	if (!found) {
+	if (!found)
+	{
 		/* initialize new hashtable entry (key is already filled in) */
 		entry->conn = NULL;
 	}
 	if (entry->conn == NULL)
 	{
-		int rc;
-		char *err;
+		int			rc;
+		char	   *err;
+
 		entry->xact_depth = 0;
 		rc = sqlite3_open(dbpath, &entry->conn);
 		if (rc != SQLITE_OK)
@@ -133,7 +140,8 @@ sqlite_get_connection(ForeignServer *server)
 						  NULL, NULL, &err);
 		if (rc != SQLITE_OK)
 		{
-			char *perr = pstrdup(err);
+			char	   *perr = pstrdup(err);
+
 			sqlite3_free(err);
 			sqlite3_close(entry->conn);
 			entry->conn = NULL;
@@ -142,6 +150,7 @@ sqlite_get_connection(ForeignServer *server)
 					 errmsg("failed to open SQLite DB. err=%s rc=%d", perr, rc)));
 		}
 	}
+
 	/*
 	 * Start a new transaction or subtransaction if needed.
 	 */
@@ -158,9 +167,10 @@ sqlite_get_connection(ForeignServer *server)
 void
 sqlite_cleanup_connection(void)
 {
-	HASH_SEQ_STATUS	scan;
+	HASH_SEQ_STATUS scan;
 	ConnCacheEntry *entry;
-	int rc;
+	int			rc;
+
 	if (ConnectionHash == NULL)
 		return;
 
@@ -168,6 +178,7 @@ sqlite_cleanup_connection(void)
 	while ((entry = (ConnCacheEntry *) hash_seq_search(&scan)))
 	{
 		sqlite3_stmt *cur = NULL;
+
 		if (entry->conn == NULL)
 			continue;
 
@@ -185,7 +196,7 @@ sqlite_cleanup_connection(void)
 					(errcode(ERRCODE_FDW_UNABLE_TO_CREATE_EXECUTION),
 					 errmsg("close connection failed: %s rc=%d", sqlite3_errmsg(entry->conn), rc)
 					 ));
-		}	
+		}
 	}
 }
 
@@ -194,15 +205,19 @@ sqlite_cleanup_connection(void)
  * Convenience subroutine to issue a non-data-returning SQL command to remote
  */
 static bool
-do_sql_command(sqlite3 *conn, const char *sql, int level)
+do_sql_command(sqlite3 * conn, const char *sql, int level)
 {
-	char *err = NULL;
+	char	   *err = NULL;
+
 	elog(DEBUG3, "do_sql_commnad %s", sql);
 
-	if (sqlite3_exec(conn, sql, NULL, NULL, &err) != SQLITE_OK) {
-		char *perr = NULL;
-		if (err) {
-			perr  = pstrdup(err);
+	if (sqlite3_exec(conn, sql, NULL, NULL, &err) != SQLITE_OK)
+	{
+		char	   *perr = NULL;
+
+		if (err)
+		{
+			perr = pstrdup(err);
 			sqlite3_free(err);
 		}
 		ereport(level,
@@ -233,7 +248,7 @@ begin_remote_xact(ConnCacheEntry *entry)
 			 entry->conn);
 
 		sql = "BEGIN";
-		
+
 		do_sql_command(entry->conn, sql, ERROR);
 		entry->xact_depth = 1;
 
@@ -259,11 +274,12 @@ begin_remote_xact(ConnCacheEntry *entry)
  * Report an sqlite execution error
  */
 void
-sqlitefdw_report_error(int elevel, sqlite3_stmt *stmt, sqlite3 *conn,
-				      const char *sql, int rc)
+sqlitefdw_report_error(int elevel, sqlite3_stmt * stmt, sqlite3 * conn,
+					   const char *sql, int rc)
 {
 	const char *message = sqlite3_errmsg(conn);
-	int sqlstate = ERRCODE_FDW_ERROR;
+	int			sqlstate = ERRCODE_FDW_ERROR;
+
 	/* copy sql before callling another SQLite API */
 	if (message)
 		message = pstrdup(message);
@@ -277,7 +293,7 @@ sqlitefdw_report_error(int elevel, sqlite3_stmt *stmt, sqlite3 *conn,
 	ereport(ERROR,
 			(errcode(sqlstate),
 			 errmsg("failed to execute remote SQL: rc=%d %s \n   sql=%s",
-			 rc, message ? message : "", sql ? sql : "")
+					rc, message ? message : "", sql ? sql : "")
 			 ));
 
 }
@@ -295,9 +311,9 @@ sqlitefdw_xact_callback(XactEvent event, void *arg)
 	/* Quick exit if no connections were touched in this transaction. */
 	if (!xact_got_connection)
 		return;
-	
+
 	elog(DEBUG1, "xact_callback %d", event);
-	
+
 	/*
 	 * Scan all connection cache entries to find open remote transactions, and
 	 * close them.
@@ -346,23 +362,30 @@ sqlitefdw_xact_callback(XactEvent event, void *arg)
 					elog(ERROR, "missed cleaning up connection during pre-commit");
 					break;
 				case XACT_EVENT_PARALLEL_ABORT:
-				case XACT_EVENT_ABORT: {
-					sqlite3_stmt *cur = NULL;
-					elog(DEBUG3, "abort transaction");
+				case XACT_EVENT_ABORT:
+					{
+						sqlite3_stmt *cur = NULL;
 
-					/* Finalize all prepared statements */
-					while((cur = sqlite3_next_stmt(entry->conn, cur)) != NULL) {
-						sqlite3_finalize(cur);
+						elog(DEBUG3, "abort transaction");
+
+						/* Finalize all prepared statements */
+						while ((cur = sqlite3_next_stmt(entry->conn, cur)) != NULL)
+						{
+							sqlite3_finalize(cur);
+						}
+
+						/*
+						 * rollback if in transaction because SQLite may
+						 * already rollback
+						 */
+						if (!sqlite3_get_autocommit(entry->conn))
+							do_sql_command(entry->conn, "ROLLBACK", WARNING);
+
+						break;
 					}
-					/* rollback if in transaction because SQLite may already rollback*/
-					if (!sqlite3_get_autocommit(entry->conn)) 
-						do_sql_command(entry->conn, "ROLLBACK", WARNING);					
-
-					break;
-				}
 			}
 		}
-				 
+
 		/* Reset state to show we're out of a transaction */
 		entry->xact_depth = 0;
 
@@ -381,7 +404,7 @@ sqlitefdw_xact_callback(XactEvent event, void *arg)
  */
 static void
 sqlitefdw_subxact_callback(SubXactEvent event, SubTransactionId mySubid,
-					   SubTransactionId parentSubid, void *arg)
+						   SubTransactionId parentSubid, void *arg)
 {
 	HASH_SEQ_STATUS scan;
 	ConnCacheEntry *entry;
@@ -435,9 +458,9 @@ sqlitefdw_subxact_callback(SubXactEvent event, SubTransactionId mySubid,
 		{
 			/* Rollback all remote subtransactions during abort */
 			snprintf(sql, sizeof(sql),
-						 "ROLLBACK TO SAVEPOINT s%d; RELEASE SAVEPOINT s%d",
-						 curlevel, curlevel);
-			if (!sqlite3_get_autocommit(entry->conn)) 
+					 "ROLLBACK TO SAVEPOINT s%d; RELEASE SAVEPOINT s%d",
+					 curlevel, curlevel);
+			if (!sqlite3_get_autocommit(entry->conn))
 				do_sql_command(entry->conn, sql, ERROR);
 		}
 

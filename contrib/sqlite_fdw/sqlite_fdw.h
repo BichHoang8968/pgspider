@@ -37,53 +37,55 @@
  */
 typedef struct sqlite_opt
 {
-	int           svr_port;               /* SQLite port number */
-	char          *svr_address;           /* SQLite server ip address */
+	int			svr_port;		/* SQLite port number */
+	char	   *svr_address;	/* SQLite server ip address */
 
-	char          *svr_database;          /* SQLite database name */
-	char          *svr_table;             /* SQLite table name */
-	char          *svr_init_command;      /* SQLite SQL statement to execute when connecting to the SQLite server. */
-	unsigned long max_blob_size;          /* Max blob size to read without truncation */
-	bool          use_remote_estimate;    /* use remote estimate for rows */
-} sqlite_opt;
+	char	   *svr_database;	/* SQLite database name */
+	char	   *svr_table;		/* SQLite table name */
+	char	   *svr_init_command;	/* SQLite SQL statement to execute when
+									 * connecting to the SQLite server. */
+	unsigned long max_blob_size;	/* Max blob size to read without
+									 * truncation */
+	bool		use_remote_estimate;	/* use remote estimate for rows */
+}			sqlite_opt;
 
 
 /*
- * FDW-specific information for ForeignScanState 
+ * FDW-specific information for ForeignScanState
  * fdw_state.
  */
 typedef struct SQLiteFdwExecState
 {
-	sqlite3          *conn;              /* SQLite connection handle */
-	sqlite3_stmt     *stmt;              /* SQLite prepared stament handle */
-	char            *query;             /* Query string */
-	Relation        rel;                /* relcache entry for the foreign table */
-	List            *retrieved_attrs;   /* list of target attribute numbers */
+	sqlite3    *conn;			/* SQLite connection handle */
+	sqlite3_stmt *stmt;			/* SQLite prepared stament handle */
+	char	   *query;			/* Query string */
+	Relation	rel;			/* relcache entry for the foreign table */
+	List	   *retrieved_attrs;	/* list of target attribute numbers */
 
-	bool		cursor_exists;	    /* have we created the cursor? */
-	int			numParams;	    /* number of parameters passed to query */
-	FmgrInfo	*param_flinfo;	    /* output conversion functions for them */
-	List		*param_exprs;	    /* executable expressions for param values */
-	const char	**param_values;	    /* textual values of query parameters */
-	Oid			*param_types;	    /* type of query parameters */
+	bool		cursor_exists;	/* have we created the cursor? */
+	int			numParams;		/* number of parameters passed to query */
+	FmgrInfo   *param_flinfo;	/* output conversion functions for them */
+	List	   *param_exprs;	/* executable expressions for param values */
+	const char **param_values;	/* textual values of query parameters */
+	Oid		   *param_types;	/* type of query parameters */
 
-	int             p_nums;             /* number of parameters to transmit */
-	FmgrInfo        *p_flinfo;          /* output conversion functions for them */
+	int			p_nums;			/* number of parameters to transmit */
+	FmgrInfo   *p_flinfo;		/* output conversion functions for them */
 
-	sqlite_opt       *sqliteFdwOptions;   /* SQLite FDW options */
+	sqlite_opt *sqliteFdwOptions;	/* SQLite FDW options */
 
-	List            *attr_list;         /* query attribute list */
-	List            *column_list;       /* Column list of SQLite Column structures */
+	List	   *attr_list;		/* query attribute list */
+	List	   *column_list;	/* Column list of SQLite Column structures */
 
-	int64			row_nums;			/* number of rows */
-	Datum			**rows;				/* all rows of scan */
-	int64			rowidx;				/* current index of rows */
-	bool			**rows_isnull;		/* is null */
-	bool 			for_update;			/* true if this scan is update target */
+	int64		row_nums;		/* number of rows */
+	Datum	  **rows;			/* all rows of scan */
+	int64		rowidx;			/* current index of rows */
+	bool	  **rows_isnull;	/* is null */
+	bool		for_update;		/* true if this scan is update target */
 	/* working memory context */
-	MemoryContext   temp_cxt;           /* context for per-tuple temporary data */
-	AttrNumber 		*junk_idx;
-} SqliteFdwExecState;
+	MemoryContext temp_cxt;		/* context for per-tuple temporary data */
+	AttrNumber *junk_idx;
+}			SqliteFdwExecState;
 
 
 typedef struct SqliteFdwRelationInfo
@@ -132,43 +134,44 @@ typedef struct SqliteFdwRelationInfo
 
 	/* Grouping information */
 	List	   *grouped_tlist;
-} SqliteFdwRelationInfo;
+}			SqliteFdwRelationInfo;
 
 
 extern bool sqlite_is_foreign_expr(PlannerInfo *root,
-                                RelOptInfo *baserel,
-                                Expr *expr);
+					   RelOptInfo *baserel,
+					   Expr *expr);
 
 
 /* option.c headers */
-extern sqlite_opt *sqlite_get_options(Oid foreigntableid);
+extern sqlite_opt * sqlite_get_options(Oid foreigntableid);
 
 /* depare.c headers */
 extern void sqliteDeparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
-						List *tlist, List *remote_conds, List *pathkeys,
-						bool is_subquery, List **retrieved_attrs,
-						List **params_list);													 
+							  List *tlist, List *remote_conds, List *pathkeys,
+							  bool is_subquery, List **retrieved_attrs,
+							  List **params_list);
 extern void sqlite_deparse_insert(StringInfo buf, PlannerInfo *root, Index rtindex, Relation rel, List *targetAttrs);
 extern void sqlite_deparse_update(StringInfo buf, PlannerInfo *root, Index rtindex, Relation rel, List *targetAttrs, List *attname);
 extern void sqlite_deparse_delete(StringInfo buf, PlannerInfo *root, Index rtindex, Relation rel, List *name);
 extern void sqlite_append_where_clause(StringInfo buf, PlannerInfo *root, RelOptInfo *baserel, List *exprs,
-							 bool is_first,List **params);
+						   bool is_first, List **params);
 extern void sqlite_deparse_analyze(StringInfo buf, char *dbname, char *relname);
 extern void sqlite_deparse_string_literal(StringInfo buf, const char *val);
 extern List *sqlite_build_tlist_to_deparse(RelOptInfo *foreignrel);
-int sqlite_set_transmission_modes(void);
-void sqlite_reset_transmission_modes(int nestlevel);
+int			sqlite_set_transmission_modes(void);
+void		sqlite_reset_transmission_modes(int nestlevel);
+
 /* connection.c headers */
-sqlite3 *sqlite_get_connection(ForeignServer *server);
+sqlite3    *sqlite_get_connection(ForeignServer *server);
 sqlite3 *sqlite_connect(char *svr_address, char *svr_username, char *svr_password, char *svr_database,
-							 int svr_port, bool svr_sa, char *svr_init_command,
-							 char *ssl_key, char *ssl_cert, char *ssl_ca, char *ssl_capath,
-							 char *ssl_cipher);
-void sqlite_cleanup_connection(void);
-void sqlite_rel_connection(sqlite3 *conn);
-void sqlitefdw_report_error(int elevel, sqlite3_stmt *stmt, sqlite3 *conn, const char *sql, int rc);
+			   int svr_port, bool svr_sa, char *svr_init_command,
+			   char *ssl_key, char *ssl_cert, char *ssl_ca, char *ssl_capath,
+			   char *ssl_cipher);
+void		sqlite_cleanup_connection(void);
+void		sqlite_rel_connection(sqlite3 * conn);
+void		sqlitefdw_report_error(int elevel, sqlite3_stmt * stmt, sqlite3 * conn, const char *sql, int rc);
 
-Datum sqlite_convert_to_pg(Oid pgtyp, int pgtypmod, sqlite3_stmt *stmt, int attnum);
+Datum		sqlite_convert_to_pg(Oid pgtyp, int pgtypmod, sqlite3_stmt * stmt, int attnum);
 
-void sqlite_bind_sql_var(Oid type, int attnum, Datum value, sqlite3_stmt *stmt, bool *isnull);
-#endif /* SQLITE_FDW_H */
+void		sqlite_bind_sql_var(Oid type, int attnum, Datum value, sqlite3_stmt * stmt, bool *isnull);
+#endif							/* SQLITE_FDW_H */

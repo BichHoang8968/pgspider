@@ -42,9 +42,10 @@
 /*
  * Describes the valid options for objects that use this wrapper.
  */
-struct SqliteFdwOption {
+struct SqliteFdwOption
+{
 	const char *optname;
-	Oid optcontext; /* Oid of catalog in which option may appear */
+	Oid			optcontext;		/* Oid of catalog in which option may appear */
 };
 
 
@@ -54,18 +55,18 @@ struct SqliteFdwOption {
  */
 static struct SqliteFdwOption valid_options[] =
 {
-	{ "table", ForeignTableRelationId },
-	{ "database", ForeignServerRelationId},
-	{ "key", AttributeRelationId},
+	{"table", ForeignTableRelationId},
+	{"database", ForeignServerRelationId},
+	{"key", AttributeRelationId},
 	/* Sentinel */
-	{ NULL,			InvalidOid }
+	{NULL, InvalidOid}
 };
 
 extern Datum sqlite_fdw_validator(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(sqlite_fdw_validator);
 bool
-sqlite_is_valid_option(const char *option, Oid context);
+			sqlite_is_valid_option(const char *option, Oid context);
 
 /*
  * Validate the generic options given to a FOREIGN DATA WRAPPER, SERVER,
@@ -76,17 +77,17 @@ sqlite_is_valid_option(const char *option, Oid context);
 Datum
 sqlite_fdw_validator(PG_FUNCTION_ARGS)
 {
-	List		*options_list = untransformRelOptions(PG_GETARG_DATUM(0));
+	List	   *options_list = untransformRelOptions(PG_GETARG_DATUM(0));
 	Oid			catalog = PG_GETARG_OID(1);
-	ListCell	*cell;
+	ListCell   *cell;
 
 	/*
-	 * Check that only options supported by sqlite_fdw,
-	 * and allowed for the current object type, are given.
+	 * Check that only options supported by sqlite_fdw, and allowed for the
+	 * current object type, are given.
 	 */
 	foreach(cell, options_list)
 	{
-		DefElem	 *def = (DefElem *) lfirst(cell);
+		DefElem    *def = (DefElem *) lfirst(cell);
 
 		if (!sqlite_is_valid_option(def->defname, catalog))
 		{
@@ -102,14 +103,14 @@ sqlite_fdw_validator(PG_FUNCTION_ARGS)
 			{
 				if (catalog == opt->optcontext)
 					appendStringInfo(&buf, "%s%s", (buf.len > 0) ? ", " : "",
-							 opt->optname);
+									 opt->optname);
 			}
 
-			ereport(ERROR, 
-				(errcode(ERRCODE_FDW_INVALID_OPTION_NAME), 
-				errmsg("invalid option \"%s\"", def->defname), 
-				errhint("Valid options in this context are: %s", buf.len ? buf.data : "<none>")
-				));
+			ereport(ERROR,
+					(errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
+					 errmsg("invalid option \"%s\"", def->defname),
+					 errhint("Valid options in this context are: %s", buf.len ? buf.data : "<none>")
+					 ));
 		}
 	}
 	PG_RETURN_VOID();
@@ -135,16 +136,16 @@ sqlite_is_valid_option(const char *option, Oid context)
 /*
  * Fetch the options for a sqlite_fdw foreign table.
  */
-sqlite_opt*
+sqlite_opt *
 sqlite_get_options(Oid foreignoid)
 {
 	ForeignTable *f_table = NULL;
 	ForeignServer *f_server = NULL;
-	List *options;
-	ListCell *lc;
+	List	   *options;
+	ListCell   *lc;
 	sqlite_opt *opt;
 
-	opt = (sqlite_opt*) palloc(sizeof(sqlite_opt));
+	opt = (sqlite_opt *) palloc(sizeof(sqlite_opt));
 	memset(opt, 0, sizeof(sqlite_opt));
 
 	/*
@@ -173,7 +174,7 @@ sqlite_get_options(Oid foreignoid)
 	/* Loop through the options, and get the server/port */
 	foreach(lc, options)
 	{
-		DefElem *def = (DefElem *) lfirst(lc);
+		DefElem    *def = (DefElem *) lfirst(lc);
 
 		if (strcmp(def->defname, "database") == 0)
 			opt->svr_database = defGetString(def);
@@ -186,5 +187,3 @@ sqlite_get_options(Oid foreignoid)
 
 	return opt;
 }
-
-
