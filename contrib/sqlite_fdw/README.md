@@ -3,13 +3,13 @@ sqlite_fdw
 
 PostgreSQL Foreign Data Wrapper for SQLite
 
-Currently this FDW is tested on PG10 and 9.6.
+Currently this FDW is tested on PostgreSQL10 and 9.6.
 
 Feature
 -----------
 - Support update to foreign table
 - WHERE pushdown
-- Aggregate pushdown(PostgreSQL10 only)
+- Aggregate pushdown(PG10 only)
 - Transaction
 
 Install
@@ -30,9 +30,7 @@ CREATE EXTENSION sqlite_fdw;
 
 Create server with specifying SQLite database path as option:
 <pre>
-CREATE SERVER sqlite_server
-  FOREIGN DATA WRAPPER sqlite_fdw
-  OPTIONS (database '/tmp/test.db');
+CREATE SERVER sqlite_server FOREIGN DATA WRAPPER sqlite_fdw OPTIONS (database '/tmp/test.db');
 </pre>
 
 
@@ -54,12 +52,6 @@ Access foregin table:
 SELECT * FROM t1;
 </pre>
 
-Test
------------
-<pre>
-./init.sh
-make check
-</pre>
 
 License
 --------
