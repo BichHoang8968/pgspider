@@ -28,7 +28,7 @@ Load extension:
 CREATE EXTENSION sqlite_fdw;
 </pre>
 
-Create server with specifying SQLite database path as option:
+Create server specifying SQLite database path as option:
 <pre>
 CREATE SERVER sqlite_server FOREIGN DATA WRAPPER sqlite_fdw OPTIONS (database '/tmp/test.db');
 </pre>
@@ -36,9 +36,7 @@ CREATE SERVER sqlite_server FOREIGN DATA WRAPPER sqlite_fdw OPTIONS (database '/
 
 Create foreign table:
 <pre>
-CREATE FOREIGN TABLE t1(a integer, b text)
-  SERVER sqlite_server
-  OPTIONS (table 't1_sqlite');
+CREATE FOREIGN TABLE t1(a integer, b text) SERVER sqlite_server OPTIONS (table 't1_sqlite');
 </pre>
 
 Or you can use import foreign schema:
