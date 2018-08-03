@@ -215,7 +215,7 @@ typedef struct ForeignAggInfo
 	void	   *conn;
 	ForeignServer *server;
 	UserMapping *user;
-	ForeignSpdAggregate result[10];	/* return value */	
+	ForeignSpdAggregate *result;	/* return value */	
 	char		transquery[1024];
 	Oid			typid;
 }	ForeignAggInfo;
@@ -228,6 +228,7 @@ typedef enum{
 	SPD_FS_STATE_FINISH,
 	SPD_FS_STATE_ERROR,
 }SpdForeignScanThreadState;
+
 typedef struct ForeignScanThreadInfo
 {
 	struct FdwRoutine * fdwroutine; /* Foreign Data wrapper  routine */

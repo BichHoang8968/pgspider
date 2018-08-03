@@ -18,6 +18,7 @@
 
 extern AggState *ExecInitAgg(Agg *node, EState *estate, int eflags);
 extern TupleTableSlot *ExecRetreiveDirect(AggState *node);
+extern TupleTableSlot *ExecDirectAgg(AggState *node);
 
 extern void ExecEndAgg(AggState *node);
 extern void ExecReScanAgg(AggState *node);

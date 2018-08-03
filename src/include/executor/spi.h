@@ -88,8 +88,9 @@ extern int SPI_execute_plan_with_paramlist(SPIPlanPtr plan,
 								ParamListInfo params,
 								bool read_only, long tcount);
 extern int	SPI_exec(const char *src, long tcount);
-TupleTableSlot* SPI_execRetreiveDirect(AggState *aggState);
-AggState* SPI_execIntiAgg(Agg *node, EState *estate, int eflags);
+extern TupleTableSlot* SPI_execRetreiveDirect(AggState *aggState);
+extern TupleTableSlot* SPI_execAgg(AggState *aggState);
+extern AggState* SPI_execIntiAgg(Agg *node, EState *estate, int eflags);
 
 extern int SPI_execp(SPIPlanPtr plan, Datum *Values, const char *Nulls,
 		  long tcount);

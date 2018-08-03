@@ -72,7 +72,7 @@ static Plan *create_plan_recurse(PlannerInfo *root, Path *best_path,
 					int flags);
 static Plan *create_scan_plan(PlannerInfo *root, Path *best_path,
 				 int flags);
-static List *build_path_tlist(PlannerInfo *root, Path *path);
+//static List *build_path_tlist(PlannerInfo *root, Path *path);
 static bool use_physical_tlist(PlannerInfo *root, Path *path, int flags);
 static List *get_gating_quals(PlannerInfo *root, List *quals);
 static Plan *create_gating_plan(PlannerInfo *root, Path *path, Plan *plan,
@@ -724,7 +724,8 @@ create_scan_plan(PlannerInfo *root, Path *best_path, int flags)
  * This is almost just make_tlist_from_pathtarget(), but we also have to
  * deal with replacing nestloop params.
  */
-static List *
+//static List *
+List *
 build_path_tlist(PlannerInfo *root, Path *path)
 {
 	List	   *tlist = NIL;
@@ -6033,7 +6034,8 @@ make_agg(List *tlist, List *qual,
 	plan->targetlist = tlist;
 	plan->lefttree = lefttree;
 	plan->righttree = NULL;
-
+	printf("make agg node\n");
+	pprint(node);
 	return node;
 }
 

@@ -347,6 +347,13 @@ SPI_execRetreiveDirect(AggState *aggState)
 	return ExecRetreiveDirect(aggState);
 }
 
+/* Obsolete version of SPI_execute */
+TupleTableSlot *
+SPI_execAgg(AggState *aggState)
+{
+	return ExecDirectAgg(aggState);
+}
+
 AggState*
 SPI_execIntiAgg(Agg *node, EState *estate, int eflags)
 {

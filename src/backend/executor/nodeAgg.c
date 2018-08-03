@@ -2727,11 +2727,7 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 	 */
 	aggstate = makeNode(AggState);
 	aggstate->ss.ps.plan = (Plan *) node;
-#ifdef FOREIGN_AGGREGATE_TSIP_IMPL
 	estate->agg_query = true;
-#else
-	estate->agg_query = false; // full scan mode.
-#endif
 	aggstate->ss.ps.state = estate;
 	aggstate->ss.ps.ExecProcNode = ExecAgg;
 
@@ -4253,4 +4249,10 @@ TupleTableSlot *
 ExecRetreiveDirect(AggState *node)
 {
 	return agg_retrieve_direct(node);
+}
+
+TupleTableSlot *
+ExecDirectAgg(AggState *node)
+{
+	return ExecAgg(node);
 }
