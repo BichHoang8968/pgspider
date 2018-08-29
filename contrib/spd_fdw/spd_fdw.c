@@ -2719,7 +2719,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			}
 			else
 			{
-				elog(DEBUG1, "fdw_private->dummy_plan_list list found %d", private_incr);
+				//elog(DEBUG1, "fdw_private->dummy_plan_list list found %d", private_incr);
 			}
 			server_oid = spd_spi_exec_datasource_oid(DatumGetObjectId(oid[private_incr]));
 			if (getResultFlag)
