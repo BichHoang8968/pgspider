@@ -6034,8 +6034,6 @@ make_agg(List *tlist, List *qual,
 	plan->targetlist = tlist;
 	plan->lefttree = lefttree;
 	plan->righttree = NULL;
-	printf("make agg node\n");
-	pprint(node);
 	return node;
 }
 
