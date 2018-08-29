@@ -865,10 +865,6 @@ RESCAN:
 	if (list_member_oid(fdw_private->pPseudoAggList, fssthrdInfo->serverId))
 	{
 		elog(DEBUG1, "SPI_execInitAgg");
-/*		aggState = SPI_execIntiAgg(
-								   fdw_private->pAgg,
-								   fssthrdInfo->fsstate->ss.ps.state, 0);
-*/
 		aggState = SPI_execIntiAgg(
 			fdw_private->pAgg,
 			fssthrdInfo->fsstate->ss.ps.state, 0);
@@ -3599,17 +3595,17 @@ spd_ReScanForeignScan(ForeignScanState *node)
 
 	for (node_incr = 0; node_incr < nThreads; node_incr++)
 	{
-		if (fssThrdInfo[node_incr].state != SPD_FS_STATE_ERROR && fssThrdInfo[node_incr].state != SPD_FS_STATE_END && fssThrdInfo[node_incr].state != SPD_FS_STATE_FINISH)
+		if (fssThrdInfo[node_incr].state != SPD_FS_STATE_ERROR && fssThrdInfo[node_incr].state != SPD_FS_STATE_FINISH)
 		{
 			fssThrdInfo[node_incr].queryRescan = true;
 		}
 	}
 	/* 10us sleep for thread switch */
-	usleep(10);
+	//usleep(10);
 
 	for (node_incr = 0; node_incr < nThreads; node_incr++)
 	{
-		if (fssThrdInfo[node_incr].state != SPD_FS_STATE_ERROR && fssThrdInfo[node_incr].state != SPD_FS_STATE_END && fssThrdInfo[node_incr].state != SPD_FS_STATE_FINISH)
+		if (fssThrdInfo[node_incr].state != SPD_FS_STATE_ERROR && fssThrdInfo[node_incr].state != SPD_FS_STATE_FINISH)
 		{
 			while (fssThrdInfo[node_incr].queryRescan)
 			{
