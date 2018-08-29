@@ -2656,7 +2656,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 	elog(DEBUG1, "entering function %s", __func__);
 
-	oldcontext = MemoryContextSwitchTo(CurrentMemoryContext);
+	//oldcontext = MemoryContextSwitchTo(CurrentMemoryContext);
 	//oldcontext = MemoryContextSwitchTo(TopMemoryContext);
 	node->spd_fsstate = NULL;
 	fdw_private = (SpdFdwPrivate *)
@@ -2855,7 +2855,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			 */
 			rd = RelationIdGetRelation(DatumGetObjectId(oid[private_incr]));
 			fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation = rd;
-			elog(DEBUG1, "oid = %d", fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation->rd_node.relNode);
+			//elog(DEBUG1, "oid = %d", fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation->rd_node.relNode);
 
 			fssThrdInfo[node_incr].iFlag = true;
 			fssThrdInfo[node_incr].EndFlag = false;
@@ -2907,7 +2907,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			}
 		}
 	}
-	MemoryContextSwitchTo(oldcontext);
+	//MemoryContextSwitchTo(oldcontext);
 	return;
 }
 
