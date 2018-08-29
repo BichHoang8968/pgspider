@@ -3592,10 +3592,6 @@ spd_ReScanForeignScan(ForeignScanState *node)
 		if (l->data.int_value == TRUE)
 			nThreads += 1;
 	}
-	while (fssThrdInfo[node_incr].state == SPD_FS_STATE_ITERATE)
-	{
-		pthread_yield();
-	}
 	for (node_incr = 0; node_incr < nThreads; node_incr++)
 	{
 		if (fssThrdInfo[node_incr].state != SPD_FS_STATE_ERROR && fssThrdInfo[node_incr].state != SPD_FS_STATE_FINISH)
