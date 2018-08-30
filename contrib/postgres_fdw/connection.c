@@ -147,6 +147,7 @@ GetConnection(ForeignServer *server,UserMapping *user, bool will_prep_stmt)
 	xact_got_connection = true;
 
 	/* Create hash key for the entry.  Assume no pad bytes in key struct */
+	key.serverid = server->serverid;
 	key.userid = user->userid;
 	key.threadid = pthread_self();
 
