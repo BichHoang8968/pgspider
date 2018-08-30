@@ -111,7 +111,7 @@ static bool pgfdw_get_cleanup_result(PGconn *conn, TimestampTz endtime,
  * (not even on error), we need this flag to cue manual cleanup.
  */
 PGconn *
-GetConnection(UserMapping *user, bool will_prep_stmt)
+GetConnection(ForeignServer *server,UserMapping *user, bool will_prep_stmt)
 {
 	bool		found;
 	ConnCacheEntry *entry;
