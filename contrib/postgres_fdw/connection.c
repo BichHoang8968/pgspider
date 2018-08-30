@@ -25,6 +25,7 @@
 #include "utils/inval.h"
 #include "utils/memutils.h"
 #include "utils/syscache.h"
+#include <pthread.h>
 
 
 /*
@@ -43,7 +44,13 @@
  * ourselves, so that rolling back a subtransaction will kill the right
  * queries and not the wrong ones.
  */
-typedef Oid ConnCacheKey;
+//typedef Oid ConnCacheKey;
+typedef struct ConnCacheKey
+{
+	Oid			serverid;		/* OID of foreign server */
+	Oid			userid;			/* OID of local user whose mapping we use */
+	pthread_t       threadid;
+} ConnCacheKey;
 
 typedef struct ConnCacheEntry
 {
@@ -140,7 +147,8 @@ GetConnection(UserMapping *user, bool will_prep_stmt)
 	xact_got_connection = true;
 
 	/* Create hash key for the entry.  Assume no pad bytes in key struct */
-	key = user->umid;
+	key.userid = user->userid;
+	key.threadid = pthread_self();
 
 	/*
 	 * Find or create cached entry for requested connection.
@@ -156,7 +164,7 @@ GetConnection(UserMapping *user, bool will_prep_stmt)
 	}
 
 	/* Reject further use of connections which failed abort cleanup. */
-	pgfdw_reject_incomplete_xact_state_change(entry);
+	//pgfdw_reject_incomplete_xact_state_change(entry);
 
 	/*
 	 * If the connection needs to be remade due to invalidation, disconnect as
@@ -986,6 +994,7 @@ pgfdw_inval_callback(Datum arg, int cacheid, uint32 hashvalue)
 static void
 pgfdw_reject_incomplete_xact_state_change(ConnCacheEntry *entry)
 {
+#if 0
 	HeapTuple	tup;
 	Form_pg_user_mapping umform;
 	ForeignServer *server;
@@ -1010,6 +1019,7 @@ pgfdw_reject_incomplete_xact_state_change(ConnCacheEntry *entry)
 			(errcode(ERRCODE_CONNECTION_EXCEPTION),
 			 errmsg("connection to server \"%s\" was lost",
 					server->servername)));
+#endif
 }
 
 /*
