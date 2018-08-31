@@ -887,6 +887,7 @@ RESCAN:
 				TupleTableSlot *slot;
 
 				pthread_mutex_lock(&fssthrdInfo->nodeMutex);
+				pthread_mutex_lock(&scan_mutex);
 				if (list_member_oid(fdw_private->pPseudoAggList,
 									fssthrdInfo->serverId))
 				{
@@ -901,6 +902,7 @@ RESCAN:
 				{
 					slot = fssthrdInfo->fdwroutine->IterateForeignScan(fssthrdInfo->fsstate);
 				}
+				pthread_mutex_unlock(&scan_mutex);
 				pthread_mutex_unlock(&fssthrdInfo->nodeMutex);
 
 				if (slot == NULL)
@@ -3599,7 +3601,8 @@ spd_ReScanForeignScan(ForeignScanState *node)
 		}
 	}
 	/* 10us sleep for thread switch */
-	//usleep(10);
+	pthread_yield();
+	usleep(1);
 
 	for (node_incr = 0; node_incr < nThreads; node_incr++)
 	{
