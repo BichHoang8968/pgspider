@@ -1446,7 +1446,7 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	fdw_private->rinfo.pushdown_safe = true;
 	baserel->fdw_private = (void *) fdw_private;
 
-	oldcontext = MemoryContextSwitchTo(CurrentMemoryContext);
+	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	/* get child datasouce oid and nums */
     spd_spi_exec_datasouce_num(foreigntableid, &nums, &oid);
 	if (nums == 0)
@@ -1555,7 +1555,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	/* Ignore stages we don't support; and skip any duplicate calls. */
 	if (stage != UPPERREL_GROUP_AGG || output_rel->fdw_private)
 		return;
-	oldcontext = MemoryContextSwitchTo(CurrentMemoryContext);
+	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 
 	/* Prepare SpdFdwPrivate for output RelOptInfo */
 	fdw_private = spd_AllocatePrivate();
@@ -1792,6 +1792,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			i++;
 		}
 	}
+	MemoryContextSwitchTo(oldcontext);
 }
 
 /**
@@ -2128,7 +2129,7 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 	ListCell   *alive_l;
 	Query	   *query = root->parse;
 
-	oldcontext = MemoryContextSwitchTo(CurrentMemoryContext);
+	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 
     spd_spi_exec_datasouce_num(foreigntableid, &nums, &oid);
 	/*
@@ -2403,7 +2404,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	ListCell   *alive_l;
 	List *child_tlist;
 
-	oldcontext = MemoryContextSwitchTo(CurrentMemoryContext);
+	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 
     spd_spi_exec_datasouce_num(foreigntableid, &nums, &oid);
 
