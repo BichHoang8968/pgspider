@@ -135,13 +135,11 @@ static void write_eventlog(int level, const char *line, int len);
 #endif
 
 /* We provide a small stack of ErrorData records for re-entrant cases */
-#define ERRORDATA_STACK_SIZE  5
+#define ERRORDATA_STACK_SIZE  40
 
-static ErrorData errordata[ERRORDATA_STACK_SIZE];
-
-static int	errordata_stack_depth = -1; /* index of topmost active frame */
-
-static int	recursion_depth = 0;	/* to detect actual recursion */
+static ErrorData __thread errordata[ERRORDATA_STACK_SIZE];
+static int __thread	errordata_stack_depth = -1; /* index of topmost active frame */
+static int __thread recursion_depth = 0;	/* to detect actual recursion */
 
 /*
  * Saved timeval and buffers for formatted timestamps that might be used by
