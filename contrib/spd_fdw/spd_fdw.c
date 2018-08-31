@@ -802,6 +802,7 @@ spd_ForeignScan_thread(void *arg)
 
 	/* Begin Foreign Scan */
 	fssthrdInfo->state = SPD_FS_STATE_BEGIN;
+    pthread_mutex_init((pthread_mutex_t *) &fssthrdInfo->nodeMutex, NULL);
 	PG_TRY();
 	{
 		pthread_mutex_lock(&scan_mutex);
@@ -1889,8 +1890,6 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 	List	   *mapping_tlist = NIL;
 	List	   *mapping_orig_tlist = NIL;
 	List	   *temp_tlist = NIL;
-	
-	
 
 	/* Grouping Sets are not pushable */
 	if (query->groupingSets)
