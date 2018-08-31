@@ -93,7 +93,7 @@ tinybrace_get_connection(ForeignServer *server, UserMapping *user, tinybrace_opt
 		ConnectionHash = hash_create("tinybrace_fdw connections", 8,
 									&ctl,
 									HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
-		RegisterXactCallback(tinybracefdw_xact_callback, NULL);
+		//RegisterXactCallback(tinybracefdw_xact_callback, NULL);
 	}
 
 	/* Set flag that we did GetConnection during the current transaction */
@@ -311,7 +311,7 @@ tinybracefdw_xact_callback(XactEvent event, void *arg)
 				case XACT_EVENT_ABORT:
 					/* Assume we might have lost track of prepared statements */
 					//entry->have_error = true;
-					TBC_get_autocommit(entry->conn->connect, &autocommit);
+					//TBC_get_autocommit(entry->conn->connect, &autocommit);
 					if (!autocommit)
 						do_sql_command(entry->conn, "ROLLBACK");
 

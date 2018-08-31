@@ -1752,7 +1752,7 @@ foreign_expr_walker(Node *node,
  * Returns true if given expr is safe to evaluate on the foreign server.
  */
 bool
-is_foreign_expr(PlannerInfo *root,
+tinybrace_is_foreign_expr(PlannerInfo *root,
                                 RelOptInfo *baserel,
                                 Expr *expr)
 {
@@ -1958,8 +1958,8 @@ appendOrderByClause(List *pathkeys, deparse_expr_cxt *context)
 	StringInfo	buf = context->buf;
 
 	/* Make sure any constants in the exprs are printed portably */
-	nestlevel = set_transmission_modes();
-
+	nestlevel = tinybrace_set_transmission_modes();
+	
 	appendStringInfo(buf, " ORDER BY");
 	foreach(lcell, pathkeys)
 	{
@@ -1980,7 +1980,7 @@ appendOrderByClause(List *pathkeys, deparse_expr_cxt *context)
 			elog(ERROR, "NULLS FIRST not supported");
 		delim = ", ";
 	}
-	reset_transmission_modes(nestlevel);
+	tinybrace_reset_transmission_modes(nestlevel);
 }
 
 
@@ -2167,7 +2167,7 @@ appendConditions(List *exprs, deparse_expr_cxt *context)
 	StringInfo	buf = context->buf;
 
 	/* Make sure any constants in the exprs are printed portably */
-	nestlevel = set_transmission_modes();
+	nestlevel = tinybrace_set_transmission_modes();
 
 	foreach(lc, exprs)
 	{
@@ -2195,7 +2195,7 @@ appendConditions(List *exprs, deparse_expr_cxt *context)
 		is_first = false;
 	}
 
-	reset_transmission_modes(nestlevel);
+	tinybrace_reset_transmission_modes(nestlevel);
 }
 
 /*

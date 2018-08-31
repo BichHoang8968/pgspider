@@ -435,7 +435,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 			 * If any of the GROUP BY expression is not shippable we can not
 			 * push down aggregation to the foreign server.
 			 */
-			if (!is_foreign_expr(root, grouped_rel, expr))
+			if (!tinybrace_is_foreign_expr(root, grouped_rel, expr))
 				return false;
 
 			/* Pushable, add to tlist */
@@ -444,7 +444,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 		else
 		{
 			/* Check entire expression whether it is pushable or not */
-			if (is_foreign_expr(root, grouped_rel, expr))
+			if (tinybrace_is_foreign_expr(root, grouped_rel, expr))
 			{
 				/* Pushable, add to tlist */
 				tlist = add_to_flat_tlist(tlist, list_make1(expr));
@@ -463,7 +463,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 				aggvars = pull_var_clause((Node *) expr,
 										  PVC_INCLUDE_AGGREGATES);
 
-				if (!is_foreign_expr(root, grouped_rel, (Expr *) aggvars))
+				if (!tinybrace_is_foreign_expr(root, grouped_rel, (Expr *) aggvars))
 					return false;
 
 				/*
@@ -516,7 +516,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 									  grouped_rel->relids,
 									  NULL,
 									  NULL);
-			if (is_foreign_expr(root, grouped_rel, expr))
+			if (tinybrace_is_foreign_expr(root, grouped_rel, expr))
 				fpinfo->remote_conds = lappend(fpinfo->remote_conds, rinfo);
 			else
 				fpinfo->local_conds = lappend(fpinfo->local_conds, rinfo);
@@ -553,7 +553,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 			 */
 			if (IsA(expr, Aggref))
 			{
-				if (!is_foreign_expr(root, grouped_rel, expr))
+				if (!tinybrace_is_foreign_expr(root, grouped_rel, expr))
 					return false;
 
 				tlist = add_to_flat_tlist(tlist, list_make1(expr));
@@ -722,7 +722,7 @@ tinybraceIterateForeignScan(ForeignScanState *node)
 					(errcode(ERRCODE_FDW_UNABLE_TO_CREATE_EXECUTION),
 					 errmsg("failed to tbc_execute %d\n",rtn)));
 		}
-		festate-> table ->result_set = (TBC_RESULT_SET *)MemoryContextAlloc(econtext->es_query_cxt,sizeof(TBC_RESULT_SET));
+		festate-> table ->result_set = (TBC_RESULT_SET *)MemoryContextAlloc(estate->es_query_cxt,sizeof(TBC_RESULT_SET));
 
 		rtn = TBC_store_result(festate->conn->connect,festate->qHandle, festate->table->result_set);
 		if(rtn != TBC_OK){
@@ -912,9 +912,11 @@ tinybraceGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreignta
 	TBC_QUERY_HANDLE qHandle;
 	TBC_RTNCODE rtn;
 
+	elog(DEBUG1,"tinybraceGetForeignRelSize");
+	
 	fpinfo = (TinyBraceFdwRelationInfo *) palloc0(sizeof(TinyBraceFdwRelationInfo));
 	baserel->fdw_private = (void *) fpinfo;
-
+	
 	/* Base foreign tables need to be pushed down always. */
 	fpinfo->pushdown_safe = true;
 
@@ -932,7 +934,7 @@ tinybraceGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreignta
 	{
 		RestrictInfo *ri = (RestrictInfo *) lfirst(lc);
 
-		if (is_foreign_expr(root, baserel, ri->clause))
+		if (tinybrace_is_foreign_expr(root, baserel, ri->clause))
 			fpinfo->remote_conds = lappend(fpinfo->remote_conds, ri);
 		else
 			fpinfo->local_conds = lappend(fpinfo->local_conds, ri);
@@ -1133,12 +1135,12 @@ get_useful_pathkeys_for_relation(PlannerInfo *root, RelOptInfo *rel)
 			 * end up resorting the entire data set.  So, unless we can push
 			 * down all of the query pathkeys, forget it.
 			 *
-			 * is_foreign_expr would detect volatile expressions as well, but
+			 * tinybrace_is_foreign_expr would detect volatile expressions as well, but
 			 * checking ec_has_volatile here saves some cycles.
 			 */
 			if (pathkey_ec->ec_has_volatile ||
 				!(em_expr = find_em_expr_for_rel(pathkey_ec, rel)) ||
-				!is_foreign_expr(root, rel, em_expr))
+				!tinybrace_is_foreign_expr(root, rel, em_expr))
 			{
 				query_pathkeys_ok = false;
 				break;
@@ -1191,7 +1193,7 @@ get_useful_pathkeys_for_relation(PlannerInfo *root, RelOptInfo *rel)
 
 		/* If no pushable expression for this rel, skip it. */
 		em_expr = find_em_expr_for_rel(cur_ec, rel);
-		if (em_expr == NULL || !is_foreign_expr(root, rel, em_expr))
+		if (em_expr == NULL || !tinybrace_is_foreign_expr(root, rel, em_expr))
 			continue;
 
 		/* Looks like we can generate a pathkey, so let's do it. */
@@ -1382,7 +1384,7 @@ tinybraceGetForeignPlan(
 			}
 			else if (list_member_ptr(fpinfo->local_conds, rinfo))
 				local_exprs = lappend(local_exprs, rinfo->clause);
-			else if (is_foreign_expr(root, baserel, rinfo->clause))
+			else if (tinybrace_is_foreign_expr(root, baserel, rinfo->clause))
 			{
 				remote_conds = lappend(remote_conds, rinfo);
 				remote_exprs = lappend(remote_exprs, rinfo->clause);
@@ -1448,6 +1450,7 @@ tinybraceGetForeignPlan(
     tinybrace_deparseSelectStmtForRel(&sql, root, baserel, fdw_scan_tlist,
 							remote_exprs, best_path->path.pathkeys,
 							false, &retrieved_attrs, &params_list);
+	elog(DEBUG1,"select sql = %s",sql.data);	
 	fdw_private = list_make2(makeString(sql.data), retrieved_attrs);
 
 	/*
@@ -1728,7 +1731,7 @@ tinybraceExecForeignInsert(EState *estate,
 	n_params = list_length(fmstate->retrieved_attrs);
 
 	oldcontext = MemoryContextSwitchTo(fmstate->temp_cxt);
-	nestlevel = set_transmission_modes();
+	nestlevel = tinybrace_set_transmission_modes();
 
 	/* Bind values */
 	foreach(lc, fmstate->retrieved_attrs)
@@ -2200,7 +2203,7 @@ tinybraceImportForeignSchema(ImportForeignSchemaStmt *stmt,
  * reset_transmission_modes() to undo things.
  */
 int
-set_transmission_modes(void)
+tinybrace_set_transmission_modes(void)
 {
 	int			nestlevel = NewGUCNestLevel();
 
@@ -2229,7 +2232,7 @@ set_transmission_modes(void)
  * Undo the effects of set_transmission_modes().
  */
 void
-reset_transmission_modes(int nestlevel)
+tinybrace_reset_transmission_modes(int nestlevel)
 {
 	AtEOXact_GUC(true, nestlevel);
 }
@@ -2300,7 +2303,7 @@ process_query_params(ExprContext *econtext,
 	int			i;
 	ListCell   *lc;
 
-	nestlevel = set_transmission_modes();
+	nestlevel = tinybrace_set_transmission_modes();
 
 	i = 0;
 	foreach(lc, param_exprs)
@@ -2324,7 +2327,7 @@ process_query_params(ExprContext *econtext,
 		i++;
 	}
 
-	reset_transmission_modes(nestlevel);
+	tinybrace_reset_transmission_modes(nestlevel);
 }
 
 /*
