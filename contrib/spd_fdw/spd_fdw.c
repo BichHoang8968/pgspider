@@ -3596,7 +3596,7 @@ spd_ReScanForeignScan(ForeignScanState *node)
 	}
 	for (node_incr = 0; node_incr < nThreads; node_incr++)
 	{
-		if (fssThrdInfo[node_incr].state != SPD_FS_STATE_ERROR && fssThrdInfo[node_incr].state != SPD_FS_STATE_FINISH)
+		if (fssThrdInfo[node_incr].state != SPD_FS_STATE_ERROR && fssThrdInfo[node_incr].state != SPD_FS_STATE_FINISH && fssThrdInfo[node_incr].state != SPD_FS_STATE_ITERATE)
 		{
 			fssThrdInfo[node_incr].queryRescan = true;
 		}
