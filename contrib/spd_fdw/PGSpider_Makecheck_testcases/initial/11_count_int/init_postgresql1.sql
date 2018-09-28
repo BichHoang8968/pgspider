@@ -1,0 +1,3 @@
+CREATE TABLE countint (i int);
+INSERT INTO countint VALUES (757147);
+INSERT INTO countint VALUES (-301413356);

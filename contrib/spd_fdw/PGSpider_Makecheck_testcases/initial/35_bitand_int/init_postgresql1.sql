@@ -1,0 +1,3 @@
+CREATE TABLE bitandint (i int);
+INSERT INTO bitandint VALUES (2147483631);
+INSERT INTO bitandint VALUES (2147481599);

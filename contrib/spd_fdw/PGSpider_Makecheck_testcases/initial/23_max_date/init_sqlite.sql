@@ -1,0 +1,5 @@
+CREATE TABLE maxdate (i date);
+INSERT INTO maxdate VALUES ('2018-06-06');
+INSERT INTO maxdate VALUES ('2018-06-07');
+INSERT INTO maxdate VALUES ('2018-06-08'); 
+INSERT INTO maxdate VALUES ('2018-06-09');

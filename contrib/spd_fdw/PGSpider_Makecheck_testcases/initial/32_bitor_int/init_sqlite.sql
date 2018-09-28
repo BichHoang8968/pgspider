@@ -1,0 +1,5 @@
+CREATE TABLE bitorint (i int);
+INSERT INTO bitorint VALUES (66699);
+INSERT INTO bitorint VALUES (95678);
+INSERT INTO bitorint VALUES (124668); 
+INSERT INTO bitorint VALUES (8824);

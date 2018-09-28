@@ -1,0 +1,3 @@
+CREATE TABLE stddevint (i int);
+INSERT INTO stddevint VALUES (2124879525);
+INSERT INTO stddevint VALUES (-1359734657);
