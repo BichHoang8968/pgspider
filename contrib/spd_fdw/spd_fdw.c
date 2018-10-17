@@ -98,6 +98,9 @@ PG_MODULE_MAGIC;
 #define BOOL_OID 16
 #define TEXT_OID 25
 #define TIMESTAMP_OID 1114
+#define OPEXPER_OID 514
+#define OPEXPER_FUNCID 141
+
 
 #define DOUBLE_LENGTH 8
 
@@ -391,14 +394,14 @@ spd_add_to_flat_tlist(List *tlist, List *exprs,List **mapping_tlist, List **mapp
 			(aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID) ||
 			(aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
 		{
-			/* Prepare SUM Query */
+			/* Prepare COUNT Query */
 			Aggref	   *tempCount = copyObject(expr);
 			Aggref	   *tempSum;
 			Aggref	   *tempVar;
 			tempCount->aggfnoid = COUNT_OID;
 			tempCount->aggtype = BIGINT_OID;
 			tempCount->aggtranstype = BIGINT_OID;
-			/* Prepare Count Query */
+			/* Prepare SUM Query */
 			tempSum = copyObject(tempCount);
 			tempSum->aggfnoid = SUM_OID;
 			tempVar = copyObject(tempCount);
@@ -452,7 +455,7 @@ spd_add_to_flat_tlist(List *tlist, List *exprs,List **mapping_tlist, List **mapp
 				*child_uninum+=1;
 			}
 			ctlist->mapping = lappend(ctlist->mapping, target_num);
-			/* variance */
+			/* variance(SUM(x*x)) */
 			if((aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
 				|| (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID)){
 				if (!spd_tlist_member(tempVar, *temp_tlist, &target_num))
@@ -464,9 +467,9 @@ spd_add_to_flat_tlist(List *tlist, List *exprs,List **mapping_tlist, List **mapp
 					OpExpr *opexpr2;
 
 					opexpr->xpr.type = T_OpExpr;
-					opexpr->opno = 514;
-					opexpr->opfuncid = 141;
-					opexpr->opresulttype = 23;
+					opexpr->opno = OPEXPER_OID;
+					opexpr->opfuncid = OPEXPER_FUNCID;
+					opexpr->opresulttype = INT_OID;
 					opexpr->opretset =false;
 					opexpr->opcollid=0;
 					opexpr->inputcollid = 0;
@@ -484,15 +487,15 @@ spd_add_to_flat_tlist(List *tlist, List *exprs,List **mapping_tlist, List **mapp
 											  NULL,
 											  false);
 					opexpr2 = (OpExpr*)tarexpr->expr;
-					opexpr2->opfuncid = 141;
-					opexpr2->opresulttype = 23;
+					opexpr->opfuncid = OPEXPER_FUNCID;
+					opexpr->opresulttype = INT_OID;
 					opexpr2->opretset =false;
 					opexpr2->opcollid=0;
 					opexpr2->inputcollid = 0;
 					opexpr2->location = 0;
 					tarexpr->resno = 1;
-					tempVar->aggtype = 20;
-					tempVar->aggtranstype=20;
+					tempVar->aggtype = BIGINT_OID;
+					tempVar->aggtranstype=BIGINT_OID;
 					tempVar->args = lappend(tempVar->args,tarexpr);
 					tempVar->args = list_delete_first(tempVar->args);
 					tle_temp = makeTargetEntry(copyObject(tempVar), /* copy needed?? */
@@ -2138,6 +2141,16 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 }
 
 
+/**
+ * spd_expression_tree_walker
+ *
+ * Change expr Var node type to OUTER VAR recursively.
+ *
+ * @param[in,out] node - plan tree node
+ * @param[in,out] att  - attribute number
+ *
+ */
+
 static bool
 spd_expression_tree_walker(Node *node,int att)
 {
@@ -2271,7 +2284,7 @@ spd_expression_tree_walker(Node *node,int att)
  *
  * @param[in] tlist               - target list
  * @param[out] agg_query          - aggregation flag
- * @param[out] pPseudoAggTypeList - Push down type list
+ * @param[out] fdw_private        - Push down type list
  *
  */
 static List*
