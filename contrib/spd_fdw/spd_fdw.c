@@ -64,6 +64,7 @@ PG_MODULE_MAGIC;
 #include "spd_fdw_aggregate.h"
 #include "funcapi.h"
 #include "postgres_fdw/postgres_fdw.h"
+#include "access/htup_details.h"
 
 #define BUFFERSIZE 1024
 #define QUERY_LENGTH 512
@@ -168,6 +169,9 @@ static void spd_EndForeignModify(EState *estate,
 
 static TargetEntry *
 spd_tlist_member(Expr *node, List *targetlist, int *target_num);
+
+static List *
+spd_add_to_flat_tlist(List *tlist, List *exprs,List **mapping_tlist, List **mapping_orig_tlist, List **temp_tlist,int *child_uninum);
 
 enum SpdFdwScanPrivateIndex
 {
@@ -371,7 +375,7 @@ spd_tlist_member(Expr *node, List *targetlist, int *target_num)
  * @param[out] child_uninum - number of child list
  */
 
-List *
+static List *
 spd_add_to_flat_tlist(List *tlist, List *exprs,List **mapping_tlist, List **mapping_orig_tlist, List **temp_tlist,int *child_uninum)
 {
 	int			next_resno = list_length(tlist) + 1;
@@ -395,7 +399,7 @@ spd_add_to_flat_tlist(List *tlist, List *exprs,List **mapping_tlist, List **mapp
 			(aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
 		{
 			/* Prepare COUNT Query */
-			Aggref	   *tempCount = copyObject(expr);
+			Aggref	   *tempCount = copyObject((Aggref*)expr);
 			Aggref	   *tempSum;
 			Aggref	   *tempVar;
 			tempCount->aggfnoid = COUNT_OID;
@@ -420,8 +424,8 @@ spd_add_to_flat_tlist(List *tlist, List *exprs,List **mapping_tlist, List **mapp
 				tlist = lappend(tlist, tle);
 
 			}
-			ctlist_orig->mapping = list_make1(target_num);
-			ctlist_orig->mapping = lappend(ctlist_orig->mapping,target_num);
+			ctlist_orig->mapping = list_make1_int(target_num);
+			ctlist_orig->mapping = lappend_int(ctlist_orig->mapping,target_num);
 			*mapping_orig_tlist=lappend(*mapping_orig_tlist,ctlist_orig);
 			/* set avg flag */
 			if(aggref->aggfnoid >= AVG_MIN_OID && aggref->aggfnoid <= AVG_MAX_OID){
@@ -434,37 +438,37 @@ spd_add_to_flat_tlist(List *tlist, List *exprs,List **mapping_tlist, List **mapp
 				ctlist_orig->avgflag = 3;
 			}
 			/* count */
-			if (!spd_tlist_member(tempCount, *temp_tlist, &target_num))
+			if (!spd_tlist_member((Expr*)tempCount, *temp_tlist, &target_num))
 			{
-				tle_temp = makeTargetEntry(copyObject(tempCount), /* copy needed?? */
+				tle_temp = makeTargetEntry((Expr*)tempCount, /* copy needed?? */
 										   next_resno_temp++,
 										   NULL,
 										   false);
 				*temp_tlist = lappend(*temp_tlist, tle_temp);
 				*child_uninum+=1;
 			}
-			ctlist->mapping = list_make1(target_num);
+			ctlist->mapping = list_make1_int(target_num);
             /* sum */
-			if (!spd_tlist_member(tempSum, *temp_tlist, &target_num))
+			if (!spd_tlist_member((Expr*)tempSum, *temp_tlist, &target_num))
 			{
-				tle_temp = makeTargetEntry(copyObject(tempSum), /* copy needed?? */
+				tle_temp = makeTargetEntry((Expr*)tempSum, /* copy needed?? */
 										   next_resno_temp++,
 										   NULL,
 										   false);
 				*temp_tlist = lappend(*temp_tlist, tle_temp);
 				*child_uninum+=1;
 			}
-			ctlist->mapping = lappend(ctlist->mapping, target_num);
+			ctlist->mapping = lappend_int(ctlist->mapping, target_num);
 			/* variance(SUM(x*x)) */
 			if((aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
 				|| (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID)){
-				if (!spd_tlist_member(tempVar, *temp_tlist, &target_num))
+				if (!spd_tlist_member((Expr*)tempVar, *temp_tlist, &target_num))
 				{
 					TargetEntry *tarexpr;
 					TargetEntry *oparg = (TargetEntry *)tempVar->args->head->data.ptr_value;
 					Var *opvar = (Var *)oparg->expr;
-					OpExpr *opexpr;
-					OpExpr *opexpr2;
+					OpExpr *opexpr=copyObject((OpExpr*)opvar);
+					OpExpr *opexpr2=copyObject(opexpr);
 
 					opexpr->xpr.type = T_OpExpr;
 					opexpr->opno = OPEXPER_OID;
@@ -482,7 +486,7 @@ spd_add_to_flat_tlist(List *tlist, List *exprs,List **mapping_tlist, List **mapp
 					opexpr->args = lappend(opexpr->args,opvar);
 					opexpr->args = lappend(opexpr->args,opvar);
 					/* Create var targetentry */
-					tarexpr = makeTargetEntry(copyObject(opexpr), /* copy needed?? */
+					tarexpr = makeTargetEntry((Expr*)opexpr, /* copy needed?? */
 											  next_resno_temp,
 											  NULL,
 											  false);
@@ -498,15 +502,15 @@ spd_add_to_flat_tlist(List *tlist, List *exprs,List **mapping_tlist, List **mapp
 					tempVar->aggtranstype=BIGINT_OID;
 					tempVar->args = lappend(tempVar->args,tarexpr);
 					tempVar->args = list_delete_first(tempVar->args);
-					tle_temp = makeTargetEntry(copyObject(tempVar), /* copy needed?? */
-										   next_resno_temp++,
-										   NULL,
-										   false);
+					tle_temp = makeTargetEntry((Expr*)tempVar, /* copy needed?? */
+											   next_resno_temp++,
+											   NULL,
+											   false);
 					*temp_tlist = lappend(*temp_tlist, tle_temp);
 					*child_uninum+=1;
 				}
 			}
-			ctlist->mapping = lappend(ctlist->mapping, target_num);
+			ctlist->mapping = lappend_int(ctlist->mapping, target_num);
 			*mapping_tlist = lappend(*mapping_tlist, ctlist);
 		}
 		else
@@ -524,8 +528,8 @@ spd_add_to_flat_tlist(List *tlist, List *exprs,List **mapping_tlist, List **mapp
 				tlist = lappend(tlist, tle);
 			}
 			/* append original target list */
-			ctlist_orig->mapping = list_make1(target_num);
-			ctlist_orig->mapping = lappend(ctlist_orig->mapping,target_num);
+			ctlist_orig->mapping = list_make1_int(target_num);
+			ctlist_orig->mapping = lappend_int(ctlist_orig->mapping,target_num);
 			ctlist_orig->avgflag = 0;
 			*mapping_orig_tlist=lappend(*mapping_orig_tlist,ctlist_orig);
 
@@ -540,7 +544,7 @@ spd_add_to_flat_tlist(List *tlist, List *exprs,List **mapping_tlist, List **mapp
 				*child_uninum+=1;
 			}
 			ctlist->avgflag = 0;
-			ctlist->mapping = list_make1(target_num);
+			ctlist->mapping = list_make1_int(target_num);
 			*mapping_tlist = lappend(*mapping_tlist, ctlist);
 		}
 	}
@@ -1520,14 +1524,10 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 {
 	SpdFdwPrivate *fdw_private,
 			   *in_fdw_private;
-	int flag = 0;
 	List  *div_tlist = NIL;
-	int target_num = 0;
 	MemoryContext oldcontext;
-	RelOptInfo *input_rel_tmp;
 	RelOptInfo *output_rel_tmp = (RelOptInfo *)palloc(sizeof(RelOptInfo));
 	PlannerInfo *spd_root;
-	RelOptInfo *spd_baserel;
 
 	/*
 	 * If input rel is not safe to pushdown, then simply return as we cannot
@@ -1538,8 +1538,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 		return;
 	in_fdw_private = (SpdFdwPrivate *) input_rel->fdw_private;
 	output_rel_tmp->fdw_private = (SpdFdwPrivate *) palloc(sizeof(SpdFdwPrivate));
-	input_rel_tmp = in_fdw_private->spd_baserel;
-	
+
 	/* Ignore stages we don't support; and skip any duplicate calls. */
 	if (stage != UPPERREL_GROUP_AGG || output_rel->fdw_private)
 		return;
@@ -1560,13 +1559,9 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 
 	spd_root = in_fdw_private->spd_root;
-	spd_baserel = in_fdw_private->spd_baserel;
 
 	/* Create child tlist */
 	{
-		List	   *newList = NIL;
-	    ListCell   *lc;
-		int listn=0;
 		int i;
 		{
 			RelOptInfo *dummy_output_rel;
@@ -1616,9 +1611,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			PlannerInfo *dummy_root =
 			(PlannerInfo *) list_nth(fdw_private->dummy_root_list, i);
 			RelOptInfo *dummy_output_rel;
-			PathTarget *grouping_target;
 			ListCell   *lc;
-			int			listn = 0;
 
 			oid_server = spd_spi_exec_datasource_oid(rel_oid);
 			/* pthread_mutex_lock(&scan_mutex); */
@@ -1642,49 +1635,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 					copy_pathtarget(spd_root->upper_targets[UPPERREL_WINDOW]);
 				dummy_root->upper_targets[UPPERREL_FINAL] =
 					copy_pathtarget(spd_root->upper_targets[UPPERREL_FINAL]);
-				grouping_target = spd_root->upper_targets[UPPERREL_GROUP_AGG];
-				oldcontext = MemoryContextSwitchTo(MessageContext);
-				foreach(lc, fdw_private->child_comp_tlist)
-				{
-					Expr	   *expr = (Expr *) lfirst(lc);
-					Aggref	   *aggref;
-					aggref = (Aggref *) expr;
-					listn++;
-					if ((aggref->aggfnoid >= AVG_MIN_OID && aggref->aggfnoid <= AVG_MAX_OID) ||
-						(aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID) ||
-						(aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
-					{
-						/* Prepare SUM Query */
-						/*
-						 * TODO: Appropriate aggfnoid should be choosen based
-						 * on type
-						 */
-						Aggref	   *tempCount = copyObject(aggref);
-						Aggref	   *tempVar;
-						Aggref	   *tempSum;
-						tempCount->aggfnoid = COUNT_OID;
-						tempCount->aggtype = BIGINT_OID;
-						tempCount->aggtranstype = BIGINT_OID;
-						/* Prepare Count Query */
-						tempSum = copyObject(tempCount);
-						tempVar = copyObject(tempCount);
-						if((aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID) ||
-						   (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID)){
-							tempSum->aggfnoid = SUM_OID;
-							newList = lappend(newList, tempSum);
-						}
-						tempSum->aggfnoid = SUM_OID;
-
-						newList = lappend(newList, tempCount);
-						newList = lappend(newList, tempSum);
-						flag = 1;
-					}
-					else
-					{
-						dummy_root->upper_targets[UPPERREL_WINDOW] = copy_pathtarget(root->upper_targets[UPPERREL_WINDOW]);
-						newList = lappend(newList, expr);
-					}
-				}
+			    oldcontext = MemoryContextSwitchTo(MessageContext);
 				foreach(lc, dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs)
 				{
 					dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs =
@@ -1712,7 +1663,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			else
 			{
 				/* Not Push Down case */
-				AggClauseCosts *agg_costs=NULL;
 				RelOptInfo *grouped_rel;
 				RelOptInfo *tmp = l->data.ptr_value;
 			    struct Path *tmp_path;
@@ -1720,12 +1670,12 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 
 				grouped_rel = fetch_upper_rel(root, UPPERREL_GROUP_AGG, NULL);
 				tmp_path = tmp->pathlist->head->data.ptr_value;
-				aggpath = (Path *)create_agg_path((PlannerInfo *) dummy_root,
+				aggpath = (AggPath *)create_agg_path((PlannerInfo *) dummy_root,
 												  grouped_rel,
 												  tmp_path,
 												  dummy_root->upper_targets[UPPERREL_GROUP_AGG],
 												  query->groupClause ? AGG_SORTED : AGG_PLAIN,AGGSPLIT_SIMPLE,
-												  query->groupClause,NULL,agg_costs,
+												  query->groupClause,NULL,NULL,
 												  1);
 				fdw_private->dummy_base_rel_list = lappend(fdw_private->dummy_base_rel_list, entry);
 				fdw_private->pPseudoAggList = lappend_oid(fdw_private->pPseudoAggList, oid_server);
@@ -2110,10 +2060,6 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 		fdwroutine = GetFdwRoutineByServerId(server_oid);
 		PG_TRY();
 		{
-		    AggClauseCosts *agg_costs=NULL;
-			RelOptInfo *grouped_rel;
-			RelOptInfo *tmp = base_l->data.ptr_value;
-
 		    fdwroutine->GetForeignPaths((PlannerInfo *) root_l->data.ptr_value, (RelOptInfo *) base_l->data.ptr_value, DatumGetObjectId(oid[i]));
 		}
 		PG_CATCH();
@@ -2208,10 +2154,6 @@ spd_expression_tree_walker(Node *node,int att)
 	case T_OpExpr:
 	{
 	    OpExpr   *expr = (OpExpr *) node;
-/*
-		if (spd_expression_tree_walker((Node *) expr->args,
-									   att))
-*/
 		foreach(temp, (List *) expr->args)
 		{
 		    spd_expression_tree_walker((Node *) lfirst(temp), att);
@@ -2244,7 +2186,7 @@ spd_expression_tree_walker(Node *node,int att)
 	case T_CoerceToDomain:
 		break;
 	case T_TargetEntry:
-    		return spd_expression_tree_walker(((TargetEntry *) node)->expr, att);
+		return spd_expression_tree_walker((Node*)((TargetEntry *) node)->expr, att);
 	case T_Query:
 	case T_WindowClause:
 	case T_CommonTableExpr:
@@ -2296,11 +2238,8 @@ spd_createPushDownPlan(List *tlist, bool *agg_query, SpdFdwPrivate *fdw_private)
 	 * is the correct aggregation. (count, max, etc..)
 	 */
 	TargetEntry *tle;
-	Var		   *var;
 	Aggref	   *aggref;
 	ListCell   *lc;
-	int			att = 0;
-	List	   *dummy_tlist = NIL;
 	List	   *dummy_tlist2 = NIL;
 
 	dummy_tlist2 = copyObject(tlist);
@@ -2310,19 +2249,10 @@ spd_createPushDownPlan(List *tlist, bool *agg_query, SpdFdwPrivate *fdw_private)
 		if (IsA(tle->expr, Aggref))
 		{
 			aggref = (Aggref *) tle->expr;
-			spd_expression_tree_walker(aggref,1);
+			spd_expression_tree_walker((Node*)aggref,1);
 		}
 	}
 	return dummy_tlist2;
-}
-
-static char *
-deparse_type_name(Oid type_oid, int32 typemod)
-{
-	if (spd_is_builtin(type_oid))
-		return format_type_with_typemod(type_oid, typemod);
-	else
-		return format_type_with_typemod_qualified(type_oid, typemod);
 }
 
 /**
@@ -2392,10 +2322,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		fdw_private->groupby_string = makeStringInfo();
 		appendStringInfo(fdw_private->groupby_string,"GROUP BY ");
 		foreach(lc, query->groupClause){
-			SortGroupClause *grp = (SortGroupClause *) lfirst(lc);
-			TargetEntry *tle;
-		    Var	   *expr;
-			RangeTblEntry *rte;
 			char *colname=NULL;
 			if (!first)
 				appendStringInfoString(fdw_private->groupby_string, ", ");
@@ -2403,9 +2329,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
 			appendStringInfoString(fdw_private->groupby_string, "(");
 
-			tle = get_sortgroupref_tle(grp->tleSortGroupRef, tlist);
-			expr = (Var *)tle->expr;
-			rte = planner_rt_fetch(expr->varno, root);
 			colname = psprintf("col%d",fdw_private->child_uninum -1);
 			appendStringInfoString(fdw_private->groupby_string, colname);
 			appendStringInfoString(fdw_private->groupby_string, ")");
@@ -2416,8 +2339,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	{
 		ForeignScan *temp_obj;
 		RelOptInfo *entry;
-		List	   *dummy_tlist = NIL;
-		List	   *dummy_tlist2 = NIL;
 
 		/* skip to can not access child table at spd_GetForeignRelSize. */
 		if (fdw_private->dummy_base_rel_list == NIL)
@@ -2454,8 +2375,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			}
 		    child_tlist = spd_createPushDownPlan(fdw_private->child_comp_tlist, &fdw_private->agg_query, fdw_private);
 		} else {
-			dummy_tlist = tlist;
-			dummy_tlist2 = tlist;
 			/*
 			 * Group by clause for Pushdown case need to be added in
 			 * dummy_root_list check for any other better way then this in
@@ -2473,19 +2392,19 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			RelOptInfo *tmp = base_l->data.ptr_value;
 			struct Path *tmp_path;
 			List *temptlist;
-			if(tmp->pathlist!=NULL){
+			if(tmp->pathlist != NULL){
 				tmp_path = tmp->pathlist->head->data.ptr_value;
-				temptlist = build_path_tlist(root_l, tmp_path);
+				temptlist = build_path_tlist((PlannerInfo*)root_l, tmp_path);
 			}
 			else{
-				tmp_path = tlist;
+				tmp_path = (Path*)best_path;
 			}
 
 			temp_obj = fdwroutine->GetForeignPlan(
 												  (PlannerInfo *) root_l->data.ptr_value,
 												  (RelOptInfo *) base_l->data.ptr_value,
 												  DatumGetObjectId(oid[i]),
-												  tmp_path,
+												  (ForeignPath*)tmp_path,
 												  temptlist,
 												  scan_clauses,
 												  outer_plan);
@@ -2502,9 +2421,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		PG_END_TRY();
 		if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
 		{
-			RelOptInfo *tmp = base_l->data.ptr_value;
-		    PlannerInfo *tmp_root = root_l->data.ptr_value;
-			List *temptlist = build_path_tlist(root_l, &aggpath->path);
 			/* Create aggregation plan with foreign table scan. */
 			fdw_private->pAgg[i] = make_agg(
 			    child_tlist,
@@ -2834,9 +2750,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 static void spd_spi_ddl_table(char *query){
 	int			ret;
-	MemoryContext oldcontext;
 
-	oldcontext = CurrentMemoryContext;
 	ret = SPI_connect();
     if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
@@ -2861,11 +2775,9 @@ static void spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node,Sp
 	int			ret;
 	int			i,j;
 	int colid=0;
-	MemoryContext oldcontext;
 	StringInfo  sql = makeStringInfo();
 	List *mapping_tlist;
 
-	oldcontext = CurrentMemoryContext;
 	ret = SPI_connect();
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
@@ -2927,11 +2839,9 @@ spd_spi_select_table(TupleTableSlot *slot,ForeignScanState *node, SpdFdwPrivate 
 	int			ret;
 	int			i,k;
 	bool isnull = false;
-	MemoryContext oldcontext;
 	StringInfo  sql = makeStringInfo();
 	int max_col=0;
 
-	oldcontext = CurrentMemoryContext;
 	ret = SPI_connect();
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
@@ -2971,7 +2881,7 @@ spd_spi_select_table(TupleTableSlot *slot,ForeignScanState *node, SpdFdwPrivate 
 
 	/* group by clause */
 	if(fdw_private->groupby_string != 0) {
-		appendStringInfo(sql, fdw_private->groupby_string->data);
+		appendStringInfo(sql, "%s",fdw_private->groupby_string->data);
 	}
 	elog(DEBUG1, "execute spi exec %s", sql->data);
 
@@ -3016,11 +2926,11 @@ spd_spi_select_table(TupleTableSlot *slot,ForeignScanState *node, SpdFdwPrivate 
 					if(colid == mapping){
 						switch(SPI_tuptable->tupdesc->attrs[colid]->atttypid){
 						case NUMERIC_OID:
-							fdw_private->agg_values[k][colid] = DirectFunctionCall1(numeric_int8, DatumGetNumeric(SPI_getbinval(SPI_tuptable->vals[k],
-							  SPI_tuptable->tupdesc,
-							  colid+1,
-							  &isnull)));
-							  /*
+							fdw_private->agg_values[k][colid] = DirectFunctionCall1(numeric_int8, SPI_getbinval(SPI_tuptable->vals[k],
+																																SPI_tuptable->tupdesc,
+																																colid+1,
+																																&isnull));
+							/*
 							fdw_private->agg_values[k][colid] = DatumGetNumeric(SPI_getbinval(SPI_tuptable->vals[k],
 																							  SPI_tuptable->tupdesc,
 																							  colid+1,
@@ -3087,7 +2997,6 @@ spd_spi_select_table(TupleTableSlot *slot,ForeignScanState *node, SpdFdwPrivate 
 					float8 result=0.0;
 					if(clist_parent->avgflag ==1){
 					    result = (float8)fdw_private->agg_values[0][sum_mapping] / (float8)fdw_private->agg_values[0][count_mapping];
-						elog(DEBUG1, "%d[%d] / %d[%d] = result = %lf",fdw_private->agg_values[0][sum_mapping],sum_mapping,fdw_private->agg_values[0][count_mapping],count_mapping,result);
 					}
 					else if(clist_parent->avgflag == 2){
 						int vardev_mapping = list_nth_int(clist->mapping, 2);
@@ -3098,9 +3007,7 @@ spd_spi_select_table(TupleTableSlot *slot,ForeignScanState *node, SpdFdwPrivate 
 						float8 left = pow(sum,2)/cnt;
 
 						result = (float8)(right-left) / (float8)(cnt-1);
-						
-						elog(DEBUG1, "%d %d %d ",sum_mapping,count_mapping,vardev_mapping);
-						elog(DEBUG1, "%d / %d %d = result = %lf",fdw_private->agg_values[0][sum_mapping],fdw_private->agg_values[0][count_mapping],fdw_private->agg_values[0][vardev_mapping],result);					}
+						}
 					else if(clist_parent->avgflag == 3){
 						int vardev_mapping = list_nth_int(clist->mapping, 2);
 						float8 sum = (float8)fdw_private->agg_values[0][sum_mapping] ;
@@ -3112,9 +3019,6 @@ spd_spi_select_table(TupleTableSlot *slot,ForeignScanState *node, SpdFdwPrivate 
 
 						var = (float8)(right-left) / (float8)(cnt-1);
 						result = sqrt(var);
-						
-						elog(DEBUG1, "%d %d %d ",sum_mapping,count_mapping,vardev_mapping);
-						elog(DEBUG1, "%d / %d %d = result = %lf,%lf",fdw_private->agg_values[0][sum_mapping],fdw_private->agg_values[0][count_mapping],fdw_private->agg_values[0][vardev_mapping],var,result);
 					}
 					ret_agg_values[target_column] = DirectFunctionCall1(float8_numeric,Float8GetDatumFast(result));
 					target_column++;
@@ -3123,9 +3027,7 @@ spd_spi_select_table(TupleTableSlot *slot,ForeignScanState *node, SpdFdwPrivate 
 			else {
 				int mapping = list_nth_int(clist->mapping, 0);
 				int mapping_parent = list_nth_int(clist_parent->mapping, 0);
-				elog(DEBUG1,"elog mapping = %d,target_column = %d", mapping_parent, target_column);
 				if(target_column == mapping_parent){
-					elog(DEBUG1,"ret mapping set = %d %d",mapping,fdw_private->agg_values[0][mapping]);
 					ret_agg_values[target_column] = fdw_private->agg_values[0][mapping];
 					target_column++;
 				}
@@ -3176,7 +3078,6 @@ spd_spi_select_tablecp(TupleTableSlot *slot,ForeignScanState *node, SpdFdwPrivat
 					/* calculate AVG */
 					if(clist_parent->avgflag ==1){
 					    result = (float8)fdw_private->agg_values[fdw_private->agg_num][sum_mapping] / (float8)fdw_private->agg_values[0][count_mapping] ;
-						elog(DEBUG1, "%d / %d = result = %lf",fdw_private->agg_values[fdw_private->agg_num][sum_mapping],fdw_private->agg_values[fdw_private->agg_num][count_mapping],result);
 					}
 					/* calculate VARIANCE */
 					else if(clist_parent->avgflag == 2){
@@ -3185,7 +3086,6 @@ spd_spi_select_tablecp(TupleTableSlot *slot,ForeignScanState *node, SpdFdwPrivat
 						float8 right = pow(sum / cnt -  sum  / cnt, 2);
 						float8 left = cnt * sum;
 						result = sqrt((left + right) / cnt) ;
-						elog(DEBUG1, "%d / %d = result = %lf",fdw_private->agg_values[fdw_private->agg_num][sum_mapping],fdw_private->agg_values[fdw_private->agg_num][count_mapping],result);
 					}
 					/* calculate STDDEV */
 					else if(clist_parent->avgflag == 3){
@@ -3194,7 +3094,6 @@ spd_spi_select_tablecp(TupleTableSlot *slot,ForeignScanState *node, SpdFdwPrivat
 						float8 right = pow(sum / cnt -  sum  / cnt, 2);
 						float8 left = cnt * sum;
 						result = sqrt((left + right) / cnt) ;
-						elog(DEBUG1, "%d / %d = result = %lf",fdw_private->agg_values[fdw_private->agg_num][sum_mapping],fdw_private->agg_values[fdw_private->agg_num][count_mapping],result);
 					}
 					ret_agg_values[target_column] = DirectFunctionCall1(float8_numeric,Float8GetDatumFast(result));
 					target_column++;
