@@ -1840,7 +1840,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 		Index		sgref = get_pathtarget_sortgroupref(grouping_target, i);
 		ListCell   *l;
 
-/* Check whether this expression is part of GROUP BY clause */
+        /* Check whether this expression is part of GROUP BY clause */
 		if (sgref && get_sortgroupref_clause_noerr(sgref, query->groupClause))
 		{
 			/*
@@ -1937,41 +1937,6 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 	 * If there are any local conditions, pull Vars and aggregates from it and
 	 * check whether they are safe to pushdown or not.
 	 */
-#if 0
-	if (fpinfo->rinfo.local_conds)
-	{
-		List	   *aggvars = NIL;
-		ListCell   *lc;
-
-		foreach(lc, fpinfo->rinfo.local_conds)
-		{
-			RestrictInfo *rinfo = lfirst_node(RestrictInfo, lc);
-
-			aggvars = list_concat(aggvars,
-								  pull_var_clause((Node *) rinfo->clause,
-												  PVC_INCLUDE_AGGREGATES));
-		}
-
-		foreach(lc, aggvars)
-		{
-			Expr	   *expr = (Expr *) lfirst(lc);
-
-			/*
-			 * If aggregates within local conditions are not safe to push
-			 * down, then we cannot push down the query.  Vars are already
-			 * part of GROUP BY clause which are checked above, so no need to
-			 * access them again here.
-			 */
-			if (IsA(expr, Aggref))
-			{
-				if (!is_foreign_expr(root, grouped_rel, expr))
-					return false;
-
-				tlist = add_to_flat_tlist(tlist, list_make1(expr));
-			}
-		}
-	}
-#endif
 	/* Transfer any sortgroupref data to the replacement tlist */
 	apply_pathtarget_labeling_to_tlist(tlist, grouping_target);
 
