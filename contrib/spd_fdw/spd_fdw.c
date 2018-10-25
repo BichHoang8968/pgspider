@@ -98,6 +98,7 @@ PG_MODULE_MAGIC;
 #define NUMERIC_OID 1700
 #define BOOL_OID 16
 #define TEXT_OID 25
+#define DATE_OID 1082
 #define TIMESTAMP_OID 1114
 #define OPEXPER_OID 514
 #define OPEXPER_FUNCID 141
@@ -2797,6 +2798,7 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 	int			colid = 0;
 	StringInfo	sql = makeStringInfo();
 	List	   *mapping_tlist;
+	ForeignScanThreadInfo *fssThrdInfo = node->spd_fsstate;
 
 	ret = SPI_connect();
 	if (ret < 0)
@@ -2834,7 +2836,15 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 				value = OidOutputFunctionCall(typoutput, attr);
 				if (value != NULL)
 				{
+					if (fssThrdInfo[0].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[colid]->atttypid == DATEOID)
+					{
+						appendStringInfo(sql, "'");
+					}
 					appendStringInfo(sql, "%s", value);
+				}
+				if (fssThrdInfo[0].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[colid]->atttypid == DATEOID)
+				{
+					appendStringInfo(sql, "'");
 				}
 				colid++;
 			}
@@ -3010,10 +3020,16 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 																												&isnull)));
 								break;
 							case BOOL_OID:
-								fdw_private->agg_values[k][colid] = DatumGetFloat8(DatumGetBool(SPI_getbinval(SPI_tuptable->vals[k],
+								fdw_private->agg_values[k][colid] = BoolGetDatum(DatumGetBool(SPI_getbinval(SPI_tuptable->vals[k],
 																											  SPI_tuptable->tupdesc,
 																											  colid + 1,
 																											  &isnull)));
+							case TIMESTAMP_OID:
+							case DATE_OID:
+								fdw_private->agg_values[k][colid] = CStringGetDatum(DatumGetCString(SPI_getbinval(SPI_tuptable->vals[k],
+																												  SPI_tuptable->tupdesc,
+																												  colid + 1,
+																												  &isnull)));
 								break;
 							default:
 								break;
@@ -3302,6 +3318,10 @@ spd_IterateForeignScan(ForeignScanState *node)
 						else if (fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[colid]->atttypid == BITOID)
 						{
 							appendStringInfo(create_sql, " bit");
+						}
+						else if (fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[colid]->atttypid == DATEOID)
+						{
+							appendStringInfo(create_sql, " date");
 						}
 						else
 						{
