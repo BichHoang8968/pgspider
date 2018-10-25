@@ -32,7 +32,6 @@ static bool printtup_internal_20(TupleTableSlot *slot, DestReceiver *self);
 static void printtup_shutdown(DestReceiver *self);
 static void printtup_destroy(DestReceiver *self);
 
-
 /* ----------------------------------------------------------------
  *		printtup / debugtup support
  * ----------------------------------------------------------------
@@ -242,8 +241,9 @@ SendRowDescriptionMessage(TupleDesc typeinfo, List *targetlist, int16 *formats)
 	pq_endmessage(&buf);
 }
 
-/*
- * Get the lookup info that printtup() needs
+/* ----------------
+ *		printtup --- print a tuple in protocol 3.0
+ * ----------------
  */
 static void
 printtup_prepare_info(DR_printtup *myState, TupleDesc typeinfo, int numAttrs)
@@ -291,10 +291,10 @@ printtup_prepare_info(DR_printtup *myState, TupleDesc typeinfo, int numAttrs)
 	}
 }
 
-/* ----------------
- *		printtup --- print a tuple in protocol 3.0
- * ----------------
+/*
+ * Get the lookup info that printtup() needs
  */
+
 bool
 FinalizeTup(TupleTableSlot *slot, DestReceiver *self, int attrNum)
 {
@@ -358,6 +358,7 @@ FinalizeTup(TupleTableSlot *slot, DestReceiver *self, int attrNum)
 
 	return true;
 }
+
 
 /* ----------------
  *		printtup --- print a tuple in protocol 3.0

@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 3.0.2.  */
+/* A Bison parser, made by GNU Bison 3.0.4.  */
 
 /* Bison implementation for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2013 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@
 #define YYBISON 1
 
 /* Bison version.  */
-#define YYBISON_VERSION "3.0.2"
+#define YYBISON_VERSION "3.0.4"
 
 /* Skeleton name.  */
 #define YYSKELETON_NAME "yacc.c"
@@ -141,7 +141,7 @@ extern int expr_yydebug;
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef union YYSTYPE YYSTYPE;
+
 union YYSTYPE
 {
 #line 40 "exprparse.y" /* yacc.c:355  */
@@ -154,6 +154,8 @@ union YYSTYPE
 
 #line 156 "exprparse.c" /* yacc.c:355  */
 };
+
+typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif
@@ -166,7 +168,7 @@ int expr_yyparse (yyscan_t yyscanner);
 
 /* Copy the second part of user declarations.  */
 
-#line 170 "exprparse.c" /* yacc.c:358  */
+#line 172 "exprparse.c" /* yacc.c:358  */
 
 #ifdef short
 # undef short
@@ -1258,108 +1260,108 @@ yyreduce:
         case 2:
 #line 63 "exprparse.y" /* yacc.c:1646  */
     { expr_parse_result = (yyvsp[0].expr); }
-#line 1262 "exprparse.c" /* yacc.c:1646  */
+#line 1264 "exprparse.c" /* yacc.c:1646  */
     break;
 
   case 3:
 #line 65 "exprparse.y" /* yacc.c:1646  */
     { (yyval.elist) = NULL; }
-#line 1268 "exprparse.c" /* yacc.c:1646  */
+#line 1270 "exprparse.c" /* yacc.c:1646  */
     break;
 
   case 4:
 #line 66 "exprparse.y" /* yacc.c:1646  */
     { (yyval.elist) = make_elist((yyvsp[0].expr), NULL); }
-#line 1274 "exprparse.c" /* yacc.c:1646  */
+#line 1276 "exprparse.c" /* yacc.c:1646  */
     break;
 
   case 5:
 #line 67 "exprparse.y" /* yacc.c:1646  */
     { (yyval.elist) = make_elist((yyvsp[0].expr), (yyvsp[-2].elist)); }
-#line 1280 "exprparse.c" /* yacc.c:1646  */
+#line 1282 "exprparse.c" /* yacc.c:1646  */
     break;
 
   case 6:
 #line 70 "exprparse.y" /* yacc.c:1646  */
     { (yyval.expr) = (yyvsp[-1].expr); }
-#line 1286 "exprparse.c" /* yacc.c:1646  */
+#line 1288 "exprparse.c" /* yacc.c:1646  */
     break;
 
   case 7:
 #line 71 "exprparse.y" /* yacc.c:1646  */
     { (yyval.expr) = (yyvsp[0].expr); }
-#line 1292 "exprparse.c" /* yacc.c:1646  */
+#line 1294 "exprparse.c" /* yacc.c:1646  */
     break;
 
   case 8:
 #line 72 "exprparse.y" /* yacc.c:1646  */
     { (yyval.expr) = make_op(yyscanner, "-",
 										   make_integer_constant(0), (yyvsp[0].expr)); }
-#line 1299 "exprparse.c" /* yacc.c:1646  */
+#line 1301 "exprparse.c" /* yacc.c:1646  */
     break;
 
   case 9:
 #line 74 "exprparse.y" /* yacc.c:1646  */
     { (yyval.expr) = make_op(yyscanner, "+", (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 1305 "exprparse.c" /* yacc.c:1646  */
+#line 1307 "exprparse.c" /* yacc.c:1646  */
     break;
 
   case 10:
 #line 75 "exprparse.y" /* yacc.c:1646  */
     { (yyval.expr) = make_op(yyscanner, "-", (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 1311 "exprparse.c" /* yacc.c:1646  */
+#line 1313 "exprparse.c" /* yacc.c:1646  */
     break;
 
   case 11:
 #line 76 "exprparse.y" /* yacc.c:1646  */
     { (yyval.expr) = make_op(yyscanner, "*", (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 1317 "exprparse.c" /* yacc.c:1646  */
+#line 1319 "exprparse.c" /* yacc.c:1646  */
     break;
 
   case 12:
 #line 77 "exprparse.y" /* yacc.c:1646  */
     { (yyval.expr) = make_op(yyscanner, "/", (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 1323 "exprparse.c" /* yacc.c:1646  */
+#line 1325 "exprparse.c" /* yacc.c:1646  */
     break;
 
   case 13:
 #line 78 "exprparse.y" /* yacc.c:1646  */
     { (yyval.expr) = make_op(yyscanner, "%", (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 1329 "exprparse.c" /* yacc.c:1646  */
+#line 1331 "exprparse.c" /* yacc.c:1646  */
     break;
 
   case 14:
 #line 79 "exprparse.y" /* yacc.c:1646  */
     { (yyval.expr) = make_integer_constant((yyvsp[0].ival)); }
-#line 1335 "exprparse.c" /* yacc.c:1646  */
+#line 1337 "exprparse.c" /* yacc.c:1646  */
     break;
 
   case 15:
 #line 80 "exprparse.y" /* yacc.c:1646  */
     { (yyval.expr) = make_double_constant((yyvsp[0].dval)); }
-#line 1341 "exprparse.c" /* yacc.c:1646  */
+#line 1343 "exprparse.c" /* yacc.c:1646  */
     break;
 
   case 16:
 #line 81 "exprparse.y" /* yacc.c:1646  */
     { (yyval.expr) = make_variable((yyvsp[0].str)); }
-#line 1347 "exprparse.c" /* yacc.c:1646  */
+#line 1349 "exprparse.c" /* yacc.c:1646  */
     break;
 
   case 17:
 #line 82 "exprparse.y" /* yacc.c:1646  */
     { (yyval.expr) = make_func(yyscanner, (yyvsp[-3].ival), (yyvsp[-1].elist)); }
-#line 1353 "exprparse.c" /* yacc.c:1646  */
+#line 1355 "exprparse.c" /* yacc.c:1646  */
     break;
 
   case 18:
 #line 85 "exprparse.y" /* yacc.c:1646  */
     { (yyval.ival) = find_func(yyscanner, (yyvsp[0].str)); pg_free((yyvsp[0].str)); }
-#line 1359 "exprparse.c" /* yacc.c:1646  */
+#line 1361 "exprparse.c" /* yacc.c:1646  */
     break;
 
 
-#line 1363 "exprparse.c" /* yacc.c:1646  */
+#line 1365 "exprparse.c" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires

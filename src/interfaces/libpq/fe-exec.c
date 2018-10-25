@@ -71,10 +71,10 @@ static PGresult *PQexecFinish(PGconn *conn);
 static int PQsendDescribe(PGconn *conn, char desc_type,
 			   const char *desc_target);
 static int	check_field_number(const PGresult *res, int field_num);
-
 static PGresult *pqGetProgressResult(PGconn *conn);
 static int PQsetvalueFromIndex(PGresult *res, int tup_num, int field_num, char *value, int len, int StartIndex);
 static PGresult *PQcopyResultFromCursorPosition(const PGresult *src, int flags, int cursor_position);
+
 
 /* ----------------
  * Space management for PGresult.
@@ -170,6 +170,7 @@ PQmakeEmptyPGresult(PGconn *conn, ExecStatusType status)
 	result->curOffset = 0;
 	result->spaceLeft = 0;
 	result->pq_progress = 0.0;
+
 	if (conn)
 	{
 		/* copy connection data we might need for operations on PGresult */
@@ -414,7 +415,6 @@ dupEvents(PGEvent *events, int count)
 
 	return newEvents;
 }
-
 
 /*
  * Sets the value for a tuple field. new tuple is created and
@@ -1339,7 +1339,6 @@ PQsendQueryParams(PGconn *conn,
 						   paramFormats,
 						   resultFormat);
 }
-
 /* PQgetProgress
  *		Get the progress of requested query execution
  * Returns:  1 Success
@@ -2042,6 +2041,7 @@ PGresult *
 PQgetResult(PGconn *conn)
 {
 	PGresult   *res;
+
 	int			flushResult;
 	if (!conn)
 		return NULL;
@@ -2057,6 +2057,8 @@ PQgetResult(PGconn *conn)
 	{
 		if (conn->asyncStatus == PGASYNC_PROGRESS_OUT)
 			conn->asyncStatus = PGASYNC_BUSY;
+
+
 		/*
 		 * If data remains unsent, send it.  Else we might be waiting for the
 		 * result of a command the backend hasn't even got yet.

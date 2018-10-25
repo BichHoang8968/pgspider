@@ -447,7 +447,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 
 %type <node>	fetch_args limit_clause select_limit_value
 				offset_clause select_offset_value
-				select_offset_value2 opt_select_fetch_first_value
+				select_fetch_first_value I_or_F_const
 %type <ival>	row_or_rows first_or_next
 
 %type <list>	OptSeqOptList SeqOptList OptParenthesizedSeqOptList
@@ -677,7 +677,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 	TIME TIMESTAMP TO TRAILING TRANSACTION TRANSFORM TREAT TRIGGER TRIM TRUE_P
 	TRUNCATE TRUSTED TYPE_P TYPES_P
 
-	UNBOUNDED UNCOMMITTED UNDER UNENCRYPTED UNION UNIQUE UNKNOWN UNLISTEN UNLOGGED
+		UNBOUNDED UNCOMMITTED UNDER UNENCRYPTED UNION UNIQUE UNKNOWN UNLISTEN UNLOGGED
 	UNTIL UPDATE USER USING
 
 	VACUUM VALID VALIDATE VALIDATOR VALUE_P VALUES VARCHAR VARIADIC VARYING
@@ -2650,6 +2650,8 @@ ForValues:
 partbound_datum:
 			Sconst			{ $$ = makeStringConst($1, @1); }
 			| NumericOnly	{ $$ = makeAConst($1, @1); }
+			| TRUE_P		{ $$ = makeStringConst(pstrdup("true"), @1); }
+			| FALSE_P		{ $$ = makeStringConst(pstrdup("false"), @1); }
 			| NULL_P		{ $$ = makeNullAConst(@1); }
 		;
 
@@ -3490,12 +3492,13 @@ TableLikeOptionList:
 		;
 
 TableLikeOption:
-				DEFAULTS			{ $$ = CREATE_TABLE_LIKE_DEFAULTS; }
+				COMMENTS			{ $$ = CREATE_TABLE_LIKE_COMMENTS; }
 				| CONSTRAINTS		{ $$ = CREATE_TABLE_LIKE_CONSTRAINTS; }
+				| DEFAULTS			{ $$ = CREATE_TABLE_LIKE_DEFAULTS; }
 				| IDENTITY_P		{ $$ = CREATE_TABLE_LIKE_IDENTITY; }
 				| INDEXES			{ $$ = CREATE_TABLE_LIKE_INDEXES; }
+				| STATISTICS		{ $$ = CREATE_TABLE_LIKE_STATISTICS; }
 				| STORAGE			{ $$ = CREATE_TABLE_LIKE_STORAGE; }
-				| COMMENTS			{ $$ = CREATE_TABLE_LIKE_COMMENTS; }
 				| ALL				{ $$ = CREATE_TABLE_LIKE_ALL; }
 		;
 
@@ -10463,7 +10466,7 @@ insert_target:
 					$1->alias = makeAlias($3, NIL);
 					$$ = $1;
 				}
-            | qualified_name UNDER url
+			| qualified_name UNDER url
 				{
 					$1->spd_url = $3;
 					(void)$2;
@@ -10666,7 +10669,7 @@ UpdateStmt: opt_with_clause UPDATE relation_expr_opt_alias
 			from_clause
 			where_or_current_clause
 			returning_clause
-            {
+				{
 					UpdateStmt *n = makeNode(UpdateStmt);
 					n->relation = $3;
 					n->targetList = $5;
@@ -10727,6 +10730,7 @@ set_target_list:
 			set_target								{ $$ = list_make1($1); }
 			| set_target_list ',' set_target		{ $$ = lappend($1,$3); }
 		;
+
 
 /*****************************************************************************
  *
@@ -11188,15 +11192,23 @@ limit_clause:
 							 parser_errposition(@1)));
 				}
 			/* SQL:2008 syntax */
-			| FETCH first_or_next opt_select_fetch_first_value row_or_rows ONLY
+			/* to avoid shift/reduce conflicts, handle the optional value with
+			 * a separate production rather than an opt_ expression.  The fact
+			 * that ONLY is fully reserved means that this way, we defer any
+			 * decision about what rule reduces ROW or ROWS to the point where
+			 * we can see the ONLY token in the lookahead slot.
+			 */
+			| FETCH first_or_next select_fetch_first_value row_or_rows ONLY
 				{ $$ = $3; }
+			| FETCH first_or_next row_or_rows ONLY
+				{ $$ = makeIntConst(1, -1); }
 		;
 
 offset_clause:
 			OFFSET select_offset_value
 				{ $$ = $2; }
 			/* SQL:2008 syntax */
-			| OFFSET select_offset_value2 row_or_rows
+			| OFFSET select_fetch_first_value row_or_rows
 				{ $$ = $2; }
 		;
 
@@ -11215,22 +11227,31 @@ select_offset_value:
 
 /*
  * Allowing full expressions without parentheses causes various parsing
- * problems with the trailing ROW/ROWS key words.  SQL only calls for
- * constants, so we allow the rest only with parentheses.  If omitted,
- * default to 1.
+ * problems with the trailing ROW/ROWS key words.  SQL spec only calls for
+ * <simple value specification>, which is either a literal or a parameter (but
+ * an <SQL parameter reference> could be an identifier, bringing up conflicts
+ * with ROW/ROWS). We solve this by leveraging the presence of ONLY (see above)
+ * to determine whether the expression is missing rather than trying to make it
+ * optional in this rule.
+ *
+ * c_expr covers almost all the spec-required cases (and more), but it doesn't
+ * cover signed numeric literals, which are allowed by the spec. So we include
+ * those here explicitly. We need FCONST as well as ICONST because values that
+ * don't fit in the platform's "long", but do fit in bigint, should still be
+ * accepted here. (This is possible in 64-bit Windows as well as all 32-bit
+ * builds.)
  */
-opt_select_fetch_first_value:
-			SignedIconst						{ $$ = makeIntConst($1, @1); }
-			| '(' a_expr ')'					{ $$ = $2; }
-			| /*EMPTY*/							{ $$ = makeIntConst(1, -1); }
+select_fetch_first_value:
+			c_expr									{ $$ = $1; }
+			| '+' I_or_F_const
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "+", NULL, $2, @1); }
+			| '-' I_or_F_const
+				{ $$ = doNegate($2, @1); }
 		;
 
-/*
- * Again, the trailing ROW/ROWS in this case prevent the full expression
- * syntax.  c_expr is the best we can do.
- */
-select_offset_value2:
-			c_expr									{ $$ = $1; }
+I_or_F_const:
+			Iconst									{ $$ = makeIntConst($1,@1); }
+			| FCONST								{ $$ = makeFloatConst($1,@1); }
 		;
 
 /* noise words */
@@ -11406,15 +11427,14 @@ table_ref:	relation_expr opt_alias_clause
 					$1->alias = $2;
 					$$ = (Node *) $1;
 				}
-            | relation_expr UNDER url opt_alias_clause
+			| relation_expr UNDER url opt_alias_clause
 			{
 				$1->alias = $4;
 				$1->spd_url = $3;
 				(void)$2;
 				$$ = (Node *) $1;
 			}
-
-            | relation_expr opt_alias_clause tablesample_clause
+			| relation_expr opt_alias_clause tablesample_clause
 				{
 					RangeTableSample *n = (RangeTableSample *) $3;
 					$1->alias = $2;
@@ -11520,7 +11540,6 @@ table_ref:	relation_expr opt_alias_clause
 					$$ = (Node *) $2;
 				}
 		;
-
 url: SCONST {$$ = $1;};
 
 /*
@@ -11759,13 +11778,12 @@ relation_expr_opt_alias: relation_expr					%prec UMINUS
 					$1->alias = alias;
 					$$ = $1;
 				}
-            | relation_expr UNDER url
+			| relation_expr UNDER url
 				{
 					$1->spd_url = $3;
 					(void)$2;
 				    $$ = $1;
 				}
-
 		;
 
 /*
@@ -14863,7 +14881,7 @@ unreserved_keyword:
 			| UNBOUNDED
 			| UNCOMMITTED
 			| UNDER
-     		| UNENCRYPTED
+			| UNENCRYPTED
 			| UNKNOWN
 			| UNLISTEN
 			| UNLOGGED

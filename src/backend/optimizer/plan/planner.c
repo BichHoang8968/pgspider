@@ -941,7 +941,7 @@ preprocess_expression(PlannerInfo *root, Node *expr, int kind)
 	 */
 	if (kind == EXPRKIND_QUAL)
 	{
-		expr = (Node *) canonicalize_qual((Expr *) expr);
+		expr = (Node *) canonicalize_qual_ext((Expr *) expr, false);
 
 #ifdef OPTIMIZER_DEBUG
 		printf("After canonicalize_qual()\n");
@@ -1486,7 +1486,7 @@ grouping_planner(PlannerInfo *root, bool inheritance_update,
 				 double tuple_fraction)
 {
 	Query	   *parse = root->parse;
-	List	   *tlist = parse->targetList;
+	List	   *tlist;
 	int64		offset_est = 0;
 	int64		count_est = 0;
 	double		limit_tuples = -1.0;
@@ -1616,13 +1616,7 @@ grouping_planner(PlannerInfo *root, bool inheritance_update,
 		}
 
 		/* Preprocess targetlist */
-		tlist = preprocess_targetlist(root, tlist);
-
-		if (parse->onConflict)
-			parse->onConflict->onConflictSet =
-				preprocess_onconflict_targetlist(parse->onConflict->onConflictSet,
-												 parse->resultRelation,
-												 parse->rtable);
+		tlist = preprocess_targetlist(root);
 
 		/*
 		 * We are now done hacking up the query's targetlist.  Most of the
@@ -4206,7 +4200,28 @@ consider_groupingsets_paths(PlannerInfo *root,
 
 		Assert(can_hash);
 
-		if (pathkeys_contained_in(root->group_pathkeys, path->pathkeys))
+		/*
+		 * If the input is coincidentally sorted usefully (which can happen
+		 * even if is_sorted is false, since that only means that our caller
+		 * has set up the sorting for us), then save some hashtable space by
+		 * making use of that. But we need to watch out for degenerate cases:
+		 *
+		 * 1) If there are any empty grouping sets, then group_pathkeys might
+		 * be NIL if all non-empty grouping sets are unsortable. In this case,
+		 * there will be a rollup containing only empty groups, and the
+		 * pathkeys_contained_in test is vacuously true; this is ok.
+		 *
+		 * XXX: the above relies on the fact that group_pathkeys is generated
+		 * from the first rollup. If we add the ability to consider multiple
+		 * sort orders for grouping input, this assumption might fail.
+		 *
+		 * 2) If there are no empty sets and only unsortable sets, then the
+		 * rollups list will be empty (and thus l_start == NULL), and
+		 * group_pathkeys will be NIL; we must ensure that the vacuously-true
+		 * pathkeys_contain_in test doesn't cause us to crash.
+		 */
+		if (l_start != NULL &&
+			pathkeys_contained_in(root->group_pathkeys, path->pathkeys))
 		{
 			unhashed_rollup = lfirst(l_start);
 			exclude_groups = unhashed_rollup->numGroups;

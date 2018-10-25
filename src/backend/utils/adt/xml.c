@@ -3842,6 +3842,7 @@ xpath_internal(text *xpath_expr_text, xmltype *data, ArrayType *namespaces,
 	int32		xpath_len;
 	xmlChar    *string;
 	xmlChar    *xpath_expr;
+	size_t		xmldecl_len = 0;
 	int			i;
 	int			ndim;
 	Datum	   *ns_names_uris;
@@ -3897,6 +3898,16 @@ xpath_internal(text *xpath_expr_text, xmltype *data, ArrayType *namespaces,
 	string = pg_xmlCharStrndup(datastr, len);
 	xpath_expr = pg_xmlCharStrndup(VARDATA_ANY(xpath_expr_text), xpath_len);
 
+	/*
+	 * In a UTF8 database, skip any xml declaration, which might assert
+	 * another encoding.  Ignore parse_xml_decl() failure, letting
+	 * xmlCtxtReadMemory() report parse errors.  Documentation disclaims
+	 * xpath() support for non-ASCII data in non-UTF8 databases, so leave
+	 * those scenarios bug-compatible with historical behavior.
+	 */
+	if (GetDatabaseEncoding() == PG_UTF8)
+		parse_xml_decl(string, &xmldecl_len, NULL, NULL, NULL);
+
 	xmlerrcxt = pg_xml_init(PG_XML_STRICTNESS_ALL);
 
 	PG_TRY();
@@ -3911,7 +3922,8 @@ xpath_internal(text *xpath_expr_text, xmltype *data, ArrayType *namespaces,
 		if (ctxt == NULL || xmlerrcxt->err_occurred)
 			xml_ereport(xmlerrcxt, ERROR, ERRCODE_OUT_OF_MEMORY,
 						"could not allocate parser context");
-		doc = xmlCtxtReadMemory(ctxt, (char *) string, len, NULL, NULL, 0);
+		doc = xmlCtxtReadMemory(ctxt, (char *) string + xmldecl_len,
+								len - xmldecl_len, NULL, NULL, 0);
 		if (doc == NULL || xmlerrcxt->err_occurred)
 			xml_ereport(xmlerrcxt, ERROR, ERRCODE_INVALID_XML_DOCUMENT,
 						"could not parse XML document");
@@ -4493,11 +4505,21 @@ XmlTableGetValue(TableFuncScanState *state, int colnum,
 			else if (count == 1)
 			{
 				xmlChar    *str;
+				xmlNodePtr	node;
 
-				str = xmlNodeListGetString(xtCxt->doc,
-										   xpathobj->nodesetval->nodeTab[0]->xmlChildrenNode,
-										   1);
+				/*
+				 * Most nodes (elements and even attributes) store their data
+				 * in children nodes. If they don't have children nodes, it
+				 * means that they are empty (e.g. <element/>). Text nodes and
+				 * CDATA sections are an exception: they don't have children
+				 * but have content in the Text/CDATA node itself.
+				 */
+				node = xpathobj->nodesetval->nodeTab[0];
+				if (node->type != XML_CDATA_SECTION_NODE &&
+					node->type != XML_TEXT_NODE)
+					node = node->xmlChildrenNode;
 
+				str = xmlNodeListGetString(xtCxt->doc, node, 1);
 				if (str != NULL)
 				{
 					PG_TRY();
@@ -4514,13 +4536,7 @@ XmlTableGetValue(TableFuncScanState *state, int colnum,
 				}
 				else
 				{
-					/*
-					 * This line ensure mapping of empty tags to PostgreSQL
-					 * value. Usually we would to map a empty tag to empty
-					 * string. But this mapping can create empty string when
-					 * user doesn't expect it - when empty tag is enforced by
-					 * libxml2 - when user uses a text() function for example.
-					 */
+					/* Ensure mapping of empty tags to PostgreSQL values. */
 					cstr = "";
 				}
 			}

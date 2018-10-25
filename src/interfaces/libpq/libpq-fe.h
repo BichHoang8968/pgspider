@@ -26,7 +26,6 @@ extern "C"
 #else
 #include <unistd.h>
 #endif
-
 /*
  * postgres_ext.h defines the backend's externally visible types,
  * such as Oid.
@@ -425,7 +424,6 @@ extern int PQsendQueryPrepared(PGconn *conn,
 					int resultFormat);
 extern int	PQsetSingleRowMode(PGconn *conn);
 extern PGresult *PQgetResult(PGconn *conn);
-
  /* API for getting current progress of SELECT Query */
 extern PGresult *PQgetCurrentResult(PGconn *conn, pqbool continueFlag, pqbool needCompleteResultSet, pqbool *isFinalResult); 
  /* API for getting progress of SELECT Query */

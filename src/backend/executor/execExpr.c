@@ -2178,6 +2178,7 @@ ExecInitExprSlots(ExprState *state, Node *node)
 	 * Figure out which attributes we're going to need.
 	 */
 	get_last_attnums_walker(node, &info);
+
 	/* Emit steps as needed */
 	if (info.last_inner > 0)
 	{

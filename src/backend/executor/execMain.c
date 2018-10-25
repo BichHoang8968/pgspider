@@ -867,7 +867,7 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 		/*
 		 * In the partitioned result relation case, lock the non-leaf result
 		 * relations too.  A subset of these are the roots of respective
-		 * partitioned tables, for which we also allocate ResulRelInfos.
+		 * partitioned tables, for which we also allocate ResultRelInfos.
 		 */
 		estate->es_root_result_relations = NULL;
 		estate->es_num_root_result_relations = 0;
@@ -1002,12 +1002,12 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 	estate->es_trig_tuple_slot = NULL;
 	estate->es_trig_oldtup_slot = NULL;
 	estate->es_trig_newtup_slot = NULL;
-
+	estate->agg_query = false;
+	
 	/* mark EvalPlanQual not active */
 	estate->es_epqTuple = NULL;
 	estate->es_epqTupleSet = NULL;
 	estate->es_epqScanDone = NULL;
-	estate->agg_query = false;
 
 	/*
 	 * Initialize private state information for each SubPlan.  We must do this

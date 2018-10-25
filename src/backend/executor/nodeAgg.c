@@ -228,7 +228,6 @@
 #include "utils/tuplesort.h"
 #include "utils/datum.h"
 
-
 #include "utils/rel.h"
 #include "foreign/foreign.h"
 #include "foreign/fdwapi.h"
@@ -1242,6 +1241,17 @@ advance_combine_function(AggState *aggstate,
 			pergroupstate->noTransValue = false;
 			return;
 		}
+
+		if (pergroupstate->transValueIsNull)
+		{
+			/*
+			 * Don't call a strict function with NULL inputs.  Note it is
+			 * possible to get here despite the above tests, if the combinefn
+			 * is strict *and* returned a NULL on a prior cycle. If that
+			 * happens we will propagate the NULL all the way to the end.
+			 */
+			return;
+		}
 	}
 
 	/* We run the combine functions in per-input-tuple memory context */
@@ -1792,9 +1802,6 @@ finalize_aggregates(AggState *aggstate,
 			finalize_aggregate(aggstate, peragg, pergroupstate,
 							   &aggvalues[aggno], &aggnulls[aggno]);
 	}
-#if 1
-	//aggstate->ss.ps.state->es_progressState->ps_aggvalues = aggvalues;
-#endif
 }
 
 /*
@@ -3553,8 +3560,8 @@ build_pertrans_for_aggref(AggStatePerTrans pertrans,
 		if (pertrans->transfn.fn_strict && aggtranstype == INTERNALOID)
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_FUNCTION_DEFINITION),
-					 errmsg("combine function for aggregate %u must be declared as STRICT",
-							aggref->aggfnoid)));
+					 errmsg("combine function with transition type %s must not be declared STRICT",
+							format_type_be(aggtranstype))));
 	}
 	else
 	{
@@ -4240,6 +4247,7 @@ aggregate_dummy(PG_FUNCTION_ARGS)
 		 fcinfo->flinfo->fn_oid);
 	return (Datum) 0;			/* keep compiler quiet */
 }
+
 
 /**
  * Extern of agg_retrieve_direct

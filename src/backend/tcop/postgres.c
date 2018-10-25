@@ -77,13 +77,12 @@
 #include "utils/timestamp.h"
 #include "mb/pg_wchar.h"
 
-
 #include <pthread.h>
 #include <sys/syscall.h>
 
 #define GETPROGRESS_ENABLED
 /* ----------------
- *....		global variables
+ *		global variables
  * ----------------
  */
 const char *debug_query_string; /* client-supplied query string */
@@ -1127,13 +1126,7 @@ exec_simple_query(const char *query_string)
 		receiver = CreateDestReceiver(dest);
 		if (dest == DestRemote)
 			SetRemoteDestReceiverParams(receiver, portal);
-#if 0
-		/* set aggtype to be used by FDW -- only works for PLAIN AGG in FOREIGN SCAN*/
-		if (IsUnderPostmaster)//initdb does not need
-		{
-			//portal->queryDesc->optional = pstrdup(aggtype);//Disabled -- Results to crash	
-		}
-#endif
+
 		/*
 		 * Switch back to transaction context for execution.
 		 */
@@ -3609,7 +3602,6 @@ process_postgres_switches(int argc, char *argv[], GucContext ctx,
 	optreset = 1;				/* some systems need this too */
 #endif
 }
-
 #ifdef GETPROGRESS_ENABLED
 /*
  * createProgressMessage
@@ -3978,7 +3970,6 @@ PostgresMain(int argc, char *argv[],
 												  "ProgressMemoryContext",
 										   ALLOCSET_DEFAULT_SIZES);
 #endif
-
 	/*
 	 * Remember stand-alone backend startup time
 	 */

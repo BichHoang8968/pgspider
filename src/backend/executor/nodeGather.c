@@ -278,7 +278,13 @@ gather_getnext(GatherState *gatherstate)
 
 		if (gatherstate->need_to_scan_locally)
 		{
+			EState *estate = gatherstate->ps.state;
+
+			/* Install our DSA area while executing the plan. */
+			estate->es_query_dsa =
+				gatherstate->pei ? gatherstate->pei->area : NULL;
 			outerTupleSlot = ExecProcNode(outerPlan);
+			estate->es_query_dsa = NULL;
 
 			if (!TupIsNull(outerTupleSlot))
 				return outerTupleSlot;
@@ -321,7 +327,10 @@ gather_readnext(GatherState *gatherstate)
 			Assert(!tup);
 			--gatherstate->nreaders;
 			if (gatherstate->nreaders == 0)
+			{
+				ExecShutdownGatherWorkers(gatherstate);
 				return NULL;
+			}
 			memmove(&gatherstate->reader[gatherstate->nextreader],
 					&gatherstate->reader[gatherstate->nextreader + 1],
 					sizeof(TupleQueueReader *)

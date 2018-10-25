@@ -116,7 +116,14 @@ insert into bmscantest select r, 'fooooooooooooooooooooooooooooooooooooooooooooo
 create index i_bmtest ON bmscantest(a);
 select count(*) from bmscantest where a>1;
 
+-- test accumulation of stats for parallel nodes
 reset enable_seqscan;
+alter table tenk2 set (parallel_workers = 0);
+explain (analyze, timing off, summary off, costs off)
+   select count(*) from tenk1, tenk2 where tenk1.hundred > 1
+        and tenk2.thousand=0;
+alter table tenk2 reset (parallel_workers);
+
 reset enable_indexscan;
 reset enable_hashjoin;
 reset enable_mergejoin;
@@ -144,6 +151,13 @@ explain (costs off)
 
 select count(*) from tenk1 group by twenty;
 
+-- test handling of SRFs in targetlist (bug in 10.0)
+
+explain (costs off)
+   select count(*), generate_series(1,2) from tenk1 group by twenty;
+
+select count(*), generate_series(1,2) from tenk1 group by twenty;
+
 --test rescan behavior of gather merge
 set enable_material = false;
 
@@ -167,6 +181,12 @@ explain (costs off)
 select string4 from tenk1 order by string4 limit 5;
 reset max_parallel_workers;
 reset enable_hashagg;
+
+-- check parallelized int8 aggregate (bug #14897)
+explain (costs off)
+select avg(unique1::int8) from tenk1;
+
+select avg(unique1::int8) from tenk1;
 
 -- test the sanity of parallel query after the active role is dropped.
 drop role if exists regress_parallel_worker;

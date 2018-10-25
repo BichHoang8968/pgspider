@@ -1121,11 +1121,11 @@ transformFromClauseItem(ParseState *pstate, Node *n,
 		*namespace = list_make1(makeDefaultNSItem(rte));
 		rtr = makeNode(RangeTblRef);
 		rtr->rtindex = rtindex;
+		return (Node *) rtr;
 		/* hirose add 17/6/24. Add URL query */
 		if(rv->spd_url != NULL){
 			rte->url = pstrdup(rv->spd_url);
 		}
-		return (Node *) rtr;
 	}
 	else if (IsA(n, RangeSubselect))
 	{

@@ -199,7 +199,7 @@ pg_GSS_startup(PGconn *conn, int payloadlen)
 				min_stat;
 	int			maxlen;
 	gss_buffer_desc temp_gbuf;
-	char	   *host = PQhost(conn);
+	char	   *host = conn->connhost[conn->whichhost].host;
 
 	if (!(host && host[0] != '\0'))
 	{
@@ -414,7 +414,7 @@ pg_SSPI_startup(PGconn *conn, int use_negotiate, int payloadlen)
 {
 	SECURITY_STATUS r;
 	TimeStamp	expire;
-	char	   *host = PQhost(conn);
+	char	   *host = conn->connhost[conn->whichhost].host;
 
 	if (conn->sspictx)
 	{
@@ -532,7 +532,7 @@ pg_SASL_init(PGconn *conn, int payloadlen)
 		/*
 		 * Do we support this mechanism?
 		 */
-		if (strcmp(mechanism_buf.data, SCRAM_SHA256_NAME) == 0)
+		if (strcmp(mechanism_buf.data, SCRAM_SHA_256_NAME) == 0)
 		{
 			char	   *password;
 
@@ -550,7 +550,7 @@ pg_SASL_init(PGconn *conn, int payloadlen)
 			conn->sasl_state = pg_fe_scram_init(conn->pguser, password);
 			if (!conn->sasl_state)
 				goto oom_error;
-			selected_mechanism = SCRAM_SHA256_NAME;
+			selected_mechanism = SCRAM_SHA_256_NAME;
 		}
 	}
 

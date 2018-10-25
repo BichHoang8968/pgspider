@@ -45,7 +45,6 @@ typedef void (*BeginForeignScan_function) (ForeignScanState *node,
 
 typedef TupleTableSlot *(*IterateForeignScan_function) (ForeignScanState *node);
 typedef Datum (*ForeignAgg_function) (AggState *node, void * aggstate);
-
 typedef bool (*RecheckForeignScan_function) (ForeignScanState *node,
 											 TupleTableSlot *slot);
 

@@ -23,7 +23,6 @@
 	(OidIsValid(userid) ? GetUserNameFromId(userid, false) : "public")
 
 #define MAX_CHAR 1024
-
 /*
  * Generic option types for validation.
  * NB! These are treated as flags, so use only powers of two here.
@@ -34,6 +33,7 @@ typedef enum
 	UserMappingOpt = 2,			/* options for USER MAPPING */
 	FdwOpt = 4					/* options for FOREIGN DATA WRAPPER */
 } GenericOptionFlags;
+
 typedef enum
 {
 	STATUSOK = 0,
@@ -255,7 +255,6 @@ typedef struct ForeignScanFlags
 	bool iFlag; /* use it for iteration scan*/
 	bool EndFlag; /* use it for end scan */
 }ForeignScanFlags;
-
 
 extern ForeignServer *GetForeignServer(Oid serverid);
 extern ForeignServer *GetForeignServerByName(const char *name, bool missing_ok);

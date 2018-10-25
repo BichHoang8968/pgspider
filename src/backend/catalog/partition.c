@@ -1167,7 +1167,10 @@ RelationGetPartitionDispatchInfo(Relation rel,
  * get_partition_operator
  *
  * Return oid of the operator of given strategy for a given partition key
- * column.
+ * column.  It is assumed that the partitioning key is of the same type as the
+ * chosen partitioning opclass, or at least binary-compatible.  In the latter
+ * case, *need_relabel is set to true if the opclass is not of a polymorphic
+ * type, otherwise false.
  */
 static Oid
 get_partition_operator(PartitionKey key, int col, StrategyNumber strategy,
@@ -1176,40 +1179,26 @@ get_partition_operator(PartitionKey key, int col, StrategyNumber strategy,
 	Oid			operoid;
 
 	/*
-	 * First check if there exists an operator of the given strategy, with
-	 * this column's type as both its lefttype and righttype, in the
-	 * partitioning operator family specified for the column.
+	 * Get the operator in the partitioning opfamily using the opclass'
+	 * declared input type as both left- and righttype.
 	 */
 	operoid = get_opfamily_member(key->partopfamily[col],
-								  key->parttypid[col],
-								  key->parttypid[col],
+								  key->partopcintype[col],
+								  key->partopcintype[col],
 								  strategy);
+	if (!OidIsValid(operoid))
+		elog(ERROR, "missing operator %d(%u,%u) in partition opfamily %u",
+			 strategy, key->partopcintype[col], key->partopcintype[col],
+			 key->partopfamily[col]);
 
 	/*
-	 * If one doesn't exist, we must resort to using an operator in the same
-	 * operator family but with the operator class declared input type.  It is
-	 * OK to do so, because the column's type is known to be binary-coercible
-	 * with the operator class input type (otherwise, the operator class in
-	 * question would not have been accepted as the partitioning operator
-	 * class).  We must however inform the caller to wrap the non-Const
-	 * expression with a RelabelType node to denote the implicit coercion. It
-	 * ensures that the resulting expression structurally matches similarly
-	 * processed expressions within the optimizer.
+	 * If the partition key column is not of the same type as the operator
+	 * class and not polymorphic, tell caller to wrap the non-Const expression
+	 * in a RelabelType.  This matches what parse_coerce.c does.
 	 */
-	if (!OidIsValid(operoid))
-	{
-		operoid = get_opfamily_member(key->partopfamily[col],
-									  key->partopcintype[col],
-									  key->partopcintype[col],
-									  strategy);
-		if (!OidIsValid(operoid))
-			elog(ERROR, "missing operator %d(%u,%u) in opfamily %u",
-				 strategy, key->partopcintype[col], key->partopcintype[col],
-				 key->partopfamily[col]);
-		*need_relabel = true;
-	}
-	else
-		*need_relabel = false;
+	*need_relabel = (key->parttypid[col] != key->partopcintype[col] &&
+					 key->partopcintype[col] != RECORDOID &&
+					 !IsPolymorphicType(key->partopcintype[col]));
 
 	return operoid;
 }
@@ -1249,18 +1238,60 @@ make_partition_op_expr(PartitionKey key, int keynum,
 	{
 		case PARTITION_STRATEGY_LIST:
 			{
-				ScalarArrayOpExpr *saopexpr;
+				List	   *elems = (List *) arg2;
+				int			nelems = list_length(elems);
 
-				/* Build leftop = ANY (rightop) */
-				saopexpr = makeNode(ScalarArrayOpExpr);
-				saopexpr->opno = operoid;
-				saopexpr->opfuncid = get_opcode(operoid);
-				saopexpr->useOr = true;
-				saopexpr->inputcollid = key->partcollation[keynum];
-				saopexpr->args = list_make2(arg1, arg2);
-				saopexpr->location = -1;
+				Assert(nelems >= 1);
+				Assert(keynum == 0);
 
-				result = (Expr *) saopexpr;
+				if (nelems > 1 &&
+					!type_is_array(key->parttypid[keynum]))
+				{
+					ArrayExpr  *arrexpr;
+					ScalarArrayOpExpr *saopexpr;
+
+					/* Construct an ArrayExpr for the right-hand inputs */
+					arrexpr = makeNode(ArrayExpr);
+					arrexpr->array_typeid =
+									get_array_type(key->parttypid[keynum]);
+					arrexpr->array_collid = key->parttypcoll[keynum];
+					arrexpr->element_typeid = key->parttypid[keynum];
+					arrexpr->elements = elems;
+					arrexpr->multidims = false;
+					arrexpr->location = -1;
+
+					/* Build leftop = ANY (rightop) */
+					saopexpr = makeNode(ScalarArrayOpExpr);
+					saopexpr->opno = operoid;
+					saopexpr->opfuncid = get_opcode(operoid);
+					saopexpr->useOr = true;
+					saopexpr->inputcollid = key->partcollation[keynum];
+					saopexpr->args = list_make2(arg1, arrexpr);
+					saopexpr->location = -1;
+
+					result = (Expr *) saopexpr;
+				}
+				else
+				{
+					List	   *elemops = NIL;
+					ListCell   *lc;
+
+					foreach (lc, elems)
+					{
+						Expr   *elem = lfirst(lc),
+							   *elemop;
+
+						elemop = make_opclause(operoid,
+											   BOOLOID,
+											   false,
+											   arg1, elem,
+											   InvalidOid,
+											   key->partcollation[keynum]);
+						elemops = lappend(elemops, elemop);
+					}
+
+					result = nelems > 1 ? makeBoolExpr(OR_EXPR, elemops, -1) : linitial(elemops);
+				}
 				break;
 			}
 
@@ -1292,11 +1323,10 @@ get_qual_for_list(PartitionKey key, PartitionBoundSpec *spec)
 {
 	List	   *result;
 	Expr	   *keyCol;
-	ArrayExpr  *arr;
 	Expr	   *opexpr;
 	NullTest   *nulltest;
 	ListCell   *cell;
-	List	   *arrelems = NIL;
+	List	   *elems = NIL;
 	bool		list_has_null = false;
 
 	/*
@@ -1324,29 +1354,24 @@ get_qual_for_list(PartitionKey key, PartitionBoundSpec *spec)
 		if (val->constisnull)
 			list_has_null = true;
 		else
-			arrelems = lappend(arrelems, copyObject(val));
+			elems = lappend(elems, copyObject(val));
 	}
 
-	if (arrelems)
+	if (elems)
 	{
-		/* Construct an ArrayExpr for the non-null partition values */
-		arr = makeNode(ArrayExpr);
-		arr->array_typeid = !type_is_array(key->parttypid[0])
-			? get_array_type(key->parttypid[0])
-			: key->parttypid[0];
-		arr->array_collid = key->parttypcoll[0];
-		arr->element_typeid = key->parttypid[0];
-		arr->elements = arrelems;
-		arr->multidims = false;
-		arr->location = -1;
-
-		/* Generate the main expression, i.e., keyCol = ANY (arr) */
+		/*
+		 * Generate the operator expression from the non-null partition
+		 * values.
+		 */
 		opexpr = make_partition_op_expr(key, 0, BTEqualStrategyNumber,
-										keyCol, (Expr *) arr);
+										keyCol, (Expr *) elems);
 	}
 	else
 	{
-		/* If there are no partition values, we don't need an = ANY expr */
+		/*
+		 * If there are no partition values, we don't need an operator
+		 * expression.
+		 */
 		opexpr = NULL;
 	}
 

@@ -30,8 +30,8 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-#ifndef YY_BASE_YY_GRAM_H_INCLUDED
-# define YY_BASE_YY_GRAM_H_INCLUDED
+#ifndef YY_BASE_YY_GRAM_TAB_H_INCLUDED
+# define YY_BASE_YY_GRAM_TAB_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 0
@@ -550,7 +550,7 @@ union YYSTYPE
 	PartitionBoundSpec	*partboundspec;
 	RoleSpec			*rolespec;
 
-#line 554 "gram.h" /* yacc.c:1909  */
+#line 554 "gram.tab.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
@@ -574,4 +574,4 @@ struct YYLTYPE
 
 int base_yyparse (core_yyscan_t yyscanner);
 
-#endif /* !YY_BASE_YY_GRAM_H_INCLUDED  */
+#endif /* !YY_BASE_YY_GRAM_TAB_H_INCLUDED  */

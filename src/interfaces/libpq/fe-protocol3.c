@@ -58,6 +58,7 @@ static int build_startup_packet(const PGconn *conn, char *packet,
 #define PROGRESS_STRING_LEN 9
 #define PROGRESS_VALUE_LEN	8
 #define DECIMAL 0
+
 /*
  * parseInput: if appropriate, parse input data from backend
  * until input is exhausted or a stopping state is reached.
@@ -916,6 +917,14 @@ pqGetErrorNotice3(PGconn *conn, bool isError)
 	char		id;
 
 	/*
+	 * If this is an error message, pre-emptively clear any incomplete query
+	 * result we may have.  We'd just throw it away below anyway, and
+	 * releasing it before collecting the error might avoid out-of-memory.
+	 */
+	if (isError)
+		pqClearAsyncResult(conn);
+
+	/*
 	 * Since the fields might be pretty long, we create a temporary
 	 * PQExpBuffer rather than using conn->workBuffer.  workBuffer is intended
 	 * for stuff that is expected to be short.  We shouldn't use
@@ -979,7 +988,7 @@ pqGetErrorNotice3(PGconn *conn, bool isError)
 	{
 		if (res)
 			res->errMsg = pqResultStrdup(res, workBuf.data);
-		pqClearAsyncResult(conn);
+		pqClearAsyncResult(conn);	/* redundant, but be safe */
 		conn->result = res;
 		if (PQExpBufferDataBroken(workBuf))
 			printfPQExpBuffer(&conn->errorMessage,

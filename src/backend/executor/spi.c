@@ -339,7 +339,6 @@ SPI_exec(const char *src, long tcount)
 {
 	return SPI_execute(src, false, tcount);
 }
-
 /* Obsolete version of SPI_execute */
 TupleTableSlot *
 SPI_execRetreiveDirect(AggState *aggState)
@@ -359,7 +358,6 @@ SPI_execIntiAgg(Agg *node, EState *estate, int eflags)
 {
 	return ExecInitAgg(node, estate, eflags);
 }
-
 /* Execute a previously prepared plan */
 int
 SPI_execute_plan(SPIPlanPtr plan, Datum *Values, const char *Nulls,
@@ -2384,6 +2382,9 @@ _SPI_error_callback(void *arg)
 {
 	const char *query = (const char *) arg;
 	int			syntaxerrposition;
+
+	if (query == NULL)			/* in case arg wasn't set yet */
+		return;
 
 	/*
 	 * If there is a syntax error position, convert to internal syntax error;

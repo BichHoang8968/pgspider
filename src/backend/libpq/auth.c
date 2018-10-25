@@ -883,8 +883,8 @@ CheckSCRAMAuth(Port *port, char *shadow_pass, char **logdetail)
 	 * SCRAM-SHA-256 at the moment).  The extra "\0" is for an empty string to
 	 * terminate the list.
 	 */
-	sendAuthRequest(port, AUTH_REQ_SASL, SCRAM_SHA256_NAME "\0",
-					strlen(SCRAM_SHA256_NAME) + 2);
+	sendAuthRequest(port, AUTH_REQ_SASL, SCRAM_SHA_256_NAME "\0",
+					strlen(SCRAM_SHA_256_NAME) + 2);
 
 	/*
 	 * Initialize the status tracker for message exchanges.
@@ -950,7 +950,7 @@ CheckSCRAMAuth(Port *port, char *shadow_pass, char **logdetail)
 			 * is an error.
 			 */
 			selected_mech = pq_getmsgrawstring(&buf);
-			if (strcmp(selected_mech, SCRAM_SHA256_NAME) != 0)
+			if (strcmp(selected_mech, SCRAM_SHA_256_NAME) != 0)
 			{
 				ereport(ERROR,
 						(errcode(ERRCODE_PROTOCOL_VIOLATION),
@@ -2017,10 +2017,12 @@ auth_peer(hbaPort *port)
 	pw = getpwuid(uid);
 	if (!pw)
 	{
+		int			save_errno = errno;
+
 		ereport(LOG,
 				(errmsg("could not look up local user ID %ld: %s",
 						(long) uid,
-						errno ? strerror(errno) : _("user does not exist"))));
+						save_errno ? strerror(save_errno) : _("user does not exist"))));
 		return STATUS_ERROR;
 	}
 
@@ -2474,7 +2476,8 @@ CheckLDAPAuth(Port *port)
 		{
 			ereport(LOG,
 					(errmsg("could not perform initial LDAP bind for ldapbinddn \"%s\" on server \"%s\": %s",
-							port->hba->ldapbinddn, port->hba->ldapserver, ldap_err2string(r))));
+							port->hba->ldapbinddn ? port->hba->ldapbinddn : "",
+							port->hba->ldapserver, ldap_err2string(r))));
 			pfree(passwd);
 			return STATUS_ERROR;
 		}
