@@ -407,15 +407,19 @@ spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **map
 			Aggref	   *tempVar;
 
 			tempCount->aggfnoid = COUNT_OID;
-			tempCount->aggtype = BIGINT_OID;
-			tempCount->aggtranstype = BIGINT_OID;
+			if(tempCount->aggtype <= INT_OID ){
+				tempCount->aggtype = BIGINT_OID;
+				tempCount->aggtranstype = BIGINT_OID;
+			}
+			else{
+				tempCount->aggtype = FLOAT8_OID;
+				tempCount->aggtranstype = FLOAT8_OID;
+			}
 			/* Prepare SUM Query */
 			tempSum = copyObject(tempCount);
 			tempSum->aggfnoid = SUM_OID;
 			tempVar = copyObject(tempCount);
 
-			tempCount->aggtype = BIGINT_OID;
-			tempCount->aggtranstype = BIGINT_OID;
 			tempVar->aggfnoid = VAR_OID;
 
 			/* add original mapping list to avg,var,stddev */
@@ -506,8 +510,14 @@ spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **map
 					opexpr2->inputcollid = 0;
 					opexpr2->location = 0;
 					tarexpr->resno = 1;
-					tempVar->aggtype = BIGINT_OID;
-					tempVar->aggtranstype = BIGINT_OID;
+					if(tempVar->aggtype <= INT_OID ){
+						tempVar->aggtype = BIGINT_OID;
+						tempVar->aggtranstype = BIGINT_OID;
+					}
+					else{
+						tempVar->aggtype = FLOAT8_OID;
+						tempVar->aggtranstype = FLOAT8_OID;
+					}
 					tempVar->args = lappend(tempVar->args, tarexpr);
 					tempVar->args = list_delete_first(tempVar->args);
 					tle_temp = makeTargetEntry((Expr *) tempVar,	/* copy needed?? */
@@ -833,12 +843,12 @@ spd_ForeignScan_thread(void *arg)
 	pthread_mutex_init((pthread_mutex_t *) &fssthrdInfo->nodeMutex, NULL);
 	PG_TRY();
 	{
-		pthread_mutex_lock(&scan_mutex);
+//		pthread_mutex_lock(&scan_mutex);
 		pthread_mutex_lock(&fssthrdInfo->nodeMutex);
 		lock_taken = 1;
 		fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
 												  fssthrdInfo->eflags);
-		pthread_mutex_unlock(&scan_mutex);
+//		pthread_mutex_unlock(&scan_mutex);
 		pthread_mutex_unlock(&fssthrdInfo->nodeMutex);
 		lock_taken = 0;
 #ifdef MEASURE_TIME
@@ -1011,7 +1021,6 @@ RESCAN:
 			{
 				pthread_mutex_lock(&fssthrdInfo->nodeMutex);
 				fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
-				pthread_mutex_unlock(&fssthrdInfo->nodeMutex);
 				fssthrdInfo->EndFlag = false;
 				break;
 			}
@@ -2832,6 +2841,7 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 		}
 	}
 	appendStringInfo(sql, ")");
+	elog(DEBUG1, "insert  = %s", sql->data);
 
 	ret = SPI_exec(sql->data, 1);
 	if (ret != SPI_OK_INSERT)
@@ -2970,34 +2980,40 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 																													&isnull));
 								break;
 							case INT_OID:
-								fdw_private->agg_values[k][colid] = DatumGetInt32(SPI_getbinval(SPI_tuptable->vals[k],
-																								SPI_tuptable->tupdesc,
-																								colid + 1,
-																								&isnull));
+								fdw_private->agg_values[k][colid] = Int32GetDatum(DatumGetInt32(SPI_getbinval(SPI_tuptable->vals[k],
+																											  SPI_tuptable->tupdesc,
+																											  colid + 1,
+																											  &isnull)));
 								break;
 							case BIGINT_OID:
-								fdw_private->agg_values[k][colid] = DatumGetInt64(SPI_getbinval(SPI_tuptable->vals[k],
-																								SPI_tuptable->tupdesc,
-																								colid + 1,
-																								&isnull));
+								fdw_private->agg_values[k][colid] = Int64GetDatum(DatumGetInt64(SPI_getbinval(SPI_tuptable->vals[k],
+																											  SPI_tuptable->tupdesc,
+																											  colid + 1,
+																											  &isnull)));
 								break;
 							case SMALLINT_OID:
-								fdw_private->agg_values[k][colid] = DatumGetInt16(SPI_getbinval(SPI_tuptable->vals[k],
+								fdw_private->agg_values[k][colid] = Int16GetDatum(DatumGetInt16(SPI_getbinval(SPI_tuptable->vals[k],
 																								SPI_tuptable->tupdesc,
 																								colid + 1,
-																								&isnull));
+																								&isnull)));
 								break;
 							case FLOAT_OID:
-								fdw_private->agg_values[k][colid] = DatumGetFloat4(SPI_getbinval(SPI_tuptable->vals[k],
-																								 SPI_tuptable->tupdesc,
-																								 colid + 1,
-																								 &isnull));
+								fdw_private->agg_values[k][colid] = Float4GetDatum(DatumGetFloat4(SPI_getbinval(SPI_tuptable->vals[k],
+																												SPI_tuptable->tupdesc,
+																												colid + 1,
+																												&isnull)));
 								break;
 							case FLOAT8_OID:
-								fdw_private->agg_values[k][colid] = DatumGetFloat8(SPI_getbinval(SPI_tuptable->vals[k], SPI_tuptable->tupdesc, colid + 1, &isnull));
+    							fdw_private->agg_values[k][colid] = Float8GetDatum(DatumGetFloat8(SPI_getbinval(SPI_tuptable->vals[k],
+																												SPI_tuptable->tupdesc,
+																												colid + 1,
+																												&isnull)));
 								break;
 							case BOOL_OID:
-								fdw_private->agg_values[k][colid] = DatumGetBool(SPI_getbinval(SPI_tuptable->vals[k], SPI_tuptable->tupdesc, colid + 1, &isnull));
+								fdw_private->agg_values[k][colid] = DatumGetFloat8(DatumGetBool(SPI_getbinval(SPI_tuptable->vals[k],
+																											  SPI_tuptable->tupdesc,
+																											  colid + 1,
+																											  &isnull)));
 								break;
 							default:
 								break;
@@ -3234,7 +3250,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 			fin_flag = palloc0(sizeof(int) * nThreads);
 			MemoryContextSwitchTo(oldcontext);
 
-			node->ss.ps.state->es_progressState->dest = (void *) ((QueryDesc *) node->ss.ps.spdAggQry)->dest;
+			//node->ss.ps.state->es_progressState->dest = (void *) ((QueryDesc *) node->ss.ps.spdAggQry)->dest;
 			strcpy(agginfodata[0].transquery, ((QueryDesc *) node->ss.ps.spdAggQry)->sourceText);
 			appendStringInfo(create_sql, "CREATE TEMP TABLE __spd__temptable(");
 			colid = 0;
