@@ -844,12 +844,10 @@ spd_ForeignScan_thread(void *arg)
 	pthread_mutex_init((pthread_mutex_t *) &fssthrdInfo->nodeMutex, NULL);
 	PG_TRY();
 	{
-//		pthread_mutex_lock(&scan_mutex);
 		pthread_mutex_lock(&fssthrdInfo->nodeMutex);
 		lock_taken = 1;
 		fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
 												  fssthrdInfo->eflags);
-//		pthread_mutex_unlock(&scan_mutex);
 		pthread_mutex_unlock(&fssthrdInfo->nodeMutex);
 		lock_taken = 0;
 #ifdef MEASURE_TIME
@@ -1165,7 +1163,7 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 		Datum		temp_oid = list_nth_oid(fdw_private->ft_oid_list, i);
 		Oid			temp_tableid;
 		ForeignServer *temp_server;
-		ForeignDataWrapper *temp_fdw;
+		ForeignDataWrapper *temp_fdw=NULL;
 
 		spd_spi_exec_datasource_name(temp_oid, srvname);
 
@@ -1549,7 +1547,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	MemoryContext oldcontext;
 	RelOptInfo *output_rel_tmp = (RelOptInfo *) palloc(sizeof(RelOptInfo));
 	PlannerInfo *spd_root;
-
+	
 	/*
 	 * If input rel is not safe to pushdown, then simply return as we cannot
 	 * perform any post-join operations on the foreign server.
@@ -1584,7 +1582,9 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	/* Create child tlist */
 	{
 		int			i;
-
+		List	   *newList = NIL;
+	    ListCell   *lc;
+		int listn=0;
 		{
 			RelOptInfo *dummy_output_rel;
 
@@ -1612,6 +1612,63 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			if (root->upper_targets[i] != NULL)
 				fdw_private->child_tlist[i] = copy_pathtarget(root->upper_targets[i]);
 		}
+		foreach(lc, spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs)
+		{
+			Aggref	   *aggref;
+			Expr	   *temp_expr;
+			temp_expr = list_nth(fdw_private->child_tlist[UPPERREL_GROUP_AGG]->exprs, listn);
+			aggref = (Aggref *) temp_expr;
+			listn++;
+			if ((aggref->aggfnoid >= AVG_MIN_OID && aggref->aggfnoid <= AVG_MAX_OID) ||
+				(aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID) ||
+				(aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
+			{
+				/* Prepare SUM Query */
+				Aggref	   *tempSUM = copyObject(temp_expr);
+				Aggref	   *temp;
+				Aggref	   *tempVar;
+
+				tempSUM->aggfnoid = COUNT_OID;
+				tempSUM->aggtype = BIGINT_OID;
+				tempSUM->aggtranstype = BIGINT_OID;
+				/* Prepare Count Query */
+				temp = copyObject(tempSUM);
+				tempVar = copyObject(tempSUM);
+				if((aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID) ||
+				   (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID)){
+					tempVar->aggfnoid = STD_OID;
+				    tempVar->aggtype = NUMERIC_OID;
+					tempVar->aggtranstype = 2281;
+					newList = lappend(newList, tempVar);
+				}
+				temp->aggfnoid = SUM_OID;
+
+				newList = lappend(newList, tempSUM);
+				newList = lappend(newList, temp);
+				elog(DEBUG1, "div tlist");
+                /* add original mapping list */
+				fdw_private->div_tlist = lappend_int(fdw_private->div_tlist, 1);
+			}
+			else
+			{
+				newList = lappend(newList, temp_expr);
+				fdw_private->div_tlist = lappend(fdw_private->div_tlist, 0);
+			}
+		}
+		foreach(lc, spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs)
+		{
+		    spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs =
+				list_delete_first(spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs);
+		}
+		foreach(lc, newList)
+		{
+			Expr	   *expr = (Expr *) lfirst(lc);
+			elog(DEBUG1, "insert expr");
+		    spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs =
+				lappend(spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs, expr);
+		}
+		/* pthread_mutex_unlock(&scan_mutex); */
+		elog(DEBUG1, "main upperpath add");
 	}
 	fdw_private->div_tlist = div_tlist;
 	fdw_private->rinfo.pushdown_safe = false;
@@ -1635,8 +1692,10 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			PlannerInfo *dummy_root =
 			(PlannerInfo *) list_nth(fdw_private->dummy_root_list, i);
 			RelOptInfo *dummy_output_rel;
-			ListCell   *lc;
 
+			ListCell   *lc;
+			int			listn = 0;
+			
 			oid_server = spd_spi_exec_datasource_oid(rel_oid);
 			/* pthread_mutex_lock(&scan_mutex); */
 			fdwroutine = GetFdwRoutineByServerId(oid_server);
@@ -1660,6 +1719,51 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			dummy_root->upper_targets[UPPERREL_FINAL] =
 				copy_pathtarget(spd_root->upper_targets[UPPERREL_FINAL]);
 			oldcontext = MemoryContextSwitchTo(MessageContext);
+
+			foreach(lc, fdw_private->child_comp_tlist)
+			{
+				Expr	   *expr = (Expr *) lfirst(lc);
+				Aggref	   *aggref;
+				aggref = (Aggref *) expr;
+				listn++;
+				if ((aggref->aggfnoid >= AVG_MIN_OID && aggref->aggfnoid <= AVG_MAX_OID) ||
+					(aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID) ||
+					(aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
+				{
+					/* Prepare SUM Query */
+					/*
+					 * TODO: Appropriate aggfnoid should be choosen based
+					 * on type
+					 */
+					Aggref	   *tempSUM = copyObject(aggref);
+					Aggref	   *tempVar;
+					Aggref	   *temp;
+					tempSUM->aggfnoid = COUNT_OID;
+					tempSUM->aggtype = BIGINT_OID;
+					tempSUM->aggtranstype = BIGINT_OID;
+					/* Prepare Count Query */
+					temp = copyObject(tempSUM);
+					tempVar = copyObject(tempSUM);
+					if((aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID) ||
+					   (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID)){
+						temp->aggfnoid = STD_OID;
+						tempVar->aggtype = NUMERIC_OID;
+						tempVar->aggtranstype = 2281;
+						newList = lappend(newList, temp);
+					}
+					temp->aggfnoid = SUM_OID;
+					
+					elog(DEBUG1, "insert avg expr");
+					newList = lappend(newList, tempSUM);
+					newList = lappend(newList, temp);
+				}
+				else
+				{
+					dummy_root->upper_targets[UPPERREL_WINDOW] = copy_pathtarget(root->upper_targets[UPPERREL_WINDOW]);
+					elog(DEBUG1, "insert orign expr");
+					newList = lappend(newList, expr);
+				}
+			}
 			foreach(lc, dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs)
 			{
 				dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs =
@@ -2236,6 +2340,9 @@ spd_createPushDownPlan(List *tlist, bool *agg_query, SpdFdwPrivate * fdw_private
 	TargetEntry *tle;
 	Aggref	   *aggref;
 	ListCell   *lc;
+	int			att = 0;
+	Var *var;
+	List	   *dummy_tlist = NIL;
 	List	   *dummy_tlist2 = NIL;
 
 	dummy_tlist2 = copyObject(tlist);
@@ -2246,6 +2353,44 @@ spd_createPushDownPlan(List *tlist, bool *agg_query, SpdFdwPrivate * fdw_private
 		{
 			aggref = (Aggref *) tle->expr;
 			spd_expression_tree_walker((Node *) aggref, 1);
+		}
+	}
+	foreach(lc, dummy_tlist2)
+	{
+		tle = lfirst_node(TargetEntry, lc);
+		if (IsA(tle->expr, Aggref))
+		{
+			aggref = (Aggref *) tle->expr;
+			if (aggref->args)
+			{
+				tle = (TargetEntry *) lfirst_node(Var, aggref->args->head);
+				if (!list_member(dummy_tlist, tle))
+				{
+					TargetEntry *copy_tle = copyObject(tle);
+
+					att++;
+					copy_tle->resno = att;
+					dummy_tlist = lappend(dummy_tlist, copy_tle);
+				}
+				/* Modify VAR of dummy_tlist2 for OUTER_VAR */
+				var = (Var *) tle->expr;
+				var->varno = OUTER_VAR;
+				var->varattno = att;
+			}
+		}
+		else if (IsA(tle->expr, Var))
+		{
+			if (!list_member(dummy_tlist, tle))
+			{
+				TargetEntry *copy_tle = copyObject(tle);
+				att++;
+				copy_tle->resno = att;
+				dummy_tlist = lappend(dummy_tlist, copy_tle);
+			}
+			/* Modify VAR of dummy_tlist2 for OUTER_VAR */
+			var = (Var *) tle->expr;
+			var->varno = OUTER_VAR;
+			var->varattno = att;
 		}
 	}
 	return dummy_tlist2;
@@ -2403,7 +2548,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			{
 				tmp_path = (Path *) best_path;
 			}
-
 			temp_obj = fdwroutine->GetForeignPlan(
 												  (PlannerInfo *) root_l->data.ptr_value,
 												  (RelOptInfo *) base_l->data.ptr_value,
@@ -3235,7 +3379,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 	int			i,
 				j;
 	int		   *fin_flag;
-	int			fin_count;
+	int			fin_count=0;
 	MemoryContext oldcontext;
 
 	fdw_private = fssThrdInfo->private;
@@ -3618,7 +3762,7 @@ spd_AddForeignUpdateTargets(Query *parsetree,
 	SpdFdwPrivate *fdw_private;
 	char	   *new_underurl = NULL;
 	Datum	   *oid = NULL;
-	Datum		oid_server;
+	Datum		oid_server=0;
 
 
 	fdw_private = spd_AllocatePrivate();
@@ -3712,8 +3856,8 @@ spd_PlanForeignModify(PlannerInfo *root,
 	char	   *new_underurl = NULL;
 	Relation	rel;
 	Datum	   *oid = NULL;
-	Datum		oid_server;
-	List	   *child_list;
+	Datum		oid_server=0;
+	List	   *child_list=NULL;
 
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
