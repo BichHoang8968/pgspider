@@ -407,19 +407,22 @@ spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **map
 			Aggref	   *tempSum;
 			Aggref	   *tempVar;
 
+			tempVar = copyObject(tempCount);
 			tempCount->aggfnoid = COUNT_OID;
-			if(tempCount->aggtype <= INT_OID ){
-				tempCount->aggtype = BIGINT_OID;
-				tempCount->aggtranstype = BIGINT_OID;
-			}
-			else{
-				tempCount->aggtype = FLOAT8_OID;
-				tempCount->aggtranstype = FLOAT8_OID;
-			}
-			/* Prepare SUM Query */
 			tempSum = copyObject(tempCount);
 			tempSum->aggfnoid = SUM_OID;
-			tempVar = copyObject(tempCount);
+			if(tempCount->aggtype <= BIGINT_OID || tempSum->aggtype==NUMERIC_OID){
+				tempSum->aggtype = BIGINT_OID;
+				tempSum->aggtranstype = BIGINT_OID;
+			}
+			else{
+			    tempSum->aggfnoid = SUM_FLOAT8_OID;
+				tempSum->aggtype = FLOAT8_OID;
+			    tempSum->aggtranstype = FLOAT8_OID;
+			}
+			tempCount->aggtype = BIGINT_OID;
+			tempCount->aggtranstype = BIGINT_OID;
+			/* Prepare SUM Query */
 
 			tempVar->aggfnoid = VAR_OID;
 
@@ -484,9 +487,6 @@ spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **map
 					OpExpr	   *opexpr2 = copyObject(opexpr);
 
 					opexpr->xpr.type = T_OpExpr;
-					opexpr->opno = OPEXPER_OID;
-					opexpr->opfuncid = OPEXPER_FUNCID;
-					opexpr->opresulttype = INT_OID;
 					opexpr->opretset = false;
 					opexpr->opcollid = 0;
 					opexpr->inputcollid = 0;
@@ -494,8 +494,23 @@ spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **map
 					opexpr->args = NULL;
 
 					/* Create top targetentry */
-					tempVar->aggtranstype = 2281;
-					tempVar->aggfnoid = SUM_OID;
+					if(tempVar->aggtype <= INT_OID || tempVar->aggtype==NUMERIC_OID){
+						tempVar->aggtype = BIGINT_OID;
+						tempVar->aggtranstype = BIGINT_OID;
+						tempVar->aggfnoid = SUM_OID;
+						opexpr->opno = OPEXPER_OID;
+						opexpr->opfuncid = OPEXPER_FUNCID;
+						opexpr->opresulttype = BIGINT_OID;
+					}
+					else{
+						tempVar->aggtype = FLOAT8_OID;
+						tempVar->aggtranstype = FLOAT8_OID;
+						tempVar->aggfnoid = SUM_FLOAT8_OID;
+						opexpr->opresulttype = FLOAT8_OID;
+						opexpr->opno = 594;
+						opexpr->opfuncid = 216;
+						opexpr->opresulttype = FLOAT8_OID;
+					}
 					opexpr->args = lappend(opexpr->args, opvar);
 					opexpr->args = lappend(opexpr->args, opvar);
 					/* Create var targetentry */
@@ -504,21 +519,11 @@ spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **map
 											  NULL,
 											  false);
 					opexpr2 = (OpExpr *) tarexpr->expr;
-					opexpr->opfuncid = OPEXPER_FUNCID;
-					opexpr->opresulttype = INT_OID;
 					opexpr2->opretset = false;
 					opexpr2->opcollid = 0;
 					opexpr2->inputcollid = 0;
 					opexpr2->location = 0;
 					tarexpr->resno = 1;
-					if(tempVar->aggtype <= INT_OID ){
-						tempVar->aggtype = BIGINT_OID;
-						tempVar->aggtranstype = BIGINT_OID;
-					}
-					else{
-						tempVar->aggtype = FLOAT8_OID;
-						tempVar->aggtranstype = FLOAT8_OID;
-					}
 					tempVar->args = lappend(tempVar->args, tarexpr);
 					tempVar->args = list_delete_first(tempVar->args);
 					tle_temp = makeTargetEntry((Expr *) tempVar,	/* copy needed?? */
@@ -1616,35 +1621,96 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 		{
 			Aggref	   *aggref;
 			Expr	   *temp_expr;
+			TargetEntry *tle_temp;
+
 			temp_expr = list_nth(fdw_private->child_tlist[UPPERREL_GROUP_AGG]->exprs, listn);
 			aggref = (Aggref *) temp_expr;
 			listn++;
+#if 1
 			if ((aggref->aggfnoid >= AVG_MIN_OID && aggref->aggfnoid <= AVG_MAX_OID) ||
 				(aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID) ||
 				(aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
 			{
 				/* Prepare SUM Query */
-				Aggref	   *tempSUM = copyObject(temp_expr);
-				Aggref	   *temp;
+				Aggref	   *tempCount = copyObject((Aggref *) temp_expr);
+				Aggref	   *tempSum;
 				Aggref	   *tempVar;
 
-				tempSUM->aggfnoid = COUNT_OID;
-				tempSUM->aggtype = BIGINT_OID;
-				tempSUM->aggtranstype = BIGINT_OID;
-				/* Prepare Count Query */
-				temp = copyObject(tempSUM);
-				tempVar = copyObject(tempSUM);
-				if((aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID) ||
-				   (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID)){
-					tempVar->aggfnoid = STD_OID;
-				    tempVar->aggtype = NUMERIC_OID;
-					tempVar->aggtranstype = 2281;
-					newList = lappend(newList, tempVar);
+				tempCount->aggfnoid = COUNT_OID;
+				tempSum = copyObject(tempCount);
+				tempSum->aggfnoid = SUM_OID;
+				if(tempSum->aggtype <= BIGINT_OID|| tempSum->aggtype==NUMERIC_OID){
+					tempSum->aggtype = BIGINT_OID;
+				    tempSum->aggtranstype = BIGINT_OID;
 				}
-				temp->aggfnoid = SUM_OID;
+				else{
+					tempSum->aggfnoid = SUM_FLOAT8_OID;
+				    tempSum->aggtype = FLOAT8_OID;
+				    tempSum->aggtranstype = FLOAT8_OID;
+				}
+				tempCount->aggtype = BIGINT_OID;
+			    tempCount->aggtranstype = BIGINT_OID;
+				/* Prepare SUM Query */
+				tempVar = copyObject(tempCount);
+				tempVar->aggfnoid = VAR_OID;
 
-				newList = lappend(newList, tempSUM);
-				newList = lappend(newList, temp);
+				newList = lappend(newList, tempCount);
+				newList = lappend(newList, tempSum);
+				if ((aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
+					|| (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
+				{
+					TargetEntry *tarexpr;
+					TargetEntry *oparg = (TargetEntry *) tempVar->args->head->data.ptr_value;
+					Var		   *opvar = (Var *) oparg->expr;
+					OpExpr	   *opexpr = copyObject((OpExpr *) opvar);
+					OpExpr	   *opexpr2 = copyObject(opexpr);
+
+					opexpr->xpr.type = T_OpExpr;
+					opexpr->opretset = false;
+					opexpr->opcollid = 0;
+					opexpr->inputcollid = 0;
+					opexpr->location = 0;
+					opexpr->args = NULL;
+
+					/* Create top targetentry */
+					if(tempVar->aggtype <= INT_OID || tempVar->aggtype==NUMERIC_OID){
+						tempVar->aggtype = BIGINT_OID;
+						tempVar->aggtranstype = BIGINT_OID;
+						tempVar->aggfnoid = SUM_OID;
+						opexpr->opno = OPEXPER_OID;
+						opexpr->opfuncid = OPEXPER_FUNCID;
+						opexpr->opresulttype = BIGINT_OID;
+					}
+					else{
+						tempVar->aggtype = FLOAT8_OID;
+						tempVar->aggtranstype = FLOAT8_OID;
+						tempVar->aggfnoid = SUM_FLOAT8_OID;
+						opexpr->opresulttype = FLOAT8_OID;
+						opexpr->opno = 594;
+						opexpr->opfuncid = 216;
+						opexpr->opresulttype = FLOAT8_OID;
+					}
+					opexpr->args = lappend(opexpr->args, opvar);
+					opexpr->args = lappend(opexpr->args, opvar);
+					/* Create var targetentry */
+					tarexpr = makeTargetEntry((Expr *) opexpr,	/* copy needed?? */
+											  listn,
+											  NULL,
+											  false);
+					opexpr2 = (OpExpr *) tarexpr->expr;
+					opexpr2->opretset = false;
+					opexpr2->opcollid = 0;
+					opexpr2->inputcollid = 0;
+					opexpr2->location = 0;
+					tarexpr->resno = 1;
+					tempVar->args = lappend(tempVar->args, tarexpr);
+					tempVar->args = list_delete_first(tempVar->args);
+					tle_temp = makeTargetEntry((Expr *) tempVar,	/* copy needed?? */
+											   listn++,
+											   NULL,
+											   false);
+					newList = lappend(newList, tle_temp);
+				}
 				elog(DEBUG1, "div tlist");
                 /* add original mapping list */
 				fdw_private->div_tlist = lappend_int(fdw_private->div_tlist, 1);
@@ -1654,6 +1720,9 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				newList = lappend(newList, temp_expr);
 				fdw_private->div_tlist = lappend(fdw_private->div_tlist, 0);
 			}
+#endif
+				newList = lappend(newList, temp_expr);
+				fdw_private->div_tlist = lappend(fdw_private->div_tlist, 0);
 		}
 		foreach(lc, spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs)
 		{
@@ -1724,38 +1793,107 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			{
 				Expr	   *expr = (Expr *) lfirst(lc);
 				Aggref	   *aggref;
+				Expr	   *temp_expr;
+				TargetEntry *tle_temp;
+
 				aggref = (Aggref *) expr;
 				listn++;
+#if 1
 				if ((aggref->aggfnoid >= AVG_MIN_OID && aggref->aggfnoid <= AVG_MAX_OID) ||
 					(aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID) ||
 					(aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
 				{
 					/* Prepare SUM Query */
-					/*
-					 * TODO: Appropriate aggfnoid should be choosen based
-					 * on type
-					 */
-					Aggref	   *tempSUM = copyObject(aggref);
+					Aggref	   *tempCount = copyObject((Aggref *) aggref);
+					Aggref	   *tempSum;
 					Aggref	   *tempVar;
-					Aggref	   *temp;
-					tempSUM->aggfnoid = COUNT_OID;
-					tempSUM->aggtype = BIGINT_OID;
-					tempSUM->aggtranstype = BIGINT_OID;
-					/* Prepare Count Query */
-					temp = copyObject(tempSUM);
-					tempVar = copyObject(tempSUM);
-					if((aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID) ||
-					   (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID)){
-						temp->aggfnoid = STD_OID;
-						tempVar->aggtype = NUMERIC_OID;
-						tempVar->aggtranstype = 2281;
-						newList = lappend(newList, temp);
+
+					tempCount->aggfnoid = COUNT_OID;
+					tempSum = copyObject(tempCount);
+					tempSum->aggfnoid = SUM_OID;
+					if(tempCount->aggtype <= FLOAT8_OID || tempCount->aggtype==NUMERIC_OID){
+						tempSum->aggtype = BIGINT_OID;
+						tempSum->aggtranstype = BIGINT_OID;
 					}
-					temp->aggfnoid = SUM_OID;
-					
+					else{
+						tempSum->aggtype = FLOAT8_OID;
+						tempSum->aggtranstype = FLOAT8_OID;
+						tempSum->aggfnoid = SUM_FLOAT8_OID;
+					}
+					tempCount->aggtype = BIGINT_OID;
+					tempCount->aggtranstype = BIGINT_OID;
+					/* Prepare SUM Query */
+					tempVar = copyObject(tempCount);
+					tempVar->aggfnoid = VAR_OID;
+
+					newList = lappend(newList, tempCount);
+					newList = lappend(newList, tempSum);
+					if ((aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
+						|| (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
+					{
+						TargetEntry *tarexpr;
+						TargetEntry *oparg = (TargetEntry *) tempVar->args->head->data.ptr_value;
+						Var		   *opvar = (Var *) oparg->expr;
+						OpExpr	   *opexpr = copyObject((OpExpr *) opvar);
+						OpExpr	   *opexpr2 = copyObject(opexpr);
+
+						opexpr->xpr.type = T_OpExpr;
+						opexpr->opno = OPEXPER_OID;
+						opexpr->opfuncid = OPEXPER_FUNCID;
+						opexpr->opresulttype = INT_OID;
+						opexpr->opretset = false;
+						opexpr->opcollid = 0;
+						opexpr->inputcollid = 0;
+						opexpr->location = 0;
+						opexpr->args = NULL;
+
+						/* Create top targetentry */
+						//tempVar->aggtranstype = 2281;
+						//tempVar->aggfnoid = SUM_OID;
+						if(tempVar->aggtype <= INT_OID || tempVar->aggtype==NUMERIC_OID){
+							tempVar->aggtype = BIGINT_OID;
+							tempVar->aggtranstype = BIGINT_OID;
+						}
+						else{
+							tempVar->aggtype = FLOAT8_OID;
+							tempVar->aggtranstype = FLOAT8_OID;
+							tempSum->aggfnoid = SUM_FLOAT8_OID;
+						}
+						opexpr->args = lappend(opexpr->args, opvar);
+						opexpr->args = lappend(opexpr->args, opvar);
+						/* Create var targetentry */
+						tarexpr = makeTargetEntry((Expr *) opexpr,	/* copy needed?? */
+												  listn,
+												  NULL,
+												  false);
+						opexpr2 = (OpExpr *) tarexpr->expr;
+						opexpr->opfuncid = OPEXPER_FUNCID;
+						opexpr->opresulttype = INT_OID;
+						opexpr2->opretset = false;
+						opexpr2->opcollid = 0;
+						opexpr2->inputcollid = 0;
+						opexpr2->location = 0;
+						tarexpr->resno = 1;
+						if(tempVar->aggtype <= INT_OID ){
+							tempVar->aggtype = BIGINT_OID;
+							tempVar->aggtranstype = BIGINT_OID;
+						}
+						else{
+							tempVar->aggtype = FLOAT8_OID;
+							tempVar->aggtranstype = FLOAT8_OID;
+						}
+						tempVar->args = lappend(tempVar->args, tarexpr);
+						tempVar->args = list_delete_first(tempVar->args);
+						tle_temp = makeTargetEntry((Expr *) tempVar,	/* copy needed?? */
+												   listn++,
+												   NULL,
+												   false);
+						newList = lappend(newList, tle_temp);
+					}
+					elog(DEBUG1, "div tlist");
+					/* add original mapping list */
+					fdw_private->div_tlist = lappend_int(fdw_private->div_tlist, 1);
 					elog(DEBUG1, "insert avg expr");
-					newList = lappend(newList, tempSUM);
-					newList = lappend(newList, temp);
 				}
 				else
 				{
@@ -1763,6 +1901,10 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 					elog(DEBUG1, "insert orign expr");
 					newList = lappend(newList, expr);
 				}
+#endif
+					dummy_root->upper_targets[UPPERREL_WINDOW] = copy_pathtarget(root->upper_targets[UPPERREL_WINDOW]);
+					elog(DEBUG1, "insert orign expr");
+					newList = lappend(newList, expr);
 			}
 			foreach(lc, dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs)
 			{
@@ -2355,6 +2497,7 @@ spd_createPushDownPlan(List *tlist, bool *agg_query, SpdFdwPrivate * fdw_private
 			spd_expression_tree_walker((Node *) aggref, 1);
 		}
 	}
+#if 0
 	foreach(lc, dummy_tlist2)
 	{
 		tle = lfirst_node(TargetEntry, lc);
@@ -2393,6 +2536,7 @@ spd_createPushDownPlan(List *tlist, bool *agg_query, SpdFdwPrivate * fdw_private
 			var->varattno = att;
 		}
 	}
+#endif
 	return dummy_tlist2;
 }
 
@@ -2800,15 +2944,33 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 						attrs[i] = palloc(sizeof(FormData_pg_attribute));
 						memcpy(attrs[i], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[org_attrincr],
 							   sizeof(FormData_pg_attribute));
+#if 1
+						if(attrs[i]->atttypid <= BIGINT_OID || attrs[i]->atttypid ==NUMERIC_OID){
+							attrs[i - 1]->atttypid = BIGINT_OID;
+							attrs[i]->atttypid = BIGINT_OID;
+						}
+						else{
+							attrs[i - 1]->atttypid = INT_OID;
+							attrs[i]->attlen = DOUBLE_LENGTH;
+							attrs[i]->attalign = 'd';
+							attrs[i]->atttypid = FLOAT8_OID;
+						}
+#else
 						attrs[i - 1]->atttypid = 23;
 						attrs[i]->atttypid = 23;
+#endif
 						if (!strcmpi(agg_command, "VARIANCE") || !strcmpi(agg_command, "STDDEV"))
 						{
 							i++;
 							attrs[i] = palloc(sizeof(FormData_pg_attribute));
 							memcpy(attrs[i], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[org_attrincr],
 								   sizeof(FormData_pg_attribute));
-							attrs[i]->atttypid = BIGINT_OID;
+							if(attrs[i]->atttypid <= BIGINT_OID || attrs[i]->atttypid ==NUMERIC_OID){
+								attrs[i]->atttypid = BIGINT_OID;
+							}
+							else{
+								attrs[i]->atttypid = FLOAT8_OID;
+							}
 							attrs[i]->attlen = DOUBLE_LENGTH;
 							attrs[i]->attalign = 'd';
 							attrs[i]->attbyval = 1;
@@ -3101,10 +3263,13 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 		MemoryContext oldcontext;
 		childtlist *clist;
 		Datum	   *ret_agg_values;
+		float8 temp;
+	    int *agg_value_type=NULL;
 
 		target_column = 0;
 		oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 		fdw_private->agg_values = (Datum **) palloc0(SPI_processed * sizeof(Datum *));
+		agg_value_type = (int *) palloc0(SPI_processed * sizeof(int));
 		for (i = 0; i < SPI_processed; i++)
 		{
 			fdw_private->agg_values[i] = (Datum *) palloc0(slot->tts_tupleDescriptor->natts * sizeof(Datum));
@@ -3125,6 +3290,7 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 					mapping = list_nth_int(clist->mapping, j);
 					if (colid == mapping)
 					{
+						agg_value_type[colid] = SPI_tuptable->tupdesc->attrs[colid]->atttypid;
 						switch (SPI_tuptable->tupdesc->attrs[colid]->atttypid)
 						{
 							case NUMERIC_OID:
@@ -3158,10 +3324,14 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 																												&isnull)));
 								break;
 							case FLOAT8_OID:
-    							fdw_private->agg_values[k][colid] = Float8GetDatum(DatumGetFloat8(SPI_getbinval(SPI_tuptable->vals[k],
+								temp = DatumGetFloat8(SPI_getbinval(SPI_tuptable->vals[k],SPI_tuptable->tupdesc,colid + 1,&isnull));
+    							/*
+								  fdw_private->agg_values[k][colid] = Float8GetDatum(DatumGetFloat8(SPI_getbinval(SPI_tuptable->vals[k],
 																												SPI_tuptable->tupdesc,
 																												colid + 1,
 																												&isnull)));
+								*/
+								fdw_private->agg_values[k][colid] = Float8GetDatum(temp);
 								break;
 							case BOOL_OID:
 								fdw_private->agg_values[k][colid] = BoolGetDatum(DatumGetBool(SPI_getbinval(SPI_tuptable->vals[k],
@@ -3201,36 +3371,82 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 					int			sum_mapping = list_nth_int(clist->mapping, 1);
 
 					float8		result = 0.0;
-
+					float8		sum = 0.0;
+					switch (agg_value_type[sum_mapping])
+					{
+					case NUMERIC_OID:
+					case INT_OID:
+						sum = (float8) DatumGetInt32(fdw_private->agg_values[0][sum_mapping]);
+						break;
+					case BIGINT_OID:
+						sum = (float8) DatumGetInt64(fdw_private->agg_values[0][sum_mapping]);
+						break;
+					case SMALLINT_OID:
+						sum = (float8) DatumGetInt16(fdw_private->agg_values[0][sum_mapping]);
+						break;
+					case FLOAT_OID:
+						sum = (float8) DatumGetFloat4(fdw_private->agg_values[0][sum_mapping]);
+						break;
+					case FLOAT8_OID:
+						sum = (float8) DatumGetFloat8(fdw_private->agg_values[0][sum_mapping]);
+						break;
+					case BOOL_OID:
+					case TIMESTAMP_OID:
+					case DATE_OID:
+					default:
+						break;
+					}
+					float8		cnt = (float8) DatumGetInt32(fdw_private->agg_values[0][count_mapping]);
 					if (clist_parent->avgflag == 1)
 					{
-						result = (float8) fdw_private->agg_values[0][sum_mapping] / (float8) fdw_private->agg_values[0][count_mapping];
+						result = sum / cnt;
 					}
-					else if (clist_parent->avgflag == 2)
-					{
+					else{
 						int			vardev_mapping = list_nth_int(clist->mapping, 2);
-						float8		sum = (float8) fdw_private->agg_values[0][sum_mapping];
-						float8		cnt = (float8) fdw_private->agg_values[0][count_mapping];
-						float8		sum2 = (float8) fdw_private->agg_values[0][vardev_mapping];
-						float8		right = sum2;
-						float8		left = pow(sum, 2) / cnt;
-
+						float8		sum2 = 0.0;
+						float8		right = 0.0;
+						float8		left = 0.0;
+						switch (agg_value_type[sum_mapping])
+						{
+						case NUMERIC_OID:
+						case INT_OID:
+							sum2 = (float8) DatumGetInt32(fdw_private->agg_values[0][vardev_mapping]);
+							break;
+						case BIGINT_OID:
+							sum2 = (float8) DatumGetInt64(fdw_private->agg_values[0][vardev_mapping]);
+							break;
+						case SMALLINT_OID:
+							sum2 = (float8) DatumGetInt16(fdw_private->agg_values[0][vardev_mapping]);
+							break;
+						case FLOAT_OID:
+							sum2 = (float8) DatumGetFloat4(fdw_private->agg_values[0][vardev_mapping]);
+							break;
+						case FLOAT8_OID:
+							sum2 = (float8) DatumGetFloat8(fdw_private->agg_values[0][vardev_mapping]);
+							break;
+						case BOOL_OID:
+						case TIMESTAMP_OID:
+						case DATE_OID:
+						default:
+							break;
+						}
+						right = sum2;
+					    left = pow(sum, 2) / cnt;
 						result = (float8) (right - left) / (float8) (cnt - 1);
-					}
-					else if (clist_parent->avgflag == 3)
-					{
-						int			vardev_mapping = list_nth_int(clist->mapping, 2);
-						float8		sum = (float8) fdw_private->agg_values[0][sum_mapping];
-						float8		cnt = (float8) fdw_private->agg_values[0][count_mapping];
-						float8		sum2 = (float8) fdw_private->agg_values[0][vardev_mapping];
-						float		var = 0.0;
-						float8		right = sum2;
-						float8		left = pow(sum, 2) / cnt;
+						if(clist_parent->avgflag == 3){
+							float		var = 0.0;
 
-						var = (float8) (right - left) / (float8) (cnt - 1);
-						result = sqrt(var);
+							var = (float8) (right - left) / (float8) (cnt - 1);
+							result = sqrt(var);
+						}
 					}
-					ret_agg_values[target_column] = DirectFunctionCall1(float8_numeric, Float8GetDatumFast(result));
+
+					if(agg_value_type[sum_mapping]== FLOAT8_OID|| agg_value_type[sum_mapping]==FLOAT_OID){
+						ret_agg_values[target_column] = Float8GetDatumFast(result);
+					}
+					else{
+						ret_agg_values[target_column] = DirectFunctionCall1(float8_numeric, Float8GetDatumFast(result));
+					}
 					target_column++;
 				}
 			}
