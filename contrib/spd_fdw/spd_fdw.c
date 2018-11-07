@@ -2894,6 +2894,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			fsplan->fdw_private = ((ForeignScan *) list_nth(fdw_private->dummy_plan_list, node_incr))->fdw_private;
 			fssThrdInfo[node_incr].fsstate->ss.ps.state = CreateExecutorState();
 			fssThrdInfo[node_incr].fsstate->ss.ps.state->es_top_eflags = eflags;
+			fsplan->scan.scanrelid=0;
 
 			/* This should be a new RTE list. coming from dummy rtable */
 			fssThrdInfo[node_incr].fsstate->ss.ps.state->es_range_table =
@@ -2946,8 +2947,15 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 							   sizeof(FormData_pg_attribute));
 #if 1
 						if(attrs[i]->atttypid <= BIGINT_OID || attrs[i]->atttypid ==NUMERIC_OID){
+							//attrs[i - 1]->atttypid = BIGINT_OID;
 							attrs[i - 1]->atttypid = BIGINT_OID;
 							attrs[i]->atttypid = BIGINT_OID;
+							attrs[i-1]->attalign = 'd';
+							attrs[i]->attalign = 'd';
+							attrs[i-1]->attlen = 8;
+							attrs[i]->attlen = 8;
+							attrs[i-1]->attbyval=1;
+							attrs[i]->attbyval=1;
 						}
 						else{
 							attrs[i - 1]->atttypid = INT_OID;
