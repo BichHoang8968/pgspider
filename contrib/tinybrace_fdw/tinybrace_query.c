@@ -152,11 +152,11 @@ tinybrace_convert_to_pg(Oid pgtyp, int pgtypmod, TBC_DATA *column)
 		 * into equivalent binary string.
 		 */
 	case BYTEAOID:{
-      		int blobsize = column->value;
-			value_datum = (Datum) palloc0(blobsize + VARHDRSZ);
-			memcpy(VARDATA(value_datum), column->value + INTVAL_LEN, blobsize);
-			SET_VARSIZE(value_datum, blobsize + VARHDRSZ);
-			return PointerGetDatum(value_datum);
+		int blobsize = *(int*)column->value;
+		value_datum = (Datum) palloc0(blobsize + VARHDRSZ);
+		memcpy(VARDATA(value_datum), column->value + INTVAL_LEN, blobsize);
+		SET_VARSIZE(value_datum, blobsize + VARHDRSZ);
+		return PointerGetDatum(value_datum);
 	}
 	case VARBITOID:
 	case BITOID:
