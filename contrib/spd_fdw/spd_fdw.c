@@ -170,7 +170,7 @@ static void spd_EndForeignModify(EState *estate,
 
 static TargetEntry *spd_tlist_member(Expr *node, List *targetlist, int *target_num);
 
-static List *spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **mapping_orig_tlist, List **temp_tlist, int *child_uninum);
+static List *spd_add_to_flat_tlist(List *tlist, Index sgref, List *exprs, List **mapping_tlist, List **mapping_orig_tlist, List **temp_tlist, int *child_uninum);
 
 enum SpdFdwScanPrivateIndex
 {
@@ -379,7 +379,7 @@ spd_tlist_member(Expr *node, List *targetlist, int *target_num)
  */
 
 static List *
-spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **mapping_orig_tlist, List **temp_tlist, int *child_uninum)
+spd_add_to_flat_tlist(List *tlist, Index sgref, List *exprs, List **mapping_tlist, List **mapping_orig_tlist, List **temp_tlist, int *child_uninum)
 {
 	int			next_resno = list_length(tlist) + 1;
 	int			next_resno_temp = list_length(*temp_tlist) + 1;
@@ -434,8 +434,8 @@ spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **map
 									  next_resno++,
 									  NULL,
 									  false);
+				tle->ressortgroupref = sgref;
 				tlist = lappend(tlist, tle);
-
 			}
 			ctlist_orig->mapping = list_make1_int(target_num);
 			ctlist_orig->mapping = lappend_int(ctlist_orig->mapping, target_num);
@@ -460,6 +460,7 @@ spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **map
 										   next_resno_temp++,
 										   NULL,
 										   false);
+				tle_temp->ressortgroupref = sgref;
 				*temp_tlist = lappend(*temp_tlist, tle_temp);
 				*child_uninum += 1;
 			}
@@ -471,6 +472,7 @@ spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **map
 										   next_resno_temp++,
 										   NULL,
 										   false);
+				tle_temp->ressortgroupref = sgref;
 				*temp_tlist = lappend(*temp_tlist, tle_temp);
 				*child_uninum += 1;
 			}
@@ -531,6 +533,7 @@ spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **map
 											   next_resno_temp++,
 											   NULL,
 											   false);
+					tle_temp->ressortgroupref = sgref;
 					*temp_tlist = lappend(*temp_tlist, tle_temp);
 					*child_uninum += 1;
 				}
@@ -551,6 +554,7 @@ spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **map
 									  next_resno++,
 									  NULL,
 									  false);
+				tle->ressortgroupref = sgref;
 				tlist = lappend(tlist, tle);
 			}
 			/* append original target list */
@@ -566,6 +570,7 @@ spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **map
 										   next_resno_temp++,
 										   NULL,
 										   false);
+				tle_temp->ressortgroupref = sgref;
 				*temp_tlist = lappend(*temp_tlist, tle_temp);
 				*child_uninum += 1;
 			}
@@ -1777,10 +1782,14 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			dummy_root->parse->hasAggs = true;
 			/* Call below FDW to check it is OK to pushdown or not. */
 			/* refer relnode.c fetch_upper_rel() */
+			//dummy_output_rel = copyObject((PlannerInfo *) output_rel);
+			//dummy_output_rel = makeNode(output_rel);
+			
 			dummy_output_rel = makeNode(RelOptInfo);
 			dummy_output_rel->reloptkind = RELOPT_UPPER_REL;
 			dummy_output_rel->relids = bms_copy(entry->relids);
 			dummy_output_rel->reltarget = create_empty_pathtarget();
+			
 			dummy_root->upper_rels[UPPERREL_GROUP_AGG] =
 				lappend(dummy_root->upper_rels[UPPERREL_GROUP_AGG],
 						dummy_output_rel);
@@ -1926,15 +1935,21 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			{
 				fdwroutine->GetForeignUpperPaths(
 												 dummy_root,
-												 stage, entry, dummy_output_rel);
+//												 stage, entry, dummy_output_rel);
+												 stage, entry, output_rel);
 			}
+/*
 			if (dummy_output_rel->pathlist != NULL &&
 				dummy_output_rel->pathlist->length == input_rel->pathlist->length)
+*/
+			if (output_rel->pathlist != NULL &&
+				output_rel->pathlist->length != input_rel->pathlist->length)
 			{
 				elog(DEBUG1,"append if\n");
 				fdw_private->dummy_base_rel_list =
 					lappend(fdw_private->dummy_base_rel_list,
-							dummy_output_rel);
+//							dummy_output_rel);
+							output_rel);
 				fdw_private->pPseudoAggPushList = lappend_oid(fdw_private->pPseudoAggPushList, oid_server);
 			}
 			else
@@ -2102,6 +2117,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 		Index		sgref = get_pathtarget_sortgroupref(grouping_target, i);
 		ListCell   *l;
 
+		elog(DEBUG5,"sgref = %d",sgref);
         /* Check whether this expression is part of GROUP BY clause */
 		if (sgref && get_sortgroupref_clause_noerr(sgref, query->groupClause))
 		{
@@ -2112,7 +2128,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 			if (!is_foreign_expr(root, grouped_rel, expr))
 				return false;
 			/* Pushable, add to tlist */
-			tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum);
+			tlist = spd_add_to_flat_tlist(tlist, sgref, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum);
 		}
 		else
 		{
@@ -2120,7 +2136,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 			if (is_foreign_expr(root, grouped_rel, expr))
 			{
 				/* Pushable, add to tlist */
-				tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum);
+				tlist = spd_add_to_flat_tlist(tlist,sgref, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum);
 			}
 			else
 			{
@@ -2155,7 +2171,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 					Expr	   *expr = (Expr *) lfirst(l);
 
 					if (IsA(expr, Aggref))
-						tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum);
+						tlist = spd_add_to_flat_tlist(tlist, sgref, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum);
 				}
 			}
 		}
@@ -2944,7 +2960,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 					char	   *agg_command = target->resname;
 
 					attrs[i] = palloc(sizeof(FormData_pg_attribute));
-					memcpy(attrs[i], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[i],
+					memcpy(attrs[i], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[org_attrincr],
 						   sizeof(FormData_pg_attribute));
 					/*
 					 * Extend tuple desc when avg,var,stddev operation is
