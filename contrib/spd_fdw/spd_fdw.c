@@ -11,7 +11,7 @@
 #include "postgres.h"
 #include "c.h"
 #include "fmgr.h"
-
+#define NODE_COL
 
 #ifdef PG_MODULE_MAGIC
 PG_MODULE_MAGIC;
@@ -58,6 +58,9 @@ PG_MODULE_MAGIC;
 #include "utils/elog.h"
 #include "utils/selfuncs.h"
 #include "utils/numeric.h"
+#include "utils/hsearch.h"
+#include "utils/syscache.h"
+#include "utils/lsyscache.h"
 #include "parser/parsetree.h"
 #include "libpq-fe.h"
 #include "spd_fdw_defs.h"
@@ -107,6 +110,8 @@ PG_MODULE_MAGIC;
 #define DOUBLE_LENGTH 8
 
 #define POSTGRES_FDW_NAME "postgres_fdw"
+#define SPDFRONT_FDW_NAME "spdfront_fdw"
+#define COLNAME "colname"
 
 /* local function forward declarations */
 bool		spd_is_builtin(Oid objectId);
@@ -2595,8 +2600,32 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	ListCell   *oid_l;
 	ListCell   *alive_l;
 	List	   *child_tlist;
+	ListCell *lc;
+	List *push_scan_clauses = scan_clauses;
+	int colname_tlist_length=0;
+	TargetEntry *tle;
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
+
+	/* check column is Not Only "column_name"*/
+	foreach(lc, tlist)
+	{
+		tle = lfirst_node(TargetEntry, lc);
+		if (IsA(tle->expr, Var))
+		{
+			Var *var = (Var*)tle->expr;
+			RangeTblEntry *rte;
+			char *colname;
+			rte = planner_rt_fetch(var->varno, root);
+			colname = get_relid_attribute_name(rte->relid, var->varattno);
+			if(strcmp(colname,COLNAME)==0){
+				colname_tlist_length++;
+			}
+		}
+	}
+	if(tlist->length == colname_tlist_length){
+		elog(ERROR,"SELECT column name attribute ONLY");
+	}
 
 	spd_spi_exec_datasouce_num(foreigntableid, &nums, &oid);
 
@@ -2621,6 +2650,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	fdw_private->tList = list_copy(tlist);
 
 	elog(DEBUG1, "fdw_private->dummy_base_rel_list->length = %d",fdw_private->dummy_base_rel_list->length);
+
 	/* Create "GROUP BY" string */
 	if (root->parse->groupClause != NULL)
 	{
@@ -2637,9 +2667,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			if (!first)
 				appendStringInfoString(fdw_private->groupby_string, ", ");
 			first = false;
-
 			appendStringInfoString(fdw_private->groupby_string, "(");
-
 			colname = psprintf("col%d", fdw_private->child_uninum - 1);
 			appendStringInfoString(fdw_private->groupby_string, colname);
 			appendStringInfoString(fdw_private->groupby_string, ")");
@@ -2715,13 +2743,54 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			{
 				tmp_path = (Path *) best_path;
 			}
+			/*
+			 * check scan_clauses include "colname"
+			 * If include "colname" in WHERE clauses, then NOT pushdown all caluses.
+			 */
+			foreach(lc, scan_clauses)
+			{
+				RestrictInfo *clause = (RestrictInfo *)lfirst(lc);
+				Expr	   *expr = (Expr *) clause->clause;
+				ListCell   *arg;
+				if(nodeTag(expr) == T_OpExpr){
+					OpExpr *node = (OpExpr *)clause->clause;
+					/* Deparse left operand. */
+					arg = list_head(node->args);
+					Expr  *expr2 = (Expr *) lfirst(arg);
+					if(nodeTag(expr2) == T_Var){
+						Var *var =(Var*)expr2;
+						char *colname;
+						RangeTblEntry *rte;
+						rte = planner_rt_fetch(var->varno, root);
+						colname = get_relid_attribute_name(rte->relid, var->varattno);
+						if(strcmp(colname,COLNAME)==0){
+							elog(DEBUG1,"find colname");
+							push_scan_clauses = NULL;
+						}
+					}
+					/* Deparse right operand */
+					arg = list_tail(node->args);
+					expr2 = (Expr *) lfirst(arg);
+					if(nodeTag(expr2) == T_Var){
+						Var *var =(Var*)expr2;
+						char *colname;
+						RangeTblEntry *rte;
+						rte = planner_rt_fetch(var->varno, root);
+						colname = get_relid_attribute_name(rte->relid, var->varattno);
+						if(strcmp(colname,COLNAME)==0){
+							elog(DEBUG1,"find colname");
+							push_scan_clauses = NULL;
+						}
+					}
+				}
+			}
 			temp_obj = fdwroutine->GetForeignPlan(
 												  (PlannerInfo *) root_l->data.ptr_value,
 												  (RelOptInfo *) base_l->data.ptr_value,
 												  DatumGetObjectId(oid[i]),
 												  (ForeignPath *) tmp_path,
 												  temptlist,
-												  scan_clauses,
+												  push_scan_clauses,
 												  outer_plan);
 		}
 		PG_CATCH();
@@ -2842,7 +2911,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	fdw_private = (SpdFdwPrivate *)
 		((Value *) list_nth(fsplan->fdw_private, FdwScanPrivateSelectSql))->val.ival;
 	/* get child nodes server oid */
-
 	spd_spi_exec_child_relname(RelationGetRelationName(node->ss.ss_currentRelation), fdw_private, &oid);
 
     /* Type of Query to be used for computing intermediate results */
@@ -2892,9 +2960,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			{
 				private_incr++;
 				continue;
-			}
-			else
-			{
 			}
 			server_oid = spd_spi_exec_datasource_oid(DatumGetObjectId(oid[private_incr]));
 			if (getResultFlag)
@@ -3412,6 +3477,8 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 			childtlist *clist_parent = (childtlist *) list_nth(fdw_private->mapping_orig_tlist, i);
 
 			if (clist_parent->avgflag != 0)
+
+				
 			{
 				int			mapping_parent = list_nth_int(clist_parent->mapping, 0);
 
@@ -3567,7 +3634,7 @@ spd_spi_select_tablecp(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPriva
 	//oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	ret_agg_values = (Datum *) palloc0(slot->tts_tupleDescriptor->natts * sizeof(Datum));
 	//MemoryContextSwitchTo(oldcontext);
-	
+   
 	if (fdw_private->agg_num < fdw_private->agg_tuples)
 	{
 		for (i = 0; i < fdw_private->mapping_tlist->length; i++)
@@ -3662,7 +3729,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
 	bool		icheck = false;
 	TupleTableSlot *slot = NULL,
-			   *tempSlot = NULL;
+			   *tempSlot;
 	ForeignAggInfo *agginfodata;
 	SpdFdwPrivate *fdw_private;
 	List	   *mapping_tlist;
@@ -3673,12 +3740,9 @@ spd_IterateForeignScan(ForeignScanState *node)
 	MemoryContext oldcontext;
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
-	//oldcontext = MemoryContextSwitchTo(TopMemoryContext);
 	fdw_private = (SpdFdwPrivate *)
 		((Value *) list_nth(fsplan->fdw_private, FdwScanPrivateSelectSql))->val.ival;
 
-
-	//fdw_private = fssThrdInfo->private;
 	if (fdw_private == NULL)
 	{
 		return NULL;
@@ -3695,8 +3759,6 @@ spd_IterateForeignScan(ForeignScanState *node)
 		elog(ERROR, "can't find node in iterateforeignscan");
 	}
 	nThreads = fdw_private->dummy_base_rel_list->length;
-	//nThreads = fdw_private->dummy_root_list->length;
-	//nThreads = fdw_private->thrdsCreated;
 	elog(DEBUG1, "nthreads = %d %x %s %d %d\n",nThreads, fdw_private,CurrentMemoryContext->name, fsplan,FdwScanPrivateSelectSql);
 	agginfodata = palloc0(sizeof(ForeignAggInfo) * nThreads);
 
@@ -3705,11 +3767,8 @@ spd_IterateForeignScan(ForeignScanState *node)
 	{
 		if (!fdw_private->agg_query_ft)
 		{
-			//oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 			fin_flag = palloc0(sizeof(int) * nThreads);
-			//MemoryContextSwitchTo(oldcontext);
 
-			//node->ss.ps.state->es_progressState->dest = (void *) ((QueryDesc *) node->ss.ps.spdAggQry)->dest;
 			strcpy(agginfodata[0].transquery, ((QueryDesc *) node->ss.ps.spdAggQry)->sourceText);
 			appendStringInfo(create_sql, "CREATE TEMP TABLE __spd__temptable(");
 			colid = 0;
@@ -3913,10 +3972,92 @@ spd_IterateForeignScan(ForeignScanState *node)
 		{
 			return NULL;
 		}
+#ifdef NODE_COL
+		TupleTableSlot *node_slot = NULL;
+		char *value;
+		Datum value_datum = 0;
+		Datum valueDatum = 0;
+		HeapTuple	temp_tuple;
+		regproc		typeinput;
+		int			typemod;
+	    TupleTableSlot *tslot = node->ss.ss_ScanTupleSlot;
+		HeapTuple	newtuple;
+		Datum	   *values;
+		bool	   *nulls;
+		bool       *replaces;
+		ForeignServer *fs = GetForeignServer(fssThrdInfo[count - 1].serverId);
+		ForeignDataWrapper *fdw = GetForeignDataWrapper(fs->fdwid);
+
+		node_slot = fssThrdInfo[count - 1].tuple;
+
+		/* Check tuple's column type */
+		temp_tuple = SearchSysCache1(TYPEOID, ObjectIdGetDatum(node_slot->tts_tupleDescriptor->attrs[1]->atttypid));
+		if (!HeapTupleIsValid(temp_tuple))
+			elog(ERROR, "cache lookup failed for type%u", node_slot->tts_tupleDescriptor->attrs[1]->atttypid);
+		typeinput = ((Form_pg_type) GETSTRUCT(temp_tuple))->typinput;
+		typemod = ((Form_pg_type) GETSTRUCT(temp_tuple))->typtypmod;
+		ReleaseSysCache(temp_tuple);
+
+		/* Initialize new tuple buffer */
+		value = palloc0(sizeof(char) * BUFFERSIZE);
+		values = palloc(sizeof(Datum) * node_slot->tts_tupleDescriptor->natts);
+		nulls = palloc(sizeof(bool) * node_slot->tts_tupleDescriptor->natts);
+	    replaces = palloc(sizeof(bool) * node_slot->tts_tupleDescriptor->natts);
+
+		slot = node->ss.ss_ScanTupleSlot;
+
+		MemSet(values, 0, sizeof(values));
+		MemSet(value, 0, sizeof(value));
+		MemSet(nulls, false, sizeof(nulls));
+		MemSet(replaces, false, sizeof(replaces));
+
+		slot_getallattrs(node_slot);
+		for(i=0;i < node_slot->tts_tupleDescriptor->natts;i++){
+			/*
+			 * Check column include __column_name attribute is exist or not.
+			 * If it is include, then create column name attribute.
+			 */
+			if(strcmp(node_slot->tts_tupleDescriptor->attrs[i]->attname.data,COLNAME)==0){
+				bool isnull;
+				/* Check child node is pgspider or not */
+				if(strcmp(fdw->fdwname, SPDFRONT_FDW_NAME) == 0 && node_slot->tts_isnull[i] == FALSE){
+					Datum col = slot_getattr(node_slot, i+1, &isnull);
+					char* s;
+					if(isnull == TRUE){
+						elog(ERROR,"PGSpider column name error. Child node Name is nothing.");
+					}
+					s = TextDatumGetCString(col);
+					/* if child node is pgspider, concatinate child node name and child child node name */
+				    value = psprintf("/%s%s", fs->servername, s);
+					elog(DEBUG1,"value server = %s s = %s %d",value,s,strlen(s));
+				}
+				else {
+					/* child node is NOT pgspider, create column name attribute */
+					sprintf(value,"/%s/",fs->servername);
+					elog(DEBUG1,"fs server = %s",fs->servername);
+				}
+				valueDatum = CStringGetDatum((char*)value);
+				value_datum = OidFunctionCall3(typeinput,
+									           valueDatum, ObjectIdGetDatum(InvalidOid),
+											   Int32GetDatum(typemod));
+				replaces[i] = true;
+				nulls[i] = false;
+				values[i] = value_datum;
+			}
+		}
+		newtuple = heap_modify_tuple(node_slot->tts_tuple, node_slot->tts_tupleDescriptor,
+									 values, nulls, replaces);
+		node_slot->tts_tuple = newtuple;
+	COPY:
+		ExecCopySlot(slot, node_slot);
+		/* clear tuple buffer */
+		fssThrdInfo[count - 1].tuple = NULL;
+#else
 		tempSlot = fssThrdInfo[count - 1].tuple;
 		fssThrdInfo[count - 1].tuple = NULL;
 		slot = node->ss.ss_ScanTupleSlot;
 		ExecCopySlot(slot, tempSlot);
+#endif
 	}
 	MemoryContextSwitchTo(oldcontext);
 	return slot;
