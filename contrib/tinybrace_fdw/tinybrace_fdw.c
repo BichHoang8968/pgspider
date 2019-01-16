@@ -2025,6 +2025,24 @@ static void tinybraceTranslateType(StringInfo str, char *typname)
 
 	pfree(type);
 }
+
+void
+tinybrace_deparse_string_literal(StringInfo buf, const char *val)
+{
+	const char *valptr;
+
+	appendStringInfoChar(buf, '\'');
+	for (valptr = val; *valptr; valptr++)
+	{
+		char		ch = *valptr;
+
+		if (SQL_STR_DOUBLE(ch, true))
+			appendStringInfoChar(buf, ch);
+		appendStringInfoChar(buf, ch);
+	}
+	appendStringInfoChar(buf, '\'');
+}
+
 /*
  * Import a foreign schema (9.5+)
  */
@@ -2167,11 +2185,14 @@ tinybraceImportForeignSchema(ImportForeignSchemaStmt *stmt,
 			i++;
 		}
 		appendStringInfo(&cft_stmt, "\n) SERVER %s\n"
-						 "OPTIONS (table_name '%s')",
-						 quote_identifier(stmt->server_name),
-						 quote_identifier(tbl_name));
+						 "OPTIONS (table_name ",
+						 quote_identifier(stmt->server_name)
+						 );
+		tinybrace_deparse_string_literal(&cft_stmt,tbl_name);
+		appendStringInfoString(&cft_stmt, ");");
 		commands = lappend(commands,pstrdup(cft_stmt.data));
     	/* free per-table allocated data */
+		elog(DEBUG1,"%s",cft_stmt.data);
         pfree(query_cols);
 		pfree(cft_stmt.data);
 		rc = TBC_free_result(conn->connect,qHandle_tbl_schema, &result_tbl_schema);
