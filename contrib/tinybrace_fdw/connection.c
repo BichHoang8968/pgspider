@@ -93,7 +93,7 @@ tinybrace_get_connection(ForeignServer *server, UserMapping *user, tinybrace_opt
 		ConnectionHash = hash_create("tinybrace_fdw connections", 8,
 									&ctl,
 									HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
-		//RegisterXactCallback(tinybracefdw_xact_callback, NULL);
+		RegisterXactCallback(tinybracefdw_xact_callback, NULL);
 	}
 
 	/* Set flag that we did GetConnection during the current transaction */
@@ -214,6 +214,7 @@ do_sql_command(TBC_CLIENT_HANDLE *conn, const char *sql)
 	TBC_RTNCODE rtn;
 
 	rtn = TBC_query(conn->connect,sql,&qHdl);
+	elog(DEBUG1,"SQL is %s",sql);
 	if (rtn != TBC_OK){
 		elog(WARNING,"TinyBrace failed to execute %s: rtn = %d",sql,rtn);
 		return false;
@@ -285,7 +286,7 @@ tinybracefdw_xact_callback(XactEvent event, void *arg)
 			{
 				case XACT_EVENT_PARALLEL_PRE_COMMIT:
 				case XACT_EVENT_PRE_COMMIT:
-					do_sql_command(entry->conn, "COMMIT TRANSACTION");
+					do_sql_command(entry->conn, "COMMIT");
 					break;
 				case XACT_EVENT_PRE_PREPARE:
 					/*

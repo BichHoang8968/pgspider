@@ -715,9 +715,9 @@ tinybrace_deparse_delete(StringInfo buf, PlannerInfo *root,
 	foreach(lc, name)
 	{
 		if (i == 0)
-			appendStringInfo(buf, " WHERE %s = ?", (char*)lfirst(lc));
+			appendStringInfo(buf, " WHERE \"%s\" = ?", (char*)lfirst(lc));
 		else
-			appendStringInfo(buf, " AND %s = ?", (char*)lfirst(lc));
+			appendStringInfo(buf, " AND \"%s\" = ?", (char*)lfirst(lc));
 
 		i++;
 	}

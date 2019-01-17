@@ -1591,7 +1591,7 @@ tinybracePlanForeignModify(PlannerInfo *root,
 			tinybrace_deparse_update(&sql, root, resultRelation, rel, targetAttrs, condAttr);
 			break;
 		case CMD_DELETE:
-		  tinybrace_deparse_delete(&sql, root, resultRelation, rel, condAttr);
+			tinybrace_deparse_delete(&sql, root, resultRelation, rel, condAttr);
 			break;
 		default:
 			elog(ERROR, "unexpected operation: %d", (int) operation);
@@ -1764,7 +1764,7 @@ static void bindJunkColumnValue(TinyBraceFdwExecState *fmstate,
 {
 	int i;
 	Datum value;
-		Oid               typeoid;
+	Oid               typeoid;
 	/* Bind where condition using junk column */
 	for (i = 0; i < slot->tts_tupleDescriptor->natts; ++i)
 	{
@@ -1974,55 +1974,72 @@ tinybraceEndForeignModify(EState *estate, ResultRelInfo *resultRelInfo)
 	}
 }
 
-static void tinybraceTranslateType(StringInfo str, char *typname)
+static void tinybraceTranslateType(StringInfo str, char *type)
 {
-	char *type;
+	int			i;
 
 	/*
-	 * get lowercase typname. We use C collation since the original type name
-	 * should not contain exotic character.
+	 * type conversion based on SQLite affiniy
+	 * https://www.sqlite.org/datatype3.html
 	 */
-	type = str_tolower(typname, strlen(typname), C_COLLATION_OID);
+	static const char *affinity[][2] = {
+		{"int", "bigint"},
+		{"char", "text"},
+		{"clob", "text"},
+		{"text", "text"},
+		{"blob", "bytea"},
+		{"real", "double precision"},
+		{"floa", "double precision"},
+		{"doub", "double precision"},
+	{NULL, NULL}};
 
-	/* try some easy conversion, from https://www.sqlite.org/datatype3.html */
-	if (strcmp(type, "tinyint") == 0)
-		appendStringInfoString(str, "smallint");
+	static const char *pg_type[] = {
+		"time",
+		"date",
+		"bit",					/* bit(n) and bit varying(n) */
+		"boolean",
+		NULL
+	};
 
-	else if (strcmp(type, "mediumint") == 0)
-		appendStringInfoString(str, "integer");
+	if (type == NULL || type[0] == '\0')
+	{
+		/* If no type, use blob affinity */
+		appendStringInfoString(str, "bytea");
+		return;
+	}
 
-	else if (strcmp(type, "unsigned big int") == 0)
-		appendStringInfoString(str, "bigint");
+	type = str_tolower(type, strlen(type), C_COLLATION_OID);
 
-	else if (strcmp(type, "double") == 0)
-		appendStringInfoString(str, "double precision");
+	for (i = 0; affinity[i][0] != NULL; i++)
+	{
+		if (strstr(type, affinity[i][0]) != 0)
+		{
+			appendStringInfoString(str, affinity[i][1]);
+			pfree(type);
+			return;
+		}
+	}
 
-	else if (strcmp(type, "datetime") == 0)
+	if (strcmp(type, "datetime") == 0)
+	{
 		appendStringInfoString(str, "timestamp");
+		pfree(type);
+		return;
+	}
 
-	else if (strcmp(type, "nvarchar text") == 0)
-		appendStringInfoString(str, "text");
+	for (i = 0; pg_type[i] != NULL; i++)
+	{
+		if (strncmp(type, pg_type[i], strlen(pg_type[i])) == 0)
+		{
+			/* Pass type to PostgreSQL as it is */
+			appendStringInfoString(str, type);
+			pfree(type);
+			return;
+		}
+	}
 
-	else if (strcmp(type, "longvarchar") == 0)
-	     appendStringInfoString(str, "text");
-
-	else if (strncmp(type, "text", 4) == 0)
-	     appendStringInfoString(str, "text");
-
-	else if (strcmp(type, "blob") == 0)
-	     appendStringInfoString(str, "bytea");
-
-	else if (strcmp(type, "integer") == 0)
-	     /* Type "integer" appears dynamically sized between 1 and 8
-	      * bytes.  Need to assume worst case. */
-	     appendStringInfoString(str, "bigint");
-
-	/* XXX try harder handling sqlite datatype */
-
-	/* if original type is compatible, return lowercase value */
-	else
-		appendStringInfoString(str, type);
-
+	/* decimal for numeric affinity */
+	appendStringInfoString(str, "decimal");
 	pfree(type);
 }
 
@@ -2124,7 +2141,7 @@ tinybraceImportForeignSchema(ImportForeignSchemaStmt *stmt,
 		}
 		appendStringInfoChar(&query_tbl, ')');
 	}
-	rc = TBC_query(conn->connect ,query_tbl.data,&qHandle); 
+	rc = TBC_query(conn->connect ,query_tbl.data,&qHandle);
 	if(rc != TBC_OK){
 		elog(ERROR,"Tinybrace query error : %s",query_tbl.data);
 	}
@@ -2161,11 +2178,13 @@ tinybraceImportForeignSchema(ImportForeignSchemaStmt *stmt,
 			char   *typ_name;
 			bool	not_null;
 			char   *default_val;
+		    char *primary_key;
 
 			col_name = result_tbl_schema.arData[j][1].value;
 			typ_name = result_tbl_schema.arData[j][2].value;
 			not_null = (result_tbl_schema.arData[j][3].value == 1);
 			default_val = result_tbl_schema.arData[j][4].value;
+			primary_key = result_tbl_schema.arData[j][5].value;
 
 			if (i != 0)
 				appendStringInfo(&cft_stmt, ",\n");
@@ -2176,6 +2195,10 @@ tinybraceImportForeignSchema(ImportForeignSchemaStmt *stmt,
 
 			/* translated datatype */
 			tinybraceTranslateType(&cft_stmt, typ_name);
+
+			/* part of the primary key */
+			if (primary_key[0]==1)
+				appendStringInfo(&cft_stmt, " OPTIONS (key 'true')");
 
 			if (not_null && import_not_null)
 				appendStringInfo(&cft_stmt, " NOT NULL");
