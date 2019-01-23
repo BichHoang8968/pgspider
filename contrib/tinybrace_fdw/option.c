@@ -68,7 +68,7 @@ static struct TinyBraceFdwOption valid_options[] =
 	{ "password",       UserMappingRelationId },
 	{ "dbname",         ForeignServerRelationId },
 	{ "table_name",     ForeignTableRelationId },
-	{ "column_name",     ForeignTableRelationId},
+	{ "column_name",    AttributeRelationId},
 	{ "secure_auth",    ForeignServerRelationId },
 	{ "max_blob_size",  ForeignTableRelationId },
 	{ "use_remote_estimate",    ForeignServerRelationId },
