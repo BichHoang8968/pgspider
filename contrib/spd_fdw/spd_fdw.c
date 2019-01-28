@@ -1852,18 +1852,8 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				copy_pathtarget(spd_root->upper_targets[UPPERREL_WINDOW]);
 			dummy_root->upper_targets[UPPERREL_FINAL] =
 				copy_pathtarget(spd_root->upper_targets[UPPERREL_FINAL]);
-/*
-			MemoryContextSwitchTo(TopTransactionContext);
-			dummy_root->upper_targets[UPPERREL_GROUP_AGG] =
-				copy_pathtarget(root->upper_targets[UPPERREL_GROUP_AGG]);
-			dummy_root->upper_targets[UPPERREL_WINDOW] =
-				copy_pathtarget(root->upper_targets[UPPERREL_WINDOW]);
-			dummy_root->upper_targets[UPPERREL_FINAL] =
-				copy_pathtarget(root->upper_targets[UPPERREL_FINAL]);
-*/
 			oldcontext = MemoryContextSwitchTo(MessageContext);
 
-//			foreach(lc, fdw_private->child_comp_tlist)
 			foreach(lc, root->upper_targets[UPPERREL_GROUP_AGG]->exprs)
 			{
 				Expr	   *expr = (Expr *) lfirst(lc);
@@ -1993,17 +1983,12 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 					dummy_root,
 					stage, entry,
 				  	dummy_output_rel);
-				//output_rel);
 				fdw_private->dummy_base_rel_list =
 					lappend(fdw_private->dummy_base_rel_list,
 							output_rel);
 
-					grouped_root_local = dummy_root;
-					grouped_rel_local = dummy_output_rel;
-/*
-					grouped_root_local = dummy_root;
-					grouped_rel_local = output_rel;
-*/
+				grouped_root_local = dummy_root;
+				grouped_rel_local = dummy_output_rel;
 				fdw_private->pPseudoAggPushList = lappend_oid(fdw_private->pPseudoAggPushList, oid_server);
 			}
 			else
@@ -2024,7 +2009,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 													  query->groupClause, NULL, NULL,
 													  1);
 				fdw_private->dummy_base_rel_list = lappend(fdw_private->dummy_base_rel_list, entry);
-				//fdw_private->dummy_base_rel_list = lappend(fdw_private->dummy_base_rel_list, dummy_output_rel);
 				fdw_private->pPseudoAggList = lappend_oid(fdw_private->pPseudoAggList, oid_server);
 			}
 			i++;
@@ -2584,11 +2568,8 @@ spd_createPushDownPlan(List *tlist, bool *agg_query, SpdFdwPrivate * fdw_private
 	foreach(lc, dummy_tlist)
 	{
 		tle = lfirst_node(TargetEntry, lc);
-//		if (IsA(tle->expr, Aggref))
-//		{
-			aggref = (Aggref *) tle->expr;
-			spd_expression_tree_walker((Node *) aggref, 1);
-//		}
+		aggref = (Aggref *) tle->expr;
+		spd_expression_tree_walker((Node *) aggref, 1);
 	}
 	return dummy_tlist;
 }
@@ -2900,7 +2881,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			/* Create aggregation plan with foreign table scan. */
 			fdw_private->pAgg[i] = make_agg(
 				child_tlist,
-				//fdw_private->child_comp_tlist,
 				NULL,
 				aggpath->aggstrategy,
 				aggpath->aggsplit,
@@ -3518,12 +3498,6 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 								break;
 							case FLOAT8_OID:
 								temp = DatumGetFloat8(SPI_getbinval(SPI_tuptable->vals[k],SPI_tuptable->tupdesc,colid + 1,&isnull));
-    							/*
-								  fdw_private->agg_values[k][colid] = Float8GetDatum(DatumGetFloat8(SPI_getbinval(SPI_tuptable->vals[k],
-																												SPI_tuptable->tupdesc,
-																												colid + 1,
-																												&isnull)));
-								*/
 								fdw_private->agg_values[k][colid] = Float8GetDatum(temp);
 								break;
 							case BOOL_OID:
@@ -3822,8 +3796,6 @@ spd_IterateForeignScan(ForeignScanState *node)
 		{
 			fin_flag = palloc0(sizeof(int) * nThreads);
 
-			//node->ss.ps.state->es_progressState->dest = (void *) ((QueryDesc *) node->ss.ps.spdAggQry)->dest;
-			//strcpy(agginfodata[0].transquery, ((QueryDesc *) node->ss.ps.spdAggQry)->sourceText);
 			appendStringInfo(create_sql, "CREATE TEMP TABLE __spd__temptable(");
 			colid = 0;
 			for (i = 0; i < mapping_tlist->length; i++)
