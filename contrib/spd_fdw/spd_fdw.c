@@ -255,7 +255,6 @@ Oid			tempoid;
 pthread_mutex_t scan_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t error_mutex = PTHREAD_MUTEX_INITIALIZER;
 AggPath    *aggpath;
-bool		useFlag;
 List	   *baserestrictinfo;
 PlannerInfo *grouped_root_local;
 RelOptInfo *grouped_rel_local;
@@ -1301,7 +1300,6 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Datum *oid, int oid_
 			 * basestrictinfo)
 			 *
 			 */
-			useFlag = false;
 			foreach(lc, entry_baserel->baserestrictinfo)
 			{
 				RestrictInfo *clause = (RestrictInfo *) lfirst(lc);
@@ -1328,7 +1326,6 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Datum *oid, int oid_
 						{
 							elog(DEBUG1, "find colname");
 							entry_baserel->baserestrictinfo = NULL;
-							useFlag = true;
 						}
 					}
 					/* Deparse right operand */
@@ -1346,7 +1343,6 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Datum *oid, int oid_
 						{
 							elog(DEBUG1, "find colname");
 							entry_baserel->baserestrictinfo = NULL;
-							useFlag = true;
 						}
 					}
 				}
@@ -1981,7 +1977,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs =
 					lappend(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs, expr);
 			}
-			if (useFlag == false && fdwroutine->GetForeignUpperPaths != NULL)
+			if (fdwroutine->GetForeignUpperPaths != NULL)
 			{
 				fdwroutine->GetForeignUpperPaths(
 												 dummy_root,
