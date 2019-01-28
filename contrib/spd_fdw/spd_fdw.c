@@ -26,14 +26,16 @@ PG_MODULE_MAGIC;
 #include <unistd.h>
 #include <pthread.h>
 #include <math.h>
+#include "access/htup_details.h"
 #include "access/transam.h"
-#include "utils/resowner.h"
+#include "catalog/pg_type.h"
 #include "foreign/fdwapi.h"
 #include "foreign/foreign.h"
 #include "executor/tuptable.h"
 #include "executor/execdesc.h"
 #include "executor/executor.h"
-#include "catalog/pg_type.h"
+#include "executor/spi.h"
+#include "executor/nodeAgg.h"
 #include "miscadmin.h"
 #include "nodes/execnodes.h"
 #include "nodes/nodes.h"
@@ -43,13 +45,13 @@ PG_MODULE_MAGIC;
 #include "nodes/makefuncs.h"
 #include "optimizer/pathnode.h"
 #include "optimizer/planmain.h"
+#include "optimizer/plancat.h"
 #include "optimizer/restrictinfo.h"
 #include "optimizer/var.h"
 #include "optimizer/tlist.h"
 #include "optimizer/cost.h"
 #include "optimizer/clauses.h"
-#include "executor/spi.h"
-#include "executor/nodeAgg.h"
+#include "parser/parsetree.h"
 #include "utils/memutils.h"
 #include "utils/palloc.h"
 #include "utils/lsyscache.h"
@@ -61,13 +63,11 @@ PG_MODULE_MAGIC;
 #include "utils/hsearch.h"
 #include "utils/syscache.h"
 #include "utils/lsyscache.h"
-#include "parser/parsetree.h"
+#include "utils/resowner.h"
 #include "libpq-fe.h"
 #include "spd_fdw_defs.h"
-#include "spd_fdw_aggregate.h"
 #include "funcapi.h"
 #include "postgres_fdw/postgres_fdw.h"
-#include "access/htup_details.h"
 
 #define BUFFERSIZE 1024
 #define QUERY_LENGTH 512
@@ -419,7 +419,6 @@ spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **map
 			tempCount->aggfnoid = COUNT_OID;
 			tempSum = copyObject(tempCount);
 			tempSum->aggfnoid = SUM_OID;
-			
 			if(tempCount->aggtype <= BIGINT_OID || tempSum->aggtype==NUMERIC_OID){
 				tempSum->aggtype = BIGINT_OID;
 				tempSum->aggtranstype = BIGINT_OID;
@@ -1103,8 +1102,6 @@ spd_ParseUrl(char *url_str, SpdFdwPrivate * fdw_private)
 
 	strcpy(url_option, url_str);
 
-	if (url_option == NULL)
-		return;
 	tp = strtok_r(url_option, "/", &next);
 	if (tp == NULL)
 	{
@@ -1994,12 +1991,10 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			else
 			{
 				/* Not Push Down case */
-				RelOptInfo *grouped_rel;
 				RelOptInfo *tmp = l->data.ptr_value;
 				struct Path *tmp_path;
 				Query	   *query = root->parse;
 
-				grouped_rel = fetch_upper_rel(root, UPPERREL_GROUP_AGG, NULL);
 				tmp_path = tmp->pathlist->head->data.ptr_value;
 				aggpath = (AggPath *) create_agg_path((PlannerInfo *) dummy_root,
 													  dummy_output_rel,
@@ -2158,7 +2153,6 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
         /* Check whether this expression is part of GROUP BY clause */
 		if (sgref && get_sortgroupref_clause_noerr(sgref, query->groupClause))
 		{
-			TargetEntry *tle;
 			/*
 			 * If any of the GROUP BY expression is not shippable we can not
 			 * push down aggregation to the foreign server.
@@ -2794,9 +2788,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			if(grouped_rel_local != NULL){
 				if (root->parse->groupClause != NULL)
 				{
-					Query	   *query = root->parse;
 					bool		first = true;
-					ListCell   *lc;
 					int i=0;
 					ListCell *ttemp;
 					fdw_private->groupby_string = makeStringInfo();
@@ -2828,14 +2820,12 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 					outer_plan);
 			}
 			else{
-			    temptlist = build_physical_tlist(root_l->data.ptr_value, base_l->data.ptr_value);
+			    temptlist = (List*)build_physical_tlist(root_l->data.ptr_value, base_l->data.ptr_value);
 				if (root->parse->groupClause != NULL)
 				{
-					Query	   *query = root->parse;
 					bool		first = true;
-					ListCell   *lc;
-					int i=0;
 					ListCell *ttemp;
+					int i = 0;
 					fdw_private->groupby_string = makeStringInfo();
 					appendStringInfo(fdw_private->groupby_string, "GROUP BY ");
 					foreach(ttemp, child_tlist)
@@ -3574,7 +3564,7 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 						float8		sum2 = 0.0;
 						float8		right = 0.0;
 						float8		left = 0.0;
-						switch (agg_value_type[sum_mapping])
+						switch (agg_value_type[vardev_mapping])
 						{
 						case NUMERIC_OID:
 						case INT_OID:
@@ -3766,6 +3756,21 @@ spd_IterateForeignScan(ForeignScanState *node)
 	int		   *fin_flag;
 	int			fin_count=0;
 	MemoryContext oldcontext;
+
+	TupleTableSlot *node_slot;
+	char *value;
+	Datum value_datum = 0;
+	Datum valueDatum = 0;
+	HeapTuple	temp_tuple;
+	regproc		typeinput;
+	int			typemod;
+	HeapTuple	newtuple;
+	Datum	   *values;
+	bool	   *nulls;
+	bool       *replaces;
+	ForeignServer *fs;
+	ForeignDataWrapper *fdw;
+	int tnum =0;
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	fdw_private = (SpdFdwPrivate *)
@@ -3999,21 +4004,8 @@ spd_IterateForeignScan(ForeignScanState *node)
 			return NULL;
 		}
 #ifdef NODE_COL
-		TupleTableSlot *node_slot;
-		char *value;
-		Datum value_datum = 0;
-		Datum valueDatum = 0;
-		HeapTuple	temp_tuple;
-		regproc		typeinput;
-		int			typemod;
-		HeapTuple	newtuple;
-		Datum	   *values;
-		bool	   *nulls;
-		bool       *replaces;
-		ForeignServer *fs = GetForeignServer(fssThrdInfo[count - 1].serverId);
-		ForeignDataWrapper *fdw = GetForeignDataWrapper(fs->fdwid);
-		int tnum;
-
+		fs = GetForeignServer(fssThrdInfo[count - 1].serverId);
+		fdw = GetForeignDataWrapper(fs->fdwid);
 		node_slot = fssThrdInfo[count - 1].tuple;
 
 		/* Initialize new tuple buffer */
@@ -4029,6 +4021,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 		MemSet(nulls, false, sizeof(nulls));
 		MemSet(replaces, false, sizeof(replaces));
 
+		tnum=0;
 		slot_getallattrs(node_slot);
 		for(i=0;i < node_slot->tts_tupleDescriptor->natts;i++){
 			/*
@@ -4171,6 +4164,9 @@ spd_EndForeignScan(ForeignScanState *node)
 
 	if (!node->ss.ps.state->agg_query)
 	{
+		if(node->spd_fsstate == NULL){
+			return;
+		}
 		fssThrdInfo = node->spd_fsstate;
 		fdw_private = (SpdFdwPrivate *) fssThrdInfo->private;
 		if (fdw_private == NULL)

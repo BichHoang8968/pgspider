@@ -1,7 +1,7 @@
 # contrib/spd_fdw/Makefile
 
 MODULE_big = spd_fdw
-OBJS = spd_fdw.o spd_option.o spd_fdw_aggregate.o spd_util.o $(WIN32RES)
+OBJS = spd_fdw.o spd_option.o spd_util.o $(WIN32RES)
 PGFILEDESC = "spd_fdw - foreign data wrapper for PostgreSQL"
 
 PG_CPPFLAGS = -I$(libpq_srcdir) -I../  -lpostgres_fdw -lpthread -lpq -lm -z defs -std=c99
