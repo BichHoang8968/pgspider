@@ -2313,7 +2313,10 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 	ListCell   *alive_l;
 	RelOptInfo *brel;
 	ListCell *lc;
-		
+
+	if(fdw_private == NULL){
+		elog(ERROR,"fdw_private is NULL");
+	}
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 
 	spd_spi_exec_datasouce_num(foreigntableid, &nums, &oid);
@@ -2608,6 +2611,9 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 
+	if(fdw_private == NULL){
+		elog(ERROR,"fdw_private is NULL");
+	}
 	/* check column is Not Only "column_name"*/
 	foreach(lc, tlist)
 	{
@@ -3077,7 +3083,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 				 * Extract attribute details. The tupledesc made here is just
 				 * transient.
 				 */
-				attrs = palloc(child_natts * sizeof(Form_pg_attribute *));
+				attrs = palloc(child_natts * sizeof(Form_pg_attribute));
 				org_attrincr = 0;
 				for (i = 0; i < fdw_private->child_uninum; i++)
 				{
@@ -4044,7 +4050,6 @@ spd_IterateForeignScan(ForeignScanState *node)
 				else {
 					/* child node is NOT pgspider, create column name attribute */
 					sprintf(value,"/%s/",fs->servername);
-					elog(DEBUG1,"fs server = %s",fs->servername);
 				}
 				/* Check tuple's column type */
 				temp_tuple = SearchSysCache1(TYPEOID, ObjectIdGetDatum(node_slot->tts_tupleDescriptor->attrs[i]->atttypid));
@@ -4177,10 +4182,6 @@ spd_EndForeignScan(ForeignScanState *node)
 		{
 			if (l->data.int_value == TRUE)
 				nThreads += 1;
-		}
-		if (!fssThrdInfo)
-		{
-			return;
 		}
 		for (node_incr = 0; node_incr < nThreads; node_incr++)
 		{
