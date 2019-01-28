@@ -11,7 +11,6 @@
 #include "postgres.h"
 #include "c.h"
 #include "fmgr.h"
-#define NODE_COL
 
 #ifdef PG_MODULE_MAGIC
 PG_MODULE_MAGIC;
@@ -105,9 +104,13 @@ PG_MODULE_MAGIC;
 #define TIMESTAMP_OID 1114
 #define OPEXPER_OID 514
 #define OPEXPER_FUNCID 141
-
-
+#define FLOAT8MUL_OID 594
+#define FLOAT8MUL_FUNID 216
 #define DOUBLE_LENGTH 8
+
+#define AVGFLAG 1
+#define VARFLAG 2
+#define DEVFLAG 3
 
 #define POSTGRES_FDW_NAME "postgres_fdw"
 #define SPDFRONT_FDW_NAME "spdfront_fdw"
@@ -450,15 +453,15 @@ spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **map
 			/* set avg flag */
 			if (aggref->aggfnoid >= AVG_MIN_OID && aggref->aggfnoid <= AVG_MAX_OID)
 			{
-				ctlist_orig->avgflag = 1;
+				ctlist_orig->avgflag = AVGFLAG;
 			}
 			else if (aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
 			{
-				ctlist_orig->avgflag = 2;
+				ctlist_orig->avgflag = VARFLAG;
 			}
 			else if (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID)
 			{
-				ctlist_orig->avgflag = 3;
+				ctlist_orig->avgflag = DEVFLAG;
 			}
 			/* count */
 			if (!spd_tlist_member((Expr *) tempCount, *temp_tlist, &target_num))
@@ -515,8 +518,8 @@ spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **map
 						tempVar->aggtranstype = FLOAT8_OID;
 						tempVar->aggfnoid = SUM_FLOAT8_OID;
 						opexpr->opresulttype = FLOAT8_OID;
-						opexpr->opno = 594;
-						opexpr->opfuncid = 216;
+						opexpr->opno = FLOAT8MUL_OID;
+						opexpr->opfuncid = FLOAT8MUL_FUNID;
 						opexpr->opresulttype = FLOAT8_OID;
 					}
 					opexpr->args = lappend(opexpr->args, opvar);
@@ -830,7 +833,6 @@ spd_ForeignScan_thread(void *arg)
 													 fssthrdInfo->threadMemoryContext);
 	PGcancel   *cancel;
 	char		errbuf[BUFFERSIZE];
-	int			lock_taken = 0;
 	int			errflag = 0;
 #ifdef MEASURE_TIME
 	struct timeval s,
@@ -859,12 +861,8 @@ spd_ForeignScan_thread(void *arg)
 	pthread_mutex_init((pthread_mutex_t *) &fssthrdInfo->nodeMutex, NULL);
 	PG_TRY();
 	{
-		pthread_mutex_lock(&fssthrdInfo->nodeMutex);
-		lock_taken = 1;
 		fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
 												  fssthrdInfo->eflags);
-		pthread_mutex_unlock(&fssthrdInfo->nodeMutex);
-		lock_taken = 0;
 #ifdef MEASURE_TIME
 		gettimeofday(&e, NULL);
 		elog(DEBUG1, "thread%d begin foreign scan time = %lf", fssthrdInfo->serverId, (e.tv_sec - s.tv_sec) + (e.tv_usec - s.tv_usec) * 1.0E-6);
@@ -874,11 +872,6 @@ spd_ForeignScan_thread(void *arg)
 	{
 		errflag = 1;
 		fssthrdInfo->state = SPD_FS_STATE_ERROR;
-		if (lock_taken)
-		{
-			pthread_mutex_unlock(&scan_mutex);
-			pthread_mutex_unlock(&fssthrdInfo->nodeMutex);
-		}
 	}
 	PG_END_TRY();
 
@@ -901,11 +894,7 @@ RESCAN:
 	if (fssthrdInfo->queryRescan &&
 		fssthrdInfo->state != SPD_FS_STATE_BEGIN)
 	{
-		pthread_mutex_lock(&scan_mutex);
-		lock_taken = 1;
 		fssthrdInfo->fdwroutine->ReScanForeignScan(fssthrdInfo->fsstate);
-		pthread_mutex_unlock(&scan_mutex);
-		lock_taken = 0;
 		fssthrdInfo->iFlag = true;
 		fssthrdInfo->tuple = NULL;
 		fssthrdInfo->queryRescan = false;
@@ -933,8 +922,6 @@ RESCAN:
 			{
 				TupleTableSlot *slot;
 
-				pthread_mutex_lock(&fssthrdInfo->nodeMutex);
-				pthread_mutex_lock(&scan_mutex);
 				if (list_member_oid(fdw_private->pPseudoAggList,
 									fssthrdInfo->serverId))
 				{
@@ -948,8 +935,6 @@ RESCAN:
 				{
 					slot = fssthrdInfo->fdwroutine->IterateForeignScan(fssthrdInfo->fsstate);
 				}
-				pthread_mutex_unlock(&scan_mutex);
-				pthread_mutex_unlock(&fssthrdInfo->nodeMutex);
 
 				if (slot == NULL)
 				{
@@ -994,13 +979,8 @@ RESCAN:
 		fssthrdInfo->state = SPD_FS_STATE_ERROR;
 		errflag = 1;
 		fssthrdInfo->state = SPD_FS_STATE_ERROR;
-		if (lock_taken)
-		{
-			pthread_mutex_unlock(&scan_mutex);
-		}
 		fssthrdInfo->iFlag = false;
 		fssthrdInfo->tuple = NULL;
-		pthread_mutex_unlock(&fssthrdInfo->nodeMutex);
 		if (fssthrdInfo->fsstate->conn)
 		{
 			cancel = PQgetCancel((PGconn *) fssthrdInfo->fsstate->conn);
@@ -1033,7 +1013,6 @@ RESCAN:
 		{
 			if (fssthrdInfo->EndFlag || errflag)
 			{
-				pthread_mutex_lock(&fssthrdInfo->nodeMutex);
 				fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
 				fssthrdInfo->EndFlag = false;
 				break;
@@ -1053,7 +1032,6 @@ RESCAN:
 	{
 		elog(DEBUG1, "Thread error occurred during EndForeignScan(). %s:%d",
 			 __FILE__, __LINE__);
-		pthread_mutex_unlock(&scan_mutex);
 	}
 	PG_END_TRY();
 
@@ -1066,7 +1044,6 @@ RESCAN:
 THREAD_EXIT:
 	fssthrdInfo->iFlag = false;
 	fssthrdInfo->tuple = NULL;
-	pthread_mutex_unlock(&fssthrdInfo->nodeMutex);
 #ifdef MEASURE_TIME
 	gettimeofday(&e, NULL);
 	elog(DEBUG1, "thread%d all time = %lf", fssthrdInfo->serverId, (e.tv_sec - s.tv_sec) + (e.tv_usec - s.tv_usec) * 1.0E-6);
@@ -3097,6 +3074,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 					/*
 					 * Extend tuple desc when avg,var,stddev operation is
 					 * occurred.
+					 * AVG is divided SUM and COUNT, VAR and STDDEV are divided SUM,COUNT,SUM(i*i)
 					 */
 					if (agg_command == NULL)
 						continue;
@@ -3112,8 +3090,8 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 							attrs[i]->atttypid = BIGINT_OID;
 							attrs[i-1]->attalign = 'd';
 							attrs[i]->attalign = 'd';
-							attrs[i-1]->attlen = 8;
-							attrs[i]->attlen = 8;
+							attrs[i-1]->attlen = DOUBLE_LENGTH;
+							attrs[i]->attlen = DOUBLE_LENGTH;
 							attrs[i-1]->attbyval=1;
 							attrs[i]->attbyval=1;
 						}
@@ -3676,12 +3654,12 @@ spd_spi_select_tablecp(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPriva
 					float8		result = 0;
 
 					/* calculate AVG */
-					if (clist_parent->avgflag == 1)
+					if (clist_parent->avgflag == AVGFLAG)
 					{
 						result = (float8) fdw_private->agg_values[fdw_private->agg_num][sum_mapping] / (float8) fdw_private->agg_values[0][count_mapping];
 					}
 					/* calculate VARIANCE */
-					else if (clist_parent->avgflag == 2)
+					else if (clist_parent->avgflag == VARFLAG)
 					{
 						float8		sum = (float8) fdw_private->agg_values[fdw_private->agg_num][sum_mapping];
 						float8		cnt = (float8) fdw_private->agg_values[fdw_private->agg_num][count_mapping];
@@ -3691,7 +3669,7 @@ spd_spi_select_tablecp(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPriva
 						result = sqrt((left + right) / cnt);
 					}
 					/* calculate STDDEV */
-					else if (clist_parent->avgflag == 3)
+					else if (clist_parent->avgflag == DEVFLAG)
 					{
 						float8		sum = (float8) fdw_private->agg_values[fdw_private->agg_num][sum_mapping];
 						float8		cnt = (float8) fdw_private->agg_values[fdw_private->agg_num][count_mapping];
@@ -4009,7 +3987,9 @@ spd_IterateForeignScan(ForeignScanState *node)
 		{
 			return NULL;
 		}
-#ifdef NODE_COL
+		/*
+		 * Following is adding node name sequence.
+		 */
 		fs = GetForeignServer(fssThrdInfo[count - 1].serverId);
 		fdw = GetForeignDataWrapper(fs->fdwid);
 		node_slot = fssThrdInfo[count - 1].tuple;
@@ -4264,7 +4244,7 @@ spd_AddForeignUpdateTargets(Query *parsetree,
 				target_url = (char *) list_nth(fdw_private->url_parse_list, 1);
 				throwing_url = (char *) list_nth(fdw_private->url_parse_list, 2);
 			}
-			fdw_private->under_flag = 1;
+			fdw_private->under_flag = true;
 
 			/*
 			 * if child - child is exist, then create child - child UNDER
