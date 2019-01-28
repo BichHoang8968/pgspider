@@ -1213,7 +1213,9 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Datum *oid, int oid_
 	ListCell   *l;
 	Datum		oid_server;
 	int			i = 0;
-
+	ForeignServer *fs;
+	ForeignDataWrapper *fdw;
+	
 	if (fdw_private->dummy_base_rel_list == NIL)
 	{
 		for (i = 0; i < oid_nums; i++)
@@ -1300,49 +1302,54 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Datum *oid, int oid_
 			 * basestrictinfo)
 			 *
 			 */
-			foreach(lc, entry_baserel->baserestrictinfo)
-			{
-				RestrictInfo *clause = (RestrictInfo *) lfirst(lc);
-				Expr	   *expr = (Expr *) clause->clause;
-				ListCell   *arg;
+			fs = GetForeignServer(oid_server);
+			fdw = GetForeignDataWrapper(fs->fdwid);
 
-				if (nodeTag(expr) == T_OpExpr)
+			if (strcmp(fdw->fdwname, SPDFRONT_FDW_NAME) == 0){
+				foreach(lc, entry_baserel->baserestrictinfo)
 				{
-					OpExpr	   *node = (OpExpr *) clause->clause;
-					Expr	   *expr2;
+					RestrictInfo *clause = (RestrictInfo *) lfirst(lc);
+					Expr	   *expr = (Expr *) clause->clause;
+					ListCell   *arg;
 
-					/* Deparse left operand. */
-					arg = list_head(node->args);
-					expr2 = (Expr *) lfirst(arg);
-					if (nodeTag(expr2) == T_Var)
+					if (nodeTag(expr) == T_OpExpr)
 					{
-						Var		   *var = (Var *) expr2;
-						char	   *colname;
-						RangeTblEntry *rte;
+						OpExpr	   *node = (OpExpr *) clause->clause;
+						Expr	   *expr2;
 
-						rte = planner_rt_fetch(var->varno, root);
-						colname = get_relid_attribute_name(rte->relid, var->varattno);
-						if (strcmp(colname, COLNAME) == 0)
+						/* Deparse left operand. */
+						arg = list_head(node->args);
+						expr2 = (Expr *) lfirst(arg);
+						if (nodeTag(expr2) == T_Var)
 						{
-							elog(DEBUG1, "find colname");
-							entry_baserel->baserestrictinfo = NULL;
+							Var		   *var = (Var *) expr2;
+							char	   *colname;
+							RangeTblEntry *rte;
+
+							rte = planner_rt_fetch(var->varno, root);
+							colname = get_relid_attribute_name(rte->relid, var->varattno);
+							if (strcmp(colname, COLNAME) == 0)
+							{
+								elog(DEBUG1, "find colname");
+								entry_baserel->baserestrictinfo = NULL;
+							}
 						}
-					}
-					/* Deparse right operand */
-					arg = list_tail(node->args);
-					expr2 = (Expr *) lfirst(arg);
-					if (nodeTag(expr2) == T_Var)
-					{
-						Var		   *var = (Var *) expr2;
-						char	   *colname;
-						RangeTblEntry *rte;
-
-						rte = planner_rt_fetch(var->varno, root);
-						colname = get_relid_attribute_name(rte->relid, var->varattno);
-						if (strcmp(colname, COLNAME) == 0)
+						/* Deparse right operand */
+						arg = list_tail(node->args);
+						expr2 = (Expr *) lfirst(arg);
+						if (nodeTag(expr2) == T_Var)
 						{
-							elog(DEBUG1, "find colname");
-							entry_baserel->baserestrictinfo = NULL;
+							Var		   *var = (Var *) expr2;
+							char	   *colname;
+							RangeTblEntry *rte;
+
+							rte = planner_rt_fetch(var->varno, root);
+							colname = get_relid_attribute_name(rte->relid, var->varattno);
+							if (strcmp(colname, COLNAME) == 0)
+							{
+								elog(DEBUG1, "find colname");
+								entry_baserel->baserestrictinfo = NULL;
+							}
 						}
 					}
 				}
