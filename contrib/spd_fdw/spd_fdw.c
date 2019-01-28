@@ -16,9 +16,6 @@
 PG_MODULE_MAGIC;
 #endif
 
-#if (PG_VERSION_NUM < 100000)
-#error
-#endif
 
 #include <stddef.h>
 #include <sys/time.h>
