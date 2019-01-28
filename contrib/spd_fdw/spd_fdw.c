@@ -2024,6 +2024,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 													  query->groupClause, NULL, NULL,
 													  1);
 				fdw_private->dummy_base_rel_list = lappend(fdw_private->dummy_base_rel_list, entry);
+				//fdw_private->dummy_base_rel_list = lappend(fdw_private->dummy_base_rel_list, dummy_output_rel);
 				fdw_private->pPseudoAggList = lappend_oid(fdw_private->pPseudoAggList, oid_server);
 			}
 			i++;
@@ -2392,11 +2393,9 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 		}
 		PG_TRY();
 		{
-
 			fdwroutine->GetForeignPaths((PlannerInfo *) root_l->data.ptr_value,
 										(RelOptInfo *) base_l->data.ptr_value,
 										DatumGetObjectId(oid[i]));
-
 		}
 		PG_CATCH();
 		{
@@ -2585,11 +2584,11 @@ spd_createPushDownPlan(List *tlist, bool *agg_query, SpdFdwPrivate * fdw_private
 	foreach(lc, dummy_tlist)
 	{
 		tle = lfirst_node(TargetEntry, lc);
-		if (IsA(tle->expr, Aggref))
-		{
+//		if (IsA(tle->expr, Aggref))
+//		{
 			aggref = (Aggref *) tle->expr;
 			spd_expression_tree_walker((Node *) aggref, 1);
-		}
+//		}
 	}
 	return dummy_tlist;
 }
@@ -2669,6 +2668,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
 	fdw_scan_tlist = fdw_private->rinfo.grouped_tlist;
 	fdw_private->tList = list_copy(tlist);
+
 
 	/* Create "GROUP BY" string */
 	if (root->parse->groupClause != NULL)
@@ -2811,6 +2811,32 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			}
 			/* create plan */
 			if(grouped_rel_local != NULL){
+				if (root->parse->groupClause != NULL)
+				{
+					Query	   *query = root->parse;
+					bool		first = true;
+					ListCell   *lc;
+					int i=0;
+					ListCell *ttemp;
+					fdw_private->groupby_string = makeStringInfo();
+					appendStringInfo(fdw_private->groupby_string, "GROUP BY ");
+					foreach(ttemp, child_tlist)
+					{
+						TargetEntry *tlentry = (TargetEntry *) lfirst(ttemp);
+						if(tlentry->ressortgroupref==1){
+							char	   *colname = NULL;
+							if (first==false)
+								appendStringInfoString(fdw_private->groupby_string, ", ");
+
+							appendStringInfoString(fdw_private->groupby_string, "(");
+							colname = psprintf("col%d", i);
+							appendStringInfoString(fdw_private->groupby_string, colname);
+							appendStringInfoString(fdw_private->groupby_string, ")");
+							first=false;
+						}
+						i++;
+					}
+				}
 				temp_obj = fdwroutine->GetForeignPlan(
 					grouped_root_local,
 					grouped_rel_local,
@@ -2822,18 +2848,31 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			}
 			else{
 			    temptlist = build_physical_tlist(root_l->data.ptr_value, base_l->data.ptr_value);
-				//tmp_path = tmp->pathlist->head->data.ptr_value;
-				//apply_pathtarget_labeling_to_tlist(temptlist, tmp_path->pathtarget);
-
-				int i=0;
-			    ListCell *ttemp;
-				foreach(ttemp, temptlist)
+				if (root->parse->groupClause != NULL)
 				{
-					if(i==0){
-					TargetEntry *tlentry = (TargetEntry *) lfirst(ttemp);
-				    tlentry->ressortgroupref = 1;
+					Query	   *query = root->parse;
+					bool		first = true;
+					ListCell   *lc;
+					int i=0;
+					ListCell *ttemp;
+					fdw_private->groupby_string = makeStringInfo();
+					appendStringInfo(fdw_private->groupby_string, "GROUP BY ");
+					foreach(ttemp, child_tlist)
+					{
+						TargetEntry *tlentry = (TargetEntry *) lfirst(ttemp);
+						if(tlentry->ressortgroupref==1){
+							char	   *colname = NULL;
+							if (first==false)
+								appendStringInfoString(fdw_private->groupby_string, ", ");
+
+							appendStringInfoString(fdw_private->groupby_string, "(");
+							colname = psprintf("col%d", i);
+							appendStringInfoString(fdw_private->groupby_string, colname);
+							appendStringInfoString(fdw_private->groupby_string, ")");
+							first=false;
+						}
+						i++;
 					}
-					i++;
 				}
 				temp_obj = fdwroutine->GetForeignPlan(
 					(PlannerInfo *) root_l->data.ptr_value,
@@ -2866,7 +2905,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				aggpath->aggstrategy,
 				aggpath->aggsplit,
 				list_length(aggpath->groupClause),
-				extract_grouping_cols(aggpath->groupClause, child_tlist),
+				extract_grouping_cols(aggpath->groupClause, fdw_private->child_comp_tlist),
 				extract_grouping_ops(aggpath->groupClause),
 				root->parse->groupingSets,
 				NIL,
