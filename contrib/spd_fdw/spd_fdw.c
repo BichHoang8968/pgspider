@@ -97,7 +97,7 @@ PG_MODULE_MAGIC;
 #define DOUBLE_LENGTH 8
 #define MAXDIVNUM 3 /* STDDEV and VARIANCE div sum,count,sum(x^2), so currentrly MAX is 3 */
 
-#define SPDFRONT_FDW_NAME "spdfront_fdw"
+#define SPDFRONT_FDW_NAME "pgspider_fdw"
 #define SPDURL "__spd_url"
 #define AGGTEMPTABLE "__spd__temptable"
 
