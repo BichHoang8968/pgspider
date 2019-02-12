@@ -156,7 +156,7 @@ typedef struct SpdfFdwScanState
 	MemoryContext temp_cxt;		/* context for per-tuple temporary data */
 
 	int			fetch_size;		/* number of tuples per fetch */
-} SpdfFdwScanState;
+}			SpdfFdwScanState;
 
 /*
  * Execution state of a foreign insert/update/delete operation.
@@ -183,7 +183,7 @@ typedef struct SpdfFdwModifyState
 
 	/* working memory context */
 	MemoryContext temp_cxt;		/* context for per-tuple temporary data */
-} SpdfFdwModifyState;
+}			SpdfFdwModifyState;
 
 /*
  * Execution state of a foreign scan that modifies a foreign table directly.
@@ -213,7 +213,7 @@ typedef struct SpdfFdwDirectModifyState
 
 	/* working memory context */
 	MemoryContext temp_cxt;		/* context for per-tuple temporary data */
-} SpdfFdwDirectModifyState;
+}			SpdfFdwDirectModifyState;
 
 /*
  * Workspace for analyzing a foreign table.
@@ -237,7 +237,7 @@ typedef struct SpdfFdwAnalyzeState
 	/* working memory contexts */
 	MemoryContext anl_cxt;		/* context for per-analyze lifespan data */
 	MemoryContext temp_cxt;		/* context for per-tuple temporary data */
-} SpdfFdwAnalyzeState;
+}			SpdfFdwAnalyzeState;
 
 /*
  * Identify the attribute where data conversion fails.
@@ -254,14 +254,14 @@ typedef struct ConversionLocation
 	 * to get the relation name and attribute name.
 	 */
 	ForeignScanState *fsstate;
-} ConversionLocation;
+}			ConversionLocation;
 
 /* Callback argument for ec_member_matches_foreign */
 typedef struct
 {
 	Expr	   *current;		/* current expr, or NULL if not yet found */
 	List	   *already_used;	/* expressions already dealt with */
-} ec_member_foreign_arg;
+}			ec_member_foreign_arg;
 
 /*
  * SQL functions
@@ -271,154 +271,154 @@ PG_FUNCTION_INFO_V1(spdfront_fdw_handler);
 /*
  * FDW callback routines
  */
-static void spdfrontGetForeignRelSize(PlannerInfo *root,
-						  RelOptInfo *baserel,
+static void spdfrontGetForeignRelSize(PlannerInfo * root,
+						  RelOptInfo * baserel,
 						  Oid foreigntableid);
-static void spdfrontGetForeignPaths(PlannerInfo *root,
-						RelOptInfo *baserel,
+static void spdfrontGetForeignPaths(PlannerInfo * root,
+						RelOptInfo * baserel,
 						Oid foreigntableid);
-static ForeignScan *spdfrontGetForeignPlan(PlannerInfo *root,
-					   RelOptInfo *baserel,
-					   Oid foreigntableid,
-					   ForeignPath *best_path,
-					   List *tlist,
-					   List *scan_clauses,
-					   Plan *outer_plan);
-static void spdfrontBeginForeignScan(ForeignScanState *node, int eflags);
-static TupleTableSlot *spdfrontIterateForeignScan(ForeignScanState *node);
-static void spdfrontReScanForeignScan(ForeignScanState *node);
-static void spdfrontEndForeignScan(ForeignScanState *node);
-static void spdfrontAddForeignUpdateTargets(Query *parsetree,
-								RangeTblEntry *target_rte,
+static ForeignScan * spdfrontGetForeignPlan(PlannerInfo * root,
+											RelOptInfo * baserel,
+											Oid foreigntableid,
+											ForeignPath * best_path,
+											List * tlist,
+											List * scan_clauses,
+											Plan * outer_plan);
+static void spdfrontBeginForeignScan(ForeignScanState * node, int eflags);
+static TupleTableSlot * spdfrontIterateForeignScan(ForeignScanState * node);
+static void spdfrontReScanForeignScan(ForeignScanState * node);
+static void spdfrontEndForeignScan(ForeignScanState * node);
+static void spdfrontAddForeignUpdateTargets(Query * parsetree,
+								RangeTblEntry * target_rte,
 								Relation target_relation);
-static List *spdfrontPlanForeignModify(PlannerInfo *root,
-						  ModifyTable *plan,
-						  Index resultRelation,
-						  int subplan_index);
-static void spdfrontBeginForeignModify(ModifyTableState *mtstate,
-						   ResultRelInfo *resultRelInfo,
-						   List *fdw_private,
+static List * spdfrontPlanForeignModify(PlannerInfo * root,
+										ModifyTable * plan,
+										Index resultRelation,
+										int subplan_index);
+static void spdfrontBeginForeignModify(ModifyTableState * mtstate,
+						   ResultRelInfo * resultRelInfo,
+						   List * fdw_private,
 						   int subplan_index,
 						   int eflags);
-static TupleTableSlot *spdfrontExecForeignInsert(EState *estate,
-						  ResultRelInfo *resultRelInfo,
-						  TupleTableSlot *slot,
-						  TupleTableSlot *planSlot);
-static TupleTableSlot *spdfrontExecForeignUpdate(EState *estate,
-						  ResultRelInfo *resultRelInfo,
-						  TupleTableSlot *slot,
-						  TupleTableSlot *planSlot);
-static TupleTableSlot *spdfrontExecForeignDelete(EState *estate,
-						  ResultRelInfo *resultRelInfo,
-						  TupleTableSlot *slot,
-						  TupleTableSlot *planSlot);
-static void spdfrontEndForeignModify(EState *estate,
-						 ResultRelInfo *resultRelInfo);
+static TupleTableSlot * spdfrontExecForeignInsert(EState * estate,
+												  ResultRelInfo * resultRelInfo,
+												  TupleTableSlot * slot,
+												  TupleTableSlot * planSlot);
+static TupleTableSlot * spdfrontExecForeignUpdate(EState * estate,
+												  ResultRelInfo * resultRelInfo,
+												  TupleTableSlot * slot,
+												  TupleTableSlot * planSlot);
+static TupleTableSlot * spdfrontExecForeignDelete(EState * estate,
+												  ResultRelInfo * resultRelInfo,
+												  TupleTableSlot * slot,
+												  TupleTableSlot * planSlot);
+static void spdfrontEndForeignModify(EState * estate,
+						 ResultRelInfo * resultRelInfo);
 static int	spdfrontIsForeignRelUpdatable(Relation rel);
-static bool spdfrontPlanDirectModify(PlannerInfo *root,
-						 ModifyTable *plan,
+static bool spdfrontPlanDirectModify(PlannerInfo * root,
+						 ModifyTable * plan,
 						 Index resultRelation,
 						 int subplan_index);
-static void spdfrontBeginDirectModify(ForeignScanState *node, int eflags);
-static TupleTableSlot *spdfrontIterateDirectModify(ForeignScanState *node);
-static void spdfrontEndDirectModify(ForeignScanState *node);
-static void spdfrontExplainForeignScan(ForeignScanState *node,
-						   ExplainState *es);
-static void spdfrontExplainForeignModify(ModifyTableState *mtstate,
-							 ResultRelInfo *rinfo,
-							 List *fdw_private,
+static void spdfrontBeginDirectModify(ForeignScanState * node, int eflags);
+static TupleTableSlot * spdfrontIterateDirectModify(ForeignScanState * node);
+static void spdfrontEndDirectModify(ForeignScanState * node);
+static void spdfrontExplainForeignScan(ForeignScanState * node,
+						   ExplainState * es);
+static void spdfrontExplainForeignModify(ModifyTableState * mtstate,
+							 ResultRelInfo * rinfo,
+							 List * fdw_private,
 							 int subplan_index,
-							 ExplainState *es);
-static void spdfrontExplainDirectModify(ForeignScanState *node,
-							ExplainState *es);
+							 ExplainState * es);
+static void spdfrontExplainDirectModify(ForeignScanState * node,
+							ExplainState * es);
 static bool spdfrontAnalyzeForeignTable(Relation relation,
-							AcquireSampleRowsFunc *func,
-							BlockNumber *totalpages);
-static List *spdfrontImportForeignSchema(ImportForeignSchemaStmt *stmt,
-							Oid serverOid);
-static void spdfrontGetForeignJoinPaths(PlannerInfo *root,
-							RelOptInfo *joinrel,
-							RelOptInfo *outerrel,
-							RelOptInfo *innerrel,
+							AcquireSampleRowsFunc * func,
+							BlockNumber * totalpages);
+static List * spdfrontImportForeignSchema(ImportForeignSchemaStmt * stmt,
+										  Oid serverOid);
+static void spdfrontGetForeignJoinPaths(PlannerInfo * root,
+							RelOptInfo * joinrel,
+							RelOptInfo * outerrel,
+							RelOptInfo * innerrel,
 							JoinType jointype,
-							JoinPathExtraData *extra);
-static bool spdfrontRecheckForeignScan(ForeignScanState *node,
-						   TupleTableSlot *slot);
-static void spdfrontGetForeignUpperPaths(PlannerInfo *root,
+							JoinPathExtraData * extra);
+static bool spdfrontRecheckForeignScan(ForeignScanState * node,
+						   TupleTableSlot * slot);
+static void spdfrontGetForeignUpperPaths(PlannerInfo * root,
 							 UpperRelationKind stage,
-							 RelOptInfo *input_rel,
-							 RelOptInfo *output_rel);
+							 RelOptInfo * input_rel,
+							 RelOptInfo * output_rel);
 
 /*
  * Helper functions
  */
-static void estimate_path_cost_size(PlannerInfo *root,
-						RelOptInfo *baserel,
-						List *join_conds,
-						List *pathkeys,
+static void estimate_path_cost_size(PlannerInfo * root,
+						RelOptInfo * baserel,
+						List * join_conds,
+						List * pathkeys,
 						double *p_rows, int *p_width,
-						Cost *p_startup_cost, Cost *p_total_cost);
+						Cost * p_startup_cost, Cost * p_total_cost);
 static void get_remote_estimate(const char *sql,
-					PGconn *conn,
+					PGconn * conn,
 					double *rows,
 					int *width,
-					Cost *startup_cost,
-					Cost *total_cost);
-static bool ec_member_matches_foreign(PlannerInfo *root, RelOptInfo *rel,
-						  EquivalenceClass *ec, EquivalenceMember *em,
+					Cost * startup_cost,
+					Cost * total_cost);
+static bool ec_member_matches_foreign(PlannerInfo * root, RelOptInfo * rel,
+						  EquivalenceClass * ec, EquivalenceMember * em,
 						  void *arg);
-static void create_cursor(ForeignScanState *node);
-static void fetch_more_data(ForeignScanState *node);
-static void close_cursor(PGconn *conn, unsigned int cursor_number);
-static void prepare_foreign_modify(SpdfFdwModifyState *fmstate);
-static const char **convert_prep_stmt_params(SpdfFdwModifyState *fmstate,
+static void create_cursor(ForeignScanState * node);
+static void fetch_more_data(ForeignScanState * node);
+static void close_cursor(PGconn * conn, unsigned int cursor_number);
+static void prepare_foreign_modify(SpdfFdwModifyState * fmstate);
+static const char **convert_prep_stmt_params(SpdfFdwModifyState * fmstate,
 						 ItemPointer tupleid,
-						 TupleTableSlot *slot);
-static void store_returning_result(SpdfFdwModifyState *fmstate,
-					   TupleTableSlot *slot, PGresult *res);
-static void execute_dml_stmt(ForeignScanState *node);
-static TupleTableSlot *get_returning_data(ForeignScanState *node);
-static void prepare_query_params(PlanState *node,
-					 List *fdw_exprs,
+						 TupleTableSlot * slot);
+static void store_returning_result(SpdfFdwModifyState * fmstate,
+					   TupleTableSlot * slot, PGresult * res);
+static void execute_dml_stmt(ForeignScanState * node);
+static TupleTableSlot * get_returning_data(ForeignScanState * node);
+static void prepare_query_params(PlanState * node,
+					 List * fdw_exprs,
 					 int numParams,
-					 FmgrInfo **param_flinfo,
-					 List **param_exprs,
+					 FmgrInfo * *param_flinfo,
+					 List * *param_exprs,
 					 const char ***param_values);
-static void process_query_params(ExprContext *econtext,
-					 FmgrInfo *param_flinfo,
-					 List *param_exprs,
+static void process_query_params(ExprContext * econtext,
+					 FmgrInfo * param_flinfo,
+					 List * param_exprs,
 					 const char **param_values);
 static int spdfrontAcquireSampleRowsFunc(Relation relation, int elevel,
-							  HeapTuple *rows, int targrows,
+							  HeapTuple * rows, int targrows,
 							  double *totalrows,
 							  double *totaldeadrows);
-static void analyze_row_processor(PGresult *res, int row,
-					  SpdfFdwAnalyzeState *astate);
-static HeapTuple make_tuple_from_result_row(PGresult *res,
-						   int row,
-						   Relation rel,
-						   AttInMetadata *attinmeta,
-						   List *retrieved_attrs,
-						   ForeignScanState *fsstate,
-						   MemoryContext temp_context);
+static void analyze_row_processor(PGresult * res, int row,
+					  SpdfFdwAnalyzeState * astate);
+static HeapTuple make_tuple_from_result_row(PGresult * res,
+											int row,
+											Relation rel,
+											AttInMetadata * attinmeta,
+											List * retrieved_attrs,
+											ForeignScanState * fsstate,
+											MemoryContext temp_context);
 static void conversion_error_callback(void *arg);
-static bool foreign_join_ok(PlannerInfo *root, RelOptInfo *joinrel,
-				JoinType jointype, RelOptInfo *outerrel, RelOptInfo *innerrel,
-				JoinPathExtraData *extra);
-static bool foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel);
-static List *get_useful_pathkeys_for_relation(PlannerInfo *root,
-								 RelOptInfo *rel);
-static List *get_useful_ecs_for_relation(PlannerInfo *root, RelOptInfo *rel);
-static void add_paths_with_pathkeys_for_rel(PlannerInfo *root, RelOptInfo *rel,
-								Path *epq_path);
-static void add_foreign_grouping_paths(PlannerInfo *root,
-						   RelOptInfo *input_rel,
-						   RelOptInfo *grouped_rel);
-static void apply_server_options(SpdFFdwRelationInfo *fpinfo);
-static void apply_table_options(SpdFFdwRelationInfo *fpinfo);
-static void merge_fdw_options(SpdFFdwRelationInfo *fpinfo,
-				  const SpdFFdwRelationInfo *fpinfo_o,
-				  const SpdFFdwRelationInfo *fpinfo_i);
+static bool foreign_join_ok(PlannerInfo * root, RelOptInfo * joinrel,
+				JoinType jointype, RelOptInfo * outerrel, RelOptInfo * innerrel,
+				JoinPathExtraData * extra);
+static bool foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel);
+static List * get_useful_pathkeys_for_relation(PlannerInfo * root,
+											   RelOptInfo * rel);
+static List * get_useful_ecs_for_relation(PlannerInfo * root, RelOptInfo * rel);
+static void add_paths_with_pathkeys_for_rel(PlannerInfo * root, RelOptInfo * rel,
+								Path * epq_path);
+static void add_foreign_grouping_paths(PlannerInfo * root,
+						   RelOptInfo * input_rel,
+						   RelOptInfo * grouped_rel);
+static void apply_server_options(SpdFFdwRelationInfo * fpinfo);
+static void apply_table_options(SpdFFdwRelationInfo * fpinfo);
+static void merge_fdw_options(SpdFFdwRelationInfo * fpinfo,
+				  const SpdFFdwRelationInfo * fpinfo_o,
+				  const SpdFFdwRelationInfo * fpinfo_i);
 
 
 /*
@@ -483,8 +483,8 @@ spdfront_fdw_handler(PG_FUNCTION_ARGS)
  * not any join clauses.
  */
 static void
-spdfrontGetForeignRelSize(PlannerInfo *root,
-						  RelOptInfo *baserel,
+spdfrontGetForeignRelSize(PlannerInfo * root,
+						  RelOptInfo * baserel,
 						  Oid foreigntableid)
 {
 	SpdFFdwRelationInfo *fpinfo;
@@ -679,7 +679,7 @@ spdfrontGetForeignRelSize(PlannerInfo *root,
  * here; we're only interested in identifying relevant ECs.
  */
 static List *
-get_useful_ecs_for_relation(PlannerInfo *root, RelOptInfo *rel)
+get_useful_ecs_for_relation(PlannerInfo * root, RelOptInfo * rel)
 {
 	List	   *useful_eclass_list = NIL;
 	ListCell   *lc;
@@ -775,7 +775,7 @@ get_useful_ecs_for_relation(PlannerInfo *root, RelOptInfo *rel)
  * to figure out which pathkeys to consider.
  */
 static List *
-get_useful_pathkeys_for_relation(PlannerInfo *root, RelOptInfo *rel)
+get_useful_pathkeys_for_relation(PlannerInfo * root, RelOptInfo * rel)
 {
 	List	   *useful_pathkeys_list = NIL;
 	List	   *useful_eclass_list;
@@ -882,8 +882,8 @@ get_useful_pathkeys_for_relation(PlannerInfo *root, RelOptInfo *rel)
  *		Create possible scan paths for a scan on the foreign table
  */
 static void
-spdfrontGetForeignPaths(PlannerInfo *root,
-						RelOptInfo *baserel,
+spdfrontGetForeignPaths(PlannerInfo * root,
+						RelOptInfo * baserel,
 						Oid foreigntableid)
 {
 	SpdFFdwRelationInfo *fpinfo = (SpdFFdwRelationInfo *) baserel->fdw_private;
@@ -1088,13 +1088,13 @@ spdfrontGetForeignPaths(PlannerInfo *root,
  *		Create ForeignScan plan node which implements selected best path
  */
 static ForeignScan *
-spdfrontGetForeignPlan(PlannerInfo *root,
-					   RelOptInfo *foreignrel,
+spdfrontGetForeignPlan(PlannerInfo * root,
+					   RelOptInfo * foreignrel,
 					   Oid foreigntableid,
-					   ForeignPath *best_path,
-					   List *tlist,
-					   List *scan_clauses,
-					   Plan *outer_plan)
+					   ForeignPath * best_path,
+					   List * tlist,
+					   List * scan_clauses,
+					   Plan * outer_plan)
 {
 	SpdFFdwRelationInfo *fpinfo = (SpdFFdwRelationInfo *) foreignrel->fdw_private;
 	Index		scan_relid;
@@ -1277,7 +1277,7 @@ spdfrontGetForeignPlan(PlannerInfo *root,
  *		Initiate an executor scan of a foreign SpdfrontQL table.
  */
 static void
-spdfrontBeginForeignScan(ForeignScanState *node, int eflags)
+spdfrontBeginForeignScan(ForeignScanState * node, int eflags)
 {
 	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
 	EState	   *estate = node->ss.ps.state;
@@ -1322,7 +1322,7 @@ spdfrontBeginForeignScan(ForeignScanState *node, int eflags)
 	 * Get connection to the foreign server.  Connection manager will
 	 * establish new connection if necessary.
 	 */
-	fsstate->conn = GetConnection(GetForeignServer(table->serverid),user, false);
+	fsstate->conn = GetConnection(GetForeignServer(table->serverid), user, false);
 
 	/* Assign a unique ID for my cursor */
 	fsstate->cursor_number = GetCursorNumber(fsstate->conn);
@@ -1381,7 +1381,7 @@ spdfrontBeginForeignScan(ForeignScanState *node, int eflags)
  *		EOF.
  */
 static TupleTableSlot *
-spdfrontIterateForeignScan(ForeignScanState *node)
+spdfrontIterateForeignScan(ForeignScanState * node)
 {
 	SpdfFdwScanState *fsstate = (SpdfFdwScanState *) node->fdw_state;
 	TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
@@ -1422,7 +1422,7 @@ spdfrontIterateForeignScan(ForeignScanState *node)
  *		Restart the scan.
  */
 static void
-spdfrontReScanForeignScan(ForeignScanState *node)
+spdfrontReScanForeignScan(ForeignScanState * node)
 {
 	SpdfFdwScanState *fsstate = (SpdfFdwScanState *) node->fdw_state;
 	char		sql[64];
@@ -1478,7 +1478,7 @@ spdfrontReScanForeignScan(ForeignScanState *node)
  *		Finish scanning foreign table and dispose objects used for this scan
  */
 static void
-spdfrontEndForeignScan(ForeignScanState *node)
+spdfrontEndForeignScan(ForeignScanState * node)
 {
 	SpdfFdwScanState *fsstate = (SpdfFdwScanState *) node->fdw_state;
 
@@ -1502,8 +1502,8 @@ spdfrontEndForeignScan(ForeignScanState *node)
  *		Add resjunk column(s) needed for update/delete on a foreign table
  */
 static void
-spdfrontAddForeignUpdateTargets(Query *parsetree,
-								RangeTblEntry *target_rte,
+spdfrontAddForeignUpdateTargets(Query * parsetree,
+								RangeTblEntry * target_rte,
 								Relation target_relation)
 {
 	Var		   *var;
@@ -1539,8 +1539,8 @@ spdfrontAddForeignUpdateTargets(Query *parsetree,
  *		Plan an insert/update/delete operation on a foreign table
  */
 static List *
-spdfrontPlanForeignModify(PlannerInfo *root,
-						  ModifyTable *plan,
+spdfrontPlanForeignModify(PlannerInfo * root,
+						  ModifyTable * plan,
 						  Index resultRelation,
 						  int subplan_index)
 {
@@ -1657,9 +1657,9 @@ spdfrontPlanForeignModify(PlannerInfo *root,
  *		Begin an insert/update/delete operation on a foreign table
  */
 static void
-spdfrontBeginForeignModify(ModifyTableState *mtstate,
-						   ResultRelInfo *resultRelInfo,
-						   List *fdw_private,
+spdfrontBeginForeignModify(ModifyTableState * mtstate,
+						   ResultRelInfo * resultRelInfo,
+						   List * fdw_private,
 						   int subplan_index,
 						   int eflags)
 {
@@ -1699,7 +1699,7 @@ spdfrontBeginForeignModify(ModifyTableState *mtstate,
 	user = GetUserMapping(userid, table->serverid);
 
 	/* Open connection; report that we'll create a prepared statement. */
-	fmstate->conn = GetConnection(GetForeignServer(table->serverid),user, true);
+	fmstate->conn = GetConnection(GetForeignServer(table->serverid), user, true);
 	fmstate->p_name = NULL;		/* prepared statement not made yet */
 
 	/* Deconstruct fdw_private data. */
@@ -1768,10 +1768,10 @@ spdfrontBeginForeignModify(ModifyTableState *mtstate,
  *		Insert one row into a foreign table
  */
 static TupleTableSlot *
-spdfrontExecForeignInsert(EState *estate,
-						  ResultRelInfo *resultRelInfo,
-						  TupleTableSlot *slot,
-						  TupleTableSlot *planSlot)
+spdfrontExecForeignInsert(EState * estate,
+						  ResultRelInfo * resultRelInfo,
+						  TupleTableSlot * slot,
+						  TupleTableSlot * planSlot)
 {
 	SpdfFdwModifyState *fmstate = (SpdfFdwModifyState *) resultRelInfo->ri_FdwState;
 	const char **p_values;
@@ -1832,10 +1832,10 @@ spdfrontExecForeignInsert(EState *estate,
  *		Update one row in a foreign table
  */
 static TupleTableSlot *
-spdfrontExecForeignUpdate(EState *estate,
-						  ResultRelInfo *resultRelInfo,
-						  TupleTableSlot *slot,
-						  TupleTableSlot *planSlot)
+spdfrontExecForeignUpdate(EState * estate,
+						  ResultRelInfo * resultRelInfo,
+						  TupleTableSlot * slot,
+						  TupleTableSlot * planSlot)
 {
 	SpdfFdwModifyState *fmstate = (SpdfFdwModifyState *) resultRelInfo->ri_FdwState;
 	Datum		datum;
@@ -1882,7 +1882,7 @@ spdfrontExecForeignUpdate(EState *estate,
 	res = spdffdw_get_result(fmstate->conn, fmstate->query);
 	if (PQresultStatus(res) !=
 		(fmstate->has_returning ? PGRES_TUPLES_OK : PGRES_COMMAND_OK))
-	    spdffdw_report_error(ERROR, res, fmstate->conn, true, fmstate->query);
+		spdffdw_report_error(ERROR, res, fmstate->conn, true, fmstate->query);
 
 	/* Check number of rows affected, and fetch RETURNING tuple if any */
 	if (fmstate->has_returning)
@@ -1908,10 +1908,10 @@ spdfrontExecForeignUpdate(EState *estate,
  *		Delete one row from a foreign table
  */
 static TupleTableSlot *
-spdfrontExecForeignDelete(EState *estate,
-						  ResultRelInfo *resultRelInfo,
-						  TupleTableSlot *slot,
-						  TupleTableSlot *planSlot)
+spdfrontExecForeignDelete(EState * estate,
+						  ResultRelInfo * resultRelInfo,
+						  TupleTableSlot * slot,
+						  TupleTableSlot * planSlot)
 {
 	SpdfFdwModifyState *fmstate = (SpdfFdwModifyState *) resultRelInfo->ri_FdwState;
 	Datum		datum;
@@ -1958,7 +1958,7 @@ spdfrontExecForeignDelete(EState *estate,
 	res = spdffdw_get_result(fmstate->conn, fmstate->query);
 	if (PQresultStatus(res) !=
 		(fmstate->has_returning ? PGRES_TUPLES_OK : PGRES_COMMAND_OK))
-	    spdffdw_report_error(ERROR, res, fmstate->conn, true, fmstate->query);
+		spdffdw_report_error(ERROR, res, fmstate->conn, true, fmstate->query);
 
 	/* Check number of rows affected, and fetch RETURNING tuple if any */
 	if (fmstate->has_returning)
@@ -1984,8 +1984,8 @@ spdfrontExecForeignDelete(EState *estate,
  *		Finish an insert/update/delete operation on a foreign table
  */
 static void
-spdfrontEndForeignModify(EState *estate,
-						 ResultRelInfo *resultRelInfo)
+spdfrontEndForeignModify(EState * estate,
+						 ResultRelInfo * resultRelInfo)
 {
 	SpdfFdwModifyState *fmstate = (SpdfFdwModifyState *) resultRelInfo->ri_FdwState;
 
@@ -2067,7 +2067,7 @@ spdfrontIsForeignRelUpdatable(Relation rel)
  *		Execute a local join execution plan for a foreign join
  */
 static bool
-spdfrontRecheckForeignScan(ForeignScanState *node, TupleTableSlot *slot)
+spdfrontRecheckForeignScan(ForeignScanState * node, TupleTableSlot * slot)
 {
 	Index		scanrelid = ((Scan *) node->ss.ps.plan)->scanrelid;
 	PlanState  *outerPlan = outerPlanState(node);
@@ -2098,8 +2098,8 @@ spdfrontRecheckForeignScan(ForeignScanState *node, TupleTableSlot *slot)
  * rewrite subplan accordingly.
  */
 static bool
-spdfrontPlanDirectModify(PlannerInfo *root,
-						 ModifyTable *plan,
+spdfrontPlanDirectModify(PlannerInfo * root,
+						 ModifyTable * plan,
 						 Index resultRelation,
 						 int subplan_index)
 {
@@ -2263,7 +2263,7 @@ spdfrontPlanDirectModify(PlannerInfo *root,
  *		Prepare a direct foreign table modification
  */
 static void
-spdfrontBeginDirectModify(ForeignScanState *node, int eflags)
+spdfrontBeginDirectModify(ForeignScanState * node, int eflags)
 {
 	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
 	EState	   *estate = node->ss.ps.state;
@@ -2302,7 +2302,7 @@ spdfrontBeginDirectModify(ForeignScanState *node, int eflags)
 	 * Get connection to the foreign server.  Connection manager will
 	 * establish new connection if necessary.
 	 */
-	dmstate->conn = GetConnection(GetForeignServer(table->serverid),user, false);
+	dmstate->conn = GetConnection(GetForeignServer(table->serverid), user, false);
 
 	/* Initialize state variable */
 	dmstate->num_tuples = -1;	/* -1 means not set yet */
@@ -2345,7 +2345,7 @@ spdfrontBeginDirectModify(ForeignScanState *node, int eflags)
  *		Execute a direct foreign table modification
  */
 static TupleTableSlot *
-spdfrontIterateDirectModify(ForeignScanState *node)
+spdfrontIterateDirectModify(ForeignScanState * node)
 {
 	SpdfFdwDirectModifyState *dmstate = (SpdfFdwDirectModifyState *) node->fdw_state;
 	EState	   *estate = node->ss.ps.state;
@@ -2389,7 +2389,7 @@ spdfrontIterateDirectModify(ForeignScanState *node)
  *		Finish a direct foreign table modification
  */
 static void
-spdfrontEndDirectModify(ForeignScanState *node)
+spdfrontEndDirectModify(ForeignScanState * node)
 {
 	SpdfFdwDirectModifyState *dmstate = (SpdfFdwDirectModifyState *) node->fdw_state;
 
@@ -2413,7 +2413,7 @@ spdfrontEndDirectModify(ForeignScanState *node)
  *		Produce extra output for EXPLAIN of a ForeignScan on a foreign table
  */
 static void
-spdfrontExplainForeignScan(ForeignScanState *node, ExplainState *es)
+spdfrontExplainForeignScan(ForeignScanState * node, ExplainState * es)
 {
 	List	   *fdw_private;
 	char	   *sql;
@@ -2446,11 +2446,11 @@ spdfrontExplainForeignScan(ForeignScanState *node, ExplainState *es)
  *		Produce extra output for EXPLAIN of a ModifyTable on a foreign table
  */
 static void
-spdfrontExplainForeignModify(ModifyTableState *mtstate,
-							 ResultRelInfo *rinfo,
-							 List *fdw_private,
+spdfrontExplainForeignModify(ModifyTableState * mtstate,
+							 ResultRelInfo * rinfo,
+							 List * fdw_private,
 							 int subplan_index,
-							 ExplainState *es)
+							 ExplainState * es)
 {
 	if (es->verbose)
 	{
@@ -2467,7 +2467,7 @@ spdfrontExplainForeignModify(ModifyTableState *mtstate,
  *		foreign table directly
  */
 static void
-spdfrontExplainDirectModify(ForeignScanState *node, ExplainState *es)
+spdfrontExplainDirectModify(ForeignScanState * node, ExplainState * es)
 {
 	List	   *fdw_private;
 	char	   *sql;
@@ -2494,12 +2494,12 @@ spdfrontExplainDirectModify(ForeignScanState *node, ExplainState *es)
  * p_startup_cost and p_total_cost variables.
  */
 static void
-estimate_path_cost_size(PlannerInfo *root,
-						RelOptInfo *foreignrel,
-						List *param_join_conds,
-						List *pathkeys,
+estimate_path_cost_size(PlannerInfo * root,
+						RelOptInfo * foreignrel,
+						List * param_join_conds,
+						List * pathkeys,
 						double *p_rows, int *p_width,
-						Cost *p_startup_cost, Cost *p_total_cost)
+						Cost * p_startup_cost, Cost * p_total_cost)
 {
 	SpdFFdwRelationInfo *fpinfo = (SpdFFdwRelationInfo *) foreignrel->fdw_private;
 	double		rows;
@@ -2563,7 +2563,7 @@ estimate_path_cost_size(PlannerInfo *root,
 								&retrieved_attrs, NULL);
 
 		/* Get the remote estimate */
-		conn = GetConnection(fpinfo->server,fpinfo->user, false);
+		conn = GetConnection(fpinfo->server, fpinfo->user, false);
 		get_remote_estimate(sql.data, conn, &rows, &width,
 							&startup_cost, &total_cost);
 		ReleaseConnection(conn);
@@ -2835,9 +2835,9 @@ estimate_path_cost_size(PlannerInfo *root,
  * The given "sql" must be an EXPLAIN command.
  */
 static void
-get_remote_estimate(const char *sql, PGconn *conn,
+get_remote_estimate(const char *sql, PGconn * conn,
 					double *rows, int *width,
-					Cost *startup_cost, Cost *total_cost)
+					Cost * startup_cost, Cost * total_cost)
 {
 	PGresult   *volatile res = NULL;
 
@@ -2887,8 +2887,8 @@ get_remote_estimate(const char *sql, PGconn *conn,
  * This is a callback for use by generate_implied_equalities_for_column.
  */
 static bool
-ec_member_matches_foreign(PlannerInfo *root, RelOptInfo *rel,
-						  EquivalenceClass *ec, EquivalenceMember *em,
+ec_member_matches_foreign(PlannerInfo * root, RelOptInfo * rel,
+						  EquivalenceClass * ec, EquivalenceMember * em,
 						  void *arg)
 {
 	ec_member_foreign_arg *state = (ec_member_foreign_arg *) arg;
@@ -2916,7 +2916,7 @@ ec_member_matches_foreign(PlannerInfo *root, RelOptInfo *rel,
  * Create cursor for node's query with current parameter values.
  */
 static void
-create_cursor(ForeignScanState *node)
+create_cursor(ForeignScanState * node)
 {
 	SpdfFdwScanState *fsstate = (SpdfFdwScanState *) node->fdw_state;
 	ExprContext *econtext = node->ss.ps.ps_ExprContext;
@@ -2988,7 +2988,7 @@ create_cursor(ForeignScanState *node)
  * Fetch some more rows from the node's cursor.
  */
 static void
-fetch_more_data(ForeignScanState *node)
+fetch_more_data(ForeignScanState * node)
 {
 	SpdfFdwScanState *fsstate = (SpdfFdwScanState *) node->fdw_state;
 	PGresult   *volatile res = NULL;
@@ -3112,7 +3112,7 @@ reset_transmission_modes(int nestlevel)
  * Utility routine to close a cursor.
  */
 static void
-close_cursor(PGconn *conn, unsigned int cursor_number)
+close_cursor(PGconn * conn, unsigned int cursor_number)
 {
 	char		sql[64];
 	PGresult   *res;
@@ -3134,7 +3134,7 @@ close_cursor(PGconn *conn, unsigned int cursor_number)
  *		Establish a prepared statement for execution of INSERT/UPDATE/DELETE
  */
 static void
-prepare_foreign_modify(SpdfFdwModifyState *fmstate)
+prepare_foreign_modify(SpdfFdwModifyState * fmstate)
 {
 	char		prep_name[NAMEDATALEN];
 	char	   *p_name;
@@ -3184,9 +3184,9 @@ prepare_foreign_modify(SpdfFdwModifyState *fmstate)
  * Data is constructed in temp_cxt; caller should reset that after use.
  */
 static const char **
-convert_prep_stmt_params(SpdfFdwModifyState *fmstate,
+convert_prep_stmt_params(SpdfFdwModifyState * fmstate,
 						 ItemPointer tupleid,
-						 TupleTableSlot *slot)
+						 TupleTableSlot * slot)
 {
 	const char **p_values;
 	int			pindex = 0;
@@ -3246,8 +3246,8 @@ convert_prep_stmt_params(SpdfFdwModifyState *fmstate,
  * have SPDF_TRY blocks to ensure this happens.
  */
 static void
-store_returning_result(SpdfFdwModifyState *fmstate,
-					   TupleTableSlot *slot, PGresult *res)
+store_returning_result(SpdfFdwModifyState * fmstate,
+					   TupleTableSlot * slot, PGresult * res)
 {
 	PG_TRY();
 	{
@@ -3275,7 +3275,7 @@ store_returning_result(SpdfFdwModifyState *fmstate,
  * Execute a direct UPDATE/DELETE statement.
  */
 static void
-execute_dml_stmt(ForeignScanState *node)
+execute_dml_stmt(ForeignScanState * node)
 {
 	SpdfFdwDirectModifyState *dmstate = (SpdfFdwDirectModifyState *) node->fdw_state;
 	ExprContext *econtext = node->ss.ps.ps_ExprContext;
@@ -3312,7 +3312,7 @@ execute_dml_stmt(ForeignScanState *node)
 	if (PQresultStatus(dmstate->result) !=
 		(dmstate->has_returning ? PGRES_TUPLES_OK : PGRES_COMMAND_OK))
 		spdffdw_report_error(ERROR, dmstate->result, dmstate->conn, true,
-						   dmstate->query);
+							 dmstate->query);
 
 	/* Get the number of rows affected. */
 	if (dmstate->has_returning)
@@ -3325,7 +3325,7 @@ execute_dml_stmt(ForeignScanState *node)
  * Get the result of a RETURNING clause.
  */
 static TupleTableSlot *
-get_returning_data(ForeignScanState *node)
+get_returning_data(ForeignScanState * node)
 {
 	SpdfFdwDirectModifyState *dmstate = (SpdfFdwDirectModifyState *) node->fdw_state;
 	EState	   *estate = node->ss.ps.state;
@@ -3388,11 +3388,11 @@ get_returning_data(ForeignScanState *node)
  * Prepare for processing of parameters used in remote query.
  */
 static void
-prepare_query_params(PlanState *node,
-					 List *fdw_exprs,
+prepare_query_params(PlanState * node,
+					 List * fdw_exprs,
 					 int numParams,
-					 FmgrInfo **param_flinfo,
-					 List **param_exprs,
+					 FmgrInfo * *param_flinfo,
+					 List * *param_exprs,
 					 const char ***param_values)
 {
 	int			i;
@@ -3433,9 +3433,9 @@ prepare_query_params(PlanState *node,
  * Construct array of query parameter values in text format.
  */
 static void
-process_query_params(ExprContext *econtext,
-					 FmgrInfo *param_flinfo,
-					 List *param_exprs,
+process_query_params(ExprContext * econtext,
+					 FmgrInfo * param_flinfo,
+					 List * param_exprs,
 					 const char **param_values)
 {
 	int			nestlevel;
@@ -3475,8 +3475,8 @@ process_query_params(ExprContext *econtext,
  */
 static bool
 spdfrontAnalyzeForeignTable(Relation relation,
-							AcquireSampleRowsFunc *func,
-							BlockNumber *totalpages)
+							AcquireSampleRowsFunc * func,
+							BlockNumber * totalpages)
 {
 	ForeignTable *table;
 	UserMapping *user;
@@ -3500,7 +3500,7 @@ spdfrontAnalyzeForeignTable(Relation relation,
 	 */
 	table = GetForeignTable(RelationGetRelid(relation));
 	user = GetUserMapping(relation->rd_rel->relowner, table->serverid);
-	conn = GetConnection(GetForeignServer(table->serverid),user, false);
+	conn = GetConnection(GetForeignServer(table->serverid), user, false);
 
 	/*
 	 * Construct command to get page count for relation.
@@ -3553,7 +3553,7 @@ spdfrontAnalyzeForeignTable(Relation relation,
  */
 static int
 spdfrontAcquireSampleRowsFunc(Relation relation, int elevel,
-							  HeapTuple *rows, int targrows,
+							  HeapTuple * rows, int targrows,
 							  double *totalrows,
 							  double *totaldeadrows)
 {
@@ -3590,7 +3590,7 @@ spdfrontAcquireSampleRowsFunc(Relation relation, int elevel,
 	table = GetForeignTable(RelationGetRelid(relation));
 	server = GetForeignServer(table->serverid);
 	user = GetUserMapping(relation->rd_rel->relowner, table->serverid);
-	conn = GetConnection(GetForeignServer(table->serverid),user, false);
+	conn = GetConnection(GetForeignServer(table->serverid), user, false);
 
 	/*
 	 * Construct cursor that retrieves whole rows from remote.
@@ -3708,7 +3708,7 @@ spdfrontAcquireSampleRowsFunc(Relation relation, int elevel,
  *	 - Subsequently, replace already-sampled tuples randomly.
  */
 static void
-analyze_row_processor(PGresult *res, int row, SpdfFdwAnalyzeState *astate)
+analyze_row_processor(PGresult * res, int row, SpdfFdwAnalyzeState * astate)
 {
 	int			targrows = astate->targrows;
 	int			pos;			/* array index to store tuple in */
@@ -3775,7 +3775,7 @@ analyze_row_processor(PGresult *res, int row, SpdfFdwAnalyzeState *astate)
  * Import a foreign schema
  */
 static List *
-spdfrontImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
+spdfrontImportForeignSchema(ImportForeignSchemaStmt * stmt, Oid serverOid)
 {
 	List	   *commands = NIL;
 	bool		import_collate = true;
@@ -3813,7 +3813,7 @@ spdfrontImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 	 */
 	server = GetForeignServer(serverOid);
 	mapping = GetUserMapping(GetUserId(), server->serverid);
-	conn = GetConnection(server,mapping, false);
+	conn = GetConnection(server, mapping, false);
 
 	/* Don't attempt to import collation if remote server hasn't got it */
 	if (PQserverVersion(conn) < 90100)
@@ -3856,9 +3856,9 @@ spdfrontImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 		 * remote data set locally in the schema imported.
 		 *
 		 * Note: because we run the connection with search_path restricted to
-		 * spdf_catalog, the format_type() and spdf_get_expr() outputs will always
-		 * include a schema name for types/functions in other schemas, which
-		 * is what we want.
+		 * spdf_catalog, the format_type() and spdf_get_expr() outputs will
+		 * always include a schema name for types/functions in other schemas,
+		 * which is what we want.
 		 */
 		if (import_collate)
 			appendStringInfoString(&buf,
@@ -4058,9 +4058,9 @@ spdfrontImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
  * function to PgFdwRelationInfo passed in.
  */
 static bool
-foreign_join_ok(PlannerInfo *root, RelOptInfo *joinrel, JoinType jointype,
-				RelOptInfo *outerrel, RelOptInfo *innerrel,
-				JoinPathExtraData *extra)
+foreign_join_ok(PlannerInfo * root, RelOptInfo * joinrel, JoinType jointype,
+				RelOptInfo * outerrel, RelOptInfo * innerrel,
+				JoinPathExtraData * extra)
 {
 	SpdFFdwRelationInfo *fpinfo;
 	SpdFFdwRelationInfo *fpinfo_o;
@@ -4314,8 +4314,8 @@ foreign_join_ok(PlannerInfo *root, RelOptInfo *joinrel, JoinType jointype,
 }
 
 static void
-add_paths_with_pathkeys_for_rel(PlannerInfo *root, RelOptInfo *rel,
-								Path *epq_path)
+add_paths_with_pathkeys_for_rel(PlannerInfo * root, RelOptInfo * rel,
+								Path * epq_path)
 {
 	List	   *useful_pathkeys_list = NIL; /* List of all pathkeys */
 	ListCell   *lc;
@@ -4336,8 +4336,8 @@ add_paths_with_pathkeys_for_rel(PlannerInfo *root, RelOptInfo *rel,
 								&rows, &width, &startup_cost, &total_cost);
 
 		/*
-		 * The EPQ path must be at least as well sorted as the path itself,
-		 * in case it gets used as input to a mergejoin.
+		 * The EPQ path must be at least as well sorted as the path itself, in
+		 * case it gets used as input to a mergejoin.
 		 */
 		sorted_epq_path = epq_path;
 		if (sorted_epq_path != NULL &&
@@ -4369,7 +4369,7 @@ add_paths_with_pathkeys_for_rel(PlannerInfo *root, RelOptInfo *rel,
  * New options might also require tweaking merge_fdw_options().
  */
 static void
-apply_server_options(SpdFFdwRelationInfo *fpinfo)
+apply_server_options(SpdFFdwRelationInfo * fpinfo)
 {
 	ListCell   *lc;
 
@@ -4397,7 +4397,7 @@ apply_server_options(SpdFFdwRelationInfo *fpinfo)
  * New options might also require tweaking merge_fdw_options().
  */
 static void
-apply_table_options(SpdFFdwRelationInfo *fpinfo)
+apply_table_options(SpdFFdwRelationInfo * fpinfo)
 {
 	ListCell   *lc;
 
@@ -4422,9 +4422,9 @@ apply_table_options(SpdFFdwRelationInfo *fpinfo)
  * expected to NULL.
  */
 static void
-merge_fdw_options(SpdFFdwRelationInfo *fpinfo,
-				  const SpdFFdwRelationInfo *fpinfo_o,
-				  const SpdFFdwRelationInfo *fpinfo_i)
+merge_fdw_options(SpdFFdwRelationInfo * fpinfo,
+				  const SpdFFdwRelationInfo * fpinfo_o,
+				  const SpdFFdwRelationInfo * fpinfo_i)
 {
 	/* We must always have fpinfo_o. */
 	Assert(fpinfo_o);
@@ -4472,12 +4472,12 @@ merge_fdw_options(SpdFFdwRelationInfo *fpinfo,
  *		Add possible ForeignPath to joinrel, if join is safe to push down.
  */
 static void
-spdfrontGetForeignJoinPaths(PlannerInfo *root,
-							RelOptInfo *joinrel,
-							RelOptInfo *outerrel,
-							RelOptInfo *innerrel,
+spdfrontGetForeignJoinPaths(PlannerInfo * root,
+							RelOptInfo * joinrel,
+							RelOptInfo * outerrel,
+							RelOptInfo * innerrel,
 							JoinType jointype,
-							JoinPathExtraData *extra)
+							JoinPathExtraData * extra)
 {
 	SpdFFdwRelationInfo *fpinfo;
 	ForeignPath *joinpath;
@@ -4604,7 +4604,7 @@ spdfrontGetForeignJoinPaths(PlannerInfo *root,
  * this function to SpdFFdwRelationInfo of the input relation.
  */
 static bool
-foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
+foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 {
 	Query	   *query = root->parse;
 	PathTarget *grouping_target = root->upper_targets[UPPERREL_GROUP_AGG];
@@ -4818,8 +4818,8 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
  * Right now, we only support aggregate, grouping and having clause pushdown.
  */
 static void
-spdfrontGetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
-							 RelOptInfo *input_rel, RelOptInfo *output_rel)
+spdfrontGetForeignUpperPaths(PlannerInfo * root, UpperRelationKind stage,
+							 RelOptInfo * input_rel, RelOptInfo * output_rel)
 {
 	SpdFFdwRelationInfo *fpinfo;
 
@@ -4850,8 +4850,8 @@ spdfrontGetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
  * given grouped_rel.
  */
 static void
-add_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
-						   RelOptInfo *grouped_rel)
+add_foreign_grouping_paths(PlannerInfo * root, RelOptInfo * input_rel,
+						   RelOptInfo * grouped_rel)
 {
 	Query	   *parse = root->parse;
 	SpdFFdwRelationInfo *ifpinfo = input_rel->fdw_private;
@@ -4921,12 +4921,12 @@ add_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
  * temp_context is a working context that can be reset after each tuple.
  */
 static HeapTuple
-make_tuple_from_result_row(PGresult *res,
+make_tuple_from_result_row(PGresult * res,
 						   int row,
 						   Relation rel,
-						   AttInMetadata *attinmeta,
-						   List *retrieved_attrs,
-						   ForeignScanState *fsstate,
+						   AttInMetadata * attinmeta,
+						   List * retrieved_attrs,
+						   ForeignScanState * fsstate,
 						   MemoryContext temp_context)
 {
 	HeapTuple	tuple;
@@ -5161,7 +5161,7 @@ conversion_error_callback(void *arg)
  * the indicated relation.
  */
 extern Expr *
-find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel)
+find_em_expr_for_rel(EquivalenceClass * ec, RelOptInfo * rel)
 {
 	ListCell   *lc_em;
 

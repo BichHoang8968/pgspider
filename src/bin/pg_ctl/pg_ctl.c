@@ -49,14 +49,14 @@ typedef enum
 	SMART_MODE,
 	FAST_MODE,
 	IMMEDIATE_MODE
-} ShutdownMode;
+}			ShutdownMode;
 
 typedef enum
 {
 	POSTMASTER_READY,
 	POSTMASTER_STILL_STARTING,
 	POSTMASTER_FAILED
-} WaitPMResult;
+}			WaitPMResult;
 
 typedef enum
 {
@@ -72,7 +72,7 @@ typedef enum
 	REGISTER_COMMAND,
 	UNREGISTER_COMMAND,
 	RUN_AS_SERVICE_COMMAND
-} CtlCommand;
+}			CtlCommand;
 
 #define DEFAULT_WAIT	60
 
@@ -151,7 +151,7 @@ static void pgwin32_SetServiceStatus(DWORD);
 static void WINAPI pgwin32_ServiceHandler(DWORD);
 static void WINAPI pgwin32_ServiceMain(DWORD, LPTSTR *);
 static void pgwin32_doRunAsService(void);
-static int	CreateRestrictedProcess(char *cmd, PROCESS_INFORMATION *processInfo, bool as_service);
+static int	CreateRestrictedProcess(char *cmd, PROCESS_INFORMATION * processInfo, bool as_service);
 #endif
 
 static pgpid_t get_pgpid(bool is_status_request);
@@ -637,7 +637,7 @@ wait_for_postmaster(pgpid_t pm_pid, bool do_checkpoint)
 				 */
 				status.dwWaitHint += 6000;
 				status.dwCheckPoint++;
-				SetServiceStatus(hStatus, (LPSERVICE_STATUS) &status);
+				SetServiceStatus(hStatus, (LPSERVICE_STATUS) & status);
 			}
 			else
 #endif
@@ -1474,7 +1474,7 @@ static void
 pgwin32_SetServiceStatus(DWORD currentState)
 {
 	status.dwCurrentState = currentState;
-	SetServiceStatus(hStatus, (LPSERVICE_STATUS) &status);
+	SetServiceStatus(hStatus, (LPSERVICE_STATUS) & status);
 }
 
 static void WINAPI
@@ -1510,7 +1510,7 @@ pgwin32_ServiceHandler(DWORD request)
 }
 
 static void WINAPI
-pgwin32_ServiceMain(DWORD argc, LPTSTR *argv)
+pgwin32_ServiceMain(DWORD argc, LPTSTR * argv)
 {
 	PROCESS_INFORMATION pi;
 	DWORD		ret;
@@ -1583,7 +1583,7 @@ pgwin32_ServiceMain(DWORD argc, LPTSTR *argv)
 				while (WaitForSingleObject(postmasterProcess, 5000) == WAIT_TIMEOUT && status.dwCheckPoint < maxShutdownCheckPoint)
 				{
 					status.dwCheckPoint++;
-					SetServiceStatus(hStatus, (LPSERVICE_STATUS) &status);
+					SetServiceStatus(hStatus, (LPSERVICE_STATUS) & status);
 				}
 				break;
 			}
@@ -1624,12 +1624,12 @@ pgwin32_doRunAsService(void)
  * also load the couple of functions that *do* exist in minwg headers but not
  * on NT4. That way, we don't break on NT4.
  */
-typedef BOOL (WINAPI * __CreateRestrictedToken) (HANDLE, DWORD, DWORD, PSID_AND_ATTRIBUTES, DWORD, PLUID_AND_ATTRIBUTES, DWORD, PSID_AND_ATTRIBUTES, PHANDLE);
-typedef BOOL (WINAPI * __IsProcessInJob) (HANDLE, HANDLE, PBOOL);
-typedef HANDLE (WINAPI * __CreateJobObject) (LPSECURITY_ATTRIBUTES, LPCTSTR);
-typedef BOOL (WINAPI * __SetInformationJobObject) (HANDLE, JOBOBJECTINFOCLASS, LPVOID, DWORD);
-typedef BOOL (WINAPI * __AssignProcessToJobObject) (HANDLE, HANDLE);
-typedef BOOL (WINAPI * __QueryInformationJobObject) (HANDLE, JOBOBJECTINFOCLASS, LPVOID, DWORD, LPDWORD);
+typedef BOOL(WINAPI * __CreateRestrictedToken) (HANDLE, DWORD, DWORD, PSID_AND_ATTRIBUTES, DWORD, PLUID_AND_ATTRIBUTES, DWORD, PSID_AND_ATTRIBUTES, PHANDLE);
+typedef BOOL(WINAPI * __IsProcessInJob) (HANDLE, HANDLE, PBOOL);
+typedef HANDLE(WINAPI * __CreateJobObject) (LPSECURITY_ATTRIBUTES, LPCTSTR);
+typedef BOOL(WINAPI * __SetInformationJobObject) (HANDLE, JOBOBJECTINFOCLASS, LPVOID, DWORD);
+typedef BOOL(WINAPI * __AssignProcessToJobObject) (HANDLE, HANDLE);
+typedef BOOL(WINAPI * __QueryInformationJobObject) (HANDLE, JOBOBJECTINFOCLASS, LPVOID, DWORD, LPDWORD);
 
 /* Windows API define missing from some versions of MingW headers */
 #ifndef  DISABLE_MAX_PRIVILEGE
@@ -1649,7 +1649,7 @@ typedef BOOL (WINAPI * __QueryInformationJobObject) (HANDLE, JOBOBJECTINFOCLASS,
  * automatically destroyed when pg_ctl exits.
  */
 static int
-CreateRestrictedProcess(char *cmd, PROCESS_INFORMATION *processInfo, bool as_service)
+CreateRestrictedProcess(char *cmd, PROCESS_INFORMATION * processInfo, bool as_service)
 {
 	int			r;
 	BOOL		b;

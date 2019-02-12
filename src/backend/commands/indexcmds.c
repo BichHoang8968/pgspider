@@ -58,24 +58,24 @@
 
 
 /* non-export function prototypes */
-static void CheckPredicate(Expr *predicate);
-static void ComputeIndexAttrs(IndexInfo *indexInfo,
-				  Oid *typeOidP,
-				  Oid *collationOidP,
-				  Oid *classOidP,
-				  int16 *colOptionP,
-				  List *attList,
-				  List *exclusionOpNames,
+static void CheckPredicate(Expr * predicate);
+static void ComputeIndexAttrs(IndexInfo * indexInfo,
+				  Oid * typeOidP,
+				  Oid * collationOidP,
+				  Oid * classOidP,
+				  int16 * colOptionP,
+				  List * attList,
+				  List * exclusionOpNames,
 				  Oid relId,
 				  char *accessMethodName, Oid accessMethodId,
 				  bool amcanorder,
 				  bool isconstraint);
 static char *ChooseIndexName(const char *tabname, Oid namespaceId,
-				List *colnames, List *exclusionOpNames,
+				List * colnames, List * exclusionOpNames,
 				bool primary, bool isconstraint);
-static char *ChooseIndexNameAddition(List *colnames);
-static List *ChooseIndexColumnNames(List *indexElems);
-static void RangeVarCallbackForReindexIndex(const RangeVar *relation,
+static char *ChooseIndexNameAddition(List * colnames);
+static List * ChooseIndexColumnNames(List * indexElems);
+static void RangeVarCallbackForReindexIndex(const RangeVar * relation,
 								Oid relId, Oid oldRelId, void *arg);
 
 /*
@@ -116,8 +116,8 @@ static void RangeVarCallbackForReindexIndex(const RangeVar *relation,
 bool
 CheckIndexCompatible(Oid oldId,
 					 char *accessMethodName,
-					 List *attributeList,
-					 List *exclusionOpNames)
+					 List * attributeList,
+					 List * exclusionOpNames)
 {
 	bool		isconstraint;
 	Oid		   *typeObjectId;
@@ -306,7 +306,7 @@ CheckIndexCompatible(Oid oldId,
  */
 ObjectAddress
 DefineIndex(Oid relationId,
-			IndexStmt *stmt,
+			IndexStmt * stmt,
 			Oid indexRelationId,
 			bool is_alter_table,
 			bool check_rights,
@@ -962,7 +962,7 @@ DefineIndex(Oid relationId,
  *		Test whether given expression is mutable
  */
 static bool
-CheckMutability(Expr *expr)
+CheckMutability(Expr * expr)
 {
 	/*
 	 * First run the expression through the planner.  This has a couple of
@@ -996,7 +996,7 @@ CheckMutability(Expr *expr)
  * (except ones requiring a plan), and let indxpath.c fend for itself.
  */
 static void
-CheckPredicate(Expr *predicate)
+CheckPredicate(Expr * predicate)
 {
 	/*
 	 * transformExpr() should have already rejected subqueries, aggregates,
@@ -1018,13 +1018,13 @@ CheckPredicate(Expr *predicate)
  * or index expressions, opclasses, and indoptions.
  */
 static void
-ComputeIndexAttrs(IndexInfo *indexInfo,
-				  Oid *typeOidP,
-				  Oid *collationOidP,
-				  Oid *classOidP,
-				  int16 *colOptionP,
-				  List *attList,	/* list of IndexElem's */
-				  List *exclusionOpNames,
+ComputeIndexAttrs(IndexInfo * indexInfo,
+				  Oid * typeOidP,
+				  Oid * collationOidP,
+				  Oid * classOidP,
+				  int16 * colOptionP,
+				  List * attList,	/* list of IndexElem's */
+				  List * exclusionOpNames,
 				  Oid relId,
 				  char *accessMethodName,
 				  Oid accessMethodId,
@@ -1291,7 +1291,7 @@ ComputeIndexAttrs(IndexInfo *indexInfo,
  * partition key definitions.
  */
 Oid
-ResolveOpClass(List *opclass, Oid attrType,
+ResolveOpClass(List * opclass, Oid attrType,
 			   char *accessMethodName, Oid accessMethodId)
 {
 	char	   *schemaname;
@@ -1623,7 +1623,7 @@ ChooseRelationName(const char *name1, const char *name2,
  */
 static char *
 ChooseIndexName(const char *tabname, Oid namespaceId,
-				List *colnames, List *exclusionOpNames,
+				List * colnames, List * exclusionOpNames,
 				bool primary, bool isconstraint)
 {
 	char	   *indexname;
@@ -1672,7 +1672,7 @@ ChooseIndexName(const char *tabname, Oid namespaceId,
  * XXX See also ChooseExtendedStatisticNameAddition.
  */
 static char *
-ChooseIndexNameAddition(List *colnames)
+ChooseIndexNameAddition(List * colnames)
 {
 	char		buf[NAMEDATALEN * 2];
 	int			buflen = 0;
@@ -1706,7 +1706,7 @@ ChooseIndexNameAddition(List *colnames)
  * Returns a List of plain strings (char *, not String nodes).
  */
 static List *
-ChooseIndexColumnNames(List *indexElems)
+ChooseIndexColumnNames(List * indexElems)
 {
 	List	   *result = NIL;
 	ListCell   *lc;
@@ -1764,7 +1764,7 @@ ChooseIndexColumnNames(List *indexElems)
  *		Recreate a specific index.
  */
 Oid
-ReindexIndex(RangeVar *indexRelation, int options)
+ReindexIndex(RangeVar * indexRelation, int options)
 {
 	Oid			indOid;
 	Oid			heapOid = InvalidOid;
@@ -1800,7 +1800,7 @@ ReindexIndex(RangeVar *indexRelation, int options)
  * deadlocks.
  */
 static void
-RangeVarCallbackForReindexIndex(const RangeVar *relation,
+RangeVarCallbackForReindexIndex(const RangeVar * relation,
 								Oid relId, Oid oldRelId, void *arg)
 {
 	char		relkind;
@@ -1858,7 +1858,7 @@ RangeVarCallbackForReindexIndex(const RangeVar *relation,
  *		Recreate all indexes of a table (and of its toast table, if any)
  */
 Oid
-ReindexTable(RangeVar *relation, int options)
+ReindexTable(RangeVar * relation, int options)
 {
 	Oid			heapOid;
 

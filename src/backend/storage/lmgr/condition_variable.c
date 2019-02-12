@@ -27,16 +27,16 @@
 #include "utils/memutils.h"
 
 /* Initially, we are not prepared to sleep on any condition variable. */
-static ConditionVariable *cv_sleep_target = NULL;
+static ConditionVariable * cv_sleep_target = NULL;
 
 /* Reusable WaitEventSet. */
-static WaitEventSet *cv_wait_event_set = NULL;
+static WaitEventSet * cv_wait_event_set = NULL;
 
 /*
  * Initialize a condition variable.
  */
 void
-ConditionVariableInit(ConditionVariable *cv)
+ConditionVariableInit(ConditionVariable * cv)
 {
 	SpinLockInit(&cv->mutex);
 	proclist_init(&cv->wakeup);
@@ -50,7 +50,7 @@ ConditionVariableInit(ConditionVariable *cv)
  * double-test of the user's predicate in the case that we need to wait.
  */
 void
-ConditionVariablePrepareToSleep(ConditionVariable *cv)
+ConditionVariablePrepareToSleep(ConditionVariable * cv)
 {
 	int			pgprocno = MyProc->pgprocno;
 
@@ -113,7 +113,7 @@ ConditionVariablePrepareToSleep(ConditionVariable *cv)
  * columns while waiting.
  *-------------------------------------------------------------------------*/
 void
-ConditionVariableSleep(ConditionVariable *cv, uint32 wait_event_info)
+ConditionVariableSleep(ConditionVariable * cv, uint32 wait_event_info)
 {
 	WaitEvent	event;
 	bool		done = false;
@@ -207,7 +207,7 @@ ConditionVariableCancelSleep(void)
  * The return value indicates whether or not we woke somebody up.
  */
 bool
-ConditionVariableSignal(ConditionVariable *cv)
+ConditionVariableSignal(ConditionVariable * cv)
 {
 	PGPROC	   *proc = NULL;
 
@@ -234,7 +234,7 @@ ConditionVariableSignal(ConditionVariable *cv)
  * The return value indicates the number of processes we woke.
  */
 int
-ConditionVariableBroadcast(ConditionVariable *cv)
+ConditionVariableBroadcast(ConditionVariable * cv)
 {
 	int			nwoken = 0;
 	int			pgprocno = MyProc->pgprocno;

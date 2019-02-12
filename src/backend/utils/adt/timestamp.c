@@ -57,7 +57,7 @@ typedef struct
 	Timestamp	finish;
 	Interval	step;
 	int			step_sign;
-} generate_series_timestamp_fctx;
+}			generate_series_timestamp_fctx;
 
 typedef struct
 {
@@ -65,20 +65,20 @@ typedef struct
 	TimestampTz finish;
 	Interval	step;
 	int			step_sign;
-} generate_series_timestamptz_fctx;
+}			generate_series_timestamptz_fctx;
 
 
 static TimeOffset time2t(const int hour, const int min, const int sec, const fsec_t fsec);
 static Timestamp dt2local(Timestamp dt, int timezone);
-static void AdjustTimestampForTypmod(Timestamp *time, int32 typmod);
-static void AdjustIntervalForTypmod(Interval *interval, int32 typmod);
+static void AdjustTimestampForTypmod(Timestamp * time, int32 typmod);
+static void AdjustIntervalForTypmod(Interval * interval, int32 typmod);
 static TimestampTz timestamp2timestamptz(Timestamp timestamp);
 static Timestamp timestamptz2timestamp(TimestampTz timestamp);
 
 
 /* common code for timestamptypmodin and timestamptztypmodin */
 static int32
-anytimestamp_typmodin(bool istz, ArrayType *ta)
+anytimestamp_typmodin(bool istz, ArrayType * ta)
 {
 	int32	   *tl;
 	int			n;
@@ -331,7 +331,7 @@ timestamp_scale(PG_FUNCTION_ARGS)
  * Works for either timestamp or timestamptz.
  */
 static void
-AdjustTimestampForTypmod(Timestamp *time, int32 typmod)
+AdjustTimestampForTypmod(Timestamp * time, int32 typmod)
 {
 	static const int64 TimestampScales[MAX_TIMESTAMP_PRECISION + 1] = {
 		INT64CONST(1000000),
@@ -455,7 +455,7 @@ timestamptz_in(PG_FUNCTION_ARGS)
  * don't care, so we don't bother being consistent.
  */
 static int
-parse_sane_timezone(struct pg_tm *tm, text *zone)
+parse_sane_timezone(struct pg_tm *tm, text * zone)
 {
 	char		tzname[TZ_STRLEN_MAX + 1];
 	int			rt;
@@ -1251,7 +1251,7 @@ interval_transform(PG_FUNCTION_ARGS)
 
 	typmod = (Node *) lsecond(expr->args);
 
-	if (IsA(typmod, Const) &&!((Const *) typmod)->constisnull)
+	if (IsA(typmod, Const) && !((Const *) typmod)->constisnull)
 	{
 		Node	   *source = (Node *) linitial(expr->args);
 		int32		new_typmod = DatumGetInt32(((Const *) typmod)->constvalue);
@@ -1317,7 +1317,7 @@ interval_scale(PG_FUNCTION_ARGS)
  *	range and sub-second precision.
  */
 static void
-AdjustIntervalForTypmod(Interval *interval, int32 typmod)
+AdjustIntervalForTypmod(Interval * interval, int32 typmod)
 {
 	static const int64 IntervalScales[MAX_INTERVAL_PRECISION + 1] = {
 		INT64CONST(1000000),
@@ -1728,7 +1728,7 @@ timestamptz_to_str(TimestampTz t)
 
 
 void
-dt2time(Timestamp jd, int *hour, int *min, int *sec, fsec_t *fsec)
+dt2time(Timestamp jd, int *hour, int *min, int *sec, fsec_t * fsec)
 {
 	TimeOffset	time;
 
@@ -1755,7 +1755,7 @@ dt2time(Timestamp jd, int *hour, int *min, int *sec, fsec_t *fsec)
  * If attimezone is NULL, the global timezone setting will be used.
  */
 int
-timestamp2tm(Timestamp dt, int *tzp, struct pg_tm *tm, fsec_t *fsec, const char **tzn, pg_tz *attimezone)
+timestamp2tm(Timestamp dt, int *tzp, struct pg_tm *tm, fsec_t * fsec, const char **tzn, pg_tz * attimezone)
 {
 	Timestamp	date;
 	Timestamp	time;
@@ -1851,7 +1851,7 @@ timestamp2tm(Timestamp dt, int *tzp, struct pg_tm *tm, fsec_t *fsec, const char 
  * Returns -1 on failure (value out of range).
  */
 int
-tm2timestamp(struct pg_tm *tm, fsec_t fsec, int *tzp, Timestamp *result)
+tm2timestamp(struct pg_tm *tm, fsec_t fsec, int *tzp, Timestamp * result)
 {
 	TimeOffset	date;
 	TimeOffset	time;
@@ -1899,7 +1899,7 @@ tm2timestamp(struct pg_tm *tm, fsec_t fsec, int *tzp, Timestamp *result)
  * Convert an interval data type to a tm structure.
  */
 int
-interval2tm(Interval span, struct pg_tm *tm, fsec_t *fsec)
+interval2tm(Interval span, struct pg_tm *tm, fsec_t * fsec)
 {
 	TimeOffset	time;
 	TimeOffset	tfrac;
@@ -1927,7 +1927,7 @@ interval2tm(Interval span, struct pg_tm *tm, fsec_t *fsec)
 }
 
 int
-tm2interval(struct pg_tm *tm, fsec_t fsec, Interval *span)
+tm2interval(struct pg_tm *tm, fsec_t fsec, Interval * span)
 {
 	double		total_months = (double) tm->tm_year * MONTHS_PER_YEAR + tm->tm_mon;
 
@@ -2298,7 +2298,7 @@ timestamptz_cmp_timestamp(PG_FUNCTION_ARGS)
  */
 
 static inline INT128
-interval_cmp_value(const Interval *interval)
+interval_cmp_value(const Interval * interval)
 {
 	INT128		span;
 	int64		dayfraction;
@@ -2323,7 +2323,7 @@ interval_cmp_value(const Interval *interval)
 }
 
 static int
-interval_cmp_internal(Interval *interval1, Interval *interval2)
+interval_cmp_internal(Interval * interval1, Interval * interval2)
 {
 	INT128		span1 = interval_cmp_value(interval1);
 	INT128		span2 = interval_cmp_value(interval2);

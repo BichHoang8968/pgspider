@@ -56,7 +56,7 @@ CATALOG(pg_partitioned_table,3350) BKI_WITHOUT_OIDS
  *		the format of pg_partitioned_table relation.
  * ----------------
  */
-typedef FormData_pg_partitioned_table *Form_pg_partitioned_table;
+typedef FormData_pg_partitioned_table * Form_pg_partitioned_table;
 
 /* ----------------
  *		compiler constants for pg_partitioned_table

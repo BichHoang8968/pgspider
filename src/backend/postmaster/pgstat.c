@@ -172,9 +172,9 @@ typedef struct TabStatusArray
 	struct TabStatusArray *tsa_next;	/* link to next array, if any */
 	int			tsa_used;		/* # entries currently used */
 	PgStat_TableStatus tsa_entries[TABSTAT_QUANTUM];	/* per-table data */
-} TabStatusArray;
+}			TabStatusArray;
 
-static TabStatusArray *pgStatTabList = NULL;
+static TabStatusArray * pgStatTabList = NULL;
 
 /*
  * pgStatTabHash entry: map from relation OID to PgStat_TableStatus pointer
@@ -183,18 +183,18 @@ typedef struct TabStatHashEntry
 {
 	Oid			t_id;
 	PgStat_TableStatus *tsa_entry;
-} TabStatHashEntry;
+}			TabStatHashEntry;
 
 /*
  * Hash table for O(1) t_id -> tsa_entry lookup
  */
-static HTAB *pgStatTabHash = NULL;
+static HTAB * pgStatTabHash = NULL;
 
 /*
  * Backends store per-function info that's waiting to be sent to the collector
  * in this hash table (indexed by function OID).
  */
-static HTAB *pgStatFunctions = NULL;
+static HTAB * pgStatFunctions = NULL;
 
 /*
  * Indicates if backend has some function stats that it hasn't yet
@@ -214,9 +214,9 @@ typedef struct PgStat_SubXactStatus
 	int			nest_level;		/* subtransaction nest level */
 	struct PgStat_SubXactStatus *prev;	/* higher-level subxact if any */
 	PgStat_TableXactStatus *first;	/* head of list for this subxact */
-} PgStat_SubXactStatus;
+}			PgStat_SubXactStatus;
 
-static PgStat_SubXactStatus *pgStatXactStack = NULL;
+static PgStat_SubXactStatus * pgStatXactStack = NULL;
 
 static int	pgStatXactCommit = 0;
 static int	pgStatXactRollback = 0;
@@ -235,16 +235,16 @@ typedef struct TwoPhasePgStatRecord
 	Oid			t_id;			/* table's OID */
 	bool		t_shared;		/* is it a shared catalog? */
 	bool		t_truncated;	/* was the relation truncated? */
-} TwoPhasePgStatRecord;
+}			TwoPhasePgStatRecord;
 
 /*
  * Info about current "snapshot" of stats file
  */
 static MemoryContext pgStatLocalContext = NULL;
-static HTAB *pgStatDBHash = NULL;
+static HTAB * pgStatDBHash = NULL;
 
 /* Status for backends including auxiliary */
-static LocalPgBackendStatus *localBackendStatusTable = NULL;
+static LocalPgBackendStatus * localBackendStatusTable = NULL;
 
 /* Total number of backends including auxiliary */
 static int	localNumBackends = 0;
@@ -262,7 +262,7 @@ static PgStat_GlobalStats globalStats;
  * it means to write only the shared-catalog stats ("DB 0"); otherwise, we
  * will write both that DB's data and the shared stats.
  */
-static List *pending_write_requests = NIL;
+static List * pending_write_requests = NIL;
 
 /* Signal handler flags */
 static volatile bool need_exit = false;
@@ -289,24 +289,24 @@ static void pgstat_exit(SIGNAL_ARGS);
 static void pgstat_beshutdown_hook(int code, Datum arg);
 static void pgstat_sighup_handler(SIGNAL_ARGS);
 
-static PgStat_StatDBEntry *pgstat_get_db_entry(Oid databaseid, bool create);
-static PgStat_StatTabEntry *pgstat_get_tab_entry(PgStat_StatDBEntry *dbentry,
-					 Oid tableoid, bool create);
+static PgStat_StatDBEntry * pgstat_get_db_entry(Oid databaseid, bool create);
+static PgStat_StatTabEntry * pgstat_get_tab_entry(PgStat_StatDBEntry * dbentry,
+												  Oid tableoid, bool create);
 static void pgstat_write_statsfiles(bool permanent, bool allDbs);
-static void pgstat_write_db_statsfile(PgStat_StatDBEntry *dbentry, bool permanent);
-static HTAB *pgstat_read_statsfiles(Oid onlydb, bool permanent, bool deep);
-static void pgstat_read_db_statsfile(Oid databaseid, HTAB *tabhash, HTAB *funchash, bool permanent);
+static void pgstat_write_db_statsfile(PgStat_StatDBEntry * dbentry, bool permanent);
+static HTAB * pgstat_read_statsfiles(Oid onlydb, bool permanent, bool deep);
+static void pgstat_read_db_statsfile(Oid databaseid, HTAB * tabhash, HTAB * funchash, bool permanent);
 static void backend_read_statsfile(void);
 static void pgstat_read_current_status(void);
 
 static bool pgstat_write_statsfile_needed(void);
 static bool pgstat_db_requested(Oid databaseid);
 
-static void pgstat_send_tabstat(PgStat_MsgTabstat *tsmsg);
+static void pgstat_send_tabstat(PgStat_MsgTabstat * tsmsg);
 static void pgstat_send_funcstats(void);
-static HTAB *pgstat_collect_oids(Oid catalogid);
+static HTAB * pgstat_collect_oids(Oid catalogid);
 
-static PgStat_TableStatus *get_tabstat_entry(Oid rel_id, bool isshared);
+static PgStat_TableStatus * get_tabstat_entry(Oid rel_id, bool isshared);
 
 static void pgstat_setup_memcxt(void);
 
@@ -316,26 +316,26 @@ static const char *pgstat_get_wait_ipc(WaitEventIPC w);
 static const char *pgstat_get_wait_timeout(WaitEventTimeout w);
 static const char *pgstat_get_wait_io(WaitEventIO w);
 
-static void pgstat_setheader(PgStat_MsgHdr *hdr, StatMsgType mtype);
+static void pgstat_setheader(PgStat_MsgHdr * hdr, StatMsgType mtype);
 static void pgstat_send(void *msg, int len);
 
-static void pgstat_recv_inquiry(PgStat_MsgInquiry *msg, int len);
-static void pgstat_recv_tabstat(PgStat_MsgTabstat *msg, int len);
-static void pgstat_recv_tabpurge(PgStat_MsgTabpurge *msg, int len);
-static void pgstat_recv_dropdb(PgStat_MsgDropdb *msg, int len);
-static void pgstat_recv_resetcounter(PgStat_MsgResetcounter *msg, int len);
-static void pgstat_recv_resetsharedcounter(PgStat_MsgResetsharedcounter *msg, int len);
-static void pgstat_recv_resetsinglecounter(PgStat_MsgResetsinglecounter *msg, int len);
-static void pgstat_recv_autovac(PgStat_MsgAutovacStart *msg, int len);
-static void pgstat_recv_vacuum(PgStat_MsgVacuum *msg, int len);
-static void pgstat_recv_analyze(PgStat_MsgAnalyze *msg, int len);
-static void pgstat_recv_archiver(PgStat_MsgArchiver *msg, int len);
-static void pgstat_recv_bgwriter(PgStat_MsgBgWriter *msg, int len);
-static void pgstat_recv_funcstat(PgStat_MsgFuncstat *msg, int len);
-static void pgstat_recv_funcpurge(PgStat_MsgFuncpurge *msg, int len);
-static void pgstat_recv_recoveryconflict(PgStat_MsgRecoveryConflict *msg, int len);
-static void pgstat_recv_deadlock(PgStat_MsgDeadlock *msg, int len);
-static void pgstat_recv_tempfile(PgStat_MsgTempFile *msg, int len);
+static void pgstat_recv_inquiry(PgStat_MsgInquiry * msg, int len);
+static void pgstat_recv_tabstat(PgStat_MsgTabstat * msg, int len);
+static void pgstat_recv_tabpurge(PgStat_MsgTabpurge * msg, int len);
+static void pgstat_recv_dropdb(PgStat_MsgDropdb * msg, int len);
+static void pgstat_recv_resetcounter(PgStat_MsgResetcounter * msg, int len);
+static void pgstat_recv_resetsharedcounter(PgStat_MsgResetsharedcounter * msg, int len);
+static void pgstat_recv_resetsinglecounter(PgStat_MsgResetsinglecounter * msg, int len);
+static void pgstat_recv_autovac(PgStat_MsgAutovacStart * msg, int len);
+static void pgstat_recv_vacuum(PgStat_MsgVacuum * msg, int len);
+static void pgstat_recv_analyze(PgStat_MsgAnalyze * msg, int len);
+static void pgstat_recv_archiver(PgStat_MsgArchiver * msg, int len);
+static void pgstat_recv_bgwriter(PgStat_MsgBgWriter * msg, int len);
+static void pgstat_recv_funcstat(PgStat_MsgFuncstat * msg, int len);
+static void pgstat_recv_funcpurge(PgStat_MsgFuncpurge * msg, int len);
+static void pgstat_recv_recoveryconflict(PgStat_MsgRecoveryConflict * msg, int len);
+static void pgstat_recv_deadlock(PgStat_MsgDeadlock * msg, int len);
+static void pgstat_recv_tempfile(PgStat_MsgTempFile * msg, int len);
 
 /* ------------------------------------------------------------
  * Public functions called from postmaster follow
@@ -916,7 +916,7 @@ pgstat_report_stat(bool force)
  * Subroutine for pgstat_report_stat: finish and send a tabstat message
  */
 static void
-pgstat_send_tabstat(PgStat_MsgTabstat *tsmsg)
+pgstat_send_tabstat(PgStat_MsgTabstat * tsmsg)
 {
 	int			n;
 	int			len;
@@ -1578,8 +1578,8 @@ pgstat_send_inquiry(TimestampTz clock_time, TimestampTz cutoff_time, Oid databas
  * Called by the executor before invoking a function.
  */
 void
-pgstat_init_function_usage(FunctionCallInfoData *fcinfo,
-						   PgStat_FunctionCallUsage *fcu)
+pgstat_init_function_usage(FunctionCallInfoData * fcinfo,
+						   PgStat_FunctionCallUsage * fcu)
 {
 	PgStat_BackendFunctionEntry *htabent;
 	bool		found;
@@ -1650,7 +1650,7 @@ find_funcstat_entry(Oid func_id)
  * finalize flag should be TRUE on the last call.
  */
 void
-pgstat_end_function_usage(PgStat_FunctionCallUsage *fcu, bool finalize)
+pgstat_end_function_usage(PgStat_FunctionCallUsage * fcu, bool finalize)
 {
 	PgStat_FunctionCounts *fs = fcu->fs;
 	instr_time	f_total;
@@ -1877,7 +1877,7 @@ get_tabstat_stack_level(int nest_level)
  * add_tabstat_xact_level - add a new (sub)transaction state record
  */
 static void
-add_tabstat_xact_level(PgStat_TableStatus *pgstat_info, int nest_level)
+add_tabstat_xact_level(PgStat_TableStatus * pgstat_info, int nest_level)
 {
 	PgStat_SubXactStatus *xact_state;
 	PgStat_TableXactStatus *trans;
@@ -1976,7 +1976,7 @@ pgstat_count_heap_delete(Relation rel)
  * this on the first truncate in any particular subxact level only.
  */
 static void
-pgstat_truncate_save_counters(PgStat_TableXactStatus *trans)
+pgstat_truncate_save_counters(PgStat_TableXactStatus * trans)
 {
 	if (!trans->truncated)
 	{
@@ -1991,7 +1991,7 @@ pgstat_truncate_save_counters(PgStat_TableXactStatus *trans)
  * pgstat_truncate_restore_counters - restore counters when a truncate aborts
  */
 static void
-pgstat_truncate_restore_counters(PgStat_TableXactStatus *trans)
+pgstat_truncate_restore_counters(PgStat_TableXactStatus * trans)
 {
 	if (trans->truncated)
 	{
@@ -2586,14 +2586,14 @@ pgstat_fetch_global(void)
  * ------------------------------------------------------------
  */
 
-static PgBackendStatus *BackendStatusArray = NULL;
-static PgBackendStatus *MyBEEntry = NULL;
+static PgBackendStatus * BackendStatusArray = NULL;
+static PgBackendStatus * MyBEEntry = NULL;
 static char *BackendAppnameBuffer = NULL;
 static char *BackendClientHostnameBuffer = NULL;
 static char *BackendActivityBuffer = NULL;
 static Size BackendActivityBufferSize = 0;
 #ifdef USE_SSL
-static PgBackendSSLStatus *BackendSslStatusBuffer = NULL;
+static PgBackendSSLStatus * BackendSslStatusBuffer = NULL;
 #endif
 
 
@@ -2786,7 +2786,7 @@ pgstat_bestart(void)
 {
 	TimestampTz proc_start_timestamp;
 	SockAddr	clientaddr;
-	volatile PgBackendStatus *beentry;
+	volatile	PgBackendStatus *beentry;
 
 	/*
 	 * To minimize the time spent modifying the PgBackendStatus entry, fetch
@@ -2955,7 +2955,7 @@ pgstat_bestart(void)
 static void
 pgstat_beshutdown_hook(int code, Datum arg)
 {
-	volatile PgBackendStatus *beentry = MyBEEntry;
+	volatile	PgBackendStatus *beentry = MyBEEntry;
 
 	/*
 	 * If we got as far as discovering our own database ID, we can report what
@@ -2993,7 +2993,7 @@ pgstat_beshutdown_hook(int code, Datum arg)
 void
 pgstat_report_activity(BackendState state, const char *cmd_str)
 {
-	volatile PgBackendStatus *beentry = MyBEEntry;
+	volatile	PgBackendStatus *beentry = MyBEEntry;
 	TimestampTz start_timestamp;
 	TimestampTz current_timestamp;
 	int			len = 0;
@@ -3007,7 +3007,7 @@ pgstat_report_activity(BackendState state, const char *cmd_str)
 	{
 		if (beentry->st_state != STATE_DISABLED)
 		{
-			volatile PGPROC *proc = MyProc;
+			volatile	PGPROC *proc = MyProc;
 
 			/*
 			 * track_activities is disabled, but we last reported a
@@ -3067,7 +3067,7 @@ pgstat_report_activity(BackendState state, const char *cmd_str)
 void
 pgstat_progress_start_command(ProgressCommandType cmdtype, Oid relid)
 {
-	volatile PgBackendStatus *beentry = MyBEEntry;
+	volatile	PgBackendStatus *beentry = MyBEEntry;
 
 	if (!beentry || !pgstat_track_activities)
 		return;
@@ -3088,7 +3088,7 @@ pgstat_progress_start_command(ProgressCommandType cmdtype, Oid relid)
 void
 pgstat_progress_update_param(int index, int64 val)
 {
-	volatile PgBackendStatus *beentry = MyBEEntry;
+	volatile	PgBackendStatus *beentry = MyBEEntry;
 
 	Assert(index >= 0 && index < PGSTAT_NUM_PROGRESS_PARAM);
 
@@ -3109,9 +3109,9 @@ pgstat_progress_update_param(int index, int64 val)
  */
 void
 pgstat_progress_update_multi_param(int nparam, const int *index,
-								   const int64 *val)
+								   const int64 * val)
 {
-	volatile PgBackendStatus *beentry = MyBEEntry;
+	volatile	PgBackendStatus *beentry = MyBEEntry;
 	int			i;
 
 	if (!beentry || !pgstat_track_activities || nparam == 0)
@@ -3139,7 +3139,7 @@ pgstat_progress_update_multi_param(int nparam, const int *index,
 void
 pgstat_progress_end_command(void)
 {
-	volatile PgBackendStatus *beentry = MyBEEntry;
+	volatile	PgBackendStatus *beentry = MyBEEntry;
 
 	if (!beentry)
 		return;
@@ -3162,7 +3162,7 @@ pgstat_progress_end_command(void)
 void
 pgstat_report_appname(const char *appname)
 {
-	volatile PgBackendStatus *beentry = MyBEEntry;
+	volatile	PgBackendStatus *beentry = MyBEEntry;
 	int			len;
 
 	if (!beentry)
@@ -3191,7 +3191,7 @@ pgstat_report_appname(const char *appname)
 void
 pgstat_report_xact_timestamp(TimestampTz tstamp)
 {
-	volatile PgBackendStatus *beentry = MyBEEntry;
+	volatile	PgBackendStatus *beentry = MyBEEntry;
 
 	if (!pgstat_track_activities || !beentry)
 		return;
@@ -3216,7 +3216,7 @@ pgstat_report_xact_timestamp(TimestampTz tstamp)
 static void
 pgstat_read_current_status(void)
 {
-	volatile PgBackendStatus *beentry;
+	volatile	PgBackendStatus *beentry;
 	LocalPgBackendStatus *localtable;
 	LocalPgBackendStatus *localentry;
 	char	   *localappname,
@@ -3922,7 +3922,7 @@ pgstat_get_backend_current_activity(int pid, bool checkUser)
 		 * atomic, but let's play it safe.)  We use a volatile pointer here to
 		 * ensure the compiler doesn't try to get cute.
 		 */
-		volatile PgBackendStatus *vbeentry = beentry;
+		volatile	PgBackendStatus *vbeentry = beentry;
 		bool		found;
 
 		for (;;)
@@ -3981,7 +3981,7 @@ pgstat_get_backend_current_activity(int pid, bool checkUser)
 const char *
 pgstat_get_crashed_backend_activity(int pid, char *buffer, int buflen)
 {
-	volatile PgBackendStatus *beentry;
+	volatile	PgBackendStatus *beentry;
 	int			i;
 
 	beentry = BackendStatusArray;
@@ -4091,7 +4091,7 @@ pgstat_get_backend_desc(BackendType backendType)
  * ----------
  */
 static void
-pgstat_setheader(PgStat_MsgHdr *hdr, StatMsgType mtype)
+pgstat_setheader(PgStat_MsgHdr * hdr, StatMsgType mtype)
 {
 	hdr->m_type = mtype;
 }
@@ -4324,76 +4324,76 @@ PgstatCollectorMain(int argc, char *argv[])
 					break;
 
 				case PGSTAT_MTYPE_INQUIRY:
-					pgstat_recv_inquiry((PgStat_MsgInquiry *) &msg, len);
+					pgstat_recv_inquiry((PgStat_MsgInquiry *) & msg, len);
 					break;
 
 				case PGSTAT_MTYPE_TABSTAT:
-					pgstat_recv_tabstat((PgStat_MsgTabstat *) &msg, len);
+					pgstat_recv_tabstat((PgStat_MsgTabstat *) & msg, len);
 					break;
 
 				case PGSTAT_MTYPE_TABPURGE:
-					pgstat_recv_tabpurge((PgStat_MsgTabpurge *) &msg, len);
+					pgstat_recv_tabpurge((PgStat_MsgTabpurge *) & msg, len);
 					break;
 
 				case PGSTAT_MTYPE_DROPDB:
-					pgstat_recv_dropdb((PgStat_MsgDropdb *) &msg, len);
+					pgstat_recv_dropdb((PgStat_MsgDropdb *) & msg, len);
 					break;
 
 				case PGSTAT_MTYPE_RESETCOUNTER:
-					pgstat_recv_resetcounter((PgStat_MsgResetcounter *) &msg,
+					pgstat_recv_resetcounter((PgStat_MsgResetcounter *) & msg,
 											 len);
 					break;
 
 				case PGSTAT_MTYPE_RESETSHAREDCOUNTER:
 					pgstat_recv_resetsharedcounter(
-												   (PgStat_MsgResetsharedcounter *) &msg,
+												   (PgStat_MsgResetsharedcounter *) & msg,
 												   len);
 					break;
 
 				case PGSTAT_MTYPE_RESETSINGLECOUNTER:
 					pgstat_recv_resetsinglecounter(
-												   (PgStat_MsgResetsinglecounter *) &msg,
+												   (PgStat_MsgResetsinglecounter *) & msg,
 												   len);
 					break;
 
 				case PGSTAT_MTYPE_AUTOVAC_START:
-					pgstat_recv_autovac((PgStat_MsgAutovacStart *) &msg, len);
+					pgstat_recv_autovac((PgStat_MsgAutovacStart *) & msg, len);
 					break;
 
 				case PGSTAT_MTYPE_VACUUM:
-					pgstat_recv_vacuum((PgStat_MsgVacuum *) &msg, len);
+					pgstat_recv_vacuum((PgStat_MsgVacuum *) & msg, len);
 					break;
 
 				case PGSTAT_MTYPE_ANALYZE:
-					pgstat_recv_analyze((PgStat_MsgAnalyze *) &msg, len);
+					pgstat_recv_analyze((PgStat_MsgAnalyze *) & msg, len);
 					break;
 
 				case PGSTAT_MTYPE_ARCHIVER:
-					pgstat_recv_archiver((PgStat_MsgArchiver *) &msg, len);
+					pgstat_recv_archiver((PgStat_MsgArchiver *) & msg, len);
 					break;
 
 				case PGSTAT_MTYPE_BGWRITER:
-					pgstat_recv_bgwriter((PgStat_MsgBgWriter *) &msg, len);
+					pgstat_recv_bgwriter((PgStat_MsgBgWriter *) & msg, len);
 					break;
 
 				case PGSTAT_MTYPE_FUNCSTAT:
-					pgstat_recv_funcstat((PgStat_MsgFuncstat *) &msg, len);
+					pgstat_recv_funcstat((PgStat_MsgFuncstat *) & msg, len);
 					break;
 
 				case PGSTAT_MTYPE_FUNCPURGE:
-					pgstat_recv_funcpurge((PgStat_MsgFuncpurge *) &msg, len);
+					pgstat_recv_funcpurge((PgStat_MsgFuncpurge *) & msg, len);
 					break;
 
 				case PGSTAT_MTYPE_RECOVERYCONFLICT:
-					pgstat_recv_recoveryconflict((PgStat_MsgRecoveryConflict *) &msg, len);
+					pgstat_recv_recoveryconflict((PgStat_MsgRecoveryConflict *) & msg, len);
 					break;
 
 				case PGSTAT_MTYPE_DEADLOCK:
-					pgstat_recv_deadlock((PgStat_MsgDeadlock *) &msg, len);
+					pgstat_recv_deadlock((PgStat_MsgDeadlock *) & msg, len);
 					break;
 
 				case PGSTAT_MTYPE_TEMPFILE:
-					pgstat_recv_tempfile((PgStat_MsgTempFile *) &msg, len);
+					pgstat_recv_tempfile((PgStat_MsgTempFile *) & msg, len);
 					break;
 
 				default:
@@ -4473,7 +4473,7 @@ pgstat_sighup_handler(SIGNAL_ARGS)
  * Tables and functions hashes are initialized to empty.
  */
 static void
-reset_dbentry_counters(PgStat_StatDBEntry *dbentry)
+reset_dbentry_counters(PgStat_StatDBEntry * dbentry)
 {
 	HASHCTL		hash_ctl;
 
@@ -4554,7 +4554,7 @@ pgstat_get_db_entry(Oid databaseid, bool create)
  * Else, return NULL.
  */
 static PgStat_StatTabEntry *
-pgstat_get_tab_entry(PgStat_StatDBEntry *dbentry, Oid tableoid, bool create)
+pgstat_get_tab_entry(PgStat_StatDBEntry * dbentry, Oid tableoid, bool create)
 {
 	PgStat_StatTabEntry *result;
 	bool		found;
@@ -4763,7 +4763,7 @@ get_dbstat_filename(bool permanent, bool tempname, Oid databaseid,
  * ----------
  */
 static void
-pgstat_write_db_statsfile(PgStat_StatDBEntry *dbentry, bool permanent)
+pgstat_write_db_statsfile(PgStat_StatDBEntry * dbentry, bool permanent)
 {
 	HASH_SEQ_STATUS tstat;
 	HASH_SEQ_STATUS fstat;
@@ -5118,7 +5118,7 @@ done:
  * ----------
  */
 static void
-pgstat_read_db_statsfile(Oid databaseid, HTAB *tabhash, HTAB *funchash,
+pgstat_read_db_statsfile(Oid databaseid, HTAB * tabhash, HTAB * funchash,
 						 bool permanent)
 {
 	PgStat_StatTabEntry *tabentry;
@@ -5281,7 +5281,7 @@ done:
  */
 static bool
 pgstat_read_db_statsfile_timestamp(Oid databaseid, bool permanent,
-								   TimestampTz *ts)
+								   TimestampTz * ts)
 {
 	PgStat_StatDBEntry dbentry;
 	PgStat_GlobalStats myGlobalStats;
@@ -5574,7 +5574,7 @@ pgstat_clear_snapshot(void)
  * ----------
  */
 static void
-pgstat_recv_inquiry(PgStat_MsgInquiry *msg, int len)
+pgstat_recv_inquiry(PgStat_MsgInquiry * msg, int len)
 {
 	PgStat_StatDBEntry *dbentry;
 
@@ -5667,7 +5667,7 @@ pgstat_recv_inquiry(PgStat_MsgInquiry *msg, int len)
  * ----------
  */
 static void
-pgstat_recv_tabstat(PgStat_MsgTabstat *msg, int len)
+pgstat_recv_tabstat(PgStat_MsgTabstat * msg, int len)
 {
 	PgStat_StatDBEntry *dbentry;
 	PgStat_StatTabEntry *tabentry;
@@ -5774,7 +5774,7 @@ pgstat_recv_tabstat(PgStat_MsgTabstat *msg, int len)
  * ----------
  */
 static void
-pgstat_recv_tabpurge(PgStat_MsgTabpurge *msg, int len)
+pgstat_recv_tabpurge(PgStat_MsgTabpurge * msg, int len)
 {
 	PgStat_StatDBEntry *dbentry;
 	int			i;
@@ -5807,7 +5807,7 @@ pgstat_recv_tabpurge(PgStat_MsgTabpurge *msg, int len)
  * ----------
  */
 static void
-pgstat_recv_dropdb(PgStat_MsgDropdb *msg, int len)
+pgstat_recv_dropdb(PgStat_MsgDropdb * msg, int len)
 {
 	Oid			dbid = msg->m_databaseid;
 	PgStat_StatDBEntry *dbentry;
@@ -5850,7 +5850,7 @@ pgstat_recv_dropdb(PgStat_MsgDropdb *msg, int len)
  * ----------
  */
 static void
-pgstat_recv_resetcounter(PgStat_MsgResetcounter *msg, int len)
+pgstat_recv_resetcounter(PgStat_MsgResetcounter * msg, int len)
 {
 	PgStat_StatDBEntry *dbentry;
 
@@ -5888,7 +5888,7 @@ pgstat_recv_resetcounter(PgStat_MsgResetcounter *msg, int len)
  * ----------
  */
 static void
-pgstat_recv_resetsharedcounter(PgStat_MsgResetsharedcounter *msg, int len)
+pgstat_recv_resetsharedcounter(PgStat_MsgResetsharedcounter * msg, int len)
 {
 	if (msg->m_resettarget == RESET_BGWRITER)
 	{
@@ -5916,7 +5916,7 @@ pgstat_recv_resetsharedcounter(PgStat_MsgResetsharedcounter *msg, int len)
  * ----------
  */
 static void
-pgstat_recv_resetsinglecounter(PgStat_MsgResetsinglecounter *msg, int len)
+pgstat_recv_resetsinglecounter(PgStat_MsgResetsinglecounter * msg, int len)
 {
 	PgStat_StatDBEntry *dbentry;
 
@@ -5944,7 +5944,7 @@ pgstat_recv_resetsinglecounter(PgStat_MsgResetsinglecounter *msg, int len)
  * ----------
  */
 static void
-pgstat_recv_autovac(PgStat_MsgAutovacStart *msg, int len)
+pgstat_recv_autovac(PgStat_MsgAutovacStart * msg, int len)
 {
 	PgStat_StatDBEntry *dbentry;
 
@@ -5963,7 +5963,7 @@ pgstat_recv_autovac(PgStat_MsgAutovacStart *msg, int len)
  * ----------
  */
 static void
-pgstat_recv_vacuum(PgStat_MsgVacuum *msg, int len)
+pgstat_recv_vacuum(PgStat_MsgVacuum * msg, int len)
 {
 	PgStat_StatDBEntry *dbentry;
 	PgStat_StatTabEntry *tabentry;
@@ -5997,7 +5997,7 @@ pgstat_recv_vacuum(PgStat_MsgVacuum *msg, int len)
  * ----------
  */
 static void
-pgstat_recv_analyze(PgStat_MsgAnalyze *msg, int len)
+pgstat_recv_analyze(PgStat_MsgAnalyze * msg, int len)
 {
 	PgStat_StatDBEntry *dbentry;
 	PgStat_StatTabEntry *tabentry;
@@ -6040,7 +6040,7 @@ pgstat_recv_analyze(PgStat_MsgAnalyze *msg, int len)
  * ----------
  */
 static void
-pgstat_recv_archiver(PgStat_MsgArchiver *msg, int len)
+pgstat_recv_archiver(PgStat_MsgArchiver * msg, int len)
 {
 	if (msg->m_failed)
 	{
@@ -6067,7 +6067,7 @@ pgstat_recv_archiver(PgStat_MsgArchiver *msg, int len)
  * ----------
  */
 static void
-pgstat_recv_bgwriter(PgStat_MsgBgWriter *msg, int len)
+pgstat_recv_bgwriter(PgStat_MsgBgWriter * msg, int len)
 {
 	globalStats.timed_checkpoints += msg->m_timed_checkpoints;
 	globalStats.requested_checkpoints += msg->m_requested_checkpoints;
@@ -6088,7 +6088,7 @@ pgstat_recv_bgwriter(PgStat_MsgBgWriter *msg, int len)
  * ----------
  */
 static void
-pgstat_recv_recoveryconflict(PgStat_MsgRecoveryConflict *msg, int len)
+pgstat_recv_recoveryconflict(PgStat_MsgRecoveryConflict * msg, int len)
 {
 	PgStat_StatDBEntry *dbentry;
 
@@ -6128,7 +6128,7 @@ pgstat_recv_recoveryconflict(PgStat_MsgRecoveryConflict *msg, int len)
  * ----------
  */
 static void
-pgstat_recv_deadlock(PgStat_MsgDeadlock *msg, int len)
+pgstat_recv_deadlock(PgStat_MsgDeadlock * msg, int len)
 {
 	PgStat_StatDBEntry *dbentry;
 
@@ -6144,7 +6144,7 @@ pgstat_recv_deadlock(PgStat_MsgDeadlock *msg, int len)
  * ----------
  */
 static void
-pgstat_recv_tempfile(PgStat_MsgTempFile *msg, int len)
+pgstat_recv_tempfile(PgStat_MsgTempFile * msg, int len)
 {
 	PgStat_StatDBEntry *dbentry;
 
@@ -6161,7 +6161,7 @@ pgstat_recv_tempfile(PgStat_MsgTempFile *msg, int len)
  * ----------
  */
 static void
-pgstat_recv_funcstat(PgStat_MsgFuncstat *msg, int len)
+pgstat_recv_funcstat(PgStat_MsgFuncstat * msg, int len)
 {
 	PgStat_FunctionEntry *funcmsg = &(msg->m_entry[0]);
 	PgStat_StatDBEntry *dbentry;
@@ -6209,7 +6209,7 @@ pgstat_recv_funcstat(PgStat_MsgFuncstat *msg, int len)
  * ----------
  */
 static void
-pgstat_recv_funcpurge(PgStat_MsgFuncpurge *msg, int len)
+pgstat_recv_funcpurge(PgStat_MsgFuncpurge * msg, int len)
 {
 	PgStat_StatDBEntry *dbentry;
 	int			i;

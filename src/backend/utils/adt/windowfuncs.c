@@ -22,7 +22,7 @@
 typedef struct rank_context
 {
 	int64		rank;			/* current rank */
-} rank_context;
+}			rank_context;
 
 /*
  * ntile process information
@@ -33,11 +33,11 @@ typedef struct
 	int64		rows_per_bucket;	/* row number of current bucket */
 	int64		boundary;		/* how many rows should be in the bucket */
 	int64		remainder;		/* (total rows) % (bucket num) */
-} ntile_context;
+}			ntile_context;
 
 static bool rank_up(WindowObject winobj);
 static Datum leadlag_common(FunctionCallInfo fcinfo,
-			   bool forward, bool withoffset, bool withdefault);
+							bool forward, bool withoffset, bool withdefault);
 
 
 /*

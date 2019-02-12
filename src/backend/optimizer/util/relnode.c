@@ -32,26 +32,26 @@ typedef struct JoinHashEntry
 {
 	Relids		join_relids;	/* hash key --- MUST BE FIRST */
 	RelOptInfo *join_rel;
-} JoinHashEntry;
+}			JoinHashEntry;
 
-static void build_joinrel_tlist(PlannerInfo *root, RelOptInfo *joinrel,
-					RelOptInfo *input_rel);
-static List *build_joinrel_restrictlist(PlannerInfo *root,
-						   RelOptInfo *joinrel,
-						   RelOptInfo *outer_rel,
-						   RelOptInfo *inner_rel);
-static void build_joinrel_joinlist(RelOptInfo *joinrel,
-					   RelOptInfo *outer_rel,
-					   RelOptInfo *inner_rel);
-static List *subbuild_joinrel_restrictlist(RelOptInfo *joinrel,
-							  List *joininfo_list,
-							  List *new_restrictlist);
-static List *subbuild_joinrel_joinlist(RelOptInfo *joinrel,
-						  List *joininfo_list,
-						  List *new_joininfo);
-static void set_foreign_rel_properties(RelOptInfo *joinrel,
-						   RelOptInfo *outer_rel, RelOptInfo *inner_rel);
-static void add_join_rel(PlannerInfo *root, RelOptInfo *joinrel);
+static void build_joinrel_tlist(PlannerInfo * root, RelOptInfo * joinrel,
+					RelOptInfo * input_rel);
+static List * build_joinrel_restrictlist(PlannerInfo * root,
+										 RelOptInfo * joinrel,
+										 RelOptInfo * outer_rel,
+										 RelOptInfo * inner_rel);
+static void build_joinrel_joinlist(RelOptInfo * joinrel,
+					   RelOptInfo * outer_rel,
+					   RelOptInfo * inner_rel);
+static List * subbuild_joinrel_restrictlist(RelOptInfo * joinrel,
+											List * joininfo_list,
+											List * new_restrictlist);
+static List * subbuild_joinrel_joinlist(RelOptInfo * joinrel,
+										List * joininfo_list,
+										List * new_joininfo);
+static void set_foreign_rel_properties(RelOptInfo * joinrel,
+						   RelOptInfo * outer_rel, RelOptInfo * inner_rel);
+static void add_join_rel(PlannerInfo * root, RelOptInfo * joinrel);
 
 
 /*
@@ -59,7 +59,7 @@ static void add_join_rel(PlannerInfo *root, RelOptInfo *joinrel);
  *	  Prepare the arrays we use for quickly accessing base relations.
  */
 void
-setup_simple_rel_arrays(PlannerInfo *root)
+setup_simple_rel_arrays(PlannerInfo * root)
 {
 	Index		rti;
 	ListCell   *lc;
@@ -68,11 +68,11 @@ setup_simple_rel_arrays(PlannerInfo *root)
 	root->simple_rel_array_size = list_length(root->parse->rtable) + 1;
 
 	/* simple_rel_array is initialized to all NULLs */
-	root->simple_rel_array = (RelOptInfo **)
+	root->simple_rel_array = (RelOptInfo * *)
 		palloc0(root->simple_rel_array_size * sizeof(RelOptInfo *));
 
 	/* simple_rte_array is an array equivalent of the rtable list */
-	root->simple_rte_array = (RangeTblEntry **)
+	root->simple_rte_array = (RangeTblEntry * *)
 		palloc0(root->simple_rel_array_size * sizeof(RangeTblEntry *));
 	rti = 1;
 	foreach(lc, root->parse->rtable)
@@ -88,7 +88,7 @@ setup_simple_rel_arrays(PlannerInfo *root)
  *	  Construct a new RelOptInfo for a base relation or 'other' relation.
  */
 RelOptInfo *
-build_simple_rel(PlannerInfo *root, int relid, RelOptInfo *parent)
+build_simple_rel(PlannerInfo * root, int relid, RelOptInfo * parent)
 {
 	RelOptInfo *rel;
 	RangeTblEntry *rte;
@@ -240,7 +240,7 @@ build_simple_rel(PlannerInfo *root, int relid, RelOptInfo *parent)
  *	  Find a base or other relation entry, which must already exist.
  */
 RelOptInfo *
-find_base_rel(PlannerInfo *root, int relid)
+find_base_rel(PlannerInfo * root, int relid)
 {
 	RelOptInfo *rel;
 
@@ -263,7 +263,7 @@ find_base_rel(PlannerInfo *root, int relid)
  *	  Construct the auxiliary hash table for join relations.
  */
 static void
-build_join_rel_hash(PlannerInfo *root)
+build_join_rel_hash(PlannerInfo * root)
 {
 	HTAB	   *hashtab;
 	HASHCTL		hash_ctl;
@@ -305,7 +305,7 @@ build_join_rel_hash(PlannerInfo *root)
  *	  or NULL if none exists.  This is for join relations.
  */
 RelOptInfo *
-find_join_rel(PlannerInfo *root, Relids relids)
+find_join_rel(PlannerInfo * root, Relids relids)
 {
 	/*
 	 * Switch to using hash lookup when list grows "too long".  The threshold
@@ -368,8 +368,8 @@ find_join_rel(PlannerInfo *root, Relids relids)
  *
  */
 static void
-set_foreign_rel_properties(RelOptInfo *joinrel, RelOptInfo *outer_rel,
-						   RelOptInfo *inner_rel)
+set_foreign_rel_properties(RelOptInfo * joinrel, RelOptInfo * outer_rel,
+						   RelOptInfo * inner_rel)
 {
 	if (OidIsValid(outer_rel->serverid) &&
 		inner_rel->serverid == outer_rel->serverid)
@@ -406,7 +406,7 @@ set_foreign_rel_properties(RelOptInfo *joinrel, RelOptInfo *outer_rel,
  *		PlannerInfo. Also add it to the auxiliary hashtable if there is one.
  */
 static void
-add_join_rel(PlannerInfo *root, RelOptInfo *joinrel)
+add_join_rel(PlannerInfo * root, RelOptInfo * joinrel)
 {
 	/* GEQO requires us to append the new joinrel to the end of the list! */
 	root->join_rel_list = lappend(root->join_rel_list, joinrel);
@@ -443,12 +443,12 @@ add_join_rel(PlannerInfo *root, RelOptInfo *joinrel)
  * duplicated calculation of the restrictlist...
  */
 RelOptInfo *
-build_join_rel(PlannerInfo *root,
+build_join_rel(PlannerInfo * root,
 			   Relids joinrelids,
-			   RelOptInfo *outer_rel,
-			   RelOptInfo *inner_rel,
-			   SpecialJoinInfo *sjinfo,
-			   List **restrictlist_ptr)
+			   RelOptInfo * outer_rel,
+			   RelOptInfo * inner_rel,
+			   SpecialJoinInfo * sjinfo,
+			   List * *restrictlist_ptr)
 {
 	RelOptInfo *joinrel;
 	List	   *restrictlist;
@@ -626,10 +626,10 @@ build_join_rel(PlannerInfo *root,
  * because join_is_legal() needs the value to check a prospective join.
  */
 Relids
-min_join_parameterization(PlannerInfo *root,
+min_join_parameterization(PlannerInfo * root,
 						  Relids joinrelids,
-						  RelOptInfo *outer_rel,
-						  RelOptInfo *inner_rel)
+						  RelOptInfo * outer_rel,
+						  RelOptInfo * inner_rel)
 {
 	Relids		result;
 
@@ -669,8 +669,8 @@ min_join_parameterization(PlannerInfo *root,
  * of data that was cached at the baserel level by set_rel_width().
  */
 static void
-build_joinrel_tlist(PlannerInfo *root, RelOptInfo *joinrel,
-					RelOptInfo *input_rel)
+build_joinrel_tlist(PlannerInfo * root, RelOptInfo * joinrel,
+					RelOptInfo * input_rel)
 {
 	Relids		relids = joinrel->relids;
 	ListCell   *vars;
@@ -755,10 +755,10 @@ build_joinrel_tlist(PlannerInfo *root, RelOptInfo *joinrel,
  * the original nodes in the lists made for the join relation.
  */
 static List *
-build_joinrel_restrictlist(PlannerInfo *root,
-						   RelOptInfo *joinrel,
-						   RelOptInfo *outer_rel,
-						   RelOptInfo *inner_rel)
+build_joinrel_restrictlist(PlannerInfo * root,
+						   RelOptInfo * joinrel,
+						   RelOptInfo * outer_rel,
+						   RelOptInfo * inner_rel)
 {
 	List	   *result;
 
@@ -785,9 +785,9 @@ build_joinrel_restrictlist(PlannerInfo *root,
 }
 
 static void
-build_joinrel_joinlist(RelOptInfo *joinrel,
-					   RelOptInfo *outer_rel,
-					   RelOptInfo *inner_rel)
+build_joinrel_joinlist(RelOptInfo * joinrel,
+					   RelOptInfo * outer_rel,
+					   RelOptInfo * inner_rel)
 {
 	List	   *result;
 
@@ -803,9 +803,9 @@ build_joinrel_joinlist(RelOptInfo *joinrel,
 }
 
 static List *
-subbuild_joinrel_restrictlist(RelOptInfo *joinrel,
-							  List *joininfo_list,
-							  List *new_restrictlist)
+subbuild_joinrel_restrictlist(RelOptInfo * joinrel,
+							  List * joininfo_list,
+							  List * new_restrictlist)
 {
 	ListCell   *l;
 
@@ -837,9 +837,9 @@ subbuild_joinrel_restrictlist(RelOptInfo *joinrel,
 }
 
 static List *
-subbuild_joinrel_joinlist(RelOptInfo *joinrel,
-						  List *joininfo_list,
-						  List *new_joininfo)
+subbuild_joinrel_joinlist(RelOptInfo * joinrel,
+						  List * joininfo_list,
+						  List * new_joininfo)
 {
 	ListCell   *l;
 
@@ -882,7 +882,7 @@ subbuild_joinrel_joinlist(RelOptInfo *joinrel,
  * we just need it to carry a simple Result path out of query_planner().
  */
 RelOptInfo *
-build_empty_join_rel(PlannerInfo *root)
+build_empty_join_rel(PlannerInfo * root)
 {
 	RelOptInfo *joinrel;
 
@@ -916,7 +916,7 @@ build_empty_join_rel(PlannerInfo *root)
  * care about fields that are of interest to add_path() and set_cheapest().
  */
 RelOptInfo *
-fetch_upper_rel(PlannerInfo *root, UpperRelationKind kind, Relids relids)
+fetch_upper_rel(PlannerInfo * root, UpperRelationKind kind, Relids relids)
 {
 	RelOptInfo *upperrel;
 	ListCell   *lc;
@@ -967,7 +967,7 @@ fetch_upper_rel(PlannerInfo *root, UpperRelationKind kind, Relids relids)
  * difficult to maintain such a link during mutation of the append_rel_list.)
  */
 AppendRelInfo *
-find_childrel_appendrelinfo(PlannerInfo *root, RelOptInfo *rel)
+find_childrel_appendrelinfo(PlannerInfo * root, RelOptInfo * rel)
 {
 	Index		relid = rel->relid;
 	ListCell   *lc;
@@ -997,7 +997,7 @@ find_childrel_appendrelinfo(PlannerInfo *root, RelOptInfo *rel)
  * parent relation IDs.
  */
 Relids
-find_childrel_parents(PlannerInfo *root, RelOptInfo *rel)
+find_childrel_parents(PlannerInfo * root, RelOptInfo * rel)
 {
 	Relids		result = NULL;
 
@@ -1032,7 +1032,7 @@ find_childrel_parents(PlannerInfo *root, RelOptInfo *rel)
  * be responsible for evaluating.
  */
 ParamPathInfo *
-get_baserel_parampathinfo(PlannerInfo *root, RelOptInfo *baserel,
+get_baserel_parampathinfo(PlannerInfo * root, RelOptInfo * baserel,
 						  Relids required_outer)
 {
 	ParamPathInfo *ppi;
@@ -1123,12 +1123,12 @@ get_baserel_parampathinfo(PlannerInfo *root, RelOptInfo *baserel,
  * unnecessary for other join types.
  */
 ParamPathInfo *
-get_joinrel_parampathinfo(PlannerInfo *root, RelOptInfo *joinrel,
-						  Path *outer_path,
-						  Path *inner_path,
-						  SpecialJoinInfo *sjinfo,
+get_joinrel_parampathinfo(PlannerInfo * root, RelOptInfo * joinrel,
+						  Path * outer_path,
+						  Path * inner_path,
+						  SpecialJoinInfo * sjinfo,
 						  Relids required_outer,
-						  List **restrict_clauses)
+						  List * *restrict_clauses)
 {
 	ParamPathInfo *ppi;
 	Relids		join_and_req;
@@ -1331,7 +1331,7 @@ get_joinrel_parampathinfo(PlannerInfo *root, RelOptInfo *joinrel,
  * the Append node isn't responsible for checking quals).
  */
 ParamPathInfo *
-get_appendrel_parampathinfo(RelOptInfo *appendrel, Relids required_outer)
+get_appendrel_parampathinfo(RelOptInfo * appendrel, Relids required_outer)
 {
 	ParamPathInfo *ppi;
 	ListCell   *lc;

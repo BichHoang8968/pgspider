@@ -131,23 +131,23 @@
 
 /* These variables define the actually active state: */
 
-static List *activeSearchPath = NIL;
+static List * activeSearchPath = NIL;
 
 /* default place to create stuff; if InvalidOid, no default */
-static Oid	activeCreationNamespace = InvalidOid;
+static Oid activeCreationNamespace = InvalidOid;
 
 /* if TRUE, activeCreationNamespace is wrong, it should be temp namespace */
 static bool activeTempCreationPending = false;
 
 /* These variables are the values last derived from namespace_search_path: */
 
-static List *baseSearchPath = NIL;
+static List * baseSearchPath = NIL;
 
-static Oid	baseCreationNamespace = InvalidOid;
+static Oid baseCreationNamespace = InvalidOid;
 
 static bool baseTempCreationPending = false;
 
-static Oid	namespaceUser = InvalidOid;
+static Oid namespaceUser = InvalidOid;
 
 /* The above four values are valid only if baseSearchPathValid */
 static bool baseSearchPathValid = true;
@@ -159,9 +159,9 @@ typedef struct
 	List	   *searchPath;		/* the desired search path */
 	Oid			creationNamespace;	/* the desired creation namespace */
 	int			nestLevel;		/* subtransaction nesting level */
-} OverrideStackEntry;
+}			OverrideStackEntry;
 
-static List *overrideStack = NIL;
+static List * overrideStack = NIL;
 
 /*
  * myTempNamespace is InvalidOid until and unless a TEMP namespace is set up
@@ -178,9 +178,9 @@ static List *overrideStack = NIL;
  * we either haven't made the TEMP namespace yet, or have successfully
  * committed its creation, depending on whether myTempNamespace is valid.
  */
-static Oid	myTempNamespace = InvalidOid;
+static Oid myTempNamespace = InvalidOid;
 
-static Oid	myTempToastNamespace = InvalidOid;
+static Oid myTempToastNamespace = InvalidOid;
 
 static SubTransactionId myTempNamespaceSubID = InvalidSubTransactionId;
 
@@ -197,7 +197,7 @@ static void InitTempTableNamespace(void);
 static void RemoveTempRelations(Oid tempNamespaceId);
 static void RemoveTempRelationsCallback(int code, Datum arg);
 static void NamespaceCallback(Datum arg, int cacheid, uint32 hashvalue);
-static bool MatchNamedCall(HeapTuple proctup, int nargs, List *argnames,
+static bool MatchNamedCall(HeapTuple proctup, int nargs, List * argnames,
 			   int **argnumbers);
 
 
@@ -215,7 +215,7 @@ static bool MatchNamedCall(HeapTuple proctup, int nargs, List *argnames,
  * prior to grabbing the relation lock.
  */
 Oid
-RangeVarGetRelidExtended(const RangeVar *relation, LOCKMODE lockmode,
+RangeVarGetRelidExtended(const RangeVar * relation, LOCKMODE lockmode,
 						 bool missing_ok, bool nowait,
 						 RangeVarGetRelidCallback callback, void *callback_arg)
 {
@@ -418,7 +418,7 @@ RangeVarGetRelidExtended(const RangeVar *relation, LOCKMODE lockmode,
  * backend run; we will need to either create or clean out the temp schema.
  */
 Oid
-RangeVarGetCreationNamespace(const RangeVar *newRelation)
+RangeVarGetCreationNamespace(const RangeVar * newRelation)
 {
 	Oid			namespaceId;
 
@@ -505,9 +505,9 @@ RangeVarGetCreationNamespace(const RangeVar *newRelation)
  * we mark the RangeVar as RELPERSISTENCE_TEMP.
  */
 Oid
-RangeVarGetAndCheckCreationNamespace(RangeVar *relation,
+RangeVarGetAndCheckCreationNamespace(RangeVar * relation,
 									 LOCKMODE lockmode,
-									 Oid *existing_relation_id)
+									 Oid * existing_relation_id)
 {
 	uint64		inval_count;
 	Oid			relid;
@@ -612,7 +612,7 @@ RangeVarGetAndCheckCreationNamespace(RangeVar *relation,
  * creation namespace, and throw an error for invalid combinations.
  */
 void
-RangeVarAdjustRelationPersistence(RangeVar *newRelation, Oid nspid)
+RangeVarAdjustRelationPersistence(RangeVar * newRelation, Oid nspid)
 {
 	switch (newRelation->relpersistence)
 	{
@@ -900,7 +900,7 @@ TypeIsVisible(Oid typid)
  * candidate is found for other reasons.
  */
 FuncCandidateList
-FuncnameGetCandidates(List *names, int nargs, List *argnames,
+FuncnameGetCandidates(List * names, int nargs, List * argnames,
 					  bool expand_variadic, bool expand_defaults,
 					  bool missing_ok)
 {
@@ -1263,7 +1263,7 @@ FuncnameGetCandidates(List *names, int nargs, List *argnames,
  * after the last supplied argument.
  */
 static bool
-MatchNamedCall(HeapTuple proctup, int nargs, List *argnames,
+MatchNamedCall(HeapTuple proctup, int nargs, List * argnames,
 			   int **argnumbers)
 {
 	Form_pg_proc procform = (Form_pg_proc) GETSTRUCT(proctup);
@@ -1442,7 +1442,7 @@ FunctionIsVisible(Oid funcid)
  * schema does not exist, InvalidOid is returned.
  */
 Oid
-OpernameGetOprid(List *names, Oid oprleft, Oid oprright)
+OpernameGetOprid(List * names, Oid oprleft, Oid oprright)
 {
 	char	   *schemaname;
 	char	   *opername;
@@ -1544,7 +1544,7 @@ OpernameGetOprid(List *names, Oid oprleft, Oid oprright)
  * will be InvalidOid for a prefix or postfix oprkind.  nargs is 2, too.
  */
 FuncCandidateList
-OpernameGetCandidates(List *names, char oprkind, bool missing_schema_ok)
+OpernameGetCandidates(List * names, char oprkind, bool missing_schema_ok)
 {
 	FuncCandidateList resultList = NULL;
 	char	   *resultSpace = NULL;
@@ -2135,7 +2135,7 @@ ConversionIsVisible(Oid conid)
  * If not found, returns InvalidOid if missing_ok, else throws error
  */
 Oid
-get_statistics_object_oid(List *names, bool missing_ok)
+get_statistics_object_oid(List * names, bool missing_ok)
 {
 	char	   *schemaname;
 	char	   *stats_name;
@@ -2257,7 +2257,7 @@ StatisticsObjIsVisible(Oid relid)
  * If not found, returns InvalidOid if missing_ok, else throws error
  */
 Oid
-get_ts_parser_oid(List *names, bool missing_ok)
+get_ts_parser_oid(List * names, bool missing_ok)
 {
 	char	   *schemaname;
 	char	   *parser_name;
@@ -2383,7 +2383,7 @@ TSParserIsVisible(Oid prsId)
  * If not found, returns InvalidOid if failOK, else throws error
  */
 Oid
-get_ts_dict_oid(List *names, bool missing_ok)
+get_ts_dict_oid(List * names, bool missing_ok)
 {
 	char	   *schemaname;
 	char	   *dict_name;
@@ -2510,7 +2510,7 @@ TSDictionaryIsVisible(Oid dictId)
  * If not found, returns InvalidOid if missing_ok, else throws error
  */
 Oid
-get_ts_template_oid(List *names, bool missing_ok)
+get_ts_template_oid(List * names, bool missing_ok)
 {
 	char	   *schemaname;
 	char	   *template_name;
@@ -2636,7 +2636,7 @@ TSTemplateIsVisible(Oid tmplId)
  * If not found, returns InvalidOid if missing_ok, else throws error
  */
 Oid
-get_ts_config_oid(List *names, bool missing_ok)
+get_ts_config_oid(List * names, bool missing_ok)
 {
 	char	   *schemaname;
 	char	   *config_name;
@@ -2766,7 +2766,7 @@ TSConfigIsVisible(Oid cfgid)
  * *nspname_p is set to NULL if there is no explicit schema name.
  */
 void
-DeconstructQualifiedName(List *names,
+DeconstructQualifiedName(List * names,
 						 char **nspname_p,
 						 char **objname_p)
 {
@@ -2953,7 +2953,7 @@ CheckSetNamespace(Oid oldNspOid, Oid nspOid)
  * if we have to create or clean out the temp namespace.
  */
 Oid
-QualifiedNameGetCreationNamespace(List *names, char **objname_p)
+QualifiedNameGetCreationNamespace(List * names, char **objname_p)
 {
 	char	   *schemaname;
 	Oid			namespaceId;
@@ -3020,7 +3020,7 @@ get_namespace_oid(const char *nspname, bool missing_ok)
  *		Utility routine to convert a qualified-name list into RangeVar form.
  */
 RangeVar *
-makeRangeVarFromNameList(List *names)
+makeRangeVarFromNameList(List * names)
 {
 	RangeVar   *rel = makeRangeVar(NULL, NULL, -1);
 
@@ -3060,7 +3060,7 @@ makeRangeVarFromNameList(List *names)
  * but we also allow A_Star for the convenience of ColumnRef processing.
  */
 char *
-NameListToString(List *names)
+NameListToString(List * names)
 {
 	StringInfoData string;
 	ListCell   *l;
@@ -3094,7 +3094,7 @@ NameListToString(List *names)
  * so the string could be re-parsed (eg, by textToQualifiedNameList).
  */
 char *
-NameListToQuotedString(List *names)
+NameListToQuotedString(List * names)
 {
 	StringInfoData string;
 	ListCell   *l;
@@ -3231,7 +3231,7 @@ GetTempToastNamespace(void)
  * for general-purpose access.
  */
 void
-GetTempNamespaceState(Oid *tempNamespaceId, Oid *tempToastNamespaceId)
+GetTempNamespaceState(Oid * tempNamespaceId, Oid * tempToastNamespaceId)
 {
 	/* Return namespace OIDs, or 0 if session has not created temp namespace */
 	*tempNamespaceId = myTempNamespace;
@@ -3314,7 +3314,7 @@ GetOverrideSearchPath(MemoryContext context)
  * The result structure is allocated in CurrentMemoryContext.
  */
 OverrideSearchPath *
-CopyOverrideSearchPath(OverrideSearchPath *path)
+CopyOverrideSearchPath(OverrideSearchPath * path)
 {
 	OverrideSearchPath *result;
 
@@ -3330,7 +3330,7 @@ CopyOverrideSearchPath(OverrideSearchPath *path)
  * OverrideSearchPathMatchesCurrent - does path match current setting?
  */
 bool
-OverrideSearchPathMatchesCurrent(OverrideSearchPath *path)
+OverrideSearchPathMatchesCurrent(OverrideSearchPath * path)
 {
 	ListCell   *lc,
 			   *lcp;
@@ -3390,7 +3390,7 @@ OverrideSearchPathMatchesCurrent(OverrideSearchPath *path)
  * no existing namespace will simply not produce any hits during searches.
  */
 void
-PushOverrideSearchPath(OverrideSearchPath *newpath)
+PushOverrideSearchPath(OverrideSearchPath * newpath)
 {
 	OverrideStackEntry *entry;
 	List	   *oidlist;
@@ -3490,7 +3490,7 @@ PopOverrideSearchPath(void)
  * database's encoding.
  */
 Oid
-get_collation_oid(List *name, bool missing_ok)
+get_collation_oid(List * name, bool missing_ok)
 {
 	char	   *schemaname;
 	char	   *collation_name;
@@ -3544,7 +3544,7 @@ get_collation_oid(List *name, bool missing_ok)
  * get_conversion_oid - find a conversion by possibly qualified name
  */
 Oid
-get_conversion_oid(List *name, bool missing_ok)
+get_conversion_oid(List * name, bool missing_ok)
 {
 	char	   *schemaname;
 	char	   *conversion_name;
@@ -4205,7 +4205,7 @@ fetch_search_path(bool includeImplicit)
  * definition allows us to not worry about initializing the temp namespace.
  */
 int
-fetch_search_path_array(Oid *sarray, int sarray_len)
+fetch_search_path_array(Oid * sarray, int sarray_len)
 {
 	int			count = 0;
 	ListCell   *l;

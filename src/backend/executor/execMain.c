@@ -76,36 +76,36 @@ ExecutorEnd_hook_type ExecutorEnd_hook = NULL;
 ExecutorCheckPerms_hook_type ExecutorCheckPerms_hook = NULL;
 
 /* decls for local routines only used within this module */
-static void InitPlan(QueryDesc *queryDesc, int eflags);
+static void InitPlan(QueryDesc * queryDesc, int eflags);
 static void CheckValidRowMarkRel(Relation rel, RowMarkType markType);
-static void ExecPostprocessPlan(EState *estate);
-static void ExecEndPlan(PlanState *planstate, EState *estate);
-static void ExecutePlan(EState *estate, PlanState *planstate,
+static void ExecPostprocessPlan(EState * estate);
+static void ExecEndPlan(PlanState * planstate, EState * estate);
+static void ExecutePlan(EState * estate, PlanState * planstate,
 			bool use_parallel_mode,
 			CmdType operation,
 			bool sendTuples,
 			uint64 numberTuples,
 			ScanDirection direction,
-			DestReceiver *dest,
+			DestReceiver * dest,
 			bool execute_once);
-static bool ExecCheckRTEPerms(RangeTblEntry *rte);
+static bool ExecCheckRTEPerms(RangeTblEntry * rte);
 static bool ExecCheckRTEPermsModified(Oid relOid, Oid userid,
-						  Bitmapset *modifiedCols,
+						  Bitmapset * modifiedCols,
 						  AclMode requiredPerms);
-static void ExecCheckXactReadOnly(PlannedStmt *plannedstmt);
+static void ExecCheckXactReadOnly(PlannedStmt * plannedstmt);
 static char *ExecBuildSlotValueDescription(Oid reloid,
-							  TupleTableSlot *slot,
+							  TupleTableSlot * slot,
 							  TupleDesc tupdesc,
-							  Bitmapset *modifiedCols,
+							  Bitmapset * modifiedCols,
 							  int maxfieldlen);
 static char *ExecBuildSlotPartitionKeyDescription(Relation rel,
-									 Datum *values,
+									 Datum * values,
 									 bool *isnull,
 									 int maxfieldlen);
-static void EvalPlanQualStart(EPQState *epqstate, EState *parentestate,
-				  Plan *planTree);
-static void ExecPartitionCheck(ResultRelInfo *resultRelInfo,
-				   TupleTableSlot *slot, EState *estate);
+static void EvalPlanQualStart(EPQState * epqstate, EState * parentestate,
+				  Plan * planTree);
+static void ExecPartitionCheck(ResultRelInfo * resultRelInfo,
+				   TupleTableSlot * slot, EState * estate);
 
 /*
  * Note that GetUpdatedColumns() also exists in commands/trigger.c.  There does
@@ -144,7 +144,7 @@ static void ExecPartitionCheck(ResultRelInfo *resultRelInfo,
  * ----------------------------------------------------------------
  */
 void
-ExecutorStart(QueryDesc *queryDesc, int eflags)
+ExecutorStart(QueryDesc * queryDesc, int eflags)
 {
 	if (ExecutorStart_hook)
 		(*ExecutorStart_hook) (queryDesc, eflags);
@@ -153,7 +153,7 @@ ExecutorStart(QueryDesc *queryDesc, int eflags)
 }
 
 void
-standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
+standard_ExecutorStart(QueryDesc * queryDesc, int eflags)
 {
 	EState	   *estate;
 	MemoryContext oldcontext;
@@ -296,7 +296,7 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecutorRun(QueryDesc *queryDesc,
+ExecutorRun(QueryDesc * queryDesc,
 			ScanDirection direction, uint64 count,
 			bool execute_once)
 {
@@ -307,7 +307,7 @@ ExecutorRun(QueryDesc *queryDesc,
 }
 
 void
-standard_ExecutorRun(QueryDesc *queryDesc,
+standard_ExecutorRun(QueryDesc * queryDesc,
 					 ScanDirection direction, uint64 count, bool execute_once)
 {
 	EState	   *estate;
@@ -354,8 +354,12 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 	/*
 	 * run plan
 	 */
-	/* Modified to Add reference to queryDesc in Plan to fetch the original query in FDW*/
-	queryDesc->planstate->spdAggQry = (void*)queryDesc;
+
+	/*
+	 * Modified to Add reference to queryDesc in Plan to fetch the original
+	 * query in FDW
+	 */
+	queryDesc->planstate->spdAggQry = (void *) queryDesc;
 	if (!ScanDirectionIsNoMovement(direction))
 	{
 		if (execute_once && queryDesc->already_executed)
@@ -400,7 +404,7 @@ standard_ExecutorRun(QueryDesc *queryDesc,
  * ----------------------------------------------------------------
  */
 void
-ExecutorFinish(QueryDesc *queryDesc)
+ExecutorFinish(QueryDesc * queryDesc)
 {
 	if (ExecutorFinish_hook)
 		(*ExecutorFinish_hook) (queryDesc);
@@ -409,7 +413,7 @@ ExecutorFinish(QueryDesc *queryDesc)
 }
 
 void
-standard_ExecutorFinish(QueryDesc *queryDesc)
+standard_ExecutorFinish(QueryDesc * queryDesc)
 {
 	EState	   *estate;
 	MemoryContext oldcontext;
@@ -460,7 +464,7 @@ standard_ExecutorFinish(QueryDesc *queryDesc)
  * ----------------------------------------------------------------
  */
 void
-ExecutorEnd(QueryDesc *queryDesc)
+ExecutorEnd(QueryDesc * queryDesc)
 {
 	if (ExecutorEnd_hook)
 		(*ExecutorEnd_hook) (queryDesc);
@@ -469,7 +473,7 @@ ExecutorEnd(QueryDesc *queryDesc)
 }
 
 void
-standard_ExecutorEnd(QueryDesc *queryDesc)
+standard_ExecutorEnd(QueryDesc * queryDesc)
 {
 	EState	   *estate;
 	MemoryContext oldcontext;
@@ -526,7 +530,7 @@ standard_ExecutorEnd(QueryDesc *queryDesc)
  * ----------------------------------------------------------------
  */
 void
-ExecutorRewind(QueryDesc *queryDesc)
+ExecutorRewind(QueryDesc * queryDesc)
 {
 	EState	   *estate;
 	MemoryContext oldcontext;
@@ -569,7 +573,7 @@ ExecutorRewind(QueryDesc *queryDesc)
  * See rewrite/rowsecurity.c.
  */
 bool
-ExecCheckRTPerms(List *rangeTable, bool ereport_on_violation)
+ExecCheckRTPerms(List * rangeTable, bool ereport_on_violation)
 {
 	ListCell   *l;
 	bool		result = true;
@@ -600,7 +604,7 @@ ExecCheckRTPerms(List *rangeTable, bool ereport_on_violation)
  *		Check access permissions for a single RTE.
  */
 static bool
-ExecCheckRTEPerms(RangeTblEntry *rte)
+ExecCheckRTEPerms(RangeTblEntry * rte)
 {
 	AclMode		requiredPerms;
 	AclMode		relPerms;
@@ -720,7 +724,7 @@ ExecCheckRTEPerms(RangeTblEntry *rte)
  *		are processed uniformly).
  */
 static bool
-ExecCheckRTEPermsModified(Oid relOid, Oid userid, Bitmapset *modifiedCols,
+ExecCheckRTEPermsModified(Oid relOid, Oid userid, Bitmapset * modifiedCols,
 						  AclMode requiredPerms)
 {
 	int			col = -1;
@@ -767,7 +771,7 @@ ExecCheckRTEPermsModified(Oid relOid, Oid userid, Bitmapset *modifiedCols,
  * any temp tables in the first place, so no need to check that.
  */
 static void
-ExecCheckXactReadOnly(PlannedStmt *plannedstmt)
+ExecCheckXactReadOnly(PlannedStmt * plannedstmt)
 {
 	ListCell   *l;
 
@@ -804,7 +808,7 @@ ExecCheckXactReadOnly(PlannedStmt *plannedstmt)
  * ----------------------------------------------------------------
  */
 static void
-InitPlan(QueryDesc *queryDesc, int eflags)
+InitPlan(QueryDesc * queryDesc, int eflags)
 {
 	CmdType		operation = queryDesc->operation;
 	PlannedStmt *plannedstmt = queryDesc->plannedstmt;
@@ -1003,7 +1007,7 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 	estate->es_trig_oldtup_slot = NULL;
 	estate->es_trig_newtup_slot = NULL;
 	estate->agg_query = false;
-	
+
 	/* mark EvalPlanQual not active */
 	estate->es_epqTuple = NULL;
 	estate->es_epqTupleSet = NULL;
@@ -1100,7 +1104,7 @@ InitPlan(QueryDesc *queryDesc, int eflags)
  * CheckValidRowMarkRel.
  */
 void
-CheckValidResultRel(ResultRelInfo *resultRelInfo, CmdType operation)
+CheckValidResultRel(ResultRelInfo * resultRelInfo, CmdType operation)
 {
 	Relation	resultRel = resultRelInfo->ri_RelationDesc;
 	TriggerDesc *trigDesc = resultRel->trigdesc;
@@ -1308,7 +1312,7 @@ CheckValidRowMarkRel(Relation rel, RowMarkType markType)
  * appropriate.  Be sure callers cover those needs.
  */
 void
-InitResultRelInfo(ResultRelInfo *resultRelInfo,
+InitResultRelInfo(ResultRelInfo * resultRelInfo,
 				  Relation resultRelationDesc,
 				  Index resultRelationIndex,
 				  Relation partition_root,
@@ -1331,7 +1335,7 @@ InitResultRelInfo(ResultRelInfo *resultRelInfo,
 
 		resultRelInfo->ri_TrigFunctions = (FmgrInfo *)
 			palloc0(n * sizeof(FmgrInfo));
-		resultRelInfo->ri_TrigWhenExprs = (ExprState **)
+		resultRelInfo->ri_TrigWhenExprs = (ExprState * *)
 			palloc0(n * sizeof(ExprState *));
 		if (instrument_options)
 			resultRelInfo->ri_TrigInstrument = InstrAlloc(n, instrument_options);
@@ -1390,7 +1394,7 @@ InitResultRelInfo(ResultRelInfo *resultRelInfo,
  * in es_trig_target_relations.
  */
 ResultRelInfo *
-ExecGetTriggerResultRel(EState *estate, Oid relid)
+ExecGetTriggerResultRel(EState * estate, Oid relid)
 {
 	ResultRelInfo *rInfo;
 	int			nr;
@@ -1468,7 +1472,7 @@ ExecGetTriggerResultRel(EState *estate, Oid relid)
  * Close any relations that have been opened by ExecGetTriggerResultRel().
  */
 void
-ExecCleanUpTriggerState(EState *estate)
+ExecCleanUpTriggerState(EState * estate)
 {
 	ListCell   *l;
 
@@ -1515,7 +1519,7 @@ ExecCleanUpTriggerState(EState *estate)
  * flags passed to ExecutorStart().
  */
 bool
-ExecContextForcesOids(PlanState *planstate, bool *hasoids)
+ExecContextForcesOids(PlanState * planstate, bool *hasoids)
 {
 	ResultRelInfo *ri = planstate->state->es_result_relation_info;
 
@@ -1551,7 +1555,7 @@ ExecContextForcesOids(PlanState *planstate, bool *hasoids)
  * ----------------------------------------------------------------
  */
 static void
-ExecPostprocessPlan(EState *estate)
+ExecPostprocessPlan(EState * estate)
 {
 	ListCell   *lc;
 
@@ -1597,7 +1601,7 @@ ExecPostprocessPlan(EState *estate)
  * ----------------------------------------------------------------
  */
 static void
-ExecEndPlan(PlanState *planstate, EState *estate)
+ExecEndPlan(PlanState * planstate, EState * estate)
 {
 	ResultRelInfo *resultRelInfo;
 	int			i;
@@ -1675,14 +1679,14 @@ ExecEndPlan(PlanState *planstate, EState *estate)
  * ----------------------------------------------------------------
  */
 static void
-ExecutePlan(EState *estate,
-			PlanState *planstate,
+ExecutePlan(EState * estate,
+			PlanState * planstate,
 			bool use_parallel_mode,
 			CmdType operation,
 			bool sendTuples,
 			uint64 numberTuples,
 			ScanDirection direction,
-			DestReceiver *dest,
+			DestReceiver * dest,
 			bool execute_once)
 {
 	TupleTableSlot *slot;
@@ -1794,8 +1798,8 @@ ExecutePlan(EState *estate,
  * Returns NULL if OK, else name of failed check constraint
  */
 static const char *
-ExecRelCheck(ResultRelInfo *resultRelInfo,
-			 TupleTableSlot *slot, EState *estate)
+ExecRelCheck(ResultRelInfo * resultRelInfo,
+			 TupleTableSlot * slot, EState * estate)
 {
 	Relation	rel = resultRelInfo->ri_RelationDesc;
 	int			ncheck = rel->rd_att->constr->num_check;
@@ -1813,7 +1817,7 @@ ExecRelCheck(ResultRelInfo *resultRelInfo,
 	{
 		oldContext = MemoryContextSwitchTo(estate->es_query_cxt);
 		resultRelInfo->ri_ConstraintExprs =
-			(ExprState **) palloc(ncheck * sizeof(ExprState *));
+			(ExprState * *) palloc(ncheck * sizeof(ExprState *));
 		for (i = 0; i < ncheck; i++)
 		{
 			Expr	   *checkconstr;
@@ -1856,8 +1860,8 @@ ExecRelCheck(ResultRelInfo *resultRelInfo,
  * ExecPartitionCheck --- check that tuple meets the partition constraint.
  */
 static void
-ExecPartitionCheck(ResultRelInfo *resultRelInfo, TupleTableSlot *slot,
-				   EState *estate)
+ExecPartitionCheck(ResultRelInfo * resultRelInfo, TupleTableSlot * slot,
+				   EState * estate)
 {
 	Relation	rel = resultRelInfo->ri_RelationDesc;
 	TupleDesc	tupdesc = RelationGetDescr(rel);
@@ -1943,8 +1947,8 @@ ExecPartitionCheck(ResultRelInfo *resultRelInfo, TupleTableSlot *slot,
  * 'resultRelInfo' is the original result relation, before tuple routing.
  */
 void
-ExecConstraints(ResultRelInfo *resultRelInfo,
-				TupleTableSlot *slot, EState *estate)
+ExecConstraints(ResultRelInfo * resultRelInfo,
+				TupleTableSlot * slot, EState * estate)
 {
 	Relation	rel = resultRelInfo->ri_RelationDesc;
 	TupleDesc	tupdesc = RelationGetDescr(rel);
@@ -2074,8 +2078,8 @@ ExecConstraints(ResultRelInfo *resultRelInfo,
  * and ExecUpdate().
  */
 void
-ExecWithCheckOptions(WCOKind kind, ResultRelInfo *resultRelInfo,
-					 TupleTableSlot *slot, EState *estate)
+ExecWithCheckOptions(WCOKind kind, ResultRelInfo * resultRelInfo,
+					 TupleTableSlot * slot, EState * estate)
 {
 	Relation	rel = resultRelInfo->ri_RelationDesc;
 	TupleDesc	tupdesc = RelationGetDescr(rel);
@@ -2222,9 +2226,9 @@ ExecWithCheckOptions(WCOKind kind, ResultRelInfo *resultRelInfo,
  */
 static char *
 ExecBuildSlotValueDescription(Oid reloid,
-							  TupleTableSlot *slot,
+							  TupleTableSlot * slot,
 							  TupleDesc tupdesc,
-							  Bitmapset *modifiedCols,
+							  Bitmapset * modifiedCols,
 							  int maxfieldlen)
 {
 	StringInfoData buf;
@@ -2357,7 +2361,7 @@ ExecBuildSlotValueDescription(Oid reloid,
  * given ResultRelInfo
  */
 LockTupleMode
-ExecUpdateLockMode(EState *estate, ResultRelInfo *relinfo)
+ExecUpdateLockMode(EState * estate, ResultRelInfo * relinfo)
 {
 	Bitmapset  *keyCols;
 	Bitmapset  *updatedCols;
@@ -2383,7 +2387,7 @@ ExecUpdateLockMode(EState *estate, ResultRelInfo *relinfo)
  * If no such struct, either return NULL or throw error depending on missing_ok
  */
 ExecRowMark *
-ExecFindRowMark(EState *estate, Index rti, bool missing_ok)
+ExecFindRowMark(EState * estate, Index rti, bool missing_ok)
 {
 	ListCell   *lc;
 
@@ -2407,7 +2411,7 @@ ExecFindRowMark(EState *estate, Index rti, bool missing_ok)
  * the column numbers of the resjunk columns.
  */
 ExecAuxRowMark *
-ExecBuildAuxRowMark(ExecRowMark *erm, List *targetlist)
+ExecBuildAuxRowMark(ExecRowMark * erm, List * targetlist)
 {
 	ExecAuxRowMark *aerm = (ExecAuxRowMark *) palloc0(sizeof(ExecAuxRowMark));
 	char		resname[32];
@@ -2478,7 +2482,7 @@ ExecBuildAuxRowMark(ExecRowMark *erm, List *targetlist)
  * but we use "int" to avoid having to include heapam.h in executor.h.
  */
 TupleTableSlot *
-EvalPlanQual(EState *estate, EPQState *epqstate,
+EvalPlanQual(EState * estate, EPQState * epqstate,
 			 Relation relation, Index rti, int lockmode,
 			 ItemPointer tid, TransactionId priorXmax)
 {
@@ -2565,7 +2569,7 @@ EvalPlanQual(EState *estate, EPQState *epqstate,
  * but we use "int" to avoid having to include heapam.h in executor.h.
  */
 HeapTuple
-EvalPlanQualFetch(EState *estate, Relation relation, int lockmode,
+EvalPlanQualFetch(EState * estate, Relation relation, int lockmode,
 				  LockWaitPolicy wait_policy,
 				  ItemPointer tid, TransactionId priorXmax)
 {
@@ -2794,8 +2798,8 @@ EvalPlanQualFetch(EState *estate, Relation relation, int lockmode,
  * with EvalPlanQualSetPlan.
  */
 void
-EvalPlanQualInit(EPQState *epqstate, EState *estate,
-				 Plan *subplan, List *auxrowmarks, int epqParam)
+EvalPlanQualInit(EPQState * epqstate, EState * estate,
+				 Plan * subplan, List * auxrowmarks, int epqParam)
 {
 	/* Mark the EPQ state inactive */
 	epqstate->estate = NULL;
@@ -2813,7 +2817,7 @@ EvalPlanQualInit(EPQState *epqstate, EState *estate,
  * We need this so that ModifyTable can deal with multiple subplans.
  */
 void
-EvalPlanQualSetPlan(EPQState *epqstate, Plan *subplan, List *auxrowmarks)
+EvalPlanQualSetPlan(EPQState * epqstate, Plan * subplan, List * auxrowmarks)
 {
 	/* If we have a live EPQ query, shut it down */
 	EvalPlanQualEnd(epqstate);
@@ -2829,7 +2833,7 @@ EvalPlanQualSetPlan(EPQState *epqstate, Plan *subplan, List *auxrowmarks)
  * NB: passed tuple must be palloc'd; it may get freed later
  */
 void
-EvalPlanQualSetTuple(EPQState *epqstate, Index rti, HeapTuple tuple)
+EvalPlanQualSetTuple(EPQState * epqstate, Index rti, HeapTuple tuple)
 {
 	EState	   *estate = epqstate->estate;
 
@@ -2849,7 +2853,7 @@ EvalPlanQualSetTuple(EPQState *epqstate, Index rti, HeapTuple tuple)
  * Fetch back the current test tuple (if any) for the specified RTI
  */
 HeapTuple
-EvalPlanQualGetTuple(EPQState *epqstate, Index rti)
+EvalPlanQualGetTuple(EPQState * epqstate, Index rti)
 {
 	EState	   *estate = epqstate->estate;
 
@@ -2864,7 +2868,7 @@ EvalPlanQualGetTuple(EPQState *epqstate, Index rti)
  * to contain the current result row (top-level row) that we need to recheck.
  */
 void
-EvalPlanQualFetchRowMarks(EPQState *epqstate)
+EvalPlanQualFetchRowMarks(EPQState * epqstate)
 {
 	ListCell   *l;
 
@@ -2999,7 +3003,7 @@ EvalPlanQualFetchRowMarks(EPQState *epqstate)
  * (In practice, there should never be more than one row...)
  */
 TupleTableSlot *
-EvalPlanQualNext(EPQState *epqstate)
+EvalPlanQualNext(EPQState * epqstate)
 {
 	MemoryContext oldcontext;
 	TupleTableSlot *slot;
@@ -3015,7 +3019,7 @@ EvalPlanQualNext(EPQState *epqstate)
  * Initialize or reset an EvalPlanQual state tree
  */
 void
-EvalPlanQualBegin(EPQState *epqstate, EState *parentestate)
+EvalPlanQualBegin(EPQState * epqstate, EState * parentestate)
 {
 	EState	   *estate = epqstate->estate;
 
@@ -3065,7 +3069,7 @@ EvalPlanQualBegin(EPQState *epqstate, EState *parentestate)
  * the top-level estate rather than initializing it fresh.
  */
 static void
-EvalPlanQualStart(EPQState *epqstate, EState *parentestate, Plan *planTree)
+EvalPlanQualStart(EPQState * epqstate, EState * parentestate, Plan * planTree)
 {
 	EState	   *estate;
 	int			rtsize;
@@ -3205,7 +3209,7 @@ EvalPlanQualStart(EPQState *epqstate, EState *parentestate, Plan *planTree)
  * (There probably shouldn't be any of the latter, but just in case...)
  */
 void
-EvalPlanQualEnd(EPQState *epqstate)
+EvalPlanQualEnd(EPQState * epqstate)
 {
 	EState	   *estate = epqstate->estate;
 	MemoryContext oldcontext;
@@ -3269,11 +3273,11 @@ EvalPlanQualEnd(EPQState *epqstate)
 void
 ExecSetupPartitionTupleRouting(Relation rel,
 							   Index resultRTindex,
-							   EState *estate,
-							   PartitionDispatch **pd,
-							   ResultRelInfo **partitions,
-							   TupleConversionMap ***tup_conv_maps,
-							   TupleTableSlot **partition_tuple_slot,
+							   EState * estate,
+							   PartitionDispatch * *pd,
+							   ResultRelInfo * *partitions,
+							   TupleConversionMap * **tup_conv_maps,
+							   TupleTableSlot * *partition_tuple_slot,
 							   int *num_parted, int *num_partitions)
 {
 	TupleDesc	tupDesc = RelationGetDescr(rel);
@@ -3291,8 +3295,8 @@ ExecSetupPartitionTupleRouting(Relation rel,
 	*num_partitions = list_length(leaf_parts);
 	*partitions = (ResultRelInfo *) palloc(*num_partitions *
 										   sizeof(ResultRelInfo));
-	*tup_conv_maps = (TupleConversionMap **) palloc0(*num_partitions *
-													 sizeof(TupleConversionMap *));
+	*tup_conv_maps = (TupleConversionMap * *) palloc0(*num_partitions *
+													  sizeof(TupleConversionMap *));
 
 	/*
 	 * Initialize an empty slot that will be used to manipulate tuples of any
@@ -3364,8 +3368,8 @@ ExecSetupPartitionTupleRouting(Relation rel,
  * by get_partition_for_tuple() unchanged.
  */
 int
-ExecFindPartition(ResultRelInfo *resultRelInfo, PartitionDispatch *pd,
-				  TupleTableSlot *slot, EState *estate)
+ExecFindPartition(ResultRelInfo * resultRelInfo, PartitionDispatch * pd,
+				  TupleTableSlot * slot, EState * estate)
 {
 	int			result;
 	PartitionDispatchData *failed_at;
@@ -3416,7 +3420,7 @@ ExecFindPartition(ResultRelInfo *resultRelInfo, PartitionDispatch *pd,
  */
 static char *
 ExecBuildSlotPartitionKeyDescription(Relation rel,
-									 Datum *values,
+									 Datum * values,
 									 bool *isnull,
 									 int maxfieldlen)
 {

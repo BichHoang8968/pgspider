@@ -73,7 +73,7 @@ static bool IndexSupportsBackwardScan(Oid indexid);
  * the output might be different from last time.
  */
 void
-ExecReScan(PlanState *node)
+ExecReScan(PlanState * node)
 {
 	/* If collecting timing stats, update them */
 	if (node->instrument)
@@ -311,7 +311,7 @@ ExecReScan(PlanState *node)
  * inserting a Material node above that node.
  */
 void
-ExecMarkPos(PlanState *node)
+ExecMarkPos(PlanState * node)
 {
 	switch (nodeTag(node))
 	{
@@ -360,7 +360,7 @@ ExecMarkPos(PlanState *node)
  * returned TupleTableSlot after doing a restore.
  */
 void
-ExecRestrPos(PlanState *node)
+ExecRestrPos(PlanState * node)
 {
 	switch (nodeTag(node))
 	{
@@ -402,7 +402,7 @@ ExecRestrPos(PlanState *node)
  * know which plan types support mark/restore.
  */
 bool
-ExecSupportsMarkRestore(Path *pathnode)
+ExecSupportsMarkRestore(Path * pathnode)
 {
 	/*
 	 * For consistency with the routines above, we do not examine the nodeTag
@@ -459,7 +459,7 @@ ExecSupportsMarkRestore(Path *pathnode)
  * children do.  Therefore, this routine must be passed a complete plan tree.
  */
 bool
-ExecSupportsBackwardScan(Plan *node)
+ExecSupportsBackwardScan(Plan * node)
 {
 	if (node == NULL)
 		return false;

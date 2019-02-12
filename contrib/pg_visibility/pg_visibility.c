@@ -28,14 +28,14 @@ typedef struct vbits
 	BlockNumber next;
 	BlockNumber count;
 	uint8		bits[FLEXIBLE_ARRAY_MEMBER];
-} vbits;
+}			vbits;
 
 typedef struct corrupt_items
 {
 	BlockNumber next;
 	BlockNumber count;
 	ItemPointer tids;
-} corrupt_items;
+}			corrupt_items;
 
 PG_FUNCTION_INFO_V1(pg_visibility_map);
 PG_FUNCTION_INFO_V1(pg_visibility_map_rel);
@@ -47,10 +47,10 @@ PG_FUNCTION_INFO_V1(pg_check_visible);
 PG_FUNCTION_INFO_V1(pg_truncate_visibility_map);
 
 static TupleDesc pg_visibility_tupdesc(bool include_blkno, bool include_pd);
-static vbits *collect_visibility_data(Oid relid, bool include_pd);
-static corrupt_items *collect_corrupt_items(Oid relid, bool all_visible,
-					  bool all_frozen);
-static void record_corrupt_item(corrupt_items *items, ItemPointer tid);
+static vbits * collect_visibility_data(Oid relid, bool include_pd);
+static corrupt_items * collect_corrupt_items(Oid relid, bool all_visible,
+											 bool all_frozen);
+static void record_corrupt_item(corrupt_items * items, ItemPointer tid);
 static bool tuple_all_visible(HeapTuple tup, TransactionId OldestXmin,
 				  Buffer buffer);
 static void check_relation_relkind(Relation rel);
@@ -721,7 +721,7 @@ collect_corrupt_items(Oid relid, bool all_visible, bool all_frozen)
  * Remember one corrupt item.
  */
 static void
-record_corrupt_item(corrupt_items *items, ItemPointer tid)
+record_corrupt_item(corrupt_items * items, ItemPointer tid)
 {
 	/* enlarge output array if needed. */
 	if (items->next >= items->count)

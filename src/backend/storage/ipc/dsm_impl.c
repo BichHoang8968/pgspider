@@ -72,23 +72,23 @@
 #ifdef USE_DSM_POSIX
 static bool dsm_impl_posix(dsm_op op, dsm_handle handle, Size request_size,
 			   void **impl_private, void **mapped_address,
-			   Size *mapped_size, int elevel);
+			   Size * mapped_size, int elevel);
 static int	dsm_impl_posix_resize(int fd, off_t size);
 #endif
 #ifdef USE_DSM_SYSV
 static bool dsm_impl_sysv(dsm_op op, dsm_handle handle, Size request_size,
 			  void **impl_private, void **mapped_address,
-			  Size *mapped_size, int elevel);
+			  Size * mapped_size, int elevel);
 #endif
 #ifdef USE_DSM_WINDOWS
 static bool dsm_impl_windows(dsm_op op, dsm_handle handle, Size request_size,
 				 void **impl_private, void **mapped_address,
-				 Size *mapped_size, int elevel);
+				 Size * mapped_size, int elevel);
 #endif
 #ifdef USE_DSM_MMAP
 static bool dsm_impl_mmap(dsm_op op, dsm_handle handle, Size request_size,
 			  void **impl_private, void **mapped_address,
-			  Size *mapped_size, int elevel);
+			  Size * mapped_size, int elevel);
 #endif
 static int	errcode_for_dynamic_shared_memory(void);
 
@@ -161,7 +161,7 @@ int			dynamic_shared_memory_type;
  */
 bool
 dsm_impl_op(dsm_op op, dsm_handle handle, Size request_size,
-			void **impl_private, void **mapped_address, Size *mapped_size,
+			void **impl_private, void **mapped_address, Size * mapped_size,
 			int elevel)
 {
 	Assert(op == DSM_OP_CREATE || op == DSM_OP_RESIZE || request_size == 0);
@@ -241,7 +241,7 @@ dsm_impl_can_resize(void)
  */
 static bool
 dsm_impl_posix(dsm_op op, dsm_handle handle, Size request_size,
-			   void **impl_private, void **mapped_address, Size *mapped_size,
+			   void **impl_private, void **mapped_address, Size * mapped_size,
 			   int elevel)
 {
 	char		name[64];
@@ -453,7 +453,7 @@ dsm_impl_posix_resize(int fd, off_t size)
  */
 static bool
 dsm_impl_sysv(dsm_op op, dsm_handle handle, Size request_size,
-			  void **impl_private, void **mapped_address, Size *mapped_size,
+			  void **impl_private, void **mapped_address, Size * mapped_size,
 			  int elevel)
 {
 	key_t		key;
@@ -652,7 +652,7 @@ dsm_impl_sysv(dsm_op op, dsm_handle handle, Size request_size,
 static bool
 dsm_impl_windows(dsm_op op, dsm_handle handle, Size request_size,
 				 void **impl_private, void **mapped_address,
-				 Size *mapped_size, int elevel)
+				 Size * mapped_size, int elevel)
 {
 	char	   *address;
 	HANDLE		hmap;
@@ -844,7 +844,7 @@ dsm_impl_windows(dsm_op op, dsm_handle handle, Size request_size,
  */
 static bool
 dsm_impl_mmap(dsm_op op, dsm_handle handle, Size request_size,
-			  void **impl_private, void **mapped_address, Size *mapped_size,
+			  void **impl_private, void **mapped_address, Size * mapped_size,
 			  int elevel)
 {
 	char		name[64];

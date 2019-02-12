@@ -33,7 +33,7 @@ typedef struct JsonbInState
 {
 	JsonbParseState *parseState;
 	JsonbValue *res;
-} JsonbInState;
+}			JsonbInState;
 
 /* unlike with json categories, we need to treat json and jsonb differently */
 typedef enum					/* type categories for datum_to_jsonb */
@@ -50,7 +50,7 @@ typedef enum					/* type categories for datum_to_jsonb */
 	JSONBTYPE_COMPOSITE,		/* composite */
 	JSONBTYPE_JSONCAST,			/* something with an explicit cast to JSON */
 	JSONBTYPE_OTHER				/* all else */
-} JsonbTypeCategory;
+}			JsonbTypeCategory;
 
 typedef struct JsonbAggState
 {
@@ -59,7 +59,7 @@ typedef struct JsonbAggState
 	Oid			key_output_func;
 	JsonbTypeCategory val_category;
 	Oid			val_output_func;
-} JsonbAggState;
+}			JsonbAggState;
 
 static inline Datum jsonb_from_cstring(char *json, int len);
 static size_t checkStringLen(size_t len);
@@ -68,26 +68,26 @@ static void jsonb_in_object_end(void *pstate);
 static void jsonb_in_array_start(void *pstate);
 static void jsonb_in_array_end(void *pstate);
 static void jsonb_in_object_field_start(void *pstate, char *fname, bool isnull);
-static void jsonb_put_escaped_value(StringInfo out, JsonbValue *scalarVal);
+static void jsonb_put_escaped_value(StringInfo out, JsonbValue * scalarVal);
 static void jsonb_in_scalar(void *pstate, char *token, JsonTokenType tokentype);
 static void jsonb_categorize_type(Oid typoid,
-					  JsonbTypeCategory *tcategory,
-					  Oid *outfuncoid);
-static void composite_to_jsonb(Datum composite, JsonbInState *result);
-static void array_dim_to_jsonb(JsonbInState *result, int dim, int ndims, int *dims,
-				   Datum *vals, bool *nulls, int *valcount,
+					  JsonbTypeCategory * tcategory,
+					  Oid * outfuncoid);
+static void composite_to_jsonb(Datum composite, JsonbInState * result);
+static void array_dim_to_jsonb(JsonbInState * result, int dim, int ndims, int *dims,
+				   Datum * vals, bool *nulls, int *valcount,
 				   JsonbTypeCategory tcategory, Oid outfuncoid);
-static void array_to_jsonb_internal(Datum array, JsonbInState *result);
+static void array_to_jsonb_internal(Datum array, JsonbInState * result);
 static void jsonb_categorize_type(Oid typoid,
-					  JsonbTypeCategory *tcategory,
-					  Oid *outfuncoid);
-static void datum_to_jsonb(Datum val, bool is_null, JsonbInState *result,
+					  JsonbTypeCategory * tcategory,
+					  Oid * outfuncoid);
+static void datum_to_jsonb(Datum val, bool is_null, JsonbInState * result,
 			   JsonbTypeCategory tcategory, Oid outfuncoid,
 			   bool key_scalar);
-static void add_jsonb(Datum val, bool is_null, JsonbInState *result,
+static void add_jsonb(Datum val, bool is_null, JsonbInState * result,
 		  Oid val_type, bool key_scalar);
-static JsonbParseState *clone_parse_state(JsonbParseState *state);
-static char *JsonbToCStringWorker(StringInfo out, JsonbContainer *in, int estimated_len, bool indent);
+static JsonbParseState * clone_parse_state(JsonbParseState * state);
+static char *JsonbToCStringWorker(StringInfo out, JsonbContainer * in, int estimated_len, bool indent);
 static void add_indent(StringInfo out, bool indent, int level);
 
 /*
@@ -309,7 +309,7 @@ jsonb_in_object_field_start(void *pstate, char *fname, bool isnull)
 }
 
 static void
-jsonb_put_escaped_value(StringInfo out, JsonbValue *scalarVal)
+jsonb_put_escaped_value(StringInfo out, JsonbValue * scalarVal)
 {
 	switch (scalarVal->type)
 	{
@@ -426,7 +426,7 @@ jsonb_in_scalar(void *pstate, char *token, JsonTokenType tokentype)
  * if they are converting it to a text* object.
  */
 char *
-JsonbToCString(StringInfo out, JsonbContainer *in, int estimated_len)
+JsonbToCString(StringInfo out, JsonbContainer * in, int estimated_len)
 {
 	return JsonbToCStringWorker(out, in, estimated_len, false);
 }
@@ -435,7 +435,7 @@ JsonbToCString(StringInfo out, JsonbContainer *in, int estimated_len)
  * same thing but with indentation turned on
  */
 char *
-JsonbToCStringIndent(StringInfo out, JsonbContainer *in, int estimated_len)
+JsonbToCStringIndent(StringInfo out, JsonbContainer * in, int estimated_len)
 {
 	return JsonbToCStringWorker(out, in, estimated_len, true);
 }
@@ -444,7 +444,7 @@ JsonbToCStringIndent(StringInfo out, JsonbContainer *in, int estimated_len)
  * common worker for above two functions
  */
 static char *
-JsonbToCStringWorker(StringInfo out, JsonbContainer *in, int estimated_len, bool indent)
+JsonbToCStringWorker(StringInfo out, JsonbContainer * in, int estimated_len, bool indent)
 {
 	bool		first = true;
 	JsonbIterator *it;
@@ -590,8 +590,8 @@ add_indent(StringInfo out, bool indent, int level)
  */
 static void
 jsonb_categorize_type(Oid typoid,
-					  JsonbTypeCategory *tcategory,
-					  Oid *outfuncoid)
+					  JsonbTypeCategory * tcategory,
+					  Oid * outfuncoid)
 {
 	bool		typisvarlena;
 
@@ -697,7 +697,7 @@ jsonb_categorize_type(Oid typoid,
  * it's of an acceptable type, and force it to be a jbvString.
  */
 static void
-datum_to_jsonb(Datum val, bool is_null, JsonbInState *result,
+datum_to_jsonb(Datum val, bool is_null, JsonbInState * result,
 			   JsonbTypeCategory tcategory, Oid outfuncoid,
 			   bool key_scalar)
 {
@@ -964,7 +964,7 @@ datum_to_jsonb(Datum val, bool is_null, JsonbInState *result,
  * ourselves recursively to process the next dimension.
  */
 static void
-array_dim_to_jsonb(JsonbInState *result, int dim, int ndims, int *dims, Datum *vals,
+array_dim_to_jsonb(JsonbInState * result, int dim, int ndims, int *dims, Datum * vals,
 				   bool *nulls, int *valcount, JsonbTypeCategory tcategory,
 				   Oid outfuncoid)
 {
@@ -996,7 +996,7 @@ array_dim_to_jsonb(JsonbInState *result, int dim, int ndims, int *dims, Datum *v
  * Turn an array into JSON.
  */
 static void
-array_to_jsonb_internal(Datum array, JsonbInState *result)
+array_to_jsonb_internal(Datum array, JsonbInState * result)
 {
 	ArrayType  *v = DatumGetArrayTypeP(array);
 	Oid			element_type = ARR_ELEMTYPE(v);
@@ -1044,7 +1044,7 @@ array_to_jsonb_internal(Datum array, JsonbInState *result)
  * Turn a composite / record into JSON.
  */
 static void
-composite_to_jsonb(Datum composite, JsonbInState *result)
+composite_to_jsonb(Datum composite, JsonbInState * result)
 {
 	HeapTupleHeader td;
 	Oid			tupType;
@@ -1116,7 +1116,7 @@ composite_to_jsonb(Datum composite, JsonbInState *result)
  */
 
 static void
-add_jsonb(Datum val, bool is_null, JsonbInState *result,
+add_jsonb(Datum val, bool is_null, JsonbInState * result,
 		  Oid val_type, bool key_scalar)
 {
 	JsonbTypeCategory tcategory;
@@ -1485,7 +1485,7 @@ close_object:
  * change them.
  */
 static JsonbParseState *
-clone_parse_state(JsonbParseState *state)
+clone_parse_state(JsonbParseState * state)
 {
 	JsonbParseState *result,
 			   *icursor,

@@ -90,11 +90,11 @@ struct BufFile
 	char		buffer[BLCKSZ];
 };
 
-static BufFile *makeBufFile(File firstfile);
-static void extendBufFile(BufFile *file);
-static void BufFileLoadBuffer(BufFile *file);
-static void BufFileDumpBuffer(BufFile *file);
-static int	BufFileFlush(BufFile *file);
+static BufFile * makeBufFile(File firstfile);
+static void extendBufFile(BufFile * file);
+static void BufFileLoadBuffer(BufFile * file);
+static void BufFileDumpBuffer(BufFile * file);
+static int	BufFileFlush(BufFile * file);
 
 
 /*
@@ -127,7 +127,7 @@ makeBufFile(File firstfile)
  * Add another component temp file.
  */
 static void
-extendBufFile(BufFile *file)
+extendBufFile(BufFile * file)
 {
 	File		pfile;
 	ResourceOwner oldowner;
@@ -200,7 +200,7 @@ BufFileCreate(File file)
  * Like fclose(), this also implicitly FileCloses the underlying File.
  */
 void
-BufFileClose(BufFile *file)
+BufFileClose(BufFile * file)
 {
 	int			i;
 
@@ -223,7 +223,7 @@ BufFileClose(BufFile *file)
  * On exit, nbytes is number of bytes loaded.
  */
 static void
-BufFileLoadBuffer(BufFile *file)
+BufFileLoadBuffer(BufFile * file)
 {
 	File		thisfile;
 
@@ -275,7 +275,7 @@ BufFileLoadBuffer(BufFile *file)
  * On exit, dirty is cleared if successful write, and curOffset is advanced.
  */
 static void
-BufFileDumpBuffer(BufFile *file)
+BufFileDumpBuffer(BufFile * file)
 {
 	int			wpos = 0;
 	int			bytestowrite;
@@ -362,7 +362,7 @@ BufFileDumpBuffer(BufFile *file)
  * Like fread() except we assume 1-byte element size.
  */
 size_t
-BufFileRead(BufFile *file, void *ptr, size_t size)
+BufFileRead(BufFile * file, void *ptr, size_t size)
 {
 	size_t		nread = 0;
 	size_t		nthistime;
@@ -409,7 +409,7 @@ BufFileRead(BufFile *file, void *ptr, size_t size)
  * Like fwrite() except we assume 1-byte element size.
  */
 size_t
-BufFileWrite(BufFile *file, void *ptr, size_t size)
+BufFileWrite(BufFile * file, void *ptr, size_t size)
 {
 	size_t		nwritten = 0;
 	size_t		nthistime;
@@ -459,7 +459,7 @@ BufFileWrite(BufFile *file, void *ptr, size_t size)
  * Like fflush()
  */
 static int
-BufFileFlush(BufFile *file)
+BufFileFlush(BufFile * file)
 {
 	if (file->dirty)
 	{
@@ -482,7 +482,7 @@ BufFileFlush(BufFile *file)
  * impossible seek is attempted.
  */
 int
-BufFileSeek(BufFile *file, int fileno, off_t offset, int whence)
+BufFileSeek(BufFile * file, int fileno, off_t offset, int whence)
 {
 	int			newFile;
 	off_t		newOffset;
@@ -568,7 +568,7 @@ BufFileSeek(BufFile *file, int fileno, off_t offset, int whence)
 }
 
 void
-BufFileTell(BufFile *file, int *fileno, off_t *offset)
+BufFileTell(BufFile * file, int *fileno, off_t * offset)
 {
 	*fileno = file->curFile;
 	*offset = file->curOffset + file->pos;
@@ -586,7 +586,7 @@ BufFileTell(BufFile *file, int *fileno, off_t *offset)
  * impossible seek is attempted.
  */
 int
-BufFileSeekBlock(BufFile *file, long blknum)
+BufFileSeekBlock(BufFile * file, long blknum)
 {
 	return BufFileSeek(file,
 					   (int) (blknum / BUFFILE_SEG_SIZE),
@@ -601,7 +601,7 @@ BufFileSeekBlock(BufFile *file, long blknum)
  * Any fractional part of a block in the current seek position is ignored.
  */
 long
-BufFileTellBlock(BufFile *file)
+BufFileTellBlock(BufFile * file)
 {
 	long		blknum;
 

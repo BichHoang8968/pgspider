@@ -19,14 +19,14 @@ typedef struct
 {
 	int			i;
 	GBT_VARKEY *t;
-} Vsrt;
+}			Vsrt;
 
 typedef struct
 {
-	const gbtree_vinfo *tinfo;
+	const		gbtree_vinfo *tinfo;
 	Oid			collation;
 	FmgrInfo   *flinfo;
-} gbt_vsrt_arg;
+}			gbt_vsrt_arg;
 
 
 PG_FUNCTION_INFO_V1(gbt_var_decompress);
@@ -55,13 +55,13 @@ gbt_var_decompress(PG_FUNCTION_ARGS)
 
 /* Returns a better readable representation of variable key ( sets pointer ) */
 GBT_VARKEY_R
-gbt_var_key_readable(const GBT_VARKEY *k)
+gbt_var_key_readable(const GBT_VARKEY * k)
 {
 	GBT_VARKEY_R r;
 
-	r.lower = (bytea *) &(((char *) k)[VARHDRSZ]);
+	r.lower = (bytea *) & (((char *) k)[VARHDRSZ]);
 	if (VARSIZE(k) > (VARHDRSZ + (VARSIZE(r.lower))))
-		r.upper = (bytea *) &(((char *) k)[VARHDRSZ + INTALIGN(VARSIZE(r.lower))]);
+		r.upper = (bytea *) & (((char *) k)[VARHDRSZ + INTALIGN(VARSIZE(r.lower))]);
 	else
 		r.upper = r.lower;
 	return r;
@@ -88,7 +88,7 @@ gbt_var_key_from_datum(const struct varlena *u)
  * Create an entry to store in the index, from lower and upper bound.
  */
 GBT_VARKEY *
-gbt_var_key_copy(const GBT_VARKEY_R *u)
+gbt_var_key_copy(const GBT_VARKEY_R * u)
 {
 	int32		lowersize = VARSIZE(u->lower);
 	int32		uppersize = VARSIZE(u->upper);
@@ -104,7 +104,7 @@ gbt_var_key_copy(const GBT_VARKEY_R *u)
 
 
 static GBT_VARKEY *
-gbt_var_leaf2node(GBT_VARKEY *leaf, const gbtree_vinfo *tinfo, FmgrInfo *flinfo)
+gbt_var_leaf2node(GBT_VARKEY * leaf, const gbtree_vinfo * tinfo, FmgrInfo * flinfo)
 {
 	GBT_VARKEY *out = leaf;
 
@@ -119,7 +119,7 @@ gbt_var_leaf2node(GBT_VARKEY *leaf, const gbtree_vinfo *tinfo, FmgrInfo *flinfo)
  * returns the common prefix length of a node key
 */
 static int32
-gbt_var_node_cp_len(const GBT_VARKEY *node, const gbtree_vinfo *tinfo)
+gbt_var_node_cp_len(const GBT_VARKEY * node, const gbtree_vinfo * tinfo)
 {
 	GBT_VARKEY_R r = gbt_var_key_readable(node);
 	int32		i = 0;
@@ -167,7 +167,7 @@ gbt_var_node_cp_len(const GBT_VARKEY *node, const gbtree_vinfo *tinfo)
  * returns true, if query matches prefix ( common prefix )
  */
 static bool
-gbt_bytea_pf_match(const bytea *pf, const bytea *query, const gbtree_vinfo *tinfo)
+gbt_bytea_pf_match(const bytea * pf, const bytea * query, const gbtree_vinfo * tinfo)
 {
 	bool		out = FALSE;
 	int32		qlen = VARSIZE(query) - VARHDRSZ;
@@ -189,7 +189,7 @@ gbt_bytea_pf_match(const bytea *pf, const bytea *query, const gbtree_vinfo *tinf
  * returns true, if query matches node using common prefix
  */
 static bool
-gbt_var_node_pf_match(const GBT_VARKEY_R *node, const bytea *query, const gbtree_vinfo *tinfo)
+gbt_var_node_pf_match(const GBT_VARKEY_R * node, const bytea * query, const gbtree_vinfo * tinfo)
 {
 	return (tinfo->trnc && (
 							gbt_bytea_pf_match(node->lower, query, tinfo) ||
@@ -203,7 +203,7 @@ gbt_var_node_pf_match(const GBT_VARKEY_R *node, const bytea *query, const gbtree
 *  cpf_length .. common prefix length
 */
 static GBT_VARKEY *
-gbt_var_node_truncate(const GBT_VARKEY *node, int32 cpf_length, const gbtree_vinfo *tinfo)
+gbt_var_node_truncate(const GBT_VARKEY * node, int32 cpf_length, const gbtree_vinfo * tinfo)
 {
 	GBT_VARKEY *out = NULL;
 	GBT_VARKEY_R r = gbt_var_key_readable(node);
@@ -232,8 +232,8 @@ gbt_var_node_truncate(const GBT_VARKEY *node, int32 cpf_length, const gbtree_vin
 
 
 void
-gbt_var_bin_union(Datum *u, GBT_VARKEY *e, Oid collation,
-				  const gbtree_vinfo *tinfo, FmgrInfo *flinfo)
+gbt_var_bin_union(Datum * u, GBT_VARKEY * e, Oid collation,
+				  const gbtree_vinfo * tinfo, FmgrInfo * flinfo)
 {
 	GBT_VARKEY_R eo = gbt_var_key_readable(e);
 	GBT_VARKEY_R nr;
@@ -280,7 +280,7 @@ gbt_var_bin_union(Datum *u, GBT_VARKEY *e, Oid collation,
 
 
 GISTENTRY *
-gbt_var_compress(GISTENTRY *entry, const gbtree_vinfo *tinfo)
+gbt_var_compress(GISTENTRY * entry, const gbtree_vinfo * tinfo)
 {
 	GISTENTRY  *retval;
 
@@ -321,8 +321,8 @@ gbt_var_fetch(PG_FUNCTION_ARGS)
 
 
 GBT_VARKEY *
-gbt_var_union(const GistEntryVector *entryvec, int32 *size, Oid collation,
-			  const gbtree_vinfo *tinfo, FmgrInfo *flinfo)
+gbt_var_union(const GistEntryVector * entryvec, int32 * size, Oid collation,
+			  const gbtree_vinfo * tinfo, FmgrInfo * flinfo)
 {
 	int			i = 0,
 				numranges = entryvec->n;
@@ -361,7 +361,7 @@ gbt_var_union(const GistEntryVector *entryvec, int32 *size, Oid collation,
 
 bool
 gbt_var_same(Datum d1, Datum d2, Oid collation,
-			 const gbtree_vinfo *tinfo, FmgrInfo *flinfo)
+			 const gbtree_vinfo * tinfo, FmgrInfo * flinfo)
 {
 	GBT_VARKEY *t1 = (GBT_VARKEY *) DatumGetPointer(d1);
 	GBT_VARKEY *t2 = (GBT_VARKEY *) DatumGetPointer(d2);
@@ -377,8 +377,8 @@ gbt_var_same(Datum d1, Datum d2, Oid collation,
 
 
 float *
-gbt_var_penalty(float *res, const GISTENTRY *o, const GISTENTRY *n,
-				Oid collation, const gbtree_vinfo *tinfo, FmgrInfo *flinfo)
+gbt_var_penalty(float *res, const GISTENTRY * o, const GISTENTRY * n,
+				Oid collation, const gbtree_vinfo * tinfo, FmgrInfo * flinfo)
 {
 	GBT_VARKEY *orge = (GBT_VARKEY *) DatumGetPointer(o->key);
 	GBT_VARKEY *newe = (GBT_VARKEY *) DatumGetPointer(n->key);
@@ -446,7 +446,7 @@ gbt_vsrt_cmp(const void *a, const void *b, void *arg)
 {
 	GBT_VARKEY_R ar = gbt_var_key_readable(((const Vsrt *) a)->t);
 	GBT_VARKEY_R br = gbt_var_key_readable(((const Vsrt *) b)->t);
-	const gbt_vsrt_arg *varg = (const gbt_vsrt_arg *) arg;
+	const		gbt_vsrt_arg *varg = (const gbt_vsrt_arg *) arg;
 	int			res;
 
 	res = (*varg->tinfo->f_cmp) (ar.lower, br.lower, varg->collation, varg->flinfo);
@@ -457,8 +457,8 @@ gbt_vsrt_cmp(const void *a, const void *b, void *arg)
 }
 
 GIST_SPLITVEC *
-gbt_var_picksplit(const GistEntryVector *entryvec, GIST_SPLITVEC *v,
-				  Oid collation, const gbtree_vinfo *tinfo, FmgrInfo *flinfo)
+gbt_var_picksplit(const GistEntryVector * entryvec, GIST_SPLITVEC * v,
+				  Oid collation, const gbtree_vinfo * tinfo, FmgrInfo * flinfo)
 {
 	OffsetNumber i,
 				maxoff = entryvec->n - 1;
@@ -553,13 +553,13 @@ gbt_var_picksplit(const GistEntryVector *entryvec, GIST_SPLITVEC *v,
  * The GiST consistent method
  */
 bool
-gbt_var_consistent(GBT_VARKEY_R *key,
+gbt_var_consistent(GBT_VARKEY_R * key,
 				   const void *query,
 				   StrategyNumber strategy,
 				   Oid collation,
 				   bool is_leaf,
-				   const gbtree_vinfo *tinfo,
-				   FmgrInfo *flinfo)
+				   const gbtree_vinfo * tinfo,
+				   FmgrInfo * flinfo)
 {
 	bool		retval = FALSE;
 

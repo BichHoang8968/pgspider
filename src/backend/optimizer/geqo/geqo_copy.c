@@ -42,7 +42,7 @@
  *
  */
 void
-geqo_copy(PlannerInfo *root, Chromosome *chromo1, Chromosome *chromo2,
+geqo_copy(PlannerInfo * root, Chromosome * chromo1, Chromosome * chromo2,
 		  int string_length)
 {
 	int			i;

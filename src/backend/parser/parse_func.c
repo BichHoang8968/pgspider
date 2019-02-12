@@ -35,12 +35,12 @@
 #include "utils/syscache.h"
 
 
-static void unify_hypothetical_args(ParseState *pstate,
-						List *fargs, int numAggregatedArgs,
-						Oid *actual_arg_types, Oid *declared_arg_types);
-static Oid	FuncNameAsType(List *funcname);
-static Node *ParseComplexProjection(ParseState *pstate, char *funcname,
-					   Node *first_arg, int location);
+static void unify_hypothetical_args(ParseState * pstate,
+						List * fargs, int numAggregatedArgs,
+						Oid * actual_arg_types, Oid * declared_arg_types);
+static Oid FuncNameAsType(List * funcname);
+static Node * ParseComplexProjection(ParseState * pstate, char *funcname,
+									 Node * first_arg, int location);
 
 
 /*
@@ -70,8 +70,8 @@ static Node *ParseComplexProjection(ParseState *pstate, char *funcname,
  *	contain any SRF calls, last_srf can just be pstate->p_last_srf.
  */
 Node *
-ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
-				  Node *last_srf, FuncCall *fn, int location)
+ParseFuncOrColumn(ParseState * pstate, List * funcname, List * fargs,
+				  Node * last_srf, FuncCall * fn, int location)
 {
 	bool		is_column = (fn == NULL);
 	List	   *agg_order = (fn ? fn->agg_order : NIL);
@@ -809,9 +809,9 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
  */
 int
 func_match_argtypes(int nargs,
-					Oid *input_typeids,
+					Oid * input_typeids,
 					FuncCandidateList raw_candidates,
-					FuncCandidateList *candidates)	/* return value */
+					FuncCandidateList * candidates) /* return value */
 {
 	FuncCandidateList current_candidate;
 	FuncCandidateList next_candidate;
@@ -894,7 +894,7 @@ func_match_argtypes(int nargs,
  */
 FuncCandidateList
 func_select_candidate(int nargs,
-					  Oid *input_typeids,
+					  Oid * input_typeids,
 					  FuncCandidateList candidates)
 {
 	FuncCandidateList current_candidate,
@@ -1280,20 +1280,20 @@ func_select_candidate(int nargs,
  * information to be returned into the NamedArgExpr nodes.
  */
 FuncDetailCode
-func_get_detail(List *funcname,
-				List *fargs,
-				List *fargnames,
+func_get_detail(List * funcname,
+				List * fargs,
+				List * fargnames,
 				int nargs,
-				Oid *argtypes,
+				Oid * argtypes,
 				bool expand_variadic,
 				bool expand_defaults,
-				Oid *funcid,	/* return value */
-				Oid *rettype,	/* return value */
+				Oid * funcid,	/* return value */
+				Oid * rettype,	/* return value */
 				bool *retset,	/* return value */
 				int *nvargs,	/* return value */
-				Oid *vatype,	/* return value */
-				Oid **true_typeids, /* return value */
-				List **argdefaults) /* optional return value */
+				Oid * vatype,	/* return value */
+				Oid * *true_typeids,	/* return value */
+				List * *argdefaults)	/* optional return value */
 {
 	FuncCandidateList raw_candidates;
 	FuncCandidateList best_candidate;
@@ -1614,11 +1614,11 @@ func_get_detail(List *funcname,
  * mismatch here.  We use the same type resolution logic as UNION etc.
  */
 static void
-unify_hypothetical_args(ParseState *pstate,
-						List *fargs,
+unify_hypothetical_args(ParseState * pstate,
+						List * fargs,
 						int numAggregatedArgs,
-						Oid *actual_arg_types,
-						Oid *declared_arg_types)
+						Oid * actual_arg_types,
+						Oid * declared_arg_types)
 {
 	Node	   *args[FUNC_MAX_ARGS];
 	int			numDirectArgs,
@@ -1708,10 +1708,10 @@ unify_hypothetical_args(ParseState *pstate,
  * processing is wanted.
  */
 void
-make_fn_arguments(ParseState *pstate,
-				  List *fargs,
-				  Oid *actual_arg_types,
-				  Oid *declared_arg_types)
+make_fn_arguments(ParseState * pstate,
+				  List * fargs,
+				  Oid * actual_arg_types,
+				  Oid * declared_arg_types)
 {
 	ListCell   *current_fargs;
 	int			i = 0;
@@ -1764,7 +1764,7 @@ make_fn_arguments(ParseState *pstate,
  * shell types and complex types.
  */
 static Oid
-FuncNameAsType(List *funcname)
+FuncNameAsType(List * funcname)
 {
 	Oid			result;
 	Type		typtup;
@@ -1790,7 +1790,7 @@ FuncNameAsType(List *funcname)
  *	  transformed expression tree.  If not, return NULL.
  */
 static Node *
-ParseComplexProjection(ParseState *pstate, char *funcname, Node *first_arg,
+ParseComplexProjection(ParseState * pstate, char *funcname, Node * first_arg,
 					   int location)
 {
 	TupleDesc	tupdesc;
@@ -1869,7 +1869,7 @@ ParseComplexProjection(ParseState *pstate, char *funcname, Node *first_arg,
  */
 const char *
 funcname_signature_string(const char *funcname, int nargs,
-						  List *argnames, const Oid *argtypes)
+						  List * argnames, const Oid * argtypes)
 {
 	StringInfoData argbuf;
 	int			numposargs;
@@ -1905,8 +1905,8 @@ funcname_signature_string(const char *funcname, int nargs,
  *		As above, but function name is passed as a qualified name list.
  */
 const char *
-func_signature_string(List *funcname, int nargs,
-					  List *argnames, const Oid *argtypes)
+func_signature_string(List * funcname, int nargs,
+					  List * argnames, const Oid * argtypes)
 {
 	return funcname_signature_string(NameListToString(funcname),
 									 nargs, argnames, argtypes);
@@ -1926,7 +1926,7 @@ func_signature_string(List *funcname, int nargs,
  * else raise an error.
  */
 Oid
-LookupFuncName(List *funcname, int nargs, const Oid *argtypes, bool noError)
+LookupFuncName(List * funcname, int nargs, const Oid * argtypes, bool noError)
 {
 	FuncCandidateList clist;
 
@@ -1987,7 +1987,7 @@ LookupFuncName(List *funcname, int nargs, const Oid *argtypes, bool noError)
  *		ObjectWithArgs node.
  */
 Oid
-LookupFuncWithArgs(ObjectWithArgs *func, bool noError)
+LookupFuncWithArgs(ObjectWithArgs * func, bool noError)
 {
 	Oid			argoids[FUNC_MAX_ARGS];
 	int			argcount;
@@ -2024,7 +2024,7 @@ LookupFuncWithArgs(ObjectWithArgs *func, bool noError)
  * function really is an aggregate.
  */
 Oid
-LookupAggWithArgs(ObjectWithArgs *agg, bool noError)
+LookupAggWithArgs(ObjectWithArgs * agg, bool noError)
 {
 	Oid			argoids[FUNC_MAX_ARGS];
 	int			argcount;
@@ -2108,7 +2108,7 @@ LookupAggWithArgs(ObjectWithArgs *agg, bool noError)
  * of whether the SRF's arguments contain any SRFs.
  */
 void
-check_srf_call_placement(ParseState *pstate, Node *last_srf, int location)
+check_srf_call_placement(ParseState * pstate, Node * last_srf, int location)
 {
 	const char *err;
 	bool		errkind;

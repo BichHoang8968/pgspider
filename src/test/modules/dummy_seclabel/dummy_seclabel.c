@@ -24,7 +24,7 @@ void		_PG_init(void);
 PG_FUNCTION_INFO_V1(dummy_seclabel_dummy);
 
 static void
-dummy_object_relabel(const ObjectAddress *object, const char *seclabel)
+dummy_object_relabel(const ObjectAddress * object, const char *seclabel)
 {
 	if (seclabel == NULL ||
 		strcmp(seclabel, "unclassified") == 0 ||

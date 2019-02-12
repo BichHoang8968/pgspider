@@ -39,7 +39,7 @@ typedef struct ConnCacheEntry
 	GSGridStore *store;			/* connection to foreign server, or NULL */
 	bool		have_error;		/* have any subxacts aborted in this xact? */
 	HTAB	   *cont_hash;		/* used container list */
-} ConnCacheEntry;
+}			ConnCacheEntry;
 
 typedef Oid ContCacheKey;
 
@@ -52,22 +52,22 @@ typedef struct ContCacheEntry
 {
 	ConnCacheKey key;			/* hash key (must be first) */
 	GSContainer *cont;
-}	ContCacheEntry;
+}			ContCacheEntry;
 
 /*
  * Connection cache (initialized on first use)
  */
-static HTAB *ConnectionHash = NULL;
+static HTAB * ConnectionHash = NULL;
 
 /* tracks whether any work is needed in callback functions */
 static bool xact_got_connection = false;
 
 /* prototypes of private functions */
-static GSGridStore *griddb_connect_server(char *address, char *port,
-					  char *cluster, char *user,
-					  char *passwd);
-static void griddb_begin_xact(ConnCacheEntry *entry);
-static void griddb_end_xact(ConnCacheEntry *entry, bool isCommit,
+static GSGridStore * griddb_connect_server(char *address, char *port,
+										   char *cluster, char *user,
+										   char *passwd);
+static void griddb_begin_xact(ConnCacheEntry * entry);
+static void griddb_end_xact(ConnCacheEntry * entry, bool isCommit,
 				GSGridStore * store);
 static void griddb_xact_callback(XactEvent event, void *arg);
 static void griddb_subxact_callback(SubXactEvent event, SubTransactionId mySubid,
@@ -80,7 +80,7 @@ static void griddb_subxact_callback(SubXactEvent event, SubTransactionId mySubid
  * is established if we don't already have a suitable one.
  */
 GSGridStore *
-griddb_get_connection(UserMapping *user, bool will_prep_stmt, Oid foreigntableid)
+griddb_get_connection(UserMapping * user, bool will_prep_stmt, Oid foreigntableid)
 {
 	bool		found;
 	ConnCacheEntry *entry;
@@ -166,22 +166,22 @@ griddb_connect_server(char *address, char *port, char *cluster, char *user,
 					  char *passwd)
 {
 	GSGridStore *store = NULL;
-	const GSPropertyEntry props[] = {
+	const		GSPropertyEntry props[] = {
 		{"notificationAddress", address},
 		{"notificationPort", port},
 		{"clusterName", cluster},
 		{"user", user},
 		{"password", passwd},
 	};
-	const size_t propCount = sizeof(props) / sizeof(*props);
+	const		size_t propCount = sizeof(props) / sizeof(*props);
 	GSResult	ret;
 
 	ret = gsGetGridStore(gsGetDefaultFactory(), props, propCount, &store);
 	if (!GS_SUCCEEDED(ret))
 		ereport(ERROR,
 				(errcode(ERRCODE_SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION),
-		errmsg("could not connect to server \"%s\", port %s, cluster \"%s\"",
-			   address, port, cluster)));
+				 errmsg("could not connect to server \"%s\", port %s, cluster \"%s\"",
+						address, port, cluster)));
 
 	return store;
 }
@@ -194,7 +194,7 @@ griddb_connect_server(char *address, char *port, char *cluster, char *user,
  * aborted by griddb_end_transaction().
  */
 bool
-griddb_add_cont_list(UserMapping *user, Oid id, GSContainer * cont)
+griddb_add_cont_list(UserMapping * user, Oid id, GSContainer * cont)
 {
 	bool		found;
 	ConnCacheEntry *conn_entry;
@@ -218,7 +218,7 @@ griddb_add_cont_list(UserMapping *user, Oid id, GSContainer * cont)
 		ctl.entrysize = sizeof(ContCacheEntry);
 		conn_entry->cont_hash = hash_create("griddb_fdw containers", 8,
 											&ctl,
-									  HASH_ELEM | HASH_BLOBS | HASH_CONTEXT);
+											HASH_ELEM | HASH_BLOBS | HASH_CONTEXT);
 	}
 
 	cont_key = id;
@@ -288,7 +288,7 @@ griddb_cleanup_connection(void)
  * gsResource: resource which error occurrs.
  */
 void
-griddb_error_message(void *gsResource, StringInfoData *str)
+griddb_error_message(void *gsResource, StringInfoData * str)
 {
 	size_t		stack_size = gsGetErrorStackSize(gsResource);
 	size_t		i;
@@ -342,7 +342,7 @@ griddb_report(int elevel, GSResult res, void *gsResource, const char *fname, uns
  * So flag is set to true only.
  */
 static void
-griddb_begin_xact(ConnCacheEntry *entry)
+griddb_begin_xact(ConnCacheEntry * entry)
 {
 	xact_got_connection = true;
 }
@@ -353,7 +353,7 @@ griddb_begin_xact(ConnCacheEntry *entry)
  * When accessing container, the list is updated by griddb_add_cont_list().
  */
 static void
-griddb_end_xact(ConnCacheEntry *entry, bool isCommit, GSGridStore * store)
+griddb_end_xact(ConnCacheEntry * entry, bool isCommit, GSGridStore * store)
 {
 	HASH_SEQ_STATUS scan;
 	ContCacheEntry *cont_entry;

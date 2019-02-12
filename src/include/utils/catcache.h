@@ -72,7 +72,7 @@ typedef struct catcache
 	long		cc_lsearches;	/* total # list-searches */
 	long		cc_lhits;		/* # of matches against existing lists */
 #endif
-} CatCache;
+}			CatCache;
 
 
 typedef struct catctup
@@ -114,7 +114,7 @@ typedef struct catctup
 	bool		negative;		/* negative cache entry? */
 	uint32		hash_value;		/* hash value for this tuple's keys */
 	HeapTupleData tuple;		/* tuple management header */
-} CatCTup;
+}			CatCTup;
 
 
 typedef struct catclist
@@ -153,14 +153,14 @@ typedef struct catclist
 	HeapTupleData tuple;		/* header for tuple holding keys */
 	int			n_members;		/* number of member tuples */
 	CatCTup    *members[FLEXIBLE_ARRAY_MEMBER]; /* members */
-} CatCList;
+}			CatCList;
 
 
 typedef struct catcacheheader
 {
 	slist_head	ch_caches;		/* head of list of CatCache structs */
 	int			ch_ntup;		/* # of tuples in all caches */
-} CatCacheHeader;
+}			CatCacheHeader;
 
 
 /* this extern duplicates utils/memutils.h... */
@@ -168,34 +168,34 @@ extern PGDLLIMPORT MemoryContext CacheMemoryContext;
 
 extern void CreateCacheMemoryContext(void);
 
-extern CatCache *InitCatCache(int id, Oid reloid, Oid indexoid,
-			 int nkeys, const int *key,
-			 int nbuckets);
-extern void InitCatCachePhase2(CatCache *cache, bool touch_index);
+extern CatCache * InitCatCache(int id, Oid reloid, Oid indexoid,
+							   int nkeys, const int *key,
+							   int nbuckets);
+extern void InitCatCachePhase2(CatCache * cache, bool touch_index);
 
-extern HeapTuple SearchCatCache(CatCache *cache,
-			   Datum v1, Datum v2,
-			   Datum v3, Datum v4);
+extern HeapTuple SearchCatCache(CatCache * cache,
+								Datum v1, Datum v2,
+								Datum v3, Datum v4);
 extern void ReleaseCatCache(HeapTuple tuple);
 
-extern uint32 GetCatCacheHashValue(CatCache *cache,
-					 Datum v1, Datum v2,
-					 Datum v3, Datum v4);
+extern uint32 GetCatCacheHashValue(CatCache * cache,
+								   Datum v1, Datum v2,
+								   Datum v3, Datum v4);
 
-extern CatCList *SearchCatCacheList(CatCache *cache, int nkeys,
-				   Datum v1, Datum v2,
-				   Datum v3, Datum v4);
-extern void ReleaseCatCacheList(CatCList *list);
+extern CatCList * SearchCatCacheList(CatCache * cache, int nkeys,
+									 Datum v1, Datum v2,
+									 Datum v3, Datum v4);
+extern void ReleaseCatCacheList(CatCList * list);
 
 extern void ResetCatalogCaches(void);
 extern void CatalogCacheFlushCatalog(Oid catId);
-extern void CatCacheInvalidate(CatCache *cache, uint32 hashValue);
+extern void CatCacheInvalidate(CatCache * cache, uint32 hashValue);
 extern void PrepareToInvalidateCacheTuple(Relation relation,
 							  HeapTuple tuple,
 							  HeapTuple newtuple,
 							  void (*function) (int, uint32, Oid));
 
 extern void PrintCatCacheLeakWarning(HeapTuple tuple);
-extern void PrintCatCacheListLeakWarning(CatCList *list);
+extern void PrintCatCacheListLeakWarning(CatCList * list);
 
 #endif							/* CATCACHE_H */

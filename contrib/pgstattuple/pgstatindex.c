@@ -91,7 +91,7 @@ typedef struct BTIndexStat
 	uint64		free_space;
 
 	uint64		fragments;
-} BTIndexStat;
+}			BTIndexStat;
 
 /* ------------------------------------------------
  * A structure for a whole GIN index statistics
@@ -104,7 +104,7 @@ typedef struct GinIndexStat
 
 	BlockNumber pending_pages;
 	int64		pending_tuples;
-} GinIndexStat;
+}			GinIndexStat;
 
 /* ------------------------------------------------
  * A structure for a whole HASH index statistics
@@ -124,10 +124,10 @@ typedef struct HashIndexStat
 	int64		live_items;
 	int64		dead_items;
 	uint64		free_space;
-} HashIndexStat;
+}			HashIndexStat;
 
 static Datum pgstatindex_impl(Relation rel, FunctionCallInfo fcinfo);
-static void GetHashPageStats(Page page, HashIndexStat *stats);
+static void GetHashPageStats(Page page, HashIndexStat * stats);
 static void check_relation_relkind(Relation rel);
 
 /* ------------------------------------------------------
@@ -733,7 +733,7 @@ pgstathashindex(PG_FUNCTION_ARGS)
  * -------------------------------------------------
  */
 static void
-GetHashPageStats(Page page, HashIndexStat *stats)
+GetHashPageStats(Page page, HashIndexStat * stats)
 {
 	OffsetNumber maxoff = PageGetMaxOffsetNumber(page);
 	int			off;

@@ -32,13 +32,13 @@
 
 
 /* Hash table for information about each tablespace */
-static HTAB *TableSpaceCacheHash = NULL;
+static HTAB * TableSpaceCacheHash = NULL;
 
 typedef struct
 {
 	Oid			oid;			/* lookup key - must be first */
 	TableSpaceOpts *opts;		/* options, or NULL if none */
-} TableSpaceCacheEntry;
+}			TableSpaceCacheEntry;
 
 
 /*

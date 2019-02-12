@@ -82,118 +82,118 @@ extern Datum sqlite_fdw_validator(PG_FUNCTION_ARGS);
 PG_FUNCTION_INFO_V1(sqlite_fdw_handler);
 
 
-static void sqliteGetForeignRelSize(PlannerInfo *root,
-						RelOptInfo *baserel,
+static void sqliteGetForeignRelSize(PlannerInfo * root,
+						RelOptInfo * baserel,
 						Oid foreigntableid);
 
-static void sqliteGetForeignPaths(PlannerInfo *root,
-					  RelOptInfo *baserel,
+static void sqliteGetForeignPaths(PlannerInfo * root,
+					  RelOptInfo * baserel,
 					  Oid foreigntableid);
 
-static ForeignScan *sqliteGetForeignPlan(PlannerInfo *root,
-					 RelOptInfo *baserel,
-					 Oid foreigntableid,
-					 ForeignPath *best_path,
-					 List *tlist,
-					 List *scan_clauses,
-					 Plan *outer_plan);
+static ForeignScan * sqliteGetForeignPlan(PlannerInfo * root,
+										  RelOptInfo * baserel,
+										  Oid foreigntableid,
+										  ForeignPath * best_path,
+										  List * tlist,
+										  List * scan_clauses,
+										  Plan * outer_plan);
 
 
-static void sqliteBeginForeignScan(ForeignScanState *node,
+static void sqliteBeginForeignScan(ForeignScanState * node,
 					   int eflags);
 
-static TupleTableSlot *sqliteIterateForeignScan(ForeignScanState *node);
+static TupleTableSlot * sqliteIterateForeignScan(ForeignScanState * node);
 
-static void sqliteReScanForeignScan(ForeignScanState *node);
+static void sqliteReScanForeignScan(ForeignScanState * node);
 
-static void sqliteEndForeignScan(ForeignScanState *node);
+static void sqliteEndForeignScan(ForeignScanState * node);
 
 
-static void sqliteAddForeignUpdateTargets(Query *parsetree,
-							  RangeTblEntry *target_rte,
+static void sqliteAddForeignUpdateTargets(Query * parsetree,
+							  RangeTblEntry * target_rte,
 							  Relation target_relation);
 
-static List *sqlitePlanForeignModify(PlannerInfo *root,
-						ModifyTable *plan,
-						Index resultRelation,
-						int subplan_index);
+static List * sqlitePlanForeignModify(PlannerInfo * root,
+									  ModifyTable * plan,
+									  Index resultRelation,
+									  int subplan_index);
 
-static void sqliteBeginForeignModify(ModifyTableState *mtstate,
-						 ResultRelInfo *rinfo,
-						 List *fdw_private,
+static void sqliteBeginForeignModify(ModifyTableState * mtstate,
+						 ResultRelInfo * rinfo,
+						 List * fdw_private,
 						 int subplan_index,
 						 int eflags);
 
-static TupleTableSlot *sqliteExecForeignInsert(EState *estate,
-						ResultRelInfo *rinfo,
-						TupleTableSlot *slot,
-						TupleTableSlot *planSlot);
+static TupleTableSlot * sqliteExecForeignInsert(EState * estate,
+												ResultRelInfo * rinfo,
+												TupleTableSlot * slot,
+												TupleTableSlot * planSlot);
 
-static TupleTableSlot *sqliteExecForeignUpdate(EState *estate,
-						ResultRelInfo *rinfo,
-						TupleTableSlot *slot,
-						TupleTableSlot *planSlot);
+static TupleTableSlot * sqliteExecForeignUpdate(EState * estate,
+												ResultRelInfo * rinfo,
+												TupleTableSlot * slot,
+												TupleTableSlot * planSlot);
 
-static TupleTableSlot *sqliteExecForeignDelete(EState *estate,
-						ResultRelInfo *rinfo,
-						TupleTableSlot *slot,
-						TupleTableSlot *planSlot);
+static TupleTableSlot * sqliteExecForeignDelete(EState * estate,
+												ResultRelInfo * rinfo,
+												TupleTableSlot * slot,
+												TupleTableSlot * planSlot);
 
-static void sqliteEndForeignModify(EState *estate,
-					   ResultRelInfo *rinfo);
+static void sqliteEndForeignModify(EState * estate,
+					   ResultRelInfo * rinfo);
 
 
-static void sqliteExplainForeignScan(ForeignScanState *node,
+static void sqliteExplainForeignScan(ForeignScanState * node,
 						 struct ExplainState *es);
 
 
-static void sqliteExplainForeignModify(ModifyTableState *mtstate,
-						   ResultRelInfo *rinfo,
-						   List *fdw_private,
+static void sqliteExplainForeignModify(ModifyTableState * mtstate,
+						   ResultRelInfo * rinfo,
+						   List * fdw_private,
 						   int subplan_index,
 						   struct ExplainState *es);
 
 
 
 static bool sqliteAnalyzeForeignTable(Relation relation,
-						  AcquireSampleRowsFunc *func,
-						  BlockNumber *totalpages);
+						  AcquireSampleRowsFunc * func,
+						  BlockNumber * totalpages);
 
 
 
-static List *sqliteImportForeignSchema(ImportForeignSchemaStmt *stmt,
-						  Oid serverOid);
+static List * sqliteImportForeignSchema(ImportForeignSchemaStmt * stmt,
+										Oid serverOid);
 
-static void sqliteGetForeignUpperPaths(PlannerInfo *root,
+static void sqliteGetForeignUpperPaths(PlannerInfo * root,
 						   UpperRelationKind stage,
-						   RelOptInfo *input_rel,
-						   RelOptInfo *output_rel);
+						   RelOptInfo * input_rel,
+						   RelOptInfo * output_rel);
 
 
 static void sqlite_prepare_wrapper(sqlite3 * db, char *query, sqlite3_stmt * *result, const char **pzTail);
 static int	get_estimate(Oid foreigntableid);
 static void sqlite_to_pg_type(StringInfo str, char *typname);
 
-static void prepare_query_params(PlanState *node,
-					 List *fdw_exprs,
+static void prepare_query_params(PlanState * node,
+					 List * fdw_exprs,
 					 int numParams,
-					 FmgrInfo **param_flinfo,
-					 List **param_exprs,
+					 FmgrInfo * *param_flinfo,
+					 List * *param_exprs,
 					 const char ***param_values,
-					 Oid **param_types);
+					 Oid * *param_types);
 
-static void process_query_params(ExprContext *econtext,
-					 FmgrInfo *param_flinfo,
-					 List *param_exprs,
+static void process_query_params(ExprContext * econtext,
+					 FmgrInfo * param_flinfo,
+					 List * param_exprs,
 					 const char **param_values,
 					 sqlite3_stmt * *stmt,
-					 Oid *param_types);
+					 Oid * param_types);
 
-static void create_cursor(ForeignScanState *node);
-static bool foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel);
-static void add_foreign_grouping_paths(PlannerInfo *root,
-						   RelOptInfo *input_rel,
-						   RelOptInfo *grouped_rel);
+static void create_cursor(ForeignScanState * node);
+static bool foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel);
+static void add_foreign_grouping_paths(PlannerInfo * root,
+						   RelOptInfo * input_rel,
+						   RelOptInfo * grouped_rel);
 
 /*
  * Library load-time initialization, sets on_proc_exit() callback for
@@ -279,7 +279,7 @@ sqlite_prepare_wrapper(sqlite3 * db, char *query, sqlite3_stmt * *stmt,
  * sqliteGetForeignRelSize: Create a FdwPlan for a scan on the foreign table
  */
 static void
-sqliteGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
+sqliteGetForeignRelSize(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid)
 {
 	double		rows = 0;
 	SqliteFdwRelationInfo *fpinfo;
@@ -361,7 +361,7 @@ sqliteGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntable
  *		Create possible scan paths for a scan on the foreign table
  */
 static void
-sqliteGetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
+sqliteGetForeignPaths(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid)
 {
 	Cost		startup_cost = 10;
 	Cost		total_cost = baserel->rows + startup_cost;
@@ -391,7 +391,7 @@ sqliteGetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
  */
 static ForeignScan *
 sqliteGetForeignPlan(
-					 PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid, ForeignPath *best_path, List *tlist, List *scan_clauses, Plan *outer_plan)
+					 PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid, ForeignPath * best_path, List * tlist, List * scan_clauses, Plan * outer_plan)
 {
 	SqliteFdwRelationInfo *fpinfo = (SqliteFdwRelationInfo *) baserel->fdw_private;
 	Index		scan_relid = baserel->relid;
@@ -591,7 +591,7 @@ sqliteGetForeignPlan(
  * sqliteBeginForeignScan: Initiate access to the database
  */
 static void
-sqliteBeginForeignScan(ForeignScanState *node, int eflags)
+sqliteBeginForeignScan(ForeignScanState * node, int eflags)
 {
 	sqlite3    *conn = NULL;
 	SqliteFdwExecState *festate = NULL;
@@ -670,8 +670,8 @@ sqliteBeginForeignScan(ForeignScanState *node, int eflags)
 static void
 make_tuple_from_result_row(sqlite3_stmt * stmt,
 						   TupleDesc tupleDescriptor,
-						   List *retrieved_attrs,
-						   Datum *row,
+						   List * retrieved_attrs,
+						   Datum * row,
 						   bool *is_null)
 {
 	ListCell   *lc = NULL;
@@ -701,7 +701,7 @@ make_tuple_from_result_row(sqlite3_stmt * stmt,
  * Sqlite and placed in tuple slot
  */
 static TupleTableSlot *
-sqliteIterateForeignScan(ForeignScanState *node)
+sqliteIterateForeignScan(ForeignScanState * node)
 {
 
 	SqliteFdwExecState *festate = (SqliteFdwExecState *) node->fdw_state;
@@ -818,7 +818,7 @@ sqliteIterateForeignScan(ForeignScanState *node)
  * objects used for this scan
  */
 static void
-sqliteEndForeignScan(ForeignScanState *node)
+sqliteEndForeignScan(ForeignScanState * node)
 {
 	SqliteFdwExecState *festate = (SqliteFdwExecState *) node->fdw_state;
 
@@ -836,7 +836,7 @@ sqliteEndForeignScan(ForeignScanState *node)
  * return exactly the same rows.
  */
 static void
-sqliteReScanForeignScan(ForeignScanState *node)
+sqliteReScanForeignScan(ForeignScanState * node)
 {
 
 	SqliteFdwExecState *festate = (SqliteFdwExecState *) node->fdw_state;
@@ -858,8 +858,8 @@ sqliteReScanForeignScan(ForeignScanState *node)
  * list.
  */
 static void
-sqliteAddForeignUpdateTargets(Query *parsetree,
-							  RangeTblEntry *target_rte,
+sqliteAddForeignUpdateTargets(Query * parsetree,
+							  RangeTblEntry * target_rte,
 							  Relation target_relation)
 {
 
@@ -925,8 +925,8 @@ sqliteAddForeignUpdateTargets(Query *parsetree,
 
 
 static List *
-sqlitePlanForeignModify(PlannerInfo *root,
-						ModifyTable *plan,
+sqlitePlanForeignModify(PlannerInfo * root,
+						ModifyTable * plan,
 						Index resultRelation,
 						int subplan_index)
 {
@@ -1039,9 +1039,9 @@ sqlitePlanForeignModify(PlannerInfo *root,
 
 
 static void
-sqliteBeginForeignModify(ModifyTableState *mtstate,
-						 ResultRelInfo *resultRelInfo,
-						 List *fdw_private,
+sqliteBeginForeignModify(ModifyTableState * mtstate,
+						 ResultRelInfo * resultRelInfo,
+						 List * fdw_private,
 						 int subplan_index,
 						 int eflags)
 {
@@ -1127,10 +1127,10 @@ sqliteBeginForeignModify(ModifyTableState *mtstate,
  *		Insert one row into a foreign table
  */
 static TupleTableSlot *
-sqliteExecForeignInsert(EState *estate,
-						ResultRelInfo *resultRelInfo,
-						TupleTableSlot *slot,
-						TupleTableSlot *planSlot)
+sqliteExecForeignInsert(EState * estate,
+						ResultRelInfo * resultRelInfo,
+						TupleTableSlot * slot,
+						TupleTableSlot * planSlot)
 {
 	SqliteFdwExecState *fmstate = (SqliteFdwExecState *) resultRelInfo->ri_FdwState;
 	ListCell   *lc;
@@ -1153,7 +1153,7 @@ sqliteExecForeignInsert(EState *estate,
 	foreach(lc, fmstate->retrieved_attrs)
 	{
 		int			attnum = lfirst_int(lc) - 1;
-		Oid type = slot->tts_tupleDescriptor->attrs[attnum]->atttypid;
+		Oid			type = slot->tts_tupleDescriptor->attrs[attnum]->atttypid;
 
 		value = slot_getattr(slot, attnum + 1, &isnull[attnum]);
 		sqlite_bind_sql_var(type, attnum, value, fmstate->stmt, &isnull[attnum]);
@@ -1175,8 +1175,8 @@ sqliteExecForeignInsert(EState *estate,
 
 static void
 bindJunkColumnValue(SqliteFdwExecState * fmstate,
-					TupleTableSlot *slot,
-					TupleTableSlot *planSlot,
+					TupleTableSlot * slot,
+					TupleTableSlot * planSlot,
 					Oid foreignTableId,
 					int bindnum)
 {
@@ -1221,10 +1221,10 @@ bindJunkColumnValue(SqliteFdwExecState * fmstate,
  *		Update one row in a foreign table
  */
 static TupleTableSlot *
-sqliteExecForeignUpdate(EState *estate,
-						ResultRelInfo *resultRelInfo,
-						TupleTableSlot *slot,
-						TupleTableSlot *planSlot)
+sqliteExecForeignUpdate(EState * estate,
+						ResultRelInfo * resultRelInfo,
+						TupleTableSlot * slot,
+						TupleTableSlot * planSlot)
 {
 
 	SqliteFdwExecState *fmstate = (SqliteFdwExecState *) resultRelInfo->ri_FdwState;
@@ -1241,7 +1241,7 @@ sqliteExecForeignUpdate(EState *estate,
 	foreach(lc, fmstate->retrieved_attrs)
 	{
 		int			attnum = lfirst_int(lc);
-		Oid type;
+		Oid			type;
 		bool		is_null;
 		Datum		value = 0;
 
@@ -1271,10 +1271,10 @@ sqliteExecForeignUpdate(EState *estate,
 }
 
 static TupleTableSlot *
-sqliteExecForeignDelete(EState *estate,
-						ResultRelInfo *resultRelInfo,
-						TupleTableSlot *slot,
-						TupleTableSlot *planSlot)
+sqliteExecForeignDelete(EState * estate,
+						ResultRelInfo * resultRelInfo,
+						TupleTableSlot * slot,
+						TupleTableSlot * planSlot)
 {
 	SqliteFdwExecState *fmstate = (SqliteFdwExecState *) resultRelInfo->ri_FdwState;
 	Relation	rel = resultRelInfo->ri_RelationDesc;
@@ -1298,8 +1298,8 @@ sqliteExecForeignDelete(EState *estate,
 
 
 static void
-sqliteEndForeignModify(EState *estate,
-					   ResultRelInfo *resultRelInfo)
+sqliteEndForeignModify(EState * estate,
+					   ResultRelInfo * resultRelInfo)
 {
 
 	SqliteFdwExecState *fmstate = (SqliteFdwExecState *) resultRelInfo->ri_FdwState;
@@ -1314,7 +1314,7 @@ sqliteEndForeignModify(EState *estate,
 
 
 static void
-sqliteExplainForeignScan(ForeignScanState *node,
+sqliteExplainForeignScan(ForeignScanState * node,
 						 struct ExplainState *es)
 {
 
@@ -1373,9 +1373,9 @@ sqliteExplainForeignScan(ForeignScanState *node,
 
 
 static void
-sqliteExplainForeignModify(ModifyTableState *mtstate,
-						   ResultRelInfo *rinfo,
-						   List *fdw_private,
+sqliteExplainForeignModify(ModifyTableState * mtstate,
+						   ResultRelInfo * rinfo,
+						   List * fdw_private,
 						   int subplan_index,
 						   struct ExplainState *es)
 {
@@ -1386,8 +1386,8 @@ sqliteExplainForeignModify(ModifyTableState *mtstate,
 
 static bool
 sqliteAnalyzeForeignTable(Relation relation,
-						  AcquireSampleRowsFunc *func,
-						  BlockNumber *totalpages)
+						  AcquireSampleRowsFunc * func,
+						  BlockNumber * totalpages)
 {
 	elog(DEBUG1, "sqlite_fdw : %s", __func__);
 	return false;
@@ -1398,7 +1398,7 @@ sqliteAnalyzeForeignTable(Relation relation,
  * Import a foreign schema
  */
 static List *
-sqliteImportForeignSchema(ImportForeignSchemaStmt *stmt,
+sqliteImportForeignSchema(ImportForeignSchemaStmt * stmt,
 						  Oid serverOid)
 {
 	sqlite3    *volatile db = NULL;
@@ -1575,7 +1575,7 @@ sqliteImportForeignSchema(ImportForeignSchemaStmt *stmt,
  * this function to SqliteFdwRelationInfo of the input relation.
  */
 static bool
-foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
+foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 {
 	Query	   *query = root->parse;
 	PathTarget *grouping_target;
@@ -1814,8 +1814,8 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
  * Right now, we only support aggregate, grouping and having clause pushdown.
  */
 static void
-sqliteGetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
-						   RelOptInfo *input_rel, RelOptInfo *output_rel)
+sqliteGetForeignUpperPaths(PlannerInfo * root, UpperRelationKind stage,
+						   RelOptInfo * input_rel, RelOptInfo * output_rel)
 {
 	SqliteFdwRelationInfo *fpinfo;
 
@@ -1846,8 +1846,8 @@ sqliteGetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
  * given grouped_rel.
  */
 static void
-add_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
-						   RelOptInfo *grouped_rel)
+add_foreign_grouping_paths(PlannerInfo * root, RelOptInfo * input_rel,
+						   RelOptInfo * grouped_rel)
 {
 	Query	   *parse = root->parse;
 	SqliteFdwRelationInfo *ifpinfo = input_rel->fdw_private;
@@ -1990,7 +1990,7 @@ sqlite_to_pg_type(StringInfo str, char *type)
 
 	for (i = 0; affinity[i][0] != NULL; i++)
 	{
-		if (strstr(type, affinity[i][0]) !=0)
+		if (strstr(type, affinity[i][0]) != 0)
 		{
 			appendStringInfoString(str, affinity[i][1]);
 			pfree(type);
@@ -2070,13 +2070,13 @@ sqlite_reset_transmission_modes(int nestlevel)
  * Prepare for processing of parameters used in remote query.
  */
 static void
-prepare_query_params(PlanState *node,
-					 List *fdw_exprs,
+prepare_query_params(PlanState * node,
+					 List * fdw_exprs,
 					 int numParams,
-					 FmgrInfo **param_flinfo,
-					 List **param_exprs,
+					 FmgrInfo * *param_flinfo,
+					 List * *param_exprs,
 					 const char ***param_values,
-					 Oid **param_types)
+					 Oid * *param_types)
 {
 	int			i;
 	ListCell   *lc;
@@ -2122,12 +2122,12 @@ prepare_query_params(PlanState *node,
  *
  */
 static void
-process_query_params(ExprContext *econtext,
-					 FmgrInfo *param_flinfo,
-					 List *param_exprs,
+process_query_params(ExprContext * econtext,
+					 FmgrInfo * param_flinfo,
+					 List * param_exprs,
 					 const char **param_values,
 					 sqlite3_stmt * *stmt,
-					 Oid *param_types)
+					 Oid * param_types)
 {
 	int			i;
 	ListCell   *lc;
@@ -2167,7 +2167,7 @@ process_query_params(ExprContext *econtext,
  * Create cursor for node's query with current parameter values.
  */
 static void
-create_cursor(ForeignScanState *node)
+create_cursor(ForeignScanState * node)
 {
 	SqliteFdwExecState *festate = (SqliteFdwExecState *) node->fdw_state;
 	ExprContext *econtext = node->ss.ps.ps_ExprContext;

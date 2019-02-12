@@ -79,7 +79,7 @@ typedef struct OSAPerQueryState
 	bool		sortNullsFirst;
 	/* Equality operator call info, created only if needed: */
 	FmgrInfo	equalfn;
-} OSAPerQueryState;
+}			OSAPerQueryState;
 
 typedef struct OSAPerGroupState
 {
@@ -91,7 +91,7 @@ typedef struct OSAPerGroupState
 	Tuplesortstate *sortstate;
 	/* Number of normal rows inserted into sortstate: */
 	int64		number_of_rows;
-} OSAPerGroupState;
+}			OSAPerGroupState;
 
 static void ordered_set_shutdown(Datum arg);
 
@@ -213,7 +213,7 @@ ordered_set_startup(FunctionCallInfo fcinfo, bool use_tuples)
 					TupleDescCopyEntry(newdesc, i, qstate->tupdesc, i);
 
 				TupleDescInitEntry(newdesc,
-								   (AttrNumber) ++natts,
+								   (AttrNumber)++ natts,
 								   "flag",
 								   INT4OID,
 								   -1,
@@ -476,7 +476,7 @@ percentile_disc_final(PG_FUNCTION_ARGS)
  * values. Use a helper function for that, so that we can share the rest
  * of the code between types.
  */
-typedef Datum (*LerpFunc) (Datum lo, Datum hi, double pct);
+typedef Datum(*LerpFunc) (Datum lo, Datum hi, double pct);
 
 static Datum
 float8_lerp(Datum lo, Datum hi, double pct)
@@ -637,7 +637,7 @@ pct_info_cmp(const void *pa, const void *pb)
  */
 static struct pct_info *
 setup_pct_info(int num_percentiles,
-			   Datum *percentiles_datum,
+			   Datum * percentiles_datum,
 			   bool *percentiles_null,
 			   int64 rowcount,
 			   bool continuous)
@@ -1142,7 +1142,7 @@ hypothetical_check_argtypes(FunctionCallInfo fcinfo, int nargs,
  */
 static int64
 hypothetical_rank_common(FunctionCallInfo fcinfo, int flag,
-						 int64 *number_of_rows)
+						 int64 * number_of_rows)
 {
 	int			nargs = PG_NARGS() - 1;
 	int64		rank = 1;

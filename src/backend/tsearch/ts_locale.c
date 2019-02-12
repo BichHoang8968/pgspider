@@ -113,7 +113,7 @@ t_isprint(const char *ptr)
  * tsearch_readline_end().
  */
 bool
-tsearch_readline_begin(tsearch_readline_state *stp,
+tsearch_readline_begin(tsearch_readline_state * stp,
 					   const char *filename)
 {
 	if ((stp->fp = AllocateFile(filename, "r")) == NULL)
@@ -135,7 +135,7 @@ tsearch_readline_begin(tsearch_readline_state *stp,
  * NULL return means EOF.
  */
 char *
-tsearch_readline(tsearch_readline_state *stp)
+tsearch_readline(tsearch_readline_state * stp)
 {
 	char	   *result;
 
@@ -150,7 +150,7 @@ tsearch_readline(tsearch_readline_state *stp)
  * Close down after reading a file with tsearch_readline()
  */
 void
-tsearch_readline_end(tsearch_readline_state *stp)
+tsearch_readline_end(tsearch_readline_state * stp)
 {
 	FreeFile(stp->fp);
 	/* Pop the error context stack */
@@ -194,7 +194,7 @@ tsearch_readline_callback(void *arg)
  * tsearch_readline() to provide better error reporting.
  */
 char *
-t_readline(FILE *fp)
+t_readline(FILE * fp)
 {
 	int			len;
 	char	   *recoded;
@@ -279,7 +279,7 @@ lowerstr_with_len(const char *str, int len)
 
 		while (*wptr)
 		{
-			*wptr = towlower((wint_t) *wptr);
+			*wptr = towlower((wint_t) * wptr);
 			wptr++;
 		}
 

@@ -73,7 +73,7 @@ typedef struct StackElem
 	char	   *origstring;		/* copy of original data, if needed */
 	char	   *varname;		/* name of variable providing data, or NULL */
 	struct StackElem *next;
-} StackElem;
+}			StackElem;
 
 /*
  * All working state of the lexer must be stored in PsqlScanStateData
@@ -118,9 +118,9 @@ typedef struct PsqlScanStateData
 	 * Callback functions provided by the program making use of the lexer,
 	 * plus a void* callback passthrough argument.
 	 */
-	const PsqlScanCallbacks *callbacks;
+	const		PsqlScanCallbacks *callbacks;
 	void	   *cb_passthrough;
-} PsqlScanStateData;
+}			PsqlScanStateData;
 
 
 /*
@@ -134,8 +134,8 @@ extern void psqlscan_select_top_buffer(PsqlScanState state);
 extern bool psqlscan_var_is_current_source(PsqlScanState state,
 							   const char *varname);
 extern YY_BUFFER_STATE psqlscan_prepare_buffer(PsqlScanState state,
-						const char *txt, int len,
-						char **txtcopy);
+											   const char *txt, int len,
+											   char **txtcopy);
 extern void psqlscan_emit(PsqlScanState state, const char *txt, int len);
 extern char *psqlscan_extract_substring(PsqlScanState state,
 						   const char *txt, int len);

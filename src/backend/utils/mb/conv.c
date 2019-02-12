@@ -340,7 +340,7 @@ store_coded_char(unsigned char *dest, uint32 code)
  * the input character's bytes.
  */
 static inline uint32
-pg_mb_radix_conv(const pg_mb_radix_tree *rt,
+pg_mb_radix_conv(const pg_mb_radix_tree * rt,
 				 int l,
 				 unsigned char b1,
 				 unsigned char b2,
@@ -473,14 +473,14 @@ pg_mb_radix_conv(const pg_mb_radix_tree *rt,
 void
 UtfToLocal(const unsigned char *utf, int len,
 		   unsigned char *iso,
-		   const pg_mb_radix_tree *map,
-		   const pg_utf_to_local_combined *cmap, int cmapsize,
+		   const pg_mb_radix_tree * map,
+		   const pg_utf_to_local_combined * cmap, int cmapsize,
 		   utf_local_conversion_func conv_func,
 		   int encoding)
 {
 	uint32		iutf;
 	int			l;
-	const pg_utf_to_local_combined *cp;
+	const		pg_utf_to_local_combined *cp;
 
 	if (!PG_VALID_ENCODING(encoding))
 		ereport(ERROR,
@@ -665,14 +665,14 @@ UtfToLocal(const unsigned char *utf, int len,
 void
 LocalToUtf(const unsigned char *iso, int len,
 		   unsigned char *utf,
-		   const pg_mb_radix_tree *map,
-		   const pg_local_to_utf_combined *cmap, int cmapsize,
+		   const pg_mb_radix_tree * map,
+		   const pg_local_to_utf_combined * cmap, int cmapsize,
 		   utf_local_conversion_func conv_func,
 		   int encoding)
 {
 	uint32		iiso;
 	int			l;
-	const pg_local_to_utf_combined *cp;
+	const		pg_local_to_utf_combined *cp;
 
 	if (!PG_VALID_ENCODING(encoding))
 		ereport(ERROR,

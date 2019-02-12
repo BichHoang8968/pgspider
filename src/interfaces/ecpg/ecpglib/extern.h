@@ -165,7 +165,7 @@ struct descriptor *ecpg_find_desc(int line, const char *name);
 struct prepared_statement *ecpg_find_prepared_statement(const char *,
 							 struct connection *, struct prepared_statement **);
 
-bool ecpg_store_result(const PGresult *results, int act_field,
+bool ecpg_store_result(const PGresult * results, int act_field,
 				  const struct statement *stmt, struct variable *var);
 bool		ecpg_store_input(const int, const bool, const struct variable *, char **, bool);
 void		ecpg_free_params(struct statement *stmt, bool print);
@@ -182,7 +182,7 @@ bool ecpg_do(const int, const int, const int, const char *, const bool,
 
 bool		ecpg_check_PQresult(PGresult *, int, PGconn *, enum COMPAT_MODE);
 void		ecpg_raise(int line, int code, const char *sqlstate, const char *str);
-void		ecpg_raise_backend(int line, PGresult *result, PGconn *conn, int compat);
+void		ecpg_raise_backend(int line, PGresult * result, PGconn * conn, int compat);
 char	   *ecpg_prepared(const char *, struct connection *);
 bool		ecpg_deallocate_all_conn(int lineno, enum COMPAT_MODE c, struct connection *conn);
 void		ecpg_log(const char *format,...) pg_attribute_printf(1, 2);

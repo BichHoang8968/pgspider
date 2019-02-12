@@ -26,7 +26,7 @@
  * Initialize a proclist.
  */
 static inline void
-proclist_init(proclist_head *list)
+proclist_init(proclist_head * list)
 {
 	list->head = list->tail = INVALID_PGPROCNO;
 }
@@ -35,7 +35,7 @@ proclist_init(proclist_head *list)
  * Is the list empty?
  */
 static inline bool
-proclist_is_empty(proclist_head *list)
+proclist_is_empty(proclist_head * list)
 {
 	return list->head == INVALID_PGPROCNO;
 }
@@ -56,7 +56,7 @@ proclist_node_get(int procno, size_t node_offset)
  * Insert a node at the beginning of a list.
  */
 static inline void
-proclist_push_head_offset(proclist_head *list, int procno, size_t node_offset)
+proclist_push_head_offset(proclist_head * list, int procno, size_t node_offset)
 {
 	proclist_node *node = proclist_node_get(procno, node_offset);
 
@@ -82,7 +82,7 @@ proclist_push_head_offset(proclist_head *list, int procno, size_t node_offset)
  * Insert a node at the end of a list.
  */
 static inline void
-proclist_push_tail_offset(proclist_head *list, int procno, size_t node_offset)
+proclist_push_tail_offset(proclist_head * list, int procno, size_t node_offset)
 {
 	proclist_node *node = proclist_node_get(procno, node_offset);
 
@@ -108,7 +108,7 @@ proclist_push_tail_offset(proclist_head *list, int procno, size_t node_offset)
  * Delete a node.  The node must be in the list.
  */
 static inline void
-proclist_delete_offset(proclist_head *list, int procno, size_t node_offset)
+proclist_delete_offset(proclist_head * list, int procno, size_t node_offset)
 {
 	proclist_node *node = proclist_node_get(procno, node_offset);
 
@@ -131,7 +131,7 @@ proclist_delete_offset(proclist_head *list, int procno, size_t node_offset)
  * only possibilities are that it is in this list or none.
  */
 static inline bool
-proclist_contains_offset(proclist_head *list, int procno,
+proclist_contains_offset(proclist_head * list, int procno,
 						 size_t node_offset)
 {
 	proclist_node *node = proclist_node_get(procno, node_offset);
@@ -159,7 +159,7 @@ proclist_contains_offset(proclist_head *list, int procno,
  * Remove and return the first node from a list (there must be one).
  */
 static inline PGPROC *
-proclist_pop_head_node_offset(proclist_head *list, size_t node_offset)
+proclist_pop_head_node_offset(proclist_head * list, size_t node_offset)
 {
 	PGPROC	   *proc;
 

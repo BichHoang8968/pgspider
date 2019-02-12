@@ -24,14 +24,14 @@ typedef struct
 	char	   *out;
 	int			outlen;
 	uint16		flags;
-} Syn;
+}			Syn;
 
 typedef struct
 {
 	int			len;			/* length of syn array */
 	Syn		   *syn;
 	bool		case_sensitive;
-} DictSyn;
+}			DictSyn;
 
 /*
  * Finds the next whitespace-delimited word within the 'in' string.
@@ -41,7 +41,7 @@ typedef struct
  * character if flags is not null.
  */
 static char *
-findwrd(char *in, char **end, uint16 *flags)
+findwrd(char *in, char **end, uint16 * flags)
 {
 	char	   *start;
 	char	   *lastchar;

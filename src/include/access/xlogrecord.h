@@ -50,7 +50,7 @@ typedef struct XLogRecord
 
 	/* XLogRecordBlockHeaders and XLogRecordDataHeader follow, no padding */
 
-} XLogRecord;
+}			XLogRecord;
 
 #define SizeOfXLogRecord	(offsetof(XLogRecord, xl_crc) + sizeof(pg_crc32c))
 
@@ -99,7 +99,7 @@ typedef struct XLogRecordBlockHeader
 	/* If BKPBLOCK_HAS_IMAGE, an XLogRecordBlockImageHeader struct follows */
 	/* If BKPBLOCK_SAME_REL is not set, a RelFileNode follows */
 	/* BlockNumber follows */
-} XLogRecordBlockHeader;
+}			XLogRecordBlockHeader;
 
 #define SizeOfXLogRecordBlockHeader (offsetof(XLogRecordBlockHeader, data_length) + sizeof(uint16))
 
@@ -138,7 +138,7 @@ typedef struct XLogRecordBlockImageHeader
 	 * If BKPIMAGE_HAS_HOLE and BKPIMAGE_IS_COMPRESSED, an
 	 * XLogRecordBlockCompressHeader struct follows.
 	 */
-} XLogRecordBlockImageHeader;
+}			XLogRecordBlockImageHeader;
 
 #define SizeOfXLogRecordBlockImageHeader	\
 	(offsetof(XLogRecordBlockImageHeader, bimg_info) + sizeof(uint8))
@@ -156,7 +156,7 @@ typedef struct XLogRecordBlockImageHeader
 typedef struct XLogRecordBlockCompressHeader
 {
 	uint16		hole_length;	/* number of bytes in "hole" */
-} XLogRecordBlockCompressHeader;
+}			XLogRecordBlockCompressHeader;
 
 #define SizeOfXLogRecordBlockCompressHeader \
 	sizeof(XLogRecordBlockCompressHeader)

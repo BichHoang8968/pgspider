@@ -48,7 +48,7 @@ static void AlterSchemaOwner_internal(HeapTuple tup, Relation rel, Oid newOwnerI
  * a subquery.
  */
 Oid
-CreateSchemaCommand(CreateSchemaStmt *stmt, const char *queryString,
+CreateSchemaCommand(CreateSchemaStmt * stmt, const char *queryString,
 					int stmt_location, int stmt_len)
 {
 	const char *schemaName = stmt->schemaname;

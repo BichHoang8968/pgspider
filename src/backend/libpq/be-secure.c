@@ -108,7 +108,7 @@ secure_loaded_verify_locations(void)
  *	Attempt to negotiate secure session.
  */
 int
-secure_open_server(Port *port)
+secure_open_server(Port * port)
 {
 	int			r = 0;
 
@@ -123,7 +123,7 @@ secure_open_server(Port *port)
  *	Close secure session.
  */
 void
-secure_close(Port *port)
+secure_close(Port * port)
 {
 #ifdef USE_SSL
 	if (port->ssl_in_use)
@@ -135,7 +135,7 @@ secure_close(Port *port)
  *	Read data from a secure connection.
  */
 ssize_t
-secure_read(Port *port, void *ptr, size_t len)
+secure_read(Port * port, void *ptr, size_t len)
 {
 	ssize_t		n;
 	int			waitfor;
@@ -214,7 +214,7 @@ retry:
 }
 
 ssize_t
-secure_raw_read(Port *port, void *ptr, size_t len)
+secure_raw_read(Port * port, void *ptr, size_t len)
 {
 	ssize_t		n;
 
@@ -238,7 +238,7 @@ secure_raw_read(Port *port, void *ptr, size_t len)
  *	Write data to a secure connection.
  */
 ssize_t
-secure_write(Port *port, void *ptr, size_t len)
+secure_write(Port * port, void *ptr, size_t len)
 {
 	ssize_t		n;
 	int			waitfor;
@@ -300,7 +300,7 @@ retry:
 }
 
 ssize_t
-secure_raw_write(Port *port, const void *ptr, size_t len)
+secure_raw_write(Port * port, const void *ptr, size_t len)
 {
 	ssize_t		n;
 

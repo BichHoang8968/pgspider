@@ -184,7 +184,7 @@ pg_send_history(PQExpBuffer history_buf)
  * leaking memory if interrupted by SIGINT.
  */
 char *
-gets_fromFile(FILE *source)
+gets_fromFile(FILE * source)
 {
 	static PQExpBuffer buffer = NULL;
 

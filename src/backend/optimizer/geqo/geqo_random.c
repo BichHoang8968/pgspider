@@ -17,7 +17,7 @@
 
 
 void
-geqo_set_seed(PlannerInfo *root, double seed)
+geqo_set_seed(PlannerInfo * root, double seed)
 {
 	GeqoPrivateData *private = (GeqoPrivateData *) root->join_search_private;
 
@@ -32,7 +32,7 @@ geqo_set_seed(PlannerInfo *root, double seed)
 }
 
 double
-geqo_rand(PlannerInfo *root)
+geqo_rand(PlannerInfo * root)
 {
 	GeqoPrivateData *private = (GeqoPrivateData *) root->join_search_private;
 

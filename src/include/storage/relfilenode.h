@@ -59,7 +59,7 @@ typedef struct RelFileNode
 	Oid			spcNode;		/* tablespace */
 	Oid			dbNode;			/* database */
 	Oid			relNode;		/* relation */
-} RelFileNode;
+}			RelFileNode;
 
 /*
  * Augmenting a relfilenode with the backend ID provides all the information
@@ -73,7 +73,7 @@ typedef struct RelFileNodeBackend
 {
 	RelFileNode node;
 	BackendId	backend;
-} RelFileNodeBackend;
+}			RelFileNodeBackend;
 
 #define RelFileNodeBackendIsTemp(rnode) \
 	((rnode).backend != InvalidBackendId)

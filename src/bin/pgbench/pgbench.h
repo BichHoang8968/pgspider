@@ -36,7 +36,7 @@ typedef enum
 	PGBT_INT,
 	PGBT_DOUBLE
 	/* add other types here */
-} PgBenchValueType;
+}			PgBenchValueType;
 
 typedef struct
 {
@@ -47,7 +47,7 @@ typedef struct
 		double		dval;
 		/* add other types here */
 	}			u;
-} PgBenchValue;
+}			PgBenchValue;
 
 /* Types of expression nodes */
 typedef enum PgBenchExprType
@@ -55,7 +55,7 @@ typedef enum PgBenchExprType
 	ENODE_CONSTANT,
 	ENODE_VARIABLE,
 	ENODE_FUNCTION
-} PgBenchExprType;
+}			PgBenchExprType;
 
 /* List of operators and callable functions */
 typedef enum PgBenchFunction
@@ -76,7 +76,7 @@ typedef enum PgBenchFunction
 	PGBENCH_RANDOM,
 	PGBENCH_RANDOM_GAUSSIAN,
 	PGBENCH_RANDOM_EXPONENTIAL
-} PgBenchFunction;
+}			PgBenchFunction;
 
 typedef struct PgBenchExpr PgBenchExpr;
 typedef struct PgBenchExprLink PgBenchExprLink;
@@ -113,7 +113,7 @@ struct PgBenchExprList
 	PgBenchExprLink *tail;
 };
 
-extern PgBenchExpr *expr_parse_result;
+extern PgBenchExpr * expr_parse_result;
 
 extern int	expr_yyparse(yyscan_t yyscanner);
 extern int	expr_yylex(union YYSTYPE *lvalp, yyscan_t yyscanner);
@@ -123,8 +123,8 @@ extern void expr_yyerror_more(yyscan_t yyscanner, const char *str,
 extern bool expr_lex_one_word(PsqlScanState state, PQExpBuffer word_buf,
 				  int *offset);
 extern yyscan_t expr_scanner_init(PsqlScanState state,
-				  const char *source, int lineno, int start_offset,
-				  const char *command);
+								  const char *source, int lineno, int start_offset,
+								  const char *command);
 extern void expr_scanner_finish(yyscan_t yyscanner);
 extern int	expr_scanner_offset(PsqlScanState state);
 extern char *expr_scanner_get_substring(PsqlScanState state,

@@ -38,7 +38,7 @@
  * order by those caches' second and third cache keys, namely the datatypes.
  */
 List *
-identify_opfamily_groups(CatCList *oprlist, CatCList *proclist)
+identify_opfamily_groups(CatCList * oprlist, CatCList * proclist)
 {
 	List	   *result = NIL;
 	OpFamilyOpFuncGroup *thisgroup;

@@ -34,7 +34,7 @@ static MemoryContext opCtx;		/* working memory for operations */
  * action.)
  */
 static void
-gistRedoClearFollowRight(XLogReaderState *record, uint8 block_id)
+gistRedoClearFollowRight(XLogReaderState * record, uint8 block_id)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	Buffer		buffer;
@@ -64,7 +64,7 @@ gistRedoClearFollowRight(XLogReaderState *record, uint8 block_id)
  * redo any page update (except page split)
  */
 static void
-gistRedoPageUpdateRecord(XLogReaderState *record)
+gistRedoPageUpdateRecord(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	gistxlogPageUpdate *xldata = (gistxlogPageUpdate *) XLogRecGetData(record);
@@ -188,7 +188,7 @@ decodePageSplitRecord(char *begin, int len, int *n)
 }
 
 static void
-gistRedoPageSplitRecord(XLogReaderState *record)
+gistRedoPageSplitRecord(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	gistxlogPageSplit *xldata = (gistxlogPageSplit *) XLogRecGetData(record);
@@ -282,7 +282,7 @@ gistRedoPageSplitRecord(XLogReaderState *record)
 }
 
 static void
-gistRedoCreateIndex(XLogReaderState *record)
+gistRedoCreateIndex(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	Buffer		buffer;
@@ -301,7 +301,7 @@ gistRedoCreateIndex(XLogReaderState *record)
 }
 
 void
-gist_redo(XLogReaderState *record)
+gist_redo(XLogReaderState * record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 	MemoryContext oldCxt;
@@ -391,7 +391,7 @@ gist_mask(char *pagedata, BlockNumber blkno)
  */
 XLogRecPtr
 gistXLogSplit(bool page_is_leaf,
-			  SplitedPageLayout *dist,
+			  SplitedPageLayout * dist,
 			  BlockNumber origrlink, GistNSN orignsn,
 			  Buffer leftchildbuf, bool markfollowright)
 {
@@ -455,8 +455,8 @@ gistXLogSplit(bool page_is_leaf,
  */
 XLogRecPtr
 gistXLogUpdate(Buffer buffer,
-			   OffsetNumber *todelete, int ntodelete,
-			   IndexTuple *itup, int ituplen,
+			   OffsetNumber * todelete, int ntodelete,
+			   IndexTuple * itup, int ituplen,
 			   Buffer leftchildbuf)
 {
 	gistxlogPageUpdate xlrec;

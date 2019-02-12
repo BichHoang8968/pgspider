@@ -29,54 +29,54 @@ set_join_pathlist_hook_type set_join_pathlist_hook = NULL;
 #define PATH_PARAM_BY_REL(path, rel)  \
 	((path)->param_info && bms_overlap(PATH_REQ_OUTER(path), (rel)->relids))
 
-static void try_partial_mergejoin_path(PlannerInfo *root,
-						   RelOptInfo *joinrel,
-						   Path *outer_path,
-						   Path *inner_path,
-						   List *pathkeys,
-						   List *mergeclauses,
-						   List *outersortkeys,
-						   List *innersortkeys,
+static void try_partial_mergejoin_path(PlannerInfo * root,
+						   RelOptInfo * joinrel,
+						   Path * outer_path,
+						   Path * inner_path,
+						   List * pathkeys,
+						   List * mergeclauses,
+						   List * outersortkeys,
+						   List * innersortkeys,
 						   JoinType jointype,
-						   JoinPathExtraData *extra);
-static void sort_inner_and_outer(PlannerInfo *root, RelOptInfo *joinrel,
-					 RelOptInfo *outerrel, RelOptInfo *innerrel,
-					 JoinType jointype, JoinPathExtraData *extra);
-static void match_unsorted_outer(PlannerInfo *root, RelOptInfo *joinrel,
-					 RelOptInfo *outerrel, RelOptInfo *innerrel,
-					 JoinType jointype, JoinPathExtraData *extra);
-static void consider_parallel_nestloop(PlannerInfo *root,
-						   RelOptInfo *joinrel,
-						   RelOptInfo *outerrel,
-						   RelOptInfo *innerrel,
+						   JoinPathExtraData * extra);
+static void sort_inner_and_outer(PlannerInfo * root, RelOptInfo * joinrel,
+					 RelOptInfo * outerrel, RelOptInfo * innerrel,
+					 JoinType jointype, JoinPathExtraData * extra);
+static void match_unsorted_outer(PlannerInfo * root, RelOptInfo * joinrel,
+					 RelOptInfo * outerrel, RelOptInfo * innerrel,
+					 JoinType jointype, JoinPathExtraData * extra);
+static void consider_parallel_nestloop(PlannerInfo * root,
+						   RelOptInfo * joinrel,
+						   RelOptInfo * outerrel,
+						   RelOptInfo * innerrel,
 						   JoinType jointype,
-						   JoinPathExtraData *extra);
-static void consider_parallel_mergejoin(PlannerInfo *root,
-							RelOptInfo *joinrel,
-							RelOptInfo *outerrel,
-							RelOptInfo *innerrel,
+						   JoinPathExtraData * extra);
+static void consider_parallel_mergejoin(PlannerInfo * root,
+							RelOptInfo * joinrel,
+							RelOptInfo * outerrel,
+							RelOptInfo * innerrel,
 							JoinType jointype,
-							JoinPathExtraData *extra,
-							Path *inner_cheapest_total);
-static void hash_inner_and_outer(PlannerInfo *root, RelOptInfo *joinrel,
-					 RelOptInfo *outerrel, RelOptInfo *innerrel,
-					 JoinType jointype, JoinPathExtraData *extra);
-static List *select_mergejoin_clauses(PlannerInfo *root,
-						 RelOptInfo *joinrel,
-						 RelOptInfo *outerrel,
-						 RelOptInfo *innerrel,
-						 List *restrictlist,
+							JoinPathExtraData * extra,
+							Path * inner_cheapest_total);
+static void hash_inner_and_outer(PlannerInfo * root, RelOptInfo * joinrel,
+					 RelOptInfo * outerrel, RelOptInfo * innerrel,
+					 JoinType jointype, JoinPathExtraData * extra);
+static List * select_mergejoin_clauses(PlannerInfo * root,
+									   RelOptInfo * joinrel,
+									   RelOptInfo * outerrel,
+									   RelOptInfo * innerrel,
+									   List * restrictlist,
+									   JoinType jointype,
+									   bool *mergejoin_allowed);
+static void generate_mergejoin_paths(PlannerInfo * root,
+						 RelOptInfo * joinrel,
+						 RelOptInfo * innerrel,
+						 Path * outerpath,
 						 JoinType jointype,
-						 bool *mergejoin_allowed);
-static void generate_mergejoin_paths(PlannerInfo *root,
-						 RelOptInfo *joinrel,
-						 RelOptInfo *innerrel,
-						 Path *outerpath,
-						 JoinType jointype,
-						 JoinPathExtraData *extra,
+						 JoinPathExtraData * extra,
 						 bool useallclauses,
-						 Path *inner_cheapest_total,
-						 List *merge_pathkeys,
+						 Path * inner_cheapest_total,
+						 List * merge_pathkeys,
 						 bool is_partial);
 
 
@@ -104,13 +104,13 @@ static void generate_mergejoin_paths(PlannerInfo *root,
  * with sjinfo->jointype == JOIN_SEMI indicates that.
  */
 void
-add_paths_to_joinrel(PlannerInfo *root,
-					 RelOptInfo *joinrel,
-					 RelOptInfo *outerrel,
-					 RelOptInfo *innerrel,
+add_paths_to_joinrel(PlannerInfo * root,
+					 RelOptInfo * joinrel,
+					 RelOptInfo * outerrel,
+					 RelOptInfo * innerrel,
 					 JoinType jointype,
-					 SpecialJoinInfo *sjinfo,
-					 List *restrictlist)
+					 SpecialJoinInfo * sjinfo,
+					 List * restrictlist)
 {
 	JoinPathExtraData extra;
 	bool		mergejoin_allowed = true;
@@ -317,9 +317,9 @@ add_paths_to_joinrel(PlannerInfo *root,
  * should be overridden, ie, it's okay to perform this join.
  */
 static inline bool
-allow_star_schema_join(PlannerInfo *root,
-					   Path *outer_path,
-					   Path *inner_path)
+allow_star_schema_join(PlannerInfo * root,
+					   Path * outer_path,
+					   Path * inner_path)
 {
 	Relids		innerparams = PATH_REQ_OUTER(inner_path);
 	Relids		outerrelids = outer_path->parent->relids;
@@ -338,13 +338,13 @@ allow_star_schema_join(PlannerInfo *root,
  *	  the joinrel's pathlist via add_path().
  */
 static void
-try_nestloop_path(PlannerInfo *root,
-				  RelOptInfo *joinrel,
-				  Path *outer_path,
-				  Path *inner_path,
-				  List *pathkeys,
+try_nestloop_path(PlannerInfo * root,
+				  RelOptInfo * joinrel,
+				  Path * outer_path,
+				  Path * inner_path,
+				  List * pathkeys,
 				  JoinType jointype,
-				  JoinPathExtraData *extra)
+				  JoinPathExtraData * extra)
 {
 	Relids		required_outer;
 	JoinCostWorkspace workspace;
@@ -411,13 +411,13 @@ try_nestloop_path(PlannerInfo *root,
  *	  the joinrel's partial_pathlist via add_partial_path().
  */
 static void
-try_partial_nestloop_path(PlannerInfo *root,
-						  RelOptInfo *joinrel,
-						  Path *outer_path,
-						  Path *inner_path,
-						  List *pathkeys,
+try_partial_nestloop_path(PlannerInfo * root,
+						  RelOptInfo * joinrel,
+						  Path * outer_path,
+						  Path * inner_path,
+						  List * pathkeys,
 						  JoinType jointype,
-						  JoinPathExtraData *extra)
+						  JoinPathExtraData * extra)
 {
 	JoinCostWorkspace workspace;
 
@@ -465,16 +465,16 @@ try_partial_nestloop_path(PlannerInfo *root,
  *	  the joinrel's pathlist via add_path().
  */
 static void
-try_mergejoin_path(PlannerInfo *root,
-				   RelOptInfo *joinrel,
-				   Path *outer_path,
-				   Path *inner_path,
-				   List *pathkeys,
-				   List *mergeclauses,
-				   List *outersortkeys,
-				   List *innersortkeys,
+try_mergejoin_path(PlannerInfo * root,
+				   RelOptInfo * joinrel,
+				   Path * outer_path,
+				   Path * inner_path,
+				   List * pathkeys,
+				   List * mergeclauses,
+				   List * outersortkeys,
+				   List * innersortkeys,
 				   JoinType jointype,
-				   JoinPathExtraData *extra,
+				   JoinPathExtraData * extra,
 				   bool is_partial)
 {
 	Relids		required_outer;
@@ -560,16 +560,16 @@ try_mergejoin_path(PlannerInfo *root,
  *	  the joinrel's pathlist via add_partial_path().
  */
 static void
-try_partial_mergejoin_path(PlannerInfo *root,
-						   RelOptInfo *joinrel,
-						   Path *outer_path,
-						   Path *inner_path,
-						   List *pathkeys,
-						   List *mergeclauses,
-						   List *outersortkeys,
-						   List *innersortkeys,
+try_partial_mergejoin_path(PlannerInfo * root,
+						   RelOptInfo * joinrel,
+						   Path * outer_path,
+						   Path * inner_path,
+						   List * pathkeys,
+						   List * mergeclauses,
+						   List * outersortkeys,
+						   List * innersortkeys,
 						   JoinType jointype,
-						   JoinPathExtraData *extra)
+						   JoinPathExtraData * extra)
 {
 	JoinCostWorkspace workspace;
 
@@ -630,13 +630,13 @@ try_partial_mergejoin_path(PlannerInfo *root,
  *	  the joinrel's pathlist via add_path().
  */
 static void
-try_hashjoin_path(PlannerInfo *root,
-				  RelOptInfo *joinrel,
-				  Path *outer_path,
-				  Path *inner_path,
-				  List *hashclauses,
+try_hashjoin_path(PlannerInfo * root,
+				  RelOptInfo * joinrel,
+				  Path * outer_path,
+				  Path * inner_path,
+				  List * hashclauses,
 				  JoinType jointype,
-				  JoinPathExtraData *extra)
+				  JoinPathExtraData * extra)
 {
 	Relids		required_outer;
 	JoinCostWorkspace workspace;
@@ -691,13 +691,13 @@ try_hashjoin_path(PlannerInfo *root,
  *	  the joinrel's partial_pathlist via add_partial_path().
  */
 static void
-try_partial_hashjoin_path(PlannerInfo *root,
-						  RelOptInfo *joinrel,
-						  Path *outer_path,
-						  Path *inner_path,
-						  List *hashclauses,
+try_partial_hashjoin_path(PlannerInfo * root,
+						  RelOptInfo * joinrel,
+						  Path * outer_path,
+						  Path * inner_path,
+						  List * hashclauses,
 						  JoinType jointype,
-						  JoinPathExtraData *extra)
+						  JoinPathExtraData * extra)
 {
 	JoinCostWorkspace workspace;
 
@@ -750,8 +750,8 @@ try_partial_hashjoin_path(PlannerInfo *root,
  * we set the transient flag outer_is_left to identify which side is which.
  */
 static inline bool
-clause_sides_match_join(RestrictInfo *rinfo, RelOptInfo *outerrel,
-						RelOptInfo *innerrel)
+clause_sides_match_join(RestrictInfo * rinfo, RelOptInfo * outerrel,
+						RelOptInfo * innerrel)
 {
 	if (bms_is_subset(rinfo->left_relids, outerrel->relids) &&
 		bms_is_subset(rinfo->right_relids, innerrel->relids))
@@ -782,12 +782,12 @@ clause_sides_match_join(RestrictInfo *rinfo, RelOptInfo *outerrel,
  * 'extra' contains additional input values
  */
 static void
-sort_inner_and_outer(PlannerInfo *root,
-					 RelOptInfo *joinrel,
-					 RelOptInfo *outerrel,
-					 RelOptInfo *innerrel,
+sort_inner_and_outer(PlannerInfo * root,
+					 RelOptInfo * joinrel,
+					 RelOptInfo * outerrel,
+					 RelOptInfo * innerrel,
 					 JoinType jointype,
-					 JoinPathExtraData *extra)
+					 JoinPathExtraData * extra)
 {
 	JoinType	save_jointype = jointype;
 	Path	   *outer_path;
@@ -984,15 +984,15 @@ sort_inner_and_outer(PlannerInfo *root,
  * subsets of the mergeclause list, but that seems way too expensive.)
  */
 static void
-generate_mergejoin_paths(PlannerInfo *root,
-						 RelOptInfo *joinrel,
-						 RelOptInfo *innerrel,
-						 Path *outerpath,
+generate_mergejoin_paths(PlannerInfo * root,
+						 RelOptInfo * joinrel,
+						 RelOptInfo * innerrel,
+						 Path * outerpath,
 						 JoinType jointype,
-						 JoinPathExtraData *extra,
+						 JoinPathExtraData * extra,
 						 bool useallclauses,
-						 Path *inner_cheapest_total,
-						 List *merge_pathkeys,
+						 Path * inner_cheapest_total,
+						 List * merge_pathkeys,
 						 bool is_partial)
 {
 	List	   *mergeclauses;
@@ -1232,12 +1232,12 @@ generate_mergejoin_paths(PlannerInfo *root,
  * 'extra' contains additional input values
  */
 static void
-match_unsorted_outer(PlannerInfo *root,
-					 RelOptInfo *joinrel,
-					 RelOptInfo *outerrel,
-					 RelOptInfo *innerrel,
+match_unsorted_outer(PlannerInfo * root,
+					 RelOptInfo * joinrel,
+					 RelOptInfo * outerrel,
+					 RelOptInfo * innerrel,
 					 JoinType jointype,
-					 JoinPathExtraData *extra)
+					 JoinPathExtraData * extra)
 {
 	JoinType	save_jointype = jointype;
 	bool		nestjoinOK;
@@ -1466,13 +1466,13 @@ match_unsorted_outer(PlannerInfo *root,
  * 'inner_cheapest_total' cheapest total path for innerrel
  */
 static void
-consider_parallel_mergejoin(PlannerInfo *root,
-							RelOptInfo *joinrel,
-							RelOptInfo *outerrel,
-							RelOptInfo *innerrel,
+consider_parallel_mergejoin(PlannerInfo * root,
+							RelOptInfo * joinrel,
+							RelOptInfo * outerrel,
+							RelOptInfo * innerrel,
 							JoinType jointype,
-							JoinPathExtraData *extra,
-							Path *inner_cheapest_total)
+							JoinPathExtraData * extra,
+							Path * inner_cheapest_total)
 {
 	ListCell   *lc1;
 
@@ -1506,12 +1506,12 @@ consider_parallel_mergejoin(PlannerInfo *root,
  * 'extra' contains additional input values
  */
 static void
-consider_parallel_nestloop(PlannerInfo *root,
-						   RelOptInfo *joinrel,
-						   RelOptInfo *outerrel,
-						   RelOptInfo *innerrel,
+consider_parallel_nestloop(PlannerInfo * root,
+						   RelOptInfo * joinrel,
+						   RelOptInfo * outerrel,
+						   RelOptInfo * innerrel,
 						   JoinType jointype,
-						   JoinPathExtraData *extra)
+						   JoinPathExtraData * extra)
 {
 	JoinType	save_jointype = jointype;
 	ListCell   *lc1;
@@ -1578,12 +1578,12 @@ consider_parallel_nestloop(PlannerInfo *root,
  * 'extra' contains additional input values
  */
 static void
-hash_inner_and_outer(PlannerInfo *root,
-					 RelOptInfo *joinrel,
-					 RelOptInfo *outerrel,
-					 RelOptInfo *innerrel,
+hash_inner_and_outer(PlannerInfo * root,
+					 RelOptInfo * joinrel,
+					 RelOptInfo * outerrel,
+					 RelOptInfo * innerrel,
 					 JoinType jointype,
-					 JoinPathExtraData *extra)
+					 JoinPathExtraData * extra)
 {
 	JoinType	save_jointype = jointype;
 	bool		isouterjoin = IS_OUTER_JOIN(jointype);
@@ -1809,11 +1809,11 @@ hash_inner_and_outer(PlannerInfo *root,
  * currently of interest.
  */
 static List *
-select_mergejoin_clauses(PlannerInfo *root,
-						 RelOptInfo *joinrel,
-						 RelOptInfo *outerrel,
-						 RelOptInfo *innerrel,
-						 List *restrictlist,
+select_mergejoin_clauses(PlannerInfo * root,
+						 RelOptInfo * joinrel,
+						 RelOptInfo * outerrel,
+						 RelOptInfo * innerrel,
+						 List * restrictlist,
 						 JoinType jointype,
 						 bool *mergejoin_allowed)
 {

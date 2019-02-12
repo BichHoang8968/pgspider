@@ -184,7 +184,7 @@ CATALOG(pg_attribute,1249) BKI_BOOTSTRAP BKI_WITHOUT_OIDS BKI_ROWTYPE_OID(75) BK
  *		the format of pg_attribute relation.
  * ----------------
  */
-typedef FormData_pg_attribute *Form_pg_attribute;
+typedef FormData_pg_attribute * Form_pg_attribute;
 
 /* ----------------
  *		compiler constants for pg_attribute

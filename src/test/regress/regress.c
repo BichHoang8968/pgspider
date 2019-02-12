@@ -43,8 +43,8 @@
 #define RDELIM			')'
 #define DELIM			','
 
-extern PATH *poly2path(POLYGON *poly);
-extern void regress_lseg_construct(LSEG *lseg, Point *pt1, Point *pt2);
+extern PATH * poly2path(POLYGON * poly);
+extern void regress_lseg_construct(LSEG * lseg, Point * pt1, Point * pt2);
 
 #ifdef PG_MODULE_MAGIC
 PG_MODULE_MAGIC;
@@ -138,7 +138,7 @@ regress_path_dist(PG_FUNCTION_ARGS)
 }
 
 PATH *
-poly2path(POLYGON *poly)
+poly2path(POLYGON * poly)
 {
 	int			i;
 	char	   *output = (char *) palloc(2 * (P_MAXDIG + 1) * poly->npts + 64);
@@ -204,7 +204,7 @@ interpt_pp(PG_FUNCTION_ARGS)
 
 /* like lseg_construct, but assume space already allocated */
 void
-regress_lseg_construct(LSEG *lseg, Point *pt1, Point *pt2)
+regress_lseg_construct(LSEG * lseg, Point * pt1, Point * pt2)
 {
 	lseg->p[0].x = pt1->x;
 	lseg->p[0].y = pt1->y;
@@ -236,7 +236,7 @@ typedef struct
 {
 	Point		center;
 	double		radius;
-} WIDGET;
+}			WIDGET;
 
 PG_FUNCTION_INFO_V1(widget_in);
 PG_FUNCTION_INFO_V1(widget_out);

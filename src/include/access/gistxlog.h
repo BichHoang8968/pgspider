@@ -38,7 +38,7 @@ typedef struct gistxlogPageUpdate
 	/*
 	 * In payload of blk 0 : 1. todelete OffsetNumbers 2. tuples to insert
 	 */
-} gistxlogPageUpdate;
+}			gistxlogPageUpdate;
 
 /*
  * Backup Blk 0: If this operation completes a page split, by inserting a
@@ -57,10 +57,10 @@ typedef struct gistxlogPageSplit
 	/*
 	 * follow: 1. gistxlogPage and array of IndexTupleData per page
 	 */
-} gistxlogPageSplit;
+}			gistxlogPageSplit;
 
-extern void gist_redo(XLogReaderState *record);
-extern void gist_desc(StringInfo buf, XLogReaderState *record);
+extern void gist_redo(XLogReaderState * record);
+extern void gist_desc(StringInfo buf, XLogReaderState * record);
 extern const char *gist_identify(uint8 info);
 extern void gist_xlog_startup(void);
 extern void gist_xlog_cleanup(void);

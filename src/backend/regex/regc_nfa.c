@@ -1435,7 +1435,7 @@ specialcolors(struct nfa *nfa)
  */
 static long						/* re_info bits */
 optimize(struct nfa *nfa,
-		 FILE *f)				/* for debug output; NULL none */
+		 FILE * f)				/* for debug output; NULL none */
 {
 #ifdef REG_DEBUG
 	int			verbose = (f != NULL) ? 1 : 0;
@@ -1475,7 +1475,7 @@ optimize(struct nfa *nfa,
  */
 static void
 pullback(struct nfa *nfa,
-		 FILE *f)				/* for debug output; NULL none */
+		 FILE * f)				/* for debug output; NULL none */
 {
 	struct state *s;
 	struct state *nexts;
@@ -1642,7 +1642,7 @@ pull(struct nfa *nfa,
  */
 static void
 pushfwd(struct nfa *nfa,
-		FILE *f)				/* for debug output; NULL none */
+		FILE * f)				/* for debug output; NULL none */
 {
 	struct state *s;
 	struct state *nexts;
@@ -1867,7 +1867,7 @@ combine(struct arc *con,
  */
 static void
 fixempties(struct nfa *nfa,
-		   FILE *f)				/* for debug output; NULL none */
+		   FILE * f)			/* for debug output; NULL none */
 {
 	struct state *s;
 	struct state *s2;
@@ -2161,7 +2161,7 @@ hasconstraintout(struct state *s)
  */
 static void
 fixconstraintloops(struct nfa *nfa,
-				   FILE *f)		/* for debug output; NULL none */
+				   FILE * f)	/* for debug output; NULL none */
 {
 	struct state *s;
 	struct state *nexts;
@@ -2963,7 +2963,7 @@ freecnfa(struct cnfa *cnfa)
  */
 static void
 dumpnfa(struct nfa *nfa,
-		FILE *f)
+		FILE * f)
 {
 #ifdef REG_DEBUG
 	struct state *s;
@@ -3000,7 +3000,7 @@ dumpnfa(struct nfa *nfa,
  */
 static void
 dumpstate(struct state *s,
-		  FILE *f)
+		  FILE * f)
 {
 	struct arc *a;
 
@@ -3026,7 +3026,7 @@ dumpstate(struct state *s,
  */
 static void
 dumparcs(struct state *s,
-		 FILE *f)
+		 FILE * f)
 {
 	int			pos;
 	struct arc *a;
@@ -3059,7 +3059,7 @@ dumparcs(struct state *s,
 static void
 dumparc(struct arc *a,
 		struct state *s,
-		FILE *f)
+		FILE * f)
 {
 	struct arc *aa;
 	struct arcbatch *ab;
@@ -3122,7 +3122,7 @@ dumparc(struct arc *a,
 #ifdef REG_DEBUG
 static void
 dumpcnfa(struct cnfa *cnfa,
-		 FILE *f)
+		 FILE * f)
 {
 	int			st;
 
@@ -3152,7 +3152,7 @@ dumpcnfa(struct cnfa *cnfa,
 static void
 dumpcstate(int st,
 		   struct cnfa *cnfa,
-		   FILE *f)
+		   FILE * f)
 {
 	struct carc *ca;
 	int			pos;

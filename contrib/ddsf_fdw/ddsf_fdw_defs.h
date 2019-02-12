@@ -12,4 +12,4 @@
 /*End defs*/
 
 
-#endif /*DDSF_FDW_DEFS*/
+#endif							/* DDSF_FDW_DEFS */

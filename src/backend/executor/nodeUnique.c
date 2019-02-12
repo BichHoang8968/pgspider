@@ -44,7 +44,7 @@
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *			/* return: a tuple or NULL */
-ExecUnique(PlanState *pstate)
+ExecUnique(PlanState * pstate)
 {
 	UniqueState *node = castNode(UniqueState, pstate);
 	Unique	   *plannode = (Unique *) node->ps.plan;
@@ -113,7 +113,7 @@ ExecUnique(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 UniqueState *
-ExecInitUnique(Unique *node, EState *estate, int eflags)
+ExecInitUnique(Unique * node, EState * estate, int eflags)
 {
 	UniqueState *uniquestate;
 
@@ -175,7 +175,7 @@ ExecInitUnique(Unique *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndUnique(UniqueState *node)
+ExecEndUnique(UniqueState * node)
 {
 	/* clean up tuple table */
 	ExecClearTuple(node->ps.ps_ResultTupleSlot);
@@ -187,7 +187,7 @@ ExecEndUnique(UniqueState *node)
 
 
 void
-ExecReScanUnique(UniqueState *node)
+ExecReScanUnique(UniqueState * node)
 {
 	/* must clear result tuple so first input tuple is returned */
 	ExecClearTuple(node->ps.ps_ResultTupleSlot);

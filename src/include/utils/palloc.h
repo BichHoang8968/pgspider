@@ -49,7 +49,7 @@ typedef struct MemoryContextCallback
 	MemoryContextCallbackFunction func; /* function to call */
 	void	   *arg;			/* argument to pass it */
 	struct MemoryContextCallback *next; /* next in list of callbacks */
-} MemoryContextCallback;
+}			MemoryContextCallback;
 
 /*
  * CurrentMemoryContext is the default allocation context for palloc().
@@ -116,7 +116,7 @@ MemoryContextSwitchTo(MemoryContext context)
 
 /* Registration of memory context reset/delete callbacks */
 extern void MemoryContextRegisterResetCallback(MemoryContext context,
-								   MemoryContextCallback *cb);
+								   MemoryContextCallback * cb);
 
 /*
  * These are like standard strdup() except the copied string is

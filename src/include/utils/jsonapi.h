@@ -32,7 +32,7 @@ typedef enum
 	JSON_TOKEN_FALSE,
 	JSON_TOKEN_NULL,
 	JSON_TOKEN_END
-} JsonTokenType;
+}			JsonTokenType;
 
 
 /*
@@ -60,7 +60,7 @@ typedef struct JsonLexContext
 	int			line_number;
 	char	   *line_start;
 	StringInfo	strval;
-} JsonLexContext;
+}			JsonLexContext;
 
 typedef void (*json_struct_action) (void *state);
 typedef void (*json_ofield_action) (void *state, char *fname, bool isnull);
@@ -91,7 +91,7 @@ typedef struct JsonSemAction
 	json_aelem_action array_element_start;
 	json_aelem_action array_element_end;
 	json_scalar_action scalar;
-} JsonSemAction;
+}			JsonSemAction;
 
 /*
  * parse_json will parse the string in the lex calling the
@@ -102,14 +102,14 @@ typedef struct JsonSemAction
  * points to. If the action pointers are NULL the parser
  * does nothing and just continues.
  */
-extern void pg_parse_json(JsonLexContext *lex, JsonSemAction *sem);
+extern void pg_parse_json(JsonLexContext * lex, JsonSemAction * sem);
 
 /*
  * json_count_array_elements performs a fast secondary parse to determine the
  * number of elements in passed array lex context. It should be called from an
  * array_start action.
  */
-extern int	json_count_array_elements(JsonLexContext *lex);
+extern int	json_count_array_elements(JsonLexContext * lex);
 
 /*
  * constructors for JsonLexContext, with or without strval element.
@@ -120,10 +120,10 @@ extern int	json_count_array_elements(JsonLexContext *lex);
  * If you already have the json as a text* value, use the first of these
  * functions, otherwise use  makeJsonLexContextCstringLen().
  */
-extern JsonLexContext *makeJsonLexContext(text *json, bool need_escapes);
-extern JsonLexContext *makeJsonLexContextCstringLen(char *json,
-							 int len,
-							 bool need_escapes);
+extern JsonLexContext * makeJsonLexContext(text * json, bool need_escapes);
+extern JsonLexContext * makeJsonLexContextCstringLen(char *json,
+													 int len,
+													 bool need_escapes);
 
 /*
  * Utility function to check if a string is a valid JSON number.
@@ -136,15 +136,15 @@ extern bool IsValidJsonNumber(const char *str, int len);
 typedef void (*JsonIterateStringValuesAction) (void *state, char *elem_value, int elem_len);
 
 /* an action that will be applied to each value in transform_json(b)_string_values functions */
-typedef text *(*JsonTransformStringValuesAction) (void *state, char *elem_value, int elem_len);
+typedef text * (*JsonTransformStringValuesAction) (void *state, char *elem_value, int elem_len);
 
-extern void iterate_jsonb_string_values(Jsonb *jb, void *state,
+extern void iterate_jsonb_string_values(Jsonb * jb, void *state,
 							JsonIterateStringValuesAction action);
-extern void iterate_json_string_values(text *json, void *action_state,
+extern void iterate_json_string_values(text * json, void *action_state,
 						   JsonIterateStringValuesAction action);
-extern Jsonb *transform_jsonb_string_values(Jsonb *jsonb, void *action_state,
-							  JsonTransformStringValuesAction transform_action);
-extern text *transform_json_string_values(text *json, void *action_state,
-							 JsonTransformStringValuesAction transform_action);
+extern Jsonb * transform_jsonb_string_values(Jsonb * jsonb, void *action_state,
+											 JsonTransformStringValuesAction transform_action);
+extern text * transform_json_string_values(text * json, void *action_state,
+										   JsonTransformStringValuesAction transform_action);
 
 #endif							/* JSONAPI_H */

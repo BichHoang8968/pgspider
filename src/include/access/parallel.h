@@ -20,14 +20,14 @@
 #include "storage/shm_mq.h"
 #include "storage/shm_toc.h"
 
-typedef void (*parallel_worker_main_type) (dsm_segment *seg, shm_toc *toc);
+typedef void (*parallel_worker_main_type) (dsm_segment * seg, shm_toc * toc);
 
 typedef struct ParallelWorkerInfo
 {
 	BackgroundWorkerHandle *bgwhandle;
 	shm_mq_handle *error_mqh;
 	int32		pid;
-} ParallelWorkerInfo;
+}			ParallelWorkerInfo;
 
 typedef struct ParallelContext
 {
@@ -44,7 +44,7 @@ typedef struct ParallelContext
 	shm_toc    *toc;
 	ParallelWorkerInfo *worker;
 	bool	   *any_message_received;
-} ParallelContext;
+}			ParallelContext;
 
 extern volatile bool ParallelMessagePending;
 extern int	ParallelWorkerNumber;
@@ -52,12 +52,12 @@ extern bool InitializingParallelWorker;
 
 #define		IsParallelWorker()		(ParallelWorkerNumber >= 0)
 
-extern ParallelContext *CreateParallelContext(const char *library_name, const char *function_name, int nworkers);
-extern void InitializeParallelDSM(ParallelContext *pcxt);
-extern void ReinitializeParallelDSM(ParallelContext *pcxt);
-extern void LaunchParallelWorkers(ParallelContext *pcxt);
-extern void WaitForParallelWorkersToFinish(ParallelContext *pcxt);
-extern void DestroyParallelContext(ParallelContext *pcxt);
+extern ParallelContext * CreateParallelContext(const char *library_name, const char *function_name, int nworkers);
+extern void InitializeParallelDSM(ParallelContext * pcxt);
+extern void ReinitializeParallelDSM(ParallelContext * pcxt);
+extern void LaunchParallelWorkers(ParallelContext * pcxt);
+extern void WaitForParallelWorkersToFinish(ParallelContext * pcxt);
+extern void DestroyParallelContext(ParallelContext * pcxt);
 extern bool ParallelContextActive(void);
 
 extern void HandleParallelMessageInterrupt(void);

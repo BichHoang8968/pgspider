@@ -55,7 +55,7 @@ CATALOG(pg_subscription,6100) BKI_SHARED_RELATION BKI_ROWTYPE_OID(6101) BKI_SCHE
 #endif
 } FormData_pg_subscription;
 
-typedef FormData_pg_subscription *Form_pg_subscription;
+typedef FormData_pg_subscription * Form_pg_subscription;
 
 /* ----------------
  *		compiler constants for pg_subscription
@@ -84,11 +84,11 @@ typedef struct Subscription
 	char	   *slotname;		/* Name of the replication slot */
 	char	   *synccommit;		/* Synchronous commit setting for worker */
 	List	   *publications;	/* List of publication names to subscribe to */
-} Subscription;
+}			Subscription;
 
-extern Subscription *GetSubscription(Oid subid, bool missing_ok);
-extern void FreeSubscription(Subscription *sub);
-extern Oid	get_subscription_oid(const char *subname, bool missing_ok);
+extern Subscription * GetSubscription(Oid subid, bool missing_ok);
+extern void FreeSubscription(Subscription * sub);
+extern Oid get_subscription_oid(const char *subname, bool missing_ok);
 extern char *get_subscription_name(Oid subid);
 
 extern int	CountDBSubscriptions(Oid dbid);

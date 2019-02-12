@@ -50,6 +50,6 @@ typedef struct xl_standby_lock
 	TransactionId xid;			/* xid of holder of AccessExclusiveLock */
 	Oid			dbOid;
 	Oid			relOid;
-} xl_standby_lock;
+}			xl_standby_lock;
 
 #endif							/* LOCKDEF_H_ */

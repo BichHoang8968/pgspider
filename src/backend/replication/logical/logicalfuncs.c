@@ -55,13 +55,13 @@ typedef struct DecodingOutputState
 	TupleDesc	tupdesc;
 	bool		binary_output;
 	int64		returned_rows;
-} DecodingOutputState;
+}			DecodingOutputState;
 
 /*
  * Prepare for an output plugin write.
  */
 static void
-LogicalOutputPrepareWrite(LogicalDecodingContext *ctx, XLogRecPtr lsn, TransactionId xid,
+LogicalOutputPrepareWrite(LogicalDecodingContext * ctx, XLogRecPtr lsn, TransactionId xid,
 						  bool last_write)
 {
 	resetStringInfo(ctx->out);
@@ -71,7 +71,7 @@ LogicalOutputPrepareWrite(LogicalDecodingContext *ctx, XLogRecPtr lsn, Transacti
  * Perform output plugin write into tuplestore.
  */
 static void
-LogicalOutputWrite(LogicalDecodingContext *ctx, XLogRecPtr lsn, TransactionId xid,
+LogicalOutputWrite(LogicalDecodingContext * ctx, XLogRecPtr lsn, TransactionId xid,
 				   bool last_write)
 {
 	Datum		values[3];
@@ -115,8 +115,8 @@ check_permissions(void)
 }
 
 int
-logical_read_local_xlog_page(XLogReaderState *state, XLogRecPtr targetPagePtr,
-							 int reqLen, XLogRecPtr targetRecPtr, char *cur_page, TimeLineID *pageTLI)
+logical_read_local_xlog_page(XLogReaderState * state, XLogRecPtr targetPagePtr,
+							 int reqLen, XLogRecPtr targetRecPtr, char *cur_page, TimeLineID * pageTLI)
 {
 	return read_local_xlog_page(state, targetPagePtr, reqLen,
 								targetRecPtr, cur_page, pageTLI);
@@ -262,7 +262,7 @@ pg_logical_slot_get_changes_guts(FunctionCallInfo fcinfo, bool confirm, bool bin
 		 * what we need.
 		 */
 		if (!binary &&
-			ctx->options.output_type !=OUTPUT_PLUGIN_TEXTUAL_OUTPUT)
+			ctx->options.output_type != OUTPUT_PLUGIN_TEXTUAL_OUTPUT)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("logical decoding output plugin \"%s\" produces binary output, but function \"%s\" expects textual data",

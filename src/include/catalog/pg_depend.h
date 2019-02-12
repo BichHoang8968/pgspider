@@ -58,7 +58,7 @@ CATALOG(pg_depend,2608) BKI_WITHOUT_OIDS
  *		the format of pg_depend relation.
  * ----------------
  */
-typedef FormData_pg_depend *Form_pg_depend;
+typedef FormData_pg_depend * Form_pg_depend;
 
 /* ----------------
  *		compiler constants for pg_depend

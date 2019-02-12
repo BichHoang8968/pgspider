@@ -37,7 +37,7 @@ typedef struct ColumnIOData
 	Oid			typioparam;
 	bool		typisvarlena;
 	FmgrInfo	proc;
-} ColumnIOData;
+}			ColumnIOData;
 
 typedef struct RecordIOData
 {
@@ -45,7 +45,7 @@ typedef struct RecordIOData
 	int32		record_typmod;
 	int			ncolumns;
 	ColumnIOData columns[FLEXIBLE_ARRAY_MEMBER];
-} RecordIOData;
+}			RecordIOData;
 
 /*
  * structure to cache metadata needed for record comparison
@@ -53,7 +53,7 @@ typedef struct RecordIOData
 typedef struct ColumnCompareData
 {
 	TypeCacheEntry *typentry;	/* has everything we need, actually */
-} ColumnCompareData;
+}			ColumnCompareData;
 
 typedef struct RecordCompareData
 {
@@ -63,7 +63,7 @@ typedef struct RecordCompareData
 	Oid			record2_type;
 	int32		record2_typmod;
 	ColumnCompareData columns[FLEXIBLE_ARRAY_MEMBER];
-} RecordCompareData;
+}			RecordCompareData;
 
 
 /*

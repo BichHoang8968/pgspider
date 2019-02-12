@@ -94,7 +94,7 @@ typedef struct
 {
 	int			flags;			/* bitmask, see bit definitions below */
 	ObjectAddress dependee;		/* object whose deletion forced this one */
-} ObjectAddressExtra;
+}			ObjectAddressExtra;
 
 /* ObjectAddressExtra flag bits */
 #define DEPFLAG_ORIGINAL	0x0001	/* an original deletion target */
@@ -119,17 +119,17 @@ struct ObjectAddresses
 /* threaded list of ObjectAddresses, for recursion detection */
 typedef struct ObjectAddressStack
 {
-	const ObjectAddress *object;	/* object being visited */
+	const		ObjectAddress *object;	/* object being visited */
 	int			flags;			/* its current flag bits */
 	struct ObjectAddressStack *next;	/* next outer stack level */
-} ObjectAddressStack;
+}			ObjectAddressStack;
 
 /* for find_expr_references_walker */
 typedef struct
 {
 	ObjectAddresses *addrs;		/* addresses being accumulated */
 	List	   *rtables;		/* list of rangetables to resolve Vars */
-} find_expr_references_context;
+}			find_expr_references_context;
 
 /*
  * This constant table maps ObjectClasses to the corresponding catalog OIDs.
@@ -177,38 +177,38 @@ static const Oid object_classes[] = {
 };
 
 
-static void findDependentObjects(const ObjectAddress *object,
+static void findDependentObjects(const ObjectAddress * object,
 					 int objflags,
 					 int flags,
-					 ObjectAddressStack *stack,
-					 ObjectAddresses *targetObjects,
-					 const ObjectAddresses *pendingObjects,
-					 Relation *depRel);
-static void reportDependentObjects(const ObjectAddresses *targetObjects,
+					 ObjectAddressStack * stack,
+					 ObjectAddresses * targetObjects,
+					 const ObjectAddresses * pendingObjects,
+					 Relation * depRel);
+static void reportDependentObjects(const ObjectAddresses * targetObjects,
 					   DropBehavior behavior,
 					   int flags,
-					   const ObjectAddress *origObject);
-static void deleteOneObject(const ObjectAddress *object,
-				Relation *depRel, int32 flags);
-static void doDeletion(const ObjectAddress *object, int flags);
-static void AcquireDeletionLock(const ObjectAddress *object, int flags);
-static void ReleaseDeletionLock(const ObjectAddress *object);
-static bool find_expr_references_walker(Node *node,
-							find_expr_references_context *context);
-static void eliminate_duplicate_dependencies(ObjectAddresses *addrs);
+					   const ObjectAddress * origObject);
+static void deleteOneObject(const ObjectAddress * object,
+				Relation * depRel, int32 flags);
+static void doDeletion(const ObjectAddress * object, int flags);
+static void AcquireDeletionLock(const ObjectAddress * object, int flags);
+static void ReleaseDeletionLock(const ObjectAddress * object);
+static bool find_expr_references_walker(Node * node,
+							find_expr_references_context * context);
+static void eliminate_duplicate_dependencies(ObjectAddresses * addrs);
 static int	object_address_comparator(const void *a, const void *b);
 static void add_object_address(ObjectClass oclass, Oid objectId, int32 subId,
-				   ObjectAddresses *addrs);
-static void add_exact_object_address_extra(const ObjectAddress *object,
-							   const ObjectAddressExtra *extra,
-							   ObjectAddresses *addrs);
-static bool object_address_present_add_flags(const ObjectAddress *object,
+				   ObjectAddresses * addrs);
+static void add_exact_object_address_extra(const ObjectAddress * object,
+							   const ObjectAddressExtra * extra,
+							   ObjectAddresses * addrs);
+static bool object_address_present_add_flags(const ObjectAddress * object,
 								 int flags,
-								 ObjectAddresses *addrs);
-static bool stack_address_present_add_flags(const ObjectAddress *object,
+								 ObjectAddresses * addrs);
+static bool stack_address_present_add_flags(const ObjectAddress * object,
 								int flags,
-								ObjectAddressStack *stack);
-static void DeleteInitPrivs(const ObjectAddress *object);
+								ObjectAddressStack * stack);
+static void DeleteInitPrivs(const ObjectAddress * object);
 
 
 /*
@@ -216,7 +216,7 @@ static void DeleteInitPrivs(const ObjectAddress *object);
  * the actual deletion.
  */
 static void
-deleteObjectsInList(ObjectAddresses *targetObjects, Relation *depRel,
+deleteObjectsInList(ObjectAddresses * targetObjects, Relation * depRel,
 					int flags)
 {
 	int			i;
@@ -228,8 +228,8 @@ deleteObjectsInList(ObjectAddresses *targetObjects, Relation *depRel,
 	{
 		for (i = 0; i < targetObjects->numrefs; i++)
 		{
-			const ObjectAddress *thisobj = &targetObjects->refs[i];
-			const ObjectAddressExtra *extra = &targetObjects->extras[i];
+			const		ObjectAddress *thisobj = &targetObjects->refs[i];
+			const		ObjectAddressExtra *extra = &targetObjects->extras[i];
 			bool		original = false;
 			bool		normal = false;
 
@@ -300,7 +300,7 @@ deleteObjectsInList(ObjectAddresses *targetObjects, Relation *depRel,
  * be used only when dropping temporary objects.
  */
 void
-performDeletion(const ObjectAddress *object,
+performDeletion(const ObjectAddress * object,
 				DropBehavior behavior, int flags)
 {
 	Relation	depRel;
@@ -359,7 +359,7 @@ performDeletion(const ObjectAddress *object,
  * makes each check be more relaxed.
  */
 void
-performMultipleDeletions(const ObjectAddresses *objects,
+performMultipleDeletions(const ObjectAddresses * objects,
 						 DropBehavior behavior, int flags)
 {
 	Relation	depRel;
@@ -388,7 +388,7 @@ performMultipleDeletions(const ObjectAddresses *objects,
 
 	for (i = 0; i < objects->numrefs; i++)
 	{
-		const ObjectAddress *thisobj = objects->refs + i;
+		const		ObjectAddress *thisobj = objects->refs + i;
 
 		/*
 		 * Acquire deletion lock on each target object.  (Ideally the caller
@@ -459,13 +459,13 @@ performMultipleDeletions(const ObjectAddresses *objects,
  * is passed down, since it describes what we're doing overall.
  */
 static void
-findDependentObjects(const ObjectAddress *object,
+findDependentObjects(const ObjectAddress * object,
 					 int objflags,
 					 int flags,
-					 ObjectAddressStack *stack,
-					 ObjectAddresses *targetObjects,
-					 const ObjectAddresses *pendingObjects,
-					 Relation *depRel)
+					 ObjectAddressStack * stack,
+					 ObjectAddresses * targetObjects,
+					 const ObjectAddresses * pendingObjects,
+					 Relation * depRel)
 {
 	ScanKeyData key[3];
 	int			nkeys;
@@ -825,10 +825,10 @@ findDependentObjects(const ObjectAddress *object,
  *		(the latter case occurs in DROP OWNED)
  */
 static void
-reportDependentObjects(const ObjectAddresses *targetObjects,
+reportDependentObjects(const ObjectAddresses * targetObjects,
 					   DropBehavior behavior,
 					   int flags,
-					   const ObjectAddress *origObject)
+					   const ObjectAddress * origObject)
 {
 	int			msglevel = (flags & PERFORM_DELETION_QUIETLY) ? DEBUG2 : NOTICE;
 	bool		ok = true;
@@ -868,8 +868,8 @@ reportDependentObjects(const ObjectAddresses *targetObjects,
 	 */
 	for (i = targetObjects->numrefs - 1; i >= 0; i--)
 	{
-		const ObjectAddress *obj = &targetObjects->refs[i];
-		const ObjectAddressExtra *extra = &targetObjects->extras[i];
+		const		ObjectAddress *obj = &targetObjects->refs[i];
+		const		ObjectAddressExtra *extra = &targetObjects->extras[i];
 		char	   *objDesc;
 
 		/* Ignore the original deletion target(s) */
@@ -997,7 +997,7 @@ reportDependentObjects(const ObjectAddresses *targetObjects,
  * *depRel is the already-open pg_depend relation.
  */
 static void
-deleteOneObject(const ObjectAddress *object, Relation *depRel, int flags)
+deleteOneObject(const ObjectAddress * object, Relation * depRel, int flags)
 {
 	ScanKeyData key[3];
 	int			nkeys;
@@ -1101,7 +1101,7 @@ deleteOneObject(const ObjectAddress *object, Relation *depRel, int flags)
  * doDeletion: actually delete a single object
  */
 static void
-doDeletion(const ObjectAddress *object, int flags)
+doDeletion(const ObjectAddress * object, int flags)
 {
 	switch (getObjectClass(object))
 	{
@@ -1296,7 +1296,7 @@ doDeletion(const ObjectAddress *object, int flags)
  * shared-across-databases object, so we have no need for LockSharedObject.
  */
 static void
-AcquireDeletionLock(const ObjectAddress *object, int flags)
+AcquireDeletionLock(const ObjectAddress * object, int flags)
 {
 	if (object->classId == RelationRelationId)
 	{
@@ -1323,7 +1323,7 @@ AcquireDeletionLock(const ObjectAddress *object, int flags)
  * ReleaseDeletionLock - release an object deletion lock
  */
 static void
-ReleaseDeletionLock(const ObjectAddress *object)
+ReleaseDeletionLock(const ObjectAddress * object)
 {
 	if (object->classId == RelationRelationId)
 		UnlockRelationOid(object->objectId, AccessExclusiveLock);
@@ -1348,8 +1348,8 @@ ReleaseDeletionLock(const ObjectAddress *object)
  * It can be NIL if no such variables are expected.
  */
 void
-recordDependencyOnExpr(const ObjectAddress *depender,
-					   Node *expr, List *rtable,
+recordDependencyOnExpr(const ObjectAddress * depender,
+					   Node * expr, List * rtable,
 					   DependencyType behavior)
 {
 	find_expr_references_context context;
@@ -1389,8 +1389,8 @@ recordDependencyOnExpr(const ObjectAddress *depender,
  * ordinary query, so other cases need to cope as necessary.
  */
 void
-recordDependencyOnSingleRelExpr(const ObjectAddress *depender,
-								Node *expr, Oid relId,
+recordDependencyOnSingleRelExpr(const ObjectAddress * depender,
+								Node * expr, Oid relId,
 								DependencyType behavior,
 								DependencyType self_behavior,
 								bool ignore_self)
@@ -1484,8 +1484,8 @@ recordDependencyOnSingleRelExpr(const ObjectAddress *depender,
  * the collation is being freshly introduced to the expression.
  */
 static bool
-find_expr_references_walker(Node *node,
-							find_expr_references_context *context)
+find_expr_references_walker(Node * node,
+							find_expr_references_context * context)
 {
 	if (node == NULL)
 		return false;
@@ -2008,7 +2008,7 @@ find_expr_references_walker(Node *node,
  * Given an array of dependency references, eliminate any duplicates.
  */
 static void
-eliminate_duplicate_dependencies(ObjectAddresses *addrs)
+eliminate_duplicate_dependencies(ObjectAddresses * addrs)
 {
 	ObjectAddress *priorobj;
 	int			oldref,
@@ -2070,8 +2070,8 @@ eliminate_duplicate_dependencies(ObjectAddresses *addrs)
 static int
 object_address_comparator(const void *a, const void *b)
 {
-	const ObjectAddress *obja = (const ObjectAddress *) a;
-	const ObjectAddress *objb = (const ObjectAddress *) b;
+	const		ObjectAddress *obja = (const ObjectAddress *) a;
+	const		ObjectAddress *objb = (const ObjectAddress *) b;
 
 	if (obja->classId < objb->classId)
 		return -1;
@@ -2122,7 +2122,7 @@ new_object_addresses(void)
  */
 static void
 add_object_address(ObjectClass oclass, Oid objectId, int32 subId,
-				   ObjectAddresses *addrs)
+				   ObjectAddresses * addrs)
 {
 	ObjectAddress *item;
 
@@ -2154,8 +2154,8 @@ add_object_address(ObjectClass oclass, Oid objectId, int32 subId,
  * As above, but specify entry exactly.
  */
 void
-add_exact_object_address(const ObjectAddress *object,
-						 ObjectAddresses *addrs)
+add_exact_object_address(const ObjectAddress * object,
+						 ObjectAddresses * addrs)
 {
 	ObjectAddress *item;
 
@@ -2179,9 +2179,9 @@ add_exact_object_address(const ObjectAddress *object,
  * As above, but specify entry exactly and provide some "extra" data too.
  */
 static void
-add_exact_object_address_extra(const ObjectAddress *object,
-							   const ObjectAddressExtra *extra,
-							   ObjectAddresses *addrs)
+add_exact_object_address_extra(const ObjectAddress * object,
+							   const ObjectAddressExtra * extra,
+							   ObjectAddresses * addrs)
 {
 	ObjectAddress *item;
 	ObjectAddressExtra *itemextra;
@@ -2214,14 +2214,14 @@ add_exact_object_address_extra(const ObjectAddress *object,
  * We return "true" if object is a subobject of something in the array, too.
  */
 bool
-object_address_present(const ObjectAddress *object,
-					   const ObjectAddresses *addrs)
+object_address_present(const ObjectAddress * object,
+					   const ObjectAddresses * addrs)
 {
 	int			i;
 
 	for (i = addrs->numrefs - 1; i >= 0; i--)
 	{
-		const ObjectAddress *thisobj = addrs->refs + i;
+		const		ObjectAddress *thisobj = addrs->refs + i;
 
 		if (object->classId == thisobj->classId &&
 			object->objectId == thisobj->objectId)
@@ -2240,9 +2240,9 @@ object_address_present(const ObjectAddress *object,
  * flags into its associated extra data (which must exist).
  */
 static bool
-object_address_present_add_flags(const ObjectAddress *object,
+object_address_present_add_flags(const ObjectAddress * object,
 								 int flags,
-								 ObjectAddresses *addrs)
+								 ObjectAddresses * addrs)
 {
 	bool		result = false;
 	int			i;
@@ -2307,16 +2307,16 @@ object_address_present_add_flags(const ObjectAddress *object,
  * Similar to above, except we search an ObjectAddressStack.
  */
 static bool
-stack_address_present_add_flags(const ObjectAddress *object,
+stack_address_present_add_flags(const ObjectAddress * object,
 								int flags,
-								ObjectAddressStack *stack)
+								ObjectAddressStack * stack)
 {
 	bool		result = false;
 	ObjectAddressStack *stackptr;
 
 	for (stackptr = stack; stackptr; stackptr = stackptr->next)
 	{
-		const ObjectAddress *thisobj = stackptr->object;
+		const		ObjectAddress *thisobj = stackptr->object;
 
 		if (object->classId == thisobj->classId &&
 			object->objectId == thisobj->objectId)
@@ -2356,8 +2356,8 @@ stack_address_present_add_flags(const ObjectAddress *object,
  * removing any duplicates.
  */
 void
-record_object_address_dependencies(const ObjectAddress *depender,
-								   ObjectAddresses *referenced,
+record_object_address_dependencies(const ObjectAddress * depender,
+								   ObjectAddresses * referenced,
 								   DependencyType behavior)
 {
 	eliminate_duplicate_dependencies(referenced);
@@ -2370,7 +2370,7 @@ record_object_address_dependencies(const ObjectAddress *depender,
  * Clean up when done with an ObjectAddresses array.
  */
 void
-free_object_addresses(ObjectAddresses *addrs)
+free_object_addresses(ObjectAddresses * addrs)
 {
 	pfree(addrs->refs);
 	if (addrs->extras)
@@ -2385,7 +2385,7 @@ free_object_addresses(ObjectAddresses *addrs)
  * table.  We implement it as a function because the OIDs aren't consecutive.
  */
 ObjectClass
-getObjectClass(const ObjectAddress *object)
+getObjectClass(const ObjectAddress * object)
 {
 	/* only pg_class entries can have nonzero objectSubId */
 	if (object->classId != RelationRelationId &&
@@ -2520,7 +2520,7 @@ getObjectClass(const ObjectAddress *object)
  * delete initial ACL for extension objects
  */
 static void
-DeleteInitPrivs(const ObjectAddress *object)
+DeleteInitPrivs(const ObjectAddress * object)
 {
 	Relation	relation;
 	ScanKeyData key[3];

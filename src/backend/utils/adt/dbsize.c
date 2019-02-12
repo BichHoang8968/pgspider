@@ -275,7 +275,7 @@ pg_tablespace_size_name(PG_FUNCTION_ARGS)
  * is no check here or at the call sites for that.
  */
 static int64
-calculate_relation_size(RelFileNode *rfn, BackendId backend, ForkNumber forknum)
+calculate_relation_size(RelFileNode * rfn, BackendId backend, ForkNumber forknum)
 {
 	int64		totalsize = 0;
 	char	   *relationpath;

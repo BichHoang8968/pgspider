@@ -114,7 +114,7 @@ typedef struct pltcl_interp_desc
 	Oid			user_id;		/* Hash key (must be first!) */
 	Tcl_Interp *interp;			/* The interpreter */
 	Tcl_HashTable query_hash;	/* pltcl_query_desc structs */
-} pltcl_interp_desc;
+}			pltcl_interp_desc;
 
 
 /**********************************************************************
@@ -151,7 +151,7 @@ typedef struct pltcl_proc_desc
 	/* these arrays have nargs entries: */
 	FmgrInfo   *arg_out_func;	/* output fns for arg types */
 	bool	   *arg_is_rowtype; /* is each arg composite? */
-} pltcl_proc_desc;
+}			pltcl_proc_desc;
 
 
 /**********************************************************************
@@ -165,7 +165,7 @@ typedef struct pltcl_query_desc
 	Oid		   *argtypes;
 	FmgrInfo   *arginfuncs;
 	Oid		   *argtypioparams;
-} pltcl_query_desc;
+}			pltcl_query_desc;
 
 
 /**********************************************************************
@@ -189,13 +189,13 @@ typedef struct pltcl_proc_key
 	 */
 	Oid			is_trigger;		/* is it a trigger function? */
 	Oid			user_id;		/* User calling the function, or 0 */
-} pltcl_proc_key;
+}			pltcl_proc_key;
 
 typedef struct pltcl_proc_ptr
 {
 	pltcl_proc_key proc_key;	/* Hash key (must be first!) */
 	pltcl_proc_desc *proc_ptr;
-} pltcl_proc_ptr;
+}			pltcl_proc_ptr;
 
 
 /**********************************************************************
@@ -224,7 +224,7 @@ typedef struct pltcl_call_state
 	Tuplestorestate *tuple_store;	/* SRFs accumulate result here */
 	MemoryContext tuple_store_cxt;	/* context and resowner for tuplestore */
 	ResourceOwner tuple_store_owner;
-} pltcl_call_state;
+}			pltcl_call_state;
 
 
 /**********************************************************************
@@ -233,12 +233,12 @@ typedef struct pltcl_call_state
 static char *pltcl_start_proc = NULL;
 static char *pltclu_start_proc = NULL;
 static bool pltcl_pm_init_done = false;
-static Tcl_Interp *pltcl_hold_interp = NULL;
-static HTAB *pltcl_interp_htab = NULL;
-static HTAB *pltcl_proc_htab = NULL;
+static Tcl_Interp * pltcl_hold_interp = NULL;
+static HTAB * pltcl_interp_htab = NULL;
+static HTAB * pltcl_proc_htab = NULL;
 
 /* this is saved and restored by pltcl_handler */
-static pltcl_call_state *pltcl_current_call_state = NULL;
+static pltcl_call_state * pltcl_current_call_state = NULL;
 
 /**********************************************************************
  * Lookup table for SQLSTATE condition names
@@ -247,7 +247,7 @@ typedef struct
 {
 	const char *label;
 	int			sqlerrstate;
-} TclExceptionNameMap;
+}			TclExceptionNameMap;
 
 static const TclExceptionNameMap exception_name_map[] = {
 #include "pltclerrcodes.h"		/* pgrminclude ignore */
@@ -259,71 +259,71 @@ static const TclExceptionNameMap exception_name_map[] = {
  **********************************************************************/
 void		_PG_init(void);
 
-static void pltcl_init_interp(pltcl_interp_desc *interp_desc,
+static void pltcl_init_interp(pltcl_interp_desc * interp_desc,
 				  Oid prolang, bool pltrusted);
-static pltcl_interp_desc *pltcl_fetch_interp(Oid prolang, bool pltrusted);
+static pltcl_interp_desc * pltcl_fetch_interp(Oid prolang, bool pltrusted);
 static void call_pltcl_start_proc(Oid prolang, bool pltrusted);
 static void start_proc_error_callback(void *arg);
 
 static Datum pltcl_handler(PG_FUNCTION_ARGS, bool pltrusted);
 
-static Datum pltcl_func_handler(PG_FUNCTION_ARGS, pltcl_call_state *call_state,
-				   bool pltrusted);
-static HeapTuple pltcl_trigger_handler(PG_FUNCTION_ARGS, pltcl_call_state *call_state,
-					  bool pltrusted);
-static void pltcl_event_trigger_handler(PG_FUNCTION_ARGS, pltcl_call_state *call_state,
+static Datum pltcl_func_handler(PG_FUNCTION_ARGS, pltcl_call_state * call_state,
+								bool pltrusted);
+static HeapTuple pltcl_trigger_handler(PG_FUNCTION_ARGS, pltcl_call_state * call_state,
+									   bool pltrusted);
+static void pltcl_event_trigger_handler(PG_FUNCTION_ARGS, pltcl_call_state * call_state,
 							bool pltrusted);
 
-static void throw_tcl_error(Tcl_Interp *interp, const char *proname);
+static void throw_tcl_error(Tcl_Interp * interp, const char *proname);
 
-static pltcl_proc_desc *compile_pltcl_function(Oid fn_oid, Oid tgreloid,
-					   bool is_event_trigger,
-					   bool pltrusted);
+static pltcl_proc_desc * compile_pltcl_function(Oid fn_oid, Oid tgreloid,
+												bool is_event_trigger,
+												bool pltrusted);
 
-static int pltcl_elog(ClientData cdata, Tcl_Interp *interp,
-		   int objc, Tcl_Obj *const objv[]);
-static void pltcl_construct_errorCode(Tcl_Interp *interp, ErrorData *edata);
+static int pltcl_elog(ClientData cdata, Tcl_Interp * interp,
+		   int objc, Tcl_Obj * const objv[]);
+static void pltcl_construct_errorCode(Tcl_Interp * interp, ErrorData * edata);
 static const char *pltcl_get_condition_name(int sqlstate);
-static int pltcl_quote(ClientData cdata, Tcl_Interp *interp,
-			int objc, Tcl_Obj *const objv[]);
-static int pltcl_argisnull(ClientData cdata, Tcl_Interp *interp,
-				int objc, Tcl_Obj *const objv[]);
-static int pltcl_returnnull(ClientData cdata, Tcl_Interp *interp,
-				 int objc, Tcl_Obj *const objv[]);
-static int pltcl_returnnext(ClientData cdata, Tcl_Interp *interp,
-				 int objc, Tcl_Obj *const objv[]);
-static int pltcl_SPI_execute(ClientData cdata, Tcl_Interp *interp,
-				  int objc, Tcl_Obj *const objv[]);
-static int pltcl_process_SPI_result(Tcl_Interp *interp,
+static int pltcl_quote(ClientData cdata, Tcl_Interp * interp,
+			int objc, Tcl_Obj * const objv[]);
+static int pltcl_argisnull(ClientData cdata, Tcl_Interp * interp,
+				int objc, Tcl_Obj * const objv[]);
+static int pltcl_returnnull(ClientData cdata, Tcl_Interp * interp,
+				 int objc, Tcl_Obj * const objv[]);
+static int pltcl_returnnext(ClientData cdata, Tcl_Interp * interp,
+				 int objc, Tcl_Obj * const objv[]);
+static int pltcl_SPI_execute(ClientData cdata, Tcl_Interp * interp,
+				  int objc, Tcl_Obj * const objv[]);
+static int pltcl_process_SPI_result(Tcl_Interp * interp,
 						 const char *arrayname,
-						 Tcl_Obj *loop_body,
+						 Tcl_Obj * loop_body,
 						 int spi_rc,
-						 SPITupleTable *tuptable,
+						 SPITupleTable * tuptable,
 						 uint64 ntuples);
-static int pltcl_SPI_prepare(ClientData cdata, Tcl_Interp *interp,
-				  int objc, Tcl_Obj *const objv[]);
-static int pltcl_SPI_execute_plan(ClientData cdata, Tcl_Interp *interp,
-					   int objc, Tcl_Obj *const objv[]);
-static int pltcl_SPI_lastoid(ClientData cdata, Tcl_Interp *interp,
-				  int objc, Tcl_Obj *const objv[]);
-static int pltcl_subtransaction(ClientData cdata, Tcl_Interp *interp,
-					 int objc, Tcl_Obj *const objv[]);
+static int pltcl_SPI_prepare(ClientData cdata, Tcl_Interp * interp,
+				  int objc, Tcl_Obj * const objv[]);
+static int pltcl_SPI_execute_plan(ClientData cdata, Tcl_Interp * interp,
+					   int objc, Tcl_Obj * const objv[]);
+static int pltcl_SPI_lastoid(ClientData cdata, Tcl_Interp * interp,
+				  int objc, Tcl_Obj * const objv[]);
+static int pltcl_subtransaction(ClientData cdata, Tcl_Interp * interp,
+					 int objc, Tcl_Obj * const objv[]);
 
 static void pltcl_subtrans_begin(MemoryContext oldcontext,
 					 ResourceOwner oldowner);
 static void pltcl_subtrans_commit(MemoryContext oldcontext,
 					  ResourceOwner oldowner);
-static void pltcl_subtrans_abort(Tcl_Interp *interp,
+static void pltcl_subtrans_abort(Tcl_Interp * interp,
 					 MemoryContext oldcontext,
 					 ResourceOwner oldowner);
 
-static void pltcl_set_tuple_values(Tcl_Interp *interp, const char *arrayname,
+static void pltcl_set_tuple_values(Tcl_Interp * interp, const char *arrayname,
 					   uint64 tupno, HeapTuple tuple, TupleDesc tupdesc);
-static Tcl_Obj *pltcl_build_tuple_argument(HeapTuple tuple, TupleDesc tupdesc);
-static HeapTuple pltcl_build_tuple_result(Tcl_Interp *interp,
-						 Tcl_Obj **kvObjv, int kvObjc,
-						 pltcl_call_state *call_state);
-static void pltcl_init_tuple_store(pltcl_call_state *call_state);
+static Tcl_Obj * pltcl_build_tuple_argument(HeapTuple tuple, TupleDesc tupdesc);
+static HeapTuple pltcl_build_tuple_result(Tcl_Interp * interp,
+										  Tcl_Obj * *kvObjv, int kvObjc,
+										  pltcl_call_state * call_state);
+static void pltcl_init_tuple_store(pltcl_call_state * call_state);
 
 
 /*
@@ -342,7 +342,7 @@ pltcl_InitNotifier(void)
 {
 	static int	fakeThreadKey;	/* To give valid address for ClientData */
 
-	return (ClientData) &(fakeThreadKey);
+	return (ClientData) & (fakeThreadKey);
 }
 
 static void
@@ -351,7 +351,7 @@ pltcl_FinalizeNotifier(ClientData clientData)
 }
 
 static void
-pltcl_SetTimer(CONST86 Tcl_Time *timePtr)
+pltcl_SetTimer(CONST86 Tcl_Time * timePtr)
 {
 }
 
@@ -362,7 +362,7 @@ pltcl_AlertNotifier(ClientData clientData)
 
 static void
 pltcl_CreateFileHandler(int fd, int mask,
-						Tcl_FileProc *proc, ClientData clientData)
+						Tcl_FileProc * proc, ClientData clientData)
 {
 }
 
@@ -377,7 +377,7 @@ pltcl_ServiceModeHook(int mode)
 }
 
 static int
-pltcl_WaitForEvent(CONST86 Tcl_Time *timePtr)
+pltcl_WaitForEvent(CONST86 Tcl_Time * timePtr)
 {
 	return 0;
 }
@@ -477,7 +477,7 @@ _PG_init(void)
  * pltcl_init_interp() - initialize a new Tcl interpreter
  **********************************************************************/
 static void
-pltcl_init_interp(pltcl_interp_desc *interp_desc, Oid prolang, bool pltrusted)
+pltcl_init_interp(pltcl_interp_desc * interp_desc, Oid prolang, bool pltrusted)
 {
 	Tcl_Interp *interp;
 	char		interpname[32];
@@ -790,7 +790,7 @@ pltcl_handler(PG_FUNCTION_ARGS, bool pltrusted)
  * pltcl_func_handler()		- Handler for regular function calls
  **********************************************************************/
 static Datum
-pltcl_func_handler(PG_FUNCTION_ARGS, pltcl_call_state *call_state,
+pltcl_func_handler(PG_FUNCTION_ARGS, pltcl_call_state * call_state,
 				   bool pltrusted)
 {
 	pltcl_proc_desc *prodesc;
@@ -1022,7 +1022,7 @@ pltcl_func_handler(PG_FUNCTION_ARGS, pltcl_call_state *call_state,
  * pltcl_trigger_handler()	- Handler for trigger calls
  **********************************************************************/
 static HeapTuple
-pltcl_trigger_handler(PG_FUNCTION_ARGS, pltcl_call_state *call_state,
+pltcl_trigger_handler(PG_FUNCTION_ARGS, pltcl_call_state * call_state,
 					  bool pltrusted)
 {
 	pltcl_proc_desc *prodesc;
@@ -1030,7 +1030,7 @@ pltcl_trigger_handler(PG_FUNCTION_ARGS, pltcl_call_state *call_state,
 	TriggerData *trigdata = (TriggerData *) fcinfo->context;
 	char	   *stroid;
 	TupleDesc	tupdesc;
-	volatile HeapTuple rettup;
+	volatile	HeapTuple rettup;
 	Tcl_Obj    *tcl_cmd;
 	Tcl_Obj    *tcl_trigtup;
 	Tcl_Obj    *tcl_newtup;
@@ -1274,7 +1274,7 @@ pltcl_trigger_handler(PG_FUNCTION_ARGS, pltcl_call_state *call_state,
  * pltcl_event_trigger_handler()	- Handler for event trigger calls
  **********************************************************************/
 static void
-pltcl_event_trigger_handler(PG_FUNCTION_ARGS, pltcl_call_state *call_state,
+pltcl_event_trigger_handler(PG_FUNCTION_ARGS, pltcl_call_state * call_state,
 							bool pltrusted)
 {
 	pltcl_proc_desc *prodesc;
@@ -1324,7 +1324,7 @@ pltcl_event_trigger_handler(PG_FUNCTION_ARGS, pltcl_call_state *call_state,
  * throw_tcl_error	- ereport an error returned from the Tcl interpreter
  **********************************************************************/
 static void
-throw_tcl_error(Tcl_Interp *interp, const char *proname)
+throw_tcl_error(Tcl_Interp * interp, const char *proname)
 {
 	/*
 	 * Caution is needed here because Tcl_GetVar could overwrite the
@@ -1363,7 +1363,7 @@ compile_pltcl_function(Oid fn_oid, Oid tgreloid,
 	bool		found;
 	pltcl_proc_desc *prodesc;
 	pltcl_proc_desc *old_prodesc;
-	volatile MemoryContext proc_cxt = NULL;
+	volatile	MemoryContext proc_cxt = NULL;
 	Tcl_DString proc_internal_def;
 	Tcl_DString proc_internal_body;
 
@@ -1713,8 +1713,8 @@ compile_pltcl_function(Oid fn_oid, Oid tgreloid,
  * pltcl_elog()		- elog() support for PLTcl
  **********************************************************************/
 static int
-pltcl_elog(ClientData cdata, Tcl_Interp *interp,
-		   int objc, Tcl_Obj *const objv[])
+pltcl_elog(ClientData cdata, Tcl_Interp * interp,
+		   int objc, Tcl_Obj * const objv[])
 {
 	volatile int level;
 	MemoryContext oldcontext;
@@ -1800,7 +1800,7 @@ pltcl_elog(ClientData cdata, Tcl_Interp *interp,
  *		list with detailed information from the PostgreSQL server
  **********************************************************************/
 static void
-pltcl_construct_errorCode(Tcl_Interp *interp, ErrorData *edata)
+pltcl_construct_errorCode(Tcl_Interp * interp, ErrorData * edata)
 {
 	Tcl_Obj    *obj = Tcl_NewObj();
 
@@ -1963,8 +1963,8 @@ pltcl_get_condition_name(int sqlstate)
  *			  be used in SPI_execute query strings
  **********************************************************************/
 static int
-pltcl_quote(ClientData cdata, Tcl_Interp *interp,
-			int objc, Tcl_Obj *const objv[])
+pltcl_quote(ClientData cdata, Tcl_Interp * interp,
+			int objc, Tcl_Obj * const objv[])
 {
 	char	   *tmp;
 	const char *cp1;
@@ -2017,8 +2017,8 @@ pltcl_quote(ClientData cdata, Tcl_Interp *interp,
  * pltcl_argisnull()	- determine if a specific argument is NULL
  **********************************************************************/
 static int
-pltcl_argisnull(ClientData cdata, Tcl_Interp *interp,
-				int objc, Tcl_Obj *const objv[])
+pltcl_argisnull(ClientData cdata, Tcl_Interp * interp,
+				int objc, Tcl_Obj * const objv[])
 {
 	int			argno;
 	FunctionCallInfo fcinfo = pltcl_current_call_state->fcinfo;
@@ -2071,8 +2071,8 @@ pltcl_argisnull(ClientData cdata, Tcl_Interp *interp,
  * pltcl_returnnull()	- Cause a NULL return from the current function
  **********************************************************************/
 static int
-pltcl_returnnull(ClientData cdata, Tcl_Interp *interp,
-				 int objc, Tcl_Obj *const objv[])
+pltcl_returnnull(ClientData cdata, Tcl_Interp * interp,
+				 int objc, Tcl_Obj * const objv[])
 {
 	FunctionCallInfo fcinfo = pltcl_current_call_state->fcinfo;
 
@@ -2109,8 +2109,8 @@ pltcl_returnnull(ClientData cdata, Tcl_Interp *interp,
  * pltcl_returnnext()	- Add a row to the result tuplestore in a SRF.
  **********************************************************************/
 static int
-pltcl_returnnext(ClientData cdata, Tcl_Interp *interp,
-				 int objc, Tcl_Obj *const objv[])
+pltcl_returnnext(ClientData cdata, Tcl_Interp * interp,
+				 int objc, Tcl_Obj * const objv[])
 {
 	pltcl_call_state *call_state = pltcl_current_call_state;
 	FunctionCallInfo fcinfo = call_state->fcinfo;
@@ -2250,7 +2250,7 @@ pltcl_subtrans_commit(MemoryContext oldcontext, ResourceOwner oldowner)
 }
 
 static void
-pltcl_subtrans_abort(Tcl_Interp *interp,
+pltcl_subtrans_abort(Tcl_Interp * interp,
 					 MemoryContext oldcontext, ResourceOwner oldowner)
 {
 	ErrorData  *edata;
@@ -2279,8 +2279,8 @@ pltcl_subtrans_abort(Tcl_Interp *interp,
  *				  for the Tcl interpreter
  **********************************************************************/
 static int
-pltcl_SPI_execute(ClientData cdata, Tcl_Interp *interp,
-				  int objc, Tcl_Obj *const objv[])
+pltcl_SPI_execute(ClientData cdata, Tcl_Interp * interp,
+				  int objc, Tcl_Obj * const objv[])
 {
 	int			my_rc;
 	int			spi_rc;
@@ -2388,11 +2388,11 @@ pltcl_SPI_execute(ClientData cdata, Tcl_Interp *interp,
  * Shared code between pltcl_SPI_execute and pltcl_SPI_execute_plan
  */
 static int
-pltcl_process_SPI_result(Tcl_Interp *interp,
+pltcl_process_SPI_result(Tcl_Interp * interp,
 						 const char *arrayname,
-						 Tcl_Obj *loop_body,
+						 Tcl_Obj * loop_body,
 						 int spi_rc,
-						 SPITupleTable *tuptable,
+						 SPITupleTable * tuptable,
 						 uint64 ntuples)
 {
 	int			my_rc = TCL_OK;
@@ -2498,10 +2498,10 @@ pltcl_process_SPI_result(Tcl_Interp *interp,
  *				  and not save the plan currently.
  **********************************************************************/
 static int
-pltcl_SPI_prepare(ClientData cdata, Tcl_Interp *interp,
-				  int objc, Tcl_Obj *const objv[])
+pltcl_SPI_prepare(ClientData cdata, Tcl_Interp * interp,
+				  int objc, Tcl_Obj * const objv[])
 {
-	volatile MemoryContext plan_cxt = NULL;
+	volatile	MemoryContext plan_cxt = NULL;
 	int			nargs;
 	Tcl_Obj   **argsObj;
 	pltcl_query_desc *qdesc;
@@ -2625,8 +2625,8 @@ pltcl_SPI_prepare(ClientData cdata, Tcl_Interp *interp,
  * pltcl_SPI_execute_plan()		- Execute a prepared plan
  **********************************************************************/
 static int
-pltcl_SPI_execute_plan(ClientData cdata, Tcl_Interp *interp,
-					   int objc, Tcl_Obj *const objv[])
+pltcl_SPI_execute_plan(ClientData cdata, Tcl_Interp * interp,
+					   int objc, Tcl_Obj * const objv[])
 {
 	int			my_rc;
 	int			spi_rc;
@@ -2842,8 +2842,8 @@ pltcl_SPI_execute_plan(ClientData cdata, Tcl_Interp *interp,
  *		  be used after insert queries
  **********************************************************************/
 static int
-pltcl_SPI_lastoid(ClientData cdata, Tcl_Interp *interp,
-				  int objc, Tcl_Obj *const objv[])
+pltcl_SPI_lastoid(ClientData cdata, Tcl_Interp * interp,
+				  int objc, Tcl_Obj * const objv[])
 {
 	/*
 	 * Check call syntax
@@ -2866,8 +2866,8 @@ pltcl_SPI_lastoid(ClientData cdata, Tcl_Interp *interp,
  * otherwise it's subcommitted.
  **********************************************************************/
 static int
-pltcl_subtransaction(ClientData cdata, Tcl_Interp *interp,
-					 int objc, Tcl_Obj *const objv[])
+pltcl_subtransaction(ClientData cdata, Tcl_Interp * interp,
+					 int objc, Tcl_Obj * const objv[])
 {
 	MemoryContext oldcontext = CurrentMemoryContext;
 	ResourceOwner oldowner = CurrentResourceOwner;
@@ -2915,7 +2915,7 @@ pltcl_subtransaction(ClientData cdata, Tcl_Interp *interp,
  * Note: arrayname is presumed to be UTF8; it usually came from Tcl
  **********************************************************************/
 static void
-pltcl_set_tuple_values(Tcl_Interp *interp, const char *arrayname,
+pltcl_set_tuple_values(Tcl_Interp * interp, const char *arrayname,
 					   uint64 tupno, HeapTuple tuple, TupleDesc tupdesc)
 {
 	int			i;
@@ -3067,8 +3067,8 @@ pltcl_build_tuple_argument(HeapTuple tuple, TupleDesc tupdesc)
  * exit the procedure anyway.
  **********************************************************************/
 static HeapTuple
-pltcl_build_tuple_result(Tcl_Interp *interp, Tcl_Obj **kvObjv, int kvObjc,
-						 pltcl_call_state *call_state)
+pltcl_build_tuple_result(Tcl_Interp * interp, Tcl_Obj * *kvObjv, int kvObjc,
+						 pltcl_call_state * call_state)
 {
 	TupleDesc	tupdesc;
 	AttInMetadata *attinmeta;
@@ -3135,7 +3135,7 @@ pltcl_build_tuple_result(Tcl_Interp *interp, Tcl_Obj **kvObjv, int kvObjc,
  * pltcl_init_tuple_store() - Initialize the result tuplestore for a SRF
  **********************************************************************/
 static void
-pltcl_init_tuple_store(pltcl_call_state *call_state)
+pltcl_init_tuple_store(pltcl_call_state * call_state)
 {
 	ReturnSetInfo *rsi = call_state->rsi;
 	MemoryContext oldcxt;

@@ -58,7 +58,7 @@ typedef struct
 	PlannerInfo *root;
 	AggSplit	aggsplit;
 	AggClauseCosts *costs;
-} get_agg_clause_costs_context;
+}			get_agg_clause_costs_context;
 
 typedef struct
 {
@@ -67,95 +67,95 @@ typedef struct
 	List	   *active_fns;
 	Node	   *case_val;
 	bool		estimate;
-} eval_const_expressions_context;
+}			eval_const_expressions_context;
 
 typedef struct
 {
 	int			nargs;
 	List	   *args;
 	int		   *usecounts;
-} substitute_actual_parameters_context;
+}			substitute_actual_parameters_context;
 
 typedef struct
 {
 	int			nargs;
 	List	   *args;
 	int			sublevels_up;
-} substitute_actual_srf_parameters_context;
+}			substitute_actual_srf_parameters_context;
 
 typedef struct
 {
 	char	   *proname;
 	char	   *prosrc;
-} inline_error_callback_arg;
+}			inline_error_callback_arg;
 
 typedef struct
 {
 	char		max_hazard;		/* worst proparallel hazard found so far */
 	char		max_interesting;	/* worst proparallel hazard of interest */
 	List	   *safe_param_ids; /* PARAM_EXEC Param IDs to treat as safe */
-} max_parallel_hazard_context;
+}			max_parallel_hazard_context;
 
-static bool contain_agg_clause_walker(Node *node, void *context);
-static bool get_agg_clause_costs_walker(Node *node,
-							get_agg_clause_costs_context *context);
-static bool find_window_functions_walker(Node *node, WindowFuncLists *lists);
-static bool contain_subplans_walker(Node *node, void *context);
-static bool contain_mutable_functions_walker(Node *node, void *context);
-static bool contain_volatile_functions_walker(Node *node, void *context);
-static bool contain_volatile_functions_not_nextval_walker(Node *node, void *context);
-static bool max_parallel_hazard_walker(Node *node,
-						   max_parallel_hazard_context *context);
-static bool contain_nonstrict_functions_walker(Node *node, void *context);
-static bool contain_context_dependent_node(Node *clause);
-static bool contain_context_dependent_node_walker(Node *node, int *flags);
-static bool contain_leaked_vars_walker(Node *node, void *context);
-static Relids find_nonnullable_rels_walker(Node *node, bool top_level);
-static List *find_nonnullable_vars_walker(Node *node, bool top_level);
-static bool is_strict_saop(ScalarArrayOpExpr *expr, bool falseOK);
-static Node *eval_const_expressions_mutator(Node *node,
-							   eval_const_expressions_context *context);
-static List *simplify_or_arguments(List *args,
-					  eval_const_expressions_context *context,
-					  bool *haveNull, bool *forceTrue);
-static List *simplify_and_arguments(List *args,
-					   eval_const_expressions_context *context,
-					   bool *haveNull, bool *forceFalse);
-static Node *simplify_boolean_equality(Oid opno, List *args);
-static Expr *simplify_function(Oid funcid,
-				  Oid result_type, int32 result_typmod,
-				  Oid result_collid, Oid input_collid, List **args_p,
-				  bool funcvariadic, bool process_args, bool allow_non_const,
-				  eval_const_expressions_context *context);
-static List *expand_function_arguments(List *args, Oid result_type,
-						  HeapTuple func_tuple);
-static List *reorder_function_arguments(List *args, HeapTuple func_tuple);
-static List *add_function_defaults(List *args, HeapTuple func_tuple);
-static List *fetch_function_defaults(HeapTuple func_tuple);
-static void recheck_cast_function_args(List *args, Oid result_type,
+static bool contain_agg_clause_walker(Node * node, void *context);
+static bool get_agg_clause_costs_walker(Node * node,
+							get_agg_clause_costs_context * context);
+static bool find_window_functions_walker(Node * node, WindowFuncLists * lists);
+static bool contain_subplans_walker(Node * node, void *context);
+static bool contain_mutable_functions_walker(Node * node, void *context);
+static bool contain_volatile_functions_walker(Node * node, void *context);
+static bool contain_volatile_functions_not_nextval_walker(Node * node, void *context);
+static bool max_parallel_hazard_walker(Node * node,
+						   max_parallel_hazard_context * context);
+static bool contain_nonstrict_functions_walker(Node * node, void *context);
+static bool contain_context_dependent_node(Node * clause);
+static bool contain_context_dependent_node_walker(Node * node, int *flags);
+static bool contain_leaked_vars_walker(Node * node, void *context);
+static Relids find_nonnullable_rels_walker(Node * node, bool top_level);
+static List * find_nonnullable_vars_walker(Node * node, bool top_level);
+static bool is_strict_saop(ScalarArrayOpExpr * expr, bool falseOK);
+static Node * eval_const_expressions_mutator(Node * node,
+											 eval_const_expressions_context * context);
+static List * simplify_or_arguments(List * args,
+									eval_const_expressions_context * context,
+									bool *haveNull, bool *forceTrue);
+static List * simplify_and_arguments(List * args,
+									 eval_const_expressions_context * context,
+									 bool *haveNull, bool *forceFalse);
+static Node * simplify_boolean_equality(Oid opno, List * args);
+static Expr * simplify_function(Oid funcid,
+								Oid result_type, int32 result_typmod,
+								Oid result_collid, Oid input_collid, List * *args_p,
+								bool funcvariadic, bool process_args, bool allow_non_const,
+								eval_const_expressions_context * context);
+static List * expand_function_arguments(List * args, Oid result_type,
+										HeapTuple func_tuple);
+static List * reorder_function_arguments(List * args, HeapTuple func_tuple);
+static List * add_function_defaults(List * args, HeapTuple func_tuple);
+static List * fetch_function_defaults(HeapTuple func_tuple);
+static void recheck_cast_function_args(List * args, Oid result_type,
 						   HeapTuple func_tuple);
-static Expr *evaluate_function(Oid funcid, Oid result_type, int32 result_typmod,
-				  Oid result_collid, Oid input_collid, List *args,
-				  bool funcvariadic,
-				  HeapTuple func_tuple,
-				  eval_const_expressions_context *context);
-static Expr *inline_function(Oid funcid, Oid result_type, Oid result_collid,
-				Oid input_collid, List *args,
-				bool funcvariadic,
-				HeapTuple func_tuple,
-				eval_const_expressions_context *context);
-static Node *substitute_actual_parameters(Node *expr, int nargs, List *args,
-							 int *usecounts);
-static Node *substitute_actual_parameters_mutator(Node *node,
-									 substitute_actual_parameters_context *context);
+static Expr * evaluate_function(Oid funcid, Oid result_type, int32 result_typmod,
+								Oid result_collid, Oid input_collid, List * args,
+								bool funcvariadic,
+								HeapTuple func_tuple,
+								eval_const_expressions_context * context);
+static Expr * inline_function(Oid funcid, Oid result_type, Oid result_collid,
+							  Oid input_collid, List * args,
+							  bool funcvariadic,
+							  HeapTuple func_tuple,
+							  eval_const_expressions_context * context);
+static Node * substitute_actual_parameters(Node * expr, int nargs, List * args,
+										   int *usecounts);
+static Node * substitute_actual_parameters_mutator(Node * node,
+												   substitute_actual_parameters_context * context);
 static void sql_inline_error_callback(void *arg);
-static Expr *evaluate_expr(Expr *expr, Oid result_type, int32 result_typmod,
-			  Oid result_collation);
-static Query *substitute_actual_srf_parameters(Query *expr,
-								 int nargs, List *args);
-static Node *substitute_actual_srf_parameters_mutator(Node *node,
-										 substitute_actual_srf_parameters_context *context);
-static bool tlist_matches_coltypelist(List *tlist, List *coltypelist);
+static Expr * evaluate_expr(Expr * expr, Oid result_type, int32 result_typmod,
+							Oid result_collation);
+static Query * substitute_actual_srf_parameters(Query * expr,
+												int nargs, List * args);
+static Node * substitute_actual_srf_parameters_mutator(Node * node,
+													   substitute_actual_srf_parameters_context * context);
+static bool tlist_matches_coltypelist(List * tlist, List * coltypelist);
 
 
 /*****************************************************************************
@@ -170,7 +170,7 @@ static bool tlist_matches_coltypelist(List *tlist, List *coltypelist);
  */
 Expr *
 make_opclause(Oid opno, Oid opresulttype, bool opretset,
-			  Expr *leftop, Expr *rightop,
+			  Expr * leftop, Expr * rightop,
 			  Oid opcollid, Oid inputcollid)
 {
 	OpExpr	   *expr = makeNode(OpExpr);
@@ -196,9 +196,9 @@ make_opclause(Oid opno, Oid opresulttype, bool opretset,
  *		or (op expr)
  */
 Node *
-get_leftop(const Expr *clause)
+get_leftop(const Expr * clause)
 {
-	const OpExpr *expr = (const OpExpr *) clause;
+	const		OpExpr *expr = (const OpExpr *) clause;
 
 	if (expr->args != NIL)
 		return linitial(expr->args);
@@ -213,9 +213,9 @@ get_leftop(const Expr *clause)
  * NB: result will be NULL if applied to a unary op clause.
  */
 Node *
-get_rightop(const Expr *clause)
+get_rightop(const Expr * clause)
 {
-	const OpExpr *expr = (const OpExpr *) clause;
+	const		OpExpr *expr = (const OpExpr *) clause;
 
 	if (list_length(expr->args) >= 2)
 		return lsecond(expr->args);
@@ -233,7 +233,7 @@ get_rightop(const Expr *clause)
  * Returns t iff this is a 'not' clause: (NOT expr).
  */
 bool
-not_clause(Node *clause)
+not_clause(Node * clause)
 {
 	return (clause != NULL &&
 			IsA(clause, BoolExpr) &&
@@ -246,7 +246,7 @@ not_clause(Node *clause)
  * Create a 'not' clause given the expression to be negated.
  */
 Expr *
-make_notclause(Expr *notclause)
+make_notclause(Expr * notclause)
 {
 	BoolExpr   *expr = makeNode(BoolExpr);
 
@@ -262,7 +262,7 @@ make_notclause(Expr *notclause)
  * Retrieve the clause within a 'not' clause
  */
 Expr *
-get_notclausearg(Expr *notclause)
+get_notclausearg(Expr * notclause)
 {
 	return linitial(((BoolExpr *) notclause)->args);
 }
@@ -277,7 +277,7 @@ get_notclausearg(Expr *notclause)
  * Returns t iff the clause is an 'or' clause: (OR { expr }).
  */
 bool
-or_clause(Node *clause)
+or_clause(Node * clause)
 {
 	return (clause != NULL &&
 			IsA(clause, BoolExpr) &&
@@ -290,7 +290,7 @@ or_clause(Node *clause)
  * Creates an 'or' clause given a list of its subclauses.
  */
 Expr *
-make_orclause(List *orclauses)
+make_orclause(List * orclauses)
 {
 	BoolExpr   *expr = makeNode(BoolExpr);
 
@@ -311,7 +311,7 @@ make_orclause(List *orclauses)
  * Returns t iff its argument is an 'and' clause: (AND { expr }).
  */
 bool
-and_clause(Node *clause)
+and_clause(Node * clause)
 {
 	return (clause != NULL &&
 			IsA(clause, BoolExpr) &&
@@ -324,7 +324,7 @@ and_clause(Node *clause)
  * Creates an 'and' clause given a list of its subclauses.
  */
 Expr *
-make_andclause(List *andclauses)
+make_andclause(List * andclauses)
 {
 	BoolExpr   *expr = makeNode(BoolExpr);
 
@@ -345,7 +345,7 @@ make_andclause(List *andclauses)
  * be used on a qual that has already been run through prepqual.c.
  */
 Node *
-make_and_qual(Node *qual1, Node *qual2)
+make_and_qual(Node * qual1, Node * qual2)
 {
 	if (qual1 == NULL)
 		return qual2;
@@ -364,7 +364,7 @@ make_and_qual(Node *qual1, Node *qual2)
  * Note that an empty list is considered equivalent to TRUE.
  */
 Expr *
-make_ands_explicit(List *andclauses)
+make_ands_explicit(List * andclauses)
 {
 	if (andclauses == NIL)
 		return (Expr *) makeBoolConst(true, false);
@@ -375,7 +375,7 @@ make_ands_explicit(List *andclauses)
 }
 
 List *
-make_ands_implicit(Expr *clause)
+make_ands_implicit(Expr * clause)
 {
 	/*
 	 * NB: because the parser sets the qual field to NULL in a query that has
@@ -414,13 +414,13 @@ make_ands_implicit(Expr *clause)
  * see rewriteManip.c's contain_aggs_of_level().)
  */
 bool
-contain_agg_clause(Node *clause)
+contain_agg_clause(Node * clause)
 {
 	return contain_agg_clause_walker(clause, NULL);
 }
 
 static bool
-contain_agg_clause_walker(Node *node, void *context)
+contain_agg_clause_walker(Node * node, void *context)
 {
 	if (node == NULL)
 		return false;
@@ -464,8 +464,8 @@ contain_agg_clause_walker(Node *node, void *context)
  * are no subqueries.  There mustn't be outer-aggregate references either.
  */
 void
-get_agg_clause_costs(PlannerInfo *root, Node *clause, AggSplit aggsplit,
-					 AggClauseCosts *costs)
+get_agg_clause_costs(PlannerInfo * root, Node * clause, AggSplit aggsplit,
+					 AggClauseCosts * costs)
 {
 	get_agg_clause_costs_context context;
 
@@ -476,7 +476,7 @@ get_agg_clause_costs(PlannerInfo *root, Node *clause, AggSplit aggsplit,
 }
 
 static bool
-get_agg_clause_costs_walker(Node *node, get_agg_clause_costs_context *context)
+get_agg_clause_costs_walker(Node * node, get_agg_clause_costs_context * context)
 {
 	if (node == NULL)
 		return false;
@@ -724,7 +724,7 @@ get_agg_clause_costs_walker(Node *node, get_agg_clause_costs_context *context)
  * rewriteManip.c's function.
  */
 bool
-contain_window_function(Node *clause)
+contain_window_function(Node * clause)
 {
 	return contain_windowfuncs(clause);
 }
@@ -737,19 +737,19 @@ contain_window_function(Node *clause)
  * Caller must provide an upper bound on the winref IDs expected in the tree.
  */
 WindowFuncLists *
-find_window_functions(Node *clause, Index maxWinRef)
+find_window_functions(Node * clause, Index maxWinRef)
 {
 	WindowFuncLists *lists = palloc(sizeof(WindowFuncLists));
 
 	lists->numWindowFuncs = 0;
 	lists->maxWinRef = maxWinRef;
-	lists->windowFuncs = (List **) palloc0((maxWinRef + 1) * sizeof(List *));
+	lists->windowFuncs = (List * *) palloc0((maxWinRef + 1) * sizeof(List *));
 	(void) find_window_functions_walker(clause, lists);
 	return lists;
 }
 
 static bool
-find_window_functions_walker(Node *node, WindowFuncLists *lists)
+find_window_functions_walker(Node * node, WindowFuncLists * lists)
 {
 	if (node == NULL)
 		return false;
@@ -799,7 +799,7 @@ find_window_functions_walker(Node *node, WindowFuncLists *lists)
  * Note: keep this in sync with expression_returns_set() in nodes/nodeFuncs.c.
  */
 double
-expression_returns_set_rows(Node *clause)
+expression_returns_set_rows(Node * clause)
 {
 	if (clause == NULL)
 		return 1.0;
@@ -840,13 +840,13 @@ expression_returns_set_rows(Node *clause)
  * Returns true if any subplan found.
  */
 bool
-contain_subplans(Node *clause)
+contain_subplans(Node * clause)
 {
 	return contain_subplans_walker(clause, NULL);
 }
 
 static bool
-contain_subplans_walker(Node *node, void *context)
+contain_subplans_walker(Node * node, void *context)
 {
 	if (node == NULL)
 		return false;
@@ -875,7 +875,7 @@ contain_subplans_walker(Node *node, void *context)
  * but not into SubPlans.  See comments for contain_volatile_functions().
  */
 bool
-contain_mutable_functions(Node *clause)
+contain_mutable_functions(Node * clause)
 {
 	return contain_mutable_functions_walker(clause, NULL);
 }
@@ -887,7 +887,7 @@ contain_mutable_functions_checker(Oid func_id, void *context)
 }
 
 static bool
-contain_mutable_functions_walker(Node *node, void *context)
+contain_mutable_functions_walker(Node * node, void *context)
 {
 	if (node == NULL)
 		return false;
@@ -954,7 +954,7 @@ contain_mutable_functions_walker(Node *node, void *context)
  * volatility.
  */
 bool
-contain_volatile_functions(Node *clause)
+contain_volatile_functions(Node * clause)
 {
 	return contain_volatile_functions_walker(clause, NULL);
 }
@@ -966,7 +966,7 @@ contain_volatile_functions_checker(Oid func_id, void *context)
 }
 
 static bool
-contain_volatile_functions_walker(Node *node, void *context)
+contain_volatile_functions_walker(Node * node, void *context)
 {
 	if (node == NULL)
 		return false;
@@ -1004,7 +1004,7 @@ contain_volatile_functions_walker(Node *node, void *context)
  * ignore nextval(), but treat all other functions normally.
  */
 bool
-contain_volatile_functions_not_nextval(Node *clause)
+contain_volatile_functions_not_nextval(Node * clause)
 {
 	return contain_volatile_functions_not_nextval_walker(clause, NULL);
 }
@@ -1017,7 +1017,7 @@ contain_volatile_functions_not_nextval_checker(Oid func_id, void *context)
 }
 
 static bool
-contain_volatile_functions_not_nextval_walker(Node *node, void *context)
+contain_volatile_functions_not_nextval_walker(Node * node, void *context)
 {
 	if (node == NULL)
 		return false;
@@ -1065,7 +1065,7 @@ contain_volatile_functions_not_nextval_walker(Node *node, void *context)
  * later, in the common case where everything is SAFE.
  */
 char
-max_parallel_hazard(Query *parse)
+max_parallel_hazard(Query * parse)
 {
 	max_parallel_hazard_context context;
 
@@ -1084,7 +1084,7 @@ max_parallel_hazard(Query *parse)
  * result of max_parallel_hazard() on the whole query.
  */
 bool
-is_parallel_safe(PlannerInfo *root, Node *node)
+is_parallel_safe(PlannerInfo * root, Node * node)
 {
 	max_parallel_hazard_context context;
 
@@ -1106,7 +1106,7 @@ is_parallel_safe(PlannerInfo *root, Node *node)
 
 /* core logic for all parallel-hazard checks */
 static bool
-max_parallel_hazard_test(char proparallel, max_parallel_hazard_context *context)
+max_parallel_hazard_test(char proparallel, max_parallel_hazard_context * context)
 {
 	switch (proparallel)
 	{
@@ -1141,7 +1141,7 @@ max_parallel_hazard_checker(Oid func_id, void *context)
 }
 
 static bool
-max_parallel_hazard_walker(Node *node, max_parallel_hazard_context *context)
+max_parallel_hazard_walker(Node * node, max_parallel_hazard_context * context)
 {
 	if (node == NULL)
 		return false;
@@ -1289,7 +1289,7 @@ max_parallel_hazard_walker(Node *node, max_parallel_hazard_context *context)
  * inputs is NULL.  If we return false, then the proof succeeded.
  */
 bool
-contain_nonstrict_functions(Node *clause)
+contain_nonstrict_functions(Node * clause)
 {
 	return contain_nonstrict_functions_walker(clause, NULL);
 }
@@ -1301,7 +1301,7 @@ contain_nonstrict_functions_checker(Oid func_id, void *context)
 }
 
 static bool
-contain_nonstrict_functions_walker(Node *node, void *context)
+contain_nonstrict_functions_walker(Node * node, void *context)
 {
 	if (node == NULL)
 		return false;
@@ -1416,7 +1416,7 @@ contain_nonstrict_functions_walker(Node *node, void *context)
  * up the recursion state to allow multiple flag bits.
  */
 static bool
-contain_context_dependent_node(Node *clause)
+contain_context_dependent_node(Node * clause)
 {
 	int			flags = 0;
 
@@ -1426,7 +1426,7 @@ contain_context_dependent_node(Node *clause)
 #define CCDN_IN_CASEEXPR	0x0001	/* CaseTestExpr okay here? */
 
 static bool
-contain_context_dependent_node_walker(Node *node, int *flags)
+contain_context_dependent_node_walker(Node * node, int *flags)
 {
 	if (node == NULL)
 		return false;
@@ -1482,7 +1482,7 @@ contain_context_dependent_node_walker(Node *node, int *flags)
  * clauses.
  */
 bool
-contain_leaked_vars(Node *clause)
+contain_leaked_vars(Node * clause)
 {
 	return contain_leaked_vars_walker(clause, NULL);
 }
@@ -1494,7 +1494,7 @@ contain_leaked_vars_checker(Oid func_id, void *context)
 }
 
 static bool
-contain_leaked_vars_walker(Node *node, void *context)
+contain_leaked_vars_walker(Node * node, void *context)
 {
 	if (node == NULL)
 		return false;
@@ -1627,13 +1627,13 @@ contain_leaked_vars_walker(Node *node, void *context)
  * through very many kinds of nodes; only the ones we can be sure are strict.
  */
 Relids
-find_nonnullable_rels(Node *clause)
+find_nonnullable_rels(Node * clause)
 {
 	return find_nonnullable_rels_walker(clause, true);
 }
 
 static Relids
-find_nonnullable_rels_walker(Node *node, bool top_level)
+find_nonnullable_rels_walker(Node * node, bool top_level)
 {
 	Relids		result = NULL;
 	ListCell   *l;
@@ -1835,13 +1835,13 @@ find_nonnullable_rels_walker(Node *node, bool top_level)
  * through very many kinds of nodes; only the ones we can be sure are strict.
  */
 List *
-find_nonnullable_vars(Node *clause)
+find_nonnullable_vars(Node * clause)
 {
 	return find_nonnullable_vars_walker(clause, true);
 }
 
 static List *
-find_nonnullable_vars_walker(Node *node, bool top_level)
+find_nonnullable_vars_walker(Node * node, bool top_level)
 {
 	List	   *result = NIL;
 	ListCell   *l;
@@ -2028,7 +2028,7 @@ find_nonnullable_vars_walker(Node *node, bool top_level)
  * Also, we don't bother trying to eliminate duplicate entries.
  */
 List *
-find_forced_null_vars(Node *node)
+find_forced_null_vars(Node * node)
 {
 	List	   *result = NIL;
 	Var		   *var;
@@ -2087,7 +2087,7 @@ find_forced_null_vars(Node *node)
  * the whole clause when only the IS NULL part of it had been proved redundant.
  */
 Var *
-find_forced_null_var(Node *node)
+find_forced_null_var(Node * node)
 {
 	if (node == NULL)
 		return NULL;
@@ -2136,7 +2136,7 @@ find_forced_null_var(Node *node)
  * If not falseOK, the test is the same as for "foo op ALL array".
  */
 static bool
-is_strict_saop(ScalarArrayOpExpr *expr, bool falseOK)
+is_strict_saop(ScalarArrayOpExpr * expr, bool falseOK)
 {
 	Node	   *rightop;
 
@@ -2197,7 +2197,7 @@ is_strict_saop(ScalarArrayOpExpr *expr, bool falseOK)
  * for window functions (WindowFuncs).
  */
 bool
-is_pseudo_constant_clause(Node *clause)
+is_pseudo_constant_clause(Node * clause)
 {
 	/*
 	 * We could implement this check in one recursive scan.  But since the
@@ -2217,7 +2217,7 @@ is_pseudo_constant_clause(Node *clause)
  *	  of the expression; this lets us avoid the contain_var_clause() scan.
  */
 bool
-is_pseudo_constant_clause_relids(Node *clause, Relids relids)
+is_pseudo_constant_clause_relids(Node * clause, Relids relids)
 {
 	if (bms_is_empty(relids) &&
 		!contain_volatile_functions(clause))
@@ -2239,7 +2239,7 @@ is_pseudo_constant_clause_relids(Node *clause, Relids relids)
  * Returns the number of different relations referenced in 'clause'.
  */
 int
-NumRelids(Node *clause)
+NumRelids(Node * clause)
 {
 	Relids		varnos = pull_varnos(clause);
 	int			result = bms_num_members(varnos);
@@ -2254,7 +2254,7 @@ NumRelids(Node *clause)
  * XXX the clause is destructively modified!
  */
 void
-CommuteOpExpr(OpExpr *clause)
+CommuteOpExpr(OpExpr * clause)
 {
 	Oid			opoid;
 	Node	   *temp;
@@ -2288,7 +2288,7 @@ CommuteOpExpr(OpExpr *clause)
  * XXX the clause is destructively modified!
  */
 void
-CommuteRowCompareExpr(RowCompareExpr *clause)
+CommuteRowCompareExpr(RowCompareExpr * clause)
 {
 	List	   *newops;
 	List	   *temp;
@@ -2422,7 +2422,7 @@ rowtype_field_matches(Oid rowtypeid, int fieldnum,
  *--------------------
  */
 Node *
-eval_const_expressions(PlannerInfo *root, Node *node)
+eval_const_expressions(PlannerInfo * root, Node * node)
 {
 	eval_const_expressions_context context;
 
@@ -2455,7 +2455,7 @@ eval_const_expressions(PlannerInfo *root, Node *node)
  *--------------------
  */
 Node *
-estimate_expression_value(PlannerInfo *root, Node *node)
+estimate_expression_value(PlannerInfo * root, Node * node)
 {
 	eval_const_expressions_context context;
 
@@ -2469,8 +2469,8 @@ estimate_expression_value(PlannerInfo *root, Node *node)
 }
 
 static Node *
-eval_const_expressions_mutator(Node *node,
-							   eval_const_expressions_context *context)
+eval_const_expressions_mutator(Node * node,
+							   eval_const_expressions_context * context)
 {
 	if (node == NULL)
 		return NULL;
@@ -3607,8 +3607,8 @@ eval_const_expressions_mutator(Node *node,
  * respectively, is detected anywhere in the argument list.
  */
 static List *
-simplify_or_arguments(List *args,
-					  eval_const_expressions_context *context,
+simplify_or_arguments(List * args,
+					  eval_const_expressions_context * context,
 					  bool *haveNull, bool *forceTrue)
 {
 	List	   *newargs = NIL;
@@ -3719,8 +3719,8 @@ simplify_or_arguments(List *args,
  * respectively, is detected anywhere in the argument list.
  */
 static List *
-simplify_and_arguments(List *args,
-					   eval_const_expressions_context *context,
+simplify_and_arguments(List * args,
+					   eval_const_expressions_context * context,
 					   bool *haveNull, bool *forceFalse)
 {
 	List	   *newargs = NIL;
@@ -3819,7 +3819,7 @@ simplify_and_arguments(List *args,
  * see two constant inputs, nor a constant-NULL input.
  */
 static Node *
-simplify_boolean_equality(Oid opno, List *args)
+simplify_boolean_equality(Oid opno, List * args)
 {
 	Node	   *leftop;
 	Node	   *rightop;
@@ -3889,9 +3889,9 @@ simplify_boolean_equality(Oid opno, List *args)
  */
 static Expr *
 simplify_function(Oid funcid, Oid result_type, int32 result_typmod,
-				  Oid result_collid, Oid input_collid, List **args_p,
+				  Oid result_collid, Oid input_collid, List * *args_p,
 				  bool funcvariadic, bool process_args, bool allow_non_const,
-				  eval_const_expressions_context *context)
+				  eval_const_expressions_context * context)
 {
 	List	   *args = *args_p;
 	HeapTuple	func_tuple;
@@ -3985,7 +3985,7 @@ simplify_function(Oid funcid, Oid result_type, int32 result_typmod,
  * will fall through very quickly if there's nothing to do.
  */
 static List *
-expand_function_arguments(List *args, Oid result_type, HeapTuple func_tuple)
+expand_function_arguments(List * args, Oid result_type, HeapTuple func_tuple)
 {
 	Form_pg_proc funcform = (Form_pg_proc) GETSTRUCT(func_tuple);
 	bool		has_named_args = false;
@@ -4028,7 +4028,7 @@ expand_function_arguments(List *args, Oid result_type, HeapTuple func_tuple)
  * impossible to form a truly valid positional call without that.
  */
 static List *
-reorder_function_arguments(List *args, HeapTuple func_tuple)
+reorder_function_arguments(List * args, HeapTuple func_tuple)
 {
 	Form_pg_proc funcform = (Form_pg_proc) GETSTRUCT(func_tuple);
 	int			pronargs = funcform->pronargs;
@@ -4098,7 +4098,7 @@ reorder_function_arguments(List *args, HeapTuple func_tuple)
  * and so we know we just need to add defaults at the end.
  */
 static List *
-add_function_defaults(List *args, HeapTuple func_tuple)
+add_function_defaults(List * args, HeapTuple func_tuple)
 {
 	Form_pg_proc funcform = (Form_pg_proc) GETSTRUCT(func_tuple);
 	int			nargsprovided = list_length(args);
@@ -4158,7 +4158,7 @@ fetch_function_defaults(HeapTuple func_tuple)
  * caller should have already copied the list structure.
  */
 static void
-recheck_cast_function_args(List *args, Oid result_type, HeapTuple func_tuple)
+recheck_cast_function_args(List * args, Oid result_type, HeapTuple func_tuple)
 {
 	Form_pg_proc funcform = (Form_pg_proc) GETSTRUCT(func_tuple);
 	int			nargs;
@@ -4203,10 +4203,10 @@ recheck_cast_function_args(List *args, Oid result_type, HeapTuple func_tuple)
  */
 static Expr *
 evaluate_function(Oid funcid, Oid result_type, int32 result_typmod,
-				  Oid result_collid, Oid input_collid, List *args,
+				  Oid result_collid, Oid input_collid, List * args,
 				  bool funcvariadic,
 				  HeapTuple func_tuple,
-				  eval_const_expressions_context *context)
+				  eval_const_expressions_context * context)
 {
 	Form_pg_proc funcform = (Form_pg_proc) GETSTRUCT(func_tuple);
 	bool		has_nonconst_input = false;
@@ -4330,10 +4330,10 @@ evaluate_function(Oid funcid, Oid result_type, int32 result_typmod,
  */
 static Expr *
 inline_function(Oid funcid, Oid result_type, Oid result_collid,
-				Oid input_collid, List *args,
+				Oid input_collid, List * args,
 				bool funcvariadic,
 				HeapTuple func_tuple,
-				eval_const_expressions_context *context)
+				eval_const_expressions_context * context)
 {
 	Form_pg_proc funcform = (Form_pg_proc) GETSTRUCT(func_tuple);
 	char	   *src;
@@ -4634,7 +4634,7 @@ fail:
  * Replace Param nodes by appropriate actual parameters
  */
 static Node *
-substitute_actual_parameters(Node *expr, int nargs, List *args,
+substitute_actual_parameters(Node * expr, int nargs, List * args,
 							 int *usecounts)
 {
 	substitute_actual_parameters_context context;
@@ -4647,8 +4647,8 @@ substitute_actual_parameters(Node *expr, int nargs, List *args,
 }
 
 static Node *
-substitute_actual_parameters_mutator(Node *node,
-									 substitute_actual_parameters_context *context)
+substitute_actual_parameters_mutator(Node * node,
+									 substitute_actual_parameters_context * context)
 {
 	if (node == NULL)
 		return NULL;
@@ -4700,7 +4700,7 @@ sql_inline_error_callback(void *arg)
  * code and ensure we get the same result as the executor would get.
  */
 static Expr *
-evaluate_expr(Expr *expr, Oid result_type, int32 result_typmod,
+evaluate_expr(Expr * expr, Oid result_type, int32 result_typmod,
 			  Oid result_collation)
 {
 	EState	   *estate;
@@ -4788,7 +4788,7 @@ evaluate_expr(Expr *expr, Oid result_type, int32 result_typmod,
  * justify separate functions.
  */
 Query *
-inline_set_returning_function(PlannerInfo *root, RangeTblEntry *rte)
+inline_set_returning_function(PlannerInfo * root, RangeTblEntry * rte)
 {
 	RangeTblFunction *rtfunc;
 	FuncExpr   *fexpr;
@@ -5075,7 +5075,7 @@ fail:
  * that it needs its own code.
  */
 static Query *
-substitute_actual_srf_parameters(Query *expr, int nargs, List *args)
+substitute_actual_srf_parameters(Query * expr, int nargs, List * args)
 {
 	substitute_actual_srf_parameters_context context;
 
@@ -5090,8 +5090,8 @@ substitute_actual_srf_parameters(Query *expr, int nargs, List *args)
 }
 
 static Node *
-substitute_actual_srf_parameters_mutator(Node *node,
-										 substitute_actual_srf_parameters_context *context)
+substitute_actual_srf_parameters_mutator(Node * node,
+										 substitute_actual_srf_parameters_context * context)
 {
 	Node	   *result;
 
@@ -5143,7 +5143,7 @@ substitute_actual_srf_parameters_mutator(Node *node,
  * function result is largely wishful thinking anyway.
  */
 static bool
-tlist_matches_coltypelist(List *tlist, List *coltypelist)
+tlist_matches_coltypelist(List * tlist, List * coltypelist)
 {
 	ListCell   *tlistitem;
 	ListCell   *clistitem;

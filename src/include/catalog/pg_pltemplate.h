@@ -49,7 +49,7 @@ CATALOG(pg_pltemplate,1136) BKI_SHARED_RELATION BKI_WITHOUT_OIDS
  *		the format of pg_pltemplate relation.
  * ----------------
  */
-typedef FormData_pg_pltemplate *Form_pg_pltemplate;
+typedef FormData_pg_pltemplate * Form_pg_pltemplate;
 
 /* ----------------
  *		compiler constants for pg_pltemplate

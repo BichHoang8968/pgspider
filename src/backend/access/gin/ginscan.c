@@ -132,8 +132,8 @@ static void
 ginFillScanKey(GinScanOpaque so, OffsetNumber attnum,
 			   StrategyNumber strategy, int32 searchMode,
 			   Datum query, uint32 nQueryValues,
-			   Datum *queryValues, GinNullCategory *queryCategories,
-			   bool *partial_matches, Pointer *extra_data)
+			   Datum * queryValues, GinNullCategory * queryCategories,
+			   bool *partial_matches, Pointer * extra_data)
 {
 	GinScanKey	key = &(so->keys[so->nkeys++]);
 	GinState   *ginstate = &so->ginstate;

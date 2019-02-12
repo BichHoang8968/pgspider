@@ -214,7 +214,7 @@ typedef enum ExprEvalOp
 
 	/* non-existent operation, used e.g. to check array lengths */
 	EEOP_LAST
-} ExprEvalOp;
+}			ExprEvalOp;
 
 
 typedef struct ExprEvalStep
@@ -561,7 +561,7 @@ typedef struct ExprEvalStep
 			AlternativeSubPlanState *asstate;
 		}			alternative_subplan;
 	}			d;
-} ExprEvalStep;
+}			ExprEvalStep;
 
 
 /* Non-inline data for array operations */
@@ -597,55 +597,55 @@ typedef struct ArrayRefState
 	/* if we have a nested assignment, ARRAYREF_OLD puts old value here */
 	Datum		prevvalue;
 	bool		prevnull;
-} ArrayRefState;
+}			ArrayRefState;
 
 
-extern void ExecReadyInterpretedExpr(ExprState *state);
+extern void ExecReadyInterpretedExpr(ExprState * state);
 
-extern ExprEvalOp ExecEvalStepOp(ExprState *state, ExprEvalStep *op);
+extern ExprEvalOp ExecEvalStepOp(ExprState * state, ExprEvalStep * op);
 
 /*
  * Non fast-path execution functions. These are externs instead of statics in
  * execExprInterp.c, because that allows them to be used by other methods of
  * expression evaluation, reducing code duplication.
  */
-extern void ExecEvalParamExec(ExprState *state, ExprEvalStep *op,
-				  ExprContext *econtext);
-extern void ExecEvalParamExtern(ExprState *state, ExprEvalStep *op,
-					ExprContext *econtext);
-extern void ExecEvalSQLValueFunction(ExprState *state, ExprEvalStep *op);
-extern void ExecEvalCurrentOfExpr(ExprState *state, ExprEvalStep *op);
-extern void ExecEvalNextValueExpr(ExprState *state, ExprEvalStep *op);
-extern void ExecEvalRowNull(ExprState *state, ExprEvalStep *op,
-				ExprContext *econtext);
-extern void ExecEvalRowNotNull(ExprState *state, ExprEvalStep *op,
-				   ExprContext *econtext);
-extern void ExecEvalArrayExpr(ExprState *state, ExprEvalStep *op);
-extern void ExecEvalArrayCoerce(ExprState *state, ExprEvalStep *op);
-extern void ExecEvalRow(ExprState *state, ExprEvalStep *op);
-extern void ExecEvalMinMax(ExprState *state, ExprEvalStep *op);
-extern void ExecEvalFieldSelect(ExprState *state, ExprEvalStep *op,
-					ExprContext *econtext);
-extern void ExecEvalFieldStoreDeForm(ExprState *state, ExprEvalStep *op,
-						 ExprContext *econtext);
-extern void ExecEvalFieldStoreForm(ExprState *state, ExprEvalStep *op,
-					   ExprContext *econtext);
-extern bool ExecEvalArrayRefSubscript(ExprState *state, ExprEvalStep *op);
-extern void ExecEvalArrayRefFetch(ExprState *state, ExprEvalStep *op);
-extern void ExecEvalArrayRefOld(ExprState *state, ExprEvalStep *op);
-extern void ExecEvalArrayRefAssign(ExprState *state, ExprEvalStep *op);
-extern void ExecEvalConvertRowtype(ExprState *state, ExprEvalStep *op,
-					   ExprContext *econtext);
-extern void ExecEvalScalarArrayOp(ExprState *state, ExprEvalStep *op);
-extern void ExecEvalConstraintNotNull(ExprState *state, ExprEvalStep *op);
-extern void ExecEvalConstraintCheck(ExprState *state, ExprEvalStep *op);
-extern void ExecEvalXmlExpr(ExprState *state, ExprEvalStep *op);
-extern void ExecEvalGroupingFunc(ExprState *state, ExprEvalStep *op);
-extern void ExecEvalSubPlan(ExprState *state, ExprEvalStep *op,
-				ExprContext *econtext);
-extern void ExecEvalAlternativeSubPlan(ExprState *state, ExprEvalStep *op,
-						   ExprContext *econtext);
-extern void ExecEvalWholeRowVar(ExprState *state, ExprEvalStep *op,
-					ExprContext *econtext);
+extern void ExecEvalParamExec(ExprState * state, ExprEvalStep * op,
+				  ExprContext * econtext);
+extern void ExecEvalParamExtern(ExprState * state, ExprEvalStep * op,
+					ExprContext * econtext);
+extern void ExecEvalSQLValueFunction(ExprState * state, ExprEvalStep * op);
+extern void ExecEvalCurrentOfExpr(ExprState * state, ExprEvalStep * op);
+extern void ExecEvalNextValueExpr(ExprState * state, ExprEvalStep * op);
+extern void ExecEvalRowNull(ExprState * state, ExprEvalStep * op,
+				ExprContext * econtext);
+extern void ExecEvalRowNotNull(ExprState * state, ExprEvalStep * op,
+				   ExprContext * econtext);
+extern void ExecEvalArrayExpr(ExprState * state, ExprEvalStep * op);
+extern void ExecEvalArrayCoerce(ExprState * state, ExprEvalStep * op);
+extern void ExecEvalRow(ExprState * state, ExprEvalStep * op);
+extern void ExecEvalMinMax(ExprState * state, ExprEvalStep * op);
+extern void ExecEvalFieldSelect(ExprState * state, ExprEvalStep * op,
+					ExprContext * econtext);
+extern void ExecEvalFieldStoreDeForm(ExprState * state, ExprEvalStep * op,
+						 ExprContext * econtext);
+extern void ExecEvalFieldStoreForm(ExprState * state, ExprEvalStep * op,
+					   ExprContext * econtext);
+extern bool ExecEvalArrayRefSubscript(ExprState * state, ExprEvalStep * op);
+extern void ExecEvalArrayRefFetch(ExprState * state, ExprEvalStep * op);
+extern void ExecEvalArrayRefOld(ExprState * state, ExprEvalStep * op);
+extern void ExecEvalArrayRefAssign(ExprState * state, ExprEvalStep * op);
+extern void ExecEvalConvertRowtype(ExprState * state, ExprEvalStep * op,
+					   ExprContext * econtext);
+extern void ExecEvalScalarArrayOp(ExprState * state, ExprEvalStep * op);
+extern void ExecEvalConstraintNotNull(ExprState * state, ExprEvalStep * op);
+extern void ExecEvalConstraintCheck(ExprState * state, ExprEvalStep * op);
+extern void ExecEvalXmlExpr(ExprState * state, ExprEvalStep * op);
+extern void ExecEvalGroupingFunc(ExprState * state, ExprEvalStep * op);
+extern void ExecEvalSubPlan(ExprState * state, ExprEvalStep * op,
+				ExprContext * econtext);
+extern void ExecEvalAlternativeSubPlan(ExprState * state, ExprEvalStep * op,
+						   ExprContext * econtext);
+extern void ExecEvalWholeRowVar(ExprState * state, ExprEvalStep * op,
+					ExprContext * econtext);
 
 #endif							/* EXEC_EXPR_H */

@@ -137,32 +137,32 @@ typedef struct SqliteFdwRelationInfo
 }			SqliteFdwRelationInfo;
 
 
-extern bool sqlite_is_foreign_expr(PlannerInfo *root,
-					   RelOptInfo *baserel,
-					   Expr *expr);
+extern bool sqlite_is_foreign_expr(PlannerInfo * root,
+					   RelOptInfo * baserel,
+					   Expr * expr);
 
 
 /* option.c headers */
 extern sqlite_opt * sqlite_get_options(Oid foreigntableid);
 
 /* depare.c headers */
-extern void sqliteDeparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
-							  List *tlist, List *remote_conds, List *pathkeys,
-							  bool is_subquery, List **retrieved_attrs,
-							  List **params_list);
-extern void sqlite_deparse_insert(StringInfo buf, PlannerInfo *root, Index rtindex, Relation rel, List *targetAttrs);
-extern void sqlite_deparse_update(StringInfo buf, PlannerInfo *root, Index rtindex, Relation rel, List *targetAttrs, List *attname);
-extern void sqlite_deparse_delete(StringInfo buf, PlannerInfo *root, Index rtindex, Relation rel, List *name);
-extern void sqlite_append_where_clause(StringInfo buf, PlannerInfo *root, RelOptInfo *baserel, List *exprs,
-						   bool is_first, List **params);
+extern void sqliteDeparseSelectStmtForRel(StringInfo buf, PlannerInfo * root, RelOptInfo * rel,
+							  List * tlist, List * remote_conds, List * pathkeys,
+							  bool is_subquery, List * *retrieved_attrs,
+							  List * *params_list);
+extern void sqlite_deparse_insert(StringInfo buf, PlannerInfo * root, Index rtindex, Relation rel, List * targetAttrs);
+extern void sqlite_deparse_update(StringInfo buf, PlannerInfo * root, Index rtindex, Relation rel, List * targetAttrs, List * attname);
+extern void sqlite_deparse_delete(StringInfo buf, PlannerInfo * root, Index rtindex, Relation rel, List * name);
+extern void sqlite_append_where_clause(StringInfo buf, PlannerInfo * root, RelOptInfo * baserel, List * exprs,
+						   bool is_first, List * *params);
 extern void sqlite_deparse_analyze(StringInfo buf, char *dbname, char *relname);
 extern void sqlite_deparse_string_literal(StringInfo buf, const char *val);
-extern List *sqlite_build_tlist_to_deparse(RelOptInfo *foreignrel);
+extern List * sqlite_build_tlist_to_deparse(RelOptInfo * foreignrel);
 int			sqlite_set_transmission_modes(void);
 void		sqlite_reset_transmission_modes(int nestlevel);
 
 /* connection.c headers */
-sqlite3    *sqlite_get_connection(ForeignServer *server);
+sqlite3    *sqlite_get_connection(ForeignServer * server);
 sqlite3 *sqlite_connect(char *svr_address, char *svr_username, char *svr_password, char *svr_database,
 			   int svr_port, bool svr_sa, char *svr_init_command,
 			   char *ssl_key, char *ssl_cert, char *ssl_ca, char *ssl_capath,

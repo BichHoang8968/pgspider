@@ -42,7 +42,7 @@ typedef struct
 	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	int32		flag;
 	char		data[FLEXIBLE_ARRAY_MEMBER];
-} GISTTYPE;
+}			GISTTYPE;
 
 #define ALLISTRUE		0x04
 
@@ -243,7 +243,7 @@ hemdistsign(BITVECP a, BITVECP b)
 }
 
 static int
-hemdist(GISTTYPE *a, GISTTYPE *b)
+hemdist(GISTTYPE * a, GISTTYPE * b)
 {
 	if (ISALLTRUE(a))
 	{
@@ -259,7 +259,7 @@ hemdist(GISTTYPE *a, GISTTYPE *b)
 }
 
 static int32
-unionkey(BITVECP sbase, GISTTYPE *add)
+unionkey(BITVECP sbase, GISTTYPE * add)
 {
 	int32		i;
 	BITVECP		sadd = GETSIGN(add);
@@ -322,7 +322,7 @@ typedef struct
 {
 	OffsetNumber pos;
 	int32		cost;
-} SPLITCOST;
+}			SPLITCOST;
 
 static int
 comparecost(const void *a, const void *b)

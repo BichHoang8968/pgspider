@@ -34,20 +34,20 @@ typedef struct LexemeInfo
 	uint16		tnvariant;		/* total num lexemes in one variant */
 	struct LexemeInfo *nextentry;
 	struct LexemeInfo *nextvariant;
-} LexemeInfo;
+}			LexemeInfo;
 
 typedef struct
 {
 	char	   *lexeme;
 	LexemeInfo *entries;
-} TheLexeme;
+}			TheLexeme;
 
 typedef struct
 {
 	uint16		lastlexeme;		/* number lexemes to substitute */
 	uint16		reslen;
 	TSLexeme   *res;			/* prepared substituted result */
-} TheSubstitute;
+}			TheSubstitute;
 
 typedef struct
 {
@@ -65,11 +65,11 @@ typedef struct
 	 */
 	TheSubstitute *subst;
 	int			nsubst;
-} DictThesaurus;
+}			DictThesaurus;
 
 
 static void
-newLexeme(DictThesaurus *d, char *b, char *e, uint32 idsubst, uint16 posinsubst)
+newLexeme(DictThesaurus * d, char *b, char *e, uint32 idsubst, uint16 posinsubst)
 {
 	TheLexeme  *ptr;
 
@@ -103,7 +103,7 @@ newLexeme(DictThesaurus *d, char *b, char *e, uint32 idsubst, uint16 posinsubst)
 }
 
 static void
-addWrd(DictThesaurus *d, char *b, char *e, uint32 idsubst, uint16 nwrd, uint16 posinsubst, bool useasis)
+addWrd(DictThesaurus * d, char *b, char *e, uint32 idsubst, uint16 nwrd, uint16 posinsubst, bool useasis)
 {
 	static int	nres = 0;
 	static int	ntres = 0;
@@ -165,7 +165,7 @@ addWrd(DictThesaurus *d, char *b, char *e, uint32 idsubst, uint16 nwrd, uint16 p
 #define TR_INSUBS	4
 
 static void
-thesaurusRead(char *filename, DictThesaurus *d)
+thesaurusRead(char *filename, DictThesaurus * d)
 {
 	tsearch_readline_state trst;
 	uint32		idsubst = 0;
@@ -305,7 +305,7 @@ thesaurusRead(char *filename, DictThesaurus *d)
 }
 
 static TheLexeme *
-addCompiledLexeme(TheLexeme *newwrds, int *nnw, int *tnm, TSLexeme *lexeme, LexemeInfo *src, uint16 tnvariant)
+addCompiledLexeme(TheLexeme * newwrds, int *nnw, int *tnm, TSLexeme * lexeme, LexemeInfo * src, uint16 tnvariant)
 {
 	if (*nnw >= *tnm)
 	{
@@ -336,7 +336,7 @@ addCompiledLexeme(TheLexeme *newwrds, int *nnw, int *tnm, TSLexeme *lexeme, Lexe
 }
 
 static int
-cmpLexemeInfo(LexemeInfo *a, LexemeInfo *b)
+cmpLexemeInfo(LexemeInfo * a, LexemeInfo * b)
 {
 	if (a == NULL || b == NULL)
 		return 0;
@@ -358,7 +358,7 @@ cmpLexemeInfo(LexemeInfo *a, LexemeInfo *b)
 }
 
 static int
-cmpLexeme(const TheLexeme *a, const TheLexeme *b)
+cmpLexeme(const TheLexeme * a, const TheLexeme * b)
 {
 	if (a->lexeme == NULL)
 	{
@@ -382,8 +382,8 @@ cmpLexemeQ(const void *a, const void *b)
 static int
 cmpTheLexeme(const void *a, const void *b)
 {
-	const TheLexeme *la = (const TheLexeme *) a;
-	const TheLexeme *lb = (const TheLexeme *) b;
+	const		TheLexeme *la = (const TheLexeme *) a;
+	const		TheLexeme *lb = (const TheLexeme *) b;
 	int			res;
 
 	if ((res = cmpLexeme(la, lb)) != 0)
@@ -393,7 +393,7 @@ cmpTheLexeme(const void *a, const void *b)
 }
 
 static void
-compileTheLexeme(DictThesaurus *d)
+compileTheLexeme(DictThesaurus * d)
 {
 	int			i,
 				nnw = 0,
@@ -504,7 +504,7 @@ compileTheLexeme(DictThesaurus *d)
 }
 
 static void
-compileTheSubstitute(DictThesaurus *d)
+compileTheSubstitute(DictThesaurus * d)
 {
 	int			i;
 
@@ -661,7 +661,7 @@ thesaurus_init(PG_FUNCTION_ARGS)
 }
 
 static LexemeInfo *
-findTheLexeme(DictThesaurus *d, char *lexeme)
+findTheLexeme(DictThesaurus * d, char *lexeme)
 {
 	TheLexeme	key,
 			   *res;
@@ -680,7 +680,7 @@ findTheLexeme(DictThesaurus *d, char *lexeme)
 }
 
 static bool
-matchIdSubst(LexemeInfo *stored, uint32 idsubst)
+matchIdSubst(LexemeInfo * stored, uint32 idsubst)
 {
 	bool		res = true;
 
@@ -700,7 +700,7 @@ matchIdSubst(LexemeInfo *stored, uint32 idsubst)
 }
 
 static LexemeInfo *
-findVariant(LexemeInfo *in, LexemeInfo *stored, uint16 curpos, LexemeInfo **newin, int newn)
+findVariant(LexemeInfo * in, LexemeInfo * stored, uint16 curpos, LexemeInfo * *newin, int newn)
 {
 	for (;;)
 	{
@@ -757,7 +757,7 @@ findVariant(LexemeInfo *in, LexemeInfo *stored, uint16 curpos, LexemeInfo **newi
 }
 
 static TSLexeme *
-copyTSLexeme(TheSubstitute *ts)
+copyTSLexeme(TheSubstitute * ts)
 {
 	TSLexeme   *res;
 	uint16		i;
@@ -775,7 +775,7 @@ copyTSLexeme(TheSubstitute *ts)
 }
 
 static TSLexeme *
-checkMatch(DictThesaurus *d, LexemeInfo *info, uint16 curpos, bool *moreres)
+checkMatch(DictThesaurus * d, LexemeInfo * info, uint16 curpos, bool *moreres)
 {
 	*moreres = false;
 	while (info)
@@ -840,7 +840,7 @@ thesaurus_lexize(PG_FUNCTION_ARGS)
 				ptr++;
 			}
 
-			infos = (LexemeInfo **) palloc(sizeof(LexemeInfo *) * nlex);
+			infos = (LexemeInfo * *) palloc(sizeof(LexemeInfo *) * nlex);
 			for (i = 0; i < nlex; i++)
 				if ((infos[i] = findTheLexeme(d, basevar[i].lexeme)) == NULL)
 					break;

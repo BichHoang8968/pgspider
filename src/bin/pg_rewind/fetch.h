@@ -24,19 +24,19 @@
  * config options.
  */
 extern void fetchSourceFileList(void);
-extern char *fetchFile(char *filename, size_t *filesize);
+extern char *fetchFile(char *filename, size_t * filesize);
 extern void executeFileMap(void);
 
 /* in libpq_fetch.c */
 extern void libpqProcessFileList(void);
-extern char *libpqGetFile(const char *filename, size_t *filesize);
-extern void libpq_executeFileMap(filemap_t *map);
+extern char *libpqGetFile(const char *filename, size_t * filesize);
+extern void libpq_executeFileMap(filemap_t * map);
 
 extern void libpqConnect(const char *connstr);
 extern XLogRecPtr libpqGetCurrentXlogInsertLocation(void);
 
 /* in copy_fetch.c */
-extern void copy_executeFileMap(filemap_t *map);
+extern void copy_executeFileMap(filemap_t * map);
 
 typedef void (*process_file_callback_t) (const char *path, file_type_t type, size_t size, const char *link_target);
 extern void traverse_datadir(const char *datadir, process_file_callback_t callback);

@@ -46,7 +46,7 @@
  * Extract a string value (otherwise uninterpreted) from a DefElem.
  */
 char *
-defGetString(DefElem *def)
+defGetString(DefElem * def)
 {
 	if (def->arg == NULL)
 		ereport(ERROR,
@@ -82,7 +82,7 @@ defGetString(DefElem *def)
  * Extract a numeric value (actually double) from a DefElem.
  */
 double
-defGetNumeric(DefElem *def)
+defGetNumeric(DefElem * def)
 {
 	if (def->arg == NULL)
 		ereport(ERROR,
@@ -108,7 +108,7 @@ defGetNumeric(DefElem *def)
  * Extract a boolean value from a DefElem.
  */
 bool
-defGetBoolean(DefElem *def)
+defGetBoolean(DefElem * def)
 {
 	/*
 	 * If no parameter given, assume "true" is meant.
@@ -163,7 +163,7 @@ defGetBoolean(DefElem *def)
  * Extract an int32 value from a DefElem.
  */
 int32
-defGetInt32(DefElem *def)
+defGetInt32(DefElem * def)
 {
 	if (def->arg == NULL)
 		ereport(ERROR,
@@ -187,7 +187,7 @@ defGetInt32(DefElem *def)
  * Extract an int64 value from a DefElem.
  */
 int64
-defGetInt64(DefElem *def)
+defGetInt64(DefElem * def)
 {
 	if (def->arg == NULL)
 		ereport(ERROR,
@@ -220,7 +220,7 @@ defGetInt64(DefElem *def)
  * Extract a possibly-qualified name (as a List of Strings) from a DefElem.
  */
 List *
-defGetQualifiedName(DefElem *def)
+defGetQualifiedName(DefElem * def)
 {
 	if (def->arg == NULL)
 		ereport(ERROR,
@@ -252,7 +252,7 @@ defGetQualifiedName(DefElem *def)
  * return a bare List when the name looks like an operator name.
  */
 TypeName *
-defGetTypeName(DefElem *def)
+defGetTypeName(DefElem * def)
 {
 	if (def->arg == NULL)
 		ereport(ERROR,
@@ -280,7 +280,7 @@ defGetTypeName(DefElem *def)
  * -1 for "variable") from a DefElem.
  */
 int
-defGetTypeLength(DefElem *def)
+defGetTypeLength(DefElem * def)
 {
 	if (def->arg == NULL)
 		ereport(ERROR,
@@ -324,7 +324,7 @@ defGetTypeLength(DefElem *def)
  * Extract a list of string values (otherwise uninterpreted) from a DefElem.
  */
 List *
-defGetStringList(DefElem *def)
+defGetStringList(DefElem * def)
 {
 	ListCell   *cell;
 

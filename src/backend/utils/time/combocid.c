@@ -51,24 +51,24 @@
 
 
 /* Hash table to lookup combo cids by cmin and cmax */
-static HTAB *comboHash = NULL;
+static HTAB * comboHash = NULL;
 
 /* Key and entry structures for the hash table */
 typedef struct
 {
 	CommandId	cmin;
 	CommandId	cmax;
-} ComboCidKeyData;
+}			ComboCidKeyData;
 
-typedef ComboCidKeyData *ComboCidKey;
+typedef ComboCidKeyData * ComboCidKey;
 
 typedef struct
 {
 	ComboCidKeyData key;
 	CommandId	combocid;
-} ComboCidEntryData;
+}			ComboCidEntryData;
 
-typedef ComboCidEntryData *ComboCidEntry;
+typedef ComboCidEntryData * ComboCidEntry;
 
 /* Initial size of the hash table */
 #define CCID_HASH_SIZE			100
@@ -152,7 +152,7 @@ HeapTupleHeaderGetCmax(HeapTupleHeader tup)
  */
 void
 HeapTupleHeaderAdjustCmax(HeapTupleHeader tup,
-						  CommandId *cmax,
+						  CommandId * cmax,
 						  bool *iscombo)
 {
 	/*

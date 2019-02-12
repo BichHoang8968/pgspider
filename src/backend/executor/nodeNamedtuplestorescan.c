@@ -20,7 +20,7 @@
 #include "miscadmin.h"
 #include "utils/queryenvironment.h"
 
-static TupleTableSlot *NamedTuplestoreScanNext(NamedTuplestoreScanState *node);
+static TupleTableSlot * NamedTuplestoreScanNext(NamedTuplestoreScanState * node);
 
 /* ----------------------------------------------------------------
  *		NamedTuplestoreScanNext
@@ -29,7 +29,7 @@ static TupleTableSlot *NamedTuplestoreScanNext(NamedTuplestoreScanState *node);
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-NamedTuplestoreScanNext(NamedTuplestoreScanState *node)
+NamedTuplestoreScanNext(NamedTuplestoreScanState * node)
 {
 	TupleTableSlot *slot;
 
@@ -50,7 +50,7 @@ NamedTuplestoreScanNext(NamedTuplestoreScanState *node)
  * EvalPlanQual
  */
 static bool
-NamedTuplestoreScanRecheck(NamedTuplestoreScanState *node, TupleTableSlot *slot)
+NamedTuplestoreScanRecheck(NamedTuplestoreScanState * node, TupleTableSlot * slot)
 {
 	/* nothing to check */
 	return true;
@@ -65,7 +65,7 @@ NamedTuplestoreScanRecheck(NamedTuplestoreScanState *node, TupleTableSlot *slot)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecNamedTuplestoreScan(PlanState *pstate)
+ExecNamedTuplestoreScan(PlanState * pstate)
 {
 	NamedTuplestoreScanState *node = castNode(NamedTuplestoreScanState, pstate);
 
@@ -80,7 +80,7 @@ ExecNamedTuplestoreScan(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 NamedTuplestoreScanState *
-ExecInitNamedTuplestoreScan(NamedTuplestoreScan *node, EState *estate, int eflags)
+ExecInitNamedTuplestoreScan(NamedTuplestoreScan * node, EState * estate, int eflags)
 {
 	NamedTuplestoreScanState *scanstate;
 	EphemeralNamedRelation enr;
@@ -167,7 +167,7 @@ ExecInitNamedTuplestoreScan(NamedTuplestoreScan *node, EState *estate, int eflag
  * ----------------------------------------------------------------
  */
 void
-ExecEndNamedTuplestoreScan(NamedTuplestoreScanState *node)
+ExecEndNamedTuplestoreScan(NamedTuplestoreScanState * node)
 {
 	/*
 	 * Free exprcontext
@@ -188,7 +188,7 @@ ExecEndNamedTuplestoreScan(NamedTuplestoreScanState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanNamedTuplestoreScan(NamedTuplestoreScanState *node)
+ExecReScanNamedTuplestoreScan(NamedTuplestoreScanState * node)
 {
 	Tuplestorestate *tuplestorestate = node->relation;
 

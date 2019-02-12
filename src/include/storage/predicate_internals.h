@@ -105,7 +105,7 @@ typedef struct SERIALIZABLEXACT
 	TransactionId xmin;			/* the transaction's snapshot xmin */
 	uint32		flags;			/* OR'd combination of values defined below */
 	int			pid;			/* pid of associated process */
-} SERIALIZABLEXACT;
+}			SERIALIZABLEXACT;
 
 #define SXACT_FLAG_COMMITTED			0x00000001	/* already committed */
 #define SXACT_FLAG_PREPARED				0x00000002	/* about to commit */
@@ -223,7 +223,7 @@ typedef struct RWConflictPoolHeaderData *RWConflictPoolHeader;
 typedef struct SERIALIZABLEXIDTAG
 {
 	TransactionId xid;
-} SERIALIZABLEXIDTAG;
+}			SERIALIZABLEXIDTAG;
 
 /*
  * The SERIALIZABLEXID struct provides a link from a TransactionId for a
@@ -245,7 +245,7 @@ typedef struct SERIALIZABLEXID
 
 	/* data */
 	SERIALIZABLEXACT *myXact;	/* pointer to the top level transaction data */
-} SERIALIZABLEXID;
+}			SERIALIZABLEXID;
 
 
 /*
@@ -271,7 +271,7 @@ typedef struct PREDICATELOCKTARGETTAG
 	uint32		locktag_field2; /* a 32-bit ID field */
 	uint32		locktag_field3; /* a 32-bit ID field */
 	uint32		locktag_field4; /* a 32-bit ID field */
-} PREDICATELOCKTARGETTAG;
+}			PREDICATELOCKTARGETTAG;
 
 /*
  * The PREDICATELOCKTARGET struct represents a database object on which there
@@ -290,7 +290,7 @@ typedef struct PREDICATELOCKTARGET
 	/* data */
 	SHM_QUEUE	predicateLocks; /* list of PREDICATELOCK objects assoc. with
 								 * predicate lock target */
-} PREDICATELOCKTARGET;
+}			PREDICATELOCKTARGET;
 
 
 /*
@@ -304,7 +304,7 @@ typedef struct PREDICATELOCKTAG
 {
 	PREDICATELOCKTARGET *myTarget;
 	SERIALIZABLEXACT *myXact;
-} PREDICATELOCKTAG;
+}			PREDICATELOCKTAG;
 
 /*
  * The PREDICATELOCK struct represents an individual lock.
@@ -326,7 +326,7 @@ typedef struct PREDICATELOCK
 	SHM_QUEUE	xactLink;		/* list link in SERIALIZABLEXACT's list of
 								 * predicate locks */
 	SerCommitSeqNo commitSeqNo; /* only used for summarized predicate locks */
-} PREDICATELOCK;
+}			PREDICATELOCK;
 
 
 /*
@@ -353,7 +353,7 @@ typedef struct LOCALPREDICATELOCK
 	/* data */
 	bool		held;			/* is lock held, or just its children?	*/
 	int			childLocks;		/* number of child locks currently held */
-} LOCALPREDICATELOCK;
+}			LOCALPREDICATELOCK;
 
 
 /*
@@ -365,7 +365,7 @@ typedef enum PredicateLockTargetType
 	PREDLOCKTAG_PAGE,
 	PREDLOCKTAG_TUPLE
 	/* TODO SSI: Other types may be needed for index locking */
-} PredicateLockTargetType;
+}			PredicateLockTargetType;
 
 
 /*
@@ -378,7 +378,7 @@ typedef struct PredicateLockData
 	int			nelements;
 	PREDICATELOCKTARGETTAG *locktags;
 	SERIALIZABLEXACT *xacts;
-} PredicateLockData;
+}			PredicateLockData;
 
 
 /*
@@ -426,7 +426,7 @@ typedef enum TwoPhasePredicateRecordType
 {
 	TWOPHASEPREDICATERECORD_XACT,
 	TWOPHASEPREDICATERECORD_LOCK
-} TwoPhasePredicateRecordType;
+}			TwoPhasePredicateRecordType;
 
 /*
  * Per-transaction information to reconstruct a SERIALIZABLEXACT. Not
@@ -443,14 +443,14 @@ typedef struct TwoPhasePredicateXactRecord
 {
 	TransactionId xmin;
 	uint32		flags;
-} TwoPhasePredicateXactRecord;
+}			TwoPhasePredicateXactRecord;
 
 /* Per-lock state */
 typedef struct TwoPhasePredicateLockRecord
 {
 	PREDICATELOCKTARGETTAG target;
 	uint32		filler;			/* to avoid length change in back-patched fix */
-} TwoPhasePredicateLockRecord;
+}			TwoPhasePredicateLockRecord;
 
 typedef struct TwoPhasePredicateRecord
 {
@@ -460,7 +460,7 @@ typedef struct TwoPhasePredicateRecord
 		TwoPhasePredicateXactRecord xactRecord;
 		TwoPhasePredicateLockRecord lockRecord;
 	}			data;
-} TwoPhasePredicateRecord;
+}			TwoPhasePredicateRecord;
 
 /*
  * Define a macro to use for an "empty" SERIALIZABLEXACT reference.
@@ -472,7 +472,7 @@ typedef struct TwoPhasePredicateRecord
  * Function definitions for functions needing awareness of predicate
  * locking internals.
  */
-extern PredicateLockData *GetPredicateLockStatusData(void);
+extern PredicateLockData * GetPredicateLockStatusData(void);
 extern int GetSafeSnapshotBlockingPids(int blocked_pid,
 							int *output, int output_size);
 

@@ -32,19 +32,19 @@ typedef struct PgFdwOption
 	const char *keyword;
 	Oid			optcontext;		/* OID of catalog in which option may appear */
 	bool		is_libpq_opt;	/* true if it's used in libpq */
-} PgFdwOption;
+}			PgFdwOption;
 
 /*
  * Valid options for postgres_fdw.
  * Allocated and filled in InitPgFdwOptions.
  */
-static PgFdwOption *postgres_fdw_options;
+static PgFdwOption * postgres_fdw_options;
 
 /*
  * Valid options for libpq.
  * Allocated and filled in InitPgFdwOptions.
  */
-static PQconninfoOption *libpq_options;
+static PQconninfoOption * libpq_options;
 
 /*
  * Helper functions
@@ -294,7 +294,7 @@ is_libpq_option(const char *keyword)
  * allocated large-enough arrays.  Returns number of options found.
  */
 int
-ExtractConnectionOptions(List *defelems, const char **keywords,
+ExtractConnectionOptions(List * defelems, const char **keywords,
 						 const char **values)
 {
 	ListCell   *lc;

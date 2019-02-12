@@ -49,7 +49,7 @@ CATALOG(pg_collation,3456)
  *		the format of pg_collation relation.
  * ----------------
  */
-typedef FormData_pg_collation *Form_pg_collation;
+typedef FormData_pg_collation * Form_pg_collation;
 
 /* ----------------
  *		compiler constants for pg_collation

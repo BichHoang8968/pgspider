@@ -26,14 +26,14 @@
 
 static void LockTableRecurse(Oid reloid, LOCKMODE lockmode, bool nowait);
 static AclResult LockTableAclCheck(Oid relid, LOCKMODE lockmode);
-static void RangeVarCallbackForLockTable(const RangeVar *rv, Oid relid,
+static void RangeVarCallbackForLockTable(const RangeVar * rv, Oid relid,
 							 Oid oldrelid, void *arg);
 
 /*
  * LOCK TABLE
  */
 void
-LockTableCommand(LockStmt *lockstmt)
+LockTableCommand(LockStmt * lockstmt)
 {
 	ListCell   *p;
 
@@ -72,7 +72,7 @@ LockTableCommand(LockStmt *lockstmt)
  * permission to do so.
  */
 static void
-RangeVarCallbackForLockTable(const RangeVar *rv, Oid relid, Oid oldrelid,
+RangeVarCallbackForLockTable(const RangeVar * rv, Oid relid, Oid oldrelid,
 							 void *arg)
 {
 	LOCKMODE	lockmode = *(LOCKMODE *) arg;

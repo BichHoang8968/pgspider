@@ -25,7 +25,7 @@ typedef enum
 	PG_PROGRESS,
 	PG_WARNING,
 	PG_FATAL
-} eLogType;
+}			eLogType;
 
 extern void pg_log(eLogType type, const char *fmt,...) pg_attribute_printf(2, 3);
 extern void pg_fatal(const char *fmt,...) pg_attribute_printf(1, 2) pg_attribute_noreturn();

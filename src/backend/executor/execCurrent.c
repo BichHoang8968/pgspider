@@ -22,8 +22,8 @@
 #include "utils/rel.h"
 
 
-static char *fetch_cursor_param_value(ExprContext *econtext, int paramId);
-static ScanState *search_plan_tree(PlanState *node, Oid table_oid);
+static char *fetch_cursor_param_value(ExprContext * econtext, int paramId);
+static ScanState * search_plan_tree(PlanState * node, Oid table_oid);
 
 
 /*
@@ -39,8 +39,8 @@ static ScanState *search_plan_tree(PlanState *node, Oid table_oid);
  * valid updatable scan of the specified table.
  */
 bool
-execCurrentOf(CurrentOfExpr *cexpr,
-			  ExprContext *econtext,
+execCurrentOf(CurrentOfExpr * cexpr,
+			  ExprContext * econtext,
 			  Oid table_oid,
 			  ItemPointer current_tid)
 {
@@ -248,7 +248,7 @@ execCurrentOf(CurrentOfExpr *cexpr,
  * Fetch the string value of a param, verifying it is of type REFCURSOR.
  */
 static char *
-fetch_cursor_param_value(ExprContext *econtext, int paramId)
+fetch_cursor_param_value(ExprContext * econtext, int paramId)
 {
 	ParamListInfo paramInfo = econtext->ecxt_param_list_info;
 
@@ -290,7 +290,7 @@ fetch_cursor_param_value(ExprContext *econtext, int paramId)
  * Return NULL if not found or multiple candidates.
  */
 static ScanState *
-search_plan_tree(PlanState *node, Oid table_oid)
+search_plan_tree(PlanState * node, Oid table_oid)
 {
 	if (node == NULL)
 		return NULL;

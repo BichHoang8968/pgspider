@@ -10,7 +10,7 @@ typedef struct
 {
 	Oid			lower;
 	Oid			upper;
-} oidKEY;
+}			oidKEY;
 
 /*
 ** OID ops
@@ -26,33 +26,33 @@ PG_FUNCTION_INFO_V1(gbt_oid_same);
 
 
 static bool
-gbt_oidgt(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_oidgt(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const Oid *) a) > *((const Oid *) b));
 }
 static bool
-gbt_oidge(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_oidge(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const Oid *) a) >= *((const Oid *) b));
 }
 static bool
-gbt_oideq(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_oideq(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const Oid *) a) == *((const Oid *) b));
 }
 static bool
-gbt_oidle(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_oidle(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const Oid *) a) <= *((const Oid *) b));
 }
 static bool
-gbt_oidlt(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_oidlt(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const Oid *) a) < *((const Oid *) b));
 }
 
 static int
-gbt_oidkey_cmp(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_oidkey_cmp(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	oidKEY	   *ia = (oidKEY *) (((const Nsrt *) a)->t);
 	oidKEY	   *ib = (oidKEY *) (((const Nsrt *) b)->t);
@@ -69,7 +69,7 @@ gbt_oidkey_cmp(const void *a, const void *b, FmgrInfo *flinfo)
 }
 
 static float8
-gbt_oid_dist(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_oid_dist(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	Oid			aa = *(const Oid *) a;
 	Oid			bb = *(const Oid *) b;
@@ -148,8 +148,8 @@ gbt_oid_consistent(PG_FUNCTION_ARGS)
 	/* All cases served by this function are exact */
 	*recheck = false;
 
-	key.lower = (GBT_NUMKEY *) &kkk->lower;
-	key.upper = (GBT_NUMKEY *) &kkk->upper;
+	key.lower = (GBT_NUMKEY *) & kkk->lower;
+	key.upper = (GBT_NUMKEY *) & kkk->upper;
 
 	PG_RETURN_BOOL(
 				   gbt_num_consistent(&key, (void *) &query, &strategy, GIST_LEAF(entry), &tinfo, fcinfo->flinfo)
@@ -167,8 +167,8 @@ gbt_oid_distance(PG_FUNCTION_ARGS)
 	oidKEY	   *kkk = (oidKEY *) DatumGetPointer(entry->key);
 	GBT_NUMKEY_R key;
 
-	key.lower = (GBT_NUMKEY *) &kkk->lower;
-	key.upper = (GBT_NUMKEY *) &kkk->upper;
+	key.lower = (GBT_NUMKEY *) & kkk->lower;
+	key.upper = (GBT_NUMKEY *) & kkk->upper;
 
 	PG_RETURN_FLOAT8(
 					 gbt_num_distance(&key, (void *) &query, GIST_LEAF(entry), &tinfo, fcinfo->flinfo)

@@ -57,7 +57,7 @@
 
 /* Prototypes for local functions */
 static int	codepoint_range_cmp(const void *a, const void *b);
-static bool is_code_in_table(pg_wchar code, const pg_wchar *map, int mapsize);
+static bool is_code_in_table(pg_wchar code, const pg_wchar * map, int mapsize);
 static int	pg_utf8_string_len(const char *source);
 static bool pg_is_ascii_string(const char *p);
 
@@ -979,8 +979,8 @@ static const pg_wchar LCat_codepoint_ranges[] =
 static int
 codepoint_range_cmp(const void *a, const void *b)
 {
-	const pg_wchar *key = (const pg_wchar *) a;
-	const pg_wchar *range = (const pg_wchar *) b;
+	const		pg_wchar *key = (const pg_wchar *) a;
+	const		pg_wchar *range = (const pg_wchar *) b;
 
 	if (*key < range[0])
 		return -1;				/* less than lower bound */
@@ -991,7 +991,7 @@ codepoint_range_cmp(const void *a, const void *b)
 }
 
 static bool
-is_code_in_table(pg_wchar code, const pg_wchar *map, int mapsize)
+is_code_in_table(pg_wchar code, const pg_wchar * map, int mapsize)
 {
 	Assert(mapsize % 2 == 0);
 

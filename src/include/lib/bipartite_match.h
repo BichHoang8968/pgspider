@@ -37,10 +37,10 @@ typedef struct BipartiteMatchState
 	/* private state for matching algorithm: */
 	short	   *distance;		/* distance[u] */
 	short	   *queue;			/* queue storage for breadth search */
-} BipartiteMatchState;
+}			BipartiteMatchState;
 
-extern BipartiteMatchState *BipartiteMatch(int u_size, int v_size, short **adjacency);
+extern BipartiteMatchState * BipartiteMatch(int u_size, int v_size, short **adjacency);
 
-extern void BipartiteMatchFree(BipartiteMatchState *state);
+extern void BipartiteMatchFree(BipartiteMatchState * state);
 
 #endif							/* BIPARTITE_MATCH_H */

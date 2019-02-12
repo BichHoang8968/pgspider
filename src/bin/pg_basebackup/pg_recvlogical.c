@@ -65,8 +65,8 @@ static XLogRecPtr output_fsync_lsn = InvalidXLogRecPtr;
 static void usage(void);
 static void StreamLogicalLog(void);
 static void disconnect_and_exit(int code);
-static bool flushAndSendFeedback(PGconn *conn, TimestampTz *now);
-static void prepareToTerminate(PGconn *conn, XLogRecPtr endpos,
+static bool flushAndSendFeedback(PGconn * conn, TimestampTz * now);
+static void prepareToTerminate(PGconn * conn, XLogRecPtr endpos,
 				   bool keepalive, XLogRecPtr lsn);
 
 static void
@@ -112,7 +112,7 @@ usage(void)
  * Send a Standby Status Update message to server.
  */
 static bool
-sendFeedback(PGconn *conn, TimestampTz now, bool force, bool replyRequested)
+sendFeedback(PGconn * conn, TimestampTz now, bool force, bool replyRequested)
 {
 	static XLogRecPtr last_written_lsn = InvalidXLogRecPtr;
 	static XLogRecPtr last_fsync_lsn = InvalidXLogRecPtr;
@@ -1024,7 +1024,7 @@ main(int argc, char **argv)
  * feedback.
  */
 static bool
-flushAndSendFeedback(PGconn *conn, TimestampTz *now)
+flushAndSendFeedback(PGconn * conn, TimestampTz * now)
 {
 	/* flush data to disk, so that we send a recent flush pointer */
 	if (!OutputFsync(*now))
@@ -1041,7 +1041,7 @@ flushAndSendFeedback(PGconn *conn, TimestampTz *now)
  * retry on failure.
  */
 static void
-prepareToTerminate(PGconn *conn, XLogRecPtr endpos, bool keepalive, XLogRecPtr lsn)
+prepareToTerminate(PGconn * conn, XLogRecPtr endpos, bool keepalive, XLogRecPtr lsn)
 {
 	(void) PQputCopyEnd(conn, NULL);
 	(void) PQflush(conn);

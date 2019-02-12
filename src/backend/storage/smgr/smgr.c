@@ -55,14 +55,14 @@ typedef struct f_smgr
 							   BlockNumber blocknum, char *buffer, bool skipFsync);
 	void		(*smgr_writeback) (SMgrRelation reln, ForkNumber forknum,
 								   BlockNumber blocknum, BlockNumber nblocks);
-	BlockNumber (*smgr_nblocks) (SMgrRelation reln, ForkNumber forknum);
+				BlockNumber(*smgr_nblocks) (SMgrRelation reln, ForkNumber forknum);
 	void		(*smgr_truncate) (SMgrRelation reln, ForkNumber forknum,
 								  BlockNumber nblocks);
 	void		(*smgr_immedsync) (SMgrRelation reln, ForkNumber forknum);
 	void		(*smgr_pre_ckpt) (void);	/* may be NULL */
 	void		(*smgr_sync) (void);	/* may be NULL */
 	void		(*smgr_post_ckpt) (void);	/* may be NULL */
-} f_smgr;
+}			f_smgr;
 
 
 static const f_smgr smgrsw[] = {
@@ -80,7 +80,7 @@ static const int NSmgr = lengthof(smgrsw);
  * Each backend has a hashtable that stores all extant SMgrRelation objects.
  * In addition, "unowned" SMgrRelation objects are chained together in a list.
  */
-static HTAB *SMgrRelationHash = NULL;
+static HTAB * SMgrRelationHash = NULL;
 
 static SMgrRelation first_unowned_reln = NULL;
 
@@ -190,7 +190,7 @@ smgropen(RelFileNode rnode, BackendId backend)
  * the only such owners exist in the relcache.
  */
 void
-smgrsetowner(SMgrRelation *owner, SMgrRelation reln)
+smgrsetowner(SMgrRelation * owner, SMgrRelation reln)
 {
 	/* We don't support "disowning" an SMgrRelation here, use smgrclearowner */
 	Assert(owner != NULL);
@@ -219,7 +219,7 @@ smgrsetowner(SMgrRelation *owner, SMgrRelation reln)
  *					   if one exists
  */
 void
-smgrclearowner(SMgrRelation *owner, SMgrRelation reln)
+smgrclearowner(SMgrRelation * owner, SMgrRelation reln)
 {
 	/* Do nothing if the SMgrRelation object is not owned by the owner */
 	if (reln->smgr_owner != owner)
@@ -468,7 +468,7 @@ smgrdounlink(SMgrRelation reln, bool isRedo)
  *		significantly quicker so should be preferred when possible.
  */
 void
-smgrdounlinkall(SMgrRelation *rels, int nrels, bool isRedo)
+smgrdounlinkall(SMgrRelation * rels, int nrels, bool isRedo)
 {
 	int			i = 0;
 	RelFileNodeBackend *rnodes;

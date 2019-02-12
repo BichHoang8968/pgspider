@@ -51,7 +51,7 @@
 #include "utils/memutils.h"
 #include "utils/syscache.h"
 
-static List *fetch_table_list(WalReceiverConn *wrconn, List *publications);
+static List * fetch_table_list(WalReceiverConn * wrconn, List * publications);
 
 /*
  * Common option parsing function for CREATE and ALTER SUBSCRIPTION commands.
@@ -61,7 +61,7 @@ static List *fetch_table_list(WalReceiverConn *wrconn, List *publications);
  * accommodate that.
  */
 static void
-parse_subscription_options(List *options, bool *connect, bool *enabled_given,
+parse_subscription_options(List * options, bool *connect, bool *enabled_given,
 						   bool *enabled, bool *create_slot,
 						   bool *slot_name_given, char **slot_name,
 						   bool *copy_data, char **synchronous_commit,
@@ -247,7 +247,7 @@ parse_subscription_options(List *options, bool *connect, bool *enabled_given,
  * Auxiliary function to return a text array out of a list of String nodes.
  */
 static Datum
-publicationListToArray(List *publist)
+publicationListToArray(List * publist)
 {
 	ArrayType  *arr;
 	Datum	   *datums;
@@ -301,7 +301,7 @@ publicationListToArray(List *publist)
  * Create new subscription.
  */
 ObjectAddress
-CreateSubscription(CreateSubscriptionStmt *stmt, bool isTopLevel)
+CreateSubscription(CreateSubscriptionStmt * stmt, bool isTopLevel)
 {
 	Relation	rel;
 	ObjectAddress myself;
@@ -500,7 +500,7 @@ CreateSubscription(CreateSubscriptionStmt *stmt, bool isTopLevel)
 }
 
 static void
-AlterSubscription_refresh(Subscription *sub, bool copy_data)
+AlterSubscription_refresh(Subscription * sub, bool copy_data)
 {
 	char	   *err;
 	List	   *pubrel_names;
@@ -609,7 +609,7 @@ AlterSubscription_refresh(Subscription *sub, bool copy_data)
  * Alter the existing subscription.
  */
 ObjectAddress
-AlterSubscription(AlterSubscriptionStmt *stmt)
+AlterSubscription(AlterSubscriptionStmt * stmt)
 {
 	Relation	rel;
 	ObjectAddress myself;
@@ -805,7 +805,7 @@ AlterSubscription(AlterSubscriptionStmt *stmt)
  * Drop a subscription
  */
 void
-DropSubscription(DropSubscriptionStmt *stmt, bool isTopLevel)
+DropSubscription(DropSubscriptionStmt * stmt, bool isTopLevel)
 {
 	Relation	rel;
 	ObjectAddress myself;
@@ -1109,7 +1109,7 @@ AlterSubscriptionOwner_oid(Oid subid, Oid newOwnerId)
  * publisher connection.
  */
 static List *
-fetch_table_list(WalReceiverConn *wrconn, List *publications)
+fetch_table_list(WalReceiverConn * wrconn, List * publications)
 {
 	WalRcvExecResult *res;
 	StringInfoData cmd;

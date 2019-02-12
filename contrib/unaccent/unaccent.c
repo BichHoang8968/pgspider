@@ -41,7 +41,7 @@ typedef struct TrieChar
 	struct TrieChar *nextChar;
 	char	   *replaceTo;
 	int			replacelen;
-} TrieChar;
+}			TrieChar;
 
 /*
  * placeChar - put str into trie's structure, byte by byte.
@@ -50,7 +50,7 @@ typedef struct TrieChar
  * otherwise the return value is the same as node.
  */
 static TrieChar *
-placeChar(TrieChar *node, const unsigned char *str, int lenstr,
+placeChar(TrieChar * node, const unsigned char *str, int lenstr,
 		  const char *replaceTo, int replacelen)
 {
 	TrieChar   *curnode;
@@ -238,7 +238,7 @@ initTrie(char *filename)
  * source string in *p_matchlen.  On failure, returns NULL.
  */
 static TrieChar *
-findReplaceTo(TrieChar *node, const unsigned char *src, int srclen,
+findReplaceTo(TrieChar * node, const unsigned char *src, int srclen,
 			  int *p_matchlen)
 {
 	TrieChar   *result = NULL;

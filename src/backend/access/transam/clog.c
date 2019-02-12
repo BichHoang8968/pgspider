@@ -86,11 +86,11 @@ static void WriteZeroPageXlogRec(int pageno);
 static void WriteTruncateXlogRec(int pageno, TransactionId oldestXact,
 					 Oid oldestXidDb);
 static void TransactionIdSetPageStatus(TransactionId xid, int nsubxids,
-						   TransactionId *subxids, XidStatus status,
+						   TransactionId * subxids, XidStatus status,
 						   XLogRecPtr lsn, int pageno);
 static void TransactionIdSetStatusBit(TransactionId xid, XidStatus status,
 						  XLogRecPtr lsn, int slotno);
-static void set_status_by_pages(int nsubxids, TransactionId *subxids,
+static void set_status_by_pages(int nsubxids, TransactionId * subxids,
 					XidStatus status, XLogRecPtr lsn);
 
 
@@ -147,7 +147,7 @@ static void set_status_by_pages(int nsubxids, TransactionId *subxids,
  */
 void
 TransactionIdSetTreeStatus(TransactionId xid, int nsubxids,
-						   TransactionId *subxids, XidStatus status, XLogRecPtr lsn)
+						   TransactionId * subxids, XidStatus status, XLogRecPtr lsn)
 {
 	int			pageno = TransactionIdToPage(xid);	/* get page of parent */
 	int			i;
@@ -220,7 +220,7 @@ TransactionIdSetTreeStatus(TransactionId xid, int nsubxids,
  * that are on different pages to the top level transaction id.
  */
 static void
-set_status_by_pages(int nsubxids, TransactionId *subxids,
+set_status_by_pages(int nsubxids, TransactionId * subxids,
 					XidStatus status, XLogRecPtr lsn)
 {
 	int			pageno = TransactionIdToPage(subxids[0]);
@@ -259,7 +259,7 @@ set_status_by_pages(int nsubxids, TransactionId *subxids,
  */
 static void
 TransactionIdSetPageStatus(TransactionId xid, int nsubxids,
-						   TransactionId *subxids, XidStatus status,
+						   TransactionId * subxids, XidStatus status,
 						   XLogRecPtr lsn, int pageno)
 {
 	int			slotno;
@@ -396,7 +396,7 @@ TransactionIdSetStatusBit(TransactionId xid, XidStatus status, XLogRecPtr lsn, i
  * for most uses; TransactionLogFetch() in transam.c is the intended caller.
  */
 XidStatus
-TransactionIdGetStatus(TransactionId xid, XLogRecPtr *lsn)
+TransactionIdGetStatus(TransactionId xid, XLogRecPtr * lsn)
 {
 	int			pageno = TransactionIdToPage(xid);
 	int			byteno = TransactionIdToByte(xid);
@@ -758,7 +758,7 @@ WriteTruncateXlogRec(int pageno, TransactionId oldestXact, Oid oldestXactDb)
  * CLOG resource manager's routines
  */
 void
-clog_redo(XLogReaderState *record)
+clog_redo(XLogReaderState * record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 

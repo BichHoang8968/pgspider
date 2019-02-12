@@ -12,7 +12,7 @@
 #include "pg_upgrade.h"
 
 static void get_tablespace_paths(void);
-static void set_tablespace_directory_suffix(ClusterInfo *cluster);
+static void set_tablespace_directory_suffix(ClusterInfo * cluster);
 
 
 void
@@ -106,7 +106,7 @@ get_tablespace_paths(void)
 
 
 static void
-set_tablespace_directory_suffix(ClusterInfo *cluster)
+set_tablespace_directory_suffix(ClusterInfo * cluster)
 {
 	if (GET_MAJOR_VERSION(cluster->major_version) <= 804)
 		cluster->tablespace_suffix = pg_strdup("");

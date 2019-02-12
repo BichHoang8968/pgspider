@@ -71,7 +71,7 @@ RS_isRegis(const char *str)
 }
 
 static RegisNode *
-newRegisNode(RegisNode *prev, int len)
+newRegisNode(RegisNode * prev, int len)
 {
 	RegisNode  *ptr;
 
@@ -82,7 +82,7 @@ newRegisNode(RegisNode *prev, int len)
 }
 
 void
-RS_compile(Regis *r, bool issuffix, const char *str)
+RS_compile(Regis * r, bool issuffix, const char *str)
 {
 	int			len = strlen(str);
 	int			state = RS_IN_WAIT;
@@ -163,7 +163,7 @@ RS_compile(Regis *r, bool issuffix, const char *str)
 }
 
 void
-RS_free(Regis *r)
+RS_free(Regis * r)
 {
 	RegisNode  *ptr = r->node,
 			   *tmp;
@@ -215,7 +215,7 @@ mb_strchr(char *str, char *c)
 
 
 bool
-RS_execute(Regis *r, char *str)
+RS_execute(Regis * r, char *str)
 {
 	RegisNode  *ptr = r->node;
 	char	   *c = str;

@@ -33,19 +33,19 @@
 #include "utils/lsyscache.h"
 
 /* local functions */
-static bool join_is_removable(PlannerInfo *root, SpecialJoinInfo *sjinfo);
-static void remove_rel_from_query(PlannerInfo *root, int relid,
+static bool join_is_removable(PlannerInfo * root, SpecialJoinInfo * sjinfo);
+static void remove_rel_from_query(PlannerInfo * root, int relid,
 					  Relids joinrelids);
-static List *remove_rel_from_joinlist(List *joinlist, int relid, int *nremoved);
-static bool rel_supports_distinctness(PlannerInfo *root, RelOptInfo *rel);
-static bool rel_is_distinct_for(PlannerInfo *root, RelOptInfo *rel,
-					List *clause_list);
-static Oid	distinct_col_search(int colno, List *colnos, List *opids);
-static bool is_innerrel_unique_for(PlannerInfo *root,
+static List * remove_rel_from_joinlist(List * joinlist, int relid, int *nremoved);
+static bool rel_supports_distinctness(PlannerInfo * root, RelOptInfo * rel);
+static bool rel_is_distinct_for(PlannerInfo * root, RelOptInfo * rel,
+					List * clause_list);
+static Oid distinct_col_search(int colno, List * colnos, List * opids);
+static bool is_innerrel_unique_for(PlannerInfo * root,
 					   Relids outerrelids,
-					   RelOptInfo *innerrel,
+					   RelOptInfo * innerrel,
 					   JoinType jointype,
-					   List *restrictlist);
+					   List * restrictlist);
 
 
 /*
@@ -57,7 +57,7 @@ static bool is_innerrel_unique_for(PlannerInfo *root,
  * data structures that have to be updated are accessible via "root".
  */
 List *
-remove_useless_joins(PlannerInfo *root, List *joinlist)
+remove_useless_joins(PlannerInfo * root, List * joinlist)
 {
 	ListCell   *lc;
 
@@ -124,7 +124,7 @@ restart:
  * we set the transient flag outer_is_left to identify which side is which.
  */
 static inline bool
-clause_sides_match_join(RestrictInfo *rinfo, Relids outerrelids,
+clause_sides_match_join(RestrictInfo * rinfo, Relids outerrelids,
 						Relids innerrelids)
 {
 	if (bms_is_subset(rinfo->left_relids, outerrelids) &&
@@ -156,7 +156,7 @@ clause_sides_match_join(RestrictInfo *rinfo, Relids outerrelids,
  * above the join.
  */
 static bool
-join_is_removable(PlannerInfo *root, SpecialJoinInfo *sjinfo)
+join_is_removable(PlannerInfo * root, SpecialJoinInfo * sjinfo)
 {
 	int			innerrelid;
 	RelOptInfo *innerrel;
@@ -309,7 +309,7 @@ join_is_removable(PlannerInfo *root, SpecialJoinInfo *sjinfo)
  * lists, but only if they belong to the outer join identified by joinrelids.
  */
 static void
-remove_rel_from_query(PlannerInfo *root, int relid, Relids joinrelids)
+remove_rel_from_query(PlannerInfo * root, int relid, Relids joinrelids)
 {
 	RelOptInfo *rel = find_base_rel(root, relid);
 	List	   *joininfos;
@@ -453,7 +453,7 @@ remove_rel_from_query(PlannerInfo *root, int relid, Relids joinrelids)
  * should be exactly one, but the caller checks that).
  */
 static List *
-remove_rel_from_joinlist(List *joinlist, int relid, int *nremoved)
+remove_rel_from_joinlist(List * joinlist, int relid, int *nremoved)
 {
 	List	   *result = NIL;
 	ListCell   *jl;
@@ -507,7 +507,7 @@ remove_rel_from_joinlist(List *joinlist, int relid, int *nremoved)
  * since that won't be consulted again.)
  */
 void
-reduce_unique_semijoins(PlannerInfo *root)
+reduce_unique_semijoins(PlannerInfo * root)
 {
 	ListCell   *lc;
 	ListCell   *next;
@@ -587,7 +587,7 @@ reduce_unique_semijoins(PlannerInfo *root)
  * succeed.
  */
 static bool
-rel_supports_distinctness(PlannerInfo *root, RelOptInfo *rel)
+rel_supports_distinctness(PlannerInfo * root, RelOptInfo * rel)
 {
 	/* We only know about baserels ... */
 	if (rel->reloptkind != RELOPT_BASEREL)
@@ -643,7 +643,7 @@ rel_supports_distinctness(PlannerInfo *root, RelOptInfo *rel)
  * the sole purpose of passing to this function.
  */
 static bool
-rel_is_distinct_for(PlannerInfo *root, RelOptInfo *rel, List *clause_list)
+rel_is_distinct_for(PlannerInfo * root, RelOptInfo * rel, List * clause_list)
 {
 	/*
 	 * We could skip a couple of tests here if we assume all callers checked
@@ -740,7 +740,7 @@ rel_is_distinct_for(PlannerInfo *root, RelOptInfo *rel, List *clause_list)
  * succeed.
  */
 bool
-query_supports_distinctness(Query *query)
+query_supports_distinctness(Query * query)
 {
 	/* SRFs break distinctness except with DISTINCT, see below */
 	if (query->hasTargetSRFs && query->distinctClause == NIL)
@@ -777,7 +777,7 @@ query_supports_distinctness(Query *query)
  * to deal with here.)
  */
 bool
-query_is_distinct_for(Query *query, List *colnos, List *opids)
+query_is_distinct_for(Query * query, List * colnos, List * opids)
 {
 	ListCell   *l;
 	Oid			opid;
@@ -926,7 +926,7 @@ query_is_distinct_for(Query *query, List *colnos, List *opids)
  * but if it does, we arbitrarily select the first match.)
  */
 static Oid
-distinct_col_search(int colno, List *colnos, List *opids)
+distinct_col_search(int colno, List * colnos, List * opids)
 {
 	ListCell   *lc1,
 			   *lc2;
@@ -965,11 +965,11 @@ distinct_col_search(int colno, List *colnos, List *opids)
  * sequence.
  */
 bool
-innerrel_is_unique(PlannerInfo *root,
+innerrel_is_unique(PlannerInfo * root,
 				   Relids outerrelids,
-				   RelOptInfo *innerrel,
+				   RelOptInfo * innerrel,
 				   JoinType jointype,
-				   List *restrictlist,
+				   List * restrictlist,
 				   bool force_cache)
 {
 	MemoryContext old_context;
@@ -1072,11 +1072,11 @@ innerrel_is_unique(PlannerInfo *root,
  *	  tuple from the outerrel, based on join clauses in the 'restrictlist'.
  */
 static bool
-is_innerrel_unique_for(PlannerInfo *root,
+is_innerrel_unique_for(PlannerInfo * root,
 					   Relids outerrelids,
-					   RelOptInfo *innerrel,
+					   RelOptInfo * innerrel,
 					   JoinType jointype,
-					   List *restrictlist)
+					   List * restrictlist)
 {
 	Relids		joinrelids = bms_union(outerrelids, innerrel->relids);
 	List	   *clause_list = NIL;

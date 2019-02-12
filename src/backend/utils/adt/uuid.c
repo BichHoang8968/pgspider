@@ -29,10 +29,10 @@ typedef struct
 	bool		estimating;		/* true if estimating cardinality */
 
 	hyperLogLogState abbr_card; /* cardinality estimator */
-} uuid_sortsupport_state;
+}			uuid_sortsupport_state;
 
-static void string_to_uuid(const char *source, pg_uuid_t *uuid);
-static int	uuid_internal_cmp(const pg_uuid_t *arg1, const pg_uuid_t *arg2);
+static void string_to_uuid(const char *source, pg_uuid_t * uuid);
+static int	uuid_internal_cmp(const pg_uuid_t * arg1, const pg_uuid_t * arg2);
 static int	uuid_fast_cmp(Datum x, Datum y, SortSupport ssup);
 static int	uuid_cmp_abbrev(Datum x, Datum y, SortSupport ssup);
 static bool uuid_abbrev_abort(int memtupcount, SortSupport ssup);
@@ -88,7 +88,7 @@ uuid_out(PG_FUNCTION_ARGS)
  * digits, is the only one used for output.)
  */
 static void
-string_to_uuid(const char *source, pg_uuid_t *uuid)
+string_to_uuid(const char *source, pg_uuid_t * uuid)
 {
 	const char *src = source;
 	bool		braces = false;
@@ -161,7 +161,7 @@ uuid_send(PG_FUNCTION_ARGS)
 
 /* internal uuid compare function */
 static int
-uuid_internal_cmp(const pg_uuid_t *arg1, const pg_uuid_t *arg2)
+uuid_internal_cmp(const pg_uuid_t * arg1, const pg_uuid_t * arg2)
 {
 	return memcmp(arg1->data, arg2->data, UUID_LEN);
 }

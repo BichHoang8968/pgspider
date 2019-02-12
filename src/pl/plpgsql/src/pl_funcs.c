@@ -34,7 +34,7 @@
  * items.
  * ----------
  */
-static PLpgSQL_nsitem *ns_top = NULL;
+static PLpgSQL_nsitem * ns_top = NULL;
 
 
 /* ----------
@@ -129,7 +129,7 @@ plpgsql_ns_additem(PLpgSQL_nsitem_type itemtype, int itemno, const char *name)
  * ----------
  */
 PLpgSQL_nsitem *
-plpgsql_ns_lookup(PLpgSQL_nsitem *ns_cur, bool localmode,
+plpgsql_ns_lookup(PLpgSQL_nsitem * ns_cur, bool localmode,
 				  const char *name1, const char *name2, const char *name3,
 				  int *names_used)
 {
@@ -194,7 +194,7 @@ plpgsql_ns_lookup(PLpgSQL_nsitem *ns_cur, bool localmode,
  * ----------
  */
 PLpgSQL_nsitem *
-plpgsql_ns_lookup_label(PLpgSQL_nsitem *ns_cur, const char *name)
+plpgsql_ns_lookup_label(PLpgSQL_nsitem * ns_cur, const char *name)
 {
 	while (ns_cur != NULL)
 	{
@@ -213,7 +213,7 @@ plpgsql_ns_lookup_label(PLpgSQL_nsitem *ns_cur, const char *name)
  * ----------
  */
 PLpgSQL_nsitem *
-plpgsql_ns_find_nearest_loop(PLpgSQL_nsitem *ns_cur)
+plpgsql_ns_find_nearest_loop(PLpgSQL_nsitem * ns_cur)
 {
 	while (ns_cur != NULL)
 	{
@@ -231,7 +231,7 @@ plpgsql_ns_find_nearest_loop(PLpgSQL_nsitem *ns_cur)
  * Statement type as a string, for use in error messages etc.
  */
 const char *
-plpgsql_stmt_typename(PLpgSQL_stmt *stmt)
+plpgsql_stmt_typename(PLpgSQL_stmt * stmt)
 {
 	switch (stmt->cmd_type)
 	{
@@ -338,36 +338,36 @@ plpgsql_getdiag_kindname(PLpgSQL_getdiag_kind kind)
  * along with subsidiary data, is freed in one swoop by freeing the
  * function's permanent memory context.
  **********************************************************************/
-static void free_stmt(PLpgSQL_stmt *stmt);
-static void free_block(PLpgSQL_stmt_block *block);
-static void free_assign(PLpgSQL_stmt_assign *stmt);
-static void free_if(PLpgSQL_stmt_if *stmt);
-static void free_case(PLpgSQL_stmt_case *stmt);
-static void free_loop(PLpgSQL_stmt_loop *stmt);
-static void free_while(PLpgSQL_stmt_while *stmt);
-static void free_fori(PLpgSQL_stmt_fori *stmt);
-static void free_fors(PLpgSQL_stmt_fors *stmt);
-static void free_forc(PLpgSQL_stmt_forc *stmt);
-static void free_foreach_a(PLpgSQL_stmt_foreach_a *stmt);
-static void free_exit(PLpgSQL_stmt_exit *stmt);
-static void free_return(PLpgSQL_stmt_return *stmt);
-static void free_return_next(PLpgSQL_stmt_return_next *stmt);
-static void free_return_query(PLpgSQL_stmt_return_query *stmt);
-static void free_raise(PLpgSQL_stmt_raise *stmt);
-static void free_assert(PLpgSQL_stmt_assert *stmt);
-static void free_execsql(PLpgSQL_stmt_execsql *stmt);
-static void free_dynexecute(PLpgSQL_stmt_dynexecute *stmt);
-static void free_dynfors(PLpgSQL_stmt_dynfors *stmt);
-static void free_getdiag(PLpgSQL_stmt_getdiag *stmt);
-static void free_open(PLpgSQL_stmt_open *stmt);
-static void free_fetch(PLpgSQL_stmt_fetch *stmt);
-static void free_close(PLpgSQL_stmt_close *stmt);
-static void free_perform(PLpgSQL_stmt_perform *stmt);
-static void free_expr(PLpgSQL_expr *expr);
+static void free_stmt(PLpgSQL_stmt * stmt);
+static void free_block(PLpgSQL_stmt_block * block);
+static void free_assign(PLpgSQL_stmt_assign * stmt);
+static void free_if(PLpgSQL_stmt_if * stmt);
+static void free_case(PLpgSQL_stmt_case * stmt);
+static void free_loop(PLpgSQL_stmt_loop * stmt);
+static void free_while(PLpgSQL_stmt_while * stmt);
+static void free_fori(PLpgSQL_stmt_fori * stmt);
+static void free_fors(PLpgSQL_stmt_fors * stmt);
+static void free_forc(PLpgSQL_stmt_forc * stmt);
+static void free_foreach_a(PLpgSQL_stmt_foreach_a * stmt);
+static void free_exit(PLpgSQL_stmt_exit * stmt);
+static void free_return(PLpgSQL_stmt_return * stmt);
+static void free_return_next(PLpgSQL_stmt_return_next * stmt);
+static void free_return_query(PLpgSQL_stmt_return_query * stmt);
+static void free_raise(PLpgSQL_stmt_raise * stmt);
+static void free_assert(PLpgSQL_stmt_assert * stmt);
+static void free_execsql(PLpgSQL_stmt_execsql * stmt);
+static void free_dynexecute(PLpgSQL_stmt_dynexecute * stmt);
+static void free_dynfors(PLpgSQL_stmt_dynfors * stmt);
+static void free_getdiag(PLpgSQL_stmt_getdiag * stmt);
+static void free_open(PLpgSQL_stmt_open * stmt);
+static void free_fetch(PLpgSQL_stmt_fetch * stmt);
+static void free_close(PLpgSQL_stmt_close * stmt);
+static void free_perform(PLpgSQL_stmt_perform * stmt);
+static void free_expr(PLpgSQL_expr * expr);
 
 
 static void
-free_stmt(PLpgSQL_stmt *stmt)
+free_stmt(PLpgSQL_stmt * stmt)
 {
 	switch (stmt->cmd_type)
 	{
@@ -450,7 +450,7 @@ free_stmt(PLpgSQL_stmt *stmt)
 }
 
 static void
-free_stmts(List *stmts)
+free_stmts(List * stmts)
 {
 	ListCell   *s;
 
@@ -461,7 +461,7 @@ free_stmts(List *stmts)
 }
 
 static void
-free_block(PLpgSQL_stmt_block *block)
+free_block(PLpgSQL_stmt_block * block)
 {
 	free_stmts(block->body);
 	if (block->exceptions)
@@ -478,13 +478,13 @@ free_block(PLpgSQL_stmt_block *block)
 }
 
 static void
-free_assign(PLpgSQL_stmt_assign *stmt)
+free_assign(PLpgSQL_stmt_assign * stmt)
 {
 	free_expr(stmt->expr);
 }
 
 static void
-free_if(PLpgSQL_stmt_if *stmt)
+free_if(PLpgSQL_stmt_if * stmt)
 {
 	ListCell   *l;
 
@@ -501,7 +501,7 @@ free_if(PLpgSQL_stmt_if *stmt)
 }
 
 static void
-free_case(PLpgSQL_stmt_case *stmt)
+free_case(PLpgSQL_stmt_case * stmt)
 {
 	ListCell   *l;
 
@@ -517,20 +517,20 @@ free_case(PLpgSQL_stmt_case *stmt)
 }
 
 static void
-free_loop(PLpgSQL_stmt_loop *stmt)
+free_loop(PLpgSQL_stmt_loop * stmt)
 {
 	free_stmts(stmt->body);
 }
 
 static void
-free_while(PLpgSQL_stmt_while *stmt)
+free_while(PLpgSQL_stmt_while * stmt)
 {
 	free_expr(stmt->cond);
 	free_stmts(stmt->body);
 }
 
 static void
-free_fori(PLpgSQL_stmt_fori *stmt)
+free_fori(PLpgSQL_stmt_fori * stmt)
 {
 	free_expr(stmt->lower);
 	free_expr(stmt->upper);
@@ -539,28 +539,28 @@ free_fori(PLpgSQL_stmt_fori *stmt)
 }
 
 static void
-free_fors(PLpgSQL_stmt_fors *stmt)
+free_fors(PLpgSQL_stmt_fors * stmt)
 {
 	free_stmts(stmt->body);
 	free_expr(stmt->query);
 }
 
 static void
-free_forc(PLpgSQL_stmt_forc *stmt)
+free_forc(PLpgSQL_stmt_forc * stmt)
 {
 	free_stmts(stmt->body);
 	free_expr(stmt->argquery);
 }
 
 static void
-free_foreach_a(PLpgSQL_stmt_foreach_a *stmt)
+free_foreach_a(PLpgSQL_stmt_foreach_a * stmt)
 {
 	free_expr(stmt->expr);
 	free_stmts(stmt->body);
 }
 
 static void
-free_open(PLpgSQL_stmt_open *stmt)
+free_open(PLpgSQL_stmt_open * stmt)
 {
 	ListCell   *lc;
 
@@ -574,42 +574,42 @@ free_open(PLpgSQL_stmt_open *stmt)
 }
 
 static void
-free_fetch(PLpgSQL_stmt_fetch *stmt)
+free_fetch(PLpgSQL_stmt_fetch * stmt)
 {
 	free_expr(stmt->expr);
 }
 
 static void
-free_close(PLpgSQL_stmt_close *stmt)
+free_close(PLpgSQL_stmt_close * stmt)
 {
 }
 
 static void
-free_perform(PLpgSQL_stmt_perform *stmt)
+free_perform(PLpgSQL_stmt_perform * stmt)
 {
 	free_expr(stmt->expr);
 }
 
 static void
-free_exit(PLpgSQL_stmt_exit *stmt)
+free_exit(PLpgSQL_stmt_exit * stmt)
 {
 	free_expr(stmt->cond);
 }
 
 static void
-free_return(PLpgSQL_stmt_return *stmt)
+free_return(PLpgSQL_stmt_return * stmt)
 {
 	free_expr(stmt->expr);
 }
 
 static void
-free_return_next(PLpgSQL_stmt_return_next *stmt)
+free_return_next(PLpgSQL_stmt_return_next * stmt)
 {
 	free_expr(stmt->expr);
 }
 
 static void
-free_return_query(PLpgSQL_stmt_return_query *stmt)
+free_return_query(PLpgSQL_stmt_return_query * stmt)
 {
 	ListCell   *lc;
 
@@ -622,7 +622,7 @@ free_return_query(PLpgSQL_stmt_return_query *stmt)
 }
 
 static void
-free_raise(PLpgSQL_stmt_raise *stmt)
+free_raise(PLpgSQL_stmt_raise * stmt)
 {
 	ListCell   *lc;
 
@@ -639,20 +639,20 @@ free_raise(PLpgSQL_stmt_raise *stmt)
 }
 
 static void
-free_assert(PLpgSQL_stmt_assert *stmt)
+free_assert(PLpgSQL_stmt_assert * stmt)
 {
 	free_expr(stmt->cond);
 	free_expr(stmt->message);
 }
 
 static void
-free_execsql(PLpgSQL_stmt_execsql *stmt)
+free_execsql(PLpgSQL_stmt_execsql * stmt)
 {
 	free_expr(stmt->sqlstmt);
 }
 
 static void
-free_dynexecute(PLpgSQL_stmt_dynexecute *stmt)
+free_dynexecute(PLpgSQL_stmt_dynexecute * stmt)
 {
 	ListCell   *lc;
 
@@ -664,7 +664,7 @@ free_dynexecute(PLpgSQL_stmt_dynexecute *stmt)
 }
 
 static void
-free_dynfors(PLpgSQL_stmt_dynfors *stmt)
+free_dynfors(PLpgSQL_stmt_dynfors * stmt)
 {
 	ListCell   *lc;
 
@@ -677,12 +677,12 @@ free_dynfors(PLpgSQL_stmt_dynfors *stmt)
 }
 
 static void
-free_getdiag(PLpgSQL_stmt_getdiag *stmt)
+free_getdiag(PLpgSQL_stmt_getdiag * stmt)
 {
 }
 
 static void
-free_expr(PLpgSQL_expr *expr)
+free_expr(PLpgSQL_expr * expr)
 {
 	if (expr && expr->plan)
 	{
@@ -692,7 +692,7 @@ free_expr(PLpgSQL_expr *expr)
 }
 
 void
-plpgsql_free_function_memory(PLpgSQL_function *func)
+plpgsql_free_function_memory(PLpgSQL_function * func)
 {
 	int			i;
 
@@ -751,33 +751,33 @@ plpgsql_free_function_memory(PLpgSQL_function *func)
 static int	dump_indent;
 
 static void dump_ind(void);
-static void dump_stmt(PLpgSQL_stmt *stmt);
-static void dump_block(PLpgSQL_stmt_block *block);
-static void dump_assign(PLpgSQL_stmt_assign *stmt);
-static void dump_if(PLpgSQL_stmt_if *stmt);
-static void dump_case(PLpgSQL_stmt_case *stmt);
-static void dump_loop(PLpgSQL_stmt_loop *stmt);
-static void dump_while(PLpgSQL_stmt_while *stmt);
-static void dump_fori(PLpgSQL_stmt_fori *stmt);
-static void dump_fors(PLpgSQL_stmt_fors *stmt);
-static void dump_forc(PLpgSQL_stmt_forc *stmt);
-static void dump_foreach_a(PLpgSQL_stmt_foreach_a *stmt);
-static void dump_exit(PLpgSQL_stmt_exit *stmt);
-static void dump_return(PLpgSQL_stmt_return *stmt);
-static void dump_return_next(PLpgSQL_stmt_return_next *stmt);
-static void dump_return_query(PLpgSQL_stmt_return_query *stmt);
-static void dump_raise(PLpgSQL_stmt_raise *stmt);
-static void dump_assert(PLpgSQL_stmt_assert *stmt);
-static void dump_execsql(PLpgSQL_stmt_execsql *stmt);
-static void dump_dynexecute(PLpgSQL_stmt_dynexecute *stmt);
-static void dump_dynfors(PLpgSQL_stmt_dynfors *stmt);
-static void dump_getdiag(PLpgSQL_stmt_getdiag *stmt);
-static void dump_open(PLpgSQL_stmt_open *stmt);
-static void dump_fetch(PLpgSQL_stmt_fetch *stmt);
-static void dump_cursor_direction(PLpgSQL_stmt_fetch *stmt);
-static void dump_close(PLpgSQL_stmt_close *stmt);
-static void dump_perform(PLpgSQL_stmt_perform *stmt);
-static void dump_expr(PLpgSQL_expr *expr);
+static void dump_stmt(PLpgSQL_stmt * stmt);
+static void dump_block(PLpgSQL_stmt_block * block);
+static void dump_assign(PLpgSQL_stmt_assign * stmt);
+static void dump_if(PLpgSQL_stmt_if * stmt);
+static void dump_case(PLpgSQL_stmt_case * stmt);
+static void dump_loop(PLpgSQL_stmt_loop * stmt);
+static void dump_while(PLpgSQL_stmt_while * stmt);
+static void dump_fori(PLpgSQL_stmt_fori * stmt);
+static void dump_fors(PLpgSQL_stmt_fors * stmt);
+static void dump_forc(PLpgSQL_stmt_forc * stmt);
+static void dump_foreach_a(PLpgSQL_stmt_foreach_a * stmt);
+static void dump_exit(PLpgSQL_stmt_exit * stmt);
+static void dump_return(PLpgSQL_stmt_return * stmt);
+static void dump_return_next(PLpgSQL_stmt_return_next * stmt);
+static void dump_return_query(PLpgSQL_stmt_return_query * stmt);
+static void dump_raise(PLpgSQL_stmt_raise * stmt);
+static void dump_assert(PLpgSQL_stmt_assert * stmt);
+static void dump_execsql(PLpgSQL_stmt_execsql * stmt);
+static void dump_dynexecute(PLpgSQL_stmt_dynexecute * stmt);
+static void dump_dynfors(PLpgSQL_stmt_dynfors * stmt);
+static void dump_getdiag(PLpgSQL_stmt_getdiag * stmt);
+static void dump_open(PLpgSQL_stmt_open * stmt);
+static void dump_fetch(PLpgSQL_stmt_fetch * stmt);
+static void dump_cursor_direction(PLpgSQL_stmt_fetch * stmt);
+static void dump_close(PLpgSQL_stmt_close * stmt);
+static void dump_perform(PLpgSQL_stmt_perform * stmt);
+static void dump_expr(PLpgSQL_expr * expr);
 
 
 static void
@@ -790,7 +790,7 @@ dump_ind(void)
 }
 
 static void
-dump_stmt(PLpgSQL_stmt *stmt)
+dump_stmt(PLpgSQL_stmt * stmt)
 {
 	printf("%3d:", stmt->lineno);
 	switch (stmt->cmd_type)
@@ -874,7 +874,7 @@ dump_stmt(PLpgSQL_stmt *stmt)
 }
 
 static void
-dump_stmts(List *stmts)
+dump_stmts(List * stmts)
 {
 	ListCell   *s;
 
@@ -885,7 +885,7 @@ dump_stmts(List *stmts)
 }
 
 static void
-dump_block(PLpgSQL_stmt_block *block)
+dump_block(PLpgSQL_stmt_block * block)
 {
 	char	   *name;
 
@@ -926,7 +926,7 @@ dump_block(PLpgSQL_stmt_block *block)
 }
 
 static void
-dump_assign(PLpgSQL_stmt_assign *stmt)
+dump_assign(PLpgSQL_stmt_assign * stmt)
 {
 	dump_ind();
 	printf("ASSIGN var %d := ", stmt->varno);
@@ -935,7 +935,7 @@ dump_assign(PLpgSQL_stmt_assign *stmt)
 }
 
 static void
-dump_if(PLpgSQL_stmt_if *stmt)
+dump_if(PLpgSQL_stmt_if * stmt)
 {
 	ListCell   *l;
 
@@ -965,7 +965,7 @@ dump_if(PLpgSQL_stmt_if *stmt)
 }
 
 static void
-dump_case(PLpgSQL_stmt_case *stmt)
+dump_case(PLpgSQL_stmt_case * stmt)
 {
 	ListCell   *l;
 
@@ -1003,7 +1003,7 @@ dump_case(PLpgSQL_stmt_case *stmt)
 }
 
 static void
-dump_loop(PLpgSQL_stmt_loop *stmt)
+dump_loop(PLpgSQL_stmt_loop * stmt)
 {
 	dump_ind();
 	printf("LOOP\n");
@@ -1015,7 +1015,7 @@ dump_loop(PLpgSQL_stmt_loop *stmt)
 }
 
 static void
-dump_while(PLpgSQL_stmt_while *stmt)
+dump_while(PLpgSQL_stmt_while * stmt)
 {
 	dump_ind();
 	printf("WHILE ");
@@ -1029,7 +1029,7 @@ dump_while(PLpgSQL_stmt_while *stmt)
 }
 
 static void
-dump_fori(PLpgSQL_stmt_fori *stmt)
+dump_fori(PLpgSQL_stmt_fori * stmt)
 {
 	dump_ind();
 	printf("FORI %s %s\n", stmt->var->refname, (stmt->reverse) ? "REVERSE" : "NORMAL");
@@ -1059,7 +1059,7 @@ dump_fori(PLpgSQL_stmt_fori *stmt)
 }
 
 static void
-dump_fors(PLpgSQL_stmt_fors *stmt)
+dump_fors(PLpgSQL_stmt_fors * stmt)
 {
 	dump_ind();
 	printf("FORS %s ", (stmt->rec != NULL) ? stmt->rec->refname : stmt->row->refname);
@@ -1073,7 +1073,7 @@ dump_fors(PLpgSQL_stmt_fors *stmt)
 }
 
 static void
-dump_forc(PLpgSQL_stmt_forc *stmt)
+dump_forc(PLpgSQL_stmt_forc * stmt)
 {
 	dump_ind();
 	printf("FORC %s ", stmt->rec->refname);
@@ -1096,7 +1096,7 @@ dump_forc(PLpgSQL_stmt_forc *stmt)
 }
 
 static void
-dump_foreach_a(PLpgSQL_stmt_foreach_a *stmt)
+dump_foreach_a(PLpgSQL_stmt_foreach_a * stmt)
 {
 	dump_ind();
 	printf("FOREACHA var %d ", stmt->varno);
@@ -1113,7 +1113,7 @@ dump_foreach_a(PLpgSQL_stmt_foreach_a *stmt)
 }
 
 static void
-dump_open(PLpgSQL_stmt_open *stmt)
+dump_open(PLpgSQL_stmt_open * stmt)
 {
 	dump_ind();
 	printf("OPEN curvar=%d\n", stmt->curvar);
@@ -1164,7 +1164,7 @@ dump_open(PLpgSQL_stmt_open *stmt)
 }
 
 static void
-dump_fetch(PLpgSQL_stmt_fetch *stmt)
+dump_fetch(PLpgSQL_stmt_fetch * stmt)
 {
 	dump_ind();
 
@@ -1194,7 +1194,7 @@ dump_fetch(PLpgSQL_stmt_fetch *stmt)
 }
 
 static void
-dump_cursor_direction(PLpgSQL_stmt_fetch *stmt)
+dump_cursor_direction(PLpgSQL_stmt_fetch * stmt)
 {
 	dump_indent += 2;
 	dump_ind();
@@ -1228,14 +1228,14 @@ dump_cursor_direction(PLpgSQL_stmt_fetch *stmt)
 }
 
 static void
-dump_close(PLpgSQL_stmt_close *stmt)
+dump_close(PLpgSQL_stmt_close * stmt)
 {
 	dump_ind();
 	printf("CLOSE curvar=%d\n", stmt->curvar);
 }
 
 static void
-dump_perform(PLpgSQL_stmt_perform *stmt)
+dump_perform(PLpgSQL_stmt_perform * stmt)
 {
 	dump_ind();
 	printf("PERFORM expr = ");
@@ -1244,7 +1244,7 @@ dump_perform(PLpgSQL_stmt_perform *stmt)
 }
 
 static void
-dump_exit(PLpgSQL_stmt_exit *stmt)
+dump_exit(PLpgSQL_stmt_exit * stmt)
 {
 	dump_ind();
 	printf("%s", stmt->is_exit ? "EXIT" : "CONTINUE");
@@ -1259,7 +1259,7 @@ dump_exit(PLpgSQL_stmt_exit *stmt)
 }
 
 static void
-dump_return(PLpgSQL_stmt_return *stmt)
+dump_return(PLpgSQL_stmt_return * stmt)
 {
 	dump_ind();
 	printf("RETURN ");
@@ -1273,7 +1273,7 @@ dump_return(PLpgSQL_stmt_return *stmt)
 }
 
 static void
-dump_return_next(PLpgSQL_stmt_return_next *stmt)
+dump_return_next(PLpgSQL_stmt_return_next * stmt)
 {
 	dump_ind();
 	printf("RETURN NEXT ");
@@ -1287,7 +1287,7 @@ dump_return_next(PLpgSQL_stmt_return_next *stmt)
 }
 
 static void
-dump_return_query(PLpgSQL_stmt_return_query *stmt)
+dump_return_query(PLpgSQL_stmt_return_query * stmt)
 {
 	dump_ind();
 	if (stmt->query)
@@ -1324,7 +1324,7 @@ dump_return_query(PLpgSQL_stmt_return_query *stmt)
 }
 
 static void
-dump_raise(PLpgSQL_stmt_raise *stmt)
+dump_raise(PLpgSQL_stmt_raise * stmt)
 {
 	ListCell   *lc;
 	int			i = 0;
@@ -1393,7 +1393,7 @@ dump_raise(PLpgSQL_stmt_raise *stmt)
 }
 
 static void
-dump_assert(PLpgSQL_stmt_assert *stmt)
+dump_assert(PLpgSQL_stmt_assert * stmt)
 {
 	dump_ind();
 	printf("ASSERT ");
@@ -1412,7 +1412,7 @@ dump_assert(PLpgSQL_stmt_assert *stmt)
 }
 
 static void
-dump_execsql(PLpgSQL_stmt_execsql *stmt)
+dump_execsql(PLpgSQL_stmt_execsql * stmt)
 {
 	dump_ind();
 	printf("EXECSQL ");
@@ -1438,7 +1438,7 @@ dump_execsql(PLpgSQL_stmt_execsql *stmt)
 }
 
 static void
-dump_dynexecute(PLpgSQL_stmt_dynexecute *stmt)
+dump_dynexecute(PLpgSQL_stmt_dynexecute * stmt)
 {
 	dump_ind();
 	printf("EXECUTE ");
@@ -1482,7 +1482,7 @@ dump_dynexecute(PLpgSQL_stmt_dynexecute *stmt)
 }
 
 static void
-dump_dynfors(PLpgSQL_stmt_dynfors *stmt)
+dump_dynfors(PLpgSQL_stmt_dynfors * stmt)
 {
 	dump_ind();
 	printf("FORS %s EXECUTE ",
@@ -1514,7 +1514,7 @@ dump_dynfors(PLpgSQL_stmt_dynfors *stmt)
 }
 
 static void
-dump_getdiag(PLpgSQL_stmt_getdiag *stmt)
+dump_getdiag(PLpgSQL_stmt_getdiag * stmt)
 {
 	ListCell   *lc;
 
@@ -1534,13 +1534,13 @@ dump_getdiag(PLpgSQL_stmt_getdiag *stmt)
 }
 
 static void
-dump_expr(PLpgSQL_expr *expr)
+dump_expr(PLpgSQL_expr * expr)
 {
 	printf("'%s'", expr->query);
 }
 
 void
-plpgsql_dumptree(PLpgSQL_function *func)
+plpgsql_dumptree(PLpgSQL_function * func)
 {
 	int			i;
 	PLpgSQL_datum *d;

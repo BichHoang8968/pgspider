@@ -30,12 +30,12 @@
 
 
 static void does_not_exist_skipping(ObjectType objtype,
-						Node *object);
-static bool owningrel_does_not_exist_skipping(List *object,
+						Node * object);
+static bool owningrel_does_not_exist_skipping(List * object,
 								  const char **msg, char **name);
-static bool schema_does_not_exist_skipping(List *object,
+static bool schema_does_not_exist_skipping(List * object,
 							   const char **msg, char **name);
-static bool type_in_list_does_not_exist_skipping(List *typenames,
+static bool type_in_list_does_not_exist_skipping(List * typenames,
 									 const char **msg, char **name);
 
 
@@ -51,7 +51,7 @@ static bool type_in_list_does_not_exist_skipping(List *typenames,
  * errors if there are dependencies between them.
  */
 void
-RemoveObjects(DropStmt *stmt)
+RemoveObjects(DropStmt * stmt)
 {
 	ObjectAddresses *objects;
 	ListCell   *cell1;
@@ -139,7 +139,7 @@ RemoveObjects(DropStmt *stmt)
  * exist, fill the error message format string and name, and return true.
  */
 static bool
-owningrel_does_not_exist_skipping(List *object, const char **msg, char **name)
+owningrel_does_not_exist_skipping(List * object, const char **msg, char **name)
 {
 	List	   *parent_object;
 	RangeVar   *parent_rel;
@@ -175,7 +175,7 @@ owningrel_does_not_exist_skipping(List *object, const char **msg, char **name)
  * specified schema name, and return true.
  */
 static bool
-schema_does_not_exist_skipping(List *object, const char **msg, char **name)
+schema_does_not_exist_skipping(List * object, const char **msg, char **name)
 {
 	RangeVar   *rel;
 
@@ -207,7 +207,7 @@ schema_does_not_exist_skipping(List *object, const char **msg, char **name)
  * First parameter is a list of TypeNames.
  */
 static bool
-type_in_list_does_not_exist_skipping(List *typenames, const char **msg,
+type_in_list_does_not_exist_skipping(List * typenames, const char **msg,
 									 char **name)
 {
 	ListCell   *l;
@@ -244,7 +244,7 @@ type_in_list_does_not_exist_skipping(List *typenames, const char **msg,
  * get_object_address() in RemoveObjects would have thrown an ERROR.
  */
 static void
-does_not_exist_skipping(ObjectType objtype, Node *object)
+does_not_exist_skipping(ObjectType objtype, Node * object)
 {
 	const char *msg = NULL;
 	char	   *name = NULL;

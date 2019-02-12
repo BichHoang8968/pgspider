@@ -56,9 +56,9 @@
 #include "pg_config_paths.h"
 
 
-static int	pqPutMsgBytes(const void *buf, size_t len, PGconn *conn);
-static int	pqSendSome(PGconn *conn, int len);
-static int pqSocketCheck(PGconn *conn, int forRead, int forWrite,
+static int	pqPutMsgBytes(const void *buf, size_t len, PGconn * conn);
+static int	pqSendSome(PGconn * conn, int len);
+static int pqSocketCheck(PGconn * conn, int forRead, int forWrite,
 			  time_t end_time);
 static int	pqSocketPoll(int sock, int forRead, int forWrite, time_t end_time);
 
@@ -78,7 +78,7 @@ PQlibVersion(void)
  * is not valid in what libc thinks is the prevailing encoding.
  */
 static void
-fputnbytes(FILE *f, const char *str, size_t n)
+fputnbytes(FILE * f, const char *str, size_t n)
 {
 	while (n-- > 0)
 		fputc(*str++, f);
@@ -93,7 +93,7 @@ fputnbytes(FILE *f, const char *str, size_t n)
  *	data in the buffer, not that there is necessarily a hard error.
  */
 int
-pqGetc(char *result, PGconn *conn)
+pqGetc(char *result, PGconn * conn)
 {
 	if (conn->inCursor >= conn->inEnd)
 		return EOF;
@@ -111,7 +111,7 @@ pqGetc(char *result, PGconn *conn)
  * pqPutc: write 1 char to the current message
  */
 int
-pqPutc(char c, PGconn *conn)
+pqPutc(char c, PGconn * conn)
 {
 	if (pqPutMsgBytes(&c, 1, conn))
 		return EOF;
@@ -131,7 +131,7 @@ pqPutc(char c, PGconn *conn)
  * but the excess characters are silently discarded.
  */
 static int
-pqGets_internal(PQExpBuffer buf, PGconn *conn, bool resetbuffer)
+pqGets_internal(PQExpBuffer buf, PGconn * conn, bool resetbuffer)
 {
 	/* Copy conn data to locals for faster search loop */
 	char	   *inBuffer = conn->inBuffer;
@@ -162,13 +162,13 @@ pqGets_internal(PQExpBuffer buf, PGconn *conn, bool resetbuffer)
 }
 
 int
-pqGets(PQExpBuffer buf, PGconn *conn)
+pqGets(PQExpBuffer buf, PGconn * conn)
 {
 	return pqGets_internal(buf, conn, true);
 }
 
 int
-pqGets_append(PQExpBuffer buf, PGconn *conn)
+pqGets_append(PQExpBuffer buf, PGconn * conn)
 {
 	return pqGets_internal(buf, conn, false);
 }
@@ -178,7 +178,7 @@ pqGets_append(PQExpBuffer buf, PGconn *conn)
  * pqPuts: write a null-terminated string to the current message
  */
 int
-pqPuts(const char *s, PGconn *conn)
+pqPuts(const char *s, PGconn * conn)
 {
 	if (pqPutMsgBytes(s, strlen(s) + 1, conn))
 		return EOF;
@@ -194,7 +194,7 @@ pqPuts(const char *s, PGconn *conn)
  *	get a string of exactly len bytes in buffer s, no null termination
  */
 int
-pqGetnchar(char *s, size_t len, PGconn *conn)
+pqGetnchar(char *s, size_t len, PGconn * conn)
 {
 	if (len > (size_t) (conn->inEnd - conn->inCursor))
 		return EOF;
@@ -223,7 +223,7 @@ pqGetnchar(char *s, size_t len, PGconn *conn)
  * will actually be used, but just isn't getting copied anywhere as yet.
  */
 int
-pqSkipnchar(size_t len, PGconn *conn)
+pqSkipnchar(size_t len, PGconn * conn)
 {
 	if (len > (size_t) (conn->inEnd - conn->inCursor))
 		return EOF;
@@ -245,7 +245,7 @@ pqSkipnchar(size_t len, PGconn *conn)
  *	write exactly len bytes to the current message
  */
 int
-pqPutnchar(const char *s, size_t len, PGconn *conn)
+pqPutnchar(const char *s, size_t len, PGconn * conn)
 {
 	if (pqPutMsgBytes(s, len, conn))
 		return EOF;
@@ -266,7 +266,7 @@ pqPutnchar(const char *s, size_t len, PGconn *conn)
  *	to local byte order
  */
 int
-pqGetInt(int *result, size_t bytes, PGconn *conn)
+pqGetInt(int *result, size_t bytes, PGconn * conn)
 {
 	uint16		tmp2;
 	uint32		tmp4;
@@ -306,7 +306,7 @@ pqGetInt(int *result, size_t bytes, PGconn *conn)
  * to network byte order.
  */
 int
-pqPutInt(int value, size_t bytes, PGconn *conn)
+pqPutInt(int value, size_t bytes, PGconn * conn)
 {
 	uint16		tmp2;
 	uint32		tmp4;
@@ -343,7 +343,7 @@ pqPutInt(int value, size_t bytes, PGconn *conn)
  * Returns 0 on success, EOF if failed to enlarge buffer
  */
 int
-pqCheckOutBufferSpace(size_t bytes_needed, PGconn *conn)
+pqCheckOutBufferSpace(size_t bytes_needed, PGconn * conn)
 {
 	int			newsize = conn->outBufSize;
 	char	   *newbuf;
@@ -407,7 +407,7 @@ pqCheckOutBufferSpace(size_t bytes_needed, PGconn *conn)
  * Returns 0 on success, EOF if failed to enlarge buffer
  */
 int
-pqCheckInBufferSpace(size_t bytes_needed, PGconn *conn)
+pqCheckInBufferSpace(size_t bytes_needed, PGconn * conn)
 {
 	int			newsize = conn->inBufSize;
 	char	   *newbuf;
@@ -518,7 +518,7 @@ pqCheckInBufferSpace(size_t bytes_needed, PGconn *conn)
  * conn->outMsgEnd is the end of the data collected so far.
  */
 int
-pqPutMsgStart(char msg_type, bool force_len, PGconn *conn)
+pqPutMsgStart(char msg_type, bool force_len, PGconn * conn)
 {
 	int			lenPos;
 	int			endPos;
@@ -563,7 +563,7 @@ pqPutMsgStart(char msg_type, bool force_len, PGconn *conn)
  * Returns 0 on success, EOF on error
  */
 static int
-pqPutMsgBytes(const void *buf, size_t len, PGconn *conn)
+pqPutMsgBytes(const void *buf, size_t len, PGconn * conn)
 {
 	/* make sure there is room for it */
 	if (pqCheckOutBufferSpace(conn->outMsgEnd + len, conn))
@@ -586,7 +586,7 @@ pqPutMsgBytes(const void *buf, size_t len, PGconn *conn)
  * when it's important to flush all the data out to the server.
  */
 int
-pqPutMsgEnd(PGconn *conn)
+pqPutMsgEnd(PGconn * conn)
 {
 	if (conn->Pfdebug)
 		fprintf(conn->Pfdebug, "To backend> Msg complete, length %u\n",
@@ -628,7 +628,7 @@ pqPutMsgEnd(PGconn *conn)
  * ----------
  */
 int
-pqReadData(PGconn *conn)
+pqReadData(PGconn * conn)
 {
 	int			someread = 0;
 	int			nread;
@@ -828,7 +828,7 @@ definitelyFailed:
  * because the socket would block and the connection is non-blocking.
  */
 static int
-pqSendSome(PGconn *conn, int len)
+pqSendSome(PGconn * conn, int len)
 {
 	char	   *ptr = conn->outBuffer;
 	int			remaining = conn->outCount;
@@ -960,7 +960,7 @@ pqSendSome(PGconn *conn, int len)
  * because the socket would block and the connection is non-blocking.
  */
 int
-pqFlush(PGconn *conn)
+pqFlush(PGconn * conn)
 {
 	if (conn->Pfdebug)
 		fflush(conn->Pfdebug);
@@ -983,9 +983,9 @@ pqFlush(PGconn *conn)
  * when the caller tries to read or write the socket.
  */
 int
-pqWait(int forRead, int forWrite, PGconn *conn)
+pqWait(int forRead, int forWrite, PGconn * conn)
 {
-	return pqWaitTimed(forRead, forWrite, conn, (time_t) -1);
+	return pqWaitTimed(forRead, forWrite, conn, (time_t) - 1);
 }
 
 /*
@@ -996,7 +996,7 @@ pqWait(int forRead, int forWrite, PGconn *conn)
  * Returns -1 on failure, 0 if the socket is readable/writable, 1 if it timed out.
  */
 int
-pqWaitTimed(int forRead, int forWrite, PGconn *conn, time_t finish_time)
+pqWaitTimed(int forRead, int forWrite, PGconn * conn, time_t finish_time)
 {
 	int			result;
 
@@ -1020,7 +1020,7 @@ pqWaitTimed(int forRead, int forWrite, PGconn *conn, time_t finish_time)
  * Returns -1 on failure, 0 if not ready, 1 if ready.
  */
 int
-pqReadReady(PGconn *conn)
+pqReadReady(PGconn * conn)
 {
 	return pqSocketCheck(conn, 1, 0, (time_t) 0);
 }
@@ -1030,7 +1030,7 @@ pqReadReady(PGconn *conn)
  * Returns -1 on failure, 0 if not ready, 1 if ready.
  */
 int
-pqWriteReady(PGconn *conn)
+pqWriteReady(PGconn * conn)
 {
 	return pqSocketCheck(conn, 0, 1, (time_t) 0);
 }
@@ -1044,7 +1044,7 @@ pqWriteReady(PGconn *conn)
  * for read data directly.
  */
 static int
-pqSocketCheck(PGconn *conn, int forRead, int forWrite, time_t end_time)
+pqSocketCheck(PGconn * conn, int forRead, int forWrite, time_t end_time)
 {
 	int			result;
 
@@ -1114,7 +1114,7 @@ pqSocketPoll(int sock, int forRead, int forWrite, time_t end_time)
 		input_fd.events |= POLLOUT;
 
 	/* Compute appropriate timeout interval */
-	if (end_time == ((time_t) -1))
+	if (end_time == ((time_t) - 1))
 		timeout_ms = -1;
 	else
 	{
@@ -1149,7 +1149,7 @@ pqSocketPoll(int sock, int forRead, int forWrite, time_t end_time)
 	FD_SET(sock, &except_mask);
 
 	/* Compute appropriate timeout interval */
-	if (end_time == ((time_t) -1))
+	if (end_time == ((time_t) - 1))
 		ptr_timeout = NULL;
 	else
 	{

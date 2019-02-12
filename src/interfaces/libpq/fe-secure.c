@@ -157,7 +157,7 @@ PQinitOpenSSL(int do_ssl, int do_crypto)
  *	Initialize global SSL context
  */
 int
-pqsecure_initialize(PGconn *conn)
+pqsecure_initialize(PGconn * conn)
 {
 	int			r = 0;
 
@@ -172,7 +172,7 @@ pqsecure_initialize(PGconn *conn)
  *	Begin or continue negotiating a secure session.
  */
 PostgresPollingStatusType
-pqsecure_open_client(PGconn *conn)
+pqsecure_open_client(PGconn * conn)
 {
 #ifdef USE_SSL
 	return pgtls_open_client(conn);
@@ -186,7 +186,7 @@ pqsecure_open_client(PGconn *conn)
  *	Close secure session.
  */
 void
-pqsecure_close(PGconn *conn)
+pqsecure_close(PGconn * conn)
 {
 #ifdef USE_SSL
 	if (conn->ssl_in_use)
@@ -202,7 +202,7 @@ pqsecure_close(PGconn *conn)
  * to determine whether to continue/retry after error.
  */
 ssize_t
-pqsecure_read(PGconn *conn, void *ptr, size_t len)
+pqsecure_read(PGconn * conn, void *ptr, size_t len)
 {
 	ssize_t		n;
 
@@ -221,7 +221,7 @@ pqsecure_read(PGconn *conn, void *ptr, size_t len)
 }
 
 ssize_t
-pqsecure_raw_read(PGconn *conn, void *ptr, size_t len)
+pqsecure_raw_read(PGconn * conn, void *ptr, size_t len)
 {
 	ssize_t		n;
 	int			result_errno = 0;
@@ -279,7 +279,7 @@ pqsecure_raw_read(PGconn *conn, void *ptr, size_t len)
  * to determine whether to continue/retry after error.
  */
 ssize_t
-pqsecure_write(PGconn *conn, const void *ptr, size_t len)
+pqsecure_write(PGconn * conn, const void *ptr, size_t len)
 {
 	ssize_t		n;
 
@@ -298,7 +298,7 @@ pqsecure_write(PGconn *conn, const void *ptr, size_t len)
 }
 
 ssize_t
-pqsecure_raw_write(PGconn *conn, const void *ptr, size_t len)
+pqsecure_raw_write(PGconn * conn, const void *ptr, size_t len)
 {
 	ssize_t		n;
 	int			flags = 0;
@@ -385,31 +385,31 @@ retry_masked:
 #ifndef USE_SSL
 
 int
-PQsslInUse(PGconn *conn)
+PQsslInUse(PGconn * conn)
 {
 	return 0;
 }
 
 void *
-PQgetssl(PGconn *conn)
+PQgetssl(PGconn * conn)
 {
 	return NULL;
 }
 
 void *
-PQsslStruct(PGconn *conn, const char *struct_name)
+PQsslStruct(PGconn * conn, const char *struct_name)
 {
 	return NULL;
 }
 
 const char *
-PQsslAttribute(PGconn *conn, const char *attribute_name)
+PQsslAttribute(PGconn * conn, const char *attribute_name)
 {
 	return NULL;
 }
 
 const char *const *
-PQsslAttributeNames(PGconn *conn)
+PQsslAttributeNames(PGconn * conn)
 {
 	static const char *const result[] = {NULL};
 
@@ -425,7 +425,7 @@ PQsslAttributeNames(PGconn *conn)
  *	the application.
  */
 int
-pq_block_sigpipe(sigset_t *osigset, bool *sigpipe_pending)
+pq_block_sigpipe(sigset_t * osigset, bool *sigpipe_pending)
 {
 	sigset_t	sigpipe_sigset;
 	sigset_t	sigset;
@@ -475,7 +475,7 @@ pq_block_sigpipe(sigset_t *osigset, bool *sigpipe_pending)
  * we were able to do pq_block_sigpipe(), this can't fail.
  */
 void
-pq_reset_sigpipe(sigset_t *osigset, bool sigpipe_pending, bool got_epipe)
+pq_reset_sigpipe(sigset_t * osigset, bool sigpipe_pending, bool got_epipe)
 {
 	int			save_errno = SOCK_ERRNO;
 	int			signo;

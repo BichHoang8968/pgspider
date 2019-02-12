@@ -74,7 +74,7 @@ typedef struct
 	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	int32		flag;
 	char		data[FLEXIBLE_ARRAY_MEMBER];
-} GISTTYPE;
+}			GISTTYPE;
 
 #define ALLISTRUE		0x04
 
@@ -88,27 +88,27 @@ typedef struct
 /*
  * types for functions
  */
-typedef ArrayType *(*formarray) (ArrayType *, ArrayType *);
+typedef ArrayType * (*formarray) (ArrayType *, ArrayType *);
 typedef void (*formfloat) (ArrayType *, float *);
 
 /*
  * useful functions
  */
-bool		isort(int32 *a, int len);
+bool		isort(int32 * a, int len);
 ArrayType  *new_intArrayType(int num);
-ArrayType  *copy_intArrayType(ArrayType *a);
-ArrayType  *resize_intArrayType(ArrayType *a, int num);
+ArrayType  *copy_intArrayType(ArrayType * a);
+ArrayType  *resize_intArrayType(ArrayType * a, int num);
 int			internal_size(int *a, int len);
-ArrayType  *_int_unique(ArrayType *a);
-int32		intarray_match_first(ArrayType *a, int32 elem);
-ArrayType  *intarray_add_elem(ArrayType *a, int32 elem);
-ArrayType  *intarray_concat_arrays(ArrayType *a, ArrayType *b);
+ArrayType  *_int_unique(ArrayType * a);
+int32		intarray_match_first(ArrayType * a, int32 elem);
+ArrayType  *intarray_add_elem(ArrayType * a, int32 elem);
+ArrayType  *intarray_concat_arrays(ArrayType * a, ArrayType * b);
 ArrayType  *int_to_intset(int32 elem);
-bool		inner_int_overlap(ArrayType *a, ArrayType *b);
-bool		inner_int_contains(ArrayType *a, ArrayType *b);
-ArrayType  *inner_int_union(ArrayType *a, ArrayType *b);
-ArrayType  *inner_int_inter(ArrayType *a, ArrayType *b);
-void		rt__int_size(ArrayType *a, float *size);
+bool		inner_int_overlap(ArrayType * a, ArrayType * b);
+bool		inner_int_contains(ArrayType * a, ArrayType * b);
+ArrayType  *inner_int_union(ArrayType * a, ArrayType * b);
+ArrayType  *inner_int_inter(ArrayType * a, ArrayType * b);
+void		rt__int_size(ArrayType * a, float *size);
 void		gensign(BITVEC sign, int *a, int len);
 
 
@@ -127,14 +127,14 @@ typedef struct ITEM
 	int16		type;
 	int16		left;
 	int32		val;
-} ITEM;
+}			ITEM;
 
 typedef struct QUERYTYPE
 {
 	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	int32		size;			/* number of ITEMs */
 	ITEM		items[FLEXIBLE_ARRAY_MEMBER];
-} QUERYTYPE;
+}			QUERYTYPE;
 
 #define HDRSIZEQT	offsetof(QUERYTYPE, items)
 #define COMPUTESIZE(size)	( HDRSIZEQT + (size) * sizeof(ITEM) )
@@ -155,11 +155,11 @@ typedef struct QUERYTYPE
 #define PG_GETARG_QUERYTYPE_P(n)	  DatumGetQueryTypeP(PG_GETARG_DATUM(n))
 #define PG_GETARG_QUERYTYPE_P_COPY(n) DatumGetQueryTypePCopy(PG_GETARG_DATUM(n))
 
-bool		signconsistent(QUERYTYPE *query, BITVEC sign, bool calcnot);
-bool		execconsistent(QUERYTYPE *query, ArrayType *array, bool calcnot);
+bool		signconsistent(QUERYTYPE * query, BITVEC sign, bool calcnot);
+bool		execconsistent(QUERYTYPE * query, ArrayType * array, bool calcnot);
 
-bool		gin_bool_consistent(QUERYTYPE *query, bool *check);
-bool		query_has_required_values(QUERYTYPE *query);
+bool		gin_bool_consistent(QUERYTYPE * query, bool *check);
+bool		query_has_required_values(QUERYTYPE * query);
 
 int			compASC(const void *a, const void *b);
 int			compDESC(const void *a, const void *b);

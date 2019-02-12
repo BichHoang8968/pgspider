@@ -56,7 +56,7 @@ typedef struct
 	char	   *image;			/* copy of page image for modification, do not
 								 * do it in-place to have aligned memory chunk */
 	char		delta[MAX_DELTA_SIZE];	/* delta between page images */
-} PageData;
+}			PageData;
 
 /* State of generic xlog record construction */
 struct GenericXLogState
@@ -71,13 +71,13 @@ struct GenericXLogState
 	bool		isLogged;
 };
 
-static void writeFragment(PageData *pageData, OffsetNumber offset,
+static void writeFragment(PageData * pageData, OffsetNumber offset,
 			  OffsetNumber len, const char *data);
-static void computeRegionDelta(PageData *pageData,
+static void computeRegionDelta(PageData * pageData,
 				   const char *curpage, const char *targetpage,
 				   int targetStart, int targetEnd,
 				   int validStart, int validEnd);
-static void computeDelta(PageData *pageData, Page curpage, Page targetpage);
+static void computeDelta(PageData * pageData, Page curpage, Page targetpage);
 static void applyPageRedo(Page page, const char *delta, Size deltaSize);
 
 
@@ -88,7 +88,7 @@ static void applyPageRedo(Page page, const char *delta, Size deltaSize);
  * actual data (of length length).
  */
 static void
-writeFragment(PageData *pageData, OffsetNumber offset, OffsetNumber length,
+writeFragment(PageData * pageData, OffsetNumber offset, OffsetNumber length,
 			  const char *data)
 {
 	char	   *ptr = pageData->delta + pageData->deltaLen;
@@ -119,7 +119,7 @@ writeFragment(PageData *pageData, OffsetNumber offset, OffsetNumber length,
  * about the data-matching loops.
  */
 static void
-computeRegionDelta(PageData *pageData,
+computeRegionDelta(PageData * pageData,
 				   const char *curpage, const char *targetpage,
 				   int targetStart, int targetEnd,
 				   int validStart, int validEnd)
@@ -226,7 +226,7 @@ computeRegionDelta(PageData *pageData,
  * and store it in pageData's delta field.
  */
 static void
-computeDelta(PageData *pageData, Page curpage, Page targetpage)
+computeDelta(PageData * pageData, Page curpage, Page targetpage)
 {
 	int			targetLower = ((PageHeader) targetpage)->pd_lower,
 				targetUpper = ((PageHeader) targetpage)->pd_upper,
@@ -295,7 +295,7 @@ GenericXLogStart(Relation relation)
  * for now we stay with the original flags.)
  */
 Page
-GenericXLogRegisterBuffer(GenericXLogState *state, Buffer buffer, int flags)
+GenericXLogRegisterBuffer(GenericXLogState * state, Buffer buffer, int flags)
 {
 	int			block_id;
 
@@ -333,7 +333,7 @@ GenericXLogRegisterBuffer(GenericXLogState *state, Buffer buffer, int flags)
  * and emit a generic xlog record.
  */
 XLogRecPtr
-GenericXLogFinish(GenericXLogState *state)
+GenericXLogFinish(GenericXLogState * state)
 {
 	XLogRecPtr	lsn;
 	int			i;
@@ -444,7 +444,7 @@ GenericXLogFinish(GenericXLogState *state)
  * Note: caller is responsible for releasing locks/pins on buffers, if needed.
  */
 void
-GenericXLogAbort(GenericXLogState *state)
+GenericXLogAbort(GenericXLogState * state)
 {
 	pfree(state);
 }
@@ -478,7 +478,7 @@ applyPageRedo(Page page, const char *delta, Size deltaSize)
  * Redo function for generic xlog record.
  */
 void
-generic_redo(XLogReaderState *record)
+generic_redo(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	Buffer		buffers[MAX_GENERIC_XLOG_PAGES];

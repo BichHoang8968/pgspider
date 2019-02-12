@@ -67,65 +67,146 @@ typedef struct EventTriggerQueryState
 	List	   *commandList;	/* list of CollectedCommand; see
 								 * deparse_utility.h */
 	struct EventTriggerQueryState *previous;
-} EventTriggerQueryState;
+}			EventTriggerQueryState;
 
-static EventTriggerQueryState *currentEventTriggerState = NULL;
+static EventTriggerQueryState * currentEventTriggerState = NULL;
 
 typedef struct
 {
 	const char *obtypename;
 	bool		supported;
-} event_trigger_support_data;
+}			event_trigger_support_data;
 
 typedef enum
 {
 	EVENT_TRIGGER_COMMAND_TAG_OK,
 	EVENT_TRIGGER_COMMAND_TAG_NOT_SUPPORTED,
 	EVENT_TRIGGER_COMMAND_TAG_NOT_RECOGNIZED
-} event_trigger_command_tag_check_result;
+}			event_trigger_command_tag_check_result;
 
 /* XXX merge this with ObjectTypeMap? */
-static event_trigger_support_data event_trigger_support[] = {
-	{"ACCESS METHOD", true},
-	{"AGGREGATE", true},
-	{"CAST", true},
-	{"CONSTRAINT", true},
-	{"COLLATION", true},
-	{"CONVERSION", true},
-	{"DATABASE", false},
-	{"DOMAIN", true},
-	{"EXTENSION", true},
-	{"EVENT TRIGGER", false},
-	{"FOREIGN DATA WRAPPER", true},
-	{"FOREIGN TABLE", true},
-	{"FUNCTION", true},
-	{"INDEX", true},
-	{"LANGUAGE", true},
-	{"MATERIALIZED VIEW", true},
-	{"OPERATOR", true},
-	{"OPERATOR CLASS", true},
-	{"OPERATOR FAMILY", true},
-	{"POLICY", true},
-	{"PUBLICATION", true},
-	{"ROLE", false},
-	{"RULE", true},
-	{"SCHEMA", true},
-	{"SEQUENCE", true},
-	{"SERVER", true},
-	{"STATISTICS", true},
-	{"SUBSCRIPTION", true},
-	{"TABLE", true},
-	{"TABLESPACE", false},
-	{"TRANSFORM", true},
-	{"TRIGGER", true},
-	{"TEXT SEARCH CONFIGURATION", true},
-	{"TEXT SEARCH DICTIONARY", true},
-	{"TEXT SEARCH PARSER", true},
-	{"TEXT SEARCH TEMPLATE", true},
-	{"TYPE", true},
-	{"USER MAPPING", true},
-	{"VIEW", true},
-	{NULL, false}
+static event_trigger_support_data event_trigger_support[] =
+{
+	{
+		"ACCESS METHOD", true
+	},
+	{
+		"AGGREGATE", true
+	},
+	{
+		"CAST", true
+	},
+	{
+		"CONSTRAINT", true
+	},
+	{
+		"COLLATION", true
+	},
+	{
+		"CONVERSION", true
+	},
+	{
+		"DATABASE", false
+	},
+	{
+		"DOMAIN", true
+	},
+	{
+		"EXTENSION", true
+	},
+	{
+		"EVENT TRIGGER", false
+	},
+	{
+		"FOREIGN DATA WRAPPER", true
+	},
+	{
+		"FOREIGN TABLE", true
+	},
+	{
+		"FUNCTION", true
+	},
+	{
+		"INDEX", true
+	},
+	{
+		"LANGUAGE", true
+	},
+	{
+		"MATERIALIZED VIEW", true
+	},
+	{
+		"OPERATOR", true
+	},
+	{
+		"OPERATOR CLASS", true
+	},
+	{
+		"OPERATOR FAMILY", true
+	},
+	{
+		"POLICY", true
+	},
+	{
+		"PUBLICATION", true
+	},
+	{
+		"ROLE", false
+	},
+	{
+		"RULE", true
+	},
+	{
+		"SCHEMA", true
+	},
+	{
+		"SEQUENCE", true
+	},
+	{
+		"SERVER", true
+	},
+	{
+		"STATISTICS", true
+	},
+	{
+		"SUBSCRIPTION", true
+	},
+	{
+		"TABLE", true
+	},
+	{
+		"TABLESPACE", false
+	},
+	{
+		"TRANSFORM", true
+	},
+	{
+		"TRIGGER", true
+	},
+	{
+		"TEXT SEARCH CONFIGURATION", true
+	},
+	{
+		"TEXT SEARCH DICTIONARY", true
+	},
+	{
+		"TEXT SEARCH PARSER", true
+	},
+	{
+		"TEXT SEARCH TEMPLATE", true
+	},
+	{
+		"TYPE", true
+	},
+	{
+		"USER MAPPING", true
+	},
+	{
+		"VIEW", true
+	},
+	{
+		NULL, false
+	}
 };
 
 /* Support for dropped objects */
@@ -142,21 +223,21 @@ typedef struct SQLDropObject
 	bool		normal;
 	bool		istemp;
 	slist_node	next;
-} SQLDropObject;
+}			SQLDropObject;
 
 static void AlterEventTriggerOwner_internal(Relation rel,
 								HeapTuple tup,
 								Oid newOwnerId);
 static event_trigger_command_tag_check_result check_ddl_tag(const char *tag);
 static event_trigger_command_tag_check_result check_table_rewrite_ddl_tag(
-							const char *tag);
+																		  const char *tag);
 static void error_duplicate_filter_variable(const char *defname);
-static Datum filter_list_to_array(List *filterlist);
+static Datum filter_list_to_array(List * filterlist);
 static Oid insert_event_trigger_tuple(char *trigname, char *eventname,
-						   Oid evtOwner, Oid funcoid, List *tags);
-static void validate_ddl_tags(const char *filtervar, List *taglist);
-static void validate_table_rewrite_tags(const char *filtervar, List *taglist);
-static void EventTriggerInvoke(List *fn_oid_list, EventTriggerData *trigdata);
+									  Oid evtOwner, Oid funcoid, List * tags);
+static void validate_ddl_tags(const char *filtervar, List * taglist);
+static void validate_table_rewrite_tags(const char *filtervar, List * taglist);
+static void EventTriggerInvoke(List * fn_oid_list, EventTriggerData * trigdata);
 static const char *stringify_grantobjtype(GrantObjectType objtype);
 static const char *stringify_adefprivs_objtype(GrantObjectType objtype);
 
@@ -164,7 +245,7 @@ static const char *stringify_adefprivs_objtype(GrantObjectType objtype);
  * Create an event trigger.
  */
 Oid
-CreateEventTrigger(CreateEventTrigStmt *stmt)
+CreateEventTrigger(CreateEventTrigStmt * stmt)
 {
 	HeapTuple	tuple;
 	Oid			funcoid;
@@ -252,7 +333,7 @@ CreateEventTrigger(CreateEventTrigStmt *stmt)
  * Validate DDL command tags.
  */
 static void
-validate_ddl_tags(const char *filtervar, List *taglist)
+validate_ddl_tags(const char *filtervar, List * taglist)
 {
 	ListCell   *lc;
 
@@ -327,7 +408,7 @@ check_ddl_tag(const char *tag)
  * Validate DDL command tags for event table_rewrite.
  */
 static void
-validate_table_rewrite_tags(const char *filtervar, List *taglist)
+validate_table_rewrite_tags(const char *filtervar, List * taglist)
 {
 	ListCell   *lc;
 
@@ -373,7 +454,7 @@ error_duplicate_filter_variable(const char *defname)
  */
 static Oid
 insert_event_trigger_tuple(char *trigname, char *eventname, Oid evtOwner,
-						   Oid funcoid, List *taglist)
+						   Oid funcoid, List * taglist)
 {
 	Relation	tgrel;
 	Oid			trigoid;
@@ -445,7 +526,7 @@ insert_event_trigger_tuple(char *trigname, char *eventname, Oid evtOwner,
  * need some further adjustment.
  */
 static Datum
-filter_list_to_array(List *filterlist)
+filter_list_to_array(List * filterlist)
 {
 	ListCell   *lc;
 	Datum	   *data;
@@ -496,7 +577,7 @@ RemoveEventTriggerById(Oid trigOid)
  * ALTER EVENT TRIGGER foo ENABLE|DISABLE|ENABLE ALWAYS|REPLICA
  */
 Oid
-AlterEventTrigger(AlterEventTrigStmt *stmt)
+AlterEventTrigger(AlterEventTrigStmt * stmt)
 {
 	Relation	tgrel;
 	HeapTuple	tup;
@@ -656,7 +737,7 @@ get_event_trigger_oid(const char *trigname, bool missing_ok)
  * tags matching.
  */
 static bool
-filter_event_trigger(const char **tag, EventTriggerCacheItem *item)
+filter_event_trigger(const char **tag, EventTriggerCacheItem * item)
 {
 	/*
 	 * Filter by session replication role, knowing that we never see disabled
@@ -689,9 +770,9 @@ filter_event_trigger(const char **tag, EventTriggerCacheItem *item)
  * appropriate EventTriggerData for them to receive.
  */
 static List *
-EventTriggerCommonSetup(Node *parsetree,
+EventTriggerCommonSetup(Node * parsetree,
 						EventTriggerEvent event, const char *eventstr,
-						EventTriggerData *trigdata)
+						EventTriggerData * trigdata)
 {
 	const char *tag;
 	List	   *cachelist;
@@ -774,7 +855,7 @@ EventTriggerCommonSetup(Node *parsetree,
  * Fire ddl_command_start triggers.
  */
 void
-EventTriggerDDLCommandStart(Node *parsetree)
+EventTriggerDDLCommandStart(Node * parsetree)
 {
 	List	   *runlist;
 	EventTriggerData trigdata;
@@ -822,7 +903,7 @@ EventTriggerDDLCommandStart(Node *parsetree)
  * Fire ddl_command_end triggers.
  */
 void
-EventTriggerDDLCommandEnd(Node *parsetree)
+EventTriggerDDLCommandEnd(Node * parsetree)
 {
 	List	   *runlist;
 	EventTriggerData trigdata;
@@ -870,7 +951,7 @@ EventTriggerDDLCommandEnd(Node *parsetree)
  * Fire sql_drop triggers.
  */
 void
-EventTriggerSQLDrop(Node *parsetree)
+EventTriggerSQLDrop(Node * parsetree)
 {
 	List	   *runlist;
 	EventTriggerData trigdata;
@@ -943,7 +1024,7 @@ EventTriggerSQLDrop(Node *parsetree)
  * Fire table_rewrite triggers.
  */
 void
-EventTriggerTableRewrite(Node *parsetree, Oid tableOid, int reason)
+EventTriggerTableRewrite(Node * parsetree, Oid tableOid, int reason)
 {
 	List	   *runlist;
 	EventTriggerData trigdata;
@@ -1024,7 +1105,7 @@ EventTriggerTableRewrite(Node *parsetree, Oid tableOid, int reason)
  * Invoke each event trigger in a list of event triggers.
  */
 static void
-EventTriggerInvoke(List *fn_oid_list, EventTriggerData *trigdata)
+EventTriggerInvoke(List * fn_oid_list, EventTriggerData * trigdata)
 {
 	MemoryContext context;
 	MemoryContext oldcontext;
@@ -1351,7 +1432,7 @@ trackDroppedObjectsNeeded(void)
  * Register one object as being dropped by the current command.
  */
 void
-EventTriggerSQLDropAddObject(const ObjectAddress *object, bool original, bool normal)
+EventTriggerSQLDropAddObject(const ObjectAddress * object, bool original, bool normal)
 {
 	SQLDropObject *obj;
 	MemoryContext oldcxt;
@@ -1691,7 +1772,7 @@ EventTriggerUndoInhibitCommandCollection(void)
 void
 EventTriggerCollectSimpleCommand(ObjectAddress address,
 								 ObjectAddress secondaryObject,
-								 Node *parsetree)
+								 Node * parsetree)
 {
 	MemoryContext oldcxt;
 	CollectedCommand *command;
@@ -1732,7 +1813,7 @@ EventTriggerCollectSimpleCommand(ObjectAddress address,
  * raise an error.
  */
 void
-EventTriggerAlterTableStart(Node *parsetree)
+EventTriggerAlterTableStart(Node * parsetree)
 {
 	MemoryContext oldcxt;
 	CollectedCommand *command;
@@ -1783,7 +1864,7 @@ EventTriggerAlterTableRelid(Oid objectId)
  * internally, so that's all that this code needs to handle at the moment.
  */
 void
-EventTriggerCollectAlterTableSubcmd(Node *subcmd, ObjectAddress address)
+EventTriggerCollectAlterTableSubcmd(Node * subcmd, ObjectAddress address)
 {
 	MemoryContext oldcxt;
 	CollectedATSubcmd *newsub;
@@ -1845,7 +1926,7 @@ EventTriggerAlterTableEnd(void)
  * not have the right lifetime.
  */
 void
-EventTriggerCollectGrant(InternalGrant *istmt)
+EventTriggerCollectGrant(InternalGrant * istmt)
 {
 	MemoryContext oldcxt;
 	CollectedCommand *command;
@@ -1889,8 +1970,8 @@ EventTriggerCollectGrant(InternalGrant *istmt)
  *		executed
  */
 void
-EventTriggerCollectAlterOpFam(AlterOpFamilyStmt *stmt, Oid opfamoid,
-							  List *operators, List *procedures)
+EventTriggerCollectAlterOpFam(AlterOpFamilyStmt * stmt, Oid opfamoid,
+							  List * operators, List * procedures)
 {
 	MemoryContext oldcxt;
 	CollectedCommand *command;
@@ -1922,8 +2003,8 @@ EventTriggerCollectAlterOpFam(AlterOpFamilyStmt *stmt, Oid opfamoid,
  *		Save data about a CREATE OPERATOR CLASS command being executed
  */
 void
-EventTriggerCollectCreateOpClass(CreateOpClassStmt *stmt, Oid opcoid,
-								 List *operators, List *procedures)
+EventTriggerCollectCreateOpClass(CreateOpClassStmt * stmt, Oid opcoid,
+								 List * operators, List * procedures)
 {
 	MemoryContext oldcxt;
 	CollectedCommand *command;
@@ -1956,8 +2037,8 @@ EventTriggerCollectCreateOpClass(CreateOpClassStmt *stmt, Oid opcoid,
  *		executed
  */
 void
-EventTriggerCollectAlterTSConfig(AlterTSConfigurationStmt *stmt, Oid cfgId,
-								 Oid *dictIds, int ndicts)
+EventTriggerCollectAlterTSConfig(AlterTSConfigurationStmt * stmt, Oid cfgId,
+								 Oid * dictIds, int ndicts)
 {
 	MemoryContext oldcxt;
 	CollectedCommand *command;
@@ -1991,7 +2072,7 @@ EventTriggerCollectAlterTSConfig(AlterTSConfigurationStmt *stmt, Oid cfgId,
  *		executed
  */
 void
-EventTriggerCollectAlterDefPrivs(AlterDefaultPrivilegesStmt *stmt)
+EventTriggerCollectAlterDefPrivs(AlterDefaultPrivilegesStmt * stmt)
 {
 	MemoryContext oldcxt;
 	CollectedCommand *command;

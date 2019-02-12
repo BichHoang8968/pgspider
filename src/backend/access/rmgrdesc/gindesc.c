@@ -20,7 +20,7 @@
 #include "storage/relfilenode.h"
 
 static void
-desc_recompress_leaf(StringInfo buf, ginxlogRecompressDataLeaf *insertData)
+desc_recompress_leaf(StringInfo buf, ginxlogRecompressDataLeaf * insertData)
 {
 	int			i;
 	char	   *walbuf = ((char *) insertData) + sizeof(ginxlogRecompressDataLeaf);
@@ -71,7 +71,7 @@ desc_recompress_leaf(StringInfo buf, ginxlogRecompressDataLeaf *insertData)
 }
 
 void
-gin_desc(StringInfo buf, XLogReaderState *record)
+gin_desc(StringInfo buf, XLogReaderState * record)
 {
 	char	   *rec = XLogRecGetData(record);
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;

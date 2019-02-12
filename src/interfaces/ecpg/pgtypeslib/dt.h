@@ -205,7 +205,7 @@ typedef struct
 	char		token[TOKMAXLEN + 1];	/* always NUL-terminated */
 	char		type;			/* see field type codes above */
 	int32		value;			/* meaning depends on type */
-} datetkn;
+}			datetkn;
 
 
 /* FMODULO()

@@ -109,21 +109,23 @@ replace(char *o_string, char *s_string, char *r_string, bool recursive)
  */
 
 /*
- * Get from 
+ * Get from
  */
 #if 1
 int
-ddsf_get_node_num(ForeignScanState *node){
-	int i;
-	char query[512];
+ddsf_get_node_num(ForeignScanState * node)
+{
+	int			i;
+	char		query[512];
+
 	if ((i = SPI_connect()) < 0)
 		elog(ERROR, "SPI connect failure - returned %d", i);
 
-	sprintf(query,"select relname,oid from pg_class where relname LIKE '%s_\%%';",RelationGetRelationName(node->ss.ss_currentRelation));
+	sprintf(query, "select relname,oid from pg_class where relname LIKE '%s_\%%';", RelationGetRelationName(node->ss.ss_currentRelation));
 
 	i = SPI_execute(query, true, 0);
-	if(i != SPI_OK_SELECT)
-		elog(INFO,"error ddsf_get_node_num");
+	if (i != SPI_OK_SELECT)
+		elog(INFO, "error ddsf_get_node_num");
 	for (i = 0; i < SPI_processed; i++)
 	{
 	}
@@ -135,31 +137,34 @@ ddsf_get_node_num(ForeignScanState *node){
 int
 ddsf_get_node_list(char **list)
 {
-	int i;
-	int ret;
+	int			i;
+	int			ret;
 	int			node_count = 0;
-	char query[256];
+	char		query[256];
 
 	if ((ret = SPI_connect()) < 0)
 		elog(ERROR, "SPI connect failure - returned %d", i);
 
-	sprintf(query,"select foreign_server_name from information_schema._pg_foreign_servers;");
-	printf("ddsf_get_node_list %s\n",query);
+	sprintf(query, "select foreign_server_name from information_schema._pg_foreign_servers;");
+	printf("ddsf_get_node_list %s\n", query);
 
 	i = SPI_execute(query, true, 0);
-	if(i != SPI_OK_SELECT)
-		printf("%d\n",i);
+	if (i != SPI_OK_SELECT)
+		printf("%d\n", i);
 	for (i = 0; i < SPI_processed; i++)
 	{
-		char * buffer=NULL;
-		if(i==0){
+		char	   *buffer = NULL;
+
+		if (i == 0)
+		{
 			continue;
 		}
 		buffer = SPI_getvalue(SPI_tuptable->vals[i],
 							  SPI_tuptable->tupdesc,
 							  1
 			);
-		if(buffer !=NULL){
+		if (buffer != NULL)
+		{
 			list[node_count] = buffer;
 		}
 	}
@@ -251,8 +256,8 @@ ddsf_create_self_scannode_conn_rel_ID(Oid frgnrelID)
 	n = list_length(frgn_server->options) + 1;
 
 	/*
-	 * n = list_length(server->options) + list_length(user->options) +
-	 * 3; Incase usermap are to be used
+	 * n = list_length(server->options) + list_length(user->options) + 3;
+	 * Incase usermap are to be used
 	 */
 
 	keywords = (const char **) palloc(n * sizeof(char *));
@@ -286,7 +291,7 @@ ddsf_create_self_scannode_conn_rel_ID(Oid frgnrelID)
  * get connections optiosn for the local server and establis connection
  */
 PGconn *
-ddsf_create_self_scannode_conn(ForeignScanState *node)
+ddsf_create_self_scannode_conn(ForeignScanState * node)
 {
 	const char **keywords;
 	const char **values;
@@ -297,7 +302,7 @@ ddsf_create_self_scannode_conn(ForeignScanState *node)
 	 * Get foreign Relation ID and associated server options and conenct to
 	 * self
 	 */
-	ForeignScanState *frgn_scan_node = ((ForeignScanState *)node);
+	ForeignScanState *frgn_scan_node = ((ForeignScanState *) node);
 	Oid			relID = ((RelationData *) (frgn_scan_node->ss.ss_currentRelation))->rd_node.relNode;
 	ForeignServer *frgn_server = GetForeignServer(GetForeignServerIdByRelId(relID));
 
@@ -339,7 +344,7 @@ ddsf_create_self_scannode_conn(ForeignScanState *node)
  * get connections options for the local server and establis connection
  */
 PGconn *
-ddsf_create_self_node_conn(AggState *aggnode)
+ddsf_create_self_node_conn(AggState * aggnode)
 {
 	const char **keywords;
 	const char **values;
@@ -394,7 +399,7 @@ ddsf_create_self_node_conn(AggState *aggnode)
  * disconnect from local server
  */
 void
-ddsf_stop_self_node_conn(PGconn *self_conn)
+ddsf_stop_self_node_conn(PGconn * self_conn)
 {
 	PQfinish(self_conn);
 }
@@ -404,7 +409,7 @@ ddsf_stop_self_node_conn(PGconn *self_conn)
  * Get Server and User Mapping options for the server node
  */
 int
-ddsf_get_node_options(const char *node_name, PGconn *self_conn, char *options)
+ddsf_get_node_options(const char *node_name, PGconn * self_conn, char *options)
 {
 	/*
 	 * OPTIONS retrieval done in real time Can support caching as well --TODO
@@ -444,7 +449,7 @@ ddsf_get_node_options(const char *node_name, PGconn *self_conn, char *options)
 	/* Get UserMapping Options */
 	memset(query, 0, BUFFER_SIZE);
 	sprintf(query, UMOPT_QRY, node_name);
-    res = PQexec(conn, query);
+	res = PQexec(conn, query);
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
 		/* Query Execution failed */
@@ -506,7 +511,7 @@ ddsf_combine_agg_varsdv(const ForeignAggInfo * agginfodata, const int num_aggs)
 
 	for (i = 0; i < num_aggs; i++)
 	{
-		if (agginfodata[i].result[0].status != DDSF_FRG_ERROR)		/* Consider a result
+		if (agginfodata[i].result[0].status != DDSF_FRG_ERROR)	/* Consider a result
 																 * only if operation be
 																 * FDW was Successful */
 		{
@@ -578,9 +583,9 @@ ddsf_agg_sum(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 
 	for (i = 0; i < num_aggs; i++)
 	{
-		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR)		/* Consider a result
-																 * only if operation be
-																 * FDW was Successful */
+		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR)	/* Consider a result
+																	 * only if operation be
+																	 * FDW was Successful */
 		{
 			if (agginfodata[i].result[attr].typid == FLOAT4OID)
 			{
@@ -610,15 +615,15 @@ ddsf_agg_sum(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 	}
 	else if (agginfodata[0].typid == NUMERICOID)
 	{
-		agginfodata[0].result[attr].finalResult = 
-			    NumericGetDatum(DatumGetNumeric(DirectFunctionCall1(int8_numeric, Int64GetDatumFast(sum))));
+		agginfodata[0].result[attr].finalResult =
+			NumericGetDatum(DatumGetNumeric(DirectFunctionCall1(int8_numeric, Int64GetDatumFast(sum))));
 	}
 	else
 	{
 		/* For all the other type like small int and integer type */
 		agginfodata[0].result[attr].finalResult = Int64GetDatumFast(sum);
 	}
-	return (Datum)0;
+	return (Datum) 0;
 }
 
 /*
@@ -640,8 +645,8 @@ ddsf_agg_count(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 		}
 	}
 	agginfodata[0].result[attr].finalResult = Int64GetDatumFast(count);
-	
-	return (Datum)0;
+
+	return (Datum) 0;
 }
 
 /*
@@ -656,21 +661,21 @@ ddsf_agg_avg(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 	float4		fsum = 0;
 	float8		dsum = 0;
 
-	int count = 0;
+	int			count = 0;
 	Datum		sm,
 				cnt;
 
 	for (i = 0; i < num_aggs; i++)
 	{
-		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR)		/* Consider a result
-																 * only if operation be
-																 * FDW was Successful */
+		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR)	/* Consider a result
+																	 * only if operation be
+																	 * FDW was Successful */
 		{
 			if (agginfodata[i].result[attr].typid == FLOAT4OID)
 			{
 				fsum += agginfodata[i].result[attr].aggdata.avg.sum.realType;
 			}
-			else if(agginfodata[i].result[attr].typid == FLOAT8OID)
+			else if (agginfodata[i].result[attr].typid == FLOAT8OID)
 			{
 				dsum += agginfodata[i].result[attr].aggdata.avg.sum.value;
 			}
@@ -681,18 +686,18 @@ ddsf_agg_avg(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 		}
 		count += agginfodata[i].result[attr].aggdata.avg.count.value;
 	}
-	
+
 	cnt = DirectFunctionCall1(int8_numeric, Int64GetDatumFast(count));
 
 	if (agginfodata[0].result[attr].typid == FLOAT4OID)
 	{
 		sm = DirectFunctionCall1(float8_numeric, Float4GetDatumFast(fsum));
-		agginfodata[0].result[attr].finalResult = DirectFunctionCall1(numeric_float8,DirectFunctionCall2(numeric_div, sm, cnt));
+		agginfodata[0].result[attr].finalResult = DirectFunctionCall1(numeric_float8, DirectFunctionCall2(numeric_div, sm, cnt));
 	}
-	else if(agginfodata[0].result[attr].typid == FLOAT8OID)
+	else if (agginfodata[0].result[attr].typid == FLOAT8OID)
 	{
-    	sm = DirectFunctionCall1(float8_numeric, Float8GetDatumFast(dsum));
-		agginfodata[0].result[attr].finalResult = DirectFunctionCall1(numeric_float8,DirectFunctionCall2(numeric_div, sm, cnt));
+		sm = DirectFunctionCall1(float8_numeric, Float8GetDatumFast(dsum));
+		agginfodata[0].result[attr].finalResult = DirectFunctionCall1(numeric_float8, DirectFunctionCall2(numeric_div, sm, cnt));
 	}
 	else
 	{
@@ -710,7 +715,7 @@ ddsf_agg_max(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 {
 	int			i;
 	int64		Max = PG_INT64_MIN,
-	Value = 0;
+				Value = 0;
 	char	   *strMinMax = NULL;
 	Datum		TMinMax = 0,
 				StrDatum;
@@ -720,17 +725,17 @@ ddsf_agg_max(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 
 	for (i = 0; i < num_aggs; i++)
 	{
-		if (agginfodata[i].result[0].status != DDSF_FRG_ERROR)		/* Consider a result
+		if (agginfodata[i].result[0].status != DDSF_FRG_ERROR)	/* Consider a result
 																 * only if operation be
 																 * FDW was Successful */
 		{
 			if (agginfodata[i].result[attr].typid == DATEOID)
 			{
 				Value = DatumGetInt64(DirectFunctionCall3(make_date, Int64GetDatum(agginfodata[i].result[attr].aggdata.maxmin.fDate.year),
-						  Int64GetDatum(agginfodata[i].result[attr].aggdata.maxmin.fDate.mon),
-						  Int64GetDatum(agginfodata[i].result[attr].aggdata.maxmin.fDate.mday)));
+														  Int64GetDatum(agginfodata[i].result[attr].aggdata.maxmin.fDate.mon),
+														  Int64GetDatum(agginfodata[i].result[attr].aggdata.maxmin.fDate.mday)));
 
-				if (Value>Max)
+				if (Value > Max)
 				{
 					Max = Value;
 				}
@@ -765,7 +770,7 @@ ddsf_agg_max(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 			{
 				Value = agginfodata[i].result[attr].aggdata.maxmin.value;
 
-				if (Value >Max)
+				if (Value > Max)
 				{
 					Max = Value;
 				}
@@ -782,7 +787,7 @@ ddsf_agg_max(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 	}
 	else if (agginfodata[0].result[attr].typid == FLOAT4OID)
 	{
-		agginfodata[0].result[attr].finalResult =  Float4GetDatumFast(fmax);
+		agginfodata[0].result[attr].finalResult = Float4GetDatumFast(fmax);
 	}
 	else if (agginfodata[0].result[attr].typid == FLOAT8OID)
 	{
@@ -794,10 +799,10 @@ ddsf_agg_max(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 		{
 			agginfodata[0].result[attr].finalResult = DateADTGetDatum(Int64GetDatumFast(Max));
 		}
-        else if(agginfodata[0].result[attr].typid == CASHOID)
-        {
-                agginfodata[0].result[attr].finalResult = CashGetDatum(Max);
-        }
+		else if (agginfodata[0].result[attr].typid == CASHOID)
+		{
+			agginfodata[0].result[attr].finalResult = CashGetDatum(Max);
+		}
 		else
 		{
 			agginfodata[0].result[attr].finalResult = Int64GetDatumFast(Max);
@@ -815,7 +820,7 @@ ddsf_agg_min(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 {
 	int			i;
 	int64		Min = PG_INT64_MAX,
-	Value = 0;
+				Value = 0;
 	char	   *strMinMax = NULL;
 	Datum		TMinMax = 0,
 				StrDatum;
@@ -825,14 +830,14 @@ ddsf_agg_min(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 
 	for (i = 0; i < num_aggs; i++)
 	{
-		if (agginfodata[i].result[0].status != DDSF_FRG_ERROR)		/* Consider a result
+		if (agginfodata[i].result[0].status != DDSF_FRG_ERROR)	/* Consider a result
 																 * only if operation be
 																 * FDW was Successful */
 		{
 			if (agginfodata[i].result[attr].typid == DATEOID)
 			{
 				Value = DatumGetInt64(DirectFunctionCall3(make_date, Int64GetDatum(agginfodata[i].result[attr].aggdata.maxmin.fDate.year),
-				Int64GetDatum(agginfodata[i].result[attr].aggdata.maxmin.fDate.mon),Int64GetDatum(agginfodata[i].result[attr].aggdata.maxmin.fDate.mday)));
+														  Int64GetDatum(agginfodata[i].result[attr].aggdata.maxmin.fDate.mon), Int64GetDatum(agginfodata[i].result[attr].aggdata.maxmin.fDate.mday)));
 
 				if (Min > Value)
 				{
@@ -860,7 +865,7 @@ ddsf_agg_min(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 				fmin = (fmin > agginfodata[i].result[attr].aggdata.maxmin.realVal) ?
 					agginfodata[i].result[attr].aggdata.maxmin.realVal : fmin;
 			}
-			else if (agginfodata[i].result[attr].typid== FLOAT8OID)
+			else if (agginfodata[i].result[attr].typid == FLOAT8OID)
 			{
 				dpmin = (dpmin > agginfodata[i].result[attr].aggdata.maxmin.dpVal) ?
 					agginfodata[i].result[attr].aggdata.maxmin.dpVal : dpmin;
@@ -879,7 +884,7 @@ ddsf_agg_min(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 	if (agginfodata[0].result[attr].typid == TEXTOID)
 	{
 		strMinMax = DatumGetCString(TMinMax);
-		agginfodata[0].result[attr].finalResult = PointerGetDatum(cstring_to_text(strMinMax)); 
+		agginfodata[0].result[attr].finalResult = PointerGetDatum(cstring_to_text(strMinMax));
 	}
 	else if (agginfodata[0].result[attr].typid == ANYENUMOID)
 	{
@@ -889,7 +894,7 @@ ddsf_agg_min(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 	}
 	else if (agginfodata[0].result[attr].typid == FLOAT4OID)
 	{
-		 agginfodata[0].result[attr].finalResult = Float4GetDatumFast(fmin) ;
+		agginfodata[0].result[attr].finalResult = Float4GetDatumFast(fmin);
 	}
 	else if (agginfodata[0].result[attr].typid == FLOAT8OID)
 	{
@@ -901,7 +906,7 @@ ddsf_agg_min(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 		{
 			agginfodata[0].result[attr].finalResult = DateADTGetDatum(Int64GetDatumFast(Min));
 		}
-		else if(agginfodata[0].result[attr].typid == CASHOID)
+		else if (agginfodata[0].result[attr].typid == CASHOID)
 		{
 			agginfodata[0].result[attr].finalResult = CashGetDatum(Min);
 		}
@@ -937,23 +942,23 @@ ddsf_agg_bit_or(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 	}
 	for (i = 0; i < num_aggs; i++)
 	{
-		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR)		/* Consider a result
-																 * only if operation be
-																 * FDW was Successful */
+		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR)	/* Consider a result
+																	 * only if operation be
+																	 * FDW was Successful */
 		{
 			if (agginfodata[i].typid == BITOID)
 			{
 				if (state->data[0] == '\0')
 				{
 					appendBinaryStringInfo(state, agginfodata[i].result[attr].aggdata.bit_op.state->data,
-							agginfodata[i].result[attr].aggdata.bit_op.state->len);
+										   agginfodata[i].result[attr].aggdata.bit_op.state->len);
 				}
 				else
 				{
 					for (j = 0; j < agginfodata[i].result[attr].aggdata.bit_op.state->len; j++)
 					{
 						if (state->data[j] != agginfodata[i].result[attr].aggdata.bit_op.state->data[j])
-							state->data[j] = '1';		
+							state->data[j] = '1';
 					}
 				}
 			}
@@ -1003,23 +1008,23 @@ ddsf_agg_bit_and(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 
 	for (i = 0; i < num_aggs; i++)
 	{
-		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR)		/* Consider a result
-																 * only if operation be
-																 * FDW was Successful */
+		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR)	/* Consider a result
+																	 * only if operation be
+																	 * FDW was Successful */
 		{
 			if (agginfodata[i].typid == BITOID)
 			{
 				if (state->data[0] == '\0')
 				{
 					appendBinaryStringInfo(state, agginfodata[i].result[attr].aggdata.bit_op.state->data,
-							agginfodata[i].result[attr].aggdata.bit_op.state->len);
+										   agginfodata[i].result[attr].aggdata.bit_op.state->len);
 				}
 				else
 				{
 					for (j = 0; j < agginfodata[i].result[attr].aggdata.bit_op.state->len; j++)
 					{
 						if (state->data[j] != agginfodata[i].result[attr].aggdata.bit_op.state->data[j])
-							state->data[j] = '0';		
+							state->data[j] = '0';
 					}
 				}
 			}
@@ -1056,9 +1061,9 @@ ddsf_agg_bool_and(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 
 	for (i = 0; i < num_aggs; i++)
 	{
-		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR)		/* Consider a result
-																 * only if operation be
-																 * FDW was Successful */
+		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR)	/* Consider a result
+																	 * only if operation be
+																	 * FDW was Successful */
 		{
 			bland = (bland && agginfodata[i].result[attr].aggdata.boolvar.boolall);
 		}
@@ -1078,9 +1083,9 @@ ddsf_agg_bool_or(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 
 	for (i = 0; i < num_aggs; i++)
 	{
-		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR)		/* Consider a result
-																 * only if operation be
-																 * FDW was Successful */
+		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR)	/* Consider a result
+																	 * only if operation be
+																	 * FDW was Successful */
 		{
 			blor = (blor || agginfodata[i].result[attr].aggdata.boolvar.boolall);
 		}
@@ -1121,7 +1126,8 @@ ddsf_agg_string_agg(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 	}
 	for (i = 0; i < num_aggs; i++)
 	{
-		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR) 
+		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR)
+
 			/*
 			 * Consider a result only if operation be FDW was Successful
 			 */
@@ -1134,7 +1140,7 @@ ddsf_agg_string_agg(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 				appendBinaryStringInfo(state, delimptr, strlen(delimptr));
 			}
 			appendBinaryStringInfo(state, agginfodata[i].result[attr].aggdata.stringagg.state->data,
-						 agginfodata[i].result[attr].aggdata.stringagg.state->len);
+								   agginfodata[i].result[attr].aggdata.stringagg.state->len);
 		}
 	}
 	agginfodata[0].result[attr].finalResult = cstring_to_text_with_len(state->data, state->len);
@@ -1154,37 +1160,39 @@ ddsf_agg_stddev(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 	int			i;
 	float8		dsum = 0;
 	float4		fsum = 0;
-	int count = 0;
-	Datum		sm=0;
-	Datum		cnt=0;
-	float8 left=0;
-	float8 right=0;
+	int			count = 0;
+	Datum		sm = 0;
+	Datum		cnt = 0;
+	float8		left = 0;
+	float8		right = 0;
 
 	for (i = 0; i < num_aggs; i++)
 	{
-		float8 nume=0;
-		float8 deno=0;
-		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR)		/* Consider a result
-																 * only if operation be
-																 * FDW was Successful */
+		float8		nume = 0;
+		float8		deno = 0;
+
+		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR)	/* Consider a result
+																	 * only if operation be
+																	 * FDW was Successful */
 		{
 			if (agginfodata[i].result[attr].typid == FLOAT4OID)
 			{
 				fsum = fsum + (agginfodata[i].result[attr].aggdata.stddev.sum.realType *
-					           agginfodata[i].result[attr].aggdata.stddev.sum.realType);
+							   agginfodata[i].result[attr].aggdata.stddev.sum.realType);
 			}
 			else
 			{
 				dsum = dsum + (agginfodata[i].result[attr].aggdata.stddev.sum.value *
-					           agginfodata[i].result[attr].aggdata.stddev.sum.value);
+							   agginfodata[i].result[attr].aggdata.stddev.sum.value);
 			}
 			count += agginfodata[i].result[attr].aggdata.stddev.count.value;
 			left += agginfodata[i].result[attr].aggdata.stddev.count.value * agginfodata[i].result[attr].aggdata.stddev.stddev.value;
-			for(int j=0;j<num_aggs;j++){
+			for (int j = 0; j < num_aggs; j++)
+			{
 				nume += agginfodata[j].result[attr].aggdata.stddev.sum.value;
 				deno += agginfodata[j].result[attr].aggdata.stddev.count.value;
 			}
-			right += pow(nume/deno - agginfodata[i].result[attr].aggdata.stddev.sum.value/agginfodata[i].result[attr].aggdata.stddev.count.value,2);
+			right += pow(nume / deno - agginfodata[i].result[attr].aggdata.stddev.sum.value / agginfodata[i].result[attr].aggdata.stddev.count.value, 2);
 		}
 	}
 	cnt = DirectFunctionCall1(int8_numeric, Int64GetDatumFast(count));
@@ -1194,11 +1202,11 @@ ddsf_agg_stddev(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 	}
 	else
 	{
-    	sm = DirectFunctionCall1(float8_numeric, Float8GetDatumFast(dsum));
+		sm = DirectFunctionCall1(float8_numeric, Float8GetDatumFast(dsum));
 	}
-	elog(DEBUG1, "left rigth %lf",count);
+	elog(DEBUG1, "left rigth %lf", count);
 	DirectFunctionCall1(float8_numeric, Float8GetDatumFast(dsum));
-	agginfodata[0].result[attr].finalResult = DirectFunctionCall1(float8_numeric, Float8GetDatumFast(sqrt((left+right)/count)));
+	agginfodata[0].result[attr].finalResult = DirectFunctionCall1(float8_numeric, Float8GetDatumFast(sqrt((left + right) / count)));
 }
 
 /*
@@ -1206,36 +1214,36 @@ ddsf_agg_stddev(ForeignAggInfo * agginfodata, int num_aggs, int attr)
  * Combine the aggs and return the result of the stddev
  */
 void
-ddsf_agg_variance(ForeignAggInfo * agginfodata, int num_aggs,int attr)
+ddsf_agg_variance(ForeignAggInfo * agginfodata, int num_aggs, int attr)
 {
 #if 0
 	int			i;
 	float8		dsum = 0;
 	float4		fsum = 0;
-	int count = 0;
+	int			count = 0;
 	Datum		sm,
 				cnt;
 
 	for (i = 0; i < num_aggs; i++)
 	{
-		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR)		/* Consider a result
-																 * only if operation be
-																 * FDW was Successful */
+		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR)	/* Consider a result
+																	 * only if operation be
+																	 * FDW was Successful */
 		{
 			if (agginfodata[i].result[attr].typid == FLOAT4OID)
 			{
 				fsum = fsum + (agginfodata[i].result[attr].aggdata.var.sum.realType *
-					           agginfodata[i].result[attr].aggdata.var.sum.realType);
+							   agginfodata[i].result[attr].aggdata.var.sum.realType);
 			}
 			else
 			{
 				dsum = dsum + (agginfodata[i].result[attr].aggdata.var.sum.value *
-					           agginfodata[i].result[attr].aggdata.var.sum.value);
+							   agginfodata[i].result[attr].aggdata.var.sum.value);
 			}
-			count ++;
+			count++;
 		}
 	}
-	/*count = count-1;  Bessels correction to calculate sample variance*/
+	/* count = count-1;  Bessels correction to calculate sample variance */
 	cnt = DirectFunctionCall1(int8_numeric, Int64GetDatumFast(count));
 
 	if (agginfodata[0].result[attr].typid == FLOAT4OID)
@@ -1244,51 +1252,59 @@ ddsf_agg_variance(ForeignAggInfo * agginfodata, int num_aggs,int attr)
 	}
 	else
 	{
-    	sm = DirectFunctionCall1(float8_numeric, Float8GetDatumFast(dsum));
+		sm = DirectFunctionCall1(float8_numeric, Float8GetDatumFast(dsum));
 	}
-	
-	/* TODO: Need better solution to calculate the average of standard deviation */
-	/* current formula used is 
-	   sqrt( sqr(sdn)+sqr(sd(n+1)).....+sqr(sd(k))/Total number of data sources(count-1))
-   	   Using this formula there is around 9% of deviation with actual value
-	  */
-	agginfodata[0].result[attr].finalResult = DirectFunctionCall1(numeric_sqrt, 
-	                                          DirectFunctionCall2(numeric_div, sm, cnt));
+
+	/*
+	 * TODO: Need better solution to calculate the average of standard
+	 * deviation
+	 */
+
+	/*
+	 * current formula used is sqrt(
+	 * sqr(sdn)+sqr(sd(n+1)).....+sqr(sd(k))/Total number of data
+	 * sources(count-1)) Using this formula there is around 9% of deviation
+	 * with actual value
+	 */
+	agginfodata[0].result[attr].finalResult = DirectFunctionCall1(numeric_sqrt,
+																  DirectFunctionCall2(numeric_div, sm, cnt));
 #endif
 	int			i;
 	float8		dsum = 0;
 	float4		fsum = 0;
-	int count = 0;
-	Datum		sm=0;
-	Datum		cnt=0;
-	float8 left=0;
-	float8 right=0;
+	int			count = 0;
+	Datum		sm = 0;
+	Datum		cnt = 0;
+	float8		left = 0;
+	float8		right = 0;
 
 	for (i = 0; i < num_aggs; i++)
 	{
-		float8 nume=0;
-		float8 deno=0;
-		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR)		/* Consider a result
-																 * only if operation be
-																 * FDW was Successful */
+		float8		nume = 0;
+		float8		deno = 0;
+
+		if (agginfodata[i].result[attr].status != DDSF_FRG_ERROR)	/* Consider a result
+																	 * only if operation be
+																	 * FDW was Successful */
 		{
 			if (agginfodata[i].result[attr].typid == FLOAT4OID)
 			{
 				fsum = fsum + (agginfodata[i].result[attr].aggdata.var.sum.realType *
-					           agginfodata[i].result[attr].aggdata.var.sum.realType);
+							   agginfodata[i].result[attr].aggdata.var.sum.realType);
 			}
 			else
 			{
 				dsum = dsum + (agginfodata[i].result[attr].aggdata.var.sum.value *
-					           agginfodata[i].result[attr].aggdata.var.sum.value);
+							   agginfodata[i].result[attr].aggdata.var.sum.value);
 			}
 			count += agginfodata[i].result[attr].aggdata.var.count.value;
 			left += agginfodata[i].result[attr].aggdata.var.count.value * agginfodata[i].result[attr].aggdata.var.var.value;
-			for(int j=0;j<num_aggs;j++){
+			for (int j = 0; j < num_aggs; j++)
+			{
 				nume += agginfodata[j].result[attr].aggdata.var.sum.value;
 				deno += agginfodata[j].result[attr].aggdata.var.count.value;
 			}
-			right += pow(nume/deno - agginfodata[i].result[attr].aggdata.var.sum.value/agginfodata[i].result[attr].aggdata.var.count.value,2);
+			right += pow(nume / deno - agginfodata[i].result[attr].aggdata.var.sum.value / agginfodata[i].result[attr].aggdata.var.count.value, 2);
 		}
 	}
 	cnt = DirectFunctionCall1(int8_numeric, Int64GetDatumFast(count));
@@ -1298,15 +1314,17 @@ ddsf_agg_variance(ForeignAggInfo * agginfodata, int num_aggs,int attr)
 	}
 	else
 	{
-    	sm = DirectFunctionCall1(float8_numeric, Float8GetDatumFast(dsum));
+		sm = DirectFunctionCall1(float8_numeric, Float8GetDatumFast(dsum));
 	}
+
 	/*
-	  agginfodata[0].result[attr].finalResult = DirectFunctionCall1(numeric_sqrt,
-	                                          DirectFunctionCall2(numeric_div, sm, cnt));
-	*/
-	elog(DEBUG1, "left rigth %lf",count);
+	 * agginfodata[0].result[attr].finalResult =
+	 * DirectFunctionCall1(numeric_sqrt, DirectFunctionCall2(numeric_div, sm,
+	 * cnt));
+	 */
+	elog(DEBUG1, "left rigth %lf", count);
 	DirectFunctionCall1(float8_numeric, Float8GetDatumFast(dsum));
-	agginfodata[0].result[attr].finalResult = DirectFunctionCall1(float8_numeric, Float8GetDatumFast((left+right)/count));
+	agginfodata[0].result[attr].finalResult = DirectFunctionCall1(float8_numeric, Float8GetDatumFast((left + right) / count));
 }
 
 /*
@@ -1314,7 +1332,7 @@ ddsf_agg_variance(ForeignAggInfo * agginfodata, int num_aggs,int attr)
  * returns the typeid of the enum the ddsf server
  */
 static Oid
-get_enumtypeid(PGconn *conn, char *qry)
+get_enumtypeid(PGconn * conn, char *qry)
 {
 	PGresult   *res = NULL;
 	char		query[BUFFER_SIZE] = {0};
@@ -1341,7 +1359,7 @@ get_enumtypeid(PGconn *conn, char *qry)
 			/* avoiding spaces */
 			if (qry[i] != ' ')
 			{
-				colum_Name[j++] = (char)tolower(qry[i]);
+				colum_Name[j++] = (char) tolower(qry[i]);
 			}
 			i++;
 		}
@@ -1360,7 +1378,7 @@ get_enumtypeid(PGconn *conn, char *qry)
 			}
 			else
 			{
-				table_Name[j++] = (char)tolower(qry[i]);
+				table_Name[j++] = (char) tolower(qry[i]);
 			}
 			i++;
 		}
@@ -1422,54 +1440,64 @@ void *
 Ddsf_FDW_thread(void *arg)
 {
 	DdsfFDWThreadData *thrdata = (DdsfFDWThreadData *) arg;
-   	MemoryContext oldcontext = MemoryContextSwitchTo(thrdata->threadMemoryContext);
+	MemoryContext oldcontext = MemoryContextSwitchTo(thrdata->threadMemoryContext);
+
 	thrdata->fdwroutine->ForeignAgg(thrdata->aggnode, (void *) thrdata->agginfodata);
 	return NULL;
 }
 
-void trim(char * s) {
-    char * p = s;
-    int l = strlen(p);
+void
+trim(char *s)
+{
+	char	   *p = s;
+	int			l = strlen(p);
 
-    while(isspace(p[l - 1])) p[--l] = 0;
-    while(* p && isspace(* p)) ++p, --l;
+	while (isspace(p[l - 1]))
+		p[--l] = 0;
+	while (*p && isspace(*p))
+		++p, --l;
 
-    memmove(s, p, l + 1);
-}   
-
-
-int strcmpi(char* s1, char* s2){
-    int i;
-     
-    if(strlen(s1)!=strlen(s2))
-        return -1;
-         
-    for(i=0;i<strlen(s1);i++){
-        if(toupper(s1[i])!=toupper(s2[i]))
-            return s1[i]-s2[i];
-    }
-    return 0;
+	memmove(s, p, l + 1);
 }
 
-char* cutAtQuery(char *query, int pos, char *delim)
+
+int
+strcmpi(char *s1, char *s2)
 {
-   char *token;
-   token = strtok( query, delim);
+	int			i;
 
-   if(pos == 1)
-     return token;
+	if (strlen(s1) != strlen(s2))
+		return -1;
 
-   while( token != NULL && --pos)  
-   {  
-      // Get next token:   
-      token = strtok( NULL, delim );
-   }
-   return token;
+	for (i = 0; i < strlen(s1); i++)
+	{
+		if (toupper(s1[i]) != toupper(s2[i]))
+			return s1[i] - s2[i];
+	}
+	return 0;
+}
+
+char *
+cutAtQuery(char *query, int pos, char *delim)
+{
+	char	   *token;
+
+	token = strtok(query, delim);
+
+	if (pos == 1)
+		return token;
+
+	while (token != NULL && --pos)
+	{
+		/* Get next token:    */
+		token = strtok(NULL, delim);
+	}
+	return token;
 }
 
 #if 1
 DdsfAggType
-ddsf_get_agg_type_new_push(const ForeignScanState *node, const int attNum)
+ddsf_get_agg_type_new_push(const ForeignScanState * node, const int attNum)
 {
 	DdsfAggType ret;
 
@@ -1486,26 +1514,30 @@ ddsf_get_agg_type_new_push(const ForeignScanState *node, const int attNum)
 	 * The following code is just PoC to check behavior.
 	 * Check target list for Aggref.
 	 */
-	
-	char *query_org = ((QueryDesc *)node->ss.ps.ddsfAggQry)->sourceText;
-	int length = strlen(query_org);
 
-	char *query = malloc(length+1);
-	memcpy(query,query_org,length);
+	char	   *query_org = ((QueryDesc *) node->ss.ps.ddsfAggQry)->sourceText;
+	int			length = strlen(query_org);
+
+	char	   *query = malloc(length + 1);
+
+	memcpy(query, query_org, length);
 
 	/* Pass the query to get the aggregation query token string */
-	char *sql = cutAtQuery(query, attNum, ",");
-	if(sql == NULL){
+	char	   *sql = cutAtQuery(query, attNum, ",");
+
+	if (sql == NULL)
+	{
 		return AGG_DEFAULT;
 	}
 
 	/* Pass the token to get the exact aggregation query string */
 	sql = cutAtQuery(sql, 1, "(");
 
-	char *sql2 = cutAtQuery(sql, 2, " ");
-	if(sql2)
+	char	   *sql2 = cutAtQuery(sql, 2, " ");
+
+	if (sql2)
 		sql = sql2;
-	
+
 	trim(sql);
 
 	if (!strcmpi(sql, "AVG"))
@@ -1542,23 +1574,24 @@ ddsf_get_agg_type_new_push(const ForeignScanState *node, const int attNum)
 #endif
 
 void
-ddsf_get_agg_type_new(const ForeignScanState *node, const int nTotalAtts, DdsfAggType *aggType)
+ddsf_get_agg_type_new(const ForeignScanState * node, const int nTotalAtts, DdsfAggType * aggType)
 {
-	char *query_org = ((QueryDesc *)node->ss.ps.ddsfAggQry)->sourceText;
-	int length = strlen(query_org);
+	char	   *query_org = ((QueryDesc *) node->ss.ps.ddsfAggQry)->sourceText;
+	int			length = strlen(query_org);
 
-	char *query = palloc(length+1);
-	memcpy(query,query_org,length);
-	
-	int nAtt = 0;
-	
+	char	   *query = palloc(length + 1);
+
+	memcpy(query, query_org, length);
+
+	int			nAtt = 0;
+
 	DdsfAggType ret;
-	char *token;
-	char *save;
+	char	   *token;
+	char	   *save;
 
 	token = strtok_r(query, ",", &save);
 
-	while( token != NULL && nAtt != nTotalAtts)	
+	while (token != NULL && nAtt != nTotalAtts)
 	{
 		if (strcasestr(token, "AVG"))
 			ret = AGG_AVG;
@@ -1588,30 +1621,32 @@ ddsf_get_agg_type_new(const ForeignScanState *node, const int nTotalAtts, DdsfAg
 			ret = AGG_STDDEV;
 		else
 			ret = AGG_DEFAULT;
-		if(ret!= AGG_DEFAULT)
+		if (ret != AGG_DEFAULT)
 		{
 			aggType[nAtt] = ret;
 			nAtt++;
 		}
 		token = strtok_r(NULL, ",", &save);
 	}
-	pfree(query);	
+	pfree(query);
 }
+
 /*
  * ddsf_get_agg_type
  * get Agg Type for the the agg function
  */
 DdsfAggType
-ddsf_get_agg_type(AggState *aggnode)
+ddsf_get_agg_type(AggState * aggnode)
 /*char *query, int attnum)*/
 {
 	return AGG_SUM;
 }
+
 Datum
 ddsf_combine_agg_new(ForeignAggInfo * agginfodata, int num_aggs, int natts)
 {
 
-	for(int i=0; i<natts; i++)
+	for (int i = 0; i < natts; i++)
 	{
 
 		switch (agginfodata[0].result[i].type)
@@ -1623,14 +1658,14 @@ ddsf_combine_agg_new(ForeignAggInfo * agginfodata, int num_aggs, int natts)
 				ddsf_agg_sum(agginfodata, num_aggs, i);
 				break;
 			case AGG_COUNT:
-				ddsf_agg_count(agginfodata, num_aggs,i);
+				ddsf_agg_count(agginfodata, num_aggs, i);
 				break;
 			case AGG_MAX:
-				 ddsf_agg_max(agginfodata, num_aggs, i);
-				 break;
+				ddsf_agg_max(agginfodata, num_aggs, i);
+				break;
 			case AGG_MIN:
-				 ddsf_agg_min(agginfodata, num_aggs, i);
-				 break;
+				ddsf_agg_min(agginfodata, num_aggs, i);
+				break;
 			case AGG_BIT_OR:
 				ddsf_agg_bit_or(agginfodata, num_aggs, i);
 				break;
@@ -1645,7 +1680,7 @@ ddsf_combine_agg_new(ForeignAggInfo * agginfodata, int num_aggs, int natts)
 				ddsf_agg_bool_or(agginfodata, num_aggs, i);
 				break;
 			case AGG_STRING_AGG:
-				ddsf_agg_string_agg(agginfodata, num_aggs,i);
+				ddsf_agg_string_agg(agginfodata, num_aggs, i);
 				break;
 			case AGG_VAR:
 				ddsf_agg_variance(agginfodata, num_aggs, i);
@@ -1663,14 +1698,15 @@ ddsf_combine_agg_new(ForeignAggInfo * agginfodata, int num_aggs, int natts)
 }
 
 
-void ddsf_get_agg_Info_push(TupleTableSlot *aggSlot, const ForeignScanState *node, int count, ForeignAggInfo *agginfodata)
+void
+ddsf_get_agg_Info_push(TupleTableSlot * aggSlot, const ForeignScanState * node, int count, ForeignAggInfo * agginfodata)
 {
-	int natts;
-	int natts_real=0;
-	bool isnull = false;
-	Datum datum;
-	
-	for(natts=0;natts < aggSlot->tts_tupleDescriptor->natts; natts++)
+	int			natts;
+	int			natts_real = 0;
+	bool		isnull = false;
+	Datum		datum;
+
+	for (natts = 0; natts < aggSlot->tts_tupleDescriptor->natts; natts++)
 	{
 		natts_real++;
 		/**
@@ -1678,100 +1714,111 @@ void ddsf_get_agg_Info_push(TupleTableSlot *aggSlot, const ForeignScanState *nod
 		 * value types.
 		 */
 		DdsfAggType type = ddsf_get_agg_type_new_push(node, natts_real);
-		if(type != AGG_DEFAULT)
+
+		if (type != AGG_DEFAULT)
 		{
-			agginfodata[count-1].result[natts].type = type;
-			agginfodata[count-1].result[natts].typid= aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-			datum = slot_getattr(aggSlot, natts+1, &isnull);
-			switch(agginfodata[count-1].result[natts].type)
+			agginfodata[count - 1].result[natts].type = type;
+			agginfodata[count - 1].result[natts].typid = aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
+			datum = slot_getattr(aggSlot, natts + 1, &isnull);
+			switch (agginfodata[count - 1].result[natts].type)
 			{
 				case AGG_SUM:
-				{					
-					switch(agginfodata[count-1].result[natts].typid)
 					{
-						case FLOAT4OID:
-							agginfodata[count-1].result[natts].aggdata.sum.realType = DatumGetFloat4(datum);
-							break;
-						case FLOAT8OID:
-							agginfodata[count-1].result[natts].aggdata.sum.value = DatumGetFloat8(datum);
-						break;
-						default:
-							agginfodata[count-1].result[natts].aggdata.sum.bigint_val = DatumGetInt64(datum);
-						break;
+						switch (agginfodata[count - 1].result[natts].typid)
+						{
+							case FLOAT4OID:
+								agginfodata[count - 1].result[natts].aggdata.sum.realType = DatumGetFloat4(datum);
+								break;
+							case FLOAT8OID:
+								agginfodata[count - 1].result[natts].aggdata.sum.value = DatumGetFloat8(datum);
+								break;
+							default:
+								agginfodata[count - 1].result[natts].aggdata.sum.bigint_val = DatumGetInt64(datum);
+								break;
+						}
 					}
-				}
-				break;
-				
+					break;
+
 				case AGG_AVG:
-				{
-					FinalizeTup(aggSlot, ((QueryDesc *)node->ss.ps.ddsfAggQry)->dest, natts);
-					char	   *outputstr;	
-					//datum = slot_getattr(aggSlot, natts+2, &isnull);
+					{
+						FinalizeTup(aggSlot, ((QueryDesc *) node->ss.ps.ddsfAggQry)->dest, natts);
+						char	   *outputstr;
+
+						/* datum = slot_getattr(aggSlot, natts+2, &isnull); */
 /*
 					outputstr = DatumGetCString(slot_getattr(aggSlot, natts+2, &isnull));
 					agginfodata[count-1].result[natts].aggdata.avg.count.value = strtof(outputstr, NULL);
 */
-//					agginfodata[count-1].result[natts].aggdata.count.value = DatumGetInt64(datum);
+/* 					agginfodata[count-1].result[natts].aggdata.count.value = DatumGetInt64(datum); */
 
-					//outputstr = DatumGetCString(slot_getattr(aggSlot, natts+1, &isnull));
-					//agginfodata[count-1].result[natts].aggdata.avg.count.value = strtod(outputstr, NULL);
-					agginfodata[count-1].result[natts].aggdata.avg.count.value = DatumGetInt64(slot_getattr(aggSlot, natts_real+1, &isnull));
-					outputstr = DatumGetCString(slot_getattr(aggSlot, natts_real, &isnull));
-					switch(agginfodata[count-1].result[natts].typid)
-					{
-						case FLOAT4OID:
-							agginfodata[count-1].result[natts].aggdata.avg.sum.realType = strtof(outputstr, NULL);
-							elog(DEBUG1,"float sum=%f",agginfodata[count-1].result[natts].aggdata.avg.sum.realType);
-						break;
-						case FLOAT8OID:
-							agginfodata[count-1].result[natts].aggdata.avg.sum.value = strtod(outputstr, NULL);
-							elog(DEBUG1,"float8 sum=%f",agginfodata[count-1].result[natts].aggdata.avg.sum.realType);
-						break;
-						default:
-							agginfodata[count-1].result[natts].aggdata.avg.sum.bigint_val = strtod(outputstr, NULL);
-							elog(DEBUG1,"defo sum=%s",outputstr);
-						break;
+						/*
+						 * outputstr = DatumGetCString(slot_getattr(aggSlot,
+						 * natts+1, &isnull));
+						 */
+
+						/*
+						 * agginfodata[count-1].result[natts].aggdata.avg.count.value
+						 * = strtod(outputstr, NULL);
+						 */
+						agginfodata[count - 1].result[natts].aggdata.avg.count.value = DatumGetInt64(slot_getattr(aggSlot, natts_real + 1, &isnull));
+						outputstr = DatumGetCString(slot_getattr(aggSlot, natts_real, &isnull));
+						switch (agginfodata[count - 1].result[natts].typid)
+						{
+							case FLOAT4OID:
+								agginfodata[count - 1].result[natts].aggdata.avg.sum.realType = strtof(outputstr, NULL);
+								elog(DEBUG1, "float sum=%f", agginfodata[count - 1].result[natts].aggdata.avg.sum.realType);
+								break;
+							case FLOAT8OID:
+								agginfodata[count - 1].result[natts].aggdata.avg.sum.value = strtod(outputstr, NULL);
+								elog(DEBUG1, "float8 sum=%f", agginfodata[count - 1].result[natts].aggdata.avg.sum.realType);
+								break;
+							default:
+								agginfodata[count - 1].result[natts].aggdata.avg.sum.bigint_val = strtod(outputstr, NULL);
+								elog(DEBUG1, "defo sum=%s", outputstr);
+								break;
+						}
+						natts_real++;
+						elog(DEBUG1, "count=%lld", agginfodata[count - 1].result[natts].aggdata.avg.count.value);
 					}
-					natts_real++;
-					elog(DEBUG1,"count=%lld",agginfodata[count-1].result[natts].aggdata.avg.count.value);
-				}
-				break;
+					break;
 
 				case AGG_COUNT:
-				{
-					agginfodata[count-1].result[natts].aggdata.count.value = DatumGetInt64(datum);
-				}
-				break;
-				
-				case AGG_VAR:
-				{
-					FinalizeTup(aggSlot, ((QueryDesc *)node->ss.ps.ddsfAggQry)->dest, natts);				
-					char	   *outputstr;	
-					agginfodata[count-1].result[natts].aggdata.var.count.value = DatumGetInt64(slot_getattr(aggSlot, natts+2, &isnull));
-					outputstr = DatumGetCString(slot_getattr(aggSlot, natts+1, &isnull));
-					switch(agginfodata[count-1].result[natts].typid)
 					{
-						case FLOAT4OID:
-							agginfodata[count-1].result[natts].aggdata.var.sum.realType = strtof(outputstr, NULL);
-						break;
-						default:
-							agginfodata[count-1].result[natts].aggdata.var.sum.value = strtod(outputstr, NULL);
-						break;
+						agginfodata[count - 1].result[natts].aggdata.count.value = DatumGetInt64(datum);
 					}
-					Numeric a = DatumGetNumeric(slot_getattr(aggSlot, natts+3, &isnull));
-					float8 hoge=0.0;
-					hoge = DatumGetFloat8(DirectFunctionCall1(numeric_float8, a));
-					agginfodata[count-1].result[natts].aggdata.var.var.value=hoge;
-					elog(DEBUG1, "varval %llf ",agginfodata[count-1].result[natts].aggdata.var.var.value);
-					elog(DEBUG1, "varval %lf ",hoge);
-				}
-				break;
+					break;
+
+				case AGG_VAR:
+					{
+						FinalizeTup(aggSlot, ((QueryDesc *) node->ss.ps.ddsfAggQry)->dest, natts);
+						char	   *outputstr;
+
+						agginfodata[count - 1].result[natts].aggdata.var.count.value = DatumGetInt64(slot_getattr(aggSlot, natts + 2, &isnull));
+						outputstr = DatumGetCString(slot_getattr(aggSlot, natts + 1, &isnull));
+						switch (agginfodata[count - 1].result[natts].typid)
+						{
+							case FLOAT4OID:
+								agginfodata[count - 1].result[natts].aggdata.var.sum.realType = strtof(outputstr, NULL);
+								break;
+							default:
+								agginfodata[count - 1].result[natts].aggdata.var.sum.value = strtod(outputstr, NULL);
+								break;
+						}
+						Numeric		a = DatumGetNumeric(slot_getattr(aggSlot, natts + 3, &isnull));
+						float8		hoge = 0.0;
+
+						hoge = DatumGetFloat8(DirectFunctionCall1(numeric_float8, a));
+						agginfodata[count - 1].result[natts].aggdata.var.var.value = hoge;
+						elog(DEBUG1, "varval %llf ", agginfodata[count - 1].result[natts].aggdata.var.var.value);
+						elog(DEBUG1, "varval %lf ", hoge);
+					}
+					break;
 				case AGG_STDDEV:
-				{
-/*					
+					{
+/*
 					FinalizeTup(aggSlot, ((QueryDesc *)node->ss.ps.ddsfAggQry)->dest, natts);
 
-					char	   *outputstr;	
+					char	   *outputstr;
 					outputstr = DatumGetCString(slot_getattr(aggSlot, natts+1, &isnull));
 					switch(agginfodata[count-1].result[natts].typid)
 					{
@@ -1783,564 +1830,583 @@ void ddsf_get_agg_Info_push(TupleTableSlot *aggSlot, const ForeignScanState *nod
 						break;
 					}
 */
-					FinalizeTup(aggSlot, ((QueryDesc *)node->ss.ps.ddsfAggQry)->dest, natts);				
-					char	   *outputstr;	
-					agginfodata[count-1].result[natts].aggdata.stddev.count.value = DatumGetInt64(slot_getattr(aggSlot, natts+2, &isnull));
-					outputstr = DatumGetCString(slot_getattr(aggSlot, natts+1, &isnull));
-					switch(agginfodata[count-1].result[natts].typid)
-					{
-						case FLOAT4OID:
-							agginfodata[count-1].result[natts].aggdata.stddev.sum.realType = strtof(outputstr, NULL);
-						break;
-						default:
-							agginfodata[count-1].result[natts].aggdata.stddev.sum.value = strtod(outputstr, NULL);
-						break;
+						FinalizeTup(aggSlot, ((QueryDesc *) node->ss.ps.ddsfAggQry)->dest, natts);
+						char	   *outputstr;
+
+						agginfodata[count - 1].result[natts].aggdata.stddev.count.value = DatumGetInt64(slot_getattr(aggSlot, natts + 2, &isnull));
+						outputstr = DatumGetCString(slot_getattr(aggSlot, natts + 1, &isnull));
+						switch (agginfodata[count - 1].result[natts].typid)
+						{
+							case FLOAT4OID:
+								agginfodata[count - 1].result[natts].aggdata.stddev.sum.realType = strtof(outputstr, NULL);
+								break;
+							default:
+								agginfodata[count - 1].result[natts].aggdata.stddev.sum.value = strtod(outputstr, NULL);
+								break;
+						}
+						Numeric		a = DatumGetNumeric(slot_getattr(aggSlot, natts + 3, &isnull));
+						float8		hoge = 0.0;
+
+						hoge = DatumGetFloat8(DirectFunctionCall1(numeric_float8, a));
+						agginfodata[count - 1].result[natts].aggdata.stddev.stddev.value = hoge;
+						elog(DEBUG1, "varval %llf ", agginfodata[count - 1].result[natts].aggdata.stddev.stddev.value);
+						elog(DEBUG1, "varval %lf ", hoge);
 					}
-					Numeric a = DatumGetNumeric(slot_getattr(aggSlot, natts+3, &isnull));
-					float8 hoge=0.0;
-					hoge = DatumGetFloat8(DirectFunctionCall1(numeric_float8, a));
-					agginfodata[count-1].result[natts].aggdata.stddev.stddev.value=hoge;
-					elog(DEBUG1, "varval %llf ",agginfodata[count-1].result[natts].aggdata.stddev.stddev.value);
-					elog(DEBUG1, "varval %lf ",hoge);
-				}
-				break;
+					break;
 
 				case AGG_STRING_AGG:
-				{
-					int			string_len;
-					StringInfo	state;
-					char	   *value;
-					Oid			typoutput;
-					bool		typisvarlena;
+					{
+						int			string_len;
+						StringInfo	state;
+						char	   *value;
+						Oid			typoutput;
+						bool		typisvarlena;
 
-					state = (StringInfo) palloc(sizeof(StringInfoData));
-					if (!state)
-					{
-						agginfodata[count-1].result[natts].status = DDSF_FRG_ERROR;
-						ereport(NOTICE, (errmsg("Memory Allocation Failed ")));
-						return;
-					}
-					agginfodata[count-1].result[natts].aggdata.stringagg.state = state;
-					
-					getTypeOutputInfo(agginfodata[count-1].result[natts].typid,
-									  &typoutput, &typisvarlena);
+						state = (StringInfo) palloc(sizeof(StringInfoData));
+						if (!state)
+						{
+							agginfodata[count - 1].result[natts].status = DDSF_FRG_ERROR;
+							ereport(NOTICE, (errmsg("Memory Allocation Failed ")));
+							return;
+						}
+						agginfodata[count - 1].result[natts].aggdata.stringagg.state = state;
 
-					value = OidOutputFunctionCall(typoutput, datum);
-					string_len = strlen(value);
-					
-					agginfodata[count-1].result[natts].aggdata.stringagg.state->len = string_len;
-					agginfodata[count-1].result[natts].aggdata.stringagg.state->data = (char *) palloc(sizeof(char) * string_len + 1);
-					if (!agginfodata[count-1].result[natts].aggdata.stringagg.state->data)
-					{
-						agginfodata[count-1].result[natts].status = DDSF_FRG_ERROR;
-						ereport(NOTICE, (errmsg("Memory Allocation Failed ")));
-						return;
+						getTypeOutputInfo(agginfodata[count - 1].result[natts].typid,
+										  &typoutput, &typisvarlena);
+
+						value = OidOutputFunctionCall(typoutput, datum);
+						string_len = strlen(value);
+
+						agginfodata[count - 1].result[natts].aggdata.stringagg.state->len = string_len;
+						agginfodata[count - 1].result[natts].aggdata.stringagg.state->data = (char *) palloc(sizeof(char) * string_len + 1);
+						if (!agginfodata[count - 1].result[natts].aggdata.stringagg.state->data)
+						{
+							agginfodata[count - 1].result[natts].status = DDSF_FRG_ERROR;
+							ereport(NOTICE, (errmsg("Memory Allocation Failed ")));
+							return;
+						}
+						memset(agginfodata[count - 1].result[natts].aggdata.stringagg.state->data, 0, string_len + 1);
+						if (string_len >= 0)
+						{
+							strncpy(agginfodata[count - 1].result[natts].aggdata.stringagg.state->data, value, string_len);
+						}
 					}
-					memset(agginfodata[count-1].result[natts].aggdata.stringagg.state->data, 0, string_len + 1);
-					if (string_len >= 0)
-					{
-						strncpy(agginfodata[count-1].result[natts].aggdata.stringagg.state->data, value, string_len);
-					}
-				}
-				break;
+					break;
 
 				case AGG_BOOL_AND:
 				case AGG_BOOL_OR:
 				case AGG_EVERY:
-				{
-					char	   *value;
-					Oid			typoutput;
-					bool		typisvarlena;
-
-					getTypeOutputInfo(agginfodata[count-1].result[natts].typid,
-									  &typoutput, &typisvarlena);
-
-					value = OidOutputFunctionCall(typoutput, datum);
-					
-					switch (*value)
 					{
-						case 'T':
-						case 't':
-						case 'Y':
-						case 'y':
-						case '1':				
-							agginfodata[count-1].result[natts].aggdata.boolvar.boolall = true;
-						break;
-						case 'F':
-						case 'f':
-						case 'N':
-						case 'n':
-						case '0':				
-							agginfodata[count-1].result[natts].aggdata.boolvar.boolall = false;
-						break;
-						default:
-							agginfodata[count-1].result[natts].aggdata.boolvar.boolall = false;
+						char	   *value;
+						Oid			typoutput;
+						bool		typisvarlena;
+
+						getTypeOutputInfo(agginfodata[count - 1].result[natts].typid,
+										  &typoutput, &typisvarlena);
+
+						value = OidOutputFunctionCall(typoutput, datum);
+
+						switch (*value)
+						{
+							case 'T':
+							case 't':
+							case 'Y':
+							case 'y':
+							case '1':
+								agginfodata[count - 1].result[natts].aggdata.boolvar.boolall = true;
+								break;
+							case 'F':
+							case 'f':
+							case 'N':
+							case 'n':
+							case '0':
+								agginfodata[count - 1].result[natts].aggdata.boolvar.boolall = false;
+								break;
+							default:
+								agginfodata[count - 1].result[natts].aggdata.boolvar.boolall = false;
+						}
 					}
-				}
-				break;
+					break;
 				case AGG_BIT_AND:
 				case AGG_BIT_OR:
 					{
-						int 	string_len;					
+						int			string_len;
 						char	   *value;
-						Oid 		typoutput;
+						Oid			typoutput;
 						bool		typisvarlena;
 
-						getTypeOutputInfo(agginfodata[count-1].result[natts].typid,
-																	  &typoutput, &typisvarlena);
-													
+						getTypeOutputInfo(agginfodata[count - 1].result[natts].typid,
+										  &typoutput, &typisvarlena);
+
 						value = OidOutputFunctionCall(typoutput, datum);
 						string_len = strlen(value);
 
-						if (agginfodata[count-1].result[natts].typid == BITOID)
+						if (agginfodata[count - 1].result[natts].typid == BITOID)
 						{
 							StringInfo	state;
 
 							state = (StringInfo) palloc(sizeof(StringInfoData));
 							if (!state)
 							{
-								agginfodata[count-1].result[natts].status = DDSF_FRG_ERROR;
+								agginfodata[count - 1].result[natts].status = DDSF_FRG_ERROR;
 								ereport(NOTICE, (errmsg("Memory Allocation Failed ")));
 								return;
 							}
-							agginfodata[count-1].result[natts].aggdata.bit_op.state = state;
+							agginfodata[count - 1].result[natts].aggdata.bit_op.state = state;
 
-							agginfodata[count-1].result[natts].aggdata.bit_op.state->len = string_len;
-							agginfodata[count-1].result[natts].aggdata.bit_op.state->data = (char *) palloc(sizeof(char) * string_len + 1);
-							if (!agginfodata[count-1].result[natts].aggdata.bit_op.state->data)
+							agginfodata[count - 1].result[natts].aggdata.bit_op.state->len = string_len;
+							agginfodata[count - 1].result[natts].aggdata.bit_op.state->data = (char *) palloc(sizeof(char) * string_len + 1);
+							if (!agginfodata[count - 1].result[natts].aggdata.bit_op.state->data)
 							{
-								agginfodata[count-1].result[natts].status = DDSF_FRG_ERROR;
+								agginfodata[count - 1].result[natts].status = DDSF_FRG_ERROR;
 								ereport(NOTICE, (errmsg("Memory Allocation Failed ")));
 								return;
 							}
-							memset(agginfodata[count-1].result[natts].aggdata.bit_op.state->data, 0, string_len + 1);
+							memset(agginfodata[count - 1].result[natts].aggdata.bit_op.state->data, 0, string_len + 1);
 							if (string_len >= 0)
 							{
-								strncpy(agginfodata[count-1].result[natts].aggdata.bit_op.state->data, value, string_len);
+								strncpy(agginfodata[count - 1].result[natts].aggdata.bit_op.state->data, value, string_len);
 							}
-							agginfodata[count-1].typid = BITOID;
+							agginfodata[count - 1].typid = BITOID;
 						}
 						else
 						{
-							agginfodata[count-1].result[natts].aggdata.bitvar.bitall = strtol(value, NULL, BASE_TEN);
+							agginfodata[count - 1].result[natts].aggdata.bitvar.bitall = strtol(value, NULL, BASE_TEN);
 
-							/* Checking for the range of the value after the conversion */
-							if ((errno == ERANGE && (agginfodata[count-1].result[natts].aggdata.bitvar.bitall == LONG_MAX ||
-										  agginfodata[count-1].result[natts].aggdata.bitvar.bitall == LONG_MIN)))
+							/*
+							 * Checking for the range of the value after the
+							 * conversion
+							 */
+							if ((errno == ERANGE && (agginfodata[count - 1].result[natts].aggdata.bitvar.bitall == LONG_MAX ||
+													 agginfodata[count - 1].result[natts].aggdata.bitvar.bitall == LONG_MIN)))
 							{
-								agginfodata[count-1].result[natts].status = DDSF_FRG_ERROR;
+								agginfodata[count - 1].result[natts].status = DDSF_FRG_ERROR;
 								ereport(NOTICE, (errmsg("Out of Range ")));
 							}
 						}
 					}
-				break;
+					break;
 				case AGG_MAX:
 				case AGG_MIN:
-				{
-					switch(agginfodata[count-1].result[natts].typid)
 					{
-						case FLOAT4OID:
-							agginfodata[count-1].result[natts].aggdata.maxmin.realVal = DatumGetFloat4(datum);
-						break;
-						case FLOAT8OID:
-							agginfodata[count-1].result[natts].aggdata.maxmin.dpVal = DatumGetFloat8(datum);
-						break;
-						case DATEOID:
+						switch (agginfodata[count - 1].result[natts].typid)
 						{
-							char	   *dateStr,
-									   *dateTok,
-									   *save;
-							Oid			typoutput;
-							bool		typisvarlena;
+							case FLOAT4OID:
+								agginfodata[count - 1].result[natts].aggdata.maxmin.realVal = DatumGetFloat4(datum);
+								break;
+							case FLOAT8OID:
+								agginfodata[count - 1].result[natts].aggdata.maxmin.dpVal = DatumGetFloat8(datum);
+								break;
+							case DATEOID:
+								{
+									char	   *dateStr,
+											   *dateTok,
+											   *save;
+									Oid			typoutput;
+									bool		typisvarlena;
 
-							getTypeOutputInfo(agginfodata[count-1].result[natts].typid,
-											  &typoutput, &typisvarlena);
+									getTypeOutputInfo(agginfodata[count - 1].result[natts].typid,
+													  &typoutput, &typisvarlena);
 
-							dateStr = OidOutputFunctionCall(typoutput, datum);
+									dateStr = OidOutputFunctionCall(typoutput, datum);
 
-							if (!dateStr)
-							{
-								agginfodata[count-1].result[natts].status = DDSF_FRG_ERROR;
-								ereport(NOTICE, (errmsg("Memory allocation is failed: ")));
-								return;
-							}
-							dateTok = strtok_r(dateStr, "-", &save);
-							agginfodata[count-1].result[natts].aggdata.maxmin.fDate.year = atoi(dateTok);
-							dateTok = strtok_r(NULL, "-", &save);
-							agginfodata[count-1].result[natts].aggdata.maxmin.fDate.mon = atoi(dateTok);
-							dateTok = strtok_r(NULL, "-", &save);
-							agginfodata[count-1].result[natts].aggdata.maxmin.fDate.mday = atoi(dateTok);
+									if (!dateStr)
+									{
+										agginfodata[count - 1].result[natts].status = DDSF_FRG_ERROR;
+										ereport(NOTICE, (errmsg("Memory allocation is failed: ")));
+										return;
+									}
+									dateTok = strtok_r(dateStr, "-", &save);
+									agginfodata[count - 1].result[natts].aggdata.maxmin.fDate.year = atoi(dateTok);
+									dateTok = strtok_r(NULL, "-", &save);
+									agginfodata[count - 1].result[natts].aggdata.maxmin.fDate.mon = atoi(dateTok);
+									dateTok = strtok_r(NULL, "-", &save);
+									agginfodata[count - 1].result[natts].aggdata.maxmin.fDate.mday = atoi(dateTok);
+								}
+								break;
+
+							case TEXTOID:
+								{
+									char	   *value;
+									Oid			typoutput;
+									bool		typisvarlena;
+
+									getTypeOutputInfo(agginfodata[count - 1].result[natts].typid,
+													  &typoutput, &typisvarlena);
+
+									value = OidOutputFunctionCall(typoutput, datum);
+
+									StrNCpy(agginfodata[count - 1].result[natts].aggdata.maxmin.strMinMax, value, strlen(value) + 1);
+								}
+								break;
+
+							case ANYENUMOID:
+								break;
+
+							default:
+								agginfodata[count - 1].result[natts].aggdata.maxmin.value = DatumGetInt64(datum);
+								break;
 						}
-						break;
-						
-						case TEXTOID:
-						{
-							char	   *value;
-							Oid			typoutput;
-							bool		typisvarlena;
-
-							getTypeOutputInfo(agginfodata[count-1].result[natts].typid,
-											  &typoutput, &typisvarlena);
-
-							value = OidOutputFunctionCall(typoutput, datum);
-
-							StrNCpy(agginfodata[count-1].result[natts].aggdata.maxmin.strMinMax,value,strlen(value)+1);
-						}
-						break;
-						
-						case ANYENUMOID:
-						break;
-			
-						default:
-							agginfodata[count-1].result[natts].aggdata.maxmin.value = DatumGetInt64(datum);				
 						break;
 					}
-					break;
-				}
 
 			}
-			agginfodata[count-1].result[natts].status = DDSF_FRG_OK;
+			agginfodata[count - 1].result[natts].status = DDSF_FRG_OK;
 		}
 	}
 }
 
-void ddsf_get_agg_Info(ForeignScanThreadInfo thrdInfo, const ForeignScanState *node, int count, ForeignAggInfo *agginfodata)
+void
+ddsf_get_agg_Info(ForeignScanThreadInfo thrdInfo, const ForeignScanState * node, int count, ForeignAggInfo * agginfodata)
 {
-	int natts, nTotalAtts;
-	bool isnull = false;
-	Datum datum;
+	int			natts,
+				nTotalAtts;
+	bool		isnull = false;
+	Datum		datum;
 	TupleTableSlot *aggSlot = thrdInfo.tuple;
 
-	//nTotalAtts = aggSlot->tts_tupleDescriptor->natts - 2; /*AVG Query*/
-    nTotalAtts = aggSlot->tts_tupleDescriptor->natts; /*AVG Query*/
-	
+	 /* nTotalAtts = aggSlot->tts_tupleDescriptor->natts - 2; /*AVG Query */ */
+		nTotalAtts = aggSlot->tts_tupleDescriptor->natts;	/* AVG Query */
+
 	DdsfAggType type[nTotalAtts];
-	//ddsf_get_agg_type_new(node, nTotalAtts, &type);
-    ddsf_get_agg_type_new(node, nTotalAtts, &type);
-	int avg_count=0;
-	for(natts=0;natts < nTotalAtts; natts++)
+
+	/* ddsf_get_agg_type_new(node, nTotalAtts, &type); */
+	ddsf_get_agg_type_new(node, nTotalAtts, &type);
+	int			avg_count = 0;
+
+	for (natts = 0; natts < nTotalAtts; natts++)
 	{
 		avg_count++;
 		/**
 		 * @todo must analyze plan tree for aggregation type and
 		 * value types.
 		 */
-		agginfodata[count-1].result[natts].type = type[natts];
-		if(agginfodata[count-1].result[natts].type != AGG_DEFAULT)
+		agginfodata[count - 1].result[natts].type = type[natts];
+		if (agginfodata[count - 1].result[natts].type != AGG_DEFAULT)
 		{
-			switch(agginfodata[count-1].result[natts].type)
+			switch (agginfodata[count - 1].result[natts].type)
 			{
 				case AGG_SUM:
-				{
-					datum = slot_getattr(aggSlot, avg_count, &isnull);
-					agginfodata[count-1].result[natts].typid= aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-					switch(agginfodata[count-1].result[natts].typid)
 					{
-						case FLOAT4OID:
-							agginfodata[count-1].result[natts].aggdata.sum.realType = DatumGetFloat4(datum);
-							break;
-						case FLOAT8OID:
-							agginfodata[count-1].result[natts].aggdata.sum.value = DatumGetFloat8(datum);
-						break;
-						default:
-							agginfodata[count-1].result[natts].aggdata.sum.bigint_val = DatumGetInt64(datum);
-							elog(DEBUG1,"float =%d",agginfodata[count-1].result[natts].aggdata.sum.bigint_val);
-						break;
+						datum = slot_getattr(aggSlot, avg_count, &isnull);
+						agginfodata[count - 1].result[natts].typid = aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
+						switch (agginfodata[count - 1].result[natts].typid)
+						{
+							case FLOAT4OID:
+								agginfodata[count - 1].result[natts].aggdata.sum.realType = DatumGetFloat4(datum);
+								break;
+							case FLOAT8OID:
+								agginfodata[count - 1].result[natts].aggdata.sum.value = DatumGetFloat8(datum);
+								break;
+							default:
+								agginfodata[count - 1].result[natts].aggdata.sum.bigint_val = DatumGetInt64(datum);
+								elog(DEBUG1, "float =%d", agginfodata[count - 1].result[natts].aggdata.sum.bigint_val);
+								break;
+						}
 					}
-				}
-				break;
-				
+					break;
+
 				case AGG_AVG:
-				{
-					datum = slot_getattr(aggSlot, avg_count, &isnull);
-					agginfodata[count-1].result[natts].typid= aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-					switch(agginfodata[count-1].result[natts].typid)
-					{						
-					case FLOAT4OID:
-						agginfodata[count-1].result[natts].aggdata.avg.sum.realType = 
-							DatumGetFloat4(datum);
-						break;
-					case FLOAT8OID:
-						agginfodata[count-1].result[natts].aggdata.avg.sum.value = 
-							DatumGetFloat8(datum);
-						break;
-					default:								
-						agginfodata[count-1].result[natts].aggdata.avg.sum.bigint_val = 
-							DatumGetInt64(datum);
-						elog(DEBUG1,"natts = %d,float sum=%lld",avg_count, agginfodata[count-1].result[natts].aggdata.avg.sum.bigint_val);
-						break;
+					{
+						datum = slot_getattr(aggSlot, avg_count, &isnull);
+						agginfodata[count - 1].result[natts].typid = aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
+						switch (agginfodata[count - 1].result[natts].typid)
+						{
+							case FLOAT4OID:
+								agginfodata[count - 1].result[natts].aggdata.avg.sum.realType =
+									DatumGetFloat4(datum);
+								break;
+							case FLOAT8OID:
+								agginfodata[count - 1].result[natts].aggdata.avg.sum.value =
+									DatumGetFloat8(datum);
+								break;
+							default:
+								agginfodata[count - 1].result[natts].aggdata.avg.sum.bigint_val =
+									DatumGetInt64(datum);
+								elog(DEBUG1, "natts = %d,float sum=%lld", avg_count, agginfodata[count - 1].result[natts].aggdata.avg.sum.bigint_val);
+								break;
+						}
+						avg_count++;
+						datum = slot_getattr(aggSlot, avg_count, &isnull);
+						agginfodata[count - 1].result[natts].aggdata.avg.count.value = DatumGetInt64(datum);
+						elog(DEBUG1, "natts = %d,float count=%d", avg_count, agginfodata[count - 1].result[natts].aggdata.avg.count.value);
+						agginfodata[count - 1].result[natts].status = DDSF_FRG_OK;
 					}
-					avg_count++;
-					datum = slot_getattr(aggSlot, avg_count, &isnull);
-					agginfodata[count-1].result[natts].aggdata.avg.count.value = DatumGetInt64(datum);
-					elog(DEBUG1,"natts = %d,float count=%d",avg_count,agginfodata[count-1].result[natts].aggdata.avg.count.value);
-					agginfodata[count-1].result[natts].status = DDSF_FRG_OK;
-				}
-				break;
+					break;
 
 				case AGG_COUNT:
-				{
-					agginfodata[count-1].result[natts].typid= aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-					datum = slot_getattr(aggSlot, avg_count, &isnull);
-					agginfodata[count-1].result[natts].aggdata.count.value = DatumGetInt64(datum);
-					//agginfodata[count-1].result[natts].aggdata.count.value ++;
-					elog(DEBUG1,"natts = %d, float count=%d",avg_count,agginfodata[count-1].result[natts].aggdata.count.value);
-				}
-				break;
-				
+					{
+						agginfodata[count - 1].result[natts].typid = aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
+						datum = slot_getattr(aggSlot, avg_count, &isnull);
+						agginfodata[count - 1].result[natts].aggdata.count.value = DatumGetInt64(datum);
+
+						/*
+						 * agginfodata[count-1].result[natts].aggdata.count.value
+						 * ++;
+						 */
+						elog(DEBUG1, "natts = %d, float count=%d", avg_count, agginfodata[count - 1].result[natts].aggdata.count.value);
+					}
+					break;
+
 				case AGG_VAR:
 				case AGG_STDDEV:
-				{
+					{
 						char	   *value;
 						Oid			typoutput;
 						bool		typisvarlena;
-						
-						agginfodata[count-1].result[natts].typid= aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-						switch(agginfodata[count-1].result[natts].typid)
-						{						
+
+						agginfodata[count - 1].result[natts].typid = aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
+						switch (agginfodata[count - 1].result[natts].typid)
+						{
 							case FLOAT4OID:
-								agginfodata[count-1].result[natts].aggdata.var.sum.value = 
+								agginfodata[count - 1].result[natts].aggdata.var.sum.value =
 									DatumGetFloat4(thrdInfo.fsstate->ss.ps.state->es_progressState->ps_aggvalues[0]);
-							break;
+								break;
 							case FLOAT8OID:
-								agginfodata[count-1].result[natts].aggdata.var.sum.value = 
+								agginfodata[count - 1].result[natts].aggdata.var.sum.value =
 									DatumGetFloat8(thrdInfo.fsstate->ss.ps.state->es_progressState->ps_aggvalues[0]);
-							break;
-							default:								
-								agginfodata[count-1].result[natts].aggdata.var.sum.value = 
+								break;
+							default:
+								agginfodata[count - 1].result[natts].aggdata.var.sum.value =
 									DatumGetInt64(thrdInfo.fsstate->ss.ps.state->es_progressState->ps_aggvalues[0]);
-							break;
+								break;
 						}
 
-						agginfodata[count-1].result[natts].aggdata.var.count.value = 
+						agginfodata[count - 1].result[natts].aggdata.var.count.value =
 							thrdInfo.fsstate->ss.ps.state->es_progressState->ps_aggvalues[1];
 
-						datum = 
+						datum =
 							thrdInfo.fsstate->ss.ps.state->es_progressState->ps_aggvalues[2];
-						
-						getTypeOutputInfo(agginfodata[count-1].result[natts].typid,
+
+						getTypeOutputInfo(agginfodata[count - 1].result[natts].typid,
 										  &typoutput, &typisvarlena);
 
 						value = OidOutputFunctionCall(typoutput, datum);
-						agginfodata[count-1].result[natts].aggdata.var.var.value= strtold(value, NULL);
-						agginfodata[count-1].result[natts].status = DDSF_FRG_OK;
-						
+						agginfodata[count - 1].result[natts].aggdata.var.var.value = strtold(value, NULL);
+						agginfodata[count - 1].result[natts].status = DDSF_FRG_OK;
+
 						pfree(value);
-				}
-				break;
+					}
+					break;
 				case AGG_STRING_AGG:
-				{
-					int			string_len;
-					StringInfo	state;
-					char	   *value;
-					Oid			typoutput;
-					bool		typisvarlena;
+					{
+						int			string_len;
+						StringInfo	state;
+						char	   *value;
+						Oid			typoutput;
+						bool		typisvarlena;
 
-					agginfodata[count-1].result[natts].typid= aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-					datum = slot_getattr(aggSlot, avg_count, &isnull);
-					state = (StringInfo) palloc(sizeof(StringInfoData));
-					if (!state)
-					{
-						agginfodata[count-1].result[natts].status = DDSF_FRG_ERROR;
-						ereport(NOTICE, (errmsg("Memory Allocation Failed ")));
-						return;
-					}
-					agginfodata[count-1].result[natts].aggdata.stringagg.state = state;
-					
-					getTypeOutputInfo(agginfodata[count-1].result[natts].typid,
-									  &typoutput, &typisvarlena);
+						agginfodata[count - 1].result[natts].typid = aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
+						datum = slot_getattr(aggSlot, avg_count, &isnull);
+						state = (StringInfo) palloc(sizeof(StringInfoData));
+						if (!state)
+						{
+							agginfodata[count - 1].result[natts].status = DDSF_FRG_ERROR;
+							ereport(NOTICE, (errmsg("Memory Allocation Failed ")));
+							return;
+						}
+						agginfodata[count - 1].result[natts].aggdata.stringagg.state = state;
 
-					value = OidOutputFunctionCall(typoutput, datum);
-					string_len = strlen(value);
-					
-					agginfodata[count-1].result[natts].aggdata.stringagg.state->len = string_len;
-					agginfodata[count-1].result[natts].aggdata.stringagg.state->data = (char *) palloc(sizeof(char) * string_len + 1);
-					if (!agginfodata[count-1].result[natts].aggdata.stringagg.state->data)
-					{
-						agginfodata[count-1].result[natts].status = DDSF_FRG_ERROR;
-						ereport(NOTICE, (errmsg("Memory Allocation Failed ")));
-						return;
+						getTypeOutputInfo(agginfodata[count - 1].result[natts].typid,
+										  &typoutput, &typisvarlena);
+
+						value = OidOutputFunctionCall(typoutput, datum);
+						string_len = strlen(value);
+
+						agginfodata[count - 1].result[natts].aggdata.stringagg.state->len = string_len;
+						agginfodata[count - 1].result[natts].aggdata.stringagg.state->data = (char *) palloc(sizeof(char) * string_len + 1);
+						if (!agginfodata[count - 1].result[natts].aggdata.stringagg.state->data)
+						{
+							agginfodata[count - 1].result[natts].status = DDSF_FRG_ERROR;
+							ereport(NOTICE, (errmsg("Memory Allocation Failed ")));
+							return;
+						}
+						memset(agginfodata[count - 1].result[natts].aggdata.stringagg.state->data, 0, string_len + 1);
+						if (string_len >= 0)
+						{
+							strncpy(agginfodata[count - 1].result[natts].aggdata.stringagg.state->data, value, string_len);
+						}
+						pfree(value);
 					}
-					memset(agginfodata[count-1].result[natts].aggdata.stringagg.state->data, 0, string_len + 1);
-					if (string_len >= 0)
-					{
-						strncpy(agginfodata[count-1].result[natts].aggdata.stringagg.state->data, value, string_len);
-					}
-					pfree(value);
-				}
-				break;
+					break;
 
 				case AGG_BOOL_AND:
 				case AGG_BOOL_OR:
 				case AGG_EVERY:
-				{
-					char	   *value;
-					Oid			typoutput;
-					bool		typisvarlena;
-					agginfodata[count-1].result[natts].typid= aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-					datum = slot_getattr(aggSlot, avg_count, &isnull);
-
-					getTypeOutputInfo(agginfodata[count-1].result[natts].typid,
-									  &typoutput, &typisvarlena);
-
-					value = OidOutputFunctionCall(typoutput, datum);
-					
-					switch (*value)
 					{
-						case 'T':
-						case 't':
-						case 'Y':
-						case 'y':
-						case '1':				
-							agginfodata[count-1].result[natts].aggdata.boolvar.boolall = true;
-						break;
-						case 'F':
-						case 'f':
-						case 'N':
-						case 'n':
-						case '0':				
-							agginfodata[count-1].result[natts].aggdata.boolvar.boolall = false;
-						break;
-						default:
-							agginfodata[count-1].result[natts].aggdata.boolvar.boolall = false;
+						char	   *value;
+						Oid			typoutput;
+						bool		typisvarlena;
+
+						agginfodata[count - 1].result[natts].typid = aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
+						datum = slot_getattr(aggSlot, avg_count, &isnull);
+
+						getTypeOutputInfo(agginfodata[count - 1].result[natts].typid,
+										  &typoutput, &typisvarlena);
+
+						value = OidOutputFunctionCall(typoutput, datum);
+
+						switch (*value)
+						{
+							case 'T':
+							case 't':
+							case 'Y':
+							case 'y':
+							case '1':
+								agginfodata[count - 1].result[natts].aggdata.boolvar.boolall = true;
+								break;
+							case 'F':
+							case 'f':
+							case 'N':
+							case 'n':
+							case '0':
+								agginfodata[count - 1].result[natts].aggdata.boolvar.boolall = false;
+								break;
+							default:
+								agginfodata[count - 1].result[natts].aggdata.boolvar.boolall = false;
+						}
 					}
-				}
-				break;
+					break;
 				case AGG_BIT_AND:
 				case AGG_BIT_OR:
 					{
-						int 	string_len;					
+						int			string_len;
 						char	   *value;
-						Oid 		typoutput;
+						Oid			typoutput;
 						bool		typisvarlena;
-						agginfodata[count-1].result[natts].typid= aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
+
+						agginfodata[count - 1].result[natts].typid = aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
 						datum = slot_getattr(aggSlot, avg_count, &isnull);
 
-						getTypeOutputInfo(agginfodata[count-1].result[natts].typid,
-																	  &typoutput, &typisvarlena);
-													
+						getTypeOutputInfo(agginfodata[count - 1].result[natts].typid,
+										  &typoutput, &typisvarlena);
+
 						value = OidOutputFunctionCall(typoutput, datum);
 						string_len = strlen(value);
 
-						if (agginfodata[count-1].result[natts].typid == BITOID)
+						if (agginfodata[count - 1].result[natts].typid == BITOID)
 						{
 							StringInfo	state;
 
 							state = (StringInfo) palloc(sizeof(StringInfoData));
 							if (!state)
 							{
-								agginfodata[count-1].result[natts].status = DDSF_FRG_ERROR;
+								agginfodata[count - 1].result[natts].status = DDSF_FRG_ERROR;
 								ereport(NOTICE, (errmsg("Memory Allocation Failed ")));
 								return;
 							}
-							agginfodata[count-1].result[natts].aggdata.bit_op.state = state;
+							agginfodata[count - 1].result[natts].aggdata.bit_op.state = state;
 
-							agginfodata[count-1].result[natts].aggdata.bit_op.state->len = string_len;
-							agginfodata[count-1].result[natts].aggdata.bit_op.state->data = (char *) palloc(sizeof(char) * string_len + 1);
-							if (!agginfodata[count-1].result[natts].aggdata.bit_op.state->data)
+							agginfodata[count - 1].result[natts].aggdata.bit_op.state->len = string_len;
+							agginfodata[count - 1].result[natts].aggdata.bit_op.state->data = (char *) palloc(sizeof(char) * string_len + 1);
+							if (!agginfodata[count - 1].result[natts].aggdata.bit_op.state->data)
 							{
-								agginfodata[count-1].result[natts].status = DDSF_FRG_ERROR;
+								agginfodata[count - 1].result[natts].status = DDSF_FRG_ERROR;
 								ereport(NOTICE, (errmsg("Memory Allocation Failed ")));
 								return;
 							}
-							memset(agginfodata[count-1].result[natts].aggdata.bit_op.state->data, 0, string_len + 1);
+							memset(agginfodata[count - 1].result[natts].aggdata.bit_op.state->data, 0, string_len + 1);
 							if (string_len >= 0)
 							{
-								strncpy(agginfodata[count-1].result[natts].aggdata.bit_op.state->data, value, string_len);
+								strncpy(agginfodata[count - 1].result[natts].aggdata.bit_op.state->data, value, string_len);
 							}
-							agginfodata[count-1].typid = BITOID;
+							agginfodata[count - 1].typid = BITOID;
 						}
 						else
 						{
-							agginfodata[count-1].result[natts].aggdata.bitvar.bitall = strtol(value, NULL, BASE_TEN);
+							agginfodata[count - 1].result[natts].aggdata.bitvar.bitall = strtol(value, NULL, BASE_TEN);
 
-							/* Checking for the range of the value after the conversion */
-							if ((errno == ERANGE && (agginfodata[count-1].result[natts].aggdata.bitvar.bitall == LONG_MAX ||
-										  agginfodata[count-1].result[natts].aggdata.bitvar.bitall == LONG_MIN)))
+							/*
+							 * Checking for the range of the value after the
+							 * conversion
+							 */
+							if ((errno == ERANGE && (agginfodata[count - 1].result[natts].aggdata.bitvar.bitall == LONG_MAX ||
+													 agginfodata[count - 1].result[natts].aggdata.bitvar.bitall == LONG_MIN)))
 							{
-								agginfodata[count-1].result[natts].status = DDSF_FRG_ERROR;
+								agginfodata[count - 1].result[natts].status = DDSF_FRG_ERROR;
 								ereport(NOTICE, (errmsg("Out of Range ")));
 							}
 						}
 					}
-				break;
+					break;
 				case AGG_MAX:
 				case AGG_MIN:
-				{
-					agginfodata[count-1].result[natts].typid= aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
-					datum = slot_getattr(aggSlot, avg_count, &isnull);
-					switch(agginfodata[count-1].result[natts].typid)
 					{
-						case FLOAT4OID:
-							agginfodata[count-1].result[natts].aggdata.maxmin.realVal = DatumGetFloat4(datum);
-						break;
-						case FLOAT8OID:
-							agginfodata[count-1].result[natts].aggdata.maxmin.dpVal = DatumGetFloat8(datum);
-						break;
-						case DATEOID:
+						agginfodata[count - 1].result[natts].typid = aggSlot->tts_tupleDescriptor->attrs[natts]->atttypid;
+						datum = slot_getattr(aggSlot, avg_count, &isnull);
+						switch (agginfodata[count - 1].result[natts].typid)
 						{
-							char	   *dateStr,
-									   *dateTok,
-									   *save;
-							Oid			typoutput;
-							bool		typisvarlena;
+							case FLOAT4OID:
+								agginfodata[count - 1].result[natts].aggdata.maxmin.realVal = DatumGetFloat4(datum);
+								break;
+							case FLOAT8OID:
+								agginfodata[count - 1].result[natts].aggdata.maxmin.dpVal = DatumGetFloat8(datum);
+								break;
+							case DATEOID:
+								{
+									char	   *dateStr,
+											   *dateTok,
+											   *save;
+									Oid			typoutput;
+									bool		typisvarlena;
 
-							getTypeOutputInfo(agginfodata[count-1].result[natts].typid,
-											  &typoutput, &typisvarlena);
+									getTypeOutputInfo(agginfodata[count - 1].result[natts].typid,
+													  &typoutput, &typisvarlena);
 
-							dateStr = OidOutputFunctionCall(typoutput, datum);
+									dateStr = OidOutputFunctionCall(typoutput, datum);
 
-							if (!dateStr)
-							{
-								agginfodata[count-1].result[natts].status = DDSF_FRG_ERROR;
-								ereport(NOTICE, (errmsg("Memory allocation is failed: ")));
-								return;
-							}
-							dateTok = strtok_r(dateStr, "-", &save);
-							agginfodata[count-1].result[natts].aggdata.maxmin.fDate.year = atoi(dateTok);
-							dateTok = strtok_r(NULL, "-", &save);
-							agginfodata[count-1].result[natts].aggdata.maxmin.fDate.mon = atoi(dateTok);
-							dateTok = strtok_r(NULL, "-", &save);
-							agginfodata[count-1].result[natts].aggdata.maxmin.fDate.mday = atoi(dateTok);
+									if (!dateStr)
+									{
+										agginfodata[count - 1].result[natts].status = DDSF_FRG_ERROR;
+										ereport(NOTICE, (errmsg("Memory allocation is failed: ")));
+										return;
+									}
+									dateTok = strtok_r(dateStr, "-", &save);
+									agginfodata[count - 1].result[natts].aggdata.maxmin.fDate.year = atoi(dateTok);
+									dateTok = strtok_r(NULL, "-", &save);
+									agginfodata[count - 1].result[natts].aggdata.maxmin.fDate.mon = atoi(dateTok);
+									dateTok = strtok_r(NULL, "-", &save);
+									agginfodata[count - 1].result[natts].aggdata.maxmin.fDate.mday = atoi(dateTok);
+								}
+								break;
+
+							case TEXTOID:
+								{
+									char	   *value;
+									Oid			typoutput;
+									bool		typisvarlena;
+
+									getTypeOutputInfo(agginfodata[count - 1].result[natts].typid,
+													  &typoutput, &typisvarlena);
+
+									value = OidOutputFunctionCall(typoutput, datum);
+									StrNCpy(agginfodata[count - 1].result[natts].aggdata.maxmin.strMinMax, value, strlen(value) + 1);
+									pfree(value);
+								}
+								break;
+
+							case ANYENUMOID:
+								break;
+
+							default:
+								agginfodata[count - 1].result[natts].aggdata.maxmin.value = DatumGetInt64(datum);
+								elog(DEBUG1, "maxmin default=%d", agginfodata[count - 1].result[natts].aggdata.maxmin.value);
+								break;
 						}
-						break;
-						
-						case TEXTOID:
-						{
-							char	   *value;
-							Oid			typoutput;
-							bool		typisvarlena;
-
-							getTypeOutputInfo(agginfodata[count-1].result[natts].typid,
-											  &typoutput, &typisvarlena);
-
-							value = OidOutputFunctionCall(typoutput, datum);
-							StrNCpy(agginfodata[count-1].result[natts].aggdata.maxmin.strMinMax,value,strlen(value)+1);
-							pfree(value);
-						}
-						break;
-						
-						case ANYENUMOID:
-						break;
-			
-						default:
-							agginfodata[count-1].result[natts].aggdata.maxmin.value = DatumGetInt64(datum);
-							elog(DEBUG1,"maxmin default=%d",agginfodata[count-1].result[natts].aggdata.maxmin.value);
 						break;
 					}
-					break;
-				}
 
 			}
-			agginfodata[count-1].result[natts].status = DDSF_FRG_OK;
+			agginfodata[count - 1].result[natts].status = DDSF_FRG_OK;
 		}
 	}
 }
 
 
-TupleTableSlot* ddsf_get_agg_tuple(ForeignAggInfo * agginfodata, TupleTableSlot *dest)
+TupleTableSlot *
+ddsf_get_agg_tuple(ForeignAggInfo * agginfodata, TupleTableSlot * dest)
 {
-	HeapTuple tuple;
+	HeapTuple	tuple;
 	Datum	   *values;
 	bool	   *nulls;
 
@@ -2349,13 +2415,13 @@ TupleTableSlot* ddsf_get_agg_tuple(ForeignAggInfo * agginfodata, TupleTableSlot 
 	/* Initialize to nulls for any columns not present in result */
 	memset(nulls, 0, dest->tts_tupleDescriptor->natts * sizeof(bool));
 
-	for(int i=0; i<dest->tts_tupleDescriptor->natts; i++)
+	for (int i = 0; i < dest->tts_tupleDescriptor->natts; i++)
 	{
 		values[i] = agginfodata[0].result[i].finalResult;
 	}
 	tuple = heap_form_tuple(dest->tts_tupleDescriptor, values, nulls);
 
 	ExecStoreTuple(tuple, dest, InvalidBuffer, false);
-	
+
 	return dest;
 }

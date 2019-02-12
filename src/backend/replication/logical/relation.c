@@ -32,8 +32,8 @@
 
 static MemoryContext LogicalRepRelMapContext = NULL;
 
-static HTAB *LogicalRepRelMap = NULL;
-static HTAB *LogicalRepTypMap = NULL;
+static HTAB * LogicalRepRelMap = NULL;
+static HTAB * LogicalRepTypMap = NULL;
 
 
 /*
@@ -119,7 +119,7 @@ logicalrep_relmap_init(void)
  * Free the entry of a relation map cache.
  */
 static void
-logicalrep_relmap_free_entry(LogicalRepRelMapEntry *entry)
+logicalrep_relmap_free_entry(LogicalRepRelMapEntry * entry)
 {
 	LogicalRepRelation *remoterel;
 
@@ -151,7 +151,7 @@ logicalrep_relmap_free_entry(LogicalRepRelMapEntry *entry)
  * our expected view of incoming data from said publisher.
  */
 void
-logicalrep_relmap_update(LogicalRepRelation *remoterel)
+logicalrep_relmap_update(LogicalRepRelation * remoterel)
 {
 	MemoryContext oldctx;
 	LogicalRepRelMapEntry *entry;
@@ -196,7 +196,7 @@ logicalrep_relmap_update(LogicalRepRelation *remoterel)
  * Returns -1 if not found.
  */
 static int
-logicalrep_rel_att_by_name(LogicalRepRelation *remoterel, const char *attname)
+logicalrep_rel_att_by_name(LogicalRepRelation * remoterel, const char *attname)
 {
 	int			i;
 
@@ -364,7 +364,7 @@ logicalrep_rel_open(LogicalRepRelId remoteid, LOCKMODE lockmode)
  * Close the previously opened logical relation.
  */
 void
-logicalrep_rel_close(LogicalRepRelMapEntry *rel, LOCKMODE lockmode)
+logicalrep_rel_close(LogicalRepRelMapEntry * rel, LOCKMODE lockmode)
 {
 	heap_close(rel->localrel, lockmode);
 	rel->localrel = NULL;
@@ -374,7 +374,7 @@ logicalrep_rel_close(LogicalRepRelMapEntry *rel, LOCKMODE lockmode)
  * Free the type map cache entry data.
  */
 static void
-logicalrep_typmap_free_entry(LogicalRepTyp *entry)
+logicalrep_typmap_free_entry(LogicalRepTyp * entry)
 {
 	pfree(entry->nspname);
 	pfree(entry->typname);
@@ -384,7 +384,7 @@ logicalrep_typmap_free_entry(LogicalRepTyp *entry)
  * Add new entry or update existing entry in the type map cache.
  */
 void
-logicalrep_typmap_update(LogicalRepTyp *remotetyp)
+logicalrep_typmap_update(LogicalRepTyp * remotetyp)
 {
 	MemoryContext oldctx;
 	LogicalRepTyp *entry;

@@ -52,11 +52,12 @@
  */
 
 static void
-swapfunc(SortTuple *a, SortTuple *b, size_t n)
+swapfunc(SortTuple * a, SortTuple * b, size_t n)
 {
 	do
 	{
-		SortTuple 	t = *a;
+		SortTuple	t = *a;
+
 		*a++ = *b;
 		*b++ = t;
 	} while (--n > 0);
@@ -72,17 +73,17 @@ swapfunc(SortTuple *a, SortTuple *b, size_t n)
 #define vecswap(a, b, n) if ((n) > 0) swapfunc(a, b, n)
 
 static SortTuple *
-med3_tuple(SortTuple *a, SortTuple *b, SortTuple *c, SortTupleComparator cmp_tuple, Tuplesortstate *state)
+med3_tuple(SortTuple * a, SortTuple * b, SortTuple * c, SortTupleComparator cmp_tuple, Tuplesortstate * state)
 {
 	return cmp_tuple(a, b, state) < 0 ?
 		(cmp_tuple(b, c, state) < 0 ? b :
-			(cmp_tuple(a, c, state) < 0 ? c : a))
+		 (cmp_tuple(a, c, state) < 0 ? c : a))
 		: (cmp_tuple(b, c, state) > 0 ? b :
-			(cmp_tuple(a, c, state) < 0 ? a : c));
+		   (cmp_tuple(a, c, state) < 0 ? a : c));
 }
 
 static void
-qsort_tuple(SortTuple *a, size_t n, SortTupleComparator cmp_tuple, Tuplesortstate *state)
+qsort_tuple(SortTuple * a, size_t n, SortTupleComparator cmp_tuple, Tuplesortstate * state)
 {
 	SortTuple  *pa,
 			   *pb,
@@ -204,17 +205,17 @@ loop:
 						(b)->datum1, (b)->isnull1, ssup)
 
 static SortTuple *
-med3_ssup(SortTuple *a, SortTuple *b, SortTuple *c, SortSupport ssup)
+med3_ssup(SortTuple * a, SortTuple * b, SortTuple * c, SortSupport ssup)
 {
 	return cmp_ssup(a, b, ssup) < 0 ?
 		(cmp_ssup(b, c, ssup) < 0 ? b :
-			(cmp_ssup(a, c, ssup) < 0 ? c : a))
+		 (cmp_ssup(a, c, ssup) < 0 ? c : a))
 		: (cmp_ssup(b, c, ssup) > 0 ? b :
-			(cmp_ssup(a, c, ssup) < 0 ? a : c));
+		   (cmp_ssup(a, c, ssup) < 0 ? a : c));
 }
 
 static void
-qsort_ssup(SortTuple *a, size_t n, SortSupport ssup)
+qsort_ssup(SortTuple * a, size_t n, SortSupport ssup)
 {
 	SortTuple  *pa,
 			   *pb,

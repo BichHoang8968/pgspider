@@ -38,7 +38,7 @@
 #include "utils/syscache.h"
 
 
-static List *textarray_to_stringlist(ArrayType *textarray);
+static List * textarray_to_stringlist(ArrayType * textarray);
 
 /*
  * Fetch the subscription from the syscache.
@@ -147,7 +147,7 @@ CountDBSubscriptions(Oid dbid)
  * Free memory allocated by subscription struct.
  */
 void
-FreeSubscription(Subscription *sub)
+FreeSubscription(Subscription * sub)
 {
 	pfree(sub->name);
 	pfree(sub->conninfo);
@@ -206,7 +206,7 @@ get_subscription_name(Oid subid)
  * Note: the resulting list of strings is pallocated here.
  */
 static List *
-textarray_to_stringlist(ArrayType *textarray)
+textarray_to_stringlist(ArrayType * textarray)
 {
 	Datum	   *elems;
 	int			nelems,
@@ -320,7 +320,7 @@ SetSubscriptionRelState(Oid subid, Oid relid, char state,
  * Returns SUBREL_STATE_UNKNOWN when not found and missing_ok is true.
  */
 char
-GetSubscriptionRelState(Oid subid, Oid relid, XLogRecPtr *sublsn,
+GetSubscriptionRelState(Oid subid, Oid relid, XLogRecPtr * sublsn,
 						bool missing_ok)
 {
 	Relation	rel;

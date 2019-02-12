@@ -45,7 +45,7 @@ typedef struct HashPageStat
 	Bucket		hasho_bucket;
 	uint16		hasho_flag;
 	uint16		hasho_page_id;
-} HashPageStat;
+}			HashPageStat;
 
 
 /*
@@ -53,7 +53,7 @@ typedef struct HashPageStat
  * A pointer to a palloc'd, properly aligned copy of the page is returned.
  */
 static Page
-verify_hash_page(bytea *raw_page, int flags)
+verify_hash_page(bytea * raw_page, int flags)
 {
 	Page		page = get_page_from_raw(raw_page);
 	int			pagetype = LH_UNUSED_PAGE;
@@ -143,7 +143,7 @@ verify_hash_page(bytea *raw_page, int flags)
  * -------------------------------------------------
  */
 static void
-GetHashPageStatistics(Page page, HashPageStat *stat)
+GetHashPageStatistics(Page page, HashPageStat * stat)
 {
 	OffsetNumber maxoff = PageGetMaxOffsetNumber(page);
 	HashPageOpaque opaque = (HashPageOpaque) PageGetSpecialPointer(page);

@@ -33,7 +33,7 @@
 
 static char *ChooseExtendedStatisticName(const char *name1, const char *name2,
 							const char *label, Oid namespaceid);
-static char *ChooseExtendedStatisticNameAddition(List *exprs);
+static char *ChooseExtendedStatisticNameAddition(List * exprs);
 
 
 /* qsort comparator for the attnums in CreateStatistics */
@@ -51,7 +51,7 @@ compare_int16(const void *a, const void *b)
  *		CREATE STATISTICS
  */
 ObjectAddress
-CreateStatistics(CreateStatsStmt *stmt)
+CreateStatistics(CreateStatsStmt * stmt)
 {
 	int16		attnums[STATS_MAX_DIMENSIONS];
 	int			numcols = 0;
@@ -132,7 +132,8 @@ CreateStatistics(CreateStatsStmt *stmt)
 	 * If the node has a name, split it up and determine creation namespace.
 	 * If not (a possibility not considered by the grammar, but one which can
 	 * occur via the "CREATE TABLE ... (LIKE)" command), then we put the
-	 * object in the same namespace as the relation, and cons up a name for it.
+	 * object in the same namespace as the relation, and cons up a name for
+	 * it.
 	 */
 	if (stmt->defnames)
 		namespaceId = QualifiedNameGetCreationNamespace(stmt->defnames,
@@ -456,7 +457,7 @@ ChooseExtendedStatisticName(const char *name1, const char *name2,
 
 	for (;;)
 	{
-		Oid		existingstats;
+		Oid			existingstats;
 
 		stxname = makeObjectName(name1, name2, modlabel);
 
@@ -485,7 +486,7 @@ ChooseExtendedStatisticName(const char *name1, const char *name2,
  * XXX see also ChooseIndexNameAddition.
  */
 static char *
-ChooseExtendedStatisticNameAddition(List *exprs)
+ChooseExtendedStatisticNameAddition(List * exprs)
 {
 	char		buf[NAMEDATALEN * 2];
 	int			buflen = 0;
@@ -494,7 +495,7 @@ ChooseExtendedStatisticNameAddition(List *exprs)
 	buf[0] = '\0';
 	foreach(lc, exprs)
 	{
-		ColumnRef *cref = (ColumnRef *) lfirst(lc);
+		ColumnRef  *cref = (ColumnRef *) lfirst(lc);
 		const char *name;
 
 		/* It should be one of these, but just skip if it happens not to be */

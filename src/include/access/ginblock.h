@@ -32,9 +32,9 @@ typedef struct GinPageOpaqueData
 								 * ~GIN_LEAF page. On GIN_LIST page, number of
 								 * heap tuples. */
 	uint16		flags;			/* see bit definitions below */
-} GinPageOpaqueData;
+}			GinPageOpaqueData;
 
-typedef GinPageOpaqueData *GinPageOpaque;
+typedef GinPageOpaqueData * GinPageOpaque;
 
 #define GIN_DATA		  (1 << 0)
 #define GIN_LEAF		  (1 << 1)
@@ -96,7 +96,7 @@ typedef struct GinMetaPageData
 	 * Reject full-index-scan attempts on such indexes.
 	 */
 	int32		ginVersion;
-} GinMetaPageData;
+}			GinMetaPageData;
 
 #define GIN_CURRENT_VERSION		2
 
@@ -178,7 +178,7 @@ typedef struct
 	/* We use BlockIdData not BlockNumber to avoid padding space wastage */
 	BlockIdData child_blkno;
 	ItemPointerData key;
-} PostingItem;
+}			PostingItem;
 
 #define PostingItemGetBlockNumber(pointer) \
 	BlockIdGetBlockNumber(&(pointer)->child_blkno)
@@ -328,7 +328,7 @@ typedef struct
 	ItemPointerData first;		/* first item in this posting list (unpacked) */
 	uint16		nbytes;			/* number of bytes that follow */
 	unsigned char bytes[FLEXIBLE_ARRAY_MEMBER]; /* varbyte encoded items */
-} GinPostingList;
+}			GinPostingList;
 
 #define SizeOfGinPostingList(plist) (offsetof(GinPostingList, bytes) + SHORTALIGN((plist)->nbytes) )
 #define GinNextPostingListSegment(cur) ((GinPostingList *) (((char *) (cur)) + SizeOfGinPostingList((cur))))

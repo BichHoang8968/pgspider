@@ -164,7 +164,7 @@ oidsend(PG_FUNCTION_ARGS)
  * If oids is NULL then caller must fill values[] afterward
  */
 oidvector *
-buildoidvector(const Oid *oids, int n)
+buildoidvector(const Oid * oids, int n)
 {
 	oidvector  *result;
 
@@ -311,7 +311,7 @@ oidvectorsend(PG_FUNCTION_ARGS)
  *		oidparse				- get OID from IConst/FConst node
  */
 Oid
-oidparse(Node *node)
+oidparse(Node * node)
 {
 	switch (nodeTag(node))
 	{

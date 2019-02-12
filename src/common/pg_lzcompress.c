@@ -207,7 +207,7 @@ typedef struct PGLZ_HistEntry
 	struct PGLZ_HistEntry *prev;
 	int			hindex;			/* my current hash key */
 	const char *pos;			/* my input position */
-} PGLZ_HistEntry;
+}			PGLZ_HistEntry;
 
 
 /* ----------
@@ -227,7 +227,7 @@ static const PGLZ_Strategy strategy_default_data = {
 	10							/* Lower good match size by 10% at every loop
 								 * iteration */
 };
-const PGLZ_Strategy *const PGLZ_strategy_default = &strategy_default_data;
+const		PGLZ_Strategy *const PGLZ_strategy_default = &strategy_default_data;
 
 
 static const PGLZ_Strategy strategy_always_data = {
@@ -239,7 +239,7 @@ static const PGLZ_Strategy strategy_always_data = {
 								 * is found */
 	6							/* Look harder for a good match */
 };
-const PGLZ_Strategy *const PGLZ_strategy_always = &strategy_always_data;
+const		PGLZ_Strategy *const PGLZ_strategy_always = &strategy_always_data;
 
 
 /* ----------
@@ -390,7 +390,7 @@ do { \
  * ----------
  */
 static inline int
-pglz_find_match(int16 *hstart, const char *input, const char *end,
+pglz_find_match(int16 * hstart, const char *input, const char *end,
 				int *lenp, int *offp, int good_match, int good_drop, int mask)
 {
 	PGLZ_HistEntry *hent;
@@ -501,7 +501,7 @@ pglz_find_match(int16 *hstart, const char *input, const char *end,
  */
 int32
 pglz_compress(const char *source, int32 slen, char *dest,
-			  const PGLZ_Strategy *strategy)
+			  const PGLZ_Strategy * strategy)
 {
 	unsigned char *bp = (unsigned char *) dest;
 	unsigned char *bstart = bp;

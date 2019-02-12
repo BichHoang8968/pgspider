@@ -18,6 +18,6 @@
 #include "catalog/objectaddress.h"
 #include "nodes/parsenodes.h"
 
-extern ObjectAddress CreateConversionCommand(CreateConversionStmt *parsetree);
+extern ObjectAddress CreateConversionCommand(CreateConversionStmt * parsetree);
 
 #endif							/* CONVERSIONCMDS_H */

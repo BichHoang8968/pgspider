@@ -514,7 +514,7 @@ writeTimeLineHistoryFile(TimeLineID tli, char *content, int size)
  * Returns true if 'expectedTLEs' contains a timeline with id 'tli'
  */
 bool
-tliInHistory(TimeLineID tli, List *expectedTLEs)
+tliInHistory(TimeLineID tli, List * expectedTLEs)
 {
 	ListCell   *cell;
 
@@ -532,7 +532,7 @@ tliInHistory(TimeLineID tli, List *expectedTLEs)
  * the given timeline history.
  */
 TimeLineID
-tliOfPointInHistory(XLogRecPtr ptr, List *history)
+tliOfPointInHistory(XLogRecPtr ptr, List * history)
 {
 	ListCell   *cell;
 
@@ -560,7 +560,7 @@ tliOfPointInHistory(XLogRecPtr ptr, List *history)
  * an error if the timeline is not part of this server's history.
  */
 XLogRecPtr
-tliSwitchPoint(TimeLineID tli, List *history, TimeLineID *nextTLI)
+tliSwitchPoint(TimeLineID tli, List * history, TimeLineID * nextTLI)
 {
 	ListCell   *cell;
 

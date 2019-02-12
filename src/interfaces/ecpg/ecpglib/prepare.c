@@ -20,12 +20,20 @@ typedef struct
 	char	   *ecpgQuery;
 	long		execs;			/* # of executions		*/
 	const char *connection;		/* connection for the statement		*/
-} stmtCacheEntry;
+}			stmtCacheEntry;
 
 static int	nextStmtID = 1;
 static const int stmtCacheNBuckets = 2039;	/* # buckets - a prime # */
 static const int stmtCacheEntPerBucket = 8; /* # entries/bucket		*/
-static stmtCacheEntry stmtCacheEntries[16384] = {{0, {0}, 0, 0, 0}};
+static stmtCacheEntry stmtCacheEntries[16384] =
+{
+	{
+		0,
+		{
+			0
+		}, 0, 0, 0
+	}
+};
 
 static bool deallocate_one(int lineno, enum COMPAT_MODE c, struct connection *con,
 			   struct prepared_statement *prev, struct prepared_statement *this);
@@ -76,7 +84,7 @@ replace_variables(char **text, int lineno)
 			snprintf(buffer, buffersize, "$%d", counter++);
 
 			for (len = 1; (*text)[ptr + len] && isvarchar((*text)[ptr + len]); len++);
-			if (!(newcopy = (char *) ecpg_alloc(strlen(*text) -len + strlen(buffer) + 1, lineno)))
+			if (!(newcopy = (char *) ecpg_alloc(strlen(*text) - len + strlen(buffer) + 1, lineno)))
 			{
 				ecpg_free(buffer);
 				return false;
@@ -84,7 +92,7 @@ replace_variables(char **text, int lineno)
 
 			memcpy(newcopy, *text, ptr);
 			strcpy(newcopy + ptr, buffer);
-			strcat(newcopy, (*text) +ptr + len);
+			strcat(newcopy, (*text) + ptr + len);
 
 			ecpg_free(*text);
 			ecpg_free(buffer);

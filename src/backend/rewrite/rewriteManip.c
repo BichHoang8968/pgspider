@@ -27,27 +27,27 @@
 typedef struct
 {
 	int			sublevels_up;
-} contain_aggs_of_level_context;
+}			contain_aggs_of_level_context;
 
 typedef struct
 {
 	int			agg_location;
 	int			sublevels_up;
-} locate_agg_of_level_context;
+}			locate_agg_of_level_context;
 
 typedef struct
 {
 	int			win_location;
-} locate_windowfunc_context;
+}			locate_windowfunc_context;
 
-static bool contain_aggs_of_level_walker(Node *node,
-							 contain_aggs_of_level_context *context);
-static bool locate_agg_of_level_walker(Node *node,
-						   locate_agg_of_level_context *context);
-static bool contain_windowfuncs_walker(Node *node, void *context);
-static bool locate_windowfunc_walker(Node *node,
-						 locate_windowfunc_context *context);
-static bool checkExprHasSubLink_walker(Node *node, void *context);
+static bool contain_aggs_of_level_walker(Node * node,
+							 contain_aggs_of_level_context * context);
+static bool locate_agg_of_level_walker(Node * node,
+						   locate_agg_of_level_context * context);
+static bool contain_windowfuncs_walker(Node * node, void *context);
+static bool locate_windowfunc_walker(Node * node,
+						 locate_windowfunc_context * context);
+static bool checkExprHasSubLink_walker(Node * node, void *context);
 static Relids offset_relid_set(Relids relids, int offset);
 static Relids adjust_relid_set(Relids relids, int oldrelid, int newrelid);
 
@@ -64,7 +64,7 @@ static Relids adjust_relid_set(Relids relids, int oldrelid, int newrelid);
  * the specified query level.
  */
 bool
-contain_aggs_of_level(Node *node, int levelsup)
+contain_aggs_of_level(Node * node, int levelsup)
 {
 	contain_aggs_of_level_context context;
 
@@ -81,8 +81,8 @@ contain_aggs_of_level(Node *node, int levelsup)
 }
 
 static bool
-contain_aggs_of_level_walker(Node *node,
-							 contain_aggs_of_level_context *context)
+contain_aggs_of_level_walker(Node * node,
+							 contain_aggs_of_level_context * context)
 {
 	if (node == NULL)
 		return false;
@@ -128,7 +128,7 @@ contain_aggs_of_level_walker(Node *node,
  * and so shaving cycles probably isn't very important.
  */
 int
-locate_agg_of_level(Node *node, int levelsup)
+locate_agg_of_level(Node * node, int levelsup)
 {
 	locate_agg_of_level_context context;
 
@@ -148,8 +148,8 @@ locate_agg_of_level(Node *node, int levelsup)
 }
 
 static bool
-locate_agg_of_level_walker(Node *node,
-						   locate_agg_of_level_context *context)
+locate_agg_of_level_walker(Node * node,
+						   locate_agg_of_level_context * context)
 {
 	if (node == NULL)
 		return false;
@@ -194,7 +194,7 @@ locate_agg_of_level_walker(Node *node,
  *	current query level.
  */
 bool
-contain_windowfuncs(Node *node)
+contain_windowfuncs(Node * node)
 {
 	/*
 	 * Must be prepared to start with a Query or a bare expression tree; if
@@ -207,7 +207,7 @@ contain_windowfuncs(Node *node)
 }
 
 static bool
-contain_windowfuncs_walker(Node *node, void *context)
+contain_windowfuncs_walker(Node * node, void *context)
 {
 	if (node == NULL)
 		return false;
@@ -232,7 +232,7 @@ contain_windowfuncs_walker(Node *node, void *context)
  * and so shaving cycles probably isn't very important.
  */
 int
-locate_windowfunc(Node *node)
+locate_windowfunc(Node * node)
 {
 	locate_windowfunc_context context;
 
@@ -251,7 +251,7 @@ locate_windowfunc(Node *node)
 }
 
 static bool
-locate_windowfunc_walker(Node *node, locate_windowfunc_context *context)
+locate_windowfunc_walker(Node * node, locate_windowfunc_context * context)
 {
 	if (node == NULL)
 		return false;
@@ -274,7 +274,7 @@ locate_windowfunc_walker(Node *node, locate_windowfunc_context *context)
  *	Check if an expression contains a SubLink.
  */
 bool
-checkExprHasSubLink(Node *node)
+checkExprHasSubLink(Node * node)
 {
 	/*
 	 * If a Query is passed, examine it --- but we should not recurse into
@@ -287,7 +287,7 @@ checkExprHasSubLink(Node *node)
 }
 
 static bool
-checkExprHasSubLink_walker(Node *node, void *context)
+checkExprHasSubLink_walker(Node * node, void *context)
 {
 	if (node == NULL)
 		return false;
@@ -303,7 +303,7 @@ checkExprHasSubLink_walker(Node *node, void *context)
  * query level are of interest.
  */
 static bool
-contains_multiexpr_param(Node *node, void *context)
+contains_multiexpr_param(Node * node, void *context)
 {
 	if (node == NULL)
 		return false;
@@ -334,10 +334,10 @@ typedef struct
 {
 	int			offset;
 	int			sublevels_up;
-} OffsetVarNodes_context;
+}			OffsetVarNodes_context;
 
 static bool
-OffsetVarNodes_walker(Node *node, OffsetVarNodes_context *context)
+OffsetVarNodes_walker(Node * node, OffsetVarNodes_context * context)
 {
 	if (node == NULL)
 		return false;
@@ -421,7 +421,7 @@ OffsetVarNodes_walker(Node *node, OffsetVarNodes_context *context)
 }
 
 void
-OffsetVarNodes(Node *node, int offset, int sublevels_up)
+OffsetVarNodes(Node * node, int offset, int sublevels_up)
 {
 	OffsetVarNodes_context context;
 
@@ -498,10 +498,10 @@ typedef struct
 	int			rt_index;
 	int			new_index;
 	int			sublevels_up;
-} ChangeVarNodes_context;
+}			ChangeVarNodes_context;
 
 static bool
-ChangeVarNodes_walker(Node *node, ChangeVarNodes_context *context)
+ChangeVarNodes_walker(Node * node, ChangeVarNodes_context * context)
 {
 	if (node == NULL)
 		return false;
@@ -604,7 +604,7 @@ ChangeVarNodes_walker(Node *node, ChangeVarNodes_context *context)
 }
 
 void
-ChangeVarNodes(Node *node, int rt_index, int new_index, int sublevels_up)
+ChangeVarNodes(Node * node, int rt_index, int new_index, int sublevels_up)
 {
 	ChangeVarNodes_context context;
 
@@ -694,11 +694,11 @@ typedef struct
 {
 	int			delta_sublevels_up;
 	int			min_sublevels_up;
-} IncrementVarSublevelsUp_context;
+}			IncrementVarSublevelsUp_context;
 
 static bool
-IncrementVarSublevelsUp_walker(Node *node,
-							   IncrementVarSublevelsUp_context *context)
+IncrementVarSublevelsUp_walker(Node * node,
+							   IncrementVarSublevelsUp_context * context)
 {
 	if (node == NULL)
 		return false;
@@ -770,7 +770,7 @@ IncrementVarSublevelsUp_walker(Node *node,
 }
 
 void
-IncrementVarSublevelsUp(Node *node, int delta_sublevels_up,
+IncrementVarSublevelsUp(Node * node, int delta_sublevels_up,
 						int min_sublevels_up)
 {
 	IncrementVarSublevelsUp_context context;
@@ -793,7 +793,7 @@ IncrementVarSublevelsUp(Node *node, int delta_sublevels_up,
  *	Same as IncrementVarSublevelsUp, but to be invoked on a range table.
  */
 void
-IncrementVarSublevelsUp_rtable(List *rtable, int delta_sublevels_up,
+IncrementVarSublevelsUp_rtable(List * rtable, int delta_sublevels_up,
 							   int min_sublevels_up)
 {
 	IncrementVarSublevelsUp_context context;
@@ -817,11 +817,11 @@ typedef struct
 {
 	int			rt_index;
 	int			sublevels_up;
-} rangeTableEntry_used_context;
+}			rangeTableEntry_used_context;
 
 static bool
-rangeTableEntry_used_walker(Node *node,
-							rangeTableEntry_used_context *context)
+rangeTableEntry_used_walker(Node * node,
+							rangeTableEntry_used_context * context)
 {
 	if (node == NULL)
 		return false;
@@ -886,7 +886,7 @@ rangeTableEntry_used_walker(Node *node,
 }
 
 bool
-rangeTableEntry_used(Node *node, int rt_index, int sublevels_up)
+rangeTableEntry_used(Node * node, int rt_index, int sublevels_up)
 {
 	rangeTableEntry_used_context context;
 
@@ -918,7 +918,7 @@ rangeTableEntry_used(Node *node, int rt_index, int sublevels_up)
  * INSERT part.  Perhaps this can be cleaned up with redesigned querytrees.
  */
 Query *
-getInsertSelectQuery(Query *parsetree, Query ***subquery_ptr)
+getInsertSelectQuery(Query * parsetree, Query * **subquery_ptr)
 {
 	Query	   *selectquery;
 	RangeTblEntry *selectrte;
@@ -973,7 +973,7 @@ getInsertSelectQuery(Query *parsetree, Query ***subquery_ptr)
  * Add the given qualifier condition to the query's WHERE clause
  */
 void
-AddQual(Query *parsetree, Node *qual)
+AddQual(Query * parsetree, Node * qual)
 {
 	Node	   *copy;
 
@@ -1041,7 +1041,7 @@ AddQual(Query *parsetree, Node *qual)
  * else we will do the wrong thing when x evaluates to NULL.
  */
 void
-AddInvertedQual(Query *parsetree, Node *qual)
+AddInvertedQual(Query * parsetree, Node * qual)
 {
 	BooleanTest *invqual;
 
@@ -1081,7 +1081,7 @@ AddInvertedQual(Query *parsetree, Node *qual)
  * what they will return.
  */
 Node *
-replace_rte_variables(Node *node, int target_varno, int sublevels_up,
+replace_rte_variables(Node * node, int target_varno, int sublevels_up,
 					  replace_rte_variables_callback callback,
 					  void *callback_arg,
 					  bool *outer_hasSubLinks)
@@ -1128,8 +1128,8 @@ replace_rte_variables(Node *node, int target_varno, int sublevels_up,
 }
 
 Node *
-replace_rte_variables_mutator(Node *node,
-							  replace_rte_variables_context *context)
+replace_rte_variables_mutator(Node * node,
+							  replace_rte_variables_context * context)
 {
 	if (node == NULL)
 		return NULL;
@@ -1219,16 +1219,16 @@ typedef struct
 {
 	int			target_varno;	/* RTE index to search for */
 	int			sublevels_up;	/* (current) nesting depth */
-	const AttrNumber *attno_map;	/* map array for user attnos */
+	const		AttrNumber *attno_map;	/* map array for user attnos */
 	int			map_length;		/* number of entries in attno_map[] */
 	/* Target type when converting whole-row vars */
 	Oid			to_rowtype;
 	bool	   *found_whole_row;	/* output flag */
-} map_variable_attnos_context;
+}			map_variable_attnos_context;
 
 static Node *
-map_variable_attnos_mutator(Node *node,
-							map_variable_attnos_context *context)
+map_variable_attnos_mutator(Node * node,
+							map_variable_attnos_context * context)
 {
 	if (node == NULL)
 		return NULL;
@@ -1308,9 +1308,9 @@ map_variable_attnos_mutator(Node *node,
 }
 
 Node *
-map_variable_attnos(Node *node,
+map_variable_attnos(Node * node,
 					int target_varno, int sublevels_up,
-					const AttrNumber *attno_map, int map_length,
+					const AttrNumber * attno_map, int map_length,
 					Oid to_rowtype, bool *found_whole_row)
 {
 	map_variable_attnos_context context;
@@ -1360,11 +1360,11 @@ typedef struct
 	List	   *targetlist;
 	ReplaceVarsNoMatchOption nomatch_option;
 	int			nomatch_varno;
-} ReplaceVarsFromTargetList_context;
+}			ReplaceVarsFromTargetList_context;
 
 static Node *
-ReplaceVarsFromTargetList_callback(Var *var,
-								   replace_rte_variables_context *context)
+ReplaceVarsFromTargetList_callback(Var * var,
+								   replace_rte_variables_context * context)
 {
 	ReplaceVarsFromTargetList_context *rcon = (ReplaceVarsFromTargetList_context *) context->callback_arg;
 	TargetEntry *tle;
@@ -1467,10 +1467,10 @@ ReplaceVarsFromTargetList_callback(Var *var,
 }
 
 Node *
-ReplaceVarsFromTargetList(Node *node,
+ReplaceVarsFromTargetList(Node * node,
 						  int target_varno, int sublevels_up,
-						  RangeTblEntry *target_rte,
-						  List *targetlist,
+						  RangeTblEntry * target_rte,
+						  List * targetlist,
 						  ReplaceVarsNoMatchOption nomatch_option,
 						  int nomatch_varno,
 						  bool *outer_hasSubLinks)

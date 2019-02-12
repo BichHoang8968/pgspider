@@ -36,23 +36,23 @@ typedef struct
 	xmlDocPtr	doctree;
 	xmlXPathContextPtr ctxt;
 	xmlXPathObjectPtr res;
-} xpath_workspace;
+}			xpath_workspace;
 
 /* local declarations */
 
-static xmlChar *pgxmlNodeSetToText(xmlNodeSetPtr nodeset,
-				   xmlChar *toptagname, xmlChar *septagname,
-				   xmlChar *plainsep);
+static xmlChar * pgxmlNodeSetToText(xmlNodeSetPtr nodeset,
+									xmlChar * toptagname, xmlChar * septagname,
+									xmlChar * plainsep);
 
-static text *pgxml_result_to_text(xmlXPathObjectPtr res, xmlChar *toptag,
-					 xmlChar *septag, xmlChar *plainsep);
+static text * pgxml_result_to_text(xmlXPathObjectPtr res, xmlChar * toptag,
+								   xmlChar * septag, xmlChar * plainsep);
 
-static xmlChar *pgxml_texttoxmlchar(text *textstring);
+static xmlChar * pgxml_texttoxmlchar(text * textstring);
 
-static xmlXPathObjectPtr pgxml_xpath(text *document, xmlChar *xpath,
-			xpath_workspace *workspace);
+static xmlXPathObjectPtr pgxml_xpath(text * document, xmlChar * xpath,
+									 xpath_workspace * workspace);
 
-static void cleanup_workspace(xpath_workspace *workspace);
+static void cleanup_workspace(xpath_workspace * workspace);
 
 
 /*
@@ -164,9 +164,9 @@ xml_encode_special_chars(PG_FUNCTION_ARGS)
  */
 static xmlChar *
 pgxmlNodeSetToText(xmlNodeSetPtr nodeset,
-				   xmlChar *toptagname,
-				   xmlChar *septagname,
-				   xmlChar *plainsep)
+				   xmlChar * toptagname,
+				   xmlChar * septagname,
+				   xmlChar * plainsep)
 {
 	xmlBufferPtr buf;
 	xmlChar    *result;
@@ -232,7 +232,7 @@ pgxmlNodeSetToText(xmlNodeSetPtr nodeset,
  * into the libxml2 representation
  */
 static xmlChar *
-pgxml_texttoxmlchar(text *textstring)
+pgxml_texttoxmlchar(text * textstring)
 {
 	return (xmlChar *) text_to_cstring(textstring);
 }
@@ -411,7 +411,7 @@ xpath_bool(PG_FUNCTION_ARGS)
 /* Core function to evaluate XPath query */
 
 static xmlXPathObjectPtr
-pgxml_xpath(text *document, xmlChar *xpath, xpath_workspace *workspace)
+pgxml_xpath(text * document, xmlChar * xpath, xpath_workspace * workspace)
 {
 	int32		docsize = VARSIZE_ANY_EXHDR(document);
 	PgXmlErrorContext *xmlerrcxt;
@@ -464,7 +464,7 @@ pgxml_xpath(text *document, xmlChar *xpath, xpath_workspace *workspace)
 
 /* Clean up after processing the result of pgxml_xpath() */
 static void
-cleanup_workspace(xpath_workspace *workspace)
+cleanup_workspace(xpath_workspace * workspace)
 {
 	if (workspace->res)
 		xmlXPathFreeObject(workspace->res);
@@ -479,9 +479,9 @@ cleanup_workspace(xpath_workspace *workspace)
 
 static text *
 pgxml_result_to_text(xmlXPathObjectPtr res,
-					 xmlChar *toptag,
-					 xmlChar *septag,
-					 xmlChar *plainsep)
+					 xmlChar * toptag,
+					 xmlChar * septag,
+					 xmlChar * plainsep)
 {
 	xmlChar    *xpresstr;
 	text	   *xpres;
@@ -560,7 +560,7 @@ xpath_table(PG_FUNCTION_ARGS)
 	bool		had_values;		/* To determine end of nodeset results */
 	StringInfoData query_buf;
 	PgXmlErrorContext *xmlerrcxt;
-	volatile xmlDocPtr doctree = NULL;
+	volatile	xmlDocPtr doctree = NULL;
 
 	/* We only have a valid tuple description in table function mode */
 	if (rsinfo == NULL || !IsA(rsinfo, ReturnSetInfo))
@@ -623,7 +623,7 @@ xpath_table(PG_FUNCTION_ARGS)
 	rsinfo->setDesc = ret_tupdesc;
 
 	values = (char **) palloc(ret_tupdesc->natts * sizeof(char *));
-	xpaths = (xmlChar **) palloc(ret_tupdesc->natts * sizeof(xmlChar *));
+	xpaths = (xmlChar * *) palloc(ret_tupdesc->natts * sizeof(xmlChar *));
 
 	/*
 	 * Split XPaths. xpathset is a writable CString.

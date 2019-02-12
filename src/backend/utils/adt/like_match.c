@@ -245,7 +245,7 @@ MatchText(char *t, int tlen, char *p, int plen,
 #ifdef do_like_escape
 
 static text *
-do_like_escape(text *pat, text *esc)
+do_like_escape(text * pat, text * esc)
 {
 	text	   *result;
 	char	   *p,

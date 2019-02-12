@@ -58,7 +58,7 @@
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecNestLoop(PlanState *pstate)
+ExecNestLoop(PlanState * pstate)
 {
 	NestLoopState *node = castNode(NestLoopState, pstate);
 	NestLoop   *nl;
@@ -260,7 +260,7 @@ ExecNestLoop(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 NestLoopState *
-ExecInitNestLoop(NestLoop *node, EState *estate, int eflags)
+ExecInitNestLoop(NestLoop * node, EState * estate, int eflags)
 {
 	NestLoopState *nlstate;
 
@@ -363,7 +363,7 @@ ExecInitNestLoop(NestLoop *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndNestLoop(NestLoopState *node)
+ExecEndNestLoop(NestLoopState * node)
 {
 	NL1_printf("ExecEndNestLoop: %s\n",
 			   "ending node processing");
@@ -393,7 +393,7 @@ ExecEndNestLoop(NestLoopState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanNestLoop(NestLoopState *node)
+ExecReScanNestLoop(NestLoopState * node)
 {
 	PlanState  *outerPlan = outerPlanState(node);
 

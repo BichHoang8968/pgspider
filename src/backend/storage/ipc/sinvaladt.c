@@ -162,7 +162,7 @@ typedef struct ProcState
 	 * meaningless in an active ProcState entry.
 	 */
 	LocalTransactionId nextLXID;
-} ProcState;
+}			ProcState;
 
 /* Shared cache invalidation memory segment */
 typedef struct SISeg
@@ -187,9 +187,9 @@ typedef struct SISeg
 	 * Per-backend invalidation state info (has MaxBackends entries).
 	 */
 	ProcState	procState[FLEXIBLE_ARRAY_MEMBER];
-} SISeg;
+}			SISeg;
 
-static SISeg *shmInvalBuffer;	/* pointer to the shared inval buffer */
+static SISeg * shmInvalBuffer;	/* pointer to the shared inval buffer */
 
 
 static LocalTransactionId nextLocalTransactionId;
@@ -401,7 +401,7 @@ BackendIdGetProc(int backendID)
  *		information is used.
  */
 void
-BackendIdGetTransactionIds(int backendID, TransactionId *xid, TransactionId *xmin)
+BackendIdGetTransactionIds(int backendID, TransactionId * xid, TransactionId * xmin)
 {
 	SISeg	   *segP = shmInvalBuffer;
 
@@ -433,7 +433,7 @@ BackendIdGetTransactionIds(int backendID, TransactionId *xid, TransactionId *xmi
  *		Add new invalidation message(s) to the buffer.
  */
 void
-SIInsertDataEntries(const SharedInvalidationMessage *data, int n)
+SIInsertDataEntries(const SharedInvalidationMessage * data, int n)
 {
 	SISeg	   *segP = shmInvalBuffer;
 
@@ -536,7 +536,7 @@ SIInsertDataEntries(const SharedInvalidationMessage *data, int n)
  * to break our hold on SInvalReadLock into segments.
  */
 int
-SIGetDataEntries(SharedInvalidationMessage *data, int datasize)
+SIGetDataEntries(SharedInvalidationMessage * data, int datasize)
 {
 	SISeg	   *segP;
 	ProcState  *stateP;

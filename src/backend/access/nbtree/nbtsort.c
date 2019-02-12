@@ -112,7 +112,7 @@ typedef struct BTPageState
 	uint32		btps_level;		/* tree level (0 = leaf) */
 	Size		btps_full;		/* "full" if less than this much free space */
 	struct BTPageState *btps_next;	/* link to parent level, if any */
-} BTPageState;
+}			BTPageState;
 
 /*
  * Overall status record for index writing phase.
@@ -125,19 +125,19 @@ typedef struct BTWriteState
 	BlockNumber btws_pages_alloced; /* # pages allocated */
 	BlockNumber btws_pages_written; /* # pages written out */
 	Page		btws_zeropage;	/* workspace for filling zeroes */
-} BTWriteState;
+}			BTWriteState;
 
 
 static Page _bt_blnewpage(uint32 level);
-static BTPageState *_bt_pagestate(BTWriteState *wstate, uint32 level);
+static BTPageState * _bt_pagestate(BTWriteState * wstate, uint32 level);
 static void _bt_slideleft(Page page);
 static void _bt_sortaddtup(Page page, Size itemsize,
 			   IndexTuple itup, OffsetNumber itup_off);
-static void _bt_buildadd(BTWriteState *wstate, BTPageState *state,
+static void _bt_buildadd(BTWriteState * wstate, BTPageState * state,
 			 IndexTuple itup);
-static void _bt_uppershutdown(BTWriteState *wstate, BTPageState *state);
-static void _bt_load(BTWriteState *wstate,
-		 BTSpool *btspool, BTSpool *btspool2);
+static void _bt_uppershutdown(BTWriteState * wstate, BTPageState * state);
+static void _bt_load(BTWriteState * wstate,
+		 BTSpool * btspool, BTSpool * btspool2);
 
 
 /*
@@ -177,7 +177,7 @@ _bt_spoolinit(Relation heap, Relation index, bool isunique, bool isdead)
  * clean up a spool structure and its substructures.
  */
 void
-_bt_spooldestroy(BTSpool *btspool)
+_bt_spooldestroy(BTSpool * btspool)
 {
 	tuplesort_end(btspool->sortstate);
 	pfree(btspool);
@@ -187,7 +187,7 @@ _bt_spooldestroy(BTSpool *btspool)
  * spool an index entry into the sort file.
  */
 void
-_bt_spool(BTSpool *btspool, ItemPointer self, Datum *values, bool *isnull)
+_bt_spool(BTSpool * btspool, ItemPointer self, Datum * values, bool *isnull)
 {
 	tuplesort_putindextuplevalues(btspool->sortstate, btspool->index,
 								  self, values, isnull);
@@ -198,7 +198,7 @@ _bt_spool(BTSpool *btspool, ItemPointer self, Datum *values, bool *isnull)
  * create an entire btree.
  */
 void
-_bt_leafbuild(BTSpool *btspool, BTSpool *btspool2)
+_bt_leafbuild(BTSpool * btspool, BTSpool * btspool2)
 {
 	BTWriteState wstate;
 
@@ -268,7 +268,7 @@ _bt_blnewpage(uint32 level)
  * emit a completed btree page, and release the working storage.
  */
 static void
-_bt_blwritepage(BTWriteState *wstate, Page page, BlockNumber blkno)
+_bt_blwritepage(BTWriteState * wstate, Page page, BlockNumber blkno)
 {
 	/* Ensure rd_smgr is open (could have been closed by relcache flush!) */
 	RelationOpenSmgr(wstate->index);
@@ -326,7 +326,7 @@ _bt_blwritepage(BTWriteState *wstate, Page page, BlockNumber blkno)
  * is suitable for immediate use by _bt_buildadd.
  */
 static BTPageState *
-_bt_pagestate(BTWriteState *wstate, uint32 level)
+_bt_pagestate(BTWriteState * wstate, uint32 level)
 {
 	BTPageState *state = (BTPageState *) palloc0(sizeof(BTPageState));
 
@@ -449,7 +449,7 @@ _bt_sortaddtup(Page page,
  *----------
  */
 static void
-_bt_buildadd(BTWriteState *wstate, BTPageState *state, IndexTuple itup)
+_bt_buildadd(BTWriteState * wstate, BTPageState * state, IndexTuple itup)
 {
 	Page		npage;
 	BlockNumber nblkno;
@@ -608,7 +608,7 @@ _bt_buildadd(BTWriteState *wstate, BTPageState *state, IndexTuple itup)
  * Finish writing out the completed btree.
  */
 static void
-_bt_uppershutdown(BTWriteState *wstate, BTPageState *state)
+_bt_uppershutdown(BTWriteState * wstate, BTPageState * state)
 {
 	BTPageState *s;
 	BlockNumber rootblkno = P_NONE;
@@ -674,7 +674,7 @@ _bt_uppershutdown(BTWriteState *wstate, BTPageState *state)
  * btree leaves.
  */
 static void
-_bt_load(BTWriteState *wstate, BTSpool *btspool, BTSpool *btspool2)
+_bt_load(BTWriteState * wstate, BTSpool * btspool, BTSpool * btspool2)
 {
 	BTPageState *state = NULL;
 	bool		merge = (btspool2 != NULL);

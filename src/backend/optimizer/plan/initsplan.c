@@ -42,24 +42,24 @@ typedef struct PostponedQual
 {
 	Node	   *qual;			/* a qual clause waiting to be processed */
 	Relids		relids;			/* the set of baserels it references */
-} PostponedQual;
+}			PostponedQual;
 
 
-static void extract_lateral_references(PlannerInfo *root, RelOptInfo *brel,
+static void extract_lateral_references(PlannerInfo * root, RelOptInfo * brel,
 						   Index rtindex);
-static List *deconstruct_recurse(PlannerInfo *root, Node *jtnode,
-					bool below_outer_join,
-					Relids *qualscope, Relids *inner_join_rels,
-					List **postponed_qual_list);
-static void process_security_barrier_quals(PlannerInfo *root,
+static List * deconstruct_recurse(PlannerInfo * root, Node * jtnode,
+								  bool below_outer_join,
+								  Relids * qualscope, Relids * inner_join_rels,
+								  List * *postponed_qual_list);
+static void process_security_barrier_quals(PlannerInfo * root,
 							   int rti, Relids qualscope,
 							   bool below_outer_join);
-static SpecialJoinInfo *make_outerjoininfo(PlannerInfo *root,
-				   Relids left_rels, Relids right_rels,
-				   Relids inner_join_rels,
-				   JoinType jointype, List *clause);
-static void compute_semijoin_info(SpecialJoinInfo *sjinfo, List *clause);
-static void distribute_qual_to_rels(PlannerInfo *root, Node *clause,
+static SpecialJoinInfo * make_outerjoininfo(PlannerInfo * root,
+											Relids left_rels, Relids right_rels,
+											Relids inner_join_rels,
+											JoinType jointype, List * clause);
+static void compute_semijoin_info(SpecialJoinInfo * sjinfo, List * clause);
+static void distribute_qual_to_rels(PlannerInfo * root, Node * clause,
 						bool is_deduced,
 						bool below_outer_join,
 						JoinType jointype,
@@ -68,14 +68,14 @@ static void distribute_qual_to_rels(PlannerInfo *root, Node *clause,
 						Relids ojscope,
 						Relids outerjoin_nonnullable,
 						Relids deduced_nullable_relids,
-						List **postponed_qual_list);
-static bool check_outerjoin_delay(PlannerInfo *root, Relids *relids_p,
-					  Relids *nullable_relids_p, bool is_pushed_down);
-static bool check_equivalence_delay(PlannerInfo *root,
-						RestrictInfo *restrictinfo);
-static bool check_redundant_nullability_qual(PlannerInfo *root, Node *clause);
-static void check_mergejoinable(RestrictInfo *restrictinfo);
-static void check_hashjoinable(RestrictInfo *restrictinfo);
+						List * *postponed_qual_list);
+static bool check_outerjoin_delay(PlannerInfo * root, Relids * relids_p,
+					  Relids * nullable_relids_p, bool is_pushed_down);
+static bool check_equivalence_delay(PlannerInfo * root,
+						RestrictInfo * restrictinfo);
+static bool check_redundant_nullability_qual(PlannerInfo * root, Node * clause);
+static void check_mergejoinable(RestrictInfo * restrictinfo);
+static void check_hashjoinable(RestrictInfo * restrictinfo);
 
 
 /*****************************************************************************
@@ -101,7 +101,7 @@ static void check_hashjoinable(RestrictInfo *restrictinfo);
  * "other rel" RelOptInfos for the members of any appendrels we find here.)
  */
 void
-add_base_rels_to_query(PlannerInfo *root, Node *jtnode)
+add_base_rels_to_query(PlannerInfo * root, Node * jtnode)
 {
 	if (jtnode == NULL)
 		return;
@@ -147,7 +147,7 @@ add_base_rels_to_query(PlannerInfo *root, Node *jtnode)
  * propagate up through all join plan steps.
  */
 void
-build_base_rel_tlists(PlannerInfo *root, List *final_tlist)
+build_base_rel_tlists(PlannerInfo * root, List * final_tlist)
 {
 	List	   *tlist_vars = pull_var_clause((Node *) final_tlist,
 											 PVC_RECURSE_AGGREGATES |
@@ -194,7 +194,7 @@ build_base_rel_tlists(PlannerInfo *root, List *final_tlist)
  *	  be true before deconstruct_jointree begins, and false after that.)
  */
 void
-add_vars_to_targetlist(PlannerInfo *root, List *vars,
+add_vars_to_targetlist(PlannerInfo * root, List * vars,
 					   Relids where_needed, bool create_new_ph)
 {
 	ListCell   *temp;
@@ -268,7 +268,7 @@ add_vars_to_targetlist(PlannerInfo *root, List *vars,
  * creation of PlaceHolderInfos.
  */
 void
-find_lateral_references(PlannerInfo *root)
+find_lateral_references(PlannerInfo * root)
 {
 	Index		rti;
 
@@ -316,7 +316,7 @@ find_lateral_references(PlannerInfo *root)
 }
 
 static void
-extract_lateral_references(PlannerInfo *root, RelOptInfo *brel, Index rtindex)
+extract_lateral_references(PlannerInfo * root, RelOptInfo * brel, Index rtindex)
 {
 	RangeTblEntry *rte = root->simple_rte_array[rtindex];
 	List	   *vars;
@@ -414,7 +414,7 @@ extract_lateral_references(PlannerInfo *root, RelOptInfo *brel, Index rtindex)
  * final ph_eval_at values for PlaceHolderVars.
  */
 void
-create_lateral_join_info(PlannerInfo *root)
+create_lateral_join_info(PlannerInfo * root)
 {
 	bool		found_laterals = false;
 	Index		rti;
@@ -689,7 +689,7 @@ create_lateral_join_info(PlannerInfo *root)
  * application of the outer join (or maybe even higher in the join tree).
  */
 List *
-deconstruct_jointree(PlannerInfo *root)
+deconstruct_jointree(PlannerInfo * root)
 {
 	List	   *result;
 	Relids		qualscope;
@@ -735,9 +735,9 @@ deconstruct_jointree(PlannerInfo *root)
  * In addition, entries will be added to root->join_info_list for outer joins.
  */
 static List *
-deconstruct_recurse(PlannerInfo *root, Node *jtnode, bool below_outer_join,
-					Relids *qualscope, Relids *inner_join_rels,
-					List **postponed_qual_list)
+deconstruct_recurse(PlannerInfo * root, Node * jtnode, bool below_outer_join,
+					Relids * qualscope, Relids * inner_join_rels,
+					List * *postponed_qual_list)
 {
 	List	   *joinlist;
 
@@ -1087,7 +1087,7 @@ deconstruct_recurse(PlannerInfo *root, Node *jtnode, bool below_outer_join,
  * individual child rels will be dealt with during path creation.
  */
 static void
-process_security_barrier_quals(PlannerInfo *root,
+process_security_barrier_quals(PlannerInfo * root,
 							   int rti, Relids qualscope,
 							   bool below_outer_join)
 {
@@ -1153,10 +1153,10 @@ process_security_barrier_quals(PlannerInfo *root,
  * syntactically below this one.
  */
 static SpecialJoinInfo *
-make_outerjoininfo(PlannerInfo *root,
+make_outerjoininfo(PlannerInfo * root,
 				   Relids left_rels, Relids right_rels,
 				   Relids inner_join_rels,
-				   JoinType jointype, List *clause)
+				   JoinType jointype, List * clause)
 {
 	SpecialJoinInfo *sjinfo = makeNode(SpecialJoinInfo);
 	Relids		clause_relids;
@@ -1401,7 +1401,7 @@ make_outerjoininfo(PlannerInfo *root,
  * SpecialJoinInfo; the rest may not be set yet.
  */
 static void
-compute_semijoin_info(SpecialJoinInfo *sjinfo, List *clause)
+compute_semijoin_info(SpecialJoinInfo * sjinfo, List * clause)
 {
 	List	   *semi_operators;
 	List	   *semi_rhs_exprs;
@@ -1618,7 +1618,7 @@ compute_semijoin_info(SpecialJoinInfo *sjinfo, List *clause)
  * qual placement.
  */
 static void
-distribute_qual_to_rels(PlannerInfo *root, Node *clause,
+distribute_qual_to_rels(PlannerInfo * root, Node * clause,
 						bool is_deduced,
 						bool below_outer_join,
 						JoinType jointype,
@@ -1627,7 +1627,7 @@ distribute_qual_to_rels(PlannerInfo *root, Node *clause,
 						Relids ojscope,
 						Relids outerjoin_nonnullable,
 						Relids deduced_nullable_relids,
-						List **postponed_qual_list)
+						List * *postponed_qual_list)
 {
 	Relids		relids;
 	bool		is_pushed_down;
@@ -2050,9 +2050,9 @@ distribute_qual_to_rels(PlannerInfo *root, Node *clause,
  * two OJs to commute.)
  */
 static bool
-check_outerjoin_delay(PlannerInfo *root,
-					  Relids *relids_p, /* in/out parameter */
-					  Relids *nullable_relids_p,	/* output parameter */
+check_outerjoin_delay(PlannerInfo * root,
+					  Relids * relids_p,	/* in/out parameter */
+					  Relids * nullable_relids_p,	/* output parameter */
 					  bool is_pushed_down)
 {
 	Relids		relids;
@@ -2134,8 +2134,8 @@ check_outerjoin_delay(PlannerInfo *root,
  * condition.
  */
 static bool
-check_equivalence_delay(PlannerInfo *root,
-						RestrictInfo *restrictinfo)
+check_equivalence_delay(PlannerInfo * root,
+						RestrictInfo * restrictinfo)
 {
 	Relids		relids;
 	Relids		nullable_relids;
@@ -2169,7 +2169,7 @@ check_equivalence_delay(PlannerInfo *root,
  * the qual.
  */
 static bool
-check_redundant_nullability_qual(PlannerInfo *root, Node *clause)
+check_redundant_nullability_qual(PlannerInfo * root, Node * clause)
 {
 	Var		   *forced_null_var;
 	Index		forced_null_rel;
@@ -2207,8 +2207,8 @@ check_redundant_nullability_qual(PlannerInfo *root, Node *clause)
  * are diverted to the EC machinery, but may ultimately get fed back here.
  */
 void
-distribute_restrictinfo_to_rels(PlannerInfo *root,
-								RestrictInfo *restrictinfo)
+distribute_restrictinfo_to_rels(PlannerInfo * root,
+								RestrictInfo * restrictinfo)
 {
 	Relids		relids = restrictinfo->required_relids;
 	RelOptInfo *rel;
@@ -2291,11 +2291,11 @@ distribute_restrictinfo_to_rels(PlannerInfo *root,
  * contain pseudoconstants.  See path/pathkeys.c for more details.
  */
 void
-process_implied_equality(PlannerInfo *root,
+process_implied_equality(PlannerInfo * root,
 						 Oid opno,
 						 Oid collation,
-						 Expr *item1,
-						 Expr *item2,
+						 Expr * item1,
+						 Expr * item2,
 						 Relids qualscope,
 						 Relids nullable_relids,
 						 Index security_level,
@@ -2358,8 +2358,8 @@ process_implied_equality(PlannerInfo *root,
 RestrictInfo *
 build_implied_join_equality(Oid opno,
 							Oid collation,
-							Expr *item1,
-							Expr *item2,
+							Expr * item1,
+							Expr * item2,
 							Relids qualscope,
 							Relids nullable_relids,
 							Index security_level)
@@ -2414,7 +2414,7 @@ build_implied_join_equality(Oid opno,
  * discard any ForeignKeyOptInfos that are irrelevant for the query.
  */
 void
-match_foreign_keys_to_quals(PlannerInfo *root)
+match_foreign_keys_to_quals(PlannerInfo * root)
 {
 	List	   *newlist = NIL;
 	ListCell   *lc;
@@ -2583,7 +2583,7 @@ match_foreign_keys_to_quals(PlannerInfo *root)
  *	  anything --- as long as there are no volatile functions in them.
  */
 static void
-check_mergejoinable(RestrictInfo *restrictinfo)
+check_mergejoinable(RestrictInfo * restrictinfo)
 {
 	Expr	   *clause = restrictinfo->clause;
 	Oid			opno;
@@ -2620,7 +2620,7 @@ check_mergejoinable(RestrictInfo *restrictinfo)
  *	  anything --- as long as there are no volatile functions in them.
  */
 static void
-check_hashjoinable(RestrictInfo *restrictinfo)
+check_hashjoinable(RestrictInfo * restrictinfo)
 {
 	Expr	   *clause = restrictinfo->clause;
 	Oid			opno;

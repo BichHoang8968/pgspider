@@ -54,7 +54,7 @@ typedef struct toast_compress_header
 {
 	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	int32		rawsize;
-} toast_compress_header;
+}			toast_compress_header;
 
 /*
  * Utilities for manipulation of header information for compressed
@@ -69,7 +69,7 @@ typedef struct toast_compress_header
 
 static void toast_delete_datum(Relation rel, Datum value, bool is_speculative);
 static Datum toast_save_datum(Relation rel, Datum value,
-				 struct varlena *oldexternal, int options);
+							  struct varlena *oldexternal, int options);
 static bool toastrel_valueid_exists(Relation toastrel, Oid valueid);
 static bool toastid_valueid_exists(Oid toastrelid, Oid valueid);
 static struct varlena *toast_fetch_datum(struct varlena *attr);
@@ -78,9 +78,9 @@ static struct varlena *toast_fetch_datum_slice(struct varlena *attr,
 static struct varlena *toast_decompress_datum(struct varlena *attr);
 static int toast_open_indexes(Relation toastrel,
 				   LOCKMODE lock,
-				   Relation **toastidxs,
+				   Relation * *toastidxs,
 				   int *num_indexes);
-static void toast_close_indexes(Relation *toastidxs, int num_indexes,
+static void toast_close_indexes(Relation * toastidxs, int num_indexes,
 					LOCKMODE lock);
 static void init_toast_snapshot(Snapshot toast_snapshot);
 
@@ -1303,7 +1303,7 @@ toast_flatten_tuple_to_datum(HeapTupleHeader tup,
  */
 HeapTuple
 toast_build_flattened_tuple(TupleDesc tupleDesc,
-							Datum *values,
+							Datum * values,
 							bool *isnull)
 {
 	HeapTuple	new_tuple;
@@ -2307,7 +2307,7 @@ toast_decompress_datum(struct varlena *attr)
 static int
 toast_open_indexes(Relation toastrel,
 				   LOCKMODE lock,
-				   Relation **toastidxs,
+				   Relation * *toastidxs,
 				   int *num_indexes)
 {
 	int			i = 0;
@@ -2364,7 +2364,7 @@ toast_open_indexes(Relation toastrel,
  *	be called for a set of indexes opened previously with toast_open_indexes.
  */
 static void
-toast_close_indexes(Relation *toastidxs, int num_indexes, LOCKMODE lock)
+toast_close_indexes(Relation * toastidxs, int num_indexes, LOCKMODE lock)
 {
 	int			i;
 

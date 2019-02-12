@@ -200,9 +200,9 @@ typedef struct
 	/* tznameupper contains the all-upper-case name of the timezone */
 	char		tznameupper[TZ_STRLEN_MAX + 1];
 	pg_tz		tz;
-} pg_tz_cache;
+}			pg_tz_cache;
 
-static HTAB *timezone_cache = NULL;
+static HTAB * timezone_cache = NULL;
 
 
 static bool
@@ -420,7 +420,7 @@ pg_tzenumerate_start(void)
 }
 
 void
-pg_tzenumerate_end(pg_tzenum *dir)
+pg_tzenumerate_end(pg_tzenum * dir)
 {
 	while (dir->depth >= 0)
 	{
@@ -432,7 +432,7 @@ pg_tzenumerate_end(pg_tzenum *dir)
 }
 
 pg_tz *
-pg_tzenumerate_next(pg_tzenum *dir)
+pg_tzenumerate_next(pg_tzenum * dir)
 {
 	while (dir->depth >= 0)
 	{

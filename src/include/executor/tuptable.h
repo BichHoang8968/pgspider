@@ -127,7 +127,7 @@ typedef struct TupleTableSlot
 	MinimalTuple tts_mintuple;	/* minimal tuple, or NULL if none */
 	HeapTupleData tts_minhdr;	/* workspace for minimal-tuple-only case */
 	long		tts_off;		/* saved state for slot_deform_tuple */
-} TupleTableSlot;
+}			TupleTableSlot;
 
 #define TTS_HAS_PHYSICAL_TUPLE(slot)  \
 	((slot)->tts_tuple != NULL && (slot)->tts_tuple != &((slot)->tts_minhdr))
@@ -139,37 +139,37 @@ typedef struct TupleTableSlot
 	((slot) == NULL || (slot)->tts_isempty)
 
 /* in executor/execTuples.c */
-extern TupleTableSlot *MakeTupleTableSlot(void);
-extern TupleTableSlot *ExecAllocTableSlot(List **tupleTable);
-extern void ExecResetTupleTable(List *tupleTable, bool shouldFree);
-extern TupleTableSlot *MakeSingleTupleTableSlot(TupleDesc tupdesc);
-extern void ExecDropSingleTupleTableSlot(TupleTableSlot *slot);
-extern void ExecSetSlotDescriptor(TupleTableSlot *slot, TupleDesc tupdesc);
-extern TupleTableSlot *ExecStoreTuple(HeapTuple tuple,
-			   TupleTableSlot *slot,
-			   Buffer buffer,
-			   bool shouldFree);
-extern TupleTableSlot *ExecStoreMinimalTuple(MinimalTuple mtup,
-					  TupleTableSlot *slot,
-					  bool shouldFree);
-extern TupleTableSlot *ExecClearTuple(TupleTableSlot *slot);
-extern TupleTableSlot *ExecStoreVirtualTuple(TupleTableSlot *slot);
-extern TupleTableSlot *ExecStoreAllNullTuple(TupleTableSlot *slot);
-extern HeapTuple ExecCopySlotTuple(TupleTableSlot *slot);
-extern MinimalTuple ExecCopySlotMinimalTuple(TupleTableSlot *slot);
-extern HeapTuple ExecFetchSlotTuple(TupleTableSlot *slot);
-extern MinimalTuple ExecFetchSlotMinimalTuple(TupleTableSlot *slot);
-extern Datum ExecFetchSlotTupleDatum(TupleTableSlot *slot);
-extern HeapTuple ExecMaterializeSlot(TupleTableSlot *slot);
-extern TupleTableSlot *ExecCopySlot(TupleTableSlot *dstslot,
-			 TupleTableSlot *srcslot);
+extern TupleTableSlot * MakeTupleTableSlot(void);
+extern TupleTableSlot * ExecAllocTableSlot(List * *tupleTable);
+extern void ExecResetTupleTable(List * tupleTable, bool shouldFree);
+extern TupleTableSlot * MakeSingleTupleTableSlot(TupleDesc tupdesc);
+extern void ExecDropSingleTupleTableSlot(TupleTableSlot * slot);
+extern void ExecSetSlotDescriptor(TupleTableSlot * slot, TupleDesc tupdesc);
+extern TupleTableSlot * ExecStoreTuple(HeapTuple tuple,
+									   TupleTableSlot * slot,
+									   Buffer buffer,
+									   bool shouldFree);
+extern TupleTableSlot * ExecStoreMinimalTuple(MinimalTuple mtup,
+											  TupleTableSlot * slot,
+											  bool shouldFree);
+extern TupleTableSlot * ExecClearTuple(TupleTableSlot * slot);
+extern TupleTableSlot * ExecStoreVirtualTuple(TupleTableSlot * slot);
+extern TupleTableSlot * ExecStoreAllNullTuple(TupleTableSlot * slot);
+extern HeapTuple ExecCopySlotTuple(TupleTableSlot * slot);
+extern MinimalTuple ExecCopySlotMinimalTuple(TupleTableSlot * slot);
+extern HeapTuple ExecFetchSlotTuple(TupleTableSlot * slot);
+extern MinimalTuple ExecFetchSlotMinimalTuple(TupleTableSlot * slot);
+extern Datum ExecFetchSlotTupleDatum(TupleTableSlot * slot);
+extern HeapTuple ExecMaterializeSlot(TupleTableSlot * slot);
+extern TupleTableSlot * ExecCopySlot(TupleTableSlot * dstslot,
+									 TupleTableSlot * srcslot);
 
 /* in access/common/heaptuple.c */
-extern Datum slot_getattr(TupleTableSlot *slot, int attnum, bool *isnull);
-extern void slot_getallattrs(TupleTableSlot *slot);
-extern void slot_getsomeattrs(TupleTableSlot *slot, int attnum);
-extern bool slot_attisnull(TupleTableSlot *slot, int attnum);
-extern bool slot_getsysattr(TupleTableSlot *slot, int attnum,
-				Datum *value, bool *isnull);
+extern Datum slot_getattr(TupleTableSlot * slot, int attnum, bool *isnull);
+extern void slot_getallattrs(TupleTableSlot * slot);
+extern void slot_getsomeattrs(TupleTableSlot * slot, int attnum);
+extern bool slot_attisnull(TupleTableSlot * slot, int attnum);
+extern bool slot_getsysattr(TupleTableSlot * slot, int attnum,
+				Datum * value, bool *isnull);
 
 #endif							/* TUPTABLE_H */

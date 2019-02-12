@@ -26,7 +26,8 @@ static PQExpBuffer defaultGetLocalPQExpBuffer(void);
 
 /* Globals exported by this file */
 int			quote_all_identifiers = 0;
-PQExpBuffer (*getLocalPQExpBuffer) (void) = defaultGetLocalPQExpBuffer;
+
+PQExpBuffer(*getLocalPQExpBuffer) (void) = defaultGetLocalPQExpBuffer;
 
 
 /*
@@ -104,9 +105,9 @@ fmtId(const char *rawid)
 		 * Note: ScanKeywordLookup() does case-insensitive comparison, but
 		 * that's fine, since we already know we have all-lower-case.
 		 */
-		const ScanKeyword *keyword = ScanKeywordLookup(rawid,
-													   ScanKeywords,
-													   NumScanKeywords);
+		const		ScanKeyword *keyword = ScanKeywordLookup(rawid,
+															 ScanKeywords,
+															 NumScanKeywords);
 
 		if (keyword != NULL && keyword->category != UNRESERVED_KEYWORD)
 			need_quotes = true;
@@ -295,7 +296,7 @@ appendStringLiteral(PQExpBuffer buf, const char *str,
  * by current settings of the PGconn.
  */
 void
-appendStringLiteralConn(PQExpBuffer buf, const char *str, PGconn *conn)
+appendStringLiteralConn(PQExpBuffer buf, const char *str, PGconn * conn)
 {
 	size_t		length = strlen(str);
 
@@ -830,7 +831,7 @@ appendReloptionsArray(PQExpBuffer buffer, const char *reloptions,
  * The appended text, if any, will end with one too.
  */
 bool
-processSQLNamePattern(PGconn *conn, PQExpBuffer buf, const char *pattern,
+processSQLNamePattern(PGconn * conn, PQExpBuffer buf, const char *pattern,
 					  bool have_where, bool force_escape,
 					  const char *schemavar, const char *namevar,
 					  const char *altnamevar, const char *visibilityrule)

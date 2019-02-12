@@ -43,15 +43,15 @@
 #include "utils/datum.h"
 #include "utils/rangetypes.h"
 
-static int16 getQuadrant(TypeCacheEntry *typcache, RangeType *centroid,
-			RangeType *tst);
+static int16 getQuadrant(TypeCacheEntry * typcache, RangeType * centroid,
+						 RangeType * tst);
 static int	bound_cmp(const void *a, const void *b, void *arg);
 
-static int adjacent_inner_consistent(TypeCacheEntry *typcache,
-						  RangeBound *arg, RangeBound *centroid,
-						  RangeBound *prev);
-static int adjacent_cmp_bounds(TypeCacheEntry *typcache, RangeBound *arg,
-					RangeBound *centroid);
+static int adjacent_inner_consistent(TypeCacheEntry * typcache,
+						  RangeBound * arg, RangeBound * centroid,
+						  RangeBound * prev);
+static int adjacent_cmp_bounds(TypeCacheEntry * typcache, RangeBound * arg,
+					RangeBound * centroid);
 
 /*
  * SP-GiST 'config' interface function.
@@ -92,7 +92,7 @@ spg_range_quad_config(PG_FUNCTION_ARGS)
  *----------
  */
 static int16
-getQuadrant(TypeCacheEntry *typcache, RangeType *centroid, RangeType *tst)
+getQuadrant(TypeCacheEntry * typcache, RangeType * centroid, RangeType * tst)
 {
 	RangeBound	centroidLower,
 				centroidUpper;
@@ -785,8 +785,8 @@ spg_range_quad_inner_consistent(PG_FUNCTION_ARGS)
  * For the "left" case, returns -1, and for the "right" case, returns 1.
  */
 static int
-adjacent_cmp_bounds(TypeCacheEntry *typcache, RangeBound *arg,
-					RangeBound *centroid)
+adjacent_cmp_bounds(TypeCacheEntry * typcache, RangeBound * arg,
+					RangeBound * centroid)
 {
 	int			cmp;
 
@@ -887,8 +887,8 @@ adjacent_cmp_bounds(TypeCacheEntry *typcache, RangeBound *arg,
  *----------
  */
 static int
-adjacent_inner_consistent(TypeCacheEntry *typcache, RangeBound *arg,
-						  RangeBound *centroid, RangeBound *prev)
+adjacent_inner_consistent(TypeCacheEntry * typcache, RangeBound * arg,
+						  RangeBound * centroid, RangeBound * prev)
 {
 	if (prev)
 	{

@@ -60,7 +60,7 @@ typedef struct mpz
 	mp_size		alloc;
 	mp_size		used;
 	mp_sign		sign;
-} mpz_t    ,
+}			mpz_t,
 
 		   *mp_int;
 
@@ -204,7 +204,7 @@ const char *mp_error_string(mp_result res);
 
 #if 0
 void		s_print(char *tag, mp_int z);
-void		s_print_buf(char *tag, mp_digit *buf, mp_size num);
+void		s_print_buf(char *tag, mp_digit * buf, mp_size num);
 #endif
 
 #endif							/* end IMATH_H_ */

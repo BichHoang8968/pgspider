@@ -56,7 +56,7 @@ CATALOG(pg_amproc,2603)
  *		the format of pg_amproc relation.
  * ----------------
  */
-typedef FormData_pg_amproc *Form_pg_amproc;
+typedef FormData_pg_amproc * Form_pg_amproc;
 
 /* ----------------
  *		compiler constants for pg_amproc

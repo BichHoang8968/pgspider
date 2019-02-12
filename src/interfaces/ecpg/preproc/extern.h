@@ -42,8 +42,8 @@ extern char *base_yytext,
 extern int	base_yydebug;
 #endif
 extern int	base_yylineno;
-extern FILE *base_yyin,
-		   *base_yyout;
+extern FILE * base_yyin,
+*base_yyout;
 extern char *output_filename;
 
 extern struct _include_path *include_paths;

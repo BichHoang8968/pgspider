@@ -162,7 +162,7 @@ prssyntaxerror(TSVectorParseState state)
 bool
 gettoken_tsvector(TSVectorParseState state,
 				  char **strval, int *lenval,
-				  WordEntryPos **pos_ptr, int *poslen,
+				  WordEntryPos * *pos_ptr, int *poslen,
 				  char **endptr)
 {
 	int			oldstate = 0;

@@ -96,27 +96,27 @@ static void AddNewRelationTuple(Relation pg_class_desc,
 					Datum relacl,
 					Datum reloptions);
 static ObjectAddress AddNewRelationType(const char *typeName,
-				   Oid typeNamespace,
-				   Oid new_rel_oid,
-				   char new_rel_kind,
-				   Oid ownerid,
-				   Oid new_row_type,
-				   Oid new_array_type);
+										Oid typeNamespace,
+										Oid new_rel_oid,
+										char new_rel_kind,
+										Oid ownerid,
+										Oid new_row_type,
+										Oid new_array_type);
 static void RelationRemoveInheritance(Oid relid);
-static Oid StoreRelCheck(Relation rel, char *ccname, Node *expr,
-			  bool is_validated, bool is_local, int inhcount,
-			  bool is_no_inherit, bool is_internal);
-static void StoreConstraints(Relation rel, List *cooked_constraints,
+static Oid StoreRelCheck(Relation rel, char *ccname, Node * expr,
+						 bool is_validated, bool is_local, int inhcount,
+						 bool is_no_inherit, bool is_internal);
+static void StoreConstraints(Relation rel, List * cooked_constraints,
 				 bool is_internal);
-static bool MergeWithExistingConstraint(Relation rel, char *ccname, Node *expr,
+static bool MergeWithExistingConstraint(Relation rel, char *ccname, Node * expr,
 							bool allow_merge, bool is_local,
 							bool is_initially_valid,
 							bool is_no_inherit);
 static void SetRelationNumChecks(Relation rel, int numchecks);
-static Node *cookConstraint(ParseState *pstate,
-			   Node *raw_constraint,
-			   char *relname);
-static List *insert_ordered_unique_oid(List *list, Oid datum);
+static Node * cookConstraint(ParseState * pstate,
+							 Node * raw_constraint,
+							 char *relname);
+static List * insert_ordered_unique_oid(List * list, Oid datum);
 
 
 /* ----------------------------------------------------------------
@@ -141,40 +141,64 @@ static List *insert_ordered_unique_oid(List *list, Oid datum);
  * fixed-size portion of the structure anyway.
  */
 
-static FormData_pg_attribute a1 = {
-	0, {"ctid"}, TIDOID, 0, sizeof(ItemPointerData),
-	SelfItemPointerAttributeNumber, 0, -1, -1,
-	false, 'p', 's', true, false, '\0', false, true, 0
+static FormData_pg_attribute a1 =
+{
+	0,
+	{
+		"ctid"
+	}, TIDOID, 0, sizeof(ItemPointerData),
+		SelfItemPointerAttributeNumber, 0, -1, -1,
+		false, 'p', 's', true, false, '\0', false, true, 0
 };
 
-static FormData_pg_attribute a2 = {
-	0, {"oid"}, OIDOID, 0, sizeof(Oid),
-	ObjectIdAttributeNumber, 0, -1, -1,
-	true, 'p', 'i', true, false, '\0', false, true, 0
+static FormData_pg_attribute a2 =
+{
+	0,
+	{
+		"oid"
+	}, OIDOID, 0, sizeof(Oid),
+		ObjectIdAttributeNumber, 0, -1, -1,
+		true, 'p', 'i', true, false, '\0', false, true, 0
 };
 
-static FormData_pg_attribute a3 = {
-	0, {"xmin"}, XIDOID, 0, sizeof(TransactionId),
-	MinTransactionIdAttributeNumber, 0, -1, -1,
-	true, 'p', 'i', true, false, '\0', false, true, 0
+static FormData_pg_attribute a3 =
+{
+	0,
+	{
+		"xmin"
+	}, XIDOID, 0, sizeof(TransactionId),
+		MinTransactionIdAttributeNumber, 0, -1, -1,
+		true, 'p', 'i', true, false, '\0', false, true, 0
 };
 
-static FormData_pg_attribute a4 = {
-	0, {"cmin"}, CIDOID, 0, sizeof(CommandId),
-	MinCommandIdAttributeNumber, 0, -1, -1,
-	true, 'p', 'i', true, false, '\0', false, true, 0
+static FormData_pg_attribute a4 =
+{
+	0,
+	{
+		"cmin"
+	}, CIDOID, 0, sizeof(CommandId),
+		MinCommandIdAttributeNumber, 0, -1, -1,
+		true, 'p', 'i', true, false, '\0', false, true, 0
 };
 
-static FormData_pg_attribute a5 = {
-	0, {"xmax"}, XIDOID, 0, sizeof(TransactionId),
-	MaxTransactionIdAttributeNumber, 0, -1, -1,
-	true, 'p', 'i', true, false, '\0', false, true, 0
+static FormData_pg_attribute a5 =
+{
+	0,
+	{
+		"xmax"
+	}, XIDOID, 0, sizeof(TransactionId),
+		MaxTransactionIdAttributeNumber, 0, -1, -1,
+		true, 'p', 'i', true, false, '\0', false, true, 0
 };
 
-static FormData_pg_attribute a6 = {
-	0, {"cmax"}, CIDOID, 0, sizeof(CommandId),
-	MaxCommandIdAttributeNumber, 0, -1, -1,
-	true, 'p', 'i', true, false, '\0', false, true, 0
+static FormData_pg_attribute a6 =
+{
+	0,
+	{
+		"cmax"
+	}, CIDOID, 0, sizeof(CommandId),
+		MaxCommandIdAttributeNumber, 0, -1, -1,
+		true, 'p', 'i', true, false, '\0', false, true, 0
 };
 
 /*
@@ -183,10 +207,14 @@ static FormData_pg_attribute a6 = {
  * table of a particular class/type. In any case table is still the word
  * used in SQL.
  */
-static FormData_pg_attribute a7 = {
-	0, {"tableoid"}, OIDOID, 0, sizeof(Oid),
-	TableOidAttributeNumber, 0, -1, -1,
-	true, 'p', 'i', true, false, '\0', false, true, 0
+static FormData_pg_attribute a7 =
+{
+	0,
+	{
+		"tableoid"
+	}, OIDOID, 0, sizeof(Oid),
+		TableOidAttributeNumber, 0, -1, -1,
+		true, 'p', 'i', true, false, '\0', false, true, 0
 };
 
 static const Form_pg_attribute SysAtt[] = {&a1, &a2, &a3, &a4, &a5, &a6, &a7};
@@ -487,7 +515,7 @@ CheckAttributeNamesTypes(TupleDesc tupdesc, char relkind,
 void
 CheckAttributeType(const char *attname,
 				   Oid atttypid, Oid attcollation,
-				   List *containing_rowtypes,
+				   List * containing_rowtypes,
 				   bool allow_system_table_mods)
 {
 	char		att_typtype = get_typtype(atttypid);
@@ -1024,7 +1052,7 @@ heap_create_with_catalog(const char *relname,
 						 Oid reloftypeid,
 						 Oid ownerid,
 						 TupleDesc tupdesc,
-						 List *cooked_constraints,
+						 List * cooked_constraints,
 						 char relkind,
 						 char relpersistence,
 						 bool shared_relation,
@@ -1036,7 +1064,7 @@ heap_create_with_catalog(const char *relname,
 						 bool use_user_acl,
 						 bool allow_system_table_mods,
 						 bool is_internal,
-						 ObjectAddress *typaddress)
+						 ObjectAddress * typaddress)
 {
 	Relation	pg_class_desc;
 	Relation	new_rel_desc;
@@ -1901,7 +1929,7 @@ heap_drop_with_catalog(Oid relid)
  */
 Oid
 StoreAttrDefault(Relation rel, AttrNumber attnum,
-				 Node *expr, bool is_internal)
+				 Node * expr, bool is_internal)
 {
 	char	   *adbin;
 	char	   *adsrc;
@@ -2013,7 +2041,7 @@ StoreAttrDefault(Relation rel, AttrNumber attnum,
  * The OID of the new constraint is returned.
  */
 static Oid
-StoreRelCheck(Relation rel, char *ccname, Node *expr,
+StoreRelCheck(Relation rel, char *ccname, Node * expr,
 			  bool is_validated, bool is_local, int inhcount,
 			  bool is_no_inherit, bool is_internal)
 {
@@ -2130,7 +2158,7 @@ StoreRelCheck(Relation rel, char *ccname, Node *expr,
  * and StoreRelCheck (see AddRelationNewConstraints()).
  */
 static void
-StoreConstraints(Relation rel, List *cooked_constraints, bool is_internal)
+StoreConstraints(Relation rel, List * cooked_constraints, bool is_internal)
 {
 	int			numchecks = 0;
 	ListCell   *lc;
@@ -2201,8 +2229,8 @@ StoreConstraints(Relation rel, List *cooked_constraints, bool is_internal)
  */
 List *
 AddRelationNewConstraints(Relation rel,
-						  List *newColDefaults,
-						  List *newConstraints,
+						  List * newColDefaults,
+						  List * newConstraints,
 						  bool allow_merge,
 						  bool is_local,
 						  bool is_internal)
@@ -2266,7 +2294,7 @@ AddRelationNewConstraints(Relation rel,
 		 * override any default that the domain might have.
 		 */
 		if (expr == NULL ||
-			(IsA(expr, Const) &&((Const *) expr)->constisnull))
+			(IsA(expr, Const) && ((Const *) expr)->constisnull))
 			continue;
 
 		defOid = StoreAttrDefault(rel, colDef->attnum, expr, is_internal);
@@ -2437,7 +2465,7 @@ AddRelationNewConstraints(Relation rel,
  * XXX See MergeConstraintsIntoExisting too if you change this code.
  */
 static bool
-MergeWithExistingConstraint(Relation rel, char *ccname, Node *expr,
+MergeWithExistingConstraint(Relation rel, char *ccname, Node * expr,
 							bool allow_merge, bool is_local,
 							bool is_initially_valid,
 							bool is_no_inherit)
@@ -2630,8 +2658,8 @@ SetRelationNumChecks(Relation rel, int numchecks)
  * it is used in the error message, if any.
  */
 Node *
-cookDefault(ParseState *pstate,
-			Node *raw_default,
+cookDefault(ParseState * pstate,
+			Node * raw_default,
 			Oid atttypid,
 			int32 atttypmod,
 			char *attname)
@@ -2701,8 +2729,8 @@ cookDefault(ParseState *pstate,
  * in the expression.
  */
 static Node *
-cookConstraint(ParseState *pstate,
-			   Node *raw_constraint,
+cookConstraint(ParseState * pstate,
+			   Node * raw_constraint,
 			   char *relname)
 {
 	Node	   *expr;
@@ -2831,7 +2859,7 @@ RelationTruncateIndexes(Relation heapRelation)
  * ON COMMIT truncation of temporary tables, where it doesn't matter.
  */
 void
-heap_truncate(List *relids)
+heap_truncate(List * relids)
 {
 	List	   *relations = NIL;
 	ListCell   *cell;
@@ -2909,7 +2937,7 @@ heap_truncate_one_rel(Relation rel)
  * tempTables is only used to select an appropriate error message.
  */
 void
-heap_truncate_check_FKs(List *relations, bool tempTables)
+heap_truncate_check_FKs(List * relations, bool tempTables)
 {
 	List	   *oids = NIL;
 	List	   *dependents;
@@ -3001,7 +3029,7 @@ heap_truncate_check_FKs(List *relations, bool tempTables)
  * on both rels, this ensures that the answer will be stable.
  */
 List *
-heap_truncate_find_FKs(List *relationIds)
+heap_truncate_find_FKs(List * relationIds)
 {
 	List	   *result = NIL;
 	Relation	fkeyRel;
@@ -3051,7 +3079,7 @@ heap_truncate_find_FKs(List *relationIds)
  * trying to truncate a table with thousands of dependent tables ...
  */
 static List *
-insert_ordered_unique_oid(List *list, Oid datum)
+insert_ordered_unique_oid(List * list, Oid datum)
 {
 	ListCell   *prev;
 
@@ -3088,10 +3116,10 @@ void
 StorePartitionKey(Relation rel,
 				  char strategy,
 				  int16 partnatts,
-				  AttrNumber *partattrs,
-				  List *partexprs,
-				  Oid *partopclass,
-				  Oid *partcollation)
+				  AttrNumber * partattrs,
+				  List * partexprs,
+				  Oid * partopclass,
+				  Oid * partcollation)
 {
 	int			i;
 	int2vector *partattrs_vec;
@@ -3223,7 +3251,7 @@ RemovePartitionKeyByRelId(Oid relid)
  * the new partition's info into its partition descriptor.
  */
 void
-StorePartitionBound(Relation rel, Relation parent, PartitionBoundSpec *bound)
+StorePartitionBound(Relation rel, Relation parent, PartitionBoundSpec * bound)
 {
 	Relation	classRel;
 	HeapTuple	tuple,

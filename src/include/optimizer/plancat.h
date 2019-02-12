@@ -18,43 +18,43 @@
 #include "utils/relcache.h"
 
 /* Hook for plugins to get control in get_relation_info() */
-typedef void (*get_relation_info_hook_type) (PlannerInfo *root,
+typedef void (*get_relation_info_hook_type) (PlannerInfo * root,
 											 Oid relationObjectId,
 											 bool inhparent,
-											 RelOptInfo *rel);
+											 RelOptInfo * rel);
 extern PGDLLIMPORT get_relation_info_hook_type get_relation_info_hook;
 
 
-extern void get_relation_info(PlannerInfo *root, Oid relationObjectId,
-				  bool inhparent, RelOptInfo *rel);
+extern void get_relation_info(PlannerInfo * root, Oid relationObjectId,
+				  bool inhparent, RelOptInfo * rel);
 
-extern List *infer_arbiter_indexes(PlannerInfo *root);
+extern List * infer_arbiter_indexes(PlannerInfo * root);
 
-extern void estimate_rel_size(Relation rel, int32 *attr_widths,
-				  BlockNumber *pages, double *tuples, double *allvisfrac);
+extern void estimate_rel_size(Relation rel, int32 * attr_widths,
+				  BlockNumber * pages, double *tuples, double *allvisfrac);
 
-extern int32 get_relation_data_width(Oid relid, int32 *attr_widths);
+extern int32 get_relation_data_width(Oid relid, int32 * attr_widths);
 
-extern bool relation_excluded_by_constraints(PlannerInfo *root,
-								 RelOptInfo *rel, RangeTblEntry *rte);
+extern bool relation_excluded_by_constraints(PlannerInfo * root,
+								 RelOptInfo * rel, RangeTblEntry * rte);
 
-extern List *build_physical_tlist(PlannerInfo *root, RelOptInfo *rel);
+extern List * build_physical_tlist(PlannerInfo * root, RelOptInfo * rel);
 
-extern bool has_unique_index(RelOptInfo *rel, AttrNumber attno);
+extern bool has_unique_index(RelOptInfo * rel, AttrNumber attno);
 
-extern Selectivity restriction_selectivity(PlannerInfo *root,
-						Oid operatorid,
-						List *args,
-						Oid inputcollid,
-						int varRelid);
+extern Selectivity restriction_selectivity(PlannerInfo * root,
+										   Oid operatorid,
+										   List * args,
+										   Oid inputcollid,
+										   int varRelid);
 
-extern Selectivity join_selectivity(PlannerInfo *root,
-				 Oid operatorid,
-				 List *args,
-				 Oid inputcollid,
-				 JoinType jointype,
-				 SpecialJoinInfo *sjinfo);
+extern Selectivity join_selectivity(PlannerInfo * root,
+									Oid operatorid,
+									List * args,
+									Oid inputcollid,
+									JoinType jointype,
+									SpecialJoinInfo * sjinfo);
 
-extern bool has_row_triggers(PlannerInfo *root, Index rti, CmdType event);
+extern bool has_row_triggers(PlannerInfo * root, Index rti, CmdType event);
 
 #endif							/* PLANCAT_H */

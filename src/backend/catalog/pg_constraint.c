@@ -53,21 +53,21 @@ CreateConstraintEntry(const char *constraintName,
 					  bool isDeferred,
 					  bool isValidated,
 					  Oid relId,
-					  const int16 *constraintKey,
+					  const int16 * constraintKey,
 					  int constraintNKeys,
 					  Oid domainId,
 					  Oid indexRelId,
 					  Oid foreignRelId,
-					  const int16 *foreignKey,
-					  const Oid *pfEqOp,
-					  const Oid *ppEqOp,
-					  const Oid *ffEqOp,
+					  const int16 * foreignKey,
+					  const Oid * pfEqOp,
+					  const Oid * ppEqOp,
+					  const Oid * ffEqOp,
 					  int foreignNKeys,
 					  char foreignUpdateType,
 					  char foreignDeleteType,
 					  char foreignMatchType,
-					  const Oid *exclOp,
-					  Node *conExpr,
+					  const Oid * exclOp,
+					  Node * conExpr,
 					  const char *conBin,
 					  const char *conSrc,
 					  bool conIsLocal,
@@ -463,7 +463,7 @@ ConstraintNameIsUsed(ConstraintCategory conCat, Oid objId,
 char *
 ChooseConstraintName(const char *name1, const char *name2,
 					 const char *label, Oid namespaceid,
-					 List *others)
+					 List * others)
 {
 	int			pass = 0;
 	char	   *conname = NULL;
@@ -678,7 +678,7 @@ RenameConstraintById(Oid conId, const char *newname)
  */
 void
 AlterConstraintNamespaces(Oid ownerId, Oid oldNspId,
-						  Oid newNspId, bool isType, ObjectAddresses *objsMoved)
+						  Oid newNspId, bool isType, ObjectAddresses * objsMoved)
 {
 	Relation	conRel;
 	ScanKeyData key[1];
@@ -819,7 +819,7 @@ get_relation_constraint_oid(Oid relid, const char *conname, bool missing_ok)
  */
 Bitmapset *
 get_relation_constraint_attnos(Oid relid, const char *conname,
-							   bool missing_ok, Oid *constraintOid)
+							   bool missing_ok, Oid * constraintOid)
 {
 	Bitmapset  *conattnos = NULL;
 	Relation	pg_constraint;
@@ -976,7 +976,7 @@ get_domain_constraint_oid(Oid typid, const char *conname, bool missing_ok)
  * on failure.
  */
 Bitmapset *
-get_primary_key_attnos(Oid relid, bool deferrableOk, Oid *constraintOid)
+get_primary_key_attnos(Oid relid, bool deferrableOk, Oid * constraintOid)
 {
 	Bitmapset  *pkattnos = NULL;
 	Relation	pg_constraint;
@@ -1072,8 +1072,8 @@ get_primary_key_attnos(Oid relid, bool deferrableOk, Oid *constraintOid)
 bool
 check_functional_grouping(Oid relid,
 						  Index varno, Index varlevelsup,
-						  List *grouping_columns,
-						  List **constraintDeps)
+						  List * grouping_columns,
+						  List * *constraintDeps)
 {
 	Bitmapset  *pkattnos;
 	Bitmapset  *groupbyattnos;

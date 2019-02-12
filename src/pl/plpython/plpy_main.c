@@ -60,7 +60,7 @@ static void plpython_error_callback(void *arg);
 static void plpython_inline_error_callback(void *arg);
 static void PLy_init_interp(void);
 
-static PLyExecutionContext *PLy_push_execution_context(void);
+static PLyExecutionContext * PLy_push_execution_context(void);
 static void PLy_pop_execution_context(void);
 
 /* static state for Python library conflict detection */
@@ -71,7 +71,7 @@ static int	plpython_version_bitmask = 0;
 PyObject   *PLy_interp_globals = NULL;
 
 /* this doesn't need to be global; use PLy_current_execution_context() */
-static PLyExecutionContext *PLy_execution_contexts = NULL;
+static PLyExecutionContext * PLy_execution_contexts = NULL;
 
 
 void
@@ -157,7 +157,7 @@ PLy_initialize(void)
 static void
 PLy_init_interp(void)
 {
-	static PyObject *PLy_interp_safe_globals = NULL;
+	static PyObject * PLy_interp_safe_globals = NULL;
 	PyObject   *mainmod;
 
 	mainmod = PyImport_AddModule("__main__");
@@ -404,7 +404,7 @@ PLy_current_execution_context(void)
 }
 
 MemoryContext
-PLy_get_scratch_context(PLyExecutionContext *context)
+PLy_get_scratch_context(PLyExecutionContext * context)
 {
 	/*
 	 * A scratch context might never be needed in a given plpython procedure,

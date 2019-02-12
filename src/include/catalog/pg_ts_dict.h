@@ -42,7 +42,7 @@ CATALOG(pg_ts_dict,3600)
 #endif
 } FormData_pg_ts_dict;
 
-typedef FormData_pg_ts_dict *Form_pg_ts_dict;
+typedef FormData_pg_ts_dict * Form_pg_ts_dict;
 
 /* ----------------
  *		compiler constants for pg_ts_dict

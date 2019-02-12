@@ -49,7 +49,7 @@ typedef struct
 	 */
 	BTSpool    *spool2;
 	double		indtuples;
-} BTBuildState;
+}			BTBuildState;
 
 /* Working state needed by btvacuumpage */
 typedef struct
@@ -63,7 +63,7 @@ typedef struct
 	BlockNumber lastBlockLocked;	/* highest blkno we've cleanup-locked */
 	BlockNumber totFreePages;	/* true total # of free pages */
 	MemoryContext pagedelcontext;
-} BTVacState;
+}			BTVacState;
 
 /*
  * BTPARALLEL_NOT_INITIALIZED indicates that the scan has not started.
@@ -83,7 +83,7 @@ typedef enum
 	BTPARALLEL_ADVANCING,
 	BTPARALLEL_IDLE,
 	BTPARALLEL_DONE
-} BTPS_State;
+}			BTPS_State;
 
 /*
  * BTParallelScanDescData contains btree specific shared information required
@@ -106,14 +106,14 @@ typedef struct BTParallelScanDescData *BTParallelScanDesc;
 
 static void btbuildCallback(Relation index,
 				HeapTuple htup,
-				Datum *values,
+				Datum * values,
 				bool *isnull,
 				bool tupleIsAlive,
 				void *state);
-static void btvacuumscan(IndexVacuumInfo *info, IndexBulkDeleteResult *stats,
+static void btvacuumscan(IndexVacuumInfo * info, IndexBulkDeleteResult * stats,
 			 IndexBulkDeleteCallback callback, void *callback_state,
 			 BTCycleId cycleid);
-static void btvacuumpage(BTVacState *vstate, BlockNumber blkno,
+static void btvacuumpage(BTVacState * vstate, BlockNumber blkno,
 			 BlockNumber orig_blkno);
 
 
@@ -170,7 +170,7 @@ bthandler(PG_FUNCTION_ARGS)
  *	btbuild() -- build a new btree index.
  */
 IndexBuildResult *
-btbuild(Relation heap, Relation index, IndexInfo *indexInfo)
+btbuild(Relation heap, Relation index, IndexInfo * indexInfo)
 {
 	IndexBuildResult *result;
 	double		reltuples;
@@ -252,7 +252,7 @@ btbuild(Relation heap, Relation index, IndexInfo *indexInfo)
 static void
 btbuildCallback(Relation index,
 				HeapTuple htup,
-				Datum *values,
+				Datum * values,
 				bool *isnull,
 				bool tupleIsAlive,
 				void *state)
@@ -315,10 +315,10 @@ btbuildempty(Relation index)
  *		new tuple, and put it there.
  */
 bool
-btinsert(Relation rel, Datum *values, bool *isnull,
+btinsert(Relation rel, Datum * values, bool *isnull,
 		 ItemPointer ht_ctid, Relation heapRel,
 		 IndexUniqueCheck checkUnique,
-		 IndexInfo *indexInfo)
+		 IndexInfo * indexInfo)
 {
 	bool		result;
 	IndexTuple	itup;
@@ -412,7 +412,7 @@ btgettuple(IndexScanDesc scan, ScanDirection dir)
  * btgetbitmap() -- gets all matching tuples, and adds them to a bitmap
  */
 int64
-btgetbitmap(IndexScanDesc scan, TIDBitmap *tbm)
+btgetbitmap(IndexScanDesc scan, TIDBitmap * tbm)
 {
 	BTScanOpaque so = (BTScanOpaque) scan->opaque;
 	int64		ntids = 0;
@@ -763,7 +763,7 @@ btparallelrescan(IndexScanDesc scan)
  * Callers should ignore the value of pageno if the return value is false.
  */
 bool
-_bt_parallel_seize(IndexScanDesc scan, BlockNumber *pageno)
+_bt_parallel_seize(IndexScanDesc scan, BlockNumber * pageno)
 {
 	BTScanOpaque so = (BTScanOpaque) scan->opaque;
 	BTPS_State	pageStatus;
@@ -913,7 +913,7 @@ _bt_parallel_advance_array_keys(IndexScanDesc scan)
  * Result: a palloc'd struct containing statistical info for VACUUM displays.
  */
 IndexBulkDeleteResult *
-btbulkdelete(IndexVacuumInfo *info, IndexBulkDeleteResult *stats,
+btbulkdelete(IndexVacuumInfo * info, IndexBulkDeleteResult * stats,
 			 IndexBulkDeleteCallback callback, void *callback_state)
 {
 	Relation	rel = info->index;
@@ -943,7 +943,7 @@ btbulkdelete(IndexVacuumInfo *info, IndexBulkDeleteResult *stats,
  * Result: a palloc'd struct containing statistical info for VACUUM displays.
  */
 IndexBulkDeleteResult *
-btvacuumcleanup(IndexVacuumInfo *info, IndexBulkDeleteResult *stats)
+btvacuumcleanup(IndexVacuumInfo * info, IndexBulkDeleteResult * stats)
 {
 	/* No-op in ANALYZE ONLY mode */
 	if (info->analyze_only)
@@ -995,7 +995,7 @@ btvacuumcleanup(IndexVacuumInfo *info, IndexBulkDeleteResult *stats)
  * and for obtaining a vacuum cycle ID if necessary.
  */
 static void
-btvacuumscan(IndexVacuumInfo *info, IndexBulkDeleteResult *stats,
+btvacuumscan(IndexVacuumInfo * info, IndexBulkDeleteResult * stats,
 			 IndexBulkDeleteCallback callback, void *callback_state,
 			 BTCycleId cycleid)
 {
@@ -1125,7 +1125,7 @@ btvacuumscan(IndexVacuumInfo *info, IndexBulkDeleteResult *stats,
  * are recursing to re-examine a previous page).
  */
 static void
-btvacuumpage(BTVacState *vstate, BlockNumber blkno, BlockNumber orig_blkno)
+btvacuumpage(BTVacState * vstate, BlockNumber blkno, BlockNumber orig_blkno)
 {
 	IndexVacuumInfo *info = vstate->info;
 	IndexBulkDeleteResult *stats = vstate->stats;

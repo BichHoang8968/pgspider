@@ -44,7 +44,7 @@ CATALOG(pg_tablespace,1213) BKI_SHARED_RELATION
  *		the format of pg_tablespace relation.
  * ----------------
  */
-typedef FormData_pg_tablespace *Form_pg_tablespace;
+typedef FormData_pg_tablespace * Form_pg_tablespace;
 
 /* ----------------
  *		compiler constants for pg_tablespace

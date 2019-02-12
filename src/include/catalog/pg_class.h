@@ -92,7 +92,7 @@ CATALOG(pg_class,1259) BKI_BOOTSTRAP BKI_ROWTYPE_OID(83) BKI_SCHEMA_MACRO
  *		the format of pg_class relation.
  * ----------------
  */
-typedef FormData_pg_class *Form_pg_class;
+typedef FormData_pg_class * Form_pg_class;
 
 /* ----------------
  *		compiler constants for pg_class

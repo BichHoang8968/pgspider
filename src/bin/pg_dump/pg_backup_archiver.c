@@ -47,80 +47,80 @@ typedef struct _outputContext
 {
 	void	   *OF;
 	int			gzOut;
-} OutputContext;
+}			OutputContext;
 
 /* translator: this is a module name */
 static const char *modulename = gettext_noop("archiver");
 
 
-static ArchiveHandle *_allocAH(const char *FileSpec, const ArchiveFormat fmt,
-		 const int compression, bool dosync, ArchiveMode mode,
-		 SetupWorkerPtrType setupWorkerPtr);
-static void _getObjectDescription(PQExpBuffer buf, TocEntry *te,
-					  ArchiveHandle *AH);
-static void _printTocEntry(ArchiveHandle *AH, TocEntry *te, bool isData);
+static ArchiveHandle * _allocAH(const char *FileSpec, const ArchiveFormat fmt,
+								const int compression, bool dosync, ArchiveMode mode,
+								SetupWorkerPtrType setupWorkerPtr);
+static void _getObjectDescription(PQExpBuffer buf, TocEntry * te,
+					  ArchiveHandle * AH);
+static void _printTocEntry(ArchiveHandle * AH, TocEntry * te, bool isData);
 static char *replace_line_endings(const char *str);
-static void _doSetFixedOutputState(ArchiveHandle *AH);
-static void _doSetSessionAuth(ArchiveHandle *AH, const char *user);
-static void _doSetWithOids(ArchiveHandle *AH, const bool withOids);
-static void _reconnectToDB(ArchiveHandle *AH, const char *dbname);
-static void _becomeUser(ArchiveHandle *AH, const char *user);
-static void _becomeOwner(ArchiveHandle *AH, TocEntry *te);
-static void _selectOutputSchema(ArchiveHandle *AH, const char *schemaName);
-static void _selectTablespace(ArchiveHandle *AH, const char *tablespace);
-static void processEncodingEntry(ArchiveHandle *AH, TocEntry *te);
-static void processStdStringsEntry(ArchiveHandle *AH, TocEntry *te);
-static void processSearchPathEntry(ArchiveHandle *AH, TocEntry *te);
-static teReqs _tocEntryRequired(TocEntry *te, teSection curSection, RestoreOptions *ropt);
-static RestorePass _tocEntryRestorePass(TocEntry *te);
-static bool _tocEntryIsACL(TocEntry *te);
-static void _disableTriggersIfNecessary(ArchiveHandle *AH, TocEntry *te);
-static void _enableTriggersIfNecessary(ArchiveHandle *AH, TocEntry *te);
-static void buildTocEntryArrays(ArchiveHandle *AH);
-static void _moveBefore(ArchiveHandle *AH, TocEntry *pos, TocEntry *te);
-static int	_discoverArchiveFormat(ArchiveHandle *AH);
+static void _doSetFixedOutputState(ArchiveHandle * AH);
+static void _doSetSessionAuth(ArchiveHandle * AH, const char *user);
+static void _doSetWithOids(ArchiveHandle * AH, const bool withOids);
+static void _reconnectToDB(ArchiveHandle * AH, const char *dbname);
+static void _becomeUser(ArchiveHandle * AH, const char *user);
+static void _becomeOwner(ArchiveHandle * AH, TocEntry * te);
+static void _selectOutputSchema(ArchiveHandle * AH, const char *schemaName);
+static void _selectTablespace(ArchiveHandle * AH, const char *tablespace);
+static void processEncodingEntry(ArchiveHandle * AH, TocEntry * te);
+static void processStdStringsEntry(ArchiveHandle * AH, TocEntry * te);
+static void processSearchPathEntry(ArchiveHandle * AH, TocEntry * te);
+static teReqs _tocEntryRequired(TocEntry * te, teSection curSection, RestoreOptions * ropt);
+static RestorePass _tocEntryRestorePass(TocEntry * te);
+static bool _tocEntryIsACL(TocEntry * te);
+static void _disableTriggersIfNecessary(ArchiveHandle * AH, TocEntry * te);
+static void _enableTriggersIfNecessary(ArchiveHandle * AH, TocEntry * te);
+static void buildTocEntryArrays(ArchiveHandle * AH);
+static void _moveBefore(ArchiveHandle * AH, TocEntry * pos, TocEntry * te);
+static int	_discoverArchiveFormat(ArchiveHandle * AH);
 
-static int	RestoringToDB(ArchiveHandle *AH);
-static void dump_lo_buf(ArchiveHandle *AH);
-static void dumpTimestamp(ArchiveHandle *AH, const char *msg, time_t tim);
-static void SetOutput(ArchiveHandle *AH, const char *filename, int compression);
-static OutputContext SaveOutput(ArchiveHandle *AH);
-static void RestoreOutput(ArchiveHandle *AH, OutputContext savedContext);
+static int	RestoringToDB(ArchiveHandle * AH);
+static void dump_lo_buf(ArchiveHandle * AH);
+static void dumpTimestamp(ArchiveHandle * AH, const char *msg, time_t tim);
+static void SetOutput(ArchiveHandle * AH, const char *filename, int compression);
+static OutputContext SaveOutput(ArchiveHandle * AH);
+static void RestoreOutput(ArchiveHandle * AH, OutputContext savedContext);
 
-static int	restore_toc_entry(ArchiveHandle *AH, TocEntry *te, bool is_parallel);
-static void restore_toc_entries_prefork(ArchiveHandle *AH,
-							TocEntry *pending_list);
-static void restore_toc_entries_parallel(ArchiveHandle *AH,
-							 ParallelState *pstate,
-							 TocEntry *pending_list);
-static void restore_toc_entries_postfork(ArchiveHandle *AH,
-							 TocEntry *pending_list);
-static void par_list_header_init(TocEntry *l);
-static void par_list_append(TocEntry *l, TocEntry *te);
-static void par_list_remove(TocEntry *te);
-static void move_to_ready_list(TocEntry *pending_list, TocEntry *ready_list,
+static int	restore_toc_entry(ArchiveHandle * AH, TocEntry * te, bool is_parallel);
+static void restore_toc_entries_prefork(ArchiveHandle * AH,
+							TocEntry * pending_list);
+static void restore_toc_entries_parallel(ArchiveHandle * AH,
+							 ParallelState * pstate,
+							 TocEntry * pending_list);
+static void restore_toc_entries_postfork(ArchiveHandle * AH,
+							 TocEntry * pending_list);
+static void par_list_header_init(TocEntry * l);
+static void par_list_append(TocEntry * l, TocEntry * te);
+static void par_list_remove(TocEntry * te);
+static void move_to_ready_list(TocEntry * pending_list, TocEntry * ready_list,
 				   RestorePass pass);
-static TocEntry *get_next_work_item(ArchiveHandle *AH,
-				   TocEntry *ready_list,
-				   ParallelState *pstate);
-static void mark_dump_job_done(ArchiveHandle *AH,
-				   TocEntry *te,
+static TocEntry * get_next_work_item(ArchiveHandle * AH,
+									 TocEntry * ready_list,
+									 ParallelState * pstate);
+static void mark_dump_job_done(ArchiveHandle * AH,
+				   TocEntry * te,
 				   int status,
 				   void *callback_data);
-static void mark_restore_job_done(ArchiveHandle *AH,
-					  TocEntry *te,
+static void mark_restore_job_done(ArchiveHandle * AH,
+					  TocEntry * te,
 					  int status,
 					  void *callback_data);
-static void fix_dependencies(ArchiveHandle *AH);
-static bool has_lock_conflicts(TocEntry *te1, TocEntry *te2);
-static void repoint_table_dependencies(ArchiveHandle *AH);
-static void identify_locking_dependencies(ArchiveHandle *AH, TocEntry *te);
-static void reduce_dependencies(ArchiveHandle *AH, TocEntry *te,
-					TocEntry *ready_list);
-static void mark_create_done(ArchiveHandle *AH, TocEntry *te);
-static void inhibit_data_for_failed_table(ArchiveHandle *AH, TocEntry *te);
+static void fix_dependencies(ArchiveHandle * AH);
+static bool has_lock_conflicts(TocEntry * te1, TocEntry * te2);
+static void repoint_table_dependencies(ArchiveHandle * AH);
+static void identify_locking_dependencies(ArchiveHandle * AH, TocEntry * te);
+static void reduce_dependencies(ArchiveHandle * AH, TocEntry * te,
+					TocEntry * ready_list);
+static void mark_create_done(ArchiveHandle * AH, TocEntry * te);
+static void inhibit_data_for_failed_table(ArchiveHandle * AH, TocEntry * te);
 
-static void StrictNamesCheck(RestoreOptions *ropt);
+static void StrictNamesCheck(RestoreOptions * ropt);
 
 
 /*
@@ -139,7 +139,7 @@ NewDumpOptions(void)
  * Initialize a DumpOptions struct to all default values
  */
 void
-InitDumpOptions(DumpOptions *opts)
+InitDumpOptions(DumpOptions * opts)
 {
 	memset(opts, 0, sizeof(DumpOptions));
 	/* set any fields that shouldn't default to zeroes */
@@ -152,7 +152,7 @@ InitDumpOptions(DumpOptions *opts)
  * found in the given RestoreOptions.
  */
 DumpOptions *
-dumpOptionsFromRestoreOptions(RestoreOptions *ropt)
+dumpOptionsFromRestoreOptions(RestoreOptions * ropt)
 {
 	DumpOptions *dopt = NewDumpOptions();
 
@@ -199,7 +199,7 @@ dumpOptionsFromRestoreOptions(RestoreOptions *ropt)
  * setup doesn't need to know anything much, so it's defined here.
  */
 static void
-setupRestoreWorker(Archive *AHX)
+setupRestoreWorker(Archive * AHX)
 {
 	ArchiveHandle *AH = (ArchiveHandle *) AHX;
 
@@ -233,7 +233,7 @@ OpenArchive(const char *FileSpec, const ArchiveFormat fmt)
 
 /* Public */
 void
-CloseArchive(Archive *AHX)
+CloseArchive(Archive * AHX)
 {
 	int			res = 0;
 	ArchiveHandle *AH = (ArchiveHandle *) AHX;
@@ -253,7 +253,7 @@ CloseArchive(Archive *AHX)
 
 /* Public */
 void
-SetArchiveOptions(Archive *AH, DumpOptions *dopt, RestoreOptions *ropt)
+SetArchiveOptions(Archive * AH, DumpOptions * dopt, RestoreOptions * ropt)
 {
 	/* Caller can omit dump options, in which case we synthesize them */
 	if (dopt == NULL && ropt != NULL)
@@ -266,7 +266,7 @@ SetArchiveOptions(Archive *AH, DumpOptions *dopt, RestoreOptions *ropt)
 
 /* Public */
 void
-ProcessArchiveRestoreOptions(Archive *AHX)
+ProcessArchiveRestoreOptions(Archive * AHX)
 {
 	ArchiveHandle *AH = (ArchiveHandle *) AHX;
 	RestoreOptions *ropt = AH->public.ropt;
@@ -323,7 +323,7 @@ ProcessArchiveRestoreOptions(Archive *AHX)
 
 /* Public */
 void
-RestoreArchive(Archive *AHX)
+RestoreArchive(Archive * AHX)
 {
 	ArchiveHandle *AH = (ArchiveHandle *) AHX;
 	RestoreOptions *ropt = AH->public.ropt;
@@ -738,7 +738,7 @@ RestoreArchive(Archive *AHX)
  * the parallel parent has to make the corresponding status update.
  */
 static int
-restore_toc_entry(ArchiveHandle *AH, TocEntry *te, bool is_parallel)
+restore_toc_entry(ArchiveHandle * AH, TocEntry * te, bool is_parallel)
 {
 	RestoreOptions *ropt = AH->public.ropt;
 	int			status = WORKER_OK;
@@ -973,7 +973,7 @@ NewRestoreOptions(void)
 }
 
 static void
-_disableTriggersIfNecessary(ArchiveHandle *AH, TocEntry *te)
+_disableTriggersIfNecessary(ArchiveHandle * AH, TocEntry * te)
 {
 	RestoreOptions *ropt = AH->public.ropt;
 
@@ -1001,7 +1001,7 @@ _disableTriggersIfNecessary(ArchiveHandle *AH, TocEntry *te)
 }
 
 static void
-_enableTriggersIfNecessary(ArchiveHandle *AH, TocEntry *te)
+_enableTriggersIfNecessary(ArchiveHandle * AH, TocEntry * te)
 {
 	RestoreOptions *ropt = AH->public.ropt;
 
@@ -1034,7 +1034,7 @@ _enableTriggersIfNecessary(ArchiveHandle *AH, TocEntry *te)
 
 /* Public */
 void
-WriteData(Archive *AHX, const void *data, size_t dLen)
+WriteData(Archive * AHX, const void *data, size_t dLen)
 {
 	ArchiveHandle *AH = (ArchiveHandle *) AHX;
 
@@ -1053,7 +1053,7 @@ WriteData(Archive *AHX, const void *data, size_t dLen)
 
 /* Public */
 void
-ArchiveEntry(Archive *AHX,
+ArchiveEntry(Archive * AHX,
 			 CatalogId catalogId, DumpId dumpId,
 			 const char *tag,
 			 const char *namespace,
@@ -1062,7 +1062,7 @@ ArchiveEntry(Archive *AHX,
 			 const char *desc, teSection section,
 			 const char *defn,
 			 const char *dropStmt, const char *copyStmt,
-			 const DumpId *deps, int nDeps,
+			 const DumpId * deps, int nDeps,
 			 DataDumperPtr dumpFn, void *dumpArg)
 {
 	ArchiveHandle *AH = (ArchiveHandle *) AHX;
@@ -1117,7 +1117,7 @@ ArchiveEntry(Archive *AHX,
 
 /* Public */
 void
-PrintTOCSummary(Archive *AHX)
+PrintTOCSummary(Archive * AHX)
 {
 	ArchiveHandle *AH = (ArchiveHandle *) AHX;
 	RestoreOptions *ropt = AH->public.ropt;
@@ -1232,7 +1232,7 @@ PrintTOCSummary(Archive *AHX)
 
 /* Called by a dumper to signal start of a BLOB */
 int
-StartBlob(Archive *AHX, Oid oid)
+StartBlob(Archive * AHX, Oid oid)
 {
 	ArchiveHandle *AH = (ArchiveHandle *) AHX;
 
@@ -1246,7 +1246,7 @@ StartBlob(Archive *AHX, Oid oid)
 
 /* Called by a dumper to signal end of a BLOB */
 int
-EndBlob(Archive *AHX, Oid oid)
+EndBlob(Archive * AHX, Oid oid)
 {
 	ArchiveHandle *AH = (ArchiveHandle *) AHX;
 
@@ -1264,7 +1264,7 @@ EndBlob(Archive *AHX, Oid oid)
  * Called by a format handler before any blobs are restored
  */
 void
-StartRestoreBlobs(ArchiveHandle *AH)
+StartRestoreBlobs(ArchiveHandle * AH)
 {
 	RestoreOptions *ropt = AH->public.ropt;
 
@@ -1283,7 +1283,7 @@ StartRestoreBlobs(ArchiveHandle *AH)
  * Called by a format handler after all blobs are restored
  */
 void
-EndRestoreBlobs(ArchiveHandle *AH)
+EndRestoreBlobs(ArchiveHandle * AH)
 {
 	RestoreOptions *ropt = AH->public.ropt;
 
@@ -1306,7 +1306,7 @@ EndRestoreBlobs(ArchiveHandle *AH)
  * Called by a format handler to initiate restoration of a blob
  */
 void
-StartRestoreBlob(ArchiveHandle *AH, Oid oid, bool drop)
+StartRestoreBlob(ArchiveHandle * AH, Oid oid, bool drop)
 {
 	bool		old_blob_style = (AH->version < K_VERS_1_12);
 	Oid			loOid;
@@ -1350,7 +1350,7 @@ StartRestoreBlob(ArchiveHandle *AH, Oid oid, bool drop)
 }
 
 void
-EndRestoreBlob(ArchiveHandle *AH, Oid oid)
+EndRestoreBlob(ArchiveHandle * AH, Oid oid)
 {
 	if (AH->lo_buf_used > 0)
 	{
@@ -1376,7 +1376,7 @@ EndRestoreBlob(ArchiveHandle *AH, Oid oid)
  ***********/
 
 void
-SortTocFromFile(Archive *AHX)
+SortTocFromFile(Archive * AHX)
 {
 	ArchiveHandle *AH = (ArchiveHandle *) AHX;
 	RestoreOptions *ropt = AH->public.ropt;
@@ -1471,7 +1471,7 @@ SortTocFromFile(Archive *AHX)
 
 /* Public */
 void
-archputs(const char *s, Archive *AH)
+archputs(const char *s, Archive * AH)
 {
 	WriteData(AH, s, strlen(s));
 	return;
@@ -1479,7 +1479,7 @@ archputs(const char *s, Archive *AH)
 
 /* Public */
 int
-archprintf(Archive *AH, const char *fmt,...)
+archprintf(Archive * AH, const char *fmt,...)
 {
 	char	   *p;
 	size_t		len = 128;		/* initial assumption about buffer size */
@@ -1516,7 +1516,7 @@ archprintf(Archive *AH, const char *fmt,...)
  *******************************/
 
 static void
-SetOutput(ArchiveHandle *AH, const char *filename, int compression)
+SetOutput(ArchiveHandle * AH, const char *filename, int compression)
 {
 	int			fn;
 
@@ -1578,7 +1578,7 @@ SetOutput(ArchiveHandle *AH, const char *filename, int compression)
 }
 
 static OutputContext
-SaveOutput(ArchiveHandle *AH)
+SaveOutput(ArchiveHandle * AH)
 {
 	OutputContext sav;
 
@@ -1589,7 +1589,7 @@ SaveOutput(ArchiveHandle *AH)
 }
 
 static void
-RestoreOutput(ArchiveHandle *AH, OutputContext savedContext)
+RestoreOutput(ArchiveHandle * AH, OutputContext savedContext)
 {
 	int			res;
 
@@ -1612,7 +1612,7 @@ RestoreOutput(ArchiveHandle *AH, OutputContext savedContext)
  *	Print formatted text to the output file (usually stdout).
  */
 int
-ahprintf(ArchiveHandle *AH, const char *fmt,...)
+ahprintf(ArchiveHandle * AH, const char *fmt,...)
 {
 	char	   *p;
 	size_t		len = 128;		/* initial assumption about buffer size */
@@ -1644,7 +1644,7 @@ ahprintf(ArchiveHandle *AH, const char *fmt,...)
 }
 
 void
-ahlog(ArchiveHandle *AH, int level, const char *fmt,...)
+ahlog(ArchiveHandle * AH, int level, const char *fmt,...)
 {
 	va_list		ap;
 
@@ -1660,7 +1660,7 @@ ahlog(ArchiveHandle *AH, int level, const char *fmt,...)
  * Single place for logic which says 'We are restoring to a direct DB connection'.
  */
 static int
-RestoringToDB(ArchiveHandle *AH)
+RestoringToDB(ArchiveHandle * AH)
 {
 	RestoreOptions *ropt = AH->public.ropt;
 
@@ -1671,7 +1671,7 @@ RestoringToDB(ArchiveHandle *AH)
  * Dump the current contents of the LO data buffer while writing a BLOB
  */
 static void
-dump_lo_buf(ArchiveHandle *AH)
+dump_lo_buf(ArchiveHandle * AH)
 {
 	if (AH->connection)
 	{
@@ -1714,7 +1714,7 @@ dump_lo_buf(ArchiveHandle *AH)
  *	wants to generate a script (see TAR output).
  */
 void
-ahwrite(const void *ptr, size_t size, size_t nmemb, ArchiveHandle *AH)
+ahwrite(const void *ptr, size_t size, size_t nmemb, ArchiveHandle * AH)
 {
 	int			bytes_written = 0;
 
@@ -1763,7 +1763,7 @@ ahwrite(const void *ptr, size_t size, size_t nmemb, ArchiveHandle *AH)
 
 /* on some error, we may decide to go on... */
 void
-warn_or_exit_horribly(ArchiveHandle *AH,
+warn_or_exit_horribly(ArchiveHandle * AH,
 					  const char *modulename, const char *fmt,...)
 {
 	va_list		ap;
@@ -1813,7 +1813,7 @@ warn_or_exit_horribly(ArchiveHandle *AH,
 #ifdef NOT_USED
 
 static void
-_moveAfter(ArchiveHandle *AH, TocEntry *pos, TocEntry *te)
+_moveAfter(ArchiveHandle * AH, TocEntry * pos, TocEntry * te)
 {
 	/* Unlink te from list */
 	te->prev->next = te->next;
@@ -1828,7 +1828,7 @@ _moveAfter(ArchiveHandle *AH, TocEntry *pos, TocEntry *te)
 #endif
 
 static void
-_moveBefore(ArchiveHandle *AH, TocEntry *pos, TocEntry *te)
+_moveBefore(ArchiveHandle * AH, TocEntry * pos, TocEntry * te)
 {
 	/* Unlink te from list */
 	te->prev->next = te->next;
@@ -1853,12 +1853,12 @@ _moveBefore(ArchiveHandle *AH, TocEntry *pos, TocEntry *te)
  * before trying to touch an array entry.
  */
 static void
-buildTocEntryArrays(ArchiveHandle *AH)
+buildTocEntryArrays(ArchiveHandle * AH)
 {
 	DumpId		maxDumpId = AH->maxDumpId;
 	TocEntry   *te;
 
-	AH->tocsByDumpId = (TocEntry **) pg_malloc0((maxDumpId + 1) * sizeof(TocEntry *));
+	AH->tocsByDumpId = (TocEntry * *) pg_malloc0((maxDumpId + 1) * sizeof(TocEntry *));
 	AH->tableDataId = (DumpId *) pg_malloc0((maxDumpId + 1) * sizeof(DumpId));
 
 	for (te = AH->toc->next; te != AH->toc; te = te->next)
@@ -1894,7 +1894,7 @@ buildTocEntryArrays(ArchiveHandle *AH)
 }
 
 TocEntry *
-getTocEntryByDumpId(ArchiveHandle *AH, DumpId id)
+getTocEntryByDumpId(ArchiveHandle * AH, DumpId id)
 {
 	/* build index arrays if we didn't already */
 	if (AH->tocsByDumpId == NULL)
@@ -1907,7 +1907,7 @@ getTocEntryByDumpId(ArchiveHandle *AH, DumpId id)
 }
 
 teReqs
-TocIDRequired(ArchiveHandle *AH, DumpId id)
+TocIDRequired(ArchiveHandle * AH, DumpId id)
 {
 	TocEntry   *te = getTocEntryByDumpId(AH, id);
 
@@ -1918,7 +1918,7 @@ TocIDRequired(ArchiveHandle *AH, DumpId id)
 }
 
 size_t
-WriteOffset(ArchiveHandle *AH, pgoff_t o, int wasSet)
+WriteOffset(ArchiveHandle * AH, pgoff_t o, int wasSet)
 {
 	int			off;
 
@@ -1935,7 +1935,7 @@ WriteOffset(ArchiveHandle *AH, pgoff_t o, int wasSet)
 }
 
 int
-ReadOffset(ArchiveHandle *AH, pgoff_t * o)
+ReadOffset(ArchiveHandle * AH, pgoff_t * o)
 {
 	int			i;
 	int			off;
@@ -1999,7 +1999,7 @@ ReadOffset(ArchiveHandle *AH, pgoff_t * o)
 }
 
 size_t
-WriteInt(ArchiveHandle *AH, int i)
+WriteInt(ArchiveHandle * AH, int i)
 {
 	int			b;
 
@@ -2030,7 +2030,7 @@ WriteInt(ArchiveHandle *AH, int i)
 }
 
 int
-ReadInt(ArchiveHandle *AH)
+ReadInt(ArchiveHandle * AH)
 {
 	int			res = 0;
 	int			bv,
@@ -2057,7 +2057,7 @@ ReadInt(ArchiveHandle *AH)
 }
 
 size_t
-WriteStr(ArchiveHandle *AH, const char *c)
+WriteStr(ArchiveHandle * AH, const char *c)
 {
 	size_t		res;
 
@@ -2076,7 +2076,7 @@ WriteStr(ArchiveHandle *AH, const char *c)
 }
 
 char *
-ReadStr(ArchiveHandle *AH)
+ReadStr(ArchiveHandle * AH)
 {
 	char	   *buf;
 	int			l;
@@ -2096,7 +2096,7 @@ ReadStr(ArchiveHandle *AH)
 }
 
 static int
-_discoverArchiveFormat(ArchiveHandle *AH)
+_discoverArchiveFormat(ArchiveHandle * AH)
 {
 	FILE	   *fh;
 	char		sig[6];			/* More than enough */
@@ -2419,7 +2419,7 @@ _allocAH(const char *FileSpec, const ArchiveFormat fmt,
  * Write out all data (tables & blobs)
  */
 void
-WriteDataChunks(ArchiveHandle *AH, ParallelState *pstate)
+WriteDataChunks(ArchiveHandle * AH, ParallelState * pstate)
 {
 	TocEntry   *te;
 
@@ -2459,8 +2459,8 @@ WriteDataChunks(ArchiveHandle *AH, ParallelState *pstate)
  * We don't need to do anything except check for worker failure.
  */
 static void
-mark_dump_job_done(ArchiveHandle *AH,
-				   TocEntry *te,
+mark_dump_job_done(ArchiveHandle * AH,
+				   TocEntry * te,
 				   int status,
 				   void *callback_data)
 {
@@ -2474,7 +2474,7 @@ mark_dump_job_done(ArchiveHandle *AH,
 
 
 void
-WriteDataChunksForTocEntry(ArchiveHandle *AH, TocEntry *te)
+WriteDataChunksForTocEntry(ArchiveHandle * AH, TocEntry * te)
 {
 	StartDataPtrType startPtr;
 	EndDataPtrType endPtr;
@@ -2507,7 +2507,7 @@ WriteDataChunksForTocEntry(ArchiveHandle *AH, TocEntry *te)
 }
 
 void
-WriteToc(ArchiveHandle *AH)
+WriteToc(ArchiveHandle * AH)
 {
 	TocEntry   *te;
 	char		workbuf[32];
@@ -2565,7 +2565,7 @@ WriteToc(ArchiveHandle *AH)
 }
 
 void
-ReadToc(ArchiveHandle *AH)
+ReadToc(ArchiveHandle * AH)
 {
 	int			i;
 	char	   *tmp;
@@ -2724,7 +2724,7 @@ ReadToc(ArchiveHandle *AH)
 }
 
 static void
-processEncodingEntry(ArchiveHandle *AH, TocEntry *te)
+processEncodingEntry(ArchiveHandle * AH, TocEntry * te)
 {
 	/* te->defn should have the form SET client_encoding = 'foo'; */
 	char	   *defn = pg_strdup(te->defn);
@@ -2752,7 +2752,7 @@ processEncodingEntry(ArchiveHandle *AH, TocEntry *te)
 }
 
 static void
-processStdStringsEntry(ArchiveHandle *AH, TocEntry *te)
+processStdStringsEntry(ArchiveHandle * AH, TocEntry * te)
 {
 	/* te->defn should have the form SET standard_conforming_strings = 'x'; */
 	char	   *ptr1;
@@ -2768,7 +2768,7 @@ processStdStringsEntry(ArchiveHandle *AH, TocEntry *te)
 }
 
 static void
-processSearchPathEntry(ArchiveHandle *AH, TocEntry *te)
+processSearchPathEntry(ArchiveHandle * AH, TocEntry * te)
 {
 	/*
 	 * te->defn should contain a command to set search_path.  We just copy it
@@ -2778,7 +2778,7 @@ processSearchPathEntry(ArchiveHandle *AH, TocEntry *te)
 }
 
 static void
-StrictNamesCheck(RestoreOptions *ropt)
+StrictNamesCheck(RestoreOptions * ropt)
 {
 	const char *missing_name;
 
@@ -2821,7 +2821,7 @@ StrictNamesCheck(RestoreOptions *ropt)
 }
 
 static teReqs
-_tocEntryRequired(TocEntry *te, teSection curSection, RestoreOptions *ropt)
+_tocEntryRequired(TocEntry * te, teSection curSection, RestoreOptions * ropt)
 {
 	teReqs		res = REQ_SCHEMA | REQ_DATA;
 
@@ -2999,7 +2999,7 @@ _tocEntryRequired(TocEntry *te, teSection curSection, RestoreOptions *ropt)
  * See notes with the RestorePass typedef in pg_backup_archiver.h.
  */
 static RestorePass
-_tocEntryRestorePass(TocEntry *te)
+_tocEntryRestorePass(TocEntry * te)
 {
 	/* "ACL LANGUAGE" was a crock emitted only in PG 7.4 */
 	if (strcmp(te->desc, "ACL") == 0 ||
@@ -3019,7 +3019,7 @@ _tocEntryRestorePass(TocEntry *te)
  * the RESTORE_PASS_ACL phase.
  */
 static bool
-_tocEntryIsACL(TocEntry *te)
+_tocEntryIsACL(TocEntry * te)
 {
 	/* "ACL LANGUAGE" was a crock emitted only in PG 7.4 */
 	if (strcmp(te->desc, "ACL") == 0 ||
@@ -3034,7 +3034,7 @@ _tocEntryIsACL(TocEntry *te)
  * at all times during execution of a restore script.
  */
 static void
-_doSetFixedOutputState(ArchiveHandle *AH)
+_doSetFixedOutputState(ArchiveHandle * AH)
 {
 	RestoreOptions *ropt = AH->public.ropt;
 
@@ -3084,7 +3084,7 @@ _doSetFixedOutputState(ArchiveHandle *AH)
  * the specification DEFAULT will be used.
  */
 static void
-_doSetSessionAuth(ArchiveHandle *AH, const char *user)
+_doSetSessionAuth(ArchiveHandle * AH, const char *user)
 {
 	PQExpBuffer cmd = createPQExpBuffer();
 
@@ -3124,7 +3124,7 @@ _doSetSessionAuth(ArchiveHandle *AH, const char *user)
  * for updating state if appropriate.
  */
 static void
-_doSetWithOids(ArchiveHandle *AH, const bool withOids)
+_doSetWithOids(ArchiveHandle * AH, const bool withOids)
 {
 	PQExpBuffer cmd = createPQExpBuffer();
 
@@ -3161,7 +3161,7 @@ _doSetWithOids(ArchiveHandle *AH, const bool withOids)
  * NULL dbname implies reconnecting to the current DB (pretty useless).
  */
 static void
-_reconnectToDB(ArchiveHandle *AH, const char *dbname)
+_reconnectToDB(ArchiveHandle * AH, const char *dbname)
 {
 	if (RestoringToDB(AH))
 		ReconnectToServer(AH, dbname, NULL);
@@ -3207,7 +3207,7 @@ _reconnectToDB(ArchiveHandle *AH, const char *dbname)
  * NULL or empty argument is taken to mean restoring the session default
  */
 static void
-_becomeUser(ArchiveHandle *AH, const char *user)
+_becomeUser(ArchiveHandle * AH, const char *user)
 {
 	if (!user)
 		user = "";				/* avoid null pointers */
@@ -3231,7 +3231,7 @@ _becomeUser(ArchiveHandle *AH, const char *user)
  * changes in ownership are not allowed, this doesn't do anything.
  */
 static void
-_becomeOwner(ArchiveHandle *AH, TocEntry *te)
+_becomeOwner(ArchiveHandle * AH, TocEntry * te)
 {
 	RestoreOptions *ropt = AH->public.ropt;
 
@@ -3246,7 +3246,7 @@ _becomeOwner(ArchiveHandle *AH, TocEntry *te)
  * Set the proper default_with_oids value for the table.
  */
 static void
-_setWithOids(ArchiveHandle *AH, TocEntry *te)
+_setWithOids(ArchiveHandle * AH, TocEntry * te)
 {
 	if (AH->currWithOids != te->withOids)
 	{
@@ -3261,7 +3261,7 @@ _setWithOids(ArchiveHandle *AH, TocEntry *te)
  * in the target database.
  */
 static void
-_selectOutputSchema(ArchiveHandle *AH, const char *schemaName)
+_selectOutputSchema(ArchiveHandle * AH, const char *schemaName)
 {
 	PQExpBuffer qry;
 
@@ -3313,7 +3313,7 @@ _selectOutputSchema(ArchiveHandle *AH, const char *schemaName)
  * in the target database.
  */
 static void
-_selectTablespace(ArchiveHandle *AH, const char *tablespace)
+_selectTablespace(ArchiveHandle * AH, const char *tablespace)
 {
 	RestoreOptions *ropt = AH->public.ropt;
 	PQExpBuffer qry;
@@ -3376,7 +3376,7 @@ _selectTablespace(ArchiveHandle *AH, const char *tablespace)
  * This is used for ALTER ... OWNER TO.
  */
 static void
-_getObjectDescription(PQExpBuffer buf, TocEntry *te, ArchiveHandle *AH)
+_getObjectDescription(PQExpBuffer buf, TocEntry * te, ArchiveHandle * AH)
 {
 	const char *type = te->desc;
 
@@ -3460,7 +3460,7 @@ _getObjectDescription(PQExpBuffer buf, TocEntry *te, ArchiveHandle *AH)
  * will remain at default, until the matching ACL TOC entry is restored.
  */
 static void
-_printTocEntry(ArchiveHandle *AH, TocEntry *te, bool isData)
+_printTocEntry(ArchiveHandle * AH, TocEntry * te, bool isData)
 {
 	RestoreOptions *ropt = AH->public.ropt;
 
@@ -3684,7 +3684,7 @@ replace_line_endings(const char *str)
  * Write the file header for a custom-format archive
  */
 void
-WriteHead(ArchiveHandle *AH)
+WriteHead(ArchiveHandle * AH)
 {
 	struct tm	crtm;
 
@@ -3710,7 +3710,7 @@ WriteHead(ArchiveHandle *AH)
 }
 
 void
-ReadHead(ArchiveHandle *AH)
+ReadHead(ArchiveHandle * AH)
 {
 	char		tmpMag[7];
 	int			fmt;
@@ -3796,7 +3796,7 @@ ReadHead(ArchiveHandle *AH)
 
 		AH->createDate = mktime(&crtm);
 
-		if (AH->createDate == (time_t) -1)
+		if (AH->createDate == (time_t) - 1)
 			write_msg(modulename, "WARNING: invalid creation date in header\n");
 	}
 
@@ -3813,7 +3813,7 @@ ReadHead(ArchiveHandle *AH)
  *	  check to see if ftell/fseek can be performed.
  */
 bool
-checkSeek(FILE *fp)
+checkSeek(FILE * fp)
 {
 	pgoff_t		tpos;
 
@@ -3847,7 +3847,7 @@ checkSeek(FILE *fp)
  * dumpTimestamp
  */
 static void
-dumpTimestamp(ArchiveHandle *AH, const char *msg, time_t tim)
+dumpTimestamp(ArchiveHandle * AH, const char *msg, time_t tim)
 {
 	char		buf[64];
 
@@ -3865,7 +3865,7 @@ dumpTimestamp(ArchiveHandle *AH, const char *msg, time_t tim)
  * added to the pending_list for later phases to deal with.
  */
 static void
-restore_toc_entries_prefork(ArchiveHandle *AH, TocEntry *pending_list)
+restore_toc_entries_prefork(ArchiveHandle * AH, TocEntry * pending_list)
 {
 	bool		skipped_some;
 	TocEntry   *next_work_item;
@@ -3982,8 +3982,8 @@ restore_toc_entries_prefork(ArchiveHandle *AH, TocEntry *pending_list)
  * nothing left to do; but if there is, the third phase will mop up.
  */
 static void
-restore_toc_entries_parallel(ArchiveHandle *AH, ParallelState *pstate,
-							 TocEntry *pending_list)
+restore_toc_entries_parallel(ArchiveHandle * AH, ParallelState * pstate,
+							 TocEntry * pending_list)
 {
 	TocEntry	ready_list;
 	TocEntry   *next_work_item;
@@ -4097,7 +4097,7 @@ restore_toc_entries_parallel(ArchiveHandle *AH, ParallelState *pstate,
  * at least some chance of completing the restore successfully.
  */
 static void
-restore_toc_entries_postfork(ArchiveHandle *AH, TocEntry *pending_list)
+restore_toc_entries_postfork(ArchiveHandle * AH, TocEntry * pending_list)
 {
 	RestoreOptions *ropt = AH->public.ropt;
 	TocEntry   *te;
@@ -4133,7 +4133,7 @@ restore_toc_entries_postfork(ArchiveHandle *AH, TocEntry *pending_list)
  * requires, whether or not te2's requirement is for an exclusive lock.
  */
 static bool
-has_lock_conflicts(TocEntry *te1, TocEntry *te2)
+has_lock_conflicts(TocEntry * te1, TocEntry * te2)
 {
 	int			j,
 				k;
@@ -4158,14 +4158,14 @@ has_lock_conflicts(TocEntry *te1, TocEntry *te2)
  * the main TOC list as well as in a parallel-processing list.
  */
 static void
-par_list_header_init(TocEntry *l)
+par_list_header_init(TocEntry * l)
 {
 	l->par_prev = l->par_next = l;
 }
 
 /* Append te to the end of the parallel-processing list headed by l */
 static void
-par_list_append(TocEntry *l, TocEntry *te)
+par_list_append(TocEntry * l, TocEntry * te)
 {
 	te->par_prev = l->par_prev;
 	l->par_prev->par_next = te;
@@ -4175,7 +4175,7 @@ par_list_append(TocEntry *l, TocEntry *te)
 
 /* Remove te from whatever parallel-processing list it's in */
 static void
-par_list_remove(TocEntry *te)
+par_list_remove(TocEntry * te)
 {
 	te->par_prev->par_next = te->par_next;
 	te->par_next->par_prev = te->par_prev;
@@ -4192,7 +4192,7 @@ par_list_remove(TocEntry *te)
  * which applies the same logic one-at-a-time.)
  */
 static void
-move_to_ready_list(TocEntry *pending_list, TocEntry *ready_list,
+move_to_ready_list(TocEntry * pending_list, TocEntry * ready_list,
 				   RestorePass pass)
 {
 	TocEntry   *te;
@@ -4230,8 +4230,8 @@ move_to_ready_list(TocEntry *pending_list, TocEntry *ready_list,
  * It is currently disabled.
  */
 static TocEntry *
-get_next_work_item(ArchiveHandle *AH, TocEntry *ready_list,
-				   ParallelState *pstate)
+get_next_work_item(ArchiveHandle * AH, TocEntry * ready_list,
+				   ParallelState * pstate)
 {
 	bool		pref_non_data = false;	/* or get from AH->ropt */
 	TocEntry   *data_te = NULL;
@@ -4315,7 +4315,7 @@ get_next_work_item(ArchiveHandle *AH, TocEntry *ready_list,
  * our work is finished, the master process will assign us a new work item.
  */
 int
-parallel_restore(ArchiveHandle *AH, TocEntry *te)
+parallel_restore(ArchiveHandle * AH, TocEntry * te)
 {
 	int			status;
 
@@ -4338,8 +4338,8 @@ parallel_restore(ArchiveHandle *AH, TocEntry *te)
  * Update status and reduce the dependency count of any dependent items.
  */
 static void
-mark_restore_job_done(ArchiveHandle *AH,
-					  TocEntry *te,
+mark_restore_job_done(ArchiveHandle * AH,
+					  TocEntry * te,
 					  int status,
 					  void *callback_data)
 {
@@ -4379,7 +4379,7 @@ mark_restore_job_done(ArchiveHandle *AH,
  * schedule conflicting items at the same time.
  */
 static void
-fix_dependencies(ArchiveHandle *AH)
+fix_dependencies(ArchiveHandle * AH)
 {
 	TocEntry   *te;
 	int			i;
@@ -4503,7 +4503,7 @@ fix_dependencies(ArchiveHandle *AH)
  * but only in POST_DATA items.
  */
 static void
-repoint_table_dependencies(ArchiveHandle *AH)
+repoint_table_dependencies(ArchiveHandle * AH)
 {
 	TocEntry   *te;
 	int			i;
@@ -4533,7 +4533,7 @@ repoint_table_dependencies(ArchiveHandle *AH)
  * itself).  Record their dump IDs in the entry's lockDeps[] array.
  */
 static void
-identify_locking_dependencies(ArchiveHandle *AH, TocEntry *te)
+identify_locking_dependencies(ArchiveHandle * AH, TocEntry * te)
 {
 	DumpId	   *lockids;
 	int			nlockids;
@@ -4589,7 +4589,7 @@ identify_locking_dependencies(ArchiveHandle *AH, TocEntry *te)
  * becomes ready should be moved to the ready_list, if that's provided.
  */
 static void
-reduce_dependencies(ArchiveHandle *AH, TocEntry *te, TocEntry *ready_list)
+reduce_dependencies(ArchiveHandle * AH, TocEntry * te, TocEntry * ready_list)
 {
 	int			i;
 
@@ -4628,7 +4628,7 @@ reduce_dependencies(ArchiveHandle *AH, TocEntry *te, TocEntry *ready_list)
  * TABLE member
  */
 static void
-mark_create_done(ArchiveHandle *AH, TocEntry *te)
+mark_create_done(ArchiveHandle * AH, TocEntry * te)
 {
 	if (AH->tableDataId[te->dumpId] != 0)
 	{
@@ -4643,7 +4643,7 @@ mark_create_done(ArchiveHandle *AH, TocEntry *te)
  * as not wanted
  */
 static void
-inhibit_data_for_failed_table(ArchiveHandle *AH, TocEntry *te)
+inhibit_data_for_failed_table(ArchiveHandle * AH, TocEntry * te)
 {
 	ahlog(AH, 1, "table \"%s\" could not be created, will not restore its data\n",
 		  te->tag);
@@ -4663,7 +4663,7 @@ inhibit_data_for_failed_table(ArchiveHandle *AH, TocEntry *te)
  * conflict between different threads each with their own clone.
  */
 ArchiveHandle *
-CloneArchive(ArchiveHandle *AH)
+CloneArchive(ArchiveHandle * AH)
 {
 	ArchiveHandle *clone;
 
@@ -4752,7 +4752,7 @@ CloneArchive(ArchiveHandle *AH)
  * Note: we assume any clone-local connection was already closed.
  */
 void
-DeCloneArchive(ArchiveHandle *AH)
+DeCloneArchive(ArchiveHandle * AH)
 {
 	/* Should not have an open database connection */
 	Assert(AH->connection == NULL);

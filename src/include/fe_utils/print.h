@@ -44,7 +44,7 @@ typedef struct printTextLineFormat
 	const char *leftvrule;		/* left vertical line (+horizontal) */
 	const char *midvrule;		/* intra-column vertical line (+horizontal) */
 	const char *rightvrule;		/* right vertical line (+horizontal) */
-} printTextLineFormat;
+}			printTextLineFormat;
 
 typedef enum printTextRule
 {
@@ -53,7 +53,7 @@ typedef enum printTextRule
 	PRINT_RULE_MIDDLE,			/* intra-data horizontal line */
 	PRINT_RULE_BOTTOM,			/* bottom horizontal line */
 	PRINT_RULE_DATA				/* data line (hrule is unused here) */
-} printTextRule;
+}			printTextRule;
 
 typedef enum printTextLineWrap
 {
@@ -61,7 +61,7 @@ typedef enum printTextLineWrap
 	PRINT_LINE_WRAP_NONE,		/* No wrapping */
 	PRINT_LINE_WRAP_WRAP,		/* Wraparound due to overlength line */
 	PRINT_LINE_WRAP_NEWLINE		/* Newline in data */
-} printTextLineWrap;
+}			printTextLineWrap;
 
 typedef struct printTextFormat
 {
@@ -79,13 +79,13 @@ typedef struct printTextFormat
 	const char *wrap_right;		/* right mark for wrapped data */
 	bool		wrap_right_border;	/* use right-hand border for wrap marks
 									 * when border=0? */
-} printTextFormat;
+}			printTextFormat;
 
 typedef enum unicode_linestyle
 {
 	UNICODE_LINESTYLE_SINGLE = 0,
 	UNICODE_LINESTYLE_DOUBLE
-} unicode_linestyle;
+}			unicode_linestyle;
 
 struct separator
 {
@@ -109,7 +109,8 @@ typedef struct printTableOpt
 	bool		stop_table;		/* print stop decoration, eg </table> */
 	bool		default_footer; /* allow "(xx rows)" default footer */
 	unsigned long prior_records;	/* start offset for record counters */
-	const printTextFormat *line_style;	/* line style (NULL for default) */
+	const		printTextFormat *line_style;	/* line style (NULL for
+												 * default) */
 	struct separator fieldSep;	/* field separator for unaligned text mode */
 	struct separator recordSep; /* record separator for unaligned text mode */
 	bool		numericLocale;	/* locale-aware numeric units separator and
@@ -121,7 +122,7 @@ typedef struct printTableOpt
 	unicode_linestyle unicode_border_linestyle;
 	unicode_linestyle unicode_column_linestyle;
 	unicode_linestyle unicode_header_linestyle;
-} printTableOpt;
+}			printTableOpt;
 
 /*
  * Table footers are implemented as a singly-linked list.
@@ -134,7 +135,7 @@ typedef struct printTableFooter
 {
 	char	   *data;
 	struct printTableFooter *next;
-} printTableFooter;
+}			printTableFooter;
 
 /*
  * The table content struct holds all the information which will be displayed
@@ -142,7 +143,7 @@ typedef struct printTableFooter
  */
 typedef struct printTableContent
 {
-	const printTableOpt *opt;
+	const		printTableOpt *opt;
 	const char *title;			/* May be NULL */
 	int			ncolumns;		/* Specified in Init() */
 	int			nrows;			/* Specified in Init() */
@@ -158,7 +159,7 @@ typedef struct printTableContent
 	char	   *aligns;			/* Array of alignment specifiers; 'l' or 'r',
 								 * one per column */
 	char	   *align;			/* Pointer to the last added alignment */
-} printTableContent;
+}			printTableContent;
 
 typedef struct printQueryOpt
 {
@@ -170,7 +171,7 @@ typedef struct printQueryOpt
 	const bool *translate_columns;	/* translate_columns[i-1] => do gettext on
 									 * col i */
 	int			n_translate_columns;	/* length of translate_columns[] */
-} printQueryOpt;
+}			printQueryOpt;
 
 
 extern volatile bool cancel_pressed;
@@ -184,32 +185,32 @@ extern void disable_sigpipe_trap(void);
 extern void restore_sigpipe_trap(void);
 extern void set_sigpipe_trap_state(bool ignore);
 
-extern FILE *PageOutput(int lines, const printTableOpt *topt);
-extern void ClosePager(FILE *pagerpipe);
+extern FILE * PageOutput(int lines, const printTableOpt * topt);
+extern void ClosePager(FILE * pagerpipe);
 
-extern void html_escaped_print(const char *in, FILE *fout);
+extern void html_escaped_print(const char *in, FILE * fout);
 
-extern void printTableInit(printTableContent *const content,
-			   const printTableOpt *opt, const char *title,
+extern void printTableInit(printTableContent * const content,
+			   const printTableOpt * opt, const char *title,
 			   const int ncolumns, const int nrows);
-extern void printTableAddHeader(printTableContent *const content,
+extern void printTableAddHeader(printTableContent * const content,
 					char *header, const bool translate, const char align);
-extern void printTableAddCell(printTableContent *const content,
+extern void printTableAddCell(printTableContent * const content,
 				  char *cell, const bool translate, const bool mustfree);
-extern void printTableAddFooter(printTableContent *const content,
+extern void printTableAddFooter(printTableContent * const content,
 					const char *footer);
-extern void printTableSetFooter(printTableContent *const content,
+extern void printTableSetFooter(printTableContent * const content,
 					const char *footer);
-extern void printTableCleanup(printTableContent *const content);
-extern void printTable(const printTableContent *cont,
-		   FILE *fout, bool is_pager, FILE *flog);
-extern void printQuery(const PGresult *result, const printQueryOpt *opt,
-		   FILE *fout, bool is_pager, FILE *flog);
+extern void printTableCleanup(printTableContent * const content);
+extern void printTable(const printTableContent * cont,
+		   FILE * fout, bool is_pager, FILE * flog);
+extern void printQuery(const PGresult * result, const printQueryOpt * opt,
+		   FILE * fout, bool is_pager, FILE * flog);
 
 extern char column_type_alignment(Oid);
 
 extern void setDecimalLocale(void);
-extern const printTextFormat *get_line_style(const printTableOpt *opt);
-extern void refresh_utf8format(const printTableOpt *opt);
+extern const printTextFormat *get_line_style(const printTableOpt * opt);
+extern void refresh_utf8format(const printTableOpt * opt);
 
 #endif							/* PRINT_H */

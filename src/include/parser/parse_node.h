@@ -68,7 +68,7 @@ typedef enum ParseExprKind
 	EXPR_KIND_TRIGGER_WHEN,		/* WHEN condition in CREATE TRIGGER */
 	EXPR_KIND_POLICY,			/* USING or WITH CHECK expr in policy */
 	EXPR_KIND_PARTITION_EXPRESSION	/* PARTITION BY expression */
-} ParseExprKind;
+}			ParseExprKind;
 
 
 /*
@@ -76,12 +76,12 @@ typedef enum ParseExprKind
  */
 typedef struct ParseState ParseState;
 
-typedef Node *(*PreParseColumnRefHook) (ParseState *pstate, ColumnRef *cref);
-typedef Node *(*PostParseColumnRefHook) (ParseState *pstate, ColumnRef *cref, Node *var);
-typedef Node *(*ParseParamRefHook) (ParseState *pstate, ParamRef *pref);
-typedef Node *(*CoerceParamHook) (ParseState *pstate, Param *param,
-								  Oid targetTypeId, int32 targetTypeMod,
-								  int location);
+typedef Node * (*PreParseColumnRefHook) (ParseState * pstate, ColumnRef * cref);
+typedef Node * (*PostParseColumnRefHook) (ParseState * pstate, ColumnRef * cref, Node * var);
+typedef Node * (*ParseParamRefHook) (ParseState * pstate, ParamRef * pref);
+typedef Node * (*CoerceParamHook) (ParseState * pstate, Param * param,
+								   Oid targetTypeId, int32 targetTypeMod,
+								   int location);
 
 
 /*
@@ -248,7 +248,7 @@ typedef struct ParseNamespaceItem
 	bool		p_cols_visible; /* Column names visible as unqualified refs? */
 	bool		p_lateral_only; /* Is only visible to LATERAL expressions? */
 	bool		p_lateral_ok;	/* If so, does join type allow use? */
-} ParseNamespaceItem;
+}			ParseNamespaceItem;
 
 /* Support for parser_errposition_callback function */
 typedef struct ParseCallbackState
@@ -256,27 +256,27 @@ typedef struct ParseCallbackState
 	ParseState *pstate;
 	int			location;
 	ErrorContextCallback errcallback;
-} ParseCallbackState;
+}			ParseCallbackState;
 
 
-extern ParseState *make_parsestate(ParseState *parentParseState);
-extern void free_parsestate(ParseState *pstate);
-extern int	parser_errposition(ParseState *pstate, int location);
+extern ParseState * make_parsestate(ParseState * parentParseState);
+extern void free_parsestate(ParseState * pstate);
+extern int	parser_errposition(ParseState * pstate, int location);
 
-extern void setup_parser_errposition_callback(ParseCallbackState *pcbstate,
-								  ParseState *pstate, int location);
-extern void cancel_parser_errposition_callback(ParseCallbackState *pcbstate);
+extern void setup_parser_errposition_callback(ParseCallbackState * pcbstate,
+								  ParseState * pstate, int location);
+extern void cancel_parser_errposition_callback(ParseCallbackState * pcbstate);
 
-extern Var *make_var(ParseState *pstate, RangeTblEntry *rte, int attrno,
-		 int location);
-extern Oid	transformArrayType(Oid *arrayType, int32 *arrayTypmod);
-extern ArrayRef *transformArraySubscripts(ParseState *pstate,
-						 Node *arrayBase,
-						 Oid arrayType,
-						 Oid elementType,
-						 int32 arrayTypMod,
-						 List *indirection,
-						 Node *assignFrom);
-extern Const *make_const(ParseState *pstate, Value *value, int location);
+extern Var * make_var(ParseState * pstate, RangeTblEntry * rte, int attrno,
+					  int location);
+extern Oid transformArrayType(Oid * arrayType, int32 * arrayTypmod);
+extern ArrayRef * transformArraySubscripts(ParseState * pstate,
+										   Node * arrayBase,
+										   Oid arrayType,
+										   Oid elementType,
+										   int32 arrayTypMod,
+										   List * indirection,
+										   Node * assignFrom);
+extern Const * make_const(ParseState * pstate, Value * value, int location);
 
 #endif							/* PARSE_NODE_H */

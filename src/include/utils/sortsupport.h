@@ -170,7 +170,7 @@ typedef struct SortSupportData
 	 * !abbreviate calls, or due to platform-specific impediments to using
 	 * abbreviation).
 	 */
-	Datum		(*abbrev_converter) (Datum original, SortSupport ssup);
+				Datum(*abbrev_converter) (Datum original, SortSupport ssup);
 
 	/*
 	 * abbrev_abort callback allows clients to verify that the current
@@ -190,7 +190,7 @@ typedef struct SortSupportData
 	 * abbreviation.
 	 */
 	int			(*abbrev_full_comparator) (Datum x, Datum y, SortSupport ssup);
-} SortSupportData;
+}			SortSupportData;
 
 
 /*

@@ -56,12 +56,12 @@
 #include "utils/typcache.h"
 
 
-#define GETPROGRESS_ENABLED 
+#define GETPROGRESS_ENABLED
 
-static void ShutdownExprContext(ExprContext *econtext, bool isCommit);
+static void ShutdownExprContext(ExprContext * econtext, bool isCommit);
 
 #ifdef GETPROGRESS_ENABLED
-extern ProgressState *gl_progressPtr;	/* Global Progress state */
+extern ProgressState * gl_progressPtr;	/* Global Progress state */
 #endif
 
 /* ----------------------------------------------------------------
@@ -165,6 +165,7 @@ CreateExecutorState(void)
 	estate->es_progressState = gl_progressPtr;	/* Get progress initialization */
 #endif
 	estate->es_use_parallel_mode = false;
+
 	/*
 	 * Return the executor state structure
 	 */
@@ -189,7 +190,7 @@ CreateExecutorState(void)
  * ----------------
  */
 void
-FreeExecutorState(EState *estate)
+FreeExecutorState(EState * estate)
 {
 	/*
 	 * Shut down and free any remaining ExprContexts.  We do this explicitly
@@ -229,7 +230,7 @@ FreeExecutorState(EState *estate)
  * ----------------
  */
 ExprContext *
-CreateExprContext(EState *estate)
+CreateExprContext(EState * estate)
 {
 	ExprContext *econtext;
 	MemoryContext oldcontext;
@@ -360,7 +361,7 @@ CreateStandaloneExprContext(void)
  * ----------------
  */
 void
-FreeExprContext(ExprContext *econtext, bool isCommit)
+FreeExprContext(ExprContext * econtext, bool isCommit)
 {
 	EState	   *estate;
 
@@ -387,7 +388,7 @@ FreeExprContext(ExprContext *econtext, bool isCommit)
  * Note we make no assumption about the caller's memory context.
  */
 void
-ReScanExprContext(ExprContext *econtext)
+ReScanExprContext(ExprContext * econtext)
 {
 	/* Call any registered callbacks */
 	ShutdownExprContext(econtext, true);
@@ -402,7 +403,7 @@ ReScanExprContext(ExprContext *econtext)
  * not directly.
  */
 ExprContext *
-MakePerTupleExprContext(EState *estate)
+MakePerTupleExprContext(EState * estate)
 {
 	if (estate->es_per_tuple_exprcontext == NULL)
 		estate->es_per_tuple_exprcontext = CreateExprContext(estate);
@@ -429,7 +430,7 @@ MakePerTupleExprContext(EState *estate)
  * ----------------
  */
 void
-ExecAssignExprContext(EState *estate, PlanState *planstate)
+ExecAssignExprContext(EState * estate, PlanState * planstate)
 {
 	planstate->ps_ExprContext = CreateExprContext(estate);
 }
@@ -439,7 +440,7 @@ ExecAssignExprContext(EState *estate, PlanState *planstate)
  * ----------------
  */
 void
-ExecAssignResultType(PlanState *planstate, TupleDesc tupDesc)
+ExecAssignResultType(PlanState * planstate, TupleDesc tupDesc)
 {
 	TupleTableSlot *slot = planstate->ps_ResultTupleSlot;
 
@@ -451,7 +452,7 @@ ExecAssignResultType(PlanState *planstate, TupleDesc tupDesc)
  * ----------------
  */
 void
-ExecAssignResultTypeFromTL(PlanState *planstate)
+ExecAssignResultTypeFromTL(PlanState * planstate)
 {
 	bool		hasoid;
 	TupleDesc	tupDesc;
@@ -480,7 +481,7 @@ ExecAssignResultTypeFromTL(PlanState *planstate)
  * ----------------
  */
 TupleDesc
-ExecGetResultType(PlanState *planstate)
+ExecGetResultType(PlanState * planstate)
 {
 	TupleTableSlot *slot = planstate->ps_ResultTupleSlot;
 
@@ -498,7 +499,7 @@ ExecGetResultType(PlanState *planstate)
  * ----------------
  */
 void
-ExecAssignProjectionInfo(PlanState *planstate,
+ExecAssignProjectionInfo(PlanState * planstate,
 						 TupleDesc inputDesc)
 {
 	planstate->ps_ProjInfo =
@@ -527,7 +528,7 @@ ExecAssignProjectionInfo(PlanState *planstate,
  * ----------------
  */
 void
-ExecFreeExprContext(PlanState *planstate)
+ExecFreeExprContext(PlanState * planstate)
 {
 	/*
 	 * Per above discussion, don't actually delete the ExprContext. We do
@@ -551,7 +552,7 @@ ExecFreeExprContext(PlanState *planstate)
  * ----------------
  */
 void
-ExecAssignScanType(ScanState *scanstate, TupleDesc tupDesc)
+ExecAssignScanType(ScanState * scanstate, TupleDesc tupDesc)
 {
 	TupleTableSlot *slot = scanstate->ss_ScanTupleSlot;
 
@@ -563,7 +564,7 @@ ExecAssignScanType(ScanState *scanstate, TupleDesc tupDesc)
  * ----------------
  */
 void
-ExecAssignScanTypeFromOuterPlan(ScanState *scanstate)
+ExecAssignScanTypeFromOuterPlan(ScanState * scanstate)
 {
 	PlanState  *outerPlan;
 	TupleDesc	tupDesc;
@@ -588,7 +589,7 @@ ExecAssignScanTypeFromOuterPlan(ScanState *scanstate)
  * ----------------------------------------------------------------
  */
 bool
-ExecRelationIsTargetRelation(EState *estate, Index scanrelid)
+ExecRelationIsTargetRelation(EState * estate, Index scanrelid)
 {
 	ResultRelInfo *resultRelInfos;
 	int			i;
@@ -614,7 +615,7 @@ ExecRelationIsTargetRelation(EState *estate, Index scanrelid)
  * ----------------------------------------------------------------
  */
 Relation
-ExecOpenScanRelation(EState *estate, Index scanrelid, int eflags)
+ExecOpenScanRelation(EState * estate, Index scanrelid, int eflags)
 {
 	Relation	rel;
 	Oid			reloid;
@@ -682,7 +683,7 @@ ExecCloseScanRelation(Relation scanrel)
  *		Add changed parameters to a plan node's chgParam set
  */
 void
-UpdateChangedParamSet(PlanState *node, Bitmapset *newchg)
+UpdateChangedParamSet(PlanState * node, Bitmapset * newchg)
 {
 	Bitmapset  *parmset;
 
@@ -716,7 +717,7 @@ UpdateChangedParamSet(PlanState *node, Bitmapset *newchg)
  * expensive than storing token offsets.)
  */
 int
-executor_errposition(EState *estate, int location)
+executor_errposition(EState * estate, int location)
 {
 	int			pos;
 
@@ -743,7 +744,7 @@ executor_errposition(EState *estate, int location)
  * by an error.
  */
 void
-RegisterExprContextCallback(ExprContext *econtext,
+RegisterExprContextCallback(ExprContext * econtext,
 							ExprContextCallbackFunction function,
 							Datum arg)
 {
@@ -769,7 +770,7 @@ RegisterExprContextCallback(ExprContext *econtext,
  * This can be used if it's no longer necessary to call the callback.
  */
 void
-UnregisterExprContextCallback(ExprContext *econtext,
+UnregisterExprContextCallback(ExprContext * econtext,
 							  ExprContextCallbackFunction function,
 							  Datum arg)
 {
@@ -800,7 +801,7 @@ UnregisterExprContextCallback(ExprContext *econtext,
  * (See comment for FreeExprContext.)
  */
 static void
-ShutdownExprContext(ExprContext *econtext, bool isCommit)
+ShutdownExprContext(ExprContext * econtext, bool isCommit)
 {
 	ExprContext_CB *ecxt_callback;
 	MemoryContext oldcontext;
@@ -837,7 +838,7 @@ ShutdownExprContext(ExprContext *econtext, bool isCommit)
  * tree controlled by a given Append or MergeAppend node.
  */
 void
-ExecLockNonLeafAppendTables(List *partitioned_rels, EState *estate)
+ExecLockNonLeafAppendTables(List * partitioned_rels, EState * estate)
 {
 	PlannedStmt *stmt = estate->es_plannedstmt;
 	ListCell   *lc;
@@ -1008,7 +1009,7 @@ GetAttributeByNum(HeapTupleHeader tuple,
  * Number of items in a tlist (including any resjunk items!)
  */
 int
-ExecTargetListLength(List *targetlist)
+ExecTargetListLength(List * targetlist)
 {
 	/* This used to be more complex, but fjoins are dead */
 	return list_length(targetlist);
@@ -1018,7 +1019,7 @@ ExecTargetListLength(List *targetlist)
  * Number of items in a tlist, not including any resjunk items
  */
 int
-ExecCleanTargetListLength(List *targetlist)
+ExecCleanTargetListLength(List * targetlist)
 {
 	int			len = 0;
 	ListCell   *tl;

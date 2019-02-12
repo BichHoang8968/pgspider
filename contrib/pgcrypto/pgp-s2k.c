@@ -37,7 +37,7 @@
 #include "utils/backend_random.h"
 
 static int
-calc_s2k_simple(PGP_S2K *s2k, PX_MD *md, const uint8 *key,
+calc_s2k_simple(PGP_S2K * s2k, PX_MD * md, const uint8 * key,
 				unsigned key_len)
 {
 	unsigned	md_rlen;
@@ -81,7 +81,7 @@ calc_s2k_simple(PGP_S2K *s2k, PX_MD *md, const uint8 *key,
 }
 
 static int
-calc_s2k_salted(PGP_S2K *s2k, PX_MD *md, const uint8 *key, unsigned key_len)
+calc_s2k_salted(PGP_S2K * s2k, PX_MD * md, const uint8 * key, unsigned key_len)
 {
 	unsigned	md_rlen;
 	uint8		buf[PGP_MAX_DIGEST];
@@ -125,7 +125,7 @@ calc_s2k_salted(PGP_S2K *s2k, PX_MD *md, const uint8 *key, unsigned key_len)
 }
 
 static int
-calc_s2k_iter_salted(PGP_S2K *s2k, PX_MD *md, const uint8 *key,
+calc_s2k_iter_salted(PGP_S2K * s2k, PX_MD * md, const uint8 * key,
 					 unsigned key_len)
 {
 	unsigned	md_rlen;
@@ -222,7 +222,7 @@ decide_s2k_iter(unsigned rand_byte, int count)
 }
 
 int
-pgp_s2k_fill(PGP_S2K *s2k, int mode, int digest_algo, int count)
+pgp_s2k_fill(PGP_S2K * s2k, int mode, int digest_algo, int count)
 {
 	int			res = 0;
 	uint8		tmp;
@@ -252,7 +252,7 @@ pgp_s2k_fill(PGP_S2K *s2k, int mode, int digest_algo, int count)
 }
 
 int
-pgp_s2k_read(PullFilter *src, PGP_S2K *s2k)
+pgp_s2k_read(PullFilter * src, PGP_S2K * s2k)
 {
 	int			res = 0;
 
@@ -278,7 +278,7 @@ pgp_s2k_read(PullFilter *src, PGP_S2K *s2k)
 }
 
 int
-pgp_s2k_process(PGP_S2K *s2k, int cipher, const uint8 *key, int key_len)
+pgp_s2k_process(PGP_S2K * s2k, int cipher, const uint8 * key, int key_len)
 {
 	int			res;
 	PX_MD	   *md;

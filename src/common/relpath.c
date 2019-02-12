@@ -76,7 +76,7 @@ forkname_to_number(const char *forkName)
  * are prefixes of other fork names.
  */
 int
-forkname_chars(const char *str, ForkNumber *fork)
+forkname_chars(const char *str, ForkNumber * fork)
 {
 	ForkNumber	forkNum;
 

@@ -38,7 +38,7 @@ typedef struct SPPageDesc
 	Page		page;			/* pointer to page buffer, or NULL */
 	OffsetNumber offnum;		/* offset of tuple, or InvalidOffsetNumber */
 	int			node;			/* node number within inner tuple, or -1 */
-} SPPageDesc;
+}			SPPageDesc;
 
 
 /*
@@ -75,7 +75,7 @@ spgUpdateNodeLink(SpGistInnerTuple tup, int nodeN,
  * page to point it to later.
  */
 static SpGistInnerTuple
-addNode(SpGistState *state, SpGistInnerTuple tuple, Datum label, int offset)
+addNode(SpGistState * state, SpGistInnerTuple tuple, Datum label, int offset)
 {
 	SpGistNodeTuple node,
 			   *nodes;
@@ -128,8 +128,8 @@ cmpOffsetNumbers(const void *a, const void *b)
  * pallocs either!
  */
 void
-spgPageIndexMultiDelete(SpGistState *state, Page page,
-						OffsetNumber *itemnos, int nitems,
+spgPageIndexMultiDelete(SpGistState * state, Page page,
+						OffsetNumber * itemnos, int nitems,
 						int firststate, int reststate,
 						BlockNumber blkno, OffsetNumber offnum)
 {
@@ -183,7 +183,7 @@ spgPageIndexMultiDelete(SpGistState *state, Page page,
  * WAL action).
  */
 static void
-saveNodeLink(Relation index, SPPageDesc *parent,
+saveNodeLink(Relation index, SPPageDesc * parent,
 			 BlockNumber blkno, OffsetNumber offnum)
 {
 	SpGistInnerTuple innerTuple;
@@ -200,8 +200,8 @@ saveNodeLink(Relation index, SPPageDesc *parent,
  * Add a leaf tuple to a leaf page where there is known to be room for it
  */
 static void
-addLeafTuple(Relation index, SpGistState *state, SpGistLeafTuple leafTuple,
-			 SPPageDesc *current, SPPageDesc *parent, bool isNulls, bool isNew)
+addLeafTuple(Relation index, SpGistState * state, SpGistLeafTuple leafTuple,
+			 SPPageDesc * current, SPPageDesc * parent, bool isNulls, bool isNew)
 {
 	spgxlogAddLeaf xlrec;
 
@@ -330,8 +330,8 @@ addLeafTuple(Relation index, SpGistState *state, SpGistLeafTuple leafTuple,
  * moveLeafs code path.  moveLeafs is not prepared to deal with root page.
  */
 static int
-checkSplitConditions(Relation index, SpGistState *state,
-					 SPPageDesc *current, int *nToSplit)
+checkSplitConditions(Relation index, SpGistState * state,
+					 SPPageDesc * current, int *nToSplit)
 {
 	int			i,
 				n = 0,
@@ -384,8 +384,8 @@ checkSplitConditions(Relation index, SpGistState *state,
  * fit the chain plus newLeafTuple on one other page.
  */
 static void
-moveLeafs(Relation index, SpGistState *state,
-		  SPPageDesc *current, SPPageDesc *parent,
+moveLeafs(Relation index, SpGistState * state,
+		  SPPageDesc * current, SPPageDesc * parent,
 		  SpGistLeafTuple newLeafTuple, bool isNulls)
 {
 	int			i,
@@ -564,7 +564,7 @@ moveLeafs(Relation index, SpGistState *state,
  * the metapage.
  */
 static void
-setRedirectionTuple(SPPageDesc *current, OffsetNumber position,
+setRedirectionTuple(SPPageDesc * current, OffsetNumber position,
 					BlockNumber blkno, OffsetNumber offnum)
 {
 	SpGistDeadTuple dt;
@@ -595,7 +595,7 @@ setRedirectionTuple(SPPageDesc *current, OffsetNumber position,
  * fixes the problem even when there is only one old tuple.)
  */
 static bool
-checkAllTheSame(spgPickSplitIn *in, spgPickSplitOut *out, bool tooBig,
+checkAllTheSame(spgPickSplitIn * in, spgPickSplitOut * out, bool tooBig,
 				bool *includeNew)
 {
 	int			theNode;
@@ -672,8 +672,8 @@ checkAllTheSame(spgPickSplitIn *in, spgPickSplitOut *out, bool tooBig,
  * make this an infinite loop, though.
  */
 static bool
-doPickSplit(Relation index, SpGistState *state,
-			SPPageDesc *current, SPPageDesc *parent,
+doPickSplit(Relation index, SpGistState * state,
+			SPPageDesc * current, SPPageDesc * parent,
 			SpGistLeafTuple newLeafTuple,
 			int level, bool isNulls, bool isNew)
 {
@@ -1433,9 +1433,9 @@ doPickSplit(Relation index, SpGistState *state,
  * spgMatchNode action: descend to N'th child node of current inner tuple
  */
 static void
-spgMatchNodeAction(Relation index, SpGistState *state,
+spgMatchNodeAction(Relation index, SpGistState * state,
 				   SpGistInnerTuple innerTuple,
-				   SPPageDesc *current, SPPageDesc *parent, int nodeN)
+				   SPPageDesc * current, SPPageDesc * parent, int nodeN)
 {
 	int			i;
 	SpGistNodeTuple node;
@@ -1487,9 +1487,9 @@ spgMatchNodeAction(Relation index, SpGistState *state,
  * spgAddNode action: add a node to the inner tuple at current
  */
 static void
-spgAddNodeAction(Relation index, SpGistState *state,
+spgAddNodeAction(Relation index, SpGistState * state,
 				 SpGistInnerTuple innerTuple,
-				 SPPageDesc *current, SPPageDesc *parent,
+				 SPPageDesc * current, SPPageDesc * parent,
 				 int nodeN, Datum nodeLabel)
 {
 	SpGistInnerTuple newInnerTuple;
@@ -1689,9 +1689,9 @@ spgAddNodeAction(Relation index, SpGistState *state,
  * spgSplitNode action: split inner tuple at current into prefix and postfix
  */
 static void
-spgSplitNodeAction(Relation index, SpGistState *state,
+spgSplitNodeAction(Relation index, SpGistState * state,
 				   SpGistInnerTuple innerTuple,
-				   SPPageDesc *current, spgChooseOut *out)
+				   SPPageDesc * current, spgChooseOut * out)
 {
 	SpGistInnerTuple prefixTuple,
 				postfixTuple;
@@ -1888,7 +1888,7 @@ spgSplitNodeAction(Relation index, SpGistState *state,
  * caller should re-call spgdoinsert() with the same args.
  */
 bool
-spgdoinsert(Relation index, SpGistState *state,
+spgdoinsert(Relation index, SpGistState * state,
 			ItemPointer heapPtr, Datum datum, bool isnull)
 {
 	int			level = 0;

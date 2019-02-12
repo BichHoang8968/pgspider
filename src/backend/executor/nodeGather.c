@@ -43,10 +43,10 @@
 #include "utils/rel.h"
 
 
-static TupleTableSlot *ExecGather(PlanState *pstate);
-static TupleTableSlot *gather_getnext(GatherState *gatherstate);
-static HeapTuple gather_readnext(GatherState *gatherstate);
-static void ExecShutdownGatherWorkers(GatherState *node);
+static TupleTableSlot * ExecGather(PlanState * pstate);
+static TupleTableSlot * gather_getnext(GatherState * gatherstate);
+static HeapTuple gather_readnext(GatherState * gatherstate);
+static void ExecShutdownGatherWorkers(GatherState * node);
 
 
 /* ----------------------------------------------------------------
@@ -54,7 +54,7 @@ static void ExecShutdownGatherWorkers(GatherState *node);
  * ----------------------------------------------------------------
  */
 GatherState *
-ExecInitGather(Gather *node, EState *estate, int eflags)
+ExecInitGather(Gather * node, EState * estate, int eflags)
 {
 	GatherState *gatherstate;
 	Plan	   *outerNode;
@@ -125,7 +125,7 @@ ExecInitGather(Gather *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecGather(PlanState *pstate)
+ExecGather(PlanState * pstate)
 {
 	GatherState *node = castNode(GatherState, pstate);
 	TupleTableSlot *fslot = node->funnel_slot;
@@ -178,7 +178,7 @@ ExecGather(PlanState *pstate)
 										  fslot->tts_tupleDescriptor);
 				/* Make a working array showing the active readers */
 				node->nreaders = pcxt->nworkers_launched;
-				node->reader = (TupleQueueReader **)
+				node->reader = (TupleQueueReader * *)
 					palloc(node->nreaders * sizeof(TupleQueueReader *));
 				memcpy(node->reader, node->pei->reader,
 					   node->nreaders * sizeof(TupleQueueReader *));
@@ -230,7 +230,7 @@ ExecGather(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 void
-ExecEndGather(GatherState *node)
+ExecEndGather(GatherState * node)
 {
 	ExecEndNode(outerPlanState(node));	/* let children clean up first */
 	ExecShutdownGather(node);
@@ -244,7 +244,7 @@ ExecEndGather(GatherState *node)
  * single_copy flag is not set, we might generate one locally instead.
  */
 static TupleTableSlot *
-gather_getnext(GatherState *gatherstate)
+gather_getnext(GatherState * gatherstate)
 {
 	PlanState  *outerPlan = outerPlanState(gatherstate);
 	TupleTableSlot *outerTupleSlot;
@@ -278,7 +278,7 @@ gather_getnext(GatherState *gatherstate)
 
 		if (gatherstate->need_to_scan_locally)
 		{
-			EState *estate = gatherstate->ps.state;
+			EState	   *estate = gatherstate->ps.state;
 
 			/* Install our DSA area while executing the plan. */
 			estate->es_query_dsa =
@@ -300,7 +300,7 @@ gather_getnext(GatherState *gatherstate)
  * Attempt to read a tuple from one of our parallel workers.
  */
 static HeapTuple
-gather_readnext(GatherState *gatherstate)
+gather_readnext(GatherState * gatherstate)
 {
 	int			nvisited = 0;
 
@@ -381,7 +381,7 @@ gather_readnext(GatherState *gatherstate)
  * ----------------------------------------------------------------
  */
 static void
-ExecShutdownGatherWorkers(GatherState *node)
+ExecShutdownGatherWorkers(GatherState * node)
 {
 	if (node->pei != NULL)
 		ExecParallelFinish(node->pei);
@@ -399,7 +399,7 @@ ExecShutdownGatherWorkers(GatherState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecShutdownGather(GatherState *node)
+ExecShutdownGather(GatherState * node)
 {
 	ExecShutdownGatherWorkers(node);
 
@@ -423,7 +423,7 @@ ExecShutdownGather(GatherState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanGather(GatherState *node)
+ExecReScanGather(GatherState * node)
 {
 	Gather	   *gather = (Gather *) node->ps.plan;
 	PlanState  *outerPlan = outerPlanState(node);

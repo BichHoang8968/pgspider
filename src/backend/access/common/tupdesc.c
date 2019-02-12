@@ -109,7 +109,7 @@ CreateTemplateTupleDesc(int natts, bool hasoid)
  * caller can overwrite this if needed.
  */
 TupleDesc
-CreateTupleDesc(int natts, bool hasoid, Form_pg_attribute *attrs)
+CreateTupleDesc(int natts, bool hasoid, Form_pg_attribute * attrs)
 {
 	TupleDesc	desc;
 
@@ -678,7 +678,7 @@ TupleDescInitEntryCollation(TupleDesc desc,
  * later on.
  */
 TupleDesc
-BuildDescForRelation(List *schema)
+BuildDescForRelation(List * schema)
 {
 	int			natts;
 	AttrNumber	attnum;
@@ -774,7 +774,7 @@ BuildDescForRelation(List *schema)
  * with functions returning RECORD.
  */
 TupleDesc
-BuildDescFromLists(List *names, List *types, List *typmods, List *collations)
+BuildDescFromLists(List * names, List * types, List * typmods, List * collations)
 {
 	int			natts;
 	AttrNumber	attnum;

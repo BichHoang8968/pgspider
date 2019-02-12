@@ -37,7 +37,7 @@
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *			/* return: a tuple or NULL */
-ExecLockRows(PlanState *pstate)
+ExecLockRows(PlanState * pstate)
 {
 	LockRowsState *node = castNode(LockRowsState, pstate);
 	TupleTableSlot *slot;
@@ -349,7 +349,7 @@ lnext:
  * ----------------------------------------------------------------
  */
 LockRowsState *
-ExecInitLockRows(LockRows *node, EState *estate, int eflags)
+ExecInitLockRows(LockRows * node, EState * estate, int eflags)
 {
 	LockRowsState *lrstate;
 	Plan	   *outerPlan = outerPlan(node);
@@ -448,7 +448,7 @@ ExecInitLockRows(LockRows *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndLockRows(LockRowsState *node)
+ExecEndLockRows(LockRowsState * node)
 {
 	EvalPlanQualEnd(&node->lr_epqstate);
 	ExecEndNode(outerPlanState(node));
@@ -456,7 +456,7 @@ ExecEndLockRows(LockRowsState *node)
 
 
 void
-ExecReScanLockRows(LockRowsState *node)
+ExecReScanLockRows(LockRowsState * node)
 {
 	/*
 	 * if chgParam of subnode is not null then plan will be re-scanned by

@@ -51,7 +51,7 @@
  * "parameters" is a list of DefElem representing the agg's definition clauses.
  */
 ObjectAddress
-DefineAggregate(ParseState *pstate, List *name, List *args, bool oldstyle, List *parameters)
+DefineAggregate(ParseState * pstate, List * name, List * args, bool oldstyle, List * parameters)
 {
 	char	   *aggName;
 	Oid			aggNamespace;

@@ -37,7 +37,7 @@
  * pg_description for the object specified by the given SQL command.
  */
 ObjectAddress
-CommentObject(CommentStmt *stmt)
+CommentObject(CommentStmt * stmt)
 {
 	Relation	relation;
 	ObjectAddress address = InvalidObjectAddress;

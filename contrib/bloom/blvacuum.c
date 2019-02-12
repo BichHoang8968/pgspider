@@ -31,7 +31,7 @@
  * Result: a palloc'd struct containing statistical info for VACUUM displays.
  */
 IndexBulkDeleteResult *
-blbulkdelete(IndexVacuumInfo *info, IndexBulkDeleteResult *stats,
+blbulkdelete(IndexVacuumInfo * info, IndexBulkDeleteResult * stats,
 			 IndexBulkDeleteCallback callback, void *callback_state)
 {
 	Relation	index = info->index;
@@ -166,7 +166,7 @@ blbulkdelete(IndexVacuumInfo *info, IndexBulkDeleteResult *stats,
  * Result: a palloc'd struct containing statistical info for VACUUM displays.
  */
 IndexBulkDeleteResult *
-blvacuumcleanup(IndexVacuumInfo *info, IndexBulkDeleteResult *stats)
+blvacuumcleanup(IndexVacuumInfo * info, IndexBulkDeleteResult * stats)
 {
 	Relation	index = info->index;
 	BlockNumber npages,

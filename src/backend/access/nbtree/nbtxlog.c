@@ -74,7 +74,7 @@ _bt_restore_page(Page page, char *from, int len)
 }
 
 static void
-_bt_restore_meta(XLogReaderState *record, uint8 block_id)
+_bt_restore_meta(XLogReaderState * record, uint8 block_id)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	Buffer		metabuf;
@@ -125,7 +125,7 @@ _bt_restore_meta(XLogReaderState *record, uint8 block_id)
  * types that can insert a downlink: insert, split, and newroot.
  */
 static void
-_bt_clear_incomplete_split(XLogReaderState *record, uint8 block_id)
+_bt_clear_incomplete_split(XLogReaderState * record, uint8 block_id)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	Buffer		buf;
@@ -146,7 +146,7 @@ _bt_clear_incomplete_split(XLogReaderState *record, uint8 block_id)
 }
 
 static void
-btree_xlog_insert(bool isleaf, bool ismeta, XLogReaderState *record)
+btree_xlog_insert(bool isleaf, bool ismeta, XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_btree_insert *xlrec = (xl_btree_insert *) XLogRecGetData(record);
@@ -193,7 +193,7 @@ btree_xlog_insert(bool isleaf, bool ismeta, XLogReaderState *record)
 }
 
 static void
-btree_xlog_split(bool onleft, bool isroot, XLogReaderState *record)
+btree_xlog_split(bool onleft, bool isroot, XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_btree_split *xlrec = (xl_btree_split *) XLogRecGetData(record);
@@ -384,7 +384,7 @@ btree_xlog_split(bool onleft, bool isroot, XLogReaderState *record)
 }
 
 static void
-btree_xlog_vacuum(XLogReaderState *record)
+btree_xlog_vacuum(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	Buffer		buffer;
@@ -518,7 +518,7 @@ btree_xlog_vacuum(XLogReaderState *record)
  * XXX optimise later with something like XLogPrefetchBuffer()
  */
 static TransactionId
-btree_xlog_delete_get_latestRemovedXid(XLogReaderState *record)
+btree_xlog_delete_get_latestRemovedXid(XLogReaderState * record)
 {
 	xl_btree_delete *xlrec = (xl_btree_delete *) XLogRecGetData(record);
 	OffsetNumber *unused;
@@ -660,7 +660,7 @@ btree_xlog_delete_get_latestRemovedXid(XLogReaderState *record)
 }
 
 static void
-btree_xlog_delete(XLogReaderState *record)
+btree_xlog_delete(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_btree_delete *xlrec = (xl_btree_delete *) XLogRecGetData(record);
@@ -721,7 +721,7 @@ btree_xlog_delete(XLogReaderState *record)
 }
 
 static void
-btree_xlog_mark_page_halfdead(uint8 info, XLogReaderState *record)
+btree_xlog_mark_page_halfdead(uint8 info, XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_btree_mark_page_halfdead *xlrec = (xl_btree_mark_page_halfdead *) XLogRecGetData(record);
@@ -792,7 +792,7 @@ btree_xlog_mark_page_halfdead(uint8 info, XLogReaderState *record)
 		ItemPointerSet(&trunctuple.t_tid, xlrec->topparent, P_HIKEY);
 	else
 		ItemPointerSetInvalid(&trunctuple.t_tid);
-	if (PageAddItem(page, (Item) &trunctuple, sizeof(IndexTupleData), P_HIKEY,
+	if (PageAddItem(page, (Item) & trunctuple, sizeof(IndexTupleData), P_HIKEY,
 					false, false) == InvalidOffsetNumber)
 		elog(ERROR, "could not add dummy high key to half-dead page");
 
@@ -803,7 +803,7 @@ btree_xlog_mark_page_halfdead(uint8 info, XLogReaderState *record)
 
 
 static void
-btree_xlog_unlink_page(uint8 info, XLogReaderState *record)
+btree_xlog_unlink_page(uint8 info, XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_btree_unlink_page *xlrec = (xl_btree_unlink_page *) XLogRecGetData(record);
@@ -902,7 +902,7 @@ btree_xlog_unlink_page(uint8 info, XLogReaderState *record)
 			ItemPointerSet(&trunctuple.t_tid, xlrec->topparent, P_HIKEY);
 		else
 			ItemPointerSetInvalid(&trunctuple.t_tid);
-		if (PageAddItem(page, (Item) &trunctuple, sizeof(IndexTupleData), P_HIKEY,
+		if (PageAddItem(page, (Item) & trunctuple, sizeof(IndexTupleData), P_HIKEY,
 						false, false) == InvalidOffsetNumber)
 			elog(ERROR, "could not add dummy high key to half-dead page");
 
@@ -917,7 +917,7 @@ btree_xlog_unlink_page(uint8 info, XLogReaderState *record)
 }
 
 static void
-btree_xlog_newroot(XLogReaderState *record)
+btree_xlog_newroot(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_btree_newroot *xlrec = (xl_btree_newroot *) XLogRecGetData(record);
@@ -957,7 +957,7 @@ btree_xlog_newroot(XLogReaderState *record)
 }
 
 static void
-btree_xlog_reuse_page(XLogReaderState *record)
+btree_xlog_reuse_page(XLogReaderState * record)
 {
 	xl_btree_reuse_page *xlrec = (xl_btree_reuse_page *) XLogRecGetData(record);
 
@@ -980,7 +980,7 @@ btree_xlog_reuse_page(XLogReaderState *record)
 
 
 void
-btree_redo(XLogReaderState *record)
+btree_redo(XLogReaderState * record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 

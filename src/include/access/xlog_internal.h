@@ -50,11 +50,11 @@ typedef struct XLogPageHeaderData
 	 * continuation data isn't necessarily aligned.
 	 */
 	uint32		xlp_rem_len;	/* total len of remaining data for record */
-} XLogPageHeaderData;
+}			XLogPageHeaderData;
 
 #define SizeOfXLogShortPHD	MAXALIGN(sizeof(XLogPageHeaderData))
 
-typedef XLogPageHeaderData *XLogPageHeader;
+typedef XLogPageHeaderData * XLogPageHeader;
 
 /*
  * When the XLP_LONG_HEADER flag is set, we store additional fields in the
@@ -67,11 +67,11 @@ typedef struct XLogLongPageHeaderData
 	uint64		xlp_sysid;		/* system identifier from pg_control */
 	uint32		xlp_seg_size;	/* just as a cross-check */
 	uint32		xlp_xlog_blcksz;	/* just as a cross-check */
-} XLogLongPageHeaderData;
+}			XLogLongPageHeaderData;
 
 #define SizeOfXLogLongPHD	MAXALIGN(sizeof(XLogLongPageHeaderData))
 
-typedef XLogLongPageHeaderData *XLogLongPageHeader;
+typedef XLogLongPageHeaderData * XLogLongPageHeader;
 
 /* When record crosses page boundary, set this flag in new page's header */
 #define XLP_FIRST_IS_CONTRECORD		0x0001
@@ -217,14 +217,14 @@ typedef struct xl_parameter_change
 	int			wal_level;
 	bool		wal_log_hints;
 	bool		track_commit_timestamp;
-} xl_parameter_change;
+}			xl_parameter_change;
 
 /* logs restore point */
 typedef struct xl_restore_point
 {
 	TimestampTz rp_time;
 	char		rp_name[MAXFNAMELEN];
-} xl_restore_point;
+}			xl_restore_point;
 
 /* End of recovery mark, when we don't do an END_OF_RECOVERY checkpoint */
 typedef struct xl_end_of_recovery
@@ -232,7 +232,7 @@ typedef struct xl_end_of_recovery
 	TimestampTz end_time;
 	TimeLineID	ThisTimeLineID; /* new TLI */
 	TimeLineID	PrevTimeLineID; /* previous TLI we forked off from */
-} xl_end_of_recovery;
+}			xl_end_of_recovery;
 
 /*
  * The functions in xloginsert.c construct a chain of XLogRecData structs
@@ -243,7 +243,7 @@ typedef struct XLogRecData
 	struct XLogRecData *next;	/* next struct in chain, or NULL */
 	char	   *data;			/* start of rmgr data to include */
 	uint32		len;			/* length of rmgr data to include */
-} XLogRecData;
+}			XLogRecData;
 
 /*
  * Recovery target action.
@@ -253,7 +253,7 @@ typedef enum
 	RECOVERY_TARGET_ACTION_PAUSE,
 	RECOVERY_TARGET_ACTION_PROMOTE,
 	RECOVERY_TARGET_ACTION_SHUTDOWN
-} RecoveryTargetAction;
+}			RecoveryTargetAction;
 
 /*
  * Method table for resource managers.
@@ -274,23 +274,23 @@ typedef enum
 typedef struct RmgrData
 {
 	const char *rm_name;
-	void		(*rm_redo) (XLogReaderState *record);
-	void		(*rm_desc) (StringInfo buf, XLogReaderState *record);
+	void		(*rm_redo) (XLogReaderState * record);
+	void		(*rm_desc) (StringInfo buf, XLogReaderState * record);
 	const char *(*rm_identify) (uint8 info);
 	void		(*rm_startup) (void);
 	void		(*rm_cleanup) (void);
 	void		(*rm_mask) (char *pagedata, BlockNumber blkno);
-} RmgrData;
+}			RmgrData;
 
 extern const RmgrData RmgrTable[];
 
 /*
  * Exported to support xlog switching from checkpointer
  */
-extern pg_time_t GetLastSegSwitchData(XLogRecPtr *lastSwitchLSN);
+extern pg_time_t GetLastSegSwitchData(XLogRecPtr * lastSwitchLSN);
 extern XLogRecPtr RequestXLogSwitch(bool mark_unimportant);
 
-extern void GetOldestRestartPoint(XLogRecPtr *oldrecptr, TimeLineID *oldtli);
+extern void GetOldestRestartPoint(XLogRecPtr * oldrecptr, TimeLineID * oldtli);
 
 /*
  * Exported for the functions in timeline.c and xlogarchive.c.  Only valid

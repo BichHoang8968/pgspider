@@ -40,22 +40,22 @@ int			vacuum_defer_cleanup_age;
 int			max_standby_archive_delay = 30 * 1000;
 int			max_standby_streaming_delay = 30 * 1000;
 
-static HTAB *RecoveryLockLists;
+static HTAB * RecoveryLockLists;
 
-static void ResolveRecoveryConflictWithVirtualXIDs(VirtualTransactionId *waitlist,
+static void ResolveRecoveryConflictWithVirtualXIDs(VirtualTransactionId * waitlist,
 									   ProcSignalReason reason);
 static void SendRecoveryConflictWithBufferPin(ProcSignalReason reason);
 static XLogRecPtr LogCurrentRunningXacts(RunningTransactions CurrRunningXacts);
-static void LogAccessExclusiveLocks(int nlocks, xl_standby_lock *locks);
+static void LogAccessExclusiveLocks(int nlocks, xl_standby_lock * locks);
 
 /*
  * Keep track of all the locks owned by a given transaction.
  */
 typedef struct RecoveryLockListsEntry
 {
-	TransactionId	xid;
-	List		   *locks;
-} RecoveryLockListsEntry;
+	TransactionId xid;
+	List	   *locks;
+}			RecoveryLockListsEntry;
 
 /*
  * InitRecoveryTransactionEnvironment
@@ -73,7 +73,7 @@ void
 InitRecoveryTransactionEnvironment(void)
 {
 	VirtualTransactionId vxid;
-	HASHCTL			hash_ctl;
+	HASHCTL		hash_ctl;
 
 	/*
 	 * Initialize the hash table for tracking the list of locks held by each
@@ -218,7 +218,7 @@ WaitExceedsMaxStandbyDelay(void)
  * then throw the required error as instructed.
  */
 static void
-ResolveRecoveryConflictWithVirtualXIDs(VirtualTransactionId *waitlist,
+ResolveRecoveryConflictWithVirtualXIDs(VirtualTransactionId * waitlist,
 									   ProcSignalReason reason)
 {
 	TimestampTz waitStart;
@@ -665,12 +665,13 @@ StandbyAcquireAccessExclusiveLock(TransactionId xid, Oid dbOid, Oid relOid)
 }
 
 static void
-StandbyReleaseLockList(List *locks)
+StandbyReleaseLockList(List * locks)
 {
 	while (locks)
 	{
 		xl_standby_lock *lock = (xl_standby_lock *) linitial(locks);
 		LOCKTAG		locktag;
+
 		elog(trace_recovery(DEBUG4),
 			 "releasing recovery lock: xid %u db %u rel %u",
 			 lock->xid, lock->dbOid, lock->relOid);
@@ -712,7 +713,7 @@ StandbyReleaseLocks(TransactionId xid)
  * to remove any AccessExclusiveLocks requested by a transaction.
  */
 void
-StandbyReleaseLockTree(TransactionId xid, int nsubxids, TransactionId *subxids)
+StandbyReleaseLockTree(TransactionId xid, int nsubxids, TransactionId * subxids)
 {
 	int			i;
 
@@ -728,7 +729,7 @@ StandbyReleaseLockTree(TransactionId xid, int nsubxids, TransactionId *subxids)
 void
 StandbyReleaseAllLocks(void)
 {
-	HASH_SEQ_STATUS	status;
+	HASH_SEQ_STATUS status;
 	RecoveryLockListsEntry *entry;
 
 	elog(trace_recovery(DEBUG2), "release all standby locks");
@@ -747,7 +748,7 @@ StandbyReleaseAllLocks(void)
  *		as long as they're not prepared transactions.
  */
 void
-StandbyReleaseOldLocks(int nxids, TransactionId *xids)
+StandbyReleaseOldLocks(int nxids, TransactionId * xids)
 {
 	HASH_SEQ_STATUS status;
 	RecoveryLockListsEntry *entry;
@@ -799,7 +800,7 @@ StandbyReleaseOldLocks(int nxids, TransactionId *xids)
  */
 
 void
-standby_redo(XLogReaderState *record)
+standby_redo(XLogReaderState * record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 
@@ -1036,7 +1037,7 @@ LogCurrentRunningXacts(RunningTransactions CurrRunningXacts)
  * logged, as described in backend/storage/lmgr/README.
  */
 static void
-LogAccessExclusiveLocks(int nlocks, xl_standby_lock *locks)
+LogAccessExclusiveLocks(int nlocks, xl_standby_lock * locks)
 {
 	xl_standby_locks xlrec;
 
@@ -1098,7 +1099,7 @@ LogAccessExclusiveLockPrepare(void)
  * an xid but which contain invalidations.
  */
 void
-LogStandbyInvalidations(int nmsgs, SharedInvalidationMessage *msgs,
+LogStandbyInvalidations(int nmsgs, SharedInvalidationMessage * msgs,
 						bool relcacheInitFileInval)
 {
 	xl_invalidations xlrec;

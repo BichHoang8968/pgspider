@@ -70,11 +70,11 @@ typedef enum
 	PG_REGEX_LOCALE_WIDE_L,		/* Use locale_t <wctype.h> functions */
 	PG_REGEX_LOCALE_1BYTE_L,	/* Use locale_t <ctype.h> functions */
 	PG_REGEX_LOCALE_ICU			/* Use ICU uchar.h functions */
-} PG_Locale_Strategy;
+}			PG_Locale_Strategy;
 
 static PG_Locale_Strategy pg_regex_strategy;
 static pg_locale_t pg_regex_locale;
-static Oid	pg_regex_collation;
+static Oid pg_regex_collation;
 
 /*
  * Hard-wired character properties for C locale
@@ -745,15 +745,15 @@ typedef struct pg_ctype_cache
 	Oid			collation;		/* collation this entry is for */
 	struct cvec cv;				/* cache entry contents */
 	struct pg_ctype_cache *next;	/* chain link */
-} pg_ctype_cache;
+}			pg_ctype_cache;
 
-static pg_ctype_cache *pg_ctype_cache_list = NULL;
+static pg_ctype_cache * pg_ctype_cache_list = NULL;
 
 /*
  * Add a chr or range to pcc->cv; return false if run out of memory
  */
 static bool
-store_match(pg_ctype_cache *pcc, pg_wchar chr1, int nchrs)
+store_match(pg_ctype_cache * pcc, pg_wchar chr1, int nchrs)
 {
 	chr		   *newchrs;
 

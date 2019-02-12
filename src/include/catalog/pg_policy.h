@@ -37,7 +37,7 @@ CATALOG(pg_policy,3256)
  *		the format of pg_policy relation.
  * ----------------
  */
-typedef FormData_pg_policy *Form_pg_policy;
+typedef FormData_pg_policy * Form_pg_policy;
 
 /* ----------------
  *		compiler constants for pg_policy

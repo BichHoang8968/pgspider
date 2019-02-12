@@ -26,14 +26,14 @@ extern int varstr_levenshtein_less_equal(const char *source, int slen,
 							  const char *target, int tlen,
 							  int ins_c, int del_c, int sub_c,
 							  int max_d, bool trusted);
-extern List *textToQualifiedNameList(text *textval);
+extern List * textToQualifiedNameList(text * textval);
 extern bool SplitIdentifierString(char *rawstring, char separator,
-					  List **namelist);
+					  List * *namelist);
 extern bool SplitDirectoriesString(char *rawstring, char separator,
-					   List **namelist);
+					   List * *namelist);
 extern bool SplitGUCList(char *rawstring, char separator,
-			 List **namelist);
-extern text *replace_text_regexp(text *src_text, void *regexp,
-					text *replace_text, bool glob);
+			 List * *namelist);
+extern text * replace_text_regexp(text * src_text, void *regexp,
+								  text * replace_text, bool glob);
 
 #endif

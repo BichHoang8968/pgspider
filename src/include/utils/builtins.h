@@ -34,7 +34,7 @@ extern unsigned hex_encode(const char *src, unsigned len, char *dst);
 extern unsigned hex_decode(const char *src, unsigned len, char *dst);
 
 /* int.c */
-extern int2vector *buildint2vector(const int16 *int2s, int n);
+extern int2vector * buildint2vector(const int16 * int2s, int n);
 
 /* name.c */
 extern int	namecpy(Name n1, Name n2);
@@ -65,12 +65,12 @@ extern int	float4_cmp_internal(float4 a, float4 b);
 extern int	float8_cmp_internal(float8 a, float8 b);
 
 /* oid.c */
-extern oidvector *buildoidvector(const Oid *oids, int n);
-extern Oid	oidparse(Node *node);
+extern oidvector * buildoidvector(const Oid * oids, int n);
+extern Oid oidparse(Node * node);
 extern int	oid_cmp(const void *p1, const void *p2);
 
 /* regexp.c */
-extern char *regexp_fixed_prefix(text *text_re, bool case_insensitive,
+extern char *regexp_fixed_prefix(text * text_re, bool case_insensitive,
 					Oid collation, bool *exact);
 
 /* ruleutils.c */
@@ -87,10 +87,10 @@ extern void generate_operator_clause(fmStringInfo buf,
 extern int	bpchartruelen(char *s, int len);
 
 /* popular functions from varlena.c */
-extern text *cstring_to_text(const char *s);
-extern text *cstring_to_text_with_len(const char *s, int len);
-extern char *text_to_cstring(const text *t);
-extern void text_to_cstring_buffer(const text *src, char *dst, size_t dst_len);
+extern text * cstring_to_text(const char *s);
+extern text * cstring_to_text_with_len(const char *s, int len);
+extern char *text_to_cstring(const text * t);
+extern void text_to_cstring_buffer(const text * src, char *dst, size_t dst_len);
 
 #define CStringGetTextDatum(s) PointerGetDatum(cstring_to_text(s))
 #define TextDatumGetCString(d) text_to_cstring((text *) DatumGetPointer(d))

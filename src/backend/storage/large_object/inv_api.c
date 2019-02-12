@@ -180,7 +180,7 @@ myLargeObjectExists(Oid loid, Snapshot snapshot)
  */
 static void
 getdatafield(Form_pg_largeobject tuple,
-			 bytea **pdatafield,
+			 bytea * *pdatafield,
 			 int *plen,
 			 bool *pfreeit)
 {
@@ -317,7 +317,7 @@ inv_open(Oid lobjId, int flags, MemoryContext mcxt)
  * releases the long-term memory used by it.
  */
 void
-inv_close(LargeObjectDesc *obj_desc)
+inv_close(LargeObjectDesc * obj_desc)
 {
 	Assert(PointerIsValid(obj_desc));
 
@@ -361,7 +361,7 @@ inv_drop(Oid lobjId)
  * the offset of the last byte + 1.
  */
 static uint64
-inv_getsize(LargeObjectDesc *obj_desc)
+inv_getsize(LargeObjectDesc * obj_desc)
 {
 	uint64		lastbyte = 0;
 	ScanKeyData skey[1];
@@ -409,7 +409,7 @@ inv_getsize(LargeObjectDesc *obj_desc)
 }
 
 int64
-inv_seek(LargeObjectDesc *obj_desc, int64 offset, int whence)
+inv_seek(LargeObjectDesc * obj_desc, int64 offset, int whence)
 {
 	int64		newoffset;
 
@@ -453,7 +453,7 @@ inv_seek(LargeObjectDesc *obj_desc, int64 offset, int whence)
 }
 
 int64
-inv_tell(LargeObjectDesc *obj_desc)
+inv_tell(LargeObjectDesc * obj_desc)
 {
 	Assert(PointerIsValid(obj_desc));
 
@@ -461,7 +461,7 @@ inv_tell(LargeObjectDesc *obj_desc)
 }
 
 int
-inv_read(LargeObjectDesc *obj_desc, char *buf, int nbytes)
+inv_read(LargeObjectDesc * obj_desc, char *buf, int nbytes)
 {
 	int			nread = 0;
 	int64		n;
@@ -548,7 +548,7 @@ inv_read(LargeObjectDesc *obj_desc, char *buf, int nbytes)
 }
 
 int
-inv_write(LargeObjectDesc *obj_desc, const char *buf, int nbytes)
+inv_write(LargeObjectDesc * obj_desc, const char *buf, int nbytes)
 {
 	int			nwritten = 0;
 	int			n;
@@ -741,7 +741,7 @@ inv_write(LargeObjectDesc *obj_desc, const char *buf, int nbytes)
 }
 
 void
-inv_truncate(LargeObjectDesc *obj_desc, int64 len)
+inv_truncate(LargeObjectDesc * obj_desc, int64 len)
 {
 	int32		pageno = (int32) (len / LOBLKSIZE);
 	int32		off;

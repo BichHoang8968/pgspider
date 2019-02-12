@@ -16,8 +16,8 @@
 
 #include "nodes/execnodes.h"
 
-extern NamedTuplestoreScanState *ExecInitNamedTuplestoreScan(NamedTuplestoreScan *node, EState *estate, int eflags);
-extern void ExecEndNamedTuplestoreScan(NamedTuplestoreScanState *node);
-extern void ExecReScanNamedTuplestoreScan(NamedTuplestoreScanState *node);
+extern NamedTuplestoreScanState * ExecInitNamedTuplestoreScan(NamedTuplestoreScan * node, EState * estate, int eflags);
+extern void ExecEndNamedTuplestoreScan(NamedTuplestoreScanState * node);
+extern void ExecReScanNamedTuplestoreScan(NamedTuplestoreScanState * node);
 
 #endif							/* NODENAMEDTUPLESTORESCAN_H */

@@ -44,19 +44,19 @@ typedef struct
 	bool		newitemonleft;	/* new item on left or right of best split */
 	OffsetNumber firstright;	/* best split point */
 	int			best_delta;		/* best size delta so far */
-} FindSplitData;
+}			FindSplitData;
 
 
 static Buffer _bt_newroot(Relation rel, Buffer lbuf, Buffer rbuf);
 
 static TransactionId _bt_check_unique(Relation rel, IndexTuple itup,
-				 Relation heapRel, Buffer buf, OffsetNumber offset,
-				 ScanKey itup_scankey,
-				 IndexUniqueCheck checkUnique, bool *is_unique,
-				 uint32 *speculativeToken);
+									  Relation heapRel, Buffer buf, OffsetNumber offset,
+									  ScanKey itup_scankey,
+									  IndexUniqueCheck checkUnique, bool *is_unique,
+									  uint32 * speculativeToken);
 static void _bt_findinsertloc(Relation rel,
-				  Buffer *bufptr,
-				  OffsetNumber *offsetptr,
+				  Buffer * bufptr,
+				  OffsetNumber * offsetptr,
 				  int keysz,
 				  ScanKey scankey,
 				  IndexTuple newtup,
@@ -68,15 +68,15 @@ static void _bt_insertonpg(Relation rel, Buffer buf, Buffer cbuf,
 			   OffsetNumber newitemoff,
 			   bool split_only_page);
 static Buffer _bt_split(Relation rel, Buffer buf, Buffer cbuf,
-		  OffsetNumber firstright, OffsetNumber newitemoff, Size newitemsz,
-		  IndexTuple newitem, bool newitemonleft);
+						OffsetNumber firstright, OffsetNumber newitemoff, Size newitemsz,
+						IndexTuple newitem, bool newitemonleft);
 static void _bt_insert_parent(Relation rel, Buffer buf, Buffer rbuf,
 				  BTStack stack, bool is_root, bool is_only);
 static OffsetNumber _bt_findsplitloc(Relation rel, Page page,
-				 OffsetNumber newitemoff,
-				 Size newitemsz,
-				 bool *newitemonleft);
-static void _bt_checksplitloc(FindSplitData *state,
+									 OffsetNumber newitemoff,
+									 Size newitemsz,
+									 bool *newitemonleft);
+static void _bt_checksplitloc(FindSplitData * state,
 				  OffsetNumber firstoldonright, bool newitemonleft,
 				  int dataitemstoleft, Size firstoldonrightsz);
 static bool _bt_pgaddtup(Page page, Size itemsize, IndexTuple itup,
@@ -240,7 +240,7 @@ static TransactionId
 _bt_check_unique(Relation rel, IndexTuple itup, Relation heapRel,
 				 Buffer buf, OffsetNumber offset, ScanKey itup_scankey,
 				 IndexUniqueCheck checkUnique, bool *is_unique,
-				 uint32 *speculativeToken)
+				 uint32 * speculativeToken)
 {
 	TupleDesc	itupdesc = RelationGetDescr(rel);
 	int			natts = rel->rd_rel->relnatts;
@@ -539,8 +539,8 @@ _bt_check_unique(Relation rel, IndexTuple itup, Relation heapRel,
  */
 static void
 _bt_findinsertloc(Relation rel,
-				  Buffer *bufptr,
-				  OffsetNumber *offsetptr,
+				  Buffer * bufptr,
+				  OffsetNumber * offsetptr,
 				  int keysz,
 				  ScanKey scankey,
 				  IndexTuple newtup,
@@ -1537,7 +1537,7 @@ _bt_findsplitloc(Relation rel,
  * firstoldonright.
  */
 static void
-_bt_checksplitloc(FindSplitData *state,
+_bt_checksplitloc(FindSplitData * state,
 				  OffsetNumber firstoldonright,
 				  bool newitemonleft,
 				  int olddataitemstoleft,

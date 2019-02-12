@@ -32,7 +32,7 @@ typedef enum
 	RECURSION_OUTERJOIN,		/* inside nullable side of an outer join */
 	RECURSION_INTERSECT,		/* underneath INTERSECT (ALL) */
 	RECURSION_EXCEPT			/* underneath EXCEPT (ALL) */
-} RecursionContext;
+}			RecursionContext;
 
 /* Associated error messages --- each must have one %s for CTE name */
 static const char *const recursion_errormsgs[] = {
@@ -61,7 +61,7 @@ typedef struct CteItem
 	CommonTableExpr *cte;		/* One CTE to examine */
 	int			id;				/* Its ID number for dependencies */
 	Bitmapset  *depends_on;		/* CTEs depended on (not including self) */
-} CteItem;
+}			CteItem;
 
 /* CteState is what we need to pass around in the tree walkers */
 typedef struct CteState
@@ -76,20 +76,20 @@ typedef struct CteState
 	/* working state for checkWellFormedRecursion walk only: */
 	int			selfrefcount;	/* number of self-references detected */
 	RecursionContext context;	/* context to allow or disallow self-ref */
-} CteState;
+}			CteState;
 
 
-static void analyzeCTE(ParseState *pstate, CommonTableExpr *cte);
+static void analyzeCTE(ParseState * pstate, CommonTableExpr * cte);
 
 /* Dependency processing functions */
-static void makeDependencyGraph(CteState *cstate);
-static bool makeDependencyGraphWalker(Node *node, CteState *cstate);
-static void TopologicalSort(ParseState *pstate, CteItem *items, int numitems);
+static void makeDependencyGraph(CteState * cstate);
+static bool makeDependencyGraphWalker(Node * node, CteState * cstate);
+static void TopologicalSort(ParseState * pstate, CteItem * items, int numitems);
 
 /* Recursion validity checker functions */
-static void checkWellFormedRecursion(CteState *cstate);
-static bool checkWellFormedRecursionWalker(Node *node, CteState *cstate);
-static void checkWellFormedSelectStmt(SelectStmt *stmt, CteState *cstate);
+static void checkWellFormedRecursion(CteState * cstate);
+static bool checkWellFormedRecursionWalker(Node * node, CteState * cstate);
+static void checkWellFormedSelectStmt(SelectStmt * stmt, CteState * cstate);
 
 
 /*
@@ -102,7 +102,7 @@ static void checkWellFormedSelectStmt(SelectStmt *stmt, CteState *cstate);
  * but it seems cleaner to not expose that in the function's API.)
  */
 List *
-transformWithClause(ParseState *pstate, WithClause *withClause)
+transformWithClause(ParseState * pstate, WithClause * withClause)
 {
 	ListCell   *lc;
 
@@ -234,7 +234,7 @@ transformWithClause(ParseState *pstate, WithClause *withClause)
  * and have been marked with the correct output column names/types.
  */
 static void
-analyzeCTE(ParseState *pstate, CommonTableExpr *cte)
+analyzeCTE(ParseState * pstate, CommonTableExpr * cte)
 {
 	Query	   *query;
 
@@ -349,7 +349,7 @@ analyzeCTE(ParseState *pstate, CommonTableExpr *cte)
  * error message context anyway.
  */
 void
-analyzeCTETargetList(ParseState *pstate, CommonTableExpr *cte, List *tlist)
+analyzeCTETargetList(ParseState * pstate, CommonTableExpr * cte, List * tlist)
 {
 	int			numaliases;
 	int			varattno;
@@ -426,7 +426,7 @@ analyzeCTETargetList(ParseState *pstate, CommonTableExpr *cte, List *tlist)
  * and sort into an order that has no forward references.
  */
 static void
-makeDependencyGraph(CteState *cstate)
+makeDependencyGraph(CteState * cstate)
 {
 	int			i;
 
@@ -448,7 +448,7 @@ makeDependencyGraph(CteState *cstate)
  * CTEs in a WITH RECURSIVE list.
  */
 static bool
-makeDependencyGraphWalker(Node *node, CteState *cstate)
+makeDependencyGraphWalker(Node * node, CteState * cstate)
 {
 	if (node == NULL)
 		return false;
@@ -576,7 +576,7 @@ makeDependencyGraphWalker(Node *node, CteState *cstate)
  * Sort by dependencies, using a standard topological sort operation
  */
 static void
-TopologicalSort(ParseState *pstate, CteItem *items, int numitems)
+TopologicalSort(ParseState * pstate, CteItem * items, int numitems)
 {
 	int			i,
 				j;
@@ -628,7 +628,7 @@ TopologicalSort(ParseState *pstate, CteItem *items, int numitems)
  * Check that recursive queries are well-formed.
  */
 static void
-checkWellFormedRecursion(CteState *cstate)
+checkWellFormedRecursion(CteState * cstate)
 {
 	int			i;
 
@@ -727,7 +727,7 @@ checkWellFormedRecursion(CteState *cstate)
  * Tree walker function to detect invalid self-references in a recursive query.
  */
 static bool
-checkWellFormedRecursionWalker(Node *node, CteState *cstate)
+checkWellFormedRecursionWalker(Node * node, CteState * cstate)
 {
 	RecursionContext save_context = cstate->context;
 
@@ -907,7 +907,7 @@ checkWellFormedRecursionWalker(Node *node, CteState *cstate)
  * without worrying about its WITH clause
  */
 static void
-checkWellFormedSelectStmt(SelectStmt *stmt, CteState *cstate)
+checkWellFormedSelectStmt(SelectStmt * stmt, CteState * cstate)
 {
 	RecursionContext save_context = cstate->context;
 

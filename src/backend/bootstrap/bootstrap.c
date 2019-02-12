@@ -57,7 +57,7 @@ static void BootstrapModeMain(void);
 static void bootstrap_signals(void);
 static void ShutdownAuxiliaryProcess(int code, Datum arg);
 static Form_pg_attribute AllocateAttribute(void);
-static Oid	gettype(char *type);
+static Oid gettype(char *type);
 static void cleanup(void);
 
 /* ----------------
@@ -177,9 +177,9 @@ typedef struct _IndexList
 	Oid			il_ind;
 	IndexInfo  *il_info;
 	struct _IndexList *il_next;
-} IndexList;
+}			IndexList;
 
-static IndexList *ILHead = NULL;
+static IndexList * ILHead = NULL;
 
 
 /*
@@ -942,13 +942,13 @@ gettype(char *type)
  */
 void
 boot_get_type_io_data(Oid typid,
-					  int16 *typlen,
+					  int16 * typlen,
 					  bool *typbyval,
 					  char *typalign,
 					  char *typdelim,
-					  Oid *typioparam,
-					  Oid *typinput,
-					  Oid *typoutput)
+					  Oid * typioparam,
+					  Oid * typinput,
+					  Oid * typoutput)
 {
 	if (Typ != NULL)
 	{
@@ -1065,7 +1065,7 @@ MapArrayTypeName(const char *s)
 void
 index_register(Oid heap,
 			   Oid ind,
-			   IndexInfo *indexInfo)
+			   IndexInfo * indexInfo)
 {
 	IndexList  *newind;
 	MemoryContext oldcxt;

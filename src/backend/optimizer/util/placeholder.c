@@ -24,8 +24,8 @@
 #include "utils/lsyscache.h"
 
 /* Local functions */
-static void find_placeholders_recurse(PlannerInfo *root, Node *jtnode);
-static void find_placeholders_in_expr(PlannerInfo *root, Node *expr);
+static void find_placeholders_recurse(PlannerInfo * root, Node * jtnode);
+static void find_placeholders_in_expr(PlannerInfo * root, Node * expr);
 
 
 /*
@@ -36,7 +36,7 @@ static void find_placeholders_in_expr(PlannerInfo *root, Node *expr);
  * to the expression.
  */
 PlaceHolderVar *
-make_placeholder_expr(PlannerInfo *root, Expr *expr, Relids phrels)
+make_placeholder_expr(PlannerInfo * root, Expr * expr, Relids phrels)
 {
 	PlaceHolderVar *phv = makeNode(PlaceHolderVar);
 
@@ -66,7 +66,7 @@ make_placeholder_expr(PlannerInfo *root, Expr *expr, Relids phrels)
  * make_outerjoininfo assumes that we already know about all placeholders.
  */
 PlaceHolderInfo *
-find_placeholder_info(PlannerInfo *root, PlaceHolderVar *phv,
+find_placeholder_info(PlannerInfo * root, PlaceHolderVar * phv,
 					  bool create_new_ph)
 {
 	PlaceHolderInfo *phinfo;
@@ -141,7 +141,7 @@ find_placeholder_info(PlannerInfo *root, PlaceHolderVar *phv,
  * while we crawl up the join tree.
  */
 void
-find_placeholders_in_jointree(PlannerInfo *root)
+find_placeholders_in_jointree(PlannerInfo * root)
 {
 	/* We need do nothing if the query contains no PlaceHolderVars */
 	if (root->glob->lastPHId != 0)
@@ -160,7 +160,7 @@ find_placeholders_in_jointree(PlannerInfo *root)
  * jtnode is the current jointree node to examine.
  */
 static void
-find_placeholders_recurse(PlannerInfo *root, Node *jtnode)
+find_placeholders_recurse(PlannerInfo * root, Node * jtnode)
 {
 	if (jtnode == NULL)
 		return;
@@ -210,7 +210,7 @@ find_placeholders_recurse(PlannerInfo *root, Node *jtnode)
  *		PlaceHolderInfo entries for them.
  */
 static void
-find_placeholders_in_expr(PlannerInfo *root, Node *expr)
+find_placeholders_in_expr(PlannerInfo * root, Node * expr)
 {
 	List	   *vars;
 	ListCell   *vl;
@@ -262,7 +262,7 @@ find_placeholders_in_expr(PlannerInfo *root, Node *expr)
  * don't have enough information at this point to make an intelligent choice.
  */
 void
-update_placeholder_eval_levels(PlannerInfo *root, SpecialJoinInfo *new_sjinfo)
+update_placeholder_eval_levels(PlannerInfo * root, SpecialJoinInfo * new_sjinfo)
 {
 	ListCell   *lc1;
 
@@ -347,7 +347,7 @@ update_placeholder_eval_levels(PlannerInfo *root, SpecialJoinInfo *new_sjinfo)
  * there are no ordering issues to worry about.
  */
 void
-fix_placeholder_input_needed_levels(PlannerInfo *root)
+fix_placeholder_input_needed_levels(PlannerInfo * root)
 {
 	ListCell   *lc;
 
@@ -376,7 +376,7 @@ fix_placeholder_input_needed_levels(PlannerInfo *root)
  * do that part until joinrels are formed.
  */
 void
-add_placeholders_to_base_rels(PlannerInfo *root)
+add_placeholders_to_base_rels(PlannerInfo * root)
 {
 	ListCell   *lc;
 
@@ -408,8 +408,8 @@ add_placeholders_to_base_rels(PlannerInfo *root)
  * this join level and (b) the PHV can be computed at or below this level.
  */
 void
-add_placeholders_to_joinrel(PlannerInfo *root, RelOptInfo *joinrel,
-							RelOptInfo *outer_rel, RelOptInfo *inner_rel)
+add_placeholders_to_joinrel(PlannerInfo * root, RelOptInfo * joinrel,
+							RelOptInfo * outer_rel, RelOptInfo * inner_rel)
 {
 	Relids		relids = joinrel->relids;
 	ListCell   *lc;

@@ -56,23 +56,23 @@ typedef struct
 	BlockNumber nblocks;		/* number of blocks in relation */
 	BlockNumber firstblock;		/* first block to sample from */
 	BlockNumber step;			/* step size, or 0 if not set yet */
-} SystemTimeSamplerData;
+}			SystemTimeSamplerData;
 
-static void system_time_samplescangetsamplesize(PlannerInfo *root,
-									RelOptInfo *baserel,
-									List *paramexprs,
-									BlockNumber *pages,
+static void system_time_samplescangetsamplesize(PlannerInfo * root,
+									RelOptInfo * baserel,
+									List * paramexprs,
+									BlockNumber * pages,
 									double *tuples);
-static void system_time_initsamplescan(SampleScanState *node,
+static void system_time_initsamplescan(SampleScanState * node,
 						   int eflags);
-static void system_time_beginsamplescan(SampleScanState *node,
-							Datum *params,
+static void system_time_beginsamplescan(SampleScanState * node,
+							Datum * params,
 							int nparams,
 							uint32 seed);
-static BlockNumber system_time_nextsampleblock(SampleScanState *node);
-static OffsetNumber system_time_nextsampletuple(SampleScanState *node,
-							BlockNumber blockno,
-							OffsetNumber maxoffset);
+static BlockNumber system_time_nextsampleblock(SampleScanState * node);
+static OffsetNumber system_time_nextsampletuple(SampleScanState * node,
+												BlockNumber blockno,
+												OffsetNumber maxoffset);
 static uint32 random_relative_prime(uint32 n, SamplerRandomState randstate);
 
 
@@ -104,10 +104,10 @@ tsm_system_time_handler(PG_FUNCTION_ARGS)
  * Sample size estimation.
  */
 static void
-system_time_samplescangetsamplesize(PlannerInfo *root,
-									RelOptInfo *baserel,
-									List *paramexprs,
-									BlockNumber *pages,
+system_time_samplescangetsamplesize(PlannerInfo * root,
+									RelOptInfo * baserel,
+									List * paramexprs,
+									BlockNumber * pages,
 									double *tuples)
 {
 	Node	   *limitnode;
@@ -179,7 +179,7 @@ system_time_samplescangetsamplesize(PlannerInfo *root,
  * Initialize during executor setup.
  */
 static void
-system_time_initsamplescan(SampleScanState *node, int eflags)
+system_time_initsamplescan(SampleScanState * node, int eflags)
 {
 	node->tsm_state = palloc0(sizeof(SystemTimeSamplerData));
 	/* Note the above leaves tsm_state->step equal to zero */
@@ -189,8 +189,8 @@ system_time_initsamplescan(SampleScanState *node, int eflags)
  * Examine parameters and prepare for a sample scan.
  */
 static void
-system_time_beginsamplescan(SampleScanState *node,
-							Datum *params,
+system_time_beginsamplescan(SampleScanState * node,
+							Datum * params,
 							int nparams,
 							uint32 seed)
 {
@@ -216,7 +216,7 @@ system_time_beginsamplescan(SampleScanState *node,
  * Uses linear probing algorithm for picking next block.
  */
 static BlockNumber
-system_time_nextsampleblock(SampleScanState *node)
+system_time_nextsampleblock(SampleScanState * node)
 {
 	SystemTimeSamplerData *sampler = (SystemTimeSamplerData *) node->tsm_state;
 	HeapScanDesc scan = node->ss.ss_currentScanDesc;
@@ -290,7 +290,7 @@ system_time_nextsampleblock(SampleScanState *node)
  * SampleScan to go to next block.
  */
 static OffsetNumber
-system_time_nextsampletuple(SampleScanState *node,
+system_time_nextsampletuple(SampleScanState * node,
 							BlockNumber blockno,
 							OffsetNumber maxoffset)
 {

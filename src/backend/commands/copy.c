@@ -63,7 +63,7 @@ typedef enum CopyDest
 	COPY_OLD_FE,				/* to/from frontend (2.0 protocol) */
 	COPY_NEW_FE,				/* to/from frontend (3.0 protocol) */
 	COPY_CALLBACK				/* to/from callback function */
-} CopyDest;
+}			CopyDest;
 
 /*
  *	Represents the end-of-line terminator type of the input
@@ -74,7 +74,7 @@ typedef enum EolType
 	EOL_NL,
 	EOL_CR,
 	EOL_CRNL
-} EolType;
+}			EolType;
 
 /*
  * This struct contains all the state variables used throughout a COPY
@@ -211,7 +211,7 @@ typedef struct CopyStateData
 	char	   *raw_buf;
 	int			raw_buf_index;	/* next byte to process */
 	int			raw_buf_len;	/* total # of bytes stored */
-} CopyStateData;
+}			CopyStateData;
 
 /* DestReceiver for COPY (query) TO */
 typedef struct
@@ -219,7 +219,7 @@ typedef struct
 	DestReceiver pub;			/* publicly-known function pointers */
 	CopyState	cstate;			/* CopyStateData for the command */
 	uint64		processed;		/* # of tuples processed */
-} DR_copy;
+}			DR_copy;
 
 
 /*
@@ -291,38 +291,38 @@ static const char BinarySignature[11] = "PGCOPY\n\377\r\n\0";
 
 
 /* non-export function prototypes */
-static CopyState BeginCopy(ParseState *pstate, bool is_from, Relation rel,
-		  RawStmt *raw_query, Oid queryRelId, List *attnamelist,
-		  List *options);
+static CopyState BeginCopy(ParseState * pstate, bool is_from, Relation rel,
+						   RawStmt * raw_query, Oid queryRelId, List * attnamelist,
+						   List * options);
 static void EndCopy(CopyState cstate);
 static void ClosePipeToProgram(CopyState cstate);
-static CopyState BeginCopyTo(ParseState *pstate, Relation rel, RawStmt *query,
-			Oid queryRelId, const char *filename, bool is_program,
-			List *attnamelist, List *options);
+static CopyState BeginCopyTo(ParseState * pstate, Relation rel, RawStmt * query,
+							 Oid queryRelId, const char *filename, bool is_program,
+							 List * attnamelist, List * options);
 static void EndCopyTo(CopyState cstate);
 static uint64 DoCopyTo(CopyState cstate);
 static uint64 CopyTo(CopyState cstate);
 static void CopyOneRowTo(CopyState cstate, Oid tupleOid,
-			 Datum *values, bool *nulls);
-static void CopyFromInsertBatch(CopyState cstate, EState *estate,
+			 Datum * values, bool *nulls);
+static void CopyFromInsertBatch(CopyState cstate, EState * estate,
 					CommandId mycid, int hi_options,
-					ResultRelInfo *resultRelInfo, TupleTableSlot *myslot,
+					ResultRelInfo * resultRelInfo, TupleTableSlot * myslot,
 					BulkInsertState bistate,
-					int nBufferedTuples, HeapTuple *bufferedTuples,
+					int nBufferedTuples, HeapTuple * bufferedTuples,
 					uint64 firstBufferedLineNo);
 static bool CopyReadLine(CopyState cstate);
 static bool CopyReadLineText(CopyState cstate);
 static int	CopyReadAttributesText(CopyState cstate);
 static int	CopyReadAttributesCSV(CopyState cstate);
 static Datum CopyReadBinaryAttribute(CopyState cstate,
-						int column_no, FmgrInfo *flinfo,
-						Oid typioparam, int32 typmod,
-						bool *isnull);
+									 int column_no, FmgrInfo * flinfo,
+									 Oid typioparam, int32 typmod,
+									 bool *isnull);
 static void CopyAttributeOutText(CopyState cstate, char *string);
 static void CopyAttributeOutCSV(CopyState cstate, char *string,
 					bool use_quote, bool single_attr);
-static List *CopyGetAttnums(TupleDesc tupDesc, Relation rel,
-			   List *attnamelist);
+static List * CopyGetAttnums(TupleDesc tupDesc, Relation rel,
+							 List * attnamelist);
 static char *limit_printout_length(const char *str);
 
 /* Low-level communications functions */
@@ -336,9 +336,9 @@ static void CopySendEndOfRow(CopyState cstate);
 static int CopyGetData(CopyState cstate, void *databuf,
 			int minread, int maxread);
 static void CopySendInt32(CopyState cstate, int32 val);
-static bool CopyGetInt32(CopyState cstate, int32 *val);
+static bool CopyGetInt32(CopyState cstate, int32 * val);
 static void CopySendInt16(CopyState cstate, int16 val);
-static bool CopyGetInt16(CopyState cstate, int16 *val);
+static bool CopyGetInt16(CopyState cstate, int16 * val);
 
 
 /*
@@ -681,7 +681,7 @@ CopySendInt32(CopyState cstate, int32 val)
  * Returns true if OK, false if EOF
  */
 static bool
-CopyGetInt32(CopyState cstate, int32 *val)
+CopyGetInt32(CopyState cstate, int32 * val)
 {
 	uint32		buf;
 
@@ -710,7 +710,7 @@ CopySendInt16(CopyState cstate, int16 val)
  * CopyGetInt16 reads an int16 that appears in network byte order
  */
 static bool
-CopyGetInt16(CopyState cstate, int16 *val)
+CopyGetInt16(CopyState cstate, int16 * val)
 {
 	uint16		buf;
 
@@ -780,9 +780,9 @@ CopyLoadRawBuf(CopyState cstate)
  * the table or the specifically requested columns.
  */
 void
-DoCopy(ParseState *pstate, const CopyStmt *stmt,
+DoCopy(ParseState * pstate, const CopyStmt * stmt,
 	   int stmt_location, int stmt_len,
-	   uint64 *processed)
+	   uint64 * processed)
 {
 	CopyState	cstate;
 	bool		is_from = stmt->is_from;
@@ -1013,10 +1013,10 @@ DoCopy(ParseState *pstate, const CopyStmt *stmt,
  * self-consistency of the options list.
  */
 void
-ProcessCopyOptions(ParseState *pstate,
+ProcessCopyOptions(ParseState * pstate,
 				   CopyState cstate,
 				   bool is_from,
-				   List *options)
+				   List * options)
 {
 	bool		format_specified = false;
 	ListCell   *option;
@@ -1371,13 +1371,13 @@ ProcessCopyOptions(ParseState *pstate,
  * NULL values as <null_print>.
  */
 static CopyState
-BeginCopy(ParseState *pstate,
+BeginCopy(ParseState * pstate,
 		  bool is_from,
 		  Relation rel,
-		  RawStmt *raw_query,
+		  RawStmt * raw_query,
 		  Oid queryRelId,
-		  List *attnamelist,
-		  List *options)
+		  List * attnamelist,
+		  List * options)
 {
 	CopyState	cstate;
 	TupleDesc	tupDesc;
@@ -1732,14 +1732,14 @@ EndCopy(CopyState cstate)
  * Setup CopyState to read tuples from a table or a query for COPY TO.
  */
 static CopyState
-BeginCopyTo(ParseState *pstate,
+BeginCopyTo(ParseState * pstate,
 			Relation rel,
-			RawStmt *query,
+			RawStmt * query,
 			Oid queryRelId,
 			const char *filename,
 			bool is_program,
-			List *attnamelist,
-			List *options)
+			List * attnamelist,
+			List * options)
 {
 	CopyState	cstate;
 	bool		pipe = (filename == NULL);
@@ -2077,7 +2077,7 @@ CopyTo(CopyState cstate)
  * Emit one row during CopyTo().
  */
 static void
-CopyOneRowTo(CopyState cstate, Oid tupleOid, Datum *values, bool *nulls)
+CopyOneRowTo(CopyState cstate, Oid tupleOid, Datum * values, bool *nulls)
 {
 	bool		need_delim = false;
 	FmgrInfo   *out_functions = cstate->out_functions;
@@ -2504,7 +2504,7 @@ CopyFrom(CopyState cstate)
 		{
 			int			i;
 
-			cstate->transition_tupconv_maps = (TupleConversionMap **)
+			cstate->transition_tupconv_maps = (TupleConversionMap * *)
 				palloc0(sizeof(TupleConversionMap *) * cstate->num_partitions);
 			for (i = 0; i < cstate->num_partitions; ++i)
 			{
@@ -2902,10 +2902,10 @@ CopyFrom(CopyState cstate)
  * triggers.
  */
 static void
-CopyFromInsertBatch(CopyState cstate, EState *estate, CommandId mycid,
-					int hi_options, ResultRelInfo *resultRelInfo,
-					TupleTableSlot *myslot, BulkInsertState bistate,
-					int nBufferedTuples, HeapTuple *bufferedTuples,
+CopyFromInsertBatch(CopyState cstate, EState * estate, CommandId mycid,
+					int hi_options, ResultRelInfo * resultRelInfo,
+					TupleTableSlot * myslot, BulkInsertState bistate,
+					int nBufferedTuples, HeapTuple * bufferedTuples,
 					uint64 firstBufferedLineNo)
 {
 	MemoryContext oldcontext;
@@ -2986,13 +2986,13 @@ CopyFromInsertBatch(CopyState cstate, EState *estate, CommandId mycid,
  * Returns a CopyState, to be passed to NextCopyFrom and related functions.
  */
 CopyState
-BeginCopyFrom(ParseState *pstate,
+BeginCopyFrom(ParseState * pstate,
 			  Relation rel,
 			  const char *filename,
 			  bool is_program,
 			  copy_data_source_cb data_source_cb,
-			  List *attnamelist,
-			  List *options)
+			  List * attnamelist,
+			  List * options)
 {
 	CopyState	cstate;
 	bool		pipe = (filename == NULL);
@@ -3046,7 +3046,7 @@ BeginCopyFrom(ParseState *pstate,
 	in_functions = (FmgrInfo *) palloc(num_phys_attrs * sizeof(FmgrInfo));
 	typioparams = (Oid *) palloc(num_phys_attrs * sizeof(Oid));
 	defmap = (int *) palloc(num_phys_attrs * sizeof(int));
-	defexprs = (ExprState **) palloc(num_phys_attrs * sizeof(ExprState *));
+	defexprs = (ExprState * *) palloc(num_phys_attrs * sizeof(ExprState *));
 
 	for (attnum = 1; attnum <= num_phys_attrs; attnum++)
 	{
@@ -3297,8 +3297,8 @@ NextCopyFromRawFields(CopyState cstate, char ***fields, int *nfields)
  * Oid of the tuple is returned with 'tupleOid' separately.
  */
 bool
-NextCopyFrom(CopyState cstate, ExprContext *econtext,
-			 Datum *values, bool *nulls, Oid *tupleOid)
+NextCopyFrom(CopyState cstate, ExprContext * econtext,
+			 Datum * values, bool *nulls, Oid * tupleOid)
 {
 	TupleDesc	tupDesc;
 	Form_pg_attribute *attr;
@@ -4428,7 +4428,7 @@ endfield:
  */
 static Datum
 CopyReadBinaryAttribute(CopyState cstate,
-						int column_no, FmgrInfo *flinfo,
+						int column_no, FmgrInfo * flinfo,
 						Oid typioparam, int32 typmod,
 						bool *isnull)
 {
@@ -4730,7 +4730,7 @@ CopyAttributeOutCSV(CopyState cstate, char *string,
  * rel can be NULL ... it's only used for error reports.
  */
 static List *
-CopyGetAttnums(TupleDesc tupDesc, Relation rel, List *attnamelist)
+CopyGetAttnums(TupleDesc tupDesc, Relation rel, List * attnamelist)
 {
 	List	   *attnums = NIL;
 
@@ -4802,7 +4802,7 @@ CopyGetAttnums(TupleDesc tupDesc, Relation rel, List *attnamelist)
  * copy_dest_startup --- executor startup
  */
 static void
-copy_dest_startup(DestReceiver *self, int operation, TupleDesc typeinfo)
+copy_dest_startup(DestReceiver * self, int operation, TupleDesc typeinfo)
 {
 	/* no-op */
 }
@@ -4811,7 +4811,7 @@ copy_dest_startup(DestReceiver *self, int operation, TupleDesc typeinfo)
  * copy_dest_receive --- receive one tuple
  */
 static bool
-copy_dest_receive(TupleTableSlot *slot, DestReceiver *self)
+copy_dest_receive(TupleTableSlot * slot, DestReceiver * self)
 {
 	DR_copy    *myState = (DR_copy *) self;
 	CopyState	cstate = myState->cstate;
@@ -4830,7 +4830,7 @@ copy_dest_receive(TupleTableSlot *slot, DestReceiver *self)
  * copy_dest_shutdown --- executor end
  */
 static void
-copy_dest_shutdown(DestReceiver *self)
+copy_dest_shutdown(DestReceiver * self)
 {
 	/* no-op */
 }
@@ -4839,7 +4839,7 @@ copy_dest_shutdown(DestReceiver *self)
  * copy_dest_destroy --- release DestReceiver object
  */
 static void
-copy_dest_destroy(DestReceiver *self)
+copy_dest_destroy(DestReceiver * self)
 {
 	pfree(self);
 }

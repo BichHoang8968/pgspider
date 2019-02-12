@@ -74,7 +74,7 @@ opendir(const char *dirname)
 }
 
 struct dirent *
-readdir(DIR *d)
+readdir(DIR * d)
 {
 	WIN32_FIND_DATA fd;
 
@@ -108,7 +108,7 @@ readdir(DIR *d)
 }
 
 int
-closedir(DIR *d)
+closedir(DIR * d)
 {
 	int			ret = 0;
 

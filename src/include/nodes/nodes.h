@@ -498,7 +498,7 @@ typedef enum NodeTag
 	T_IndexAmRoutine,			/* in access/amapi.h */
 	T_TsmRoutine,				/* in access/tsmapi.h */
 	T_ForeignKeyCacheInfo		/* in utils/rel.h */
-} NodeTag;
+}			NodeTag;
 
 /*
  * The first field of a node of any type is guaranteed to be the NodeTag.
@@ -509,7 +509,7 @@ typedef enum NodeTag
 typedef struct Node
 {
 	NodeTag		type;
-} Node;
+}			Node;
 
 #define nodeTag(nodeptr)		(((const Node*)(nodeptr))->type)
 
@@ -542,7 +542,7 @@ typedef struct Node
  *	Fortunately, this macro isn't recursive so we just define
  *	a global variable for this purpose.
  */
-extern PGDLLIMPORT Node *newNodeMacroHolder;
+extern PGDLLIMPORT Node * newNodeMacroHolder;
 
 #define newNode(size, tag) \
 ( \
@@ -607,8 +607,8 @@ extern struct Bitmapset *readBitmapset(void);
 extern uintptr_t readDatum(bool typbyval);
 extern bool *readBoolCols(int numCols);
 extern int *readIntCols(int numCols);
-extern Oid *readOidCols(int numCols);
-extern int16 *readAttrNumberCols(int numCols);
+extern Oid * readOidCols(int numCols);
+extern int16 * readAttrNumberCols(int numCols);
 
 /*
  * nodes/copyfuncs.c
@@ -657,7 +657,7 @@ typedef enum CmdType
 								 * etc. */
 	CMD_NOTHING					/* dummy command for instead nothing rules
 								 * with qual */
-} CmdType;
+}			CmdType;
 
 
 /*
@@ -703,7 +703,7 @@ typedef enum JoinType
 	/*
 	 * We might need additional join types someday.
 	 */
-} JoinType;
+}			JoinType;
 
 /*
  * OUTER joins are those for which pushed-down quals must behave differently
@@ -738,7 +738,7 @@ typedef enum AggStrategy
 	AGG_SORTED,					/* grouped agg, input must be sorted */
 	AGG_HASHED,					/* grouped agg, use internal hashtable */
 	AGG_MIXED					/* grouped agg, hash and sort both used */
-} AggStrategy;
+}			AggStrategy;
 
 /*
  * AggSplit -
@@ -782,13 +782,13 @@ typedef enum SetOpCmd
 	SETOPCMD_INTERSECT_ALL,
 	SETOPCMD_EXCEPT,
 	SETOPCMD_EXCEPT_ALL
-} SetOpCmd;
+}			SetOpCmd;
 
 typedef enum SetOpStrategy
 {
 	SETOP_SORTED,				/* input must be sorted */
 	SETOP_HASHED				/* use internal hashtable */
-} SetOpStrategy;
+}			SetOpStrategy;
 
 /*
  * OnConflictAction -
@@ -801,6 +801,6 @@ typedef enum OnConflictAction
 	ONCONFLICT_NONE,			/* No "ON CONFLICT" clause */
 	ONCONFLICT_NOTHING,			/* ON CONFLICT ... DO NOTHING */
 	ONCONFLICT_UPDATE			/* ON CONFLICT ... DO UPDATE */
-} OnConflictAction;
+}			OnConflictAction;
 
 #endif							/* NODES_H */

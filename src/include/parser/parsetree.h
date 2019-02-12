@@ -45,20 +45,20 @@
  * Given an RTE and an attribute number, return the appropriate
  * variable name or alias for that attribute of that RTE.
  */
-extern char *get_rte_attribute_name(RangeTblEntry *rte, AttrNumber attnum);
+extern char *get_rte_attribute_name(RangeTblEntry * rte, AttrNumber attnum);
 
 /*
  * Given an RTE and an attribute number, return the appropriate
  * type and typemod info for that attribute of that RTE.
  */
-extern void get_rte_attribute_type(RangeTblEntry *rte, AttrNumber attnum,
-					   Oid *vartype, int32 *vartypmod, Oid *varcollid);
+extern void get_rte_attribute_type(RangeTblEntry * rte, AttrNumber attnum,
+					   Oid * vartype, int32 * vartypmod, Oid * varcollid);
 
 /*
  * Check whether an attribute of an RTE has been dropped (note that
  * get_rte_attribute_type will fail on such an attr)
  */
-extern bool get_rte_attribute_is_dropped(RangeTblEntry *rte,
+extern bool get_rte_attribute_is_dropped(RangeTblEntry * rte,
 							 AttrNumber attnum);
 
 
@@ -67,13 +67,13 @@ extern bool get_rte_attribute_is_dropped(RangeTblEntry *rte,
  * ----------------
  */
 
-extern TargetEntry *get_tle_by_resno(List *tlist, AttrNumber resno);
+extern TargetEntry * get_tle_by_resno(List * tlist, AttrNumber resno);
 
 /* ----------------
  *		FOR UPDATE/SHARE info
  * ----------------
  */
 
-extern RowMarkClause *get_parse_rowmark(Query *qry, Index rtindex);
+extern RowMarkClause * get_parse_rowmark(Query * qry, Index rtindex);
 
 #endif							/* PARSETREE_H */

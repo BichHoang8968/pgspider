@@ -68,24 +68,24 @@ typedef struct
 {
 	Oid			src_dboid;		/* source (template) DB */
 	Oid			dest_dboid;		/* DB we are trying to create */
-} createdb_failure_params;
+}			createdb_failure_params;
 
 typedef struct
 {
 	Oid			dest_dboid;		/* DB we are trying to move */
 	Oid			dest_tsoid;		/* tablespace we are trying to move to */
-} movedb_failure_params;
+}			movedb_failure_params;
 
 /* non-export function prototypes */
 static void createdb_failure_callback(int code, Datum arg);
 static void movedb(const char *dbname, const char *tblspcname);
 static void movedb_failure_callback(int code, Datum arg);
 static bool get_db_info(const char *name, LOCKMODE lockmode,
-			Oid *dbIdP, Oid *ownerIdP,
+			Oid * dbIdP, Oid * ownerIdP,
 			int *encodingP, bool *dbIsTemplateP, bool *dbAllowConnP,
-			Oid *dbLastSysOidP, TransactionId *dbFrozenXidP,
-			MultiXactId *dbMinMultiP,
-			Oid *dbTablespace, char **dbCollate, char **dbCtype);
+			Oid * dbLastSysOidP, TransactionId * dbFrozenXidP,
+			MultiXactId * dbMinMultiP,
+			Oid * dbTablespace, char **dbCollate, char **dbCtype);
 static bool have_createdb_privilege(void);
 static void remove_dbtablespaces(Oid db_id);
 static bool check_db_file_conflict(Oid db_id);
@@ -96,7 +96,7 @@ static int	errdetail_busy_db(int notherbackends, int npreparedxacts);
  * CREATE DATABASE
  */
 Oid
-createdb(ParseState *pstate, const CreatedbStmt *stmt)
+createdb(ParseState * pstate, const CreatedbStmt * stmt)
 {
 	HeapScanDesc scan;
 	Relation	rel;
@@ -111,7 +111,7 @@ createdb(ParseState *pstate, const CreatedbStmt *stmt)
 	TransactionId src_frozenxid;
 	MultiXactId src_minmxid;
 	Oid			src_deftablespace;
-	volatile Oid dst_deftablespace;
+	volatile	Oid dst_deftablespace;
 	Relation	pg_database_rel;
 	HeapTuple	tuple;
 	Datum		new_record[Natts_pg_database];
@@ -1394,7 +1394,7 @@ movedb_failure_callback(int code, Datum arg)
  * ALTER DATABASE name ...
  */
 Oid
-AlterDatabase(ParseState *pstate, AlterDatabaseStmt *stmt, bool isTopLevel)
+AlterDatabase(ParseState * pstate, AlterDatabaseStmt * stmt, bool isTopLevel)
 {
 	Relation	rel;
 	Oid			dboid;
@@ -1572,7 +1572,7 @@ AlterDatabase(ParseState *pstate, AlterDatabaseStmt *stmt, bool isTopLevel)
  * ALTER DATABASE name SET ...
  */
 Oid
-AlterDatabaseSet(AlterDatabaseSetStmt *stmt)
+AlterDatabaseSet(AlterDatabaseSetStmt * stmt)
 {
 	Oid			datid = get_database_oid(stmt->dbname, false);
 
@@ -1723,11 +1723,11 @@ AlterDatabaseOwner(const char *dbname, Oid newOwnerId)
  */
 static bool
 get_db_info(const char *name, LOCKMODE lockmode,
-			Oid *dbIdP, Oid *ownerIdP,
+			Oid * dbIdP, Oid * ownerIdP,
 			int *encodingP, bool *dbIsTemplateP, bool *dbAllowConnP,
-			Oid *dbLastSysOidP, TransactionId *dbFrozenXidP,
-			MultiXactId *dbMinMultiP,
-			Oid *dbTablespace, char **dbCollate, char **dbCtype)
+			Oid * dbLastSysOidP, TransactionId * dbFrozenXidP,
+			MultiXactId * dbMinMultiP,
+			Oid * dbTablespace, char **dbCollate, char **dbCtype)
 {
 	bool		result = false;
 	Relation	relation;
@@ -2074,7 +2074,7 @@ get_database_name(Oid dbid)
  * DATABASE resource manager's routines
  */
 void
-dbase_redo(XLogReaderState *record)
+dbase_redo(XLogReaderState * record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 

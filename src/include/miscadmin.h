@@ -264,7 +264,7 @@ typedef struct
 {
 	char	   *stack_base_ptr;
 	char	   *register_stack_base_ptr;
-} pg_stack_base_t;
+}			pg_stack_base_t;
 #else
 typedef char *pg_stack_base_t;
 #endif
@@ -304,21 +304,21 @@ extern void InitStandaloneProcess(const char *argv0);
 extern void SetDatabasePath(const char *path);
 
 extern char *GetUserNameFromId(Oid roleid, bool noerr);
-extern Oid	GetUserId(void);
-extern Oid	GetOuterUserId(void);
-extern Oid	GetSessionUserId(void);
-extern Oid	GetAuthenticatedUserId(void);
-extern void GetUserIdAndSecContext(Oid *userid, int *sec_context);
+extern Oid GetUserId(void);
+extern Oid GetOuterUserId(void);
+extern Oid GetSessionUserId(void);
+extern Oid GetAuthenticatedUserId(void);
+extern void GetUserIdAndSecContext(Oid * userid, int *sec_context);
 extern void SetUserIdAndSecContext(Oid userid, int sec_context);
 extern bool InLocalUserIdChange(void);
 extern bool InSecurityRestrictedOperation(void);
 extern bool InNoForceRLSOperation(void);
-extern void GetUserIdAndContext(Oid *userid, bool *sec_def_context);
+extern void GetUserIdAndContext(Oid * userid, bool *sec_def_context);
 extern void SetUserIdAndContext(Oid userid, bool sec_def_context);
 extern void InitializeSessionUserId(const char *rolename, Oid useroid);
 extern void InitializeSessionUserIdStandalone(void);
 extern void SetSessionAuthorization(Oid userid, bool is_superuser);
-extern Oid	GetCurrentRoleId(void);
+extern Oid GetCurrentRoleId(void);
 extern void SetCurrentRoleId(Oid roleid, bool is_superuser);
 
 extern void SetDataDir(const char *dir);
@@ -361,7 +361,7 @@ typedef enum ProcessingMode
 	BootstrapProcessing,		/* bootstrap creation of template database */
 	InitProcessing,				/* initializing system */
 	NormalProcessing			/* normal processing */
-} ProcessingMode;
+}			ProcessingMode;
 
 extern ProcessingMode Mode;
 
@@ -398,7 +398,7 @@ typedef enum
 	WalReceiverProcess,
 
 	NUM_AUXPROCTYPES			/* Must be last! */
-} AuxProcType;
+}			AuxProcType;
 
 extern AuxProcType MyAuxProcType;
 

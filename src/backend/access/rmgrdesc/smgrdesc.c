@@ -19,7 +19,7 @@
 
 
 void
-smgr_desc(StringInfo buf, XLogReaderState *record)
+smgr_desc(StringInfo buf, XLogReaderState * record)
 {
 	char	   *rec = XLogRecGetData(record);
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;

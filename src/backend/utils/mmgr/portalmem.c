@@ -48,9 +48,9 @@ typedef struct portalhashent
 {
 	char		portalname[MAX_PORTALNAME_LEN];
 	Portal		portal;
-} PortalHashEnt;
+}			PortalHashEnt;
 
-static HTAB *PortalHashTable = NULL;
+static HTAB * PortalHashTable = NULL;
 
 #define PortalHashTableLookup(NAME, PORTAL) \
 do { \
@@ -278,8 +278,8 @@ PortalDefineQuery(Portal portal,
 				  const char *prepStmtName,
 				  const char *sourceText,
 				  const char *commandTag,
-				  List *stmts,
-				  CachedPlan *cplan)
+				  List * stmts,
+				  CachedPlan * cplan)
 {
 	AssertArg(PortalIsValid(portal));
 	AssertState(portal->status == PORTAL_NEW);

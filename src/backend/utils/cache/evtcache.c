@@ -36,15 +36,15 @@ typedef enum
 	ETCS_NEEDS_REBUILD,
 	ETCS_REBUILD_STARTED,
 	ETCS_VALID
-} EventTriggerCacheStateType;
+}			EventTriggerCacheStateType;
 
 typedef struct
 {
 	EventTriggerEvent event;
 	List	   *triggerlist;
-} EventTriggerCacheEntry;
+}			EventTriggerCacheEntry;
 
-static HTAB *EventTriggerCache;
+static HTAB * EventTriggerCache;
 static MemoryContext EventTriggerCacheContext;
 static EventTriggerCacheStateType EventTriggerCacheState = ETCS_NEEDS_REBUILD;
 

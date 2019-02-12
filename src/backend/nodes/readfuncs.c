@@ -1487,7 +1487,7 @@ _readPlannedStmt(void)
  *	Assign the basic stuff of all nodes that inherit from Plan
  */
 static void
-ReadCommonPlan(Plan *local_node)
+ReadCommonPlan(Plan * local_node)
 {
 	READ_TEMP_LOCALS();
 
@@ -1674,7 +1674,7 @@ _readBitmapOr(void)
  *	Assign the basic stuff of all nodes that inherit from Scan
  */
 static void
-ReadCommonScan(Scan *local_node)
+ReadCommonScan(Scan * local_node)
 {
 	READ_TEMP_LOCALS();
 
@@ -1934,7 +1934,7 @@ _readCustomScan(void)
 {
 	READ_LOCALS(CustomScan);
 	char	   *custom_name;
-	const CustomScanMethods *methods;
+	const		CustomScanMethods *methods;
 
 	ReadCommonScan(&local_node->scan);
 
@@ -1960,7 +1960,7 @@ _readCustomScan(void)
  *	Assign the basic stuff of all nodes that inherit from Join
  */
 static void
-ReadCommonJoin(Join *local_node)
+ReadCommonJoin(Join * local_node)
 {
 	READ_TEMP_LOCALS();
 
@@ -2357,7 +2357,7 @@ _readAlternativeSubPlan(void)
 static ExtensibleNode *
 _readExtensibleNode(void)
 {
-	const ExtensibleNodeMethods *methods;
+	const		ExtensibleNodeMethods *methods;
 	ExtensibleNode *local_node;
 	const char *extnodename;
 

@@ -94,7 +94,7 @@ typedef struct FlushPosition
 	dlist_node	node;
 	XLogRecPtr	local_end;
 	XLogRecPtr	remote_end;
-} FlushPosition;
+}			FlushPosition;
 
 static dlist_head lsn_mapping = DLIST_STATIC_INIT(lsn_mapping);
 
@@ -103,7 +103,7 @@ typedef struct SlotErrCallbackArg
 	LogicalRepRelMapEntry *rel;
 	int			local_attnum;
 	int			remote_attnum;
-} SlotErrCallbackArg;
+}			SlotErrCallbackArg;
 
 static MemoryContext ApplyMessageContext = NULL;
 MemoryContext ApplyContext = NULL;
@@ -139,7 +139,7 @@ static volatile sig_atomic_t got_SIGHUP = false;
  * to in apply_handle_begin).
  */
 static bool
-should_apply_changes_for_rel(LogicalRepRelMapEntry *rel)
+should_apply_changes_for_rel(LogicalRepRelMapEntry * rel)
 {
 	if (am_tablesync_worker())
 		return MyLogicalRepWorker->relid == rel->localreloid;
@@ -184,7 +184,7 @@ ensure_transaction(void)
  * This is based on similar code in copy.c
  */
 static EState *
-create_estate_for_relation(LogicalRepRelMapEntry *rel)
+create_estate_for_relation(LogicalRepRelMapEntry * rel)
 {
 	EState	   *estate;
 	ResultRelInfo *resultRelInfo;
@@ -225,8 +225,8 @@ create_estate_for_relation(LogicalRepRelMapEntry *rel)
  * than on the upstream.
  */
 static void
-slot_fill_defaults(LogicalRepRelMapEntry *rel, EState *estate,
-				   TupleTableSlot *slot)
+slot_fill_defaults(LogicalRepRelMapEntry * rel, EState * estate,
+				   TupleTableSlot * slot)
 {
 	TupleDesc	desc = RelationGetDescr(rel->localrel);
 	int			num_phys_attrs = desc->natts;
@@ -244,7 +244,7 @@ slot_fill_defaults(LogicalRepRelMapEntry *rel, EState *estate,
 		return;
 
 	defmap = (int *) palloc(num_phys_attrs * sizeof(int));
-	defexprs = (ExprState **) palloc(num_phys_attrs * sizeof(ExprState *));
+	defexprs = (ExprState * *) palloc(num_phys_attrs * sizeof(ExprState *));
 
 	for (attnum = 0; attnum < num_phys_attrs; attnum++)
 	{
@@ -315,7 +315,7 @@ slot_store_error_callback(void *arg)
  * use better.
  */
 static void
-slot_store_cstrings(TupleTableSlot *slot, LogicalRepRelMapEntry *rel,
+slot_store_cstrings(TupleTableSlot * slot, LogicalRepRelMapEntry * rel,
 					char **values)
 {
 	int			natts = slot->tts_tupleDescriptor->natts;
@@ -383,7 +383,7 @@ slot_store_cstrings(TupleTableSlot *slot, LogicalRepRelMapEntry *rel,
  * of the types.
  */
 static void
-slot_modify_cstrings(TupleTableSlot *slot, LogicalRepRelMapEntry *rel,
+slot_modify_cstrings(TupleTableSlot * slot, LogicalRepRelMapEntry * rel,
 					 char **values, bool *replaces)
 {
 	int			natts = slot->tts_tupleDescriptor->natts;
@@ -641,7 +641,7 @@ apply_handle_insert(StringInfo s)
  * appropriate error if it isn't.
  */
 static void
-check_relation_updatable(LogicalRepRelMapEntry *rel)
+check_relation_updatable(LogicalRepRelMapEntry * rel)
 {
 	/* Updatable, no error. */
 	if (rel->updatable)
@@ -954,7 +954,7 @@ apply_dispatch(StringInfo s)
  * need to be flushed.
  */
 static void
-get_flush_position(XLogRecPtr *write, XLogRecPtr *flush,
+get_flush_position(XLogRecPtr * write, XLogRecPtr * flush,
 				   bool *have_pending_txes)
 {
 	dlist_mutable_iter iter;

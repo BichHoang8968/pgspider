@@ -45,7 +45,7 @@ typedef struct output_type
 	double		dead_tuple_percent;
 	uint64		free_space;
 	double		free_percent;
-} output_type;
+}			output_type;
 
 #define NUM_OUTPUT_COLUMNS 10
 
@@ -60,7 +60,7 @@ typedef struct output_type
  * we do not try to avoid skipping single pages.
  */
 static void
-statapprox_heap(Relation rel, output_type *stat)
+statapprox_heap(Relation rel, output_type * stat)
 {
 	BlockNumber scanned,
 				nblocks,

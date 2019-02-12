@@ -29,7 +29,7 @@
  * Initialize the hash table to empty.
  */
 static void
-build_hash_table(RecursiveUnionState *rustate)
+build_hash_table(RecursiveUnionState * rustate)
 {
 	RecursiveUnion *node = (RecursiveUnion *) rustate->ps.plan;
 
@@ -67,7 +67,7 @@ build_hash_table(RecursiveUnionState *rustate)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecRecursiveUnion(PlanState *pstate)
+ExecRecursiveUnion(PlanState * pstate)
 {
 	RecursiveUnionState *node = castNode(RecursiveUnionState, pstate);
 	PlanState  *outerPlan = outerPlanState(node);
@@ -159,7 +159,7 @@ ExecRecursiveUnion(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 RecursiveUnionState *
-ExecInitRecursiveUnion(RecursiveUnion *node, EState *estate, int eflags)
+ExecInitRecursiveUnion(RecursiveUnion * node, EState * estate, int eflags)
 {
 	RecursiveUnionState *rustate;
 	ParamExecData *prmdata;
@@ -265,7 +265,7 @@ ExecInitRecursiveUnion(RecursiveUnion *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndRecursiveUnion(RecursiveUnionState *node)
+ExecEndRecursiveUnion(RecursiveUnionState * node)
 {
 	/* Release tuplestores */
 	tuplestore_end(node->working_table);
@@ -296,7 +296,7 @@ ExecEndRecursiveUnion(RecursiveUnionState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanRecursiveUnion(RecursiveUnionState *node)
+ExecReScanRecursiveUnion(RecursiveUnionState * node)
 {
 	PlanState  *outerPlan = outerPlanState(node);
 	PlanState  *innerPlan = innerPlanState(node);

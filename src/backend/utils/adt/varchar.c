@@ -28,7 +28,7 @@
 
 /* common code for bpchartypmodin and varchartypmodin */
 static int32
-anychar_typmodin(ArrayType *ta, const char *typename)
+anychar_typmodin(ArrayType * ta, const char *typename)
 {
 	int32		typmod;
 	int32	   *tl;
@@ -562,7 +562,7 @@ varchar_transform(PG_FUNCTION_ARGS)
 
 	typmod = (Node *) lsecond(expr->args);
 
-	if (IsA(typmod, Const) &&!((Const *) typmod)->constisnull)
+	if (IsA(typmod, Const) && !((Const *) typmod)->constisnull)
 	{
 		Node	   *source = (Node *) linitial(expr->args);
 		int32		old_typmod = exprTypmod(source);
@@ -651,7 +651,7 @@ varchartypmodout(PG_FUNCTION_ARGS)
 
 /* "True" length (not counting trailing blanks) of a BpChar */
 static inline int
-bcTruelen(BpChar *arg)
+bcTruelen(BpChar * arg)
 {
 	return bpchartruelen(VARDATA_ANY(arg), VARSIZE_ANY_EXHDR(arg));
 }
@@ -957,7 +957,7 @@ hashbpchar(PG_FUNCTION_ARGS)
  */
 
 static int
-internal_bpchar_pattern_compare(BpChar *arg1, BpChar *arg2)
+internal_bpchar_pattern_compare(BpChar * arg1, BpChar * arg2)
 {
 	int			result;
 	int			len1,

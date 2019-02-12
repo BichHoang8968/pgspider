@@ -10,7 +10,7 @@ typedef struct int16key
 {
 	int16		lower;
 	int16		upper;
-} int16KEY;
+}			int16KEY;
 
 /*
 ** int16 ops
@@ -25,33 +25,33 @@ PG_FUNCTION_INFO_V1(gbt_int2_penalty);
 PG_FUNCTION_INFO_V1(gbt_int2_same);
 
 static bool
-gbt_int2gt(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_int2gt(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const int16 *) a) > *((const int16 *) b));
 }
 static bool
-gbt_int2ge(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_int2ge(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const int16 *) a) >= *((const int16 *) b));
 }
 static bool
-gbt_int2eq(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_int2eq(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const int16 *) a) == *((const int16 *) b));
 }
 static bool
-gbt_int2le(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_int2le(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const int16 *) a) <= *((const int16 *) b));
 }
 static bool
-gbt_int2lt(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_int2lt(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const int16 *) a) < *((const int16 *) b));
 }
 
 static int
-gbt_int2key_cmp(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_int2key_cmp(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	int16KEY   *ia = (int16KEY *) (((const Nsrt *) a)->t);
 	int16KEY   *ib = (int16KEY *) (((const Nsrt *) b)->t);
@@ -68,7 +68,7 @@ gbt_int2key_cmp(const void *a, const void *b, FmgrInfo *flinfo)
 }
 
 static float8
-gbt_int2_dist(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_int2_dist(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return GET_FLOAT_DISTANCE(int16, a, b);
 }
@@ -147,8 +147,8 @@ gbt_int2_consistent(PG_FUNCTION_ARGS)
 	/* All cases served by this function are exact */
 	*recheck = false;
 
-	key.lower = (GBT_NUMKEY *) &kkk->lower;
-	key.upper = (GBT_NUMKEY *) &kkk->upper;
+	key.lower = (GBT_NUMKEY *) & kkk->lower;
+	key.upper = (GBT_NUMKEY *) & kkk->upper;
 
 	PG_RETURN_BOOL(
 				   gbt_num_consistent(&key, (void *) &query, &strategy, GIST_LEAF(entry), &tinfo, fcinfo->flinfo)
@@ -166,8 +166,8 @@ gbt_int2_distance(PG_FUNCTION_ARGS)
 	int16KEY   *kkk = (int16KEY *) DatumGetPointer(entry->key);
 	GBT_NUMKEY_R key;
 
-	key.lower = (GBT_NUMKEY *) &kkk->lower;
-	key.upper = (GBT_NUMKEY *) &kkk->upper;
+	key.lower = (GBT_NUMKEY *) & kkk->lower;
+	key.upper = (GBT_NUMKEY *) & kkk->upper;
 
 	PG_RETURN_FLOAT8(
 					 gbt_num_distance(&key, (void *) &query, GIST_LEAF(entry), &tinfo, fcinfo->flinfo)

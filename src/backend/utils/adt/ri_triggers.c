@@ -125,7 +125,7 @@ typedef struct RI_ConstraintInfo
 	Oid			pp_eq_oprs[RI_MAX_NUMKEYS]; /* equality operators (PK = PK) */
 	Oid			ff_eq_oprs[RI_MAX_NUMKEYS]; /* equality operators (FK = FK) */
 	dlist_node	valid_link;		/* Link in list of valid entries */
-} RI_ConstraintInfo;
+}			RI_ConstraintInfo;
 
 
 /* ----------
@@ -138,7 +138,7 @@ typedef struct RI_QueryKey
 {
 	Oid			constr_id;		/* OID of pg_constraint entry */
 	int32		constr_queryno; /* query type ID, see RI_PLAN_XXX above */
-} RI_QueryKey;
+}			RI_QueryKey;
 
 
 /* ----------
@@ -149,7 +149,7 @@ typedef struct RI_QueryHashEntry
 {
 	RI_QueryKey key;
 	SPIPlanPtr	plan;
-} RI_QueryHashEntry;
+}			RI_QueryHashEntry;
 
 
 /* ----------
@@ -162,7 +162,7 @@ typedef struct RI_CompareKey
 {
 	Oid			eq_opr;			/* the equality operator to apply */
 	Oid			typeid;			/* the data type to apply it to */
-} RI_CompareKey;
+}			RI_CompareKey;
 
 
 /* ----------
@@ -175,16 +175,16 @@ typedef struct RI_CompareHashEntry
 	bool		valid;			/* successfully initialized? */
 	FmgrInfo	eq_opr_finfo;	/* call info for equality fn */
 	FmgrInfo	cast_func_finfo;	/* in case we must coerce input */
-} RI_CompareHashEntry;
+}			RI_CompareHashEntry;
 
 
 /* ----------
  * Local data
  * ----------
  */
-static HTAB *ri_constraint_cache = NULL;
-static HTAB *ri_query_cache = NULL;
-static HTAB *ri_compare_cache = NULL;
+static HTAB * ri_constraint_cache = NULL;
+static HTAB * ri_query_cache = NULL;
+static HTAB * ri_compare_cache = NULL;
 static dlist_head ri_constraint_cache_valid_list;
 static int	ri_constraint_cache_valid_count = 0;
 
@@ -195,9 +195,9 @@ static int	ri_constraint_cache_valid_count = 0;
  */
 static bool ri_Check_Pk_Match(Relation pk_rel, Relation fk_rel,
 				  HeapTuple old_row,
-				  const RI_ConstraintInfo *riinfo);
-static Datum ri_restrict_del(TriggerData *trigdata, bool is_no_action);
-static Datum ri_restrict_upd(TriggerData *trigdata, bool is_no_action);
+				  const RI_ConstraintInfo * riinfo);
+static Datum ri_restrict_del(TriggerData * trigdata, bool is_no_action);
+static Datum ri_restrict_upd(TriggerData * trigdata, bool is_no_action);
 static void quoteOneName(char *buffer, const char *name);
 static void quoteRelationName(char *buffer, Relation rel);
 static void ri_GenerateQual(StringInfo buf,
@@ -207,38 +207,38 @@ static void ri_GenerateQual(StringInfo buf,
 				const char *rightop, Oid rightoptype);
 static void ri_GenerateQualCollation(StringInfo buf, Oid collation);
 static int ri_NullCheck(HeapTuple tup,
-			 const RI_ConstraintInfo *riinfo, bool rel_is_pk);
-static void ri_BuildQueryKey(RI_QueryKey *key,
-				 const RI_ConstraintInfo *riinfo,
+			 const RI_ConstraintInfo * riinfo, bool rel_is_pk);
+static void ri_BuildQueryKey(RI_QueryKey * key,
+				 const RI_ConstraintInfo * riinfo,
 				 int32 constr_queryno);
 static bool ri_KeysEqual(Relation rel, HeapTuple oldtup, HeapTuple newtup,
-			 const RI_ConstraintInfo *riinfo, bool rel_is_pk);
+			 const RI_ConstraintInfo * riinfo, bool rel_is_pk);
 static bool ri_AttributesEqual(Oid eq_opr, Oid typeid,
 				   Datum oldvalue, Datum newvalue);
 
 static void ri_InitHashTables(void);
 static void InvalidateConstraintCacheCallBack(Datum arg, int cacheid, uint32 hashvalue);
-static SPIPlanPtr ri_FetchPreparedPlan(RI_QueryKey *key);
-static void ri_HashPreparedPlan(RI_QueryKey *key, SPIPlanPtr plan);
-static RI_CompareHashEntry *ri_HashCompareOp(Oid eq_opr, Oid typeid);
+static SPIPlanPtr ri_FetchPreparedPlan(RI_QueryKey * key);
+static void ri_HashPreparedPlan(RI_QueryKey * key, SPIPlanPtr plan);
+static RI_CompareHashEntry * ri_HashCompareOp(Oid eq_opr, Oid typeid);
 
 static void ri_CheckTrigger(FunctionCallInfo fcinfo, const char *funcname,
 				int tgkind);
-static const RI_ConstraintInfo *ri_FetchConstraintInfo(Trigger *trigger,
+static const RI_ConstraintInfo *ri_FetchConstraintInfo(Trigger * trigger,
 					   Relation trig_rel, bool rel_is_pk);
 static const RI_ConstraintInfo *ri_LoadConstraintInfo(Oid constraintOid);
-static SPIPlanPtr ri_PlanCheck(const char *querystr, int nargs, Oid *argtypes,
-			 RI_QueryKey *qkey, Relation fk_rel, Relation pk_rel,
-			 bool cache_plan);
-static bool ri_PerformCheck(const RI_ConstraintInfo *riinfo,
-				RI_QueryKey *qkey, SPIPlanPtr qplan,
+static SPIPlanPtr ri_PlanCheck(const char *querystr, int nargs, Oid * argtypes,
+							   RI_QueryKey * qkey, Relation fk_rel, Relation pk_rel,
+							   bool cache_plan);
+static bool ri_PerformCheck(const RI_ConstraintInfo * riinfo,
+				RI_QueryKey * qkey, SPIPlanPtr qplan,
 				Relation fk_rel, Relation pk_rel,
 				HeapTuple old_tuple, HeapTuple new_tuple,
 				bool detectNewRows, int expect_OK);
 static void ri_ExtractValues(Relation rel, HeapTuple tup,
-				 const RI_ConstraintInfo *riinfo, bool rel_is_pk,
-				 Datum *vals, char *nulls);
-static void ri_ReportViolation(const RI_ConstraintInfo *riinfo,
+				 const RI_ConstraintInfo * riinfo, bool rel_is_pk,
+				 Datum * vals, char *nulls);
+static void ri_ReportViolation(const RI_ConstraintInfo * riinfo,
 				   Relation pk_rel, Relation fk_rel,
 				   HeapTuple violator, TupleDesc tupdesc,
 				   int queryno, bool spi_err);
@@ -251,9 +251,9 @@ static void ri_ReportViolation(const RI_ConstraintInfo *riinfo,
  * ----------
  */
 static Datum
-RI_FKey_check(TriggerData *trigdata)
+RI_FKey_check(TriggerData * trigdata)
 {
-	const RI_ConstraintInfo *riinfo;
+	const		RI_ConstraintInfo *riinfo;
 	Relation	fk_rel;
 	Relation	pk_rel;
 	HeapTuple	new_row;
@@ -508,7 +508,7 @@ RI_FKey_check_upd(PG_FUNCTION_ARGS)
 static bool
 ri_Check_Pk_Match(Relation pk_rel, Relation fk_rel,
 				  HeapTuple old_row,
-				  const RI_ConstraintInfo *riinfo)
+				  const RI_ConstraintInfo * riinfo)
 {
 	SPIPlanPtr	qplan;
 	RI_QueryKey qkey;
@@ -639,9 +639,9 @@ RI_FKey_restrict_del(PG_FUNCTION_ARGS)
  * ----------
  */
 static Datum
-ri_restrict_del(TriggerData *trigdata, bool is_no_action)
+ri_restrict_del(TriggerData * trigdata, bool is_no_action)
 {
-	const RI_ConstraintInfo *riinfo;
+	const		RI_ConstraintInfo *riinfo;
 	Relation	fk_rel;
 	Relation	pk_rel;
 	HeapTuple	old_row;
@@ -851,9 +851,9 @@ RI_FKey_restrict_upd(PG_FUNCTION_ARGS)
  * ----------
  */
 static Datum
-ri_restrict_upd(TriggerData *trigdata, bool is_no_action)
+ri_restrict_upd(TriggerData * trigdata, bool is_no_action)
 {
-	const RI_ConstraintInfo *riinfo;
+	const		RI_ConstraintInfo *riinfo;
 	Relation	fk_rel;
 	Relation	pk_rel;
 	HeapTuple	new_row;
@@ -1030,7 +1030,7 @@ Datum
 RI_FKey_cascade_del(PG_FUNCTION_ARGS)
 {
 	TriggerData *trigdata = (TriggerData *) fcinfo->context;
-	const RI_ConstraintInfo *riinfo;
+	const		RI_ConstraintInfo *riinfo;
 	Relation	fk_rel;
 	Relation	pk_rel;
 	HeapTuple	old_row;
@@ -1186,7 +1186,7 @@ Datum
 RI_FKey_cascade_upd(PG_FUNCTION_ARGS)
 {
 	TriggerData *trigdata = (TriggerData *) fcinfo->context;
-	const RI_ConstraintInfo *riinfo;
+	const		RI_ConstraintInfo *riinfo;
 	Relation	fk_rel;
 	Relation	pk_rel;
 	HeapTuple	new_row;
@@ -1367,7 +1367,7 @@ Datum
 RI_FKey_setnull_del(PG_FUNCTION_ARGS)
 {
 	TriggerData *trigdata = (TriggerData *) fcinfo->context;
-	const RI_ConstraintInfo *riinfo;
+	const		RI_ConstraintInfo *riinfo;
 	Relation	fk_rel;
 	Relation	pk_rel;
 	HeapTuple	old_row;
@@ -1532,7 +1532,7 @@ Datum
 RI_FKey_setnull_upd(PG_FUNCTION_ARGS)
 {
 	TriggerData *trigdata = (TriggerData *) fcinfo->context;
-	const RI_ConstraintInfo *riinfo;
+	const		RI_ConstraintInfo *riinfo;
 	Relation	fk_rel;
 	Relation	pk_rel;
 	HeapTuple	new_row;
@@ -1708,7 +1708,7 @@ Datum
 RI_FKey_setdefault_del(PG_FUNCTION_ARGS)
 {
 	TriggerData *trigdata = (TriggerData *) fcinfo->context;
-	const RI_ConstraintInfo *riinfo;
+	const		RI_ConstraintInfo *riinfo;
 	Relation	fk_rel;
 	Relation	pk_rel;
 	HeapTuple	old_row;
@@ -1888,7 +1888,7 @@ Datum
 RI_FKey_setdefault_upd(PG_FUNCTION_ARGS)
 {
 	TriggerData *trigdata = (TriggerData *) fcinfo->context;
-	const RI_ConstraintInfo *riinfo;
+	const		RI_ConstraintInfo *riinfo;
 	Relation	fk_rel;
 	Relation	pk_rel;
 	HeapTuple	new_row;
@@ -2080,10 +2080,10 @@ RI_FKey_setdefault_upd(PG_FUNCTION_ARGS)
  * ----------
  */
 bool
-RI_FKey_pk_upd_check_required(Trigger *trigger, Relation pk_rel,
+RI_FKey_pk_upd_check_required(Trigger * trigger, Relation pk_rel,
 							  HeapTuple old_row, HeapTuple new_row)
 {
-	const RI_ConstraintInfo *riinfo;
+	const		RI_ConstraintInfo *riinfo;
 
 	/*
 	 * Get arguments.
@@ -2137,10 +2137,10 @@ RI_FKey_pk_upd_check_required(Trigger *trigger, Relation pk_rel,
  * ----------
  */
 bool
-RI_FKey_fk_upd_check_required(Trigger *trigger, Relation fk_rel,
+RI_FKey_fk_upd_check_required(Trigger * trigger, Relation fk_rel,
 							  HeapTuple old_row, HeapTuple new_row)
 {
-	const RI_ConstraintInfo *riinfo;
+	const		RI_ConstraintInfo *riinfo;
 
 	/*
 	 * Get arguments.
@@ -2250,9 +2250,9 @@ RI_FKey_fk_upd_check_required(Trigger *trigger, Relation fk_rel,
  * ----------
  */
 bool
-RI_Initial_Check(Trigger *trigger, Relation fk_rel, Relation pk_rel)
+RI_Initial_Check(Trigger * trigger, Relation fk_rel, Relation pk_rel)
 {
-	const RI_ConstraintInfo *riinfo;
+	const		RI_ConstraintInfo *riinfo;
 	StringInfoData querybuf;
 	char		pkrelname[MAX_QUOTED_REL_NAME_LEN];
 	char		fkrelname[MAX_QUOTED_REL_NAME_LEN];
@@ -2632,7 +2632,7 @@ ri_GenerateQualCollation(StringInfo buf, Oid collation)
  * ----------
  */
 static void
-ri_BuildQueryKey(RI_QueryKey *key, const RI_ConstraintInfo *riinfo,
+ri_BuildQueryKey(RI_QueryKey * key, const RI_ConstraintInfo * riinfo,
 				 int32 constr_queryno)
 {
 	/*
@@ -2693,10 +2693,10 @@ ri_CheckTrigger(FunctionCallInfo fcinfo, const char *funcname, int tgkind)
  * Fetch the RI_ConstraintInfo struct for the trigger's FK constraint.
  */
 static const RI_ConstraintInfo *
-ri_FetchConstraintInfo(Trigger *trigger, Relation trig_rel, bool rel_is_pk)
+ri_FetchConstraintInfo(Trigger * trigger, Relation trig_rel, bool rel_is_pk)
 {
 	Oid			constraintOid = trigger->tgconstraint;
-	const RI_ConstraintInfo *riinfo;
+	const		RI_ConstraintInfo *riinfo;
 
 	/*
 	 * Check that the FK constraint's OID is available; it might not be if
@@ -2933,8 +2933,8 @@ InvalidateConstraintCacheCallBack(Datum arg, int cacheid, uint32 hashvalue)
  * so that we don't need to plan it again.
  */
 static SPIPlanPtr
-ri_PlanCheck(const char *querystr, int nargs, Oid *argtypes,
-			 RI_QueryKey *qkey, Relation fk_rel, Relation pk_rel,
+ri_PlanCheck(const char *querystr, int nargs, Oid * argtypes,
+			 RI_QueryKey * qkey, Relation fk_rel, Relation pk_rel,
 			 bool cache_plan)
 {
 	SPIPlanPtr	qplan;
@@ -2980,8 +2980,8 @@ ri_PlanCheck(const char *querystr, int nargs, Oid *argtypes,
  * Perform a query to enforce an RI restriction
  */
 static bool
-ri_PerformCheck(const RI_ConstraintInfo *riinfo,
-				RI_QueryKey *qkey, SPIPlanPtr qplan,
+ri_PerformCheck(const RI_ConstraintInfo * riinfo,
+				RI_QueryKey * qkey, SPIPlanPtr qplan,
 				Relation fk_rel, Relation pk_rel,
 				HeapTuple old_tuple, HeapTuple new_tuple,
 				bool detectNewRows, int expect_OK)
@@ -3116,11 +3116,11 @@ ri_PerformCheck(const RI_ConstraintInfo *riinfo,
  */
 static void
 ri_ExtractValues(Relation rel, HeapTuple tup,
-				 const RI_ConstraintInfo *riinfo, bool rel_is_pk,
-				 Datum *vals, char *nulls)
+				 const RI_ConstraintInfo * riinfo, bool rel_is_pk,
+				 Datum * vals, char *nulls)
 {
 	TupleDesc	tupdesc = rel->rd_att;
-	const int16 *attnums;
+	const		int16 *attnums;
 	int			i;
 	bool		isnull;
 
@@ -3147,7 +3147,7 @@ ri_ExtractValues(Relation rel, HeapTuple tup,
  * message looks like 'key blah is still referenced from FK'.
  */
 static void
-ri_ReportViolation(const RI_ConstraintInfo *riinfo,
+ri_ReportViolation(const RI_ConstraintInfo * riinfo,
 				   Relation pk_rel, Relation fk_rel,
 				   HeapTuple violator, TupleDesc tupdesc,
 				   int queryno, bool spi_err)
@@ -3155,7 +3155,7 @@ ri_ReportViolation(const RI_ConstraintInfo *riinfo,
 	StringInfoData key_names;
 	StringInfoData key_values;
 	bool		onfk;
-	const int16 *attnums;
+	const		int16 *attnums;
 	int			idx;
 	Oid			rel_oid;
 	AclResult	aclresult;
@@ -3291,9 +3291,9 @@ ri_ReportViolation(const RI_ConstraintInfo *riinfo,
  */
 static int
 ri_NullCheck(HeapTuple tup,
-			 const RI_ConstraintInfo *riinfo, bool rel_is_pk)
+			 const RI_ConstraintInfo * riinfo, bool rel_is_pk)
 {
-	const int16 *attnums;
+	const		int16 *attnums;
 	int			i;
 	bool		allnull = true;
 	bool		nonenull = true;
@@ -3368,7 +3368,7 @@ ri_InitHashTables(void)
  * ----------
  */
 static SPIPlanPtr
-ri_FetchPreparedPlan(RI_QueryKey *key)
+ri_FetchPreparedPlan(RI_QueryKey * key)
 {
 	RI_QueryHashEntry *entry;
 	SPIPlanPtr	plan;
@@ -3421,7 +3421,7 @@ ri_FetchPreparedPlan(RI_QueryKey *key)
  * ----------
  */
 static void
-ri_HashPreparedPlan(RI_QueryKey *key, SPIPlanPtr plan)
+ri_HashPreparedPlan(RI_QueryKey * key, SPIPlanPtr plan)
 {
 	RI_QueryHashEntry *entry;
 	bool		found;
@@ -3457,11 +3457,11 @@ ri_HashPreparedPlan(RI_QueryKey *key, SPIPlanPtr plan)
  */
 static bool
 ri_KeysEqual(Relation rel, HeapTuple oldtup, HeapTuple newtup,
-			 const RI_ConstraintInfo *riinfo, bool rel_is_pk)
+			 const RI_ConstraintInfo * riinfo, bool rel_is_pk)
 {
 	TupleDesc	tupdesc = RelationGetDescr(rel);
-	const int16 *attnums;
-	const Oid  *eq_oprs;
+	const		int16 *attnums;
+	const		Oid *eq_oprs;
 	int			i;
 
 	if (rel_is_pk)

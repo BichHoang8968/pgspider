@@ -77,20 +77,20 @@ typedef struct
 	/* the rest is opaque pointers to hidden innards */
 	char	   *re_guts;		/* `char *' is more portable than `void *' */
 	char	   *re_fns;
-} regex_t;
+}			regex_t;
 
 /* result reporting (may acquire more fields later) */
 typedef struct
 {
 	regoff_t	rm_so;			/* start of substring */
 	regoff_t	rm_eo;			/* end of substring */
-} regmatch_t;
+}			regmatch_t;
 
 /* supplementary control and reporting */
 typedef struct
 {
 	regmatch_t	rm_extend;		/* see REG_EXPECT */
-} rm_detail_t;
+}			rm_detail_t;
 
 
 
@@ -169,7 +169,7 @@ typedef struct
  */
 extern int	pg_regcomp(regex_t *, const pg_wchar *, size_t, int, Oid);
 extern int	pg_regexec(regex_t *, const pg_wchar *, size_t, size_t, rm_detail_t *, size_t, regmatch_t[], int);
-extern int	pg_regprefix(regex_t *, pg_wchar **, size_t *);
+extern int	pg_regprefix(regex_t *, pg_wchar * *, size_t *);
 extern void pg_regfree(regex_t *);
 extern size_t pg_regerror(int, const regex_t *, char *, size_t);
 

@@ -312,7 +312,7 @@ typedef struct BoolAggState
 {
 	int64		aggcount;		/* number of non-null values aggregated */
 	int64		aggtrue;		/* number of values aggregated that are true */
-} BoolAggState;
+}			BoolAggState;
 
 static BoolAggState *
 makeBoolAggState(FunctionCallInfo fcinfo)

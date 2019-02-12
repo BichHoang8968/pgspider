@@ -58,12 +58,12 @@ static bool current_query_sampled = true;
 void		_PG_init(void);
 void		_PG_fini(void);
 
-static void explain_ExecutorStart(QueryDesc *queryDesc, int eflags);
-static void explain_ExecutorRun(QueryDesc *queryDesc,
+static void explain_ExecutorStart(QueryDesc * queryDesc, int eflags);
+static void explain_ExecutorRun(QueryDesc * queryDesc,
 					ScanDirection direction,
 					uint64 count, bool execute_once);
-static void explain_ExecutorFinish(QueryDesc *queryDesc);
-static void explain_ExecutorEnd(QueryDesc *queryDesc);
+static void explain_ExecutorFinish(QueryDesc * queryDesc);
+static void explain_ExecutorEnd(QueryDesc * queryDesc);
 
 
 /*
@@ -206,7 +206,7 @@ _PG_fini(void)
  * ExecutorStart hook: start up logging if needed
  */
 static void
-explain_ExecutorStart(QueryDesc *queryDesc, int eflags)
+explain_ExecutorStart(QueryDesc * queryDesc, int eflags)
 {
 	/*
 	 * For rate sampling, randomly choose top-level statement. Either all
@@ -257,7 +257,7 @@ explain_ExecutorStart(QueryDesc *queryDesc, int eflags)
  * ExecutorRun hook: all we need do is track nesting depth
  */
 static void
-explain_ExecutorRun(QueryDesc *queryDesc, ScanDirection direction,
+explain_ExecutorRun(QueryDesc * queryDesc, ScanDirection direction,
 					uint64 count, bool execute_once)
 {
 	nesting_level++;
@@ -281,7 +281,7 @@ explain_ExecutorRun(QueryDesc *queryDesc, ScanDirection direction,
  * ExecutorFinish hook: all we need do is track nesting depth
  */
 static void
-explain_ExecutorFinish(QueryDesc *queryDesc)
+explain_ExecutorFinish(QueryDesc * queryDesc)
 {
 	nesting_level++;
 	PG_TRY();
@@ -304,7 +304,7 @@ explain_ExecutorFinish(QueryDesc *queryDesc)
  * ExecutorEnd hook: log results if needed
  */
 static void
-explain_ExecutorEnd(QueryDesc *queryDesc)
+explain_ExecutorEnd(QueryDesc * queryDesc)
 {
 	if (queryDesc->totaltime && auto_explain_enabled() && current_query_sampled)
 	{

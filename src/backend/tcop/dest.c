@@ -47,18 +47,18 @@
  * ----------------
  */
 static bool
-donothingReceive(TupleTableSlot *slot, DestReceiver *self)
+donothingReceive(TupleTableSlot * slot, DestReceiver * self)
 {
 	return true;
 }
 
 static void
-donothingStartup(DestReceiver *self, int operation, TupleDesc typeinfo)
+donothingStartup(DestReceiver * self, int operation, TupleDesc typeinfo)
 {
 }
 
 static void
-donothingCleanup(DestReceiver *self)
+donothingCleanup(DestReceiver * self)
 {
 	/* this is used for both shutdown and destroy methods */
 }
@@ -67,24 +67,28 @@ donothingCleanup(DestReceiver *self)
  *		static DestReceiver structs for dest types needing no local state
  * ----------------
  */
-static DestReceiver donothingDR = {
+static DestReceiver donothingDR =
+{
 	donothingReceive, donothingStartup, donothingCleanup, donothingCleanup,
-	DestNone
+		DestNone
 };
 
-static DestReceiver debugtupDR = {
+static DestReceiver debugtupDR =
+{
 	debugtup, debugStartup, donothingCleanup, donothingCleanup,
-	DestDebug
+		DestDebug
 };
 
-static DestReceiver printsimpleDR = {
+static DestReceiver printsimpleDR =
+{
 	printsimple, printsimple_startup, donothingCleanup, donothingCleanup,
-	DestRemoteSimple
+		DestRemoteSimple
 };
 
-static DestReceiver spi_printtupDR = {
+static DestReceiver spi_printtupDR =
+{
 	spi_printtup, spi_dest_startup, donothingCleanup, donothingCleanup,
-	DestSPI
+		DestSPI
 };
 
 /* Globally available receiver for DestNone */

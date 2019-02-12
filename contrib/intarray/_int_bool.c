@@ -29,7 +29,7 @@ typedef struct NODE
 	int32		type;
 	int32		val;
 	struct NODE *next;
-} NODE;
+}			NODE;
 
 typedef struct
 {
@@ -40,13 +40,13 @@ typedef struct
 	NODE	   *str;
 	/* number in str */
 	int32		num;
-} WORKSTATE;
+}			WORKSTATE;
 
 /*
  * get token from query string
  */
 static int32
-gettoken(WORKSTATE *state, int32 *val)
+gettoken(WORKSTATE * state, int32 * val)
 {
 	char		nnn[16];
 	int			innn;
@@ -107,7 +107,7 @@ gettoken(WORKSTATE *state, int32 *val)
 				if (*(state->buf) == '&' || *(state->buf) == '|')
 				{
 					state->state = WAITOPERAND;
-					*val = (int32) *(state->buf);
+					*val = (int32) * (state->buf);
 					(state->buf)++;
 					return OPR;
 				}
@@ -134,7 +134,7 @@ gettoken(WORKSTATE *state, int32 *val)
  * push new one in polish notation reverse view
  */
 static void
-pushquery(WORKSTATE *state, int32 type, int32 val)
+pushquery(WORKSTATE * state, int32 type, int32 val)
 {
 	NODE	   *tmp = (NODE *) palloc(sizeof(NODE));
 
@@ -151,7 +151,7 @@ pushquery(WORKSTATE *state, int32 type, int32 val)
  * make polish notation of query
  */
 static int32
-makepol(WORKSTATE *state)
+makepol(WORKSTATE * state)
 {
 	int32		val,
 				type;
@@ -227,13 +227,13 @@ typedef struct
 {
 	int32	   *arrb;
 	int32	   *arre;
-} CHKVAL;
+}			CHKVAL;
 
 /*
  * is there value 'val' in (sorted) array or not ?
  */
 static bool
-checkcondition_arr(void *checkval, ITEM *item)
+checkcondition_arr(void *checkval, ITEM * item)
 {
 	int32	   *StopLow = ((CHKVAL *) checkval)->arrb;
 	int32	   *StopHigh = ((CHKVAL *) checkval)->arre;
@@ -255,7 +255,7 @@ checkcondition_arr(void *checkval, ITEM *item)
 }
 
 static bool
-checkcondition_bit(void *checkval, ITEM *item)
+checkcondition_bit(void *checkval, ITEM * item)
 {
 	return GETBIT(checkval, HASHVAL(item->val));
 }
@@ -264,8 +264,8 @@ checkcondition_bit(void *checkval, ITEM *item)
  * evaluate boolean expression, using chkcond() to test the primitive cases
  */
 static bool
-execute(ITEM *curitem, void *checkval, bool calcnot,
-		bool (*chkcond) (void *checkval, ITEM *item))
+execute(ITEM * curitem, void *checkval, bool calcnot,
+		bool (*chkcond) (void *checkval, ITEM * item))
 {
 	/* since this function recurses, it could be driven to stack overflow */
 	check_stack_depth();
@@ -298,7 +298,7 @@ execute(ITEM *curitem, void *checkval, bool calcnot,
  * signconsistent & execconsistent called by *_consistent
  */
 bool
-signconsistent(QUERYTYPE *query, BITVEC sign, bool calcnot)
+signconsistent(QUERYTYPE * query, BITVEC sign, bool calcnot)
 {
 	return execute(GETQUERY(query) + query->size - 1,
 				   (void *) sign, calcnot,
@@ -307,7 +307,7 @@ signconsistent(QUERYTYPE *query, BITVEC sign, bool calcnot)
 
 /* Array must be sorted! */
 bool
-execconsistent(QUERYTYPE *query, ArrayType *array, bool calcnot)
+execconsistent(QUERYTYPE * query, ArrayType * array, bool calcnot)
 {
 	CHKVAL		chkval;
 
@@ -323,10 +323,10 @@ typedef struct
 {
 	ITEM	   *first;
 	bool	   *mapped_check;
-} GinChkVal;
+}			GinChkVal;
 
 static bool
-checkcondition_gin(void *checkval, ITEM *item)
+checkcondition_gin(void *checkval, ITEM * item)
 {
 	GinChkVal  *gcv = (GinChkVal *) checkval;
 
@@ -334,7 +334,7 @@ checkcondition_gin(void *checkval, ITEM *item)
 }
 
 bool
-gin_bool_consistent(QUERYTYPE *query, bool *check)
+gin_bool_consistent(QUERYTYPE * query, bool *check)
 {
 	GinChkVal	gcv;
 	ITEM	   *items = GETQUERY(query);
@@ -362,7 +362,7 @@ gin_bool_consistent(QUERYTYPE *query, bool *check)
 }
 
 static bool
-contains_required_value(ITEM *curitem)
+contains_required_value(ITEM * curitem)
 {
 	/* since this function recurses, it could be driven to stack overflow */
 	check_stack_depth();
@@ -397,7 +397,7 @@ contains_required_value(ITEM *curitem)
 }
 
 bool
-query_has_required_values(QUERYTYPE *query)
+query_has_required_values(QUERYTYPE * query)
 {
 	if (query->size <= 0)
 		return false;
@@ -438,7 +438,7 @@ boolop(PG_FUNCTION_ARGS)
 }
 
 static void
-findoprnd(ITEM *ptr, int32 *pos)
+findoprnd(ITEM * ptr, int32 * pos)
 {
 	/* since this function recurses, it could be driven to stack overflow. */
 	check_stack_depth();
@@ -552,7 +552,7 @@ typedef struct
 	char	   *buf;
 	char	   *cur;
 	int32		buflen;
-} INFIX;
+}			INFIX;
 
 #define RESIZEBUF(inf,addsize) while( ( (inf)->cur - (inf)->buf ) + (addsize) + 1 >= (inf)->buflen ) { \
 	int32 len = inf->cur - inf->buf; \
@@ -562,7 +562,7 @@ typedef struct
 }
 
 static void
-infix(INFIX *in, bool first)
+infix(INFIX * in, bool first)
 {
 	/* since this function recurses, it could be driven to stack overflow. */
 	check_stack_depth();

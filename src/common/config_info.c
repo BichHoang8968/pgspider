@@ -30,7 +30,7 @@
  * for pfreeing the result.
  */
 ConfigData *
-get_configdata(const char *my_exec_path, size_t *configdata_len)
+get_configdata(const char *my_exec_path, size_t * configdata_len)
 {
 	ConfigData *configdata;
 	char		path[MAXPGPATH];

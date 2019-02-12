@@ -10,7 +10,7 @@
 
 /* arguments are assumed sorted & unique-ified */
 bool
-inner_int_contains(ArrayType *a, ArrayType *b)
+inner_int_contains(ArrayType * a, ArrayType * b)
 {
 	int			na,
 				nb;
@@ -45,7 +45,7 @@ inner_int_contains(ArrayType *a, ArrayType *b)
 
 /* arguments are assumed sorted */
 bool
-inner_int_overlap(ArrayType *a, ArrayType *b)
+inner_int_overlap(ArrayType * a, ArrayType * b)
 {
 	int			na,
 				nb;
@@ -74,7 +74,7 @@ inner_int_overlap(ArrayType *a, ArrayType *b)
 }
 
 ArrayType *
-inner_int_union(ArrayType *a, ArrayType *b)
+inner_int_union(ArrayType * a, ArrayType * b)
 {
 	ArrayType  *r = NULL;
 
@@ -131,7 +131,7 @@ inner_int_union(ArrayType *a, ArrayType *b)
 }
 
 ArrayType *
-inner_int_inter(ArrayType *a, ArrayType *b)
+inner_int_inter(ArrayType * a, ArrayType * b)
 {
 	ArrayType  *r;
 	int			na,
@@ -179,7 +179,7 @@ inner_int_inter(ArrayType *a, ArrayType *b)
 }
 
 void
-rt__int_size(ArrayType *a, float *size)
+rt__int_size(ArrayType * a, float *size)
 {
 	*size = (float) ARRNELEMS(a);
 }
@@ -207,7 +207,7 @@ isort_cmp(const void *a, const void *b, void *arg)
 
 /* Sort the given data (len >= 2).  Return true if any duplicates found */
 bool
-isort(int32 *a, int len)
+isort(int32 * a, int len)
 {
 	bool		r = false;
 
@@ -235,7 +235,7 @@ new_intArrayType(int num)
 }
 
 ArrayType *
-resize_intArrayType(ArrayType *a, int num)
+resize_intArrayType(ArrayType * a, int num)
 {
 	int			nbytes = ARR_DATA_OFFSET(a) + sizeof(int) * num;
 	int			i;
@@ -263,7 +263,7 @@ resize_intArrayType(ArrayType *a, int num)
 }
 
 ArrayType *
-copy_intArrayType(ArrayType *a)
+copy_intArrayType(ArrayType * a)
 {
 	ArrayType  *r;
 	int			n = ARRNELEMS(a);
@@ -291,7 +291,7 @@ internal_size(int *a, int len)
 
 /* unique-ify elements of r in-place ... r must be sorted already */
 ArrayType *
-_int_unique(ArrayType *r)
+_int_unique(ArrayType * r)
 {
 	int		   *tmp,
 			   *dr,
@@ -326,7 +326,7 @@ gensign(BITVEC sign, int *a, int len)
 }
 
 int32
-intarray_match_first(ArrayType *a, int32 elem)
+intarray_match_first(ArrayType * a, int32 elem)
 {
 	int32	   *aa,
 				c,
@@ -342,7 +342,7 @@ intarray_match_first(ArrayType *a, int32 elem)
 }
 
 ArrayType *
-intarray_add_elem(ArrayType *a, int32 elem)
+intarray_add_elem(ArrayType * a, int32 elem)
 {
 	ArrayType  *result;
 	int32	   *r;
@@ -359,7 +359,7 @@ intarray_add_elem(ArrayType *a, int32 elem)
 }
 
 ArrayType *
-intarray_concat_arrays(ArrayType *a, ArrayType *b)
+intarray_concat_arrays(ArrayType * a, ArrayType * b)
 {
 	ArrayType  *result;
 	int32		ac = ARRNELEMS(a);

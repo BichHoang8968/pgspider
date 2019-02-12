@@ -32,7 +32,7 @@
  * Also, set *isfind true if we make a replacement.
  */
 static QTNode *
-findeq(QTNode *node, QTNode *ex, QTNode *subs, bool *isfind)
+findeq(QTNode * node, QTNode * ex, QTNode * subs, bool *isfind)
 {
 	/* Can't match unless signature matches and node type matches. */
 	if ((node->sign & ex->sign) != ex->sign ||
@@ -203,7 +203,7 @@ findeq(QTNode *node, QTNode *ex, QTNode *subs, bool *isfind)
  *	   6	5
  */
 static QTNode *
-dofindsubquery(QTNode *root, QTNode *ex, QTNode *subs, bool *isfind)
+dofindsubquery(QTNode * root, QTNode * ex, QTNode * subs, bool *isfind)
 {
 	/* since this function recurses, it could be driven to stack overflow. */
 	check_stack_depth();
@@ -264,7 +264,7 @@ dofindsubquery(QTNode *root, QTNode *ex, QTNode *subs, bool *isfind)
  * to ensure reliable matching.
  */
 QTNode *
-findsubquery(QTNode *root, QTNode *ex, QTNode *subs, bool *isfind)
+findsubquery(QTNode * root, QTNode * ex, QTNode * subs, bool *isfind)
 {
 	bool		DidFind = false;
 

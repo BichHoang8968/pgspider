@@ -31,11 +31,11 @@
 extern Size SInvalShmemSize(void);
 extern void CreateSharedInvalidationState(void);
 extern void SharedInvalBackendInit(bool sendOnly);
-extern PGPROC *BackendIdGetProc(int backendID);
-extern void BackendIdGetTransactionIds(int backendID, TransactionId *xid, TransactionId *xmin);
+extern PGPROC * BackendIdGetProc(int backendID);
+extern void BackendIdGetTransactionIds(int backendID, TransactionId * xid, TransactionId * xmin);
 
-extern void SIInsertDataEntries(const SharedInvalidationMessage *data, int n);
-extern int	SIGetDataEntries(SharedInvalidationMessage *data, int datasize);
+extern void SIInsertDataEntries(const SharedInvalidationMessage * data, int n);
+extern int	SIGetDataEntries(SharedInvalidationMessage * data, int datasize);
 extern void SICleanupQueue(bool callerHasWriteLock, int minFree);
 
 extern LocalTransactionId GetNextLocalTransactionId(void);

@@ -38,9 +38,9 @@ typedef struct StringInfoData
 	int			len;
 	int			maxlen;
 	int			cursor;
-} StringInfoData;
+}			StringInfoData;
 
-typedef StringInfoData *StringInfo;
+typedef StringInfoData * StringInfo;
 
 
 /*------------------------

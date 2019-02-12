@@ -37,7 +37,7 @@ typedef struct
 	int			min_varlevel;
 	int			min_agglevel;
 	int			sublevels_up;
-} check_agg_arguments_context;
+}			check_agg_arguments_context;
 
 typedef struct
 {
@@ -50,28 +50,28 @@ typedef struct
 	List	  **func_grouped_rels;
 	int			sublevels_up;
 	bool		in_agg_direct_args;
-} check_ungrouped_columns_context;
+}			check_ungrouped_columns_context;
 
-static int check_agg_arguments(ParseState *pstate,
-					List *directargs,
-					List *args,
-					Expr *filter);
-static bool check_agg_arguments_walker(Node *node,
-						   check_agg_arguments_context *context);
-static void check_ungrouped_columns(Node *node, ParseState *pstate, Query *qry,
-						List *groupClauses, List *groupClauseVars,
+static int check_agg_arguments(ParseState * pstate,
+					List * directargs,
+					List * args,
+					Expr * filter);
+static bool check_agg_arguments_walker(Node * node,
+						   check_agg_arguments_context * context);
+static void check_ungrouped_columns(Node * node, ParseState * pstate, Query * qry,
+						List * groupClauses, List * groupClauseVars,
 						bool have_non_var_grouping,
-						List **func_grouped_rels);
-static bool check_ungrouped_columns_walker(Node *node,
-							   check_ungrouped_columns_context *context);
-static void finalize_grouping_exprs(Node *node, ParseState *pstate, Query *qry,
-						List *groupClauses, PlannerInfo *root,
+						List * *func_grouped_rels);
+static bool check_ungrouped_columns_walker(Node * node,
+							   check_ungrouped_columns_context * context);
+static void finalize_grouping_exprs(Node * node, ParseState * pstate, Query * qry,
+						List * groupClauses, PlannerInfo * root,
 						bool have_non_var_grouping);
-static bool finalize_grouping_exprs_walker(Node *node,
-							   check_ungrouped_columns_context *context);
-static void check_agglevels_and_constraints(ParseState *pstate, Node *expr);
-static List *expand_groupingset_node(GroupingSet *gs);
-static Node *make_agg_arg(Oid argtype, Oid argcollation);
+static bool finalize_grouping_exprs_walker(Node * node,
+							   check_ungrouped_columns_context * context);
+static void check_agglevels_and_constraints(ParseState * pstate, Node * expr);
+static List * expand_groupingset_node(GroupingSet * gs);
+static Node * make_agg_arg(Oid argtype, Oid argcollation);
 
 
 /*
@@ -100,8 +100,8 @@ static Node *make_agg_arg(Oid argtype, Oid argcollation);
  * pstate level.
  */
 void
-transformAggregateCall(ParseState *pstate, Aggref *agg,
-					   List *args, List *aggorder, bool agg_distinct)
+transformAggregateCall(ParseState * pstate, Aggref * agg,
+					   List * args, List * aggorder, bool agg_distinct)
 {
 	List	   *argtypes = NIL;
 	List	   *tlist = NIL;
@@ -245,7 +245,7 @@ transformAggregateCall(ParseState *pstate, Aggref *agg,
  * is done as for aggregates.  We set p_hasAggs for these expressions too.
  */
 Node *
-transformGroupingFunc(ParseState *pstate, GroupingFunc *p)
+transformGroupingFunc(ParseState * pstate, GroupingFunc * p)
 {
 	ListCell   *lc;
 	List	   *args = p->args;
@@ -284,7 +284,7 @@ transformGroupingFunc(ParseState *pstate, GroupingFunc *p)
  * Centralise those restrictions here.
  */
 static void
-check_agglevels_and_constraints(ParseState *pstate, Node *expr)
+check_agglevels_and_constraints(ParseState * pstate, Node * expr)
 {
 	List	   *directargs = NIL;
 	List	   *args = NIL;
@@ -566,10 +566,10 @@ check_agglevels_and_constraints(ParseState *pstate, Node *expr)
  * which we can't know until we finish scanning the arguments.
  */
 static int
-check_agg_arguments(ParseState *pstate,
-					List *directargs,
-					List *args,
-					Expr *filter)
+check_agg_arguments(ParseState * pstate,
+					List * directargs,
+					List * args,
+					Expr * filter)
 {
 	int			agglevel;
 	check_agg_arguments_context context;
@@ -654,8 +654,8 @@ check_agg_arguments(ParseState *pstate,
 }
 
 static bool
-check_agg_arguments_walker(Node *node,
-						   check_agg_arguments_context *context)
+check_agg_arguments_walker(Node * node,
+						   check_agg_arguments_context * context)
 {
 	if (node == NULL)
 		return false;
@@ -713,8 +713,8 @@ check_agg_arguments_walker(Node *node,
 	 */
 	if (context->sublevels_up == 0)
 	{
-		if ((IsA(node, FuncExpr) &&((FuncExpr *) node)->funcretset) ||
-			(IsA(node, OpExpr) &&((OpExpr *) node)->opretset))
+		if ((IsA(node, FuncExpr) && ((FuncExpr *) node)->funcretset) ||
+			(IsA(node, OpExpr) && ((OpExpr *) node)->opretset))
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("aggregate function calls cannot contain set-returning function calls"),
@@ -758,8 +758,8 @@ check_agg_arguments_walker(Node *node,
  * considered --- there are no "outer window functions" per SQL spec.
  */
 void
-transformWindowFuncCall(ParseState *pstate, WindowFunc *wfunc,
-						WindowDef *windef)
+transformWindowFuncCall(ParseState * pstate, WindowFunc * wfunc,
+						WindowDef * windef)
 {
 	const char *err;
 	bool		errkind;
@@ -989,7 +989,7 @@ transformWindowFuncCall(ParseState *pstate, WindowFunc *wfunc,
  *	query for that.
  */
 void
-parseCheckAggregates(ParseState *pstate, Query *qry)
+parseCheckAggregates(ParseState * pstate, Query * qry)
 {
 	List	   *gset_common = NIL;
 	List	   *groupClauses = NIL;
@@ -1196,10 +1196,10 @@ parseCheckAggregates(ParseState *pstate, Query *qry)
  * way more pain than the feature seems worth.
  */
 static void
-check_ungrouped_columns(Node *node, ParseState *pstate, Query *qry,
-						List *groupClauses, List *groupClauseCommonVars,
+check_ungrouped_columns(Node * node, ParseState * pstate, Query * qry,
+						List * groupClauses, List * groupClauseCommonVars,
 						bool have_non_var_grouping,
-						List **func_grouped_rels)
+						List * *func_grouped_rels)
 {
 	check_ungrouped_columns_context context;
 
@@ -1216,8 +1216,8 @@ check_ungrouped_columns(Node *node, ParseState *pstate, Query *qry,
 }
 
 static bool
-check_ungrouped_columns_walker(Node *node,
-							   check_ungrouped_columns_context *context)
+check_ungrouped_columns_walker(Node * node,
+							   check_ungrouped_columns_context * context)
 {
 	ListCell   *gl;
 
@@ -1404,8 +1404,8 @@ check_ungrouped_columns_walker(Node *node,
  * GROUPING argument as we see it before comparing it.
  */
 static void
-finalize_grouping_exprs(Node *node, ParseState *pstate, Query *qry,
-						List *groupClauses, PlannerInfo *root,
+finalize_grouping_exprs(Node * node, ParseState * pstate, Query * qry,
+						List * groupClauses, PlannerInfo * root,
 						bool have_non_var_grouping)
 {
 	check_ungrouped_columns_context context;
@@ -1423,8 +1423,8 @@ finalize_grouping_exprs(Node *node, ParseState *pstate, Query *qry,
 }
 
 static bool
-finalize_grouping_exprs_walker(Node *node,
-							   check_ungrouped_columns_context *context)
+finalize_grouping_exprs_walker(Node * node,
+							   check_ungrouped_columns_context * context)
 {
 	ListCell   *gl;
 
@@ -1578,7 +1578,7 @@ finalize_grouping_exprs_walker(Node *node,
  * For SET nodes, recursively expand contained CUBE and ROLLUP.
  */
 static List *
-expand_groupingset_node(GroupingSet *gs)
+expand_groupingset_node(GroupingSet * gs)
 {
 	List	   *result = NIL;
 
@@ -1685,8 +1685,8 @@ expand_groupingset_node(GroupingSet *gs)
 static int
 cmp_list_len_asc(const void *a, const void *b)
 {
-	int			la = list_length(*(List *const *) a);
-	int			lb = list_length(*(List *const *) b);
+	int			la = list_length(*(List * const *) a);
+	int			lb = list_length(*(List * const *) b);
 
 	return (la > lb) ? 1 : (la == lb) ? 0 : -1;
 }
@@ -1699,7 +1699,7 @@ cmp_list_len_asc(const void *a, const void *b)
  * some consistency checks.
  */
 List *
-expand_grouping_sets(List *groupingSets, int limit)
+expand_grouping_sets(List * groupingSets, int limit)
 {
 	List	   *expanded_groups = NIL;
 	List	   *result = NIL;
@@ -1798,7 +1798,7 @@ expand_grouping_sets(List *groupingSets, int limit)
  * The function result is the number of actual arguments.
  */
 int
-get_aggregate_argtypes(Aggref *aggref, Oid *inputTypes)
+get_aggregate_argtypes(Aggref * aggref, Oid * inputTypes)
 {
 	int			numArguments = 0;
 	ListCell   *lc;
@@ -1826,7 +1826,7 @@ get_aggregate_argtypes(Aggref *aggref, Oid *inputTypes)
 Oid
 resolve_aggregate_transtype(Oid aggfuncid,
 							Oid aggtranstype,
-							Oid *inputTypes,
+							Oid * inputTypes,
 							int numArguments)
 {
 	/* resolve actual type of transition state, if polymorphic */
@@ -1879,7 +1879,7 @@ resolve_aggregate_transtype(Oid aggfuncid,
  * invtransfnexpr.
  */
 void
-build_aggregate_transfn_expr(Oid *agg_input_types,
+build_aggregate_transfn_expr(Oid * agg_input_types,
 							 int agg_num_inputs,
 							 int agg_num_direct_inputs,
 							 bool agg_variadic,
@@ -1887,8 +1887,8 @@ build_aggregate_transfn_expr(Oid *agg_input_types,
 							 Oid agg_input_collation,
 							 Oid transfn_oid,
 							 Oid invtransfn_oid,
-							 Expr **transfnexpr,
-							 Expr **invtransfnexpr)
+							 Expr * *transfnexpr,
+							 Expr * *invtransfnexpr)
 {
 	List	   *args;
 	FuncExpr   *fexpr;
@@ -1943,7 +1943,7 @@ void
 build_aggregate_combinefn_expr(Oid agg_state_type,
 							   Oid agg_input_collation,
 							   Oid combinefn_oid,
-							   Expr **combinefnexpr)
+							   Expr * *combinefnexpr)
 {
 	Node	   *argp;
 	List	   *args;
@@ -1970,7 +1970,7 @@ build_aggregate_combinefn_expr(Oid agg_state_type,
  */
 void
 build_aggregate_serialfn_expr(Oid serialfn_oid,
-							  Expr **serialfnexpr)
+							  Expr * *serialfnexpr)
 {
 	List	   *args;
 	FuncExpr   *fexpr;
@@ -1993,7 +1993,7 @@ build_aggregate_serialfn_expr(Oid serialfn_oid,
  */
 void
 build_aggregate_deserialfn_expr(Oid deserialfn_oid,
-								Expr **deserialfnexpr)
+								Expr * *deserialfnexpr)
 {
 	List	   *args;
 	FuncExpr   *fexpr;
@@ -2016,13 +2016,13 @@ build_aggregate_deserialfn_expr(Oid deserialfn_oid,
  * final function of an aggregate, rather than the transition function.
  */
 void
-build_aggregate_finalfn_expr(Oid *agg_input_types,
+build_aggregate_finalfn_expr(Oid * agg_input_types,
 							 int num_finalfn_inputs,
 							 Oid agg_state_type,
 							 Oid agg_result_type,
 							 Oid agg_input_collation,
 							 Oid finalfn_oid,
-							 Expr **finalfnexpr)
+							 Expr * *finalfnexpr)
 {
 	List	   *args;
 	int			i;

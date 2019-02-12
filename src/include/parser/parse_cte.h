@@ -16,9 +16,9 @@
 
 #include "parser/parse_node.h"
 
-extern List *transformWithClause(ParseState *pstate, WithClause *withClause);
+extern List * transformWithClause(ParseState * pstate, WithClause * withClause);
 
-extern void analyzeCTETargetList(ParseState *pstate, CommonTableExpr *cte,
-					 List *tlist);
+extern void analyzeCTETargetList(ParseState * pstate, CommonTableExpr * cte,
+					 List * tlist);
 
 #endif							/* PARSE_CTE_H */

@@ -34,7 +34,7 @@ typedef struct xl_smgr_create
 {
 	RelFileNode rnode;
 	ForkNumber	forkNum;
-} xl_smgr_create;
+}			xl_smgr_create;
 
 /* flags for xl_smgr_truncate */
 #define SMGR_TRUNCATE_HEAP		0x0001
@@ -48,12 +48,12 @@ typedef struct xl_smgr_truncate
 	BlockNumber blkno;
 	RelFileNode rnode;
 	int			flags;
-} xl_smgr_truncate;
+}			xl_smgr_truncate;
 
-extern void log_smgrcreate(RelFileNode *rnode, ForkNumber forkNum);
+extern void log_smgrcreate(RelFileNode * rnode, ForkNumber forkNum);
 
-extern void smgr_redo(XLogReaderState *record);
-extern void smgr_desc(StringInfo buf, XLogReaderState *record);
+extern void smgr_redo(XLogReaderState * record);
+extern void smgr_desc(StringInfo buf, XLogReaderState * record);
 extern const char *smgr_identify(uint8 info);
 
 #endif							/* STORAGE_XLOG_H */

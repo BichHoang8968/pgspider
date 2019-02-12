@@ -27,23 +27,23 @@ typedef struct TupleConversionMap
 	bool	   *inisnull;
 	Datum	   *outvalues;		/* workspace for constructing result */
 	bool	   *outisnull;
-} TupleConversionMap;
+}			TupleConversionMap;
 
 
-extern TupleConversionMap *convert_tuples_by_position(TupleDesc indesc,
-						   TupleDesc outdesc,
-						   const char *msg);
+extern TupleConversionMap * convert_tuples_by_position(TupleDesc indesc,
+													   TupleDesc outdesc,
+													   const char *msg);
 
-extern TupleConversionMap *convert_tuples_by_name(TupleDesc indesc,
-					   TupleDesc outdesc,
-					   const char *msg);
+extern TupleConversionMap * convert_tuples_by_name(TupleDesc indesc,
+												   TupleDesc outdesc,
+												   const char *msg);
 
-extern AttrNumber *convert_tuples_by_name_map(TupleDesc indesc,
-						   TupleDesc outdesc,
-						   const char *msg);
+extern AttrNumber * convert_tuples_by_name_map(TupleDesc indesc,
+											   TupleDesc outdesc,
+											   const char *msg);
 
-extern HeapTuple do_convert_tuple(HeapTuple tuple, TupleConversionMap *map);
+extern HeapTuple do_convert_tuple(HeapTuple tuple, TupleConversionMap * map);
 
-extern void free_conversion_map(TupleConversionMap *map);
+extern void free_conversion_map(TupleConversionMap * map);
 
 #endif							/* TUPCONVERT_H */

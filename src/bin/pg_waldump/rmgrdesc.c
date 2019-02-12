@@ -35,6 +35,6 @@
 #define PG_RMGR(symname,name,redo,desc,identify,startup,cleanup,mask) \
 	{ name, desc, identify},
 
-const RmgrDescData RmgrDescTable[RM_MAX_ID + 1] = {
+const		RmgrDescData RmgrDescTable[RM_MAX_ID + 1] = {
 #include "access/rmgrlist.h"
 };

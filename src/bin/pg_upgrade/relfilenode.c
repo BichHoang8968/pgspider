@@ -16,8 +16,8 @@
 #include "access/transam.h"
 
 
-static void transfer_single_new_db(FileNameMap *maps, int size, char *old_tablespace);
-static void transfer_relfile(FileNameMap *map, const char *suffix, bool vm_must_add_frozenbit);
+static void transfer_single_new_db(FileNameMap * maps, int size, char *old_tablespace);
+static void transfer_relfile(FileNameMap * map, const char *suffix, bool vm_must_add_frozenbit);
 
 
 /*
@@ -27,7 +27,7 @@ static void transfer_relfile(FileNameMap *map, const char *suffix, bool vm_must_
  * physically link the databases.
  */
 void
-transfer_all_new_tablespaces(DbInfoArr *old_db_arr, DbInfoArr *new_db_arr,
+transfer_all_new_tablespaces(DbInfoArr * old_db_arr, DbInfoArr * new_db_arr,
 							 char *old_pgdata, char *new_pgdata)
 {
 	if (user_opts.transfer_mode == TRANSFER_MODE_LINK)
@@ -78,7 +78,7 @@ transfer_all_new_tablespaces(DbInfoArr *old_db_arr, DbInfoArr *new_db_arr,
  * physically link the databases.
  */
 void
-transfer_all_new_dbs(DbInfoArr *old_db_arr, DbInfoArr *new_db_arr,
+transfer_all_new_dbs(DbInfoArr * old_db_arr, DbInfoArr * new_db_arr,
 					 char *old_pgdata, char *new_pgdata, char *old_tablespace)
 {
 	int			old_dbnum,
@@ -131,7 +131,7 @@ transfer_all_new_dbs(DbInfoArr *old_db_arr, DbInfoArr *new_db_arr,
  * create links for mappings stored in "maps" array.
  */
 static void
-transfer_single_new_db(FileNameMap *maps, int size, char *old_tablespace)
+transfer_single_new_db(FileNameMap * maps, int size, char *old_tablespace)
 {
 	int			mapnum;
 	bool		vm_crashsafe_match = true;
@@ -183,7 +183,7 @@ transfer_single_new_db(FileNameMap *maps, int size, char *old_tablespace)
  * mode.
  */
 static void
-transfer_relfile(FileNameMap *map, const char *type_suffix, bool vm_must_add_frozenbit)
+transfer_relfile(FileNameMap * map, const char *type_suffix, bool vm_must_add_frozenbit)
 {
 	char		old_file[MAXPGPATH];
 	char		new_file[MAXPGPATH];

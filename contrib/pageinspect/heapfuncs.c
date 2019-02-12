@@ -43,7 +43,7 @@
  * c-string representation.
  */
 static char *
-bits_to_text(bits8 *bits, int len)
+bits_to_text(bits8 * bits, int len)
 {
 	int			i;
 	char	   *str;
@@ -107,7 +107,7 @@ typedef struct heap_page_items_state
 	TupleDesc	tupd;
 	Page		page;
 	uint16		offset;
-} heap_page_items_state;
+}			heap_page_items_state;
 
 Datum
 heap_page_items(PG_FUNCTION_ARGS)
@@ -287,7 +287,7 @@ heap_page_items(PG_FUNCTION_ARGS)
 static Datum
 tuple_data_split_internal(Oid relid, char *tupdata,
 						  uint16 tupdata_len, uint16 t_infomask,
-						  uint16 t_infomask2, bits8 *t_bits,
+						  uint16 t_infomask2, bits8 * t_bits,
 						  bool do_detoast)
 {
 	ArrayBuildState *raw_attrs;

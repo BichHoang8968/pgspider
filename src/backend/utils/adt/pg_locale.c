@@ -123,9 +123,9 @@ typedef struct
 	bool		ctype_is_c;		/* is collation's LC_CTYPE C? */
 	bool		flags_valid;	/* true if above flags are valid */
 	pg_locale_t locale;			/* locale_t struct, or 0 if not valid */
-} collation_cache_entry;
+}			collation_cache_entry;
 
-static HTAB *collation_cache = NULL;
+static HTAB * collation_cache = NULL;
 
 
 #if defined(WIN32) && defined(LC_MESSAGES)
@@ -1487,7 +1487,7 @@ get_collation_actual_version(char collprovider, const char *collcollate)
  * in database encoding.  Since the database encoding doesn't change, we only
  * need one of these per session.
  */
-static UConverter *icu_converter = NULL;
+static UConverter * icu_converter = NULL;
 
 static void
 init_icu_converter(void)
@@ -1524,7 +1524,7 @@ init_icu_converter(void)
  * result length instead.
  */
 int32_t
-icu_to_uchar(UChar **buff_uchar, const char *buff, size_t nbytes)
+icu_to_uchar(UChar * *buff_uchar, const char *buff, size_t nbytes)
 {
 	UErrorCode	status;
 	int32_t		len_uchar;
@@ -1562,7 +1562,7 @@ icu_to_uchar(UChar **buff_uchar, const char *buff, size_t nbytes)
  * The result string is nul-terminated.
  */
 int32_t
-icu_from_uchar(char **result, const UChar *buff_uchar, int32_t len_uchar)
+icu_from_uchar(char **result, const UChar * buff_uchar, int32_t len_uchar)
 {
 	UErrorCode	status;
 	int32_t		len_result;
@@ -1604,7 +1604,7 @@ icu_from_uchar(char **result, const UChar *buff_uchar, int32_t len_uchar)
  * zero-terminated.  The output will be zero-terminated iff there is room.
  */
 size_t
-wchar2char(char *to, const wchar_t *from, size_t tolen, pg_locale_t locale)
+wchar2char(char *to, const wchar_t * from, size_t tolen, pg_locale_t locale)
 {
 	size_t		result;
 
@@ -1675,7 +1675,7 @@ wchar2char(char *to, const wchar_t *from, size_t tolen, pg_locale_t locale)
  * The output will be zero-terminated iff there is room.
  */
 size_t
-char2wchar(wchar_t *to, size_t tolen, const char *from, size_t fromlen,
+char2wchar(wchar_t * to, size_t tolen, const char *from, size_t fromlen,
 		   pg_locale_t locale)
 {
 	size_t		result;

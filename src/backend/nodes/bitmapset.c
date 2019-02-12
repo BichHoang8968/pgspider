@@ -108,7 +108,7 @@ static const uint8 number_of_ones[256] = {
  * bms_copy - make a palloc'd copy of a bitmapset
  */
 Bitmapset *
-bms_copy(const Bitmapset *a)
+bms_copy(const Bitmapset * a)
 {
 	Bitmapset  *result;
 	size_t		size;
@@ -128,10 +128,10 @@ bms_copy(const Bitmapset *a)
  * be reported as equal to a palloc'd value containing no members.
  */
 bool
-bms_equal(const Bitmapset *a, const Bitmapset *b)
+bms_equal(const Bitmapset * a, const Bitmapset * b)
 {
-	const Bitmapset *shorter;
-	const Bitmapset *longer;
+	const		Bitmapset *shorter;
+	const		Bitmapset *longer;
 	int			shortlen;
 	int			longlen;
 	int			i;
@@ -198,7 +198,7 @@ bms_make_singleton(int x)
  * Same as pfree except for allowing NULL input
  */
 void
-bms_free(Bitmapset *a)
+bms_free(Bitmapset * a)
 {
 	if (a)
 		pfree(a);
@@ -215,10 +215,10 @@ bms_free(Bitmapset *a)
  * bms_union - set union
  */
 Bitmapset *
-bms_union(const Bitmapset *a, const Bitmapset *b)
+bms_union(const Bitmapset * a, const Bitmapset * b)
 {
 	Bitmapset  *result;
-	const Bitmapset *other;
+	const		Bitmapset *other;
 	int			otherlen;
 	int			i;
 
@@ -249,10 +249,10 @@ bms_union(const Bitmapset *a, const Bitmapset *b)
  * bms_intersect - set intersection
  */
 Bitmapset *
-bms_intersect(const Bitmapset *a, const Bitmapset *b)
+bms_intersect(const Bitmapset * a, const Bitmapset * b)
 {
 	Bitmapset  *result;
-	const Bitmapset *other;
+	const		Bitmapset *other;
 	int			resultlen;
 	int			i;
 
@@ -281,7 +281,7 @@ bms_intersect(const Bitmapset *a, const Bitmapset *b)
  * bms_difference - set difference (ie, A without members of B)
  */
 Bitmapset *
-bms_difference(const Bitmapset *a, const Bitmapset *b)
+bms_difference(const Bitmapset * a, const Bitmapset * b)
 {
 	Bitmapset  *result;
 	int			shortlen;
@@ -305,7 +305,7 @@ bms_difference(const Bitmapset *a, const Bitmapset *b)
  * bms_is_subset - is A a subset of B?
  */
 bool
-bms_is_subset(const Bitmapset *a, const Bitmapset *b)
+bms_is_subset(const Bitmapset * a, const Bitmapset * b)
 {
 	int			shortlen;
 	int			longlen;
@@ -342,7 +342,7 @@ bms_is_subset(const Bitmapset *a, const Bitmapset *b)
  * This is more efficient than testing bms_is_subset in both directions.
  */
 BMS_Comparison
-bms_subset_compare(const Bitmapset *a, const Bitmapset *b)
+bms_subset_compare(const Bitmapset * a, const Bitmapset * b)
 {
 	BMS_Comparison result;
 	int			shortlen;
@@ -417,7 +417,7 @@ bms_subset_compare(const Bitmapset *a, const Bitmapset *b)
  * bms_is_member - is X a member of A?
  */
 bool
-bms_is_member(int x, const Bitmapset *a)
+bms_is_member(int x, const Bitmapset * a)
 {
 	int			wordnum,
 				bitnum;
@@ -440,7 +440,7 @@ bms_is_member(int x, const Bitmapset *a)
  * bms_overlap - do sets overlap (ie, have a nonempty intersection)?
  */
 bool
-bms_overlap(const Bitmapset *a, const Bitmapset *b)
+bms_overlap(const Bitmapset * a, const Bitmapset * b)
 {
 	int			shortlen;
 	int			i;
@@ -462,7 +462,7 @@ bms_overlap(const Bitmapset *a, const Bitmapset *b)
  * bms_overlap_list - does a set overlap an integer list?
  */
 bool
-bms_overlap_list(const Bitmapset *a, const List *b)
+bms_overlap_list(const Bitmapset * a, const List * b)
 {
 	ListCell   *lc;
 	int			wordnum,
@@ -491,7 +491,7 @@ bms_overlap_list(const Bitmapset *a, const List *b)
  * bms_nonempty_difference - do sets have a nonempty difference?
  */
 bool
-bms_nonempty_difference(const Bitmapset *a, const Bitmapset *b)
+bms_nonempty_difference(const Bitmapset * a, const Bitmapset * b)
 {
 	int			shortlen;
 	int			i;
@@ -523,7 +523,7 @@ bms_nonempty_difference(const Bitmapset *a, const Bitmapset *b)
  * Raises error if |a| is not 1.
  */
 int
-bms_singleton_member(const Bitmapset *a)
+bms_singleton_member(const Bitmapset * a)
 {
 	int			result = -1;
 	int			nwords;
@@ -566,7 +566,7 @@ bms_singleton_member(const Bitmapset *a)
  * from multiple-member sets.
  */
 bool
-bms_get_singleton_member(const Bitmapset *a, int *member)
+bms_get_singleton_member(const Bitmapset * a, int *member)
 {
 	int			result = -1;
 	int			nwords;
@@ -602,7 +602,7 @@ bms_get_singleton_member(const Bitmapset *a, int *member)
  * bms_num_members - count members of set
  */
 int
-bms_num_members(const Bitmapset *a)
+bms_num_members(const Bitmapset * a)
 {
 	int			result = 0;
 	int			nwords;
@@ -631,7 +631,7 @@ bms_num_members(const Bitmapset *a)
  * This is faster than making an exact count with bms_num_members().
  */
 BMS_Membership
-bms_membership(const Bitmapset *a)
+bms_membership(const Bitmapset * a)
 {
 	BMS_Membership result = BMS_EMPTY_SET;
 	int			nwords;
@@ -660,7 +660,7 @@ bms_membership(const Bitmapset *a)
  * This is even faster than bms_membership().
  */
 bool
-bms_is_empty(const Bitmapset *a)
+bms_is_empty(const Bitmapset * a)
 {
 	int			nwords;
 	int			wordnum;
@@ -695,7 +695,7 @@ bms_is_empty(const Bitmapset *a)
  * Input set is modified or recycled!
  */
 Bitmapset *
-bms_add_member(Bitmapset *a, int x)
+bms_add_member(Bitmapset * a, int x)
 {
 	int			wordnum,
 				bitnum;
@@ -732,7 +732,7 @@ bms_add_member(Bitmapset *a, int x)
  * Input set is modified in-place!
  */
 Bitmapset *
-bms_del_member(Bitmapset *a, int x)
+bms_del_member(Bitmapset * a, int x)
 {
 	int			wordnum,
 				bitnum;
@@ -752,10 +752,10 @@ bms_del_member(Bitmapset *a, int x)
  * bms_add_members - like bms_union, but left input is recycled
  */
 Bitmapset *
-bms_add_members(Bitmapset *a, const Bitmapset *b)
+bms_add_members(Bitmapset * a, const Bitmapset * b)
 {
 	Bitmapset  *result;
-	const Bitmapset *other;
+	const		Bitmapset *other;
 	int			otherlen;
 	int			i;
 
@@ -788,7 +788,7 @@ bms_add_members(Bitmapset *a, const Bitmapset *b)
  * bms_int_members - like bms_intersect, but left input is recycled
  */
 Bitmapset *
-bms_int_members(Bitmapset *a, const Bitmapset *b)
+bms_int_members(Bitmapset * a, const Bitmapset * b)
 {
 	int			shortlen;
 	int			i;
@@ -814,7 +814,7 @@ bms_int_members(Bitmapset *a, const Bitmapset *b)
  * bms_del_members - like bms_difference, but left input is recycled
  */
 Bitmapset *
-bms_del_members(Bitmapset *a, const Bitmapset *b)
+bms_del_members(Bitmapset * a, const Bitmapset * b)
 {
 	int			shortlen;
 	int			i;
@@ -835,7 +835,7 @@ bms_del_members(Bitmapset *a, const Bitmapset *b)
  * bms_join - like bms_union, but *both* inputs are recycled
  */
 Bitmapset *
-bms_join(Bitmapset *a, Bitmapset *b)
+bms_join(Bitmapset * a, Bitmapset * b)
 {
 	Bitmapset  *result;
 	Bitmapset  *other;
@@ -882,7 +882,7 @@ bms_join(Bitmapset *a, Bitmapset *b)
  * not be modified, use bms_next_member instead.
  */
 int
-bms_first_member(Bitmapset *a)
+bms_first_member(Bitmapset * a)
 {
 	int			nwords;
 	int			wordnum;
@@ -934,7 +934,7 @@ bms_first_member(Bitmapset *a)
  * might need such an ability.
  */
 int
-bms_next_member(const Bitmapset *a, int prevbit)
+bms_next_member(const Bitmapset * a, int prevbit)
 {
 	int			nwords;
 	int			wordnum;
@@ -981,7 +981,7 @@ bms_next_member(const Bitmapset *a, int prevbit)
  * hash_any().
  */
 uint32
-bms_hash_value(const Bitmapset *a)
+bms_hash_value(const Bitmapset * a)
 {
 	int			lastword;
 

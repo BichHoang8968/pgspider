@@ -21,7 +21,7 @@
 #include "utils/tqual.h"
 
 void
-AlterSetting(Oid databaseid, Oid roleid, VariableSetStmt *setstmt)
+AlterSetting(Oid databaseid, Oid roleid, VariableSetStmt * setstmt)
 {
 	char	   *valuestr;
 	HeapTuple	tuple;

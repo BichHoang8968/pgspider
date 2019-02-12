@@ -29,12 +29,12 @@ static void ResetUnloggedRelationsInTablespaceDir(const char *tsdirname,
 static void ResetUnloggedRelationsInDbspaceDir(const char *dbspacedirname,
 								   int op);
 static bool parse_filename_for_nontemp_relation(const char *name,
-									int *oidchars, ForkNumber *fork);
+									int *oidchars, ForkNumber * fork);
 
 typedef struct
 {
 	char		oid[OIDCHARS + 1];
-} unlogged_relation_entry;
+}			unlogged_relation_entry;
 
 /*
  * Reset unlogged relations from before the last restart.
@@ -401,7 +401,7 @@ ResetUnloggedRelationsInDbspaceDir(const char *dbspacedirname, int op)
  */
 static bool
 parse_filename_for_nontemp_relation(const char *name, int *oidchars,
-									ForkNumber *fork)
+									ForkNumber * fork)
 {
 	int			pos;
 

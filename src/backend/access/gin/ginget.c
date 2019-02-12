@@ -30,14 +30,14 @@ typedef struct pendingPosition
 	OffsetNumber lastOffset;
 	ItemPointerData item;
 	bool	   *hasMatchKey;
-} pendingPosition;
+}			pendingPosition;
 
 
 /*
  * Goes to the next page if current offset is outside of bounds
  */
 static bool
-moveRightIfItNeeded(GinBtreeData *btree, GinBtreeStack *stack)
+moveRightIfItNeeded(GinBtreeData * btree, GinBtreeStack * stack)
 {
 	Page		page = BufferGetPage(stack->buffer);
 
@@ -113,7 +113,7 @@ scanPostingTree(Relation index, GinScanEntry scanEntry,
  * Returns true if done, false if it's necessary to restart scan from scratch
  */
 static bool
-collectMatchBitmap(GinBtreeData *btree, GinBtreeStack *stack,
+collectMatchBitmap(GinBtreeData * btree, GinBtreeStack * stack,
 				   GinScanEntry scanEntry, Snapshot snapshot)
 {
 	OffsetNumber attnum;
@@ -294,7 +294,7 @@ collectMatchBitmap(GinBtreeData *btree, GinBtreeStack *stack,
  * Start* functions setup beginning state of searches: finds correct buffer and pins it.
  */
 static void
-startScanEntry(GinState *ginstate, GinScanEntry entry, Snapshot snapshot)
+startScanEntry(GinState * ginstate, GinScanEntry entry, Snapshot snapshot)
 {
 	GinBtreeData btreeEntry;
 	GinBtreeStack *stackEntry;
@@ -434,7 +434,7 @@ restartScanEntry:
 static int
 entryIndexByFrequencyCmp(const void *a1, const void *a2, void *arg)
 {
-	const GinScanKey key = (const GinScanKey) arg;
+	const		GinScanKey key = (const GinScanKey) arg;
 	int			i1 = *(const int *) a1;
 	int			i2 = *(const int *) a2;
 	uint32		n1 = key->scanEntry[i1]->predictNumberResult;
@@ -449,7 +449,7 @@ entryIndexByFrequencyCmp(const void *a1, const void *a2, void *arg)
 }
 
 static void
-startScanKey(GinState *ginstate, GinScanOpaque so, GinScanKey key)
+startScanKey(GinState * ginstate, GinScanOpaque so, GinScanKey key)
 {
 	MemoryContext oldCtx = CurrentMemoryContext;
 	int			i;
@@ -585,7 +585,7 @@ startScan(IndexScanDesc scan)
  * keep it pinned to prevent interference with vacuum.
  */
 static void
-entryLoadMoreItems(GinState *ginstate, GinScanEntry entry,
+entryLoadMoreItems(GinState * ginstate, GinScanEntry entry,
 				   ItemPointerData advancePast, Snapshot snapshot)
 {
 	Page		page;
@@ -740,7 +740,7 @@ entryLoadMoreItems(GinState *ginstate, GinScanEntry entry,
  * current implementation this is guaranteed by the behavior of tidbitmaps.
  */
 static void
-entryGetItem(GinState *ginstate, GinScanEntry entry,
+entryGetItem(GinState * ginstate, GinScanEntry entry,
 			 ItemPointerData advancePast, Snapshot snapshot)
 {
 	Assert(!entry->isFinished);
@@ -902,7 +902,7 @@ entryGetItem(GinState *ginstate, GinScanEntry entry,
  * logic in scanGetItem.)
  */
 static void
-keyGetItem(GinState *ginstate, MemoryContext tempCtx, GinScanKey key,
+keyGetItem(GinState * ginstate, MemoryContext tempCtx, GinScanKey key,
 		   ItemPointerData advancePast, Snapshot snapshot)
 {
 	ItemPointerData minItem;
@@ -1183,7 +1183,7 @@ keyGetItem(GinState *ginstate, MemoryContext tempCtx, GinScanKey key,
  */
 static bool
 scanGetItem(IndexScanDesc scan, ItemPointerData advancePast,
-			ItemPointerData *item, bool *recheck)
+			ItemPointerData * item, bool *recheck)
 {
 	GinScanOpaque so = (GinScanOpaque) scan->opaque;
 	uint32		i;
@@ -1334,7 +1334,7 @@ scanGetItem(IndexScanDesc scan, ItemPointerData advancePast,
  * pinned and share-locked on success exit.  On failure exit it's released.
  */
 static bool
-scanGetCandidate(IndexScanDesc scan, pendingPosition *pos)
+scanGetCandidate(IndexScanDesc scan, pendingPosition * pos)
 {
 	OffsetNumber maxoff;
 	Page		page;
@@ -1422,10 +1422,10 @@ scanGetCandidate(IndexScanDesc scan, pendingPosition *pos)
  * of gintuple_get_key() on the current page.
  */
 static bool
-matchPartialInPendingList(GinState *ginstate, Page page,
+matchPartialInPendingList(GinState * ginstate, Page page,
 						  OffsetNumber off, OffsetNumber maxoff,
 						  GinScanEntry entry,
-						  Datum *datum, GinNullCategory *category,
+						  Datum * datum, GinNullCategory * category,
 						  bool *datumExtracted)
 {
 	IndexTuple	itup;
@@ -1490,7 +1490,7 @@ matchPartialInPendingList(GinState *ginstate, Page page,
  * The pendingBuffer is presumed pinned and share-locked on entry.
  */
 static bool
-collectMatchesForHeapRow(IndexScanDesc scan, pendingPosition *pos)
+collectMatchesForHeapRow(IndexScanDesc scan, pendingPosition * pos)
 {
 	GinScanOpaque so = (GinScanOpaque) scan->opaque;
 	OffsetNumber attrnum;
@@ -1703,7 +1703,7 @@ collectMatchesForHeapRow(IndexScanDesc scan, pendingPosition *pos)
  * Collect all matched rows from pending list into bitmap
  */
 static void
-scanPendingInsert(IndexScanDesc scan, TIDBitmap *tbm, int64 *ntids)
+scanPendingInsert(IndexScanDesc scan, TIDBitmap * tbm, int64 * ntids)
 {
 	GinScanOpaque so = (GinScanOpaque) scan->opaque;
 	MemoryContext oldCtx;
@@ -1792,7 +1792,7 @@ scanPendingInsert(IndexScanDesc scan, TIDBitmap *tbm, int64 *ntids)
 #define GinIsVoidRes(s)		( ((GinScanOpaque) scan->opaque)->isVoidRes )
 
 int64
-gingetbitmap(IndexScanDesc scan, TIDBitmap *tbm)
+gingetbitmap(IndexScanDesc scan, TIDBitmap * tbm)
 {
 	GinScanOpaque so = (GinScanOpaque) scan->opaque;
 	int64		ntids;

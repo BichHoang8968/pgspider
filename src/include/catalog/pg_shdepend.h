@@ -61,7 +61,7 @@ CATALOG(pg_shdepend,1214) BKI_SHARED_RELATION BKI_WITHOUT_OIDS
  *		the format of pg_shdepend relation.
  * ----------------
  */
-typedef FormData_pg_shdepend *Form_pg_shdepend;
+typedef FormData_pg_shdepend * Form_pg_shdepend;
 
 /* ----------------
  *		compiler constants for pg_shdepend

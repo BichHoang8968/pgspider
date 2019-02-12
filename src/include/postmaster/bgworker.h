@@ -78,7 +78,7 @@ typedef enum
 	BgWorkerStart_PostmasterStart,
 	BgWorkerStart_ConsistentState,
 	BgWorkerStart_RecoveryFinished
-} BgWorkerStartTime;
+}			BgWorkerStartTime;
 
 #define BGW_DEFAULT_RESTART_INTERVAL	60
 #define BGW_NEVER_RESTART				-1
@@ -96,7 +96,7 @@ typedef struct BackgroundWorker
 	Datum		bgw_main_arg;
 	char		bgw_extra[BGW_EXTRALEN];
 	pid_t		bgw_notify_pid; /* SIGUSR1 this backend on start/stop */
-} BackgroundWorker;
+}			BackgroundWorker;
 
 typedef enum BgwHandleStatus
 {
@@ -104,30 +104,29 @@ typedef enum BgwHandleStatus
 	BGWH_NOT_YET_STARTED,		/* worker hasn't been started yet */
 	BGWH_STOPPED,				/* worker has exited */
 	BGWH_POSTMASTER_DIED		/* postmaster died; worker status unclear */
-} BgwHandleStatus;
+}			BgwHandleStatus;
 
 struct BackgroundWorkerHandle;
 typedef struct BackgroundWorkerHandle BackgroundWorkerHandle;
 
 /* Register a new bgworker during shared_preload_libraries */
-extern void RegisterBackgroundWorker(BackgroundWorker *worker);
+extern void RegisterBackgroundWorker(BackgroundWorker * worker);
 
 /* Register a new bgworker from a regular backend */
-extern bool RegisterDynamicBackgroundWorker(BackgroundWorker *worker,
-								BackgroundWorkerHandle **handle);
+extern bool RegisterDynamicBackgroundWorker(BackgroundWorker * worker,
+								BackgroundWorkerHandle * *handle);
 
 /* Query the status of a bgworker */
-extern BgwHandleStatus GetBackgroundWorkerPid(BackgroundWorkerHandle *handle,
-					   pid_t *pidp);
-extern BgwHandleStatus WaitForBackgroundWorkerStartup(BackgroundWorkerHandle *handle, pid_t *pid);
-extern BgwHandleStatus
-			WaitForBackgroundWorkerShutdown(BackgroundWorkerHandle *);
+extern BgwHandleStatus GetBackgroundWorkerPid(BackgroundWorkerHandle * handle,
+											  pid_t * pidp);
+extern BgwHandleStatus WaitForBackgroundWorkerStartup(BackgroundWorkerHandle * handle, pid_t * pid);
+extern BgwHandleStatus WaitForBackgroundWorkerShutdown(BackgroundWorkerHandle *);
 
 /* Terminate a bgworker */
-extern void TerminateBackgroundWorker(BackgroundWorkerHandle *handle);
+extern void TerminateBackgroundWorker(BackgroundWorkerHandle * handle);
 
 /* This is valid in a running worker */
-extern PGDLLIMPORT BackgroundWorker *MyBgworkerEntry;
+extern PGDLLIMPORT BackgroundWorker * MyBgworkerEntry;
 
 /*
  * Connect to the specified database, as the specified user.  Only a worker

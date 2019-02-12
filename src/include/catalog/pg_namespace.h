@@ -48,7 +48,7 @@ CATALOG(pg_namespace,2615)
  *		the format of pg_namespace relation.
  * ----------------
  */
-typedef FormData_pg_namespace *Form_pg_namespace;
+typedef FormData_pg_namespace * Form_pg_namespace;
 
 /* ----------------
  *		compiler constants for pg_namespace
@@ -80,6 +80,6 @@ DESCR("standard public schema");
 /*
  * prototypes for functions in pg_namespace.c
  */
-extern Oid	NamespaceCreate(const char *nspName, Oid ownerId, bool isTemp);
+extern Oid NamespaceCreate(const char *nspName, Oid ownerId, bool isTemp);
 
 #endif							/* PG_NAMESPACE_H */

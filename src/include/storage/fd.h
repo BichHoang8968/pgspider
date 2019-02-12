@@ -81,19 +81,19 @@ extern int	FileGetRawFlags(File file);
 extern int	FileGetRawMode(File file);
 
 /* Operations that allow use of regular stdio --- USE WITH CAUTION */
-extern FILE *AllocateFile(const char *name, const char *mode);
-extern int	FreeFile(FILE *file);
+extern FILE * AllocateFile(const char *name, const char *mode);
+extern int	FreeFile(FILE * file);
 
 /* Operations that allow use of pipe streams (popen/pclose) */
-extern FILE *OpenPipeStream(const char *command, const char *mode);
-extern int	ClosePipeStream(FILE *file);
+extern FILE * OpenPipeStream(const char *command, const char *mode);
+extern int	ClosePipeStream(FILE * file);
 
 /* Operations to allow use of the <dirent.h> library routines */
-extern DIR *AllocateDir(const char *dirname);
-extern struct dirent *ReadDir(DIR *dir, const char *dirname);
-extern struct dirent *ReadDirExtended(DIR *dir, const char *dirname,
+extern DIR * AllocateDir(const char *dirname);
+extern struct dirent *ReadDir(DIR * dir, const char *dirname);
+extern struct dirent *ReadDirExtended(DIR * dir, const char *dirname,
 				int elevel);
-extern int	FreeDir(DIR *dir);
+extern int	FreeDir(DIR * dir);
 
 /* Operations to allow use of a plain kernel FD, with automatic cleanup */
 extern int	OpenTransientFile(FileName fileName, int fileFlags, int fileMode);
@@ -106,9 +106,9 @@ extern int	BasicOpenFile(FileName fileName, int fileFlags, int fileMode);
 extern void InitFileAccess(void);
 extern void set_max_safe_fds(void);
 extern void closeAllVfds(void);
-extern void SetTempTablespaces(Oid *tableSpaces, int numSpaces);
+extern void SetTempTablespaces(Oid * tableSpaces, int numSpaces);
 extern bool TempTablespacesAreSet(void);
-extern Oid	GetNextTempTableSpace(void);
+extern Oid GetNextTempTableSpace(void);
 extern void AtEOXact_Files(void);
 extern void AtEOSubXact_Files(bool isCommit, SubTransactionId mySubid,
 				  SubTransactionId parentSubid);

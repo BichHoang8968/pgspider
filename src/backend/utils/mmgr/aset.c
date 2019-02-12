@@ -129,9 +129,9 @@ typedef struct AllocSetContext
 	Size		nextBlockSize;	/* next block size to allocate */
 	Size		allocChunkLimit;	/* effective chunk size limit */
 	AllocBlock	keeper;			/* if not NULL, keep this block over resets */
-} AllocSetContext;
+}			AllocSetContext;
 
-typedef AllocSetContext *AllocSet;
+typedef AllocSetContext * AllocSet;
 
 /*
  * AllocBlock
@@ -207,7 +207,7 @@ static void AllocSetDelete(MemoryContext context);
 static Size AllocSetGetChunkSpace(MemoryContext context, void *pointer);
 static bool AllocSetIsEmpty(MemoryContext context);
 static void AllocSetStats(MemoryContext context, int level, bool print,
-			  MemoryContextCounters *totals);
+			  MemoryContextCounters * totals);
 
 #ifdef MEMORY_CONTEXT_CHECKING
 static void AllocSetCheck(MemoryContext context);
@@ -216,18 +216,19 @@ static void AllocSetCheck(MemoryContext context);
 /*
  * This is the virtual function table for AllocSet contexts.
  */
-static MemoryContextMethods AllocSetMethods = {
+static MemoryContextMethods AllocSetMethods =
+{
 	AllocSetAlloc,
-	AllocSetFree,
-	AllocSetRealloc,
-	AllocSetInit,
-	AllocSetReset,
-	AllocSetDelete,
-	AllocSetGetChunkSpace,
-	AllocSetIsEmpty,
-	AllocSetStats
+		AllocSetFree,
+		AllocSetRealloc,
+		AllocSetInit,
+		AllocSetReset,
+		AllocSetDelete,
+		AllocSetGetChunkSpace,
+		AllocSetIsEmpty,
+		AllocSetStats
 #ifdef MEMORY_CONTEXT_CHECKING
-	,AllocSetCheck
+		,AllocSetCheck
 #endif
 };
 
@@ -1146,7 +1147,7 @@ AllocSetIsEmpty(MemoryContext context)
  */
 static void
 AllocSetStats(MemoryContext context, int level, bool print,
-			  MemoryContextCounters *totals)
+			  MemoryContextCounters * totals)
 {
 	AllocSet	set = (AllocSet) context;
 	Size		nblocks = 0;

@@ -16,8 +16,8 @@
 
 #include "nodes/execnodes.h"
 
-extern GroupState *ExecInitGroup(Group *node, EState *estate, int eflags);
-extern void ExecEndGroup(GroupState *node);
-extern void ExecReScanGroup(GroupState *node);
+extern GroupState * ExecInitGroup(Group * node, EState * estate, int eflags);
+extern void ExecEndGroup(GroupState * node);
+extern void ExecReScanGroup(GroupState * node);
 
 #endif							/* NODEGROUP_H */

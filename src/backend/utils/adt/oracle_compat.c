@@ -20,9 +20,9 @@
 #include "mb/pg_wchar.h"
 
 
-static text *dotrim(const char *string, int stringlen,
-	   const char *set, int setlen,
-	   bool doltrim, bool dortrim);
+static text * dotrim(const char *string, int stringlen,
+					 const char *set, int setlen,
+					 bool doltrim, bool dortrim);
 
 
 /********************************************************************
@@ -895,7 +895,7 @@ ascii(PG_FUNCTION_ARGS)
 					 errmsg("requested character too large")));
 
 
-		PG_RETURN_INT32((int32) *data);
+		PG_RETURN_INT32((int32) * data);
 	}
 }
 
@@ -922,7 +922,7 @@ ascii(PG_FUNCTION_ARGS)
  ********************************************************************/
 
 Datum
-chr			(PG_FUNCTION_ARGS)
+chr(PG_FUNCTION_ARGS)
 {
 	uint32		cvalue = PG_GETARG_UINT32(0);
 	text	   *result;

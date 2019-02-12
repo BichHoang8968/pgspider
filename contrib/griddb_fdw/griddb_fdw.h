@@ -52,7 +52,7 @@ typedef struct griddb_opt
 	bool		use_remote_estimate;	/* use remote estimate for rows */
 	Cost		fdw_startup_cost;
 	Cost		fdw_tuple_cost;
-}	griddb_opt;
+}			griddb_opt;
 
 /*
  * FDW-specific planner information kept in RelOptInfo.fdw_private for a
@@ -100,39 +100,39 @@ typedef struct GriddbFdwRelationInfo
 	ForeignTable *table;
 	ForeignServer *server;
 	UserMapping *user;			/* only set in use_remote_estimate mode */
-}	GriddbFdwRelationInfo;
+}			GriddbFdwRelationInfo;
 
 /* option.c headers */
 extern bool griddb_is_valid_option(const char *option, Oid context);
-extern griddb_opt *griddb_get_options(Oid foreigntableid);
+extern griddb_opt * griddb_get_options(Oid foreigntableid);
 
 /* in connection.c */
-extern GSGridStore *griddb_get_connection(UserMapping *user, bool will_prep_stmt,
-					  Oid foreigntableid);
-extern bool griddb_add_cont_list(UserMapping *user, Oid id, GSContainer * cont);
+extern GSGridStore * griddb_get_connection(UserMapping * user, bool will_prep_stmt,
+										   Oid foreigntableid);
+extern bool griddb_add_cont_list(UserMapping * user, Oid id, GSContainer * cont);
 extern void griddb_release_connection(GSGridStore * store);
 extern void griddb_report(int elevel, GSResult res, void *gsResource,
 			  const char *fname, unsigned int line);
 extern void griddb_cleanup_connection(void);
-extern void griddb_error_message(void *gsResource, StringInfoData *str);
+extern void griddb_error_message(void *gsResource, StringInfoData * str);
 #define griddb_REPORT_ERROR(elevel, res, gsResource) \
 	griddb_report(elevel, res, gsResource, __FILE__, __LINE__)
 
 /* in deparse.c */
-extern void griddb_classify_conditions(PlannerInfo *root,
-						   RelOptInfo *baserel,
-						   List *input_conds,
-						   List **remote_conds,
-						   List **local_conds);
-extern bool griddb_is_foreign_expr(PlannerInfo *root,
-				RelOptInfo *baserel,
-				Expr *expr);
-extern Expr *griddb_find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel);
-extern void griddb_deparse_select(StringInfo buf, PlannerInfo *root,
-					  RelOptInfo *foreignrel, List *remote_conds,
-					  List *pathkeys, List **retrieved_attrs,
-					  List **params_list);
-extern void griddb_deparse_locking_clause(PlannerInfo *root, RelOptInfo *rel,
+extern void griddb_classify_conditions(PlannerInfo * root,
+						   RelOptInfo * baserel,
+						   List * input_conds,
+						   List * *remote_conds,
+						   List * *local_conds);
+extern bool griddb_is_foreign_expr(PlannerInfo * root,
+					   RelOptInfo * baserel,
+					   Expr * expr);
+extern Expr * griddb_find_em_expr_for_rel(EquivalenceClass * ec, RelOptInfo * rel);
+extern void griddb_deparse_select(StringInfo buf, PlannerInfo * root,
+					  RelOptInfo * foreignrel, List * remote_conds,
+					  List * pathkeys, List * *retrieved_attrs,
+					  List * *params_list);
+extern void griddb_deparse_locking_clause(PlannerInfo * root, RelOptInfo * rel,
 							  int *for_update);
 
-#endif   /* GRIDDB_FDW_H */
+#endif							/* GRIDDB_FDW_H */

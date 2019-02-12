@@ -39,7 +39,7 @@
  * M - msg
  */
 static uint8 *
-check_eme_pkcs1_v15(uint8 *data, int len)
+check_eme_pkcs1_v15(uint8 * data, int len)
 {
 	uint8	   *data_end = data + len;
 	uint8	   *p = data;
@@ -71,7 +71,7 @@ check_eme_pkcs1_v15(uint8 *data, int len)
  * ignore algo in cksum
  */
 static int
-control_cksum(uint8 *msg, int msglen)
+control_cksum(uint8 * msg, int msglen)
 {
 	int			i;
 	unsigned	my_cksum,
@@ -94,7 +94,7 @@ control_cksum(uint8 *msg, int msglen)
 }
 
 static int
-decrypt_elgamal(PGP_PubKey *pk, PullFilter *pkt, PGP_MPI **m_p)
+decrypt_elgamal(PGP_PubKey * pk, PullFilter * pkt, PGP_MPI * *m_p)
 {
 	int			res;
 	PGP_MPI    *c1 = NULL;
@@ -121,7 +121,7 @@ out:
 }
 
 static int
-decrypt_rsa(PGP_PubKey *pk, PullFilter *pkt, PGP_MPI **m_p)
+decrypt_rsa(PGP_PubKey * pk, PullFilter * pkt, PGP_MPI * *m_p)
 {
 	int			res;
 	PGP_MPI    *c;
@@ -147,7 +147,7 @@ static const uint8
 			any_key[] = {0, 0, 0, 0, 0, 0, 0, 0};
 
 int
-pgp_parse_pubenc_sesskey(PGP_Context *ctx, PullFilter *pkt)
+pgp_parse_pubenc_sesskey(PGP_Context * ctx, PullFilter * pkt)
 {
 	int			ver;
 	int			algo;

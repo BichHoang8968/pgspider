@@ -55,7 +55,7 @@ typedef struct
 	/* Skip table for Boyer-Moore-Horspool search algorithm: */
 	int			skiptablemask;	/* mask for ANDing with skiptable subscripts */
 	int			skiptable[256]; /* skip distance for given mismatched char */
-} TextPositionState;
+}			TextPositionState;
 
 typedef struct
 {
@@ -74,7 +74,7 @@ typedef struct
 	hyperLogLogState full_card; /* Full key cardinality state */
 	double		prop_card;		/* Required cardinality proportion */
 	pg_locale_t locale;
-} VarStringSortSupport;
+}			VarStringSortSupport;
 
 /*
  * This should be large enough that most strings will fit, but small enough
@@ -98,27 +98,27 @@ static int	varstrcmp_abbrev(Datum x, Datum y, SortSupport ssup);
 static Datum varstr_abbrev_convert(Datum original, SortSupport ssup);
 static bool varstr_abbrev_abort(int memtupcount, SortSupport ssup);
 static int32 text_length(Datum str);
-static text *text_catenate(text *t1, text *t2);
-static text *text_substring(Datum str,
-			   int32 start,
-			   int32 length,
-			   bool length_not_specified);
-static text *text_overlay(text *t1, text *t2, int sp, int sl);
-static int	text_position(text *t1, text *t2);
-static void text_position_setup(text *t1, text *t2, TextPositionState *state);
-static int	text_position_next(int start_pos, TextPositionState *state);
-static void text_position_cleanup(TextPositionState *state);
-static int	text_cmp(text *arg1, text *arg2, Oid collid);
-static bytea *bytea_catenate(bytea *t1, bytea *t2);
-static bytea *bytea_substring(Datum str,
-				int S,
-				int L,
-				bool length_not_specified);
-static bytea *bytea_overlay(bytea *t1, bytea *t2, int sp, int sl);
-static void appendStringInfoText(StringInfo str, const text *t);
+static text * text_catenate(text * t1, text * t2);
+static text * text_substring(Datum str,
+							 int32 start,
+							 int32 length,
+							 bool length_not_specified);
+static text * text_overlay(text * t1, text * t2, int sp, int sl);
+static int	text_position(text * t1, text * t2);
+static void text_position_setup(text * t1, text * t2, TextPositionState * state);
+static int	text_position_next(int start_pos, TextPositionState * state);
+static void text_position_cleanup(TextPositionState * state);
+static int	text_cmp(text * arg1, text * arg2, Oid collid);
+static bytea * bytea_catenate(bytea * t1, bytea * t2);
+static bytea * bytea_substring(Datum str,
+							   int S,
+							   int L,
+							   bool length_not_specified);
+static bytea * bytea_overlay(bytea * t1, bytea * t2, int sp, int sl);
+static void appendStringInfoText(StringInfo str, const text * t);
 static Datum text_to_array_internal(PG_FUNCTION_ARGS);
-static text *array_to_text_internal(FunctionCallInfo fcinfo, ArrayType *v,
-					   const char *fldsep, const char *null_string);
+static text * array_to_text_internal(FunctionCallInfo fcinfo, ArrayType * v,
+									 const char *fldsep, const char *null_string);
 static StringInfo makeStringAggState(FunctionCallInfo fcinfo);
 static bool text_format_parse_digits(const char **ptr, const char *end_ptr,
 						 int *value);
@@ -127,7 +127,7 @@ static const char *text_format_parse_format(const char *start_ptr,
 						 int *argpos, int *widthpos,
 						 int *flags, int *width);
 static void text_format_string_conversion(StringInfo buf, char conversion,
-							  FmgrInfo *typOutputInfo,
+							  FmgrInfo * typOutputInfo,
 							  Datum value, bool isNull,
 							  int flags, int width);
 static void text_format_append_string(StringInfo buf, const char *str,
@@ -179,7 +179,7 @@ cstring_to_text_with_len(const char *s, int len)
  * case here, we'd need another routine that did, anyway.
  */
 char *
-text_to_cstring(const text *t)
+text_to_cstring(const text * t)
 {
 	/* must cast away the const, unfortunately */
 	text	   *tunpacked = pg_detoast_datum_packed((struct varlena *) t);
@@ -210,7 +210,7 @@ text_to_cstring(const text *t)
  * case here, we'd need another routine that did, anyway.
  */
 void
-text_to_cstring_buffer(const text *src, char *dst, size_t dst_len)
+text_to_cstring_buffer(const text * src, char *dst, size_t dst_len)
 {
 	/* must cast away the const, unfortunately */
 	text	   *srcunpacked = pg_detoast_datum_packed((struct varlena *) src);
@@ -691,7 +691,7 @@ textcat(PG_FUNCTION_ARGS)
  * Arguments can be in short-header form, but not compressed or out-of-line
  */
 static text *
-text_catenate(text *t1, text *t2)
+text_catenate(text * t1, text * t2)
 {
 	text	   *result;
 	int			len1,
@@ -1031,7 +1031,7 @@ textoverlay_no_len(PG_FUNCTION_ARGS)
 }
 
 static text *
-text_overlay(text *t1, text *t2, int sp, int sl)
+text_overlay(text * t1, text * t2, int sp, int sl)
 {
 	text	   *result;
 	text	   *s1;
@@ -1092,7 +1092,7 @@ textpos(PG_FUNCTION_ARGS)
  *	functions.
  */
 static int
-text_position(text *t1, text *t2)
+text_position(text * t1, text * t2)
 {
 	TextPositionState state;
 	int			result;
@@ -1116,7 +1116,7 @@ text_position(text *t1, text *t2)
  */
 
 static void
-text_position_setup(text *t1, text *t2, TextPositionState *state)
+text_position_setup(text * t1, text * t2, TextPositionState * state)
 {
 	int			len1 = VARSIZE_ANY_EXHDR(t1);
 	int			len2 = VARSIZE_ANY_EXHDR(t2);
@@ -1219,7 +1219,7 @@ text_position_setup(text *t1, text *t2, TextPositionState *state)
 		}
 		else
 		{
-			const pg_wchar *wstr2 = state->wstr2;
+			const		pg_wchar *wstr2 = state->wstr2;
 
 			for (i = 0; i < last; i++)
 				state->skiptable[wstr2[i] & skiptablemask] = last - i;
@@ -1228,7 +1228,7 @@ text_position_setup(text *t1, text *t2, TextPositionState *state)
 }
 
 static int
-text_position_next(int start_pos, TextPositionState *state)
+text_position_next(int start_pos, TextPositionState * state)
 {
 	int			haystack_len = state->len1;
 	int			needle_len = state->len2;
@@ -1304,10 +1304,10 @@ text_position_next(int start_pos, TextPositionState *state)
 	else
 	{
 		/* The multibyte char version. This works exactly the same way. */
-		const pg_wchar *haystack = state->wstr1;
-		const pg_wchar *needle = state->wstr2;
-		const pg_wchar *haystack_end = &haystack[haystack_len];
-		const pg_wchar *hptr;
+		const		pg_wchar *haystack = state->wstr1;
+		const		pg_wchar *needle = state->wstr2;
+		const		pg_wchar *haystack_end = &haystack[haystack_len];
+		const		pg_wchar *hptr;
 
 		if (needle_len == 1)
 		{
@@ -1324,15 +1324,15 @@ text_position_next(int start_pos, TextPositionState *state)
 		}
 		else
 		{
-			const pg_wchar *needle_last = &needle[needle_len - 1];
+			const		pg_wchar *needle_last = &needle[needle_len - 1];
 
 			/* Start at startpos plus the length of the needle */
 			hptr = &haystack[start_pos + needle_len - 1];
 			while (hptr < haystack_end)
 			{
 				/* Match the needle scanning *backward* */
-				const pg_wchar *nptr;
-				const pg_wchar *p;
+				const		pg_wchar *nptr;
+				const		pg_wchar *p;
 
 				nptr = needle_last;
 				p = hptr;
@@ -1362,7 +1362,7 @@ text_position_next(int start_pos, TextPositionState *state)
 }
 
 static void
-text_position_cleanup(TextPositionState *state)
+text_position_cleanup(TextPositionState * state)
 {
 	if (state->use_wchar)
 	{
@@ -1614,7 +1614,7 @@ varstr_cmp(char *arg1, int len1, char *arg2, int len2, Oid collid)
  * Returns -1, 0 or 1
  */
 static int
-text_cmp(text *arg1, text *arg2, Oid collid)
+text_cmp(text * arg1, text * arg2, Oid collid)
 {
 	char	   *a1p,
 			   *a2p;
@@ -2621,7 +2621,7 @@ text_smaller(PG_FUNCTION_ARGS)
  */
 
 static int
-internal_text_pattern_compare(text *arg1, text *arg2)
+internal_text_pattern_compare(text * arg1, text * arg2)
 {
 	int			result;
 	int			len1,
@@ -2777,7 +2777,7 @@ byteacat(PG_FUNCTION_ARGS)
  * Arguments can be in short-header form, but not compressed or out-of-line
  */
 static bytea *
-bytea_catenate(bytea *t1, bytea *t2)
+bytea_catenate(bytea * t1, bytea * t2)
 {
 	bytea	   *result;
 	int			len1,
@@ -2934,7 +2934,7 @@ byteaoverlay_no_len(PG_FUNCTION_ARGS)
 }
 
 static bytea *
-bytea_overlay(bytea *t1, bytea *t2, int sp, int sl)
+bytea_overlay(bytea * t1, bytea * t2, int sp, int sl)
 {
 	bytea	   *result;
 	bytea	   *s1;
@@ -3203,7 +3203,7 @@ name_text(PG_FUNCTION_ARGS)
  * truncate names if they're too long.
  */
 List *
-textToQualifiedNameList(text *textval)
+textToQualifiedNameList(text * textval)
 {
 	char	   *rawname;
 	List	   *result = NIL;
@@ -3262,7 +3262,7 @@ textToQualifiedNameList(text *textval)
  */
 bool
 SplitIdentifierString(char *rawstring, char separator,
-					  List **namelist)
+					  List * *namelist)
 {
 	char	   *nextp = rawstring;
 	bool		done = false;
@@ -3389,7 +3389,7 @@ SplitIdentifierString(char *rawstring, char separator,
  */
 bool
 SplitDirectoriesString(char *rawstring, char separator,
-					   List **namelist)
+					   List * *namelist)
 {
 	char	   *nextp = rawstring;
 	bool		done = false;
@@ -3510,7 +3510,7 @@ SplitDirectoriesString(char *rawstring, char separator,
  */
 bool
 SplitGUCList(char *rawstring, char separator,
-			 List **namelist)
+			 List * *namelist)
 {
 	char	   *nextp = rawstring;
 	bool		done = false;
@@ -3786,7 +3786,7 @@ bytea_sortsupport(PG_FUNCTION_ARGS)
  * Like appendStringInfoString(str, text_to_cstring(t)) but faster.
  */
 static void
-appendStringInfoText(StringInfo str, const text *t)
+appendStringInfoText(StringInfo str, const text * t)
 {
 	appendBinaryStringInfo(str, VARDATA_ANY(t), VARSIZE_ANY_EXHDR(t));
 }
@@ -3883,7 +3883,7 @@ replace_text(PG_FUNCTION_ARGS)
  * check whether replace_text contains escape char.
  */
 static bool
-check_replace_text_has_escape_char(const text *replace_text)
+check_replace_text_has_escape_char(const text * replace_text)
 {
 	const char *p = VARDATA_ANY(replace_text);
 	const char *p_end = p + VARSIZE_ANY_EXHDR(replace_text);
@@ -3916,8 +3916,8 @@ check_replace_text_has_escape_char(const text *replace_text)
  * at logical character position data_pos.
  */
 static void
-appendStringInfoRegexpSubstr(StringInfo str, text *replace_text,
-							 regmatch_t *pmatch,
+appendStringInfoRegexpSubstr(StringInfo str, text * replace_text,
+							 regmatch_t * pmatch,
 							 char *start_ptr, int data_pos)
 {
 	const char *p = VARDATA_ANY(replace_text);
@@ -4021,8 +4021,8 @@ appendStringInfoRegexpSubstr(StringInfo str, text *replace_text,
  * the regexp argument as void *, but really it's regex_t *.
  */
 text *
-replace_text_regexp(text *src_text, void *regexp,
-					text *replace_text, bool glob)
+replace_text_regexp(text * src_text, void *regexp,
+					text * replace_text, bool glob)
 {
 	text	   *ret_text;
 	regex_t    *re = (regex_t *) regexp;
@@ -4253,7 +4253,7 @@ split_text(PG_FUNCTION_ARGS)
  * Convenience function to return true when two text params are equal.
  */
 static bool
-text_isequal(text *txt1, text *txt2)
+text_isequal(text * txt1, text * txt2)
 {
 	return DatumGetBool(DirectFunctionCall2(texteq,
 											PointerGetDatum(txt1),
@@ -4511,7 +4511,7 @@ array_to_text_null(PG_FUNCTION_ARGS)
  * common code for array_to_text and array_to_text_null functions
  */
 static text *
-array_to_text_internal(FunctionCallInfo fcinfo, ArrayType *v,
+array_to_text_internal(FunctionCallInfo fcinfo, ArrayType * v,
 					   const char *fldsep, const char *null_string)
 {
 	text	   *result;
@@ -5474,7 +5474,7 @@ text_format_parse_format(const char *start_ptr, const char *end_ptr,
  */
 static void
 text_format_string_conversion(StringInfo buf, char conversion,
-							  FmgrInfo *typOutputInfo,
+							  FmgrInfo * typOutputInfo,
 							  Datum value, bool isNull,
 							  int flags, int width)
 {

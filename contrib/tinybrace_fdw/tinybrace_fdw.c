@@ -87,7 +87,7 @@ PG_MODULE_MAGIC;
 extern Datum tinybrace_fdw_handler(PG_FUNCTION_ARGS);
 extern PGDLLEXPORT void _PG_init(void);
 
-bool tinybrace_load_library(void);
+bool		tinybrace_load_library(void);
 static void tinybrace_fdw_exit(int code, Datum arg);
 
 PG_FUNCTION_INFO_V1(tinybrace_fdw_handler);
@@ -95,86 +95,82 @@ PG_FUNCTION_INFO_V1(tinybrace_fdw_handler);
 /*
  * FDW callback routines
  */
-static void tinybraceExplainForeignScan(ForeignScanState *node, ExplainState *es);
-static void tinybraceBeginForeignScan(ForeignScanState *node, int eflags);
-static TupleTableSlot *tinybraceIterateForeignScan(ForeignScanState *node);
-static void tinybraceReScanForeignScan(ForeignScanState *node);
-static void tinybraceEndForeignScan(ForeignScanState *node);
+static void tinybraceExplainForeignScan(ForeignScanState * node, ExplainState * es);
+static void tinybraceBeginForeignScan(ForeignScanState * node, int eflags);
+static TupleTableSlot * tinybraceIterateForeignScan(ForeignScanState * node);
+static void tinybraceReScanForeignScan(ForeignScanState * node);
+static void tinybraceEndForeignScan(ForeignScanState * node);
 
-static List *tinybracePlanForeignModify(PlannerInfo *root, ModifyTable *plan, Index resultRelation,
-									int subplan_index);
-static void tinybraceBeginForeignModify(ModifyTableState *mtstate, ResultRelInfo *resultRelInfo,
-									List *fdw_private, int subplan_index, int eflags);
-static TupleTableSlot *tinybraceExecForeignInsert(EState *estate, ResultRelInfo *resultRelInfo,
-											  TupleTableSlot *slot, TupleTableSlot *planSlot);
-static void tinybraceAddForeignUpdateTargets(Query *parsetree, RangeTblEntry *target_rte,
-										 Relation target_relation);
-static TupleTableSlot * tinybraceExecForeignUpdate(EState *estate, ResultRelInfo *resultRelInfo,
-											   TupleTableSlot *slot,TupleTableSlot *planSlot);
-static TupleTableSlot *tinybraceExecForeignDelete(EState *estate, ResultRelInfo *resultRelInfo,
-											  TupleTableSlot *slot, TupleTableSlot *planSlot);
-static void tinybraceEndForeignModify(EState *estate, ResultRelInfo *resultRelInfo);
+static List * tinybracePlanForeignModify(PlannerInfo * root, ModifyTable * plan, Index resultRelation,
+										 int subplan_index);
+static void tinybraceBeginForeignModify(ModifyTableState * mtstate, ResultRelInfo * resultRelInfo,
+							List * fdw_private, int subplan_index, int eflags);
+static TupleTableSlot * tinybraceExecForeignInsert(EState * estate, ResultRelInfo * resultRelInfo,
+												   TupleTableSlot * slot, TupleTableSlot * planSlot);
+static void tinybraceAddForeignUpdateTargets(Query * parsetree, RangeTblEntry * target_rte,
+								 Relation target_relation);
+static TupleTableSlot * tinybraceExecForeignUpdate(EState * estate, ResultRelInfo * resultRelInfo,
+												   TupleTableSlot * slot, TupleTableSlot * planSlot);
+static TupleTableSlot * tinybraceExecForeignDelete(EState * estate, ResultRelInfo * resultRelInfo,
+												   TupleTableSlot * slot, TupleTableSlot * planSlot);
+static void tinybraceEndForeignModify(EState * estate, ResultRelInfo * resultRelInfo);
 
-static void tinybraceGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid);
-static void tinybraceGetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid);
-static bool tinybraceAnalyzeForeignTable(Relation relation, AcquireSampleRowsFunc *func, BlockNumber *totalpages);
-static ForeignScan *tinybraceGetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
-										ForeignPath *best_path, List * tlist, List *scan_clauses
+static void tinybraceGetForeignRelSize(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid);
+static void tinybraceGetForeignPaths(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid);
+static bool tinybraceAnalyzeForeignTable(Relation relation, AcquireSampleRowsFunc * func, BlockNumber * totalpages);
+static ForeignScan * tinybraceGetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
+											 ForeignPath * best_path, List * tlist, List * scan_clauses
 #if PG_VERSION_NUM >= 90500
-		                                ,Plan * outer_plan
+											 ,Plan * outer_plan
 #endif
 );
-static void tinybraceEstimateCosts(PlannerInfo *root, RelOptInfo *baserel, Cost *startup_cost, Cost *total_cost,
-							   Oid foreigntableid);
+static void tinybraceEstimateCosts(PlannerInfo * root, RelOptInfo * baserel, Cost * startup_cost, Cost * total_cost,
+					   Oid foreigntableid);
 
 #if PG_VERSION_NUM >= 90500
-static List *tinybraceImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid);
+static List * tinybraceImportForeignSchema(ImportForeignSchemaStmt * stmt, Oid serverOid);
 #endif
 
 static bool tinybrace_is_column_unique(Oid foreigntableid);
 
-static void prepare_query_params(PlanState *node,
-					 List *fdw_exprs,
+static void prepare_query_params(PlanState * node,
+					 List * fdw_exprs,
 					 int numParams,
-					 FmgrInfo **param_flinfo,
-					 List **param_exprs,
+					 FmgrInfo * *param_flinfo,
+					 List * *param_exprs,
 					 const char ***param_values,
-					 Oid **param_types);
+					 Oid * *param_types);
 
-static void
-tinybraceGetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
-							  RelOptInfo *input_rel, RelOptInfo *output_rel);
-static void
-add_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
-						   RelOptInfo *grouped_rel);
+static void tinybraceGetForeignUpperPaths(PlannerInfo * root, UpperRelationKind stage,
+							  RelOptInfo * input_rel, RelOptInfo * output_rel);
+static void add_foreign_grouping_paths(PlannerInfo * root, RelOptInfo * input_rel,
+						   RelOptInfo * grouped_rel);
 
-static void
-merge_fdw_options(TinyBraceFdwRelationInfo *fpinfo,
-				  const TinyBraceFdwRelationInfo *fpinfo_o,
-				  const TinyBraceFdwRelationInfo *fpinfo_i);
+static void merge_fdw_options(TinyBraceFdwRelationInfo * fpinfo,
+				  const TinyBraceFdwRelationInfo * fpinfo_o,
+				  const TinyBraceFdwRelationInfo * fpinfo_i);
 
-static void
-estimate_path_cost_size(PlannerInfo *root,
-						RelOptInfo *baserel,
-						List *join_conds,
-						List *pathkeys,
+static void estimate_path_cost_size(PlannerInfo * root,
+						RelOptInfo * baserel,
+						List * join_conds,
+						List * pathkeys,
 						double *p_rows, int *p_width,
-						Cost *p_startup_cost, Cost *p_total_cost);
+						Cost * p_startup_cost, Cost * p_total_cost);
 static bool
-foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel);
+			foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel);
 
-static void process_query_params(ExprContext *econtext,
-					 FmgrInfo *param_flinfo,
-					 List *param_exprs,
+static void process_query_params(ExprContext * econtext,
+					 FmgrInfo * param_flinfo,
+					 List * param_exprs,
 					 const char **param_values,
 					 TBC_QUERY_HANDLE qHandle,
 					 TBC_CONNECT_HANDLE connect,
-					 Oid *param_types);
-static void create_cursor(ForeignScanState *node);
+					 Oid * param_types);
+static void create_cursor(ForeignScanState * node);
 
-void* tinybrace_dll_handle = NULL;
-static int wait_timeout = WAIT_TIMEOUT;
-static int interactive_timeout = INTERACTIVE_TIMEOUT;
+void	   *tinybrace_dll_handle = NULL;
+static int	wait_timeout = WAIT_TIMEOUT;
+static int	interactive_timeout = INTERACTIVE_TIMEOUT;
 
 /*
  * Library load-time initialization, sets on_proc_exit() callback for
@@ -234,11 +230,12 @@ tinybrace_fdw_handler(PG_FUNCTION_ARGS)
 }
 
 static void
-tinybraceGetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
-							 RelOptInfo *input_rel, RelOptInfo *output_rel)
+tinybraceGetForeignUpperPaths(PlannerInfo * root, UpperRelationKind stage,
+							  RelOptInfo * input_rel, RelOptInfo * output_rel)
 {
 	TinyBraceFdwRelationInfo *fpinfo;
-	elog(DEBUG1,"tinybraceGetForeignUpperPaths");
+
+	elog(DEBUG1, "tinybraceGetForeignUpperPaths");
 
 	/*
 	 * If input rel is not safe to pushdown, then simply return as we cannot
@@ -268,11 +265,11 @@ tinybraceGetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
  */
 
 static void
-add_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
-						   RelOptInfo *grouped_rel)
+add_foreign_grouping_paths(PlannerInfo * root, RelOptInfo * input_rel,
+						   RelOptInfo * grouped_rel)
 {
 	Query	   *parse = root->parse;
-    TinyBraceFdwRelationInfo *ifpinfo = input_rel->fdw_private;
+	TinyBraceFdwRelationInfo *ifpinfo = input_rel->fdw_private;
 	TinyBraceFdwRelationInfo *fpinfo = grouped_rel->fdw_private;
 	ForeignPath *grouppath;
 	PathTarget *grouping_target;
@@ -332,9 +329,9 @@ add_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 }
 
 static void
-merge_fdw_options(TinyBraceFdwRelationInfo *fpinfo,
-				  const TinyBraceFdwRelationInfo *fpinfo_o,
-				  const TinyBraceFdwRelationInfo *fpinfo_i)
+merge_fdw_options(TinyBraceFdwRelationInfo * fpinfo,
+				  const TinyBraceFdwRelationInfo * fpinfo_o,
+				  const TinyBraceFdwRelationInfo * fpinfo_i)
 {
 	/* We must always have fpinfo_o. */
 	Assert(fpinfo_o);
@@ -378,11 +375,11 @@ merge_fdw_options(TinyBraceFdwRelationInfo *fpinfo,
 }
 
 static bool
-foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
+foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 {
 	Query	   *query = root->parse;
 	PathTarget *grouping_target;
-    TinyBraceFdwRelationInfo *fpinfo = (TinyBraceFdwRelationInfo *) grouped_rel->fdw_private;
+	TinyBraceFdwRelationInfo *fpinfo = (TinyBraceFdwRelationInfo *) grouped_rel->fdw_private;
 	TinyBraceFdwRelationInfo *ofpinfo;
 	List	   *aggvars;
 	ListCell   *lc;
@@ -589,12 +586,12 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 
 
 static void
-estimate_path_cost_size(PlannerInfo *root,
-						RelOptInfo *foreignrel,
-						List *param_join_conds,
-						List *pathkeys,
+estimate_path_cost_size(PlannerInfo * root,
+						RelOptInfo * foreignrel,
+						List * param_join_conds,
+						List * pathkeys,
 						double *p_rows, int *p_width,
-						Cost *p_startup_cost, Cost *p_total_cost)
+						Cost * p_startup_cost, Cost * p_total_cost)
 {
 }
 
@@ -603,24 +600,24 @@ estimate_path_cost_size(PlannerInfo *root,
  * tinybraceBeginForeignScan: Initiate access to the database
  */
 static void
-tinybraceBeginForeignScan(ForeignScanState *node, int eflags)
+tinybraceBeginForeignScan(ForeignScanState * node, int eflags)
 {
-	TupleTableSlot    *tupleSlot = node->ss.ss_ScanTupleSlot;
-	TupleDesc         tupleDescriptor = tupleSlot->tts_tupleDescriptor;
+	TupleTableSlot *tupleSlot = node->ss.ss_ScanTupleSlot;
+	TupleDesc	tupleDescriptor = tupleSlot->tts_tupleDescriptor;
 	TBC_CLIENT_HANDLE *conn = NULL;
-	RangeTblEntry     *rte;
+	RangeTblEntry *rte;
 	TinyBraceFdwExecState *festate = NULL;
-	EState            *estate = node->ss.ps.state;
-	ForeignScan       *fsplan = (ForeignScan *) node->ss.ps.plan;
-	tinybrace_opt         *options;
-	ListCell          *lc = NULL;
-	int               atindex = 0;
-	Oid               userid;
-	ForeignServer     *server;
-	UserMapping       *user;
-	ForeignTable      *table;
-	char              timeout[255];
-	int               numParams;
+	EState	   *estate = node->ss.ps.state;
+	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
+	tinybrace_opt *options;
+	ListCell   *lc = NULL;
+	int			atindex = 0;
+	Oid			userid;
+	ForeignServer *server;
+	UserMapping *user;
+	ForeignTable *table;
+	char		timeout[255];
+	int			numParams;
 	int			rtindex;
 	TBC_RTNCODE rtn;
 
@@ -667,14 +664,15 @@ tinybraceBeginForeignScan(ForeignScanState *node, int eflags)
 											  ALLOCSET_SMALL_MINSIZE,
 											  ALLOCSET_SMALL_INITSIZE,
 											  ALLOCSET_SMALL_MAXSIZE);
-	festate-> table = (tinybrace_table *)palloc0(sizeof(tinybrace_table));
+	festate->table = (tinybrace_table *) palloc0(sizeof(tinybrace_table));
 
 	/* Prepare TinyBrace statement */
 	rtn = TBC_prepare_stmt(festate->conn->connect, festate->query, &festate->qHandle);
-	if(rtn != TBC_OK){
+	if (rtn != TBC_OK)
+	{
 		ereport(ERROR,
 				(errcode(ERRCODE_FDW_UNABLE_TO_CREATE_EXECUTION),
-				 errmsg("tiny brace error stmt. %d\n sql is %s\n",rtn, festate->query)));
+				 errmsg("tiny brace error stmt. %d\n sql is %s\n", rtn, festate->query)));
 	}
 	/* Prepare for output conversion of parameters used in remote query. */
 	numParams = list_length(fsplan->fdw_exprs);
@@ -700,16 +698,16 @@ tinybraceBeginForeignScan(ForeignScanState *node, int eflags)
  * Tinybrace and placed in tuple slot
  */
 static TupleTableSlot *
-tinybraceIterateForeignScan(ForeignScanState *node)
+tinybraceIterateForeignScan(ForeignScanState * node)
 {
-	TinyBraceFdwExecState   *festate = (TinyBraceFdwExecState *) node->fdw_state;
-	TupleTableSlot      *tupleSlot = node->ss.ss_ScanTupleSlot;
-	TupleDesc           tupleDescriptor = tupleSlot->tts_tupleDescriptor;
-	int                 attid = 0;
-	ListCell            *lc = NULL;
-	int                 rc = 0;
+	TinyBraceFdwExecState *festate = (TinyBraceFdwExecState *) node->fdw_state;
+	TupleTableSlot *tupleSlot = node->ss.ss_ScanTupleSlot;
+	TupleDesc	tupleDescriptor = tupleSlot->tts_tupleDescriptor;
+	int			attid = 0;
+	ListCell   *lc = NULL;
+	int			rc = 0;
 	EState	   *estate = node->ss.ps.state;
-	TBC_RTNCODE rtn=TBC_OK;
+	TBC_RTNCODE rtn = TBC_OK;
 	ExprContext *econtext = node->ss.ps.ps_ExprContext;
 
 	if (!festate->cursor_exists)
@@ -720,37 +718,42 @@ tinybraceIterateForeignScan(ForeignScanState *node)
 		{
 			ereport(ERROR,
 					(errcode(ERRCODE_FDW_UNABLE_TO_CREATE_EXECUTION),
-					 errmsg("failed to tbc_execute %d\n",rtn)));
+					 errmsg("failed to tbc_execute %d\n", rtn)));
 		}
-		festate-> table ->result_set = (TBC_RESULT_SET *)MemoryContextAlloc(estate->es_query_cxt,sizeof(TBC_RESULT_SET));
+		festate->table->result_set = (TBC_RESULT_SET *) MemoryContextAlloc(estate->es_query_cxt, sizeof(TBC_RESULT_SET));
 
-		rtn = TBC_store_result(festate->conn->connect,festate->qHandle, festate->table->result_set);
-		if(rtn != TBC_OK){
-			elog(ERROR,"TinyBrace store reult failed %d",rtn);
+		rtn = TBC_store_result(festate->conn->connect, festate->qHandle, festate->table->result_set);
+		if (rtn != TBC_OK)
+		{
+			elog(ERROR, "TinyBrace store reult failed %d", rtn);
 		}
 	}
-	memset (tupleSlot->tts_values, 0, sizeof(Datum) * tupleDescriptor->natts);
-	memset (tupleSlot->tts_isnull, true, sizeof(bool) * tupleDescriptor->natts);
+	memset(tupleSlot->tts_values, 0, sizeof(Datum) * tupleDescriptor->natts);
+	memset(tupleSlot->tts_isnull, true, sizeof(bool) * tupleDescriptor->natts);
 
 	ExecClearTuple(tupleSlot);
 
-	if(festate->table->result_set == NULL){
-	    elog(ERROR,"TinyBrace ResultSet is NULL");
+	if (festate->table->result_set == NULL)
+	{
+		elog(ERROR, "TinyBrace ResultSet is NULL");
 	}
 
 	if (festate->table->result_set->nRow > festate->current_row)
 	{
 		foreach(lc, festate->retrieved_attrs)
 		{
-			int attnum = lfirst_int(lc) - 1;
-			Oid pgtype = tupleDescriptor->attrs[attnum]->atttypid;
-			int32 pgtypmod = tupleDescriptor->attrs[attnum]->atttypmod;
-			if(festate->table->result_set->arData[festate->current_row][attid].type != TBC_NULL){
+			int			attnum = lfirst_int(lc) - 1;
+			Oid			pgtype = tupleDescriptor->attrs[attnum]->atttypid;
+			int32		pgtypmod = tupleDescriptor->attrs[attnum]->atttypmod;
+
+			if (festate->table->result_set->arData[festate->current_row][attid].type != TBC_NULL)
+			{
 				tupleSlot->tts_values[attnum] = tinybrace_convert_to_pg(pgtype, pgtypmod,
-																		(TBC_DATA*)&festate->table->result_set->arData[festate->current_row][attid]);
+																		(TBC_DATA *) & festate->table->result_set->arData[festate->current_row][attid]);
 				tupleSlot->tts_isnull[attnum] = false;
 			}
-			else{
+			else
+			{
 			}
 			attid++;
 		}
@@ -765,7 +768,7 @@ tinybraceIterateForeignScan(ForeignScanState *node)
  * tinybraceExplainForeignScan: Produce extra output for EXPLAIN
  */
 static void
-tinybraceExplainForeignScan(ForeignScanState *node, ExplainState *es)
+tinybraceExplainForeignScan(ForeignScanState * node, ExplainState * es)
 {
 	/*
 	 * Print additional EXPLAIN output for a foreign table scan. This function
@@ -777,27 +780,28 @@ tinybraceExplainForeignScan(ForeignScanState *node, ExplainState *es)
 	 * If the ExplainForeignScan pointer is set to NULL, no additional
 	 * information is printed during EXPLAIN.
 	 */
-	char					   *query;
-	size_t						len;
-	const char				   *pzTail;
-	TinyBraceFdwExecState	   *festate = (TinyBraceFdwExecState *) node->fdw_state;
-	ForeignTable      *table;
-	ForeignServer     *server;
-	UserMapping       *user;
+	char	   *query;
+	size_t		len;
+	const char *pzTail;
+	TinyBraceFdwExecState *festate = (TinyBraceFdwExecState *) node->fdw_state;
+	ForeignTable *table;
+	ForeignServer *server;
+	UserMapping *user;
 	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
 	RangeTblEntry *rte;
 	int			rtindex;
-	int i;
-	EState            *estate = node->ss.ps.state;
+	int			i;
+	EState	   *estate = node->ss.ps.state;
 	TBC_QUERY_HANDLE qHandle;
 	TBC_RESULT_SET result;
 	TBC_RTNCODE rc;
-	tinybrace_opt         *options;
+	tinybrace_opt *options;
 	TBC_CLIENT_HANDLE *conn = NULL;
-	Oid               userid;
+	Oid			userid;
 
 
-	elog(DEBUG1,"entering function %s",__func__);
+	elog(DEBUG1, "entering function %s", __func__);
+
 	/*
 	 * Identify which user to do the remote access as.  This should match what
 	 * ExecCheckRTEPerms() does.  In case of a join or aggregate, use the
@@ -809,7 +813,7 @@ tinybraceExplainForeignScan(ForeignScanState *node, ExplainState *es)
 	else
 		rtindex = bms_next_member(fsplan->fs_relids, -1);
 	rte = rt_fetch(rtindex, estate->es_range_table);
-	
+
 	/* Get info about foreign table. */
 	table = GetForeignTable(rte->relid);
 	server = GetForeignServer(table->serverid);
@@ -827,23 +831,25 @@ tinybraceExplainForeignScan(ForeignScanState *node, ExplainState *es)
 
 	/* Build the query */
 	len = strlen(festate->query) + 20;
-	query = (char *)palloc(len);
+	query = (char *) palloc(len);
 	snprintf(query, len, "EXPLAIN QUERY PLAN %s", festate->query);
 
 	/* get the next record, if any, and fill in the slot */
-	rc = TBC_query(conn->connect ,query, &qHandle); 
-	if(rc != TBC_OK){
-		elog(ERROR,"Tinybrace query error : %s",query);
+	rc = TBC_query(conn->connect, query, &qHandle);
+	if (rc != TBC_OK)
+	{
+		elog(ERROR, "Tinybrace query error : %s", query);
 	}
 	rc = TBC_store_result(conn->connect, qHandle, &result);
-	if ( rc != TBC_OK )
+	if (rc != TBC_OK)
 	{
-		elog(ERROR,"Tinybrace store result error : %s",query);
+		elog(ERROR, "Tinybrace store result error : %s", query);
 	}
-	for (i = 0; i < result.nRow; i++) {
+	for (i = 0; i < result.nRow; i++)
+	{
 		ExplainPropertyText("TinyBrace plan", result.arData[0][3].value, es);
 	}
-	rc = TBC_free_result(conn->connect,qHandle, &result);
+	rc = TBC_free_result(conn->connect, qHandle, &result);
 
 }
 
@@ -852,21 +858,22 @@ tinybraceExplainForeignScan(ForeignScanState *node, ExplainState *es)
  * objects used for this scan
  */
 static void
-tinybraceEndForeignScan(ForeignScanState *node)
+tinybraceEndForeignScan(ForeignScanState * node)
 {
 	TinyBraceFdwExecState *festate = (TinyBraceFdwExecState *) node->fdw_state;
 
-    if (festate->table)
-    {
-         if (festate->table->result_set != NULL ) {
-           TBC_free_result(festate->conn->connect, 0, festate->table->result_set);
-           festate->table->result_set = NULL;
-         }
-       }
+	if (festate->table)
+	{
+		if (festate->table->result_set != NULL)
+		{
+			TBC_free_result(festate->conn->connect, 0, festate->table->result_set);
+			festate->table->result_set = NULL;
+		}
+	}
 
 	if (festate->qHandle != 0)
 	{
-		TBC_finalize_stmt(festate->conn->connect,festate->qHandle);
+		TBC_finalize_stmt(festate->conn->connect, festate->qHandle);
 		festate->qHandle = 0;
 	}
 }
@@ -875,11 +882,11 @@ tinybraceEndForeignScan(ForeignScanState *node)
  * tinybraceReScanForeignScan: Rescan table, possibly with new parameters
  */
 static void
-tinybraceReScanForeignScan(ForeignScanState *node)
+tinybraceReScanForeignScan(ForeignScanState * node)
 {
 	/* TODO: Need to implement rescan */
-	
-	TinyBraceFdwExecState   *festate = (TinyBraceFdwExecState *) node->fdw_state;
+
+	TinyBraceFdwExecState *festate = (TinyBraceFdwExecState *) node->fdw_state;
 
 	festate->current_row = 0;
 	festate->cursor_exists = false;
@@ -889,34 +896,34 @@ tinybraceReScanForeignScan(ForeignScanState *node)
  * tinybraceGetForeignRelSize: Create a FdwPlan for a scan on the foreign table
  */
 static void
-tinybraceGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
+tinybraceGetForeignRelSize(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid)
 {
-	StringInfoData       sql;
-	double               rows = 0;
-	double               filtered = 0;
-	TBC_CLIENT_HANDLE   *hdl = NULL;
-	TBC_RESULT_SET            *result = NULL;
-	Bitmapset            *attrs_used = NULL;
-	List                 *retrieved_attrs = NULL;
-	tinybrace_opt            *options = NULL;
-	Oid                  userid =  GetUserId();
-	ForeignServer        *server;
-	UserMapping          *user;
-	ForeignTable         *table;
+	StringInfoData sql;
+	double		rows = 0;
+	double		filtered = 0;
+	TBC_CLIENT_HANDLE *hdl = NULL;
+	TBC_RESULT_SET *result = NULL;
+	Bitmapset  *attrs_used = NULL;
+	List	   *retrieved_attrs = NULL;
+	tinybrace_opt *options = NULL;
+	Oid			userid = GetUserId();
+	ForeignServer *server;
+	UserMapping *user;
+	ForeignTable *table;
 	TinyBraceFdwRelationInfo *fpinfo;
-	ListCell             *lc;
-	TBC_FIELD_INFO          *field;
-	int                  i;
-	int                  num_fields;
-	List                *params_list = NULL;
+	ListCell   *lc;
+	TBC_FIELD_INFO *field;
+	int			i;
+	int			num_fields;
+	List	   *params_list = NULL;
 	TBC_QUERY_HANDLE qHandle;
 	TBC_RTNCODE rtn;
 
-	elog(DEBUG1,"tinybraceGetForeignRelSize");
-	
+	elog(DEBUG1, "tinybraceGetForeignRelSize");
+
 	fpinfo = (TinyBraceFdwRelationInfo *) palloc0(sizeof(TinyBraceFdwRelationInfo));
 	baserel->fdw_private = (void *) fpinfo;
-	
+
 	/* Base foreign tables need to be pushed down always. */
 	fpinfo->pushdown_safe = true;
 
@@ -928,7 +935,7 @@ tinybraceGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreignta
 	options = tinybrace_get_options(foreigntableid);
 
 	/* Connect to the server */
-	//hdl = tinybrace_get_connection(server, user, options);
+	/* hdl = tinybrace_get_connection(server, user, options); */
 
 	foreach(lc, baserel->baserestrictinfo)
 	{
@@ -944,6 +951,7 @@ tinybraceGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreignta
 	foreach(lc, fpinfo->local_conds)
 	{
 		RestrictInfo *rinfo = (RestrictInfo *) lfirst(lc);
+
 		pull_varattnos((Node *) rinfo->clause, baserel->relid, &fpinfo->attrs_used);
 	}
 	rows = 10000;
@@ -955,17 +963,17 @@ tinybraceGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreignta
 static bool
 tinybrace_is_column_unique(Oid foreigntableid)
 {
-	StringInfoData       sql;
-	TBC_CLIENT_HANDLE    *hdl;
-	TBC_RESULT_SET        result;
-	tinybrace_opt            *options = NULL;
-	Oid                  userid =  GetUserId();
-	ForeignServer        *server;
-	UserMapping          *user;
-	ForeignTable         *table;
+	StringInfoData sql;
+	TBC_CLIENT_HANDLE *hdl;
+	TBC_RESULT_SET result;
+	tinybrace_opt *options = NULL;
+	Oid			userid = GetUserId();
+	ForeignServer *server;
+	UserMapping *user;
+	ForeignTable *table;
 	TBC_RTNCODE rtn;
 	TBC_QUERY_HANDLE qHandle;
-	int is_pk;
+	int			is_pk;
 
 	table = GetForeignTable(foreigntableid);
 	server = GetForeignServer(table->serverid);
@@ -986,19 +994,19 @@ tinybrace_is_column_unique(Oid foreigntableid)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_FDW_UNABLE_TO_CREATE_EXECUTION),
-				 errmsg("failed to execute the tinybrace query: %d\n",rtn)));
+				 errmsg("failed to execute the tinybrace query: %d\n", rtn)));
 	}
-	rtn = TBC_store_result(hdl->connect,qHandle,&result);
+	rtn = TBC_store_result(hdl->connect, qHandle, &result);
 	if (rtn != TBC_OK)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_FDW_UNABLE_TO_CREATE_EXECUTION),
-				 errmsg("failed to execute the tinybrace store result: %d\n",rtn)));
+				 errmsg("failed to execute the tinybrace store result: %d\n", rtn)));
 	}
-	if (result.nRow!=0)
+	if (result.nRow != 0)
 	{
 		is_pk = result.arData[0][5].value;
-	    TBC_free_result(hdl->connect, qHandle, &result);
+		TBC_free_result(hdl->connect, qHandle, &result);
 	}
 
 	if (is_pk)
@@ -1010,7 +1018,7 @@ tinybrace_is_column_unique(Oid foreigntableid)
  * tinybraceEstimateCosts: Estimate the remote query cost
  */
 static void
-tinybraceEstimateCosts(PlannerInfo *root, RelOptInfo *baserel, Cost *startup_cost, Cost *total_cost, Oid foreigntableid)
+tinybraceEstimateCosts(PlannerInfo * root, RelOptInfo * baserel, Cost * startup_cost, Cost * total_cost, Oid foreigntableid)
 {
 	tinybrace_opt *options;
 
@@ -1030,7 +1038,7 @@ tinybraceEstimateCosts(PlannerInfo *root, RelOptInfo *baserel, Cost *startup_cos
 
 
 static List *
-get_useful_ecs_for_relation(PlannerInfo *root, RelOptInfo *rel)
+get_useful_ecs_for_relation(PlannerInfo * root, RelOptInfo * rel)
 {
 	List	   *useful_eclass_list = NIL;
 	ListCell   *lc;
@@ -1072,7 +1080,7 @@ get_useful_ecs_for_relation(PlannerInfo *root, RelOptInfo *rel)
 }
 
 extern Expr *
-find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel)
+find_em_expr_for_rel(EquivalenceClass * ec, RelOptInfo * rel)
 {
 	ListCell   *lc_em;
 
@@ -1106,11 +1114,11 @@ find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel)
  * to figure out which pathkeys to consider.
  */
 static List *
-get_useful_pathkeys_for_relation(PlannerInfo *root, RelOptInfo *rel)
+get_useful_pathkeys_for_relation(PlannerInfo * root, RelOptInfo * rel)
 {
 	List	   *useful_pathkeys_list = NIL;
 	List	   *useful_eclass_list;
-    TinyBraceFdwRelationInfo *fpinfo = (TinyBraceFdwRelationInfo *) rel->fdw_private;
+	TinyBraceFdwRelationInfo *fpinfo = (TinyBraceFdwRelationInfo *) rel->fdw_private;
 	EquivalenceClass *query_ec = NULL;
 	ListCell   *lc;
 
@@ -1135,8 +1143,8 @@ get_useful_pathkeys_for_relation(PlannerInfo *root, RelOptInfo *rel)
 			 * end up resorting the entire data set.  So, unless we can push
 			 * down all of the query pathkeys, forget it.
 			 *
-			 * tinybrace_is_foreign_expr would detect volatile expressions as well, but
-			 * checking ec_has_volatile here saves some cycles.
+			 * tinybrace_is_foreign_expr would detect volatile expressions as
+			 * well, but checking ec_has_volatile here saves some cycles.
 			 */
 			if (pathkey_ec->ec_has_volatile ||
 				!(em_expr = find_em_expr_for_rel(pathkey_ec, rel)) ||
@@ -1210,8 +1218,8 @@ get_useful_pathkeys_for_relation(PlannerInfo *root, RelOptInfo *rel)
 
 
 static void
-add_paths_with_pathkeys_for_rel(PlannerInfo *root, RelOptInfo *rel,
-								Path *epq_path)
+add_paths_with_pathkeys_for_rel(PlannerInfo * root, RelOptInfo * rel,
+								Path * epq_path)
 {
 	List	   *useful_pathkeys_list = NIL; /* List of all pathkeys */
 	ListCell   *lc;
@@ -1247,35 +1255,35 @@ add_paths_with_pathkeys_for_rel(PlannerInfo *root, RelOptInfo *rel,
  * tinybraceGetForeignPaths: Get the foreign paths
  */
 static void
-tinybraceGetForeignPaths(PlannerInfo *root,RelOptInfo *baserel,Oid foreigntableid)
+tinybraceGetForeignPaths(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid)
 {
-	Cost startup_cost;
-	Cost total_cost;
-	
-	elog(DEBUG3,"tinybraceGetForeignPaths");
+	Cost		startup_cost;
+	Cost		total_cost;
+
+	elog(DEBUG3, "tinybraceGetForeignPaths");
 	/* Estimate costs */
 	tinybraceEstimateCosts(root, baserel, &startup_cost, &total_cost, foreigntableid);
 
 	/* Create a ForeignPath node and add it as only possible path */
 	add_path(baserel, (Path *)
 			 create_foreignscan_path(root, baserel,
-									 NULL,		/* default pathtarget */
+									 NULL,	/* default pathtarget */
 									 baserel->rows,
 									 startup_cost,
 									 total_cost,
 									 NIL,	/* no pathkeys */
 									 NULL,	/* no outer rel either */
 									 NULL,	/* no extra plan */
-									 NIL));	/* no fdw_private data */
-	
+									 NIL)); /* no fdw_private data */
+
 }
 
 
 List *
-build_tlist_to_deparse(RelOptInfo *foreignrel)
+build_tlist_to_deparse(RelOptInfo * foreignrel)
 {
 	List	   *tlist = NIL;
-    TinyBraceFdwRelationInfo *fpinfo = (TinyBraceFdwRelationInfo *) foreignrel->fdw_private;
+	TinyBraceFdwRelationInfo *fpinfo = (TinyBraceFdwRelationInfo *) foreignrel->fdw_private;
 	ListCell   *lc;
 
 	/*
@@ -1309,34 +1317,34 @@ build_tlist_to_deparse(RelOptInfo *foreignrel)
  */
 static ForeignScan *
 tinybraceGetForeignPlan(
-		PlannerInfo *root
-		,RelOptInfo *baserel
-		,Oid foreigntableid
-		,ForeignPath *best_path
-		,List * tlist
-		,List *scan_clauses
+						PlannerInfo * root
+						,RelOptInfo * baserel
+						,Oid foreigntableid
+						,ForeignPath * best_path
+						,List * tlist
+						,List * scan_clauses
 #if PG_VERSION_NUM >= 90500
-		,Plan * outer_plan
+						,Plan * outer_plan
 #endif
 )
 {
 	TinyBraceFdwRelationInfo *fpinfo = (TinyBraceFdwRelationInfo *) baserel->fdw_private;
-	Index          scan_relid = baserel->relid;
-	List           *fdw_private;
-	List           *local_exprs = NULL;
-	List           *remote_exprs = NULL;
-	List           *params_list = NULL;
-	List           *remote_conds = NIL;
+	Index		scan_relid = baserel->relid;
+	List	   *fdw_private;
+	List	   *local_exprs = NULL;
+	List	   *remote_exprs = NULL;
+	List	   *params_list = NULL;
+	List	   *remote_conds = NIL;
 	List	   *fdw_scan_tlist = NIL;
 	List	   *fdw_recheck_quals = NIL;
 
 
 	StringInfoData sql;
-	tinybrace_opt      *options;
-	List           *retrieved_attrs;
-	ListCell       *lc;
+	tinybrace_opt *options;
+	List	   *retrieved_attrs;
+	ListCell   *lc;
 
-	elog(DEBUG1,"tinybraceGetForeignPlan");
+	elog(DEBUG1, "tinybraceGetForeignPlan");
 
 	/*
 	 * Build the query string to be sent for execution, and identify
@@ -1394,8 +1402,11 @@ tinybraceGetForeignPlan(
 
 			fdw_recheck_quals = remote_exprs;
 		}
-	} else {
+	}
+	else
+	{
 		scan_relid = 0;
+
 		/*
 		 * For a join rel, baserestrictinfo is NIL and we are not considering
 		 * parameterization right now, so there should be no scan_clauses for
@@ -1447,10 +1458,10 @@ tinybraceGetForeignPlan(
 		}
 	}
 
-    tinybrace_deparseSelectStmtForRel(&sql, root, baserel, fdw_scan_tlist,
-							remote_exprs, best_path->path.pathkeys,
-							false, &retrieved_attrs, &params_list);
-	elog(DEBUG1,"select sql = %s",sql.data);	
+	tinybrace_deparseSelectStmtForRel(&sql, root, baserel, fdw_scan_tlist,
+									  remote_exprs, best_path->path.pathkeys,
+									  false, &retrieved_attrs, &params_list);
+	elog(DEBUG1, "select sql = %s", sql.data);
 	fdw_private = list_make2(makeString(sql.data), retrieved_attrs);
 
 	/*
@@ -1462,48 +1473,48 @@ tinybraceGetForeignPlan(
 	 * because then they wouldn't be subject to later planner processing.
 	 */
 	return make_foreignscan(tlist
-	                       ,local_exprs
-	                       ,scan_relid
-	                       ,params_list
-	                       ,fdw_private
+							,local_exprs
+							,scan_relid
+							,params_list
+							,fdw_private
 #if PG_VERSION_NUM >= 90500
-	                       ,fdw_scan_tlist
-	                       ,fdw_recheck_quals
-	                       ,outer_plan
+							,fdw_scan_tlist
+							,fdw_recheck_quals
+							,outer_plan
 #endif
-	                       );
+		);
 }
 
 /*
  * tinybraceAnalyzeForeignTable: tinybrace does not have stat.
  */
 static bool
-tinybraceAnalyzeForeignTable(Relation relation, AcquireSampleRowsFunc *func, BlockNumber *totalpages)
+tinybraceAnalyzeForeignTable(Relation relation, AcquireSampleRowsFunc * func, BlockNumber * totalpages)
 {
 	return false;
 }
 
 static List *
-tinybracePlanForeignModify(PlannerInfo *root,
-                           ModifyTable *plan,
-                           Index resultRelation,
-                           int subplan_index)
+tinybracePlanForeignModify(PlannerInfo * root,
+						   ModifyTable * plan,
+						   Index resultRelation,
+						   int subplan_index)
 {
 
-	CmdType         operation = plan->operation;
-	RangeTblEntry   *rte = planner_rt_fetch(resultRelation, root);
-	Relation        rel;
-	List            *targetAttrs = NULL;
-	List			*condAttr = NULL;
-	StringInfoData  sql;
-	char            *attname;
-	Oid             foreignTableId;
-	int i;
-	TupleDesc 		tupdesc;
+	CmdType		operation = plan->operation;
+	RangeTblEntry *rte = planner_rt_fetch(resultRelation, root);
+	Relation	rel;
+	List	   *targetAttrs = NULL;
+	List	   *condAttr = NULL;
+	StringInfoData sql;
+	char	   *attname;
+	Oid			foreignTableId;
+	int			i;
+	TupleDesc	tupdesc;
 
 
 	initStringInfo(&sql);
-	elog(DEBUG1,"%s",__func__);
+	elog(DEBUG1, "%s", __func__);
 
 	/*
 	 * Core code already has some lock on each rel being planned, so we can
@@ -1512,12 +1523,12 @@ tinybracePlanForeignModify(PlannerInfo *root,
 	rel = heap_open(rte->relid, NoLock);
 
 	foreignTableId = RelationGetRelid(rel);
- 	tupdesc = RelationGetDescr(rel);
+	tupdesc = RelationGetDescr(rel);
 
 	if (operation == CMD_INSERT)
 	{
-		TupleDesc tupdesc = RelationGetDescr(rel);
-		int attnum;
+		TupleDesc	tupdesc = RelationGetDescr(rel);
+		int			attnum;
 
 		for (attnum = 1; attnum <= tupdesc->natts; attnum++)
 		{
@@ -1529,15 +1540,15 @@ tinybracePlanForeignModify(PlannerInfo *root,
 	}
 	else if (operation == CMD_UPDATE)
 	{
-		Bitmapset *tmpset = bms_copy(rte->updatedCols);
+		Bitmapset  *tmpset = bms_copy(rte->updatedCols);
 		AttrNumber	col;
 
-    	while ((col = bms_first_member(tmpset)) >= 0)
+		while ((col = bms_first_member(tmpset)) >= 0)
 		{
 			col += FirstLowInvalidHeapAttributeNumber;
-			if (col <= InvalidAttrNumber)		/* shouldn't happen */
+			if (col <= InvalidAttrNumber)	/* shouldn't happen */
 				elog(ERROR, "system-column update is not supported");
-	
+
 			targetAttrs = lappend_int(targetAttrs, col);
 		}
 		/* We also want the rowid column to be available for the update */
@@ -1554,22 +1565,25 @@ tinybracePlanForeignModify(PlannerInfo *root,
 		elog(ERROR, "not suport ON CONFLICT: %d",
 			 (int) plan->onConflictAction);
 
-	/* Add all primary key attribute names to condAttr used in where clause of update */
+	/*
+	 * Add all primary key attribute names to condAttr used in where clause of
+	 * update
+	 */
 	for (i = 0; i < tupdesc->natts; ++i)
 	{
 		Form_pg_attribute att = TupleDescAttr(tupdesc, i);
-		AttrNumber attrno = att->attnum;
-		List *options;
-		ListCell *option;
+		AttrNumber	attrno = att->attnum;
+		List	   *options;
+		ListCell   *option;
 
 		/* look for the "key" option on this column */
 		options = GetForeignColumnOptions(foreignTableId, attrno);
-		foreach (option, options)
+		foreach(option, options)
 		{
-			DefElem *def = (DefElem *)lfirst(option);
+			DefElem    *def = (DefElem *) lfirst(option);
 
 			if (strcmp(def->defname, "key") == 0 &&
-				strcmp(((Value *)(def->arg))->val.str, "true") == 0)
+				strcmp(((Value *) (def->arg))->val.str, "true") == 0)
 			{
 				attname = get_relid_attribute_name(foreignTableId, attrno);
 				condAttr = lappend(condAttr, attname);
@@ -1611,28 +1625,28 @@ tinybracePlanForeignModify(PlannerInfo *root,
  * on a foreign table
  */
 static void
-tinybraceBeginForeignModify(ModifyTableState *mtstate,
-						ResultRelInfo *resultRelInfo,
-						List *fdw_private,
-						int subplan_index,
-						int eflags)
+tinybraceBeginForeignModify(ModifyTableState * mtstate,
+							ResultRelInfo * resultRelInfo,
+							List * fdw_private,
+							int subplan_index,
+							int eflags)
 {
-	TinyBraceFdwExecState   *fmstate = NULL;
-	EState              *estate = mtstate->ps.state;
-	Relation            rel = resultRelInfo->ri_RelationDesc;
-	AttrNumber          n_params = 0;
-	Oid                 typefnoid = InvalidOid;
-	bool                isvarlena = false;
-	ListCell            *lc = NULL;
-	Oid                 foreignTableId = InvalidOid;
-	RangeTblEntry       *rte;
-	Oid                 userid;
-	ForeignServer       *server;
-	UserMapping         *user;
-	ForeignTable        *table;
+	TinyBraceFdwExecState *fmstate = NULL;
+	EState	   *estate = mtstate->ps.state;
+	Relation	rel = resultRelInfo->ri_RelationDesc;
+	AttrNumber	n_params = 0;
+	Oid			typefnoid = InvalidOid;
+	bool		isvarlena = false;
+	ListCell   *lc = NULL;
+	Oid			foreignTableId = InvalidOid;
+	RangeTblEntry *rte;
+	Oid			userid;
+	ForeignServer *server;
+	UserMapping *user;
+	ForeignTable *table;
 	TBC_RTNCODE rtn;
-	Plan *subplan = mtstate->mt_plans[subplan_index]->plan;
-	int i;
+	Plan	   *subplan = mtstate->mt_plans[subplan_index]->plan;
+	int			i;
 
 	rte = rt_fetch(resultRelInfo->ri_RangeTableIndex, estate->es_range_table);
 	userid = rte->checkAsUser ? rte->checkAsUser : GetUserId();
@@ -1672,7 +1686,7 @@ tinybraceBeginForeignModify(ModifyTableState *mtstate,
 	/* Set up for remaining transmittable parameters */
 	foreach(lc, fmstate->retrieved_attrs)
 	{
-		int attnum = lfirst_int(lc);
+		int			attnum = lfirst_int(lc);
 		Form_pg_attribute attr = RelationGetDescr(rel)->attrs[attnum - 1];
 
 		Assert(!attr->attisdropped);
@@ -1688,21 +1702,24 @@ tinybraceBeginForeignModify(ModifyTableState *mtstate,
 	/* Prepare tinybrace statment */
 #if 1
 	rtn = TBC_prepare_stmt(fmstate->conn->connect, fmstate->query, &fmstate->uqHandle);
-	if ( rtn != 0)
+	if (rtn != 0)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_FDW_UNABLE_TO_CREATE_EXECUTION),
-				 errmsg("failed to prepare the TinyBrace query: %d, %s\n",rtn,fmstate->query)));
+				 errmsg("failed to prepare the TinyBrace query: %d, %s\n", rtn, fmstate->query)));
 	}
 #endif
 	resultRelInfo->ri_FdwState = fmstate;
 	fmstate->junk_idx = palloc0(RelationGetDescr(rel)->natts * sizeof(AttrNumber));
 	/* loop through table columns */
-	for (i=0; i<RelationGetDescr(rel)->natts; ++i)
+	for (i = 0; i < RelationGetDescr(rel)->natts; ++i)
 	{
-		/* for primary key columns, get the resjunk attribute number and store it */
+		/*
+		 * for primary key columns, get the resjunk attribute number and store
+		 * it
+		 */
 		fmstate->junk_idx[i] =
-			ExecFindJunkAttributeInTlist(subplan->targetlist, get_relid_attribute_name(foreignTableId, i+1));
+			ExecFindJunkAttributeInTlist(subplan->targetlist, get_relid_attribute_name(foreignTableId, i + 1));
 	}
 
 }
@@ -1712,20 +1729,20 @@ tinybraceBeginForeignModify(ModifyTableState *mtstate,
  * tinybraceExecForeignInsert: Insert one row into a foreign table
  */
 static TupleTableSlot *
-tinybraceExecForeignInsert(EState *estate,
-					   ResultRelInfo *resultRelInfo,
-					   TupleTableSlot *slot,
-					   TupleTableSlot *planSlot)
+tinybraceExecForeignInsert(EState * estate,
+						   ResultRelInfo * resultRelInfo,
+						   TupleTableSlot * slot,
+						   TupleTableSlot * planSlot)
 {
-	TinyBraceFdwExecState   *fmstate;
-	ListCell            *lc;
-	Datum               value = 0;
-	int                 n_params = 0;
-	MemoryContext       oldcontext;
+	TinyBraceFdwExecState *fmstate;
+	ListCell   *lc;
+	Datum		value = 0;
+	int			n_params = 0;
+	MemoryContext oldcontext;
 	TBC_RTNCODE rtn;
-	int					nestlevel;
+	int			nestlevel;
 
-	elog(DEBUG1," %s",__func__);
+	elog(DEBUG1, " %s", __func__);
 
 	fmstate = (TinyBraceFdwExecState *) resultRelInfo->ri_FdwState;
 	n_params = list_length(fmstate->retrieved_attrs);
@@ -1736,59 +1753,65 @@ tinybraceExecForeignInsert(EState *estate,
 	/* Bind values */
 	foreach(lc, fmstate->retrieved_attrs)
 	{
-		int attnum = lfirst_int(lc) - 1;
+		int			attnum = lfirst_int(lc) - 1;
 
-		bool *isnull = (bool*) palloc0(sizeof(bool) * n_params);
-		Oid type = slot->tts_tupleDescriptor->attrs[attnum]->atttypid;
+		bool	   *isnull = (bool *) palloc0(sizeof(bool) * n_params);
+		Oid			type = slot->tts_tupleDescriptor->attrs[attnum]->atttypid;
+
 		value = slot_getattr(slot, attnum + 1, &isnull[attnum]);
-	    rtn = tinybrace_bind_sql_var(type, attnum, value, fmstate->uqHandle, &isnull[attnum], fmstate->uqHandle, fmstate->conn->connect);
-		if(rtn != TBC_OK){
-			elog(ERROR,"TBC bind failed");
+		rtn = tinybrace_bind_sql_var(type, attnum, value, fmstate->uqHandle, &isnull[attnum], fmstate->uqHandle, fmstate->conn->connect);
+		if (rtn != TBC_OK)
+		{
+			elog(ERROR, "TBC bind failed");
 		}
 	}
 	/* Execute the query */
-	rtn = TBC_execute( fmstate->conn->connect, fmstate->uqHandle );
-	if(rtn != TBC_OK){
-		elog(ERROR,"TBC_execute INSERT failed");
+	rtn = TBC_execute(fmstate->conn->connect, fmstate->uqHandle);
+	if (rtn != TBC_OK)
+	{
+		elog(ERROR, "TBC_execute INSERT failed");
 	}
 	MemoryContextSwitchTo(oldcontext);
 	MemoryContextReset(fmstate->temp_cxt);
 	return slot;
 }
 
-static void bindJunkColumnValue(TinyBraceFdwExecState *fmstate,
-								TupleTableSlot *slot,
-					   			TupleTableSlot *planSlot,
-								Oid             foreignTableId,
-								int bindnum)
+static void
+bindJunkColumnValue(TinyBraceFdwExecState * fmstate,
+					TupleTableSlot * slot,
+					TupleTableSlot * planSlot,
+					Oid foreignTableId,
+					int bindnum)
 {
-	int i;
-	Datum value;
-	Oid               typeoid;
+	int			i;
+	Datum		value;
+	Oid			typeoid;
+
 	/* Bind where condition using junk column */
 	for (i = 0; i < slot->tts_tupleDescriptor->natts; ++i)
 	{
 		Form_pg_attribute att = TupleDescAttr(slot->tts_tupleDescriptor, i);
-		AttrNumber attrno = att->attnum;
-		List *options;
-		ListCell *option;
+		AttrNumber	attrno = att->attnum;
+		List	   *options;
+		ListCell   *option;
+
 		/* look for the "key" option on this column */
 		if (fmstate->junk_idx[i] == InvalidAttrNumber)
 			continue;
 		options = GetForeignColumnOptions(foreignTableId, attrno);
-		foreach (option, options)
+		foreach(option, options)
 		{
-			DefElem *def = (DefElem *)lfirst(option);
-			bool                 is_null = false;
+			DefElem    *def = (DefElem *) lfirst(option);
+			bool		is_null = false;
 
 			if (IS_KEY_COLUMN(def))
 			{
 				/* Get the id that was passed up as a resjunk column */
 				value = ExecGetJunkAttribute(planSlot, fmstate->junk_idx[i], &is_null);
 				typeoid = att->atttypid;
-				
+
 				/* Bind qual */
-				tinybrace_bind_sql_var(typeoid, bindnum, value, fmstate->uqHandle, &is_null,fmstate->conn->connect);
+				tinybrace_bind_sql_var(typeoid, bindnum, value, fmstate->uqHandle, &is_null, fmstate->conn->connect);
 				bindnum++;
 			}
 		}
@@ -1798,25 +1821,25 @@ static void bindJunkColumnValue(TinyBraceFdwExecState *fmstate,
 
 
 static TupleTableSlot *
-tinybraceExecForeignUpdate(EState *estate,
-					   ResultRelInfo *resultRelInfo,
-					   TupleTableSlot *slot,
-					   TupleTableSlot *planSlot)
+tinybraceExecForeignUpdate(EState * estate,
+						   ResultRelInfo * resultRelInfo,
+						   TupleTableSlot * slot,
+						   TupleTableSlot * planSlot)
 {
 	TinyBraceFdwExecState *fmstate = (TinyBraceFdwExecState *) resultRelInfo->ri_FdwState;
-	Relation          rel = resultRelInfo->ri_RelationDesc;
-	Oid               foreignTableId = RelationGetRelid(rel);
-	bool              is_null = false;
-	ListCell          *lc = NULL;
-	int               bindnum = 0;
-	Oid               typeoid;
-	Datum             value = 0;
-	int               n_params = 0;
-	bool              *isnull = NULL;
-	int               i = 0;
+	Relation	rel = resultRelInfo->ri_RelationDesc;
+	Oid			foreignTableId = RelationGetRelid(rel);
+	bool		is_null = false;
+	ListCell   *lc = NULL;
+	int			bindnum = 0;
+	Oid			typeoid;
+	Datum		value = 0;
+	int			n_params = 0;
+	bool	   *isnull = NULL;
+	int			i = 0;
 	TBC_RTNCODE rtn;
 
-	elog(DEBUG1," %s",__func__);
+	elog(DEBUG1, " %s", __func__);
 
 	n_params = list_length(fmstate->retrieved_attrs);
 
@@ -1825,23 +1848,24 @@ tinybraceExecForeignUpdate(EState *estate,
 	/* Bind the values */
 	foreach(lc, fmstate->retrieved_attrs)
 	{
-		int attnum = lfirst_int(lc);
-		Oid type;
+		int			attnum = lfirst_int(lc);
+		Oid			type;
 
 		type = slot->tts_tupleDescriptor->attrs[attnum - 1]->atttypid;
-		value = slot_getattr(slot, attnum, (bool*)(&isnull[i]));
-	    tinybrace_bind_sql_var(type, bindnum, value, fmstate->uqHandle, &isnull[i],fmstate->conn->connect);
+		value = slot_getattr(slot, attnum, (bool *) (&isnull[i]));
+		tinybrace_bind_sql_var(type, bindnum, value, fmstate->uqHandle, &isnull[i], fmstate->conn->connect);
 		bindnum++;
 		i++;
 	}
 	bindJunkColumnValue(fmstate, slot, planSlot, foreignTableId, bindnum);
 
 	/* Execute the query */
-	rtn = TBC_execute( fmstate->conn->connect, fmstate->uqHandle );
-	if(rtn != TBC_OK){
-		elog(ERROR,"TBC_execute UPDATE failed");
+	rtn = TBC_execute(fmstate->conn->connect, fmstate->uqHandle);
+	if (rtn != TBC_OK)
+	{
+		elog(ERROR, "TBC_execute UPDATE failed");
 	}
-	elog(DEBUG1,"tinybraceExecForeignUpdate %s",fmstate->query);
+	elog(DEBUG1, "tinybraceExecForeignUpdate %s", fmstate->query);
 	/* Return NULL if nothing was updated on the remote end */
 	return slot;
 }
@@ -1853,34 +1877,35 @@ tinybraceExecForeignUpdate(EState *estate,
  * list.
  */
 static void
-tinybraceAddForeignUpdateTargets(Query *parsetree,
-							 RangeTblEntry *target_rte,
-							 Relation target_relation)
+tinybraceAddForeignUpdateTargets(Query * parsetree,
+								 RangeTblEntry * target_rte,
+								 Relation target_relation)
 {
-	Oid relid = RelationGetRelid(target_relation);
-	TupleDesc tupdesc = target_relation->rd_att;
-	int i;
-	bool has_key = false;
+	Oid			relid = RelationGetRelid(target_relation);
+	TupleDesc	tupdesc = target_relation->rd_att;
+	int			i;
+	bool		has_key = false;
+
 	/* loop through all columns of the foreign table */
 	for (i = 0; i < tupdesc->natts; ++i)
 	{
 		Form_pg_attribute att = TupleDescAttr(tupdesc, i);
-		AttrNumber attrno = att->attnum;
-		List *options;
-		ListCell *option;
+		AttrNumber	attrno = att->attnum;
+		List	   *options;
+		ListCell   *option;
 
 		/* look for the "key" option on this column */
 		options = GetForeignColumnOptions(relid, attrno);
-		foreach (option, options)
+		foreach(option, options)
 		{
-			DefElem *def = (DefElem *)lfirst(option);
+			DefElem    *def = (DefElem *) lfirst(option);
 
 			/* if "key" is set, add a resjunk for this column */
 			if (strcmp(def->defname, "key") == 0 &&
-				strcmp(((Value *)(def->arg))->val.str, "true") == 0)
+				strcmp(((Value *) (def->arg))->val.str, "true") == 0)
 			{
 
-				Var *var;
+				Var		   *var;
 				TargetEntry *tle;
 
 				/* Make a Var representing the desired value */
@@ -1892,7 +1917,7 @@ tinybraceAddForeignUpdateTargets(Query *parsetree,
 							  0);
 
 				/* Wrap it in a resjunk TLE with the right name ... */
-				tle = makeTargetEntry((Expr *)var,
+				tle = makeTargetEntry((Expr *) var,
 									  list_length(parsetree->targetList) + 1,
 									  pstrdup(NameStr(att->attname)),
 									  true);
@@ -1923,58 +1948,61 @@ tinybraceAddForeignUpdateTargets(Query *parsetree,
  * MongoExecForeignDelete: Delete one row from a foreign table
  */
 static TupleTableSlot *
-tinybraceExecForeignDelete(EState *estate,
-					   ResultRelInfo *resultRelInfo,
-					   TupleTableSlot *slot,
-					   TupleTableSlot *planSlot)
+tinybraceExecForeignDelete(EState * estate,
+						   ResultRelInfo * resultRelInfo,
+						   TupleTableSlot * slot,
+						   TupleTableSlot * planSlot)
 {
-	TinyBraceFdwExecState    *fmstate = (TinyBraceFdwExecState *) resultRelInfo->ri_FdwState;
-	Relation             rel = resultRelInfo->ri_RelationDesc;
-	Oid                  foreignTableId = RelationGetRelid(rel);
-	bool                 is_null = false;
-	int                  bindnum = 0;
-	Oid                  typeoid;
-	Datum                value = 0;
-	int i;
+	TinyBraceFdwExecState *fmstate = (TinyBraceFdwExecState *) resultRelInfo->ri_FdwState;
+	Relation	rel = resultRelInfo->ri_RelationDesc;
+	Oid			foreignTableId = RelationGetRelid(rel);
+	bool		is_null = false;
+	int			bindnum = 0;
+	Oid			typeoid;
+	Datum		value = 0;
+	int			i;
 	TBC_RTNCODE rtn;
 
-	elog(DEBUG1," %s",__func__);
+	elog(DEBUG1, " %s", __func__);
 	bindJunkColumnValue(fmstate, slot, planSlot, foreignTableId, 0);
 
 	/* Execute the query */
-	rtn = TBC_execute( fmstate->conn->connect, fmstate->uqHandle );
-	if(rtn != TBC_OK){
-		elog(ERROR,"TBC_execute INSERT failed");
+	rtn = TBC_execute(fmstate->conn->connect, fmstate->uqHandle);
+	if (rtn != TBC_OK)
+	{
+		elog(ERROR, "TBC_execute INSERT failed");
 	}
-	elog(DEBUG1,"tinybraceExecForeigndelete %s",fmstate->query);
+	elog(DEBUG1, "tinybraceExecForeigndelete %s", fmstate->query);
 	/* Return NULL if nothing was updated on the remote end */
 	return slot;
 }
 
 static void
-tinybraceEndForeignModify(EState *estate, ResultRelInfo *resultRelInfo)
+tinybraceEndForeignModify(EState * estate, ResultRelInfo * resultRelInfo)
 {
 
 	TinyBraceFdwExecState *festate = (TinyBraceFdwExecState *) resultRelInfo->ri_FdwState;
 
-	elog(DEBUG1," %s",__func__);
+	elog(DEBUG1, " %s", __func__);
 
-    if (festate->table)
-    {
-         if (festate->table->result_set != NULL ) {
-           TBC_free_result(festate->conn->connect, 0, festate->table->result_set);
-           festate->table->result_set = NULL;
-         }
-       }
+	if (festate->table)
+	{
+		if (festate->table->result_set != NULL)
+		{
+			TBC_free_result(festate->conn->connect, 0, festate->table->result_set);
+			festate->table->result_set = NULL;
+		}
+	}
 
 	if (festate->uqHandle != 0)
 	{
-		TBC_finalize_stmt(festate->conn->connect,festate->uqHandle);
+		TBC_finalize_stmt(festate->conn->connect, festate->uqHandle);
 		festate->uqHandle = 0;
 	}
 }
 
-static void tinybraceTranslateType(StringInfo str, char *type)
+static void
+tinybraceTranslateType(StringInfo str, char *type)
 {
 	int			i;
 
@@ -2064,25 +2092,26 @@ tinybrace_deparse_string_literal(StringInfo buf, const char *val)
  * Import a foreign schema (9.5+)
  */
 static List *
-tinybraceImportForeignSchema(ImportForeignSchemaStmt *stmt,
+tinybraceImportForeignSchema(ImportForeignSchemaStmt * stmt,
 							 Oid serverOid)
 {
-    StringInfoData buf;
-    ForeignServer  *server;
-    UserMapping    *user;
-    TBC_CLIENT_HANDLE   *conn = NULL;
-	tinybrace_opt            *options = NULL;
-	StringInfoData	query_tbl;
-    TBC_QUERY_HANDLE qHandle = 0;
-    TBC_QUERY_HANDLE qHandle_tbl_schema = 0;
-	TBC_RESULT_SET result = { 0 };
-	TBC_RESULT_SET result_tbl_schema = { 0 };
-	int j,k;
-    ListCell       *lc;
-    bool           import_default = false;
-    bool           import_not_null = true;
+	StringInfoData buf;
+	ForeignServer *server;
+	UserMapping *user;
+	TBC_CLIENT_HANDLE *conn = NULL;
+	tinybrace_opt *options = NULL;
+	StringInfoData query_tbl;
+	TBC_QUERY_HANDLE qHandle = 0;
+	TBC_QUERY_HANDLE qHandle_tbl_schema = 0;
+	TBC_RESULT_SET result = {0};
+	TBC_RESULT_SET result_tbl_schema = {0};
+	int			j,
+				k;
+	ListCell   *lc;
+	bool		import_default = false;
+	bool		import_not_null = true;
 	TBC_RTNCODE rc;
-	List		   *commands = NIL;
+	List	   *commands = NIL;
 
 	if (strcmp(stmt->remote_schema, "public") != 0 &&
 		strcmp(stmt->remote_schema, "main") != 0)
@@ -2090,15 +2119,15 @@ tinybraceImportForeignSchema(ImportForeignSchemaStmt *stmt,
 		ereport(ERROR,
 				(errcode(ERRCODE_FDW_SCHEMA_NOT_FOUND),
 				 errmsg("Foreign schema \"%s\" is invalid", stmt->remote_schema)
-					));
+				 ));
 	}
 
-    server = GetForeignServer(serverOid);
-    user = GetUserMapping(GetUserId(), server->serverid);
+	server = GetForeignServer(serverOid);
+	user = GetUserMapping(GetUserId(), server->serverid);
 	options = tinybrace_get_options(serverOid);
 	conn = tinybrace_get_connection(server, user, options);
 
-    initStringInfo(&buf);
+	initStringInfo(&buf);
 
 	/* Parse statement options */
 	foreach(lc, stmt->options)
@@ -2114,7 +2143,7 @@ tinybraceImportForeignSchema(ImportForeignSchemaStmt *stmt,
 					(errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
 					 errmsg("invalid option \"%s\"", def->defname)));
 	}
-		/* You want all tables, except system tables */
+	/* You want all tables, except system tables */
 	initStringInfo(&query_tbl);
 	appendStringInfo(&query_tbl, "SELECT name FROM sqlite_master WHERE type = 'table'");
 	appendStringInfo(&query_tbl, " AND name NOT LIKE 'sqlite_%%' AND name NOT LIKE 'tbe_%%'");
@@ -2130,7 +2159,7 @@ tinybraceImportForeignSchema(ImportForeignSchemaStmt *stmt,
 
 		foreach(lc, stmt->table_list)
 		{
-			RangeVar *rv = (RangeVar *) lfirst(lc);
+			RangeVar   *rv = (RangeVar *) lfirst(lc);
 
 			if (first_item)
 				first_item = false;
@@ -2141,20 +2170,22 @@ tinybraceImportForeignSchema(ImportForeignSchemaStmt *stmt,
 		}
 		appendStringInfoChar(&query_tbl, ')');
 	}
-	rc = TBC_query(conn->connect ,query_tbl.data,&qHandle);
-	if(rc != TBC_OK){
-		elog(ERROR,"Tinybrace query error : %s",query_tbl.data);
+	rc = TBC_query(conn->connect, query_tbl.data, &qHandle);
+	if (rc != TBC_OK)
+	{
+		elog(ERROR, "Tinybrace query error : %s", query_tbl.data);
 	}
 	rc = TBC_store_result(conn->connect, qHandle, &result);
-	if ( rc != TBC_OK )
+	if (rc != TBC_OK)
 	{
-		elog(ERROR,"Tinybrace store result error : %s",query_tbl.data);
+		elog(ERROR, "Tinybrace store result error : %s", query_tbl.data);
 	}
-	for (k = 0; k < result.nRow && k < result.nRow; k++) {
-		StringInfoData	cft_stmt;
-		char		   *tbl_name;
-		int				i = 0;
-		char		   *query_cols;
+	for (k = 0; k < result.nRow && k < result.nRow; k++)
+	{
+		StringInfoData cft_stmt;
+		char	   *tbl_name;
+		int			i = 0;
+		char	   *query_cols;
 
 		tbl_name = result.arData[k][0].value;
 
@@ -2163,22 +2194,24 @@ tinybraceImportForeignSchema(ImportForeignSchemaStmt *stmt,
 						 stmt->local_schema, quote_identifier(tbl_name));
 
 		query_cols = palloc0(strlen(tbl_name) + 19 + 1);
-		sprintf(query_cols, "PRAGMA table_info(%s)",tbl_name);
-		rc = TBC_query(conn->connect, query_cols,&qHandle_tbl_schema);
-		if(rc != TBC_OK){
-			elog(ERROR,"Tinybrace query error : %s",query_cols);
+		sprintf(query_cols, "PRAGMA table_info(%s)", tbl_name);
+		rc = TBC_query(conn->connect, query_cols, &qHandle_tbl_schema);
+		if (rc != TBC_OK)
+		{
+			elog(ERROR, "Tinybrace query error : %s", query_cols);
 		}
 		rc = TBC_store_result(conn->connect, qHandle_tbl_schema, &result_tbl_schema);
-		if ( rc != TBC_OK )
+		if (rc != TBC_OK)
 		{
-			elog(ERROR,"Tinybrace store result error : %s",query_cols);
+			elog(ERROR, "Tinybrace store result error : %s", query_cols);
 		}
-		for (j = 0; j < result_tbl_schema.nRow && j < result_tbl_schema.nRow; j++) {
-			char   *col_name;
-			char   *typ_name;
-			bool	not_null;
-			char   *default_val;
-		    char *primary_key;
+		for (j = 0; j < result_tbl_schema.nRow && j < result_tbl_schema.nRow; j++)
+		{
+			char	   *col_name;
+			char	   *typ_name;
+			bool		not_null;
+			char	   *default_val;
+			char	   *primary_key;
 
 			col_name = result_tbl_schema.arData[j][1].value;
 			typ_name = result_tbl_schema.arData[j][2].value;
@@ -2197,7 +2230,7 @@ tinybraceImportForeignSchema(ImportForeignSchemaStmt *stmt,
 			tinybraceTranslateType(&cft_stmt, typ_name);
 
 			/* part of the primary key */
-			if (primary_key[0]==1)
+			if (primary_key[0] == 1)
 				appendStringInfo(&cft_stmt, " OPTIONS (key 'true')");
 
 			if (not_null && import_not_null)
@@ -2210,20 +2243,20 @@ tinybraceImportForeignSchema(ImportForeignSchemaStmt *stmt,
 		appendStringInfo(&cft_stmt, "\n) SERVER %s\n"
 						 "OPTIONS (table_name ",
 						 quote_identifier(stmt->server_name)
-						 );
-		tinybrace_deparse_string_literal(&cft_stmt,tbl_name);
+			);
+		tinybrace_deparse_string_literal(&cft_stmt, tbl_name);
 		appendStringInfoString(&cft_stmt, ");");
-		commands = lappend(commands,pstrdup(cft_stmt.data));
-    	/* free per-table allocated data */
-		elog(DEBUG1,"%s",cft_stmt.data);
-        pfree(query_cols);
+		commands = lappend(commands, pstrdup(cft_stmt.data));
+		/* free per-table allocated data */
+		elog(DEBUG1, "%s", cft_stmt.data);
+		pfree(query_cols);
 		pfree(cft_stmt.data);
-		rc = TBC_free_result(conn->connect,qHandle_tbl_schema, &result_tbl_schema);
+		rc = TBC_free_result(conn->connect, qHandle_tbl_schema, &result_tbl_schema);
 	}
 
-   	/* Free all needed data and close connection*/
+	/* Free all needed data and close connection */
 	pfree(query_tbl.data);
-	rc = TBC_free_result(conn->connect,qHandle, &result);
+	rc = TBC_free_result(conn->connect, qHandle, &result);
 	return commands;
 }
 
@@ -2285,13 +2318,13 @@ tinybrace_reset_transmission_modes(int nestlevel)
  * Prepare for processing of parameters used in remote query.
  */
 static void
-prepare_query_params(PlanState *node,
-					 List *fdw_exprs,
+prepare_query_params(PlanState * node,
+					 List * fdw_exprs,
 					 int numParams,
-					 FmgrInfo **param_flinfo,
-					 List **param_exprs,
+					 FmgrInfo * *param_flinfo,
+					 List * *param_exprs,
 					 const char ***param_values,
-					 Oid **param_types)
+					 Oid * *param_types)
 {
 	int			i;
 	ListCell   *lc;
@@ -2335,13 +2368,13 @@ prepare_query_params(PlanState *node,
  * Construct array of query parameter values in text format.
  */
 static void
-process_query_params(ExprContext *econtext,
-					 FmgrInfo *param_flinfo,
-					 List *param_exprs,
+process_query_params(ExprContext * econtext,
+					 FmgrInfo * param_flinfo,
+					 List * param_exprs,
 					 const char **param_values,
 					 TBC_QUERY_HANDLE qHandle,
 					 TBC_CONNECT_HANDLE connect,
-					 Oid *param_types)
+					 Oid * param_types)
 {
 	int			nestlevel;
 	int			i;
@@ -2358,7 +2391,7 @@ process_query_params(ExprContext *econtext,
 
 		/* Evaluate the parameter expression */
 		expr_value = ExecEvalExpr(expr_state, econtext, &isNull);
-        tinybrace_bind_sql_var(param_types[i], i, expr_value, qHandle, &isNull, connect);
+		tinybrace_bind_sql_var(param_types[i], i, expr_value, qHandle, &isNull, connect);
 
 		/*
 		 * Get string representation of each parameter value by invoking
@@ -2378,13 +2411,13 @@ process_query_params(ExprContext *econtext,
  * Create cursor for node's query with current parameter values.
  */
 static void
-create_cursor(ForeignScanState *node)
+create_cursor(ForeignScanState * node)
 {
-	TinyBraceFdwExecState   *festate = (TinyBraceFdwExecState *) node->fdw_state;
+	TinyBraceFdwExecState *festate = (TinyBraceFdwExecState *) node->fdw_state;
 	ExprContext *econtext = node->ss.ps.ps_ExprContext;
 	int			numParams = festate->numParams;
 	const char **values = festate->param_values;
-	
+
 	/*
 	 * Construct array of query parameter values in text format.  We do the
 	 * conversions in the short-lived per-tuple context, so as not to cause a
@@ -2408,4 +2441,3 @@ create_cursor(ForeignScanState *node)
 	}
 	festate->cursor_exists = true;
 }
-

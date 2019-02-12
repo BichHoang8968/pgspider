@@ -180,12 +180,12 @@ typedef struct bkend
 	bool		dead_end;		/* is it going to send an error and quit? */
 	bool		bgworker_notify;	/* gets bgworker start/stop notifications */
 	dlist_node	elem;			/* list link in BackendList */
-} Backend;
+}			Backend;
 
 static dlist_head BackendList = DLIST_STATIC_INIT(BackendList);
 
 #ifdef EXEC_BACKEND
-static Backend *ShmemBackendArray;
+static Backend * ShmemBackendArray;
 #endif
 
 BackgroundWorker *MyBgworkerEntry = NULL;
@@ -247,14 +247,14 @@ bool		restart_after_crash = true;
 
 /* PIDs of special child processes; 0 when not running */
 static pid_t StartupPID = 0,
-			BgWriterPID = 0,
-			CheckpointerPID = 0,
-			WalWriterPID = 0,
-			WalReceiverPID = 0,
-			AutoVacPID = 0,
-			PgArchPID = 0,
-			PgStatPID = 0,
-			SysLoggerPID = 0;
+BgWriterPID = 0,
+CheckpointerPID = 0,
+WalWriterPID = 0,
+WalReceiverPID = 0,
+AutoVacPID = 0,
+PgArchPID = 0,
+PgStatPID = 0,
+SysLoggerPID = 0;
 
 /* Startup process's status */
 typedef enum
@@ -263,7 +263,7 @@ typedef enum
 	STARTUP_RUNNING,
 	STARTUP_SIGNALED,			/* we sent it a SIGQUIT or SIGKILL */
 	STARTUP_CRASHED
-} StartupStatusEnum;
+}			StartupStatusEnum;
 
 static StartupStatusEnum StartupStatus = STARTUP_NOT_RUNNING;
 
@@ -335,7 +335,7 @@ typedef enum
 								 * finish */
 	PM_WAIT_DEAD_END,			/* waiting for dead_end children to exit */
 	PM_NO_CHILDREN				/* all important children have exited */
-} PMState;
+}			PMState;
 
 static PMState pmState = PM_INIT;
 
@@ -392,8 +392,8 @@ static void CloseServerPorts(int status, Datum arg);
 static void unlink_external_pid_file(int status, Datum arg);
 static void getInstallationPaths(const char *argv0);
 static void checkDataDir(void);
-static Port *ConnCreate(int serverFd);
-static void ConnFree(Port *port);
+static Port * ConnCreate(int serverFd);
+static void ConnFree(Port * port);
 static void reset_shared(int port);
 static void SIGHUP_handler(SIGNAL_ARGS);
 static void pmdie(SIGNAL_ARGS);
@@ -408,18 +408,18 @@ static void HandleChildCrash(int pid, int exitstatus, const char *procname);
 static void LogChildExit(int lev, const char *procname,
 			 int pid, int exitstatus);
 static void PostmasterStateMachine(void);
-static void BackendInitialize(Port *port);
-static void BackendRun(Port *port) pg_attribute_noreturn();
+static void BackendInitialize(Port * port);
+static void BackendRun(Port * port) pg_attribute_noreturn();
 static void ExitPostmaster(int status) pg_attribute_noreturn();
 static int	ServerLoop(void);
-static int	BackendStartup(Port *port);
-static int	ProcessStartupPacket(Port *port, bool SSLdone);
-static void SendNegotiateProtocolVersion(List *unrecognized_protocol_options);
-static void processCancelRequest(Port *port, void *pkt);
-static int	initMasks(fd_set *rmask);
-static void report_fork_failure_to_client(Port *port, int errnum);
+static int	BackendStartup(Port * port);
+static int	ProcessStartupPacket(Port * port, bool SSLdone);
+static void SendNegotiateProtocolVersion(List * unrecognized_protocol_options);
+static void processCancelRequest(Port * port, void *pkt);
+static int	initMasks(fd_set * rmask);
+static void report_fork_failure_to_client(Port * port, int errnum);
 static CAC_state canAcceptConnections(void);
-static bool RandomCancelKey(int32 *cancel_key);
+static bool RandomCancelKey(int32 * cancel_key);
 static void signal_child(pid_t pid, int signal);
 static bool SignalSomeChildren(int signal, int targets);
 static void TerminateChildren(int signal);
@@ -427,7 +427,7 @@ static void TerminateChildren(int signal);
 #define SignalChildren(sig)			   SignalSomeChildren(sig, BACKEND_TYPE_ALL)
 
 static int	CountChildren(int target);
-static bool assign_backendlist_entry(RegisteredBgWorker *rw);
+static bool assign_backendlist_entry(RegisteredBgWorker * rw);
 static void maybe_start_bgworkers(void);
 static bool CreateOptsFile(int argc, char *argv[], char *fullprogname);
 static pid_t StartChildProcess(AuxProcType type);
@@ -461,11 +461,11 @@ typedef struct
 	HANDLE		waitHandle;
 	HANDLE		procHandle;
 	DWORD		procId;
-} win32_deadchild_waitinfo;
+}			win32_deadchild_waitinfo;
 #endif							/* WIN32 */
 
-static pid_t backend_forkexec(Port *port);
-static pid_t internal_forkexec(int argc, char *argv[], Port *port);
+static pid_t backend_forkexec(Port * port);
+static pid_t internal_forkexec(int argc, char *argv[], Port * port);
 
 /* Type for a socket that can be inherited to a client process */
 #ifdef WIN32
@@ -474,7 +474,7 @@ typedef struct
 	SOCKET		origsocket;		/* Original socket value, or PGINVALID_SOCKET
 								 * if not a socket */
 	WSAPROTOCOL_INFO wsainfo;
-} InheritableSocket;
+}			InheritableSocket;
 #else
 typedef int InheritableSocket;
 #endif
@@ -530,20 +530,20 @@ typedef struct
 	char		my_exec_path[MAXPGPATH];
 	char		pkglib_path[MAXPGPATH];
 	char		ExtraOptions[MAXPGPATH];
-} BackendParameters;
+}			BackendParameters;
 
-static void read_backend_variables(char *id, Port *port);
-static void restore_backend_variables(BackendParameters *param, Port *port);
+static void read_backend_variables(char *id, Port * port);
+static void restore_backend_variables(BackendParameters * param, Port * port);
 
 #ifndef WIN32
-static bool save_backend_variables(BackendParameters *param, Port *port);
+static bool save_backend_variables(BackendParameters * param, Port * port);
 #else
-static bool save_backend_variables(BackendParameters *param, Port *port,
+static bool save_backend_variables(BackendParameters * param, Port * port,
 					   HANDLE childProcess, pid_t childPid);
 #endif
 
-static void ShmemBackendArrayAdd(Backend *bn);
-static void ShmemBackendArrayRemove(Backend *bn);
+static void ShmemBackendArrayAdd(Backend * bn);
+static void ShmemBackendArrayRemove(Backend * bn);
 #endif							/* EXEC_BACKEND */
 
 #define StartupDataBase()		StartChildProcess(StartupProcess)
@@ -1908,7 +1908,7 @@ ServerLoop(void)
  * Return the number of sockets to listen on.
  */
 static int
-initMasks(fd_set *rmask)
+initMasks(fd_set * rmask)
 {
 	int			maxsock = -1;
 	int			i;
@@ -1943,7 +1943,7 @@ initMasks(fd_set *rmask)
  * if we detect a communications failure.)
  */
 static int
-ProcessStartupPacket(Port *port, bool SSLdone)
+ProcessStartupPacket(Port * port, bool SSLdone)
 {
 	int32		len;
 	void	   *buf;
@@ -2159,8 +2159,8 @@ retry1:
 		/*
 		 * If the client requested a newer protocol version or if the client
 		 * requested any protocol options we didn't recognize, let them know
-		 * the newest minor protocol version we do support and the names of any
-		 * unrecognized options.
+		 * the newest minor protocol version we do support and the names of
+		 * any unrecognized options.
 		 */
 		if (PG_PROTOCOL_MINOR(proto) > PG_PROTOCOL_MINOR(PG_PROTOCOL_LATEST) ||
 			unrecognized_protocol_options != NIL)
@@ -2292,7 +2292,7 @@ retry1:
  * of which options were actually accepted.
  */
 static void
-SendNegotiateProtocolVersion(List *unrecognized_protocol_options)
+SendNegotiateProtocolVersion(List * unrecognized_protocol_options)
 {
 	StringInfoData buf;
 	ListCell   *lc;
@@ -2313,7 +2313,7 @@ SendNegotiateProtocolVersion(List *unrecognized_protocol_options)
  * Nothing is sent back to the client.
  */
 static void
-processCancelRequest(Port *port, void *pkt)
+processCancelRequest(Port * port, void *pkt)
 {
 	CancelRequestPacket *canc = (CancelRequestPacket *) pkt;
 	int			backendPID;
@@ -2341,7 +2341,7 @@ processCancelRequest(Port *port, void *pkt)
 #else
 	for (i = MaxLivePostmasterChildren() - 1; i >= 0; i--)
 	{
-		bp = (Backend *) &ShmemBackendArray[i];
+		bp = (Backend *) & ShmemBackendArray[i];
 #endif
 		if (bp->pid == backendPID)
 		{
@@ -2472,7 +2472,7 @@ ConnCreate(int serverFd)
  * ConnFree -- free a local connection data structure
  */
 static void
-ConnFree(Port *conn)
+ConnFree(Port * conn)
 {
 #ifdef USE_SSL
 	secure_close(conn);
@@ -4006,7 +4006,7 @@ TerminateChildren(int signal)
  * Note: if you change this code, also consider StartAutovacuumWorker.
  */
 static int
-BackendStartup(Port *port)
+BackendStartup(Port * port)
 {
 	Backend    *bn;				/* for backend cleanup */
 	pid_t		pid;
@@ -4123,7 +4123,7 @@ BackendStartup(Port *port)
  * it's not up and running.
  */
 static void
-report_fork_failure_to_client(Port *port, int errnum)
+report_fork_failure_to_client(Port * port, int errnum)
 {
 	char		buffer[1000];
 	int			rc;
@@ -4156,7 +4156,7 @@ report_fork_failure_to_client(Port *port, int errnum)
  * but have not yet set up most of our local pointers to shmem structures.
  */
 static void
-BackendInitialize(Port *port)
+BackendInitialize(Port * port)
 {
 	int			status;
 	int			ret;
@@ -4336,7 +4336,7 @@ BackendInitialize(Port *port)
  *		If PostgresMain() fails, return status.
  */
 static void
-BackendRun(Port *port)
+BackendRun(Port * port)
 {
 	char	  **av;
 	int			maxac;
@@ -4440,7 +4440,7 @@ postmaster_forkexec(int argc, char *argv[])
  * returns the pid of the fork/exec'd process, or -1 on failure
  */
 static pid_t
-backend_forkexec(Port *port)
+backend_forkexec(Port * port)
 {
 	char	   *av[4];
 	int			ac = 0;
@@ -4464,7 +4464,7 @@ backend_forkexec(Port *port)
  * - fork():s, and then exec():s the child process
  */
 static pid_t
-internal_forkexec(int argc, char *argv[], Port *port)
+internal_forkexec(int argc, char *argv[], Port * port)
 {
 	static unsigned long tmpBackendFileNum = 0;
 	pid_t		pid;
@@ -4556,7 +4556,7 @@ internal_forkexec(int argc, char *argv[], Port *port)
  *	 file is complete.
  */
 static pid_t
-internal_forkexec(int argc, char *argv[], Port *port)
+internal_forkexec(int argc, char *argv[], Port * port)
 {
 	int			retry_count = 0;
 	STARTUPINFO si;
@@ -5231,7 +5231,7 @@ StartupPacketTimeoutHandler(void)
  * Generate a random cancel key.
  */
 static bool
-RandomCancelKey(int32 *cancel_key)
+RandomCancelKey(int32 * cancel_key)
 {
 #ifdef HAVE_STRONG_RANDOM
 	return pg_strong_random((char *) cancel_key, sizeof(int32));
@@ -5660,7 +5660,7 @@ bgworker_forkexec(int shmem_slot)
  * This code is heavily based on autovacuum.c, q.v.
  */
 static bool
-do_start_bgworker(RegisteredBgWorker *rw)
+do_start_bgworker(RegisteredBgWorker * rw)
 {
 	pid_t		worker_pid;
 
@@ -5795,7 +5795,7 @@ bgworker_should_start_now(BgWorkerStartTime start_time)
  * Some info from the Backend is copied into the passed rw.
  */
 static bool
-assign_backendlist_entry(RegisteredBgWorker *rw)
+assign_backendlist_entry(RegisteredBgWorker * rw)
 {
 	Backend    *bn;
 
@@ -5988,10 +5988,10 @@ PostmasterMarkPIDForWorkerNotify(int pid)
  * The following need to be available to the save/restore_backend_variables
  * functions.  They are marked NON_EXEC_STATIC in their home modules.
  */
-extern slock_t *ShmemLock;
-extern slock_t *ProcStructLock;
-extern PGPROC *AuxiliaryProcs;
-extern PMSignalData *PMSignalState;
+extern slock_t * ShmemLock;
+extern slock_t * ProcStructLock;
+extern PGPROC * AuxiliaryProcs;
+extern PMSignalData * PMSignalState;
 extern pgsocket pgStatSock;
 extern pg_time_t first_syslogger_file_time;
 
@@ -5999,20 +5999,20 @@ extern pg_time_t first_syslogger_file_time;
 #define write_inheritable_socket(dest, src, childpid) ((*(dest) = (src)), true)
 #define read_inheritable_socket(dest, src) (*(dest) = *(src))
 #else
-static bool write_duplicated_handle(HANDLE *dest, HANDLE src, HANDLE child);
-static bool write_inheritable_socket(InheritableSocket *dest, SOCKET src,
+static bool write_duplicated_handle(HANDLE * dest, HANDLE src, HANDLE child);
+static bool write_inheritable_socket(InheritableSocket * dest, SOCKET src,
 						 pid_t childPid);
-static void read_inheritable_socket(SOCKET *dest, InheritableSocket *src);
+static void read_inheritable_socket(SOCKET * dest, InheritableSocket * src);
 #endif
 
 
 /* Save critical backend variables into the BackendParameters struct */
 #ifndef WIN32
 static bool
-save_backend_variables(BackendParameters *param, Port *port)
+save_backend_variables(BackendParameters * param, Port * port)
 #else
 static bool
-save_backend_variables(BackendParameters *param, Port *port,
+save_backend_variables(BackendParameters * param, Port * port,
 					   HANDLE childProcess, pid_t childPid)
 #endif
 {
@@ -6088,7 +6088,7 @@ save_backend_variables(BackendParameters *param, Port *port,
  * process instance of the handle to the parameter file.
  */
 static bool
-write_duplicated_handle(HANDLE *dest, HANDLE src, HANDLE childProcess)
+write_duplicated_handle(HANDLE * dest, HANDLE src, HANDLE childProcess)
 {
 	HANDLE		hChild = INVALID_HANDLE_VALUE;
 
@@ -6118,7 +6118,7 @@ write_duplicated_handle(HANDLE *dest, HANDLE src, HANDLE childProcess)
  * straight socket inheritance.
  */
 static bool
-write_inheritable_socket(InheritableSocket *dest, SOCKET src, pid_t childpid)
+write_inheritable_socket(InheritableSocket * dest, SOCKET src, pid_t childpid)
 {
 	dest->origsocket = src;
 	if (src != 0 && src != PGINVALID_SOCKET)
@@ -6139,7 +6139,7 @@ write_inheritable_socket(InheritableSocket *dest, SOCKET src, pid_t childpid)
  * Read a duplicate socket structure back, and get the socket descriptor.
  */
 static void
-read_inheritable_socket(SOCKET *dest, InheritableSocket *src)
+read_inheritable_socket(SOCKET * dest, InheritableSocket * src)
 {
 	SOCKET		s;
 
@@ -6176,7 +6176,7 @@ read_inheritable_socket(SOCKET *dest, InheritableSocket *src)
 #endif
 
 static void
-read_backend_variables(char *id, Port *port)
+read_backend_variables(char *id, Port * port)
 {
 	BackendParameters param;
 
@@ -6248,7 +6248,7 @@ read_backend_variables(char *id, Port *port)
 
 /* Restore critical backend variables from the BackendParameters struct */
 static void
-restore_backend_variables(BackendParameters *param, Port *port)
+restore_backend_variables(BackendParameters * param, Port * port)
 {
 	memcpy(port, &param->port, sizeof(Port));
 	read_inheritable_socket(&port->sock, &param->portsocket);
@@ -6326,7 +6326,7 @@ ShmemBackendArrayAllocation(void)
 }
 
 static void
-ShmemBackendArrayAdd(Backend *bn)
+ShmemBackendArrayAdd(Backend * bn)
 {
 	/* The array slot corresponding to my PMChildSlot should be free */
 	int			i = bn->child_slot - 1;
@@ -6336,7 +6336,7 @@ ShmemBackendArrayAdd(Backend *bn)
 }
 
 static void
-ShmemBackendArrayRemove(Backend *bn)
+ShmemBackendArrayRemove(Backend * bn)
 {
 	int			i = bn->child_slot - 1;
 

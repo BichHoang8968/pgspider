@@ -73,7 +73,7 @@ typedef struct spgNodePtr
 	Datum		d;
 	int			i;
 	int16		c;
-} spgNodePtr;
+}			spgNodePtr;
 
 
 Datum
@@ -139,7 +139,7 @@ commonPrefix(const char *a, const char *b, int lena, int lenb)
  * On success, *i gets the match location; on failure, it gets where to insert
  */
 static bool
-searchChar(Datum *nodeLabels, int nNodes, int16 c, int *i)
+searchChar(Datum * nodeLabels, int nNodes, int16 c, int *i)
 {
 	int			StopLow = 0,
 				StopHigh = nNodes;
@@ -307,8 +307,8 @@ spg_text_choose(PG_FUNCTION_ARGS)
 static int
 cmpNodePtr(const void *a, const void *b)
 {
-	const spgNodePtr *aa = (const spgNodePtr *) a;
-	const spgNodePtr *bb = (const spgNodePtr *) b;
+	const		spgNodePtr *aa = (const spgNodePtr *) a;
+	const		spgNodePtr *bb = (const spgNodePtr *) b;
 
 	return aa->c - bb->c;
 }

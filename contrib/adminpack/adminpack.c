@@ -49,7 +49,7 @@ typedef struct
 {
 	char	   *location;
 	DIR		   *dirdesc;
-} directory_fctx;
+}			directory_fctx;
 
 /*-----------------------
  * some helper functions
@@ -62,7 +62,7 @@ typedef struct
  * absolute paths that match DataDir or Log_directory.
  */
 static char *
-convert_and_check_filename(text *arg, bool logAllowed)
+convert_and_check_filename(text * arg, bool logAllowed)
 {
 	char	   *filename = text_to_cstring(arg);
 

@@ -27,7 +27,7 @@ typedef struct
 {
 	TimeADT		time;			/* all time units other than months and years */
 	int32		zone;			/* numeric time zone, in seconds */
-} TimeTzADT;
+}			TimeTzADT;
 
 /*
  * Infinity and minus infinity must be the max and min values of DateADT.
@@ -71,7 +71,7 @@ extern int32 anytime_typmod_check(bool istz, int32 typmod);
 extern double date2timestamp_no_overflow(DateADT dateVal);
 extern void EncodeSpecialDate(DateADT dt, char *str);
 extern DateADT GetSQLCurrentDate(void);
-extern TimeTzADT *GetSQLCurrentTime(int32 typmod);
+extern TimeTzADT * GetSQLCurrentTime(int32 typmod);
 extern TimeADT GetSQLLocalTime(int32 typmod);
 
 #endif							/* DATE_H */

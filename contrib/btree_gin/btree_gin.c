@@ -22,8 +22,8 @@ typedef struct QueryInfo
 	StrategyNumber strategy;
 	Datum		datum;
 	bool		is_varlena;
-	Datum		(*typecmp) (FunctionCallInfo);
-} QueryInfo;
+				Datum(*typecmp) (FunctionCallInfo);
+}			QueryInfo;
 
 /*** GIN support functions shared by all datatypes ***/
 
@@ -53,14 +53,14 @@ gin_btree_extract_value(FunctionCallInfo fcinfo, bool is_varlena)
 static Datum
 gin_btree_extract_query(FunctionCallInfo fcinfo,
 						bool is_varlena,
-						Datum (*leftmostvalue) (void),
-						Datum (*typecmp) (FunctionCallInfo))
+						Datum(*leftmostvalue) (void),
+						Datum(*typecmp) (FunctionCallInfo))
 {
 	Datum		datum = PG_GETARG_DATUM(0);
 	int32	   *nentries = (int32 *) PG_GETARG_POINTER(1);
 	StrategyNumber strategy = PG_GETARG_UINT16(2);
 	bool	  **partialmatch = (bool **) PG_GETARG_POINTER(3);
-	Pointer   **extra_data = (Pointer **) PG_GETARG_POINTER(4);
+	Pointer   **extra_data = (Pointer * *) PG_GETARG_POINTER(4);
 	Datum	   *entries = (Datum *) palloc(sizeof(Datum));
 	QueryInfo  *data = (QueryInfo *) palloc(sizeof(QueryInfo));
 	bool	   *ptr_partialmatch;

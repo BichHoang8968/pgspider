@@ -208,9 +208,9 @@ GetConnection(void)
 
 	/*
 	 * Set always-secure search path, so malicious users can't get control.
-	 * The capacity to run normal SQL queries was added in PostgreSQL
-	 * 10, so the search path cannot be changed (by us or attackers) on
-	 * earlier versions.
+	 * The capacity to run normal SQL queries was added in PostgreSQL 10, so
+	 * the search path cannot be changed (by us or attackers) on earlier
+	 * versions.
 	 */
 	if (dbname != NULL && PQserverVersion(tmpconn) >= 100000)
 	{
@@ -263,8 +263,8 @@ GetConnection(void)
  * - Database name (NULL in servers prior to 9.4)
  */
 bool
-RunIdentifySystem(PGconn *conn, char **sysid, TimeLineID *starttli,
-				  XLogRecPtr *startpos, char **db_name)
+RunIdentifySystem(PGconn * conn, char **sysid, TimeLineID * starttli,
+				  XLogRecPtr * startpos, char **db_name)
 {
 	PGresult   *res;
 	uint32		hi,
@@ -344,7 +344,7 @@ RunIdentifySystem(PGconn *conn, char **sysid, TimeLineID *starttli,
  * returns true in case of success.
  */
 bool
-CreateReplicationSlot(PGconn *conn, const char *slot_name, const char *plugin,
+CreateReplicationSlot(PGconn * conn, const char *slot_name, const char *plugin,
 					  bool is_physical, bool slot_exists_ok)
 {
 	PQExpBuffer query;
@@ -415,7 +415,7 @@ CreateReplicationSlot(PGconn *conn, const char *slot_name, const char *plugin,
  * returns true in case of success.
  */
 bool
-DropReplicationSlot(PGconn *conn, const char *slot_name)
+DropReplicationSlot(PGconn * conn, const char *slot_name)
 {
 	PQExpBuffer query;
 	PGresult   *res;

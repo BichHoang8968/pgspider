@@ -124,7 +124,7 @@ typedef struct OldSnapshotControlData
 	TimestampTz head_timestamp; /* time corresponding to head xid */
 	int			count_used;		/* how many slots are in use */
 	TransactionId xid_by_minute[FLEXIBLE_ARRAY_MEMBER];
-} OldSnapshotControlData;
+}			OldSnapshotControlData;
 
 static volatile OldSnapshotControlData *oldSnapshotControl;
 
@@ -141,8 +141,14 @@ static volatile OldSnapshotControlData *oldSnapshotControl;
  * These SnapshotData structs are static to simplify memory allocation
  * (see the hack in GetSnapshotData to avoid repeated malloc/free).
  */
-static SnapshotData CurrentSnapshotData = {HeapTupleSatisfiesMVCC};
-static SnapshotData SecondarySnapshotData = {HeapTupleSatisfiesMVCC};
+static SnapshotData CurrentSnapshotData =
+{
+	HeapTupleSatisfiesMVCC
+};
+static SnapshotData SecondarySnapshotData =
+{
+	HeapTupleSatisfiesMVCC
+};
 SnapshotData CatalogSnapshotData = {HeapTupleSatisfiesMVCC};
 
 /* Pointers to valid snapshots */
@@ -167,7 +173,7 @@ TransactionId RecentGlobalXmin = InvalidTransactionId;
 TransactionId RecentGlobalDataXmin = InvalidTransactionId;
 
 /* (table, ctid) => (cmin, cmax) mapping during timetravel */
-static HTAB *tuplecid_data = NULL;
+static HTAB * tuplecid_data = NULL;
 
 /*
  * Elements of the active snapshot stack.
@@ -182,22 +188,25 @@ typedef struct ActiveSnapshotElt
 	Snapshot	as_snap;
 	int			as_level;
 	struct ActiveSnapshotElt *as_next;
-} ActiveSnapshotElt;
+}			ActiveSnapshotElt;
 
 /* Top of the stack of active snapshots */
-static ActiveSnapshotElt *ActiveSnapshot = NULL;
+static ActiveSnapshotElt * ActiveSnapshot = NULL;
 
 /* Bottom of the stack of active snapshots */
-static ActiveSnapshotElt *OldestActiveSnapshot = NULL;
+static ActiveSnapshotElt * OldestActiveSnapshot = NULL;
 
 /*
  * Currently registered Snapshots.  Ordered in a heap by xmin, so that we can
  * quickly find the one with lowest xmin, to advance our MyPgXact->xmin.
  */
-static int xmin_cmp(const pairingheap_node *a, const pairingheap_node *b,
+static int xmin_cmp(const pairingheap_node * a, const pairingheap_node * b,
 		 void *arg);
 
-static pairingheap RegisteredSnapshots = {&xmin_cmp, NULL, NULL};
+static pairingheap RegisteredSnapshots =
+{
+	&xmin_cmp, NULL, NULL
+};
 
 /* first GetTransactionSnapshot call in a transaction? */
 bool		FirstSnapshotSet = false;
@@ -217,10 +226,10 @@ typedef struct ExportedSnapshot
 {
 	char	   *snapfile;
 	Snapshot	snapshot;
-} ExportedSnapshot;
+}			ExportedSnapshot;
 
 /* Current xact's exported snapshots (a list of ExportedSnapshot structs) */
-static List *exportedSnapshots = NIL;
+static List * exportedSnapshots = NIL;
 
 /* Prototypes for local functions */
 static TimestampTz AlignTimestampToMinuteBoundary(TimestampTz ts);
@@ -245,7 +254,7 @@ typedef struct SerializedSnapshotData
 	CommandId	curcid;
 	TimestampTz whenTaken;
 	XLogRecPtr	lsn;
-} SerializedSnapshotData;
+}			SerializedSnapshotData;
 
 Size
 SnapMgrShmemSize(void)
@@ -562,8 +571,8 @@ SnapshotSetCommandId(CommandId curcid)
  * in GetTransactionSnapshot.
  */
 static void
-SetTransactionSnapshot(Snapshot sourcesnap, VirtualTransactionId *sourcevxid,
-					   int sourcepid, PGPROC *sourceproc)
+SetTransactionSnapshot(Snapshot sourcesnap, VirtualTransactionId * sourcevxid,
+					   int sourcepid, PGPROC * sourceproc)
 {
 	/* Caller should have checked this already */
 	Assert(!FirstSnapshotSet);
@@ -941,10 +950,10 @@ UnregisterSnapshotFromOwner(Snapshot snapshot, ResourceOwner owner)
  * by xmin, so that the snapshot with smallest xmin is at the top.
  */
 static int
-xmin_cmp(const pairingheap_node *a, const pairingheap_node *b, void *arg)
+xmin_cmp(const pairingheap_node * a, const pairingheap_node * b, void *arg)
 {
-	const SnapshotData *asnap = pairingheap_const_container(SnapshotData, ph_node, a);
-	const SnapshotData *bsnap = pairingheap_const_container(SnapshotData, ph_node, b);
+	const		SnapshotData *asnap = pairingheap_const_container(SnapshotData, ph_node, a);
+	const		SnapshotData *bsnap = pairingheap_const_container(SnapshotData, ph_node, b);
 
 	if (TransactionIdPrecedes(asnap->xmin, bsnap->xmin))
 		return 1;
@@ -1398,7 +1407,7 @@ parseXidFromText(const char *prefix, char **s, const char *filename)
 
 static void
 parseVxidFromText(const char *prefix, char **s, const char *filename,
-				  VirtualTransactionId *vxid)
+				  VirtualTransactionId * vxid)
 {
 	char	   *ptr = *s;
 	int			prefixlen = strlen(prefix);
@@ -2000,7 +2009,7 @@ MaintainOldSnapshotTimeMapping(TimestampTz whenTaken, TransactionId xmin)
  * Needed for logical decoding.
  */
 void
-SetupHistoricSnapshot(Snapshot historic_snapshot, HTAB *tuplecids)
+SetupHistoricSnapshot(Snapshot historic_snapshot, HTAB * tuplecids)
 {
 	Assert(historic_snapshot != NULL);
 

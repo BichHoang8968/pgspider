@@ -77,7 +77,7 @@ typedef struct SlruFlushData
 	int			num_files;		/* # files actually open */
 	int			fd[MAX_FLUSH_BUFFERS];	/* their FD's */
 	int			segno[MAX_FLUSH_BUFFERS];	/* their log seg#s */
-} SlruFlushData;
+}			SlruFlushData;
 
 typedef struct SlruFlushData *SlruFlush;
 
@@ -118,7 +118,7 @@ typedef enum
 	SLRU_WRITE_FAILED,
 	SLRU_FSYNC_FAILED,
 	SLRU_CLOSE_FAILED
-} SlruErrorCause;
+}			SlruErrorCause;
 
 static SlruErrorCause slru_errcause;
 static int	slru_errno;
@@ -163,7 +163,7 @@ SimpleLruShmemSize(int nslots, int nlsns)
 
 void
 SimpleLruInit(SlruCtl ctl, const char *name, int nslots, int nlsns,
-			  LWLock *ctllock, const char *subdir, int tranche_id)
+			  LWLock * ctllock, const char *subdir, int tranche_id)
 {
 	SlruShared	shared;
 	bool		found;

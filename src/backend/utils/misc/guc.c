@@ -132,7 +132,7 @@ char	   *GUC_check_errmsg_string;
 char	   *GUC_check_errdetail_string;
 char	   *GUC_check_errhint_string;
 
-static void do_serialize(char **destptr, Size *maxbytes, const char *fmt,...) pg_attribute_printf(3, 4);
+static void do_serialize(char **destptr, Size * maxbytes, const char *fmt,...) pg_attribute_printf(3, 4);
 
 static void set_config_sourcefile(const char *name, char *sourcefile,
 					  int sourceline);
@@ -193,8 +193,8 @@ static const char *show_unix_socket_permissions(void);
 static const char *show_log_file_mode(void);
 
 /* Private functions in guc-file.l that need to be called from guc.c */
-static ConfigVariable *ProcessConfigFileInternal(GucContext context,
-						  bool applySettings, int elevel);
+static ConfigVariable * ProcessConfigFileInternal(GucContext context,
+												  bool applySettings, int elevel);
 
 
 /*
@@ -705,7 +705,7 @@ typedef struct
 	int			multiplier;		/* If positive, multiply the value with this
 								 * for unit -> base_unit conversion.  If
 								 * negative, divide (with the absolute value) */
-} unit_conversion;
+}			unit_conversion;
 
 /* Ensure that the constants in the tables don't overflow or underflow */
 #if BLCKSZ < 1024 || BLCKSZ > (1024*1024)
@@ -3967,16 +3967,16 @@ static void push_old_value(struct config_generic *gconf, GucAction action);
 static void ReportGUCOption(struct config_generic *record);
 static void reapply_stacked_values(struct config_generic *variable,
 					   struct config_string *pHolder,
-					   GucStack *stack,
+					   GucStack * stack,
 					   const char *curvalue,
 					   GucContext curscontext, GucSource cursource);
-static void ShowGUCConfigOption(const char *name, DestReceiver *dest);
-static void ShowAllGUCConfig(DestReceiver *dest);
+static void ShowGUCConfigOption(const char *name, DestReceiver * dest);
+static void ShowAllGUCConfig(DestReceiver * dest);
 static char *_ShowOption(struct config_generic *record, bool use_units);
 static bool validate_option_array_item(const char *name, const char *value,
 						   bool skipIfNoPermissions);
-static void write_auto_conf_file(int fd, const char *filename, ConfigVariable *head_p);
-static void replace_auto_config_value(ConfigVariable **head_p, ConfigVariable **tail_p,
+static void write_auto_conf_file(int fd, const char *filename, ConfigVariable * head_p);
+static void replace_auto_config_value(ConfigVariable * *head_p, ConfigVariable * *tail_p,
 						  const char *name, const char *value);
 
 
@@ -4137,7 +4137,7 @@ set_extra_field(struct config_generic *gconf, void **field, void *newval)
  * initialized to NULL before this is used, else we'll try to free() them.
  */
 static void
-set_stack_value(struct config_generic *gconf, config_var_value *val)
+set_stack_value(struct config_generic *gconf, config_var_value * val)
 {
 	switch (gconf->vartype)
 	{
@@ -4171,7 +4171,7 @@ set_stack_value(struct config_generic *gconf, config_var_value *val)
  * The "extra" field associated with the stack entry is cleared, too.
  */
 static void
-discard_stack_value(struct config_generic *gconf, config_var_value *val)
+discard_stack_value(struct config_generic *gconf, config_var_value * val)
 {
 	switch (gconf->vartype)
 	{
@@ -5421,9 +5421,9 @@ ReportGUCOption(struct config_generic *record)
  */
 static bool
 convert_to_base_unit(int64 value, const char *unit,
-					 int base_unit, int64 *base_value)
+					 int base_unit, int64 * base_value)
 {
-	const unit_conversion *table;
+	const		unit_conversion *table;
 	int			i;
 
 	if (base_unit & GUC_UNIT_MEMORY)
@@ -5454,9 +5454,9 @@ convert_to_base_unit(int64 value, const char *unit,
  */
 static void
 convert_from_base_unit(int64 base_value, int base_unit,
-					   int64 *value, const char **unit)
+					   int64 * value, const char **unit)
 {
-	const unit_conversion *table;
+	const		unit_conversion *table;
 	int			i;
 
 	*unit = NULL;
@@ -6839,7 +6839,7 @@ GetConfigOptionFlags(const char *name, bool missing_ok)
  * a palloc'd string.
  */
 static char *
-flatten_set_variable_args(const char *name, List *args)
+flatten_set_variable_args(const char *name, List * args)
 {
 	struct config_generic *record;
 	int			flags;
@@ -6961,7 +6961,7 @@ flatten_set_variable_args(const char *name, List *args)
  * values before writing them.
  */
 static void
-write_auto_conf_file(int fd, const char *filename, ConfigVariable *head)
+write_auto_conf_file(int fd, const char *filename, ConfigVariable * head)
 {
 	StringInfoData buf;
 	ConfigVariable *item;
@@ -7029,7 +7029,7 @@ write_auto_conf_file(int fd, const char *filename, ConfigVariable *head)
  * or deleting the entry for item "name" (delete if "value" == NULL).
  */
 static void
-replace_auto_config_value(ConfigVariable **head_p, ConfigVariable **tail_p,
+replace_auto_config_value(ConfigVariable * *head_p, ConfigVariable * *tail_p,
 						  const char *name, const char *value)
 {
 	ConfigVariable *item,
@@ -7102,7 +7102,7 @@ replace_auto_config_value(ConfigVariable **head_p, ConfigVariable **tail_p,
  * configuration file (PG_AUTOCONF_FILENAME) intact.
  */
 void
-AlterSystemSetConfigFile(AlterSystemStmt *altersysstmt)
+AlterSystemSetConfigFile(AlterSystemStmt * altersysstmt)
 {
 	char	   *name;
 	char	   *value;
@@ -7317,7 +7317,7 @@ AlterSystemSetConfigFile(AlterSystemStmt *altersysstmt)
  * SET command
  */
 void
-ExecSetVariableStmt(VariableSetStmt *stmt, bool isTopLevel)
+ExecSetVariableStmt(VariableSetStmt * stmt, bool isTopLevel)
 {
 	GucAction	action = stmt->is_local ? GUC_ACTION_LOCAL : GUC_ACTION_SET;
 
@@ -7441,7 +7441,7 @@ ExecSetVariableStmt(VariableSetStmt *stmt, bool isTopLevel)
  * This is exported for use by actions such as ALTER ROLE SET.
  */
 char *
-ExtractSetVariableArgs(VariableSetStmt *stmt)
+ExtractSetVariableArgs(VariableSetStmt * stmt)
 {
 	switch (stmt->kind)
 	{
@@ -7461,7 +7461,7 @@ ExtractSetVariableArgs(VariableSetStmt *stmt)
  * by passing args == NIL), but not SET FROM CURRENT functionality.
  */
 void
-SetPGVariable(const char *name, List *args, bool is_local)
+SetPGVariable(const char *name, List * args, bool is_local)
 {
 	char	   *argstring = flatten_set_variable_args(name, args);
 
@@ -7682,7 +7682,7 @@ define_custom_variable(struct config_generic *variable)
 static void
 reapply_stacked_values(struct config_generic *variable,
 					   struct config_string *pHolder,
-					   GucStack *stack,
+					   GucStack * stack,
 					   const char *curvalue,
 					   GucContext curscontext, GucSource cursource)
 {
@@ -7926,7 +7926,7 @@ EmitWarningsOnPlaceholders(const char *className)
  * SHOW command
  */
 void
-GetPGVariable(const char *name, DestReceiver *dest)
+GetPGVariable(const char *name, DestReceiver * dest)
 {
 	if (guc_name_compare(name, "all") == 0)
 		ShowAllGUCConfig(dest);
@@ -7970,7 +7970,7 @@ GetPGVariableResultDesc(const char *name)
  * SHOW command
  */
 static void
-ShowGUCConfigOption(const char *name, DestReceiver *dest)
+ShowGUCConfigOption(const char *name, DestReceiver * dest)
 {
 	TupOutputState *tstate;
 	TupleDesc	tupdesc;
@@ -7998,7 +7998,7 @@ ShowGUCConfigOption(const char *name, DestReceiver *dest)
  * SHOW ALL command
  */
 static void
-ShowAllGUCConfig(DestReceiver *dest)
+ShowAllGUCConfig(DestReceiver * dest)
 {
 	int			i;
 	TupOutputState *tstate;
@@ -8777,7 +8777,7 @@ _ShowOption(struct config_generic *record, bool use_units)
  *		variable scontext, integer
  */
 static void
-write_one_nondefault_variable(FILE *fp, struct config_generic *gconf)
+write_one_nondefault_variable(FILE * fp, struct config_generic *gconf)
 {
 	if (gconf->source == PGC_S_DEFAULT)
 		return;
@@ -8895,7 +8895,7 @@ write_nondefault_variables(GucContext context)
  *	Return NULL on EOF and nothing read
  */
 static char *
-read_string_with_null(FILE *fp)
+read_string_with_null(FILE * fp)
 {
 	int			i = 0,
 				ch,
@@ -9153,7 +9153,7 @@ EstimateGUCStateSpace(void)
  * maxbytes is not sufficient to copy the string, error out.
  */
 static void
-do_serialize(char **destptr, Size *maxbytes, const char *fmt,...)
+do_serialize(char **destptr, Size * maxbytes, const char *fmt,...)
 {
 	va_list		vargs;
 	int			n;
@@ -9188,7 +9188,7 @@ do_serialize(char **destptr, Size *maxbytes, const char *fmt,...)
 
 /* Binary copy version of do_serialize() */
 static void
-do_serialize_binary(char **destptr, Size *maxbytes, void *val, Size valsize)
+do_serialize_binary(char **destptr, Size * maxbytes, void *val, Size valsize)
 {
 	if (valsize > *maxbytes)
 		elog(ERROR, "not enough space to serialize GUC state");
@@ -9203,7 +9203,7 @@ do_serialize_binary(char **destptr, Size *maxbytes, void *val, Size valsize)
  * Dumps name, value and other information of a GUC variable into destptr.
  */
 static void
-serialize_variable(char **destptr, Size *maxbytes,
+serialize_variable(char **destptr, Size * maxbytes,
 				   struct config_generic *gconf)
 {
 	if (can_skip_gucvar(gconf))
@@ -9438,7 +9438,7 @@ ParseLongOption(const char *string, char **name, char **value)
  * The array parameter must be an array of TEXT (it must not be NULL).
  */
 void
-ProcessGUCArray(ArrayType *array,
+ProcessGUCArray(ArrayType * array,
 				GucContext context, GucSource source, GucAction action)
 {
 	int			i;
@@ -9496,7 +9496,7 @@ ProcessGUCArray(ArrayType *array,
  * to indicate the current table entry is NULL.
  */
 ArrayType *
-GUCArrayAdd(ArrayType *array, const char *name, const char *value)
+GUCArrayAdd(ArrayType * array, const char *name, const char *value)
 {
 	struct config_generic *record;
 	Datum		datum;
@@ -9576,7 +9576,7 @@ GUCArrayAdd(ArrayType *array, const char *name, const char *value)
  * is NULL then a null should be stored.
  */
 ArrayType *
-GUCArrayDelete(ArrayType *array, const char *name)
+GUCArrayDelete(ArrayType * array, const char *name)
 {
 	struct config_generic *record;
 	ArrayType  *newarray;
@@ -9648,7 +9648,7 @@ GUCArrayDelete(ArrayType *array, const char *name)
  * those that are PGC_USERSET
  */
 ArrayType *
-GUCArrayReset(ArrayType *array)
+GUCArrayReset(ArrayType * array)
 {
 	ArrayType  *newarray;
 	int			i;

@@ -340,7 +340,7 @@ convert_tuples_by_name_map(TupleDesc indesc,
  * Perform conversion of a tuple according to the map.
  */
 HeapTuple
-do_convert_tuple(HeapTuple tuple, TupleConversionMap *map)
+do_convert_tuple(HeapTuple tuple, TupleConversionMap * map)
 {
 	AttrNumber *attrMap = map->attrMap;
 	Datum	   *invalues = map->invalues;
@@ -378,7 +378,7 @@ do_convert_tuple(HeapTuple tuple, TupleConversionMap *map)
  * Free a TupleConversionMap structure.
  */
 void
-free_conversion_map(TupleConversionMap *map)
+free_conversion_map(TupleConversionMap * map)
 {
 	/* indesc and outdesc are not ours to free */
 	pfree(map->attrMap);

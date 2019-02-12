@@ -34,15 +34,15 @@
 
 
 /* static function decls */
-static void init_sexpr(Oid foid, Oid input_collation, Expr *node,
-		   SetExprState *sexpr, PlanState *parent,
+static void init_sexpr(Oid foid, Oid input_collation, Expr * node,
+		   SetExprState * sexpr, PlanState * parent,
 		   MemoryContext sexprCxt, bool allowSRF, bool needDescForSRF);
 static void ShutdownSetExpr(Datum arg);
 static void ExecEvalFuncArgs(FunctionCallInfo fcinfo,
-				 List *argList, ExprContext *econtext);
-static void ExecPrepareTuplestoreResult(SetExprState *sexpr,
-							ExprContext *econtext,
-							Tuplestorestate *resultStore,
+				 List * argList, ExprContext * econtext);
+static void ExecPrepareTuplestoreResult(SetExprState * sexpr,
+							ExprContext * econtext,
+							Tuplestorestate * resultStore,
 							TupleDesc resultDesc);
 static void tupledesc_match(TupleDesc dst_tupdesc, TupleDesc src_tupdesc);
 
@@ -53,8 +53,8 @@ static void tupledesc_match(TupleDesc dst_tupdesc, TupleDesc src_tupdesc);
  * This is used by nodeFunctionscan.c.
  */
 SetExprState *
-ExecInitTableFunctionResult(Expr *expr,
-							ExprContext *econtext, PlanState *parent)
+ExecInitTableFunctionResult(Expr * expr,
+							ExprContext * econtext, PlanState * parent)
 {
 	SetExprState *state = makeNode(SetExprState);
 
@@ -98,8 +98,8 @@ ExecInitTableFunctionResult(Expr *expr,
  * This is used by nodeFunctionscan.c.
  */
 Tuplestorestate *
-ExecMakeTableFunctionResult(SetExprState *setexpr,
-							ExprContext *econtext,
+ExecMakeTableFunctionResult(SetExprState * setexpr,
+							ExprContext * econtext,
 							MemoryContext argContext,
 							TupleDesc expectedDesc,
 							bool randomAccess)
@@ -160,7 +160,7 @@ ExecMakeTableFunctionResult(SetExprState *setexpr,
 		InitFunctionCallInfoData(fcinfo, &(setexpr->func),
 								 list_length(setexpr->args),
 								 setexpr->fcinfo_data.fncollation,
-								 NULL, (Node *) &rsinfo);
+								 NULL, (Node *) & rsinfo);
 
 		/*
 		 * Evaluate the function's argument list.
@@ -421,8 +421,8 @@ no_function_result:
  * This is used by nodeProjectSet.c.
  */
 SetExprState *
-ExecInitFunctionResultSet(Expr *expr,
-						  ExprContext *econtext, PlanState *parent)
+ExecInitFunctionResultSet(Expr * expr,
+						  ExprContext * econtext, PlanState * parent)
 {
 	SetExprState *state = makeNode(SetExprState);
 
@@ -472,10 +472,10 @@ ExecInitFunctionResultSet(Expr *expr,
  * This is used by nodeProjectSet.c.
  */
 Datum
-ExecMakeFunctionResultSet(SetExprState *fcache,
-						  ExprContext *econtext,
+ExecMakeFunctionResultSet(SetExprState * fcache,
+						  ExprContext * econtext,
 						  bool *isNull,
-						  ExprDoneCond *isDone)
+						  ExprDoneCond * isDone)
 {
 	List	   *arguments;
 	Datum		result;
@@ -542,7 +542,7 @@ restart:
 	 */
 
 	/* Prepare a resultinfo node for communication. */
-	fcinfo->resultinfo = (Node *) &rsinfo;
+	fcinfo->resultinfo = (Node *) & rsinfo;
 	rsinfo.type = T_ReturnSetInfo;
 	rsinfo.econtext = econtext;
 	rsinfo.expectedDesc = fcache->funcResultDesc;
@@ -648,8 +648,8 @@ restart:
  * init_sexpr - initialize a SetExprState node during first use
  */
 static void
-init_sexpr(Oid foid, Oid input_collation, Expr *node,
-		   SetExprState *sexpr, PlanState *parent,
+init_sexpr(Oid foid, Oid input_collation, Expr * node,
+		   SetExprState * sexpr, PlanState * parent,
 		   MemoryContext sexprCxt, bool allowSRF, bool needDescForSRF)
 {
 	AclResult	aclresult;
@@ -783,8 +783,8 @@ ShutdownSetExpr(Datum arg)
  */
 static void
 ExecEvalFuncArgs(FunctionCallInfo fcinfo,
-				 List *argList,
-				 ExprContext *econtext)
+				 List * argList,
+				 ExprContext * econtext)
 {
 	int			i;
 	ListCell   *arg;
@@ -812,9 +812,9 @@ ExecEvalFuncArgs(FunctionCallInfo fcinfo,
  * returned the expected tuple descriptor.
  */
 static void
-ExecPrepareTuplestoreResult(SetExprState *sexpr,
-							ExprContext *econtext,
-							Tuplestorestate *resultStore,
+ExecPrepareTuplestoreResult(SetExprState * sexpr,
+							ExprContext * econtext,
+							Tuplestorestate * resultStore,
 							TupleDesc resultDesc)
 {
 	sexpr->funcResultStore = resultStore;

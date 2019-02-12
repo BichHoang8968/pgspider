@@ -100,13 +100,13 @@ typedef struct
 {
 	uint16		keylen;
 	uint16		vallen;
-	uint32
+				uint32
 				valisnull:1,
 				pos:31;
-} HOldEntry;
+}			HOldEntry;
 
-static int	hstoreValidNewFormat(HStore *hs);
-static int	hstoreValidOldFormat(HStore *hs);
+static int	hstoreValidNewFormat(HStore * hs);
+static int	hstoreValidOldFormat(HStore * hs);
 
 
 /*
@@ -116,7 +116,7 @@ static int	hstoreValidOldFormat(HStore *hs);
  *	2 = exactly valid
  */
 static int
-hstoreValidNewFormat(HStore *hs)
+hstoreValidNewFormat(HStore * hs)
 {
 	int			count = HS_COUNT(hs);
 	HEntry	   *entries = ARRPTR(hs);
@@ -168,7 +168,7 @@ hstoreValidNewFormat(HStore *hs)
  *	2 = exactly valid
  */
 static int
-hstoreValidOldFormat(HStore *hs)
+hstoreValidOldFormat(HStore * hs)
 {
 	int			count = hs->size_;
 	HOldEntry  *entries = (HOldEntry *) ARRPTR(hs);

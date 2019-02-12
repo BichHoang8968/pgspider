@@ -38,7 +38,7 @@ uint64		SharedInvalidMessageCounter;
  * interrupted while doing so, ProcessClientReadInterrupt() will call
  * ProcessCatchupEvent().
  */
-volatile sig_atomic_t catchupInterruptPending = false;
+volatile	sig_atomic_t catchupInterruptPending = false;
 
 
 /*
@@ -46,7 +46,7 @@ volatile sig_atomic_t catchupInterruptPending = false;
  *	Add shared-cache-invalidation message(s) to the global SI message queue.
  */
 void
-SendSharedInvalidMessages(const SharedInvalidationMessage *msgs, int n)
+SendSharedInvalidMessages(const SharedInvalidationMessage * msgs, int n)
 {
 	SIInsertDataEntries(msgs, n);
 }
@@ -69,7 +69,7 @@ SendSharedInvalidMessages(const SharedInvalidationMessage *msgs, int n)
  */
 void
 ReceiveSharedInvalidMessages(
-							 void (*invalFunction) (SharedInvalidationMessage *msg),
+							 void (*invalFunction) (SharedInvalidationMessage * msg),
 							 void (*resetFunction) (void))
 {
 #define MAXINVALMSGS 32

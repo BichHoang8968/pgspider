@@ -80,7 +80,7 @@ typedef struct
 	uint8_t		clock_seq_hi_and_reserved;
 	uint8_t		clock_seq_low;
 	uint8_t		node[6];
-} dce_uuid_t;
+}			dce_uuid_t;
 #else
 #define dce_uuid_t uuid_t
 #endif
@@ -163,7 +163,10 @@ pguuid_complain(uuid_rc_t rc)
 static uuid_t *
 get_cached_uuid_t(int which)
 {
-	static uuid_t *cached_uuid[2] = {NULL, NULL};
+	static uuid_t * cached_uuid[2] =
+	{
+		NULL, NULL
+	};
 
 	if (cached_uuid[which] == NULL)
 	{
@@ -180,7 +183,7 @@ get_cached_uuid_t(int which)
 }
 
 static char *
-uuid_to_string(const uuid_t *uuid)
+uuid_to_string(const uuid_t * uuid)
 {
 	char	   *buf = palloc(UUID_LEN_STR + 1);
 	void	   *ptr = buf;
@@ -196,7 +199,7 @@ uuid_to_string(const uuid_t *uuid)
 
 
 static void
-string_to_uuid(const char *str, uuid_t *uuid)
+string_to_uuid(const char *str, uuid_t * uuid)
 {
 	uuid_rc_t	rc;
 
@@ -223,7 +226,7 @@ special_uuid_value(const char *name)
 
 /* len is unused with OSSP, but we want to have the same number of args */
 static Datum
-uuid_generate_internal(int mode, const uuid_t *ns, const char *name, int len)
+uuid_generate_internal(int mode, const uuid_t * ns, const char *name, int len)
 {
 	uuid_t	   *uuid = get_cached_uuid_t(0);
 	char	   *str;
@@ -239,7 +242,7 @@ uuid_generate_internal(int mode, const uuid_t *ns, const char *name, int len)
 
 
 static Datum
-uuid_generate_v35_internal(int mode, pg_uuid_t *ns, text *name)
+uuid_generate_v35_internal(int mode, pg_uuid_t * ns, text * name)
 {
 	uuid_t	   *ns_uuid = get_cached_uuid_t(1);
 
@@ -481,7 +484,7 @@ uuid_generate_v1mc(PG_FUNCTION_ARGS)
 	uuid_generate_random(uu);
 
 	/* set IEEE802 multicast and local-admin bits */
-	((dce_uuid_t *) &uu)->node[0] |= 0x03;
+	((dce_uuid_t *) & uu)->node[0] |= 0x03;
 
 	uuid_unparse(uu, strbuf);
 	buf = strbuf + 24;

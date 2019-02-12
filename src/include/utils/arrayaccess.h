@@ -42,11 +42,11 @@ typedef struct array_iter
 	char	   *dataptr;		/* Current spot in the data area */
 	bits8	   *bitmapptr;		/* Current byte of the nulls bitmap, or NULL */
 	int			bitmask;		/* mask for current bit in nulls bitmap */
-} array_iter;
+}			array_iter;
 
 
 static inline void
-array_iter_setup(array_iter *it, AnyArrayType *a)
+array_iter_setup(array_iter * it, AnyArrayType * a)
 {
 	if (VARATT_IS_EXPANDED_HEADER(a))
 	{
@@ -78,7 +78,7 @@ array_iter_setup(array_iter *it, AnyArrayType *a)
 }
 
 static inline Datum
-array_iter_next(array_iter *it, bool *isnull, int i,
+array_iter_next(array_iter * it, bool *isnull, int i,
 				int elmlen, bool elmbyval, char elmalign)
 {
 	Datum		ret;

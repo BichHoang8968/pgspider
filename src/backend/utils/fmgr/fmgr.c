@@ -46,19 +46,19 @@ typedef struct
 	TransactionId fn_xmin;		/* for checking up-to-dateness */
 	ItemPointerData fn_tid;
 	PGFunction	user_fn;		/* the function's address */
-	const Pg_finfo_record *inforec; /* address of its info record */
-} CFuncHashTabEntry;
+	const		Pg_finfo_record *inforec;	/* address of its info record */
+}			CFuncHashTabEntry;
 
-static HTAB *CFuncHash = NULL;
+static HTAB * CFuncHash = NULL;
 
 
-static void fmgr_info_cxt_security(Oid functionId, FmgrInfo *finfo, MemoryContext mcxt,
+static void fmgr_info_cxt_security(Oid functionId, FmgrInfo * finfo, MemoryContext mcxt,
 					   bool ignore_security);
-static void fmgr_info_C_lang(Oid functionId, FmgrInfo *finfo, HeapTuple procedureTuple);
-static void fmgr_info_other_lang(Oid functionId, FmgrInfo *finfo, HeapTuple procedureTuple);
-static CFuncHashTabEntry *lookup_C_func(HeapTuple procedureTuple);
+static void fmgr_info_C_lang(Oid functionId, FmgrInfo * finfo, HeapTuple procedureTuple);
+static void fmgr_info_other_lang(Oid functionId, FmgrInfo * finfo, HeapTuple procedureTuple);
+static CFuncHashTabEntry * lookup_C_func(HeapTuple procedureTuple);
 static void record_C_func(HeapTuple procedureTuple,
-			  PGFunction user_fn, const Pg_finfo_record *inforec);
+			  PGFunction user_fn, const Pg_finfo_record * inforec);
 static Datum fmgr_security_definer(PG_FUNCTION_ARGS);
 
 
@@ -80,7 +80,7 @@ fmgr_isbuiltin(Oid id)
 	while (low <= high)
 	{
 		int			i = (high + low) / 2;
-		const FmgrBuiltin *ptr = &fmgr_builtins[i];
+		const		FmgrBuiltin *ptr = &fmgr_builtins[i];
 
 		if (id == ptr->foid)
 			return ptr;
@@ -124,7 +124,7 @@ fmgr_lookupByName(const char *name)
  * struct in a long-lived table, it's better to use fmgr_info_cxt.
  */
 void
-fmgr_info(Oid functionId, FmgrInfo *finfo)
+fmgr_info(Oid functionId, FmgrInfo * finfo)
 {
 	fmgr_info_cxt_security(functionId, finfo, CurrentMemoryContext, false);
 }
@@ -134,7 +134,7 @@ fmgr_info(Oid functionId, FmgrInfo *finfo)
  * subsidiary data should go.
  */
 void
-fmgr_info_cxt(Oid functionId, FmgrInfo *finfo, MemoryContext mcxt)
+fmgr_info_cxt(Oid functionId, FmgrInfo * finfo, MemoryContext mcxt)
 {
 	fmgr_info_cxt_security(functionId, finfo, mcxt, false);
 }
@@ -144,10 +144,10 @@ fmgr_info_cxt(Oid functionId, FmgrInfo *finfo, MemoryContext mcxt)
  * but is set to true when we need to avoid recursion.
  */
 static void
-fmgr_info_cxt_security(Oid functionId, FmgrInfo *finfo, MemoryContext mcxt,
+fmgr_info_cxt_security(Oid functionId, FmgrInfo * finfo, MemoryContext mcxt,
 					   bool ignore_security)
 {
-	const FmgrBuiltin *fbp;
+	const		FmgrBuiltin *fbp;
 	HeapTuple	procedureTuple;
 	Form_pg_proc procedureStruct;
 	Datum		prosrcdatum;
@@ -270,11 +270,11 @@ fmgr_info_cxt_security(Oid functionId, FmgrInfo *finfo, MemoryContext mcxt,
  * finfo->fn_oid is not valid yet.
  */
 static void
-fmgr_info_C_lang(Oid functionId, FmgrInfo *finfo, HeapTuple procedureTuple)
+fmgr_info_C_lang(Oid functionId, FmgrInfo * finfo, HeapTuple procedureTuple)
 {
 	CFuncHashTabEntry *hashentry;
 	PGFunction	user_fn;
-	const Pg_finfo_record *inforec;
+	const		Pg_finfo_record *inforec;
 	bool		isnull;
 
 	/*
@@ -344,7 +344,7 @@ fmgr_info_C_lang(Oid functionId, FmgrInfo *finfo, HeapTuple procedureTuple)
  * that finfo->fn_oid is not valid yet.
  */
 static void
-fmgr_info_other_lang(Oid functionId, FmgrInfo *finfo, HeapTuple procedureTuple)
+fmgr_info_other_lang(Oid functionId, FmgrInfo * finfo, HeapTuple procedureTuple)
 {
 	Form_pg_proc procedureStruct = (Form_pg_proc) GETSTRUCT(procedureTuple);
 	Oid			language = procedureStruct->prolang;
@@ -380,12 +380,12 @@ fmgr_info_other_lang(Oid functionId, FmgrInfo *finfo, HeapTuple procedureTuple)
  * can validate the information record for a function not yet entered into
  * pg_proc.
  */
-const Pg_finfo_record *
+const		Pg_finfo_record *
 fetch_finfo_record(void *filehandle, const char *funcname)
 {
 	char	   *infofuncname;
 	PGFInfoFunction infofunc;
-	const Pg_finfo_record *inforec;
+	const		Pg_finfo_record *inforec;
 
 	infofuncname = psprintf("pg_finfo_%s", funcname);
 
@@ -466,7 +466,7 @@ lookup_C_func(HeapTuple procedureTuple)
  */
 static void
 record_C_func(HeapTuple procedureTuple,
-			  PGFunction user_fn, const Pg_finfo_record *inforec)
+			  PGFunction user_fn, const Pg_finfo_record * inforec)
 {
 	Oid			fn_oid = HeapTupleGetOid(procedureTuple);
 	CFuncHashTabEntry *entry;
@@ -521,7 +521,7 @@ clear_external_function_hash(void *filehandle)
  * instead, meaning that subsidiary info will have to be recomputed.
  */
 void
-fmgr_info_copy(FmgrInfo *dstinfo, FmgrInfo *srcinfo,
+fmgr_info_copy(FmgrInfo * dstinfo, FmgrInfo * srcinfo,
 			   MemoryContext destcxt)
 {
 	memcpy(dstinfo, srcinfo, sizeof(FmgrInfo));
@@ -538,7 +538,7 @@ fmgr_info_copy(FmgrInfo *dstinfo, FmgrInfo *srcinfo,
 Oid
 fmgr_internal_function(const char *proname)
 {
-	const FmgrBuiltin *fbp = fmgr_lookupByName(proname);
+	const		FmgrBuiltin *fbp = fmgr_lookupByName(proname);
 
 	if (fbp == NULL)
 		return InvalidOid;
@@ -977,7 +977,7 @@ DirectFunctionCall9Coll(PGFunction func, Oid collation, Datum arg1, Datum arg2,
  */
 
 Datum
-CallerFInfoFunctionCall1(PGFunction func, FmgrInfo *flinfo, Oid collation, Datum arg1)
+CallerFInfoFunctionCall1(PGFunction func, FmgrInfo * flinfo, Oid collation, Datum arg1)
 {
 	FunctionCallInfoData fcinfo;
 	Datum		result;
@@ -997,7 +997,7 @@ CallerFInfoFunctionCall1(PGFunction func, FmgrInfo *flinfo, Oid collation, Datum
 }
 
 Datum
-CallerFInfoFunctionCall2(PGFunction func, FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2)
+CallerFInfoFunctionCall2(PGFunction func, FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2)
 {
 	FunctionCallInfoData fcinfo;
 	Datum		result;
@@ -1024,7 +1024,7 @@ CallerFInfoFunctionCall2(PGFunction func, FmgrInfo *flinfo, Oid collation, Datum
  * are allowed to be NULL.
  */
 Datum
-FunctionCall1Coll(FmgrInfo *flinfo, Oid collation, Datum arg1)
+FunctionCall1Coll(FmgrInfo * flinfo, Oid collation, Datum arg1)
 {
 	FunctionCallInfoData fcinfo;
 	Datum		result;
@@ -1044,7 +1044,7 @@ FunctionCall1Coll(FmgrInfo *flinfo, Oid collation, Datum arg1)
 }
 
 Datum
-FunctionCall2Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2)
+FunctionCall2Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2)
 {
 	FunctionCallInfoData fcinfo;
 	Datum		result;
@@ -1066,7 +1066,7 @@ FunctionCall2Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2)
 }
 
 Datum
-FunctionCall3Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
+FunctionCall3Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2,
 				  Datum arg3)
 {
 	FunctionCallInfoData fcinfo;
@@ -1091,7 +1091,7 @@ FunctionCall3Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
 }
 
 Datum
-FunctionCall4Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
+FunctionCall4Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2,
 				  Datum arg3, Datum arg4)
 {
 	FunctionCallInfoData fcinfo;
@@ -1118,7 +1118,7 @@ FunctionCall4Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
 }
 
 Datum
-FunctionCall5Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
+FunctionCall5Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2,
 				  Datum arg3, Datum arg4, Datum arg5)
 {
 	FunctionCallInfoData fcinfo;
@@ -1147,7 +1147,7 @@ FunctionCall5Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
 }
 
 Datum
-FunctionCall6Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
+FunctionCall6Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2,
 				  Datum arg3, Datum arg4, Datum arg5,
 				  Datum arg6)
 {
@@ -1179,7 +1179,7 @@ FunctionCall6Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
 }
 
 Datum
-FunctionCall7Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
+FunctionCall7Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2,
 				  Datum arg3, Datum arg4, Datum arg5,
 				  Datum arg6, Datum arg7)
 {
@@ -1213,7 +1213,7 @@ FunctionCall7Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
 }
 
 Datum
-FunctionCall8Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
+FunctionCall8Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2,
 				  Datum arg3, Datum arg4, Datum arg5,
 				  Datum arg6, Datum arg7, Datum arg8)
 {
@@ -1249,7 +1249,7 @@ FunctionCall8Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
 }
 
 Datum
-FunctionCall9Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
+FunctionCall9Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2,
 				  Datum arg3, Datum arg4, Datum arg5,
 				  Datum arg6, Datum arg7, Datum arg8,
 				  Datum arg9)
@@ -1620,7 +1620,7 @@ OidFunctionCall9Coll(Oid functionId, Oid collation, Datum arg1, Datum arg2,
  * the same as FunctionCall3.
  */
 Datum
-InputFunctionCall(FmgrInfo *flinfo, char *str, Oid typioparam, int32 typmod)
+InputFunctionCall(FmgrInfo * flinfo, char *str, Oid typioparam, int32 typmod)
 {
 	FunctionCallInfoData fcinfo;
 	Datum		result;
@@ -1664,7 +1664,7 @@ InputFunctionCall(FmgrInfo *flinfo, char *str, Oid typioparam, int32 typmod)
  * This is currently little more than window dressing for FunctionCall1.
  */
 char *
-OutputFunctionCall(FmgrInfo *flinfo, Datum val)
+OutputFunctionCall(FmgrInfo * flinfo, Datum val)
 {
 	return DatumGetCString(FunctionCall1(flinfo, val));
 }
@@ -1678,7 +1678,7 @@ OutputFunctionCall(FmgrInfo *flinfo, Datum val)
  * the same as FunctionCall3.
  */
 Datum
-ReceiveFunctionCall(FmgrInfo *flinfo, StringInfo buf,
+ReceiveFunctionCall(FmgrInfo * flinfo, StringInfo buf,
 					Oid typioparam, int32 typmod)
 {
 	FunctionCallInfoData fcinfo;
@@ -1725,7 +1725,7 @@ ReceiveFunctionCall(FmgrInfo *flinfo, StringInfo buf,
  * function doesn't.
  */
 bytea *
-SendFunctionCall(FmgrInfo *flinfo, Datum val)
+SendFunctionCall(FmgrInfo * flinfo, Datum val)
 {
 	return DatumGetByteaP(FunctionCall1(flinfo, val));
 }
@@ -1884,7 +1884,7 @@ pg_detoast_datum_packed(struct varlena *datum)
  * Returns InvalidOid if information is not available
  */
 Oid
-get_fn_expr_rettype(FmgrInfo *flinfo)
+get_fn_expr_rettype(FmgrInfo * flinfo)
 {
 	Node	   *expr;
 
@@ -1906,7 +1906,7 @@ get_fn_expr_rettype(FmgrInfo *flinfo)
  * Returns InvalidOid if information is not available
  */
 Oid
-get_fn_expr_argtype(FmgrInfo *flinfo, int argnum)
+get_fn_expr_argtype(FmgrInfo * flinfo, int argnum)
 {
 	/*
 	 * can't return anything useful if we have no FmgrInfo or if its fn_expr
@@ -1925,7 +1925,7 @@ get_fn_expr_argtype(FmgrInfo *flinfo, int argnum)
  * Returns InvalidOid if information is not available
  */
 Oid
-get_call_expr_argtype(Node *expr, int argnum)
+get_call_expr_argtype(Node * expr, int argnum)
 {
 	List	   *args;
 	Oid			argtype;
@@ -1977,7 +1977,7 @@ get_call_expr_argtype(Node *expr, int argnum)
  * Returns false if information is not available
  */
 bool
-get_fn_expr_arg_stable(FmgrInfo *flinfo, int argnum)
+get_fn_expr_arg_stable(FmgrInfo * flinfo, int argnum)
 {
 	/*
 	 * can't return anything useful if we have no FmgrInfo or if its fn_expr
@@ -1996,7 +1996,7 @@ get_fn_expr_arg_stable(FmgrInfo *flinfo, int argnum)
  * Returns false if information is not available
  */
 bool
-get_call_expr_arg_stable(Node *expr, int argnum)
+get_call_expr_arg_stable(Node * expr, int argnum)
 {
 	List	   *args;
 	Node	   *arg;
@@ -2048,7 +2048,7 @@ get_call_expr_arg_stable(Node *expr, int argnum)
  * Note this is generally only of interest to VARIADIC ANY functions
  */
 bool
-get_fn_expr_variadic(FmgrInfo *flinfo)
+get_fn_expr_variadic(FmgrInfo * flinfo)
 {
 	Node	   *expr;
 

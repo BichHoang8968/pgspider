@@ -46,17 +46,17 @@ extern void InsertOneNull(int i);
 
 extern char *MapArrayTypeName(const char *s);
 
-extern void index_register(Oid heap, Oid ind, IndexInfo *indexInfo);
+extern void index_register(Oid heap, Oid ind, IndexInfo * indexInfo);
 extern void build_indices(void);
 
 extern void boot_get_type_io_data(Oid typid,
-					  int16 *typlen,
+					  int16 * typlen,
 					  bool *typbyval,
 					  char *typalign,
 					  char *typdelim,
-					  Oid *typioparam,
-					  Oid *typinput,
-					  Oid *typoutput);
+					  Oid * typioparam,
+					  Oid * typinput,
+					  Oid * typoutput);
 
 extern int	boot_yyparse(void);
 

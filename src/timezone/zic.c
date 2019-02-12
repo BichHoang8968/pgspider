@@ -122,7 +122,7 @@ static void memory_exhausted(const char *msg) pg_attribute_noreturn();
 static void verror(const char *string, va_list args) pg_attribute_printf(1, 0);
 static void error(const char *string,...) pg_attribute_printf(1, 2);
 static void warning(const char *string,...) pg_attribute_printf(1, 2);
-static void usage(FILE *stream, int status) pg_attribute_noreturn();
+static void usage(FILE * stream, int status) pg_attribute_noreturn();
 static void addtt(zic_t starttime, int type);
 static int	addtype(zic_t, char const *, bool, bool, bool);
 static void leapadd(zic_t, bool, int, int);
@@ -131,7 +131,7 @@ static void associate(void);
 static void dolink(const char *, const char *, bool);
 static char **getfields(char *buf);
 static zic_t gethms(const char *string, const char *errstring,
-	   bool);
+					bool);
 static zic_t getstdoff(char *, bool *);
 static void infile(const char *filename);
 static void inleap(char **fields, int nfields);
@@ -442,7 +442,7 @@ ecpyalloc(char const *str)
 }
 
 static void *
-growalloc(void *ptr, size_t itemsize, ptrdiff_t nitems, ptrdiff_t *nitems_alloc)
+growalloc(void *ptr, size_t itemsize, ptrdiff_t nitems, ptrdiff_t * nitems_alloc)
 {
 	if (nitems < *nitems_alloc)
 		return ptr;
@@ -517,7 +517,7 @@ warning(const char *string,...)
 }
 
 static void
-close_file(FILE *stream, char const *dir, char const *name)
+close_file(FILE * stream, char const *dir, char const *name)
 {
 	char const *e = (ferror(stream) ? _("I/O error")
 					 : fclose(stream) != 0 ? strerror(errno) : NULL);
@@ -533,7 +533,7 @@ close_file(FILE *stream, char const *dir, char const *name)
 }
 
 static void
-usage(FILE *stream, int status)
+usage(FILE * stream, int status)
 {
 	fprintf(stream,
 			_("%s: usage is %s [ --version ] [ --help ] [ -v ] [ -P ] \\\n"
@@ -589,7 +589,7 @@ main(int argc, char **argv)
 	umask(umask(S_IWGRP | S_IWOTH) | (S_IWGRP | S_IWOTH));
 #endif
 	progname = argv[0];
-	if (TYPE_BIT(zic_t) <64)
+	if (TYPE_BIT(zic_t) < 64)
 	{
 		fprintf(stderr, "%s: %s\n", progname,
 				_("wild compilation-time specification of zic_t"));
@@ -1909,7 +1909,7 @@ convert64(const zic_t val, char *const buf)
 }
 
 static void
-puttzcode(const int32 val, FILE *const fp)
+puttzcode(const int32 val, FILE * const fp)
 {
 	char		buf[4];
 
@@ -1918,7 +1918,7 @@ puttzcode(const int32 val, FILE *const fp)
 }
 
 static void
-puttzcode64(const zic_t val, FILE *const fp)
+puttzcode64(const zic_t val, FILE * const fp)
 {
 	char		buf[8];
 
@@ -1929,8 +1929,8 @@ puttzcode64(const zic_t val, FILE *const fp)
 static int
 atcomp(const void *avp, const void *bvp)
 {
-	const zic_t a = ((const struct attype *) avp)->at;
-	const zic_t b = ((const struct attype *) bvp)->at;
+	const		zic_t a = ((const struct attype *) avp)->at;
+	const		zic_t b = ((const struct attype *) bvp)->at;
 
 	return (a < b) ? -1 : (a > b);
 }
@@ -3254,7 +3254,7 @@ yearistype(zic_t year, const char *type)
 	if (type == NULL || *type == '\0')
 		return true;
 	buf = emalloc(1 + 4 * strlen(yitcommand) + 2
-				  + INT_STRLEN_MAXIMUM(zic_t) +2 + 4 * strlen(type) + 2);
+				  + INT_STRLEN_MAXIMUM(zic_t) + 2 + 4 * strlen(type) + 2);
 	b = shellquote(buf, yitcommand);
 	*b++ = ' ';
 	b += sprintf(b, INT64_FORMAT, year);

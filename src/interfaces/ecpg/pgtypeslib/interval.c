@@ -32,7 +32,7 @@ strtoint(const char *nptr, char **endptr, int base)
  * and changesd struct pg_tm to struct tm
  */
 static void
-AdjustFractSeconds(double frac, struct /* pg_ */ tm *tm, fsec_t *fsec, int scale)
+AdjustFractSeconds(double frac, struct /* pg_ */ tm *tm, fsec_t * fsec, int scale)
 {
 	int			sec;
 
@@ -50,7 +50,7 @@ AdjustFractSeconds(double frac, struct /* pg_ */ tm *tm, fsec_t *fsec, int scale
  * and changesd struct pg_tm to struct tm
  */
 static void
-AdjustFractDays(double frac, struct /* pg_ */ tm *tm, fsec_t *fsec, int scale)
+AdjustFractDays(double frac, struct /* pg_ */ tm *tm, fsec_t * fsec, int scale)
 {
 	int			extra_days;
 
@@ -103,7 +103,7 @@ ISO8601IntegerWidth(char *fieldstart)
  * and changesd struct pg_tm to struct tm
  */
 static inline void
-ClearPgTm(struct /* pg_ */ tm *tm, fsec_t *fsec)
+ClearPgTm(struct /* pg_ */ tm *tm, fsec_t * fsec)
 {
 	tm->tm_year = 0;
 	tm->tm_mon = 0;
@@ -122,7 +122,7 @@ ClearPgTm(struct /* pg_ */ tm *tm, fsec_t *fsec)
  */
 static int
 DecodeISO8601Interval(char *str,
-					  int *dtype, struct /* pg_ */ tm *tm, fsec_t *fsec)
+					  int *dtype, struct /* pg_ */ tm *tm, fsec_t * fsec)
 {
 	bool		datepart = true;
 	bool		havefield = false;
@@ -336,7 +336,7 @@ DecodeISO8601Interval(char *str,
  */
 int
 DecodeInterval(char **field, int *ftype, int nf,	/* int range, */
-			   int *dtype, struct /* pg_ */ tm *tm, fsec_t *fsec)
+			   int *dtype, struct /* pg_ */ tm *tm, fsec_t * fsec)
 {
 	int			IntervalStyle = INTSTYLE_POSTGRES_VERBOSE;
 	int			range = INTERVAL_FULL_RANGE;
@@ -956,7 +956,7 @@ EncodeInterval(struct /* pg_ */ tm *tm, fsec_t fsec, int style, char *str)
  * Convert an interval data type to a tm structure.
  */
 static int
-interval2tm(interval span, struct tm *tm, fsec_t *fsec)
+interval2tm(interval span, struct tm *tm, fsec_t * fsec)
 {
 	int64		time;
 

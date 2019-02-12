@@ -77,28 +77,28 @@ static int	MyTriggerDepth = 0;
 	(rt_fetch((relinfo)->ri_RangeTableIndex, (estate)->es_range_table)->updatedCols)
 
 /* Local function prototypes */
-static void ConvertTriggerToFK(CreateTrigStmt *stmt, Oid funcoid);
-static void SetTriggerFlags(TriggerDesc *trigdesc, Trigger *trigger);
-static HeapTuple GetTupleForTrigger(EState *estate,
-				   EPQState *epqstate,
-				   ResultRelInfo *relinfo,
-				   ItemPointer tid,
-				   LockTupleMode lockmode,
-				   TupleTableSlot **newSlot);
-static bool TriggerEnabled(EState *estate, ResultRelInfo *relinfo,
-			   Trigger *trigger, TriggerEvent event,
-			   Bitmapset *modifiedCols,
+static void ConvertTriggerToFK(CreateTrigStmt * stmt, Oid funcoid);
+static void SetTriggerFlags(TriggerDesc * trigdesc, Trigger * trigger);
+static HeapTuple GetTupleForTrigger(EState * estate,
+									EPQState * epqstate,
+									ResultRelInfo * relinfo,
+									ItemPointer tid,
+									LockTupleMode lockmode,
+									TupleTableSlot * *newSlot);
+static bool TriggerEnabled(EState * estate, ResultRelInfo * relinfo,
+			   Trigger * trigger, TriggerEvent event,
+			   Bitmapset * modifiedCols,
 			   HeapTuple oldtup, HeapTuple newtup);
-static HeapTuple ExecCallTriggerFunc(TriggerData *trigdata,
-					int tgindx,
-					FmgrInfo *finfo,
-					Instrumentation *instr,
-					MemoryContext per_tuple_context);
-static void AfterTriggerSaveEvent(EState *estate, ResultRelInfo *relinfo,
+static HeapTuple ExecCallTriggerFunc(TriggerData * trigdata,
+									 int tgindx,
+									 FmgrInfo * finfo,
+									 Instrumentation * instr,
+									 MemoryContext per_tuple_context);
+static void AfterTriggerSaveEvent(EState * estate, ResultRelInfo * relinfo,
 					  int event, bool row_trigger,
 					  HeapTuple oldtup, HeapTuple newtup,
-					  List *recheckIndexes, Bitmapset *modifiedCols,
-					  TransitionCaptureState *transition_capture);
+					  List * recheckIndexes, Bitmapset * modifiedCols,
+					  TransitionCaptureState * transition_capture);
 static void AfterTriggerEnlargeQueryState(void);
 static bool before_stmt_triggers_fired(Oid relid, CmdType cmdType);
 
@@ -138,7 +138,7 @@ static bool before_stmt_triggers_fired(Oid relid, CmdType cmdType);
  * compatibility.
  */
 ObjectAddress
-CreateTrigger(CreateTrigStmt *stmt, const char *queryString,
+CreateTrigger(CreateTrigStmt * stmt, const char *queryString,
 			  Oid relOid, Oid refRelOid, Oid constraintOid, Oid indexOid,
 			  bool isInternal)
 {
@@ -1013,12 +1013,12 @@ typedef struct
 	List	   *args;			/* list of (T_String) Values or NIL */
 	Oid			funcoids[3];	/* OIDs of trigger functions */
 	/* The three function OIDs are stored in the order update, delete, child */
-} OldTriggerInfo;
+}			OldTriggerInfo;
 
 static void
-ConvertTriggerToFK(CreateTrigStmt *stmt, Oid funcoid)
+ConvertTriggerToFK(CreateTrigStmt * stmt, Oid funcoid)
 {
-	static List *info_list = NIL;
+	static List * info_list = NIL;
 
 	static const char *const funcdescr[3] = {
 		gettext_noop("Found referenced table's UPDATE trigger."),
@@ -1400,7 +1400,7 @@ get_trigger_oid(Oid relid, const char *trigname, bool missing_ok)
  * Perform permissions and integrity checks before acquiring a relation lock.
  */
 static void
-RangeVarCallbackForRenameTrigger(const RangeVar *rv, Oid relid, Oid oldrelid,
+RangeVarCallbackForRenameTrigger(const RangeVar * rv, Oid relid, Oid oldrelid,
 								 void *arg)
 {
 	HeapTuple	tuple;
@@ -1446,7 +1446,7 @@ RangeVarCallbackForRenameTrigger(const RangeVar *rv, Oid relid, Oid oldrelid,
  *		update row in catalog
  */
 ObjectAddress
-renametrig(RenameStmt *stmt)
+renametrig(RenameStmt * stmt)
 {
 	Oid			tgoid;
 	Relation	targetrel;
@@ -1831,7 +1831,7 @@ RelationBuildTriggers(Relation relation)
  * Update the TriggerDesc's hint flags to include the specified trigger
  */
 static void
-SetTriggerFlags(TriggerDesc *trigdesc, Trigger *trigger)
+SetTriggerFlags(TriggerDesc * trigdesc, Trigger * trigger)
 {
 	int16		tgtype = trigger->tgtype;
 
@@ -1908,7 +1908,7 @@ SetTriggerFlags(TriggerDesc *trigdesc, Trigger *trigger)
  * The copy is allocated in the current memory context.
  */
 TriggerDesc *
-CopyTriggerDesc(TriggerDesc *trigdesc)
+CopyTriggerDesc(TriggerDesc * trigdesc)
 {
 	TriggerDesc *newdesc;
 	Trigger    *trigger;
@@ -1963,7 +1963,7 @@ CopyTriggerDesc(TriggerDesc *trigdesc)
  * Free a TriggerDesc data structure.
  */
 void
-FreeTriggerDesc(TriggerDesc *trigdesc)
+FreeTriggerDesc(TriggerDesc * trigdesc)
 {
 	Trigger    *trigger;
 	int			i;
@@ -2000,7 +2000,7 @@ FreeTriggerDesc(TriggerDesc *trigdesc)
  */
 #ifdef NOT_USED
 bool
-equalTriggerDescs(TriggerDesc *trigdesc1, TriggerDesc *trigdesc2)
+equalTriggerDescs(TriggerDesc * trigdesc1, TriggerDesc * trigdesc2)
 {
 	int			i,
 				j;
@@ -2093,7 +2093,7 @@ equalTriggerDescs(TriggerDesc *trigdesc1, TriggerDesc *trigdesc2)
  * of the first such incompatible trigger, or NULL if there is none.
  */
 const char *
-FindTriggerIncompatibleWithInheritance(TriggerDesc *trigdesc)
+FindTriggerIncompatibleWithInheritance(TriggerDesc * trigdesc)
 {
 	if (trigdesc != NULL)
 	{
@@ -2123,10 +2123,10 @@ FindTriggerIncompatibleWithInheritance(TriggerDesc *trigdesc)
  * Returns the tuple (or NULL) as returned by the function.
  */
 static HeapTuple
-ExecCallTriggerFunc(TriggerData *trigdata,
+ExecCallTriggerFunc(TriggerData * trigdata,
 					int tgindx,
-					FmgrInfo *finfo,
-					Instrumentation *instr,
+					FmgrInfo * finfo,
+					Instrumentation * instr,
 					MemoryContext per_tuple_context)
 {
 	FunctionCallInfoData fcinfo;
@@ -2217,7 +2217,7 @@ ExecCallTriggerFunc(TriggerData *trigdata,
 }
 
 void
-ExecBSInsertTriggers(EState *estate, ResultRelInfo *relinfo)
+ExecBSInsertTriggers(EState * estate, ResultRelInfo * relinfo)
 {
 	TriggerDesc *trigdesc;
 	int			i;
@@ -2274,8 +2274,8 @@ ExecBSInsertTriggers(EState *estate, ResultRelInfo *relinfo)
 }
 
 void
-ExecASInsertTriggers(EState *estate, ResultRelInfo *relinfo,
-					 TransitionCaptureState *transition_capture)
+ExecASInsertTriggers(EState * estate, ResultRelInfo * relinfo,
+					 TransitionCaptureState * transition_capture)
 {
 	TriggerDesc *trigdesc = relinfo->ri_TrigDesc;
 
@@ -2285,8 +2285,8 @@ ExecASInsertTriggers(EState *estate, ResultRelInfo *relinfo,
 }
 
 TupleTableSlot *
-ExecBRInsertTriggers(EState *estate, ResultRelInfo *relinfo,
-					 TupleTableSlot *slot)
+ExecBRInsertTriggers(EState * estate, ResultRelInfo * relinfo,
+					 TupleTableSlot * slot)
 {
 	TriggerDesc *trigdesc = relinfo->ri_TrigDesc;
 	HeapTuple	slottuple = ExecMaterializeSlot(slot);
@@ -2351,9 +2351,9 @@ ExecBRInsertTriggers(EState *estate, ResultRelInfo *relinfo,
 }
 
 void
-ExecARInsertTriggers(EState *estate, ResultRelInfo *relinfo,
-					 HeapTuple trigtuple, List *recheckIndexes,
-					 TransitionCaptureState *transition_capture)
+ExecARInsertTriggers(EState * estate, ResultRelInfo * relinfo,
+					 HeapTuple trigtuple, List * recheckIndexes,
+					 TransitionCaptureState * transition_capture)
 {
 	TriggerDesc *trigdesc = relinfo->ri_TrigDesc;
 
@@ -2366,8 +2366,8 @@ ExecARInsertTriggers(EState *estate, ResultRelInfo *relinfo,
 }
 
 TupleTableSlot *
-ExecIRInsertTriggers(EState *estate, ResultRelInfo *relinfo,
-					 TupleTableSlot *slot)
+ExecIRInsertTriggers(EState * estate, ResultRelInfo * relinfo,
+					 TupleTableSlot * slot)
 {
 	TriggerDesc *trigdesc = relinfo->ri_TrigDesc;
 	HeapTuple	slottuple = ExecMaterializeSlot(slot);
@@ -2432,7 +2432,7 @@ ExecIRInsertTriggers(EState *estate, ResultRelInfo *relinfo,
 }
 
 void
-ExecBSDeleteTriggers(EState *estate, ResultRelInfo *relinfo)
+ExecBSDeleteTriggers(EState * estate, ResultRelInfo * relinfo)
 {
 	TriggerDesc *trigdesc;
 	int			i;
@@ -2489,8 +2489,8 @@ ExecBSDeleteTriggers(EState *estate, ResultRelInfo *relinfo)
 }
 
 void
-ExecASDeleteTriggers(EState *estate, ResultRelInfo *relinfo,
-					 TransitionCaptureState *transition_capture)
+ExecASDeleteTriggers(EState * estate, ResultRelInfo * relinfo,
+					 TransitionCaptureState * transition_capture)
 {
 	TriggerDesc *trigdesc = relinfo->ri_TrigDesc;
 
@@ -2500,8 +2500,8 @@ ExecASDeleteTriggers(EState *estate, ResultRelInfo *relinfo,
 }
 
 bool
-ExecBRDeleteTriggers(EState *estate, EPQState *epqstate,
-					 ResultRelInfo *relinfo,
+ExecBRDeleteTriggers(EState * estate, EPQState * epqstate,
+					 ResultRelInfo * relinfo,
 					 ItemPointer tupleid,
 					 HeapTuple fdw_trigtuple)
 {
@@ -2569,10 +2569,10 @@ ExecBRDeleteTriggers(EState *estate, EPQState *epqstate,
 }
 
 void
-ExecARDeleteTriggers(EState *estate, ResultRelInfo *relinfo,
+ExecARDeleteTriggers(EState * estate, ResultRelInfo * relinfo,
 					 ItemPointer tupleid,
 					 HeapTuple fdw_trigtuple,
-					 TransitionCaptureState *transition_capture)
+					 TransitionCaptureState * transition_capture)
 {
 	TriggerDesc *trigdesc = relinfo->ri_TrigDesc;
 
@@ -2601,7 +2601,7 @@ ExecARDeleteTriggers(EState *estate, ResultRelInfo *relinfo,
 }
 
 bool
-ExecIRDeleteTriggers(EState *estate, ResultRelInfo *relinfo,
+ExecIRDeleteTriggers(EState * estate, ResultRelInfo * relinfo,
 					 HeapTuple trigtuple)
 {
 	TriggerDesc *trigdesc = relinfo->ri_TrigDesc;
@@ -2648,7 +2648,7 @@ ExecIRDeleteTriggers(EState *estate, ResultRelInfo *relinfo,
 }
 
 void
-ExecBSUpdateTriggers(EState *estate, ResultRelInfo *relinfo)
+ExecBSUpdateTriggers(EState * estate, ResultRelInfo * relinfo)
 {
 	TriggerDesc *trigdesc;
 	int			i;
@@ -2708,8 +2708,8 @@ ExecBSUpdateTriggers(EState *estate, ResultRelInfo *relinfo)
 }
 
 void
-ExecASUpdateTriggers(EState *estate, ResultRelInfo *relinfo,
-					 TransitionCaptureState *transition_capture)
+ExecASUpdateTriggers(EState * estate, ResultRelInfo * relinfo,
+					 TransitionCaptureState * transition_capture)
 {
 	TriggerDesc *trigdesc = relinfo->ri_TrigDesc;
 
@@ -2721,11 +2721,11 @@ ExecASUpdateTriggers(EState *estate, ResultRelInfo *relinfo,
 }
 
 TupleTableSlot *
-ExecBRUpdateTriggers(EState *estate, EPQState *epqstate,
-					 ResultRelInfo *relinfo,
+ExecBRUpdateTriggers(EState * estate, EPQState * epqstate,
+					 ResultRelInfo * relinfo,
 					 ItemPointer tupleid,
 					 HeapTuple fdw_trigtuple,
-					 TupleTableSlot *slot)
+					 TupleTableSlot * slot)
 {
 	TriggerDesc *trigdesc = relinfo->ri_TrigDesc;
 	HeapTuple	slottuple = ExecMaterializeSlot(slot);
@@ -2838,12 +2838,12 @@ ExecBRUpdateTriggers(EState *estate, EPQState *epqstate,
 }
 
 void
-ExecARUpdateTriggers(EState *estate, ResultRelInfo *relinfo,
+ExecARUpdateTriggers(EState * estate, ResultRelInfo * relinfo,
 					 ItemPointer tupleid,
 					 HeapTuple fdw_trigtuple,
 					 HeapTuple newtuple,
-					 List *recheckIndexes,
-					 TransitionCaptureState *transition_capture)
+					 List * recheckIndexes,
+					 TransitionCaptureState * transition_capture)
 {
 	TriggerDesc *trigdesc = relinfo->ri_TrigDesc;
 
@@ -2875,8 +2875,8 @@ ExecARUpdateTriggers(EState *estate, ResultRelInfo *relinfo,
 }
 
 TupleTableSlot *
-ExecIRUpdateTriggers(EState *estate, ResultRelInfo *relinfo,
-					 HeapTuple trigtuple, TupleTableSlot *slot)
+ExecIRUpdateTriggers(EState * estate, ResultRelInfo * relinfo,
+					 HeapTuple trigtuple, TupleTableSlot * slot)
 {
 	TriggerDesc *trigdesc = relinfo->ri_TrigDesc;
 	HeapTuple	slottuple = ExecMaterializeSlot(slot);
@@ -2941,7 +2941,7 @@ ExecIRUpdateTriggers(EState *estate, ResultRelInfo *relinfo,
 }
 
 void
-ExecBSTruncateTriggers(EState *estate, ResultRelInfo *relinfo)
+ExecBSTruncateTriggers(EState * estate, ResultRelInfo * relinfo)
 {
 	TriggerDesc *trigdesc;
 	int			i;
@@ -2993,7 +2993,7 @@ ExecBSTruncateTriggers(EState *estate, ResultRelInfo *relinfo)
 }
 
 void
-ExecASTruncateTriggers(EState *estate, ResultRelInfo *relinfo)
+ExecASTruncateTriggers(EState * estate, ResultRelInfo * relinfo)
 {
 	TriggerDesc *trigdesc = relinfo->ri_TrigDesc;
 
@@ -3004,12 +3004,12 @@ ExecASTruncateTriggers(EState *estate, ResultRelInfo *relinfo)
 
 
 static HeapTuple
-GetTupleForTrigger(EState *estate,
-				   EPQState *epqstate,
-				   ResultRelInfo *relinfo,
+GetTupleForTrigger(EState * estate,
+				   EPQState * epqstate,
+				   ResultRelInfo * relinfo,
 				   ItemPointer tid,
 				   LockTupleMode lockmode,
-				   TupleTableSlot **newSlot)
+				   TupleTableSlot * *newSlot)
 {
 	Relation	relation = relinfo->ri_RelationDesc;
 	HeapTupleData tuple;
@@ -3148,9 +3148,9 @@ ltrmark:;
  * Is trigger enabled to fire?
  */
 static bool
-TriggerEnabled(EState *estate, ResultRelInfo *relinfo,
-			   Trigger *trigger, TriggerEvent event,
-			   Bitmapset *modifiedCols,
+TriggerEnabled(EState * estate, ResultRelInfo * relinfo,
+			   Trigger * trigger, TriggerEvent event,
+			   Bitmapset * modifiedCols,
 			   HeapTuple oldtup, HeapTuple newtup)
 {
 	/* Check replication-role-dependent enable state */
@@ -3310,7 +3310,7 @@ typedef struct SetConstraintTriggerData
 {
 	Oid			sct_tgoid;
 	bool		sct_tgisdeferred;
-} SetConstraintTriggerData;
+}			SetConstraintTriggerData;
 
 typedef struct SetConstraintTriggerData *SetConstraintTrigger;
 
@@ -3331,9 +3331,9 @@ typedef struct SetConstraintStateData
 	int			numstates;		/* number of trigstates[] entries in use */
 	int			numalloc;		/* allocated size of trigstates[] */
 	SetConstraintTriggerData trigstates[FLEXIBLE_ARRAY_MEMBER];
-} SetConstraintStateData;
+}			SetConstraintStateData;
 
-typedef SetConstraintStateData *SetConstraintState;
+typedef SetConstraintStateData * SetConstraintState;
 
 
 /*
@@ -3394,7 +3394,7 @@ typedef struct AfterTriggerSharedData
 	Oid			ats_relid;		/* the relation it's on */
 	CommandId	ats_firing_id;	/* ID for firing cycle */
 	struct AfterTriggersTableData *ats_table;	/* transition table access */
-} AfterTriggerSharedData;
+}			AfterTriggerSharedData;
 
 typedef struct AfterTriggerEventData *AfterTriggerEvent;
 
@@ -3403,7 +3403,7 @@ typedef struct AfterTriggerEventData
 	TriggerFlags ate_flags;		/* status bits and offset to shared data */
 	ItemPointerData ate_ctid1;	/* inserted, deleted, or old updated tuple */
 	ItemPointerData ate_ctid2;	/* new updated tuple */
-} AfterTriggerEventData;
+}			AfterTriggerEventData;
 
 /* AfterTriggerEventData, minus ate_ctid2 */
 typedef struct AfterTriggerEventDataOneCtid
@@ -3442,7 +3442,7 @@ typedef struct AfterTriggerEventChunk
 	char	   *endfree;		/* end of free space in chunk */
 	char	   *endptr;			/* end of chunk */
 	/* event data follows here */
-} AfterTriggerEventChunk;
+}			AfterTriggerEventChunk;
 
 #define CHUNK_DATA_START(cptr) ((char *) (cptr) + MAXALIGN(sizeof(AfterTriggerEventChunk)))
 
@@ -3452,7 +3452,7 @@ typedef struct AfterTriggerEventList
 	AfterTriggerEventChunk *head;
 	AfterTriggerEventChunk *tail;
 	char	   *tailfree;		/* freeptr of tail chunk */
-} AfterTriggerEventList;
+}			AfterTriggerEventList;
 
 /* Macros to help in iterating over a list of events */
 #define for_each_chunk(cptr, evtlist) \
@@ -3568,7 +3568,7 @@ typedef struct AfterTriggersData
 	/* per-subtransaction-level data: */
 	AfterTriggersTransData *trans_stack;	/* array of structs shown below */
 	int			maxtransdepth;	/* allocated len of above array */
-} AfterTriggersData;
+}			AfterTriggersData;
 
 struct AfterTriggersQueryData
 {
@@ -3602,19 +3602,19 @@ struct AfterTriggersTableData
 static AfterTriggersData afterTriggers;
 
 static void AfterTriggerExecute(AfterTriggerEvent event,
-					Relation rel, TriggerDesc *trigdesc,
-					FmgrInfo *finfo,
-					Instrumentation *instr,
+					Relation rel, TriggerDesc * trigdesc,
+					FmgrInfo * finfo,
+					Instrumentation * instr,
 					MemoryContext per_tuple_context,
-					TupleTableSlot *trig_tuple_slot1,
-					TupleTableSlot *trig_tuple_slot2);
-static AfterTriggersTableData *GetAfterTriggersTableData(Oid relid,
-						  CmdType cmdType);
-static void AfterTriggerFreeQuery(AfterTriggersQueryData *qs);
+					TupleTableSlot * trig_tuple_slot1,
+					TupleTableSlot * trig_tuple_slot2);
+static AfterTriggersTableData * GetAfterTriggersTableData(Oid relid,
+														  CmdType cmdType);
+static void AfterTriggerFreeQuery(AfterTriggersQueryData * qs);
 static SetConstraintState SetConstraintStateCreate(int numalloc);
 static SetConstraintState SetConstraintStateCopy(SetConstraintState state);
 static SetConstraintState SetConstraintStateAddItem(SetConstraintState state,
-						  Oid tgoid, bool tgisdeferred);
+													Oid tgoid, bool tgisdeferred);
 static void cancel_prior_stmt_triggers(Oid relid, CmdType cmdType, int tgevent);
 
 
@@ -3712,7 +3712,7 @@ afterTriggerCheckState(AfterTriggerShared evtshared)
  * ----------
  */
 static void
-afterTriggerAddEvent(AfterTriggerEventList *events,
+afterTriggerAddEvent(AfterTriggerEventList * events,
 					 AfterTriggerEvent event, AfterTriggerShared evtshared)
 {
 	Size		eventsize = SizeofTriggerEvent(event);
@@ -3828,7 +3828,7 @@ afterTriggerAddEvent(AfterTriggerEventList *events,
  * ----------
  */
 static void
-afterTriggerFreeEventList(AfterTriggerEventList *events)
+afterTriggerFreeEventList(AfterTriggerEventList * events)
 {
 	AfterTriggerEventChunk *chunk;
 
@@ -3849,8 +3849,8 @@ afterTriggerFreeEventList(AfterTriggerEventList *events)
  * ----------
  */
 static void
-afterTriggerRestoreEventList(AfterTriggerEventList *events,
-							 const AfterTriggerEventList *old_events)
+afterTriggerRestoreEventList(AfterTriggerEventList * events,
+							 const AfterTriggerEventList * old_events)
 {
 	AfterTriggerEventChunk *chunk;
 	AfterTriggerEventChunk *next_chunk;
@@ -3889,7 +3889,7 @@ afterTriggerRestoreEventList(AfterTriggerEventList *events,
  * ----------
  */
 static void
-afterTriggerDeleteHeadEventChunk(AfterTriggersQueryData *qs)
+afterTriggerDeleteHeadEventChunk(AfterTriggersQueryData * qs)
 {
 	AfterTriggerEventChunk *target = qs->events.head;
 	ListCell   *lc;
@@ -3944,11 +3944,11 @@ afterTriggerDeleteHeadEventChunk(AfterTriggersQueryData *qs)
  */
 static void
 AfterTriggerExecute(AfterTriggerEvent event,
-					Relation rel, TriggerDesc *trigdesc,
-					FmgrInfo *finfo, Instrumentation *instr,
+					Relation rel, TriggerDesc * trigdesc,
+					FmgrInfo * finfo, Instrumentation * instr,
 					MemoryContext per_tuple_context,
-					TupleTableSlot *trig_tuple_slot1,
-					TupleTableSlot *trig_tuple_slot2)
+					TupleTableSlot * trig_tuple_slot1,
+					TupleTableSlot * trig_tuple_slot2)
 {
 	AfterTriggerShared evtshared = GetTriggerSharedData(event);
 	Oid			tgoid = evtshared->ats_tgoid;
@@ -4137,8 +4137,8 @@ AfterTriggerExecute(AfterTriggerEvent event,
  *	Returns TRUE if any invokable events were found.
  */
 static bool
-afterTriggerMarkEvents(AfterTriggerEventList *events,
-					   AfterTriggerEventList *move_list,
+afterTriggerMarkEvents(AfterTriggerEventList * events,
+					   AfterTriggerEventList * move_list,
 					   bool immediate_only)
 {
 	bool		found = false;
@@ -4209,9 +4209,9 @@ afterTriggerMarkEvents(AfterTriggerEventList *events,
  *	to avoid repeating afterTriggerMarkEvents).
  */
 static bool
-afterTriggerInvokeEvents(AfterTriggerEventList *events,
+afterTriggerInvokeEvents(AfterTriggerEventList * events,
 						 CommandId firing_id,
-						 EState *estate,
+						 EState * estate,
 						 bool delete_ok)
 {
 	bool		all_fired = true;
@@ -4408,7 +4408,7 @@ GetAfterTriggersTableData(Oid relid, CmdType cmdType)
  * the TransitionCaptureState objects we hand out to callers.
  */
 TransitionCaptureState *
-MakeTransitionCaptureState(TriggerDesc *trigdesc, Oid relid, CmdType cmdType)
+MakeTransitionCaptureState(TriggerDesc * trigdesc, Oid relid, CmdType cmdType)
 {
 	TransitionCaptureState *state;
 	bool		need_old,
@@ -4557,7 +4557,7 @@ AfterTriggerBeginQuery(void)
  * ----------
  */
 void
-AfterTriggerEndQuery(EState *estate)
+AfterTriggerEndQuery(EState * estate)
 {
 	AfterTriggersQueryData *qs;
 
@@ -4648,7 +4648,7 @@ AfterTriggerEndQuery(EState *estate)
  *	and then called again for the same query level.
  */
 static void
-AfterTriggerFreeQuery(AfterTriggersQueryData *qs)
+AfterTriggerFreeQuery(AfterTriggersQueryData * qs)
 {
 	Tuplestorestate *ts;
 	List	   *tables;
@@ -5077,7 +5077,7 @@ SetConstraintStateAddItem(SetConstraintState state,
  * ----------
  */
 void
-AfterTriggerSetState(ConstraintsSetStmt *stmt)
+AfterTriggerSetState(ConstraintsSetStmt * stmt)
 {
 	int			my_level = GetCurrentTransactionNestLevel();
 
@@ -5436,11 +5436,11 @@ AfterTriggerPendingOnRel(Oid relid)
  * ----------
  */
 static void
-AfterTriggerSaveEvent(EState *estate, ResultRelInfo *relinfo,
+AfterTriggerSaveEvent(EState * estate, ResultRelInfo * relinfo,
 					  int event, bool row_trigger,
 					  HeapTuple oldtup, HeapTuple newtup,
-					  List *recheckIndexes, Bitmapset *modifiedCols,
-					  TransitionCaptureState *transition_capture)
+					  List * recheckIndexes, Bitmapset * modifiedCols,
+					  TransitionCaptureState * transition_capture)
 {
 	Relation	rel = relinfo->ri_RelationDesc;
 	TriggerDesc *trigdesc = relinfo->ri_TrigDesc;

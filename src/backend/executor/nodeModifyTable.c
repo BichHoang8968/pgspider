@@ -54,18 +54,18 @@
 #include "utils/tqual.h"
 
 
-static bool ExecOnConflictUpdate(ModifyTableState *mtstate,
-					 ResultRelInfo *resultRelInfo,
+static bool ExecOnConflictUpdate(ModifyTableState * mtstate,
+					 ResultRelInfo * resultRelInfo,
 					 ItemPointer conflictTid,
-					 TupleTableSlot *planSlot,
-					 TupleTableSlot *excludedSlot,
-					 EState *estate,
+					 TupleTableSlot * planSlot,
+					 TupleTableSlot * excludedSlot,
+					 EState * estate,
 					 bool canSetTag,
-					 TupleTableSlot **returning);
-static TupleTableSlot *ExecPrepareTupleRouting(ModifyTableState *mtstate,
-						EState *estate,
-						ResultRelInfo *targetRelInfo,
-						TupleTableSlot *slot);
+					 TupleTableSlot * *returning);
+static TupleTableSlot * ExecPrepareTupleRouting(ModifyTableState * mtstate,
+												EState * estate,
+												ResultRelInfo * targetRelInfo,
+												TupleTableSlot * slot);
 
 /*
  * Verify that the tuples to be produced by INSERT or UPDATE match the
@@ -80,7 +80,7 @@ static TupleTableSlot *ExecPrepareTupleRouting(ModifyTableState *mtstate,
  * handling the dropped-column case easier.
  */
 static void
-ExecCheckPlanOutput(Relation resultRel, List *targetList)
+ExecCheckPlanOutput(Relation resultRel, List * targetList)
 {
 	TupleDesc	resultDesc = RelationGetDescr(resultRel);
 	int			attno = 0;
@@ -149,9 +149,9 @@ ExecCheckPlanOutput(Relation resultRel, List *targetList)
  * Returns a slot holding the result tuple
  */
 static TupleTableSlot *
-ExecProcessReturning(ResultRelInfo *resultRelInfo,
-					 TupleTableSlot *tupleSlot,
-					 TupleTableSlot *planSlot)
+ExecProcessReturning(ResultRelInfo * resultRelInfo,
+					 TupleTableSlot * tupleSlot,
+					 TupleTableSlot * planSlot)
 {
 	ProjectionInfo *projectReturning = resultRelInfo->ri_projectReturning;
 	ExprContext *econtext = projectReturning->pi_exprContext;
@@ -192,7 +192,7 @@ ExecProcessReturning(ResultRelInfo *resultRelInfo,
  * Check for the need to raise a serialization failure, and do so as necessary.
  */
 static void
-ExecCheckHeapTupleVisible(EState *estate,
+ExecCheckHeapTupleVisible(EState * estate,
 						  HeapTuple tuple,
 						  Buffer buffer)
 {
@@ -224,8 +224,8 @@ ExecCheckHeapTupleVisible(EState *estate,
  * ExecCheckTIDVisible -- convenience variant of ExecCheckHeapTupleVisible()
  */
 static void
-ExecCheckTIDVisible(EState *estate,
-					ResultRelInfo *relinfo,
+ExecCheckTIDVisible(EState * estate,
+					ResultRelInfo * relinfo,
 					ItemPointer tid)
 {
 	Relation	rel = relinfo->ri_RelationDesc;
@@ -253,12 +253,12 @@ ExecCheckTIDVisible(EState *estate,
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecInsert(ModifyTableState *mtstate,
-		   TupleTableSlot *slot,
-		   TupleTableSlot *planSlot,
-		   List *arbiterIndexes,
+ExecInsert(ModifyTableState * mtstate,
+		   TupleTableSlot * slot,
+		   TupleTableSlot * planSlot,
+		   List * arbiterIndexes,
 		   OnConflictAction onconflict,
-		   EState *estate,
+		   EState * estate,
 		   bool canSetTag)
 {
 	HeapTuple	tuple;
@@ -576,12 +576,12 @@ ExecInsert(ModifyTableState *mtstate,
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecDelete(ModifyTableState *mtstate,
+ExecDelete(ModifyTableState * mtstate,
 		   ItemPointer tupleid,
 		   HeapTuple oldtuple,
-		   TupleTableSlot *planSlot,
-		   EPQState *epqstate,
-		   EState *estate,
+		   TupleTableSlot * planSlot,
+		   EPQState * epqstate,
+		   EState * estate,
 		   bool canSetTag)
 {
 	ResultRelInfo *resultRelInfo;
@@ -836,13 +836,13 @@ ldelete:;
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecUpdate(ModifyTableState *mtstate,
+ExecUpdate(ModifyTableState * mtstate,
 		   ItemPointer tupleid,
 		   HeapTuple oldtuple,
-		   TupleTableSlot *slot,
-		   TupleTableSlot *planSlot,
-		   EPQState *epqstate,
-		   EState *estate,
+		   TupleTableSlot * slot,
+		   TupleTableSlot * planSlot,
+		   EPQState * epqstate,
+		   EState * estate,
 		   bool canSetTag)
 {
 	HeapTuple	tuple;
@@ -1101,14 +1101,14 @@ lreplace:;
  * the caller must retry the INSERT from scratch.
  */
 static bool
-ExecOnConflictUpdate(ModifyTableState *mtstate,
-					 ResultRelInfo *resultRelInfo,
+ExecOnConflictUpdate(ModifyTableState * mtstate,
+					 ResultRelInfo * resultRelInfo,
 					 ItemPointer conflictTid,
-					 TupleTableSlot *planSlot,
-					 TupleTableSlot *excludedSlot,
-					 EState *estate,
+					 TupleTableSlot * planSlot,
+					 TupleTableSlot * excludedSlot,
+					 EState * estate,
 					 bool canSetTag,
-					 TupleTableSlot **returning)
+					 TupleTableSlot * *returning)
 {
 	ExprContext *econtext = mtstate->ps.ps_ExprContext;
 	Relation	relation = resultRelInfo->ri_RelationDesc;
@@ -1287,7 +1287,7 @@ ExecOnConflictUpdate(ModifyTableState *mtstate,
  * Process BEFORE EACH STATEMENT triggers
  */
 static void
-fireBSTriggers(ModifyTableState *node)
+fireBSTriggers(ModifyTableState * node)
 {
 	ResultRelInfo *resultRelInfo = node->resultRelInfo;
 
@@ -1325,7 +1325,7 @@ fireBSTriggers(ModifyTableState *node)
  * tuples must be converted.
  */
 static ResultRelInfo *
-getASTriggerResultRelInfo(ModifyTableState *node)
+getASTriggerResultRelInfo(ModifyTableState * node)
 {
 	/*
 	 * If the node modifies a partitioned table, we must fire its triggers.
@@ -1342,7 +1342,7 @@ getASTriggerResultRelInfo(ModifyTableState *node)
  * Process AFTER EACH STATEMENT triggers
  */
 static void
-fireASTriggers(ModifyTableState *node)
+fireASTriggers(ModifyTableState * node)
 {
 	ResultRelInfo *resultRelInfo = getASTriggerResultRelInfo(node);
 
@@ -1375,7 +1375,7 @@ fireASTriggers(ModifyTableState *node)
  * triggers.
  */
 static void
-ExecSetupTransitionCaptureState(ModifyTableState *mtstate, EState *estate)
+ExecSetupTransitionCaptureState(ModifyTableState * mtstate, EState * estate)
 {
 	ResultRelInfo *targetRelInfo = getASTriggerResultRelInfo(mtstate);
 	int			i;
@@ -1427,7 +1427,7 @@ ExecSetupTransitionCaptureState(ModifyTableState *mtstate, EState *estate)
 		 * conversion is necessary, which is hopefully a common case for
 		 * partitions.
 		 */
-		mtstate->mt_transition_tupconv_maps = (TupleConversionMap **)
+		mtstate->mt_transition_tupconv_maps = (TupleConversionMap * *)
 			palloc0(sizeof(TupleConversionMap *) * numResultRelInfos);
 		for (i = 0; i < numResultRelInfos; ++i)
 		{
@@ -1461,10 +1461,10 @@ ExecSetupTransitionCaptureState(ModifyTableState *mtstate, EState *estate)
  * Returns a slot holding the tuple of the partition rowtype.
  */
 static TupleTableSlot *
-ExecPrepareTupleRouting(ModifyTableState *mtstate,
-						EState *estate,
-						ResultRelInfo *targetRelInfo,
-						TupleTableSlot *slot)
+ExecPrepareTupleRouting(ModifyTableState * mtstate,
+						EState * estate,
+						ResultRelInfo * targetRelInfo,
+						TupleTableSlot * slot)
 {
 	int			partidx;
 	ResultRelInfo *partrel;
@@ -1472,8 +1472,8 @@ ExecPrepareTupleRouting(ModifyTableState *mtstate,
 	TupleConversionMap *map;
 
 	/*
-	 * Determine the target partition.  If ExecFindPartition does not find
-	 * a partition after all, it doesn't return here; otherwise, the returned
+	 * Determine the target partition.  If ExecFindPartition does not find a
+	 * partition after all, it doesn't return here; otherwise, the returned
 	 * value is to be used as an index into the arrays for the resultRelInfo
 	 * and TupleConversionMap for the partition.
 	 */
@@ -1543,8 +1543,8 @@ ExecPrepareTupleRouting(ModifyTableState *mtstate,
 
 		/*
 		 * We must use the partition's tuple descriptor from this point on,
-		 * until we're finished dealing with the partition.  Use the
-		 * dedicated slot for that.
+		 * until we're finished dealing with the partition.  Use the dedicated
+		 * slot for that.
 		 */
 		slot = mtstate->mt_partition_tuple_slot;
 		ExecSetSlotDescriptor(slot, RelationGetDescr(partrel->ri_RelationDesc));
@@ -1562,7 +1562,7 @@ ExecPrepareTupleRouting(ModifyTableState *mtstate,
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecModifyTable(PlanState *pstate)
+ExecModifyTable(PlanState * pstate)
 {
 	ModifyTableState *node = castNode(ModifyTableState, pstate);
 	EState	   *estate = node->ps.state;
@@ -1825,7 +1825,7 @@ ExecModifyTable(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 ModifyTableState *
-ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
+ExecInitModifyTable(ModifyTable * node, EState * estate, int eflags)
 {
 	ModifyTableState *mtstate;
 	CmdType		operation = node->operation;
@@ -1853,7 +1853,7 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 	mtstate->canSetTag = node->canSetTag;
 	mtstate->mt_done = false;
 
-	mtstate->mt_plans = (PlanState **) palloc0(sizeof(PlanState *) * nplans);
+	mtstate->mt_plans = (PlanState * *) palloc0(sizeof(PlanState *) * nplans);
 	mtstate->resultRelInfo = estate->es_result_relations + node->resultRelIndex;
 
 	/* If modifying a partitioned table, initialize the root table info */
@@ -1861,7 +1861,7 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 		mtstate->rootResultRelInfo = estate->es_root_result_relations +
 			node->rootResultRelIndex;
 
-	mtstate->mt_arowmarks = (List **) palloc0(sizeof(List *) * nplans);
+	mtstate->mt_arowmarks = (List * *) palloc0(sizeof(List *) * nplans);
 	mtstate->mt_nplans = nplans;
 	mtstate->mt_onconflict = node->onConflictAction;
 	mtstate->mt_arbiterindexes = node->arbiterIndexes;
@@ -2357,7 +2357,7 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndModifyTable(ModifyTableState *node)
+ExecEndModifyTable(ModifyTableState * node)
 {
 	int			i;
 
@@ -2425,7 +2425,7 @@ ExecEndModifyTable(ModifyTableState *node)
 }
 
 void
-ExecReScanModifyTable(ModifyTableState *node)
+ExecReScanModifyTable(ModifyTableState * node)
 {
 	/*
 	 * Currently, we don't need to support rescan on ModifyTable nodes. The

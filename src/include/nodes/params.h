@@ -57,7 +57,7 @@ typedef struct ParamExternData
 	bool		isnull;			/* is it NULL? */
 	uint16		pflags;			/* flag bits, see above */
 	Oid			ptype;			/* parameter's datatype, or 0 */
-} ParamExternData;
+}			ParamExternData;
 
 typedef struct ParamListInfoData *ParamListInfo;
 
@@ -99,7 +99,7 @@ typedef struct ParamExecData
 	void	   *execPlan;		/* should be "SubPlanState *" */
 	Datum		value;
 	bool		isnull;
-} ParamExecData;
+}			ParamExecData;
 
 
 /* Functions found in src/backend/nodes/params.c */

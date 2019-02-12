@@ -59,7 +59,7 @@ typedef struct
 {
 	void	   *value;
 	int			length;
-} gss_buffer_desc;
+}			gss_buffer_desc;
 #endif
 #endif							/* ENABLE_SSPI */
 
@@ -72,7 +72,7 @@ typedef enum CAC_state
 {
 	CAC_OK, CAC_STARTUP, CAC_SHUTDOWN, CAC_RECOVERY, CAC_TOOMANY,
 	CAC_WAITBACKUP
-} CAC_state;
+}			CAC_state;
 
 
 /*
@@ -87,7 +87,7 @@ typedef struct
 	gss_ctx_id_t ctx;			/* GSSAPI connection context */
 	gss_name_t	name;			/* GSSAPI client name */
 #endif
-} pg_gssinfo;
+}			pg_gssinfo;
 #endif
 
 /*
@@ -190,7 +190,7 @@ typedef struct Port
 	SSL		   *ssl;
 	X509	   *peer;
 #endif
-} Port;
+}			Port;
 
 #ifdef USE_SSL
 /*
@@ -199,28 +199,28 @@ typedef struct Port
  */
 extern int	be_tls_init(bool isServerStart);
 extern void be_tls_destroy(void);
-extern int	be_tls_open_server(Port *port);
-extern void be_tls_close(Port *port);
-extern ssize_t be_tls_read(Port *port, void *ptr, size_t len, int *waitfor);
-extern ssize_t be_tls_write(Port *port, void *ptr, size_t len, int *waitfor);
+extern int	be_tls_open_server(Port * port);
+extern void be_tls_close(Port * port);
+extern ssize_t be_tls_read(Port * port, void *ptr, size_t len, int *waitfor);
+extern ssize_t be_tls_write(Port * port, void *ptr, size_t len, int *waitfor);
 
-extern int	be_tls_get_cipher_bits(Port *port);
-extern bool be_tls_get_compression(Port *port);
-extern void be_tls_get_version(Port *port, char *ptr, size_t len);
-extern void be_tls_get_cipher(Port *port, char *ptr, size_t len);
-extern void be_tls_get_peerdn_name(Port *port, char *ptr, size_t len);
+extern int	be_tls_get_cipher_bits(Port * port);
+extern bool be_tls_get_compression(Port * port);
+extern void be_tls_get_version(Port * port, char *ptr, size_t len);
+extern void be_tls_get_cipher(Port * port, char *ptr, size_t len);
+extern void be_tls_get_peerdn_name(Port * port, char *ptr, size_t len);
 #endif
 
 extern ProtocolVersion FrontendProtocol;
 
 /* TCP keepalives configuration. These are no-ops on an AF_UNIX socket. */
 
-extern int	pq_getkeepalivesidle(Port *port);
-extern int	pq_getkeepalivesinterval(Port *port);
-extern int	pq_getkeepalivescount(Port *port);
+extern int	pq_getkeepalivesidle(Port * port);
+extern int	pq_getkeepalivesinterval(Port * port);
+extern int	pq_getkeepalivescount(Port * port);
 
-extern int	pq_setkeepalivesidle(int idle, Port *port);
-extern int	pq_setkeepalivesinterval(int interval, Port *port);
-extern int	pq_setkeepalivescount(int count, Port *port);
+extern int	pq_setkeepalivesidle(int idle, Port * port);
+extern int	pq_setkeepalivesinterval(int interval, Port * port);
+extern int	pq_setkeepalivescount(int count, Port * port);
 
 #endif							/* LIBPQ_BE_H */

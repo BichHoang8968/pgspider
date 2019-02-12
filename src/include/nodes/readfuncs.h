@@ -26,6 +26,6 @@ extern void *nodeRead(char *token, int tok_len);
 /*
  * prototypes for functions in readfuncs.c
  */
-extern Node *parseNodeString(void);
+extern Node * parseNodeString(void);
 
 #endif							/* READFUNCS_H */

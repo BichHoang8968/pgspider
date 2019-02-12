@@ -70,7 +70,7 @@ typedef struct AnlIndexData
 	double		tupleFract;		/* fraction of rows for partial index */
 	VacAttrStats **vacattrstats;	/* index attrs to analyze */
 	int			attr_cnt;
-} AnlIndexData;
+}			AnlIndexData;
 
 
 /* Default statistics target (GUC parameter) */
@@ -82,24 +82,24 @@ static BufferAccessStrategy vac_strategy;
 
 
 static void do_analyze_rel(Relation onerel, int options,
-			   VacuumParams *params, List *va_cols,
+			   VacuumParams * params, List * va_cols,
 			   AcquireSampleRowsFunc acquirefunc, BlockNumber relpages,
 			   bool inh, bool in_outer_xact, int elevel);
 static void compute_index_stats(Relation onerel, double totalrows,
-					AnlIndexData *indexdata, int nindexes,
-					HeapTuple *rows, int numrows,
+					AnlIndexData * indexdata, int nindexes,
+					HeapTuple * rows, int numrows,
 					MemoryContext col_context);
-static VacAttrStats *examine_attribute(Relation onerel, int attnum,
-				  Node *index_expr);
+static VacAttrStats * examine_attribute(Relation onerel, int attnum,
+										Node * index_expr);
 static int acquire_sample_rows(Relation onerel, int elevel,
-					HeapTuple *rows, int targrows,
+					HeapTuple * rows, int targrows,
 					double *totalrows, double *totaldeadrows);
 static int	compare_rows(const void *a, const void *b);
 static int acquire_inherited_sample_rows(Relation onerel, int elevel,
-							  HeapTuple *rows, int targrows,
+							  HeapTuple * rows, int targrows,
 							  double *totalrows, double *totaldeadrows);
 static void update_attstats(Oid relid, bool inh,
-				int natts, VacAttrStats **vacattrstats);
+				int natts, VacAttrStats * *vacattrstats);
 static Datum std_fetch_func(VacAttrStatsP stats, int rownum, bool *isNull);
 static Datum ind_fetch_func(VacAttrStatsP stats, int rownum, bool *isNull);
 
@@ -112,8 +112,8 @@ static Datum ind_fetch_func(VacAttrStatsP stats, int rownum, bool *isNull);
  * use it once we've successfully opened the rel, since it might be stale.
  */
 void
-analyze_rel(Oid relid, RangeVar *relation, int options,
-			VacuumParams *params, List *va_cols, bool in_outer_xact,
+analyze_rel(Oid relid, RangeVar * relation, int options,
+			VacuumParams * params, List * va_cols, bool in_outer_xact,
 			BufferAccessStrategy bstrategy)
 {
 	Relation	onerel;
@@ -308,8 +308,8 @@ analyze_rel(Oid relid, RangeVar *relation, int options,
  * appropriate acquirefunc for each child table.
  */
 static void
-do_analyze_rel(Relation onerel, int options, VacuumParams *params,
-			   List *va_cols, AcquireSampleRowsFunc acquirefunc,
+do_analyze_rel(Relation onerel, int options, VacuumParams * params,
+			   List * va_cols, AcquireSampleRowsFunc acquirefunc,
 			   BlockNumber relpages, bool inh, bool in_outer_xact,
 			   int elevel)
 {
@@ -385,8 +385,8 @@ do_analyze_rel(Relation onerel, int options, VacuumParams *params,
 		Bitmapset  *unique_cols = NULL;
 		ListCell   *le;
 
-		vacattrstats = (VacAttrStats **) palloc(list_length(va_cols) *
-												sizeof(VacAttrStats *));
+		vacattrstats = (VacAttrStats * *) palloc(list_length(va_cols) *
+												 sizeof(VacAttrStats *));
 		tcnt = 0;
 		foreach(le, va_cols)
 		{
@@ -414,7 +414,7 @@ do_analyze_rel(Relation onerel, int options, VacuumParams *params,
 	else
 	{
 		attr_cnt = onerel->rd_att->natts;
-		vacattrstats = (VacAttrStats **)
+		vacattrstats = (VacAttrStats * *)
 			palloc(attr_cnt * sizeof(VacAttrStats *));
 		tcnt = 0;
 		for (i = 1; i <= attr_cnt; i++)
@@ -456,7 +456,7 @@ do_analyze_rel(Relation onerel, int options, VacuumParams *params,
 			{
 				ListCell   *indexpr_item = list_head(indexInfo->ii_Expressions);
 
-				thisdata->vacattrstats = (VacAttrStats **)
+				thisdata->vacattrstats = (VacAttrStats * *)
 					palloc(indexInfo->ii_NumIndexAttrs * sizeof(VacAttrStats *));
 				tcnt = 0;
 				for (i = 0; i < indexInfo->ii_NumIndexAttrs; i++)
@@ -705,8 +705,8 @@ do_analyze_rel(Relation onerel, int options, VacuumParams *params,
  */
 static void
 compute_index_stats(Relation onerel, double totalrows,
-					AnlIndexData *indexdata, int nindexes,
-					HeapTuple *rows, int numrows,
+					AnlIndexData * indexdata, int nindexes,
+					HeapTuple * rows, int numrows,
 					MemoryContext col_context)
 {
 	MemoryContext ind_context,
@@ -885,7 +885,7 @@ compute_index_stats(Relation onerel, double totalrows,
  * and index_expr is the expression tree representing the column's data.
  */
 static VacAttrStats *
-examine_attribute(Relation onerel, int attnum, Node *index_expr)
+examine_attribute(Relation onerel, int attnum, Node * index_expr)
 {
 	Form_pg_attribute attr = onerel->rd_att->attrs[attnum - 1];
 	HeapTuple	typtuple;
@@ -1006,7 +1006,7 @@ examine_attribute(Relation onerel, int attnum, Node *index_expr)
  */
 static int
 acquire_sample_rows(Relation onerel, int elevel,
-					HeapTuple *rows, int targrows,
+					HeapTuple * rows, int targrows,
 					double *totalrows, double *totaldeadrows)
 {
 	int			numrows = 0;	/* # rows now in reservoir */
@@ -1282,7 +1282,7 @@ compare_rows(const void *a, const void *b)
  */
 static int
 acquire_inherited_sample_rows(Relation onerel, int elevel,
-							  HeapTuple *rows, int targrows,
+							  HeapTuple * rows, int targrows,
 							  double *totalrows, double *totaldeadrows)
 {
 	List	   *tableOIDs;
@@ -1520,7 +1520,7 @@ acquire_inherited_sample_rows(Relation onerel, int elevel,
  *		by taking a self-exclusive lock on the relation in analyze_rel().
  */
 static void
-update_attstats(Oid relid, bool inh, int natts, VacAttrStats **vacattrstats)
+update_attstats(Oid relid, bool inh, int natts, VacAttrStats * *vacattrstats)
 {
 	Relation	sd;
 	int			attno;
@@ -1712,13 +1712,13 @@ typedef struct
 {
 	int			count;			/* # of duplicates */
 	int			first;			/* values[] index of first occurrence */
-} ScalarMCVItem;
+}			ScalarMCVItem;
 
 typedef struct
 {
 	SortSupport ssup;
 	int		   *tupnoLink;
-} CompareScalarsContext;
+}			CompareScalarsContext;
 
 
 static void compute_trivial_stats(VacAttrStatsP stats,
@@ -1741,7 +1741,7 @@ static int	compare_mcvs(const void *a, const void *b);
  * std_typanalyze -- the default type-specific typanalyze function
  */
 bool
-std_typanalyze(VacAttrStats *stats)
+std_typanalyze(VacAttrStats * stats)
 {
 	Form_pg_attribute attr = stats->attr;
 	Oid			ltopr;
@@ -1930,7 +1930,7 @@ compute_distinct_stats(VacAttrStatsP stats,
 	{
 		Datum		value;
 		int			count;
-	} TrackItem;
+	}			TrackItem;
 	TrackItem  *track;
 	int			track_cnt,
 				track_max;

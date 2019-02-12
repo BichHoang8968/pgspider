@@ -33,7 +33,7 @@ typedef struct
 {
 	char		varName[NAMEDATALEN];	/* hash key (must be first) */
 	void	   *varValue;
-} rendezvousHashEntry;
+}			rendezvousHashEntry;
 
 /*
  * List of dynamically loaded files (kept in malloc'd memory).
@@ -49,10 +49,10 @@ typedef struct df_files
 #endif
 	void	   *handle;			/* a handle for pg_dl* functions */
 	char		filename[FLEXIBLE_ARRAY_MEMBER];	/* Full pathname of file */
-} DynamicFileList;
+}			DynamicFileList;
 
-static DynamicFileList *file_list = NULL;
-static DynamicFileList *file_tail = NULL;
+static DynamicFileList * file_list = NULL;
+static DynamicFileList * file_tail = NULL;
 
 /* stat() call under Win32 returns an st_ino field, but it has no meaning */
 #ifndef WIN32
@@ -65,7 +65,7 @@ char	   *Dynamic_library_path;
 
 static void *internal_load_library(const char *libname);
 static void incompatible_module_error(const char *libname,
-						  const Pg_magic_struct *module_magic_data) pg_attribute_noreturn();
+						  const Pg_magic_struct * module_magic_data) pg_attribute_noreturn();
 static void internal_unload_library(const char *libname);
 static bool file_exists(const char *name);
 static char *expand_dynamic_library_name(const char *name);
@@ -245,7 +245,7 @@ internal_load_library(const char *libname)
 			pg_dlsym(file_scanner->handle, PG_MAGIC_FUNCTION_NAME_STRING);
 		if (magic_func)
 		{
-			const Pg_magic_struct *magic_data_ptr = (*magic_func) ();
+			const		Pg_magic_struct *magic_data_ptr = (*magic_func) ();
 
 			if (magic_data_ptr->len != magic_data.len ||
 				memcmp(magic_data_ptr, &magic_data, magic_data.len) != 0)
@@ -296,7 +296,7 @@ internal_load_library(const char *libname)
  */
 static void
 incompatible_module_error(const char *libname,
-						  const Pg_magic_struct *module_magic_data)
+						  const Pg_magic_struct * module_magic_data)
 {
 	StringInfoData details;
 
@@ -671,7 +671,7 @@ find_in_dynamic_libpath(const char *basename)
 void	  **
 find_rendezvous_variable(const char *varName)
 {
-	static HTAB *rendezvousHash = NULL;
+	static HTAB * rendezvousHash = NULL;
 
 	rendezvousHashEntry *hentry;
 	bool		found;

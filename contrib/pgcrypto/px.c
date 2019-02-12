@@ -137,7 +137,7 @@ px_memset(void *ptr, int c, size_t len)
 }
 
 const char *
-px_resolve_alias(const PX_Alias *list, const char *name)
+px_resolve_alias(const PX_Alias * list, const char *name)
 {
 	while (list->name)
 	{
@@ -177,20 +177,20 @@ px_debug(const char *fmt,...)
  */
 
 static unsigned
-combo_encrypt_len(PX_Combo *cx, unsigned dlen)
+combo_encrypt_len(PX_Combo * cx, unsigned dlen)
 {
 	return dlen + 512;
 }
 
 static unsigned
-combo_decrypt_len(PX_Combo *cx, unsigned dlen)
+combo_decrypt_len(PX_Combo * cx, unsigned dlen)
 {
 	return dlen;
 }
 
 static int
-combo_init(PX_Combo *cx, const uint8 *key, unsigned klen,
-		   const uint8 *iv, unsigned ivlen)
+combo_init(PX_Combo * cx, const uint8 * key, unsigned klen,
+		   const uint8 * iv, unsigned ivlen)
 {
 	int			err;
 	unsigned	ks,
@@ -228,8 +228,8 @@ combo_init(PX_Combo *cx, const uint8 *key, unsigned klen,
 }
 
 static int
-combo_encrypt(PX_Combo *cx, const uint8 *data, unsigned dlen,
-			  uint8 *res, unsigned *rlen)
+combo_encrypt(PX_Combo * cx, const uint8 * data, unsigned dlen,
+			  uint8 * res, unsigned *rlen)
 {
 	int			err = 0;
 	uint8	   *bbuf;
@@ -297,8 +297,8 @@ out:
 }
 
 static int
-combo_decrypt(PX_Combo *cx, const uint8 *data, unsigned dlen,
-			  uint8 *res, unsigned *rlen)
+combo_decrypt(PX_Combo * cx, const uint8 * data, unsigned dlen,
+			  uint8 * res, unsigned *rlen)
 {
 	unsigned	bs,
 				i,
@@ -354,7 +354,7 @@ block_error:
 }
 
 static void
-combo_free(PX_Combo *cx)
+combo_free(PX_Combo * cx)
 {
 	if (cx->cipher)
 		px_cipher_free(cx->cipher);
@@ -407,7 +407,7 @@ parse_cipher_name(char *full, char **cipher, char **pad)
 /* provider */
 
 int
-px_find_combo(const char *name, PX_Combo **res)
+px_find_combo(const char *name, PX_Combo * *res)
 {
 	int			err;
 	char	   *buf,

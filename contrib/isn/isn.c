@@ -336,7 +336,7 @@ checkdig(char *num, unsigned size)
  * If errorOK is true, just return "false" for bad input.
  */
 static bool
-ean2isn(ean13 ean, bool errorOK, ean13 *result, enum isn_type accept)
+ean2isn(ean13 ean, bool errorOK, ean13 * result, enum isn_type accept)
 {
 	enum isn_type type = INVALID;
 
@@ -680,7 +680,7 @@ eantoobig:
  * (even if the check digit is valid)
  */
 static bool
-string2ean(const char *str, bool errorOK, ean13 *result,
+string2ean(const char *str, bool errorOK, ean13 * result,
 		   enum isn_type accept)
 {
 	bool		digit,

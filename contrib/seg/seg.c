@@ -37,7 +37,7 @@ typedef struct
 	float		center;
 	OffsetNumber index;
 	SEG		   *data;
-} gseg_picksplit_item;
+}			gseg_picksplit_item;
 
 /*
 ** Input/Output routines
@@ -77,7 +77,7 @@ PG_FUNCTION_INFO_V1(seg_right);
 PG_FUNCTION_INFO_V1(seg_over_right);
 PG_FUNCTION_INFO_V1(seg_union);
 PG_FUNCTION_INFO_V1(seg_inter);
-static void rt_seg_size(SEG *a, float *size);
+static void rt_seg_size(SEG * a, float *size);
 
 /*
 ** Various operators
@@ -296,8 +296,8 @@ gseg_penalty(PG_FUNCTION_ARGS)
 static int
 gseg_picksplit_item_cmp(const void *a, const void *b)
 {
-	const gseg_picksplit_item *i1 = (const gseg_picksplit_item *) a;
-	const gseg_picksplit_item *i2 = (const gseg_picksplit_item *) b;
+	const		gseg_picksplit_item *i1 = (const gseg_picksplit_item *) a;
+	const		gseg_picksplit_item *i2 = (const gseg_picksplit_item *) b;
 
 	if (i1->center < i2->center)
 		return -1;
@@ -700,7 +700,7 @@ seg_inter(PG_FUNCTION_ARGS)
 }
 
 static void
-rt_seg_size(SEG *a, float *size)
+rt_seg_size(SEG * a, float *size)
 {
 	if (a == (SEG *) NULL || a->upper <= a->lower)
 		*size = 0.0;

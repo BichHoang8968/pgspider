@@ -37,12 +37,12 @@ typedef struct RangeQueryClause
 	bool		have_hibound;	/* found a high-bound clause yet? */
 	Selectivity lobound;		/* Selectivity of a var > something clause */
 	Selectivity hibound;		/* Selectivity of a var < something clause */
-} RangeQueryClause;
+}			RangeQueryClause;
 
-static void addRangeClause(RangeQueryClause **rqlist, Node *clause,
+static void addRangeClause(RangeQueryClause * *rqlist, Node * clause,
 			   bool varonleft, bool isLTsel, Selectivity s2);
-static RelOptInfo *find_single_rel_for_clauses(PlannerInfo *root,
-							List *clauses);
+static RelOptInfo * find_single_rel_for_clauses(PlannerInfo * root,
+												List * clauses);
 
 /****************************************************************************
  *		ROUTINES TO COMPUTE SELECTIVITIES
@@ -96,11 +96,11 @@ static RelOptInfo *find_single_rel_for_clauses(PlannerInfo *root,
  * scalarltsel/scalargtsel; perhaps some day we can generalize the approach.
  */
 Selectivity
-clauselist_selectivity(PlannerInfo *root,
-					   List *clauses,
+clauselist_selectivity(PlannerInfo * root,
+					   List * clauses,
 					   int varRelid,
 					   JoinType jointype,
-					   SpecialJoinInfo *sjinfo)
+					   SpecialJoinInfo * sjinfo)
 {
 	Selectivity s1 = 1.0;
 	RelOptInfo *rel;
@@ -329,7 +329,7 @@ clauselist_selectivity(PlannerInfo *root,
  * Here is where we try to match up pairs of range-query clauses
  */
 static void
-addRangeClause(RangeQueryClause **rqlist, Node *clause,
+addRangeClause(RangeQueryClause * *rqlist, Node * clause,
 			   bool varonleft, bool isLTsel, Selectivity s2)
 {
 	RangeQueryClause *rqelem;
@@ -425,7 +425,7 @@ addRangeClause(RangeQueryClause **rqlist, Node *clause,
  *		otherwise return NULL.
  */
 static RelOptInfo *
-find_single_rel_for_clauses(PlannerInfo *root, List *clauses)
+find_single_rel_for_clauses(PlannerInfo * root, List * clauses)
 {
 	int			lastrelid = 0;
 	ListCell   *l;
@@ -470,7 +470,7 @@ find_single_rel_for_clauses(PlannerInfo *root, List *clauses)
  * Is this of use anywhere else?  If so move to bitmapset.c ...
  */
 static bool
-bms_is_subset_singleton(const Bitmapset *s, int x)
+bms_is_subset_singleton(const Bitmapset * s, int x)
 {
 	switch (bms_membership(s))
 	{
@@ -491,8 +491,8 @@ bms_is_subset_singleton(const Bitmapset *s, int x)
  *	  restriction or join estimator.  Subroutine for clause_selectivity().
  */
 static inline bool
-treat_as_join_clause(Node *clause, RestrictInfo *rinfo,
-					 int varRelid, SpecialJoinInfo *sjinfo)
+treat_as_join_clause(Node * clause, RestrictInfo * rinfo,
+					 int varRelid, SpecialJoinInfo * sjinfo)
 {
 	if (varRelid != 0)
 	{
@@ -569,11 +569,11 @@ treat_as_join_clause(Node *clause, RestrictInfo *rinfo,
  * join clause; because we aren't treating it as a join clause.
  */
 Selectivity
-clause_selectivity(PlannerInfo *root,
-				   Node *clause,
+clause_selectivity(PlannerInfo * root,
+				   Node * clause,
 				   int varRelid,
 				   JoinType jointype,
-				   SpecialJoinInfo *sjinfo)
+				   SpecialJoinInfo * sjinfo)
 {
 	Selectivity s1 = 0.5;		/* default for any unhandled clause type */
 	RestrictInfo *rinfo = NULL;

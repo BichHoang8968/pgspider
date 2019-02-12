@@ -30,7 +30,7 @@ typedef struct SPITupleTable
 	HeapTuple  *vals;			/* tuples */
 	slist_node	next;			/* link for internal bookkeeping */
 	SubTransactionId subid;		/* subxact in which tuptable was created */
-} SPITupleTable;
+}			SPITupleTable;
 
 /* Plans are opaque structs for standard users of SPI */
 typedef struct _SPI_plan *SPIPlanPtr;
@@ -76,63 +76,63 @@ typedef struct _SPI_plan *SPIPlanPtr;
 
 extern PGDLLIMPORT uint64 SPI_processed;
 extern PGDLLIMPORT Oid SPI_lastoid;
-extern PGDLLIMPORT SPITupleTable *SPI_tuptable;
+extern PGDLLIMPORT SPITupleTable * SPI_tuptable;
 extern PGDLLIMPORT int SPI_result;
 
 extern int	SPI_connect(void);
 extern int	SPI_finish(void);
 extern int	SPI_execute(const char *src, bool read_only, long tcount);
-extern int SPI_execute_plan(SPIPlanPtr plan, Datum *Values, const char *Nulls,
+extern int SPI_execute_plan(SPIPlanPtr plan, Datum * Values, const char *Nulls,
 				 bool read_only, long tcount);
 extern int SPI_execute_plan_with_paramlist(SPIPlanPtr plan,
 								ParamListInfo params,
 								bool read_only, long tcount);
 extern int	SPI_exec(const char *src, long tcount);
-extern TupleTableSlot* SPI_execRetreiveDirect(AggState *aggState);
-extern TupleTableSlot* SPI_execAgg(AggState *aggState);
-extern AggState* SPI_execIntiAgg(Agg *node, EState *estate, int eflags);
+extern TupleTableSlot * SPI_execRetreiveDirect(AggState * aggState);
+extern TupleTableSlot * SPI_execAgg(AggState * aggState);
+extern AggState * SPI_execIntiAgg(Agg * node, EState * estate, int eflags);
 
-extern int SPI_execp(SPIPlanPtr plan, Datum *Values, const char *Nulls,
+extern int SPI_execp(SPIPlanPtr plan, Datum * Values, const char *Nulls,
 		  long tcount);
 extern int SPI_execute_snapshot(SPIPlanPtr plan,
-					 Datum *Values, const char *Nulls,
+					 Datum * Values, const char *Nulls,
 					 Snapshot snapshot,
 					 Snapshot crosscheck_snapshot,
 					 bool read_only, bool fire_triggers, long tcount);
 extern int SPI_execute_with_args(const char *src,
-					  int nargs, Oid *argtypes,
-					  Datum *Values, const char *Nulls,
+					  int nargs, Oid * argtypes,
+					  Datum * Values, const char *Nulls,
 					  bool read_only, long tcount);
-extern SPIPlanPtr SPI_prepare(const char *src, int nargs, Oid *argtypes);
-extern SPIPlanPtr SPI_prepare_cursor(const char *src, int nargs, Oid *argtypes,
-				   int cursorOptions);
+extern SPIPlanPtr SPI_prepare(const char *src, int nargs, Oid * argtypes);
+extern SPIPlanPtr SPI_prepare_cursor(const char *src, int nargs, Oid * argtypes,
+									 int cursorOptions);
 extern SPIPlanPtr SPI_prepare_params(const char *src,
-				   ParserSetupHook parserSetup,
-				   void *parserSetupArg,
-				   int cursorOptions);
+									 ParserSetupHook parserSetup,
+									 void *parserSetupArg,
+									 int cursorOptions);
 extern int	SPI_keepplan(SPIPlanPtr plan);
 extern SPIPlanPtr SPI_saveplan(SPIPlanPtr plan);
 extern int	SPI_freeplan(SPIPlanPtr plan);
 
-extern Oid	SPI_getargtypeid(SPIPlanPtr plan, int argIndex);
+extern Oid SPI_getargtypeid(SPIPlanPtr plan, int argIndex);
 extern int	SPI_getargcount(SPIPlanPtr plan);
 extern bool SPI_is_cursor_plan(SPIPlanPtr plan);
 extern bool SPI_plan_is_valid(SPIPlanPtr plan);
 extern const char *SPI_result_code_string(int code);
 
-extern List *SPI_plan_get_plan_sources(SPIPlanPtr plan);
-extern CachedPlan *SPI_plan_get_cached_plan(SPIPlanPtr plan);
+extern List * SPI_plan_get_plan_sources(SPIPlanPtr plan);
+extern CachedPlan * SPI_plan_get_cached_plan(SPIPlanPtr plan);
 
 extern HeapTuple SPI_copytuple(HeapTuple tuple);
 extern HeapTupleHeader SPI_returntuple(HeapTuple tuple, TupleDesc tupdesc);
 extern HeapTuple SPI_modifytuple(Relation rel, HeapTuple tuple, int natts,
-				int *attnum, Datum *Values, const char *Nulls);
+								 int *attnum, Datum * Values, const char *Nulls);
 extern int	SPI_fnumber(TupleDesc tupdesc, const char *fname);
 extern char *SPI_fname(TupleDesc tupdesc, int fnumber);
 extern char *SPI_getvalue(HeapTuple tuple, TupleDesc tupdesc, int fnumber);
 extern Datum SPI_getbinval(HeapTuple tuple, TupleDesc tupdesc, int fnumber, bool *isnull);
 extern char *SPI_gettype(TupleDesc tupdesc, int fnumber);
-extern Oid	SPI_gettypeid(TupleDesc tupdesc, int fnumber);
+extern Oid SPI_gettypeid(TupleDesc tupdesc, int fnumber);
 extern char *SPI_getrelname(Relation rel);
 extern char *SPI_getnspname(Relation rel);
 extern void *SPI_palloc(Size size);
@@ -140,17 +140,17 @@ extern void *SPI_repalloc(void *pointer, Size size);
 extern void SPI_pfree(void *pointer);
 extern Datum SPI_datumTransfer(Datum value, bool typByVal, int typLen);
 extern void SPI_freetuple(HeapTuple pointer);
-extern void SPI_freetuptable(SPITupleTable *tuptable);
+extern void SPI_freetuptable(SPITupleTable * tuptable);
 
 extern Portal SPI_cursor_open(const char *name, SPIPlanPtr plan,
-				Datum *Values, const char *Nulls, bool read_only);
+							  Datum * Values, const char *Nulls, bool read_only);
 extern Portal SPI_cursor_open_with_args(const char *name,
-						  const char *src,
-						  int nargs, Oid *argtypes,
-						  Datum *Values, const char *Nulls,
-						  bool read_only, int cursorOptions);
+										const char *src,
+										int nargs, Oid * argtypes,
+										Datum * Values, const char *Nulls,
+										bool read_only, int cursorOptions);
 extern Portal SPI_cursor_open_with_paramlist(const char *name, SPIPlanPtr plan,
-							   ParamListInfo params, bool read_only);
+											 ParamListInfo params, bool read_only);
 extern Portal SPI_cursor_find(const char *name);
 extern void SPI_cursor_fetch(Portal portal, bool forward, long count);
 extern void SPI_cursor_move(Portal portal, bool forward, long count);
@@ -160,7 +160,7 @@ extern void SPI_cursor_close(Portal portal);
 
 extern int	SPI_register_relation(EphemeralNamedRelation enr);
 extern int	SPI_unregister_relation(const char *name);
-extern int	SPI_register_trigger_data(TriggerData *tdata);
+extern int	SPI_register_trigger_data(TriggerData * tdata);
 
 extern void AtEOXact_SPI(bool isCommit);
 extern void AtEOSubXact_SPI(bool isCommit, SubTransactionId mySubid);

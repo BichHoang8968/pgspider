@@ -42,7 +42,7 @@ CATALOG(pg_auth_members,1261) BKI_SHARED_RELATION BKI_WITHOUT_OIDS BKI_ROWTYPE_O
  *		the format of pg_auth_members relation.
  * ----------------
  */
-typedef FormData_pg_auth_members *Form_pg_auth_members;
+typedef FormData_pg_auth_members * Form_pg_auth_members;
 
 /* ----------------
  *		compiler constants for pg_auth_members

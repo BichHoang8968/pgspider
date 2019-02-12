@@ -132,8 +132,8 @@ get_op_opfamily_sortfamily(Oid opno, Oid opfamily)
 void
 get_op_opfamily_properties(Oid opno, Oid opfamily, bool ordering_op,
 						   int *strategy,
-						   Oid *lefttype,
-						   Oid *righttype)
+						   Oid * lefttype,
+						   Oid * righttype)
 {
 	HeapTuple	tp;
 	Form_pg_amop amop_tup;
@@ -202,7 +202,7 @@ get_opfamily_member(Oid opfamily, Oid lefttype, Oid righttype,
  */
 bool
 get_ordering_op_properties(Oid opno,
-						   Oid *opfamily, Oid *opcintype, int16 *strategy)
+						   Oid * opfamily, Oid * opcintype, int16 * strategy)
 {
 	bool		result = false;
 	CatCList   *catlist;
@@ -405,7 +405,7 @@ get_mergejoin_opfamilies(Oid opno)
  */
 bool
 get_compatible_hash_operators(Oid opno,
-							  Oid *lhs_opno, Oid *rhs_opno)
+							  Oid * lhs_opno, Oid * rhs_opno)
 {
 	bool		result = false;
 	CatCList   *catlist;
@@ -505,7 +505,7 @@ get_compatible_hash_operators(Oid opno,
  */
 bool
 get_op_hash_functions(Oid opno,
-					  RegProcedure *lhs_procno, RegProcedure *rhs_procno)
+					  RegProcedure * lhs_procno, RegProcedure * rhs_procno)
 {
 	bool		result = false;
 	CatCList   *catlist;
@@ -933,7 +933,7 @@ get_atttypmod(Oid relid, AttrNumber attnum)
  */
 void
 get_atttypetypmodcoll(Oid relid, AttrNumber attnum,
-					  Oid *typid, int32 *typmod, Oid *collid)
+					  Oid * typid, int32 * typmod, Oid * collid)
 {
 	HeapTuple	tp;
 	Form_pg_attribute att_tup;
@@ -1164,7 +1164,7 @@ get_op_rettype(Oid opno)
  *		(InvalidOid if not relevant).
  */
 void
-op_input_types(Oid opno, Oid *lefttype, Oid *righttype)
+op_input_types(Oid opno, Oid * lefttype, Oid * righttype)
 {
 	HeapTuple	tp;
 	Form_pg_operator optup;
@@ -1497,7 +1497,7 @@ get_func_nargs(Oid funcid)
  * The arguments are returned as a palloc'd array.
  */
 Oid
-get_func_signature(Oid funcid, Oid **argtypes, int *nargs)
+get_func_signature(Oid funcid, Oid * *argtypes, int *nargs)
 {
 	HeapTuple	tp;
 	Form_pg_proc procstruct;
@@ -1869,7 +1869,7 @@ get_rel_persistence(Oid relid)
 /*				---------- TRANSFORM CACHE ----------						 */
 
 Oid
-get_transform_fromsql(Oid typid, Oid langid, List *trftypes)
+get_transform_fromsql(Oid typid, Oid langid, List * trftypes)
 {
 	HeapTuple	tup;
 
@@ -1890,7 +1890,7 @@ get_transform_fromsql(Oid typid, Oid langid, List *trftypes)
 }
 
 Oid
-get_transform_tosql(Oid typid, Oid langid, List *trftypes)
+get_transform_tosql(Oid typid, Oid langid, List * trftypes)
 {
 	HeapTuple	tup;
 
@@ -1998,7 +1998,7 @@ get_typbyval(Oid typid)
  *		returning a bogus value when given a bad type OID.
  */
 void
-get_typlenbyval(Oid typid, int16 *typlen, bool *typbyval)
+get_typlenbyval(Oid typid, int16 * typlen, bool *typbyval)
 {
 	HeapTuple	tp;
 	Form_pg_type typtup;
@@ -2018,7 +2018,7 @@ get_typlenbyval(Oid typid, int16 *typlen, bool *typbyval)
  *		A three-fer: given the type OID, return typlen, typbyval, typalign.
  */
 void
-get_typlenbyvalalign(Oid typid, int16 *typlen, bool *typbyval,
+get_typlenbyvalalign(Oid typid, int16 * typlen, bool *typbyval,
 					 char *typalign)
 {
 	HeapTuple	tp;
@@ -2074,12 +2074,12 @@ getTypeIOParam(HeapTuple typeTuple)
 void
 get_type_io_data(Oid typid,
 				 IOFuncSelector which_func,
-				 int16 *typlen,
+				 int16 * typlen,
 				 bool *typbyval,
 				 char *typalign,
 				 char *typdelim,
-				 Oid *typioparam,
-				 Oid *func)
+				 Oid * typioparam,
+				 Oid * func)
 {
 	HeapTuple	typeTuple;
 	Form_pg_type typeStruct;
@@ -2285,7 +2285,7 @@ getBaseType(Oid typid)
  * a domain, *typmod should be -1.
  */
 Oid
-getBaseTypeAndTypmod(Oid typid, int32 *typmod)
+getBaseTypeAndTypmod(Oid typid, int32 * typmod)
 {
 	/*
 	 * We loop to find the bottom base type in a stack of domains.
@@ -2596,7 +2596,7 @@ get_base_element_type(Oid typid)
  *		Get info needed for converting values of a type to internal form
  */
 void
-getTypeInputInfo(Oid type, Oid *typInput, Oid *typIOParam)
+getTypeInputInfo(Oid type, Oid * typInput, Oid * typIOParam)
 {
 	HeapTuple	typeTuple;
 	Form_pg_type pt;
@@ -2629,7 +2629,7 @@ getTypeInputInfo(Oid type, Oid *typInput, Oid *typIOParam)
  *		Get info needed for printing values of a type
  */
 void
-getTypeOutputInfo(Oid type, Oid *typOutput, bool *typIsVarlena)
+getTypeOutputInfo(Oid type, Oid * typOutput, bool *typIsVarlena)
 {
 	HeapTuple	typeTuple;
 	Form_pg_type pt;
@@ -2662,7 +2662,7 @@ getTypeOutputInfo(Oid type, Oid *typOutput, bool *typIsVarlena)
  *		Get info needed for binary input of values of a type
  */
 void
-getTypeBinaryInputInfo(Oid type, Oid *typReceive, Oid *typIOParam)
+getTypeBinaryInputInfo(Oid type, Oid * typReceive, Oid * typIOParam)
 {
 	HeapTuple	typeTuple;
 	Form_pg_type pt;
@@ -2695,7 +2695,7 @@ getTypeBinaryInputInfo(Oid type, Oid *typReceive, Oid *typIOParam)
  *		Get info needed for binary output of values of a type
  */
 void
-getTypeBinaryOutputInfo(Oid type, Oid *typSend, bool *typIsVarlena)
+getTypeBinaryOutputInfo(Oid type, Oid * typSend, bool *typIsVarlena)
 {
 	HeapTuple	typeTuple;
 	Form_pg_type pt;
@@ -2892,7 +2892,7 @@ get_attavgwidth(Oid relid, AttrNumber attnum)
  * not have been called, memset'ing sslot to zeroes will allow that.
  */
 bool
-get_attstatsslot(AttStatsSlot *sslot, HeapTuple statstuple,
+get_attstatsslot(AttStatsSlot * sslot, HeapTuple statstuple,
 				 int reqkind, Oid reqop, int flags)
 {
 	Form_pg_statistic stats = (Form_pg_statistic) GETSTRUCT(statstuple);
@@ -3008,7 +3008,7 @@ get_attstatsslot(AttStatsSlot *sslot, HeapTuple statstuple,
  *		Free data allocated by get_attstatsslot
  */
 void
-free_attstatsslot(AttStatsSlot *sslot)
+free_attstatsslot(AttStatsSlot * sslot)
 {
 	/* The values[] array was separately palloc'd by deconstruct_array */
 	if (sslot->values)

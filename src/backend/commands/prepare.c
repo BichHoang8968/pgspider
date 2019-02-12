@@ -43,18 +43,18 @@
  * The keys for this hash table are the arguments to PREPARE and EXECUTE
  * (statement names); the entries are PreparedStatement structs.
  */
-static HTAB *prepared_queries = NULL;
+static HTAB * prepared_queries = NULL;
 
 static void InitQueryHashTable(void);
-static ParamListInfo EvaluateParams(PreparedStatement *pstmt, List *params,
-			   const char *queryString, EState *estate);
-static Datum build_regtype_array(Oid *param_types, int num_params);
+static ParamListInfo EvaluateParams(PreparedStatement * pstmt, List * params,
+									const char *queryString, EState * estate);
+static Datum build_regtype_array(Oid * param_types, int num_params);
 
 /*
  * Implements the 'PREPARE' utility statement.
  */
 void
-PrepareQuery(PrepareStmt *stmt, const char *queryString,
+PrepareQuery(PrepareStmt * stmt, const char *queryString,
 			 int stmt_location, int stmt_len)
 {
 	RawStmt    *rawstmt;
@@ -197,9 +197,9 @@ PrepareQuery(PrepareStmt *stmt, const char *queryString,
  * source is that of the original PREPARE.
  */
 void
-ExecuteQuery(ExecuteStmt *stmt, IntoClause *intoClause,
+ExecuteQuery(ExecuteStmt * stmt, IntoClause * intoClause,
 			 const char *queryString, ParamListInfo params,
-			 DestReceiver *dest, char *completionTag)
+			 DestReceiver * dest, char *completionTag)
 {
 	PreparedStatement *entry;
 	CachedPlan *cplan;
@@ -324,8 +324,8 @@ ExecuteQuery(ExecuteStmt *stmt, IntoClause *intoClause,
  * during query execution.
  */
 static ParamListInfo
-EvaluateParams(PreparedStatement *pstmt, List *params,
-			   const char *queryString, EState *estate)
+EvaluateParams(PreparedStatement * pstmt, List * params,
+			   const char *queryString, EState * estate)
 {
 	Oid		   *param_types = pstmt->plansource->param_types;
 	int			num_params = pstmt->plansource->num_params;
@@ -450,7 +450,7 @@ InitQueryHashTable(void)
  */
 void
 StorePreparedStatement(const char *stmt_name,
-					   CachedPlanSource *plansource,
+					   CachedPlanSource * plansource,
 					   bool from_sql)
 {
 	PreparedStatement *entry;
@@ -523,7 +523,7 @@ FetchPreparedStatement(const char *stmt_name, bool throwError)
  * Note: the result is created or copied into current memory context.
  */
 TupleDesc
-FetchPreparedStatementResultDesc(PreparedStatement *stmt)
+FetchPreparedStatementResultDesc(PreparedStatement * stmt)
 {
 	/*
 	 * Since we don't allow prepared statements' result tupdescs to change,
@@ -546,7 +546,7 @@ FetchPreparedStatementResultDesc(PreparedStatement *stmt)
  * efficiency.
  */
 List *
-FetchPreparedStatementTargetList(PreparedStatement *stmt)
+FetchPreparedStatementTargetList(PreparedStatement * stmt)
 {
 	List	   *tlist;
 
@@ -562,7 +562,7 @@ FetchPreparedStatementTargetList(PreparedStatement *stmt)
  * specified plan from storage.
  */
 void
-DeallocateQuery(DeallocateStmt *stmt)
+DeallocateQuery(DeallocateStmt * stmt)
 {
 	if (stmt->name)
 		DropPreparedStatement(stmt->name, true);
@@ -628,9 +628,9 @@ DropAllPreparedStatements(void)
  * not the original PREPARE; we get the latter string from the plancache.
  */
 void
-ExplainExecuteQuery(ExecuteStmt *execstmt, IntoClause *into, ExplainState *es,
+ExplainExecuteQuery(ExecuteStmt * execstmt, IntoClause * into, ExplainState * es,
 					const char *queryString, ParamListInfo params,
-					QueryEnvironment *queryEnv)
+					QueryEnvironment * queryEnv)
 {
 	PreparedStatement *entry;
 	const char *query_string;
@@ -797,7 +797,7 @@ pg_prepared_statement(PG_FUNCTION_ARGS)
  * array is returned as a zero-element array, not NULL.
  */
 static Datum
-build_regtype_array(Oid *param_types, int num_params)
+build_regtype_array(Oid * param_types, int num_params)
 {
 	Datum	   *tmp_ary;
 	ArrayType  *result;

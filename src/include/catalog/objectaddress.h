@@ -26,7 +26,7 @@ typedef struct ObjectAddress
 	Oid			classId;		/* Class Id from pg_class */
 	Oid			objectId;		/* OID of the object */
 	int32		objectSubId;	/* Subitem within object (eg column), or 0 */
-} ObjectAddress;
+}			ObjectAddress;
 
 extern const ObjectAddress InvalidObjectAddress;
 
@@ -40,22 +40,22 @@ extern const ObjectAddress InvalidObjectAddress;
 #define ObjectAddressSet(addr, class_id, object_id) \
 	ObjectAddressSubSet(addr, class_id, object_id, 0)
 
-extern ObjectAddress get_object_address(ObjectType objtype, Node *object,
-				   Relation *relp,
-				   LOCKMODE lockmode, bool missing_ok);
+extern ObjectAddress get_object_address(ObjectType objtype, Node * object,
+										Relation * relp,
+										LOCKMODE lockmode, bool missing_ok);
 
-extern ObjectAddress get_object_address_rv(ObjectType objtype, RangeVar *rel,
-					  List *object, Relation *relp,
-					  LOCKMODE lockmode, bool missing_ok);
+extern ObjectAddress get_object_address_rv(ObjectType objtype, RangeVar * rel,
+										   List * object, Relation * relp,
+										   LOCKMODE lockmode, bool missing_ok);
 
 extern void check_object_ownership(Oid roleid,
 					   ObjectType objtype, ObjectAddress address,
-					   Node *object, Relation relation);
+					   Node * object, Relation relation);
 
-extern Oid	get_object_namespace(const ObjectAddress *address);
+extern Oid get_object_namespace(const ObjectAddress * address);
 
 extern bool is_objectclass_supported(Oid class_id);
-extern Oid	get_object_oid_index(Oid class_id);
+extern Oid get_object_oid_index(Oid class_id);
 extern int	get_object_catcache_oid(Oid class_id);
 extern int	get_object_catcache_name(Oid class_id);
 extern AttrNumber get_object_attnum_name(Oid class_id);
@@ -66,16 +66,16 @@ extern AclObjectKind get_object_aclkind(Oid class_id);
 extern bool get_object_namensp_unique(Oid class_id);
 
 extern HeapTuple get_catalog_object_by_oid(Relation catalog,
-						  Oid objectId);
+										   Oid objectId);
 
-extern char *getObjectDescription(const ObjectAddress *object);
+extern char *getObjectDescription(const ObjectAddress * object);
 extern char *getObjectDescriptionOids(Oid classid, Oid objid);
 
 extern int	read_objtype_from_string(const char *objtype);
-extern char *getObjectTypeDescription(const ObjectAddress *object);
-extern char *getObjectIdentity(const ObjectAddress *address);
-extern char *getObjectIdentityParts(const ObjectAddress *address,
-					   List **objname, List **objargs);
-extern ArrayType *strlist_to_textarray(List *list);
+extern char *getObjectTypeDescription(const ObjectAddress * object);
+extern char *getObjectIdentity(const ObjectAddress * address);
+extern char *getObjectIdentityParts(const ObjectAddress * address,
+					   List * *objname, List * *objargs);
+extern ArrayType * strlist_to_textarray(List * list);
 
 #endif							/* OBJECTADDRESS_H */

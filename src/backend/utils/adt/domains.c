@@ -58,7 +58,7 @@ typedef struct DomainIOData
 	ExprContext *econtext;
 	/* Memory context this cache is in */
 	MemoryContext mcxt;
-} DomainIOData;
+}			DomainIOData;
 
 
 /*
@@ -127,7 +127,7 @@ domain_state_setup(Oid domainType, bool binary, MemoryContext mcxt)
  * compiling them in-line within a larger expression.
  */
 static void
-domain_check_input(Datum value, bool isnull, DomainIOData *my_extra)
+domain_check_input(Datum value, bool isnull, DomainIOData * my_extra)
 {
 	ExprContext *econtext = my_extra->econtext;
 	ListCell   *l;
@@ -337,7 +337,7 @@ domain_check(Datum value, bool isnull, Oid domainType,
 	 * shouldn't happen, but cope if it does).
 	 */
 	if (extra)
-		my_extra = (DomainIOData *) *extra;
+		my_extra = (DomainIOData *) * extra;
 	if (my_extra == NULL || my_extra->domain_type != domainType)
 	{
 		my_extra = domain_state_setup(domainType, true, mcxt);

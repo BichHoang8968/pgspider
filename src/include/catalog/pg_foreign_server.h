@@ -45,7 +45,7 @@ CATALOG(pg_foreign_server,1417)
  *		the format of pg_foreign_server relation.
  * ----------------
  */
-typedef FormData_pg_foreign_server *Form_pg_foreign_server;
+typedef FormData_pg_foreign_server * Form_pg_foreign_server;
 
 /* ----------------
  *		compiler constants for pg_foreign_server

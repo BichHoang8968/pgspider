@@ -37,7 +37,7 @@ typedef struct
 	int			lineno;
 	char	   *curline;
 	ErrorContextCallback cb;
-} tsearch_readline_state;
+}			tsearch_readline_state;
 
 #define TOUCHAR(x)	(*((const unsigned char *) (x)))
 
@@ -66,11 +66,11 @@ extern int	t_isprint(const char *ptr);
 extern char *lowerstr(const char *str);
 extern char *lowerstr_with_len(const char *str, int len);
 
-extern bool tsearch_readline_begin(tsearch_readline_state *stp,
+extern bool tsearch_readline_begin(tsearch_readline_state * stp,
 					   const char *filename);
-extern char *tsearch_readline(tsearch_readline_state *stp);
-extern void tsearch_readline_end(tsearch_readline_state *stp);
+extern char *tsearch_readline(tsearch_readline_state * stp);
+extern void tsearch_readline_end(tsearch_readline_state * stp);
 
-extern char *t_readline(FILE *fp);
+extern char *t_readline(FILE * fp);
 
 #endif							/* __TSLOCALE_H__ */

@@ -24,55 +24,63 @@
 #include "plpy_spi.h"
 
 
-static PyObject *PLy_cursor_query(const char *query);
-static void PLy_cursor_dealloc(PyObject *arg);
-static PyObject *PLy_cursor_iternext(PyObject *self);
-static PyObject *PLy_cursor_fetch(PyObject *self, PyObject *args);
-static PyObject *PLy_cursor_close(PyObject *self, PyObject *unused);
+static PyObject * PLy_cursor_query(const char *query);
+static void PLy_cursor_dealloc(PyObject * arg);
+static PyObject * PLy_cursor_iternext(PyObject * self);
+static PyObject * PLy_cursor_fetch(PyObject * self, PyObject * args);
+static PyObject * PLy_cursor_close(PyObject * self, PyObject * unused);
 
 static char PLy_cursor_doc[] = {
 	"Wrapper around a PostgreSQL cursor"
 };
 
-static PyMethodDef PLy_cursor_methods[] = {
-	{"fetch", PLy_cursor_fetch, METH_VARARGS, NULL},
-	{"close", PLy_cursor_close, METH_NOARGS, NULL},
-	{NULL, NULL, 0, NULL}
+static PyMethodDef PLy_cursor_methods[] =
+{
+	{
+		"fetch", PLy_cursor_fetch, METH_VARARGS, NULL
+	},
+	{
+		"close", PLy_cursor_close, METH_NOARGS, NULL
+	},
+	{
+		NULL, NULL, 0, NULL
+	}
 };
 
-static PyTypeObject PLy_CursorType = {
+static PyTypeObject PLy_CursorType =
+{
 	PyVarObject_HEAD_INIT(NULL, 0)
-	"PLyCursor",				/* tp_name */
-	sizeof(PLyCursorObject),	/* tp_size */
-	0,							/* tp_itemsize */
+		"PLyCursor",			/* tp_name */
+		sizeof(PLyCursorObject),	/* tp_size */
+		0,						/* tp_itemsize */
 
 	/*
 	 * methods
 	 */
-	PLy_cursor_dealloc,			/* tp_dealloc */
-	0,							/* tp_print */
-	0,							/* tp_getattr */
-	0,							/* tp_setattr */
-	0,							/* tp_compare */
-	0,							/* tp_repr */
-	0,							/* tp_as_number */
-	0,							/* tp_as_sequence */
-	0,							/* tp_as_mapping */
-	0,							/* tp_hash */
-	0,							/* tp_call */
-	0,							/* tp_str */
-	0,							/* tp_getattro */
-	0,							/* tp_setattro */
-	0,							/* tp_as_buffer */
-	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_ITER,	/* tp_flags */
-	PLy_cursor_doc,				/* tp_doc */
-	0,							/* tp_traverse */
-	0,							/* tp_clear */
-	0,							/* tp_richcompare */
-	0,							/* tp_weaklistoffset */
-	PyObject_SelfIter,			/* tp_iter */
-	PLy_cursor_iternext,		/* tp_iternext */
-	PLy_cursor_methods,			/* tp_tpmethods */
+		PLy_cursor_dealloc,		/* tp_dealloc */
+		0,						/* tp_print */
+		0,						/* tp_getattr */
+		0,						/* tp_setattr */
+		0,						/* tp_compare */
+		0,						/* tp_repr */
+		0,						/* tp_as_number */
+		0,						/* tp_as_sequence */
+		0,						/* tp_as_mapping */
+		0,						/* tp_hash */
+		0,						/* tp_call */
+		0,						/* tp_str */
+		0,						/* tp_getattro */
+		0,						/* tp_setattro */
+		0,						/* tp_as_buffer */
+		Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_ITER,	/* tp_flags */
+		PLy_cursor_doc,			/* tp_doc */
+		0,						/* tp_traverse */
+		0,						/* tp_clear */
+		0,						/* tp_richcompare */
+		0,						/* tp_weaklistoffset */
+		PyObject_SelfIter,		/* tp_iter */
+		PLy_cursor_iternext,	/* tp_iternext */
+		PLy_cursor_methods,		/* tp_tpmethods */
 };
 
 void
@@ -83,7 +91,7 @@ PLy_cursor_init_type(void)
 }
 
 PyObject *
-PLy_cursor(PyObject *self, PyObject *args)
+PLy_cursor(PyObject * self, PyObject * args)
 {
 	char	   *query;
 	PyObject   *plan;
@@ -106,8 +114,8 @@ static PyObject *
 PLy_cursor_query(const char *query)
 {
 	PLyCursorObject *cursor;
-	volatile MemoryContext oldcontext;
-	volatile ResourceOwner oldowner;
+	volatile	MemoryContext oldcontext;
+	volatile	ResourceOwner oldowner;
 
 	if ((cursor = PyObject_New(PLyCursorObject, &PLy_CursorType)) == NULL)
 		return NULL;
@@ -160,14 +168,14 @@ PLy_cursor_query(const char *query)
 }
 
 PyObject *
-PLy_cursor_plan(PyObject *ob, PyObject *args)
+PLy_cursor_plan(PyObject * ob, PyObject * args)
 {
 	PLyCursorObject *cursor;
 	volatile int nargs;
 	int			i;
 	PLyPlanObject *plan;
-	volatile MemoryContext oldcontext;
-	volatile ResourceOwner oldowner;
+	volatile	MemoryContext oldcontext;
+	volatile	ResourceOwner oldowner;
 
 	if (args)
 	{
@@ -311,7 +319,7 @@ PLy_cursor_plan(PyObject *ob, PyObject *args)
 }
 
 static void
-PLy_cursor_dealloc(PyObject *arg)
+PLy_cursor_dealloc(PyObject * arg)
 {
 	PLyCursorObject *cursor;
 	Portal		portal;
@@ -335,12 +343,12 @@ PLy_cursor_dealloc(PyObject *arg)
 }
 
 static PyObject *
-PLy_cursor_iternext(PyObject *self)
+PLy_cursor_iternext(PyObject * self)
 {
 	PLyCursorObject *cursor;
 	PyObject   *ret;
-	volatile MemoryContext oldcontext;
-	volatile ResourceOwner oldowner;
+	volatile	MemoryContext oldcontext;
+	volatile	ResourceOwner oldowner;
 	Portal		portal;
 
 	cursor = (PLyCursorObject *) self;
@@ -396,13 +404,13 @@ PLy_cursor_iternext(PyObject *self)
 }
 
 static PyObject *
-PLy_cursor_fetch(PyObject *self, PyObject *args)
+PLy_cursor_fetch(PyObject * self, PyObject * args)
 {
 	PLyCursorObject *cursor;
 	int			count;
 	PLyResultObject *ret;
-	volatile MemoryContext oldcontext;
-	volatile ResourceOwner oldowner;
+	volatile	MemoryContext oldcontext;
+	volatile	ResourceOwner oldowner;
 	Portal		portal;
 
 	if (!PyArg_ParseTuple(args, "i:fetch", &count))
@@ -490,7 +498,7 @@ PLy_cursor_fetch(PyObject *self, PyObject *args)
 }
 
 static PyObject *
-PLy_cursor_close(PyObject *self, PyObject *unused)
+PLy_cursor_close(PyObject * self, PyObject * unused)
 {
 	PLyCursorObject *cursor = (PLyCursorObject *) self;
 

@@ -53,8 +53,8 @@
 #include "utils/rel.h"
 
 
-static List *expand_targetlist(List *tlist, int command_type,
-				  Index result_relation, Relation rel);
+static List * expand_targetlist(List * tlist, int command_type,
+								Index result_relation, Relation rel);
 
 
 /*
@@ -67,7 +67,7 @@ static List *expand_targetlist(List *tlist, int command_type,
  * is also preprocessed (and updated in-place).
  */
 List *
-preprocess_targetlist(PlannerInfo *root)
+preprocess_targetlist(PlannerInfo * root)
 {
 	Query	   *parse = root->parse;
 	int			result_relation = parse->resultRelation;
@@ -252,7 +252,7 @@ preprocess_targetlist(PlannerInfo *root)
  *	  non-junk attributes appear in proper field order.
  */
 static List *
-expand_targetlist(List *tlist, int command_type,
+expand_targetlist(List * tlist, int command_type,
 				  Index result_relation, Relation rel)
 {
 	List	   *new_tlist = NIL;
@@ -421,7 +421,7 @@ expand_targetlist(List *tlist, int command_type,
  * This probably ought to be elsewhere, but there's no very good place
  */
 PlanRowMark *
-get_plan_rowmark(List *rowmarks, Index rtindex)
+get_plan_rowmark(List * rowmarks, Index rtindex)
 {
 	ListCell   *l;
 

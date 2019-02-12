@@ -422,8 +422,8 @@ typedef struct itemIdSortData
 	uint16		offsetindex;	/* linp array index */
 	int16		itemoff;		/* page offset of item data */
 	uint16		alignedlen;		/* MAXALIGN(item data len) */
-} itemIdSortData;
-typedef itemIdSortData *itemIdSort;
+}			itemIdSortData;
+typedef itemIdSortData * itemIdSort;
 
 static int
 itemoffcompare(const void *itemidp1, const void *itemidp2)
@@ -833,7 +833,7 @@ PageIndexTupleDelete(Page page, OffsetNumber offnum)
  * of item numbers to be deleted in item number order!
  */
 void
-PageIndexMultiDelete(Page page, OffsetNumber *itemnos, int nitems)
+PageIndexMultiDelete(Page page, OffsetNumber * itemnos, int nitems)
 {
 	PageHeader	phdr = (PageHeader) page;
 	Offset		pd_lower = phdr->pd_lower;

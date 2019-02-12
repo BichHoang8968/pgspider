@@ -34,7 +34,7 @@ typedef struct
 {
 	Node	   *expr;			/* some subexpression of a PathTarget */
 	Index		sortgroupref;	/* its sortgroupref, or 0 if none */
-} split_pathtarget_item;
+}			split_pathtarget_item;
 
 typedef struct
 {
@@ -50,13 +50,13 @@ typedef struct
 	/* Auxiliary data for current split_pathtarget_walker traversal: */
 	int			current_depth;	/* max SRF depth in current subexpr */
 	Index		current_sgref;	/* current subexpr's sortgroupref, or 0 */
-} split_pathtarget_context;
+}			split_pathtarget_context;
 
-static bool split_pathtarget_walker(Node *node,
-						split_pathtarget_context *context);
-static void add_sp_item_to_pathtarget(PathTarget *target,
-						  split_pathtarget_item *item);
-static void add_sp_items_to_pathtarget(PathTarget *target, List *items);
+static bool split_pathtarget_walker(Node * node,
+						split_pathtarget_context * context);
+static void add_sp_item_to_pathtarget(PathTarget * target,
+						  split_pathtarget_item * item);
+static void add_sp_items_to_pathtarget(PathTarget * target, List * items);
 
 
 /*****************************************************************************
@@ -69,7 +69,7 @@ static void add_sp_items_to_pathtarget(PathTarget *target, List *items);
  *	  equal() to the given expression.  Result is NULL if no such member.
  */
 TargetEntry *
-tlist_member(Expr *node, List *targetlist)
+tlist_member(Expr * node, List * targetlist)
 {
 	ListCell   *temp;
 
@@ -90,7 +90,7 @@ tlist_member(Expr *node, List *targetlist)
  *	  involving binary-compatible sort operations.
  */
 TargetEntry *
-tlist_member_ignore_relabel(Expr *node, List *targetlist)
+tlist_member_ignore_relabel(Expr * node, List * targetlist)
 {
 	ListCell   *temp;
 
@@ -120,7 +120,7 @@ tlist_member_ignore_relabel(Expr *node, List *targetlist)
  * match.  For safety, though, we insist on vartype match.
  */
 static TargetEntry *
-tlist_member_match_var(Var *var, List *targetlist)
+tlist_member_match_var(Var * var, List * targetlist)
 {
 	ListCell   *temp;
 
@@ -150,7 +150,7 @@ tlist_member_match_var(Var *var, List *targetlist)
  * Returns the extended tlist.
  */
 List *
-add_to_flat_tlist(List *tlist, List *exprs)
+add_to_flat_tlist(List * tlist, List * exprs)
 {
 	int			next_resno = list_length(tlist) + 1;
 	ListCell   *lc;
@@ -181,7 +181,7 @@ add_to_flat_tlist(List *tlist, List *exprs)
  * Resjunk columns are ignored unless includeJunk is true
  */
 List *
-get_tlist_exprs(List *tlist, bool includeJunk)
+get_tlist_exprs(List * tlist, bool includeJunk)
 {
 	List	   *result = NIL;
 	ListCell   *l;
@@ -204,7 +204,7 @@ get_tlist_exprs(List *tlist, bool includeJunk)
  *		What it says ...
  */
 int
-count_nonjunk_tlist_entries(List *tlist)
+count_nonjunk_tlist_entries(List * tlist)
 {
 	int			len = 0;
 	ListCell   *l;
@@ -236,7 +236,7 @@ count_nonjunk_tlist_entries(List *tlist)
  * tlist into the plan node, else it won't have the desired labeling fields.
  */
 bool
-tlist_same_exprs(List *tlist1, List *tlist2)
+tlist_same_exprs(List * tlist1, List * tlist2)
 {
 	ListCell   *lc1,
 			   *lc2;
@@ -266,7 +266,7 @@ tlist_same_exprs(List *tlist1, List *tlist2)
  * Note: currently no callers care about comparing typmods.
  */
 bool
-tlist_same_datatypes(List *tlist, List *colTypes, bool junkOK)
+tlist_same_datatypes(List * tlist, List * colTypes, bool junkOK)
 {
 	ListCell   *l;
 	ListCell   *curColType = list_head(colTypes);
@@ -300,7 +300,7 @@ tlist_same_datatypes(List *tlist, List *colTypes, bool junkOK)
  * Identical logic to the above, but for collations.
  */
 bool
-tlist_same_collations(List *tlist, List *colCollations, bool junkOK)
+tlist_same_collations(List * tlist, List * colCollations, bool junkOK)
 {
 	ListCell   *l;
 	ListCell   *curColColl = list_head(colCollations);
@@ -336,7 +336,7 @@ tlist_same_collations(List *tlist, List *colCollations, bool junkOK)
  * targetlist.
  */
 void
-apply_tlist_labeling(List *dest_tlist, List *src_tlist)
+apply_tlist_labeling(List * dest_tlist, List * src_tlist)
 {
 	ListCell   *ld,
 			   *ls;
@@ -363,7 +363,7 @@ apply_tlist_labeling(List *dest_tlist, List *src_tlist)
  *		and return it.
  */
 TargetEntry *
-get_sortgroupref_tle(Index sortref, List *targetList)
+get_sortgroupref_tle(Index sortref, List * targetList)
 {
 	ListCell   *l;
 
@@ -385,8 +385,8 @@ get_sortgroupref_tle(Index sortref, List *targetList)
  *		by ressortgroupref, and return it.
  */
 TargetEntry *
-get_sortgroupclause_tle(SortGroupClause *sgClause,
-						List *targetList)
+get_sortgroupclause_tle(SortGroupClause * sgClause,
+						List * targetList)
 {
 	return get_sortgroupref_tle(sgClause->tleSortGroupRef, targetList);
 }
@@ -397,7 +397,7 @@ get_sortgroupclause_tle(SortGroupClause *sgClause,
  *		by ressortgroupref, and return its expression.
  */
 Node *
-get_sortgroupclause_expr(SortGroupClause *sgClause, List *targetList)
+get_sortgroupclause_expr(SortGroupClause * sgClause, List * targetList)
 {
 	TargetEntry *tle = get_sortgroupclause_tle(sgClause, targetList);
 
@@ -410,7 +410,7 @@ get_sortgroupclause_expr(SortGroupClause *sgClause, List *targetList)
  *		of the referenced targetlist expressions.
  */
 List *
-get_sortgrouplist_exprs(List *sgClauses, List *targetList)
+get_sortgrouplist_exprs(List * sgClauses, List * targetList)
 {
 	List	   *result = NIL;
 	ListCell   *l;
@@ -440,7 +440,7 @@ get_sortgrouplist_exprs(List *sgClauses, List *targetList)
  *		and return it.
  */
 SortGroupClause *
-get_sortgroupref_clause(Index sortref, List *clauses)
+get_sortgroupref_clause(Index sortref, List * clauses)
 {
 	ListCell   *l;
 
@@ -461,7 +461,7 @@ get_sortgroupref_clause(Index sortref, List *clauses)
  *		As above, but return NULL rather than throwing an error if not found.
  */
 SortGroupClause *
-get_sortgroupref_clause_noerr(Index sortref, List *clauses)
+get_sortgroupref_clause_noerr(Index sortref, List * clauses)
 {
 	ListCell   *l;
 
@@ -481,7 +481,7 @@ get_sortgroupref_clause_noerr(Index sortref, List *clauses)
  *		for a SortGroupClause list
  */
 Oid *
-extract_grouping_ops(List *groupClause)
+extract_grouping_ops(List * groupClause)
 {
 	int			numCols = list_length(groupClause);
 	int			colno = 0;
@@ -507,7 +507,7 @@ extract_grouping_ops(List *groupClause)
  *		for a SortGroupClause list
  */
 AttrNumber *
-extract_grouping_cols(List *groupClause, List *tlist)
+extract_grouping_cols(List * groupClause, List * tlist)
 {
 	AttrNumber *grpColIdx;
 	int			numCols = list_length(groupClause);
@@ -533,7 +533,7 @@ extract_grouping_cols(List *groupClause, List *tlist)
  * This is easy since the parser will have included a sortop if one exists.
  */
 bool
-grouping_is_sortable(List *groupClause)
+grouping_is_sortable(List * groupClause)
 {
 	ListCell   *glitem;
 
@@ -553,7 +553,7 @@ grouping_is_sortable(List *groupClause)
  * We rely on the parser to have set the hashable flag correctly.
  */
 bool
-grouping_is_hashable(List *groupClause)
+grouping_is_hashable(List * groupClause)
 {
 	ListCell   *glitem;
 
@@ -584,7 +584,7 @@ grouping_is_hashable(List *groupClause)
  * to use create_pathtarget(), so as to get those set.
  */
 PathTarget *
-make_pathtarget_from_tlist(List *tlist)
+make_pathtarget_from_tlist(List * tlist)
 {
 	PathTarget *target = makeNode(PathTarget);
 	int			i;
@@ -610,7 +610,7 @@ make_pathtarget_from_tlist(List *tlist)
  *	  Construct a targetlist from a PathTarget.
  */
 List *
-make_tlist_from_pathtarget(PathTarget *target)
+make_tlist_from_pathtarget(PathTarget * target)
 {
 	List	   *tlist = NIL;
 	int			i;
@@ -644,7 +644,7 @@ make_tlist_from_pathtarget(PathTarget *target)
  * so that items can be added to one target without damaging the other.
  */
 PathTarget *
-copy_pathtarget(PathTarget *src)
+copy_pathtarget(PathTarget * src)
 {
 	PathTarget *dst = makeNode(PathTarget);
 
@@ -682,7 +682,7 @@ create_empty_pathtarget(void)
  * the cost and width fields.
  */
 void
-add_column_to_pathtarget(PathTarget *target, Expr *expr, Index sortgroupref)
+add_column_to_pathtarget(PathTarget * target, Expr * expr, Index sortgroupref)
 {
 	/* Updating the exprs list is easy ... */
 	target->exprs = lappend(target->exprs, expr);
@@ -718,7 +718,7 @@ add_column_to_pathtarget(PathTarget *target, Expr *expr, Index sortgroupref)
  * the cost and width fields.
  */
 void
-add_new_column_to_pathtarget(PathTarget *target, Expr *expr)
+add_new_column_to_pathtarget(PathTarget * target, Expr * expr)
 {
 	if (!list_member(target->exprs, expr))
 		add_column_to_pathtarget(target, expr, 0);
@@ -729,7 +729,7 @@ add_new_column_to_pathtarget(PathTarget *target, Expr *expr)
  *		Apply add_new_column_to_pathtarget() for each element of the list.
  */
 void
-add_new_columns_to_pathtarget(PathTarget *target, List *exprs)
+add_new_columns_to_pathtarget(PathTarget * target, List * exprs)
 {
 	ListCell   *lc;
 
@@ -751,7 +751,7 @@ add_new_columns_to_pathtarget(PathTarget *target, List *exprs)
  * to identify what matches exist.
  */
 void
-apply_pathtarget_labeling_to_tlist(List *tlist, PathTarget *target)
+apply_pathtarget_labeling_to_tlist(List * tlist, PathTarget * target)
 {
 	int			i;
 	ListCell   *lc;
@@ -858,9 +858,9 @@ apply_pathtarget_labeling_to_tlist(List *tlist, PathTarget *target)
  * But this representation decouples callers from that knowledge.
  */
 void
-split_pathtarget_at_srfs(PlannerInfo *root,
-						 PathTarget *target, PathTarget *input_target,
-						 List **targets, List **targets_contain_srfs)
+split_pathtarget_at_srfs(PlannerInfo * root,
+						 PathTarget * target, PathTarget * input_target,
+						 List * *targets, List * *targets_contain_srfs)
 {
 	split_pathtarget_context context;
 	int			max_depth;
@@ -1052,7 +1052,7 @@ split_pathtarget_at_srfs(PlannerInfo *root,
  * lists.  Duplicates will be gotten rid of later.
  */
 static bool
-split_pathtarget_walker(Node *node, split_pathtarget_context *context)
+split_pathtarget_walker(Node * node, split_pathtarget_context * context)
 {
 	if (node == NULL)
 		return false;
@@ -1177,7 +1177,7 @@ split_pathtarget_walker(Node *node, split_pathtarget_context *context)
  * any particular nonzero sortgroupref.
  */
 static void
-add_sp_item_to_pathtarget(PathTarget *target, split_pathtarget_item *item)
+add_sp_item_to_pathtarget(PathTarget * target, split_pathtarget_item * item)
 {
 	int			lci;
 	ListCell   *lc;
@@ -1223,7 +1223,7 @@ add_sp_item_to_pathtarget(PathTarget *target, split_pathtarget_item *item)
  * Apply add_sp_item_to_pathtarget to each element of list.
  */
 static void
-add_sp_items_to_pathtarget(PathTarget *target, List *items)
+add_sp_items_to_pathtarget(PathTarget * target, List * items)
 {
 	ListCell   *lc;
 

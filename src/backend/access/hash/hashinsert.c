@@ -294,8 +294,8 @@ _hash_pgaddtup(Relation rel, Buffer buf, Size itemsize, IndexTuple itup)
  * Returns the offset number array at which the tuples were inserted.
  */
 void
-_hash_pgaddmultitup(Relation rel, Buffer buf, IndexTuple *itups,
-					OffsetNumber *itup_offsets, uint16 nitups)
+_hash_pgaddmultitup(Relation rel, Buffer buf, IndexTuple * itups,
+					OffsetNumber * itup_offsets, uint16 nitups)
 {
 	OffsetNumber itup_off;
 	Page		page;

@@ -49,7 +49,7 @@ typedef enum					/* contexts of JSON parser */
 	JSON_PARSE_OBJECT_NEXT,		/* saw object value, expecting ',' or '}' */
 	JSON_PARSE_OBJECT_COMMA,	/* saw object ',', expecting next label */
 	JSON_PARSE_END				/* saw the end of a document, expect nothing */
-} JsonParseContext;
+}			JsonParseContext;
 
 typedef enum					/* type categories for datum_to_json */
 {
@@ -64,7 +64,7 @@ typedef enum					/* type categories for datum_to_json */
 	JSONTYPE_COMPOSITE,			/* composite */
 	JSONTYPE_CAST,				/* something with an explicit cast to JSON */
 	JSONTYPE_OTHER				/* all else */
-} JsonTypeCategory;
+}			JsonTypeCategory;
 
 typedef struct JsonAggState
 {
@@ -73,44 +73,44 @@ typedef struct JsonAggState
 	Oid			key_output_func;
 	JsonTypeCategory val_category;
 	Oid			val_output_func;
-} JsonAggState;
+}			JsonAggState;
 
-static inline void json_lex(JsonLexContext *lex);
-static inline void json_lex_string(JsonLexContext *lex);
-static inline void json_lex_number(JsonLexContext *lex, char *s,
+static inline void json_lex(JsonLexContext * lex);
+static inline void json_lex_string(JsonLexContext * lex);
+static inline void json_lex_number(JsonLexContext * lex, char *s,
 				bool *num_err, int *total_len);
-static inline void parse_scalar(JsonLexContext *lex, JsonSemAction *sem);
-static void parse_object_field(JsonLexContext *lex, JsonSemAction *sem);
-static void parse_object(JsonLexContext *lex, JsonSemAction *sem);
-static void parse_array_element(JsonLexContext *lex, JsonSemAction *sem);
-static void parse_array(JsonLexContext *lex, JsonSemAction *sem);
-static void report_parse_error(JsonParseContext ctx, JsonLexContext *lex);
-static void report_invalid_token(JsonLexContext *lex);
-static int	report_json_context(JsonLexContext *lex);
+static inline void parse_scalar(JsonLexContext * lex, JsonSemAction * sem);
+static void parse_object_field(JsonLexContext * lex, JsonSemAction * sem);
+static void parse_object(JsonLexContext * lex, JsonSemAction * sem);
+static void parse_array_element(JsonLexContext * lex, JsonSemAction * sem);
+static void parse_array(JsonLexContext * lex, JsonSemAction * sem);
+static void report_parse_error(JsonParseContext ctx, JsonLexContext * lex);
+static void report_invalid_token(JsonLexContext * lex);
+static int	report_json_context(JsonLexContext * lex);
 static char *extract_mb_char(char *s);
 static void composite_to_json(Datum composite, StringInfo result,
 				  bool use_line_feeds);
 static void array_dim_to_json(StringInfo result, int dim, int ndims, int *dims,
-				  Datum *vals, bool *nulls, int *valcount,
+				  Datum * vals, bool *nulls, int *valcount,
 				  JsonTypeCategory tcategory, Oid outfuncoid,
 				  bool use_line_feeds);
 static void array_to_json_internal(Datum array, StringInfo result,
 					   bool use_line_feeds);
 static void json_categorize_type(Oid typoid,
-					 JsonTypeCategory *tcategory,
-					 Oid *outfuncoid);
+					 JsonTypeCategory * tcategory,
+					 Oid * outfuncoid);
 static void datum_to_json(Datum val, bool is_null, StringInfo result,
 			  JsonTypeCategory tcategory, Oid outfuncoid,
 			  bool key_scalar);
 static void add_json(Datum val, bool is_null, StringInfo result,
 		 Oid val_type, bool key_scalar);
-static text *catenate_stringinfo_string(StringInfo buffer, const char *addon);
+static text * catenate_stringinfo_string(StringInfo buffer, const char *addon);
 
 /* the null action object used for pure validation */
 static JsonSemAction nullSemAction =
 {
 	NULL, NULL, NULL, NULL, NULL,
-	NULL, NULL, NULL, NULL, NULL
+		NULL, NULL, NULL, NULL, NULL
 };
 
 /* Recursive Descent parser support routines */
@@ -121,7 +121,7 @@ static JsonSemAction nullSemAction =
  * what is the current look_ahead token?
 */
 static inline JsonTokenType
-lex_peek(JsonLexContext *lex)
+lex_peek(JsonLexContext * lex)
 {
 	return lex->token_type;
 }
@@ -136,7 +136,7 @@ lex_peek(JsonLexContext *lex)
  * returns true if the token matched, false otherwise.
  */
 static inline bool
-lex_accept(JsonLexContext *lex, JsonTokenType token, char **lexeme)
+lex_accept(JsonLexContext * lex, JsonTokenType token, char **lexeme)
 {
 	if (lex->token_type == token)
 	{
@@ -170,7 +170,7 @@ lex_accept(JsonLexContext *lex, JsonTokenType token, char **lexeme)
  * the parameter token. Otherwise, report an error.
  */
 static inline void
-lex_expect(JsonParseContext ctx, JsonLexContext *lex, JsonTokenType token)
+lex_expect(JsonParseContext ctx, JsonLexContext * lex, JsonTokenType token)
 {
 	if (!lex_accept(lex, token, NULL))
 		report_parse_error(ctx, lex);
@@ -298,7 +298,7 @@ json_recv(PG_FUNCTION_ARGS)
  * functions, otherwise use  makeJsonLexContextCstringLen().
  */
 JsonLexContext *
-makeJsonLexContext(text *json, bool need_escapes)
+makeJsonLexContext(text * json, bool need_escapes)
 {
 	return makeJsonLexContextCstringLen(VARDATA_ANY(json),
 										VARSIZE_ANY_EXHDR(json),
@@ -329,7 +329,7 @@ makeJsonLexContextCstringLen(char *json, int len, bool need_escapes)
  * pointer to a state object to be passed to those routines.
  */
 void
-pg_parse_json(JsonLexContext *lex, JsonSemAction *sem)
+pg_parse_json(JsonLexContext * lex, JsonSemAction * sem)
 {
 	JsonTokenType tok;
 
@@ -364,7 +364,7 @@ pg_parse_json(JsonLexContext *lex, JsonSemAction *sem)
  * Designed to be called from array_start routines.
  */
 int
-json_count_array_elements(JsonLexContext *lex)
+json_count_array_elements(JsonLexContext * lex)
 {
 	JsonLexContext copylex;
 	int			count;
@@ -404,7 +404,7 @@ json_count_array_elements(JsonLexContext *lex)
  *	  - object field
  */
 static inline void
-parse_scalar(JsonLexContext *lex, JsonSemAction *sem)
+parse_scalar(JsonLexContext * lex, JsonSemAction * sem)
 {
 	char	   *val = NULL;
 	json_scalar_action sfunc = sem->scalar;
@@ -440,7 +440,7 @@ parse_scalar(JsonLexContext *lex, JsonSemAction *sem)
 }
 
 static void
-parse_object_field(JsonLexContext *lex, JsonSemAction *sem)
+parse_object_field(JsonLexContext * lex, JsonSemAction * sem)
 {
 	/*
 	 * An object field is "fieldname" : value where value can be a scalar,
@@ -486,7 +486,7 @@ parse_object_field(JsonLexContext *lex, JsonSemAction *sem)
 }
 
 static void
-parse_object(JsonLexContext *lex, JsonSemAction *sem)
+parse_object(JsonLexContext * lex, JsonSemAction * sem)
 {
 	/*
 	 * an object is a possibly empty sequence of object fields, separated by
@@ -536,7 +536,7 @@ parse_object(JsonLexContext *lex, JsonSemAction *sem)
 }
 
 static void
-parse_array_element(JsonLexContext *lex, JsonSemAction *sem)
+parse_array_element(JsonLexContext * lex, JsonSemAction * sem)
 {
 	json_aelem_action astart = sem->array_element_start;
 	json_aelem_action aend = sem->array_element_end;
@@ -567,7 +567,7 @@ parse_array_element(JsonLexContext *lex, JsonSemAction *sem)
 }
 
 static void
-parse_array(JsonLexContext *lex, JsonSemAction *sem)
+parse_array(JsonLexContext * lex, JsonSemAction * sem)
 {
 	/*
 	 * an array is a possibly empty sequence of array elements, separated by
@@ -611,7 +611,7 @@ parse_array(JsonLexContext *lex, JsonSemAction *sem)
  * Lex one token from the input stream.
  */
 static inline void
-json_lex(JsonLexContext *lex)
+json_lex(JsonLexContext * lex)
 {
 	char	   *s;
 	int			len;
@@ -752,7 +752,7 @@ json_lex(JsonLexContext *lex)
  * The next token in the input stream is known to be a string; lex it.
  */
 static inline void
-json_lex_string(JsonLexContext *lex)
+json_lex_string(JsonLexContext * lex)
 {
 	char	   *s;
 	int			len;
@@ -1025,7 +1025,7 @@ json_lex_string(JsonLexContext *lex)
  * the distance from lex->input to the token end+1 is returned to *total_len.
  */
 static inline void
-json_lex_number(JsonLexContext *lex, char *s,
+json_lex_number(JsonLexContext * lex, char *s,
 				bool *num_err, int *total_len)
 {
 	bool		error = false;
@@ -1123,7 +1123,7 @@ json_lex_number(JsonLexContext *lex, char *s,
  * lex->token_start and lex->token_terminator must identify the current token.
  */
 static void
-report_parse_error(JsonParseContext ctx, JsonLexContext *lex)
+report_parse_error(JsonParseContext ctx, JsonLexContext * lex)
 {
 	char	   *token;
 	int			toklen;
@@ -1230,7 +1230,7 @@ report_parse_error(JsonParseContext ctx, JsonLexContext *lex)
  * lex->token_start and lex->token_terminator must identify the token.
  */
 static void
-report_invalid_token(JsonLexContext *lex)
+report_invalid_token(JsonLexContext * lex)
 {
 	char	   *token;
 	int			toklen;
@@ -1259,7 +1259,7 @@ report_invalid_token(JsonLexContext *lex)
  * can be invoked inside ereport().
  */
 static int
-report_json_context(JsonLexContext *lex)
+report_json_context(JsonLexContext * lex)
 {
 	const char *context_start;
 	const char *context_end;
@@ -1346,8 +1346,8 @@ extract_mb_char(char *s)
  */
 static void
 json_categorize_type(Oid typoid,
-					 JsonTypeCategory *tcategory,
-					 Oid *outfuncoid)
+					 JsonTypeCategory * tcategory,
+					 Oid * outfuncoid)
 {
 	bool		typisvarlena;
 
@@ -1591,7 +1591,7 @@ datum_to_json(Datum val, bool is_null, StringInfo result,
  * ourselves recursively to process the next dimension.
  */
 static void
-array_dim_to_json(StringInfo result, int dim, int ndims, int *dims, Datum *vals,
+array_dim_to_json(StringInfo result, int dim, int ndims, int *dims, Datum * vals,
 				  bool *nulls, int *valcount, JsonTypeCategory tcategory,
 				  Oid outfuncoid, bool use_line_feeds)
 {

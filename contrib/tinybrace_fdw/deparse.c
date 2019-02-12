@@ -53,8 +53,8 @@ typedef struct foreign_glob_cxt
 {
 	PlannerInfo *root;			/* global planner state */
 	RelOptInfo *foreignrel;		/* the foreign relation we are planning for */
-	Relids		relids;			/* relids of base relations in the underlying*/
-} foreign_glob_cxt;
+	Relids		relids;			/* relids of base relations in the underlying */
+}			foreign_glob_cxt;
 
 /*
  * Local (per-tree-level) context for foreign_expr_walker's search.
@@ -65,13 +65,13 @@ typedef enum
 	FDW_COLLATE_NONE,			/* expression is of a noncollatable type */
 	FDW_COLLATE_SAFE,			/* collation derives from a foreign Var */
 	FDW_COLLATE_UNSAFE			/* collation derives from something else */
-} FDWCollateState;
+}			FDWCollateState;
 
 typedef struct foreign_loc_cxt
 {
 	Oid			collation;		/* OID of current collation, if any */
 	FDWCollateState state;		/* state of current collation choice */
-} foreign_loc_cxt;
+}			foreign_loc_cxt;
 
 /*
  * Context for deparseExpr
@@ -84,42 +84,42 @@ typedef struct deparse_expr_cxt
 								 * foreignrel, when that represents a join or
 								 * a base relation. */
 	StringInfo	buf;			/* output buffer to append to */
-	List	**params_list;	/* exprs that will become remote Params */
-} deparse_expr_cxt;
+	List	  **params_list;	/* exprs that will become remote Params */
+}			deparse_expr_cxt;
 
 
 /*
  * Functions to construct string representation of a node tree.
  */
-static void deparseExpr(Expr *expr, deparse_expr_cxt *context);
-static void tinybrace_deparse_var(Var *node, deparse_expr_cxt *context);
-static void tinybrace_deparse_const(Const *node, deparse_expr_cxt *context);
-static void tinybrace_deparse_param(Param *node, deparse_expr_cxt *context);
-static void tinybrace_deparse_array_ref(ArrayRef *node, deparse_expr_cxt *context);
-static void tinybrace_deparse_func_expr(FuncExpr *node, deparse_expr_cxt *context);
-static void tinybrace_deparse_op_expr(OpExpr *node, deparse_expr_cxt *context);
+static void deparseExpr(Expr * expr, deparse_expr_cxt * context);
+static void tinybrace_deparse_var(Var * node, deparse_expr_cxt * context);
+static void tinybrace_deparse_const(Const * node, deparse_expr_cxt * context);
+static void tinybrace_deparse_param(Param * node, deparse_expr_cxt * context);
+static void tinybrace_deparse_array_ref(ArrayRef * node, deparse_expr_cxt * context);
+static void tinybrace_deparse_func_expr(FuncExpr * node, deparse_expr_cxt * context);
+static void tinybrace_deparse_op_expr(OpExpr * node, deparse_expr_cxt * context);
 static void tinybrace_deparse_operator_name(StringInfo buf, Form_pg_operator opform);
-static void tinybrace_deparse_distinct_expr(DistinctExpr *node, deparse_expr_cxt *context);
-static void tinybrace_deparse_scalar_array_op_expr(ScalarArrayOpExpr *node,
-						 deparse_expr_cxt *context);
-static void tinybrace_deparse_relabel_type(RelabelType *node, deparse_expr_cxt *context);
-static void tinybrace_deparse_bool_expr(BoolExpr *node, deparse_expr_cxt *context);
-static void tinybrace_deparse_null_test(NullTest *node, deparse_expr_cxt *context);
-static void tinybrace_deparse_array_expr(ArrayExpr *node, deparse_expr_cxt *context);
+static void tinybrace_deparse_distinct_expr(DistinctExpr * node, deparse_expr_cxt * context);
+static void tinybrace_deparse_scalar_array_op_expr(ScalarArrayOpExpr * node,
+									   deparse_expr_cxt * context);
+static void tinybrace_deparse_relabel_type(RelabelType * node, deparse_expr_cxt * context);
+static void tinybrace_deparse_bool_expr(BoolExpr * node, deparse_expr_cxt * context);
+static void tinybrace_deparse_null_test(NullTest * node, deparse_expr_cxt * context);
+static void tinybrace_deparse_array_expr(ArrayExpr * node, deparse_expr_cxt * context);
 static void tinybrace_print_remote_param(int paramindex, Oid paramtype, int32 paramtypmod,
-				 deparse_expr_cxt *context);
+							 deparse_expr_cxt * context);
 static void tinybrace_print_remote_placeholder(Oid paramtype, int32 paramtypmod,
-					deparse_expr_cxt *context);
+								   deparse_expr_cxt * context);
 static void tinybrace_deparse_relation(StringInfo buf, Relation rel);
-static void tinybrace_deparse_target_list(StringInfo buf, PlannerInfo *root, Index rtindex, Relation rel,
-					Bitmapset *attrs_used, List **retrieved_attrs);
-static void tinybrace_deparse_column_ref(StringInfo buf, int varno, int varattno, PlannerInfo *root);
-static void tinybrace_deparse_select(List *tlist, List **retrieved_attrs, deparse_expr_cxt *context);
-static void deparseAggref(Aggref *node, deparse_expr_cxt *context);
+static void tinybrace_deparse_target_list(StringInfo buf, PlannerInfo * root, Index rtindex, Relation rel,
+							  Bitmapset * attrs_used, List * *retrieved_attrs);
+static void tinybrace_deparse_column_ref(StringInfo buf, int varno, int varattno, PlannerInfo * root);
+static void tinybrace_deparse_select(List * tlist, List * *retrieved_attrs, deparse_expr_cxt * context);
+static void deparseAggref(Aggref * node, deparse_expr_cxt * context);
 
-static Node * deparseSortGroupClause(Index ref, List *tlist, deparse_expr_cxt *context);
-static void appendOrderByClause(List *pathkeys, deparse_expr_cxt *context);
-static void appendConditions(List *exprs, deparse_expr_cxt *context);
+static Node * deparseSortGroupClause(Index ref, List * tlist, deparse_expr_cxt * context);
+static void appendOrderByClause(List * pathkeys, deparse_expr_cxt * context);
+static void appendConditions(List * exprs, deparse_expr_cxt * context);
 
 
 /*
@@ -140,10 +140,10 @@ static char *cur_opname = NULL;
 static void
 tinybrace_deparse_relation(StringInfo buf, Relation rel)
 {
-	ForeignTable  *table;
-	const char    *nspname = NULL;
-	const char    *relname = NULL;
-	ListCell      *lc = NULL;
+	ForeignTable *table;
+	const char *nspname = NULL;
+	const char *relname = NULL;
+	ListCell   *lc = NULL;
 
 	/* obtain additional catalog information. */
 	table = GetForeignTable(RelationGetRelid(rel));
@@ -153,7 +153,7 @@ tinybrace_deparse_relation(StringInfo buf, Relation rel)
 	 */
 	foreach(lc, table->options)
 	{
-		DefElem *def = (DefElem *) lfirst(lc);
+		DefElem    *def = (DefElem *) lfirst(lc);
 
 		if (strcmp(def->defname, "dbname") == 0)
 			nspname = defGetString(def);
@@ -174,10 +174,10 @@ tinybrace_deparse_relation(StringInfo buf, Relation rel)
 }
 
 static char *
-tinybrace_quote_identifier(const char *s , char q)
+tinybrace_quote_identifier(const char *s, char q)
 {
-	char  *result = palloc(strlen(s) * 2 + 3);
-	char  *r = result;
+	char	   *result = palloc(strlen(s) * 2 + 3);
+	char	   *r = result;
 
 	*r++ = q;
 	while (*s)
@@ -194,7 +194,7 @@ tinybrace_quote_identifier(const char *s , char q)
 
 
 static void
-tinybrace_deparseExplicitTargetList(List *tlist, List **retrieved_attrs, deparse_expr_cxt *context)
+tinybrace_deparseExplicitTargetList(List * tlist, List * *retrieved_attrs, deparse_expr_cxt * context)
 {
 	ListCell   *lc;
 	StringInfo	buf = context->buf;
@@ -226,7 +226,7 @@ tinybrace_deparseExplicitTargetList(List *tlist, List **retrieved_attrs, deparse
  * Deparese SELECT statment
  */
 static void
-tinybrace_deparse_select(List *tlist, List **retrieved_attrs, deparse_expr_cxt *context)
+tinybrace_deparse_select(List * tlist, List * *retrieved_attrs, deparse_expr_cxt * context)
 {
 	Relation	rel;
 	StringInfo	buf = context->buf;
@@ -234,6 +234,7 @@ tinybrace_deparse_select(List *tlist, List **retrieved_attrs, deparse_expr_cxt *
 	RelOptInfo *foreignrel = context->foreignrel;
 	TinyBraceFdwRelationInfo *fpinfo = (TinyBraceFdwRelationInfo *) foreignrel->fdw_private;
 	List	   *quals;
+
 	/*
 	 * Core code already has some lock on each rel being planned, so we can
 	 * use NoLock here.
@@ -245,18 +246,20 @@ tinybrace_deparse_select(List *tlist, List **retrieved_attrs, deparse_expr_cxt *
 	if (foreignrel->reloptkind == RELOPT_JOINREL ||
 		foreignrel->reloptkind == RELOPT_UPPER_REL)
 	{
-		elog(DEBUG1,"RELOPT_UPPER_REL");
+		elog(DEBUG1, "RELOPT_UPPER_REL");
 		/* For a join relation use the input tlist */
 		tinybrace_deparseExplicitTargetList(tlist, retrieved_attrs, context);
 	}
 	else
 	{
 		RangeTblEntry *rte = planner_rt_fetch(foreignrel->relid, root);
+
 		rel = heap_open(rte->relid, NoLock);
 		tinybrace_deparse_target_list(buf, root, foreignrel->relid, rel, fpinfo->attrs_used, retrieved_attrs);
+
 		/*
-	 	* Construct FROM clause
-	 	*/
+		 * Construct FROM clause
+		 */
 		heap_close(rel, NoLock);
 	}
 }
@@ -269,13 +272,13 @@ tinybrace_deparse_select(List *tlist, List **retrieved_attrs, deparse_expr_cxt *
  * to *retrieved_attrs.
  */
 void
-tinybrace_deparse_insert(StringInfo buf, PlannerInfo *root,
-				 Index rtindex, Relation rel,
-				 List *targetAttrs)
+tinybrace_deparse_insert(StringInfo buf, PlannerInfo * root,
+						 Index rtindex, Relation rel,
+						 List * targetAttrs)
 {
-	AttrNumber  pindex;
-	bool        first;
-	ListCell    *lc;
+	AttrNumber	pindex;
+	bool		first;
+	ListCell   *lc;
 
 	appendStringInfoString(buf, "INSERT INTO ");
 	tinybrace_deparse_relation(buf, rel);
@@ -331,11 +334,11 @@ tinybrace_deparse_analyze(StringInfo sql, char *dbname, char *relname)
  */
 static void
 tinybrace_deparse_target_list(StringInfo buf,
-				  PlannerInfo *root,
-				  Index rtindex,
-				  Relation rel,
-				  Bitmapset *attrs_used,
-				  List **retrieved_attrs)
+							  PlannerInfo * root,
+							  Index rtindex,
+							  Relation rel,
+							  Bitmapset * attrs_used,
+							  List * *retrieved_attrs)
 {
 	TupleDesc	tupdesc = RelationGetDescr(rel);
 	bool		have_wholerow;
@@ -391,11 +394,11 @@ tinybrace_deparse_target_list(StringInfo buf,
  */
 void
 tinybrace_append_where_clause(StringInfo buf,
-				  PlannerInfo *root,
-				  RelOptInfo *baserel,
-				  List *exprs,
-				  bool is_first,
-				  List **params)
+							  PlannerInfo * root,
+							  RelOptInfo * baserel,
+							  List * exprs,
+							  bool is_first,
+							  List * *params)
 {
 	deparse_expr_cxt context;
 	ListCell   *lc;
@@ -433,12 +436,12 @@ tinybrace_append_where_clause(StringInfo buf,
  * If it has a column_name FDW option, use that instead of attribute name.
  */
 static void
-tinybrace_deparse_column_ref(StringInfo buf, int varno, int varattno, PlannerInfo *root)
+tinybrace_deparse_column_ref(StringInfo buf, int varno, int varattno, PlannerInfo * root)
 {
 	RangeTblEntry *rte;
-	char          *colname = NULL;
-	List          *options;
-	ListCell      *lc;
+	char	   *colname = NULL;
+	List	   *options;
+	ListCell   *lc;
 
 	/* varno must not be any of OUTER_VAR, INNER_VAR and INDEX_VAR. */
 	Assert(!IS_SPECIAL_VARNO(varno));
@@ -453,14 +456,14 @@ tinybrace_deparse_column_ref(StringInfo buf, int varno, int varattno, PlannerInf
 	options = GetForeignColumnOptions(rte->relid, varattno);
 	foreach(lc, options)
 	{
-		DefElem *def = (DefElem *) lfirst(lc);
+		DefElem    *def = (DefElem *) lfirst(lc);
 
 		if (strcmp(def->defname, "column_name") == 0)
 		{
 			colname = defGetString(def);
 			break;
 		}
-		elog(DEBUG3,"column name = %s\n",def->defname);
+		elog(DEBUG3, "column name = %s\n", def->defname);
 	}
 
 	/*
@@ -478,19 +481,20 @@ static void
 tinybrace_deparse_string(StringInfo buf, const char *val, bool isstr)
 {
 	const char *valptr;
-	int i = -1;
+	int			i = -1;
 
 	for (valptr = val; *valptr; valptr++)
 	{
-		char ch = *valptr;
+		char		ch = *valptr;
+
 		i++;
 
 		if (i == 0 && isstr)
 			appendStringInfoChar(buf, '\'');
 
 		/*
-		 * Remove '{', '}' and \" character from the string. Because
-		 * this syntax is not recognize by the remote Tinybrace server.
+		 * Remove '{', '}' and \" character from the string. Because this
+		 * syntax is not recognize by the remote Tinybrace server.
 		 */
 		if ((ch == '{' && i == 0) || (ch == '}' && (i == (strlen(val) - 1))) || ch == '\"')
 			continue;
@@ -516,16 +520,19 @@ static void
 tinybrace_deparse_string_literal(StringInfo buf, const char *val)
 {
 	const char *valptr;
+
 	appendStringInfoChar(buf, '\'');
 	for (valptr = val; *valptr; valptr++)
 	{
-		char	ch = *valptr;
+		char		ch = *valptr;
+
 		if (SQL_STR_DOUBLE(ch, true))
-		appendStringInfoChar(buf, ch);
+			appendStringInfoChar(buf, ch);
 		appendStringInfoChar(buf, ch);
 	}
 	appendStringInfoChar(buf, '\'');
 }
+
 /*
  * Deparse given expression into context->buf.
  *
@@ -537,7 +544,7 @@ tinybrace_deparse_string_literal(StringInfo buf, const char *val)
  * should be self-parenthesized.
  */
 static void
-deparseExpr(Expr *node, deparse_expr_cxt *context)
+deparseExpr(Expr * node, deparse_expr_cxt * context)
 {
 	if (node == NULL)
 		return;
@@ -654,14 +661,14 @@ do { \
  * to *retrieved_attrs.
  */
 void
-tinybrace_deparse_update(StringInfo buf, PlannerInfo *root,
-				 Index rtindex, Relation rel,
-				 List *targetAttrs, List *attname)
+tinybrace_deparse_update(StringInfo buf, PlannerInfo * root,
+						 Index rtindex, Relation rel,
+						 List * targetAttrs, List * attname)
 {
-	AttrNumber  pindex;
-	bool        first;
-	ListCell    *lc;
-	int i=0;
+	AttrNumber	pindex;
+	bool		first;
+	ListCell   *lc;
+	int			i = 0;
 
 	appendStringInfoString(buf, "UPDATE ");
 	tinybrace_deparse_relation(buf, rel);
@@ -671,7 +678,7 @@ tinybrace_deparse_update(StringInfo buf, PlannerInfo *root,
 	first = true;
 	foreach(lc, targetAttrs)
 	{
-		int attnum = lfirst_int(lc);
+		int			attnum = lfirst_int(lc);
 
 		if (!first)
 			appendStringInfoString(buf, ", ");
@@ -685,9 +692,9 @@ tinybrace_deparse_update(StringInfo buf, PlannerInfo *root,
 	foreach(lc, attname)
 	{
 		if (i == 0)
-			appendStringInfo(buf, " WHERE %s = ?", (char*)lfirst(lc));
+			appendStringInfo(buf, " WHERE %s = ?", (char *) lfirst(lc));
 		else
-			appendStringInfo(buf, " AND %s = ?", (char*)lfirst(lc));
+			appendStringInfo(buf, " AND %s = ?", (char *) lfirst(lc));
 
 		i++;
 	}
@@ -703,25 +710,25 @@ tinybrace_deparse_update(StringInfo buf, PlannerInfo *root,
  * to *retrieved_attrs.
  */
 void
-tinybrace_deparse_delete(StringInfo buf, PlannerInfo *root,
-				 Index rtindex, Relation rel,
-				 List *name)
+tinybrace_deparse_delete(StringInfo buf, PlannerInfo * root,
+						 Index rtindex, Relation rel,
+						 List * name)
 {
-	int i=0;
-	ListCell    *lc;
+	int			i = 0;
+	ListCell   *lc;
 
 	appendStringInfoString(buf, "DELETE FROM ");
 	tinybrace_deparse_relation(buf, rel);
 	foreach(lc, name)
 	{
 		if (i == 0)
-			appendStringInfo(buf, " WHERE \"%s\" = ?", (char*)lfirst(lc));
+			appendStringInfo(buf, " WHERE \"%s\" = ?", (char *) lfirst(lc));
 		else
-			appendStringInfo(buf, " AND \"%s\" = ?", (char*)lfirst(lc));
+			appendStringInfo(buf, " AND \"%s\" = ?", (char *) lfirst(lc));
 
 		i++;
 	}
-	elog(DEBUG3, "delete:%s",buf->data);
+	elog(DEBUG3, "delete:%s", buf->data);
 
 }
 
@@ -734,7 +741,7 @@ tinybrace_deparse_delete(StringInfo buf, PlannerInfo *root,
  * deparseParam for comments.
  */
 static void
-tinybrace_deparse_var(Var *node, deparse_expr_cxt *context)
+tinybrace_deparse_var(Var * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	Relids		relids = context->scanrel->relids;
@@ -742,15 +749,15 @@ tinybrace_deparse_var(Var *node, deparse_expr_cxt *context)
 	if (bms_is_member(node->varno, relids) && node->varlevelsup == 0)
 	{
 		/* Var belongs to foreign table */
-	  tinybrace_deparse_column_ref(buf, node->varno, node->varattno, context->root);
+		tinybrace_deparse_column_ref(buf, node->varno, node->varattno, context->root);
 	}
 	else
 	{
 		/* Treat like a Param */
 		if (context->params_list)
 		{
-			int pindex = 0;
-			ListCell *lc;
+			int			pindex = 0;
+			ListCell   *lc;
 
 			/* find its index in params_list */
 			foreach(lc, *context->params_list)
@@ -765,11 +772,11 @@ tinybrace_deparse_var(Var *node, deparse_expr_cxt *context)
 				pindex++;
 				*context->params_list = lappend(*context->params_list, node);
 			}
-		  tinybrace_print_remote_param(pindex, node->vartype, node->vartypmod, context);
+			tinybrace_print_remote_param(pindex, node->vartype, node->vartypmod, context);
 		}
 		else
 		{
-		  tinybrace_print_remote_placeholder(node->vartype, node->vartypmod, context);
+			tinybrace_print_remote_placeholder(node->vartype, node->vartypmod, context);
 		}
 	}
 }
@@ -780,12 +787,12 @@ tinybrace_deparse_var(Var *node, deparse_expr_cxt *context)
  * This function has to be kept in sync with ruleutils.c's get_const_expr.
  */
 static void
-tinybrace_deparse_const(Const *node, deparse_expr_cxt *context)
+tinybrace_deparse_const(Const * node, deparse_expr_cxt * context)
 {
-	StringInfo  buf = context->buf;
-	Oid         typoutput;
-	bool        typIsVarlena;
-	char        *extval;
+	StringInfo	buf = context->buf;
+	Oid			typoutput;
+	bool		typIsVarlena;
+	char	   *extval;
 
 	if (node->constisnull)
 	{
@@ -807,6 +814,7 @@ tinybrace_deparse_const(Const *node, deparse_expr_cxt *context)
 		case NUMERICOID:
 			{
 				extval = OidOutputFunctionCall(typoutput, node->constvalue);
+
 				/*
 				 * No need to quote unless it's a special value such as 'NaN'.
 				 * See comments in get_const_expr().
@@ -839,11 +847,11 @@ tinybrace_deparse_const(Const *node, deparse_expr_cxt *context)
 			break;
 		default:
 			extval = OidOutputFunctionCall(typoutput, node->constvalue);
-		  tinybrace_deparse_string_literal(buf, extval);
+			tinybrace_deparse_string_literal(buf, extval);
 			break;
 	}
 }
-     
+
 /*
  * Deparse given Param node.
  *
@@ -853,12 +861,12 @@ tinybrace_deparse_const(Const *node, deparse_expr_cxt *context)
  * no need to identify a parameter number.
  */
 static void
-tinybrace_deparse_param(Param *node, deparse_expr_cxt *context)
+tinybrace_deparse_param(Param * node, deparse_expr_cxt * context)
 {
 	if (context->params_list)
 	{
-		int pindex = 0;
-		ListCell *lc;
+		int			pindex = 0;
+		ListCell   *lc;
 
 		/* find its index in params_list */
 		foreach(lc, *context->params_list)
@@ -886,7 +894,7 @@ tinybrace_deparse_param(Param *node, deparse_expr_cxt *context)
  * Deparse an array subscript expression.
  */
 static void
-tinybrace_deparse_array_ref(ArrayRef *node, deparse_expr_cxt *context)
+tinybrace_deparse_array_ref(ArrayRef * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	ListCell   *lowlist_item;
@@ -932,7 +940,7 @@ tinybrace_deparse_array_ref(ArrayRef *node, deparse_expr_cxt *context)
  * This possible that name of function in PostgreSQL and
  * tinybrace differ, so return the tinybrace equelent function name
  */
-static char*
+static char *
 tinybrace_replace_function(char *in)
 {
 	if (strcmp(in, "btrim") == 0)
@@ -941,18 +949,19 @@ tinybrace_replace_function(char *in)
 	}
 	return in;
 }
+
 /*
  * Deparse a function call.
  */
 static void
-tinybrace_deparse_func_expr(FuncExpr *node, deparse_expr_cxt *context)
+tinybrace_deparse_func_expr(FuncExpr * node, deparse_expr_cxt * context)
 {
-	StringInfo     buf = context->buf;
-	HeapTuple      proctup;
-	Form_pg_proc   procform;
-	const char     *proname;
-	bool           first;
-	ListCell       *arg;
+	StringInfo	buf = context->buf;
+	HeapTuple	proctup;
+	Form_pg_proc procform;
+	const char *proname;
+	bool		first;
+	ListCell   *arg;
 
 	/*
 	 * Normal function: display as proname(args).
@@ -967,7 +976,7 @@ tinybrace_deparse_func_expr(FuncExpr *node, deparse_expr_cxt *context)
 
 	/* Deparse the function name ... */
 	appendStringInfo(buf, "%s(", proname);
-	
+
 	/* ... and all the arguments */
 	first = true;
 	foreach(arg, node->args)
@@ -986,7 +995,7 @@ tinybrace_deparse_func_expr(FuncExpr *node, deparse_expr_cxt *context)
  * priority of operations, we always parenthesize the arguments.
  */
 static void
-tinybrace_deparse_op_expr(OpExpr *node, deparse_expr_cxt *context)
+tinybrace_deparse_op_expr(OpExpr * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	HeapTuple	tuple;
@@ -1082,7 +1091,7 @@ tinybrace_deparse_operator_name(StringInfo buf, Form_pg_operator opform)
  * Deparse IS DISTINCT FROM.
  */
 static void
-tinybrace_deparse_distinct_expr(DistinctExpr *node, deparse_expr_cxt *context)
+tinybrace_deparse_distinct_expr(DistinctExpr * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 
@@ -1100,17 +1109,17 @@ tinybrace_deparse_distinct_expr(DistinctExpr *node, deparse_expr_cxt *context)
  * around priority of operations, we always parenthesize the arguments.
  */
 static void
-tinybrace_deparse_scalar_array_op_expr(ScalarArrayOpExpr *node, deparse_expr_cxt *context)
+tinybrace_deparse_scalar_array_op_expr(ScalarArrayOpExpr * node, deparse_expr_cxt * context)
 {
-	StringInfo        buf = context->buf;
-	HeapTuple         tuple;
-	Expr              *arg1;
-	Expr              *arg2;
-	Form_pg_operator  form;
-	char              *opname;
-	Oid               typoutput;
-	bool              typIsVarlena;
-	char              *extval;
+	StringInfo	buf = context->buf;
+	HeapTuple	tuple;
+	Expr	   *arg1;
+	Expr	   *arg2;
+	Form_pg_operator form;
+	char	   *opname;
+	Oid			typoutput;
+	bool		typIsVarlena;
+	char	   *extval;
 
 	/* Retrieve information about the operator from system catalog. */
 	tuple = SearchSysCache1(OPEROID, ObjectIdGetDatum(node->opno));
@@ -1135,35 +1144,36 @@ tinybrace_deparse_scalar_array_op_expr(ScalarArrayOpExpr *node, deparse_expr_cxt
 
 	/* Deparse right operand. */
 	arg2 = lsecond(node->args);
-	switch (nodeTag((Node*)arg2))
+	switch (nodeTag((Node *) arg2))
 	{
 		case T_Const:
-		{
-			Const *c = (Const*)arg2;
-			if (!c->constisnull)
 			{
-				getTypeOutputInfo(c->consttype,
-								&typoutput, &typIsVarlena);
-				extval = OidOutputFunctionCall(typoutput, c->constvalue);
+				Const	   *c = (Const *) arg2;
 
-				switch (c->consttype)
+				if (!c->constisnull)
 				{
-					case INT4ARRAYOID:
-					case OIDARRAYOID:
-						tinybrace_deparse_string(buf, extval, false);
-						break;
-					default:
-						tinybrace_deparse_string(buf, extval, true);
-						break;
+					getTypeOutputInfo(c->consttype,
+									  &typoutput, &typIsVarlena);
+					extval = OidOutputFunctionCall(typoutput, c->constvalue);
+
+					switch (c->consttype)
+					{
+						case INT4ARRAYOID:
+						case OIDARRAYOID:
+							tinybrace_deparse_string(buf, extval, false);
+							break;
+						default:
+							tinybrace_deparse_string(buf, extval, true);
+							break;
+					}
+				}
+				else
+				{
+					appendStringInfoString(buf, " NULL");
+					return;
 				}
 			}
-			else
-			{
-				appendStringInfoString(buf, " NULL");
-				return;
-			}
-		}
-		break;
+			break;
 		default:
 			deparseExpr(arg2, context);
 			break;
@@ -1176,7 +1186,7 @@ tinybrace_deparse_scalar_array_op_expr(ScalarArrayOpExpr *node, deparse_expr_cxt
  * Deparse a RelabelType (binary-compatible cast) node.
  */
 static void
-tinybrace_deparse_relabel_type(RelabelType *node, deparse_expr_cxt *context)
+tinybrace_deparse_relabel_type(RelabelType * node, deparse_expr_cxt * context)
 {
 	deparseExpr(node->arg, context);
 }
@@ -1188,12 +1198,12 @@ tinybrace_deparse_relabel_type(RelabelType *node, deparse_expr_cxt *context)
  * into N-argument form, so we'd better be prepared to deal with that.
  */
 static void
-tinybrace_deparse_bool_expr(BoolExpr *node, deparse_expr_cxt *context)
+tinybrace_deparse_bool_expr(BoolExpr * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	const char *op = NULL;		/* keep compiler quiet */
 	bool		first;
-	ListCell *lc;
+	ListCell   *lc;
 
 	switch (node->boolop)
 	{
@@ -1226,7 +1236,7 @@ tinybrace_deparse_bool_expr(BoolExpr *node, deparse_expr_cxt *context)
  * Deparse IS [NOT] NULL expression.
  */
 static void
-tinybrace_deparse_null_test(NullTest *node, deparse_expr_cxt *context)
+tinybrace_deparse_null_test(NullTest * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 
@@ -1242,7 +1252,7 @@ tinybrace_deparse_null_test(NullTest *node, deparse_expr_cxt *context)
  * Deparse ARRAY[...] construct.
  */
 static void
-tinybrace_deparse_array_expr(ArrayExpr *node, deparse_expr_cxt *context)
+tinybrace_deparse_array_expr(ArrayExpr * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	bool		first = true;
@@ -1269,7 +1279,7 @@ tinybrace_deparse_array_expr(ArrayExpr *node, deparse_expr_cxt *context)
  */
 static void
 tinybrace_print_remote_param(int paramindex, Oid paramtype, int32 paramtypmod,
-				 deparse_expr_cxt *context)
+							 deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 
@@ -1278,9 +1288,10 @@ tinybrace_print_remote_param(int paramindex, Oid paramtype, int32 paramtypmod,
 
 static void
 tinybrace_print_remote_placeholder(Oid paramtype, int32 paramtypmod,
-					   deparse_expr_cxt *context)
+								   deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
+
 	appendStringInfo(buf, "(SELECT null)");
 }
 
@@ -1322,18 +1333,18 @@ is_builtin(Oid oid)
  * can assume here that the given expression is valid.
  */
 static bool
-foreign_expr_walker(Node *node,
-					foreign_glob_cxt *glob_cxt,
-					foreign_loc_cxt *outer_cxt)
+foreign_expr_walker(Node * node,
+					foreign_glob_cxt * glob_cxt,
+					foreign_loc_cxt * outer_cxt)
 {
 	bool		check_type = true;
 	foreign_loc_cxt inner_cxt;
 	Oid			collation;
 	FDWCollateState state;
-	HeapTuple      tuple;
-	Form_pg_operator   form;
-	char *cur_opname;
-	
+	HeapTuple	tuple;
+	Form_pg_operator form;
+	char	   *cur_opname;
+
 	/* Need do nothing for empty subexpressions */
 	if (node == NULL)
 		return true;
@@ -1445,20 +1456,22 @@ foreign_expr_walker(Node *node,
 				 */
 				if (!is_builtin(oe->opno))
 					return false;
-				
+
 				tuple = SearchSysCache1(OPEROID, ObjectIdGetDatum(oe->opno));
 				if (!HeapTupleIsValid(tuple))
 					elog(ERROR, "cache lookup failed for operator %u", oe->opno);
 				form = (Form_pg_operator) GETSTRUCT(tuple);
-				
+
 				/* opname is not a SQL identifier, so we should not quote it. */
 				cur_opname = NameStr(form->oprname);
 				/* ILIKE cannot be pushed down to SQLite */
-				if (strcmp(cur_opname, "~~*") == 0 || strcmp(cur_opname, "!~~*") == 0) {
+				if (strcmp(cur_opname, "~~*") == 0 || strcmp(cur_opname, "!~~*") == 0)
+				{
 					ReleaseSysCache(tuple);
 					return false;
 				}
 				ReleaseSysCache(tuple);
+
 				/*
 				 * Recurse to input subexpressions.
 				 */
@@ -1752,9 +1765,9 @@ foreign_expr_walker(Node *node,
  * Returns true if given expr is safe to evaluate on the foreign server.
  */
 bool
-tinybrace_is_foreign_expr(PlannerInfo *root,
-                                RelOptInfo *baserel,
-                                Expr *expr)
+tinybrace_is_foreign_expr(PlannerInfo * root,
+						  RelOptInfo * baserel,
+						  Expr * expr)
 {
 	foreign_glob_cxt glob_cxt;
 	foreign_loc_cxt loc_cxt;
@@ -1803,7 +1816,7 @@ tinybrace_is_foreign_expr(PlannerInfo *root,
  *		Deparses function name from given function oid.
  */
 static void
-appendFunctionName(Oid funcid, deparse_expr_cxt *context)
+appendFunctionName(Oid funcid, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	HeapTuple	proctup;
@@ -1835,7 +1848,7 @@ appendFunctionName(Oid funcid, deparse_expr_cxt *context)
  * Deparse an Aggref node.
  */
 static void
-deparseAggref(Aggref *node, deparse_expr_cxt *context)
+deparseAggref(Aggref * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	bool		use_variadic;
@@ -1913,7 +1926,7 @@ deparseAggref(Aggref *node, deparse_expr_cxt *context)
  * Deparse GROUP BY clause.
  */
 static void
-appendGroupByClause(List *tlist, deparse_expr_cxt *context)
+appendGroupByClause(List * tlist, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	Query	   *query = context->root->parse;
@@ -1943,13 +1956,14 @@ appendGroupByClause(List *tlist, deparse_expr_cxt *context)
 		deparseSortGroupClause(grp->tleSortGroupRef, tlist, context);
 	}
 }
+
 /*
  * Deparse ORDER BY clause according to the given pathkeys for given base
  * relation. From given pathkeys expressions belonging entirely to the given
  * base relation are obtained and deparsed.
  */
 static void
-appendOrderByClause(List *pathkeys, deparse_expr_cxt *context)
+appendOrderByClause(List * pathkeys, deparse_expr_cxt * context)
 {
 	ListCell   *lcell;
 	int			nestlevel;
@@ -1959,7 +1973,7 @@ appendOrderByClause(List *pathkeys, deparse_expr_cxt *context)
 
 	/* Make sure any constants in the exprs are printed portably */
 	nestlevel = tinybrace_set_transmission_modes();
-	
+
 	appendStringInfo(buf, " ORDER BY");
 	foreach(lcell, pathkeys)
 	{
@@ -1988,7 +2002,7 @@ appendOrderByClause(List *pathkeys, deparse_expr_cxt *context)
  * Append ORDER BY within aggregate function.
  */
 static void
-appendAggOrderBy(List *orderList, List *targetList, deparse_expr_cxt *context)
+appendAggOrderBy(List * orderList, List * targetList, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	ListCell   *lc;
@@ -2027,7 +2041,7 @@ appendAggOrderBy(List *orderList, List *targetList, deparse_expr_cxt *context)
 			if (!HeapTupleIsValid(opertup))
 				elog(ERROR, "cache lookup failed for operator %u", srt->sortop);
 			operform = (Form_pg_operator) GETSTRUCT(opertup);
-		    tinybrace_deparse_operator_name(buf, operform);
+			tinybrace_deparse_operator_name(buf, operform);
 			ReleaseSysCache(opertup);
 		}
 
@@ -2040,7 +2054,7 @@ appendAggOrderBy(List *orderList, List *targetList, deparse_expr_cxt *context)
 
 
 static Node *
-deparseSortGroupClause(Index ref, List *tlist, deparse_expr_cxt *context)
+deparseSortGroupClause(Index ref, List * tlist, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	TargetEntry *tle;
@@ -2056,7 +2070,7 @@ deparseSortGroupClause(Index ref, List *tlist, deparse_expr_cxt *context)
 		 * BY 2", which will be misconstrued as a column position rather than
 		 * a constant.
 		 */
-		//deparseConst((Const *) expr, context, 1);
+		/* deparseConst((Const *) expr, context, 1); */
 	}
 	else if (!expr || IsA(expr, Var))
 		deparseExpr(expr, context);
@@ -2079,14 +2093,14 @@ deparseSortGroupClause(Index ref, List *tlist, deparse_expr_cxt *context)
  * alias if so requested.
  */
 static void
-deparseFromExprForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *foreignrel,
-					  bool use_alias, List **params_list)
+deparseFromExprForRel(StringInfo buf, PlannerInfo * root, RelOptInfo * foreignrel,
+					  bool use_alias, List * *params_list)
 {
-    TinyBraceFdwRelationInfo *fpinfo = (TinyBraceFdwRelationInfo *) foreignrel->fdw_private;
+	TinyBraceFdwRelationInfo *fpinfo = (TinyBraceFdwRelationInfo *) foreignrel->fdw_private;
 
 	if (IS_JOIN_REL(foreignrel))
 	{
-		#if 0
+#if 0
 		StringInfoData join_sql_o;
 		StringInfoData join_sql_i;
 
@@ -2128,7 +2142,7 @@ deparseFromExprForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *foreignrel,
 
 		/* End the FROM clause entry. */
 		appendStringInfo(buf, ")");
-		#endif
+#endif
 	}
 	else
 	{
@@ -2140,7 +2154,7 @@ deparseFromExprForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *foreignrel,
 		 */
 		Relation	rel = heap_open(rte->relid, NoLock);
 
-	    tinybrace_deparse_relation(buf, rel);
+		tinybrace_deparse_relation(buf, rel);
 
 		/*
 		 * Add a unique alias to avoid any conflict in relation names due to
@@ -2159,7 +2173,7 @@ deparseFromExprForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *foreignrel,
  * deparse WHERE clauses, JOIN .. ON clauses and HAVING clauses.
  */
 static void
-appendConditions(List *exprs, deparse_expr_cxt *context)
+appendConditions(List * exprs, deparse_expr_cxt * context)
 {
 	int			nestlevel;
 	ListCell   *lc;
@@ -2205,7 +2219,7 @@ appendConditions(List *exprs, deparse_expr_cxt *context)
  * quals is the list of clauses to be included in the WHERE clause.
  */
 static void
-deparseFromExpr(List *quals, deparse_expr_cxt *context)
+deparseFromExpr(List * quals, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	RelOptInfo *foreignrel = context->foreignrel;
@@ -2232,10 +2246,10 @@ deparseFromExpr(List *quals, deparse_expr_cxt *context)
 
 
 extern void
-tinybrace_deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
-						List *tlist, List *remote_conds, List *pathkeys,
-						bool is_subquery, List **retrieved_attrs,
-						List **params_list)
+tinybrace_deparseSelectStmtForRel(StringInfo buf, PlannerInfo * root, RelOptInfo * rel,
+								  List * tlist, List * remote_conds, List * pathkeys,
+								  bool is_subquery, List * *retrieved_attrs,
+								  List * *params_list)
 {
 	deparse_expr_cxt context;
 	TinyBraceFdwRelationInfo *fpinfo = (TinyBraceFdwRelationInfo *) rel->fdw_private;
@@ -2258,8 +2272,8 @@ tinybrace_deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo 
 	context.params_list = params_list;
 
 	/* Construct SELECT clause */
-    tinybrace_deparse_select(tlist, retrieved_attrs, &context);
-	
+	tinybrace_deparse_select(tlist, retrieved_attrs, &context);
+
 	/*
 	 * For upper relations, the WHERE clause is built from the remote
 	 * conditions of the underlying scan relation; otherwise, we can use the

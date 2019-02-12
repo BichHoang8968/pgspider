@@ -25,7 +25,7 @@
  * Relids
  *		Set of relation identifiers (indexes into the rangetable).
  */
-typedef Bitmapset *Relids;
+typedef Bitmapset * Relids;
 
 /*
  * When looking for a "cheapest path", this enum specifies whether we want
@@ -34,7 +34,7 @@ typedef Bitmapset *Relids;
 typedef enum CostSelector
 {
 	STARTUP_COST, TOTAL_COST
-} CostSelector;
+}			CostSelector;
 
 /*
  * The cost estimate produced by cost_qual_eval() includes both a one-time
@@ -44,7 +44,7 @@ typedef struct QualCost
 {
 	Cost		startup;		/* one-time cost */
 	Cost		per_tuple;		/* per-evaluation cost */
-} QualCost;
+}			QualCost;
 
 /*
  * Costing aggregate function execution requires these statistics about
@@ -62,7 +62,7 @@ typedef struct AggClauseCosts
 	QualCost	transCost;		/* total per-input-row execution costs */
 	Cost		finalCost;		/* total per-aggregated-row costs */
 	Size		transitionSpace;	/* space for pass-by-ref transition data */
-} AggClauseCosts;
+}			AggClauseCosts;
 
 /*
  * This enum identifies the different types of "upper" (post-scan/join)
@@ -77,7 +77,7 @@ typedef enum UpperRelationKind
 	UPPERREL_ORDERED,			/* result of ORDER BY, if any */
 	UPPERREL_FINAL				/* result of any remaining top-level actions */
 	/* NB: UPPERREL_FINAL must be last enum entry; it's used to size arrays */
-} UpperRelationKind;
+}			UpperRelationKind;
 
 
 /*----------
@@ -131,7 +131,7 @@ typedef struct PlannerGlobal
 	bool		parallelModeNeeded; /* parallel mode actually required? */
 
 	char		maxParallelHazard;	/* worst PROPARALLEL hazard level */
-} PlannerGlobal;
+}			PlannerGlobal;
 
 /* macro for fetching the Plan associated with a SubPlan node */
 #define planner_subplan_get_plan(root, subplan) \
@@ -314,7 +314,7 @@ typedef struct PlannerInfo
 
 	/* optional private data for join_search_hook, e.g., GEQO */
 	void	   *join_search_private;
-} PlannerInfo;
+}			PlannerInfo;
 
 
 /*
@@ -496,7 +496,7 @@ typedef enum RelOptKind
 	RELOPT_OTHER_MEMBER_REL,
 	RELOPT_UPPER_REL,
 	RELOPT_DEADREL
-} RelOptKind;
+}			RelOptKind;
 
 /*
  * Is the given relation a simple relation i.e a base or "other" member
@@ -592,7 +592,7 @@ typedef struct RelOptInfo
 
 	/* used by "other" relations */
 	Relids		top_parent_relids;	/* Relids of topmost parents */
-} RelOptInfo;
+}			RelOptInfo;
 
 /*
  * IndexOptInfo
@@ -676,7 +676,7 @@ typedef struct IndexOptInfo
 	bool		amcanparallel;	/* does AM support parallel scan? */
 	/* Rather than include amapi.h here, we declare amcostestimate like this */
 	void		(*amcostestimate) ();	/* AM's cost estimator */
-} IndexOptInfo;
+}			IndexOptInfo;
 
 /*
  * ForeignKeyOptInfo
@@ -706,7 +706,7 @@ typedef struct ForeignKeyOptInfo
 	struct EquivalenceClass *eclass[INDEX_MAX_KEYS];
 	/* List of non-EC RestrictInfos matching each column's condition */
 	List	   *rinfos[INDEX_MAX_KEYS];
-} ForeignKeyOptInfo;
+}			ForeignKeyOptInfo;
 
 /*
  * StatisticExtInfo
@@ -723,7 +723,7 @@ typedef struct StatisticExtInfo
 	RelOptInfo *rel;			/* back-link to statistic's table */
 	char		kind;			/* statistic kind of this entry */
 	Bitmapset  *keys;			/* attnums of the columns covered */
-} StatisticExtInfo;
+}			StatisticExtInfo;
 
 /*
  * EquivalenceClasses
@@ -784,7 +784,7 @@ typedef struct EquivalenceClass
 	Index		ec_min_security;	/* minimum security_level in ec_sources */
 	Index		ec_max_security;	/* maximum security_level in ec_sources */
 	struct EquivalenceClass *ec_merged; /* set if merged into another EC */
-} EquivalenceClass;
+}			EquivalenceClass;
 
 /*
  * If an EC contains a const and isn't below-outer-join, any PathKey depending
@@ -825,7 +825,7 @@ typedef struct EquivalenceMember
 	bool		em_is_const;	/* expression is pseudoconstant? */
 	bool		em_is_child;	/* derived version for a child relation? */
 	Oid			em_datatype;	/* the "nominal type" used by the opfamily */
-} EquivalenceMember;
+}			EquivalenceMember;
 
 /*
  * PathKeys
@@ -852,7 +852,7 @@ typedef struct PathKey
 	Oid			pk_opfamily;	/* btree opfamily defining the ordering */
 	int			pk_strategy;	/* sort direction (ASC or DESC) */
 	bool		pk_nulls_first; /* do NULLs come before normal values? */
-} PathKey;
+}			PathKey;
 
 
 /*
@@ -885,7 +885,7 @@ typedef struct PathTarget
 	Index	   *sortgrouprefs;	/* corresponding sort/group refnos, or 0 */
 	QualCost	cost;			/* cost of evaluating the expressions */
 	int			width;			/* estimated avg width of result tuples */
-} PathTarget;
+}			PathTarget;
 
 /* Convenience macro to get a sort/group refno from a PathTarget */
 #define get_pathtarget_sortgroupref(target, colno) \
@@ -913,7 +913,7 @@ typedef struct ParamPathInfo
 	Relids		ppi_req_outer;	/* rels supplying parameters used by path */
 	double		ppi_rows;		/* estimated number of result tuples */
 	List	   *ppi_clauses;	/* join clauses available from outer rels */
-} ParamPathInfo;
+}			ParamPathInfo;
 
 
 /*
@@ -967,7 +967,7 @@ typedef struct Path
 
 	List	   *pathkeys;		/* sort ordering of path's output */
 	/* pathkeys is a List of PathKey nodes; see above */
-} Path;
+}			Path;
 
 /* Macro for extracting a path's parameterization relids; beware double eval */
 #define PATH_REQ_OUTER(path)  \
@@ -1037,7 +1037,7 @@ typedef struct IndexPath
 	ScanDirection indexscandir;
 	Cost		indextotalcost;
 	Selectivity indexselectivity;
-} IndexPath;
+}			IndexPath;
 
 /*
  * BitmapHeapPath represents one or more indexscans that generate TID bitmaps
@@ -1060,7 +1060,7 @@ typedef struct BitmapHeapPath
 {
 	Path		path;
 	Path	   *bitmapqual;		/* IndexPath, BitmapAndPath, BitmapOrPath */
-} BitmapHeapPath;
+}			BitmapHeapPath;
 
 /*
  * BitmapAndPath represents a BitmapAnd plan node; it can only appear as
@@ -1073,7 +1073,7 @@ typedef struct BitmapAndPath
 	Path		path;
 	List	   *bitmapquals;	/* IndexPaths and BitmapOrPaths */
 	Selectivity bitmapselectivity;
-} BitmapAndPath;
+}			BitmapAndPath;
 
 /*
  * BitmapOrPath represents a BitmapOr plan node; it can only appear as
@@ -1086,7 +1086,7 @@ typedef struct BitmapOrPath
 	Path		path;
 	List	   *bitmapquals;	/* IndexPaths and BitmapAndPaths */
 	Selectivity bitmapselectivity;
-} BitmapOrPath;
+}			BitmapOrPath;
 
 /*
  * TidPath represents a scan by TID
@@ -1099,7 +1099,7 @@ typedef struct TidPath
 {
 	Path		path;
 	List	   *tidquals;		/* qual(s) involving CTID = something */
-} TidPath;
+}			TidPath;
 
 /*
  * SubqueryScanPath represents a scan of an unflattened subquery-in-FROM
@@ -1113,7 +1113,7 @@ typedef struct SubqueryScanPath
 {
 	Path		path;
 	Path	   *subpath;		/* path representing subquery execution */
-} SubqueryScanPath;
+}			SubqueryScanPath;
 
 /*
  * ForeignPath represents a potential scan of a foreign table, foreign join
@@ -1130,7 +1130,7 @@ typedef struct ForeignPath
 	Path		path;
 	Path	   *fdw_outerpath;
 	List	   *fdw_private;
-} ForeignPath;
+}			ForeignPath;
 
 /*
  * CustomPath represents a table scan done by some out-of-core extension.
@@ -1161,7 +1161,7 @@ typedef struct CustomPath
 	List	   *custom_paths;	/* list of child Path nodes, if any */
 	List	   *custom_private;
 	const struct CustomPathMethods *methods;
-} CustomPath;
+}			CustomPath;
 
 /*
  * AppendPath represents an Append plan, ie, successive execution of
@@ -1178,7 +1178,7 @@ typedef struct AppendPath
 	/* RT indexes of non-leaf tables in a partition tree */
 	List	   *partitioned_rels;
 	List	   *subpaths;		/* list of component Paths */
-} AppendPath;
+}			AppendPath;
 
 #define IS_DUMMY_PATH(p) \
 	(IsA((p), AppendPath) && ((AppendPath *) (p))->subpaths == NIL)
@@ -1199,7 +1199,7 @@ typedef struct MergeAppendPath
 	List	   *partitioned_rels;
 	List	   *subpaths;		/* list of component Paths */
 	double		limit_tuples;	/* hard limit on output tuples, or -1 */
-} MergeAppendPath;
+}			MergeAppendPath;
 
 /*
  * ResultPath represents use of a Result plan node to compute a variable-free
@@ -1212,7 +1212,7 @@ typedef struct ResultPath
 {
 	Path		path;
 	List	   *quals;
-} ResultPath;
+}			ResultPath;
 
 /*
  * MaterialPath represents use of a Material plan node, i.e., caching of
@@ -1224,7 +1224,7 @@ typedef struct MaterialPath
 {
 	Path		path;
 	Path	   *subpath;
-} MaterialPath;
+}			MaterialPath;
 
 /*
  * UniquePath represents elimination of distinct rows from the output of
@@ -1243,7 +1243,7 @@ typedef enum
 	UNIQUE_PATH_NOOP,			/* input is known unique already */
 	UNIQUE_PATH_HASH,			/* use hashing */
 	UNIQUE_PATH_SORT			/* use sorting */
-} UniquePathMethod;
+}			UniquePathMethod;
 
 typedef struct UniquePath
 {
@@ -1252,7 +1252,7 @@ typedef struct UniquePath
 	UniquePathMethod umethod;
 	List	   *in_operators;	/* equality operators of the IN clause */
 	List	   *uniq_exprs;		/* expressions to be made unique */
-} UniquePath;
+}			UniquePath;
 
 /*
  * GatherPath runs several copies of a plan in parallel and collects the
@@ -1265,7 +1265,7 @@ typedef struct GatherPath
 	Path	   *subpath;		/* path for each worker */
 	bool		single_copy;	/* don't execute path more than once */
 	int			num_workers;	/* number of workers sought to help */
-} GatherPath;
+}			GatherPath;
 
 /*
  * GatherMergePath runs several copies of a plan in parallel and collects
@@ -1277,7 +1277,7 @@ typedef struct GatherMergePath
 	Path		path;
 	Path	   *subpath;		/* path for each worker */
 	int			num_workers;	/* number of workers sought to help */
-} GatherMergePath;
+}			GatherMergePath;
 
 
 /*
@@ -1303,7 +1303,7 @@ typedef struct JoinPath
 	 * joinrestrictinfo is needed in JoinPath, and can't be merged into the
 	 * parent RelOptInfo.
 	 */
-} JoinPath;
+}			JoinPath;
 
 /*
  * A nested-loop path needs no special fields.
@@ -1354,7 +1354,7 @@ typedef struct MergePath
 	List	   *innersortkeys;	/* keys for explicit sort, if any */
 	bool		skip_mark_restore;	/* can executor skip mark/restore? */
 	bool		materialize_inner;	/* add Materialize to inner? */
-} MergePath;
+}			MergePath;
 
 /*
  * A hashjoin path has these fields.
@@ -1370,7 +1370,7 @@ typedef struct HashPath
 	JoinPath	jpath;
 	List	   *path_hashclauses;	/* join clauses used for hashing */
 	int			num_batches;	/* number of batches expected */
-} HashPath;
+}			HashPath;
 
 /*
  * ProjectionPath represents a projection (that is, targetlist computation)
@@ -1391,7 +1391,7 @@ typedef struct ProjectionPath
 	Path		path;
 	Path	   *subpath;		/* path representing input source */
 	bool		dummypp;		/* true if no separate Result is needed */
-} ProjectionPath;
+}			ProjectionPath;
 
 /*
  * ProjectSetPath represents evaluation of a targetlist that includes
@@ -1402,7 +1402,7 @@ typedef struct ProjectSetPath
 {
 	Path		path;
 	Path	   *subpath;		/* path representing input source */
-} ProjectSetPath;
+}			ProjectSetPath;
 
 /*
  * SortPath represents an explicit sort step
@@ -1416,7 +1416,7 @@ typedef struct SortPath
 {
 	Path		path;
 	Path	   *subpath;		/* path representing input source */
-} SortPath;
+}			SortPath;
 
 /*
  * GroupPath represents grouping (of presorted input)
@@ -1432,7 +1432,7 @@ typedef struct GroupPath
 	Path	   *subpath;		/* path representing input source */
 	List	   *groupClause;	/* a list of SortGroupClause's */
 	List	   *qual;			/* quals (HAVING quals), if any */
-} GroupPath;
+}			GroupPath;
 
 /*
  * UpperUniquePath represents adjacent-duplicate removal (in presorted input)
@@ -1445,7 +1445,7 @@ typedef struct UpperUniquePath
 	Path		path;
 	Path	   *subpath;		/* path representing input source */
 	int			numkeys;		/* number of pathkey columns to compare */
-} UpperUniquePath;
+}			UpperUniquePath;
 
 /*
  * AggPath represents generic computation of aggregate functions
@@ -1463,7 +1463,7 @@ typedef struct AggPath
 	double		numGroups;		/* estimated number of groups in input */
 	List	   *groupClause;	/* a list of SortGroupClause's */
 	List	   *qual;			/* quals (HAVING quals), if any */
-} AggPath;
+}			AggPath;
 
 /*
  * Various annotations used for grouping sets in the planner.
@@ -1474,7 +1474,7 @@ typedef struct GroupingSetData
 	NodeTag		type;
 	List	   *set;			/* grouping set as list of sortgrouprefs */
 	double		numGroups;		/* est. number of result groups */
-} GroupingSetData;
+}			GroupingSetData;
 
 typedef struct RollupData
 {
@@ -1485,7 +1485,7 @@ typedef struct RollupData
 	double		numGroups;		/* est. number of result groups */
 	bool		hashable;		/* can be hashed */
 	bool		is_hashed;		/* to be implemented as a hashagg */
-} RollupData;
+}			RollupData;
 
 /*
  * GroupingSetsPath represents a GROUPING SETS aggregation
@@ -1498,7 +1498,7 @@ typedef struct GroupingSetsPath
 	AggStrategy aggstrategy;	/* basic strategy */
 	List	   *rollups;		/* list of RollupData */
 	List	   *qual;			/* quals (HAVING quals), if any */
-} GroupingSetsPath;
+}			GroupingSetsPath;
 
 /*
  * MinMaxAggPath represents computation of MIN/MAX aggregates from indexes
@@ -1508,7 +1508,7 @@ typedef struct MinMaxAggPath
 	Path		path;
 	List	   *mmaggregates;	/* list of MinMaxAggInfo */
 	List	   *quals;			/* HAVING quals, if any */
-} MinMaxAggPath;
+}			MinMaxAggPath;
 
 /*
  * WindowAggPath represents generic computation of window functions
@@ -1523,7 +1523,7 @@ typedef struct WindowAggPath
 	Path	   *subpath;		/* path representing input source */
 	WindowClause *winclause;	/* WindowClause we'll be using */
 	List	   *winpathkeys;	/* PathKeys for PARTITION keys + ORDER keys */
-} WindowAggPath;
+}			WindowAggPath;
 
 /*
  * SetOpPath represents a set-operation, that is INTERSECT or EXCEPT
@@ -1538,7 +1538,7 @@ typedef struct SetOpPath
 	AttrNumber	flagColIdx;		/* where is the flag column, if any */
 	int			firstFlag;		/* flag value for first input relation */
 	double		numGroups;		/* estimated number of groups in input */
-} SetOpPath;
+}			SetOpPath;
 
 /*
  * RecursiveUnionPath represents a recursive UNION node
@@ -1551,7 +1551,7 @@ typedef struct RecursiveUnionPath
 	List	   *distinctList;	/* SortGroupClauses identifying target cols */
 	int			wtParam;		/* ID of Param representing work table */
 	double		numGroups;		/* estimated number of groups in input */
-} RecursiveUnionPath;
+}			RecursiveUnionPath;
 
 /*
  * LockRowsPath represents acquiring row locks for SELECT FOR UPDATE/SHARE
@@ -1562,7 +1562,7 @@ typedef struct LockRowsPath
 	Path	   *subpath;		/* path representing input source */
 	List	   *rowMarks;		/* a list of PlanRowMark's */
 	int			epqParam;		/* ID of Param for EvalPlanQual re-eval */
-} LockRowsPath;
+}			LockRowsPath;
 
 /*
  * ModifyTablePath represents performing INSERT/UPDATE/DELETE modifications
@@ -1587,7 +1587,7 @@ typedef struct ModifyTablePath
 	List	   *rowMarks;		/* PlanRowMarks (non-locking only) */
 	OnConflictExpr *onconflict; /* ON CONFLICT clause, or NULL */
 	int			epqParam;		/* ID of Param for EvalPlanQual re-eval */
-} ModifyTablePath;
+}			ModifyTablePath;
 
 /*
  * LimitPath represents applying LIMIT/OFFSET restrictions
@@ -1598,7 +1598,7 @@ typedef struct LimitPath
 	Path	   *subpath;		/* path representing input source */
 	Node	   *limitOffset;	/* OFFSET parameter, or NULL if none */
 	Node	   *limitCount;		/* COUNT parameter, or NULL if none */
-} LimitPath;
+}			LimitPath;
 
 
 /*
@@ -1808,7 +1808,7 @@ typedef struct RestrictInfo
 	/* cache space for hashclause processing; -1 if not yet set */
 	Selectivity left_bucketsize;	/* avg bucketsize of left side */
 	Selectivity right_bucketsize;	/* avg bucketsize of right side */
-} RestrictInfo;
+}			RestrictInfo;
 
 /*
  * This macro embodies the correct way to test whether a RestrictInfo is
@@ -1843,7 +1843,7 @@ typedef struct MergeScanSelCache
 	Selectivity leftendsel;		/* last-join fraction for clause left side */
 	Selectivity rightstartsel;	/* first-join fraction for clause right side */
 	Selectivity rightendsel;	/* last-join fraction for clause right side */
-} MergeScanSelCache;
+}			MergeScanSelCache;
 
 /*
  * Placeholder node for an expression to be evaluated below the top level
@@ -1866,7 +1866,7 @@ typedef struct PlaceHolderVar
 	Relids		phrels;			/* base relids syntactically within expr src */
 	Index		phid;			/* ID for PHV (unique within planner run) */
 	Index		phlevelsup;		/* > 0 if PHV belongs to outer query */
-} PlaceHolderVar;
+}			PlaceHolderVar;
 
 /*
  * "Special join" info.
@@ -1941,7 +1941,7 @@ typedef struct SpecialJoinInfo
 	bool		semi_can_hash;	/* true if semi_operators are all hash */
 	List	   *semi_operators; /* OIDs of equality join operators */
 	List	   *semi_rhs_exprs; /* righthand-side expressions of these ops */
-} SpecialJoinInfo;
+}			SpecialJoinInfo;
 
 /*
  * Append-relation info.
@@ -2023,7 +2023,7 @@ typedef struct AppendRelInfo
 	 * an attempt is made to reference a dropped parent column.
 	 */
 	Oid			parent_reloid;	/* OID of parent relation */
-} AppendRelInfo;
+}			AppendRelInfo;
 
 /*
  * For a partitioned table, this maps its RT index to the list of RT indexes
@@ -2042,7 +2042,7 @@ typedef struct PartitionedChildRelInfo
 
 	Index		parent_relid;
 	List	   *child_rels;
-} PartitionedChildRelInfo;
+}			PartitionedChildRelInfo;
 
 /*
  * For each distinct placeholder expression generated during planning, we
@@ -2080,7 +2080,7 @@ typedef struct PlaceHolderInfo
 	Relids		ph_lateral;		/* relids of contained lateral refs, if any */
 	Relids		ph_needed;		/* highest level the value is needed at */
 	int32		ph_width;		/* estimated attribute width */
-} PlaceHolderInfo;
+}			PlaceHolderInfo;
 
 /*
  * This struct describes one potentially index-optimizable MIN/MAX aggregate
@@ -2098,7 +2098,7 @@ typedef struct MinMaxAggInfo
 	Path	   *path;			/* access path for subquery */
 	Cost		pathcost;		/* estimated cost to fetch first row */
 	Param	   *param;			/* param for subplan's output */
-} MinMaxAggInfo;
+}			MinMaxAggInfo;
 
 /*
  * At runtime, PARAM_EXEC slots are used to pass values around from one plan
@@ -2153,7 +2153,7 @@ typedef struct PlannerParamItem
 
 	Node	   *item;			/* the Var, PlaceHolderVar, or Aggref */
 	int			paramId;		/* its assigned PARAM_EXEC slot number */
-} PlannerParamItem;
+}			PlannerParamItem;
 
 /*
  * When making cost estimates for a SEMI/ANTI/inner_unique join, there are
@@ -2175,7 +2175,7 @@ typedef struct SemiAntiJoinFactors
 {
 	Selectivity outer_match_frac;
 	Selectivity match_count;
-} SemiAntiJoinFactors;
+}			SemiAntiJoinFactors;
 
 /*
  * Struct for extra information passed to subroutines of add_paths_to_joinrel
@@ -2198,7 +2198,7 @@ typedef struct JoinPathExtraData
 	SpecialJoinInfo *sjinfo;
 	SemiAntiJoinFactors semifactors;
 	Relids		param_source_rels;
-} JoinPathExtraData;
+}			JoinPathExtraData;
 
 /*
  * For speed reasons, cost estimation for join paths is performed in two
@@ -2234,6 +2234,6 @@ typedef struct JoinCostWorkspace
 	/* private for cost_hashjoin code */
 	int			numbuckets;
 	int			numbatches;
-} JoinCostWorkspace;
+}			JoinCostWorkspace;
 
 #endif							/* RELATION_H */

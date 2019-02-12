@@ -43,7 +43,7 @@ CATALOG(pg_default_acl,826)
  *		the format of pg_default_acl relation.
  * ----------------
  */
-typedef FormData_pg_default_acl *Form_pg_default_acl;
+typedef FormData_pg_default_acl * Form_pg_default_acl;
 
 /* ----------------
  *		compiler constants for pg_default_acl

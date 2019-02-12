@@ -58,7 +58,7 @@ CATALOG(pg_statistic_ext,3381)
  *		the format of pg_statistic_ext relation.
  * ----------------
  */
-typedef FormData_pg_statistic_ext *Form_pg_statistic_ext;
+typedef FormData_pg_statistic_ext * Form_pg_statistic_ext;
 
 /* ----------------
  *		compiler constants for pg_statistic_ext

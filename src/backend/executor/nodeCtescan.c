@@ -19,7 +19,7 @@
 #include "executor/nodeCtescan.h"
 #include "miscadmin.h"
 
-static TupleTableSlot *CteScanNext(CteScanState *node);
+static TupleTableSlot * CteScanNext(CteScanState * node);
 
 /* ----------------------------------------------------------------
  *		CteScanNext
@@ -28,7 +28,7 @@ static TupleTableSlot *CteScanNext(CteScanState *node);
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-CteScanNext(CteScanState *node)
+CteScanNext(CteScanState * node)
 {
 	EState	   *estate;
 	ScanDirection dir;
@@ -142,7 +142,7 @@ CteScanNext(CteScanState *node)
  * CteScanRecheck -- access method routine to recheck a tuple in EvalPlanQual
  */
 static bool
-CteScanRecheck(CteScanState *node, TupleTableSlot *slot)
+CteScanRecheck(CteScanState * node, TupleTableSlot * slot)
 {
 	/* nothing to check */
 	return true;
@@ -157,7 +157,7 @@ CteScanRecheck(CteScanState *node, TupleTableSlot *slot)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecCteScan(PlanState *pstate)
+ExecCteScan(PlanState * pstate)
 {
 	CteScanState *node = castNode(CteScanState, pstate);
 
@@ -172,7 +172,7 @@ ExecCteScan(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 CteScanState *
-ExecInitCteScan(CteScan *node, EState *estate, int eflags)
+ExecInitCteScan(CteScan * node, EState * estate, int eflags)
 {
 	CteScanState *scanstate;
 	ParamExecData *prmdata;
@@ -290,7 +290,7 @@ ExecInitCteScan(CteScan *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndCteScan(CteScanState *node)
+ExecEndCteScan(CteScanState * node)
 {
 	/*
 	 * Free exprcontext
@@ -320,7 +320,7 @@ ExecEndCteScan(CteScanState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanCteScan(CteScanState *node)
+ExecReScanCteScan(CteScanState * node)
 {
 	Tuplestorestate *tuplestorestate = node->leader->cte_table;
 

@@ -13,7 +13,7 @@ typedef struct
 {
 	TimeADT		lower;
 	TimeADT		upper;
-} timeKEY;
+}			timeKEY;
 
 /*
 ** time ops
@@ -38,10 +38,10 @@ PG_FUNCTION_INFO_V1(gbt_time_same);
 
 
 static bool
-gbt_timegt(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_timegt(const void *a, const void *b, FmgrInfo * flinfo)
 {
-	const TimeADT *aa = (const TimeADT *) a;
-	const TimeADT *bb = (const TimeADT *) b;
+	const		TimeADT *aa = (const TimeADT *) a;
+	const		TimeADT *bb = (const TimeADT *) b;
 
 	return DatumGetBool(DirectFunctionCall2(time_gt,
 											TimeADTGetDatumFast(*aa),
@@ -49,10 +49,10 @@ gbt_timegt(const void *a, const void *b, FmgrInfo *flinfo)
 }
 
 static bool
-gbt_timege(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_timege(const void *a, const void *b, FmgrInfo * flinfo)
 {
-	const TimeADT *aa = (const TimeADT *) a;
-	const TimeADT *bb = (const TimeADT *) b;
+	const		TimeADT *aa = (const TimeADT *) a;
+	const		TimeADT *bb = (const TimeADT *) b;
 
 	return DatumGetBool(DirectFunctionCall2(time_ge,
 											TimeADTGetDatumFast(*aa),
@@ -60,10 +60,10 @@ gbt_timege(const void *a, const void *b, FmgrInfo *flinfo)
 }
 
 static bool
-gbt_timeeq(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_timeeq(const void *a, const void *b, FmgrInfo * flinfo)
 {
-	const TimeADT *aa = (const TimeADT *) a;
-	const TimeADT *bb = (const TimeADT *) b;
+	const		TimeADT *aa = (const TimeADT *) a;
+	const		TimeADT *bb = (const TimeADT *) b;
 
 	return DatumGetBool(DirectFunctionCall2(time_eq,
 											TimeADTGetDatumFast(*aa),
@@ -71,10 +71,10 @@ gbt_timeeq(const void *a, const void *b, FmgrInfo *flinfo)
 }
 
 static bool
-gbt_timele(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_timele(const void *a, const void *b, FmgrInfo * flinfo)
 {
-	const TimeADT *aa = (const TimeADT *) a;
-	const TimeADT *bb = (const TimeADT *) b;
+	const		TimeADT *aa = (const TimeADT *) a;
+	const		TimeADT *bb = (const TimeADT *) b;
 
 	return DatumGetBool(DirectFunctionCall2(time_le,
 											TimeADTGetDatumFast(*aa),
@@ -82,10 +82,10 @@ gbt_timele(const void *a, const void *b, FmgrInfo *flinfo)
 }
 
 static bool
-gbt_timelt(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_timelt(const void *a, const void *b, FmgrInfo * flinfo)
 {
-	const TimeADT *aa = (const TimeADT *) a;
-	const TimeADT *bb = (const TimeADT *) b;
+	const		TimeADT *aa = (const TimeADT *) a;
+	const		TimeADT *bb = (const TimeADT *) b;
 
 	return DatumGetBool(DirectFunctionCall2(time_lt,
 											TimeADTGetDatumFast(*aa),
@@ -95,7 +95,7 @@ gbt_timelt(const void *a, const void *b, FmgrInfo *flinfo)
 
 
 static int
-gbt_timekey_cmp(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_timekey_cmp(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	timeKEY    *ia = (timeKEY *) (((const Nsrt *) a)->t);
 	timeKEY    *ib = (timeKEY *) (((const Nsrt *) b)->t);
@@ -109,10 +109,10 @@ gbt_timekey_cmp(const void *a, const void *b, FmgrInfo *flinfo)
 }
 
 static float8
-gbt_time_dist(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_time_dist(const void *a, const void *b, FmgrInfo * flinfo)
 {
-	const TimeADT *aa = (const TimeADT *) a;
-	const TimeADT *bb = (const TimeADT *) b;
+	const		TimeADT *aa = (const TimeADT *) a;
+	const		TimeADT *bb = (const TimeADT *) b;
 	Interval   *i;
 
 	i = DatumGetIntervalP(DirectFunctionCall2(time_mi_time,
@@ -213,8 +213,8 @@ gbt_time_consistent(PG_FUNCTION_ARGS)
 	/* All cases served by this function are exact */
 	*recheck = false;
 
-	key.lower = (GBT_NUMKEY *) &kkk->lower;
-	key.upper = (GBT_NUMKEY *) &kkk->upper;
+	key.lower = (GBT_NUMKEY *) & kkk->lower;
+	key.upper = (GBT_NUMKEY *) & kkk->upper;
 
 	PG_RETURN_BOOL(
 				   gbt_num_consistent(&key, (void *) &query, &strategy, GIST_LEAF(entry), &tinfo, fcinfo->flinfo)
@@ -231,8 +231,8 @@ gbt_time_distance(PG_FUNCTION_ARGS)
 	timeKEY    *kkk = (timeKEY *) DatumGetPointer(entry->key);
 	GBT_NUMKEY_R key;
 
-	key.lower = (GBT_NUMKEY *) &kkk->lower;
-	key.upper = (GBT_NUMKEY *) &kkk->upper;
+	key.lower = (GBT_NUMKEY *) & kkk->lower;
+	key.upper = (GBT_NUMKEY *) & kkk->upper;
 
 	PG_RETURN_FLOAT8(
 					 gbt_num_distance(&key, (void *) &query, GIST_LEAF(entry), &tinfo, fcinfo->flinfo)
@@ -257,8 +257,8 @@ gbt_timetz_consistent(PG_FUNCTION_ARGS)
 
 	qqq = query->time + (query->zone * INT64CONST(1000000));
 
-	key.lower = (GBT_NUMKEY *) &kkk->lower;
-	key.upper = (GBT_NUMKEY *) &kkk->upper;
+	key.lower = (GBT_NUMKEY *) & kkk->lower;
+	key.upper = (GBT_NUMKEY *) & kkk->upper;
 
 	PG_RETURN_BOOL(
 				   gbt_num_consistent(&key, (void *) &qqq, &strategy, GIST_LEAF(entry), &tinfo, fcinfo->flinfo)

@@ -21,12 +21,12 @@
 #include "tcop/tcopprot.h"
 #include "utils/builtins.h"
 
-static shm_mq_handle *pq_mq_handle;
+static shm_mq_handle * pq_mq_handle;
 static bool pq_mq_busy = false;
 static pid_t pq_mq_parallel_master_pid = 0;
 static pid_t pq_mq_parallel_master_backend_id = InvalidBackendId;
 
-static void pq_cleanup_redirect_to_shm_mq(dsm_segment *seg, Datum arg);
+static void pq_cleanup_redirect_to_shm_mq(dsm_segment * seg, Datum arg);
 static void mq_comm_reset(void);
 static int	mq_flush(void);
 static int	mq_flush_if_writable(void);
@@ -36,15 +36,16 @@ static void mq_putmessage_noblock(char msgtype, const char *s, size_t len);
 static void mq_startcopyout(void);
 static void mq_endcopyout(bool errorAbort);
 
-static PQcommMethods PqCommMqMethods = {
+static PQcommMethods PqCommMqMethods =
+{
 	mq_comm_reset,
-	mq_flush,
-	mq_flush_if_writable,
-	mq_is_send_pending,
-	mq_putmessage,
-	mq_putmessage_noblock,
-	mq_startcopyout,
-	mq_endcopyout
+		mq_flush,
+		mq_flush_if_writable,
+		mq_is_send_pending,
+		mq_putmessage,
+		mq_putmessage_noblock,
+		mq_startcopyout,
+		mq_endcopyout
 };
 
 /*
@@ -52,7 +53,7 @@ static PQcommMethods PqCommMqMethods = {
  * message queue.
  */
 void
-pq_redirect_to_shm_mq(dsm_segment *seg, shm_mq_handle *mqh)
+pq_redirect_to_shm_mq(dsm_segment * seg, shm_mq_handle * mqh)
 {
 	PqCommMethods = &PqCommMqMethods;
 	pq_mq_handle = mqh;
@@ -66,7 +67,7 @@ pq_redirect_to_shm_mq(dsm_segment *seg, shm_mq_handle *mqh)
  * messages to it.
  */
 static void
-pq_cleanup_redirect_to_shm_mq(dsm_segment *seg, Datum arg)
+pq_cleanup_redirect_to_shm_mq(dsm_segment * seg, Datum arg)
 {
 	pq_mq_handle = NULL;
 	whereToSendOutput = DestNone;
@@ -212,7 +213,7 @@ mq_endcopyout(bool errorAbort)
  * structure with the results.
  */
 void
-pq_parse_errornotice(StringInfo msg, ErrorData *edata)
+pq_parse_errornotice(StringInfo msg, ErrorData * edata)
 {
 	/* Initialize edata with reasonable defaults. */
 	MemSet(edata, 0, sizeof(ErrorData));

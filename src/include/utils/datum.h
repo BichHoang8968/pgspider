@@ -51,7 +51,7 @@ extern bool datumIsEqual(Datum value1, Datum value2,
  * workers.
  */
 extern Size datumEstimateSpace(Datum value, bool isnull, bool typByVal,
-				   int typLen);
+							   int typLen);
 extern void datumSerialize(Datum value, bool isnull, bool typByVal,
 			   int typLen, char **start_address);
 extern Datum datumRestore(char **start_address, bool *isnull);

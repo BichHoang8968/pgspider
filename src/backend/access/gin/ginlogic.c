@@ -222,7 +222,7 @@ shimTriConsistentFn(GinScanKey key)
  * Set up the implementation of the consistent functions for a scan key.
  */
 void
-ginInitConsistentFunction(GinState *ginstate, GinScanKey key)
+ginInitConsistentFunction(GinState * ginstate, GinScanKey key)
 {
 	if (key->searchMode == GIN_SEARCH_MODE_EVERYTHING)
 	{

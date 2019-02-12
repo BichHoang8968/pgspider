@@ -38,7 +38,7 @@ CATALOG(pg_publication_rel,6106)
  *		the format of pg_publication_rel relation.
  * ----------------
  */
-typedef FormData_pg_publication_rel *Form_pg_publication_rel;
+typedef FormData_pg_publication_rel * Form_pg_publication_rel;
 
 /* ----------------
  *		compiler constants for pg_publication_rel

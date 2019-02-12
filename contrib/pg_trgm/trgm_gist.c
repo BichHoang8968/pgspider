@@ -23,7 +23,7 @@ typedef struct
 	 * The "query" and "trigrams" are stored in the same palloc block as this
 	 * cache struct, at MAXALIGN'ed offsets.  The graph however isn't.
 	 */
-} gtrgm_consistent_cache;
+}			gtrgm_consistent_cache;
 
 #define GETENTRY(vec,pos) ((TRGM *) DatumGetPointer((vec)->vector[(pos)].key))
 
@@ -75,7 +75,7 @@ gtrgm_out(PG_FUNCTION_ARGS)
 }
 
 static void
-makesign(BITVECP sign, TRGM *a)
+makesign(BITVECP sign, TRGM * a)
 {
 	int32		k,
 				len = ARRNELEM(a);
@@ -160,7 +160,7 @@ gtrgm_decompress(PG_FUNCTION_ARGS)
 }
 
 static int32
-cnt_sml_sign_common(TRGM *qtrg, BITVECP sign)
+cnt_sml_sign_common(TRGM * qtrg, BITVECP sign)
 {
 	int32		count = 0;
 	int32		k,
@@ -503,7 +503,7 @@ gtrgm_distance(PG_FUNCTION_ARGS)
 }
 
 static int32
-unionkey(BITVECP sbase, TRGM *add)
+unionkey(BITVECP sbase, TRGM * add)
 {
 	int32		i;
 
@@ -650,7 +650,7 @@ hemdistsign(BITVECP a, BITVECP b)
 }
 
 static int
-hemdist(TRGM *a, TRGM *b)
+hemdist(TRGM * a, TRGM * b)
 {
 	if (ISALLTRUE(a))
 	{
@@ -724,10 +724,10 @@ typedef struct
 {
 	bool		allistrue;
 	BITVEC		sign;
-} CACHESIGN;
+}			CACHESIGN;
 
 static void
-fillcache(CACHESIGN *item, TRGM *key)
+fillcache(CACHESIGN * item, TRGM * key)
 {
 	item->allistrue = false;
 	if (ISARRKEY(key))
@@ -743,7 +743,7 @@ typedef struct
 {
 	OffsetNumber pos;
 	int32		cost;
-} SPLITCOST;
+}			SPLITCOST;
 
 static int
 comparecost(const void *a, const void *b)
@@ -756,7 +756,7 @@ comparecost(const void *a, const void *b)
 
 
 static int
-hemdistcache(CACHESIGN *a, CACHESIGN *b)
+hemdistcache(CACHESIGN * a, CACHESIGN * b)
 {
 	if (a->allistrue)
 	{

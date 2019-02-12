@@ -24,7 +24,7 @@
  * Initialize usage snapshot.
  */
 void
-pg_rusage_init(PGRUsage *ru0)
+pg_rusage_init(PGRUsage * ru0)
 {
 	getrusage(RUSAGE_SELF, &ru0->ru);
 	gettimeofday(&ru0->tv, NULL);
@@ -37,7 +37,7 @@ pg_rusage_init(PGRUsage *ru0)
  * threadable...
  */
 const char *
-pg_rusage_show(const PGRUsage *ru0)
+pg_rusage_show(const PGRUsage * ru0)
 {
 	static char result[100];
 	PGRUsage	ru1;

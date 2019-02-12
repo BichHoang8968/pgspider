@@ -26,18 +26,18 @@ extern char *dbname;
 extern int	dbgetpassword;
 
 /* Connection kept global so we can disconnect easily */
-extern PGconn *conn;
+extern PGconn * conn;
 
-extern PGconn *GetConnection(void);
+extern PGconn * GetConnection(void);
 
 /* Replication commands */
-extern bool CreateReplicationSlot(PGconn *conn, const char *slot_name,
+extern bool CreateReplicationSlot(PGconn * conn, const char *slot_name,
 					  const char *plugin, bool is_physical,
 					  bool slot_exists_ok);
-extern bool DropReplicationSlot(PGconn *conn, const char *slot_name);
-extern bool RunIdentifySystem(PGconn *conn, char **sysid,
-				  TimeLineID *starttli,
-				  XLogRecPtr *startpos,
+extern bool DropReplicationSlot(PGconn * conn, const char *slot_name);
+extern bool RunIdentifySystem(PGconn * conn, char **sysid,
+				  TimeLineID * starttli,
+				  XLogRecPtr * startpos,
 				  char **db_name);
 extern TimestampTz feGetCurrentTimestamp(void);
 extern void feTimestampDifference(TimestampTz start_time, TimestampTz stop_time,

@@ -129,7 +129,7 @@ next_insert(char *text, int pos, bool questionmarks, bool std_strings)
 				for (i = p + 1; isdigit((unsigned char) text[i]); i++)
 					 /* empty loop body */ ;
 				if (!isalpha((unsigned char) text[i]) &&
-					isascii((unsigned char) text[i]) &&text[i] != '_')
+					isascii((unsigned char) text[i]) && text[i] != '_')
 					/* not dollar delimited quote */
 					return p;
 			}
@@ -306,7 +306,7 @@ ecpg_is_type_an_array(int type, const struct statement *stmt, const struct varia
 
 
 bool
-ecpg_store_result(const PGresult *results, int act_field,
+ecpg_store_result(const PGresult * results, int act_field,
 				  const struct statement *stmt, struct variable *var)
 {
 	enum ARRAY_TYPE isarray;
@@ -1109,7 +1109,7 @@ ecpg_build_params(struct statement *stmt)
 	struct variable *var;
 	int			desc_counter = 0;
 	int			position = 0;
-	const char	   *value;
+	const char *value;
 	bool		std_strings = false;
 
 	/* Get standard_conforming_strings setting. */

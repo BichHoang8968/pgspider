@@ -57,7 +57,7 @@
 ProcessingMode Mode = InitProcessing;
 
 /* List of lock files to be removed at proc exit */
-static List *lock_files = NIL;
+static List * lock_files = NIL;
 
 static Latch LocalLatchData;
 
@@ -153,10 +153,10 @@ ChangeToDataDir(void)
  * convenient way to do it.
  * ----------------------------------------------------------------
  */
-static Oid	AuthenticatedUserId = InvalidOid;
-static Oid	SessionUserId = InvalidOid;
-static Oid	OuterUserId = InvalidOid;
-static Oid	CurrentUserId = InvalidOid;
+static Oid AuthenticatedUserId = InvalidOid;
+static Oid SessionUserId = InvalidOid;
+static Oid OuterUserId = InvalidOid;
+static Oid CurrentUserId = InvalidOid;
 
 /* We also have to remember the superuser state of some of these levels */
 static bool AuthenticatedUserIsSuperuser = false;
@@ -386,7 +386,7 @@ GetAuthenticatedUserId(void)
  * through AbortTransaction without asserting in case InitPostgres fails.
  */
 void
-GetUserIdAndSecContext(Oid *userid, int *sec_context)
+GetUserIdAndSecContext(Oid * userid, int *sec_context)
 {
 	*userid = CurrentUserId;
 	*sec_context = SecurityRestrictionContext;
@@ -435,7 +435,7 @@ InNoForceRLSOperation(void)
  * security restriction context.
  */
 void
-GetUserIdAndContext(Oid *userid, bool *sec_def_context)
+GetUserIdAndContext(Oid * userid, bool *sec_def_context)
 {
 	*userid = CurrentUserId;
 	*sec_def_context = InLocalUserIdChange();

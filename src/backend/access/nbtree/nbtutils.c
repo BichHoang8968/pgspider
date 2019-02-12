@@ -32,19 +32,19 @@ typedef struct BTSortArrayContext
 	FmgrInfo	flinfo;
 	Oid			collation;
 	bool		reverse;
-} BTSortArrayContext;
+}			BTSortArrayContext;
 
 static Datum _bt_find_extreme_element(IndexScanDesc scan, ScanKey skey,
-						 StrategyNumber strat,
-						 Datum *elems, int nelems);
+									  StrategyNumber strat,
+									  Datum * elems, int nelems);
 static int _bt_sort_array_elements(IndexScanDesc scan, ScanKey skey,
 						bool reverse,
-						Datum *elems, int nelems);
+						Datum * elems, int nelems);
 static int	_bt_compare_array_elements(const void *a, const void *b, void *arg);
 static bool _bt_compare_scankey_args(IndexScanDesc scan, ScanKey op,
 						 ScanKey leftarg, ScanKey rightarg,
 						 bool *result);
-static bool _bt_fix_scankey_strategy(ScanKey skey, int16 *indoption);
+static bool _bt_fix_scankey_strategy(ScanKey skey, int16 * indoption);
 static void _bt_mark_scankey_required(ScanKey skey);
 static bool _bt_check_rowcompare(ScanKey skey,
 					 IndexTuple tuple, TupleDesc tupdesc,
@@ -363,7 +363,7 @@ _bt_preprocess_array_keys(IndexScanDesc scan)
 static Datum
 _bt_find_extreme_element(IndexScanDesc scan, ScanKey skey,
 						 StrategyNumber strat,
-						 Datum *elems, int nelems)
+						 Datum * elems, int nelems)
 {
 	Relation	rel = scan->indexRelation;
 	Oid			elemtype,
@@ -430,7 +430,7 @@ _bt_find_extreme_element(IndexScanDesc scan, ScanKey skey,
 static int
 _bt_sort_array_elements(IndexScanDesc scan, ScanKey skey,
 						bool reverse,
-						Datum *elems, int nelems)
+						Datum * elems, int nelems)
 {
 	Relation	rel = scan->indexRelation;
 	Oid			elemtype;
@@ -1196,7 +1196,7 @@ _bt_compare_scankey_args(IndexScanDesc scan, ScanKey op,
  * not going to change while the scankey survives.
  */
 static bool
-_bt_fix_scankey_strategy(ScanKey skey, int16 *indoption)
+_bt_fix_scankey_strategy(ScanKey skey, int16 * indoption)
 {
 	int			addflags;
 
@@ -1847,7 +1847,7 @@ typedef struct BTOneVacInfo
 {
 	LockRelId	relid;			/* global identifier of an index */
 	BTCycleId	cycleid;		/* cycle ID for its active VACUUM */
-} BTOneVacInfo;
+}			BTOneVacInfo;
 
 typedef struct BTVacInfo
 {
@@ -1855,9 +1855,9 @@ typedef struct BTVacInfo
 	int			num_vacuums;	/* number of currently active VACUUMs */
 	int			max_vacuums;	/* allocated length of vacuums[] array */
 	BTOneVacInfo vacuums[FLEXIBLE_ARRAY_MEMBER];
-} BTVacInfo;
+}			BTVacInfo;
 
-static BTVacInfo *btvacinfo;
+static BTVacInfo * btvacinfo;
 
 
 /*

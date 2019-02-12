@@ -12,7 +12,7 @@ typedef struct
 {
 	Interval	lower,
 				upper;
-} intvKEY;
+}			intvKEY;
 
 
 /*
@@ -30,37 +30,37 @@ PG_FUNCTION_INFO_V1(gbt_intv_same);
 
 
 static bool
-gbt_intvgt(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_intvgt(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return DatumGetBool(DirectFunctionCall2(interval_gt, IntervalPGetDatum(a), IntervalPGetDatum(b)));
 }
 
 static bool
-gbt_intvge(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_intvge(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return DatumGetBool(DirectFunctionCall2(interval_ge, IntervalPGetDatum(a), IntervalPGetDatum(b)));
 }
 
 static bool
-gbt_intveq(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_intveq(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return DatumGetBool(DirectFunctionCall2(interval_eq, IntervalPGetDatum(a), IntervalPGetDatum(b)));
 }
 
 static bool
-gbt_intvle(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_intvle(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return DatumGetBool(DirectFunctionCall2(interval_le, IntervalPGetDatum(a), IntervalPGetDatum(b)));
 }
 
 static bool
-gbt_intvlt(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_intvlt(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return DatumGetBool(DirectFunctionCall2(interval_lt, IntervalPGetDatum(a), IntervalPGetDatum(b)));
 }
 
 static int
-gbt_intvkey_cmp(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_intvkey_cmp(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	intvKEY    *ia = (intvKEY *) (((const Nsrt *) a)->t);
 	intvKEY    *ib = (intvKEY *) (((const Nsrt *) b)->t);
@@ -75,13 +75,13 @@ gbt_intvkey_cmp(const void *a, const void *b, FmgrInfo *flinfo)
 
 
 static double
-intr2num(const Interval *i)
+intr2num(const Interval * i)
 {
 	return INTERVAL_TO_SEC(i);
 }
 
 static float8
-gbt_intv_dist(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_intv_dist(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (float8) Abs(intr2num((const Interval *) a) - intr2num((const Interval *) b));
 }
@@ -111,9 +111,12 @@ static const gbtree_ninfo tinfo =
 
 
 Interval *
-abs_interval(Interval *a)
+abs_interval(Interval * a)
 {
-	static Interval zero = {0, 0, 0};
+	static Interval zero =
+	{
+		0, 0, 0
+	};
 
 	if (DatumGetBool(DirectFunctionCall2(interval_lt,
 										 IntervalPGetDatum(a),
@@ -222,8 +225,8 @@ gbt_intv_consistent(PG_FUNCTION_ARGS)
 	/* All cases served by this function are exact */
 	*recheck = false;
 
-	key.lower = (GBT_NUMKEY *) &kkk->lower;
-	key.upper = (GBT_NUMKEY *) &kkk->upper;
+	key.lower = (GBT_NUMKEY *) & kkk->lower;
+	key.upper = (GBT_NUMKEY *) & kkk->upper;
 
 	PG_RETURN_BOOL(
 				   gbt_num_consistent(&key, (void *) query, &strategy, GIST_LEAF(entry), &tinfo, fcinfo->flinfo)
@@ -241,8 +244,8 @@ gbt_intv_distance(PG_FUNCTION_ARGS)
 	intvKEY    *kkk = (intvKEY *) DatumGetPointer(entry->key);
 	GBT_NUMKEY_R key;
 
-	key.lower = (GBT_NUMKEY *) &kkk->lower;
-	key.upper = (GBT_NUMKEY *) &kkk->upper;
+	key.lower = (GBT_NUMKEY *) & kkk->lower;
+	key.upper = (GBT_NUMKEY *) & kkk->upper;
 
 	PG_RETURN_FLOAT8(
 					 gbt_num_distance(&key, (void *) query, GIST_LEAF(entry), &tinfo, fcinfo->flinfo)

@@ -27,10 +27,10 @@
 
 /* Combiner function for rbtree.c */
 static void
-ginCombineData(RBNode *existing, const RBNode *newdata, void *arg)
+ginCombineData(RBNode * existing, const RBNode * newdata, void *arg)
 {
 	GinEntryAccumulator *eo = (GinEntryAccumulator *) existing;
-	const GinEntryAccumulator *en = (const GinEntryAccumulator *) newdata;
+	const		GinEntryAccumulator *en = (const GinEntryAccumulator *) newdata;
 	BuildAccumulator *accum = (BuildAccumulator *) arg;
 
 	/*
@@ -69,10 +69,10 @@ ginCombineData(RBNode *existing, const RBNode *newdata, void *arg)
 
 /* Comparator function for rbtree.c */
 static int
-cmpEntryAccumulator(const RBNode *a, const RBNode *b, void *arg)
+cmpEntryAccumulator(const RBNode * a, const RBNode * b, void *arg)
 {
-	const GinEntryAccumulator *ea = (const GinEntryAccumulator *) a;
-	const GinEntryAccumulator *eb = (const GinEntryAccumulator *) b;
+	const		GinEntryAccumulator *ea = (const GinEntryAccumulator *) a;
+	const		GinEntryAccumulator *eb = (const GinEntryAccumulator *) b;
 	BuildAccumulator *accum = (BuildAccumulator *) arg;
 
 	return ginCompareAttEntries(accum->ginstate,
@@ -106,7 +106,7 @@ ginAllocEntryAccumulator(void *arg)
 }
 
 void
-ginInitBA(BuildAccumulator *accum)
+ginInitBA(BuildAccumulator * accum)
 {
 	/* accum->ginstate is intentionally not set here */
 	accum->allocatedMemory = 0;
@@ -125,7 +125,7 @@ ginInitBA(BuildAccumulator *accum)
  * palloc'd space in accum->allocatedMemory.
  */
 static Datum
-getDatumCopy(BuildAccumulator *accum, OffsetNumber attnum, Datum value)
+getDatumCopy(BuildAccumulator * accum, OffsetNumber attnum, Datum value)
 {
 	Form_pg_attribute att = accum->ginstate->origTupdesc->attrs[attnum - 1];
 	Datum		res;
@@ -144,7 +144,7 @@ getDatumCopy(BuildAccumulator *accum, OffsetNumber attnum, Datum value)
  * Find/store one entry from indexed value.
  */
 static void
-ginInsertBAEntry(BuildAccumulator *accum,
+ginInsertBAEntry(BuildAccumulator * accum,
 				 ItemPointer heapptr, OffsetNumber attnum,
 				 Datum key, GinNullCategory category)
 {
@@ -162,7 +162,7 @@ ginInsertBAEntry(BuildAccumulator *accum,
 	/* temporarily set up single-entry itempointer list */
 	eatmp.list = heapptr;
 
-	ea = (GinEntryAccumulator *) rb_insert(accum->tree, (RBNode *) &eatmp,
+	ea = (GinEntryAccumulator *) rb_insert(accum->tree, (RBNode *) & eatmp,
 										   &isNew);
 
 	if (isNew)
@@ -206,9 +206,9 @@ ginInsertBAEntry(BuildAccumulator *accum,
  * middles of quarters, etc.
  */
 void
-ginInsertBAEntries(BuildAccumulator *accum,
+ginInsertBAEntries(BuildAccumulator * accum,
 				   ItemPointer heapptr, OffsetNumber attnum,
-				   Datum *entries, GinNullCategory *categories,
+				   Datum * entries, GinNullCategory * categories,
 				   int32 nentries)
 {
 	uint32		step = nentries;
@@ -253,7 +253,7 @@ qsortCompareItemPointers(const void *a, const void *b)
 
 /* Prepare to read out the rbtree contents using ginGetBAEntry */
 void
-ginBeginBAScan(BuildAccumulator *accum)
+ginBeginBAScan(BuildAccumulator * accum)
 {
 	rb_begin_iterate(accum->tree, LeftRightWalk, &accum->tree_walk);
 }
@@ -264,9 +264,9 @@ ginBeginBAScan(BuildAccumulator *accum)
  * heap TIDs in which that key is found.  The list is guaranteed sorted.
  */
 ItemPointerData *
-ginGetBAEntry(BuildAccumulator *accum,
-			  OffsetNumber *attnum, Datum *key, GinNullCategory *category,
-			  uint32 *n)
+ginGetBAEntry(BuildAccumulator * accum,
+			  OffsetNumber * attnum, Datum * key, GinNullCategory * category,
+			  uint32 * n)
 {
 	GinEntryAccumulator *entry;
 	ItemPointerData *list;

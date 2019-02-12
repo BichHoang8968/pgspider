@@ -27,9 +27,9 @@ typedef struct
 	char	   *path;
 	char	   *rpath;			/* relative path within PGDATA, or NULL */
 	int64		size;
-} tablespaceinfo;
+}			tablespaceinfo;
 
-extern void SendBaseBackup(BaseBackupCmd *cmd);
+extern void SendBaseBackup(BaseBackupCmd * cmd);
 
 extern int64 sendTablespace(char *path, bool sizeonly);
 

@@ -70,24 +70,24 @@
 #endif
 
 /* Cache management header --- pointer is NULL until created */
-static CatCacheHeader *CacheHdr = NULL;
+static CatCacheHeader * CacheHdr = NULL;
 
 
-static uint32 CatalogCacheComputeHashValue(CatCache *cache, int nkeys,
-							 ScanKey cur_skey);
-static uint32 CatalogCacheComputeTupleHashValue(CatCache *cache,
-								  HeapTuple tuple);
+static uint32 CatalogCacheComputeHashValue(CatCache * cache, int nkeys,
+										   ScanKey cur_skey);
+static uint32 CatalogCacheComputeTupleHashValue(CatCache * cache,
+												HeapTuple tuple);
 
 #ifdef CATCACHE_STATS
 static void CatCachePrintStats(int code, Datum arg);
 #endif
-static void CatCacheRemoveCTup(CatCache *cache, CatCTup *ct);
-static void CatCacheRemoveCList(CatCache *cache, CatCList *cl);
-static void CatalogCacheInitializeCache(CatCache *cache);
-static CatCTup *CatalogCacheCreateEntry(CatCache *cache, HeapTuple ntp,
-						uint32 hashValue, Index hashIndex,
-						bool negative);
-static HeapTuple build_dummy_tuple(CatCache *cache, int nkeys, ScanKey skeys);
+static void CatCacheRemoveCTup(CatCache * cache, CatCTup * ct);
+static void CatCacheRemoveCList(CatCache * cache, CatCList * cl);
+static void CatalogCacheInitializeCache(CatCache * cache);
+static CatCTup * CatalogCacheCreateEntry(CatCache * cache, HeapTuple ntp,
+										 uint32 hashValue, Index hashIndex,
+										 bool negative);
+static HeapTuple build_dummy_tuple(CatCache * cache, int nkeys, ScanKey skeys);
 
 
 /*
@@ -102,7 +102,7 @@ static HeapTuple build_dummy_tuple(CatCache *cache, int nkeys, ScanKey skeys);
  * but that seems to pose considerable risk of circularity...
  */
 static void
-GetCCHashEqFuncs(Oid keytype, PGFunction *hashfunc, RegProcedure *eqfunc)
+GetCCHashEqFuncs(Oid keytype, PGFunction * hashfunc, RegProcedure * eqfunc)
 {
 	switch (keytype)
 	{
@@ -171,7 +171,7 @@ GetCCHashEqFuncs(Oid keytype, PGFunction *hashfunc, RegProcedure *eqfunc)
  * Compute the hash value associated with a given set of lookup keys
  */
 static uint32
-CatalogCacheComputeHashValue(CatCache *cache, int nkeys, ScanKey cur_skey)
+CatalogCacheComputeHashValue(CatCache * cache, int nkeys, ScanKey cur_skey)
 {
 	uint32		hashValue = 0;
 	uint32		oneHash;
@@ -224,7 +224,7 @@ CatalogCacheComputeHashValue(CatCache *cache, int nkeys, ScanKey cur_skey)
  * Compute the hash value associated with a given tuple to be cached
  */
 static uint32
-CatalogCacheComputeTupleHashValue(CatCache *cache, HeapTuple tuple)
+CatalogCacheComputeTupleHashValue(CatCache * cache, HeapTuple tuple)
 {
 	ScanKeyData cur_skey[CATCACHE_MAXKEYS];
 	bool		isNull = false;
@@ -351,7 +351,7 @@ CatCachePrintStats(int code, Datum arg)
  * Both the cache entry and the list had better have zero refcount.
  */
 static void
-CatCacheRemoveCTup(CatCache *cache, CatCTup *ct)
+CatCacheRemoveCTup(CatCache * cache, CatCTup * ct)
 {
 	Assert(ct->refcount == 0);
 	Assert(ct->my_cache == cache);
@@ -388,7 +388,7 @@ CatCacheRemoveCTup(CatCache *cache, CatCTup *ct)
  * NB: any dead member entries that become unreferenced are deleted too.
  */
 static void
-CatCacheRemoveCList(CatCache *cache, CatCList *cl)
+CatCacheRemoveCList(CatCache * cache, CatCList * cl)
 {
 	int			i;
 
@@ -440,7 +440,7 @@ CatCacheRemoveCList(CatCache *cache, CatCList *cl)
  *	This routine is only quasi-public: it should only be used by inval.c.
  */
 void
-CatCacheInvalidate(CatCache *cache, uint32 hashValue)
+CatCacheInvalidate(CatCache * cache, uint32 hashValue)
 {
 	Index		hashIndex;
 	dlist_mutable_iter iter;
@@ -530,7 +530,7 @@ CreateCacheMemoryContext(void)
  * However, it shouldn't need to be efficient; we don't invoke it often.
  */
 static void
-ResetCatalogCache(CatCache *cache)
+ResetCatalogCache(CatCache * cache)
 {
 	dlist_mutable_iter iter;
 	int			i;
@@ -746,7 +746,7 @@ InitCatCache(int id,
  * Enlarge a catcache, doubling the number of buckets.
  */
 static void
-RehashCatCache(CatCache *cp)
+RehashCatCache(CatCache * cp)
 {
 	dlist_head *newbucket;
 	int			newnbuckets;
@@ -809,7 +809,7 @@ do { \
 #endif
 
 static void
-CatalogCacheInitializeCache(CatCache *cache)
+CatalogCacheInitializeCache(CatCache * cache)
 {
 	Relation	relation;
 	MemoryContext oldcxt;
@@ -920,7 +920,7 @@ CatalogCacheInitializeCache(CatCache *cache)
  * (cf. IndexScanOK).
  */
 void
-InitCatCachePhase2(CatCache *cache, bool touch_index)
+InitCatCachePhase2(CatCache * cache, bool touch_index)
 {
 	if (cache->cc_tupdesc == NULL)
 		CatalogCacheInitializeCache(cache);
@@ -971,7 +971,7 @@ InitCatCachePhase2(CatCache *cache, bool touch_index)
  *		we don't yet have relcache entries for those catalogs' indexes.
  */
 static bool
-IndexScanOK(CatCache *cache, ScanKey cur_skey)
+IndexScanOK(CatCache * cache, ScanKey cur_skey)
 {
 	switch (cache->id)
 	{
@@ -1035,7 +1035,7 @@ IndexScanOK(CatCache *cache, ScanKey cur_skey)
  * null-padded NAME.
  */
 HeapTuple
-SearchCatCache(CatCache *cache,
+SearchCatCache(CatCache * cache,
 			   Datum v1,
 			   Datum v2,
 			   Datum v3,
@@ -1281,7 +1281,7 @@ ReleaseCatCache(HeapTuple tuple)
  * catcache code that need to be able to compute the hash values.
  */
 uint32
-GetCatCacheHashValue(CatCache *cache,
+GetCatCacheHashValue(CatCache * cache,
 					 Datum v1,
 					 Datum v2,
 					 Datum v3,
@@ -1321,7 +1321,7 @@ GetCatCacheHashValue(CatCache *cache,
  *		and must call ReleaseCatCacheList() when done with the list.
  */
 CatCList *
-SearchCatCacheList(CatCache *cache,
+SearchCatCacheList(CatCache * cache,
 				   int nkeys,
 				   Datum v1,
 				   Datum v2,
@@ -1597,7 +1597,7 @@ SearchCatCacheList(CatCache *cache,
  *	Decrement the reference count of a catcache list.
  */
 void
-ReleaseCatCacheList(CatCList *list)
+ReleaseCatCacheList(CatCList * list)
 {
 	/* Safety checks to ensure we were handed a cache entry */
 	Assert(list->cl_magic == CL_MAGIC);
@@ -1620,7 +1620,7 @@ ReleaseCatCacheList(CatCList *list)
  *		supplied data into it.  The new entry initially has refcount 0.
  */
 static CatCTup *
-CatalogCacheCreateEntry(CatCache *cache, HeapTuple ntp,
+CatalogCacheCreateEntry(CatCache * cache, HeapTuple ntp,
 						uint32 hashValue, Index hashIndex, bool negative)
 {
 	CatCTup    *ct;
@@ -1686,7 +1686,7 @@ CatalogCacheCreateEntry(CatCache *cache, HeapTuple ntp,
  * entries, which don't have real tuples associated with them.
  */
 static HeapTuple
-build_dummy_tuple(CatCache *cache, int nkeys, ScanKey skeys)
+build_dummy_tuple(CatCache * cache, int nkeys, ScanKey skeys)
 {
 	HeapTuple	ntp;
 	TupleDesc	tupDesc = cache->cc_tupdesc;
@@ -1858,7 +1858,7 @@ PrintCatCacheLeakWarning(HeapTuple tuple)
 }
 
 void
-PrintCatCacheListLeakWarning(CatCList *list)
+PrintCatCacheListLeakWarning(CatCList * list)
 {
 	elog(WARNING, "cache reference leak: cache %s (%d), list %p has count %d",
 		 list->my_cache->cc_relname, list->my_cache->id,

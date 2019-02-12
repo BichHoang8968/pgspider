@@ -92,7 +92,7 @@ typedef struct
 	List	   *grantees;
 	bool		grant_option;
 	DropBehavior behavior;
-} InternalDefaultACL;
+}			InternalDefaultACL;
 
 /*
  * When performing a binary-upgrade, pg_dump will call a function to set
@@ -101,50 +101,50 @@ typedef struct
  */
 bool		binary_upgrade_record_init_privs = false;
 
-static void ExecGrantStmt_oids(InternalGrant *istmt);
-static void ExecGrant_Relation(InternalGrant *grantStmt);
-static void ExecGrant_Database(InternalGrant *grantStmt);
-static void ExecGrant_Fdw(InternalGrant *grantStmt);
-static void ExecGrant_ForeignServer(InternalGrant *grantStmt);
-static void ExecGrant_Function(InternalGrant *grantStmt);
-static void ExecGrant_Language(InternalGrant *grantStmt);
-static void ExecGrant_Largeobject(InternalGrant *grantStmt);
-static void ExecGrant_Namespace(InternalGrant *grantStmt);
-static void ExecGrant_Tablespace(InternalGrant *grantStmt);
-static void ExecGrant_Type(InternalGrant *grantStmt);
+static void ExecGrantStmt_oids(InternalGrant * istmt);
+static void ExecGrant_Relation(InternalGrant * grantStmt);
+static void ExecGrant_Database(InternalGrant * grantStmt);
+static void ExecGrant_Fdw(InternalGrant * grantStmt);
+static void ExecGrant_ForeignServer(InternalGrant * grantStmt);
+static void ExecGrant_Function(InternalGrant * grantStmt);
+static void ExecGrant_Language(InternalGrant * grantStmt);
+static void ExecGrant_Largeobject(InternalGrant * grantStmt);
+static void ExecGrant_Namespace(InternalGrant * grantStmt);
+static void ExecGrant_Tablespace(InternalGrant * grantStmt);
+static void ExecGrant_Type(InternalGrant * grantStmt);
 
-static void SetDefaultACLsInSchemas(InternalDefaultACL *iacls, List *nspnames);
-static void SetDefaultACL(InternalDefaultACL *iacls);
+static void SetDefaultACLsInSchemas(InternalDefaultACL * iacls, List * nspnames);
+static void SetDefaultACL(InternalDefaultACL * iacls);
 
-static List *objectNamesToOids(GrantObjectType objtype, List *objnames);
-static List *objectsInSchemaToOids(GrantObjectType objtype, List *nspnames);
-static List *getRelationsInNamespace(Oid namespaceId, char relkind);
-static void expand_col_privileges(List *colnames, Oid table_oid,
+static List * objectNamesToOids(GrantObjectType objtype, List * objnames);
+static List * objectsInSchemaToOids(GrantObjectType objtype, List * nspnames);
+static List * getRelationsInNamespace(Oid namespaceId, char relkind);
+static void expand_col_privileges(List * colnames, Oid table_oid,
 					  AclMode this_privileges,
-					  AclMode *col_privileges,
+					  AclMode * col_privileges,
 					  int num_col_privileges);
 static void expand_all_col_privileges(Oid table_oid, Form_pg_class classForm,
 						  AclMode this_privileges,
-						  AclMode *col_privileges,
+						  AclMode * col_privileges,
 						  int num_col_privileges);
 static AclMode string_to_privilege(const char *privname);
 static const char *privilege_to_string(AclMode privilege);
 static AclMode restrict_and_check_grant(bool is_grant, AclMode avail_goptions,
-						 bool all_privs, AclMode privileges,
-						 Oid objectId, Oid grantorId,
-						 AclObjectKind objkind, const char *objname,
-						 AttrNumber att_number, const char *colname);
+										bool all_privs, AclMode privileges,
+										Oid objectId, Oid grantorId,
+										AclObjectKind objkind, const char *objname,
+										AttrNumber att_number, const char *colname);
 static AclMode pg_aclmask(AclObjectKind objkind, Oid table_oid, AttrNumber attnum,
-		   Oid roleid, AclMode mask, AclMaskHow how);
+						  Oid roleid, AclMode mask, AclMaskHow how);
 static void recordExtensionInitPriv(Oid objoid, Oid classoid, int objsubid,
-						Acl *new_acl);
+						Acl * new_acl);
 static void recordExtensionInitPrivWorker(Oid objoid, Oid classoid, int objsubid,
-							  Acl *new_acl);
+							  Acl * new_acl);
 
 
 #ifdef ACLDEBUG
 static void
-dumpacl(Acl *acl)
+dumpacl(Acl * acl)
 {
 	int			i;
 	AclItem    *aip;
@@ -168,9 +168,9 @@ dumpacl(Acl *acl)
  * NB: the original old_acl is pfree'd.
  */
 static Acl *
-merge_acl_with_grant(Acl *old_acl, bool is_grant,
+merge_acl_with_grant(Acl * old_acl, bool is_grant,
 					 bool grant_option, DropBehavior behavior,
-					 List *grantees, AclMode privileges,
+					 List * grantees, AclMode privileges,
 					 Oid grantorId, Oid ownerId)
 {
 	unsigned	modechg;
@@ -382,7 +382,7 @@ restrict_and_check_grant(bool is_grant, AclMode avail_goptions, bool all_privs,
  * Called to execute the utility commands GRANT and REVOKE
  */
 void
-ExecuteGrantStmt(GrantStmt *stmt)
+ExecuteGrantStmt(GrantStmt * stmt)
 {
 	InternalGrant istmt;
 	ListCell   *cell;
@@ -562,7 +562,7 @@ ExecuteGrantStmt(GrantStmt *stmt)
  * Internal entry point for granting and revoking privileges.
  */
 static void
-ExecGrantStmt_oids(InternalGrant *istmt)
+ExecGrantStmt_oids(InternalGrant * istmt)
 {
 	switch (istmt->objtype)
 	{
@@ -624,7 +624,7 @@ ExecGrantStmt_oids(InternalGrant *istmt)
  * to fail.
  */
 static List *
-objectNamesToOids(GrantObjectType objtype, List *objnames)
+objectNamesToOids(GrantObjectType objtype, List * objnames)
 {
 	List	   *objects = NIL;
 	ListCell   *cell;
@@ -753,7 +753,7 @@ objectNamesToOids(GrantObjectType objtype, List *objnames)
  * no privilege checking on the individual objects here.
  */
 static List *
-objectsInSchemaToOids(GrantObjectType objtype, List *nspnames)
+objectsInSchemaToOids(GrantObjectType objtype, List * nspnames)
 {
 	List	   *objects = NIL;
 	ListCell   *cell;
@@ -860,7 +860,7 @@ getRelationsInNamespace(Oid namespaceId, char relkind)
  * ALTER DEFAULT PRIVILEGES statement
  */
 void
-ExecAlterDefaultPrivilegesStmt(ParseState *pstate, AlterDefaultPrivilegesStmt *stmt)
+ExecAlterDefaultPrivilegesStmt(ParseState * pstate, AlterDefaultPrivilegesStmt * stmt)
 {
 	GrantStmt  *action = stmt->action;
 	InternalDefaultACL iacls;
@@ -1046,7 +1046,7 @@ ExecAlterDefaultPrivilegesStmt(ParseState *pstate, AlterDefaultPrivilegesStmt *s
  * All fields of *iacls except nspid were filled already
  */
 static void
-SetDefaultACLsInSchemas(InternalDefaultACL *iacls, List *nspnames)
+SetDefaultACLsInSchemas(InternalDefaultACL * iacls, List * nspnames)
 {
 	if (nspnames == NIL)
 	{
@@ -1088,7 +1088,7 @@ SetDefaultACLsInSchemas(InternalDefaultACL *iacls, List *nspnames)
  * Create or update a pg_default_acl entry
  */
 static void
-SetDefaultACL(InternalDefaultACL *iacls)
+SetDefaultACL(InternalDefaultACL * iacls)
 {
 	AclMode		this_privileges = iacls->privileges;
 	char		objtype;
@@ -1502,9 +1502,9 @@ RemoveDefaultACLById(Oid defaclOid)
  * FirstLowInvalidHeapAttributeNumber, up to relation's last attribute.
  */
 static void
-expand_col_privileges(List *colnames, Oid table_oid,
+expand_col_privileges(List * colnames, Oid table_oid,
 					  AclMode this_privileges,
-					  AclMode *col_privileges,
+					  AclMode * col_privileges,
 					  int num_col_privileges)
 {
 	ListCell   *cell;
@@ -1537,7 +1537,7 @@ expand_col_privileges(List *colnames, Oid table_oid,
 static void
 expand_all_col_privileges(Oid table_oid, Form_pg_class classForm,
 						  AclMode this_privileges,
-						  AclMode *col_privileges,
+						  AclMode * col_privileges,
 						  int num_col_privileges)
 {
 	AttrNumber	curr_att;
@@ -1585,9 +1585,9 @@ expand_all_col_privileges(Oid table_oid, Form_pg_class classForm,
  *	ExecGrant_Relation, not directly from ExecGrantStmt.
  */
 static void
-ExecGrant_Attribute(InternalGrant *istmt, Oid relOid, const char *relname,
+ExecGrant_Attribute(InternalGrant * istmt, Oid relOid, const char *relname,
 					AttrNumber attnum, Oid ownerId, AclMode col_privileges,
-					Relation attRelation, const Acl *old_rel_acl)
+					Relation attRelation, const Acl * old_rel_acl)
 {
 	HeapTuple	attr_tuple;
 	Form_pg_attribute pg_attribute_tuple;
@@ -1733,7 +1733,7 @@ ExecGrant_Attribute(InternalGrant *istmt, Oid relOid, const char *relname,
  *	This processes both sequences and non-sequences.
  */
 static void
-ExecGrant_Relation(InternalGrant *istmt)
+ExecGrant_Relation(InternalGrant * istmt)
 {
 	Relation	relation;
 	Relation	attRelation;
@@ -2064,7 +2064,7 @@ ExecGrant_Relation(InternalGrant *istmt)
 }
 
 static void
-ExecGrant_Database(InternalGrant *istmt)
+ExecGrant_Database(InternalGrant * istmt)
 {
 	Relation	relation;
 	ListCell   *cell;
@@ -2184,7 +2184,7 @@ ExecGrant_Database(InternalGrant *istmt)
 }
 
 static void
-ExecGrant_Fdw(InternalGrant *istmt)
+ExecGrant_Fdw(InternalGrant * istmt)
 {
 	Relation	relation;
 	ListCell   *cell;
@@ -2311,7 +2311,7 @@ ExecGrant_Fdw(InternalGrant *istmt)
 }
 
 static void
-ExecGrant_ForeignServer(InternalGrant *istmt)
+ExecGrant_ForeignServer(InternalGrant * istmt)
 {
 	Relation	relation;
 	ListCell   *cell;
@@ -2436,7 +2436,7 @@ ExecGrant_ForeignServer(InternalGrant *istmt)
 }
 
 static void
-ExecGrant_Function(InternalGrant *istmt)
+ExecGrant_Function(InternalGrant * istmt)
 {
 	Relation	relation;
 	ListCell   *cell;
@@ -2559,7 +2559,7 @@ ExecGrant_Function(InternalGrant *istmt)
 }
 
 static void
-ExecGrant_Language(InternalGrant *istmt)
+ExecGrant_Language(InternalGrant * istmt)
 {
 	Relation	relation;
 	ListCell   *cell;
@@ -2690,7 +2690,7 @@ ExecGrant_Language(InternalGrant *istmt)
 }
 
 static void
-ExecGrant_Largeobject(InternalGrant *istmt)
+ExecGrant_Largeobject(InternalGrant * istmt)
 {
 	Relation	relation;
 	ListCell   *cell;
@@ -2830,7 +2830,7 @@ ExecGrant_Largeobject(InternalGrant *istmt)
 }
 
 static void
-ExecGrant_Namespace(InternalGrant *istmt)
+ExecGrant_Namespace(InternalGrant * istmt)
 {
 	Relation	relation;
 	ListCell   *cell;
@@ -2954,7 +2954,7 @@ ExecGrant_Namespace(InternalGrant *istmt)
 }
 
 static void
-ExecGrant_Tablespace(InternalGrant *istmt)
+ExecGrant_Tablespace(InternalGrant * istmt)
 {
 	Relation	relation;
 	ListCell   *cell;
@@ -3074,7 +3074,7 @@ ExecGrant_Tablespace(InternalGrant *istmt)
 }
 
 static void
-ExecGrant_Type(InternalGrant *istmt)
+ExecGrant_Type(InternalGrant * istmt)
 {
 	Relation	relation;
 	ListCell   *cell;
@@ -5693,7 +5693,7 @@ removeExtObjInitPriv(Oid objoid, Oid classoid)
  * removed, if one is found.
  */
 static void
-recordExtensionInitPriv(Oid objoid, Oid classoid, int objsubid, Acl *new_acl)
+recordExtensionInitPriv(Oid objoid, Oid classoid, int objsubid, Acl * new_acl)
 {
 	/*
 	 * Generally, we only record the initial privileges when an extension is
@@ -5722,7 +5722,7 @@ recordExtensionInitPriv(Oid objoid, Oid classoid, int objsubid, Acl *new_acl)
  * EXTENSION ... ADD/DROP.
  */
 static void
-recordExtensionInitPrivWorker(Oid objoid, Oid classoid, int objsubid, Acl *new_acl)
+recordExtensionInitPrivWorker(Oid objoid, Oid classoid, int objsubid, Acl * new_acl)
 {
 	Relation	relation;
 	ScanKeyData key[3];

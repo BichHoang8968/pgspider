@@ -31,38 +31,38 @@
 #include "utils/lsyscache.h"
 
 
-static EquivalenceMember *add_eq_member(EquivalenceClass *ec,
-			  Expr *expr, Relids relids, Relids nullable_relids,
-			  bool is_child, Oid datatype);
-static void generate_base_implied_equalities_const(PlannerInfo *root,
-									   EquivalenceClass *ec);
-static void generate_base_implied_equalities_no_const(PlannerInfo *root,
-										  EquivalenceClass *ec);
-static void generate_base_implied_equalities_broken(PlannerInfo *root,
-										EquivalenceClass *ec);
-static List *generate_join_implied_equalities_normal(PlannerInfo *root,
-										EquivalenceClass *ec,
-										Relids join_relids,
-										Relids outer_relids,
-										Relids inner_relids);
-static List *generate_join_implied_equalities_broken(PlannerInfo *root,
-										EquivalenceClass *ec,
-										Relids nominal_join_relids,
-										Relids outer_relids,
-										Relids nominal_inner_relids,
-										RelOptInfo *inner_rel);
-static Oid select_equality_operator(EquivalenceClass *ec,
-						 Oid lefttype, Oid righttype);
-static RestrictInfo *create_join_clause(PlannerInfo *root,
-				   EquivalenceClass *ec, Oid opno,
-				   EquivalenceMember *leftem,
-				   EquivalenceMember *rightem,
-				   EquivalenceClass *parent_ec);
-static bool reconsider_outer_join_clause(PlannerInfo *root,
-							 RestrictInfo *rinfo,
+static EquivalenceMember * add_eq_member(EquivalenceClass * ec,
+										 Expr * expr, Relids relids, Relids nullable_relids,
+										 bool is_child, Oid datatype);
+static void generate_base_implied_equalities_const(PlannerInfo * root,
+									   EquivalenceClass * ec);
+static void generate_base_implied_equalities_no_const(PlannerInfo * root,
+										  EquivalenceClass * ec);
+static void generate_base_implied_equalities_broken(PlannerInfo * root,
+										EquivalenceClass * ec);
+static List * generate_join_implied_equalities_normal(PlannerInfo * root,
+													  EquivalenceClass * ec,
+													  Relids join_relids,
+													  Relids outer_relids,
+													  Relids inner_relids);
+static List * generate_join_implied_equalities_broken(PlannerInfo * root,
+													  EquivalenceClass * ec,
+													  Relids nominal_join_relids,
+													  Relids outer_relids,
+													  Relids nominal_inner_relids,
+													  RelOptInfo * inner_rel);
+static Oid select_equality_operator(EquivalenceClass * ec,
+									Oid lefttype, Oid righttype);
+static RestrictInfo * create_join_clause(PlannerInfo * root,
+										 EquivalenceClass * ec, Oid opno,
+										 EquivalenceMember * leftem,
+										 EquivalenceMember * rightem,
+										 EquivalenceClass * parent_ec);
+static bool reconsider_outer_join_clause(PlannerInfo * root,
+							 RestrictInfo * rinfo,
 							 bool outer_on_left);
-static bool reconsider_full_join_clause(PlannerInfo *root,
-							RestrictInfo *rinfo);
+static bool reconsider_full_join_clause(PlannerInfo * root,
+							RestrictInfo * rinfo);
 
 
 /*
@@ -104,7 +104,7 @@ static bool reconsider_full_join_clause(PlannerInfo *root,
  * memory context.
  */
 bool
-process_equivalence(PlannerInfo *root, RestrictInfo *restrictinfo,
+process_equivalence(PlannerInfo * root, RestrictInfo * restrictinfo,
 					bool below_outer_join)
 {
 	Expr	   *clause = restrictinfo->clause;
@@ -453,7 +453,7 @@ process_equivalence(PlannerInfo *root, RestrictInfo *restrictinfo,
  * RelabelTypes.
  */
 Expr *
-canonicalize_ec_expression(Expr *expr, Oid req_type, Oid req_collation)
+canonicalize_ec_expression(Expr * expr, Oid req_type, Oid req_collation)
 {
 	Oid			expr_type = exprType((Node *) expr);
 
@@ -503,7 +503,7 @@ canonicalize_ec_expression(Expr *expr, Oid req_type, Oid req_collation)
  * add_eq_member - build a new EquivalenceMember and add it to an EC
  */
 static EquivalenceMember *
-add_eq_member(EquivalenceClass *ec, Expr *expr, Relids relids,
+add_eq_member(EquivalenceClass * ec, Expr * expr, Relids relids,
 			  Relids nullable_relids, bool is_child, Oid datatype)
 {
 	EquivalenceMember *em = makeNode(EquivalenceMember);
@@ -579,10 +579,10 @@ add_eq_member(EquivalenceClass *ec, Expr *expr, Relids relids,
  * generating poor (but not incorrect) plans.
  */
 EquivalenceClass *
-get_eclass_for_sort_expr(PlannerInfo *root,
-						 Expr *expr,
+get_eclass_for_sort_expr(PlannerInfo * root,
+						 Expr * expr,
 						 Relids nullable_relids,
-						 List *opfamilies,
+						 List * opfamilies,
 						 Oid opcintype,
 						 Oid collation,
 						 Index sortref,
@@ -760,7 +760,7 @@ get_eclass_for_sort_expr(PlannerInfo *root,
  * generated here can't duplicate anything we will generate for joins anyway.
  */
 void
-generate_base_implied_equalities(PlannerInfo *root)
+generate_base_implied_equalities(PlannerInfo * root)
 {
 	ListCell   *lc;
 	Index		rti;
@@ -805,8 +805,8 @@ generate_base_implied_equalities(PlannerInfo *root)
  * generate_base_implied_equalities when EC contains pseudoconstant(s)
  */
 static void
-generate_base_implied_equalities_const(PlannerInfo *root,
-									   EquivalenceClass *ec)
+generate_base_implied_equalities_const(PlannerInfo * root,
+									   EquivalenceClass * ec)
 {
 	EquivalenceMember *const_em = NULL;
 	ListCell   *lc;
@@ -882,8 +882,8 @@ generate_base_implied_equalities_const(PlannerInfo *root,
  * generate_base_implied_equalities when EC contains no pseudoconstants
  */
 static void
-generate_base_implied_equalities_no_const(PlannerInfo *root,
-										  EquivalenceClass *ec)
+generate_base_implied_equalities_no_const(PlannerInfo * root,
+										  EquivalenceClass * ec)
 {
 	EquivalenceMember **prev_ems;
 	ListCell   *lc;
@@ -897,7 +897,7 @@ generate_base_implied_equalities_no_const(PlannerInfo *root,
 	 * algorithm similar to the way we build merged ECs.  (Use a list-of-lists
 	 * for each rel.)
 	 */
-	prev_ems = (EquivalenceMember **)
+	prev_ems = (EquivalenceMember * *)
 		palloc0(root->simple_rel_array_size * sizeof(EquivalenceMember *));
 
 	foreach(lc, ec->ec_members)
@@ -974,8 +974,8 @@ generate_base_implied_equalities_no_const(PlannerInfo *root,
  * they are broken.)
  */
 static void
-generate_base_implied_equalities_broken(PlannerInfo *root,
-										EquivalenceClass *ec)
+generate_base_implied_equalities_broken(PlannerInfo * root,
+										EquivalenceClass * ec)
 {
 	ListCell   *lc;
 
@@ -1031,10 +1031,10 @@ generate_base_implied_equalities_broken(PlannerInfo *root,
  * most current uses, the caller has the value at hand anyway.
  */
 List *
-generate_join_implied_equalities(PlannerInfo *root,
+generate_join_implied_equalities(PlannerInfo * root,
 								 Relids join_relids,
 								 Relids outer_relids,
-								 RelOptInfo *inner_rel)
+								 RelOptInfo * inner_rel)
 {
 	return generate_join_implied_equalities_for_ecs(root,
 													root->eq_classes,
@@ -1048,11 +1048,11 @@ generate_join_implied_equalities(PlannerInfo *root,
  *	  As above, but consider only the listed ECs.
  */
 List *
-generate_join_implied_equalities_for_ecs(PlannerInfo *root,
-										 List *eclasses,
+generate_join_implied_equalities_for_ecs(PlannerInfo * root,
+										 List * eclasses,
 										 Relids join_relids,
 										 Relids outer_relids,
-										 RelOptInfo *inner_rel)
+										 RelOptInfo * inner_rel)
 {
 	List	   *result = NIL;
 	Relids		inner_relids = inner_rel->relids;
@@ -1119,8 +1119,8 @@ generate_join_implied_equalities_for_ecs(PlannerInfo *root,
  * generate_join_implied_equalities for a still-valid EC
  */
 static List *
-generate_join_implied_equalities_normal(PlannerInfo *root,
-										EquivalenceClass *ec,
+generate_join_implied_equalities_normal(PlannerInfo * root,
+										EquivalenceClass * ec,
 										Relids join_relids,
 										Relids outer_relids,
 										Relids inner_relids)
@@ -1295,12 +1295,12 @@ generate_join_implied_equalities_normal(PlannerInfo *root,
  * original RestrictInfos from parent to child Vars.
  */
 static List *
-generate_join_implied_equalities_broken(PlannerInfo *root,
-										EquivalenceClass *ec,
+generate_join_implied_equalities_broken(PlannerInfo * root,
+										EquivalenceClass * ec,
 										Relids nominal_join_relids,
 										Relids outer_relids,
 										Relids nominal_inner_relids,
-										RelOptInfo *inner_rel)
+										RelOptInfo * inner_rel)
 {
 	List	   *result = NIL;
 	ListCell   *lc;
@@ -1343,7 +1343,7 @@ generate_join_implied_equalities_broken(PlannerInfo *root,
  * Returns InvalidOid if no operator can be found for this datatype combination
  */
 static Oid
-select_equality_operator(EquivalenceClass *ec, Oid lefttype, Oid righttype)
+select_equality_operator(EquivalenceClass * ec, Oid lefttype, Oid righttype)
 {
 	ListCell   *lc;
 
@@ -1378,11 +1378,11 @@ select_equality_operator(EquivalenceClass *ec, Oid lefttype, Oid righttype)
  * EMs is a join clause in one join path and a restriction clause in another.
  */
 static RestrictInfo *
-create_join_clause(PlannerInfo *root,
-				   EquivalenceClass *ec, Oid opno,
-				   EquivalenceMember *leftem,
-				   EquivalenceMember *rightem,
-				   EquivalenceClass *parent_ec)
+create_join_clause(PlannerInfo * root,
+				   EquivalenceClass * ec, Oid opno,
+				   EquivalenceMember * leftem,
+				   EquivalenceMember * rightem,
+				   EquivalenceClass * parent_ec)
 {
 	RestrictInfo *rinfo;
 	ListCell   *lc;
@@ -1531,7 +1531,7 @@ create_join_clause(PlannerInfo *root,
  * upper outer join.  (This doesn't work for full-join clauses.)
  */
 void
-reconsider_outer_join_clauses(PlannerInfo *root)
+reconsider_outer_join_clauses(PlannerInfo * root)
 {
 	bool		found;
 	ListCell   *cell;
@@ -1640,7 +1640,7 @@ reconsider_outer_join_clauses(PlannerInfo *root)
  * Returns TRUE if we were able to propagate a constant through the clause.
  */
 static bool
-reconsider_outer_join_clause(PlannerInfo *root, RestrictInfo *rinfo,
+reconsider_outer_join_clause(PlannerInfo * root, RestrictInfo * rinfo,
 							 bool outer_on_left)
 {
 	Expr	   *outervar,
@@ -1765,7 +1765,7 @@ reconsider_outer_join_clause(PlannerInfo *root, RestrictInfo *rinfo,
  * Returns TRUE if we were able to propagate a constant through the clause.
  */
 static bool
-reconsider_full_join_clause(PlannerInfo *root, RestrictInfo *rinfo)
+reconsider_full_join_clause(PlannerInfo * root, RestrictInfo * rinfo)
 {
 	Expr	   *leftvar;
 	Expr	   *rightvar;
@@ -1942,7 +1942,7 @@ reconsider_full_join_clause(PlannerInfo *root, RestrictInfo *rinfo)
  * check that case if it's possible to pass identical items.
  */
 bool
-exprs_known_equal(PlannerInfo *root, Node *item1, Node *item2)
+exprs_known_equal(PlannerInfo * root, Node * item1, Node * item2)
 {
 	ListCell   *lc1;
 
@@ -1989,8 +1989,8 @@ exprs_known_equal(PlannerInfo *root, Node *item1, Node *item2)
  * that the result is definite not approximate.
  */
 EquivalenceClass *
-match_eclasses_to_foreign_key_col(PlannerInfo *root,
-								  ForeignKeyOptInfo *fkinfo,
+match_eclasses_to_foreign_key_col(PlannerInfo * root,
+								  ForeignKeyOptInfo * fkinfo,
 								  int colno)
 {
 	Index		var1varno = fkinfo->con_relid;
@@ -2067,10 +2067,10 @@ match_eclasses_to_foreign_key_col(PlannerInfo *root,
  * caller has already computed them, we might as well just pass them in.
  */
 void
-add_child_rel_equivalences(PlannerInfo *root,
-						   AppendRelInfo *appinfo,
-						   RelOptInfo *parent_rel,
-						   RelOptInfo *child_rel)
+add_child_rel_equivalences(PlannerInfo * root,
+						   AppendRelInfo * appinfo,
+						   RelOptInfo * parent_rel,
+						   RelOptInfo * child_rel)
 {
 	ListCell   *lc1;
 
@@ -2171,8 +2171,8 @@ add_child_rel_equivalences(PlannerInfo *root,
  * to, so as to save the work of creating useless clauses.
  */
 List *
-generate_implied_equalities_for_column(PlannerInfo *root,
-									   RelOptInfo *rel,
+generate_implied_equalities_for_column(PlannerInfo * root,
+									   RelOptInfo * rel,
 									   ec_matches_callback_type callback,
 									   void *callback_arg,
 									   Relids prohibited_rels)
@@ -2302,8 +2302,8 @@ generate_implied_equalities_for_column(PlannerInfo *root,
  * cross-type operator might prevent the clause from actually being generated.
  */
 bool
-have_relevant_eclass_joinclause(PlannerInfo *root,
-								RelOptInfo *rel1, RelOptInfo *rel2)
+have_relevant_eclass_joinclause(PlannerInfo * root,
+								RelOptInfo * rel1, RelOptInfo * rel2)
 {
 	ListCell   *lc1;
 
@@ -2356,7 +2356,7 @@ have_relevant_eclass_joinclause(PlannerInfo *root,
  * implicitly defined as "everything else in the query".
  */
 bool
-has_relevant_eclass_joinclause(PlannerInfo *root, RelOptInfo *rel1)
+has_relevant_eclass_joinclause(PlannerInfo * root, RelOptInfo * rel1)
 {
 	ListCell   *lc1;
 
@@ -2395,9 +2395,9 @@ has_relevant_eclass_joinclause(PlannerInfo *root, RelOptInfo *rel1)
  * from actually being generated.
  */
 bool
-eclass_useful_for_merging(PlannerInfo *root,
-						  EquivalenceClass *eclass,
-						  RelOptInfo *rel)
+eclass_useful_for_merging(PlannerInfo * root,
+						  EquivalenceClass * eclass,
+						  RelOptInfo * rel)
 {
 	Relids		relids;
 	ListCell   *lc;
@@ -2453,7 +2453,7 @@ eclass_useful_for_merging(PlannerInfo *root,
  *		with that member of the list.
  */
 bool
-is_redundant_derived_clause(RestrictInfo *rinfo, List *clauselist)
+is_redundant_derived_clause(RestrictInfo * rinfo, List * clauselist)
 {
 	EquivalenceClass *parent_ec = rinfo->parent_ec;
 	ListCell   *lc;

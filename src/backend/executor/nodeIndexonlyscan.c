@@ -42,8 +42,8 @@
 #include "utils/rel.h"
 
 
-static TupleTableSlot *IndexOnlyNext(IndexOnlyScanState *node);
-static void StoreIndexTuple(TupleTableSlot *slot, IndexTuple itup,
+static TupleTableSlot * IndexOnlyNext(IndexOnlyScanState * node);
+static void StoreIndexTuple(TupleTableSlot * slot, IndexTuple itup,
 				TupleDesc itupdesc);
 
 
@@ -54,7 +54,7 @@ static void StoreIndexTuple(TupleTableSlot *slot, IndexTuple itup,
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-IndexOnlyNext(IndexOnlyScanState *node)
+IndexOnlyNext(IndexOnlyScanState * node)
 {
 	EState	   *estate;
 	ExprContext *econtext;
@@ -266,7 +266,7 @@ IndexOnlyNext(IndexOnlyScanState *node)
  * right now we don't need it elsewhere.
  */
 static void
-StoreIndexTuple(TupleTableSlot *slot, IndexTuple itup, TupleDesc itupdesc)
+StoreIndexTuple(TupleTableSlot * slot, IndexTuple itup, TupleDesc itupdesc)
 {
 	int			nindexatts = itupdesc->natts;
 	Datum	   *values = slot->tts_values;
@@ -297,7 +297,7 @@ StoreIndexTuple(TupleTableSlot *slot, IndexTuple itup, TupleDesc itupdesc)
  * tuple not an index tuple.  So throw an error.
  */
 static bool
-IndexOnlyRecheck(IndexOnlyScanState *node, TupleTableSlot *slot)
+IndexOnlyRecheck(IndexOnlyScanState * node, TupleTableSlot * slot)
 {
 	elog(ERROR, "EvalPlanQual recheck is not supported in index-only scans");
 	return false;				/* keep compiler quiet */
@@ -308,7 +308,7 @@ IndexOnlyRecheck(IndexOnlyScanState *node, TupleTableSlot *slot)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecIndexOnlyScan(PlanState *pstate)
+ExecIndexOnlyScan(PlanState * pstate)
 {
 	IndexOnlyScanState *node = castNode(IndexOnlyScanState, pstate);
 
@@ -335,7 +335,7 @@ ExecIndexOnlyScan(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanIndexOnlyScan(IndexOnlyScanState *node)
+ExecReScanIndexOnlyScan(IndexOnlyScanState * node)
 {
 	/*
 	 * If we are doing runtime key calculations (ie, any of the index key
@@ -370,7 +370,7 @@ ExecReScanIndexOnlyScan(IndexOnlyScanState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecEndIndexOnlyScan(IndexOnlyScanState *node)
+ExecEndIndexOnlyScan(IndexOnlyScanState * node)
 {
 	Relation	indexRelationDesc;
 	IndexScanDesc indexScanDesc;
@@ -427,7 +427,7 @@ ExecEndIndexOnlyScan(IndexOnlyScanState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecIndexOnlyMarkPos(IndexOnlyScanState *node)
+ExecIndexOnlyMarkPos(IndexOnlyScanState * node)
 {
 	EState	   *estate = node->ss.ps.state;
 
@@ -462,7 +462,7 @@ ExecIndexOnlyMarkPos(IndexOnlyScanState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecIndexOnlyRestrPos(IndexOnlyScanState *node)
+ExecIndexOnlyRestrPos(IndexOnlyScanState * node)
 {
 	EState	   *estate = node->ss.ps.state;
 
@@ -496,7 +496,7 @@ ExecIndexOnlyRestrPos(IndexOnlyScanState *node)
  * ----------------------------------------------------------------
  */
 IndexOnlyScanState *
-ExecInitIndexOnlyScan(IndexOnlyScan *node, EState *estate, int eflags)
+ExecInitIndexOnlyScan(IndexOnlyScan * node, EState * estate, int eflags)
 {
 	IndexOnlyScanState *indexstate;
 	Relation	currentRelation;
@@ -653,8 +653,8 @@ ExecInitIndexOnlyScan(IndexOnlyScan *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecIndexOnlyScanEstimate(IndexOnlyScanState *node,
-						  ParallelContext *pcxt)
+ExecIndexOnlyScanEstimate(IndexOnlyScanState * node,
+						  ParallelContext * pcxt)
 {
 	EState	   *estate = node->ss.ps.state;
 
@@ -671,8 +671,8 @@ ExecIndexOnlyScanEstimate(IndexOnlyScanState *node,
  * ----------------------------------------------------------------
  */
 void
-ExecIndexOnlyScanInitializeDSM(IndexOnlyScanState *node,
-							   ParallelContext *pcxt)
+ExecIndexOnlyScanInitializeDSM(IndexOnlyScanState * node,
+							   ParallelContext * pcxt)
 {
 	EState	   *estate = node->ss.ps.state;
 	ParallelIndexScanDesc piscan;
@@ -709,8 +709,8 @@ ExecIndexOnlyScanInitializeDSM(IndexOnlyScanState *node,
  * ----------------------------------------------------------------
  */
 void
-ExecIndexOnlyScanReInitializeDSM(IndexOnlyScanState *node,
-								 ParallelContext *pcxt)
+ExecIndexOnlyScanReInitializeDSM(IndexOnlyScanState * node,
+								 ParallelContext * pcxt)
 {
 	index_parallelrescan(node->ioss_ScanDesc);
 }
@@ -722,7 +722,7 @@ ExecIndexOnlyScanReInitializeDSM(IndexOnlyScanState *node,
  * ----------------------------------------------------------------
  */
 void
-ExecIndexOnlyScanInitializeWorker(IndexOnlyScanState *node, shm_toc *toc)
+ExecIndexOnlyScanInitializeWorker(IndexOnlyScanState * node, shm_toc * toc)
 {
 	ParallelIndexScanDesc piscan;
 

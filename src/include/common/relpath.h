@@ -34,7 +34,7 @@ typedef enum ForkNumber
 	 * FORKNAMECHARS below, and update the forkNames array in
 	 * src/common/relpath.c
 	 */
-} ForkNumber;
+}			ForkNumber;
 
 #define MAX_FORKNUM		INIT_FORKNUM
 
@@ -43,7 +43,7 @@ typedef enum ForkNumber
 extern const char *const forkNames[];
 
 extern ForkNumber forkname_to_number(const char *forkName);
-extern int	forkname_chars(const char *str, ForkNumber *fork);
+extern int	forkname_chars(const char *str, ForkNumber * fork);
 
 /*
  * Stuff for computing filesystem pathnames for relations.

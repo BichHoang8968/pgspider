@@ -21,7 +21,7 @@ typedef struct shm_toc_entry
 {
 	uint64		key;			/* Arbitrary identifier */
 	Size		offset;			/* Offset, in bytes, from TOC start */
-} shm_toc_entry;
+}			shm_toc_entry;
 
 struct shm_toc
 {
@@ -80,9 +80,9 @@ shm_toc_attach(uint64 magic, void *address)
  * can grow forward from the start of the segment.
  */
 extern void *
-shm_toc_allocate(shm_toc *toc, Size nbytes)
+shm_toc_allocate(shm_toc * toc, Size nbytes)
 {
-	volatile shm_toc *vtoc = toc;
+	volatile	shm_toc *vtoc = toc;
 	Size		total_bytes;
 	Size		allocated_bytes;
 	Size		nentry;
@@ -118,9 +118,9 @@ shm_toc_allocate(shm_toc *toc, Size nbytes)
  * Return the number of bytes that can still be allocated.
  */
 extern Size
-shm_toc_freespace(shm_toc *toc)
+shm_toc_freespace(shm_toc * toc)
 {
-	volatile shm_toc *vtoc = toc;
+	volatile	shm_toc *vtoc = toc;
 	Size		total_bytes;
 	Size		allocated_bytes;
 	Size		nentry;
@@ -158,9 +158,9 @@ shm_toc_freespace(shm_toc *toc)
  * the TOC, you're doing it wrong.
  */
 void
-shm_toc_insert(shm_toc *toc, uint64 key, void *address)
+shm_toc_insert(shm_toc * toc, uint64 key, void *address)
 {
-	volatile shm_toc *vtoc = toc;
+	volatile	shm_toc *vtoc = toc;
 	Size		total_bytes;
 	Size		allocated_bytes;
 	Size		nentry;
@@ -219,7 +219,7 @@ shm_toc_insert(shm_toc *toc, uint64 key, void *address)
  * right around the same time, there seems to be some value in avoiding it.
  */
 void *
-shm_toc_lookup(shm_toc *toc, uint64 key, bool noError)
+shm_toc_lookup(shm_toc * toc, uint64 key, bool noError)
 {
 	uint32		nentry;
 	uint32		i;
@@ -250,7 +250,7 @@ shm_toc_lookup(shm_toc *toc, uint64 key, bool noError)
  * dependent data structures.
  */
 Size
-shm_toc_estimate(shm_toc_estimator *e)
+shm_toc_estimate(shm_toc_estimator * e)
 {
 	return add_size(offsetof(shm_toc, toc_entry),
 					add_size(mul_size(e->number_of_keys, sizeof(shm_toc_entry)),

@@ -32,7 +32,7 @@ typedef struct MemoryContextCounters
 	Size		freechunks;		/* Total number of free chunks */
 	Size		totalspace;		/* Total bytes requested from malloc */
 	Size		freespace;		/* The unused portion of totalspace */
-} MemoryContextCounters;
+}			MemoryContextCounters;
 
 /*
  * MemoryContext
@@ -60,14 +60,14 @@ typedef struct MemoryContextMethods
 	void		(*init) (MemoryContext context);
 	void		(*reset) (MemoryContext context);
 	void		(*delete_context) (MemoryContext context);
-	Size		(*get_chunk_space) (MemoryContext context, void *pointer);
+				Size(*get_chunk_space) (MemoryContext context, void *pointer);
 	bool		(*is_empty) (MemoryContext context);
 	void		(*stats) (MemoryContext context, int level, bool print,
-						  MemoryContextCounters *totals);
+						  MemoryContextCounters * totals);
 #ifdef MEMORY_CONTEXT_CHECKING
 	void		(*check) (MemoryContext context);
 #endif
-} MemoryContextMethods;
+}			MemoryContextMethods;
 
 
 typedef struct MemoryContextData
@@ -83,7 +83,7 @@ typedef struct MemoryContextData
 	MemoryContext nextchild;	/* next child of same parent */
 	char	   *name;			/* context name (just for debugging) */
 	MemoryContextCallback *reset_cbs;	/* list of reset/delete callbacks */
-} MemoryContextData;
+}			MemoryContextData;
 
 /* utils/palloc.h contains typedef struct MemoryContextData *MemoryContext */
 

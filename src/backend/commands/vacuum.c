@@ -67,13 +67,13 @@ static BufferAccessStrategy vac_strategy;
 
 
 /* non-export function prototypes */
-static List *get_rel_oids(Oid relid, const RangeVar *vacrel);
+static List * get_rel_oids(Oid relid, const RangeVar * vacrel);
 static void vac_truncate_clog(TransactionId frozenXID,
 				  MultiXactId minMulti,
 				  TransactionId lastSaneFrozenXid,
 				  MultiXactId lastSaneMinMulti);
-static bool vacuum_rel(Oid relid, RangeVar *relation, int options,
-		   VacuumParams *params);
+static bool vacuum_rel(Oid relid, RangeVar * relation, int options,
+		   VacuumParams * params);
 
 /*
  * Primary entry point for manual VACUUM and ANALYZE commands
@@ -82,7 +82,7 @@ static bool vacuum_rel(Oid relid, RangeVar *relation, int options,
  * happen in vacuum().
  */
 void
-ExecVacuum(VacuumStmt *vacstmt, bool isTopLevel)
+ExecVacuum(VacuumStmt * vacstmt, bool isTopLevel)
 {
 	VacuumParams params;
 
@@ -148,8 +148,8 @@ ExecVacuum(VacuumStmt *vacstmt, bool isTopLevel)
  * memory context that will not disappear at transaction commit.
  */
 void
-vacuum(int options, RangeVar *relation, Oid relid, VacuumParams *params,
-	   List *va_cols, BufferAccessStrategy bstrategy, bool isTopLevel)
+vacuum(int options, RangeVar * relation, Oid relid, VacuumParams * params,
+	   List * va_cols, BufferAccessStrategy bstrategy, bool isTopLevel)
 {
 	const char *stmttype;
 	volatile bool in_outer_xact,
@@ -381,7 +381,7 @@ vacuum(int options, RangeVar *relation, Oid relid, VacuumParams *params,
  * per-relation transactions.
  */
 static List *
-get_rel_oids(Oid relid, const RangeVar *vacrel)
+get_rel_oids(Oid relid, const RangeVar * vacrel)
 {
 	List	   *oid_list = NIL;
 	MemoryContext oldcontext;
@@ -515,11 +515,11 @@ vacuum_set_xid_limits(Relation rel,
 					  int freeze_table_age,
 					  int multixact_freeze_min_age,
 					  int multixact_freeze_table_age,
-					  TransactionId *oldestXmin,
-					  TransactionId *freezeLimit,
-					  TransactionId *xidFullScanLimit,
-					  MultiXactId *multiXactCutoff,
-					  MultiXactId *mxactFullScanLimit)
+					  TransactionId * oldestXmin,
+					  TransactionId * freezeLimit,
+					  TransactionId * xidFullScanLimit,
+					  MultiXactId * multiXactCutoff,
+					  MultiXactId * mxactFullScanLimit)
 {
 	int			freezemin;
 	int			mxid_freezemin;
@@ -1119,7 +1119,7 @@ vac_truncate_clog(TransactionId frozenXID,
 
 	while ((tuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
 	{
-		volatile FormData_pg_database *dbform = (Form_pg_database) GETSTRUCT(tuple);
+		volatile	FormData_pg_database *dbform = (Form_pg_database) GETSTRUCT(tuple);
 		TransactionId datfrozenxid = dbform->datfrozenxid;
 		TransactionId datminmxid = dbform->datminmxid;
 
@@ -1220,7 +1220,7 @@ vac_truncate_clog(TransactionId frozenXID,
  *		At entry and exit, we are not inside a transaction.
  */
 static bool
-vacuum_rel(Oid relid, RangeVar *relation, int options, VacuumParams *params)
+vacuum_rel(Oid relid, RangeVar * relation, int options, VacuumParams * params)
 {
 	LOCKMODE	lmode;
 	Relation	onerel;
@@ -1494,7 +1494,7 @@ vacuum_rel(Oid relid, RangeVar *relation, int options, VacuumParams *params)
  */
 void
 vac_open_indexes(Relation relation, LOCKMODE lockmode,
-				 int *nindexes, Relation **Irel)
+				 int *nindexes, Relation * *Irel)
 {
 	List	   *indexoidlist;
 	ListCell   *indexoidscan;
@@ -1536,7 +1536,7 @@ vac_open_indexes(Relation relation, LOCKMODE lockmode,
  * the locks (say NoLock to keep 'em).
  */
 void
-vac_close_indexes(int nindexes, Relation *Irel, LOCKMODE lockmode)
+vac_close_indexes(int nindexes, Relation * Irel, LOCKMODE lockmode)
 {
 	if (Irel == NULL)
 		return;

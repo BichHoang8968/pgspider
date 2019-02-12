@@ -60,13 +60,13 @@ MemoryContext plpgsql_compile_tmp_cxt;
  * Hash table for compiled functions
  * ----------
  */
-static HTAB *plpgsql_HashTable = NULL;
+static HTAB * plpgsql_HashTable = NULL;
 
 typedef struct plpgsql_hashent
 {
 	PLpgSQL_func_hashkey key;
 	PLpgSQL_function *function;
-} plpgsql_HashEnt;
+}			plpgsql_HashEnt;
 
 #define FUNCS_PER_USER		128 /* initial table size */
 
@@ -78,7 +78,7 @@ typedef struct
 {
 	const char *label;
 	int			sqlerrstate;
-} ExceptionLabelMap;
+}			ExceptionLabelMap;
 
 static const ExceptionLabelMap exception_label_map[] = {
 #include "plerrcodes.h"			/* pgrminclude ignore */
@@ -90,38 +90,38 @@ static const ExceptionLabelMap exception_label_map[] = {
  * static prototypes
  * ----------
  */
-static PLpgSQL_function *do_compile(FunctionCallInfo fcinfo,
-		   HeapTuple procTup,
-		   PLpgSQL_function *function,
-		   PLpgSQL_func_hashkey *hashkey,
-		   bool forValidator);
+static PLpgSQL_function * do_compile(FunctionCallInfo fcinfo,
+									 HeapTuple procTup,
+									 PLpgSQL_function * function,
+									 PLpgSQL_func_hashkey * hashkey,
+									 bool forValidator);
 static void plpgsql_compile_error_callback(void *arg);
 static void add_parameter_name(PLpgSQL_nsitem_type itemtype, int itemno, const char *name);
-static void add_dummy_return(PLpgSQL_function *function);
-static Node *plpgsql_pre_column_ref(ParseState *pstate, ColumnRef *cref);
-static Node *plpgsql_post_column_ref(ParseState *pstate, ColumnRef *cref, Node *var);
-static Node *plpgsql_param_ref(ParseState *pstate, ParamRef *pref);
-static Node *resolve_column_ref(ParseState *pstate, PLpgSQL_expr *expr,
-				   ColumnRef *cref, bool error_if_no_field);
-static Node *make_datum_param(PLpgSQL_expr *expr, int dno, int location);
-static PLpgSQL_row *build_row_from_class(Oid classOid);
-static PLpgSQL_row *build_row_from_vars(PLpgSQL_variable **vars, int numvars);
-static PLpgSQL_type *build_datatype(HeapTuple typeTup, int32 typmod, Oid collation);
+static void add_dummy_return(PLpgSQL_function * function);
+static Node * plpgsql_pre_column_ref(ParseState * pstate, ColumnRef * cref);
+static Node * plpgsql_post_column_ref(ParseState * pstate, ColumnRef * cref, Node * var);
+static Node * plpgsql_param_ref(ParseState * pstate, ParamRef * pref);
+static Node * resolve_column_ref(ParseState * pstate, PLpgSQL_expr * expr,
+								 ColumnRef * cref, bool error_if_no_field);
+static Node * make_datum_param(PLpgSQL_expr * expr, int dno, int location);
+static PLpgSQL_row * build_row_from_class(Oid classOid);
+static PLpgSQL_row * build_row_from_vars(PLpgSQL_variable * *vars, int numvars);
+static PLpgSQL_type * build_datatype(HeapTuple typeTup, int32 typmod, Oid collation);
 static void plpgsql_start_datums(void);
-static void plpgsql_finish_datums(PLpgSQL_function *function);
+static void plpgsql_finish_datums(PLpgSQL_function * function);
 static void compute_function_hashkey(FunctionCallInfo fcinfo,
 						 Form_pg_proc procStruct,
-						 PLpgSQL_func_hashkey *hashkey,
+						 PLpgSQL_func_hashkey * hashkey,
 						 bool forValidator);
 static void plpgsql_resolve_polymorphic_argtypes(int numargs,
-									 Oid *argtypes, char *argmodes,
-									 Node *call_expr, bool forValidator,
+									 Oid * argtypes, char *argmodes,
+									 Node * call_expr, bool forValidator,
 									 const char *proname);
-static PLpgSQL_function *plpgsql_HashTableLookup(PLpgSQL_func_hashkey *func_key);
-static void plpgsql_HashTableInsert(PLpgSQL_function *function,
-						PLpgSQL_func_hashkey *func_key);
-static void plpgsql_HashTableDelete(PLpgSQL_function *function);
-static void delete_function(PLpgSQL_function *func);
+static PLpgSQL_function * plpgsql_HashTableLookup(PLpgSQL_func_hashkey * func_key);
+static void plpgsql_HashTableInsert(PLpgSQL_function * function,
+						PLpgSQL_func_hashkey * func_key);
+static void plpgsql_HashTableDelete(PLpgSQL_function * function);
+static void delete_function(PLpgSQL_function * func);
 
 /* ----------
  * plpgsql_compile		Make an execution tree for a PL/pgSQL function.
@@ -264,8 +264,8 @@ recheck:
 static PLpgSQL_function *
 do_compile(FunctionCallInfo fcinfo,
 		   HeapTuple procTup,
-		   PLpgSQL_function *function,
-		   PLpgSQL_func_hashkey *hashkey,
+		   PLpgSQL_function * function,
+		   PLpgSQL_func_hashkey * hashkey,
 		   bool forValidator)
 {
 	Form_pg_proc procStruct = (Form_pg_proc) GETSTRUCT(procTup);
@@ -399,7 +399,7 @@ do_compile(FunctionCallInfo fcinfo,
 												 plpgsql_error_funcname);
 
 			in_arg_varnos = (int *) palloc(numargs * sizeof(int));
-			out_arg_variables = (PLpgSQL_variable **) palloc(numargs * sizeof(PLpgSQL_variable *));
+			out_arg_variables = (PLpgSQL_variable * *) palloc(numargs * sizeof(PLpgSQL_variable *));
 
 			MemoryContextSwitchTo(func_cxt);
 
@@ -974,7 +974,7 @@ add_parameter_name(PLpgSQL_nsitem_type itemtype, int itemno, const char *name)
  * Add a dummy RETURN statement to the given function's body
  */
 static void
-add_dummy_return(PLpgSQL_function *function)
+add_dummy_return(PLpgSQL_function * function)
 {
 	/*
 	 * If the outer block has an EXCEPTION clause, we need to make a new outer
@@ -1015,7 +1015,7 @@ add_dummy_return(PLpgSQL_function *function)
  * previously been parsed and planned.
  */
 void
-plpgsql_parser_setup(struct ParseState *pstate, PLpgSQL_expr *expr)
+plpgsql_parser_setup(struct ParseState *pstate, PLpgSQL_expr * expr)
 {
 	pstate->p_pre_columnref_hook = plpgsql_pre_column_ref;
 	pstate->p_post_columnref_hook = plpgsql_post_column_ref;
@@ -1028,7 +1028,7 @@ plpgsql_parser_setup(struct ParseState *pstate, PLpgSQL_expr *expr)
  * plpgsql_pre_column_ref		parser callback before parsing a ColumnRef
  */
 static Node *
-plpgsql_pre_column_ref(ParseState *pstate, ColumnRef *cref)
+plpgsql_pre_column_ref(ParseState * pstate, ColumnRef * cref)
 {
 	PLpgSQL_expr *expr = (PLpgSQL_expr *) pstate->p_ref_hook_state;
 
@@ -1042,7 +1042,7 @@ plpgsql_pre_column_ref(ParseState *pstate, ColumnRef *cref)
  * plpgsql_post_column_ref		parser callback after parsing a ColumnRef
  */
 static Node *
-plpgsql_post_column_ref(ParseState *pstate, ColumnRef *cref, Node *var)
+plpgsql_post_column_ref(ParseState * pstate, ColumnRef * cref, Node * var)
 {
 	PLpgSQL_expr *expr = (PLpgSQL_expr *) pstate->p_ref_hook_state;
 	Node	   *myvar;
@@ -1086,7 +1086,7 @@ plpgsql_post_column_ref(ParseState *pstate, ColumnRef *cref, Node *var)
  * plpgsql_param_ref		parser callback for ParamRefs ($n symbols)
  */
 static Node *
-plpgsql_param_ref(ParseState *pstate, ParamRef *pref)
+plpgsql_param_ref(ParseState * pstate, ParamRef * pref)
 {
 	PLpgSQL_expr *expr = (PLpgSQL_expr *) pstate->p_ref_hook_state;
 	char		pname[32];
@@ -1113,8 +1113,8 @@ plpgsql_param_ref(ParseState *pstate, ParamRef *pref)
  * we are able to match a record/row name but don't find a field name match.
  */
 static Node *
-resolve_column_ref(ParseState *pstate, PLpgSQL_expr *expr,
-				   ColumnRef *cref, bool error_if_no_field)
+resolve_column_ref(ParseState * pstate, PLpgSQL_expr * expr,
+				   ColumnRef * cref, bool error_if_no_field)
 {
 	PLpgSQL_execstate *estate;
 	PLpgSQL_nsitem *nse;
@@ -1302,7 +1302,7 @@ resolve_column_ref(ParseState *pstate, PLpgSQL_expr *expr,
  * and make sure that that datum is listed in the expression's paramnos.
  */
 static Node *
-make_datum_param(PLpgSQL_expr *expr, int dno, int location)
+make_datum_param(PLpgSQL_expr * expr, int dno, int location)
 {
 	PLpgSQL_execstate *estate;
 	PLpgSQL_datum *datum;
@@ -1353,7 +1353,7 @@ make_datum_param(PLpgSQL_expr *expr, int dno, int location)
  */
 bool
 plpgsql_parse_word(char *word1, const char *yytxt,
-				   PLwdatum *wdatum, PLword *word)
+				   PLwdatum * wdatum, PLword * word)
 {
 	PLpgSQL_nsitem *ns;
 
@@ -1409,7 +1409,7 @@ plpgsql_parse_word(char *word1, const char *yytxt,
  */
 bool
 plpgsql_parse_dblword(char *word1, char *word2,
-					  PLwdatum *wdatum, PLcword *cword)
+					  PLwdatum * wdatum, PLcword * cword)
 {
 	PLpgSQL_nsitem *ns;
 	List	   *idents;
@@ -1529,7 +1529,7 @@ plpgsql_parse_dblword(char *word1, char *word2,
  */
 bool
 plpgsql_parse_tripword(char *word1, char *word2, char *word3,
-					   PLwdatum *wdatum, PLcword *cword)
+					   PLwdatum * wdatum, PLcword * cword)
 {
 	PLpgSQL_nsitem *ns;
 	List	   *idents;
@@ -1688,7 +1688,7 @@ plpgsql_parse_wordtype(char *ident)
  * ----------
  */
 PLpgSQL_type *
-plpgsql_parse_cwordtype(List *idents)
+plpgsql_parse_cwordtype(List * idents)
 {
 	PLpgSQL_type *dtype = NULL;
 	PLpgSQL_nsitem *nse;
@@ -1827,7 +1827,7 @@ plpgsql_parse_wordrowtype(char *ident)
  * ----------
  */
 PLpgSQL_type *
-plpgsql_parse_cwordrowtype(List *idents)
+plpgsql_parse_cwordrowtype(List * idents)
 {
 	Oid			classOid;
 	RangeVar   *relvar;
@@ -1861,7 +1861,7 @@ plpgsql_parse_cwordrowtype(List *idents)
  * array, and optionally to the current namespace.
  */
 PLpgSQL_variable *
-plpgsql_build_variable(const char *refname, int lineno, PLpgSQL_type *dtype,
+plpgsql_build_variable(const char *refname, int lineno, PLpgSQL_type * dtype,
 					   bool add2namespace)
 {
 	PLpgSQL_variable *result;
@@ -2060,7 +2060,7 @@ build_row_from_class(Oid classOid)
  * Build a row-variable data structure given the component variables.
  */
 static PLpgSQL_row *
-build_row_from_vars(PLpgSQL_variable **vars, int numvars)
+build_row_from_vars(PLpgSQL_variable * *vars, int numvars)
 {
 	PLpgSQL_row *row;
 	int			i;
@@ -2327,7 +2327,7 @@ plpgsql_start_datums(void)
  * ----------
  */
 void
-plpgsql_adddatum(PLpgSQL_datum *new)
+plpgsql_adddatum(PLpgSQL_datum * new)
 {
 	if (plpgsql_nDatums == datums_alloc)
 	{
@@ -2347,7 +2347,7 @@ plpgsql_adddatum(PLpgSQL_datum *new)
  * ----------
  */
 static void
-plpgsql_finish_datums(PLpgSQL_function *function)
+plpgsql_finish_datums(PLpgSQL_function * function)
 {
 	Bitmapset  *resettable_datums = NULL;
 	int			i;
@@ -2442,7 +2442,7 @@ plpgsql_add_initdatums(int **varnos)
 static void
 compute_function_hashkey(FunctionCallInfo fcinfo,
 						 Form_pg_proc procStruct,
-						 PLpgSQL_func_hashkey *hashkey,
+						 PLpgSQL_func_hashkey * hashkey,
 						 bool forValidator)
 {
 	/* Make sure any unused bytes of the struct are zero */
@@ -2494,8 +2494,8 @@ compute_function_hashkey(FunctionCallInfo fcinfo,
  */
 static void
 plpgsql_resolve_polymorphic_argtypes(int numargs,
-									 Oid *argtypes, char *argmodes,
-									 Node *call_expr, bool forValidator,
+									 Oid * argtypes, char *argmodes,
+									 Node * call_expr, bool forValidator,
 									 const char *proname)
 {
 	int			i;
@@ -2551,7 +2551,7 @@ plpgsql_resolve_polymorphic_argtypes(int numargs,
  * twice.
  */
 static void
-delete_function(PLpgSQL_function *func)
+delete_function(PLpgSQL_function * func)
 {
 	/* remove function from hash table (might be done already) */
 	plpgsql_HashTableDelete(func);
@@ -2580,7 +2580,7 @@ plpgsql_HashTableInit(void)
 }
 
 static PLpgSQL_function *
-plpgsql_HashTableLookup(PLpgSQL_func_hashkey *func_key)
+plpgsql_HashTableLookup(PLpgSQL_func_hashkey * func_key)
 {
 	plpgsql_HashEnt *hentry;
 
@@ -2595,8 +2595,8 @@ plpgsql_HashTableLookup(PLpgSQL_func_hashkey *func_key)
 }
 
 static void
-plpgsql_HashTableInsert(PLpgSQL_function *function,
-						PLpgSQL_func_hashkey *func_key)
+plpgsql_HashTableInsert(PLpgSQL_function * function,
+						PLpgSQL_func_hashkey * func_key)
 {
 	plpgsql_HashEnt *hentry;
 	bool		found;
@@ -2614,7 +2614,7 @@ plpgsql_HashTableInsert(PLpgSQL_function *function,
 }
 
 static void
-plpgsql_HashTableDelete(PLpgSQL_function *function)
+plpgsql_HashTableDelete(PLpgSQL_function * function)
 {
 	plpgsql_HashEnt *hentry;
 

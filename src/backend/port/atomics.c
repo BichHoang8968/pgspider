@@ -52,7 +52,7 @@ pg_extern_compiler_barrier(void)
 #ifdef PG_HAVE_ATOMIC_FLAG_SIMULATION
 
 void
-pg_atomic_init_flag_impl(volatile pg_atomic_flag *ptr)
+pg_atomic_init_flag_impl(volatile pg_atomic_flag * ptr)
 {
 	StaticAssertStmt(sizeof(ptr->sema) >= sizeof(slock_t),
 					 "size mismatch of atomic_flag vs slock_t");
@@ -64,37 +64,37 @@ pg_atomic_init_flag_impl(volatile pg_atomic_flag *ptr)
 	 * separate set of semaphores. Otherwise we'd get in trouble if an atomic
 	 * var would be manipulated while spinlock is held.
 	 */
-	s_init_lock_sema((slock_t *) &ptr->sema, true);
+	s_init_lock_sema((slock_t *) & ptr->sema, true);
 #else
-	SpinLockInit((slock_t *) &ptr->sema);
+	SpinLockInit((slock_t *) & ptr->sema);
 #endif
 
 	ptr->value = false;
 }
 
 bool
-pg_atomic_test_set_flag_impl(volatile pg_atomic_flag *ptr)
+pg_atomic_test_set_flag_impl(volatile pg_atomic_flag * ptr)
 {
 	uint32		oldval;
 
-	SpinLockAcquire((slock_t *) &ptr->sema);
+	SpinLockAcquire((slock_t *) & ptr->sema);
 	oldval = ptr->value;
 	ptr->value = true;
-	SpinLockRelease((slock_t *) &ptr->sema);
+	SpinLockRelease((slock_t *) & ptr->sema);
 
 	return oldval == 0;
 }
 
 void
-pg_atomic_clear_flag_impl(volatile pg_atomic_flag *ptr)
+pg_atomic_clear_flag_impl(volatile pg_atomic_flag * ptr)
 {
-	SpinLockAcquire((slock_t *) &ptr->sema);
+	SpinLockAcquire((slock_t *) & ptr->sema);
 	ptr->value = false;
-	SpinLockRelease((slock_t *) &ptr->sema);
+	SpinLockRelease((slock_t *) & ptr->sema);
 }
 
 bool
-pg_atomic_unlocked_test_flag_impl(volatile pg_atomic_flag *ptr)
+pg_atomic_unlocked_test_flag_impl(volatile pg_atomic_flag * ptr)
 {
 	return ptr->value == 0;
 }
@@ -103,7 +103,7 @@ pg_atomic_unlocked_test_flag_impl(volatile pg_atomic_flag *ptr)
 
 #ifdef PG_HAVE_ATOMIC_U32_SIMULATION
 void
-pg_atomic_init_u32_impl(volatile pg_atomic_uint32 *ptr, uint32 val_)
+pg_atomic_init_u32_impl(volatile pg_atomic_uint32 * ptr, uint32 val_)
 {
 	StaticAssertStmt(sizeof(ptr->sema) >= sizeof(slock_t),
 					 "size mismatch of atomic_uint32 vs slock_t");
@@ -113,29 +113,29 @@ pg_atomic_init_u32_impl(volatile pg_atomic_uint32 *ptr, uint32 val_)
 	 * usage of atomics while a spinlock is held.
 	 */
 #ifndef HAVE_SPINLOCKS
-	s_init_lock_sema((slock_t *) &ptr->sema, true);
+	s_init_lock_sema((slock_t *) & ptr->sema, true);
 #else
-	SpinLockInit((slock_t *) &ptr->sema);
+	SpinLockInit((slock_t *) & ptr->sema);
 #endif
 	ptr->value = val_;
 }
 
 void
-pg_atomic_write_u32_impl(volatile pg_atomic_uint32 *ptr, uint32 val)
+pg_atomic_write_u32_impl(volatile pg_atomic_uint32 * ptr, uint32 val)
 {
 	/*
 	 * One might think that an unlocked write doesn't need to acquire the
 	 * spinlock, but one would be wrong. Even an unlocked write has to cause a
 	 * concurrent pg_atomic_compare_exchange_u32() (et al) to fail.
 	 */
-	SpinLockAcquire((slock_t *) &ptr->sema);
+	SpinLockAcquire((slock_t *) & ptr->sema);
 	ptr->value = val;
-	SpinLockRelease((slock_t *) &ptr->sema);
+	SpinLockRelease((slock_t *) & ptr->sema);
 }
 
 bool
-pg_atomic_compare_exchange_u32_impl(volatile pg_atomic_uint32 *ptr,
-									uint32 *expected, uint32 newval)
+pg_atomic_compare_exchange_u32_impl(volatile pg_atomic_uint32 * ptr,
+									uint32 * expected, uint32 newval)
 {
 	bool		ret;
 
@@ -147,7 +147,7 @@ pg_atomic_compare_exchange_u32_impl(volatile pg_atomic_uint32 *ptr,
 	 * implementable on most major architectures let's emulate it here as
 	 * well.
 	 */
-	SpinLockAcquire((slock_t *) &ptr->sema);
+	SpinLockAcquire((slock_t *) & ptr->sema);
 
 	/* perform compare/exchange logic */
 	ret = ptr->value == *expected;
@@ -156,20 +156,20 @@ pg_atomic_compare_exchange_u32_impl(volatile pg_atomic_uint32 *ptr,
 		ptr->value = newval;
 
 	/* and release lock */
-	SpinLockRelease((slock_t *) &ptr->sema);
+	SpinLockRelease((slock_t *) & ptr->sema);
 
 	return ret;
 }
 
 uint32
-pg_atomic_fetch_add_u32_impl(volatile pg_atomic_uint32 *ptr, int32 add_)
+pg_atomic_fetch_add_u32_impl(volatile pg_atomic_uint32 * ptr, int32 add_)
 {
 	uint32		oldval;
 
-	SpinLockAcquire((slock_t *) &ptr->sema);
+	SpinLockAcquire((slock_t *) & ptr->sema);
 	oldval = ptr->value;
 	ptr->value += add_;
-	SpinLockRelease((slock_t *) &ptr->sema);
+	SpinLockRelease((slock_t *) & ptr->sema);
 	return oldval;
 }
 
@@ -179,7 +179,7 @@ pg_atomic_fetch_add_u32_impl(volatile pg_atomic_uint32 *ptr, int32 add_)
 #ifdef PG_HAVE_ATOMIC_U64_SIMULATION
 
 void
-pg_atomic_init_u64_impl(volatile pg_atomic_uint64 *ptr, uint64 val_)
+pg_atomic_init_u64_impl(volatile pg_atomic_uint64 * ptr, uint64 val_)
 {
 	StaticAssertStmt(sizeof(ptr->sema) >= sizeof(slock_t),
 					 "size mismatch of atomic_uint64 vs slock_t");
@@ -189,16 +189,16 @@ pg_atomic_init_u64_impl(volatile pg_atomic_uint64 *ptr, uint64 val_)
 	 * usage of atomics while a spinlock is held.
 	 */
 #ifndef HAVE_SPINLOCKS
-	s_init_lock_sema((slock_t *) &ptr->sema, true);
+	s_init_lock_sema((slock_t *) & ptr->sema, true);
 #else
-	SpinLockInit((slock_t *) &ptr->sema);
+	SpinLockInit((slock_t *) & ptr->sema);
 #endif
 	ptr->value = val_;
 }
 
 bool
-pg_atomic_compare_exchange_u64_impl(volatile pg_atomic_uint64 *ptr,
-									uint64 *expected, uint64 newval)
+pg_atomic_compare_exchange_u64_impl(volatile pg_atomic_uint64 * ptr,
+									uint64 * expected, uint64 newval)
 {
 	bool		ret;
 
@@ -210,7 +210,7 @@ pg_atomic_compare_exchange_u64_impl(volatile pg_atomic_uint64 *ptr,
 	 * implementable on most major architectures let's emulate it here as
 	 * well.
 	 */
-	SpinLockAcquire((slock_t *) &ptr->sema);
+	SpinLockAcquire((slock_t *) & ptr->sema);
 
 	/* perform compare/exchange logic */
 	ret = ptr->value == *expected;
@@ -219,20 +219,20 @@ pg_atomic_compare_exchange_u64_impl(volatile pg_atomic_uint64 *ptr,
 		ptr->value = newval;
 
 	/* and release lock */
-	SpinLockRelease((slock_t *) &ptr->sema);
+	SpinLockRelease((slock_t *) & ptr->sema);
 
 	return ret;
 }
 
 uint64
-pg_atomic_fetch_add_u64_impl(volatile pg_atomic_uint64 *ptr, int64 add_)
+pg_atomic_fetch_add_u64_impl(volatile pg_atomic_uint64 * ptr, int64 add_)
 {
 	uint64		oldval;
 
-	SpinLockAcquire((slock_t *) &ptr->sema);
+	SpinLockAcquire((slock_t *) & ptr->sema);
 	oldval = ptr->value;
 	ptr->value += add_;
-	SpinLockRelease((slock_t *) &ptr->sema);
+	SpinLockRelease((slock_t *) & ptr->sema);
 	return oldval;
 }
 

@@ -37,14 +37,14 @@ typedef struct LockRelId
 {
 	Oid			relId;			/* a relation identifier */
 	Oid			dbId;			/* a database identifier */
-} LockRelId;
+}			LockRelId;
 
 typedef struct LockInfoData
 {
 	LockRelId	lockRelId;
-} LockInfoData;
+}			LockInfoData;
 
-typedef LockInfoData *LockInfo;
+typedef LockInfoData * LockInfo;
 
 /*
  * Information about the partition key of a relation
@@ -216,7 +216,7 @@ typedef struct RelationData
 
 	/* use "struct" here to avoid needing to include pgstat.h: */
 	struct PgStat_TableStatus *pgstat_info; /* statistics collection area */
-} RelationData;
+}			RelationData;
 
 
 /*
@@ -243,7 +243,7 @@ typedef struct ForeignKeyCacheInfo
 	AttrNumber	conkey[INDEX_MAX_KEYS]; /* cols in referencing table */
 	AttrNumber	confkey[INDEX_MAX_KEYS];	/* cols in referenced table */
 	Oid			conpfeqop[INDEX_MAX_KEYS];	/* PK = FK operator OIDs */
-} ForeignKeyCacheInfo;
+}			ForeignKeyCacheInfo;
 
 
 /*
@@ -271,7 +271,7 @@ typedef struct AutoVacOpts
 	int			log_min_duration;
 	float8		vacuum_scale_factor;
 	float8		analyze_scale_factor;
-} AutoVacOpts;
+}			AutoVacOpts;
 
 typedef struct StdRdOptions
 {
@@ -280,7 +280,7 @@ typedef struct StdRdOptions
 	AutoVacOpts autovacuum;		/* autovacuum-related options */
 	bool		user_catalog_table; /* use as an additional catalog relation */
 	int			parallel_workers;	/* max number of parallel workers */
-} StdRdOptions;
+}			StdRdOptions;
 
 #define HEAP_MIN_FILLFACTOR			10
 #define HEAP_DEFAULT_FILLFACTOR		100
@@ -337,7 +337,7 @@ typedef struct ViewOptions
 	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	bool		security_barrier;
 	int			check_option_offset;
-} ViewOptions;
+}			ViewOptions;
 
 /*
  * RelationIsSecurityView
@@ -635,6 +635,6 @@ get_partition_col_typmod(PartitionKey key, int col)
 extern void RelationIncrementReferenceCount(Relation rel);
 extern void RelationDecrementReferenceCount(Relation rel);
 extern bool RelationHasUnloggedIndex(Relation rel);
-extern List *RelationGetRepsetList(Relation rel);
+extern List * RelationGetRepsetList(Relation rel);
 
 #endif							/* REL_H */

@@ -65,7 +65,7 @@ typedef struct ResourceArray
 	uint32		nitems;			/* how many items are stored in items array */
 	uint32		maxitems;		/* current limit on nitems before enlarging */
 	uint32		lastidx;		/* index of last item returned by GetAny */
-} ResourceArray;
+}			ResourceArray;
 
 /*
  * Initially allocated size of a ResourceArray.  Must be power of two since
@@ -135,7 +135,7 @@ typedef struct ResourceOwnerData
  *	  GLOBAL MEMORY															 *
  *****************************************************************************/
 
-__thread ResourceOwner CurrentResourceOwner = NULL;
+__thread	ResourceOwner CurrentResourceOwner = NULL;
 ResourceOwner CurTransactionResourceOwner = NULL;
 ResourceOwner TopTransactionResourceOwner = NULL;
 
@@ -147,28 +147,28 @@ typedef struct ResourceReleaseCallbackItem
 	struct ResourceReleaseCallbackItem *next;
 	ResourceReleaseCallback callback;
 	void	   *arg;
-} ResourceReleaseCallbackItem;
+}			ResourceReleaseCallbackItem;
 
-static ResourceReleaseCallbackItem *ResourceRelease_callbacks = NULL;
+static ResourceReleaseCallbackItem * ResourceRelease_callbacks = NULL;
 
 
 /* Internal routines */
-static void ResourceArrayInit(ResourceArray *resarr, Datum invalidval);
-static void ResourceArrayEnlarge(ResourceArray *resarr);
-static void ResourceArrayAdd(ResourceArray *resarr, Datum value);
-static bool ResourceArrayRemove(ResourceArray *resarr, Datum value);
-static bool ResourceArrayGetAny(ResourceArray *resarr, Datum *value);
-static void ResourceArrayFree(ResourceArray *resarr);
+static void ResourceArrayInit(ResourceArray * resarr, Datum invalidval);
+static void ResourceArrayEnlarge(ResourceArray * resarr);
+static void ResourceArrayAdd(ResourceArray * resarr, Datum value);
+static bool ResourceArrayRemove(ResourceArray * resarr, Datum value);
+static bool ResourceArrayGetAny(ResourceArray * resarr, Datum * value);
+static void ResourceArrayFree(ResourceArray * resarr);
 static void ResourceOwnerReleaseInternal(ResourceOwner owner,
 							 ResourceReleasePhase phase,
 							 bool isCommit,
 							 bool isTopLevel);
 static void PrintRelCacheLeakWarning(Relation rel);
-static void PrintPlanCacheLeakWarning(CachedPlan *plan);
+static void PrintPlanCacheLeakWarning(CachedPlan * plan);
 static void PrintTupleDescLeakWarning(TupleDesc tupdesc);
 static void PrintSnapshotLeakWarning(Snapshot snapshot);
 static void PrintFileLeakWarning(File file);
-static void PrintDSMLeakWarning(dsm_segment *seg);
+static void PrintDSMLeakWarning(dsm_segment * seg);
 
 
 /*****************************************************************************
@@ -180,7 +180,7 @@ static void PrintDSMLeakWarning(dsm_segment *seg);
  * Initialize a ResourceArray
  */
 static void
-ResourceArrayInit(ResourceArray *resarr, Datum invalidval)
+ResourceArrayInit(ResourceArray * resarr, Datum invalidval)
 {
 	/* Assert it's empty */
 	Assert(resarr->itemsarr == NULL);
@@ -199,7 +199,7 @@ ResourceArrayInit(ResourceArray *resarr, Datum invalidval)
  * of memory, it's critical to do so *before* acquiring the resource.
  */
 static void
-ResourceArrayEnlarge(ResourceArray *resarr)
+ResourceArrayEnlarge(ResourceArray * resarr)
 {
 	uint32		i,
 				oldcap,
@@ -254,7 +254,7 @@ ResourceArrayEnlarge(ResourceArray *resarr)
  * Caller must have previously done ResourceArrayEnlarge()
  */
 static void
-ResourceArrayAdd(ResourceArray *resarr, Datum value)
+ResourceArrayAdd(ResourceArray * resarr, Datum value)
 {
 	uint32		idx;
 
@@ -292,7 +292,7 @@ ResourceArrayAdd(ResourceArray *resarr, Datum value)
  * Note: if same resource ID appears more than once, one instance is removed.
  */
 static bool
-ResourceArrayRemove(ResourceArray *resarr, Datum value)
+ResourceArrayRemove(ResourceArray * resarr, Datum value)
 {
 	uint32		i,
 				idx,
@@ -361,7 +361,7 @@ ResourceArrayRemove(ResourceArray *resarr, Datum value)
  * Returns true if we found an element, or false if the array is empty.
  */
 static bool
-ResourceArrayGetAny(ResourceArray *resarr, Datum *value)
+ResourceArrayGetAny(ResourceArray * resarr, Datum * value)
 {
 	if (resarr->nitems == 0)
 		return false;
@@ -393,7 +393,7 @@ ResourceArrayGetAny(ResourceArray *resarr, Datum *value)
  * Trash a ResourceArray (we don't care about its state after this)
  */
 static void
-ResourceArrayFree(ResourceArray *resarr)
+ResourceArrayFree(ResourceArray * resarr)
 {
 	if (resarr->itemsarr)
 		pfree(resarr->itemsarr);
@@ -886,7 +886,7 @@ ResourceOwnerForgetBuffer(ResourceOwner owner, Buffer buffer)
  * the entry.
  */
 void
-ResourceOwnerRememberLock(ResourceOwner owner, LOCALLOCK *locallock)
+ResourceOwnerRememberLock(ResourceOwner owner, LOCALLOCK * locallock)
 {
 	Assert(locallock != NULL);
 
@@ -906,7 +906,7 @@ ResourceOwnerRememberLock(ResourceOwner owner, LOCALLOCK *locallock)
  * Forget that a Local Lock is owned by a ResourceOwner
  */
 void
-ResourceOwnerForgetLock(ResourceOwner owner, LOCALLOCK *locallock)
+ResourceOwnerForgetLock(ResourceOwner owner, LOCALLOCK * locallock)
 {
 	int			i;
 
@@ -981,7 +981,7 @@ ResourceOwnerEnlargeCatCacheListRefs(ResourceOwner owner)
  * Caller must have previously done ResourceOwnerEnlargeCatCacheListRefs()
  */
 void
-ResourceOwnerRememberCatCacheListRef(ResourceOwner owner, CatCList *list)
+ResourceOwnerRememberCatCacheListRef(ResourceOwner owner, CatCList * list)
 {
 	ResourceArrayAdd(&(owner->catlistrefarr), PointerGetDatum(list));
 }
@@ -990,7 +990,7 @@ ResourceOwnerRememberCatCacheListRef(ResourceOwner owner, CatCList *list)
  * Forget that a catcache-list reference is owned by a ResourceOwner
  */
 void
-ResourceOwnerForgetCatCacheListRef(ResourceOwner owner, CatCList *list)
+ResourceOwnerForgetCatCacheListRef(ResourceOwner owner, CatCList * list)
 {
 	if (!ResourceArrayRemove(&(owner->catlistrefarr), PointerGetDatum(list)))
 		elog(ERROR, "catcache list reference %p is not owned by resource owner %s",
@@ -1061,7 +1061,7 @@ ResourceOwnerEnlargePlanCacheRefs(ResourceOwner owner)
  * Caller must have previously done ResourceOwnerEnlargePlanCacheRefs()
  */
 void
-ResourceOwnerRememberPlanCacheRef(ResourceOwner owner, CachedPlan *plan)
+ResourceOwnerRememberPlanCacheRef(ResourceOwner owner, CachedPlan * plan)
 {
 	ResourceArrayAdd(&(owner->planrefarr), PointerGetDatum(plan));
 }
@@ -1070,7 +1070,7 @@ ResourceOwnerRememberPlanCacheRef(ResourceOwner owner, CachedPlan *plan)
  * Forget that a plancache reference is owned by a ResourceOwner
  */
 void
-ResourceOwnerForgetPlanCacheRef(ResourceOwner owner, CachedPlan *plan)
+ResourceOwnerForgetPlanCacheRef(ResourceOwner owner, CachedPlan * plan)
 {
 	if (!ResourceArrayRemove(&(owner->planrefarr), PointerGetDatum(plan)))
 		elog(ERROR, "plancache reference %p is not owned by resource owner %s",
@@ -1081,7 +1081,7 @@ ResourceOwnerForgetPlanCacheRef(ResourceOwner owner, CachedPlan *plan)
  * Debugging subroutine
  */
 static void
-PrintPlanCacheLeakWarning(CachedPlan *plan)
+PrintPlanCacheLeakWarning(CachedPlan * plan)
 {
 	elog(WARNING, "plancache reference leak: plan %p not closed", plan);
 }
@@ -1242,7 +1242,7 @@ ResourceOwnerEnlargeDSMs(ResourceOwner owner)
  * Caller must have previously done ResourceOwnerEnlargeDSMs()
  */
 void
-ResourceOwnerRememberDSM(ResourceOwner owner, dsm_segment *seg)
+ResourceOwnerRememberDSM(ResourceOwner owner, dsm_segment * seg)
 {
 	ResourceArrayAdd(&(owner->dsmarr), PointerGetDatum(seg));
 }
@@ -1251,7 +1251,7 @@ ResourceOwnerRememberDSM(ResourceOwner owner, dsm_segment *seg)
  * Forget that a dynamic shmem segment is owned by a ResourceOwner
  */
 void
-ResourceOwnerForgetDSM(ResourceOwner owner, dsm_segment *seg)
+ResourceOwnerForgetDSM(ResourceOwner owner, dsm_segment * seg)
 {
 	if (!ResourceArrayRemove(&(owner->dsmarr), PointerGetDatum(seg)))
 		elog(ERROR, "dynamic shared memory segment %u is not owned by resource owner %s",
@@ -1262,7 +1262,7 @@ ResourceOwnerForgetDSM(ResourceOwner owner, dsm_segment *seg)
  * Debugging subroutine
  */
 static void
-PrintDSMLeakWarning(dsm_segment *seg)
+PrintDSMLeakWarning(dsm_segment * seg)
 {
 	elog(WARNING, "dynamic shared memory leak: segment %u still referenced",
 		 dsm_segment_handle(seg));

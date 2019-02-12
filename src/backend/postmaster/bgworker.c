@@ -81,7 +81,7 @@ typedef struct BackgroundWorkerSlot
 	pid_t		pid;			/* InvalidPid = not started yet; 0 = dead */
 	uint64		generation;		/* incremented when slot is recycled */
 	BackgroundWorker worker;
-} BackgroundWorkerSlot;
+}			BackgroundWorkerSlot;
 
 /*
  * In order to limit the total number of parallel workers (according to
@@ -100,7 +100,7 @@ typedef struct BackgroundWorkerArray
 	uint32		parallel_register_count;
 	uint32		parallel_terminate_count;
 	BackgroundWorkerSlot slot[FLEXIBLE_ARRAY_MEMBER];
-} BackgroundWorkerArray;
+}			BackgroundWorkerArray;
 
 struct BackgroundWorkerHandle
 {
@@ -108,7 +108,7 @@ struct BackgroundWorkerHandle
 	uint64		generation;
 };
 
-static BackgroundWorkerArray *BackgroundWorkerData;
+static BackgroundWorkerArray * BackgroundWorkerData;
 
 /*
  * List of internal background worker entry points.  We need this for
@@ -407,7 +407,7 @@ BackgroundWorkerStateChange(void)
  * This function must be invoked only in the postmaster.
  */
 void
-ForgetBackgroundWorker(slist_mutable_iter *cur)
+ForgetBackgroundWorker(slist_mutable_iter * cur)
 {
 	RegisteredBgWorker *rw;
 	BackgroundWorkerSlot *slot;
@@ -435,7 +435,7 @@ ForgetBackgroundWorker(slist_mutable_iter *cur)
  * This function should only be called from the postmaster.
  */
 void
-ReportBackgroundWorkerPID(RegisteredBgWorker *rw)
+ReportBackgroundWorkerPID(RegisteredBgWorker * rw)
 {
 	BackgroundWorkerSlot *slot;
 
@@ -454,7 +454,7 @@ ReportBackgroundWorkerPID(RegisteredBgWorker *rw)
  * This function should only be called from the postmaster.
  */
 void
-ReportBackgroundWorkerExit(slist_mutable_iter *cur)
+ReportBackgroundWorkerExit(slist_mutable_iter * cur)
 {
 	RegisteredBgWorker *rw;
 	BackgroundWorkerSlot *slot;
@@ -578,7 +578,7 @@ BackgroundWorkerEntry(int slotno)
  * which case we won't return at all in the not-OK case).
  */
 static bool
-SanityCheckBackgroundWorker(BackgroundWorker *worker, int elevel)
+SanityCheckBackgroundWorker(BackgroundWorker * worker, int elevel)
 {
 	/* sanity check for flags */
 	if (worker->bgw_flags & BGWORKER_BACKEND_DATABASE_CONNECTION)
@@ -846,7 +846,7 @@ StartBackgroundWorker(void)
  * otherwise it will have no effect.
  */
 void
-RegisterBackgroundWorker(BackgroundWorker *worker)
+RegisterBackgroundWorker(BackgroundWorker * worker)
 {
 	RegisteredBgWorker *rw;
 	static int	numworkers = 0;
@@ -930,8 +930,8 @@ RegisterBackgroundWorker(BackgroundWorker *worker)
  * free this pointer using pfree(), if desired.
  */
 bool
-RegisterDynamicBackgroundWorker(BackgroundWorker *worker,
-								BackgroundWorkerHandle **handle)
+RegisterDynamicBackgroundWorker(BackgroundWorker * worker,
+								BackgroundWorkerHandle * *handle)
 {
 	int			slotno;
 	bool		success = false;
@@ -1042,7 +1042,7 @@ RegisterDynamicBackgroundWorker(BackgroundWorker *worker,
  * started).
  */
 BgwHandleStatus
-GetBackgroundWorkerPid(BackgroundWorkerHandle *handle, pid_t *pidp)
+GetBackgroundWorkerPid(BackgroundWorkerHandle * handle, pid_t * pidp)
 {
 	BackgroundWorkerSlot *slot;
 	pid_t		pid;
@@ -1094,7 +1094,7 @@ GetBackgroundWorkerPid(BackgroundWorkerHandle *handle, pid_t *pidp)
  * take place.
  */
 BgwHandleStatus
-WaitForBackgroundWorkerStartup(BackgroundWorkerHandle *handle, pid_t *pidp)
+WaitForBackgroundWorkerStartup(BackgroundWorkerHandle * handle, pid_t * pidp)
 {
 	BgwHandleStatus status;
 	int			rc;
@@ -1136,7 +1136,7 @@ WaitForBackgroundWorkerStartup(BackgroundWorkerHandle *handle, pid_t *pidp)
  * notifies us when a worker's state changes.
  */
 BgwHandleStatus
-WaitForBackgroundWorkerShutdown(BackgroundWorkerHandle *handle)
+WaitForBackgroundWorkerShutdown(BackgroundWorkerHandle * handle)
 {
 	BgwHandleStatus status;
 	int			rc;
@@ -1175,7 +1175,7 @@ WaitForBackgroundWorkerShutdown(BackgroundWorkerHandle *handle)
  * unregistered.
  */
 void
-TerminateBackgroundWorker(BackgroundWorkerHandle *handle)
+TerminateBackgroundWorker(BackgroundWorkerHandle * handle)
 {
 	BackgroundWorkerSlot *slot;
 	bool		signal_postmaster = false;

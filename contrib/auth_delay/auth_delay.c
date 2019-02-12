@@ -32,7 +32,7 @@ static ClientAuthentication_hook_type original_client_auth_hook = NULL;
  * Check authentication
  */
 static void
-auth_delay_checks(Port *port, int status)
+auth_delay_checks(Port * port, int status)
 {
 	/*
 	 * Any other plugins which use ClientAuthentication_hook.

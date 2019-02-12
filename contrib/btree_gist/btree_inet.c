@@ -13,7 +13,7 @@ typedef struct inetkey
 {
 	double		lower;
 	double		upper;
-} inetKEY;
+}			inetKEY;
 
 /*
 ** inet ops
@@ -27,33 +27,33 @@ PG_FUNCTION_INFO_V1(gbt_inet_same);
 
 
 static bool
-gbt_inetgt(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_inetgt(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const double *) a) > *((const double *) b));
 }
 static bool
-gbt_inetge(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_inetge(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const double *) a) >= *((const double *) b));
 }
 static bool
-gbt_ineteq(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_ineteq(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const double *) a) == *((const double *) b));
 }
 static bool
-gbt_inetle(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_inetle(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const double *) a) <= *((const double *) b));
 }
 static bool
-gbt_inetlt(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_inetlt(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const double *) a) < *((const double *) b));
 }
 
 static int
-gbt_inetkey_cmp(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_inetkey_cmp(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	inetKEY    *ia = (inetKEY *) (((const Nsrt *) a)->t);
 	inetKEY    *ib = (inetKEY *) (((const Nsrt *) b)->t);
@@ -129,8 +129,8 @@ gbt_inet_consistent(PG_FUNCTION_ARGS)
 	/* All cases served by this function are inexact */
 	*recheck = true;
 
-	key.lower = (GBT_NUMKEY *) &kkk->lower;
-	key.upper = (GBT_NUMKEY *) &kkk->upper;
+	key.lower = (GBT_NUMKEY *) & kkk->lower;
+	key.upper = (GBT_NUMKEY *) & kkk->upper;
 
 	PG_RETURN_BOOL(gbt_num_consistent(&key, (void *) &query,
 									  &strategy, GIST_LEAF(entry), &tinfo, fcinfo->flinfo));

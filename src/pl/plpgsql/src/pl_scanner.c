@@ -197,7 +197,7 @@ typedef struct
 	YYSTYPE		lval;			/* semantic information */
 	YYLTYPE		lloc;			/* offset in scanbuf */
 	int			leng;			/* length in bytes */
-} TokenAuxData;
+}			TokenAuxData;
 
 /*
  * Scanner working state.  At some point we might wish to fold all this
@@ -232,8 +232,8 @@ static const char *cur_line_end;
 static int	cur_line_num;
 
 /* Internal functions */
-static int	internal_yylex(TokenAuxData *auxdata);
-static void push_back_token(int token, TokenAuxData *auxdata);
+static int	internal_yylex(TokenAuxData * auxdata);
+static void push_back_token(int token, TokenAuxData * auxdata);
 static void location_lineno_init(void);
 
 
@@ -251,7 +251,7 @@ plpgsql_yylex(void)
 {
 	int			tok1;
 	TokenAuxData aux1;
-	const ScanKeyword *kw;
+	const		ScanKeyword *kw;
 
 	tok1 = internal_yylex(&aux1);
 	if (tok1 == IDENT || tok1 == PARAM)
@@ -421,7 +421,7 @@ plpgsql_yylex(void)
  * interfacing from the core_YYSTYPE to YYSTYPE union.
  */
 static int
-internal_yylex(TokenAuxData *auxdata)
+internal_yylex(TokenAuxData * auxdata)
 {
 	int			token;
 	const char *yytext;
@@ -467,7 +467,7 @@ internal_yylex(TokenAuxData *auxdata)
  * Push back a token to be re-read by next internal_yylex() call.
  */
 static void
-push_back_token(int token, TokenAuxData *auxdata)
+push_back_token(int token, TokenAuxData * auxdata)
 {
 	if (num_pushbacks >= MAX_PUSHBACKS)
 		elog(ERROR, "too many tokens pushed back");

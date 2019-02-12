@@ -35,7 +35,7 @@ typedef enum ReplicationSlotPersistency
 	RS_PERSISTENT,
 	RS_EPHEMERAL,
 	RS_TEMPORARY
-} ReplicationSlotPersistency;
+}			ReplicationSlotPersistency;
 
 /*
  * On-Disk data of a replication slot, preserved across restarts.
@@ -82,7 +82,7 @@ typedef struct ReplicationSlotPersistentData
 
 	/* plugin name */
 	NameData	plugin;
-} ReplicationSlotPersistentData;
+}			ReplicationSlotPersistentData;
 
 /*
  * Shared memory state of a single replication slot.
@@ -136,7 +136,7 @@ typedef struct ReplicationSlot
 	XLogRecPtr	candidate_xmin_lsn;
 	XLogRecPtr	candidate_restart_valid;
 	XLogRecPtr	candidate_restart_lsn;
-} ReplicationSlot;
+}			ReplicationSlot;
 
 #define SlotIsPhysical(slot) (slot->data.database == InvalidOid)
 #define SlotIsLogical(slot) (slot->data.database != InvalidOid)
@@ -151,13 +151,13 @@ typedef struct ReplicationSlotCtlData
 	 * reason you can't do that in an otherwise-empty struct.
 	 */
 	ReplicationSlot replication_slots[1];
-} ReplicationSlotCtlData;
+}			ReplicationSlotCtlData;
 
 /*
  * Pointers to shared memory
  */
-extern ReplicationSlotCtlData *ReplicationSlotCtl;
-extern PGDLLIMPORT ReplicationSlot *MyReplicationSlot;
+extern ReplicationSlotCtlData * ReplicationSlotCtl;
+extern PGDLLIMPORT ReplicationSlot * MyReplicationSlot;
 
 /* GUCs */
 extern PGDLLIMPORT int max_replication_slots;

@@ -35,19 +35,19 @@ typedef struct binaryheap
 	binaryheap_comparator bh_compare;
 	void	   *bh_arg;
 	Datum		bh_nodes[FLEXIBLE_ARRAY_MEMBER];
-} binaryheap;
+}			binaryheap;
 
-extern binaryheap *binaryheap_allocate(int capacity,
-					binaryheap_comparator compare,
-					void *arg);
-extern void binaryheap_reset(binaryheap *heap);
-extern void binaryheap_free(binaryheap *heap);
-extern void binaryheap_add_unordered(binaryheap *heap, Datum d);
-extern void binaryheap_build(binaryheap *heap);
-extern void binaryheap_add(binaryheap *heap, Datum d);
-extern Datum binaryheap_first(binaryheap *heap);
-extern Datum binaryheap_remove_first(binaryheap *heap);
-extern void binaryheap_replace_first(binaryheap *heap, Datum d);
+extern binaryheap * binaryheap_allocate(int capacity,
+										binaryheap_comparator compare,
+										void *arg);
+extern void binaryheap_reset(binaryheap * heap);
+extern void binaryheap_free(binaryheap * heap);
+extern void binaryheap_add_unordered(binaryheap * heap, Datum d);
+extern void binaryheap_build(binaryheap * heap);
+extern void binaryheap_add(binaryheap * heap, Datum d);
+extern Datum binaryheap_first(binaryheap * heap);
+extern Datum binaryheap_remove_first(binaryheap * heap);
+extern void binaryheap_replace_first(binaryheap * heap, Datum d);
 
 #define binaryheap_empty(h)			((h)->bh_size == 0)
 

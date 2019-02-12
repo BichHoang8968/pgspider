@@ -16,8 +16,8 @@
 
 #include "nodes/execnodes.h"
 
-extern SampleScanState *ExecInitSampleScan(SampleScan *node, EState *estate, int eflags);
-extern void ExecEndSampleScan(SampleScanState *node);
-extern void ExecReScanSampleScan(SampleScanState *node);
+extern SampleScanState * ExecInitSampleScan(SampleScan * node, EState * estate, int eflags);
+extern void ExecEndSampleScan(SampleScanState * node);
+extern void ExecReScanSampleScan(SampleScanState * node);
 
 #endif							/* NODESAMPLESCAN_H */

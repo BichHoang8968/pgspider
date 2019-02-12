@@ -80,8 +80,8 @@
  * condition.)
  */
 static void
-compute_return_type(TypeName *returnType, Oid languageOid,
-					Oid *prorettype_p, bool *returnsSet_p)
+compute_return_type(TypeName * returnType, Oid languageOid,
+					Oid * prorettype_p, bool *returnsSet_p)
 {
 	Oid			rettype;
 	Type		typtup;
@@ -176,17 +176,17 @@ compute_return_type(TypeName *returnType, Oid languageOid,
  * else it is set to the OID of the implied result type.
  */
 void
-interpret_function_parameter_list(ParseState *pstate,
-								  List *parameters,
+interpret_function_parameter_list(ParseState * pstate,
+								  List * parameters,
 								  Oid languageOid,
 								  bool is_aggregate,
-								  oidvector **parameterTypes,
-								  ArrayType **allParameterTypes,
-								  ArrayType **parameterModes,
-								  ArrayType **parameterNames,
-								  List **parameterDefaults,
-								  Oid *variadicArgType,
-								  Oid *requiredResultType)
+								  oidvector * *parameterTypes,
+								  ArrayType * *allParameterTypes,
+								  ArrayType * *parameterModes,
+								  ArrayType * *parameterNames,
+								  List * *parameterDefaults,
+								  Oid * variadicArgType,
+								  Oid * requiredResultType)
 {
 	int			parameterCount = list_length(parameters);
 	Oid		   *inTypes;
@@ -450,16 +450,16 @@ interpret_function_parameter_list(ParseState *pstate,
  * SET parameters though --- if you're redundant, the last one wins.)
  */
 static bool
-compute_common_attribute(ParseState *pstate,
-						 DefElem *defel,
-						 DefElem **volatility_item,
-						 DefElem **strict_item,
-						 DefElem **security_item,
-						 DefElem **leakproof_item,
-						 List **set_items,
-						 DefElem **cost_item,
-						 DefElem **rows_item,
-						 DefElem **parallel_item)
+compute_common_attribute(ParseState * pstate,
+						 DefElem * defel,
+						 DefElem * *volatility_item,
+						 DefElem * *strict_item,
+						 DefElem * *security_item,
+						 DefElem * *leakproof_item,
+						 List * *set_items,
+						 DefElem * *cost_item,
+						 DefElem * *rows_item,
+						 DefElem * *parallel_item)
 {
 	if (strcmp(defel->defname, "volatility") == 0)
 	{
@@ -529,7 +529,7 @@ duplicate_error:
 }
 
 static char
-interpret_func_volatility(DefElem *defel)
+interpret_func_volatility(DefElem * defel)
 {
 	char	   *str = strVal(defel->arg);
 
@@ -547,7 +547,7 @@ interpret_func_volatility(DefElem *defel)
 }
 
 static char
-interpret_func_parallel(DefElem *defel)
+interpret_func_parallel(DefElem * defel)
 {
 	char	   *str = strVal(defel->arg);
 
@@ -572,7 +572,7 @@ interpret_func_parallel(DefElem *defel)
  * The input and result may be NULL to signify a null entry.
  */
 static ArrayType *
-update_proconfig_value(ArrayType *a, List *set_items)
+update_proconfig_value(ArrayType * a, List * set_items)
 {
 	ListCell   *l;
 
@@ -602,19 +602,19 @@ update_proconfig_value(ArrayType *a, List *set_items)
  * attributes.
  */
 static void
-compute_attributes_sql_style(ParseState *pstate,
-							 List *options,
-							 List **as,
+compute_attributes_sql_style(ParseState * pstate,
+							 List * options,
+							 List * *as,
 							 char **language,
-							 Node **transform,
+							 Node * *transform,
 							 bool *windowfunc_p,
 							 char *volatility_p,
 							 bool *strict_p,
 							 bool *security_definer,
 							 bool *leakproof_p,
-							 ArrayType **proconfig,
-							 float4 *procost,
-							 float4 *prorows,
+							 ArrayType * *proconfig,
+							 float4 * procost,
+							 float4 * prorows,
 							 char *parallel_p)
 {
 	ListCell   *option;
@@ -762,7 +762,7 @@ compute_attributes_sql_style(ParseState *pstate,
  *------------
  */
 static void
-compute_attributes_with_style(ParseState *pstate, List *parameters, bool *isStrict_p, char *volatility_p)
+compute_attributes_with_style(ParseState * pstate, List * parameters, bool *isStrict_p, char *volatility_p)
 {
 	ListCell   *pl;
 
@@ -799,7 +799,7 @@ compute_attributes_with_style(ParseState *pstate, List *parameters, bool *isStri
  */
 static void
 interpret_AS_clause(Oid languageOid, const char *languageName,
-					char *funcname, List *as,
+					char *funcname, List * as,
 					char **prosrc_str_p, char **probin_str_p)
 {
 	Assert(as != NIL);
@@ -858,7 +858,7 @@ interpret_AS_clause(Oid languageOid, const char *languageName,
  *	 Execute a CREATE FUNCTION utility statement.
  */
 ObjectAddress
-CreateFunction(ParseState *pstate, CreateFunctionStmt *stmt)
+CreateFunction(ParseState * pstate, CreateFunctionStmt * stmt)
 {
 	char	   *probin_str;
 	char	   *prosrc_str;
@@ -1163,7 +1163,7 @@ RemoveFunctionById(Oid funcOid)
  * ALTER framework).
  */
 ObjectAddress
-AlterFunction(ParseState *pstate, AlterFunctionStmt *stmt)
+AlterFunction(ParseState * pstate, AlterFunctionStmt * stmt)
 {
 	HeapTuple	tup;
 	Oid			funcOid;
@@ -1395,7 +1395,7 @@ SetFunctionArgType(Oid funcOid, int argIndex, Oid newArgType)
  * CREATE CAST
  */
 ObjectAddress
-CreateCast(CreateCastStmt *stmt)
+CreateCast(CreateCastStmt * stmt)
 {
 	Oid			sourcetypeid;
 	Oid			targettypeid;
@@ -1794,7 +1794,7 @@ check_transform_function(Form_pg_proc procstruct)
  * CREATE TRANSFORM
  */
 ObjectAddress
-CreateTransform(CreateTransformStmt *stmt)
+CreateTransform(CreateTransformStmt * stmt)
 {
 	Oid			typeid;
 	char		typtype;
@@ -2053,7 +2053,7 @@ DropTransformById(Oid transformOid)
  */
 void
 IsThereFunctionInNamespace(const char *proname, int pronargs,
-						   oidvector *proargtypes, Oid nspOid)
+						   oidvector * proargtypes, Oid nspOid)
 {
 	/* check for duplicate name (more friendly than unique-index failure) */
 	if (SearchSysCacheExists3(PROCNAMEARGSNSP,
@@ -2073,7 +2073,7 @@ IsThereFunctionInNamespace(const char *proname, int pronargs,
  *		Execute inline procedural-language code
  */
 void
-ExecuteDoStmt(DoStmt *stmt)
+ExecuteDoStmt(DoStmt * stmt)
 {
 	InlineCodeBlock *codeblock = makeNode(InlineCodeBlock);
 	ListCell   *arg;

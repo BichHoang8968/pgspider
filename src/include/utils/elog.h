@@ -238,10 +238,10 @@ typedef struct ErrorContextCallback
 	struct ErrorContextCallback *previous;
 	void		(*callback) (void *arg);
 	void	   *arg;
-} ErrorContextCallback;
+}			ErrorContextCallback;
 
 
-extern PGDLLIMPORT __thread ErrorContextCallback *error_context_stack;
+extern PGDLLIMPORT __thread ErrorContextCallback * error_context_stack;
 
 
 
@@ -318,7 +318,7 @@ extern PGDLLIMPORT __thread ErrorContextCallback *error_context_stack;
 #endif
 
 
-extern PGDLLIMPORT __thread sigjmp_buf *PG_exception_stack;
+extern PGDLLIMPORT __thread sigjmp_buf * PG_exception_stack;
 
 
 
@@ -362,20 +362,20 @@ typedef struct ErrorData
 
 	/* context containing associated non-constant strings */
 	struct MemoryContextData *assoc_context;
-} ErrorData;
+}			ErrorData;
 
 extern void EmitErrorReport(void);
-extern ErrorData *CopyErrorData(void);
-extern void FreeErrorData(ErrorData *edata);
+extern ErrorData * CopyErrorData(void);
+extern void FreeErrorData(ErrorData * edata);
 extern void FlushErrorState(void);
-extern void ReThrowError(ErrorData *edata) pg_attribute_noreturn();
-extern void ThrowErrorData(ErrorData *edata);
+extern void ReThrowError(ErrorData * edata) pg_attribute_noreturn();
+extern void ThrowErrorData(ErrorData * edata);
 extern void pg_re_throw(void) pg_attribute_noreturn();
 
 extern char *GetErrorContextStack(void);
 
 /* Hook for intercepting messages before they are sent to the server log */
-typedef void (*emit_log_hook_type) (ErrorData *edata);
+typedef void (*emit_log_hook_type) (ErrorData * edata);
 extern PGDLLIMPORT emit_log_hook_type emit_log_hook;
 
 

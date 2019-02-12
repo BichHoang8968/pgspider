@@ -122,7 +122,7 @@ int			Unix_socket_permissions;
 char	   *Unix_socket_group;
 
 /* Where the Unix socket files are (list of palloc'd strings) */
-static List *sock_paths = NIL;
+static List * sock_paths = NIL;
 
 /*
  * Buffers for low-level I/O.
@@ -170,15 +170,16 @@ static int	Lock_AF_UNIX(char *unixSocketDir, char *unixSocketPath);
 static int	Setup_AF_UNIX(char *sock_path);
 #endif							/* HAVE_UNIX_SOCKETS */
 
-static PQcommMethods PqCommSocketMethods = {
+static PQcommMethods PqCommSocketMethods =
+{
 	socket_comm_reset,
-	socket_flush,
-	socket_flush_if_writable,
-	socket_is_send_pending,
-	socket_putmessage,
-	socket_putmessage_noblock,
-	socket_startcopyout,
-	socket_endcopyout
+		socket_flush,
+		socket_flush_if_writable,
+		socket_is_send_pending,
+		socket_putmessage,
+		socket_putmessage_noblock,
+		socket_startcopyout,
+		socket_endcopyout
 };
 
 PQcommMethods *PqCommMethods = &PqCommSocketMethods;
@@ -713,7 +714,7 @@ Setup_AF_UNIX(char *sock_path)
  * RETURNS: STATUS_OK or STATUS_ERROR
  */
 int
-StreamConnection(pgsocket server_fd, Port *port)
+StreamConnection(pgsocket server_fd, Port * port)
 {
 	/* accept connection and fill in the client (remote) address */
 	port->raddr.salen = sizeof(port->raddr.addr);
@@ -1655,7 +1656,7 @@ socket_endcopyout(bool errorAbort)
  */
 #if defined(WIN32) && defined(SIO_KEEPALIVE_VALS)
 static int
-pq_setkeepaliveswin32(Port *port, int idle, int interval)
+pq_setkeepaliveswin32(Port * port, int idle, int interval)
 {
 	struct tcp_keepalive ka;
 	DWORD		retsize;
@@ -1671,7 +1672,7 @@ pq_setkeepaliveswin32(Port *port, int idle, int interval)
 
 	if (WSAIoctl(port->sock,
 				 SIO_KEEPALIVE_VALS,
-				 (LPVOID) &ka,
+				 (LPVOID) & ka,
 				 sizeof(ka),
 				 NULL,
 				 0,
@@ -1693,7 +1694,7 @@ pq_setkeepaliveswin32(Port *port, int idle, int interval)
 #endif
 
 int
-pq_getkeepalivesidle(Port *port)
+pq_getkeepalivesidle(Port * port)
 {
 #if defined(PG_TCP_KEEPALIVE_IDLE) || defined(SIO_KEEPALIVE_VALS)
 	if (port == NULL || IS_AF_UNIX(port->laddr.addr.ss_family))
@@ -1727,7 +1728,7 @@ pq_getkeepalivesidle(Port *port)
 }
 
 int
-pq_setkeepalivesidle(int idle, Port *port)
+pq_setkeepalivesidle(int idle, Port * port)
 {
 	if (port == NULL || IS_AF_UNIX(port->laddr.addr.ss_family))
 		return STATUS_OK;
@@ -1775,7 +1776,7 @@ pq_setkeepalivesidle(int idle, Port *port)
 }
 
 int
-pq_getkeepalivesinterval(Port *port)
+pq_getkeepalivesinterval(Port * port)
 {
 #if defined(TCP_KEEPINTVL) || defined(SIO_KEEPALIVE_VALS)
 	if (port == NULL || IS_AF_UNIX(port->laddr.addr.ss_family))
@@ -1809,7 +1810,7 @@ pq_getkeepalivesinterval(Port *port)
 }
 
 int
-pq_setkeepalivesinterval(int interval, Port *port)
+pq_setkeepalivesinterval(int interval, Port * port)
 {
 	if (port == NULL || IS_AF_UNIX(port->laddr.addr.ss_family))
 		return STATUS_OK;
@@ -1856,7 +1857,7 @@ pq_setkeepalivesinterval(int interval, Port *port)
 }
 
 int
-pq_getkeepalivescount(Port *port)
+pq_getkeepalivescount(Port * port)
 {
 #ifdef TCP_KEEPCNT
 	if (port == NULL || IS_AF_UNIX(port->laddr.addr.ss_family))
@@ -1885,7 +1886,7 @@ pq_getkeepalivescount(Port *port)
 }
 
 int
-pq_setkeepalivescount(int count, Port *port)
+pq_setkeepalivescount(int count, Port * port)
 {
 	if (port == NULL || IS_AF_UNIX(port->laddr.addr.ss_family))
 		return STATUS_OK;

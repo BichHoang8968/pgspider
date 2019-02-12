@@ -89,11 +89,11 @@ struct FreePageManager
 	(fpm->contiguous_pages)
 
 /* Functions to manipulate the free page map. */
-extern void FreePageManagerInitialize(FreePageManager *fpm, char *base);
-extern bool FreePageManagerGet(FreePageManager *fpm, Size npages,
-				   Size *first_page);
-extern void FreePageManagerPut(FreePageManager *fpm, Size first_page,
+extern void FreePageManagerInitialize(FreePageManager * fpm, char *base);
+extern bool FreePageManagerGet(FreePageManager * fpm, Size npages,
+				   Size * first_page);
+extern void FreePageManagerPut(FreePageManager * fpm, Size first_page,
 				   Size npages);
-extern char *FreePageManagerDump(FreePageManager *fpm);
+extern char *FreePageManagerDump(FreePageManager * fpm);
 
 #endif							/* FREEPAGE_H */

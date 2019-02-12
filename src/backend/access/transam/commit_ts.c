@@ -58,7 +58,7 @@ typedef struct CommitTimestampEntry
 {
 	TimestampTz time;
 	RepOriginId nodeid;
-} CommitTimestampEntry;
+}			CommitTimestampEntry;
 
 #define SizeOfCommitTimestampEntry (offsetof(CommitTimestampEntry, nodeid) + \
 									sizeof(RepOriginId))
@@ -94,7 +94,7 @@ typedef struct CommitTimestampShared
 	TransactionId xidLastCommit;
 	CommitTimestampEntry dataLastCommit;
 	bool		commitTsActive;
-} CommitTimestampShared;
+}			CommitTimestampShared;
 
 CommitTimestampShared *commitTsShared;
 
@@ -103,7 +103,7 @@ CommitTimestampShared *commitTsShared;
 bool		track_commit_timestamp;
 
 static void SetXidCommitTsInPage(TransactionId xid, int nsubxids,
-					 TransactionId *subxids, TimestampTz ts,
+					 TransactionId * subxids, TimestampTz ts,
 					 RepOriginId nodeid, int pageno);
 static void TransactionIdSetCommitTs(TransactionId xid, TimestampTz ts,
 						 RepOriginId nodeid, int slotno);
@@ -115,7 +115,7 @@ static void DeactivateCommitTs(void);
 static void WriteZeroPageXlogRec(int pageno);
 static void WriteTruncateXlogRec(int pageno, TransactionId oldestXid);
 static void WriteSetTimestampXlogRec(TransactionId mainxid, int nsubxids,
-						 TransactionId *subxids, TimestampTz timestamp,
+						 TransactionId * subxids, TimestampTz timestamp,
 						 RepOriginId nodeid);
 
 /*
@@ -143,7 +143,7 @@ static void WriteSetTimestampXlogRec(TransactionId mainxid, int nsubxids,
  */
 void
 TransactionTreeSetCommitTsData(TransactionId xid, int nsubxids,
-							   TransactionId *subxids, TimestampTz timestamp,
+							   TransactionId * subxids, TimestampTz timestamp,
 							   RepOriginId nodeid, bool write_xlog)
 {
 	int			i;
@@ -229,7 +229,7 @@ TransactionTreeSetCommitTsData(TransactionId xid, int nsubxids,
  */
 static void
 SetXidCommitTsInPage(TransactionId xid, int nsubxids,
-					 TransactionId *subxids, TimestampTz ts,
+					 TransactionId * subxids, TimestampTz ts,
 					 RepOriginId nodeid, int pageno)
 {
 	int			slotno;
@@ -279,8 +279,8 @@ TransactionIdSetCommitTs(TransactionId xid, TimestampTz ts,
  * null.
  */
 bool
-TransactionIdGetCommitTsData(TransactionId xid, TimestampTz *ts,
-							 RepOriginId *nodeid)
+TransactionIdGetCommitTsData(TransactionId xid, TimestampTz * ts,
+							 RepOriginId * nodeid)
 {
 	int			pageno = TransactionIdToCTsPage(xid);
 	int			entryno = TransactionIdToCTsEntry(xid);
@@ -365,7 +365,7 @@ TransactionIdGetCommitTsData(TransactionId xid, TimestampTz *ts,
  * as NULL if not wanted.
  */
 TransactionId
-GetLatestCommitTsData(TimestampTz *ts, RepOriginId *nodeid)
+GetLatestCommitTsData(TimestampTz * ts, RepOriginId * nodeid)
 {
 	TransactionId xid;
 
@@ -939,7 +939,7 @@ WriteTruncateXlogRec(int pageno, TransactionId oldestXid)
  */
 static void
 WriteSetTimestampXlogRec(TransactionId mainxid, int nsubxids,
-						 TransactionId *subxids, TimestampTz timestamp,
+						 TransactionId * subxids, TimestampTz timestamp,
 						 RepOriginId nodeid)
 {
 	xl_commit_ts_set record;
@@ -960,7 +960,7 @@ WriteSetTimestampXlogRec(TransactionId mainxid, int nsubxids,
  * CommitTS resource manager's routines
  */
 void
-commit_ts_redo(XLogReaderState *record)
+commit_ts_redo(XLogReaderState * record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 

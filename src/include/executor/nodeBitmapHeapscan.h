@@ -17,16 +17,16 @@
 #include "nodes/execnodes.h"
 #include "access/parallel.h"
 
-extern BitmapHeapScanState *ExecInitBitmapHeapScan(BitmapHeapScan *node, EState *estate, int eflags);
-extern void ExecEndBitmapHeapScan(BitmapHeapScanState *node);
-extern void ExecReScanBitmapHeapScan(BitmapHeapScanState *node);
-extern void ExecBitmapHeapEstimate(BitmapHeapScanState *node,
-					   ParallelContext *pcxt);
-extern void ExecBitmapHeapInitializeDSM(BitmapHeapScanState *node,
-							ParallelContext *pcxt);
-extern void ExecBitmapHeapReInitializeDSM(BitmapHeapScanState *node,
-							  ParallelContext *pcxt);
-extern void ExecBitmapHeapInitializeWorker(BitmapHeapScanState *node,
-							   shm_toc *toc);
+extern BitmapHeapScanState * ExecInitBitmapHeapScan(BitmapHeapScan * node, EState * estate, int eflags);
+extern void ExecEndBitmapHeapScan(BitmapHeapScanState * node);
+extern void ExecReScanBitmapHeapScan(BitmapHeapScanState * node);
+extern void ExecBitmapHeapEstimate(BitmapHeapScanState * node,
+					   ParallelContext * pcxt);
+extern void ExecBitmapHeapInitializeDSM(BitmapHeapScanState * node,
+							ParallelContext * pcxt);
+extern void ExecBitmapHeapReInitializeDSM(BitmapHeapScanState * node,
+							  ParallelContext * pcxt);
+extern void ExecBitmapHeapInitializeWorker(BitmapHeapScanState * node,
+							   shm_toc * toc);
 
 #endif							/* NODEBITMAPHEAPSCAN_H */

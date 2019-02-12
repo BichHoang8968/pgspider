@@ -43,7 +43,7 @@ typedef struct foreign_glob_cxt
 {
 	PlannerInfo *root;			/* global planner state */
 	RelOptInfo *foreignrel;		/* the foreign relation we are planning for */
-} foreign_glob_cxt;
+}			foreign_glob_cxt;
 
 /*
  * Local (per-tree-level) context for foreign_expr_walker's search.
@@ -54,13 +54,13 @@ typedef enum
 	FDW_COLLATE_NONE,			/* expression is of a noncollatable type */
 	FDW_COLLATE_SAFE,			/* collation derives from a foreign Var */
 	FDW_COLLATE_UNSAFE			/* collation derives from something else */
-} FDWCollateState;
+}			FDWCollateState;
 
 typedef struct foreign_loc_cxt
 {
 	Oid			collation;		/* OID of current collation, if any */
 	FDWCollateState state;		/* state of current collation choice */
-} foreign_loc_cxt;
+}			foreign_loc_cxt;
 
 /*
  * Context for deparseExpr
@@ -71,38 +71,38 @@ typedef struct deparse_expr_cxt
 	RelOptInfo *foreignrel;		/* the foreign relation we are planning for */
 	StringInfo	buf;			/* output buffer to append to */
 	List	  **params_list;	/* exprs that will become remote Params */
-} deparse_expr_cxt;
+}			deparse_expr_cxt;
 
 
 /*
  * Functions to construct string representation of a node tree.
  */
-static void deparseExpr(Expr *expr, deparse_expr_cxt *context);
-static void griddb_deparse_var(Var *node, deparse_expr_cxt *context);
-static void griddb_deparse_const(Const *node, deparse_expr_cxt *context);
+static void deparseExpr(Expr * expr, deparse_expr_cxt * context);
+static void griddb_deparse_var(Var * node, deparse_expr_cxt * context);
+static void griddb_deparse_const(Const * node, deparse_expr_cxt * context);
 
-static void griddb_deparse_func_expr(FuncExpr *node, deparse_expr_cxt *context);
-static void griddb_deparse_op_expr(OpExpr *node, deparse_expr_cxt *context);
+static void griddb_deparse_func_expr(FuncExpr * node, deparse_expr_cxt * context);
+static void griddb_deparse_op_expr(OpExpr * node, deparse_expr_cxt * context);
 static void griddb_deparse_operator_name(StringInfo buf, Form_pg_operator opform);
-static void griddb_deparse_distinct_expr(DistinctExpr *node, deparse_expr_cxt *context);
-static void griddb_deparse_scalar_array_op_expr(ScalarArrayOpExpr *node,
-									deparse_expr_cxt *context);
-static void griddb_deparse_relabel_type(RelabelType *node, deparse_expr_cxt *context);
-static void griddb_deparse_bool_expr(BoolExpr *node, deparse_expr_cxt *context);
-static void griddb_deparse_null_test(NullTest *node, deparse_expr_cxt *context);
+static void griddb_deparse_distinct_expr(DistinctExpr * node, deparse_expr_cxt * context);
+static void griddb_deparse_scalar_array_op_expr(ScalarArrayOpExpr * node,
+									deparse_expr_cxt * context);
+static void griddb_deparse_relabel_type(RelabelType * node, deparse_expr_cxt * context);
+static void griddb_deparse_bool_expr(BoolExpr * node, deparse_expr_cxt * context);
+static void griddb_deparse_null_test(NullTest * node, deparse_expr_cxt * context);
 
 
 
 
 static void griddb_deparse_relation(StringInfo buf, Relation rel);
-static void griddb_deparse_target_list(StringInfo buf, PlannerInfo *root, Index rtindex, Relation rel,
-						   Bitmapset *attrs_used, List **retrieved_attrs);
+static void griddb_deparse_target_list(StringInfo buf, PlannerInfo * root, Index rtindex, Relation rel,
+						   Bitmapset * attrs_used, List * *retrieved_attrs);
 static void griddb_deparse_column_ref(StringInfo buf, int varno, int varattno,
-						  PlannerInfo *root);
+						  PlannerInfo * root);
 
-static void griddb_append_order_by_clause(List *pathkeys, deparse_expr_cxt *context);
-static void griddb_append_where_clause(List *exprs, deparse_expr_cxt *context);
-static bool is_griddb_func(FuncExpr *fe);
+static void griddb_append_order_by_clause(List * pathkeys, deparse_expr_cxt * context);
+static void griddb_append_where_clause(List * exprs, deparse_expr_cxt * context);
+static bool is_griddb_func(FuncExpr * fe);
 
 
 /*
@@ -161,12 +161,12 @@ griddb_deparse_relation(StringInfo buf, Relation rel)
  */
 void
 griddb_deparse_select(StringInfo buf,
-					  PlannerInfo *root,
-					  RelOptInfo *baserel,
-					  List *remote_conds,
-					  List *pathkeys,
-					  List **retrieved_attrs,
-					  List **params_list)
+					  PlannerInfo * root,
+					  RelOptInfo * baserel,
+					  List * remote_conds,
+					  List * pathkeys,
+					  List * *retrieved_attrs,
+					  List * *params_list)
 {
 	RangeTblEntry *rte = planner_rt_fetch(baserel->relid, root);
 	Relation	rel;
@@ -214,11 +214,11 @@ griddb_deparse_select(StringInfo buf,
  */
 static void
 griddb_deparse_target_list(StringInfo buf,
-						   PlannerInfo *root,
+						   PlannerInfo * root,
 						   Index rtindex,
 						   Relation rel,
-						   Bitmapset *attrs_used,
-						   List **retrieved_attrs)
+						   Bitmapset * attrs_used,
+						   List * *retrieved_attrs)
 {
 	TupleDesc	tupdesc = RelationGetDescr(rel);
 	bool		have_wholerow;
@@ -255,7 +255,7 @@ griddb_deparse_target_list(StringInfo buf,
  * deparse WHERE clauses.
  */
 static void
-griddb_append_where_clause(List *exprs, deparse_expr_cxt *context)
+griddb_append_where_clause(List * exprs, deparse_expr_cxt * context)
 {
 	ListCell   *lc;
 	bool		is_first = true;
@@ -284,7 +284,7 @@ griddb_append_where_clause(List *exprs, deparse_expr_cxt *context)
  * If it has a column_name FDW option, use that instead of attribute name.
  */
 static void
-griddb_deparse_column_ref(StringInfo buf, int varno, int varattno, PlannerInfo *root)
+griddb_deparse_column_ref(StringInfo buf, int varno, int varattno, PlannerInfo * root)
 {
 	RangeTblEntry *rte;
 	char	   *colname = NULL;
@@ -355,7 +355,7 @@ griddb_deparse_string_literal(StringInfo buf, const char *val)
  * should be self-parenthesized.
  */
 static void
-deparseExpr(Expr *node, deparse_expr_cxt *context)
+deparseExpr(Expr * node, deparse_expr_cxt * context)
 {
 	if (node == NULL)
 		return;
@@ -420,7 +420,7 @@ deparseExpr(Expr *node, deparse_expr_cxt *context)
  * unsupported on GridDB.
  */
 static void
-griddb_deparse_var(Var *node, deparse_expr_cxt *context)
+griddb_deparse_var(Var * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 
@@ -444,7 +444,7 @@ griddb_deparse_var(Var *node, deparse_expr_cxt *context)
  * This function has to be kept in sync with ruleutils.c's get_const_expr.
  */
 static void
-griddb_deparse_const(Const *node, deparse_expr_cxt *context)
+griddb_deparse_const(Const * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	Oid			typoutput;
@@ -536,7 +536,7 @@ griddb_replace_function(char *in)
  * Deparse a function call.
  */
 static void
-griddb_deparse_func_expr(FuncExpr *node, deparse_expr_cxt *context)
+griddb_deparse_func_expr(FuncExpr * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	HeapTuple	proctup;
@@ -583,7 +583,7 @@ griddb_deparse_func_expr(FuncExpr *node, deparse_expr_cxt *context)
  * priority of operations, we always parenthesize the arguments.
  */
 static void
-griddb_deparse_op_expr(OpExpr *node, deparse_expr_cxt *context)
+griddb_deparse_op_expr(OpExpr * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	HeapTuple	tuple;
@@ -677,7 +677,7 @@ griddb_deparse_operator_name(StringInfo buf, Form_pg_operator opform)
  * "expr IS DISTINCT FROM expr" is converted to "expr <> expr".
  */
 static void
-griddb_deparse_distinct_expr(DistinctExpr *node, deparse_expr_cxt *context)
+griddb_deparse_distinct_expr(DistinctExpr * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 
@@ -699,7 +699,7 @@ griddb_deparse_distinct_expr(DistinctExpr *node, deparse_expr_cxt *context)
  * expr NOT IN (c1, c2, c3) => expr <> c1 AND expr <> c2 AND expr <> c3
  */
 static void
-griddb_deparse_scalar_array_op_expr(ScalarArrayOpExpr *node, deparse_expr_cxt *context)
+griddb_deparse_scalar_array_op_expr(ScalarArrayOpExpr * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	HeapTuple	tuple;
@@ -813,7 +813,7 @@ griddb_deparse_scalar_array_op_expr(ScalarArrayOpExpr *node, deparse_expr_cxt *c
  * Deparse a RelabelType (binary-compatible cast) node.
  */
 static void
-griddb_deparse_relabel_type(RelabelType *node, deparse_expr_cxt *context)
+griddb_deparse_relabel_type(RelabelType * node, deparse_expr_cxt * context)
 {
 	deparseExpr(node->arg, context);
 }
@@ -825,7 +825,7 @@ griddb_deparse_relabel_type(RelabelType *node, deparse_expr_cxt *context)
  * into N-argument form, so we'd better be prepared to deal with that.
  */
 static void
-griddb_deparse_bool_expr(BoolExpr *node, deparse_expr_cxt *context)
+griddb_deparse_bool_expr(BoolExpr * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	const char *op = NULL;		/* keep compiler quiet */
@@ -865,7 +865,7 @@ griddb_deparse_bool_expr(BoolExpr *node, deparse_expr_cxt *context)
  * So we treat IS NULL as false and IS NOT NULL as true.
  */
 static void
-griddb_deparse_null_test(NullTest *node, deparse_expr_cxt *context)
+griddb_deparse_null_test(NullTest * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 
@@ -914,9 +914,9 @@ is_builtin(Oid oid)
  * can assume here that the given expression is valid.
  */
 static bool
-foreign_expr_walker(Node *node,
-					foreign_glob_cxt *glob_cxt,
-					foreign_loc_cxt *outer_cxt)
+foreign_expr_walker(Node * node,
+					foreign_glob_cxt * glob_cxt,
+					foreign_loc_cxt * outer_cxt)
 {
 	bool		check_type = true;
 	foreign_loc_cxt inner_cxt;
@@ -1281,9 +1281,9 @@ foreign_expr_walker(Node *node,
  * Returns true if given expr is safe to evaluate on the foreign server.
  */
 bool
-griddb_is_foreign_expr(PlannerInfo *root,
-				RelOptInfo *baserel,
-				Expr *expr)
+griddb_is_foreign_expr(PlannerInfo * root,
+					   RelOptInfo * baserel,
+					   Expr * expr)
 {
 	foreign_glob_cxt glob_cxt;
 	foreign_loc_cxt loc_cxt;
@@ -1327,7 +1327,7 @@ griddb_is_foreign_expr(PlannerInfo *root,
  * base relation are obtained and deparsed.
  */
 static void
-griddb_append_order_by_clause(List *pathkeys, deparse_expr_cxt *context)
+griddb_append_order_by_clause(List * pathkeys, deparse_expr_cxt * context)
 {
 	ListCell   *lcell;
 	char	   *delim = " ";
@@ -1360,7 +1360,7 @@ griddb_append_order_by_clause(List *pathkeys, deparse_expr_cxt *context)
  * given relation (context->foreignrel).
  */
 void
-griddb_deparse_locking_clause(PlannerInfo *root, RelOptInfo *rel, int *for_update)
+griddb_deparse_locking_clause(PlannerInfo * root, RelOptInfo * rel, int *for_update)
 {
 	int			relid = -1;
 
@@ -1429,11 +1429,11 @@ griddb_deparse_locking_clause(PlannerInfo *root, RelOptInfo *rel, int *for_updat
  *	- local_conds contains expressions that can't be evaluated remotely
  */
 void
-griddb_classify_conditions(PlannerInfo *root,
-						   RelOptInfo *baserel,
-						   List *input_conds,
-						   List **remote_conds,
-						   List **local_conds)
+griddb_classify_conditions(PlannerInfo * root,
+						   RelOptInfo * baserel,
+						   List * input_conds,
+						   List * *remote_conds,
+						   List * *local_conds)
 {
 	ListCell   *lc;
 
@@ -1452,7 +1452,7 @@ griddb_classify_conditions(PlannerInfo *root,
 }
 
 bool
-is_griddb_func(FuncExpr *fe)
+is_griddb_func(FuncExpr * fe)
 {
 	HeapTuple	proctup;
 	Form_pg_proc procform;

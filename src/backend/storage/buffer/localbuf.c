@@ -32,7 +32,7 @@ typedef struct
 {
 	BufferTag	key;			/* Tag of a disk page */
 	int			id;				/* Associated local buffer's index */
-} LocalBufferLookupEnt;
+}			LocalBufferLookupEnt;
 
 /* Note: this macro only works on local buffers, not shared ones! */
 #define LocalBufHdrGetBlock(bufHdr) \
@@ -46,7 +46,7 @@ int32	   *LocalRefCount = NULL;
 
 static int	nextFreeLocalBuf = 0;
 
-static HTAB *LocalBufHash = NULL;
+static HTAB * LocalBufHash = NULL;
 
 
 static void InitLocalBuffers(void);

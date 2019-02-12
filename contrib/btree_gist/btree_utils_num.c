@@ -11,7 +11,7 @@
 
 
 GISTENTRY *
-gbt_num_compress(GISTENTRY *entry, const gbtree_ninfo *tinfo)
+gbt_num_compress(GISTENTRY * entry, const gbtree_ninfo * tinfo)
 {
 	GISTENTRY  *retval;
 
@@ -99,7 +99,7 @@ gbt_num_compress(GISTENTRY *entry, const gbtree_ninfo *tinfo)
  * scans.
  */
 GISTENTRY *
-gbt_num_fetch(GISTENTRY *entry, const gbtree_ninfo *tinfo)
+gbt_num_fetch(GISTENTRY * entry, const gbtree_ninfo * tinfo)
 {
 	GISTENTRY  *retval;
 	Datum		datum;
@@ -161,7 +161,7 @@ gbt_num_fetch(GISTENTRY *entry, const gbtree_ninfo *tinfo)
 */
 
 void *
-gbt_num_union(GBT_NUMKEY *out, const GistEntryVector *entryvec, const gbtree_ninfo *tinfo, FmgrInfo *flinfo)
+gbt_num_union(GBT_NUMKEY * out, const GistEntryVector * entryvec, const gbtree_ninfo * tinfo, FmgrInfo * flinfo)
 {
 	int			i,
 				numranges;
@@ -201,7 +201,7 @@ gbt_num_union(GBT_NUMKEY *out, const GistEntryVector *entryvec, const gbtree_nin
 */
 
 bool
-gbt_num_same(const GBT_NUMKEY *a, const GBT_NUMKEY *b, const gbtree_ninfo *tinfo, FmgrInfo *flinfo)
+gbt_num_same(const GBT_NUMKEY * a, const GBT_NUMKEY * b, const gbtree_ninfo * tinfo, FmgrInfo * flinfo)
 {
 	GBT_NUMKEY_R b1,
 				b2;
@@ -217,7 +217,7 @@ gbt_num_same(const GBT_NUMKEY *a, const GBT_NUMKEY *b, const gbtree_ninfo *tinfo
 
 
 void
-gbt_num_bin_union(Datum *u, GBT_NUMKEY *e, const gbtree_ninfo *tinfo, FmgrInfo *flinfo)
+gbt_num_bin_union(Datum * u, GBT_NUMKEY * e, const gbtree_ninfo * tinfo, FmgrInfo * flinfo)
 {
 	GBT_NUMKEY_R rd;
 
@@ -252,12 +252,12 @@ gbt_num_bin_union(Datum *u, GBT_NUMKEY *e, const gbtree_ninfo *tinfo, FmgrInfo *
  * collation-aware; so we don't bother passing collation through.
  */
 bool
-gbt_num_consistent(const GBT_NUMKEY_R *key,
+gbt_num_consistent(const GBT_NUMKEY_R * key,
 				   const void *query,
-				   const StrategyNumber *strategy,
+				   const StrategyNumber * strategy,
 				   bool is_leaf,
-				   const gbtree_ninfo *tinfo,
-				   FmgrInfo *flinfo)
+				   const gbtree_ninfo * tinfo,
+				   FmgrInfo * flinfo)
 {
 	bool		retval;
 
@@ -305,11 +305,11 @@ gbt_num_consistent(const GBT_NUMKEY_R *key,
 */
 
 float8
-gbt_num_distance(const GBT_NUMKEY_R *key,
+gbt_num_distance(const GBT_NUMKEY_R * key,
 				 const void *query,
 				 bool is_leaf,
-				 const gbtree_ninfo *tinfo,
-				 FmgrInfo *flinfo)
+				 const gbtree_ninfo * tinfo,
+				 FmgrInfo * flinfo)
 {
 	float8		retval;
 
@@ -328,8 +328,8 @@ gbt_num_distance(const GBT_NUMKEY_R *key,
 
 
 GIST_SPLITVEC *
-gbt_num_picksplit(const GistEntryVector *entryvec, GIST_SPLITVEC *v,
-				  const gbtree_ninfo *tinfo, FmgrInfo *flinfo)
+gbt_num_picksplit(const GistEntryVector * entryvec, GIST_SPLITVEC * v,
+				  const gbtree_ninfo * tinfo, FmgrInfo * flinfo)
 {
 	OffsetNumber i,
 				maxoff = entryvec->n - 1;

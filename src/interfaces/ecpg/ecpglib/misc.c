@@ -93,7 +93,7 @@ static pthread_mutex_t debug_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t debug_init_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 static int	simple_debug = 0;
-static FILE *debugstream = NULL;
+static FILE * debugstream = NULL;
 
 void
 ecpg_init_sqlca(struct sqlca_t *sqlca)
@@ -240,7 +240,7 @@ ECPGtrans(int lineno, const char *connection_name, const char *transaction)
 
 
 void
-ECPGdebug(int n, FILE *dbgs)
+ECPGdebug(int n, FILE * dbgs)
 {
 #ifdef ENABLE_THREAD_SAFETY
 	pthread_mutex_lock(&debug_init_mutex);
@@ -453,22 +453,22 @@ ECPGis_noind_null(enum ECPGttype type, void *ptr)
 #ifdef ENABLE_THREAD_SAFETY
 
 void
-win32_pthread_mutex(volatile pthread_mutex_t *mutex)
+win32_pthread_mutex(volatile pthread_mutex_t * mutex)
 {
 	if (mutex->handle == NULL)
 	{
-		while (InterlockedExchange((LONG *) &mutex->initlock, 1) == 1)
+		while (InterlockedExchange((LONG *) & mutex->initlock, 1) == 1)
 			Sleep(0);
 		if (mutex->handle == NULL)
 			mutex->handle = CreateMutex(NULL, FALSE, NULL);
-		InterlockedExchange((LONG *) &mutex->initlock, 0);
+		InterlockedExchange((LONG *) & mutex->initlock, 0);
 	}
 }
 
 static pthread_mutex_t win32_pthread_once_lock = PTHREAD_MUTEX_INITIALIZER;
 
 void
-win32_pthread_once(volatile pthread_once_t *once, void (*fn) (void))
+win32_pthread_once(volatile pthread_once_t * once, void (*fn) (void))
 {
 	if (!*once)
 	{

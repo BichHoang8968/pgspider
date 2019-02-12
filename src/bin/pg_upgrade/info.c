@@ -16,17 +16,17 @@
 
 
 static void create_rel_filename_map(const char *old_data, const char *new_data,
-						const DbInfo *old_db, const DbInfo *new_db,
-						const RelInfo *old_rel, const RelInfo *new_rel,
-						FileNameMap *map);
-static void report_unmatched_relation(const RelInfo *rel, const DbInfo *db,
+						const DbInfo * old_db, const DbInfo * new_db,
+						const RelInfo * old_rel, const RelInfo * new_rel,
+						FileNameMap * map);
+static void report_unmatched_relation(const RelInfo * rel, const DbInfo * db,
 						  bool is_new_db);
-static void free_db_and_rel_infos(DbInfoArr *db_arr);
-static void get_db_infos(ClusterInfo *cluster);
-static void get_rel_infos(ClusterInfo *cluster, DbInfo *dbinfo);
-static void free_rel_infos(RelInfoArr *rel_arr);
-static void print_db_infos(DbInfoArr *dbinfo);
-static void print_rel_infos(RelInfoArr *rel_arr);
+static void free_db_and_rel_infos(DbInfoArr * db_arr);
+static void get_db_infos(ClusterInfo * cluster);
+static void get_rel_infos(ClusterInfo * cluster, DbInfo * dbinfo);
+static void free_rel_infos(RelInfoArr * rel_arr);
+static void print_db_infos(DbInfoArr * dbinfo);
+static void print_rel_infos(RelInfoArr * rel_arr);
 
 
 /*
@@ -38,7 +38,7 @@ static void print_rel_infos(RelInfoArr *rel_arr);
  * is returned into *nmaps.
  */
 FileNameMap *
-gen_db_file_maps(DbInfo *old_db, DbInfo *new_db,
+gen_db_file_maps(DbInfo * old_db, DbInfo * new_db,
 				 int *nmaps,
 				 const char *old_pgdata, const char *new_pgdata)
 {
@@ -165,9 +165,9 @@ gen_db_file_maps(DbInfo *old_db, DbInfo *new_db,
  */
 static void
 create_rel_filename_map(const char *old_data, const char *new_data,
-						const DbInfo *old_db, const DbInfo *new_db,
-						const RelInfo *old_rel, const RelInfo *new_rel,
-						FileNameMap *map)
+						const DbInfo * old_db, const DbInfo * new_db,
+						const RelInfo * old_rel, const RelInfo * new_rel,
+						FileNameMap * map)
 {
 	/* In case old/new tablespaces don't match, do them separately. */
 	if (strlen(old_rel->tablespace) == 0)
@@ -221,7 +221,7 @@ create_rel_filename_map(const char *old_data, const char *new_data,
  * identifying it as best we can.
  */
 static void
-report_unmatched_relation(const RelInfo *rel, const DbInfo *db, bool is_new_db)
+report_unmatched_relation(const RelInfo * rel, const DbInfo * db, bool is_new_db)
 {
 	Oid			reloid = rel->reloid;	/* we might change rel below */
 	char		reldesc[1000];
@@ -233,7 +233,7 @@ report_unmatched_relation(const RelInfo *rel, const DbInfo *db, bool is_new_db)
 	{
 		for (i = 0; i < db->rel_arr.nrels; i++)
 		{
-			const RelInfo *hrel = &db->rel_arr.rels[i];
+			const		RelInfo *hrel = &db->rel_arr.rels[i];
 
 			if (hrel->reloid == rel->indtable)
 			{
@@ -255,7 +255,7 @@ report_unmatched_relation(const RelInfo *rel, const DbInfo *db, bool is_new_db)
 	{
 		for (i = 0; i < db->rel_arr.nrels; i++)
 		{
-			const RelInfo *brel = &db->rel_arr.rels[i];
+			const		RelInfo *brel = &db->rel_arr.rels[i];
 
 			if (brel->reloid == rel->toastheap)
 			{
@@ -282,7 +282,7 @@ report_unmatched_relation(const RelInfo *rel, const DbInfo *db, bool is_new_db)
 
 
 void
-print_maps(FileNameMap *maps, int n_maps, const char *db_name)
+print_maps(FileNameMap * maps, int n_maps, const char *db_name)
 {
 	if (log_opts.verbose)
 	{
@@ -308,7 +308,7 @@ print_maps(FileNameMap *maps, int n_maps, const char *db_name)
  * on the given "port". Assumes that server is already running.
  */
 void
-get_db_and_rel_infos(ClusterInfo *cluster)
+get_db_and_rel_infos(ClusterInfo * cluster)
 {
 	int			dbnum;
 
@@ -337,7 +337,7 @@ get_db_and_rel_infos(ClusterInfo *cluster)
  * databases.
  */
 static void
-get_db_infos(ClusterInfo *cluster)
+get_db_infos(ClusterInfo * cluster)
 {
 	PGconn	   *conn = connectToServer(cluster, "template1");
 	PGresult   *res;
@@ -406,7 +406,7 @@ get_db_infos(ClusterInfo *cluster)
  * This allows later processing to match up old and new databases efficiently.
  */
 static void
-get_rel_infos(ClusterInfo *cluster, DbInfo *dbinfo)
+get_rel_infos(ClusterInfo * cluster, DbInfo * dbinfo)
 {
 	PGconn	   *conn = connectToServer(cluster,
 									   dbinfo->db_name);
@@ -593,7 +593,7 @@ get_rel_infos(ClusterInfo *cluster, DbInfo *dbinfo)
 
 
 static void
-free_db_and_rel_infos(DbInfoArr *db_arr)
+free_db_and_rel_infos(DbInfoArr * db_arr)
 {
 	int			dbnum;
 
@@ -609,7 +609,7 @@ free_db_and_rel_infos(DbInfoArr *db_arr)
 
 
 static void
-free_rel_infos(RelInfoArr *rel_arr)
+free_rel_infos(RelInfoArr * rel_arr)
 {
 	int			relnum;
 
@@ -627,7 +627,7 @@ free_rel_infos(RelInfoArr *rel_arr)
 
 
 static void
-print_db_infos(DbInfoArr *db_arr)
+print_db_infos(DbInfoArr * db_arr)
 {
 	int			dbnum;
 
@@ -641,7 +641,7 @@ print_db_infos(DbInfoArr *db_arr)
 
 
 static void
-print_rel_infos(RelInfoArr *rel_arr)
+print_rel_infos(RelInfoArr * rel_arr)
 {
 	int			relnum;
 

@@ -30,7 +30,7 @@ typedef struct ParallelSlot
 {
 	PGconn	   *connection;		/* One connection */
 	bool		isFree;			/* Is it known to be idle? */
-} ParallelSlot;
+}			ParallelSlot;
 
 /* vacuum options controlled by user flags */
 typedef struct vacuumingOptions
@@ -40,18 +40,18 @@ typedef struct vacuumingOptions
 	bool		and_analyze;
 	bool		full;
 	bool		freeze;
-} vacuumingOptions;
+}			vacuumingOptions;
 
 
-static void vacuum_one_database(const char *dbname, vacuumingOptions *vacopts,
+static void vacuum_one_database(const char *dbname, vacuumingOptions * vacopts,
 					int stage,
-					SimpleStringList *tables,
+					SimpleStringList * tables,
 					const char *host, const char *port,
 					const char *username, enum trivalue prompt_password,
 					int concurrentCons,
 					const char *progname, bool echo, bool quiet);
 
-static void vacuum_all_databases(vacuumingOptions *vacopts,
+static void vacuum_all_databases(vacuumingOptions * vacopts,
 					 bool analyze_in_stages,
 					 const char *maintenance_db,
 					 const char *host, const char *port,
@@ -59,27 +59,27 @@ static void vacuum_all_databases(vacuumingOptions *vacopts,
 					 int concurrentCons,
 					 const char *progname, bool echo, bool quiet);
 
-static void prepare_vacuum_command(PQExpBuffer sql, PGconn *conn,
-					   vacuumingOptions *vacopts, const char *table,
+static void prepare_vacuum_command(PQExpBuffer sql, PGconn * conn,
+					   vacuumingOptions * vacopts, const char *table,
 					   bool table_pre_qualified,
 					   const char *progname, bool echo);
 
-static void run_vacuum_command(PGconn *conn, const char *sql, bool echo,
+static void run_vacuum_command(PGconn * conn, const char *sql, bool echo,
 				   const char *table, const char *progname, bool async);
 
-static ParallelSlot *GetIdleSlot(ParallelSlot slots[], int numslots,
-			const char *progname);
+static ParallelSlot * GetIdleSlot(ParallelSlot slots[], int numslots,
+								  const char *progname);
 
-static bool ProcessQueryResult(PGconn *conn, PGresult *result,
+static bool ProcessQueryResult(PGconn * conn, PGresult * result,
 				   const char *progname);
 
-static bool GetQueryResult(PGconn *conn, const char *progname);
+static bool GetQueryResult(PGconn * conn, const char *progname);
 
-static void DisconnectDatabase(ParallelSlot *slot);
+static void DisconnectDatabase(ParallelSlot * slot);
 
-static int	select_loop(int maxFd, fd_set *workerset, bool *aborting);
+static int	select_loop(int maxFd, fd_set * workerset, bool *aborting);
 
-static void init_slot(ParallelSlot *slot, PGconn *conn);
+static void init_slot(ParallelSlot * slot, PGconn * conn);
 
 static void help(const char *progname);
 
@@ -334,9 +334,9 @@ main(int argc, char *argv[])
  * a list of tables from the database.
  */
 static void
-vacuum_one_database(const char *dbname, vacuumingOptions *vacopts,
+vacuum_one_database(const char *dbname, vacuumingOptions * vacopts,
 					int stage,
-					SimpleStringList *tables,
+					SimpleStringList * tables,
 					const char *host, const char *port,
 					const char *username, enum trivalue prompt_password,
 					int concurrentCons,
@@ -548,7 +548,7 @@ finish:
  * quickly everywhere before generating more detailed ones.
  */
 static void
-vacuum_all_databases(vacuumingOptions *vacopts,
+vacuum_all_databases(vacuumingOptions * vacopts,
 					 bool analyze_in_stages,
 					 const char *maintenance_db, const char *host,
 					 const char *port, const char *username,
@@ -626,8 +626,8 @@ vacuum_all_databases(vacuumingOptions *vacopts,
  * quoted.  The command is semicolon-terminated.
  */
 static void
-prepare_vacuum_command(PQExpBuffer sql, PGconn *conn,
-					   vacuumingOptions *vacopts, const char *table,
+prepare_vacuum_command(PQExpBuffer sql, PGconn * conn,
+					   vacuumingOptions * vacopts, const char *table,
 					   bool table_pre_qualified,
 					   const char *progname, bool echo)
 {
@@ -703,7 +703,7 @@ prepare_vacuum_command(PQExpBuffer sql, PGconn *conn,
  * false, this function exits the program after reporting the error.
  */
 static void
-run_vacuum_command(PGconn *conn, const char *sql, bool echo,
+run_vacuum_command(PGconn * conn, const char *sql, bool echo,
 				   const char *table, const char *progname, bool async)
 {
 	bool		status;
@@ -850,7 +850,7 @@ GetIdleSlot(ParallelSlot slots[], int numslots,
  * are reported and subsequently ignored.
  */
 static bool
-ProcessQueryResult(PGconn *conn, PGresult *result, const char *progname)
+ProcessQueryResult(PGconn * conn, PGresult * result, const char *progname)
 {
 	/*
 	 * If it's an error, report it.  Errors about a missing table are harmless
@@ -881,7 +881,7 @@ ProcessQueryResult(PGconn *conn, PGresult *result, const char *progname)
  * Note that this will block if the conn is busy.
  */
 static bool
-GetQueryResult(PGconn *conn, const char *progname)
+GetQueryResult(PGconn * conn, const char *progname)
 {
 	bool		ok = true;
 	PGresult   *result;
@@ -901,7 +901,7 @@ GetQueryResult(PGconn *conn, const char *progname)
  *		Disconnect the connection associated with the given slot
  */
 static void
-DisconnectDatabase(ParallelSlot *slot)
+DisconnectDatabase(ParallelSlot * slot)
 {
 	char		errbuf[256];
 
@@ -931,7 +931,7 @@ DisconnectDatabase(ParallelSlot *slot)
  * ignored in this case.  Otherwise, *aborting is set to false.
  */
 static int
-select_loop(int maxFd, fd_set *workerset, bool *aborting)
+select_loop(int maxFd, fd_set * workerset, bool *aborting)
 {
 	int			i;
 	fd_set		saveSet = *workerset;
@@ -985,7 +985,7 @@ select_loop(int maxFd, fd_set *workerset, bool *aborting)
 }
 
 static void
-init_slot(ParallelSlot *slot, PGconn *conn)
+init_slot(ParallelSlot * slot, PGconn * conn)
 {
 	slot->connection = conn;
 	/* Initially assume connection is idle */

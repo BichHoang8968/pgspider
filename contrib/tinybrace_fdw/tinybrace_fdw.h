@@ -46,17 +46,19 @@
  */
 typedef struct tinybrace_opt
 {
-	int           svr_port;               /* MySQL port number */
-	char          *svr_address;           /* MySQL server ip address */
-	char          *svr_username;          /* MySQL user name */
-	char          *svr_password;          /* MySQL password */
-	char          *svr_database;          /* MySQL database name */
-	char          *svr_table;             /* MySQL table name */
-	bool          svr_sa;                 /* MySQL secure authentication */
-	char          *svr_init_command;      /* MySQL SQL statement to execute when connecting to the MySQL server. */
-	unsigned long max_blob_size;          /* Max blob size to read without truncation */
-	bool          use_remote_estimate;    /* use remote estimate for rows */
-} tinybrace_opt;
+	int			svr_port;		/* MySQL port number */
+	char	   *svr_address;	/* MySQL server ip address */
+	char	   *svr_username;	/* MySQL user name */
+	char	   *svr_password;	/* MySQL password */
+	char	   *svr_database;	/* MySQL database name */
+	char	   *svr_table;		/* MySQL table name */
+	bool		svr_sa;			/* MySQL secure authentication */
+	char	   *svr_init_command;	/* MySQL SQL statement to execute when
+									 * connecting to the MySQL server. */
+	unsigned long max_blob_size;	/* Max blob size to read without
+									 * truncation */
+	bool		use_remote_estimate;	/* use remote estimate for rows */
+}			tinybrace_opt;
 
 /*
 typedef struct mysql_column
@@ -68,84 +70,82 @@ typedef struct mysql_column
 	MYSQL_BIND    *_mysql_bind;
 } mysql_column;
 */
-  /*
-typedef struct mysql_table
-{
-	MYSQL_RES *_mysql_res;
-	MYSQL_FIELD *_mysql_fields;
 
-	mysql_column *column;
-	MYSQL_BIND *_mysql_bind;
-} mysql_table;
-*/
+ /*
+  * typedef struct mysql_table { MYSQL_RES *_mysql_res; MYSQL_FIELD
+  * *_mysql_fields;
+  *
+  * mysql_column *column; MYSQL_BIND *_mysql_bind; } mysql_table;
+  */
 
 typedef struct tinybrace_column
 {
-	Datum         value;
+	Datum		value;
 	unsigned long length;
-	bool          is_null;
-	bool          error;
-} tinybrace_column;
+	bool		is_null;
+	bool		error;
+}			tinybrace_column;
 typedef struct tinybrace_table
 {
 	TBC_RESULT_SET *result_set;
 	TBC_FIELD_INFO *filed_info;
-	int filed_num;
+	int			filed_num;
 	tinybrace_column *column;
-  /*
-	mysql_column *column;
-	MYSQL_BIND *_mysql_bind;
-  */
-} tinybrace_table;
+
+	/*
+	 * mysql_column *column; MYSQL_BIND *_mysql_bind;
+	 */
+}			tinybrace_table;
 
 
 /*
- * FDW-specific information for ForeignScanState 
+ * FDW-specific information for ForeignScanState
  * fdw_state.
  */
 typedef struct TinyBraceFdwExecState
 {
-	TBC_CLIENT_HANDLE *conn;              /* TinyBrace connection handle */
-	TBC_QUERY_HANDLE qHandle;              /* MySQL prepared stament handle */
-	TBC_QUERY_HANDLE uqHandle;              /* MySQL prepared stament handle */
+	TBC_CLIENT_HANDLE *conn;	/* TinyBrace connection handle */
+	TBC_QUERY_HANDLE qHandle;	/* MySQL prepared stament handle */
+	TBC_QUERY_HANDLE uqHandle;	/* MySQL prepared stament handle */
 	tinybrace_table *table;
-	int current_row;
-	char            *query;             /* Query string */
-	Relation        rel;                /* relcache entry for the foreign table */
-	List            *retrieved_attrs;   /* list of target attribute numbers */
+	int			current_row;
+	char	   *query;			/* Query string */
+	Relation	rel;			/* relcache entry for the foreign table */
+	List	   *retrieved_attrs;	/* list of target attribute numbers */
 
-	bool		cursor_exists;	    /* have we created the cursor? */
-	int		numParams;	    /* number of parameters passed to query */
-	FmgrInfo	*param_flinfo;	    /* output conversion functions for them */
-	List		*param_exprs;	    /* executable expressions for param values */
-	const char	**param_values;	    /* textual values of query parameters */
-	Oid		*param_types;	    /* type of query parameters */
+	bool		cursor_exists;	/* have we created the cursor? */
+	int			numParams;		/* number of parameters passed to query */
+	FmgrInfo   *param_flinfo;	/* output conversion functions for them */
+	List	   *param_exprs;	/* executable expressions for param values */
+	const char **param_values;	/* textual values of query parameters */
+	Oid		   *param_types;	/* type of query parameters */
 
-	int             p_nums;             /* number of parameters to transmit */
-	FmgrInfo        *p_flinfo;          /* output conversion functions for them */
+	int			p_nums;			/* number of parameters to transmit */
+	FmgrInfo   *p_flinfo;		/* output conversion functions for them */
 
-  tinybrace_opt       *tinybraceFdwOptions;   /* MySQL FDW options */
+	tinybrace_opt *tinybraceFdwOptions; /* MySQL FDW options */
 
-	List            *attr_list;         /* query attribute list */
-	List            *column_list;       /* Column list of MySQL Column structures */
-	int64			row_nums;			/* number of rows */
-	Datum			**rows;				/* all rows of scan */
-	bool			**rows_isnull;		/* is null */
+	List	   *attr_list;		/* query attribute list */
+	List	   *column_list;	/* Column list of MySQL Column structures */
+	int64		row_nums;		/* number of rows */
+	Datum	  **rows;			/* all rows of scan */
+	bool	  **rows_isnull;	/* is null */
 
-	int64			rowidx;				/* current index of rows */
-	bool 			for_update;			/* true if this scan is update target */
+	int64		rowidx;			/* current index of rows */
+	bool		for_update;		/* true if this scan is update target */
 
 	/* working memory context */
-	MemoryContext   temp_cxt;           /* context for per-tuple temporary data */
-	AttrNumber 			*junk_idx;
-} TinyBraceFdwExecState;
+	MemoryContext temp_cxt;		/* context for per-tuple temporary data */
+	AttrNumber *junk_idx;
+}			TinyBraceFdwExecState;
 
 typedef struct TinyBraceFdwRelationInfo
 {
 	/* baserestrictinfo clauses, broken down into safe and unsafe subsets. */
 	List	   *remote_conds;
 	List	   *local_conds;
-    /*
+
+	/*
 	 * True means that the relation can be pushed down. Always true for simple
 	 * foreign scan.
 	 */
@@ -210,55 +210,55 @@ typedef struct TinyBraceFdwRelationInfo
 										 * subquery? */
 	Relids		lower_subquery_rels;	/* all relids appearing in lower
 										 * subqueries */
+
 	/*
 	 * Index of the relation.  It is used to create an alias to a subquery
 	 * representing the relation.
 	 */
 	int			relation_index;
 
-} TinyBraceFdwRelationInfo;
+}			TinyBraceFdwRelationInfo;
 
 /* MySQL Column List */
 typedef struct TinyBraceColumn
 {
-	int   attnum;          /* Attribute number */
-	char  *attname;        /* Attribute name */
-	int   atttype;         /* Attribute type */
-} TinyBraceColumn;
+	int			attnum;			/* Attribute number */
+	char	   *attname;		/* Attribute name */
+	int			atttype;		/* Attribute type */
+}			TinyBraceColumn;
 
-extern bool tinybrace_is_foreign_expr(PlannerInfo *root,
-                                RelOptInfo *baserel,
-                                Expr *expr);
+extern bool tinybrace_is_foreign_expr(PlannerInfo * root,
+						  RelOptInfo * baserel,
+						  Expr * expr);
 
-void tinybrace_reset_transmission_modes(int nestlevel);
-int tinybrace_set_transmission_modes(void);
+void		tinybrace_reset_transmission_modes(int nestlevel);
+int			tinybrace_set_transmission_modes(void);
 
 /* option.c headers */
 extern bool tinybrace_is_valid_option(const char *option, Oid context);
-extern tinybrace_opt *tinybrace_get_options(Oid foreigntableid);
+extern tinybrace_opt * tinybrace_get_options(Oid foreigntableid);
 
 /* depare.c headers */
-extern void tinybrace_deparse_insert(StringInfo buf, PlannerInfo *root, Index rtindex, Relation rel, List *targetAttrs);
-extern void tinybrace_deparse_update(StringInfo buf, PlannerInfo *root, Index rtindex, Relation rel, List *targetAttrs, List *attname);
-extern void tinybrace_deparse_delete(StringInfo buf, PlannerInfo *root,
-				 Index rtindex, Relation rel,
-									 List *name);
-extern void tinybrace_append_where_clause(StringInfo buf, PlannerInfo *root, RelOptInfo *baserel, List *exprs,
-							 bool is_first,List **params);
+extern void tinybrace_deparse_insert(StringInfo buf, PlannerInfo * root, Index rtindex, Relation rel, List * targetAttrs);
+extern void tinybrace_deparse_update(StringInfo buf, PlannerInfo * root, Index rtindex, Relation rel, List * targetAttrs, List * attname);
+extern void tinybrace_deparse_delete(StringInfo buf, PlannerInfo * root,
+						 Index rtindex, Relation rel,
+						 List * name);
+extern void tinybrace_append_where_clause(StringInfo buf, PlannerInfo * root, RelOptInfo * baserel, List * exprs,
+							  bool is_first, List * *params);
 extern void tinybrace_deparse_analyze(StringInfo buf, char *dbname, char *relname);
 
-extern void
-tinybrace_deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
-						List *tlist, List *remote_conds, List *pathkeys,
-						bool is_subquery, List **retrieved_attrs,
-						List **params_list);
+extern void tinybrace_deparseSelectStmtForRel(StringInfo buf, PlannerInfo * root, RelOptInfo * rel,
+								  List * tlist, List * remote_conds, List * pathkeys,
+								  bool is_subquery, List * *retrieved_attrs,
+								  List * *params_list);
 
 /* connection.c headers */
-TBC_CLIENT_HANDLE *tinybrace_get_connection(ForeignServer *server, UserMapping *user, tinybrace_opt *opt);
+TBC_CLIENT_HANDLE *tinybrace_get_connection(ForeignServer * server, UserMapping * user, tinybrace_opt * opt);
 TBC_CLIENT_HANDLE *tinybrace_connect(char *svr_address, char *svr_username, char *svr_password, char *svr_database,
-							 int svr_port, bool svr_sa, char *svr_init_command,
-							 char *ssl_key, char *ssl_cert, char *ssl_ca, char *ssl_capath,
-							 char *ssl_cipher);
-void  tinybrace_cleanup_connection(void);
-void tinybrace_rel_connection(TBC_CLIENT_HANDLE *conn);
-#endif /* MYSQL_FDW_H */
+				  int svr_port, bool svr_sa, char *svr_init_command,
+				  char *ssl_key, char *ssl_cert, char *ssl_ca, char *ssl_capath,
+				  char *ssl_cipher);
+void		tinybrace_cleanup_connection(void);
+void		tinybrace_rel_connection(TBC_CLIENT_HANDLE * conn);
+#endif							/* MYSQL_FDW_H */

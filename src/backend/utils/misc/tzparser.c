@@ -33,13 +33,13 @@
 
 #define WHITESPACE " \t\n\r"
 
-static bool validateTzEntry(tzEntry *tzentry);
+static bool validateTzEntry(tzEntry * tzentry);
 static bool splitTzLine(const char *filename, int lineno,
-			char *line, tzEntry *tzentry);
-static int addToArray(tzEntry **base, int *arraysize, int n,
-		   tzEntry *entry, bool override);
+			char *line, tzEntry * tzentry);
+static int addToArray(tzEntry * *base, int *arraysize, int n,
+		   tzEntry * entry, bool override);
 static int ParseTzFile(const char *filename, int depth,
-			tzEntry **base, int *arraysize, int n);
+			tzEntry * *base, int *arraysize, int n);
 
 
 /*
@@ -48,7 +48,7 @@ static int ParseTzFile(const char *filename, int depth,
  * Returns TRUE if OK, else false
  */
 static bool
-validateTzEntry(tzEntry *tzentry)
+validateTzEntry(tzEntry * tzentry)
 {
 	unsigned char *p;
 
@@ -95,7 +95,7 @@ validateTzEntry(tzEntry *tzentry)
  * Returns TRUE if OK, else false; data is stored in *tzentry
  */
 static bool
-splitTzLine(const char *filename, int lineno, char *line, tzEntry *tzentry)
+splitTzLine(const char *filename, int lineno, char *line, tzEntry * tzentry)
 {
 	char	   *abbrev;
 	char	   *offset;
@@ -185,8 +185,8 @@ splitTzLine(const char *filename, int lineno, char *line, tzEntry *tzentry)
  * Returns the new array length (new value for n), or -1 if error
  */
 static int
-addToArray(tzEntry **base, int *arraysize, int n,
-		   tzEntry *entry, bool override)
+addToArray(tzEntry * *base, int *arraysize, int n,
+		   tzEntry * entry, bool override)
 {
 	tzEntry    *arrayptr;
 	int			low;
@@ -274,7 +274,7 @@ addToArray(tzEntry **base, int *arraysize, int n,
  */
 static int
 ParseTzFile(const char *filename, int depth,
-			tzEntry **base, int *arraysize, int n)
+			tzEntry * *base, int *arraysize, int n)
 {
 	char		share_path[MAXPGPATH];
 	char		file_path[MAXPGPATH];

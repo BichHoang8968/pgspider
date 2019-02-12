@@ -44,7 +44,7 @@
  *	 partially matched crossover
  */
 void
-pmx(PlannerInfo *root, Gene *tour1, Gene *tour2, Gene *offspring, int num_gene)
+pmx(PlannerInfo * root, Gene * tour1, Gene * tour2, Gene * offspring, int num_gene)
 {
 	int		   *failed = (int *) palloc((num_gene + 1) * sizeof(int));
 	int		   *from = (int *) palloc((num_gene + 1) * sizeof(int));

@@ -14,7 +14,7 @@
  * Conversion from PostgreSQL Datum to a Python object.
  */
 struct PLyDatumToOb;
-typedef PyObject *(*PLyDatumToObFunc) (struct PLyDatumToOb *arg, Datum val);
+typedef PyObject * (*PLyDatumToObFunc) (struct PLyDatumToOb *arg, Datum val);
 
 typedef struct PLyDatumToOb
 {
@@ -28,19 +28,19 @@ typedef struct PLyDatumToOb
 	int16		typlen;
 	char		typalign;
 	struct PLyDatumToOb *elm;
-} PLyDatumToOb;
+}			PLyDatumToOb;
 
 typedef struct PLyTupleToOb
 {
 	PLyDatumToOb *atts;
 	int			natts;
-} PLyTupleToOb;
+}			PLyTupleToOb;
 
 typedef union PLyTypeInput
 {
 	PLyDatumToOb d;
 	PLyTupleToOb r;
-} PLyTypeInput;
+}			PLyTypeInput;
 
 /*
  * Conversion from Python object to a PostgreSQL Datum.
@@ -50,7 +50,7 @@ typedef union PLyTypeInput
  * better error message in some cases.
  */
 struct PLyObToDatum;
-typedef Datum (*PLyObToDatumFunc) (struct PLyObToDatum *arg, int32 typmod, PyObject *val, bool inarray);
+typedef Datum(*PLyObToDatumFunc) (struct PLyObToDatum *arg, int32 typmod, PyObject * val, bool inarray);
 
 typedef struct PLyObToDatum
 {
@@ -64,19 +64,19 @@ typedef struct PLyObToDatum
 	int16		typlen;
 	char		typalign;
 	struct PLyObToDatum *elm;
-} PLyObToDatum;
+}			PLyObToDatum;
 
 typedef struct PLyObToTuple
 {
 	PLyObToDatum *atts;
 	int			natts;
-} PLyObToTuple;
+}			PLyObToTuple;
 
 typedef union PLyTypeOutput
 {
 	PLyObToDatum d;
 	PLyObToTuple r;
-} PLyTypeOutput;
+}			PLyTypeOutput;
 
 /* all we need to move PostgreSQL data to Python objects,
  * and vice versa
@@ -98,25 +98,25 @@ typedef struct PLyTypeInfo
 
 	/* context for subsidiary data (doesn't belong to this struct though) */
 	MemoryContext mcxt;
-} PLyTypeInfo;
+}			PLyTypeInfo;
 
-extern void PLy_typeinfo_init(PLyTypeInfo *arg, MemoryContext mcxt);
+extern void PLy_typeinfo_init(PLyTypeInfo * arg, MemoryContext mcxt);
 
-extern void PLy_input_datum_func(PLyTypeInfo *arg, Oid typeOid, HeapTuple typeTup, Oid langid, List *trftypes);
-extern void PLy_output_datum_func(PLyTypeInfo *arg, HeapTuple typeTup, Oid langid, List *trftypes);
+extern void PLy_input_datum_func(PLyTypeInfo * arg, Oid typeOid, HeapTuple typeTup, Oid langid, List * trftypes);
+extern void PLy_output_datum_func(PLyTypeInfo * arg, HeapTuple typeTup, Oid langid, List * trftypes);
 
-extern void PLy_input_tuple_funcs(PLyTypeInfo *arg, TupleDesc desc);
-extern void PLy_output_tuple_funcs(PLyTypeInfo *arg, TupleDesc desc);
+extern void PLy_input_tuple_funcs(PLyTypeInfo * arg, TupleDesc desc);
+extern void PLy_output_tuple_funcs(PLyTypeInfo * arg, TupleDesc desc);
 
-extern void PLy_output_record_funcs(PLyTypeInfo *arg, TupleDesc desc);
+extern void PLy_output_record_funcs(PLyTypeInfo * arg, TupleDesc desc);
 
 /* conversion from Python objects to composite Datums */
-extern Datum PLyObject_ToCompositeDatum(PLyTypeInfo *info, TupleDesc desc, PyObject *plrv, bool isarray);
+extern Datum PLyObject_ToCompositeDatum(PLyTypeInfo * info, TupleDesc desc, PyObject * plrv, bool isarray);
 
 /* conversion from heap tuples to Python dictionaries */
-extern PyObject *PLyDict_FromTuple(PLyTypeInfo *info, HeapTuple tuple, TupleDesc desc);
+extern PyObject * PLyDict_FromTuple(PLyTypeInfo * info, HeapTuple tuple, TupleDesc desc);
 
 /* conversion from Python objects to C strings */
-extern char *PLyObject_AsString(PyObject *plrv);
+extern char *PLyObject_AsString(PyObject * plrv);
 
 #endif							/* PLPY_TYPEIO_H */

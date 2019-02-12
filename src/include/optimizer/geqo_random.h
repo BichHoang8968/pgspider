@@ -29,10 +29,10 @@
 #include "optimizer/geqo.h"
 
 
-extern void geqo_set_seed(PlannerInfo *root, double seed);
+extern void geqo_set_seed(PlannerInfo * root, double seed);
 
 /* geqo_rand returns a random float value between 0 and 1 inclusive */
-extern double geqo_rand(PlannerInfo *root);
+extern double geqo_rand(PlannerInfo * root);
 
 /* geqo_randint returns integer value between lower and upper inclusive */
 #define geqo_randint(root, upper, lower) \

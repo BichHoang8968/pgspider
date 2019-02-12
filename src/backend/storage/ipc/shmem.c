@@ -75,7 +75,7 @@
 
 /* shared memory global variables */
 
-static PGShmemHeader *ShmemSegHdr;	/* shared mem segment header */
+static PGShmemHeader * ShmemSegHdr; /* shared mem segment header */
 
 static void *ShmemBase;			/* start address of shared memory */
 
@@ -84,7 +84,7 @@ static void *ShmemEnd;			/* end+1 address of shared memory */
 slock_t    *ShmemLock;			/* spinlock for shared memory and LWLock
 								 * allocation */
 
-static HTAB *ShmemIndex = NULL; /* primary index hashtable for shmem */
+static HTAB * ShmemIndex = NULL;	/* primary index hashtable for shmem */
 
 
 /*
@@ -317,7 +317,7 @@ HTAB *
 ShmemInitHash(const char *name,		/* table string name for shmem index */
 			  long init_size,	/* initial table size */
 			  long max_size,	/* max size of the table */
-			  HASHCTL *infoP,	/* info about key and bucket size */
+			  HASHCTL * infoP,	/* info about key and bucket size */
 			  int hash_flags)	/* info about infoP */
 {
 	bool		found;

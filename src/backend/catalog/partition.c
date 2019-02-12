@@ -80,7 +80,7 @@ typedef struct PartitionBoundInfoData
 								 * partitioned table) */
 	int			null_index;		/* Index of the null-accepting partition; -1
 								 * if there isn't one */
-} PartitionBoundInfoData;
+}			PartitionBoundInfoData;
 
 #define partition_bound_accepts_nulls(bi) ((bi)->null_index != -1)
 
@@ -94,7 +94,7 @@ typedef struct PartitionListValue
 {
 	int			index;
 	Datum		value;
-} PartitionListValue;
+}			PartitionListValue;
 
 /* One bound of a range partition */
 typedef struct PartitionRangeBound
@@ -103,39 +103,39 @@ typedef struct PartitionRangeBound
 	Datum	   *datums;			/* range bound datums */
 	PartitionRangeDatumKind *kind;	/* the kind of each datum */
 	bool		lower;			/* this is the lower (vs upper) bound */
-} PartitionRangeBound;
+}			PartitionRangeBound;
 
 static int32 qsort_partition_list_value_cmp(const void *a, const void *b,
-							   void *arg);
+											void *arg);
 static int32 qsort_partition_rbound_cmp(const void *a, const void *b,
-						   void *arg);
+										void *arg);
 
 static Oid get_partition_operator(PartitionKey key, int col,
-					   StrategyNumber strategy, bool *need_relabel);
-static Expr *make_partition_op_expr(PartitionKey key, int keynum,
-					   uint16 strategy, Expr *arg1, Expr *arg2);
+								  StrategyNumber strategy, bool *need_relabel);
+static Expr * make_partition_op_expr(PartitionKey key, int keynum,
+									 uint16 strategy, Expr * arg1, Expr * arg2);
 static void get_range_key_properties(PartitionKey key, int keynum,
-						 PartitionRangeDatum *ldatum,
-						 PartitionRangeDatum *udatum,
-						 ListCell **partexprs_item,
-						 Expr **keyCol,
-						 Const **lower_val, Const **upper_val);
-static List *get_qual_for_list(PartitionKey key, PartitionBoundSpec *spec);
-static List *get_qual_for_range(PartitionKey key, PartitionBoundSpec *spec);
-static List *generate_partition_qual(Relation rel);
+						 PartitionRangeDatum * ldatum,
+						 PartitionRangeDatum * udatum,
+						 ListCell * *partexprs_item,
+						 Expr * *keyCol,
+						 Const * *lower_val, Const * *upper_val);
+static List * get_qual_for_list(PartitionKey key, PartitionBoundSpec * spec);
+static List * get_qual_for_range(PartitionKey key, PartitionBoundSpec * spec);
+static List * generate_partition_qual(Relation rel);
 
-static PartitionRangeBound *make_one_range_bound(PartitionKey key, int index,
-					 List *datums, bool lower);
+static PartitionRangeBound * make_one_range_bound(PartitionKey key, int index,
+												  List * datums, bool lower);
 static int32 partition_rbound_cmp(PartitionKey key,
-					 Datum *datums1, PartitionRangeDatumKind *kind1,
-					 bool lower1, PartitionRangeBound *b2);
+								  Datum * datums1, PartitionRangeDatumKind * kind1,
+								  bool lower1, PartitionRangeBound * b2);
 static int32 partition_rbound_datum_cmp(PartitionKey key,
-						   Datum *rb_datums, PartitionRangeDatumKind *rb_kind,
-						   Datum *tuple_datums);
+										Datum * rb_datums, PartitionRangeDatumKind * rb_kind,
+										Datum * tuple_datums);
 
 static int32 partition_bound_cmp(PartitionKey key,
-					PartitionBoundInfo boundinfo,
-					int offset, void *probe, bool probe_is_bound);
+								 PartitionBoundInfo boundinfo,
+								 int offset, void *probe, bool probe_is_bound);
 static int partition_bound_bsearch(PartitionKey key,
 						PartitionBoundInfo boundinfo,
 						void *probe, bool probe_is_bound, bool *is_equal);
@@ -284,8 +284,8 @@ RelationBuildPartitionDesc(Relation rel)
 			 * Collect all list values in one array. Alongside the value, we
 			 * also save the index of partition the value comes from.
 			 */
-			all_values = (PartitionListValue **) palloc(ndatums *
-														sizeof(PartitionListValue *));
+			all_values = (PartitionListValue * *) palloc(ndatums *
+														 sizeof(PartitionListValue *));
 			i = 0;
 			foreach(cell, non_null_values)
 			{
@@ -309,8 +309,8 @@ RelationBuildPartitionDesc(Relation rel)
 					   *prev;
 			bool	   *distinct_indexes;
 
-			all_bounds = (PartitionRangeBound **) palloc0(2 * nparts *
-														  sizeof(PartitionRangeBound *));
+			all_bounds = (PartitionRangeBound * *) palloc0(2 * nparts *
+														   sizeof(PartitionRangeBound *));
 			distinct_indexes = (bool *) palloc(2 * nparts * sizeof(bool));
 
 			/*
@@ -407,8 +407,8 @@ RelationBuildPartitionDesc(Relation rel)
 			 * Finally save them in an array from where they will be copied
 			 * into the relcache.
 			 */
-			rbounds = (PartitionRangeBound **) palloc(ndatums *
-													  sizeof(PartitionRangeBound *));
+			rbounds = (PartitionRangeBound * *) palloc(ndatums *
+													   sizeof(PartitionRangeBound *));
 			k = 0;
 			for (i = 0; i < 2 * nparts; i++)
 			{
@@ -443,7 +443,7 @@ RelationBuildPartitionDesc(Relation rel)
 		boundinfo->strategy = key->strategy;
 		boundinfo->ndatums = ndatums;
 		boundinfo->null_index = -1;
-		boundinfo->datums = (Datum **) palloc0(ndatums * sizeof(Datum *));
+		boundinfo->datums = (Datum * *) palloc0(ndatums * sizeof(Datum *));
 
 		/* Initialize mapping array with invalid values */
 		mapping = (int *) palloc(sizeof(int) * nparts);
@@ -500,7 +500,7 @@ RelationBuildPartitionDesc(Relation rel)
 
 			case PARTITION_STRATEGY_RANGE:
 				{
-					boundinfo->kind = (PartitionRangeDatumKind **)
+					boundinfo->kind = (PartitionRangeDatumKind * *)
 						palloc(ndatums *
 							   sizeof(PartitionRangeDatumKind *));
 					boundinfo->indexes = (int *) palloc((ndatums + 1) *
@@ -652,7 +652,7 @@ partition_bounds_equal(PartitionKey key,
  */
 void
 check_new_partition_bound(char *relname, Relation parent,
-						  PartitionBoundSpec *spec)
+						  PartitionBoundSpec * spec)
 {
 	PartitionKey key = RelationGetPartitionKey(parent);
 	PartitionDesc partdesc = RelationGetPartitionDesc(parent);
@@ -870,7 +870,7 @@ get_partition_parent(Oid relid)
  */
 List *
 get_qual_from_partbound(Relation rel, Relation parent,
-						PartitionBoundSpec *spec)
+						PartitionBoundSpec * spec)
 {
 	PartitionKey key = RelationGetPartitionKey(parent);
 	List	   *my_qual = NIL;
@@ -912,7 +912,7 @@ get_qual_from_partbound(Relation rel, Relation parent,
  * are working on Lists, so it's less messy to do the casts internally.
  */
 List *
-map_partition_varattnos(List *expr, int target_varno,
+map_partition_varattnos(List * expr, int target_varno,
 						Relation partrel, Relation parent,
 						bool *found_whole_row)
 {
@@ -1012,7 +1012,7 @@ get_partition_qual_relid(Oid relid)
  */
 PartitionDispatch *
 RelationGetPartitionDispatchInfo(Relation rel,
-								 int *num_parted, List **leaf_part_oids)
+								 int *num_parted, List * *leaf_part_oids)
 {
 	PartitionDispatchData **pd;
 	List	   *all_parts = NIL,
@@ -1075,8 +1075,8 @@ RelationGetPartitionDispatchInfo(Relation rel,
 	 * breadth-first manner, whereby partitions of any given level are placed
 	 * consecutively in the respective arrays.
 	 */
-	pd = (PartitionDispatchData **) palloc(*num_parted *
-										   sizeof(PartitionDispatchData *));
+	pd = (PartitionDispatchData * *) palloc(*num_parted *
+											sizeof(PartitionDispatchData *));
 	*leaf_part_oids = NIL;
 	i = k = offset = 0;
 	forboth(lc1, parted_rels, lc2, parted_rel_parents)
@@ -1210,7 +1210,7 @@ get_partition_operator(PartitionKey key, int col, StrategyNumber strategy,
  */
 static Expr *
 make_partition_op_expr(PartitionKey key, int keynum,
-					   uint16 strategy, Expr *arg1, Expr *arg2)
+					   uint16 strategy, Expr * arg1, Expr * arg2)
 {
 	Oid			operoid;
 	bool		need_relabel = false;
@@ -1253,7 +1253,7 @@ make_partition_op_expr(PartitionKey key, int keynum,
 					/* Construct an ArrayExpr for the right-hand inputs */
 					arrexpr = makeNode(ArrayExpr);
 					arrexpr->array_typeid =
-									get_array_type(key->parttypid[keynum]);
+						get_array_type(key->parttypid[keynum]);
 					arrexpr->array_collid = key->parttypcoll[keynum];
 					arrexpr->element_typeid = key->parttypid[keynum];
 					arrexpr->elements = elems;
@@ -1276,10 +1276,10 @@ make_partition_op_expr(PartitionKey key, int keynum,
 					List	   *elemops = NIL;
 					ListCell   *lc;
 
-					foreach (lc, elems)
+					foreach(lc, elems)
 					{
-						Expr   *elem = lfirst(lc),
-							   *elemop;
+						Expr	   *elem = lfirst(lc),
+								   *elemop;
 
 						elemop = make_opclause(operoid,
 											   BOOLOID,
@@ -1319,7 +1319,7 @@ make_partition_op_expr(PartitionKey key, int keynum,
  * constraint, given the partition key and bound structures.
  */
 static List *
-get_qual_for_list(PartitionKey key, PartitionBoundSpec *spec)
+get_qual_for_list(PartitionKey key, PartitionBoundSpec * spec)
 {
 	List	   *result;
 	Expr	   *keyCol;
@@ -1433,11 +1433,11 @@ get_qual_for_list(PartitionKey key, PartitionBoundSpec *spec)
  */
 static void
 get_range_key_properties(PartitionKey key, int keynum,
-						 PartitionRangeDatum *ldatum,
-						 PartitionRangeDatum *udatum,
-						 ListCell **partexprs_item,
-						 Expr **keyCol,
-						 Const **lower_val, Const **upper_val)
+						 PartitionRangeDatum * ldatum,
+						 PartitionRangeDatum * udatum,
+						 ListCell * *partexprs_item,
+						 Expr * *keyCol,
+						 Const * *lower_val, Const * *upper_val)
 {
 	/* Get partition key expression for this column */
 	if (key->partattrs[keynum] != 0)
@@ -1511,7 +1511,7 @@ get_range_key_properties(PartitionKey key, int keynum,
  * containing a constant TRUE, because callers expect a non-empty list.
  */
 static List *
-get_qual_for_range(PartitionKey key, PartitionBoundSpec *spec)
+get_qual_for_range(PartitionKey key, PartitionBoundSpec * spec)
 {
 	List	   *result = NIL;
 	ListCell   *cell1,
@@ -1901,9 +1901,9 @@ generate_partition_qual(Relation rel)
  */
 void
 FormPartitionKeyDatum(PartitionDispatch pd,
-					  TupleTableSlot *slot,
-					  EState *estate,
-					  Datum *values,
+					  TupleTableSlot * slot,
+					  EState * estate,
+					  Datum * values,
 					  bool *isnull)
 {
 	ListCell   *partexpr_item;
@@ -1959,11 +1959,11 @@ FormPartitionKeyDatum(PartitionDispatch pd,
  * the latter case.
  */
 int
-get_partition_for_tuple(PartitionDispatch *pd,
-						TupleTableSlot *slot,
-						EState *estate,
-						PartitionDispatchData **failed_at,
-						TupleTableSlot **failed_slot)
+get_partition_for_tuple(PartitionDispatch * pd,
+						TupleTableSlot * slot,
+						EState * estate,
+						PartitionDispatchData * *failed_at,
+						TupleTableSlot * *failed_slot)
 {
 	PartitionDispatch parent;
 	Datum		values[PARTITION_MAX_KEYS];
@@ -2105,8 +2105,8 @@ error_exit:
 static int32
 qsort_partition_list_value_cmp(const void *a, const void *b, void *arg)
 {
-	Datum		val1 = (*(const PartitionListValue **) a)->value,
-				val2 = (*(const PartitionListValue **) b)->value;
+	Datum		val1 = (*(const PartitionListValue * *) a)->value,
+				val2 = (*(const PartitionListValue * *) b)->value;
 	PartitionKey key = (PartitionKey) arg;
 
 	return DatumGetInt32(FunctionCall2Coll(&key->partsupfunc[0],
@@ -2122,7 +2122,7 @@ qsort_partition_list_value_cmp(const void *a, const void *b, void *arg)
  * because there are multiple sites that want to use this facility.
  */
 static PartitionRangeBound *
-make_one_range_bound(PartitionKey key, int index, List *datums, bool lower)
+make_one_range_bound(PartitionKey key, int index, List * datums, bool lower)
 {
 	PartitionRangeBound *bound;
 	ListCell   *lc;
@@ -2162,8 +2162,8 @@ make_one_range_bound(PartitionKey key, int index, List *datums, bool lower)
 static int32
 qsort_partition_rbound_cmp(const void *a, const void *b, void *arg)
 {
-	PartitionRangeBound *b1 = (*(PartitionRangeBound *const *) a);
-	PartitionRangeBound *b2 = (*(PartitionRangeBound *const *) b);
+	PartitionRangeBound *b1 = (*(PartitionRangeBound * const *) a);
+	PartitionRangeBound *b2 = (*(PartitionRangeBound * const *) b);
 	PartitionKey key = (PartitionKey) arg;
 
 	return partition_rbound_cmp(key, b1->datums, b1->kind, b1->lower, b2);
@@ -2184,8 +2184,8 @@ qsort_partition_rbound_cmp(const void *a, const void *b, void *arg)
  */
 static int32
 partition_rbound_cmp(PartitionKey key,
-					 Datum *datums1, PartitionRangeDatumKind *kind1,
-					 bool lower1, PartitionRangeBound *b2)
+					 Datum * datums1, PartitionRangeDatumKind * kind1,
+					 bool lower1, PartitionRangeBound * b2)
 {
 	int32		cmpval = 0;		/* placate compiler */
 	int			i;
@@ -2242,8 +2242,8 @@ partition_rbound_cmp(PartitionKey key,
  */
 static int32
 partition_rbound_datum_cmp(PartitionKey key,
-						   Datum *rb_datums, PartitionRangeDatumKind *rb_kind,
-						   Datum *tuple_datums)
+						   Datum * rb_datums, PartitionRangeDatumKind * rb_kind,
+						   Datum * tuple_datums)
 {
 	int			i;
 	int32		cmpval = -1;

@@ -22,9 +22,9 @@
 #include "utils/rel.h"
 
 
-//Datum mysql_convert_to_pg(Oid pgtyp, int pgtypmod, mysql_column *column);
-//void mysql_bind_sql_var(Oid type, int attnum, Datum value, MYSQL_BIND *binds, bool *isnull);
-//void tinybrace_bind_result(Oid pgtyp, int pgtypmod, MYSQL_FIELD *field, mysql_column *column);
-Datum tinybrace_convert_to_pg(Oid pgtyp, int pgtypmod, TBC_DATA *column);
+/* Datum mysql_convert_to_pg(Oid pgtyp, int pgtypmod, mysql_column *column); */
+/* void mysql_bind_sql_var(Oid type, int attnum, Datum value, MYSQL_BIND *binds, bool *isnull); */
+/* void tinybrace_bind_result(Oid pgtyp, int pgtypmod, MYSQL_FIELD *field, mysql_column *column); */
+Datum		tinybrace_convert_to_pg(Oid pgtyp, int pgtypmod, TBC_DATA * column);
 
-#endif /* MYSQL_QUERY_H */
+#endif							/* MYSQL_QUERY_H */

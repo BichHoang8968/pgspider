@@ -80,40 +80,40 @@ bool		synchronize_seqscans = true;
 
 
 static HeapScanDesc heap_beginscan_internal(Relation relation,
-						Snapshot snapshot,
-						int nkeys, ScanKey key,
-						ParallelHeapScanDesc parallel_scan,
-						bool allow_strat,
-						bool allow_sync,
-						bool allow_pagemode,
-						bool is_bitmapscan,
-						bool is_samplescan,
-						bool temp_snap);
+											Snapshot snapshot,
+											int nkeys, ScanKey key,
+											ParallelHeapScanDesc parallel_scan,
+											bool allow_strat,
+											bool allow_sync,
+											bool allow_pagemode,
+											bool is_bitmapscan,
+											bool is_samplescan,
+											bool temp_snap);
 static BlockNumber heap_parallelscan_nextpage(HeapScanDesc scan);
 static HeapTuple heap_prepare_insert(Relation relation, HeapTuple tup,
-					TransactionId xid, CommandId cid, int options);
+									 TransactionId xid, CommandId cid, int options);
 static XLogRecPtr log_heap_update(Relation reln, Buffer oldbuf,
-				Buffer newbuf, HeapTuple oldtup,
-				HeapTuple newtup, HeapTuple old_key_tup,
-				bool all_visible_cleared, bool new_all_visible_cleared);
-static Bitmapset *HeapDetermineModifiedColumns(Relation relation,
-							 Bitmapset *interesting_cols,
-							 HeapTuple oldtup, HeapTuple newtup);
+								  Buffer newbuf, HeapTuple oldtup,
+								  HeapTuple newtup, HeapTuple old_key_tup,
+								  bool all_visible_cleared, bool new_all_visible_cleared);
+static Bitmapset * HeapDetermineModifiedColumns(Relation relation,
+												Bitmapset * interesting_cols,
+												HeapTuple oldtup, HeapTuple newtup);
 static bool heap_acquire_tuplock(Relation relation, ItemPointer tid,
 					 LockTupleMode mode, LockWaitPolicy wait_policy,
 					 bool *have_tuple_lock);
 static void compute_new_xmax_infomask(TransactionId xmax, uint16 old_infomask,
 						  uint16 old_infomask2, TransactionId add_to_xmax,
 						  LockTupleMode mode, bool is_update,
-						  TransactionId *result_xmax, uint16 *result_infomask,
-						  uint16 *result_infomask2);
+						  TransactionId * result_xmax, uint16 * result_infomask,
+						  uint16 * result_infomask2);
 static HTSU_Result heap_lock_updated_tuple(Relation rel, HeapTuple tuple,
-						ItemPointer ctid, TransactionId xid,
-						LockTupleMode mode);
-static void GetMultiXactIdHintBits(MultiXactId multi, uint16 *new_infomask,
-					   uint16 *new_infomask2);
+										   ItemPointer ctid, TransactionId xid,
+										   LockTupleMode mode);
+static void GetMultiXactIdHintBits(MultiXactId multi, uint16 * new_infomask,
+					   uint16 * new_infomask2);
 static TransactionId MultiXactIdGetUpdateXid(TransactionId xmax,
-						uint16 t_infomask);
+											 uint16 t_infomask);
 static bool DoesMultiXactIdConflict(MultiXactId multi, uint16 infomask,
 						LockTupleMode lockmode);
 static void MultiXactIdWait(MultiXactId multi, MultiXactStatus status, uint16 infomask,
@@ -123,7 +123,7 @@ static bool ConditionalMultiXactIdWait(MultiXactId multi, MultiXactStatus status
 						   uint16 infomask, Relation rel, int *remaining);
 static XLogRecPtr log_heap_new_cid(Relation relation, HeapTuple tup);
 static HeapTuple ExtractReplicaIdentity(Relation rel, HeapTuple tup, bool key_modified,
-					   bool *copy);
+										bool *copy);
 
 
 /*
@@ -1189,7 +1189,7 @@ try_relation_open(Oid relationId, LOCKMODE lockmode)
  * ----------------
  */
 Relation
-relation_openrv(const RangeVar *relation, LOCKMODE lockmode)
+relation_openrv(const RangeVar * relation, LOCKMODE lockmode)
 {
 	Oid			relOid;
 
@@ -1224,7 +1224,7 @@ relation_openrv(const RangeVar *relation, LOCKMODE lockmode)
  * ----------------
  */
 Relation
-relation_openrv_extended(const RangeVar *relation, LOCKMODE lockmode,
+relation_openrv_extended(const RangeVar * relation, LOCKMODE lockmode,
 						 bool missing_ok)
 {
 	Oid			relOid;
@@ -1309,7 +1309,7 @@ heap_open(Oid relationId, LOCKMODE lockmode)
  * ----------------
  */
 Relation
-heap_openrv(const RangeVar *relation, LOCKMODE lockmode)
+heap_openrv(const RangeVar * relation, LOCKMODE lockmode)
 {
 	Relation	r;
 
@@ -1338,7 +1338,7 @@ heap_openrv(const RangeVar *relation, LOCKMODE lockmode)
  * ----------------
  */
 Relation
-heap_openrv_extended(const RangeVar *relation, LOCKMODE lockmode,
+heap_openrv_extended(const RangeVar * relation, LOCKMODE lockmode,
 					 bool missing_ok)
 {
 	Relation	r;
@@ -1862,7 +1862,7 @@ bool
 heap_fetch(Relation relation,
 		   Snapshot snapshot,
 		   HeapTuple tuple,
-		   Buffer *userbuf,
+		   Buffer * userbuf,
 		   bool keep_buf,
 		   Relation stats_relation)
 {
@@ -2655,7 +2655,7 @@ heap_prepare_insert(Relation relation, HeapTuple tup, TransactionId xid,
  * temporary context before calling this, if that's a problem.
  */
 void
-heap_multi_insert(Relation relation, HeapTuple *tuples, int ntuples,
+heap_multi_insert(Relation relation, HeapTuple * tuples, int ntuples,
 				  CommandId cid, int options, BulkInsertState bistate)
 {
 	TransactionId xid = GetCurrentTransactionId();
@@ -2973,7 +2973,7 @@ compute_infobits(uint16 infomask, uint16 infomask2)
 static inline bool
 xmax_infomask_changed(uint16 new_infomask, uint16 old_infomask)
 {
-	const uint16 interesting =
+	const		uint16 interesting =
 	HEAP_XMAX_IS_MULTI | HEAP_XMAX_LOCK_ONLY | HEAP_LOCK_MASK;
 
 	if ((new_infomask & interesting) != (old_infomask & interesting))
@@ -3010,7 +3010,7 @@ xmax_infomask_changed(uint16 new_infomask, uint16 old_infomask)
 HTSU_Result
 heap_delete(Relation relation, ItemPointer tid,
 			CommandId cid, Snapshot crosscheck, bool wait,
-			HeapUpdateFailureData *hufd)
+			HeapUpdateFailureData * hufd)
 {
 	HTSU_Result result;
 	TransactionId xid = GetCurrentTransactionId();
@@ -3461,7 +3461,7 @@ simple_heap_delete(Relation relation, ItemPointer tid)
 HTSU_Result
 heap_update(Relation relation, ItemPointer otid, HeapTuple newtup,
 			CommandId cid, Snapshot crosscheck, bool wait,
-			HeapUpdateFailureData *hufd, LockTupleMode *lockmode)
+			HeapUpdateFailureData * hufd, LockTupleMode * lockmode)
 {
 	HTSU_Result result;
 	TransactionId xid = GetCurrentTransactionId();
@@ -4421,7 +4421,7 @@ heap_tuple_attr_equals(TupleDesc tupdesc, int attrnum,
  * invoked at most once in heap_update.
  */
 static Bitmapset *
-HeapDetermineModifiedColumns(Relation relation, Bitmapset *interesting_cols,
+HeapDetermineModifiedColumns(Relation relation, Bitmapset * interesting_cols,
 							 HeapTuple oldtup, HeapTuple newtup)
 {
 	int			attnum;
@@ -4541,7 +4541,7 @@ HTSU_Result
 heap_lock_tuple(Relation relation, HeapTuple tuple,
 				CommandId cid, LockTupleMode mode, LockWaitPolicy wait_policy,
 				bool follow_updates,
-				Buffer *buffer, HeapUpdateFailureData *hufd)
+				Buffer * buffer, HeapUpdateFailureData * hufd)
 {
 	HTSU_Result result;
 	ItemPointer tid = &(tuple->t_self);
@@ -5256,8 +5256,8 @@ static void
 compute_new_xmax_infomask(TransactionId xmax, uint16 old_infomask,
 						  uint16 old_infomask2, TransactionId add_to_xmax,
 						  LockTupleMode mode, bool is_update,
-						  TransactionId *result_xmax, uint16 *result_infomask,
-						  uint16 *result_infomask2)
+						  TransactionId * result_xmax, uint16 * result_infomask,
+						  uint16 * result_infomask2)
 {
 	TransactionId new_xmax;
 	uint16		new_infomask,
@@ -6348,7 +6348,7 @@ static TransactionId
 FreezeMultiXactId(MultiXactId multi, uint16 t_infomask,
 				  TransactionId relfrozenxid, TransactionId relminmxid,
 				  TransactionId cutoff_xid, MultiXactId cutoff_multi,
-				  uint16 *flags)
+				  uint16 * flags)
 {
 	TransactionId xid = InvalidTransactionId;
 	int			i;
@@ -6383,8 +6383,8 @@ FreezeMultiXactId(MultiXactId multi, uint16 t_infomask,
 		/*
 		 * This old multi cannot possibly have members still running, but
 		 * verify just in case.  If it was a locker only, it can be removed
-		 * without any further consideration; but if it contained an update, we
-		 * might need to preserve it.
+		 * without any further consideration; but if it contained an update,
+		 * we might need to preserve it.
 		 */
 		if (MultiXactIdIsRunning(multi,
 								 HEAP_XMAX_IS_LOCKED_ONLY(t_infomask)))
@@ -6531,8 +6531,8 @@ FreezeMultiXactId(MultiXactId multi, uint16 t_infomask,
 			else
 			{
 				/*
-				 * Not in progress, not committed -- must be aborted or crashed;
-				 * we can ignore it.
+				 * Not in progress, not committed -- must be aborted or
+				 * crashed; we can ignore it.
 				 */
 			}
 
@@ -6647,7 +6647,7 @@ bool
 heap_prepare_freeze_tuple(HeapTupleHeader tuple,
 						  TransactionId relfrozenxid, TransactionId relminmxid,
 						  TransactionId cutoff_xid, TransactionId cutoff_multi,
-						  xl_heap_freeze_tuple *frz, bool *totally_frozen_p)
+						  xl_heap_freeze_tuple * frz, bool *totally_frozen_p)
 {
 	bool		changed = false;
 	bool		xmax_already_frozen = false;
@@ -6866,7 +6866,7 @@ heap_prepare_freeze_tuple(HeapTupleHeader tuple,
  * NB: All code in here must be safe to execute during crash recovery!
  */
 void
-heap_execute_freeze_tuple(HeapTupleHeader tuple, xl_heap_freeze_tuple *frz)
+heap_execute_freeze_tuple(HeapTupleHeader tuple, xl_heap_freeze_tuple * frz)
 {
 	HeapTupleHeaderSetXmax(tuple, frz->xmax);
 
@@ -6918,8 +6918,8 @@ heap_freeze_tuple(HeapTupleHeader tuple,
  * so is on our local cache, so the GetMembers call is fast.
  */
 static void
-GetMultiXactIdHintBits(MultiXactId multi, uint16 *new_infomask,
-					   uint16 *new_infomask2)
+GetMultiXactIdHintBits(MultiXactId multi, uint16 * new_infomask,
+					   uint16 * new_infomask2)
 {
 	int			nmembers;
 	MultiXactMember *members;
@@ -7402,7 +7402,7 @@ heap_tuple_needs_freeze(HeapTupleHeader tuple, TransactionId cutoff_xid,
  */
 void
 HeapTupleHeaderAdvanceLatestRemovedXid(HeapTupleHeader tuple,
-									   TransactionId *latestRemovedXid)
+									   TransactionId * latestRemovedXid)
 {
 	TransactionId xmin = HeapTupleHeaderGetXmin(tuple);
 	TransactionId xmax = HeapTupleHeaderGetUpdateXid(tuple);
@@ -7470,9 +7470,9 @@ log_heap_cleanup_info(RelFileNode rnode, TransactionId latestRemovedXid)
  */
 XLogRecPtr
 log_heap_clean(Relation reln, Buffer buffer,
-			   OffsetNumber *redirected, int nredirected,
-			   OffsetNumber *nowdead, int ndead,
-			   OffsetNumber *nowunused, int nunused,
+			   OffsetNumber * redirected, int nredirected,
+			   OffsetNumber * nowdead, int ndead,
+			   OffsetNumber * nowunused, int nunused,
 			   TransactionId latestRemovedXid)
 {
 	xl_heap_clean xlrec;
@@ -7521,7 +7521,7 @@ log_heap_clean(Relation reln, Buffer buffer,
  */
 XLogRecPtr
 log_heap_freeze(Relation reln, Buffer buffer, TransactionId cutoff_xid,
-				xl_heap_freeze_tuple *tuples, int ntuples)
+				xl_heap_freeze_tuple * tuples, int ntuples)
 {
 	xl_heap_freeze_page xlrec;
 	XLogRecPtr	recptr;
@@ -8003,7 +8003,7 @@ ExtractReplicaIdentity(Relation relation, HeapTuple tp, bool key_changed, bool *
  * Handles CLEANUP_INFO
  */
 static void
-heap_xlog_cleanup_info(XLogReaderState *record)
+heap_xlog_cleanup_info(XLogReaderState * record)
 {
 	xl_heap_cleanup_info *xlrec = (xl_heap_cleanup_info *) XLogRecGetData(record);
 
@@ -8024,7 +8024,7 @@ heap_xlog_cleanup_info(XLogReaderState *record)
  * Handles HEAP2_CLEAN record type
  */
 static void
-heap_xlog_clean(XLogReaderState *record)
+heap_xlog_clean(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_heap_clean *xlrec = (xl_heap_clean *) XLogRecGetData(record);
@@ -8114,7 +8114,7 @@ heap_xlog_clean(XLogReaderState *record)
  * page modification would fail to clear the visibility map bit.
  */
 static void
-heap_xlog_visible(XLogReaderState *record)
+heap_xlog_visible(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_heap_visible *xlrec = (xl_heap_visible *) XLogRecGetData(record);
@@ -8229,7 +8229,7 @@ heap_xlog_visible(XLogReaderState *record)
  * Replay XLOG_HEAP2_FREEZE_PAGE records
  */
 static void
-heap_xlog_freeze_page(XLogReaderState *record)
+heap_xlog_freeze_page(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_heap_freeze_page *xlrec = (xl_heap_freeze_page *) XLogRecGetData(record);
@@ -8287,7 +8287,7 @@ heap_xlog_freeze_page(XLogReaderState *record)
  * (This is the reverse of compute_infobits).
  */
 static void
-fix_infomask_from_infobits(uint8 infobits, uint16 *infomask, uint16 *infomask2)
+fix_infomask_from_infobits(uint8 infobits, uint16 * infomask, uint16 * infomask2)
 {
 	*infomask &= ~(HEAP_XMAX_IS_MULTI | HEAP_XMAX_LOCK_ONLY |
 				   HEAP_XMAX_KEYSHR_LOCK | HEAP_XMAX_EXCL_LOCK);
@@ -8308,7 +8308,7 @@ fix_infomask_from_infobits(uint8 infobits, uint16 *infomask, uint16 *infomask2)
 }
 
 static void
-heap_xlog_delete(XLogReaderState *record)
+heap_xlog_delete(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_heap_delete *xlrec = (xl_heap_delete *) XLogRecGetData(record);
@@ -8378,7 +8378,7 @@ heap_xlog_delete(XLogReaderState *record)
 }
 
 static void
-heap_xlog_insert(XLogReaderState *record)
+heap_xlog_insert(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_heap_insert *xlrec = (xl_heap_insert *) XLogRecGetData(record);
@@ -8494,7 +8494,7 @@ heap_xlog_insert(XLogReaderState *record)
  * Handles MULTI_INSERT record type.
  */
 static void
-heap_xlog_multi_insert(XLogReaderState *record)
+heap_xlog_multi_insert(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_heap_multi_insert *xlrec;
@@ -8633,7 +8633,7 @@ heap_xlog_multi_insert(XLogReaderState *record)
  * Handles UPDATE and HOT_UPDATE
  */
 static void
-heap_xlog_update(XLogReaderState *record, bool hot_update)
+heap_xlog_update(XLogReaderState * record, bool hot_update)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_heap_update *xlrec = (xl_heap_update *) XLogRecGetData(record);
@@ -8905,7 +8905,7 @@ heap_xlog_update(XLogReaderState *record, bool hot_update)
 }
 
 static void
-heap_xlog_confirm(XLogReaderState *record)
+heap_xlog_confirm(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_heap_confirm *xlrec = (xl_heap_confirm *) XLogRecGetData(record);
@@ -8941,7 +8941,7 @@ heap_xlog_confirm(XLogReaderState *record)
 }
 
 static void
-heap_xlog_lock(XLogReaderState *record)
+heap_xlog_lock(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_heap_lock *xlrec = (xl_heap_lock *) XLogRecGetData(record);
@@ -9012,7 +9012,7 @@ heap_xlog_lock(XLogReaderState *record)
 }
 
 static void
-heap_xlog_lock_updated(XLogReaderState *record)
+heap_xlog_lock_updated(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_heap_lock_updated *xlrec;
@@ -9072,7 +9072,7 @@ heap_xlog_lock_updated(XLogReaderState *record)
 }
 
 static void
-heap_xlog_inplace(XLogReaderState *record)
+heap_xlog_inplace(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_heap_inplace *xlrec = (xl_heap_inplace *) XLogRecGetData(record);
@@ -9113,7 +9113,7 @@ heap_xlog_inplace(XLogReaderState *record)
 }
 
 void
-heap_redo(XLogReaderState *record)
+heap_redo(XLogReaderState * record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 
@@ -9151,7 +9151,7 @@ heap_redo(XLogReaderState *record)
 }
 
 void
-heap2_redo(XLogReaderState *record)
+heap2_redo(XLogReaderState * record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 

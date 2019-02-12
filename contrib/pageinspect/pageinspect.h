@@ -16,6 +16,6 @@
 #include "storage/bufpage.h"
 
 /* in rawpage.c */
-extern Page get_page_from_raw(bytea *raw_page);
+extern Page get_page_from_raw(bytea * raw_page);
 
 #endif							/* _PAGEINSPECT_H_ */

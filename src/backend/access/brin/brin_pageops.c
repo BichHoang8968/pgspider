@@ -34,7 +34,7 @@
 				   MAXALIGN(sizeof(BrinSpecialSpace))))
 
 static Buffer brin_getinsertbuffer(Relation irel, Buffer oldbuf, Size itemsz,
-					 bool *extended);
+								   bool *extended);
 static Size br_page_get_freespace(Page page);
 static void brin_initialize_empty_new_buffer(Relation idxrel, Buffer buffer);
 
@@ -53,10 +53,10 @@ static void brin_initialize_empty_new_buffer(Relation idxrel, Buffer buffer);
  */
 bool
 brin_doupdate(Relation idxrel, BlockNumber pagesPerRange,
-			  BrinRevmap *revmap, BlockNumber heapBlk,
+			  BrinRevmap * revmap, BlockNumber heapBlk,
 			  Buffer oldbuf, OffsetNumber oldoff,
-			  const BrinTuple *origtup, Size origsz,
-			  const BrinTuple *newtup, Size newsz,
+			  const BrinTuple * origtup, Size origsz,
+			  const BrinTuple * newtup, Size newsz,
 			  bool samepage)
 {
 	Page		oldpage;
@@ -344,8 +344,8 @@ brin_can_do_samepage_update(Buffer buffer, Size origsz, Size newsz)
  */
 OffsetNumber
 brin_doinsert(Relation idxrel, BlockNumber pagesPerRange,
-			  BrinRevmap *revmap, Buffer *buffer, BlockNumber heapBlk,
-			  BrinTuple *tup, Size itemsz)
+			  BrinRevmap * revmap, Buffer * buffer, BlockNumber heapBlk,
+			  BrinTuple * tup, Size itemsz)
 {
 	Page		page;
 	BlockNumber blk;
@@ -545,7 +545,7 @@ brin_start_evacuating_page(Relation idxRel, Buffer buf)
  */
 void
 brin_evacuate_page(Relation idxRel, BlockNumber pagesPerRange,
-				   BrinRevmap *revmap, Buffer buf)
+				   BrinRevmap * revmap, Buffer buf)
 {
 	OffsetNumber off;
 	OffsetNumber maxoff;

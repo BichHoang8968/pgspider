@@ -111,7 +111,7 @@ typedef struct _MdfdVec
 {
 	File		mdfd_vfd;		/* fd number in fd.c's pool */
 	BlockNumber mdfd_segno;		/* segment number, from 0 */
-} MdfdVec;
+}			MdfdVec;
 
 static MemoryContext MdCxt;		/* context for all MdfdVec objects */
 
@@ -145,16 +145,16 @@ typedef struct
 	Bitmapset  *requests[MAX_FORKNUM + 1];
 	/* canceled[f] is true if we canceled fsyncs for fork "recently" */
 	bool		canceled[MAX_FORKNUM + 1];
-} PendingOperationEntry;
+}			PendingOperationEntry;
 
 typedef struct
 {
 	RelFileNode rnode;			/* the dead relation to delete */
 	CycleCtr	cycle_ctr;		/* mdckpt_cycle_ctr when request was made */
-} PendingUnlinkEntry;
+}			PendingUnlinkEntry;
 
-static HTAB *pendingOpsTable = NULL;
-static List *pendingUnlinks = NIL;
+static HTAB * pendingOpsTable = NULL;
+static List * pendingUnlinks = NIL;
 static MemoryContext pendingOpsCxt; /* context for the above  */
 
 static CycleCtr mdsync_cycle_ctr = 0;
@@ -183,21 +183,21 @@ static CycleCtr mdckpt_cycle_ctr = 0;
 /* local routines */
 static void mdunlinkfork(RelFileNodeBackend rnode, ForkNumber forkNum,
 			 bool isRedo);
-static MdfdVec *mdopen(SMgrRelation reln, ForkNumber forknum, int behavior);
+static MdfdVec * mdopen(SMgrRelation reln, ForkNumber forknum, int behavior);
 static void register_dirty_segment(SMgrRelation reln, ForkNumber forknum,
-					   MdfdVec *seg);
+					   MdfdVec * seg);
 static void register_unlink(RelFileNodeBackend rnode);
 static void _fdvec_resize(SMgrRelation reln,
 			  ForkNumber forknum,
 			  int nseg);
 static char *_mdfd_segpath(SMgrRelation reln, ForkNumber forknum,
 			  BlockNumber segno);
-static MdfdVec *_mdfd_openseg(SMgrRelation reln, ForkNumber forkno,
-			  BlockNumber segno, int oflags);
-static MdfdVec *_mdfd_getseg(SMgrRelation reln, ForkNumber forkno,
-			 BlockNumber blkno, bool skipFsync, int behavior);
+static MdfdVec * _mdfd_openseg(SMgrRelation reln, ForkNumber forkno,
+							   BlockNumber segno, int oflags);
+static MdfdVec * _mdfd_getseg(SMgrRelation reln, ForkNumber forkno,
+							  BlockNumber blkno, bool skipFsync, int behavior);
 static BlockNumber _mdnblocks(SMgrRelation reln, ForkNumber forknum,
-		   MdfdVec *seg);
+							  MdfdVec * seg);
 
 
 /*
@@ -1427,7 +1427,7 @@ mdpostckpt(void)
  * to be a performance problem).
  */
 static void
-register_dirty_segment(SMgrRelation reln, ForkNumber forknum, MdfdVec *seg)
+register_dirty_segment(SMgrRelation reln, ForkNumber forknum, MdfdVec * seg)
 {
 	/* Temp relations should never be fsync'd */
 	Assert(!SmgrIsTemp(reln));
@@ -1709,7 +1709,7 @@ ForgetDatabaseFsyncRequests(Oid dbid)
  * DropRelationFiles -- drop files of all given relations
  */
 void
-DropRelationFiles(RelFileNode *delrels, int ndelrels, bool isRedo)
+DropRelationFiles(RelFileNode * delrels, int ndelrels, bool isRedo)
 {
 	SMgrRelation *srels;
 	int			i;
@@ -1732,10 +1732,9 @@ DropRelationFiles(RelFileNode *delrels, int ndelrels, bool isRedo)
 	smgrdounlinkall(srels, ndelrels, isRedo);
 
 	/*
-	 * Call smgrclose() in reverse order as when smgropen() is called.
-	 * This trick enables remove_from_unowned_list() in smgrclose()
-	 * to search the SMgrRelation from the unowned list,
-	 * with O(1) performance.
+	 * Call smgrclose() in reverse order as when smgropen() is called. This
+	 * trick enables remove_from_unowned_list() in smgrclose() to search the
+	 * SMgrRelation from the unowned list, with O(1) performance.
 	 */
 	for (i = ndelrels - 1; i >= 0; i--)
 		smgrclose(srels[i]);
@@ -1976,7 +1975,7 @@ _mdfd_getseg(SMgrRelation reln, ForkNumber forknum, BlockNumber blkno,
  * Get number of blocks present in a single disk file
  */
 static BlockNumber
-_mdnblocks(SMgrRelation reln, ForkNumber forknum, MdfdVec *seg)
+_mdnblocks(SMgrRelation reln, ForkNumber forknum, MdfdVec * seg)
 {
 	off_t		len;
 

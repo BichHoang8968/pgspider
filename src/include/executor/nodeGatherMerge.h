@@ -16,11 +16,11 @@
 
 #include "nodes/execnodes.h"
 
-extern GatherMergeState *ExecInitGatherMerge(GatherMerge *node,
-					EState *estate,
-					int eflags);
-extern void ExecEndGatherMerge(GatherMergeState *node);
-extern void ExecReScanGatherMerge(GatherMergeState *node);
-extern void ExecShutdownGatherMerge(GatherMergeState *node);
+extern GatherMergeState * ExecInitGatherMerge(GatherMerge * node,
+											  EState * estate,
+											  int eflags);
+extern void ExecEndGatherMerge(GatherMergeState * node);
+extern void ExecReScanGatherMerge(GatherMergeState * node);
+extern void ExecShutdownGatherMerge(GatherMergeState * node);
 
 #endif							/* NODEGATHERMERGE_H */

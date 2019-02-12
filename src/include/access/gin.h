@@ -46,7 +46,7 @@ typedef struct GinStatsData
 	BlockNumber nDataPages;
 	int64		nEntries;
 	int32		ginVersion;
-} GinStatsData;
+}			GinStatsData;
 
 /*
  * A ternary value used by tri-consistent functions.
@@ -70,7 +70,7 @@ extern PGDLLIMPORT int GinFuzzySearchLimit;
 extern int	gin_pending_list_limit;
 
 /* ginutil.c */
-extern void ginGetStats(Relation index, GinStatsData *stats);
-extern void ginUpdateStats(Relation index, const GinStatsData *stats);
+extern void ginGetStats(Relation index, GinStatsData * stats);
+extern void ginUpdateStats(Relation index, const GinStatsData * stats);
 
 #endif							/* GIN_H */

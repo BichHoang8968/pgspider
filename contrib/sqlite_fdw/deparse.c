@@ -49,7 +49,7 @@ typedef struct foreign_glob_cxt
 	RelOptInfo *foreignrel;		/* the foreign relation we are planning for */
 	Relids		relids;			/* relids of base relations in the underlying
 								 * scan */
-} foreign_glob_cxt;
+}			foreign_glob_cxt;
 
 /*
  * Local (per-tree-level) context for foreign_expr_walker's search.
@@ -60,13 +60,13 @@ typedef enum
 	FDW_COLLATE_NONE,			/* expression is of a noncollatable type */
 	FDW_COLLATE_SAFE,			/* collation derives from a foreign Var */
 	FDW_COLLATE_UNSAFE			/* collation derives from something else */
-} FDWCollateState;
+}			FDWCollateState;
 
 typedef struct foreign_loc_cxt
 {
 	Oid			collation;		/* OID of current collation, if any */
 	FDWCollateState state;		/* state of current collation choice */
-} foreign_loc_cxt;
+}			foreign_loc_cxt;
 
 /*
  * Context for deparseExpr
@@ -80,58 +80,58 @@ typedef struct deparse_expr_cxt
 								 * a base relation. */
 	StringInfo	buf;			/* output buffer to append to */
 	List	  **params_list;	/* exprs that will become remote Params */
-} deparse_expr_cxt;
+}			deparse_expr_cxt;
 
 /*
  * Functions to determine whether an expression can be evaluated safely on
  * remote server.
  */
-static bool foreign_expr_walker(Node *node,
-					foreign_glob_cxt *glob_cxt,
-					foreign_loc_cxt *outer_cxt);
+static bool foreign_expr_walker(Node * node,
+					foreign_glob_cxt * glob_cxt,
+					foreign_loc_cxt * outer_cxt);
 
 /*
  * Functions to construct string representation of a node tree.
  */
-static void deparseExpr(Expr *expr, deparse_expr_cxt *context);
-static void sqlite_deparse_var(Var *node, deparse_expr_cxt *context);
-static void sqlite_deparse_const(Const *node, deparse_expr_cxt *context, int showtype);
-static void sqlite_deparse_param(Param *node, deparse_expr_cxt *context);
-static void sqlite_deparse_func_expr(FuncExpr *node, deparse_expr_cxt *context);
-static void sqlite_deparse_op_expr(OpExpr *node, deparse_expr_cxt *context);
+static void deparseExpr(Expr * expr, deparse_expr_cxt * context);
+static void sqlite_deparse_var(Var * node, deparse_expr_cxt * context);
+static void sqlite_deparse_const(Const * node, deparse_expr_cxt * context, int showtype);
+static void sqlite_deparse_param(Param * node, deparse_expr_cxt * context);
+static void sqlite_deparse_func_expr(FuncExpr * node, deparse_expr_cxt * context);
+static void sqlite_deparse_op_expr(OpExpr * node, deparse_expr_cxt * context);
 static void sqlite_deparse_operator_name(StringInfo buf, Form_pg_operator opform);
 
-static void sqlite_deparse_scalar_array_op_expr(ScalarArrayOpExpr *node,
-									deparse_expr_cxt *context);
-static void sqlite_deparse_relabel_type(RelabelType *node, deparse_expr_cxt *context);
-static void sqlite_deparse_bool_expr(BoolExpr *node, deparse_expr_cxt *context);
-static void sqlite_deparse_null_test(NullTest *node, deparse_expr_cxt *context);
-static void sqlite_deparse_array_expr(ArrayExpr *node, deparse_expr_cxt *context);
+static void sqlite_deparse_scalar_array_op_expr(ScalarArrayOpExpr * node,
+									deparse_expr_cxt * context);
+static void sqlite_deparse_relabel_type(RelabelType * node, deparse_expr_cxt * context);
+static void sqlite_deparse_bool_expr(BoolExpr * node, deparse_expr_cxt * context);
+static void sqlite_deparse_null_test(NullTest * node, deparse_expr_cxt * context);
+static void sqlite_deparse_array_expr(ArrayExpr * node, deparse_expr_cxt * context);
 static void sqlite_print_remote_param(int paramindex, Oid paramtype, int32 paramtypmod,
-						  deparse_expr_cxt *context);
+						  deparse_expr_cxt * context);
 static void sqlite_print_remote_placeholder(Oid paramtype, int32 paramtypmod,
-								deparse_expr_cxt *context);
+								deparse_expr_cxt * context);
 static void sqlite_deparse_relation(StringInfo buf, Relation rel);
-static void sqlite_deparse_target_list(StringInfo buf, PlannerInfo *root, Index rtindex, Relation rel,
-						   Bitmapset *attrs_used, List **retrieved_attrs);
-static void sqlite_deparse_column_ref(StringInfo buf, int varno, int varattno, PlannerInfo *root);
-static void sqlite_deparse_select(List *tlist, List **retrieved_attrs, deparse_expr_cxt *context);
-static void deparseFromExprForRel(StringInfo buf, PlannerInfo *root,
-					  RelOptInfo *foreignrel,
-					  bool use_alias, List **params_list);
-static void deparseFromExpr(List *quals, deparse_expr_cxt *context);
-static void deparseAggref(Aggref *node, deparse_expr_cxt *context);
-static void appendConditions(List *exprs, deparse_expr_cxt *context);
-static void appendGroupByClause(List *tlist, deparse_expr_cxt *context);
-static void appendAggOrderBy(List *orderList, List *targetList,
-				 deparse_expr_cxt *context);
-static void appendOrderByClause(List *pathkeys, deparse_expr_cxt *context);
-static void appendFunctionName(Oid funcid, deparse_expr_cxt *context);
-static Node *deparseSortGroupClause(Index ref, List *tlist,
-					   deparse_expr_cxt *context);
-static void deparseExplicitTargetList(List *tlist, List **retrieved_attrs,
-						  deparse_expr_cxt *context);
-static Expr *find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel);
+static void sqlite_deparse_target_list(StringInfo buf, PlannerInfo * root, Index rtindex, Relation rel,
+						   Bitmapset * attrs_used, List * *retrieved_attrs);
+static void sqlite_deparse_column_ref(StringInfo buf, int varno, int varattno, PlannerInfo * root);
+static void sqlite_deparse_select(List * tlist, List * *retrieved_attrs, deparse_expr_cxt * context);
+static void deparseFromExprForRel(StringInfo buf, PlannerInfo * root,
+					  RelOptInfo * foreignrel,
+					  bool use_alias, List * *params_list);
+static void deparseFromExpr(List * quals, deparse_expr_cxt * context);
+static void deparseAggref(Aggref * node, deparse_expr_cxt * context);
+static void appendConditions(List * exprs, deparse_expr_cxt * context);
+static void appendGroupByClause(List * tlist, deparse_expr_cxt * context);
+static void appendAggOrderBy(List * orderList, List * targetList,
+				 deparse_expr_cxt * context);
+static void appendOrderByClause(List * pathkeys, deparse_expr_cxt * context);
+static void appendFunctionName(Oid funcid, deparse_expr_cxt * context);
+static Node * deparseSortGroupClause(Index ref, List * tlist,
+									 deparse_expr_cxt * context);
+static void deparseExplicitTargetList(List * tlist, List * *retrieved_attrs,
+						  deparse_expr_cxt * context);
+static Expr * find_em_expr_for_rel(EquivalenceClass * ec, RelOptInfo * rel);
 static bool is_builtin(Oid objectId);
 
 /*
@@ -198,9 +198,9 @@ sqlite_quote_identifier(const char *s, char q)
  * Returns true if given expr is safe to evaluate on the foreign server.
  */
 bool
-sqlite_is_foreign_expr(PlannerInfo *root,
-					   RelOptInfo *baserel,
-					   Expr *expr)
+sqlite_is_foreign_expr(PlannerInfo * root,
+					   RelOptInfo * baserel,
+					   Expr * expr)
 {
 	foreign_glob_cxt glob_cxt;
 	foreign_loc_cxt loc_cxt;
@@ -262,9 +262,9 @@ sqlite_is_foreign_expr(PlannerInfo *root,
  * can assume here that the given expression is valid.
  */
 static bool
-foreign_expr_walker(Node *node,
-					foreign_glob_cxt *glob_cxt,
-					foreign_loc_cxt *outer_cxt)
+foreign_expr_walker(Node * node,
+					foreign_glob_cxt * glob_cxt,
+					foreign_loc_cxt * outer_cxt)
 {
 	bool		check_type = true;
 	foreign_loc_cxt inner_cxt;
@@ -709,7 +709,7 @@ foreign_expr_walker(Node *node,
  * foreign server.
  */
 List *
-sqlite_build_tlist_to_deparse(RelOptInfo *foreignrel)
+sqlite_build_tlist_to_deparse(RelOptInfo * foreignrel)
 {
 	List	   *tlist = NIL;
 	SqliteFdwRelationInfo *fpinfo = (SqliteFdwRelationInfo *) foreignrel->fdw_private;
@@ -764,10 +764,10 @@ sqlite_build_tlist_to_deparse(RelOptInfo *foreignrel)
  * List of columns selected is returned in retrieved_attrs.
  */
 void
-sqliteDeparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
-							  List *tlist, List *remote_conds, List *pathkeys,
-							  bool is_subquery, List **retrieved_attrs,
-							  List **params_list)
+sqliteDeparseSelectStmtForRel(StringInfo buf, PlannerInfo * root, RelOptInfo * rel,
+							  List * tlist, List * remote_conds, List * pathkeys,
+							  bool is_subquery, List * *retrieved_attrs,
+							  List * *params_list)
 {
 	deparse_expr_cxt context;
 	SqliteFdwRelationInfo *fpinfo = (SqliteFdwRelationInfo *) rel->fdw_private;
@@ -835,7 +835,7 @@ sqliteDeparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel
  * Deparese SELECT statment
  */
 static void
-sqlite_deparse_select(List *tlist, List **retrieved_attrs, deparse_expr_cxt *context)
+sqlite_deparse_select(List * tlist, List * *retrieved_attrs, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	PlannerInfo *root = context->root;
@@ -883,7 +883,7 @@ sqlite_deparse_select(List *tlist, List **retrieved_attrs, deparse_expr_cxt *con
  * quals is the list of clauses to be included in the WHERE clause.
  */
 static void
-deparseFromExpr(List *quals, deparse_expr_cxt *context)
+deparseFromExpr(List * quals, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	RelOptInfo *foreignrel = context->foreignrel;
@@ -916,7 +916,7 @@ deparseFromExpr(List *quals, deparse_expr_cxt *context)
  * deparse WHERE clauses, JOIN .. ON clauses and HAVING clauses.
  */
 static void
-appendConditions(List *exprs, deparse_expr_cxt *context)
+appendConditions(List * exprs, deparse_expr_cxt * context)
 {
 	int			nestlevel;
 	ListCell   *lc;
@@ -958,8 +958,8 @@ appendConditions(List *exprs, deparse_expr_cxt *context)
  * from 1. It has same number of entries as tlist.
  */
 static void
-deparseExplicitTargetList(List *tlist, List **retrieved_attrs,
-						  deparse_expr_cxt *context)
+deparseExplicitTargetList(List * tlist, List * *retrieved_attrs,
+						  deparse_expr_cxt * context)
 {
 	ListCell   *lc;
 	StringInfo	buf = context->buf;
@@ -992,8 +992,8 @@ deparseExplicitTargetList(List *tlist, List **retrieved_attrs,
  * alias if so requested.
  */
 static void
-deparseFromExprForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *foreignrel,
-					  bool use_alias, List **params_list)
+deparseFromExprForRel(StringInfo buf, PlannerInfo * root, RelOptInfo * foreignrel,
+					  bool use_alias, List * *params_list)
 {
 	Assert(!use_alias);
 	if (foreignrel->reloptkind == RELOPT_JOINREL)
@@ -1025,9 +1025,9 @@ deparseFromExprForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *foreignrel,
  * to *retrieved_attrs.
  */
 void
-sqlite_deparse_insert(StringInfo buf, PlannerInfo *root,
+sqlite_deparse_insert(StringInfo buf, PlannerInfo * root,
 					  Index rtindex, Relation rel,
-					  List *targetAttrs)
+					  List * targetAttrs)
 {
 	AttrNumber	pindex;
 	bool		first;
@@ -1087,11 +1087,11 @@ sqlite_deparse_analyze(StringInfo sql, char *dbname, char *relname)
  */
 static void
 sqlite_deparse_target_list(StringInfo buf,
-						   PlannerInfo *root,
+						   PlannerInfo * root,
 						   Index rtindex,
 						   Relation rel,
-						   Bitmapset *attrs_used,
-						   List **retrieved_attrs)
+						   Bitmapset * attrs_used,
+						   List * *retrieved_attrs)
 {
 	TupleDesc	tupdesc = RelationGetDescr(rel);
 	bool		have_wholerow;
@@ -1148,11 +1148,11 @@ sqlite_deparse_target_list(StringInfo buf,
  */
 void
 sqlite_append_where_clause(StringInfo buf,
-						   PlannerInfo *root,
-						   RelOptInfo *baserel,
-						   List *exprs,
+						   PlannerInfo * root,
+						   RelOptInfo * baserel,
+						   List * exprs,
 						   bool is_first,
-						   List **params)
+						   List * *params)
 {
 	deparse_expr_cxt context;
 	ListCell   *lc;
@@ -1190,7 +1190,7 @@ sqlite_append_where_clause(StringInfo buf,
  * If it has a column_name FDW option, use that instead of attribute name.
  */
 static void
-sqlite_deparse_column_ref(StringInfo buf, int varno, int varattno, PlannerInfo *root)
+sqlite_deparse_column_ref(StringInfo buf, int varno, int varattno, PlannerInfo * root)
 {
 	RangeTblEntry *rte;
 	char	   *colname = NULL;
@@ -1297,7 +1297,7 @@ sqlite_deparse_string_literal(StringInfo buf, const char *val)
  * should be self-parenthesized.
  */
 static void
-deparseExpr(Expr *node, deparse_expr_cxt *context)
+deparseExpr(Expr * node, deparse_expr_cxt * context)
 {
 	if (node == NULL)
 		return;
@@ -1354,9 +1354,9 @@ deparseExpr(Expr *node, deparse_expr_cxt *context)
  * to *retrieved_attrs.
  */
 void
-sqlite_deparse_update(StringInfo buf, PlannerInfo *root,
+sqlite_deparse_update(StringInfo buf, PlannerInfo * root,
 					  Index rtindex, Relation rel,
-					  List *targetAttrs, List *attname)
+					  List * targetAttrs, List * attname)
 {
 	AttrNumber	pindex;
 	bool		first;
@@ -1402,9 +1402,9 @@ sqlite_deparse_update(StringInfo buf, PlannerInfo *root,
  * to *retrieved_attrs.
  */
 void
-sqlite_deparse_delete(StringInfo buf, PlannerInfo *root,
+sqlite_deparse_delete(StringInfo buf, PlannerInfo * root,
 					  Index rtindex, Relation rel,
-					  List *attname)
+					  List * attname)
 {
 	int			i = 0;
 	ListCell   *lc;
@@ -1431,7 +1431,7 @@ sqlite_deparse_delete(StringInfo buf, PlannerInfo *root,
  * deparseParam for comments.
  */
 static void
-sqlite_deparse_var(Var *node, deparse_expr_cxt *context)
+sqlite_deparse_var(Var * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	Relids		relids = context->scanrel->relids;
@@ -1485,7 +1485,7 @@ sqlite_deparse_var(Var *node, deparse_expr_cxt *context)
  * to be the right type by default.
  */
 static void
-sqlite_deparse_const(Const *node, deparse_expr_cxt *context, int showtype)
+sqlite_deparse_const(Const * node, deparse_expr_cxt * context, int showtype)
 {
 	StringInfo	buf = context->buf;
 	Oid			typoutput;
@@ -1569,7 +1569,7 @@ sqlite_deparse_const(Const *node, deparse_expr_cxt *context, int showtype)
  * no need to identify a parameter number.
  */
 static void
-sqlite_deparse_param(Param *node, deparse_expr_cxt *context)
+sqlite_deparse_param(Param * node, deparse_expr_cxt * context)
 {
 	if (context->params_list)
 	{
@@ -1616,7 +1616,7 @@ sqlite_replace_function(char *in)
  * Deparse a function call.
  */
 static void
-sqlite_deparse_func_expr(FuncExpr *node, deparse_expr_cxt *context)
+sqlite_deparse_func_expr(FuncExpr * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	HeapTuple	proctup;
@@ -1657,7 +1657,7 @@ sqlite_deparse_func_expr(FuncExpr *node, deparse_expr_cxt *context)
  * priority of operations, we always parenthesize the arguments.
  */
 static void
-sqlite_deparse_op_expr(OpExpr *node, deparse_expr_cxt *context)
+sqlite_deparse_op_expr(OpExpr * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	HeapTuple	tuple;
@@ -1755,7 +1755,7 @@ sqlite_deparse_operator_name(StringInfo buf, Form_pg_operator opform)
  * around priority of operations, we always parenthesize the arguments.
  */
 static void
-sqlite_deparse_scalar_array_op_expr(ScalarArrayOpExpr *node, deparse_expr_cxt *context)
+sqlite_deparse_scalar_array_op_expr(ScalarArrayOpExpr * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	HeapTuple	tuple;
@@ -1832,7 +1832,7 @@ sqlite_deparse_scalar_array_op_expr(ScalarArrayOpExpr *node, deparse_expr_cxt *c
  * Deparse a RelabelType (binary-compatible cast) node.
  */
 static void
-sqlite_deparse_relabel_type(RelabelType *node, deparse_expr_cxt *context)
+sqlite_deparse_relabel_type(RelabelType * node, deparse_expr_cxt * context)
 {
 	deparseExpr(node->arg, context);
 }
@@ -1844,7 +1844,7 @@ sqlite_deparse_relabel_type(RelabelType *node, deparse_expr_cxt *context)
  * into N-argument form, so we'd better be prepared to deal with that.
  */
 static void
-sqlite_deparse_bool_expr(BoolExpr *node, deparse_expr_cxt *context)
+sqlite_deparse_bool_expr(BoolExpr * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	const char *op = NULL;		/* keep compiler quiet */
@@ -1882,7 +1882,7 @@ sqlite_deparse_bool_expr(BoolExpr *node, deparse_expr_cxt *context)
  * Deparse IS [NOT] NULL expression.
  */
 static void
-sqlite_deparse_null_test(NullTest *node, deparse_expr_cxt *context)
+sqlite_deparse_null_test(NullTest * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 
@@ -1898,7 +1898,7 @@ sqlite_deparse_null_test(NullTest *node, deparse_expr_cxt *context)
  * Deparse ARRAY[...] construct.
  */
 static void
-sqlite_deparse_array_expr(ArrayExpr *node, deparse_expr_cxt *context)
+sqlite_deparse_array_expr(ArrayExpr * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	bool		first = true;
@@ -1925,7 +1925,7 @@ sqlite_deparse_array_expr(ArrayExpr *node, deparse_expr_cxt *context)
  */
 static void
 sqlite_print_remote_param(int paramindex, Oid paramtype, int32 paramtypmod,
-						  deparse_expr_cxt *context)
+						  deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 
@@ -1934,7 +1934,7 @@ sqlite_print_remote_param(int paramindex, Oid paramtype, int32 paramtypmod,
 
 static void
 sqlite_print_remote_placeholder(Oid paramtype, int32 paramtypmod,
-								deparse_expr_cxt *context)
+								deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 
@@ -1969,7 +1969,7 @@ is_builtin(Oid oid)
  * Deparse an Aggref node.
  */
 static void
-deparseAggref(Aggref *node, deparse_expr_cxt *context)
+deparseAggref(Aggref * node, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	bool		use_variadic;
@@ -2061,7 +2061,7 @@ deparseAggref(Aggref *node, deparse_expr_cxt *context)
  * Deparse GROUP BY clause.
  */
 static void
-appendGroupByClause(List *tlist, deparse_expr_cxt *context)
+appendGroupByClause(List * tlist, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	Query	   *query = context->root->parse;
@@ -2097,7 +2097,7 @@ appendGroupByClause(List *tlist, deparse_expr_cxt *context)
  * Append ORDER BY within aggregate function.
  */
 static void
-appendAggOrderBy(List *orderList, List *targetList, deparse_expr_cxt *context)
+appendAggOrderBy(List * orderList, List * targetList, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	ListCell   *lc;
@@ -2152,7 +2152,7 @@ appendAggOrderBy(List *orderList, List *targetList, deparse_expr_cxt *context)
  * the indicated relation.
  */
 static Expr *
-find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel)
+find_em_expr_for_rel(EquivalenceClass * ec, RelOptInfo * rel)
 {
 	ListCell   *lc_em;
 
@@ -2182,7 +2182,7 @@ find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel)
  * base relation are obtained and deparsed.
  */
 static void
-appendOrderByClause(List *pathkeys, deparse_expr_cxt *context)
+appendOrderByClause(List * pathkeys, deparse_expr_cxt * context)
 {
 	ListCell   *lcell;
 	int			nestlevel;
@@ -2221,7 +2221,7 @@ appendOrderByClause(List *pathkeys, deparse_expr_cxt *context)
  *		Deparses function name from given function oid.
  */
 static void
-appendFunctionName(Oid funcid, deparse_expr_cxt *context)
+appendFunctionName(Oid funcid, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	HeapTuple	proctup;
@@ -2256,7 +2256,7 @@ appendFunctionName(Oid funcid, deparse_expr_cxt *context)
  * need not find it again.
  */
 static Node *
-deparseSortGroupClause(Index ref, List *tlist, deparse_expr_cxt *context)
+deparseSortGroupClause(Index ref, List * tlist, deparse_expr_cxt * context)
 {
 	StringInfo	buf = context->buf;
 	TargetEntry *tle;

@@ -64,7 +64,7 @@ CATALOG(pg_index,2610) BKI_WITHOUT_OIDS BKI_SCHEMA_MACRO
  *		the format of pg_index relation.
  * ----------------
  */
-typedef FormData_pg_index *Form_pg_index;
+typedef FormData_pg_index * Form_pg_index;
 
 /* ----------------
  *		compiler constants for pg_index

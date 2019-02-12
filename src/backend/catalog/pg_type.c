@@ -525,7 +525,7 @@ GenerateTypeDependencies(Oid typeNamespace,
 						 bool isImplicitArray,
 						 Oid baseType,
 						 Oid typeCollation,
-						 Node *defaultExpr,
+						 Node * defaultExpr,
 						 bool rebuild)
 {
 	ObjectAddress myself,

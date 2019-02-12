@@ -50,7 +50,7 @@ typedef struct
 	int			currIdx;		/* current PROCLOCK index */
 	PredicateLockData *predLockData;	/* state data for pred locks */
 	int			predLockIdx;	/* current index for pred lock */
-} PG_Lock_Status;
+}			PG_Lock_Status;
 
 /* Number of columns in pg_locks output */
 #define NUM_LOCK_STATUS_COLUMNS		15

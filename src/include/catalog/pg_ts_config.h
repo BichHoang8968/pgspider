@@ -38,7 +38,7 @@ CATALOG(pg_ts_config,3602)
 	Oid			cfgparser;		/* OID of parser (in pg_ts_parser) */
 } FormData_pg_ts_config;
 
-typedef FormData_pg_ts_config *Form_pg_ts_config;
+typedef FormData_pg_ts_config * Form_pg_ts_config;
 
 /* ----------------
  *		compiler constants for pg_ts_config

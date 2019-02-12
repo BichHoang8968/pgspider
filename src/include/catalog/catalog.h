@@ -42,10 +42,10 @@ extern bool IsReservedName(const char *name);
 
 extern bool IsSharedRelation(Oid relationId);
 
-extern Oid	GetNewOid(Relation relation);
+extern Oid GetNewOid(Relation relation);
 extern Oid GetNewOidWithIndex(Relation relation, Oid indexId,
-				   AttrNumber oidcolumn);
+							  AttrNumber oidcolumn);
 extern Oid GetNewRelFileNode(Oid reltablespace, Relation pg_class,
-				  char relpersistence);
+							 char relpersistence);
 
 #endif							/* CATALOG_H */

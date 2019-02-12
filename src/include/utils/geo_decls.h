@@ -59,7 +59,7 @@ typedef struct
 {
 	double		x,
 				y;
-} Point;
+}			Point;
 
 
 /*---------------------------------------------------------------------
@@ -68,7 +68,7 @@ typedef struct
 typedef struct
 {
 	Point		p[2];
-} LSEG;
+}			LSEG;
 
 
 /*---------------------------------------------------------------------
@@ -81,7 +81,7 @@ typedef struct
 	int32		closed;			/* is this a closed polygon? */
 	int32		dummy;			/* padding to make it double align */
 	Point		p[FLEXIBLE_ARRAY_MEMBER];
-} PATH;
+}			PATH;
 
 
 /*---------------------------------------------------------------------
@@ -92,7 +92,7 @@ typedef struct
 	double		A,
 				B,
 				C;
-} LINE;
+}			LINE;
 
 
 /*---------------------------------------------------------------------
@@ -103,7 +103,7 @@ typedef struct
 {
 	Point		high,
 				low;			/* corner POINTs */
-} BOX;
+}			BOX;
 
 /*---------------------------------------------------------------------
  * POLYGON - Specified by an array of doubles defining the points,
@@ -116,7 +116,7 @@ typedef struct
 	int32		npts;
 	BOX			boundbox;
 	Point		p[FLEXIBLE_ARRAY_MEMBER];
-} POLYGON;
+}			POLYGON;
 
 /*---------------------------------------------------------------------
  * CIRCLE - Specified by a center point and radius.
@@ -125,7 +125,7 @@ typedef struct
 {
 	Point		center;
 	double		radius;
-} CIRCLE;
+}			CIRCLE;
 
 /*
  * fmgr interface macros
@@ -179,8 +179,8 @@ typedef struct
  */
 
 /* private point routines */
-extern double point_dt(Point *pt1, Point *pt2);
-extern double point_sl(Point *pt1, Point *pt2);
+extern double point_dt(Point * pt1, Point * pt2);
+extern double point_sl(Point * pt1, Point * pt2);
 extern double pg_hypot(double x, double y);
 
 #endif							/* GEO_DECLS_H */

@@ -229,14 +229,14 @@ get_type(enum ECPGttype type)
    size is the maxsize in case it is a varchar. Otherwise it is the size of
    the variable (required to do array fetches of structs).
  */
-static void ECPGdump_a_simple(FILE *o, const char *name, enum ECPGttype type,
+static void ECPGdump_a_simple(FILE * o, const char *name, enum ECPGttype type,
 				  char *varcharsize,
 				  char *arrsize, const char *size, const char *prefix, int);
-static void ECPGdump_a_struct(FILE *o, const char *name, const char *ind_name, char *arrsize,
+static void ECPGdump_a_struct(FILE * o, const char *name, const char *ind_name, char *arrsize,
 				  struct ECPGtype *type, struct ECPGtype *ind_type, const char *prefix, const char *ind_prefix);
 
 void
-ECPGdump_a_type(FILE *o, const char *name, struct ECPGtype *type, const int brace_level,
+ECPGdump_a_type(FILE * o, const char *name, struct ECPGtype *type, const int brace_level,
 				const char *ind_name, struct ECPGtype *ind_type, const int ind_brace_level,
 				const char *prefix, const char *ind_prefix,
 				char *arr_str_size, const char *struct_sizeof,
@@ -406,7 +406,7 @@ ECPGdump_a_type(FILE *o, const char *name, struct ECPGtype *type, const int brac
 /* If size is NULL, then the offset is 0, if not use size as a
    string, it represents the offset needed if we are in an array of structs. */
 static void
-ECPGdump_a_simple(FILE *o, const char *name, enum ECPGttype type,
+ECPGdump_a_simple(FILE * o, const char *name, enum ECPGttype type,
 				  char *varcharsize,
 				  char *arrsize,
 				  const char *size,
@@ -569,7 +569,7 @@ ECPGdump_a_simple(FILE *o, const char *name, enum ECPGttype type,
 
 /* Penetrate a struct and dump the contents. */
 static void
-ECPGdump_a_struct(FILE *o, const char *name, const char *ind_name, char *arrsize, struct ECPGtype *type, struct ECPGtype *ind_type, const char *prefix, const char *ind_prefix)
+ECPGdump_a_struct(FILE * o, const char *name, const char *ind_name, char *arrsize, struct ECPGtype *type, struct ECPGtype *ind_type, const char *prefix, const char *ind_prefix)
 {
 	/*
 	 * If offset is NULL, then this is the first recursive level. If not then
@@ -611,14 +611,16 @@ ECPGdump_a_struct(FILE *o, const char *name, const char *ind_name, char *arrsize
 		if (ind_p != NULL && ind_p != &struct_no_indicator)
 		{
 			ind_p = ind_p->next;
-			if (ind_p == NULL && p->next != NULL) {
+			if (ind_p == NULL && p->next != NULL)
+			{
 				mmerror(PARSE_ERROR, ET_WARNING, "indicator struct \"%s\" has too few members", ind_name);
 				ind_p = &struct_no_indicator;
 			}
 		}
 	}
 
-	if (ind_type != NULL && ind_p != NULL && ind_p != &struct_no_indicator) {
+	if (ind_type != NULL && ind_p != NULL && ind_p != &struct_no_indicator)
+	{
 		mmerror(PARSE_ERROR, ET_WARNING, "indicator struct \"%s\" has too many members", ind_name);
 	}
 

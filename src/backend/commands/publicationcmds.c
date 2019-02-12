@@ -51,14 +51,14 @@
 /* Same as MAXNUMMESSAGES in sinvaladt.c */
 #define MAX_RELCACHE_INVAL_MSGS 4096
 
-static List *OpenTableList(List *tables);
-static void CloseTableList(List *rels);
-static void PublicationAddTables(Oid pubid, List *rels, bool if_not_exists,
-					 AlterPublicationStmt *stmt);
-static void PublicationDropTables(Oid pubid, List *rels, bool missing_ok);
+static List * OpenTableList(List * tables);
+static void CloseTableList(List * rels);
+static void PublicationAddTables(Oid pubid, List * rels, bool if_not_exists,
+					 AlterPublicationStmt * stmt);
+static void PublicationDropTables(Oid pubid, List * rels, bool missing_ok);
 
 static void
-parse_publication_options(List *options,
+parse_publication_options(List * options,
 						  bool *publish_given,
 						  bool *publish_insert,
 						  bool *publish_update,
@@ -133,7 +133,7 @@ parse_publication_options(List *options,
  * Create new publication.
  */
 ObjectAddress
-CreatePublication(CreatePublicationStmt *stmt)
+CreatePublication(CreatePublicationStmt * stmt)
 {
 	Relation	rel;
 	ObjectAddress myself;
@@ -227,7 +227,7 @@ CreatePublication(CreatePublicationStmt *stmt)
  * Change options of a publication.
  */
 static void
-AlterPublicationOptions(AlterPublicationStmt *stmt, Relation rel,
+AlterPublicationOptions(AlterPublicationStmt * stmt, Relation rel,
 						HeapTuple tup)
 {
 	bool		nulls[Natts_pg_publication];
@@ -307,7 +307,7 @@ AlterPublicationOptions(AlterPublicationStmt *stmt, Relation rel,
  * Add or remove table to/from publication.
  */
 static void
-AlterPublicationTables(AlterPublicationStmt *stmt, Relation rel,
+AlterPublicationTables(AlterPublicationStmt * stmt, Relation rel,
 					   HeapTuple tup)
 {
 	Oid			pubid = HeapTupleGetOid(tup);
@@ -385,7 +385,7 @@ AlterPublicationTables(AlterPublicationStmt *stmt, Relation rel,
  * AlterPublicationTables.
  */
 void
-AlterPublication(AlterPublicationStmt *stmt)
+AlterPublication(AlterPublicationStmt * stmt)
 {
 	Relation	rel;
 	HeapTuple	tup;
@@ -474,7 +474,7 @@ RemovePublicationRelById(Oid proid)
  * The returned tables are locked in ShareUpdateExclusiveLock mode.
  */
 static List *
-OpenTableList(List *tables)
+OpenTableList(List * tables)
 {
 	List	   *relids = NIL;
 	List	   *rels = NIL;
@@ -552,7 +552,7 @@ OpenTableList(List *tables)
  * Close all relations in the list.
  */
 static void
-CloseTableList(List *rels)
+CloseTableList(List * rels)
 {
 	ListCell   *lc;
 
@@ -568,8 +568,8 @@ CloseTableList(List *rels)
  * Add listed tables to the publication.
  */
 static void
-PublicationAddTables(Oid pubid, List *rels, bool if_not_exists,
-					 AlterPublicationStmt *stmt)
+PublicationAddTables(Oid pubid, List * rels, bool if_not_exists,
+					 AlterPublicationStmt * stmt)
 {
 	ListCell   *lc;
 
@@ -601,7 +601,7 @@ PublicationAddTables(Oid pubid, List *rels, bool if_not_exists,
  * Remove listed tables from the publication.
  */
 static void
-PublicationDropTables(Oid pubid, List *rels, bool missing_ok)
+PublicationDropTables(Oid pubid, List * rels, bool missing_ok)
 {
 	ObjectAddress obj;
 	ListCell   *lc;

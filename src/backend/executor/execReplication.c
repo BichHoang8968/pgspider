@@ -46,7 +46,7 @@
  */
 static bool
 build_replindex_scan_key(ScanKey skey, Relation rel, Relation idxrel,
-						 TupleTableSlot *searchslot)
+						 TupleTableSlot * searchslot)
 {
 	int			attoff;
 	bool		isnull;
@@ -114,8 +114,8 @@ build_replindex_scan_key(ScanKey skey, Relation rel, Relation idxrel,
 bool
 RelationFindReplTupleByIndex(Relation rel, Oid idxoid,
 							 LockTupleMode lockmode,
-							 TupleTableSlot *searchslot,
-							 TupleTableSlot *outslot)
+							 TupleTableSlot * searchslot,
+							 TupleTableSlot * outslot)
 {
 	HeapTuple	scantuple;
 	ScanKeyData skey[INDEX_MAX_KEYS];
@@ -220,7 +220,7 @@ retry:
  * to use.
  */
 static bool
-tuple_equals_slot(TupleDesc desc, HeapTuple tup, TupleTableSlot *slot)
+tuple_equals_slot(TupleDesc desc, HeapTuple tup, TupleTableSlot * slot)
 {
 	Datum		values[MaxTupleAttributeNumber];
 	bool		isnull[MaxTupleAttributeNumber];
@@ -277,7 +277,7 @@ tuple_equals_slot(TupleDesc desc, HeapTuple tup, TupleTableSlot *slot)
  */
 bool
 RelationFindReplTupleSeq(Relation rel, LockTupleMode lockmode,
-						 TupleTableSlot *searchslot, TupleTableSlot *outslot)
+						 TupleTableSlot * searchslot, TupleTableSlot * outslot)
 {
 	HeapTuple	scantuple;
 	HeapScanDesc scan;
@@ -373,7 +373,7 @@ retry:
  * Caller is responsible for opening the indexes.
  */
 void
-ExecSimpleRelationInsert(EState *estate, TupleTableSlot *slot)
+ExecSimpleRelationInsert(EState * estate, TupleTableSlot * slot)
 {
 	bool		skip_tuple = false;
 	HeapTuple	tuple;
@@ -435,8 +435,8 @@ ExecSimpleRelationInsert(EState *estate, TupleTableSlot *slot)
  * Caller is responsible for opening the indexes.
  */
 void
-ExecSimpleRelationUpdate(EState *estate, EPQState *epqstate,
-						 TupleTableSlot *searchslot, TupleTableSlot *slot)
+ExecSimpleRelationUpdate(EState * estate, EPQState * epqstate,
+						 TupleTableSlot * searchslot, TupleTableSlot * slot)
 {
 	bool		skip_tuple = false;
 	HeapTuple	tuple;
@@ -497,8 +497,8 @@ ExecSimpleRelationUpdate(EState *estate, EPQState *epqstate,
  * Caller is responsible for opening the indexes.
  */
 void
-ExecSimpleRelationDelete(EState *estate, EPQState *epqstate,
-						 TupleTableSlot *searchslot)
+ExecSimpleRelationDelete(EState * estate, EPQState * epqstate,
+						 TupleTableSlot * searchslot)
 {
 	bool		skip_tuple = false;
 	ResultRelInfo *resultRelInfo = estate->es_result_relation_info;

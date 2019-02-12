@@ -22,11 +22,11 @@
 #include "utils/rel.h"
 
 
-static TupleTableSlot *ExecCustomScan(PlanState *pstate);
+static TupleTableSlot * ExecCustomScan(PlanState * pstate);
 
 
 CustomScanState *
-ExecInitCustomScan(CustomScan *cscan, EState *estate, int eflags)
+ExecInitCustomScan(CustomScan * cscan, EState * estate, int eflags)
 {
 	CustomScanState *css;
 	Relation	scan_rel = NULL;
@@ -108,7 +108,7 @@ ExecInitCustomScan(CustomScan *cscan, EState *estate, int eflags)
 }
 
 static TupleTableSlot *
-ExecCustomScan(PlanState *pstate)
+ExecCustomScan(PlanState * pstate)
 {
 	CustomScanState *node = castNode(CustomScanState, pstate);
 
@@ -119,7 +119,7 @@ ExecCustomScan(PlanState *pstate)
 }
 
 void
-ExecEndCustomScan(CustomScanState *node)
+ExecEndCustomScan(CustomScanState * node)
 {
 	Assert(node->methods->EndCustomScan != NULL);
 	node->methods->EndCustomScan(node);
@@ -137,14 +137,14 @@ ExecEndCustomScan(CustomScanState *node)
 }
 
 void
-ExecReScanCustomScan(CustomScanState *node)
+ExecReScanCustomScan(CustomScanState * node)
 {
 	Assert(node->methods->ReScanCustomScan != NULL);
 	node->methods->ReScanCustomScan(node);
 }
 
 void
-ExecCustomMarkPos(CustomScanState *node)
+ExecCustomMarkPos(CustomScanState * node)
 {
 	if (!node->methods->MarkPosCustomScan)
 		ereport(ERROR,
@@ -155,7 +155,7 @@ ExecCustomMarkPos(CustomScanState *node)
 }
 
 void
-ExecCustomRestrPos(CustomScanState *node)
+ExecCustomRestrPos(CustomScanState * node)
 {
 	if (!node->methods->RestrPosCustomScan)
 		ereport(ERROR,
@@ -166,9 +166,9 @@ ExecCustomRestrPos(CustomScanState *node)
 }
 
 void
-ExecCustomScanEstimate(CustomScanState *node, ParallelContext *pcxt)
+ExecCustomScanEstimate(CustomScanState * node, ParallelContext * pcxt)
 {
-	const CustomExecMethods *methods = node->methods;
+	const		CustomExecMethods *methods = node->methods;
 
 	if (methods->EstimateDSMCustomScan)
 	{
@@ -179,9 +179,9 @@ ExecCustomScanEstimate(CustomScanState *node, ParallelContext *pcxt)
 }
 
 void
-ExecCustomScanInitializeDSM(CustomScanState *node, ParallelContext *pcxt)
+ExecCustomScanInitializeDSM(CustomScanState * node, ParallelContext * pcxt)
 {
-	const CustomExecMethods *methods = node->methods;
+	const		CustomExecMethods *methods = node->methods;
 
 	if (methods->InitializeDSMCustomScan)
 	{
@@ -195,9 +195,9 @@ ExecCustomScanInitializeDSM(CustomScanState *node, ParallelContext *pcxt)
 }
 
 void
-ExecCustomScanReInitializeDSM(CustomScanState *node, ParallelContext *pcxt)
+ExecCustomScanReInitializeDSM(CustomScanState * node, ParallelContext * pcxt)
 {
-	const CustomExecMethods *methods = node->methods;
+	const		CustomExecMethods *methods = node->methods;
 
 	if (methods->ReInitializeDSMCustomScan)
 	{
@@ -210,9 +210,9 @@ ExecCustomScanReInitializeDSM(CustomScanState *node, ParallelContext *pcxt)
 }
 
 void
-ExecCustomScanInitializeWorker(CustomScanState *node, shm_toc *toc)
+ExecCustomScanInitializeWorker(CustomScanState * node, shm_toc * toc)
 {
-	const CustomExecMethods *methods = node->methods;
+	const		CustomExecMethods *methods = node->methods;
 
 	if (methods->InitializeWorkerCustomScan)
 	{
@@ -225,9 +225,9 @@ ExecCustomScanInitializeWorker(CustomScanState *node, shm_toc *toc)
 }
 
 void
-ExecShutdownCustomScan(CustomScanState *node)
+ExecShutdownCustomScan(CustomScanState * node)
 {
-	const CustomExecMethods *methods = node->methods;
+	const		CustomExecMethods *methods = node->methods;
 
 	if (methods->ShutdownCustomScan)
 		methods->ShutdownCustomScan(node);

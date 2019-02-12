@@ -41,7 +41,7 @@ CATALOG(pg_opfamily,2753)
  *		the format of pg_opfamily relation.
  * ----------------
  */
-typedef FormData_pg_opfamily *Form_pg_opfamily;
+typedef FormData_pg_opfamily * Form_pg_opfamily;
 
 /* ----------------
  *		compiler constants for pg_opfamily

@@ -22,7 +22,7 @@ typedef struct proclist_node
 {
 	int			next;			/* pgprocno of the next PGPROC */
 	int			prev;			/* pgprocno of the prev PGPROC */
-} proclist_node;
+}			proclist_node;
 
 /*
  * Head of a doubly-linked list of PGPROCs, identified by pgprocno.
@@ -31,7 +31,7 @@ typedef struct proclist_head
 {
 	int			head;			/* pgprocno of the head PGPROC */
 	int			tail;			/* pgprocno of the tail PGPROC */
-} proclist_head;
+}			proclist_head;
 
 /*
  * List iterator allowing some modifications while iterating.
@@ -40,6 +40,6 @@ typedef struct proclist_mutable_iter
 {
 	int			cur;			/* pgprocno of the current PGPROC */
 	int			next;			/* pgprocno of the next PGPROC */
-} proclist_mutable_iter;
+}			proclist_mutable_iter;
 
 #endif

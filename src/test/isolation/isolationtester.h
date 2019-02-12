@@ -38,7 +38,7 @@ typedef struct
 {
 	int			nsteps;
 	char	  **stepnames;
-} Permutation;
+}			Permutation;
 
 typedef struct
 {
@@ -51,7 +51,7 @@ typedef struct
 	int			npermutations;
 	Step	  **allsteps;
 	int			nallsteps;
-} TestSpec;
+}			TestSpec;
 
 extern TestSpec parseresult;
 

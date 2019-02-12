@@ -39,14 +39,14 @@
 /* Returns true if doing null-fill on inner relation */
 #define HJ_FILL_INNER(hjstate)	((hjstate)->hj_NullOuterTupleSlot != NULL)
 
-static TupleTableSlot *ExecHashJoinOuterGetTuple(PlanState *outerNode,
-						  HashJoinState *hjstate,
-						  uint32 *hashvalue);
-static TupleTableSlot *ExecHashJoinGetSavedTuple(HashJoinState *hjstate,
-						  BufFile *file,
-						  uint32 *hashvalue,
-						  TupleTableSlot *tupleSlot);
-static bool ExecHashJoinNewBatch(HashJoinState *hjstate);
+static TupleTableSlot * ExecHashJoinOuterGetTuple(PlanState * outerNode,
+												  HashJoinState * hjstate,
+												  uint32 * hashvalue);
+static TupleTableSlot * ExecHashJoinGetSavedTuple(HashJoinState * hjstate,
+												  BufFile * file,
+												  uint32 * hashvalue,
+												  TupleTableSlot * tupleSlot);
+static bool ExecHashJoinNewBatch(HashJoinState * hjstate);
 
 
 /* ----------------------------------------------------------------
@@ -59,7 +59,7 @@ static bool ExecHashJoinNewBatch(HashJoinState *hjstate);
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *			/* return: a tuple or NULL */
-ExecHashJoin(PlanState *pstate)
+ExecHashJoin(PlanState * pstate)
 {
 	HashJoinState *node = castNode(HashJoinState, pstate);
 	PlanState  *outerNode;
@@ -381,7 +381,7 @@ ExecHashJoin(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 HashJoinState *
-ExecInitHashJoin(HashJoin *node, EState *estate, int eflags)
+ExecInitHashJoin(HashJoin * node, EState * estate, int eflags)
 {
 	HashJoinState *hjstate;
 	Plan	   *outerNode;
@@ -548,7 +548,7 @@ ExecInitHashJoin(HashJoin *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndHashJoin(HashJoinState *node)
+ExecEndHashJoin(HashJoinState * node)
 {
 	/*
 	 * Free hash table
@@ -591,9 +591,9 @@ ExecEndHashJoin(HashJoinState *node)
  * either originally computed, or re-read from the temp file.
  */
 static TupleTableSlot *
-ExecHashJoinOuterGetTuple(PlanState *outerNode,
-						  HashJoinState *hjstate,
-						  uint32 *hashvalue)
+ExecHashJoinOuterGetTuple(PlanState * outerNode,
+						  HashJoinState * hjstate,
+						  uint32 * hashvalue)
 {
 	HashJoinTable hashtable = hjstate->hj_HashTable;
 	int			curbatch = hashtable->curbatch;
@@ -668,7 +668,7 @@ ExecHashJoinOuterGetTuple(PlanState *outerNode,
  * Returns true if successful, false if there are no more batches.
  */
 static bool
-ExecHashJoinNewBatch(HashJoinState *hjstate)
+ExecHashJoinNewBatch(HashJoinState * hjstate)
 {
 	HashJoinTable hashtable = hjstate->hj_HashTable;
 	int			nbatch;
@@ -816,7 +816,7 @@ ExecHashJoinNewBatch(HashJoinState *hjstate)
  */
 void
 ExecHashJoinSaveTuple(MinimalTuple tuple, uint32 hashvalue,
-					  BufFile **fileptr)
+					  BufFile * *fileptr)
 {
 	BufFile    *file = *fileptr;
 	size_t		written;
@@ -849,10 +849,10 @@ ExecHashJoinSaveTuple(MinimalTuple tuple, uint32 hashvalue,
  * itself is stored in the given slot.
  */
 static TupleTableSlot *
-ExecHashJoinGetSavedTuple(HashJoinState *hjstate,
-						  BufFile *file,
-						  uint32 *hashvalue,
-						  TupleTableSlot *tupleSlot)
+ExecHashJoinGetSavedTuple(HashJoinState * hjstate,
+						  BufFile * file,
+						  uint32 * hashvalue,
+						  TupleTableSlot * tupleSlot)
 {
 	uint32		header[2];
 	size_t		nread;
@@ -895,7 +895,7 @@ ExecHashJoinGetSavedTuple(HashJoinState *hjstate,
 
 
 void
-ExecReScanHashJoin(HashJoinState *node)
+ExecReScanHashJoin(HashJoinState * node)
 {
 	/*
 	 * In a multi-batch join, we currently have to do rescans the hard way,

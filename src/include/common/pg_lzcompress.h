@@ -62,7 +62,7 @@ typedef struct PGLZ_Strategy
 	int32		first_success_by;
 	int32		match_size_good;
 	int32		match_size_drop;
-} PGLZ_Strategy;
+}			PGLZ_Strategy;
 
 
 /* ----------
@@ -84,8 +84,8 @@ extern const PGLZ_Strategy *const PGLZ_strategy_always;
  * ----------
  */
 extern int32 pglz_compress(const char *source, int32 slen, char *dest,
-			  const PGLZ_Strategy *strategy);
+						   const PGLZ_Strategy * strategy);
 extern int32 pglz_decompress(const char *source, int32 slen, char *dest,
-				int32 rawsize);
+							 int32 rawsize);
 
 #endif							/* _PG_LZCOMPRESS_H_ */

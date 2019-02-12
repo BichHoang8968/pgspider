@@ -118,9 +118,9 @@ typedef struct relidcacheent
 {
 	Oid			reloid;
 	Relation	reldesc;
-} RelIdCacheEnt;
+}			RelIdCacheEnt;
 
-static HTAB *RelationIdCache;
+static HTAB * RelationIdCache;
 
 /*
  * This flag is false until we have prepared the critical relcache entries
@@ -153,7 +153,7 @@ static long relcacheInvalsReceived = 0L;
  * cleanup processing must be idempotent.
  */
 #define MAX_EOXACT_LIST 32
-static Oid	eoxact_list[MAX_EOXACT_LIST];
+static Oid eoxact_list[MAX_EOXACT_LIST];
 static int	eoxact_list_len = 0;
 static bool eoxact_list_overflowed = false;
 
@@ -170,7 +170,7 @@ static bool eoxact_list_overflowed = false;
  * cleanup work.  The array expands as needed; there is no hashtable because
  * we don't need to access individual items except at EOXact.
  */
-static TupleDesc *EOXactTupleDescArray;
+static TupleDesc * EOXactTupleDescArray;
 static int	NextEOXactTupleDescNum = 0;
 static int	EOXactTupleDescArrayLen = 0;
 
@@ -237,9 +237,9 @@ typedef struct opclasscacheent
 	Oid			opcfamily;		/* OID of opclass's family */
 	Oid			opcintype;		/* OID of opclass's declared input type */
 	RegProcedure *supportProcs; /* OIDs of support procedures */
-} OpClassCacheEnt;
+}			OpClassCacheEnt;
 
-static HTAB *OpClassCache = NULL;
+static HTAB * OpClassCache = NULL;
 
 
 /* non-export function prototypes */
@@ -256,11 +256,11 @@ static void AtEOSubXact_cleanup(Relation relation, bool isCommit,
 					SubTransactionId mySubid, SubTransactionId parentSubid);
 static bool load_relcache_init_file(bool shared);
 static void write_relcache_init_file(bool shared);
-static void write_item(const void *data, Size len, FILE *fp);
+static void write_item(const void *data, Size len, FILE * fp);
 
 static void formrdesc(const char *relationName, Oid relationReltype,
 		  bool isshared, bool hasoids,
-		  int natts, const FormData_pg_attribute *attrs);
+		  int natts, const FormData_pg_attribute * attrs);
 
 static HeapTuple ScanPgRelation(Oid targetRelId, bool indexOK, bool force_non_historic);
 static Relation AllocateRelationDesc(Form_pg_class relp);
@@ -275,16 +275,16 @@ static TupleDesc GetPgIndexDescriptor(void);
 static void AttrDefaultFetch(Relation relation);
 static void CheckConstraintFetch(Relation relation);
 static int	CheckConstraintCmp(const void *a, const void *b);
-static List *insert_ordered_oid(List *list, Oid datum);
+static List * insert_ordered_oid(List * list, Oid datum);
 static void InitIndexAmRoutine(Relation relation);
-static void IndexSupportInitialize(oidvector *indclass,
-					   RegProcedure *indexSupport,
-					   Oid *opFamily,
-					   Oid *opcInType,
+static void IndexSupportInitialize(oidvector * indclass,
+					   RegProcedure * indexSupport,
+					   Oid * opFamily,
+					   Oid * opcInType,
 					   StrategyNumber maxSupportNumber,
 					   AttrNumber maxAttributeNumber);
-static OpClassCacheEnt *LookupOpclassInfo(Oid operatorClassOid,
-				  StrategyNumber numSupport);
+static OpClassCacheEnt * LookupOpclassInfo(Oid operatorClassOid,
+										   StrategyNumber numSupport);
 static void RelationCacheInitFileRemoveInDir(const char *tblspcpath);
 static void unlink_initfile(const char *initfilename, int elevel);
 static bool equalPartitionDescs(PartitionKey key, PartitionDesc partdesc1,
@@ -683,7 +683,7 @@ RelationBuildRuleLock(Relation relation)
 	 * necessary)
 	 */
 	maxlocks = 4;
-	rules = (RewriteRule **)
+	rules = (RewriteRule * *)
 		MemoryContextAlloc(rulescxt, sizeof(RewriteRule *) * maxlocks);
 	numlocks = 0;
 
@@ -774,7 +774,7 @@ RelationBuildRuleLock(Relation relation)
 		if (numlocks >= maxlocks)
 		{
 			maxlocks *= 2;
-			rules = (RewriteRule **)
+			rules = (RewriteRule * *)
 				repalloc(rules, sizeof(RewriteRule *) * maxlocks);
 		}
 		rules[numlocks++] = rule;
@@ -1008,7 +1008,7 @@ RelationBuildPartitionKey(Relation relation)
  *		Probably this should be in the rules code someplace...
  */
 static bool
-equalRuleLocks(RuleLock *rlock1, RuleLock *rlock2)
+equalRuleLocks(RuleLock * rlock1, RuleLock * rlock2)
 {
 	int			i;
 
@@ -1053,7 +1053,7 @@ equalRuleLocks(RuleLock *rlock1, RuleLock *rlock2)
  *		Determine whether two policies are equivalent
  */
 static bool
-equalPolicy(RowSecurityPolicy *policy1, RowSecurityPolicy *policy2)
+equalPolicy(RowSecurityPolicy * policy1, RowSecurityPolicy * policy2)
 {
 	int			i;
 	Oid		   *r1,
@@ -1099,7 +1099,7 @@ equalPolicy(RowSecurityPolicy *policy1, RowSecurityPolicy *policy2)
  *		Determine whether two RowSecurityDesc's are equivalent
  */
 static bool
-equalRSDesc(RowSecurityDesc *rsdesc1, RowSecurityDesc *rsdesc2)
+equalRSDesc(RowSecurityDesc * rsdesc1, RowSecurityDesc * rsdesc2)
 {
 	ListCell   *lc,
 			   *rc;
@@ -1627,10 +1627,10 @@ RelationInitIndexAccessInfo(Relation relation)
  * for the index and access method.
  */
 static void
-IndexSupportInitialize(oidvector *indclass,
-					   RegProcedure *indexSupport,
-					   Oid *opFamily,
-					   Oid *opcInType,
+IndexSupportInitialize(oidvector * indclass,
+					   RegProcedure * indexSupport,
+					   Oid * opFamily,
+					   Oid * opcInType,
 					   StrategyNumber maxSupportNumber,
 					   AttrNumber maxAttributeNumber)
 {
@@ -1848,7 +1848,7 @@ LookupOpclassInfo(Oid operatorClassOid,
 static void
 formrdesc(const char *relationName, Oid relationReltype,
 		  bool isshared, bool hasoids,
-		  int natts, const FormData_pg_attribute *attrs)
+		  int natts, const FormData_pg_attribute * attrs)
 {
 	Relation	relation;
 	int			i;
@@ -3982,7 +3982,7 @@ load_critical_index(Oid indexoid, Oid heapoid)
  * extracting fields.
  */
 static TupleDesc
-BuildHardcodedDescriptor(int natts, const FormData_pg_attribute *attrs,
+BuildHardcodedDescriptor(int natts, const FormData_pg_attribute * attrs,
 						 bool hasoids)
 {
 	TupleDesc	result;
@@ -4190,8 +4190,8 @@ CheckConstraintFetch(Relation relation)
 static int
 CheckConstraintCmp(const void *a, const void *b)
 {
-	const ConstrCheck *ca = (const ConstrCheck *) a;
-	const ConstrCheck *cb = (const ConstrCheck *) b;
+	const		ConstrCheck *ca = (const ConstrCheck *) a;
+	const		ConstrCheck *cb = (const ConstrCheck *) b;
 
 	return strcmp(ca->ccname, cb->ccname);
 }
@@ -4580,7 +4580,7 @@ RelationGetStatExtList(Relation relation)
  * indexes...
  */
 static List *
-insert_ordered_oid(List *list, Oid datum)
+insert_ordered_oid(List * list, Oid datum)
 {
 	ListCell   *prev;
 
@@ -4625,7 +4625,7 @@ insert_ordered_oid(List *list, Oid datum)
  * touch rd_keyattr, rd_pkattr or rd_idattr.
  */
 void
-RelationSetIndexList(Relation relation, List *indexIds, Oid oidIndex)
+RelationSetIndexList(Relation relation, List * indexIds, Oid oidIndex)
 {
 	MemoryContext oldcxt;
 
@@ -5083,9 +5083,9 @@ restart:
  */
 void
 RelationGetExclusionInfo(Relation indexRelation,
-						 Oid **operators,
-						 Oid **procs,
-						 uint16 **strategies)
+						 Oid * *operators,
+						 Oid * *procs,
+						 uint16 * *strategies)
 {
 	int			ncols = indexRelation->rd_rel->relnatts;
 	Oid		   *ops;
@@ -5965,7 +5965,7 @@ write_relcache_init_file(bool shared)
 
 /* write a chunk of data preceded by its length */
 static void
-write_item(const void *data, Size len, FILE *fp)
+write_item(const void *data, Size len, FILE * fp)
 {
 	if (fwrite(&len, 1, sizeof(len), fp) != sizeof(len))
 		elog(FATAL, "could not write init file");

@@ -31,7 +31,7 @@ typedef struct PROC_QUEUE
 {
 	SHM_QUEUE	links;			/* head of list of PGPROC objects */
 	int			size;			/* number of entries in list */
-} PROC_QUEUE;
+}			PROC_QUEUE;
 
 /* GUC variables */
 extern int	max_locks_per_xact;
@@ -64,7 +64,7 @@ typedef struct
 {
 	BackendId	backendId;		/* determined at backend startup */
 	LocalTransactionId localTransactionId;	/* backend-local transaction id */
-} VirtualTransactionId;
+}			VirtualTransactionId;
 
 #define InvalidLocalTransactionId		0
 #define LocalTransactionIdIsValid(lxid) ((lxid) != InvalidLocalTransactionId)
@@ -111,10 +111,10 @@ typedef struct
 typedef struct LockMethodData
 {
 	int			numLockModes;
-	const LOCKMASK *conflictTab;
+	const		LOCKMASK *conflictTab;
 	const char *const *lockModeNames;
 	const bool *trace_flag;
-} LockMethodData;
+}			LockMethodData;
 
 typedef const LockMethodData *LockMethod;
 
@@ -161,7 +161,7 @@ typedef enum LockTagType
 	 */
 	LOCKTAG_USERLOCK,			/* reserved for old contrib/userlock code */
 	LOCKTAG_ADVISORY			/* advisory user locks */
-} LockTagType;
+}			LockTagType;
 
 #define LOCKTAG_LAST_TYPE	LOCKTAG_ADVISORY
 
@@ -183,7 +183,7 @@ typedef struct LOCKTAG
 	uint16		locktag_field4; /* a 16-bit ID field */
 	uint8		locktag_type;	/* see enum LockTagType */
 	uint8		locktag_lockmethodid;	/* lockmethod indicator */
-} LOCKTAG;
+}			LOCKTAG;
 
 /*
  * These macros define how we map logical IDs of lockable objects into
@@ -295,7 +295,7 @@ typedef struct LOCK
 	int			nRequested;		/* total of requested[] array */
 	int			granted[MAX_LOCKMODES]; /* counts of granted locks */
 	int			nGranted;		/* total of granted[] array */
-} LOCK;
+}			LOCK;
 
 #define LOCK_LOCKMETHOD(lock) ((LOCKMETHODID) (lock).tag.locktag_lockmethodid)
 
@@ -339,7 +339,7 @@ typedef struct PROCLOCKTAG
 	/* NB: we assume this struct contains no padding! */
 	LOCK	   *myLock;			/* link to per-lockable-object information */
 	PGPROC	   *myProc;			/* link to PGPROC of owning backend */
-} PROCLOCKTAG;
+}			PROCLOCKTAG;
 
 typedef struct PROCLOCK
 {
@@ -352,7 +352,7 @@ typedef struct PROCLOCK
 	LOCKMASK	releaseMask;	/* bitmask for lock types to be released */
 	SHM_QUEUE	lockLink;		/* list link in LOCK's list of proclocks */
 	SHM_QUEUE	procLink;		/* list link in PGPROC's list of proclocks */
-} PROCLOCK;
+}			PROCLOCK;
 
 #define PROCLOCK_LOCKMETHOD(proclock) \
 	LOCK_LOCKMETHOD(*((proclock).tag.myLock))
@@ -384,7 +384,7 @@ typedef struct LOCALLOCKTAG
 {
 	LOCKTAG		lock;			/* identifies the lockable object */
 	LOCKMODE	mode;			/* lock mode for this table entry */
-} LOCALLOCKTAG;
+}			LOCALLOCKTAG;
 
 typedef struct LOCALLOCKOWNER
 {
@@ -396,7 +396,7 @@ typedef struct LOCALLOCKOWNER
 	 */
 	struct ResourceOwnerData *owner;
 	int64		nLocks;			/* # of times held by this owner */
-} LOCALLOCKOWNER;
+}			LOCALLOCKOWNER;
 
 typedef struct LOCALLOCK
 {
@@ -412,7 +412,7 @@ typedef struct LOCALLOCK
 	int			maxLockOwners;	/* allocated size of array */
 	bool		holdsStrongLockCount;	/* bumped FastPathStrongRelationLocks */
 	LOCALLOCKOWNER *lockOwners; /* dynamically resizable array */
-} LOCALLOCK;
+}			LOCALLOCK;
 
 #define LOCALLOCK_LOCKMETHOD(llock) ((llock).tag.lock.locktag_lockmethodid)
 
@@ -432,13 +432,13 @@ typedef struct LockInstanceData
 	int			pid;			/* pid of this PGPROC */
 	int			leaderPid;		/* pid of group leader; = pid if no group */
 	bool		fastpath;		/* taken via fastpath? */
-} LockInstanceData;
+}			LockInstanceData;
 
 typedef struct LockData
 {
 	int			nelements;		/* The length of the array */
 	LockInstanceData *locks;	/* Array of per-PROCLOCK information */
-} LockData;
+}			LockData;
 
 typedef struct BlockedProcData
 {
@@ -451,7 +451,7 @@ typedef struct BlockedProcData
 	/* (these fields refer to indexes in BlockedProcsData.waiter_pids[]) */
 	int			first_waiter;	/* index of first preceding waiter */
 	int			num_waiters;	/* number of preceding waiters */
-} BlockedProcData;
+}			BlockedProcData;
 
 typedef struct BlockedProcsData
 {
@@ -464,7 +464,7 @@ typedef struct BlockedProcsData
 	int			maxlocks;		/* Allocated length of locks[] array */
 	int			npids;			/* # of valid entries in waiter_pids[] array */
 	int			maxpids;		/* Allocated length of waiter_pids[] array */
-} BlockedProcsData;
+}			BlockedProcsData;
 
 
 /* Result codes for LockAcquire() */
@@ -473,7 +473,7 @@ typedef enum
 	LOCKACQUIRE_NOT_AVAIL,		/* lock not available, and dontWait=true */
 	LOCKACQUIRE_OK,				/* lock successfully acquired */
 	LOCKACQUIRE_ALREADY_HELD	/* incremented count for lock already held */
-} LockAcquireResult;
+}			LockAcquireResult;
 
 /* Deadlock states identified by DeadLockCheck() */
 typedef enum
@@ -484,7 +484,7 @@ typedef enum
 	DS_HARD_DEADLOCK,			/* deadlock, no way out but ERROR */
 	DS_BLOCKED_BY_AUTOVACUUM	/* no deadlock; queue blocked by autovacuum
 								 * worker */
-} DeadLockState;
+}			DeadLockState;
 
 /*
  * The lockmgr's shared hash tables are partitioned to reduce contention.
@@ -516,43 +516,43 @@ typedef enum
  * function prototypes
  */
 extern void InitLocks(void);
-extern LockMethod GetLocksMethodTable(const LOCK *lock);
-extern LockMethod GetLockTagsMethodTable(const LOCKTAG *locktag);
-extern uint32 LockTagHashCode(const LOCKTAG *locktag);
+extern LockMethod GetLocksMethodTable(const LOCK * lock);
+extern LockMethod GetLockTagsMethodTable(const LOCKTAG * locktag);
+extern uint32 LockTagHashCode(const LOCKTAG * locktag);
 extern bool DoLockModesConflict(LOCKMODE mode1, LOCKMODE mode2);
-extern LockAcquireResult LockAcquire(const LOCKTAG *locktag,
-			LOCKMODE lockmode,
-			bool sessionLock,
-			bool dontWait);
-extern LockAcquireResult LockAcquireExtended(const LOCKTAG *locktag,
-					LOCKMODE lockmode,
-					bool sessionLock,
-					bool dontWait,
-					bool report_memory_error);
+extern LockAcquireResult LockAcquire(const LOCKTAG * locktag,
+									 LOCKMODE lockmode,
+									 bool sessionLock,
+									 bool dontWait);
+extern LockAcquireResult LockAcquireExtended(const LOCKTAG * locktag,
+											 LOCKMODE lockmode,
+											 bool sessionLock,
+											 bool dontWait,
+											 bool report_memory_error);
 extern void AbortStrongLockAcquire(void);
-extern bool LockRelease(const LOCKTAG *locktag,
+extern bool LockRelease(const LOCKTAG * locktag,
 			LOCKMODE lockmode, bool sessionLock);
 extern void LockReleaseAll(LOCKMETHODID lockmethodid, bool allLocks);
 extern void LockReleaseSession(LOCKMETHODID lockmethodid);
-extern void LockReleaseCurrentOwner(LOCALLOCK **locallocks, int nlocks);
-extern void LockReassignCurrentOwner(LOCALLOCK **locallocks, int nlocks);
-extern bool LockHasWaiters(const LOCKTAG *locktag,
+extern void LockReleaseCurrentOwner(LOCALLOCK * *locallocks, int nlocks);
+extern void LockReassignCurrentOwner(LOCALLOCK * *locallocks, int nlocks);
+extern bool LockHasWaiters(const LOCKTAG * locktag,
 			   LOCKMODE lockmode, bool sessionLock);
-extern VirtualTransactionId *GetLockConflicts(const LOCKTAG *locktag,
-				 LOCKMODE lockmode);
+extern VirtualTransactionId * GetLockConflicts(const LOCKTAG * locktag,
+											   LOCKMODE lockmode);
 extern void AtPrepare_Locks(void);
 extern void PostPrepare_Locks(TransactionId xid);
 extern int LockCheckConflicts(LockMethod lockMethodTable,
 				   LOCKMODE lockmode,
-				   LOCK *lock, PROCLOCK *proclock);
-extern void GrantLock(LOCK *lock, PROCLOCK *proclock, LOCKMODE lockmode);
+				   LOCK * lock, PROCLOCK * proclock);
+extern void GrantLock(LOCK * lock, PROCLOCK * proclock, LOCKMODE lockmode);
 extern void GrantAwaitedLock(void);
-extern void RemoveFromWaitQueue(PGPROC *proc, uint32 hashcode);
+extern void RemoveFromWaitQueue(PGPROC * proc, uint32 hashcode);
 extern Size LockShmemSize(void);
-extern LockData *GetLockStatusData(void);
-extern BlockedProcsData *GetBlockerStatusData(int blocked_pid);
+extern LockData * GetLockStatusData(void);
+extern BlockedProcsData * GetBlockerStatusData(int blocked_pid);
 
-extern xl_standby_lock *GetRunningTransactionLocks(int *nlocks);
+extern xl_standby_lock * GetRunningTransactionLocks(int *nlocks);
 extern const char *GetLockmodeName(LOCKMETHODID lockmethodid, LOCKMODE mode);
 
 extern void lock_twophase_recover(TransactionId xid, uint16 info,
@@ -564,19 +564,19 @@ extern void lock_twophase_postabort(TransactionId xid, uint16 info,
 extern void lock_twophase_standby_recover(TransactionId xid, uint16 info,
 							  void *recdata, uint32 len);
 
-extern DeadLockState DeadLockCheck(PGPROC *proc);
-extern PGPROC *GetBlockingAutoVacuumPgproc(void);
+extern DeadLockState DeadLockCheck(PGPROC * proc);
+extern PGPROC * GetBlockingAutoVacuumPgproc(void);
 extern void DeadLockReport(void) pg_attribute_noreturn();
-extern void RememberSimpleDeadLock(PGPROC *proc1,
+extern void RememberSimpleDeadLock(PGPROC * proc1,
 					   LOCKMODE lockmode,
-					   LOCK *lock,
-					   PGPROC *proc2);
+					   LOCK * lock,
+					   PGPROC * proc2);
 extern void InitDeadLockChecking(void);
 
-extern int	LockWaiterCount(const LOCKTAG *locktag);
+extern int	LockWaiterCount(const LOCKTAG * locktag);
 
 #ifdef LOCK_DEBUG
-extern void DumpLocks(PGPROC *proc);
+extern void DumpLocks(PGPROC * proc);
 extern void DumpAllLocks(void);
 #endif
 

@@ -71,7 +71,7 @@ typedef struct ReplicationSlotOnDisk
 	 */
 
 	ReplicationSlotPersistentData slotdata;
-} ReplicationSlotOnDisk;
+}			ReplicationSlotOnDisk;
 
 /* size of version independent data */
 #define ReplicationSlotOnDiskConstantSize \
@@ -100,12 +100,12 @@ int			max_replication_slots = 0;	/* the maximum number of replication
 										 * slots */
 
 static void ReplicationSlotDropAcquired(void);
-static void ReplicationSlotDropPtr(ReplicationSlot *slot);
+static void ReplicationSlotDropPtr(ReplicationSlot * slot);
 
 /* internal persistency functions */
 static void RestoreSlotFromDisk(const char *name);
-static void CreateSlotOnDisk(ReplicationSlot *slot);
-static void SaveSlotToPath(ReplicationSlot *slot, const char *path, int elevel);
+static void CreateSlotOnDisk(ReplicationSlot * slot);
+static void SaveSlotToPath(ReplicationSlot * slot, const char *path, int elevel);
 
 /*
  * Report shared-memory space needed by ReplicationSlotShmemInit.
@@ -544,7 +544,7 @@ ReplicationSlotDropAcquired(void)
  * this function returns.
  */
 static void
-ReplicationSlotDropPtr(ReplicationSlot *slot)
+ReplicationSlotDropPtr(ReplicationSlot * slot)
 {
 	char		path[MAXPGPATH];
 	char		tmppath[MAXPGPATH];
@@ -1155,7 +1155,7 @@ StartupReplicationSlots(void)
  * ----
  */
 static void
-CreateSlotOnDisk(ReplicationSlot *slot)
+CreateSlotOnDisk(ReplicationSlot * slot)
 {
 	char		tmppath[MAXPGPATH];
 	char		path[MAXPGPATH];
@@ -1215,7 +1215,7 @@ CreateSlotOnDisk(ReplicationSlot *slot)
  * Shared functionality between saving and creating a replication slot.
  */
 static void
-SaveSlotToPath(ReplicationSlot *slot, const char *dir, int elevel)
+SaveSlotToPath(ReplicationSlot * slot, const char *dir, int elevel)
 {
 	char		tmppath[MAXPGPATH];
 	char		path[MAXPGPATH];

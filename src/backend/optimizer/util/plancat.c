@@ -57,17 +57,17 @@ int			constraint_exclusion = CONSTRAINT_EXCLUSION_PARTITION;
 get_relation_info_hook_type get_relation_info_hook = NULL;
 
 
-static void get_relation_foreign_keys(PlannerInfo *root, RelOptInfo *rel,
+static void get_relation_foreign_keys(PlannerInfo * root, RelOptInfo * rel,
 						  Relation relation, bool inhparent);
-static bool infer_collation_opclass_match(InferenceElem *elem, Relation idxRel,
-							  List *idxExprs);
-static int32 get_rel_data_width(Relation rel, int32 *attr_widths);
-static List *get_relation_constraints(PlannerInfo *root,
-						 Oid relationObjectId, RelOptInfo *rel,
-						 bool include_notnull);
-static List *build_index_tlist(PlannerInfo *root, IndexOptInfo *index,
-				  Relation heapRelation);
-static List *get_relation_statistics(RelOptInfo *rel, Relation relation);
+static bool infer_collation_opclass_match(InferenceElem * elem, Relation idxRel,
+							  List * idxExprs);
+static int32 get_rel_data_width(Relation rel, int32 * attr_widths);
+static List * get_relation_constraints(PlannerInfo * root,
+									   Oid relationObjectId, RelOptInfo * rel,
+									   bool include_notnull);
+static List * build_index_tlist(PlannerInfo * root, IndexOptInfo * index,
+								Relation heapRelation);
+static List * get_relation_statistics(RelOptInfo * rel, Relation relation);
 
 /*
  * get_relation_info -
@@ -98,8 +98,8 @@ static List *get_relation_statistics(RelOptInfo *rel, Relation relation);
  * important for it.
  */
 void
-get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
-				  RelOptInfo *rel)
+get_relation_info(PlannerInfo * root, Oid relationObjectId, bool inhparent,
+				  RelOptInfo * rel)
 {
 	Index		varno = rel->relid;
 	Relation	relation;
@@ -442,7 +442,7 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
  * relcache entries would probably exceed any savings.
  */
 static void
-get_relation_foreign_keys(PlannerInfo *root, RelOptInfo *rel,
+get_relation_foreign_keys(PlannerInfo * root, RelOptInfo * rel,
 						  Relation relation, bool inhparent)
 {
 	List	   *rtable = root->parse->rtable;
@@ -555,7 +555,7 @@ get_relation_foreign_keys(PlannerInfo *root, RelOptInfo *rel,
  * each attribute opclass/collation) are used for inference.
  */
 List *
-infer_arbiter_indexes(PlannerInfo *root)
+infer_arbiter_indexes(PlannerInfo * root)
 {
 	OnConflictExpr *onconflict = root->parse->onConflict;
 
@@ -823,8 +823,8 @@ next:
  * inferred/satisfied.
  */
 static bool
-infer_collation_opclass_match(InferenceElem *elem, Relation idxRel,
-							  List *idxExprs)
+infer_collation_opclass_match(InferenceElem * elem, Relation idxRel,
+							  List * idxExprs)
 {
 	AttrNumber	natt;
 	Oid			inferopfamily = InvalidOid; /* OID of opclass opfamily */
@@ -905,8 +905,8 @@ infer_collation_opclass_match(InferenceElem *elem, Relation idxRel,
  * the attribute widths for estimation purposes.
  */
 void
-estimate_rel_size(Relation rel, int32 *attr_widths,
-				  BlockNumber *pages, double *tuples, double *allvisfrac)
+estimate_rel_size(Relation rel, int32 * attr_widths,
+				  BlockNumber * pages, double *tuples, double *allvisfrac)
 {
 	BlockNumber curpages;
 	BlockNumber relpages;
@@ -1065,7 +1065,7 @@ estimate_rel_size(Relation rel, int32 *attr_widths,
  * necessarily the wrong thing anyway.
  */
 static int32
-get_rel_data_width(Relation rel, int32 *attr_widths)
+get_rel_data_width(Relation rel, int32 * attr_widths)
 {
 	int32		tuple_width = 0;
 	int			i;
@@ -1107,7 +1107,7 @@ get_rel_data_width(Relation rel, int32 *attr_widths)
  * open the relcache entry.
  */
 int32
-get_relation_data_width(Oid relid, int32 *attr_widths)
+get_relation_data_width(Oid relid, int32 * attr_widths)
 {
 	int32		result;
 	Relation	relation;
@@ -1141,8 +1141,8 @@ get_relation_data_width(Oid relid, int32 *attr_widths)
  * point in caching the data in RelOptInfo.
  */
 static List *
-get_relation_constraints(PlannerInfo *root,
-						 Oid relationObjectId, RelOptInfo *rel,
+get_relation_constraints(PlannerInfo * root,
+						 Oid relationObjectId, RelOptInfo * rel,
 						 bool include_notnull)
 {
 	List	   *result = NIL;
@@ -1269,7 +1269,7 @@ get_relation_constraints(PlannerInfo *root,
  * just the identifying metadata.  Only stats actually built are considered.
  */
 static List *
-get_relation_statistics(RelOptInfo *rel, Relation relation)
+get_relation_statistics(RelOptInfo * rel, Relation relation)
 {
 	List	   *statoidlist;
 	List	   *stainfos = NIL;
@@ -1344,8 +1344,8 @@ get_relation_statistics(RelOptInfo *rel, Relation relation)
  * other fields of the RelOptInfo.
  */
 bool
-relation_excluded_by_constraints(PlannerInfo *root,
-								 RelOptInfo *rel, RangeTblEntry *rte)
+relation_excluded_by_constraints(PlannerInfo * root,
+								 RelOptInfo * rel, RangeTblEntry * rte)
 {
 	List	   *safe_restrictions;
 	List	   *constraint_pred;
@@ -1469,7 +1469,7 @@ relation_excluded_by_constraints(PlannerInfo *root,
  * NamedTuplestoreScan, and WorkTableScan nodes.
  */
 List *
-build_physical_tlist(PlannerInfo *root, RelOptInfo *rel)
+build_physical_tlist(PlannerInfo * root, RelOptInfo * rel)
 {
 	List	   *tlist = NIL;
 	Index		varno = rel->relid;
@@ -1588,7 +1588,7 @@ build_physical_tlist(PlannerInfo *root, RelOptInfo *rel)
  * build_physical_tlist, we need no failure case.
  */
 static List *
-build_index_tlist(PlannerInfo *root, IndexOptInfo *index,
+build_index_tlist(PlannerInfo * root, IndexOptInfo * index,
 				  Relation heapRelation)
 {
 	List	   *tlist = NIL;
@@ -1651,9 +1651,9 @@ build_index_tlist(PlannerInfo *root, IndexOptInfo *index,
  * See clause_selectivity() for the meaning of the additional parameters.
  */
 Selectivity
-restriction_selectivity(PlannerInfo *root,
+restriction_selectivity(PlannerInfo * root,
 						Oid operatorid,
-						List *args,
+						List * args,
 						Oid inputcollid,
 						int varRelid)
 {
@@ -1688,12 +1688,12 @@ restriction_selectivity(PlannerInfo *root,
  * operator relation, by calling the function manager.
  */
 Selectivity
-join_selectivity(PlannerInfo *root,
+join_selectivity(PlannerInfo * root,
 				 Oid operatorid,
-				 List *args,
+				 List * args,
 				 Oid inputcollid,
 				 JoinType jointype,
-				 SpecialJoinInfo *sjinfo)
+				 SpecialJoinInfo * sjinfo)
 {
 	RegProcedure oprjoin = get_oprjoin(operatorid);
 	float8		result;
@@ -1732,7 +1732,7 @@ join_selectivity(PlannerInfo *root,
  * of using this for any correctness proofs.
  */
 bool
-has_unique_index(RelOptInfo *rel, AttrNumber attno)
+has_unique_index(RelOptInfo * rel, AttrNumber attno)
 {
 	ListCell   *ilist;
 
@@ -1764,7 +1764,7 @@ has_unique_index(RelOptInfo *rel, AttrNumber attno)
  * Detect whether the specified relation has any row-level triggers for event.
  */
 bool
-has_row_triggers(PlannerInfo *root, Index rti, CmdType event)
+has_row_triggers(PlannerInfo * root, Index rti, CmdType event)
 {
 	RangeTblEntry *rte = planner_rt_fetch(rti, root);
 	Relation	relation;

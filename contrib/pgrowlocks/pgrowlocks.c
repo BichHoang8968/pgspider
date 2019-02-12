@@ -57,7 +57,7 @@ typedef struct
 	Relation	rel;
 	HeapScanDesc scan;
 	int			ncolumns;
-} MyData;
+}			MyData;
 
 #define		Atnum_tid		0
 #define		Atnum_xmax		1

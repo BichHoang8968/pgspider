@@ -20,22 +20,22 @@
 #include "utils/memutils.h"
 
 
-static void make_rels_by_clause_joins(PlannerInfo *root,
-						  RelOptInfo *old_rel,
-						  ListCell *other_rels);
-static void make_rels_by_clauseless_joins(PlannerInfo *root,
-							  RelOptInfo *old_rel,
-							  ListCell *other_rels);
-static bool has_join_restriction(PlannerInfo *root, RelOptInfo *rel);
-static bool has_legal_joinclause(PlannerInfo *root, RelOptInfo *rel);
-static bool is_dummy_rel(RelOptInfo *rel);
-static void mark_dummy_rel(RelOptInfo *rel);
-static bool restriction_is_constant_false(List *restrictlist,
-							  RelOptInfo *joinrel,
+static void make_rels_by_clause_joins(PlannerInfo * root,
+						  RelOptInfo * old_rel,
+						  ListCell * other_rels);
+static void make_rels_by_clauseless_joins(PlannerInfo * root,
+							  RelOptInfo * old_rel,
+							  ListCell * other_rels);
+static bool has_join_restriction(PlannerInfo * root, RelOptInfo * rel);
+static bool has_legal_joinclause(PlannerInfo * root, RelOptInfo * rel);
+static bool is_dummy_rel(RelOptInfo * rel);
+static void mark_dummy_rel(RelOptInfo * rel);
+static bool restriction_is_constant_false(List * restrictlist,
+							  RelOptInfo * joinrel,
 							  bool only_pushed_down);
-static void populate_joinrel_with_paths(PlannerInfo *root, RelOptInfo *rel1,
-							RelOptInfo *rel2, RelOptInfo *joinrel,
-							SpecialJoinInfo *sjinfo, List *restrictlist);
+static void populate_joinrel_with_paths(PlannerInfo * root, RelOptInfo * rel1,
+							RelOptInfo * rel2, RelOptInfo * joinrel,
+							SpecialJoinInfo * sjinfo, List * restrictlist);
 
 
 /*
@@ -52,7 +52,7 @@ static void populate_joinrel_with_paths(PlannerInfo *root, RelOptInfo *rel1,
  * The result is returned in root->join_rel_level[level].
  */
 void
-join_search_one_level(PlannerInfo *root, int level)
+join_search_one_level(PlannerInfo * root, int level)
 {
 	List	  **joinrels = root->join_rel_level;
 	ListCell   *r;
@@ -261,9 +261,9 @@ join_search_one_level(PlannerInfo *root, int level)
  * will work for joining to joinrels too.
  */
 static void
-make_rels_by_clause_joins(PlannerInfo *root,
-						  RelOptInfo *old_rel,
-						  ListCell *other_rels)
+make_rels_by_clause_joins(PlannerInfo * root,
+						  RelOptInfo * old_rel,
+						  ListCell * other_rels)
 {
 	ListCell   *l;
 
@@ -295,9 +295,9 @@ make_rels_by_clause_joins(PlannerInfo *root,
  * work for joining to joinrels too.
  */
 static void
-make_rels_by_clauseless_joins(PlannerInfo *root,
-							  RelOptInfo *old_rel,
-							  ListCell *other_rels)
+make_rels_by_clauseless_joins(PlannerInfo * root,
+							  RelOptInfo * old_rel,
+							  ListCell * other_rels)
 {
 	ListCell   *l;
 
@@ -328,9 +328,9 @@ make_rels_by_clauseless_joins(PlannerInfo *root,
  * match the SpecialJoinInfo node.
  */
 static bool
-join_is_legal(PlannerInfo *root, RelOptInfo *rel1, RelOptInfo *rel2,
+join_is_legal(PlannerInfo * root, RelOptInfo * rel1, RelOptInfo * rel2,
 			  Relids joinrelids,
-			  SpecialJoinInfo **sjinfo_p, bool *reversed_p)
+			  SpecialJoinInfo * *sjinfo_p, bool *reversed_p)
 {
 	SpecialJoinInfo *match_sjinfo;
 	bool		reversed;
@@ -655,7 +655,7 @@ join_is_legal(PlannerInfo *root, RelOptInfo *rel1, RelOptInfo *rel2,
  * turned into joins.
  */
 RelOptInfo *
-make_join_rel(PlannerInfo *root, RelOptInfo *rel1, RelOptInfo *rel2)
+make_join_rel(PlannerInfo * root, RelOptInfo * rel1, RelOptInfo * rel2)
 {
 	Relids		joinrelids;
 	SpecialJoinInfo *sjinfo;
@@ -745,9 +745,9 @@ make_join_rel(PlannerInfo *root, RelOptInfo *rel1, RelOptInfo *rel2)
  *	  of the joining relations.
  */
 static void
-populate_joinrel_with_paths(PlannerInfo *root, RelOptInfo *rel1,
-							RelOptInfo *rel2, RelOptInfo *joinrel,
-							SpecialJoinInfo *sjinfo, List *restrictlist)
+populate_joinrel_with_paths(PlannerInfo * root, RelOptInfo * rel1,
+							RelOptInfo * rel2, RelOptInfo * joinrel,
+							SpecialJoinInfo * sjinfo, List * restrictlist)
 {
 	/*
 	 * Consider paths using each rel as both outer and inner.  Depending on
@@ -917,8 +917,8 @@ populate_joinrel_with_paths(PlannerInfo *root, RelOptInfo *rel1,
  * less efficient.
  */
 bool
-have_join_order_restriction(PlannerInfo *root,
-							RelOptInfo *rel1, RelOptInfo *rel2)
+have_join_order_restriction(PlannerInfo * root,
+							RelOptInfo * rel1, RelOptInfo * rel2)
 {
 	bool		result = false;
 	ListCell   *l;
@@ -1030,7 +1030,7 @@ have_join_order_restriction(PlannerInfo *root,
  * expensive has_legal_joinclause test.)
  */
 static bool
-has_join_restriction(PlannerInfo *root, RelOptInfo *rel)
+has_join_restriction(PlannerInfo * root, RelOptInfo * rel)
 {
 	ListCell   *l;
 
@@ -1086,7 +1086,7 @@ has_join_restriction(PlannerInfo *root, RelOptInfo *rel)
  * there are join clauses linking to other parts of the query.)
  */
 static bool
-has_legal_joinclause(PlannerInfo *root, RelOptInfo *rel)
+has_legal_joinclause(PlannerInfo * root, RelOptInfo * rel)
 {
 	ListCell   *lc;
 
@@ -1150,7 +1150,7 @@ has_legal_joinclause(PlannerInfo *root, RelOptInfo *rel)
  * some PHV to be dangerous for it that otherwise wouldn't be.
  */
 bool
-have_dangerous_phv(PlannerInfo *root,
+have_dangerous_phv(PlannerInfo * root,
 				   Relids outer_relids, Relids inner_params)
 {
 	ListCell   *lc;
@@ -1178,7 +1178,7 @@ have_dangerous_phv(PlannerInfo *root,
  * is_dummy_rel --- has relation been proven empty?
  */
 static bool
-is_dummy_rel(RelOptInfo *rel)
+is_dummy_rel(RelOptInfo * rel)
 {
 	return IS_DUMMY_REL(rel);
 }
@@ -1199,7 +1199,7 @@ is_dummy_rel(RelOptInfo *rel)
  * context the given RelOptInfo is in.
  */
 static void
-mark_dummy_rel(RelOptInfo *rel)
+mark_dummy_rel(RelOptInfo * rel)
 {
 	MemoryContext oldcontext;
 
@@ -1240,8 +1240,8 @@ mark_dummy_rel(RelOptInfo *rel)
  * from the point of view of the joinrel.
  */
 static bool
-restriction_is_constant_false(List *restrictlist,
-							  RelOptInfo *joinrel,
+restriction_is_constant_false(List * restrictlist,
+							  RelOptInfo * joinrel,
 							  bool only_pushed_down)
 {
 	ListCell   *lc;

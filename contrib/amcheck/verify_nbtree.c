@@ -72,7 +72,7 @@ typedef struct BtreeCheckState
 	BlockNumber targetblock;
 	/* Target page's LSN */
 	XLogRecPtr	targetlsn;
-} BtreeCheckState;
+}			BtreeCheckState;
 
 /*
  * Starting point for verifying an entire B-Tree index level
@@ -87,7 +87,7 @@ typedef struct BtreeLevel
 
 	/* Is this level reported as "true" root level by meta page? */
 	bool		istruerootlevel;
-} BtreeLevel;
+}			BtreeLevel;
 
 PG_FUNCTION_INFO_V1(bt_index_check);
 PG_FUNCTION_INFO_V1(bt_index_parent_check);
@@ -95,25 +95,25 @@ PG_FUNCTION_INFO_V1(bt_index_parent_check);
 static void bt_index_check_internal(Oid indrelid, bool parentcheck);
 static inline void btree_index_checkable(Relation rel);
 static void bt_check_every_level(Relation rel, bool readonly);
-static BtreeLevel bt_check_level_from_leftmost(BtreeCheckState *state,
-							 BtreeLevel level);
-static void bt_target_page_check(BtreeCheckState *state);
-static ScanKey bt_right_page_check_scankey(BtreeCheckState *state);
-static void bt_downlink_check(BtreeCheckState *state, BlockNumber childblock,
+static BtreeLevel bt_check_level_from_leftmost(BtreeCheckState * state,
+											   BtreeLevel level);
+static void bt_target_page_check(BtreeCheckState * state);
+static ScanKey bt_right_page_check_scankey(BtreeCheckState * state);
+static void bt_downlink_check(BtreeCheckState * state, BlockNumber childblock,
 				  ScanKey targetkey);
 static inline bool offset_is_negative_infinity(BTPageOpaque opaque,
 							OffsetNumber offset);
-static inline bool invariant_leq_offset(BtreeCheckState *state,
+static inline bool invariant_leq_offset(BtreeCheckState * state,
 					 ScanKey key,
 					 OffsetNumber upperbound);
-static inline bool invariant_geq_offset(BtreeCheckState *state,
+static inline bool invariant_geq_offset(BtreeCheckState * state,
 					 ScanKey key,
 					 OffsetNumber lowerbound);
-static inline bool invariant_leq_nontarget_offset(BtreeCheckState *state,
+static inline bool invariant_leq_nontarget_offset(BtreeCheckState * state,
 							   Page other,
 							   ScanKey key,
 							   OffsetNumber upperbound);
-static Page palloc_btree_page(BtreeCheckState *state, BlockNumber blocknum);
+static Page palloc_btree_page(BtreeCheckState * state, BlockNumber blocknum);
 
 /*
  * bt_index_check(index regclass)
@@ -370,7 +370,7 @@ bt_check_every_level(Relation rel, bool readonly)
  * each call to bt_target_page_check().
  */
 static BtreeLevel
-bt_check_level_from_leftmost(BtreeCheckState *state, BtreeLevel level)
+bt_check_level_from_leftmost(BtreeCheckState * state, BtreeLevel level)
 {
 	/* State to establish early, concerning entire level */
 	BTPageOpaque opaque;
@@ -550,7 +550,7 @@ nextpage:
  * resetting state->targetcontext.
  */
 static void
-bt_target_page_check(BtreeCheckState *state)
+bt_target_page_check(BtreeCheckState * state)
 {
 	OffsetNumber offset;
 	OffsetNumber max;
@@ -769,7 +769,7 @@ bt_target_page_check(BtreeCheckState *state)
  * been concurrently deleted.
  */
 static ScanKey
-bt_right_page_check_scankey(BtreeCheckState *state)
+bt_right_page_check_scankey(BtreeCheckState * state)
 {
 	BTPageOpaque opaque;
 	ItemId		rightitem;
@@ -974,7 +974,7 @@ bt_right_page_check_scankey(BtreeCheckState *state)
  * verification this way around is much more practical.
  */
 static void
-bt_downlink_check(BtreeCheckState *state, BlockNumber childblock,
+bt_downlink_check(BtreeCheckState * state, BlockNumber childblock,
 				  ScanKey targetkey)
 {
 	OffsetNumber offset;
@@ -1101,7 +1101,7 @@ offset_is_negative_infinity(BTPageOpaque opaque, OffsetNumber offset)
  * to corruption.
  */
 static inline bool
-invariant_leq_offset(BtreeCheckState *state, ScanKey key,
+invariant_leq_offset(BtreeCheckState * state, ScanKey key,
 					 OffsetNumber upperbound)
 {
 	int16		natts = state->rel->rd_rel->relnatts;
@@ -1120,7 +1120,7 @@ invariant_leq_offset(BtreeCheckState *state, ScanKey key,
  * to corruption.
  */
 static inline bool
-invariant_geq_offset(BtreeCheckState *state, ScanKey key,
+invariant_geq_offset(BtreeCheckState * state, ScanKey key,
 					 OffsetNumber lowerbound)
 {
 	int16		natts = state->rel->rd_rel->relnatts;
@@ -1142,7 +1142,7 @@ invariant_geq_offset(BtreeCheckState *state, ScanKey key,
  * to corruption.
  */
 static inline bool
-invariant_leq_nontarget_offset(BtreeCheckState *state,
+invariant_leq_nontarget_offset(BtreeCheckState * state,
 							   Page nontarget, ScanKey key,
 							   OffsetNumber upperbound)
 {
@@ -1167,7 +1167,7 @@ invariant_leq_nontarget_offset(BtreeCheckState *state,
  * misbehaves.
  */
 static Page
-palloc_btree_page(BtreeCheckState *state, BlockNumber blocknum)
+palloc_btree_page(BtreeCheckState * state, BlockNumber blocknum)
 {
 	Buffer		buffer;
 	Page		page;

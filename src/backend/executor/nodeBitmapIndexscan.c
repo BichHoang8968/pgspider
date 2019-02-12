@@ -35,7 +35,7 @@
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecBitmapIndexScan(PlanState *pstate)
+ExecBitmapIndexScan(PlanState * pstate)
 {
 	elog(ERROR, "BitmapIndexScan node does not support ExecProcNode call convention");
 	return NULL;
@@ -46,7 +46,7 @@ ExecBitmapIndexScan(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 Node *
-MultiExecBitmapIndexScan(BitmapIndexScanState *node)
+MultiExecBitmapIndexScan(BitmapIndexScanState * node)
 {
 	TIDBitmap  *tbm;
 	IndexScanDesc scandesc;
@@ -128,7 +128,7 @@ MultiExecBitmapIndexScan(BitmapIndexScanState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanBitmapIndexScan(BitmapIndexScanState *node)
+ExecReScanBitmapIndexScan(BitmapIndexScanState * node)
 {
 	ExprContext *econtext = node->biss_RuntimeContext;
 
@@ -172,7 +172,7 @@ ExecReScanBitmapIndexScan(BitmapIndexScanState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecEndBitmapIndexScan(BitmapIndexScanState *node)
+ExecEndBitmapIndexScan(BitmapIndexScanState * node)
 {
 	Relation	indexRelationDesc;
 	IndexScanDesc indexScanDesc;
@@ -207,7 +207,7 @@ ExecEndBitmapIndexScan(BitmapIndexScanState *node)
  * ----------------------------------------------------------------
  */
 BitmapIndexScanState *
-ExecInitBitmapIndexScan(BitmapIndexScan *node, EState *estate, int eflags)
+ExecInitBitmapIndexScan(BitmapIndexScan * node, EState * estate, int eflags)
 {
 	BitmapIndexScanState *indexstate;
 	bool		relistarget;

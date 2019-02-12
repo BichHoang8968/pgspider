@@ -46,7 +46,7 @@ typedef struct pg_re_flags
 {
 	int			cflags;			/* compile flags for Spencer's regex code */
 	bool		glob;			/* do it globally (for each occurrence) */
-} pg_re_flags;
+}			pg_re_flags;
 
 /* cross-call state for regexp_match and regexp_split functions */
 typedef struct regexp_matches_ctx
@@ -61,7 +61,7 @@ typedef struct regexp_matches_ctx
 	/* workspace for build_regexp_match_result() */
 	Datum	   *elems;			/* has npatterns elements */
 	bool	   *nulls;			/* has npatterns elements */
-} regexp_matches_ctx;
+}			regexp_matches_ctx;
 
 /*
  * We cache precompiled regular expressions using a "self organizing list"
@@ -100,21 +100,21 @@ typedef struct cached_re_str
 	int			cre_flags;		/* compile flags: extended,icase etc */
 	Oid			cre_collation;	/* collation to use */
 	regex_t		cre_re;			/* the compiled regular expression */
-} cached_re_str;
+}			cached_re_str;
 
 static int	num_res = 0;		/* # of cached re's */
 static cached_re_str re_array[MAX_CACHED_RES];	/* cached re's */
 
 
 /* Local functions */
-static regexp_matches_ctx *setup_regexp_matches(text *orig_str, text *pattern,
-					 pg_re_flags *flags,
-					 Oid collation,
-					 bool use_subpatterns,
-					 bool ignore_degenerate);
-static void cleanup_regexp_matches(regexp_matches_ctx *matchctx);
-static ArrayType *build_regexp_match_result(regexp_matches_ctx *matchctx);
-static Datum build_regexp_split_result(regexp_matches_ctx *splitctx);
+static regexp_matches_ctx * setup_regexp_matches(text * orig_str, text * pattern,
+												 pg_re_flags * flags,
+												 Oid collation,
+												 bool use_subpatterns,
+												 bool ignore_degenerate);
+static void cleanup_regexp_matches(regexp_matches_ctx * matchctx);
+static ArrayType * build_regexp_match_result(regexp_matches_ctx * matchctx);
+static Datum build_regexp_split_result(regexp_matches_ctx * splitctx);
 
 
 /*
@@ -130,7 +130,7 @@ static Datum build_regexp_split_result(regexp_matches_ctx *splitctx);
  * an array of pg_wchar, which is what Spencer's regex package wants.
  */
 static regex_t *
-RE_compile_and_cache(text *text_re, int cflags, Oid collation)
+RE_compile_and_cache(text * text_re, int cflags, Oid collation)
 {
 	int			text_re_len = VARSIZE_ANY_EXHDR(text_re);
 	char	   *text_re_val = VARDATA_ANY(text_re);
@@ -259,8 +259,8 @@ RE_compile_and_cache(text *text_re, int cflags, Oid collation)
  * wants.
  */
 static bool
-RE_wchar_execute(regex_t *re, pg_wchar *data, int data_len,
-				 int start_search, int nmatch, regmatch_t *pmatch)
+RE_wchar_execute(regex_t * re, pg_wchar * data, int data_len,
+				 int start_search, int nmatch, regmatch_t * pmatch)
 {
 	int			regexec_result;
 	char		errMsg[100];
@@ -302,8 +302,8 @@ RE_wchar_execute(regex_t *re, pg_wchar *data, int data_len,
  * convert to array of pg_wchar which is what Spencer's regex package wants.
  */
 static bool
-RE_execute(regex_t *re, char *dat, int dat_len,
-		   int nmatch, regmatch_t *pmatch)
+RE_execute(regex_t * re, char *dat, int dat_len,
+		   int nmatch, regmatch_t * pmatch)
 {
 	pg_wchar   *data;
 	int			data_len;
@@ -336,9 +336,9 @@ RE_execute(regex_t *re, char *dat, int dat_len,
  * convert to array of pg_wchar which is what Spencer's regex package wants.
  */
 static bool
-RE_compile_and_execute(text *text_re, char *dat, int dat_len,
+RE_compile_and_execute(text * text_re, char *dat, int dat_len,
 					   int cflags, Oid collation,
-					   int nmatch, regmatch_t *pmatch)
+					   int nmatch, regmatch_t * pmatch)
 {
 	regex_t    *re;
 
@@ -359,7 +359,7 @@ RE_compile_and_execute(text *text_re, char *dat, int dat_len,
  * don't want some have to reject them after the fact.
  */
 static void
-parse_re_flags(pg_re_flags *flags, text *opts)
+parse_re_flags(pg_re_flags * flags, text * opts)
 {
 	/* regex flavor is always folded into the compile flags */
 	flags->cflags = REG_ADVANCED;
@@ -959,7 +959,7 @@ regexp_matches_no_flags(PG_FUNCTION_ARGS)
  * than to key it all off one "is_split" flag.
  */
 static regexp_matches_ctx *
-setup_regexp_matches(text *orig_str, text *pattern, pg_re_flags *re_flags,
+setup_regexp_matches(text * orig_str, text * pattern, pg_re_flags * re_flags,
 					 Oid collation,
 					 bool use_subpatterns,
 					 bool ignore_degenerate)
@@ -1079,7 +1079,7 @@ setup_regexp_matches(text *orig_str, text *pattern, pg_re_flags *re_flags,
  * cleanup_regexp_matches - release memory of a regexp_matches_ctx
  */
 static void
-cleanup_regexp_matches(regexp_matches_ctx *matchctx)
+cleanup_regexp_matches(regexp_matches_ctx * matchctx)
 {
 	pfree(matchctx->orig_str);
 	pfree(matchctx->match_locs);
@@ -1094,7 +1094,7 @@ cleanup_regexp_matches(regexp_matches_ctx *matchctx)
  * build_regexp_match_result - build output array for current match
  */
 static ArrayType *
-build_regexp_match_result(regexp_matches_ctx *matchctx)
+build_regexp_match_result(regexp_matches_ctx * matchctx)
 {
 	Datum	   *elems = matchctx->elems;
 	bool	   *nulls = matchctx->nulls;
@@ -1259,7 +1259,7 @@ regexp_split_to_array_no_flags(PG_FUNCTION_ARGS)
  * or the string after the last match when next_match == nmatches.
  */
 static Datum
-build_regexp_split_result(regexp_matches_ctx *splitctx)
+build_regexp_split_result(regexp_matches_ctx * splitctx)
 {
 	int			startpos;
 	int			endpos;
@@ -1297,7 +1297,7 @@ build_regexp_split_result(regexp_matches_ctx *splitctx)
  * If it is an exact match, not just a prefix, *exact is returned as TRUE.
  */
 char *
-regexp_fixed_prefix(text *text_re, bool case_insensitive, Oid collation,
+regexp_fixed_prefix(text * text_re, bool case_insensitive, Oid collation,
 					bool *exact)
 {
 	char	   *result;

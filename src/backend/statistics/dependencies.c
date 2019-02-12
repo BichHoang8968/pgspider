@@ -44,31 +44,31 @@ typedef struct DependencyGeneratorData
 	int			current;		/* next dependency to return (index) */
 	AttrNumber	ndependencies;	/* number of dependencies generated */
 	AttrNumber *dependencies;	/* array of pre-generated dependencies	*/
-} DependencyGeneratorData;
+}			DependencyGeneratorData;
 
-typedef DependencyGeneratorData *DependencyGenerator;
+typedef DependencyGeneratorData * DependencyGenerator;
 
 static void generate_dependencies_recurse(DependencyGenerator state,
-							  int index, AttrNumber start, AttrNumber *current);
+							  int index, AttrNumber start, AttrNumber * current);
 static void generate_dependencies(DependencyGenerator state);
 static DependencyGenerator DependencyGenerator_init(int n, int k);
 static void DependencyGenerator_free(DependencyGenerator state);
-static AttrNumber *DependencyGenerator_next(DependencyGenerator state);
-static double dependency_degree(int numrows, HeapTuple *rows, int k,
-				  AttrNumber *dependency, VacAttrStats **stats, Bitmapset *attrs);
-static bool dependency_is_fully_matched(MVDependency *dependency,
-							Bitmapset *attnums);
-static bool dependency_implies_attribute(MVDependency *dependency,
+static AttrNumber * DependencyGenerator_next(DependencyGenerator state);
+static double dependency_degree(int numrows, HeapTuple * rows, int k,
+				  AttrNumber * dependency, VacAttrStats * *stats, Bitmapset * attrs);
+static bool dependency_is_fully_matched(MVDependency * dependency,
+							Bitmapset * attnums);
+static bool dependency_implies_attribute(MVDependency * dependency,
 							 AttrNumber attnum);
-static bool dependency_is_compatible_clause(Node *clause, Index relid,
-								AttrNumber *attnum);
-static MVDependency *find_strongest_dependency(StatisticExtInfo *stats,
-						  MVDependencies *dependencies,
-						  Bitmapset *attnums);
+static bool dependency_is_compatible_clause(Node * clause, Index relid,
+								AttrNumber * attnum);
+static MVDependency * find_strongest_dependency(StatisticExtInfo * stats,
+												MVDependencies * dependencies,
+												Bitmapset * attnums);
 
 static void
 generate_dependencies_recurse(DependencyGenerator state, int index,
-							  AttrNumber start, AttrNumber *current)
+							  AttrNumber start, AttrNumber * current)
 {
 	/*
 	 * The generator handles the first (k-1) elements differently from the
@@ -198,8 +198,8 @@ DependencyGenerator_next(DependencyGenerator state)
  * the last one.
  */
 static double
-dependency_degree(int numrows, HeapTuple *rows, int k, AttrNumber *dependency,
-				  VacAttrStats **stats, Bitmapset *attrs)
+dependency_degree(int numrows, HeapTuple * rows, int k, AttrNumber * dependency,
+				  VacAttrStats * *stats, Bitmapset * attrs)
 {
 	int			i,
 				j;
@@ -347,8 +347,8 @@ dependency_degree(int numrows, HeapTuple *rows, int k, AttrNumber *dependency,
  *	   (c) -> b
  */
 MVDependencies *
-statext_dependencies_build(int numrows, HeapTuple *rows, Bitmapset *attrs,
-						   VacAttrStats **stats)
+statext_dependencies_build(int numrows, HeapTuple * rows, Bitmapset * attrs,
+						   VacAttrStats * *stats)
 {
 	int			i,
 				j,
@@ -443,7 +443,7 @@ statext_dependencies_build(int numrows, HeapTuple *rows, Bitmapset *attrs,
  * Serialize list of dependencies into a bytea value.
  */
 bytea *
-statext_dependencies_serialize(MVDependencies *dependencies)
+statext_dependencies_serialize(MVDependencies * dependencies)
 {
 	int			i;
 	bytea	   *output;
@@ -492,7 +492,7 @@ statext_dependencies_serialize(MVDependencies *dependencies)
  * Reads serialized dependencies into MVDependencies structure.
  */
 MVDependencies *
-statext_dependencies_deserialize(bytea *data)
+statext_dependencies_deserialize(bytea * data)
 {
 	int			i;
 	Size		min_expected_size;
@@ -592,7 +592,7 @@ statext_dependencies_deserialize(bytea *data)
  *		attributes (assuming the clauses are suitable equality clauses)
  */
 static bool
-dependency_is_fully_matched(MVDependency *dependency, Bitmapset *attnums)
+dependency_is_fully_matched(MVDependency * dependency, Bitmapset * attnums)
 {
 	int			j;
 
@@ -616,7 +616,7 @@ dependency_is_fully_matched(MVDependency *dependency, Bitmapset *attnums)
  *		check that the attnum matches is implied by the functional dependency
  */
 static bool
-dependency_implies_attribute(MVDependency *dependency, AttrNumber attnum)
+dependency_implies_attribute(MVDependency * dependency, AttrNumber attnum)
 {
 	if (attnum == dependency->attributes[dependency->nattributes - 1])
 		return true;
@@ -749,7 +749,7 @@ pg_dependencies_send(PG_FUNCTION_ARGS)
  * relation, whose attribute number we return in *attnum on success.
  */
 static bool
-dependency_is_compatible_clause(Node *clause, Index relid, AttrNumber *attnum)
+dependency_is_compatible_clause(Node * clause, Index relid, AttrNumber * attnum)
 {
 	RestrictInfo *rinfo = (RestrictInfo *) clause;
 	Var		   *var;
@@ -860,8 +860,8 @@ dependency_is_compatible_clause(Node *clause, Index relid, AttrNumber *attnum)
  * (see the comment in dependencies_clauselist_selectivity).
  */
 static MVDependency *
-find_strongest_dependency(StatisticExtInfo *stats, MVDependencies *dependencies,
-						  Bitmapset *attnums)
+find_strongest_dependency(StatisticExtInfo * stats, MVDependencies * dependencies,
+						  Bitmapset * attnums)
 {
 	int			i;
 	MVDependency *strongest = NULL;
@@ -936,13 +936,13 @@ find_strongest_dependency(StatisticExtInfo *stats, MVDependencies *dependencies,
  * assuming (a,b=>c) is the strongest dependency.
  */
 Selectivity
-dependencies_clauselist_selectivity(PlannerInfo *root,
-									List *clauses,
+dependencies_clauselist_selectivity(PlannerInfo * root,
+									List * clauses,
 									int varRelid,
 									JoinType jointype,
-									SpecialJoinInfo *sjinfo,
-									RelOptInfo *rel,
-									Bitmapset **estimatedclauses)
+									SpecialJoinInfo * sjinfo,
+									RelOptInfo * rel,
+									Bitmapset * *estimatedclauses)
 {
 	Selectivity s1 = 1.0;
 	ListCell   *l;

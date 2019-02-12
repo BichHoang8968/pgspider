@@ -79,7 +79,7 @@ blendscan(IndexScanDesc scan)
  * Insert all matching tuples into to a bitmap.
  */
 int64
-blgetbitmap(IndexScanDesc scan, TIDBitmap *tbm)
+blgetbitmap(IndexScanDesc scan, TIDBitmap * tbm)
 {
 	int64		ntids = 0;
 	BlockNumber blkno = BLOOM_HEAD_BLKNO,

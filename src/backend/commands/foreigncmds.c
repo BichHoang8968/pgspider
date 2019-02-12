@@ -43,7 +43,7 @@ typedef struct
 {
 	char	   *tablename;
 	char	   *cmd;
-} import_error_callback_arg;
+}			import_error_callback_arg;
 
 /* Internal functions */
 static void import_error_callback(void *arg);
@@ -62,7 +62,7 @@ static void import_error_callback(void *arg);
  * conversion.
  */
 static Datum
-optionListToArray(List *options)
+optionListToArray(List * options)
 {
 	ArrayBuildState *astate = NULL;
 	ListCell   *cell;
@@ -108,7 +108,7 @@ optionListToArray(List *options)
 Datum
 transformGenericOptions(Oid catalogId,
 						Datum oldOptions,
-						List *options,
+						List * options,
 						Oid fdwvalidator)
 {
 	List	   *resultOptions = untransformRelOptions(oldOptions);
@@ -469,7 +469,7 @@ AlterForeignServerOwner_oid(Oid srvId, Oid newOwnerId)
  * Convert a handler function name passed from the parser to an Oid.
  */
 static Oid
-lookup_fdw_handler_func(DefElem *handler)
+lookup_fdw_handler_func(DefElem * handler)
 {
 	Oid			handlerOid;
 	Oid			funcargtypes[1];	/* dummy */
@@ -494,7 +494,7 @@ lookup_fdw_handler_func(DefElem *handler)
  * Convert a validator function name passed from the parser to an Oid.
  */
 static Oid
-lookup_fdw_validator_func(DefElem *validator)
+lookup_fdw_validator_func(DefElem * validator)
 {
 	Oid			funcargtypes[2];
 
@@ -513,9 +513,9 @@ lookup_fdw_validator_func(DefElem *validator)
  * Process function options of CREATE/ALTER FDW
  */
 static void
-parse_func_options(List *func_options,
-				   bool *handler_given, Oid *fdwhandler,
-				   bool *validator_given, Oid *fdwvalidator)
+parse_func_options(List * func_options,
+				   bool *handler_given, Oid * fdwhandler,
+				   bool *validator_given, Oid * fdwvalidator)
 {
 	ListCell   *cell;
 
@@ -557,7 +557,7 @@ parse_func_options(List *func_options,
  * Create a foreign-data wrapper
  */
 ObjectAddress
-CreateForeignDataWrapper(CreateFdwStmt *stmt)
+CreateForeignDataWrapper(CreateFdwStmt * stmt)
 {
 	Relation	rel;
 	Datum		values[Natts_pg_foreign_data_wrapper];
@@ -670,7 +670,7 @@ CreateForeignDataWrapper(CreateFdwStmt *stmt)
  * Alter foreign-data wrapper
  */
 ObjectAddress
-AlterForeignDataWrapper(AlterFdwStmt *stmt)
+AlterForeignDataWrapper(AlterFdwStmt * stmt)
 {
 	Relation	rel;
 	HeapTuple	tp;
@@ -858,7 +858,7 @@ RemoveForeignDataWrapperById(Oid fdwId)
  * Create a foreign server
  */
 ObjectAddress
-CreateForeignServer(CreateForeignServerStmt *stmt)
+CreateForeignServer(CreateForeignServerStmt * stmt)
 {
 	Relation	rel;
 	Datum		srvoptions;
@@ -982,7 +982,7 @@ CreateForeignServer(CreateForeignServerStmt *stmt)
  * Alter foreign server
  */
 ObjectAddress
-AlterForeignServer(AlterForeignServerStmt *stmt)
+AlterForeignServer(AlterForeignServerStmt * stmt)
 {
 	Relation	rel;
 	HeapTuple	tp;
@@ -1132,7 +1132,7 @@ user_mapping_ddl_aclcheck(Oid umuserid, Oid serverid, const char *servername)
  * Create user mapping
  */
 ObjectAddress
-CreateUserMapping(CreateUserMappingStmt *stmt)
+CreateUserMapping(CreateUserMappingStmt * stmt)
 {
 	Relation	rel;
 	Datum		useoptions;
@@ -1247,7 +1247,7 @@ CreateUserMapping(CreateUserMappingStmt *stmt)
  * Alter user mapping
  */
 ObjectAddress
-AlterUserMapping(AlterUserMappingStmt *stmt)
+AlterUserMapping(AlterUserMappingStmt * stmt)
 {
 	Relation	rel;
 	HeapTuple	tp;
@@ -1342,7 +1342,7 @@ AlterUserMapping(AlterUserMappingStmt *stmt)
  * Drop user mapping
  */
 Oid
-RemoveUserMapping(DropUserMappingStmt *stmt)
+RemoveUserMapping(DropUserMappingStmt * stmt)
 {
 	ObjectAddress object;
 	Oid			useId;
@@ -1443,7 +1443,7 @@ RemoveUserMappingById(Oid umId)
  * call after DefineRelation().
  */
 void
-CreateForeignTable(CreateForeignTableStmt *stmt, Oid relid)
+CreateForeignTable(CreateForeignTableStmt * stmt, Oid relid)
 {
 	Relation	ftrel;
 	Datum		ftoptions;
@@ -1523,7 +1523,7 @@ CreateForeignTable(CreateForeignTableStmt *stmt, Oid relid)
  * Import a foreign schema
  */
 void
-ImportForeignSchema(ImportForeignSchemaStmt *stmt)
+ImportForeignSchema(ImportForeignSchemaStmt * stmt)
 {
 	ForeignServer *server;
 	ForeignDataWrapper *fdw;

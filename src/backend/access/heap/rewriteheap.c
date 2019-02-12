@@ -174,7 +174,7 @@ typedef struct
 {
 	TransactionId xmin;			/* tuple xmin */
 	ItemPointerData tid;		/* tuple location in old heap */
-} TidHashKey;
+}			TidHashKey;
 
 /*
  * Entry structures for the hash tables
@@ -184,17 +184,17 @@ typedef struct
 	TidHashKey	key;			/* expected xmin/old location of B tuple */
 	ItemPointerData old_tid;	/* A's location in the old heap */
 	HeapTuple	tuple;			/* A's tuple contents */
-} UnresolvedTupData;
+}			UnresolvedTupData;
 
-typedef UnresolvedTupData *UnresolvedTup;
+typedef UnresolvedTupData * UnresolvedTup;
 
 typedef struct
 {
 	TidHashKey	key;			/* actual xmin/old location of B tuple */
 	ItemPointerData new_tid;	/* where we put it in the new heap */
-} OldToNewMappingData;
+}			OldToNewMappingData;
 
-typedef OldToNewMappingData *OldToNewMapping;
+typedef OldToNewMappingData * OldToNewMapping;
 
 /*
  * In-Memory data for an xid that might need logical remapping entries
@@ -208,7 +208,7 @@ typedef struct RewriteMappingFile
 	uint32		num_mappings;	/* number of in-memory mappings */
 	dlist_head	mappings;		/* list of in-memory mappings */
 	char		path[MAXPGPATH];	/* path, for error messages */
-} RewriteMappingFile;
+}			RewriteMappingFile;
 
 /*
  * A single In-Memory logical rewrite mapping, hanging off
@@ -219,7 +219,7 @@ typedef struct RewriteMappingDataEntry
 	LogicalRewriteMappingData map;	/* map between old and new location of the
 									 * tuple */
 	dlist_node	node;
-} RewriteMappingDataEntry;
+}			RewriteMappingDataEntry;
 
 
 /* prototypes for internal functions */
@@ -977,7 +977,7 @@ logical_end_heap_rewrite(RewriteState state)
  */
 static void
 logical_rewrite_log_mapping(RewriteState state, TransactionId xid,
-							LogicalRewriteMappingData *map)
+							LogicalRewriteMappingData * map)
 {
 	RewriteMappingFile *src;
 	RewriteMappingDataEntry *pmap;
@@ -1118,7 +1118,7 @@ logical_rewrite_heap_tuple(RewriteState state, ItemPointerData old_tid,
  * Replay XLOG_HEAP2_REWRITE records
  */
 void
-heap_xlog_logical_rewrite(XLogReaderState *r)
+heap_xlog_logical_rewrite(XLogReaderState * r)
 {
 	char		path[MAXPGPATH];
 	int			fd;

@@ -17,7 +17,7 @@
 #include "access/hash_xlog.h"
 
 void
-hash_desc(StringInfo buf, XLogReaderState *record)
+hash_desc(StringInfo buf, XLogReaderState * record)
 {
 	char	   *rec = XLogRecGetData(record);
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;

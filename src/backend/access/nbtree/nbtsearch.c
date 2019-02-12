@@ -95,7 +95,7 @@ _bt_drop_lock_and_maybe_pin(IndexScanDesc scan, BTScanPos sp)
  */
 BTStack
 _bt_search(Relation rel, int keysz, ScanKey scankey, bool nextkey,
-		   Buffer *bufP, int access, Snapshot snapshot)
+		   Buffer * bufP, int access, Snapshot snapshot)
 {
 	BTStack		stack_in = NULL;
 

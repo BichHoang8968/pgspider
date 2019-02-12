@@ -65,7 +65,7 @@ CATALOG(pg_opclass,2616)
  *		the format of pg_opclass relation.
  * ----------------
  */
-typedef FormData_pg_opclass *Form_pg_opclass;
+typedef FormData_pg_opclass * Form_pg_opclass;
 
 /* ----------------
  *		compiler constants for pg_opclass

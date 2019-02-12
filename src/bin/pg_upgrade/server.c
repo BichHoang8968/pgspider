@@ -14,7 +14,7 @@
 #include "pg_upgrade.h"
 
 
-static PGconn *get_db_conn(ClusterInfo *cluster, const char *db_name);
+static PGconn * get_db_conn(ClusterInfo * cluster, const char *db_name);
 
 
 /*
@@ -25,7 +25,7 @@ static PGconn *get_db_conn(ClusterInfo *cluster, const char *db_name);
  *	message and calls exit() to kill the program.
  */
 PGconn *
-connectToServer(ClusterInfo *cluster, const char *db_name)
+connectToServer(ClusterInfo * cluster, const char *db_name)
 {
 	PGconn	   *conn = get_db_conn(cluster, db_name);
 
@@ -53,7 +53,7 @@ connectToServer(ClusterInfo *cluster, const char *db_name)
  * get database connection, using named database + standard params for cluster
  */
 static PGconn *
-get_db_conn(ClusterInfo *cluster, const char *db_name)
+get_db_conn(ClusterInfo * cluster, const char *db_name)
 {
 	PQExpBufferData conn_opts;
 	PGconn	   *conn;
@@ -88,7 +88,7 @@ get_db_conn(ClusterInfo *cluster, const char *db_name)
  * Result is valid until the next call to this function.
  */
 char *
-cluster_conn_opts(ClusterInfo *cluster)
+cluster_conn_opts(ClusterInfo * cluster)
 {
 	static PQExpBuffer buf;
 
@@ -118,7 +118,7 @@ cluster_conn_opts(ClusterInfo *cluster)
  *	message and calls exit() to kill the program.
  */
 PGresult *
-executeQueryOrDie(PGconn *conn, const char *fmt,...)
+executeQueryOrDie(PGconn * conn, const char *fmt,...)
 {
 	static char query[QUERY_ALLOC];
 	va_list		args;
@@ -155,7 +155,7 @@ executeQueryOrDie(PGconn *conn, const char *fmt,...)
  * is retrieved by reading the PG_VERSION file.
  */
 uint32
-get_major_server_version(ClusterInfo *cluster)
+get_major_server_version(ClusterInfo * cluster)
 {
 	FILE	   *version_fd;
 	char		ver_filename[MAXPGPATH];
@@ -194,7 +194,7 @@ stop_postmaster_atexit(void)
 
 
 bool
-start_postmaster(ClusterInfo *cluster, bool report_and_exit_on_error)
+start_postmaster(ClusterInfo * cluster, bool report_and_exit_on_error)
 {
 	char		cmd[MAXPGPATH * 4 + 1000];
 	PGconn	   *conn;
@@ -309,8 +309,8 @@ start_postmaster(ClusterInfo *cluster, bool report_and_exit_on_error)
 
 	/*
 	 * If pg_ctl failed, and the connection didn't fail, and
-	 * report_and_exit_on_error is enabled, fail now.  This
-	 * could happen if the server was already running.
+	 * report_and_exit_on_error is enabled, fail now.  This could happen if
+	 * the server was already running.
 	 */
 	if (!pg_ctl_return)
 	{

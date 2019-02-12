@@ -17,19 +17,19 @@
 #include "access/parallel.h"
 #include "nodes/execnodes.h"
 
-extern ForeignScanState *ExecInitForeignScan(ForeignScan *node, EState *estate, int eflags);
-extern bool ForeignAggregate(AggState *node);
-extern void ExecEndForeignScan(ForeignScanState *node);
-extern void ExecReScanForeignScan(ForeignScanState *node);
+extern ForeignScanState * ExecInitForeignScan(ForeignScan * node, EState * estate, int eflags);
+extern bool ForeignAggregate(AggState * node);
+extern void ExecEndForeignScan(ForeignScanState * node);
+extern void ExecReScanForeignScan(ForeignScanState * node);
 
-extern void ExecForeignScanEstimate(ForeignScanState *node,
-						ParallelContext *pcxt);
-extern void ExecForeignScanInitializeDSM(ForeignScanState *node,
-							 ParallelContext *pcxt);
-extern void ExecForeignScanReInitializeDSM(ForeignScanState *node,
-							   ParallelContext *pcxt);
-extern void ExecForeignScanInitializeWorker(ForeignScanState *node,
-								shm_toc *toc);
-extern void ExecShutdownForeignScan(ForeignScanState *node);
+extern void ExecForeignScanEstimate(ForeignScanState * node,
+						ParallelContext * pcxt);
+extern void ExecForeignScanInitializeDSM(ForeignScanState * node,
+							 ParallelContext * pcxt);
+extern void ExecForeignScanReInitializeDSM(ForeignScanState * node,
+							   ParallelContext * pcxt);
+extern void ExecForeignScanInitializeWorker(ForeignScanState * node,
+								shm_toc * toc);
+extern void ExecShutdownForeignScan(ForeignScanState * node);
 
 #endif							/* NODEFOREIGNSCAN_H */

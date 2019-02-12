@@ -432,7 +432,7 @@ do_copy(const char *args)
  * result is true if successful, false if not.
  */
 bool
-handleCopyOut(PGconn *conn, FILE *copystream, PGresult **res)
+handleCopyOut(PGconn * conn, FILE * copystream, PGresult * *res)
 {
 	bool		OK = true;
 	char	   *buf;
@@ -511,7 +511,7 @@ handleCopyOut(PGconn *conn, FILE *copystream, PGresult **res)
 #define COPYBUFSIZ 8192
 
 bool
-handleCopyIn(PGconn *conn, FILE *copystream, bool isbinary, PGresult **res)
+handleCopyIn(PGconn * conn, FILE * copystream, bool isbinary, PGresult * *res)
 {
 	bool		OK;
 	char		buf[COPYBUFSIZ];

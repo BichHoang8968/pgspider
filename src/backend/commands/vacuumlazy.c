@@ -129,7 +129,7 @@ typedef struct LVRelStats
 	int			num_index_scans;
 	TransactionId latestRemovedXid;
 	bool		lock_waiter_detected;
-} LVRelStats;
+}			LVRelStats;
 
 
 /* A few variables that don't seem worth passing around as parameters */
@@ -144,29 +144,29 @@ static BufferAccessStrategy vac_strategy;
 
 /* non-export function prototypes */
 static void lazy_scan_heap(Relation onerel, int options,
-			   LVRelStats *vacrelstats, Relation *Irel, int nindexes,
+			   LVRelStats * vacrelstats, Relation * Irel, int nindexes,
 			   bool aggressive);
-static void lazy_vacuum_heap(Relation onerel, LVRelStats *vacrelstats);
+static void lazy_vacuum_heap(Relation onerel, LVRelStats * vacrelstats);
 static bool lazy_check_needs_freeze(Buffer buf, bool *hastup);
 static void lazy_vacuum_index(Relation indrel,
-				  IndexBulkDeleteResult **stats,
-				  LVRelStats *vacrelstats);
+				  IndexBulkDeleteResult * *stats,
+				  LVRelStats * vacrelstats);
 static void lazy_cleanup_index(Relation indrel,
-				   IndexBulkDeleteResult *stats,
-				   LVRelStats *vacrelstats);
+				   IndexBulkDeleteResult * stats,
+				   LVRelStats * vacrelstats);
 static int lazy_vacuum_page(Relation onerel, BlockNumber blkno, Buffer buffer,
-				 int tupindex, LVRelStats *vacrelstats, Buffer *vmbuffer);
-static bool should_attempt_truncation(LVRelStats *vacrelstats);
-static void lazy_truncate_heap(Relation onerel, LVRelStats *vacrelstats);
+				 int tupindex, LVRelStats * vacrelstats, Buffer * vmbuffer);
+static bool should_attempt_truncation(LVRelStats * vacrelstats);
+static void lazy_truncate_heap(Relation onerel, LVRelStats * vacrelstats);
 static BlockNumber count_nondeletable_pages(Relation onerel,
-						 LVRelStats *vacrelstats);
-static void lazy_space_alloc(LVRelStats *vacrelstats, BlockNumber relblocks);
-static void lazy_record_dead_tuple(LVRelStats *vacrelstats,
+											LVRelStats * vacrelstats);
+static void lazy_space_alloc(LVRelStats * vacrelstats, BlockNumber relblocks);
+static void lazy_record_dead_tuple(LVRelStats * vacrelstats,
 					   ItemPointer itemptr);
 static bool lazy_tid_reaped(ItemPointer itemptr, void *state);
 static int	vac_cmp_itemptr(const void *left, const void *right);
 static bool heap_page_is_all_visible(Relation rel, Buffer buf,
-						 TransactionId *visibility_cutoff_xid, bool *all_frozen);
+						 TransactionId * visibility_cutoff_xid, bool *all_frozen);
 
 
 /*
@@ -179,7 +179,7 @@ static bool heap_page_is_all_visible(Relation rel, Buffer buf,
  *		and locked the relation.
  */
 void
-lazy_vacuum_rel(Relation onerel, int options, VacuumParams *params,
+lazy_vacuum_rel(Relation onerel, int options, VacuumParams * params,
 				BufferAccessStrategy bstrategy)
 {
 	LVRelStats *vacrelstats;
@@ -422,7 +422,7 @@ lazy_vacuum_rel(Relation onerel, int options, VacuumParams *params,
  * which would be after the rows have become inaccessible.
  */
 static void
-vacuum_log_cleanup_info(Relation rel, LVRelStats *vacrelstats)
+vacuum_log_cleanup_info(Relation rel, LVRelStats * vacrelstats)
 {
 	/*
 	 * Skip this for relations for which no WAL is to be written, or if we're
@@ -455,8 +455,8 @@ vacuum_log_cleanup_info(Relation rel, LVRelStats *vacrelstats)
  *		reference them have been killed.
  */
 static void
-lazy_scan_heap(Relation onerel, int options, LVRelStats *vacrelstats,
-			   Relation *Irel, int nindexes, bool aggressive)
+lazy_scan_heap(Relation onerel, int options, LVRelStats * vacrelstats,
+			   Relation * Irel, int nindexes, bool aggressive)
 {
 	BlockNumber nblocks,
 				blkno;
@@ -496,7 +496,7 @@ lazy_scan_heap(Relation onerel, int options, LVRelStats *vacrelstats,
 	empty_pages = vacuumed_pages = 0;
 	num_tuples = tups_vacuumed = nkeep = nunused = 0;
 
-	indstats = (IndexBulkDeleteResult **)
+	indstats = (IndexBulkDeleteResult * *)
 		palloc0(nindexes * sizeof(IndexBulkDeleteResult *));
 
 	nblocks = RelationGetNumberOfBlocks(onerel);
@@ -1386,7 +1386,7 @@ lazy_scan_heap(Relation onerel, int options, LVRelStats *vacrelstats,
  * process index entry removal in batches as large as possible.
  */
 static void
-lazy_vacuum_heap(Relation onerel, LVRelStats *vacrelstats)
+lazy_vacuum_heap(Relation onerel, LVRelStats * vacrelstats)
 {
 	int			tupindex;
 	int			npages;
@@ -1452,7 +1452,7 @@ lazy_vacuum_heap(Relation onerel, LVRelStats *vacrelstats)
  */
 static int
 lazy_vacuum_page(Relation onerel, BlockNumber blkno, Buffer buffer,
-				 int tupindex, LVRelStats *vacrelstats, Buffer *vmbuffer)
+				 int tupindex, LVRelStats * vacrelstats, Buffer * vmbuffer)
 {
 	Page		page = BufferGetPage(buffer);
 	OffsetNumber unused[MaxOffsetNumber];
@@ -1602,8 +1602,8 @@ lazy_check_needs_freeze(Buffer buf, bool *hastup)
  */
 static void
 lazy_vacuum_index(Relation indrel,
-				  IndexBulkDeleteResult **stats,
-				  LVRelStats *vacrelstats)
+				  IndexBulkDeleteResult * *stats,
+				  LVRelStats * vacrelstats)
 {
 	IndexVacuumInfo ivinfo;
 	PGRUsage	ru0;
@@ -1633,8 +1633,8 @@ lazy_vacuum_index(Relation indrel,
  */
 static void
 lazy_cleanup_index(Relation indrel,
-				   IndexBulkDeleteResult *stats,
-				   LVRelStats *vacrelstats)
+				   IndexBulkDeleteResult * stats,
+				   LVRelStats * vacrelstats)
 {
 	IndexVacuumInfo ivinfo;
 	PGRUsage	ru0;
@@ -1702,7 +1702,7 @@ lazy_cleanup_index(Relation indrel,
  * careful to depend only on fields that lazy_scan_heap updates on-the-fly.
  */
 static bool
-should_attempt_truncation(LVRelStats *vacrelstats)
+should_attempt_truncation(LVRelStats * vacrelstats)
 {
 	BlockNumber possibly_freeable;
 
@@ -1720,7 +1720,7 @@ should_attempt_truncation(LVRelStats *vacrelstats)
  * lazy_truncate_heap - try to truncate off any empty pages at the end
  */
 static void
-lazy_truncate_heap(Relation onerel, LVRelStats *vacrelstats)
+lazy_truncate_heap(Relation onerel, LVRelStats * vacrelstats)
 {
 	BlockNumber old_rel_pages = vacrelstats->rel_pages;
 	BlockNumber new_rel_pages;
@@ -1848,7 +1848,7 @@ lazy_truncate_heap(Relation onerel, LVRelStats *vacrelstats)
  * Returns number of nondeletable pages (last nonempty page + 1).
  */
 static BlockNumber
-count_nondeletable_pages(Relation onerel, LVRelStats *vacrelstats)
+count_nondeletable_pages(Relation onerel, LVRelStats * vacrelstats)
 {
 	BlockNumber blkno;
 	BlockNumber prefetchedUntil;
@@ -1990,7 +1990,7 @@ count_nondeletable_pages(Relation onerel, LVRelStats *vacrelstats)
  * See the comments at the head of this file for rationale.
  */
 static void
-lazy_space_alloc(LVRelStats *vacrelstats, BlockNumber relblocks)
+lazy_space_alloc(LVRelStats * vacrelstats, BlockNumber relblocks)
 {
 	long		maxtuples;
 	int			vac_work_mem = IsAutoVacuumWorkerProcess() &&
@@ -2025,7 +2025,7 @@ lazy_space_alloc(LVRelStats *vacrelstats, BlockNumber relblocks)
  * lazy_record_dead_tuple - remember one deletable tuple
  */
 static void
-lazy_record_dead_tuple(LVRelStats *vacrelstats,
+lazy_record_dead_tuple(LVRelStats * vacrelstats,
 					   ItemPointer itemptr)
 {
 	/*
@@ -2102,7 +2102,7 @@ vac_cmp_itemptr(const void *left, const void *right)
  */
 static bool
 heap_page_is_all_visible(Relation rel, Buffer buf,
-						 TransactionId *visibility_cutoff_xid,
+						 TransactionId * visibility_cutoff_xid,
 						 bool *all_frozen)
 {
 	Page		page = BufferGetPage(buf);

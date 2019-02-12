@@ -31,7 +31,7 @@
  * avg_pool
  */
 static double
-avg_pool(Pool *pool)
+avg_pool(Pool * pool)
 {
 	int			i;
 	double		cumulative = 0.0;
@@ -54,7 +54,7 @@ avg_pool(Pool *pool)
 /* print_pool
  */
 void
-print_pool(FILE *fp, Pool *pool, int start, int stop)
+print_pool(FILE * fp, Pool * pool, int start, int stop)
 {
 	int			i,
 				j;
@@ -88,7 +88,7 @@ print_pool(FILE *fp, Pool *pool, int start, int stop)
  *	 printout for chromosome: best, worst, mean, average
  */
 void
-print_gen(FILE *fp, Pool *pool, int generation)
+print_gen(FILE * fp, Pool * pool, int generation)
 {
 	int			lowest;
 
@@ -109,7 +109,7 @@ print_gen(FILE *fp, Pool *pool, int generation)
 
 
 void
-print_edge_table(FILE *fp, Edge *edge_table, int num_gene)
+print_edge_table(FILE * fp, Edge * edge_table, int num_gene)
 {
 	int			i,
 				j;

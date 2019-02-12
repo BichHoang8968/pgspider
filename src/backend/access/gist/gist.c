@@ -26,16 +26,16 @@
 
 
 /* non-export function prototypes */
-static void gistfixsplit(GISTInsertState *state, GISTSTATE *giststate);
-static bool gistinserttuple(GISTInsertState *state, GISTInsertStack *stack,
-				GISTSTATE *giststate, IndexTuple tuple, OffsetNumber oldoffnum);
-static bool gistinserttuples(GISTInsertState *state, GISTInsertStack *stack,
-				 GISTSTATE *giststate,
-				 IndexTuple *tuples, int ntup, OffsetNumber oldoffnum,
+static void gistfixsplit(GISTInsertState * state, GISTSTATE * giststate);
+static bool gistinserttuple(GISTInsertState * state, GISTInsertStack * stack,
+				GISTSTATE * giststate, IndexTuple tuple, OffsetNumber oldoffnum);
+static bool gistinserttuples(GISTInsertState * state, GISTInsertStack * stack,
+				 GISTSTATE * giststate,
+				 IndexTuple * tuples, int ntup, OffsetNumber oldoffnum,
 				 Buffer leftchild, Buffer rightchild,
 				 bool unlockbuf, bool unlockleftchild);
-static void gistfinishsplit(GISTInsertState *state, GISTInsertStack *stack,
-				GISTSTATE *giststate, List *splitinfo, bool releasebuf);
+static void gistfinishsplit(GISTInsertState * state, GISTInsertStack * stack,
+				GISTSTATE * giststate, List * splitinfo, bool releasebuf);
 static void gistvacuumpage(Relation rel, Page page, Buffer buffer);
 
 
@@ -144,10 +144,10 @@ gistbuildempty(Relation index)
  *	  It doesn't do any work; just locks the relation and passes the buck.
  */
 bool
-gistinsert(Relation r, Datum *values, bool *isnull,
+gistinsert(Relation r, Datum * values, bool *isnull,
 		   ItemPointer ht_ctid, Relation heapRel,
 		   IndexUniqueCheck checkUnique,
-		   IndexInfo *indexInfo)
+		   IndexInfo * indexInfo)
 {
 	GISTSTATE  *giststate = (GISTSTATE *) indexInfo->ii_AmCache;
 	IndexTuple	itup;
@@ -209,12 +209,12 @@ gistinsert(Relation r, Datum *values, bool *isnull,
  * Returns 'true' if the page was split, 'false' otherwise.
  */
 bool
-gistplacetopage(Relation rel, Size freespace, GISTSTATE *giststate,
+gistplacetopage(Relation rel, Size freespace, GISTSTATE * giststate,
 				Buffer buffer,
-				IndexTuple *itup, int ntup, OffsetNumber oldoffnum,
-				BlockNumber *newblkno,
+				IndexTuple * itup, int ntup, OffsetNumber oldoffnum,
+				BlockNumber * newblkno,
 				Buffer leftchildbuf,
-				List **splitinfo,
+				List * *splitinfo,
 				bool markfollowright)
 {
 	BlockNumber blkno = BufferGetBlockNumber(buffer);
@@ -514,7 +514,7 @@ gistplacetopage(Relation rel, Size freespace, GISTSTATE *giststate,
 			if (ntup == 1)
 			{
 				/* One-for-one replacement, so use PageIndexTupleOverwrite */
-				if (!PageIndexTupleOverwrite(page, oldoffnum, (Item) *itup,
+				if (!PageIndexTupleOverwrite(page, oldoffnum, (Item) * itup,
 											 IndexTupleSize(*itup)))
 					elog(ERROR, "failed to add item to index page in \"%s\"",
 						 RelationGetRelationName(rel));
@@ -598,7 +598,7 @@ gistplacetopage(Relation rel, Size freespace, GISTSTATE *giststate,
  * so it does not bother releasing palloc'd allocations.
  */
 void
-gistdoinsert(Relation r, IndexTuple itup, Size freespace, GISTSTATE *giststate)
+gistdoinsert(Relation r, IndexTuple itup, Size freespace, GISTSTATE * giststate)
 {
 	ItemId		iid;
 	IndexTuple	idxtuple;
@@ -852,7 +852,7 @@ gistdoinsert(Relation r, IndexTuple itup, Size freespace, GISTSTATE *giststate)
  * To prevent deadlocks, this should lock only one page at a time.
  */
 static GISTInsertStack *
-gistFindPath(Relation r, BlockNumber child, OffsetNumber *downlinkoffnum)
+gistFindPath(Relation r, BlockNumber child, OffsetNumber * downlinkoffnum)
 {
 	Page		page;
 	Buffer		buffer;
@@ -962,7 +962,7 @@ gistFindPath(Relation r, BlockNumber child, OffsetNumber *downlinkoffnum)
  * remain so at exit, but it might not be the same page anymore.
  */
 static void
-gistFindCorrectParent(Relation r, GISTInsertStack *child)
+gistFindCorrectParent(Relation r, GISTInsertStack * child)
 {
 	GISTInsertStack *parent = child->parent;
 
@@ -1051,8 +1051,8 @@ gistFindCorrectParent(Relation r, GISTInsertStack *child)
  * Form a downlink pointer for the page in 'buf'.
  */
 static IndexTuple
-gistformdownlink(Relation rel, Buffer buf, GISTSTATE *giststate,
-				 GISTInsertStack *stack)
+gistformdownlink(Relation rel, Buffer buf, GISTSTATE * giststate,
+				 GISTInsertStack * stack)
 {
 	Page		page = BufferGetPage(buf);
 	OffsetNumber maxoff;
@@ -1111,7 +1111,7 @@ gistformdownlink(Relation rel, Buffer buf, GISTSTATE *giststate,
  * Complete the incomplete split of state->stack->page.
  */
 static void
-gistfixsplit(GISTInsertState *state, GISTSTATE *giststate)
+gistfixsplit(GISTInsertState * state, GISTSTATE * giststate)
 {
 	GISTInsertStack *stack = state->stack;
 	Buffer		buf;
@@ -1170,8 +1170,8 @@ gistfixsplit(GISTInsertState *state, GISTSTATE *giststate)
  * otherwise.
  */
 static bool
-gistinserttuple(GISTInsertState *state, GISTInsertStack *stack,
-				GISTSTATE *giststate, IndexTuple tuple, OffsetNumber oldoffnum)
+gistinserttuple(GISTInsertState * state, GISTInsertStack * stack,
+				GISTSTATE * giststate, IndexTuple tuple, OffsetNumber oldoffnum)
 {
 	return gistinserttuples(state, stack, giststate, &tuple, 1, oldoffnum,
 							InvalidBuffer, InvalidBuffer, false, false);
@@ -1204,9 +1204,9 @@ gistinserttuple(GISTInsertState *state, GISTInsertStack *stack,
  * sibling of stack->buffer instead of stack->buffer itself.
  */
 static bool
-gistinserttuples(GISTInsertState *state, GISTInsertStack *stack,
-				 GISTSTATE *giststate,
-				 IndexTuple *tuples, int ntup, OffsetNumber oldoffnum,
+gistinserttuples(GISTInsertState * state, GISTInsertStack * stack,
+				 GISTSTATE * giststate,
+				 IndexTuple * tuples, int ntup, OffsetNumber oldoffnum,
 				 Buffer leftchild, Buffer rightchild,
 				 bool unlockbuf, bool unlockleftchild)
 {
@@ -1256,8 +1256,8 @@ gistinserttuples(GISTInsertState *state, GISTInsertStack *stack,
  * released on return. The child pages are always unlocked and unpinned.
  */
 static void
-gistfinishsplit(GISTInsertState *state, GISTInsertStack *stack,
-				GISTSTATE *giststate, List *splitinfo, bool unlockbuf)
+gistfinishsplit(GISTInsertState * state, GISTInsertStack * stack,
+				GISTSTATE * giststate, List * splitinfo, bool unlockbuf)
 {
 	ListCell   *lc;
 	List	   *reversed;
@@ -1338,9 +1338,9 @@ gistfinishsplit(GISTInsertState *state, GISTInsertStack *stack,
 SplitedPageLayout *
 gistSplit(Relation r,
 		  Page page,
-		  IndexTuple *itup,		/* contains compressed entry */
+		  IndexTuple * itup,	/* contains compressed entry */
 		  int len,
-		  GISTSTATE *giststate)
+		  GISTSTATE * giststate)
 {
 	IndexTuple *lvectup,
 			   *rvectup;
@@ -1508,7 +1508,7 @@ initGISTstate(Relation index)
 }
 
 void
-freeGISTstate(GISTSTATE *giststate)
+freeGISTstate(GISTSTATE * giststate)
 {
 	/* It's sufficient to delete the scanCxt */
 	MemoryContextDelete(giststate->scanCxt);

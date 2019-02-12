@@ -230,7 +230,7 @@ TablespaceCreateDbspace(Oid spcNode, Oid dbNode, bool isRedo)
  * root if we're doing this kind of activity
  */
 Oid
-CreateTableSpace(CreateTableSpaceStmt *stmt)
+CreateTableSpace(CreateTableSpaceStmt * stmt)
 {
 #ifdef HAVE_SYMLINK
 	Relation	rel;
@@ -397,7 +397,7 @@ CreateTableSpace(CreateTableSpaceStmt *stmt)
  * Be careful to check that the tablespace is empty.
  */
 void
-DropTableSpace(DropTableSpaceStmt *stmt)
+DropTableSpace(DropTableSpaceStmt * stmt)
 {
 #ifdef HAVE_SYMLINK
 	char	   *tablespacename = stmt->tablespacename;
@@ -983,7 +983,7 @@ RenameTableSpace(const char *oldname, const char *newname)
  * Alter table space options
  */
 Oid
-AlterTableSpaceOptions(AlterTableSpaceOptionsStmt *stmt)
+AlterTableSpaceOptions(AlterTableSpaceOptionsStmt * stmt)
 {
 	Relation	rel;
 	ScanKeyData entry[1];
@@ -1150,7 +1150,7 @@ typedef struct
 {
 	int			numSpcs;
 	Oid			tblSpcs[FLEXIBLE_ARRAY_MEMBER];
-} temp_tablespaces_extra;
+}			temp_tablespaces_extra;
 
 /* check_hook: validate new temp_tablespaces */
 bool
@@ -1462,7 +1462,7 @@ get_tablespace_name(Oid spc_oid)
  * TABLESPACE resource manager's routines
  */
 void
-tblspc_redo(XLogReaderState *record)
+tblspc_redo(XLogReaderState * record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 

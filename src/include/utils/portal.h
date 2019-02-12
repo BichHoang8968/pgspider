@@ -92,7 +92,7 @@ typedef enum PortalStrategy
 	PORTAL_ONE_MOD_WITH,
 	PORTAL_UTIL_SELECT,
 	PORTAL_MULTI_QUERY
-} PortalStrategy;
+}			PortalStrategy;
 
 /*
  * A portal is always in one of these states.  It is possible to transit
@@ -107,7 +107,7 @@ typedef enum PortalStatus
 	PORTAL_ACTIVE,				/* portal is running (can't delete it) */
 	PORTAL_DONE,				/* portal is finished (don't re-run it) */
 	PORTAL_FAILED				/* portal got error (can't re-run it) */
-} PortalStatus;
+}			PortalStatus;
 
 typedef struct PortalData *Portal;
 
@@ -231,9 +231,9 @@ extern void PortalDefineQuery(Portal portal,
 				  const char *prepStmtName,
 				  const char *sourceText,
 				  const char *commandTag,
-				  List *stmts,
-				  CachedPlan *cplan);
-extern PlannedStmt *PortalGetPrimaryStmt(Portal portal);
+				  List * stmts,
+				  CachedPlan * cplan);
+extern PlannedStmt * PortalGetPrimaryStmt(Portal portal);
 extern void PortalCreateHoldStore(Portal portal);
 extern void PortalHashTableDeleteAll(void);
 extern bool ThereAreNoReadyPortals(void);

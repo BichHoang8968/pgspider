@@ -68,7 +68,7 @@ struct TSQueryParserStateData
  * part, like ':AB*' of a query.
  */
 static char *
-get_modifiers(char *buf, int16 *weight, bool *prefix)
+get_modifiers(char *buf, int16 * weight, bool *prefix)
 {
 	*weight = 0;
 	*prefix = false;
@@ -119,7 +119,7 @@ get_modifiers(char *buf, int16 *weight, bool *prefix)
  * The buffer should begin with '<' char
  */
 static char *
-parse_phrase_operator(char *buf, int16 *distance)
+parse_phrase_operator(char *buf, int16 * distance)
 {
 	enum
 	{
@@ -220,8 +220,8 @@ typedef enum
  */
 static ts_tokentype
 gettoken_query(TSQueryParserState state,
-			   int8 *operator,
-			   int *lenval, char **strval, int16 *weight, bool *prefix)
+			   int8 * operator,
+			   int *lenval, char **strval, int16 * weight, bool *prefix)
 {
 	*weight = 0;
 	*prefix = false;
@@ -434,10 +434,10 @@ typedef struct OperatorElement
 {
 	int8		op;
 	int16		distance;
-} OperatorElement;
+}			OperatorElement;
 
 static void
-pushOpStack(OperatorElement *stack, int *lenstack, int8 op, int16 distance)
+pushOpStack(OperatorElement * stack, int *lenstack, int8 op, int16 distance)
 {
 	if (*lenstack == STACKDEPTH)	/* internal error */
 		elog(ERROR, "tsquery stack too small");
@@ -450,7 +450,7 @@ pushOpStack(OperatorElement *stack, int *lenstack, int8 op, int16 distance)
 
 static void
 cleanOpStack(TSQueryParserState state,
-			 OperatorElement *stack, int *lenstack, int8 op)
+			 OperatorElement * stack, int *lenstack, int8 op)
 {
 	int			opPriority = OP_PRIORITY(op);
 
@@ -519,7 +519,7 @@ makepol(TSQueryParserState state,
 }
 
 static void
-findoprnd_recurse(QueryItem *ptr, uint32 *pos, int nnodes, bool *needcleanup)
+findoprnd_recurse(QueryItem * ptr, uint32 * pos, int nnodes, bool *needcleanup)
 {
 	/* since this function recurses, it could be driven to stack overflow. */
 	check_stack_depth();
@@ -577,7 +577,7 @@ findoprnd_recurse(QueryItem *ptr, uint32 *pos, int nnodes, bool *needcleanup)
  * Also, set *needcleanup to true if there are any QI_VALSTOP nodes.
  */
 static void
-findoprnd(QueryItem *ptr, int size, bool *needcleanup)
+findoprnd(QueryItem * ptr, int size, bool *needcleanup)
 {
 	uint32		pos;
 
@@ -729,7 +729,7 @@ typedef struct
 	char	   *cur;
 	char	   *op;
 	int			buflen;
-} INFIX;
+}			INFIX;
 
 /* Makes sure inf->buf is large enough for adding 'addsize' bytes */
 #define RESIZEBUF(inf, addsize) \
@@ -746,7 +746,7 @@ while( ( (inf)->cur - (inf)->buf ) + (addsize) + 1 >= (inf)->buflen ) \
  * print it in infix (human-readable) form
  */
 static void
-infix(INFIX *in, int parentPriority, bool rightPhraseOp)
+infix(INFIX * in, int parentPriority, bool rightPhraseOp)
 {
 	/* since this function recurses, it could be driven to stack overflow. */
 	check_stack_depth();

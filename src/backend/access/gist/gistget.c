@@ -319,8 +319,8 @@ gistindex_keytest(IndexScanDesc scan,
  * sibling will be processed next.
  */
 static void
-gistScanPage(IndexScanDesc scan, GISTSearchItem *pageItem, double *myDistances,
-			 TIDBitmap *tbm, int64 *ntids)
+gistScanPage(IndexScanDesc scan, GISTSearchItem * pageItem, double *myDistances,
+			 TIDBitmap * tbm, int64 * ntids)
 {
 	GISTScanOpaque so = (GISTScanOpaque) scan->opaque;
 	GISTSTATE  *giststate = so->giststate;
@@ -755,7 +755,7 @@ gistgettuple(IndexScanDesc scan, ScanDirection dir)
  * gistgetbitmap() -- Get a bitmap of all heap tuple locations
  */
 int64
-gistgetbitmap(IndexScanDesc scan, TIDBitmap *tbm)
+gistgetbitmap(IndexScanDesc scan, TIDBitmap * tbm)
 {
 	GISTScanOpaque so = (GISTScanOpaque) scan->opaque;
 	int64		ntids = 0;

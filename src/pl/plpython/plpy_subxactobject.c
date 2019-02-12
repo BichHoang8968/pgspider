@@ -19,56 +19,68 @@
 List	   *explicit_subtransactions = NIL;
 
 
-static void PLy_subtransaction_dealloc(PyObject *subxact);
-static PyObject *PLy_subtransaction_enter(PyObject *self, PyObject *unused);
-static PyObject *PLy_subtransaction_exit(PyObject *self, PyObject *args);
+static void PLy_subtransaction_dealloc(PyObject * subxact);
+static PyObject * PLy_subtransaction_enter(PyObject * self, PyObject * unused);
+static PyObject * PLy_subtransaction_exit(PyObject * self, PyObject * args);
 
 static char PLy_subtransaction_doc[] = {
 	"PostgreSQL subtransaction context manager"
 };
 
-static PyMethodDef PLy_subtransaction_methods[] = {
-	{"__enter__", PLy_subtransaction_enter, METH_VARARGS, NULL},
-	{"__exit__", PLy_subtransaction_exit, METH_VARARGS, NULL},
+static PyMethodDef PLy_subtransaction_methods[] =
+{
+	{
+		"__enter__", PLy_subtransaction_enter, METH_VARARGS, NULL
+	},
+	{
+		"__exit__", PLy_subtransaction_exit, METH_VARARGS, NULL
+	},
 	/* user-friendly names for Python <2.6 */
-	{"enter", PLy_subtransaction_enter, METH_VARARGS, NULL},
-	{"exit", PLy_subtransaction_exit, METH_VARARGS, NULL},
-	{NULL, NULL, 0, NULL}
+	{
+		"enter", PLy_subtransaction_enter, METH_VARARGS, NULL
+	},
+	{
+		"exit", PLy_subtransaction_exit, METH_VARARGS, NULL
+	},
+	{
+		NULL, NULL, 0, NULL
+	}
 };
 
-static PyTypeObject PLy_SubtransactionType = {
+static PyTypeObject PLy_SubtransactionType =
+{
 	PyVarObject_HEAD_INIT(NULL, 0)
-	"PLySubtransaction",		/* tp_name */
-	sizeof(PLySubtransactionObject),	/* tp_size */
-	0,							/* tp_itemsize */
+		"PLySubtransaction",	/* tp_name */
+		sizeof(PLySubtransactionObject),	/* tp_size */
+		0,						/* tp_itemsize */
 
 	/*
 	 * methods
 	 */
-	PLy_subtransaction_dealloc, /* tp_dealloc */
-	0,							/* tp_print */
-	0,							/* tp_getattr */
-	0,							/* tp_setattr */
-	0,							/* tp_compare */
-	0,							/* tp_repr */
-	0,							/* tp_as_number */
-	0,							/* tp_as_sequence */
-	0,							/* tp_as_mapping */
-	0,							/* tp_hash */
-	0,							/* tp_call */
-	0,							/* tp_str */
-	0,							/* tp_getattro */
-	0,							/* tp_setattro */
-	0,							/* tp_as_buffer */
-	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,	/* tp_flags */
-	PLy_subtransaction_doc,		/* tp_doc */
-	0,							/* tp_traverse */
-	0,							/* tp_clear */
-	0,							/* tp_richcompare */
-	0,							/* tp_weaklistoffset */
-	0,							/* tp_iter */
-	0,							/* tp_iternext */
-	PLy_subtransaction_methods, /* tp_tpmethods */
+		PLy_subtransaction_dealloc, /* tp_dealloc */
+		0,						/* tp_print */
+		0,						/* tp_getattr */
+		0,						/* tp_setattr */
+		0,						/* tp_compare */
+		0,						/* tp_repr */
+		0,						/* tp_as_number */
+		0,						/* tp_as_sequence */
+		0,						/* tp_as_mapping */
+		0,						/* tp_hash */
+		0,						/* tp_call */
+		0,						/* tp_str */
+		0,						/* tp_getattro */
+		0,						/* tp_setattro */
+		0,						/* tp_as_buffer */
+		Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,	/* tp_flags */
+		PLy_subtransaction_doc, /* tp_doc */
+		0,						/* tp_traverse */
+		0,						/* tp_clear */
+		0,						/* tp_richcompare */
+		0,						/* tp_weaklistoffset */
+		0,						/* tp_iter */
+		0,						/* tp_iternext */
+		PLy_subtransaction_methods, /* tp_tpmethods */
 };
 
 
@@ -81,7 +93,7 @@ PLy_subtransaction_init_type(void)
 
 /* s = plpy.subtransaction() */
 PyObject *
-PLy_subtransaction_new(PyObject *self, PyObject *unused)
+PLy_subtransaction_new(PyObject * self, PyObject * unused)
 {
 	PLySubtransactionObject *ob;
 
@@ -98,7 +110,7 @@ PLy_subtransaction_new(PyObject *self, PyObject *unused)
 
 /* Python requires a dealloc function to be defined */
 static void
-PLy_subtransaction_dealloc(PyObject *subxact)
+PLy_subtransaction_dealloc(PyObject * subxact)
 {
 }
 
@@ -111,7 +123,7 @@ PLy_subtransaction_dealloc(PyObject *subxact)
  * one of them fails.
  */
 static PyObject *
-PLy_subtransaction_enter(PyObject *self, PyObject *unused)
+PLy_subtransaction_enter(PyObject * self, PyObject * unused)
 {
 	PLySubtransactionData *subxactdata;
 	MemoryContext oldcontext;
@@ -164,7 +176,7 @@ PLy_subtransaction_enter(PyObject *self, PyObject *unused)
  * <http://www.python.org/dev/peps/pep-0343/>.
  */
 static PyObject *
-PLy_subtransaction_exit(PyObject *self, PyObject *args)
+PLy_subtransaction_exit(PyObject * self, PyObject * args)
 {
 	PyObject   *type;
 	PyObject   *value;

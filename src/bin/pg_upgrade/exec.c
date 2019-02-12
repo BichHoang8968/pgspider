@@ -13,9 +13,9 @@
 
 #include "pg_upgrade.h"
 
-static void check_data_dir(ClusterInfo *cluster);
-static void check_bin_dir(ClusterInfo *cluster);
-static void get_bin_version(ClusterInfo *cluster);
+static void check_data_dir(ClusterInfo * cluster);
+static void check_bin_dir(ClusterInfo * cluster);
+static void get_bin_version(ClusterInfo * cluster);
 static void validate_exec(const char *dir, const char *cmdName);
 
 #ifdef WIN32
@@ -29,7 +29,7 @@ static int	win32_check_directory_write_permissions(void);
  *	Fetch major version of binaries for cluster.
  */
 static void
-get_bin_version(ClusterInfo *cluster)
+get_bin_version(ClusterInfo * cluster)
 {
 	char		cmd[MAXPGPATH],
 				cmd_output[MAX_STRING];
@@ -110,6 +110,7 @@ exec_prog(const char *log_file, const char *opt_log_file,
 	pg_log(PG_VERBOSE, "%s\n", cmd);
 
 #ifdef WIN32
+
 	/*
 	 * For some reason, Windows issues a file-in-use error if we write data to
 	 * the log file from a non-primary thread just before we create a
@@ -191,6 +192,7 @@ exec_prog(const char *log_file, const char *opt_log_file,
 	}
 
 #ifndef WIN32
+
 	/*
 	 * We can't do this on Windows because it will keep the "pg_ctl start"
 	 * output filename open until the server stops, so we do the \n\n above on
@@ -323,7 +325,7 @@ check_single_dir(const char *pg_data, const char *subdir)
  *
  */
 static void
-check_data_dir(ClusterInfo *cluster)
+check_data_dir(ClusterInfo * cluster)
 {
 	const char *pg_data = cluster->pgdata;
 
@@ -361,7 +363,7 @@ check_data_dir(ClusterInfo *cluster)
  *	exit().
  */
 static void
-check_bin_dir(ClusterInfo *cluster)
+check_bin_dir(ClusterInfo * cluster)
 {
 	struct stat statBuf;
 

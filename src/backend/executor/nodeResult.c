@@ -65,7 +65,7 @@
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecResult(PlanState *pstate)
+ExecResult(PlanState * pstate)
 {
 	ResultState *node = castNode(ResultState, pstate);
 	TupleTableSlot *outerTupleSlot;
@@ -144,7 +144,7 @@ ExecResult(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 void
-ExecResultMarkPos(ResultState *node)
+ExecResultMarkPos(ResultState * node)
 {
 	PlanState  *outerPlan = outerPlanState(node);
 
@@ -159,7 +159,7 @@ ExecResultMarkPos(ResultState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecResultRestrPos(ResultState *node)
+ExecResultRestrPos(ResultState * node)
 {
 	PlanState  *outerPlan = outerPlanState(node);
 
@@ -178,7 +178,7 @@ ExecResultRestrPos(ResultState *node)
  * ----------------------------------------------------------------
  */
 ResultState *
-ExecInitResult(Result *node, EState *estate, int eflags)
+ExecInitResult(Result * node, EState * estate, int eflags)
 {
 	ResultState *resstate;
 
@@ -243,7 +243,7 @@ ExecInitResult(Result *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndResult(ResultState *node)
+ExecEndResult(ResultState * node)
 {
 	/*
 	 * Free the exprcontext
@@ -262,7 +262,7 @@ ExecEndResult(ResultState *node)
 }
 
 void
-ExecReScanResult(ResultState *node)
+ExecReScanResult(ResultState * node)
 {
 	node->rs_done = false;
 	node->rs_checkqual = (node->resconstantqual == NULL) ? false : true;

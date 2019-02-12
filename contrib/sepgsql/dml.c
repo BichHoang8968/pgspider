@@ -36,7 +36,7 @@
  * given bitmapset, if it contains a whole of the row reference.
  */
 static Bitmapset *
-fixup_whole_row_references(Oid relOid, Bitmapset *columns)
+fixup_whole_row_references(Oid relOid, Bitmapset * columns)
 {
 	Bitmapset  *result;
 	HeapTuple	tuple;
@@ -91,7 +91,7 @@ fixup_whole_row_references(Oid relOid, Bitmapset *columns)
  * table based on the given bitmapset of the parent.
  */
 static Bitmapset *
-fixup_inherited_columns(Oid parentId, Oid childId, Bitmapset *columns)
+fixup_inherited_columns(Oid parentId, Oid childId, Bitmapset * columns)
 {
 	Bitmapset  *result = NULL;
 	int			index;
@@ -144,9 +144,9 @@ fixup_inherited_columns(Oid parentId, Oid childId, Bitmapset *columns)
  */
 static bool
 check_relation_privileges(Oid relOid,
-						  Bitmapset *selected,
-						  Bitmapset *inserted,
-						  Bitmapset *updated,
+						  Bitmapset * selected,
+						  Bitmapset * inserted,
+						  Bitmapset * updated,
 						  uint32 required,
 						  bool abort_on_violation)
 {
@@ -284,7 +284,7 @@ check_relation_privileges(Oid relOid,
  * Entrypoint of the DML permission checks
  */
 bool
-sepgsql_dml_privileges(List *rangeTabls, bool abort_on_violation)
+sepgsql_dml_privileges(List * rangeTabls, bool abort_on_violation)
 {
 	ListCell   *lr;
 

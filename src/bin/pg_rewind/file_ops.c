@@ -122,7 +122,7 @@ write_target_range(char *buf, off_t begin, size_t size)
 
 
 void
-remove_target(file_entry_t *entry)
+remove_target(file_entry_t * entry)
 {
 	Assert(entry->action == FILE_ACTION_REMOVE);
 
@@ -143,7 +143,7 @@ remove_target(file_entry_t *entry)
 }
 
 void
-create_target(file_entry_t *entry)
+create_target(file_entry_t * entry)
 {
 	Assert(entry->action == FILE_ACTION_CREATE);
 
@@ -281,7 +281,7 @@ remove_target_symlink(const char *path)
  * interface (see fetch.c), but is also called directly.
  */
 char *
-slurpFile(const char *datadir, const char *path, size_t *filesize)
+slurpFile(const char *datadir, const char *path, size_t * filesize)
 {
 	int			fd;
 	char	   *buffer;

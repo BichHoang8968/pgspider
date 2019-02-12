@@ -40,9 +40,9 @@ typedef struct
 	 * LeafNodesPerPage elements are leaf nodes. Unused nodes are zero.
 	 */
 	uint8		fp_nodes[FLEXIBLE_ARRAY_MEMBER];
-} FSMPageData;
+}			FSMPageData;
 
-typedef FSMPageData *FSMPage;
+typedef FSMPageData * FSMPage;
 
 /*
  * Number of non-leaf and leaf nodes, and nodes in total, on an FSM page.

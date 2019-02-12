@@ -10,7 +10,7 @@ typedef struct int32key
 {
 	int32		lower;
 	int32		upper;
-} int32KEY;
+}			int32KEY;
 
 /*
 ** int32 ops
@@ -26,33 +26,33 @@ PG_FUNCTION_INFO_V1(gbt_int4_same);
 
 
 static bool
-gbt_int4gt(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_int4gt(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const int32 *) a) > *((const int32 *) b));
 }
 static bool
-gbt_int4ge(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_int4ge(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const int32 *) a) >= *((const int32 *) b));
 }
 static bool
-gbt_int4eq(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_int4eq(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const int32 *) a) == *((const int32 *) b));
 }
 static bool
-gbt_int4le(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_int4le(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const int32 *) a) <= *((const int32 *) b));
 }
 static bool
-gbt_int4lt(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_int4lt(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const int32 *) a) < *((const int32 *) b));
 }
 
 static int
-gbt_int4key_cmp(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_int4key_cmp(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	int32KEY   *ia = (int32KEY *) (((const Nsrt *) a)->t);
 	int32KEY   *ib = (int32KEY *) (((const Nsrt *) b)->t);
@@ -69,7 +69,7 @@ gbt_int4key_cmp(const void *a, const void *b, FmgrInfo *flinfo)
 }
 
 static float8
-gbt_int4_dist(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_int4_dist(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return GET_FLOAT_DISTANCE(int32, a, b);
 }
@@ -148,8 +148,8 @@ gbt_int4_consistent(PG_FUNCTION_ARGS)
 	/* All cases served by this function are exact */
 	*recheck = false;
 
-	key.lower = (GBT_NUMKEY *) &kkk->lower;
-	key.upper = (GBT_NUMKEY *) &kkk->upper;
+	key.lower = (GBT_NUMKEY *) & kkk->lower;
+	key.upper = (GBT_NUMKEY *) & kkk->upper;
 
 	PG_RETURN_BOOL(
 				   gbt_num_consistent(&key, (void *) &query, &strategy, GIST_LEAF(entry), &tinfo, fcinfo->flinfo)
@@ -167,8 +167,8 @@ gbt_int4_distance(PG_FUNCTION_ARGS)
 	int32KEY   *kkk = (int32KEY *) DatumGetPointer(entry->key);
 	GBT_NUMKEY_R key;
 
-	key.lower = (GBT_NUMKEY *) &kkk->lower;
-	key.upper = (GBT_NUMKEY *) &kkk->upper;
+	key.lower = (GBT_NUMKEY *) & kkk->lower;
+	key.upper = (GBT_NUMKEY *) & kkk->upper;
 
 	PG_RETURN_FLOAT8(
 					 gbt_num_distance(&key, (void *) &query, GIST_LEAF(entry), &tinfo, fcinfo->flinfo)

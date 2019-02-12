@@ -17,7 +17,7 @@ CATALOG(pg_sequence,2224) BKI_WITHOUT_OIDS
 	bool		seqcycle;
 } FormData_pg_sequence;
 
-typedef FormData_pg_sequence *Form_pg_sequence;
+typedef FormData_pg_sequence * Form_pg_sequence;
 
 #define Natts_pg_sequence				8
 #define Anum_pg_sequence_seqrelid		1

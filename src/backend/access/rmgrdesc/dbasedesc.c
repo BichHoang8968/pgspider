@@ -19,7 +19,7 @@
 
 
 void
-dbase_desc(StringInfo buf, XLogReaderState *record)
+dbase_desc(StringInfo buf, XLogReaderState * record)
 {
 	char	   *rec = XLogRecGetData(record);
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;

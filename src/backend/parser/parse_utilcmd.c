@@ -95,7 +95,7 @@ typedef struct
 	bool		ispartitioned;	/* true if table is partitioned */
 	PartitionBoundSpec *partbound;	/* transformed FOR VALUES */
 	bool		ofType;			/* true if statement contains OF typename */
-} CreateStmtContext;
+}			CreateStmtContext;
 
 /* State shared by transformCreateSchemaStmt and its subroutines */
 typedef struct
@@ -109,41 +109,41 @@ typedef struct
 	List	   *indexes;		/* CREATE INDEX items */
 	List	   *triggers;		/* CREATE TRIGGER items */
 	List	   *grants;			/* GRANT items */
-} CreateSchemaStmtContext;
+}			CreateSchemaStmtContext;
 
 
-static void transformColumnDefinition(CreateStmtContext *cxt,
-						  ColumnDef *column);
-static void transformTableConstraint(CreateStmtContext *cxt,
-						 Constraint *constraint);
-static void transformTableLikeClause(CreateStmtContext *cxt,
-						 TableLikeClause *table_like_clause);
-static void transformOfType(CreateStmtContext *cxt,
-				TypeName *ofTypename);
-static IndexStmt *generateClonedIndexStmt(CreateStmtContext *cxt,
-						Relation source_idx,
-						const AttrNumber *attmap, int attmap_length);
-static CreateStatsStmt *generateClonedExtStatsStmt(RangeVar *heapRel,
-						   Oid heapRelid, Oid source_statsid);
-static List *get_collation(Oid collation, Oid actual_datatype);
-static List *get_opclass(Oid opclass, Oid actual_datatype);
-static void transformIndexConstraints(CreateStmtContext *cxt);
-static IndexStmt *transformIndexConstraint(Constraint *constraint,
-						 CreateStmtContext *cxt);
-static void transformExtendedStatistics(CreateStmtContext *cxt);
-static void transformFKConstraints(CreateStmtContext *cxt,
+static void transformColumnDefinition(CreateStmtContext * cxt,
+						  ColumnDef * column);
+static void transformTableConstraint(CreateStmtContext * cxt,
+						 Constraint * constraint);
+static void transformTableLikeClause(CreateStmtContext * cxt,
+						 TableLikeClause * table_like_clause);
+static void transformOfType(CreateStmtContext * cxt,
+				TypeName * ofTypename);
+static IndexStmt * generateClonedIndexStmt(CreateStmtContext * cxt,
+										   Relation source_idx,
+										   const AttrNumber * attmap, int attmap_length);
+static CreateStatsStmt * generateClonedExtStatsStmt(RangeVar * heapRel,
+													Oid heapRelid, Oid source_statsid);
+static List * get_collation(Oid collation, Oid actual_datatype);
+static List * get_opclass(Oid opclass, Oid actual_datatype);
+static void transformIndexConstraints(CreateStmtContext * cxt);
+static IndexStmt * transformIndexConstraint(Constraint * constraint,
+											CreateStmtContext * cxt);
+static void transformExtendedStatistics(CreateStmtContext * cxt);
+static void transformFKConstraints(CreateStmtContext * cxt,
 					   bool skipValidation,
 					   bool isAddConstraint);
-static void transformCheckConstraints(CreateStmtContext *cxt,
+static void transformCheckConstraints(CreateStmtContext * cxt,
 						  bool skipValidation);
-static void transformConstraintAttrs(CreateStmtContext *cxt,
-						 List *constraintList);
-static void transformColumnType(CreateStmtContext *cxt, ColumnDef *column);
+static void transformConstraintAttrs(CreateStmtContext * cxt,
+						 List * constraintList);
+static void transformColumnType(CreateStmtContext * cxt, ColumnDef * column);
 static void setSchemaName(char *context_schema, char **stmt_schema_name);
-static void transformPartitionCmd(CreateStmtContext *cxt, PartitionCmd *cmd);
-static void validateInfiniteBounds(ParseState *pstate, List *blist);
-static Const *transformPartitionBoundValue(ParseState *pstate, A_Const *con,
-							 const char *colName, Oid colType, int32 colTypmod);
+static void transformPartitionCmd(CreateStmtContext * cxt, PartitionCmd * cmd);
+static void validateInfiniteBounds(ParseState * pstate, List * blist);
+static Const * transformPartitionBoundValue(ParseState * pstate, A_Const * con,
+											const char *colName, Oid colType, int32 colTypmod);
 
 
 /*
@@ -161,7 +161,7 @@ static Const *transformPartitionBoundValue(ParseState *pstate, A_Const *con,
  *	  - thomas 1997-12-02
  */
 List *
-transformCreateStmt(CreateStmt *stmt, const char *queryString)
+transformCreateStmt(CreateStmt * stmt, const char *queryString)
 {
 	ParseState *pstate;
 	CreateStmtContext cxt;
@@ -371,8 +371,8 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString)
  * for snamespace_p and sname_p.
  */
 static void
-generateSerialExtraStmts(CreateStmtContext *cxt, ColumnDef *column,
-						 Oid seqtypid, List *seqoptions, bool for_identity,
+generateSerialExtraStmts(CreateStmtContext * cxt, ColumnDef * column,
+						 Oid seqtypid, List * seqoptions, bool for_identity,
 						 char **snamespace_p, char **sname_p)
 {
 	ListCell   *option;
@@ -487,10 +487,10 @@ generateSerialExtraStmts(CreateStmtContext *cxt, ColumnDef *column,
 	cxt->blist = lappend(cxt->blist, seqstmt);
 
 	/*
-	 * Store the identity sequence name that we decided on.  ALTER TABLE
-	 * ... ADD COLUMN ... IDENTITY needs this so that it can fill the new
-	 * column with values from the sequence, while the association of the
-	 * sequence with the table is not set until after the ALTER TABLE.
+	 * Store the identity sequence name that we decided on.  ALTER TABLE ...
+	 * ADD COLUMN ... IDENTITY needs this so that it can fill the new column
+	 * with values from the sequence, while the association of the sequence
+	 * with the table is not set until after the ALTER TABLE.
 	 */
 	column->identitySequence = seqstmt->sequence;
 
@@ -522,7 +522,7 @@ generateSerialExtraStmts(CreateStmtContext *cxt, ColumnDef *column,
  *		Also used in ALTER TABLE ADD COLUMN
  */
 static void
-transformColumnDefinition(CreateStmtContext *cxt, ColumnDef *column)
+transformColumnDefinition(CreateStmtContext * cxt, ColumnDef * column)
 {
 	bool		is_serial;
 	bool		saw_nullable;
@@ -832,7 +832,7 @@ transformColumnDefinition(CreateStmtContext *cxt, ColumnDef *column)
  *		transform a Constraint node within CREATE TABLE or ALTER TABLE
  */
 static void
-transformTableConstraint(CreateStmtContext *cxt, Constraint *constraint)
+transformTableConstraint(CreateStmtContext * cxt, Constraint * constraint)
 {
 	switch (constraint->contype)
 	{
@@ -930,7 +930,7 @@ transformTableConstraint(CreateStmtContext *cxt, Constraint *constraint)
  * <srctable>.
  */
 static void
-transformTableLikeClause(CreateStmtContext *cxt, TableLikeClause *table_like_clause)
+transformTableLikeClause(CreateStmtContext * cxt, TableLikeClause * table_like_clause)
 {
 	AttrNumber	parent_attno;
 	Relation	relation;
@@ -1230,14 +1230,14 @@ transformTableLikeClause(CreateStmtContext *cxt, TableLikeClause *table_like_cla
 	 */
 	if (table_like_clause->options & CREATE_TABLE_LIKE_STATISTICS)
 	{
-		List		   *parent_extstats;
-		ListCell	   *l;
+		List	   *parent_extstats;
+		ListCell   *l;
 
 		parent_extstats = RelationGetStatExtList(relation);
 
 		foreach(l, parent_extstats)
 		{
-			Oid		parent_stat_oid = lfirst_oid(l);
+			Oid			parent_stat_oid = lfirst_oid(l);
 			CreateStatsStmt *stats_stmt;
 
 			stats_stmt = generateClonedExtStatsStmt(cxt->relation,
@@ -1263,7 +1263,7 @@ transformTableLikeClause(CreateStmtContext *cxt, TableLikeClause *table_like_cla
 }
 
 static void
-transformOfType(CreateStmtContext *cxt, TypeName *ofTypename)
+transformOfType(CreateStmtContext * cxt, TypeName * ofTypename)
 {
 	HeapTuple	tuple;
 	TupleDesc	tupdesc;
@@ -1313,8 +1313,8 @@ transformOfType(CreateStmtContext *cxt, TypeName *ofTypename)
  * "source_idx".  Attribute numbers should be adjusted according to attmap.
  */
 static IndexStmt *
-generateClonedIndexStmt(CreateStmtContext *cxt, Relation source_idx,
-						const AttrNumber *attmap, int attmap_length)
+generateClonedIndexStmt(CreateStmtContext * cxt, Relation source_idx,
+						const AttrNumber * attmap, int attmap_length)
 {
 	Oid			source_relid = RelationGetRelid(source_idx);
 	Form_pg_attribute *attrs = RelationGetDescr(source_idx)->attrs;
@@ -1627,19 +1627,19 @@ generateClonedIndexStmt(CreateStmtContext *cxt, Relation source_idx,
  * heapRelid.
  */
 static CreateStatsStmt *
-generateClonedExtStatsStmt(RangeVar *heapRel, Oid heapRelid,
+generateClonedExtStatsStmt(RangeVar * heapRel, Oid heapRelid,
 						   Oid source_statsid)
 {
-	HeapTuple		ht_stats;
+	HeapTuple	ht_stats;
 	Form_pg_statistic_ext statsrec;
 	CreateStatsStmt *stats;
-	List		   *stat_types = NIL;
-	List		   *def_names = NIL;
-	bool			 isnull;
-	Datum			datum;
-	ArrayType	   *arr;
-	char		   *enabled;
-	int				i;
+	List	   *stat_types = NIL;
+	List	   *def_names = NIL;
+	bool		isnull;
+	Datum		datum;
+	ArrayType  *arr;
+	char	   *enabled;
+	int			i;
 
 	Assert(OidIsValid(heapRelid));
 	Assert(heapRel != NULL);
@@ -1772,7 +1772,7 @@ get_opclass(Oid opclass, Oid actual_datatype)
  *		LIKE ... INCLUDING INDEXES.
  */
 static void
-transformIndexConstraints(CreateStmtContext *cxt)
+transformIndexConstraints(CreateStmtContext * cxt)
 {
 	IndexStmt  *index;
 	List	   *indexlist = NIL;
@@ -1879,7 +1879,7 @@ transformIndexConstraints(CreateStmtContext *cxt)
  *		transformIndexConstraints.
  */
 static IndexStmt *
-transformIndexConstraint(Constraint *constraint, CreateStmtContext *cxt)
+transformIndexConstraint(Constraint * constraint, CreateStmtContext * cxt)
 {
 	IndexStmt  *index;
 	ListCell   *lc;
@@ -2259,7 +2259,7 @@ transformIndexConstraint(Constraint *constraint, CreateStmtContext *cxt)
  * the existing "after" list.
  */
 static void
-transformExtendedStatistics(CreateStmtContext *cxt)
+transformExtendedStatistics(CreateStmtContext * cxt)
 {
 	cxt->alist = list_concat(cxt->alist, cxt->extstats);
 }
@@ -2274,7 +2274,7 @@ transformExtendedStatistics(CreateStmtContext *cxt)
  * don't do anything if we're not authorized to skip validation.
  */
 static void
-transformCheckConstraints(CreateStmtContext *cxt, bool skipValidation)
+transformCheckConstraints(CreateStmtContext * cxt, bool skipValidation)
 {
 	ListCell   *ckclist;
 
@@ -2303,7 +2303,7 @@ transformCheckConstraints(CreateStmtContext *cxt, bool skipValidation)
  *		handle FOREIGN KEY constraints
  */
 static void
-transformFKConstraints(CreateStmtContext *cxt,
+transformFKConstraints(CreateStmtContext * cxt,
 					   bool skipValidation, bool isAddConstraint)
 {
 	ListCell   *fkclist;
@@ -2374,7 +2374,7 @@ transformFKConstraints(CreateStmtContext *cxt,
  * relation.
  */
 IndexStmt *
-transformIndexStmt(Oid relid, IndexStmt *stmt, const char *queryString)
+transformIndexStmt(Oid relid, IndexStmt * stmt, const char *queryString)
 {
 	ParseState *pstate;
 	RangeTblEntry *rte;
@@ -2479,8 +2479,8 @@ transformIndexStmt(Oid relid, IndexStmt *stmt, const char *queryString)
  * copyObject() on the actions and WHERE clause.
  */
 void
-transformRuleStmt(RuleStmt *stmt, const char *queryString,
-				  List **actions, Node **whereClause)
+transformRuleStmt(RuleStmt * stmt, const char *queryString,
+				  List * *actions, Node * *whereClause)
 {
 	Relation	rel;
 	ParseState *pstate;
@@ -2784,7 +2784,7 @@ transformRuleStmt(RuleStmt *stmt, const char *queryString,
  * relation.
  */
 List *
-transformAlterTableStmt(Oid relid, AlterTableStmt *stmt,
+transformAlterTableStmt(Oid relid, AlterTableStmt * stmt,
 						const char *queryString)
 {
 	Relation	rel;
@@ -3132,7 +3132,7 @@ transformAlterTableStmt(Oid relid, AlterTableStmt *stmt,
  * supported for other constraint types.
  */
 static void
-transformConstraintAttrs(CreateStmtContext *cxt, List *constraintList)
+transformConstraintAttrs(CreateStmtContext * cxt, List * constraintList)
 {
 	Constraint *lastprimarycon = NULL;
 	bool		saw_deferrability = false;
@@ -3247,7 +3247,7 @@ transformConstraintAttrs(CreateStmtContext *cxt, List *constraintList)
  * Special handling of type definition for a column
  */
 static void
-transformColumnType(CreateStmtContext *cxt, ColumnDef *column)
+transformColumnType(CreateStmtContext * cxt, ColumnDef * column)
 {
 	/*
 	 * All we really need to do here is verify that the type is valid,
@@ -3300,7 +3300,7 @@ transformColumnType(CreateStmtContext *cxt, ColumnDef *column)
  * extent.
  */
 List *
-transformCreateSchemaStmt(CreateSchemaStmt *stmt)
+transformCreateSchemaStmt(CreateSchemaStmt * stmt)
 {
 	CreateSchemaStmtContext cxt;
 	List	   *result;
@@ -3425,7 +3425,7 @@ setSchemaName(char *context_schema, char **stmt_schema_name)
  * transformed value of cmd->bound.
  */
 static void
-transformPartitionCmd(CreateStmtContext *cxt, PartitionCmd *cmd)
+transformPartitionCmd(CreateStmtContext * cxt, PartitionCmd * cmd)
 {
 	Relation	parentRel = cxt->rel;
 
@@ -3449,8 +3449,8 @@ transformPartitionCmd(CreateStmtContext *cxt, PartitionCmd *cmd)
  * Transform a partition bound specification
  */
 PartitionBoundSpec *
-transformPartitionBound(ParseState *pstate, Relation parent,
-						PartitionBoundSpec *spec)
+transformPartitionBound(ParseState * pstate, Relation parent,
+						PartitionBoundSpec * spec)
 {
 	PartitionBoundSpec *result_spec;
 	PartitionKey key = RelationGetPartitionKey(parent);
@@ -3624,9 +3624,9 @@ transformPartitionBound(ParseState *pstate, Relation parent,
  * followed only by more of the same.
  */
 static void
-validateInfiniteBounds(ParseState *pstate, List *blist)
+validateInfiniteBounds(ParseState * pstate, List * blist)
 {
-	ListCell *lc;
+	ListCell   *lc;
 	PartitionRangeDatumKind kind = PARTITION_RANGE_DATUM_VALUE;
 
 	foreach(lc, blist)
@@ -3661,7 +3661,7 @@ validateInfiniteBounds(ParseState *pstate, List *blist)
  * Transform one constant in a partition bound spec
  */
 static Const *
-transformPartitionBoundValue(ParseState *pstate, A_Const *con,
+transformPartitionBoundValue(ParseState * pstate, A_Const * con,
 							 const char *colName, Oid colType, int32 colTypmod)
 {
 	Node	   *value;

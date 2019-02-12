@@ -48,9 +48,9 @@
 #include "utils/tqual.h"
 
 
-static void MakeConfigurationMapping(AlterTSConfigurationStmt *stmt,
+static void MakeConfigurationMapping(AlterTSConfigurationStmt * stmt,
 						 HeapTuple tup, Relation relMap);
-static void DropConfigurationMapping(AlterTSConfigurationStmt *stmt,
+static void DropConfigurationMapping(AlterTSConfigurationStmt * stmt,
 						 HeapTuple tup, Relation relMap);
 
 
@@ -62,7 +62,7 @@ static void DropConfigurationMapping(AlterTSConfigurationStmt *stmt,
  * attnum is the pg_ts_parser column the function will go into
  */
 static Datum
-get_ts_parser_func(DefElem *defel, int attnum)
+get_ts_parser_func(DefElem * defel, int attnum)
 {
 	List	   *funcName = defGetQualifiedName(defel);
 	Oid			typeId[3];
@@ -173,7 +173,7 @@ makeParserDependencies(HeapTuple tuple)
  * CREATE TEXT SEARCH PARSER
  */
 ObjectAddress
-DefineTSParser(List *names, List *parameters)
+DefineTSParser(List * names, List * parameters)
 {
 	char	   *prsname;
 	ListCell   *pl;
@@ -351,7 +351,7 @@ makeDictionaryDependencies(HeapTuple tuple)
  * verify that a template's init method accepts a proposed option list
  */
 static void
-verify_dictoptions(Oid tmplId, List *dictoptions)
+verify_dictoptions(Oid tmplId, List * dictoptions)
 {
 	HeapTuple	tup;
 	Form_pg_ts_template tform;
@@ -406,7 +406,7 @@ verify_dictoptions(Oid tmplId, List *dictoptions)
  * CREATE TEXT SEARCH DICTIONARY
  */
 ObjectAddress
-DefineTSDictionary(List *names, List *parameters)
+DefineTSDictionary(List * names, List * parameters)
 {
 	ListCell   *pl;
 	Relation	dictRel;
@@ -522,7 +522,7 @@ RemoveTSDictionaryById(Oid dictId)
  * ALTER TEXT SEARCH DICTIONARY
  */
 ObjectAddress
-AlterTSDictionary(AlterTSDictionaryStmt *stmt)
+AlterTSDictionary(AlterTSDictionaryStmt * stmt)
 {
 	HeapTuple	tup,
 				newtup;
@@ -644,7 +644,7 @@ AlterTSDictionary(AlterTSDictionaryStmt *stmt)
  * attnum is the pg_ts_template column the function will go into
  */
 static Datum
-get_ts_template_func(DefElem *defel, int attnum)
+get_ts_template_func(DefElem * defel, int attnum)
 {
 	List	   *funcName = defGetQualifiedName(defel);
 	Oid			typeId[4];
@@ -726,7 +726,7 @@ makeTSTemplateDependencies(HeapTuple tuple)
  * CREATE TEXT SEARCH TEMPLATE
  */
 ObjectAddress
-DefineTSTemplate(List *names, List *parameters)
+DefineTSTemplate(List * names, List * parameters)
 {
 	ListCell   *pl;
 	Relation	tmplRel;
@@ -845,7 +845,7 @@ RemoveTSTemplateById(Oid tmplId)
  * Returns NULL if no such cfg.
  */
 static HeapTuple
-GetTSConfigTuple(List *names)
+GetTSConfigTuple(List * names)
 {
 	HeapTuple	tup;
 	Oid			cfgId;
@@ -957,7 +957,7 @@ makeConfigurationDependencies(HeapTuple tuple, bool removeOld,
  * CREATE TEXT SEARCH CONFIGURATION
  */
 ObjectAddress
-DefineTSConfiguration(List *names, List *parameters, ObjectAddress *copied)
+DefineTSConfiguration(List * names, List * parameters, ObjectAddress * copied)
 {
 	Relation	cfgRel;
 	Relation	mapRel = NULL;
@@ -1170,7 +1170,7 @@ RemoveTSConfigurationById(Oid cfgId)
  * ALTER TEXT SEARCH CONFIGURATION - main entry point
  */
 ObjectAddress
-AlterTSConfiguration(AlterTSConfigurationStmt *stmt)
+AlterTSConfiguration(AlterTSConfigurationStmt * stmt)
 {
 	HeapTuple	tup;
 	Oid			cfgId;
@@ -1219,7 +1219,7 @@ AlterTSConfiguration(AlterTSConfigurationStmt *stmt)
  * Translate a list of token type names to an array of token type numbers
  */
 static int *
-getTokenTypes(Oid prsId, List *tokennames)
+getTokenTypes(Oid prsId, List * tokennames)
 {
 	TSParserCacheEntry *prs = lookup_ts_parser_cache(prsId);
 	LexDescr   *list;
@@ -1275,7 +1275,7 @@ getTokenTypes(Oid prsId, List *tokennames)
  * ALTER TEXT SEARCH CONFIGURATION ADD/ALTER MAPPING
  */
 static void
-MakeConfigurationMapping(AlterTSConfigurationStmt *stmt,
+MakeConfigurationMapping(AlterTSConfigurationStmt * stmt,
 						 HeapTuple tup, Relation relMap)
 {
 	Oid			cfgId = HeapTupleGetOid(tup);
@@ -1436,7 +1436,7 @@ MakeConfigurationMapping(AlterTSConfigurationStmt *stmt,
  * ALTER TEXT SEARCH CONFIGURATION DROP MAPPING
  */
 static void
-DropConfigurationMapping(AlterTSConfigurationStmt *stmt,
+DropConfigurationMapping(AlterTSConfigurationStmt * stmt,
 						 HeapTuple tup, Relation relMap)
 {
 	Oid			cfgId = HeapTupleGetOid(tup);
@@ -1514,7 +1514,7 @@ DropConfigurationMapping(AlterTSConfigurationStmt *stmt,
  * value is interesting --- hence, non-string DefElems get forced to strings.
  */
 text *
-serialize_deflist(List *deflist)
+serialize_deflist(List * deflist)
 {
 	text	   *result;
 	StringInfoData buf;
@@ -1579,7 +1579,7 @@ deserialize_deflist(Datum txt)
 		CS_INSQVALUE,
 		CS_INDQVALUE,
 		CS_INWVALUE
-	} ds_state;
+	}			ds_state;
 	ds_state	state = CS_WAITKEY;
 
 	workspace = (char *) palloc(len + 1);	/* certainly enough room */

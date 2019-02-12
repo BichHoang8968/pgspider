@@ -17,7 +17,7 @@
 #include "access/nbtxlog.h"
 
 void
-btree_desc(StringInfo buf, XLogReaderState *record)
+btree_desc(StringInfo buf, XLogReaderState * record)
 {
 	char	   *rec = XLogRecGetData(record);
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;

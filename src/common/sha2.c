@@ -145,9 +145,9 @@
  * library -- they are intended for private internal visibility/use
  * only.
  */
-static void SHA512_Last(pg_sha512_ctx *context);
-static void SHA256_Transform(pg_sha256_ctx *context, const uint8 *data);
-static void SHA512_Transform(pg_sha512_ctx *context, const uint8 *data);
+static void SHA512_Last(pg_sha512_ctx * context);
+static void SHA256_Transform(pg_sha256_ctx * context, const uint8 * data);
+static void SHA512_Transform(pg_sha512_ctx * context, const uint8 * data);
 
 /*** SHA-XYZ INITIAL HASH VALUES AND CONSTANTS ************************/
 /* Hash constant words K for SHA-256: */
@@ -265,7 +265,7 @@ static const uint64 sha512_initial_hash_value[8] = {
 
 /*** SHA-256: *********************************************************/
 void
-pg_sha256_init(pg_sha256_ctx *context)
+pg_sha256_init(pg_sha256_ctx * context)
 {
 	if (context == NULL)
 		return;
@@ -301,7 +301,7 @@ pg_sha256_init(pg_sha256_ctx *context)
 } while(0)
 
 static void
-SHA256_Transform(pg_sha256_ctx *context, const uint8 *data)
+SHA256_Transform(pg_sha256_ctx * context, const uint8 * data)
 {
 	uint32		a,
 				b,
@@ -372,7 +372,7 @@ SHA256_Transform(pg_sha256_ctx *context, const uint8 *data)
 #else							/* SHA2_UNROLL_TRANSFORM */
 
 static void
-SHA256_Transform(pg_sha256_ctx *context, const uint8 *data)
+SHA256_Transform(pg_sha256_ctx * context, const uint8 * data)
 {
 	uint32		a,
 				b,
@@ -462,7 +462,7 @@ SHA256_Transform(pg_sha256_ctx *context, const uint8 *data)
 #endif							/* SHA2_UNROLL_TRANSFORM */
 
 void
-pg_sha256_update(pg_sha256_ctx *context, const uint8 *data, size_t len)
+pg_sha256_update(pg_sha256_ctx * context, const uint8 * data, size_t len)
 {
 	size_t		freespace,
 				usedspace;
@@ -515,7 +515,7 @@ pg_sha256_update(pg_sha256_ctx *context, const uint8 *data, size_t len)
 }
 
 static void
-SHA256_Last(pg_sha256_ctx *context)
+SHA256_Last(pg_sha256_ctx * context)
 {
 	unsigned int usedspace;
 
@@ -556,14 +556,14 @@ SHA256_Last(pg_sha256_ctx *context)
 		*context->buffer = 0x80;
 	}
 	/* Set the bit count: */
-	*(uint64 *) &context->buffer[PG_SHA256_SHORT_BLOCK_LENGTH] = context->bitcount;
+	*(uint64 *) & context->buffer[PG_SHA256_SHORT_BLOCK_LENGTH] = context->bitcount;
 
 	/* Final transform: */
 	SHA256_Transform(context, context->buffer);
 }
 
 void
-pg_sha256_final(pg_sha256_ctx *context, uint8 *digest)
+pg_sha256_final(pg_sha256_ctx * context, uint8 * digest)
 {
 	/* If no digest buffer is passed, we don't bother doing this: */
 	if (digest != NULL)
@@ -591,7 +591,7 @@ pg_sha256_final(pg_sha256_ctx *context, uint8 *digest)
 
 /*** SHA-512: *********************************************************/
 void
-pg_sha512_init(pg_sha512_ctx *context)
+pg_sha512_init(pg_sha512_ctx * context)
 {
 	if (context == NULL)
 		return;
@@ -630,7 +630,7 @@ pg_sha512_init(pg_sha512_ctx *context)
 } while(0)
 
 static void
-SHA512_Transform(pg_sha512_ctx *context, const uint8 *data)
+SHA512_Transform(pg_sha512_ctx * context, const uint8 * data)
 {
 	uint64		a,
 				b,
@@ -698,7 +698,7 @@ SHA512_Transform(pg_sha512_ctx *context, const uint8 *data)
 #else							/* SHA2_UNROLL_TRANSFORM */
 
 static void
-SHA512_Transform(pg_sha512_ctx *context, const uint8 *data)
+SHA512_Transform(pg_sha512_ctx * context, const uint8 * data)
 {
 	uint64		a,
 				b,
@@ -788,7 +788,7 @@ SHA512_Transform(pg_sha512_ctx *context, const uint8 *data)
 #endif							/* SHA2_UNROLL_TRANSFORM */
 
 void
-pg_sha512_update(pg_sha512_ctx *context, const uint8 *data, size_t len)
+pg_sha512_update(pg_sha512_ctx * context, const uint8 * data, size_t len)
 {
 	size_t		freespace,
 				usedspace;
@@ -841,7 +841,7 @@ pg_sha512_update(pg_sha512_ctx *context, const uint8 *data, size_t len)
 }
 
 static void
-SHA512_Last(pg_sha512_ctx *context)
+SHA512_Last(pg_sha512_ctx * context)
 {
 	unsigned int usedspace;
 
@@ -883,15 +883,15 @@ SHA512_Last(pg_sha512_ctx *context)
 		*context->buffer = 0x80;
 	}
 	/* Store the length of input data (in bits): */
-	*(uint64 *) &context->buffer[PG_SHA512_SHORT_BLOCK_LENGTH] = context->bitcount[1];
-	*(uint64 *) &context->buffer[PG_SHA512_SHORT_BLOCK_LENGTH + 8] = context->bitcount[0];
+	*(uint64 *) & context->buffer[PG_SHA512_SHORT_BLOCK_LENGTH] = context->bitcount[1];
+	*(uint64 *) & context->buffer[PG_SHA512_SHORT_BLOCK_LENGTH + 8] = context->bitcount[0];
 
 	/* Final transform: */
 	SHA512_Transform(context, context->buffer);
 }
 
 void
-pg_sha512_final(pg_sha512_ctx *context, uint8 *digest)
+pg_sha512_final(pg_sha512_ctx * context, uint8 * digest)
 {
 	/* If no digest buffer is passed, we don't bother doing this: */
 	if (digest != NULL)
@@ -920,7 +920,7 @@ pg_sha512_final(pg_sha512_ctx *context, uint8 *digest)
 
 /*** SHA-384: *********************************************************/
 void
-pg_sha384_init(pg_sha384_ctx *context)
+pg_sha384_init(pg_sha384_ctx * context)
 {
 	if (context == NULL)
 		return;
@@ -930,13 +930,13 @@ pg_sha384_init(pg_sha384_ctx *context)
 }
 
 void
-pg_sha384_update(pg_sha384_ctx *context, const uint8 *data, size_t len)
+pg_sha384_update(pg_sha384_ctx * context, const uint8 * data, size_t len)
 {
 	pg_sha512_update((pg_sha512_ctx *) context, data, len);
 }
 
 void
-pg_sha384_final(pg_sha384_ctx *context, uint8 *digest)
+pg_sha384_final(pg_sha384_ctx * context, uint8 * digest)
 {
 	/* If no digest buffer is passed, we don't bother doing this: */
 	if (digest != NULL)
@@ -964,7 +964,7 @@ pg_sha384_final(pg_sha384_ctx *context, uint8 *digest)
 
 /*** SHA-224: *********************************************************/
 void
-pg_sha224_init(pg_sha224_ctx *context)
+pg_sha224_init(pg_sha224_ctx * context)
 {
 	if (context == NULL)
 		return;
@@ -974,13 +974,13 @@ pg_sha224_init(pg_sha224_ctx *context)
 }
 
 void
-pg_sha224_update(pg_sha224_ctx *context, const uint8 *data, size_t len)
+pg_sha224_update(pg_sha224_ctx * context, const uint8 * data, size_t len)
 {
 	pg_sha256_update((pg_sha256_ctx *) context, data, len);
 }
 
 void
-pg_sha224_final(pg_sha224_ctx *context, uint8 *digest)
+pg_sha224_final(pg_sha224_ctx * context, uint8 * digest)
 {
 	/* If no digest buffer is passed, we don't bother doing this: */
 	if (digest != NULL)

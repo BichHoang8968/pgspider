@@ -48,12 +48,12 @@ typedef struct StreamCtl
 	char	   *partial_suffix; /* Suffix appended to partially received files */
 	char	   *replication_slot;	/* Replication slot to use, or NULL */
 	bool		temp_slot;		/* Create temporary replication slot */
-} StreamCtl;
+}			StreamCtl;
 
 
 
-extern bool CheckServerVersionForStreaming(PGconn *conn);
-extern bool ReceiveXlogStream(PGconn *conn,
-				  StreamCtl *stream);
+extern bool CheckServerVersionForStreaming(PGconn * conn);
+extern bool ReceiveXlogStream(PGconn * conn,
+				  StreamCtl * stream);
 
 #endif							/* RECEIVELOG_H */

@@ -50,7 +50,7 @@ typedef enum
 	CLASS_ATOM,					/* expression that's not AND or OR */
 	CLASS_AND,					/* expression with AND semantics */
 	CLASS_OR					/* expression with OR semantics */
-} PredClass;
+}			PredClass;
 
 typedef struct PredIterInfoData *PredIterInfo;
 
@@ -59,12 +59,12 @@ typedef struct PredIterInfoData
 	/* node-type-specific iteration state */
 	void	   *state;
 	/* initialize to do the iteration */
-	void		(*startup_fn) (Node *clause, PredIterInfo info);
+	void		(*startup_fn) (Node * clause, PredIterInfo info);
 	/* next-component iteration function */
 	Node	   *(*next_fn) (PredIterInfo info);
 	/* release resources when done with iteration */
 	void		(*cleanup_fn) (PredIterInfo info);
-} PredIterInfoData;
+}			PredIterInfoData;
 
 #define iterate_begin(item, clause, info)	\
 	do { \
@@ -77,35 +77,35 @@ typedef struct PredIterInfoData
 	} while (0)
 
 
-static bool predicate_implied_by_recurse(Node *clause, Node *predicate,
+static bool predicate_implied_by_recurse(Node * clause, Node * predicate,
 							 bool clause_is_check);
-static bool predicate_refuted_by_recurse(Node *clause, Node *predicate,
+static bool predicate_refuted_by_recurse(Node * clause, Node * predicate,
 							 bool clause_is_check);
-static PredClass predicate_classify(Node *clause, PredIterInfo info);
-static void list_startup_fn(Node *clause, PredIterInfo info);
-static Node *list_next_fn(PredIterInfo info);
+static PredClass predicate_classify(Node * clause, PredIterInfo info);
+static void list_startup_fn(Node * clause, PredIterInfo info);
+static Node * list_next_fn(PredIterInfo info);
 static void list_cleanup_fn(PredIterInfo info);
-static void boolexpr_startup_fn(Node *clause, PredIterInfo info);
-static void arrayconst_startup_fn(Node *clause, PredIterInfo info);
-static Node *arrayconst_next_fn(PredIterInfo info);
+static void boolexpr_startup_fn(Node * clause, PredIterInfo info);
+static void arrayconst_startup_fn(Node * clause, PredIterInfo info);
+static Node * arrayconst_next_fn(PredIterInfo info);
 static void arrayconst_cleanup_fn(PredIterInfo info);
-static void arrayexpr_startup_fn(Node *clause, PredIterInfo info);
-static Node *arrayexpr_next_fn(PredIterInfo info);
+static void arrayexpr_startup_fn(Node * clause, PredIterInfo info);
+static Node * arrayexpr_next_fn(PredIterInfo info);
 static void arrayexpr_cleanup_fn(PredIterInfo info);
-static bool predicate_implied_by_simple_clause(Expr *predicate, Node *clause,
+static bool predicate_implied_by_simple_clause(Expr * predicate, Node * clause,
 								   bool clause_is_check);
-static bool predicate_refuted_by_simple_clause(Expr *predicate, Node *clause,
+static bool predicate_refuted_by_simple_clause(Expr * predicate, Node * clause,
 								   bool clause_is_check);
-static Node *extract_not_arg(Node *clause);
-static Node *extract_strong_not_arg(Node *clause);
-static bool list_member_strip(List *list, Expr *datum);
-static bool operator_predicate_proof(Expr *predicate, Node *clause,
+static Node * extract_not_arg(Node * clause);
+static Node * extract_strong_not_arg(Node * clause);
+static bool list_member_strip(List * list, Expr * datum);
+static bool operator_predicate_proof(Expr * predicate, Node * clause,
 						 bool refute_it);
 static bool operator_same_subexprs_proof(Oid pred_op, Oid clause_op,
 							 bool refute_it);
 static bool operator_same_subexprs_lookup(Oid pred_op, Oid clause_op,
 							  bool refute_it);
-static Oid	get_btree_test_op(Oid pred_op, Oid clause_op, bool refute_it);
+static Oid get_btree_test_op(Oid pred_op, Oid clause_op, bool refute_it);
 static void InvalidateOprProofCacheCallBack(Datum arg, int cacheid, uint32 hashvalue);
 
 
@@ -132,7 +132,7 @@ static void InvalidateOprProofCacheCallBack(Datum arg, int cacheid, uint32 hashv
  * the plan and the time we execute the plan.
  */
 bool
-predicate_implied_by(List *predicate_list, List *clause_list,
+predicate_implied_by(List * predicate_list, List * clause_list,
 					 bool clause_is_check)
 {
 	Node	   *p,
@@ -194,7 +194,7 @@ predicate_implied_by(List *predicate_list, List *clause_list,
  * time we make the plan and the time we execute the plan.
  */
 bool
-predicate_refuted_by(List *predicate_list, List *clause_list,
+predicate_refuted_by(List * predicate_list, List * clause_list,
 					 bool clause_is_check)
 {
 	Node	   *p,
@@ -260,7 +260,7 @@ predicate_refuted_by(List *predicate_list, List *clause_list,
  *----------
  */
 static bool
-predicate_implied_by_recurse(Node *clause, Node *predicate,
+predicate_implied_by_recurse(Node * clause, Node * predicate,
 							 bool clause_is_check)
 {
 	PredIterInfoData clause_info;
@@ -500,7 +500,7 @@ predicate_implied_by_recurse(Node *clause, Node *predicate,
  *----------
  */
 static bool
-predicate_refuted_by_recurse(Node *clause, Node *predicate,
+predicate_refuted_by_recurse(Node * clause, Node * predicate,
 							 bool clause_is_check)
 {
 	PredIterInfoData clause_info;
@@ -782,7 +782,7 @@ predicate_refuted_by_recurse(Node *clause, Node *predicate,
  * that would result in wrong proofs, rather than failing to prove anything.
  */
 static PredClass
-predicate_classify(Node *clause, PredIterInfo info)
+predicate_classify(Node * clause, PredIterInfo info)
 {
 	/* Caller should not pass us NULL, nor a RestrictInfo clause */
 	Assert(clause != NULL);
@@ -864,7 +864,7 @@ predicate_classify(Node *clause, PredIterInfo info)
  * state variable is the next ListCell to visit.
  */
 static void
-list_startup_fn(Node *clause, PredIterInfo info)
+list_startup_fn(Node * clause, PredIterInfo info)
 {
 	info->state = (void *) list_head((List *) clause);
 }
@@ -893,7 +893,7 @@ list_cleanup_fn(PredIterInfo info)
  * list_cleanup_fn.
  */
 static void
-boolexpr_startup_fn(Node *clause, PredIterInfo info)
+boolexpr_startup_fn(Node * clause, PredIterInfo info)
 {
 	info->state = (void *) list_head(((BoolExpr *) clause)->args);
 }
@@ -910,10 +910,10 @@ typedef struct
 	int			num_elems;
 	Datum	   *elem_values;
 	bool	   *elem_nulls;
-} ArrayConstIterState;
+}			ArrayConstIterState;
 
 static void
-arrayconst_startup_fn(Node *clause, PredIterInfo info)
+arrayconst_startup_fn(Node * clause, PredIterInfo info)
 {
 	ScalarArrayOpExpr *saop = (ScalarArrayOpExpr *) clause;
 	ArrayConstIterState *state;
@@ -971,7 +971,7 @@ arrayconst_next_fn(PredIterInfo info)
 	state->constexpr.constvalue = state->elem_values[state->next_elem];
 	state->constexpr.constisnull = state->elem_nulls[state->next_elem];
 	state->next_elem++;
-	return (Node *) &(state->opexpr);
+	return (Node *) & (state->opexpr);
 }
 
 static void
@@ -993,10 +993,10 @@ typedef struct
 {
 	OpExpr		opexpr;
 	ListCell   *next;
-} ArrayExprIterState;
+}			ArrayExprIterState;
 
 static void
-arrayexpr_startup_fn(Node *clause, PredIterInfo info)
+arrayexpr_startup_fn(Node * clause, PredIterInfo info)
 {
 	ScalarArrayOpExpr *saop = (ScalarArrayOpExpr *) clause;
 	ArrayExprIterState *state;
@@ -1030,7 +1030,7 @@ arrayexpr_next_fn(PredIterInfo info)
 		return NULL;
 	lsecond(state->opexpr.args) = lfirst(state->next);
 	state->next = lnext(state->next);
-	return (Node *) &(state->opexpr);
+	return (Node *) & (state->opexpr);
 }
 
 static void
@@ -1074,7 +1074,7 @@ arrayexpr_cleanup_fn(PredIterInfo info)
  *----------
  */
 static bool
-predicate_implied_by_simple_clause(Expr *predicate, Node *clause,
+predicate_implied_by_simple_clause(Expr * predicate, Node * clause,
 								   bool clause_is_check)
 {
 	/* Allow interrupting long proof attempts */
@@ -1136,7 +1136,7 @@ predicate_implied_by_simple_clause(Expr *predicate, Node *clause,
  *----------
  */
 static bool
-predicate_refuted_by_simple_clause(Expr *predicate, Node *clause,
+predicate_refuted_by_simple_clause(Expr * predicate, Node * clause,
 								   bool clause_is_check)
 {
 	/* Allow interrupting long proof attempts */
@@ -1210,7 +1210,7 @@ predicate_refuted_by_simple_clause(Expr *predicate, Node *clause,
  * otherwise return NULL.
  */
 static Node *
-extract_not_arg(Node *clause)
+extract_not_arg(Node * clause)
 {
 	if (clause == NULL)
 		return NULL;
@@ -1238,7 +1238,7 @@ extract_not_arg(Node *clause)
  * otherwise return NULL.
  */
 static Node *
-extract_strong_not_arg(Node *clause)
+extract_strong_not_arg(Node * clause)
 {
 	if (clause == NULL)
 		return NULL;
@@ -1268,7 +1268,7 @@ extract_strong_not_arg(Node *clause)
  * for cases such as a varchar argument of a strict function on text.
  */
 static bool
-list_member_strip(List *list, Expr *datum)
+list_member_strip(List * list, Expr * datum)
 {
 	ListCell   *cell;
 
@@ -1446,7 +1446,7 @@ static const StrategyNumber BT_refute_table[6][6] = {
  * and we dare not make deductions with those.
  */
 static bool
-operator_predicate_proof(Expr *predicate, Node *clause, bool refute_it)
+operator_predicate_proof(Expr * predicate, Node * clause, bool refute_it)
 {
 	OpExpr	   *pred_opexpr,
 			   *clause_opexpr;
@@ -1710,7 +1710,7 @@ typedef struct OprProofCacheKey
 {
 	Oid			pred_op;		/* predicate operator */
 	Oid			clause_op;		/* clause operator */
-} OprProofCacheKey;
+}			OprProofCacheKey;
 
 typedef struct OprProofCacheEntry
 {
@@ -1723,9 +1723,9 @@ typedef struct OprProofCacheEntry
 	bool		same_subexprs_refutes;	/* X clause_op Y refutes X pred_op Y? */
 	Oid			implic_test_op; /* OID of the test operator, or 0 if none */
 	Oid			refute_test_op; /* OID of the test operator, or 0 if none */
-} OprProofCacheEntry;
+}			OprProofCacheEntry;
 
-static HTAB *OprProofCacheHash = NULL;
+static HTAB * OprProofCacheHash = NULL;
 
 
 /*

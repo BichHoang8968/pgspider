@@ -39,7 +39,7 @@
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecBitmapAnd(PlanState *pstate)
+ExecBitmapAnd(PlanState * pstate)
 {
 	elog(ERROR, "BitmapAnd node does not support ExecProcNode call convention");
 	return NULL;
@@ -52,7 +52,7 @@ ExecBitmapAnd(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 BitmapAndState *
-ExecInitBitmapAnd(BitmapAnd *node, EState *estate, int eflags)
+ExecInitBitmapAnd(BitmapAnd * node, EState * estate, int eflags)
 {
 	BitmapAndState *bitmapandstate = makeNode(BitmapAndState);
 	PlanState **bitmapplanstates;
@@ -69,7 +69,7 @@ ExecInitBitmapAnd(BitmapAnd *node, EState *estate, int eflags)
 	 */
 	nplans = list_length(node->bitmapplans);
 
-	bitmapplanstates = (PlanState **) palloc0(nplans * sizeof(PlanState *));
+	bitmapplanstates = (PlanState * *) palloc0(nplans * sizeof(PlanState *));
 
 	/*
 	 * create new BitmapAndState for our BitmapAnd node
@@ -107,7 +107,7 @@ ExecInitBitmapAnd(BitmapAnd *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 Node *
-MultiExecBitmapAnd(BitmapAndState *node)
+MultiExecBitmapAnd(BitmapAndState * node)
 {
 	PlanState **bitmapplans;
 	int			nplans;
@@ -175,7 +175,7 @@ MultiExecBitmapAnd(BitmapAndState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecEndBitmapAnd(BitmapAndState *node)
+ExecEndBitmapAnd(BitmapAndState * node)
 {
 	PlanState **bitmapplans;
 	int			nplans;
@@ -198,7 +198,7 @@ ExecEndBitmapAnd(BitmapAndState *node)
 }
 
 void
-ExecReScanBitmapAnd(BitmapAndState *node)
+ExecReScanBitmapAnd(BitmapAndState * node)
 {
 	int			i;
 

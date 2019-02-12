@@ -26,7 +26,7 @@
 static void recurse_dir(const char *datadir, const char *path,
 			process_file_callback_t callback);
 
-static void execute_pagemap(datapagemap_t *pagemap, const char *path);
+static void execute_pagemap(datapagemap_t * pagemap, const char *path);
 
 /*
  * Traverse through all files in a data directory, calling 'callback'
@@ -205,7 +205,7 @@ rewind_copy_file_range(const char *path, off_t begin, off_t end, bool trunc)
  * are marked in the given data page map.
  */
 void
-copy_executeFileMap(filemap_t *map)
+copy_executeFileMap(filemap_t * map)
 {
 	file_entry_t *entry;
 	int			i;
@@ -248,7 +248,7 @@ copy_executeFileMap(filemap_t *map)
 }
 
 static void
-execute_pagemap(datapagemap_t *pagemap, const char *path)
+execute_pagemap(datapagemap_t * pagemap, const char *path)
 {
 	datapagemap_iterator_t *iter;
 	BlockNumber blkno;

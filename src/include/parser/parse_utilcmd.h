@@ -17,15 +17,15 @@
 #include "parser/parse_node.h"
 
 
-extern List *transformCreateStmt(CreateStmt *stmt, const char *queryString);
-extern List *transformAlterTableStmt(Oid relid, AlterTableStmt *stmt,
-						const char *queryString);
-extern IndexStmt *transformIndexStmt(Oid relid, IndexStmt *stmt,
-				   const char *queryString);
-extern void transformRuleStmt(RuleStmt *stmt, const char *queryString,
-				  List **actions, Node **whereClause);
-extern List *transformCreateSchemaStmt(CreateSchemaStmt *stmt);
-extern PartitionBoundSpec *transformPartitionBound(ParseState *pstate, Relation parent,
-						PartitionBoundSpec *spec);
+extern List * transformCreateStmt(CreateStmt * stmt, const char *queryString);
+extern List * transformAlterTableStmt(Oid relid, AlterTableStmt * stmt,
+									  const char *queryString);
+extern IndexStmt * transformIndexStmt(Oid relid, IndexStmt * stmt,
+									  const char *queryString);
+extern void transformRuleStmt(RuleStmt * stmt, const char *queryString,
+				  List * *actions, Node * *whereClause);
+extern List * transformCreateSchemaStmt(CreateSchemaStmt * stmt);
+extern PartitionBoundSpec * transformPartitionBound(ParseState * pstate, Relation parent,
+													PartitionBoundSpec * spec);
 
 #endif							/* PARSE_UTILCMD_H */

@@ -202,7 +202,7 @@ _PG_init(void)
 	RegisterSubXactCallback(plpgsql_subxact_cb, NULL);
 
 	/* Set up a rendezvous point with optional instrumentation plugin */
-	plpgsql_plugin_ptr = (PLpgSQL_plugin **) find_rendezvous_variable("PLpgSQL_plugin");
+	plpgsql_plugin_ptr = (PLpgSQL_plugin * *) find_rendezvous_variable("PLpgSQL_plugin");
 
 	inited = true;
 }
@@ -481,13 +481,13 @@ plpgsql_validator(PG_FUNCTION_ARGS)
 		{
 			MemSet(&trigdata, 0, sizeof(trigdata));
 			trigdata.type = T_TriggerData;
-			fake_fcinfo.context = (Node *) &trigdata;
+			fake_fcinfo.context = (Node *) & trigdata;
 		}
 		else if (is_event_trigger)
 		{
 			MemSet(&etrigdata, 0, sizeof(etrigdata));
 			etrigdata.type = T_EventTriggerData;
-			fake_fcinfo.context = (Node *) &etrigdata;
+			fake_fcinfo.context = (Node *) & etrigdata;
 		}
 
 		/* Test-compile the function */

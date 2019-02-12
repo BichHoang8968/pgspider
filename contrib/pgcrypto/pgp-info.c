@@ -35,7 +35,7 @@
 #include "pgp.h"
 
 static int
-read_pubkey_keyid(PullFilter *pkt, uint8 *keyid_buf)
+read_pubkey_keyid(PullFilter * pkt, uint8 * keyid_buf)
 {
 	int			res;
 	PGP_PubKey *pk = NULL;
@@ -68,7 +68,7 @@ err:
 }
 
 static int
-read_pubenc_keyid(PullFilter *pkt, uint8 *keyid_buf)
+read_pubenc_keyid(PullFilter * pkt, uint8 * keyid_buf)
 {
 	uint8		ver;
 	int			res;
@@ -87,7 +87,7 @@ read_pubenc_keyid(PullFilter *pkt, uint8 *keyid_buf)
 static const char hextbl[] = "0123456789ABCDEF";
 
 static int
-print_key(uint8 *keyid, char *dst)
+print_key(uint8 * keyid, char *dst)
 {
 	int			i;
 	unsigned	c;
@@ -109,7 +109,7 @@ static const uint8 any_key[] =
  * dst should have room for 17 bytes
  */
 int
-pgp_get_keyid(MBuf *pgp_data, char *dst)
+pgp_get_keyid(MBuf * pgp_data, char *dst)
 {
 	int			res;
 	PullFilter *src;

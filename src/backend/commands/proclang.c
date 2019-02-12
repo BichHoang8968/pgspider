@@ -49,19 +49,19 @@ typedef struct
 	char	   *tmplinline;		/* name of anonymous-block handler, or NULL */
 	char	   *tmplvalidator;	/* name of validator function, or NULL */
 	char	   *tmpllibrary;	/* path of shared library */
-} PLTemplate;
+}			PLTemplate;
 
 static ObjectAddress create_proc_lang(const char *languageName, bool replace,
-				 Oid languageOwner, Oid handlerOid, Oid inlineOid,
-				 Oid valOid, bool trusted);
-static PLTemplate *find_language_template(const char *languageName);
+									  Oid languageOwner, Oid handlerOid, Oid inlineOid,
+									  Oid valOid, bool trusted);
+static PLTemplate * find_language_template(const char *languageName);
 
 /* ---------------------------------------------------------------------
  * CREATE PROCEDURAL LANGUAGE
  * ---------------------------------------------------------------------
  */
 ObjectAddress
-CreateProceduralLanguage(CreatePLangStmt *stmt)
+CreateProceduralLanguage(CreatePLangStmt * stmt)
 {
 	PLTemplate *pltemplate;
 	ObjectAddress tmpAddr;

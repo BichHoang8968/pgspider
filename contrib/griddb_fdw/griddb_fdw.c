@@ -102,15 +102,15 @@ typedef struct GridDBFdwFieldInfo
 	size_t		column_count;	/* column count */
 	GSChar	  **column_names;	/* column name */
 	GSType	   *column_types;	/* column type */
-}	GridDBFdwFieldInfo;
+}			GridDBFdwFieldInfo;
 
 /* This structure is used for passing data from the scan to the modify */
 typedef struct GridDBFdwScanModifyRelay
 {
 	GSRowSet   *row_set;		/* result set */
 	GSRow	   *row;			/* row for the update */
-	GridDBFdwFieldInfo field_info;		/* column count */
-}	GridDBFdwScanModifyRelay;
+	GridDBFdwFieldInfo field_info;	/* column count */
+}			GridDBFdwScanModifyRelay;
 
 /*
  * Execution state of a foreign scan using griddb_fdw.
@@ -130,7 +130,7 @@ typedef struct GridDBFdwScanState
 	GSChar	   *cont_name;		/* container name */
 	GSContainer *cont;			/* container to be selected */
 	GSBool		for_update;		/* GS_TRUE if UPDATE/DELETE target */
-	GridDBFdwFieldInfo field_info;		/* field information */
+	GridDBFdwFieldInfo field_info;	/* field information */
 	GSRowSet   *row_set;		/* result set */
 	GSRow	   *row;			/* row for the update */
 
@@ -138,7 +138,7 @@ typedef struct GridDBFdwScanState
 	int32_t		num_tuples;		/* # of tuples in array */
 	unsigned int cursor;		/* result set cursor pointing current index */
 
-}	GridDBFdwScanState;
+}			GridDBFdwScanState;
 
 /*
  * Execution state of a foreign insert/update/delete operation.
@@ -154,7 +154,7 @@ typedef struct GridDBFdwModifyState
 
 	/* extracted fdw_private data */
 	List	   *target_attrs;	/* list of target attribute numbers */
-}	GridDBFdwModifyState;
+}			GridDBFdwModifyState;
 
 /*
  * In griddb_fdw, the data modification (UPDATE/DELETE) is done via rowset
@@ -184,98 +184,98 @@ void		_PG_fini(void);
  * FDW callback routines
  */
 
-static void griddbGetForeignRelSize(PlannerInfo *root,
-						RelOptInfo *baserel,
+static void griddbGetForeignRelSize(PlannerInfo * root,
+						RelOptInfo * baserel,
 						Oid foreigntableid);
-static void griddbGetForeignPaths(PlannerInfo *root,
-					  RelOptInfo *baserel,
+static void griddbGetForeignPaths(PlannerInfo * root,
+					  RelOptInfo * baserel,
 					  Oid foreigntableid);
-static ForeignScan *griddbGetForeignPlan(PlannerInfo *root,
-					 RelOptInfo *baserel,
-					 Oid foreigntableid,
-					 ForeignPath *best_path,
-					 List *tlist,
-					 List *scan_clauses,
-					 Plan *outer_plan);
-static void griddbBeginForeignScan(ForeignScanState *node, int eflags);
-static TupleTableSlot *griddbIterateForeignScan(ForeignScanState *node);
-static void griddbReScanForeignScan(ForeignScanState *node);
-static void griddbEndForeignScan(ForeignScanState *node);
-static void griddbAddForeignUpdateTargets(Query *parsetree,
-							  RangeTblEntry *target_rte,
+static ForeignScan * griddbGetForeignPlan(PlannerInfo * root,
+										  RelOptInfo * baserel,
+										  Oid foreigntableid,
+										  ForeignPath * best_path,
+										  List * tlist,
+										  List * scan_clauses,
+										  Plan * outer_plan);
+static void griddbBeginForeignScan(ForeignScanState * node, int eflags);
+static TupleTableSlot * griddbIterateForeignScan(ForeignScanState * node);
+static void griddbReScanForeignScan(ForeignScanState * node);
+static void griddbEndForeignScan(ForeignScanState * node);
+static void griddbAddForeignUpdateTargets(Query * parsetree,
+							  RangeTblEntry * target_rte,
 							  Relation target_relation);
-static List *griddbPlanForeignModify(PlannerInfo *root,
-						ModifyTable *plan,
-						Index resultRelation,
-						int subplan_index);
-static void griddbBeginForeignModify(ModifyTableState *mtstate,
-						 ResultRelInfo *resultRelInfo,
-						 List *fdw_private,
+static List * griddbPlanForeignModify(PlannerInfo * root,
+									  ModifyTable * plan,
+									  Index resultRelation,
+									  int subplan_index);
+static void griddbBeginForeignModify(ModifyTableState * mtstate,
+						 ResultRelInfo * resultRelInfo,
+						 List * fdw_private,
 						 int subplan_index,
 						 int eflags);
-static TupleTableSlot *griddbExecForeignInsert(EState *estate,
-						ResultRelInfo *resultRelInfo,
-						TupleTableSlot *slot,
-						TupleTableSlot *planSlot);
-static TupleTableSlot *griddbExecForeignUpdate(EState *estate,
-						ResultRelInfo *resultRelInfo,
-						TupleTableSlot *slot,
-						TupleTableSlot *planSlot);
-static TupleTableSlot *griddbExecForeignDelete(EState *estate,
-						ResultRelInfo *resultRelInfo,
-						TupleTableSlot *slot,
-						TupleTableSlot *planSlot);
-static void griddbEndForeignModify(EState *estate,
-					   ResultRelInfo *resultRelInfo);
+static TupleTableSlot * griddbExecForeignInsert(EState * estate,
+												ResultRelInfo * resultRelInfo,
+												TupleTableSlot * slot,
+												TupleTableSlot * planSlot);
+static TupleTableSlot * griddbExecForeignUpdate(EState * estate,
+												ResultRelInfo * resultRelInfo,
+												TupleTableSlot * slot,
+												TupleTableSlot * planSlot);
+static TupleTableSlot * griddbExecForeignDelete(EState * estate,
+												ResultRelInfo * resultRelInfo,
+												TupleTableSlot * slot,
+												TupleTableSlot * planSlot);
+static void griddbEndForeignModify(EState * estate,
+					   ResultRelInfo * resultRelInfo);
 static int	griddbIsForeignRelUpdatable(Relation rel);
-static bool griddbPlanDirectModify(PlannerInfo *root,
-					   ModifyTable *plan,
+static bool griddbPlanDirectModify(PlannerInfo * root,
+					   ModifyTable * plan,
 					   Index resultRelation,
 					   int subplan_index);
-static void griddbExplainForeignScan(ForeignScanState *node,
-						 ExplainState *es);
-static void griddbExplainForeignModify(ModifyTableState *mtstate,
-						   ResultRelInfo *rinfo,
-						   List *fdw_private,
+static void griddbExplainForeignScan(ForeignScanState * node,
+						 ExplainState * es);
+static void griddbExplainForeignModify(ModifyTableState * mtstate,
+						   ResultRelInfo * rinfo,
+						   List * fdw_private,
 						   int subplan_index,
-						   ExplainState *es);
+						   ExplainState * es);
 static bool griddbAnalyzeForeignTable(Relation relation,
-						  AcquireSampleRowsFunc *func,
-						  BlockNumber *totalpages);
-static List *griddbImportForeignSchema(ImportForeignSchemaStmt *stmt,
-						  Oid serverOid);
+						  AcquireSampleRowsFunc * func,
+						  BlockNumber * totalpages);
+static List * griddbImportForeignSchema(ImportForeignSchemaStmt * stmt,
+										Oid serverOid);
 
 /*
  * Helper functions
  */
 static void griddb_fdw_exit(int code, Datum arg);
-static void estimate_path_cost_size(PlannerInfo *root,
-						RelOptInfo *baserel,
-						List *join_conds,
-						List *pathkeys,
+static void estimate_path_cost_size(PlannerInfo * root,
+						RelOptInfo * baserel,
+						List * join_conds,
+						List * pathkeys,
 						double *p_rows, int *p_width,
-						Cost *p_startup_cost, Cost *p_total_cost);
+						Cost * p_startup_cost, Cost * p_total_cost);
 
 static void griddb_make_column_info(GSContainerInfo * cont_info,
 						GridDBFdwFieldInfo * field_info);
 static void griddb_free_column_info(GridDBFdwFieldInfo * field_info);
-static GSContainer *griddb_get_container(GSGridStore * store, GSChar * tablename);
-static Oid	griddb_pgtyp_from_gstyp(GSType gs_type, const char **name);
+static GSContainer * griddb_get_container(GSGridStore * store, GSChar * tablename);
+static Oid griddb_pgtyp_from_gstyp(GSType gs_type, const char **name);
 static Timestamp griddb_convert_gs2pg_timestamp(GSTimestamp ts);
 static GSTimestamp griddb_convert_pg2gs_timestamp(Timestamp dt);
 static Datum griddb_make_datum_from_row(GSRow * row, int32_t attid,
-						   GSType gs_type, Oid pg_type);
-static void griddb_execute_and_fetch(ForeignScanState *node);
+										GSType gs_type, Oid pg_type);
+static void griddb_execute_and_fetch(ForeignScanState * node);
 static void griddb_bind_for_putrow(GridDBFdwModifyState * fmstate,
-					   TupleTableSlot *slot,
+					   TupleTableSlot * slot,
 					   GSRow * row, Relation rel,
 					   GridDBFdwFieldInfo * field_info);
-static void griddb_add_column_name_and_type(StringInfoData *buf,
+static void griddb_add_column_name_and_type(StringInfoData * buf,
 								GSContainerInfo * info);
-static GSChar **grifddb_name_list_dup(const GSChar * const * src,
-					  size_t cont_size);
-static void grifddb_name_list_free(GSChar ** p, size_t cont_size);
-static void griddb_execute_commands(List *cmd_list);
+static GSChar * *grifddb_name_list_dup(const GSChar * const *src,
+									   size_t cont_size);
+static void grifddb_name_list_free(GSChar * *p, size_t cont_size);
+static void griddb_execute_commands(List * cmd_list);
 
 
 void
@@ -355,8 +355,8 @@ griddb_fdw_handler(PG_FUNCTION_ARGS)
  * not any join clauses.
  */
 static void
-griddbGetForeignRelSize(PlannerInfo *root,
-						RelOptInfo *baserel,
+griddbGetForeignRelSize(PlannerInfo * root,
+						RelOptInfo * baserel,
 						Oid foreigntableid)
 {
 	GriddbFdwRelationInfo *fpinfo;
@@ -492,8 +492,8 @@ griddbGetForeignRelSize(PlannerInfo *root,
  *		create access path for a scan on the foreign table
  */
 static void
-griddbGetForeignPaths(PlannerInfo *root,
-					  RelOptInfo *baserel,
+griddbGetForeignPaths(PlannerInfo * root,
+					  RelOptInfo * baserel,
 					  Oid foreigntableid)
 {
 	GriddbFdwRelationInfo *fpinfo =
@@ -508,14 +508,14 @@ griddbGetForeignPaths(PlannerInfo *root,
 	 * to estimate cost and size of this path.
 	 */
 	path = create_foreignscan_path(root, baserel,
-								   NULL,		/* default pathtarget */
+								   NULL,	/* default pathtarget */
 								   fpinfo->rows,
 								   fpinfo->startup_cost,
 								   fpinfo->total_cost,
 								   NIL, /* no pathkeys */
-								   NULL,		/* no outer rel either */
-								   NULL,		/* no extra plan */
-								   NIL);		/* no fdw_private list */
+								   NULL,	/* no outer rel either */
+								   NULL,	/* no extra plan */
+								   NIL);	/* no fdw_private list */
 	add_path(baserel, (Path *) path);
 
 	/*
@@ -534,13 +534,13 @@ griddbGetForeignPaths(PlannerInfo *root,
  *		Create ForeignScan plan node which implements selected best path
  */
 static ForeignScan *
-griddbGetForeignPlan(PlannerInfo *root,
-					 RelOptInfo *foreignrel,
+griddbGetForeignPlan(PlannerInfo * root,
+					 RelOptInfo * foreignrel,
 					 Oid foreigntableid,
-					 ForeignPath *best_path,
-					 List *tlist,
-					 List *scan_clauses,
-					 Plan *outer_plan)
+					 ForeignPath * best_path,
+					 List * tlist,
+					 List * scan_clauses,
+					 Plan * outer_plan)
 {
 	GriddbFdwRelationInfo *fpinfo =
 	(GriddbFdwRelationInfo *) foreignrel->fdw_private;
@@ -616,7 +616,7 @@ griddbGetForeignPlan(PlannerInfo *root,
 		 root->parse->commandType == CMD_DELETE))
 	{
 		/* Relation is UPDATE/DELETE target, so use FOR UPDATE */
-elog(INFO, "griddbGetForeignPlan for update.");
+		elog(INFO, "griddbGetForeignPlan for update.");
 		for_update = 1;
 	}
 
@@ -653,7 +653,7 @@ elog(INFO, "griddbGetForeignPlan for update.");
  */
 
 static void
-griddbBeginForeignScan(ForeignScanState *node, int eflags)
+griddbBeginForeignScan(ForeignScanState * node, int eflags)
 {
 	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
 	EState	   *estate = node->ss.ps.state;
@@ -698,7 +698,7 @@ griddbBeginForeignScan(ForeignScanState *node, int eflags)
 	 * establish new connection if necessary.
 	 */
 	fsstate->store = griddb_get_connection(user, false,
-							  RelationGetRelid(node->ss.ss_currentRelation));
+										   RelationGetRelid(node->ss.ss_currentRelation));
 
 	fsstate->cont_name = get_rel_name(rte->relid);
 	fsstate->cont = griddb_get_container(fsstate->store, fsstate->cont_name);
@@ -706,7 +706,7 @@ griddbBeginForeignScan(ForeignScanState *node, int eflags)
 	fsstate->query = strVal(list_nth(fsplan->fdw_private,
 									 FdwScanPrivateSelectSql));
 	fsstate->retrieved_attrs = (List *) list_nth(fsplan->fdw_private,
-											   FdwScanPrivateRetrievedAttrs);
+												 FdwScanPrivateRetrievedAttrs);
 	for_update = intVal(list_nth(fsplan->fdw_private,
 								 FdwScanPrivateForUpdate));
 	fsstate->for_update = for_update ? GS_TRUE : GS_FALSE;
@@ -714,7 +714,7 @@ griddbBeginForeignScan(ForeignScanState *node, int eflags)
 	fsstate->row = NULL;
 	fsstate->num_tuples = 0;
 	fsstate->cursor = 0;
-elog(INFO, "griddbBeginForeignScan for update");
+	elog(INFO, "griddbBeginForeignScan for update");
 
 	/*
 	 * Get info we'll need for converting data fetched from the foreign server
@@ -744,7 +744,7 @@ elog(INFO, "griddbBeginForeignScan for update");
  *	Return NULL if no more rows are available.
  */
 static TupleTableSlot *
-griddbIterateForeignScan(ForeignScanState *node)
+griddbIterateForeignScan(ForeignScanState * node)
 {
 	GridDBFdwScanState *fsstate = (GridDBFdwScanState *) node->fdw_state;
 	TupleTableSlot *tupleSlot = node->ss.ss_ScanTupleSlot;
@@ -803,7 +803,7 @@ griddbIterateForeignScan(ForeignScanState *node)
  *		Restart the scan from the beginning
  */
 static void
-griddbReScanForeignScan(ForeignScanState *node)
+griddbReScanForeignScan(ForeignScanState * node)
 {
 	GridDBFdwScanState *fsstate = (GridDBFdwScanState *) node->fdw_state;
 
@@ -825,7 +825,7 @@ griddbReScanForeignScan(ForeignScanState *node)
  *	End the scan and release resources.
  */
 static void
-griddbEndForeignScan(ForeignScanState *node)
+griddbEndForeignScan(ForeignScanState * node)
 {
 	GridDBFdwScanState *fsstate = (GridDBFdwScanState *) node->fdw_state;
 
@@ -858,8 +858,8 @@ griddbEndForeignScan(ForeignScanState *node)
  *	  So we are adding that into target list.
  */
 static void
-griddbAddForeignUpdateTargets(Query *parsetree,
-							  RangeTblEntry *target_rte,
+griddbAddForeignUpdateTargets(Query * parsetree,
+							  RangeTblEntry * target_rte,
 							  Relation target_relation)
 {
 	/* Do nothing */
@@ -870,8 +870,8 @@ griddbAddForeignUpdateTargets(Query *parsetree,
  *		Plan an insert/update/delete operation on a foreign table
  */
 static List *
-griddbPlanForeignModify(PlannerInfo *root,
-						ModifyTable *plan,
+griddbPlanForeignModify(PlannerInfo * root,
+						ModifyTable * plan,
 						Index resultRelation,
 						int subplan_index)
 {
@@ -920,7 +920,7 @@ griddbPlanForeignModify(PlannerInfo *root,
 			/* bit numbers are offset by FirstLowInvalidHeapAttributeNumber */
 			AttrNumber	attno = col + FirstLowInvalidHeapAttributeNumber;
 
-			if (attno <= InvalidAttrNumber)		/* shouldn't happen */
+			if (attno <= InvalidAttrNumber) /* shouldn't happen */
 				elog(ERROR, "system-column update is not supported");
 			targetAttrs = lappend_int(targetAttrs, attno);
 		}
@@ -956,9 +956,9 @@ griddbPlanForeignModify(PlannerInfo *root,
  *		Begin an insert/update/delete operation on a foreign table
  */
 static void
-griddbBeginForeignModify(ModifyTableState *mtstate,
-						 ResultRelInfo *resultRelInfo,
-						 List *fdw_private,
+griddbBeginForeignModify(ModifyTableState * mtstate,
+						 ResultRelInfo * resultRelInfo,
+						 List * fdw_private,
 						 int subplan_index,
 						 int eflags)
 {
@@ -1012,10 +1012,10 @@ griddbBeginForeignModify(ModifyTableState *mtstate,
  *		Insert one row into a foreign table
  */
 static TupleTableSlot *
-griddbExecForeignInsert(EState *estate,
-						ResultRelInfo *resultRelInfo,
-						TupleTableSlot *slot,
-						TupleTableSlot *planSlot)
+griddbExecForeignInsert(EState * estate,
+						ResultRelInfo * resultRelInfo,
+						TupleTableSlot * slot,
+						TupleTableSlot * planSlot)
 {
 	GridDBFdwModifyState *fmstate =
 	(GridDBFdwModifyState *) resultRelInfo->ri_FdwState;
@@ -1061,10 +1061,10 @@ griddbExecForeignInsert(EState *estate,
  *		Update one row in a foreign table
  */
 static TupleTableSlot *
-griddbExecForeignUpdate(EState *estate,
-						ResultRelInfo *resultRelInfo,
-						TupleTableSlot *slot,
-						TupleTableSlot *planSlot)
+griddbExecForeignUpdate(EState * estate,
+						ResultRelInfo * resultRelInfo,
+						TupleTableSlot * slot,
+						TupleTableSlot * planSlot)
 {
 	GridDBFdwModifyState *fmstate =
 	(GridDBFdwModifyState *) resultRelInfo->ri_FdwState;
@@ -1089,10 +1089,10 @@ griddbExecForeignUpdate(EState *estate,
  *		Delete one row from a foreign table
  */
 static TupleTableSlot *
-griddbExecForeignDelete(EState *estate,
-						ResultRelInfo *resultRelInfo,
-						TupleTableSlot *slot,
-						TupleTableSlot *planSlot)
+griddbExecForeignDelete(EState * estate,
+						ResultRelInfo * resultRelInfo,
+						TupleTableSlot * slot,
+						TupleTableSlot * planSlot)
 {
 	GridDBFdwModifyState *fmstate =
 	(GridDBFdwModifyState *) resultRelInfo->ri_FdwState;
@@ -1112,8 +1112,8 @@ griddbExecForeignDelete(EState *estate,
  *		Finish an insert/update/delete operation on a foreign table
  */
 static void
-griddbEndForeignModify(EState *estate,
-					   ResultRelInfo *resultRelInfo)
+griddbEndForeignModify(EState * estate,
+					   ResultRelInfo * resultRelInfo)
 {
 	GridDBFdwModifyState *fmstate =
 	(GridDBFdwModifyState *) resultRelInfo->ri_FdwState;
@@ -1182,8 +1182,8 @@ griddbIsForeignRelUpdatable(Relation rel)
  * rewrite subplan accordingly.
  */
 static bool
-griddbPlanDirectModify(PlannerInfo *root,
-					   ModifyTable *plan,
+griddbPlanDirectModify(PlannerInfo * root,
+					   ModifyTable * plan,
 					   Index resultRelation,
 					   int subplan_index)
 {
@@ -1196,7 +1196,7 @@ griddbPlanDirectModify(PlannerInfo *root,
  *		Produce extra output for EXPLAIN of a ForeignScan on a foreign table
  */
 static void
-griddbExplainForeignScan(ForeignScanState *node, ExplainState *es)
+griddbExplainForeignScan(ForeignScanState * node, ExplainState * es)
 {
 	List	   *fdw_private;
 	char	   *sql;
@@ -1218,11 +1218,11 @@ griddbExplainForeignScan(ForeignScanState *node, ExplainState *es)
  *		Produce extra output for EXPLAIN of a ModifyTable on a foreign table
  */
 static void
-griddbExplainForeignModify(ModifyTableState *mtstate,
-						   ResultRelInfo *rinfo,
-						   List *fdw_private,
+griddbExplainForeignModify(ModifyTableState * mtstate,
+						   ResultRelInfo * rinfo,
+						   List * fdw_private,
 						   int subplan_index,
-						   ExplainState *es)
+						   ExplainState * es)
 {
 	/* Not support now. */
 }
@@ -1233,8 +1233,8 @@ griddbExplainForeignModify(ModifyTableState *mtstate,
  */
 static bool
 griddbAnalyzeForeignTable(Relation relation,
-						  AcquireSampleRowsFunc *func,
-						  BlockNumber *totalpages)
+						  AcquireSampleRowsFunc * func,
+						  BlockNumber * totalpages)
 {
 	/* Not support now. */
 	return false;
@@ -1255,7 +1255,7 @@ griddbAnalyzeForeignTable(Relation relation,
  * LIST is completed, we execute commands by SPI.
  */
 static List *
-griddbImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
+griddbImportForeignSchema(ImportForeignSchemaStmt * stmt, Oid serverOid)
 {
 	List	   *commands = NIL;
 	List	   *commands_drop = NIL;
@@ -1306,7 +1306,7 @@ griddbImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 	for (part_idx = 0; part_idx < partition_count; part_idx++)
 	{
 		int			i;
-		const GSChar *const * name_list = NULL;
+		const		GSChar *const *name_list = NULL;
 		GSChar	  **cont_name_list;
 		size_t		cont_size;
 
@@ -1328,7 +1328,7 @@ griddbImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 		{
 			GSContainerInfo info = GS_CONTAINER_INFO_INITIALIZER;
 			GSBool		exists;
-			const GSChar *cont_name = cont_name_list[i];
+			const		GSChar *cont_name = cont_name_list[i];
 
 			/* Get schema of container */
 			ret = gsGetContainerInfo(store, cont_name, &info, &exists);
@@ -1389,12 +1389,12 @@ griddbImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
  * p_startup_cost and p_total_cost variables.
  */
 static void
-estimate_path_cost_size(PlannerInfo *root,
-						RelOptInfo *foreignrel,
-						List *param_join_conds,
-						List *pathkeys,
+estimate_path_cost_size(PlannerInfo * root,
+						RelOptInfo * foreignrel,
+						List * param_join_conds,
+						List * pathkeys,
 						double *p_rows, int *p_width,
-						Cost *p_startup_cost, Cost *p_total_cost)
+						Cost * p_startup_cost, Cost * p_total_cost)
 {
 	GriddbFdwRelationInfo *fpinfo =
 	(GriddbFdwRelationInfo *) foreignrel->fdw_private;
@@ -1525,7 +1525,7 @@ estimate_path_cost_size(PlannerInfo *root,
  * the indicated relation.
  */
 extern Expr *
-griddb_find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel)
+griddb_find_em_expr_for_rel(EquivalenceClass * ec, RelOptInfo * rel)
 {
 	ListCell   *lc_em;
 
@@ -1564,7 +1564,7 @@ griddb_make_column_info(GSContainerInfo * cont_info,
 	field_info->column_count = cont_info->columnCount;
 
 	field_info->column_names =
-		(GSChar **) palloc0(sizeof(GSChar *) * cont_info->columnCount);
+		(GSChar * *) palloc0(sizeof(GSChar *) * cont_info->columnCount);
 	for (i = 0; i < cont_info->columnCount; i++)
 		field_info->column_names[i] =
 			pstrdup(cont_info->columnInfoList[i].name);
@@ -1798,7 +1798,7 @@ griddb_convert_pg2gs_timestamp(Timestamp dt)
  * They are used for data type conversion.
  */
 static void
-griddb_get_datatype_for_convertion(Oid pg_type, regproc *typeinput,
+griddb_get_datatype_for_convertion(Oid pg_type, regproc * typeinput,
 								   int *typemod)
 {
 	HeapTuple	hptuple;
@@ -1833,7 +1833,7 @@ griddb_make_datum_from_row(GSRow * row, int32_t attid, GSType gs_type,
 	{
 		case GS_TYPE_STRING:
 			{
-				const GSChar *strVal;
+				const		GSChar *strVal;
 
 				griddb_get_datatype_for_convertion(pg_type, &typeinput, &typemod);
 				ret = gsGetRowFieldAsString(row, attid, &strVal);
@@ -1848,7 +1848,7 @@ griddb_make_datum_from_row(GSRow * row, int32_t attid, GSType gs_type,
 
 		case GS_TYPE_GEOMETRY:
 			{
-				const GSChar *strVal;
+				const		GSChar *strVal;
 
 				griddb_get_datatype_for_convertion(pg_type, &typeinput, &typemod);
 				ret = gsGetRowFieldAsGeometry(row, attid, &strVal);
@@ -1974,7 +1974,7 @@ griddb_make_datum_from_row(GSRow * row, int32_t attid, GSType gs_type,
 
 		case GS_TYPE_STRING_ARRAY:
 			{
-				const GSChar *const * strVal;
+				const		GSChar *const *strVal;
 
 				griddb_get_datatype_for_convertion(TEXTOID, &typeinput, &typemod);
 				ret = gsGetRowFieldAsStringArray(row, attid, &strVal, &size);
@@ -1986,8 +1986,8 @@ griddb_make_datum_from_row(GSRow * row, int32_t attid, GSType gs_type,
 				{
 					value_datum = CStringGetDatum(strVal[i]);
 					value_datums[i] = OidFunctionCall3(typeinput, value_datum,
-												ObjectIdGetDatum(InvalidOid),
-													 Int32GetDatum(typemod));
+													   ObjectIdGetDatum(InvalidOid),
+													   Int32GetDatum(typemod));
 				}
 				arry = construct_array(value_datums, size, TEXTOID,
 									   -1, false, 'i');
@@ -1997,7 +1997,7 @@ griddb_make_datum_from_row(GSRow * row, int32_t attid, GSType gs_type,
 
 		case GS_TYPE_BOOL_ARRAY:
 			{
-				const GSBool *boolVal;
+				const		GSBool *boolVal;
 
 				ret = gsGetRowFieldAsBoolArray(row, attid, &boolVal, &size);
 				if (!GS_SUCCEEDED(ret))
@@ -2014,7 +2014,7 @@ griddb_make_datum_from_row(GSRow * row, int32_t attid, GSType gs_type,
 
 		case GS_TYPE_BYTE_ARRAY:
 			{
-				const int8_t *byteVal;
+				const		int8_t *byteVal;
 
 				ret = gsGetRowFieldAsByteArray(row, attid, &byteVal, &size);
 				if (!GS_SUCCEEDED(ret))
@@ -2031,7 +2031,7 @@ griddb_make_datum_from_row(GSRow * row, int32_t attid, GSType gs_type,
 
 		case GS_TYPE_SHORT_ARRAY:
 			{
-				const int16_t *shortVal;
+				const		int16_t *shortVal;
 
 				ret = gsGetRowFieldAsShortArray(row, attid, &shortVal, &size);
 				if (!GS_SUCCEEDED(ret))
@@ -2048,7 +2048,7 @@ griddb_make_datum_from_row(GSRow * row, int32_t attid, GSType gs_type,
 
 		case GS_TYPE_INTEGER_ARRAY:
 			{
-				const int32_t *intVal;
+				const		int32_t *intVal;
 
 				ret = gsGetRowFieldAsIntegerArray(row, attid, &intVal, &size);
 				if (!GS_SUCCEEDED(ret))
@@ -2065,7 +2065,7 @@ griddb_make_datum_from_row(GSRow * row, int32_t attid, GSType gs_type,
 
 		case GS_TYPE_LONG_ARRAY:
 			{
-				const int64_t *longVal;
+				const		int64_t *longVal;
 
 				ret = gsGetRowFieldAsLongArray(row, attid, &longVal, &size);
 				if (!GS_SUCCEEDED(ret))
@@ -2120,7 +2120,7 @@ griddb_make_datum_from_row(GSRow * row, int32_t attid, GSType gs_type,
 
 		case GS_TYPE_TIMESTAMP_ARRAY:
 			{
-				const GSTimestamp *tsVal;
+				const		GSTimestamp *tsVal;
 
 				ret = gsGetRowFieldAsTimestampArray(row, attid, &tsVal, &size);
 				if (!GS_SUCCEEDED(ret))
@@ -2151,7 +2151,7 @@ griddb_make_datum_from_row(GSRow * row, int32_t attid, GSType gs_type,
  * Execute TQL on foreign server and fetch row set.
  */
 static void
-griddb_execute_and_fetch(ForeignScanState *node)
+griddb_execute_and_fetch(ForeignScanState * node)
 {
 	GridDBFdwScanState *fsstate = (GridDBFdwScanState *) node->fdw_state;
 	GSResult	ret;
@@ -2184,8 +2184,8 @@ griddb_execute_and_fetch(ForeignScanState *node)
 	/* griddb_sm_share is shared with ForeignModify */
 	if (fsstate->for_update)
 	{
-elog(INFO, "griddb_execute_and_fetch for update.");
-        griddb_sm_share.row_set = fsstate->row_set;
+		elog(INFO, "griddb_execute_and_fetch for update.");
+		griddb_sm_share.row_set = fsstate->row_set;
 		griddb_sm_share.row = fsstate->row;
 		griddb_make_column_info(&cont_info, &griddb_sm_share.field_info);
 	}
@@ -2197,7 +2197,7 @@ elog(INFO, "griddb_execute_and_fetch for update.");
  */
 static void
 griddb_bind_for_putrow(GridDBFdwModifyState * fmstate,
-					   TupleTableSlot *slot, GSRow * row,
+					   TupleTableSlot * slot, GSRow * row,
 					   Relation rel, GridDBFdwFieldInfo * field_info)
 {
 	ListCell   *lc;
@@ -2382,7 +2382,7 @@ griddb_bind_for_putrow(GridDBFdwModifyState * fmstate,
 
 			case GS_TYPE_STRING_ARRAY:
 				{
-					const GSChar **stringaData;
+					const		GSChar **stringaData;
 
 					array = DatumGetArrayTypeP(value);
 					elmtype = ARR_ELEMTYPE(array);
@@ -2392,7 +2392,7 @@ griddb_bind_for_putrow(GridDBFdwModifyState * fmstate,
 									  &elem_values, &elem_nulls, &num_elems);
 					getTypeOutputInfo(TEXTOID, &outputFunctionId, &typeVarLength);
 
-					stringaData = (const GSChar **) palloc0(sizeof(GSChar *) * num_elems);
+					stringaData = (const GSChar * *) palloc0(sizeof(GSChar *) * num_elems);
 					for (i = 0; i < num_elems; i++)
 					{
 						Assert(!elem_nulls[i]);
@@ -2632,7 +2632,7 @@ griddb_bind_for_putrow(GridDBFdwModifyState * fmstate,
  * Then a column type name is decided.
  */
 static void
-griddb_add_column_name_and_type(StringInfoData *buf, GSContainerInfo * info)
+griddb_add_column_name_and_type(StringInfoData * buf, GSContainerInfo * info)
 {
 	size_t		iCol;
 	bool		first_item = true;
@@ -2657,11 +2657,10 @@ griddb_add_column_name_and_type(StringInfoData *buf, GSContainerInfo * info)
 	}
 }
 
-static GSChar **
-grifddb_name_list_dup(const GSChar * const * src, size_t cont_size)
+static GSChar * *grifddb_name_list_dup(const GSChar * const *src, size_t cont_size)
 {
 	size_t		i;
-	GSChar	  **dst = (GSChar **) palloc0(sizeof(GSChar *) * cont_size);
+	GSChar	  **dst = (GSChar * *) palloc0(sizeof(GSChar *) * cont_size);
 
 	for (i = 0; i < cont_size; i++)
 		dst[i] = pstrdup(src[i]);
@@ -2670,7 +2669,7 @@ grifddb_name_list_dup(const GSChar * const * src, size_t cont_size)
 }
 
 static void
-grifddb_name_list_free(GSChar ** p, size_t cont_size)
+grifddb_name_list_free(GSChar * *p, size_t cont_size)
 {
 	size_t		i;
 
@@ -2683,7 +2682,7 @@ grifddb_name_list_free(GSChar ** p, size_t cont_size)
  * Executes commands given by an argument.
  */
 static void
-griddb_execute_commands(List *cmd_list)
+griddb_execute_commands(List * cmd_list)
 {
 	ListCell   *lc;
 

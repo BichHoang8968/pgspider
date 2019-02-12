@@ -68,9 +68,9 @@ typedef struct SetOpStatePerGroupData
 }			SetOpStatePerGroupData;
 
 
-static TupleTableSlot *setop_retrieve_direct(SetOpState *setopstate);
-static void setop_fill_hash_table(SetOpState *setopstate);
-static TupleTableSlot *setop_retrieve_hash_table(SetOpState *setopstate);
+static TupleTableSlot * setop_retrieve_direct(SetOpState * setopstate);
+static void setop_fill_hash_table(SetOpState * setopstate);
+static TupleTableSlot * setop_retrieve_hash_table(SetOpState * setopstate);
 
 
 /*
@@ -99,7 +99,7 @@ advance_counts(SetOpStatePerGroup pergroup, int flag)
  * This is an integer column with value 0 for left side, 1 for right side.
  */
 static int
-fetch_tuple_flag(SetOpState *setopstate, TupleTableSlot *inputslot)
+fetch_tuple_flag(SetOpState * setopstate, TupleTableSlot * inputslot)
 {
 	SetOp	   *node = (SetOp *) setopstate->ps.plan;
 	int			flag;
@@ -117,7 +117,7 @@ fetch_tuple_flag(SetOpState *setopstate, TupleTableSlot *inputslot)
  * Initialize the hash table to empty.
  */
 static void
-build_hash_table(SetOpState *setopstate)
+build_hash_table(SetOpState * setopstate)
 {
 	SetOp	   *node = (SetOp *) setopstate->ps.plan;
 
@@ -141,7 +141,7 @@ build_hash_table(SetOpState *setopstate)
  * This logic is straight from the SQL92 specification.
  */
 static void
-set_output_count(SetOpState *setopstate, SetOpStatePerGroup pergroup)
+set_output_count(SetOpState * setopstate, SetOpStatePerGroup pergroup)
 {
 	SetOp	   *plannode = (SetOp *) setopstate->ps.plan;
 
@@ -181,7 +181,7 @@ set_output_count(SetOpState *setopstate, SetOpStatePerGroup pergroup)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *			/* return: a tuple or NULL */
-ExecSetOp(PlanState *pstate)
+ExecSetOp(PlanState * pstate)
 {
 	SetOpState *node = castNode(SetOpState, pstate);
 	SetOp	   *plannode = (SetOp *) node->ps.plan;
@@ -218,7 +218,7 @@ ExecSetOp(PlanState *pstate)
  * ExecSetOp for non-hashed case
  */
 static TupleTableSlot *
-setop_retrieve_direct(SetOpState *setopstate)
+setop_retrieve_direct(SetOpState * setopstate)
 {
 	SetOp	   *node = (SetOp *) setopstate->ps.plan;
 	PlanState  *outerPlan;
@@ -332,7 +332,7 @@ setop_retrieve_direct(SetOpState *setopstate)
  * ExecSetOp for hashed case: phase 1, read input and build hash table
  */
 static void
-setop_fill_hash_table(SetOpState *setopstate)
+setop_fill_hash_table(SetOpState * setopstate)
 {
 	SetOp	   *node = (SetOp *) setopstate->ps.plan;
 	PlanState  *outerPlan;
@@ -417,7 +417,7 @@ setop_fill_hash_table(SetOpState *setopstate)
  * ExecSetOp for hashed case: phase 2, retrieving groups from hash table
  */
 static TupleTableSlot *
-setop_retrieve_hash_table(SetOpState *setopstate)
+setop_retrieve_hash_table(SetOpState * setopstate)
 {
 	TupleHashEntryData *entry;
 	TupleTableSlot *resultTupleSlot;
@@ -473,7 +473,7 @@ setop_retrieve_hash_table(SetOpState *setopstate)
  * ----------------------------------------------------------------
  */
 SetOpState *
-ExecInitSetOp(SetOp *node, EState *estate, int eflags)
+ExecInitSetOp(SetOp * node, EState * estate, int eflags)
 {
 	SetOpState *setopstate;
 
@@ -579,7 +579,7 @@ ExecInitSetOp(SetOp *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndSetOp(SetOpState *node)
+ExecEndSetOp(SetOpState * node)
 {
 	/* clean up tuple table */
 	ExecClearTuple(node->ps.ps_ResultTupleSlot);
@@ -594,7 +594,7 @@ ExecEndSetOp(SetOpState *node)
 
 
 void
-ExecReScanSetOp(SetOpState *node)
+ExecReScanSetOp(SetOpState * node)
 {
 	ExecClearTuple(node->ps.ps_ResultTupleSlot);
 	node->setop_done = false;

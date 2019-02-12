@@ -95,7 +95,7 @@ typedef struct HashSkewBucket
 {
 	uint32		hashvalue;		/* common hash value */
 	HashJoinTuple tuples;		/* linked list of inner-relation tuples */
-} HashSkewBucket;
+}			HashSkewBucket;
 
 #define SKEW_BUCKET_OVERHEAD  MAXALIGN(sizeof(HashSkewBucket))
 #define INVALID_SKEW_BUCKET_NO	(-1)

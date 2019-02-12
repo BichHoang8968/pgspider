@@ -74,15 +74,15 @@ typedef struct
 {
 	List	   *initial_rels;	/* the base relations we are joining */
 	unsigned short random_state[3]; /* state for pg_erand48() */
-} GeqoPrivateData;
+}			GeqoPrivateData;
 
 
 /* routines in geqo_main.c */
-extern RelOptInfo *geqo(PlannerInfo *root,
-	 int number_of_rels, List *initial_rels);
+extern RelOptInfo * geqo(PlannerInfo * root,
+						 int number_of_rels, List * initial_rels);
 
 /* routines in geqo_eval.c */
-extern Cost geqo_eval(PlannerInfo *root, Gene *tour, int num_gene);
-extern RelOptInfo *gimme_tree(PlannerInfo *root, Gene *tour, int num_gene);
+extern Cost geqo_eval(PlannerInfo * root, Gene * tour, int num_gene);
+extern RelOptInfo * gimme_tree(PlannerInfo * root, Gene * tour, int num_gene);
 
 #endif							/* GEQO_H */

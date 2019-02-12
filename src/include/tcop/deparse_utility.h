@@ -30,7 +30,7 @@ typedef enum CollectedCommandType
 	SCT_AlterDefaultPrivileges,
 	SCT_CreateOpClass,
 	SCT_AlterTSConfig
-} CollectedCommandType;
+}			CollectedCommandType;
 
 /*
  * For ALTER TABLE commands, we keep a list of the subcommands therein.
@@ -39,7 +39,7 @@ typedef struct CollectedATSubcmd
 {
 	ObjectAddress address;		/* affected column, constraint, index, ... */
 	Node	   *parsetree;
-} CollectedATSubcmd;
+}			CollectedATSubcmd;
 
 typedef struct CollectedCommand
 {
@@ -100,6 +100,6 @@ typedef struct CollectedCommand
 			GrantObjectType objtype;
 		}			defprivs;
 	}			d;
-} CollectedCommand;
+}			CollectedCommand;
 
 #endif							/* DEPARSE_UTILITY_H */

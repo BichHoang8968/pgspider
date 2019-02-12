@@ -43,8 +43,8 @@ typedef struct DirectoryMethodData
 	char	   *basedir;
 	int			compression;
 	bool		sync;
-} DirectoryMethodData;
-static DirectoryMethodData *dir_data = NULL;
+}			DirectoryMethodData;
+static DirectoryMethodData * dir_data = NULL;
 
 /*
  * Local file handle
@@ -59,7 +59,7 @@ typedef struct DirectoryMethodFile
 #ifdef HAVE_LIBZ
 	gzFile		gzfp;
 #endif
-} DirectoryMethodFile;
+}			DirectoryMethodFile;
 
 static const char *
 dir_getlasterror(void)
@@ -391,7 +391,7 @@ typedef struct TarMethodFile
 	char		header[512];
 	char	   *pathname;
 	size_t		pad_to_size;
-} TarMethodFile;
+}			TarMethodFile;
 
 typedef struct TarMethodData
 {
@@ -405,8 +405,8 @@ typedef struct TarMethodData
 	z_streamp	zp;
 	void	   *zlibOut;
 #endif
-} TarMethodData;
-static TarMethodData *tar_data = NULL;
+}			TarMethodData;
+static TarMethodData * tar_data = NULL;
 
 #define tar_clear_error() tar_data->lasterror[0] = '\0'
 #define tar_set_error(msg) strlcpy(tar_data->lasterror, _(msg), sizeof(tar_data->lasterror))
@@ -510,7 +510,7 @@ tar_write(Walfile f, const void *buf, size_t count)
 }
 
 static bool
-tar_write_padding_data(TarMethodFile *f, size_t bytes)
+tar_write_padding_data(TarMethodFile * f, size_t bytes)
 {
 	char	   *zerobuf = pg_malloc0(XLOG_BLCKSZ);
 	size_t		bytesleft = bytes;

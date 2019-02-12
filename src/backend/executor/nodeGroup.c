@@ -33,7 +33,7 @@
  *		Return one tuple for each group of matching input tuples.
  */
 static TupleTableSlot *
-ExecGroup(PlanState *pstate)
+ExecGroup(PlanState * pstate)
 {
 	GroupState *node = castNode(GroupState, pstate);
 	ExprContext *econtext;
@@ -163,7 +163,7 @@ ExecGroup(PlanState *pstate)
  * -----------------
  */
 GroupState *
-ExecInitGroup(Group *node, EState *estate, int eflags)
+ExecInitGroup(Group * node, EState * estate, int eflags)
 {
 	GroupState *grpstate;
 
@@ -228,7 +228,7 @@ ExecInitGroup(Group *node, EState *estate, int eflags)
  * -----------------------
  */
 void
-ExecEndGroup(GroupState *node)
+ExecEndGroup(GroupState * node)
 {
 	PlanState  *outerPlan;
 
@@ -242,7 +242,7 @@ ExecEndGroup(GroupState *node)
 }
 
 void
-ExecReScanGroup(GroupState *node)
+ExecReScanGroup(GroupState * node)
 {
 	PlanState  *outerPlan = outerPlanState(node);
 

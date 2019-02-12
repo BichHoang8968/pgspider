@@ -23,13 +23,13 @@ typedef struct MorphOpaque
 {
 	Oid			cfg_id;
 	int			qoperator;		/* query operator */
-} MorphOpaque;
+}			MorphOpaque;
 
 typedef struct TSVectorBuildState
 {
 	ParsedText *prs;
 	Oid			cfgId;
-} TSVectorBuildState;
+}			TSVectorBuildState;
 
 static void add_to_tsvector(void *_state, char *elem_value, int elem_len);
 
@@ -65,7 +65,7 @@ compareWORD(const void *a, const void *b)
 }
 
 static int
-uniqueWORD(ParsedWord *a, int32 l)
+uniqueWORD(ParsedWord * a, int32 l)
 {
 	ParsedWord *ptr,
 			   *res;
@@ -153,7 +153,7 @@ uniqueWORD(ParsedWord *a, int32 l)
  * Note: frees prs->words and subsidiary data.
  */
 TSVector
-make_tsvector(ParsedText *prs)
+make_tsvector(ParsedText * prs)
 {
 	int			i,
 				j,

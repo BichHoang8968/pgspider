@@ -487,8 +487,8 @@ _hash_firstfreebit(uint32 map)
  */
 BlockNumber
 _hash_freeovflpage(Relation rel, Buffer bucketbuf, Buffer ovflbuf,
-				   Buffer wbuf, IndexTuple *itups, OffsetNumber *itup_offsets,
-				   Size *tups_size, uint16 nitups,
+				   Buffer wbuf, IndexTuple * itups, OffsetNumber * itup_offsets,
+				   Size * tups_size, uint16 nitups,
 				   BufferAccessStrategy bstrategy)
 {
 	HashMetaPage metap;

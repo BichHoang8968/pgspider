@@ -84,7 +84,7 @@ cnt_length(TSVector t)
  * Returns NULL if not found.
  */
 static WordEntry *
-find_wordentry(TSVector t, TSQuery q, QueryOperand *item, int32 *nitem)
+find_wordentry(TSVector t, TSQuery q, QueryOperand * item, int32 * nitem)
 {
 	WordEntry  *StopLow = ARRPTR(t);
 	WordEntry  *StopHigh = (WordEntry *) STRPTR(t);
@@ -136,8 +136,8 @@ static int
 compareQueryOperand(const void *a, const void *b, void *arg)
 {
 	char	   *operand = (char *) arg;
-	QueryOperand *qa = (*(QueryOperand *const *) a);
-	QueryOperand *qb = (*(QueryOperand *const *) b);
+	QueryOperand *qa = (*(QueryOperand * const *) a);
+	QueryOperand *qb = (*(QueryOperand * const *) b);
 
 	return tsCompareString(operand + qa->distance, qa->length,
 						   operand + qb->distance, qb->length,
@@ -151,8 +151,7 @@ compareQueryOperand(const void *a, const void *b, void *arg)
  *
  * Length of the returned array is stored in *size
  */
-static QueryOperand **
-SortAndUniqItems(TSQuery q, int *size)
+static QueryOperand * *SortAndUniqItems(TSQuery q, int *size)
 {
 	char	   *operand = GETOPERAND(q);
 	QueryItem  *item = GETQUERY(q);
@@ -160,7 +159,7 @@ SortAndUniqItems(TSQuery q, int *size)
 			  **ptr,
 			  **prevptr;
 
-	ptr = res = (QueryOperand **) palloc(sizeof(QueryOperand *) * *size);
+	ptr = res = (QueryOperand * *) palloc(sizeof(QueryOperand *) * *size);
 
 	/* Collect all operands from the tree to res */
 	while ((*size)--)
@@ -225,13 +224,13 @@ calc_rank_and(const float *w, TSVector t, TSQuery q)
 		pfree(item);
 		return calc_rank_or(w, t, q);
 	}
-	pos = (WordEntryPosVector **) palloc0(sizeof(WordEntryPosVector *) * q->size);
+	pos = (WordEntryPosVector * *) palloc0(sizeof(WordEntryPosVector *) * q->size);
 
 	/* A dummy WordEntryPos array to use when haspos is false */
 	posnull.npos = 1;
 	posnull.pos[0] = 0;
 	WEP_SETPOS(posnull.pos[0], MAXENTRYPOS - 1);
-	POSNULL = (WordEntryPosVector *) &posnull;
+	POSNULL = (WordEntryPosVector *) & posnull;
 
 	for (i = 0; i < size; i++)
 	{
@@ -398,7 +397,7 @@ calc_rank(const float *w, TSVector t, TSQuery q, int32 method)
 }
 
 static const float *
-getWeights(ArrayType *win)
+getWeights(ArrayType * win)
 {
 	static float ws[lengthof(weights)];
 	int			i;
@@ -514,13 +513,13 @@ typedef struct
 		}			map;
 	}			data;
 	WordEntryPos pos;
-} DocRepresentation;
+}			DocRepresentation;
 
 static int
 compareDocR(const void *va, const void *vb)
 {
-	const DocRepresentation *a = (const DocRepresentation *) va;
-	const DocRepresentation *b = (const DocRepresentation *) vb;
+	const		DocRepresentation *a = (const DocRepresentation *) va;
+	const		DocRepresentation *b = (const DocRepresentation *) vb;
 
 	if (WEP_GETPOS(a->pos) == WEP_GETPOS(b->pos))
 	{
@@ -546,19 +545,19 @@ typedef struct
 								 * descending order */
 	uint32		npos;
 	WordEntryPos pos[MAXQROPOS];
-} QueryRepresentationOperand;
+}			QueryRepresentationOperand;
 
 typedef struct
 {
 	TSQuery		query;
 	QueryRepresentationOperand *operandData;
-} QueryRepresentation;
+}			QueryRepresentation;
 
 #define QR_GET_OPERAND_DATA(q, v) \
 	( (q)->operandData + (((QueryItem*)(v)) - GETQUERY((q)->query)) )
 
 static bool
-checkcondition_QueryOperand(void *checkval, QueryOperand *val, ExecPhraseData *data)
+checkcondition_QueryOperand(void *checkval, QueryOperand * val, ExecPhraseData * data)
 {
 	QueryRepresentation *qr = (QueryRepresentation *) checkval;
 	QueryRepresentationOperand *opData = QR_GET_OPERAND_DATA(qr, val);
@@ -584,10 +583,10 @@ typedef struct
 	int			q;
 	DocRepresentation *begin;
 	DocRepresentation *end;
-} CoverExt;
+}			CoverExt;
 
 static void
-resetQueryRepresentation(QueryRepresentation *qr, bool reverseinsert)
+resetQueryRepresentation(QueryRepresentation * qr, bool reverseinsert)
 {
 	int			i;
 
@@ -600,7 +599,7 @@ resetQueryRepresentation(QueryRepresentation *qr, bool reverseinsert)
 }
 
 static void
-fillQueryRepresentationData(QueryRepresentation *qr, DocRepresentation *entry)
+fillQueryRepresentationData(QueryRepresentation * qr, DocRepresentation * entry)
 {
 	int			i;
 	int			lastPos;
@@ -640,7 +639,7 @@ fillQueryRepresentationData(QueryRepresentation *qr, DocRepresentation *entry)
 }
 
 static bool
-Cover(DocRepresentation *doc, int len, QueryRepresentation *qr, CoverExt *ext)
+Cover(DocRepresentation * doc, int len, QueryRepresentation * qr, CoverExt * ext)
 {
 	DocRepresentation *ptr;
 	int			lastpos = ext->pos;
@@ -721,7 +720,7 @@ Cover(DocRepresentation *doc, int len, QueryRepresentation *qr, CoverExt *ext)
 }
 
 static DocRepresentation *
-get_docrep(TSVector txt, QueryRepresentation *qr, int *doclen)
+get_docrep(TSVector txt, QueryRepresentation * qr, int *doclen)
 {
 	QueryItem  *item = GETQUERY(qr->query);
 	WordEntry  *entry,
@@ -844,7 +843,7 @@ get_docrep(TSVector txt, QueryRepresentation *qr, int *doclen)
 }
 
 static float4
-calc_rank_cd(const float4 *arrdata, TSVector txt, TSQuery query, int method)
+calc_rank_cd(const float4 * arrdata, TSVector txt, TSQuery query, int method)
 {
 	DocRepresentation *doc;
 	int			len,

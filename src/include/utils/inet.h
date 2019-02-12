@@ -25,7 +25,7 @@ typedef struct
 	unsigned char family;		/* PGSQL_AF_INET or PGSQL_AF_INET6 */
 	unsigned char bits;			/* number of bits in netmask */
 	unsigned char ipaddr[16];	/* up to 128 bits of address */
-} inet_struct;
+}			inet_struct;
 
 /*
  * We use these values for the "family" field.
@@ -53,7 +53,7 @@ typedef struct
 {
 	char		vl_len_[4];		/* Do not touch this field directly! */
 	inet_struct inet_data;
-} inet;
+}			inet;
 
 /*
  *	Access macros.  We use VARDATA_ANY so that we can process short-header
@@ -99,7 +99,7 @@ typedef struct macaddr
 	unsigned char d;
 	unsigned char e;
 	unsigned char f;
-} macaddr;
+}			macaddr;
 
 /*
  *	This is the internal storage format for MAC8 addresses:
@@ -114,7 +114,7 @@ typedef struct macaddr8
 	unsigned char f;
 	unsigned char g;
 	unsigned char h;
-} macaddr8;
+}			macaddr8;
 
 /*
  * fmgr interface macros
@@ -142,7 +142,7 @@ typedef struct macaddr8
 /*
  * Support functions in network.c
  */
-extern inet *cidr_set_masklen_internal(const inet *src, int bits);
+extern inet * cidr_set_masklen_internal(const inet * src, int bits);
 extern int	bitncmp(const unsigned char *l, const unsigned char *r, int n);
 extern int	bitncommon(const unsigned char *l, const unsigned char *r, int n);
 

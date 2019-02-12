@@ -38,7 +38,7 @@
 #endif							/* FRONTEND */
 
 
-const ScanKeyword ScanKeywords[] = {
+const		ScanKeyword ScanKeywords[] = {
 #include "parser/kwlist.h"
 };
 
@@ -60,16 +60,16 @@ const int	NumScanKeywords = lengthof(ScanKeywords);
  * keywords are to be matched in this way even though non-keyword identifiers
  * receive a different case-normalization mapping.
  */
-const ScanKeyword *
+const		ScanKeyword *
 ScanKeywordLookup(const char *text,
-				  const ScanKeyword *keywords,
+				  const ScanKeyword * keywords,
 				  int num_keywords)
 {
 	int			len,
 				i;
 	char		word[NAMEDATALEN];
-	const ScanKeyword *low;
-	const ScanKeyword *high;
+	const		ScanKeyword *low;
+	const		ScanKeyword *high;
 
 	len = strlen(text);
 	/* We assume all keywords are shorter than NAMEDATALEN. */
@@ -97,7 +97,7 @@ ScanKeywordLookup(const char *text,
 	high = keywords + (num_keywords - 1);
 	while (low <= high)
 	{
-		const ScanKeyword *middle;
+		const		ScanKeyword *middle;
 		int			difference;
 
 		middle = low + (high - low) / 2;

@@ -36,7 +36,7 @@ typedef struct
 
 	/* subtransaction in which current Executor call was started */
 	SubTransactionId execSubid;
-} _SPI_connection;
+}			_SPI_connection;
 
 /*
  * SPI plans have three states: saved, unsaved, or temporary.
@@ -89,6 +89,6 @@ typedef struct _SPI_plan
 	Oid		   *argtypes;		/* Argument types (NULL if nargs is 0) */
 	ParserSetupHook parserSetup;	/* alternative parameter spec method */
 	void	   *parserSetupArg;
-} _SPI_plan;
+}			_SPI_plan;
 
 #endif							/* SPI_PRIV_H */

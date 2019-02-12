@@ -54,7 +54,7 @@ CATALOG(pg_operator,2617)
  *		the format of pg_operator relation.
  * ----------------
  */
-typedef FormData_pg_operator *Form_pg_operator;
+typedef FormData_pg_operator * Form_pg_operator;
 
 /* ----------------
  *		compiler constants for pg_operator

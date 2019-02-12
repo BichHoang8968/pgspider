@@ -83,8 +83,8 @@ static void *AnonymousShmem = NULL;
 static void *InternalIpcMemoryCreate(IpcMemoryKey memKey, Size size);
 static void IpcMemoryDetach(int status, Datum shmaddr);
 static void IpcMemoryDelete(int status, Datum shmId);
-static PGShmemHeader *PGSharedMemoryAttach(IpcMemoryKey key,
-					 IpcMemoryId *shmid);
+static PGShmemHeader * PGSharedMemoryAttach(IpcMemoryKey key,
+											IpcMemoryId * shmid);
 
 
 /*
@@ -349,7 +349,7 @@ PGSharedMemoryIsInUse(unsigned long id1, unsigned long id2)
 
 	hdr = (PGShmemHeader *) shmat(shmId, NULL, PG_SHMAT_FLAGS);
 
-	if (hdr == (PGShmemHeader *) -1)
+	if (hdr == (PGShmemHeader *) - 1)
 		return true;			/* if can't attach, be conservative */
 
 	if (hdr->magic != PGShmemMagic ||
@@ -399,7 +399,7 @@ PGSharedMemoryIsInUse(unsigned long id1, unsigned long id2)
  * non-default huge page size.
  */
 static void
-GetHugePageSize(Size *hugepagesize, int *mmap_flags)
+GetHugePageSize(Size * hugepagesize, int *mmap_flags)
 {
 	/*
 	 * If we fail to find out the system's default huge page size, assume it
@@ -454,7 +454,7 @@ GetHugePageSize(Size *hugepagesize, int *mmap_flags)
  * larger than requested.
  */
 static void *
-CreateAnonymousSegment(Size *size)
+CreateAnonymousSegment(Size * size)
 {
 	Size		allocsize = *size;
 	void	   *ptr = MAP_FAILED;
@@ -556,7 +556,7 @@ AnonymousShmemDetach(int status, Datum arg)
  */
 PGShmemHeader *
 PGSharedMemoryCreate(Size size, bool makePrivate, int port,
-					 PGShmemHeader **shim)
+					 PGShmemHeader * *shim)
 {
 	IpcMemoryKey NextShmemSegID;
 	void	   *memAddress;
@@ -819,7 +819,7 @@ PGSharedMemoryDetach(void)
  * Returns attach address if OK, else NULL
  */
 static PGShmemHeader *
-PGSharedMemoryAttach(IpcMemoryKey key, IpcMemoryId *shmid)
+PGSharedMemoryAttach(IpcMemoryKey key, IpcMemoryId * shmid)
 {
 	PGShmemHeader *hdr;
 
@@ -828,7 +828,7 @@ PGSharedMemoryAttach(IpcMemoryKey key, IpcMemoryId *shmid)
 
 	hdr = (PGShmemHeader *) shmat(*shmid, UsedShmemSegAddr, PG_SHMAT_FLAGS);
 
-	if (hdr == (PGShmemHeader *) -1)
+	if (hdr == (PGShmemHeader *) - 1)
 		return NULL;			/* failed: must be some other app's */
 
 	if (hdr->magic != PGShmemMagic)

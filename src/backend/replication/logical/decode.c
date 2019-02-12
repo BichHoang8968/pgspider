@@ -51,30 +51,30 @@ typedef struct XLogRecordBuffer
 	XLogRecPtr	origptr;
 	XLogRecPtr	endptr;
 	XLogReaderState *record;
-} XLogRecordBuffer;
+}			XLogRecordBuffer;
 
 /* RMGR Handlers */
-static void DecodeXLogOp(LogicalDecodingContext *ctx, XLogRecordBuffer *buf);
-static void DecodeHeapOp(LogicalDecodingContext *ctx, XLogRecordBuffer *buf);
-static void DecodeHeap2Op(LogicalDecodingContext *ctx, XLogRecordBuffer *buf);
-static void DecodeXactOp(LogicalDecodingContext *ctx, XLogRecordBuffer *buf);
-static void DecodeStandbyOp(LogicalDecodingContext *ctx, XLogRecordBuffer *buf);
-static void DecodeLogicalMsgOp(LogicalDecodingContext *ctx, XLogRecordBuffer *buf);
+static void DecodeXLogOp(LogicalDecodingContext * ctx, XLogRecordBuffer * buf);
+static void DecodeHeapOp(LogicalDecodingContext * ctx, XLogRecordBuffer * buf);
+static void DecodeHeap2Op(LogicalDecodingContext * ctx, XLogRecordBuffer * buf);
+static void DecodeXactOp(LogicalDecodingContext * ctx, XLogRecordBuffer * buf);
+static void DecodeStandbyOp(LogicalDecodingContext * ctx, XLogRecordBuffer * buf);
+static void DecodeLogicalMsgOp(LogicalDecodingContext * ctx, XLogRecordBuffer * buf);
 
 /* individual record(group)'s handlers */
-static void DecodeInsert(LogicalDecodingContext *ctx, XLogRecordBuffer *buf);
-static void DecodeUpdate(LogicalDecodingContext *ctx, XLogRecordBuffer *buf);
-static void DecodeDelete(LogicalDecodingContext *ctx, XLogRecordBuffer *buf);
-static void DecodeMultiInsert(LogicalDecodingContext *ctx, XLogRecordBuffer *buf);
-static void DecodeSpecConfirm(LogicalDecodingContext *ctx, XLogRecordBuffer *buf);
+static void DecodeInsert(LogicalDecodingContext * ctx, XLogRecordBuffer * buf);
+static void DecodeUpdate(LogicalDecodingContext * ctx, XLogRecordBuffer * buf);
+static void DecodeDelete(LogicalDecodingContext * ctx, XLogRecordBuffer * buf);
+static void DecodeMultiInsert(LogicalDecodingContext * ctx, XLogRecordBuffer * buf);
+static void DecodeSpecConfirm(LogicalDecodingContext * ctx, XLogRecordBuffer * buf);
 
-static void DecodeCommit(LogicalDecodingContext *ctx, XLogRecordBuffer *buf,
-			 xl_xact_parsed_commit *parsed, TransactionId xid);
-static void DecodeAbort(LogicalDecodingContext *ctx, XLogRecordBuffer *buf,
-			xl_xact_parsed_abort *parsed, TransactionId xid);
+static void DecodeCommit(LogicalDecodingContext * ctx, XLogRecordBuffer * buf,
+			 xl_xact_parsed_commit * parsed, TransactionId xid);
+static void DecodeAbort(LogicalDecodingContext * ctx, XLogRecordBuffer * buf,
+			xl_xact_parsed_abort * parsed, TransactionId xid);
 
 /* common function to decode tuples */
-static void DecodeXLogTuple(char *data, Size len, ReorderBufferTupleBuf *tup);
+static void DecodeXLogTuple(char *data, Size len, ReorderBufferTupleBuf * tup);
 
 /*
  * Take every XLogReadRecord()ed record and perform the actions required to
@@ -90,7 +90,7 @@ static void DecodeXLogTuple(char *data, Size len, ReorderBufferTupleBuf *tup);
  * state for them.
  */
 void
-LogicalDecodingProcessRecord(LogicalDecodingContext *ctx, XLogReaderState *record)
+LogicalDecodingProcessRecord(LogicalDecodingContext * ctx, XLogReaderState * record)
 {
 	XLogRecordBuffer buf;
 
@@ -163,7 +163,7 @@ LogicalDecodingProcessRecord(LogicalDecodingContext *ctx, XLogReaderState *recor
  * Handle rmgr XLOG_ID records for DecodeRecordIntoReorderBuffer().
  */
 static void
-DecodeXLogOp(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
+DecodeXLogOp(LogicalDecodingContext * ctx, XLogRecordBuffer * buf)
 {
 	SnapBuild  *builder = ctx->snapshot_builder;
 	uint8		info = XLogRecGetInfo(buf->record) & ~XLR_INFO_MASK;
@@ -205,7 +205,7 @@ DecodeXLogOp(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
  * Handle rmgr XACT_ID records for DecodeRecordIntoReorderBuffer().
  */
 static void
-DecodeXactOp(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
+DecodeXactOp(LogicalDecodingContext * ctx, XLogRecordBuffer * buf)
 {
 	SnapBuild  *builder = ctx->snapshot_builder;
 	ReorderBuffer *reorder = ctx->reorder;
@@ -297,7 +297,7 @@ DecodeXactOp(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
  * Handle rmgr STANDBY_ID records for DecodeRecordIntoReorderBuffer().
  */
 static void
-DecodeStandbyOp(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
+DecodeStandbyOp(LogicalDecodingContext * ctx, XLogRecordBuffer * buf)
 {
 	SnapBuild  *builder = ctx->snapshot_builder;
 	XLogReaderState *r = buf->record;
@@ -345,7 +345,7 @@ DecodeStandbyOp(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
  * Handle rmgr HEAP2_ID records for DecodeRecordIntoReorderBuffer().
  */
 static void
-DecodeHeap2Op(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
+DecodeHeap2Op(LogicalDecodingContext * ctx, XLogRecordBuffer * buf)
 {
 	uint8		info = XLogRecGetInfo(buf->record) & XLOG_HEAP_OPMASK;
 	TransactionId xid = XLogRecGetXid(buf->record);
@@ -400,7 +400,7 @@ DecodeHeap2Op(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
  * Handle rmgr HEAP_ID records for DecodeRecordIntoReorderBuffer().
  */
 static void
-DecodeHeapOp(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
+DecodeHeapOp(LogicalDecodingContext * ctx, XLogRecordBuffer * buf)
 {
 	uint8		info = XLogRecGetInfo(buf->record) & XLOG_HEAP_OPMASK;
 	TransactionId xid = XLogRecGetXid(buf->record);
@@ -474,7 +474,7 @@ DecodeHeapOp(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
 }
 
 static inline bool
-FilterByOrigin(LogicalDecodingContext *ctx, RepOriginId origin_id)
+FilterByOrigin(LogicalDecodingContext * ctx, RepOriginId origin_id)
 {
 	if (ctx->callbacks.filter_by_origin_cb == NULL)
 		return false;
@@ -486,7 +486,7 @@ FilterByOrigin(LogicalDecodingContext *ctx, RepOriginId origin_id)
  * Handle rmgr LOGICALMSG_ID records for DecodeRecordIntoReorderBuffer().
  */
 static void
-DecodeLogicalMsgOp(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
+DecodeLogicalMsgOp(LogicalDecodingContext * ctx, XLogRecordBuffer * buf)
 {
 	SnapBuild  *builder = ctx->snapshot_builder;
 	XLogReaderState *r = buf->record;
@@ -533,8 +533,8 @@ DecodeLogicalMsgOp(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
  * records.
  */
 static void
-DecodeCommit(LogicalDecodingContext *ctx, XLogRecordBuffer *buf,
-			 xl_xact_parsed_commit *parsed, TransactionId xid)
+DecodeCommit(LogicalDecodingContext * ctx, XLogRecordBuffer * buf,
+			 xl_xact_parsed_commit * parsed, TransactionId xid)
 {
 	XLogRecPtr	origin_lsn = InvalidXLogRecPtr;
 	TimestampTz commit_time = parsed->xact_time;
@@ -617,8 +617,8 @@ DecodeCommit(LogicalDecodingContext *ctx, XLogRecordBuffer *buf,
  * snapbuild.c and reorderbuffer.c
  */
 static void
-DecodeAbort(LogicalDecodingContext *ctx, XLogRecordBuffer *buf,
-			xl_xact_parsed_abort *parsed, TransactionId xid)
+DecodeAbort(LogicalDecodingContext * ctx, XLogRecordBuffer * buf,
+			xl_xact_parsed_abort * parsed, TransactionId xid)
 {
 	int			i;
 
@@ -637,7 +637,7 @@ DecodeAbort(LogicalDecodingContext *ctx, XLogRecordBuffer *buf,
  * Deletes can contain the new tuple.
  */
 static void
-DecodeInsert(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
+DecodeInsert(LogicalDecodingContext * ctx, XLogRecordBuffer * buf)
 {
 	XLogReaderState *r = buf->record;
 	xl_heap_insert *xlrec;
@@ -688,7 +688,7 @@ DecodeInsert(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
  * Updates can possibly contain a new tuple and the old primary key.
  */
 static void
-DecodeUpdate(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
+DecodeUpdate(LogicalDecodingContext * ctx, XLogRecordBuffer * buf)
 {
 	XLogReaderState *r = buf->record;
 	xl_heap_update *xlrec;
@@ -754,7 +754,7 @@ DecodeUpdate(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
  * Deletes can possibly contain the old primary key.
  */
 static void
-DecodeDelete(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
+DecodeDelete(LogicalDecodingContext * ctx, XLogRecordBuffer * buf)
 {
 	XLogReaderState *r = buf->record;
 	xl_heap_delete *xlrec;
@@ -811,7 +811,7 @@ DecodeDelete(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
  * Currently MULTI_INSERT will always contain the full tuples.
  */
 static void
-DecodeMultiInsert(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
+DecodeMultiInsert(LogicalDecodingContext * ctx, XLogRecordBuffer * buf)
 {
 	XLogReaderState *r = buf->record;
 	xl_heap_multi_insert *xlrec;
@@ -916,7 +916,7 @@ DecodeMultiInsert(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
  * speculative insertion.
  */
 static void
-DecodeSpecConfirm(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
+DecodeSpecConfirm(LogicalDecodingContext * ctx, XLogRecordBuffer * buf)
 {
 	XLogReaderState *r = buf->record;
 	ReorderBufferChange *change;
@@ -951,7 +951,7 @@ DecodeSpecConfirm(LogicalDecodingContext *ctx, XLogRecordBuffer *buf)
  * computed outside as they are record specific.
  */
 static void
-DecodeXLogTuple(char *data, Size len, ReorderBufferTupleBuf *tuple)
+DecodeXLogTuple(char *data, Size len, ReorderBufferTupleBuf * tuple)
 {
 	xl_heap_header xlhdr;
 	int			datalen = len - SizeOfHeapHeader;

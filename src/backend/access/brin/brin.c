@@ -49,7 +49,7 @@ typedef struct BrinBuildState
 	BrinRevmap *bs_rmAccess;
 	BrinDesc   *bs_bdesc;
 	BrinMemTuple *bs_dtuple;
-} BrinBuildState;
+}			BrinBuildState;
 
 /*
  * Struct used as "opaque" during index scans
@@ -59,18 +59,18 @@ typedef struct BrinOpaque
 	BlockNumber bo_pagesPerRange;
 	BrinRevmap *bo_rmAccess;
 	BrinDesc   *bo_bdesc;
-} BrinOpaque;
+}			BrinOpaque;
 
 #define BRIN_ALL_BLOCKRANGES	InvalidBlockNumber
 
-static BrinBuildState *initialize_brin_buildstate(Relation idxRel,
-						   BrinRevmap *revmap, BlockNumber pagesPerRange);
-static void terminate_brin_buildstate(BrinBuildState *state);
+static BrinBuildState * initialize_brin_buildstate(Relation idxRel,
+												   BrinRevmap * revmap, BlockNumber pagesPerRange);
+static void terminate_brin_buildstate(BrinBuildState * state);
 static void brinsummarize(Relation index, Relation heapRel, BlockNumber pageRange,
 			  bool include_partial, double *numSummarized, double *numExisting);
-static void form_and_insert_tuple(BrinBuildState *state);
-static void union_tuples(BrinDesc *bdesc, BrinMemTuple *a,
-			 BrinTuple *b);
+static void form_and_insert_tuple(BrinBuildState * state);
+static void union_tuples(BrinDesc * bdesc, BrinMemTuple * a,
+			 BrinTuple * b);
 static void brin_vacuum_scan(Relation idxrel, BufferAccessStrategy strategy);
 
 
@@ -136,10 +136,10 @@ brinhandler(PG_FUNCTION_ARGS)
  * it), there's nothing to do for this tuple.
  */
 bool
-brininsert(Relation idxRel, Datum *values, bool *nulls,
+brininsert(Relation idxRel, Datum * values, bool *nulls,
 		   ItemPointer heaptid, Relation heapRel,
 		   IndexUniqueCheck checkUnique,
-		   IndexInfo *indexInfo)
+		   IndexInfo * indexInfo)
 {
 	BlockNumber pagesPerRange;
 	BlockNumber origHeapBlk;
@@ -188,7 +188,7 @@ brininsert(Relation idxRel, Datum *values, bool *nulls,
 										 NULL, BUFFER_LOCK_SHARE, NULL);
 			if (!lastPageTuple)
 			{
-				bool	recorded;
+				bool		recorded;
 
 				recorded = AutoVacuumRequestWork(AVW_BRINSummarizeRange,
 												 RelationGetRelid(idxRel),
@@ -360,7 +360,7 @@ brinbeginscan(Relation r, int nkeys, int norderbys)
  * keys.
  */
 int64
-bringetbitmap(IndexScanDesc scan, TIDBitmap *tbm)
+bringetbitmap(IndexScanDesc scan, TIDBitmap * tbm)
 {
 	Relation	idxRel = scan->indexRelation;
 	Buffer		buf = InvalidBuffer;
@@ -592,7 +592,7 @@ brinendscan(IndexScanDesc scan)
 static void
 brinbuildCallback(Relation index,
 				  HeapTuple htup,
-				  Datum *values,
+				  Datum * values,
 				  bool *isnull,
 				  bool tupleIsAlive,
 				  void *brstate)
@@ -652,7 +652,7 @@ brinbuildCallback(Relation index,
  * brinbuild() -- build a new BRIN index.
  */
 IndexBuildResult *
-brinbuild(Relation heap, Relation index, IndexInfo *indexInfo)
+brinbuild(Relation heap, Relation index, IndexInfo * indexInfo)
 {
 	IndexBuildResult *result;
 	double		reltuples;
@@ -766,7 +766,7 @@ brinbuildempty(Relation index)
  * range.  Would need to add an extra flag in brintuples for that.
  */
 IndexBulkDeleteResult *
-brinbulkdelete(IndexVacuumInfo *info, IndexBulkDeleteResult *stats,
+brinbulkdelete(IndexVacuumInfo * info, IndexBulkDeleteResult * stats,
 			   IndexBulkDeleteCallback callback, void *callback_state)
 {
 	/* allocate stats if first time through, else re-use existing struct */
@@ -781,7 +781,7 @@ brinbulkdelete(IndexVacuumInfo *info, IndexBulkDeleteResult *stats,
  * ranges that are currently unsummarized.
  */
 IndexBulkDeleteResult *
-brinvacuumcleanup(IndexVacuumInfo *info, IndexBulkDeleteResult *stats)
+brinvacuumcleanup(IndexVacuumInfo * info, IndexBulkDeleteResult * stats)
 {
 	Relation	heapRel;
 
@@ -1037,7 +1037,7 @@ brin_build_desc(Relation rel)
 	 * Obtain BrinOpcInfo for each indexed column.  While at it, accumulate
 	 * the number of columns stored, since the number is opclass-defined.
 	 */
-	opcinfo = (BrinOpcInfo **) palloc(sizeof(BrinOpcInfo *) * tupdesc->natts);
+	opcinfo = (BrinOpcInfo * *) palloc(sizeof(BrinOpcInfo *) * tupdesc->natts);
 	for (keyno = 0; keyno < tupdesc->natts; keyno++)
 	{
 		FmgrInfo   *opcInfoFn;
@@ -1071,7 +1071,7 @@ brin_build_desc(Relation rel)
 }
 
 void
-brin_free_desc(BrinDesc *bdesc)
+brin_free_desc(BrinDesc * bdesc)
 {
 	/* make sure the tupdesc is still valid */
 	Assert(bdesc->bd_tupdesc->tdrefcount >= 1);
@@ -1083,7 +1083,7 @@ brin_free_desc(BrinDesc *bdesc)
  * Fetch index's statistical data into *stats
  */
 void
-brinGetStats(Relation index, BrinStatsData *stats)
+brinGetStats(Relation index, BrinStatsData * stats)
 {
 	Buffer		metabuffer;
 	Page		metapage;
@@ -1104,7 +1104,7 @@ brinGetStats(Relation index, BrinStatsData *stats)
  * Initialize a BrinBuildState appropriate to create tuples on the given index.
  */
 static BrinBuildState *
-initialize_brin_buildstate(Relation idxRel, BrinRevmap *revmap,
+initialize_brin_buildstate(Relation idxRel, BrinRevmap * revmap,
 						   BlockNumber pagesPerRange)
 {
 	BrinBuildState *state;
@@ -1129,7 +1129,7 @@ initialize_brin_buildstate(Relation idxRel, BrinRevmap *revmap,
  * Release resources associated with a BrinBuildState.
  */
 static void
-terminate_brin_buildstate(BrinBuildState *state)
+terminate_brin_buildstate(BrinBuildState * state)
 {
 	/* release the last index buffer used */
 	if (!BufferIsInvalid(state->bs_currentInsertBuf))
@@ -1168,7 +1168,7 @@ terminate_brin_buildstate(BrinBuildState *state)
  * avoid missing pages that were appended recently.
  */
 static void
-summarize_range(IndexInfo *indexInfo, BrinBuildState *state, Relation heapRel,
+summarize_range(IndexInfo * indexInfo, BrinBuildState * state, Relation heapRel,
 				BlockNumber heapBlk, BlockNumber heapNumBlks)
 {
 	Buffer		phbuf;
@@ -1334,8 +1334,8 @@ brinsummarize(Relation index, Relation heapRel, BlockNumber pageRange,
 
 		/*
 		 * Unless requested to summarize even a partial range, go away now if
-		 * we think the next range is partial.  Caller would pass true when
-		 * it is typically run once bulk data loading is done
+		 * we think the next range is partial.  Caller would pass true when it
+		 * is typically run once bulk data loading is done
 		 * (brin_summarize_new_values), and false when it is typically the
 		 * result of arbitrarily-scheduled maintenance command (vacuuming).
 		 */
@@ -1391,7 +1391,7 @@ brinsummarize(Relation index, Relation heapRel, BlockNumber pageRange,
  * format and insert it into the index, making the revmap point to it.
  */
 static void
-form_and_insert_tuple(BrinBuildState *state)
+form_and_insert_tuple(BrinBuildState * state)
 {
 	BrinTuple  *tup;
 	Size		size;
@@ -1411,7 +1411,7 @@ form_and_insert_tuple(BrinBuildState *state)
  * with the summary values in both.
  */
 static void
-union_tuples(BrinDesc *bdesc, BrinMemTuple *a, BrinTuple *b)
+union_tuples(BrinDesc * bdesc, BrinMemTuple * a, BrinTuple * b)
 {
 	int			keyno;
 	BrinMemTuple *db;

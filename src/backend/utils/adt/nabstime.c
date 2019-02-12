@@ -74,8 +74,8 @@
 static AbsoluteTime tm2abstime(struct pg_tm *tm, int tz);
 static void reltime2tm(RelativeTime time, struct pg_tm *tm);
 static void parsetinterval(char *i_string,
-			   AbsoluteTime *i_start,
-			   AbsoluteTime *i_end);
+			   AbsoluteTime * i_start,
+			   AbsoluteTime * i_end);
 
 
 /*
@@ -1430,8 +1430,8 @@ tintervalend(PG_FUNCTION_ARGS)
  */
 static void
 parsetinterval(char *i_string,
-			   AbsoluteTime *i_start,
-			   AbsoluteTime *i_end)
+			   AbsoluteTime * i_start,
+			   AbsoluteTime * i_end)
 {
 	char	   *p,
 			   *p1;

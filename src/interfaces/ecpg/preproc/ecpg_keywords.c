@@ -79,10 +79,10 @@ static const ScanKeyword ECPGScanKeywords[] = {
  * Returns a pointer to the ScanKeyword table entry, or NULL if no match.
  * Keywords are matched using the same case-folding rules as in the backend.
  */
-const ScanKeyword *
+const		ScanKeyword *
 ScanECPGKeywordLookup(const char *text)
 {
-	const ScanKeyword *res;
+	const		ScanKeyword *res;
 
 	/* First check SQL symbols defined by the backend. */
 	res = ScanKeywordLookup(text, SQLScanKeywords, NumSQLScanKeywords);

@@ -175,7 +175,7 @@ IndexScanEnd(IndexScanDesc scan)
  */
 char *
 BuildIndexValueDescription(Relation indexRelation,
-						   Datum *values, bool *isnull)
+						   Datum * values, bool *isnull)
 {
 	StringInfoData buf;
 	Form_pg_index idxrec;

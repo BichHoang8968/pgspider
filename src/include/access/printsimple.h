@@ -16,8 +16,8 @@
 
 #include "tcop/dest.h"
 
-extern bool printsimple(TupleTableSlot *slot, DestReceiver *self);
-extern void printsimple_startup(DestReceiver *self, int operation,
+extern bool printsimple(TupleTableSlot * slot, DestReceiver * self);
+extern void printsimple_startup(DestReceiver * self, int operation,
 					TupleDesc tupdesc);
 
 #endif							/* PRINTSIMPLE_H */

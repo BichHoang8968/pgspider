@@ -25,28 +25,28 @@
  * conns[0] is the global setup, teardown, and watchdog connection.  Additional
  * connections represent spec-defined sessions.
  */
-static PGconn **conns = NULL;
+static PGconn * *conns = NULL;
 static const char **backend_pids = NULL;
 static int	nconns = 0;
 
 /* In dry run only output permutations to be run by the tester. */
 static int	dry_run = false;
 
-static void run_testspec(TestSpec *testspec);
-static void run_all_permutations(TestSpec *testspec);
-static void run_all_permutations_recurse(TestSpec *testspec, int nsteps,
-							 Step **steps);
-static void run_named_permutations(TestSpec *testspec);
-static void run_permutation(TestSpec *testspec, int nsteps, Step **steps);
+static void run_testspec(TestSpec * testspec);
+static void run_all_permutations(TestSpec * testspec);
+static void run_all_permutations_recurse(TestSpec * testspec, int nsteps,
+							 Step * *steps);
+static void run_named_permutations(TestSpec * testspec);
+static void run_permutation(TestSpec * testspec, int nsteps, Step * *steps);
 
 #define STEP_NONBLOCK	0x1		/* return 0 as soon as cmd waits for a lock */
 #define STEP_RETRY		0x2		/* this is a retry of a previously-waiting cmd */
-static bool try_complete_step(Step *step, int flags);
+static bool try_complete_step(Step * step, int flags);
 
 static int	step_qsort_cmp(const void *a, const void *b);
 static int	step_bsearch_cmp(const void *a, const void *b);
 
-static void printResultSet(PGresult *res);
+static void printResultSet(PGresult * res);
 
 /* close all connections and exit */
 static void
@@ -260,7 +260,7 @@ static int *piles;
  * explicitly specified.
  */
 static void
-run_testspec(TestSpec *testspec)
+run_testspec(TestSpec * testspec)
 {
 	if (testspec->permutations)
 		run_named_permutations(testspec);
@@ -272,7 +272,7 @@ run_testspec(TestSpec *testspec)
  * Run all permutations of the steps and sessions.
  */
 static void
-run_all_permutations(TestSpec *testspec)
+run_all_permutations(TestSpec * testspec)
 {
 	int			nsteps;
 	int			i;
@@ -302,7 +302,7 @@ run_all_permutations(TestSpec *testspec)
 }
 
 static void
-run_all_permutations_recurse(TestSpec *testspec, int nsteps, Step **steps)
+run_all_permutations_recurse(TestSpec * testspec, int nsteps, Step * *steps)
 {
 	int			i;
 	int			found = 0;
@@ -332,7 +332,7 @@ run_all_permutations_recurse(TestSpec *testspec, int nsteps, Step **steps)
  * Run permutations given in the test spec
  */
 static void
-run_named_permutations(TestSpec *testspec)
+run_named_permutations(TestSpec * testspec)
 {
 	int			i,
 				j;
@@ -347,11 +347,11 @@ run_named_permutations(TestSpec *testspec)
 		/* Find all the named steps using the lookup table */
 		for (j = 0; j < p->nsteps; j++)
 		{
-			Step	  **this = (Step **) bsearch(p->stepnames[j],
-												 testspec->allsteps,
-												 testspec->nallsteps,
-												 sizeof(Step *),
-												 &step_bsearch_cmp);
+			Step	  **this = (Step * *) bsearch(p->stepnames[j],
+												  testspec->allsteps,
+												  testspec->nallsteps,
+												  sizeof(Step *),
+												  &step_bsearch_cmp);
 
 			if (this == NULL)
 			{
@@ -372,8 +372,8 @@ run_named_permutations(TestSpec *testspec)
 static int
 step_qsort_cmp(const void *a, const void *b)
 {
-	Step	   *stepa = *((Step **) a);
-	Step	   *stepb = *((Step **) b);
+	Step	   *stepa = *((Step * *) a);
+	Step	   *stepb = *((Step * *) b);
 
 	return strcmp(stepa->name, stepb->name);
 }
@@ -382,7 +382,7 @@ static int
 step_bsearch_cmp(const void *a, const void *b)
 {
 	char	   *stepname = (char *) a;
-	Step	   *step = *((Step **) b);
+	Step	   *step = *((Step * *) b);
 
 	return strcmp(stepname, step->name);
 }
@@ -391,7 +391,7 @@ step_bsearch_cmp(const void *a, const void *b)
  * If a step caused an error to be reported, print it out and clear it.
  */
 static void
-report_error_message(Step *step)
+report_error_message(Step * step)
 {
 	if (step->errormsg)
 	{
@@ -408,7 +408,7 @@ report_error_message(Step *step)
  * one fails due to a timeout such as deadlock timeout.
  */
 static void
-report_multiple_error_messages(Step *step, int nextra, Step **extrastep)
+report_multiple_error_messages(Step * step, int nextra, Step * *extrastep)
 {
 	PQExpBufferData buffer;
 	int			n;
@@ -450,7 +450,7 @@ report_multiple_error_messages(Step *step, int nextra, Step **extrastep)
  * Run one permutation
  */
 static void
-run_permutation(TestSpec *testspec, int nsteps, Step **steps)
+run_permutation(TestSpec * testspec, int nsteps, Step * *steps)
 {
 	PGresult   *res;
 	int			i;
@@ -691,7 +691,7 @@ run_permutation(TestSpec *testspec, int nsteps, Step **steps)
  * a lock, returns true.  Otherwise, returns false.
  */
 static bool
-try_complete_step(Step *step, int flags)
+try_complete_step(Step * step, int flags)
 {
 	PGconn	   *conn = conns[1 + step->session];
 	fd_set		read_set;
@@ -860,7 +860,7 @@ try_complete_step(Step *step, int flags)
 }
 
 static void
-printResultSet(PGresult *res)
+printResultSet(PGresult * res)
 {
 	int			nFields;
 	int			i,

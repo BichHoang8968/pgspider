@@ -16,12 +16,12 @@
 
 #include "nodes/execnodes.h"
 
-extern AggState *ExecInitAgg(Agg *node, EState *estate, int eflags);
-extern TupleTableSlot *ExecRetreiveDirect(AggState *node);
-extern TupleTableSlot *ExecDirectAgg(AggState *node);
+extern AggState * ExecInitAgg(Agg * node, EState * estate, int eflags);
+extern TupleTableSlot * ExecRetreiveDirect(AggState * node);
+extern TupleTableSlot * ExecDirectAgg(AggState * node);
 
-extern void ExecEndAgg(AggState *node);
-extern void ExecReScanAgg(AggState *node);
+extern void ExecEndAgg(AggState * node);
+extern void ExecReScanAgg(AggState * node);
 
 extern Size hash_agg_entry_size(int numAggs);
 

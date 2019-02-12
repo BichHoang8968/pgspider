@@ -216,7 +216,7 @@ ecpg_raise(int line, int code, const char *sqlstate, const char *str)
 }
 
 void
-ecpg_raise_backend(int line, PGresult *result, PGconn *conn, int compat)
+ecpg_raise_backend(int line, PGresult * result, PGconn * conn, int compat)
 {
 	struct sqlca_t *sqlca = ECPGget_sqlca();
 	char	   *sqlstate;
@@ -280,7 +280,7 @@ ecpg_raise_backend(int line, PGresult *result, PGconn *conn, int compat)
 
 /* filter out all error codes */
 bool
-ecpg_check_PQresult(PGresult *results, int lineno, PGconn *connection, enum COMPAT_MODE compat)
+ecpg_check_PQresult(PGresult * results, int lineno, PGconn * connection, enum COMPAT_MODE compat)
 {
 	if (results == NULL)
 	{

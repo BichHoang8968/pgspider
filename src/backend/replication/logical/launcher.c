@@ -69,7 +69,7 @@ typedef struct LogicalRepCtxStruct
 
 	/* Background workers. */
 	LogicalRepWorker workers[FLEXIBLE_ARRAY_MEMBER];
-} LogicalRepCtxStruct;
+}			LogicalRepCtxStruct;
 
 LogicalRepCtxStruct *LogicalRepCtx;
 
@@ -77,7 +77,7 @@ typedef struct LogicalRepWorkerId
 {
 	Oid			subid;
 	Oid			relid;
-} LogicalRepWorkerId;
+}			LogicalRepWorkerId;
 
 typedef struct StopWorkersData
 {
@@ -85,19 +85,19 @@ typedef struct StopWorkersData
 	List	   *workers;		/* List of LogicalRepWorkerId */
 	struct StopWorkersData *parent; /* This need not be an immediate
 									 * subtransaction parent */
-} StopWorkersData;
+}			StopWorkersData;
 
 /*
  * Stack of StopWorkersData elements. Each stack element contains the workers
  * to be stopped for that subtransaction.
  */
-static StopWorkersData *on_commit_stop_workers = NULL;
+static StopWorkersData * on_commit_stop_workers = NULL;
 
 static void ApplyLauncherWakeup(void);
 static void logicalrep_launcher_onexit(int code, Datum arg);
 static void logicalrep_worker_onexit(int code, Datum arg);
 static void logicalrep_worker_detach(void);
-static void logicalrep_worker_cleanup(LogicalRepWorker *worker);
+static void logicalrep_worker_cleanup(LogicalRepWorker * worker);
 
 /* Flags set by signal handlers */
 static volatile sig_atomic_t got_SIGHUP = false;
@@ -179,9 +179,9 @@ get_subscription_list(void)
  * fails to attach.
  */
 static void
-WaitForReplicationWorkerAttach(LogicalRepWorker *worker,
+WaitForReplicationWorkerAttach(LogicalRepWorker * worker,
 							   uint16 generation,
-							   BackgroundWorkerHandle *handle)
+							   BackgroundWorkerHandle * handle)
 {
 	BgwHandleStatus status;
 	int			rc;
@@ -633,7 +633,7 @@ logicalrep_worker_wakeup(Oid subid, Oid relid)
  * Caller must hold lock, else worker->proc could change under us.
  */
 void
-logicalrep_worker_wakeup_ptr(LogicalRepWorker *worker)
+logicalrep_worker_wakeup_ptr(LogicalRepWorker * worker)
 {
 	Assert(LWLockHeldByMe(LogicalRepWorkerLock));
 
@@ -694,7 +694,7 @@ logicalrep_worker_detach(void)
  * Clean up worker info.
  */
 static void
-logicalrep_worker_cleanup(LogicalRepWorker *worker)
+logicalrep_worker_cleanup(LogicalRepWorker * worker)
 {
 	Assert(LWLockHeldByMeInMode(LogicalRepWorkerLock, LW_EXCLUSIVE));
 

@@ -14,10 +14,11 @@
 
 struct _helpStruct
 {
-	const char	   *cmd;		/* the command name */
-	const char	   *help;		/* the help associated with it */
-	void (*syntaxfunc)(PQExpBuffer);	/* function that prints the syntax associated with it */
-	int				nl_count;	/* number of newlines in syntax (for pager) */
+	const char *cmd;			/* the command name */
+	const char *help;			/* the help associated with it */
+	void		(*syntaxfunc) (PQExpBuffer);	/* function that prints the
+												 * syntax associated with it */
+	int			nl_count;		/* number of newlines in syntax (for pager) */
 };
 
 extern const struct _helpStruct QL_HELP[];
@@ -26,4 +27,4 @@ extern const struct _helpStruct QL_HELP[];
 #define QL_MAX_CMD_LEN	32		/* largest strlen(cmd) */
 
 
-#endif /* SQL_HELP_H */
+#endif							/* SQL_HELP_H */

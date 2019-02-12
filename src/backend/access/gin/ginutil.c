@@ -83,7 +83,7 @@ ginhandler(PG_FUNCTION_ARGS)
  * Note: assorted subsidiary data is allocated in the CurrentMemoryContext.
  */
 void
-initGinState(GinState *state, Relation index)
+initGinState(GinState * state, Relation index)
 {
 	TupleDesc	origTupdesc = RelationGetDescr(index);
 	int			i;
@@ -210,7 +210,7 @@ initGinState(GinState *state, Relation index)
  * Extract attribute (column) number of stored entry from GIN tuple
  */
 OffsetNumber
-gintuple_get_attrnum(GinState *ginstate, IndexTuple tuple)
+gintuple_get_attrnum(GinState * ginstate, IndexTuple tuple)
 {
 	OffsetNumber colN;
 
@@ -243,8 +243,8 @@ gintuple_get_attrnum(GinState *ginstate, IndexTuple tuple)
  * Extract stored datum (and possible null category) from GIN tuple
  */
 Datum
-gintuple_get_key(GinState *ginstate, IndexTuple tuple,
-				 GinNullCategory *category)
+gintuple_get_key(GinState * ginstate, IndexTuple tuple,
+				 GinNullCategory * category)
 {
 	Datum		res;
 	bool		isnull;
@@ -378,7 +378,7 @@ GinInitMetabuffer(Buffer b)
  * Compare two keys of the same index column
  */
 int
-ginCompareEntries(GinState *ginstate, OffsetNumber attnum,
+ginCompareEntries(GinState * ginstate, OffsetNumber attnum,
 				  Datum a, GinNullCategory categorya,
 				  Datum b, GinNullCategory categoryb)
 {
@@ -400,7 +400,7 @@ ginCompareEntries(GinState *ginstate, OffsetNumber attnum,
  * Compare two keys of possibly different index columns
  */
 int
-ginCompareAttEntries(GinState *ginstate,
+ginCompareAttEntries(GinState * ginstate,
 					 OffsetNumber attnuma, Datum a, GinNullCategory categorya,
 					 OffsetNumber attnumb, Datum b, GinNullCategory categoryb)
 {
@@ -423,20 +423,20 @@ typedef struct
 {
 	Datum		datum;
 	bool		isnull;
-} keyEntryData;
+}			keyEntryData;
 
 typedef struct
 {
 	FmgrInfo   *cmpDatumFunc;
 	Oid			collation;
 	bool		haveDups;
-} cmpEntriesArg;
+}			cmpEntriesArg;
 
 static int
 cmpEntries(const void *a, const void *b, void *arg)
 {
-	const keyEntryData *aa = (const keyEntryData *) a;
-	const keyEntryData *bb = (const keyEntryData *) b;
+	const		keyEntryData *aa = (const keyEntryData *) a;
+	const		keyEntryData *bb = (const keyEntryData *) b;
 	cmpEntriesArg *data = (cmpEntriesArg *) arg;
 	int			res;
 
@@ -473,9 +473,9 @@ cmpEntries(const void *a, const void *b, void *arg)
  * This avoids generating redundant index entries.
  */
 Datum *
-ginExtractEntries(GinState *ginstate, OffsetNumber attnum,
+ginExtractEntries(GinState * ginstate, OffsetNumber attnum,
 				  Datum value, bool isNull,
-				  int32 *nentries, GinNullCategory **categories)
+				  int32 * nentries, GinNullCategory * *categories)
 {
 	Datum	   *entries;
 	bool	   *nullFlags;
@@ -629,7 +629,7 @@ ginoptions(Datum reloptions, bool validate)
  * as can ginVersion; but the other fields are as of the last VACUUM.
  */
 void
-ginGetStats(Relation index, GinStatsData *stats)
+ginGetStats(Relation index, GinStatsData * stats)
 {
 	Buffer		metabuffer;
 	Page		metapage;
@@ -656,7 +656,7 @@ ginGetStats(Relation index, GinStatsData *stats)
  * Note: nPendingPages and ginVersion are *not* copied over
  */
 void
-ginUpdateStats(Relation index, const GinStatsData *stats)
+ginUpdateStats(Relation index, const GinStatsData * stats)
 {
 	Buffer		metabuffer;
 	Page		metapage;

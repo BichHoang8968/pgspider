@@ -17,7 +17,7 @@
 #include "storage/standbydefs.h"
 
 static void
-standby_desc_running_xacts(StringInfo buf, xl_running_xacts *xlrec)
+standby_desc_running_xacts(StringInfo buf, xl_running_xacts * xlrec)
 {
 	int			i;
 
@@ -37,7 +37,7 @@ standby_desc_running_xacts(StringInfo buf, xl_running_xacts *xlrec)
 }
 
 void
-standby_desc(StringInfo buf, XLogReaderState *record)
+standby_desc(StringInfo buf, XLogReaderState * record)
 {
 	char	   *rec = XLogRecGetData(record);
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
@@ -96,7 +96,7 @@ standby_identify(uint8 info)
  */
 void
 standby_desc_invalidations(StringInfo buf,
-						   int nmsgs, SharedInvalidationMessage *msgs,
+						   int nmsgs, SharedInvalidationMessage * msgs,
 						   Oid dbId, Oid tsId,
 						   bool relcacheInitFileInval)
 {

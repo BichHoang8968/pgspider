@@ -39,7 +39,7 @@
  *		Execute SQL DECLARE CURSOR command.
  */
 void
-PerformCursorOpen(DeclareCursorStmt *cstmt, ParamListInfo params,
+PerformCursorOpen(DeclareCursorStmt * cstmt, ParamListInfo params,
 				  const char *queryString, bool isTopLevel)
 {
 	Query	   *query = castNode(Query, cstmt->query);
@@ -165,8 +165,8 @@ PerformCursorOpen(DeclareCursorStmt *cstmt, ParamListInfo params,
  * completionTag may be NULL if caller doesn't want a status string.
  */
 void
-PerformPortalFetch(FetchStmt *stmt,
-				   DestReceiver *dest,
+PerformPortalFetch(FetchStmt * stmt,
+				   DestReceiver * dest,
 				   char *completionTag)
 {
 	Portal		portal;

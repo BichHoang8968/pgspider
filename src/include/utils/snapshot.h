@@ -110,7 +110,7 @@ typedef struct SnapshotData
 
 	TimestampTz whenTaken;		/* timestamp when snapshot was taken */
 	XLogRecPtr	lsn;			/* position in the WAL stream when taken */
-} SnapshotData;
+}			SnapshotData;
 
 /*
  * Result codes for HeapTupleSatisfiesUpdate.  This should really be in
@@ -124,6 +124,6 @@ typedef enum
 	HeapTupleUpdated,
 	HeapTupleBeingUpdated,
 	HeapTupleWouldBlock			/* can be returned by heap_tuple_lock */
-} HTSU_Result;
+}			HTSU_Result;
 
 #endif							/* SNAPSHOT_H */

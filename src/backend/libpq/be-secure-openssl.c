@@ -67,23 +67,23 @@
 #include "utils/memutils.h"
 
 
-static int	my_sock_read(BIO *h, char *buf, int size);
-static int	my_sock_write(BIO *h, const char *buf, int size);
-static BIO_METHOD *my_BIO_s_socket(void);
-static int	my_SSL_set_fd(Port *port, int fd);
+static int	my_sock_read(BIO * h, char *buf, int size);
+static int	my_sock_write(BIO * h, const char *buf, int size);
+static BIO_METHOD * my_BIO_s_socket(void);
+static int	my_SSL_set_fd(Port * port, int fd);
 
-static DH  *load_dh_file(char *filename, bool isServerStart);
-static DH  *load_dh_buffer(const char *, size_t);
+static DH * load_dh_file(char *filename, bool isServerStart);
+static DH * load_dh_buffer(const char *, size_t);
 static int	ssl_passwd_cb(char *buf, int size, int rwflag, void *userdata);
 static int	verify_cb(int, X509_STORE_CTX *);
-static void info_cb(const SSL *ssl, int type, int args);
-static bool initialize_dh(SSL_CTX *context, bool isServerStart);
-static bool initialize_ecdh(SSL_CTX *context, bool isServerStart);
+static void info_cb(const SSL * ssl, int type, int args);
+static bool initialize_dh(SSL_CTX * context, bool isServerStart);
+static bool initialize_ecdh(SSL_CTX * context, bool isServerStart);
 static const char *SSLerrmessage(unsigned long ecode);
 
-static char *X509_NAME_to_cstring(X509_NAME *name);
+static char *X509_NAME_to_cstring(X509_NAME * name);
 
-static SSL_CTX *SSL_context = NULL;
+static SSL_CTX * SSL_context = NULL;
 static bool SSL_initialized = false;
 static bool ssl_passwd_cb_called = false;
 
@@ -136,7 +136,7 @@ CD1mpF1Bn5x8vYlLIhkmuquiXsNV6TILOwIBAg==\n\
 int
 be_tls_init(bool isServerStart)
 {
-	STACK_OF(X509_NAME) *root_cert_list = NULL;
+	STACK_OF(X509_NAME) * root_cert_list = NULL;
 	SSL_CTX    *context;
 	struct stat buf;
 
@@ -428,7 +428,7 @@ be_tls_destroy(void)
  *	Attempt to negotiate SSL connection.
  */
 int
-be_tls_open_server(Port *port)
+be_tls_open_server(Port * port)
 {
 	int			r;
 	int			err;
@@ -599,7 +599,7 @@ aloop:
  *	Close SSL connection.
  */
 void
-be_tls_close(Port *port)
+be_tls_close(Port * port)
 {
 	if (port->ssl)
 	{
@@ -626,7 +626,7 @@ be_tls_close(Port *port)
  *	Read data from a secure connection.
  */
 ssize_t
-be_tls_read(Port *port, void *ptr, size_t len, int *waitfor)
+be_tls_read(Port * port, void *ptr, size_t len, int *waitfor)
 {
 	ssize_t		n;
 	int			err;
@@ -688,7 +688,7 @@ be_tls_read(Port *port, void *ptr, size_t len, int *waitfor)
  *	Write data to a secure connection.
  */
 ssize_t
-be_tls_write(Port *port, void *ptr, size_t len, int *waitfor)
+be_tls_write(Port * port, void *ptr, size_t len, int *waitfor)
 {
 	ssize_t		n;
 	int			err;
@@ -774,10 +774,10 @@ be_tls_write(Port *port, void *ptr, size_t len, int *waitfor)
 #define BIO_set_data(bio, data) (bio->ptr = data)
 #endif
 
-static BIO_METHOD *my_bio_methods = NULL;
+static BIO_METHOD * my_bio_methods = NULL;
 
 static int
-my_sock_read(BIO *h, char *buf, int size)
+my_sock_read(BIO * h, char *buf, int size)
 {
 	int			res = 0;
 
@@ -799,7 +799,7 @@ my_sock_read(BIO *h, char *buf, int size)
 }
 
 static int
-my_sock_write(BIO *h, const char *buf, int size)
+my_sock_write(BIO * h, const char *buf, int size)
 {
 	int			res = 0;
 
@@ -859,7 +859,7 @@ my_BIO_s_socket(void)
 
 /* This should exactly match openssl's SSL_set_fd except for using my BIO */
 static int
-my_SSL_set_fd(Port *port, int fd)
+my_SSL_set_fd(Port * port, int fd)
 {
 	int			ret = 0;
 	BIO		   *bio;
@@ -894,7 +894,7 @@ err:
  *	to verify that the DBA-generated DH parameters file contains
  *	what we expect it to contain.
  */
-static DH  *
+static DH *
 load_dh_file(char *filename, bool isServerStart)
 {
 	FILE	   *fp;
@@ -957,7 +957,7 @@ load_dh_file(char *filename, bool isServerStart)
  *	To prevent problems if the DH parameters files don't even
  *	exist, we can load DH parameters hardcoded into this file.
  */
-static DH  *
+static DH *
 load_dh_buffer(const char *buffer, size_t len)
 {
 	BIO		   *bio;
@@ -1008,7 +1008,7 @@ ssl_passwd_cb(char *buf, int size, int rwflag, void *userdata)
  *	for now we accept the default checks.
  */
 static int
-verify_cb(int ok, X509_STORE_CTX *ctx)
+verify_cb(int ok, X509_STORE_CTX * ctx)
 {
 	return ok;
 }
@@ -1018,7 +1018,7 @@ verify_cb(int ok, X509_STORE_CTX *ctx)
  *	into the PostgreSQL log.
  */
 static void
-info_cb(const SSL *ssl, int type, int args)
+info_cb(const SSL * ssl, int type, int args)
 {
 	switch (type)
 	{
@@ -1071,7 +1071,7 @@ info_cb(const SSL *ssl, int type, int args)
  * information provided.
  */
 static bool
-initialize_dh(SSL_CTX *context, bool isServerStart)
+initialize_dh(SSL_CTX * context, bool isServerStart)
 {
 	DH		   *dh = NULL;
 
@@ -1106,7 +1106,7 @@ initialize_dh(SSL_CTX *context, bool isServerStart)
  * need to provide the name of the curve to OpenSSL.
  */
 static bool
-initialize_ecdh(SSL_CTX *context, bool isServerStart)
+initialize_ecdh(SSL_CTX * context, bool isServerStart)
 {
 #ifndef OPENSSL_NO_ECDH
 	EC_KEY	   *ecdh;
@@ -1166,7 +1166,7 @@ SSLerrmessage(unsigned long ecode)
  * Return information about the SSL connection
  */
 int
-be_tls_get_cipher_bits(Port *port)
+be_tls_get_cipher_bits(Port * port)
 {
 	int			bits;
 
@@ -1180,7 +1180,7 @@ be_tls_get_cipher_bits(Port *port)
 }
 
 bool
-be_tls_get_compression(Port *port)
+be_tls_get_compression(Port * port)
 {
 	if (port->ssl)
 		return (SSL_get_current_compression(port->ssl) != NULL);
@@ -1189,7 +1189,7 @@ be_tls_get_compression(Port *port)
 }
 
 void
-be_tls_get_version(Port *port, char *ptr, size_t len)
+be_tls_get_version(Port * port, char *ptr, size_t len)
 {
 	if (port->ssl)
 		strlcpy(ptr, SSL_get_version(port->ssl), len);
@@ -1198,7 +1198,7 @@ be_tls_get_version(Port *port, char *ptr, size_t len)
 }
 
 void
-be_tls_get_cipher(Port *port, char *ptr, size_t len)
+be_tls_get_cipher(Port * port, char *ptr, size_t len)
 {
 	if (port->ssl)
 		strlcpy(ptr, SSL_get_cipher(port->ssl), len);
@@ -1207,7 +1207,7 @@ be_tls_get_cipher(Port *port, char *ptr, size_t len)
 }
 
 void
-be_tls_get_peerdn_name(Port *port, char *ptr, size_t len)
+be_tls_get_peerdn_name(Port * port, char *ptr, size_t len)
 {
 	if (port->peer)
 		strlcpy(ptr, X509_NAME_to_cstring(X509_get_subject_name(port->peer)), len);
@@ -1220,7 +1220,7 @@ be_tls_get_peerdn_name(Port *port, char *ptr, size_t len)
  *
  */
 static char *
-X509_NAME_to_cstring(X509_NAME *name)
+X509_NAME_to_cstring(X509_NAME * name)
 {
 	BIO		   *membuf = BIO_new(BIO_s_mem());
 	int			i,

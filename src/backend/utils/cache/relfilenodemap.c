@@ -30,7 +30,7 @@
 #include "utils/relmapper.h"
 
 /* Hash table for informations about each relfilenode <-> oid pair */
-static HTAB *RelfilenodeMapHash = NULL;
+static HTAB * RelfilenodeMapHash = NULL;
 
 /* built first time through in InitializeRelfilenodeMap */
 static ScanKeyData relfilenode_skey[2];
@@ -39,13 +39,13 @@ typedef struct
 {
 	Oid			reltablespace;
 	Oid			relfilenode;
-} RelfilenodeMapKey;
+}			RelfilenodeMapKey;
 
 typedef struct
 {
 	RelfilenodeMapKey key;		/* lookup key - must be first */
 	Oid			relid;			/* pg_class.oid */
-} RelfilenodeMapEntry;
+}			RelfilenodeMapEntry;
 
 /*
  * RelfilenodeMapInvalidateCallback

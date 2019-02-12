@@ -315,7 +315,7 @@ macaddr8_send(PG_FUNCTION_ARGS)
  * macaddr8_cmp_internal - comparison function for sorting:
  */
 static int32
-macaddr8_cmp_internal(macaddr8 *a1, macaddr8 *a2)
+macaddr8_cmp_internal(macaddr8 * a1, macaddr8 * a2)
 {
 	if (hibits(a1) < hibits(a2))
 		return -1;

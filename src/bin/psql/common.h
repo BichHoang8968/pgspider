@@ -14,7 +14,7 @@
 #include "fe_utils/print.h"
 #include "fe_utils/psqlscan.h"
 
-extern bool openQueryOutputFile(const char *fname, FILE **fout, bool *is_pipe);
+extern bool openQueryOutputFile(const char *fname, FILE * *fout, bool *is_pipe);
 extern bool setQFout(const char *fname);
 
 extern char *psql_get_variable(const char *varname, PsqlScanQuoteType quote,
@@ -33,8 +33,8 @@ extern void setup_cancel_handler(void);
 extern void SetCancelConn(void);
 extern void ResetCancelConn(void);
 
-extern PGresult *PSQLexec(const char *query);
-extern int	PSQLexecWatch(const char *query, const printQueryOpt *opt);
+extern PGresult * PSQLexec(const char *query);
+extern int	PSQLexecWatch(const char *query, const printQueryOpt * opt);
 
 extern bool SendQuery(const char *query);
 

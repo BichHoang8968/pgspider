@@ -21,12 +21,12 @@
 #include "utils/memutils.h"
 #include "utils/rel.h"
 
-static void ginFindParents(GinBtree btree, GinBtreeStack *stack);
-static bool ginPlaceToPage(GinBtree btree, GinBtreeStack *stack,
+static void ginFindParents(GinBtree btree, GinBtreeStack * stack);
+static bool ginPlaceToPage(GinBtree btree, GinBtreeStack * stack,
 			   void *insertdata, BlockNumber updateblkno,
-			   Buffer childbuf, GinStatsData *buildStats);
-static void ginFinishSplit(GinBtree btree, GinBtreeStack *stack,
-			   bool freestack, GinStatsData *buildStats);
+			   Buffer childbuf, GinStatsData * buildStats);
+static void ginFinishSplit(GinBtree btree, GinBtreeStack * stack,
+			   bool freestack, GinStatsData * buildStats);
 
 /*
  * Lock buffer by needed method for search.
@@ -190,7 +190,7 @@ ginStepRight(Buffer buffer, Relation index, int lockmode)
 }
 
 void
-freeGinBtreeStack(GinBtreeStack *stack)
+freeGinBtreeStack(GinBtreeStack * stack)
 {
 	while (stack)
 	{
@@ -210,7 +210,7 @@ freeGinBtreeStack(GinBtreeStack *stack)
  * to prevent conflict with vacuum process.
  */
 static void
-ginFindParents(GinBtree btree, GinBtreeStack *stack)
+ginFindParents(GinBtree btree, GinBtreeStack * stack)
 {
 	Page		page;
 	Buffer		buffer;
@@ -326,9 +326,9 @@ ginFindParents(GinBtree btree, GinBtreeStack *stack)
  * Likewise for childbuf, if given.
  */
 static bool
-ginPlaceToPage(GinBtree btree, GinBtreeStack *stack,
+ginPlaceToPage(GinBtree btree, GinBtreeStack * stack,
 			   void *insertdata, BlockNumber updateblkno,
-			   Buffer childbuf, GinStatsData *buildStats)
+			   Buffer childbuf, GinStatsData * buildStats)
 {
 	Page		page = BufferGetPage(stack->buffer);
 	bool		result;
@@ -643,8 +643,8 @@ ginPlaceToPage(GinBtree btree, GinBtreeStack *stack,
  * the correct parent of page.
  */
 static void
-ginFinishSplit(GinBtree btree, GinBtreeStack *stack, bool freestack,
-			   GinStatsData *buildStats)
+ginFinishSplit(GinBtree btree, GinBtreeStack * stack, bool freestack,
+			   GinStatsData * buildStats)
 {
 	Page		page;
 	bool		done;
@@ -752,8 +752,8 @@ ginFinishSplit(GinBtree btree, GinBtreeStack *stack, bool freestack,
  * NB: the passed-in stack is freed, as though by freeGinBtreeStack.
  */
 void
-ginInsertValue(GinBtree btree, GinBtreeStack *stack, void *insertdata,
-			   GinStatsData *buildStats)
+ginInsertValue(GinBtree btree, GinBtreeStack * stack, void *insertdata,
+			   GinStatsData * buildStats)
 {
 	bool		done;
 

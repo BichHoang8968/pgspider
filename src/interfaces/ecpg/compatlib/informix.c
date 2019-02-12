@@ -45,7 +45,7 @@ static struct sqlca_t sqlca_init =
 	}
 };
 static int
-deccall2(decimal *arg1, decimal *arg2, int (*ptr) (numeric *, numeric *))
+deccall2(decimal * arg1, decimal * arg2, int (*ptr) (numeric *, numeric *))
 {
 	numeric    *a1,
 			   *a2;
@@ -83,7 +83,7 @@ deccall2(decimal *arg1, decimal *arg2, int (*ptr) (numeric *, numeric *))
 }
 
 static int
-deccall3(decimal *arg1, decimal *arg2, decimal *result, int (*ptr) (numeric *, numeric *, numeric *))
+deccall3(decimal * arg1, decimal * arg2, decimal * result, int (*ptr) (numeric *, numeric *, numeric *))
 {
 	numeric    *a1,
 			   *a2,
@@ -148,7 +148,7 @@ deccall3(decimal *arg1, decimal *arg2, decimal *result, int (*ptr) (numeric *, n
 
 /* we start with the numeric functions */
 int
-decadd(decimal *arg1, decimal *arg2, decimal *sum)
+decadd(decimal * arg1, decimal * arg2, decimal * sum)
 {
 	errno = 0;
 	deccall3(arg1, arg2, sum, PGTYPESnumeric_add);
@@ -164,13 +164,13 @@ decadd(decimal *arg1, decimal *arg2, decimal *sum)
 }
 
 int
-deccmp(decimal *arg1, decimal *arg2)
+deccmp(decimal * arg1, decimal * arg2)
 {
 	return (deccall2(arg1, arg2, PGTYPESnumeric_cmp));
 }
 
 void
-deccopy(decimal *src, decimal *target)
+deccopy(decimal * src, decimal * target)
 {
 	memcpy(target, src, sizeof(decimal));
 }
@@ -195,7 +195,7 @@ ecpg_strndup(const char *str, size_t len)
 }
 
 int
-deccvasc(char *cp, int len, decimal *np)
+deccvasc(char *cp, int len, decimal * np)
 {
 	char	   *str;
 	int			ret = 0;
@@ -243,7 +243,7 @@ deccvasc(char *cp, int len, decimal *np)
 }
 
 int
-deccvdbl(double dbl, decimal *np)
+deccvdbl(double dbl, decimal * np)
 {
 	numeric    *nres;
 	int			result = 1;
@@ -265,7 +265,7 @@ deccvdbl(double dbl, decimal *np)
 }
 
 int
-deccvint(int in, decimal *np)
+deccvint(int in, decimal * np)
 {
 	numeric    *nres;
 	int			result = 1;
@@ -287,7 +287,7 @@ deccvint(int in, decimal *np)
 }
 
 int
-deccvlong(long lng, decimal *np)
+deccvlong(long lng, decimal * np)
 {
 	numeric    *nres;
 	int			result = 1;
@@ -309,7 +309,7 @@ deccvlong(long lng, decimal *np)
 }
 
 int
-decdiv(decimal *n1, decimal *n2, decimal *result)
+decdiv(decimal * n1, decimal * n2, decimal * result)
 {
 	int			i;
 
@@ -334,7 +334,7 @@ decdiv(decimal *n1, decimal *n2, decimal *result)
 }
 
 int
-decmul(decimal *n1, decimal *n2, decimal *result)
+decmul(decimal * n1, decimal * n2, decimal * result)
 {
 	int			i;
 
@@ -356,7 +356,7 @@ decmul(decimal *n1, decimal *n2, decimal *result)
 }
 
 int
-decsub(decimal *n1, decimal *n2, decimal *result)
+decsub(decimal * n1, decimal * n2, decimal * result)
 {
 	int			i;
 
@@ -378,7 +378,7 @@ decsub(decimal *n1, decimal *n2, decimal *result)
 }
 
 int
-dectoasc(decimal *np, char *cp, int len, int right)
+dectoasc(decimal * np, char *cp, int len, int right)
 {
 	char	   *str;
 	numeric    *nres;
@@ -429,7 +429,7 @@ dectoasc(decimal *np, char *cp, int len, int right)
 }
 
 int
-dectodbl(decimal *np, double *dblp)
+dectodbl(decimal * np, double *dblp)
 {
 	int			i;
 	numeric    *nres = PGTYPESnumeric_new();
@@ -450,7 +450,7 @@ dectodbl(decimal *np, double *dblp)
 }
 
 int
-dectoint(decimal *np, int *ip)
+dectoint(decimal * np, int *ip)
 {
 	int			ret;
 	numeric    *nres = PGTYPESnumeric_new();
@@ -474,7 +474,7 @@ dectoint(decimal *np, int *ip)
 }
 
 int
-dectolong(decimal *np, long *lngp)
+dectolong(decimal * np, long *lngp)
 {
 	int			ret;
 	numeric    *nres = PGTYPESnumeric_new();

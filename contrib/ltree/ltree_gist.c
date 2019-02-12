@@ -132,7 +132,7 @@ ltree_same(PG_FUNCTION_ARGS)
 }
 
 static void
-hashing(BITVECP sign, ltree *t)
+hashing(BITVECP sign, ltree * t)
 {
 	int			tlen = t->numlevel;
 	ltree_level *cur = LTREE_FIRST(t);
@@ -253,7 +253,7 @@ typedef struct rix
 {
 	int			index;
 	ltree	   *r;
-} RIX;
+}			RIX;
 
 static int
 treekey_cmp(const void *a, const void *b)
@@ -423,7 +423,7 @@ ltree_picksplit(PG_FUNCTION_ARGS)
 }
 
 static bool
-gist_isparent(ltree_gist *key, ltree *query)
+gist_isparent(ltree_gist * key, ltree * query)
 {
 	int32		numlevel = query->numlevel;
 	int			i;
@@ -443,7 +443,7 @@ gist_isparent(ltree_gist *key, ltree *query)
 }
 
 static ltree *
-copy_ltree(ltree *src)
+copy_ltree(ltree * src)
 {
 	ltree	   *dst = (ltree *) palloc0(VARSIZE(src));
 
@@ -452,7 +452,7 @@ copy_ltree(ltree *src)
 }
 
 static bool
-gist_ischild(ltree_gist *key, ltree *query)
+gist_ischild(ltree_gist * key, ltree * query)
 {
 	ltree	   *left = copy_ltree(LTG_GETLNODE(key));
 	ltree	   *right = copy_ltree(LTG_GETRNODE(key));
@@ -477,7 +477,7 @@ gist_ischild(ltree_gist *key, ltree *query)
 }
 
 static bool
-gist_qe(ltree_gist *key, lquery *query)
+gist_qe(ltree_gist * key, lquery * query)
 {
 	lquery_level *curq = LQUERY_FIRST(query);
 	BITVECP		sign = LTG_SIGN(key);
@@ -516,7 +516,7 @@ gist_qe(ltree_gist *key, lquery *query)
 }
 
 static int
-gist_tqcmp(ltree *t, lquery *q)
+gist_tqcmp(ltree * t, lquery * q)
 {
 	ltree_level *al = LTREE_FIRST(t);
 	lquery_level *ql = LQUERY_FIRST(q);
@@ -545,7 +545,7 @@ gist_tqcmp(ltree *t, lquery *q)
 }
 
 static bool
-gist_between(ltree_gist *key, lquery *query)
+gist_between(ltree_gist * key, lquery * query)
 {
 	if (query->firstgood == 0)
 		return true;
@@ -560,13 +560,13 @@ gist_between(ltree_gist *key, lquery *query)
 }
 
 static bool
-checkcondition_bit(void *checkval, ITEM *val)
+checkcondition_bit(void *checkval, ITEM * val)
 {
 	return (FLG_CANLOOKSIGN(val->flag)) ? GETBIT(checkval, HASHVAL(val->val)) : true;
 }
 
 static bool
-gist_qtxt(ltree_gist *key, ltxtquery *query)
+gist_qtxt(ltree_gist * key, ltxtquery * query)
 {
 	if (LTG_ISALLTRUE(key))
 		return true;
@@ -579,7 +579,7 @@ gist_qtxt(ltree_gist *key, ltxtquery *query)
 }
 
 static bool
-arrq_cons(ltree_gist *key, ArrayType *_query)
+arrq_cons(ltree_gist * key, ArrayType * _query)
 {
 	lquery	   *query = (lquery *) ARR_DATA_PTR(_query);
 	int			num = ArrayGetNItems(ARR_NDIM(_query), ARR_DIMS(_query));

@@ -21,7 +21,7 @@
  * xlog replay routines
  */
 static void
-brin_xlog_createidx(XLogReaderState *record)
+brin_xlog_createidx(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_brin_createidx *xlrec = (xl_brin_createidx *) XLogRecGetData(record);
@@ -43,8 +43,8 @@ brin_xlog_createidx(XLogReaderState *record)
  * revmap.
  */
 static void
-brin_xlog_insert_update(XLogReaderState *record,
-						xl_brin_insert *xlrec)
+brin_xlog_insert_update(XLogReaderState * record,
+						xl_brin_insert * xlrec)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	Buffer		buffer;
@@ -121,7 +121,7 @@ brin_xlog_insert_update(XLogReaderState *record,
  * replay a BRIN index insertion
  */
 static void
-brin_xlog_insert(XLogReaderState *record)
+brin_xlog_insert(XLogReaderState * record)
 {
 	xl_brin_insert *xlrec = (xl_brin_insert *) XLogRecGetData(record);
 
@@ -132,7 +132,7 @@ brin_xlog_insert(XLogReaderState *record)
  * replay a BRIN index update
  */
 static void
-brin_xlog_update(XLogReaderState *record)
+brin_xlog_update(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_brin_update *xlrec = (xl_brin_update *) XLogRecGetData(record);
@@ -167,7 +167,7 @@ brin_xlog_update(XLogReaderState *record)
  * Update a tuple on a single page.
  */
 static void
-brin_xlog_samepage_update(XLogReaderState *record)
+brin_xlog_samepage_update(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_brin_samepage_update *xlrec;
@@ -205,7 +205,7 @@ brin_xlog_samepage_update(XLogReaderState *record)
  * Replay a revmap page extension
  */
 static void
-brin_xlog_revmap_extend(XLogReaderState *record)
+brin_xlog_revmap_extend(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_brin_revmap_extend *xlrec;
@@ -255,7 +255,7 @@ brin_xlog_revmap_extend(XLogReaderState *record)
 }
 
 static void
-brin_xlog_desummarize_page(XLogReaderState *record)
+brin_xlog_desummarize_page(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_brin_desummarize *xlrec;
@@ -295,7 +295,7 @@ brin_xlog_desummarize_page(XLogReaderState *record)
 }
 
 void
-brin_redo(XLogReaderState *record)
+brin_redo(XLogReaderState * record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 

@@ -35,7 +35,7 @@ typedef struct PartitionDescData
 	int			nparts;			/* Number of partitions */
 	Oid		   *oids;			/* OIDs of partitions */
 	PartitionBoundInfo boundinfo;	/* collection of partition bounds */
-} PartitionDescData;
+}			PartitionDescData;
 
 typedef struct PartitionDescData *PartitionDesc;
 
@@ -66,7 +66,7 @@ typedef struct PartitionDispatchData
 	TupleTableSlot *tupslot;
 	TupleConversionMap *tupmap;
 	int		   *indexes;
-} PartitionDispatchData;
+}			PartitionDispatchData;
 
 typedef struct PartitionDispatchData *PartitionDispatch;
 
@@ -75,27 +75,27 @@ extern bool partition_bounds_equal(PartitionKey key,
 					   PartitionBoundInfo p1, PartitionBoundInfo p2);
 
 extern void check_new_partition_bound(char *relname, Relation parent,
-						  PartitionBoundSpec *spec);
-extern Oid	get_partition_parent(Oid relid);
-extern List *get_qual_from_partbound(Relation rel, Relation parent,
-						PartitionBoundSpec *spec);
-extern List *map_partition_varattnos(List *expr, int target_varno,
-						Relation partrel, Relation parent,
-						bool *found_whole_row);
-extern List *RelationGetPartitionQual(Relation rel);
-extern Expr *get_partition_qual_relid(Oid relid);
+						  PartitionBoundSpec * spec);
+extern Oid get_partition_parent(Oid relid);
+extern List * get_qual_from_partbound(Relation rel, Relation parent,
+									  PartitionBoundSpec * spec);
+extern List * map_partition_varattnos(List * expr, int target_varno,
+									  Relation partrel, Relation parent,
+									  bool *found_whole_row);
+extern List * RelationGetPartitionQual(Relation rel);
+extern Expr * get_partition_qual_relid(Oid relid);
 
 /* For tuple routing */
-extern PartitionDispatch *RelationGetPartitionDispatchInfo(Relation rel,
-								 int *num_parted, List **leaf_part_oids);
+extern PartitionDispatch * RelationGetPartitionDispatchInfo(Relation rel,
+															int *num_parted, List * *leaf_part_oids);
 extern void FormPartitionKeyDatum(PartitionDispatch pd,
-					  TupleTableSlot *slot,
-					  EState *estate,
-					  Datum *values,
+					  TupleTableSlot * slot,
+					  EState * estate,
+					  Datum * values,
 					  bool *isnull);
-extern int get_partition_for_tuple(PartitionDispatch *pd,
-						TupleTableSlot *slot,
-						EState *estate,
-						PartitionDispatchData **failed_at,
-						TupleTableSlot **failed_slot);
+extern int get_partition_for_tuple(PartitionDispatch * pd,
+						TupleTableSlot * slot,
+						EState * estate,
+						PartitionDispatchData * *failed_at,
+						TupleTableSlot * *failed_slot);
 #endif							/* PARTITION_H */

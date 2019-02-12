@@ -35,7 +35,7 @@ CATALOG(pg_subscription_rel,6102) BKI_WITHOUT_OIDS
 								 * synchronization coordination */
 } FormData_pg_subscription_rel;
 
-typedef FormData_pg_subscription_rel *Form_pg_subscription_rel;
+typedef FormData_pg_subscription_rel * Form_pg_subscription_rel;
 
 /* ----------------
  *		compiler constants for pg_subscription_rel
@@ -68,15 +68,15 @@ typedef struct SubscriptionRelState
 	Oid			relid;
 	XLogRecPtr	lsn;
 	char		state;
-} SubscriptionRelState;
+}			SubscriptionRelState;
 
 extern Oid SetSubscriptionRelState(Oid subid, Oid relid, char state,
-						XLogRecPtr sublsn, bool update_only);
+								   XLogRecPtr sublsn, bool update_only);
 extern char GetSubscriptionRelState(Oid subid, Oid relid,
-						XLogRecPtr *sublsn, bool missing_ok);
+						XLogRecPtr * sublsn, bool missing_ok);
 extern void RemoveSubscriptionRel(Oid subid, Oid relid);
 
-extern List *GetSubscriptionRelations(Oid subid);
-extern List *GetSubscriptionNotReadyRelations(Oid subid);
+extern List * GetSubscriptionRelations(Oid subid);
+extern List * GetSubscriptionNotReadyRelations(Oid subid);
 
 #endif							/* PG_SUBSCRIPTION_REL_H */

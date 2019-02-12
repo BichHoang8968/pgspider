@@ -35,7 +35,7 @@ typedef struct
 	Datum	   *attr;
 	bool	   *isnull;
 	bool	   *dontcare;
-} GistSplitUnion;
+}			GistSplitUnion;
 
 
 /*
@@ -44,8 +44,8 @@ typedef struct
  * gistunionsubkey.
  */
 static void
-gistunionsubkeyvec(GISTSTATE *giststate, IndexTuple *itvec,
-				   GistSplitUnion *gsvp)
+gistunionsubkeyvec(GISTSTATE * giststate, IndexTuple * itvec,
+				   GistSplitUnion * gsvp)
 {
 	IndexTuple *cleanedItVec;
 	int			i,
@@ -77,7 +77,7 @@ gistunionsubkeyvec(GISTSTATE *giststate, IndexTuple *itvec,
  * key doesn't change at all".  Penalty functions aren't 100% accurate.
  */
 static void
-gistunionsubkey(GISTSTATE *giststate, IndexTuple *itvec, GistSplitVector *spl)
+gistunionsubkey(GISTSTATE * giststate, IndexTuple * itvec, GistSplitVector * spl)
 {
 	GistSplitUnion gsvp;
 
@@ -110,8 +110,8 @@ gistunionsubkey(GISTSTATE *giststate, IndexTuple *itvec, GistSplitVector *spl)
  * Returns number of don't-cares found.
  */
 static int
-findDontCares(Relation r, GISTSTATE *giststate, GISTENTRY *valvec,
-			  GistSplitVector *spl, int attno)
+findDontCares(Relation r, GISTSTATE * giststate, GISTENTRY * valvec,
+			  GistSplitVector * spl, int attno)
 {
 	int			i;
 	GISTENTRY	entry;
@@ -164,7 +164,7 @@ findDontCares(Relation r, GISTSTATE *giststate, GISTENTRY *valvec,
  * arrays.
  */
 static void
-removeDontCares(OffsetNumber *a, int *len, const bool *dontcare)
+removeDontCares(OffsetNumber * a, int *len, const bool *dontcare)
 {
 	int			origlen,
 				newlen,
@@ -197,7 +197,7 @@ removeDontCares(OffsetNumber *a, int *len, const bool *dontcare)
  * at attno.
  */
 static void
-placeOne(Relation r, GISTSTATE *giststate, GistSplitVector *v,
+placeOne(Relation r, GISTSTATE * giststate, GistSplitVector * v,
 		 IndexTuple itup, OffsetNumber off, int attno)
 {
 	GISTENTRY	identry[INDEX_MAX_KEYS];
@@ -255,8 +255,8 @@ do {	\
  * PickSplit method didn't do so.
  */
 static void
-supportSecondarySplit(Relation r, GISTSTATE *giststate, int attno,
-					  GIST_SPLITVEC *sv, Datum oldL, Datum oldR)
+supportSecondarySplit(Relation r, GISTSTATE * giststate, int attno,
+					  GIST_SPLITVEC * sv, Datum oldL, Datum oldR)
 {
 	bool		leaveOnLeft = true,
 				tmpBool;
@@ -341,7 +341,7 @@ supportSecondarySplit(Relation r, GISTSTATE *giststate, int attno,
  * That is a bug of user-defined picksplit but we don't want to fail.
  */
 static void
-genericPickSplit(GISTSTATE *giststate, GistEntryVector *entryvec, GIST_SPLITVEC *v, int attno)
+genericPickSplit(GISTSTATE * giststate, GistEntryVector * entryvec, GIST_SPLITVEC * v, int attno)
 {
 	OffsetNumber i,
 				maxoff;
@@ -412,8 +412,8 @@ genericPickSplit(GISTSTATE *giststate, GistEntryVector *entryvec, GIST_SPLITVEC 
  * A TRUE result implies there is at least one more index column.
  */
 static bool
-gistUserPicksplit(Relation r, GistEntryVector *entryvec, int attno, GistSplitVector *v,
-				  IndexTuple *itup, int len, GISTSTATE *giststate)
+gistUserPicksplit(Relation r, GistEntryVector * entryvec, int attno, GistSplitVector * v,
+				  IndexTuple * itup, int len, GISTSTATE * giststate)
 {
 	GIST_SPLITVEC *sv = &v->splitVector;
 
@@ -582,7 +582,7 @@ gistUserPicksplit(Relation r, GistEntryVector *entryvec, int attno, GistSplitVec
  * simply split page in half
  */
 static void
-gistSplitHalf(GIST_SPLITVEC *v, int len)
+gistSplitHalf(GIST_SPLITVEC * v, int len)
 {
 	int			i;
 
@@ -620,8 +620,8 @@ gistSplitHalf(GIST_SPLITVEC *v, int len)
  * recurse to the next column by passing attno+1.
  */
 void
-gistSplitByKey(Relation r, Page page, IndexTuple *itup, int len,
-			   GISTSTATE *giststate, GistSplitVector *v, int attno)
+gistSplitByKey(Relation r, Page page, IndexTuple * itup, int len,
+			   GISTSTATE * giststate, GistSplitVector * v, int attno)
 {
 	GistEntryVector *entryvec;
 	OffsetNumber *offNullTuples;

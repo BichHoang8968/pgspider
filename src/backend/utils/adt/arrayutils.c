@@ -197,7 +197,7 @@ mda_next_tuple(int n, int *curr, const int *span)
  * and places the length at *n.
  */
 int32 *
-ArrayGetIntegerTypmods(ArrayType *arr, int *n)
+ArrayGetIntegerTypmods(ArrayType * arr, int *n)
 {
 	int32	   *result;
 	Datum	   *elem_values;

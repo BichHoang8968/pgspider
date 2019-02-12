@@ -10,7 +10,7 @@ extern void _PG_init(void);
 
 /* Linkage to functions in plpython module */
 #if PY_MAJOR_VERSION >= 3
-typedef PyObject *(*PLyUnicode_FromStringAndSize_t) (const char *s, Py_ssize_t size);
+typedef PyObject * (*PLyUnicode_FromStringAndSize_t) (const char *s, Py_ssize_t size);
 static PLyUnicode_FromStringAndSize_t PLyUnicode_FromStringAndSize_p;
 #endif
 

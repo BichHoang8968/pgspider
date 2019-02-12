@@ -65,7 +65,7 @@ typedef struct
 	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	uint8		flag;
 	char		data[FLEXIBLE_ARRAY_MEMBER];
-} TRGM;
+}			TRGM;
 
 #define TRGMHDRSIZE		  (VARHDRSZ + sizeof(uint8))
 
@@ -121,15 +121,15 @@ typedef struct TrgmPackedGraph TrgmPackedGraph;
 extern double similarity_threshold;
 extern double word_similarity_threshold;
 
-extern uint32 trgm2int(trgm *ptr);
-extern void compact_trigram(trgm *tptr, char *str, int bytelen);
-extern TRGM *generate_trgm(char *str, int slen);
-extern TRGM *generate_wildcard_trgm(const char *str, int slen);
-extern float4 cnt_sml(TRGM *trg1, TRGM *trg2, bool inexact);
-extern bool trgm_contained_by(TRGM *trg1, TRGM *trg2);
-extern bool *trgm_presence_map(TRGM *query, TRGM *key);
-extern TRGM *createTrgmNFA(text *text_re, Oid collation,
-			  TrgmPackedGraph **graph, MemoryContext rcontext);
-extern bool trigramsMatchGraph(TrgmPackedGraph *graph, bool *check);
+extern uint32 trgm2int(trgm * ptr);
+extern void compact_trigram(trgm * tptr, char *str, int bytelen);
+extern TRGM * generate_trgm(char *str, int slen);
+extern TRGM * generate_wildcard_trgm(const char *str, int slen);
+extern float4 cnt_sml(TRGM * trg1, TRGM * trg2, bool inexact);
+extern bool trgm_contained_by(TRGM * trg1, TRGM * trg2);
+extern bool *trgm_presence_map(TRGM * query, TRGM * key);
+extern TRGM * createTrgmNFA(text * text_re, Oid collation,
+							TrgmPackedGraph * *graph, MemoryContext rcontext);
+extern bool trigramsMatchGraph(TrgmPackedGraph * graph, bool *check);
 
 #endif							/* __TRGM_H__ */

@@ -36,11 +36,11 @@ typedef union
 	struct config_int integer;
 	struct config_string string;
 	struct config_enum _enum;
-} mixedStruct;
+}			mixedStruct;
 
 
-static void printMixedStruct(mixedStruct *structToPrint);
-static bool displayStruct(mixedStruct *structToDisplay);
+static void printMixedStruct(mixedStruct * structToPrint);
+static bool displayStruct(mixedStruct * structToDisplay);
 
 
 void
@@ -73,7 +73,7 @@ GucInfoMain(void)
  * should be displayed to the user.
  */
 static bool
-displayStruct(mixedStruct *structToDisplay)
+displayStruct(mixedStruct * structToDisplay)
 {
 	return !(structToDisplay->generic.flags & (GUC_NO_SHOW_ALL |
 											   GUC_NOT_IN_SAMPLE |
@@ -86,7 +86,7 @@ displayStruct(mixedStruct *structToDisplay)
  * a different format, depending on what the user wants to see.
  */
 static void
-printMixedStruct(mixedStruct *structToPrint)
+printMixedStruct(mixedStruct * structToPrint)
 {
 	printf("%s\t%s\t%s\t",
 		   structToPrint->generic.name,

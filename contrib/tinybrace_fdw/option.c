@@ -50,7 +50,7 @@
 struct TinyBraceFdwOption
 {
 	const char *optname;
-	Oid optcontext; /* Oid of catalog in which option may appear */
+	Oid			optcontext;		/* Oid of catalog in which option may appear */
 };
 
 
@@ -61,20 +61,20 @@ struct TinyBraceFdwOption
 static struct TinyBraceFdwOption valid_options[] =
 {
 	/* Connection options */
-	{ "host",           ForeignServerRelationId },
-	{ "port",           ForeignServerRelationId },
-	{ "init_command",   ForeignServerRelationId },
-	{ "username",       UserMappingRelationId },
-	{ "password",       UserMappingRelationId },
-	{ "dbname",         ForeignServerRelationId },
-	{ "table_name",     ForeignTableRelationId },
-	{ "column_name",    AttributeRelationId},
-	{ "secure_auth",    ForeignServerRelationId },
-	{ "max_blob_size",  ForeignTableRelationId },
-	{ "use_remote_estimate",    ForeignServerRelationId },
-	{ "key", AttributeRelationId},
+	{"host", ForeignServerRelationId},
+	{"port", ForeignServerRelationId},
+	{"init_command", ForeignServerRelationId},
+	{"username", UserMappingRelationId},
+	{"password", UserMappingRelationId},
+	{"dbname", ForeignServerRelationId},
+	{"table_name", ForeignTableRelationId},
+	{"column_name", AttributeRelationId},
+	{"secure_auth", ForeignServerRelationId},
+	{"max_blob_size", ForeignTableRelationId},
+	{"use_remote_estimate", ForeignServerRelationId},
+	{"key", AttributeRelationId},
 	/* Sentinel */
-	{ NULL,			InvalidOid }
+	{NULL, InvalidOid}
 };
 
 extern Datum tinybrace_fdw_validator(PG_FUNCTION_ARGS);
@@ -91,17 +91,18 @@ PG_FUNCTION_INFO_V1(tinybrace_fdw_validator);
 Datum
 tinybrace_fdw_validator(PG_FUNCTION_ARGS)
 {
-	List		*options_list = untransformRelOptions(PG_GETARG_DATUM(0));
+	List	   *options_list = untransformRelOptions(PG_GETARG_DATUM(0));
 	Oid			catalog = PG_GETARG_OID(1);
-	ListCell	*cell;
+	ListCell   *cell;
 
 	/*
-	 * Check that only options supported by mysql_fdw,
-	 * and allowed for the current object type, are given.
+	 * Check that only options supported by mysql_fdw, and allowed for the
+	 * current object type, are given.
 	 */
 	foreach(cell, options_list)
 	{
-		DefElem	 *def = (DefElem *) lfirst(cell);
+		DefElem    *def = (DefElem *) lfirst(cell);
+
 		ereport(INFO,
 				(errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
 				 errmsg("option name = \"%s\"", def->defname)));
@@ -120,14 +121,14 @@ tinybrace_fdw_validator(PG_FUNCTION_ARGS)
 			{
 				if (catalog == opt->optcontext)
 					appendStringInfo(&buf, "%s%s", (buf.len > 0) ? ", " : "",
-							 opt->optname);
+									 opt->optname);
 			}
 
-			ereport(ERROR, 
-				(errcode(ERRCODE_FDW_INVALID_OPTION_NAME), 
-				errmsg("invalid option \"%s\"", def->defname), 
-				errhint("Valid options in this context are: %s", buf.len ? buf.data : "<none>")
-				));
+			ereport(ERROR,
+					(errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
+					 errmsg("invalid option \"%s\"", def->defname),
+					 errhint("Valid options in this context are: %s", buf.len ? buf.data : "<none>")
+					 ));
 		}
 	}
 	PG_RETURN_VOID();
@@ -154,17 +155,17 @@ tinybrace_is_valid_option(const char *option, Oid context)
 /*
  * Fetch the options for a mysql_fdw foreign table.
  */
-tinybrace_opt*
+tinybrace_opt *
 tinybrace_get_options(Oid foreignoid)
 {
 	ForeignTable *f_table = NULL;
 	ForeignServer *f_server = NULL;
 	UserMapping *f_mapping;
-	List *options;
-	ListCell *lc;
+	List	   *options;
+	ListCell   *lc;
 	tinybrace_opt *opt;
 
-	opt = (tinybrace_opt*) palloc(sizeof(tinybrace_opt));
+	opt = (tinybrace_opt *) palloc(sizeof(tinybrace_opt));
 	memset(opt, 0, sizeof(tinybrace_opt));
 
 	/*
@@ -198,7 +199,7 @@ tinybrace_get_options(Oid foreignoid)
 	/* Loop through the options, and get the server/port */
 	foreach(lc, options)
 	{
-		DefElem *def = (DefElem *) lfirst(lc);
+		DefElem    *def = (DefElem *) lfirst(lc);
 
 		if (strcmp(def->defname, "host") == 0)
 			opt->svr_address = defGetString(def);
@@ -220,34 +221,35 @@ tinybrace_get_options(Oid foreignoid)
 
 		if (strcmp(def->defname, "secure_auth") == 0)
 			opt->svr_sa = defGetBoolean(def);
-		
+
 		if (strcmp(def->defname, "init_command") == 0)
 			opt->svr_init_command = defGetString(def);
 
 		if (strcmp(def->defname, "max_blob_size") == 0)
-                       opt->max_blob_size = strtoul(defGetString(def), NULL, 0);
+			opt->max_blob_size = strtoul(defGetString(def), NULL, 0);
 
 		if (strcmp(def->defname, "use_remote_estimate") == 0)
 			opt->use_remote_estimate = defGetBoolean(def);
 
 		if (strcmp(def->defname, "column_name") == 0)
 			opt->use_remote_estimate = defGetString(def);
-    /*
-		if (strcmp(def->defname, "ssl_key") == 0)
-			opt->ssl_key = defGetString(def);
 
-		if (strcmp(def->defname, "ssl_cert") == 0)
-			opt->ssl_cert = defGetString(def);
-
-		if (strcmp(def->defname, "ssl_ca") == 0)
-			opt->ssl_ca = defGetString(def);
-
-		if (strcmp(def->defname, "ssl_capath") == 0)
-			opt->ssl_capath = defGetString(def);
-
-		if (strcmp(def->defname, "ssl_cipher") == 0)
-			opt->ssl_cipher = defGetString(def);
-    */
+		/*
+		 * if (strcmp(def->defname, "ssl_key") == 0) opt->ssl_key =
+		 * defGetString(def);
+		 *
+		 * if (strcmp(def->defname, "ssl_cert") == 0) opt->ssl_cert =
+		 * defGetString(def);
+		 *
+		 * if (strcmp(def->defname, "ssl_ca") == 0) opt->ssl_ca =
+		 * defGetString(def);
+		 *
+		 * if (strcmp(def->defname, "ssl_capath") == 0) opt->ssl_capath =
+		 * defGetString(def);
+		 *
+		 * if (strcmp(def->defname, "ssl_cipher") == 0) opt->ssl_cipher =
+		 * defGetString(def);
+		 */
 	}
 	/* Default values, if required */
 	if (!opt->svr_address)
@@ -261,5 +263,3 @@ tinybrace_get_options(Oid foreignoid)
 
 	return opt;
 }
-
-

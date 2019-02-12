@@ -25,12 +25,12 @@
 #include "utils/lsyscache.h"
 
 
-static bool expression_returns_set_walker(Node *node, void *context);
+static bool expression_returns_set_walker(Node * node, void *context);
 static int	leftmostLoc(int loc1, int loc2);
-static bool fix_opfuncids_walker(Node *node, void *context);
-static bool planstate_walk_subplans(List *plans, bool (*walker) (),
+static bool fix_opfuncids_walker(Node * node, void *context);
+static bool planstate_walk_subplans(List * plans, bool (*walker) (),
 									void *context);
-static bool planstate_walk_members(List *plans, PlanState **planstates,
+static bool planstate_walk_members(List * plans, PlanState * *planstates,
 					   bool (*walker) (), void *context);
 
 
@@ -39,7 +39,7 @@ static bool planstate_walk_members(List *plans, PlanState **planstates,
  *	  returns the Oid of the type of the expression's result.
  */
 Oid
-exprType(const Node *expr)
+exprType(const Node * expr)
 {
 	Oid			type;
 
@@ -68,7 +68,7 @@ exprType(const Node *expr)
 			break;
 		case T_ArrayRef:
 			{
-				const ArrayRef *arrayref = (const ArrayRef *) expr;
+				const		ArrayRef *arrayref = (const ArrayRef *) expr;
 
 				/* slice and/or store operations yield the array type */
 				if (arrayref->reflowerindexpr || arrayref->refassgnexpr)
@@ -100,7 +100,7 @@ exprType(const Node *expr)
 			break;
 		case T_SubLink:
 			{
-				const SubLink *sublink = (const SubLink *) expr;
+				const		SubLink *sublink = (const SubLink *) expr;
 
 				if (sublink->subLinkType == EXPR_SUBLINK ||
 					sublink->subLinkType == ARRAY_SUBLINK)
@@ -138,7 +138,7 @@ exprType(const Node *expr)
 			break;
 		case T_SubPlan:
 			{
-				const SubPlan *subplan = (const SubPlan *) expr;
+				const		SubPlan *subplan = (const SubPlan *) expr;
 
 				if (subplan->subLinkType == EXPR_SUBLINK ||
 					subplan->subLinkType == ARRAY_SUBLINK)
@@ -169,7 +169,7 @@ exprType(const Node *expr)
 			break;
 		case T_AlternativeSubPlan:
 			{
-				const AlternativeSubPlan *asplan = (const AlternativeSubPlan *) expr;
+				const		AlternativeSubPlan *asplan = (const AlternativeSubPlan *) expr;
 
 				/* subplans should all return the same thing */
 				type = exprType((Node *) linitial(asplan->subplans));
@@ -251,7 +251,7 @@ exprType(const Node *expr)
 			break;
 		case T_InferenceElem:
 			{
-				const InferenceElem *n = (const InferenceElem *) expr;
+				const		InferenceElem *n = (const InferenceElem *) expr;
 
 				type = exprType((Node *) n->expr);
 			}
@@ -273,7 +273,7 @@ exprType(const Node *expr)
  *	  if it can be determined.  In many cases, it can't and we return -1.
  */
 int32
-exprTypmod(const Node *expr)
+exprTypmod(const Node * expr)
 {
 	if (!expr)
 		return -1;
@@ -306,14 +306,14 @@ exprTypmod(const Node *expr)
 				 * Result is either first argument or NULL, so we can report
 				 * first argument's typmod if known.
 				 */
-				const NullIfExpr *nexpr = (const NullIfExpr *) expr;
+				const		NullIfExpr *nexpr = (const NullIfExpr *) expr;
 
 				return exprTypmod((Node *) linitial(nexpr->args));
 			}
 			break;
 		case T_SubLink:
 			{
-				const SubLink *sublink = (const SubLink *) expr;
+				const		SubLink *sublink = (const SubLink *) expr;
 
 				if (sublink->subLinkType == EXPR_SUBLINK ||
 					sublink->subLinkType == ARRAY_SUBLINK)
@@ -334,7 +334,7 @@ exprTypmod(const Node *expr)
 			break;
 		case T_SubPlan:
 			{
-				const SubPlan *subplan = (const SubPlan *) expr;
+				const		SubPlan *subplan = (const SubPlan *) expr;
 
 				if (subplan->subLinkType == EXPR_SUBLINK ||
 					subplan->subLinkType == ARRAY_SUBLINK)
@@ -348,7 +348,7 @@ exprTypmod(const Node *expr)
 			break;
 		case T_AlternativeSubPlan:
 			{
-				const AlternativeSubPlan *asplan = (const AlternativeSubPlan *) expr;
+				const		AlternativeSubPlan *asplan = (const AlternativeSubPlan *) expr;
 
 				/* subplans should all return the same thing */
 				return exprTypmod((Node *) linitial(asplan->subplans));
@@ -368,7 +368,7 @@ exprTypmod(const Node *expr)
 				 * If all the alternatives agree on type/typmod, return that
 				 * typmod, else use -1
 				 */
-				const CaseExpr *cexpr = (const CaseExpr *) expr;
+				const		CaseExpr *cexpr = (const CaseExpr *) expr;
 				Oid			casetype = cexpr->casetype;
 				int32		typmod;
 				ListCell   *arg;
@@ -400,7 +400,7 @@ exprTypmod(const Node *expr)
 				 * If all the elements agree on type/typmod, return that
 				 * typmod, else use -1
 				 */
-				const ArrayExpr *arrayexpr = (const ArrayExpr *) expr;
+				const		ArrayExpr *arrayexpr = (const ArrayExpr *) expr;
 				Oid			commontype;
 				int32		typmod;
 				ListCell   *elem;
@@ -432,7 +432,7 @@ exprTypmod(const Node *expr)
 				 * If all the alternatives agree on type/typmod, return that
 				 * typmod, else use -1
 				 */
-				const CoalesceExpr *cexpr = (const CoalesceExpr *) expr;
+				const		CoalesceExpr *cexpr = (const CoalesceExpr *) expr;
 				Oid			coalescetype = cexpr->coalescetype;
 				int32		typmod;
 				ListCell   *arg;
@@ -460,7 +460,7 @@ exprTypmod(const Node *expr)
 				 * If all the alternatives agree on type/typmod, return that
 				 * typmod, else use -1
 				 */
-				const MinMaxExpr *mexpr = (const MinMaxExpr *) expr;
+				const		MinMaxExpr *mexpr = (const MinMaxExpr *) expr;
 				Oid			minmaxtype = mexpr->minmaxtype;
 				int32		typmod;
 				ListCell   *arg;
@@ -510,7 +510,7 @@ exprTypmod(const Node *expr)
  * length coercion by this routine.
  */
 bool
-exprIsLengthCoercion(const Node *expr, int32 *coercedTypmod)
+exprIsLengthCoercion(const Node * expr, int32 * coercedTypmod)
 {
 	if (coercedTypmod != NULL)
 		*coercedTypmod = -1;	/* default result on failure */
@@ -521,7 +521,7 @@ exprIsLengthCoercion(const Node *expr, int32 *coercedTypmod)
 	 */
 	if (expr && IsA(expr, FuncExpr))
 	{
-		const FuncExpr *func = (const FuncExpr *) expr;
+		const		FuncExpr *func = (const FuncExpr *) expr;
 		int			nargs;
 		Const	   *second_arg;
 
@@ -558,7 +558,7 @@ exprIsLengthCoercion(const Node *expr, int32 *coercedTypmod)
 
 	if (expr && IsA(expr, ArrayCoerceExpr))
 	{
-		const ArrayCoerceExpr *acoerce = (const ArrayCoerceExpr *) expr;
+		const		ArrayCoerceExpr *acoerce = (const ArrayCoerceExpr *) expr;
 
 		/* It's not a length coercion unless there's a nondefault typmod */
 		if (acoerce->resulttypmod < 0)
@@ -585,7 +585,7 @@ exprIsLengthCoercion(const Node *expr, int32 *coercedTypmod)
  * that there are not adjacent RelabelTypes.
  */
 Node *
-relabel_to_typmod(Node *expr, int32 typmod)
+relabel_to_typmod(Node * expr, int32 typmod)
 {
 	Oid			type = exprType(expr);
 	Oid			coll = exprCollation(expr);
@@ -609,7 +609,7 @@ relabel_to_typmod(Node *expr, int32 typmod)
  * just return it unchanged, even if it's marked as an implicit coercion.
  */
 Node *
-strip_implicit_coercions(Node *node)
+strip_implicit_coercions(Node * node)
 {
 	if (node == NULL)
 		return NULL;
@@ -667,13 +667,13 @@ strip_implicit_coercions(Node *node)
  * returns a set.
  */
 bool
-expression_returns_set(Node *clause)
+expression_returns_set(Node * clause)
 {
 	return expression_returns_set_walker(clause, NULL);
 }
 
 static bool
-expression_returns_set_walker(Node *node, void *context)
+expression_returns_set_walker(Node * node, void *context)
 {
 	if (node == NULL)
 		return false;
@@ -717,7 +717,7 @@ expression_returns_set_walker(Node *node, void *context)
  * or vice versa, the two are different.
  */
 Oid
-exprCollation(const Node *expr)
+exprCollation(const Node * expr)
 {
 	Oid			coll;
 
@@ -770,7 +770,7 @@ exprCollation(const Node *expr)
 			break;
 		case T_SubLink:
 			{
-				const SubLink *sublink = (const SubLink *) expr;
+				const		SubLink *sublink = (const SubLink *) expr;
 
 				if (sublink->subLinkType == EXPR_SUBLINK ||
 					sublink->subLinkType == ARRAY_SUBLINK)
@@ -795,7 +795,7 @@ exprCollation(const Node *expr)
 			break;
 		case T_SubPlan:
 			{
-				const SubPlan *subplan = (const SubPlan *) expr;
+				const		SubPlan *subplan = (const SubPlan *) expr;
 
 				if (subplan->subLinkType == EXPR_SUBLINK ||
 					subplan->subLinkType == ARRAY_SUBLINK)
@@ -813,7 +813,7 @@ exprCollation(const Node *expr)
 			break;
 		case T_AlternativeSubPlan:
 			{
-				const AlternativeSubPlan *asplan = (const AlternativeSubPlan *) expr;
+				const		AlternativeSubPlan *asplan = (const AlternativeSubPlan *) expr;
 
 				/* subplans should all return the same thing */
 				coll = exprCollation((Node *) linitial(asplan->subplans));
@@ -918,7 +918,7 @@ exprCollation(const Node *expr)
  * Result is InvalidOid if the node type doesn't store this information.
  */
 Oid
-exprInputCollation(const Node *expr)
+exprInputCollation(const Node * expr)
 {
 	Oid			coll;
 
@@ -966,7 +966,7 @@ exprInputCollation(const Node *expr)
  * worry about subplans or PlaceHolderVars.
  */
 void
-exprSetCollation(Node *expr, Oid collation)
+exprSetCollation(Node * expr, Oid collation)
 {
 	switch (nodeTag(expr))
 	{
@@ -1119,7 +1119,7 @@ exprSetCollation(Node *expr, Oid collation)
  * contains multiple input collation OIDs.
  */
 void
-exprSetInputCollation(Node *expr, Oid inputcollation)
+exprSetInputCollation(Node * expr, Oid inputcollation)
 {
 	switch (nodeTag(expr))
 	{
@@ -1183,7 +1183,7 @@ exprSetInputCollation(Node *expr, Oid inputcollation)
  * known and unknown locations in a tree.
  */
 int
-exprLocation(const Node *expr)
+exprLocation(const Node * expr)
 {
 	int			loc;
 
@@ -1223,7 +1223,7 @@ exprLocation(const Node *expr)
 			break;
 		case T_FuncExpr:
 			{
-				const FuncExpr *fexpr = (const FuncExpr *) expr;
+				const		FuncExpr *fexpr = (const FuncExpr *) expr;
 
 				/* consider both function name and leftmost arg */
 				loc = leftmostLoc(fexpr->location,
@@ -1232,7 +1232,7 @@ exprLocation(const Node *expr)
 			break;
 		case T_NamedArgExpr:
 			{
-				const NamedArgExpr *na = (const NamedArgExpr *) expr;
+				const		NamedArgExpr *na = (const NamedArgExpr *) expr;
 
 				/* consider both argument name and value */
 				loc = leftmostLoc(na->location,
@@ -1243,7 +1243,7 @@ exprLocation(const Node *expr)
 		case T_DistinctExpr:	/* struct-equivalent to OpExpr */
 		case T_NullIfExpr:		/* struct-equivalent to OpExpr */
 			{
-				const OpExpr *opexpr = (const OpExpr *) expr;
+				const		OpExpr *opexpr = (const OpExpr *) expr;
 
 				/* consider both operator name and leftmost arg */
 				loc = leftmostLoc(opexpr->location,
@@ -1252,7 +1252,7 @@ exprLocation(const Node *expr)
 			break;
 		case T_ScalarArrayOpExpr:
 			{
-				const ScalarArrayOpExpr *saopexpr = (const ScalarArrayOpExpr *) expr;
+				const		ScalarArrayOpExpr *saopexpr = (const ScalarArrayOpExpr *) expr;
 
 				/* consider both operator name and leftmost arg */
 				loc = leftmostLoc(saopexpr->location,
@@ -1261,7 +1261,7 @@ exprLocation(const Node *expr)
 			break;
 		case T_BoolExpr:
 			{
-				const BoolExpr *bexpr = (const BoolExpr *) expr;
+				const		BoolExpr *bexpr = (const BoolExpr *) expr;
 
 				/*
 				 * Same as above, to handle either NOT or AND/OR.  We can't
@@ -1274,7 +1274,7 @@ exprLocation(const Node *expr)
 			break;
 		case T_SubLink:
 			{
-				const SubLink *sublink = (const SubLink *) expr;
+				const		SubLink *sublink = (const SubLink *) expr;
 
 				/* check the testexpr, if any, and the operator/keyword */
 				loc = leftmostLoc(exprLocation(sublink->testexpr),
@@ -1291,7 +1291,7 @@ exprLocation(const Node *expr)
 			break;
 		case T_RelabelType:
 			{
-				const RelabelType *rexpr = (const RelabelType *) expr;
+				const		RelabelType *rexpr = (const RelabelType *) expr;
 
 				/* Much as above */
 				loc = leftmostLoc(rexpr->location,
@@ -1300,7 +1300,7 @@ exprLocation(const Node *expr)
 			break;
 		case T_CoerceViaIO:
 			{
-				const CoerceViaIO *cexpr = (const CoerceViaIO *) expr;
+				const		CoerceViaIO *cexpr = (const CoerceViaIO *) expr;
 
 				/* Much as above */
 				loc = leftmostLoc(cexpr->location,
@@ -1309,7 +1309,7 @@ exprLocation(const Node *expr)
 			break;
 		case T_ArrayCoerceExpr:
 			{
-				const ArrayCoerceExpr *cexpr = (const ArrayCoerceExpr *) expr;
+				const		ArrayCoerceExpr *cexpr = (const ArrayCoerceExpr *) expr;
 
 				/* Much as above */
 				loc = leftmostLoc(cexpr->location,
@@ -1318,7 +1318,7 @@ exprLocation(const Node *expr)
 			break;
 		case T_ConvertRowtypeExpr:
 			{
-				const ConvertRowtypeExpr *cexpr = (const ConvertRowtypeExpr *) expr;
+				const		ConvertRowtypeExpr *cexpr = (const ConvertRowtypeExpr *) expr;
 
 				/* Much as above */
 				loc = leftmostLoc(cexpr->location,
@@ -1363,7 +1363,7 @@ exprLocation(const Node *expr)
 			break;
 		case T_XmlExpr:
 			{
-				const XmlExpr *xexpr = (const XmlExpr *) expr;
+				const		XmlExpr *xexpr = (const XmlExpr *) expr;
 
 				/* consider both function name and leftmost arg */
 				loc = leftmostLoc(xexpr->location,
@@ -1372,7 +1372,7 @@ exprLocation(const Node *expr)
 			break;
 		case T_NullTest:
 			{
-				const NullTest *nexpr = (const NullTest *) expr;
+				const		NullTest *nexpr = (const NullTest *) expr;
 
 				/* Much as above */
 				loc = leftmostLoc(nexpr->location,
@@ -1381,7 +1381,7 @@ exprLocation(const Node *expr)
 			break;
 		case T_BooleanTest:
 			{
-				const BooleanTest *bexpr = (const BooleanTest *) expr;
+				const		BooleanTest *bexpr = (const BooleanTest *) expr;
 
 				/* Much as above */
 				loc = leftmostLoc(bexpr->location,
@@ -1390,7 +1390,7 @@ exprLocation(const Node *expr)
 			break;
 		case T_CoerceToDomain:
 			{
-				const CoerceToDomain *cexpr = (const CoerceToDomain *) expr;
+				const		CoerceToDomain *cexpr = (const CoerceToDomain *) expr;
 
 				/* Much as above */
 				loc = leftmostLoc(cexpr->location,
@@ -1427,7 +1427,7 @@ exprLocation(const Node *expr)
 			break;
 		case T_A_Expr:
 			{
-				const A_Expr *aexpr = (const A_Expr *) expr;
+				const		A_Expr *aexpr = (const A_Expr *) expr;
 
 				/* use leftmost of operator or left operand (if any) */
 				/* we assume right operand can't be to left of operator */
@@ -1446,7 +1446,7 @@ exprLocation(const Node *expr)
 			break;
 		case T_FuncCall:
 			{
-				const FuncCall *fc = (const FuncCall *) expr;
+				const		FuncCall *fc = (const FuncCall *) expr;
 
 				/* consider both function name and leftmost arg */
 				/* (we assume any ORDER BY nodes must be to right of name) */
@@ -1467,7 +1467,7 @@ exprLocation(const Node *expr)
 			break;
 		case T_TypeCast:
 			{
-				const TypeCast *tc = (const TypeCast *) expr;
+				const		TypeCast *tc = (const TypeCast *) expr;
 
 				/*
 				 * This could represent CAST(), ::, or TypeName 'literal', so
@@ -1579,14 +1579,14 @@ leftmostLoc(int loc1, int loc2)
  * shared structure.)
  */
 void
-fix_opfuncids(Node *node)
+fix_opfuncids(Node * node)
 {
 	/* This tree walk requires no special setup, so away we go... */
 	fix_opfuncids_walker(node, NULL);
 }
 
 static bool
-fix_opfuncids_walker(Node *node, void *context)
+fix_opfuncids_walker(Node * node, void *context)
 {
 	if (node == NULL)
 		return false;
@@ -1610,7 +1610,7 @@ fix_opfuncids_walker(Node *node, void *context)
  * DistinctExpr and NullIfExpr nodes.
  */
 void
-set_opfuncid(OpExpr *opexpr)
+set_opfuncid(OpExpr * opexpr)
 {
 	if (opexpr->opfuncid == InvalidOid)
 		opexpr->opfuncid = get_opcode(opexpr->opno);
@@ -1621,7 +1621,7 @@ set_opfuncid(OpExpr *opexpr)
  *		As above, for ScalarArrayOpExpr nodes.
  */
 void
-set_sa_opfuncid(ScalarArrayOpExpr *opexpr)
+set_sa_opfuncid(ScalarArrayOpExpr * opexpr)
 {
 	if (opexpr->opfuncid == InvalidOid)
 		opexpr->opfuncid = get_opcode(opexpr->opno);
@@ -1648,7 +1648,7 @@ set_sa_opfuncid(ScalarArrayOpExpr *opexpr)
  * thought about how to treat them.
  */
 bool
-check_functions_in_node(Node *node, check_function_callback checker,
+check_functions_in_node(Node * node, check_function_callback checker,
 						void *context)
 {
 	switch (nodeTag(node))
@@ -1840,7 +1840,7 @@ check_functions_in_node(Node *node, check_function_callback checker,
  */
 
 bool
-expression_tree_walker(Node *node,
+expression_tree_walker(Node * node,
 					   bool (*walker) (),
 					   void *context)
 {
@@ -2243,7 +2243,7 @@ expression_tree_walker(Node *node,
  * indicated items.  (More flag bits may be added as needed.)
  */
 bool
-query_tree_walker(Query *query,
+query_tree_walker(Query * query,
 				  bool (*walker) (),
 				  void *context,
 				  int flags)
@@ -2287,7 +2287,7 @@ query_tree_walker(Query *query,
  * its own.
  */
 bool
-range_table_walker(List *rtable,
+range_table_walker(List * rtable,
 				   bool (*walker) (),
 				   void *context,
 				   int flags)
@@ -2407,8 +2407,8 @@ range_table_walker(List *rtable,
  */
 
 Node *
-expression_tree_mutator(Node *node,
-						Node *(*mutator) (),
+expression_tree_mutator(Node * node,
+						Node * (*mutator) (),
 						void *context)
 {
 	/*
@@ -3065,8 +3065,8 @@ expression_tree_mutator(Node *node,
  * modified substructure is safely copied in any case.
  */
 Query *
-query_tree_mutator(Query *query,
-				   Node *(*mutator) (),
+query_tree_mutator(Query * query,
+				   Node * (*mutator) (),
 				   void *context,
 				   int flags)
 {
@@ -3104,8 +3104,8 @@ query_tree_mutator(Query *query,
  * its own.
  */
 List *
-range_table_mutator(List *rtable,
-					Node *(*mutator) (),
+range_table_mutator(List * rtable,
+					Node * (*mutator) (),
 					void *context,
 					int flags)
 {
@@ -3175,7 +3175,7 @@ range_table_mutator(List *rtable,
  * for the outermost Query node.
  */
 bool
-query_or_expression_tree_walker(Node *node,
+query_or_expression_tree_walker(Node * node,
 								bool (*walker) (),
 								void *context,
 								int flags)
@@ -3198,8 +3198,8 @@ query_or_expression_tree_walker(Node *node,
  * for the outermost Query node.
  */
 Node *
-query_or_expression_tree_mutator(Node *node,
-								 Node *(*mutator) (),
+query_or_expression_tree_mutator(Node * node,
+								 Node * (*mutator) (),
 								 void *context,
 								 int flags)
 {
@@ -3229,7 +3229,7 @@ query_or_expression_tree_mutator(Node *node,
  * appear in CTEs.
  */
 bool
-raw_expression_tree_walker(Node *node,
+raw_expression_tree_walker(Node * node,
 						   bool (*walker) (),
 						   void *context)
 {
@@ -3694,7 +3694,7 @@ raw_expression_tree_walker(Node *node,
  * recurse into any sub-nodes it has.
  */
 bool
-planstate_tree_walker(PlanState *planstate,
+planstate_tree_walker(PlanState * planstate,
 					  bool (*walker) (),
 					  void *context)
 {
@@ -3778,7 +3778,7 @@ planstate_tree_walker(PlanState *planstate,
  * Walk a list of SubPlans (or initPlans, which also use SubPlan nodes).
  */
 static bool
-planstate_walk_subplans(List *plans,
+planstate_walk_subplans(List * plans,
 						bool (*walker) (),
 						void *context)
 {
@@ -3803,7 +3803,7 @@ planstate_walk_subplans(List *plans,
  * we need the list in order to determine the length of the PlanState array.
  */
 static bool
-planstate_walk_members(List *plans, PlanState **planstates,
+planstate_walk_members(List * plans, PlanState * *planstates,
 					   bool (*walker) (), void *context)
 {
 	int			nplans = list_length(plans);

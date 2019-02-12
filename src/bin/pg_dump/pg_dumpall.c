@@ -32,33 +32,33 @@
 
 static void help(void);
 
-static void dropRoles(PGconn *conn);
-static void dumpRoles(PGconn *conn);
-static void dumpRoleMembership(PGconn *conn);
-static void dumpGroups(PGconn *conn);
-static void dropTablespaces(PGconn *conn);
-static void dumpTablespaces(PGconn *conn);
-static void dropDBs(PGconn *conn);
-static void dumpCreateDB(PGconn *conn);
-static void dumpDatabaseConfig(PGconn *conn, const char *dbname);
-static void dumpUserConfig(PGconn *conn, const char *username);
-static void dumpDbRoleConfig(PGconn *conn);
-static void makeAlterConfigCommand(PGconn *conn, const char *arrayitem,
+static void dropRoles(PGconn * conn);
+static void dumpRoles(PGconn * conn);
+static void dumpRoleMembership(PGconn * conn);
+static void dumpGroups(PGconn * conn);
+static void dropTablespaces(PGconn * conn);
+static void dumpTablespaces(PGconn * conn);
+static void dropDBs(PGconn * conn);
+static void dumpCreateDB(PGconn * conn);
+static void dumpDatabaseConfig(PGconn * conn, const char *dbname);
+static void dumpUserConfig(PGconn * conn, const char *username);
+static void dumpDbRoleConfig(PGconn * conn);
+static void makeAlterConfigCommand(PGconn * conn, const char *arrayitem,
 					   const char *type, const char *name, const char *type2,
 					   const char *name2);
-static void dumpDatabases(PGconn *conn);
+static void dumpDatabases(PGconn * conn);
 static void dumpTimestamp(const char *msg);
 
 static int	runPgDump(const char *dbname);
-static void buildShSecLabels(PGconn *conn,
+static void buildShSecLabels(PGconn * conn,
 				 const char *catalog_name, Oid objectId,
 				 const char *objtype, const char *objname,
 				 PQExpBuffer buffer);
-static PGconn *connectDatabase(const char *dbname, const char *connstr, const char *pghost, const char *pgport,
-				const char *pguser, trivalue prompt_password, bool fail_on_error);
+static PGconn * connectDatabase(const char *dbname, const char *connstr, const char *pghost, const char *pgport,
+								const char *pguser, trivalue prompt_password, bool fail_on_error);
 static char *constructConnStr(const char **keywords, const char **values);
-static PGresult *executeQuery(PGconn *conn, const char *query);
-static void executeCommand(PGconn *conn, const char *query);
+static PGresult * executeQuery(PGconn * conn, const char *query);
+static void executeCommand(PGconn * conn, const char *query);
 
 static char pg_dump_bin[MAXPGPATH];
 static const char *progname;
@@ -87,7 +87,7 @@ static char role_catalog[10];
 #define PG_AUTHID "pg_authid"
 #define PG_ROLES  "pg_roles "
 
-static FILE *OPF;
+static FILE * OPF;
 static char *filename = NULL;
 
 #define exit_nicely(code) exit(code)
@@ -632,7 +632,7 @@ help(void)
  * Drop roles
  */
 static void
-dropRoles(PGconn *conn)
+dropRoles(PGconn * conn)
 {
 	PQExpBuffer buf = createPQExpBuffer();
 	PGresult   *res;
@@ -687,7 +687,7 @@ dropRoles(PGconn *conn)
  * Dump roles
  */
 static void
-dumpRoles(PGconn *conn)
+dumpRoles(PGconn * conn)
 {
 	PQExpBuffer buf = createPQExpBuffer();
 	PGresult   *res;
@@ -945,7 +945,7 @@ dumpRoles(PGconn *conn)
  * no membership yet.
  */
 static void
-dumpRoleMembership(PGconn *conn)
+dumpRoleMembership(PGconn * conn)
 {
 	PQExpBuffer buf = createPQExpBuffer();
 	PGresult   *res;
@@ -1005,7 +1005,7 @@ dumpRoleMembership(PGconn *conn)
  * no membership yet.
  */
 static void
-dumpGroups(PGconn *conn)
+dumpGroups(PGconn * conn)
 {
 	PQExpBuffer buf = createPQExpBuffer();
 	PGresult   *res;
@@ -1070,7 +1070,7 @@ dumpGroups(PGconn *conn)
  * Drop tablespaces.
  */
 static void
-dropTablespaces(PGconn *conn)
+dropTablespaces(PGconn * conn)
 {
 	PGresult   *res;
 	int			i;
@@ -1105,7 +1105,7 @@ dropTablespaces(PGconn *conn)
  * Dump tablespaces.
  */
 static void
-dumpTablespaces(PGconn *conn)
+dumpTablespaces(PGconn * conn)
 {
 	PGresult   *res;
 	int			i;
@@ -1244,7 +1244,7 @@ dumpTablespaces(PGconn *conn)
  * This should match the set of databases targeted by dumpCreateDB().
  */
 static void
-dropDBs(PGconn *conn)
+dropDBs(PGconn * conn)
 {
 	PGresult   *res;
 	int			i;
@@ -1292,7 +1292,7 @@ dropDBs(PGconn *conn)
  * dump template0).
  */
 static void
-dumpCreateDB(PGconn *conn)
+dumpCreateDB(PGconn * conn)
 {
 	PQExpBuffer buf = createPQExpBuffer();
 	char	   *default_encoding = NULL;
@@ -1558,7 +1558,7 @@ dumpCreateDB(PGconn *conn)
  * Dump database-specific configuration
  */
 static void
-dumpDatabaseConfig(PGconn *conn, const char *dbname)
+dumpDatabaseConfig(PGconn * conn, const char *dbname)
 {
 	PQExpBuffer buf = createPQExpBuffer();
 	int			count = 1;
@@ -1602,7 +1602,7 @@ dumpDatabaseConfig(PGconn *conn, const char *dbname)
  * Dump user-specific configuration
  */
 static void
-dumpUserConfig(PGconn *conn, const char *username)
+dumpUserConfig(PGconn * conn, const char *username)
 {
 	PQExpBuffer buf = createPQExpBuffer();
 	int			count = 1;
@@ -1647,7 +1647,7 @@ dumpUserConfig(PGconn *conn, const char *username)
  * Dump user-and-database-specific configuration
  */
 static void
-dumpDbRoleConfig(PGconn *conn)
+dumpDbRoleConfig(PGconn * conn)
 {
 	PQExpBuffer buf = createPQExpBuffer();
 	PGresult   *res;
@@ -1681,7 +1681,7 @@ dumpDbRoleConfig(PGconn *conn)
  * Helper function for dumpXXXConfig().
  */
 static void
-makeAlterConfigCommand(PGconn *conn, const char *arrayitem,
+makeAlterConfigCommand(PGconn * conn, const char *arrayitem,
 					   const char *type, const char *name,
 					   const char *type2, const char *name2)
 {
@@ -1752,7 +1752,7 @@ makeAlterConfigCommand(PGconn *conn, const char *arrayitem,
  * Dump contents of databases.
  */
 static void
-dumpDatabases(PGconn *conn)
+dumpDatabases(PGconn * conn)
 {
 	PGresult   *res;
 	int			i;
@@ -1870,7 +1870,7 @@ runPgDump(const char *dbname)
  * The command(s) are appended to "buffer".
  */
 static void
-buildShSecLabels(PGconn *conn, const char *catalog_name, Oid objectId,
+buildShSecLabels(PGconn * conn, const char *catalog_name, Oid objectId,
 				 const char *objtype, const char *objname,
 				 PQExpBuffer buffer)
 {
@@ -2142,7 +2142,7 @@ constructConnStr(const char **keywords, const char **values)
  * Run a query, return the results, exit program on failure.
  */
 static PGresult *
-executeQuery(PGconn *conn, const char *query)
+executeQuery(PGconn * conn, const char *query)
 {
 	PGresult   *res;
 
@@ -2168,7 +2168,7 @@ executeQuery(PGconn *conn, const char *query)
  * As above for a SQL command (which returns nothing).
  */
 static void
-executeCommand(PGconn *conn, const char *query)
+executeCommand(PGconn * conn, const char *query)
 {
 	PGresult   *res;
 

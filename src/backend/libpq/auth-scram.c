@@ -104,7 +104,7 @@ typedef enum
 	SCRAM_AUTH_INIT,
 	SCRAM_AUTH_SALT_SENT,
 	SCRAM_AUTH_FINISHED
-} scram_state_enum;
+}			scram_state_enum;
 
 typedef struct
 {
@@ -141,18 +141,18 @@ typedef struct
 	 */
 	bool		doomed;
 	char	   *logdetail;
-} scram_state;
+}			scram_state;
 
-static void read_client_first_message(scram_state *state, char *input);
-static void read_client_final_message(scram_state *state, char *input);
-static char *build_server_first_message(scram_state *state);
-static char *build_server_final_message(scram_state *state);
-static bool verify_client_proof(scram_state *state);
-static bool verify_final_nonce(scram_state *state);
+static void read_client_first_message(scram_state * state, char *input);
+static void read_client_final_message(scram_state * state, char *input);
+static char *build_server_first_message(scram_state * state);
+static char *build_server_final_message(scram_state * state);
+static bool verify_client_proof(scram_state * state);
+static bool verify_final_nonce(scram_state * state);
 static bool parse_scram_verifier(const char *verifier, int *iterations,
-					 char **salt, uint8 *stored_key, uint8 *server_key);
+					 char **salt, uint8 * stored_key, uint8 * server_key);
 static void mock_scram_verifier(const char *username, int *iterations,
-					char **salt, uint8 *stored_key, uint8 *server_key);
+					char **salt, uint8 * stored_key, uint8 * server_key);
 static bool is_scram_printable(char *p);
 static char *sanitize_char(char c);
 static char *scram_mock_salt(const char *username);
@@ -478,7 +478,7 @@ scram_verify_plain_password(const char *username, const char *password,
  */
 static bool
 parse_scram_verifier(const char *verifier, int *iterations, char **salt,
-					 uint8 *stored_key, uint8 *server_key)
+					 uint8 * stored_key, uint8 * server_key)
 {
 	char	   *v;
 	char	   *p;
@@ -553,7 +553,7 @@ invalid_verifier:
 
 static void
 mock_scram_verifier(const char *username, int *iterations, char **salt,
-					uint8 *stored_key, uint8 *server_key)
+					uint8 * stored_key, uint8 * server_key)
 {
 	char	   *raw_salt;
 	char	   *encoded_salt;
@@ -711,7 +711,7 @@ read_any_attr(char **input, char *attr_p)
  * At this stage, any errors will be reported directly with ereport(ERROR).
  */
 static void
-read_client_first_message(scram_state *state, char *input)
+read_client_first_message(scram_state * state, char *input)
 {
 	input = pstrdup(input);
 
@@ -874,7 +874,7 @@ read_client_first_message(scram_state *state, char *input)
  * client in an exchange.
  */
 static bool
-verify_final_nonce(scram_state *state)
+verify_final_nonce(scram_state * state)
 {
 	int			client_nonce_len = strlen(state->client_nonce);
 	int			server_nonce_len = strlen(state->server_nonce);
@@ -895,7 +895,7 @@ verify_final_nonce(scram_state *state)
  * client in an exchange.
  */
 static bool
-verify_client_proof(scram_state *state)
+verify_client_proof(scram_state * state)
 {
 	uint8		ClientSignature[SCRAM_KEY_LEN];
 	uint8		ClientKey[SCRAM_KEY_LEN];
@@ -936,7 +936,7 @@ verify_client_proof(scram_state *state)
  * communication exchange.
  */
 static char *
-build_server_first_message(scram_state *state)
+build_server_first_message(scram_state * state)
 {
 	/*------
 	 * The syntax for the server-first-message is: (RFC 5802)
@@ -993,7 +993,7 @@ build_server_first_message(scram_state *state)
  * Read and parse the final message received from client.
  */
 static void
-read_client_final_message(scram_state *state, char *input)
+read_client_final_message(scram_state * state, char *input)
 {
 	char		attr;
 	char	   *channel_binding;
@@ -1037,8 +1037,8 @@ read_client_final_message(scram_state *state, char *input)
 	/*
 	 * Read channel-binding.  We don't support channel binding, so it's
 	 * expected to always be "biws", which is "n,,", base64-encoded, or
-	 * "eSws", which is "y,,".  We also have to check whether the flag is
-	 * the same one that the client originally sent.
+	 * "eSws", which is "y,,".  We also have to check whether the flag is the
+	 * same one that the client originally sent.
 	 */
 	channel_binding = read_attr_value(&p, 'c');
 	if (!(strcmp(channel_binding, "biws") == 0 && state->cbind_flag == 'n') &&
@@ -1079,7 +1079,7 @@ read_client_final_message(scram_state *state, char *input)
  * Build the final server-side message of an exchange.
  */
 static char *
-build_server_final_message(scram_state *state)
+build_server_final_message(scram_state * state)
 {
 	uint8		ServerSignature[SCRAM_KEY_LEN];
 	char	   *server_signature_base64;

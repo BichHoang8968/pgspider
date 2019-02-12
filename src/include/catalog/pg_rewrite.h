@@ -50,7 +50,7 @@ CATALOG(pg_rewrite,2618)
  *		the format of pg_rewrite relation.
  * ----------------
  */
-typedef FormData_pg_rewrite *Form_pg_rewrite;
+typedef FormData_pg_rewrite * Form_pg_rewrite;
 
 /* ----------------
  *		compiler constants for pg_rewrite

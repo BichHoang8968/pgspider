@@ -101,19 +101,19 @@ typedef struct
 {
 	double		low;
 	double		high;
-} Range;
+}			Range;
 
 typedef struct
 {
 	Range		left;
 	Range		right;
-} RangeBox;
+}			RangeBox;
 
 typedef struct
 {
 	RangeBox	range_box_x;
 	RangeBox	range_box_y;
-} RectBox;
+}			RectBox;
 
 /*
  * Calculate the quadrant
@@ -124,7 +124,7 @@ typedef struct
  * This makes 16 quadrants in total.
  */
 static uint8
-getQuadrant(BOX *centroid, BOX *inBox)
+getQuadrant(BOX * centroid, BOX * inBox)
 {
 	uint8		quadrant = 0;
 
@@ -151,7 +151,7 @@ getQuadrant(BOX *centroid, BOX *inBox)
  * access the values with this structure.
  */
 static RangeBox *
-getRangeBox(BOX *box)
+getRangeBox(BOX * box)
 {
 	RangeBox   *range_box = (RangeBox *) palloc(sizeof(RangeBox));
 
@@ -199,7 +199,7 @@ initRectBox(void)
  * using centroid and quadrant.
  */
 static RectBox *
-nextRectBox(RectBox *rect_box, RangeBox *centroid, uint8 quadrant)
+nextRectBox(RectBox * rect_box, RangeBox * centroid, uint8 quadrant)
 {
 	RectBox    *next_rect_box = (RectBox *) palloc(sizeof(RectBox));
 
@@ -230,7 +230,7 @@ nextRectBox(RectBox *rect_box, RangeBox *centroid, uint8 quadrant)
 
 /* Can any range from range_box overlap with this argument? */
 static bool
-overlap2D(RangeBox *range_box, Range *query)
+overlap2D(RangeBox * range_box, Range * query)
 {
 	return FPge(range_box->right.high, query->low) &&
 		FPle(range_box->left.low, query->high);
@@ -238,7 +238,7 @@ overlap2D(RangeBox *range_box, Range *query)
 
 /* Can any rectangle from rect_box overlap with this argument? */
 static bool
-overlap4D(RectBox *rect_box, RangeBox *query)
+overlap4D(RectBox * rect_box, RangeBox * query)
 {
 	return overlap2D(&rect_box->range_box_x, &query->left) &&
 		overlap2D(&rect_box->range_box_y, &query->right);
@@ -246,7 +246,7 @@ overlap4D(RectBox *rect_box, RangeBox *query)
 
 /* Can any range from range_box contain this argument? */
 static bool
-contain2D(RangeBox *range_box, Range *query)
+contain2D(RangeBox * range_box, Range * query)
 {
 	return FPge(range_box->right.high, query->high) &&
 		FPle(range_box->left.low, query->low);
@@ -254,7 +254,7 @@ contain2D(RangeBox *range_box, Range *query)
 
 /* Can any rectangle from rect_box contain this argument? */
 static bool
-contain4D(RectBox *rect_box, RangeBox *query)
+contain4D(RectBox * rect_box, RangeBox * query)
 {
 	return contain2D(&rect_box->range_box_x, &query->left) &&
 		contain2D(&rect_box->range_box_y, &query->right);
@@ -262,7 +262,7 @@ contain4D(RectBox *rect_box, RangeBox *query)
 
 /* Can any range from range_box be contained by this argument? */
 static bool
-contained2D(RangeBox *range_box, Range *query)
+contained2D(RangeBox * range_box, Range * query)
 {
 	return FPle(range_box->left.low, query->high) &&
 		FPge(range_box->left.high, query->low) &&
@@ -272,7 +272,7 @@ contained2D(RangeBox *range_box, Range *query)
 
 /* Can any rectangle from rect_box be contained by this argument? */
 static bool
-contained4D(RectBox *rect_box, RangeBox *query)
+contained4D(RectBox * rect_box, RangeBox * query)
 {
 	return contained2D(&rect_box->range_box_x, &query->left) &&
 		contained2D(&rect_box->range_box_y, &query->right);
@@ -280,7 +280,7 @@ contained4D(RectBox *rect_box, RangeBox *query)
 
 /* Can any range from range_box to be lower than this argument? */
 static bool
-lower2D(RangeBox *range_box, Range *query)
+lower2D(RangeBox * range_box, Range * query)
 {
 	return FPlt(range_box->left.low, query->low) &&
 		FPlt(range_box->right.low, query->low);
@@ -288,7 +288,7 @@ lower2D(RangeBox *range_box, Range *query)
 
 /* Can any range from range_box not extend to the right side of the query? */
 static bool
-overLower2D(RangeBox *range_box, Range *query)
+overLower2D(RangeBox * range_box, Range * query)
 {
 	return FPle(range_box->left.low, query->high) &&
 		FPle(range_box->right.low, query->high);
@@ -296,7 +296,7 @@ overLower2D(RangeBox *range_box, Range *query)
 
 /* Can any range from range_box to be higher than this argument? */
 static bool
-higher2D(RangeBox *range_box, Range *query)
+higher2D(RangeBox * range_box, Range * query)
 {
 	return FPgt(range_box->left.high, query->high) &&
 		FPgt(range_box->right.high, query->high);
@@ -304,7 +304,7 @@ higher2D(RangeBox *range_box, Range *query)
 
 /* Can any range from range_box not extend to the left side of the query? */
 static bool
-overHigher2D(RangeBox *range_box, Range *query)
+overHigher2D(RangeBox * range_box, Range * query)
 {
 	return FPge(range_box->left.high, query->low) &&
 		FPge(range_box->right.high, query->low);
@@ -312,56 +312,56 @@ overHigher2D(RangeBox *range_box, Range *query)
 
 /* Can any rectangle from rect_box be left of this argument? */
 static bool
-left4D(RectBox *rect_box, RangeBox *query)
+left4D(RectBox * rect_box, RangeBox * query)
 {
 	return lower2D(&rect_box->range_box_x, &query->left);
 }
 
 /* Can any rectangle from rect_box does not extend the right of this argument? */
 static bool
-overLeft4D(RectBox *rect_box, RangeBox *query)
+overLeft4D(RectBox * rect_box, RangeBox * query)
 {
 	return overLower2D(&rect_box->range_box_x, &query->left);
 }
 
 /* Can any rectangle from rect_box be right of this argument? */
 static bool
-right4D(RectBox *rect_box, RangeBox *query)
+right4D(RectBox * rect_box, RangeBox * query)
 {
 	return higher2D(&rect_box->range_box_x, &query->left);
 }
 
 /* Can any rectangle from rect_box does not extend the left of this argument? */
 static bool
-overRight4D(RectBox *rect_box, RangeBox *query)
+overRight4D(RectBox * rect_box, RangeBox * query)
 {
 	return overHigher2D(&rect_box->range_box_x, &query->left);
 }
 
 /* Can any rectangle from rect_box be below of this argument? */
 static bool
-below4D(RectBox *rect_box, RangeBox *query)
+below4D(RectBox * rect_box, RangeBox * query)
 {
 	return lower2D(&rect_box->range_box_y, &query->right);
 }
 
 /* Can any rectangle from rect_box does not extend above this argument? */
 static bool
-overBelow4D(RectBox *rect_box, RangeBox *query)
+overBelow4D(RectBox * rect_box, RangeBox * query)
 {
 	return overLower2D(&rect_box->range_box_y, &query->right);
 }
 
 /* Can any rectangle from rect_box be above of this argument? */
 static bool
-above4D(RectBox *rect_box, RangeBox *query)
+above4D(RectBox * rect_box, RangeBox * query)
 {
 	return higher2D(&rect_box->range_box_y, &query->right);
 }
 
 /* Can any rectangle from rect_box does not extend below of this argument? */
 static bool
-overAbove4D(RectBox *rect_box, RangeBox *query)
+overAbove4D(RectBox * rect_box, RangeBox * query)
 {
 	return overHigher2D(&rect_box->range_box_y, &query->right);
 }
@@ -513,7 +513,7 @@ spg_box_quad_inner_consistent(PG_FUNCTION_ARGS)
 	 * following operations.
 	 */
 	centroid = getRangeBox(DatumGetBoxP(in->prefixDatum));
-	queries = (RangeBox **) palloc(in->nkeys * sizeof(RangeBox *));
+	queries = (RangeBox * *) palloc(in->nkeys * sizeof(RangeBox *));
 	for (i = 0; i < in->nkeys; i++)
 		queries[i] = getRangeBox(DatumGetBoxP(in->scankeys[i].sk_argument));
 

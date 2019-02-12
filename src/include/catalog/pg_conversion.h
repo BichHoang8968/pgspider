@@ -53,7 +53,7 @@ CATALOG(pg_conversion,2607)
  *		the format of pg_conversion relation.
  * ----------------
  */
-typedef FormData_pg_conversion *Form_pg_conversion;
+typedef FormData_pg_conversion * Form_pg_conversion;
 
 /* ----------------
  *		compiler constants for pg_conversion

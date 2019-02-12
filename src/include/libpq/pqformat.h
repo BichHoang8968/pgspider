@@ -30,7 +30,7 @@ extern void pq_sendfloat8(StringInfo buf, float8 f);
 extern void pq_endmessage(StringInfo buf);
 
 extern void pq_begintypsend(StringInfo buf);
-extern bytea *pq_endtypsend(StringInfo buf);
+extern bytea * pq_endtypsend(StringInfo buf);
 
 extern void pq_puttextmessage(char msgtype, const char *str);
 extern void pq_putemptymessage(char msgtype);

@@ -195,7 +195,7 @@ static volatile sig_atomic_t got_STOPPING = false;
  */
 static volatile sig_atomic_t replication_active = false;
 
-static LogicalDecodingContext *logical_decoding_ctx = NULL;
+static LogicalDecodingContext * logical_decoding_ctx = NULL;
 static XLogRecPtr logical_startptr = InvalidXLogRecPtr;
 
 /* A sample associating a WAL location with the time it was written. */
@@ -203,7 +203,7 @@ typedef struct
 {
 	XLogRecPtr	lsn;
 	TimestampTz time;
-} WalTimeSample;
+}			WalTimeSample;
 
 /* The size of our buffer of time samples. */
 #define LAG_TRACKER_BUFFER_SIZE 8192
@@ -232,10 +232,10 @@ static void XLogSendLogical(void);
 static void WalSndDone(WalSndSendDataCallback send_data);
 static XLogRecPtr GetStandbyFlushRecPtr(void);
 static void IdentifySystem(void);
-static void CreateReplicationSlot(CreateReplicationSlotCmd *cmd);
-static void DropReplicationSlot(DropReplicationSlotCmd *cmd);
-static void StartReplication(StartReplicationCmd *cmd);
-static void StartLogicalReplication(StartReplicationCmd *cmd);
+static void CreateReplicationSlot(CreateReplicationSlotCmd * cmd);
+static void DropReplicationSlot(DropReplicationSlotCmd * cmd);
+static void StartReplication(StartReplicationCmd * cmd);
+static void StartLogicalReplication(StartReplicationCmd * cmd);
 static void ProcessStandbyMessage(void);
 static void ProcessStandbyReplyMessage(void);
 static void ProcessStandbyHSFeedbackMessage(void);
@@ -244,9 +244,9 @@ static void WalSndKeepalive(bool requestReply);
 static void WalSndKeepaliveIfNecessary(TimestampTz now);
 static void WalSndCheckTimeOut(TimestampTz now);
 static long WalSndComputeSleeptime(TimestampTz now);
-static void WalSndPrepareWrite(LogicalDecodingContext *ctx, XLogRecPtr lsn, TransactionId xid, bool last_write);
-static void WalSndWriteData(LogicalDecodingContext *ctx, XLogRecPtr lsn, TransactionId xid, bool last_write);
-static void WalSndUpdateProgress(LogicalDecodingContext *ctx, XLogRecPtr lsn, TransactionId xid);
+static void WalSndPrepareWrite(LogicalDecodingContext * ctx, XLogRecPtr lsn, TransactionId xid, bool last_write);
+static void WalSndWriteData(LogicalDecodingContext * ctx, XLogRecPtr lsn, TransactionId xid, bool last_write);
+static void WalSndUpdateProgress(LogicalDecodingContext * ctx, XLogRecPtr lsn, TransactionId xid);
 static XLogRecPtr WalSndWaitForWal(XLogRecPtr loc);
 static void LagTrackerWrite(XLogRecPtr lsn, TimestampTz local_flush_time);
 static TimeOffset LagTrackerRead(int head, XLogRecPtr lsn, TimestampTz now);
@@ -425,7 +425,7 @@ IdentifySystem(void)
  * Handle TIMELINE_HISTORY command.
  */
 static void
-SendTimeLineHistory(TimeLineHistoryCmd *cmd)
+SendTimeLineHistory(TimeLineHistoryCmd * cmd)
 {
 	StringInfoData buf;
 	char		histfname[MAXFNAMELEN];
@@ -521,7 +521,7 @@ SendTimeLineHistory(TimeLineHistoryCmd *cmd)
  * to the main loop.
  */
 static void
-StartReplication(StartReplicationCmd *cmd)
+StartReplication(StartReplicationCmd * cmd)
 {
 	StringInfoData buf;
 	XLogRecPtr	FlushPtr;
@@ -746,8 +746,8 @@ StartReplication(StartReplicationCmd *cmd)
  * set every time WAL is flushed.
  */
 static int
-logical_read_xlog_page(XLogReaderState *state, XLogRecPtr targetPagePtr, int reqLen,
-					   XLogRecPtr targetRecPtr, char *cur_page, TimeLineID *pageTLI)
+logical_read_xlog_page(XLogReaderState * state, XLogRecPtr targetPagePtr, int reqLen,
+					   XLogRecPtr targetRecPtr, char *cur_page, TimeLineID * pageTLI)
 {
 	XLogRecPtr	flushptr;
 	int			count;
@@ -780,9 +780,9 @@ logical_read_xlog_page(XLogReaderState *state, XLogRecPtr targetPagePtr, int req
  * Process extra options given to CREATE_REPLICATION_SLOT.
  */
 static void
-parseCreateReplSlotOptions(CreateReplicationSlotCmd *cmd,
+parseCreateReplSlotOptions(CreateReplicationSlotCmd * cmd,
 						   bool *reserve_wal,
-						   CRSSnapshotAction *snapshot_action)
+						   CRSSnapshotAction * snapshot_action)
 {
 	ListCell   *lc;
 	bool		snapshot_action_given = false;
@@ -833,7 +833,7 @@ parseCreateReplSlotOptions(CreateReplicationSlotCmd *cmd,
  * Create a new replication slot.
  */
 static void
-CreateReplicationSlot(CreateReplicationSlotCmd *cmd)
+CreateReplicationSlot(CreateReplicationSlotCmd * cmd)
 {
 	const char *snapshot_name = NULL;
 	char		xloc[MAXFNAMELEN];
@@ -1027,7 +1027,7 @@ CreateReplicationSlot(CreateReplicationSlotCmd *cmd)
  * Get rid of a replication slot that is no longer wanted.
  */
 static void
-DropReplicationSlot(DropReplicationSlotCmd *cmd)
+DropReplicationSlot(DropReplicationSlotCmd * cmd)
 {
 	ReplicationSlotDrop(cmd->slotname, !cmd->wait);
 	EndCommand("DROP_REPLICATION_SLOT", DestRemote);
@@ -1038,7 +1038,7 @@ DropReplicationSlot(DropReplicationSlotCmd *cmd)
  * WalSndLoop).
  */
 static void
-StartLogicalReplication(StartReplicationCmd *cmd)
+StartLogicalReplication(StartReplicationCmd * cmd)
 {
 	StringInfoData buf;
 
@@ -1122,7 +1122,7 @@ StartLogicalReplication(StartReplicationCmd *cmd)
  * with the data.
  */
 static void
-WalSndPrepareWrite(LogicalDecodingContext *ctx, XLogRecPtr lsn, TransactionId xid, bool last_write)
+WalSndPrepareWrite(LogicalDecodingContext * ctx, XLogRecPtr lsn, TransactionId xid, bool last_write)
 {
 	/* can't have sync rep confused by sending the same LSN several times */
 	if (!last_write)
@@ -1149,10 +1149,10 @@ WalSndPrepareWrite(LogicalDecodingContext *ctx, XLogRecPtr lsn, TransactionId xi
  * side and check timeouts during that.
  */
 static void
-WalSndWriteData(LogicalDecodingContext *ctx, XLogRecPtr lsn, TransactionId xid,
+WalSndWriteData(LogicalDecodingContext * ctx, XLogRecPtr lsn, TransactionId xid,
 				bool last_write)
 {
-	TimestampTz	now;
+	TimestampTz now;
 
 	/* output previously gathered data in a CopyData packet */
 	pq_putmessage_noblock('d', ctx->out->data, ctx->out->len);
@@ -1247,7 +1247,7 @@ WalSndWriteData(LogicalDecodingContext *ctx, XLogRecPtr lsn, TransactionId xid,
  * Write the current position to the log tracker (see XLogSendPhysical).
  */
 static void
-WalSndUpdateProgress(LogicalDecodingContext *ctx, XLogRecPtr lsn, TransactionId xid)
+WalSndUpdateProgress(LogicalDecodingContext * ctx, XLogRecPtr lsn, TransactionId xid)
 {
 	static TimestampTz sendTime = 0;
 	TimestampTz now = GetCurrentTimestamp();
@@ -3256,9 +3256,9 @@ pg_stat_get_wal_senders(PG_FUNCTION_ARGS)
 		if (!is_member_of_role(GetUserId(), DEFAULT_ROLE_READ_ALL_STATS))
 		{
 			/*
-			 * Only superusers and members of pg_read_all_stats can see details.
-			 * Other users only get the pid value to know it's a walsender,
-			 * but no details.
+			 * Only superusers and members of pg_read_all_stats can see
+			 * details. Other users only get the pid value to know it's a
+			 * walsender, but no details.
 			 */
 			MemSet(&nulls[1], true, PG_STAT_GET_WAL_SENDERS_COLS - 1);
 		}

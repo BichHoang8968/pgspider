@@ -22,7 +22,7 @@
 static MemoryContext opCtx;		/* working memory for operations */
 
 static void
-ginRedoClearIncompleteSplit(XLogReaderState *record, uint8 block_id)
+ginRedoClearIncompleteSplit(XLogReaderState * record, uint8 block_id)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	Buffer		buffer;
@@ -41,7 +41,7 @@ ginRedoClearIncompleteSplit(XLogReaderState *record, uint8 block_id)
 }
 
 static void
-ginRedoCreateIndex(XLogReaderState *record)
+ginRedoCreateIndex(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	Buffer		RootBuffer,
@@ -71,7 +71,7 @@ ginRedoCreateIndex(XLogReaderState *record)
 }
 
 static void
-ginRedoCreatePTree(XLogReaderState *record)
+ginRedoCreatePTree(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	ginxlogCreatePostingTree *data = (ginxlogCreatePostingTree *) XLogRecGetData(record);
@@ -136,7 +136,7 @@ ginRedoInsertEntry(Buffer buffer, bool isLeaf, BlockNumber rightblkno, void *rda
 }
 
 static void
-ginRedoRecompress(Page page, ginxlogRecompressDataLeaf *data)
+ginRedoRecompress(Page page, ginxlogRecompressDataLeaf * data)
 {
 	int			actionno;
 	int			segno;
@@ -336,7 +336,7 @@ ginRedoInsertData(Buffer buffer, bool isLeaf, BlockNumber rightblkno, void *rdat
 }
 
 static void
-ginRedoInsert(XLogReaderState *record)
+ginRedoInsert(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	ginxlogInsert *data = (ginxlogInsert *) XLogRecGetData(record);
@@ -391,7 +391,7 @@ ginRedoInsert(XLogReaderState *record)
 }
 
 static void
-ginRedoSplit(XLogReaderState *record)
+ginRedoSplit(XLogReaderState * record)
 {
 	ginxlogSplit *data = (ginxlogSplit *) XLogRecGetData(record);
 	Buffer		lbuffer,
@@ -429,7 +429,7 @@ ginRedoSplit(XLogReaderState *record)
  * an XLOG_FPI record.
  */
 static void
-ginRedoVacuumPage(XLogReaderState *record)
+ginRedoVacuumPage(XLogReaderState * record)
 {
 	Buffer		buffer;
 
@@ -441,7 +441,7 @@ ginRedoVacuumPage(XLogReaderState *record)
 }
 
 static void
-ginRedoVacuumDataLeafPage(XLogReaderState *record)
+ginRedoVacuumDataLeafPage(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	Buffer		buffer;
@@ -466,7 +466,7 @@ ginRedoVacuumDataLeafPage(XLogReaderState *record)
 }
 
 static void
-ginRedoDeletePage(XLogReaderState *record)
+ginRedoDeletePage(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	ginxlogDeletePage *data = (ginxlogDeletePage *) XLogRecGetData(record);
@@ -512,7 +512,7 @@ ginRedoDeletePage(XLogReaderState *record)
 }
 
 static void
-ginRedoUpdateMetapage(XLogReaderState *record)
+ginRedoUpdateMetapage(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	ginxlogUpdateMeta *data = (ginxlogUpdateMeta *) XLogRecGetData(record);
@@ -604,7 +604,7 @@ ginRedoUpdateMetapage(XLogReaderState *record)
 }
 
 static void
-ginRedoInsertListPage(XLogReaderState *record)
+ginRedoInsertListPage(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	ginxlogInsertListPage *data = (ginxlogInsertListPage *) XLogRecGetData(record);
@@ -659,7 +659,7 @@ ginRedoInsertListPage(XLogReaderState *record)
 }
 
 static void
-ginRedoDeleteListPages(XLogReaderState *record)
+ginRedoDeleteListPages(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	ginxlogDeleteListPages *data = (ginxlogDeleteListPages *) XLogRecGetData(record);
@@ -710,7 +710,7 @@ ginRedoDeleteListPages(XLogReaderState *record)
 }
 
 void
-gin_redo(XLogReaderState *record)
+gin_redo(XLogReaderState * record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 	MemoryContext oldCtx;

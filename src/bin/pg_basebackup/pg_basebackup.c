@@ -44,13 +44,13 @@ typedef struct TablespaceListCell
 	struct TablespaceListCell *next;
 	char		old_dir[MAXPGPATH];
 	char		new_dir[MAXPGPATH];
-} TablespaceListCell;
+}			TablespaceListCell;
 
 typedef struct TablespaceList
 {
 	TablespaceListCell *head;
 	TablespaceListCell *tail;
-} TablespaceList;
+}			TablespaceList;
 
 /*
  * pg_xlog has been renamed to pg_wal in version 10.  This version number
@@ -71,11 +71,14 @@ typedef enum
 	NO_WAL,
 	FETCH_WAL,
 	STREAM_WAL
-} IncludeWal;
+}			IncludeWal;
 
 /* Global options */
 static char *basedir = NULL;
-static TablespaceList tablespace_dirs = {NULL, NULL};
+static TablespaceList tablespace_dirs =
+{
+	NULL, NULL
+};
 static char *xlog_dir = "";
 static char format = 'p';		/* p(lain)/t(ar) */
 static char *label = "pg_basebackup base backup";
@@ -133,9 +136,9 @@ static void disconnect_and_exit(int code);
 static void verify_dir_is_empty_or_create(char *dirname, bool *created, bool *found);
 static void progress_report(int tablespacenum, const char *filename, bool force);
 
-static void ReceiveTarFile(PGconn *conn, PGresult *res, int rownum);
-static void ReceiveAndUnpackTarFile(PGconn *conn, PGresult *res, int rownum);
-static void GenerateRecoveryConf(PGconn *conn);
+static void ReceiveTarFile(PGconn * conn, PGresult * res, int rownum);
+static void ReceiveAndUnpackTarFile(PGconn * conn, PGresult * res, int rownum);
+static void GenerateRecoveryConf(PGconn * conn);
 static void WriteRecoveryConf(void);
 static void BaseBackup(void);
 
@@ -471,10 +474,10 @@ typedef struct
 	char	   *sysidentifier;
 	int			timeline;
 	bool		temp_slot;
-} logstreamer_param;
+}			logstreamer_param;
 
 static int
-LogStreamerMain(logstreamer_param *param)
+LogStreamerMain(logstreamer_param * param)
 {
 	StreamCtl	stream;
 
@@ -894,7 +897,7 @@ writeTarData(
 #ifdef HAVE_LIBZ
 			 gzFile ztarfile,
 #endif
-			 FILE *tarfile, char *buf, int r, char *current_file)
+			 FILE * tarfile, char *buf, int r, char *current_file)
 {
 #ifdef HAVE_LIBZ
 	if (ztarfile != NULL)
@@ -936,7 +939,7 @@ writeTarData(
  * No attempt to inspect or validate the contents of the file is done.
  */
 static void
-ReceiveTarFile(PGconn *conn, PGresult *res, int rownum)
+ReceiveTarFile(PGconn * conn, PGresult * res, int rownum)
 {
 	char		filename[MAXPGPATH];
 	char	   *copybuf = NULL;
@@ -1312,7 +1315,7 @@ get_tablespace_mapping(const char *dir)
  * in the original or mapped directory.
  */
 static void
-ReceiveAndUnpackTarFile(PGconn *conn, PGresult *res, int rownum)
+ReceiveAndUnpackTarFile(PGconn * conn, PGresult * res, int rownum)
 {
 	char		current_path[MAXPGPATH];
 	char		filename[MAXPGPATH];
@@ -1588,7 +1591,7 @@ escape_quotes(const char *src)
  * Create a recovery.conf file in memory using a PQExpBuffer
  */
 static void
-GenerateRecoveryConf(PGconn *conn)
+GenerateRecoveryConf(PGconn * conn)
 {
 	PQconninfoOption *connOptions;
 	PQconninfoOption *option;

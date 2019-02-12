@@ -40,7 +40,7 @@ typedef struct SeenRelsEntry
 {
 	Oid			rel_id;			/* relation oid */
 	ListCell   *numparents_cell;	/* corresponding list cell */
-} SeenRelsEntry;
+}			SeenRelsEntry;
 
 /*
  * find_inheritance_children
@@ -164,7 +164,7 @@ find_inheritance_children(Oid parentrelId, LOCKMODE lockmode)
  * against possible DROPs of child relations.
  */
 List *
-find_all_inheritors(Oid parentrelId, LOCKMODE lockmode, List **numparents)
+find_all_inheritors(Oid parentrelId, LOCKMODE lockmode, List * *numparents)
 {
 	/* hash table for O(1) rel_oid -> rel_numparents cell lookup */
 	HTAB	   *seen_rels;

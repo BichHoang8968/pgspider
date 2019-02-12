@@ -29,7 +29,7 @@
 #include "utils/syscache.h"
 
 
-static Oid	lookup_index_am_handler_func(List *handler_name, char amtype);
+static Oid lookup_index_am_handler_func(List * handler_name, char amtype);
 static const char *get_am_type_string(char amtype);
 
 
@@ -38,7 +38,7 @@ static const char *get_am_type_string(char amtype);
  *		Registers a new access method.
  */
 ObjectAddress
-CreateAccessMethod(CreateAmStmt *stmt)
+CreateAccessMethod(CreateAmStmt * stmt)
 {
 	Relation	rel;
 	ObjectAddress myself;
@@ -239,7 +239,7 @@ get_am_type_string(char amtype)
  * This function either return valid function Oid or throw an error.
  */
 static Oid
-lookup_index_am_handler_func(List *handler_name, char amtype)
+lookup_index_am_handler_func(List * handler_name, char amtype)
 {
 	Oid			handlerOid;
 	static const Oid funcargtypes[1] = {INTERNALOID};

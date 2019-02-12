@@ -56,60 +56,60 @@ typedef struct
 {
 	PlannerInfo *root;
 	AppendRelInfo *appinfo;
-} adjust_appendrel_attrs_context;
+}			adjust_appendrel_attrs_context;
 
-static Path *recurse_set_operations(Node *setOp, PlannerInfo *root,
-					   List *colTypes, List *colCollations,
-					   bool junkOK,
-					   int flag, List *refnames_tlist,
-					   List **pTargetList,
-					   double *pNumGroups);
-static Path *generate_recursion_path(SetOperationStmt *setOp,
-						PlannerInfo *root,
-						List *refnames_tlist,
-						List **pTargetList);
-static Path *generate_union_path(SetOperationStmt *op, PlannerInfo *root,
-					List *refnames_tlist,
-					List **pTargetList,
-					double *pNumGroups);
-static Path *generate_nonunion_path(SetOperationStmt *op, PlannerInfo *root,
-					   List *refnames_tlist,
-					   List **pTargetList,
-					   double *pNumGroups);
-static List *recurse_union_children(Node *setOp, PlannerInfo *root,
-					   SetOperationStmt *top_union,
-					   List *refnames_tlist,
-					   List **tlist_list);
-static Path *make_union_unique(SetOperationStmt *op, Path *path, List *tlist,
-				  PlannerInfo *root);
-static bool choose_hashed_setop(PlannerInfo *root, List *groupClauses,
-					Path *input_path,
+static Path * recurse_set_operations(Node * setOp, PlannerInfo * root,
+									 List * colTypes, List * colCollations,
+									 bool junkOK,
+									 int flag, List * refnames_tlist,
+									 List * *pTargetList,
+									 double *pNumGroups);
+static Path * generate_recursion_path(SetOperationStmt * setOp,
+									  PlannerInfo * root,
+									  List * refnames_tlist,
+									  List * *pTargetList);
+static Path * generate_union_path(SetOperationStmt * op, PlannerInfo * root,
+								  List * refnames_tlist,
+								  List * *pTargetList,
+								  double *pNumGroups);
+static Path * generate_nonunion_path(SetOperationStmt * op, PlannerInfo * root,
+									 List * refnames_tlist,
+									 List * *pTargetList,
+									 double *pNumGroups);
+static List * recurse_union_children(Node * setOp, PlannerInfo * root,
+									 SetOperationStmt * top_union,
+									 List * refnames_tlist,
+									 List * *tlist_list);
+static Path * make_union_unique(SetOperationStmt * op, Path * path, List * tlist,
+								PlannerInfo * root);
+static bool choose_hashed_setop(PlannerInfo * root, List * groupClauses,
+					Path * input_path,
 					double dNumGroups, double dNumOutputRows,
 					const char *construct);
-static List *generate_setop_tlist(List *colTypes, List *colCollations,
-					 int flag,
-					 Index varno,
-					 bool hack_constants,
-					 List *input_tlist,
-					 List *refnames_tlist);
-static List *generate_append_tlist(List *colTypes, List *colCollations,
-					  bool flag,
-					  List *input_tlists,
-					  List *refnames_tlist);
-static List *generate_setop_grouplist(SetOperationStmt *op, List *targetlist);
-static void expand_inherited_rtentry(PlannerInfo *root, RangeTblEntry *rte,
+static List * generate_setop_tlist(List * colTypes, List * colCollations,
+								   int flag,
+								   Index varno,
+								   bool hack_constants,
+								   List * input_tlist,
+								   List * refnames_tlist);
+static List * generate_append_tlist(List * colTypes, List * colCollations,
+									bool flag,
+									List * input_tlists,
+									List * refnames_tlist);
+static List * generate_setop_grouplist(SetOperationStmt * op, List * targetlist);
+static void expand_inherited_rtentry(PlannerInfo * root, RangeTblEntry * rte,
 						 Index rti);
 static void make_inh_translation_list(Relation oldrelation,
 						  Relation newrelation,
 						  Index newvarno,
-						  List **translated_vars);
-static Bitmapset *translate_col_privs(const Bitmapset *parent_privs,
-					List *translated_vars);
-static Node *adjust_appendrel_attrs_mutator(Node *node,
-							   adjust_appendrel_attrs_context *context);
+						  List * *translated_vars);
+static Bitmapset * translate_col_privs(const Bitmapset * parent_privs,
+									   List * translated_vars);
+static Node * adjust_appendrel_attrs_mutator(Node * node,
+											 adjust_appendrel_attrs_context * context);
 static Relids adjust_relid_set(Relids relids, Index oldrelid, Index newrelid);
-static List *adjust_inherited_tlist(List *tlist,
-					   AppendRelInfo *context);
+static List * adjust_inherited_tlist(List * tlist,
+									 AppendRelInfo * context);
 
 
 /*
@@ -126,7 +126,7 @@ static List *adjust_inherited_tlist(List *tlist,
  * receives a targetlist representing the output of the topmost setop node.
  */
 RelOptInfo *
-plan_set_operations(PlannerInfo *root)
+plan_set_operations(PlannerInfo * root)
 {
 	Query	   *parse = root->parse;
 	SetOperationStmt *topop = castNode(SetOperationStmt, parse->setOperations);
@@ -245,11 +245,11 @@ plan_set_operations(PlannerInfo *root)
  * and output is -1, and that does not require a coercion.
  */
 static Path *
-recurse_set_operations(Node *setOp, PlannerInfo *root,
-					   List *colTypes, List *colCollations,
+recurse_set_operations(Node * setOp, PlannerInfo * root,
+					   List * colTypes, List * colCollations,
 					   bool junkOK,
-					   int flag, List *refnames_tlist,
-					   List **pTargetList,
+					   int flag, List * refnames_tlist,
+					   List * *pTargetList,
 					   double *pNumGroups)
 {
 	/* Guard against stack overflow due to overly complex setop nests */
@@ -427,9 +427,9 @@ recurse_set_operations(Node *setOp, PlannerInfo *root,
  * Generate path for a recursive UNION node
  */
 static Path *
-generate_recursion_path(SetOperationStmt *setOp, PlannerInfo *root,
-						List *refnames_tlist,
-						List **pTargetList)
+generate_recursion_path(SetOperationStmt * setOp, PlannerInfo * root,
+						List * refnames_tlist,
+						List * *pTargetList)
 {
 	RelOptInfo *result_rel = fetch_upper_rel(root, UPPERREL_SETOP, NULL);
 	Path	   *path;
@@ -522,9 +522,9 @@ generate_recursion_path(SetOperationStmt *setOp, PlannerInfo *root,
  * Generate path for a UNION or UNION ALL node
  */
 static Path *
-generate_union_path(SetOperationStmt *op, PlannerInfo *root,
-					List *refnames_tlist,
-					List **pTargetList,
+generate_union_path(SetOperationStmt * op, PlannerInfo * root,
+					List * refnames_tlist,
+					List * *pTargetList,
 					double *pNumGroups)
 {
 	RelOptInfo *result_rel = fetch_upper_rel(root, UPPERREL_SETOP, NULL);
@@ -609,9 +609,9 @@ generate_union_path(SetOperationStmt *op, PlannerInfo *root,
  * Generate path for an INTERSECT, INTERSECT ALL, EXCEPT, or EXCEPT ALL node
  */
 static Path *
-generate_nonunion_path(SetOperationStmt *op, PlannerInfo *root,
-					   List *refnames_tlist,
-					   List **pTargetList,
+generate_nonunion_path(SetOperationStmt * op, PlannerInfo * root,
+					   List * refnames_tlist,
+					   List * *pTargetList,
 					   double *pNumGroups)
 {
 	RelOptInfo *result_rel = fetch_upper_rel(root, UPPERREL_SETOP, NULL);
@@ -781,10 +781,10 @@ generate_nonunion_path(SetOperationStmt *op, PlannerInfo *root,
  * generate_union_path will force a fresh sort if the top level is a UNION.
  */
 static List *
-recurse_union_children(Node *setOp, PlannerInfo *root,
-					   SetOperationStmt *top_union,
-					   List *refnames_tlist,
-					   List **tlist_list)
+recurse_union_children(Node * setOp, PlannerInfo * root,
+					   SetOperationStmt * top_union,
+					   List * refnames_tlist,
+					   List * *tlist_list)
 {
 	List	   *result;
 	List	   *child_tlist;
@@ -838,8 +838,8 @@ recurse_union_children(Node *setOp, PlannerInfo *root,
  * Add nodes to the given path tree to unique-ify the result of a UNION.
  */
 static Path *
-make_union_unique(SetOperationStmt *op, Path *path, List *tlist,
-				  PlannerInfo *root)
+make_union_unique(SetOperationStmt * op, Path * path, List * tlist,
+				  PlannerInfo * root)
 {
 	RelOptInfo *result_rel = fetch_upper_rel(root, UPPERREL_SETOP, NULL);
 	List	   *groupList;
@@ -903,8 +903,8 @@ make_union_unique(SetOperationStmt *op, Path *path, List *tlist,
  * choose_hashed_setop - should we use hashing for a set operation?
  */
 static bool
-choose_hashed_setop(PlannerInfo *root, List *groupClauses,
-					Path *input_path,
+choose_hashed_setop(PlannerInfo * root, List * groupClauses,
+					Path * input_path,
 					double dNumGroups, double dNumOutputRows,
 					const char *construct)
 {
@@ -1006,12 +1006,12 @@ choose_hashed_setop(PlannerInfo *root, List *groupClauses,
  * refnames_tlist: targetlist to take column names from
  */
 static List *
-generate_setop_tlist(List *colTypes, List *colCollations,
+generate_setop_tlist(List * colTypes, List * colCollations,
 					 int flag,
 					 Index varno,
 					 bool hack_constants,
-					 List *input_tlist,
-					 List *refnames_tlist)
+					 List * input_tlist,
+					 List * refnames_tlist)
 {
 	List	   *tlist = NIL;
 	int			resno = 1;
@@ -1151,10 +1151,10 @@ generate_setop_tlist(List *colTypes, List *colCollations,
  * ought to refactor this code to produce a PathTarget directly, anyway.
  */
 static List *
-generate_append_tlist(List *colTypes, List *colCollations,
+generate_append_tlist(List * colTypes, List * colCollations,
 					  bool flag,
-					  List *input_tlists,
-					  List *refnames_tlist)
+					  List * input_tlists,
+					  List * refnames_tlist)
 {
 	List	   *tlist = NIL;
 	int			resno = 1;
@@ -1279,7 +1279,7 @@ generate_append_tlist(List *colTypes, List *colCollations,
  * proper sortgrouprefs into it (copying those from the targetlist).
  */
 static List *
-generate_setop_grouplist(SetOperationStmt *op, List *targetlist)
+generate_setop_grouplist(SetOperationStmt * op, List * targetlist)
 {
 	List	   *grouplist = copyObject(op->groupClauses);
 	ListCell   *lg;
@@ -1322,7 +1322,7 @@ generate_setop_grouplist(SetOperationStmt *op, List *targetlist)
  *		relation parents.
  */
 void
-expand_inherited_tables(PlannerInfo *root)
+expand_inherited_tables(PlannerInfo * root)
 {
 	Index		nrtes;
 	Index		rti;
@@ -1365,7 +1365,7 @@ expand_inherited_tables(PlannerInfo *root)
  * AppendRelInfo.
  */
 static void
-expand_inherited_rtentry(PlannerInfo *root, RangeTblEntry *rte, Index rti)
+expand_inherited_rtentry(PlannerInfo * root, RangeTblEntry * rte, Index rti)
 {
 	Query	   *parse = root->parse;
 	Oid			parentOID;
@@ -1625,7 +1625,7 @@ expand_inherited_rtentry(PlannerInfo *root, RangeTblEntry *rte, Index rti)
 static void
 make_inh_translation_list(Relation oldrelation, Relation newrelation,
 						  Index newvarno,
-						  List **translated_vars)
+						  List * *translated_vars)
 {
 	List	   *vars = NIL;
 	TupleDesc	old_tupdesc = RelationGetDescr(oldrelation);
@@ -1730,8 +1730,8 @@ make_inh_translation_list(Relation oldrelation, Relation newrelation,
  * we set the per-column bits for all inherited columns.
  */
 static Bitmapset *
-translate_col_privs(const Bitmapset *parent_privs,
-					List *translated_vars)
+translate_col_privs(const Bitmapset * parent_privs,
+					List * translated_vars)
 {
 	Bitmapset  *child_privs = NULL;
 	bool		whole_row;
@@ -1784,7 +1784,7 @@ translate_col_privs(const Bitmapset *parent_privs,
  * maybe we should try to fold the two routines together.
  */
 Node *
-adjust_appendrel_attrs(PlannerInfo *root, Node *node, AppendRelInfo *appinfo)
+adjust_appendrel_attrs(PlannerInfo * root, Node * node, AppendRelInfo * appinfo)
 {
 	Node	   *result;
 	adjust_appendrel_attrs_context context;
@@ -1821,8 +1821,8 @@ adjust_appendrel_attrs(PlannerInfo *root, Node *node, AppendRelInfo *appinfo)
 }
 
 static Node *
-adjust_appendrel_attrs_mutator(Node *node,
-							   adjust_appendrel_attrs_context *context)
+adjust_appendrel_attrs_mutator(Node * node,
+							   adjust_appendrel_attrs_context * context)
 {
 	AppendRelInfo *appinfo = context->appinfo;
 
@@ -2063,7 +2063,7 @@ adjust_relid_set(Relids relids, Index oldrelid, Index newrelid)
  * Note that this is not needed for INSERT because INSERT isn't inheritable.
  */
 static List *
-adjust_inherited_tlist(List *tlist, AppendRelInfo *context)
+adjust_inherited_tlist(List * tlist, AppendRelInfo * context)
 {
 	bool		changed_it = false;
 	ListCell   *tl;
@@ -2151,8 +2151,8 @@ adjust_inherited_tlist(List *tlist, AppendRelInfo *context)
  * to reference an appendrel child that's multiple levels removed from it.
  */
 Node *
-adjust_appendrel_attrs_multilevel(PlannerInfo *root, Node *node,
-								  RelOptInfo *child_rel)
+adjust_appendrel_attrs_multilevel(PlannerInfo * root, Node * node,
+								  RelOptInfo * child_rel)
 {
 	AppendRelInfo *appinfo = find_childrel_appendrelinfo(root, child_rel);
 	RelOptInfo *parent_rel = find_base_rel(root, appinfo->parent_relid);

@@ -73,15 +73,15 @@
 ProcessUtility_hook_type ProcessUtility_hook = NULL;
 
 /* local function declarations */
-static void ProcessUtilitySlow(ParseState *pstate,
-				   PlannedStmt *pstmt,
+static void ProcessUtilitySlow(ParseState * pstate,
+				   PlannedStmt * pstmt,
 				   const char *queryString,
 				   ProcessUtilityContext context,
 				   ParamListInfo params,
-				   QueryEnvironment *queryEnv,
-				   DestReceiver *dest,
+				   QueryEnvironment * queryEnv,
+				   DestReceiver * dest,
 				   char *completionTag);
-static void ExecDropStmt(DropStmt *stmt, bool isTopLevel);
+static void ExecDropStmt(DropStmt * stmt, bool isTopLevel);
 
 
 /*
@@ -94,7 +94,7 @@ static void ExecDropStmt(DropStmt *stmt, bool isTopLevel);
  * Note: currently no need to support raw or analyzed queries here
  */
 bool
-CommandIsReadOnly(PlannedStmt *pstmt)
+CommandIsReadOnly(PlannedStmt * pstmt)
 {
 	Assert(IsA(pstmt, PlannedStmt));
 	switch (pstmt->commandType)
@@ -128,7 +128,7 @@ CommandIsReadOnly(PlannedStmt *pstmt)
  * on the database are allowed.
  */
 static void
-check_xact_readonly(Node *parsetree)
+check_xact_readonly(Node * parsetree)
 {
 	/* Only perform the check if we have a reason to do so. */
 	if (!XactReadOnly && !IsInParallelMode())
@@ -332,12 +332,12 @@ CheckRestrictedOperation(const char *cmdname)
  * and stmt_len that were given for the whole statement.
  */
 void
-ProcessUtility(PlannedStmt *pstmt,
+ProcessUtility(PlannedStmt * pstmt,
 			   const char *queryString,
 			   ProcessUtilityContext context,
 			   ParamListInfo params,
-			   QueryEnvironment *queryEnv,
-			   DestReceiver *dest,
+			   QueryEnvironment * queryEnv,
+			   DestReceiver * dest,
 			   char *completionTag)
 {
 	Assert(IsA(pstmt, PlannedStmt));
@@ -371,12 +371,12 @@ ProcessUtility(PlannedStmt *pstmt,
  * which requires being in a valid transaction.
  */
 void
-standard_ProcessUtility(PlannedStmt *pstmt,
+standard_ProcessUtility(PlannedStmt * pstmt,
 						const char *queryString,
 						ProcessUtilityContext context,
 						ParamListInfo params,
-						QueryEnvironment *queryEnv,
-						DestReceiver *dest,
+						QueryEnvironment * queryEnv,
+						DestReceiver * dest,
 						char *completionTag)
 {
 	Node	   *parsetree = pstmt->utilityStmt;
@@ -940,13 +940,13 @@ standard_ProcessUtility(PlannedStmt *pstmt,
  * perform the trigger support calls if the context allows it.
  */
 static void
-ProcessUtilitySlow(ParseState *pstate,
-				   PlannedStmt *pstmt,
+ProcessUtilitySlow(ParseState * pstate,
+				   PlannedStmt * pstmt,
 				   const char *queryString,
 				   ProcessUtilityContext context,
 				   ParamListInfo params,
-				   QueryEnvironment *queryEnv,
-				   DestReceiver *dest,
+				   QueryEnvironment * queryEnv,
+				   DestReceiver * dest,
 				   char *completionTag)
 {
 	Node	   *parsetree = pstmt->utilityStmt;
@@ -1679,7 +1679,7 @@ ProcessUtilitySlow(ParseState *pstate,
  * Dispatch function for DropStmt
  */
 static void
-ExecDropStmt(DropStmt *stmt, bool isTopLevel)
+ExecDropStmt(DropStmt * stmt, bool isTopLevel)
 {
 	switch (stmt->removeType)
 	{
@@ -1712,7 +1712,7 @@ ExecDropStmt(DropStmt *stmt, bool isTopLevel)
  * where "dest" is passed on.
  */
 bool
-UtilityReturnsTuples(Node *parsetree)
+UtilityReturnsTuples(Node * parsetree)
 {
 	switch (nodeTag(parsetree))
 	{
@@ -1762,7 +1762,7 @@ UtilityReturnsTuples(Node *parsetree)
  * context.
  */
 TupleDesc
-UtilityTupleDescriptor(Node *parsetree)
+UtilityTupleDescriptor(Node * parsetree)
 {
 	switch (nodeTag(parsetree))
 	{
@@ -1812,7 +1812,7 @@ UtilityTupleDescriptor(Node *parsetree)
  */
 #ifdef NOT_USED
 bool
-QueryReturnsTuples(Query *parsetree)
+QueryReturnsTuples(Query * parsetree)
 {
 	switch (parsetree->commandType)
 	{
@@ -1853,7 +1853,7 @@ QueryReturnsTuples(Query *parsetree)
  * return NULL if none.
  */
 Query *
-UtilityContainsQuery(Node *parsetree)
+UtilityContainsQuery(Node * parsetree)
 {
 	Query	   *qry;
 
@@ -2033,7 +2033,7 @@ AlterObjectTypeCommandTag(ObjectType objtype)
  * Also, the result must point at a true constant (permanent storage).
  */
 const char *
-CreateCommandTag(Node *parsetree)
+CreateCommandTag(Node * parsetree)
 {
 	const char *tag;
 
@@ -2867,7 +2867,7 @@ CreateCommandTag(Node *parsetree)
  * of 'em are utility commands, it seems sensible to keep it here.
  */
 LogStmtLevel
-GetCommandLogLevel(Node *parsetree)
+GetCommandLogLevel(Node * parsetree)
 {
 	LogStmtLevel lev;
 

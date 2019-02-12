@@ -44,7 +44,7 @@
 
 
 static void
-exit_nicely(PGconn *conn)
+exit_nicely(PGconn * conn)
 {
 	PQfinish(conn);
 	exit(1);
@@ -56,7 +56,7 @@ exit_nicely(PGconn *conn)
  * main() function uses it twice.
  */
 static void
-show_binary_results(PGresult *res)
+show_binary_results(PGresult * res)
 {
 	int			i,
 				j;

@@ -68,7 +68,7 @@ typedef struct remoteConn
 	PGconn	   *conn;			/* Hold the remote connection */
 	int			openCursorCount;	/* The number of open cursors */
 	bool		newXactForCursor;	/* Opened a transaction for a cursor */
-} remoteConn;
+}			remoteConn;
 
 typedef struct storeInfo
 {
@@ -80,53 +80,53 @@ typedef struct storeInfo
 	/* temp storage for results to avoid leaks on exception */
 	PGresult   *last_res;
 	PGresult   *cur_res;
-} storeInfo;
+}			storeInfo;
 
 /*
  * Internal declarations
  */
 static Datum dblink_record_internal(FunctionCallInfo fcinfo, bool is_async);
 static void prepTuplestoreResult(FunctionCallInfo fcinfo);
-static void materializeResult(FunctionCallInfo fcinfo, PGconn *conn,
-				  PGresult *res);
+static void materializeResult(FunctionCallInfo fcinfo, PGconn * conn,
+				  PGresult * res);
 static void materializeQueryResult(FunctionCallInfo fcinfo,
-					   PGconn *conn,
+					   PGconn * conn,
 					   const char *conname,
 					   const char *sql,
 					   bool fail);
-static PGresult *storeQueryResult(volatile storeInfo *sinfo, PGconn *conn, const char *sql);
-static void storeRow(volatile storeInfo *sinfo, PGresult *res, bool first);
-static remoteConn *getConnectionByName(const char *name);
-static HTAB *createConnHash(void);
-static void createNewConnection(const char *name, remoteConn *rconn);
+static PGresult * storeQueryResult(volatile storeInfo * sinfo, PGconn * conn, const char *sql);
+static void storeRow(volatile storeInfo * sinfo, PGresult * res, bool first);
+static remoteConn * getConnectionByName(const char *name);
+static HTAB * createConnHash(void);
+static void createNewConnection(const char *name, remoteConn * rconn);
 static void deleteConnection(const char *name);
-static char **get_pkey_attnames(Relation rel, int16 *numatts);
-static char **get_text_array_contents(ArrayType *array, int *numitems);
+static char **get_pkey_attnames(Relation rel, int16 * numatts);
+static char **get_text_array_contents(ArrayType * array, int *numitems);
 static char *get_sql_insert(Relation rel, int *pkattnums, int pknumatts, char **src_pkattvals, char **tgt_pkattvals);
 static char *get_sql_delete(Relation rel, int *pkattnums, int pknumatts, char **tgt_pkattvals);
 static char *get_sql_update(Relation rel, int *pkattnums, int pknumatts, char **src_pkattvals, char **tgt_pkattvals);
 static char *quote_ident_cstr(char *rawstr);
 static int	get_attnum_pk_pos(int *pkattnums, int pknumatts, int key);
 static HeapTuple get_tuple_of_interest(Relation rel, int *pkattnums, int pknumatts, char **src_pkattvals);
-static Relation get_rel_from_relname(text *relname_text, LOCKMODE lockmode, AclMode aclmode);
+static Relation get_rel_from_relname(text * relname_text, LOCKMODE lockmode, AclMode aclmode);
 static char *generate_relation_name(Relation rel);
 static void dblink_connstr_check(const char *connstr);
-static void dblink_security_check(PGconn *conn, remoteConn *rconn);
-static void dblink_res_error(PGconn *conn, const char *conname, PGresult *res,
+static void dblink_security_check(PGconn * conn, remoteConn * rconn);
+static void dblink_res_error(PGconn * conn, const char *conname, PGresult * res,
 				 const char *dblink_context_msg, bool fail);
 static char *get_connect_string(const char *servername);
 static char *escape_param_str(const char *from);
 static void validate_pkattnums(Relation rel,
-				   int2vector *pkattnums_arg, int32 pknumatts_arg,
+				   int2vector * pkattnums_arg, int32 pknumatts_arg,
 				   int **pkattnums, int *pknumatts);
-static bool is_valid_dblink_option(const PQconninfoOption *options,
+static bool is_valid_dblink_option(const PQconninfoOption * options,
 					   const char *option, Oid context);
-static int	applyRemoteGucs(PGconn *conn);
+static int	applyRemoteGucs(PGconn * conn);
 static void restoreLocalGucs(int nestlevel);
 
 /* Global */
-static remoteConn *pconn = NULL;
-static HTAB *remoteConnHash = NULL;
+static remoteConn * pconn = NULL;
+static HTAB * remoteConnHash = NULL;
 
 /*
  *	Following is list that holds multiple remote connections.
@@ -139,7 +139,7 @@ typedef struct remoteConnHashEnt
 {
 	char		name[NAMEDATALEN];
 	remoteConn *rconn;
-} remoteConnHashEnt;
+}			remoteConnHashEnt;
 
 /* initial number of connection hashes */
 #define NUMCONN 16
@@ -154,7 +154,7 @@ xpstrdup(const char *in)
 
 static void
 pg_attribute_noreturn()
-dblink_res_internalerror(PGconn *conn, PGresult *res, const char *p2)
+dblink_res_internalerror(PGconn * conn, PGresult * res, const char *p2)
 {
 	char	   *msg = pchomp(PQerrorMessage(conn));
 
@@ -179,7 +179,7 @@ dblink_conn_not_avail(const char *conname)
 
 static void
 dblink_get_conn(char *conname_or_str,
-				PGconn *volatile *conn_p, char **conname_p, volatile bool *freeconn_p)
+				PGconn * volatile *conn_p, char **conname_p, volatile bool *freeconn_p)
 {
 	remoteConn *rconn = getConnectionByName(conname_or_str);
 	PGconn	   *conn;
@@ -825,7 +825,7 @@ prepTuplestoreResult(FunctionCallInfo fcinfo)
  * The PGresult will be released in this function.
  */
 static void
-materializeResult(FunctionCallInfo fcinfo, PGconn *conn, PGresult *res)
+materializeResult(FunctionCallInfo fcinfo, PGconn * conn, PGresult * res)
 {
 	ReturnSetInfo *rsinfo = (ReturnSetInfo *) fcinfo->resultinfo;
 
@@ -972,14 +972,14 @@ materializeResult(FunctionCallInfo fcinfo, PGconn *conn, PGresult *res)
  */
 static void
 materializeQueryResult(FunctionCallInfo fcinfo,
-					   PGconn *conn,
+					   PGconn * conn,
 					   const char *conname,
 					   const char *sql,
 					   bool fail)
 {
 	ReturnSetInfo *rsinfo = (ReturnSetInfo *) fcinfo->resultinfo;
 	PGresult   *volatile res = NULL;
-	volatile storeInfo sinfo;
+	volatile	storeInfo sinfo;
 
 	/* prepTuplestoreResult must have been called previously */
 	Assert(rsinfo->returnMode == SFRM_Materialize);
@@ -1089,7 +1089,7 @@ materializeQueryResult(FunctionCallInfo fcinfo,
  * Execute query, and send any result rows to sinfo->tuplestore.
  */
 static PGresult *
-storeQueryResult(volatile storeInfo *sinfo, PGconn *conn, const char *sql)
+storeQueryResult(volatile storeInfo * sinfo, PGconn * conn, const char *sql)
 {
 	bool		first = true;
 	int			nestlevel = -1;
@@ -1157,7 +1157,7 @@ storeQueryResult(volatile storeInfo *sinfo, PGconn *conn, const char *sql)
  * (in this case the PGresult might contain either zero or one row).
  */
 static void
-storeRow(volatile storeInfo *sinfo, PGresult *res, bool first)
+storeRow(volatile storeInfo * sinfo, PGresult * res, bool first)
 {
 	int			nfields = PQnfields(res);
 	HeapTuple	tuple;
@@ -1996,7 +1996,7 @@ dblink_fdw_validator(PG_FUNCTION_ARGS)
 			 * for the context.
 			 */
 			StringInfoData buf;
-			const PQconninfoOption *opt;
+			const		PQconninfoOption *opt;
 
 			initStringInfo(&buf);
 			for (opt = options; opt->keyword; opt++)
@@ -2030,7 +2030,7 @@ dblink_fdw_validator(PG_FUNCTION_ARGS)
  * Return NULL, and set numatts = 0, if no primary key exists.
  */
 static char **
-get_pkey_attnames(Relation rel, int16 *numatts)
+get_pkey_attnames(Relation rel, int16 * numatts)
 {
 	Relation	indexRelation;
 	ScanKeyData skey;
@@ -2085,7 +2085,7 @@ get_pkey_attnames(Relation rel, int16 *numatts)
  * returned as NULL pointers)
  */
 static char **
-get_text_array_contents(ArrayType *array, int *numitems)
+get_text_array_contents(ArrayType * array, int *numitems)
 {
 	int			ndim = ARR_NDIM(array);
 	int		   *dims = ARR_DIMS(array);
@@ -2483,7 +2483,7 @@ get_tuple_of_interest(Relation rel, int *pkattnums, int pknumatts, char **src_pk
  * Caller must close rel when done with it.
  */
 static Relation
-get_rel_from_relname(text *relname_text, LOCKMODE lockmode, AclMode aclmode)
+get_rel_from_relname(text * relname_text, LOCKMODE lockmode, AclMode aclmode)
 {
 	RangeVar   *relvar;
 	Relation	rel;
@@ -2557,7 +2557,7 @@ createConnHash(void)
 }
 
 static void
-createNewConnection(const char *name, remoteConn *rconn)
+createNewConnection(const char *name, remoteConn * rconn)
 {
 	remoteConnHashEnt *hentry;
 	bool		found;
@@ -2608,7 +2608,7 @@ deleteConnection(const char *name)
 }
 
 static void
-dblink_security_check(PGconn *conn, remoteConn *rconn)
+dblink_security_check(PGconn * conn, remoteConn * rconn)
 {
 	if (!superuser())
 	{
@@ -2668,7 +2668,7 @@ dblink_connstr_check(const char *connstr)
 }
 
 static void
-dblink_res_error(PGconn *conn, const char *conname, PGresult *res,
+dblink_res_error(PGconn * conn, const char *conname, PGresult * res,
 				 const char *dblink_context_msg, bool fail)
 {
 	int			level;
@@ -2856,7 +2856,7 @@ escape_param_str(const char *str)
  */
 static void
 validate_pkattnums(Relation rel,
-				   int2vector *pkattnums_arg, int32 pknumatts_arg,
+				   int2vector * pkattnums_arg, int32 pknumatts_arg,
 				   int **pkattnums, int *pknumatts)
 {
 	TupleDesc	tupdesc = rel->rd_att;
@@ -2926,10 +2926,10 @@ validate_pkattnums(Relation rel,
  * confusion.
  */
 static bool
-is_valid_dblink_option(const PQconninfoOption *options, const char *option,
+is_valid_dblink_option(const PQconninfoOption * options, const char *option,
 					   Oid context)
 {
-	const PQconninfoOption *opt;
+	const		PQconninfoOption *opt;
 
 	/* Look up the option in libpq result */
 	for (opt = options; opt->keyword; opt++)
@@ -2977,7 +2977,7 @@ is_valid_dblink_option(const PQconninfoOption *options, const char *option,
  * thrown in between, guc.c will take care of undoing the settings.
  */
 static int
-applyRemoteGucs(PGconn *conn)
+applyRemoteGucs(PGconn * conn)
 {
 	static const char *const GUCsAffectingIO[] = {
 		"DateStyle",

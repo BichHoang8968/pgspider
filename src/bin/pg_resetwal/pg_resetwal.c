@@ -61,13 +61,13 @@ static ControlFileData ControlFile; /* pg_control values */
 static XLogSegNo newXlogSegNo;	/* new XLOG segment # */
 static bool guessed = false;	/* T if we had to guess at any values */
 static const char *progname;
-static uint32 set_xid_epoch = (uint32) -1;
+static uint32 set_xid_epoch = (uint32) - 1;
 static TransactionId set_xid = 0;
 static TransactionId set_oldest_commit_ts_xid = 0;
 static TransactionId set_newest_commit_ts_xid = 0;
-static Oid	set_oid = 0;
+static Oid set_oid = 0;
 static MultiXactId set_mxid = 0;
-static MultiXactOffset set_mxoff = (MultiXactOffset) -1;
+static MultiXactOffset set_mxoff = (MultiXactOffset) - 1;
 static uint32 minXlogTli = 0;
 static XLogSegNo minXlogSegNo = 0;
 

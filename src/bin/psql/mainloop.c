@@ -18,7 +18,7 @@
 
 
 /* callback functions for our flex lexer */
-const PsqlScanCallbacks psqlscan_callbacks = {
+const		PsqlScanCallbacks psqlscan_callbacks = {
 	psql_get_variable,
 	psql_error
 };
@@ -32,14 +32,14 @@ const PsqlScanCallbacks psqlscan_callbacks = {
  *	which reads input from a file.
  */
 int
-MainLoop(FILE *source)
+MainLoop(FILE * source)
 {
 	PsqlScanState scan_state;	/* lexer working state */
 	ConditionalStack cond_stack;	/* \if status stack */
-	volatile PQExpBuffer query_buf; /* buffer for query being accumulated */
-	volatile PQExpBuffer previous_buf;	/* if there isn't anything in the new
-										 * buffer yet, use this one for \e,
-										 * etc. */
+	volatile	PQExpBuffer query_buf;	/* buffer for query being accumulated */
+	volatile	PQExpBuffer previous_buf;	/* if there isn't anything in the
+											 * new buffer yet, use this one
+											 * for \e, etc. */
 	PQExpBuffer history_buf;	/* earlier lines of a multi-line command, not
 								 * yet saved to readline history */
 	char	   *line;			/* current line of input */
@@ -47,8 +47,8 @@ MainLoop(FILE *source)
 	bool		success;
 	bool		line_saved_in_history;
 	volatile int successResult = EXIT_SUCCESS;
-	volatile backslashResult slashCmdStatus = PSQL_CMD_UNKNOWN;
-	volatile promptStatus_t prompt_status = PROMPT_READY;
+	volatile	backslashResult slashCmdStatus = PSQL_CMD_UNKNOWN;
+	volatile	promptStatus_t prompt_status = PROMPT_READY;
 	volatile int count_eof = 0;
 	volatile bool die_on_error = false;
 	FILE	   *prev_cmd_source;

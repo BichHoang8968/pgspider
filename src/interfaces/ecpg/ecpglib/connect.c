@@ -216,7 +216,7 @@ ECPGsetconn(int lineno, const char *connection_name)
 
 
 static void
-ECPGnoticeReceiver(void *arg, const PGresult *result)
+ECPGnoticeReceiver(void *arg, const PGresult * result)
 {
 	char	   *sqlstate = PQresultErrorField(result, PG_DIAG_SQLSTATE);
 	char	   *message = PQresultErrorField(result, PG_DIAG_MESSAGE_PRIMARY);

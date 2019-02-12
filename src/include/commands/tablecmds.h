@@ -22,47 +22,47 @@
 #include "utils/relcache.h"
 
 
-extern ObjectAddress DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
-			   ObjectAddress *typaddress, const char *queryString);
+extern ObjectAddress DefineRelation(CreateStmt * stmt, char relkind, Oid ownerId,
+									ObjectAddress * typaddress, const char *queryString);
 
-extern void RemoveRelations(DropStmt *drop);
+extern void RemoveRelations(DropStmt * drop);
 
-extern Oid	AlterTableLookupRelation(AlterTableStmt *stmt, LOCKMODE lockmode);
+extern Oid AlterTableLookupRelation(AlterTableStmt * stmt, LOCKMODE lockmode);
 
-extern void AlterTable(Oid relid, LOCKMODE lockmode, AlterTableStmt *stmt);
+extern void AlterTable(Oid relid, LOCKMODE lockmode, AlterTableStmt * stmt);
 
-extern LOCKMODE AlterTableGetLockLevel(List *cmds);
+extern LOCKMODE AlterTableGetLockLevel(List * cmds);
 
 extern void ATExecChangeOwner(Oid relationOid, Oid newOwnerId, bool recursing, LOCKMODE lockmode);
 
-extern void AlterTableInternal(Oid relid, List *cmds, bool recurse);
+extern void AlterTableInternal(Oid relid, List * cmds, bool recurse);
 
-extern Oid	AlterTableMoveAll(AlterTableMoveAllStmt *stmt);
+extern Oid AlterTableMoveAll(AlterTableMoveAllStmt * stmt);
 
-extern ObjectAddress AlterTableNamespace(AlterObjectSchemaStmt *stmt,
-					Oid *oldschema);
+extern ObjectAddress AlterTableNamespace(AlterObjectSchemaStmt * stmt,
+										 Oid * oldschema);
 
 extern void AlterTableNamespaceInternal(Relation rel, Oid oldNspOid,
-							Oid nspOid, ObjectAddresses *objsMoved);
+							Oid nspOid, ObjectAddresses * objsMoved);
 
 extern void AlterRelationNamespaceInternal(Relation classRel, Oid relOid,
 							   Oid oldNspOid, Oid newNspOid,
 							   bool hasDependEntry,
-							   ObjectAddresses *objsMoved);
+							   ObjectAddresses * objsMoved);
 
 extern void CheckTableNotInUse(Relation rel, const char *stmt);
 
-extern void ExecuteTruncate(TruncateStmt *stmt);
+extern void ExecuteTruncate(TruncateStmt * stmt);
 
 extern void SetRelationHasSubclass(Oid relationId, bool relhassubclass);
 
-extern ObjectAddress renameatt(RenameStmt *stmt);
+extern ObjectAddress renameatt(RenameStmt * stmt);
 
-extern ObjectAddress renameatt_type(RenameStmt *stmt);
+extern ObjectAddress renameatt_type(RenameStmt * stmt);
 
-extern ObjectAddress RenameConstraint(RenameStmt *stmt);
+extern ObjectAddress RenameConstraint(RenameStmt * stmt);
 
-extern ObjectAddress RenameRelation(RenameStmt *stmt);
+extern ObjectAddress RenameRelation(RenameStmt * stmt);
 
 extern void RenameRelationInternal(Oid myrelid,
 					   const char *newrelname, bool is_internal);
@@ -82,9 +82,9 @@ extern void AtEOSubXact_on_commit_actions(bool isCommit,
 							  SubTransactionId mySubid,
 							  SubTransactionId parentSubid);
 
-extern void RangeVarCallbackOwnsTable(const RangeVar *relation,
+extern void RangeVarCallbackOwnsTable(const RangeVar * relation,
 						  Oid relId, Oid oldRelId, void *arg);
 
-extern void RangeVarCallbackOwnsRelation(const RangeVar *relation,
+extern void RangeVarCallbackOwnsRelation(const RangeVar * relation,
 							 Oid relId, Oid oldRelId, void *noCatalogs);
 #endif							/* TABLECMDS_H */

@@ -128,7 +128,7 @@ typedef enum TransState
 	TRANS_COMMIT,				/* commit in progress */
 	TRANS_ABORT,				/* abort in progress */
 	TRANS_PREPARE				/* prepare in progress */
-} TransState;
+}			TransState;
 
 /*
  *	transaction block states - transaction state of client queries
@@ -162,7 +162,7 @@ typedef enum TBlockState
 	TBLOCK_SUBABORT_PENDING,	/* live subxact, ROLLBACK received */
 	TBLOCK_SUBRESTART,			/* live subxact, ROLLBACK TO received */
 	TBLOCK_SUBABORT_RESTART		/* failed subxact, ROLLBACK TO received */
-} TBlockState;
+}			TBlockState;
 
 /*
  *	transaction state structure
@@ -189,37 +189,38 @@ typedef struct TransactionStateData
 	bool		didLogXid;		/* has xid been included in WAL record? */
 	int			parallelModeLevel;	/* Enter/ExitParallelMode counter */
 	struct TransactionStateData *parent;	/* back link to parent */
-} TransactionStateData;
+}			TransactionStateData;
 
-typedef TransactionStateData *TransactionState;
+typedef TransactionStateData * TransactionState;
 
 /*
  * CurrentTransactionState always points to the current transaction state
  * block.  It will point to TopTransactionStateData when not in a
  * transaction at all, or when in a top-level transaction.
  */
-static TransactionStateData TopTransactionStateData = {
+static TransactionStateData TopTransactionStateData =
+{
 	0,							/* transaction id */
-	0,							/* subtransaction id */
-	NULL,						/* savepoint name */
-	0,							/* savepoint level */
-	TRANS_DEFAULT,				/* transaction state */
-	TBLOCK_DEFAULT,				/* transaction block state from the client
+		0,						/* subtransaction id */
+		NULL,					/* savepoint name */
+		0,						/* savepoint level */
+		TRANS_DEFAULT,			/* transaction state */
+		TBLOCK_DEFAULT,			/* transaction block state from the client
 								 * perspective */
-	0,							/* transaction nesting depth */
-	0,							/* GUC context nesting depth */
-	NULL,						/* cur transaction context */
-	NULL,						/* cur transaction resource owner */
-	NULL,						/* subcommitted child Xids */
-	0,							/* # of subcommitted child Xids */
-	0,							/* allocated size of childXids[] */
-	InvalidOid,					/* previous CurrentUserId setting */
-	0,							/* previous SecurityRestrictionContext */
-	false,						/* entry-time xact r/o state */
-	false,						/* startedInRecovery */
-	false,						/* didLogXid */
-	0,							/* parallelMode */
-	NULL						/* link to parent state block */
+		0,						/* transaction nesting depth */
+		0,						/* GUC context nesting depth */
+		NULL,					/* cur transaction context */
+		NULL,					/* cur transaction resource owner */
+		NULL,					/* subcommitted child Xids */
+		0,						/* # of subcommitted child Xids */
+		0,						/* allocated size of childXids[] */
+		InvalidOid,				/* previous CurrentUserId setting */
+		0,						/* previous SecurityRestrictionContext */
+		false,					/* entry-time xact r/o state */
+		false,					/* startedInRecovery */
+		false,					/* didLogXid */
+		0,						/* parallelMode */
+		NULL					/* link to parent state block */
 };
 
 /*
@@ -276,9 +277,9 @@ typedef struct XactCallbackItem
 	struct XactCallbackItem *next;
 	XactCallback callback;
 	void	   *arg;
-} XactCallbackItem;
+}			XactCallbackItem;
 
-static XactCallbackItem *Xact_callbacks = NULL;
+static XactCallbackItem * Xact_callbacks = NULL;
 
 /*
  * List of add-on start- and end-of-subxact callbacks
@@ -288,9 +289,9 @@ typedef struct SubXactCallbackItem
 	struct SubXactCallbackItem *next;
 	SubXactCallback callback;
 	void	   *arg;
-} SubXactCallbackItem;
+}			SubXactCallbackItem;
 
-static SubXactCallbackItem *SubXact_callbacks = NULL;
+static SubXactCallbackItem * SubXact_callbacks = NULL;
 
 
 /* local function prototypes */
@@ -3811,7 +3812,7 @@ DefineSavepoint(char *name)
  * As above, we don't actually do anything here except change blockState.
  */
 void
-ReleaseSavepoint(List *options)
+ReleaseSavepoint(List * options)
 {
 	TransactionState s = CurrentTransactionState;
 	TransactionState target,
@@ -3924,7 +3925,7 @@ ReleaseSavepoint(List *options)
  * As above, we don't actually do anything here except change blockState.
  */
 void
-RollbackToSavepoint(List *options)
+RollbackToSavepoint(List * options)
 {
 	TransactionState s = CurrentTransactionState;
 	TransactionState target,
@@ -5110,7 +5111,7 @@ TransStateAsString(TransState state)
  * If there are no subxacts, *ptr is set to NULL.
  */
 int
-xactGetCommittedChildren(TransactionId **ptr)
+xactGetCommittedChildren(TransactionId * *ptr)
 {
 	TransactionState s = CurrentTransactionState;
 
@@ -5135,9 +5136,9 @@ xactGetCommittedChildren(TransactionId **ptr)
  */
 XLogRecPtr
 XactLogCommitRecord(TimestampTz commit_time,
-					int nsubxacts, TransactionId *subxacts,
-					int nrels, RelFileNode *rels,
-					int nmsgs, SharedInvalidationMessage *msgs,
+					int nsubxacts, TransactionId * subxacts,
+					int nrels, RelFileNode * rels,
+					int nmsgs, SharedInvalidationMessage * msgs,
 					bool relcacheInval, bool forceSync,
 					int xactflags, TransactionId twophase_xid)
 {
@@ -5282,8 +5283,8 @@ XactLogCommitRecord(TimestampTz commit_time,
  */
 XLogRecPtr
 XactLogAbortRecord(TimestampTz abort_time,
-				   int nsubxacts, TransactionId *subxacts,
-				   int nrels, RelFileNode *rels,
+				   int nsubxacts, TransactionId * subxacts,
+				   int nrels, RelFileNode * rels,
 				   int xactflags, TransactionId twophase_xid)
 {
 	xl_xact_abort xlrec;
@@ -5369,7 +5370,7 @@ XactLogAbortRecord(TimestampTz abort_time,
  * actions for which the order of execution is critical.
  */
 static void
-xact_redo_commit(xl_xact_parsed_commit *parsed,
+xact_redo_commit(xl_xact_parsed_commit * parsed,
 				 TransactionId xid,
 				 XLogRecPtr lsn,
 				 RepOriginId origin_id)
@@ -5533,7 +5534,7 @@ xact_redo_commit(xl_xact_parsed_commit *parsed,
  * because subtransaction commit is never WAL logged.
  */
 static void
-xact_redo_abort(xl_xact_parsed_abort *parsed, TransactionId xid)
+xact_redo_abort(xl_xact_parsed_abort * parsed, TransactionId xid)
 {
 	TransactionId max_xid;
 
@@ -5603,7 +5604,7 @@ xact_redo_abort(xl_xact_parsed_abort *parsed, TransactionId xid)
 }
 
 void
-xact_redo(XLogReaderState *record)
+xact_redo(XLogReaderState * record)
 {
 	uint8		info = XLogRecGetInfo(record) & XLOG_XACT_OPMASK;
 

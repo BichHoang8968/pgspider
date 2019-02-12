@@ -69,7 +69,7 @@ CATALOG(pg_trigger,2620)
  *		the format of pg_trigger relation.
  * ----------------
  */
-typedef FormData_pg_trigger *Form_pg_trigger;
+typedef FormData_pg_trigger * Form_pg_trigger;
 
 /* ----------------
  *		compiler constants for pg_trigger

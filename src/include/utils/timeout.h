@@ -47,7 +47,7 @@ typedef enum TimeoutType
 {
 	TMPARAM_AFTER,
 	TMPARAM_AT
-} TimeoutType;
+}			TimeoutType;
 
 typedef struct
 {
@@ -55,7 +55,7 @@ typedef struct
 	TimeoutType type;			/* TMPARAM_AFTER or TMPARAM_AT */
 	int			delay_ms;		/* only used for TMPARAM_AFTER */
 	TimestampTz fin_time;		/* only used for TMPARAM_AT */
-} EnableTimeoutParams;
+}			EnableTimeoutParams;
 
 /*
  * Parameter structure for clearing multiple timeouts at once
@@ -64,7 +64,7 @@ typedef struct
 {
 	TimeoutId	id;				/* timeout to clear */
 	bool		keep_indicator; /* keep the indicator flag? */
-} DisableTimeoutParams;
+}			DisableTimeoutParams;
 
 /* timeout setup */
 extern void InitializeTimeouts(void);
@@ -74,9 +74,9 @@ extern void reschedule_timeouts(void);
 /* timeout operation */
 extern void enable_timeout_after(TimeoutId id, int delay_ms);
 extern void enable_timeout_at(TimeoutId id, TimestampTz fin_time);
-extern void enable_timeouts(const EnableTimeoutParams *timeouts, int count);
+extern void enable_timeouts(const EnableTimeoutParams * timeouts, int count);
 extern void disable_timeout(TimeoutId id, bool keep_indicator);
-extern void disable_timeouts(const DisableTimeoutParams *timeouts, int count);
+extern void disable_timeouts(const DisableTimeoutParams * timeouts, int count);
 extern void disable_all_timeouts(bool keep_indicators);
 
 /* accessors */

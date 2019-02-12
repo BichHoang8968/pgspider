@@ -76,7 +76,7 @@ int			wal_receiver_timeout;
 bool		hot_standby_feedback;
 
 /* libpqwalreceiver connection */
-static WalReceiverConn *wrconn = NULL;
+static WalReceiverConn * wrconn = NULL;
 WalReceiverFunctionsType *WalReceiverFunctions = NULL;
 
 #define NAPTIME_PER_CYCLE 100	/* max sleep time between cycles (100ms) */
@@ -134,7 +134,7 @@ static void ProcessWalRcvInterrupts(void);
 static void EnableWalRcvImmediateExit(void);
 static void DisableWalRcvImmediateExit(void);
 static void WalRcvFetchTimeLineHistoryFiles(TimeLineID first, TimeLineID last);
-static void WalRcvWaitForStartPosition(XLogRecPtr *startpoint, TimeLineID *startpointTLI);
+static void WalRcvWaitForStartPosition(XLogRecPtr * startpoint, TimeLineID * startpointTLI);
 static void WalRcvDie(int code, Datum arg);
 static void XLogWalRcvProcessMsg(unsigned char type, char *buf, Size len);
 static void XLogWalRcvWrite(char *buf, Size nbytes, XLogRecPtr recptr);
@@ -637,7 +637,7 @@ WalReceiverMain(void)
  * Wait for startup process to set receiveStart and receiveStartTLI.
  */
 static void
-WalRcvWaitForStartPosition(XLogRecPtr *startpoint, TimeLineID *startpointTLI)
+WalRcvWaitForStartPosition(XLogRecPtr * startpoint, TimeLineID * startpointTLI)
 {
 	WalRcvData *walrcv = WalRcv;
 	int			state;
@@ -712,7 +712,7 @@ WalRcvWaitForStartPosition(XLogRecPtr *startpoint, TimeLineID *startpointTLI)
 
 		snprintf(activitymsg, sizeof(activitymsg), "restarting at %X/%X",
 				 (uint32) (*startpoint >> 32),
-				 (uint32) *startpoint);
+				 (uint32) * startpoint);
 		set_ps_display(activitymsg, false);
 	}
 }
@@ -1443,8 +1443,8 @@ pg_stat_get_wal_receiver(PG_FUNCTION_ARGS)
 	{
 		/*
 		 * Only superusers and members of pg_read_all_stats can see details.
-		 * Other users only get the pid value
-		 * to know whether it is a WAL receiver, but no details.
+		 * Other users only get the pid value to know whether it is a WAL
+		 * receiver, but no details.
 		 */
 		MemSet(&nulls[1], true, sizeof(bool) * (tupdesc->natts - 1));
 	}

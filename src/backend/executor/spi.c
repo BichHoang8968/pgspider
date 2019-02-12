@@ -41,13 +41,13 @@ Oid			SPI_lastoid = InvalidOid;
 SPITupleTable *SPI_tuptable = NULL;
 int			SPI_result;
 
-static _SPI_connection *_SPI_stack = NULL;
-static _SPI_connection *_SPI_current = NULL;
+static _SPI_connection * _SPI_stack = NULL;
+static _SPI_connection * _SPI_current = NULL;
 static int	_SPI_stack_depth = 0;	/* allocated size of _SPI_stack */
 static int	_SPI_connected = -1;	/* current stack index */
 
 static Portal SPI_cursor_open_internal(const char *name, SPIPlanPtr plan,
-						 ParamListInfo paramLI, bool read_only);
+									   ParamListInfo paramLI, bool read_only);
 
 static void _SPI_prepare_plan(const char *src, SPIPlanPtr plan);
 
@@ -57,16 +57,16 @@ static int _SPI_execute_plan(SPIPlanPtr plan, ParamListInfo paramLI,
 				  Snapshot snapshot, Snapshot crosscheck_snapshot,
 				  bool read_only, bool fire_triggers, uint64 tcount);
 
-static ParamListInfo _SPI_convert_params(int nargs, Oid *argtypes,
-					Datum *Values, const char *Nulls);
+static ParamListInfo _SPI_convert_params(int nargs, Oid * argtypes,
+										 Datum * Values, const char *Nulls);
 
-static int	_SPI_pquery(QueryDesc *queryDesc, bool fire_triggers, uint64 tcount);
+static int	_SPI_pquery(QueryDesc * queryDesc, bool fire_triggers, uint64 tcount);
 
 static void _SPI_error_callback(void *arg);
 
 static void _SPI_cursor_operation(Portal portal,
 					  FetchDirection direction, long count,
-					  DestReceiver *dest);
+					  DestReceiver * dest);
 
 static SPIPlanPtr _SPI_make_plan_non_temp(SPIPlanPtr plan);
 static SPIPlanPtr _SPI_save_plan(SPIPlanPtr plan);
@@ -339,28 +339,30 @@ SPI_exec(const char *src, long tcount)
 {
 	return SPI_execute(src, false, tcount);
 }
+
 /* Obsolete version of SPI_execute */
 TupleTableSlot *
-SPI_execRetreiveDirect(AggState *aggState)
+SPI_execRetreiveDirect(AggState * aggState)
 {
 	return ExecRetreiveDirect(aggState);
 }
 
 /* Obsolete version of SPI_execute */
 TupleTableSlot *
-SPI_execAgg(AggState *aggState)
+SPI_execAgg(AggState * aggState)
 {
 	return ExecDirectAgg(aggState);
 }
 
-AggState*
-SPI_execIntiAgg(Agg *node, EState *estate, int eflags)
+AggState *
+SPI_execIntiAgg(Agg * node, EState * estate, int eflags)
 {
 	return ExecInitAgg(node, estate, eflags);
 }
+
 /* Execute a previously prepared plan */
 int
-SPI_execute_plan(SPIPlanPtr plan, Datum *Values, const char *Nulls,
+SPI_execute_plan(SPIPlanPtr plan, Datum * Values, const char *Nulls,
 				 bool read_only, long tcount)
 {
 	int			res;
@@ -387,7 +389,7 @@ SPI_execute_plan(SPIPlanPtr plan, Datum *Values, const char *Nulls,
 
 /* Obsolete version of SPI_execute_plan */
 int
-SPI_execp(SPIPlanPtr plan, Datum *Values, const char *Nulls, long tcount)
+SPI_execp(SPIPlanPtr plan, Datum * Values, const char *Nulls, long tcount)
 {
 	return SPI_execute_plan(plan, Values, Nulls, false, tcount);
 }
@@ -429,7 +431,7 @@ SPI_execute_plan_with_paramlist(SPIPlanPtr plan, ParamListInfo params,
  */
 int
 SPI_execute_snapshot(SPIPlanPtr plan,
-					 Datum *Values, const char *Nulls,
+					 Datum * Values, const char *Nulls,
 					 Snapshot snapshot, Snapshot crosscheck_snapshot,
 					 bool read_only, bool fire_triggers, long tcount)
 {
@@ -463,8 +465,8 @@ SPI_execute_snapshot(SPIPlanPtr plan,
  */
 int
 SPI_execute_with_args(const char *src,
-					  int nargs, Oid *argtypes,
-					  Datum *Values, const char *Nulls,
+					  int nargs, Oid * argtypes,
+					  Datum * Values, const char *Nulls,
 					  bool read_only, long tcount)
 {
 	int			res;
@@ -503,13 +505,13 @@ SPI_execute_with_args(const char *src,
 }
 
 SPIPlanPtr
-SPI_prepare(const char *src, int nargs, Oid *argtypes)
+SPI_prepare(const char *src, int nargs, Oid * argtypes)
 {
 	return SPI_prepare_cursor(src, nargs, argtypes, 0);
 }
 
 SPIPlanPtr
-SPI_prepare_cursor(const char *src, int nargs, Oid *argtypes,
+SPI_prepare_cursor(const char *src, int nargs, Oid * argtypes,
 				   int cursorOptions)
 {
 	_SPI_plan	plan;
@@ -712,7 +714,7 @@ SPI_returntuple(HeapTuple tuple, TupleDesc tupdesc)
 
 HeapTuple
 SPI_modifytuple(Relation rel, HeapTuple tuple, int natts, int *attnum,
-				Datum *Values, const char *Nulls)
+				Datum * Values, const char *Nulls)
 {
 	MemoryContext oldcxt;
 	HeapTuple	mtuple;
@@ -991,7 +993,7 @@ SPI_freetuple(HeapTuple tuple)
 }
 
 void
-SPI_freetuptable(SPITupleTable *tuptable)
+SPI_freetuptable(SPITupleTable * tuptable)
 {
 	bool		found = false;
 
@@ -1051,7 +1053,7 @@ SPI_freetuptable(SPITupleTable *tuptable)
  */
 Portal
 SPI_cursor_open(const char *name, SPIPlanPtr plan,
-				Datum *Values, const char *Nulls,
+				Datum * Values, const char *Nulls,
 				bool read_only)
 {
 	Portal		portal;
@@ -1079,8 +1081,8 @@ SPI_cursor_open(const char *name, SPIPlanPtr plan,
 Portal
 SPI_cursor_open_with_args(const char *name,
 						  const char *src,
-						  int nargs, Oid *argtypes,
-						  Datum *Values, const char *Nulls,
+						  int nargs, Oid * argtypes,
+						  Datum * Values, const char *Nulls,
 						  bool read_only, int cursorOptions)
 {
 	Portal		result;
@@ -1670,7 +1672,7 @@ SPI_plan_get_cached_plan(SPIPlanPtr plan)
  *		of current SPI procedure
  */
 void
-spi_dest_startup(DestReceiver *self, int operation, TupleDesc typeinfo)
+spi_dest_startup(DestReceiver * self, int operation, TupleDesc typeinfo)
 {
 	SPITupleTable *tuptable;
 	MemoryContext oldcxt;
@@ -1717,7 +1719,7 @@ spi_dest_startup(DestReceiver *self, int operation, TupleDesc typeinfo)
  *		of current SPI procedure
  */
 bool
-spi_printtup(TupleTableSlot *slot, DestReceiver *self)
+spi_printtup(TupleTableSlot * slot, DestReceiver * self)
 {
 	SPITupleTable *tuptable;
 	MemoryContext oldcxt;
@@ -2261,8 +2263,8 @@ fail:
  * Convert arrays of query parameters to form wanted by planner and executor
  */
 static ParamListInfo
-_SPI_convert_params(int nargs, Oid *argtypes,
-					Datum *Values, const char *Nulls)
+_SPI_convert_params(int nargs, Oid * argtypes,
+					Datum * Values, const char *Nulls)
 {
 	ParamListInfo paramLI;
 
@@ -2296,7 +2298,7 @@ _SPI_convert_params(int nargs, Oid *argtypes,
 }
 
 static int
-_SPI_pquery(QueryDesc *queryDesc, bool fire_triggers, uint64 tcount)
+_SPI_pquery(QueryDesc * queryDesc, bool fire_triggers, uint64 tcount)
 {
 	int			operation = queryDesc->operation;
 	int			eflags;
@@ -2408,7 +2410,7 @@ _SPI_error_callback(void *arg)
  */
 static void
 _SPI_cursor_operation(Portal portal, FetchDirection direction, long count,
-					  DestReceiver *dest)
+					  DestReceiver * dest)
 {
 	uint64		nfetched;
 
@@ -2768,7 +2770,7 @@ SPI_unregister_relation(const char *name)
  * in this connection.
  */
 int
-SPI_register_trigger_data(TriggerData *tdata)
+SPI_register_trigger_data(TriggerData * tdata)
 {
 	if (tdata == NULL)
 		return SPI_ERROR_ARGUMENT;

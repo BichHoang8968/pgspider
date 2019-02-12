@@ -74,7 +74,7 @@ CATALOG(pg_amop,2602)
  *		the format of pg_amop relation.
  * ----------------
  */
-typedef FormData_pg_amop *Form_pg_amop;
+typedef FormData_pg_amop * Form_pg_amop;
 
 /* ----------------
  *		compiler constants for pg_amop

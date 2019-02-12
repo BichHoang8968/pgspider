@@ -144,7 +144,7 @@ CATALOG(pg_constraint,2606)
  *		the format of pg_constraint relation.
  * ----------------
  */
-typedef FormData_pg_constraint *Form_pg_constraint;
+typedef FormData_pg_constraint * Form_pg_constraint;
 
 /* ----------------
  *		compiler constants for pg_constraint

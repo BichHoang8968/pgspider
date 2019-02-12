@@ -16,7 +16,7 @@ typedef struct pthread_mutex_t
 {
 	HANDLE		handle;
 	LONG		initlock;
-} pthread_mutex_t;
+}			pthread_mutex_t;
 
 typedef DWORD pthread_key_t;
 typedef bool pthread_once_t;
@@ -24,8 +24,8 @@ typedef bool pthread_once_t;
 #define PTHREAD_MUTEX_INITIALIZER	{ NULL, 0 }
 #define PTHREAD_ONCE_INIT			false
 
-void		win32_pthread_mutex(volatile pthread_mutex_t *mutex);
-void		win32_pthread_once(volatile pthread_once_t *once, void (*fn) (void));
+void		win32_pthread_mutex(volatile pthread_mutex_t * mutex);
+void		win32_pthread_once(volatile pthread_once_t * once, void (*fn) (void));
 
 #define pthread_mutex_lock(mutex) \
 	do { \

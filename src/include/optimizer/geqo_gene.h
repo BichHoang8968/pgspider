@@ -33,13 +33,13 @@ typedef struct Chromosome
 {
 	Gene	   *string;
 	Cost		worth;
-} Chromosome;
+}			Chromosome;
 
 typedef struct Pool
 {
 	Chromosome *data;
 	int			size;
 	int			string_length;
-} Pool;
+}			Pool;
 
 #endif							/* GEQO_GENE_H */

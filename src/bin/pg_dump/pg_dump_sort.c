@@ -88,28 +88,28 @@ static DumpId postDataBoundId;
 
 
 static int	DOTypeNameCompare(const void *p1, const void *p2);
-static bool TopoSort(DumpableObject **objs,
+static bool TopoSort(DumpableObject * *objs,
 		 int numObjs,
-		 DumpableObject **ordering,
+		 DumpableObject * *ordering,
 		 int *nOrdering);
 static void addHeapElement(int val, int *heap, int heapLength);
 static int	removeHeapElement(int *heap, int heapLength);
-static void findDependencyLoops(DumpableObject **objs, int nObjs, int totObjs);
-static int findLoop(DumpableObject *obj,
+static void findDependencyLoops(DumpableObject * *objs, int nObjs, int totObjs);
+static int findLoop(DumpableObject * obj,
 		 DumpId startPoint,
 		 bool *processed,
-		 DumpId *searchFailed,
-		 DumpableObject **workspace,
+		 DumpId * searchFailed,
+		 DumpableObject * *workspace,
 		 int depth);
-static void repairDependencyLoop(DumpableObject **loop,
+static void repairDependencyLoop(DumpableObject * *loop,
 					 int nLoop);
-static void describeDumpableObject(DumpableObject *obj,
+static void describeDumpableObject(DumpableObject * obj,
 					   char *buf, int bufsize);
 
 static int	DOSizeCompare(const void *p1, const void *p2);
 
 static int
-findFirstEqualType(DumpableObjectType type, DumpableObject **objs, int numObjs)
+findFirstEqualType(DumpableObjectType type, DumpableObject * *objs, int numObjs)
 {
 	int			i;
 
@@ -120,7 +120,7 @@ findFirstEqualType(DumpableObjectType type, DumpableObject **objs, int numObjs)
 }
 
 static int
-findFirstDifferentType(DumpableObjectType type, DumpableObject **objs, int numObjs, int start)
+findFirstDifferentType(DumpableObjectType type, DumpableObject * *objs, int numObjs, int start)
 {
 	int			i;
 
@@ -142,7 +142,7 @@ findFirstDifferentType(DumpableObjectType type, DumpableObject **objs, int numOb
  * according to their size.
  */
 void
-sortDataAndIndexObjectsBySize(DumpableObject **objs, int numObjs)
+sortDataAndIndexObjectsBySize(DumpableObject * *objs, int numObjs)
 {
 	int			startIdx,
 				endIdx;
@@ -173,8 +173,8 @@ sortDataAndIndexObjectsBySize(DumpableObject **objs, int numObjs)
 static int
 DOSizeCompare(const void *p1, const void *p2)
 {
-	DumpableObject *obj1 = *(DumpableObject **) p1;
-	DumpableObject *obj2 = *(DumpableObject **) p2;
+	DumpableObject *obj1 = *(DumpableObject * *) p1;
+	DumpableObject *obj2 = *(DumpableObject * *) p2;
 	int			obj1_size = 0;
 	int			obj2_size = 0;
 
@@ -204,7 +204,7 @@ DOSizeCompare(const void *p1, const void *p2)
  * ordering.
  */
 void
-sortDumpableObjectsByTypeName(DumpableObject **objs, int numObjs)
+sortDumpableObjectsByTypeName(DumpableObject * *objs, int numObjs)
 {
 	if (numObjs > 1)
 		qsort((void *) objs, numObjs, sizeof(DumpableObject *),
@@ -214,8 +214,8 @@ sortDumpableObjectsByTypeName(DumpableObject **objs, int numObjs)
 static int
 DOTypeNameCompare(const void *p1, const void *p2)
 {
-	DumpableObject *obj1 = *(DumpableObject *const *) p1;
-	DumpableObject *obj2 = *(DumpableObject *const *) p2;
+	DumpableObject *obj1 = *(DumpableObject * const *) p1;
+	DumpableObject *obj2 = *(DumpableObject * const *) p2;
 	int			cmpval;
 
 	/* Sort by type */
@@ -246,8 +246,8 @@ DOTypeNameCompare(const void *p1, const void *p2)
 	/* To have a stable sort order, break ties for some object types */
 	if (obj1->objType == DO_FUNC || obj1->objType == DO_AGG)
 	{
-		FuncInfo   *fobj1 = *(FuncInfo *const *) p1;
-		FuncInfo   *fobj2 = *(FuncInfo *const *) p2;
+		FuncInfo   *fobj1 = *(FuncInfo * const *) p1;
+		FuncInfo   *fobj2 = *(FuncInfo * const *) p2;
 		int			i;
 
 		cmpval = fobj1->nargs - fobj2->nargs;
@@ -275,8 +275,8 @@ DOTypeNameCompare(const void *p1, const void *p2)
 	}
 	else if (obj1->objType == DO_OPERATOR)
 	{
-		OprInfo    *oobj1 = *(OprInfo *const *) p1;
-		OprInfo    *oobj2 = *(OprInfo *const *) p2;
+		OprInfo    *oobj1 = *(OprInfo * const *) p1;
+		OprInfo    *oobj2 = *(OprInfo * const *) p2;
 
 		/* oprkind is 'l', 'r', or 'b'; this sorts prefix, postfix, infix */
 		cmpval = (oobj2->oprkind - oobj1->oprkind);
@@ -285,8 +285,8 @@ DOTypeNameCompare(const void *p1, const void *p2)
 	}
 	else if (obj1->objType == DO_ATTRDEF)
 	{
-		AttrDefInfo *adobj1 = *(AttrDefInfo *const *) p1;
-		AttrDefInfo *adobj2 = *(AttrDefInfo *const *) p2;
+		AttrDefInfo *adobj1 = *(AttrDefInfo * const *) p1;
+		AttrDefInfo *adobj2 = *(AttrDefInfo * const *) p2;
 
 		cmpval = (adobj1->adnum - adobj2->adnum);
 		if (cmpval != 0)
@@ -306,7 +306,7 @@ DOTypeNameCompare(const void *p1, const void *p2)
  * passed in separately, in case we need them during dependency loop repair.
  */
 void
-sortDumpableObjects(DumpableObject **objs, int numObjs,
+sortDumpableObjects(DumpableObject * *objs, int numObjs,
 					DumpId preBoundaryId, DumpId postBoundaryId)
 {
 	DumpableObject **ordering;
@@ -322,7 +322,7 @@ sortDumpableObjects(DumpableObject **objs, int numObjs,
 	preDataBoundId = preBoundaryId;
 	postDataBoundId = postBoundaryId;
 
-	ordering = (DumpableObject **) pg_malloc(numObjs * sizeof(DumpableObject *));
+	ordering = (DumpableObject * *) pg_malloc(numObjs * sizeof(DumpableObject *));
 	while (!TopoSort(objs, numObjs, ordering, &nOrdering))
 		findDependencyLoops(ordering, nOrdering, numObjs);
 
@@ -358,9 +358,9 @@ sortDumpableObjects(DumpableObject **objs, int numObjs,
  * The caller is responsible for allocating sufficient space at *ordering.
  */
 static bool
-TopoSort(DumpableObject **objs,
+TopoSort(DumpableObject * *objs,
 		 int numObjs,
-		 DumpableObject **ordering, /* output argument */
+		 DumpableObject * *ordering,	/* output argument */
 		 int *nOrdering)		/* output argument */
 {
 	DumpId		maxDumpId = getMaxDumpId();
@@ -578,7 +578,7 @@ removeHeapElement(int *heap, int heapLength)
  * totObjs is the total number of objects in the universe
  */
 static void
-findDependencyLoops(DumpableObject **objs, int nObjs, int totObjs)
+findDependencyLoops(DumpableObject * *objs, int nObjs, int totObjs)
 {
 	/*
 	 * We use three data structures here:
@@ -610,7 +610,7 @@ findDependencyLoops(DumpableObject **objs, int nObjs, int totObjs)
 
 	processed = (bool *) pg_malloc0((getMaxDumpId() + 1) * sizeof(bool));
 	searchFailed = (DumpId *) pg_malloc0((getMaxDumpId() + 1) * sizeof(DumpId));
-	workspace = (DumpableObject **) pg_malloc(totObjs * sizeof(DumpableObject *));
+	workspace = (DumpableObject * *) pg_malloc(totObjs * sizeof(DumpableObject *));
 	fixedloop = false;
 
 	for (i = 0; i < nObjs; i++)
@@ -674,11 +674,11 @@ findDependencyLoops(DumpableObject **objs, int nObjs, int totObjs)
  * than one cycle; if so, we will find an arbitrary one of the cycles.
  */
 static int
-findLoop(DumpableObject *obj,
+findLoop(DumpableObject * obj,
 		 DumpId startPoint,
 		 bool *processed,
-		 DumpId *searchFailed,
-		 DumpableObject **workspace,
+		 DumpId * searchFailed,
+		 DumpableObject * *workspace,
 		 int depth)
 {
 	int			i;
@@ -759,7 +759,7 @@ findLoop(DumpableObject *obj,
  * shell type, instead.
  */
 static void
-repairTypeFuncLoop(DumpableObject *typeobj, DumpableObject *funcobj)
+repairTypeFuncLoop(DumpableObject * typeobj, DumpableObject * funcobj)
 {
 	TypeInfo   *typeInfo = (TypeInfo *) typeobj;
 
@@ -790,8 +790,8 @@ repairTypeFuncLoop(DumpableObject *typeobj, DumpableObject *funcobj)
  * This applies to matviews, as well.
  */
 static void
-repairViewRuleLoop(DumpableObject *viewobj,
-				   DumpableObject *ruleobj)
+repairViewRuleLoop(DumpableObject * viewobj,
+				   DumpableObject * ruleobj)
 {
 	/* remove rule's dependency on view */
 	removeObjectDependency(ruleobj, viewobj->dumpId);
@@ -810,8 +810,8 @@ repairViewRuleLoop(DumpableObject *viewobj,
  * Note: this approach does *not* work for matviews, at the moment.
  */
 static void
-repairViewRuleMultiLoop(DumpableObject *viewobj,
-						DumpableObject *ruleobj)
+repairViewRuleMultiLoop(DumpableObject * viewobj,
+						DumpableObject * ruleobj)
 {
 	TableInfo  *viewinfo = (TableInfo *) viewobj;
 	RuleInfo   *ruleinfo = (RuleInfo *) ruleobj;
@@ -840,9 +840,9 @@ repairViewRuleMultiLoop(DumpableObject *viewobj,
  * several times while removing all the pre-data linkages.
  */
 static void
-repairMatViewBoundaryMultiLoop(DumpableObject *matviewobj,
-							   DumpableObject *boundaryobj,
-							   DumpableObject *nextobj)
+repairMatViewBoundaryMultiLoop(DumpableObject * matviewobj,
+							   DumpableObject * boundaryobj,
+							   DumpableObject * nextobj)
 {
 	TableInfo  *matviewinfo = (TableInfo *) matviewobj;
 
@@ -859,8 +859,8 @@ repairMatViewBoundaryMultiLoop(DumpableObject *matviewobj,
  * the automatic dependency and leave the CHECK constraint non-separate.
  */
 static void
-repairTableConstraintLoop(DumpableObject *tableobj,
-						  DumpableObject *constraintobj)
+repairTableConstraintLoop(DumpableObject * tableobj,
+						  DumpableObject * constraintobj)
 {
 	/* remove constraint's dependency on table */
 	removeObjectDependency(constraintobj, tableobj->dumpId);
@@ -876,8 +876,8 @@ repairTableConstraintLoop(DumpableObject *tableobj,
  * the constraint won't be emitted before the table...
  */
 static void
-repairTableConstraintMultiLoop(DumpableObject *tableobj,
-							   DumpableObject *constraintobj)
+repairTableConstraintMultiLoop(DumpableObject * tableobj,
+							   DumpableObject * constraintobj)
 {
 	/* remove table's dependency on constraint */
 	removeObjectDependency(tableobj, constraintobj->dumpId);
@@ -893,16 +893,16 @@ repairTableConstraintMultiLoop(DumpableObject *tableobj,
  * Attribute defaults behave exactly the same as CHECK constraints...
  */
 static void
-repairTableAttrDefLoop(DumpableObject *tableobj,
-					   DumpableObject *attrdefobj)
+repairTableAttrDefLoop(DumpableObject * tableobj,
+					   DumpableObject * attrdefobj)
 {
 	/* remove attrdef's dependency on table */
 	removeObjectDependency(attrdefobj, tableobj->dumpId);
 }
 
 static void
-repairTableAttrDefMultiLoop(DumpableObject *tableobj,
-							DumpableObject *attrdefobj)
+repairTableAttrDefMultiLoop(DumpableObject * tableobj,
+							DumpableObject * attrdefobj)
 {
 	/* remove table's dependency on attrdef */
 	removeObjectDependency(tableobj, attrdefobj->dumpId);
@@ -916,16 +916,16 @@ repairTableAttrDefMultiLoop(DumpableObject *tableobj,
  * CHECK constraints on domains work just like those on tables ...
  */
 static void
-repairDomainConstraintLoop(DumpableObject *domainobj,
-						   DumpableObject *constraintobj)
+repairDomainConstraintLoop(DumpableObject * domainobj,
+						   DumpableObject * constraintobj)
 {
 	/* remove constraint's dependency on domain */
 	removeObjectDependency(constraintobj, domainobj->dumpId);
 }
 
 static void
-repairDomainConstraintMultiLoop(DumpableObject *domainobj,
-								DumpableObject *constraintobj)
+repairDomainConstraintMultiLoop(DumpableObject * domainobj,
+								DumpableObject * constraintobj)
 {
 	/* remove domain's dependency on constraint */
 	removeObjectDependency(domainobj, constraintobj->dumpId);
@@ -945,7 +945,7 @@ repairDomainConstraintMultiLoop(DumpableObject *domainobj,
  * "fixer" routines above.
  */
 static void
-repairDependencyLoop(DumpableObject **loop,
+repairDependencyLoop(DumpableObject * *loop,
 					 int nLoop)
 {
 	int			i,
@@ -1211,7 +1211,7 @@ repairDependencyLoop(DumpableObject **loop,
  * This should probably go somewhere else...
  */
 static void
-describeDumpableObject(DumpableObject *obj, char *buf, int bufsize)
+describeDumpableObject(DumpableObject * obj, char *buf, int bufsize)
 {
 	switch (obj->objType)
 	{

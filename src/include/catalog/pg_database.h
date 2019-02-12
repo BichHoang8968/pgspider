@@ -54,7 +54,7 @@ CATALOG(pg_database,1262) BKI_SHARED_RELATION BKI_ROWTYPE_OID(1248) BKI_SCHEMA_M
  *		the format of pg_database relation.
  * ----------------
  */
-typedef FormData_pg_database *Form_pg_database;
+typedef FormData_pg_database * Form_pg_database;
 
 /* ----------------
  *		compiler constants for pg_database

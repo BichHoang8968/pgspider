@@ -475,7 +475,7 @@ pg_get_publication_tables(PG_FUNCTION_ARGS)
 			tables = GetAllTablesPublicationRelations();
 		else
 			tables = GetPublicationRelations(publication->oid);
-		lcp = (ListCell **) palloc(sizeof(ListCell *));
+		lcp = (ListCell * *) palloc(sizeof(ListCell *));
 		*lcp = list_head(tables);
 		funcctx->user_fctx = (void *) lcp;
 
@@ -484,7 +484,7 @@ pg_get_publication_tables(PG_FUNCTION_ARGS)
 
 	/* stuff done on every call of the function */
 	funcctx = SRF_PERCALL_SETUP();
-	lcp = (ListCell **) funcctx->user_fctx;
+	lcp = (ListCell * *) funcctx->user_fctx;
 
 	while (*lcp != NULL)
 	{

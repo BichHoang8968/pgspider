@@ -36,7 +36,7 @@
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecSort(PlanState *pstate)
+ExecSort(PlanState * pstate)
 {
 	SortState  *node = castNode(SortState, pstate);
 	EState	   *estate;
@@ -153,7 +153,7 @@ ExecSort(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 SortState *
-ExecInitSort(Sort *node, EState *estate, int eflags)
+ExecInitSort(Sort * node, EState * estate, int eflags)
 {
 	SortState  *sortstate;
 
@@ -225,7 +225,7 @@ ExecInitSort(Sort *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndSort(SortState *node)
+ExecEndSort(SortState * node)
 {
 	SO1_printf("ExecEndSort: %s\n",
 			   "shutting down sort node");
@@ -260,7 +260,7 @@ ExecEndSort(SortState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecSortMarkPos(SortState *node)
+ExecSortMarkPos(SortState * node)
 {
 	/*
 	 * if we haven't sorted yet, just return
@@ -278,7 +278,7 @@ ExecSortMarkPos(SortState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecSortRestrPos(SortState *node)
+ExecSortRestrPos(SortState * node)
 {
 	/*
 	 * if we haven't sorted yet, just return.
@@ -293,7 +293,7 @@ ExecSortRestrPos(SortState *node)
 }
 
 void
-ExecReScanSort(SortState *node)
+ExecReScanSort(SortState * node)
 {
 	PlanState  *outerPlan = outerPlanState(node);
 

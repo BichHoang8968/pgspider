@@ -73,10 +73,10 @@ typedef enum
 	LOCAL_OBJECT,
 	SHARED_OBJECT,
 	REMOTE_OBJECT
-} SharedDependencyObjectType;
+}			SharedDependencyObjectType;
 
-static void getOidListDiff(Oid *list1, int *nlist1, Oid *list2, int *nlist2);
-static Oid	classIdGetDbId(Oid classId);
+static void getOidListDiff(Oid * list1, int *nlist1, Oid * list2, int *nlist2);
+static Oid classIdGetDbId(Oid classId);
 static void shdepChangeDep(Relation sdepRel,
 			   Oid classid, Oid objid, int32 objsubid,
 			   Oid refclassid, Oid refobjid,
@@ -92,7 +92,7 @@ static void shdepDropDependency(Relation sdepRel,
 					SharedDependencyType deptype);
 static void storeObjectDescription(StringInfo descs,
 					   SharedDependencyObjectType type,
-					   ObjectAddress *object,
+					   ObjectAddress * object,
 					   SharedDependencyType deptype,
 					   int count);
 static bool isSharedObjectPinned(Oid classId, Oid objectId, Relation sdepRel);
@@ -112,8 +112,8 @@ static bool isSharedObjectPinned(Oid classId, Oid objectId, Relation sdepRel);
  * Dependencies on pinned objects are not recorded.
  */
 void
-recordSharedDependencyOn(ObjectAddress *depender,
-						 ObjectAddress *referenced,
+recordSharedDependencyOn(ObjectAddress * depender,
+						 ObjectAddress * referenced,
 						 SharedDependencyType deptype)
 {
 	Relation	sdepRel;
@@ -348,7 +348,7 @@ changeDependencyOnOwner(Oid classId, Oid objectId, Oid newOwnerId)
  * We assume both arrays have been sorted and de-duped.
  */
 static void
-getOidListDiff(Oid *list1, int *nlist1, Oid *list2, int *nlist2)
+getOidListDiff(Oid * list1, int *nlist1, Oid * list2, int *nlist2)
 {
 	int			in1,
 				in2,
@@ -420,8 +420,8 @@ getOidListDiff(Oid *list1, int *nlist1, Oid *list2, int *nlist2)
 void
 updateAclDependencies(Oid classId, Oid objectId, int32 objsubId,
 					  Oid ownerId,
-					  int noldmembers, Oid *oldmembers,
-					  int nnewmembers, Oid *newmembers)
+					  int noldmembers, Oid * oldmembers,
+					  int nnewmembers, Oid * newmembers)
 {
 	Relation	sdepRel;
 	int			i;
@@ -495,7 +495,7 @@ typedef struct
 {
 	Oid			dbOid;
 	int			count;
-} remoteDep;
+}			remoteDep;
 
 /*
  * checkSharedDependencies
@@ -1059,7 +1059,7 @@ shdepLockAndCheckObject(Oid classId, Oid objectId)
 static void
 storeObjectDescription(StringInfo descs,
 					   SharedDependencyObjectType type,
-					   ObjectAddress *object,
+					   ObjectAddress * object,
 					   SharedDependencyType deptype,
 					   int count)
 {
@@ -1160,7 +1160,7 @@ isSharedObjectPinned(Oid classId, Oid objectId, Relation sdepRel)
  * interdependent objects in the wrong order.
  */
 void
-shdepDropOwned(List *roleids, DropBehavior behavior)
+shdepDropOwned(List * roleids, DropBehavior behavior)
 {
 	Relation	sdepRel;
 	ListCell   *cell;
@@ -1282,7 +1282,7 @@ shdepDropOwned(List *roleids, DropBehavior behavior)
  * newrole.  Grants are not touched.
  */
 void
-shdepReassignOwned(List *roleids, Oid newrole)
+shdepReassignOwned(List * roleids, Oid newrole)
 {
 	Relation	sdepRel;
 	ListCell   *cell;

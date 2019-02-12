@@ -43,18 +43,18 @@
 	 (id) == 'E' || (id) == 'N' || (id) == 'A')
 
 
-static void handleSyncLoss(PGconn *conn, char id, int msgLength);
-static int	getRowDescriptions(PGconn *conn, int msgLength);
-static int	getParamDescriptions(PGconn *conn, int msgLength);
-static int	getAnotherTuple(PGconn *conn, int msgLength);
-static int	getParameterStatus(PGconn *conn);
-static int	getNotify(PGconn *conn);
-static int	getCopyStart(PGconn *conn, ExecStatusType copytype);
-static int	getReadyForQuery(PGconn *conn);
+static void handleSyncLoss(PGconn * conn, char id, int msgLength);
+static int	getRowDescriptions(PGconn * conn, int msgLength);
+static int	getParamDescriptions(PGconn * conn, int msgLength);
+static int	getAnotherTuple(PGconn * conn, int msgLength);
+static int	getParameterStatus(PGconn * conn);
+static int	getNotify(PGconn * conn);
+static int	getCopyStart(PGconn * conn, ExecStatusType copytype);
+static int	getReadyForQuery(PGconn * conn);
 static void reportErrorPosition(PQExpBuffer msg, const char *query,
 					int loc, int encoding);
-static int build_startup_packet(const PGconn *conn, char *packet,
-					 const PQEnvironmentOption *options);
+static int build_startup_packet(const PGconn * conn, char *packet,
+					 const PQEnvironmentOption * options);
 #define PROGRESS_STRING_LEN 9
 #define PROGRESS_VALUE_LEN	8
 #define DECIMAL 0
@@ -65,7 +65,7 @@ static int build_startup_packet(const PGconn *conn, char *packet,
  * Note that this function will NOT attempt to read more data from the backend.
  */
 void
-pqParseInput3(PGconn *conn)
+pqParseInput3(PGconn * conn)
 {
 	char		id;
 	int			msgLength;
@@ -483,7 +483,7 @@ pqParseInput3(PGconn *conn)
  * There isn't really a lot we can do here except abandon the connection.
  */
 static void
-handleSyncLoss(PGconn *conn, char id, int msgLength)
+handleSyncLoss(PGconn * conn, char id, int msgLength)
 {
 	printfPQExpBuffer(&conn->errorMessage,
 					  libpq_gettext(
@@ -506,7 +506,7 @@ handleSyncLoss(PGconn *conn, char id, int msgLength)
  * In the former case, conn->inStart has been advanced past the message.
  */
 static int
-getRowDescriptions(PGconn *conn, int msgLength)
+getRowDescriptions(PGconn * conn, int msgLength)
 {
 	PGresult   *result;
 	int			nfields;
@@ -684,7 +684,7 @@ advance_and_error:
  * that shouldn't happen often, since 't' messages usually fit in a packet.
  */
 static int
-getParamDescriptions(PGconn *conn, int msgLength)
+getParamDescriptions(PGconn * conn, int msgLength)
 {
 	PGresult   *result;
 	const char *errmsg = NULL;	/* means "out of memory", see below */
@@ -781,7 +781,7 @@ advance_and_error:
  * In the former case, conn->inStart has been advanced past the message.
  */
 static int
-getAnotherTuple(PGconn *conn, int msgLength)
+getAnotherTuple(PGconn * conn, int msgLength)
 {
 	PGresult   *result = conn->result;
 	int			nfields = result->numAttributes;
@@ -909,7 +909,7 @@ set_error_result:
  *		 returns EOF if not enough data.
  */
 int
-pqGetErrorNotice3(PGconn *conn, bool isError)
+pqGetErrorNotice3(PGconn * conn, bool isError)
 {
 	PGresult   *res = NULL;
 	bool		have_position = false;
@@ -1023,7 +1023,7 @@ fail:
  * appending it to the contents of "msg".
  */
 void
-pqBuildErrorMessage3(PQExpBuffer msg, const PGresult *res,
+pqBuildErrorMessage3(PQExpBuffer msg, const PGresult * res,
 					 PGVerbosity verbosity, PGContextVisibility show_context)
 {
 	const char *val;
@@ -1404,7 +1404,7 @@ reportErrorPosition(PQExpBuffer msg, const char *query, int loc, int encoding)
  *		 returns EOF if not enough data.
  */
 static int
-getParameterStatus(PGconn *conn)
+getParameterStatus(PGconn * conn)
 {
 	PQExpBufferData valueBuf;
 
@@ -1433,7 +1433,7 @@ getParameterStatus(PGconn *conn)
  *		 returns EOF if not enough data.
  */
 static int
-getNotify(PGconn *conn)
+getNotify(PGconn * conn)
 {
 	int			be_pid;
 	char	   *svname;
@@ -1489,7 +1489,7 @@ getNotify(PGconn *conn)
  * parseInput already read the message type and length.
  */
 static int
-getCopyStart(PGconn *conn, ExecStatusType copytype)
+getCopyStart(PGconn * conn, ExecStatusType copytype)
 {
 	PGresult   *result;
 	int			nfields;
@@ -1545,7 +1545,7 @@ failure:
  * getReadyForQuery - process ReadyForQuery message
  */
 static int
-getReadyForQuery(PGconn *conn)
+getReadyForQuery(PGconn * conn)
 {
 	char		xact_status;
 
@@ -1577,7 +1577,7 @@ getReadyForQuery(PGconn *conn)
  * message available, -1 if end of copy, -2 if error.
  */
 static int
-getCopyDataMessage(PGconn *conn)
+getCopyDataMessage(PGconn * conn)
 {
 	char		id;
 	int			msgLength;
@@ -1682,7 +1682,7 @@ getCopyDataMessage(PGconn *conn)
  * PQerrorMessage).
  */
 int
-pqGetCopyData3(PGconn *conn, char **buffer, int async)
+pqGetCopyData3(PGconn * conn, char **buffer, int async)
 {
 	int			msgLength;
 
@@ -1742,7 +1742,7 @@ pqGetCopyData3(PGconn *conn, char **buffer, int async)
  * See fe-exec.c for documentation.
  */
 int
-pqGetline3(PGconn *conn, char *s, int maxlen)
+pqGetline3(PGconn * conn, char *s, int maxlen)
 {
 	int			status;
 
@@ -1794,7 +1794,7 @@ pqGetline3(PGconn *conn, char *s, int maxlen)
  * See fe-exec.c for documentation.
  */
 int
-pqGetlineAsync3(PGconn *conn, char *buffer, int bufsize)
+pqGetlineAsync3(PGconn * conn, char *buffer, int bufsize)
 {
 	int			msgLength;
 	int			avail;
@@ -1849,7 +1849,7 @@ pqGetlineAsync3(PGconn *conn, char *buffer, int bufsize)
  * See fe-exec.c for documentation.
  */
 int
-pqEndcopy3(PGconn *conn)
+pqEndcopy3(PGconn * conn)
 {
 	PGresult   *result;
 
@@ -1943,10 +1943,10 @@ pqEndcopy3(PGconn *conn)
  * See fe-exec.c for documentation.
  */
 PGresult *
-pqFunctionCall3(PGconn *conn, Oid fnid,
+pqFunctionCall3(PGconn * conn, Oid fnid,
 				int *result_buf, int *actual_result_len,
 				int result_is_int,
-				const PQArgBlock *args, int nargs)
+				const PQArgBlock * args, int nargs)
 {
 	bool		needInput = false;
 	ExecStatusType status = PGRES_FATAL_ERROR;
@@ -2159,8 +2159,8 @@ pqFunctionCall3(PGconn *conn, Oid fnid,
  * Returns a malloc'd packet buffer, or NULL if out of memory
  */
 char *
-pqBuildStartupPacket3(PGconn *conn, int *packetlen,
-					  const PQEnvironmentOption *options)
+pqBuildStartupPacket3(PGconn * conn, int *packetlen,
+					  const PQEnvironmentOption * options)
 {
 	char	   *startpacket;
 
@@ -2182,11 +2182,11 @@ pqBuildStartupPacket3(PGconn *conn, int *packetlen,
  * of bytes used.
  */
 static int
-build_startup_packet(const PGconn *conn, char *packet,
-					 const PQEnvironmentOption *options)
+build_startup_packet(const PGconn * conn, char *packet,
+					 const PQEnvironmentOption * options)
 {
 	int			packet_len = 0;
-	const PQEnvironmentOption *next_eo;
+	const		PQEnvironmentOption *next_eo;
 	const char *val;
 
 	/* Protocol version comes first. */

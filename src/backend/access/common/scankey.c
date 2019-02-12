@@ -104,7 +104,7 @@ ScanKeyEntryInitializeWithInfo(ScanKey entry,
 							   StrategyNumber strategy,
 							   Oid subtype,
 							   Oid collation,
-							   FmgrInfo *finfo,
+							   FmgrInfo * finfo,
 							   Datum argument)
 {
 	entry->sk_flags = flags;

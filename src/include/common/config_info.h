@@ -13,9 +13,9 @@ typedef struct ConfigData
 {
 	char	   *name;
 	char	   *setting;
-} ConfigData;
+}			ConfigData;
 
-extern ConfigData *get_configdata(const char *my_exec_path,
-			   size_t *configdata_len);
+extern ConfigData * get_configdata(const char *my_exec_path,
+								   size_t * configdata_len);
 
 #endif							/* COMMON_CONFIG_INFO_H */

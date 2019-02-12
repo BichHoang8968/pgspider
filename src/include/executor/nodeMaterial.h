@@ -16,10 +16,10 @@
 
 #include "nodes/execnodes.h"
 
-extern MaterialState *ExecInitMaterial(Material *node, EState *estate, int eflags);
-extern void ExecEndMaterial(MaterialState *node);
-extern void ExecMaterialMarkPos(MaterialState *node);
-extern void ExecMaterialRestrPos(MaterialState *node);
-extern void ExecReScanMaterial(MaterialState *node);
+extern MaterialState * ExecInitMaterial(Material * node, EState * estate, int eflags);
+extern void ExecEndMaterial(MaterialState * node);
+extern void ExecMaterialMarkPos(MaterialState * node);
+extern void ExecMaterialRestrPos(MaterialState * node);
+extern void ExecReScanMaterial(MaterialState * node);
 
 #endif							/* NODEMATERIAL_H */

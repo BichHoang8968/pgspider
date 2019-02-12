@@ -96,7 +96,7 @@ SetEpochTimestamp(void)
  *	local time zone. If out of this range, leave as GMT. - tgl 97/05/27
  */
 static int
-timestamp2tm(timestamp dt, int *tzp, struct tm *tm, fsec_t *fsec, const char **tzn)
+timestamp2tm(timestamp dt, int *tzp, struct tm *tm, fsec_t * fsec, const char **tzn)
 {
 	int64		dDate,
 				date0;

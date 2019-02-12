@@ -56,7 +56,7 @@ CATALOG(pg_publication,6104)
  *		the format of pg_publication relation.
  * ----------------
  */
-typedef FormData_pg_publication *Form_pg_publication;
+typedef FormData_pg_publication * Form_pg_publication;
 
 /* ----------------
  *		compiler constants for pg_publication
@@ -76,7 +76,7 @@ typedef struct PublicationActions
 	bool		pubinsert;
 	bool		pubupdate;
 	bool		pubdelete;
-} PublicationActions;
+}			PublicationActions;
 
 typedef struct Publication
 {
@@ -84,20 +84,20 @@ typedef struct Publication
 	char	   *name;
 	bool		alltables;
 	PublicationActions pubactions;
-} Publication;
+}			Publication;
 
-extern Publication *GetPublication(Oid pubid);
-extern Publication *GetPublicationByName(const char *pubname, bool missing_ok);
-extern List *GetRelationPublications(Oid relid);
-extern List *GetPublicationRelations(Oid pubid);
-extern List *GetAllTablesPublications(void);
-extern List *GetAllTablesPublicationRelations(void);
+extern Publication * GetPublication(Oid pubid);
+extern Publication * GetPublicationByName(const char *pubname, bool missing_ok);
+extern List * GetRelationPublications(Oid relid);
+extern List * GetPublicationRelations(Oid pubid);
+extern List * GetAllTablesPublications(void);
+extern List * GetAllTablesPublicationRelations(void);
 
 extern bool is_publishable_relation(Relation rel);
 extern ObjectAddress publication_add_relation(Oid pubid, Relation targetrel,
-						 bool if_not_exists);
+											  bool if_not_exists);
 
-extern Oid	get_publication_oid(const char *pubname, bool missing_ok);
+extern Oid get_publication_oid(const char *pubname, bool missing_ok);
 extern char *get_publication_name(Oid pubid);
 
 extern Datum pg_get_publication_tables(PG_FUNCTION_ARGS);

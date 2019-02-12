@@ -41,7 +41,7 @@ CATALOG(pg_ts_parser,3601)
 	regproc		prslextype;		/* return descriptions of lexeme's types */
 } FormData_pg_ts_parser;
 
-typedef FormData_pg_ts_parser *Form_pg_ts_parser;
+typedef FormData_pg_ts_parser * Form_pg_ts_parser;
 
 /* ----------------
  *		compiler constants for pg_ts_parser

@@ -53,8 +53,8 @@
 #include "utils/rel.h"
 #include "utils/syscache.h"
 
-static Oid	ValidateRestrictionEstimator(List *restrictionName);
-static Oid	ValidateJoinEstimator(List *joinName);
+static Oid ValidateRestrictionEstimator(List * restrictionName);
+static Oid ValidateJoinEstimator(List * joinName);
 
 /*
  * DefineOperator
@@ -65,7 +65,7 @@ static Oid	ValidateJoinEstimator(List *joinName);
  * 'parameters' is a list of DefElem
  */
 ObjectAddress
-DefineOperator(List *names, List *parameters)
+DefineOperator(List * names, List * parameters)
 {
 	char	   *oprName;
 	Oid			oprNamespace;
@@ -258,7 +258,7 @@ DefineOperator(List *names, List *parameters)
  * operator.
  */
 static Oid
-ValidateRestrictionEstimator(List *restrictionName)
+ValidateRestrictionEstimator(List * restrictionName)
 {
 	Oid			typeId[4];
 	Oid			restrictionOid;
@@ -293,7 +293,7 @@ ValidateRestrictionEstimator(List *restrictionName)
  * operator.
  */
 static Oid
-ValidateJoinEstimator(List *joinName)
+ValidateJoinEstimator(List * joinName)
 {
 	Oid			typeId[5];
 	Oid			joinOid;
@@ -382,7 +382,7 @@ RemoveOperatorById(Oid operOid)
  * Currently, only RESTRICT and JOIN estimator functions can be changed.
  */
 ObjectAddress
-AlterOperator(AlterOperatorStmt *stmt)
+AlterOperator(AlterOperatorStmt * stmt)
 {
 	ObjectAddress address;
 	Oid			oprId;

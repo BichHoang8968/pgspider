@@ -48,7 +48,7 @@ utf_e2u(const char *str)
  * Returns a palloc'ed copy of the original string
  */
 static inline char *
-sv2cstr(SV *sv)
+sv2cstr(SV * sv)
 {
 	dTHX;
 	char	   *val,

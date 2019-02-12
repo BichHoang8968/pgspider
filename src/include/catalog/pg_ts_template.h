@@ -38,7 +38,7 @@ CATALOG(pg_ts_template,3764)
 	regproc		tmpllexize;		/* base method of dictionary */
 } FormData_pg_ts_template;
 
-typedef FormData_pg_ts_template *Form_pg_ts_template;
+typedef FormData_pg_ts_template * Form_pg_ts_template;
 
 /* ----------------
  *		compiler constants for pg_ts_template

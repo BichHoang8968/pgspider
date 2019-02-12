@@ -46,7 +46,7 @@ static bool is_select_command(const char *query);
  * On error, reports suitable error message and returns FALSE.
  */
 bool
-openQueryOutputFile(const char *fname, FILE **fout, bool *is_pipe)
+openQueryOutputFile(const char *fname, FILE * *fout, bool *is_pipe)
 {
 	if (!fname || fname[0] == '\0')
 	{
@@ -274,7 +274,7 @@ volatile bool sigint_interrupt_enabled = false;
 
 sigjmp_buf	sigint_interrupt_jmp;
 
-static PGcancel *volatile cancelConn = NULL;
+static PGcancel * volatile cancelConn = NULL;
 
 #ifdef WIN32
 static CRITICAL_SECTION cancelConnLock;
@@ -502,7 +502,7 @@ ResetCancelConn(void)
  * Returns true for valid result, false for error state.
  */
 static bool
-AcceptResult(const PGresult *result)
+AcceptResult(const PGresult * result)
 {
 	bool		OK;
 
@@ -554,7 +554,7 @@ AcceptResult(const PGresult *result)
  * \errverbose.  Otherwise, just PQclear() it.
  */
 static void
-ClearOrSaveResult(PGresult *result)
+ClearOrSaveResult(PGresult * result)
 {
 	if (result)
 	{
@@ -694,7 +694,7 @@ PSQLexec(const char *query)
  * e.g., because of the interrupt, -1 on error.
  */
 int
-PSQLexecWatch(const char *query, const printQueryOpt *opt)
+PSQLexecWatch(const char *query, const printQueryOpt * opt)
 {
 	PGresult   *res;
 	double		elapsed_msec = 0;
@@ -809,7 +809,7 @@ PrintNotifications(void)
  * Returns true if successful, false otherwise.
  */
 static bool
-PrintQueryTuples(const PGresult *results)
+PrintQueryTuples(const PGresult * results)
 {
 	printQueryOpt my_popt = pset.popt;
 
@@ -851,7 +851,7 @@ PrintQueryTuples(const PGresult *results)
  * Returns true if successful, false otherwise.
  */
 static bool
-StoreQueryTuple(const PGresult *result)
+StoreQueryTuple(const PGresult * result)
 {
 	bool		success = true;
 
@@ -908,7 +908,7 @@ StoreQueryTuple(const PGresult *result)
  * Returns true if successful, false otherwise.
  */
 static bool
-ExecQueryTuples(const PGresult *result)
+ExecQueryTuples(const PGresult * result)
 {
 	bool		success = true;
 	int			nrows = PQntuples(result);
@@ -992,7 +992,7 @@ loop_exit:
  * server-side opinion.
  */
 static bool
-ProcessResult(PGresult **results)
+ProcessResult(PGresult * *results)
 {
 	bool		success = true;
 	bool		first_cycle = true;
@@ -1120,7 +1120,7 @@ ProcessResult(PGresult **results)
  * Note: Utility function for use by PrintQueryResults() only.
  */
 static void
-PrintQueryStatus(PGresult *results)
+PrintQueryStatus(PGresult * results)
 {
 	char		buf[16];
 
@@ -1152,7 +1152,7 @@ PrintQueryStatus(PGresult *results)
  * Returns true if the query executed successfully, false otherwise.
  */
 static bool
-PrintQueryResults(PGresult *results)
+PrintQueryResults(PGresult * results)
 {
 	bool		success;
 	const char *cmdstatus;

@@ -17,9 +17,9 @@
 #include <rewrite/rowsecurity.h>
 
 /* Return set of permissive hooks based on CmdType and Relation */
-extern List *test_rls_hooks_permissive(CmdType cmdtype, Relation relation);
+extern List * test_rls_hooks_permissive(CmdType cmdtype, Relation relation);
 
 /* Return set of restrictive hooks based on CmdType and Relation */
-extern List *test_rls_hooks_restrictive(CmdType cmdtype, Relation relation);
+extern List * test_rls_hooks_restrictive(CmdType cmdtype, Relation relation);
 
 #endif

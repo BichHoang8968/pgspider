@@ -104,7 +104,7 @@ typedef struct TypeCacheEntry
 
 	/* We also maintain a list of all known domain-type cache entries */
 	struct TypeCacheEntry *nextDomain;
-} TypeCacheEntry;
+}			TypeCacheEntry;
 
 /* Bit flags to indicate which fields a given caller needs to have set */
 #define TYPECACHE_EQ_OPR			0x0001
@@ -137,27 +137,27 @@ typedef struct DomainConstraintRef
 	/* Management data --- treat these fields as private to typcache.c */
 	DomainConstraintCache *dcc; /* current constraints, or NULL if none */
 	MemoryContextCallback callback; /* used to release refcount when done */
-} DomainConstraintRef;
+}			DomainConstraintRef;
 
 
-extern TypeCacheEntry *lookup_type_cache(Oid type_id, int flags);
+extern TypeCacheEntry * lookup_type_cache(Oid type_id, int flags);
 
-extern void InitDomainConstraintRef(Oid type_id, DomainConstraintRef *ref,
+extern void InitDomainConstraintRef(Oid type_id, DomainConstraintRef * ref,
 						MemoryContext refctx, bool need_exprstate);
 
-extern void UpdateDomainConstraintRef(DomainConstraintRef *ref);
+extern void UpdateDomainConstraintRef(DomainConstraintRef * ref);
 
 extern bool DomainHasConstraints(Oid type_id);
 
 extern TupleDesc lookup_rowtype_tupdesc(Oid type_id, int32 typmod);
 
 extern TupleDesc lookup_rowtype_tupdesc_noerror(Oid type_id, int32 typmod,
-							   bool noError);
+												bool noError);
 
 extern TupleDesc lookup_rowtype_tupdesc_copy(Oid type_id, int32 typmod);
 
 extern void assign_record_type_typmod(TupleDesc tupDesc);
 
-extern int	compare_values_of_enum(TypeCacheEntry *tcache, Oid arg1, Oid arg2);
+extern int	compare_values_of_enum(TypeCacheEntry * tcache, Oid arg1, Oid arg2);
 
 #endif							/* TYPCACHE_H */

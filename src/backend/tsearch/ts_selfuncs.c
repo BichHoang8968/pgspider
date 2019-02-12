@@ -37,21 +37,21 @@ typedef struct
 {
 	text	   *element;
 	float4		frequency;
-} TextFreq;
+}			TextFreq;
 
 /* type of keys for bsearch'ing through an array of TextFreqs */
 typedef struct
 {
 	char	   *lexeme;
 	int			length;
-} LexemeKey;
+}			LexemeKey;
 
-static Selectivity tsquerysel(VariableStatData *vardata, Datum constval);
+static Selectivity tsquerysel(VariableStatData * vardata, Datum constval);
 static Selectivity mcelem_tsquery_selec(TSQuery query,
-					 Datum *mcelem, int nmcelem,
-					 float4 *numbers, int nnumbers);
-static Selectivity tsquery_opr_selec(QueryItem *item, char *operand,
-				  TextFreq *lookup, int length, float4 minfreq);
+										Datum * mcelem, int nmcelem,
+										float4 * numbers, int nnumbers);
+static Selectivity tsquery_opr_selec(QueryItem * item, char *operand,
+									 TextFreq * lookup, int length, float4 minfreq);
 static int	compare_lexeme_textfreq(const void *e1, const void *e2);
 
 #define tsquery_opr_selec_no_stats(query) \
@@ -148,7 +148,7 @@ tsmatchjoinsel(PG_FUNCTION_ARGS)
  * @@ selectivity for tsvector var vs tsquery constant
  */
 static Selectivity
-tsquerysel(VariableStatData *vardata, Datum constval)
+tsquerysel(VariableStatData * vardata, Datum constval)
 {
 	Selectivity selec;
 	TSQuery		query;
@@ -205,8 +205,8 @@ tsquerysel(VariableStatData *vardata, Datum constval)
  * Extract data from the pg_statistic arrays into useful format.
  */
 static Selectivity
-mcelem_tsquery_selec(TSQuery query, Datum *mcelem, int nmcelem,
-					 float4 *numbers, int nnumbers)
+mcelem_tsquery_selec(TSQuery query, Datum * mcelem, int nmcelem,
+					 float4 * numbers, int nnumbers)
 {
 	float4		minfreq;
 	TextFreq   *lookup;
@@ -276,8 +276,8 @@ mcelem_tsquery_selec(TSQuery query, Datum *mcelem, int nmcelem,
  * by lookup == NULL.
  */
 static Selectivity
-tsquery_opr_selec(QueryItem *item, char *operand,
-				  TextFreq *lookup, int length, float4 minfreq)
+tsquery_opr_selec(QueryItem * item, char *operand,
+				  TextFreq * lookup, int length, float4 minfreq)
 {
 	Selectivity selec;
 
@@ -434,8 +434,8 @@ tsquery_opr_selec(QueryItem *item, char *operand,
 static int
 compare_lexeme_textfreq(const void *e1, const void *e2)
 {
-	const LexemeKey *key = (const LexemeKey *) e1;
-	const TextFreq *t = (const TextFreq *) e2;
+	const		LexemeKey *key = (const LexemeKey *) e1;
+	const		TextFreq *t = (const TextFreq *) e2;
 	int			len1,
 				len2;
 

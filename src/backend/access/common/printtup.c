@@ -24,13 +24,13 @@
 #include "utils/memutils.h"
 
 
-static void printtup_startup(DestReceiver *self, int operation,
+static void printtup_startup(DestReceiver * self, int operation,
 				 TupleDesc typeinfo);
-static bool printtup(TupleTableSlot *slot, DestReceiver *self);
-static bool printtup_20(TupleTableSlot *slot, DestReceiver *self);
-static bool printtup_internal_20(TupleTableSlot *slot, DestReceiver *self);
-static void printtup_shutdown(DestReceiver *self);
-static void printtup_destroy(DestReceiver *self);
+static bool printtup(TupleTableSlot * slot, DestReceiver * self);
+static bool printtup_20(TupleTableSlot * slot, DestReceiver * self);
+static bool printtup_internal_20(TupleTableSlot * slot, DestReceiver * self);
+static void printtup_shutdown(DestReceiver * self);
+static void printtup_destroy(DestReceiver * self);
 
 /* ----------------------------------------------------------------
  *		printtup / debugtup support
@@ -51,7 +51,7 @@ typedef struct
 	bool		typisvarlena;	/* is it varlena (ie possibly toastable)? */
 	int16		format;			/* format code for this column */
 	FmgrInfo	finfo;			/* Precomputed call info for output fn */
-} PrinttupAttrInfo;
+}			PrinttupAttrInfo;
 
 typedef struct
 {
@@ -62,7 +62,7 @@ typedef struct
 	int			nattrs;
 	PrinttupAttrInfo *myinfo;	/* Cached info about each attr */
 	MemoryContext tmpcontext;	/* Memory context for per-row workspace */
-} DR_printtup;
+}			DR_printtup;
 
 /* ----------------
  *		Initialize: create a DestReceiver for printtup
@@ -97,7 +97,7 @@ printtup_create_DR(CommandDest dest)
  * Set parameters for a DestRemote (or DestRemoteExecute) receiver
  */
 void
-SetRemoteDestReceiverParams(DestReceiver *self, Portal portal)
+SetRemoteDestReceiverParams(DestReceiver * self, Portal portal)
 {
 	DR_printtup *myState = (DR_printtup *) self;
 
@@ -121,7 +121,7 @@ SetRemoteDestReceiverParams(DestReceiver *self, Portal portal)
 }
 
 static void
-printtup_startup(DestReceiver *self, int operation, TupleDesc typeinfo)
+printtup_startup(DestReceiver * self, int operation, TupleDesc typeinfo)
 {
 	DR_printtup *myState = (DR_printtup *) self;
 	Portal		portal = myState->portal;
@@ -184,7 +184,7 @@ printtup_startup(DestReceiver *self, int operation, TupleDesc typeinfo)
  * send zeroes for the format codes in that case.
  */
 void
-SendRowDescriptionMessage(TupleDesc typeinfo, List *targetlist, int16 *formats)
+SendRowDescriptionMessage(TupleDesc typeinfo, List * targetlist, int16 * formats)
 {
 	Form_pg_attribute *attrs = typeinfo->attrs;
 	int			natts = typeinfo->natts;
@@ -246,7 +246,7 @@ SendRowDescriptionMessage(TupleDesc typeinfo, List *targetlist, int16 *formats)
  * ----------------
  */
 static void
-printtup_prepare_info(DR_printtup *myState, TupleDesc typeinfo, int numAttrs)
+printtup_prepare_info(DR_printtup * myState, TupleDesc typeinfo, int numAttrs)
 {
 	int16	   *formats = myState->portal->formats;
 	int			i;
@@ -296,7 +296,7 @@ printtup_prepare_info(DR_printtup *myState, TupleDesc typeinfo, int numAttrs)
  */
 
 bool
-FinalizeTup(TupleTableSlot *slot, DestReceiver *self, int attrNum)
+FinalizeTup(TupleTableSlot * slot, DestReceiver * self, int attrNum)
 {
 	TupleDesc	typeinfo = slot->tts_tupleDescriptor;
 	DR_printtup *myState = (DR_printtup *) self;
@@ -307,8 +307,10 @@ FinalizeTup(TupleTableSlot *slot, DestReceiver *self, int attrNum)
 	PrinttupAttrInfo *thisState;
 	Datum		attr;
 
-	for(i=0;i<natts;i++){
-		if(myState->portal->formats[i] != 0 && myState->portal->formats[i] != 1){
+	for (i = 0; i < natts; i++)
+	{
+		if (myState->portal->formats[i] != 0 && myState->portal->formats[i] != 1)
+		{
 			myState->portal->formats[i] = 0;
 		}
 	}
@@ -335,11 +337,11 @@ FinalizeTup(TupleTableSlot *slot, DestReceiver *self, int attrNum)
 	}
 
 	/*
-	 * Here we catch undefined bytes in datums that are returned to the
-	 * client without hitting disk; see comments at the related check in
-	 * PageAddItem().  This test is most useful for uncompressed,
-	 * non-external datums, but we're quite likely to see such here when
-	 * testing new C functions.
+	 * Here we catch undefined bytes in datums that are returned to the client
+	 * without hitting disk; see comments at the related check in
+	 * PageAddItem().  This test is most useful for uncompressed, non-external
+	 * datums, but we're quite likely to see such here when testing new C
+	 * functions.
 	 */
 	if (thisState->typisvarlena)
 		VALGRIND_CHECK_MEM_IS_DEFINED(DatumGetPointer(attr),
@@ -349,7 +351,7 @@ FinalizeTup(TupleTableSlot *slot, DestReceiver *self, int attrNum)
 	{
 		outputstr = OutputFunctionCall(&thisState->finfo, attr);
 		slot->tts_values[attrNum] = PointerGetDatum(outputstr);
-		//slot->tts_values[attrNum] = outputstr;
+		/* slot->tts_values[attrNum] = outputstr; */
 	}
 
 	/* Return to caller's context, and flush row's temporary memory */
@@ -365,7 +367,7 @@ FinalizeTup(TupleTableSlot *slot, DestReceiver *self, int attrNum)
  * ----------------
  */
 static bool
-printtup(TupleTableSlot *slot, DestReceiver *self)
+printtup(TupleTableSlot * slot, DestReceiver * self)
 {
 	TupleDesc	typeinfo = slot->tts_tupleDescriptor;
 	DR_printtup *myState = (DR_printtup *) self;
@@ -450,7 +452,7 @@ printtup(TupleTableSlot *slot, DestReceiver *self)
  * ----------------
  */
 static bool
-printtup_20(TupleTableSlot *slot, DestReceiver *self)
+printtup_20(TupleTableSlot * slot, DestReceiver * self)
 {
 	TupleDesc	typeinfo = slot->tts_tupleDescriptor;
 	DR_printtup *myState = (DR_printtup *) self;
@@ -528,7 +530,7 @@ printtup_20(TupleTableSlot *slot, DestReceiver *self)
  * ----------------
  */
 static void
-printtup_shutdown(DestReceiver *self)
+printtup_shutdown(DestReceiver * self)
 {
 	DR_printtup *myState = (DR_printtup *) self;
 
@@ -548,7 +550,7 @@ printtup_shutdown(DestReceiver *self)
  * ----------------
  */
 static void
-printtup_destroy(DestReceiver *self)
+printtup_destroy(DestReceiver * self)
 {
 	pfree(self);
 }
@@ -579,7 +581,7 @@ printatt(unsigned attributeId,
  * ----------------
  */
 void
-debugStartup(DestReceiver *self, int operation, TupleDesc typeinfo)
+debugStartup(DestReceiver * self, int operation, TupleDesc typeinfo)
 {
 	int			natts = typeinfo->natts;
 	Form_pg_attribute *attinfo = typeinfo->attrs;
@@ -598,7 +600,7 @@ debugStartup(DestReceiver *self, int operation, TupleDesc typeinfo)
  * ----------------
  */
 bool
-debugtup(TupleTableSlot *slot, DestReceiver *self)
+debugtup(TupleTableSlot * slot, DestReceiver * self)
 {
 	TupleDesc	typeinfo = slot->tts_tupleDescriptor;
 	int			natts = typeinfo->natts;
@@ -636,7 +638,7 @@ debugtup(TupleTableSlot *slot, DestReceiver *self)
  * ----------------
  */
 static bool
-printtup_internal_20(TupleTableSlot *slot, DestReceiver *self)
+printtup_internal_20(TupleTableSlot * slot, DestReceiver * self)
 {
 	TupleDesc	typeinfo = slot->tts_tupleDescriptor;
 	DR_printtup *myState = (DR_printtup *) self;

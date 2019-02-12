@@ -56,19 +56,19 @@ struct BrinRevmap
 /* typedef appears in brin_revmap.h */
 
 
-static BlockNumber revmap_get_blkno(BrinRevmap *revmap,
-				 BlockNumber heapBlk);
-static Buffer revmap_get_buffer(BrinRevmap *revmap, BlockNumber heapBlk);
-static BlockNumber revmap_extend_and_get_blkno(BrinRevmap *revmap,
-							BlockNumber heapBlk);
-static void revmap_physical_extend(BrinRevmap *revmap);
+static BlockNumber revmap_get_blkno(BrinRevmap * revmap,
+									BlockNumber heapBlk);
+static Buffer revmap_get_buffer(BrinRevmap * revmap, BlockNumber heapBlk);
+static BlockNumber revmap_extend_and_get_blkno(BrinRevmap * revmap,
+											   BlockNumber heapBlk);
+static void revmap_physical_extend(BrinRevmap * revmap);
 
 /*
  * Initialize an access object for a range map.  This must be freed by
  * brinRevmapTerminate when caller is done with it.
  */
 BrinRevmap *
-brinRevmapInitialize(Relation idxrel, BlockNumber *pagesPerRange,
+brinRevmapInitialize(Relation idxrel, BlockNumber * pagesPerRange,
 					 Snapshot snapshot)
 {
 	BrinRevmap *revmap;
@@ -100,7 +100,7 @@ brinRevmapInitialize(Relation idxrel, BlockNumber *pagesPerRange,
  * Release resources associated with a revmap access object.
  */
 void
-brinRevmapTerminate(BrinRevmap *revmap)
+brinRevmapTerminate(BrinRevmap * revmap)
 {
 	ReleaseBuffer(revmap->rm_metaBuf);
 	if (revmap->rm_currBuf != InvalidBuffer)
@@ -112,7 +112,7 @@ brinRevmapTerminate(BrinRevmap *revmap)
  * Extend the revmap to cover the given heap block number.
  */
 void
-brinRevmapExtend(BrinRevmap *revmap, BlockNumber heapBlk)
+brinRevmapExtend(BrinRevmap * revmap, BlockNumber heapBlk)
 {
 	BlockNumber mapBlk PG_USED_FOR_ASSERTS_ONLY;
 
@@ -134,7 +134,7 @@ brinRevmapExtend(BrinRevmap *revmap, BlockNumber heapBlk)
  * releases the buffer, therefore the caller needn't do it explicitly.
  */
 Buffer
-brinLockRevmapPageForUpdate(BrinRevmap *revmap, BlockNumber heapBlk)
+brinLockRevmapPageForUpdate(BrinRevmap * revmap, BlockNumber heapBlk)
 {
 	Buffer		rmBuf;
 
@@ -194,8 +194,8 @@ brinSetHeapBlockItemptr(Buffer buf, BlockNumber pagesPerRange,
  * is returned in *size.
  */
 BrinTuple *
-brinGetTupleForHeapBlock(BrinRevmap *revmap, BlockNumber heapBlk,
-						 Buffer *buf, OffsetNumber *off, Size *size, int mode,
+brinGetTupleForHeapBlock(BrinRevmap * revmap, BlockNumber heapBlk,
+						 Buffer * buf, OffsetNumber * off, Size * size, int mode,
 						 Snapshot snapshot)
 {
 	Relation	idxRel = revmap->rm_irel;
@@ -448,7 +448,7 @@ brinRevmapDesummarizeRange(Relation idxrel, BlockNumber heapBlk)
  * InvalidBlockNumber.
  */
 static BlockNumber
-revmap_get_blkno(BrinRevmap *revmap, BlockNumber heapBlk)
+revmap_get_blkno(BrinRevmap * revmap, BlockNumber heapBlk)
 {
 	BlockNumber targetblk;
 
@@ -469,7 +469,7 @@ revmap_get_blkno(BrinRevmap *revmap, BlockNumber heapBlk)
  * releases the buffer, therefore the caller needn't do it explicitly.
  */
 static Buffer
-revmap_get_buffer(BrinRevmap *revmap, BlockNumber heapBlk)
+revmap_get_buffer(BrinRevmap * revmap, BlockNumber heapBlk)
 {
 	BlockNumber mapBlk;
 
@@ -506,7 +506,7 @@ revmap_get_buffer(BrinRevmap *revmap, BlockNumber heapBlk)
  * the revmap until it is.
  */
 static BlockNumber
-revmap_extend_and_get_blkno(BrinRevmap *revmap, BlockNumber heapBlk)
+revmap_extend_and_get_blkno(BrinRevmap * revmap, BlockNumber heapBlk)
 {
 	BlockNumber targetblk;
 
@@ -528,7 +528,7 @@ revmap_extend_and_get_blkno(BrinRevmap *revmap, BlockNumber heapBlk)
  * reasons; caller is expected to retry until the expected outcome is obtained.
  */
 static void
-revmap_physical_extend(BrinRevmap *revmap)
+revmap_physical_extend(BrinRevmap * revmap)
 {
 	Buffer		buf;
 	Page		page;

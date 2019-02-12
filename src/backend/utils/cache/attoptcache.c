@@ -25,20 +25,20 @@
 
 
 /* Hash table for informations about each attribute's options */
-static HTAB *AttoptCacheHash = NULL;
+static HTAB * AttoptCacheHash = NULL;
 
 /* attrelid and attnum form the lookup key, and must appear first */
 typedef struct
 {
 	Oid			attrelid;
 	int			attnum;
-} AttoptCacheKey;
+}			AttoptCacheKey;
 
 typedef struct
 {
 	AttoptCacheKey key;			/* lookup key - must be first */
 	AttributeOpts *opts;		/* options, or NULL if none */
-} AttoptCacheEntry;
+}			AttoptCacheEntry;
 
 
 /*

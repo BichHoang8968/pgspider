@@ -69,7 +69,7 @@ _hash_next(IndexScanDesc scan, ScanDirection dir)
  */
 static void
 _hash_readnext(IndexScanDesc scan,
-			   Buffer *bufp, Page *pagep, HashPageOpaque *opaquep)
+			   Buffer * bufp, Page * pagep, HashPageOpaque * opaquep)
 {
 	BlockNumber blkno;
 	Relation	rel = scan->indexRelation;
@@ -135,7 +135,7 @@ _hash_readnext(IndexScanDesc scan,
  */
 static void
 _hash_readprev(IndexScanDesc scan,
-			   Buffer *bufp, Page *pagep, HashPageOpaque *opaquep)
+			   Buffer * bufp, Page * pagep, HashPageOpaque * opaquep)
 {
 	BlockNumber blkno;
 	Relation	rel = scan->indexRelation;
@@ -388,7 +388,7 @@ _hash_first(IndexScanDesc scan, ScanDirection dir)
  *		contains the right item; on failure, we have released all buffers.
  */
 bool
-_hash_step(IndexScanDesc scan, Buffer *bufP, ScanDirection dir)
+_hash_step(IndexScanDesc scan, Buffer * bufP, ScanDirection dir)
 {
 	Relation	rel = scan->indexRelation;
 	HashScanOpaque so = (HashScanOpaque) scan->opaque;

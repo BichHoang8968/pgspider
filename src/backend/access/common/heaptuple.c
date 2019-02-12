@@ -83,7 +83,7 @@
  */
 Size
 heap_compute_data_size(TupleDesc tupleDesc,
-					   Datum *values,
+					   Datum * values,
 					   bool *isnull)
 {
 	Size		data_length = 0;
@@ -144,9 +144,9 @@ heap_compute_data_size(TupleDesc tupleDesc,
  */
 void
 heap_fill_tuple(TupleDesc tupleDesc,
-				Datum *values, bool *isnull,
+				Datum * values, bool *isnull,
 				char *data, Size data_size,
-				uint16 *infomask, bits8 *bit)
+				uint16 * infomask, bits8 * bit)
 {
 	bits8	   *bitP;
 	int			bitmask;
@@ -690,7 +690,7 @@ heap_copy_tuple_as_datum(HeapTuple tuple, TupleDesc tupleDesc)
  */
 HeapTuple
 heap_form_tuple(TupleDesc tupleDescriptor,
-				Datum *values,
+				Datum * values,
 				bool *isnull)
 {
 	HeapTuple	tuple;			/* return tuple */
@@ -790,7 +790,7 @@ heap_form_tuple(TupleDesc tupleDescriptor,
 HeapTuple
 heap_modify_tuple(HeapTuple tuple,
 				  TupleDesc tupleDesc,
-				  Datum *replValues,
+				  Datum * replValues,
 				  bool *replIsnull,
 				  bool *doReplace)
 {
@@ -863,7 +863,7 @@ heap_modify_tuple_by_cols(HeapTuple tuple,
 						  TupleDesc tupleDesc,
 						  int nCols,
 						  int *replCols,
-						  Datum *replValues,
+						  Datum * replValues,
 						  bool *replIsnull)
 {
 	int			numberOfAttributes = tupleDesc->natts;
@@ -931,7 +931,7 @@ heap_modify_tuple_by_cols(HeapTuple tuple,
  */
 void
 heap_deform_tuple(HeapTuple tuple, TupleDesc tupleDesc,
-				  Datum *values, bool *isnull)
+				  Datum * values, bool *isnull)
 {
 	HeapTupleHeader tup = tuple->t_data;
 	bool		hasnulls = HeapTupleHasNulls(tuple);
@@ -1031,7 +1031,7 @@ heap_deform_tuple(HeapTuple tuple, TupleDesc tupleDesc,
  *		slot->tts_nvalid is the number of attributes already extracted.
  */
 static void
-slot_deform_tuple(TupleTableSlot *slot, int natts)
+slot_deform_tuple(TupleTableSlot * slot, int natts)
 {
 	HeapTuple	tuple = slot->tts_tuple;
 	TupleDesc	tupleDesc = slot->tts_tupleDescriptor;
@@ -1138,7 +1138,7 @@ slot_deform_tuple(TupleTableSlot *slot, int natts)
  *		when the physical tuple is longer than the tupdesc.
  */
 Datum
-slot_getattr(TupleTableSlot *slot, int attnum, bool *isnull)
+slot_getattr(TupleTableSlot * slot, int attnum, bool *isnull)
 {
 	HeapTuple	tuple = slot->tts_tuple;
 	TupleDesc	tupleDesc = slot->tts_tupleDescriptor;
@@ -1234,7 +1234,7 @@ slot_getattr(TupleTableSlot *slot, int attnum, bool *isnull)
  *		from those arrays instead of using slot_getattr.
  */
 void
-slot_getallattrs(TupleTableSlot *slot)
+slot_getallattrs(TupleTableSlot * slot)
 {
 	int			tdesc_natts = slot->tts_tupleDescriptor->natts;
 	int			attnum;
@@ -1278,7 +1278,7 @@ slot_getallattrs(TupleTableSlot *slot)
  *		arrays to be valid at least up through the attnum'th entry.
  */
 void
-slot_getsomeattrs(TupleTableSlot *slot, int attnum)
+slot_getsomeattrs(TupleTableSlot * slot, int attnum)
 {
 	HeapTuple	tuple;
 	int			attno;
@@ -1325,7 +1325,7 @@ slot_getsomeattrs(TupleTableSlot *slot, int attnum)
  *		actually fetching it.
  */
 bool
-slot_attisnull(TupleTableSlot *slot, int attnum)
+slot_attisnull(TupleTableSlot * slot, int attnum)
 {
 	HeapTuple	tuple = slot->tts_tuple;
 	TupleDesc	tupleDesc = slot->tts_tupleDescriptor;
@@ -1373,8 +1373,8 @@ slot_attisnull(TupleTableSlot *slot, int attnum)
  *		throwing an error.
  */
 bool
-slot_getsysattr(TupleTableSlot *slot, int attnum,
-				Datum *value, bool *isnull)
+slot_getsysattr(TupleTableSlot * slot, int attnum,
+				Datum * value, bool *isnull)
 {
 	HeapTuple	tuple = slot->tts_tuple;
 
@@ -1414,7 +1414,7 @@ heap_freetuple(HeapTuple htup)
  */
 MinimalTuple
 heap_form_minimal_tuple(TupleDesc tupleDescriptor,
-						Datum *values,
+						Datum * values,
 						bool *isnull)
 {
 	MinimalTuple tuple;			/* return tuple */

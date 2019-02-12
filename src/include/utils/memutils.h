@@ -133,9 +133,9 @@ GetMemoryChunkContext(void *pointer)
  * specific creation routines, and noplace else.
  */
 extern MemoryContext MemoryContextCreate(NodeTag tag, Size size,
-					MemoryContextMethods *methods,
-					MemoryContext parent,
-					const char *name);
+										 MemoryContextMethods * methods,
+										 MemoryContext parent,
+										 const char *name);
 
 
 /*
@@ -144,16 +144,16 @@ extern MemoryContext MemoryContextCreate(NodeTag tag, Size size,
 
 /* aset.c */
 extern MemoryContext AllocSetContextCreate(MemoryContext parent,
-					  const char *name,
-					  Size minContextSize,
-					  Size initBlockSize,
-					  Size maxBlockSize);
+										   const char *name,
+										   Size minContextSize,
+										   Size initBlockSize,
+										   Size maxBlockSize);
 
 /* slab.c */
 extern MemoryContext SlabContextCreate(MemoryContext parent,
-				  const char *name,
-				  Size blockSize,
-				  Size chunkSize);
+									   const char *name,
+									   Size blockSize,
+									   Size chunkSize);
 
 /*
  * Recommended default alloc parameters, suitable for "ordinary" contexts

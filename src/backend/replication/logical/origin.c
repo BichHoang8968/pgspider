@@ -133,7 +133,7 @@ typedef struct ReplicationState
 	 * Lock protecting remote_lsn and local_lsn.
 	 */
 	LWLock		lock;
-} ReplicationState;
+}			ReplicationState;
 
 /*
  * On disk version of ReplicationState.
@@ -142,14 +142,14 @@ typedef struct ReplicationStateOnDisk
 {
 	RepOriginId roident;
 	XLogRecPtr	remote_lsn;
-} ReplicationStateOnDisk;
+}			ReplicationStateOnDisk;
 
 
 typedef struct ReplicationStateCtl
 {
 	int			tranche_id;
 	ReplicationState states[FLEXIBLE_ARRAY_MEMBER];
-} ReplicationStateCtl;
+}			ReplicationStateCtl;
 
 /* external variables */
 RepOriginId replorigin_session_origin = InvalidRepOriginId; /* assumed identity */
@@ -163,15 +163,15 @@ TimestampTz replorigin_session_origin_timestamp = 0;
  * XXX: Should we use a separate variable to size this rather than
  * max_replication_slots?
  */
-static ReplicationState *replication_states;
-static ReplicationStateCtl *replication_states_ctl;
+static ReplicationState * replication_states;
+static ReplicationStateCtl * replication_states_ctl;
 
 /*
  * Backend-local, cached element from ReplicationState for use in a backend
  * replaying remote commits, so we don't have to search ReplicationState for
  * the backends current RepOriginId.
  */
-static ReplicationState *session_replication_state = NULL;
+static ReplicationState * session_replication_state = NULL;
 
 /* Magic for on disk files. */
 #define REPLICATION_STATE_MAGIC ((uint32) 0x1257DADE)
@@ -739,7 +739,7 @@ StartupReplicationOrigin(void)
 		if (readBytes == sizeof(crc))
 		{
 			/* not pretty, but simple ... */
-			file_crc = *(pg_crc32c *) &disk_state;
+			file_crc = *(pg_crc32c *) & disk_state;
 			break;
 		}
 
@@ -789,7 +789,7 @@ StartupReplicationOrigin(void)
 }
 
 void
-replorigin_redo(XLogReaderState *record)
+replorigin_redo(XLogReaderState * record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 

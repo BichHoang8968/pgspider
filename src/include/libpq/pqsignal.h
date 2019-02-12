@@ -31,8 +31,8 @@ extern int	pqsigsetmask(int mask);
 #endif							/* WIN32 */
 
 extern sigset_t UnBlockSig,
-			BlockSig,
-			StartupBlockSig;
+BlockSig,
+StartupBlockSig;
 
 extern void pqinitmask(void);
 

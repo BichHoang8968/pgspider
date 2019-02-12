@@ -37,7 +37,7 @@ typedef struct
 	char	   *location;
 	DIR		   *dirdesc;
 	bool		include_dot_dirs;
-} directory_fctx;
+}			directory_fctx;
 
 
 /*
@@ -47,7 +47,7 @@ typedef struct
  * absolute paths that match DataDir or Log_directory.
  */
 static char *
-convert_and_check_filename(text *arg)
+convert_and_check_filename(text * arg)
 {
 	char	   *filename;
 

@@ -165,7 +165,7 @@ pgp_get_cipher_block_size(int code)
 }
 
 int
-pgp_load_cipher(int code, PX_Cipher **res)
+pgp_load_cipher(int code, PX_Cipher * *res)
 {
 	int			err;
 	const struct cipher_info *i = get_cipher_info(code);
@@ -181,7 +181,7 @@ pgp_load_cipher(int code, PX_Cipher **res)
 }
 
 int
-pgp_load_digest(int code, PX_MD **res)
+pgp_load_digest(int code, PX_MD * *res)
 {
 	int			err;
 	const char *name = pgp_get_digest_name(code);
@@ -197,7 +197,7 @@ pgp_load_digest(int code, PX_MD **res)
 }
 
 int
-pgp_init(PGP_Context **ctx_p)
+pgp_init(PGP_Context * *ctx_p)
 {
 	PGP_Context *ctx;
 
@@ -222,7 +222,7 @@ pgp_init(PGP_Context **ctx_p)
 }
 
 int
-pgp_free(PGP_Context *ctx)
+pgp_free(PGP_Context * ctx)
 {
 	if (ctx->pub_key)
 		pgp_key_free(ctx->pub_key);
@@ -232,28 +232,28 @@ pgp_free(PGP_Context *ctx)
 }
 
 int
-pgp_disable_mdc(PGP_Context *ctx, int disable)
+pgp_disable_mdc(PGP_Context * ctx, int disable)
 {
 	ctx->disable_mdc = disable ? 1 : 0;
 	return 0;
 }
 
 int
-pgp_set_sess_key(PGP_Context *ctx, int use)
+pgp_set_sess_key(PGP_Context * ctx, int use)
 {
 	ctx->use_sess_key = use ? 1 : 0;
 	return 0;
 }
 
 int
-pgp_set_convert_crlf(PGP_Context *ctx, int doit)
+pgp_set_convert_crlf(PGP_Context * ctx, int doit)
 {
 	ctx->convert_crlf = doit ? 1 : 0;
 	return 0;
 }
 
 int
-pgp_set_s2k_mode(PGP_Context *ctx, int mode)
+pgp_set_s2k_mode(PGP_Context * ctx, int mode)
 {
 	int			err = PXE_OK;
 
@@ -272,7 +272,7 @@ pgp_set_s2k_mode(PGP_Context *ctx, int mode)
 }
 
 int
-pgp_set_s2k_count(PGP_Context *ctx, int count)
+pgp_set_s2k_count(PGP_Context * ctx, int count)
 {
 	if (ctx->s2k_mode == PGP_S2K_ISALTED && count >= 1024 && count <= 65011712)
 	{
@@ -283,7 +283,7 @@ pgp_set_s2k_count(PGP_Context *ctx, int count)
 }
 
 int
-pgp_set_compress_algo(PGP_Context *ctx, int algo)
+pgp_set_compress_algo(PGP_Context * ctx, int algo)
 {
 	switch (algo)
 	{
@@ -298,7 +298,7 @@ pgp_set_compress_algo(PGP_Context *ctx, int algo)
 }
 
 int
-pgp_set_compress_level(PGP_Context *ctx, int level)
+pgp_set_compress_level(PGP_Context * ctx, int level)
 {
 	if (level >= 0 && level <= 9)
 	{
@@ -309,14 +309,14 @@ pgp_set_compress_level(PGP_Context *ctx, int level)
 }
 
 int
-pgp_set_text_mode(PGP_Context *ctx, int mode)
+pgp_set_text_mode(PGP_Context * ctx, int mode)
 {
 	ctx->text_mode = mode;
 	return 0;
 }
 
 int
-pgp_set_cipher_algo(PGP_Context *ctx, const char *name)
+pgp_set_cipher_algo(PGP_Context * ctx, const char *name)
 {
 	int			code = pgp_get_cipher_code(name);
 
@@ -327,7 +327,7 @@ pgp_set_cipher_algo(PGP_Context *ctx, const char *name)
 }
 
 int
-pgp_set_s2k_cipher_algo(PGP_Context *ctx, const char *name)
+pgp_set_s2k_cipher_algo(PGP_Context * ctx, const char *name)
 {
 	int			code = pgp_get_cipher_code(name);
 
@@ -338,7 +338,7 @@ pgp_set_s2k_cipher_algo(PGP_Context *ctx, const char *name)
 }
 
 int
-pgp_set_s2k_digest_algo(PGP_Context *ctx, const char *name)
+pgp_set_s2k_digest_algo(PGP_Context * ctx, const char *name)
 {
 	int			code = pgp_get_digest_code(name);
 
@@ -349,20 +349,20 @@ pgp_set_s2k_digest_algo(PGP_Context *ctx, const char *name)
 }
 
 int
-pgp_get_unicode_mode(PGP_Context *ctx)
+pgp_get_unicode_mode(PGP_Context * ctx)
 {
 	return ctx->unicode_mode;
 }
 
 int
-pgp_set_unicode_mode(PGP_Context *ctx, int mode)
+pgp_set_unicode_mode(PGP_Context * ctx, int mode)
 {
 	ctx->unicode_mode = mode ? 1 : 0;
 	return 0;
 }
 
 int
-pgp_set_symkey(PGP_Context *ctx, const uint8 *key, int len)
+pgp_set_symkey(PGP_Context * ctx, const uint8 * key, int len)
 {
 	if (key == NULL || len < 1)
 		return PXE_ARGUMENT_ERROR;

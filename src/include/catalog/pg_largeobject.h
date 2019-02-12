@@ -43,7 +43,7 @@ CATALOG(pg_largeobject,2613) BKI_WITHOUT_OIDS
  *		the format of pg_largeobject relation.
  * ----------------
  */
-typedef FormData_pg_largeobject *Form_pg_largeobject;
+typedef FormData_pg_largeobject * Form_pg_largeobject;
 
 /* ----------------
  *		compiler constants for pg_largeobject
@@ -54,7 +54,7 @@ typedef FormData_pg_largeobject *Form_pg_largeobject;
 #define Anum_pg_largeobject_pageno		2
 #define Anum_pg_largeobject_data		3
 
-extern Oid	LargeObjectCreate(Oid loid);
+extern Oid LargeObjectCreate(Oid loid);
 extern void LargeObjectDrop(Oid loid);
 extern bool LargeObjectExists(Oid loid);
 

@@ -44,7 +44,7 @@ struct GinVacuumState
  * items is returned in *nremaining.
  */
 ItemPointer
-ginVacuumItemPointers(GinVacuumState *gvs, ItemPointerData *items,
+ginVacuumItemPointers(GinVacuumState * gvs, ItemPointerData * items,
 					  int nitem, int *nremaining)
 {
 	int			i,
@@ -118,14 +118,14 @@ typedef struct DataPageDeleteStack
 	BlockNumber blkno;			/* current block number */
 	BlockNumber leftBlkno;		/* rightest non-deleted page on left */
 	bool		isRoot;
-} DataPageDeleteStack;
+}			DataPageDeleteStack;
 
 
 /*
  * Delete a posting tree page.
  */
 static void
-ginDeletePage(GinVacuumState *gvs, BlockNumber deleteBlkno, BlockNumber leftBlkno,
+ginDeletePage(GinVacuumState * gvs, BlockNumber deleteBlkno, BlockNumber leftBlkno,
 			  BlockNumber parentBlkno, OffsetNumber myoff, bool isParentRoot)
 {
 	Buffer		dBuffer;
@@ -229,8 +229,8 @@ ginDeletePage(GinVacuumState *gvs, BlockNumber deleteBlkno, BlockNumber leftBlkn
  * scans posting tree and deletes empty pages
  */
 static bool
-ginScanToDelete(GinVacuumState *gvs, BlockNumber blkno, bool isRoot,
-				DataPageDeleteStack *parent, OffsetNumber myoff)
+ginScanToDelete(GinVacuumState * gvs, BlockNumber blkno, bool isRoot,
+				DataPageDeleteStack * parent, OffsetNumber myoff)
 {
 	DataPageDeleteStack *me;
 	Buffer		buffer;
@@ -315,7 +315,7 @@ ginScanToDelete(GinVacuumState *gvs, BlockNumber blkno, bool isRoot,
  * empty subtree.
  */
 static bool
-ginVacuumPostingTreeLeaves(GinVacuumState *gvs, BlockNumber blkno, bool isRoot)
+ginVacuumPostingTreeLeaves(GinVacuumState * gvs, BlockNumber blkno, bool isRoot)
 {
 	Buffer		buffer;
 	Page		page;
@@ -421,7 +421,7 @@ ginVacuumPostingTreeLeaves(GinVacuumState *gvs, BlockNumber blkno, bool isRoot)
 }
 
 static void
-ginVacuumPostingTree(GinVacuumState *gvs, BlockNumber rootBlkno)
+ginVacuumPostingTree(GinVacuumState * gvs, BlockNumber rootBlkno)
 {
 	ginVacuumPostingTreeLeaves(gvs, rootBlkno, TRUE);
 }
@@ -432,7 +432,7 @@ ginVacuumPostingTree(GinVacuumState *gvs, BlockNumber rootBlkno)
  * then page is copied into temporary one.
  */
 static Page
-ginVacuumEntryPage(GinVacuumState *gvs, Buffer buffer, BlockNumber *roots, uint32 *nroot)
+ginVacuumEntryPage(GinVacuumState * gvs, Buffer buffer, BlockNumber * roots, uint32 * nroot)
 {
 	Page		origpage = BufferGetPage(buffer),
 				tmppage;
@@ -541,7 +541,7 @@ ginVacuumEntryPage(GinVacuumState *gvs, Buffer buffer, BlockNumber *roots, uint3
 }
 
 IndexBulkDeleteResult *
-ginbulkdelete(IndexVacuumInfo *info, IndexBulkDeleteResult *stats,
+ginbulkdelete(IndexVacuumInfo * info, IndexBulkDeleteResult * stats,
 			  IndexBulkDeleteCallback callback, void *callback_state)
 {
 	Relation	index = info->index;
@@ -664,7 +664,7 @@ ginbulkdelete(IndexVacuumInfo *info, IndexBulkDeleteResult *stats,
 }
 
 IndexBulkDeleteResult *
-ginvacuumcleanup(IndexVacuumInfo *info, IndexBulkDeleteResult *stats)
+ginvacuumcleanup(IndexVacuumInfo * info, IndexBulkDeleteResult * stats)
 {
 	Relation	index = info->index;
 	bool		needLock;

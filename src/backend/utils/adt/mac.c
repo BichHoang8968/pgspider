@@ -40,9 +40,9 @@ typedef struct
 	bool		estimating;		/* true if estimating cardinality */
 
 	hyperLogLogState abbr_card; /* cardinality estimator */
-} macaddr_sortsupport_state;
+}			macaddr_sortsupport_state;
 
-static int	macaddr_cmp_internal(macaddr *a1, macaddr *a2);
+static int	macaddr_cmp_internal(macaddr * a1, macaddr * a2);
 static int	macaddr_fast_cmp(Datum x, Datum y, SortSupport ssup);
 static int	macaddr_cmp_abbrev(Datum x, Datum y, SortSupport ssup);
 static bool macaddr_abbrev_abort(int memtupcount, SortSupport ssup);
@@ -179,7 +179,7 @@ macaddr_send(PG_FUNCTION_ARGS)
  */
 
 static int
-macaddr_cmp_internal(macaddr *a1, macaddr *a2)
+macaddr_cmp_internal(macaddr * a1, macaddr * a2)
 {
 	if (hibits(a1) < hibits(a2))
 		return -1;

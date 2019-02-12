@@ -43,7 +43,7 @@ typedef enum
 	PROCSIG_RECOVERY_CONFLICT_STARTUP_DEADLOCK,
 
 	NUM_PROCSIGNALS				/* Must be last! */
-} ProcSignalReason;
+}			ProcSignalReason;
 
 /*
  * prototypes for functions in procsignal.c

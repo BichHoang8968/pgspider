@@ -54,7 +54,7 @@ typedef struct
 	/* Saved state from std_typanalyze() */
 	AnalyzeAttrComputeStatsFunc std_compute_stats;
 	void	   *std_extra_data;
-} ArrayAnalyzeExtraData;
+}			ArrayAnalyzeExtraData;
 
 /*
  * While compute_array_stats is running, we keep a pointer to the extra data
@@ -62,7 +62,7 @@ typedef struct
  * currently need to be re-entrant, so avoiding this is not worth the extra
  * notational cruft that would be needed.
  */
-static ArrayAnalyzeExtraData *array_extra_data;
+static ArrayAnalyzeExtraData * array_extra_data;
 
 /* A hash table entry for the Lossy Counting algorithm */
 typedef struct
@@ -71,18 +71,18 @@ typedef struct
 	int			frequency;		/* This is 'f'. */
 	int			delta;			/* And this is 'delta'. */
 	int			last_container; /* For de-duplication of array elements. */
-} TrackItem;
+}			TrackItem;
 
 /* A hash table entry for distinct-elements counts */
 typedef struct
 {
 	int			count;			/* Count of distinct elements in an array */
 	int			frequency;		/* Number of arrays seen with this count */
-} DECountItem;
+}			DECountItem;
 
-static void compute_array_stats(VacAttrStats *stats,
+static void compute_array_stats(VacAttrStats * stats,
 					AnalyzeAttrFetchFunc fetchfunc, int samplerows, double totalrows);
-static void prune_element_hashtable(HTAB *elements_tab, int b_current);
+static void prune_element_hashtable(HTAB * elements_tab, int b_current);
 static uint32 element_hash(const void *key, Size keysize);
 static int	element_match(const void *key1, const void *key2, Size keysize);
 static int	element_compare(const void *key1, const void *key2);
@@ -212,7 +212,7 @@ array_typanalyze(PG_FUNCTION_ARGS)
  * We divide the raw counts by nonnull_cnt to get those figures.
  */
 static void
-compute_array_stats(VacAttrStats *stats, AnalyzeAttrFetchFunc fetchfunc,
+compute_array_stats(VacAttrStats * stats, AnalyzeAttrFetchFunc fetchfunc,
 					int samplerows, double totalrows)
 {
 	ArrayAnalyzeExtraData *extra_data;
@@ -472,7 +472,7 @@ compute_array_stats(VacAttrStats *stats, AnalyzeAttrFetchFunc fetchfunc,
 		cutoff_freq = 9 * element_no / bucket_width;
 
 		i = hash_get_num_entries(elements_tab); /* surely enough space */
-		sort_table = (TrackItem **) palloc(sizeof(TrackItem *) * i);
+		sort_table = (TrackItem * *) palloc(sizeof(TrackItem *) * i);
 
 		hash_seq_init(&scan_status, elements_tab);
 		track_len = 0;
@@ -591,7 +591,7 @@ compute_array_stats(VacAttrStats *stats, AnalyzeAttrFetchFunc fetchfunc,
 			 * Create an array of DECountItem pointers, and sort them into
 			 * increasing count order.
 			 */
-			sorted_count_items = (DECountItem **)
+			sorted_count_items = (DECountItem * *)
 				palloc(sizeof(DECountItem *) * count_items_count);
 			hash_seq_init(&scan_status, count_tab);
 			j = 0;
@@ -678,7 +678,7 @@ compute_array_stats(VacAttrStats *stats, AnalyzeAttrFetchFunc fetchfunc,
  * Consult compute_tsvector_stats() for wider explanation.
  */
 static void
-prune_element_hashtable(HTAB *elements_tab, int b_current)
+prune_element_hashtable(HTAB * elements_tab, int b_current)
 {
 	HASH_SEQ_STATUS scan_status;
 	TrackItem  *item;
@@ -751,8 +751,8 @@ element_compare(const void *key1, const void *key2)
 static int
 trackitem_compare_frequencies_desc(const void *e1, const void *e2)
 {
-	const TrackItem *const *t1 = (const TrackItem *const *) e1;
-	const TrackItem *const *t2 = (const TrackItem *const *) e2;
+	const		TrackItem *const *t1 = (const TrackItem * const *) e1;
+	const		TrackItem *const *t2 = (const TrackItem * const *) e2;
 
 	return (*t2)->frequency - (*t1)->frequency;
 }
@@ -763,8 +763,8 @@ trackitem_compare_frequencies_desc(const void *e1, const void *e2)
 static int
 trackitem_compare_element(const void *e1, const void *e2)
 {
-	const TrackItem *const *t1 = (const TrackItem *const *) e1;
-	const TrackItem *const *t2 = (const TrackItem *const *) e2;
+	const		TrackItem *const *t1 = (const TrackItem * const *) e1;
+	const		TrackItem *const *t2 = (const TrackItem * const *) e2;
 
 	return element_compare(&(*t1)->key, &(*t2)->key);
 }
@@ -775,8 +775,8 @@ trackitem_compare_element(const void *e1, const void *e2)
 static int
 countitem_compare_count(const void *e1, const void *e2)
 {
-	const DECountItem *const *t1 = (const DECountItem *const *) e1;
-	const DECountItem *const *t2 = (const DECountItem *const *) e2;
+	const		DECountItem *const *t1 = (const DECountItem * const *) e1;
+	const		DECountItem *const *t2 = (const DECountItem * const *) e2;
 
 	if ((*t1)->count < (*t2)->count)
 		return -1;

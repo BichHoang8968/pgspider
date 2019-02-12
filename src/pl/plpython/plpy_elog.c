@@ -21,19 +21,19 @@ PyObject   *PLy_exc_fatal = NULL;
 PyObject   *PLy_exc_spi_error = NULL;
 
 
-static void PLy_traceback(PyObject *e, PyObject *v, PyObject *tb,
+static void PLy_traceback(PyObject * e, PyObject * v, PyObject * tb,
 			  char **xmsg, char **tbmsg, int *tb_depth);
-static void PLy_get_spi_error_data(PyObject *exc, int *sqlerrcode, char **detail,
+static void PLy_get_spi_error_data(PyObject * exc, int *sqlerrcode, char **detail,
 					   char **hint, char **query, int *position,
 					   char **schema_name, char **table_name, char **column_name,
 					   char **datatype_name, char **constraint_name);
-static void PLy_get_error_data(PyObject *exc, int *sqlerrcode, char **detail,
+static void PLy_get_error_data(PyObject * exc, int *sqlerrcode, char **detail,
 				   char **hint, char **schema_name, char **table_name, char **column_name,
 				   char **datatype_name, char **constraint_name);
 static char *get_source_line(const char *src, int lineno);
 
-static void get_string_attr(PyObject *obj, char *attrname, char **str);
-static bool set_string_attr(PyObject *obj, char *attrname, char *str);
+static void get_string_attr(PyObject * obj, char *attrname, char **str);
+static bool set_string_attr(PyObject * obj, char *attrname, char *str);
 
 /*
  * Emit a PG error or notice, together with any available info about
@@ -175,7 +175,7 @@ PLy_elog(int elevel, const char *fmt,...)
  * but not on e or v.
  */
 static void
-PLy_traceback(PyObject *e, PyObject *v, PyObject *tb,
+PLy_traceback(PyObject * e, PyObject * v, PyObject * tb,
 			  char **xmsg, char **tbmsg, int *tb_depth)
 {
 	PyObject   *e_type_o;
@@ -377,7 +377,7 @@ PLy_traceback(PyObject *e, PyObject *v, PyObject *tb,
  * Extract error code from SPIError's sqlstate attribute.
  */
 static void
-PLy_get_sqlerrcode(PyObject *exc, int *sqlerrcode)
+PLy_get_sqlerrcode(PyObject * exc, int *sqlerrcode)
 {
 	PyObject   *sqlstate;
 	char	   *buffer;
@@ -401,7 +401,7 @@ PLy_get_sqlerrcode(PyObject *exc, int *sqlerrcode)
  * Extract the error data from a SPIError
  */
 static void
-PLy_get_spi_error_data(PyObject *exc, int *sqlerrcode, char **detail,
+PLy_get_spi_error_data(PyObject * exc, int *sqlerrcode, char **detail,
 					   char **hint, char **query, int *position,
 					   char **schema_name, char **table_name,
 					   char **column_name,
@@ -437,7 +437,7 @@ PLy_get_spi_error_data(PyObject *exc, int *sqlerrcode, char **detail,
  * PLy_get_spi_error_data, this function doesn't return them.
  */
 static void
-PLy_get_error_data(PyObject *exc, int *sqlerrcode, char **detail, char **hint,
+PLy_get_error_data(PyObject * exc, int *sqlerrcode, char **detail, char **hint,
 				   char **schema_name, char **table_name, char **column_name,
 				   char **datatype_name, char **constraint_name)
 {
@@ -497,7 +497,7 @@ get_source_line(const char *src, int lineno)
 
 /* call PyErr_SetString with a vprint interface and translation support */
 void
-PLy_exception_set(PyObject *exc, const char *fmt,...)
+PLy_exception_set(PyObject * exc, const char *fmt,...)
 {
 	char		buf[1024];
 	va_list		ap;
@@ -511,7 +511,7 @@ PLy_exception_set(PyObject *exc, const char *fmt,...)
 
 /* same, with pluralized message */
 void
-PLy_exception_set_plural(PyObject *exc,
+PLy_exception_set_plural(PyObject * exc,
 						 const char *fmt_singular, const char *fmt_plural,
 						 unsigned long n,...)
 {
@@ -529,7 +529,7 @@ PLy_exception_set_plural(PyObject *exc,
 
 /* set attributes of the given exception to details from ErrorData */
 void
-PLy_exception_set_with_details(PyObject *excclass, ErrorData *edata)
+PLy_exception_set_with_details(PyObject * excclass, ErrorData * edata)
 {
 	PyObject   *args = NULL;
 	PyObject   *error = NULL;
@@ -587,7 +587,7 @@ failure:
 
 /* get string value of an object attribute */
 static void
-get_string_attr(PyObject *obj, char *attrname, char **str)
+get_string_attr(PyObject * obj, char *attrname, char **str)
 {
 	PyObject   *val;
 
@@ -603,7 +603,7 @@ get_string_attr(PyObject *obj, char *attrname, char **str)
  * successful
  */
 static bool
-set_string_attr(PyObject *obj, char *attrname, char *str)
+set_string_attr(PyObject * obj, char *attrname, char *str)
 {
 	int			result;
 	PyObject   *val;

@@ -69,7 +69,7 @@ CATALOG(pg_authid,1260) BKI_SHARED_RELATION BKI_ROWTYPE_OID(2842) BKI_SCHEMA_MAC
  *		the format of pg_authid relation.
  * ----------------
  */
-typedef FormData_pg_authid *Form_pg_authid;
+typedef FormData_pg_authid * Form_pg_authid;
 
 /* ----------------
  *		compiler constants for pg_authid

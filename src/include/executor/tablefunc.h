@@ -59,9 +59,9 @@ typedef struct TableFuncRoutine
 	void		(*SetColumnFilter) (struct TableFuncScanState *state,
 									char *path, int colnum);
 	bool		(*FetchRow) (struct TableFuncScanState *state);
-	Datum		(*GetValue) (struct TableFuncScanState *state, int colnum,
-							 Oid typid, int32 typmod, bool *isnull);
+				Datum(*GetValue) (struct TableFuncScanState *state, int colnum,
+								  Oid typid, int32 typmod, bool *isnull);
 	void		(*DestroyOpaque) (struct TableFuncScanState *state);
-} TableFuncRoutine;
+}			TableFuncRoutine;
 
 #endif							/* _TABLEFUNC_H */

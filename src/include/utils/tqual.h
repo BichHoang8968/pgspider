@@ -53,7 +53,7 @@ typedef enum
 	HEAPTUPLE_RECENTLY_DEAD,	/* tuple is dead, but not deletable yet */
 	HEAPTUPLE_INSERT_IN_PROGRESS,	/* inserting xact is still in progress */
 	HEAPTUPLE_DELETE_IN_PROGRESS	/* deleting xact is still in progress */
-} HTSV_Result;
+}			HTSV_Result;
 
 /* These are the "satisfies" test routines for the various snapshot types */
 extern bool HeapTupleSatisfiesMVCC(HeapTuple htup,
@@ -71,9 +71,9 @@ extern bool HeapTupleSatisfiesHistoricMVCC(HeapTuple htup,
 
 /* Special "satisfies" routines with different APIs */
 extern HTSU_Result HeapTupleSatisfiesUpdate(HeapTuple htup,
-						 CommandId curcid, Buffer buffer);
+											CommandId curcid, Buffer buffer);
 extern HTSV_Result HeapTupleSatisfiesVacuum(HeapTuple htup,
-						 TransactionId OldestXmin, Buffer buffer);
+											TransactionId OldestXmin, Buffer buffer);
 extern bool HeapTupleIsSurelyDead(HeapTuple htup,
 					  TransactionId OldestXmin);
 extern bool XidInMVCCSnapshot(TransactionId xid, Snapshot snapshot);
@@ -91,7 +91,7 @@ extern bool ResolveCminCmaxDuringDecoding(struct HTAB *tuplecid_data,
 							  Snapshot snapshot,
 							  HeapTuple htup,
 							  Buffer buffer,
-							  CommandId *cmin, CommandId *cmax);
+							  CommandId * cmin, CommandId * cmax);
 
 /*
  * We don't provide a static SnapshotDirty variable because it would be

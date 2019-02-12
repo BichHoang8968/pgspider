@@ -43,21 +43,21 @@
  * Global authentication functions
  *----------------------------------------------------------------
  */
-static void sendAuthRequest(Port *port, AuthRequest areq, char *extradata,
+static void sendAuthRequest(Port * port, AuthRequest areq, char *extradata,
 				int extralen);
-static void auth_failed(Port *port, int status, char *logdetail);
-static char *recv_password_packet(Port *port);
+static void auth_failed(Port * port, int status, char *logdetail);
+static char *recv_password_packet(Port * port);
 
 
 /*----------------------------------------------------------------
  * Password-based authentication methods (password, md5, and scram-sha-256)
  *----------------------------------------------------------------
  */
-static int	CheckPasswordAuth(Port *port, char **logdetail);
-static int	CheckPWChallengeAuth(Port *port, char **logdetail);
+static int	CheckPasswordAuth(Port * port, char **logdetail);
+static int	CheckPWChallengeAuth(Port * port, char **logdetail);
 
-static int	CheckMD5Auth(Port *port, char *shadow_pass, char **logdetail);
-static int	CheckSCRAMAuth(Port *port, char *shadow_pass, char **logdetail);
+static int	CheckMD5Auth(Port * port, char *shadow_pass, char **logdetail);
+static int	CheckSCRAMAuth(Port * port, char *shadow_pass, char **logdetail);
 
 
 /*----------------------------------------------------------------
@@ -70,10 +70,10 @@ static int	CheckSCRAMAuth(Port *port, char *shadow_pass, char **logdetail);
 /* Standard TCP port number for Ident service.  Assigned by IANA */
 #define IDENT_PORT 113
 
-static int	ident_inet(hbaPort *port);
+static int	ident_inet(hbaPort * port);
 
 #ifdef HAVE_UNIX_SOCKETS
-static int	auth_peer(hbaPort *port);
+static int	auth_peer(hbaPort * port);
 #endif
 
 
@@ -91,7 +91,7 @@ static int	auth_peer(hbaPort *port);
 
 #define PGSQL_PAM_SERVICE "postgresql"	/* Service name passed to PAM */
 
-static int	CheckPAMAuth(Port *port, char *user, char *password);
+static int	CheckPAMAuth(Port * port, char *user, char *password);
 static int pam_passwd_conv_proc(int num_msg, const struct pam_message **msg,
 					 struct pam_response **resp, void *appdata_ptr);
 
@@ -101,7 +101,7 @@ static struct pam_conv pam_passw_conv = {
 };
 
 static char *pam_passwd = NULL; /* Workaround for Solaris 2.6 brokenness */
-static Port *pam_port_cludge;	/* Workaround for passing "Port *port" into
+static Port * pam_port_cludge;	/* Workaround for passing "Port *port" into
 								 * pam_passwd_conv_proc */
 #endif							/* USE_PAM */
 
@@ -113,7 +113,7 @@ static Port *pam_port_cludge;	/* Workaround for passing "Port *port" into
 #ifdef USE_BSD_AUTH
 #include <bsd_auth.h>
 
-static int	CheckBSDAuth(Port *port, char *user);
+static int	CheckBSDAuth(Port * port, char *user);
 #endif							/* USE_BSD_AUTH */
 
 
@@ -131,16 +131,16 @@ static int	CheckBSDAuth(Port *port, char *user);
 
 /* Correct header from the Platform SDK */
 typedef
-ULONG		(*__ldap_start_tls_sA) (
-									IN PLDAP ExternalHandle,
-									OUT PULONG ServerReturnValue,
-									OUT LDAPMessage **result,
-									IN PLDAPControlA * ServerControls,
-									IN PLDAPControlA * ClientControls
+ULONG(*__ldap_start_tls_sA) (
+							 IN PLDAP ExternalHandle,
+							 OUT PULONG ServerReturnValue,
+							 OUT LDAPMessage * *result,
+							 IN PLDAPControlA * ServerControls,
+							 IN PLDAPControlA * ClientControls
 );
 #endif
 
-static int	CheckLDAPAuth(Port *port);
+static int	CheckLDAPAuth(Port * port);
 #endif							/* USE_LDAP */
 
 /*----------------------------------------------------------------
@@ -148,7 +148,7 @@ static int	CheckLDAPAuth(Port *port);
  *----------------------------------------------------------------
  */
 #ifdef USE_SSL
-static int	CheckCertAuth(Port *port);
+static int	CheckCertAuth(Port * port);
 #endif
 
 
@@ -171,7 +171,7 @@ bool		pg_krb_caseins_users;
 #include <gssapi/gssapi.h>
 #endif
 
-static int	pg_GSS_recvauth(Port *port);
+static int	pg_GSS_recvauth(Port * port);
 #endif							/* ENABLE_GSS */
 
 
@@ -181,9 +181,9 @@ static int	pg_GSS_recvauth(Port *port);
  */
 #ifdef ENABLE_SSPI
 typedef SECURITY_STATUS
-			(WINAPI * QUERY_SECURITY_CONTEXT_TOKEN_FN) (
-														PCtxtHandle, void **);
-static int	pg_SSPI_recvauth(Port *port);
+(WINAPI * QUERY_SECURITY_CONTEXT_TOKEN_FN) (
+											PCtxtHandle, void **);
+static int	pg_SSPI_recvauth(Port * port);
 static int pg_SSPI_make_upn(char *accountname,
 				 size_t accountnamesize,
 				 char *domainname,
@@ -195,7 +195,7 @@ static int pg_SSPI_make_upn(char *accountname,
  * RADIUS Authentication
  *----------------------------------------------------------------
  */
-static int	CheckRADIUSAuth(Port *port);
+static int	CheckRADIUSAuth(Port * port);
 static int	PerformRadiusTransaction(char *server, char *secret, char *portstr, char *identifier, char *user_name, char *passwd);
 
 
@@ -248,7 +248,7 @@ ClientAuthentication_hook_type ClientAuthentication_hook = NULL;
  * particular, if logdetail isn't NULL, we send that string to the log.
  */
 static void
-auth_failed(Port *port, int status, char *logdetail)
+auth_failed(Port * port, int status, char *logdetail)
 {
 	const char *errstr;
 	char	   *cdetail;
@@ -336,7 +336,7 @@ auth_failed(Port *port, int status, char *logdetail)
  * function does not return and the backend process is terminated.
  */
 void
-ClientAuthentication(Port *port)
+ClientAuthentication(Port * port)
 {
 	int			status = STATUS_ERROR;
 	char	   *logdetail = NULL;
@@ -606,7 +606,7 @@ ClientAuthentication(Port *port)
  * Send an authentication request packet to the frontend.
  */
 static void
-sendAuthRequest(Port *port, AuthRequest areq, char *extradata, int extralen)
+sendAuthRequest(Port * port, AuthRequest areq, char *extradata, int extralen)
 {
 	StringInfoData buf;
 
@@ -636,7 +636,7 @@ sendAuthRequest(Port *port, AuthRequest areq, char *extradata, int extralen)
  * Returns NULL if couldn't get password, else palloc'd string.
  */
 static char *
-recv_password_packet(Port *port)
+recv_password_packet(Port * port)
 {
 	StringInfoData buf;
 
@@ -727,7 +727,7 @@ recv_password_packet(Port *port)
  * Plaintext password authentication.
  */
 static int
-CheckPasswordAuth(Port *port, char **logdetail)
+CheckPasswordAuth(Port * port, char **logdetail)
 {
 	char	   *passwd;
 	int			result;
@@ -759,7 +759,7 @@ CheckPasswordAuth(Port *port, char **logdetail)
  * MD5 and SCRAM authentication.
  */
 static int
-CheckPWChallengeAuth(Port *port, char **logdetail)
+CheckPWChallengeAuth(Port * port, char **logdetail)
 {
 	int			auth_result;
 	char	   *shadow_pass;
@@ -815,7 +815,7 @@ CheckPWChallengeAuth(Port *port, char **logdetail)
 }
 
 static int
-CheckMD5Auth(Port *port, char *shadow_pass, char **logdetail)
+CheckMD5Auth(Port * port, char *shadow_pass, char **logdetail)
 {
 	char		md5Salt[4];		/* Password salt */
 	char	   *passwd;
@@ -852,7 +852,7 @@ CheckMD5Auth(Port *port, char *shadow_pass, char **logdetail)
 }
 
 static int
-CheckSCRAMAuth(Port *port, char *shadow_pass, char **logdetail)
+CheckSCRAMAuth(Port * port, char *shadow_pass, char **logdetail)
 {
 	int			mtype;
 	StringInfoData buf;
@@ -1079,7 +1079,7 @@ pg_GSS_error(int severity, char *errmsg, OM_uint32 maj_stat, OM_uint32 min_stat)
 }
 
 static int
-pg_GSS_recvauth(Port *port)
+pg_GSS_recvauth(Port * port)
 {
 	OM_uint32	maj_stat,
 				min_stat,
@@ -1332,7 +1332,7 @@ pg_SSPI_error(int severity, const char *errmsg, SECURITY_STATUS r)
 }
 
 static int
-pg_SSPI_recvauth(Port *port)
+pg_SSPI_recvauth(Port * port)
 {
 	int			mtype;
 	StringInfoData buf;
@@ -1818,10 +1818,10 @@ interpret_ident_response(const char *ident_response,
  *	latch was set would improve the responsiveness to timeouts/cancellations.
  */
 static int
-ident_inet(hbaPort *port)
+ident_inet(hbaPort * port)
 {
-	const SockAddr remote_addr = port->raddr;
-	const SockAddr local_addr = port->laddr;
+	const		SockAddr remote_addr = port->raddr;
+	const		SockAddr local_addr = port->laddr;
 	char		ident_user[IDENT_USERNAME_MAX + 1];
 	pgsocket	sock_fd = PGINVALID_SOCKET; /* for talking to Ident server */
 	int			rc;				/* Return code from a locally called function */
@@ -1992,7 +1992,7 @@ ident_inet_done:
 #ifdef HAVE_UNIX_SOCKETS
 
 static int
-auth_peer(hbaPort *port)
+auth_peer(hbaPort * port)
 {
 	char		ident_user[IDENT_USERNAME_MAX + 1];
 	uid_t		uid;
@@ -2145,7 +2145,7 @@ fail:
  * Check authentication against PAM.
  */
 static int
-CheckPAMAuth(Port *port, char *user, char *password)
+CheckPAMAuth(Port * port, char *user, char *password)
 {
 	int			retval;
 	pam_handle_t *pamh = NULL;
@@ -2272,7 +2272,7 @@ CheckPAMAuth(Port *port, char *user, char *password)
  */
 #ifdef USE_BSD_AUTH
 static int
-CheckBSDAuth(Port *port, char *user)
+CheckBSDAuth(Port * port, char *user)
 {
 	char	   *passwd;
 	int			retval;
@@ -2312,7 +2312,7 @@ CheckBSDAuth(Port *port, char *user)
  * TLS if requested.
  */
 static int
-InitializeLDAPConnection(Port *port, LDAP **ldap)
+InitializeLDAPConnection(Port * port, LDAP * *ldap)
 {
 	int			ldapversion = LDAP_VERSION3;
 	int			r;
@@ -2400,7 +2400,7 @@ InitializeLDAPConnection(Port *port, LDAP **ldap)
  * Perform LDAP authentication
  */
 static int
-CheckLDAPAuth(Port *port)
+CheckLDAPAuth(Port * port)
 {
 	char	   *passwd;
 	LDAP	   *ldap;
@@ -2612,7 +2612,7 @@ CheckLDAPAuth(Port *port)
  */
 #ifdef USE_SSL
 static int
-CheckCertAuth(Port *port)
+CheckCertAuth(Port * port)
 {
 	Assert(port->ssl);
 
@@ -2653,7 +2653,7 @@ typedef struct
 	uint8		attribute;
 	uint8		length;
 	uint8		data[FLEXIBLE_ARRAY_MEMBER];
-} radius_attribute;
+}			radius_attribute;
 
 typedef struct
 {
@@ -2663,7 +2663,7 @@ typedef struct
 	uint8		vector[RADIUS_VECTOR_LENGTH];
 	/* this is a bit longer than strictly necessary: */
 	char		pad[RADIUS_BUFFER_SIZE - RADIUS_VECTOR_LENGTH];
-} radius_packet;
+}			radius_packet;
 
 /* RADIUS packet types */
 #define RADIUS_ACCESS_REQUEST	1
@@ -2683,7 +2683,7 @@ typedef struct
 #define RADIUS_TIMEOUT 3
 
 static void
-radius_add_attribute(radius_packet *packet, uint8 type, const unsigned char *data, int len)
+radius_add_attribute(radius_packet * packet, uint8 type, const unsigned char *data, int len)
 {
 	radius_attribute *attr;
 
@@ -2709,7 +2709,7 @@ radius_add_attribute(radius_packet *packet, uint8 type, const unsigned char *dat
 }
 
 static int
-CheckRADIUSAuth(Port *port)
+CheckRADIUSAuth(Port * port)
 {
 	char	   *passwd;
 	ListCell   *server,

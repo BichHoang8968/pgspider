@@ -34,18 +34,18 @@ typedef struct
 	/* workspace: */
 	Datum	   *outvalues;		/* values array for result tuple */
 	Datum	   *tofree;			/* temp values to be pfree'd */
-} TStoreState;
+}			TStoreState;
 
 
-static bool tstoreReceiveSlot_notoast(TupleTableSlot *slot, DestReceiver *self);
-static bool tstoreReceiveSlot_detoast(TupleTableSlot *slot, DestReceiver *self);
+static bool tstoreReceiveSlot_notoast(TupleTableSlot * slot, DestReceiver * self);
+static bool tstoreReceiveSlot_detoast(TupleTableSlot * slot, DestReceiver * self);
 
 
 /*
  * Prepare to receive tuples from executor.
  */
 static void
-tstoreStartupReceiver(DestReceiver *self, int operation, TupleDesc typeinfo)
+tstoreStartupReceiver(DestReceiver * self, int operation, TupleDesc typeinfo)
 {
 	TStoreState *myState = (TStoreState *) self;
 	bool		needtoast = false;
@@ -91,7 +91,7 @@ tstoreStartupReceiver(DestReceiver *self, int operation, TupleDesc typeinfo)
  * This is for the easy case where we don't have to detoast.
  */
 static bool
-tstoreReceiveSlot_notoast(TupleTableSlot *slot, DestReceiver *self)
+tstoreReceiveSlot_notoast(TupleTableSlot * slot, DestReceiver * self)
 {
 	TStoreState *myState = (TStoreState *) self;
 
@@ -105,7 +105,7 @@ tstoreReceiveSlot_notoast(TupleTableSlot *slot, DestReceiver *self)
  * This is for the case where we have to detoast any toasted values.
  */
 static bool
-tstoreReceiveSlot_detoast(TupleTableSlot *slot, DestReceiver *self)
+tstoreReceiveSlot_detoast(TupleTableSlot * slot, DestReceiver * self)
 {
 	TStoreState *myState = (TStoreState *) self;
 	TupleDesc	typeinfo = slot->tts_tupleDescriptor;
@@ -162,7 +162,7 @@ tstoreReceiveSlot_detoast(TupleTableSlot *slot, DestReceiver *self)
  * Clean up at end of an executor run
  */
 static void
-tstoreShutdownReceiver(DestReceiver *self)
+tstoreShutdownReceiver(DestReceiver * self)
 {
 	TStoreState *myState = (TStoreState *) self;
 
@@ -179,7 +179,7 @@ tstoreShutdownReceiver(DestReceiver *self)
  * Destroy receiver when done with it
  */
 static void
-tstoreDestroyReceiver(DestReceiver *self)
+tstoreDestroyReceiver(DestReceiver * self)
 {
 	pfree(self);
 }
@@ -207,8 +207,8 @@ CreateTuplestoreDestReceiver(void)
  * Set parameters for a TuplestoreDestReceiver
  */
 void
-SetTuplestoreDestReceiverParams(DestReceiver *self,
-								Tuplestorestate *tStore,
+SetTuplestoreDestReceiverParams(DestReceiver * self,
+								Tuplestorestate * tStore,
 								MemoryContext tContext,
 								bool detoast)
 {

@@ -84,24 +84,24 @@ typedef struct
 	double		htups,
 				itups,
 				tups_inserted;
-} v_i_state;
+}			v_i_state;
 
 /* non-export function prototypes */
 static bool relationHasPrimaryKey(Relation rel);
 static TupleDesc ConstructTupleDescriptor(Relation heapRelation,
-						 IndexInfo *indexInfo,
-						 List *indexColNames,
-						 Oid accessMethodObjectId,
-						 Oid *collationObjectId,
-						 Oid *classObjectId);
+										  IndexInfo * indexInfo,
+										  List * indexColNames,
+										  Oid accessMethodObjectId,
+										  Oid * collationObjectId,
+										  Oid * classObjectId);
 static void InitializeAttributeOids(Relation indexRelation,
 						int numatts, Oid indexoid);
 static void AppendAttributeTuples(Relation indexRelation, int numatts);
 static void UpdateIndexRelation(Oid indexoid, Oid heapoid,
-					IndexInfo *indexInfo,
-					Oid *collationOids,
-					Oid *classOids,
-					int16 *coloptions,
+					IndexInfo * indexInfo,
+					Oid * collationOids,
+					Oid * classOids,
+					int16 * coloptions,
 					bool primary,
 					bool isexclusion,
 					bool immediate,
@@ -111,19 +111,19 @@ static void index_update_stats(Relation rel,
 				   double reltuples);
 static void IndexCheckExclusion(Relation heapRelation,
 					Relation indexRelation,
-					IndexInfo *indexInfo);
+					IndexInfo * indexInfo);
 static inline int64 itemptr_encode(ItemPointer itemptr);
 static inline void itemptr_decode(ItemPointer itemptr, int64 encoded);
 static bool validate_index_callback(ItemPointer itemptr, void *opaque);
 static void validate_index_heapscan(Relation heapRelation,
 						Relation indexRelation,
-						IndexInfo *indexInfo,
+						IndexInfo * indexInfo,
 						Snapshot snapshot,
-						v_i_state *state);
+						v_i_state * state);
 static bool ReindexIsCurrentlyProcessingIndex(Oid indexOid);
 static void SetReindexProcessing(Oid heapOid, Oid indexOid);
 static void ResetReindexProcessing(void);
-static void SetReindexPending(List *indexes);
+static void SetReindexPending(List * indexes);
 static void RemoveReindexPending(Oid indexOid);
 static void ResetReindexPending(void);
 
@@ -193,7 +193,7 @@ relationHasPrimaryKey(Relation rel)
  */
 void
 index_check_primary_key(Relation heapRel,
-						IndexInfo *indexInfo,
+						IndexInfo * indexInfo,
 						bool is_alter_table)
 {
 	List	   *cmds;
@@ -272,11 +272,11 @@ index_check_primary_key(Relation heapRel,
  */
 static TupleDesc
 ConstructTupleDescriptor(Relation heapRelation,
-						 IndexInfo *indexInfo,
-						 List *indexColNames,
+						 IndexInfo * indexInfo,
+						 List * indexColNames,
 						 Oid accessMethodObjectId,
-						 Oid *collationObjectId,
-						 Oid *classObjectId)
+						 Oid * collationObjectId,
+						 Oid * classObjectId)
 {
 	int			numatts = indexInfo->ii_NumIndexAttrs;
 	ListCell   *colnames_item = list_head(indexColNames);
@@ -548,10 +548,10 @@ AppendAttributeTuples(Relation indexRelation, int numatts)
 static void
 UpdateIndexRelation(Oid indexoid,
 					Oid heapoid,
-					IndexInfo *indexInfo,
-					Oid *collationOids,
-					Oid *classOids,
-					int16 *coloptions,
+					IndexInfo * indexInfo,
+					Oid * collationOids,
+					Oid * classOids,
+					int16 * coloptions,
 					bool primary,
 					bool isexclusion,
 					bool immediate,
@@ -698,13 +698,13 @@ index_create(Relation heapRelation,
 			 const char *indexRelationName,
 			 Oid indexRelationId,
 			 Oid relFileNode,
-			 IndexInfo *indexInfo,
-			 List *indexColNames,
+			 IndexInfo * indexInfo,
+			 List * indexColNames,
 			 Oid accessMethodObjectId,
 			 Oid tableSpaceId,
-			 Oid *collationObjectId,
-			 Oid *classObjectId,
-			 int16 *coloptions,
+			 Oid * collationObjectId,
+			 Oid * classObjectId,
+			 int16 * coloptions,
 			 Datum reloptions,
 			 bool isprimary,
 			 bool isconstraint,
@@ -1152,7 +1152,7 @@ index_create(Relation heapRelation,
 ObjectAddress
 index_constraint_create(Relation heapRelation,
 						Oid indexRelationId,
-						IndexInfo *indexInfo,
+						IndexInfo * indexInfo,
 						const char *constraintName,
 						char constraintType,
 						bool deferrable,
@@ -1713,7 +1713,7 @@ BuildIndexInfo(Relation index)
  * ----------------
  */
 void
-BuildSpeculativeIndexInfo(Relation index, IndexInfo *ii)
+BuildSpeculativeIndexInfo(Relation index, IndexInfo * ii)
 {
 	int			ncols = index->rd_rel->relnatts;
 	int			i;
@@ -1771,10 +1771,10 @@ BuildSpeculativeIndexInfo(Relation index, IndexInfo *ii)
  * ----------------
  */
 void
-FormIndexDatum(IndexInfo *indexInfo,
-			   TupleTableSlot *slot,
-			   EState *estate,
-			   Datum *values,
+FormIndexDatum(IndexInfo * indexInfo,
+			   TupleTableSlot * slot,
+			   EState * estate,
+			   Datum * values,
 			   bool *isnull)
 {
 	ListCell   *indexpr_item;
@@ -2008,7 +2008,7 @@ index_update_stats(Relation rel,
 void
 index_build(Relation heapRelation,
 			Relation indexRelation,
-			IndexInfo *indexInfo,
+			IndexInfo * indexInfo,
 			bool isprimary,
 			bool isreindex)
 {
@@ -2177,7 +2177,7 @@ index_build(Relation heapRelation,
 double
 IndexBuildHeapScan(Relation heapRelation,
 				   Relation indexRelation,
-				   IndexInfo *indexInfo,
+				   IndexInfo * indexInfo,
 				   bool allow_sync,
 				   IndexBuildCallback callback,
 				   void *callback_state)
@@ -2202,7 +2202,7 @@ IndexBuildHeapScan(Relation heapRelation,
 double
 IndexBuildHeapRangeScan(Relation heapRelation,
 						Relation indexRelation,
-						IndexInfo *indexInfo,
+						IndexInfo * indexInfo,
 						bool allow_sync,
 						bool anyvisible,
 						BlockNumber start_blockno,
@@ -2650,7 +2650,7 @@ IndexBuildHeapRangeScan(Relation heapRelation,
 static void
 IndexCheckExclusion(Relation heapRelation,
 					Relation indexRelation,
-					IndexInfo *indexInfo)
+					IndexInfo * indexInfo)
 {
 	HeapScanDesc scan;
 	HeapTuple	heapTuple;
@@ -2962,9 +2962,9 @@ validate_index_callback(ItemPointer itemptr, void *opaque)
 static void
 validate_index_heapscan(Relation heapRelation,
 						Relation indexRelation,
-						IndexInfo *indexInfo,
+						IndexInfo * indexInfo,
 						Snapshot snapshot,
-						v_i_state *state)
+						v_i_state * state)
 {
 	HeapScanDesc scan;
 	HeapTuple	heapTuple;
@@ -3662,9 +3662,9 @@ reindex_relation(Oid relid, int flags, int options)
  * ----------------------------------------------------------------
  */
 
-static Oid	currentlyReindexedHeap = InvalidOid;
-static Oid	currentlyReindexedIndex = InvalidOid;
-static List *pendingReindexedIndexes = NIL;
+static Oid currentlyReindexedHeap = InvalidOid;
+static Oid currentlyReindexedIndex = InvalidOid;
+static List * pendingReindexedIndexes = NIL;
 
 /*
  * ReindexIsProcessingHeap
@@ -3736,7 +3736,7 @@ ResetReindexProcessing(void)
  * Also, we assume that the current memory context stays valid throughout.
  */
 static void
-SetReindexPending(List *indexes)
+SetReindexPending(List * indexes)
 {
 	/* Reindexing is not re-entrant. */
 	if (pendingReindexedIndexes)

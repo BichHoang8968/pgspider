@@ -116,26 +116,26 @@ extern void InitCatalogCache(void);
 extern void InitCatalogCachePhase2(void);
 
 extern HeapTuple SearchSysCache(int cacheId,
-			   Datum key1, Datum key2, Datum key3, Datum key4);
+								Datum key1, Datum key2, Datum key3, Datum key4);
 extern void ReleaseSysCache(HeapTuple tuple);
 
 /* convenience routines */
 extern HeapTuple SearchSysCacheCopy(int cacheId,
-				   Datum key1, Datum key2, Datum key3, Datum key4);
+									Datum key1, Datum key2, Datum key3, Datum key4);
 extern bool SearchSysCacheExists(int cacheId,
 					 Datum key1, Datum key2, Datum key3, Datum key4);
 extern Oid GetSysCacheOid(int cacheId,
-			   Datum key1, Datum key2, Datum key3, Datum key4);
+						  Datum key1, Datum key2, Datum key3, Datum key4);
 
 extern HeapTuple SearchSysCacheAttName(Oid relid, const char *attname);
 extern HeapTuple SearchSysCacheCopyAttName(Oid relid, const char *attname);
 extern bool SearchSysCacheExistsAttName(Oid relid, const char *attname);
 
 extern Datum SysCacheGetAttr(int cacheId, HeapTuple tup,
-				AttrNumber attributeNumber, bool *isNull);
+							 AttrNumber attributeNumber, bool *isNull);
 
 extern uint32 GetSysCacheHashValue(int cacheId,
-					 Datum key1, Datum key2, Datum key3, Datum key4);
+								   Datum key1, Datum key2, Datum key3, Datum key4);
 
 /* list-search interface.  Users of this must import catcache.h too */
 struct catclist;

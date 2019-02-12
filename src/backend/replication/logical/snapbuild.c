@@ -259,31 +259,31 @@ static ResourceOwner SavedResourceOwnerDuringExport = NULL;
 static bool ExportInProgress = false;
 
 /* ->committed manipulation */
-static void SnapBuildPurgeCommittedTxn(SnapBuild *builder);
+static void SnapBuildPurgeCommittedTxn(SnapBuild * builder);
 
 /* snapshot building/manipulation/distribution functions */
-static Snapshot SnapBuildBuildSnapshot(SnapBuild *builder);
+static Snapshot SnapBuildBuildSnapshot(SnapBuild * builder);
 
 static void SnapBuildFreeSnapshot(Snapshot snap);
 
 static void SnapBuildSnapIncRefcount(Snapshot snap);
 
-static void SnapBuildDistributeNewCatalogSnapshot(SnapBuild *builder, XLogRecPtr lsn);
+static void SnapBuildDistributeNewCatalogSnapshot(SnapBuild * builder, XLogRecPtr lsn);
 
 /* xlog reading helper functions for SnapBuildProcessRecord */
-static bool SnapBuildFindSnapshot(SnapBuild *builder, XLogRecPtr lsn, xl_running_xacts *running);
-static void SnapBuildWaitSnapshot(xl_running_xacts *running, TransactionId cutoff);
+static bool SnapBuildFindSnapshot(SnapBuild * builder, XLogRecPtr lsn, xl_running_xacts * running);
+static void SnapBuildWaitSnapshot(xl_running_xacts * running, TransactionId cutoff);
 
 /* serialization functions */
-static void SnapBuildSerialize(SnapBuild *builder, XLogRecPtr lsn);
-static bool SnapBuildRestore(SnapBuild *builder, XLogRecPtr lsn);
+static void SnapBuildSerialize(SnapBuild * builder, XLogRecPtr lsn);
+static bool SnapBuildRestore(SnapBuild * builder, XLogRecPtr lsn);
 
 /*
  * Return TransactionId after which the next phase of initial snapshot
  * building will happen.
  */
 static inline TransactionId
-SnapBuildNextPhaseAt(SnapBuild *builder)
+SnapBuildNextPhaseAt(SnapBuild * builder)
 {
 	/*
 	 * For backward compatibility reasons this has to be stored in the wrongly
@@ -297,7 +297,7 @@ SnapBuildNextPhaseAt(SnapBuild *builder)
  * will happen.
  */
 static inline void
-SnapBuildStartNextPhaseAt(SnapBuild *builder, TransactionId at)
+SnapBuildStartNextPhaseAt(SnapBuild * builder, TransactionId at)
 {
 	/*
 	 * For backward compatibility reasons this has to be stored in the wrongly
@@ -313,7 +313,7 @@ SnapBuildStartNextPhaseAt(SnapBuild *builder, TransactionId at)
  * removed, start_lsn is the LSN >= we want to replay commits.
  */
 SnapBuild *
-AllocateSnapshotBuilder(ReorderBuffer *reorder,
+AllocateSnapshotBuilder(ReorderBuffer * reorder,
 						TransactionId xmin_horizon,
 						XLogRecPtr start_lsn,
 						bool need_full_snapshot)
@@ -354,7 +354,7 @@ AllocateSnapshotBuilder(ReorderBuffer *reorder,
  * Free a snapshot builder.
  */
 void
-FreeSnapshotBuilder(SnapBuild *builder)
+FreeSnapshotBuilder(SnapBuild * builder)
 {
 	MemoryContext context = builder->context;
 
@@ -398,7 +398,7 @@ SnapBuildFreeSnapshot(Snapshot snap)
  * In which state of snapshot building are we?
  */
 SnapBuildState
-SnapBuildCurrentState(SnapBuild *builder)
+SnapBuildCurrentState(SnapBuild * builder)
 {
 	return builder->state;
 }
@@ -407,7 +407,7 @@ SnapBuildCurrentState(SnapBuild *builder)
  * Should the contents of transaction ending at 'ptr' be decoded?
  */
 bool
-SnapBuildXactNeedsSkip(SnapBuild *builder, XLogRecPtr ptr)
+SnapBuildXactNeedsSkip(SnapBuild * builder, XLogRecPtr ptr)
 {
 	return ptr < builder->start_decoding_at;
 }
@@ -463,7 +463,7 @@ SnapBuildSnapDecRefcount(Snapshot snap)
  * and ->subxip/subxcnt values.
  */
 static Snapshot
-SnapBuildBuildSnapshot(SnapBuild *builder)
+SnapBuildBuildSnapshot(SnapBuild * builder)
 {
 	Snapshot	snapshot;
 	Size		ssize;
@@ -542,7 +542,7 @@ SnapBuildBuildSnapshot(SnapBuild *builder)
  * for loading in different transaction.
  */
 Snapshot
-SnapBuildInitialSnapshot(SnapBuild *builder)
+SnapBuildInitialSnapshot(SnapBuild * builder)
 {
 	Snapshot	snap;
 	TransactionId xid;
@@ -632,7 +632,7 @@ SnapBuildInitialSnapshot(SnapBuild *builder)
  * sure the xmin horizon hasn't advanced since then.
  */
 const char *
-SnapBuildExportSnapshot(SnapBuild *builder)
+SnapBuildExportSnapshot(SnapBuild * builder)
 {
 	Snapshot	snap;
 	char	   *snapname;
@@ -672,7 +672,7 @@ SnapBuildExportSnapshot(SnapBuild *builder)
  * Ensure there is a snapshot and if not build one for current transaction.
  */
 Snapshot
-SnapBuildGetOrBuildSnapshot(SnapBuild *builder, TransactionId xid)
+SnapBuildGetOrBuildSnapshot(SnapBuild * builder, TransactionId xid)
 {
 	Assert(builder->state == SNAPBUILD_CONSISTENT);
 
@@ -716,7 +716,7 @@ SnapBuildClearExportedSnapshot(void)
  * be decoded.
  */
 bool
-SnapBuildProcessChange(SnapBuild *builder, TransactionId xid, XLogRecPtr lsn)
+SnapBuildProcessChange(SnapBuild * builder, TransactionId xid, XLogRecPtr lsn)
 {
 	/*
 	 * We can't handle data in transactions if we haven't built a snapshot
@@ -766,8 +766,8 @@ SnapBuildProcessChange(SnapBuild *builder, TransactionId xid, XLogRecPtr lsn)
  * catalogs.
  */
 void
-SnapBuildProcessNewCid(SnapBuild *builder, TransactionId xid,
-					   XLogRecPtr lsn, xl_heap_new_cid *xlrec)
+SnapBuildProcessNewCid(SnapBuild * builder, TransactionId xid,
+					   XLogRecPtr lsn, xl_heap_new_cid * xlrec)
 {
 	CommandId	cid;
 
@@ -808,7 +808,7 @@ SnapBuildProcessNewCid(SnapBuild *builder, TransactionId xid,
  * contents).
  */
 static void
-SnapBuildDistributeNewCatalogSnapshot(SnapBuild *builder, XLogRecPtr lsn)
+SnapBuildDistributeNewCatalogSnapshot(SnapBuild * builder, XLogRecPtr lsn)
 {
 	dlist_iter	txn_i;
 	ReorderBufferTXN *txn;
@@ -854,7 +854,7 @@ SnapBuildDistributeNewCatalogSnapshot(SnapBuild *builder, XLogRecPtr lsn)
  * Keep track of a new catalog changing transaction that has committed.
  */
 static void
-SnapBuildAddCommittedTxn(SnapBuild *builder, TransactionId xid)
+SnapBuildAddCommittedTxn(SnapBuild * builder, TransactionId xid)
 {
 	Assert(TransactionIdIsValid(xid));
 
@@ -883,7 +883,7 @@ SnapBuildAddCommittedTxn(SnapBuild *builder, TransactionId xid)
  * the clog machinery, so we don't need to waste memory on them.
  */
 static void
-SnapBuildPurgeCommittedTxn(SnapBuild *builder)
+SnapBuildPurgeCommittedTxn(SnapBuild * builder)
 {
 	int			off;
 	TransactionId *workspace;
@@ -924,8 +924,8 @@ SnapBuildPurgeCommittedTxn(SnapBuild *builder)
  * Handle everything that needs to be done when a transaction commits
  */
 void
-SnapBuildCommitTxn(SnapBuild *builder, XLogRecPtr lsn, TransactionId xid,
-				   int nsubxacts, TransactionId *subxacts)
+SnapBuildCommitTxn(SnapBuild * builder, XLogRecPtr lsn, TransactionId xid,
+				   int nsubxacts, TransactionId * subxacts)
 {
 	int			nxact;
 
@@ -1091,7 +1091,7 @@ SnapBuildCommitTxn(SnapBuild *builder, XLogRecPtr lsn, TransactionId xid,
  * anymore.
  */
 void
-SnapBuildProcessRunningXacts(SnapBuild *builder, XLogRecPtr lsn, xl_running_xacts *running)
+SnapBuildProcessRunningXacts(SnapBuild * builder, XLogRecPtr lsn, xl_running_xacts * running)
 {
 	ReorderBufferTXN *txn;
 	TransactionId xmin;
@@ -1193,7 +1193,7 @@ SnapBuildProcessRunningXacts(SnapBuild *builder, XLogRecPtr lsn, xl_running_xact
  * using the xl_running_xacts record.
  */
 static bool
-SnapBuildFindSnapshot(SnapBuild *builder, XLogRecPtr lsn, xl_running_xacts *running)
+SnapBuildFindSnapshot(SnapBuild * builder, XLogRecPtr lsn, xl_running_xacts * running)
 {
 	/* ---
 	 * Build catalog decoding snapshot incrementally using information about
@@ -1385,7 +1385,7 @@ SnapBuildFindSnapshot(SnapBuild *builder, XLogRecPtr lsn, xl_running_xacts *runn
  * ---
  */
 static void
-SnapBuildWaitSnapshot(xl_running_xacts *running, TransactionId cutoff)
+SnapBuildWaitSnapshot(xl_running_xacts * running, TransactionId cutoff)
 {
 	int			off;
 
@@ -1451,7 +1451,7 @@ typedef struct SnapBuildOnDisk
 	SnapBuild	builder;
 
 	/* variable amount of TransactionIds follows */
-} SnapBuildOnDisk;
+}			SnapBuildOnDisk;
 
 #define SnapBuildOnDiskConstantSize \
 	offsetof(SnapBuildOnDisk, builder)
@@ -1468,7 +1468,7 @@ typedef struct SnapBuildOnDisk
  * a record that's a potential location for a serialized snapshot.
  */
 void
-SnapBuildSerializationPoint(SnapBuild *builder, XLogRecPtr lsn)
+SnapBuildSerializationPoint(SnapBuild * builder, XLogRecPtr lsn)
 {
 	if (builder->state < SNAPBUILD_CONSISTENT)
 		SnapBuildRestore(builder, lsn);
@@ -1481,7 +1481,7 @@ SnapBuildSerializationPoint(SnapBuild *builder, XLogRecPtr lsn)
  * been done by another decoding process.
  */
 static void
-SnapBuildSerialize(SnapBuild *builder, XLogRecPtr lsn)
+SnapBuildSerialize(SnapBuild * builder, XLogRecPtr lsn)
 {
 	Size		needed_length;
 	SnapBuildOnDisk *ondisk;
@@ -1682,7 +1682,7 @@ out:
  * location indicated by 'lsn'. Returns true if successful, false otherwise.
  */
 static bool
-SnapBuildRestore(SnapBuild *builder, XLogRecPtr lsn)
+SnapBuildRestore(SnapBuild * builder, XLogRecPtr lsn)
 {
 	SnapBuildOnDisk ondisk;
 	int			fd;

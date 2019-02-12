@@ -40,7 +40,7 @@ join_tsqueries(TSQuery a, TSQuery b, int8 operator, uint16 distance)
 	if (operator == OP_PHRASE)
 		res->valnode->qoperator.distance = distance;
 
-	res->child = (QTNode **) palloc0(sizeof(QTNode *) * 2);
+	res->child = (QTNode * *) palloc0(sizeof(QTNode *) * 2);
 	res->child[0] = QT2QTN(GETQUERY(b), GETOPERAND(b));
 	res->child[1] = QT2QTN(GETQUERY(a), GETOPERAND(a));
 	res->nchild = 2;
@@ -172,7 +172,7 @@ tsquery_not(PG_FUNCTION_ARGS)
 	res->valnode->type = QI_OPR;
 	res->valnode->qoperator.oper = OP_NOT;
 
-	res->child = (QTNode **) palloc0(sizeof(QTNode *));
+	res->child = (QTNode * *) palloc0(sizeof(QTNode *));
 	res->child[0] = QT2QTN(GETQUERY(a), GETOPERAND(a));
 	res->nchild = 1;
 

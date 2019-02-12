@@ -81,8 +81,8 @@ extern bool redirection_done;
 static pg_time_t next_rotation_time;
 static bool pipe_eof_seen = false;
 static bool rotation_disabled = false;
-static FILE *syslogFile = NULL;
-static FILE *csvlogFile = NULL;
+static FILE * syslogFile = NULL;
+static FILE * csvlogFile = NULL;
 NON_EXEC_STATIC pg_time_t first_syslogger_file_time = 0;
 static char *last_file_name = NULL;
 static char *last_csv_file_name = NULL;
@@ -102,10 +102,10 @@ typedef struct
 {
 	int32		pid;			/* PID of source process */
 	StringInfoData data;		/* accumulated data, as a StringInfo */
-} save_buffer;
+}			save_buffer;
 
 #define NBUFFER_LISTS 256
-static List *buffer_lists[NBUFFER_LISTS];
+static List * buffer_lists[NBUFFER_LISTS];
 
 /* These must be exported for EXEC_BACKEND case ... annoying */
 #ifndef WIN32
@@ -135,8 +135,8 @@ NON_EXEC_STATIC void SysLoggerMain(int argc, char *argv[]) pg_attribute_noreturn
 static void process_pipe_input(char *logbuffer, int *bytes_in_logbuffer);
 static void flush_pipe_input(char *logbuffer, int *bytes_in_logbuffer);
 static void open_csvlogfile(void);
-static FILE *logfile_open(const char *filename, const char *mode,
-			 bool allow_errors);
+static FILE * logfile_open(const char *filename, const char *mode,
+						   bool allow_errors);
 
 #ifdef WIN32
 static unsigned int __stdcall pipeThread(void *arg);

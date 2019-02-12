@@ -33,12 +33,12 @@
 #include "utils/xml.h"
 
 
-static TupleTableSlot *TableFuncNext(TableFuncScanState *node);
-static bool TableFuncRecheck(TableFuncScanState *node, TupleTableSlot *slot);
+static TupleTableSlot * TableFuncNext(TableFuncScanState * node);
+static bool TableFuncRecheck(TableFuncScanState * node, TupleTableSlot * slot);
 
-static void tfuncFetchRows(TableFuncScanState *tstate, ExprContext *econtext);
-static void tfuncInitialize(TableFuncScanState *tstate, ExprContext *econtext, Datum doc);
-static void tfuncLoadRows(TableFuncScanState *tstate, ExprContext *econtext);
+static void tfuncFetchRows(TableFuncScanState * tstate, ExprContext * econtext);
+static void tfuncInitialize(TableFuncScanState * tstate, ExprContext * econtext, Datum doc);
+static void tfuncLoadRows(TableFuncScanState * tstate, ExprContext * econtext);
 
 /* ----------------------------------------------------------------
  *						Scan Support
@@ -51,7 +51,7 @@ static void tfuncLoadRows(TableFuncScanState *tstate, ExprContext *econtext);
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-TableFuncNext(TableFuncScanState *node)
+TableFuncNext(TableFuncScanState * node)
 {
 	TupleTableSlot *scanslot;
 
@@ -78,7 +78,7 @@ TableFuncNext(TableFuncScanState *node)
  * TableFuncRecheck -- access method routine to recheck a tuple in EvalPlanQual
  */
 static bool
-TableFuncRecheck(TableFuncScanState *node, TupleTableSlot *slot)
+TableFuncRecheck(TableFuncScanState * node, TupleTableSlot * slot)
 {
 	/* nothing to check */
 	return true;
@@ -94,7 +94,7 @@ TableFuncRecheck(TableFuncScanState *node, TupleTableSlot *slot)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecTableFuncScan(PlanState *pstate)
+ExecTableFuncScan(PlanState * pstate)
 {
 	TableFuncScanState *node = castNode(TableFuncScanState, pstate);
 
@@ -108,7 +108,7 @@ ExecTableFuncScan(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 TableFuncScanState *
-ExecInitTableFuncScan(TableFuncScan *node, EState *estate, int eflags)
+ExecInitTableFuncScan(TableFuncScan * node, EState * estate, int eflags)
 {
 	TableFuncScanState *scanstate;
 	TableFunc  *tf = node->tablefunc;
@@ -217,7 +217,7 @@ ExecInitTableFuncScan(TableFuncScan *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndTableFuncScan(TableFuncScanState *node)
+ExecEndTableFuncScan(TableFuncScanState * node)
 {
 	/*
 	 * Free the exprcontext
@@ -245,7 +245,7 @@ ExecEndTableFuncScan(TableFuncScanState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanTableFuncScan(TableFuncScanState *node)
+ExecReScanTableFuncScan(TableFuncScanState * node)
 {
 	Bitmapset  *chgparam = node->ss.ps.chgParam;
 
@@ -275,9 +275,9 @@ ExecReScanTableFuncScan(TableFuncScanState *node)
  * ----------------------------------------------------------------
  */
 static void
-tfuncFetchRows(TableFuncScanState *tstate, ExprContext *econtext)
+tfuncFetchRows(TableFuncScanState * tstate, ExprContext * econtext)
 {
-	const TableFuncRoutine *routine = tstate->routine;
+	const		TableFuncRoutine *routine = tstate->routine;
 	MemoryContext oldcxt;
 	Datum		value;
 	bool		isnull;
@@ -336,9 +336,9 @@ tfuncFetchRows(TableFuncScanState *tstate, ExprContext *econtext)
  * table expression builder context.
  */
 static void
-tfuncInitialize(TableFuncScanState *tstate, ExprContext *econtext, Datum doc)
+tfuncInitialize(TableFuncScanState * tstate, ExprContext * econtext, Datum doc)
 {
-	const TableFuncRoutine *routine = tstate->routine;
+	const		TableFuncRoutine *routine = tstate->routine;
 	TupleDesc	tupdesc;
 	ListCell   *lc1,
 			   *lc2;
@@ -420,9 +420,9 @@ tfuncInitialize(TableFuncScanState *tstate, ExprContext *econtext, Datum doc)
  * Load all the rows from the TableFunc table builder into a tuplestore.
  */
 static void
-tfuncLoadRows(TableFuncScanState *tstate, ExprContext *econtext)
+tfuncLoadRows(TableFuncScanState * tstate, ExprContext * econtext)
 {
-	const TableFuncRoutine *routine = tstate->routine;
+	const		TableFuncRoutine *routine = tstate->routine;
 	TupleTableSlot *slot = tstate->ss.ss_ScanTupleSlot;
 	TupleDesc	tupdesc = slot->tts_tupleDescriptor;
 	Datum	   *values = slot->tts_values;

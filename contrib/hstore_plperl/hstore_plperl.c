@@ -12,15 +12,15 @@ PG_MODULE_MAGIC;
 extern void _PG_init(void);
 
 /* Linkage to functions in hstore module */
-typedef HStore *(*hstoreUpgrade_t) (Datum orig);
+typedef HStore * (*hstoreUpgrade_t) (Datum orig);
 static hstoreUpgrade_t hstoreUpgrade_p;
-typedef int (*hstoreUniquePairs_t) (Pairs *a, int32 l, int32 *buflen);
+typedef int (*hstoreUniquePairs_t) (Pairs * a, int32 l, int32 * buflen);
 static hstoreUniquePairs_t hstoreUniquePairs_p;
-typedef HStore *(*hstorePairs_t) (Pairs *pairs, int32 pcount, int32 buflen);
+typedef HStore * (*hstorePairs_t) (Pairs * pairs, int32 pcount, int32 buflen);
 static hstorePairs_t hstorePairs_p;
-typedef size_t (*hstoreCheckKeyLen_t) (size_t len);
+typedef size_t(*hstoreCheckKeyLen_t) (size_t len);
 static hstoreCheckKeyLen_t hstoreCheckKeyLen_p;
-typedef size_t (*hstoreCheckValLen_t) (size_t len);
+typedef size_t(*hstoreCheckValLen_t) (size_t len);
 static hstoreCheckValLen_t hstoreCheckValLen_p;
 
 

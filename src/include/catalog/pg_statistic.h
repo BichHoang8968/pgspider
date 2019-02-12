@@ -126,7 +126,7 @@ CATALOG(pg_statistic,2619) BKI_WITHOUT_OIDS
  *		the format of pg_statistic relation.
  * ----------------
  */
-typedef FormData_pg_statistic *Form_pg_statistic;
+typedef FormData_pg_statistic * Form_pg_statistic;
 
 /* ----------------
  *		compiler constants for pg_statistic

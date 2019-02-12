@@ -21,10 +21,10 @@
 #include "utils/rel.h"
 
 static void entrySplitPage(GinBtree btree, Buffer origbuf,
-			   GinBtreeStack *stack,
-			   GinBtreeEntryInsertData *insertData,
+			   GinBtreeStack * stack,
+			   GinBtreeEntryInsertData * insertData,
 			   BlockNumber updateblkno,
-			   Page *newlpage, Page *newrpage);
+			   Page * newlpage, Page * newrpage);
 
 /*
  * Form a tuple for entry tree.
@@ -42,7 +42,7 @@ static void entrySplitPage(GinBtree btree, Buffer origbuf,
  * afterwards if data = NULL and nipd > 0.
  */
 IndexTuple
-GinFormTuple(GinState *ginstate,
+GinFormTuple(GinState * ginstate,
 			 OffsetNumber attnum, Datum key, GinNullCategory category,
 			 Pointer data, Size dataSize, int nipd,
 			 bool errorTooBig)
@@ -160,7 +160,7 @@ GinFormTuple(GinState *ginstate,
  * in *nitems.
  */
 ItemPointer
-ginReadTuple(GinState *ginstate, OffsetNumber attnum, IndexTuple itup,
+ginReadTuple(GinState * ginstate, OffsetNumber attnum, IndexTuple itup,
 			 int *nitems)
 {
 	Pointer		ptr = GinGetPosting(itup);
@@ -268,7 +268,7 @@ entryIsMoveRight(GinBtree btree, Page page)
  * page correctly chosen and searching value SHOULD be on page
  */
 static BlockNumber
-entryLocateEntry(GinBtree btree, GinBtreeStack *stack)
+entryLocateEntry(GinBtree btree, GinBtreeStack * stack)
 {
 	OffsetNumber low,
 				high,
@@ -344,7 +344,7 @@ entryLocateEntry(GinBtree btree, GinBtreeStack *stack)
  * Returns true if value found on page.
  */
 static bool
-entryLocateLeafEntry(GinBtree btree, GinBtreeStack *stack)
+entryLocateLeafEntry(GinBtree btree, GinBtreeStack * stack)
 {
 	Page		page = BufferGetPage(stack->buffer);
 	OffsetNumber low,
@@ -458,7 +458,7 @@ entryGetLeftMostPage(GinBtree btree, Page page)
 
 static bool
 entryIsEnoughSpace(GinBtree btree, Buffer buf, OffsetNumber off,
-				   GinBtreeEntryInsertData *insertData)
+				   GinBtreeEntryInsertData * insertData)
 {
 	Size		releasedsz = 0;
 	Size		addedsz;
@@ -489,7 +489,7 @@ entryIsEnoughSpace(GinBtree btree, Buffer buf, OffsetNumber off,
  */
 static void
 entryPreparePage(GinBtree btree, Page page, OffsetNumber off,
-				 GinBtreeEntryInsertData *insertData, BlockNumber updateblkno)
+				 GinBtreeEntryInsertData * insertData, BlockNumber updateblkno)
 {
 	Assert(insertData->entry);
 	Assert(!GinPageIsData(page));
@@ -525,10 +525,10 @@ entryPreparePage(GinBtree btree, Page page, OffsetNumber off,
  * point to updateblkno.
  */
 static GinPlaceToPageRC
-entryBeginPlaceToPage(GinBtree btree, Buffer buf, GinBtreeStack *stack,
+entryBeginPlaceToPage(GinBtree btree, Buffer buf, GinBtreeStack * stack,
 					  void *insertPayload, BlockNumber updateblkno,
 					  void **ptp_workspace,
-					  Page *newlpage, Page *newrpage)
+					  Page * newlpage, Page * newrpage)
 {
 	GinBtreeEntryInsertData *insertData = insertPayload;
 	OffsetNumber off = stack->off;
@@ -552,7 +552,7 @@ entryBeginPlaceToPage(GinBtree btree, Buffer buf, GinBtreeStack *stack,
  * needed) is already started.  The target buffer is registered in slot 0.
  */
 static void
-entryExecPlaceToPage(GinBtree btree, Buffer buf, GinBtreeStack *stack,
+entryExecPlaceToPage(GinBtree btree, Buffer buf, GinBtreeStack * stack,
 					 void *insertPayload, BlockNumber updateblkno,
 					 void *ptp_workspace)
 {
@@ -598,10 +598,10 @@ entryExecPlaceToPage(GinBtree btree, Buffer buf, GinBtreeStack *stack,
  */
 static void
 entrySplitPage(GinBtree btree, Buffer origbuf,
-			   GinBtreeStack *stack,
-			   GinBtreeEntryInsertData *insertData,
+			   GinBtreeStack * stack,
+			   GinBtreeEntryInsertData * insertData,
 			   BlockNumber updateblkno,
-			   Page *newlpage, Page *newrpage)
+			   Page * newlpage, Page * newrpage)
 {
 	OffsetNumber off = stack->off;
 	OffsetNumber i,
@@ -744,7 +744,7 @@ ginEntryFillRoot(GinBtree btree, Page root,
 void
 ginPrepareEntryScan(GinBtree btree, OffsetNumber attnum,
 					Datum key, GinNullCategory category,
-					GinState *ginstate)
+					GinState * ginstate)
 {
 	memset(btree, 0, sizeof(GinBtreeData));
 

@@ -26,10 +26,10 @@
 #include "utils/rel.h"
 #include "utils/tqual.h"
 
-static void InitScanRelation(SampleScanState *node, EState *estate, int eflags);
-static TupleTableSlot *SampleNext(SampleScanState *node);
-static void tablesample_init(SampleScanState *scanstate);
-static HeapTuple tablesample_getnext(SampleScanState *scanstate);
+static void InitScanRelation(SampleScanState * node, EState * estate, int eflags);
+static TupleTableSlot * SampleNext(SampleScanState * node);
+static void tablesample_init(SampleScanState * scanstate);
+static HeapTuple tablesample_getnext(SampleScanState * scanstate);
 static bool SampleTupleVisible(HeapTuple tuple, OffsetNumber tupoffset,
 				   HeapScanDesc scan);
 
@@ -45,7 +45,7 @@ static bool SampleTupleVisible(HeapTuple tuple, OffsetNumber tupoffset,
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-SampleNext(SampleScanState *node)
+SampleNext(SampleScanState * node)
 {
 	HeapTuple	tuple;
 	TupleTableSlot *slot;
@@ -78,7 +78,7 @@ SampleNext(SampleScanState *node)
  * SampleRecheck -- access method routine to recheck a tuple in EvalPlanQual
  */
 static bool
-SampleRecheck(SampleScanState *node, TupleTableSlot *slot)
+SampleRecheck(SampleScanState * node, TupleTableSlot * slot)
 {
 	/*
 	 * No need to recheck for SampleScan, since like SeqScan we don't pass any
@@ -97,7 +97,7 @@ SampleRecheck(SampleScanState *node, TupleTableSlot *slot)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecSampleScan(PlanState *pstate)
+ExecSampleScan(PlanState * pstate)
 {
 	SampleScanState *node = castNode(SampleScanState, pstate);
 
@@ -113,7 +113,7 @@ ExecSampleScan(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 static void
-InitScanRelation(SampleScanState *node, EState *estate, int eflags)
+InitScanRelation(SampleScanState * node, EState * estate, int eflags)
 {
 	Relation	currentRelation;
 
@@ -140,7 +140,7 @@ InitScanRelation(SampleScanState *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 SampleScanState *
-ExecInitSampleScan(SampleScan *node, EState *estate, int eflags)
+ExecInitSampleScan(SampleScan * node, EState * estate, int eflags)
 {
 	SampleScanState *scanstate;
 	TableSampleClause *tsc = node->tablesample;
@@ -221,7 +221,7 @@ ExecInitSampleScan(SampleScan *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndSampleScan(SampleScanState *node)
+ExecEndSampleScan(SampleScanState * node)
 {
 	/*
 	 * Tell sampling function that we finished the scan.
@@ -260,7 +260,7 @@ ExecEndSampleScan(SampleScanState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanSampleScan(SampleScanState *node)
+ExecReScanSampleScan(SampleScanState * node)
 {
 	/* Remember we need to do BeginSampleScan again (if we did it at all) */
 	node->begun = false;
@@ -273,7 +273,7 @@ ExecReScanSampleScan(SampleScanState *node)
  * Initialize the TABLESAMPLE method: evaluate params and call BeginSampleScan.
  */
 static void
-tablesample_init(SampleScanState *scanstate)
+tablesample_init(SampleScanState * scanstate)
 {
 	TsmRoutine *tsm = scanstate->tsmroutine;
 	ExprContext *econtext = scanstate->ss.ps.ps_ExprContext;
@@ -377,7 +377,7 @@ tablesample_init(SampleScanState *scanstate)
  * perhaps be better to refactor to share more code.
  */
 static HeapTuple
-tablesample_getnext(SampleScanState *scanstate)
+tablesample_getnext(SampleScanState * scanstate)
 {
 	TsmRoutine *tsm = scanstate->tsmroutine;
 	HeapScanDesc scan = scanstate->ss.ss_currentScanDesc;

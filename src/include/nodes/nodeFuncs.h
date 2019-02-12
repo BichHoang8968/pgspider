@@ -29,48 +29,48 @@
 typedef bool (*check_function_callback) (Oid func_id, void *context);
 
 
-extern Oid	exprType(const Node *expr);
-extern int32 exprTypmod(const Node *expr);
-extern bool exprIsLengthCoercion(const Node *expr, int32 *coercedTypmod);
-extern Node *relabel_to_typmod(Node *expr, int32 typmod);
-extern Node *strip_implicit_coercions(Node *node);
-extern bool expression_returns_set(Node *clause);
+extern Oid exprType(const Node * expr);
+extern int32 exprTypmod(const Node * expr);
+extern bool exprIsLengthCoercion(const Node * expr, int32 * coercedTypmod);
+extern Node * relabel_to_typmod(Node * expr, int32 typmod);
+extern Node * strip_implicit_coercions(Node * node);
+extern bool expression_returns_set(Node * clause);
 
-extern Oid	exprCollation(const Node *expr);
-extern Oid	exprInputCollation(const Node *expr);
-extern void exprSetCollation(Node *expr, Oid collation);
-extern void exprSetInputCollation(Node *expr, Oid inputcollation);
+extern Oid exprCollation(const Node * expr);
+extern Oid exprInputCollation(const Node * expr);
+extern void exprSetCollation(Node * expr, Oid collation);
+extern void exprSetInputCollation(Node * expr, Oid inputcollation);
 
-extern int	exprLocation(const Node *expr);
+extern int	exprLocation(const Node * expr);
 
-extern void fix_opfuncids(Node *node);
-extern void set_opfuncid(OpExpr *opexpr);
-extern void set_sa_opfuncid(ScalarArrayOpExpr *opexpr);
+extern void fix_opfuncids(Node * node);
+extern void set_opfuncid(OpExpr * opexpr);
+extern void set_sa_opfuncid(ScalarArrayOpExpr * opexpr);
 
-extern bool check_functions_in_node(Node *node, check_function_callback checker,
+extern bool check_functions_in_node(Node * node, check_function_callback checker,
 						void *context);
 
-extern bool expression_tree_walker(Node *node, bool (*walker) (),
+extern bool expression_tree_walker(Node * node, bool (*walker) (),
 								   void *context);
-extern Node *expression_tree_mutator(Node *node, Node *(*mutator) (),
-									 void *context);
+extern Node * expression_tree_mutator(Node * node, Node * (*mutator) (),
+									  void *context);
 
-extern bool query_tree_walker(Query *query, bool (*walker) (),
+extern bool query_tree_walker(Query * query, bool (*walker) (),
 							  void *context, int flags);
-extern Query *query_tree_mutator(Query *query, Node *(*mutator) (),
-								 void *context, int flags);
+extern Query * query_tree_mutator(Query * query, Node * (*mutator) (),
+								  void *context, int flags);
 
-extern bool range_table_walker(List *rtable, bool (*walker) (),
+extern bool range_table_walker(List * rtable, bool (*walker) (),
 							   void *context, int flags);
-extern List *range_table_mutator(List *rtable, Node *(*mutator) (),
-								 void *context, int flags);
+extern List * range_table_mutator(List * rtable, Node * (*mutator) (),
+								  void *context, int flags);
 
-extern bool query_or_expression_tree_walker(Node *node, bool (*walker) (),
+extern bool query_or_expression_tree_walker(Node * node, bool (*walker) (),
 											void *context, int flags);
-extern Node *query_or_expression_tree_mutator(Node *node, Node *(*mutator) (),
-											  void *context, int flags);
+extern Node * query_or_expression_tree_mutator(Node * node, Node * (*mutator) (),
+											   void *context, int flags);
 
-extern bool raw_expression_tree_walker(Node *node, bool (*walker) (),
+extern bool raw_expression_tree_walker(Node * node, bool (*walker) (),
 									   void *context);
 
 struct PlanState;

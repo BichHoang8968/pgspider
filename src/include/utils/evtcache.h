@@ -22,7 +22,7 @@ typedef enum
 	EVT_DDLCommandEnd,
 	EVT_SQLDrop,
 	EVT_TableRewrite
-} EventTriggerEvent;
+}			EventTriggerEvent;
 
 typedef struct
 {
@@ -30,8 +30,8 @@ typedef struct
 	char		enabled;		/* as SESSION_REPLICATION_ROLE_* */
 	int			ntags;			/* number of command tags */
 	char	  **tag;			/* command tags in SORTED order */
-} EventTriggerCacheItem;
+}			EventTriggerCacheItem;
 
-extern List *EventCacheLookup(EventTriggerEvent event);
+extern List * EventCacheLookup(EventTriggerEvent event);
 
 #endif							/* EVTCACHE_H */

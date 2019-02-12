@@ -52,17 +52,17 @@
 #include "utils/tqual.h"
 
 
-static TupleTableSlot *BitmapHeapNext(BitmapHeapScanState *node);
-static void bitgetpage(HeapScanDesc scan, TBMIterateResult *tbmres);
+static TupleTableSlot * BitmapHeapNext(BitmapHeapScanState * node);
+static void bitgetpage(HeapScanDesc scan, TBMIterateResult * tbmres);
 static inline void BitmapDoneInitializingSharedState(
-								  ParallelBitmapHeapState *pstate);
-static inline void BitmapAdjustPrefetchIterator(BitmapHeapScanState *node,
-							 TBMIterateResult *tbmres);
-static inline void BitmapAdjustPrefetchTarget(BitmapHeapScanState *node);
-static inline void BitmapPrefetch(BitmapHeapScanState *node,
+								  ParallelBitmapHeapState * pstate);
+static inline void BitmapAdjustPrefetchIterator(BitmapHeapScanState * node,
+							 TBMIterateResult * tbmres);
+static inline void BitmapAdjustPrefetchTarget(BitmapHeapScanState * node);
+static inline void BitmapPrefetch(BitmapHeapScanState * node,
 			   HeapScanDesc scan);
 static bool BitmapShouldInitializeSharedState(
-								  ParallelBitmapHeapState *pstate);
+								  ParallelBitmapHeapState * pstate);
 
 
 /* ----------------------------------------------------------------
@@ -72,7 +72,7 @@ static bool BitmapShouldInitializeSharedState(
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-BitmapHeapNext(BitmapHeapScanState *node)
+BitmapHeapNext(BitmapHeapScanState * node)
 {
 	ExprContext *econtext;
 	HeapScanDesc scan;
@@ -349,7 +349,7 @@ BitmapHeapNext(BitmapHeapScanState *node)
  * interesting according to the bitmap, and visible according to the snapshot.
  */
 static void
-bitgetpage(HeapScanDesc scan, TBMIterateResult *tbmres)
+bitgetpage(HeapScanDesc scan, TBMIterateResult * tbmres)
 {
 	BlockNumber page = tbmres->blockno;
 	Buffer		buffer;
@@ -452,7 +452,7 @@ bitgetpage(HeapScanDesc scan, TBMIterateResult *tbmres)
  *	shared state so wake up other processes.
  */
 static inline void
-BitmapDoneInitializingSharedState(ParallelBitmapHeapState *pstate)
+BitmapDoneInitializingSharedState(ParallelBitmapHeapState * pstate)
 {
 	SpinLockAcquire(&pstate->mutex);
 	pstate->state = BM_FINISHED;
@@ -464,8 +464,8 @@ BitmapDoneInitializingSharedState(ParallelBitmapHeapState *pstate)
  *	BitmapAdjustPrefetchIterator - Adjust the prefetch iterator
  */
 static inline void
-BitmapAdjustPrefetchIterator(BitmapHeapScanState *node,
-							 TBMIterateResult *tbmres)
+BitmapAdjustPrefetchIterator(BitmapHeapScanState * node,
+							 TBMIterateResult * tbmres)
 {
 #ifdef USE_PREFETCH
 	ParallelBitmapHeapState *pstate = node->pstate;
@@ -529,7 +529,7 @@ BitmapAdjustPrefetchIterator(BitmapHeapScanState *node,
  * it doubles as later pages are fetched.
  */
 static inline void
-BitmapAdjustPrefetchTarget(BitmapHeapScanState *node)
+BitmapAdjustPrefetchTarget(BitmapHeapScanState * node)
 {
 #ifdef USE_PREFETCH
 	ParallelBitmapHeapState *pstate = node->pstate;
@@ -568,7 +568,7 @@ BitmapAdjustPrefetchTarget(BitmapHeapScanState *node)
  * BitmapPrefetch - Prefetch, if prefetch_pages are behind prefetch_target
  */
 static inline void
-BitmapPrefetch(BitmapHeapScanState *node, HeapScanDesc scan)
+BitmapPrefetch(BitmapHeapScanState * node, HeapScanDesc scan)
 {
 #ifdef USE_PREFETCH
 	ParallelBitmapHeapState *pstate = node->pstate;
@@ -644,7 +644,7 @@ BitmapPrefetch(BitmapHeapScanState *node, HeapScanDesc scan)
  * BitmapHeapRecheck -- access method routine to recheck a tuple in EvalPlanQual
  */
 static bool
-BitmapHeapRecheck(BitmapHeapScanState *node, TupleTableSlot *slot)
+BitmapHeapRecheck(BitmapHeapScanState * node, TupleTableSlot * slot)
 {
 	ExprContext *econtext;
 
@@ -666,7 +666,7 @@ BitmapHeapRecheck(BitmapHeapScanState *node, TupleTableSlot *slot)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecBitmapHeapScan(PlanState *pstate)
+ExecBitmapHeapScan(PlanState * pstate)
 {
 	BitmapHeapScanState *node = castNode(BitmapHeapScanState, pstate);
 
@@ -680,7 +680,7 @@ ExecBitmapHeapScan(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanBitmapHeapScan(BitmapHeapScanState *node)
+ExecReScanBitmapHeapScan(BitmapHeapScanState * node)
 {
 	PlanState  *outerPlan = outerPlanState(node);
 
@@ -720,7 +720,7 @@ ExecReScanBitmapHeapScan(BitmapHeapScanState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecEndBitmapHeapScan(BitmapHeapScanState *node)
+ExecEndBitmapHeapScan(BitmapHeapScanState * node)
 {
 	Relation	relation;
 	HeapScanDesc scanDesc;
@@ -779,7 +779,7 @@ ExecEndBitmapHeapScan(BitmapHeapScanState *node)
  * ----------------------------------------------------------------
  */
 BitmapHeapScanState *
-ExecInitBitmapHeapScan(BitmapHeapScan *node, EState *estate, int eflags)
+ExecInitBitmapHeapScan(BitmapHeapScan * node, EState * estate, int eflags)
 {
 	BitmapHeapScanState *scanstate;
 	Relation	currentRelation;
@@ -906,7 +906,7 @@ ExecInitBitmapHeapScan(BitmapHeapScan *node, EState *estate, int eflags)
  * ---------------
  */
 static bool
-BitmapShouldInitializeSharedState(ParallelBitmapHeapState *pstate)
+BitmapShouldInitializeSharedState(ParallelBitmapHeapState * pstate)
 {
 	SharedBitmapState state;
 
@@ -938,8 +938,8 @@ BitmapShouldInitializeSharedState(ParallelBitmapHeapState *pstate)
  * ----------------------------------------------------------------
  */
 void
-ExecBitmapHeapEstimate(BitmapHeapScanState *node,
-					   ParallelContext *pcxt)
+ExecBitmapHeapEstimate(BitmapHeapScanState * node,
+					   ParallelContext * pcxt)
 {
 	EState	   *estate = node->ss.ps.state;
 
@@ -958,8 +958,8 @@ ExecBitmapHeapEstimate(BitmapHeapScanState *node,
  * ----------------------------------------------------------------
  */
 void
-ExecBitmapHeapInitializeDSM(BitmapHeapScanState *node,
-							ParallelContext *pcxt)
+ExecBitmapHeapInitializeDSM(BitmapHeapScanState * node,
+							ParallelContext * pcxt)
 {
 	ParallelBitmapHeapState *pstate;
 	EState	   *estate = node->ss.ps.state;
@@ -994,8 +994,8 @@ ExecBitmapHeapInitializeDSM(BitmapHeapScanState *node,
  * ----------------------------------------------------------------
  */
 void
-ExecBitmapHeapReInitializeDSM(BitmapHeapScanState *node,
-							  ParallelContext *pcxt)
+ExecBitmapHeapReInitializeDSM(BitmapHeapScanState * node,
+							  ParallelContext * pcxt)
 {
 	ParallelBitmapHeapState *pstate = node->pstate;
 	dsa_area   *dsa = node->ss.ps.state->es_query_dsa;
@@ -1023,7 +1023,7 @@ ExecBitmapHeapReInitializeDSM(BitmapHeapScanState *node,
  * ----------------------------------------------------------------
  */
 void
-ExecBitmapHeapInitializeWorker(BitmapHeapScanState *node, shm_toc *toc)
+ExecBitmapHeapInitializeWorker(BitmapHeapScanState * node, shm_toc * toc)
 {
 	ParallelBitmapHeapState *pstate;
 	Snapshot	snapshot;

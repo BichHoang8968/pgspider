@@ -92,7 +92,7 @@ typedef struct FileFdwPlanState
 								 * is_program */
 	BlockNumber pages;			/* estimate of file's physical size */
 	double		ntuples;		/* estimate of number of data rows */
-} FileFdwPlanState;
+}			FileFdwPlanState;
 
 /*
  * FDW-specific information for ForeignScanState.fdw_state.
@@ -104,7 +104,7 @@ typedef struct FileFdwExecutionState
 	List	   *options;		/* merged COPY options, excluding filename and
 								 * is_program */
 	CopyState	cstate;			/* COPY execution state */
-} FileFdwExecutionState;
+}			FileFdwExecutionState;
 
 /*
  * SQL functions
@@ -115,29 +115,29 @@ PG_FUNCTION_INFO_V1(file_fdw_validator);
 /*
  * FDW callback routines
  */
-static void fileGetForeignRelSize(PlannerInfo *root,
-					  RelOptInfo *baserel,
+static void fileGetForeignRelSize(PlannerInfo * root,
+					  RelOptInfo * baserel,
 					  Oid foreigntableid);
-static void fileGetForeignPaths(PlannerInfo *root,
-					RelOptInfo *baserel,
+static void fileGetForeignPaths(PlannerInfo * root,
+					RelOptInfo * baserel,
 					Oid foreigntableid);
-static ForeignScan *fileGetForeignPlan(PlannerInfo *root,
-				   RelOptInfo *baserel,
-				   Oid foreigntableid,
-				   ForeignPath *best_path,
-				   List *tlist,
-				   List *scan_clauses,
-				   Plan *outer_plan);
-static void fileExplainForeignScan(ForeignScanState *node, ExplainState *es);
-static void fileBeginForeignScan(ForeignScanState *node, int eflags);
-static TupleTableSlot *fileIterateForeignScan(ForeignScanState *node);
-static void fileReScanForeignScan(ForeignScanState *node);
-static void fileEndForeignScan(ForeignScanState *node);
+static ForeignScan * fileGetForeignPlan(PlannerInfo * root,
+										RelOptInfo * baserel,
+										Oid foreigntableid,
+										ForeignPath * best_path,
+										List * tlist,
+										List * scan_clauses,
+										Plan * outer_plan);
+static void fileExplainForeignScan(ForeignScanState * node, ExplainState * es);
+static void fileBeginForeignScan(ForeignScanState * node, int eflags);
+static TupleTableSlot * fileIterateForeignScan(ForeignScanState * node);
+static void fileReScanForeignScan(ForeignScanState * node);
+static void fileEndForeignScan(ForeignScanState * node);
 static bool fileAnalyzeForeignTable(Relation relation,
-						AcquireSampleRowsFunc *func,
-						BlockNumber *totalpages);
-static bool fileIsForeignScanParallelSafe(PlannerInfo *root, RelOptInfo *rel,
-							  RangeTblEntry *rte);
+						AcquireSampleRowsFunc * func,
+						BlockNumber * totalpages);
+static bool fileIsForeignScanParallelSafe(PlannerInfo * root, RelOptInfo * rel,
+							  RangeTblEntry * rte);
 
 /*
  * Helper functions
@@ -146,18 +146,18 @@ static bool is_valid_option(const char *option, Oid context);
 static void fileGetOptions(Oid foreigntableid,
 			   char **filename,
 			   bool *is_program,
-			   List **other_options);
-static List *get_file_fdw_attribute_options(Oid relid);
-static bool check_selective_binary_conversion(RelOptInfo *baserel,
+			   List * *other_options);
+static List * get_file_fdw_attribute_options(Oid relid);
+static bool check_selective_binary_conversion(RelOptInfo * baserel,
 								  Oid foreigntableid,
-								  List **columns);
-static void estimate_size(PlannerInfo *root, RelOptInfo *baserel,
-			  FileFdwPlanState *fdw_private);
-static void estimate_costs(PlannerInfo *root, RelOptInfo *baserel,
-			   FileFdwPlanState *fdw_private,
-			   Cost *startup_cost, Cost *total_cost);
+								  List * *columns);
+static void estimate_size(PlannerInfo * root, RelOptInfo * baserel,
+			  FileFdwPlanState * fdw_private);
+static void estimate_costs(PlannerInfo * root, RelOptInfo * baserel,
+			   FileFdwPlanState * fdw_private,
+			   Cost * startup_cost, Cost * total_cost);
 static int file_acquire_sample_rows(Relation onerel, int elevel,
-						 HeapTuple *rows, int targrows,
+						 HeapTuple * rows, int targrows,
 						 double *totalrows, double *totaldeadrows);
 
 
@@ -339,7 +339,7 @@ is_valid_option(const char *option, Oid context)
  */
 static void
 fileGetOptions(Oid foreigntableid,
-			   char **filename, bool *is_program, List **other_options)
+			   char **filename, bool *is_program, List * *other_options)
 {
 	ForeignTable *table;
 	ForeignServer *server;
@@ -485,8 +485,8 @@ get_file_fdw_attribute_options(Oid relid)
  *		Obtain relation size estimates for a foreign table
  */
 static void
-fileGetForeignRelSize(PlannerInfo *root,
-					  RelOptInfo *baserel,
+fileGetForeignRelSize(PlannerInfo * root,
+					  RelOptInfo * baserel,
 					  Oid foreigntableid)
 {
 	FileFdwPlanState *fdw_private;
@@ -516,8 +516,8 @@ fileGetForeignRelSize(PlannerInfo *root,
  *		the data file.
  */
 static void
-fileGetForeignPaths(PlannerInfo *root,
-					RelOptInfo *baserel,
+fileGetForeignPaths(PlannerInfo * root,
+					RelOptInfo * baserel,
 					Oid foreigntableid)
 {
 	FileFdwPlanState *fdw_private = (FileFdwPlanState *) baserel->fdw_private;
@@ -565,13 +565,13 @@ fileGetForeignPaths(PlannerInfo *root,
  *		Create a ForeignScan plan node for scanning the foreign table
  */
 static ForeignScan *
-fileGetForeignPlan(PlannerInfo *root,
-				   RelOptInfo *baserel,
+fileGetForeignPlan(PlannerInfo * root,
+				   RelOptInfo * baserel,
 				   Oid foreigntableid,
-				   ForeignPath *best_path,
-				   List *tlist,
-				   List *scan_clauses,
-				   Plan *outer_plan)
+				   ForeignPath * best_path,
+				   List * tlist,
+				   List * scan_clauses,
+				   Plan * outer_plan)
 {
 	Index		scan_relid = baserel->relid;
 
@@ -600,7 +600,7 @@ fileGetForeignPlan(PlannerInfo *root,
  *		Produce extra output for EXPLAIN
  */
 static void
-fileExplainForeignScan(ForeignScanState *node, ExplainState *es)
+fileExplainForeignScan(ForeignScanState * node, ExplainState * es)
 {
 	char	   *filename;
 	bool		is_program;
@@ -632,7 +632,7 @@ fileExplainForeignScan(ForeignScanState *node, ExplainState *es)
  *		Initiate access to the file by creating CopyState
  */
 static void
-fileBeginForeignScan(ForeignScanState *node, int eflags)
+fileBeginForeignScan(ForeignScanState * node, int eflags)
 {
 	ForeignScan *plan = (ForeignScan *) node->ss.ps.plan;
 	char	   *filename;
@@ -685,7 +685,7 @@ fileBeginForeignScan(ForeignScanState *node, int eflags)
  *		ScanTupleSlot as a virtual tuple
  */
 static TupleTableSlot *
-fileIterateForeignScan(ForeignScanState *node)
+fileIterateForeignScan(ForeignScanState * node)
 {
 	FileFdwExecutionState *festate = (FileFdwExecutionState *) node->fdw_state;
 	TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
@@ -728,7 +728,7 @@ fileIterateForeignScan(ForeignScanState *node)
  *		Rescan table, possibly with new parameters
  */
 static void
-fileReScanForeignScan(ForeignScanState *node)
+fileReScanForeignScan(ForeignScanState * node)
 {
 	FileFdwExecutionState *festate = (FileFdwExecutionState *) node->fdw_state;
 
@@ -748,7 +748,7 @@ fileReScanForeignScan(ForeignScanState *node)
  *		Finish scanning foreign table and dispose objects used for this scan
  */
 static void
-fileEndForeignScan(ForeignScanState *node)
+fileEndForeignScan(ForeignScanState * node)
 {
 	FileFdwExecutionState *festate = (FileFdwExecutionState *) node->fdw_state;
 
@@ -763,8 +763,8 @@ fileEndForeignScan(ForeignScanState *node)
  */
 static bool
 fileAnalyzeForeignTable(Relation relation,
-						AcquireSampleRowsFunc *func,
-						BlockNumber *totalpages)
+						AcquireSampleRowsFunc * func,
+						BlockNumber * totalpages)
 {
 	char	   *filename;
 	bool		is_program;
@@ -813,8 +813,8 @@ fileAnalyzeForeignTable(Relation relation,
  *		just the same as reading it in the leader, so mark scans safe.
  */
 static bool
-fileIsForeignScanParallelSafe(PlannerInfo *root, RelOptInfo *rel,
-							  RangeTblEntry *rte)
+fileIsForeignScanParallelSafe(PlannerInfo * root, RelOptInfo * rel,
+							  RangeTblEntry * rte)
 {
 	return true;
 }
@@ -829,9 +829,9 @@ fileIsForeignScanParallelSafe(PlannerInfo *root, RelOptInfo *rel,
  * query.  So we can't use returning a NIL list to indicate failure.)
  */
 static bool
-check_selective_binary_conversion(RelOptInfo *baserel,
+check_selective_binary_conversion(RelOptInfo * baserel,
 								  Oid foreigntableid,
-								  List **columns)
+								  List * *columns)
 {
 	ForeignTable *table;
 	ListCell   *lc;
@@ -946,8 +946,8 @@ check_selective_binary_conversion(RelOptInfo *baserel,
  * calculation.
  */
 static void
-estimate_size(PlannerInfo *root, RelOptInfo *baserel,
-			  FileFdwPlanState *fdw_private)
+estimate_size(PlannerInfo * root, RelOptInfo * baserel,
+			  FileFdwPlanState * fdw_private)
 {
 	struct stat stat_buf;
 	BlockNumber pages;
@@ -1027,9 +1027,9 @@ estimate_size(PlannerInfo *root, RelOptInfo *baserel,
  * Results are returned in *startup_cost and *total_cost.
  */
 static void
-estimate_costs(PlannerInfo *root, RelOptInfo *baserel,
-			   FileFdwPlanState *fdw_private,
-			   Cost *startup_cost, Cost *total_cost)
+estimate_costs(PlannerInfo * root, RelOptInfo * baserel,
+			   FileFdwPlanState * fdw_private,
+			   Cost * startup_cost, Cost * total_cost)
 {
 	BlockNumber pages = fdw_private->pages;
 	double		ntuples = fdw_private->ntuples;
@@ -1071,7 +1071,7 @@ estimate_costs(PlannerInfo *root, RelOptInfo *baserel,
  */
 static int
 file_acquire_sample_rows(Relation onerel, int elevel,
-						 HeapTuple *rows, int targrows,
+						 HeapTuple * rows, int targrows,
 						 double *totalrows, double *totaldeadrows)
 {
 	int			numrows = 0;

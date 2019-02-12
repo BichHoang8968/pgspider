@@ -32,7 +32,7 @@ CATALOG(pg_transform,3576)
 	regproc		trftosql;
 } FormData_pg_transform;
 
-typedef FormData_pg_transform *Form_pg_transform;
+typedef FormData_pg_transform * Form_pg_transform;
 
 /* ----------------
  *		compiler constants for pg_transform

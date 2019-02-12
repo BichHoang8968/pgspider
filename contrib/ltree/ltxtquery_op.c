@@ -17,7 +17,7 @@ PG_FUNCTION_INFO_V1(ltxtq_rexec);
  * check for boolean condition
  */
 bool
-ltree_execute(ITEM *curitem, void *checkval, bool calcnot, bool (*chkcond) (void *checkval, ITEM *val))
+ltree_execute(ITEM * curitem, void *checkval, bool calcnot, bool (*chkcond) (void *checkval, ITEM * val))
 {
 	/* since this function recurses, it could be driven to stack overflow */
 	check_stack_depth();
@@ -50,10 +50,10 @@ typedef struct
 {
 	ltree	   *node;
 	char	   *operand;
-} CHKVAL;
+}			CHKVAL;
 
 static bool
-checkcondition_str(void *checkval, ITEM *val)
+checkcondition_str(void *checkval, ITEM * val)
 {
 	ltree_level *level = LTREE_FIRST(((CHKVAL *) checkval)->node);
 	int			tlen = ((CHKVAL *) checkval)->node->numlevel;

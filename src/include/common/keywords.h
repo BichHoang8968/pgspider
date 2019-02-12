@@ -26,7 +26,7 @@ typedef struct ScanKeyword
 	const char *name;			/* in lower case */
 	int16		value;			/* grammar's token code */
 	int16		category;		/* see codes above */
-} ScanKeyword;
+}			ScanKeyword;
 
 #ifndef FRONTEND
 extern PGDLLIMPORT const ScanKeyword ScanKeywords[];
@@ -38,7 +38,7 @@ extern const int NumScanKeywords;
 
 
 extern const ScanKeyword *ScanKeywordLookup(const char *text,
-				  const ScanKeyword *keywords,
+				  const ScanKeyword * keywords,
 				  int num_keywords);
 
 #endif							/* KEYWORDS_H */

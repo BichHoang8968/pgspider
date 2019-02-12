@@ -30,7 +30,7 @@
 #include "executor/execdebug.h"
 #include "executor/nodeSubqueryscan.h"
 
-static TupleTableSlot *SubqueryNext(SubqueryScanState *node);
+static TupleTableSlot * SubqueryNext(SubqueryScanState * node);
 
 /* ----------------------------------------------------------------
  *						Scan Support
@@ -43,7 +43,7 @@ static TupleTableSlot *SubqueryNext(SubqueryScanState *node);
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-SubqueryNext(SubqueryScanState *node)
+SubqueryNext(SubqueryScanState * node)
 {
 	TupleTableSlot *slot;
 
@@ -64,7 +64,7 @@ SubqueryNext(SubqueryScanState *node)
  * SubqueryRecheck -- access method routine to recheck a tuple in EvalPlanQual
  */
 static bool
-SubqueryRecheck(SubqueryScanState *node, TupleTableSlot *slot)
+SubqueryRecheck(SubqueryScanState * node, TupleTableSlot * slot)
 {
 	/* nothing to check */
 	return true;
@@ -80,7 +80,7 @@ SubqueryRecheck(SubqueryScanState *node, TupleTableSlot *slot)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecSubqueryScan(PlanState *pstate)
+ExecSubqueryScan(PlanState * pstate)
 {
 	SubqueryScanState *node = castNode(SubqueryScanState, pstate);
 
@@ -94,7 +94,7 @@ ExecSubqueryScan(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 SubqueryScanState *
-ExecInitSubqueryScan(SubqueryScan *node, EState *estate, int eflags)
+ExecInitSubqueryScan(SubqueryScan * node, EState * estate, int eflags)
 {
 	SubqueryScanState *subquerystate;
 
@@ -159,7 +159,7 @@ ExecInitSubqueryScan(SubqueryScan *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndSubqueryScan(SubqueryScanState *node)
+ExecEndSubqueryScan(SubqueryScanState * node)
 {
 	/*
 	 * Free the exprcontext
@@ -185,7 +185,7 @@ ExecEndSubqueryScan(SubqueryScanState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanSubqueryScan(SubqueryScanState *node)
+ExecReScanSubqueryScan(SubqueryScanState * node)
 {
 	ExecScanReScan(&node->ss);
 

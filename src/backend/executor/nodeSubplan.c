@@ -40,17 +40,17 @@
 #include "utils/memutils.h"
 
 
-static Datum ExecHashSubPlan(SubPlanState *node,
-				ExprContext *econtext,
-				bool *isNull);
-static Datum ExecScanSubPlan(SubPlanState *node,
-				ExprContext *econtext,
-				bool *isNull);
-static void buildSubPlanHash(SubPlanState *node, ExprContext *econtext);
-static bool findPartialMatch(TupleHashTable hashtable, TupleTableSlot *slot,
-				 FmgrInfo *eqfunctions);
-static bool slotAllNulls(TupleTableSlot *slot);
-static bool slotNoNulls(TupleTableSlot *slot);
+static Datum ExecHashSubPlan(SubPlanState * node,
+							 ExprContext * econtext,
+							 bool *isNull);
+static Datum ExecScanSubPlan(SubPlanState * node,
+							 ExprContext * econtext,
+							 bool *isNull);
+static void buildSubPlanHash(SubPlanState * node, ExprContext * econtext);
+static bool findPartialMatch(TupleHashTable hashtable, TupleTableSlot * slot,
+				 FmgrInfo * eqfunctions);
+static bool slotAllNulls(TupleTableSlot * slot);
+static bool slotNoNulls(TupleTableSlot * slot);
 
 
 /* ----------------------------------------------------------------
@@ -60,8 +60,8 @@ static bool slotNoNulls(TupleTableSlot *slot);
  * ----------------------------------------------------------------
  */
 Datum
-ExecSubPlan(SubPlanState *node,
-			ExprContext *econtext,
+ExecSubPlan(SubPlanState * node,
+			ExprContext * econtext,
 			bool *isNull)
 {
 	SubPlan    *subplan = node->subplan;
@@ -88,8 +88,8 @@ ExecSubPlan(SubPlanState *node,
  * ExecHashSubPlan: store subselect result in an in-memory hash table
  */
 static Datum
-ExecHashSubPlan(SubPlanState *node,
-				ExprContext *econtext,
+ExecHashSubPlan(SubPlanState * node,
+				ExprContext * econtext,
 				bool *isNull)
 {
 	SubPlan    *subplan = node->subplan;
@@ -210,8 +210,8 @@ ExecHashSubPlan(SubPlanState *node,
  * ExecScanSubPlan: default case where we have to rescan subplan each time
  */
 static Datum
-ExecScanSubPlan(SubPlanState *node,
-				ExprContext *econtext,
+ExecScanSubPlan(SubPlanState * node,
+				ExprContext * econtext,
 				bool *isNull)
 {
 	SubPlan    *subplan = node->subplan;
@@ -457,7 +457,7 @@ ExecScanSubPlan(SubPlanState *node,
  * buildSubPlanHash: load hash table by scanning subplan output.
  */
 static void
-buildSubPlanHash(SubPlanState *node, ExprContext *econtext)
+buildSubPlanHash(SubPlanState * node, ExprContext * econtext)
 {
 	SubPlan    *subplan = node->subplan;
 	PlanState  *planstate = node->planstate;
@@ -610,8 +610,8 @@ buildSubPlanHash(SubPlanState *node, ExprContext *econtext)
  * cases these are different from the hashtable's internal functions.
  */
 static bool
-findPartialMatch(TupleHashTable hashtable, TupleTableSlot *slot,
-				 FmgrInfo *eqfunctions)
+findPartialMatch(TupleHashTable hashtable, TupleTableSlot * slot,
+				 FmgrInfo * eqfunctions)
 {
 	int			numCols = hashtable->numCols;
 	AttrNumber *keyColIdx = hashtable->keyColIdx;
@@ -644,7 +644,7 @@ findPartialMatch(TupleHashTable hashtable, TupleTableSlot *slot,
  * use it on projected tuples.
  */
 static bool
-slotAllNulls(TupleTableSlot *slot)
+slotAllNulls(TupleTableSlot * slot)
 {
 	int			ncols = slot->tts_tupleDescriptor->natts;
 	int			i;
@@ -664,7 +664,7 @@ slotAllNulls(TupleTableSlot *slot)
  * use it on projected tuples.
  */
 static bool
-slotNoNulls(TupleTableSlot *slot)
+slotNoNulls(TupleTableSlot * slot)
 {
 	int			ncols = slot->tts_tupleDescriptor->natts;
 	int			i;
@@ -688,7 +688,7 @@ slotNoNulls(TupleTableSlot *slot)
  * ----------------------------------------------------------------
  */
 SubPlanState *
-ExecInitSubPlan(SubPlan *subplan, PlanState *parent)
+ExecInitSubPlan(SubPlan * subplan, PlanState * parent)
 {
 	SubPlanState *sstate = makeNode(SubPlanState);
 	EState	   *estate = parent->state;
@@ -913,7 +913,7 @@ ExecInitSubPlan(SubPlan *subplan, PlanState *parent)
  * ----------------------------------------------------------------
  */
 void
-ExecSetParamPlan(SubPlanState *node, ExprContext *econtext)
+ExecSetParamPlan(SubPlanState * node, ExprContext * econtext)
 {
 	SubPlan    *subplan = node->subplan;
 	PlanState  *planstate = node->planstate;
@@ -1089,7 +1089,7 @@ ExecSetParamPlan(SubPlanState *node, ExprContext *econtext)
  * Mark an initplan as needing recalculation
  */
 void
-ExecReScanSetParamPlan(SubPlanState *node, PlanState *parent)
+ExecReScanSetParamPlan(SubPlanState * node, PlanState * parent)
 {
 	PlanState  *planstate = node->planstate;
 	SubPlan    *subplan = node->subplan;
@@ -1135,7 +1135,7 @@ ExecReScanSetParamPlan(SubPlanState *node, PlanState *parent)
  * Initialize for execution of one of a set of alternative subplans.
  */
 AlternativeSubPlanState *
-ExecInitAlternativeSubPlan(AlternativeSubPlan *asplan, PlanState *parent)
+ExecInitAlternativeSubPlan(AlternativeSubPlan * asplan, PlanState * parent)
 {
 	AlternativeSubPlanState *asstate = makeNode(AlternativeSubPlanState);
 	double		num_calls;
@@ -1197,8 +1197,8 @@ ExecInitAlternativeSubPlan(AlternativeSubPlan *asplan, PlanState *parent)
  * fly, in case the original rowcount estimate turns out to be way off.
  */
 Datum
-ExecAlternativeSubPlan(AlternativeSubPlanState *node,
-					   ExprContext *econtext,
+ExecAlternativeSubPlan(AlternativeSubPlanState * node,
+					   ExprContext * econtext,
 					   bool *isNull)
 {
 	/* Just pass control to the active subplan */

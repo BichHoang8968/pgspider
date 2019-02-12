@@ -201,8 +201,8 @@ prefixes(struct vars *v)
  */
 static void
 lexnest(struct vars *v,
-		const chr *beginp,		/* start of interpolation */
-		const chr *endp)		/* one past end of interpolation */
+		const chr * beginp,		/* start of interpolation */
+		const chr * endp)		/* one past end of interpolation */
 {
 	assert(v->savenow == NULL); /* only one level of nesting */
 	v->savenow = v->now;
@@ -743,7 +743,7 @@ lexescape(struct vars *v)
 	static const chr esc[] = {
 		CHR('E'), CHR('S'), CHR('C')
 	};
-	const chr  *save;
+	const		chr *save;
 
 	assert(v->cflags & REG_ADVF);
 
@@ -913,7 +913,7 @@ lexdigits(struct vars *v,
 	int			len;
 	chr			c;
 	int			d;
-	const uchr	ub = (uchr) base;
+	const		uchr ub = (uchr) base;
 
 	n = 0;
 	for (len = 0; len < maxlen && !ATEOS(); len++)
@@ -1108,7 +1108,7 @@ brenext(struct vars *v,
 static void
 skip(struct vars *v)
 {
-	const chr  *start = v->now;
+	const		chr *start = v->now;
 
 	assert(v->cflags & REG_EXPANDED);
 
@@ -1147,8 +1147,8 @@ newline(void)
  */
 static chr
 chrnamed(struct vars *v,
-		 const chr *startp,		/* start of name */
-		 const chr *endp,		/* just past end of name */
+		 const chr * startp,	/* start of name */
+		 const chr * endp,		/* just past end of name */
 		 chr lastresort)		/* what to return if name lookup fails */
 {
 	chr			c;

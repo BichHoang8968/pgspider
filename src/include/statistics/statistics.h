@@ -27,7 +27,7 @@ typedef struct MVNDistinctItem
 {
 	double		ndistinct;		/* ndistinct value for this combination */
 	Bitmapset  *attrs;			/* attr numbers of items */
-} MVNDistinctItem;
+}			MVNDistinctItem;
 
 /* size of the struct, excluding attribute list */
 #define SizeOfMVNDistinctItem \
@@ -40,7 +40,7 @@ typedef struct MVNDistinct
 	uint32		type;			/* type of ndistinct (BASIC) */
 	uint32		nitems;			/* number of items in the statistic */
 	MVNDistinctItem items[FLEXIBLE_ARRAY_MEMBER];
-} MVNDistinct;
+}			MVNDistinct;
 
 /* size of the struct excluding the items array */
 #define SizeOfMVNDistinct	(offsetof(MVNDistinct, nitems) + sizeof(uint32))
@@ -61,7 +61,7 @@ typedef struct MVDependency
 	double		degree;			/* degree of validity (0-1) */
 	AttrNumber	nattributes;	/* number of attributes */
 	AttrNumber	attributes[FLEXIBLE_ARRAY_MEMBER];	/* attribute numbers */
-} MVDependency;
+}			MVDependency;
 
 /* size of the struct excluding the deps array */
 #define SizeOfDependency \
@@ -73,27 +73,27 @@ typedef struct MVDependencies
 	uint32		type;			/* type of MV Dependencies (BASIC) */
 	uint32		ndeps;			/* number of dependencies */
 	MVDependency *deps[FLEXIBLE_ARRAY_MEMBER];	/* dependencies */
-} MVDependencies;
+}			MVDependencies;
 
 /* size of the struct excluding the deps array */
 #define SizeOfDependencies	(offsetof(MVDependencies, ndeps) + sizeof(uint32))
 
-extern MVNDistinct *statext_ndistinct_load(Oid mvoid);
-extern MVDependencies *statext_dependencies_load(Oid mvoid);
+extern MVNDistinct * statext_ndistinct_load(Oid mvoid);
+extern MVDependencies * statext_dependencies_load(Oid mvoid);
 
 extern void BuildRelationExtStatistics(Relation onerel, double totalrows,
-						   int numrows, HeapTuple *rows,
-						   int natts, VacAttrStats **vacattrstats);
+						   int numrows, HeapTuple * rows,
+						   int natts, VacAttrStats * *vacattrstats);
 extern bool statext_is_kind_built(HeapTuple htup, char kind);
-extern Selectivity dependencies_clauselist_selectivity(PlannerInfo *root,
-									List *clauses,
-									int varRelid,
-									JoinType jointype,
-									SpecialJoinInfo *sjinfo,
-									RelOptInfo *rel,
-									Bitmapset **estimatedclauses);
-extern bool has_stats_of_kind(List *stats, char requiredkind);
-extern StatisticExtInfo *choose_best_statistics(List *stats,
-					   Bitmapset *attnums, char requiredkind);
+extern Selectivity dependencies_clauselist_selectivity(PlannerInfo * root,
+													   List * clauses,
+													   int varRelid,
+													   JoinType jointype,
+													   SpecialJoinInfo * sjinfo,
+													   RelOptInfo * rel,
+													   Bitmapset * *estimatedclauses);
+extern bool has_stats_of_kind(List * stats, char requiredkind);
+extern StatisticExtInfo * choose_best_statistics(List * stats,
+												 Bitmapset * attnums, char requiredkind);
 
 #endif							/* STATISTICS_H */

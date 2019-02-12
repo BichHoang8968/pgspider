@@ -21,10 +21,10 @@
 #include "optimizer/restrictinfo.h"
 
 
-static bool is_safe_restriction_clause_for(RestrictInfo *rinfo, RelOptInfo *rel);
-static Expr *extract_or_clause(RestrictInfo *or_rinfo, RelOptInfo *rel);
-static void consider_new_or_clause(PlannerInfo *root, RelOptInfo *rel,
-					   Expr *orclause, RestrictInfo *join_or_rinfo);
+static bool is_safe_restriction_clause_for(RestrictInfo * rinfo, RelOptInfo * rel);
+static Expr * extract_or_clause(RestrictInfo * or_rinfo, RelOptInfo * rel);
+static void consider_new_or_clause(PlannerInfo * root, RelOptInfo * rel,
+					   Expr * orclause, RestrictInfo * join_or_rinfo);
 
 
 /*
@@ -70,7 +70,7 @@ static void consider_new_or_clause(PlannerInfo *root, RelOptInfo *rel,
  * cached selectivity may get updated multiple times.
  */
 void
-extract_restriction_or_clauses(PlannerInfo *root)
+extract_restriction_or_clauses(PlannerInfo * root)
 {
 	Index		rti;
 
@@ -126,7 +126,7 @@ extract_restriction_or_clauses(PlannerInfo *root)
  * Is the given primitive (non-OR) RestrictInfo safe to move to the rel?
  */
 static bool
-is_safe_restriction_clause_for(RestrictInfo *rinfo, RelOptInfo *rel)
+is_safe_restriction_clause_for(RestrictInfo * rinfo, RelOptInfo * rel)
 {
 	/*
 	 * We want clauses that mention the rel, and only the rel.  So in
@@ -156,7 +156,7 @@ is_safe_restriction_clause_for(RestrictInfo *rinfo, RelOptInfo *rel)
  * if no OR clause could be extracted.
  */
 static Expr *
-extract_or_clause(RestrictInfo *or_rinfo, RelOptInfo *rel)
+extract_or_clause(RestrictInfo * or_rinfo, RelOptInfo * rel)
 {
 	List	   *clauselist = NIL;
 	ListCell   *lc;
@@ -254,8 +254,8 @@ extract_or_clause(RestrictInfo *or_rinfo, RelOptInfo *rel)
  * and adjust the original join clause (join_or_rinfo) to compensate.
  */
 static void
-consider_new_or_clause(PlannerInfo *root, RelOptInfo *rel,
-					   Expr *orclause, RestrictInfo *join_or_rinfo)
+consider_new_or_clause(PlannerInfo * root, RelOptInfo * rel,
+					   Expr * orclause, RestrictInfo * join_or_rinfo)
 {
 	RestrictInfo *or_rinfo;
 	Selectivity or_selec,

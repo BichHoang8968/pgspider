@@ -16,12 +16,12 @@
 
 #include "parser/parse_node.h"
 
-extern void assign_query_collations(ParseState *pstate, Query *query);
+extern void assign_query_collations(ParseState * pstate, Query * query);
 
-extern void assign_list_collations(ParseState *pstate, List *exprs);
+extern void assign_list_collations(ParseState * pstate, List * exprs);
 
-extern void assign_expr_collations(ParseState *pstate, Node *expr);
+extern void assign_expr_collations(ParseState * pstate, Node * expr);
 
-extern Oid	select_common_collation(ParseState *pstate, List *exprs, bool none_ok);
+extern Oid select_common_collation(ParseState * pstate, List * exprs, bool none_ok);
 
 #endif							/* PARSE_COLLATE_H */

@@ -83,7 +83,7 @@ typedef struct ExtensionControlFile
 	bool		superuser;		/* must be superuser to install? */
 	int			encoding;		/* encoding of the script file, or -1 */
 	List	   *requires;		/* names of prerequisite extensions */
-} ExtensionControlFile;
+}			ExtensionControlFile;
 
 /*
  * Internal data structure for update path information
@@ -97,28 +97,28 @@ typedef struct ExtensionVersionInfo
 	bool		distance_known; /* is distance from start known yet? */
 	int			distance;		/* current worst-case distance estimate */
 	struct ExtensionVersionInfo *previous;	/* current best predecessor */
-} ExtensionVersionInfo;
+}			ExtensionVersionInfo;
 
 /* Local functions */
-static List *find_update_path(List *evi_list,
-				 ExtensionVersionInfo *evi_start,
-				 ExtensionVersionInfo *evi_target,
-				 bool reject_indirect,
-				 bool reinitialize);
+static List * find_update_path(List * evi_list,
+							   ExtensionVersionInfo * evi_start,
+							   ExtensionVersionInfo * evi_target,
+							   bool reject_indirect,
+							   bool reinitialize);
 static Oid get_required_extension(char *reqExtensionName,
-					   char *extensionName,
-					   char *origSchemaName,
-					   bool cascade,
-					   List *parents,
-					   bool is_create);
-static void get_available_versions_for_extension(ExtensionControlFile *pcontrol,
-									 Tuplestorestate *tupstore,
+								  char *extensionName,
+								  char *origSchemaName,
+								  bool cascade,
+								  List * parents,
+								  bool is_create);
+static void get_available_versions_for_extension(ExtensionControlFile * pcontrol,
+									 Tuplestorestate * tupstore,
 									 TupleDesc tupdesc);
-static Datum convert_requires_to_datum(List *requires);
+static Datum convert_requires_to_datum(List * requires);
 static void ApplyExtensionUpdates(Oid extensionOid,
-					  ExtensionControlFile *pcontrol,
+					  ExtensionControlFile * pcontrol,
 					  const char *initialVersion,
-					  List *updateVersions,
+					  List * updateVersions,
 					  char *origSchemaName,
 					  bool cascade,
 					  bool is_create);
@@ -390,7 +390,7 @@ get_extension_control_filename(const char *extname)
 }
 
 static char *
-get_extension_script_directory(ExtensionControlFile *control)
+get_extension_script_directory(ExtensionControlFile * control)
 {
 	char		sharepath[MAXPGPATH];
 	char	   *result;
@@ -413,7 +413,7 @@ get_extension_script_directory(ExtensionControlFile *control)
 }
 
 static char *
-get_extension_aux_control_filename(ExtensionControlFile *control,
+get_extension_aux_control_filename(ExtensionControlFile * control,
 								   const char *version)
 {
 	char	   *result;
@@ -431,7 +431,7 @@ get_extension_aux_control_filename(ExtensionControlFile *control,
 }
 
 static char *
-get_extension_script_filename(ExtensionControlFile *control,
+get_extension_script_filename(ExtensionControlFile * control,
 							  const char *from_version, const char *version)
 {
 	char	   *result;
@@ -463,7 +463,7 @@ get_extension_script_filename(ExtensionControlFile *control,
  * worry about what encoding it's in; all values are expected to be ASCII.
  */
 static void
-parse_extension_control_file(ExtensionControlFile *control,
+parse_extension_control_file(ExtensionControlFile * control,
 							 const char *version)
 {
 	char	   *filename;
@@ -628,7 +628,7 @@ read_extension_control_file(const char *extname)
  * (reflecting just the primary control file) is not modified.
  */
 static ExtensionControlFile *
-read_extension_aux_control_file(const ExtensionControlFile *pcontrol,
+read_extension_aux_control_file(const ExtensionControlFile * pcontrol,
 								const char *version)
 {
 	ExtensionControlFile *acontrol;
@@ -651,7 +651,7 @@ read_extension_aux_control_file(const ExtensionControlFile *pcontrol,
  * Read an SQL script file into a string, and convert to database encoding
  */
 static char *
-read_extension_script_file(const ExtensionControlFile *control,
+read_extension_script_file(const ExtensionControlFile * control,
 						   const char *filename)
 {
 	int			src_encoding;
@@ -783,10 +783,10 @@ execute_sql_string(const char *sql, const char *filename)
  * If from_version isn't NULL, it's an update
  */
 static void
-execute_extension_script(Oid extensionOid, ExtensionControlFile *control,
+execute_extension_script(Oid extensionOid, ExtensionControlFile * control,
 						 const char *from_version,
 						 const char *version,
-						 List *requiredSchemas,
+						 List * requiredSchemas,
 						 const char *schemaName, Oid schemaOid)
 {
 	char	   *filename;
@@ -949,7 +949,7 @@ execute_extension_script(Oid extensionOid, ExtensionControlFile *control,
  * this ever becomes a bottleneck.
  */
 static ExtensionVersionInfo *
-get_ext_ver_info(const char *versionname, List **evi_list)
+get_ext_ver_info(const char *versionname, List * *evi_list)
 {
 	ExtensionVersionInfo *evi;
 	ListCell   *lc;
@@ -982,7 +982,7 @@ get_ext_ver_info(const char *versionname, List **evi_list)
  * make it much faster, but for now there's no need.
  */
 static ExtensionVersionInfo *
-get_nearest_unprocessed_vertex(List *evi_list)
+get_nearest_unprocessed_vertex(List * evi_list)
 {
 	ExtensionVersionInfo *evi = NULL;
 	ListCell   *lc;
@@ -1010,7 +1010,7 @@ get_nearest_unprocessed_vertex(List *evi_list)
  * the versions that can be reached in one step from that version.
  */
 static List *
-get_ext_ver_list(ExtensionControlFile *control)
+get_ext_ver_list(ExtensionControlFile * control)
 {
 	List	   *evi_list = NIL;
 	int			extnamelen = strlen(control->name);
@@ -1073,7 +1073,7 @@ get_ext_ver_list(ExtensionControlFile *control)
  * version is *not* included).
  */
 static List *
-identify_update_path(ExtensionControlFile *control,
+identify_update_path(ExtensionControlFile * control,
 					 const char *oldVersion, const char *newVersion)
 {
 	List	   *result;
@@ -1116,9 +1116,9 @@ identify_update_path(ExtensionControlFile *control,
  * version is *not* included).  Returns NIL if no such path.
  */
 static List *
-find_update_path(List *evi_list,
-				 ExtensionVersionInfo *evi_start,
-				 ExtensionVersionInfo *evi_target,
+find_update_path(List * evi_list,
+				 ExtensionVersionInfo * evi_start,
+				 ExtensionVersionInfo * evi_target,
 				 bool reject_indirect,
 				 bool reinitialize)
 {
@@ -1209,8 +1209,8 @@ find_update_path(List *evi_list,
  * versions' names.
  */
 static ExtensionVersionInfo *
-find_install_path(List *evi_list, ExtensionVersionInfo *evi_target,
-				  List **best_path)
+find_install_path(List * evi_list, ExtensionVersionInfo * evi_target,
+				  List * *best_path)
 {
 	ExtensionVersionInfo *evi_start = NULL;
 	ListCell   *lc;
@@ -1269,7 +1269,7 @@ CreateExtensionInternal(char *extensionName,
 						char *versionName,
 						char *oldVersionName,
 						bool cascade,
-						List *parents,
+						List * parents,
 						bool is_create)
 {
 	char	   *origSchemaName = schemaName;
@@ -1550,7 +1550,7 @@ get_required_extension(char *reqExtensionName,
 					   char *extensionName,
 					   char *origSchemaName,
 					   bool cascade,
-					   List *parents,
+					   List * parents,
 					   bool is_create)
 {
 	Oid			reqExtensionOid;
@@ -1618,7 +1618,7 @@ get_required_extension(char *reqExtensionName,
  * CREATE EXTENSION
  */
 ObjectAddress
-CreateExtension(ParseState *pstate, CreateExtensionStmt *stmt)
+CreateExtension(ParseState * pstate, CreateExtensionStmt * stmt)
 {
 	DefElem    *d_schema = NULL;
 	DefElem    *d_new_version = NULL;
@@ -1741,7 +1741,7 @@ ObjectAddress
 InsertExtensionTuple(const char *extName, Oid extOwner,
 					 Oid schemaOid, bool relocatable, const char *extVersion,
 					 Datum extConfig, Datum extCondition,
-					 List *requiredExtensions)
+					 List * requiredExtensions)
 {
 	Oid			extensionOid;
 	Relation	rel;
@@ -2073,8 +2073,8 @@ pg_available_extension_versions(PG_FUNCTION_ARGS)
  *		read versions of one extension, add rows to tupstore
  */
 static void
-get_available_versions_for_extension(ExtensionControlFile *pcontrol,
-									 Tuplestorestate *tupstore,
+get_available_versions_for_extension(ExtensionControlFile * pcontrol,
+									 Tuplestorestate * tupstore,
 									 TupleDesc tupdesc)
 {
 	List	   *evi_list;
@@ -2178,7 +2178,7 @@ get_available_versions_for_extension(ExtensionControlFile *pcontrol,
  * Convert a list of extension names to a name[] Datum
  */
 static Datum
-convert_requires_to_datum(List *requires)
+convert_requires_to_datum(List * requires)
 {
 	Datum	   *datums;
 	int			ndatums;
@@ -2678,7 +2678,7 @@ extension_config_remove(Oid extensionoid, Oid tableoid)
  * Execute ALTER EXTENSION SET SCHEMA
  */
 ObjectAddress
-AlterExtensionNamespace(const char *extensionName, const char *newschema, Oid *oldschema)
+AlterExtensionNamespace(const char *extensionName, const char *newschema, Oid * oldschema)
 {
 	Oid			extensionOid;
 	Oid			nspOid;
@@ -2860,7 +2860,7 @@ AlterExtensionNamespace(const char *extensionName, const char *newschema, Oid *o
  * Execute ALTER EXTENSION UPDATE
  */
 ObjectAddress
-ExecAlterExtensionStmt(ParseState *pstate, AlterExtensionStmt *stmt)
+ExecAlterExtensionStmt(ParseState * pstate, AlterExtensionStmt * stmt)
 {
 	DefElem    *d_new_version = NULL;
 	char	   *versionName;
@@ -3011,9 +3011,9 @@ ExecAlterExtensionStmt(ParseState *pstate, AlterExtensionStmt *stmt)
  */
 static void
 ApplyExtensionUpdates(Oid extensionOid,
-					  ExtensionControlFile *pcontrol,
+					  ExtensionControlFile * pcontrol,
 					  const char *initialVersion,
-					  List *updateVersions,
+					  List * updateVersions,
 					  char *origSchemaName,
 					  bool cascade,
 					  bool is_create)
@@ -3168,8 +3168,8 @@ ApplyExtensionUpdates(Oid extensionOid,
  * the added/dropped object.
  */
 ObjectAddress
-ExecAlterExtensionContentsStmt(AlterExtensionContentsStmt *stmt,
-							   ObjectAddress *objAddr)
+ExecAlterExtensionContentsStmt(AlterExtensionContentsStmt * stmt,
+							   ObjectAddress * objAddr)
 {
 	ObjectAddress extension;
 	ObjectAddress object;

@@ -80,7 +80,7 @@ typedef struct RelMapping
 {
 	Oid			mapoid;			/* OID of a catalog */
 	Oid			mapfilenode;	/* its filenode number */
-} RelMapping;
+}			RelMapping;
 
 typedef struct RelMapFile
 {
@@ -89,7 +89,7 @@ typedef struct RelMapFile
 	RelMapping	mappings[MAX_MAPPINGS];
 	pg_crc32c	crc;			/* CRC of all above */
 	int32		pad;			/* to make the struct size be 512 exactly */
-} RelMapFile;
+}			RelMapFile;
 
 /*
  * The currently known contents of the shared map file and our database's
@@ -119,15 +119,15 @@ static RelMapFile pending_local_updates;
 
 
 /* non-export function prototypes */
-static void apply_map_update(RelMapFile *map, Oid relationId, Oid fileNode,
+static void apply_map_update(RelMapFile * map, Oid relationId, Oid fileNode,
 				 bool add_okay);
-static void merge_map_updates(RelMapFile *map, const RelMapFile *updates,
+static void merge_map_updates(RelMapFile * map, const RelMapFile * updates,
 				  bool add_okay);
 static void load_relmap_file(bool shared);
-static void write_relmap_file(bool shared, RelMapFile *newmap,
+static void write_relmap_file(bool shared, RelMapFile * newmap,
 				  bool write_wal, bool send_sinval, bool preserve_files,
 				  Oid dbid, Oid tsid, const char *dbpath);
-static void perform_relmap_update(bool shared, const RelMapFile *updates);
+static void perform_relmap_update(bool shared, const RelMapFile * updates);
 
 
 /*
@@ -145,7 +145,7 @@ static void perform_relmap_update(bool shared, const RelMapFile *updates);
 Oid
 RelationMapOidToFilenode(Oid relationId, bool shared)
 {
-	const RelMapFile *map;
+	const		RelMapFile *map;
 	int32		i;
 
 	/* If there are active updates, believe those over the main maps */
@@ -198,7 +198,7 @@ RelationMapOidToFilenode(Oid relationId, bool shared)
 Oid
 RelationMapFilenodeToOid(Oid filenode, bool shared)
 {
-	const RelMapFile *map;
+	const		RelMapFile *map;
 	int32		i;
 
 	/* If there are active updates, believe those over the main maps */
@@ -300,7 +300,7 @@ RelationMapUpdateMap(Oid relationId, Oid fileNode, bool shared,
  * add_okay = false to draw an error if not.
  */
 static void
-apply_map_update(RelMapFile *map, Oid relationId, Oid fileNode, bool add_okay)
+apply_map_update(RelMapFile * map, Oid relationId, Oid fileNode, bool add_okay)
 {
 	int32		i;
 
@@ -332,7 +332,7 @@ apply_map_update(RelMapFile *map, Oid relationId, Oid fileNode, bool add_okay)
  * This is just a bulk form of apply_map_update.
  */
 static void
-merge_map_updates(RelMapFile *map, const RelMapFile *updates, bool add_okay)
+merge_map_updates(RelMapFile * map, const RelMapFile * updates, bool add_okay)
 {
 	int32		i;
 
@@ -709,7 +709,7 @@ load_relmap_file(bool shared)
  * map update could be happening.
  */
 static void
-write_relmap_file(bool shared, RelMapFile *newmap,
+write_relmap_file(bool shared, RelMapFile * newmap,
 				  bool write_wal, bool send_sinval, bool preserve_files,
 				  Oid dbid, Oid tsid, const char *dbpath)
 {
@@ -860,7 +860,7 @@ write_relmap_file(bool shared, RelMapFile *newmap,
  * updates during normal multiuser operation.
  */
 static void
-perform_relmap_update(bool shared, const RelMapFile *updates)
+perform_relmap_update(bool shared, const RelMapFile * updates)
 {
 	RelMapFile	newmap;
 
@@ -908,7 +908,7 @@ perform_relmap_update(bool shared, const RelMapFile *updates)
  * RELMAP resource manager's routines
  */
 void
-relmap_redo(XLogReaderState *record)
+relmap_redo(XLogReaderState * record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 

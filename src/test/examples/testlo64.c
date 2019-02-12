@@ -31,7 +31,7 @@
  *
  */
 static Oid
-importFile(PGconn *conn, char *filename)
+importFile(PGconn * conn, char *filename)
 {
 	Oid			lobjId;
 	int			lobj_fd;
@@ -75,7 +75,7 @@ importFile(PGconn *conn, char *filename)
 }
 
 static void
-pickout(PGconn *conn, Oid lobjId, pg_int64 start, int len)
+pickout(PGconn * conn, Oid lobjId, pg_int64 start, int len)
 {
 	int			lobj_fd;
 	char	   *buf;
@@ -110,7 +110,7 @@ pickout(PGconn *conn, Oid lobjId, pg_int64 start, int len)
 }
 
 static void
-overwrite(PGconn *conn, Oid lobjId, pg_int64 start, int len)
+overwrite(PGconn * conn, Oid lobjId, pg_int64 start, int len)
 {
 	int			lobj_fd;
 	char	   *buf;
@@ -148,7 +148,7 @@ overwrite(PGconn *conn, Oid lobjId, pg_int64 start, int len)
 }
 
 static void
-my_truncate(PGconn *conn, Oid lobjId, pg_int64 len)
+my_truncate(PGconn * conn, Oid lobjId, pg_int64 len)
 {
 	int			lobj_fd;
 
@@ -169,7 +169,7 @@ my_truncate(PGconn *conn, Oid lobjId, pg_int64 len)
  *
  */
 static void
-exportFile(PGconn *conn, Oid lobjId, char *filename)
+exportFile(PGconn * conn, Oid lobjId, char *filename)
 {
 	int			lobj_fd;
 	char		buf[BUFSIZE];
@@ -214,7 +214,7 @@ exportFile(PGconn *conn, Oid lobjId, char *filename)
 }
 
 static void
-exit_nicely(PGconn *conn)
+exit_nicely(PGconn * conn)
 {
 	PQfinish(conn);
 	exit(1);

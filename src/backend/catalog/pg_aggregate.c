@@ -35,9 +35,9 @@
 #include "utils/syscache.h"
 
 
-static Oid lookup_agg_function(List *fnName, int nargs, Oid *input_types,
-					Oid variadicArgType,
-					Oid *rettype);
+static Oid lookup_agg_function(List * fnName, int nargs, Oid * input_types,
+							   Oid variadicArgType,
+							   Oid * rettype);
 
 
 /*
@@ -49,23 +49,23 @@ AggregateCreate(const char *aggName,
 				char aggKind,
 				int numArgs,
 				int numDirectArgs,
-				oidvector *parameterTypes,
+				oidvector * parameterTypes,
 				Datum allParameterTypes,
 				Datum parameterModes,
 				Datum parameterNames,
-				List *parameterDefaults,
+				List * parameterDefaults,
 				Oid variadicArgType,
-				List *aggtransfnName,
-				List *aggfinalfnName,
-				List *aggcombinefnName,
-				List *aggserialfnName,
-				List *aggdeserialfnName,
-				List *aggmtransfnName,
-				List *aggminvtransfnName,
-				List *aggmfinalfnName,
+				List * aggtransfnName,
+				List * aggfinalfnName,
+				List * aggcombinefnName,
+				List * aggserialfnName,
+				List * aggdeserialfnName,
+				List * aggmtransfnName,
+				List * aggminvtransfnName,
+				List * aggmfinalfnName,
 				bool finalfnExtraArgs,
 				bool mfinalfnExtraArgs,
-				List *aggsortopName,
+				List * aggsortopName,
 				Oid aggTransType,
 				int32 aggTransSpace,
 				Oid aggmTransType,
@@ -782,11 +782,11 @@ AggregateCreate(const char *aggName,
  * NB: must not scribble on input_types[], as we may re-use those
  */
 static Oid
-lookup_agg_function(List *fnName,
+lookup_agg_function(List * fnName,
 					int nargs,
-					Oid *input_types,
+					Oid * input_types,
 					Oid variadicArgType,
-					Oid *rettype)
+					Oid * rettype)
 {
 	Oid			fnOid;
 	bool		retset;

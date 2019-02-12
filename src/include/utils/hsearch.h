@@ -18,7 +18,7 @@
 /*
  * Hash functions must have this signature.
  */
-typedef uint32 (*HashValueFunc) (const void *key, Size keysize);
+typedef uint32(*HashValueFunc) (const void *key, Size keysize);
 
 /*
  * Key comparison functions must have this signature.  Comparison functions
@@ -52,7 +52,7 @@ typedef struct HASHELEMENT
 {
 	struct HASHELEMENT *link;	/* link to next entry in same bucket */
 	uint32		hashvalue;		/* hash function result for this entry */
-} HASHELEMENT;
+}			HASHELEMENT;
 
 /* Hash table header struct is an opaque type known only within dynahash.c */
 typedef struct HASHHDR HASHHDR;
@@ -77,7 +77,7 @@ typedef struct HASHCTL
 	HashAllocFunc alloc;		/* memory allocator */
 	MemoryContext hcxt;			/* memory context to use for allocations */
 	HASHHDR    *hctl;			/* location of header in shared mem */
-} HASHCTL;
+}			HASHCTL;
 
 /* Flags to indicate which parameters are supplied */
 #define HASH_PARTITION	0x0001	/* Hashtable is used w/partitioned locking */
@@ -106,7 +106,7 @@ typedef enum
 	HASH_ENTER,
 	HASH_REMOVE,
 	HASH_ENTER_NULL
-} HASHACTION;
+}			HASHACTION;
 
 /* hash_seq status (should be considered an opaque type by callers) */
 typedef struct
@@ -114,31 +114,31 @@ typedef struct
 	HTAB	   *hashp;
 	uint32		curBucket;		/* index of current bucket */
 	HASHELEMENT *curEntry;		/* current entry in bucket */
-} HASH_SEQ_STATUS;
+}			HASH_SEQ_STATUS;
 
 /*
  * prototypes for functions in dynahash.c
  */
-extern HTAB *hash_create(const char *tabname, long nelem,
-			HASHCTL *info, int flags);
-extern void hash_destroy(HTAB *hashp);
-extern void hash_stats(const char *where, HTAB *hashp);
-extern void *hash_search(HTAB *hashp, const void *keyPtr, HASHACTION action,
+extern HTAB * hash_create(const char *tabname, long nelem,
+						  HASHCTL * info, int flags);
+extern void hash_destroy(HTAB * hashp);
+extern void hash_stats(const char *where, HTAB * hashp);
+extern void *hash_search(HTAB * hashp, const void *keyPtr, HASHACTION action,
 			bool *foundPtr);
-extern uint32 get_hash_value(HTAB *hashp, const void *keyPtr);
-extern void *hash_search_with_hash_value(HTAB *hashp, const void *keyPtr,
+extern uint32 get_hash_value(HTAB * hashp, const void *keyPtr);
+extern void *hash_search_with_hash_value(HTAB * hashp, const void *keyPtr,
 							uint32 hashvalue, HASHACTION action,
 							bool *foundPtr);
-extern bool hash_update_hash_key(HTAB *hashp, void *existingEntry,
+extern bool hash_update_hash_key(HTAB * hashp, void *existingEntry,
 					 const void *newKeyPtr);
-extern long hash_get_num_entries(HTAB *hashp);
-extern void hash_seq_init(HASH_SEQ_STATUS *status, HTAB *hashp);
-extern void *hash_seq_search(HASH_SEQ_STATUS *status);
-extern void hash_seq_term(HASH_SEQ_STATUS *status);
-extern void hash_freeze(HTAB *hashp);
+extern long hash_get_num_entries(HTAB * hashp);
+extern void hash_seq_init(HASH_SEQ_STATUS * status, HTAB * hashp);
+extern void *hash_seq_search(HASH_SEQ_STATUS * status);
+extern void hash_seq_term(HASH_SEQ_STATUS * status);
+extern void hash_freeze(HTAB * hashp);
 extern Size hash_estimate_size(long num_entries, Size entrysize);
 extern long hash_select_dirsize(long num_entries);
-extern Size hash_get_shared_size(HASHCTL *info, int flags);
+extern Size hash_get_shared_size(HASHCTL * info, int flags);
 extern void AtEOXact_HashTables(bool isCommit);
 extern void AtEOSubXact_HashTables(bool isCommit, int nestDepth);
 

@@ -15,10 +15,10 @@ typedef struct PLyCursorObject
 	PLyTypeInfo result;
 	bool		closed;
 	MemoryContext mcxt;
-} PLyCursorObject;
+}			PLyCursorObject;
 
 extern void PLy_cursor_init_type(void);
-extern PyObject *PLy_cursor(PyObject *self, PyObject *args);
-extern PyObject *PLy_cursor_plan(PyObject *ob, PyObject *args);
+extern PyObject * PLy_cursor(PyObject * self, PyObject * args);
+extern PyObject * PLy_cursor_plan(PyObject * ob, PyObject * args);
 
 #endif							/* PLPY_CURSOROBJECT_H */

@@ -30,7 +30,7 @@ typedef struct
 {
 	int			cur;
 	LexDescr   *list;
-} TSTokenTypeStorage;
+}			TSTokenTypeStorage;
 
 /* state for ts_headline_json_* */
 typedef struct HeadlineJsonState
@@ -41,12 +41,12 @@ typedef struct HeadlineJsonState
 	TSQuery		query;
 	List	   *prsoptions;
 	bool		transformed;
-} HeadlineJsonState;
+}			HeadlineJsonState;
 
-static text *headline_json_value(void *_state, char *elem_value, int elem_len);
+static text * headline_json_value(void *_state, char *elem_value, int elem_len);
 
 static void
-tt_setup_firstcall(FuncCallContext *funcctx, Oid prsid)
+tt_setup_firstcall(FuncCallContext * funcctx, Oid prsid)
 {
 	TupleDesc	tupdesc;
 	MemoryContext oldcontext;
@@ -79,7 +79,7 @@ tt_setup_firstcall(FuncCallContext *funcctx, Oid prsid)
 }
 
 static Datum
-tt_process_call(FuncCallContext *funcctx)
+tt_process_call(FuncCallContext * funcctx)
 {
 	TSTokenTypeStorage *st;
 
@@ -156,18 +156,18 @@ typedef struct
 {
 	int			type;
 	char	   *lexeme;
-} LexemeEntry;
+}			LexemeEntry;
 
 typedef struct
 {
 	int			cur;
 	int			len;
 	LexemeEntry *list;
-} PrsStorage;
+}			PrsStorage;
 
 
 static void
-prs_setup_firstcall(FuncCallContext *funcctx, Oid prsid, text *txt)
+prs_setup_firstcall(FuncCallContext * funcctx, Oid prsid, text * txt)
 {
 	TupleDesc	tupdesc;
 	MemoryContext oldcontext;
@@ -223,7 +223,7 @@ prs_setup_firstcall(FuncCallContext *funcctx, Oid prsid, text *txt)
 }
 
 static Datum
-prs_process_call(FuncCallContext *funcctx)
+prs_process_call(FuncCallContext * funcctx)
 {
 	PrsStorage *st;
 

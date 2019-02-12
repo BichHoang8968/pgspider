@@ -33,12 +33,12 @@ typedef struct ScanStackEntry
 	void	   *traversalValue; /* opclass-specific traverse value */
 	int			level;			/* level of items on this page */
 	ItemPointerData ptr;		/* block and offset to scan from */
-} ScanStackEntry;
+}			ScanStackEntry;
 
 
 /* Free a ScanStackEntry */
 static void
-freeScanStackEntry(SpGistScanOpaque so, ScanStackEntry *stackEntry)
+freeScanStackEntry(SpGistScanOpaque so, ScanStackEntry * stackEntry)
 {
 	if (!so->state.attType.attbyval &&
 		DatumGetPointer(stackEntry->reconstructedValue) != NULL)
@@ -249,7 +249,7 @@ spgLeafTest(Relation index, SpGistScanOpaque so,
 			SpGistLeafTuple leafTuple, bool isnull,
 			int level, Datum reconstructedValue,
 			void *traversalValue,
-			Datum *leafValue, bool *recheck)
+			Datum * leafValue, bool *recheck)
 {
 	bool		result;
 	Datum		leafDatum;
@@ -572,7 +572,7 @@ storeBitmap(SpGistScanOpaque so, ItemPointer heapPtr,
 }
 
 int64
-spggetbitmap(IndexScanDesc scan, TIDBitmap *tbm)
+spggetbitmap(IndexScanDesc scan, TIDBitmap * tbm)
 {
 	SpGistScanOpaque so = (SpGistScanOpaque) scan->opaque;
 

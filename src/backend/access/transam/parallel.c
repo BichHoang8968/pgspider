@@ -85,7 +85,7 @@ typedef struct FixedParallelState
 
 	/* Maximum XactLastRecEnd of any worker. */
 	XLogRecPtr	last_xlog_end;
-} FixedParallelState;
+}			FixedParallelState;
 
 /*
  * Our parallel worker number.  We initialize this to -1, meaning that we are
@@ -102,7 +102,7 @@ volatile bool ParallelMessagePending = false;
 bool		InitializingParallelWorker = false;
 
 /* Pointer to our fixed parallel state. */
-static FixedParallelState *MyFixedParallelState;
+static FixedParallelState * MyFixedParallelState;
 
 /* List of active parallel contexts. */
 static dlist_head pcxt_list = DLIST_STATIC_INIT(pcxt_list);
@@ -127,8 +127,8 @@ static const struct
 };
 
 /* Private functions. */
-static void HandleParallelMessage(ParallelContext *pcxt, int i, StringInfo msg);
-static void WaitForParallelWorkersToExit(ParallelContext *pcxt);
+static void HandleParallelMessage(ParallelContext * pcxt, int i, StringInfo msg);
+static void WaitForParallelWorkersToExit(ParallelContext * pcxt);
 static parallel_worker_main_type LookupParallelWorkerFunction(const char *libraryname, const char *funcname);
 static void ParallelWorkerShutdown(int code, Datum arg);
 
@@ -191,7 +191,7 @@ CreateParallelContext(const char *library_name, const char *function_name,
  * parallel workers into it.
  */
 void
-InitializeParallelDSM(ParallelContext *pcxt)
+InitializeParallelDSM(ParallelContext * pcxt)
 {
 	MemoryContext oldcontext;
 	Size		library_len = 0;
@@ -385,7 +385,7 @@ InitializeParallelDSM(ParallelContext *pcxt)
  * that we could launch workers for it again.
  */
 void
-ReinitializeParallelDSM(ParallelContext *pcxt)
+ReinitializeParallelDSM(ParallelContext * pcxt)
 {
 	FixedParallelState *fps;
 
@@ -431,7 +431,7 @@ ReinitializeParallelDSM(ParallelContext *pcxt)
  * Launch parallel workers.
  */
 void
-LaunchParallelWorkers(ParallelContext *pcxt)
+LaunchParallelWorkers(ParallelContext * pcxt)
 {
 	MemoryContext oldcontext;
 	BackgroundWorker worker;
@@ -526,7 +526,7 @@ LaunchParallelWorkers(ParallelContext *pcxt)
  * feedback.
  */
 void
-WaitForParallelWorkersToFinish(ParallelContext *pcxt)
+WaitForParallelWorkersToFinish(ParallelContext * pcxt)
 {
 	for (;;)
 	{
@@ -640,7 +640,7 @@ WaitForParallelWorkersToFinish(ParallelContext *pcxt)
  * received by master backend whereas this ensures the complete shutdown.
  */
 static void
-WaitForParallelWorkersToExit(ParallelContext *pcxt)
+WaitForParallelWorkersToExit(ParallelContext * pcxt)
 {
 	int			i;
 
@@ -680,7 +680,7 @@ WaitForParallelWorkersToExit(ParallelContext *pcxt)
  * is unmapped; and we then wait (uninterruptibly) for the workers to exit.
  */
 void
-DestroyParallelContext(ParallelContext *pcxt)
+DestroyParallelContext(ParallelContext * pcxt)
 {
 	int			i;
 
@@ -867,7 +867,7 @@ HandleParallelMessages(void)
  * Handle a single protocol message received from a single parallel worker.
  */
 static void
-HandleParallelMessage(ParallelContext *pcxt, int i, StringInfo msg)
+HandleParallelMessage(ParallelContext * pcxt, int i, StringInfo msg)
 {
 	char		msgtype;
 

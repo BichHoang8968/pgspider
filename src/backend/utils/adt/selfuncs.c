@@ -155,23 +155,23 @@ get_relation_stats_hook_type get_relation_stats_hook = NULL;
 get_index_stats_hook_type get_index_stats_hook = NULL;
 
 static double eqsel_internal(PG_FUNCTION_ARGS, bool negate);
-static double var_eq_const(VariableStatData *vardata, Oid operator,
+static double var_eq_const(VariableStatData * vardata, Oid operator,
 			 Datum constval, bool constisnull,
 			 bool varonleft, bool negate);
-static double var_eq_non_const(VariableStatData *vardata, Oid operator,
-				 Node *other,
+static double var_eq_non_const(VariableStatData * vardata, Oid operator,
+				 Node * other,
 				 bool varonleft, bool negate);
-static double ineq_histogram_selectivity(PlannerInfo *root,
-						   VariableStatData *vardata,
-						   FmgrInfo *opproc, bool isgt,
+static double ineq_histogram_selectivity(PlannerInfo * root,
+						   VariableStatData * vardata,
+						   FmgrInfo * opproc, bool isgt,
 						   Datum constval, Oid consttype);
 static double eqjoinsel_inner(Oid operator,
-				VariableStatData *vardata1, VariableStatData *vardata2);
+				VariableStatData * vardata1, VariableStatData * vardata2);
 static double eqjoinsel_semi(Oid operator,
-			   VariableStatData *vardata1, VariableStatData *vardata2,
-			   RelOptInfo *inner_rel);
-static bool estimate_multivariate_ndistinct(PlannerInfo *root,
-								RelOptInfo *rel, List **varinfos, double *ndistinct);
+			   VariableStatData * vardata1, VariableStatData * vardata2,
+			   RelOptInfo * inner_rel);
+static bool estimate_multivariate_ndistinct(PlannerInfo * root,
+								RelOptInfo * rel, List * *varinfos, double *ndistinct);
 static bool convert_to_scalar(Datum value, Oid valuetypid, double *scaledvalue,
 				  Datum lobound, Datum hibound, Oid boundstypid,
 				  double *scaledlobound, double *scaledhibound);
@@ -195,27 +195,27 @@ static double convert_one_bytea_to_scalar(unsigned char *value, int valuelen,
 static char *convert_string_datum(Datum value, Oid typid, bool *failure);
 static double convert_timevalue_to_scalar(Datum value, Oid typid,
 							bool *failure);
-static void examine_simple_variable(PlannerInfo *root, Var *var,
-						VariableStatData *vardata);
-static bool get_variable_range(PlannerInfo *root, VariableStatData *vardata,
-				   Oid sortop, Datum *min, Datum *max);
-static bool get_actual_variable_range(PlannerInfo *root,
-						  VariableStatData *vardata,
+static void examine_simple_variable(PlannerInfo * root, Var * var,
+						VariableStatData * vardata);
+static bool get_variable_range(PlannerInfo * root, VariableStatData * vardata,
+				   Oid sortop, Datum * min, Datum * max);
+static bool get_actual_variable_range(PlannerInfo * root,
+						  VariableStatData * vardata,
 						  Oid sortop,
-						  Datum *min, Datum *max);
-static RelOptInfo *find_join_input_rel(PlannerInfo *root, Relids relids);
-static Selectivity prefix_selectivity(PlannerInfo *root,
-				   VariableStatData *vardata,
-				   Oid vartype, Oid opfamily, Const *prefixcon);
+						  Datum * min, Datum * max);
+static RelOptInfo * find_join_input_rel(PlannerInfo * root, Relids relids);
+static Selectivity prefix_selectivity(PlannerInfo * root,
+									  VariableStatData * vardata,
+									  Oid vartype, Oid opfamily, Const * prefixcon);
 static Selectivity like_selectivity(const char *patt, int pattlen,
-				 bool case_insensitive);
+									bool case_insensitive);
 static Selectivity regex_selectivity(const char *patt, int pattlen,
-				  bool case_insensitive,
-				  int fixed_prefix_len);
+									 bool case_insensitive,
+									 int fixed_prefix_len);
 static Datum string_to_datum(const char *str, Oid datatype);
-static Const *string_to_const(const char *str, Oid datatype);
-static Const *string_to_bytea_const(const char *str, size_t str_len);
-static List *add_predicate_to_quals(IndexOptInfo *index, List *indexQuals);
+static Const * string_to_const(const char *str, Oid datatype);
+static Const * string_to_bytea_const(const char *str, size_t str_len);
+static List * add_predicate_to_quals(IndexOptInfo * index, List * indexQuals);
 
 
 /*
@@ -294,7 +294,7 @@ eqsel_internal(PG_FUNCTION_ARGS, bool negate)
  * This is split out so that some other estimation functions can use it.
  */
 static double
-var_eq_const(VariableStatData *vardata, Oid operator,
+var_eq_const(VariableStatData * vardata, Oid operator,
 			 Datum constval, bool constisnull,
 			 bool varonleft, bool negate)
 {
@@ -446,8 +446,8 @@ var_eq_const(VariableStatData *vardata, Oid operator,
  * var_eq_non_const --- eqsel for var = something-other-than-const case
  */
 static double
-var_eq_non_const(VariableStatData *vardata, Oid operator,
-				 Node *other,
+var_eq_non_const(VariableStatData * vardata, Oid operator,
+				 Node * other,
 				 bool varonleft, bool negate)
 {
 	double		selec;
@@ -557,8 +557,8 @@ neqsel(PG_FUNCTION_ARGS)
  * value falls in the middle of the bin identified by binary search.
  */
 static double
-scalarineqsel(PlannerInfo *root, Oid operator, bool isgt,
-			  VariableStatData *vardata, Datum constval, Oid consttype)
+scalarineqsel(PlannerInfo * root, Oid operator, bool isgt,
+			  VariableStatData * vardata, Datum constval, Oid consttype)
 {
 	Form_pg_statistic stats;
 	FmgrInfo	opproc;
@@ -631,7 +631,7 @@ scalarineqsel(PlannerInfo *root, Oid operator, bool isgt,
  * if there is no MCV list.
  */
 double
-mcv_selectivity(VariableStatData *vardata, FmgrInfo *opproc,
+mcv_selectivity(VariableStatData * vardata, FmgrInfo * opproc,
 				Datum constval, bool varonleft,
 				double *sumcommonp)
 {
@@ -703,7 +703,7 @@ mcv_selectivity(VariableStatData *vardata, FmgrInfo *opproc,
  * prudent to clamp the result range, ie, disbelieve exact 0 or 1 outputs.
  */
 double
-histogram_selectivity(VariableStatData *vardata, FmgrInfo *opproc,
+histogram_selectivity(VariableStatData * vardata, FmgrInfo * opproc,
 					  Datum constval, bool varonleft,
 					  int min_hist_size, int n_skip,
 					  int *hist_size)
@@ -768,9 +768,9 @@ histogram_selectivity(VariableStatData *vardata, FmgrInfo *opproc,
  * statistics for those portions of the column population.
  */
 static double
-ineq_histogram_selectivity(PlannerInfo *root,
-						   VariableStatData *vardata,
-						   FmgrInfo *opproc, bool isgt,
+ineq_histogram_selectivity(PlannerInfo * root,
+						   VariableStatData * vardata,
+						   FmgrInfo * opproc, bool isgt,
 						   Datum constval, Oid consttype)
 {
 	double		hist_selec;
@@ -1477,7 +1477,7 @@ icnlikesel(PG_FUNCTION_ARGS)
  * we'll produce a real estimate; otherwise it's just a default.
  */
 Selectivity
-boolvarsel(PlannerInfo *root, Node *arg, int varRelid)
+boolvarsel(PlannerInfo * root, Node * arg, int varRelid)
 {
 	VariableStatData vardata;
 	double		selec;
@@ -1516,8 +1516,8 @@ boolvarsel(PlannerInfo *root, Node *arg, int varRelid)
  *		booltestsel		- Selectivity of BooleanTest Node.
  */
 Selectivity
-booltestsel(PlannerInfo *root, BoolTestType booltesttype, Node *arg,
-			int varRelid, JoinType jointype, SpecialJoinInfo *sjinfo)
+booltestsel(PlannerInfo * root, BoolTestType booltesttype, Node * arg,
+			int varRelid, JoinType jointype, SpecialJoinInfo * sjinfo)
 {
 	VariableStatData vardata;
 	double		selec;
@@ -1674,8 +1674,8 @@ booltestsel(PlannerInfo *root, BoolTestType booltesttype, Node *arg,
  *		nulltestsel		- Selectivity of NullTest Node.
  */
 Selectivity
-nulltestsel(PlannerInfo *root, NullTestType nulltesttype, Node *arg,
-			int varRelid, JoinType jointype, SpecialJoinInfo *sjinfo)
+nulltestsel(PlannerInfo * root, NullTestType nulltesttype, Node * arg,
+			int varRelid, JoinType jointype, SpecialJoinInfo * sjinfo)
 {
 	VariableStatData vardata;
 	double		selec;
@@ -1750,7 +1750,7 @@ nulltestsel(PlannerInfo *root, NullTestType nulltesttype, Node *arg,
  * so we need to be ready to deal with more than one level.
  */
 static Node *
-strip_array_coercion(Node *node)
+strip_array_coercion(Node * node)
 {
 	for (;;)
 	{
@@ -1774,12 +1774,12 @@ strip_array_coercion(Node *node)
  *		scalararraysel		- Selectivity of ScalarArrayOpExpr Node.
  */
 Selectivity
-scalararraysel(PlannerInfo *root,
-			   ScalarArrayOpExpr *clause,
+scalararraysel(PlannerInfo * root,
+			   ScalarArrayOpExpr * clause,
 			   bool is_join_clause,
 			   int varRelid,
 			   JoinType jointype,
-			   SpecialJoinInfo *sjinfo)
+			   SpecialJoinInfo * sjinfo)
 {
 	Oid			operator = clause->opno;
 	bool		useOr = clause->useOr;
@@ -2093,7 +2093,7 @@ scalararraysel(PlannerInfo *root,
  * It's important that this agree with scalararraysel.
  */
 int
-estimate_array_length(Node *arrayexpr)
+estimate_array_length(Node * arrayexpr)
 {
 	/* look through any binary-compatible relabeling of arrayexpr */
 	arrayexpr = strip_array_coercion(arrayexpr);
@@ -2131,9 +2131,9 @@ estimate_array_length(Node *arrayexpr)
  * statistics.
  */
 Selectivity
-rowcomparesel(PlannerInfo *root,
-			  RowCompareExpr *clause,
-			  int varRelid, JoinType jointype, SpecialJoinInfo *sjinfo)
+rowcomparesel(PlannerInfo * root,
+			  RowCompareExpr * clause,
+			  int varRelid, JoinType jointype, SpecialJoinInfo * sjinfo)
 {
 	Selectivity s1;
 	Oid			opno = linitial_oid(clause->opnos);
@@ -2267,7 +2267,7 @@ eqjoinsel(PG_FUNCTION_ARGS)
  */
 static double
 eqjoinsel_inner(Oid operator,
-				VariableStatData *vardata1, VariableStatData *vardata2)
+				VariableStatData * vardata1, VariableStatData * vardata2)
 {
 	double		selec;
 	double		nd1;
@@ -2484,8 +2484,8 @@ eqjoinsel_inner(Oid operator,
  */
 static double
 eqjoinsel_semi(Oid operator,
-			   VariableStatData *vardata1, VariableStatData *vardata2,
-			   RelOptInfo *inner_rel)
+			   VariableStatData * vardata1, VariableStatData * vardata2,
+			   RelOptInfo * inner_rel)
 {
 	double		selec;
 	double		nd1;
@@ -2844,10 +2844,10 @@ icnlikejoinsel(PG_FUNCTION_ARGS)
  *		*rightstart, *rightend similarly for the right-hand variable.
  */
 void
-mergejoinscansel(PlannerInfo *root, Node *clause,
+mergejoinscansel(PlannerInfo * root, Node * clause,
 				 Oid opfamily, int strategy, bool nulls_first,
-				 Selectivity *leftstart, Selectivity *leftend,
-				 Selectivity *rightstart, Selectivity *rightend)
+				 Selectivity * leftstart, Selectivity * leftend,
+				 Selectivity * rightstart, Selectivity * rightend)
 {
 	Node	   *left,
 			   *right;
@@ -3147,11 +3147,11 @@ typedef struct
 	Node	   *var;			/* might be an expression, not just a Var */
 	RelOptInfo *rel;			/* relation it belongs to */
 	double		ndistinct;		/* # distinct values */
-} GroupVarInfo;
+}			GroupVarInfo;
 
 static List *
-add_unique_group_var(PlannerInfo *root, List *varinfos,
-					 Node *var, VariableStatData *vardata)
+add_unique_group_var(PlannerInfo * root, List * varinfos,
+					 Node * var, VariableStatData * vardata)
 {
 	GroupVarInfo *varinfo;
 	double		ndistinct;
@@ -3268,8 +3268,8 @@ add_unique_group_var(PlannerInfo *root, List *varinfos,
  * but we don't have the info to do better).
  */
 double
-estimate_num_groups(PlannerInfo *root, List *groupExprs, double input_rows,
-					List **pgset)
+estimate_num_groups(PlannerInfo * root, List * groupExprs, double input_rows,
+					List * *pgset)
 {
 	List	   *varinfos = NIL;
 	double		srf_multiplier = 1.0;
@@ -3618,7 +3618,7 @@ estimate_num_groups(PlannerInfo *root, List *groupExprs, double input_rows,
  * inner rel is well-dispersed (or the alternatives seem much worse).
  */
 Selectivity
-estimate_hash_bucketsize(PlannerInfo *root, Node *hashkey, double nbuckets)
+estimate_hash_bucketsize(PlannerInfo * root, Node * hashkey, double nbuckets)
 {
 	VariableStatData vardata;
 	double		estfract,
@@ -3739,8 +3739,8 @@ estimate_hash_bucketsize(PlannerInfo *root, Node *hashkey, double nbuckets)
  * Return TRUE if we're able to find a match, FALSE otherwise.
  */
 static bool
-estimate_multivariate_ndistinct(PlannerInfo *root, RelOptInfo *rel,
-								List **varinfos, double *ndistinct)
+estimate_multivariate_ndistinct(PlannerInfo * root, RelOptInfo * rel,
+								List * *varinfos, double *ndistinct)
 {
 	ListCell   *lc;
 	Bitmapset  *attnums = NULL;
@@ -4487,8 +4487,8 @@ convert_timevalue_to_scalar(Datum value, Oid typid, bool *failure)
  * callers are expecting that the other side will act like a pseudoconstant.
  */
 bool
-get_restriction_variable(PlannerInfo *root, List *args, int varRelid,
-						 VariableStatData *vardata, Node **other,
+get_restriction_variable(PlannerInfo * root, List * args, int varRelid,
+						 VariableStatData * vardata, Node * *other,
 						 bool *varonleft)
 {
 	Node	   *left,
@@ -4547,8 +4547,8 @@ get_restriction_variable(PlannerInfo *root, List *args, int varRelid,
  * where we can't tell for sure, we default to assuming it's normal.
  */
 void
-get_join_variables(PlannerInfo *root, List *args, SpecialJoinInfo *sjinfo,
-				   VariableStatData *vardata1, VariableStatData *vardata2,
+get_join_variables(PlannerInfo * root, List * args, SpecialJoinInfo * sjinfo,
+				   VariableStatData * vardata1, VariableStatData * vardata2,
 				   bool *join_is_reversed)
 {
 	Node	   *left,
@@ -4609,8 +4609,8 @@ get_join_variables(PlannerInfo *root, List *args, SpecialJoinInfo *sjinfo,
  * Caller is responsible for doing ReleaseVariableStats() before exiting.
  */
 void
-examine_variable(PlannerInfo *root, Node *node, int varRelid,
-				 VariableStatData *vardata)
+examine_variable(PlannerInfo * root, Node * node, int varRelid,
+				 VariableStatData * vardata)
 {
 	Node	   *basenode;
 	Relids		varnos;
@@ -4820,8 +4820,8 @@ examine_variable(PlannerInfo *root, Node *node, int varRelid,
  * We already filled in all the fields of *vardata except for the stats tuple.
  */
 static void
-examine_simple_variable(PlannerInfo *root, Var *var,
-						VariableStatData *vardata)
+examine_simple_variable(PlannerInfo * root, Var * var,
+						VariableStatData * vardata)
 {
 	RangeTblEntry *rte = root->simple_rte_array[var->varno];
 
@@ -4987,7 +4987,7 @@ examine_simple_variable(PlannerInfo *root, Var *var,
  * the function is marked leak-proof.
  */
 bool
-statistic_proc_security_check(VariableStatData *vardata, Oid func_oid)
+statistic_proc_security_check(VariableStatData * vardata, Oid func_oid)
 {
 	if (vardata->acl_ok)
 		return true;
@@ -5016,7 +5016,7 @@ statistic_proc_security_check(VariableStatData *vardata, Oid func_oid)
  * compare the result to exact integer counts, or might divide by it.
  */
 double
-get_variable_numdistinct(VariableStatData *vardata, bool *isdefault)
+get_variable_numdistinct(VariableStatData * vardata, bool *isdefault)
 {
 	double		stadistinct;
 	double		stanullfrac = 0.0;
@@ -5138,8 +5138,8 @@ get_variable_numdistinct(VariableStatData *vardata, bool *isdefault)
  * be "<" not ">", as only the former is likely to be found in pg_statistic.
  */
 static bool
-get_variable_range(PlannerInfo *root, VariableStatData *vardata, Oid sortop,
-				   Datum *min, Datum *max)
+get_variable_range(PlannerInfo * root, VariableStatData * vardata, Oid sortop,
+				   Datum * min, Datum * max)
 {
 	Datum		tmin = 0;
 	Datum		tmax = 0;
@@ -5272,9 +5272,9 @@ get_variable_range(PlannerInfo *root, VariableStatData *vardata, Oid sortop,
  * sortop is the "<" comparison operator to use.
  */
 static bool
-get_actual_variable_range(PlannerInfo *root, VariableStatData *vardata,
+get_actual_variable_range(PlannerInfo * root, VariableStatData * vardata,
 						  Oid sortop,
-						  Datum *min, Datum *max)
+						  Datum * min, Datum * max)
 {
 	bool		have_data = false;
 	RelOptInfo *rel = vardata->rel;
@@ -5498,7 +5498,7 @@ get_actual_variable_range(PlannerInfo *root, VariableStatData *vardata,
  * already.
  */
 static RelOptInfo *
-find_join_input_rel(PlannerInfo *root, Relids relids)
+find_join_input_rel(PlannerInfo * root, Relids relids)
 {
 	RelOptInfo *rel = NULL;
 
@@ -5579,8 +5579,8 @@ pattern_char_isalpha(char c, bool is_multibyte,
  */
 
 static Pattern_Prefix_Status
-like_fixed_prefix(Const *patt_const, bool case_insensitive, Oid collation,
-				  Const **prefix_const, Selectivity *rest_selec)
+like_fixed_prefix(Const * patt_const, bool case_insensitive, Oid collation,
+				  Const * *prefix_const, Selectivity * rest_selec)
 {
 	char	   *match;
 	char	   *patt;
@@ -5687,8 +5687,8 @@ like_fixed_prefix(Const *patt_const, bool case_insensitive, Oid collation,
 }
 
 static Pattern_Prefix_Status
-regex_fixed_prefix(Const *patt_const, bool case_insensitive, Oid collation,
-				   Const **prefix_const, Selectivity *rest_selec)
+regex_fixed_prefix(Const * patt_const, bool case_insensitive, Oid collation,
+				   Const * *prefix_const, Selectivity * rest_selec)
 {
 	Oid			typeid = patt_const->consttype;
 	char	   *prefix;
@@ -5755,8 +5755,8 @@ regex_fixed_prefix(Const *patt_const, bool case_insensitive, Oid collation,
 }
 
 Pattern_Prefix_Status
-pattern_fixed_prefix(Const *patt, Pattern_Type ptype, Oid collation,
-					 Const **prefix, Selectivity *rest_selec)
+pattern_fixed_prefix(Const * patt, Pattern_Type ptype, Oid collation,
+					 Const * *prefix, Selectivity * rest_selec)
 {
 	Pattern_Prefix_Status result;
 
@@ -5806,8 +5806,8 @@ pattern_fixed_prefix(Const *patt, Pattern_Type ptype, Oid collation,
  * more useful to use the upper-bound code than not.
  */
 static Selectivity
-prefix_selectivity(PlannerInfo *root, VariableStatData *vardata,
-				   Oid vartype, Oid opfamily, Const *prefixcon)
+prefix_selectivity(PlannerInfo * root, VariableStatData * vardata,
+				   Oid vartype, Oid opfamily, Const * prefixcon)
 {
 	Selectivity prefixsel;
 	Oid			cmpopr;
@@ -6119,7 +6119,7 @@ byte_increment(unsigned char *ptr, int len)
  * not 256^K, which is what an exhaustive search would approach).
  */
 Const *
-make_greater_string(const Const *str_const, FmgrInfo *ltproc, Oid collation)
+make_greater_string(const Const * str_const, FmgrInfo * ltproc, Oid collation)
 {
 	Oid			datatype = str_const->consttype;
 	char	   *workstr;
@@ -6161,7 +6161,7 @@ make_greater_string(const Const *str_const, FmgrInfo *ltproc, Oid collation)
 		{
 			/* If first time through, determine the suffix to use */
 			static char suffixchar = 0;
-			static Oid	suffixcollation = 0;
+			static Oid suffixcollation = 0;
 
 			if (!suffixchar || suffixcollation != collation)
 			{
@@ -6345,7 +6345,7 @@ string_to_bytea_const(const char *str, size_t str_len)
  */
 
 List *
-deconstruct_indexquals(IndexPath *path)
+deconstruct_indexquals(IndexPath * path)
 {
 	List	   *result = NIL;
 	IndexOptInfo *index = path->indexinfo;
@@ -6440,7 +6440,7 @@ deconstruct_indexquals(IndexPath *path)
  * once per scan, there's no need to distinguish startup from per-row cost.
  */
 static Cost
-other_operands_eval_cost(PlannerInfo *root, List *qinfos)
+other_operands_eval_cost(PlannerInfo * root, List * qinfos)
 {
 	Cost		qual_arg_cost = 0;
 	ListCell   *lc;
@@ -6465,7 +6465,7 @@ other_operands_eval_cost(PlannerInfo *root, List *qinfos)
  * OpExprs and the index column is always on the left.
  */
 static Cost
-orderby_operands_eval_cost(PlannerInfo *root, IndexPath *path)
+orderby_operands_eval_cost(PlannerInfo * root, IndexPath * path)
 {
 	Cost		qual_arg_cost = 0;
 	ListCell   *lc;
@@ -6494,11 +6494,11 @@ orderby_operands_eval_cost(PlannerInfo *root, IndexPath *path)
 }
 
 void
-genericcostestimate(PlannerInfo *root,
-					IndexPath *path,
+genericcostestimate(PlannerInfo * root,
+					IndexPath * path,
 					double loop_count,
-					List *qinfos,
-					GenericCosts *costs)
+					List * qinfos,
+					GenericCosts * costs)
 {
 	IndexOptInfo *index = path->indexinfo;
 	List	   *indexQuals = path->indexquals;
@@ -6713,7 +6713,7 @@ genericcostestimate(PlannerInfo *root,
  * problematic if the result were passed to other things.
  */
 static List *
-add_predicate_to_quals(IndexOptInfo *index, List *indexQuals)
+add_predicate_to_quals(IndexOptInfo * index, List * indexQuals)
 {
 	List	   *predExtraQuals = NIL;
 	ListCell   *lc;
@@ -6735,9 +6735,9 @@ add_predicate_to_quals(IndexOptInfo *index, List *indexQuals)
 
 
 void
-btcostestimate(PlannerInfo *root, IndexPath *path, double loop_count,
-			   Cost *indexStartupCost, Cost *indexTotalCost,
-			   Selectivity *indexSelectivity, double *indexCorrelation,
+btcostestimate(PlannerInfo * root, IndexPath * path, double loop_count,
+			   Cost * indexStartupCost, Cost * indexTotalCost,
+			   Selectivity * indexSelectivity, double *indexCorrelation,
 			   double *indexPages)
 {
 	IndexOptInfo *index = path->indexinfo;
@@ -7028,9 +7028,9 @@ btcostestimate(PlannerInfo *root, IndexPath *path, double loop_count,
 }
 
 void
-hashcostestimate(PlannerInfo *root, IndexPath *path, double loop_count,
-				 Cost *indexStartupCost, Cost *indexTotalCost,
-				 Selectivity *indexSelectivity, double *indexCorrelation,
+hashcostestimate(PlannerInfo * root, IndexPath * path, double loop_count,
+				 Cost * indexStartupCost, Cost * indexTotalCost,
+				 Selectivity * indexSelectivity, double *indexCorrelation,
 				 double *indexPages)
 {
 	List	   *qinfos;
@@ -7076,9 +7076,9 @@ hashcostestimate(PlannerInfo *root, IndexPath *path, double loop_count,
 }
 
 void
-gistcostestimate(PlannerInfo *root, IndexPath *path, double loop_count,
-				 Cost *indexStartupCost, Cost *indexTotalCost,
-				 Selectivity *indexSelectivity, double *indexCorrelation,
+gistcostestimate(PlannerInfo * root, IndexPath * path, double loop_count,
+				 Cost * indexStartupCost, Cost * indexTotalCost,
+				 Selectivity * indexSelectivity, double *indexCorrelation,
 				 double *indexPages)
 {
 	IndexOptInfo *index = path->indexinfo;
@@ -7137,9 +7137,9 @@ gistcostestimate(PlannerInfo *root, IndexPath *path, double loop_count,
 }
 
 void
-spgcostestimate(PlannerInfo *root, IndexPath *path, double loop_count,
-				Cost *indexStartupCost, Cost *indexTotalCost,
-				Selectivity *indexSelectivity, double *indexCorrelation,
+spgcostestimate(PlannerInfo * root, IndexPath * path, double loop_count,
+				Cost * indexStartupCost, Cost * indexTotalCost,
+				Selectivity * indexSelectivity, double *indexCorrelation,
 				double *indexPages)
 {
 	IndexOptInfo *index = path->indexinfo;
@@ -7209,7 +7209,7 @@ typedef struct
 	double		exactEntries;
 	double		searchEntries;
 	double		arrayScans;
-} GinQualCounts;
+}			GinQualCounts;
 
 /*
  * Estimate the number of index terms that need to be searched for while
@@ -7217,9 +7217,9 @@ typedef struct
  * appropriately.  If the query is unsatisfiable, return false.
  */
 static bool
-gincost_pattern(IndexOptInfo *index, int indexcol,
+gincost_pattern(IndexOptInfo * index, int indexcol,
 				Oid clause_op, Datum query,
-				GinQualCounts *counts)
+				GinQualCounts * counts)
 {
 	Oid			extractProcOid;
 	Oid			collation;
@@ -7319,10 +7319,10 @@ gincost_pattern(IndexOptInfo *index, int indexcol,
  * appropriately.  If the query is unsatisfiable, return false.
  */
 static bool
-gincost_opexpr(PlannerInfo *root,
-			   IndexOptInfo *index,
-			   IndexQualInfo *qinfo,
-			   GinQualCounts *counts)
+gincost_opexpr(PlannerInfo * root,
+			   IndexOptInfo * index,
+			   IndexQualInfo * qinfo,
+			   GinQualCounts * counts)
 {
 	int			indexcol = qinfo->indexcol;
 	Oid			clause_op = qinfo->clause_op;
@@ -7375,11 +7375,11 @@ gincost_opexpr(PlannerInfo *root,
  * by N, causing gincostestimate to scale up its estimates accordingly.
  */
 static bool
-gincost_scalararrayopexpr(PlannerInfo *root,
-						  IndexOptInfo *index,
-						  IndexQualInfo *qinfo,
+gincost_scalararrayopexpr(PlannerInfo * root,
+						  IndexOptInfo * index,
+						  IndexQualInfo * qinfo,
 						  double numIndexEntries,
-						  GinQualCounts *counts)
+						  GinQualCounts * counts)
 {
 	int			indexcol = qinfo->indexcol;
 	Oid			clause_op = qinfo->clause_op;
@@ -7490,9 +7490,9 @@ gincost_scalararrayopexpr(PlannerInfo *root,
  * GIN has search behavior completely different from other index types
  */
 void
-gincostestimate(PlannerInfo *root, IndexPath *path, double loop_count,
-				Cost *indexStartupCost, Cost *indexTotalCost,
-				Selectivity *indexSelectivity, double *indexCorrelation,
+gincostestimate(PlannerInfo * root, IndexPath * path, double loop_count,
+				Cost * indexStartupCost, Cost * indexTotalCost,
+				Selectivity * indexSelectivity, double *indexCorrelation,
 				double *indexPages)
 {
 	IndexOptInfo *index = path->indexinfo;
@@ -7815,9 +7815,9 @@ gincostestimate(PlannerInfo *root, IndexPath *path, double loop_count,
  * BRIN has search behavior completely different from other index types
  */
 void
-brincostestimate(PlannerInfo *root, IndexPath *path, double loop_count,
-				 Cost *indexStartupCost, Cost *indexTotalCost,
-				 Selectivity *indexSelectivity, double *indexCorrelation,
+brincostestimate(PlannerInfo * root, IndexPath * path, double loop_count,
+				 Cost * indexStartupCost, Cost * indexTotalCost,
+				 Selectivity * indexSelectivity, double *indexCorrelation,
 				 double *indexPages)
 {
 	IndexOptInfo *index = path->indexinfo;

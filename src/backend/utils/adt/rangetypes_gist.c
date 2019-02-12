@@ -55,14 +55,14 @@ typedef struct
 {
 	int			index;
 	RangeBound	bound;
-} SingleBoundSortItem;
+}			SingleBoundSortItem;
 
 /* place on left or right side of split? */
 typedef enum
 {
 	SPLIT_LEFT = 0,				/* makes initialization to SPLIT_LEFT easier */
 	SPLIT_RIGHT
-} SplitLR;
+}			SplitLR;
 
 /*
  * Context for range_gist_consider_split.
@@ -84,7 +84,7 @@ typedef struct
 	float4		overlap;		/* overlap between left and right predicate */
 	int			common_left;	/* # common entries destined for each side */
 	int			common_right;
-} ConsiderSplitContext;
+}			ConsiderSplitContext;
 
 /*
  * Bounds extracted from a non-empty range, for use in
@@ -94,7 +94,7 @@ typedef struct
 {
 	RangeBound	lower;
 	RangeBound	upper;
-} NonEmptyRange;
+}			NonEmptyRange;
 
 /*
  * Represents information about an entry that can be placed in either group
@@ -106,7 +106,7 @@ typedef struct
 	int			index;
 	/* Delta between closeness of range to each of the two groups */
 	double		delta;
-} CommonEntry;
+}			CommonEntry;
 
 /* Helper macros to place an entry in the left or right group during split */
 /* Note direct access to variables v, typcache, left_range, right_range */
@@ -133,38 +133,38 @@ typedef struct
 	((RangeType *) DatumGetPointer(datumCopy(PointerGetDatum(r), \
 											 false, -1)))
 
-static RangeType *range_super_union(TypeCacheEntry *typcache, RangeType *r1,
-				  RangeType *r2);
-static bool range_gist_consistent_int(TypeCacheEntry *typcache,
-						  StrategyNumber strategy, RangeType *key,
+static RangeType * range_super_union(TypeCacheEntry * typcache, RangeType * r1,
+									 RangeType * r2);
+static bool range_gist_consistent_int(TypeCacheEntry * typcache,
+						  StrategyNumber strategy, RangeType * key,
 						  Datum query);
-static bool range_gist_consistent_leaf(TypeCacheEntry *typcache,
-						   StrategyNumber strategy, RangeType *key,
+static bool range_gist_consistent_leaf(TypeCacheEntry * typcache,
+						   StrategyNumber strategy, RangeType * key,
 						   Datum query);
-static void range_gist_fallback_split(TypeCacheEntry *typcache,
-						  GistEntryVector *entryvec,
-						  GIST_SPLITVEC *v);
-static void range_gist_class_split(TypeCacheEntry *typcache,
-					   GistEntryVector *entryvec,
-					   GIST_SPLITVEC *v,
-					   SplitLR *classes_groups);
-static void range_gist_single_sorting_split(TypeCacheEntry *typcache,
-								GistEntryVector *entryvec,
-								GIST_SPLITVEC *v,
+static void range_gist_fallback_split(TypeCacheEntry * typcache,
+						  GistEntryVector * entryvec,
+						  GIST_SPLITVEC * v);
+static void range_gist_class_split(TypeCacheEntry * typcache,
+					   GistEntryVector * entryvec,
+					   GIST_SPLITVEC * v,
+					   SplitLR * classes_groups);
+static void range_gist_single_sorting_split(TypeCacheEntry * typcache,
+								GistEntryVector * entryvec,
+								GIST_SPLITVEC * v,
 								bool use_upper_bound);
-static void range_gist_double_sorting_split(TypeCacheEntry *typcache,
-								GistEntryVector *entryvec,
-								GIST_SPLITVEC *v);
-static void range_gist_consider_split(ConsiderSplitContext *context,
-						  RangeBound *right_lower, int min_left_count,
-						  RangeBound *left_upper, int max_left_count);
-static int	get_gist_range_class(RangeType *range);
+static void range_gist_double_sorting_split(TypeCacheEntry * typcache,
+								GistEntryVector * entryvec,
+								GIST_SPLITVEC * v);
+static void range_gist_consider_split(ConsiderSplitContext * context,
+						  RangeBound * right_lower, int min_left_count,
+						  RangeBound * left_upper, int max_left_count);
+static int	get_gist_range_class(RangeType * range);
 static int	single_bound_cmp(const void *a, const void *b, void *arg);
 static int	interval_cmp_lower(const void *a, const void *b, void *arg);
 static int	interval_cmp_upper(const void *a, const void *b, void *arg);
 static int	common_entry_cmp(const void *i1, const void *i2);
-static float8 call_subtype_diff(TypeCacheEntry *typcache,
-				  Datum val1, Datum val2);
+static float8 call_subtype_diff(TypeCacheEntry * typcache,
+								Datum val1, Datum val2);
 
 
 /* GiST query consistency check */
@@ -711,7 +711,7 @@ range_gist_same(PG_FUNCTION_ARGS)
  * that *all* unions formed within the GiST index must go through here.
  */
 static RangeType *
-range_super_union(TypeCacheEntry *typcache, RangeType *r1, RangeType *r2)
+range_super_union(TypeCacheEntry * typcache, RangeType * r1, RangeType * r2)
 {
 	RangeType  *result;
 	RangeBound	lower1,
@@ -781,8 +781,8 @@ range_super_union(TypeCacheEntry *typcache, RangeType *r1, RangeType *r2)
  * GiST consistent test on an index internal page
  */
 static bool
-range_gist_consistent_int(TypeCacheEntry *typcache, StrategyNumber strategy,
-						  RangeType *key, Datum query)
+range_gist_consistent_int(TypeCacheEntry * typcache, StrategyNumber strategy,
+						  RangeType * key, Datum query)
 {
 	switch (strategy)
 	{
@@ -853,8 +853,8 @@ range_gist_consistent_int(TypeCacheEntry *typcache, StrategyNumber strategy,
  * GiST consistent test on an index leaf page
  */
 static bool
-range_gist_consistent_leaf(TypeCacheEntry *typcache, StrategyNumber strategy,
-						   RangeType *key, Datum query)
+range_gist_consistent_leaf(TypeCacheEntry * typcache, StrategyNumber strategy,
+						   RangeType * key, Datum query)
 {
 	switch (strategy)
 	{
@@ -897,9 +897,9 @@ range_gist_consistent_leaf(TypeCacheEntry *typcache, StrategyNumber strategy,
  * and the other half on the other page.
  */
 static void
-range_gist_fallback_split(TypeCacheEntry *typcache,
-						  GistEntryVector *entryvec,
-						  GIST_SPLITVEC *v)
+range_gist_fallback_split(TypeCacheEntry * typcache,
+						  GistEntryVector * entryvec,
+						  GIST_SPLITVEC * v)
 {
 	RangeType  *left_range = NULL;
 	RangeType  *right_range = NULL;
@@ -935,10 +935,10 @@ range_gist_fallback_split(TypeCacheEntry *typcache,
  * split to which each class should go.
  */
 static void
-range_gist_class_split(TypeCacheEntry *typcache,
-					   GistEntryVector *entryvec,
-					   GIST_SPLITVEC *v,
-					   SplitLR *classes_groups)
+range_gist_class_split(TypeCacheEntry * typcache,
+					   GistEntryVector * entryvec,
+					   GIST_SPLITVEC * v,
+					   SplitLR * classes_groups)
 {
 	RangeType  *left_range = NULL;
 	RangeType  *right_range = NULL;
@@ -978,9 +978,9 @@ range_gist_class_split(TypeCacheEntry *typcache,
  * bound for sorting.
  */
 static void
-range_gist_single_sorting_split(TypeCacheEntry *typcache,
-								GistEntryVector *entryvec,
-								GIST_SPLITVEC *v,
+range_gist_single_sorting_split(TypeCacheEntry * typcache,
+								GistEntryVector * entryvec,
+								GIST_SPLITVEC * v,
 								bool use_upper_bound)
 {
 	SingleBoundSortItem *sortItems;
@@ -1067,9 +1067,9 @@ range_gist_single_sorting_split(TypeCacheEntry *typcache,
  * http://syrcose.ispras.ru/2011/files/SYRCoSE2011_Proceedings.pdf#page=36
  */
 static void
-range_gist_double_sorting_split(TypeCacheEntry *typcache,
-								GistEntryVector *entryvec,
-								GIST_SPLITVEC *v)
+range_gist_double_sorting_split(TypeCacheEntry * typcache,
+								GistEntryVector * entryvec,
+								GIST_SPLITVEC * v)
 {
 	ConsiderSplitContext context;
 	OffsetNumber i,
@@ -1369,9 +1369,9 @@ range_gist_double_sorting_split(TypeCacheEntry *typcache,
  * during range_gist_double_sorting_split.
  */
 static void
-range_gist_consider_split(ConsiderSplitContext *context,
-						  RangeBound *right_lower, int min_left_count,
-						  RangeBound *left_upper, int max_left_count)
+range_gist_consider_split(ConsiderSplitContext * context,
+						  RangeBound * right_lower, int min_left_count,
+						  RangeBound * left_upper, int max_left_count)
 {
 	int			left_count,
 				right_count;
@@ -1452,7 +1452,7 @@ range_gist_consider_split(ConsiderSplitContext *context,
  * can't be combined with anything else.
  */
 static int
-get_gist_range_class(RangeType *range)
+get_gist_range_class(RangeType * range)
 {
 	int			classNumber;
 	char		flags;
@@ -1536,7 +1536,7 @@ common_entry_cmp(const void *i1, const void *i2)
  * Caller must have already checked that there is one for the range type.
  */
 static float8
-call_subtype_diff(TypeCacheEntry *typcache, Datum val1, Datum val2)
+call_subtype_diff(TypeCacheEntry * typcache, Datum val1, Datum val2)
 {
 	float8		value;
 

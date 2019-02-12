@@ -29,7 +29,7 @@
 #include "utils/memutils.h"
 
 
-static TupleTableSlot *ExecProjectSRF(ProjectSetState *node, bool continuing);
+static TupleTableSlot * ExecProjectSRF(ProjectSetState * node, bool continuing);
 
 
 /* ----------------------------------------------------------------
@@ -40,7 +40,7 @@ static TupleTableSlot *ExecProjectSRF(ProjectSetState *node, bool continuing);
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecProjectSet(PlanState *pstate)
+ExecProjectSet(PlanState * pstate)
 {
 	ProjectSetState *node = castNode(ProjectSetState, pstate);
 	TupleTableSlot *outerTupleSlot;
@@ -120,7 +120,7 @@ ExecProjectSet(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecProjectSRF(ProjectSetState *node, bool continuing)
+ExecProjectSRF(ProjectSetState * node, bool continuing)
 {
 	TupleTableSlot *resultSlot = node->ps.ps_ResultTupleSlot;
 	ExprContext *econtext = node->ps.ps_ExprContext;
@@ -207,7 +207,7 @@ ExecProjectSRF(ProjectSetState *node, bool continuing)
  * ----------------------------------------------------------------
  */
 ProjectSetState *
-ExecInitProjectSet(ProjectSet *node, EState *estate, int eflags)
+ExecInitProjectSet(ProjectSet * node, EState * estate, int eflags)
 {
 	ProjectSetState *state;
 	ListCell   *lc;
@@ -258,7 +258,7 @@ ExecInitProjectSet(ProjectSet *node, EState *estate, int eflags)
 
 	/* Create workspace for per-tlist-entry expr state & SRF-is-done state */
 	state->nelems = list_length(node->plan.targetlist);
-	state->elems = (Node **)
+	state->elems = (Node * *)
 		palloc(sizeof(Node *) * state->nelems);
 	state->elemdone = (ExprDoneCond *)
 		palloc(sizeof(ExprDoneCond) * state->nelems);
@@ -275,8 +275,8 @@ ExecInitProjectSet(ProjectSet *node, EState *estate, int eflags)
 		TargetEntry *te = (TargetEntry *) lfirst(lc);
 		Expr	   *expr = te->expr;
 
-		if ((IsA(expr, FuncExpr) &&((FuncExpr *) expr)->funcretset) ||
-			(IsA(expr, OpExpr) &&((OpExpr *) expr)->opretset))
+		if ((IsA(expr, FuncExpr) && ((FuncExpr *) expr)->funcretset) ||
+			(IsA(expr, OpExpr) && ((OpExpr *) expr)->opretset))
 		{
 			state->elems[off] = (Node *)
 				ExecInitFunctionResultSet(expr, state->ps.ps_ExprContext,
@@ -301,7 +301,7 @@ ExecInitProjectSet(ProjectSet *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndProjectSet(ProjectSetState *node)
+ExecEndProjectSet(ProjectSetState * node)
 {
 	/*
 	 * Free the exprcontext
@@ -320,7 +320,7 @@ ExecEndProjectSet(ProjectSetState *node)
 }
 
 void
-ExecReScanProjectSet(ProjectSetState *node)
+ExecReScanProjectSet(ProjectSetState * node)
 {
 	/* Forget any incompletely-evaluated SRFs */
 	node->pending_srf_tuples = false;

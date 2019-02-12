@@ -648,7 +648,7 @@ SH_SCOPE	SH_ELEMENT_TYPE *
 SH_LOOKUP(SH_TYPE * tb, SH_KEY_TYPE key)
 {
 	uint32		hash = SH_HASH_KEY(tb, key);
-	const uint32 startelem = SH_INITIAL_BUCKET(tb, hash);
+	const		uint32 startelem = SH_INITIAL_BUCKET(tb, hash);
 	uint32		curelem = startelem;
 
 	while (true)

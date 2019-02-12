@@ -32,60 +32,60 @@ typedef enum
 	PGEVT_RESULTCREATE,
 	PGEVT_RESULTCOPY,
 	PGEVT_RESULTDESTROY
-} PGEventId;
+}			PGEventId;
 
 typedef struct
 {
 	PGconn	   *conn;
-} PGEventRegister;
+}			PGEventRegister;
 
 typedef struct
 {
 	PGconn	   *conn;
-} PGEventConnReset;
+}			PGEventConnReset;
 
 typedef struct
 {
 	PGconn	   *conn;
-} PGEventConnDestroy;
+}			PGEventConnDestroy;
 
 typedef struct
 {
 	PGconn	   *conn;
 	PGresult   *result;
-} PGEventResultCreate;
+}			PGEventResultCreate;
 
 typedef struct
 {
-	const PGresult *src;
+	const		PGresult *src;
 	PGresult   *dest;
-} PGEventResultCopy;
+}			PGEventResultCopy;
 
 typedef struct
 {
 	PGresult   *result;
-} PGEventResultDestroy;
+}			PGEventResultDestroy;
 
 typedef int (*PGEventProc) (PGEventId evtId, void *evtInfo, void *passThrough);
 
 /* Registers an event proc with the given PGconn. */
-extern int PQregisterEventProc(PGconn *conn, PGEventProc proc,
+extern int PQregisterEventProc(PGconn * conn, PGEventProc proc,
 					const char *name, void *passThrough);
 
 /* Sets the PGconn instance data for the provided proc to data. */
-extern int	PQsetInstanceData(PGconn *conn, PGEventProc proc, void *data);
+extern int	PQsetInstanceData(PGconn * conn, PGEventProc proc, void *data);
 
 /* Gets the PGconn instance data for the provided proc. */
-extern void *PQinstanceData(const PGconn *conn, PGEventProc proc);
+extern void *PQinstanceData(const PGconn * conn, PGEventProc proc);
 
 /* Sets the PGresult instance data for the provided proc to data. */
-extern int	PQresultSetInstanceData(PGresult *result, PGEventProc proc, void *data);
+extern int	PQresultSetInstanceData(PGresult * result, PGEventProc proc, void *data);
 
 /* Gets the PGresult instance data for the provided proc. */
-extern void *PQresultInstanceData(const PGresult *result, PGEventProc proc);
+extern void *PQresultInstanceData(const PGresult * result, PGEventProc proc);
 
 /* Fires RESULTCREATE events for an application-created PGresult. */
-extern int	PQfireResultCreateEvents(PGconn *conn, PGresult *res);
+extern int	PQfireResultCreateEvents(PGconn * conn, PGresult * res);
 
 #ifdef __cplusplus
 }

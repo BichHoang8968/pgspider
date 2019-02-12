@@ -26,10 +26,10 @@ typedef struct PathHashStack
 {
 	uint32		hash;
 	struct PathHashStack *parent;
-} PathHashStack;
+}			PathHashStack;
 
 static Datum make_text_key(char flag, const char *str, int len);
-static Datum make_scalar_key(const JsonbValue *scalarVal, bool is_key);
+static Datum make_scalar_key(const JsonbValue * scalarVal, bool is_key);
 
 /*
  *
@@ -564,7 +564,7 @@ make_text_key(char flag, const char *str, int len)
  * see jsonb.h).
  */
 static Datum
-make_scalar_key(const JsonbValue *scalarVal, bool is_key)
+make_scalar_key(const JsonbValue * scalarVal, bool is_key)
 {
 	Datum		item;
 	char	   *cstr;

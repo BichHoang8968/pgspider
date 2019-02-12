@@ -20,7 +20,7 @@
  * forward declarations
  */
 static int findprefix(struct cnfa *cnfa, struct colormap *cm,
-		   chr *string, size_t *slength);
+		   chr * string, size_t * slength);
 
 
 /*
@@ -43,9 +43,9 @@ static int findprefix(struct cnfa *cnfa, struct colormap *cm,
  * match the reported prefix or exact-match string.
  */
 int
-pg_regprefix(regex_t *re,
-			 chr **string,
-			 size_t *slength)
+pg_regprefix(regex_t * re,
+			 chr * *string,
+			 size_t * slength)
 {
 	struct guts *g;
 	struct cnfa *cnfa;
@@ -111,8 +111,8 @@ pg_regprefix(regex_t *re,
 static int						/* regprefix return code */
 findprefix(struct cnfa *cnfa,
 		   struct colormap *cm,
-		   chr *string,
-		   size_t *slength)
+		   chr * string,
+		   size_t * slength)
 {
 	int			st;
 	int			nextst;

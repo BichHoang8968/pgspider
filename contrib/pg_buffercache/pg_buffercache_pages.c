@@ -41,7 +41,7 @@ typedef struct
 	 * because of bufmgr.c's PrivateRefCount infrastructure.
 	 */
 	int32		pinning_backends;
-} BufferCachePagesRec;
+}			BufferCachePagesRec;
 
 
 /*
@@ -51,7 +51,7 @@ typedef struct
 {
 	TupleDesc	tupdesc;
 	BufferCachePagesRec *record;
-} BufferCachePagesContext;
+}			BufferCachePagesContext;
 
 
 /*

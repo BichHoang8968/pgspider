@@ -96,7 +96,7 @@ typedef struct PlannedStmt
 	/* statement location in source string (copied from Query) */
 	int			stmt_location;	/* start location, or -1 if unknown */
 	int			stmt_len;		/* length in bytes; 0 means "rest of string" */
-} PlannedStmt;
+}			PlannedStmt;
 
 /* macro for fetching the Plan associated with a SubPlan node */
 #define exec_subplan_get_plan(plannedstmt, subplan) \
@@ -161,7 +161,7 @@ typedef struct Plan
 	 */
 	Bitmapset  *extParam;
 	Bitmapset  *allParam;
-} Plan;
+}			Plan;
 
 /* ----------------
  *	these are defined to avoid confusion problems with "left"
@@ -189,7 +189,7 @@ typedef struct Result
 {
 	Plan		plan;
 	Node	   *resconstantqual;
-} Result;
+}			Result;
 
 /* ----------------
  *	 ProjectSet node -
@@ -200,7 +200,7 @@ typedef struct Result
 typedef struct ProjectSet
 {
 	Plan		plan;
-} ProjectSet;
+}			ProjectSet;
 
 /* ----------------
  *	 ModifyTable node -
@@ -235,7 +235,7 @@ typedef struct ModifyTable
 	Node	   *onConflictWhere;	/* WHERE for ON CONFLICT UPDATE */
 	Index		exclRelRTI;		/* RTI of the EXCLUDED pseudo relation */
 	List	   *exclRelTlist;	/* tlist of the EXCLUDED pseudo relation */
-} ModifyTable;
+}			ModifyTable;
 
 /* ----------------
  *	 Append node -
@@ -248,7 +248,7 @@ typedef struct Append
 	/* RT indexes of non-leaf tables in a partition tree */
 	List	   *partitioned_rels;
 	List	   *appendplans;
-} Append;
+}			Append;
 
 /* ----------------
  *	 MergeAppend node -
@@ -267,7 +267,7 @@ typedef struct MergeAppend
 	Oid		   *sortOperators;	/* OIDs of operators to sort them by */
 	Oid		   *collations;		/* OIDs of collations */
 	bool	   *nullsFirst;		/* NULLS FIRST/LAST directions */
-} MergeAppend;
+}			MergeAppend;
 
 /* ----------------
  *	RecursiveUnion node -
@@ -287,7 +287,7 @@ typedef struct RecursiveUnion
 	AttrNumber *dupColIdx;		/* their indexes in the target list */
 	Oid		   *dupOperators;	/* equality operators to compare with */
 	long		numGroups;		/* estimated number of groups in input */
-} RecursiveUnion;
+}			RecursiveUnion;
 
 /* ----------------
  *	 BitmapAnd node -
@@ -301,7 +301,7 @@ typedef struct BitmapAnd
 {
 	Plan		plan;
 	List	   *bitmapplans;
-} BitmapAnd;
+}			BitmapAnd;
 
 /* ----------------
  *	 BitmapOr node -
@@ -316,7 +316,7 @@ typedef struct BitmapOr
 	Plan		plan;
 	bool		isshared;
 	List	   *bitmapplans;
-} BitmapOr;
+}			BitmapOr;
 
 /*
  * ==========
@@ -327,7 +327,7 @@ typedef struct Scan
 {
 	Plan		plan;
 	Index		scanrelid;		/* relid is index into the range table */
-} Scan;
+}			Scan;
 
 /* ----------------
  *		sequential scan node
@@ -344,7 +344,7 @@ typedef struct SampleScan
 	Scan		scan;
 	/* use struct pointer to avoid including parsenodes.h here */
 	struct TableSampleClause *tablesample;
-} SampleScan;
+}			SampleScan;
 
 /* ----------------
  *		index scan node
@@ -393,7 +393,7 @@ typedef struct IndexScan
 	List	   *indexorderbyorig;	/* the same in original form */
 	List	   *indexorderbyops;	/* OIDs of sort ops for ORDER BY exprs */
 	ScanDirection indexorderdir;	/* forward or backward or don't care */
-} IndexScan;
+}			IndexScan;
 
 /* ----------------
  *		index-only scan node
@@ -420,7 +420,7 @@ typedef struct IndexOnlyScan
 	List	   *indexorderby;	/* list of index ORDER BY exprs */
 	List	   *indextlist;		/* TargetEntry list describing index's cols */
 	ScanDirection indexorderdir;	/* forward or backward or don't care */
-} IndexOnlyScan;
+}			IndexOnlyScan;
 
 /* ----------------
  *		bitmap index scan node
@@ -446,7 +446,7 @@ typedef struct BitmapIndexScan
 	bool		isshared;		/* Create shared bitmap if set */
 	List	   *indexqual;		/* list of index quals (OpExprs) */
 	List	   *indexqualorig;	/* the same in original form */
-} BitmapIndexScan;
+}			BitmapIndexScan;
 
 /* ----------------
  *		bitmap sequential scan node
@@ -461,7 +461,7 @@ typedef struct BitmapHeapScan
 {
 	Scan		scan;
 	List	   *bitmapqualorig; /* index quals, in standard expr form */
-} BitmapHeapScan;
+}			BitmapHeapScan;
 
 /* ----------------
  *		tid scan node
@@ -474,7 +474,7 @@ typedef struct TidScan
 {
 	Scan		scan;
 	List	   *tidquals;		/* qual(s) involving CTID = something */
-} TidScan;
+}			TidScan;
 
 /* ----------------
  *		subquery scan node
@@ -496,7 +496,7 @@ typedef struct SubqueryScan
 {
 	Scan		scan;
 	Plan	   *subplan;
-} SubqueryScan;
+}			SubqueryScan;
 
 /* ----------------
  *		FunctionScan node
@@ -507,7 +507,7 @@ typedef struct FunctionScan
 	Scan		scan;
 	List	   *functions;		/* list of RangeTblFunction nodes */
 	bool		funcordinality; /* WITH ORDINALITY */
-} FunctionScan;
+}			FunctionScan;
 
 /* ----------------
  *		ValuesScan node
@@ -517,7 +517,7 @@ typedef struct ValuesScan
 {
 	Scan		scan;
 	List	   *values_lists;	/* list of expression lists */
-} ValuesScan;
+}			ValuesScan;
 
 /* ----------------
  *		TableFunc scan node
@@ -527,7 +527,7 @@ typedef struct TableFuncScan
 {
 	Scan		scan;
 	TableFunc  *tablefunc;		/* table function node */
-} TableFuncScan;
+}			TableFuncScan;
 
 /* ----------------
  *		CteScan node
@@ -538,7 +538,7 @@ typedef struct CteScan
 	Scan		scan;
 	int			ctePlanId;		/* ID of init SubPlan for CTE */
 	int			cteParam;		/* ID of Param representing CTE output */
-} CteScan;
+}			CteScan;
 
 /* ----------------
  *		NamedTuplestoreScan node
@@ -548,7 +548,7 @@ typedef struct NamedTuplestoreScan
 {
 	Scan		scan;
 	char	   *enrname;		/* Name given to Ephemeral Named Relation */
-} NamedTuplestoreScan;
+}			NamedTuplestoreScan;
 
 /* ----------------
  *		WorkTableScan node
@@ -558,7 +558,7 @@ typedef struct WorkTableScan
 {
 	Scan		scan;
 	int			wtParam;		/* ID of Param representing work table */
-} WorkTableScan;
+}			WorkTableScan;
 
 /* ----------------
  *		ForeignScan node
@@ -603,7 +603,7 @@ typedef struct ForeignScan
 	List	   *fdw_recheck_quals;	/* original quals not in scan.plan.qual */
 	Bitmapset  *fs_relids;		/* RTIs generated by this scan */
 	bool		fsSystemCol;	/* true if any "system column" is needed */
-} ForeignScan;
+}			ForeignScan;
 
 /* ----------------
  *	   CustomScan node
@@ -631,7 +631,7 @@ typedef struct CustomScan
 	List	   *custom_scan_tlist;	/* optional tlist describing scan tuple */
 	Bitmapset  *custom_relids;	/* RTIs generated by this scan */
 	const struct CustomScanMethods *methods;
-} CustomScan;
+}			CustomScan;
 
 /*
  * ==========
@@ -667,7 +667,7 @@ typedef struct Join
 	JoinType	jointype;
 	bool		inner_unique;
 	List	   *joinqual;		/* JOIN quals (in addition to plan.qual) */
-} Join;
+}			Join;
 
 /* ----------------
  *		nest loop join node
@@ -684,14 +684,14 @@ typedef struct NestLoop
 {
 	Join		join;
 	List	   *nestParams;		/* list of NestLoopParam nodes */
-} NestLoop;
+}			NestLoop;
 
 typedef struct NestLoopParam
 {
 	NodeTag		type;
 	int			paramno;		/* number of the PARAM_EXEC Param to set */
 	Var		   *paramval;		/* outer-relation Var to assign to Param */
-} NestLoopParam;
+}			NestLoopParam;
 
 /* ----------------
  *		merge join node
@@ -714,7 +714,7 @@ typedef struct MergeJoin
 	Oid		   *mergeCollations;	/* per-clause OIDs of collations */
 	int		   *mergeStrategies;	/* per-clause ordering (ASC or DESC) */
 	bool	   *mergeNullsFirst;	/* per-clause nulls ordering */
-} MergeJoin;
+}			MergeJoin;
 
 /* ----------------
  *		hash join node
@@ -724,7 +724,7 @@ typedef struct HashJoin
 {
 	Join		join;
 	List	   *hashclauses;
-} HashJoin;
+}			HashJoin;
 
 /* ----------------
  *		materialization node
@@ -733,7 +733,7 @@ typedef struct HashJoin
 typedef struct Material
 {
 	Plan		plan;
-} Material;
+}			Material;
 
 /* ----------------
  *		sort node
@@ -747,7 +747,7 @@ typedef struct Sort
 	Oid		   *sortOperators;	/* OIDs of operators to sort them by */
 	Oid		   *collations;		/* OIDs of collations */
 	bool	   *nullsFirst;		/* NULLS FIRST/LAST directions */
-} Sort;
+}			Sort;
 
 /* ---------------
  *	 group node -
@@ -761,7 +761,7 @@ typedef struct Group
 	int			numCols;		/* number of grouping columns */
 	AttrNumber *grpColIdx;		/* their indexes in the target list */
 	Oid		   *grpOperators;	/* equality operators to compare with */
-} Group;
+}			Group;
 
 /* ---------------
  *		aggregate node
@@ -790,7 +790,7 @@ typedef struct Agg
 	/* Note: planner provides numGroups & aggParams only in HASHED/MIXED case */
 	List	   *groupingSets;	/* grouping sets to use */
 	List	   *chain;			/* chained Agg/Sort nodes */
-} Agg;
+}			Agg;
 
 /* ----------------
  *		window aggregate node
@@ -809,7 +809,7 @@ typedef struct WindowAgg
 	int			frameOptions;	/* frame_clause options, see WindowDef */
 	Node	   *startOffset;	/* expression for starting bound, if any */
 	Node	   *endOffset;		/* expression for ending bound, if any */
-} WindowAgg;
+}			WindowAgg;
 
 /* ----------------
  *		unique node
@@ -821,7 +821,7 @@ typedef struct Unique
 	int			numCols;		/* number of columns to check for uniqueness */
 	AttrNumber *uniqColIdx;		/* their indexes in the target list */
 	Oid		   *uniqOperators;	/* equality operators to compare with */
-} Unique;
+}			Unique;
 
 /* ------------
  *		gather node
@@ -841,7 +841,7 @@ typedef struct Gather
 	int			rescan_param;	/* ID of Param that signals a rescan, or -1 */
 	bool		single_copy;	/* don't execute plan more than once */
 	bool		invisible;		/* suppress EXPLAIN display (for testing)? */
-} Gather;
+}			Gather;
 
 /* ------------
  *		gather merge node
@@ -858,7 +858,7 @@ typedef struct GatherMerge
 	Oid		   *sortOperators;	/* OIDs of operators to sort them by */
 	Oid		   *collations;		/* OIDs of collations */
 	bool	   *nullsFirst;		/* NULLS FIRST/LAST directions */
-} GatherMerge;
+}			GatherMerge;
 
 /* ----------------
  *		hash build node
@@ -875,7 +875,7 @@ typedef struct Hash
 	AttrNumber	skewColumn;		/* outer join key's column #, or zero */
 	bool		skewInherit;	/* is outer join rel an inheritance tree? */
 	/* all other info is in the parent HashJoin node */
-} Hash;
+}			Hash;
 
 /* ----------------
  *		setop node
@@ -893,7 +893,7 @@ typedef struct SetOp
 	AttrNumber	flagColIdx;		/* where is the flag column, if any */
 	int			firstFlag;		/* flag value for first input relation */
 	long		numGroups;		/* estimated number of groups in input */
-} SetOp;
+}			SetOp;
 
 /* ----------------
  *		lock-rows node
@@ -909,7 +909,7 @@ typedef struct LockRows
 	Plan		plan;
 	List	   *rowMarks;		/* a list of PlanRowMark's */
 	int			epqParam;		/* ID of Param for EvalPlanQual re-eval */
-} LockRows;
+}			LockRows;
 
 /* ----------------
  *		limit node
@@ -923,7 +923,7 @@ typedef struct Limit
 	Plan		plan;
 	Node	   *limitOffset;	/* OFFSET parameter, or NULL if none */
 	Node	   *limitCount;		/* COUNT parameter, or NULL if none */
-} Limit;
+}			Limit;
 
 
 /*
@@ -964,7 +964,7 @@ typedef enum RowMarkType
 	ROW_MARK_KEYSHARE,			/* obtain keyshare tuple lock */
 	ROW_MARK_REFERENCE,			/* just fetch the TID, don't lock it */
 	ROW_MARK_COPY				/* physically copy the row value */
-} RowMarkType;
+}			RowMarkType;
 
 #define RowMarkRequiresRowShareLock(marktype)  ((marktype) <= ROW_MARK_KEYSHARE)
 
@@ -1018,7 +1018,7 @@ typedef struct PlanRowMark
 	LockClauseStrength strength;	/* LockingClause's strength, or LCS_NONE */
 	LockWaitPolicy waitPolicy;	/* NOWAIT and SKIP LOCKED options */
 	bool		isParent;		/* true if this is a "dummy" parent entry */
-} PlanRowMark;
+}			PlanRowMark;
 
 
 /*
@@ -1035,6 +1035,6 @@ typedef struct PlanInvalItem
 	NodeTag		type;
 	int			cacheId;		/* a syscache ID, see utils/syscache.h */
 	uint32		hashValue;		/* hash value of object's cache lookup key */
-} PlanInvalItem;
+}			PlanInvalItem;
 
 #endif							/* PLANNODES_H */

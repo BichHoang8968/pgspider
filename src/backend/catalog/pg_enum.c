@@ -35,7 +35,7 @@
 /* Potentially set by pg_upgrade_support functions */
 Oid			binary_upgrade_next_pg_enum_oid = InvalidOid;
 
-static void RenumberEnumType(Relation pg_enum, HeapTuple *existing, int nelems);
+static void RenumberEnumType(Relation pg_enum, HeapTuple * existing, int nelems);
 static int	sort_order_cmp(const void *p1, const void *p2);
 
 
@@ -46,7 +46,7 @@ static int	sort_order_cmp(const void *p1, const void *p2);
  * vals is a list of Value strings.
  */
 void
-EnumValuesCreate(Oid enumTypeOid, List *vals)
+EnumValuesCreate(Oid enumTypeOid, List * vals)
 {
 	Relation	pg_enum;
 	NameData	enumlabel;
@@ -321,7 +321,7 @@ restart:
 			 * to happen with non-C-standard-compliant compilers is to store
 			 * it into a volatile variable.
 			 */
-			volatile float4 midpoint;
+			volatile	float4 midpoint;
 
 			other_nbr_en = (Form_pg_enum) GETSTRUCT(existing[other_nbr_index]);
 			midpoint = (nbr_en->enumsortorder +
@@ -570,7 +570,7 @@ RenameEnumLabel(Oid enumTypeOid,
  * (for example, enum_in and enum_out do so).
  */
 static void
-RenumberEnumType(Relation pg_enum, HeapTuple *existing, int nelems)
+RenumberEnumType(Relation pg_enum, HeapTuple * existing, int nelems)
 {
 	int			i;
 

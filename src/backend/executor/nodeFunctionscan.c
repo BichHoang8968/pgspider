@@ -41,9 +41,9 @@ typedef struct FunctionScanPerFuncState
 	Tuplestorestate *tstore;	/* holds the function result set */
 	int64		rowcount;		/* # of rows in result set, -1 if not known */
 	TupleTableSlot *func_slot;	/* function result slot (or NULL) */
-} FunctionScanPerFuncState;
+}			FunctionScanPerFuncState;
 
-static TupleTableSlot *FunctionNext(FunctionScanState *node);
+static TupleTableSlot * FunctionNext(FunctionScanState * node);
 
 
 /* ----------------------------------------------------------------
@@ -57,7 +57,7 @@ static TupleTableSlot *FunctionNext(FunctionScanState *node);
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-FunctionNext(FunctionScanState *node)
+FunctionNext(FunctionScanState * node)
 {
 	EState	   *estate;
 	ScanDirection direction;
@@ -247,7 +247,7 @@ FunctionNext(FunctionScanState *node)
  * FunctionRecheck -- access method routine to recheck a tuple in EvalPlanQual
  */
 static bool
-FunctionRecheck(FunctionScanState *node, TupleTableSlot *slot)
+FunctionRecheck(FunctionScanState * node, TupleTableSlot * slot)
 {
 	/* nothing to check */
 	return true;
@@ -263,7 +263,7 @@ FunctionRecheck(FunctionScanState *node, TupleTableSlot *slot)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecFunctionScan(PlanState *pstate)
+ExecFunctionScan(PlanState * pstate)
 {
 	FunctionScanState *node = castNode(FunctionScanState, pstate);
 
@@ -277,7 +277,7 @@ ExecFunctionScan(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 FunctionScanState *
-ExecInitFunctionScan(FunctionScan *node, EState *estate, int eflags)
+ExecInitFunctionScan(FunctionScan * node, EState * estate, int eflags)
 {
 	FunctionScanState *scanstate;
 	int			nfuncs = list_length(node->functions);
@@ -520,7 +520,7 @@ ExecInitFunctionScan(FunctionScan *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndFunctionScan(FunctionScanState *node)
+ExecEndFunctionScan(FunctionScanState * node)
 {
 	int			i;
 
@@ -560,7 +560,7 @@ ExecEndFunctionScan(FunctionScanState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanFunctionScan(FunctionScanState *node)
+ExecReScanFunctionScan(FunctionScanState * node)
 {
 	FunctionScan *scan = (FunctionScan *) node->ss.ps.plan;
 	int			i;

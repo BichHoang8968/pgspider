@@ -58,8 +58,8 @@
  */
 typedef struct VacAttrStats *VacAttrStatsP;
 
-typedef Datum (*AnalyzeAttrFetchFunc) (VacAttrStatsP stats, int rownum,
-									   bool *isNull);
+typedef Datum(*AnalyzeAttrFetchFunc) (VacAttrStatsP stats, int rownum,
+									  bool *isNull);
 
 typedef void (*AnalyzeAttrComputeStatsFunc) (VacAttrStatsP stats,
 											 AnalyzeAttrFetchFunc fetchfunc,
@@ -128,7 +128,7 @@ typedef struct VacAttrStats
 	Datum	   *exprvals;		/* access info for index fetch function */
 	bool	   *exprnulls;
 	int			rowstride;
-} VacAttrStats;
+}			VacAttrStats;
 
 /*
  * Parameters customizing behavior of VACUUM and ANALYZE.
@@ -145,7 +145,7 @@ typedef struct VacuumParams
 	int			log_min_duration;	/* minimum execution threshold in ms at
 									 * which  verbose logs are activated, -1
 									 * to use default */
-} VacuumParams;
+}			VacuumParams;
 
 /* GUC parameters */
 extern PGDLLIMPORT int default_statistics_target;	/* PGDLLIMPORT for PostGIS */
@@ -156,13 +156,13 @@ extern int	vacuum_multixact_freeze_table_age;
 
 
 /* in commands/vacuum.c */
-extern void ExecVacuum(VacuumStmt *vacstmt, bool isTopLevel);
-extern void vacuum(int options, RangeVar *relation, Oid relid,
-	   VacuumParams *params, List *va_cols,
+extern void ExecVacuum(VacuumStmt * vacstmt, bool isTopLevel);
+extern void vacuum(int options, RangeVar * relation, Oid relid,
+	   VacuumParams * params, List * va_cols,
 	   BufferAccessStrategy bstrategy, bool isTopLevel);
 extern void vac_open_indexes(Relation relation, LOCKMODE lockmode,
-				 int *nindexes, Relation **Irel);
-extern void vac_close_indexes(int nindexes, Relation *Irel, LOCKMODE lockmode);
+				 int *nindexes, Relation * *Irel);
+extern void vac_close_indexes(int nindexes, Relation * Irel, LOCKMODE lockmode);
 extern double vac_estimate_reltuples(Relation relation, bool is_analyze,
 					   BlockNumber total_pages,
 					   BlockNumber scanned_pages,
@@ -179,23 +179,23 @@ extern void vacuum_set_xid_limits(Relation rel,
 					  int freeze_min_age, int freeze_table_age,
 					  int multixact_freeze_min_age,
 					  int multixact_freeze_table_age,
-					  TransactionId *oldestXmin,
-					  TransactionId *freezeLimit,
-					  TransactionId *xidFullScanLimit,
-					  MultiXactId *multiXactCutoff,
-					  MultiXactId *mxactFullScanLimit);
+					  TransactionId * oldestXmin,
+					  TransactionId * freezeLimit,
+					  TransactionId * xidFullScanLimit,
+					  MultiXactId * multiXactCutoff,
+					  MultiXactId * mxactFullScanLimit);
 extern void vac_update_datfrozenxid(void);
 extern void vacuum_delay_point(void);
 
 /* in commands/vacuumlazy.c */
 extern void lazy_vacuum_rel(Relation onerel, int options,
-				VacuumParams *params, BufferAccessStrategy bstrategy);
+				VacuumParams * params, BufferAccessStrategy bstrategy);
 
 /* in commands/analyze.c */
-extern void analyze_rel(Oid relid, RangeVar *relation, int options,
-			VacuumParams *params, List *va_cols, bool in_outer_xact,
+extern void analyze_rel(Oid relid, RangeVar * relation, int options,
+			VacuumParams * params, List * va_cols, bool in_outer_xact,
 			BufferAccessStrategy bstrategy);
-extern bool std_typanalyze(VacAttrStats *stats);
+extern bool std_typanalyze(VacAttrStats * stats);
 
 /* in utils/misc/sampling.c --- duplicate of declarations in utils/sampling.h */
 extern double anl_random_fract(void);

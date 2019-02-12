@@ -39,7 +39,7 @@ typedef struct
 	List	   *grantees;
 	bool		grant_option;
 	DropBehavior behavior;
-} InternalGrant;
+}			InternalGrant;
 
 
 #endif							/* ACLCHK_INTERNAL_H */

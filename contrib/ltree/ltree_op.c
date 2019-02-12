@@ -39,7 +39,7 @@ PG_FUNCTION_INFO_V1(text2ltree);
 PG_FUNCTION_INFO_V1(ltreeparentsel);
 
 int
-ltree_compare(const ltree *a, const ltree *b)
+ltree_compare(const ltree * a, const ltree * b)
 {
 	ltree_level *al = LTREE_FIRST(a);
 	ltree_level *bl = LTREE_FIRST(b);
@@ -133,7 +133,7 @@ nlevel(PG_FUNCTION_ARGS)
 }
 
 bool
-inner_isparent(const ltree *c, const ltree *p)
+inner_isparent(const ltree * c, const ltree * p)
 {
 	ltree_level *cl = LTREE_FIRST(c);
 	ltree_level *pl = LTREE_FIRST(p);
@@ -182,7 +182,7 @@ ltree_risparent(PG_FUNCTION_ARGS)
 
 
 static ltree *
-inner_subltree(ltree *t, int32 startpos, int32 endpos)
+inner_subltree(ltree * t, int32 startpos, int32 endpos)
 {
 	char	   *start = NULL,
 			   *end = NULL;
@@ -264,7 +264,7 @@ subpath(PG_FUNCTION_ARGS)
 }
 
 static ltree *
-ltree_concat(ltree *a, ltree *b)
+ltree_concat(ltree * a, ltree * b)
 {
 	ltree	   *r;
 
@@ -403,7 +403,7 @@ ltree_textadd(PG_FUNCTION_ARGS)
 }
 
 ltree *
-lca_inner(ltree **a, int len)
+lca_inner(ltree * *a, int len)
 {
 	int			tmp,
 				num = ((*a)->numlevel) ? (*a)->numlevel - 1 : 0;
@@ -474,7 +474,7 @@ lca(PG_FUNCTION_ARGS)
 	ltree	  **a,
 			   *res;
 
-	a = (ltree **) palloc(sizeof(ltree *) * fcinfo->nargs);
+	a = (ltree * *) palloc(sizeof(ltree *) * fcinfo->nargs);
 	for (i = 0; i < fcinfo->nargs; i++)
 		a[i] = PG_GETARG_LTREE(i);
 	res = lca_inner(a, (int) fcinfo->nargs);

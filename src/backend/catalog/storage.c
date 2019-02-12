@@ -59,9 +59,9 @@ typedef struct PendingRelDelete
 	bool		atCommit;		/* T=delete at commit; F=delete at abort */
 	int			nestLevel;		/* xact nesting level of request */
 	struct PendingRelDelete *next;	/* linked-list link */
-} PendingRelDelete;
+}			PendingRelDelete;
 
-static PendingRelDelete *pendingDeletes = NULL; /* head of linked list */
+static PendingRelDelete * pendingDeletes = NULL;	/* head of linked list */
 
 /*
  * RelationCreateStorage
@@ -122,7 +122,7 @@ RelationCreateStorage(RelFileNode rnode, char relpersistence)
  * Perform XLogInsert of an XLOG_SMGR_CREATE record to WAL.
  */
 void
-log_smgrcreate(RelFileNode *rnode, ForkNumber forkNum)
+log_smgrcreate(RelFileNode * rnode, ForkNumber forkNum)
 {
 	xl_smgr_create xlrec;
 
@@ -386,7 +386,7 @@ smgrDoPendingDeletes(bool isCommit)
  * by upper-level transactions.
  */
 int
-smgrGetPendingDeletes(bool forCommit, RelFileNode **ptr)
+smgrGetPendingDeletes(bool forCommit, RelFileNode * *ptr)
 {
 	int			nestLevel = GetCurrentTransactionNestLevel();
 	int			nrels;
@@ -474,7 +474,7 @@ AtSubAbort_smgr(void)
 }
 
 void
-smgr_redo(XLogReaderState *record)
+smgr_redo(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;

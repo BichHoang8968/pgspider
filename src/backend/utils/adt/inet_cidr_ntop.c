@@ -37,9 +37,9 @@ static const char rcsid[] = "Id: inet_net_ntop.c,v 1.1.2.2 2004/03/09 09:17:27 m
 #define SPRINTF(x) ((size_t)sprintf x)
 #endif
 
-static char *inet_cidr_ntop_ipv4(const u_char *src, int bits,
+static char *inet_cidr_ntop_ipv4(const u_char * src, int bits,
 					char *dst, size_t size);
-static char *inet_cidr_ntop_ipv6(const u_char *src, int bits,
+static char *inet_cidr_ntop_ipv6(const u_char * src, int bits,
 					char *dst, size_t size);
 
 /*
@@ -82,7 +82,7 @@ inet_cidr_ntop(int af, const void *src, int bits, char *dst, size_t size)
  *	Paul Vixie (ISC), July 1996
  */
 static char *
-inet_cidr_ntop_ipv4(const u_char *src, int bits, char *dst, size_t size)
+inet_cidr_ntop_ipv4(const u_char * src, int bits, char *dst, size_t size)
 {
 	char	   *odst = dst;
 	char	   *t;
@@ -162,7 +162,7 @@ emsgsize:
  */
 
 static char *
-inet_cidr_ntop_ipv6(const u_char *src, int bits, char *dst, size_t size)
+inet_cidr_ntop_ipv6(const u_char * src, int bits, char *dst, size_t size)
 {
 	u_int		m;
 	int			b;

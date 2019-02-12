@@ -47,11 +47,11 @@
 #include "utils/syscache.h"
 
 
-static bool find_minmax_aggs_walker(Node *node, List **context);
-static bool build_minmax_path(PlannerInfo *root, MinMaxAggInfo *mminfo,
+static bool find_minmax_aggs_walker(Node * node, List * *context);
+static bool build_minmax_path(PlannerInfo * root, MinMaxAggInfo * mminfo,
 				  Oid eqop, Oid sortop, bool nulls_first);
-static void minmax_qp_callback(PlannerInfo *root, void *extra);
-static Oid	fetch_agg_sort_op(Oid aggfnoid);
+static void minmax_qp_callback(PlannerInfo * root, void *extra);
+static Oid fetch_agg_sort_op(Oid aggfnoid);
 
 
 /*
@@ -72,7 +72,7 @@ static Oid	fetch_agg_sort_op(Oid aggfnoid);
  * not necessarily equal to root->parse->targetList.
  */
 void
-preprocess_minmax_aggregates(PlannerInfo *root, List *tlist)
+preprocess_minmax_aggregates(PlannerInfo * root, List * tlist)
 {
 	Query	   *parse = root->parse;
 	FromExpr   *jtnode;
@@ -244,7 +244,7 @@ preprocess_minmax_aggregates(PlannerInfo *root, List *tlist)
  * references either.
  */
 static bool
-find_minmax_aggs_walker(Node *node, List **context)
+find_minmax_aggs_walker(Node * node, List * *context)
 {
 	if (node == NULL)
 		return false;
@@ -339,7 +339,7 @@ find_minmax_aggs_walker(Node *node, List **context)
  * Otherwise, return FALSE.
  */
 static bool
-build_minmax_path(PlannerInfo *root, MinMaxAggInfo *mminfo,
+build_minmax_path(PlannerInfo * root, MinMaxAggInfo * mminfo,
 				  Oid eqop, Oid sortop, bool nulls_first)
 {
 	PlannerInfo *subroot;
@@ -498,7 +498,7 @@ build_minmax_path(PlannerInfo *root, MinMaxAggInfo *mminfo,
  * Compute query_pathkeys and other pathkeys during query_planner()
  */
 static void
-minmax_qp_callback(PlannerInfo *root, void *extra)
+minmax_qp_callback(PlannerInfo * root, void *extra)
 {
 	root->group_pathkeys = NIL;
 	root->window_pathkeys = NIL;

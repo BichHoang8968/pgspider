@@ -28,7 +28,7 @@
 /*
  * Variables for mapping DumpId to DumpableObject
  */
-static DumpableObject **dumpIdMap = NULL;
+static DumpableObject * *dumpIdMap = NULL;
 static int	allocedDumpIds = 0;
 static DumpId lastDumpId = 0;
 
@@ -36,7 +36,7 @@ static DumpId lastDumpId = 0;
  * Variables for mapping CatalogId to DumpableObject
  */
 static bool catalogIdMapValid = false;
-static DumpableObject **catalogIdMap = NULL;
+static DumpableObject * *catalogIdMap = NULL;
 static int	numCatalogIds = 0;
 
 /*
@@ -47,13 +47,13 @@ static int	numCatalogIds = 0;
  * the object arrays themselves would be simpler, but it doesn't work because
  * pg_dump.c may have already established pointers between items.)
  */
-static DumpableObject **tblinfoindex;
-static DumpableObject **typinfoindex;
-static DumpableObject **funinfoindex;
-static DumpableObject **oprinfoindex;
-static DumpableObject **collinfoindex;
-static DumpableObject **nspinfoindex;
-static DumpableObject **extinfoindex;
+static DumpableObject * *tblinfoindex;
+static DumpableObject * *typinfoindex;
+static DumpableObject * *funinfoindex;
+static DumpableObject * *oprinfoindex;
+static DumpableObject * *collinfoindex;
+static DumpableObject * *nspinfoindex;
+static DumpableObject * *extinfoindex;
 static int	numTables;
 static int	numTypes;
 static int	numFuncs;
@@ -63,18 +63,18 @@ static int	numNamespaces;
 static int	numExtensions;
 
 /* This is an array of object identities, not actual DumpableObjects */
-static ExtensionMemberId *extmembers;
+static ExtensionMemberId * extmembers;
 static int	numextmembers;
 
-static void flagInhTables(TableInfo *tbinfo, int numTables,
-			  InhInfo *inhinfo, int numInherits);
-static void flagInhAttrs(DumpOptions *dopt, TableInfo *tblinfo, int numTables);
-static DumpableObject **buildIndexArray(void *objArray, int numObjs,
-				Size objSize);
+static void flagInhTables(TableInfo * tbinfo, int numTables,
+			  InhInfo * inhinfo, int numInherits);
+static void flagInhAttrs(DumpOptions * dopt, TableInfo * tblinfo, int numTables);
+static DumpableObject * *buildIndexArray(void *objArray, int numObjs,
+										 Size objSize);
 static int	DOCatalogIdCompare(const void *p1, const void *p2);
 static int	ExtensionMemberIdCompare(const void *p1, const void *p2);
-static void findParentsByOid(TableInfo *self,
-				 InhInfo *inhinfo, int numInherits);
+static void findParentsByOid(TableInfo * self,
+				 InhInfo * inhinfo, int numInherits);
 static int	strInArray(const char *pattern, char **arr, int arr_size);
 
 
@@ -83,7 +83,7 @@ static int	strInArray(const char *pattern, char **arr, int arr_size);
  *	  Collect information about all potentially dumpable objects
  */
 TableInfo *
-getSchemaData(Archive *fout, int *numTablesPtr)
+getSchemaData(Archive * fout, int *numTablesPtr)
 {
 	TableInfo  *tblinfo;
 	TypeInfo   *typinfo;
@@ -304,8 +304,8 @@ getSchemaData(Archive *fout, int *numTablesPtr)
  * modifies tblinfo
  */
 static void
-flagInhTables(TableInfo *tblinfo, int numTables,
-			  InhInfo *inhinfo, int numInherits)
+flagInhTables(TableInfo * tblinfo, int numTables,
+			  InhInfo * inhinfo, int numInherits)
 {
 	int			i,
 				j;
@@ -348,7 +348,7 @@ flagInhTables(TableInfo *tblinfo, int numTables,
  * modifies tblinfo
  */
 static void
-flagInhAttrs(DumpOptions *dopt, TableInfo *tblinfo, int numTables)
+flagInhAttrs(DumpOptions * dopt, TableInfo * tblinfo, int numTables)
 {
 	int			i,
 				j,
@@ -454,7 +454,7 @@ flagInhAttrs(DumpOptions *dopt, TableInfo *tblinfo, int numTables)
  * but not any of the other standard fields of a DumpableObject.
  */
 void
-AssignDumpId(DumpableObject *dobj)
+AssignDumpId(DumpableObject * dobj)
 {
 	dobj->dumpId = ++lastDumpId;
 	dobj->name = NULL;			/* must be set later */
@@ -472,13 +472,13 @@ AssignDumpId(DumpableObject *dobj)
 		if (allocedDumpIds <= 0)
 		{
 			newAlloc = 256;
-			dumpIdMap = (DumpableObject **)
+			dumpIdMap = (DumpableObject * *)
 				pg_malloc(newAlloc * sizeof(DumpableObject *));
 		}
 		else
 		{
 			newAlloc = allocedDumpIds * 2;
-			dumpIdMap = (DumpableObject **)
+			dumpIdMap = (DumpableObject * *)
 				pg_realloc(dumpIdMap, newAlloc * sizeof(DumpableObject *));
 		}
 		memset(dumpIdMap + allocedDumpIds, 0,
@@ -587,7 +587,7 @@ findObjectByCatalogId(CatalogId catalogId)
  * Returns NULL for unknown OID
  */
 static DumpableObject *
-findObjectByOid(Oid oid, DumpableObject **indexArray, int numObjs)
+findObjectByOid(Oid oid, DumpableObject * *indexArray, int numObjs)
 {
 	DumpableObject **low;
 	DumpableObject **high;
@@ -624,13 +624,12 @@ findObjectByOid(Oid oid, DumpableObject **indexArray, int numObjs)
 /*
  * Build an index array of DumpableObject pointers, sorted by OID
  */
-static DumpableObject **
-buildIndexArray(void *objArray, int numObjs, Size objSize)
+static DumpableObject * *buildIndexArray(void *objArray, int numObjs, Size objSize)
 {
 	DumpableObject **ptrs;
 	int			i;
 
-	ptrs = (DumpableObject **) pg_malloc(numObjs * sizeof(DumpableObject *));
+	ptrs = (DumpableObject * *) pg_malloc(numObjs * sizeof(DumpableObject *));
 	for (i = 0; i < numObjs; i++)
 		ptrs[i] = (DumpableObject *) ((char *) objArray + i * objSize);
 
@@ -648,8 +647,8 @@ buildIndexArray(void *objArray, int numObjs, Size objSize)
 static int
 DOCatalogIdCompare(const void *p1, const void *p2)
 {
-	const DumpableObject *obj1 = *(DumpableObject *const *) p1;
-	const DumpableObject *obj2 = *(DumpableObject *const *) p2;
+	const		DumpableObject *obj1 = *(DumpableObject * const *) p1;
+	const		DumpableObject *obj2 = *(DumpableObject * const *) p2;
 	int			cmpval;
 
 	/*
@@ -668,12 +667,12 @@ DOCatalogIdCompare(const void *p1, const void *p2)
  * This simply creates a modifiable copy of the internal map.
  */
 void
-getDumpableObjects(DumpableObject ***objs, int *numObjs)
+getDumpableObjects(DumpableObject * **objs, int *numObjs)
 {
 	int			i,
 				j;
 
-	*objs = (DumpableObject **)
+	*objs = (DumpableObject * *)
 		pg_malloc(allocedDumpIds * sizeof(DumpableObject *));
 	j = 0;
 	for (i = 1; i < allocedDumpIds; i++)
@@ -690,7 +689,7 @@ getDumpableObjects(DumpableObject ***objs, int *numObjs)
  * Note: duplicate dependencies are currently not eliminated
  */
 void
-addObjectDependency(DumpableObject *dobj, DumpId refId)
+addObjectDependency(DumpableObject * dobj, DumpId refId)
 {
 	if (dobj->nDeps >= dobj->allocDeps)
 	{
@@ -717,7 +716,7 @@ addObjectDependency(DumpableObject *dobj, DumpId refId)
  * If there are multiple links, all are removed
  */
 void
-removeObjectDependency(DumpableObject *dobj, DumpId refId)
+removeObjectDependency(DumpableObject * dobj, DumpId refId)
 {
 	int			i;
 	int			j = 0;
@@ -814,7 +813,7 @@ findExtensionByOid(Oid oid)
  *	  accept and save data about which objects belong to extensions
  */
 void
-setExtensionMembership(ExtensionMemberId *extmems, int nextmems)
+setExtensionMembership(ExtensionMemberId * extmems, int nextmems)
 {
 	/* Sort array in preparation for binary searches */
 	if (nextmems > 1)
@@ -870,8 +869,8 @@ findOwningExtension(CatalogId catalogId)
 static int
 ExtensionMemberIdCompare(const void *p1, const void *p2)
 {
-	const ExtensionMemberId *obj1 = (const ExtensionMemberId *) p1;
-	const ExtensionMemberId *obj2 = (const ExtensionMemberId *) p2;
+	const		ExtensionMemberId *obj1 = (const ExtensionMemberId *) p1;
+	const		ExtensionMemberId *obj2 = (const ExtensionMemberId *) p2;
 	int			cmpval;
 
 	/*
@@ -890,8 +889,8 @@ ExtensionMemberIdCompare(const void *p1, const void *p2)
  *	  find a table's parents in tblinfo[]
  */
 static void
-findParentsByOid(TableInfo *self,
-				 InhInfo *inhinfo, int numInherits)
+findParentsByOid(TableInfo * self,
+				 InhInfo * inhinfo, int numInherits)
 {
 	Oid			oid = self->dobj.catId.oid;
 	int			i,
@@ -909,7 +908,7 @@ findParentsByOid(TableInfo *self,
 
 	if (numParents > 0)
 	{
-		self->parents = (TableInfo **)
+		self->parents = (TableInfo * *)
 			pg_malloc(sizeof(TableInfo *) * numParents);
 		j = 0;
 		for (i = 0; i < numInherits; i++)
@@ -945,7 +944,7 @@ findParentsByOid(TableInfo *self,
  */
 
 void
-parseOidArray(const char *str, Oid *array, int arraysize)
+parseOidArray(const char *str, Oid * array, int arraysize)
 {
 	int			j,
 				argNum;

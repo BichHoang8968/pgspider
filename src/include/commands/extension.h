@@ -31,25 +31,25 @@ extern PGDLLIMPORT bool creating_extension;
 extern PGDLLIMPORT Oid CurrentExtensionObject;
 
 
-extern ObjectAddress CreateExtension(ParseState *pstate, CreateExtensionStmt *stmt);
+extern ObjectAddress CreateExtension(ParseState * pstate, CreateExtensionStmt * stmt);
 
 extern void RemoveExtensionById(Oid extId);
 
 extern ObjectAddress InsertExtensionTuple(const char *extName, Oid extOwner,
-					 Oid schemaOid, bool relocatable, const char *extVersion,
-					 Datum extConfig, Datum extCondition,
-					 List *requiredExtensions);
+										  Oid schemaOid, bool relocatable, const char *extVersion,
+										  Datum extConfig, Datum extCondition,
+										  List * requiredExtensions);
 
-extern ObjectAddress ExecAlterExtensionStmt(ParseState *pstate, AlterExtensionStmt *stmt);
+extern ObjectAddress ExecAlterExtensionStmt(ParseState * pstate, AlterExtensionStmt * stmt);
 
-extern ObjectAddress ExecAlterExtensionContentsStmt(AlterExtensionContentsStmt *stmt,
-							   ObjectAddress *objAddress);
+extern ObjectAddress ExecAlterExtensionContentsStmt(AlterExtensionContentsStmt * stmt,
+													ObjectAddress * objAddress);
 
-extern Oid	get_extension_oid(const char *extname, bool missing_ok);
+extern Oid get_extension_oid(const char *extname, bool missing_ok);
 extern char *get_extension_name(Oid ext_oid);
 
 extern ObjectAddress AlterExtensionNamespace(const char *extensionName, const char *newschema,
-						Oid *oldschema);
+											 Oid * oldschema);
 
 extern void AlterExtensionOwner_oid(Oid extensionOid, Oid newOwnerId);
 

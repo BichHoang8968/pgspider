@@ -44,13 +44,13 @@
  * ourselves, so that rolling back a subtransaction will kill the right
  * queries and not the wrong ones.
  */
-//typedef Oid ConnCacheKey;
+/* typedef Oid ConnCacheKey; */
 typedef struct ConnCacheKey
 {
 	Oid			serverid;		/* OID of foreign server */
 	Oid			userid;			/* OID of local user whose mapping we use */
-	pthread_t       threadid;
-} ConnCacheKey;
+	pthread_t	threadid;
+}			ConnCacheKey;
 
 typedef struct ConnCacheEntry
 {
@@ -65,12 +65,12 @@ typedef struct ConnCacheEntry
 	bool		invalidated;	/* true if reconnect is pending */
 	uint32		server_hashvalue;	/* hash value of foreign server OID */
 	uint32		mapping_hashvalue;	/* hash value of user mapping OID */
-} ConnCacheEntry;
+}			ConnCacheEntry;
 
 /*
  * Connection cache (initialized on first use)
  */
-static HTAB *ConnectionHash = NULL;
+static HTAB * ConnectionHash = NULL;
 
 /* for assigning cursor numbers and prepared statement numbers */
 static unsigned int cursor_number = 0;
@@ -80,24 +80,24 @@ static unsigned int prep_stmt_number = 0;
 static bool xact_got_connection = false;
 
 /* prototypes of private functions */
-static PGconn *connect_pg_server(ForeignServer *server, UserMapping *user);
-static void disconnect_pg_server(ConnCacheEntry *entry);
+static PGconn * connect_pg_server(ForeignServer * server, UserMapping * user);
+static void disconnect_pg_server(ConnCacheEntry * entry);
 static void check_conn_params(const char **keywords, const char **values);
-static void configure_remote_session(PGconn *conn);
-static void do_sql_command(PGconn *conn, const char *sql);
-static void begin_remote_xact(ConnCacheEntry *entry);
+static void configure_remote_session(PGconn * conn);
+static void do_sql_command(PGconn * conn, const char *sql);
+static void begin_remote_xact(ConnCacheEntry * entry);
 static void pgfdw_xact_callback(XactEvent event, void *arg);
 static void pgfdw_subxact_callback(SubXactEvent event,
 					   SubTransactionId mySubid,
 					   SubTransactionId parentSubid,
 					   void *arg);
 static void pgfdw_inval_callback(Datum arg, int cacheid, uint32 hashvalue);
-static void pgfdw_reject_incomplete_xact_state_change(ConnCacheEntry *entry);
-static bool pgfdw_cancel_query(PGconn *conn);
-static bool pgfdw_exec_cleanup_query(PGconn *conn, const char *query,
+static void pgfdw_reject_incomplete_xact_state_change(ConnCacheEntry * entry);
+static bool pgfdw_cancel_query(PGconn * conn);
+static bool pgfdw_exec_cleanup_query(PGconn * conn, const char *query,
 						 bool ignore_errors);
-static bool pgfdw_get_cleanup_result(PGconn *conn, TimestampTz endtime,
-						 PGresult **result);
+static bool pgfdw_get_cleanup_result(PGconn * conn, TimestampTz endtime,
+						 PGresult * *result);
 
 
 /*
@@ -111,7 +111,7 @@ static bool pgfdw_get_cleanup_result(PGconn *conn, TimestampTz endtime,
  * (not even on error), we need this flag to cue manual cleanup.
  */
 PGconn *
-GetConnection(ForeignServer *server,UserMapping *user, bool will_prep_stmt)
+GetConnection(ForeignServer * server, UserMapping * user, bool will_prep_stmt)
 {
 	bool		found;
 	ConnCacheEntry *entry;
@@ -150,6 +150,7 @@ GetConnection(ForeignServer *server,UserMapping *user, bool will_prep_stmt)
 	key.serverid = server->serverid;
 	key.userid = user->userid;
 	key.threadid = pthread_self();
+
 	/*
 	 * Find or create cached entry for requested connection.
 	 */
@@ -209,7 +210,7 @@ GetConnection(ForeignServer *server,UserMapping *user, bool will_prep_stmt)
 		entry->conn = connect_pg_server(server, user);
 
 		elog(DEBUG3, "new postgres_fdw connection %p for server \"%s\" (user mapping oid %u, userid %u,thredid %u)",
-			 entry->conn, server->servername, user->umid, user->userid,pthread_self());
+			 entry->conn, server->servername, user->umid, user->userid, pthread_self());
 	}
 
 	/*
@@ -227,7 +228,7 @@ GetConnection(ForeignServer *server,UserMapping *user, bool will_prep_stmt)
  * Connect to remote server using specified server and user mapping properties.
  */
 static PGconn *
-connect_pg_server(ForeignServer *server, UserMapping *user)
+connect_pg_server(ForeignServer * server, UserMapping * user)
 {
 	PGconn	   *volatile conn = NULL;
 
@@ -313,7 +314,7 @@ connect_pg_server(ForeignServer *server, UserMapping *user)
  * Disconnect any open connection for a connection cache entry.
  */
 static void
-disconnect_pg_server(ConnCacheEntry *entry)
+disconnect_pg_server(ConnCacheEntry * entry)
 {
 	if (entry->conn != NULL)
 	{
@@ -363,7 +364,7 @@ check_conn_params(const char **keywords, const char **values)
  * there are any number of ways to break things.
  */
 static void
-configure_remote_session(PGconn *conn)
+configure_remote_session(PGconn * conn)
 {
 	int			remoteversion = PQserverVersion(conn);
 
@@ -399,7 +400,7 @@ configure_remote_session(PGconn *conn)
  * Convenience subroutine to issue a non-data-returning SQL command to remote
  */
 static void
-do_sql_command(PGconn *conn, const char *sql)
+do_sql_command(PGconn * conn, const char *sql)
 {
 	PGresult   *res;
 
@@ -422,7 +423,7 @@ do_sql_command(PGconn *conn, const char *sql)
  * control which remote queries share a snapshot.
  */
 static void
-begin_remote_xact(ConnCacheEntry *entry)
+begin_remote_xact(ConnCacheEntry * entry)
 {
 	int			curlevel = GetCurrentTransactionNestLevel();
 
@@ -465,7 +466,7 @@ begin_remote_xact(ConnCacheEntry *entry)
  * Release connection reference count created by calling GetConnection.
  */
 void
-ReleaseConnection(PGconn *conn)
+ReleaseConnection(PGconn * conn)
 {
 	/*
 	 * Currently, we don't actually track connection references because all
@@ -486,7 +487,7 @@ ReleaseConnection(PGconn *conn)
  * collisions are highly improbable; just be sure to use %u not %d to print.
  */
 unsigned int
-GetCursorNumber(PGconn *conn)
+GetCursorNumber(PGconn * conn)
 {
 	return ++cursor_number;
 }
@@ -500,7 +501,7 @@ GetCursorNumber(PGconn *conn)
  * increasing the risk of prepared-statement name collisions by resetting.
  */
 unsigned int
-GetPrepStmtNumber(PGconn *conn)
+GetPrepStmtNumber(PGconn * conn)
 {
 	return ++prep_stmt_number;
 }
@@ -513,7 +514,7 @@ GetPrepStmtNumber(PGconn *conn)
  * Caller is responsible for the error handling on the result.
  */
 PGresult *
-pgfdw_exec_query(PGconn *conn, const char *query)
+pgfdw_exec_query(PGconn * conn, const char *query)
 {
 	/*
 	 * Submit a query.  Since we don't use non-blocking mode, this also can
@@ -537,7 +538,7 @@ pgfdw_exec_query(PGconn *conn, const char *query)
  * Caller is responsible for the error handling on the result.
  */
 PGresult *
-pgfdw_get_result(PGconn *conn, const char *query)
+pgfdw_get_result(PGconn * conn, const char *query)
 {
 	PGresult   *volatile last_res = NULL;
 
@@ -601,7 +602,7 @@ pgfdw_get_result(PGconn *conn, const char *query)
  * marked with have_error = true.
  */
 void
-pgfdw_report_error(int elevel, PGresult *res, PGconn *conn,
+pgfdw_report_error(int elevel, PGresult * res, PGconn * conn,
 				   bool clear, const char *sql)
 {
 	/* If requested, PGresult must be released before leaving this function. */
@@ -820,6 +821,7 @@ pgfdw_xact_callback(XactEvent event, void *arg)
 		entry->conn = NULL;
 */
 #if 1
+
 		/*
 		 * If the connection isn't in a good idle state, discard it to
 		 * recover. Next GetConnection will open a new connection.
@@ -833,6 +835,7 @@ pgfdw_xact_callback(XactEvent event, void *arg)
 		}
 #endif
 	}
+
 	/*
 	 * Regardless of the event type, we can now mark ourselves as out of the
 	 * transaction.  (Note: if we are here during PRE_COMMIT or PRE_PREPARE,
@@ -998,7 +1001,7 @@ pgfdw_inval_callback(Datum arg, int cacheid, uint32 hashvalue)
  * performed, so that's not an option, either. Thus, we must abort.
  */
 static void
-pgfdw_reject_incomplete_xact_state_change(ConnCacheEntry *entry)
+pgfdw_reject_incomplete_xact_state_change(ConnCacheEntry * entry)
 {
 	HeapTuple	tup;
 	Form_pg_user_mapping umform;
@@ -1013,7 +1016,7 @@ pgfdw_reject_incomplete_xact_state_change(ConnCacheEntry *entry)
 
 	/* find server name to be shown in the message below */
 	tup = SearchSysCache3(USERMAPPINGOID,
-						  ObjectIdGetDatum(entry->key.serverid),ObjectIdGetDatum(entry->key.userid),ObjectIdGetDatum(entry->key.threadid));
+						  ObjectIdGetDatum(entry->key.serverid), ObjectIdGetDatum(entry->key.userid), ObjectIdGetDatum(entry->key.threadid));
 
 	if (!HeapTupleIsValid(tup))
 		elog(ERROR, "cache lookup failed for user mapping %u", entry->key);
@@ -1033,7 +1036,7 @@ pgfdw_reject_incomplete_xact_state_change(ConnCacheEntry *entry)
  * and discard any pending result, and false if not.
  */
 static bool
-pgfdw_cancel_query(PGconn *conn)
+pgfdw_cancel_query(PGconn * conn)
 {
 	PGcancel   *cancel;
 	char		errbuf[256];
@@ -1080,7 +1083,7 @@ pgfdw_cancel_query(PGconn *conn)
  * sent or times out, the return value is false.
  */
 static bool
-pgfdw_exec_cleanup_query(PGconn *conn, const char *query, bool ignore_errors)
+pgfdw_exec_cleanup_query(PGconn * conn, const char *query, bool ignore_errors)
 {
 	PGresult   *result = NULL;
 	TimestampTz endtime;
@@ -1134,7 +1137,7 @@ pgfdw_exec_cleanup_query(PGconn *conn, const char *query, bool ignore_errors)
  * Sets *result except in case of a timeout.
  */
 static bool
-pgfdw_get_cleanup_result(PGconn *conn, TimestampTz endtime, PGresult **result)
+pgfdw_get_cleanup_result(PGconn * conn, TimestampTz endtime, PGresult * *result)
 {
 	volatile bool timed_out = false;
 	PGresult   *volatile last_res = NULL;

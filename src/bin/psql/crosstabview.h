@@ -22,6 +22,6 @@
 #define CROSSTABVIEW_MAX_COLUMNS 1600
 
 /* prototypes */
-extern bool PrintResultsInCrosstab(const PGresult *res);
+extern bool PrintResultsInCrosstab(const PGresult * res);
 
 #endif							/* CROSSTABVIEW_H */

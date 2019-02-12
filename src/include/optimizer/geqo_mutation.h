@@ -25,6 +25,6 @@
 #include "optimizer/geqo.h"
 
 
-extern void geqo_mutation(PlannerInfo *root, Gene *tour, int num_gene);
+extern void geqo_mutation(PlannerInfo * root, Gene * tour, int num_gene);
 
 #endif							/* GEQO_MUTATION_H */

@@ -46,7 +46,7 @@ typedef struct
 {
 	char	   *proname;
 	char	   *prosrc;
-} parse_error_callback_arg;
+}			parse_error_callback_arg;
 
 static void sql_function_parse_error_callback(void *arg);
 static int match_prosrc_to_query(const char *prosrc, const char *queryText,
@@ -81,11 +81,11 @@ ProcedureCreate(const char *procedureName,
 				bool isStrict,
 				char volatility,
 				char parallel,
-				oidvector *parameterTypes,
+				oidvector * parameterTypes,
 				Datum allParameterTypes,
 				Datum parameterModes,
 				Datum parameterNames,
-				List *parameterDefaults,
+				List * parameterDefaults,
 				Datum trftypes,
 				Datum proconfig,
 				float4 procost,

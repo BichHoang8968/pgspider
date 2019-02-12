@@ -27,10 +27,10 @@ typedef struct MinmaxOpaque
 {
 	Oid			cached_subtype;
 	FmgrInfo	strategy_procinfos[BTMaxStrategyNumber];
-} MinmaxOpaque;
+}			MinmaxOpaque;
 
-static FmgrInfo *minmax_get_strategy_procinfo(BrinDesc *bdesc, uint16 attno,
-							 Oid subtype, uint16 strategynum);
+static FmgrInfo * minmax_get_strategy_procinfo(BrinDesc * bdesc, uint16 attno,
+											   Oid subtype, uint16 strategynum);
 
 
 Datum
@@ -314,7 +314,7 @@ brin_minmax_union(PG_FUNCTION_ARGS)
  * there.  If changes are made here, see that function too.
  */
 static FmgrInfo *
-minmax_get_strategy_procinfo(BrinDesc *bdesc, uint16 attno, Oid subtype,
+minmax_get_strategy_procinfo(BrinDesc * bdesc, uint16 attno, Oid subtype,
 							 uint16 strategynum)
 {
 	MinmaxOpaque *opaque;

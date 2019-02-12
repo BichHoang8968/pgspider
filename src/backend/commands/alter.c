@@ -67,7 +67,7 @@
 #include "utils/tqual.h"
 
 
-static Oid	AlterObjectNamespace_internal(Relation rel, Oid objid, Oid nspOid);
+static Oid AlterObjectNamespace_internal(Relation rel, Oid objid, Oid nspOid);
 
 /*
  * Raise an error to the effect that an object of the given name is already
@@ -322,7 +322,7 @@ AlterObjectRename_internal(Relation rel, Oid objectId, const char *new_name)
  * Return value is the address of the renamed object.
  */
 ObjectAddress
-ExecRenameStmt(RenameStmt *stmt)
+ExecRenameStmt(RenameStmt * stmt)
 {
 	switch (stmt->renameType)
 	{
@@ -420,7 +420,7 @@ ExecRenameStmt(RenameStmt *stmt)
  * altered object now depends on.
  */
 ObjectAddress
-ExecAlterObjectDependsStmt(AlterObjectDependsStmt *stmt, ObjectAddress *refAddress)
+ExecAlterObjectDependsStmt(AlterObjectDependsStmt * stmt, ObjectAddress * refAddress)
 {
 	ObjectAddress address;
 	ObjectAddress refAddr;
@@ -458,8 +458,8 @@ ExecAlterObjectDependsStmt(AlterObjectDependsStmt *stmt, ObjectAddress *refAddre
  * address of the original schema.
  */
 ObjectAddress
-ExecAlterObjectSchemaStmt(AlterObjectSchemaStmt *stmt,
-						  ObjectAddress *oldSchemaAddr)
+ExecAlterObjectSchemaStmt(AlterObjectSchemaStmt * stmt,
+						  ObjectAddress * oldSchemaAddr)
 {
 	ObjectAddress address;
 	Oid			oldNspOid;
@@ -551,7 +551,7 @@ ExecAlterObjectSchemaStmt(AlterObjectSchemaStmt *stmt,
  */
 Oid
 AlterObjectNamespace_oid(Oid classId, Oid objid, Oid nspOid,
-						 ObjectAddresses *objsMoved)
+						 ObjectAddresses * objsMoved)
 {
 	Oid			oldNspOid = InvalidOid;
 	ObjectAddress dep;
@@ -795,7 +795,7 @@ AlterObjectNamespace_internal(Relation rel, Oid objid, Oid nspOid)
  * type, the function appropriate to that type is executed.
  */
 ObjectAddress
-ExecAlterOwnerStmt(AlterOwnerStmt *stmt)
+ExecAlterOwnerStmt(AlterOwnerStmt * stmt)
 {
 	Oid			newowner = get_rolespec_oid(stmt->newowner, false);
 

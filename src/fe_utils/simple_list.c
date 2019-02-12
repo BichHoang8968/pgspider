@@ -23,7 +23,7 @@
  * Append an OID to the list.
  */
 void
-simple_oid_list_append(SimpleOidList *list, Oid val)
+simple_oid_list_append(SimpleOidList * list, Oid val)
 {
 	SimpleOidListCell *cell;
 
@@ -42,7 +42,7 @@ simple_oid_list_append(SimpleOidList *list, Oid val)
  * Is OID present in the list?
  */
 bool
-simple_oid_list_member(SimpleOidList *list, Oid val)
+simple_oid_list_member(SimpleOidList * list, Oid val)
 {
 	SimpleOidListCell *cell;
 
@@ -60,7 +60,7 @@ simple_oid_list_member(SimpleOidList *list, Oid val)
  * The given string is copied, so it need not survive past the call.
  */
 void
-simple_string_list_append(SimpleStringList *list, const char *val)
+simple_string_list_append(SimpleStringList * list, const char *val)
 {
 	SimpleStringListCell *cell;
 
@@ -84,7 +84,7 @@ simple_string_list_append(SimpleStringList *list, const char *val)
  * If found, the "touched" field of the first match is set true.
  */
 bool
-simple_string_list_member(SimpleStringList *list, const char *val)
+simple_string_list_member(SimpleStringList * list, const char *val)
 {
 	SimpleStringListCell *cell;
 
@@ -103,7 +103,7 @@ simple_string_list_member(SimpleStringList *list, const char *val)
  * Find first not-touched list entry, if there is one.
  */
 const char *
-simple_string_list_not_touched(SimpleStringList *list)
+simple_string_list_not_touched(SimpleStringList * list)
 {
 	SimpleStringListCell *cell;
 

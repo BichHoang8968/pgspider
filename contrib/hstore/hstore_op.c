@@ -34,7 +34,7 @@ HSTORE_POLLUTE(hstore_each, each);
  * one-off or unordered searches.
  */
 int
-hstoreFindKey(HStore *hs, int *lowbound, char *key, int keylen)
+hstoreFindKey(HStore * hs, int *lowbound, char *key, int keylen)
 {
 	HEntry	   *entries = ARRPTR(hs);
 	int			stopLow = lowbound ? *lowbound : 0;
@@ -71,7 +71,7 @@ hstoreFindKey(HStore *hs, int *lowbound, char *key, int keylen)
 }
 
 Pairs *
-hstoreArrayToPairs(ArrayType *a, int *npairs)
+hstoreArrayToPairs(ArrayType * a, int *npairs)
 {
 	Datum	   *key_datums;
 	bool	   *key_nulls;
@@ -775,7 +775,7 @@ hstore_avals(PG_FUNCTION_ARGS)
 
 
 static ArrayType *
-hstore_to_array_internal(HStore *hs, int ndims)
+hstore_to_array_internal(HStore * hs, int ndims)
 {
 	HEntry	   *entries = ARRPTR(hs);
 	char	   *base = STRPTR(hs);
@@ -853,8 +853,8 @@ hstore_to_matrix(PG_FUNCTION_ARGS)
  */
 
 static void
-setup_firstcall(FuncCallContext *funcctx, HStore *hs,
-				FunctionCallInfoData *fcinfo)
+setup_firstcall(FuncCallContext * funcctx, HStore * hs,
+				FunctionCallInfoData * fcinfo)
 {
 	MemoryContext oldcontext;
 	HStore	   *st;

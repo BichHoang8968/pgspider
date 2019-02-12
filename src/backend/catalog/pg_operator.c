@@ -39,26 +39,26 @@
 
 
 static Oid OperatorGet(const char *operatorName,
-			Oid operatorNamespace,
-			Oid leftObjectId,
-			Oid rightObjectId,
-			bool *defined);
+					   Oid operatorNamespace,
+					   Oid leftObjectId,
+					   Oid rightObjectId,
+					   bool *defined);
 
-static Oid OperatorLookup(List *operatorName,
-			   Oid leftObjectId,
-			   Oid rightObjectId,
-			   bool *defined);
+static Oid OperatorLookup(List * operatorName,
+						  Oid leftObjectId,
+						  Oid rightObjectId,
+						  bool *defined);
 
 static Oid OperatorShellMake(const char *operatorName,
-				  Oid operatorNamespace,
-				  Oid leftTypeId,
-				  Oid rightTypeId);
+							 Oid operatorNamespace,
+							 Oid leftTypeId,
+							 Oid rightTypeId);
 
-static Oid get_other_operator(List *otherOp,
-				   Oid otherLeftTypeId, Oid otherRightTypeId,
-				   const char *operatorName, Oid operatorNamespace,
-				   Oid leftTypeId, Oid rightTypeId,
-				   bool isCommutator);
+static Oid get_other_operator(List * otherOp,
+							  Oid otherLeftTypeId, Oid otherRightTypeId,
+							  const char *operatorName, Oid operatorNamespace,
+							  Oid leftTypeId, Oid rightTypeId,
+							  bool isCommutator);
 
 
 /*
@@ -167,7 +167,7 @@ OperatorGet(const char *operatorName,
  *		*defined is set TRUE if defined (not a shell)
  */
 static Oid
-OperatorLookup(List *operatorName,
+OperatorLookup(List * operatorName,
 			   Oid leftObjectId,
 			   Oid rightObjectId,
 			   bool *defined)
@@ -326,8 +326,8 @@ OperatorCreate(const char *operatorName,
 			   Oid leftTypeId,
 			   Oid rightTypeId,
 			   Oid procedureId,
-			   List *commutatorName,
-			   List *negatorName,
+			   List * commutatorName,
+			   List * negatorName,
 			   Oid restrictionId,
 			   Oid joinId,
 			   bool canMerge,
@@ -573,7 +573,7 @@ OperatorCreate(const char *operatorName,
  * the same operator, create a shell operator.
  */
 static Oid
-get_other_operator(List *otherOp, Oid otherLeftTypeId, Oid otherRightTypeId,
+get_other_operator(List * otherOp, Oid otherLeftTypeId, Oid otherRightTypeId,
 				   const char *operatorName, Oid operatorNamespace,
 				   Oid leftTypeId, Oid rightTypeId, bool isCommutator)
 {

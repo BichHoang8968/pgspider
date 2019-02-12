@@ -9,7 +9,7 @@
 #include "utils/resowner.h"
 
 /* a list of nested explicit subtransactions */
-extern List *explicit_subtransactions;
+extern List * explicit_subtransactions;
 
 
 typedef struct PLySubtransactionObject
@@ -17,16 +17,16 @@ typedef struct PLySubtransactionObject
 	PyObject_HEAD
 	bool		started;
 	bool		exited;
-} PLySubtransactionObject;
+}			PLySubtransactionObject;
 
 /* explicit subtransaction data */
 typedef struct PLySubtransactionData
 {
 	MemoryContext oldcontext;
 	ResourceOwner oldowner;
-} PLySubtransactionData;
+}			PLySubtransactionData;
 
 extern void PLy_subtransaction_init_type(void);
-extern PyObject *PLy_subtransaction_new(PyObject *self, PyObject *unused);
+extern PyObject * PLy_subtransaction_new(PyObject * self, PyObject * unused);
 
 #endif							/* PLPY_SUBXACTOBJECT */

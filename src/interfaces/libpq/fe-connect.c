@@ -67,7 +67,7 @@
 #include <ldap.h>
 typedef struct timeval LDAP_TIMEVAL;
 #endif
-static int ldapServiceLookup(const char *purl, PQconninfoOption *options,
+static int ldapServiceLookup(const char *purl, PQconninfoOption * options,
 				  PQExpBuffer errorMessage);
 #endif
 
@@ -176,7 +176,7 @@ typedef struct _internalPQconninfoOption
 	 * ---
 	 */
 	off_t		connofs;		/* Offset into PGconn struct, -1 if not there */
-} internalPQconninfoOption;
+}			internalPQconninfoOption;
 
 static const internalPQconninfoOption PQconninfoOptions[] = {
 	/*
@@ -350,58 +350,58 @@ static const PQEnvironmentOption EnvironmentOptions[] =
 static const char uri_designator[] = "postgresql://";
 static const char short_uri_designator[] = "postgres://";
 
-static bool connectOptions1(PGconn *conn, const char *conninfo);
-static bool connectOptions2(PGconn *conn);
-static int	connectDBStart(PGconn *conn);
-static int	connectDBComplete(PGconn *conn);
-static PGPing internal_ping(PGconn *conn);
-static PGconn *makeEmptyPGconn(void);
-static bool fillPGconn(PGconn *conn, PQconninfoOption *connOptions);
-static void freePGconn(PGconn *conn);
-static void closePGconn(PGconn *conn);
-static void release_all_addrinfo(PGconn *conn);
-static void sendTerminateConn(PGconn *conn);
-static PQconninfoOption *conninfo_init(PQExpBuffer errorMessage);
-static PQconninfoOption *parse_connection_string(const char *conninfo,
-						PQExpBuffer errorMessage, bool use_defaults);
+static bool connectOptions1(PGconn * conn, const char *conninfo);
+static bool connectOptions2(PGconn * conn);
+static int	connectDBStart(PGconn * conn);
+static int	connectDBComplete(PGconn * conn);
+static PGPing internal_ping(PGconn * conn);
+static PGconn * makeEmptyPGconn(void);
+static bool fillPGconn(PGconn * conn, PQconninfoOption * connOptions);
+static void freePGconn(PGconn * conn);
+static void closePGconn(PGconn * conn);
+static void release_all_addrinfo(PGconn * conn);
+static void sendTerminateConn(PGconn * conn);
+static PQconninfoOption * conninfo_init(PQExpBuffer errorMessage);
+static PQconninfoOption * parse_connection_string(const char *conninfo,
+												  PQExpBuffer errorMessage, bool use_defaults);
 static int	uri_prefix_length(const char *connstr);
 static bool recognized_connection_string(const char *connstr);
-static PQconninfoOption *conninfo_parse(const char *conninfo,
-			   PQExpBuffer errorMessage, bool use_defaults);
-static PQconninfoOption *conninfo_array_parse(const char *const *keywords,
-					 const char *const *values, PQExpBuffer errorMessage,
-					 bool use_defaults, int expand_dbname);
-static bool conninfo_add_defaults(PQconninfoOption *options,
+static PQconninfoOption * conninfo_parse(const char *conninfo,
+										 PQExpBuffer errorMessage, bool use_defaults);
+static PQconninfoOption * conninfo_array_parse(const char *const *keywords,
+											   const char *const *values, PQExpBuffer errorMessage,
+											   bool use_defaults, int expand_dbname);
+static bool conninfo_add_defaults(PQconninfoOption * options,
 					  PQExpBuffer errorMessage);
-static PQconninfoOption *conninfo_uri_parse(const char *uri,
-				   PQExpBuffer errorMessage, bool use_defaults);
-static bool conninfo_uri_parse_options(PQconninfoOption *options,
+static PQconninfoOption * conninfo_uri_parse(const char *uri,
+											 PQExpBuffer errorMessage, bool use_defaults);
+static bool conninfo_uri_parse_options(PQconninfoOption * options,
 						   const char *uri, PQExpBuffer errorMessage);
 static bool conninfo_uri_parse_params(char *params,
-						  PQconninfoOption *connOptions,
+						  PQconninfoOption * connOptions,
 						  PQExpBuffer errorMessage);
 static char *conninfo_uri_decode(const char *str, PQExpBuffer errorMessage);
 static bool get_hexdigit(char digit, int *value);
-static const char *conninfo_getval(PQconninfoOption *connOptions,
+static const char *conninfo_getval(PQconninfoOption * connOptions,
 				const char *keyword);
-static PQconninfoOption *conninfo_storeval(PQconninfoOption *connOptions,
-				  const char *keyword, const char *value,
-				  PQExpBuffer errorMessage, bool ignoreMissing, bool uri_decode);
-static PQconninfoOption *conninfo_find(PQconninfoOption *connOptions,
-			  const char *keyword);
-static void defaultNoticeReceiver(void *arg, const PGresult *res);
+static PQconninfoOption * conninfo_storeval(PQconninfoOption * connOptions,
+											const char *keyword, const char *value,
+											PQExpBuffer errorMessage, bool ignoreMissing, bool uri_decode);
+static PQconninfoOption * conninfo_find(PQconninfoOption * connOptions,
+										const char *keyword);
+static void defaultNoticeReceiver(void *arg, const PGresult * res);
 static void defaultNoticeProcessor(void *arg, const char *message);
-static int parseServiceInfo(PQconninfoOption *options,
+static int parseServiceInfo(PQconninfoOption * options,
 				 PQExpBuffer errorMessage);
 static int parseServiceFile(const char *serviceFile,
 				 const char *service,
-				 PQconninfoOption *options,
+				 PQconninfoOption * options,
 				 PQExpBuffer errorMessage,
 				 bool *group_found);
 static char *pwdfMatchesString(char *buf, char *token);
 static char *passwordFromFile(char *hostname, char *port, char *dbname,
 				 char *username, char *pgpassfile);
-static void pgpassfileWarning(PGconn *conn);
+static void pgpassfileWarning(PGconn * conn);
 static void default_threadlock(int acquire);
 
 
@@ -422,7 +422,7 @@ pgthreadlock_t pg_g_threadlock = default_threadlock;
  * valuable, so the caller must tell us whether to flush that or not.
  */
 void
-pqDropConnection(PGconn *conn, bool flushInput)
+pqDropConnection(PGconn * conn, bool flushInput)
 {
 	/* Drop any SSL state */
 	pqsecure_close(conn);
@@ -496,7 +496,7 @@ pqDropConnection(PGconn *conn, bool flushInput)
  * should be kept until we are actually starting a new connection.
  */
 static void
-pqDropServerData(PGconn *conn)
+pqDropServerData(PGconn * conn)
 {
 	PGnotify   *notify;
 	pgParameterStatus *pstatus;
@@ -811,9 +811,9 @@ PQconnectStart(const char *conninfo)
  * Returns true on success. On failure, returns false and sets error message.
  */
 static bool
-fillPGconn(PGconn *conn, PQconninfoOption *connOptions)
+fillPGconn(PGconn * conn, PQconninfoOption * connOptions)
 {
-	const internalPQconninfoOption *option;
+	const		internalPQconninfoOption *option;
 
 	for (option = PQconninfoOptions; option->keyword; option++)
 	{
@@ -853,7 +853,7 @@ fillPGconn(PGconn *conn, PQconninfoOption *connOptions)
  * and so is conn->status).
  */
 static bool
-connectOptions1(PGconn *conn, const char *conninfo)
+connectOptions1(PGconn * conn, const char *conninfo)
 {
 	PQconninfoOption *connOptions;
 
@@ -951,7 +951,7 @@ parse_comma_separated_list(char **startptr, bool *more)
  * and so is conn->status).
  */
 static bool
-connectOptions2(PGconn *conn)
+connectOptions2(PGconn * conn)
 {
 	int			i;
 
@@ -1448,7 +1448,7 @@ oom_error:
  * ----------
  */
 static int
-connectNoDelay(PGconn *conn)
+connectNoDelay(PGconn * conn)
 {
 #ifdef	TCP_NODELAY
 	int			on = 1;
@@ -1476,7 +1476,7 @@ connectNoDelay(PGconn *conn)
  * ----------
  */
 static void
-connectFailureMessage(PGconn *conn, int errorno)
+connectFailureMessage(PGconn * conn, int errorno)
 {
 	char		sebuf[256];
 
@@ -1572,7 +1572,7 @@ connectFailureMessage(PGconn *conn, int errorno)
  * integer.
  */
 static int
-useKeepalives(PGconn *conn)
+useKeepalives(PGconn * conn)
 {
 	char	   *ep;
 	int			val;
@@ -1590,7 +1590,7 @@ useKeepalives(PGconn *conn)
  * Set the keepalive idle timer.
  */
 static int
-setKeepalivesIdle(PGconn *conn)
+setKeepalivesIdle(PGconn * conn)
 {
 	int			idle;
 
@@ -1622,7 +1622,7 @@ setKeepalivesIdle(PGconn *conn)
  * Set the keepalive interval.
  */
 static int
-setKeepalivesInterval(PGconn *conn)
+setKeepalivesInterval(PGconn * conn)
 {
 	int			interval;
 
@@ -1655,7 +1655,7 @@ setKeepalivesInterval(PGconn *conn)
  * break.
  */
 static int
-setKeepalivesCount(PGconn *conn)
+setKeepalivesCount(PGconn * conn)
 {
 	int			count;
 
@@ -1689,7 +1689,7 @@ setKeepalivesCount(PGconn *conn)
  * where they are always set in one batch.
  */
 static int
-setKeepalivesWin32(PGconn *conn)
+setKeepalivesWin32(PGconn * conn)
 {
 	struct tcp_keepalive ka;
 	DWORD		retsize;
@@ -1712,7 +1712,7 @@ setKeepalivesWin32(PGconn *conn)
 
 	if (WSAIoctl(conn->sock,
 				 SIO_KEEPALIVE_VALS,
-				 (LPVOID) &ka,
+				 (LPVOID) & ka,
 				 sizeof(ka),
 				 NULL,
 				 0,
@@ -1739,7 +1739,7 @@ setKeepalivesWin32(PGconn *conn)
  * ----------
  */
 static int
-connectDBStart(PGconn *conn)
+connectDBStart(PGconn * conn)
 {
 	char		portstr[MAXPGPATH];
 	int			ret;
@@ -1899,10 +1899,10 @@ connect_errReturn:
  * Returns 1 on success, 0 on failure.
  */
 static int
-connectDBComplete(PGconn *conn)
+connectDBComplete(PGconn * conn)
 {
 	PostgresPollingStatusType flag = PGRES_POLLING_WRITING;
-	time_t		finish_time = ((time_t) -1);
+	time_t		finish_time = ((time_t) - 1);
 	int			timeout = 0;
 
 	if (conn == NULL || conn->status == CONNECTION_BAD)
@@ -2000,7 +2000,7 @@ connectDBComplete(PGconn *conn)
  * restoreErrorMessage subroutine.  Returns false on OOM failure.
  */
 static bool
-saveErrorMessage(PGconn *conn, PQExpBuffer savedMessage)
+saveErrorMessage(PGconn * conn, PQExpBuffer savedMessage)
 {
 	initPQExpBuffer(savedMessage);
 	appendPQExpBufferStr(savedMessage,
@@ -2022,7 +2022,7 @@ saveErrorMessage(PGconn *conn, PQExpBuffer savedMessage)
  * if anything's been added to conn->errorMessage since saveErrorMessage.)
  */
 static void
-restoreErrorMessage(PGconn *conn, PQExpBuffer savedMessage)
+restoreErrorMessage(PGconn * conn, PQExpBuffer savedMessage)
 {
 	appendPQExpBufferStr(savedMessage, conn->errorMessage.data);
 	resetPQExpBuffer(&conn->errorMessage);
@@ -2063,7 +2063,7 @@ restoreErrorMessage(PGconn *conn, PQExpBuffer savedMessage)
  * ----------------
  */
 PostgresPollingStatusType
-PQconnectPoll(PGconn *conn)
+PQconnectPoll(PGconn * conn)
 {
 	bool		reset_connection_state_machine = false;
 	bool		need_new_connection = false;
@@ -3362,7 +3362,7 @@ error_return:
  * The argument is a connection that's been started, but not completed.
  */
 static PGPing
-internal_ping(PGconn *conn)
+internal_ping(PGconn * conn)
 {
 	/* Say "no attempt" if we never got to PQconnectPoll */
 	if (!conn || !conn->options_valid)
@@ -3515,7 +3515,7 @@ makeEmptyPGconn(void)
  * If a value ought to be cleared/freed during PQreset(), do it there not here.
  */
 static void
-freePGconn(PGconn *conn)
+freePGconn(PGconn * conn)
 {
 	int			i;
 
@@ -3634,7 +3634,7 @@ freePGconn(PGconn *conn)
  */
 
 static void
-release_all_addrinfo(PGconn *conn)
+release_all_addrinfo(PGconn * conn)
 {
 	if (conn->connhost != NULL)
 	{
@@ -3662,7 +3662,7 @@ release_all_addrinfo(PGconn *conn)
  *	 - Send a terminate message to backend.
  */
 static void
-sendTerminateConn(PGconn *conn)
+sendTerminateConn(PGconn * conn)
 {
 	/*
 	 * Note that the protocol doesn't allow us to send Terminate messages
@@ -3689,7 +3689,7 @@ sendTerminateConn(PGconn *conn)
  * connection with the same parameters (see PQreset()).
  */
 static void
-closePGconn(PGconn *conn)
+closePGconn(PGconn * conn)
 {
 	/*
 	 * If possible, send Terminate message to close the connection politely.
@@ -3724,7 +3724,7 @@ closePGconn(PGconn *conn)
  * the PGconn data structure so it shouldn't be re-used after this.
  */
 void
-PQfinish(PGconn *conn)
+PQfinish(PGconn * conn)
 {
 	if (conn)
 	{
@@ -3738,7 +3738,7 @@ PQfinish(PGconn *conn)
  * existing connection and creating a new one.
  */
 void
-PQreset(PGconn *conn)
+PQreset(PGconn * conn)
 {
 	if (conn)
 	{
@@ -3779,7 +3779,7 @@ PQreset(PGconn *conn)
  * Returns 1 on success, 0 on failure.
  */
 int
-PQresetStart(PGconn *conn)
+PQresetStart(PGconn * conn)
 {
 	if (conn)
 	{
@@ -3798,7 +3798,7 @@ PQresetStart(PGconn *conn)
  * closes the existing connection and makes a new one
  */
 PostgresPollingStatusType
-PQresetPoll(PGconn *conn)
+PQresetPoll(PGconn * conn)
 {
 	if (conn)
 	{
@@ -3845,7 +3845,7 @@ PQresetPoll(PGconn *conn)
  * have to stay locked for the duration of the query).
  */
 PGcancel *
-PQgetCancel(PGconn *conn)
+PQgetCancel(PGconn * conn)
 {
 	PGcancel   *cancel;
 
@@ -3868,7 +3868,7 @@ PQgetCancel(PGconn *conn)
 
 /* PQfreeCancel: free a cancel structure */
 void
-PQfreeCancel(PGcancel *cancel)
+PQfreeCancel(PGcancel * cancel)
 {
 	if (cancel)
 		free(cancel);
@@ -3896,7 +3896,7 @@ PQfreeCancel(PGcancel *cancel)
  * between the two versions of the cancel function possible.
  */
 static int
-internal_cancel(SockAddr *raddr, int be_pid, int be_key,
+internal_cancel(SockAddr * raddr, int be_pid, int be_key,
 				char *errbuf, int errbufsize)
 {
 	int			save_errno = SOCK_ERRNO;
@@ -4000,7 +4000,7 @@ cancel_errReturn:
  * success return.
  */
 int
-PQcancel(PGcancel *cancel, char *errbuf, int errbufsize)
+PQcancel(PGcancel * cancel, char *errbuf, int errbufsize)
 {
 	if (!cancel)
 	{
@@ -4025,7 +4025,7 @@ PQcancel(PGcancel *cancel, char *errbuf, int errbufsize)
  * error message buffer, since we dare not try to expand conn->errorMessage!
  */
 int
-PQrequestCancel(PGconn *conn)
+PQrequestCancel(PGconn * conn)
 {
 	int			r;
 
@@ -4069,7 +4069,7 @@ PQrequestCancel(PGconn *conn)
  * it's protocol 2.0 or 3.0.
  */
 int
-pqPacketSend(PGconn *conn, char pack_type,
+pqPacketSend(PGconn * conn, char pack_type,
 			 const void *buf, size_t buf_len)
 {
 	/* Start the message. */
@@ -4121,7 +4121,7 @@ pqPacketSend(PGconn *conn, char pack_type,
  * An error message is returned in the third argument for return codes 1 and 3.
  */
 static int
-ldapServiceLookup(const char *purl, PQconninfoOption *options,
+ldapServiceLookup(const char *purl, PQconninfoOption * options,
 				  PQExpBuffer errorMessage)
 {
 	int			port = LDAP_DEF_PORT,
@@ -4577,7 +4577,7 @@ ldapServiceLookup(const char *purl, PQconninfoOption *options,
  * a null PQExpBuffer pointer.)
  */
 static int
-parseServiceInfo(PQconninfoOption *options, PQExpBuffer errorMessage)
+parseServiceInfo(PQconninfoOption * options, PQExpBuffer errorMessage)
 {
 	const char *service = conninfo_getval(options, "service");
 	char		serviceFile[MAXPGPATH];
@@ -4648,7 +4648,7 @@ last_file:
 static int
 parseServiceFile(const char *serviceFile,
 				 const char *service,
-				 PQconninfoOption *options,
+				 PQconninfoOption * options,
 				 PQExpBuffer errorMessage,
 				 bool *group_found)
 {
@@ -4847,7 +4847,7 @@ conninfo_init(PQExpBuffer errorMessage)
 {
 	PQconninfoOption *options;
 	PQconninfoOption *opt_dest;
-	const internalPQconninfoOption *cur_opt;
+	const		internalPQconninfoOption *cur_opt;
 
 	/*
 	 * Get enough memory for all options in PQconninfoOptions, even if some
@@ -5279,7 +5279,7 @@ conninfo_array_parse(const char *const *keywords, const char *const *values,
  * NULL.
  */
 static bool
-conninfo_add_defaults(PQconninfoOption *options, PQExpBuffer errorMessage)
+conninfo_add_defaults(PQconninfoOption * options, PQExpBuffer errorMessage)
 {
 	PQconninfoOption *option;
 	char	   *tmp;
@@ -5437,7 +5437,7 @@ conninfo_uri_parse(const char *uri, PQExpBuffer errorMessage,
  * Any of the URI parts might use percent-encoding (%xy).
  */
 static bool
-conninfo_uri_parse_options(PQconninfoOption *options, const char *uri,
+conninfo_uri_parse_options(PQconninfoOption * options, const char *uri,
 						   PQExpBuffer errorMessage)
 {
 	int			prefix_len;
@@ -5682,7 +5682,7 @@ cleanup:
  */
 static bool
 conninfo_uri_parse_params(char *params,
-						  PQconninfoOption *connOptions,
+						  PQconninfoOption * connOptions,
 						  PQExpBuffer errorMessage)
 {
 	while (*params)
@@ -5901,7 +5901,7 @@ get_hexdigit(char digit, int *value)
  * If not successful, returns NULL.
  */
 static const char *
-conninfo_getval(PQconninfoOption *connOptions,
+conninfo_getval(PQconninfoOption * connOptions,
 				const char *keyword)
 {
 	PQconninfoOption *option;
@@ -5927,7 +5927,7 @@ conninfo_getval(PQconninfoOption *connOptions,
  * ignoreMissing is TRUE, errorMessage will be left untouched.
  */
 static PQconninfoOption *
-conninfo_storeval(PQconninfoOption *connOptions,
+conninfo_storeval(PQconninfoOption * connOptions,
 				  const char *keyword, const char *value,
 				  PQExpBuffer errorMessage, bool ignoreMissing,
 				  bool uri_decode)
@@ -5992,7 +5992,7 @@ conninfo_storeval(PQconninfoOption *connOptions,
  * If not successful, returns NULL.
  */
 static PQconninfoOption *
-conninfo_find(PQconninfoOption *connOptions, const char *keyword)
+conninfo_find(PQconninfoOption * connOptions, const char *keyword)
 {
 	PQconninfoOption *option;
 
@@ -6010,7 +6010,7 @@ conninfo_find(PQconninfoOption *connOptions, const char *keyword)
  * Return the connection options used for the connection
  */
 PQconninfoOption *
-PQconninfo(PGconn *conn)
+PQconninfo(PGconn * conn)
 {
 	PQExpBufferData errorBuf;
 	PQconninfoOption *connOptions;
@@ -6027,7 +6027,7 @@ PQconninfo(PGconn *conn)
 
 	if (connOptions != NULL)
 	{
-		const internalPQconninfoOption *option;
+		const		internalPQconninfoOption *option;
 
 		for (option = PQconninfoOptions; option->keyword; option++)
 		{
@@ -6051,7 +6051,7 @@ PQconninfo(PGconn *conn)
 
 
 void
-PQconninfoFree(PQconninfoOption *connOptions)
+PQconninfoFree(PQconninfoOption * connOptions)
 {
 	PQconninfoOption *option;
 
@@ -6069,7 +6069,7 @@ PQconninfoFree(PQconninfoOption *connOptions)
 
 /* =========== accessor functions for PGconn ========= */
 char *
-PQdb(const PGconn *conn)
+PQdb(const PGconn * conn)
 {
 	if (!conn)
 		return NULL;
@@ -6077,7 +6077,7 @@ PQdb(const PGconn *conn)
 }
 
 char *
-PQuser(const PGconn *conn)
+PQuser(const PGconn * conn)
 {
 	if (!conn)
 		return NULL;
@@ -6085,7 +6085,7 @@ PQuser(const PGconn *conn)
 }
 
 char *
-PQpass(const PGconn *conn)
+PQpass(const PGconn * conn)
 {
 	char	   *password = NULL;
 
@@ -6102,7 +6102,7 @@ PQpass(const PGconn *conn)
 }
 
 char *
-PQhost(const PGconn *conn)
+PQhost(const PGconn * conn)
 {
 	if (!conn)
 		return NULL;
@@ -6121,7 +6121,7 @@ PQhost(const PGconn *conn)
 }
 
 char *
-PQport(const PGconn *conn)
+PQport(const PGconn * conn)
 {
 	if (!conn)
 		return NULL;
@@ -6133,7 +6133,7 @@ PQport(const PGconn *conn)
 }
 
 char *
-PQtty(const PGconn *conn)
+PQtty(const PGconn * conn)
 {
 	if (!conn)
 		return NULL;
@@ -6141,7 +6141,7 @@ PQtty(const PGconn *conn)
 }
 
 char *
-PQoptions(const PGconn *conn)
+PQoptions(const PGconn * conn)
 {
 	if (!conn)
 		return NULL;
@@ -6149,7 +6149,7 @@ PQoptions(const PGconn *conn)
 }
 
 ConnStatusType
-PQstatus(const PGconn *conn)
+PQstatus(const PGconn * conn)
 {
 	if (!conn)
 		return CONNECTION_BAD;
@@ -6157,7 +6157,7 @@ PQstatus(const PGconn *conn)
 }
 
 PGTransactionStatusType
-PQtransactionStatus(const PGconn *conn)
+PQtransactionStatus(const PGconn * conn)
 {
 	if (!conn || conn->status != CONNECTION_OK)
 		return PQTRANS_UNKNOWN;
@@ -6167,9 +6167,9 @@ PQtransactionStatus(const PGconn *conn)
 }
 
 const char *
-PQparameterStatus(const PGconn *conn, const char *paramName)
+PQparameterStatus(const PGconn * conn, const char *paramName)
 {
-	const pgParameterStatus *pstatus;
+	const		pgParameterStatus *pstatus;
 
 	if (!conn || !paramName)
 		return NULL;
@@ -6182,7 +6182,7 @@ PQparameterStatus(const PGconn *conn, const char *paramName)
 }
 
 int
-PQprotocolVersion(const PGconn *conn)
+PQprotocolVersion(const PGconn * conn)
 {
 	if (!conn)
 		return 0;
@@ -6192,7 +6192,7 @@ PQprotocolVersion(const PGconn *conn)
 }
 
 int
-PQserverVersion(const PGconn *conn)
+PQserverVersion(const PGconn * conn)
 {
 	if (!conn)
 		return 0;
@@ -6202,7 +6202,7 @@ PQserverVersion(const PGconn *conn)
 }
 
 char *
-PQerrorMessage(const PGconn *conn)
+PQerrorMessage(const PGconn * conn)
 {
 	if (!conn)
 		return libpq_gettext("connection pointer is NULL\n");
@@ -6220,7 +6220,7 @@ PQerrorMessage(const PGconn *conn)
  * http://stackoverflow.com/questions/10817252/why-is-invalid-socket-defined-as-0-in-winsock2-h-c
  */
 int
-PQsocket(const PGconn *conn)
+PQsocket(const PGconn * conn)
 {
 	if (!conn)
 		return -1;
@@ -6228,7 +6228,7 @@ PQsocket(const PGconn *conn)
 }
 
 int
-PQbackendPID(const PGconn *conn)
+PQbackendPID(const PGconn * conn)
 {
 	if (!conn || conn->status != CONNECTION_OK)
 		return 0;
@@ -6236,7 +6236,7 @@ PQbackendPID(const PGconn *conn)
 }
 
 int
-PQconnectionNeedsPassword(const PGconn *conn)
+PQconnectionNeedsPassword(const PGconn * conn)
 {
 	char	   *password;
 
@@ -6251,7 +6251,7 @@ PQconnectionNeedsPassword(const PGconn *conn)
 }
 
 int
-PQconnectionUsedPassword(const PGconn *conn)
+PQconnectionUsedPassword(const PGconn * conn)
 {
 	if (!conn)
 		return false;
@@ -6262,7 +6262,7 @@ PQconnectionUsedPassword(const PGconn *conn)
 }
 
 int
-PQclientEncoding(const PGconn *conn)
+PQclientEncoding(const PGconn * conn)
 {
 	if (!conn || conn->status != CONNECTION_OK)
 		return -1;
@@ -6270,7 +6270,7 @@ PQclientEncoding(const PGconn *conn)
 }
 
 int
-PQsetClientEncoding(PGconn *conn, const char *encoding)
+PQsetClientEncoding(PGconn * conn, const char *encoding)
 {
 	char		qbuf[128];
 	static const char query[] = "set client_encoding to '%s'";
@@ -6316,7 +6316,7 @@ PQsetClientEncoding(PGconn *conn, const char *encoding)
 }
 
 PGVerbosity
-PQsetErrorVerbosity(PGconn *conn, PGVerbosity verbosity)
+PQsetErrorVerbosity(PGconn * conn, PGVerbosity verbosity)
 {
 	PGVerbosity old;
 
@@ -6328,7 +6328,7 @@ PQsetErrorVerbosity(PGconn *conn, PGVerbosity verbosity)
 }
 
 PGContextVisibility
-PQsetErrorContextVisibility(PGconn *conn, PGContextVisibility show_context)
+PQsetErrorContextVisibility(PGconn * conn, PGContextVisibility show_context)
 {
 	PGContextVisibility old;
 
@@ -6340,7 +6340,7 @@ PQsetErrorContextVisibility(PGconn *conn, PGContextVisibility show_context)
 }
 
 void
-PQtrace(PGconn *conn, FILE *debug_port)
+PQtrace(PGconn * conn, FILE * debug_port)
 {
 	if (conn == NULL)
 		return;
@@ -6349,7 +6349,7 @@ PQtrace(PGconn *conn, FILE *debug_port)
 }
 
 void
-PQuntrace(PGconn *conn)
+PQuntrace(PGconn * conn)
 {
 	if (conn == NULL)
 		return;
@@ -6361,7 +6361,7 @@ PQuntrace(PGconn *conn)
 }
 
 PQnoticeReceiver
-PQsetNoticeReceiver(PGconn *conn, PQnoticeReceiver proc, void *arg)
+PQsetNoticeReceiver(PGconn * conn, PQnoticeReceiver proc, void *arg)
 {
 	PQnoticeReceiver old;
 
@@ -6378,7 +6378,7 @@ PQsetNoticeReceiver(PGconn *conn, PQnoticeReceiver proc, void *arg)
 }
 
 PQnoticeProcessor
-PQsetNoticeProcessor(PGconn *conn, PQnoticeProcessor proc, void *arg)
+PQsetNoticeProcessor(PGconn * conn, PQnoticeProcessor proc, void *arg)
 {
 	PQnoticeProcessor old;
 
@@ -6401,7 +6401,7 @@ PQsetNoticeProcessor(PGconn *conn, PQnoticeProcessor proc, void *arg)
  * PQsetNoticeProcessor?
  */
 static void
-defaultNoticeReceiver(void *arg, const PGresult *res)
+defaultNoticeReceiver(void *arg, const PGresult * res)
 {
 	(void) arg;					/* not used */
 	if (res->noticeHooks.noticeProc != NULL)
@@ -6593,7 +6593,7 @@ passwordFromFile(char *hostname, char *port, char *dbname,
  *	if we got the password from the pgpassfile.
  */
 static void
-pgpassfileWarning(PGconn *conn)
+pgpassfileWarning(PGconn * conn)
 {
 	/* If it was 'invalid authorization', add pgpassfile mention */
 	/* only works with >= 9.0 servers */

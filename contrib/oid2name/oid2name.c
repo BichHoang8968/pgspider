@@ -20,7 +20,7 @@ typedef struct
 	char	  **array;
 	int			num;
 	int			alloc;
-} eary;
+}			eary;
 
 /* these are the opts structures for command line params */
 struct options
@@ -46,8 +46,8 @@ struct options
 /* function prototypes */
 static void help(const char *progname);
 void		get_opts(int, char **, struct options *);
-void		add_one_elt(char *eltname, eary *eary);
-char	   *get_comma_elts(eary *eary);
+void		add_one_elt(char *eltname, eary * eary);
+char	   *get_comma_elts(eary * eary);
 PGconn	   *sql_conn(struct options *);
 int			sql_exec(PGconn *, const char *sql, bool quiet);
 void		sql_exec_dumpalldbs(PGconn *, struct options *);
@@ -200,22 +200,22 @@ help(const char *progname)
  * Add one element to a (possibly empty) eary struct.
  */
 void
-add_one_elt(char *eltname, eary *eary)
+add_one_elt(char *eltname, eary * eary)
 {
 	if (eary->alloc == 0)
 	{
-		eary	  ->alloc = 8;
-		eary	  ->array = (char **) pg_malloc(8 * sizeof(char *));
+		eary->alloc = 8;
+		eary->array = (char **) pg_malloc(8 * sizeof(char *));
 	}
 	else if (eary->num >= eary->alloc)
 	{
-		eary	  ->alloc *= 2;
-		eary	  ->array = (char **) pg_realloc(eary->array,
-												 eary->alloc * sizeof(char *));
+		eary->alloc *= 2;
+		eary->array = (char **) pg_realloc(eary->array,
+										   eary->alloc * sizeof(char *));
 	}
 
-	eary	  ->array[eary->num] = pg_strdup(eltname);
-	eary	  ->num++;
+	eary->array[eary->num] = pg_strdup(eltname);
+	eary->num++;
 }
 
 /*
@@ -226,7 +226,7 @@ add_one_elt(char *eltname, eary *eary)
  * SQL statement.
  */
 char *
-get_comma_elts(eary *eary)
+get_comma_elts(eary * eary)
 {
 	char	   *ret,
 			   *ptr;
@@ -331,7 +331,7 @@ sql_conn(struct options *my_opts)
  * Actual code to make call to the database and print the output data.
  */
 int
-sql_exec(PGconn *conn, const char *todo, bool quiet)
+sql_exec(PGconn * conn, const char *todo, bool quiet)
 {
 	PGresult   *res;
 
@@ -411,7 +411,7 @@ sql_exec(PGconn *conn, const char *todo, bool quiet)
  * Dump all databases.  There are no system objects to worry about.
  */
 void
-sql_exec_dumpalldbs(PGconn *conn, struct options *opts)
+sql_exec_dumpalldbs(PGconn * conn, struct options *opts)
 {
 	char		todo[1024];
 
@@ -428,7 +428,7 @@ sql_exec_dumpalldbs(PGconn *conn, struct options *opts)
  * Dump all tables, indexes and sequences in the current database.
  */
 void
-sql_exec_dumpalltables(PGconn *conn, struct options *opts)
+sql_exec_dumpalltables(PGconn * conn, struct options *opts)
 {
 	char		todo[1024];
 	char	   *addfields = ",c.oid AS \"Oid\", nspname AS \"Schema\", spcname as \"Tablespace\" ";
@@ -460,7 +460,7 @@ sql_exec_dumpalltables(PGconn *conn, struct options *opts)
  * given objects in the current database.
  */
 void
-sql_exec_searchtables(PGconn *conn, struct options *opts)
+sql_exec_searchtables(PGconn * conn, struct options *opts)
 {
 	char	   *todo;
 	char	   *qualifiers,
@@ -530,7 +530,7 @@ sql_exec_searchtables(PGconn *conn, struct options *opts)
 }
 
 void
-sql_exec_dumpalltbspc(PGconn *conn, struct options *opts)
+sql_exec_dumpalltbspc(PGconn * conn, struct options *opts)
 {
 	char		todo[1024];
 

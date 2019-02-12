@@ -50,23 +50,23 @@ typedef struct LogicalErrorCallbackState
 	LogicalDecodingContext *ctx;
 	const char *callback_name;
 	XLogRecPtr	report_location;
-} LogicalErrorCallbackState;
+}			LogicalErrorCallbackState;
 
 /* wrappers around output plugin callbacks */
 static void output_plugin_error_callback(void *arg);
-static void startup_cb_wrapper(LogicalDecodingContext *ctx, OutputPluginOptions *opt,
+static void startup_cb_wrapper(LogicalDecodingContext * ctx, OutputPluginOptions * opt,
 				   bool is_init);
-static void shutdown_cb_wrapper(LogicalDecodingContext *ctx);
-static void begin_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn);
-static void commit_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+static void shutdown_cb_wrapper(LogicalDecodingContext * ctx);
+static void begin_cb_wrapper(ReorderBuffer * cache, ReorderBufferTXN * txn);
+static void commit_cb_wrapper(ReorderBuffer * cache, ReorderBufferTXN * txn,
 				  XLogRecPtr commit_lsn);
-static void change_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
-				  Relation relation, ReorderBufferChange *change);
-static void message_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+static void change_cb_wrapper(ReorderBuffer * cache, ReorderBufferTXN * txn,
+				  Relation relation, ReorderBufferChange * change);
+static void message_cb_wrapper(ReorderBuffer * cache, ReorderBufferTXN * txn,
 				   XLogRecPtr message_lsn, bool transactional,
 				   const char *prefix, Size message_size, const char *message);
 
-static void LoadOutputPlugin(OutputPluginCallbacks *callbacks, char *plugin);
+static void LoadOutputPlugin(OutputPluginCallbacks * callbacks, char *plugin);
 
 /*
  * Make sure the current settings & environment are capable of doing logical
@@ -111,7 +111,7 @@ CheckLogicalDecodingRequirements(void)
  * CreateDecodingContext() performing common tasks.
  */
 static LogicalDecodingContext *
-StartupDecodingContext(List *output_plugin_options,
+StartupDecodingContext(List * output_plugin_options,
 					   XLogRecPtr start_lsn,
 					   TransactionId xmin_horizon,
 					   bool need_full_snapshot,
@@ -214,7 +214,7 @@ StartupDecodingContext(List *output_plugin_options,
  */
 LogicalDecodingContext *
 CreateInitDecodingContext(char *plugin,
-						  List *output_plugin_options,
+						  List * output_plugin_options,
 						  bool need_full_snapshot,
 						  XLogPageReadCB read_page,
 						  LogicalOutputPluginWriterPrepareWrite prepare_write,
@@ -341,7 +341,7 @@ CreateInitDecodingContext(char *plugin,
  */
 LogicalDecodingContext *
 CreateDecodingContext(XLogRecPtr start_lsn,
-					  List *output_plugin_options,
+					  List * output_plugin_options,
 					  XLogPageReadCB read_page,
 					  LogicalOutputPluginWriterPrepareWrite prepare_write,
 					  LogicalOutputPluginWriterWrite do_write,
@@ -420,7 +420,7 @@ CreateDecodingContext(XLogRecPtr start_lsn,
  * Returns true if a consistent initial decoding snapshot has been built.
  */
 bool
-DecodingContextReady(LogicalDecodingContext *ctx)
+DecodingContextReady(LogicalDecodingContext * ctx)
 {
 	return SnapBuildCurrentState(ctx->snapshot_builder) == SNAPBUILD_CONSISTENT;
 }
@@ -429,7 +429,7 @@ DecodingContextReady(LogicalDecodingContext *ctx)
  * Read from the decoding slot, until it is ready to start extracting changes.
  */
 void
-DecodingContextFindStartpoint(LogicalDecodingContext *ctx)
+DecodingContextFindStartpoint(LogicalDecodingContext * ctx)
 {
 	XLogRecPtr	startptr;
 
@@ -472,7 +472,7 @@ DecodingContextFindStartpoint(LogicalDecodingContext *ctx)
  * callback if necessary.
  */
 void
-FreeDecodingContext(LogicalDecodingContext *ctx)
+FreeDecodingContext(LogicalDecodingContext * ctx)
 {
 	if (ctx->callbacks.shutdown_cb != NULL)
 		shutdown_cb_wrapper(ctx);
@@ -526,7 +526,7 @@ OutputPluginUpdateProgress(struct LogicalDecodingContext *ctx)
  * that it provides the required callbacks.
  */
 static void
-LoadOutputPlugin(OutputPluginCallbacks *callbacks, char *plugin)
+LoadOutputPlugin(OutputPluginCallbacks * callbacks, char *plugin)
 {
 	LogicalOutputPluginInit plugin_init;
 
@@ -568,7 +568,7 @@ output_plugin_error_callback(void *arg)
 }
 
 static void
-startup_cb_wrapper(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool is_init)
+startup_cb_wrapper(LogicalDecodingContext * ctx, OutputPluginOptions * opt, bool is_init)
 {
 	LogicalErrorCallbackState state;
 	ErrorContextCallback errcallback;
@@ -593,7 +593,7 @@ startup_cb_wrapper(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool i
 }
 
 static void
-shutdown_cb_wrapper(LogicalDecodingContext *ctx)
+shutdown_cb_wrapper(LogicalDecodingContext * ctx)
 {
 	LogicalErrorCallbackState state;
 	ErrorContextCallback errcallback;
@@ -623,7 +623,7 @@ shutdown_cb_wrapper(LogicalDecodingContext *ctx)
  * output_plugin.h plugins.
  */
 static void
-begin_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn)
+begin_cb_wrapper(ReorderBuffer * cache, ReorderBufferTXN * txn)
 {
 	LogicalDecodingContext *ctx = cache->private_data;
 	LogicalErrorCallbackState state;
@@ -651,7 +651,7 @@ begin_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn)
 }
 
 static void
-commit_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+commit_cb_wrapper(ReorderBuffer * cache, ReorderBufferTXN * txn,
 				  XLogRecPtr commit_lsn)
 {
 	LogicalDecodingContext *ctx = cache->private_data;
@@ -680,8 +680,8 @@ commit_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
 }
 
 static void
-change_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
-				  Relation relation, ReorderBufferChange *change)
+change_cb_wrapper(ReorderBuffer * cache, ReorderBufferTXN * txn,
+				  Relation relation, ReorderBufferChange * change)
 {
 	LogicalDecodingContext *ctx = cache->private_data;
 	LogicalErrorCallbackState state;
@@ -715,7 +715,7 @@ change_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
 }
 
 bool
-filter_by_origin_cb_wrapper(LogicalDecodingContext *ctx, RepOriginId origin_id)
+filter_by_origin_cb_wrapper(LogicalDecodingContext * ctx, RepOriginId origin_id)
 {
 	LogicalErrorCallbackState state;
 	ErrorContextCallback errcallback;
@@ -743,7 +743,7 @@ filter_by_origin_cb_wrapper(LogicalDecodingContext *ctx, RepOriginId origin_id)
 }
 
 static void
-message_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+message_cb_wrapper(ReorderBuffer * cache, ReorderBufferTXN * txn,
 				   XLogRecPtr message_lsn, bool transactional,
 				   const char *prefix, Size message_size, const char *message)
 {

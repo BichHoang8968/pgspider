@@ -37,13 +37,13 @@ typedef struct
 								 * tuple */
 	char		data[BLCKSZ];	/* cached page */
 	int64		count;			/* number of tuples in cached page */
-} BloomBuildState;
+}			BloomBuildState;
 
 /*
  * Flush page cached in BloomBuildState.
  */
 static void
-flushCachedPage(Relation index, BloomBuildState *buildstate)
+flushCachedPage(Relation index, BloomBuildState * buildstate)
 {
 	Page		page;
 	Buffer		buffer = BloomNewBuffer(index);
@@ -60,7 +60,7 @@ flushCachedPage(Relation index, BloomBuildState *buildstate)
  * (Re)initialize cached page in BloomBuildState.
  */
 static void
-initCachedPage(BloomBuildState *buildstate)
+initCachedPage(BloomBuildState * buildstate)
 {
 	memset(buildstate->data, 0, BLCKSZ);
 	BloomInitPage(buildstate->data, 0);
@@ -71,7 +71,7 @@ initCachedPage(BloomBuildState *buildstate)
  * Per-tuple callback from IndexBuildHeapScan.
  */
 static void
-bloomBuildCallback(Relation index, HeapTuple htup, Datum *values,
+bloomBuildCallback(Relation index, HeapTuple htup, Datum * values,
 				   bool *isnull, bool tupleIsAlive, void *state)
 {
 	BloomBuildState *buildstate = (BloomBuildState *) state;
@@ -112,7 +112,7 @@ bloomBuildCallback(Relation index, HeapTuple htup, Datum *values,
  * Build a new bloom index.
  */
 IndexBuildResult *
-blbuild(Relation heap, Relation index, IndexInfo *indexInfo)
+blbuild(Relation heap, Relation index, IndexInfo * indexInfo)
 {
 	IndexBuildResult *result;
 	double		reltuples;
@@ -189,10 +189,10 @@ blbuildempty(Relation index)
  * Insert new tuple to the bloom index.
  */
 bool
-blinsert(Relation index, Datum *values, bool *isnull,
+blinsert(Relation index, Datum * values, bool *isnull,
 		 ItemPointer ht_ctid, Relation heapRel,
 		 IndexUniqueCheck checkUnique,
-		 IndexInfo *indexInfo)
+		 IndexInfo * indexInfo)
 {
 	BloomState	blstate;
 	BloomTuple *itup;

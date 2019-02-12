@@ -121,7 +121,7 @@ ReadBufferBI(Relation relation, BlockNumber targetBlock,
 static void
 GetVisibilityMapPins(Relation relation, Buffer buffer1, Buffer buffer2,
 					 BlockNumber block1, BlockNumber block2,
-					 Buffer *vmbuffer1, Buffer *vmbuffer2)
+					 Buffer * vmbuffer1, Buffer * vmbuffer2)
 {
 	bool		need_to_pin_buffer1;
 	bool		need_to_pin_buffer2;
@@ -297,7 +297,7 @@ Buffer
 RelationGetBufferForTuple(Relation relation, Size len,
 						  Buffer otherBuffer, int options,
 						  BulkInsertState bistate,
-						  Buffer *vmbuffer, Buffer *vmbuffer_other)
+						  Buffer * vmbuffer, Buffer * vmbuffer_other)
 {
 	bool		use_fsm = !(options & HEAP_INSERT_SKIP_FSM);
 	Buffer		buffer = InvalidBuffer;

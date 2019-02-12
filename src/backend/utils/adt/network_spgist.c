@@ -39,8 +39,8 @@
 #include "utils/inet.h"
 
 
-static int	inet_spg_node_number(const inet *val, int commonbits);
-static int inet_spg_consistent_bitmap(const inet *prefix, int nkeys,
+static int	inet_spg_node_number(const inet * val, int commonbits);
+static int inet_spg_consistent_bitmap(const inet * prefix, int nkeys,
 						   ScanKey scankeys, bool leaf);
 
 /*
@@ -346,7 +346,7 @@ inet_spg_leaf_consistent(PG_FUNCTION_ARGS)
  * is larger than commonbits.
  */
 static int
-inet_spg_node_number(const inet *val, int commonbits)
+inet_spg_node_number(const inet * val, int commonbits)
 {
 	int			nodeN = 0;
 
@@ -370,7 +370,7 @@ inet_spg_node_number(const inet *val, int commonbits)
  * are mostly common and it seems best to keep them in one function.
  */
 static int
-inet_spg_consistent_bitmap(const inet *prefix, int nkeys, ScanKey scankeys,
+inet_spg_consistent_bitmap(const inet * prefix, int nkeys, ScanKey scankeys,
 						   bool leaf)
 {
 	int			bitmap;

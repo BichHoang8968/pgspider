@@ -242,7 +242,7 @@ static const float4 penalties[8] = {
 typedef struct
 {
 	char		bytes[MAX_MULTIBYTE_CHAR_LEN];
-} trgm_mb_char;
+}			trgm_mb_char;
 
 /*
  * Attributes of NFA colors:
@@ -263,7 +263,7 @@ typedef struct
 	bool		containsNonWord;
 	int			wordCharsCount;
 	trgm_mb_char *wordChars;
-} TrgmColorInfo;
+}			TrgmColorInfo;
 
 /*
  * A "prefix" is information about the colors of the last two characters read
@@ -290,7 +290,7 @@ typedef int TrgmColor;
 typedef struct
 {
 	TrgmColor	colors[2];
-} TrgmPrefix;
+}			TrgmPrefix;
 
 /*
  * Color-trigram data type.  Note that some elements of the trigram can be
@@ -299,7 +299,7 @@ typedef struct
 typedef struct
 {
 	TrgmColor	colors[3];
-} ColorTrgm;
+}			ColorTrgm;
 
 /*
  * Key identifying a state of our expanded graph: color prefix, and number
@@ -310,7 +310,7 @@ typedef struct
 {
 	TrgmPrefix	prefix;
 	int			nstate;
-} TrgmStateKey;
+}			TrgmStateKey;
 
 /*
  * One state of the expanded graph.
@@ -340,7 +340,7 @@ typedef struct TrgmState
 	struct TrgmState *parent;
 	int			tentFlags;
 	struct TrgmState *tentParent;
-} TrgmState;
+}			TrgmState;
 
 /*
  * One arc in the expanded graph.
@@ -349,7 +349,7 @@ typedef struct
 {
 	ColorTrgm	ctrgm;			/* trigram needed to traverse arc */
 	TrgmState  *target;			/* next state */
-} TrgmArc;
+}			TrgmArc;
 
 /*
  * Information about arc of specific color trigram (used in stage 3)
@@ -360,7 +360,7 @@ typedef struct
 {
 	TrgmState  *source;
 	TrgmState  *target;
-} TrgmArcInfo;
+}			TrgmArcInfo;
 
 /*
  * Information about color trigram (used in stage 3)
@@ -379,7 +379,7 @@ typedef struct
 	float4		penalty;
 	bool		expanded;
 	List	   *arcs;
-} ColorTrgmInfo;
+}			ColorTrgmInfo;
 
 /*
  * Data structure representing all the data we need during regex processing.
@@ -420,7 +420,7 @@ typedef struct
 	ColorTrgmInfo *colorTrgms;
 	int			colorTrgmsCount;
 	int			totalTrgmCount;
-} TrgmNFA;
+}			TrgmNFA;
 
 /*
  * Final, compact representation of expanded graph.
@@ -429,13 +429,13 @@ typedef struct
 {
 	int			targetState;	/* index of target state (zero-based) */
 	int			colorTrgm;		/* index of color trigram for transition */
-} TrgmPackedArc;
+}			TrgmPackedArc;
 
 typedef struct
 {
 	int			arcsCount;		/* number of out-arcs for this state */
 	TrgmPackedArc *arcs;		/* array of arcsCount packed arcs */
-} TrgmPackedState;
+}			TrgmPackedState;
 
 /* "typedef struct TrgmPackedGraph TrgmPackedGraph" appears in trgm.h */
 struct TrgmPackedGraph
@@ -473,40 +473,40 @@ typedef struct
 	int			sourceState;
 	int			targetState;
 	int			colorTrgm;
-} TrgmPackArcInfo;
+}			TrgmPackArcInfo;
 
 
 /* prototypes for private functions */
-static TRGM *createTrgmNFAInternal(regex_t *regex, TrgmPackedGraph **graph,
-					  MemoryContext rcontext);
-static void RE_compile(regex_t *regex, text *text_re,
+static TRGM * createTrgmNFAInternal(regex_t * regex, TrgmPackedGraph * *graph,
+									MemoryContext rcontext);
+static void RE_compile(regex_t * regex, text * text_re,
 		   int cflags, Oid collation);
-static void getColorInfo(regex_t *regex, TrgmNFA *trgmNFA);
-static bool convertPgWchar(pg_wchar c, trgm_mb_char *result);
-static void transformGraph(TrgmNFA *trgmNFA);
-static void processState(TrgmNFA *trgmNFA, TrgmState *state);
-static void addKey(TrgmNFA *trgmNFA, TrgmState *state, TrgmStateKey *key);
-static void addKeyToQueue(TrgmNFA *trgmNFA, TrgmStateKey *key);
-static void addArcs(TrgmNFA *trgmNFA, TrgmState *state);
-static void addArc(TrgmNFA *trgmNFA, TrgmState *state, TrgmStateKey *key,
-	   TrgmColor co, TrgmStateKey *destKey);
-static bool validArcLabel(TrgmStateKey *key, TrgmColor co);
-static TrgmState *getState(TrgmNFA *trgmNFA, TrgmStateKey *key);
-static bool prefixContains(TrgmPrefix *prefix1, TrgmPrefix *prefix2);
-static bool selectColorTrigrams(TrgmNFA *trgmNFA);
-static TRGM *expandColorTrigrams(TrgmNFA *trgmNFA, MemoryContext rcontext);
-static void fillTrgm(trgm *ptrgm, trgm_mb_char s[3]);
-static void mergeStates(TrgmState *state1, TrgmState *state2);
+static void getColorInfo(regex_t * regex, TrgmNFA * trgmNFA);
+static bool convertPgWchar(pg_wchar c, trgm_mb_char * result);
+static void transformGraph(TrgmNFA * trgmNFA);
+static void processState(TrgmNFA * trgmNFA, TrgmState * state);
+static void addKey(TrgmNFA * trgmNFA, TrgmState * state, TrgmStateKey * key);
+static void addKeyToQueue(TrgmNFA * trgmNFA, TrgmStateKey * key);
+static void addArcs(TrgmNFA * trgmNFA, TrgmState * state);
+static void addArc(TrgmNFA * trgmNFA, TrgmState * state, TrgmStateKey * key,
+	   TrgmColor co, TrgmStateKey * destKey);
+static bool validArcLabel(TrgmStateKey * key, TrgmColor co);
+static TrgmState * getState(TrgmNFA * trgmNFA, TrgmStateKey * key);
+static bool prefixContains(TrgmPrefix * prefix1, TrgmPrefix * prefix2);
+static bool selectColorTrigrams(TrgmNFA * trgmNFA);
+static TRGM * expandColorTrigrams(TrgmNFA * trgmNFA, MemoryContext rcontext);
+static void fillTrgm(trgm * ptrgm, trgm_mb_char s[3]);
+static void mergeStates(TrgmState * state1, TrgmState * state2);
 static int	colorTrgmInfoCmp(const void *p1, const void *p2);
 static int	colorTrgmInfoPenaltyCmp(const void *p1, const void *p2);
-static TrgmPackedGraph *packGraph(TrgmNFA *trgmNFA, MemoryContext rcontext);
+static TrgmPackedGraph * packGraph(TrgmNFA * trgmNFA, MemoryContext rcontext);
 static int	packArcInfoCmp(const void *a1, const void *a2);
 
 #ifdef TRGM_REGEXP_DEBUG
-static void printSourceNFA(regex_t *regex, TrgmColorInfo *colors, int ncolors);
-static void printTrgmNFA(TrgmNFA *trgmNFA);
+static void printSourceNFA(regex_t * regex, TrgmColorInfo * colors, int ncolors);
+static void printTrgmNFA(TrgmNFA * trgmNFA);
 static void printTrgmColor(StringInfo buf, TrgmColor co);
-static void printTrgmPackedGraph(TrgmPackedGraph *packedGraph, TRGM *trigrams);
+static void printTrgmPackedGraph(TrgmPackedGraph * packedGraph, TRGM * trigrams);
 #endif
 
 
@@ -520,8 +520,8 @@ static void printTrgmPackedGraph(TrgmPackedGraph *packedGraph, TRGM *trigrams);
  * context).
  */
 TRGM *
-createTrgmNFA(text *text_re, Oid collation,
-			  TrgmPackedGraph **graph, MemoryContext rcontext)
+createTrgmNFA(text * text_re, Oid collation,
+			  TrgmPackedGraph * *graph, MemoryContext rcontext)
 {
 	TRGM	   *trg;
 	regex_t		regex;
@@ -577,7 +577,7 @@ createTrgmNFA(text *text_re, Oid collation,
  * Body of createTrgmNFA, exclusive of regex compilation/freeing.
  */
 static TRGM *
-createTrgmNFAInternal(regex_t *regex, TrgmPackedGraph **graph,
+createTrgmNFAInternal(regex_t * regex, TrgmPackedGraph * *graph,
 					  MemoryContext rcontext)
 {
 	TRGM	   *trg;
@@ -638,7 +638,7 @@ createTrgmNFAInternal(regex_t *regex, TrgmPackedGraph **graph,
  * that are present in the index entry being checked.
  */
 bool
-trigramsMatchGraph(TrgmPackedGraph *graph, bool *check)
+trigramsMatchGraph(TrgmPackedGraph * graph, bool *check)
 {
 	int			i,
 				j,
@@ -731,7 +731,7 @@ trigramsMatchGraph(TrgmPackedGraph *graph, bool *check)
  * NB: pg_regfree must be applied to regex if this completes successfully.
  */
 static void
-RE_compile(regex_t *regex, text *text_re, int cflags, Oid collation)
+RE_compile(regex_t * regex, text * text_re, int cflags, Oid collation)
 {
 	int			text_re_len = VARSIZE_ANY_EXHDR(text_re);
 	char	   *text_re_val = VARDATA_ANY(text_re);
@@ -775,7 +775,7 @@ RE_compile(regex_t *regex, text *text_re, int cflags, Oid collation)
  * Fill TrgmColorInfo structure for each color using regex export functions.
  */
 static void
-getColorInfo(regex_t *regex, TrgmNFA *trgmNFA)
+getColorInfo(regex_t * regex, TrgmNFA * trgmNFA)
 {
 	int			colorsCount = pg_reg_getnumcolors(regex);
 	int			i;
@@ -838,7 +838,7 @@ getColorInfo(regex_t *regex, TrgmNFA *trgmNFA)
  * Returns false if the character should be ignored completely.
  */
 static bool
-convertPgWchar(pg_wchar c, trgm_mb_char *result)
+convertPgWchar(pg_wchar c, trgm_mb_char * result)
 {
 	/* "s" has enough space for a multibyte character and a trailing NUL */
 	char		s[MAX_MULTIBYTE_CHAR_LEN + 1];
@@ -904,7 +904,7 @@ convertPgWchar(pg_wchar c, trgm_mb_char *result)
  * unprocessed states as final.
  */
 static void
-transformGraph(TrgmNFA *trgmNFA)
+transformGraph(TrgmNFA * trgmNFA)
 {
 	HASHCTL		hashCtl;
 	TrgmStateKey initkey;
@@ -966,7 +966,7 @@ transformGraph(TrgmNFA *trgmNFA)
  * Process one state: add enter keys and then add outgoing arcs.
  */
 static void
-processState(TrgmNFA *trgmNFA, TrgmState *state)
+processState(TrgmNFA * trgmNFA, TrgmState * state)
 {
 	/* keysQueue should be NIL already, but make sure */
 	trgmNFA->keysQueue = NIL;
@@ -1009,7 +1009,7 @@ processState(TrgmNFA *trgmNFA, TrgmState *state)
  * later, after we have identified all the enter keys for this state.
  */
 static void
-addKey(TrgmNFA *trgmNFA, TrgmState *state, TrgmStateKey *key)
+addKey(TrgmNFA * trgmNFA, TrgmState * state, TrgmStateKey * key)
 {
 	regex_arc_t *arcs;
 	TrgmStateKey destKey;
@@ -1180,7 +1180,7 @@ addKey(TrgmNFA *trgmNFA, TrgmState *state, TrgmStateKey *key)
  * Add copy of given key to keysQueue for later processing.
  */
 static void
-addKeyToQueue(TrgmNFA *trgmNFA, TrgmStateKey *key)
+addKeyToQueue(TrgmNFA * trgmNFA, TrgmStateKey * key)
 {
 	TrgmStateKey *keyCopy = (TrgmStateKey *) palloc(sizeof(TrgmStateKey));
 
@@ -1192,7 +1192,7 @@ addKeyToQueue(TrgmNFA *trgmNFA, TrgmStateKey *key)
  * Add outgoing arcs from given state, whose enter keys are all now known.
  */
 static void
-addArcs(TrgmNFA *trgmNFA, TrgmState *state)
+addArcs(TrgmNFA * trgmNFA, TrgmState * state)
 {
 	TrgmStateKey destKey;
 	ListCell   *cell;
@@ -1284,8 +1284,8 @@ addArcs(TrgmNFA *trgmNFA, TrgmState *state)
  * destKey: identifier for destination state of expanded graph
  */
 static void
-addArc(TrgmNFA *trgmNFA, TrgmState *state, TrgmStateKey *key,
-	   TrgmColor co, TrgmStateKey *destKey)
+addArc(TrgmNFA * trgmNFA, TrgmState * state, TrgmStateKey * key,
+	   TrgmColor co, TrgmStateKey * destKey)
 {
 	TrgmArc    *arc;
 	ListCell   *cell;
@@ -1326,7 +1326,7 @@ addArc(TrgmNFA *trgmNFA, TrgmState *state, TrgmStateKey *key,
  * This is split out so that tests in addKey and addArc will stay in sync.
  */
 static bool
-validArcLabel(TrgmStateKey *key, TrgmColor co)
+validArcLabel(TrgmStateKey * key, TrgmColor co)
 {
 	/*
 	 * We have to know full trigram in order to add outgoing arc.  So we can't
@@ -1381,7 +1381,7 @@ validArcLabel(TrgmStateKey *key, TrgmColor co)
  * and queue the state for processing if it didn't already exist.
  */
 static TrgmState *
-getState(TrgmNFA *trgmNFA, TrgmStateKey *key)
+getState(TrgmNFA * trgmNFA, TrgmStateKey * key)
 {
 	TrgmState  *state;
 	bool		found;
@@ -1412,7 +1412,7 @@ getState(TrgmNFA *trgmNFA, TrgmStateKey *key)
  * prefix2 also satisfies prefix1.
  */
 static bool
-prefixContains(TrgmPrefix *prefix1, TrgmPrefix *prefix2)
+prefixContains(TrgmPrefix * prefix1, TrgmPrefix * prefix2)
 {
 	if (prefix1->colors[1] == COLOR_UNKNOWN)
 	{
@@ -1454,7 +1454,7 @@ prefixContains(TrgmPrefix *prefix1, TrgmPrefix *prefix2)
  * Returns TRUE if OK, FALSE if exhausted resource limits.
  */
 static bool
-selectColorTrigrams(TrgmNFA *trgmNFA)
+selectColorTrigrams(TrgmNFA * trgmNFA)
 {
 	HASH_SEQ_STATUS scan_status;
 	int			arcsCount = trgmNFA->arcsCount,
@@ -1773,7 +1773,7 @@ selectColorTrigrams(TrgmNFA *trgmNFA)
  * The array must be allocated in rcontext.
  */
 static TRGM *
-expandColorTrigrams(TrgmNFA *trgmNFA, MemoryContext rcontext)
+expandColorTrigrams(TrgmNFA * trgmNFA, MemoryContext rcontext)
 {
 	TRGM	   *trg;
 	trgm	   *p;
@@ -1841,7 +1841,7 @@ expandColorTrigrams(TrgmNFA *trgmNFA, MemoryContext rcontext)
  * Convert trigram into trgm datatype.
  */
 static void
-fillTrgm(trgm *ptrgm, trgm_mb_char s[3])
+fillTrgm(trgm * ptrgm, trgm_mb_char s[3])
 {
 	char		str[3 * MAX_MULTIBYTE_CHAR_LEN],
 			   *p;
@@ -1873,7 +1873,7 @@ fillTrgm(trgm *ptrgm, trgm_mb_char s[3])
  * Merge two states of graph.
  */
 static void
-mergeStates(TrgmState *state1, TrgmState *state2)
+mergeStates(TrgmState * state1, TrgmState * state2)
 {
 	Assert(state1 != state2);
 	Assert(!state1->parent);
@@ -1892,8 +1892,8 @@ mergeStates(TrgmState *state1, TrgmState *state2)
 static int
 colorTrgmInfoCmp(const void *p1, const void *p2)
 {
-	const ColorTrgmInfo *c1 = (const ColorTrgmInfo *) p1;
-	const ColorTrgmInfo *c2 = (const ColorTrgmInfo *) p2;
+	const		ColorTrgmInfo *c1 = (const ColorTrgmInfo *) p1;
+	const		ColorTrgmInfo *c2 = (const ColorTrgmInfo *) p2;
 
 	return memcmp(&c1->ctrgm, &c2->ctrgm, sizeof(ColorTrgm));
 }
@@ -1928,7 +1928,7 @@ colorTrgmInfoPenaltyCmp(const void *p1, const void *p2)
  * The result data must be allocated in rcontext.
  */
 static TrgmPackedGraph *
-packGraph(TrgmNFA *trgmNFA, MemoryContext rcontext)
+packGraph(TrgmNFA * trgmNFA, MemoryContext rcontext)
 {
 	int			snumber = 2,
 				arcIndex,
@@ -2085,8 +2085,8 @@ packGraph(TrgmNFA *trgmNFA, MemoryContext rcontext)
 static int
 packArcInfoCmp(const void *a1, const void *a2)
 {
-	const TrgmPackArcInfo *p1 = (const TrgmPackArcInfo *) a1;
-	const TrgmPackArcInfo *p2 = (const TrgmPackArcInfo *) a2;
+	const		TrgmPackArcInfo *p1 = (const TrgmPackArcInfo *) a1;
+	const		TrgmPackArcInfo *p2 = (const TrgmPackArcInfo *) a2;
 
 	if (p1->sourceState < p2->sourceState)
 		return -1;
@@ -2117,7 +2117,7 @@ packArcInfoCmp(const void *a1, const void *a2)
  * Print initial NFA, in regexp library's representation
  */
 static void
-printSourceNFA(regex_t *regex, TrgmColorInfo *colors, int ncolors)
+printSourceNFA(regex_t * regex, TrgmColorInfo * colors, int ncolors)
 {
 	StringInfoData buf;
 	int			nstates = pg_reg_getnumstates(regex);
@@ -2201,7 +2201,7 @@ printSourceNFA(regex_t *regex, TrgmColorInfo *colors, int ncolors)
  * Print expanded graph.
  */
 static void
-printTrgmNFA(TrgmNFA *trgmNFA)
+printTrgmNFA(TrgmNFA * trgmNFA)
 {
 	StringInfoData buf;
 	HASH_SEQ_STATUS scan_status;
@@ -2277,7 +2277,7 @@ printTrgmColor(StringInfo buf, TrgmColor co)
  * Print final packed representation of trigram-based expanded graph.
  */
 static void
-printTrgmPackedGraph(TrgmPackedGraph *packedGraph, TRGM *trigrams)
+printTrgmPackedGraph(TrgmPackedGraph * packedGraph, TRGM * trigrams)
 {
 	StringInfoData buf;
 	trgm	   *p;

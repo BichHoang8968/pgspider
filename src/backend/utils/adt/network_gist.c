@@ -82,7 +82,7 @@ typedef struct GistInetKey
 	unsigned char minbits;		/* minimum number of bits in netmask */
 	unsigned char commonbits;	/* number of common prefix bits in addresses */
 	unsigned char ipaddr[16];	/* up to 128 bits of common address */
-} GistInetKey;
+}			GistInetKey;
 
 #define DatumGetInetKeyP(X) ((GistInetKey *) DatumGetPointer(X))
 #define InetKeyPGetDatum(X) PointerGetDatum(X)
@@ -341,7 +341,7 @@ inet_gist_consistent(PG_FUNCTION_ARGS)
  * address family.
  */
 static void
-calc_inet_union_params(GISTENTRY *ent,
+calc_inet_union_params(GISTENTRY * ent,
 					   int m, int n,
 					   int *minfamily_p,
 					   int *maxfamily_p,
@@ -403,8 +403,8 @@ calc_inet_union_params(GISTENTRY *ent,
  * indices listed in the offsets[] array.
  */
 static void
-calc_inet_union_params_indexed(GISTENTRY *ent,
-							   OffsetNumber *offsets, int noffsets,
+calc_inet_union_params_indexed(GISTENTRY * ent,
+							   OffsetNumber * offsets, int noffsets,
 							   int *minfamily_p,
 							   int *maxfamily_p,
 							   int *minbits_p,

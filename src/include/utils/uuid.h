@@ -20,7 +20,7 @@
 typedef struct pg_uuid_t
 {
 	unsigned char data[UUID_LEN];
-} pg_uuid_t;
+}			pg_uuid_t;
 
 /* fmgr interface macros */
 #define UUIDPGetDatum(X)		PointerGetDatum(X)

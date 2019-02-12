@@ -32,17 +32,17 @@ typedef struct ParallelExecutorInfo
 	/* These two arrays have pcxt->nworkers_launched entries: */
 	shm_mq_handle **tqueue;		/* tuple queues for worker output */
 	struct TupleQueueReader **reader;	/* tuple reader/writer support */
-} ParallelExecutorInfo;
+}			ParallelExecutorInfo;
 
-extern ParallelExecutorInfo *ExecInitParallelPlan(PlanState *planstate,
-					 EState *estate, int nworkers);
-extern void ExecParallelCreateReaders(ParallelExecutorInfo *pei,
+extern ParallelExecutorInfo * ExecInitParallelPlan(PlanState * planstate,
+												   EState * estate, int nworkers);
+extern void ExecParallelCreateReaders(ParallelExecutorInfo * pei,
 						  TupleDesc tupDesc);
-extern void ExecParallelFinish(ParallelExecutorInfo *pei);
-extern void ExecParallelCleanup(ParallelExecutorInfo *pei);
-extern void ExecParallelReinitialize(PlanState *planstate,
-						 ParallelExecutorInfo *pei);
+extern void ExecParallelFinish(ParallelExecutorInfo * pei);
+extern void ExecParallelCleanup(ParallelExecutorInfo * pei);
+extern void ExecParallelReinitialize(PlanState * planstate,
+						 ParallelExecutorInfo * pei);
 
-extern void ParallelQueryMain(dsm_segment *seg, shm_toc *toc);
+extern void ParallelQueryMain(dsm_segment * seg, shm_toc * toc);
 
 #endif							/* EXECPARALLEL_H */

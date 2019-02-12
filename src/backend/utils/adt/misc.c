@@ -53,7 +53,7 @@
  */
 static bool
 count_nulls(FunctionCallInfo fcinfo,
-			int32 *nargs, int32 *nulls)
+			int32 * nargs, int32 * nulls)
 {
 	int32		count = 0;
 	int			i;
@@ -366,7 +366,7 @@ typedef struct
 {
 	char	   *location;
 	DIR		   *dirdesc;
-} ts_db_fctx;
+}			ts_db_fctx;
 
 Datum
 pg_tablespace_databases(PG_FUNCTION_ARGS)

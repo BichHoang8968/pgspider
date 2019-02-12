@@ -93,7 +93,7 @@ CommandDest whereToSendOutput = DestDebug;
 /* flag for logging end of session */
 bool		Log_disconnections = false;
 bool		getResultFlag = false;
-bool 		getAggResultFlag = false;
+bool		getAggResultFlag = false;
 int			log_statement = LOGSTMT_NONE;
 
 /* GUC variable for maximum stack depth (measured in kilobytes) */
@@ -118,13 +118,13 @@ static long max_stack_depth_bytes = 100 * 1024L;
  * it directly. Newer versions use set_stack_base(), but we want to stay
  * binary-compatible for the time being.
  */
-__thread char	   *stack_base_ptr = NULL;
+__thread char *stack_base_ptr = NULL;
 
 /*
  * On IA64 we also have to remember the register stack base.
  */
 #if defined(__ia64__) || defined(__ia64)
-__thread char	   *register_stack_base_ptr = NULL;
+__thread char *register_stack_base_ptr = NULL;
 #endif
 
 /*
@@ -152,7 +152,7 @@ static bool ignore_till_sync = false;
  * We keep it separate from the hashtable kept by commands/prepare.c
  * in order to reduce overhead for short-lived queries.
  */
-static CachedPlanSource *unnamed_stmt_psrc = NULL;
+static CachedPlanSource * unnamed_stmt_psrc = NULL;
 
 /* assorted command-line switches */
 static const char *userDoption = NULL;	/* -D switch */
@@ -173,17 +173,17 @@ static int	interactive_getc(void);
 static int	SocketBackend(StringInfo inBuf);
 static int	ReadCommand(StringInfo inBuf);
 static void forbidden_in_wal_sender(char firstchar);
-static List *pg_rewrite_query(Query *query);
-static bool check_log_statement(List *stmt_list);
-static int	errdetail_execute(List *raw_parsetree_list);
+static List * pg_rewrite_query(Query * query);
+static bool check_log_statement(List * stmt_list);
+static int	errdetail_execute(List * raw_parsetree_list);
 static int	errdetail_params(ParamListInfo params);
 static int	errdetail_abort(void);
 static int	errdetail_recovery_conflict(void);
 static void start_xact_command(void);
 static void finish_xact_command(void);
-static bool IsTransactionExitStmt(Node *parsetree);
-static bool IsTransactionExitStmtList(List *pstmts);
-static bool IsTransactionStmtList(List *pstmts);
+static bool IsTransactionExitStmt(Node * parsetree);
+static bool IsTransactionExitStmtList(List * pstmts);
+static bool IsTransactionStmtList(List * pstmts);
 static void drop_unnamed_stmt(void);
 static void log_disconnections(int code, Datum arg);
 
@@ -674,9 +674,9 @@ pg_parse_query(const char *query_string)
  * NOTE: for reasons mentioned above, this must be separate from raw parsing.
  */
 List *
-pg_analyze_and_rewrite(RawStmt *parsetree, const char *query_string,
-					   Oid *paramTypes, int numParams,
-					   QueryEnvironment *queryEnv)
+pg_analyze_and_rewrite(RawStmt * parsetree, const char *query_string,
+					   Oid * paramTypes, int numParams,
+					   QueryEnvironment * queryEnv)
 {
 	Query	   *query;
 	List	   *querytree_list;
@@ -711,11 +711,11 @@ pg_analyze_and_rewrite(RawStmt *parsetree, const char *query_string,
  * hooks instead of a fixed list of parameter datatypes.
  */
 List *
-pg_analyze_and_rewrite_params(RawStmt *parsetree,
+pg_analyze_and_rewrite_params(RawStmt * parsetree,
 							  const char *query_string,
 							  ParserSetupHook parserSetup,
 							  void *parserSetupArg,
-							  QueryEnvironment *queryEnv)
+							  QueryEnvironment * queryEnv)
 {
 	ParseState *pstate;
 	Query	   *query;
@@ -763,7 +763,7 @@ pg_analyze_and_rewrite_params(RawStmt *parsetree,
  * AcquireRewriteLocks() on it.
  */
 static List *
-pg_rewrite_query(Query *query)
+pg_rewrite_query(Query * query)
 {
 	List	   *querytree_list;
 
@@ -815,7 +815,7 @@ pg_rewrite_query(Query *query)
  * This is a thin wrapper around planner() and takes the same parameters.
  */
 PlannedStmt *
-pg_plan_query(Query *querytree, int cursorOptions, ParamListInfo boundParams)
+pg_plan_query(Query * querytree, int cursorOptions, ParamListInfo boundParams)
 {
 	PlannedStmt *plan;
 
@@ -876,7 +876,7 @@ pg_plan_query(Query *querytree, int cursorOptions, ParamListInfo boundParams)
  * The result is a list of PlannedStmt nodes.
  */
 List *
-pg_plan_queries(List *querytrees, int cursorOptions, ParamListInfo boundParams)
+pg_plan_queries(List * querytrees, int cursorOptions, ParamListInfo boundParams)
 {
 	List	   *stmt_list = NIL;
 	ListCell   *query_list;
@@ -1233,7 +1233,7 @@ exec_simple_query(const char *query_string)
 static void
 exec_parse_message(const char *query_string,	/* string to execute */
 				   const char *stmt_name,	/* name for prepared stmt */
-				   Oid *paramTypes, /* parameter types */
+				   Oid * paramTypes,	/* parameter types */
 				   int numParams)	/* number of parameters */
 {
 	MemoryContext unnamed_stmt_context = NULL;
@@ -2099,7 +2099,7 @@ exec_execute_message(const char *portal_name, long max_rows)
  * statements
  */
 static bool
-check_log_statement(List *stmt_list)
+check_log_statement(List * stmt_list)
 {
 	ListCell   *stmt_item;
 
@@ -2181,7 +2181,7 @@ check_log_duration(char *msec_str, bool was_logged)
  * The argument is the raw parsetree list.
  */
 static int
-errdetail_execute(List *raw_parsetree_list)
+errdetail_execute(List * raw_parsetree_list)
 {
 	ListCell   *parsetree_item;
 
@@ -2520,7 +2520,7 @@ finish_xact_command(void)
 
 /* Test a bare parsetree */
 static bool
-IsTransactionExitStmt(Node *parsetree)
+IsTransactionExitStmt(Node * parsetree)
 {
 	if (parsetree && IsA(parsetree, TransactionStmt))
 	{
@@ -2537,7 +2537,7 @@ IsTransactionExitStmt(Node *parsetree)
 
 /* Test a list that contains PlannedStmt nodes */
 static bool
-IsTransactionExitStmtList(List *pstmts)
+IsTransactionExitStmtList(List * pstmts)
 {
 	if (list_length(pstmts) == 1)
 	{
@@ -2552,7 +2552,7 @@ IsTransactionExitStmtList(List *pstmts)
 
 /* Test a list that contains PlannedStmt nodes */
 static bool
-IsTransactionStmtList(List *pstmts)
+IsTransactionStmtList(List * pstmts)
 {
 	if (list_length(pstmts) == 1)
 	{
@@ -2956,14 +2956,14 @@ ProcessInterrupts(void)
 	/*
 	 * Don't allow query cancel interrupts while reading input from the
 	 * client, because we might lose sync in the FE/BE protocol.  (Die
-	 * interrupts are OK, because we won't read any further messages from
-	 * the client in that case.)
+	 * interrupts are OK, because we won't read any further messages from the
+	 * client in that case.)
 	 */
 	if (QueryCancelPending && QueryCancelHoldoffCount != 0)
 	{
 		/*
-		 * Re-arm InterruptPending so that we process the cancel request
-		 * as soon as we're done reading the message.
+		 * Re-arm InterruptPending so that we process the cancel request as
+		 * soon as we're done reading the message.
 		 */
 		InterruptPending = true;
 	}
@@ -3618,7 +3618,7 @@ createProgressMessage()
 		prgValue = ((((double) gl_progressPtr->ps_fetchedRows) / gl_progressPtr->ps_totalRows) * 100);
 
 	snprintf(prgMsg, PROGRESS_VALUE_LEN, "%3.2lf", prgValue);
-	
+
 	return prgMsg;
 }
 
@@ -3656,22 +3656,29 @@ ProgressMessageProcessor(void *arg)
 			{
 				/* unlock the mutex */
 				pthread_mutex_unlock(&prgThread_mutex);
-				if(gl_progressPtr->ps_aggQuery)
+				if (gl_progressPtr->ps_aggQuery)
 				{
 					getAggResultFlag = true;
 					while (getAggResultFlag == true)
 					{
-						/* Wait until agg result are filled to ProgressState during Iterate ForeignScan 
-						getAggResultFlag flag will be set to false in spd_IterateForeignScan */
+						/*
+						 * Wait until agg result are filled to ProgressState
+						 * during Iterate ForeignScan getAggResultFlag flag
+						 * will be set to false in spd_IterateForeignScan
+						 */
 						usleep(100);
 					}
-					if(gl_progressPtr->ps_aggResult != NULL)
+					if (gl_progressPtr->ps_aggResult != NULL)
 					{
-						DestReceiver *receiver = (DestReceiver *)gl_progressPtr->dest;
-						if(receiver != NULL)
+						DestReceiver *receiver = (DestReceiver *) gl_progressPtr->dest;
+
+						if (receiver != NULL)
 						{
-						    /*Send the Intermediate tuple using message 'D' to destination receiver */
-    					    (*receiver->receiveSlot) (gl_progressPtr->ps_aggResult, receiver);
+							/*
+							 * Send the Intermediate tuple using message 'D'
+							 * to destination receiver
+							 */
+							(*receiver->receiveSlot) (gl_progressPtr->ps_aggResult, receiver);
 						}
 					}
 				}
@@ -3694,7 +3701,7 @@ ProgressMessageProcessor(void *arg)
 				/* unlock the mutex */
 				pthread_mutex_unlock(&prgThread_mutex);
 				getResultFlag = true;
-				continue;	
+				continue;
 			}
 			else
 			{
@@ -3968,8 +3975,9 @@ PostgresMain(int argc, char *argv[],
 #ifdef GETPROGRESS_ENABLED
 	ProgressMemoryContext = AllocSetContextCreate((MemoryContext) NULL,
 												  "ProgressMemoryContext",
-										   ALLOCSET_DEFAULT_SIZES);
+												  ALLOCSET_DEFAULT_SIZES);
 #endif
+
 	/*
 	 * Remember stand-alone backend startup time
 	 */
@@ -4120,6 +4128,7 @@ PostgresMain(int argc, char *argv[],
 #ifdef GETPROGRESS_ENABLED
 		getResultFlag = false;
 #endif
+
 		/*
 		 * Release storage left over from prior query cycle, and create a new
 		 * query input buffer in the cleared MessageContext.
@@ -4201,6 +4210,7 @@ PostgresMain(int argc, char *argv[],
 		 * (3) read a command (loop blocks here)
 		 */
 #ifdef GETPROGRESS_ENABLED
+
 		/*
 		 * Ensure all the progress related items are cleared and data read by
 		 * the progress is adjusted to the main thread
@@ -4547,16 +4557,16 @@ PostgresMain(int argc, char *argv[],
 			case 'G':
 				{
 					ereport(ERROR, (errcode(ERRCODE_PROTOCOL_VIOLATION),
-							 errmsg("no query in execution %d", firstchar)));
+									errmsg("no query in execution %d", firstchar)));
 					send_ready_for_query = false;
 				}
 				break;
-			case 'R': 
-				{    
+			case 'R':
+				{
 					ereport(ERROR, (errcode(ERRCODE_PROTOCOL_VIOLATION),
-								errmsg("no query in execution %d", firstchar)));
+									errmsg("no query in execution %d", firstchar)));
 					send_ready_for_query = false;
-				}    
+				}
 				break;
 #endif
 			default:
@@ -4568,7 +4578,7 @@ PostgresMain(int argc, char *argv[],
 	}							/* end of input-reading loop */
 	/* Deleting Progress Context */
 #ifdef GETPROGRESS_ENABLED
-	MemoryContextDelete(ProgressMemoryContext);	
+	MemoryContextDelete(ProgressMemoryContext);
 #endif
 }
 

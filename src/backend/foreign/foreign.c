@@ -433,7 +433,7 @@ GetFdwRoutineForRelation(Relation relation, bool makecopy)
  */
 bool
 IsImportableForeignTable(const char *tablename,
-						 ImportForeignSchemaStmt *stmt)
+						 ImportForeignSchemaStmt * stmt)
 {
 	ListCell   *lc;
 
@@ -471,7 +471,7 @@ IsImportableForeignTable(const char *tablename,
  * tuplestore usable in SRF.
  */
 static void
-deflist_to_tuplestore(ReturnSetInfo *rsinfo, List *options)
+deflist_to_tuplestore(ReturnSetInfo * rsinfo, List * options)
 {
 	ListCell   *cell;
 	TupleDesc	tupdesc;
@@ -713,7 +713,7 @@ get_foreign_server_oid(const char *servername, bool missing_ok)
  * choose the most efficient path, which is all for the best.
  */
 extern Path *
-GetExistingLocalJoinPath(RelOptInfo *joinrel)
+GetExistingLocalJoinPath(RelOptInfo * joinrel)
 {
 	ListCell   *lc;
 

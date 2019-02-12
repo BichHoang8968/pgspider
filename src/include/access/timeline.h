@@ -27,18 +27,18 @@ typedef struct
 	TimeLineID	tli;
 	XLogRecPtr	begin;			/* inclusive */
 	XLogRecPtr	end;			/* exclusive, InvalidXLogRecPtr means infinity */
-} TimeLineHistoryEntry;
+}			TimeLineHistoryEntry;
 
-extern List *readTimeLineHistory(TimeLineID targetTLI);
+extern List * readTimeLineHistory(TimeLineID targetTLI);
 extern bool existsTimeLineHistory(TimeLineID probeTLI);
 extern TimeLineID findNewestTimeLine(TimeLineID startTLI);
 extern void writeTimeLineHistory(TimeLineID newTLI, TimeLineID parentTLI,
 					 XLogRecPtr switchpoint, char *reason);
 extern void writeTimeLineHistoryFile(TimeLineID tli, char *content, int size);
 extern void restoreTimeLineHistoryFiles(TimeLineID begin, TimeLineID end);
-extern bool tliInHistory(TimeLineID tli, List *expectedTLIs);
-extern TimeLineID tliOfPointInHistory(XLogRecPtr ptr, List *history);
-extern XLogRecPtr tliSwitchPoint(TimeLineID tli, List *history,
-			   TimeLineID *nextTLI);
+extern bool tliInHistory(TimeLineID tli, List * expectedTLIs);
+extern TimeLineID tliOfPointInHistory(XLogRecPtr ptr, List * history);
+extern XLogRecPtr tliSwitchPoint(TimeLineID tli, List * history,
+								 TimeLineID * nextTLI);
 
 #endif							/* TIMELINE_H */

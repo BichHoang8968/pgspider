@@ -22,7 +22,7 @@
  * overrides.
  */
 void
-generic_desc(StringInfo buf, XLogReaderState *record)
+generic_desc(StringInfo buf, XLogReaderState * record)
 {
 	Pointer		ptr = XLogRecGetData(record),
 				end = ptr + XLogRecGetDataLen(record);

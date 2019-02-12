@@ -46,9 +46,9 @@ typedef struct PQExpBufferData
 	char	   *data;
 	size_t		len;
 	size_t		maxlen;
-} PQExpBufferData;
+}			PQExpBufferData;
 
-typedef PQExpBufferData *PQExpBuffer;
+typedef PQExpBufferData * PQExpBuffer;
 
 /*------------------------
  * Test for a broken (out of memory) PQExpBuffer.

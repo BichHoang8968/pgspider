@@ -32,8 +32,8 @@
 
 PG_MODULE_MAGIC;
 
-static bytea *get_raw_page_internal(text *relname, ForkNumber forknum,
-					  BlockNumber blkno);
+static bytea * get_raw_page_internal(text * relname, ForkNumber forknum,
+									 BlockNumber blkno);
 
 
 /*
@@ -92,7 +92,7 @@ get_raw_page_fork(PG_FUNCTION_ARGS)
  * workhorse
  */
 static bytea *
-get_raw_page_internal(text *relname, ForkNumber forknum, BlockNumber blkno)
+get_raw_page_internal(text * relname, ForkNumber forknum, BlockNumber blkno)
 {
 	bytea	   *raw_page;
 	RangeVar   *relrv;
@@ -180,7 +180,7 @@ get_raw_page_internal(text *relname, ForkNumber forknum, BlockNumber blkno)
  * use this function for safety.
  */
 Page
-get_page_from_raw(bytea *raw_page)
+get_page_from_raw(bytea * raw_page)
 {
 	Page		page;
 	int			raw_page_size;

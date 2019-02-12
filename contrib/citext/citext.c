@@ -19,7 +19,7 @@ PG_MODULE_MAGIC;
  *		====================
  */
 
-static int32 citextcmp(text *left, text *right, Oid collid);
+static int32 citextcmp(text * left, text * right, Oid collid);
 
 /*
  *		=================
@@ -33,7 +33,7 @@ static int32 citextcmp(text *left, text *right, Oid collid);
  * Returns int32 negative, zero, or positive.
  */
 static int32
-citextcmp(text *left, text *right, Oid collid)
+citextcmp(text * left, text * right, Oid collid)
 {
 	char	   *lcstr,
 			   *rcstr;

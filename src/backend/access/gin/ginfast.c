@@ -45,7 +45,7 @@ typedef struct KeyArray
 	GinNullCategory *categories;	/* another expansible array */
 	int32		nvalues;		/* current number of valid entries */
 	int32		maxvalues;		/* allocated size of arrays */
-} KeyArray;
+}			KeyArray;
 
 
 /*
@@ -55,7 +55,7 @@ typedef struct KeyArray
  */
 static int32
 writeListPage(Relation index, Buffer buffer,
-			  IndexTuple *tuples, int32 ntuples, BlockNumber rightlink)
+			  IndexTuple * tuples, int32 ntuples, BlockNumber rightlink)
 {
 	Page		page = BufferGetPage(buffer);
 	int32		i,
@@ -145,8 +145,8 @@ writeListPage(Relation index, Buffer buffer,
 }
 
 static void
-makeSublist(Relation index, IndexTuple *tuples, int32 ntuples,
-			GinMetaPageData *res)
+makeSublist(Relation index, IndexTuple * tuples, int32 ntuples,
+			GinMetaPageData * res)
 {
 	Buffer		curBuffer = InvalidBuffer;
 	Buffer		prevBuffer = InvalidBuffer;
@@ -219,7 +219,7 @@ makeSublist(Relation index, IndexTuple *tuples, int32 ntuples,
  * preserving order
  */
 void
-ginHeapTupleFastInsert(GinState *ginstate, GinTupleCollector *collector)
+ginHeapTupleFastInsert(GinState * ginstate, GinTupleCollector * collector)
 {
 	Relation	index = ginstate->index;
 	Buffer		metabuffer;
@@ -457,8 +457,8 @@ ginHeapTupleFastInsert(GinState *ginstate, GinTupleCollector *collector)
  * ginHeapTupleFastInsert.
  */
 void
-ginHeapTupleFastCollect(GinState *ginstate,
-						GinTupleCollector *collector,
+ginHeapTupleFastCollect(GinState * ginstate,
+						GinTupleCollector * collector,
 						OffsetNumber attnum, Datum value, bool isNull,
 						ItemPointer ht_ctid)
 {
@@ -513,7 +513,7 @@ ginHeapTupleFastCollect(GinState *ginstate,
  */
 static void
 shiftList(Relation index, Buffer metabuffer, BlockNumber newHead,
-		  bool fill_fsm, IndexBulkDeleteResult *stats)
+		  bool fill_fsm, IndexBulkDeleteResult * stats)
 {
 	Page		metapage;
 	GinMetaPageData *metadata;
@@ -622,7 +622,7 @@ shiftList(Relation index, Buffer metabuffer, BlockNumber newHead,
 
 /* Initialize empty KeyArray */
 static void
-initKeyArray(KeyArray *keys, int32 maxvalues)
+initKeyArray(KeyArray * keys, int32 maxvalues)
 {
 	keys->keys = (Datum *) palloc(sizeof(Datum) * maxvalues);
 	keys->categories = (GinNullCategory *)
@@ -633,7 +633,7 @@ initKeyArray(KeyArray *keys, int32 maxvalues)
 
 /* Add datum to KeyArray, resizing if needed */
 static void
-addDatum(KeyArray *keys, Datum datum, GinNullCategory category)
+addDatum(KeyArray * keys, Datum datum, GinNullCategory category)
 {
 	if (keys->nvalues >= keys->maxvalues)
 	{
@@ -659,7 +659,7 @@ addDatum(KeyArray *keys, Datum datum, GinNullCategory category)
  * calls.
  */
 static void
-processPendingPage(BuildAccumulator *accum, KeyArray *ka,
+processPendingPage(BuildAccumulator * accum, KeyArray * ka,
 				   Page page, OffsetNumber startoff)
 {
 	ItemPointerData heapptr;
@@ -730,9 +730,9 @@ processPendingPage(BuildAccumulator *accum, KeyArray *ka,
  * If stats isn't null, we count deleted pending pages into the counts.
  */
 void
-ginInsertCleanup(GinState *ginstate, bool full_clean,
+ginInsertCleanup(GinState * ginstate, bool full_clean,
 				 bool fill_fsm, bool forceCleanup,
-				 IndexBulkDeleteResult *stats)
+				 IndexBulkDeleteResult * stats)
 {
 	Relation	index = ginstate->index;
 	Buffer		metabuffer,

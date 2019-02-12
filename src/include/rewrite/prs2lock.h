@@ -29,7 +29,7 @@ typedef struct RewriteRule
 	List	   *actions;
 	char		enabled;
 	bool		isInstead;
-} RewriteRule;
+}			RewriteRule;
 
 /*
  * RuleLock -
@@ -41,6 +41,6 @@ typedef struct RuleLock
 {
 	int			numLocks;
 	RewriteRule **rules;
-} RuleLock;
+}			RuleLock;
 
 #endif							/* REWRITE_H */

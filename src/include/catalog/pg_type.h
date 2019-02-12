@@ -230,7 +230,7 @@ CATALOG(pg_type,1247) BKI_BOOTSTRAP BKI_ROWTYPE_OID(71) BKI_SCHEMA_MACRO
  *		the format of pg_type relation.
  * ----------------
  */
-typedef FormData_pg_type *Form_pg_type;
+typedef FormData_pg_type * Form_pg_type;
 
 /* ----------------
  *		compiler constants for pg_type

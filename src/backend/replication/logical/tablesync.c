@@ -340,8 +340,8 @@ process_syncing_tables_for_apply(XLogRecPtr current_lsn)
 		Oid			relid;
 		TimestampTz last_start_time;
 	};
-	static List *table_states = NIL;
-	static HTAB *last_start_times = NULL;
+	static List * table_states = NIL;
+	static HTAB * last_start_times = NULL;
 	ListCell   *lc;
 	bool		started_tx = false;
 
@@ -553,7 +553,7 @@ process_syncing_tables(XLogRecPtr current_lsn)
  * Create list of columns for COPY based on logical relation mapping.
  */
 static List *
-make_copy_attnamelist(LogicalRepRelMapEntry *rel)
+make_copy_attnamelist(LogicalRepRelMapEntry * rel)
 {
 	List	   *attnamelist = NIL;
 	int			i;
@@ -654,7 +654,7 @@ copy_read_data(void *outbuf, int minread, int maxread)
  */
 static void
 fetch_remote_table_info(char *nspname, char *relname,
-						LogicalRepRelation *lrel)
+						LogicalRepRelation * lrel)
 {
 	WalRcvExecResult *res;
 	StringInfoData cmd;
@@ -812,7 +812,7 @@ copy_table(Relation rel)
  * The returned slot name is palloc'ed in current memory context.
  */
 char *
-LogicalRepSyncTableStart(XLogRecPtr *origin_startpos)
+LogicalRepSyncTableStart(XLogRecPtr * origin_startpos)
 {
 	char	   *slotname;
 	char	   *err;

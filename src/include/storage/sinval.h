@@ -62,7 +62,7 @@ typedef struct
 	int8		id;				/* cache ID --- must be first */
 	Oid			dbId;			/* database ID, or 0 if a shared relation */
 	uint32		hashValue;		/* hash value of key for this catcache */
-} SharedInvalCatcacheMsg;
+}			SharedInvalCatcacheMsg;
 
 #define SHAREDINVALCATALOG_ID	(-1)
 
@@ -71,7 +71,7 @@ typedef struct
 	int8		id;				/* type field --- must be first */
 	Oid			dbId;			/* database ID, or 0 if a shared catalog */
 	Oid			catId;			/* ID of catalog whose contents are invalid */
-} SharedInvalCatalogMsg;
+}			SharedInvalCatalogMsg;
 
 #define SHAREDINVALRELCACHE_ID	(-2)
 
@@ -80,7 +80,7 @@ typedef struct
 	int8		id;				/* type field --- must be first */
 	Oid			dbId;			/* database ID, or 0 if a shared relation */
 	Oid			relId;			/* relation ID, or 0 if whole relcache */
-} SharedInvalRelcacheMsg;
+}			SharedInvalRelcacheMsg;
 
 #define SHAREDINVALSMGR_ID		(-3)
 
@@ -91,7 +91,7 @@ typedef struct
 	int8		backend_hi;		/* high bits of backend ID, if temprel */
 	uint16		backend_lo;		/* low bits of backend ID, if temprel */
 	RelFileNode rnode;			/* spcNode, dbNode, relNode */
-} SharedInvalSmgrMsg;
+}			SharedInvalSmgrMsg;
 
 #define SHAREDINVALRELMAP_ID	(-4)
 
@@ -99,7 +99,7 @@ typedef struct
 {
 	int8		id;				/* type field --- must be first */
 	Oid			dbId;			/* database ID, or 0 for shared catalogs */
-} SharedInvalRelmapMsg;
+}			SharedInvalRelmapMsg;
 
 #define SHAREDINVALSNAPSHOT_ID	(-5)
 
@@ -108,7 +108,7 @@ typedef struct
 	int8		id;				/* type field --- must be first */
 	Oid			dbId;			/* database ID, or 0 if a shared relation */
 	Oid			relId;			/* relation ID */
-} SharedInvalSnapshotMsg;
+}			SharedInvalSnapshotMsg;
 
 typedef union
 {
@@ -119,7 +119,7 @@ typedef union
 	SharedInvalSmgrMsg sm;
 	SharedInvalRelmapMsg rm;
 	SharedInvalSnapshotMsg sn;
-} SharedInvalidationMessage;
+}			SharedInvalidationMessage;
 
 
 /* Counter of messages processed; don't worry about overflow. */
@@ -127,10 +127,10 @@ extern uint64 SharedInvalidMessageCounter;
 
 extern volatile sig_atomic_t catchupInterruptPending;
 
-extern void SendSharedInvalidMessages(const SharedInvalidationMessage *msgs,
+extern void SendSharedInvalidMessages(const SharedInvalidationMessage * msgs,
 						  int n);
 extern void ReceiveSharedInvalidMessages(
-							 void (*invalFunction) (SharedInvalidationMessage *msg),
+							 void (*invalFunction) (SharedInvalidationMessage * msg),
 							 void (*resetFunction) (void));
 
 /* signal handler for catchup events (PROCSIG_CATCHUP_INTERRUPT) */
@@ -143,12 +143,12 @@ extern void HandleCatchupInterrupt(void);
  */
 extern void ProcessCatchupInterrupt(void);
 
-extern int xactGetCommittedInvalidationMessages(SharedInvalidationMessage **msgs,
+extern int xactGetCommittedInvalidationMessages(SharedInvalidationMessage * *msgs,
 									 bool *RelcacheInitFileInval);
-extern void ProcessCommittedInvalidationMessages(SharedInvalidationMessage *msgs,
+extern void ProcessCommittedInvalidationMessages(SharedInvalidationMessage * msgs,
 									 int nmsgs, bool RelcacheInitFileInval,
 									 Oid dbid, Oid tsid);
 
-extern void LocalExecuteInvalidationMessage(SharedInvalidationMessage *msg);
+extern void LocalExecuteInvalidationMessage(SharedInvalidationMessage * msg);
 
 #endif							/* SINVAL_H */

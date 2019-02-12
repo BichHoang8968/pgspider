@@ -30,44 +30,44 @@
 
 
 /* I/O function caching */
-static void PLy_input_datum_func2(PLyDatumToOb *arg, MemoryContext arg_mcxt, Oid typeOid, HeapTuple typeTup, Oid langid, List *trftypes);
-static void PLy_output_datum_func2(PLyObToDatum *arg, MemoryContext arg_mcxt, HeapTuple typeTup, Oid langid, List *trftypes);
+static void PLy_input_datum_func2(PLyDatumToOb * arg, MemoryContext arg_mcxt, Oid typeOid, HeapTuple typeTup, Oid langid, List * trftypes);
+static void PLy_output_datum_func2(PLyObToDatum * arg, MemoryContext arg_mcxt, HeapTuple typeTup, Oid langid, List * trftypes);
 
 /* conversion from Datums to Python objects */
-static PyObject *PLyBool_FromBool(PLyDatumToOb *arg, Datum d);
-static PyObject *PLyFloat_FromFloat4(PLyDatumToOb *arg, Datum d);
-static PyObject *PLyFloat_FromFloat8(PLyDatumToOb *arg, Datum d);
-static PyObject *PLyDecimal_FromNumeric(PLyDatumToOb *arg, Datum d);
-static PyObject *PLyInt_FromInt16(PLyDatumToOb *arg, Datum d);
-static PyObject *PLyInt_FromInt32(PLyDatumToOb *arg, Datum d);
-static PyObject *PLyLong_FromInt64(PLyDatumToOb *arg, Datum d);
-static PyObject *PLyLong_FromOid(PLyDatumToOb *arg, Datum d);
-static PyObject *PLyBytes_FromBytea(PLyDatumToOb *arg, Datum d);
-static PyObject *PLyString_FromDatum(PLyDatumToOb *arg, Datum d);
-static PyObject *PLyObject_FromTransform(PLyDatumToOb *arg, Datum d);
-static PyObject *PLyList_FromArray(PLyDatumToOb *arg, Datum d);
-static PyObject *PLyList_FromArray_recurse(PLyDatumToOb *elm, int *dims, int ndim, int dim,
-						  char **dataptr_p, bits8 **bitmap_p, int *bitmask_p);
+static PyObject * PLyBool_FromBool(PLyDatumToOb * arg, Datum d);
+static PyObject * PLyFloat_FromFloat4(PLyDatumToOb * arg, Datum d);
+static PyObject * PLyFloat_FromFloat8(PLyDatumToOb * arg, Datum d);
+static PyObject * PLyDecimal_FromNumeric(PLyDatumToOb * arg, Datum d);
+static PyObject * PLyInt_FromInt16(PLyDatumToOb * arg, Datum d);
+static PyObject * PLyInt_FromInt32(PLyDatumToOb * arg, Datum d);
+static PyObject * PLyLong_FromInt64(PLyDatumToOb * arg, Datum d);
+static PyObject * PLyLong_FromOid(PLyDatumToOb * arg, Datum d);
+static PyObject * PLyBytes_FromBytea(PLyDatumToOb * arg, Datum d);
+static PyObject * PLyString_FromDatum(PLyDatumToOb * arg, Datum d);
+static PyObject * PLyObject_FromTransform(PLyDatumToOb * arg, Datum d);
+static PyObject * PLyList_FromArray(PLyDatumToOb * arg, Datum d);
+static PyObject * PLyList_FromArray_recurse(PLyDatumToOb * elm, int *dims, int ndim, int dim,
+											char **dataptr_p, bits8 * *bitmap_p, int *bitmask_p);
 
 /* conversion from Python objects to Datums */
-static Datum PLyObject_ToBool(PLyObToDatum *arg, int32 typmod, PyObject *plrv, bool inarray);
-static Datum PLyObject_ToBytea(PLyObToDatum *arg, int32 typmod, PyObject *plrv, bool inarray);
-static Datum PLyObject_ToComposite(PLyObToDatum *arg, int32 typmod, PyObject *plrv, bool inarray);
-static Datum PLyObject_ToDatum(PLyObToDatum *arg, int32 typmod, PyObject *plrv, bool inarray);
-static Datum PLyObject_ToTransform(PLyObToDatum *arg, int32 typmod, PyObject *plrv, bool inarray);
-static Datum PLySequence_ToArray(PLyObToDatum *arg, int32 typmod, PyObject *plrv, bool inarray);
-static void PLySequence_ToArray_recurse(PLyObToDatum *elm, PyObject *list,
+static Datum PLyObject_ToBool(PLyObToDatum * arg, int32 typmod, PyObject * plrv, bool inarray);
+static Datum PLyObject_ToBytea(PLyObToDatum * arg, int32 typmod, PyObject * plrv, bool inarray);
+static Datum PLyObject_ToComposite(PLyObToDatum * arg, int32 typmod, PyObject * plrv, bool inarray);
+static Datum PLyObject_ToDatum(PLyObToDatum * arg, int32 typmod, PyObject * plrv, bool inarray);
+static Datum PLyObject_ToTransform(PLyObToDatum * arg, int32 typmod, PyObject * plrv, bool inarray);
+static Datum PLySequence_ToArray(PLyObToDatum * arg, int32 typmod, PyObject * plrv, bool inarray);
+static void PLySequence_ToArray_recurse(PLyObToDatum * elm, PyObject * list,
 							int *dims, int ndim, int dim,
-							Datum *elems, bool *nulls, int *currelem);
+							Datum * elems, bool *nulls, int *currelem);
 
 /* conversion from Python objects to composite Datums (used by triggers and SRFs) */
-static Datum PLyString_ToComposite(PLyTypeInfo *info, TupleDesc desc, PyObject *string, bool inarray);
-static Datum PLyMapping_ToComposite(PLyTypeInfo *info, TupleDesc desc, PyObject *mapping);
-static Datum PLySequence_ToComposite(PLyTypeInfo *info, TupleDesc desc, PyObject *sequence);
-static Datum PLyGenericObject_ToComposite(PLyTypeInfo *info, TupleDesc desc, PyObject *object, bool inarray);
+static Datum PLyString_ToComposite(PLyTypeInfo * info, TupleDesc desc, PyObject * string, bool inarray);
+static Datum PLyMapping_ToComposite(PLyTypeInfo * info, TupleDesc desc, PyObject * mapping);
+static Datum PLySequence_ToComposite(PLyTypeInfo * info, TupleDesc desc, PyObject * sequence);
+static Datum PLyGenericObject_ToComposite(PLyTypeInfo * info, TupleDesc desc, PyObject * object, bool inarray);
 
 void
-PLy_typeinfo_init(PLyTypeInfo *arg, MemoryContext mcxt)
+PLy_typeinfo_init(PLyTypeInfo * arg, MemoryContext mcxt)
 {
 	arg->is_rowtype = -1;
 	arg->in.r.natts = arg->out.r.natts = 0;
@@ -84,7 +84,7 @@ PLy_typeinfo_init(PLyTypeInfo *arg, MemoryContext mcxt)
  * PostgreSQL, and vice versa.
  */
 void
-PLy_input_datum_func(PLyTypeInfo *arg, Oid typeOid, HeapTuple typeTup, Oid langid, List *trftypes)
+PLy_input_datum_func(PLyTypeInfo * arg, Oid typeOid, HeapTuple typeTup, Oid langid, List * trftypes)
 {
 	if (arg->is_rowtype > 0)
 		elog(ERROR, "PLyTypeInfo struct is initialized for Tuple");
@@ -93,7 +93,7 @@ PLy_input_datum_func(PLyTypeInfo *arg, Oid typeOid, HeapTuple typeTup, Oid langi
 }
 
 void
-PLy_output_datum_func(PLyTypeInfo *arg, HeapTuple typeTup, Oid langid, List *trftypes)
+PLy_output_datum_func(PLyTypeInfo * arg, HeapTuple typeTup, Oid langid, List * trftypes)
 {
 	if (arg->is_rowtype > 0)
 		elog(ERROR, "PLyTypeInfo struct is initialized for a Tuple");
@@ -102,7 +102,7 @@ PLy_output_datum_func(PLyTypeInfo *arg, HeapTuple typeTup, Oid langid, List *trf
 }
 
 void
-PLy_input_tuple_funcs(PLyTypeInfo *arg, TupleDesc desc)
+PLy_input_tuple_funcs(PLyTypeInfo * arg, TupleDesc desc)
 {
 	int			i;
 	PLyExecutionContext *exec_ctx = PLy_current_execution_context();
@@ -178,7 +178,7 @@ PLy_input_tuple_funcs(PLyTypeInfo *arg, TupleDesc desc)
 }
 
 void
-PLy_output_tuple_funcs(PLyTypeInfo *arg, TupleDesc desc)
+PLy_output_tuple_funcs(PLyTypeInfo * arg, TupleDesc desc)
 {
 	int			i;
 	PLyExecutionContext *exec_ctx = PLy_current_execution_context();
@@ -248,7 +248,7 @@ PLy_output_tuple_funcs(PLyTypeInfo *arg, TupleDesc desc)
 }
 
 void
-PLy_output_record_funcs(PLyTypeInfo *arg, TupleDesc desc)
+PLy_output_record_funcs(PLyTypeInfo * arg, TupleDesc desc)
 {
 	/*
 	 * If the output record functions are already set, we just have to check
@@ -277,7 +277,7 @@ PLy_output_record_funcs(PLyTypeInfo *arg, TupleDesc desc)
  * Transform a tuple into a Python dict object.
  */
 PyObject *
-PLyDict_FromTuple(PLyTypeInfo *info, HeapTuple tuple, TupleDesc desc)
+PLyDict_FromTuple(PLyTypeInfo * info, HeapTuple tuple, TupleDesc desc)
 {
 	PyObject   *volatile dict;
 	PLyExecutionContext *exec_ctx = PLy_current_execution_context();
@@ -342,7 +342,7 @@ PLyDict_FromTuple(PLyTypeInfo *info, HeapTuple tuple, TupleDesc desc)
  *	as an object that has __getattr__ support.
  */
 Datum
-PLyObject_ToCompositeDatum(PLyTypeInfo *info, TupleDesc desc, PyObject *plrv, bool inarray)
+PLyObject_ToCompositeDatum(PLyTypeInfo * info, TupleDesc desc, PyObject * plrv, bool inarray)
 {
 	Datum		datum;
 
@@ -362,7 +362,7 @@ PLyObject_ToCompositeDatum(PLyTypeInfo *info, TupleDesc desc, PyObject *plrv, bo
 }
 
 static void
-PLy_output_datum_func2(PLyObToDatum *arg, MemoryContext arg_mcxt, HeapTuple typeTup, Oid langid, List *trftypes)
+PLy_output_datum_func2(PLyObToDatum * arg, MemoryContext arg_mcxt, HeapTuple typeTup, Oid langid, List * trftypes)
 {
 	Form_pg_type typeStruct = (Form_pg_type) GETSTRUCT(typeTup);
 	Oid			element_type;
@@ -434,7 +434,7 @@ PLy_output_datum_func2(PLyObToDatum *arg, MemoryContext arg_mcxt, HeapTuple type
 }
 
 static void
-PLy_input_datum_func2(PLyDatumToOb *arg, MemoryContext arg_mcxt, Oid typeOid, HeapTuple typeTup, Oid langid, List *trftypes)
+PLy_input_datum_func2(PLyDatumToOb * arg, MemoryContext arg_mcxt, Oid typeOid, HeapTuple typeTup, Oid langid, List * trftypes)
 {
 	Form_pg_type typeStruct = (Form_pg_type) GETSTRUCT(typeTup);
 	Oid			element_type;
@@ -519,7 +519,7 @@ PLy_input_datum_func2(PLyDatumToOb *arg, MemoryContext arg_mcxt, Oid typeOid, He
 }
 
 static PyObject *
-PLyBool_FromBool(PLyDatumToOb *arg, Datum d)
+PLyBool_FromBool(PLyDatumToOb * arg, Datum d)
 {
 	if (DatumGetBool(d))
 		Py_RETURN_TRUE;
@@ -527,21 +527,21 @@ PLyBool_FromBool(PLyDatumToOb *arg, Datum d)
 }
 
 static PyObject *
-PLyFloat_FromFloat4(PLyDatumToOb *arg, Datum d)
+PLyFloat_FromFloat4(PLyDatumToOb * arg, Datum d)
 {
 	return PyFloat_FromDouble(DatumGetFloat4(d));
 }
 
 static PyObject *
-PLyFloat_FromFloat8(PLyDatumToOb *arg, Datum d)
+PLyFloat_FromFloat8(PLyDatumToOb * arg, Datum d)
 {
 	return PyFloat_FromDouble(DatumGetFloat8(d));
 }
 
 static PyObject *
-PLyDecimal_FromNumeric(PLyDatumToOb *arg, Datum d)
+PLyDecimal_FromNumeric(PLyDatumToOb * arg, Datum d)
 {
-	static PyObject *decimal_constructor;
+	static PyObject * decimal_constructor;
 	char	   *str;
 	PyObject   *pyvalue;
 
@@ -573,19 +573,19 @@ PLyDecimal_FromNumeric(PLyDatumToOb *arg, Datum d)
 }
 
 static PyObject *
-PLyInt_FromInt16(PLyDatumToOb *arg, Datum d)
+PLyInt_FromInt16(PLyDatumToOb * arg, Datum d)
 {
 	return PyInt_FromLong(DatumGetInt16(d));
 }
 
 static PyObject *
-PLyInt_FromInt32(PLyDatumToOb *arg, Datum d)
+PLyInt_FromInt32(PLyDatumToOb * arg, Datum d)
 {
 	return PyInt_FromLong(DatumGetInt32(d));
 }
 
 static PyObject *
-PLyLong_FromInt64(PLyDatumToOb *arg, Datum d)
+PLyLong_FromInt64(PLyDatumToOb * arg, Datum d)
 {
 	/* on 32 bit platforms "long" may be too small */
 	if (sizeof(int64) > sizeof(long))
@@ -595,13 +595,13 @@ PLyLong_FromInt64(PLyDatumToOb *arg, Datum d)
 }
 
 static PyObject *
-PLyLong_FromOid(PLyDatumToOb *arg, Datum d)
+PLyLong_FromOid(PLyDatumToOb * arg, Datum d)
 {
 	return PyLong_FromUnsignedLong(DatumGetObjectId(d));
 }
 
 static PyObject *
-PLyBytes_FromBytea(PLyDatumToOb *arg, Datum d)
+PLyBytes_FromBytea(PLyDatumToOb * arg, Datum d)
 {
 	text	   *txt = DatumGetByteaPP(d);
 	char	   *str = VARDATA_ANY(txt);
@@ -611,7 +611,7 @@ PLyBytes_FromBytea(PLyDatumToOb *arg, Datum d)
 }
 
 static PyObject *
-PLyString_FromDatum(PLyDatumToOb *arg, Datum d)
+PLyString_FromDatum(PLyDatumToOb * arg, Datum d)
 {
 	char	   *x = OutputFunctionCall(&arg->typfunc, d);
 	PyObject   *r = PyString_FromString(x);
@@ -621,13 +621,13 @@ PLyString_FromDatum(PLyDatumToOb *arg, Datum d)
 }
 
 static PyObject *
-PLyObject_FromTransform(PLyDatumToOb *arg, Datum d)
+PLyObject_FromTransform(PLyDatumToOb * arg, Datum d)
 {
 	return (PyObject *) DatumGetPointer(FunctionCall1(&arg->typtransform, d));
 }
 
 static PyObject *
-PLyList_FromArray(PLyDatumToOb *arg, Datum d)
+PLyList_FromArray(PLyDatumToOb * arg, Datum d)
 {
 	ArrayType  *array = DatumGetArrayTypeP(d);
 	PLyDatumToOb *elm = arg->elm;
@@ -667,8 +667,8 @@ PLyList_FromArray(PLyDatumToOb *arg, Datum d)
 }
 
 static PyObject *
-PLyList_FromArray_recurse(PLyDatumToOb *elm, int *dims, int ndim, int dim,
-						  char **dataptr_p, bits8 **bitmap_p, int *bitmask_p)
+PLyList_FromArray_recurse(PLyDatumToOb * elm, int *dims, int ndim, int dim,
+						  char **dataptr_p, bits8 * *bitmap_p, int *bitmask_p)
 {
 	int			i;
 	PyObject   *list;
@@ -742,7 +742,7 @@ PLyList_FromArray_recurse(PLyDatumToOb *elm, int *dims, int ndim, int dim,
  * type can parse.
  */
 static Datum
-PLyObject_ToBool(PLyObToDatum *arg, int32 typmod, PyObject *plrv, bool inarray)
+PLyObject_ToBool(PLyObToDatum * arg, int32 typmod, PyObject * plrv, bool inarray)
 {
 	Datum		rv;
 
@@ -761,7 +761,7 @@ PLyObject_ToBool(PLyObToDatum *arg, int32 typmod, PyObject *plrv, bool inarray)
  * with embedded nulls.  And it's faster this way.
  */
 static Datum
-PLyObject_ToBytea(PLyObToDatum *arg, int32 typmod, PyObject *plrv, bool inarray)
+PLyObject_ToBytea(PLyObToDatum * arg, int32 typmod, PyObject * plrv, bool inarray)
 {
 	PyObject   *volatile plrv_so = NULL;
 	Datum		rv;
@@ -805,7 +805,7 @@ PLyObject_ToBytea(PLyObToDatum *arg, int32 typmod, PyObject *plrv, bool inarray)
  * for obtaining PostgreSQL tuples.
  */
 static Datum
-PLyObject_ToComposite(PLyObToDatum *arg, int32 typmod, PyObject *plrv, bool inarray)
+PLyObject_ToComposite(PLyObToDatum * arg, int32 typmod, PyObject * plrv, bool inarray)
 {
 	Datum		rv;
 	PLyTypeInfo info;
@@ -846,7 +846,7 @@ PLyObject_ToComposite(PLyObToDatum *arg, int32 typmod, PyObject *plrv, bool inar
  * Convert Python object to C string in server encoding.
  */
 char *
-PLyObject_AsString(PyObject *plrv)
+PLyObject_AsString(PyObject * plrv)
 {
 	PyObject   *plrv_bo;
 	char	   *plrv_sc;
@@ -904,7 +904,7 @@ PLyObject_AsString(PyObject *plrv)
  * cstring into PostgreSQL type.
  */
 static Datum
-PLyObject_ToDatum(PLyObToDatum *arg, int32 typmod, PyObject *plrv, bool inarray)
+PLyObject_ToDatum(PLyObToDatum * arg, int32 typmod, PyObject * plrv, bool inarray)
 {
 	char	   *str;
 
@@ -960,14 +960,14 @@ PLyObject_ToDatum(PLyObToDatum *arg, int32 typmod, PyObject *plrv, bool inarray)
 
 
 static Datum
-PLyObject_ToTransform(PLyObToDatum *arg, int32 typmod, PyObject *plrv, bool inarray)
+PLyObject_ToTransform(PLyObToDatum * arg, int32 typmod, PyObject * plrv, bool inarray)
 {
 	return FunctionCall1(&arg->typtransform, PointerGetDatum(plrv));
 }
 
 
 static Datum
-PLySequence_ToArray(PLyObToDatum *arg, int32 typmod, PyObject *plrv, bool inarray)
+PLySequence_ToArray(PLyObToDatum * arg, int32 typmod, PyObject * plrv, bool inarray)
 {
 	ArrayType  *array;
 	int			i;
@@ -1080,9 +1080,9 @@ PLySequence_ToArray(PLyObToDatum *arg, int32 typmod, PyObject *plrv, bool inarra
  * depth-first order, storing the elements in 'elems'.
  */
 static void
-PLySequence_ToArray_recurse(PLyObToDatum *elm, PyObject *list,
+PLySequence_ToArray_recurse(PLyObToDatum * elm, PyObject * list,
 							int *dims, int ndim, int dim,
-							Datum *elems, bool *nulls, int *currelem)
+							Datum * elems, bool *nulls, int *currelem)
 {
 	int			i;
 
@@ -1127,7 +1127,7 @@ PLySequence_ToArray_recurse(PLyObToDatum *elm, PyObject *list,
 
 
 static Datum
-PLyString_ToComposite(PLyTypeInfo *info, TupleDesc desc, PyObject *string, bool inarray)
+PLyString_ToComposite(PLyTypeInfo * info, TupleDesc desc, PyObject * string, bool inarray)
 {
 	Datum		result;
 	HeapTuple	typeTup;
@@ -1161,7 +1161,7 @@ PLyString_ToComposite(PLyTypeInfo *info, TupleDesc desc, PyObject *string, bool 
 
 
 static Datum
-PLyMapping_ToComposite(PLyTypeInfo *info, TupleDesc desc, PyObject *mapping)
+PLyMapping_ToComposite(PLyTypeInfo * info, TupleDesc desc, PyObject * mapping)
 {
 	Datum		result;
 	HeapTuple	tuple;
@@ -1237,7 +1237,7 @@ PLyMapping_ToComposite(PLyTypeInfo *info, TupleDesc desc, PyObject *mapping)
 
 
 static Datum
-PLySequence_ToComposite(PLyTypeInfo *info, TupleDesc desc, PyObject *sequence)
+PLySequence_ToComposite(PLyTypeInfo * info, TupleDesc desc, PyObject * sequence)
 {
 	Datum		result;
 	HeapTuple	tuple;
@@ -1326,7 +1326,7 @@ PLySequence_ToComposite(PLyTypeInfo *info, TupleDesc desc, PyObject *sequence)
 
 
 static Datum
-PLyGenericObject_ToComposite(PLyTypeInfo *info, TupleDesc desc, PyObject *object, bool inarray)
+PLyGenericObject_ToComposite(PLyTypeInfo * info, TupleDesc desc, PyObject * object, bool inarray)
 {
 	Datum		result;
 	HeapTuple	tuple;

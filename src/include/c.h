@@ -551,7 +551,7 @@ typedef struct
 	int			dim1;
 	int			lbound1;
 	int16		values[FLEXIBLE_ARRAY_MEMBER];
-} int2vector;
+}			int2vector;
 
 typedef struct
 {
@@ -562,7 +562,7 @@ typedef struct
 	int			dim1;
 	int			lbound1;
 	Oid			values[FLEXIBLE_ARRAY_MEMBER];
-} oidvector;
+}			oidvector;
 
 /*
  * Representation of a Name: effectively just a C string, but null-padded to
@@ -571,8 +571,8 @@ typedef struct
 typedef struct nameData
 {
 	char		data[NAMEDATALEN];
-} NameData;
-typedef NameData *Name;
+}			NameData;
+typedef NameData * Name;
 
 #define NameStr(name)	((name).data)
 

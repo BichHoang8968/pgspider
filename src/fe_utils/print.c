@@ -53,10 +53,13 @@ static int	groupdigits;
 static char *thousands_sep;
 
 static char default_footer[100];
-static printTableFooter default_footer_cell = {default_footer, NULL};
+static printTableFooter default_footer_cell =
+{
+	default_footer, NULL
+};
 
 /* Line style control structures */
-const printTextFormat pg_asciiformat =
+const		printTextFormat pg_asciiformat =
 {
 	"ascii",
 	{
@@ -77,7 +80,7 @@ const printTextFormat pg_asciiformat =
 	true
 };
 
-const printTextFormat pg_asciiformat_old =
+const		printTextFormat pg_asciiformat_old =
 {
 	"old-ascii",
 	{
@@ -106,7 +109,7 @@ typedef struct unicodeStyleRowFormat
 	const char *horizontal;
 	const char *vertical_and_right[2];
 	const char *vertical_and_left[2];
-} unicodeStyleRowFormat;
+}			unicodeStyleRowFormat;
 
 typedef struct unicodeStyleColumnFormat
 {
@@ -114,7 +117,7 @@ typedef struct unicodeStyleColumnFormat
 	const char *vertical_and_horizontal[2];
 	const char *up_and_horizontal[2];
 	const char *down_and_horizontal[2];
-} unicodeStyleColumnFormat;
+}			unicodeStyleColumnFormat;
 
 typedef struct unicodeStyleBorderFormat
 {
@@ -124,7 +127,7 @@ typedef struct unicodeStyleBorderFormat
 	const char *horizontal;
 	const char *down_and_left;
 	const char *left_and_right;
-} unicodeStyleBorderFormat;
+}			unicodeStyleBorderFormat;
 
 typedef struct unicodeStyleFormat
 {
@@ -138,7 +141,7 @@ typedef struct unicodeStyleFormat
 	const char *wrap_left;
 	const char *wrap_right;
 	bool		wrap_right_border;
-} unicodeStyleFormat;
+}			unicodeStyleFormat;
 
 static const unicodeStyleFormat unicode_style = {
 	{
@@ -199,11 +202,11 @@ static const unicodeStyleFormat unicode_style = {
 
 /* Local functions */
 static int	strlen_max_width(unsigned char *str, int *target_width, int encoding);
-static void IsPagerNeeded(const printTableContent *cont, int extra_lines, bool expanded,
-			  FILE **fout, bool *is_pager);
+static void IsPagerNeeded(const printTableContent * cont, int extra_lines, bool expanded,
+			  FILE * *fout, bool *is_pager);
 
-static void print_aligned_vertical(const printTableContent *cont,
-					   FILE *fout, bool is_pager);
+static void print_aligned_vertical(const printTableContent * cont,
+					   FILE * fout, bool is_pager);
 
 
 /* Count number of digits in integral part of number */
@@ -315,7 +318,7 @@ format_numeric_locale(const char *my_str)
  * is not valid in what libc thinks is the prevailing encoding.
  */
 static void
-fputnbytes(FILE *f, const char *str, size_t n)
+fputnbytes(FILE * f, const char *str, size_t n)
 {
 	while (n-- > 0)
 		fputc(*str++, f);
@@ -323,7 +326,7 @@ fputnbytes(FILE *f, const char *str, size_t n)
 
 
 static void
-print_separator(struct separator sep, FILE *fout)
+print_separator(struct separator sep, FILE * fout)
 {
 	if (sep.separator_zero)
 		fputc('\000', fout);
@@ -342,7 +345,7 @@ print_separator(struct separator sep, FILE *fout)
  * The return value may point to static storage; do not keep it across calls.
  */
 static printTableFooter *
-footers_with_default(const printTableContent *cont)
+footers_with_default(const printTableContent * cont)
 {
 	if (cont->footers == NULL && cont->opt->default_footer)
 	{
@@ -366,7 +369,7 @@ footers_with_default(const printTableContent *cont)
 
 
 static void
-print_unaligned_text(const printTableContent *cont, FILE *fout)
+print_unaligned_text(const printTableContent * cont, FILE * fout)
 {
 	bool		opt_tuples_only = cont->opt->tuples_only;
 	unsigned int i;
@@ -457,7 +460,7 @@ print_unaligned_text(const printTableContent *cont, FILE *fout)
 
 
 static void
-print_unaligned_vertical(const printTableContent *cont, FILE *fout)
+print_unaligned_vertical(const printTableContent * cont, FILE * fout)
 {
 	bool		opt_tuples_only = cont->opt->tuples_only;
 	unsigned int i;
@@ -539,10 +542,10 @@ print_unaligned_vertical(const printTableContent *cont, FILE *fout)
 static void
 _print_horizontal_line(const unsigned int ncolumns, const unsigned int *widths,
 					   unsigned short border, printTextRule pos,
-					   const printTextFormat *format,
-					   FILE *fout)
+					   const printTextFormat * format,
+					   FILE * fout)
 {
-	const printTextLineFormat *lformat = &format->lrule[pos];
+	const		printTextLineFormat *lformat = &format->lrule[pos];
 	unsigned int i,
 				j;
 
@@ -579,13 +582,13 @@ _print_horizontal_line(const unsigned int ncolumns, const unsigned int *widths,
  *	Print pretty boxes around cells.
  */
 static void
-print_aligned_text(const printTableContent *cont, FILE *fout, bool is_pager)
+print_aligned_text(const printTableContent * cont, FILE * fout, bool is_pager)
 {
 	bool		opt_tuples_only = cont->opt->tuples_only;
 	int			encoding = cont->opt->encoding;
 	unsigned short opt_border = cont->opt->border;
-	const printTextFormat *format = get_line_style(cont->opt);
-	const printTextLineFormat *dformat = &format->lrule[PRINT_RULE_DATA];
+	const		printTextFormat *format = get_line_style(cont->opt);
+	const		printTextLineFormat *dformat = &format->lrule[PRINT_RULE_DATA];
 
 	unsigned int col_count = 0,
 				cell_count = 0;
@@ -1171,15 +1174,15 @@ cleanup:
 
 
 static void
-print_aligned_vertical_line(const printTextFormat *format,
+print_aligned_vertical_line(const printTextFormat * format,
 							const unsigned short opt_border,
 							unsigned long record,
 							unsigned int hwidth,
 							unsigned int dwidth,
 							printTextRule pos,
-							FILE *fout)
+							FILE * fout)
 {
-	const printTextLineFormat *lformat = &format->lrule[pos];
+	const		printTextLineFormat *lformat = &format->lrule[pos];
 	unsigned int i;
 	int			reclen = 0;
 
@@ -1227,13 +1230,13 @@ print_aligned_vertical_line(const printTextFormat *format,
 }
 
 static void
-print_aligned_vertical(const printTableContent *cont,
-					   FILE *fout, bool is_pager)
+print_aligned_vertical(const printTableContent * cont,
+					   FILE * fout, bool is_pager)
 {
 	bool		opt_tuples_only = cont->opt->tuples_only;
 	unsigned short opt_border = cont->opt->border;
-	const printTextFormat *format = get_line_style(cont->opt);
-	const printTextLineFormat *dformat = &format->lrule[PRINT_RULE_DATA];
+	const		printTextFormat *format = get_line_style(cont->opt);
+	const		printTextLineFormat *dformat = &format->lrule[PRINT_RULE_DATA];
 	int			encoding = cont->opt->encoding;
 	unsigned long record = cont->opt->prior_records + 1;
 	const char *const *ptr;
@@ -1742,7 +1745,7 @@ print_aligned_vertical(const printTableContent *cont,
 
 
 void
-html_escaped_print(const char *in, FILE *fout)
+html_escaped_print(const char *in, FILE * fout)
 {
 	const char *p;
 	bool		leading_space = true;
@@ -1783,7 +1786,7 @@ html_escaped_print(const char *in, FILE *fout)
 
 
 static void
-print_html_text(const printTableContent *cont, FILE *fout)
+print_html_text(const printTableContent * cont, FILE * fout)
 {
 	bool		opt_tuples_only = cont->opt->tuples_only;
 	unsigned short opt_border = cont->opt->border;
@@ -1872,7 +1875,7 @@ print_html_text(const printTableContent *cont, FILE *fout)
 
 
 static void
-print_html_vertical(const printTableContent *cont, FILE *fout)
+print_html_vertical(const printTableContent * cont, FILE * fout)
 {
 	bool		opt_tuples_only = cont->opt->tuples_only;
 	unsigned short opt_border = cont->opt->border;
@@ -1957,7 +1960,7 @@ print_html_vertical(const printTableContent *cont, FILE *fout)
 /*************************/
 
 static void
-asciidoc_escaped_print(const char *in, FILE *fout)
+asciidoc_escaped_print(const char *in, FILE * fout)
 {
 	const char *p;
 
@@ -1975,7 +1978,7 @@ asciidoc_escaped_print(const char *in, FILE *fout)
 }
 
 static void
-print_asciidoc_text(const printTableContent *cont, FILE *fout)
+print_asciidoc_text(const printTableContent * cont, FILE * fout)
 {
 	bool		opt_tuples_only = cont->opt->tuples_only;
 	unsigned short opt_border = cont->opt->border;
@@ -2085,7 +2088,7 @@ print_asciidoc_text(const printTableContent *cont, FILE *fout)
 }
 
 static void
-print_asciidoc_vertical(const printTableContent *cont, FILE *fout)
+print_asciidoc_vertical(const printTableContent * cont, FILE * fout)
 {
 	bool		opt_tuples_only = cont->opt->tuples_only;
 	unsigned short opt_border = cont->opt->border;
@@ -2180,7 +2183,7 @@ print_asciidoc_vertical(const printTableContent *cont, FILE *fout)
 
 
 static void
-latex_escaped_print(const char *in, FILE *fout)
+latex_escaped_print(const char *in, FILE * fout)
 {
 	const char *p;
 
@@ -2218,7 +2221,7 @@ latex_escaped_print(const char *in, FILE *fout)
 
 
 static void
-print_latex_text(const printTableContent *cont, FILE *fout)
+print_latex_text(const printTableContent * cont, FILE * fout)
 {
 	bool		opt_tuples_only = cont->opt->tuples_only;
 	unsigned short opt_border = cont->opt->border;
@@ -2320,7 +2323,7 @@ print_latex_text(const printTableContent *cont, FILE *fout)
 
 
 static void
-print_latex_longtable_text(const printTableContent *cont, FILE *fout)
+print_latex_longtable_text(const printTableContent * cont, FILE * fout)
 {
 	bool		opt_tuples_only = cont->opt->tuples_only;
 	unsigned short opt_border = cont->opt->border;
@@ -2476,7 +2479,7 @@ print_latex_longtable_text(const printTableContent *cont, FILE *fout)
 
 
 static void
-print_latex_vertical(const printTableContent *cont, FILE *fout)
+print_latex_vertical(const printTableContent * cont, FILE * fout)
 {
 	bool		opt_tuples_only = cont->opt->tuples_only;
 	unsigned short opt_border = cont->opt->border;
@@ -2569,7 +2572,7 @@ print_latex_vertical(const printTableContent *cont, FILE *fout)
 
 
 static void
-troff_ms_escaped_print(const char *in, FILE *fout)
+troff_ms_escaped_print(const char *in, FILE * fout)
 {
 	const char *p;
 
@@ -2586,7 +2589,7 @@ troff_ms_escaped_print(const char *in, FILE *fout)
 
 
 static void
-print_troff_ms_text(const printTableContent *cont, FILE *fout)
+print_troff_ms_text(const printTableContent * cont, FILE * fout)
 {
 	bool		opt_tuples_only = cont->opt->tuples_only;
 	unsigned short opt_border = cont->opt->border;
@@ -2678,7 +2681,7 @@ print_troff_ms_text(const printTableContent *cont, FILE *fout)
 
 
 static void
-print_troff_ms_vertical(const printTableContent *cont, FILE *fout)
+print_troff_ms_vertical(const printTableContent * cont, FILE * fout)
 {
 	bool		opt_tuples_only = cont->opt->tuples_only;
 	unsigned short opt_border = cont->opt->border;
@@ -2848,7 +2851,7 @@ set_sigpipe_trap_state(bool ignore)
  * If the topt argument is NULL no pager is used.
  */
 FILE *
-PageOutput(int lines, const printTableOpt *topt)
+PageOutput(int lines, const printTableOpt * topt)
 {
 	/* check whether we need / can / are supposed to use pager */
 	if (topt && topt->pager && isatty(fileno(stdin)) && isatty(fileno(stdout)))
@@ -2897,7 +2900,7 @@ PageOutput(int lines, const printTableOpt *topt)
  * Close previously opened pager pipe, if any
  */
 void
-ClosePager(FILE *pagerpipe)
+ClosePager(FILE * pagerpipe)
 {
 	if (pagerpipe && pagerpipe != stdout)
 	{
@@ -2928,7 +2931,7 @@ ClosePager(FILE *pagerpipe)
  * table.
  */
 void
-printTableInit(printTableContent *const content, const printTableOpt *opt,
+printTableInit(printTableContent * const content, const printTableOpt * opt,
 			   const char *title, const int ncolumns, const int nrows)
 {
 	content->opt = opt;
@@ -2965,7 +2968,7 @@ printTableInit(printTableContent *const content, const printTableOpt *opt,
  * column.
  */
 void
-printTableAddHeader(printTableContent *const content, char *header,
+printTableAddHeader(printTableContent * const content, char *header,
 					const bool translate, const char align)
 {
 #ifndef ENABLE_NLS
@@ -3005,7 +3008,7 @@ printTableAddHeader(printTableContent *const content, char *header,
  * Note: Automatic freeing of translatable strings is not supported.
  */
 void
-printTableAddCell(printTableContent *const content, char *cell,
+printTableAddCell(printTableContent * const content, char *cell,
 				  const bool translate, const bool mustfree)
 {
 #ifndef ENABLE_NLS
@@ -3053,7 +3056,7 @@ printTableAddCell(printTableContent *const content, char *cell,
  * translated as a whole.
  */
 void
-printTableAddFooter(printTableContent *const content, const char *footer)
+printTableAddFooter(printTableContent * const content, const char *footer)
 {
 	printTableFooter *f;
 
@@ -3078,7 +3081,7 @@ printTableAddFooter(printTableContent *const content, const char *footer)
  * around.
  */
 void
-printTableSetFooter(printTableContent *const content, const char *footer)
+printTableSetFooter(printTableContent * const content, const char *footer)
 {
 	if (content->footers != NULL)
 	{
@@ -3096,7 +3099,7 @@ printTableSetFooter(printTableContent *const content, const char *footer)
  * printTableInit() again.
  */
 void
-printTableCleanup(printTableContent *const content)
+printTableCleanup(printTableContent * const content)
 {
 	if (content->cellmustfree)
 	{
@@ -3145,8 +3148,8 @@ printTableCleanup(printTableContent *const content)
  * Setup pager if required
  */
 static void
-IsPagerNeeded(const printTableContent *cont, int extra_lines, bool expanded,
-			  FILE **fout, bool *is_pager)
+IsPagerNeeded(const printTableContent * cont, int extra_lines, bool expanded,
+			  FILE * *fout, bool *is_pager)
 {
 	if (*fout == stdout)
 	{
@@ -3185,8 +3188,8 @@ IsPagerNeeded(const printTableContent *cont, int extra_lines, bool expanded,
  * flog: if not null, also print the table there (for --log-file option)
  */
 void
-printTable(const printTableContent *cont,
-		   FILE *fout, bool is_pager, FILE *flog)
+printTable(const printTableContent * cont,
+		   FILE * fout, bool is_pager, FILE * flog)
 {
 	bool		is_local_pager = false;
 
@@ -3282,8 +3285,8 @@ printTable(const printTableContent *cont,
  * flog: if not null, also print the data there (for --log-file option)
  */
 void
-printQuery(const PGresult *result, const printQueryOpt *opt,
-		   FILE *fout, bool is_pager, FILE *flog)
+printQuery(const PGresult * result, const printQueryOpt * opt,
+		   FILE * fout, bool is_pager, FILE * flog)
 {
 	printTableContent cont;
 	int			i,
@@ -3408,8 +3411,8 @@ setDecimalLocale(void)
 }
 
 /* get selected or default line style */
-const printTextFormat *
-get_line_style(const printTableOpt *opt)
+const		printTextFormat *
+get_line_style(const printTableOpt * opt)
 {
 	/*
 	 * Note: this function mainly exists to preserve the convention that a
@@ -3423,13 +3426,13 @@ get_line_style(const printTableOpt *opt)
 }
 
 void
-refresh_utf8format(const printTableOpt *opt)
+refresh_utf8format(const printTableOpt * opt)
 {
 	printTextFormat *popt = &pg_utf8format;
 
-	const unicodeStyleBorderFormat *border;
-	const unicodeStyleRowFormat *header;
-	const unicodeStyleColumnFormat *column;
+	const		unicodeStyleBorderFormat *border;
+	const		unicodeStyleRowFormat *header;
+	const		unicodeStyleColumnFormat *column;
 
 	popt->name = "unicode";
 

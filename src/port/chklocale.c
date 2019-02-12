@@ -235,7 +235,7 @@ win32_langinfo(const char *ctype)
 
 	if (GetLocaleInfoEx(wctype,
 						LOCALE_IDEFAULTANSICODEPAGE | LOCALE_RETURN_NUMBER,
-						(LPWSTR) &cp, sizeof(cp) / sizeof(WCHAR)) > 0)
+						(LPWSTR) & cp, sizeof(cp) / sizeof(WCHAR)) > 0)
 	{
 		r = malloc(16);			/* excess */
 		if (r != NULL)

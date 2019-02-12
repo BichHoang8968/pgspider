@@ -61,14 +61,14 @@ typedef struct
 	 *
 	 * Explicit embedding is ok as we want always correct alignment anyway.
 	 */
-	int32		__varsz;
+	int32 __varsz;
 
 	uint32		nxip;			/* number of txids in xip array */
 	txid		xmin;
 	txid		xmax;
 	/* in-progress txids, xmin <= xip[i] < xmax: */
 	txid		xip[FLEXIBLE_ARRAY_MEMBER];
-} TxidSnapshot;
+}			TxidSnapshot;
 
 #define TXID_SNAPSHOT_SIZE(nxip) \
 	(offsetof(TxidSnapshot, xip) + sizeof(txid) * (nxip))
@@ -82,14 +82,14 @@ typedef struct
 {
 	TransactionId last_xid;
 	uint32		epoch;
-} TxidEpoch;
+}			TxidEpoch;
 
 
 /*
  * Fetch epoch data from xact.c.
  */
 static void
-load_xid_epoch(TxidEpoch *state)
+load_xid_epoch(TxidEpoch * state)
 {
 	GetNextXidAndEpoch(&state->last_xid, &state->epoch);
 }
@@ -108,7 +108,7 @@ load_xid_epoch(TxidEpoch *state)
  * relating to those XIDs.
  */
 static bool
-TransactionIdInRecentPast(uint64 xid_with_epoch, TransactionId *extracted_xid)
+TransactionIdInRecentPast(uint64 xid_with_epoch, TransactionId * extracted_xid)
 {
 	uint32		xid_epoch = (uint32) (xid_with_epoch >> 32);
 	TransactionId xid = (TransactionId) xid_with_epoch;
@@ -162,7 +162,7 @@ TransactionIdInRecentPast(uint64 xid_with_epoch, TransactionId *extracted_xid)
  * do a TransactionId -> txid conversion for an XID near the given epoch
  */
 static txid
-convert_xid(TransactionId xid, const TxidEpoch *state)
+convert_xid(TransactionId xid, const TxidEpoch * state)
 {
 	uint64		epoch;
 
@@ -206,7 +206,7 @@ cmp_txid(const void *aa, const void *bb)
  * will not be used.
  */
 static void
-sort_snapshot(TxidSnapshot *snap)
+sort_snapshot(TxidSnapshot * snap)
 {
 	txid		last = 0;
 	int			nxip,
@@ -235,7 +235,7 @@ sort_snapshot(TxidSnapshot *snap)
  * check txid visibility.
  */
 static bool
-is_visible_txid(txid value, const TxidSnapshot *snap)
+is_visible_txid(txid value, const TxidSnapshot * snap)
 {
 	if (value < snap->xmin)
 		return true;

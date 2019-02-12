@@ -58,10 +58,10 @@ typedef struct
 	 * StrategyNotifyBgWriter.
 	 */
 	int			bgwprocno;
-} BufferStrategyControl;
+}			BufferStrategyControl;
 
 /* Pointers to shared state */
-static BufferStrategyControl *StrategyControl = NULL;
+static BufferStrategyControl * StrategyControl = NULL;
 
 /*
  * Private (non-shared) state for managing a ring of shared buffers to re-use.
@@ -98,10 +98,10 @@ typedef struct BufferAccessStrategyData
 
 
 /* Prototypes for internal functions */
-static BufferDesc *GetBufferFromRing(BufferAccessStrategy strategy,
-				  uint32 *buf_state);
+static BufferDesc * GetBufferFromRing(BufferAccessStrategy strategy,
+									  uint32 * buf_state);
 static void AddBufferToRing(BufferAccessStrategy strategy,
-				BufferDesc *buf);
+				BufferDesc * buf);
 
 /*
  * ClockSweepTick - Helper routine for StrategyGetBuffer()
@@ -181,7 +181,7 @@ ClockSweepTick(void)
  *	return the buffer with the buffer header spinlock still held.
  */
 BufferDesc *
-StrategyGetBuffer(BufferAccessStrategy strategy, uint32 *buf_state)
+StrategyGetBuffer(BufferAccessStrategy strategy, uint32 * buf_state)
 {
 	BufferDesc *buf;
 	int			bgwprocno;
@@ -344,7 +344,7 @@ StrategyGetBuffer(BufferAccessStrategy strategy, uint32 *buf_state)
  * StrategyFreeBuffer: put a buffer on the freelist
  */
 void
-StrategyFreeBuffer(BufferDesc *buf)
+StrategyFreeBuffer(BufferDesc * buf)
 {
 	SpinLockAcquire(&StrategyControl->buffer_strategy_lock);
 
@@ -375,7 +375,7 @@ StrategyFreeBuffer(BufferDesc *buf)
  * being read.
  */
 int
-StrategySyncStart(uint32 *complete_passes, uint32 *num_buf_alloc)
+StrategySyncStart(uint32 * complete_passes, uint32 * num_buf_alloc)
 {
 	uint32		nextVictimBuffer;
 	int			result;
@@ -591,7 +591,7 @@ FreeAccessStrategy(BufferAccessStrategy strategy)
  * The bufhdr spin lock is held on the returned buffer.
  */
 static BufferDesc *
-GetBufferFromRing(BufferAccessStrategy strategy, uint32 *buf_state)
+GetBufferFromRing(BufferAccessStrategy strategy, uint32 * buf_state)
 {
 	BufferDesc *buf;
 	Buffer		bufnum;
@@ -649,7 +649,7 @@ GetBufferFromRing(BufferAccessStrategy strategy, uint32 *buf_state)
  * is called with the spinlock held, it had better be quite cheap.
  */
 static void
-AddBufferToRing(BufferAccessStrategy strategy, BufferDesc *buf)
+AddBufferToRing(BufferAccessStrategy strategy, BufferDesc * buf)
 {
 	strategy->buffers[strategy->current] = BufferDescriptorGetBuffer(buf);
 }
@@ -666,7 +666,7 @@ AddBufferToRing(BufferAccessStrategy strategy, BufferDesc *buf)
  * if this buffer should be written and re-used.
  */
 bool
-StrategyRejectBuffer(BufferAccessStrategy strategy, BufferDesc *buf)
+StrategyRejectBuffer(BufferAccessStrategy strategy, BufferDesc * buf)
 {
 	/* We only do this in bulkread mode */
 	if (strategy->btype != BAS_BULKREAD)

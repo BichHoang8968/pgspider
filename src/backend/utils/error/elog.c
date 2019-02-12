@@ -85,9 +85,9 @@
 
 
 /* Global variables */
-__thread ErrorContextCallback *error_context_stack = NULL;
+__thread	ErrorContextCallback *error_context_stack = NULL;
 
-__thread sigjmp_buf *PG_exception_stack = NULL;
+__thread	sigjmp_buf *PG_exception_stack = NULL;
 
 extern bool redirection_done;
 
@@ -138,8 +138,9 @@ static void write_eventlog(int level, const char *line, int len);
 #define ERRORDATA_STACK_SIZE  40
 
 static ErrorData __thread errordata[ERRORDATA_STACK_SIZE];
-static int __thread	errordata_stack_depth = -1; /* index of topmost active frame */
-static int __thread recursion_depth = 0;	/* to detect actual recursion */
+static int	__thread errordata_stack_depth = -1;	/* index of topmost active
+													 * frame */
+static int	__thread recursion_depth = 0;	/* to detect actual recursion */
 
 /*
  * Saved timeval and buffers for formatted timestamps that might be used by
@@ -165,17 +166,17 @@ static char formatted_log_time[FORMATTED_TS_LEN];
 
 
 static const char *err_gettext(const char *str) pg_attribute_format_arg(1);
-static void set_errdata_field(MemoryContextData *cxt, char **ptr, const char *str);
+static void set_errdata_field(MemoryContextData * cxt, char **ptr, const char *str);
 static void write_console(const char *line, int len);
 static void setup_formatted_log_time(void);
 static void setup_formatted_start_time(void);
 static const char *process_log_prefix_padding(const char *p, int *padding);
-static void log_line_prefix(StringInfo buf, ErrorData *edata);
-static void write_csvlog(ErrorData *edata);
-static void send_message_to_server_log(ErrorData *edata);
+static void log_line_prefix(StringInfo buf, ErrorData * edata);
+static void write_csvlog(ErrorData * edata);
+static void send_message_to_server_log(ErrorData * edata);
 static void write_pipe_chunks(char *data, int len, int dest);
-static void send_message_to_frontend(ErrorData *edata);
-static char *expand_fmt_string(const char *fmt, ErrorData *edata);
+static void send_message_to_frontend(ErrorData * edata);
+static char *expand_fmt_string(const char *fmt, ErrorData * edata);
 static const char *useful_strerror(int errnum);
 static const char *get_errno_symbol(int errnum);
 static const char *error_severity(int elevel);
@@ -1222,7 +1223,7 @@ err_generic_string(int field, const char *str)
  * set_errdata_field --- set an ErrorData string field
  */
 static void
-set_errdata_field(MemoryContextData *cxt, char **ptr, const char *str)
+set_errdata_field(MemoryContextData * cxt, char **ptr, const char *str)
 {
 	Assert(*ptr == NULL);
 	*ptr = MemoryContextStrdup(cxt, str);
@@ -1546,7 +1547,7 @@ CopyErrorData(void)
  * the separately-allocated fields.
  */
 void
-FreeErrorData(ErrorData *edata)
+FreeErrorData(ErrorData * edata)
 {
 	if (edata->message)
 		pfree(edata->message);
@@ -1607,7 +1608,7 @@ FlushErrorState(void)
  * modification) to the backend responsible for them.
  */
 void
-ThrowErrorData(ErrorData *edata)
+ThrowErrorData(ErrorData * edata)
 {
 	ErrorData  *newedata;
 	MemoryContext oldcontext;
@@ -1665,7 +1666,7 @@ ThrowErrorData(ErrorData *edata)
  * be used if the "some processing" is likely to incur another error.
  */
 void
-ReThrowError(ErrorData *edata)
+ReThrowError(ErrorData * edata)
 {
 	ErrorData  *newedata;
 
@@ -2136,7 +2137,7 @@ write_eventlog(int level, const char *line, int len)
 						 NULL,
 						 1,
 						 0,
-						 (LPCWSTR *) &utf16,
+						 (LPCWSTR *) & utf16,
 						 NULL);
 			/* XXX Try ReportEventA() when ReportEventW() fails? */
 
@@ -2313,7 +2314,7 @@ process_log_prefix_padding(const char *p, int *ppadding)
  * Format tag info for log lines; append to the provided buffer.
  */
 static void
-log_line_prefix(StringInfo buf, ErrorData *edata)
+log_line_prefix(StringInfo buf, ErrorData * edata)
 {
 	/* static counter for line numbers */
 	static long log_line_number = 0;
@@ -2647,7 +2648,7 @@ appendCSVLiteral(StringInfo buf, const char *data)
  * format which is described in doc/src/sgml/config.sgml.
  */
 static void
-write_csvlog(ErrorData *edata)
+write_csvlog(ErrorData * edata)
 {
 	StringInfoData buf;
 	bool		print_stmt = false;
@@ -2864,7 +2865,7 @@ unpack_sql_state(int sql_state)
  * Write error report to server's log
  */
 static void
-send_message_to_server_log(ErrorData *edata)
+send_message_to_server_log(ErrorData * edata)
 {
 	StringInfoData buf;
 
@@ -3147,7 +3148,7 @@ err_sendstring(StringInfo buf, const char *str)
  * Write error report to client
  */
 static void
-send_message_to_frontend(ErrorData *edata)
+send_message_to_frontend(ErrorData * edata)
 {
 	StringInfoData msgbuf;
 
@@ -3337,7 +3338,7 @@ send_message_to_frontend(ErrorData *edata)
  * The result is a palloc'd string.
  */
 static char *
-expand_fmt_string(const char *fmt, ErrorData *edata)
+expand_fmt_string(const char *fmt, ErrorData * edata)
 {
 	StringInfoData buf;
 	const char *cp;

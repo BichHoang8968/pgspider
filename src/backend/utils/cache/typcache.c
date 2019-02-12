@@ -69,10 +69,10 @@
 
 
 /* The main type cache hashtable searched by lookup_type_cache */
-static HTAB *TypeCacheHash = NULL;
+static HTAB * TypeCacheHash = NULL;
 
 /* List of type cache entries for domain types */
-static TypeCacheEntry *firstDomainTypeEntry = NULL;
+static TypeCacheEntry * firstDomainTypeEntry = NULL;
 
 /* Private flag bits in the TypeCacheEntry.flags field */
 #define TCFLAGS_CHECKED_BTREE_OPCLASS		0x0001
@@ -115,7 +115,7 @@ typedef struct
 {
 	Oid			enum_oid;		/* OID of one enum value */
 	float4		sort_order;		/* its sort position */
-} EnumItem;
+}			EnumItem;
 
 typedef struct TypeCacheEnumData
 {
@@ -123,7 +123,7 @@ typedef struct TypeCacheEnumData
 	Bitmapset  *sorted_values;	/* Set of OIDs known to be in order */
 	int			num_values;		/* total number of values in enum */
 	EnumItem	enum_values[FLEXIBLE_ARRAY_MEMBER];
-} TypeCacheEnumData;
+}			TypeCacheEnumData;
 
 /*
  * We use a separate table for storing the definitions of non-anonymous
@@ -146,35 +146,35 @@ typedef struct RecordCacheEntry
 
 	/* list of TupleDescs for record types with this hashkey */
 	List	   *tupdescs;
-} RecordCacheEntry;
+}			RecordCacheEntry;
 
-static HTAB *RecordCacheHash = NULL;
+static HTAB * RecordCacheHash = NULL;
 
-static TupleDesc *RecordCacheArray = NULL;
+static TupleDesc * RecordCacheArray = NULL;
 static int32 RecordCacheArrayLen = 0;	/* allocated length of array */
 static int32 NextRecordTypmod = 0;	/* number of entries used */
 
-static void load_typcache_tupdesc(TypeCacheEntry *typentry);
-static void load_rangetype_info(TypeCacheEntry *typentry);
-static void load_domaintype_info(TypeCacheEntry *typentry);
+static void load_typcache_tupdesc(TypeCacheEntry * typentry);
+static void load_rangetype_info(TypeCacheEntry * typentry);
+static void load_domaintype_info(TypeCacheEntry * typentry);
 static int	dcs_cmp(const void *a, const void *b);
-static void decr_dcc_refcount(DomainConstraintCache *dcc);
+static void decr_dcc_refcount(DomainConstraintCache * dcc);
 static void dccref_deletion_callback(void *arg);
-static List *prep_domain_constraints(List *constraints, MemoryContext execctx);
-static bool array_element_has_equality(TypeCacheEntry *typentry);
-static bool array_element_has_compare(TypeCacheEntry *typentry);
-static bool array_element_has_hashing(TypeCacheEntry *typentry);
-static void cache_array_element_properties(TypeCacheEntry *typentry);
-static bool record_fields_have_equality(TypeCacheEntry *typentry);
-static bool record_fields_have_compare(TypeCacheEntry *typentry);
-static void cache_record_field_properties(TypeCacheEntry *typentry);
-static bool range_element_has_hashing(TypeCacheEntry *typentry);
-static void cache_range_element_properties(TypeCacheEntry *typentry);
+static List * prep_domain_constraints(List * constraints, MemoryContext execctx);
+static bool array_element_has_equality(TypeCacheEntry * typentry);
+static bool array_element_has_compare(TypeCacheEntry * typentry);
+static bool array_element_has_hashing(TypeCacheEntry * typentry);
+static void cache_array_element_properties(TypeCacheEntry * typentry);
+static bool record_fields_have_equality(TypeCacheEntry * typentry);
+static bool record_fields_have_compare(TypeCacheEntry * typentry);
+static void cache_record_field_properties(TypeCacheEntry * typentry);
+static bool range_element_has_hashing(TypeCacheEntry * typentry);
+static void cache_range_element_properties(TypeCacheEntry * typentry);
 static void TypeCacheRelCallback(Datum arg, Oid relid);
 static void TypeCacheOpcCallback(Datum arg, int cacheid, uint32 hashvalue);
 static void TypeCacheConstrCallback(Datum arg, int cacheid, uint32 hashvalue);
-static void load_enum_cache_data(TypeCacheEntry *tcache);
-static EnumItem *find_enumitem(TypeCacheEnumData *enumdata, Oid arg);
+static void load_enum_cache_data(TypeCacheEntry * tcache);
+static EnumItem * find_enumitem(TypeCacheEnumData * enumdata, Oid arg);
 static int	enum_oid_cmp(const void *left, const void *right);
 
 
@@ -577,7 +577,7 @@ lookup_type_cache(Oid type_id, int flags)
  * load_typcache_tupdesc --- helper routine to set up composite type's tupDesc
  */
 static void
-load_typcache_tupdesc(TypeCacheEntry *typentry)
+load_typcache_tupdesc(TypeCacheEntry * typentry)
 {
 	Relation	rel;
 
@@ -605,7 +605,7 @@ load_typcache_tupdesc(TypeCacheEntry *typentry)
  * load_rangetype_info --- helper routine to set up range type information
  */
 static void
-load_rangetype_info(TypeCacheEntry *typentry)
+load_rangetype_info(TypeCacheEntry * typentry)
 {
 	Form_pg_range pg_range;
 	HeapTuple	tup;
@@ -668,7 +668,7 @@ load_rangetype_info(TypeCacheEntry *typentry)
  * complete.
  */
 static void
-load_domaintype_info(TypeCacheEntry *typentry)
+load_domaintype_info(TypeCacheEntry * typentry)
 {
 	Oid			typeOid = typentry->type_id;
 	DomainConstraintCache *dcc;
@@ -797,13 +797,13 @@ load_domaintype_info(TypeCacheEntry *typentry)
 			if (ccons == NULL)
 			{
 				cconslen = 8;
-				ccons = (DomainConstraintState **)
+				ccons = (DomainConstraintState * *)
 					palloc(cconslen * sizeof(DomainConstraintState *));
 			}
 			else if (nccons >= cconslen)
 			{
 				cconslen *= 2;
-				ccons = (DomainConstraintState **)
+				ccons = (DomainConstraintState * *)
 					repalloc(ccons, cconslen * sizeof(DomainConstraintState *));
 			}
 			ccons[nccons++] = r;
@@ -897,8 +897,8 @@ load_domaintype_info(TypeCacheEntry *typentry)
 static int
 dcs_cmp(const void *a, const void *b)
 {
-	const DomainConstraintState *const *ca = (const DomainConstraintState *const *) a;
-	const DomainConstraintState *const *cb = (const DomainConstraintState *const *) b;
+	const		DomainConstraintState *const *ca = (const DomainConstraintState * const *) a;
+	const		DomainConstraintState *const *cb = (const DomainConstraintState * const *) b;
 
 	return strcmp((*ca)->name, (*cb)->name);
 }
@@ -908,7 +908,7 @@ dcs_cmp(const void *a, const void *b)
  * and free it if no references remain
  */
 static void
-decr_dcc_refcount(DomainConstraintCache *dcc)
+decr_dcc_refcount(DomainConstraintCache * dcc)
 {
 	Assert(dcc->dccRefCount > 0);
 	if (--(dcc->dccRefCount) <= 0)
@@ -940,7 +940,7 @@ dccref_deletion_callback(void *arg)
  * converted to executable expression state trees stored in execctx.
  */
 static List *
-prep_domain_constraints(List *constraints, MemoryContext execctx)
+prep_domain_constraints(List * constraints, MemoryContext execctx)
 {
 	List	   *result = NIL;
 	MemoryContext oldcxt;
@@ -978,7 +978,7 @@ prep_domain_constraints(List *constraints, MemoryContext execctx)
  * If it doesn't, we need not make a copy of the DomainConstraintState list.
  */
 void
-InitDomainConstraintRef(Oid type_id, DomainConstraintRef *ref,
+InitDomainConstraintRef(Oid type_id, DomainConstraintRef * ref,
 						MemoryContext refctx, bool need_exprstate)
 {
 	/* Look up the typcache entry --- we assume it survives indefinitely */
@@ -1016,7 +1016,7 @@ InitDomainConstraintRef(Oid type_id, DomainConstraintRef *ref,
  * of the constraint info.
  */
 void
-UpdateDomainConstraintRef(DomainConstraintRef *ref)
+UpdateDomainConstraintRef(DomainConstraintRef * ref)
 {
 	TypeCacheEntry *typentry = ref->tcache;
 
@@ -1092,7 +1092,7 @@ DomainHasConstraints(Oid type_id)
  */
 
 static bool
-array_element_has_equality(TypeCacheEntry *typentry)
+array_element_has_equality(TypeCacheEntry * typentry)
 {
 	if (!(typentry->flags & TCFLAGS_CHECKED_ELEM_PROPERTIES))
 		cache_array_element_properties(typentry);
@@ -1100,7 +1100,7 @@ array_element_has_equality(TypeCacheEntry *typentry)
 }
 
 static bool
-array_element_has_compare(TypeCacheEntry *typentry)
+array_element_has_compare(TypeCacheEntry * typentry)
 {
 	if (!(typentry->flags & TCFLAGS_CHECKED_ELEM_PROPERTIES))
 		cache_array_element_properties(typentry);
@@ -1108,7 +1108,7 @@ array_element_has_compare(TypeCacheEntry *typentry)
 }
 
 static bool
-array_element_has_hashing(TypeCacheEntry *typentry)
+array_element_has_hashing(TypeCacheEntry * typentry)
 {
 	if (!(typentry->flags & TCFLAGS_CHECKED_ELEM_PROPERTIES))
 		cache_array_element_properties(typentry);
@@ -1116,7 +1116,7 @@ array_element_has_hashing(TypeCacheEntry *typentry)
 }
 
 static void
-cache_array_element_properties(TypeCacheEntry *typentry)
+cache_array_element_properties(TypeCacheEntry * typentry)
 {
 	Oid			elem_type = get_base_element_type(typentry->type_id);
 
@@ -1143,7 +1143,7 @@ cache_array_element_properties(TypeCacheEntry *typentry)
  */
 
 static bool
-record_fields_have_equality(TypeCacheEntry *typentry)
+record_fields_have_equality(TypeCacheEntry * typentry)
 {
 	if (!(typentry->flags & TCFLAGS_CHECKED_FIELD_PROPERTIES))
 		cache_record_field_properties(typentry);
@@ -1151,7 +1151,7 @@ record_fields_have_equality(TypeCacheEntry *typentry)
 }
 
 static bool
-record_fields_have_compare(TypeCacheEntry *typentry)
+record_fields_have_compare(TypeCacheEntry * typentry)
 {
 	if (!(typentry->flags & TCFLAGS_CHECKED_FIELD_PROPERTIES))
 		cache_record_field_properties(typentry);
@@ -1159,7 +1159,7 @@ record_fields_have_compare(TypeCacheEntry *typentry)
 }
 
 static void
-cache_record_field_properties(TypeCacheEntry *typentry)
+cache_record_field_properties(TypeCacheEntry * typentry)
 {
 	/*
 	 * For type RECORD, we can't really tell what will work, since we don't
@@ -1221,7 +1221,7 @@ cache_record_field_properties(TypeCacheEntry *typentry)
  */
 
 static bool
-range_element_has_hashing(TypeCacheEntry *typentry)
+range_element_has_hashing(TypeCacheEntry * typentry)
 {
 	if (!(typentry->flags & TCFLAGS_CHECKED_ELEM_PROPERTIES))
 		cache_range_element_properties(typentry);
@@ -1229,7 +1229,7 @@ range_element_has_hashing(TypeCacheEntry *typentry)
 }
 
 static void
-cache_range_element_properties(TypeCacheEntry *typentry)
+cache_range_element_properties(TypeCacheEntry * typentry)
 {
 	/* load up subtype link if we didn't already */
 	if (typentry->rngelemtype == NULL &&
@@ -1573,7 +1573,7 @@ TypeCacheConstrCallback(Datum arg, int cacheid, uint32 hashvalue)
  * Check if given OID is part of the subset that's sortable by comparisons
  */
 static inline bool
-enum_known_sorted(TypeCacheEnumData *enumdata, Oid arg)
+enum_known_sorted(TypeCacheEnumData * enumdata, Oid arg)
 {
 	Oid			offset;
 
@@ -1602,7 +1602,7 @@ enum_known_sorted(TypeCacheEnumData *enumdata, Oid arg)
  * routine shouldn't even get called when that rule applies.
  */
 int
-compare_values_of_enum(TypeCacheEntry *tcache, Oid arg1, Oid arg2)
+compare_values_of_enum(TypeCacheEntry * tcache, Oid arg1, Oid arg2)
 {
 	TypeCacheEnumData *enumdata;
 	EnumItem   *item1;
@@ -1675,7 +1675,7 @@ compare_values_of_enum(TypeCacheEntry *tcache, Oid arg1, Oid arg2)
  * Load (or re-load) the enumData member of the typcache entry.
  */
 static void
-load_enum_cache_data(TypeCacheEntry *tcache)
+load_enum_cache_data(TypeCacheEntry * tcache)
 {
 	TypeCacheEnumData *enumdata;
 	Relation	enum_rel;
@@ -1830,7 +1830,7 @@ load_enum_cache_data(TypeCacheEntry *tcache)
  * Locate the EnumItem with the given OID, if present
  */
 static EnumItem *
-find_enumitem(TypeCacheEnumData *enumdata, Oid arg)
+find_enumitem(TypeCacheEnumData * enumdata, Oid arg)
 {
 	EnumItem	srch;
 
@@ -1849,8 +1849,8 @@ find_enumitem(TypeCacheEnumData *enumdata, Oid arg)
 static int
 enum_oid_cmp(const void *left, const void *right)
 {
-	const EnumItem *l = (const EnumItem *) left;
-	const EnumItem *r = (const EnumItem *) right;
+	const		EnumItem *l = (const EnumItem *) left;
+	const		EnumItem *r = (const EnumItem *) right;
 
 	if (l->enum_oid < r->enum_oid)
 		return -1;

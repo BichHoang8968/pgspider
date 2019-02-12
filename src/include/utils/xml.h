@@ -42,7 +42,7 @@ typedef enum
 								 * indicates error condition */
 	PG_XML_STRICTNESS_WELLFORMED,	/* ignore non-parser messages */
 	PG_XML_STRICTNESS_ALL		/* report all notices/warnings/errors */
-} PgXmlStrictness;
+}			PgXmlStrictness;
 
 /* struct PgXmlErrorContext is private to xml.c */
 typedef struct PgXmlErrorContext PgXmlErrorContext;
@@ -54,21 +54,21 @@ typedef struct PgXmlErrorContext PgXmlErrorContext;
 #define PG_RETURN_XML_P(x)	PG_RETURN_POINTER(x)
 
 extern void pg_xml_init_library(void);
-extern PgXmlErrorContext *pg_xml_init(PgXmlStrictness strictness);
-extern void pg_xml_done(PgXmlErrorContext *errcxt, bool isError);
-extern bool pg_xml_error_occurred(PgXmlErrorContext *errcxt);
-extern void xml_ereport(PgXmlErrorContext *errcxt, int level, int sqlcode,
+extern PgXmlErrorContext * pg_xml_init(PgXmlStrictness strictness);
+extern void pg_xml_done(PgXmlErrorContext * errcxt, bool isError);
+extern bool pg_xml_error_occurred(PgXmlErrorContext * errcxt);
+extern void xml_ereport(PgXmlErrorContext * errcxt, int level, int sqlcode,
 			const char *msg);
 
-extern xmltype *xmlconcat(List *args);
-extern xmltype *xmlelement(XmlExpr *xexpr,
-		   Datum *named_argvalue, bool *named_argnull,
-		   Datum *argvalue, bool *argnull);
-extern xmltype *xmlparse(text *data, XmlOptionType xmloption, bool preserve_whitespace);
-extern xmltype *xmlpi(char *target, text *arg, bool arg_is_null, bool *result_is_null);
-extern xmltype *xmlroot(xmltype *data, text *version, int standalone);
-extern bool xml_is_document(xmltype *arg);
-extern text *xmltotext_with_xmloption(xmltype *data, XmlOptionType xmloption_arg);
+extern xmltype * xmlconcat(List * args);
+extern xmltype * xmlelement(XmlExpr * xexpr,
+							Datum * named_argvalue, bool *named_argnull,
+							Datum * argvalue, bool *argnull);
+extern xmltype * xmlparse(text * data, XmlOptionType xmloption, bool preserve_whitespace);
+extern xmltype * xmlpi(char *target, text * arg, bool arg_is_null, bool *result_is_null);
+extern xmltype * xmlroot(xmltype * data, text * version, int standalone);
+extern bool xml_is_document(xmltype * arg);
+extern text * xmltotext_with_xmloption(xmltype * data, XmlOptionType xmloption_arg);
 extern char *escape_xml(const char *str);
 
 extern char *map_sql_identifier_to_xml_name(char *ident, bool fully_escaped, bool escape_period);

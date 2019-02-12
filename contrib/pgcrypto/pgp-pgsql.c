@@ -65,7 +65,7 @@ PG_FUNCTION_INFO_V1(pgp_armor_headers);
  * returns src in case of no conversion or error
  */
 static text *
-convert_charset(text *src, int cset_from, int cset_to)
+convert_charset(text * src, int cset_from, int cset_to)
 {
 	int			src_len = VARSIZE_ANY_EXHDR(src);
 	unsigned char *dst;
@@ -82,13 +82,13 @@ convert_charset(text *src, int cset_from, int cset_to)
 }
 
 static text *
-convert_from_utf8(text *src)
+convert_from_utf8(text * src)
 {
 	return convert_charset(src, PG_UTF8, GetDatabaseEncoding());
 }
 
 static text *
-convert_to_utf8(text *src)
+convert_to_utf8(text * src)
 {
 	return convert_charset(src, GetDatabaseEncoding(), PG_UTF8);
 }
@@ -107,7 +107,7 @@ string_is_ascii(const char *str)
 }
 
 static void
-clear_and_pfree(text *p)
+clear_and_pfree(text * p)
 {
 	px_memset(p, 0, VARSIZE_ANY(p));
 	pfree(p);
@@ -157,7 +157,7 @@ fill_expect(struct debug_expect *ex, int text_mode)
 	} while (0)
 
 static void
-check_expect(PGP_Context *ctx, struct debug_expect *ex)
+check_expect(PGP_Context * ctx, struct debug_expect *ex)
 {
 	EX_CHECK(cipher_algo);
 	EX_CHECK(s2k_mode);
@@ -178,7 +178,7 @@ show_debug(const char *msg)
 }
 
 static int
-set_arg(PGP_Context *ctx, char *key, char *val,
+set_arg(PGP_Context * ctx, char *key, char *val,
 		struct debug_expect *ex)
 {
 	int			res = 0;
@@ -298,7 +298,7 @@ getword(char *p, char **res_p, int *res_len)
  * Convert to lowercase asciiz string.
  */
 static char *
-downcase_convert(const uint8 *s, int len)
+downcase_convert(const uint8 * s, int len)
 {
 	int			c,
 				i;
@@ -316,7 +316,7 @@ downcase_convert(const uint8 *s, int len)
 }
 
 static int
-parse_args(PGP_Context *ctx, uint8 *args, int arg_len,
+parse_args(PGP_Context * ctx, uint8 * args, int arg_len,
 		   struct debug_expect *ex)
 {
 	char	   *str = downcase_convert(args, arg_len);
@@ -354,15 +354,15 @@ parse_args(PGP_Context *ctx, uint8 *args, int arg_len,
 }
 
 static MBuf *
-create_mbuf_from_vardata(text *data)
+create_mbuf_from_vardata(text * data)
 {
 	return mbuf_create_from_data((uint8 *) VARDATA_ANY(data),
 								 VARSIZE_ANY_EXHDR(data));
 }
 
 static void
-init_work(PGP_Context **ctx_p, int is_text,
-		  text *args, struct debug_expect *ex)
+init_work(PGP_Context * *ctx_p, int is_text,
+		  text * args, struct debug_expect *ex)
 {
 	int			err = pgp_init(ctx_p);
 
@@ -383,7 +383,7 @@ init_work(PGP_Context **ctx_p, int is_text,
 
 static bytea *
 encrypt_internal(int is_pubenc, int is_text,
-				 text *data, text *key, text *args)
+				 text * data, text * key, text * args)
 {
 	MBuf	   *src,
 			   *dst;
@@ -468,8 +468,8 @@ encrypt_internal(int is_pubenc, int is_text,
 }
 
 static bytea *
-decrypt_internal(int is_pubenc, int need_text, text *data,
-				 text *key, text *keypsw, text *args)
+decrypt_internal(int is_pubenc, int need_text, text * data,
+				 text * key, text * keypsw, text * args)
 {
 	int			err;
 	MBuf	   *src = NULL,
@@ -765,7 +765,7 @@ pgp_pub_decrypt_text(PG_FUNCTION_ARGS)
  * plain C arrays, and checks that they don't contain invalid characters.
  */
 static int
-parse_key_value_arrays(ArrayType *key_array, ArrayType *val_array,
+parse_key_value_arrays(ArrayType * key_array, ArrayType * val_array,
 					   char ***p_keys, char ***p_values)
 {
 	int			nkdims = ARR_NDIM(key_array);
@@ -924,7 +924,7 @@ typedef struct
 	int			nheaders;
 	char	  **keys;
 	char	  **values;
-} pgp_armor_headers_state;
+}			pgp_armor_headers_state;
 
 Datum
 pgp_armor_headers(PG_FUNCTION_ARGS)

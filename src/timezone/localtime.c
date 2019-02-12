@@ -136,7 +136,7 @@ detzcode(const char *codep)
 		 * Do two's-complement negation even on non-two's-complement machines.
 		 * If the result would be minval - 1, return minval.
 		 */
-		result -= !TWOS_COMPLEMENT(int32) &&result != 0;
+		result -= !TWOS_COMPLEMENT(int32) && result != 0;
 		result += minval;
 	}
 	return result;
@@ -150,7 +150,7 @@ detzcode64(const char *codep)
 	int64		one = 1;
 	int64		halfmaxval = one << (64 - 2);
 	int64		maxval = halfmaxval - 1 + halfmaxval;
-	int64		minval = -TWOS_COMPLEMENT(int64) -maxval;
+	int64		minval = -TWOS_COMPLEMENT(int64) - maxval;
 
 	result = codep[0] & 0x7f;
 	for (i = 1; i < 8; ++i)
@@ -162,7 +162,7 @@ detzcode64(const char *codep)
 		 * Do two's-complement negation even on non-two's-complement machines.
 		 * If the result would be minval - 1, return minval.
 		 */
-		result -= !TWOS_COMPLEMENT(int64) &&result != 0;
+		result -= !TWOS_COMPLEMENT(int64) && result != 0;
 		result += minval;
 	}
 	return result;
@@ -171,7 +171,7 @@ detzcode64(const char *codep)
 static bool
 differ_by_repeat(const pg_time_t t1, const pg_time_t t0)
 {
-	if (TYPE_BIT(pg_time_t) -TYPE_SIGNED(pg_time_t) <SECSPERREPEAT_BITS)
+	if (TYPE_BIT(pg_time_t) - TYPE_SIGNED(pg_time_t) < SECSPERREPEAT_BITS)
 		return 0;
 	return t1 - t0 == SECSPERREPEAT;
 }
@@ -670,7 +670,7 @@ getnum(const char *strp, int *nump, int min, int max)
  * of seconds.
  */
 static const char *
-getsecs(const char *strp, int32 *secsp)
+getsecs(const char *strp, int32 * secsp)
 {
 	int			num;
 
@@ -710,7 +710,7 @@ getsecs(const char *strp, int32 *secsp)
  * Otherwise, return a pointer to the first character not part of the time.
  */
 static const char *
-getoffset(const char *strp, int32 *offsetp)
+getoffset(const char *strp, int32 * offsetp)
 {
 	bool		neg = false;
 
@@ -1047,11 +1047,11 @@ tzparse(const char *name, struct state *sp, bool lastditch)
 			for (year = yearbeg; year < yearlim; year++)
 			{
 				int32
-							starttime = transtime(year, &start, stdoffset),
-							endtime = transtime(year, &end, dstoffset);
+					starttime = transtime(year, &start, stdoffset),
+					endtime = transtime(year, &end, dstoffset);
 				int32
-							yearsecs = (year_lengths[isleap(year)]
-										* SECSPERDAY);
+					yearsecs = (year_lengths[isleap(year)]
+								* SECSPERDAY);
 				bool		reversed = endtime < starttime;
 
 				if (reversed)
@@ -1237,7 +1237,7 @@ localsub(struct state const *sp, pg_time_t const *timep,
 	const struct ttinfo *ttisp;
 	int			i;
 	struct pg_tm *result;
-	const pg_time_t t = *timep;
+	const		pg_time_t t = *timep;
 
 	if (sp == NULL)
 		return gmtsub(timep, 0, tmp);
@@ -1311,7 +1311,7 @@ localsub(struct state const *sp, pg_time_t const *timep,
 
 
 struct pg_tm *
-pg_localtime(const pg_time_t *timep, const pg_tz *tz)
+pg_localtime(const pg_time_t * timep, const pg_tz * tz)
 {
 	return localsub(&tz->state, timep, &tm);
 }
@@ -1352,7 +1352,7 @@ gmtsub(pg_time_t const *timep, int32 offset, struct pg_tm *tmp)
 }
 
 struct pg_tm *
-pg_gmtime(const pg_time_t *timep)
+pg_gmtime(const pg_time_t * timep)
 {
 	return gmtsub(timep, 0, &tm);
 }
@@ -1376,7 +1376,7 @@ leaps_thru_end_of(const int y)
 }
 
 static struct pg_tm *
-timesub(const pg_time_t *timep, int32 offset,
+timesub(const pg_time_t * timep, int32 offset,
 		const struct state *sp, struct pg_tm *tmp)
 {
 	const struct lsinfo *lp;
@@ -1414,7 +1414,7 @@ timesub(const pg_time_t *timep, int32 offset,
 		int			leapdays;
 
 		tdelta = tdays / DAYSPERLYEAR;
-		if (!((!TYPE_SIGNED(pg_time_t) ||INT_MIN <= tdelta)
+		if (!((!TYPE_SIGNED(pg_time_t) || INT_MIN <= tdelta)
 			  && tdelta <= INT_MAX))
 			goto out_of_range;
 		idelta = tdelta;
@@ -1519,7 +1519,7 @@ increment_overflow(int *ip, int j)
 }
 
 static bool
-increment_overflow_time(pg_time_t *tp, int32 j)
+increment_overflow_time(pg_time_t * tp, int32 j)
 {
 	/*----------
 	 * This is like
@@ -1556,19 +1556,19 @@ increment_overflow_time(pg_time_t *tp, int32 j)
  * occur in our current implementation).
  */
 int
-pg_next_dst_boundary(const pg_time_t *timep,
+pg_next_dst_boundary(const pg_time_t * timep,
 					 long int *before_gmtoff,
 					 int *before_isdst,
-					 pg_time_t *boundary,
+					 pg_time_t * boundary,
 					 long int *after_gmtoff,
 					 int *after_isdst,
-					 const pg_tz *tz)
+					 const pg_tz * tz)
 {
 	const struct state *sp;
 	const struct ttinfo *ttisp;
 	int			i;
 	int			j;
-	const pg_time_t t = *timep;
+	const		pg_time_t t = *timep;
 
 	sp = &tz->state;
 	if (sp->timecnt == 0)
@@ -1704,10 +1704,10 @@ pg_next_dst_boundary(const pg_time_t *timep,
  */
 bool
 pg_interpret_timezone_abbrev(const char *abbrev,
-							 const pg_time_t *timep,
+							 const pg_time_t * timep,
 							 long int *gmtoff,
 							 int *isdst,
-							 const pg_tz *tz)
+							 const pg_tz * tz)
 {
 	const struct state *sp;
 	const char *abbrs;
@@ -1715,7 +1715,7 @@ pg_interpret_timezone_abbrev(const char *abbrev,
 	int			abbrind;
 	int			cutoff;
 	int			i;
-	const pg_time_t t = *timep;
+	const		pg_time_t t = *timep;
 
 	sp = &tz->state;
 
@@ -1797,7 +1797,7 @@ pg_interpret_timezone_abbrev(const char *abbrev,
  * into *gmtoff and return true, else return false.
  */
 bool
-pg_get_timezone_offset(const pg_tz *tz, long int *gmtoff)
+pg_get_timezone_offset(const pg_tz * tz, long int *gmtoff)
 {
 	/*
 	 * The zone could have more than one ttinfo, if it's historically used
@@ -1821,7 +1821,7 @@ pg_get_timezone_offset(const pg_tz *tz, long int *gmtoff)
  * Return the name of the current timezone
  */
 const char *
-pg_get_timezone_name(pg_tz *tz)
+pg_get_timezone_name(pg_tz * tz)
 {
 	if (tz)
 		return tz->TZname;
@@ -1836,7 +1836,7 @@ pg_get_timezone_name(pg_tz *tz)
  * date/time arithmetic.
  */
 bool
-pg_tz_acceptable(pg_tz *tz)
+pg_tz_acceptable(pg_tz * tz)
 {
 	struct pg_tm *tt;
 	pg_time_t	time2000;

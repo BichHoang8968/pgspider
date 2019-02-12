@@ -38,7 +38,7 @@ typedef struct LWLock
 	pg_atomic_uint32 nwaiters;	/* number of waiters */
 	struct PGPROC *owner;		/* last exclusive owner of the lock */
 #endif
-} LWLock;
+}			LWLock;
 
 /*
  * In most cases, it's desirable to force each tranche of LWLocks to be aligned
@@ -78,16 +78,16 @@ typedef union LWLockPadded
 {
 	LWLock		lock;
 	char		pad[LWLOCK_PADDED_SIZE];
-} LWLockPadded;
+}			LWLockPadded;
 
 /* LWLock, minimally padded */
 typedef union LWLockMinimallyPadded
 {
 	LWLock		lock;
 	char		pad[LWLOCK_MINIMAL_SIZE];
-} LWLockMinimallyPadded;
+}			LWLockMinimallyPadded;
 
-extern PGDLLIMPORT LWLockPadded *MainLWLockArray;
+extern PGDLLIMPORT LWLockPadded * MainLWLockArray;
 extern char *MainLWLockNames[];
 
 /* struct for storing named tranche information */
@@ -95,9 +95,9 @@ typedef struct NamedLWLockTranche
 {
 	int			trancheId;
 	char	   *trancheName;
-} NamedLWLockTranche;
+}			NamedLWLockTranche;
 
-extern PGDLLIMPORT NamedLWLockTranche *NamedLWLockTrancheArray;
+extern PGDLLIMPORT NamedLWLockTranche * NamedLWLockTrancheArray;
 extern PGDLLIMPORT int NamedLWLockTrancheRequests;
 
 /* Names for fixed lwlocks */
@@ -136,24 +136,24 @@ typedef enum LWLockMode
 	LW_WAIT_UNTIL_FREE			/* A special mode used in PGPROC->lwlockMode,
 								 * when waiting for lock to become free. Not
 								 * to be used as LWLockAcquire argument */
-} LWLockMode;
+}			LWLockMode;
 
 
 #ifdef LOCK_DEBUG
 extern bool Trace_lwlocks;
 #endif
 
-extern bool LWLockAcquire(LWLock *lock, LWLockMode mode);
-extern bool LWLockConditionalAcquire(LWLock *lock, LWLockMode mode);
-extern bool LWLockAcquireOrWait(LWLock *lock, LWLockMode mode);
-extern void LWLockRelease(LWLock *lock);
-extern void LWLockReleaseClearVar(LWLock *lock, uint64 *valptr, uint64 val);
+extern bool LWLockAcquire(LWLock * lock, LWLockMode mode);
+extern bool LWLockConditionalAcquire(LWLock * lock, LWLockMode mode);
+extern bool LWLockAcquireOrWait(LWLock * lock, LWLockMode mode);
+extern void LWLockRelease(LWLock * lock);
+extern void LWLockReleaseClearVar(LWLock * lock, uint64 * valptr, uint64 val);
 extern void LWLockReleaseAll(void);
-extern bool LWLockHeldByMe(LWLock *lock);
-extern bool LWLockHeldByMeInMode(LWLock *lock, LWLockMode mode);
+extern bool LWLockHeldByMe(LWLock * lock);
+extern bool LWLockHeldByMeInMode(LWLock * lock, LWLockMode mode);
 
-extern bool LWLockWaitForVar(LWLock *lock, uint64 *valptr, uint64 oldval, uint64 *newval);
-extern void LWLockUpdateVar(LWLock *lock, uint64 *valptr, uint64 value);
+extern bool LWLockWaitForVar(LWLock * lock, uint64 * valptr, uint64 oldval, uint64 * newval);
+extern void LWLockUpdateVar(LWLock * lock, uint64 * valptr, uint64 value);
 
 extern Size LWLockShmemSize(void);
 extern void CreateLWLocks(void);
@@ -168,7 +168,7 @@ extern const char *GetLWLockIdentifier(uint32 classId, uint16 eventId);
  * the number of LWLocks requested.
  */
 extern void RequestNamedLWLockTranche(const char *tranche_name, int num_lwlocks);
-extern LWLockPadded *GetNamedLWLockTranche(const char *tranche_name);
+extern LWLockPadded * GetNamedLWLockTranche(const char *tranche_name);
 
 /*
  * There is another, more flexible method of obtaining lwlocks. First, call
@@ -185,7 +185,7 @@ extern LWLockPadded *GetNamedLWLockTranche(const char *tranche_name);
  */
 extern int	LWLockNewTrancheId(void);
 extern void LWLockRegisterTranche(int tranche_id, char *tranche_name);
-extern void LWLockInitialize(LWLock *lock, int tranche_id);
+extern void LWLockInitialize(LWLock * lock, int tranche_id);
 
 /*
  * Every tranche ID less than NUM_INDIVIDUAL_LWLOCKS is reserved; also,
@@ -221,6 +221,6 @@ typedef enum BuiltinTrancheIds
  * to LWLocks.  New code should instead use LWLock *.  However, for the
  * convenience of third-party code, we include the following typedef.
  */
-typedef LWLock *LWLockId;
+typedef LWLock * LWLockId;
 
 #endif							/* LWLOCK_H */

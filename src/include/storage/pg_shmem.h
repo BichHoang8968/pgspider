@@ -39,7 +39,7 @@ typedef struct PGShmemHeader	/* standard header for all Postgres shmem */
 	dev_t		device;			/* device data directory is on */
 	ino_t		inode;			/* inode number of data directory */
 #endif
-} PGShmemHeader;
+}			PGShmemHeader;
 
 /* GUC variable */
 extern int	huge_pages;
@@ -64,8 +64,8 @@ extern void PGSharedMemoryReAttach(void);
 extern void PGSharedMemoryNoReAttach(void);
 #endif
 
-extern PGShmemHeader *PGSharedMemoryCreate(Size size, bool makePrivate,
-					 int port, PGShmemHeader **shim);
+extern PGShmemHeader * PGSharedMemoryCreate(Size size, bool makePrivate,
+											int port, PGShmemHeader * *shim);
 extern bool PGSharedMemoryIsInUse(unsigned long id1, unsigned long id2);
 extern void PGSharedMemoryDetach(void);
 

@@ -41,7 +41,7 @@ CATALOG(pg_foreign_table,3118) BKI_WITHOUT_OIDS
  *		the format of pg_foreign_table relation.
  * ----------------
  */
-typedef FormData_pg_foreign_table *Form_pg_foreign_table;
+typedef FormData_pg_foreign_table * Form_pg_foreign_table;
 
 /* ----------------
  *		compiler constants for pg_foreign_table

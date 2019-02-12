@@ -91,7 +91,7 @@ _h_spoolinit(Relation heap, Relation index, uint32 num_buckets)
  * clean up a spool structure and its substructures.
  */
 void
-_h_spooldestroy(HSpool *hspool)
+_h_spooldestroy(HSpool * hspool)
 {
 	tuplesort_end(hspool->sortstate);
 	pfree(hspool);
@@ -101,7 +101,7 @@ _h_spooldestroy(HSpool *hspool)
  * spool an index entry into the sort file.
  */
 void
-_h_spool(HSpool *hspool, ItemPointer self, Datum *values, bool *isnull)
+_h_spool(HSpool * hspool, ItemPointer self, Datum * values, bool *isnull)
 {
 	tuplesort_putindextuplevalues(hspool->sortstate, hspool->index,
 								  self, values, isnull);
@@ -112,7 +112,7 @@ _h_spool(HSpool *hspool, ItemPointer self, Datum *values, bool *isnull)
  * create an entire index.
  */
 void
-_h_indexbuild(HSpool *hspool, Relation heapRel)
+_h_indexbuild(HSpool * hspool, Relation heapRel)
 {
 	IndexTuple	itup;
 #ifdef USE_ASSERT_CHECKING

@@ -29,7 +29,7 @@ typedef struct
 	int			len;			/* length in bytes */
 	int			flag;
 	int			wlen;			/* length in characters */
-} nodeitem;
+}			nodeitem;
 
 #define LTPRS_WAITNAME	0
 #define LTPRS_WAITDELIM 1

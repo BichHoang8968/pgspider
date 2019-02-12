@@ -55,7 +55,8 @@ garbage_left(enum ARRAY_TYPE isarray, char **scan_length, enum COMPAT_MODE compa
 		if (INFORMIX_MODE(compat) && **scan_length == '.')
 		{
 			/* skip invalid characters */
-			do {
+			do
+			{
 				(*scan_length)++;
 			} while (isdigit((unsigned char) **scan_length));
 		}
@@ -123,7 +124,7 @@ check_special_value(char *ptr, double *retval, char **endptr)
 }
 
 bool
-ecpg_get_data(const PGresult *results, int act_tuple, int act_field, int lineno,
+ecpg_get_data(const PGresult * results, int act_tuple, int act_field, int lineno,
 			  enum ECPGttype type, enum ECPGttype ind_type,
 			  char *var, char *ind, long varcharsize, long offset,
 			  long ind_offset, enum ARRAY_TYPE isarray, enum COMPAT_MODE compat, bool force_indicator)

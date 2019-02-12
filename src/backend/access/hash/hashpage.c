@@ -41,7 +41,7 @@ static void _hash_splitbucket(Relation rel, Buffer metabuf,
 				  Bucket obucket, Bucket nbucket,
 				  Buffer obuf,
 				  Buffer nbuf,
-				  HTAB *htab,
+				  HTAB * htab,
 				  uint32 maxbucket,
 				  uint32 highmask, uint32 lowmask);
 static void log_split_page(Relation rel, Buffer buf);
@@ -1081,7 +1081,7 @@ _hash_splitbucket(Relation rel,
 				  Bucket nbucket,
 				  Buffer obuf,
 				  Buffer nbuf,
-				  HTAB *htab,
+				  HTAB * htab,
 				  uint32 maxbucket,
 				  uint32 highmask,
 				  uint32 lowmask)
@@ -1499,7 +1499,7 @@ log_split_page(Relation rel, Buffer buf)
  *	We refresh the cache if it's not initialized yet or force_refresh is true.
  */
 HashMetaPage
-_hash_getcachedmetap(Relation rel, Buffer *metabuf, bool force_refresh)
+_hash_getcachedmetap(Relation rel, Buffer * metabuf, bool force_refresh)
 {
 	Page		page;
 
@@ -1558,7 +1558,7 @@ _hash_getcachedmetap(Relation rel, Buffer *metabuf, bool force_refresh)
  */
 Buffer
 _hash_getbucketbuf_from_hashkey(Relation rel, uint32 hashkey, int access,
-								HashMetaPage *cachedmetap)
+								HashMetaPage * cachedmetap)
 {
 	HashMetaPage metap;
 	Buffer		buf;

@@ -275,7 +275,7 @@ sepgsql_object_access(ObjectAccessType access,
  * Entrypoint of DML permissions
  */
 static bool
-sepgsql_exec_check_perms(List *rangeTabls, bool abort)
+sepgsql_exec_check_perms(List * rangeTabls, bool abort)
 {
 	/*
 	 * If security provider is stacking and one of them replied 'false' at
@@ -298,12 +298,12 @@ sepgsql_exec_check_perms(List *rangeTabls, bool abort)
  * break whole of the things if nefarious user would use.
  */
 static void
-sepgsql_utility_command(PlannedStmt *pstmt,
+sepgsql_utility_command(PlannedStmt * pstmt,
 						const char *queryString,
 						ProcessUtilityContext context,
 						ParamListInfo params,
-						QueryEnvironment *queryEnv,
-						DestReceiver *dest,
+						QueryEnvironment * queryEnv,
+						DestReceiver * dest,
 						char *completionTag)
 {
 	Node	   *parsetree = pstmt->utilityStmt;

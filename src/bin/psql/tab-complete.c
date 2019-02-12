@@ -117,7 +117,7 @@ typedef struct SchemaQuery
 	 * Enter that here, or write NULL if result can be used.
 	 */
 	const char *qualresult;
-} SchemaQuery;
+}			SchemaQuery;
 
 
 /* Store maximum number of records we want from database queries
@@ -991,9 +991,9 @@ typedef struct
 {
 	const char *name;
 	const char *query;			/* simple query, or NULL */
-	const SchemaQuery *squery;	/* schema query, or NULL */
-	const bits32 flags;			/* visibility flags, see below */
-} pgsql_thing_t;
+	const		SchemaQuery *squery;	/* schema query, or NULL */
+	const		bits32 flags;	/* visibility flags, see below */
+}			pgsql_thing_t;
 
 #define THING_NO_CREATE		(1 << 0)	/* should not show up after CREATE */
 #define THING_NO_DROP		(1 << 1)	/* should not show up after DROP */
@@ -1083,7 +1083,7 @@ static char *complete_from_files(const char *text, int state);
 
 static char *pg_strdup_keyword_case(const char *s, const char *ref);
 static char *escape_string(const char *text);
-static PGresult *exec_query(const char *query);
+static PGresult * exec_query(const char *query);
 
 static char **get_previous_words(int point, char **buffer, int *nwords);
 
@@ -3734,7 +3734,7 @@ _complete_from_query(int is_schema_query, const char *text, int state)
 {
 	static int	list_index,
 				byte_length;
-	static PGresult *result = NULL;
+	static PGresult * result = NULL;
 
 	/*
 	 * If this is the first time for this completion, we fetch a list of our
@@ -3810,7 +3810,7 @@ _complete_from_query(int is_schema_query, const char *text, int state)
 			 */
 			if (strcmp(completion_squery->catname,
 					   "pg_catalog.pg_class c") == 0 &&
-				strncmp(text, "pg_", 3) !=0)
+				strncmp(text, "pg_", 3) != 0)
 			{
 				appendPQExpBufferStr(&query_buffer,
 									 " AND c.relnamespace <> (SELECT oid FROM"
@@ -4375,7 +4375,7 @@ quote_file_name(char *text, int match_type, char *quote_pointer)
 
 	(void) quote_pointer;		/* not used */
 
-	length = strlen(text) +(match_type == SINGLE_MATCH ? 3 : 2);
+	length = strlen(text) + (match_type == SINGLE_MATCH ? 3 : 2);
 	s = pg_malloc(length);
 	s[0] = '\'';
 	strcpy(s + 1, text);
@@ -4396,7 +4396,7 @@ dequote_file_name(char *text, char quote_char)
 
 	length = strlen(text);
 	s = pg_malloc(length - 2 + 1);
-	strlcpy(s, text +1, length - 2 + 1);
+	strlcpy(s, text + 1, length - 2 + 1);
 
 	return s;
 }

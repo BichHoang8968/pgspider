@@ -38,7 +38,7 @@ CATALOG(pg_ts_config_map,3603) BKI_WITHOUT_OIDS
 	Oid			mapdict;		/* dictionary to consult */
 } FormData_pg_ts_config_map;
 
-typedef FormData_pg_ts_config_map *Form_pg_ts_config_map;
+typedef FormData_pg_ts_config_map * Form_pg_ts_config_map;
 
 /* ----------------
  *		compiler constants for pg_ts_config_map

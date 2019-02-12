@@ -45,9 +45,9 @@ static char *replication_slot = NULL;
 
 
 static void usage(void);
-static DIR *get_destination_dir(char *dest_folder);
-static void close_destination_dir(DIR *dest_dir, char *dest_folder);
-static XLogRecPtr FindStreamingStart(uint32 *tli);
+static DIR * get_destination_dir(char *dest_folder);
+static void close_destination_dir(DIR * dest_dir, char *dest_folder);
+static XLogRecPtr FindStreamingStart(uint32 * tli);
 static void StreamLog(void);
 static bool stop_streaming(XLogRecPtr segendpos, uint32 timeline,
 			   bool segment_finished);
@@ -163,7 +163,7 @@ get_destination_dir(char *dest_folder)
  * Close existing directory.
  */
 static void
-close_destination_dir(DIR *dest_dir, char *dest_folder)
+close_destination_dir(DIR * dest_dir, char *dest_folder)
 {
 	Assert(dest_dir != NULL && dest_folder != NULL);
 	if (closedir(dest_dir))
@@ -183,7 +183,7 @@ close_destination_dir(DIR *dest_dir, char *dest_folder)
  * If there are no WAL files in the directory, returns InvalidXLogRecPtr.
  */
 static XLogRecPtr
-FindStreamingStart(uint32 *tli)
+FindStreamingStart(uint32 * tli)
 {
 	DIR		   *dir;
 	struct dirent *dirent;

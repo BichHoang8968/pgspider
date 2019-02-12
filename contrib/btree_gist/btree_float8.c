@@ -10,7 +10,7 @@ typedef struct float8key
 {
 	float8		lower;
 	float8		upper;
-} float8KEY;
+}			float8KEY;
 
 /*
 ** float8 ops
@@ -26,33 +26,33 @@ PG_FUNCTION_INFO_V1(gbt_float8_same);
 
 
 static bool
-gbt_float8gt(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_float8gt(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const float8 *) a) > *((const float8 *) b));
 }
 static bool
-gbt_float8ge(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_float8ge(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const float8 *) a) >= *((const float8 *) b));
 }
 static bool
-gbt_float8eq(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_float8eq(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const float8 *) a) == *((const float8 *) b));
 }
 static bool
-gbt_float8le(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_float8le(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const float8 *) a) <= *((const float8 *) b));
 }
 static bool
-gbt_float8lt(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_float8lt(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return (*((const float8 *) a) < *((const float8 *) b));
 }
 
 static int
-gbt_float8key_cmp(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_float8key_cmp(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	float8KEY  *ia = (float8KEY *) (((const Nsrt *) a)->t);
 	float8KEY  *ib = (float8KEY *) (((const Nsrt *) b)->t);
@@ -69,7 +69,7 @@ gbt_float8key_cmp(const void *a, const void *b, FmgrInfo *flinfo)
 }
 
 static float8
-gbt_float8_dist(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_float8_dist(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	float8		arg1 = *(const float8 *) a;
 	float8		arg2 = *(const float8 *) b;
@@ -147,8 +147,8 @@ gbt_float8_consistent(PG_FUNCTION_ARGS)
 	/* All cases served by this function are exact */
 	*recheck = false;
 
-	key.lower = (GBT_NUMKEY *) &kkk->lower;
-	key.upper = (GBT_NUMKEY *) &kkk->upper;
+	key.lower = (GBT_NUMKEY *) & kkk->lower;
+	key.upper = (GBT_NUMKEY *) & kkk->upper;
 
 	PG_RETURN_BOOL(
 				   gbt_num_consistent(&key, (void *) &query, &strategy, GIST_LEAF(entry), &tinfo, fcinfo->flinfo)
@@ -166,8 +166,8 @@ gbt_float8_distance(PG_FUNCTION_ARGS)
 	float8KEY  *kkk = (float8KEY *) DatumGetPointer(entry->key);
 	GBT_NUMKEY_R key;
 
-	key.lower = (GBT_NUMKEY *) &kkk->lower;
-	key.upper = (GBT_NUMKEY *) &kkk->upper;
+	key.lower = (GBT_NUMKEY *) & kkk->lower;
+	key.upper = (GBT_NUMKEY *) & kkk->upper;
 
 	PG_RETURN_FLOAT8(
 					 gbt_num_distance(&key, (void *) &query, GIST_LEAF(entry), &tinfo, fcinfo->flinfo)

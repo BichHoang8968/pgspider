@@ -193,7 +193,7 @@ struct PGPROC
 /* NOTE: "typedef struct PGPROC PGPROC" appears in storage/lock.h. */
 
 
-extern PGDLLIMPORT PGPROC *MyProc;
+extern PGDLLIMPORT PGPROC * MyProc;
 extern PGDLLIMPORT struct PGXACT *MyPgXact;
 
 /*
@@ -221,7 +221,7 @@ typedef struct PGXACT
 								 * previously called InCommit */
 
 	uint8		nxids;
-} PGXACT;
+}			PGXACT;
 
 /*
  * There is one ProcGlobal struct for the whole database cluster.
@@ -253,11 +253,11 @@ typedef struct PROC_HDR
 	int			startupProcPid;
 	/* Buffer id of the buffer that Startup process waits for pin on, or -1 */
 	int			startupBufferPinWaitBufId;
-} PROC_HDR;
+}			PROC_HDR;
 
-extern PGDLLIMPORT PROC_HDR *ProcGlobal;
+extern PGDLLIMPORT PROC_HDR * ProcGlobal;
 
-extern PGPROC *PreparedXactProcs;
+extern PGPROC * PreparedXactProcs;
 
 /* Accessor for PGPROC given a pgprocno. */
 #define GetPGProcByNumber(n) (&ProcGlobal->allProcs[(n)])
@@ -297,10 +297,10 @@ extern int	GetStartupBufferPinWaitBufId(void);
 extern bool HaveNFreeProcs(int n);
 extern void ProcReleaseLocks(bool isCommit);
 
-extern void ProcQueueInit(PROC_QUEUE *queue);
-extern int	ProcSleep(LOCALLOCK *locallock, LockMethod lockMethodTable);
-extern PGPROC *ProcWakeup(PGPROC *proc, int waitStatus);
-extern void ProcLockWakeup(LockMethod lockMethodTable, LOCK *lock);
+extern void ProcQueueInit(PROC_QUEUE * queue);
+extern int	ProcSleep(LOCALLOCK * locallock, LockMethod lockMethodTable);
+extern PGPROC * ProcWakeup(PGPROC * proc, int waitStatus);
+extern void ProcLockWakeup(LockMethod lockMethodTable, LOCK * lock);
 extern void CheckDeadLockAlert(void);
 extern bool IsWaitingForLock(void);
 extern void LockErrorCleanup(void);
@@ -308,9 +308,9 @@ extern void LockErrorCleanup(void);
 extern void ProcWaitForSignal(uint32 wait_event_info);
 extern void ProcSendSignal(int pid);
 
-extern PGPROC *AuxiliaryPidGetProc(int pid);
+extern PGPROC * AuxiliaryPidGetProc(int pid);
 
 extern void BecomeLockGroupLeader(void);
-extern bool BecomeLockGroupMember(PGPROC *leader, int pid);
+extern bool BecomeLockGroupMember(PGPROC * leader, int pid);
 
 #endif							/* PROC_H */

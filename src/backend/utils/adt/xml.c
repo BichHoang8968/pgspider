@@ -117,7 +117,7 @@ struct PgXmlErrorContext
 };
 
 static xmlParserInputPtr xmlPgEntityLoader(const char *URL, const char *ID,
-				  xmlParserCtxtPtr ctxt);
+										   xmlParserCtxtPtr ctxt);
 static void xml_errorHandler(void *data, xmlErrorPtr error);
 static void xml_ereport_by_code(int level, int sqlcode,
 					const char *msg, int errcode);
@@ -135,18 +135,18 @@ static void xml_pfree(void *ptr);
 static char *xml_pstrdup(const char *string);
 #endif							/* USE_LIBXMLCONTEXT */
 
-static xmlChar *xml_text2xmlChar(text *in);
-static int parse_xml_decl(const xmlChar *str, size_t *lenp,
-			   xmlChar **version, xmlChar **encoding, int *standalone);
-static bool print_xml_decl(StringInfo buf, const xmlChar *version,
+static xmlChar * xml_text2xmlChar(text * in);
+static int parse_xml_decl(const xmlChar * str, size_t * lenp,
+			   xmlChar * *version, xmlChar * *encoding, int *standalone);
+static bool print_xml_decl(StringInfo buf, const xmlChar * version,
 			   pg_enc encoding, int standalone);
-static xmlDocPtr xml_parse(text *data, XmlOptionType xmloption_arg,
-		  bool preserve_whitespace, int encoding);
-static text *xml_xmlnodetoxmltype(xmlNodePtr cur, PgXmlErrorContext *xmlerrcxt);
+static xmlDocPtr xml_parse(text * data, XmlOptionType xmloption_arg,
+						   bool preserve_whitespace, int encoding);
+static text * xml_xmlnodetoxmltype(xmlNodePtr cur, PgXmlErrorContext * xmlerrcxt);
 static int xml_xpathobjtoxmlarray(xmlXPathObjectPtr xpathobj,
-					   ArrayBuildState *astate,
-					   PgXmlErrorContext *xmlerrcxt);
-static xmlChar *pg_xmlCharStrndup(char *str, size_t len);
+					   ArrayBuildState * astate,
+					   PgXmlErrorContext * xmlerrcxt);
+static xmlChar * pg_xmlCharStrndup(char *str, size_t len);
 #endif							/* USE_LIBXML */
 
 static void xmldata_root_element_start(StringInfo result, const char *eltname,
@@ -154,18 +154,18 @@ static void xmldata_root_element_start(StringInfo result, const char *eltname,
 						   bool top_level);
 static void xmldata_root_element_end(StringInfo result, const char *eltname);
 static StringInfo query_to_xml_internal(const char *query, char *tablename,
-					  const char *xmlschema, bool nulls, bool tableforest,
-					  const char *targetns, bool top_level);
+										const char *xmlschema, bool nulls, bool tableforest,
+										const char *targetns, bool top_level);
 static const char *map_sql_table_to_xmlschema(TupleDesc tupdesc, Oid relid,
 						   bool nulls, bool tableforest, const char *targetns);
 static const char *map_sql_schema_to_xmlschema_types(Oid nspid,
-								  List *relid_list, bool nulls,
+								  List * relid_list, bool nulls,
 								  bool tableforest, const char *targetns);
-static const char *map_sql_catalog_to_xmlschema_types(List *nspid_list,
+static const char *map_sql_catalog_to_xmlschema_types(List * nspid_list,
 								   bool nulls, bool tableforest,
 								   const char *targetns);
 static const char *map_sql_type_to_xml_name(Oid typeoid, int typmod);
-static const char *map_sql_typecoll_to_xmlschema_types(List *tupdesc_list);
+static const char *map_sql_typecoll_to_xmlschema_types(List * tupdesc_list);
 static const char *map_sql_type_to_xmlschema_type(Oid typeoid, int typmod);
 static void SPI_sql_row_to_xmlelement(uint64 rownum, StringInfo result,
 						  char *tablename, bool nulls, bool tableforest,
@@ -187,7 +187,7 @@ typedef struct XmlTableBuilderData
 	xmlXPathCompExprPtr xpathcomp;
 	xmlXPathObjectPtr xpathobj;
 	xmlXPathCompExprPtr *xpathscomp;
-} XmlTableBuilderData;
+}			XmlTableBuilderData;
 #endif
 
 static void XmlTableInitOpaque(struct TableFuncScanState *state, int natts);
@@ -199,10 +199,10 @@ static void XmlTableSetColumnFilter(struct TableFuncScanState *state,
 						char *path, int colnum);
 static bool XmlTableFetchRow(struct TableFuncScanState *state);
 static Datum XmlTableGetValue(struct TableFuncScanState *state, int colnum,
-				 Oid typid, int32 typmod, bool *isnull);
+							  Oid typid, int32 typmod, bool *isnull);
 static void XmlTableDestroyOpaque(struct TableFuncScanState *state);
 
-const TableFuncRoutine XmlTableRoutine =
+const		TableFuncRoutine XmlTableRoutine =
 {
 	XmlTableInitOpaque,
 	XmlTableSetDocument,
@@ -231,7 +231,7 @@ const TableFuncRoutine XmlTableRoutine =
 #ifdef USE_LIBXML
 
 static int
-xmlChar_to_encoding(const xmlChar *encoding_name)
+xmlChar_to_encoding(const xmlChar * encoding_name)
 {
 	int			encoding = pg_char_to_encoding((const char *) encoding_name);
 
@@ -288,7 +288,7 @@ xml_in(PG_FUNCTION_ARGS)
  * representation.
  */
 static char *
-xml_out_internal(xmltype *x, pg_enc target_encoding)
+xml_out_internal(xmltype * x, pg_enc target_encoding)
 {
 	char	   *str = text_to_cstring((text *) x);
 
@@ -434,7 +434,7 @@ xml_send(PG_FUNCTION_ARGS)
 
 #ifdef USE_LIBXML
 static void
-appendStringInfoText(StringInfo str, const text *t)
+appendStringInfoText(StringInfo str, const text * t)
 {
 	appendBinaryStringInfo(str, VARDATA_ANY(t), VARSIZE_ANY_EXHDR(t));
 }
@@ -507,7 +507,7 @@ xmlcomment(PG_FUNCTION_ARGS)
  * of the argument values.  Not very important in practice, though.
  */
 xmltype *
-xmlconcat(List *args)
+xmlconcat(List * args)
 {
 #ifdef USE_LIBXML
 	int			global_standalone = 1;
@@ -610,7 +610,7 @@ xmltotext(PG_FUNCTION_ARGS)
 
 
 text *
-xmltotext_with_xmloption(xmltype *data, XmlOptionType xmloption_arg)
+xmltotext_with_xmloption(xmltype * data, XmlOptionType xmloption_arg)
 {
 	if (xmloption_arg == XMLOPTION_DOCUMENT && !xml_is_document(data))
 		ereport(ERROR,
@@ -623,9 +623,9 @@ xmltotext_with_xmloption(xmltype *data, XmlOptionType xmloption_arg)
 
 
 xmltype *
-xmlelement(XmlExpr *xexpr,
-		   Datum *named_argvalue, bool *named_argnull,
-		   Datum *argvalue, bool *argnull)
+xmlelement(XmlExpr * xexpr,
+		   Datum * named_argvalue, bool *named_argnull,
+		   Datum * argvalue, bool *argnull)
 {
 #ifdef USE_LIBXML
 	xmltype    *result;
@@ -635,8 +635,8 @@ xmlelement(XmlExpr *xexpr,
 	ListCell   *arg;
 	ListCell   *narg;
 	PgXmlErrorContext *xmlerrcxt;
-	volatile xmlBufferPtr buf = NULL;
-	volatile xmlTextWriterPtr writer = NULL;
+	volatile	xmlBufferPtr buf = NULL;
+	volatile	xmlTextWriterPtr writer = NULL;
 
 	/*
 	 * All arguments are already evaluated, and their values are passed in the
@@ -747,7 +747,7 @@ xmlelement(XmlExpr *xexpr,
 
 
 xmltype *
-xmlparse(text *data, XmlOptionType xmloption_arg, bool preserve_whitespace)
+xmlparse(text * data, XmlOptionType xmloption_arg, bool preserve_whitespace)
 {
 #ifdef USE_LIBXML
 	xmlDocPtr	doc;
@@ -765,7 +765,7 @@ xmlparse(text *data, XmlOptionType xmloption_arg, bool preserve_whitespace)
 
 
 xmltype *
-xmlpi(char *target, text *arg, bool arg_is_null, bool *result_is_null)
+xmlpi(char *target, text * arg, bool arg_is_null, bool *result_is_null)
 {
 #ifdef USE_LIBXML
 	xmltype    *result;
@@ -817,7 +817,7 @@ xmlpi(char *target, text *arg, bool arg_is_null, bool *result_is_null)
 
 
 xmltype *
-xmlroot(xmltype *data, text *version, int standalone)
+xmlroot(xmltype * data, text * version, int standalone)
 {
 #ifdef USE_LIBXML
 	char	   *str;
@@ -883,11 +883,11 @@ xmlvalidate(PG_FUNCTION_ARGS)
 
 
 bool
-xml_is_document(xmltype *arg)
+xml_is_document(xmltype * arg)
 {
 #ifdef USE_LIBXML
 	bool		result;
-	volatile xmlDocPtr doc = NULL;
+	volatile	xmlDocPtr doc = NULL;
 	MemoryContext ccxt = CurrentMemoryContext;
 
 	/* We want to catch ereport(INVALID_XML_DOCUMENT) and return false */
@@ -1069,7 +1069,7 @@ pg_xml_init(PgXmlStrictness strictness)
  * (in assert-enabled builds, anyway).
  */
 void
-pg_xml_done(PgXmlErrorContext *errcxt, bool isError)
+pg_xml_done(PgXmlErrorContext * errcxt, bool isError)
 {
 	void	   *cur_errcxt;
 
@@ -1117,7 +1117,7 @@ pg_xml_done(PgXmlErrorContext *errcxt, bool isError)
  * pg_xml_error_occurred() --- test the error flag
  */
 bool
-pg_xml_error_occurred(PgXmlErrorContext *errcxt)
+pg_xml_error_occurred(PgXmlErrorContext * errcxt)
 {
 	return errcxt->err_occurred;
 }
@@ -1152,7 +1152,7 @@ pg_xml_error_occurred(PgXmlErrorContext *errcxt)
 
 /* pnstrdup, but deal with xmlChar not char; len is measured in xmlChars */
 static xmlChar *
-xml_pnstrdup(const xmlChar *str, size_t len)
+xml_pnstrdup(const xmlChar * str, size_t len)
 {
 	xmlChar    *result;
 
@@ -1182,11 +1182,11 @@ pg_xmlCharStrndup(char *str, size_t len)
  * Result is 0 if OK, an error code if not.
  */
 static int
-parse_xml_decl(const xmlChar *str, size_t *lenp,
-			   xmlChar **version, xmlChar **encoding, int *standalone)
+parse_xml_decl(const xmlChar * str, size_t * lenp,
+			   xmlChar * *version, xmlChar * *encoding, int *standalone)
 {
-	const xmlChar *p;
-	const xmlChar *save_p;
+	const		xmlChar *p;
+	const		xmlChar *save_p;
 	size_t		len;
 	int			utf8char;
 	int			utf8len;
@@ -1234,7 +1234,7 @@ parse_xml_decl(const xmlChar *str, size_t *lenp,
 
 	if (*p == '\'' || *p == '"')
 	{
-		const xmlChar *q;
+		const		xmlChar *q;
 
 		q = xmlStrchr(p + 1, *p);
 		if (!q)
@@ -1262,7 +1262,7 @@ parse_xml_decl(const xmlChar *str, size_t *lenp,
 
 		if (*p == '\'' || *p == '"')
 		{
-			const xmlChar *q;
+			const		xmlChar *q;
 
 			q = xmlStrchr(p + 1, *p);
 			if (!q)
@@ -1348,7 +1348,7 @@ finished:
  * which is the default version specified in SQL:2003.
  */
 static bool
-print_xml_decl(StringInfo buf, const xmlChar *version,
+print_xml_decl(StringInfo buf, const xmlChar * version,
 			   pg_enc encoding, int standalone)
 {
 	if ((version && strcmp((const char *) version, PG_XML_DEFAULT_VERSION) != 0)
@@ -1395,15 +1395,15 @@ print_xml_decl(StringInfo buf, const xmlChar *version,
  * yet do not use SAX - see xmlreader.c)
  */
 static xmlDocPtr
-xml_parse(text *data, XmlOptionType xmloption_arg, bool preserve_whitespace,
+xml_parse(text * data, XmlOptionType xmloption_arg, bool preserve_whitespace,
 		  int encoding)
 {
 	int32		len;
 	xmlChar    *string;
 	xmlChar    *utf8string;
 	PgXmlErrorContext *xmlerrcxt;
-	volatile xmlParserCtxtPtr ctxt = NULL;
-	volatile xmlDocPtr doc = NULL;
+	volatile	xmlParserCtxtPtr ctxt = NULL;
+	volatile	xmlDocPtr doc = NULL;
 
 	len = VARSIZE_ANY_EXHDR(data);	/* will be useful later */
 	string = xml_text2xmlChar(data);
@@ -1499,7 +1499,7 @@ xml_parse(text *data, XmlOptionType xmloption_arg, bool preserve_whitespace,
  * xmlChar<->text conversions
  */
 static xmlChar *
-xml_text2xmlChar(text *in)
+xml_text2xmlChar(text * in)
 {
 	return (xmlChar *) text_to_cstring(in);
 }
@@ -1588,7 +1588,7 @@ xmlPgEntityLoader(const char *URL, const char *ID,
  * handler.  Note that pg_xml_init() *must* have been called previously.
  */
 void
-xml_ereport(PgXmlErrorContext *errcxt, int level, int sqlcode, const char *msg)
+xml_ereport(PgXmlErrorContext * errcxt, int level, int sqlcode, const char *msg)
 {
 	char	   *detail;
 
@@ -1622,8 +1622,8 @@ xml_errorHandler(void *data, xmlErrorPtr error)
 	xmlParserCtxtPtr ctxt = (xmlParserCtxtPtr) error->ctxt;
 	xmlParserInputPtr input = (ctxt != NULL) ? ctxt->input : NULL;
 	xmlNodePtr	node = error->node;
-	const xmlChar *name = (node != NULL &&
-						   node->type == XML_ELEMENT_NODE) ? node->name : NULL;
+	const		xmlChar *name = (node != NULL &&
+								 node->type == XML_ELEMENT_NODE) ? node->name : NULL;
 	int			domain = error->domain;
 	int			level = error->level;
 	StringInfo	errorBuf;
@@ -2152,8 +2152,8 @@ map_sql_value_to_xml_value(Datum value, Oid type, bool xml_escape_strings)
 				{
 					bytea	   *bstr = DatumGetByteaPP(value);
 					PgXmlErrorContext *xmlerrcxt;
-					volatile xmlBufferPtr buf = NULL;
-					volatile xmlTextWriterPtr writer = NULL;
+					volatile	xmlBufferPtr buf = NULL;
+					volatile	xmlTextWriterPtr writer = NULL;
 					char	   *result;
 
 					xmlerrcxt = pg_xml_init(PG_XML_STRICTNESS_ALL);
@@ -3143,7 +3143,7 @@ map_sql_table_to_xmlschema(TupleDesc tupdesc, Oid relid, bool nulls,
  * section 9.12.
  */
 static const char *
-map_sql_schema_to_xmlschema_types(Oid nspid, List *relid_list, bool nulls,
+map_sql_schema_to_xmlschema_types(Oid nspid, List * relid_list, bool nulls,
 								  bool tableforest, const char *targetns)
 {
 	char	   *dbname;
@@ -3216,7 +3216,7 @@ map_sql_schema_to_xmlschema_types(Oid nspid, List *relid_list, bool nulls,
  * section 9.15.
  */
 static const char *
-map_sql_catalog_to_xmlschema_types(List *nspid_list, bool nulls,
+map_sql_catalog_to_xmlschema_types(List * nspid_list, bool nulls,
 								   bool tableforest, const char *targetns)
 {
 	char	   *dbname;
@@ -3378,7 +3378,7 @@ map_sql_type_to_xml_name(Oid typeoid, int typmod)
  * SQL/XML:2008 section 9.7.
  */
 static const char *
-map_sql_typecoll_to_xmlschema_types(List *tupdesc_list)
+map_sql_typecoll_to_xmlschema_types(List * tupdesc_list)
 {
 	List	   *uniquetypes = NIL;
 	int			i;
@@ -3675,7 +3675,7 @@ SPI_sql_row_to_xmlelement(uint64 rownum, StringInfo result, char *tablename,
  * return value otherwise)
  */
 static text *
-xml_xmlnodetoxmltype(xmlNodePtr cur, PgXmlErrorContext *xmlerrcxt)
+xml_xmlnodetoxmltype(xmlNodePtr cur, PgXmlErrorContext * xmlerrcxt)
 {
 	xmltype    *result;
 
@@ -3751,8 +3751,8 @@ xml_xmlnodetoxmltype(xmlNodePtr cur, PgXmlErrorContext *xmlerrcxt)
  */
 static int
 xml_xpathobjtoxmlarray(xmlXPathObjectPtr xpathobj,
-					   ArrayBuildState *astate,
-					   PgXmlErrorContext *xmlerrcxt)
+					   ArrayBuildState * astate,
+					   PgXmlErrorContext * xmlerrcxt)
 {
 	int			result = 0;
 	Datum		datum;
@@ -3828,15 +3828,15 @@ xml_xpathobjtoxmlarray(xmlXPathObjectPtr xpathobj,
  * a context node being known.
  */
 static void
-xpath_internal(text *xpath_expr_text, xmltype *data, ArrayType *namespaces,
-			   int *res_nitems, ArrayBuildState *astate)
+xpath_internal(text * xpath_expr_text, xmltype * data, ArrayType * namespaces,
+			   int *res_nitems, ArrayBuildState * astate)
 {
 	PgXmlErrorContext *xmlerrcxt;
-	volatile xmlParserCtxtPtr ctxt = NULL;
-	volatile xmlDocPtr doc = NULL;
-	volatile xmlXPathContextPtr xpathctx = NULL;
-	volatile xmlXPathCompExprPtr xpathcomp = NULL;
-	volatile xmlXPathObjectPtr xpathobj = NULL;
+	volatile	xmlParserCtxtPtr ctxt = NULL;
+	volatile	xmlDocPtr doc = NULL;
+	volatile	xmlXPathContextPtr xpathctx = NULL;
+	volatile	xmlXPathCompExprPtr xpathcomp = NULL;
+	volatile	xmlXPathObjectPtr xpathobj = NULL;
 	char	   *datastr;
 	int32		len;
 	int32		xpath_len;
@@ -4092,10 +4092,10 @@ xpath_exists(PG_FUNCTION_ARGS)
 
 #ifdef USE_LIBXML
 static bool
-wellformed_xml(text *data, XmlOptionType xmloption_arg)
+wellformed_xml(text * data, XmlOptionType xmloption_arg)
 {
 	bool		result;
-	volatile xmlDocPtr doc = NULL;
+	volatile	xmlDocPtr doc = NULL;
 
 	/* We want to catch any exceptions and return false */
 	PG_TRY();
@@ -4167,7 +4167,7 @@ xml_is_well_formed_content(PG_FUNCTION_ARGS)
  * MAGIC number.
  */
 static inline XmlTableBuilderData *
-GetXmlTableBuilderPrivateData(TableFuncScanState *state, const char *fname)
+GetXmlTableBuilderPrivateData(TableFuncScanState * state, const char *fname)
 {
 	XmlTableBuilderData *result;
 
@@ -4193,10 +4193,10 @@ GetXmlTableBuilderPrivateData(TableFuncScanState *state, const char *fname)
  * this node in a single pass) instead of using row-per-call mode.
  */
 static void
-XmlTableInitOpaque(TableFuncScanState *state, int natts)
+XmlTableInitOpaque(TableFuncScanState * state, int natts)
 {
 #ifdef USE_LIBXML
-	volatile xmlParserCtxtPtr ctxt = NULL;
+	volatile	xmlParserCtxtPtr ctxt = NULL;
 	XmlTableBuilderData *xtCxt;
 	PgXmlErrorContext *xmlerrcxt;
 
@@ -4241,7 +4241,7 @@ XmlTableInitOpaque(TableFuncScanState *state, int natts)
  *		Install the input document
  */
 static void
-XmlTableSetDocument(TableFuncScanState *state, Datum value)
+XmlTableSetDocument(TableFuncScanState * state, Datum value)
 {
 #ifdef USE_LIBXML
 	XmlTableBuilderData *xtCxt;
@@ -4249,8 +4249,8 @@ XmlTableSetDocument(TableFuncScanState *state, Datum value)
 	char	   *str;
 	xmlChar    *xstr;
 	int			length;
-	volatile xmlDocPtr doc = NULL;
-	volatile xmlXPathContextPtr xpathcxt = NULL;
+	volatile	xmlDocPtr doc = NULL;
+	volatile	xmlXPathContextPtr xpathcxt = NULL;
 
 	xtCxt = GetXmlTableBuilderPrivateData(state, "XmlTableSetDocument");
 
@@ -4301,7 +4301,7 @@ XmlTableSetDocument(TableFuncScanState *state, Datum value)
  *		Add a namespace declaration
  */
 static void
-XmlTableSetNamespace(TableFuncScanState *state, char *name, char *uri)
+XmlTableSetNamespace(TableFuncScanState * state, char *name, char *uri)
 {
 #ifdef USE_LIBXML
 	XmlTableBuilderData *xtCxt;
@@ -4327,7 +4327,7 @@ XmlTableSetNamespace(TableFuncScanState *state, char *name, char *uri)
  *		Install the row-filter Xpath expression.
  */
 static void
-XmlTableSetRowFilter(TableFuncScanState *state, char *path)
+XmlTableSetRowFilter(TableFuncScanState * state, char *path)
 {
 #ifdef USE_LIBXML
 	XmlTableBuilderData *xtCxt;
@@ -4356,7 +4356,7 @@ XmlTableSetRowFilter(TableFuncScanState *state, char *path)
  *		Install the column-filter Xpath expression, for the given column.
  */
 static void
-XmlTableSetColumnFilter(TableFuncScanState *state, char *path, int colnum)
+XmlTableSetColumnFilter(TableFuncScanState * state, char *path, int colnum)
 {
 #ifdef USE_LIBXML
 	XmlTableBuilderData *xtCxt;
@@ -4388,7 +4388,7 @@ XmlTableSetColumnFilter(TableFuncScanState *state, char *path, int colnum)
  *		Returns FALSE if the row-filter expression returned no more rows.
  */
 static bool
-XmlTableFetchRow(TableFuncScanState *state)
+XmlTableFetchRow(TableFuncScanState * state)
 {
 #ifdef USE_LIBXML
 	XmlTableBuilderData *xtCxt;
@@ -4439,7 +4439,7 @@ XmlTableFetchRow(TableFuncScanState *state)
  * called.
  */
 static Datum
-XmlTableGetValue(TableFuncScanState *state, int colnum,
+XmlTableGetValue(TableFuncScanState * state, int colnum,
 				 Oid typid, int32 typmod, bool *isnull)
 {
 #ifdef USE_LIBXML
@@ -4447,7 +4447,7 @@ XmlTableGetValue(TableFuncScanState *state, int colnum,
 	Datum		result = (Datum) 0;
 	xmlNodePtr	cur;
 	char	   *cstr = NULL;
-	volatile xmlXPathObjectPtr xpathobj = NULL;
+	volatile	xmlXPathObjectPtr xpathobj = NULL;
 
 	xtCxt = GetXmlTableBuilderPrivateData(state, "XmlTableGetValue");
 
@@ -4609,7 +4609,7 @@ XmlTableGetValue(TableFuncScanState *state, int colnum,
  *		Release all libxml2 resources
  */
 static void
-XmlTableDestroyOpaque(TableFuncScanState *state)
+XmlTableDestroyOpaque(TableFuncScanState * state)
 {
 #ifdef USE_LIBXML
 	XmlTableBuilderData *xtCxt;

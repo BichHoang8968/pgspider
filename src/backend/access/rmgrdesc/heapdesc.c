@@ -32,7 +32,7 @@ out_infobits(StringInfo buf, uint8 infobits)
 }
 
 void
-heap_desc(StringInfo buf, XLogReaderState *record)
+heap_desc(StringInfo buf, XLogReaderState * record)
 {
 	char	   *rec = XLogRecGetData(record);
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
@@ -97,7 +97,7 @@ heap_desc(StringInfo buf, XLogReaderState *record)
 	}
 }
 void
-heap2_desc(StringInfo buf, XLogReaderState *record)
+heap2_desc(StringInfo buf, XLogReaderState * record)
 {
 	char	   *rec = XLogRecGetData(record);
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;

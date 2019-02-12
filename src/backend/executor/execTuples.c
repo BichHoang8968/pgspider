@@ -92,8 +92,8 @@
 #include "utils/typcache.h"
 
 
-static TupleDesc ExecTypeFromTLInternal(List *targetList,
-					   bool hasoid, bool skipjunk);
+static TupleDesc ExecTypeFromTLInternal(List * targetList,
+										bool hasoid, bool skipjunk);
 
 
 /* ----------------------------------------------------------------
@@ -134,7 +134,7 @@ MakeTupleTableSlot(void)
  * --------------------------------
  */
 TupleTableSlot *
-ExecAllocTableSlot(List **tupleTable)
+ExecAllocTableSlot(List * *tupleTable)
 {
 	TupleTableSlot *slot = MakeTupleTableSlot();
 
@@ -153,7 +153,7 @@ ExecAllocTableSlot(List **tupleTable)
  * --------------------------------
  */
 void
-ExecResetTupleTable(List *tupleTable,	/* tuple table */
+ExecResetTupleTable(List * tupleTable,	/* tuple table */
 					bool shouldFree)	/* true if we should free memory */
 {
 	ListCell   *lc;
@@ -213,7 +213,7 @@ MakeSingleTupleTableSlot(TupleDesc tupdesc)
  * --------------------------------
  */
 void
-ExecDropSingleTupleTableSlot(TupleTableSlot *slot)
+ExecDropSingleTupleTableSlot(TupleTableSlot * slot)
 {
 	/* This should match ExecResetTupleTable's processing of one slot */
 	Assert(IsA(slot, TupleTableSlot));
@@ -244,7 +244,7 @@ ExecDropSingleTupleTableSlot(TupleTableSlot *slot)
  * --------------------------------
  */
 void
-ExecSetSlotDescriptor(TupleTableSlot *slot, /* slot to change */
+ExecSetSlotDescriptor(TupleTableSlot * slot,	/* slot to change */
 					  TupleDesc tupdesc)	/* new tuple descriptor */
 {
 	/* For safety, make sure slot is empty before changing it */
@@ -318,7 +318,7 @@ ExecSetSlotDescriptor(TupleTableSlot *slot, /* slot to change */
  */
 TupleTableSlot *
 ExecStoreTuple(HeapTuple tuple,
-			   TupleTableSlot *slot,
+			   TupleTableSlot * slot,
 			   Buffer buffer,
 			   bool shouldFree)
 {
@@ -382,7 +382,7 @@ ExecStoreTuple(HeapTuple tuple,
  */
 TupleTableSlot *
 ExecStoreMinimalTuple(MinimalTuple mtup,
-					  TupleTableSlot *slot,
+					  TupleTableSlot * slot,
 					  bool shouldFree)
 {
 	/*
@@ -436,7 +436,7 @@ ExecStoreMinimalTuple(MinimalTuple mtup,
  * --------------------------------
  */
 TupleTableSlot *				/* return: slot passed */
-ExecClearTuple(TupleTableSlot *slot)	/* slot in which to store tuple */
+ExecClearTuple(TupleTableSlot * slot)	/* slot in which to store tuple */
 {
 	/*
 	 * sanity checks
@@ -485,7 +485,7 @@ ExecClearTuple(TupleTableSlot *slot)	/* slot in which to store tuple */
  * --------------------------------
  */
 TupleTableSlot *
-ExecStoreVirtualTuple(TupleTableSlot *slot)
+ExecStoreVirtualTuple(TupleTableSlot * slot)
 {
 	/*
 	 * sanity checks
@@ -509,7 +509,7 @@ ExecStoreVirtualTuple(TupleTableSlot *slot)
  * --------------------------------
  */
 TupleTableSlot *
-ExecStoreAllNullTuple(TupleTableSlot *slot)
+ExecStoreAllNullTuple(TupleTableSlot * slot)
 {
 	/*
 	 * sanity checks
@@ -542,7 +542,7 @@ ExecStoreAllNullTuple(TupleTableSlot *slot)
  * --------------------------------
  */
 HeapTuple
-ExecCopySlotTuple(TupleTableSlot *slot)
+ExecCopySlotTuple(TupleTableSlot * slot)
 {
 	/*
 	 * sanity checks
@@ -574,7 +574,7 @@ ExecCopySlotTuple(TupleTableSlot *slot)
  * --------------------------------
  */
 MinimalTuple
-ExecCopySlotMinimalTuple(TupleTableSlot *slot)
+ExecCopySlotMinimalTuple(TupleTableSlot * slot)
 {
 	/*
 	 * sanity checks
@@ -615,7 +615,7 @@ ExecCopySlotMinimalTuple(TupleTableSlot *slot)
  * --------------------------------
  */
 HeapTuple
-ExecFetchSlotTuple(TupleTableSlot *slot)
+ExecFetchSlotTuple(TupleTableSlot * slot)
 {
 	/*
 	 * sanity checks
@@ -649,7 +649,7 @@ ExecFetchSlotTuple(TupleTableSlot *slot)
  * --------------------------------
  */
 MinimalTuple
-ExecFetchSlotMinimalTuple(TupleTableSlot *slot)
+ExecFetchSlotMinimalTuple(TupleTableSlot * slot)
 {
 	MemoryContext oldContext;
 
@@ -695,7 +695,7 @@ ExecFetchSlotMinimalTuple(TupleTableSlot *slot)
  * --------------------------------
  */
 Datum
-ExecFetchSlotTupleDatum(TupleTableSlot *slot)
+ExecFetchSlotTupleDatum(TupleTableSlot * slot)
 {
 	HeapTuple	tup;
 	TupleDesc	tupdesc;
@@ -722,7 +722,7 @@ ExecFetchSlotTupleDatum(TupleTableSlot *slot)
  * --------------------------------
  */
 HeapTuple
-ExecMaterializeSlot(TupleTableSlot *slot)
+ExecMaterializeSlot(TupleTableSlot * slot)
 {
 	MemoryContext oldContext;
 
@@ -792,7 +792,7 @@ ExecMaterializeSlot(TupleTableSlot *slot)
  * --------------------------------
  */
 TupleTableSlot *
-ExecCopySlot(TupleTableSlot *dstslot, TupleTableSlot *srcslot)
+ExecCopySlot(TupleTableSlot * dstslot, TupleTableSlot * srcslot)
 {
 	HeapTuple	newTuple;
 	MemoryContext oldContext;
@@ -829,7 +829,7 @@ ExecCopySlot(TupleTableSlot *dstslot, TupleTableSlot *srcslot)
  * ----------------
  */
 void
-ExecInitResultTupleSlot(EState *estate, PlanState *planstate)
+ExecInitResultTupleSlot(EState * estate, PlanState * planstate)
 {
 	planstate->ps_ResultTupleSlot = ExecAllocTableSlot(&estate->es_tupleTable);
 }
@@ -839,7 +839,7 @@ ExecInitResultTupleSlot(EState *estate, PlanState *planstate)
  * ----------------
  */
 void
-ExecInitScanTupleSlot(EState *estate, ScanState *scanstate)
+ExecInitScanTupleSlot(EState * estate, ScanState * scanstate)
 {
 	scanstate->ss_ScanTupleSlot = ExecAllocTableSlot(&estate->es_tupleTable);
 }
@@ -849,7 +849,7 @@ ExecInitScanTupleSlot(EState *estate, ScanState *scanstate)
  * ----------------
  */
 TupleTableSlot *
-ExecInitExtraTupleSlot(EState *estate)
+ExecInitExtraTupleSlot(EState * estate)
 {
 	return ExecAllocTableSlot(&estate->es_tupleTable);
 }
@@ -863,7 +863,7 @@ ExecInitExtraTupleSlot(EState *estate)
  * ----------------
  */
 TupleTableSlot *
-ExecInitNullTupleSlot(EState *estate, TupleDesc tupType)
+ExecInitNullTupleSlot(EState * estate, TupleDesc tupType)
 {
 	TupleTableSlot *slot = ExecInitExtraTupleSlot(estate);
 
@@ -885,7 +885,7 @@ ExecInitNullTupleSlot(EState *estate, TupleDesc tupType)
  * ----------------------------------------------------------------
  */
 TupleDesc
-ExecTypeFromTL(List *targetList, bool hasoid)
+ExecTypeFromTL(List * targetList, bool hasoid)
 {
 	return ExecTypeFromTLInternal(targetList, hasoid, false);
 }
@@ -897,13 +897,13 @@ ExecTypeFromTL(List *targetList, bool hasoid)
  * ----------------------------------------------------------------
  */
 TupleDesc
-ExecCleanTypeFromTL(List *targetList, bool hasoid)
+ExecCleanTypeFromTL(List * targetList, bool hasoid)
 {
 	return ExecTypeFromTLInternal(targetList, hasoid, true);
 }
 
 static TupleDesc
-ExecTypeFromTLInternal(List *targetList, bool hasoid, bool skipjunk)
+ExecTypeFromTLInternal(List * targetList, bool hasoid, bool skipjunk)
 {
 	TupleDesc	typeInfo;
 	ListCell   *l;
@@ -944,7 +944,7 @@ ExecTypeFromTLInternal(List *targetList, bool hasoid, bool skipjunk)
  * not TargetEntrys.  No names are attached to the tupledesc's columns.
  */
 TupleDesc
-ExecTypeFromExprList(List *exprList)
+ExecTypeFromExprList(List * exprList)
 {
 	TupleDesc	typeInfo;
 	ListCell   *lc;
@@ -983,7 +983,7 @@ ExecTypeFromExprList(List *exprList)
  * so if no names change.
  */
 void
-ExecTypeSetColNames(TupleDesc typeInfo, List *namesList)
+ExecTypeSetColNames(TupleDesc typeInfo, List * namesList)
 {
 	bool		modified = false;
 	int			colno = 0;
@@ -1112,7 +1112,7 @@ TupleDescGetAttInMetadata(TupleDesc tupdesc)
  * A NULL string pointer indicates we want to create a NULL field.
  */
 HeapTuple
-BuildTupleFromCStrings(AttInMetadata *attinmeta, char **values)
+BuildTupleFromCStrings(AttInMetadata * attinmeta, char **values)
 {
 	TupleDesc	tupdesc = attinmeta->tupdesc;
 	int			natts = tupdesc->natts;
@@ -1229,7 +1229,7 @@ HeapTupleHeaderGetDatum(HeapTupleHeader tuple)
  * table function capability. Currently used by EXPLAIN and SHOW ALL.
  */
 TupOutputState *
-begin_tup_output_tupdesc(DestReceiver *dest, TupleDesc tupdesc)
+begin_tup_output_tupdesc(DestReceiver * dest, TupleDesc tupdesc)
 {
 	TupOutputState *tstate;
 
@@ -1247,7 +1247,7 @@ begin_tup_output_tupdesc(DestReceiver *dest, TupleDesc tupdesc)
  * write a single tuple
  */
 void
-do_tup_output(TupOutputState *tstate, Datum *values, bool *isnull)
+do_tup_output(TupOutputState * tstate, Datum * values, bool *isnull)
 {
 	TupleTableSlot *slot = tstate->slot;
 	int			natts = slot->tts_tupleDescriptor->natts;
@@ -1275,7 +1275,7 @@ do_tup_output(TupOutputState *tstate, Datum *values, bool *isnull)
  * Should only be used with a single-TEXT-attribute tupdesc.
  */
 void
-do_text_output_multiline(TupOutputState *tstate, const char *txt)
+do_text_output_multiline(TupOutputState * tstate, const char *txt)
 {
 	Datum		values[1];
 	bool		isnull[1] = {false};
@@ -1305,7 +1305,7 @@ do_text_output_multiline(TupOutputState *tstate, const char *txt)
 }
 
 void
-end_tup_output(TupOutputState *tstate)
+end_tup_output(TupOutputState * tstate)
 {
 	(*tstate->dest->rShutdown) (tstate->dest);
 	/* note that destroying the dest is not ours to do */

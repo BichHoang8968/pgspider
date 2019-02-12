@@ -233,7 +233,7 @@ static char **filter_lines_with_token(char **lines, const char *token);
 #endif
 static char **readfile(const char *path);
 static void writefile(char *path, char **lines);
-static FILE *popen_check(const char *command, const char *mode);
+static FILE * popen_check(const char *command, const char *mode);
 static void exit_nicely(void);
 static char *get_id(void);
 static char *get_encoding_id(char *encoding_name);
@@ -244,21 +244,21 @@ static void set_null_conf(void);
 static void test_config_settings(void);
 static void setup_config(void);
 static void bootstrap_template1(void);
-static void setup_auth(FILE *cmdfd);
+static void setup_auth(FILE * cmdfd);
 static void get_su_pwd(void);
-static void setup_depend(FILE *cmdfd);
-static void setup_sysviews(FILE *cmdfd);
-static void setup_description(FILE *cmdfd);
-static void setup_collation(FILE *cmdfd);
-static void setup_conversion(FILE *cmdfd);
-static void setup_dictionary(FILE *cmdfd);
-static void setup_privileges(FILE *cmdfd);
+static void setup_depend(FILE * cmdfd);
+static void setup_sysviews(FILE * cmdfd);
+static void setup_description(FILE * cmdfd);
+static void setup_collation(FILE * cmdfd);
+static void setup_conversion(FILE * cmdfd);
+static void setup_dictionary(FILE * cmdfd);
+static void setup_privileges(FILE * cmdfd);
 static void set_info_version(void);
-static void setup_schema(FILE *cmdfd);
-static void load_plpgsql(FILE *cmdfd);
-static void vacuum_db(FILE *cmdfd);
-static void make_template0(FILE *cmdfd);
-static void make_postgres(FILE *cmdfd);
+static void setup_schema(FILE * cmdfd);
+static void load_plpgsql(FILE * cmdfd);
+static void vacuum_db(FILE * cmdfd);
+static void make_template0(FILE * cmdfd);
+static void make_postgres(FILE * cmdfd);
 static void trapsig(int signum);
 static void check_ok(void);
 static char *escape_quotes(const char *src);
@@ -1380,7 +1380,7 @@ bootstrap_template1(void)
  * set up the shadow password table
  */
 static void
-setup_auth(FILE *cmdfd)
+setup_auth(FILE * cmdfd)
 {
 	const char *const *line;
 	static const char *const pg_authid_setup[] = {
@@ -1467,7 +1467,7 @@ get_su_pwd(void)
  * set up pg_depend
  */
 static void
-setup_depend(FILE *cmdfd)
+setup_depend(FILE * cmdfd)
 {
 	const char *const *line;
 	static const char *const pg_depend_setup[] = {
@@ -1560,7 +1560,7 @@ setup_depend(FILE *cmdfd)
  * set up system views
  */
 static void
-setup_sysviews(FILE *cmdfd)
+setup_sysviews(FILE * cmdfd)
 {
 	char	  **line;
 	char	  **sysviews_setup;
@@ -1580,7 +1580,7 @@ setup_sysviews(FILE *cmdfd)
  * load description data
  */
 static void
-setup_description(FILE *cmdfd)
+setup_description(FILE * cmdfd)
 {
 	PG_CMD_PUTS("CREATE TEMP TABLE tmp_pg_description ( "
 				"	objoid oid, "
@@ -1634,7 +1634,7 @@ setup_description(FILE *cmdfd)
  * populate pg_collation
  */
 static void
-setup_collation(FILE *cmdfd)
+setup_collation(FILE * cmdfd)
 {
 	/*
 	 * Add an SQL-standard name.  We don't want to pin this, so it doesn't go
@@ -1652,7 +1652,7 @@ setup_collation(FILE *cmdfd)
  * load conversion functions
  */
 static void
-setup_conversion(FILE *cmdfd)
+setup_conversion(FILE * cmdfd)
 {
 	char	  **line;
 	char	  **conv_lines;
@@ -1672,7 +1672,7 @@ setup_conversion(FILE *cmdfd)
  * load extra dictionaries (Snowball stemmers)
  */
 static void
-setup_dictionary(FILE *cmdfd)
+setup_dictionary(FILE * cmdfd)
 {
 	char	  **line;
 	char	  **conv_lines;
@@ -1707,7 +1707,7 @@ setup_dictionary(FILE *cmdfd)
  * we don't include databases or tablespaces.
  */
 static void
-setup_privileges(FILE *cmdfd)
+setup_privileges(FILE * cmdfd)
 {
 	char	  **line;
 	char	  **priv_lines;
@@ -1885,7 +1885,7 @@ set_info_version(void)
  * load info schema and populate from features file
  */
 static void
-setup_schema(FILE *cmdfd)
+setup_schema(FILE * cmdfd)
 {
 	char	  **line;
 	char	  **lines;
@@ -1916,7 +1916,7 @@ setup_schema(FILE *cmdfd)
  * load PL/pgSQL server-side language
  */
 static void
-load_plpgsql(FILE *cmdfd)
+load_plpgsql(FILE * cmdfd)
 {
 	PG_CMD_PUTS("CREATE EXTENSION plpgsql;\n\n");
 }
@@ -1925,7 +1925,7 @@ load_plpgsql(FILE *cmdfd)
  * clean everything up in template1
  */
 static void
-vacuum_db(FILE *cmdfd)
+vacuum_db(FILE * cmdfd)
 {
 	/* Run analyze before VACUUM so the statistics are frozen. */
 	PG_CMD_PUTS("ANALYZE;\n\nVACUUM FREEZE;\n\n");
@@ -1935,7 +1935,7 @@ vacuum_db(FILE *cmdfd)
  * copy template1 to template0
  */
 static void
-make_template0(FILE *cmdfd)
+make_template0(FILE * cmdfd)
 {
 	const char *const *line;
 	static const char *const template0_setup[] = {
@@ -1973,7 +1973,7 @@ make_template0(FILE *cmdfd)
  * copy template1 to postgres
  */
 static void
-make_postgres(FILE *cmdfd)
+make_postgres(FILE * cmdfd)
 {
 	const char *const *line;
 	static const char *const postgres_setup[] = {

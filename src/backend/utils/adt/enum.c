@@ -27,8 +27,8 @@
 #include "utils/typcache.h"
 
 
-static Oid	enum_endpoint(Oid enumtypoid, ScanDirection direction);
-static ArrayType *enum_range_internal(Oid enumtypoid, Oid lower, Oid upper);
+static Oid enum_endpoint(Oid enumtypoid, ScanDirection direction);
+static ArrayType * enum_range_internal(Oid enumtypoid, Oid lower, Oid upper);
 
 
 /* Basic I/O support */

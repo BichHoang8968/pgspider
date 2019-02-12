@@ -48,7 +48,7 @@ CATALOG(pg_language,2612)
  *		the format of pg_language relation.
  * ----------------
  */
-typedef FormData_pg_language *Form_pg_language;
+typedef FormData_pg_language * Form_pg_language;
 
 /* ----------------
  *		compiler constants for pg_language

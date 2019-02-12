@@ -16,8 +16,8 @@
 
 #include "nodes/execnodes.h"
 
-extern LockRowsState *ExecInitLockRows(LockRows *node, EState *estate, int eflags);
-extern void ExecEndLockRows(LockRowsState *node);
-extern void ExecReScanLockRows(LockRowsState *node);
+extern LockRowsState * ExecInitLockRows(LockRows * node, EState * estate, int eflags);
+extern void ExecEndLockRows(LockRowsState * node);
+extern void ExecReScanLockRows(LockRowsState * node);
 
 #endif							/* NODELOCKROWS_H */

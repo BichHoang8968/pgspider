@@ -61,20 +61,20 @@
 #include <openssl/x509v3.h>
 
 static bool verify_peer_name_matches_certificate(PGconn *);
-static int	verify_cb(int ok, X509_STORE_CTX *ctx);
-static int verify_peer_name_matches_certificate_name(PGconn *conn,
-										  ASN1_STRING *name,
+static int	verify_cb(int ok, X509_STORE_CTX * ctx);
+static int verify_peer_name_matches_certificate_name(PGconn * conn,
+										  ASN1_STRING * name,
 										  char **store_name);
 static void destroy_ssl_system(void);
-static int	initialize_SSL(PGconn *conn);
+static int	initialize_SSL(PGconn * conn);
 static PostgresPollingStatusType open_client_SSL(PGconn *);
 static char *SSLerrmessage(unsigned long ecode);
 static void SSLerrfree(char *buf);
 
-static int	my_sock_read(BIO *h, char *buf, int size);
-static int	my_sock_write(BIO *h, const char *buf, int size);
-static BIO_METHOD *my_BIO_s_socket(void);
-static int	my_SSL_set_fd(PGconn *conn, int fd);
+static int	my_sock_read(BIO * h, char *buf, int size);
+static int	my_sock_write(BIO * h, const char *buf, int size);
+static BIO_METHOD * my_BIO_s_socket(void);
+static int	my_SSL_set_fd(PGconn * conn, int fd);
 
 
 static bool pq_init_ssl_lib = true;
@@ -123,7 +123,7 @@ pgtls_init_library(bool do_ssl, int do_crypto)
  *	Begin or continue negotiating a secure session.
  */
 PostgresPollingStatusType
-pgtls_open_client(PGconn *conn)
+pgtls_open_client(PGconn * conn)
 {
 	/* First time through? */
 	if (conn->ssl == NULL)
@@ -148,7 +148,7 @@ pgtls_open_client(PGconn *conn)
  *	Is there unread data waiting in the SSL read buffer?
  */
 bool
-pgtls_read_pending(PGconn *conn)
+pgtls_read_pending(PGconn * conn)
 {
 	return SSL_pending(conn->ssl);
 }
@@ -161,7 +161,7 @@ pgtls_read_pending(PGconn *conn)
  * to determine whether to continue/retry after error.
  */
 ssize_t
-pgtls_read(PGconn *conn, void *ptr, size_t len)
+pgtls_read(PGconn * conn, void *ptr, size_t len)
 {
 	ssize_t		n;
 	int			result_errno = 0;
@@ -292,7 +292,7 @@ rloop:
  * to determine whether to continue/retry after error.
  */
 ssize_t
-pgtls_write(PGconn *conn, const void *ptr, size_t len)
+pgtls_write(PGconn * conn, const void *ptr, size_t len)
 {
 	ssize_t		n;
 	int			result_errno = 0;
@@ -409,7 +409,7 @@ pgtls_write(PGconn *conn, const void *ptr, size_t len)
  *	for now we accept the default checks.
  */
 static int
-verify_cb(int ok, X509_STORE_CTX *ctx)
+verify_cb(int ok, X509_STORE_CTX * ctx)
 {
 	return ok;
 }
@@ -476,7 +476,7 @@ wildcard_certificate_match(const char *pattern, const char *string)
  * caller is responsible for freeing it.
  */
 static int
-verify_peer_name_matches_certificate_name(PGconn *conn, ASN1_STRING *name_entry,
+verify_peer_name_matches_certificate_name(PGconn * conn, ASN1_STRING * name_entry,
 										  char **store_name)
 {
 	int			len;
@@ -561,14 +561,14 @@ verify_peer_name_matches_certificate_name(PGconn *conn, ASN1_STRING *name_entry,
  * The certificate's Common Name and Subject Alternative Names are considered.
  */
 static bool
-verify_peer_name_matches_certificate(PGconn *conn)
+verify_peer_name_matches_certificate(PGconn * conn)
 {
 	int			names_examined = 0;
 	bool		found_match = false;
 	bool		got_error = false;
 	char	   *first_name = NULL;
 
-	STACK_OF(GENERAL_NAME) *peer_san;
+	STACK_OF(GENERAL_NAME) * peer_san;
 	int			i;
 	int			rc;
 	char	   *host = conn->connhost[conn->whichhost].host;
@@ -601,7 +601,7 @@ verify_peer_name_matches_certificate(PGconn *conn)
 
 		for (i = 0; i < san_len; i++)
 		{
-			const GENERAL_NAME *name = sk_GENERAL_NAME_value(peer_san, i);
+			const		GENERAL_NAME *name = sk_GENERAL_NAME_value(peer_san, i);
 
 			if (name->type == GEN_DNS)
 			{
@@ -721,7 +721,7 @@ pq_threadidcallback(void)
 	return (unsigned long) pthread_self();
 }
 
-static pthread_mutex_t *pq_lockarray;
+static pthread_mutex_t * pq_lockarray;
 
 static void
 pq_lockingcallback(int mode, int n, const char *file, int line)
@@ -755,7 +755,7 @@ pq_lockingcallback(int mode, int n, const char *file, int line)
  * Returns 0 if OK, -1 on failure (with a message in conn->errorMessage).
  */
 int
-pgtls_init(PGconn *conn)
+pgtls_init(PGconn * conn)
 {
 #ifdef ENABLE_THREAD_SAFETY
 #ifdef WIN32
@@ -894,7 +894,7 @@ destroy_ssl_system(void)
  *	Returns 0 if OK, -1 on failure (with a message in conn->errorMessage).
  */
 static int
-initialize_SSL(PGconn *conn)
+initialize_SSL(PGconn * conn)
 {
 	SSL_CTX    *SSL_context;
 	struct stat buf;
@@ -1301,7 +1301,7 @@ initialize_SSL(PGconn *conn)
  *	Attempt to negotiate SSL connection.
  */
 static PostgresPollingStatusType
-open_client_SSL(PGconn *conn)
+open_client_SSL(PGconn * conn)
 {
 	int			r;
 
@@ -1391,7 +1391,7 @@ open_client_SSL(PGconn *conn)
  *	Close SSL connection.
  */
 void
-pgtls_close(PGconn *conn)
+pgtls_close(PGconn * conn)
 {
 	bool		destroy_needed = false;
 
@@ -1487,7 +1487,7 @@ SSLerrfree(char *buf)
 /* ------------------------------------------------------------ */
 
 int
-PQsslInUse(PGconn *conn)
+PQsslInUse(PGconn * conn)
 {
 	if (!conn)
 		return 0;
@@ -1498,7 +1498,7 @@ PQsslInUse(PGconn *conn)
  *	Return pointer to OpenSSL object.
  */
 void *
-PQgetssl(PGconn *conn)
+PQgetssl(PGconn * conn)
 {
 	if (!conn)
 		return NULL;
@@ -1506,7 +1506,7 @@ PQgetssl(PGconn *conn)
 }
 
 void *
-PQsslStruct(PGconn *conn, const char *struct_name)
+PQsslStruct(PGconn * conn, const char *struct_name)
 {
 	if (!conn)
 		return NULL;
@@ -1516,7 +1516,7 @@ PQsslStruct(PGconn *conn, const char *struct_name)
 }
 
 const char *const *
-PQsslAttributeNames(PGconn *conn)
+PQsslAttributeNames(PGconn * conn)
 {
 	static const char *const result[] = {
 		"library",
@@ -1531,7 +1531,7 @@ PQsslAttributeNames(PGconn *conn)
 }
 
 const char *
-PQsslAttribute(PGconn *conn, const char *attribute_name)
+PQsslAttribute(PGconn * conn, const char *attribute_name)
 {
 	if (!conn)
 		return NULL;
@@ -1579,10 +1579,10 @@ PQsslAttribute(PGconn *conn, const char *attribute_name)
 #define BIO_set_data(bio, data) (bio->ptr = data)
 #endif
 
-static BIO_METHOD *my_bio_methods;
+static BIO_METHOD * my_bio_methods;
 
 static int
-my_sock_read(BIO *h, char *buf, int size)
+my_sock_read(BIO * h, char *buf, int size)
 {
 	int			res;
 
@@ -1612,7 +1612,7 @@ my_sock_read(BIO *h, char *buf, int size)
 }
 
 static int
-my_sock_write(BIO *h, const char *buf, int size)
+my_sock_write(BIO * h, const char *buf, int size)
 {
 	int			res;
 
@@ -1688,7 +1688,7 @@ my_BIO_s_socket(void)
 
 /* This should exactly match openssl's SSL_set_fd except for using my BIO */
 static int
-my_SSL_set_fd(PGconn *conn, int fd)
+my_SSL_set_fd(PGconn * conn, int fd)
 {
 	int			ret = 0;
 	BIO		   *bio;

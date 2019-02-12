@@ -67,11 +67,11 @@ static int	TupleHashTableMatch(struct tuplehash_hash *tb, const MinimalTuple tup
  * NB: evalContext is reset each time!
  */
 bool
-execTuplesMatch(TupleTableSlot *slot1,
-				TupleTableSlot *slot2,
+execTuplesMatch(TupleTableSlot * slot1,
+				TupleTableSlot * slot2,
 				int numCols,
-				AttrNumber *matchColIdx,
-				FmgrInfo *eqfunctions,
+				AttrNumber * matchColIdx,
+				FmgrInfo * eqfunctions,
 				MemoryContext evalContext)
 {
 	MemoryContext oldContext;
@@ -137,11 +137,11 @@ execTuplesMatch(TupleTableSlot *slot1,
  * Parameters are identical to execTuplesMatch.
  */
 bool
-execTuplesUnequal(TupleTableSlot *slot1,
-				  TupleTableSlot *slot2,
+execTuplesUnequal(TupleTableSlot * slot1,
+				  TupleTableSlot * slot2,
 				  int numCols,
-				  AttrNumber *matchColIdx,
-				  FmgrInfo *eqfunctions,
+				  AttrNumber * matchColIdx,
+				  FmgrInfo * eqfunctions,
 				  MemoryContext evalContext)
 {
 	MemoryContext oldContext;
@@ -203,7 +203,7 @@ execTuplesUnequal(TupleTableSlot *slot1,
  */
 FmgrInfo *
 execTuplesMatchPrepare(int numCols,
-					   Oid *eqOperators)
+					   Oid * eqOperators)
 {
 	FmgrInfo   *eqFunctions = (FmgrInfo *) palloc(numCols * sizeof(FmgrInfo));
 	int			i;
@@ -232,9 +232,9 @@ execTuplesMatchPrepare(int numCols,
  */
 void
 execTuplesHashPrepare(int numCols,
-					  Oid *eqOperators,
-					  FmgrInfo **eqFunctions,
-					  FmgrInfo **hashFunctions)
+					  Oid * eqOperators,
+					  FmgrInfo * *eqFunctions,
+					  FmgrInfo * *hashFunctions)
 {
 	int			i;
 
@@ -288,9 +288,9 @@ execTuplesHashPrepare(int numCols,
  * storage that will live as long as the hashtable does.
  */
 TupleHashTable
-BuildTupleHashTable(int numCols, AttrNumber *keyColIdx,
-					FmgrInfo *eqfunctions,
-					FmgrInfo *hashfunctions,
+BuildTupleHashTable(int numCols, AttrNumber * keyColIdx,
+					FmgrInfo * eqfunctions,
+					FmgrInfo * hashfunctions,
 					long nbuckets, Size additionalsize,
 					MemoryContext tablecxt, MemoryContext tempcxt,
 					bool use_variable_hash_iv)
@@ -349,7 +349,7 @@ BuildTupleHashTable(int numCols, AttrNumber *keyColIdx,
  * been zeroed.
  */
 TupleHashEntry
-LookupTupleHashEntry(TupleHashTable hashtable, TupleTableSlot *slot,
+LookupTupleHashEntry(TupleHashTable hashtable, TupleTableSlot * slot,
 					 bool *isnew)
 {
 	TupleHashEntryData *entry;
@@ -423,9 +423,9 @@ LookupTupleHashEntry(TupleHashTable hashtable, TupleTableSlot *slot,
  * different from the table's internal functions.
  */
 TupleHashEntry
-FindTupleHashEntry(TupleHashTable hashtable, TupleTableSlot *slot,
-				   FmgrInfo *eqfunctions,
-				   FmgrInfo *hashfunctions)
+FindTupleHashEntry(TupleHashTable hashtable, TupleTableSlot * slot,
+				   FmgrInfo * eqfunctions,
+				   FmgrInfo * hashfunctions)
 {
 	TupleHashEntry entry;
 	MemoryContext oldContext;

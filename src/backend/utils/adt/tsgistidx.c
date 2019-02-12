@@ -53,7 +53,7 @@ typedef struct
 	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	int32		flag;
 	char		data[FLEXIBLE_ARRAY_MEMBER];
-} SignTSVector;
+}			SignTSVector;
 
 #define ARRKEY		0x01
 #define SIGNKEY		0x02
@@ -146,7 +146,7 @@ compareint(const void *va, const void *vb)
  * size of the input array. Returns the new size of the array.
  */
 static int
-uniqueint(int32 *a, int32 l)
+uniqueint(int32 * a, int32 l)
 {
 	int32	   *ptr,
 			   *res;
@@ -167,7 +167,7 @@ uniqueint(int32 *a, int32 l)
 }
 
 static void
-makesign(BITVECP sign, SignTSVector *a)
+makesign(BITVECP sign, SignTSVector * a)
 {
 	int32		k,
 				len = ARRNELEM(a);
@@ -207,7 +207,7 @@ gtsvector_compress(PG_FUNCTION_ARGS)
 			COMP_LEGACY_CRC32(c, words + ptr->pos, ptr->len);
 			FIN_LEGACY_CRC32(c);
 
-			*arr = *(int32 *) &c;
+			*arr = *(int32 *) & c;
 			arr++;
 			ptr++;
 		}
@@ -293,13 +293,13 @@ typedef struct
 {
 	int32	   *arrb;
 	int32	   *arre;
-} CHKVAL;
+}			CHKVAL;
 
 /*
  * is there value 'val' in array or not ?
  */
 static bool
-checkcondition_arr(void *checkval, QueryOperand *val, ExecPhraseData *data)
+checkcondition_arr(void *checkval, QueryOperand * val, ExecPhraseData * data)
 {
 	int32	   *StopLow = ((CHKVAL *) checkval)->arrb;
 	int32	   *StopHigh = ((CHKVAL *) checkval)->arre;
@@ -328,7 +328,7 @@ checkcondition_arr(void *checkval, QueryOperand *val, ExecPhraseData *data)
 }
 
 static bool
-checkcondition_bit(void *checkval, QueryOperand *val, ExecPhraseData *data)
+checkcondition_bit(void *checkval, QueryOperand * val, ExecPhraseData * data)
 {
 	/*
 	 * we are not able to find a prefix in signature tree
@@ -380,7 +380,7 @@ gtsvector_consistent(PG_FUNCTION_ARGS)
 }
 
 static int32
-unionkey(BITVECP sbase, SignTSVector *add)
+unionkey(BITVECP sbase, SignTSVector * add)
 {
 	int32		i;
 
@@ -523,7 +523,7 @@ hemdistsign(BITVECP a, BITVECP b)
 }
 
 static int
-hemdist(SignTSVector *a, SignTSVector *b)
+hemdist(SignTSVector * a, SignTSVector * b)
 {
 	if (ISALLTRUE(a))
 	{
@@ -570,10 +570,10 @@ typedef struct
 {
 	bool		allistrue;
 	BITVEC		sign;
-} CACHESIGN;
+}			CACHESIGN;
 
 static void
-fillcache(CACHESIGN *item, SignTSVector *key)
+fillcache(CACHESIGN * item, SignTSVector * key)
 {
 	item->allistrue = false;
 	if (ISARRKEY(key))
@@ -589,13 +589,13 @@ typedef struct
 {
 	OffsetNumber pos;
 	int32		cost;
-} SPLITCOST;
+}			SPLITCOST;
 
 static int
 comparecost(const void *va, const void *vb)
 {
-	const SPLITCOST *a = (const SPLITCOST *) va;
-	const SPLITCOST *b = (const SPLITCOST *) vb;
+	const		SPLITCOST *a = (const SPLITCOST *) va;
+	const		SPLITCOST *b = (const SPLITCOST *) vb;
 
 	if (a->cost == b->cost)
 		return 0;
@@ -605,7 +605,7 @@ comparecost(const void *va, const void *vb)
 
 
 static int
-hemdistcache(CACHESIGN *a, CACHESIGN *b)
+hemdistcache(CACHESIGN * a, CACHESIGN * b)
 {
 	if (a->allistrue)
 	{

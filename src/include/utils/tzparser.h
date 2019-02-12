@@ -31,9 +31,9 @@ typedef struct tzEntry
 	/* source information (for error messages) */
 	int			lineno;
 	const char *filename;
-} tzEntry;
+}			tzEntry;
 
 
-extern TimeZoneAbbrevTable *load_tzoffsets(const char *filename);
+extern TimeZoneAbbrevTable * load_tzoffsets(const char *filename);
 
 #endif							/* TZPARSER_H */

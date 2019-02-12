@@ -190,9 +190,9 @@ typedef struct TwoPhaseStateData
 
 	/* There are max_prepared_xacts items in this array */
 	GlobalTransaction prepXacts[FLEXIBLE_ARRAY_MEMBER];
-} TwoPhaseStateData;
+}			TwoPhaseStateData;
 
-static TwoPhaseStateData *TwoPhaseState;
+static TwoPhaseStateData * TwoPhaseState;
 
 /*
  * Global transaction entry currently locked by us, if any.  Note that any
@@ -206,17 +206,17 @@ static bool twophaseExitRegistered = false;
 
 static void RecordTransactionCommitPrepared(TransactionId xid,
 								int nchildren,
-								TransactionId *children,
+								TransactionId * children,
 								int nrels,
-								RelFileNode *rels,
+								RelFileNode * rels,
 								int ninvalmsgs,
-								SharedInvalidationMessage *invalmsgs,
+								SharedInvalidationMessage * invalmsgs,
 								bool initfileinval);
 static void RecordTransactionAbortPrepared(TransactionId xid,
 							   int nchildren,
-							   TransactionId *children,
+							   TransactionId * children,
 							   int nrels,
-							   RelFileNode *rels);
+							   RelFileNode * rels);
 static void ProcessRecords(char *bufptr, TransactionId xid,
 			   const TwoPhaseCallback callbacks[]);
 static void RemoveGXact(GlobalTransaction gxact);
@@ -508,7 +508,7 @@ MarkAsPreparingGuts(GlobalTransaction gxact, TransactionId xid, const char *gid,
  */
 static void
 GXactLoadSubxactData(GlobalTransaction gxact, int nsubxacts,
-					 TransactionId *children)
+					 TransactionId * children)
 {
 	PGPROC	   *proc = &ProcGlobal->allProcs[gxact->pgprocno];
 	PGXACT	   *pgxact = &ProcGlobal->allPgXact[gxact->pgprocno];
@@ -670,7 +670,7 @@ RemoveGXact(GlobalTransaction gxact)
  * The returned array is palloc'd.
  */
 static int
-GetPreparedTransactionList(GlobalTransaction *gxacts)
+GetPreparedTransactionList(GlobalTransaction * gxacts)
 {
 	GlobalTransaction array;
 	int			num;
@@ -705,7 +705,7 @@ typedef struct
 	GlobalTransaction array;
 	int			ngxacts;
 	int			currIdx;
-} Working_State;
+}			Working_State;
 
 /*
  * pg_prepared_xact
@@ -914,7 +914,7 @@ typedef struct TwoPhaseFileHeader
 	int32		ninvalmsgs;		/* number of cache invalidation messages */
 	bool		initfileinval;	/* does relcache init file need invalidation? */
 	uint16		gidlen;			/* length of the GID - GID follows the header */
-} TwoPhaseFileHeader;
+}			TwoPhaseFileHeader;
 
 /*
  * Header for each record in a state file
@@ -927,7 +927,7 @@ typedef struct TwoPhaseRecordOnDisk
 	uint32		len;			/* length of rmgr data */
 	TwoPhaseRmgrId rmid;		/* resource manager for this record */
 	uint16		info;			/* flag bits for use by rmgr */
-} TwoPhaseRecordOnDisk;
+}			TwoPhaseRecordOnDisk;
 
 /*
  * During prepare, the state file is assembled in memory before writing it
@@ -939,7 +939,7 @@ typedef struct StateFileChunk
 	char	   *data;
 	uint32		len;
 	struct StateFileChunk *next;
-} StateFileChunk;
+}			StateFileChunk;
 
 static struct xllist
 {
@@ -1811,7 +1811,7 @@ restoreTwoPhaseData(void)
  * is returned in *nxids_p.
  */
 TransactionId
-PrescanPreparedTransactions(TransactionId **xids_p, int *nxids_p)
+PrescanPreparedTransactions(TransactionId * *xids_p, int *nxids_p)
 {
 	TransactionId origNextXid = ShmemVariableCache->nextXid;
 	TransactionId result = origNextXid;
@@ -2184,11 +2184,11 @@ ProcessTwoPhaseBuffer(TransactionId xid,
 static void
 RecordTransactionCommitPrepared(TransactionId xid,
 								int nchildren,
-								TransactionId *children,
+								TransactionId * children,
 								int nrels,
-								RelFileNode *rels,
+								RelFileNode * rels,
 								int ninvalmsgs,
-								SharedInvalidationMessage *invalmsgs,
+								SharedInvalidationMessage * invalmsgs,
 								bool initfileinval)
 {
 	XLogRecPtr	recptr;
@@ -2277,9 +2277,9 @@ RecordTransactionCommitPrepared(TransactionId xid,
 static void
 RecordTransactionAbortPrepared(TransactionId xid,
 							   int nchildren,
-							   TransactionId *children,
+							   TransactionId * children,
 							   int nrels,
-							   RelFileNode *rels)
+							   RelFileNode * rels)
 {
 	XLogRecPtr	recptr;
 

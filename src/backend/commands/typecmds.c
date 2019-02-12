@@ -80,32 +80,32 @@ typedef struct
 	int			natts;			/* number of attributes of interest */
 	int		   *atts;			/* attribute numbers */
 	/* atts[] is of allocated length RelationGetNumberOfAttributes(rel) */
-} RelToCheck;
+}			RelToCheck;
 
 /* Potentially set by pg_upgrade_support functions */
 Oid			binary_upgrade_next_array_pg_type_oid = InvalidOid;
 
 static void makeRangeConstructors(const char *name, Oid namespace,
 					  Oid rangeOid, Oid subtype);
-static Oid	findTypeInputFunction(List *procname, Oid typeOid);
-static Oid	findTypeOutputFunction(List *procname, Oid typeOid);
-static Oid	findTypeReceiveFunction(List *procname, Oid typeOid);
-static Oid	findTypeSendFunction(List *procname, Oid typeOid);
-static Oid	findTypeTypmodinFunction(List *procname);
-static Oid	findTypeTypmodoutFunction(List *procname);
-static Oid	findTypeAnalyzeFunction(List *procname, Oid typeOid);
-static Oid	findRangeSubOpclass(List *opcname, Oid subtype);
-static Oid	findRangeCanonicalFunction(List *procname, Oid typeOid);
-static Oid	findRangeSubtypeDiffFunction(List *procname, Oid subtype);
+static Oid findTypeInputFunction(List * procname, Oid typeOid);
+static Oid findTypeOutputFunction(List * procname, Oid typeOid);
+static Oid findTypeReceiveFunction(List * procname, Oid typeOid);
+static Oid findTypeSendFunction(List * procname, Oid typeOid);
+static Oid findTypeTypmodinFunction(List * procname);
+static Oid findTypeTypmodoutFunction(List * procname);
+static Oid findTypeAnalyzeFunction(List * procname, Oid typeOid);
+static Oid findRangeSubOpclass(List * opcname, Oid subtype);
+static Oid findRangeCanonicalFunction(List * procname, Oid typeOid);
+static Oid findRangeSubtypeDiffFunction(List * procname, Oid subtype);
 static void validateDomainConstraint(Oid domainoid, char *ccbin);
-static List *get_rels_with_domain(Oid domainOid, LOCKMODE lockmode);
+static List * get_rels_with_domain(Oid domainOid, LOCKMODE lockmode);
 static void checkEnumOwner(HeapTuple tup);
 static char *domainAddConstraint(Oid domainOid, Oid domainNamespace,
 					Oid baseTypeOid,
-					int typMod, Constraint *constr,
-					char *domainName, ObjectAddress *constrAddr);
-static Node *replace_domain_constraint_value(ParseState *pstate,
-								ColumnRef *cref);
+					int typMod, Constraint * constr,
+					char *domainName, ObjectAddress * constrAddr);
+static Node * replace_domain_constraint_value(ParseState * pstate,
+											  ColumnRef * cref);
 
 
 /*
@@ -113,7 +113,7 @@ static Node *replace_domain_constraint_value(ParseState *pstate,
  *		Registers a new base type.
  */
 ObjectAddress
-DefineType(ParseState *pstate, List *names, List *parameters)
+DefineType(ParseState * pstate, List * names, List * parameters)
 {
 	char	   *typeName;
 	Oid			typeNamespace;
@@ -726,7 +726,7 @@ RemoveTypeById(Oid typeOid)
  *		Registers a new domain.
  */
 ObjectAddress
-DefineDomain(CreateDomainStmt *stmt)
+DefineDomain(CreateDomainStmt * stmt)
 {
 	char	   *domainName;
 	Oid			domainNamespace;
@@ -1104,7 +1104,7 @@ DefineDomain(CreateDomainStmt *stmt)
  *		Registers a new enum.
  */
 ObjectAddress
-DefineEnum(CreateEnumStmt *stmt)
+DefineEnum(CreateEnumStmt * stmt)
 {
 	char	   *enumName;
 	char	   *enumArrayName;
@@ -1225,7 +1225,7 @@ DefineEnum(CreateEnumStmt *stmt)
  *		ALTER TYPE on an enum.
  */
 ObjectAddress
-AlterEnum(AlterEnumStmt *stmt, bool isTopLevel)
+AlterEnum(AlterEnumStmt * stmt, bool isTopLevel)
 {
 	Oid			enum_type_oid;
 	TypeName   *typename;
@@ -1316,7 +1316,7 @@ checkEnumOwner(HeapTuple tup)
  *		Registers a new range type.
  */
 ObjectAddress
-DefineRange(CreateRangeStmt *stmt)
+DefineRange(CreateRangeStmt * stmt)
 {
 	char	   *typeName;
 	Oid			typeNamespace;
@@ -1656,7 +1656,7 @@ makeRangeConstructors(const char *name, Oid namespace,
  */
 
 static Oid
-findTypeInputFunction(List *procname, Oid typeOid)
+findTypeInputFunction(List * procname, Oid typeOid)
 {
 	Oid			argList[3];
 	Oid			procOid;
@@ -1723,7 +1723,7 @@ findTypeInputFunction(List *procname, Oid typeOid)
 }
 
 static Oid
-findTypeOutputFunction(List *procname, Oid typeOid)
+findTypeOutputFunction(List * procname, Oid typeOid)
 {
 	Oid			argList[1];
 	Oid			procOid;
@@ -1774,7 +1774,7 @@ findTypeOutputFunction(List *procname, Oid typeOid)
 }
 
 static Oid
-findTypeReceiveFunction(List *procname, Oid typeOid)
+findTypeReceiveFunction(List * procname, Oid typeOid)
 {
 	Oid			argList[3];
 	Oid			procOid;
@@ -1805,7 +1805,7 @@ findTypeReceiveFunction(List *procname, Oid typeOid)
 }
 
 static Oid
-findTypeSendFunction(List *procname, Oid typeOid)
+findTypeSendFunction(List * procname, Oid typeOid)
 {
 	Oid			argList[1];
 	Oid			procOid;
@@ -1828,7 +1828,7 @@ findTypeSendFunction(List *procname, Oid typeOid)
 }
 
 static Oid
-findTypeTypmodinFunction(List *procname)
+findTypeTypmodinFunction(List * procname)
 {
 	Oid			argList[1];
 	Oid			procOid;
@@ -1855,7 +1855,7 @@ findTypeTypmodinFunction(List *procname)
 }
 
 static Oid
-findTypeTypmodoutFunction(List *procname)
+findTypeTypmodoutFunction(List * procname)
 {
 	Oid			argList[1];
 	Oid			procOid;
@@ -1882,7 +1882,7 @@ findTypeTypmodoutFunction(List *procname)
 }
 
 static Oid
-findTypeAnalyzeFunction(List *procname, Oid typeOid)
+findTypeAnalyzeFunction(List * procname, Oid typeOid)
 {
 	Oid			argList[1];
 	Oid			procOid;
@@ -1917,7 +1917,7 @@ findTypeAnalyzeFunction(List *procname, Oid typeOid)
  * opcname is NIL.
  */
 static Oid
-findRangeSubOpclass(List *opcname, Oid subtype)
+findRangeSubOpclass(List * opcname, Oid subtype)
 {
 	Oid			opcid;
 	Oid			opInputType;
@@ -1956,7 +1956,7 @@ findRangeSubOpclass(List *opcname, Oid subtype)
 }
 
 static Oid
-findRangeCanonicalFunction(List *procname, Oid typeOid)
+findRangeCanonicalFunction(List * procname, Oid typeOid)
 {
 	Oid			argList[1];
 	Oid			procOid;
@@ -1997,7 +1997,7 @@ findRangeCanonicalFunction(List *procname, Oid typeOid)
 }
 
 static Oid
-findRangeSubtypeDiffFunction(List *procname, Oid subtype)
+findRangeSubtypeDiffFunction(List * procname, Oid subtype)
 {
 	Oid			argList[2];
 	Oid			procOid;
@@ -2086,7 +2086,7 @@ AssignTypeArrayOid(void)
  *-------------------------------------------------------------------
  */
 ObjectAddress
-DefineCompositeType(RangeVar *typevar, List *coldeflist)
+DefineCompositeType(RangeVar * typevar, List * coldeflist)
 {
 	CreateStmt *createStmt = makeNode(CreateStmt);
 	Oid			old_type_oid;
@@ -2144,7 +2144,7 @@ DefineCompositeType(RangeVar *typevar, List *coldeflist)
  * Returns ObjectAddress of the modified domain.
  */
 ObjectAddress
-AlterDomainDefault(List *names, Node *defaultRaw)
+AlterDomainDefault(List * names, Node * defaultRaw)
 {
 	TypeName   *typename;
 	Oid			domainoid;
@@ -2201,7 +2201,7 @@ AlterDomainDefault(List *names, Node *defaultRaw)
 		 * DefineDomain.)
 		 */
 		if (defaultExpr == NULL ||
-			(IsA(defaultExpr, Const) &&((Const *) defaultExpr)->constisnull))
+			(IsA(defaultExpr, Const) && ((Const *) defaultExpr)->constisnull))
 		{
 			/* Default is NULL, drop it */
 			new_record_nulls[Anum_pg_type_typdefaultbin - 1] = true;
@@ -2283,7 +2283,7 @@ AlterDomainDefault(List *names, Node *defaultRaw)
  * Returns ObjectAddress of the modified domain.
  */
 ObjectAddress
-AlterDomainNotNull(List *names, bool notNull)
+AlterDomainNotNull(List * names, bool notNull)
 {
 	TypeName   *typename;
 	Oid			domainoid;
@@ -2398,7 +2398,7 @@ AlterDomainNotNull(List *names, bool notNull)
  * Implements the ALTER DOMAIN DROP CONSTRAINT statement
  */
 ObjectAddress
-AlterDomainDropConstraint(List *names, const char *constrName,
+AlterDomainDropConstraint(List * names, const char *constrName,
 						  DropBehavior behavior, bool missing_ok)
 {
 	TypeName   *typename;
@@ -2488,8 +2488,8 @@ AlterDomainDropConstraint(List *names, const char *constrName,
  * Implements the ALTER DOMAIN .. ADD CONSTRAINT statement.
  */
 ObjectAddress
-AlterDomainAddConstraint(List *names, Node *newConstraint,
-						 ObjectAddress *constrAddr)
+AlterDomainAddConstraint(List * names, Node * newConstraint,
+						 ObjectAddress * constrAddr)
 {
 	TypeName   *typename;
 	Oid			domainoid;
@@ -2597,7 +2597,7 @@ AlterDomainAddConstraint(List *names, Node *newConstraint,
  * Implements the ALTER DOMAIN .. VALIDATE CONSTRAINT statement.
  */
 ObjectAddress
-AlterDomainValidateConstraint(List *names, char *constrName)
+AlterDomainValidateConstraint(List * names, char *constrName)
 {
 	TypeName   *typename;
 	Oid			domainoid;
@@ -3006,8 +3006,8 @@ checkDomainOwner(HeapTuple tup)
  */
 static char *
 domainAddConstraint(Oid domainOid, Oid domainNamespace, Oid baseTypeOid,
-					int typMod, Constraint *constr,
-					char *domainName, ObjectAddress *constrAddr)
+					int typMod, Constraint * constr,
+					char *domainName, ObjectAddress * constrAddr)
 {
 	Node	   *expr;
 	char	   *ccsrc;
@@ -3135,7 +3135,7 @@ domainAddConstraint(Oid domainOid, Oid domainNamespace, Oid baseTypeOid,
 
 /* Parser pre_columnref_hook for domain CHECK constraint parsing */
 static Node *
-replace_domain_constraint_value(ParseState *pstate, ColumnRef *cref)
+replace_domain_constraint_value(ParseState * pstate, ColumnRef * cref)
 {
 	/*
 	 * Check for a reference to "value", and if that's what it is, replace
@@ -3167,7 +3167,7 @@ replace_domain_constraint_value(ParseState *pstate, ColumnRef *cref)
  * Execute ALTER TYPE RENAME
  */
 ObjectAddress
-RenameType(RenameStmt *stmt)
+RenameType(RenameStmt * stmt)
 {
 	List	   *names = castNode(List, stmt->object);
 	const char *newTypeName = stmt->newname;
@@ -3245,7 +3245,7 @@ RenameType(RenameStmt *stmt)
  * Change the owner of a type.
  */
 ObjectAddress
-AlterTypeOwner(List *names, Oid newOwnerId, ObjectType objecttype)
+AlterTypeOwner(List * names, Oid newOwnerId, ObjectType objecttype)
 {
 	TypeName   *typename;
 	Oid			typeOid;
@@ -3449,8 +3449,8 @@ AlterTypeOwnerInternal(Oid typeOid, Oid newOwnerId)
  * Execute ALTER TYPE SET SCHEMA
  */
 ObjectAddress
-AlterTypeNamespace(List *names, const char *newschema, ObjectType objecttype,
-				   Oid *oldschema)
+AlterTypeNamespace(List * names, const char *newschema, ObjectType objecttype,
+				   Oid * oldschema)
 {
 	TypeName   *typename;
 	Oid			typeOid;
@@ -3486,7 +3486,7 @@ AlterTypeNamespace(List *names, const char *newschema, ObjectType objecttype,
 }
 
 Oid
-AlterTypeNamespace_oid(Oid typeOid, Oid nspOid, ObjectAddresses *objsMoved)
+AlterTypeNamespace_oid(Oid typeOid, Oid nspOid, ObjectAddresses * objsMoved)
 {
 	Oid			elemOid;
 
@@ -3527,7 +3527,7 @@ Oid
 AlterTypeNamespaceInternal(Oid typeOid, Oid nspOid,
 						   bool isImplicitArray,
 						   bool errorOnTableType,
-						   ObjectAddresses *objsMoved)
+						   ObjectAddresses * objsMoved)
 {
 	Relation	rel;
 	HeapTuple	tup;

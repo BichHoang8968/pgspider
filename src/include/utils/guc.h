@@ -74,7 +74,7 @@ typedef enum
 	PGC_BACKEND,
 	PGC_SUSET,
 	PGC_USERSET
-} GucContext;
+}			GucContext;
 
 /*
  * The following type records the source of the current setting.  A
@@ -118,7 +118,7 @@ typedef enum
 	PGC_S_INTERACTIVE,			/* dividing line for error reporting */
 	PGC_S_TEST,					/* test per-database or per-user setting */
 	PGC_S_SESSION				/* SET command */
-} GucSource;
+}			GucSource;
 
 /*
  * Parsing the configuration file(s) will return a list of name-value pairs
@@ -140,21 +140,21 @@ typedef struct ConfigVariable
 	bool		ignore;
 	bool		applied;
 	struct ConfigVariable *next;
-} ConfigVariable;
+}			ConfigVariable;
 
 extern bool ParseConfigFile(const char *config_file, bool strict,
 				const char *calling_file, int calling_lineno,
 				int depth, int elevel,
-				ConfigVariable **head_p, ConfigVariable **tail_p);
-extern bool ParseConfigFp(FILE *fp, const char *config_file,
+				ConfigVariable * *head_p, ConfigVariable * *tail_p);
+extern bool ParseConfigFp(FILE * fp, const char *config_file,
 			  int depth, int elevel,
-			  ConfigVariable **head_p, ConfigVariable **tail_p);
+			  ConfigVariable * *head_p, ConfigVariable * *tail_p);
 extern bool ParseConfigDirectory(const char *includedir,
 					 const char *calling_file, int calling_lineno,
 					 int depth, int elevel,
-					 ConfigVariable **head_p,
-					 ConfigVariable **tail_p);
-extern void FreeConfigVariables(ConfigVariable *list);
+					 ConfigVariable * *head_p,
+					 ConfigVariable * *tail_p);
+extern void FreeConfigVariables(ConfigVariable * list);
 
 /*
  * The possible values of an enum variable are specified by an array of
@@ -194,7 +194,7 @@ typedef enum
 	GUC_ACTION_SET,				/* regular SET command */
 	GUC_ACTION_LOCAL,			/* SET LOCAL command */
 	GUC_ACTION_SAVE				/* function SET option, or temp assignment */
-} GucAction;
+}			GucAction;
 
 #define GUC_QUALIFIER_SEPARATOR '.'
 
@@ -244,7 +244,7 @@ extern bool log_btree_build_stats;
 
 extern PGDLLIMPORT bool check_function_bodies;
 extern bool default_with_oids;
-extern bool	session_auth_is_superuser;
+extern bool session_auth_is_superuser;
 
 extern int	log_min_error_statement;
 extern PGDLLIMPORT int log_min_messages;
@@ -365,24 +365,24 @@ extern int set_config_option(const char *name, const char *value,
 				  GucContext context, GucSource source,
 				  GucAction action, bool changeVal, int elevel,
 				  bool is_reload);
-extern void AlterSystemSetConfigFile(AlterSystemStmt *setstmt);
+extern void AlterSystemSetConfigFile(AlterSystemStmt * setstmt);
 extern char *GetConfigOptionByName(const char *name, const char **varname,
 					  bool missing_ok);
 extern void GetConfigOptionByNum(int varnum, const char **values, bool *noshow);
 extern int	GetNumConfigOptions(void);
 
-extern void SetPGVariable(const char *name, List *args, bool is_local);
-extern void GetPGVariable(const char *name, DestReceiver *dest);
+extern void SetPGVariable(const char *name, List * args, bool is_local);
+extern void GetPGVariable(const char *name, DestReceiver * dest);
 extern TupleDesc GetPGVariableResultDesc(const char *name);
 
-extern void ExecSetVariableStmt(VariableSetStmt *stmt, bool isTopLevel);
-extern char *ExtractSetVariableArgs(VariableSetStmt *stmt);
+extern void ExecSetVariableStmt(VariableSetStmt * stmt, bool isTopLevel);
+extern char *ExtractSetVariableArgs(VariableSetStmt * stmt);
 
-extern void ProcessGUCArray(ArrayType *array,
+extern void ProcessGUCArray(ArrayType * array,
 				GucContext context, GucSource source, GucAction action);
-extern ArrayType *GUCArrayAdd(ArrayType *array, const char *name, const char *value);
-extern ArrayType *GUCArrayDelete(ArrayType *array, const char *name);
-extern ArrayType *GUCArrayReset(ArrayType *array);
+extern ArrayType * GUCArrayAdd(ArrayType * array, const char *name, const char *value);
+extern ArrayType * GUCArrayDelete(ArrayType * array, const char *name);
+extern ArrayType * GUCArrayReset(ArrayType * array);
 
 #ifdef EXEC_BACKEND
 extern void write_nondefault_variables(GucContext context);

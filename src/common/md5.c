@@ -36,7 +36,7 @@
  *	when it is no longer needed.
  */
 static uint8 *
-createPaddedCopyWithLength(const uint8 *b, uint32 *l)
+createPaddedCopyWithLength(const uint8 * b, uint32 * l)
 {
 	uint8	   *ret;
 	uint32		q;
@@ -185,15 +185,15 @@ doTheRounds(uint32 X[16], uint32 state[4])
 }
 
 static int
-calculateDigestFromBuffer(const uint8 *b, uint32 len, uint8 sum[16])
+calculateDigestFromBuffer(const uint8 * b, uint32 len, uint8 sum[16])
 {
 	register uint32 i,
-				j,
-				k,
-				newI;
+		j,
+		k,
+		newI;
 	uint32		l;
 	uint8	   *input;
-	register uint32 *wbp;
+	register uint32 * wbp;
 	uint32		workBuff[16],
 				state[4];
 

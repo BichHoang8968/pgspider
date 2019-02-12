@@ -28,24 +28,24 @@
 
 PG_MODULE_MAGIC;
 
-extern void _PG_output_plugin_init(OutputPluginCallbacks *cb);
+extern void _PG_output_plugin_init(OutputPluginCallbacks * cb);
 
-static void pgoutput_startup(LogicalDecodingContext *ctx,
-				 OutputPluginOptions *opt, bool is_init);
-static void pgoutput_shutdown(LogicalDecodingContext *ctx);
-static void pgoutput_begin_txn(LogicalDecodingContext *ctx,
-				   ReorderBufferTXN *txn);
-static void pgoutput_commit_txn(LogicalDecodingContext *ctx,
-					ReorderBufferTXN *txn, XLogRecPtr commit_lsn);
-static void pgoutput_change(LogicalDecodingContext *ctx,
-				ReorderBufferTXN *txn, Relation rel,
-				ReorderBufferChange *change);
-static bool pgoutput_origin_filter(LogicalDecodingContext *ctx,
+static void pgoutput_startup(LogicalDecodingContext * ctx,
+				 OutputPluginOptions * opt, bool is_init);
+static void pgoutput_shutdown(LogicalDecodingContext * ctx);
+static void pgoutput_begin_txn(LogicalDecodingContext * ctx,
+				   ReorderBufferTXN * txn);
+static void pgoutput_commit_txn(LogicalDecodingContext * ctx,
+					ReorderBufferTXN * txn, XLogRecPtr commit_lsn);
+static void pgoutput_change(LogicalDecodingContext * ctx,
+				ReorderBufferTXN * txn, Relation rel,
+				ReorderBufferChange * change);
+static bool pgoutput_origin_filter(LogicalDecodingContext * ctx,
 					   RepOriginId origin_id);
 
 static bool publications_valid;
 
-static List *LoadPublications(List *pubnames);
+static List * LoadPublications(List * pubnames);
 static void publication_invalidation_cb(Datum arg, int cacheid,
 							uint32 hashvalue);
 
@@ -56,13 +56,13 @@ typedef struct RelationSyncEntry
 	bool		schema_sent;	/* did we send the schema? */
 	bool		replicate_valid;
 	PublicationActions pubactions;
-} RelationSyncEntry;
+}			RelationSyncEntry;
 
 /* Map used to remember which relation schemas we sent. */
-static HTAB *RelationSyncCache = NULL;
+static HTAB * RelationSyncCache = NULL;
 
 static void init_rel_sync_cache(MemoryContext decoding_context);
-static RelationSyncEntry *get_rel_sync_entry(PGOutputData *data, Oid relid);
+static RelationSyncEntry * get_rel_sync_entry(PGOutputData * data, Oid relid);
 static void rel_sync_cache_relation_cb(Datum arg, Oid relid);
 static void rel_sync_cache_publication_cb(Datum arg, int cacheid,
 							  uint32 hashvalue);
@@ -71,7 +71,7 @@ static void rel_sync_cache_publication_cb(Datum arg, int cacheid,
  * Specify output plugin callbacks
  */
 void
-_PG_output_plugin_init(OutputPluginCallbacks *cb)
+_PG_output_plugin_init(OutputPluginCallbacks * cb)
 {
 	AssertVariableIsOfType(&_PG_output_plugin_init, LogicalOutputPluginInit);
 
@@ -84,8 +84,8 @@ _PG_output_plugin_init(OutputPluginCallbacks *cb)
 }
 
 static void
-parse_output_parameters(List *options, uint32 *protocol_version,
-						List **publication_names)
+parse_output_parameters(List * options, uint32 * protocol_version,
+						List * *publication_names)
 {
 	ListCell   *lc;
 	bool		protocol_version_given = false;
@@ -144,7 +144,7 @@ parse_output_parameters(List *options, uint32 *protocol_version,
  * Initialize this plugin
  */
 static void
-pgoutput_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt,
+pgoutput_startup(LogicalDecodingContext * ctx, OutputPluginOptions * opt,
 				 bool is_init)
 {
 	PGOutputData *data = palloc0(sizeof(PGOutputData));
@@ -207,7 +207,7 @@ pgoutput_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt,
  * BEGIN callback
  */
 static void
-pgoutput_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
+pgoutput_begin_txn(LogicalDecodingContext * ctx, ReorderBufferTXN * txn)
 {
 	bool		send_replication_origin = txn->origin_id != InvalidRepOriginId;
 
@@ -243,7 +243,7 @@ pgoutput_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
  * COMMIT callback
  */
 static void
-pgoutput_commit_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
+pgoutput_commit_txn(LogicalDecodingContext * ctx, ReorderBufferTXN * txn,
 					XLogRecPtr commit_lsn)
 {
 	OutputPluginUpdateProgress(ctx);
@@ -257,8 +257,8 @@ pgoutput_commit_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
  * Sends the decoded DML over wire.
  */
 static void
-pgoutput_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
-				Relation relation, ReorderBufferChange *change)
+pgoutput_change(LogicalDecodingContext * ctx, ReorderBufferTXN * txn,
+				Relation relation, ReorderBufferChange * change)
 {
 	PGOutputData *data = (PGOutputData *) ctx->output_plugin_private;
 	MemoryContext old;
@@ -370,7 +370,7 @@ pgoutput_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
  * Currently we always forward.
  */
 static bool
-pgoutput_origin_filter(LogicalDecodingContext *ctx,
+pgoutput_origin_filter(LogicalDecodingContext * ctx,
 					   RepOriginId origin_id)
 {
 	return false;
@@ -383,7 +383,7 @@ pgoutput_origin_filter(LogicalDecodingContext *ctx,
  * of the ctx->context so it will be cleaned up by logical decoding machinery.
  */
 static void
-pgoutput_shutdown(LogicalDecodingContext *ctx)
+pgoutput_shutdown(LogicalDecodingContext * ctx)
 {
 	if (RelationSyncCache)
 	{
@@ -396,7 +396,7 @@ pgoutput_shutdown(LogicalDecodingContext *ctx)
  * Load publications from the list of publication names.
  */
 static List *
-LoadPublications(List *pubnames)
+LoadPublications(List * pubnames)
 {
 	List	   *result = NIL;
 	ListCell   *lc;
@@ -467,7 +467,7 @@ init_rel_sync_cache(MemoryContext cachectx)
  * Find or create entry in the relation schema cache.
  */
 static RelationSyncEntry *
-get_rel_sync_entry(PGOutputData *data, Oid relid)
+get_rel_sync_entry(PGOutputData * data, Oid relid)
 {
 	RelationSyncEntry *entry;
 	bool		found;

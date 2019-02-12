@@ -48,9 +48,9 @@ typedef struct IndexTupleData
 
 	unsigned short t_info;		/* various info about tuple */
 
-} IndexTupleData;				/* MORE DATA FOLLOWS AT END OF STRUCT */
+}			IndexTupleData;		/* MORE DATA FOLLOWS AT END OF STRUCT */
 
-typedef IndexTupleData *IndexTuple;
+typedef IndexTupleData * IndexTuple;
 
 typedef struct IndexAttributeBitMapData
 {
@@ -141,11 +141,11 @@ typedef IndexAttributeBitMapData * IndexAttributeBitMap;
 
 /* routines in indextuple.c */
 extern IndexTuple index_form_tuple(TupleDesc tupleDescriptor,
-				 Datum *values, bool *isnull);
+								   Datum * values, bool *isnull);
 extern Datum nocache_index_getattr(IndexTuple tup, int attnum,
-					  TupleDesc tupleDesc);
+								   TupleDesc tupleDesc);
 extern void index_deform_tuple(IndexTuple tup, TupleDesc tupleDescriptor,
-				   Datum *values, bool *isnull);
+				   Datum * values, bool *isnull);
 extern IndexTuple CopyIndexTuple(IndexTuple source);
 
 #endif							/* ITUP_H */

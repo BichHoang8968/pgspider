@@ -20,11 +20,11 @@
 
 typedef struct HeapTupleHeaderData HeapTupleHeaderData;
 
-typedef HeapTupleHeaderData *HeapTupleHeader;
+typedef HeapTupleHeaderData * HeapTupleHeader;
 
 typedef struct MinimalTupleData MinimalTupleData;
 
-typedef MinimalTupleData *MinimalTuple;
+typedef MinimalTupleData * MinimalTuple;
 
 
 /*
@@ -65,9 +65,9 @@ typedef struct HeapTupleData
 	ItemPointerData t_self;		/* SelfItemPointer */
 	Oid			t_tableOid;		/* table the tuple came from */
 	HeapTupleHeader t_data;		/* -> tuple header and data */
-} HeapTupleData;
+}			HeapTupleData;
 
-typedef HeapTupleData *HeapTuple;
+typedef HeapTupleData * HeapTuple;
 
 #define HEAPTUPLESIZE	MAXALIGN(sizeof(HeapTupleData))
 
@@ -80,7 +80,7 @@ typedef HeapTupleData *HeapTuple;
 extern CommandId HeapTupleHeaderGetCmin(HeapTupleHeader tup);
 extern CommandId HeapTupleHeaderGetCmax(HeapTupleHeader tup);
 extern void HeapTupleHeaderAdjustCmax(HeapTupleHeader tup,
-						  CommandId *cmax, bool *iscombo);
+						  CommandId * cmax, bool *iscombo);
 
 /* Prototype for HeapTupleHeader accessors in heapam.c */
 extern TransactionId HeapTupleGetUpdateXid(HeapTupleHeader tuple);

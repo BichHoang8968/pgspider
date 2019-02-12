@@ -30,7 +30,7 @@
 #include "catalog/pg_type.h"
 #include "fe_utils/connect.h"
 
-static PGconn *conn = NULL;
+static PGconn * conn = NULL;
 
 /*
  * Files are fetched max CHUNKSIZE bytes at a time.
@@ -42,7 +42,7 @@ static PGconn *conn = NULL;
 #define CHUNKSIZE 1000000
 
 static void receiveFileChunks(const char *sql);
-static void execute_pagemap(datapagemap_t *pagemap, const char *path);
+static void execute_pagemap(datapagemap_t * pagemap, const char *path);
 static char *run_simple_query(const char *sql);
 
 void
@@ -376,7 +376,7 @@ receiveFileChunks(const char *sql)
  * Receive a single file as a malloc'd buffer.
  */
 char *
-libpqGetFile(const char *filename, size_t *filesize)
+libpqGetFile(const char *filename, size_t * filesize)
 {
 	PGresult   *res;
 	char	   *result;
@@ -448,7 +448,7 @@ fetch_file_range(const char *path, uint64 begin, uint64 end)
  * Fetch all changed blocks from remote source data directory.
  */
 void
-libpq_executeFileMap(filemap_t *map)
+libpq_executeFileMap(filemap_t * map)
 {
 	file_entry_t *entry;
 	const char *sql;
@@ -537,7 +537,7 @@ libpq_executeFileMap(filemap_t *map)
 }
 
 static void
-execute_pagemap(datapagemap_t *pagemap, const char *path)
+execute_pagemap(datapagemap_t * pagemap, const char *path)
 {
 	datapagemap_iterator_t *iter;
 	BlockNumber blkno;

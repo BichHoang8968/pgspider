@@ -43,7 +43,7 @@ CATALOG(pg_enum,3501)
  *		the format of pg_enum relation.
  * ----------------
  */
-typedef FormData_pg_enum *Form_pg_enum;
+typedef FormData_pg_enum * Form_pg_enum;
 
 /* ----------------
  *		compiler constants for pg_enum
@@ -62,7 +62,7 @@ typedef FormData_pg_enum *Form_pg_enum;
 /*
  * prototypes for functions in pg_enum.c
  */
-extern void EnumValuesCreate(Oid enumTypeOid, List *vals);
+extern void EnumValuesCreate(Oid enumTypeOid, List * vals);
 extern void EnumValuesDelete(Oid enumTypeOid);
 extern void AddEnumLabel(Oid enumTypeOid, const char *newVal,
 			 const char *neighbor, bool newValIsAfter,

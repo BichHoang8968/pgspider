@@ -32,7 +32,7 @@ typedef struct
 	int64		current;
 	int64		finish;
 	int64		step;
-} generate_series_fctx;
+}			generate_series_fctx;
 
 
 /***********************************************************************
@@ -52,7 +52,7 @@ typedef struct
  * If errorOK is true, just return "false" for bad input.
  */
 bool
-scanint8(const char *str, bool errorOK, int64 *result)
+scanint8(const char *str, bool errorOK, int64 * result)
 {
 	const char *ptr = str;
 	int64		tmp = 0;

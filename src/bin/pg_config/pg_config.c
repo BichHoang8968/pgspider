@@ -38,7 +38,7 @@ typedef struct
 {
 	const char *switchname;
 	const char *configname;
-} InfoItem;
+}			InfoItem;
 
 static const InfoItem info_items[] = {
 	{"--bindir", "BINDIR"},
@@ -113,7 +113,7 @@ advice(void)
 
 static void
 show_item(const char *configname,
-		  ConfigData *configdata,
+		  ConfigData * configdata,
 		  size_t configdata_len)
 {
 	int			i;

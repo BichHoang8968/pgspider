@@ -40,10 +40,10 @@
 
 static void ExecHashIncreaseNumBatches(HashJoinTable hashtable);
 static void ExecHashIncreaseNumBuckets(HashJoinTable hashtable);
-static void ExecHashBuildSkewHash(HashJoinTable hashtable, Hash *node,
+static void ExecHashBuildSkewHash(HashJoinTable hashtable, Hash * node,
 					  int mcvsToUse);
 static void ExecHashSkewTableInsert(HashJoinTable hashtable,
-						TupleTableSlot *slot,
+						TupleTableSlot * slot,
 						uint32 hashvalue,
 						int bucketNumber);
 static void ExecHashRemoveNextSkewBucket(HashJoinTable hashtable);
@@ -57,7 +57,7 @@ static void *dense_alloc(HashJoinTable hashtable, Size size);
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecHash(PlanState *pstate)
+ExecHash(PlanState * pstate)
 {
 	elog(ERROR, "Hash node does not support ExecProcNode call convention");
 	return NULL;
@@ -71,7 +71,7 @@ ExecHash(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 Node *
-MultiExecHash(HashState *node)
+MultiExecHash(HashState * node)
 {
 	PlanState  *outerNode;
 	List	   *hashkeys;
@@ -159,7 +159,7 @@ MultiExecHash(HashState *node)
  * ----------------------------------------------------------------
  */
 HashState *
-ExecInitHash(Hash *node, EState *estate, int eflags)
+ExecInitHash(Hash * node, EState * estate, int eflags)
 {
 	HashState  *hashstate;
 
@@ -216,7 +216,7 @@ ExecInitHash(Hash *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndHash(HashState *node)
+ExecEndHash(HashState * node)
 {
 	PlanState  *outerPlan;
 
@@ -240,7 +240,7 @@ ExecEndHash(HashState *node)
  * ----------------------------------------------------------------
  */
 HashJoinTable
-ExecHashTableCreate(Hash *node, List *hashOperators, bool keepNulls)
+ExecHashTableCreate(Hash * node, List * hashOperators, bool keepNulls)
 {
 	HashJoinTable hashtable;
 	Plan	   *outerNode;
@@ -357,9 +357,9 @@ ExecHashTableCreate(Hash *node, List *hashOperators, bool keepNulls)
 		/*
 		 * allocate and initialize the file arrays in hashCxt
 		 */
-		hashtable->innerBatchFile = (BufFile **)
+		hashtable->innerBatchFile = (BufFile * *)
 			palloc0(nbatch * sizeof(BufFile *));
-		hashtable->outerBatchFile = (BufFile **)
+		hashtable->outerBatchFile = (BufFile * *)
 			palloc0(nbatch * sizeof(BufFile *));
 		/* The files will not be opened until needed... */
 		/* ... but make sure we have temp tablespaces established for them */
@@ -619,9 +619,9 @@ ExecHashIncreaseNumBatches(HashJoinTable hashtable)
 	if (hashtable->innerBatchFile == NULL)
 	{
 		/* we had no file arrays before */
-		hashtable->innerBatchFile = (BufFile **)
+		hashtable->innerBatchFile = (BufFile * *)
 			palloc0(nbatch * sizeof(BufFile *));
-		hashtable->outerBatchFile = (BufFile **)
+		hashtable->outerBatchFile = (BufFile * *)
 			palloc0(nbatch * sizeof(BufFile *));
 		/* time to establish the temp tablespaces, too */
 		PrepareTempTablespaces();
@@ -629,9 +629,9 @@ ExecHashIncreaseNumBatches(HashJoinTable hashtable)
 	else
 	{
 		/* enlarge arrays and zero out added entries */
-		hashtable->innerBatchFile = (BufFile **)
+		hashtable->innerBatchFile = (BufFile * *)
 			repalloc(hashtable->innerBatchFile, nbatch * sizeof(BufFile *));
-		hashtable->outerBatchFile = (BufFile **)
+		hashtable->outerBatchFile = (BufFile * *)
 			repalloc(hashtable->outerBatchFile, nbatch * sizeof(BufFile *));
 		MemSet(hashtable->innerBatchFile + oldnbatch, 0,
 			   (nbatch - oldnbatch) * sizeof(BufFile *));
@@ -832,7 +832,7 @@ ExecHashIncreaseNumBuckets(HashJoinTable hashtable)
  */
 void
 ExecHashTableInsert(HashJoinTable hashtable,
-					TupleTableSlot *slot,
+					TupleTableSlot * slot,
 					uint32 hashvalue)
 {
 	MinimalTuple tuple = ExecFetchSlotMinimalTuple(slot);
@@ -926,11 +926,11 @@ ExecHashTableInsert(HashJoinTable hashtable,
  */
 bool
 ExecHashGetHashValue(HashJoinTable hashtable,
-					 ExprContext *econtext,
-					 List *hashkeys,
+					 ExprContext * econtext,
+					 List * hashkeys,
 					 bool outer_tuple,
 					 bool keep_nulls,
-					 uint32 *hashvalue)
+					 uint32 * hashvalue)
 {
 	uint32		hashkey = 0;
 	FmgrInfo   *hashfunctions;
@@ -1061,8 +1061,8 @@ ExecHashGetBucketAndBatch(HashJoinTable hashtable,
  * for the latter.
  */
 bool
-ExecScanHashBucket(HashJoinState *hjstate,
-				   ExprContext *econtext)
+ExecScanHashBucket(HashJoinState * hjstate,
+				   ExprContext * econtext)
 {
 	ExprState  *hjclauses = hjstate->hashclauses;
 	HashJoinTable hashtable = hjstate->hj_HashTable;
@@ -1119,7 +1119,7 @@ ExecScanHashBucket(HashJoinState *hjstate,
  *		set up for a series of ExecScanHashTableForUnmatched calls
  */
 void
-ExecPrepHashTableForUnmatched(HashJoinState *hjstate)
+ExecPrepHashTableForUnmatched(HashJoinState * hjstate)
 {
 	/*----------
 	 * During this scan we use the HashJoinState fields as follows:
@@ -1143,7 +1143,7 @@ ExecPrepHashTableForUnmatched(HashJoinState *hjstate)
  * for the latter.
  */
 bool
-ExecScanHashTableForUnmatched(HashJoinState *hjstate, ExprContext *econtext)
+ExecScanHashTableForUnmatched(HashJoinState * hjstate, ExprContext * econtext)
 {
 	HashJoinTable hashtable = hjstate->hj_HashTable;
 	HashJoinTuple hashTuple = hjstate->hj_CurTuple;
@@ -1268,7 +1268,7 @@ ExecHashTableResetMatchFlags(HashJoinTable hashtable)
 
 
 void
-ExecReScanHash(HashState *node)
+ExecReScanHash(HashState * node)
 {
 	/*
 	 * if chgParam of subnode is not null then plan will be re-scanned by
@@ -1288,7 +1288,7 @@ ExecReScanHash(HashState *node)
  *		based on available memory.
  */
 static void
-ExecHashBuildSkewHash(HashJoinTable hashtable, Hash *node, int mcvsToUse)
+ExecHashBuildSkewHash(HashJoinTable hashtable, Hash * node, int mcvsToUse)
 {
 	HeapTupleData *statsTuple;
 	AttStatsSlot sslot;
@@ -1363,7 +1363,7 @@ ExecHashBuildSkewHash(HashJoinTable hashtable, Hash *node, int mcvsToUse)
 		 * is only needed during the first batch, and this ensures it will be
 		 * automatically removed once the first batch is done.
 		 */
-		hashtable->skewBucket = (HashSkewBucket **)
+		hashtable->skewBucket = (HashSkewBucket * *)
 			MemoryContextAllocZero(hashtable->batchCxt,
 								   nbuckets * sizeof(HashSkewBucket *));
 		hashtable->skewBucketNums = (int *)
@@ -1489,7 +1489,7 @@ ExecHashGetSkewBucket(HashJoinTable hashtable, uint32 hashvalue)
  */
 static void
 ExecHashSkewTableInsert(HashJoinTable hashtable,
-						TupleTableSlot *slot,
+						TupleTableSlot * slot,
 						uint32 hashvalue,
 						int bucketNumber)
 {

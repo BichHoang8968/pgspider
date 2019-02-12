@@ -30,7 +30,7 @@ static char *datasegpath(RelFileNode rnode, ForkNumber forknum,
 			BlockNumber segno);
 static int	path_cmp(const void *a, const void *b);
 static int	final_filemap_cmp(const void *a, const void *b);
-static void filemap_list_to_array(filemap_t *map);
+static void filemap_list_to_array(filemap_t * map);
 
 /*
  * Create a new file map (stored in the global pointer "filemap").
@@ -417,13 +417,13 @@ process_block_change(ForkNumber forknum, RelFileNode rnode, BlockNumber blkno)
  * map->array.
  */
 static void
-filemap_list_to_array(filemap_t *map)
+filemap_list_to_array(filemap_t * map)
 {
 	int			narray;
 	file_entry_t *entry,
 			   *next;
 
-	map->array = (file_entry_t **)
+	map->array = (file_entry_t * *)
 		pg_realloc(map->array,
 				   (map->nlist + map->narray) * sizeof(file_entry_t *));
 
@@ -614,8 +614,8 @@ isRelDataFile(const char *path)
 	/*
 	 * The sscanf tests above can match files that have extra characters at
 	 * the end. To eliminate such cases, cross-check that GetRelationPath
-	 * creates the exact same filename, when passed the RelFileNode information
-	 * we extracted from the filename.
+	 * creates the exact same filename, when passed the RelFileNode
+	 * information we extracted from the filename.
 	 */
 	if (matched)
 	{
@@ -655,8 +655,8 @@ datasegpath(RelFileNode rnode, ForkNumber forknum, BlockNumber segno)
 static int
 path_cmp(const void *a, const void *b)
 {
-	file_entry_t *fa = *((file_entry_t **) a);
-	file_entry_t *fb = *((file_entry_t **) b);
+	file_entry_t *fa = *((file_entry_t * *) a);
+	file_entry_t *fb = *((file_entry_t * *) b);
 
 	return strcmp(fa->path, fb->path);
 }
@@ -674,8 +674,8 @@ path_cmp(const void *a, const void *b)
 static int
 final_filemap_cmp(const void *a, const void *b)
 {
-	file_entry_t *fa = *((file_entry_t **) a);
-	file_entry_t *fb = *((file_entry_t **) b);
+	file_entry_t *fa = *((file_entry_t * *) a);
+	file_entry_t *fb = *((file_entry_t * *) b);
 
 	if (fa->action > fb->action)
 		return 1;

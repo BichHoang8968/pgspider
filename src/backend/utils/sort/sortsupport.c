@@ -28,7 +28,7 @@ typedef struct
 {
 	FunctionCallInfoData fcinfo;	/* reusable callinfo structure */
 	FmgrInfo	flinfo;			/* lookup data for comparison function */
-} SortShimExtra;
+}			SortShimExtra;
 
 
 /*

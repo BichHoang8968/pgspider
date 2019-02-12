@@ -135,7 +135,7 @@ typedef struct
 	int			len,			/* suffix length		*/
 				id,				/* used in node->suffix */
 				type;			/* prefix / postfix			*/
-} KeySuffix;
+}			KeySuffix;
 
 /* ----------
  * FromCharDateMode
@@ -149,7 +149,7 @@ typedef enum
 	FROM_CHAR_DATE_NONE = 0,	/* Value does not affect date mode. */
 	FROM_CHAR_DATE_GREGORIAN,	/* Gregorian (day, month, year) style date */
 	FROM_CHAR_DATE_ISOWEEK		/* ISO 8601 week date */
-} FromCharDateMode;
+}			FromCharDateMode;
 
 typedef struct FormatNode FormatNode;
 
@@ -160,12 +160,12 @@ typedef struct
 	int			id;
 	bool		is_digit;
 	FromCharDateMode date_mode;
-} KeyWord;
+}			KeyWord;
 
 struct FormatNode
 {
 	int			type;			/* node type			*/
-	const KeyWord *key;			/* if node type is KEYWORD	*/
+	const		KeyWord *key;	/* if node type is KEYWORD	*/
 	char		character;		/* if node type is CHAR		*/
 	int			suffix;			/* keyword suffix		*/
 };
@@ -314,7 +314,7 @@ typedef struct
 				zero_start,		/* position of first zero	  */
 				zero_end,		/* position of last zero	  */
 				need_locale;	/* needs it locale		  */
-} NUMDesc;
+}			NUMDesc;
 
 /* ----------
  * Flags for NUMBER version
@@ -380,7 +380,7 @@ typedef struct
 	char		str[DCH_CACHE_SIZE + 1];
 	bool		valid;
 	int			age;
-} DCHCacheEntry;
+}			DCHCacheEntry;
 
 typedef struct
 {
@@ -389,7 +389,7 @@ typedef struct
 	bool		valid;
 	int			age;
 	NUMDesc		Num;
-} NUMCacheEntry;
+}			NUMCacheEntry;
 
 /* global cache for date/time format pictures */
 static DCHCacheEntry DCHCache[DCH_CACHE_ENTRIES];
@@ -427,7 +427,7 @@ typedef struct
 				us,
 				yysz,			/* is it YY or YYYY ? */
 				clock;			/* 12 or 24 hour clock? */
-} TmFromChar;
+}			TmFromChar;
 
 #define ZERO_tmfc(_X) memset(_X, 0, sizeof(TmFromChar))
 
@@ -461,7 +461,7 @@ typedef struct TmToChar
 	struct pg_tm tm;			/* classic 'tm' struct */
 	fsec_t		fsec;			/* fractional seconds */
 	const char *tzn;			/* timezone */
-} TmToChar;
+}			TmToChar;
 
 #define tmtcTm(_X)	(&(_X)->tm)
 #define tmtcTzn(_X) ((_X)->tzn)
@@ -945,57 +945,57 @@ typedef struct NUMProc
 			   *decimal,
 			   *L_thousands_sep,
 			   *L_currency_symbol;
-} NUMProc;
+}			NUMProc;
 
 
 /* ----------
  * Functions
  * ----------
  */
-static const KeyWord *index_seq_search(const char *str, const KeyWord *kw,
+static const KeyWord *index_seq_search(const char *str, const KeyWord * kw,
 				 const int *index);
-static const KeySuffix *suff_search(const char *str, const KeySuffix *suf, int type);
-static void NUMDesc_prepare(NUMDesc *num, FormatNode *n);
-static void parse_format(FormatNode *node, const char *str, const KeyWord *kw,
-			 const KeySuffix *suf, const int *index, int ver, NUMDesc *Num);
+static const KeySuffix *suff_search(const char *str, const KeySuffix * suf, int type);
+static void NUMDesc_prepare(NUMDesc * num, FormatNode * n);
+static void parse_format(FormatNode * node, const char *str, const KeyWord * kw,
+			 const KeySuffix * suf, const int *index, int ver, NUMDesc * Num);
 
-static void DCH_to_char(FormatNode *node, bool is_interval,
-			TmToChar *in, char *out, Oid collid);
-static void DCH_from_char(FormatNode *node, char *in, TmFromChar *out);
+static void DCH_to_char(FormatNode * node, bool is_interval,
+			TmToChar * in, char *out, Oid collid);
+static void DCH_from_char(FormatNode * node, char *in, TmFromChar * out);
 
 #ifdef DEBUG_TO_FROM_CHAR
-static void dump_index(const KeyWord *k, const int *index);
-static void dump_node(FormatNode *node, int max);
+static void dump_index(const KeyWord * k, const int *index);
+static void dump_node(FormatNode * node, int max);
 #endif
 
 static const char *get_th(char *num, int type);
 static char *str_numth(char *dest, char *num, int type);
 static int	adjust_partial_year_to_2020(int year);
 static int	strspace_len(char *str);
-static void from_char_set_mode(TmFromChar *tmfc, const FromCharDateMode mode);
-static void from_char_set_int(int *dest, const int value, const FormatNode *node);
-static int	from_char_parse_int_len(int *dest, char **src, const int len, FormatNode *node);
-static int	from_char_parse_int(int *dest, char **src, FormatNode *node);
+static void from_char_set_mode(TmFromChar * tmfc, const FromCharDateMode mode);
+static void from_char_set_int(int *dest, const int value, const FormatNode * node);
+static int	from_char_parse_int_len(int *dest, char **src, const int len, FormatNode * node);
+static int	from_char_parse_int(int *dest, char **src, FormatNode * node);
 static int	seq_search(char *name, const char *const *array, int type, int max, int *len);
-static int	from_char_seq_search(int *dest, char **src, const char *const *array, int type, int max, FormatNode *node);
-static void do_to_timestamp(text *date_txt, text *fmt,
-				struct pg_tm *tm, fsec_t *fsec);
+static int	from_char_seq_search(int *dest, char **src, const char *const *array, int type, int max, FormatNode * node);
+static void do_to_timestamp(text * date_txt, text * fmt,
+				struct pg_tm *tm, fsec_t * fsec);
 static char *fill_str(char *str, int c, int max);
-static FormatNode *NUM_cache(int len, NUMDesc *Num, text *pars_str, bool *shouldFree);
+static FormatNode * NUM_cache(int len, NUMDesc * Num, text * pars_str, bool *shouldFree);
 static char *int_to_roman(int number);
-static void NUM_prepare_locale(NUMProc *Np);
+static void NUM_prepare_locale(NUMProc * Np);
 static char *get_last_relevant_decnum(char *num);
-static void NUM_numpart_from_char(NUMProc *Np, int id, int input_len);
-static void NUM_numpart_to_char(NUMProc *Np, int id);
-static char *NUM_processor(FormatNode *node, NUMDesc *Num, char *inout,
+static void NUM_numpart_from_char(NUMProc * Np, int id, int input_len);
+static void NUM_numpart_to_char(NUMProc * Np, int id);
+static char *NUM_processor(FormatNode * node, NUMDesc * Num, char *inout,
 			  char *number, int from_char_input_len, int to_char_out_pre_spaces,
 			  int sign, bool is_to_char, Oid collid);
-static DCHCacheEntry *DCH_cache_getnew(const char *str);
-static DCHCacheEntry *DCH_cache_search(const char *str);
-static DCHCacheEntry *DCH_cache_fetch(const char *str);
-static NUMCacheEntry *NUM_cache_getnew(const char *str);
-static NUMCacheEntry *NUM_cache_search(const char *str);
-static NUMCacheEntry *NUM_cache_fetch(const char *str);
+static DCHCacheEntry * DCH_cache_getnew(const char *str);
+static DCHCacheEntry * DCH_cache_search(const char *str);
+static DCHCacheEntry * DCH_cache_fetch(const char *str);
+static NUMCacheEntry * NUM_cache_getnew(const char *str);
+static NUMCacheEntry * NUM_cache_search(const char *str);
+static NUMCacheEntry * NUM_cache_fetch(const char *str);
 
 
 /* ----------
@@ -1005,7 +1005,7 @@ static NUMCacheEntry *NUM_cache_fetch(const char *str);
  * ----------
  */
 static const KeyWord *
-index_seq_search(const char *str, const KeyWord *kw, const int *index)
+index_seq_search(const char *str, const KeyWord * kw, const int *index)
 {
 	int			poz;
 
@@ -1014,7 +1014,7 @@ index_seq_search(const char *str, const KeyWord *kw, const int *index)
 
 	if ((poz = *(index + (*str - ' '))) > -1)
 	{
-		const KeyWord *k = kw + poz;
+		const		KeyWord *k = kw + poz;
 
 		do
 		{
@@ -1029,9 +1029,9 @@ index_seq_search(const char *str, const KeyWord *kw, const int *index)
 }
 
 static const KeySuffix *
-suff_search(const char *str, const KeySuffix *suf, int type)
+suff_search(const char *str, const KeySuffix * suf, int type)
 {
-	const KeySuffix *s;
+	const		KeySuffix *s;
 
 	for (s = suf; s->name != NULL; s++)
 	{
@@ -1049,7 +1049,7 @@ suff_search(const char *str, const KeySuffix *suf, int type)
  * ----------
  */
 static void
-NUMDesc_prepare(NUMDesc *num, FormatNode *n)
+NUMDesc_prepare(NUMDesc * num, FormatNode * n)
 {
 	if (n->type != NODE_TYPE_ACTION)
 		return;
@@ -1224,10 +1224,10 @@ NUMDesc_prepare(NUMDesc *num, FormatNode *n)
  * ----------
  */
 static void
-parse_format(FormatNode *node, const char *str, const KeyWord *kw,
-			 const KeySuffix *suf, const int *index, int ver, NUMDesc *Num)
+parse_format(FormatNode * node, const char *str, const KeyWord * kw,
+			 const KeySuffix * suf, const int *index, int ver, NUMDesc * Num)
 {
-	const KeySuffix *s;
+	const		KeySuffix *s;
 	FormatNode *n;
 	int			node_set = 0,
 				suffix,
@@ -1354,7 +1354,7 @@ parse_format(FormatNode *node, const char *str, const KeyWord *kw,
 #define DUMP_FM(_suf)	(S_FM(_suf) ? "FM" : " ")
 
 static void
-dump_node(FormatNode *node, int max)
+dump_node(FormatNode * node, int max)
 {
 	FormatNode *n;
 	int			a;
@@ -1449,14 +1449,14 @@ str_numth(char *dest, char *num, int type)
 
 #ifdef USE_ICU
 
-typedef int32_t (*ICU_Convert_Func) (UChar *dest, int32_t destCapacity,
-									 const UChar *src, int32_t srcLength,
-									 const char *locale,
-									 UErrorCode *pErrorCode);
+typedef int32_t(*ICU_Convert_Func) (UChar * dest, int32_t destCapacity,
+									const UChar * src, int32_t srcLength,
+									const char *locale,
+									UErrorCode * pErrorCode);
 
 static int32_t
 icu_convert_case(ICU_Convert_Func func, pg_locale_t mylocale,
-				 UChar **buff_dest, UChar *buff_source, int32_t len_source)
+				 UChar * *buff_dest, UChar * buff_source, int32_t len_source)
 {
 	UErrorCode	status;
 	int32_t		len_dest;
@@ -1482,10 +1482,10 @@ icu_convert_case(ICU_Convert_Func func, pg_locale_t mylocale,
 }
 
 static int32_t
-u_strToTitle_default_BI(UChar *dest, int32_t destCapacity,
-						const UChar *src, int32_t srcLength,
+u_strToTitle_default_BI(UChar * dest, int32_t destCapacity,
+						const UChar * src, int32_t srcLength,
 						const char *locale,
-						UErrorCode *pErrorCode)
+						UErrorCode * pErrorCode)
 {
 	return u_strToTitle(dest, destCapacity, src, srcLength,
 						NULL, locale, pErrorCode);
@@ -2045,7 +2045,7 @@ asc_toupper_z(const char *buff)
  * ----------
  */
 static void
-dump_index(const KeyWord *k, const int *index)
+dump_index(const KeyWord * k, const int *index)
 {
 	int			i,
 				count = 0,
@@ -2076,7 +2076,7 @@ dump_index(const KeyWord *k, const int *index)
  * ----------
  */
 static bool
-is_next_separator(FormatNode *n)
+is_next_separator(FormatNode * n)
 {
 	if (n->type == NODE_TYPE_END)
 		return FALSE;
@@ -2151,7 +2151,7 @@ strspace_len(char *str)
  * it to a conflicting mode.
  */
 static void
-from_char_set_mode(TmFromChar *tmfc, const FromCharDateMode mode)
+from_char_set_mode(TmFromChar * tmfc, const FromCharDateMode mode)
 {
 	if (mode != FROM_CHAR_DATE_NONE)
 	{
@@ -2173,7 +2173,7 @@ from_char_set_mode(TmFromChar *tmfc, const FromCharDateMode mode)
  * non-zero value.
  */
 static void
-from_char_set_int(int *dest, const int value, const FormatNode *node)
+from_char_set_int(int *dest, const int value, const FormatNode * node)
 {
 	if (*dest != 0 && *dest != value)
 		ereport(ERROR,
@@ -2206,7 +2206,7 @@ from_char_set_int(int *dest, const int value, const FormatNode *node)
  * with DD and MI).
  */
 static int
-from_char_parse_int_len(int *dest, char **src, const int len, FormatNode *node)
+from_char_parse_int_len(int *dest, char **src, const int len, FormatNode * node)
 {
 	long		result;
 	char		copy[DCH_MAX_ITEM_SIZ + 1];
@@ -2296,7 +2296,7 @@ from_char_parse_int_len(int *dest, char **src, const int len, FormatNode *node)
  * required length explicitly.
  */
 static int
-from_char_parse_int(int *dest, char **src, FormatNode *node)
+from_char_parse_int(int *dest, char **src, FormatNode * node)
 {
 	return from_char_parse_int_len(dest, src, node->key->len, node);
 }
@@ -2385,7 +2385,7 @@ seq_search(char *name, const char *const *array, int type, int max, int *len)
  */
 static int
 from_char_seq_search(int *dest, char **src, const char *const *array, int type, int max,
-					 FormatNode *node)
+					 FormatNode * node)
 {
 	int			len;
 
@@ -2414,7 +2414,7 @@ from_char_seq_search(int *dest, char **src, const char *const *array, int type, 
  * ----------
  */
 static void
-DCH_to_char(FormatNode *node, bool is_interval, TmToChar *in, char *out, Oid collid)
+DCH_to_char(FormatNode * node, bool is_interval, TmToChar * in, char *out, Oid collid)
 {
 	FormatNode *n;
 	char	   *s;
@@ -2981,7 +2981,7 @@ DCH_to_char(FormatNode *node, bool is_interval, TmToChar *in, char *out, Oid col
  * ----------
  */
 static void
-DCH_from_char(FormatNode *node, char *in, TmFromChar *out)
+DCH_from_char(FormatNode * node, char *in, TmFromChar * out)
 {
 	FormatNode *n;
 	char	   *s;
@@ -3370,7 +3370,7 @@ DCH_cache_fetch(const char *str)
  * for formatting.
  */
 static text *
-datetime_to_char_body(TmToChar *tmtc, text *fmt, bool is_interval, Oid collid)
+datetime_to_char_body(TmToChar * tmtc, text * fmt, bool is_interval, Oid collid)
 {
 	FormatNode *format;
 	char	   *fmt_str,
@@ -3611,8 +3611,8 @@ to_date(PG_FUNCTION_ARGS)
  * struct 'tm' and 'fsec'.
  */
 static void
-do_to_timestamp(text *date_txt, text *fmt,
-				struct pg_tm *tm, fsec_t *fsec)
+do_to_timestamp(text * date_txt, text * fmt,
+				struct pg_tm *tm, fsec_t * fsec)
 {
 	FormatNode *format;
 	TmFromChar	tmfc;
@@ -4026,7 +4026,7 @@ NUM_cache_fetch(const char *str)
  * ----------
  */
 static FormatNode *
-NUM_cache(int len, NUMDesc *Num, text *pars_str, bool *shouldFree)
+NUM_cache(int len, NUMDesc * Num, text * pars_str, bool *shouldFree)
 {
 	FormatNode *format = NULL;
 	char	   *str;
@@ -4133,7 +4133,7 @@ int_to_roman(int number)
  * ----------
  */
 static void
-NUM_prepare_locale(NUMProc *Np)
+NUM_prepare_locale(NUMProc * Np)
 {
 	if (Np->Num->need_locale)
 	{
@@ -4179,7 +4179,7 @@ NUM_prepare_locale(NUMProc *Np)
 		if (lconv->thousands_sep && *lconv->thousands_sep)
 			Np->L_thousands_sep = lconv->thousands_sep;
 		/* Make sure thousands separator doesn't match decimal point symbol. */
-		else if (strcmp(Np->decimal, ",") !=0)
+		else if (strcmp(Np->decimal, ",") != 0)
 			Np->L_thousands_sep = ",";
 		else
 			Np->L_thousands_sep = ".";
@@ -4243,7 +4243,7 @@ get_last_relevant_decnum(char *num)
  * ----------
  */
 static void
-NUM_numpart_from_char(NUMProc *Np, int id, int input_len)
+NUM_numpart_from_char(NUMProc * Np, int id, int input_len)
 {
 	bool		isread = FALSE;
 
@@ -4461,7 +4461,7 @@ NUM_numpart_from_char(NUMProc *Np, int id, int input_len)
  * ----------
  */
 static void
-NUM_numpart_to_char(NUMProc *Np, int id)
+NUM_numpart_to_char(NUMProc * Np, int id)
 {
 	int			end;
 
@@ -4648,13 +4648,14 @@ NUM_numpart_to_char(NUMProc *Np, int id)
 }
 
 static char *
-NUM_processor(FormatNode *node, NUMDesc *Num, char *inout,
+NUM_processor(FormatNode * node, NUMDesc * Num, char *inout,
 			  char *number, int from_char_input_len, int to_char_out_pre_spaces,
 			  int sign, bool is_to_char, Oid collid)
 {
 	FormatNode *n;
-	NUMProc		_Np,
-			   *Np = &_Np;
+
+	NUMProc _Np,
+		*Np = &_Np;
 
 	MemSet(Np, 0, sizeof(NUMProc));
 

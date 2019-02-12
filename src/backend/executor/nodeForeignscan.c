@@ -28,8 +28,8 @@
 #include "utils/memutils.h"
 #include "utils/rel.h"
 
-static TupleTableSlot *ForeignNext(ForeignScanState *node);
-static bool ForeignRecheck(ForeignScanState *node, TupleTableSlot *slot);
+static TupleTableSlot * ForeignNext(ForeignScanState * node);
+static bool ForeignRecheck(ForeignScanState * node, TupleTableSlot * slot);
 
 
 /* ----------------------------------------------------------------
@@ -39,7 +39,7 @@ static bool ForeignRecheck(ForeignScanState *node, TupleTableSlot *slot);
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ForeignNext(ForeignScanState *node)
+ForeignNext(ForeignScanState * node)
 {
 	TupleTableSlot *slot;
 	ForeignScan *plan = (ForeignScan *) node->ss.ps.plan;
@@ -74,7 +74,7 @@ ForeignNext(ForeignScanState *node)
  * ForeignRecheck -- access method routine to recheck a tuple in EvalPlanQual
  */
 static bool
-ForeignRecheck(ForeignScanState *node, TupleTableSlot *slot)
+ForeignRecheck(ForeignScanState * node, TupleTableSlot * slot)
 {
 	FdwRoutine *fdwroutine = node->fdwroutine;
 	ExprContext *econtext;
@@ -114,7 +114,7 @@ ForeignRecheck(ForeignScanState *node, TupleTableSlot *slot)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecForeignScan(PlanState *pstate)
+ExecForeignScan(PlanState * pstate)
 {
 	ForeignScanState *node = castNode(ForeignScanState, pstate);
 
@@ -129,7 +129,7 @@ ExecForeignScan(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 ForeignScanState *
-ExecInitForeignScan(ForeignScan *node, EState *estate, int eflags)
+ExecInitForeignScan(ForeignScan * node, EState * estate, int eflags)
 {
 	ForeignScanState *scanstate;
 	Relation	currentRelation = NULL;
@@ -240,7 +240,7 @@ ExecInitForeignScan(ForeignScan *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndForeignScan(ForeignScanState *node)
+ExecEndForeignScan(ForeignScanState * node)
 {
 	ForeignScan *plan = (ForeignScan *) node->ss.ps.plan;
 
@@ -273,7 +273,7 @@ ExecEndForeignScan(ForeignScanState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanForeignScan(ForeignScanState *node)
+ExecReScanForeignScan(ForeignScanState * node)
 {
 	PlanState  *outerPlan = outerPlanState(node);
 
@@ -297,7 +297,7 @@ ExecReScanForeignScan(ForeignScanState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecForeignScanEstimate(ForeignScanState *node, ParallelContext *pcxt)
+ExecForeignScanEstimate(ForeignScanState * node, ParallelContext * pcxt)
 {
 	FdwRoutine *fdwroutine = node->fdwroutine;
 
@@ -316,7 +316,7 @@ ExecForeignScanEstimate(ForeignScanState *node, ParallelContext *pcxt)
  * ----------------------------------------------------------------
  */
 void
-ExecForeignScanInitializeDSM(ForeignScanState *node, ParallelContext *pcxt)
+ExecForeignScanInitializeDSM(ForeignScanState * node, ParallelContext * pcxt)
 {
 	FdwRoutine *fdwroutine = node->fdwroutine;
 
@@ -338,7 +338,7 @@ ExecForeignScanInitializeDSM(ForeignScanState *node, ParallelContext *pcxt)
  * ----------------------------------------------------------------
  */
 void
-ExecForeignScanReInitializeDSM(ForeignScanState *node, ParallelContext *pcxt)
+ExecForeignScanReInitializeDSM(ForeignScanState * node, ParallelContext * pcxt)
 {
 	FdwRoutine *fdwroutine = node->fdwroutine;
 
@@ -359,7 +359,7 @@ ExecForeignScanReInitializeDSM(ForeignScanState *node, ParallelContext *pcxt)
  * ----------------------------------------------------------------
  */
 void
-ExecForeignScanInitializeWorker(ForeignScanState *node, shm_toc *toc)
+ExecForeignScanInitializeWorker(ForeignScanState * node, shm_toc * toc)
 {
 	FdwRoutine *fdwroutine = node->fdwroutine;
 
@@ -381,7 +381,7 @@ ExecForeignScanInitializeWorker(ForeignScanState *node, shm_toc *toc)
  * ----------------------------------------------------------------
  */
 void
-ExecShutdownForeignScan(ForeignScanState *node)
+ExecShutdownForeignScan(ForeignScanState * node)
 {
 	FdwRoutine *fdwroutine = node->fdwroutine;
 

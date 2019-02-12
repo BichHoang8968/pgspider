@@ -50,7 +50,7 @@
  */
 typedef int32 SlotNumber;
 
-static TupleTableSlot *ExecMergeAppend(PlanState *pstate);
+static TupleTableSlot * ExecMergeAppend(PlanState * pstate);
 static int	heap_compare_slots(Datum a, Datum b, void *arg);
 
 
@@ -61,7 +61,7 @@ static int	heap_compare_slots(Datum a, Datum b, void *arg);
  * ----------------------------------------------------------------
  */
 MergeAppendState *
-ExecInitMergeAppend(MergeAppend *node, EState *estate, int eflags)
+ExecInitMergeAppend(MergeAppend * node, EState * estate, int eflags)
 {
 	MergeAppendState *mergestate = makeNode(MergeAppendState);
 	PlanState **mergeplanstates;
@@ -83,7 +83,7 @@ ExecInitMergeAppend(MergeAppend *node, EState *estate, int eflags)
 	 */
 	nplans = list_length(node->mergeplans);
 
-	mergeplanstates = (PlanState **) palloc0(nplans * sizeof(PlanState *));
+	mergeplanstates = (PlanState * *) palloc0(nplans * sizeof(PlanState *));
 
 	/*
 	 * create new MergeAppendState for our node
@@ -94,7 +94,7 @@ ExecInitMergeAppend(MergeAppend *node, EState *estate, int eflags)
 	mergestate->mergeplans = mergeplanstates;
 	mergestate->ms_nplans = nplans;
 
-	mergestate->ms_slots = (TupleTableSlot **) palloc0(sizeof(TupleTableSlot *) * nplans);
+	mergestate->ms_slots = (TupleTableSlot * *) palloc0(sizeof(TupleTableSlot *) * nplans);
 	mergestate->ms_heap = binaryheap_allocate(nplans, heap_compare_slots,
 											  mergestate);
 
@@ -172,7 +172,7 @@ ExecInitMergeAppend(MergeAppend *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecMergeAppend(PlanState *pstate)
+ExecMergeAppend(PlanState * pstate)
 {
 	MergeAppendState *node = castNode(MergeAppendState, pstate);
 	TupleTableSlot *result;
@@ -275,7 +275,7 @@ heap_compare_slots(Datum a, Datum b, void *arg)
  * ----------------------------------------------------------------
  */
 void
-ExecEndMergeAppend(MergeAppendState *node)
+ExecEndMergeAppend(MergeAppendState * node)
 {
 	PlanState **mergeplans;
 	int			nplans;
@@ -295,7 +295,7 @@ ExecEndMergeAppend(MergeAppendState *node)
 }
 
 void
-ExecReScanMergeAppend(MergeAppendState *node)
+ExecReScanMergeAppend(MergeAppendState * node)
 {
 	int			i;
 

@@ -22,9 +22,9 @@
 #include "utils/inet.h"
 
 
-static int32 network_cmp_internal(inet *a1, inet *a2);
+static int32 network_cmp_internal(inet * a1, inet * a2);
 static bool addressOK(unsigned char *a, int bits, int family);
-static inet *internal_inetpl(inet *ip, int64 addend);
+static inet * internal_inetpl(inet * ip, int64 addend);
 
 
 /*
@@ -97,7 +97,7 @@ cidr_in(PG_FUNCTION_ARGS)
  * Common INET/CIDR output routine
  */
 static char *
-network_out(inet *src, bool is_cidr)
+network_out(inet * src, bool is_cidr)
 {
 	char		tmp[sizeof("xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:255.255.255.255/128")];
 	char	   *dst;
@@ -226,7 +226,7 @@ cidr_recv(PG_FUNCTION_ARGS)
  *		network_send		- converts inet to binary format
  */
 static bytea *
-network_send(inet *addr, bool is_cidr)
+network_send(inet * addr, bool is_cidr)
 {
 	StringInfoData buf;
 	char	   *addrptr;
@@ -324,7 +324,7 @@ cidr_set_masklen(PG_FUNCTION_ARGS)
  * Copy src and set mask length to 'bits' (which must be valid for the family)
  */
 inet *
-cidr_set_masklen_internal(const inet *src, int bits)
+cidr_set_masklen_internal(const inet * src, int bits)
 {
 	inet	   *dst = (inet *) palloc0(sizeof(inet));
 
@@ -361,7 +361,7 @@ cidr_set_masklen_internal(const inet *src, int bits)
  */
 
 static int32
-network_cmp_internal(inet *a1, inet *a2)
+network_cmp_internal(inet * a1, inet * a2)
 {
 	if (ip_family(a1) == ip_family(a2))
 	{
@@ -1349,7 +1349,7 @@ inetor(PG_FUNCTION_ARGS)
 
 
 static inet *
-internal_inetpl(inet *ip, int64 addend)
+internal_inetpl(inet * ip, int64 addend)
 {
 	inet	   *dst;
 
@@ -1476,7 +1476,7 @@ inetmi(PG_FUNCTION_ARGS)
 		 * have to do proper sign extension.
 		 */
 		if (carry == 0 && byte < sizeof(int64))
-			res |= ((int64) -1) << (byte * 8);
+			res |= ((int64) - 1) << (byte * 8);
 	}
 
 	PG_RETURN_INT64(res);

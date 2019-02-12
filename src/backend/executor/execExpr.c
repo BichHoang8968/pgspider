@@ -52,26 +52,26 @@ typedef struct LastAttnumInfo
 	AttrNumber	last_inner;
 	AttrNumber	last_outer;
 	AttrNumber	last_scan;
-} LastAttnumInfo;
+}			LastAttnumInfo;
 
-static void ExecReadyExpr(ExprState *state);
-static void ExecInitExprRec(Expr *node, PlanState *parent, ExprState *state,
-				Datum *resv, bool *resnull);
-static void ExprEvalPushStep(ExprState *es, const ExprEvalStep *s);
-static void ExecInitFunc(ExprEvalStep *scratch, Expr *node, List *args,
-			 Oid funcid, Oid inputcollid, PlanState *parent,
-			 ExprState *state);
-static void ExecInitExprSlots(ExprState *state, Node *node);
-static bool get_last_attnums_walker(Node *node, LastAttnumInfo *info);
-static void ExecInitWholeRowVar(ExprEvalStep *scratch, Var *variable,
-					PlanState *parent);
-static void ExecInitArrayRef(ExprEvalStep *scratch, ArrayRef *aref,
-				 PlanState *parent, ExprState *state,
-				 Datum *resv, bool *resnull);
-static bool isAssignmentIndirectionExpr(Expr *expr);
-static void ExecInitCoerceToDomain(ExprEvalStep *scratch, CoerceToDomain *ctest,
-					   PlanState *parent, ExprState *state,
-					   Datum *resv, bool *resnull);
+static void ExecReadyExpr(ExprState * state);
+static void ExecInitExprRec(Expr * node, PlanState * parent, ExprState * state,
+				Datum * resv, bool *resnull);
+static void ExprEvalPushStep(ExprState * es, const ExprEvalStep * s);
+static void ExecInitFunc(ExprEvalStep * scratch, Expr * node, List * args,
+			 Oid funcid, Oid inputcollid, PlanState * parent,
+			 ExprState * state);
+static void ExecInitExprSlots(ExprState * state, Node * node);
+static bool get_last_attnums_walker(Node * node, LastAttnumInfo * info);
+static void ExecInitWholeRowVar(ExprEvalStep * scratch, Var * variable,
+					PlanState * parent);
+static void ExecInitArrayRef(ExprEvalStep * scratch, ArrayRef * aref,
+				 PlanState * parent, ExprState * state,
+				 Datum * resv, bool *resnull);
+static bool isAssignmentIndirectionExpr(Expr * expr);
+static void ExecInitCoerceToDomain(ExprEvalStep * scratch, CoerceToDomain * ctest,
+					   PlanState * parent, ExprState * state,
+					   Datum * resv, bool *resnull);
 
 
 /*
@@ -110,7 +110,7 @@ static void ExecInitCoerceToDomain(ExprEvalStep *scratch, CoerceToDomain *ctest,
  * although ExecQual and ExecCheck will accept one (and treat it as "true").
  */
 ExprState *
-ExecInitExpr(Expr *node, PlanState *parent)
+ExecInitExpr(Expr * node, PlanState * parent)
 {
 	ExprState  *state;
 	ExprEvalStep scratch;
@@ -157,7 +157,7 @@ ExecInitExpr(Expr *node, PlanState *parent)
  * get selected.
  */
 ExprState *
-ExecInitQual(List *qual, PlanState *parent)
+ExecInitQual(List * qual, PlanState * parent)
 {
 	ExprState  *state;
 	ExprEvalStep scratch;
@@ -243,7 +243,7 @@ ExecInitQual(List *qual, PlanState *parent)
  * can just apply ExecInitExpr to produce suitable input for ExecCheck.
  */
 ExprState *
-ExecInitCheck(List *qual, PlanState *parent)
+ExecInitCheck(List * qual, PlanState * parent)
 {
 	/* short-circuit (here and in ExecCheck) for empty restriction list */
 	if (qual == NIL)
@@ -263,7 +263,7 @@ ExecInitCheck(List *qual, PlanState *parent)
  * Call ExecInitExpr() on a list of expressions, return a list of ExprStates.
  */
 List *
-ExecInitExprList(List *nodes, PlanState *parent)
+ExecInitExprList(List * nodes, PlanState * parent)
 {
 	List	   *result = NIL;
 	ListCell   *lc;
@@ -298,10 +298,10 @@ ExecInitExprList(List *nodes, PlanState *parent)
  * should be the planner-created targetlist, since we do the compilation here.
  */
 ProjectionInfo *
-ExecBuildProjectionInfo(List *targetList,
-						ExprContext *econtext,
-						TupleTableSlot *slot,
-						PlanState *parent,
+ExecBuildProjectionInfo(List * targetList,
+						ExprContext * econtext,
+						TupleTableSlot * slot,
+						PlanState * parent,
 						TupleDesc inputDesc)
 {
 	ProjectionInfo *projInfo = makeNode(ProjectionInfo);
@@ -434,7 +434,7 @@ ExecBuildProjectionInfo(List *targetList,
  * expressions this won't have happened.)
  */
 ExprState *
-ExecPrepareExpr(Expr *node, EState *estate)
+ExecPrepareExpr(Expr * node, EState * estate)
 {
 	ExprState  *result;
 	MemoryContext oldcontext;
@@ -462,7 +462,7 @@ ExecPrepareExpr(Expr *node, EState *estate)
  * expressions this won't have happened.)
  */
 ExprState *
-ExecPrepareQual(List *qual, EState *estate)
+ExecPrepareQual(List * qual, EState * estate)
 {
 	ExprState  *result;
 	MemoryContext oldcontext;
@@ -485,7 +485,7 @@ ExecPrepareQual(List *qual, EState *estate)
  * See ExecPrepareExpr() and ExecInitCheck() for details.
  */
 ExprState *
-ExecPrepareCheck(List *qual, EState *estate)
+ExecPrepareCheck(List * qual, EState * estate)
 {
 	ExprState  *result;
 	MemoryContext oldcontext;
@@ -508,7 +508,7 @@ ExecPrepareCheck(List *qual, EState *estate)
  * See ExecPrepareExpr() for details.
  */
 List *
-ExecPrepareExprList(List *nodes, EState *estate)
+ExecPrepareExprList(List * nodes, EState * estate)
 {
 	List	   *result = NIL;
 	MemoryContext oldcontext;
@@ -541,7 +541,7 @@ ExecPrepareExprList(List *nodes, EState *estate)
  * ExecPrepareExpr works too.
  */
 bool
-ExecCheck(ExprState *state, ExprContext *econtext)
+ExecCheck(ExprState * state, ExprContext * econtext)
 {
 	Datum		ret;
 	bool		isnull;
@@ -571,7 +571,7 @@ ExecCheck(ExprState *state, ExprContext *econtext)
  * ExecReadyInterpretedExpr().
  */
 static void
-ExecReadyExpr(ExprState *state)
+ExecReadyExpr(ExprState * state)
 {
 	ExecReadyInterpretedExpr(state);
 }
@@ -586,8 +586,8 @@ ExecReadyExpr(ExprState *state)
  * resv / resnull - where to store the result of the node into
  */
 static void
-ExecInitExprRec(Expr *node, PlanState *parent, ExprState *state,
-				Datum *resv, bool *resnull)
+ExecInitExprRec(Expr * node, PlanState * parent, ExprState * state,
+				Datum * resv, bool *resnull)
 {
 	ExprEvalStep scratch;
 
@@ -2040,7 +2040,7 @@ ExecInitExprRec(Expr *node, PlanState *parent, ExprState *state,
  * into that array may be used while the expression is still being built.
  */
 static void
-ExprEvalPushStep(ExprState *es, const ExprEvalStep *s)
+ExprEvalPushStep(ExprState * es, const ExprEvalStep * s)
 {
 	if (es->steps_alloc == 0)
 	{
@@ -2066,8 +2066,8 @@ ExprEvalPushStep(ExprState *es, const ExprEvalStep *s)
  * which is useful for function-like cases like DISTINCT.
  */
 static void
-ExecInitFunc(ExprEvalStep *scratch, Expr *node, List *args, Oid funcid,
-			 Oid inputcollid, PlanState *parent, ExprState *state)
+ExecInitFunc(ExprEvalStep * scratch, Expr * node, List * args, Oid funcid,
+			 Oid inputcollid, PlanState * parent, ExprState * state)
 {
 	int			nargs = list_length(args);
 	AclResult	aclresult;
@@ -2169,7 +2169,7 @@ ExecInitFunc(ExprEvalStep *scratch, Expr *node, List *args, Oid funcid,
  * as much as required by the expression.
  */
 static void
-ExecInitExprSlots(ExprState *state, Node *node)
+ExecInitExprSlots(ExprState * state, Node * node)
 {
 	LastAttnumInfo info = {0, 0, 0};
 	ExprEvalStep scratch;
@@ -2204,7 +2204,7 @@ ExecInitExprSlots(ExprState *state, Node *node)
  * get_last_attnums_walker: expression walker for ExecInitExprSlots
  */
 static bool
-get_last_attnums_walker(Node *node, LastAttnumInfo *info)
+get_last_attnums_walker(Node * node, LastAttnumInfo * info)
 {
 	if (node == NULL)
 		return false;
@@ -2253,7 +2253,7 @@ get_last_attnums_walker(Node *node, LastAttnumInfo *info)
  * The caller still has to push the step.
  */
 static void
-ExecInitWholeRowVar(ExprEvalStep *scratch, Var *variable, PlanState *parent)
+ExecInitWholeRowVar(ExprEvalStep * scratch, Var * variable, PlanState * parent)
 {
 	/* fill in all but the target */
 	scratch->opcode = EEOP_WHOLEROW;
@@ -2324,8 +2324,8 @@ ExecInitWholeRowVar(ExprEvalStep *scratch, Var *variable, PlanState *parent)
  * Prepare evaluation of an ArrayRef expression.
  */
 static void
-ExecInitArrayRef(ExprEvalStep *scratch, ArrayRef *aref, PlanState *parent,
-				 ExprState *state, Datum *resv, bool *resnull)
+ExecInitArrayRef(ExprEvalStep * scratch, ArrayRef * aref, PlanState * parent,
+				 ExprState * state, Datum * resv, bool *resnull)
 {
 	bool		isAssignment = (aref->refassgnexpr != NULL);
 	ArrayRefState *arefstate = palloc0(sizeof(ArrayRefState));
@@ -2533,7 +2533,7 @@ ExecInitArrayRef(ExprEvalStep *scratch, ArrayRef *aref, PlanState *parent,
  * structure appears within the newvals or refassgnexpr field.
  */
 static bool
-isAssignmentIndirectionExpr(Expr *expr)
+isAssignmentIndirectionExpr(Expr * expr)
 {
 	if (expr == NULL)
 		return false;			/* just paranoia */
@@ -2558,9 +2558,9 @@ isAssignmentIndirectionExpr(Expr *expr)
  * Prepare evaluation of a CoerceToDomain expression.
  */
 static void
-ExecInitCoerceToDomain(ExprEvalStep *scratch, CoerceToDomain *ctest,
-					   PlanState *parent, ExprState *state,
-					   Datum *resv, bool *resnull)
+ExecInitCoerceToDomain(ExprEvalStep * scratch, CoerceToDomain * ctest,
+					   PlanState * parent, ExprState * state,
+					   Datum * resv, bool *resnull)
 {
 	ExprEvalStep scratch2;
 	DomainConstraintRef *constraint_ref;

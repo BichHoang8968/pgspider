@@ -37,10 +37,10 @@
 #include "utils/lsyscache.h"
 
 
-static List *pull_ands(List *andlist);
-static List *pull_ors(List *orlist);
-static Expr *find_duplicate_ors(Expr *qual, bool is_check);
-static Expr *process_duplicate_ors(List *orlist);
+static List * pull_ands(List * andlist);
+static List * pull_ors(List * orlist);
+static Expr * find_duplicate_ors(Expr * qual, bool is_check);
+static Expr * process_duplicate_ors(List * orlist);
 
 
 /*
@@ -70,7 +70,7 @@ static Expr *process_duplicate_ors(List *orlist);
  * the same transformations.
  */
 Node *
-negate_clause(Node *node)
+negate_clause(Node * node)
 {
 	if (node == NULL)			/* should not happen */
 		elog(ERROR, "can't negate an empty subexpression");
@@ -273,7 +273,7 @@ negate_clause(Node *node)
  * been updated.
  */
 Expr *
-canonicalize_qual(Expr *qual)
+canonicalize_qual(Expr * qual)
 {
 	return canonicalize_qual_ext(qual, false);
 }
@@ -301,7 +301,7 @@ canonicalize_qual(Expr *qual)
  * Returns the modified qualification.
  */
 Expr *
-canonicalize_qual_ext(Expr *qual, bool is_check)
+canonicalize_qual_ext(Expr * qual, bool is_check)
 {
 	Expr	   *newqual;
 
@@ -328,7 +328,7 @@ canonicalize_qual_ext(Expr *qual, bool is_check)
  * Returns the rebuilt arglist (note original list structure is not touched).
  */
 static List *
-pull_ands(List *andlist)
+pull_ands(List * andlist)
 {
 	List	   *out_list = NIL;
 	ListCell   *arg;
@@ -360,7 +360,7 @@ pull_ands(List *andlist)
  * Returns the rebuilt arglist (note original list structure is not touched).
  */
 static List *
-pull_ors(List *orlist)
+pull_ors(List * orlist)
 {
 	List	   *out_list = NIL;
 	ListCell   *arg;
@@ -423,7 +423,7 @@ pull_ors(List *orlist)
  * Returns the modified qualification.  AND/OR flatness is preserved.
  */
 static Expr *
-find_duplicate_ors(Expr *qual, bool is_check)
+find_duplicate_ors(Expr * qual, bool is_check)
 {
 	if (or_clause((Node *) qual))
 	{
@@ -534,7 +534,7 @@ find_duplicate_ors(Expr *qual, bool is_check)
  * clause, or maybe even a single subexpression).
  */
 static Expr *
-process_duplicate_ors(List *orlist)
+process_duplicate_ors(List * orlist)
 {
 	List	   *reference = NIL;
 	int			num_subclauses = 0;

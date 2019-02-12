@@ -51,11 +51,11 @@ typedef struct RangeIOData
 	Oid			typiofunc;		/* element type's I/O function */
 	Oid			typioparam;		/* element type's I/O parameter */
 	FmgrInfo	proc;			/* lookup result for typiofunc */
-} RangeIOData;
+}			RangeIOData;
 
 
-static RangeIOData *get_range_io_data(FunctionCallInfo fcinfo, Oid rngtypid,
-				  IOFuncSelector func);
+static RangeIOData * get_range_io_data(FunctionCallInfo fcinfo, Oid rngtypid,
+									   IOFuncSelector func);
 static char range_parse_flags(const char *flags_str);
 static void range_parse(const char *input_str, char *flags, char **lbound_str,
 			char **ubound_str);
@@ -65,9 +65,9 @@ static char *range_deparse(char flags, const char *lbound_str,
 			  const char *ubound_str);
 static char *range_bound_escape(const char *value);
 static Size datum_compute_size(Size sz, Datum datum, bool typbyval,
-				   char typalign, int16 typlen, char typstorage);
+							   char typalign, int16 typlen, char typstorage);
 static Pointer datum_write(Pointer ptr, Datum datum, bool typbyval,
-			char typalign, int16 typlen, char typstorage);
+						   char typalign, int16 typlen, char typstorage);
 
 
 /*
@@ -553,7 +553,7 @@ elem_contained_by_range(PG_FUNCTION_ARGS)
 
 /* equality (internal version) */
 bool
-range_eq_internal(TypeCacheEntry *typcache, RangeType *r1, RangeType *r2)
+range_eq_internal(TypeCacheEntry * typcache, RangeType * r1, RangeType * r2)
 {
 	RangeBound	lower1,
 				lower2;
@@ -598,7 +598,7 @@ range_eq(PG_FUNCTION_ARGS)
 
 /* inequality (internal version) */
 bool
-range_ne_internal(TypeCacheEntry *typcache, RangeType *r1, RangeType *r2)
+range_ne_internal(TypeCacheEntry * typcache, RangeType * r1, RangeType * r2)
 {
 	return (!range_eq_internal(typcache, r1, r2));
 }
@@ -644,7 +644,7 @@ range_contained_by(PG_FUNCTION_ARGS)
 
 /* strictly left of? (internal version) */
 bool
-range_before_internal(TypeCacheEntry *typcache, RangeType *r1, RangeType *r2)
+range_before_internal(TypeCacheEntry * typcache, RangeType * r1, RangeType * r2)
 {
 	RangeBound	lower1,
 				lower2;
@@ -682,7 +682,7 @@ range_before(PG_FUNCTION_ARGS)
 
 /* strictly right of? (internal version) */
 bool
-range_after_internal(TypeCacheEntry *typcache, RangeType *r1, RangeType *r2)
+range_after_internal(TypeCacheEntry * typcache, RangeType * r1, RangeType * r2)
 {
 	RangeBound	lower1,
 				lower2;
@@ -737,7 +737,7 @@ range_after(PG_FUNCTION_ARGS)
  * And if A > B then the ranges are not adjacent in this order.
  */
 bool
-bounds_adjacent(TypeCacheEntry *typcache, RangeBound boundA, RangeBound boundB)
+bounds_adjacent(TypeCacheEntry * typcache, RangeBound boundA, RangeBound boundB)
 {
 	int			cmp;
 
@@ -778,7 +778,7 @@ bounds_adjacent(TypeCacheEntry *typcache, RangeBound boundA, RangeBound boundB)
 
 /* adjacent to (but not overlapping)? (internal version) */
 bool
-range_adjacent_internal(TypeCacheEntry *typcache, RangeType *r1, RangeType *r2)
+range_adjacent_internal(TypeCacheEntry * typcache, RangeType * r1, RangeType * r2)
 {
 	RangeBound	lower1,
 				lower2;
@@ -821,7 +821,7 @@ range_adjacent(PG_FUNCTION_ARGS)
 
 /* overlaps? (internal version) */
 bool
-range_overlaps_internal(TypeCacheEntry *typcache, RangeType *r1, RangeType *r2)
+range_overlaps_internal(TypeCacheEntry * typcache, RangeType * r1, RangeType * r2)
 {
 	RangeBound	lower1,
 				lower2;
@@ -867,7 +867,7 @@ range_overlaps(PG_FUNCTION_ARGS)
 
 /* does not extend to right of? (internal version) */
 bool
-range_overleft_internal(TypeCacheEntry *typcache, RangeType *r1, RangeType *r2)
+range_overleft_internal(TypeCacheEntry * typcache, RangeType * r1, RangeType * r2)
 {
 	RangeBound	lower1,
 				lower2;
@@ -908,7 +908,7 @@ range_overleft(PG_FUNCTION_ARGS)
 
 /* does not extend to left of? (internal version) */
 bool
-range_overright_internal(TypeCacheEntry *typcache, RangeType *r1, RangeType *r2)
+range_overright_internal(TypeCacheEntry * typcache, RangeType * r1, RangeType * r2)
 {
 	RangeBound	lower1,
 				lower2;
@@ -1020,7 +1020,7 @@ range_minus(PG_FUNCTION_ARGS)
  * are not adjacent or overlapping.
  */
 static RangeType *
-range_union_internal(TypeCacheEntry *typcache, RangeType *r1, RangeType *r2,
+range_union_internal(TypeCacheEntry * typcache, RangeType * r1, RangeType * r2,
 					 bool strict)
 {
 	RangeBound	lower1,
@@ -1500,7 +1500,7 @@ range_get_typcache(FunctionCallInfo fcinfo, Oid rngtypid)
  * we perform some datatype-independent canonicalization checks anyway.
  */
 RangeType *
-range_serialize(TypeCacheEntry *typcache, RangeBound *lower, RangeBound *upper,
+range_serialize(TypeCacheEntry * typcache, RangeBound * lower, RangeBound * upper,
 				bool empty)
 {
 	RangeType  *range;
@@ -1629,8 +1629,8 @@ range_serialize(TypeCacheEntry *typcache, RangeBound *lower, RangeBound *upper,
  * RangeBound structs will be pointers into the given range object.
  */
 void
-range_deserialize(TypeCacheEntry *typcache, RangeType *range,
-				  RangeBound *lower, RangeBound *upper, bool *empty)
+range_deserialize(TypeCacheEntry * typcache, RangeType * range,
+				  RangeBound * lower, RangeBound * upper, bool *empty)
 {
 	char		flags;
 	int16		typlen;
@@ -1696,7 +1696,7 @@ range_deserialize(TypeCacheEntry *typcache, RangeType *range,
  * the full results of range_deserialize.
  */
 char
-range_get_flags(RangeType *range)
+range_get_flags(RangeType * range)
 {
 	/* fetch the flag byte from datum's last byte */
 	return *((char *) range + VARSIZE(range) - 1);
@@ -1710,7 +1710,7 @@ range_get_flags(RangeType *range)
  * afterwards.
  */
 void
-range_set_contain_empty(RangeType *range)
+range_set_contain_empty(RangeType * range)
 {
 	char	   *flagsp;
 
@@ -1725,7 +1725,7 @@ range_set_contain_empty(RangeType *range)
  * This should be used by most callers.
  */
 RangeType *
-make_range(TypeCacheEntry *typcache, RangeBound *lower, RangeBound *upper,
+make_range(TypeCacheEntry * typcache, RangeBound * lower, RangeBound * upper,
 		   bool empty)
 {
 	RangeType  *range;
@@ -1765,7 +1765,7 @@ make_range(TypeCacheEntry *typcache, RangeBound *lower, RangeBound *upper,
  * but one is an upper bound and the other a lower bound.
  */
 int
-range_cmp_bounds(TypeCacheEntry *typcache, RangeBound *b1, RangeBound *b2)
+range_cmp_bounds(TypeCacheEntry * typcache, RangeBound * b1, RangeBound * b2)
 {
 	int32		result;
 
@@ -1839,8 +1839,8 @@ range_cmp_bounds(TypeCacheEntry *typcache, RangeBound *b1, RangeBound *b2)
  * infinity is plus or minus.
  */
 int
-range_cmp_bound_values(TypeCacheEntry *typcache, RangeBound *b1,
-					   RangeBound *b2)
+range_cmp_bound_values(TypeCacheEntry * typcache, RangeBound * b1,
+					   RangeBound * b2)
 {
 	/*
 	 * First, handle cases involving infinity, which don't require invoking
@@ -1874,7 +1874,7 @@ range_cmp_bound_values(TypeCacheEntry *typcache, RangeBound *b1,
  * Build an empty range value of the type indicated by the typcache entry.
  */
 RangeType *
-make_empty_range(TypeCacheEntry *typcache)
+make_empty_range(TypeCacheEntry * typcache)
 {
 	RangeBound	lower;
 	RangeBound	upper;
@@ -2233,7 +2233,7 @@ range_bound_escape(const char *value)
  * the necessary typcache entry.
  */
 bool
-range_contains_internal(TypeCacheEntry *typcache, RangeType *r1, RangeType *r2)
+range_contains_internal(TypeCacheEntry * typcache, RangeType * r1, RangeType * r2)
 {
 	RangeBound	lower1;
 	RangeBound	upper1;
@@ -2265,7 +2265,7 @@ range_contains_internal(TypeCacheEntry *typcache, RangeType *r1, RangeType *r2)
 }
 
 bool
-range_contained_by_internal(TypeCacheEntry *typcache, RangeType *r1, RangeType *r2)
+range_contained_by_internal(TypeCacheEntry * typcache, RangeType * r1, RangeType * r2)
 {
 	return range_contains_internal(typcache, r2, r1);
 }
@@ -2274,7 +2274,7 @@ range_contained_by_internal(TypeCacheEntry *typcache, RangeType *r1, RangeType *
  * Test whether range r contains a specific element value.
  */
 bool
-range_contains_elem_internal(TypeCacheEntry *typcache, RangeType *r, Datum val)
+range_contains_elem_internal(TypeCacheEntry * typcache, RangeType * r, Datum val)
 {
 	RangeBound	lower;
 	RangeBound	upper;

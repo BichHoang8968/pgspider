@@ -16,8 +16,8 @@
 
 #include "nodes/execnodes.h"
 
-extern MergeJoinState *ExecInitMergeJoin(MergeJoin *node, EState *estate, int eflags);
-extern void ExecEndMergeJoin(MergeJoinState *node);
-extern void ExecReScanMergeJoin(MergeJoinState *node);
+extern MergeJoinState * ExecInitMergeJoin(MergeJoin * node, EState * estate, int eflags);
+extern void ExecEndMergeJoin(MergeJoinState * node);
+extern void ExecReScanMergeJoin(MergeJoinState * node);
 
 #endif							/* NODEMERGEJOIN_H */

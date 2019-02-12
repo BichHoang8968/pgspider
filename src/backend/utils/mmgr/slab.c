@@ -72,7 +72,7 @@ typedef struct SlabContext
 	int			nblocks;		/* number of blocks allocated */
 	/* blocks with free space, grouped by number of free chunks: */
 	dlist_head	freelist[FLEXIBLE_ARRAY_MEMBER];
-} SlabContext;
+}			SlabContext;
 
 /*
  * SlabBlock
@@ -87,7 +87,7 @@ typedef struct SlabBlock
 	dlist_node	node;			/* doubly-linked list */
 	int			nfree;			/* number of free chunks */
 	int			firstFreeChunk; /* index of the first free chunk in the block */
-} SlabBlock;
+}			SlabBlock;
 
 /*
  * SlabChunk
@@ -99,7 +99,7 @@ typedef struct SlabChunk
 	void	   *block;
 	SlabContext *slab;			/* owning context */
 	/* there must not be any padding to reach a MAXALIGN boundary here! */
-} SlabChunk;
+}			SlabChunk;
 
 
 #define SlabPointerGetChunk(ptr)	\
@@ -126,7 +126,7 @@ static void SlabDelete(MemoryContext context);
 static Size SlabGetChunkSpace(MemoryContext context, void *pointer);
 static bool SlabIsEmpty(MemoryContext context);
 static void SlabStats(MemoryContext context, int level, bool print,
-		  MemoryContextCounters *totals);
+		  MemoryContextCounters * totals);
 #ifdef MEMORY_CONTEXT_CHECKING
 static void SlabCheck(MemoryContext context);
 #endif
@@ -134,18 +134,19 @@ static void SlabCheck(MemoryContext context);
 /*
  * This is the virtual function table for Slab contexts.
  */
-static MemoryContextMethods SlabMethods = {
+static MemoryContextMethods SlabMethods =
+{
 	SlabAlloc,
-	SlabFree,
-	SlabRealloc,
-	SlabInit,
-	SlabReset,
-	SlabDelete,
-	SlabGetChunkSpace,
-	SlabIsEmpty,
-	SlabStats
+		SlabFree,
+		SlabRealloc,
+		SlabInit,
+		SlabReset,
+		SlabDelete,
+		SlabGetChunkSpace,
+		SlabIsEmpty,
+		SlabStats
 #ifdef MEMORY_CONTEXT_CHECKING
-	,SlabCheck
+		,SlabCheck
 #endif
 };
 
@@ -612,7 +613,7 @@ SlabIsEmpty(MemoryContext context)
  */
 static void
 SlabStats(MemoryContext context, int level, bool print,
-		  MemoryContextCounters *totals)
+		  MemoryContextCounters * totals)
 {
 	SlabContext *slab = castNode(SlabContext, context);
 	Size		nblocks = 0;

@@ -54,7 +54,7 @@ typedef struct XactLockTableWaitInfo
 	XLTW_Oper	oper;
 	Relation	rel;
 	ItemPointer ctid;
-} XactLockTableWaitInfo;
+}			XactLockTableWaitInfo;
 
 static void XactLockTableWaitErrorCb(void *arg);
 
@@ -83,7 +83,7 @@ RelationInitLockInfo(Relation relation)
  *		Set up a locktag for a relation, given only relation OID
  */
 static inline void
-SetLocktagRelationOid(LOCKTAG *tag, Oid relid)
+SetLocktagRelationOid(LOCKTAG * tag, Oid relid)
 {
 	Oid			dbid;
 
@@ -164,7 +164,7 @@ ConditionalLockRelationOid(Oid relid, LOCKMODE lockmode)
  * for speed reasons.
  */
 void
-UnlockRelationId(LockRelId *relid, LOCKMODE lockmode)
+UnlockRelationId(LockRelId * relid, LOCKMODE lockmode)
 {
 	LOCKTAG		tag;
 
@@ -296,7 +296,7 @@ LockHasWaitersRelation(Relation relation, LOCKMODE lockmode)
  * relcache entry is up to date.
  */
 void
-LockRelationIdForSession(LockRelId *relid, LOCKMODE lockmode)
+LockRelationIdForSession(LockRelId * relid, LOCKMODE lockmode)
 {
 	LOCKTAG		tag;
 
@@ -309,7 +309,7 @@ LockRelationIdForSession(LockRelId *relid, LOCKMODE lockmode)
  *		UnlockRelationIdForSession
  */
 void
-UnlockRelationIdForSession(LockRelId *relid, LOCKMODE lockmode)
+UnlockRelationIdForSession(LockRelId * relid, LOCKMODE lockmode)
 {
 	LOCKTAG		tag;
 
@@ -790,7 +790,7 @@ XactLockTableWaitErrorCb(void *arg)
  * after we obtained our initial list of lockers, we will not wait for them.
  */
 void
-WaitForLockersMultiple(List *locktags, LOCKMODE lockmode)
+WaitForLockersMultiple(List * locktags, LOCKMODE lockmode)
 {
 	List	   *holders = NIL;
 	ListCell   *lc;
@@ -977,7 +977,7 @@ UnlockSharedObjectForSession(Oid classid, Oid objid, uint16 objsubid,
  * typically used to report deadlock situations.
  */
 void
-DescribeLockTag(StringInfo buf, const LOCKTAG *tag)
+DescribeLockTag(StringInfo buf, const LOCKTAG * tag)
 {
 	switch ((LockTagType) tag->locktag_type)
 	{

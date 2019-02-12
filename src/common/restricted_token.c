@@ -27,7 +27,7 @@
 /* internal vars */
 char	   *restrict_env;
 
-typedef BOOL (WINAPI * __CreateRestrictedToken) (HANDLE, DWORD, DWORD, PSID_AND_ATTRIBUTES, DWORD, PLUID_AND_ATTRIBUTES, DWORD, PSID_AND_ATTRIBUTES, PHANDLE);
+typedef BOOL(WINAPI * __CreateRestrictedToken) (HANDLE, DWORD, DWORD, PSID_AND_ATTRIBUTES, DWORD, PLUID_AND_ATTRIBUTES, DWORD, PSID_AND_ATTRIBUTES, PHANDLE);
 
 /* Windows API define missing from some versions of MingW headers */
 #ifndef  DISABLE_MAX_PRIVILEGE
@@ -43,7 +43,7 @@ typedef BOOL (WINAPI * __CreateRestrictedToken) (HANDLE, DWORD, DWORD, PSID_AND_
  * NOT execute anything.
  */
 HANDLE
-CreateRestrictedProcess(char *cmd, PROCESS_INFORMATION *processInfo, const char *progname)
+CreateRestrictedProcess(char *cmd, PROCESS_INFORMATION * processInfo, const char *progname)
 {
 	BOOL		b;
 	STARTUPINFO si;
@@ -51,6 +51,7 @@ CreateRestrictedProcess(char *cmd, PROCESS_INFORMATION *processInfo, const char 
 	HANDLE		restrictedToken;
 	SID_IDENTIFIER_AUTHORITY NtAuthority = {SECURITY_NT_AUTHORITY};
 	SID_AND_ATTRIBUTES dropSids[2];
+
 	__CreateRestrictedToken _CreateRestrictedToken = NULL;
 	HANDLE		Advapi32Handle;
 

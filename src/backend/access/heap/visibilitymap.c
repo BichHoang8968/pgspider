@@ -217,7 +217,7 @@ visibilitymap_clear(Relation rel, BlockNumber heapBlk, Buffer buf, uint8 flags)
  * If the page doesn't exist in the map file yet, it is extended.
  */
 void
-visibilitymap_pin(Relation rel, BlockNumber heapBlk, Buffer *buf)
+visibilitymap_pin(Relation rel, BlockNumber heapBlk, Buffer * buf)
 {
 	BlockNumber mapBlock = HEAPBLK_TO_MAPBLOCK(heapBlk);
 
@@ -357,7 +357,7 @@ visibilitymap_set(Relation rel, BlockNumber heapBlk, Buffer heapBuf,
  * all concurrency issues!
  */
 uint8
-visibilitymap_get_status(Relation rel, BlockNumber heapBlk, Buffer *buf)
+visibilitymap_get_status(Relation rel, BlockNumber heapBlk, Buffer * buf)
 {
 	BlockNumber mapBlock = HEAPBLK_TO_MAPBLOCK(heapBlk);
 	uint32		mapByte = HEAPBLK_TO_MAPBYTE(heapBlk);
@@ -405,7 +405,7 @@ visibilitymap_get_status(Relation rel, BlockNumber heapBlk, Buffer *buf)
  * going to be marked all-visible or all-frozen, so they won't affect the result.
  */
 void
-visibilitymap_count(Relation rel, BlockNumber *all_visible, BlockNumber *all_frozen)
+visibilitymap_count(Relation rel, BlockNumber * all_visible, BlockNumber * all_frozen)
 {
 	BlockNumber mapBlock;
 

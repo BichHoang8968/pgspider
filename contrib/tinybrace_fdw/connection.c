@@ -37,33 +37,33 @@ typedef struct ConnCacheKey
 {
 	Oid			serverid;		/* OID of foreign server */
 	Oid			userid;			/* OID of local user whose mapping we use */
-	Oid         threadid;
-} ConnCacheKey;
+	Oid			threadid;
+}			ConnCacheKey;
 
 typedef struct ConnCacheEntry
 {
-	ConnCacheKey key;       /* hash key (must be first) */
-	TBC_CLIENT_HANDLE *conn;            /* connection to foreign server, or NULL */
+	ConnCacheKey key;			/* hash key (must be first) */
+	TBC_CLIENT_HANDLE *conn;	/* connection to foreign server, or NULL */
 	int			xact_depth;		/* 0 = no xact open, 1 = main xact open, 2 =
 								 * one level of subxact open, etc */
 	bool		invalidated;	/* true if reconnect is pending */
 	uint32		server_hashvalue;	/* hash value of foreign server OID */
 	uint32		mapping_hashvalue;	/* hash value of user mapping OID */
-} ConnCacheEntry;
+}			ConnCacheEntry;
 
 /*
  * Connection cache (initialized on first use)
  */
-static HTAB *ConnectionHash = NULL;
+static HTAB * ConnectionHash = NULL;
 /* tracks whether any work is needed in callback functions */
 static bool xact_got_connection = false;
 
 
 static void
-begin_remote_xact(ConnCacheEntry *entry);
+			begin_remote_xact(ConnCacheEntry * entry);
 
 static void
-tinybracefdw_xact_callback(XactEvent event, void *arg);
+			tinybracefdw_xact_callback(XactEvent event, void *arg);
 
 /*
  * tinybrace_get_connection:
@@ -71,18 +71,20 @@ tinybracefdw_xact_callback(XactEvent event, void *arg);
  * the remote Tinybrace server with the user's authorization. A new connection
  * is established if we don't already have a suitable one.
  */
-TBC_CLIENT_HANDLE*
-tinybrace_get_connection(ForeignServer *server, UserMapping *user, tinybrace_opt *opt)
+TBC_CLIENT_HANDLE *
+tinybrace_get_connection(ForeignServer * server, UserMapping * user, tinybrace_opt * opt)
 {
-	bool found;
+	bool		found;
 	ConnCacheEntry *entry;
 	ConnCacheKey key;
 	TBC_RTNCODE rtn;
+
 	/* First time through, initialize connection cache hashtable */
 
 	if (ConnectionHash == NULL)
 	{
-		HASHCTL	ctl;
+		HASHCTL		ctl;
+
 		MemSet(&ctl, 0, sizeof(ctl));
 		ctl.keysize = sizeof(ConnCacheKey);
 		ctl.entrysize = sizeof(ConnCacheEntry);
@@ -91,8 +93,8 @@ tinybrace_get_connection(ForeignServer *server, UserMapping *user, tinybrace_opt
 		/* allocate ConnectionHash in the cache context */
 		ctl.hcxt = CacheMemoryContext;
 		ConnectionHash = hash_create("tinybrace_fdw connections", 8,
-									&ctl,
-									HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
+									 &ctl,
+									 HASH_ELEM | HASH_FUNCTION | HASH_CONTEXT);
 		RegisterXactCallback(tinybracefdw_xact_callback, NULL);
 	}
 
@@ -113,34 +115,38 @@ tinybrace_get_connection(ForeignServer *server, UserMapping *user, tinybrace_opt
 		/* initialize new hashtable entry (key is already filled in) */
 		entry->conn = NULL;
 	}
-	if(entry->conn == NULL){
-	    entry->conn = (TBC_CLIENT_HANDLE *)
+	if (entry->conn == NULL)
+	{
+		entry->conn = (TBC_CLIENT_HANDLE *)
 			MemoryContextAlloc(
-				TopMemoryContext,
-				sizeof(TBC_CLIENT_HANDLE));
-		rtn = TBC_init((TBC_CLIENT_HANDLE*)entry->conn);
-		if(rtn != TBC_OK){
+							   TopMemoryContext,
+							   sizeof(TBC_CLIENT_HANDLE));
+		rtn = TBC_init((TBC_CLIENT_HANDLE *) entry->conn);
+		if (rtn != TBC_OK)
+		{
 			ereport(ERROR,
 					(errcode(ERRCODE_FDW_OUT_OF_MEMORY),
-					 errmsg("TBC init failed %d\n",rtn)
-						));
+					 errmsg("TBC init failed %d\n", rtn)
+					 ));
 		}
-		rtn = TBC_connect(opt->svr_address,opt->svr_port,opt->svr_username,opt->svr_password, (TBC_CLIENT_HANDLE*)entry->conn);
-		fprintf(stderr,"add = %s, port = %d, user=%s pass=%s",opt->svr_address,opt->svr_port,opt->svr_username,opt->svr_password);
-		if(rtn != TBC_OK){
+		rtn = TBC_connect(opt->svr_address, opt->svr_port, opt->svr_username, opt->svr_password, (TBC_CLIENT_HANDLE *) entry->conn);
+		fprintf(stderr, "add = %s, port = %d, user=%s pass=%s", opt->svr_address, opt->svr_port, opt->svr_username, opt->svr_password);
+		if (rtn != TBC_OK)
+		{
 			ereport(ERROR,
 					(errcode(ERRCODE_FDW_OUT_OF_MEMORY),
-					 errmsg("TBC connect failed %d\n",rtn)
-						));
+					 errmsg("TBC connect failed %d\n", rtn)
+					 ));
 		}
 		rtn = TBC_select_db(entry->conn->connect, opt->svr_database);
-		if (rtn != TBC_OK) {
+		if (rtn != TBC_OK)
+		{
 			ereport(ERROR,
 					(errcode(ERRCODE_FDW_OUT_OF_MEMORY),
-					 errmsg("TBC select database failed %d\n",rtn)
-						));
+					 errmsg("TBC select database failed %d\n", rtn)
+					 ));
 		}
-		fprintf(stderr,"success to connect \n");
+		fprintf(stderr, "success to connect \n");
 	}
 
 	begin_remote_xact(entry);
@@ -155,7 +161,7 @@ tinybrace_get_connection(ForeignServer *server, UserMapping *user, tinybrace_opt
 void
 tinybrace_cleanup_connection(void)
 {
-	HASH_SEQ_STATUS	scan;
+	HASH_SEQ_STATUS scan;
 	ConnCacheEntry *entry;
 
 	if (ConnectionHash == NULL)
@@ -166,7 +172,7 @@ tinybrace_cleanup_connection(void)
 	{
 		if (entry->conn == NULL)
 			continue;
-		fprintf(stderr,"clean connection\n");
+		fprintf(stderr, "clean connection\n");
 		TBC_close(entry->conn->connect);
 		TBC_clean(entry->conn);
 		entry->conn = NULL;
@@ -177,9 +183,9 @@ tinybrace_cleanup_connection(void)
  * Release connection created by calling GetConnection.
  */
 void
-tinybrace_rel_connection(TBC_CLIENT_HANDLE *conn)
+tinybrace_rel_connection(TBC_CLIENT_HANDLE * conn)
 {
-	HASH_SEQ_STATUS	scan;
+	HASH_SEQ_STATUS scan;
 	ConnCacheEntry *entry;
 
 	if (ConnectionHash == NULL)
@@ -197,7 +203,7 @@ tinybrace_rel_connection(TBC_CLIENT_HANDLE *conn)
 			TBC_close(entry->conn->connect);
 			TBC_clean(entry->conn);
 			entry->conn = NULL;
-			fprintf(stderr,"cloase connection\n");
+			fprintf(stderr, "cloase connection\n");
 			hash_seq_term(&scan);
 			break;
 		}
@@ -208,15 +214,16 @@ tinybrace_rel_connection(TBC_CLIENT_HANDLE *conn)
  * Convenience subroutine to issue a non-data-returning SQL command to remote
  */
 static void
-do_sql_command(TBC_CLIENT_HANDLE *conn, const char *sql)
+do_sql_command(TBC_CLIENT_HANDLE * conn, const char *sql)
 {
 	TBC_QUERY_HANDLE qHdl = 0;
 	TBC_RTNCODE rtn;
 
-	rtn = TBC_query(conn->connect,sql,&qHdl);
-	elog(DEBUG1,"SQL is %s",sql);
-	if (rtn != TBC_OK){
-		elog(WARNING,"TinyBrace failed to execute %s: rtn = %d",sql,rtn);
+	rtn = TBC_query(conn->connect, sql, &qHdl);
+	elog(DEBUG1, "SQL is %s", sql);
+	if (rtn != TBC_OK)
+	{
+		elog(WARNING, "TinyBrace failed to execute %s: rtn = %d", sql, rtn);
 		return false;
 	}
 	return true;
@@ -233,9 +240,10 @@ do_sql_command(TBC_CLIENT_HANDLE *conn, const char *sql)
  * control which remote queries share a snapshot.
  */
 static void
-begin_remote_xact(ConnCacheEntry *entry)
+begin_remote_xact(ConnCacheEntry * entry)
 {
 	int			curlevel = GetCurrentTransactionNestLevel();
+
 	/* Start main transaction if we haven't yet */
 	if (entry->xact_depth <= 0)
 	{
@@ -258,7 +266,8 @@ tinybracefdw_xact_callback(XactEvent event, void *arg)
 {
 	HASH_SEQ_STATUS scan;
 	ConnCacheEntry *entry;
-	int autocommit;
+	int			autocommit;
+
 	/* Quick exit if no connections were touched in this transaction. */
 	if (!xact_got_connection)
 		return;
@@ -289,6 +298,7 @@ tinybracefdw_xact_callback(XactEvent event, void *arg)
 					do_sql_command(entry->conn, "COMMIT");
 					break;
 				case XACT_EVENT_PRE_PREPARE:
+
 					/*
 					 * We disallow remote transactions that modified anything,
 					 * since it's not very reasonable to hold them open until
@@ -311,8 +321,8 @@ tinybracefdw_xact_callback(XactEvent event, void *arg)
 				case XACT_EVENT_PARALLEL_ABORT:
 				case XACT_EVENT_ABORT:
 					/* Assume we might have lost track of prepared statements */
-					//entry->have_error = true;
-					//TBC_get_autocommit(entry->conn->connect, &autocommit);
+					/* entry->have_error = true; */
+					/* TBC_get_autocommit(entry->conn->connect, &autocommit); */
 					if (!autocommit)
 						do_sql_command(entry->conn, "ROLLBACK");
 
@@ -332,5 +342,5 @@ tinybracefdw_xact_callback(XactEvent event, void *arg)
 	xact_got_connection = false;
 
 	/* Also reset cursor numbering for next transaction */
-	//cursor_number = 0;
+	/* cursor_number = 0; */
 }

@@ -55,7 +55,7 @@ typedef struct
 #define AVC_DEF_THRESHOLD	384
 
 static MemoryContext avc_mem_cxt;
-static List *avc_slots[AVC_NUM_SLOTS];	/* avc's hash buckets */
+static List * avc_slots[AVC_NUM_SLOTS]; /* avc's hash buckets */
 static int	avc_num_caches;		/* number of caches currently used */
 static int	avc_lru_hint;		/* index of the buckets to be reclaimed next */
 static int	avc_threshold;		/* threshold to launch cache-reclaiming  */
@@ -425,7 +425,7 @@ sepgsql_avc_check_perms_label(const char *tcontext,
 }
 
 bool
-sepgsql_avc_check_perms(const ObjectAddress *tobject,
+sepgsql_avc_check_perms(const ObjectAddress * tobject,
 						uint16 tclass, uint32 required,
 						const char *audit_name,
 						bool abort_on_violation)

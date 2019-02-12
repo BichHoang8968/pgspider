@@ -361,7 +361,7 @@ check_timezone(char **newval, void **extra, GucSource source)
 	*extra = malloc(sizeof(pg_tz *));
 	if (!*extra)
 		return false;
-	*((pg_tz **) *extra) = new_tz;
+	*((pg_tz * *) * extra) = new_tz;
 
 	return true;
 }
@@ -372,7 +372,7 @@ check_timezone(char **newval, void **extra, GucSource source)
 void
 assign_timezone(const char *newval, void *extra)
 {
-	session_timezone = *((pg_tz **) extra);
+	session_timezone = *((pg_tz * *) extra);
 }
 
 /*
@@ -434,7 +434,7 @@ check_log_timezone(char **newval, void **extra, GucSource source)
 	*extra = malloc(sizeof(pg_tz *));
 	if (!*extra)
 		return false;
-	*((pg_tz **) *extra) = new_tz;
+	*((pg_tz * *) * extra) = new_tz;
 
 	return true;
 }
@@ -445,7 +445,7 @@ check_log_timezone(char **newval, void **extra, GucSource source)
 void
 assign_log_timezone(const char *newval, void *extra)
 {
-	log_timezone = *((pg_tz **) extra);
+	log_timezone = *((pg_tz * *) extra);
 }
 
 /*
@@ -791,7 +791,7 @@ typedef struct
 	/* This is the "extra" state for both SESSION AUTHORIZATION and ROLE */
 	Oid			roleid;
 	bool		is_superuser;
-} role_auth_extra;
+}			role_auth_extra;
 
 bool
 check_session_authorization(char **newval, void **extra, GucSource source)

@@ -18,7 +18,7 @@ typedef enum OutputPluginOutputType
 {
 	OUTPUT_PLUGIN_BINARY_OUTPUT,
 	OUTPUT_PLUGIN_TEXTUAL_OUTPUT
-} OutputPluginOutputType;
+}			OutputPluginOutputType;
 
 /*
  * Options set by the output plugin, in the startup callback.
@@ -26,7 +26,7 @@ typedef enum OutputPluginOutputType
 typedef struct OutputPluginOptions
 {
 	OutputPluginOutputType output_type;
-} OutputPluginOptions;
+}			OutputPluginOptions;
 
 /*
  * Type of the shared library symbol _PG_output_plugin_init that is looked up
@@ -42,7 +42,7 @@ typedef void (*LogicalOutputPluginInit) (struct OutputPluginCallbacks *cb);
  * the same slot is used from there one, it will be "false".
  */
 typedef void (*LogicalDecodeStartupCB) (struct LogicalDecodingContext *ctx,
-										OutputPluginOptions *options,
+										OutputPluginOptions * options,
 										bool is_init);
 
 /*
@@ -50,28 +50,28 @@ typedef void (*LogicalDecodeStartupCB) (struct LogicalDecodingContext *ctx,
  * transaction.
  */
 typedef void (*LogicalDecodeBeginCB) (struct LogicalDecodingContext *ctx,
-									  ReorderBufferTXN *txn);
+									  ReorderBufferTXN * txn);
 
 /*
  * Callback for every individual change in a successful transaction.
  */
 typedef void (*LogicalDecodeChangeCB) (struct LogicalDecodingContext *ctx,
-									   ReorderBufferTXN *txn,
+									   ReorderBufferTXN * txn,
 									   Relation relation,
-									   ReorderBufferChange *change);
+									   ReorderBufferChange * change);
 
 /*
  * Called for every (explicit or implicit) COMMIT of a successful transaction.
  */
 typedef void (*LogicalDecodeCommitCB) (struct LogicalDecodingContext *ctx,
-									   ReorderBufferTXN *txn,
+									   ReorderBufferTXN * txn,
 									   XLogRecPtr commit_lsn);
 
 /*
  * Called for the generic logical decoding messages.
  */
 typedef void (*LogicalDecodeMessageCB) (struct LogicalDecodingContext *ctx,
-										ReorderBufferTXN *txn,
+										ReorderBufferTXN * txn,
 										XLogRecPtr message_lsn,
 										bool transactional,
 										const char *prefix,
@@ -101,7 +101,7 @@ typedef struct OutputPluginCallbacks
 	LogicalDecodeMessageCB message_cb;
 	LogicalDecodeFilterByOriginCB filter_by_origin_cb;
 	LogicalDecodeShutdownCB shutdown_cb;
-} OutputPluginCallbacks;
+}			OutputPluginCallbacks;
 
 /* Functions in replication/logical/logical.c */
 extern void OutputPluginPrepareWrite(struct LogicalDecodingContext *ctx, bool last_write);

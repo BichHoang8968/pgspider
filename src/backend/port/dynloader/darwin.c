@@ -75,7 +75,7 @@ pg_dlclose(void *handle)
 PGFunction
 pg_dlsym(void *handle, char *funcname)
 {
-	NSSymbol symbol;
+	NSSymbol	symbol;
 	char	   *symname = (char *) malloc(strlen(funcname) + 2);
 
 	if (!symname)

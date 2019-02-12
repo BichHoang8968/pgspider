@@ -29,10 +29,10 @@
 #include "test_shm_mq.h"
 
 static void handle_sigterm(SIGNAL_ARGS);
-static void attach_to_queues(dsm_segment *seg, shm_toc *toc,
-				 int myworkernumber, shm_mq_handle **inqhp,
-				 shm_mq_handle **outqhp);
-static void copy_messages(shm_mq_handle *inqh, shm_mq_handle *outqh);
+static void attach_to_queues(dsm_segment * seg, shm_toc * toc,
+				 int myworkernumber, shm_mq_handle * *inqhp,
+				 shm_mq_handle * *outqhp);
+static void copy_messages(shm_mq_handle * inqh, shm_mq_handle * outqh);
 
 /*
  * Background worker entrypoint.
@@ -51,7 +51,7 @@ test_shm_mq_main(Datum main_arg)
 	shm_toc    *toc;
 	shm_mq_handle *inqh;
 	shm_mq_handle *outqh;
-	volatile test_shm_mq_header *hdr;
+	volatile	test_shm_mq_header *hdr;
 	int			myworkernumber;
 	PGPROC	   *registrant;
 
@@ -152,8 +152,8 @@ test_shm_mq_main(Datum main_arg)
  * to the next higher-numbered queue.
  */
 static void
-attach_to_queues(dsm_segment *seg, shm_toc *toc, int myworkernumber,
-				 shm_mq_handle **inqhp, shm_mq_handle **outqhp)
+attach_to_queues(dsm_segment * seg, shm_toc * toc, int myworkernumber,
+				 shm_mq_handle * *inqhp, shm_mq_handle * *outqhp)
 {
 	shm_mq	   *inq;
 	shm_mq	   *outq;
@@ -174,7 +174,7 @@ attach_to_queues(dsm_segment *seg, shm_toc *toc, int myworkernumber,
  * after this point is cleanup.
  */
 static void
-copy_messages(shm_mq_handle *inqh, shm_mq_handle *outqh)
+copy_messages(shm_mq_handle * inqh, shm_mq_handle * outqh)
 {
 	Size		len;
 	void	   *data;

@@ -47,7 +47,7 @@ typedef struct
 	int32		current;
 	int32		finish;
 	int32		step;
-} generate_series_fctx;
+}			generate_series_fctx;
 
 
 /*****************************************************************************
@@ -109,7 +109,7 @@ int2send(PG_FUNCTION_ARGS)
  * If int2s is NULL then caller must fill values[] afterward
  */
 int2vector *
-buildint2vector(const int16 *int2s, int n)
+buildint2vector(const int16 * int2s, int n)
 {
 	int2vector *result;
 

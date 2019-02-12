@@ -47,15 +47,15 @@ typedef struct xl_invalid_page_key
 	RelFileNode node;			/* the relation */
 	ForkNumber	forkno;			/* the fork number */
 	BlockNumber blkno;			/* the page */
-} xl_invalid_page_key;
+}			xl_invalid_page_key;
 
 typedef struct xl_invalid_page
 {
 	xl_invalid_page_key key;	/* hash key ... must be first */
 	bool		present;		/* page existed but contained zeroes */
-} xl_invalid_page;
+}			xl_invalid_page;
 
-static HTAB *invalid_page_tab = NULL;
+static HTAB * invalid_page_tab = NULL;
 
 
 /* Report a reference to an invalid page */
@@ -287,8 +287,8 @@ XLogCheckInvalidPages(void)
  * applied, but that's not a huge drawback.
  */
 XLogRedoAction
-XLogReadBufferForRedo(XLogReaderState *record, uint8 block_id,
-					  Buffer *buf)
+XLogReadBufferForRedo(XLogReaderState * record, uint8 block_id,
+					  Buffer * buf)
 {
 	return XLogReadBufferForRedoExtended(record, block_id, RBM_NORMAL,
 										 false, buf);
@@ -299,7 +299,7 @@ XLogReadBufferForRedo(XLogReaderState *record, uint8 block_id,
  * re-initializing it.
  */
 Buffer
-XLogInitBufferForRedo(XLogReaderState *record, uint8 block_id)
+XLogInitBufferForRedo(XLogReaderState * record, uint8 block_id)
 {
 	Buffer		buf;
 
@@ -324,10 +324,10 @@ XLogInitBufferForRedo(XLogReaderState *record, uint8 block_id)
  * using LockBufferForCleanup(), instead of a regular exclusive lock.
  */
 XLogRedoAction
-XLogReadBufferForRedoExtended(XLogReaderState *record,
+XLogReadBufferForRedoExtended(XLogReaderState * record,
 							  uint8 block_id,
 							  ReadBufferMode mode, bool get_cleanup_lock,
-							  Buffer *buf)
+							  Buffer * buf)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	RelFileNode rnode;
@@ -531,9 +531,9 @@ typedef struct
 {
 	RelationData reldata;		/* Note: this must be first */
 	FormData_pg_class pgc;
-} FakeRelCacheEntryData;
+}			FakeRelCacheEntryData;
 
-typedef FakeRelCacheEntryData *FakeRelCacheEntry;
+typedef FakeRelCacheEntryData * FakeRelCacheEntry;
 
 /*
  * Create a fake relation cache entry for a physical relation
@@ -800,9 +800,9 @@ XLogRead(char *buf, TimeLineID tli, XLogRecPtr startptr, Size count)
  * GetWalRcvWriteRecPtr and must check RecoveryInProgress().
  */
 void
-XLogReadDetermineTimeline(XLogReaderState *state, XLogRecPtr wantPage, uint32 wantLength)
+XLogReadDetermineTimeline(XLogReaderState * state, XLogRecPtr wantPage, uint32 wantLength)
 {
-	const XLogRecPtr lastReadPage = state->readSegNo * XLogSegSize + state->readOff;
+	const		XLogRecPtr lastReadPage = state->readSegNo * XLogSegSize + state->readOff;
 
 	Assert(wantPage != InvalidXLogRecPtr && wantPage % XLOG_BLCKSZ == 0);
 	Assert(wantLength <= XLOG_BLCKSZ);
@@ -904,9 +904,9 @@ XLogReadDetermineTimeline(XLogReaderState *state, XLogRecPtr wantPage, uint32 wa
  * loop for now.
  */
 int
-read_local_xlog_page(XLogReaderState *state, XLogRecPtr targetPagePtr,
+read_local_xlog_page(XLogReaderState * state, XLogRecPtr targetPagePtr,
 					 int reqLen, XLogRecPtr targetRecPtr, char *cur_page,
-					 TimeLineID *pageTLI)
+					 TimeLineID * pageTLI)
 {
 	XLogRecPtr	read_upto,
 				loc;

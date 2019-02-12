@@ -30,7 +30,7 @@
  * Write itup vector to page, has no control of free space.
  */
 void
-gistfillbuffer(Page page, IndexTuple *itup, int len, OffsetNumber off)
+gistfillbuffer(Page page, IndexTuple * itup, int len, OffsetNumber off)
 {
 	OffsetNumber l = InvalidOffsetNumber;
 	int			i;
@@ -55,7 +55,7 @@ gistfillbuffer(Page page, IndexTuple *itup, int len, OffsetNumber off)
  * Check space for itup vector on page
  */
 bool
-gistnospace(Page page, IndexTuple *itvec, int len, OffsetNumber todelete, Size freespace)
+gistnospace(Page page, IndexTuple * itvec, int len, OffsetNumber todelete, Size freespace)
 {
 	unsigned int size = freespace,
 				deleted = 0;
@@ -75,7 +75,7 @@ gistnospace(Page page, IndexTuple *itvec, int len, OffsetNumber todelete, Size f
 }
 
 bool
-gistfitpage(IndexTuple *itvec, int len)
+gistfitpage(IndexTuple * itvec, int len)
 {
 	int			i;
 	Size		size = 0;
@@ -110,7 +110,7 @@ gistextractpage(Page page, int *len /* out */ )
  * join two vectors into one
  */
 IndexTuple *
-gistjoinvector(IndexTuple *itvec, int *len, IndexTuple *additvec, int addlen)
+gistjoinvector(IndexTuple * itvec, int *len, IndexTuple * additvec, int addlen)
 {
 	itvec = (IndexTuple *) repalloc((void *) itvec, sizeof(IndexTuple) * ((*len) + addlen));
 	memmove(&itvec[*len], additvec, sizeof(IndexTuple) * addlen);
@@ -123,7 +123,7 @@ gistjoinvector(IndexTuple *itvec, int *len, IndexTuple *additvec, int addlen)
  */
 
 IndexTupleData *
-gistfillitupvec(IndexTuple *vec, int veclen, int *memlen)
+gistfillitupvec(IndexTuple * vec, int veclen, int *memlen)
 {
 	char	   *ptr,
 			   *ret;
@@ -151,8 +151,8 @@ gistfillitupvec(IndexTuple *vec, int veclen, int *memlen)
  * Resulting Datums aren't compressed.
  */
 void
-gistMakeUnionItVec(GISTSTATE *giststate, IndexTuple *itvec, int len,
-				   Datum *attr, bool *isnull)
+gistMakeUnionItVec(GISTSTATE * giststate, IndexTuple * itvec, int len,
+				   Datum * attr, bool *isnull)
 {
 	int			i;
 	GistEntryVector *evec;
@@ -214,7 +214,7 @@ gistMakeUnionItVec(GISTSTATE *giststate, IndexTuple *itvec, int len,
  * method to the specified IndexTuple vector.
  */
 IndexTuple
-gistunion(Relation r, IndexTuple *itvec, int len, GISTSTATE *giststate)
+gistunion(Relation r, IndexTuple * itvec, int len, GISTSTATE * giststate)
 {
 	Datum		attr[INDEX_MAX_KEYS];
 	bool		isnull[INDEX_MAX_KEYS];
@@ -228,10 +228,10 @@ gistunion(Relation r, IndexTuple *itvec, int len, GISTSTATE *giststate)
  * makes union of two key
  */
 void
-gistMakeUnionKey(GISTSTATE *giststate, int attno,
-				 GISTENTRY *entry1, bool isnull1,
-				 GISTENTRY *entry2, bool isnull2,
-				 Datum *dst, bool *dstisnull)
+gistMakeUnionKey(GISTSTATE * giststate, int attno,
+				 GISTENTRY * entry1, bool isnull1,
+				 GISTENTRY * entry2, bool isnull2,
+				 Datum * dst, bool *dstisnull)
 {
 	/* we need a GistEntryVector with room for exactly 2 elements */
 	union
@@ -276,7 +276,7 @@ gistMakeUnionKey(GISTSTATE *giststate, int attno,
 }
 
 bool
-gistKeyIsEQ(GISTSTATE *giststate, int attno, Datum a, Datum b)
+gistKeyIsEQ(GISTSTATE * giststate, int attno, Datum a, Datum b)
 {
 	bool		result;
 
@@ -291,8 +291,8 @@ gistKeyIsEQ(GISTSTATE *giststate, int attno, Datum a, Datum b)
  * Decompress all keys in tuple
  */
 void
-gistDeCompressAtt(GISTSTATE *giststate, Relation r, IndexTuple tuple, Page p,
-				  OffsetNumber o, GISTENTRY *attdata, bool *isnull)
+gistDeCompressAtt(GISTSTATE * giststate, Relation r, IndexTuple tuple, Page p,
+				  OffsetNumber o, GISTENTRY * attdata, bool *isnull)
 {
 	int			i;
 
@@ -311,7 +311,7 @@ gistDeCompressAtt(GISTSTATE *giststate, Relation r, IndexTuple tuple, Page p,
  * Forms union of oldtup and addtup, if union == oldtup then return NULL
  */
 IndexTuple
-gistgetadjusted(Relation r, IndexTuple oldtup, IndexTuple addtup, GISTSTATE *giststate)
+gistgetadjusted(Relation r, IndexTuple oldtup, IndexTuple addtup, GISTSTATE * giststate)
 {
 	bool		neednew = FALSE;
 	GISTENTRY	oldentries[INDEX_MAX_KEYS],
@@ -369,8 +369,8 @@ gistgetadjusted(Relation r, IndexTuple oldtup, IndexTuple addtup, GISTSTATE *gis
  * Returns the index of the page entry to insert into.
  */
 OffsetNumber
-gistchoose(Relation r, Page p, IndexTuple it,	/* it has compressed entry */
-		   GISTSTATE *giststate)
+gistchoose(Relation r, Page p, IndexTuple it,		/* it has compressed entry */
+		   GISTSTATE * giststate)
 {
 	OffsetNumber result;
 	OffsetNumber maxoff;
@@ -541,7 +541,7 @@ gistchoose(Relation r, Page p, IndexTuple it,	/* it has compressed entry */
  * initialize a GiST entry with a decompressed version of key
  */
 void
-gistdentryinit(GISTSTATE *giststate, int nkey, GISTENTRY *e,
+gistdentryinit(GISTSTATE * giststate, int nkey, GISTENTRY * e,
 			   Datum k, Relation r, Page pg, OffsetNumber o,
 			   bool l, bool isNull)
 {
@@ -564,7 +564,7 @@ gistdentryinit(GISTSTATE *giststate, int nkey, GISTENTRY *e,
 }
 
 IndexTuple
-gistFormTuple(GISTSTATE *giststate, Relation r,
+gistFormTuple(GISTSTATE * giststate, Relation r,
 			  Datum attdata[], bool isnull[], bool isleaf)
 {
 	Datum		compatt[INDEX_MAX_KEYS];
@@ -607,7 +607,7 @@ gistFormTuple(GISTSTATE *giststate, Relation r,
  * initialize a GiST entry with fetched value in key field
  */
 static Datum
-gistFetchAtt(GISTSTATE *giststate, int nkey, Datum k, Relation r)
+gistFetchAtt(GISTSTATE * giststate, int nkey, Datum k, Relation r)
 {
 	GISTENTRY	fentry;
 	GISTENTRY  *fep;
@@ -628,7 +628,7 @@ gistFetchAtt(GISTSTATE *giststate, int nkey, Datum k, Relation r)
  * Returns a new HeapTuple containing the originally-indexed data.
  */
 HeapTuple
-gistFetchTuple(GISTSTATE *giststate, Relation r, IndexTuple tuple)
+gistFetchTuple(GISTSTATE * giststate, Relation r, IndexTuple tuple)
 {
 	MemoryContext oldcxt = MemoryContextSwitchTo(giststate->tempCxt);
 	Datum		fetchatt[INDEX_MAX_KEYS];
@@ -665,9 +665,9 @@ gistFetchTuple(GISTSTATE *giststate, Relation r, IndexTuple tuple)
 }
 
 float
-gistpenalty(GISTSTATE *giststate, int attno,
-			GISTENTRY *orig, bool isNullOrig,
-			GISTENTRY *add, bool isNullAdd)
+gistpenalty(GISTSTATE * giststate, int attno,
+			GISTENTRY * orig, bool isNullOrig,
+			GISTENTRY * add, bool isNullAdd)
 {
 	float		penalty = 0.0;
 

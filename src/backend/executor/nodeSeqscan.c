@@ -32,8 +32,8 @@
 #include "executor/nodeSeqscan.h"
 #include "utils/rel.h"
 
-static void InitScanRelation(SeqScanState *node, EState *estate, int eflags);
-static TupleTableSlot *SeqNext(SeqScanState *node);
+static void InitScanRelation(SeqScanState * node, EState * estate, int eflags);
+static TupleTableSlot * SeqNext(SeqScanState * node);
 
 /* ----------------------------------------------------------------
  *						Scan Support
@@ -47,7 +47,7 @@ static TupleTableSlot *SeqNext(SeqScanState *node);
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-SeqNext(SeqScanState *node)
+SeqNext(SeqScanState * node)
 {
 	HeapTuple	tuple;
 	HeapScanDesc scandesc;
@@ -104,7 +104,7 @@ SeqNext(SeqScanState *node)
  * SeqRecheck -- access method routine to recheck a tuple in EvalPlanQual
  */
 static bool
-SeqRecheck(SeqScanState *node, TupleTableSlot *slot)
+SeqRecheck(SeqScanState * node, TupleTableSlot * slot)
 {
 	/*
 	 * Note that unlike IndexScan, SeqScan never use keys in heap_beginscan
@@ -123,7 +123,7 @@ SeqRecheck(SeqScanState *node, TupleTableSlot *slot)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecSeqScan(PlanState *pstate)
+ExecSeqScan(PlanState * pstate)
 {
 	SeqScanState *node = castNode(SeqScanState, pstate);
 
@@ -139,7 +139,7 @@ ExecSeqScan(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 static void
-InitScanRelation(SeqScanState *node, EState *estate, int eflags)
+InitScanRelation(SeqScanState * node, EState * estate, int eflags)
 {
 	Relation	currentRelation;
 
@@ -163,7 +163,7 @@ InitScanRelation(SeqScanState *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 SeqScanState *
-ExecInitSeqScan(SeqScan *node, EState *estate, int eflags)
+ExecInitSeqScan(SeqScan * node, EState * estate, int eflags)
 {
 	SeqScanState *scanstate;
 
@@ -222,7 +222,7 @@ ExecInitSeqScan(SeqScan *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndSeqScan(SeqScanState *node)
+ExecEndSeqScan(SeqScanState * node)
 {
 	Relation	relation;
 	HeapScanDesc scanDesc;
@@ -268,7 +268,7 @@ ExecEndSeqScan(SeqScanState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanSeqScan(SeqScanState *node)
+ExecReScanSeqScan(SeqScanState * node)
 {
 	HeapScanDesc scan;
 
@@ -293,8 +293,8 @@ ExecReScanSeqScan(SeqScanState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecSeqScanEstimate(SeqScanState *node,
-					ParallelContext *pcxt)
+ExecSeqScanEstimate(SeqScanState * node,
+					ParallelContext * pcxt)
 {
 	EState	   *estate = node->ss.ps.state;
 
@@ -310,8 +310,8 @@ ExecSeqScanEstimate(SeqScanState *node,
  * ----------------------------------------------------------------
  */
 void
-ExecSeqScanInitializeDSM(SeqScanState *node,
-						 ParallelContext *pcxt)
+ExecSeqScanInitializeDSM(SeqScanState * node,
+						 ParallelContext * pcxt)
 {
 	EState	   *estate = node->ss.ps.state;
 	ParallelHeapScanDesc pscan;
@@ -332,8 +332,8 @@ ExecSeqScanInitializeDSM(SeqScanState *node,
  * ----------------------------------------------------------------
  */
 void
-ExecSeqScanReInitializeDSM(SeqScanState *node,
-						   ParallelContext *pcxt)
+ExecSeqScanReInitializeDSM(SeqScanState * node,
+						   ParallelContext * pcxt)
 {
 	HeapScanDesc scan = node->ss.ss_currentScanDesc;
 
@@ -347,7 +347,7 @@ ExecSeqScanReInitializeDSM(SeqScanState *node,
  * ----------------------------------------------------------------
  */
 void
-ExecSeqScanInitializeWorker(SeqScanState *node, shm_toc *toc)
+ExecSeqScanInitializeWorker(SeqScanState * node, shm_toc * toc)
 {
 	ParallelHeapScanDesc pscan;
 

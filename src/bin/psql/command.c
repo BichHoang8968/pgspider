@@ -50,84 +50,84 @@ typedef enum EditableObjectType
 {
 	EditableFunction,
 	EditableView
-} EditableObjectType;
+}			EditableObjectType;
 
 /* local function declarations */
 static backslashResult exec_command(const char *cmd,
-			 PsqlScanState scan_state,
-			 ConditionalStack cstack,
-			 PQExpBuffer query_buf,
-			 PQExpBuffer previous_buf);
+									PsqlScanState scan_state,
+									ConditionalStack cstack,
+									PQExpBuffer query_buf,
+									PQExpBuffer previous_buf);
 static backslashResult exec_command_a(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_C(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_connect(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_cd(PsqlScanState scan_state, bool active_branch,
-				const char *cmd);
+									   const char *cmd);
 static backslashResult exec_command_conninfo(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_copy(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_copyright(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_crosstabview(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_d(PsqlScanState scan_state, bool active_branch,
-			   const char *cmd);
+									  const char *cmd);
 static backslashResult exec_command_edit(PsqlScanState scan_state, bool active_branch,
-				  PQExpBuffer query_buf, PQExpBuffer previous_buf);
+										 PQExpBuffer query_buf, PQExpBuffer previous_buf);
 static backslashResult exec_command_ef(PsqlScanState scan_state, bool active_branch,
-				PQExpBuffer query_buf);
+									   PQExpBuffer query_buf);
 static backslashResult exec_command_ev(PsqlScanState scan_state, bool active_branch,
-				PQExpBuffer query_buf);
+									   PQExpBuffer query_buf);
 static backslashResult exec_command_echo(PsqlScanState scan_state, bool active_branch,
-				  const char *cmd);
+										 const char *cmd);
 static backslashResult exec_command_elif(PsqlScanState scan_state, ConditionalStack cstack,
-				  PQExpBuffer query_buf);
+										 PQExpBuffer query_buf);
 static backslashResult exec_command_else(PsqlScanState scan_state, ConditionalStack cstack,
-				  PQExpBuffer query_buf);
+										 PQExpBuffer query_buf);
 static backslashResult exec_command_endif(PsqlScanState scan_state, ConditionalStack cstack,
-				   PQExpBuffer query_buf);
+										  PQExpBuffer query_buf);
 static backslashResult exec_command_encoding(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_errverbose(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_f(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_g(PsqlScanState scan_state, bool active_branch,
-			   const char *cmd);
+									  const char *cmd);
 static backslashResult exec_command_gexec(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_gset(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_help(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_html(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_include(PsqlScanState scan_state, bool active_branch,
-					 const char *cmd);
+											const char *cmd);
 static backslashResult exec_command_if(PsqlScanState scan_state, ConditionalStack cstack,
-				PQExpBuffer query_buf);
+									   PQExpBuffer query_buf);
 static backslashResult exec_command_list(PsqlScanState scan_state, bool active_branch,
-				  const char *cmd);
+										 const char *cmd);
 static backslashResult exec_command_lo(PsqlScanState scan_state, bool active_branch,
-				const char *cmd);
+									   const char *cmd);
 static backslashResult exec_command_out(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_print(PsqlScanState scan_state, bool active_branch,
-				   PQExpBuffer query_buf, PQExpBuffer previous_buf);
+										  PQExpBuffer query_buf, PQExpBuffer previous_buf);
 static backslashResult exec_command_password(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_prompt(PsqlScanState scan_state, bool active_branch,
-					const char *cmd);
+										   const char *cmd);
 static backslashResult exec_command_pset(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_quit(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_reset(PsqlScanState scan_state, bool active_branch,
-				   PQExpBuffer query_buf);
+										  PQExpBuffer query_buf);
 static backslashResult exec_command_s(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_set(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_setenv(PsqlScanState scan_state, bool active_branch,
-					const char *cmd);
+										   const char *cmd);
 static backslashResult exec_command_sf(PsqlScanState scan_state, bool active_branch,
-				const char *cmd);
+									   const char *cmd);
 static backslashResult exec_command_sv(PsqlScanState scan_state, bool active_branch,
-				const char *cmd);
+									   const char *cmd);
 static backslashResult exec_command_t(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_T(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_timing(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_unset(PsqlScanState scan_state, bool active_branch,
-				   const char *cmd);
+										  const char *cmd);
 static backslashResult exec_command_write(PsqlScanState scan_state, bool active_branch,
-				   const char *cmd,
-				   PQExpBuffer query_buf, PQExpBuffer previous_buf);
+										  const char *cmd,
+										  PQExpBuffer query_buf, PQExpBuffer previous_buf);
 static backslashResult exec_command_watch(PsqlScanState scan_state, bool active_branch,
-				   PQExpBuffer query_buf, PQExpBuffer previous_buf);
+										  PQExpBuffer query_buf, PQExpBuffer previous_buf);
 static backslashResult exec_command_x(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_z(PsqlScanState scan_state, bool active_branch);
 static backslashResult exec_command_shell_escape(PsqlScanState scan_state, bool active_branch);
@@ -152,14 +152,14 @@ static bool do_edit(const char *filename_arg, PQExpBuffer query_buf,
 static bool do_shell(const char *command);
 static bool do_watch(PQExpBuffer query_buf, double sleep);
 static bool lookup_object_oid(EditableObjectType obj_type, const char *desc,
-				  Oid *obj_oid);
+				  Oid * obj_oid);
 static bool get_create_object_cmd(EditableObjectType obj_type, Oid oid,
 					  PQExpBuffer buf);
 static int	strip_lineno_from_objdesc(char *obj);
 static int	count_lines_in_buf(PQExpBuffer buf);
-static void print_with_linenumbers(FILE *output, char *lines,
+static void print_with_linenumbers(FILE * output, char *lines,
 					   const char *header_keyword);
-static void minimal_error_message(PGresult *res);
+static void minimal_error_message(PGresult * res);
 
 static void printSSLInfo(void);
 static bool printPsetInfo(const char *param, struct printQueryOpt *popt);
@@ -3710,7 +3710,7 @@ _align2string(enum printFormat in)
  */
 static bool
 set_unicode_line_style(const char *value, size_t vallen,
-					   unicode_linestyle *linestyle)
+					   unicode_linestyle * linestyle)
 {
 	if (pg_strncasecmp("single", value, vallen) == 0)
 		*linestyle = UNICODE_LINESTYLE_SINGLE;
@@ -3741,7 +3741,7 @@ _unicode_linestyle2string(int linestyle)
  *
  */
 bool
-do_pset(const char *param, const char *value, printQueryOpt *popt, bool quiet)
+do_pset(const char *param, const char *value, printQueryOpt * popt, bool quiet)
 {
 	size_t		vallen = 0;
 
@@ -4486,7 +4486,7 @@ echo_hidden_command(const char *query)
  */
 static bool
 lookup_object_oid(EditableObjectType obj_type, const char *desc,
-				  Oid *obj_oid)
+				  Oid * obj_oid)
 {
 	bool		result = true;
 	PQExpBuffer query = createPQExpBuffer();
@@ -4803,7 +4803,7 @@ count_lines_in_buf(PQExpBuffer buf)
  * Caution: this scribbles on *lines.
  */
 static void
-print_with_linenumbers(FILE *output, char *lines,
+print_with_linenumbers(FILE * output, char *lines,
 					   const char *header_keyword)
 {
 	bool		in_header = (header_keyword != NULL);
@@ -4844,7 +4844,7 @@ print_with_linenumbers(FILE *output, char *lines,
  * with, for instance, a redisplay of the internally generated query
  */
 static void
-minimal_error_message(PGresult *res)
+minimal_error_message(PGresult * res)
 {
 	PQExpBuffer msg;
 	const char *fld;

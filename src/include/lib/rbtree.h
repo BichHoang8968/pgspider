@@ -22,11 +22,11 @@
  */
 typedef struct RBNode
 {
-	char color;					/* node's current color, red or black */
+	char		color;			/* node's current color, red or black */
 	struct RBNode *left;		/* left child, or RBNIL if none */
 	struct RBNode *right;		/* right child, or RBNIL if none */
 	struct RBNode *parent;		/* parent, or NULL (not RBNIL!) if none */
-} RBNode;
+}			RBNode;
 
 /* Opaque struct representing a whole tree */
 typedef struct RBTree RBTree;
@@ -38,7 +38,7 @@ typedef enum RBOrderControl
 	RightLeftWalk,				/* reverse inorder: right, node, left */
 	DirectWalk,					/* preorder: node, left child, right child */
 	InvertedWalk				/* postorder: left child, right child, node */
-} RBOrderControl;
+}			RBOrderControl;
 
 /*
  * RBTreeIterator holds state while traversing a tree.  This is declared
@@ -50,33 +50,33 @@ typedef struct RBTreeIterator RBTreeIterator;
 struct RBTreeIterator
 {
 	RBTree	   *rb;
-	RBNode	   *(*iterate) (RBTreeIterator *iter);
+	RBNode	   *(*iterate) (RBTreeIterator * iter);
 	RBNode	   *last_visited;
 	char		next_step;
 	bool		is_over;
 };
 
 /* Support functions to be provided by caller */
-typedef int (*rb_comparator) (const RBNode *a, const RBNode *b, void *arg);
-typedef void (*rb_combiner) (RBNode *existing, const RBNode *newdata, void *arg);
-typedef RBNode *(*rb_allocfunc) (void *arg);
-typedef void (*rb_freefunc) (RBNode *x, void *arg);
+typedef int (*rb_comparator) (const RBNode * a, const RBNode * b, void *arg);
+typedef void (*rb_combiner) (RBNode * existing, const RBNode * newdata, void *arg);
+typedef RBNode * (*rb_allocfunc) (void *arg);
+typedef void (*rb_freefunc) (RBNode * x, void *arg);
 
-extern RBTree *rb_create(Size node_size,
-		  rb_comparator comparator,
-		  rb_combiner combiner,
-		  rb_allocfunc allocfunc,
-		  rb_freefunc freefunc,
-		  void *arg);
+extern RBTree * rb_create(Size node_size,
+						  rb_comparator comparator,
+						  rb_combiner combiner,
+						  rb_allocfunc allocfunc,
+						  rb_freefunc freefunc,
+						  void *arg);
 
-extern RBNode *rb_find(RBTree *rb, const RBNode *data);
-extern RBNode *rb_leftmost(RBTree *rb);
+extern RBNode * rb_find(RBTree * rb, const RBNode * data);
+extern RBNode * rb_leftmost(RBTree * rb);
 
-extern RBNode *rb_insert(RBTree *rb, const RBNode *data, bool *isNew);
-extern void rb_delete(RBTree *rb, RBNode *node);
+extern RBNode * rb_insert(RBTree * rb, const RBNode * data, bool *isNew);
+extern void rb_delete(RBTree * rb, RBNode * node);
 
-extern void rb_begin_iterate(RBTree *rb, RBOrderControl ctrl,
-				 RBTreeIterator *iter);
-extern RBNode *rb_iterate(RBTreeIterator *iter);
+extern void rb_begin_iterate(RBTree * rb, RBOrderControl ctrl,
+				 RBTreeIterator * iter);
+extern RBNode * rb_iterate(RBTreeIterator * iter);
 
 #endif							/* RBTREE_H */

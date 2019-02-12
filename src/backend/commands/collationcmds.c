@@ -42,14 +42,14 @@ typedef struct
 	char	   *localename;		/* name of locale, as per "locale -a" */
 	char	   *alias;			/* shortened alias for same */
 	int			enc;			/* encoding */
-} CollAliasData;
+}			CollAliasData;
 
 
 /*
  * CREATE COLLATION
  */
 ObjectAddress
-DefineCollation(ParseState *pstate, List *names, List *parameters, bool if_not_exists)
+DefineCollation(ParseState * pstate, List * names, List * parameters, bool if_not_exists)
 {
 	char	   *collName;
 	Oid			collNamespace;
@@ -262,7 +262,7 @@ IsThereCollationInNamespace(const char *collname, Oid nspOid)
  * ALTER COLLATION
  */
 ObjectAddress
-AlterCollation(AlterCollationStmt *stmt)
+AlterCollation(AlterCollationStmt * stmt)
 {
 	Relation	rel;
 	Oid			collOid;
@@ -424,8 +424,8 @@ normalize_libc_locale_name(char *new, const char *old)
 static int
 cmpaliases(const void *a, const void *b)
 {
-	const CollAliasData *ca = (const CollAliasData *) a;
-	const CollAliasData *cb = (const CollAliasData *) b;
+	const		CollAliasData *ca = (const CollAliasData *) a;
+	const		CollAliasData *cb = (const CollAliasData *) b;
 
 	/* comparing localename is enough because other fields are derived */
 	return strcmp(ca->localename, cb->localename);

@@ -33,39 +33,39 @@
 #include "utils/typcache.h"
 
 
-static void markTargetListOrigin(ParseState *pstate, TargetEntry *tle,
-					 Var *var, int levelsup);
-static Node *transformAssignmentIndirection(ParseState *pstate,
-							   Node *basenode,
-							   const char *targetName,
-							   bool targetIsArray,
-							   Oid targetTypeId,
-							   int32 targetTypMod,
-							   Oid targetCollation,
-							   ListCell *indirection,
-							   Node *rhs,
-							   int location);
-static Node *transformAssignmentSubscripts(ParseState *pstate,
-							  Node *basenode,
-							  const char *targetName,
-							  Oid targetTypeId,
-							  int32 targetTypMod,
-							  Oid targetCollation,
-							  List *subscripts,
-							  bool isSlice,
-							  ListCell *next_indirection,
-							  Node *rhs,
-							  int location);
-static List *ExpandColumnRefStar(ParseState *pstate, ColumnRef *cref,
-					bool make_target_entry);
-static List *ExpandAllTables(ParseState *pstate, int location);
-static List *ExpandIndirectionStar(ParseState *pstate, A_Indirection *ind,
-					  bool make_target_entry, ParseExprKind exprKind);
-static List *ExpandSingleTable(ParseState *pstate, RangeTblEntry *rte,
-				  int location, bool make_target_entry);
-static List *ExpandRowReference(ParseState *pstate, Node *expr,
-				   bool make_target_entry);
-static int	FigureColnameInternal(Node *node, char **name);
+static void markTargetListOrigin(ParseState * pstate, TargetEntry * tle,
+					 Var * var, int levelsup);
+static Node * transformAssignmentIndirection(ParseState * pstate,
+											 Node * basenode,
+											 const char *targetName,
+											 bool targetIsArray,
+											 Oid targetTypeId,
+											 int32 targetTypMod,
+											 Oid targetCollation,
+											 ListCell * indirection,
+											 Node * rhs,
+											 int location);
+static Node * transformAssignmentSubscripts(ParseState * pstate,
+											Node * basenode,
+											const char *targetName,
+											Oid targetTypeId,
+											int32 targetTypMod,
+											Oid targetCollation,
+											List * subscripts,
+											bool isSlice,
+											ListCell * next_indirection,
+											Node * rhs,
+											int location);
+static List * ExpandColumnRefStar(ParseState * pstate, ColumnRef * cref,
+								  bool make_target_entry);
+static List * ExpandAllTables(ParseState * pstate, int location);
+static List * ExpandIndirectionStar(ParseState * pstate, A_Indirection * ind,
+									bool make_target_entry, ParseExprKind exprKind);
+static List * ExpandSingleTable(ParseState * pstate, RangeTblEntry * rte,
+								int location, bool make_target_entry);
+static List * ExpandRowReference(ParseState * pstate, Node * expr,
+								 bool make_target_entry);
+static int	FigureColnameInternal(Node * node, char **name);
 
 
 /*
@@ -82,9 +82,9 @@ static int	FigureColnameInternal(Node *node, char **name);
  *			wanted in the final projected tuple.
  */
 TargetEntry *
-transformTargetEntry(ParseState *pstate,
-					 Node *node,
-					 Node *expr,
+transformTargetEntry(ParseState * pstate,
+					 Node * node,
+					 Node * expr,
 					 ParseExprKind exprKind,
 					 char *colname,
 					 bool resjunk)
@@ -128,7 +128,7 @@ transformTargetEntry(ParseState *pstate,
  * The exprKind parameter distinguishes these cases when necessary.
  */
 List *
-transformTargetList(ParseState *pstate, List *targetlist,
+transformTargetList(ParseState * pstate, List * targetlist,
 					ParseExprKind exprKind)
 {
 	List	   *p_target = NIL;
@@ -225,7 +225,7 @@ transformTargetList(ParseState *pstate, List *targetlist,
  * an additional flag is needed for that.
  */
 List *
-transformExpressionList(ParseState *pstate, List *exprlist,
+transformExpressionList(ParseState * pstate, List * exprlist,
 						ParseExprKind exprKind, bool allowDefault)
 {
 	List	   *result = NIL;
@@ -296,7 +296,7 @@ transformExpressionList(ParseState *pstate, List *exprlist,
  * column types of a query.
  */
 void
-resolveTargetListUnknowns(ParseState *pstate, List *targetlist)
+resolveTargetListUnknowns(ParseState * pstate, List * targetlist)
 {
 	ListCell   *l;
 
@@ -326,7 +326,7 @@ resolveTargetListUnknowns(ParseState *pstate, List *targetlist)
  * since we only need the info if we are going to send it to the frontend.
  */
 void
-markTargetListOrigins(ParseState *pstate, List *targetlist)
+markTargetListOrigins(ParseState * pstate, List * targetlist)
 {
 	ListCell   *l;
 
@@ -348,8 +348,8 @@ markTargetListOrigins(ParseState *pstate, List *targetlist)
  * do not drill down into views, but report the view as the column owner.
  */
 static void
-markTargetListOrigin(ParseState *pstate, TargetEntry *tle,
-					 Var *var, int levelsup)
+markTargetListOrigin(ParseState * pstate, TargetEntry * tle,
+					 Var * var, int levelsup)
 {
 	int			netlevelsup;
 	RangeTblEntry *rte;
@@ -452,12 +452,12 @@ markTargetListOrigin(ParseState *pstate, TargetEntry *tle,
  * exprLocation(expr) for errors that can happen in a default INSERT.
  */
 Expr *
-transformAssignedExpr(ParseState *pstate,
-					  Expr *expr,
+transformAssignedExpr(ParseState * pstate,
+					  Expr * expr,
 					  ParseExprKind exprKind,
 					  char *colname,
 					  int attrno,
-					  List *indirection,
+					  List * indirection,
 					  int location)
 {
 	Relation	rd = pstate->p_target_relation;
@@ -614,11 +614,11 @@ transformAssignedExpr(ParseState *pstate,
  * location		error cursor position (should point at column name), or -1
  */
 void
-updateTargetListEntry(ParseState *pstate,
-					  TargetEntry *tle,
+updateTargetListEntry(ParseState * pstate,
+					  TargetEntry * tle,
 					  char *colname,
 					  int attrno,
-					  List *indirection,
+					  List * indirection,
 					  int location)
 {
 	/* Fix up expression as needed */
@@ -673,15 +673,15 @@ updateTargetListEntry(ParseState *pstate,
  * in which case the location argument could probably be dropped.)
  */
 static Node *
-transformAssignmentIndirection(ParseState *pstate,
-							   Node *basenode,
+transformAssignmentIndirection(ParseState * pstate,
+							   Node * basenode,
 							   const char *targetName,
 							   bool targetIsArray,
 							   Oid targetTypeId,
 							   int32 targetTypMod,
 							   Oid targetCollation,
-							   ListCell *indirection,
-							   Node *rhs,
+							   ListCell * indirection,
+							   Node * rhs,
 							   int location)
 {
 	Node	   *result;
@@ -858,16 +858,16 @@ transformAssignmentIndirection(ParseState *pstate,
  * helper for transformAssignmentIndirection: process array assignment
  */
 static Node *
-transformAssignmentSubscripts(ParseState *pstate,
-							  Node *basenode,
+transformAssignmentSubscripts(ParseState * pstate,
+							  Node * basenode,
 							  const char *targetName,
 							  Oid targetTypeId,
 							  int32 targetTypMod,
 							  Oid targetCollation,
-							  List *subscripts,
+							  List * subscripts,
 							  bool isSlice,
-							  ListCell *next_indirection,
-							  Node *rhs,
+							  ListCell * next_indirection,
+							  Node * rhs,
 							  int location)
 {
 	Node	   *result;
@@ -950,7 +950,7 @@ transformAssignmentSubscripts(ParseState *pstate,
  *	  Also return an integer list of the columns' attribute numbers.
  */
 List *
-checkInsertTargets(ParseState *pstate, List *cols, List **attrnos)
+checkInsertTargets(ParseState * pstate, List * cols, List * *attrnos)
 {
 	*attrnos = NIL;
 
@@ -1052,7 +1052,7 @@ checkInsertTargets(ParseState *pstate, List *cols, List **attrnos)
  * The referenced columns are marked as requiring SELECT access.
  */
 static List *
-ExpandColumnRefStar(ParseState *pstate, ColumnRef *cref,
+ExpandColumnRefStar(ParseState * pstate, ColumnRef * cref,
 					bool make_target_entry)
 {
 	List	   *fields = cref->fields;
@@ -1222,7 +1222,7 @@ ExpandColumnRefStar(ParseState *pstate, ColumnRef *cref,
  * The referenced relations/columns are marked as requiring SELECT access.
  */
 static List *
-ExpandAllTables(ParseState *pstate, int location)
+ExpandAllTables(ParseState * pstate, int location)
 {
 	List	   *target = NIL;
 	bool		found_table = false;
@@ -1276,7 +1276,7 @@ ExpandAllTables(ParseState *pstate, int location)
  * this rather than relying on exprKind.
  */
 static List *
-ExpandIndirectionStar(ParseState *pstate, A_Indirection *ind,
+ExpandIndirectionStar(ParseState * pstate, A_Indirection * ind,
 					  bool make_target_entry, ParseExprKind exprKind)
 {
 	Node	   *expr;
@@ -1303,7 +1303,7 @@ ExpandIndirectionStar(ParseState *pstate, A_Indirection *ind,
  * The referenced columns are marked as requiring SELECT access.
  */
 static List *
-ExpandSingleTable(ParseState *pstate, RangeTblEntry *rte,
+ExpandSingleTable(ParseState * pstate, RangeTblEntry * rte,
 				  int location, bool make_target_entry)
 {
 	int			sublevels_up;
@@ -1352,7 +1352,7 @@ ExpandSingleTable(ParseState *pstate, RangeTblEntry *rte,
  * type.
  */
 static List *
-ExpandRowReference(ParseState *pstate, Node *expr,
+ExpandRowReference(ParseState * pstate, Node * expr,
 				   bool make_target_entry)
 {
 	List	   *result = NIL;
@@ -1451,7 +1451,7 @@ ExpandRowReference(ParseState *pstate, Node *expr,
  * levelsup is an extra offset to interpret the Var's varlevelsup correctly.
  */
 TupleDesc
-expandRecordVariable(ParseState *pstate, Var *var, int levelsup)
+expandRecordVariable(ParseState * pstate, Var * var, int levelsup)
 {
 	TupleDesc	tupleDesc;
 	int			netlevelsup;
@@ -1630,7 +1630,7 @@ expandRecordVariable(ParseState *pstate, Var *var, int levelsup)
  * item.  This is a shade easier to work with than the transformed tree.
  */
 char *
-FigureColname(Node *node)
+FigureColname(Node * node)
 {
 	char	   *name = NULL;
 
@@ -1649,7 +1649,7 @@ FigureColname(Node *node)
  * we can't pick a good name.
  */
 char *
-FigureIndexColname(Node *node)
+FigureIndexColname(Node * node)
 {
 	char	   *name = NULL;
 
@@ -1669,7 +1669,7 @@ FigureIndexColname(Node *node)
  * If the result isn't zero, *name is set to the chosen name.
  */
 static int
-FigureColnameInternal(Node *node, char **name)
+FigureColnameInternal(Node * node, char **name)
 {
 	int			strength = 0;
 

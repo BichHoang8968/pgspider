@@ -23,7 +23,7 @@
  * caller.
  */
 PyObject *
-PLyUnicode_Bytes(PyObject *unicode)
+PLyUnicode_Bytes(PyObject * unicode)
 {
 	PyObject   *bytes,
 			   *rv;
@@ -91,7 +91,7 @@ PLyUnicode_Bytes(PyObject *unicode)
  * reference that you ought to better leave alone.
  */
 char *
-PLyUnicode_AsString(PyObject *unicode)
+PLyUnicode_AsString(PyObject * unicode)
 {
 	PyObject   *o = PLyUnicode_Bytes(unicode);
 	char	   *rv = pstrdup(PyBytes_AsString(o));

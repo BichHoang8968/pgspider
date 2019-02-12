@@ -112,7 +112,7 @@ typedef struct
 	ForkNumber	forknum;
 	BlockNumber segno;			/* see md.c for special values */
 	/* might add a real request-type field later; not needed yet */
-} CheckpointerRequest;
+}			CheckpointerRequest;
 
 typedef struct
 {
@@ -132,9 +132,9 @@ typedef struct
 	int			num_requests;	/* current # of requests */
 	int			max_requests;	/* allocated array size */
 	CheckpointerRequest requests[FLEXIBLE_ARRAY_MEMBER];
-} CheckpointerShmemStruct;
+}			CheckpointerShmemStruct;
 
-static CheckpointerShmemStruct *CheckpointerShmem;
+static CheckpointerShmemStruct * CheckpointerShmem;
 
 /* interval for calling AbsorbFsyncRequests in CheckpointWriteDelay */
 #define WRITES_PER_ABSORB		1000
@@ -647,7 +647,7 @@ ImmediateCheckpointRequested(void)
 {
 	if (checkpoint_requested)
 	{
-		volatile CheckpointerShmemStruct *cps = CheckpointerShmem;
+		volatile	CheckpointerShmemStruct *cps = CheckpointerShmem;
 
 		/*
 		 * We don't need to acquire the ckpt_lck in this case because we're

@@ -44,7 +44,7 @@ typedef struct
 	Tuplestorestate *tstore;	/* where to put result tuples */
 	MemoryContext cxt;			/* context containing tstore */
 	JunkFilter *filter;			/* filter to convert tuple type */
-} DR_sqlfunction;
+}			DR_sqlfunction;
 
 /*
  * We have an execution_state record for each query in a function.  Each
@@ -58,7 +58,7 @@ typedef struct
 typedef enum
 {
 	F_EXEC_START, F_EXEC_RUN, F_EXEC_DONE
-} ExecStatus;
+}			ExecStatus;
 
 typedef struct execution_state
 {
@@ -68,7 +68,7 @@ typedef struct execution_state
 	bool		lazyEval;		/* true if should fetch one row at a time */
 	PlannedStmt *stmt;			/* plan for this query */
 	QueryDesc  *qd;				/* null unless status == RUN */
-} execution_state;
+}			execution_state;
 
 
 /*
@@ -123,9 +123,9 @@ typedef struct
 
 	LocalTransactionId lxid;	/* lxid in which cache was made */
 	SubTransactionId subxid;	/* subxid in which cache was made */
-} SQLFunctionCache;
+}			SQLFunctionCache;
 
-typedef SQLFunctionCache *SQLFunctionCachePtr;
+typedef SQLFunctionCache * SQLFunctionCachePtr;
 
 /*
  * Data structure needed by the parser callback hooks to resolve parameter
@@ -144,32 +144,32 @@ typedef struct SQLFunctionParseInfo
 
 
 /* non-export function prototypes */
-static Node *sql_fn_param_ref(ParseState *pstate, ParamRef *pref);
-static Node *sql_fn_post_column_ref(ParseState *pstate,
-					   ColumnRef *cref, Node *var);
-static Node *sql_fn_make_param(SQLFunctionParseInfoPtr pinfo,
-				  int paramno, int location);
-static Node *sql_fn_resolve_param_name(SQLFunctionParseInfoPtr pinfo,
-						  const char *paramname, int location);
-static List *init_execution_state(List *queryTree_list,
-					 SQLFunctionCachePtr fcache,
-					 bool lazyEvalOK);
-static void init_sql_fcache(FmgrInfo *finfo, Oid collation, bool lazyEvalOK);
-static void postquel_start(execution_state *es, SQLFunctionCachePtr fcache);
-static bool postquel_getnext(execution_state *es, SQLFunctionCachePtr fcache);
-static void postquel_end(execution_state *es);
+static Node * sql_fn_param_ref(ParseState * pstate, ParamRef * pref);
+static Node * sql_fn_post_column_ref(ParseState * pstate,
+									 ColumnRef * cref, Node * var);
+static Node * sql_fn_make_param(SQLFunctionParseInfoPtr pinfo,
+								int paramno, int location);
+static Node * sql_fn_resolve_param_name(SQLFunctionParseInfoPtr pinfo,
+										const char *paramname, int location);
+static List * init_execution_state(List * queryTree_list,
+								   SQLFunctionCachePtr fcache,
+								   bool lazyEvalOK);
+static void init_sql_fcache(FmgrInfo * finfo, Oid collation, bool lazyEvalOK);
+static void postquel_start(execution_state * es, SQLFunctionCachePtr fcache);
+static bool postquel_getnext(execution_state * es, SQLFunctionCachePtr fcache);
+static void postquel_end(execution_state * es);
 static void postquel_sub_params(SQLFunctionCachePtr fcache,
 					FunctionCallInfo fcinfo);
-static Datum postquel_get_single_result(TupleTableSlot *slot,
-						   FunctionCallInfo fcinfo,
-						   SQLFunctionCachePtr fcache,
-						   MemoryContext resultcontext);
+static Datum postquel_get_single_result(TupleTableSlot * slot,
+										FunctionCallInfo fcinfo,
+										SQLFunctionCachePtr fcache,
+										MemoryContext resultcontext);
 static void sql_exec_error_callback(void *arg);
 static void ShutdownSQLFunction(Datum arg);
-static void sqlfunction_startup(DestReceiver *self, int operation, TupleDesc typeinfo);
-static bool sqlfunction_receive(TupleTableSlot *slot, DestReceiver *self);
-static void sqlfunction_shutdown(DestReceiver *self);
-static void sqlfunction_destroy(DestReceiver *self);
+static void sqlfunction_startup(DestReceiver * self, int operation, TupleDesc typeinfo);
+static bool sqlfunction_receive(TupleTableSlot * slot, DestReceiver * self);
+static void sqlfunction_shutdown(DestReceiver * self);
+static void sqlfunction_destroy(DestReceiver * self);
 
 
 /*
@@ -182,7 +182,7 @@ static void sqlfunction_destroy(DestReceiver *self);
  */
 SQLFunctionParseInfoPtr
 prepare_sql_fn_parse_info(HeapTuple procedureTuple,
-						  Node *call_expr,
+						  Node * call_expr,
 						  Oid inputCollation)
 {
 	SQLFunctionParseInfoPtr pinfo;
@@ -283,7 +283,7 @@ sql_fn_parser_setup(struct ParseState *pstate, SQLFunctionParseInfoPtr pinfo)
  * sql_fn_post_column_ref		parser callback for ColumnRefs
  */
 static Node *
-sql_fn_post_column_ref(ParseState *pstate, ColumnRef *cref, Node *var)
+sql_fn_post_column_ref(ParseState * pstate, ColumnRef * cref, Node * var)
 {
 	SQLFunctionParseInfoPtr pinfo = (SQLFunctionParseInfoPtr) pstate->p_ref_hook_state;
 	int			nnames;
@@ -400,7 +400,7 @@ sql_fn_post_column_ref(ParseState *pstate, ColumnRef *cref, Node *var)
  * sql_fn_param_ref		parser callback for ParamRefs ($n symbols)
  */
 static Node *
-sql_fn_param_ref(ParseState *pstate, ParamRef *pref)
+sql_fn_param_ref(ParseState * pstate, ParamRef * pref)
 {
 	SQLFunctionParseInfoPtr pinfo = (SQLFunctionParseInfoPtr) pstate->p_ref_hook_state;
 	int			paramno = pref->number;
@@ -470,7 +470,7 @@ sql_fn_resolve_param_name(SQLFunctionParseInfoPtr pinfo,
  * querytrees.  The sublist structure denotes the original query boundaries.
  */
 static List *
-init_execution_state(List *queryTree_list,
+init_execution_state(List * queryTree_list,
 					 SQLFunctionCachePtr fcache,
 					 bool lazyEvalOK)
 {
@@ -591,7 +591,7 @@ init_execution_state(List *queryTree_list,
  * Initialize the SQLFunctionCache for a SQL function
  */
 static void
-init_sql_fcache(FmgrInfo *finfo, Oid collation, bool lazyEvalOK)
+init_sql_fcache(FmgrInfo * finfo, Oid collation, bool lazyEvalOK)
 {
 	Oid			foid = finfo->fn_oid;
 	MemoryContext fcontext;
@@ -778,7 +778,7 @@ init_sql_fcache(FmgrInfo *finfo, Oid collation, bool lazyEvalOK)
 
 /* Start up execution of one execution_state node */
 static void
-postquel_start(execution_state *es, SQLFunctionCachePtr fcache)
+postquel_start(execution_state * es, SQLFunctionCachePtr fcache)
 {
 	DestReceiver *dest;
 
@@ -840,7 +840,7 @@ postquel_start(execution_state *es, SQLFunctionCachePtr fcache)
 /* Run one execution_state; either to completion or to first result row */
 /* Returns true if we ran to completion */
 static bool
-postquel_getnext(execution_state *es, SQLFunctionCachePtr fcache)
+postquel_getnext(execution_state * es, SQLFunctionCachePtr fcache)
 {
 	bool		result;
 
@@ -874,7 +874,7 @@ postquel_getnext(execution_state *es, SQLFunctionCachePtr fcache)
 
 /* Shut down execution of one execution_state node */
 static void
-postquel_end(execution_state *es)
+postquel_end(execution_state * es)
 {
 	/* mark status done to ensure we don't do ExecutorEnd twice */
 	es->status = F_EXEC_DONE;
@@ -944,7 +944,7 @@ postquel_sub_params(SQLFunctionCachePtr fcache,
  * result.
  */
 static Datum
-postquel_get_single_result(TupleTableSlot *slot,
+postquel_get_single_result(TupleTableSlot * slot,
 						   FunctionCallInfo fcinfo,
 						   SQLFunctionCachePtr fcache,
 						   MemoryContext resultcontext)
@@ -1529,9 +1529,9 @@ ShutdownSQLFunction(Datum arg)
  * set to NULL.
  */
 bool
-check_sql_fn_retval(Oid func_id, Oid rettype, List *queryTreeList,
+check_sql_fn_retval(Oid func_id, Oid rettype, List * queryTreeList,
 					bool *modifyTargetList,
-					JunkFilter **junkFilter)
+					JunkFilter * *junkFilter)
 {
 	Query	   *parse;
 	List	  **tlist_ptr;
@@ -1900,7 +1900,7 @@ CreateSQLFunctionDestReceiver(void)
  * sqlfunction_startup --- executor startup
  */
 static void
-sqlfunction_startup(DestReceiver *self, int operation, TupleDesc typeinfo)
+sqlfunction_startup(DestReceiver * self, int operation, TupleDesc typeinfo)
 {
 	/* no-op */
 }
@@ -1909,7 +1909,7 @@ sqlfunction_startup(DestReceiver *self, int operation, TupleDesc typeinfo)
  * sqlfunction_receive --- receive one tuple
  */
 static bool
-sqlfunction_receive(TupleTableSlot *slot, DestReceiver *self)
+sqlfunction_receive(TupleTableSlot * slot, DestReceiver * self)
 {
 	DR_sqlfunction *myState = (DR_sqlfunction *) self;
 
@@ -1926,7 +1926,7 @@ sqlfunction_receive(TupleTableSlot *slot, DestReceiver *self)
  * sqlfunction_shutdown --- executor end
  */
 static void
-sqlfunction_shutdown(DestReceiver *self)
+sqlfunction_shutdown(DestReceiver * self)
 {
 	/* no-op */
 }
@@ -1935,7 +1935,7 @@ sqlfunction_shutdown(DestReceiver *self)
  * sqlfunction_destroy --- release DestReceiver object
  */
 static void
-sqlfunction_destroy(DestReceiver *self)
+sqlfunction_destroy(DestReceiver * self)
 {
 	pfree(self);
 }

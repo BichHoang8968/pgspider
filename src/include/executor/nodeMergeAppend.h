@@ -16,8 +16,8 @@
 
 #include "nodes/execnodes.h"
 
-extern MergeAppendState *ExecInitMergeAppend(MergeAppend *node, EState *estate, int eflags);
-extern void ExecEndMergeAppend(MergeAppendState *node);
-extern void ExecReScanMergeAppend(MergeAppendState *node);
+extern MergeAppendState * ExecInitMergeAppend(MergeAppend * node, EState * estate, int eflags);
+extern void ExecEndMergeAppend(MergeAppendState * node);
+extern void ExecReScanMergeAppend(MergeAppendState * node);
 
 #endif							/* NODEMERGEAPPEND_H */

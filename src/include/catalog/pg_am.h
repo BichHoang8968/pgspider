@@ -43,7 +43,7 @@ CATALOG(pg_am,2601)
  *		the format of pg_am relation.
  * ----------------
  */
-typedef FormData_pg_am *Form_pg_am;
+typedef FormData_pg_am * Form_pg_am;
 
 /* ----------------
  *		compiler constants for pg_am

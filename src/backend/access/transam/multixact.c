@@ -279,7 +279,7 @@ typedef struct MultiXactStateData
 	 * checkpoint or restartpoint, unneeded segments are removed.
 	 */
 	MultiXactId perBackendXactIds[FLEXIBLE_ARRAY_MEMBER];
-} MultiXactStateData;
+}			MultiXactStateData;
 
 /*
  * Last element of OldestMemberMXactID and OldestVisibleMXactId arrays.
@@ -288,9 +288,9 @@ typedef struct MultiXactStateData
 #define MaxOldestSlot	(MaxBackends + max_prepared_xacts)
 
 /* Pointers to the state data in shared memory */
-static MultiXactStateData *MultiXactState;
-static MultiXactId *OldestMemberMXactId;
-static MultiXactId *OldestVisibleMXactId;
+static MultiXactStateData * MultiXactState;
+static MultiXactId * OldestMemberMXactId;
+static MultiXactId * OldestVisibleMXactId;
 
 
 /*
@@ -316,7 +316,7 @@ typedef struct mXactCacheEnt
 	int			nmembers;
 	dlist_node	node;
 	MultiXactMember members[FLEXIBLE_ARRAY_MEMBER];
-} mXactCacheEnt;
+}			mXactCacheEnt;
 
 #define MAX_CACHE_ENTRIES	256
 static dlist_head MXactCache = DLIST_STATIC_INIT(MXactCache);
@@ -340,15 +340,15 @@ static MemoryContext MXactContext = NULL;
 /* internal MultiXactId management */
 static void MultiXactIdSetOldestVisible(void);
 static void RecordNewMultiXact(MultiXactId multi, MultiXactOffset offset,
-				   int nmembers, MultiXactMember *members);
-static MultiXactId GetNewMultiXactId(int nmembers, MultiXactOffset *offset);
+				   int nmembers, MultiXactMember * members);
+static MultiXactId GetNewMultiXactId(int nmembers, MultiXactOffset * offset);
 
 /* MultiXact cache management */
 static int	mxactMemberComparator(const void *arg1, const void *arg2);
-static MultiXactId mXactCacheGetBySet(int nmembers, MultiXactMember *members);
-static int	mXactCacheGetById(MultiXactId multi, MultiXactMember **members);
+static MultiXactId mXactCacheGetBySet(int nmembers, MultiXactMember * members);
+static int	mXactCacheGetById(MultiXactId multi, MultiXactMember * *members);
 static void mXactCachePut(MultiXactId multi, int nmembers,
-			  MultiXactMember *members);
+			  MultiXactMember * members);
 
 static char *mxstatus_to_string(MultiXactStatus status);
 
@@ -364,7 +364,7 @@ static void ExtendMultiXactMember(MultiXactOffset offset, int nmembers);
 static bool MultiXactOffsetWouldWrap(MultiXactOffset boundary,
 						 MultiXactOffset start, uint32 distance);
 static bool SetOffsetVacuumLimit(bool is_startup);
-static bool find_multixact_start(MultiXactId multi, MultiXactOffset *result);
+static bool find_multixact_start(MultiXactId multi, MultiXactOffset * result);
 static void WriteMZeroPageXlogRec(int pageno, uint8 info);
 static void WriteMTruncateXlogRec(Oid oldestMultiDB,
 					  MultiXactId startOff, MultiXactId endOff,
@@ -743,7 +743,7 @@ ReadNextMultiXactId(void)
  * NB: the passed members[] array will be sorted in-place.
  */
 MultiXactId
-MultiXactIdCreateFromMembers(int nmembers, MultiXactMember *members)
+MultiXactIdCreateFromMembers(int nmembers, MultiXactMember * members)
 {
 	MultiXactId multi;
 	MultiXactOffset offset;
@@ -839,7 +839,7 @@ MultiXactIdCreateFromMembers(int nmembers, MultiXactMember *members)
  */
 static void
 RecordNewMultiXact(MultiXactId multi, MultiXactOffset offset,
-				   int nmembers, MultiXactMember *members)
+				   int nmembers, MultiXactMember * members)
 {
 	int			pageno;
 	int			prev_pageno;
@@ -932,7 +932,7 @@ RecordNewMultiXact(MultiXactId multi, MultiXactOffset offset,
  * caller must end the critical section after writing SLRU data.
  */
 static MultiXactId
-GetNewMultiXactId(int nmembers, MultiXactOffset *offset)
+GetNewMultiXactId(int nmembers, MultiXactOffset * offset)
 {
 	MultiXactId result;
 	MultiXactOffset nextOffset;
@@ -1199,7 +1199,7 @@ GetNewMultiXactId(int nmembers, MultiXactOffset *offset)
  * old updates.
  */
 int
-GetMultiXactIdMembers(MultiXactId multi, MultiXactMember **members,
+GetMultiXactIdMembers(MultiXactId multi, MultiXactMember * *members,
 					  bool from_pgupgrade, bool onlyLock)
 {
 	int			pageno;
@@ -1470,7 +1470,7 @@ mxactMemberComparator(const void *arg1, const void *arg2)
  * NB: the passed members array will be sorted in-place.
  */
 static MultiXactId
-mXactCacheGetBySet(int nmembers, MultiXactMember *members)
+mXactCacheGetBySet(int nmembers, MultiXactMember * members)
 {
 	dlist_iter	iter;
 
@@ -1512,7 +1512,7 @@ mXactCacheGetBySet(int nmembers, MultiXactMember *members)
  * MultiXactMember set.  Return value is number of members, or -1 on failure.
  */
 static int
-mXactCacheGetById(MultiXactId multi, MultiXactMember **members)
+mXactCacheGetById(MultiXactId multi, MultiXactMember * *members)
 {
 	dlist_iter	iter;
 
@@ -1558,7 +1558,7 @@ mXactCacheGetById(MultiXactId multi, MultiXactMember **members)
  *		Add a new MultiXactId and its composing set into the local cache.
  */
 static void
-mXactCachePut(MultiXactId multi, int nmembers, MultiXactMember *members)
+mXactCachePut(MultiXactId multi, int nmembers, MultiXactMember * members)
 {
 	mXactCacheEnt *entry;
 
@@ -1628,7 +1628,7 @@ mxstatus_to_string(MultiXactStatus status)
 }
 
 char *
-mxid_to_string(MultiXactId multi, int nmembers, MultiXactMember *members)
+mxid_to_string(MultiXactId multi, int nmembers, MultiXactMember * members)
 {
 	static char *str = NULL;
 	StringInfoData buf;
@@ -2116,10 +2116,10 @@ ShutdownMultiXact(void)
  */
 void
 MultiXactGetCheckptMulti(bool is_shutdown,
-						 MultiXactId *nextMulti,
-						 MultiXactOffset *nextMultiOffset,
-						 MultiXactId *oldestMulti,
-						 Oid *oldestMultiDB)
+						 MultiXactId * nextMulti,
+						 MultiXactOffset * nextMultiOffset,
+						 MultiXactId * oldestMulti,
+						 Oid * oldestMultiDB)
 {
 	LWLockAcquire(MultiXactGenLock, LW_SHARED);
 	*nextMulti = MultiXactState->nextMXact;
@@ -2716,7 +2716,7 @@ MultiXactOffsetWouldWrap(MultiXactOffset boundary, MultiXactOffset start,
  * required, the caller has to protect against that.
  */
 static bool
-find_multixact_start(MultiXactId multi, MultiXactOffset *result)
+find_multixact_start(MultiXactId multi, MultiXactOffset * result)
 {
 	MultiXactOffset offset;
 	int			pageno;
@@ -2758,7 +2758,7 @@ find_multixact_start(MultiXactId multi, MultiXactOffset *result)
  * exist.  Return false if unable to determine.
  */
 static bool
-ReadMultiXactCounts(uint32 *multixacts, MultiXactOffset *members)
+ReadMultiXactCounts(uint32 * multixacts, MultiXactOffset * members)
 {
 	MultiXactOffset nextOffset;
 	MultiXactOffset oldestOffset;
@@ -2847,7 +2847,7 @@ MultiXactMemberFreezeThreshold(void)
 typedef struct mxtruncinfo
 {
 	int			earliestExistingPage;
-} mxtruncinfo;
+}			mxtruncinfo;
 
 /*
  * SlruScanDirectory callback
@@ -3214,7 +3214,7 @@ WriteMTruncateXlogRec(Oid oldestMultiDB,
  * MULTIXACT resource manager's routines
  */
 void
-multixact_redo(XLogReaderState *record)
+multixact_redo(XLogReaderState * record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 
@@ -3344,7 +3344,7 @@ pg_get_multixact_members(PG_FUNCTION_ARGS)
 		MultiXactMember *members;
 		int			nmembers;
 		int			iter;
-	} mxact;
+	}			mxact;
 	MultiXactId mxid = PG_GETARG_UINT32(0);
 	mxact	   *multi;
 	FuncCallContext *funccxt;

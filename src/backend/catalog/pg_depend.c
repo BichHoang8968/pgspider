@@ -30,7 +30,7 @@
 #include "utils/tqual.h"
 
 
-static bool isObjectPinned(const ObjectAddress *object, Relation rel);
+static bool isObjectPinned(const ObjectAddress * object, Relation rel);
 
 
 /*
@@ -41,8 +41,8 @@ static bool isObjectPinned(const ObjectAddress *object, Relation rel);
  * This simply creates an entry in pg_depend, without any other processing.
  */
 void
-recordDependencyOn(const ObjectAddress *depender,
-				   const ObjectAddress *referenced,
+recordDependencyOn(const ObjectAddress * depender,
+				   const ObjectAddress * referenced,
 				   DependencyType behavior)
 {
 	recordMultipleDependencies(depender, referenced, 1, behavior);
@@ -53,8 +53,8 @@ recordDependencyOn(const ObjectAddress *depender,
  * object.  This has a little less overhead than recording each separately.
  */
 void
-recordMultipleDependencies(const ObjectAddress *depender,
-						   const ObjectAddress *referenced,
+recordMultipleDependencies(const ObjectAddress * depender,
+						   const ObjectAddress * referenced,
 						   int nreferenced,
 						   DependencyType behavior)
 {
@@ -136,7 +136,7 @@ recordMultipleDependencies(const ObjectAddress *depender,
  * could not already be a member of any extension.
  */
 void
-recordDependencyOnCurrentExtension(const ObjectAddress *object,
+recordDependencyOnCurrentExtension(const ObjectAddress * object,
 								   bool isReplace)
 {
 	/* Only whole objects can be extension members */
@@ -386,7 +386,7 @@ changeDependencyFor(Oid classId, Oid objectId,
  * are pinned (and that this implies pinning their components).
  */
 static bool
-isObjectPinned(const ObjectAddress *object, Relation rel)
+isObjectPinned(const ObjectAddress * object, Relation rel)
 {
 	bool		ret = false;
 	SysScanDesc scan;
@@ -497,7 +497,7 @@ getExtensionOfObject(Oid classId, Oid objectId)
  * not happen, though.
  */
 bool
-sequenceIsOwned(Oid seqId, char deptype, Oid *tableId, int32 *colId)
+sequenceIsOwned(Oid seqId, char deptype, Oid * tableId, int32 * colId)
 {
 	bool		ret = false;
 	Relation	depRel;

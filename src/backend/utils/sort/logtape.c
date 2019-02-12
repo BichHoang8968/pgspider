@@ -91,7 +91,7 @@ typedef struct TapeBlockTrailer
 								 * block */
 	long		next;			/* next block on this tape, or # of valid
 								 * bytes on last block (if < 0) */
-} TapeBlockTrailer;
+}			TapeBlockTrailer;
 
 #define TapeBlockPayloadSize  (BLCKSZ - sizeof(TapeBlockTrailer))
 #define TapeBlockGetTrailer(buf) \
@@ -140,7 +140,7 @@ typedef struct LogicalTape
 	int			buffer_size;	/* allocated size of the buffer */
 	int			pos;			/* next read/write position in buffer */
 	int			nbytes;			/* total # of valid bytes in buffer */
-} LogicalTape;
+}			LogicalTape;
 
 /*
  * This data structure represents a set of related "logical tapes" sharing
@@ -187,10 +187,10 @@ struct LogicalTapeSet
 	LogicalTape tapes[FLEXIBLE_ARRAY_MEMBER];	/* has nTapes nentries */
 };
 
-static void ltsWriteBlock(LogicalTapeSet *lts, long blocknum, void *buffer);
-static void ltsReadBlock(LogicalTapeSet *lts, long blocknum, void *buffer);
-static long ltsGetFreeBlock(LogicalTapeSet *lts);
-static void ltsReleaseBlock(LogicalTapeSet *lts, long blocknum);
+static void ltsWriteBlock(LogicalTapeSet * lts, long blocknum, void *buffer);
+static void ltsReadBlock(LogicalTapeSet * lts, long blocknum, void *buffer);
+static long ltsGetFreeBlock(LogicalTapeSet * lts);
+static void ltsReleaseBlock(LogicalTapeSet * lts, long blocknum);
 
 
 /*
@@ -199,7 +199,7 @@ static void ltsReleaseBlock(LogicalTapeSet *lts, long blocknum);
  * No need for an error return convention; we ereport() on any error.
  */
 static void
-ltsWriteBlock(LogicalTapeSet *lts, long blocknum, void *buffer)
+ltsWriteBlock(LogicalTapeSet * lts, long blocknum, void *buffer)
 {
 	/*
 	 * BufFile does not support "holes", so if we're about to write a block
@@ -242,7 +242,7 @@ ltsWriteBlock(LogicalTapeSet *lts, long blocknum, void *buffer)
  * module should never attempt to read a block it doesn't know is there.
  */
 static void
-ltsReadBlock(LogicalTapeSet *lts, long blocknum, void *buffer)
+ltsReadBlock(LogicalTapeSet * lts, long blocknum, void *buffer)
 {
 	if (BufFileSeekBlock(lts->pfile, blocknum) != 0 ||
 		BufFileRead(lts->pfile, buffer, BLCKSZ) != BLCKSZ)
@@ -258,7 +258,7 @@ ltsReadBlock(LogicalTapeSet *lts, long blocknum, void *buffer)
  * Returns true if anything was read, 'false' on EOF.
  */
 static bool
-ltsReadFillBuffer(LogicalTapeSet *lts, LogicalTape *lt)
+ltsReadFillBuffer(LogicalTapeSet * lts, LogicalTape * lt)
 {
 	lt->pos = 0;
 	lt->nbytes = 0;
@@ -314,7 +314,7 @@ freeBlocks_cmp(const void *a, const void *b)
  * Select a currently unused block for writing to.
  */
 static long
-ltsGetFreeBlock(LogicalTapeSet *lts)
+ltsGetFreeBlock(LogicalTapeSet * lts)
 {
 	/*
 	 * If there are multiple free blocks, we select the one appearing last in
@@ -339,7 +339,7 @@ ltsGetFreeBlock(LogicalTapeSet *lts)
  * Return a block# to the freelist.
  */
 static void
-ltsReleaseBlock(LogicalTapeSet *lts, long blocknum)
+ltsReleaseBlock(LogicalTapeSet * lts, long blocknum)
 {
 	int			ndx;
 
@@ -423,7 +423,7 @@ LogicalTapeSetCreate(int ntapes)
  * Close a logical tape set and release all resources.
  */
 void
-LogicalTapeSetClose(LogicalTapeSet *lts)
+LogicalTapeSetClose(LogicalTapeSet * lts)
 {
 	LogicalTape *lt;
 	int			i;
@@ -449,7 +449,7 @@ LogicalTapeSetClose(LogicalTapeSet *lts)
  * is not designed to handle large numbers of free blocks.
  */
 void
-LogicalTapeSetForgetFreeSpace(LogicalTapeSet *lts)
+LogicalTapeSetForgetFreeSpace(LogicalTapeSet * lts)
 {
 	lts->forgetFreeSpace = true;
 }
@@ -460,7 +460,7 @@ LogicalTapeSetForgetFreeSpace(LogicalTapeSet *lts)
  * There are no error returns; we ereport() on failure.
  */
 void
-LogicalTapeWrite(LogicalTapeSet *lts, int tapenum,
+LogicalTapeWrite(LogicalTapeSet * lts, int tapenum,
 				 void *ptr, size_t size)
 {
 	LogicalTape *lt;
@@ -547,7 +547,7 @@ LogicalTapeWrite(LogicalTapeSet *lts, int tapenum,
  * byte buffer is used.
  */
 void
-LogicalTapeRewindForRead(LogicalTapeSet *lts, int tapenum, size_t buffer_size)
+LogicalTapeRewindForRead(LogicalTapeSet * lts, int tapenum, size_t buffer_size)
 {
 	LogicalTape *lt;
 
@@ -625,7 +625,7 @@ LogicalTapeRewindForRead(LogicalTapeSet *lts, int tapenum, size_t buffer_size)
  * code.
  */
 void
-LogicalTapeRewindForWrite(LogicalTapeSet *lts, int tapenum)
+LogicalTapeRewindForWrite(LogicalTapeSet * lts, int tapenum)
 {
 	LogicalTape *lt;
 
@@ -651,7 +651,7 @@ LogicalTapeRewindForWrite(LogicalTapeSet *lts, int tapenum)
  * Early EOF is indicated by return value less than #bytes requested.
  */
 size_t
-LogicalTapeRead(LogicalTapeSet *lts, int tapenum,
+LogicalTapeRead(LogicalTapeSet * lts, int tapenum,
 				void *ptr, size_t size)
 {
 	LogicalTape *lt;
@@ -699,7 +699,7 @@ LogicalTapeRead(LogicalTapeSet *lts, int tapenum,
  * for-read call is OK but not necessary.
  */
 void
-LogicalTapeFreeze(LogicalTapeSet *lts, int tapenum)
+LogicalTapeFreeze(LogicalTapeSet * lts, int tapenum)
 {
 	LogicalTape *lt;
 
@@ -764,7 +764,7 @@ LogicalTapeFreeze(LogicalTapeSet *lts, int tapenum)
  * that case.
  */
 size_t
-LogicalTapeBackspace(LogicalTapeSet *lts, int tapenum, size_t size)
+LogicalTapeBackspace(LogicalTapeSet * lts, int tapenum, size_t size)
 {
 	LogicalTape *lt;
 	size_t		seekpos = 0;
@@ -835,7 +835,7 @@ LogicalTapeBackspace(LogicalTapeSet *lts, int tapenum, size_t size)
  * LogicalTapeTell().
  */
 void
-LogicalTapeSeek(LogicalTapeSet *lts, int tapenum,
+LogicalTapeSeek(LogicalTapeSet * lts, int tapenum,
 				long blocknum, int offset)
 {
 	LogicalTape *lt;
@@ -866,7 +866,7 @@ LogicalTapeSeek(LogicalTapeSet *lts, int tapenum,
  * the position for a seek after freezing.  Not clear if anyone needs that.
  */
 void
-LogicalTapeTell(LogicalTapeSet *lts, int tapenum,
+LogicalTapeTell(LogicalTapeSet * lts, int tapenum,
 				long *blocknum, int *offset)
 {
 	LogicalTape *lt;
@@ -885,7 +885,7 @@ LogicalTapeTell(LogicalTapeSet *lts, int tapenum,
  * Obtain total disk space currently used by a LogicalTapeSet, in blocks.
  */
 long
-LogicalTapeSetBlocks(LogicalTapeSet *lts)
+LogicalTapeSetBlocks(LogicalTapeSet * lts)
 {
 	return lts->nBlocksAllocated;
 }

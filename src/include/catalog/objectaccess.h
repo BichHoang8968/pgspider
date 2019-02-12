@@ -46,7 +46,7 @@ typedef enum ObjectAccessType
 	OAT_POST_ALTER,
 	OAT_NAMESPACE_SEARCH,
 	OAT_FUNCTION_EXECUTE
-} ObjectAccessType;
+}			ObjectAccessType;
 
 /*
  * Arguments of OAT_POST_CREATE event
@@ -59,7 +59,7 @@ typedef struct
 	 * internal stuff on toast tables or indexes due to type changes.
 	 */
 	bool		is_internal;
-} ObjectAccessPostCreate;
+}			ObjectAccessPostCreate;
 
 /*
  * Arguments of OAT_DROP event
@@ -71,7 +71,7 @@ typedef struct
 	 * PERFORM_DELETION_* in dependency.h
 	 */
 	int			dropflags;
-} ObjectAccessDrop;
+}			ObjectAccessDrop;
 
 /*
  * Arguments of OAT_POST_ALTER event
@@ -93,7 +93,7 @@ typedef struct
 	 * the constraints of a temporary heap during CLUSTER.
 	 */
 	bool		is_internal;
-} ObjectAccessPostAlter;
+}			ObjectAccessPostAlter;
 
 /*
  * Arguments of OAT_NAMESPACE_SEARCH
@@ -114,7 +114,7 @@ typedef struct
 	 * only allowed if all extensions agree.
 	 */
 	bool		result;
-} ObjectAccessNamespaceSearch;
+}			ObjectAccessNamespaceSearch;
 
 /* Plugin provides a hook function matching this signature. */
 typedef void (*object_access_hook_type) (ObjectAccessType access,

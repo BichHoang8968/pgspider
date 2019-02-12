@@ -31,7 +31,7 @@ typedef union core_YYSTYPE
 	int			ival;			/* for integer literals */
 	char	   *str;			/* for identifiers and non-integer literals */
 	const char *keyword;		/* canonical spelling of keywords */
-} core_YYSTYPE;
+}			core_YYSTYPE;
 
 /*
  * We track token locations in terms of byte offsets from the start of the
@@ -75,7 +75,7 @@ typedef struct core_yy_extra_type
 	/*
 	 * The keyword list to use.
 	 */
-	const ScanKeyword *keywords;
+	const		ScanKeyword *keywords;
 	int			num_keywords;
 
 	/*
@@ -108,7 +108,7 @@ typedef struct core_yy_extra_type
 	/* state variables for literal-lexing warnings */
 	bool		warn_on_first_escape;
 	bool		saw_non_ascii;
-} core_yy_extra_type;
+}			core_yy_extra_type;
 
 /*
  * The type of yyscanner is opaque outside scan.l.
@@ -118,11 +118,11 @@ typedef void *core_yyscan_t;
 
 /* Entry points in parser/scan.l */
 extern core_yyscan_t scanner_init(const char *str,
-			 core_yy_extra_type *yyext,
-			 const ScanKeyword *keywords,
-			 int num_keywords);
+								  core_yy_extra_type * yyext,
+								  const ScanKeyword * keywords,
+								  int num_keywords);
 extern void scanner_finish(core_yyscan_t yyscanner);
-extern int core_yylex(core_YYSTYPE *lvalp, YYLTYPE *llocp,
+extern int core_yylex(core_YYSTYPE * lvalp, YYLTYPE * llocp,
 		   core_yyscan_t yyscanner);
 extern int	scanner_errposition(int location, core_yyscan_t yyscanner);
 extern void scanner_yyerror(const char *message, core_yyscan_t yyscanner) pg_attribute_noreturn();

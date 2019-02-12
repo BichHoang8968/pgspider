@@ -22,9 +22,9 @@
  * Estimate cost of bloom index scan.
  */
 void
-blcostestimate(PlannerInfo *root, IndexPath *path, double loop_count,
-			   Cost *indexStartupCost, Cost *indexTotalCost,
-			   Selectivity *indexSelectivity, double *indexCorrelation,
+blcostestimate(PlannerInfo * root, IndexPath * path, double loop_count,
+			   Cost * indexStartupCost, Cost * indexTotalCost,
+			   Selectivity * indexSelectivity, double *indexCorrelation,
 			   double *indexPages)
 {
 	IndexOptInfo *index = path->indexinfo;

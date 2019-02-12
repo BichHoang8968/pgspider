@@ -32,22 +32,22 @@
 #include "utils/typcache.h"
 
 
-static Node *coerce_type_typmod(Node *node,
-				   Oid targetTypeId, int32 targetTypMod,
-				   CoercionForm cformat, int location,
-				   bool isExplicit, bool hideInputCoercion);
-static void hide_coercion_node(Node *node);
-static Node *build_coercion_expression(Node *node,
-						  CoercionPathType pathtype,
-						  Oid funcId,
-						  Oid targetTypeId, int32 targetTypMod,
-						  CoercionForm cformat, int location,
-						  bool isExplicit);
-static Node *coerce_record_to_complex(ParseState *pstate, Node *node,
-						 Oid targetTypeId,
-						 CoercionContext ccontext,
-						 CoercionForm cformat,
-						 int location);
+static Node * coerce_type_typmod(Node * node,
+								 Oid targetTypeId, int32 targetTypMod,
+								 CoercionForm cformat, int location,
+								 bool isExplicit, bool hideInputCoercion);
+static void hide_coercion_node(Node * node);
+static Node * build_coercion_expression(Node * node,
+										CoercionPathType pathtype,
+										Oid funcId,
+										Oid targetTypeId, int32 targetTypMod,
+										CoercionForm cformat, int location,
+										bool isExplicit);
+static Node * coerce_record_to_complex(ParseState * pstate, Node * node,
+									   Oid targetTypeId,
+									   CoercionContext ccontext,
+									   CoercionForm cformat,
+									   int location);
 static bool is_complex_array(Oid typid);
 static bool typeIsOfTypedTable(Oid reltypeId, Oid reloftypeId);
 
@@ -74,7 +74,7 @@ static bool typeIsOfTypedTable(Oid reltypeId, Oid reloftypeId);
  * location - parse location of the coercion request, or -1 if unknown/implicit
  */
 Node *
-coerce_to_target_type(ParseState *pstate, Node *expr, Oid exprtype,
+coerce_to_target_type(ParseState * pstate, Node * expr, Oid exprtype,
 					  Oid targettype, int32 targettypmod,
 					  CoercionContext ccontext,
 					  CoercionForm cformat,
@@ -153,7 +153,7 @@ coerce_to_target_type(ParseState *pstate, Node *expr, Oid exprtype,
  * decoration on top of it.  See transformSetOperationTree, for example.
  */
 Node *
-coerce_type(ParseState *pstate, Node *node,
+coerce_type(ParseState * pstate, Node * node,
 			Oid inputTypeId, Oid targetTypeId, int32 targetTypeMod,
 			CoercionContext ccontext, CoercionForm cformat, int location)
 {
@@ -524,7 +524,7 @@ coerce_type(ParseState *pstate, Node *node,
  * as this determines the set of available casts.
  */
 bool
-can_coerce_type(int nargs, Oid *input_typeids, Oid *target_typeids,
+can_coerce_type(int nargs, Oid * input_typeids, Oid * target_typeids,
 				CoercionContext ccontext)
 {
 	bool		have_generics = false;
@@ -645,7 +645,7 @@ can_coerce_type(int nargs, Oid *input_typeids, Oid *target_typeids,
  * If the target type isn't a domain, the given 'arg' is returned as-is.
  */
 Node *
-coerce_to_domain(Node *arg, Oid baseTypeId, int32 baseTypeMod, Oid typeId,
+coerce_to_domain(Node * arg, Oid baseTypeId, int32 baseTypeMod, Oid typeId,
 				 CoercionForm cformat, int location,
 				 bool hideInputCoercion,
 				 bool lengthCoercionDone)
@@ -725,7 +725,7 @@ coerce_to_domain(Node *arg, Oid baseTypeId, int32 baseTypeMod, Oid typeId,
  * needed to produce the domain value in the first place.  So, no getBaseType.
  */
 static Node *
-coerce_type_typmod(Node *node, Oid targetTypeId, int32 targetTypMod,
+coerce_type_typmod(Node * node, Oid targetTypeId, int32 targetTypMod,
 				   CoercionForm cformat, int location,
 				   bool isExplicit, bool hideInputCoercion)
 {
@@ -767,7 +767,7 @@ coerce_type_typmod(Node *node, Oid targetTypeId, int32 targetTypMod,
  * CoercionForm field.
  */
 static void
-hide_coercion_node(Node *node)
+hide_coercion_node(Node * node)
 {
 	if (IsA(node, FuncExpr))
 		((FuncExpr *) node)->funcformat = COERCE_IMPLICIT_CAST;
@@ -795,7 +795,7 @@ hide_coercion_node(Node *node)
  * since there is no difference in terms of the calling convention.
  */
 static Node *
-build_coercion_expression(Node *node,
+build_coercion_expression(Node * node,
 						  CoercionPathType pathtype,
 						  Oid funcId,
 						  Oid targetTypeId, int32 targetTypMod,
@@ -931,7 +931,7 @@ build_coercion_expression(Node *node,
  * Vars.
  */
 static Node *
-coerce_record_to_complex(ParseState *pstate, Node *node,
+coerce_record_to_complex(ParseState * pstate, Node * node,
 						 Oid targetTypeId,
 						 CoercionContext ccontext,
 						 CoercionForm cformat,
@@ -1059,7 +1059,7 @@ coerce_record_to_complex(ParseState *pstate, Node *node,
  * processing is wanted.
  */
 Node *
-coerce_to_boolean(ParseState *pstate, Node *node,
+coerce_to_boolean(ParseState * pstate, Node * node,
 				  const char *constructName)
 {
 	Oid			inputTypeId = exprType(node);
@@ -1106,7 +1106,7 @@ coerce_to_boolean(ParseState *pstate, Node *node,
  * processing is wanted.
  */
 Node *
-coerce_to_specific_type_typmod(ParseState *pstate, Node *node,
+coerce_to_specific_type_typmod(ParseState * pstate, Node * node,
 							   Oid targetTypeId, int32 targetTypmod,
 							   const char *constructName)
 {
@@ -1155,7 +1155,7 @@ coerce_to_specific_type_typmod(ParseState *pstate, Node *node,
  * processing is wanted.
  */
 Node *
-coerce_to_specific_type(ParseState *pstate, Node *node,
+coerce_to_specific_type(ParseState * pstate, Node * node,
 						Oid targetTypeId,
 						const char *constructName)
 {
@@ -1175,9 +1175,9 @@ coerce_to_specific_type(ParseState *pstate, Node *node,
  * if so, should rename and place with parser_errposition.
  */
 int
-parser_coercion_errposition(ParseState *pstate,
+parser_coercion_errposition(ParseState * pstate,
 							int coerce_location,
-							Node *input_expr)
+							Node * input_expr)
 {
 	if (coerce_location >= 0)
 		return parser_errposition(pstate, coerce_location);
@@ -1201,8 +1201,8 @@ parser_coercion_errposition(ParseState *pstate,
  * expression from which the result type was taken.
  */
 Oid
-select_common_type(ParseState *pstate, List *exprs, const char *context,
-				   Node **which_expr)
+select_common_type(ParseState * pstate, List * exprs, const char *context,
+				   Node * *which_expr)
 {
 	Node	   *pexpr;
 	Oid			ptype;
@@ -1330,7 +1330,7 @@ select_common_type(ParseState *pstate, List *exprs, const char *context,
  * processing is wanted.
  */
 Node *
-coerce_to_common_type(ParseState *pstate, Node *node,
+coerce_to_common_type(ParseState * pstate, Node * node,
 					  Oid targetTypeId, const char *context)
 {
 	Oid			inputTypeId = exprType(node);
@@ -1401,8 +1401,8 @@ coerce_to_common_type(ParseState *pstate, Node *node,
  * We do not ereport here, but just return FALSE if a rule is violated.
  */
 bool
-check_generic_type_consistency(Oid *actual_arg_types,
-							   Oid *declared_arg_types,
+check_generic_type_consistency(Oid * actual_arg_types,
+							   Oid * declared_arg_types,
 							   int nargs)
 {
 	int			j;
@@ -1598,8 +1598,8 @@ check_generic_type_consistency(Oid *actual_arg_types,
  * assume that successive inputs are of the same actual element type.
  */
 Oid
-enforce_generic_type_consistency(Oid *actual_arg_types,
-								 Oid *declared_arg_types,
+enforce_generic_type_consistency(Oid * actual_arg_types,
+								 Oid * declared_arg_types,
 								 int nargs,
 								 Oid rettype,
 								 bool allow_poly)
@@ -2160,7 +2160,7 @@ IsBinaryCoercible(Oid srctype, Oid targettype)
 CoercionPathType
 find_coercion_pathway(Oid targetTypeId, Oid sourceTypeId,
 					  CoercionContext ccontext,
-					  Oid *funcid)
+					  Oid * funcid)
 {
 	CoercionPathType result = COERCION_PATH_NONE;
 	HeapTuple	tuple;
@@ -2320,7 +2320,7 @@ find_coercion_pathway(Oid targetTypeId, Oid sourceTypeId,
  */
 CoercionPathType
 find_typmod_coercion_function(Oid typeId,
-							  Oid *funcid)
+							  Oid * funcid)
 {
 	CoercionPathType result;
 	Type		targetType;

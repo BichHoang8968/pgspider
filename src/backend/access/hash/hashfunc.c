@@ -307,9 +307,9 @@ Datum
 hash_any(register const unsigned char *k, register int keylen)
 {
 	register uint32 a,
-				b,
-				c,
-				len;
+		b,
+		c,
+		len;
 
 	/* Set up the internal state */
 	len = keylen;
@@ -512,8 +512,8 @@ Datum
 hash_uint32(uint32 k)
 {
 	register uint32 a,
-				b,
-				c;
+		b,
+		c;
 
 	a = b = c = 0x9e3779b9 + (uint32) sizeof(uint32) + 3923095;
 	a += k;

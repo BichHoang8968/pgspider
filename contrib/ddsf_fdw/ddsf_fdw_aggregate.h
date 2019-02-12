@@ -40,7 +40,7 @@ typedef struct DdsfFDWThreadData
 	ForeignAggInfo *agginfodata;
 	AggState   *aggnode;
 	MemoryContext threadMemoryContext;
-}	DdsfFDWThreadData;
+}			DdsfFDWThreadData;
 
 
 void		ddsf_maxmin_merge(ForeignDdsfMaxMin a[], int i1, int j1, int i2, int j2);
@@ -49,25 +49,25 @@ void		ddsf_mergesort(ForeignDdsfMaxMin a[], int i, int j);
 void		find_and_replicate(char *o_string, char *start_string, char *end_string, char *delim_string);
 void		replace(char *o_string, char *s_string, char *r_string, bool recursive);
 int			ddsf_get_node_list(char **list);
-PGconn	   *ddsf_create_self_node_conn(AggState *aggnode);
-PGconn * ddsf_create_self_scannode_conn_rel_ID(Oid frgnrelID);
-PGconn * ddsf_create_self_scannode_conn(ForeignScanState *node);
-void		ddsf_stop_self_node_conn(PGconn *self_conn);
-int			ddsf_get_node_options(const char *node_name, PGconn *self_conn, char *options);
+PGconn	   *ddsf_create_self_node_conn(AggState * aggnode);
+PGconn	   *ddsf_create_self_scannode_conn_rel_ID(Oid frgnrelID);
+PGconn	   *ddsf_create_self_scannode_conn(ForeignScanState * node);
+void		ddsf_stop_self_node_conn(PGconn * self_conn);
+int			ddsf_get_node_options(const char *node_name, PGconn * self_conn, char *options);
 void		ddsf_free_node_list(char **list);
 void		ddsf_mergesort(ForeignDdsfMaxMin a[], int i, int j);
 void		ddsf_maxmin_merge(ForeignDdsfMaxMin a[], int i1, int j1, int i2, int j2);
 Datum		ddsf_combine_agg(ForeignAggInfo * agginfodata, int num_aggs, void *self_conn);
 #if 0
-Datum	    ddsf_combine_agg_new(ForeignAggInfo * agginfodata, int num_aggs);
-void 	    ddsf_get_agg_Info(TupleTableSlot *aggSlot, const ForeignScanState *node, 
-	                                                   int count, ForeignAggInfo *agginfodata);
+Datum		ddsf_combine_agg_new(ForeignAggInfo * agginfodata, int num_aggs);
+void ddsf_get_agg_Info(TupleTableSlot * aggSlot, const ForeignScanState * node,
+				  int count, ForeignAggInfo * agginfodata);
 #else
-Datum	    ddsf_combine_agg_new(ForeignAggInfo * agginfodata, int num_aggs, int natts);
-void        ddsf_get_agg_Info(ForeignScanThreadInfo thrdInfo, const ForeignScanState *node, int count, ForeignAggInfo *agginfodata);
+Datum		ddsf_combine_agg_new(ForeignAggInfo * agginfodata, int num_aggs, int natts);
+void		ddsf_get_agg_Info(ForeignScanThreadInfo thrdInfo, const ForeignScanState * node, int count, ForeignAggInfo * agginfodata);
 #endif
-TupleTableSlot* ddsf_get_agg_tuple(ForeignAggInfo * agginfodata, TupleTableSlot *dest);
-DdsfAggType ddsf_get_agg_type(AggState *aggnode);
+TupleTableSlot *ddsf_get_agg_tuple(ForeignAggInfo * agginfodata, TupleTableSlot * dest);
+DdsfAggType ddsf_get_agg_type(AggState * aggnode);
 void	   *Ddsf_FDW_thread(void *arg);
 
 Datum		ddsf_agg_sum(ForeignAggInfo * agginfodata, int num_aggs, int attr);
@@ -83,4 +83,4 @@ void		ddsf_agg_string_agg(ForeignAggInfo * agginfodata, int num_aggs, int attr);
 void		ddsf_agg_stddev(ForeignAggInfo * agginfodata, int num_aggs, int attr);
 void		ddsf_agg_variance(ForeignAggInfo * agginfodata, int num_aggs, int attr);
 
-#endif   /* DDSF_FDW_AGGREGATE_H */
+#endif							/* DDSF_FDW_AGGREGATE_H */

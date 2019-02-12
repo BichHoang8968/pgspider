@@ -39,7 +39,7 @@ CATALOG(pg_cast,2605)
 	char		castmethod;		/* cast method */
 } FormData_pg_cast;
 
-typedef FormData_pg_cast *Form_pg_cast;
+typedef FormData_pg_cast * Form_pg_cast;
 
 /*
  * The allowable values for pg_cast.castcontext are specified by this enum.

@@ -53,7 +53,7 @@ typedef struct base_yy_extra_type
 	 * State variables that belong to the grammar.
 	 */
 	List	   *parsetree;		/* final parse result is delivered here */
-} base_yy_extra_type;
+}			base_yy_extra_type;
 
 /*
  * In principle we should use yyget_extra() to fetch the yyextra field
@@ -65,11 +65,11 @@ typedef struct base_yy_extra_type
 
 
 /* from parser.c */
-extern int base_yylex(YYSTYPE *lvalp, YYLTYPE *llocp,
+extern int base_yylex(YYSTYPE * lvalp, YYLTYPE * llocp,
 		   core_yyscan_t yyscanner);
 
 /* from gram.y */
-extern void parser_init(base_yy_extra_type *yyext);
+extern void parser_init(base_yy_extra_type * yyext);
 extern int	base_yyparse(core_yyscan_t yyscanner);
 
 #endif							/* GRAMPARSE_H */

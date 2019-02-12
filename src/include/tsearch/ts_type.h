@@ -41,10 +41,10 @@
 typedef struct
 {
 	uint32
-				haspos:1,
-				len:11,			/* MAX 2Kb */
-				pos:20;			/* MAX 1Mb */
-} WordEntry;
+	haspos:1,
+	len:11,						/* MAX 2Kb */
+	pos:20;						/* MAX 1Mb */
+}			WordEntry;
 
 #define MAXSTRLEN ( (1<<11) - 1)
 #define MAXSTRPOS ( (1<<20) - 1)
@@ -66,14 +66,14 @@ typedef struct
 {
 	uint16		npos;
 	WordEntryPos pos[FLEXIBLE_ARRAY_MEMBER];
-} WordEntryPosVector;
+}			WordEntryPosVector;
 
 /* WordEntryPosVector with exactly 1 entry */
 typedef struct
 {
 	uint16		npos;
 	WordEntryPos pos[1];
-} WordEntryPosVector1;
+}			WordEntryPosVector1;
 
 
 #define WEP_GETWEIGHT(x)	( (x) >> 14 )
@@ -93,9 +93,9 @@ typedef struct
 	int32		size;
 	WordEntry	entries[FLEXIBLE_ARRAY_MEMBER];
 	/* lexemes follow the entries[] array */
-} TSVectorData;
+}			TSVectorData;
 
-typedef TSVectorData *TSVector;
+typedef TSVectorData * TSVector;
 
 #define DATAHDRSIZE (offsetof(TSVectorData, entries))
 #define CALCDATASIZE(nentries, lenstr) (DATAHDRSIZE + (nentries) * sizeof(WordEntry) + (lenstr) )
@@ -154,10 +154,10 @@ typedef struct
 								 * changed as well. */
 
 	/* pointer to text value of operand, must correlate with WordEntry */
-	uint32
+				uint32
 				length:12,
 				distance:20;
-} QueryOperand;
+}			QueryOperand;
 
 
 /*
@@ -184,7 +184,7 @@ typedef struct
 	uint32		left;			/* pointer to left operand. Right operand is
 								 * item + 1, left operand is placed
 								 * item+item->left */
-} QueryOperator;
+}			QueryOperator;
 
 /*
  * Note: TSQuery is 4-bytes aligned, so make sure there's no fields
@@ -195,7 +195,7 @@ typedef union
 	QueryItemType type;
 	QueryOperator qoperator;
 	QueryOperand qoperand;
-} QueryItem;
+}			QueryItem;
 
 /*
  * Storage:
@@ -207,9 +207,9 @@ typedef struct
 	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	int32		size;			/* number of QueryItems */
 	char		data[FLEXIBLE_ARRAY_MEMBER];	/* data starts here */
-} TSQueryData;
+}			TSQueryData;
 
-typedef TSQueryData *TSQuery;
+typedef TSQueryData * TSQuery;
 
 #define HDRSIZETQ	( VARHDRSZ + sizeof(int32) )
 

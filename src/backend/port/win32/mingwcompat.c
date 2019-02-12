@@ -52,8 +52,8 @@ LoadKernel32()
  * kernel32.dll
  */
 typedef
-BOOL		(WINAPI * __RegisterWaitForSingleObject)
-			(PHANDLE, HANDLE, WAITORTIMERCALLBACK, PVOID, ULONG, ULONG);
+BOOL(WINAPI * __RegisterWaitForSingleObject)
+(PHANDLE, HANDLE, WAITORTIMERCALLBACK, PVOID, ULONG, ULONG);
 static __RegisterWaitForSingleObject _RegisterWaitForSingleObject = NULL;
 
 BOOL		WINAPI

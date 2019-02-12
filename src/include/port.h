@@ -159,8 +159,8 @@ extern unsigned char pg_ascii_tolower(unsigned char ch);
 extern int	pg_vsnprintf(char *str, size_t count, const char *fmt, va_list args);
 extern int	pg_snprintf(char *str, size_t count, const char *fmt,...) pg_attribute_printf(3, 4);
 extern int	pg_sprintf(char *str, const char *fmt,...) pg_attribute_printf(2, 3);
-extern int	pg_vfprintf(FILE *stream, const char *fmt, va_list args);
-extern int	pg_fprintf(FILE *stream, const char *fmt,...) pg_attribute_printf(2, 3);
+extern int	pg_vfprintf(FILE * stream, const char *fmt, va_list args);
+extern int	pg_fprintf(FILE * stream, const char *fmt,...) pg_attribute_printf(2, 3);
 extern int	pg_printf(const char *fmt,...) pg_attribute_printf(1, 2);
 
 /*
@@ -215,7 +215,7 @@ extern void simple_prompt(const char *prompt, char *destination, size_t destlen,
 extern int	pgkill(int pid, int sig);
 #endif
 
-extern int	pclose_check(FILE *stream);
+extern int	pclose_check(FILE * stream);
 
 /* Global variable holding time zone information. */
 #if defined(WIN32) || defined(__CYGWIN__)
@@ -287,7 +287,7 @@ extern int	pgwin32_safestat(const char *path, struct stat *buf);
  */
 #define		O_DIRECT	0x80000000
 extern int	pgwin32_open(const char *, int,...);
-extern FILE *pgwin32_fopen(const char *, const char *);
+extern FILE * pgwin32_fopen(const char *, const char *);
 
 #ifndef FRONTEND
 #define		open(a,b,c) pgwin32_open(a,b,c)
@@ -311,7 +311,7 @@ extern FILE *pgwin32_fopen(const char *, const char *);
  * pair of quotes.
  */
 extern int	pgwin32_system(const char *command);
-extern FILE *pgwin32_popen(const char *command, const char *type);
+extern FILE * pgwin32_popen(const char *command, const char *type);
 
 #define system(a) pgwin32_system(a)
 #define popen(a,b) pgwin32_popen(a,b)
@@ -357,8 +357,8 @@ extern char *crypt(const char *key, const char *setting);
 #ifndef WIN32
 #define pgoff_t off_t
 #ifdef __NetBSD__
-extern int	fseeko(FILE *stream, off_t offset, int whence);
-extern off_t ftello(FILE *stream);
+extern int	fseeko(FILE * stream, off_t offset, int whence);
+extern off_t ftello(FILE * stream);
 #endif
 #endif
 
@@ -377,7 +377,7 @@ extern int	fls(int mask);
 #endif
 
 #if !defined(HAVE_GETPEEREID) && !defined(WIN32)
-extern int	getpeereid(int sock, uid_t *uid, gid_t *gid);
+extern int	getpeereid(int sock, uid_t * uid, gid_t * gid);
 #endif
 
 #ifndef HAVE_ISINF

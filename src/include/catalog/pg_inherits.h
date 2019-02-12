@@ -40,7 +40,7 @@ CATALOG(pg_inherits,2611) BKI_WITHOUT_OIDS
  *		the format of pg_inherits relation.
  * ----------------
  */
-typedef FormData_pg_inherits *Form_pg_inherits;
+typedef FormData_pg_inherits * Form_pg_inherits;
 
 /* ----------------
  *		compiler constants for pg_inherits

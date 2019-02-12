@@ -35,7 +35,7 @@
  * The hash function used is SHA-256.
  */
 void
-scram_HMAC_init(scram_HMAC_ctx *ctx, const uint8 *key, int keylen)
+scram_HMAC_init(scram_HMAC_ctx * ctx, const uint8 * key, int keylen)
 {
 	uint8		k_ipad[SHA256_HMAC_B];
 	int			i;
@@ -75,7 +75,7 @@ scram_HMAC_init(scram_HMAC_ctx *ctx, const uint8 *key, int keylen)
  * The hash function used is SHA-256.
  */
 void
-scram_HMAC_update(scram_HMAC_ctx *ctx, const char *str, int slen)
+scram_HMAC_update(scram_HMAC_ctx * ctx, const char *str, int slen)
 {
 	pg_sha256_update(&ctx->sha256ctx, (const uint8 *) str, slen);
 }
@@ -85,7 +85,7 @@ scram_HMAC_update(scram_HMAC_ctx *ctx, const char *str, int slen)
  * The hash function used is SHA-256.
  */
 void
-scram_HMAC_final(uint8 *result, scram_HMAC_ctx *ctx)
+scram_HMAC_final(uint8 * result, scram_HMAC_ctx * ctx)
 {
 	uint8		h[SCRAM_KEY_LEN];
 
@@ -106,7 +106,7 @@ scram_HMAC_final(uint8 *result, scram_HMAC_ctx *ctx)
 void
 scram_SaltedPassword(const char *password,
 					 const char *salt, int saltlen, int iterations,
-					 uint8 *result)
+					 uint8 * result)
 {
 	int			password_len = strlen(password);
 	uint32		one = htonl(1);
@@ -147,7 +147,7 @@ scram_SaltedPassword(const char *password,
  * not included in the hash).
  */
 void
-scram_H(const uint8 *input, int len, uint8 *result)
+scram_H(const uint8 * input, int len, uint8 * result)
 {
 	pg_sha256_ctx ctx;
 
@@ -160,7 +160,7 @@ scram_H(const uint8 *input, int len, uint8 *result)
  * Calculate ClientKey.
  */
 void
-scram_ClientKey(const uint8 *salted_password, uint8 *result)
+scram_ClientKey(const uint8 * salted_password, uint8 * result)
 {
 	scram_HMAC_ctx ctx;
 
@@ -173,7 +173,7 @@ scram_ClientKey(const uint8 *salted_password, uint8 *result)
  * Calculate ServerKey.
  */
 void
-scram_ServerKey(const uint8 *salted_password, uint8 *result)
+scram_ServerKey(const uint8 * salted_password, uint8 * result)
 {
 	scram_HMAC_ctx ctx;
 

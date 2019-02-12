@@ -84,15 +84,15 @@ typedef struct
 {
 	int			level;			/* level */
 	int			logpageno;		/* page number within the level */
-} FSMAddress;
+}			FSMAddress;
 
 /* Address of the root page. */
 static const FSMAddress FSM_ROOT_ADDRESS = {FSM_ROOT_LEVEL, 0};
 
 /* functions to navigate the tree */
 static FSMAddress fsm_get_child(FSMAddress parent, uint16 slot);
-static FSMAddress fsm_get_parent(FSMAddress child, uint16 *slot);
-static FSMAddress fsm_get_location(BlockNumber heapblk, uint16 *slot);
+static FSMAddress fsm_get_parent(FSMAddress child, uint16 * slot);
+static FSMAddress fsm_get_location(BlockNumber heapblk, uint16 * slot);
 static BlockNumber fsm_get_heap_blk(FSMAddress addr, uint16 slot);
 static BlockNumber fsm_logical_to_physical(FSMAddress addr);
 
@@ -492,7 +492,7 @@ fsm_logical_to_physical(FSMAddress addr)
  * Return the FSM location corresponding to given heap block.
  */
 static FSMAddress
-fsm_get_location(BlockNumber heapblk, uint16 *slot)
+fsm_get_location(BlockNumber heapblk, uint16 * slot)
 {
 	FSMAddress	addr;
 
@@ -518,7 +518,7 @@ fsm_get_heap_blk(FSMAddress addr, uint16 slot)
  * the parent, and the slot within the parent corresponding to the child.
  */
 static FSMAddress
-fsm_get_parent(FSMAddress child, uint16 *slot)
+fsm_get_parent(FSMAddress child, uint16 * slot)
 {
 	FSMAddress	parent;
 

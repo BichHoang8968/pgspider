@@ -29,10 +29,10 @@
 #include "plpy_resultobject.h"
 
 
-static PyObject *PLy_spi_execute_query(char *query, long limit);
-static PyObject *PLy_spi_execute_fetch_result(SPITupleTable *tuptable,
-							 uint64 rows, int status);
-static void PLy_spi_exception_set(PyObject *excclass, ErrorData *edata);
+static PyObject * PLy_spi_execute_query(char *query, long limit);
+static PyObject * PLy_spi_execute_fetch_result(SPITupleTable * tuptable,
+											   uint64 rows, int status);
+static void PLy_spi_exception_set(PyObject * excclass, ErrorData * edata);
 
 
 /* prepare(query="select * from foo")
@@ -40,14 +40,14 @@ static void PLy_spi_exception_set(PyObject *excclass, ErrorData *edata);
  * prepare(query="select * from foo where bar = $1", params=["text"], limit=5)
  */
 PyObject *
-PLy_spi_prepare(PyObject *self, PyObject *args)
+PLy_spi_prepare(PyObject * self, PyObject * args)
 {
 	PLyPlanObject *plan;
 	PyObject   *list = NULL;
 	PyObject   *volatile optr = NULL;
 	char	   *query;
-	volatile MemoryContext oldcontext;
-	volatile ResourceOwner oldowner;
+	volatile	MemoryContext oldcontext;
+	volatile	ResourceOwner oldowner;
 	volatile int nargs;
 
 	if (!PyArg_ParseTuple(args, "s|O:prepare", &query, &list))
@@ -172,7 +172,7 @@ PLy_spi_prepare(PyObject *self, PyObject *args)
  * execute(plan=plan, values=(foo, bar), limit=5)
  */
 PyObject *
-PLy_spi_execute(PyObject *self, PyObject *args)
+PLy_spi_execute(PyObject * self, PyObject * args)
 {
 	char	   *query;
 	PyObject   *plan;
@@ -193,14 +193,14 @@ PLy_spi_execute(PyObject *self, PyObject *args)
 }
 
 PyObject *
-PLy_spi_execute_plan(PyObject *ob, PyObject *list, long limit)
+PLy_spi_execute_plan(PyObject * ob, PyObject * list, long limit)
 {
 	volatile int nargs;
 	int			i,
 				rv;
 	PLyPlanObject *plan;
-	volatile MemoryContext oldcontext;
-	volatile ResourceOwner oldowner;
+	volatile	MemoryContext oldcontext;
+	volatile	ResourceOwner oldowner;
 	PyObject   *ret;
 
 	if (list != NULL)
@@ -344,8 +344,8 @@ static PyObject *
 PLy_spi_execute_query(char *query, long limit)
 {
 	int			rv;
-	volatile MemoryContext oldcontext;
-	volatile ResourceOwner oldowner;
+	volatile	MemoryContext oldcontext;
+	volatile	ResourceOwner oldowner;
 	PyObject   *ret = NULL;
 
 	oldcontext = CurrentMemoryContext;
@@ -383,10 +383,10 @@ PLy_spi_execute_query(char *query, long limit)
 }
 
 static PyObject *
-PLy_spi_execute_fetch_result(SPITupleTable *tuptable, uint64 rows, int status)
+PLy_spi_execute_fetch_result(SPITupleTable * tuptable, uint64 rows, int status)
 {
 	PLyResultObject *result;
-	volatile MemoryContext oldcontext;
+	volatile	MemoryContext oldcontext;
 
 	result = (PLyResultObject *) PLy_result_new();
 	Py_DECREF(result->status);
@@ -553,7 +553,7 @@ PLy_spi_subtransaction_abort(MemoryContext oldcontext, ResourceOwner oldowner)
  * internal query and error position.
  */
 static void
-PLy_spi_exception_set(PyObject *excclass, ErrorData *edata)
+PLy_spi_exception_set(PyObject * excclass, ErrorData * edata)
 {
 	PyObject   *args = NULL;
 	PyObject   *spierror = NULL;

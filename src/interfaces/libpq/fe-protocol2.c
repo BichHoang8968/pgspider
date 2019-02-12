@@ -33,11 +33,11 @@
 #endif
 
 
-static int	getRowDescriptions(PGconn *conn);
-static int	getAnotherTuple(PGconn *conn, bool binary);
-static int	pqGetErrorNotice2(PGconn *conn, bool isError);
-static void checkXactStatus(PGconn *conn, const char *cmdTag);
-static int	getNotify(PGconn *conn);
+static int	getRowDescriptions(PGconn * conn);
+static int	getAnotherTuple(PGconn * conn, bool binary);
+static int	pqGetErrorNotice2(PGconn * conn, bool isError);
+static void checkXactStatus(PGconn * conn, const char *cmdTag);
+static int	getNotify(PGconn * conn);
 
 
 /*
@@ -47,7 +47,7 @@ static int	getNotify(PGconn *conn);
  * variables to the backend.
  */
 PostgresPollingStatusType
-pqSetenvPoll(PGconn *conn)
+pqSetenvPoll(PGconn * conn)
 {
 	PGresult   *res;
 
@@ -408,7 +408,7 @@ error_return:
  * Note that this function will NOT attempt to read more data from the backend.
  */
 void
-pqParseInput2(PGconn *conn)
+pqParseInput2(PGconn * conn)
 {
 	char		id;
 
@@ -656,7 +656,7 @@ pqParseInput2(PGconn *conn)
  * must get advanced past the processed data.
  */
 static int
-getRowDescriptions(PGconn *conn)
+getRowDescriptions(PGconn * conn)
 {
 	PGresult   *result;
 	int			nfields;
@@ -787,7 +787,7 @@ EOFexit:
  * must get advanced past the processed data.
  */
 static int
-getAnotherTuple(PGconn *conn, bool binary)
+getAnotherTuple(PGconn * conn, bool binary)
 {
 	PGresult   *result = conn->result;
 	int			nfields = result->numAttributes;
@@ -960,7 +960,7 @@ EOFexit:
  *		 returns EOF if not enough data.
  */
 static int
-pqGetErrorNotice2(PGconn *conn, bool isError)
+pqGetErrorNotice2(PGconn * conn, bool isError)
 {
 	PGresult   *res = NULL;
 	PQExpBufferData workBuf;
@@ -1091,7 +1091,7 @@ failure:
  * adding those from even-older servers?
  */
 static void
-checkXactStatus(PGconn *conn, const char *cmdTag)
+checkXactStatus(PGconn * conn, const char *cmdTag)
 {
 	if (strcmp(cmdTag, "BEGIN") == 0)
 		conn->xactStatus = PQTRANS_INTRANS;
@@ -1119,7 +1119,7 @@ checkXactStatus(PGconn *conn, const char *cmdTag)
  *		 returns EOF if not enough data.
  */
 static int
-getNotify(PGconn *conn)
+getNotify(PGconn * conn)
 {
 	int			be_pid;
 	int			nmlen;
@@ -1166,7 +1166,7 @@ getNotify(PGconn *conn)
  * PQerrorMessage).
  */
 int
-pqGetCopyData2(PGconn *conn, char **buffer, int async)
+pqGetCopyData2(PGconn * conn, char **buffer, int async)
 {
 	bool		found;
 	int			msgLength;
@@ -1240,7 +1240,7 @@ nodata:
  * See fe-exec.c for documentation.
  */
 int
-pqGetline2(PGconn *conn, char *s, int maxlen)
+pqGetline2(PGconn * conn, char *s, int maxlen)
 {
 	int			result = 1;		/* return value if buffer overflows */
 
@@ -1291,7 +1291,7 @@ pqGetline2(PGconn *conn, char *s, int maxlen)
  * See fe-exec.c for documentation.
  */
 int
-pqGetlineAsync2(PGconn *conn, char *buffer, int bufsize)
+pqGetlineAsync2(PGconn * conn, char *buffer, int bufsize)
 {
 	int			avail;
 
@@ -1349,7 +1349,7 @@ pqGetlineAsync2(PGconn *conn, char *buffer, int bufsize)
  * See fe-exec.c for documentation.
  */
 int
-pqEndcopy2(PGconn *conn)
+pqEndcopy2(PGconn * conn)
 {
 	PGresult   *result;
 
@@ -1434,10 +1434,10 @@ pqEndcopy2(PGconn *conn)
  * See fe-exec.c for documentation.
  */
 PGresult *
-pqFunctionCall2(PGconn *conn, Oid fnid,
+pqFunctionCall2(PGconn * conn, Oid fnid,
 				int *result_buf, int *actual_result_len,
 				int result_is_int,
-				const PQArgBlock *args, int nargs)
+				const PQArgBlock * args, int nargs)
 {
 	bool		needInput = false;
 	ExecStatusType status = PGRES_FATAL_ERROR;
@@ -1605,8 +1605,8 @@ pqFunctionCall2(PGconn *conn, Oid fnid,
  * Returns a malloc'd packet buffer, or NULL if out of memory
  */
 char *
-pqBuildStartupPacket2(PGconn *conn, int *packetlen,
-					  const PQEnvironmentOption *options)
+pqBuildStartupPacket2(PGconn * conn, int *packetlen,
+					  const PQEnvironmentOption * options)
 {
 	StartupPacket *startpacket;
 

@@ -28,10 +28,10 @@ typedef struct PGRUsage
 {
 	struct timeval tv;
 	struct rusage ru;
-} PGRUsage;
+}			PGRUsage;
 
 
-extern void pg_rusage_init(PGRUsage *ru0);
-extern const char *pg_rusage_show(const PGRUsage *ru0);
+extern void pg_rusage_init(PGRUsage * ru0);
+extern const char *pg_rusage_show(const PGRUsage * ru0);
 
 #endif							/* PG_RUSAGE_H */

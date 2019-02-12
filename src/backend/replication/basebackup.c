@@ -48,23 +48,23 @@ typedef struct
 	bool		includewal;
 	uint32		maxrate;
 	bool		sendtblspcmapfile;
-} basebackup_options;
+}			basebackup_options;
 
 
 static int64 sendDir(char *path, int basepathlen, bool sizeonly,
-		List *tablespaces, bool sendtblspclinks);
+					 List * tablespaces, bool sendtblspclinks);
 static bool sendFile(char *readfilename, char *tarfilename,
 		 struct stat *statbuf, bool missing_ok);
 static void sendFileWithContent(const char *filename, const char *content);
 static int64 _tarWriteHeader(const char *filename, const char *linktarget,
-				struct stat *statbuf, bool sizeonly);
+							 struct stat *statbuf, bool sizeonly);
 static int64 _tarWriteDir(const char *pathbuf, int basepathlen, struct stat *statbuf,
-			 bool sizeonly);
-static void send_int8_string(StringInfoData *buf, int64 intval);
-static void SendBackupHeader(List *tablespaces);
+						  bool sizeonly);
+static void send_int8_string(StringInfoData * buf, int64 intval);
+static void SendBackupHeader(List * tablespaces);
 static void base_backup_cleanup(int code, Datum arg);
-static void perform_base_backup(basebackup_options *opt, DIR *tblspcdir);
-static void parse_basebackup_options(List *options, basebackup_options *opt);
+static void perform_base_backup(basebackup_options * opt, DIR * tblspcdir);
+static void parse_basebackup_options(List * options, basebackup_options * opt);
 static void SendXlogRecPtrResult(XLogRecPtr ptr, TimeLineID tli);
 static int	compareWalFileNames(const void *a, const void *b);
 static void throttle(size_t increment);
@@ -184,7 +184,7 @@ base_backup_cleanup(int code, Datum arg)
  * clobbered by longjmp" from stupider versions of gcc.
  */
 static void
-perform_base_backup(basebackup_options *opt, DIR *tblspcdir)
+perform_base_backup(basebackup_options * opt, DIR * tblspcdir)
 {
 	XLogRecPtr	startptr;
 	TimeLineID	starttli;
@@ -210,8 +210,8 @@ perform_base_backup(basebackup_options *opt, DIR *tblspcdir)
 	/*
 	 * Once do_pg_start_backup has been called, ensure that any failure causes
 	 * us to abort the backup so we don't "leak" a backup counter. For this
-	 * reason, *all* functionality between do_pg_start_backup() and
-	 * the end of do_pg_stop_backup() should be inside the error cleanup block!
+	 * reason, *all* functionality between do_pg_start_backup() and the end of
+	 * do_pg_stop_backup() should be inside the error cleanup block!
 	 */
 
 	PG_ENSURE_ERROR_CLEANUP(base_backup_cleanup, (Datum) 0);
@@ -581,7 +581,7 @@ compareWalFileNames(const void *a, const void *b)
  * Parse the base backup options passed down by the parser
  */
 static void
-parse_basebackup_options(List *options, basebackup_options *opt)
+parse_basebackup_options(List * options, basebackup_options * opt)
 {
 	ListCell   *lopt;
 	bool		o_label = false;
@@ -687,7 +687,7 @@ parse_basebackup_options(List *options, basebackup_options *opt)
  * the filesystem, bypassing the buffer cache.
  */
 void
-SendBaseBackup(BaseBackupCmd *cmd)
+SendBaseBackup(BaseBackupCmd * cmd)
 {
 	DIR		   *dir;
 	basebackup_options opt;
@@ -717,7 +717,7 @@ SendBaseBackup(BaseBackupCmd *cmd)
 }
 
 static void
-send_int8_string(StringInfoData *buf, int64 intval)
+send_int8_string(StringInfoData * buf, int64 intval)
 {
 	char		is[32];
 
@@ -727,7 +727,7 @@ send_int8_string(StringInfoData *buf, int64 intval)
 }
 
 static void
-SendBackupHeader(List *tablespaces)
+SendBackupHeader(List * tablespaces)
 {
 	StringInfoData buf;
 	ListCell   *lc;
@@ -958,7 +958,7 @@ sendTablespace(char *path, bool sizeonly)
  * as it will be sent separately in the tablespace_map file.
  */
 static int64
-sendDir(char *path, int basepathlen, bool sizeonly, List *tablespaces,
+sendDir(char *path, int basepathlen, bool sizeonly, List * tablespaces,
 		bool sendtblspclinks)
 {
 	DIR		   *dir;

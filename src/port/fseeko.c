@@ -31,7 +31,7 @@
  */
 
 int
-fseeko(FILE *stream, off_t offset, int whence)
+fseeko(FILE * stream, off_t offset, int whence)
 {
 	off_t		floc;
 	struct stat filestat;
@@ -72,7 +72,7 @@ failure:
 
 
 off_t
-ftello(FILE *stream)
+ftello(FILE * stream)
 {
 	off_t		floc;
 

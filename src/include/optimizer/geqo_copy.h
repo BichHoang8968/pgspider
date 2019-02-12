@@ -25,6 +25,6 @@
 #include "optimizer/geqo.h"
 
 
-extern void geqo_copy(PlannerInfo *root, Chromosome *chromo1, Chromosome *chromo2, int string_length);
+extern void geqo_copy(PlannerInfo * root, Chromosome * chromo1, Chromosome * chromo2, int string_length);
 
 #endif							/* GEQO_COPY_H */

@@ -39,7 +39,7 @@
 
 
 extern char *gets_interactive(const char *prompt, PQExpBuffer query_buf);
-extern char *gets_fromFile(FILE *source);
+extern char *gets_fromFile(FILE * source);
 
 extern void initializeInput(int flags);
 

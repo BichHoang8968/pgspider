@@ -64,8 +64,8 @@ validateWithCheckOption(char *value)
  *---------------------------------------------------------------------
  */
 static ObjectAddress
-DefineVirtualRelation(RangeVar *relation, List *tlist, bool replace,
-					  List *options, Query *viewParse)
+DefineVirtualRelation(RangeVar * relation, List * tlist, bool replace,
+					  List * options, Query * viewParse)
 {
 	Oid			viewOid;
 	LOCKMODE	lockmode;
@@ -320,7 +320,7 @@ checkViewTupleDesc(TupleDesc newdesc, TupleDesc olddesc)
 }
 
 static void
-DefineViewRules(Oid viewOid, Query *viewParse, bool replace)
+DefineViewRules(Oid viewOid, Query * viewParse, bool replace)
 {
 	/*
 	 * Set up the ON SELECT rule.  Since the query has already been through
@@ -357,7 +357,7 @@ DefineViewRules(Oid viewOid, Query *viewParse, bool replace)
  *---------------------------------------------------------------
  */
 static Query *
-UpdateRangeTableOfViewParse(Oid viewOid, Query *viewParse)
+UpdateRangeTableOfViewParse(Oid viewOid, Query * viewParse)
 {
 	Relation	viewRel;
 	List	   *new_rt;
@@ -414,7 +414,7 @@ UpdateRangeTableOfViewParse(Oid viewOid, Query *viewParse)
  *		Execute a CREATE VIEW command.
  */
 ObjectAddress
-DefineView(ViewStmt *stmt, const char *queryString,
+DefineView(ViewStmt * stmt, const char *queryString,
 		   int stmt_location, int stmt_len)
 {
 	RawStmt    *rawstmt;
@@ -572,7 +572,7 @@ DefineView(ViewStmt *stmt, const char *queryString,
  * Use the rules system to store the query for the view.
  */
 void
-StoreViewQuery(Oid viewOid, Query *viewParse, bool replace)
+StoreViewQuery(Oid viewOid, Query * viewParse, bool replace)
 {
 	/*
 	 * The range table of 'viewParse' does not contain entries for the "OLD"

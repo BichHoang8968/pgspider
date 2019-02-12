@@ -56,13 +56,13 @@ typedef struct SimpleActionListCell
 	struct SimpleActionListCell *next;
 	enum _actions action;
 	char	   *val;
-} SimpleActionListCell;
+}			SimpleActionListCell;
 
 typedef struct SimpleActionList
 {
 	SimpleActionListCell *head;
 	SimpleActionListCell *tail;
-} SimpleActionList;
+}			SimpleActionList;
 
 struct adhoc_opts
 {
@@ -80,7 +80,7 @@ struct adhoc_opts
 
 static void parse_psql_options(int argc, char *argv[],
 				   struct adhoc_opts *options);
-static void simple_action_list_append(SimpleActionList *list,
+static void simple_action_list_append(SimpleActionList * list,
 						  enum _actions action, const char *val);
 static void process_psqlrc(char *argv0);
 static void process_psqlrc_file(char *filename);
@@ -675,7 +675,7 @@ parse_psql_options(int argc, char *argv[], struct adhoc_opts *options)
  * Note that "val" is copied if it's not NULL.
  */
 static void
-simple_action_list_append(SimpleActionList *list,
+simple_action_list_append(SimpleActionList * list,
 						  enum _actions action, const char *val)
 {
 	SimpleActionListCell *cell;

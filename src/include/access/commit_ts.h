@@ -23,12 +23,12 @@ extern bool check_track_commit_timestamp(bool *newval, void **extra,
 							 GucSource source);
 
 extern void TransactionTreeSetCommitTsData(TransactionId xid, int nsubxids,
-							   TransactionId *subxids, TimestampTz timestamp,
+							   TransactionId * subxids, TimestampTz timestamp,
 							   RepOriginId nodeid, bool write_xlog);
 extern bool TransactionIdGetCommitTsData(TransactionId xid,
-							 TimestampTz *ts, RepOriginId *nodeid);
-extern TransactionId GetLatestCommitTsData(TimestampTz *ts,
-					  RepOriginId *nodeid);
+							 TimestampTz * ts, RepOriginId * nodeid);
+extern TransactionId GetLatestCommitTsData(TimestampTz * ts,
+										   RepOriginId * nodeid);
 
 extern Size CommitTsShmemBuffers(void);
 extern Size CommitTsShmemSize(void);
@@ -56,7 +56,7 @@ typedef struct xl_commit_ts_set
 	RepOriginId nodeid;
 	TransactionId mainxid;
 	/* subxact Xids follow */
-} xl_commit_ts_set;
+}			xl_commit_ts_set;
 
 #define SizeOfCommitTsSet	(offsetof(xl_commit_ts_set, mainxid) + \
 							 sizeof(TransactionId))
@@ -65,13 +65,13 @@ typedef struct xl_commit_ts_truncate
 {
 	int			pageno;
 	TransactionId oldestXid;
-} xl_commit_ts_truncate;
+}			xl_commit_ts_truncate;
 
 #define SizeOfCommitTsTruncate	(offsetof(xl_commit_ts_truncate, oldestXid) + \
 								 sizeof(TransactionId))
 
-extern void commit_ts_redo(XLogReaderState *record);
-extern void commit_ts_desc(StringInfo buf, XLogReaderState *record);
+extern void commit_ts_redo(XLogReaderState * record);
+extern void commit_ts_desc(StringInfo buf, XLogReaderState * record);
 extern const char *commit_ts_identify(uint8 info);
 
 #endif							/* COMMIT_TS_H */

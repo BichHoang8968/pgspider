@@ -381,7 +381,7 @@ check_required_directory(char **dirpath, char **configpath,
  * can't check for a running server because we can't find postmaster.pid.
  */
 void
-adjust_data_dir(ClusterInfo *cluster)
+adjust_data_dir(ClusterInfo * cluster)
 {
 	char		filename[MAXPGPATH];
 	char		cmd[MAXPGPATH],
@@ -444,7 +444,7 @@ adjust_data_dir(ClusterInfo *cluster)
  * directory.
  */
 void
-get_sock_dir(ClusterInfo *cluster, bool live_check)
+get_sock_dir(ClusterInfo * cluster, bool live_check)
 {
 #ifdef HAVE_UNIX_SOCKETS
 

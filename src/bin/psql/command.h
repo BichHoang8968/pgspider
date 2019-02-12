@@ -22,19 +22,19 @@ typedef enum _backslashResult
 	PSQL_CMD_NEWEDIT,			/* query buffer was changed (e.g., via \e) */
 	PSQL_CMD_ERROR				/* the execution of the backslash command
 								 * resulted in an error */
-} backslashResult;
+}			backslashResult;
 
 
 extern backslashResult HandleSlashCmds(PsqlScanState scan_state,
-				ConditionalStack cstack,
-				PQExpBuffer query_buf,
-				PQExpBuffer previous_buf);
+									   ConditionalStack cstack,
+									   PQExpBuffer query_buf,
+									   PQExpBuffer previous_buf);
 
 extern int	process_file(char *filename, bool use_relative_path);
 
 extern bool do_pset(const char *param,
 		const char *value,
-		printQueryOpt *popt,
+		printQueryOpt * popt,
 		bool quiet);
 
 extern void connection_warnings(bool in_startup);

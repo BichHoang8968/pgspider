@@ -61,7 +61,7 @@
 typedef struct sequence_magic
 {
 	uint32		magic;
-} sequence_magic;
+}			sequence_magic;
 
 /*
  * We store a SeqTable item for every sequence we have touched in the current
@@ -80,32 +80,32 @@ typedef struct SeqTableData
 	/* if last != cached, we have not used up all the cached values */
 	int64		increment;		/* copy of sequence's increment field */
 	/* note that increment is zero until we first do nextval_internal() */
-} SeqTableData;
+}			SeqTableData;
 
-typedef SeqTableData *SeqTable;
+typedef SeqTableData * SeqTable;
 
-static HTAB *seqhashtab = NULL; /* hash table for SeqTable items */
+static HTAB * seqhashtab = NULL;	/* hash table for SeqTable items */
 
 /*
  * last_used_seq is updated by nextval() to point to the last used
  * sequence.
  */
-static SeqTableData *last_used_seq = NULL;
+static SeqTableData * last_used_seq = NULL;
 
 static void fill_seq_with_data(Relation rel, HeapTuple tuple);
 static Relation lock_and_open_sequence(SeqTable seq);
 static void create_seq_hashtable(void);
-static void init_sequence(Oid relid, SeqTable *p_elm, Relation *p_rel);
+static void init_sequence(Oid relid, SeqTable * p_elm, Relation * p_rel);
 static Form_pg_sequence_data read_seq_tuple(Relation rel,
-			   Buffer *buf, HeapTuple seqdatatuple);
-static void init_params(ParseState *pstate, List *options, bool for_identity,
+											Buffer * buf, HeapTuple seqdatatuple);
+static void init_params(ParseState * pstate, List * options, bool for_identity,
 			bool isInit,
 			Form_pg_sequence seqform,
 			Form_pg_sequence_data seqdataform,
 			bool *need_seq_rewrite,
-			List **owned_by);
+			List * *owned_by);
 static void do_setval(Oid relid, int64 next, bool iscalled);
-static void process_owned_by(Relation seqrel, List *owned_by, bool for_identity);
+static void process_owned_by(Relation seqrel, List * owned_by, bool for_identity);
 
 
 /*
@@ -113,7 +113,7 @@ static void process_owned_by(Relation seqrel, List *owned_by, bool for_identity)
  *				Creates a new sequence relation
  */
 ObjectAddress
-DefineSequence(ParseState *pstate, CreateSeqStmt *seq)
+DefineSequence(ParseState * pstate, CreateSeqStmt * seq)
 {
 	FormData_pg_sequence seqform;
 	FormData_pg_sequence_data seqdataform;
@@ -413,7 +413,7 @@ fill_seq_with_data(Relation rel, HeapTuple tuple)
  * Modify the definition of a sequence relation
  */
 ObjectAddress
-AlterSequence(ParseState *pstate, AlterSeqStmt *stmt)
+AlterSequence(ParseState * pstate, AlterSeqStmt * stmt)
 {
 	Oid			relid;
 	SeqTable	elm;
@@ -1098,7 +1098,7 @@ create_seq_hashtable(void)
  * output parameters.
  */
 static void
-init_sequence(Oid relid, SeqTable *p_elm, Relation *p_rel)
+init_sequence(Oid relid, SeqTable * p_elm, Relation * p_rel)
 {
 	SeqTable	elm;
 	Relation	seqrel;
@@ -1165,7 +1165,7 @@ init_sequence(Oid relid, SeqTable *p_elm, Relation *p_rel)
  * Function's return value points to the data payload of the tuple
  */
 static Form_pg_sequence_data
-read_seq_tuple(Relation rel, Buffer *buf, HeapTuple seqdatatuple)
+read_seq_tuple(Relation rel, Buffer * buf, HeapTuple seqdatatuple)
 {
 	Page		page;
 	ItemId		lp;
@@ -1231,12 +1231,12 @@ read_seq_tuple(Relation rel, Buffer *buf, HeapTuple seqdatatuple)
  * break pg_upgrade by causing unwanted changes in the sequence's relfilenode.
  */
 static void
-init_params(ParseState *pstate, List *options, bool for_identity,
+init_params(ParseState * pstate, List * options, bool for_identity,
 			bool isInit,
 			Form_pg_sequence seqform,
 			Form_pg_sequence_data seqdataform,
 			bool *need_seq_rewrite,
-			List **owned_by)
+			List * *owned_by)
 {
 	DefElem    *as_type = NULL;
 	DefElem    *start_value = NULL;
@@ -1636,7 +1636,7 @@ init_params(ParseState *pstate, List *options, bool for_identity,
  * as the sequence.
  */
 static void
-process_owned_by(Relation seqrel, List *owned_by, bool for_identity)
+process_owned_by(Relation seqrel, List * owned_by, bool for_identity)
 {
 	DependencyType deptype;
 	int			nnames;
@@ -1878,7 +1878,7 @@ pg_sequence_last_value(PG_FUNCTION_ARGS)
 
 
 void
-seq_redo(XLogReaderState *record)
+seq_redo(XLogReaderState * record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;

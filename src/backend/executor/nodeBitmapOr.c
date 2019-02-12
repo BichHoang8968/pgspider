@@ -40,7 +40,7 @@
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecBitmapOr(PlanState *pstate)
+ExecBitmapOr(PlanState * pstate)
 {
 	elog(ERROR, "BitmapOr node does not support ExecProcNode call convention");
 	return NULL;
@@ -53,7 +53,7 @@ ExecBitmapOr(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 BitmapOrState *
-ExecInitBitmapOr(BitmapOr *node, EState *estate, int eflags)
+ExecInitBitmapOr(BitmapOr * node, EState * estate, int eflags)
 {
 	BitmapOrState *bitmaporstate = makeNode(BitmapOrState);
 	PlanState **bitmapplanstates;
@@ -70,7 +70,7 @@ ExecInitBitmapOr(BitmapOr *node, EState *estate, int eflags)
 	 */
 	nplans = list_length(node->bitmapplans);
 
-	bitmapplanstates = (PlanState **) palloc0(nplans * sizeof(PlanState *));
+	bitmapplanstates = (PlanState * *) palloc0(nplans * sizeof(PlanState *));
 
 	/*
 	 * create new BitmapOrState for our BitmapOr node
@@ -108,7 +108,7 @@ ExecInitBitmapOr(BitmapOr *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 Node *
-MultiExecBitmapOr(BitmapOrState *node)
+MultiExecBitmapOr(BitmapOrState * node)
 {
 	PlanState **bitmapplans;
 	int			nplans;
@@ -193,7 +193,7 @@ MultiExecBitmapOr(BitmapOrState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecEndBitmapOr(BitmapOrState *node)
+ExecEndBitmapOr(BitmapOrState * node)
 {
 	PlanState **bitmapplans;
 	int			nplans;
@@ -216,7 +216,7 @@ ExecEndBitmapOr(BitmapOrState *node)
 }
 
 void
-ExecReScanBitmapOr(BitmapOrState *node)
+ExecReScanBitmapOr(BitmapOrState * node)
 {
 	int			i;
 

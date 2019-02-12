@@ -73,18 +73,18 @@
 #define SHA1_BLOCK_SIZE 64
 #define MD5_BLOCK_SIZE 64
 
-static void init_md5(PX_MD *h);
-static void init_sha1(PX_MD *h);
+static void init_md5(PX_MD * h);
+static void init_sha1(PX_MD * h);
 
-void		init_sha224(PX_MD *h);
-void		init_sha256(PX_MD *h);
-void		init_sha384(PX_MD *h);
-void		init_sha512(PX_MD *h);
+void		init_sha224(PX_MD * h);
+void		init_sha256(PX_MD * h);
+void		init_sha384(PX_MD * h);
+void		init_sha512(PX_MD * h);
 
 struct int_digest
 {
 	char	   *name;
-	void		(*init) (PX_MD *h);
+	void		(*init) (PX_MD * h);
 };
 
 static const struct int_digest
@@ -101,19 +101,19 @@ static const struct int_digest
 /* MD5 */
 
 static unsigned
-int_md5_len(PX_MD *h)
+int_md5_len(PX_MD * h)
 {
 	return MD5_DIGEST_LENGTH;
 }
 
 static unsigned
-int_md5_block_len(PX_MD *h)
+int_md5_block_len(PX_MD * h)
 {
 	return MD5_BLOCK_SIZE;
 }
 
 static void
-int_md5_update(PX_MD *h, const uint8 *data, unsigned dlen)
+int_md5_update(PX_MD * h, const uint8 * data, unsigned dlen)
 {
 	MD5_CTX    *ctx = (MD5_CTX *) h->p.ptr;
 
@@ -121,7 +121,7 @@ int_md5_update(PX_MD *h, const uint8 *data, unsigned dlen)
 }
 
 static void
-int_md5_reset(PX_MD *h)
+int_md5_reset(PX_MD * h)
 {
 	MD5_CTX    *ctx = (MD5_CTX *) h->p.ptr;
 
@@ -129,7 +129,7 @@ int_md5_reset(PX_MD *h)
 }
 
 static void
-int_md5_finish(PX_MD *h, uint8 *dst)
+int_md5_finish(PX_MD * h, uint8 * dst)
 {
 	MD5_CTX    *ctx = (MD5_CTX *) h->p.ptr;
 
@@ -137,7 +137,7 @@ int_md5_finish(PX_MD *h, uint8 *dst)
 }
 
 static void
-int_md5_free(PX_MD *h)
+int_md5_free(PX_MD * h)
 {
 	MD5_CTX    *ctx = (MD5_CTX *) h->p.ptr;
 
@@ -149,19 +149,19 @@ int_md5_free(PX_MD *h)
 /* SHA1 */
 
 static unsigned
-int_sha1_len(PX_MD *h)
+int_sha1_len(PX_MD * h)
 {
 	return SHA1_DIGEST_LENGTH;
 }
 
 static unsigned
-int_sha1_block_len(PX_MD *h)
+int_sha1_block_len(PX_MD * h)
 {
 	return SHA1_BLOCK_SIZE;
 }
 
 static void
-int_sha1_update(PX_MD *h, const uint8 *data, unsigned dlen)
+int_sha1_update(PX_MD * h, const uint8 * data, unsigned dlen)
 {
 	SHA1_CTX   *ctx = (SHA1_CTX *) h->p.ptr;
 
@@ -169,7 +169,7 @@ int_sha1_update(PX_MD *h, const uint8 *data, unsigned dlen)
 }
 
 static void
-int_sha1_reset(PX_MD *h)
+int_sha1_reset(PX_MD * h)
 {
 	SHA1_CTX   *ctx = (SHA1_CTX *) h->p.ptr;
 
@@ -177,7 +177,7 @@ int_sha1_reset(PX_MD *h)
 }
 
 static void
-int_sha1_finish(PX_MD *h, uint8 *dst)
+int_sha1_finish(PX_MD * h, uint8 * dst)
 {
 	SHA1_CTX   *ctx = (SHA1_CTX *) h->p.ptr;
 
@@ -185,7 +185,7 @@ int_sha1_finish(PX_MD *h, uint8 *dst)
 }
 
 static void
-int_sha1_free(PX_MD *h)
+int_sha1_free(PX_MD * h)
 {
 	SHA1_CTX   *ctx = (SHA1_CTX *) h->p.ptr;
 
@@ -197,7 +197,7 @@ int_sha1_free(PX_MD *h)
 /* init functions */
 
 static void
-init_md5(PX_MD *md)
+init_md5(PX_MD * md)
 {
 	MD5_CTX    *ctx;
 
@@ -217,7 +217,7 @@ init_md5(PX_MD *md)
 }
 
 static void
-init_sha1(PX_MD *md)
+init_sha1(PX_MD * md)
 {
 	SHA1_CTX   *ctx;
 
@@ -258,7 +258,7 @@ struct int_ctx
 };
 
 static void
-intctx_free(PX_Cipher *c)
+intctx_free(PX_Cipher * c)
 {
 	struct int_ctx *cx = (struct int_ctx *) c->ptr;
 
@@ -278,25 +278,25 @@ intctx_free(PX_Cipher *c)
 #define MODE_CBC 1
 
 static unsigned
-rj_block_size(PX_Cipher *c)
+rj_block_size(PX_Cipher * c)
 {
 	return 128 / 8;
 }
 
 static unsigned
-rj_key_size(PX_Cipher *c)
+rj_key_size(PX_Cipher * c)
 {
 	return 256 / 8;
 }
 
 static unsigned
-rj_iv_size(PX_Cipher *c)
+rj_iv_size(PX_Cipher * c)
 {
 	return 128 / 8;
 }
 
 static int
-rj_init(PX_Cipher *c, const uint8 *key, unsigned klen, const uint8 *iv)
+rj_init(PX_Cipher * c, const uint8 * key, unsigned klen, const uint8 * iv)
 {
 	struct int_ctx *cx = (struct int_ctx *) c->ptr;
 
@@ -325,7 +325,7 @@ rj_real_init(struct int_ctx *cx, int dir)
 }
 
 static int
-rj_encrypt(PX_Cipher *c, const uint8 *data, unsigned dlen, uint8 *res)
+rj_encrypt(PX_Cipher * c, const uint8 * data, unsigned dlen, uint8 * res)
 {
 	struct int_ctx *cx = (struct int_ctx *) c->ptr;
 
@@ -355,7 +355,7 @@ rj_encrypt(PX_Cipher *c, const uint8 *data, unsigned dlen, uint8 *res)
 }
 
 static int
-rj_decrypt(PX_Cipher *c, const uint8 *data, unsigned dlen, uint8 *res)
+rj_decrypt(PX_Cipher * c, const uint8 * data, unsigned dlen, uint8 * res)
 {
 	struct int_ctx *cx = (struct int_ctx *) c->ptr;
 
@@ -416,25 +416,25 @@ rj_load(int mode)
  */
 
 static unsigned
-bf_block_size(PX_Cipher *c)
+bf_block_size(PX_Cipher * c)
 {
 	return 8;
 }
 
 static unsigned
-bf_key_size(PX_Cipher *c)
+bf_key_size(PX_Cipher * c)
 {
 	return 448 / 8;
 }
 
 static unsigned
-bf_iv_size(PX_Cipher *c)
+bf_iv_size(PX_Cipher * c)
 {
 	return 8;
 }
 
 static int
-bf_init(PX_Cipher *c, const uint8 *key, unsigned klen, const uint8 *iv)
+bf_init(PX_Cipher * c, const uint8 * key, unsigned klen, const uint8 * iv)
 {
 	struct int_ctx *cx = (struct int_ctx *) c->ptr;
 
@@ -446,7 +446,7 @@ bf_init(PX_Cipher *c, const uint8 *key, unsigned klen, const uint8 *iv)
 }
 
 static int
-bf_encrypt(PX_Cipher *c, const uint8 *data, unsigned dlen, uint8 *res)
+bf_encrypt(PX_Cipher * c, const uint8 * data, unsigned dlen, uint8 * res)
 {
 	struct int_ctx *cx = (struct int_ctx *) c->ptr;
 	BlowfishContext *bfctx = &cx->ctx.bf;
@@ -471,7 +471,7 @@ bf_encrypt(PX_Cipher *c, const uint8 *data, unsigned dlen, uint8 *res)
 }
 
 static int
-bf_decrypt(PX_Cipher *c, const uint8 *data, unsigned dlen, uint8 *res)
+bf_decrypt(PX_Cipher * c, const uint8 * data, unsigned dlen, uint8 * res)
 {
 	struct int_ctx *cx = (struct int_ctx *) c->ptr;
 	BlowfishContext *bfctx = &cx->ctx.bf;
@@ -575,7 +575,7 @@ static const PX_Alias int_aliases[] = {
 /* PUBLIC FUNCTIONS */
 
 int
-px_find_digest(const char *name, PX_MD **res)
+px_find_digest(const char *name, PX_MD * *res)
 {
 	const struct int_digest *p;
 	PX_MD	   *h;
@@ -594,7 +594,7 @@ px_find_digest(const char *name, PX_MD **res)
 }
 
 int
-px_find_cipher(const char *name, PX_Cipher **res)
+px_find_cipher(const char *name, PX_Cipher * *res)
 {
 	int			i;
 	PX_Cipher  *c = NULL;

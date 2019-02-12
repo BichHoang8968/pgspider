@@ -29,7 +29,7 @@ typedef struct
 {
 	slock_t		mutex;
 	proclist_head wakeup;
-} ConditionVariable;
+}			ConditionVariable;
 
 /* Initialize a condition variable. */
 extern void ConditionVariableInit(ConditionVariable *);

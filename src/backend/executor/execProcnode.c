@@ -121,8 +121,8 @@
 extern bool isForeignScan;
 #endif
 
-static TupleTableSlot *ExecProcNodeFirst(PlanState *node);
-static TupleTableSlot *ExecProcNodeInstr(PlanState *node);
+static TupleTableSlot * ExecProcNodeFirst(PlanState * node);
+static TupleTableSlot * ExecProcNodeInstr(PlanState * node);
 
 
 /* ------------------------------------------------------------------------
@@ -140,7 +140,7 @@ static TupleTableSlot *ExecProcNodeInstr(PlanState *node);
  * ------------------------------------------------------------------------
  */
 PlanState *
-ExecInitNode(Plan *node, EState *estate, int eflags)
+ExecInitNode(Plan * node, EState * estate, int eflags)
 {
 	PlanState  *result;
 	List	   *subps;
@@ -413,7 +413,7 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
  * the relevant node method (possibly via an instrumentation wrapper).
  */
 static TupleTableSlot *
-ExecProcNodeFirst(PlanState *node)
+ExecProcNodeFirst(PlanState * node)
 {
 	/*
 	 * Perform stack depth check during the first execution of the node.  We
@@ -444,7 +444,7 @@ ExecProcNodeFirst(PlanState *node)
  * no instrumentation is wanted.
  */
 static TupleTableSlot *
-ExecProcNodeInstr(PlanState *node)
+ExecProcNodeInstr(PlanState * node)
 {
 	TupleTableSlot *result;
 
@@ -472,7 +472,7 @@ ExecProcNodeInstr(PlanState *node)
  * ----------------------------------------------------------------
  */
 Node *
-MultiExecProcNode(PlanState *node)
+MultiExecProcNode(PlanState * node)
 {
 	Node	   *result;
 
@@ -527,7 +527,7 @@ MultiExecProcNode(PlanState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecEndNode(PlanState *node)
+ExecEndNode(PlanState * node)
 {
 	/*
 	 * do nothing when we get to the end of a leaf on tree.
@@ -735,7 +735,7 @@ ExecEndNode(PlanState *node)
  * at the end of ExecutorRun.
  */
 bool
-ExecShutdownNode(PlanState *node)
+ExecShutdownNode(PlanState * node)
 {
 	if (node == NULL)
 		return false;

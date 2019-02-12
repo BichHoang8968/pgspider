@@ -16,8 +16,8 @@
 
 #include "nodes/execnodes.h"
 
-extern AppendState *ExecInitAppend(Append *node, EState *estate, int eflags);
-extern void ExecEndAppend(AppendState *node);
-extern void ExecReScanAppend(AppendState *node);
+extern AppendState * ExecInitAppend(Append * node, EState * estate, int eflags);
+extern void ExecEndAppend(AppendState * node);
+extern void ExecReScanAppend(AppendState * node);
 
 #endif							/* NODEAPPEND_H */

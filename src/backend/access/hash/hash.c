@@ -37,11 +37,11 @@ typedef struct
 	HSpool	   *spool;			/* NULL if not using spooling */
 	double		indtuples;		/* # tuples accepted into index */
 	Relation	heapRel;		/* heap relation descriptor */
-} HashBuildState;
+}			HashBuildState;
 
 static void hashbuildCallback(Relation index,
 				  HeapTuple htup,
-				  Datum *values,
+				  Datum * values,
 				  bool *isnull,
 				  bool tupleIsAlive,
 				  void *state);
@@ -100,7 +100,7 @@ hashhandler(PG_FUNCTION_ARGS)
  *	hashbuild() -- build a new hash index.
  */
 IndexBuildResult *
-hashbuild(Relation heap, Relation index, IndexInfo *indexInfo)
+hashbuild(Relation heap, Relation index, IndexInfo * indexInfo)
 {
 	IndexBuildResult *result;
 	BlockNumber relpages;
@@ -194,7 +194,7 @@ hashbuildempty(Relation index)
 static void
 hashbuildCallback(Relation index,
 				  HeapTuple htup,
-				  Datum *values,
+				  Datum * values,
 				  bool *isnull,
 				  bool tupleIsAlive,
 				  void *state)
@@ -234,10 +234,10 @@ hashbuildCallback(Relation index,
  *	Find the appropriate location for the new tuple, and put it there.
  */
 bool
-hashinsert(Relation rel, Datum *values, bool *isnull,
+hashinsert(Relation rel, Datum * values, bool *isnull,
 		   ItemPointer ht_ctid, Relation heapRel,
 		   IndexUniqueCheck checkUnique,
-		   IndexInfo *indexInfo)
+		   IndexInfo * indexInfo)
 {
 	Datum		index_values[1];
 	bool		index_isnull[1];
@@ -391,7 +391,7 @@ hashgettuple(IndexScanDesc scan, ScanDirection dir)
  *	hashgetbitmap() -- get all tuples at once
  */
 int64
-hashgetbitmap(IndexScanDesc scan, TIDBitmap *tbm)
+hashgetbitmap(IndexScanDesc scan, TIDBitmap * tbm)
 {
 	HashScanOpaque so = (HashScanOpaque) scan->opaque;
 	bool		res;
@@ -544,7 +544,7 @@ hashendscan(IndexScanDesc scan)
  * Result: a palloc'd struct containing statistical info for VACUUM displays.
  */
 IndexBulkDeleteResult *
-hashbulkdelete(IndexVacuumInfo *info, IndexBulkDeleteResult *stats,
+hashbulkdelete(IndexVacuumInfo * info, IndexBulkDeleteResult * stats,
 			   IndexBulkDeleteCallback callback, void *callback_state)
 {
 	Relation	rel = info->index;
@@ -730,7 +730,7 @@ loop_top:
  * Result: a palloc'd struct containing statistical info for VACUUM displays.
  */
 IndexBulkDeleteResult *
-hashvacuumcleanup(IndexVacuumInfo *info, IndexBulkDeleteResult *stats)
+hashvacuumcleanup(IndexVacuumInfo * info, IndexBulkDeleteResult * stats)
 {
 	Relation	rel = info->index;
 	BlockNumber num_pages;

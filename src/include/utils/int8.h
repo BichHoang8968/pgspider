@@ -20,6 +20,6 @@
 #ifndef INT8_H
 #define INT8_H
 
-extern bool scanint8(const char *str, bool errorOK, int64 *result);
+extern bool scanint8(const char *str, bool errorOK, int64 * result);
 
 #endif							/* INT8_H */

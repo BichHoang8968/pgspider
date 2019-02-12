@@ -19,23 +19,23 @@
 #include "optimizer/var.h"
 
 
-static RestrictInfo *make_restrictinfo_internal(Expr *clause,
-						   Expr *orclause,
-						   bool is_pushed_down,
-						   bool outerjoin_delayed,
-						   bool pseudoconstant,
-						   Index security_level,
-						   Relids required_relids,
-						   Relids outer_relids,
-						   Relids nullable_relids);
-static Expr *make_sub_restrictinfos(Expr *clause,
-					   bool is_pushed_down,
-					   bool outerjoin_delayed,
-					   bool pseudoconstant,
-					   Index security_level,
-					   Relids required_relids,
-					   Relids outer_relids,
-					   Relids nullable_relids);
+static RestrictInfo * make_restrictinfo_internal(Expr * clause,
+												 Expr * orclause,
+												 bool is_pushed_down,
+												 bool outerjoin_delayed,
+												 bool pseudoconstant,
+												 Index security_level,
+												 Relids required_relids,
+												 Relids outer_relids,
+												 Relids nullable_relids);
+static Expr * make_sub_restrictinfos(Expr * clause,
+									 bool is_pushed_down,
+									 bool outerjoin_delayed,
+									 bool pseudoconstant,
+									 Index security_level,
+									 Relids required_relids,
+									 Relids outer_relids,
+									 Relids nullable_relids);
 
 
 /*
@@ -54,7 +54,7 @@ static Expr *make_sub_restrictinfos(Expr *clause,
  * later.
  */
 RestrictInfo *
-make_restrictinfo(Expr *clause,
+make_restrictinfo(Expr * clause,
 				  bool is_pushed_down,
 				  bool outerjoin_delayed,
 				  bool pseudoconstant,
@@ -97,8 +97,8 @@ make_restrictinfo(Expr *clause,
  * Common code for the main entry points and the recursive cases.
  */
 static RestrictInfo *
-make_restrictinfo_internal(Expr *clause,
-						   Expr *orclause,
+make_restrictinfo_internal(Expr * clause,
+						   Expr * orclause,
 						   bool is_pushed_down,
 						   bool outerjoin_delayed,
 						   bool pseudoconstant,
@@ -221,7 +221,7 @@ make_restrictinfo_internal(Expr *clause,
  * contained rels.
  */
 static Expr *
-make_sub_restrictinfos(Expr *clause,
+make_sub_restrictinfos(Expr * clause,
 					   bool is_pushed_down,
 					   bool outerjoin_delayed,
 					   bool pseudoconstant,
@@ -290,7 +290,7 @@ make_sub_restrictinfos(Expr *clause,
  * Returns t iff the restrictinfo node contains an 'or' clause.
  */
 bool
-restriction_is_or_clause(RestrictInfo *restrictinfo)
+restriction_is_or_clause(RestrictInfo * restrictinfo)
 {
 	if (restrictinfo->orclause != NULL)
 		return true;
@@ -305,8 +305,8 @@ restriction_is_or_clause(RestrictInfo *restrictinfo)
  * other restriction clauses attached to the specified relation.
  */
 bool
-restriction_is_securely_promotable(RestrictInfo *restrictinfo,
-								   RelOptInfo *rel)
+restriction_is_securely_promotable(RestrictInfo * restrictinfo,
+								   RelOptInfo * rel)
 {
 	/*
 	 * It's okay if there are no baserestrictinfo clauses for the rel that
@@ -328,7 +328,7 @@ restriction_is_securely_promotable(RestrictInfo *restrictinfo,
  * be pseudoconstant clauses (for instance, it's OK on indexqual lists).
  */
 List *
-get_actual_clauses(List *restrictinfo_list)
+get_actual_clauses(List * restrictinfo_list)
 {
 	List	   *result = NIL;
 	ListCell   *l;
@@ -351,7 +351,7 @@ get_actual_clauses(List *restrictinfo_list)
  * regular ones or the pseudoconstant ones per 'pseudoconstant'.
  */
 List *
-extract_actual_clauses(List *restrictinfo_list,
+extract_actual_clauses(List * restrictinfo_list,
 					   bool pseudoconstant)
 {
 	List	   *result = NIL;
@@ -378,10 +378,10 @@ extract_actual_clauses(List *restrictinfo_list,
  * about pushed-down-ness.
  */
 void
-extract_actual_join_clauses(List *restrictinfo_list,
+extract_actual_join_clauses(List * restrictinfo_list,
 							Relids joinrelids,
-							List **joinquals,
-							List **otherquals)
+							List * *joinquals,
+							List * *otherquals)
 {
 	ListCell   *l;
 
@@ -433,7 +433,7 @@ extract_actual_join_clauses(List *restrictinfo_list,
  * the outer side of a nestloop with the target relation.
  */
 bool
-join_clause_is_movable_to(RestrictInfo *rinfo, RelOptInfo *baserel)
+join_clause_is_movable_to(RestrictInfo * rinfo, RelOptInfo * baserel)
 {
 	/* Clause must physically reference target rel */
 	if (!bms_is_member(baserel->relid, rinfo->clause_relids))
@@ -506,7 +506,7 @@ join_clause_is_movable_to(RestrictInfo *rinfo, RelOptInfo *baserel)
  * (since one or the other of the first two tests must fail).
  */
 bool
-join_clause_is_movable_into(RestrictInfo *rinfo,
+join_clause_is_movable_into(RestrictInfo * rinfo,
 							Relids currentrelids,
 							Relids current_and_outer)
 {

@@ -41,7 +41,7 @@ typedef struct Trigger
 	char	   *tgqual;
 	char	   *tgoldtable;
 	char	   *tgnewtable;
-} Trigger;
+}			Trigger;
 
 typedef struct TriggerDesc
 {
@@ -75,6 +75,6 @@ typedef struct TriggerDesc
 	bool		trig_update_old_table;
 	bool		trig_update_new_table;
 	bool		trig_delete_old_table;
-} TriggerDesc;
+}			TriggerDesc;
 
 #endif							/* RELTRIGGER_H */

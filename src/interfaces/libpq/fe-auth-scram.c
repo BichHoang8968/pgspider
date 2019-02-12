@@ -35,7 +35,7 @@ typedef enum
 	FE_SCRAM_NONCE_SENT,
 	FE_SCRAM_PROOF_SENT,
 	FE_SCRAM_FINISHED
-} fe_scram_state_enum;
+}			fe_scram_state_enum;
 
 typedef struct
 {
@@ -61,20 +61,20 @@ typedef struct
 	/* These come from the server-final message */
 	char	   *server_final_message;
 	char		ServerSignature[SCRAM_KEY_LEN];
-} fe_scram_state;
+}			fe_scram_state;
 
-static bool read_server_first_message(fe_scram_state *state, char *input,
+static bool read_server_first_message(fe_scram_state * state, char *input,
 						  PQExpBuffer errormessage);
-static bool read_server_final_message(fe_scram_state *state, char *input,
+static bool read_server_final_message(fe_scram_state * state, char *input,
 						  PQExpBuffer errormessage);
-static char *build_client_first_message(fe_scram_state *state,
+static char *build_client_first_message(fe_scram_state * state,
 						   PQExpBuffer errormessage);
-static char *build_client_final_message(fe_scram_state *state,
+static char *build_client_final_message(fe_scram_state * state,
 						   PQExpBuffer errormessage);
-static bool verify_server_signature(fe_scram_state *state);
-static void calculate_client_proof(fe_scram_state *state,
+static bool verify_server_signature(fe_scram_state * state);
+static void calculate_client_proof(fe_scram_state * state,
 					   const char *client_final_message_without_proof,
-					   uint8 *result);
+					   uint8 * result);
 static bool pg_frontend_random(char *dst, int len);
 
 /*
@@ -294,7 +294,7 @@ read_attr_value(char **input, char attr, PQExpBuffer errorMessage)
  * Build the first exchange message sent by the client.
  */
 static char *
-build_client_first_message(fe_scram_state *state, PQExpBuffer errormessage)
+build_client_first_message(fe_scram_state * state, PQExpBuffer errormessage)
 {
 	char		raw_nonce[SCRAM_RAW_NONCE_LEN + 1];
 	char	   *buf;
@@ -354,7 +354,7 @@ build_client_first_message(fe_scram_state *state, PQExpBuffer errormessage)
  * Build the final exchange message sent from the client.
  */
 static char *
-build_client_final_message(fe_scram_state *state, PQExpBuffer errormessage)
+build_client_final_message(fe_scram_state * state, PQExpBuffer errormessage)
 {
 	PQExpBufferData buf;
 	uint8		client_proof[SCRAM_KEY_LEN];
@@ -405,7 +405,7 @@ oom_error:
  * Read the first exchange message coming from the server.
  */
 static bool
-read_server_first_message(fe_scram_state *state, char *input,
+read_server_first_message(fe_scram_state * state, char *input,
 						  PQExpBuffer errormessage)
 {
 	char	   *iterations_str;
@@ -488,7 +488,7 @@ read_server_first_message(fe_scram_state *state, char *input,
  * Read the final exchange message coming from the server.
  */
 static bool
-read_server_final_message(fe_scram_state *state, char *input,
+read_server_final_message(fe_scram_state * state, char *input,
 						  PQExpBuffer errormessage)
 {
 	char	   *encoded_server_signature;
@@ -543,9 +543,9 @@ read_server_final_message(fe_scram_state *state, char *input,
  * by the client.
  */
 static void
-calculate_client_proof(fe_scram_state *state,
+calculate_client_proof(fe_scram_state * state,
 					   const char *client_final_message_without_proof,
-					   uint8 *result)
+					   uint8 * result)
 {
 	uint8		StoredKey[SCRAM_KEY_LEN];
 	uint8		ClientKey[SCRAM_KEY_LEN];
@@ -586,7 +586,7 @@ calculate_client_proof(fe_scram_state *state,
  * message received from the server.
  */
 static bool
-verify_server_signature(fe_scram_state *state)
+verify_server_signature(fe_scram_state * state)
 {
 	uint8		expected_ServerSignature[SCRAM_KEY_LEN];
 	uint8		ServerKey[SCRAM_KEY_LEN];

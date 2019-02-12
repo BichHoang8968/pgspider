@@ -26,9 +26,9 @@ bool		looked_up_isolation_exec = false;
  */
 static PID_TYPE
 isolation_start_test(const char *testname,
-					 _stringlist **resultfiles,
-					 _stringlist **expectfiles,
-					 _stringlist **tags)
+					 _stringlist * *resultfiles,
+					 _stringlist * *expectfiles,
+					 _stringlist * *tags)
 {
 	PID_TYPE	pid;
 	char		infile[MAXPGPATH];

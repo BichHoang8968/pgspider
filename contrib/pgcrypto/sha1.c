@@ -43,7 +43,10 @@
 #include "sha1.h"
 
 /* constant table */
-static uint32 _K[] = {0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xca62c1d6};
+static uint32 _K[] =
+{
+	0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xca62c1d6
+};
 
 #define K(t)	_K[(t) / 20]
 
@@ -280,9 +283,9 @@ sha1_pad(struct sha1_ctxt *ctxt)
 }
 
 void
-sha1_loop(struct sha1_ctxt *ctxt, const uint8 *input0, size_t len)
+sha1_loop(struct sha1_ctxt *ctxt, const uint8 * input0, size_t len)
 {
-	const uint8 *input;
+	const		uint8 *input;
 	size_t		gaplen;
 	size_t		gapstart;
 	size_t		off;
@@ -308,7 +311,7 @@ sha1_loop(struct sha1_ctxt *ctxt, const uint8 *input0, size_t len)
 }
 
 void
-sha1_result(struct sha1_ctxt *ctxt, uint8 *digest0)
+sha1_result(struct sha1_ctxt *ctxt, uint8 * digest0)
 {
 	uint8	   *digest;
 

@@ -44,7 +44,7 @@ typedef struct _resultmap
 	char	   *type;
 	char	   *resultfile;
 	struct _resultmap *next;
-} _resultmap;
+}			_resultmap;
 
 /*
  * Values obtained from Makefile.
@@ -75,14 +75,14 @@ char	   *inputdir = ".";
 char	   *outputdir = ".";
 char	   *bindir = PGBINDIR;
 char	   *launcher = NULL;
-static _stringlist *loadlanguage = NULL;
-static _stringlist *loadextension = NULL;
+static _stringlist * loadlanguage = NULL;
+static _stringlist * loadextension = NULL;
 static int	max_connections = 0;
 static char *encoding = NULL;
-static _stringlist *schedulelist = NULL;
-static _stringlist *extra_tests = NULL;
+static _stringlist * schedulelist = NULL;
+static _stringlist * extra_tests = NULL;
 static char *temp_instance = NULL;
-static _stringlist *temp_configs = NULL;
+static _stringlist * temp_configs = NULL;
 static bool nolocale = false;
 static bool use_existing = false;
 static char *hostname = NULL;
@@ -90,13 +90,13 @@ static int	port = -1;
 static bool port_specified_by_user = false;
 static char *dlpath = PKGLIBDIR;
 static char *user = NULL;
-static _stringlist *extraroles = NULL;
+static _stringlist * extraroles = NULL;
 static char *config_auth_datadir = NULL;
 
 /* internal variables */
 static const char *progname;
 static char *logfilename;
-static FILE *logfile;
+static FILE * logfile;
 static char *difffilename;
 static const char *sockdir;
 #ifdef HAVE_UNIX_SOCKETS
@@ -105,7 +105,7 @@ static char sockself[MAXPGPATH];
 static char socklock[MAXPGPATH];
 #endif
 
-static _resultmap *resultmap = NULL;
+static _resultmap * resultmap = NULL;
 
 static PID_TYPE postmaster_pid = INVALID_PID;
 static bool postmaster_running = false;
@@ -151,7 +151,7 @@ unlimit_core_size(void)
  * Add an item at the end of a stringlist.
  */
 void
-add_stringlist_item(_stringlist **listhead, const char *str)
+add_stringlist_item(_stringlist * *listhead, const char *str)
 {
 	_stringlist *newentry = pg_malloc(sizeof(_stringlist));
 	_stringlist *oldentry;
@@ -172,7 +172,7 @@ add_stringlist_item(_stringlist **listhead, const char *str)
  * Free a stringlist.
  */
 static void
-free_stringlist(_stringlist **listhead)
+free_stringlist(_stringlist * *listhead)
 {
 	if (listhead == NULL || *listhead == NULL)
 		return;
@@ -187,7 +187,7 @@ free_stringlist(_stringlist **listhead)
  * Split a delimited string into a stringlist
  */
 static void
-split_to_stringlist(const char *s, const char *delim, _stringlist **listhead)
+split_to_stringlist(const char *s, const char *delim, _stringlist * *listhead)
 {
 	char	   *sc = pg_strdup(s);
 	char	   *token = strtok(sc, delim);
@@ -1960,7 +1960,7 @@ drop_role_if_exists(const char *rolename)
 }
 
 static void
-create_role(const char *rolename, const _stringlist *granted_dbs)
+create_role(const char *rolename, const _stringlist * granted_dbs)
 {
 	header(_("creating role \"%s\""), rolename);
 	psql_command("postgres", "CREATE ROLE \"%s\" WITH LOGIN", rolename);

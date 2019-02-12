@@ -28,7 +28,7 @@
  * At startup time, send a RowDescription message.
  */
 void
-printsimple_startup(DestReceiver *self, int operation, TupleDesc tupdesc)
+printsimple_startup(DestReceiver * self, int operation, TupleDesc tupdesc)
 {
 	StringInfoData buf;
 	int			i;
@@ -56,7 +56,7 @@ printsimple_startup(DestReceiver *self, int operation, TupleDesc tupdesc)
  * For each tuple, send a DataRow message.
  */
 bool
-printsimple(TupleTableSlot *slot, DestReceiver *self)
+printsimple(TupleTableSlot * slot, DestReceiver * self)
 {
 	TupleDesc	tupdesc = slot->tts_tupleDescriptor;
 	StringInfoData buf;

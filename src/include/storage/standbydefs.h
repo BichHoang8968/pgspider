@@ -20,11 +20,11 @@
 #include "storage/sinval.h"
 
 /* Recovery handlers for the Standby Rmgr (RM_STANDBY_ID) */
-extern void standby_redo(XLogReaderState *record);
-extern void standby_desc(StringInfo buf, XLogReaderState *record);
+extern void standby_redo(XLogReaderState * record);
+extern void standby_desc(StringInfo buf, XLogReaderState * record);
 extern const char *standby_identify(uint8 info);
 extern void standby_desc_invalidations(StringInfo buf,
-						   int nmsgs, SharedInvalidationMessage *msgs,
+						   int nmsgs, SharedInvalidationMessage * msgs,
 						   Oid dbId, Oid tsId,
 						   bool relcacheInitFileInval);
 
@@ -39,7 +39,7 @@ typedef struct xl_standby_locks
 {
 	int			nlocks;			/* number of entries in locks array */
 	xl_standby_lock locks[FLEXIBLE_ARRAY_MEMBER];
-} xl_standby_locks;
+}			xl_standby_locks;
 
 /*
  * When we write running xact data to WAL, we use this structure.
@@ -54,7 +54,7 @@ typedef struct xl_running_xacts
 	TransactionId latestCompletedXid;	/* so we can set xmax */
 
 	TransactionId xids[FLEXIBLE_ARRAY_MEMBER];
-} xl_running_xacts;
+}			xl_running_xacts;
 
 /*
  * Invalidations for standby, currently only when transactions without an
@@ -67,7 +67,7 @@ typedef struct xl_invalidations
 	bool		relcacheInitFileInval;	/* invalidate relcache init files */
 	int			nmsgs;			/* number of shared inval msgs */
 	SharedInvalidationMessage msgs[FLEXIBLE_ARRAY_MEMBER];
-} xl_invalidations;
+}			xl_invalidations;
 
 #define MinSizeOfInvalidations offsetof(xl_invalidations, msgs)
 

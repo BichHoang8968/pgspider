@@ -27,7 +27,7 @@ typedef enum
 	WJB_END_ARRAY,
 	WJB_BEGIN_OBJECT,
 	WJB_END_OBJECT
-} JsonbIteratorToken;
+}			JsonbIteratorToken;
 
 /* Strategy numbers for GIN index opclasses */
 #define JsonbContainsStrategyNumber		7
@@ -197,7 +197,7 @@ typedef struct JsonbContainer
 	JEntry		children[FLEXIBLE_ARRAY_MEMBER];
 
 	/* the data for each child node follows. */
-} JsonbContainer;
+}			JsonbContainer;
 
 /* flags for the header-field in JsonbContainer */
 #define JB_CMASK				0x0FFFFFFF	/* mask for count field */
@@ -216,7 +216,7 @@ typedef struct
 {
 	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	JsonbContainer root;
-} Jsonb;
+}			Jsonb;
 
 /* convenience macros for accessing the root container in a Jsonb datum */
 #define JB_ROOT_COUNT(jbp_)		(*(uint32 *) VARDATA(jbp_) & JB_CMASK)
@@ -251,7 +251,7 @@ struct JsonbValue
 
 	union
 	{
-		Numeric numeric;
+		Numeric		numeric;
 		bool		boolean;
 		struct
 		{
@@ -306,7 +306,7 @@ typedef struct JsonbParseState
 	JsonbValue	contVal;
 	Size		size;
 	struct JsonbParseState *next;
-} JsonbParseState;
+}			JsonbParseState;
 
 /*
  * JsonbIterator holds details of the type for each iteration. It also stores a
@@ -319,7 +319,7 @@ typedef enum
 	JBI_OBJECT_START,
 	JBI_OBJECT_KEY,
 	JBI_OBJECT_VALUE
-} JsonbIterState;
+}			JsonbIterState;
 
 typedef struct JsonbIterator
 {
@@ -349,32 +349,32 @@ typedef struct JsonbIterator
 	JsonbIterState state;
 
 	struct JsonbIterator *parent;
-} JsonbIterator;
+}			JsonbIterator;
 
 
 /* Support functions */
-extern uint32 getJsonbOffset(const JsonbContainer *jc, int index);
-extern uint32 getJsonbLength(const JsonbContainer *jc, int index);
-extern int	compareJsonbContainers(JsonbContainer *a, JsonbContainer *b);
-extern JsonbValue *findJsonbValueFromContainer(JsonbContainer *sheader,
-							uint32 flags,
-							JsonbValue *key);
-extern JsonbValue *getIthJsonbValueFromContainer(JsonbContainer *sheader,
-							  uint32 i);
-extern JsonbValue *pushJsonbValue(JsonbParseState **pstate,
-			   JsonbIteratorToken seq, JsonbValue *jbVal);
-extern JsonbIterator *JsonbIteratorInit(JsonbContainer *container);
-extern JsonbIteratorToken JsonbIteratorNext(JsonbIterator **it, JsonbValue *val,
-				  bool skipNested);
-extern Jsonb *JsonbValueToJsonb(JsonbValue *val);
-extern bool JsonbDeepContains(JsonbIterator **val,
-				  JsonbIterator **mContained);
-extern void JsonbHashScalarValue(const JsonbValue *scalarVal, uint32 *hash);
+extern uint32 getJsonbOffset(const JsonbContainer * jc, int index);
+extern uint32 getJsonbLength(const JsonbContainer * jc, int index);
+extern int	compareJsonbContainers(JsonbContainer * a, JsonbContainer * b);
+extern JsonbValue * findJsonbValueFromContainer(JsonbContainer * sheader,
+												uint32 flags,
+												JsonbValue * key);
+extern JsonbValue * getIthJsonbValueFromContainer(JsonbContainer * sheader,
+												  uint32 i);
+extern JsonbValue * pushJsonbValue(JsonbParseState * *pstate,
+								   JsonbIteratorToken seq, JsonbValue * jbVal);
+extern JsonbIterator * JsonbIteratorInit(JsonbContainer * container);
+extern JsonbIteratorToken JsonbIteratorNext(JsonbIterator * *it, JsonbValue * val,
+											bool skipNested);
+extern Jsonb * JsonbValueToJsonb(JsonbValue * val);
+extern bool JsonbDeepContains(JsonbIterator * *val,
+				  JsonbIterator * *mContained);
+extern void JsonbHashScalarValue(const JsonbValue * scalarVal, uint32 * hash);
 
 /* jsonb.c support functions */
-extern char *JsonbToCString(StringInfo out, JsonbContainer *in,
+extern char *JsonbToCString(StringInfo out, JsonbContainer * in,
 			   int estimated_len);
-extern char *JsonbToCStringIndent(StringInfo out, JsonbContainer *in,
+extern char *JsonbToCStringIndent(StringInfo out, JsonbContainer * in,
 					 int estimated_len);
 
 

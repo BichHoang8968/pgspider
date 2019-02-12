@@ -46,10 +46,10 @@
 #include "utils/rel.h"
 #include "utils/syscache.h"
 
-static void RangeVarCallbackForPolicy(const RangeVar *rv,
+static void RangeVarCallbackForPolicy(const RangeVar * rv,
 						  Oid relid, Oid oldrelid, void *arg);
 static char parse_policy_command(const char *cmd_name);
-static Datum *policy_role_list_to_array(List *roles, int *num_roles);
+static Datum * policy_role_list_to_array(List * roles, int *num_roles);
 
 /*
  * Callback to RangeVarGetRelidExtended().
@@ -62,7 +62,7 @@ static Datum *policy_role_list_to_array(List *roles, int *num_roles);
  * If any of these checks fails then an error is raised.
  */
 static void
-RangeVarCallbackForPolicy(const RangeVar *rv, Oid relid, Oid oldrelid,
+RangeVarCallbackForPolicy(const RangeVar * rv, Oid relid, Oid oldrelid,
 						  void *arg)
 {
 	HeapTuple	tuple;
@@ -135,7 +135,7 @@ parse_policy_command(const char *cmd_name)
  *	 role id Datums.
  */
 static Datum *
-policy_role_list_to_array(List *roles, int *num_roles)
+policy_role_list_to_array(List * roles, int *num_roles)
 {
 	Datum	   *role_oids;
 	ListCell   *cell;
@@ -680,7 +680,7 @@ RemoveRoleFromObjectPolicy(Oid roleid, Oid classid, Oid policy_id)
  * stmt - the CreatePolicyStmt that describes the policy to create.
  */
 ObjectAddress
-CreatePolicy(CreatePolicyStmt *stmt)
+CreatePolicy(CreatePolicyStmt * stmt)
 {
 	Relation	pg_policy_rel;
 	Oid			policy_id;
@@ -875,7 +875,7 @@ CreatePolicy(CreatePolicyStmt *stmt)
  * stmt - the AlterPolicyStmt that describes the policy and how to alter it.
  */
 ObjectAddress
-AlterPolicy(AlterPolicyStmt *stmt)
+AlterPolicy(AlterPolicyStmt * stmt)
 {
 	Relation	pg_policy_rel;
 	Oid			policy_id;
@@ -1199,7 +1199,7 @@ AlterPolicy(AlterPolicyStmt *stmt)
  *	 change the name of a policy on a relation
  */
 ObjectAddress
-rename_policy(RenameStmt *stmt)
+rename_policy(RenameStmt * stmt)
 {
 	Relation	pg_policy_rel;
 	Relation	target_table;

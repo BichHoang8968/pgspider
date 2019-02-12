@@ -37,7 +37,7 @@
  * zero is returned.
  */
 int
-PQregisterEventProc(PGconn *conn, PGEventProc proc,
+PQregisterEventProc(PGconn * conn, PGEventProc proc,
 					const char *name, void *passThrough)
 {
 	int			i;
@@ -95,7 +95,7 @@ PQregisterEventProc(PGconn *conn, PGEventProc proc,
  * Returns nonzero on success, zero on failure.
  */
 int
-PQsetInstanceData(PGconn *conn, PGEventProc proc, void *data)
+PQsetInstanceData(PGconn * conn, PGEventProc proc, void *data)
 {
 	int			i;
 
@@ -118,7 +118,7 @@ PQsetInstanceData(PGconn *conn, PGEventProc proc, void *data)
  * Obtain the "instance data", if any, for the event.
  */
 void *
-PQinstanceData(const PGconn *conn, PGEventProc proc)
+PQinstanceData(const PGconn * conn, PGEventProc proc)
 {
 	int			i;
 
@@ -139,7 +139,7 @@ PQinstanceData(const PGconn *conn, PGEventProc proc)
  * Returns nonzero on success, zero on failure.
  */
 int
-PQresultSetInstanceData(PGresult *result, PGEventProc proc, void *data)
+PQresultSetInstanceData(PGresult * result, PGEventProc proc, void *data)
 {
 	int			i;
 
@@ -162,7 +162,7 @@ PQresultSetInstanceData(PGresult *result, PGEventProc proc, void *data)
  * Obtain the "instance data", if any, for the event.
  */
 void *
-PQresultInstanceData(const PGresult *result, PGEventProc proc)
+PQresultInstanceData(const PGresult * result, PGEventProc proc)
 {
 	int			i;
 
@@ -182,7 +182,7 @@ PQresultInstanceData(const PGresult *result, PGEventProc proc)
  * The conn argument can be NULL if event procedures won't use it.
  */
 int
-PQfireResultCreateEvents(PGconn *conn, PGresult *res)
+PQfireResultCreateEvents(PGconn * conn, PGresult * res)
 {
 	int			i;
 

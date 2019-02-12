@@ -76,7 +76,7 @@ typedef struct VariableStatData
 	int32		atttypmod;		/* actual typmod (after stripping relabel) */
 	bool		isunique;		/* matches unique index or DISTINCT clause */
 	bool		acl_ok;			/* result of ACL check on table or column */
-} VariableStatData;
+}			VariableStatData;
 
 #define ReleaseVariableStats(vardata)  \
 	do { \
@@ -89,12 +89,12 @@ typedef enum
 {
 	Pattern_Type_Like, Pattern_Type_Like_IC,
 	Pattern_Type_Regex, Pattern_Type_Regex_IC
-} Pattern_Type;
+}			Pattern_Type;
 
 typedef enum
 {
 	Pattern_Prefix_None, Pattern_Prefix_Partial, Pattern_Prefix_Exact
-} Pattern_Prefix_Status;
+}			Pattern_Prefix_Status;
 
 /*
  * deconstruct_indexquals is a simple function to examine the indexquals
@@ -108,7 +108,7 @@ typedef struct
 	bool		varonleft;		/* true if index column is on left of qual */
 	Oid			clause_op;		/* qual's operator OID, if relevant */
 	Node	   *other_operand;	/* non-index operand of qual's operator */
-} IndexQualInfo;
+}			IndexQualInfo;
 
 /*
  * genericcostestimate is a general-purpose estimator that can be used for
@@ -136,90 +136,90 @@ typedef struct
 	double		numIndexTuples; /* number of leaf tuples visited */
 	double		spc_random_page_cost;	/* relevant random_page_cost value */
 	double		num_sa_scans;	/* # indexscans from ScalarArrayOps */
-} GenericCosts;
+}			GenericCosts;
 
 /* Hooks for plugins to get control when we ask for stats */
-typedef bool (*get_relation_stats_hook_type) (PlannerInfo *root,
-											  RangeTblEntry *rte,
+typedef bool (*get_relation_stats_hook_type) (PlannerInfo * root,
+											  RangeTblEntry * rte,
 											  AttrNumber attnum,
-											  VariableStatData *vardata);
+											  VariableStatData * vardata);
 extern PGDLLIMPORT get_relation_stats_hook_type get_relation_stats_hook;
-typedef bool (*get_index_stats_hook_type) (PlannerInfo *root,
+typedef bool (*get_index_stats_hook_type) (PlannerInfo * root,
 										   Oid indexOid,
 										   AttrNumber indexattnum,
-										   VariableStatData *vardata);
+										   VariableStatData * vardata);
 extern PGDLLIMPORT get_index_stats_hook_type get_index_stats_hook;
 
 /* Functions in selfuncs.c */
 
-extern void examine_variable(PlannerInfo *root, Node *node, int varRelid,
-				 VariableStatData *vardata);
-extern bool statistic_proc_security_check(VariableStatData *vardata, Oid func_oid);
-extern bool get_restriction_variable(PlannerInfo *root, List *args,
+extern void examine_variable(PlannerInfo * root, Node * node, int varRelid,
+				 VariableStatData * vardata);
+extern bool statistic_proc_security_check(VariableStatData * vardata, Oid func_oid);
+extern bool get_restriction_variable(PlannerInfo * root, List * args,
 						 int varRelid,
-						 VariableStatData *vardata, Node **other,
+						 VariableStatData * vardata, Node * *other,
 						 bool *varonleft);
-extern void get_join_variables(PlannerInfo *root, List *args,
-				   SpecialJoinInfo *sjinfo,
-				   VariableStatData *vardata1,
-				   VariableStatData *vardata2,
+extern void get_join_variables(PlannerInfo * root, List * args,
+				   SpecialJoinInfo * sjinfo,
+				   VariableStatData * vardata1,
+				   VariableStatData * vardata2,
 				   bool *join_is_reversed);
-extern double get_variable_numdistinct(VariableStatData *vardata,
+extern double get_variable_numdistinct(VariableStatData * vardata,
 						 bool *isdefault);
-extern double mcv_selectivity(VariableStatData *vardata, FmgrInfo *opproc,
+extern double mcv_selectivity(VariableStatData * vardata, FmgrInfo * opproc,
 				Datum constval, bool varonleft,
 				double *sumcommonp);
-extern double histogram_selectivity(VariableStatData *vardata, FmgrInfo *opproc,
+extern double histogram_selectivity(VariableStatData * vardata, FmgrInfo * opproc,
 					  Datum constval, bool varonleft,
 					  int min_hist_size, int n_skip,
 					  int *hist_size);
 
-extern Pattern_Prefix_Status pattern_fixed_prefix(Const *patt,
-					 Pattern_Type ptype,
-					 Oid collation,
-					 Const **prefix,
-					 Selectivity *rest_selec);
-extern Const *make_greater_string(const Const *str_const, FmgrInfo *ltproc,
-					Oid collation);
+extern Pattern_Prefix_Status pattern_fixed_prefix(Const * patt,
+												  Pattern_Type ptype,
+												  Oid collation,
+												  Const * *prefix,
+												  Selectivity * rest_selec);
+extern Const * make_greater_string(const Const * str_const, FmgrInfo * ltproc,
+								   Oid collation);
 
-extern Selectivity boolvarsel(PlannerInfo *root, Node *arg, int varRelid);
-extern Selectivity booltestsel(PlannerInfo *root, BoolTestType booltesttype,
-			Node *arg, int varRelid,
-			JoinType jointype, SpecialJoinInfo *sjinfo);
-extern Selectivity nulltestsel(PlannerInfo *root, NullTestType nulltesttype,
-			Node *arg, int varRelid,
-			JoinType jointype, SpecialJoinInfo *sjinfo);
-extern Selectivity scalararraysel(PlannerInfo *root,
-			   ScalarArrayOpExpr *clause,
-			   bool is_join_clause,
-			   int varRelid, JoinType jointype, SpecialJoinInfo *sjinfo);
-extern int	estimate_array_length(Node *arrayexpr);
-extern Selectivity rowcomparesel(PlannerInfo *root,
-			  RowCompareExpr *clause,
-			  int varRelid, JoinType jointype, SpecialJoinInfo *sjinfo);
+extern Selectivity boolvarsel(PlannerInfo * root, Node * arg, int varRelid);
+extern Selectivity booltestsel(PlannerInfo * root, BoolTestType booltesttype,
+							   Node * arg, int varRelid,
+							   JoinType jointype, SpecialJoinInfo * sjinfo);
+extern Selectivity nulltestsel(PlannerInfo * root, NullTestType nulltesttype,
+							   Node * arg, int varRelid,
+							   JoinType jointype, SpecialJoinInfo * sjinfo);
+extern Selectivity scalararraysel(PlannerInfo * root,
+								  ScalarArrayOpExpr * clause,
+								  bool is_join_clause,
+								  int varRelid, JoinType jointype, SpecialJoinInfo * sjinfo);
+extern int	estimate_array_length(Node * arrayexpr);
+extern Selectivity rowcomparesel(PlannerInfo * root,
+								 RowCompareExpr * clause,
+								 int varRelid, JoinType jointype, SpecialJoinInfo * sjinfo);
 
-extern void mergejoinscansel(PlannerInfo *root, Node *clause,
+extern void mergejoinscansel(PlannerInfo * root, Node * clause,
 				 Oid opfamily, int strategy, bool nulls_first,
-				 Selectivity *leftstart, Selectivity *leftend,
-				 Selectivity *rightstart, Selectivity *rightend);
+				 Selectivity * leftstart, Selectivity * leftend,
+				 Selectivity * rightstart, Selectivity * rightend);
 
-extern double estimate_num_groups(PlannerInfo *root, List *groupExprs,
-					double input_rows, List **pgset);
+extern double estimate_num_groups(PlannerInfo * root, List * groupExprs,
+					double input_rows, List * *pgset);
 
-extern Selectivity estimate_hash_bucketsize(PlannerInfo *root, Node *hashkey,
-						 double nbuckets);
+extern Selectivity estimate_hash_bucketsize(PlannerInfo * root, Node * hashkey,
+											double nbuckets);
 
-extern List *deconstruct_indexquals(IndexPath *path);
-extern void genericcostestimate(PlannerInfo *root, IndexPath *path,
+extern List * deconstruct_indexquals(IndexPath * path);
+extern void genericcostestimate(PlannerInfo * root, IndexPath * path,
 					double loop_count,
-					List *qinfos,
-					GenericCosts *costs);
+					List * qinfos,
+					GenericCosts * costs);
 
 /* Functions in array_selfuncs.c */
 
-extern Selectivity scalararraysel_containment(PlannerInfo *root,
-						   Node *leftop, Node *rightop,
-						   Oid elemtype, bool isEquality, bool useOr,
-						   int varRelid);
+extern Selectivity scalararraysel_containment(PlannerInfo * root,
+											  Node * leftop, Node * rightop,
+											  Oid elemtype, bool isEquality, bool useOr,
+											  int varRelid);
 
 #endif							/* SELFUNCS_H */

@@ -117,7 +117,7 @@ PGSharedMemoryIsInUse(unsigned long id1, unsigned long id2)
  */
 PGShmemHeader *
 PGSharedMemoryCreate(Size size, bool makePrivate, int port,
-					 PGShmemHeader **shim)
+					 PGShmemHeader * *shim)
 {
 	void	   *memAddress;
 	PGShmemHeader *hdr;

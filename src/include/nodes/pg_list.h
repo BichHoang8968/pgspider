@@ -48,7 +48,7 @@ typedef struct List
 	int			length;
 	ListCell   *head;
 	ListCell   *tail;
-} List;
+}			List;
 
 struct ListCell
 {
@@ -74,19 +74,19 @@ struct ListCell
  * arguments.
  */
 static inline ListCell *
-list_head(const List *l)
+list_head(const List * l)
 {
 	return l ? l->head : NULL;
 }
 
 static inline ListCell *
-list_tail(List *l)
+list_tail(List * l)
 {
 	return l ? l->tail : NULL;
 }
 
 static inline int
-list_length(const List *l)
+list_length(const List * l)
 {
 	return l ? l->length : 0;
 }
@@ -205,69 +205,69 @@ list_length(const List *l)
 		 (cell1) != NULL && (cell2) != NULL && (cell3) != NULL;		\
 		 (cell1) = lnext(cell1), (cell2) = lnext(cell2), (cell3) = lnext(cell3))
 
-extern List *lappend(List *list, void *datum);
-extern List *lappend_int(List *list, int datum);
-extern List *lappend_oid(List *list, Oid datum);
+extern List * lappend(List * list, void *datum);
+extern List * lappend_int(List * list, int datum);
+extern List * lappend_oid(List * list, Oid datum);
 
-extern ListCell *lappend_cell(List *list, ListCell *prev, void *datum);
-extern ListCell *lappend_cell_int(List *list, ListCell *prev, int datum);
-extern ListCell *lappend_cell_oid(List *list, ListCell *prev, Oid datum);
+extern ListCell * lappend_cell(List * list, ListCell * prev, void *datum);
+extern ListCell * lappend_cell_int(List * list, ListCell * prev, int datum);
+extern ListCell * lappend_cell_oid(List * list, ListCell * prev, Oid datum);
 
-extern List *lcons(void *datum, List *list);
-extern List *lcons_int(int datum, List *list);
-extern List *lcons_oid(Oid datum, List *list);
+extern List * lcons(void *datum, List * list);
+extern List * lcons_int(int datum, List * list);
+extern List * lcons_oid(Oid datum, List * list);
 
-extern List *list_concat(List *list1, List *list2);
-extern List *list_truncate(List *list, int new_size);
+extern List * list_concat(List * list1, List * list2);
+extern List * list_truncate(List * list, int new_size);
 
-extern ListCell *list_nth_cell(const List *list, int n);
-extern void *list_nth(const List *list, int n);
-extern int	list_nth_int(const List *list, int n);
-extern Oid	list_nth_oid(const List *list, int n);
+extern ListCell * list_nth_cell(const List * list, int n);
+extern void *list_nth(const List * list, int n);
+extern int	list_nth_int(const List * list, int n);
+extern Oid list_nth_oid(const List * list, int n);
 #define list_nth_node(type,list,n)	castNode(type, list_nth(list, n))
 
-extern bool list_member(const List *list, const void *datum);
-extern bool list_member_ptr(const List *list, const void *datum);
-extern bool list_member_int(const List *list, int datum);
-extern bool list_member_oid(const List *list, Oid datum);
+extern bool list_member(const List * list, const void *datum);
+extern bool list_member_ptr(const List * list, const void *datum);
+extern bool list_member_int(const List * list, int datum);
+extern bool list_member_oid(const List * list, Oid datum);
 
-extern List *list_delete(List *list, void *datum);
-extern List *list_delete_ptr(List *list, void *datum);
-extern List *list_delete_int(List *list, int datum);
-extern List *list_delete_oid(List *list, Oid datum);
-extern List *list_delete_first(List *list);
-extern List *list_delete_cell(List *list, ListCell *cell, ListCell *prev);
+extern List * list_delete(List * list, void *datum);
+extern List * list_delete_ptr(List * list, void *datum);
+extern List * list_delete_int(List * list, int datum);
+extern List * list_delete_oid(List * list, Oid datum);
+extern List * list_delete_first(List * list);
+extern List * list_delete_cell(List * list, ListCell * cell, ListCell * prev);
 
-extern List *list_union(const List *list1, const List *list2);
-extern List *list_union_ptr(const List *list1, const List *list2);
-extern List *list_union_int(const List *list1, const List *list2);
-extern List *list_union_oid(const List *list1, const List *list2);
+extern List * list_union(const List * list1, const List * list2);
+extern List * list_union_ptr(const List * list1, const List * list2);
+extern List * list_union_int(const List * list1, const List * list2);
+extern List * list_union_oid(const List * list1, const List * list2);
 
-extern List *list_intersection(const List *list1, const List *list2);
-extern List *list_intersection_int(const List *list1, const List *list2);
+extern List * list_intersection(const List * list1, const List * list2);
+extern List * list_intersection_int(const List * list1, const List * list2);
 
 /* currently, there's no need for list_intersection_ptr etc */
 
-extern List *list_difference(const List *list1, const List *list2);
-extern List *list_difference_ptr(const List *list1, const List *list2);
-extern List *list_difference_int(const List *list1, const List *list2);
-extern List *list_difference_oid(const List *list1, const List *list2);
+extern List * list_difference(const List * list1, const List * list2);
+extern List * list_difference_ptr(const List * list1, const List * list2);
+extern List * list_difference_int(const List * list1, const List * list2);
+extern List * list_difference_oid(const List * list1, const List * list2);
 
-extern List *list_append_unique(List *list, void *datum);
-extern List *list_append_unique_ptr(List *list, void *datum);
-extern List *list_append_unique_int(List *list, int datum);
-extern List *list_append_unique_oid(List *list, Oid datum);
+extern List * list_append_unique(List * list, void *datum);
+extern List * list_append_unique_ptr(List * list, void *datum);
+extern List * list_append_unique_int(List * list, int datum);
+extern List * list_append_unique_oid(List * list, Oid datum);
 
-extern List *list_concat_unique(List *list1, List *list2);
-extern List *list_concat_unique_ptr(List *list1, List *list2);
-extern List *list_concat_unique_int(List *list1, List *list2);
-extern List *list_concat_unique_oid(List *list1, List *list2);
+extern List * list_concat_unique(List * list1, List * list2);
+extern List * list_concat_unique_ptr(List * list1, List * list2);
+extern List * list_concat_unique_int(List * list1, List * list2);
+extern List * list_concat_unique_oid(List * list1, List * list2);
 
-extern void list_free(List *list);
-extern void list_free_deep(List *list);
+extern void list_free(List * list);
+extern void list_free_deep(List * list);
 
-extern List *list_copy(const List *list);
-extern List *list_copy_tail(const List *list, int nskip);
+extern List * list_copy(const List * list);
+extern List * list_copy_tail(const List * list, int nskip);
 
 /*
  * To ease migration to the new list API, a set of compatibility
@@ -335,7 +335,7 @@ extern List *list_copy_tail(const List *list, int nskip);
 
 #define listCopy(list)				list_copy(list)
 
-extern int	length(List *list);
+extern int	length(List * list);
 #endif							/* ENABLE_LIST_COMPAT */
 
 #endif							/* PG_LIST_H */

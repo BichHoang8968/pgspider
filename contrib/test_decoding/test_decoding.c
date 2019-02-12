@@ -36,7 +36,7 @@ PG_MODULE_MAGIC;
 
 /* These must be available to pg_dlsym() */
 extern void _PG_init(void);
-extern void _PG_output_plugin_init(OutputPluginCallbacks *cb);
+extern void _PG_output_plugin_init(OutputPluginCallbacks * cb);
 
 typedef struct
 {
@@ -46,26 +46,26 @@ typedef struct
 	bool		skip_empty_xacts;
 	bool		xact_wrote_changes;
 	bool		only_local;
-} TestDecodingData;
+}			TestDecodingData;
 
-static void pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt,
+static void pg_decode_startup(LogicalDecodingContext * ctx, OutputPluginOptions * opt,
 				  bool is_init);
-static void pg_decode_shutdown(LogicalDecodingContext *ctx);
-static void pg_decode_begin_txn(LogicalDecodingContext *ctx,
-					ReorderBufferTXN *txn);
-static void pg_output_begin(LogicalDecodingContext *ctx,
-				TestDecodingData *data,
-				ReorderBufferTXN *txn,
+static void pg_decode_shutdown(LogicalDecodingContext * ctx);
+static void pg_decode_begin_txn(LogicalDecodingContext * ctx,
+					ReorderBufferTXN * txn);
+static void pg_output_begin(LogicalDecodingContext * ctx,
+				TestDecodingData * data,
+				ReorderBufferTXN * txn,
 				bool last_write);
-static void pg_decode_commit_txn(LogicalDecodingContext *ctx,
-					 ReorderBufferTXN *txn, XLogRecPtr commit_lsn);
-static void pg_decode_change(LogicalDecodingContext *ctx,
-				 ReorderBufferTXN *txn, Relation rel,
-				 ReorderBufferChange *change);
-static bool pg_decode_filter(LogicalDecodingContext *ctx,
+static void pg_decode_commit_txn(LogicalDecodingContext * ctx,
+					 ReorderBufferTXN * txn, XLogRecPtr commit_lsn);
+static void pg_decode_change(LogicalDecodingContext * ctx,
+				 ReorderBufferTXN * txn, Relation rel,
+				 ReorderBufferChange * change);
+static bool pg_decode_filter(LogicalDecodingContext * ctx,
 				 RepOriginId origin_id);
-static void pg_decode_message(LogicalDecodingContext *ctx,
-				  ReorderBufferTXN *txn, XLogRecPtr message_lsn,
+static void pg_decode_message(LogicalDecodingContext * ctx,
+				  ReorderBufferTXN * txn, XLogRecPtr message_lsn,
 				  bool transactional, const char *prefix,
 				  Size sz, const char *message);
 
@@ -77,7 +77,7 @@ _PG_init(void)
 
 /* specify output plugin callbacks */
 void
-_PG_output_plugin_init(OutputPluginCallbacks *cb)
+_PG_output_plugin_init(OutputPluginCallbacks * cb)
 {
 	AssertVariableIsOfType(&_PG_output_plugin_init, LogicalOutputPluginInit);
 
@@ -93,7 +93,7 @@ _PG_output_plugin_init(OutputPluginCallbacks *cb)
 
 /* initialize this plugin */
 static void
-pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt,
+pg_decode_startup(LogicalDecodingContext * ctx, OutputPluginOptions * opt,
 				  bool is_init)
 {
 	ListCell   *option;
@@ -189,7 +189,7 @@ pg_decode_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt,
 
 /* cleanup this plugin's resources */
 static void
-pg_decode_shutdown(LogicalDecodingContext *ctx)
+pg_decode_shutdown(LogicalDecodingContext * ctx)
 {
 	TestDecodingData *data = ctx->output_plugin_private;
 
@@ -199,7 +199,7 @@ pg_decode_shutdown(LogicalDecodingContext *ctx)
 
 /* BEGIN callback */
 static void
-pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
+pg_decode_begin_txn(LogicalDecodingContext * ctx, ReorderBufferTXN * txn)
 {
 	TestDecodingData *data = ctx->output_plugin_private;
 
@@ -211,7 +211,7 @@ pg_decode_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 }
 
 static void
-pg_output_begin(LogicalDecodingContext *ctx, TestDecodingData *data, ReorderBufferTXN *txn, bool last_write)
+pg_output_begin(LogicalDecodingContext * ctx, TestDecodingData * data, ReorderBufferTXN * txn, bool last_write)
 {
 	OutputPluginPrepareWrite(ctx, last_write);
 	if (data->include_xids)
@@ -223,7 +223,7 @@ pg_output_begin(LogicalDecodingContext *ctx, TestDecodingData *data, ReorderBuff
 
 /* COMMIT callback */
 static void
-pg_decode_commit_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
+pg_decode_commit_txn(LogicalDecodingContext * ctx, ReorderBufferTXN * txn,
 					 XLogRecPtr commit_lsn)
 {
 	TestDecodingData *data = ctx->output_plugin_private;
@@ -245,7 +245,7 @@ pg_decode_commit_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 }
 
 static bool
-pg_decode_filter(LogicalDecodingContext *ctx,
+pg_decode_filter(LogicalDecodingContext * ctx,
 				 RepOriginId origin_id)
 {
 	TestDecodingData *data = ctx->output_plugin_private;
@@ -392,8 +392,8 @@ tuple_to_stringinfo(StringInfo s, TupleDesc tupdesc, HeapTuple tuple, bool skip_
  * callback for individual changed tuples
  */
 static void
-pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
-				 Relation relation, ReorderBufferChange *change)
+pg_decode_change(LogicalDecodingContext * ctx, ReorderBufferTXN * txn,
+				 Relation relation, ReorderBufferChange * change)
 {
 	TestDecodingData *data;
 	Form_pg_class class_form;
@@ -477,8 +477,8 @@ pg_decode_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 }
 
 static void
-pg_decode_message(LogicalDecodingContext *ctx,
-				  ReorderBufferTXN *txn, XLogRecPtr lsn, bool transactional,
+pg_decode_message(LogicalDecodingContext * ctx,
+				  ReorderBufferTXN * txn, XLogRecPtr lsn, bool transactional,
 				  const char *prefix, Size sz, const char *message)
 {
 	OutputPluginPrepareWrite(ctx, true);

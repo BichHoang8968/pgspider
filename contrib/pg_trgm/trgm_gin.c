@@ -75,7 +75,7 @@ gin_extract_query_trgm(PG_FUNCTION_ARGS)
 	StrategyNumber strategy = PG_GETARG_UINT16(2);
 
 	/* bool   **pmatch = (bool **) PG_GETARG_POINTER(3); */
-	Pointer   **extra_data = (Pointer **) PG_GETARG_POINTER(4);
+	Pointer   **extra_data = (Pointer * *) PG_GETARG_POINTER(4);
 
 	/* bool   **nullFlags = (bool **) PG_GETARG_POINTER(5); */
 	int32	   *searchMode = (int32 *) PG_GETARG_POINTER(6);

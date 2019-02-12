@@ -26,11 +26,11 @@
 #include "plpy_main.h"
 
 
-static HTAB *PLy_procedure_cache = NULL;
+static HTAB * PLy_procedure_cache = NULL;
 
-static PLyProcedure *PLy_procedure_create(HeapTuple procTup, Oid fn_oid, bool is_trigger);
-static bool PLy_procedure_argument_valid(PLyTypeInfo *arg);
-static bool PLy_procedure_valid(PLyProcedure *proc, HeapTuple procTup);
+static PLyProcedure * PLy_procedure_create(HeapTuple procTup, Oid fn_oid, bool is_trigger);
+static bool PLy_procedure_argument_valid(PLyTypeInfo * arg);
+static bool PLy_procedure_valid(PLyProcedure * proc, HeapTuple procTup);
 static char *PLy_procedure_munge_source(const char *name, const char *src);
 
 
@@ -52,7 +52,7 @@ init_procedure_caches(void)
  * NB: this returns the SQL name, not the internal Python procedure name
  */
 char *
-PLy_procedure_name(PLyProcedure *proc)
+PLy_procedure_name(PLyProcedure * proc)
 {
 	if (proc == NULL)
 		return "<unknown procedure>";
@@ -365,7 +365,7 @@ PLy_procedure_create(HeapTuple procTup, Oid fn_oid, bool is_trigger)
  * Insert the procedure into the Python interpreter
  */
 void
-PLy_procedure_compile(PLyProcedure *proc, const char *src)
+PLy_procedure_compile(PLyProcedure * proc, const char *src)
 {
 	PyObject   *crv = NULL;
 	char	   *msrc;
@@ -414,7 +414,7 @@ PLy_procedure_compile(PLyProcedure *proc, const char *src)
 }
 
 void
-PLy_procedure_delete(PLyProcedure *proc)
+PLy_procedure_delete(PLyProcedure * proc)
 {
 	Py_XDECREF(proc->code);
 	Py_XDECREF(proc->statics);
@@ -426,7 +426,7 @@ PLy_procedure_delete(PLyProcedure *proc)
  * Check if our cached information about a datatype is still valid
  */
 static bool
-PLy_procedure_argument_valid(PLyTypeInfo *arg)
+PLy_procedure_argument_valid(PLyTypeInfo * arg)
 {
 	HeapTuple	relTup;
 	bool		valid;
@@ -465,7 +465,7 @@ PLy_procedure_argument_valid(PLyTypeInfo *arg)
  * Decide whether a cached PLyProcedure struct is still valid
  */
 static bool
-PLy_procedure_valid(PLyProcedure *proc, HeapTuple procTup)
+PLy_procedure_valid(PLyProcedure * proc, HeapTuple procTup)
 {
 	int			i;
 	bool		valid;

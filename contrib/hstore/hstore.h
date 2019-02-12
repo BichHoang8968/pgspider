@@ -18,7 +18,7 @@
 typedef struct
 {
 	uint32		entry;
-} HEntry;
+}			HEntry;
 
 #define HENTRY_ISFIRST 0x80000000
 #define HENTRY_ISNULL  0x40000000
@@ -46,7 +46,7 @@ typedef struct
 	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	uint32		size_;			/* flags and number of items in hstore */
 	/* array of HEntry follows */
-} HStore;
+}			HStore;
 
 /*
  * It's not possible to get more than 2^28 items into an hstore, so we reserve
@@ -147,7 +147,7 @@ typedef struct
 	} while (0)
 
 /* DatumGetHStoreP includes support for reading old-format hstore values */
-extern HStore *hstoreUpgrade(Datum orig);
+extern HStore * hstoreUpgrade(Datum orig);
 
 #define DatumGetHStoreP(d) hstoreUpgrade(d)
 
@@ -166,16 +166,16 @@ typedef struct
 	size_t		vallen;
 	bool		isnull;			/* value is null? */
 	bool		needfree;		/* need to pfree the value? */
-} Pairs;
+}			Pairs;
 
-extern int	hstoreUniquePairs(Pairs *a, int32 l, int32 *buflen);
-extern HStore *hstorePairs(Pairs *pairs, int32 pcount, int32 buflen);
+extern int	hstoreUniquePairs(Pairs * a, int32 l, int32 * buflen);
+extern HStore * hstorePairs(Pairs * pairs, int32 pcount, int32 buflen);
 
 extern size_t hstoreCheckKeyLen(size_t len);
 extern size_t hstoreCheckValLen(size_t len);
 
-extern int	hstoreFindKey(HStore *hs, int *lowbound, char *key, int keylen);
-extern Pairs *hstoreArrayToPairs(ArrayType *a, int *npairs);
+extern int	hstoreFindKey(HStore * hs, int *lowbound, char *key, int keylen);
+extern Pairs * hstoreArrayToPairs(ArrayType * a, int *npairs);
 
 #define HStoreContainsStrategyNumber	7
 #define HStoreExistsStrategyNumber		9

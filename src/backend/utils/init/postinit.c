@@ -64,7 +64,7 @@
 
 static HeapTuple GetDatabaseTuple(const char *dbname);
 static HeapTuple GetDatabaseTupleByOid(Oid dboid);
-static void PerformAuthentication(Port *port);
+static void PerformAuthentication(Port * port);
 static void CheckMyDatabase(const char *name, bool am_superuser);
 static void InitCommunication(void);
 static void ShutdownPostgres(int code, Datum arg);
@@ -72,7 +72,7 @@ static void StatementTimeoutHandler(void);
 static void LockTimeoutHandler(void);
 static void IdleInTransactionSessionTimeoutHandler(void);
 static bool ThereIsAtLeastOneRole(void);
-static void process_startup_options(Port *port, bool am_superuser);
+static void process_startup_options(Port * port, bool am_superuser);
 static void process_settings(Oid databaseid, Oid roleid);
 
 
@@ -180,7 +180,7 @@ GetDatabaseTupleByOid(Oid dboid)
  * returns: nothing.  Will not return at all if there's any failure.
  */
 static void
-PerformAuthentication(Port *port)
+PerformAuthentication(Port * port)
 {
 	/* This should be set already, but let's make sure */
 	ClientAuthInProgress = true;	/* limit visibility of log messages */
@@ -1041,7 +1041,7 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
  * settings passed in the startup packet.
  */
 static void
-process_startup_options(Port *port, bool am_superuser)
+process_startup_options(Port * port, bool am_superuser)
 {
 	GucContext	gucctx;
 	ListCell   *gucopts;

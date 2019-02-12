@@ -34,7 +34,7 @@ typedef struct
 	MemoryContext tmpCtx;
 	MemoryContext funcCtx;
 	BuildAccumulator accum;
-} GinBuildState;
+}			GinBuildState;
 
 
 /*
@@ -45,10 +45,10 @@ typedef struct
  * items[] must be in sorted order with no duplicates.
  */
 static IndexTuple
-addItemPointersToLeafTuple(GinState *ginstate,
+addItemPointersToLeafTuple(GinState * ginstate,
 						   IndexTuple old,
-						   ItemPointerData *items, uint32 nitem,
-						   GinStatsData *buildStats)
+						   ItemPointerData * items, uint32 nitem,
+						   GinStatsData * buildStats)
 {
 	OffsetNumber attnum;
 	Datum		key;
@@ -124,10 +124,10 @@ addItemPointersToLeafTuple(GinState *ginstate,
  * but working from slightly different input.
  */
 static IndexTuple
-buildFreshLeafTuple(GinState *ginstate,
+buildFreshLeafTuple(GinState * ginstate,
 					OffsetNumber attnum, Datum key, GinNullCategory category,
-					ItemPointerData *items, uint32 nitem,
-					GinStatsData *buildStats)
+					ItemPointerData * items, uint32 nitem,
+					GinStatsData * buildStats)
 {
 	IndexTuple	res = NULL;
 	GinPostingList *compressedList;
@@ -174,10 +174,10 @@ buildFreshLeafTuple(GinState *ginstate,
  * it contains should be incremented as needed.
  */
 void
-ginEntryInsert(GinState *ginstate,
+ginEntryInsert(GinState * ginstate,
 			   OffsetNumber attnum, Datum key, GinNullCategory category,
-			   ItemPointerData *items, uint32 nitem,
-			   GinStatsData *buildStats)
+			   ItemPointerData * items, uint32 nitem,
+			   GinStatsData * buildStats)
 {
 	GinBtreeData btree;
 	GinBtreeEntryInsertData insertdata;
@@ -243,7 +243,7 @@ ginEntryInsert(GinState *ginstate,
  * This function is used only during initial index creation.
  */
 static void
-ginHeapTupleBulkInsert(GinBuildState *buildstate, OffsetNumber attnum,
+ginHeapTupleBulkInsert(GinBuildState * buildstate, OffsetNumber attnum,
 					   Datum value, bool isNull,
 					   ItemPointer heapptr)
 {
@@ -267,7 +267,7 @@ ginHeapTupleBulkInsert(GinBuildState *buildstate, OffsetNumber attnum,
 }
 
 static void
-ginBuildCallback(Relation index, HeapTuple htup, Datum *values,
+ginBuildCallback(Relation index, HeapTuple htup, Datum * values,
 				 bool *isnull, bool tupleIsAlive, void *state)
 {
 	GinBuildState *buildstate = (GinBuildState *) state;
@@ -308,7 +308,7 @@ ginBuildCallback(Relation index, HeapTuple htup, Datum *values,
 }
 
 IndexBuildResult *
-ginbuild(Relation heap, Relation index, IndexInfo *indexInfo)
+ginbuild(Relation heap, Relation index, IndexInfo * indexInfo)
 {
 	IndexBuildResult *result;
 	double		reltuples;
@@ -463,7 +463,7 @@ ginbuildempty(Relation index)
  * (non-fast-update) insertion
  */
 static void
-ginHeapTupleInsert(GinState *ginstate, OffsetNumber attnum,
+ginHeapTupleInsert(GinState * ginstate, OffsetNumber attnum,
 				   Datum value, bool isNull,
 				   ItemPointer item)
 {
@@ -481,10 +481,10 @@ ginHeapTupleInsert(GinState *ginstate, OffsetNumber attnum,
 }
 
 bool
-gininsert(Relation index, Datum *values, bool *isnull,
+gininsert(Relation index, Datum * values, bool *isnull,
 		  ItemPointer ht_ctid, Relation heapRel,
 		  IndexUniqueCheck checkUnique,
-		  IndexInfo *indexInfo)
+		  IndexInfo * indexInfo)
 {
 	GinState   *ginstate = (GinState *) indexInfo->ii_AmCache;
 	MemoryContext oldCtx;

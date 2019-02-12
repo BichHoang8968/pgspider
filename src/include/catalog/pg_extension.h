@@ -48,7 +48,7 @@ CATALOG(pg_extension,3079)
  *		the format of pg_extension relation.
  * ----------------
  */
-typedef FormData_pg_extension *Form_pg_extension;
+typedef FormData_pg_extension * Form_pg_extension;
 
 /* ----------------
  *		compiler constants for pg_extension

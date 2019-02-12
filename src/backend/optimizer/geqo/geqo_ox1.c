@@ -44,7 +44,7 @@
  *	 position crossover
  */
 void
-ox1(PlannerInfo *root, Gene *tour1, Gene *tour2, Gene *offspring, int num_gene,
+ox1(PlannerInfo * root, Gene * tour1, Gene * tour2, Gene * offspring, int num_gene,
 	City * city_table)
 {
 	int			left,

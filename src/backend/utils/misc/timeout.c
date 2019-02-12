@@ -35,7 +35,7 @@ typedef struct timeout_params
 
 	TimestampTz start_time;		/* time that timeout was last activated */
 	TimestampTz fin_time;		/* time it is, or was last, due to fire */
-} timeout_params;
+}			timeout_params;
 
 /*
  * List of possible timeout reasons in the order of enum TimeoutId.
@@ -48,7 +48,7 @@ static bool all_timeouts_initialized = false;
  * This list is subject to change by the interrupt handler, so it's volatile.
  */
 static volatile int num_active_timeouts = 0;
-static timeout_params *volatile active_timeouts[MAX_TIMEOUTS];
+static timeout_params * volatile active_timeouts[MAX_TIMEOUTS];
 
 /*
  * Flag controlling whether the signal handler is allowed to do anything.
@@ -473,7 +473,7 @@ enable_timeout_at(TimeoutId id, TimestampTz fin_time)
  * and setitimer() calls needed to establish multiple timeouts.
  */
 void
-enable_timeouts(const EnableTimeoutParams *timeouts, int count)
+enable_timeouts(const EnableTimeoutParams * timeouts, int count)
 {
 	TimestampTz now;
 	int			i;
@@ -558,7 +558,7 @@ disable_timeout(TimeoutId id, bool keep_indicator)
  * and setitimer() calls needed to cancel multiple timeouts.
  */
 void
-disable_timeouts(const DisableTimeoutParams *timeouts, int count)
+disable_timeouts(const DisableTimeoutParams * timeouts, int count)
 {
 	int			i;
 

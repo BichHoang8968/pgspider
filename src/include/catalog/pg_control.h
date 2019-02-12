@@ -61,7 +61,7 @@ typedef struct CheckPoint
 	 * set to InvalidTransactionId.
 	 */
 	TransactionId oldestActiveXid;
-} CheckPoint;
+}			CheckPoint;
 
 /* XLOG info values for XLOG rmgr */
 #define XLOG_CHECKPOINT_SHUTDOWN		0x00
@@ -91,7 +91,7 @@ typedef enum DBState
 	DB_IN_CRASH_RECOVERY,
 	DB_IN_ARCHIVE_RECOVERY,
 	DB_IN_PRODUCTION
-} DBState;
+}			DBState;
 
 /*
  * Contents of pg_control.
@@ -230,7 +230,7 @@ typedef struct ControlFileData
 
 	/* CRC of all above ... MUST BE LAST! */
 	pg_crc32c	crc;
-} ControlFileData;
+}			ControlFileData;
 
 /*
  * Maximum safe value of sizeof(ControlFileData).  For reliability's sake,

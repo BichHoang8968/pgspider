@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 3.0.2.  */
+/* A Bison parser, made by GNU Bison 3.0.4.  */
 
 /* Bison implementation for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2013 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@
 #define YYBISON 1
 
 /* Bison version.  */
-#define YYBISON_VERSION "3.0.2"
+#define YYBISON_VERSION "3.0.4"
 
 /* Skeleton name.  */
 #define YYSKELETON_NAME "yacc.c"
@@ -234,7 +234,7 @@ extern int boot_yydebug;
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef union YYSTYPE YYSTYPE;
+
 union YYSTYPE
 {
 #line 104 "bootparse.y" /* yacc.c:355  */
@@ -247,6 +247,8 @@ union YYSTYPE
 
 #line 249 "bootparse.c" /* yacc.c:355  */
 };
+
+typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif
@@ -260,7 +262,7 @@ int boot_yyparse (void);
 
 /* Copy the second part of user declarations.  */
 
-#line 264 "bootparse.c" /* yacc.c:358  */
+#line 266 "bootparse.c" /* yacc.c:358  */
 
 #ifdef short
 # undef short
@@ -1408,7 +1410,7 @@ yyreduce:
 					boot_openrel((yyvsp[0].str));
 					do_end();
 				}
-#line 1412 "bootparse.c" /* yacc.c:1646  */
+#line 1414 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 15:
@@ -1418,7 +1420,7 @@ yyreduce:
 					closerel((yyvsp[0].str));
 					do_end();
 				}
-#line 1422 "bootparse.c" /* yacc.c:1646  */
+#line 1424 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 16:
@@ -1428,7 +1430,7 @@ yyreduce:
 					closerel(NULL);
 					do_end();
 				}
-#line 1432 "bootparse.c" /* yacc.c:1646  */
+#line 1434 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 17:
@@ -1442,7 +1444,7 @@ yyreduce:
 						 (yyvsp[-6].str),
 						 (yyvsp[-5].oidval));
 				}
-#line 1446 "bootparse.c" /* yacc.c:1646  */
+#line 1448 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 18:
@@ -1450,7 +1452,7 @@ yyreduce:
     {
 					do_end();
 				}
-#line 1454 "bootparse.c" /* yacc.c:1646  */
+#line 1456 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 19:
@@ -1527,7 +1529,7 @@ yyreduce:
 					}
 					do_end();
 				}
-#line 1531 "bootparse.c" /* yacc.c:1646  */
+#line 1533 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 20:
@@ -1540,7 +1542,7 @@ yyreduce:
 						elog(DEBUG4, "inserting row");
 					num_columns_read = 0;
 				}
-#line 1544 "bootparse.c" /* yacc.c:1646  */
+#line 1546 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 21:
@@ -1554,7 +1556,7 @@ yyreduce:
 					InsertOneTuple((yyvsp[-4].oidval));
 					do_end();
 				}
-#line 1558 "bootparse.c" /* yacc.c:1646  */
+#line 1560 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 22:
@@ -1599,7 +1601,7 @@ yyreduce:
 								false);
 					do_end();
 				}
-#line 1603 "bootparse.c" /* yacc.c:1646  */
+#line 1605 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 23:
@@ -1644,7 +1646,7 @@ yyreduce:
 								false);
 					do_end();
 				}
-#line 1648 "bootparse.c" /* yacc.c:1646  */
+#line 1650 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 24:
@@ -1655,7 +1657,7 @@ yyreduce:
 					BootstrapToastTable((yyvsp[0].str), (yyvsp[-3].oidval), (yyvsp[-2].oidval));
 					do_end();
 				}
-#line 1659 "bootparse.c" /* yacc.c:1646  */
+#line 1661 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 25:
@@ -1665,19 +1667,19 @@ yyreduce:
 					build_indices();
 					do_end();
 				}
-#line 1669 "bootparse.c" /* yacc.c:1646  */
+#line 1671 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 26:
 #line 398 "bootparse.y" /* yacc.c:1646  */
     { (yyval.list) = lappend((yyvsp[-2].list), (yyvsp[0].ielem)); }
-#line 1675 "bootparse.c" /* yacc.c:1646  */
+#line 1677 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 27:
 #line 399 "bootparse.y" /* yacc.c:1646  */
     { (yyval.list) = list_make1((yyvsp[0].ielem)); }
-#line 1681 "bootparse.c" /* yacc.c:1646  */
+#line 1683 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 28:
@@ -1693,55 +1695,55 @@ yyreduce:
 					n->nulls_ordering = SORTBY_NULLS_DEFAULT;
 					(yyval.ielem) = n;
 				}
-#line 1697 "bootparse.c" /* yacc.c:1646  */
+#line 1699 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 29:
 #line 418 "bootparse.y" /* yacc.c:1646  */
     { (yyval.ival) = 1; }
-#line 1703 "bootparse.c" /* yacc.c:1646  */
+#line 1705 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 30:
 #line 419 "bootparse.y" /* yacc.c:1646  */
     { (yyval.ival) = 0; }
-#line 1709 "bootparse.c" /* yacc.c:1646  */
+#line 1711 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 31:
 #line 423 "bootparse.y" /* yacc.c:1646  */
     { (yyval.ival) = 1; }
-#line 1715 "bootparse.c" /* yacc.c:1646  */
+#line 1717 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 32:
 #line 424 "bootparse.y" /* yacc.c:1646  */
     { (yyval.ival) = 0; }
-#line 1721 "bootparse.c" /* yacc.c:1646  */
+#line 1723 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 33:
 #line 428 "bootparse.y" /* yacc.c:1646  */
     { (yyval.ival) = 1; }
-#line 1727 "bootparse.c" /* yacc.c:1646  */
+#line 1729 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 34:
 #line 429 "bootparse.y" /* yacc.c:1646  */
     { (yyval.ival) = 0; }
-#line 1733 "bootparse.c" /* yacc.c:1646  */
+#line 1735 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 35:
 #line 433 "bootparse.y" /* yacc.c:1646  */
     { (yyval.oidval) = (yyvsp[0].oidval); }
-#line 1739 "bootparse.c" /* yacc.c:1646  */
+#line 1741 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 36:
 #line 434 "bootparse.y" /* yacc.c:1646  */
     { (yyval.oidval) = InvalidOid; }
-#line 1745 "bootparse.c" /* yacc.c:1646  */
+#line 1747 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 39:
@@ -1751,65 +1753,65 @@ yyreduce:
 						elog(FATAL, "too many columns");
 				   DefineAttr((yyvsp[-3].str), (yyvsp[-1].str), numattr-1, (yyvsp[0].ival));
 				}
-#line 1755 "bootparse.c" /* yacc.c:1646  */
+#line 1757 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 40:
 #line 452 "bootparse.y" /* yacc.c:1646  */
     { (yyval.ival) = BOOTCOL_NULL_FORCE_NOT_NULL; }
-#line 1761 "bootparse.c" /* yacc.c:1646  */
+#line 1763 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 41:
 #line 453 "bootparse.y" /* yacc.c:1646  */
     {  (yyval.ival) = BOOTCOL_NULL_FORCE_NULL; }
-#line 1767 "bootparse.c" /* yacc.c:1646  */
+#line 1769 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 42:
 #line 454 "bootparse.y" /* yacc.c:1646  */
     { (yyval.ival) = BOOTCOL_NULL_AUTO; }
-#line 1773 "bootparse.c" /* yacc.c:1646  */
+#line 1775 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 43:
 #line 458 "bootparse.y" /* yacc.c:1646  */
     { (yyval.oidval) = atooid((yyvsp[0].str)); }
-#line 1779 "bootparse.c" /* yacc.c:1646  */
+#line 1781 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 44:
 #line 462 "bootparse.y" /* yacc.c:1646  */
     { (yyval.oidval) = (yyvsp[0].oidval); }
-#line 1785 "bootparse.c" /* yacc.c:1646  */
+#line 1787 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 45:
 #line 463 "bootparse.y" /* yacc.c:1646  */
     { (yyval.oidval) = InvalidOid; }
-#line 1791 "bootparse.c" /* yacc.c:1646  */
+#line 1793 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 49:
 #line 474 "bootparse.y" /* yacc.c:1646  */
     { InsertOneValue((yyvsp[0].str), num_columns_read++); }
-#line 1797 "bootparse.c" /* yacc.c:1646  */
+#line 1799 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 50:
 #line 476 "bootparse.y" /* yacc.c:1646  */
     { InsertOneNull(num_columns_read++); }
-#line 1803 "bootparse.c" /* yacc.c:1646  */
+#line 1805 "bootparse.c" /* yacc.c:1646  */
     break;
 
   case 51:
 #line 480 "bootparse.y" /* yacc.c:1646  */
     { (yyval.str) = yylval.str; }
-#line 1809 "bootparse.c" /* yacc.c:1646  */
+#line 1811 "bootparse.c" /* yacc.c:1646  */
     break;
 
 
-#line 1813 "bootparse.c" /* yacc.c:1646  */
+#line 1815 "bootparse.c" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires

@@ -64,8 +64,8 @@
  * get_flat_size twice, so it's worthwhile to make sure that that doesn't
  * incur too much overhead.
  */
-typedef Size (*EOM_get_flat_size_method) (ExpandedObjectHeader *eohptr);
-typedef void (*EOM_flatten_into_method) (ExpandedObjectHeader *eohptr,
+typedef Size(*EOM_get_flat_size_method) (ExpandedObjectHeader * eohptr);
+typedef void (*EOM_flatten_into_method) (ExpandedObjectHeader * eohptr,
 										 void *result, Size allocated_size);
 
 /* Struct of function pointers for an expanded object's methods */
@@ -73,7 +73,7 @@ typedef struct ExpandedObjectMethods
 {
 	EOM_get_flat_size_method get_flat_size;
 	EOM_flatten_into_method flatten_into;
-} ExpandedObjectMethods;
+}			ExpandedObjectMethods;
 
 /*
  * Every expanded object must contain this header; typically the header
@@ -101,7 +101,7 @@ struct ExpandedObjectHeader
 	int32		vl_len_;		/* always EOH_HEADER_MAGIC, see below */
 
 	/* Pointer to methods required for object type */
-	const ExpandedObjectMethods *eoh_methods;
+	const		ExpandedObjectMethods *eoh_methods;
 
 	/* Memory context containing this header and subsidiary data */
 	MemoryContext eoh_context;
@@ -145,12 +145,12 @@ struct ExpandedObjectHeader
 	(((isnull) || (typlen) != -1) ? (d) : \
 	 MakeExpandedObjectReadOnlyInternal(d))
 
-extern ExpandedObjectHeader *DatumGetEOHP(Datum d);
-extern void EOH_init_header(ExpandedObjectHeader *eohptr,
-				const ExpandedObjectMethods *methods,
+extern ExpandedObjectHeader * DatumGetEOHP(Datum d);
+extern void EOH_init_header(ExpandedObjectHeader * eohptr,
+				const ExpandedObjectMethods * methods,
 				MemoryContext obj_context);
-extern Size EOH_get_flat_size(ExpandedObjectHeader *eohptr);
-extern void EOH_flatten_into(ExpandedObjectHeader *eohptr,
+extern Size EOH_get_flat_size(ExpandedObjectHeader * eohptr);
+extern void EOH_flatten_into(ExpandedObjectHeader * eohptr,
 				 void *result, Size allocated_size);
 extern Datum MakeExpandedObjectReadOnlyInternal(Datum d);
 extern Datum TransferExpandedObject(Datum d, MemoryContext new_parent);

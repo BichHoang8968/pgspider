@@ -27,8 +27,8 @@
 #include "utils/syscache.h"
 
 
-static int32 typenameTypeMod(ParseState *pstate, const TypeName *typeName,
-				Type typ);
+static int32 typenameTypeMod(ParseState * pstate, const TypeName * typeName,
+							 Type typ);
 
 
 /*
@@ -54,8 +54,8 @@ static int32 typenameTypeMod(ParseState *pstate, const TypeName *typeName,
  * pstate is only used for error location info, and may be NULL.
  */
 Type
-LookupTypeName(ParseState *pstate, const TypeName *typeName,
-			   int32 *typmod_p, bool missing_ok)
+LookupTypeName(ParseState * pstate, const TypeName * typeName,
+			   int32 * typmod_p, bool missing_ok)
 {
 	Oid			typoid;
 	HeapTuple	tup;
@@ -212,7 +212,7 @@ LookupTypeName(ParseState *pstate, const TypeName *typeName,
  * pstate is only used for error location info, and may be NULL.
  */
 Oid
-LookupTypeNameOid(ParseState *pstate, const TypeName *typeName, bool missing_ok)
+LookupTypeNameOid(ParseState * pstate, const TypeName * typeName, bool missing_ok)
 {
 	Oid			typoid;
 	Type		tup;
@@ -244,7 +244,7 @@ LookupTypeNameOid(ParseState *pstate, const TypeName *typeName, bool missing_ok)
  * Callers of this can therefore assume the result is a fully valid type.
  */
 Type
-typenameType(ParseState *pstate, const TypeName *typeName, int32 *typmod_p)
+typenameType(ParseState * pstate, const TypeName * typeName, int32 * typmod_p)
 {
 	Type		tup;
 
@@ -271,7 +271,7 @@ typenameType(ParseState *pstate, const TypeName *typeName, int32 *typmod_p)
  * not the syscache entry.
  */
 Oid
-typenameTypeId(ParseState *pstate, const TypeName *typeName)
+typenameTypeId(ParseState * pstate, const TypeName * typeName)
 {
 	Oid			typoid;
 	Type		tup;
@@ -290,8 +290,8 @@ typenameTypeId(ParseState *pstate, const TypeName *typeName)
  * and typmod, not the syscache entry.
  */
 void
-typenameTypeIdAndMod(ParseState *pstate, const TypeName *typeName,
-					 Oid *typeid_p, int32 *typmod_p)
+typenameTypeIdAndMod(ParseState * pstate, const TypeName * typeName,
+					 Oid * typeid_p, int32 * typmod_p)
 {
 	Type		tup;
 
@@ -312,7 +312,7 @@ typenameTypeIdAndMod(ParseState *pstate, const TypeName *typeName,
  * pstate is only used for error location info, and may be NULL.
  */
 static int32
-typenameTypeMod(ParseState *pstate, const TypeName *typeName, Type typ)
+typenameTypeMod(ParseState * pstate, const TypeName * typeName, Type typ)
 {
 	int32		result;
 	Oid			typmodin;
@@ -417,7 +417,7 @@ typenameTypeMod(ParseState *pstate, const TypeName *typeName, Type typ)
  * it is mostly used for reporting lookup errors.
  */
 static void
-appendTypeNameToBuffer(const TypeName *typeName, StringInfo string)
+appendTypeNameToBuffer(const TypeName * typeName, StringInfo string)
 {
 	if (typeName->names != NIL)
 	{
@@ -456,7 +456,7 @@ appendTypeNameToBuffer(const TypeName *typeName, StringInfo string)
  * it is mostly used for reporting lookup errors.
  */
 char *
-TypeNameToString(const TypeName *typeName)
+TypeNameToString(const TypeName * typeName)
 {
 	StringInfoData string;
 
@@ -470,7 +470,7 @@ TypeNameToString(const TypeName *typeName)
  *		Produce a string representing the name(s) of a List of TypeNames
  */
 char *
-TypeNameListToString(List *typenames)
+TypeNameListToString(List * typenames)
 {
 	StringInfoData string;
 	ListCell   *l;
@@ -493,7 +493,7 @@ TypeNameListToString(List *typenames)
  * Look up collation by name, return OID, with support for error location.
  */
 Oid
-LookupCollation(ParseState *pstate, List *collnames, int location)
+LookupCollation(ParseState * pstate, List * collnames, int location)
 {
 	Oid			colloid;
 	ParseCallbackState pcbstate;
@@ -518,7 +518,7 @@ LookupCollation(ParseState *pstate, List *collnames, int location)
  * pstate is only used for error location purposes, and can be NULL.
  */
 Oid
-GetColumnDefCollation(ParseState *pstate, ColumnDef *coldef, Oid typeOid)
+GetColumnDefCollation(ParseState * pstate, ColumnDef * coldef, Oid typeOid)
 {
 	Oid			result;
 	Oid			typcollation = get_typcollation(typeOid);
@@ -778,7 +778,7 @@ fail:
  * when the type name is not found.
  */
 void
-parseTypeString(const char *str, Oid *typeid_p, int32 *typmod_p, bool missing_ok)
+parseTypeString(const char *str, Oid * typeid_p, int32 * typmod_p, bool missing_ok)
 {
 	TypeName   *typeName;
 	Type		tup;

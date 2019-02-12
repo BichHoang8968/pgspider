@@ -30,14 +30,14 @@ typedef enum
 								 * blocks based on the parsed WAL) */
 	FILE_ACTION_TRUNCATE,		/* truncate local file to 'newsize' bytes */
 	FILE_ACTION_REMOVE			/* remove local file / directory / symlink */
-} file_action_t;
+}			file_action_t;
 
 typedef enum
 {
 	FILE_TYPE_REGULAR,
 	FILE_TYPE_DIRECTORY,
 	FILE_TYPE_SYMLINK
-} file_type_t;
+}			file_type_t;
 
 typedef struct file_entry_t
 {
@@ -57,7 +57,7 @@ typedef struct file_entry_t
 	char	   *link_target;
 
 	struct file_entry_t *next;
-} file_entry_t;
+}			file_entry_t;
 
 typedef struct filemap_t
 {
@@ -85,9 +85,9 @@ typedef struct filemap_t
 	 */
 	uint64		total_size;
 	uint64		fetch_size;
-} filemap_t;
+}			filemap_t;
 
-extern filemap_t *filemap;
+extern filemap_t * filemap;
 
 extern void filemap_create(void);
 extern void calculate_totals(void);

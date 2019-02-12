@@ -61,8 +61,8 @@
 #include "executor/nodeAppend.h"
 #include "miscadmin.h"
 
-static TupleTableSlot *ExecAppend(PlanState *pstate);
-static bool exec_append_initialize_next(AppendState *appendstate);
+static TupleTableSlot * ExecAppend(PlanState * pstate);
+static bool exec_append_initialize_next(AppendState * appendstate);
 
 
 /* ----------------------------------------------------------------
@@ -74,7 +74,7 @@ static bool exec_append_initialize_next(AppendState *appendstate);
  * ----------------------------------------------------------------
  */
 static bool
-exec_append_initialize_next(AppendState *appendstate)
+exec_append_initialize_next(AppendState * appendstate)
 {
 	int			whichplan;
 
@@ -119,7 +119,7 @@ exec_append_initialize_next(AppendState *appendstate)
  * ----------------------------------------------------------------
  */
 AppendState *
-ExecInitAppend(Append *node, EState *estate, int eflags)
+ExecInitAppend(Append * node, EState * estate, int eflags)
 {
 	AppendState *appendstate = makeNode(AppendState);
 	PlanState **appendplanstates;
@@ -141,7 +141,7 @@ ExecInitAppend(Append *node, EState *estate, int eflags)
 	 */
 	nplans = list_length(node->appendplans);
 
-	appendplanstates = (PlanState **) palloc0(nplans * sizeof(PlanState *));
+	appendplanstates = (PlanState * *) palloc0(nplans * sizeof(PlanState *));
 
 	/*
 	 * create new AppendState for our append node
@@ -200,7 +200,7 @@ ExecInitAppend(Append *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecAppend(PlanState *pstate)
+ExecAppend(PlanState * pstate)
 {
 	AppendState *node = castNode(AppendState, pstate);
 
@@ -256,7 +256,7 @@ ExecAppend(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 void
-ExecEndAppend(AppendState *node)
+ExecEndAppend(AppendState * node)
 {
 	PlanState **appendplans;
 	int			nplans;
@@ -276,7 +276,7 @@ ExecEndAppend(AppendState *node)
 }
 
 void
-ExecReScanAppend(AppendState *node)
+ExecReScanAppend(AppendState * node)
 {
 	int			i;
 

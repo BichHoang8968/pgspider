@@ -13,7 +13,7 @@ typedef struct
 	macaddr		lower;
 	macaddr		upper;
 	char		pad[4];			/* make struct size = sizeof(gbtreekey16) */
-} macKEY;
+}			macKEY;
 
 /*
 ** OID ops
@@ -28,37 +28,37 @@ PG_FUNCTION_INFO_V1(gbt_macad_same);
 
 
 static bool
-gbt_macadgt(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_macadgt(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return DatumGetBool(DirectFunctionCall2(macaddr_gt, PointerGetDatum(a), PointerGetDatum(b)));
 }
 static bool
-gbt_macadge(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_macadge(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return DatumGetBool(DirectFunctionCall2(macaddr_ge, PointerGetDatum(a), PointerGetDatum(b)));
 }
 
 static bool
-gbt_macadeq(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_macadeq(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return DatumGetBool(DirectFunctionCall2(macaddr_eq, PointerGetDatum(a), PointerGetDatum(b)));
 }
 
 static bool
-gbt_macadle(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_macadle(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return DatumGetBool(DirectFunctionCall2(macaddr_le, PointerGetDatum(a), PointerGetDatum(b)));
 }
 
 static bool
-gbt_macadlt(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_macadlt(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	return DatumGetBool(DirectFunctionCall2(macaddr_lt, PointerGetDatum(a), PointerGetDatum(b)));
 }
 
 
 static int
-gbt_macadkey_cmp(const void *a, const void *b, FmgrInfo *flinfo)
+gbt_macadkey_cmp(const void *a, const void *b, FmgrInfo * flinfo)
 {
 	macKEY	   *ia = (macKEY *) (((const Nsrt *) a)->t);
 	macKEY	   *ib = (macKEY *) (((const Nsrt *) b)->t);
@@ -94,7 +94,7 @@ static const gbtree_ninfo tinfo =
 
 
 static uint64
-mac_2_uint64(macaddr *m)
+mac_2_uint64(macaddr * m)
 {
 	unsigned char *mi = (unsigned char *) m;
 	uint64		res = 0;
@@ -138,8 +138,8 @@ gbt_macad_consistent(PG_FUNCTION_ARGS)
 	/* All cases served by this function are exact */
 	*recheck = false;
 
-	key.lower = (GBT_NUMKEY *) &kkk->lower;
-	key.upper = (GBT_NUMKEY *) &kkk->upper;
+	key.lower = (GBT_NUMKEY *) & kkk->lower;
+	key.upper = (GBT_NUMKEY *) & kkk->upper;
 
 	PG_RETURN_BOOL(
 				   gbt_num_consistent(&key, (void *) query, &strategy, GIST_LEAF(entry), &tinfo, fcinfo->flinfo)

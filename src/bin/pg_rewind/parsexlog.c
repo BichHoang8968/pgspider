@@ -36,7 +36,7 @@ static const char *RmgrNames[RM_MAX_ID + 1] = {
 #include "access/rmgrlist.h"
 };
 
-static void extractPageInfo(XLogReaderState *record);
+static void extractPageInfo(XLogReaderState * record);
 
 static int	xlogreadfd = -1;
 static XLogSegNo xlogreadsegno = -1;
@@ -46,12 +46,12 @@ typedef struct XLogPageReadPrivate
 {
 	const char *datadir;
 	int			tliIndex;
-} XLogPageReadPrivate;
+}			XLogPageReadPrivate;
 
-static int SimpleXLogPageRead(XLogReaderState *xlogreader,
+static int SimpleXLogPageRead(XLogReaderState * xlogreader,
 				   XLogRecPtr targetPagePtr,
 				   int reqLen, XLogRecPtr targetRecPtr, char *readBuf,
-				   TimeLineID *pageTLI);
+				   TimeLineID * pageTLI);
 
 /*
  * Read WAL from the datadir/pg_wal, starting from 'startpoint' on timeline
@@ -153,8 +153,8 @@ readOneRecord(const char *datadir, XLogRecPtr ptr, int tliIndex)
  */
 void
 findLastCheckpoint(const char *datadir, XLogRecPtr forkptr, int tliIndex,
-				   XLogRecPtr *lastchkptrec, TimeLineID *lastchkpttli,
-				   XLogRecPtr *lastchkptredo)
+				   XLogRecPtr * lastchkptrec, TimeLineID * lastchkpttli,
+				   XLogRecPtr * lastchkptredo)
 {
 	/* Walk backwards, starting from the given record */
 	XLogRecord *record;
@@ -230,9 +230,9 @@ findLastCheckpoint(const char *datadir, XLogRecPtr forkptr, int tliIndex,
 
 /* XLogreader callback function, to read a WAL page */
 static int
-SimpleXLogPageRead(XLogReaderState *xlogreader, XLogRecPtr targetPagePtr,
+SimpleXLogPageRead(XLogReaderState * xlogreader, XLogRecPtr targetPagePtr,
 				   int reqLen, XLogRecPtr targetRecPtr, char *readBuf,
-				   TimeLineID *pageTLI)
+				   TimeLineID * pageTLI)
 {
 	XLogPageReadPrivate *private = (XLogPageReadPrivate *) xlogreader->private_data;
 	uint32		targetPageOff;
@@ -316,7 +316,7 @@ SimpleXLogPageRead(XLogReaderState *xlogreader, XLogRecPtr targetPagePtr,
  * Extract information on which blocks the current record modifies.
  */
 static void
-extractPageInfo(XLogReaderState *record)
+extractPageInfo(XLogReaderState * record)
 {
 	int			block_id;
 	RmgrId		rmid = XLogRecGetRmid(record);

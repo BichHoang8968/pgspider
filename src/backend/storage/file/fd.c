@@ -187,14 +187,14 @@ typedef struct vfd
 	/* NB: fileName is malloc'd, and must be free'd when closing the VFD */
 	int			fileFlags;		/* open(2) flags for (re)opening the file */
 	int			fileMode;		/* mode to pass to open(2) */
-} Vfd;
+}			Vfd;
 
 /*
  * Virtual File Descriptor array pointer and size.  This grows as
  * needed.  'File' values are indexes into this array.
  * Note that VfdCache[0] is not a usable VFD, just a list header.
  */
-static Vfd *VfdCache;
+static Vfd * VfdCache;
 static Size SizeVfdCache = 0;
 
 /*
@@ -226,7 +226,7 @@ typedef enum
 	AllocateDescPipe,
 	AllocateDescDir,
 	AllocateDescRawFD
-} AllocateDescKind;
+}			AllocateDescKind;
 
 typedef struct
 {
@@ -238,11 +238,11 @@ typedef struct
 		DIR		   *dir;
 		int			fd;
 	}			desc;
-} AllocateDesc;
+}			AllocateDesc;
 
 static int	numAllocatedDescs = 0;
 static int	maxAllocatedDescs = 0;
-static AllocateDesc *allocatedDescs = NULL;
+static AllocateDesc * allocatedDescs = NULL;
 
 /*
  * Number of temporary files opened during the current session;
@@ -254,7 +254,7 @@ static long tempFileCounter = 0;
  * Array of OIDs of temp tablespaces.  When numTempTableSpaces is -1,
  * this has not been set in the current transaction.
  */
-static Oid *tempTableSpaces = NULL;
+static Oid * tempTableSpaces = NULL;
 static int	numTempTableSpaces = -1;
 static int	nextTempTableSpace = 0;
 
@@ -303,7 +303,7 @@ static void FreeVfd(File file);
 static int	FileAccess(File file);
 static File OpenTemporaryFileInTablespace(Oid tblspcOid, bool rejectError);
 static bool reserveAllocatedDesc(void);
-static int	FreeDesc(AllocateDesc *desc);
+static int	FreeDesc(AllocateDesc * desc);
 
 static void AtProcExit_Files(int code, Datum arg);
 static void CleanupTempFiles(bool isProcExit);
@@ -1874,7 +1874,7 @@ FileSeek(File file, off_t offset, int whence)
 				if (offset < 0)
 				{
 					errno = EINVAL;
-					return (off_t) -1;
+					return (off_t) - 1;
 				}
 				vfdP->seekPos = offset;
 				break;
@@ -1883,13 +1883,13 @@ FileSeek(File file, off_t offset, int whence)
 					vfdP->seekPos + offset < 0)
 				{
 					errno = EINVAL;
-					return (off_t) -1;
+					return (off_t) - 1;
 				}
 				vfdP->seekPos += offset;
 				break;
 			case SEEK_END:
 				if (FileAccess(file) < 0)
-					return (off_t) -1;
+					return (off_t) - 1;
 				vfdP->seekPos = lseek(vfdP->fd, offset, whence);
 				break;
 			default:
@@ -1905,7 +1905,7 @@ FileSeek(File file, off_t offset, int whence)
 				if (offset < 0)
 				{
 					errno = EINVAL;
-					return (off_t) -1;
+					return (off_t) - 1;
 				}
 				if (vfdP->seekPos != offset)
 					vfdP->seekPos = lseek(vfdP->fd, offset, whence);
@@ -2240,7 +2240,7 @@ TryAgain:
  * The argument *must* point into the allocatedDescs[] array.
  */
 static int
-FreeDesc(AllocateDesc *desc)
+FreeDesc(AllocateDesc * desc)
 {
 	int			result;
 
@@ -2279,7 +2279,7 @@ FreeDesc(AllocateDesc *desc)
  * to handle close errors.
  */
 int
-FreeFile(FILE *file)
+FreeFile(FILE * file)
 {
 	int			i;
 
@@ -2407,7 +2407,7 @@ TryAgain:
  * but it is only used for error reporting.
  */
 struct dirent *
-ReadDir(DIR *dir, const char *dirname)
+ReadDir(DIR * dir, const char *dirname)
 {
 	return ReadDirExtended(dir, dirname, ERROR);
 }
@@ -2422,7 +2422,7 @@ ReadDir(DIR *dir, const char *dirname)
  * though the directory contained no (more) entries.
  */
 struct dirent *
-ReadDirExtended(DIR *dir, const char *dirname, int elevel)
+ReadDirExtended(DIR * dir, const char *dirname, int elevel)
 {
 	struct dirent *dent;
 
@@ -2459,7 +2459,7 @@ ReadDirExtended(DIR *dir, const char *dirname, int elevel)
  * already reported if desired.
  */
 int
-FreeDir(DIR *dir)
+FreeDir(DIR * dir)
 {
 	int			i;
 
@@ -2489,7 +2489,7 @@ FreeDir(DIR *dir)
  * Close a pipe stream returned by OpenPipeStream.
  */
 int
-ClosePipeStream(FILE *file)
+ClosePipeStream(FILE * file)
 {
 	int			i;
 
@@ -2544,7 +2544,7 @@ closeAllVfds(void)
  * it'd be allocated in TopTransactionContext).
  */
 void
-SetTempTablespaces(Oid *tableSpaces, int numSpaces)
+SetTempTablespaces(Oid * tableSpaces, int numSpaces)
 {
 	Assert(numSpaces >= 0);
 	tempTableSpaces = tableSpaces;

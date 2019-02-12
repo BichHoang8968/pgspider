@@ -34,7 +34,7 @@
  * CurrentMemoryContext
  *		Default memory context for allocations.
  */
-__thread MemoryContext CurrentMemoryContext = NULL;
+__thread	MemoryContext CurrentMemoryContext = NULL;
 
 /*
  * Standard top-level contexts. For a description of the purpose of each
@@ -54,7 +54,7 @@ MemoryContext PortalContext = NULL;
 static void MemoryContextCallResetCallbacks(MemoryContext context);
 static void MemoryContextStatsInternal(MemoryContext context, int level,
 						   bool print, int max_children,
-						   MemoryContextCounters *totals);
+						   MemoryContextCounters * totals);
 
 /*
  * You should not do memory allocations within a critical section, because
@@ -263,7 +263,7 @@ MemoryContextDeleteChildren(MemoryContext context)
  */
 void
 MemoryContextRegisterResetCallback(MemoryContext context,
-								   MemoryContextCallback *cb)
+								   MemoryContextCallback * cb)
 {
 	AssertArg(MemoryContextIsValid(context));
 
@@ -472,7 +472,7 @@ MemoryContextStatsDetail(MemoryContext context, int max_children)
 static void
 MemoryContextStatsInternal(MemoryContext context, int level,
 						   bool print, int max_children,
-						   MemoryContextCounters *totals)
+						   MemoryContextCounters * totals)
 {
 	MemoryContextCounters local_totals;
 	MemoryContext child;
@@ -638,7 +638,7 @@ MemoryContextContains(MemoryContext context, void *pointer)
  */
 MemoryContext
 MemoryContextCreate(NodeTag tag, Size size,
-					MemoryContextMethods *methods,
+					MemoryContextMethods * methods,
 					MemoryContext parent,
 					const char *name)
 {

@@ -79,12 +79,12 @@ typedef struct InclusionOpaque
 	bool		extra_proc_missing[INCLUSION_MAX_PROCNUMS];
 	Oid			cached_subtype;
 	FmgrInfo	strategy_procinfos[RTMaxStrategyNumber];
-} InclusionOpaque;
+}			InclusionOpaque;
 
-static FmgrInfo *inclusion_get_procinfo(BrinDesc *bdesc, uint16 attno,
-					   uint16 procnum);
-static FmgrInfo *inclusion_get_strategy_procinfo(BrinDesc *bdesc, uint16 attno,
-								Oid subtype, uint16 strategynum);
+static FmgrInfo * inclusion_get_procinfo(BrinDesc * bdesc, uint16 attno,
+										 uint16 procnum);
+static FmgrInfo * inclusion_get_strategy_procinfo(BrinDesc * bdesc, uint16 attno,
+												  Oid subtype, uint16 strategynum);
 
 
 /*
@@ -588,7 +588,7 @@ brin_inclusion_union(PG_FUNCTION_ARGS)
  * or null if it is not exists.
  */
 static FmgrInfo *
-inclusion_get_procinfo(BrinDesc *bdesc, uint16 attno, uint16 procnum)
+inclusion_get_procinfo(BrinDesc * bdesc, uint16 attno, uint16 procnum)
 {
 	InclusionOpaque *opaque;
 	uint16		basenum = procnum - PROCNUM_BASE;
@@ -646,7 +646,7 @@ inclusion_get_procinfo(BrinDesc *bdesc, uint16 attno, uint16 procnum)
  * made here, see that function too.
  */
 static FmgrInfo *
-inclusion_get_strategy_procinfo(BrinDesc *bdesc, uint16 attno, Oid subtype,
+inclusion_get_strategy_procinfo(BrinDesc * bdesc, uint16 attno, Oid subtype,
 								uint16 strategynum)
 {
 	InclusionOpaque *opaque;

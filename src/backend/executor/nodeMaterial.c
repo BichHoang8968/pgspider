@@ -36,7 +36,7 @@
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *			/* result tuple from subplan */
-ExecMaterial(PlanState *pstate)
+ExecMaterial(PlanState * pstate)
 {
 	MaterialState *node = castNode(MaterialState, pstate);
 	EState	   *estate;
@@ -163,7 +163,7 @@ ExecMaterial(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 MaterialState *
-ExecInitMaterial(Material *node, EState *estate, int eflags)
+ExecInitMaterial(Material * node, EState * estate, int eflags)
 {
 	MaterialState *matstate;
 	Plan	   *outerPlan;
@@ -241,7 +241,7 @@ ExecInitMaterial(Material *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndMaterial(MaterialState *node)
+ExecEndMaterial(MaterialState * node)
 {
 	/*
 	 * clean out the tuple table
@@ -268,7 +268,7 @@ ExecEndMaterial(MaterialState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecMaterialMarkPos(MaterialState *node)
+ExecMaterialMarkPos(MaterialState * node)
 {
 	Assert(node->eflags & EXEC_FLAG_MARK);
 
@@ -296,7 +296,7 @@ ExecMaterialMarkPos(MaterialState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecMaterialRestrPos(MaterialState *node)
+ExecMaterialRestrPos(MaterialState * node)
 {
 	Assert(node->eflags & EXEC_FLAG_MARK);
 
@@ -319,7 +319,7 @@ ExecMaterialRestrPos(MaterialState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanMaterial(MaterialState *node)
+ExecReScanMaterial(MaterialState * node)
 {
 	PlanState  *outerPlan = outerPlanState(node);
 

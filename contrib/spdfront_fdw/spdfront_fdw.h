@@ -108,78 +108,78 @@ typedef struct SpdFFdwRelationInfo
 	 * representing the relation.
 	 */
 	int			relation_index;
-} SpdFFdwRelationInfo;
+}			SpdFFdwRelationInfo;
 
 /* in spdfront_fdw.c */
 extern int	set_transmission_modes(void);
 extern void reset_transmission_modes(int nestlevel);
 
 /* in connection.c */
-extern PGconn *GetConnection(ForeignServer *server,UserMapping *user, bool will_prep_stmt);
-extern void ReleaseConnection(PGconn *conn);
-extern unsigned int GetCursorNumber(PGconn *conn);
-extern unsigned int GetPrepStmtNumber(PGconn *conn);
-extern PGresult *spdffdw_get_result(PGconn *conn, const char *query);
-extern PGresult *spdffdw_exec_query(PGconn *conn, const char *query);
-extern void spdffdw_report_error(int elevel, PGresult *res, PGconn *conn,
-				   bool clear, const char *sql);
+extern PGconn * GetConnection(ForeignServer * server, UserMapping * user, bool will_prep_stmt);
+extern void ReleaseConnection(PGconn * conn);
+extern unsigned int GetCursorNumber(PGconn * conn);
+extern unsigned int GetPrepStmtNumber(PGconn * conn);
+extern PGresult * spdffdw_get_result(PGconn * conn, const char *query);
+extern PGresult * spdffdw_exec_query(PGconn * conn, const char *query);
+extern void spdffdw_report_error(int elevel, PGresult * res, PGconn * conn,
+					 bool clear, const char *sql);
 
 /* in option.c */
-extern int ExtractConnectionOptions(List *defelems,
+extern int ExtractConnectionOptions(List * defelems,
 						 const char **keywords,
 						 const char **values);
-extern List *ExtractExtensionList(const char *extensionsString,
-					 bool warnOnMissing);
+extern List * ExtractExtensionList(const char *extensionsString,
+								   bool warnOnMissing);
 
 /* in deparse.c */
-extern void classifyConditions(PlannerInfo *root,
-				   RelOptInfo *baserel,
-				   List *input_conds,
-				   List **remote_conds,
-				   List **local_conds);
-extern bool is_foreign_expr(PlannerInfo *root,
-				RelOptInfo *baserel,
-				Expr *expr);
-extern void deparseInsertSql(StringInfo buf, PlannerInfo *root,
+extern void classifyConditions(PlannerInfo * root,
+				   RelOptInfo * baserel,
+				   List * input_conds,
+				   List * *remote_conds,
+				   List * *local_conds);
+extern bool is_foreign_expr(PlannerInfo * root,
+				RelOptInfo * baserel,
+				Expr * expr);
+extern void deparseInsertSql(StringInfo buf, PlannerInfo * root,
 				 Index rtindex, Relation rel,
-				 List *targetAttrs, bool doNothing, List *returningList,
-				 List **retrieved_attrs);
-extern void deparseUpdateSql(StringInfo buf, PlannerInfo *root,
+				 List * targetAttrs, bool doNothing, List * returningList,
+				 List * *retrieved_attrs);
+extern void deparseUpdateSql(StringInfo buf, PlannerInfo * root,
 				 Index rtindex, Relation rel,
-				 List *targetAttrs, List *returningList,
-				 List **retrieved_attrs);
-extern void deparseDirectUpdateSql(StringInfo buf, PlannerInfo *root,
+				 List * targetAttrs, List * returningList,
+				 List * *retrieved_attrs);
+extern void deparseDirectUpdateSql(StringInfo buf, PlannerInfo * root,
 					   Index rtindex, Relation rel,
-					   List *targetlist,
-					   List *targetAttrs,
-					   List *remote_conds,
-					   List **params_list,
-					   List *returningList,
-					   List **retrieved_attrs);
-extern void deparseDeleteSql(StringInfo buf, PlannerInfo *root,
+					   List * targetlist,
+					   List * targetAttrs,
+					   List * remote_conds,
+					   List * *params_list,
+					   List * returningList,
+					   List * *retrieved_attrs);
+extern void deparseDeleteSql(StringInfo buf, PlannerInfo * root,
 				 Index rtindex, Relation rel,
-				 List *returningList,
-				 List **retrieved_attrs);
-extern void deparseDirectDeleteSql(StringInfo buf, PlannerInfo *root,
+				 List * returningList,
+				 List * *retrieved_attrs);
+extern void deparseDirectDeleteSql(StringInfo buf, PlannerInfo * root,
 					   Index rtindex, Relation rel,
-					   List *remote_conds,
-					   List **params_list,
-					   List *returningList,
-					   List **retrieved_attrs);
+					   List * remote_conds,
+					   List * *params_list,
+					   List * returningList,
+					   List * *retrieved_attrs);
 extern void deparseAnalyzeSizeSql(StringInfo buf, Relation rel);
 extern void deparseAnalyzeSql(StringInfo buf, Relation rel,
-				  List **retrieved_attrs);
+				  List * *retrieved_attrs);
 extern void deparseStringLiteral(StringInfo buf, const char *val);
-extern Expr *find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel);
-extern List *build_tlist_to_deparse(RelOptInfo *foreignrel);
-extern void deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root,
-						RelOptInfo *foreignrel, List *tlist,
-						List *remote_conds, List *pathkeys, bool is_subquery,
-						List **retrieved_attrs, List **params_list);
+extern Expr * find_em_expr_for_rel(EquivalenceClass * ec, RelOptInfo * rel);
+extern List * build_tlist_to_deparse(RelOptInfo * foreignrel);
+extern void deparseSelectStmtForRel(StringInfo buf, PlannerInfo * root,
+						RelOptInfo * foreignrel, List * tlist,
+						List * remote_conds, List * pathkeys, bool is_subquery,
+						List * *retrieved_attrs, List * *params_list);
 extern const char *get_jointype_name(JoinType jointype);
 
 /* in shippable.c */
 extern bool is_builtin(Oid objectId);
-extern bool is_shippable(Oid objectId, Oid classId, SpdFFdwRelationInfo *fpinfo);
+extern bool is_shippable(Oid objectId, Oid classId, SpdFFdwRelationInfo * fpinfo);
 
 #endif							/* SPDFRONT_FDW_H */

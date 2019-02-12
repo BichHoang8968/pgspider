@@ -21,11 +21,11 @@
 #include "utils/queryenvironment.h"
 
 
-extern ObjectAddress ExecCreateTableAs(CreateTableAsStmt *stmt, const char *queryString,
-				  ParamListInfo params, QueryEnvironment *queryEnv, char *completionTag);
+extern ObjectAddress ExecCreateTableAs(CreateTableAsStmt * stmt, const char *queryString,
+									   ParamListInfo params, QueryEnvironment * queryEnv, char *completionTag);
 
-extern int	GetIntoRelEFlags(IntoClause *intoClause);
+extern int	GetIntoRelEFlags(IntoClause * intoClause);
 
-extern DestReceiver *CreateIntoRelDestReceiver(IntoClause *intoClause);
+extern DestReceiver * CreateIntoRelDestReceiver(IntoClause * intoClause);
 
 #endif							/* CREATEAS_H */

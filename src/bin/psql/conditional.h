@@ -26,7 +26,7 @@ typedef enum ifState
 								 * parent branches (if any) are true */
 	IFSTATE_ELSE_FALSE			/* currently in an \else that is false or
 								 * ignored */
-} ifState;
+}			ifState;
 
 /*
  * The state of nested \ifs is stored in a stack.
@@ -46,7 +46,7 @@ typedef struct IfStackElem
 	int			query_len;		/* length of query_buf at last branch start */
 	int			paren_depth;	/* parenthesis depth at last branch start */
 	struct IfStackElem *next;	/* next surrounding \if, if any */
-} IfStackElem;
+}			IfStackElem;
 
 typedef struct ConditionalStackData
 {

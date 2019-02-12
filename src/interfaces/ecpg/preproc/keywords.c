@@ -33,7 +33,7 @@
 
 #define PG_KEYWORD(a,b,c) {a,b,c},
 
-const ScanKeyword SQLScanKeywords[] = {
+const		ScanKeyword SQLScanKeywords[] = {
 #include "parser/kwlist.h"
 };
 

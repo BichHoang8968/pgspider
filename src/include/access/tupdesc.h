@@ -23,7 +23,7 @@ typedef struct attrDefault
 {
 	AttrNumber	adnum;
 	char	   *adbin;			/* nodeToString representation of expr */
-} AttrDefault;
+}			AttrDefault;
 
 typedef struct constrCheck
 {
@@ -31,7 +31,7 @@ typedef struct constrCheck
 	char	   *ccbin;			/* nodeToString representation of expr */
 	bool		ccvalid;
 	bool		ccnoinherit;	/* this is a non-inheritable constraint */
-} ConstrCheck;
+}			ConstrCheck;
 
 /* This structure contains constraints of a tuple */
 typedef struct tupleConstr
@@ -41,7 +41,7 @@ typedef struct tupleConstr
 	uint16		num_defval;
 	uint16		num_check;
 	bool		has_not_null;
-} TupleConstr;
+}			TupleConstr;
 
 /*
  * This struct is passed around within the backend to describe the structure
@@ -87,7 +87,7 @@ typedef struct tupleDesc
 extern TupleDesc CreateTemplateTupleDesc(int natts, bool hasoid);
 
 extern TupleDesc CreateTupleDesc(int natts, bool hasoid,
-				Form_pg_attribute *attrs);
+								 Form_pg_attribute * attrs);
 
 extern TupleDesc CreateTupleDescCopy(TupleDesc tupdesc);
 
@@ -133,8 +133,8 @@ extern void TupleDescInitEntryCollation(TupleDesc desc,
 							AttrNumber attributeNumber,
 							Oid collationid);
 
-extern TupleDesc BuildDescForRelation(List *schema);
+extern TupleDesc BuildDescForRelation(List * schema);
 
-extern TupleDesc BuildDescFromLists(List *names, List *types, List *typmods, List *collations);
+extern TupleDesc BuildDescFromLists(List * names, List * types, List * typmods, List * collations);
 
 #endif							/* TUPDESC_H */

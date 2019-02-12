@@ -46,7 +46,7 @@ CATALOG(pg_range,3541) BKI_WITHOUT_OIDS
  *		the format of pg_range relation.
  * ----------------
  */
-typedef FormData_pg_range *Form_pg_range;
+typedef FormData_pg_range * Form_pg_range;
 
 /* ----------------
  *		compiler constants for pg_range

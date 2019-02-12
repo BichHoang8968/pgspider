@@ -64,17 +64,17 @@ typedef struct
 {
 	Oid			tableOid;
 	Oid			indexOid;
-} RelToCluster;
+}			RelToCluster;
 
 
 static void rebuild_relation(Relation OldHeap, Oid indexOid, bool verbose);
 static void copy_heap_data(Oid OIDNewHeap, Oid OIDOldHeap, Oid OIDOldIndex,
 			   bool verbose, bool *pSwapToastByContent,
-			   TransactionId *pFreezeXid, MultiXactId *pCutoffMulti);
-static List *get_tables_to_cluster(MemoryContext cluster_context);
+			   TransactionId * pFreezeXid, MultiXactId * pCutoffMulti);
+static List * get_tables_to_cluster(MemoryContext cluster_context);
 static void reform_and_rewrite_tuple(HeapTuple tuple,
 						 TupleDesc oldTupDesc, TupleDesc newTupDesc,
-						 Datum *values, bool *isnull,
+						 Datum * values, bool *isnull,
 						 bool newRelHasOids, RewriteState rwstate);
 
 
@@ -103,7 +103,7 @@ static void reform_and_rewrite_tuple(HeapTuple tuple,
  *---------------------------------------------------------------------------
  */
 void
-cluster(ClusterStmt *stmt, bool isTopLevel)
+cluster(ClusterStmt * stmt, bool isTopLevel)
 {
 	if (stmt->relation != NULL)
 	{
@@ -732,8 +732,8 @@ make_new_heap(Oid OIDOldHeap, Oid NewTableSpace, char relpersistence,
  */
 static void
 copy_heap_data(Oid OIDNewHeap, Oid OIDOldHeap, Oid OIDOldIndex, bool verbose,
-			   bool *pSwapToastByContent, TransactionId *pFreezeXid,
-			   MultiXactId *pCutoffMulti)
+			   bool *pSwapToastByContent, TransactionId * pFreezeXid,
+			   MultiXactId * pCutoffMulti)
 {
 	Relation	NewHeap,
 				OldHeap,
@@ -1162,7 +1162,7 @@ swap_relation_files(Oid r1, Oid r2, bool target_is_pg_class,
 					bool is_internal,
 					TransactionId frozenXid,
 					MultiXactId cutoffMulti,
-					Oid *mapped_tables)
+					Oid * mapped_tables)
 {
 	Relation	relRelation;
 	HeapTuple	reltup1,
@@ -1733,7 +1733,7 @@ get_tables_to_cluster(MemoryContext cluster_context)
 static void
 reform_and_rewrite_tuple(HeapTuple tuple,
 						 TupleDesc oldTupDesc, TupleDesc newTupDesc,
-						 Datum *values, bool *isnull,
+						 Datum * values, bool *isnull,
 						 bool newRelHasOids, RewriteState rwstate)
 {
 	HeapTuple	copiedTuple;

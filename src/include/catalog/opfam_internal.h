@@ -23,6 +23,6 @@ typedef struct
 	Oid			lefttype;		/* lefttype */
 	Oid			righttype;		/* righttype */
 	Oid			sortfamily;		/* ordering operator's sort opfamily, or 0 */
-} OpFamilyMember;
+}			OpFamilyMember;
 
 #endif							/* OPFAM_INTERNAL_H */

@@ -21,9 +21,9 @@
 
 PG_MODULE_MAGIC;
 
-static Datum X509_NAME_field_to_text(X509_NAME *name, text *fieldName);
-static Datum X509_NAME_to_text(X509_NAME *name);
-static Datum ASN1_STRING_to_text(ASN1_STRING *str);
+static Datum X509_NAME_field_to_text(X509_NAME * name, text * fieldName);
+static Datum X509_NAME_to_text(X509_NAME * name);
+static Datum ASN1_STRING_to_text(ASN1_STRING * str);
 
 /*
  * Function context for data persisting over repeated calls.
@@ -31,7 +31,7 @@ static Datum ASN1_STRING_to_text(ASN1_STRING *str);
 typedef struct
 {
 	TupleDesc	tupdesc;
-} SSLExtensionInfoContext;
+}			SSLExtensionInfoContext;
 
 /*
  * Indicates whether current session uses SSL
@@ -136,7 +136,7 @@ ssl_client_serial(PG_FUNCTION_ARGS)
  * function.
  */
 static Datum
-ASN1_STRING_to_text(ASN1_STRING *str)
+ASN1_STRING_to_text(ASN1_STRING * str)
 {
 	BIO		   *membuf;
 	size_t		size;
@@ -182,7 +182,7 @@ ASN1_STRING_to_text(ASN1_STRING *str)
  * part of name
  */
 static Datum
-X509_NAME_field_to_text(X509_NAME *name, text *fieldName)
+X509_NAME_field_to_text(X509_NAME * name, text * fieldName)
 {
 	char	   *string_fieldname;
 	int			nid,
@@ -287,7 +287,7 @@ ssl_issuer_field(PG_FUNCTION_ARGS)
  * X509_NAME
  */
 static Datum
-X509_NAME_to_text(X509_NAME *name)
+X509_NAME_to_text(X509_NAME * name)
 {
 	BIO		   *membuf = BIO_new(BIO_s_mem());
 	int			i,

@@ -26,10 +26,10 @@
 
 #include "lib/pairingheap.h"
 
-static pairingheap_node *merge(pairingheap *heap, pairingheap_node *a,
-	  pairingheap_node *b);
-static pairingheap_node *merge_children(pairingheap *heap,
-			   pairingheap_node *children);
+static pairingheap_node * merge(pairingheap * heap, pairingheap_node * a,
+								pairingheap_node * b);
+static pairingheap_node * merge_children(pairingheap * heap,
+										 pairingheap_node * children);
 
 /*
  * pairingheap_allocate
@@ -60,7 +60,7 @@ pairingheap_allocate(pairingheap_comparator compare, void *arg)
  * Note: The nodes in the heap are not freed!
  */
 void
-pairingheap_free(pairingheap *heap)
+pairingheap_free(pairingheap * heap)
 {
 	pfree(heap);
 }
@@ -76,7 +76,7 @@ pairingheap_free(pairingheap *heap)
  * pointers are garbage.
  */
 static pairingheap_node *
-merge(pairingheap *heap, pairingheap_node *a, pairingheap_node *b)
+merge(pairingheap * heap, pairingheap_node * a, pairingheap_node * b)
 {
 	if (a == NULL)
 		return b;
@@ -109,7 +109,7 @@ merge(pairingheap *heap, pairingheap_node *a, pairingheap_node *b)
  * Adds the given node to the heap in O(1) time.
  */
 void
-pairingheap_add(pairingheap *heap, pairingheap_node *node)
+pairingheap_add(pairingheap * heap, pairingheap_node * node)
 {
 	node->first_child = NULL;
 
@@ -127,7 +127,7 @@ pairingheap_add(pairingheap *heap, pairingheap_node *node)
  * an empty heap. Always O(1).
  */
 pairingheap_node *
-pairingheap_first(pairingheap *heap)
+pairingheap_first(pairingheap * heap)
 {
 	Assert(!pairingheap_is_empty(heap));
 
@@ -142,7 +142,7 @@ pairingheap_first(pairingheap *heap)
  * not used on an empty heap. O(log n) amortized.
  */
 pairingheap_node *
-pairingheap_remove_first(pairingheap *heap)
+pairingheap_remove_first(pairingheap * heap)
 {
 	pairingheap_node *result;
 	pairingheap_node *children;
@@ -167,7 +167,7 @@ pairingheap_remove_first(pairingheap *heap)
  * Remove 'node' from the heap. O(log n) amortized.
  */
 void
-pairingheap_remove(pairingheap *heap, pairingheap_node *node)
+pairingheap_remove(pairingheap * heap, pairingheap_node * node)
 {
 	pairingheap_node *children;
 	pairingheap_node *replacement;
@@ -231,7 +231,7 @@ pairingheap_remove(pairingheap *heap, pairingheap_node *node)
  * from left to right, and then merging the pairs.
  */
 static pairingheap_node *
-merge_children(pairingheap *heap, pairingheap_node *children)
+merge_children(pairingheap * heap, pairingheap_node * children)
 {
 	pairingheap_node *curr,
 			   *next;
@@ -294,11 +294,11 @@ merge_children(pairingheap *heap, pairingheap_node *children)
 #ifdef PAIRINGHEAP_DEBUG
 static void
 pairingheap_dump_recurse(StringInfo buf,
-						 pairingheap_node *node,
-						 void (*dumpfunc) (pairingheap_node *node, StringInfo buf, void *opaque),
+						 pairingheap_node * node,
+						 void (*dumpfunc) (pairingheap_node * node, StringInfo buf, void *opaque),
 						 void *opaque,
 						 int depth,
-						 pairingheap_node *prev_or_parent)
+						 pairingheap_node * prev_or_parent)
 {
 	while (node)
 	{
@@ -315,8 +315,8 @@ pairingheap_dump_recurse(StringInfo buf,
 }
 
 char *
-pairingheap_dump(pairingheap *heap,
-				 void (*dumpfunc) (pairingheap_node *node, StringInfo buf, void *opaque),
+pairingheap_dump(pairingheap * heap,
+				 void (*dumpfunc) (pairingheap_node * node, StringInfo buf, void *opaque),
 				 void *opaque)
 {
 	StringInfoData buf;

@@ -141,24 +141,24 @@ struct shm_mq_handle
 	MemoryContext mqh_context;
 };
 
-static void shm_mq_detach_internal(shm_mq *mq);
-static shm_mq_result shm_mq_send_bytes(shm_mq_handle *mq, Size nbytes,
-				  const void *data, bool nowait, Size *bytes_written);
-static shm_mq_result shm_mq_receive_bytes(shm_mq *mq, Size bytes_needed,
-					 bool nowait, Size *nbytesp, void **datap);
-static bool shm_mq_counterparty_gone(volatile shm_mq *mq,
-						 BackgroundWorkerHandle *handle);
-static bool shm_mq_wait_internal(volatile shm_mq *mq, PGPROC *volatile *ptr,
-					 BackgroundWorkerHandle *handle);
-static uint64 shm_mq_get_bytes_read(volatile shm_mq *mq, bool *detached);
-static void shm_mq_inc_bytes_read(volatile shm_mq *mq, Size n);
-static uint64 shm_mq_get_bytes_written(volatile shm_mq *mq, bool *detached);
-static void shm_mq_inc_bytes_written(volatile shm_mq *mq, Size n);
-static shm_mq_result shm_mq_notify_receiver(volatile shm_mq *mq);
-static void shm_mq_detach_callback(dsm_segment *seg, Datum arg);
+static void shm_mq_detach_internal(shm_mq * mq);
+static shm_mq_result shm_mq_send_bytes(shm_mq_handle * mq, Size nbytes,
+									   const void *data, bool nowait, Size * bytes_written);
+static shm_mq_result shm_mq_receive_bytes(shm_mq * mq, Size bytes_needed,
+										  bool nowait, Size * nbytesp, void **datap);
+static bool shm_mq_counterparty_gone(volatile shm_mq * mq,
+						 BackgroundWorkerHandle * handle);
+static bool shm_mq_wait_internal(volatile shm_mq * mq, PGPROC * volatile *ptr,
+					 BackgroundWorkerHandle * handle);
+static uint64 shm_mq_get_bytes_read(volatile shm_mq * mq, bool *detached);
+static void shm_mq_inc_bytes_read(volatile shm_mq * mq, Size n);
+static uint64 shm_mq_get_bytes_written(volatile shm_mq * mq, bool *detached);
+static void shm_mq_inc_bytes_written(volatile shm_mq * mq, Size n);
+static shm_mq_result shm_mq_notify_receiver(volatile shm_mq * mq);
+static void shm_mq_detach_callback(dsm_segment * seg, Datum arg);
 
 /* Minimum queue size is enough for header and at least one chunk of data. */
-const Size	shm_mq_minimum_size =
+const		Size shm_mq_minimum_size =
 MAXALIGN(offsetof(shm_mq, mq_ring)) + MAXIMUM_ALIGNOF;
 
 #define MQH_INITIAL_BUFSIZE				8192
@@ -196,9 +196,9 @@ shm_mq_create(void *address, Size size)
  * queue.
  */
 void
-shm_mq_set_receiver(shm_mq *mq, PGPROC *proc)
+shm_mq_set_receiver(shm_mq * mq, PGPROC * proc)
 {
-	volatile shm_mq *vmq = mq;
+	volatile	shm_mq *vmq = mq;
 	PGPROC	   *sender;
 
 	SpinLockAcquire(&mq->mq_mutex);
@@ -215,9 +215,9 @@ shm_mq_set_receiver(shm_mq *mq, PGPROC *proc)
  * Set the identity of the process that will send to a shared message queue.
  */
 void
-shm_mq_set_sender(shm_mq *mq, PGPROC *proc)
+shm_mq_set_sender(shm_mq * mq, PGPROC * proc)
 {
-	volatile shm_mq *vmq = mq;
+	volatile	shm_mq *vmq = mq;
 	PGPROC	   *receiver;
 
 	SpinLockAcquire(&mq->mq_mutex);
@@ -234,9 +234,9 @@ shm_mq_set_sender(shm_mq *mq, PGPROC *proc)
  * Get the configured receiver.
  */
 PGPROC *
-shm_mq_get_receiver(shm_mq *mq)
+shm_mq_get_receiver(shm_mq * mq)
 {
-	volatile shm_mq *vmq = mq;
+	volatile	shm_mq *vmq = mq;
 	PGPROC	   *receiver;
 
 	SpinLockAcquire(&mq->mq_mutex);
@@ -250,9 +250,9 @@ shm_mq_get_receiver(shm_mq *mq)
  * Get the configured sender.
  */
 PGPROC *
-shm_mq_get_sender(shm_mq *mq)
+shm_mq_get_sender(shm_mq * mq)
 {
-	volatile shm_mq *vmq = mq;
+	volatile	shm_mq *vmq = mq;
 	PGPROC	   *sender;
 
 	SpinLockAcquire(&mq->mq_mutex);
@@ -284,7 +284,7 @@ shm_mq_get_sender(shm_mq *mq)
  * after we've already lost interest.
  */
 shm_mq_handle *
-shm_mq_attach(shm_mq *mq, dsm_segment *seg, BackgroundWorkerHandle *handle)
+shm_mq_attach(shm_mq * mq, dsm_segment * seg, BackgroundWorkerHandle * handle)
 {
 	shm_mq_handle *mqh = palloc(sizeof(shm_mq_handle));
 
@@ -312,7 +312,7 @@ shm_mq_attach(shm_mq *mq, dsm_segment *seg, BackgroundWorkerHandle *handle)
  * been passed to shm_mq_attach.
  */
 void
-shm_mq_set_handle(shm_mq_handle *mqh, BackgroundWorkerHandle *handle)
+shm_mq_set_handle(shm_mq_handle * mqh, BackgroundWorkerHandle * handle)
 {
 	Assert(mqh->mqh_handle == NULL);
 	mqh->mqh_handle = handle;
@@ -322,7 +322,7 @@ shm_mq_set_handle(shm_mq_handle *mqh, BackgroundWorkerHandle *handle)
  * Write a message into a shared message queue.
  */
 shm_mq_result
-shm_mq_send(shm_mq_handle *mqh, Size nbytes, const void *data, bool nowait)
+shm_mq_send(shm_mq_handle * mqh, Size nbytes, const void *data, bool nowait)
 {
 	shm_mq_iovec iov;
 
@@ -348,7 +348,7 @@ shm_mq_send(shm_mq_handle *mqh, Size nbytes, const void *data, bool nowait)
  * the length or payload will corrupt the queue.)
  */
 shm_mq_result
-shm_mq_sendv(shm_mq_handle *mqh, shm_mq_iovec *iov, int iovcnt, bool nowait)
+shm_mq_sendv(shm_mq_handle * mqh, shm_mq_iovec * iov, int iovcnt, bool nowait)
 {
 	shm_mq_result res;
 	shm_mq	   *mq = mqh->mqh_queue;
@@ -519,7 +519,7 @@ shm_mq_sendv(shm_mq_handle *mqh, shm_mq_iovec *iov, int iovcnt, bool nowait)
  * function again after the process latch has been set.
  */
 shm_mq_result
-shm_mq_receive(shm_mq_handle *mqh, Size *nbytesp, void **datap, bool nowait)
+shm_mq_receive(shm_mq_handle * mqh, Size * nbytesp, void **datap, bool nowait)
 {
 	shm_mq	   *mq = mqh->mqh_queue;
 	shm_mq_result res;
@@ -749,7 +749,7 @@ shm_mq_receive(shm_mq_handle *mqh, Size *nbytesp, void **datap, bool nowait)
  * attaching if a background worker handle was passed to shm_mq_attach().
  */
 shm_mq_result
-shm_mq_wait_for_attach(shm_mq_handle *mqh)
+shm_mq_wait_for_attach(shm_mq_handle * mqh)
 {
 	shm_mq	   *mq = mqh->mqh_queue;
 	PGPROC	  **victim;
@@ -772,7 +772,7 @@ shm_mq_wait_for_attach(shm_mq_handle *mqh)
  * Detach from a shared message queue, and destroy the shm_mq_handle.
  */
 void
-shm_mq_detach(shm_mq_handle *mqh)
+shm_mq_detach(shm_mq_handle * mqh)
 {
 	/* Notify counterparty that we're outta here. */
 	shm_mq_detach_internal(mqh->mqh_queue);
@@ -804,9 +804,9 @@ shm_mq_detach(shm_mq_handle *mqh)
  * the local shm_mq_handle, as it may have been pfree'd already.
  */
 static void
-shm_mq_detach_internal(shm_mq *mq)
+shm_mq_detach_internal(shm_mq * mq)
 {
-	volatile shm_mq *vmq = mq;
+	volatile	shm_mq *vmq = mq;
 	PGPROC	   *victim;
 
 	SpinLockAcquire(&mq->mq_mutex);
@@ -828,7 +828,7 @@ shm_mq_detach_internal(shm_mq *mq)
  * Get the shm_mq from handle.
  */
 shm_mq *
-shm_mq_get_queue(shm_mq_handle *mqh)
+shm_mq_get_queue(shm_mq_handle * mqh)
 {
 	return mqh->mqh_queue;
 }
@@ -837,8 +837,8 @@ shm_mq_get_queue(shm_mq_handle *mqh)
  * Write bytes into a shared message queue.
  */
 static shm_mq_result
-shm_mq_send_bytes(shm_mq_handle *mqh, Size nbytes, const void *data,
-				  bool nowait, Size *bytes_written)
+shm_mq_send_bytes(shm_mq_handle * mqh, Size nbytes, const void *data,
+				  bool nowait, Size * bytes_written)
 {
 	shm_mq	   *mq = mqh->mqh_queue;
 	Size		sent = 0;
@@ -973,8 +973,8 @@ shm_mq_send_bytes(shm_mq_handle *mqh, Size nbytes, const void *data,
  * is SHM_MQ_SUCCESS.
  */
 static shm_mq_result
-shm_mq_receive_bytes(shm_mq *mq, Size bytes_needed, bool nowait,
-					 Size *nbytesp, void **datap)
+shm_mq_receive_bytes(shm_mq * mq, Size bytes_needed, bool nowait,
+					 Size * nbytesp, void **datap)
 {
 	Size		ringsize = mq->mq_ring_size;
 	uint64		used;
@@ -1035,7 +1035,7 @@ shm_mq_receive_bytes(shm_mq *mq, Size bytes_needed, bool nowait,
  * Test whether a counterparty who may not even be alive yet is definitely gone.
  */
 static bool
-shm_mq_counterparty_gone(volatile shm_mq *mq, BackgroundWorkerHandle *handle)
+shm_mq_counterparty_gone(volatile shm_mq * mq, BackgroundWorkerHandle * handle)
 {
 	bool		detached;
 	pid_t		pid;
@@ -1082,8 +1082,8 @@ shm_mq_counterparty_gone(volatile shm_mq *mq, BackgroundWorkerHandle *handle)
  * non-NULL when our counterpart attaches to the queue.
  */
 static bool
-shm_mq_wait_internal(volatile shm_mq *mq, PGPROC *volatile *ptr,
-					 BackgroundWorkerHandle *handle)
+shm_mq_wait_internal(volatile shm_mq * mq, PGPROC * volatile *ptr,
+					 BackgroundWorkerHandle * handle)
 {
 	bool		result = false;
 
@@ -1137,7 +1137,7 @@ shm_mq_wait_internal(volatile shm_mq *mq, PGPROC *volatile *ptr,
  * the count of bytes read, but the sender must.
  */
 static uint64
-shm_mq_get_bytes_read(volatile shm_mq *mq, bool *detached)
+shm_mq_get_bytes_read(volatile shm_mq * mq, bool *detached)
 {
 	uint64		v;
 
@@ -1153,7 +1153,7 @@ shm_mq_get_bytes_read(volatile shm_mq *mq, bool *detached)
  * Increment the number of bytes read.
  */
 static void
-shm_mq_inc_bytes_read(volatile shm_mq *mq, Size n)
+shm_mq_inc_bytes_read(volatile shm_mq * mq, Size n)
 {
 	PGPROC	   *sender;
 
@@ -1172,7 +1172,7 @@ shm_mq_inc_bytes_read(volatile shm_mq *mq, Size n)
  * the count of bytes written, but the receiver must.
  */
 static uint64
-shm_mq_get_bytes_written(volatile shm_mq *mq, bool *detached)
+shm_mq_get_bytes_written(volatile shm_mq * mq, bool *detached)
 {
 	uint64		v;
 
@@ -1188,7 +1188,7 @@ shm_mq_get_bytes_written(volatile shm_mq *mq, bool *detached)
  * Increment the number of bytes written.
  */
 static void
-shm_mq_inc_bytes_written(volatile shm_mq *mq, Size n)
+shm_mq_inc_bytes_written(volatile shm_mq * mq, Size n)
 {
 	SpinLockAcquire(&mq->mq_mutex);
 	mq->mq_bytes_written += n;
@@ -1199,7 +1199,7 @@ shm_mq_inc_bytes_written(volatile shm_mq *mq, Size n)
  * Set receiver's latch, unless queue is detached.
  */
 static shm_mq_result
-shm_mq_notify_receiver(volatile shm_mq *mq)
+shm_mq_notify_receiver(volatile shm_mq * mq)
 {
 	PGPROC	   *receiver;
 	bool		detached;
@@ -1218,7 +1218,7 @@ shm_mq_notify_receiver(volatile shm_mq *mq)
 
 /* Shim for on_dsm_callback. */
 static void
-shm_mq_detach_callback(dsm_segment *seg, Datum arg)
+shm_mq_detach_callback(dsm_segment * seg, Datum arg)
 {
 	shm_mq	   *mq = (shm_mq *) DatumGetPointer(arg);
 

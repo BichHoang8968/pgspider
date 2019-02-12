@@ -46,7 +46,7 @@ CATALOG(pg_foreign_data_wrapper,2328)
  *		the format of pg_fdw relation.
  * ----------------
  */
-typedef FormData_pg_foreign_data_wrapper *Form_pg_foreign_data_wrapper;
+typedef FormData_pg_foreign_data_wrapper * Form_pg_foreign_data_wrapper;
 
 /* ----------------
  *		compiler constants for pg_fdw

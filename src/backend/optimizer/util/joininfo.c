@@ -33,8 +33,8 @@
  * it can't be applied at that join step.
  */
 bool
-have_relevant_joinclause(PlannerInfo *root,
-						 RelOptInfo *rel1, RelOptInfo *rel2)
+have_relevant_joinclause(PlannerInfo * root,
+						 RelOptInfo * rel1, RelOptInfo * rel2)
 {
 	bool		result = false;
 	List	   *joininfo;
@@ -92,8 +92,8 @@ have_relevant_joinclause(PlannerInfo *root,
  *				 (there must be more than one)
  */
 void
-add_join_clause_to_rels(PlannerInfo *root,
-						RestrictInfo *restrictinfo,
+add_join_clause_to_rels(PlannerInfo * root,
+						RestrictInfo * restrictinfo,
 						Relids join_relids)
 {
 	int			cur_relid;
@@ -119,8 +119,8 @@ add_join_clause_to_rels(PlannerInfo *root,
  *				 (there must be more than one)
  */
 void
-remove_join_clause_from_rels(PlannerInfo *root,
-							 RestrictInfo *restrictinfo,
+remove_join_clause_from_rels(PlannerInfo * root,
+							 RestrictInfo * restrictinfo,
 							 Relids join_relids)
 {
 	int			cur_relid;

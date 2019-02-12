@@ -86,7 +86,7 @@ typedef enum
 	TQUEUE_REMAP_ARRAY,			/* array */
 	TQUEUE_REMAP_RANGE,			/* range */
 	TQUEUE_REMAP_RECORD			/* composite type, named or transient */
-} TupleRemapClass;
+}			TupleRemapClass;
 
 typedef struct TupleRemapInfo TupleRemapInfo;
 
@@ -96,13 +96,13 @@ typedef struct ArrayRemapInfo
 	bool		typbyval;
 	char		typalign;
 	TupleRemapInfo *element_remap;	/* array element type's remap info */
-} ArrayRemapInfo;
+}			ArrayRemapInfo;
 
 typedef struct RangeRemapInfo
 {
 	TypeCacheEntry *typcache;	/* range type's typcache entry */
 	TupleRemapInfo *bound_remap;	/* range bound type's remap info */
-} RangeRemapInfo;
+}			RangeRemapInfo;
 
 typedef struct RecordRemapInfo
 {
@@ -114,7 +114,7 @@ typedef struct RecordRemapInfo
 	/* If no fields of the record require remapping, these are NULL: */
 	TupleDesc	tupledesc;		/* copy of record's tupdesc */
 	TupleRemapInfo **field_remap;	/* each field's remap info */
-} RecordRemapInfo;
+}			RecordRemapInfo;
 
 struct TupleRemapInfo
 {
@@ -145,7 +145,7 @@ typedef struct TQueueDestReceiver
 	char		mode;			/* current message mode */
 	TupleDesc	tupledesc;		/* current top-level tuple descriptor */
 	TupleRemapInfo **field_remapinfo;	/* current top-level remap info */
-} TQueueDestReceiver;
+}			TQueueDestReceiver;
 
 /*
  * Hash table entries for mapping remote to local typmods.
@@ -154,7 +154,7 @@ typedef struct RecordTypmodMap
 {
 	int32		remotetypmod;	/* hash key (must be first!) */
 	int32		localtypmod;
-} RecordTypmodMap;
+}			RecordTypmodMap;
 
 /*
  * TupleQueueReader object's private contents
@@ -176,43 +176,43 @@ struct TupleQueueReader
 };
 
 /* Local function prototypes */
-static void TQExamine(TQueueDestReceiver *tqueue,
-		  TupleRemapInfo *remapinfo,
+static void TQExamine(TQueueDestReceiver * tqueue,
+		  TupleRemapInfo * remapinfo,
 		  Datum value);
-static void TQExamineArray(TQueueDestReceiver *tqueue,
-			   ArrayRemapInfo *remapinfo,
+static void TQExamineArray(TQueueDestReceiver * tqueue,
+			   ArrayRemapInfo * remapinfo,
 			   Datum value);
-static void TQExamineRange(TQueueDestReceiver *tqueue,
-			   RangeRemapInfo *remapinfo,
+static void TQExamineRange(TQueueDestReceiver * tqueue,
+			   RangeRemapInfo * remapinfo,
 			   Datum value);
-static void TQExamineRecord(TQueueDestReceiver *tqueue,
-				RecordRemapInfo *remapinfo,
+static void TQExamineRecord(TQueueDestReceiver * tqueue,
+				RecordRemapInfo * remapinfo,
 				Datum value);
-static void TQSendRecordInfo(TQueueDestReceiver *tqueue, int32 typmod,
+static void TQSendRecordInfo(TQueueDestReceiver * tqueue, int32 typmod,
 				 TupleDesc tupledesc);
-static void TupleQueueHandleControlMessage(TupleQueueReader *reader,
+static void TupleQueueHandleControlMessage(TupleQueueReader * reader,
 							   Size nbytes, char *data);
-static HeapTuple TupleQueueHandleDataMessage(TupleQueueReader *reader,
-							Size nbytes, HeapTupleHeader data);
-static HeapTuple TQRemapTuple(TupleQueueReader *reader,
-			 TupleDesc tupledesc,
-			 TupleRemapInfo **field_remapinfo,
-			 HeapTuple tuple);
-static Datum TQRemap(TupleQueueReader *reader, TupleRemapInfo *remapinfo,
-		Datum value, bool *changed);
-static Datum TQRemapArray(TupleQueueReader *reader, ArrayRemapInfo *remapinfo,
-			 Datum value, bool *changed);
-static Datum TQRemapRange(TupleQueueReader *reader, RangeRemapInfo *remapinfo,
-			 Datum value, bool *changed);
-static Datum TQRemapRecord(TupleQueueReader *reader, RecordRemapInfo *remapinfo,
-			  Datum value, bool *changed);
-static TupleRemapInfo *BuildTupleRemapInfo(Oid typid, MemoryContext mycontext);
-static TupleRemapInfo *BuildArrayRemapInfo(Oid elemtypid,
-					MemoryContext mycontext);
-static TupleRemapInfo *BuildRangeRemapInfo(Oid rngtypid,
-					MemoryContext mycontext);
-static TupleRemapInfo **BuildFieldRemapInfo(TupleDesc tupledesc,
-					MemoryContext mycontext);
+static HeapTuple TupleQueueHandleDataMessage(TupleQueueReader * reader,
+											 Size nbytes, HeapTupleHeader data);
+static HeapTuple TQRemapTuple(TupleQueueReader * reader,
+							  TupleDesc tupledesc,
+							  TupleRemapInfo * *field_remapinfo,
+							  HeapTuple tuple);
+static Datum TQRemap(TupleQueueReader * reader, TupleRemapInfo * remapinfo,
+					 Datum value, bool *changed);
+static Datum TQRemapArray(TupleQueueReader * reader, ArrayRemapInfo * remapinfo,
+						  Datum value, bool *changed);
+static Datum TQRemapRange(TupleQueueReader * reader, RangeRemapInfo * remapinfo,
+						  Datum value, bool *changed);
+static Datum TQRemapRecord(TupleQueueReader * reader, RecordRemapInfo * remapinfo,
+						   Datum value, bool *changed);
+static TupleRemapInfo * BuildTupleRemapInfo(Oid typid, MemoryContext mycontext);
+static TupleRemapInfo * BuildArrayRemapInfo(Oid elemtypid,
+											MemoryContext mycontext);
+static TupleRemapInfo * BuildRangeRemapInfo(Oid rngtypid,
+											MemoryContext mycontext);
+static TupleRemapInfo * *BuildFieldRemapInfo(TupleDesc tupledesc,
+											 MemoryContext mycontext);
 
 
 /*
@@ -221,7 +221,7 @@ static TupleRemapInfo **BuildFieldRemapInfo(TupleDesc tupledesc,
  * Returns TRUE if successful, FALSE if shm_mq has been detached.
  */
 static bool
-tqueueReceiveSlot(TupleTableSlot *slot, DestReceiver *self)
+tqueueReceiveSlot(TupleTableSlot * slot, DestReceiver * self)
 {
 	TQueueDestReceiver *tqueue = (TQueueDestReceiver *) self;
 	TupleDesc	tupledesc = slot->tts_tupleDescriptor;
@@ -328,7 +328,7 @@ tqueueReceiveSlot(TupleTableSlot *slot, DestReceiver *self)
  * This function just dispatches based on the remap class.
  */
 static void
-TQExamine(TQueueDestReceiver *tqueue, TupleRemapInfo *remapinfo, Datum value)
+TQExamine(TQueueDestReceiver * tqueue, TupleRemapInfo * remapinfo, Datum value)
 {
 	/* This is recursive, so it could be driven to stack overflow. */
 	check_stack_depth();
@@ -352,7 +352,7 @@ TQExamine(TQueueDestReceiver *tqueue, TupleRemapInfo *remapinfo, Datum value)
  * transient record types contained in it.
  */
 static void
-TQExamineRecord(TQueueDestReceiver *tqueue, RecordRemapInfo *remapinfo,
+TQExamineRecord(TQueueDestReceiver * tqueue, RecordRemapInfo * remapinfo,
 				Datum value)
 {
 	HeapTupleHeader tup;
@@ -454,7 +454,7 @@ TQExamineRecord(TQueueDestReceiver *tqueue, RecordRemapInfo *remapinfo,
  * transient record types contained in it.
  */
 static void
-TQExamineArray(TQueueDestReceiver *tqueue, ArrayRemapInfo *remapinfo,
+TQExamineArray(TQueueDestReceiver * tqueue, ArrayRemapInfo * remapinfo,
 			   Datum value)
 {
 	ArrayType  *arr = DatumGetArrayTypeP(value);
@@ -482,7 +482,7 @@ TQExamineArray(TQueueDestReceiver *tqueue, ArrayRemapInfo *remapinfo,
  * transient record types contained in it.
  */
 static void
-TQExamineRange(TQueueDestReceiver *tqueue, RangeRemapInfo *remapinfo,
+TQExamineRange(TQueueDestReceiver * tqueue, RangeRemapInfo * remapinfo,
 			   Datum value)
 {
 	RangeType  *range = DatumGetRangeType(value);
@@ -509,7 +509,7 @@ TQExamineRange(TQueueDestReceiver *tqueue, RangeRemapInfo *remapinfo,
  * already done so previously.
  */
 static void
-TQSendRecordInfo(TQueueDestReceiver *tqueue, int32 typmod, TupleDesc tupledesc)
+TQSendRecordInfo(TQueueDestReceiver * tqueue, int32 typmod, TupleDesc tupledesc)
 {
 	StringInfoData buf;
 	bool		found;
@@ -565,7 +565,7 @@ TQSendRecordInfo(TQueueDestReceiver *tqueue, int32 typmod, TupleDesc tupledesc)
  * Prepare to receive tuples from executor.
  */
 static void
-tqueueStartupReceiver(DestReceiver *self, int operation, TupleDesc typeinfo)
+tqueueStartupReceiver(DestReceiver * self, int operation, TupleDesc typeinfo)
 {
 	/* do nothing */
 }
@@ -574,7 +574,7 @@ tqueueStartupReceiver(DestReceiver *self, int operation, TupleDesc typeinfo)
  * Clean up at end of an executor run
  */
 static void
-tqueueShutdownReceiver(DestReceiver *self)
+tqueueShutdownReceiver(DestReceiver * self)
 {
 	TQueueDestReceiver *tqueue = (TQueueDestReceiver *) self;
 
@@ -587,7 +587,7 @@ tqueueShutdownReceiver(DestReceiver *self)
  * Destroy receiver when done with it
  */
 static void
-tqueueDestroyReceiver(DestReceiver *self)
+tqueueDestroyReceiver(DestReceiver * self)
 {
 	TQueueDestReceiver *tqueue = (TQueueDestReceiver *) self;
 
@@ -608,7 +608,7 @@ tqueueDestroyReceiver(DestReceiver *self)
  * Create a DestReceiver that writes tuples to a tuple queue.
  */
 DestReceiver *
-CreateTupleQueueDestReceiver(shm_mq_handle *handle)
+CreateTupleQueueDestReceiver(shm_mq_handle * handle)
 {
 	TQueueDestReceiver *self;
 
@@ -635,7 +635,7 @@ CreateTupleQueueDestReceiver(shm_mq_handle *handle)
  * Create a tuple queue reader.
  */
 TupleQueueReader *
-CreateTupleQueueReader(shm_mq_handle *handle, TupleDesc tupledesc)
+CreateTupleQueueReader(shm_mq_handle * handle, TupleDesc tupledesc)
 {
 	TupleQueueReader *reader = palloc0(sizeof(TupleQueueReader));
 
@@ -656,7 +656,7 @@ CreateTupleQueueReader(shm_mq_handle *handle, TupleDesc tupledesc)
  * We won't access it here, as it may be detached already.
  */
 void
-DestroyTupleQueueReader(TupleQueueReader *reader)
+DestroyTupleQueueReader(TupleQueueReader * reader)
 {
 	if (reader->typmodmap != NULL)
 		hash_destroy(reader->typmodmap);
@@ -683,7 +683,7 @@ DestroyTupleQueueReader(TupleQueueReader *reader)
  * this with nowait = true even if nothing is returned.
  */
 HeapTuple
-TupleQueueReaderNext(TupleQueueReader *reader, bool nowait, bool *done)
+TupleQueueReaderNext(TupleQueueReader * reader, bool nowait, bool *done)
 {
 	shm_mq_result result;
 
@@ -738,7 +738,7 @@ TupleQueueReaderNext(TupleQueueReader *reader, bool nowait, bool *done)
  * Handle a data message - that is, a tuple - from the remote side.
  */
 static HeapTuple
-TupleQueueHandleDataMessage(TupleQueueReader *reader,
+TupleQueueHandleDataMessage(TupleQueueReader * reader,
 							Size nbytes,
 							HeapTupleHeader data)
 {
@@ -767,9 +767,9 @@ TupleQueueHandleDataMessage(TupleQueueReader *reader,
  * Copy the given tuple, remapping any transient typmods contained in it.
  */
 static HeapTuple
-TQRemapTuple(TupleQueueReader *reader,
+TQRemapTuple(TupleQueueReader * reader,
 			 TupleDesc tupledesc,
-			 TupleRemapInfo **field_remapinfo,
+			 TupleRemapInfo * *field_remapinfo,
 			 HeapTuple tuple)
 {
 	Datum	   *values;
@@ -813,7 +813,7 @@ TQRemapTuple(TupleQueueReader *reader,
  * This function just dispatches based on the remap class.
  */
 static Datum
-TQRemap(TupleQueueReader *reader, TupleRemapInfo *remapinfo,
+TQRemap(TupleQueueReader * reader, TupleRemapInfo * remapinfo,
 		Datum value, bool *changed)
 {
 	/* This is recursive, so it could be driven to stack overflow. */
@@ -841,7 +841,7 @@ TQRemap(TupleQueueReader *reader, TupleRemapInfo *remapinfo,
  * contained in it.  Set *changed to TRUE if we actually changed the datum.
  */
 static Datum
-TQRemapArray(TupleQueueReader *reader, ArrayRemapInfo *remapinfo,
+TQRemapArray(TupleQueueReader * reader, ArrayRemapInfo * remapinfo,
 			 Datum value, bool *changed)
 {
 	ArrayType  *arr = DatumGetArrayTypeP(value);
@@ -887,7 +887,7 @@ TQRemapArray(TupleQueueReader *reader, ArrayRemapInfo *remapinfo,
  * contained in it.  Set *changed to TRUE if we actually changed the datum.
  */
 static Datum
-TQRemapRange(TupleQueueReader *reader, RangeRemapInfo *remapinfo,
+TQRemapRange(TupleQueueReader * reader, RangeRemapInfo * remapinfo,
 			 Datum value, bool *changed)
 {
 	RangeType  *range = DatumGetRangeType(value);
@@ -928,7 +928,7 @@ TQRemapRange(TupleQueueReader *reader, RangeRemapInfo *remapinfo,
  * contained in it.  Set *changed to TRUE if we actually changed the datum.
  */
 static Datum
-TQRemapRecord(TupleQueueReader *reader, RecordRemapInfo *remapinfo,
+TQRemapRecord(TupleQueueReader * reader, RecordRemapInfo * remapinfo,
 			  Datum value, bool *changed)
 {
 	HeapTupleHeader tup;
@@ -1054,7 +1054,7 @@ TQRemapRecord(TupleQueueReader *reader, RecordRemapInfo *remapinfo,
  * record types locally and translate between remote and local typmods.
  */
 static void
-TupleQueueHandleControlMessage(TupleQueueReader *reader, Size nbytes,
+TupleQueueHandleControlMessage(TupleQueueReader * reader, Size nbytes,
 							   char *data)
 {
 	int32		remotetypmod;
@@ -1247,15 +1247,14 @@ BuildRangeRemapInfo(Oid rngtypid, MemoryContext mycontext)
  * Returns an array of TupleRemapInfo pointers, or NULL if no field
  * requires remapping.  Data is allocated in mycontext.
  */
-static TupleRemapInfo **
-BuildFieldRemapInfo(TupleDesc tupledesc, MemoryContext mycontext)
+static TupleRemapInfo * *BuildFieldRemapInfo(TupleDesc tupledesc, MemoryContext mycontext)
 {
 	TupleRemapInfo **remapinfo;
 	bool		noop = true;
 	int			i;
 
 	/* Recursively determine the remapping status of each field. */
-	remapinfo = (TupleRemapInfo **)
+	remapinfo = (TupleRemapInfo * *)
 		MemoryContextAlloc(mycontext,
 						   tupledesc->natts * sizeof(TupleRemapInfo *));
 	for (i = 0; i < tupledesc->natts; i++)

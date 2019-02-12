@@ -45,7 +45,7 @@ typedef struct config_var_value
 {
 	union config_var_val val;
 	void	   *extra;
-} config_var_value;
+}			config_var_value;
 
 /*
  * Groupings to help organize all the run-time options for display
@@ -113,7 +113,7 @@ typedef enum
 	GUC_SET,					/* entry caused by plain SET command */
 	GUC_LOCAL,					/* entry caused by SET LOCAL command */
 	GUC_SET_LOCAL				/* entry caused by SET then SET LOCAL */
-} GucStackState;
+}			GucStackState;
 
 typedef struct guc_stack
 {
@@ -126,7 +126,7 @@ typedef struct guc_stack
 	GucContext	masked_scontext;	/* context that set the masked value */
 	config_var_value prior;		/* previous value of variable */
 	config_var_value masked;	/* SET value in a GUC_SET_LOCAL entry */
-} GucStack;
+}			GucStack;
 
 /*
  * Generic fields applicable to all types of variables

@@ -66,7 +66,7 @@ typedef struct WindowObjectData
 	int			readptr;		/* tuplestore read pointer for this fn */
 	int64		markpos;		/* row that markptr is positioned on */
 	int64		seekpos;		/* row that readptr is positioned on */
-} WindowObjectData;
+}			WindowObjectData;
 
 /*
  * We have one WindowStatePerFunc struct for each window function and
@@ -154,45 +154,45 @@ typedef struct WindowStatePerAggData
 
 	/* Data local to eval_windowaggregates() */
 	bool		restart;		/* need to restart this agg in this cycle? */
-} WindowStatePerAggData;
+}			WindowStatePerAggData;
 
-static void initialize_windowaggregate(WindowAggState *winstate,
+static void initialize_windowaggregate(WindowAggState * winstate,
 						   WindowStatePerFunc perfuncstate,
 						   WindowStatePerAgg peraggstate);
-static void advance_windowaggregate(WindowAggState *winstate,
+static void advance_windowaggregate(WindowAggState * winstate,
 						WindowStatePerFunc perfuncstate,
 						WindowStatePerAgg peraggstate);
-static bool advance_windowaggregate_base(WindowAggState *winstate,
+static bool advance_windowaggregate_base(WindowAggState * winstate,
 							 WindowStatePerFunc perfuncstate,
 							 WindowStatePerAgg peraggstate);
-static void finalize_windowaggregate(WindowAggState *winstate,
+static void finalize_windowaggregate(WindowAggState * winstate,
 						 WindowStatePerFunc perfuncstate,
 						 WindowStatePerAgg peraggstate,
-						 Datum *result, bool *isnull);
+						 Datum * result, bool *isnull);
 
-static void eval_windowaggregates(WindowAggState *winstate);
-static void eval_windowfunction(WindowAggState *winstate,
+static void eval_windowaggregates(WindowAggState * winstate);
+static void eval_windowfunction(WindowAggState * winstate,
 					WindowStatePerFunc perfuncstate,
-					Datum *result, bool *isnull);
+					Datum * result, bool *isnull);
 
-static void begin_partition(WindowAggState *winstate);
-static void spool_tuples(WindowAggState *winstate, int64 pos);
-static void release_partition(WindowAggState *winstate);
+static void begin_partition(WindowAggState * winstate);
+static void spool_tuples(WindowAggState * winstate, int64 pos);
+static void release_partition(WindowAggState * winstate);
 
-static bool row_is_in_frame(WindowAggState *winstate, int64 pos,
-				TupleTableSlot *slot);
-static void update_frameheadpos(WindowObject winobj, TupleTableSlot *slot);
-static void update_frametailpos(WindowObject winobj, TupleTableSlot *slot);
+static bool row_is_in_frame(WindowAggState * winstate, int64 pos,
+				TupleTableSlot * slot);
+static void update_frameheadpos(WindowObject winobj, TupleTableSlot * slot);
+static void update_frametailpos(WindowObject winobj, TupleTableSlot * slot);
 
-static WindowStatePerAggData *initialize_peragg(WindowAggState *winstate,
-				  WindowFunc *wfunc,
-				  WindowStatePerAgg peraggstate);
+static WindowStatePerAggData * initialize_peragg(WindowAggState * winstate,
+												 WindowFunc * wfunc,
+												 WindowStatePerAgg peraggstate);
 static Datum GetAggInitVal(Datum textInitVal, Oid transtype);
 
-static bool are_peers(WindowAggState *winstate, TupleTableSlot *slot1,
-		  TupleTableSlot *slot2);
+static bool are_peers(WindowAggState * winstate, TupleTableSlot * slot1,
+		  TupleTableSlot * slot2);
 static bool window_gettupleslot(WindowObject winobj, int64 pos,
-					TupleTableSlot *slot);
+					TupleTableSlot * slot);
 
 
 /*
@@ -200,7 +200,7 @@ static bool window_gettupleslot(WindowObject winobj, int64 pos,
  * parallel to initialize_aggregates in nodeAgg.c
  */
 static void
-initialize_windowaggregate(WindowAggState *winstate,
+initialize_windowaggregate(WindowAggState * winstate,
 						   WindowStatePerFunc perfuncstate,
 						   WindowStatePerAgg peraggstate)
 {
@@ -235,7 +235,7 @@ initialize_windowaggregate(WindowAggState *winstate,
  * parallel to advance_aggregates in nodeAgg.c
  */
 static void
-advance_windowaggregate(WindowAggState *winstate,
+advance_windowaggregate(WindowAggState * winstate,
 						WindowStatePerFunc perfuncstate,
 						WindowStatePerAgg peraggstate)
 {
@@ -412,7 +412,7 @@ advance_windowaggregate(WindowAggState *winstate,
  * for cleaning up by restarting the aggregation).
  */
 static bool
-advance_windowaggregate_base(WindowAggState *winstate,
+advance_windowaggregate_base(WindowAggState * winstate,
 							 WindowStatePerFunc perfuncstate,
 							 WindowStatePerAgg peraggstate)
 {
@@ -575,10 +575,10 @@ advance_windowaggregate_base(WindowAggState *winstate,
  * parallel to finalize_aggregate in nodeAgg.c
  */
 static void
-finalize_windowaggregate(WindowAggState *winstate,
+finalize_windowaggregate(WindowAggState * winstate,
 						 WindowStatePerFunc perfuncstate,
 						 WindowStatePerAgg peraggstate,
-						 Datum *result, bool *isnull)
+						 Datum * result, bool *isnull)
 {
 	MemoryContext oldContext;
 
@@ -657,7 +657,7 @@ finalize_windowaggregate(WindowAggState *winstate,
  * nodeAgg.c.
  */
 static void
-eval_windowaggregates(WindowAggState *winstate)
+eval_windowaggregates(WindowAggState * winstate)
 {
 	WindowStatePerAgg peraggstate;
 	int			wfuncno,
@@ -1012,8 +1012,8 @@ eval_windowaggregates(WindowAggState *winstate)
  * it wants.
  */
 static void
-eval_windowfunction(WindowAggState *winstate, WindowStatePerFunc perfuncstate,
-					Datum *result, bool *isnull)
+eval_windowfunction(WindowAggState * winstate, WindowStatePerFunc perfuncstate,
+					Datum * result, bool *isnull)
 {
 	FunctionCallInfoData fcinfo;
 	MemoryContext oldContext;
@@ -1058,7 +1058,7 @@ eval_windowfunction(WindowAggState *winstate, WindowStatePerFunc perfuncstate,
  * Start buffering rows of the next partition.
  */
 static void
-begin_partition(WindowAggState *winstate)
+begin_partition(WindowAggState * winstate)
 {
 	PlanState  *outerPlan = outerPlanState(winstate);
 	int			numfuncs = winstate->numfuncs;
@@ -1161,7 +1161,7 @@ begin_partition(WindowAggState *winstate)
  * store them into the tuplestore. If pos is -1, reads the whole partition.
  */
 static void
-spool_tuples(WindowAggState *winstate, int64 pos)
+spool_tuples(WindowAggState * winstate, int64 pos)
 {
 	WindowAgg  *node = (WindowAgg *) winstate->ss.ps.plan;
 	PlanState  *outerPlan;
@@ -1233,7 +1233,7 @@ spool_tuples(WindowAggState *winstate, int64 pos)
  * tuplestore and aggregate results.
  */
 static void
-release_partition(WindowAggState *winstate)
+release_partition(WindowAggState * winstate)
 {
 	int			i;
 
@@ -1276,7 +1276,7 @@ release_partition(WindowAggState *winstate)
  * rules.
  */
 static bool
-row_is_in_frame(WindowAggState *winstate, int64 pos, TupleTableSlot *slot)
+row_is_in_frame(WindowAggState * winstate, int64 pos, TupleTableSlot * slot)
 {
 	int			frameOptions = winstate->frameOptions;
 
@@ -1378,7 +1378,7 @@ row_is_in_frame(WindowAggState *winstate, int64 pos, TupleTableSlot *slot)
  * for any required fetches.
  */
 static void
-update_frameheadpos(WindowObject winobj, TupleTableSlot *slot)
+update_frameheadpos(WindowObject winobj, TupleTableSlot * slot)
 {
 	WindowAggState *winstate = winobj->winstate;
 	WindowAgg  *node = (WindowAgg *) winstate->ss.ps.plan;
@@ -1483,7 +1483,7 @@ update_frameheadpos(WindowObject winobj, TupleTableSlot *slot)
  * for any required fetches.
  */
 static void
-update_frametailpos(WindowObject winobj, TupleTableSlot *slot)
+update_frametailpos(WindowObject winobj, TupleTableSlot * slot)
 {
 	WindowAggState *winstate = winobj->winstate;
 	WindowAgg  *node = (WindowAgg *) winstate->ss.ps.plan;
@@ -1588,7 +1588,7 @@ update_frametailpos(WindowObject winobj, TupleTableSlot *slot)
  * -----------------
  */
 static TupleTableSlot *
-ExecWindowAgg(PlanState *pstate)
+ExecWindowAgg(PlanState * pstate)
 {
 	WindowAggState *winstate = castNode(WindowAggState, pstate);
 	ExprContext *econtext;
@@ -1768,7 +1768,7 @@ ExecWindowAgg(PlanState *pstate)
  * -----------------
  */
 WindowAggState *
-ExecInitWindowAgg(WindowAgg *node, EState *estate, int eflags)
+ExecInitWindowAgg(WindowAgg * node, EState * estate, int eflags)
 {
 	WindowAggState *winstate;
 	Plan	   *outerPlan;
@@ -2010,7 +2010,7 @@ ExecInitWindowAgg(WindowAgg *node, EState *estate, int eflags)
  * -----------------
  */
 void
-ExecEndWindowAgg(WindowAggState *node)
+ExecEndWindowAgg(WindowAggState * node)
 {
 	PlanState  *outerPlan;
 	int			i;
@@ -2050,7 +2050,7 @@ ExecEndWindowAgg(WindowAggState *node)
  * -----------------
  */
 void
-ExecReScanWindowAgg(WindowAggState *node)
+ExecReScanWindowAgg(WindowAggState * node)
 {
 	PlanState  *outerPlan = outerPlanState(node);
 	ExprContext *econtext = node->ss.ps.ps_ExprContext;
@@ -2086,7 +2086,7 @@ ExecReScanWindowAgg(WindowAggState *node)
  * Almost same as in nodeAgg.c, except we don't support DISTINCT currently.
  */
 static WindowStatePerAggData *
-initialize_peragg(WindowAggState *winstate, WindowFunc *wfunc,
+initialize_peragg(WindowAggState * winstate, WindowFunc * wfunc,
 				  WindowStatePerAgg peraggstate)
 {
 	Oid			inputTypes[FUNC_MAX_ARGS];
@@ -2347,8 +2347,8 @@ GetAggInitVal(Datum textInitVal, Oid transtype)
  * NB: this does not consider the window frame mode.
  */
 static bool
-are_peers(WindowAggState *winstate, TupleTableSlot *slot1,
-		  TupleTableSlot *slot2)
+are_peers(WindowAggState * winstate, TupleTableSlot * slot1,
+		  TupleTableSlot * slot2)
 {
 	WindowAgg  *node = (WindowAgg *) winstate->ss.ps.plan;
 
@@ -2370,7 +2370,7 @@ are_peers(WindowAggState *winstate, TupleTableSlot *slot1,
  * Returns true if successful, false if no such row
  */
 static bool
-window_gettupleslot(WindowObject winobj, int64 pos, TupleTableSlot *slot)
+window_gettupleslot(WindowObject winobj, int64 pos, TupleTableSlot * slot)
 {
 	WindowAggState *winstate = winobj->winstate;
 	MemoryContext oldcontext;

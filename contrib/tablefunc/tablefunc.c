@@ -46,28 +46,28 @@
 
 PG_MODULE_MAGIC;
 
-static HTAB *load_categories_hash(char *cats_sql, MemoryContext per_query_ctx);
-static Tuplestorestate *get_crosstab_tuplestore(char *sql,
-						HTAB *crosstab_hash,
-						TupleDesc tupdesc,
-						MemoryContext per_query_ctx,
-						bool randomAccess);
+static HTAB * load_categories_hash(char *cats_sql, MemoryContext per_query_ctx);
+static Tuplestorestate * get_crosstab_tuplestore(char *sql,
+												 HTAB * crosstab_hash,
+												 TupleDesc tupdesc,
+												 MemoryContext per_query_ctx,
+												 bool randomAccess);
 static void validateConnectbyTupleDesc(TupleDesc tupdesc, bool show_branch, bool show_serial);
 static bool compatCrosstabTupleDescs(TupleDesc tupdesc1, TupleDesc tupdesc2);
 static void compatConnectbyTupleDescs(TupleDesc tupdesc1, TupleDesc tupdesc2);
-static void get_normal_pair(float8 *x1, float8 *x2);
-static Tuplestorestate *connectby(char *relname,
-		  char *key_fld,
-		  char *parent_key_fld,
-		  char *orderby_fld,
-		  char *branch_delim,
-		  char *start_with,
-		  int max_depth,
-		  bool show_branch,
-		  bool show_serial,
-		  MemoryContext per_query_ctx,
-		  bool randomAccess,
-		  AttInMetadata *attinmeta);
+static void get_normal_pair(float8 * x1, float8 * x2);
+static Tuplestorestate * connectby(char *relname,
+								   char *key_fld,
+								   char *parent_key_fld,
+								   char *orderby_fld,
+								   char *branch_delim,
+								   char *start_with,
+								   int max_depth,
+								   bool show_branch,
+								   bool show_serial,
+								   MemoryContext per_query_ctx,
+								   bool randomAccess,
+								   AttInMetadata * attinmeta);
 static void build_tuplestore_recursively(char *key_fld,
 							 char *parent_key_fld,
 							 char *relname,
@@ -81,8 +81,8 @@ static void build_tuplestore_recursively(char *key_fld,
 							 bool show_branch,
 							 bool show_serial,
 							 MemoryContext per_query_ctx,
-							 AttInMetadata *attinmeta,
-							 Tuplestorestate *tupstore);
+							 AttInMetadata * attinmeta,
+							 Tuplestorestate * tupstore);
 
 typedef struct
 {
@@ -90,7 +90,7 @@ typedef struct
 	float8		stddev;			/* stddev of the distribution */
 	float8		carry_val;		/* hold second generated value */
 	bool		use_carry;		/* use second generated value */
-} normal_rand_fctx;
+}			normal_rand_fctx;
 
 #define xpfree(var_) \
 	do { \
@@ -121,7 +121,7 @@ typedef struct crosstab_cat_desc
 {
 	char	   *catname;		/* full category name */
 	uint64		attidx;			/* zero based */
-} crosstab_cat_desc;
+}			crosstab_cat_desc;
 
 #define MAX_CATNAME_LEN			NAMEDATALEN
 #define INIT_CATS				64
@@ -160,7 +160,7 @@ typedef struct crosstab_hashent
 {
 	char		internal_catname[MAX_CATNAME_LEN];
 	crosstab_cat_desc *catdesc;
-} crosstab_HashEnt;
+}			crosstab_HashEnt;
 
 /*
  * normal_rand - return requested number of random values
@@ -275,7 +275,7 @@ normal_rand(PG_FUNCTION_ARGS)
  *
  */
 static void
-get_normal_pair(float8 *x1, float8 *x2)
+get_normal_pair(float8 * x1, float8 * x2)
 {
 	float8		u1,
 				u2,
@@ -789,7 +789,7 @@ load_categories_hash(char *cats_sql, MemoryContext per_query_ctx)
  */
 static Tuplestorestate *
 get_crosstab_tuplestore(char *sql,
-						HTAB *crosstab_hash,
+						HTAB * crosstab_hash,
 						TupleDesc tupdesc,
 						MemoryContext per_query_ctx,
 						bool randomAccess)
@@ -1158,7 +1158,7 @@ connectby(char *relname,
 		  bool show_serial,
 		  MemoryContext per_query_ctx,
 		  bool randomAccess,
-		  AttInMetadata *attinmeta)
+		  AttInMetadata * attinmeta)
 {
 	Tuplestorestate *tupstore = NULL;
 	int			ret;
@@ -1215,8 +1215,8 @@ build_tuplestore_recursively(char *key_fld,
 							 bool show_branch,
 							 bool show_serial,
 							 MemoryContext per_query_ctx,
-							 AttInMetadata *attinmeta,
-							 Tuplestorestate *tupstore)
+							 AttInMetadata * attinmeta,
+							 Tuplestorestate * tupstore)
 {
 	TupleDesc	tupdesc = attinmeta->tupdesc;
 	int			ret;

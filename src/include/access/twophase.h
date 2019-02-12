@@ -33,19 +33,19 @@ extern void TwoPhaseShmemInit(void);
 extern void AtAbort_Twophase(void);
 extern void PostPrepare_Twophase(void);
 
-extern PGPROC *TwoPhaseGetDummyProc(TransactionId xid);
+extern PGPROC * TwoPhaseGetDummyProc(TransactionId xid);
 extern BackendId TwoPhaseGetDummyBackendId(TransactionId xid);
 
 extern GlobalTransaction MarkAsPreparing(TransactionId xid, const char *gid,
-				TimestampTz prepared_at,
-				Oid owner, Oid databaseid);
+										 TimestampTz prepared_at,
+										 Oid owner, Oid databaseid);
 
 extern void StartPrepare(GlobalTransaction gxact);
 extern void EndPrepare(GlobalTransaction gxact);
 extern bool StandbyTransactionIdIsPrepared(TransactionId xid);
 
-extern TransactionId PrescanPreparedTransactions(TransactionId **xids_p,
-							int *nxids_p);
+extern TransactionId PrescanPreparedTransactions(TransactionId * *xids_p,
+												 int *nxids_p);
 extern void StandbyRecoverPreparedTransactions(void);
 extern void RecoverPreparedTransactions(void);
 

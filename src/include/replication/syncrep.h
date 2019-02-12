@@ -52,12 +52,12 @@ typedef struct SyncRepConfigData
 	int			nmembers;		/* number of members in the following list */
 	/* member_names contains nmembers consecutive nul-terminated C strings */
 	char		member_names[FLEXIBLE_ARRAY_MEMBER];
-} SyncRepConfigData;
+}			SyncRepConfigData;
 
-extern SyncRepConfigData *SyncRepConfig;
+extern SyncRepConfigData * SyncRepConfig;
 
 /* communication variables for parsing synchronous_standby_names GUC */
-extern SyncRepConfigData *syncrep_parse_result;
+extern SyncRepConfigData * syncrep_parse_result;
 extern char *syncrep_parse_error_msg;
 
 /* user-settable parameters for synchronous replication */
@@ -74,7 +74,7 @@ extern void SyncRepInitConfig(void);
 extern void SyncRepReleaseWaiters(void);
 
 /* called by wal sender and user backend */
-extern List *SyncRepGetSyncStandbys(bool *am_sync);
+extern List * SyncRepGetSyncStandbys(bool *am_sync);
 
 /* called by checkpointer */
 extern void SyncRepUpdateSyncStandbysDefined(void);

@@ -80,7 +80,7 @@ CATALOG(pg_proc,1255) BKI_BOOTSTRAP BKI_ROWTYPE_OID(81) BKI_SCHEMA_MACRO
  *		the format of pg_proc relation.
  * ----------------
  */
-typedef FormData_pg_proc *Form_pg_proc;
+typedef FormData_pg_proc * Form_pg_proc;
 
 /* ----------------
  *		compiler constants for pg_proc

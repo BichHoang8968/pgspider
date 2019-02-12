@@ -219,8 +219,8 @@ GetNewTransactionId(bool isSubXact)
 		 * nxids before filling the array entry.  Note we are assuming that
 		 * TransactionId and int fetch/store are atomic.
 		 */
-		volatile PGPROC *myproc = MyProc;
-		volatile PGXACT *mypgxact = MyPgXact;
+		volatile	PGPROC *myproc = MyProc;
+		volatile	PGXACT *mypgxact = MyPgXact;
 
 		if (!isSubXact)
 			mypgxact->xid = xid;

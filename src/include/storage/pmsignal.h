@@ -33,7 +33,7 @@ typedef enum
 	PMSIGNAL_ADVANCE_STATE_MACHINE, /* advance postmaster's state machine */
 
 	NUM_PMSIGNALS				/* Must be last value of enum! */
-} PMSignalReason;
+}			PMSignalReason;
 
 /* PMSignalData is an opaque struct, details known only within pmsignal.c */
 typedef struct PMSignalData PMSignalData;

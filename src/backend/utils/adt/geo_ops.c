@@ -38,25 +38,25 @@ enum path_delim
 	PATH_NONE, PATH_OPEN, PATH_CLOSED
 };
 
-static int	point_inside(Point *p, int npts, Point *plist);
+static int	point_inside(Point * p, int npts, Point * plist);
 static int	lseg_crossing(double x, double y, double px, double py);
-static BOX *box_construct(double x1, double x2, double y1, double y2);
-static BOX *box_copy(BOX *box);
-static BOX *box_fill(BOX *result, double x1, double x2, double y1, double y2);
-static bool box_ov(BOX *box1, BOX *box2);
-static double box_ht(BOX *box);
-static double box_wd(BOX *box);
-static double circle_ar(CIRCLE *circle);
-static CIRCLE *circle_copy(CIRCLE *circle);
-static LINE *line_construct_pm(Point *pt, double m);
-static void line_construct_pts(LINE *line, Point *pt1, Point *pt2);
-static bool lseg_intersect_internal(LSEG *l1, LSEG *l2);
-static double lseg_dt(LSEG *l1, LSEG *l2);
-static bool on_ps_internal(Point *pt, LSEG *lseg);
-static void make_bound_box(POLYGON *poly);
-static bool plist_same(int npts, Point *p1, Point *p2);
-static Point *point_construct(double x, double y);
-static Point *point_copy(Point *pt);
+static BOX * box_construct(double x1, double x2, double y1, double y2);
+static BOX * box_copy(BOX * box);
+static BOX * box_fill(BOX * result, double x1, double x2, double y1, double y2);
+static bool box_ov(BOX * box1, BOX * box2);
+static double box_ht(BOX * box);
+static double box_wd(BOX * box);
+static double circle_ar(CIRCLE * circle);
+static CIRCLE * circle_copy(CIRCLE * circle);
+static LINE * line_construct_pm(Point * pt, double m);
+static void line_construct_pts(LINE * line, Point * pt1, Point * pt2);
+static bool lseg_intersect_internal(LSEG * l1, LSEG * l2);
+static double lseg_dt(LSEG * l1, LSEG * l2);
+static bool on_ps_internal(Point * pt, LSEG * lseg);
+static void make_bound_box(POLYGON * poly);
+static bool plist_same(int npts, Point * p1, Point * p2);
+static Point * point_construct(double x, double y);
+static Point * point_copy(Point * pt);
 static double single_decode(char *num, char **endptr_p,
 			  const char *type_name, const char *orig_string);
 static void single_encode(float8 x, StringInfo str);
@@ -64,21 +64,21 @@ static void pair_decode(char *str, double *x, double *y, char **endptr_p,
 			const char *type_name, const char *orig_string);
 static void pair_encode(float8 x, float8 y, StringInfo str);
 static int	pair_count(char *s, char delim);
-static void path_decode(char *str, bool opentype, int npts, Point *p,
+static void path_decode(char *str, bool opentype, int npts, Point * p,
 			bool *isopen, char **endptr_p,
 			const char *type_name, const char *orig_string);
-static char *path_encode(enum path_delim path_delim, int npts, Point *pt);
-static void statlseg_construct(LSEG *lseg, Point *pt1, Point *pt2);
-static double box_ar(BOX *box);
-static void box_cn(Point *center, BOX *box);
-static Point *interpt_sl(LSEG *lseg, LINE *line);
-static bool has_interpt_sl(LSEG *lseg, LINE *line);
-static double dist_pl_internal(Point *pt, LINE *line);
-static double dist_ps_internal(Point *pt, LSEG *lseg);
-static Point *line_interpt_internal(LINE *l1, LINE *l2);
-static bool lseg_inside_poly(Point *a, Point *b, POLYGON *poly, int start);
-static Point *lseg_interpt_internal(LSEG *l1, LSEG *l2);
-static double dist_ppoly_internal(Point *pt, POLYGON *poly);
+static char *path_encode(enum path_delim path_delim, int npts, Point * pt);
+static void statlseg_construct(LSEG * lseg, Point * pt1, Point * pt2);
+static double box_ar(BOX * box);
+static void box_cn(Point * center, BOX * box);
+static Point * interpt_sl(LSEG * lseg, LINE * line);
+static bool has_interpt_sl(LSEG * lseg, LINE * line);
+static double dist_pl_internal(Point * pt, LINE * line);
+static double dist_ps_internal(Point * pt, LSEG * lseg);
+static Point * line_interpt_internal(LINE * l1, LINE * l2);
+static bool lseg_inside_poly(Point * a, Point * b, POLYGON * poly, int start);
+static Point * lseg_interpt_internal(LSEG * l1, LSEG * l2);
+static double dist_ppoly_internal(Point * pt, POLYGON * poly);
 
 
 /*
@@ -191,7 +191,7 @@ pair_encode(float8 x, float8 y, StringInfo str)
 }
 
 static void
-path_decode(char *str, bool opentype, int npts, Point *p,
+path_decode(char *str, bool opentype, int npts, Point * p,
 			bool *isopen, char **endptr_p,
 			const char *type_name, const char *orig_string)
 {
@@ -267,7 +267,7 @@ path_decode(char *str, bool opentype, int npts, Point *p,
 }								/* path_decode() */
 
 static char *
-path_encode(enum path_delim path_delim, int npts, Point *pt)
+path_encode(enum path_delim path_delim, int npts, Point * pt)
 {
 	StringInfoData str;
 	int			i;
@@ -453,7 +453,7 @@ box_construct(double x1, double x2, double y1, double y2)
 /*		box_fill		-		fill in a given box struct
  */
 static BOX *
-box_fill(BOX *result, double x1, double x2, double y1, double y2)
+box_fill(BOX * result, double x1, double x2, double y1, double y2)
 {
 	if (x1 > x2)
 	{
@@ -483,7 +483,7 @@ box_fill(BOX *result, double x1, double x2, double y1, double y2)
 /*		box_copy		-		copy a box
  */
 static BOX *
-box_copy(BOX *box)
+box_copy(BOX * box)
 {
 	BOX		   *result = (BOX *) palloc(sizeof(BOX));
 
@@ -524,7 +524,7 @@ box_overlap(PG_FUNCTION_ARGS)
 }
 
 static bool
-box_ov(BOX *box1, BOX *box2)
+box_ov(BOX * box1, BOX * box2)
 {
 	return (FPle(box1->low.x, box2->high.x) &&
 			FPle(box2->low.x, box1->high.x) &&
@@ -809,7 +809,7 @@ box_center(PG_FUNCTION_ARGS)
 /*		box_ar	-		returns the area of the box.
  */
 static double
-box_ar(BOX *box)
+box_ar(BOX * box)
 {
 	return box_wd(box) * box_ht(box);
 }
@@ -818,7 +818,7 @@ box_ar(BOX *box)
 /*		box_cn	-		stores the centerpoint of the box into *center.
  */
 static void
-box_cn(Point *center, BOX *box)
+box_cn(Point * center, BOX * box)
 {
 	center->x = (box->high.x + box->low.x) / 2.0;
 	center->y = (box->high.y + box->low.y) / 2.0;
@@ -829,7 +829,7 @@ box_cn(Point *center, BOX *box)
  *								  (horizontal magnitude).
  */
 static double
-box_wd(BOX *box)
+box_wd(BOX * box)
 {
 	return box->high.x - box->low.x;
 }
@@ -839,7 +839,7 @@ box_wd(BOX *box)
  *								  (vertical magnitude).
  */
 static double
-box_ht(BOX *box)
+box_ht(BOX * box)
 {
 	return box->high.y - box->low.y;
 }
@@ -896,7 +896,7 @@ box_diagonal(PG_FUNCTION_ARGS)
  ***********************************************************************/
 
 static bool
-line_decode(char *s, const char *str, LINE *line)
+line_decode(char *s, const char *str, LINE * line)
 {
 	/* s was already advanced over leading '{' */
 	line->A = single_decode(s, &s, "line", str);
@@ -1008,7 +1008,7 @@ line_send(PG_FUNCTION_ARGS)
  * point-slope
  */
 static LINE *
-line_construct_pm(Point *pt, double m)
+line_construct_pm(Point * pt, double m)
 {
 	LINE	   *result = (LINE *) palloc(sizeof(LINE));
 
@@ -1034,7 +1034,7 @@ line_construct_pm(Point *pt, double m)
  * Fill already-allocated LINE struct from two points on the line
  */
 static void
-line_construct_pts(LINE *line, Point *pt1, Point *pt2)
+line_construct_pts(LINE * line, Point * pt1, Point * pt2)
 {
 	if (FPeq(pt1->x, pt2->x))
 	{							/* vertical */
@@ -1215,7 +1215,7 @@ line_interpt(PG_FUNCTION_ARGS)
  * returns a NULL pointer if no intersection point
  */
 static Point *
-line_interpt_internal(LINE *l1, LINE *l2)
+line_interpt_internal(LINE * l1, LINE * l2)
 {
 	Point	   *result;
 	double		x,
@@ -1793,7 +1793,7 @@ point_construct(double x, double y)
 
 
 static Point *
-point_copy(Point *pt)
+point_copy(Point * pt)
 {
 	Point	   *result;
 
@@ -1903,7 +1903,7 @@ point_distance(PG_FUNCTION_ARGS)
 }
 
 double
-point_dt(Point *pt1, Point *pt2)
+point_dt(Point * pt1, Point * pt2)
 {
 #ifdef GEODEBUG
 	printf("point_dt- segment (%f,%f),(%f,%f) length is %f\n",
@@ -1923,7 +1923,7 @@ point_slope(PG_FUNCTION_ARGS)
 
 
 double
-point_sl(Point *pt1, Point *pt2)
+point_sl(Point * pt1, Point * pt2)
 {
 	return (FPeq(pt1->x, pt2->x)
 			? (double) DBL_MAX
@@ -1963,7 +1963,7 @@ lseg_out(PG_FUNCTION_ARGS)
 {
 	LSEG	   *ls = PG_GETARG_LSEG_P(0);
 
-	PG_RETURN_CSTRING(path_encode(PATH_OPEN, 2, (Point *) &(ls->p[0])));
+	PG_RETURN_CSTRING(path_encode(PATH_OPEN, 2, (Point *) & (ls->p[0])));
 }
 
 /*
@@ -2023,7 +2023,7 @@ lseg_construct(PG_FUNCTION_ARGS)
 
 /* like lseg_construct, but assume space already allocated */
 static void
-statlseg_construct(LSEG *lseg, Point *pt1, Point *pt2)
+statlseg_construct(LSEG * lseg, Point * pt1, Point * pt2)
 {
 	lseg->p[0].x = pt1->x;
 	lseg->p[0].y = pt1->y;
@@ -2057,7 +2057,7 @@ lseg_intersect(PG_FUNCTION_ARGS)
 }
 
 static bool
-lseg_intersect_internal(LSEG *l1, LSEG *l2)
+lseg_intersect_internal(LSEG * l1, LSEG * l2)
 {
 	LINE		ln;
 	Point	   *interpt;
@@ -2220,7 +2220,7 @@ lseg_distance(PG_FUNCTION_ARGS)
  * - thomas 1998-02-01
  */
 static double
-lseg_dt(LSEG *l1, LSEG *l2)
+lseg_dt(LSEG * l1, LSEG * l2)
 {
 	double		result,
 				d;
@@ -2256,7 +2256,7 @@ lseg_center(PG_FUNCTION_ARGS)
 }
 
 static Point *
-lseg_interpt_internal(LSEG *l1, LSEG *l2)
+lseg_interpt_internal(LSEG * l1, LSEG * l2)
 {
 	Point	   *result;
 	LINE		tmp1,
@@ -2345,7 +2345,7 @@ dist_pl(PG_FUNCTION_ARGS)
 }
 
 static double
-dist_pl_internal(Point *pt, LINE *line)
+dist_pl_internal(Point * pt, LINE * line)
 {
 	return fabs((line->A * pt->x + line->B * pt->y + line->C) /
 				HYPOT(line->A, line->B));
@@ -2364,7 +2364,7 @@ dist_ps(PG_FUNCTION_ARGS)
 }
 
 static double
-dist_ps_internal(Point *pt, LSEG *lseg)
+dist_ps_internal(Point * pt, LSEG * lseg)
 {
 	double		m;				/* slope of perp. */
 	LINE	   *ln;
@@ -2605,7 +2605,7 @@ dist_polyp(PG_FUNCTION_ARGS)
 }
 
 static double
-dist_ppoly_internal(Point *pt, POLYGON *poly)
+dist_ppoly_internal(Point * pt, POLYGON * poly)
 {
 	float8		result;
 	float8		d;
@@ -2658,7 +2658,7 @@ dist_ppoly_internal(Point *pt, POLYGON *poly)
 
 /* Get intersection point of lseg and line; returns NULL if no intersection */
 static Point *
-interpt_sl(LSEG *lseg, LINE *line)
+interpt_sl(LSEG * lseg, LINE * line)
 {
 	LINE		tmp;
 	Point	   *p;
@@ -2691,7 +2691,7 @@ interpt_sl(LSEG *lseg, LINE *line)
 
 /* variant: just indicate if intersection point exists */
 static bool
-has_interpt_sl(LSEG *lseg, LINE *line)
+has_interpt_sl(LSEG * lseg, LINE * line)
 {
 	Point	   *tmp;
 
@@ -3151,7 +3151,7 @@ on_ps(PG_FUNCTION_ARGS)
 }
 
 static bool
-on_ps_internal(Point *pt, LSEG *lseg)
+on_ps_internal(Point * pt, LSEG * lseg)
 {
 	return FPeq(point_dt(pt, &lseg->p[0]) + point_dt(pt, &lseg->p[1]),
 				point_dt(&lseg->p[0], &lseg->p[1]));
@@ -3374,7 +3374,7 @@ inter_lb(PG_FUNCTION_ARGS)
  * Make the smallest bounding box for the given polygon.
  *---------------------------------------------------------------------*/
 static void
-make_bound_box(POLYGON *poly)
+make_bound_box(POLYGON * poly)
 {
 	int			i;
 	double		x1,
@@ -3817,7 +3817,7 @@ poly_overlap(PG_FUNCTION_ARGS)
  */
 
 static bool
-touched_lseg_inside_poly(Point *a, Point *b, LSEG *s, POLYGON *poly, int start)
+touched_lseg_inside_poly(Point * a, Point * b, LSEG * s, POLYGON * poly, int start)
 {
 	/* point a is on s, b is not */
 	LSEG		t;
@@ -3854,7 +3854,7 @@ touched_lseg_inside_poly(Point *a, Point *b, LSEG *s, POLYGON *poly, int start)
  * polygon's edges started from start
  */
 static bool
-lseg_inside_poly(Point *a, Point *b, POLYGON *poly, int start)
+lseg_inside_poly(Point * a, Point * b, POLYGON * poly, int start)
 {
 	LSEG		s,
 				t;
@@ -4867,7 +4867,7 @@ circle_ge(PG_FUNCTION_ARGS)
  *---------------------------------------------------------*/
 
 static CIRCLE *
-circle_copy(CIRCLE *circle)
+circle_copy(CIRCLE * circle)
 {
 	CIRCLE	   *result;
 
@@ -5084,7 +5084,7 @@ circle_center(PG_FUNCTION_ARGS)
 /*		circle_ar		-		returns the area of the circle.
  */
 static double
-circle_ar(CIRCLE *circle)
+circle_ar(CIRCLE * circle)
 {
 	return M_PI * (circle->radius * circle->radius);
 }
@@ -5257,7 +5257,7 @@ poly_circle(PG_FUNCTION_ARGS)
 #define POINT_ON_POLYGON INT_MAX
 
 static int
-point_inside(Point *p, int npts, Point *plist)
+point_inside(Point * p, int npts, Point * plist)
 {
 	double		x0,
 				y0;
@@ -5370,7 +5370,7 @@ lseg_crossing(double x, double y, double prev_x, double prev_y)
 
 
 static bool
-plist_same(int npts, Point *p1, Point *p2)
+plist_same(int npts, Point * p1, Point * p2)
 {
 	int			i,
 				ii,

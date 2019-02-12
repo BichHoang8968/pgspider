@@ -34,12 +34,12 @@ typedef struct
 	SpGistState spgstate;		/* SPGiST's working state */
 	int64		indtuples;		/* total number of tuples indexed */
 	MemoryContext tmpCtx;		/* per-tuple temporary context */
-} SpGistBuildState;
+}			SpGistBuildState;
 
 
 /* Callback to process one heap tuple during IndexBuildHeapScan */
 static void
-spgistBuildCallback(Relation index, HeapTuple htup, Datum *values,
+spgistBuildCallback(Relation index, HeapTuple htup, Datum * values,
 					bool *isnull, bool tupleIsAlive, void *state)
 {
 	SpGistBuildState *buildstate = (SpGistBuildState *) state;
@@ -71,7 +71,7 @@ spgistBuildCallback(Relation index, HeapTuple htup, Datum *values,
  * Build an SP-GiST index.
  */
 IndexBuildResult *
-spgbuild(Relation heap, Relation index, IndexInfo *indexInfo)
+spgbuild(Relation heap, Relation index, IndexInfo * indexInfo)
 {
 	IndexBuildResult *result;
 	double		reltuples;
@@ -211,10 +211,10 @@ spgbuildempty(Relation index)
  * Insert one new tuple into an SPGiST index.
  */
 bool
-spginsert(Relation index, Datum *values, bool *isnull,
+spginsert(Relation index, Datum * values, bool *isnull,
 		  ItemPointer ht_ctid, Relation heapRel,
 		  IndexUniqueCheck checkUnique,
-		  IndexInfo *indexInfo)
+		  IndexInfo * indexInfo)
 {
 	SpGistState spgstate;
 	MemoryContext oldCtx;

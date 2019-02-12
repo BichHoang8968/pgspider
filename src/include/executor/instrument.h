@@ -30,7 +30,7 @@ typedef struct BufferUsage
 	long		temp_blks_written;	/* # of temp blocks written */
 	instr_time	blk_read_time;	/* time spent reading */
 	instr_time	blk_write_time; /* time spent writing */
-} BufferUsage;
+}			BufferUsage;
 
 /* Flag bits included in InstrAlloc's instrument_options bitmask */
 typedef enum InstrumentOption
@@ -61,24 +61,24 @@ typedef struct Instrumentation
 	double		nfiltered1;		/* # tuples removed by scanqual or joinqual */
 	double		nfiltered2;		/* # tuples removed by "other" quals */
 	BufferUsage bufusage;		/* Total buffer usage */
-} Instrumentation;
+}			Instrumentation;
 
 typedef struct WorkerInstrumentation
 {
 	int			num_workers;	/* # of structures that follow */
 	Instrumentation instrument[FLEXIBLE_ARRAY_MEMBER];
-} WorkerInstrumentation;
+}			WorkerInstrumentation;
 
 extern PGDLLIMPORT BufferUsage pgBufferUsage;
 
-extern Instrumentation *InstrAlloc(int n, int instrument_options);
-extern void InstrInit(Instrumentation *instr, int instrument_options);
-extern void InstrStartNode(Instrumentation *instr);
-extern void InstrStopNode(Instrumentation *instr, double nTuples);
-extern void InstrEndLoop(Instrumentation *instr);
-extern void InstrAggNode(Instrumentation *dst, Instrumentation *add);
+extern Instrumentation * InstrAlloc(int n, int instrument_options);
+extern void InstrInit(Instrumentation * instr, int instrument_options);
+extern void InstrStartNode(Instrumentation * instr);
+extern void InstrStopNode(Instrumentation * instr, double nTuples);
+extern void InstrEndLoop(Instrumentation * instr);
+extern void InstrAggNode(Instrumentation * dst, Instrumentation * add);
 extern void InstrStartParallelQuery(void);
-extern void InstrEndParallelQuery(BufferUsage *result);
-extern void InstrAccumParallelQuery(BufferUsage *result);
+extern void InstrEndParallelQuery(BufferUsage * result);
+extern void InstrAccumParallelQuery(BufferUsage * result);
 
 #endif							/* INSTRUMENT_H */

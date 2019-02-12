@@ -104,7 +104,7 @@ SpinlockSemaInit(void)
  */
 
 void
-s_init_lock_sema(volatile slock_t *lock, bool nested)
+s_init_lock_sema(volatile slock_t * lock, bool nested)
 {
 	static int	counter = 0;
 
@@ -112,7 +112,7 @@ s_init_lock_sema(volatile slock_t *lock, bool nested)
 }
 
 void
-s_unlock_sema(volatile slock_t *lock)
+s_unlock_sema(volatile slock_t * lock)
 {
 	int			lockndx = *lock;
 
@@ -122,7 +122,7 @@ s_unlock_sema(volatile slock_t *lock)
 }
 
 bool
-s_lock_free_sema(volatile slock_t *lock)
+s_lock_free_sema(volatile slock_t * lock)
 {
 	/* We don't currently use S_LOCK_FREE anyway */
 	elog(ERROR, "spin.c does not support S_LOCK_FREE()");
@@ -130,7 +130,7 @@ s_lock_free_sema(volatile slock_t *lock)
 }
 
 int
-tas_sema(volatile slock_t *lock)
+tas_sema(volatile slock_t * lock)
 {
 	int			lockndx = *lock;
 

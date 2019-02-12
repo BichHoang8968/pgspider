@@ -30,7 +30,7 @@
  *------------------------------------------------------------------
  */
 
-extern ObjectAddress CommentObject(CommentStmt *stmt);
+extern ObjectAddress CommentObject(CommentStmt * stmt);
 
 extern void DeleteComments(Oid oid, Oid classoid, int32 subid);
 

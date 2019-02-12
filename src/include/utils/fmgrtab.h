@@ -30,7 +30,7 @@ typedef struct
 	bool		strict;			/* T if function is "strict" */
 	bool		retset;			/* T if function returns a set */
 	PGFunction	func;			/* pointer to compiled function */
-} FmgrBuiltin;
+}			FmgrBuiltin;
 
 extern const FmgrBuiltin fmgr_builtins[];
 

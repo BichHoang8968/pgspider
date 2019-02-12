@@ -44,10 +44,10 @@
 #include "utils/tqual.h"
 
 
-static void checkRuleResultList(List *targetList, TupleDesc resultDesc,
+static void checkRuleResultList(List * targetList, TupleDesc resultDesc,
 					bool isSelect, bool requireColumnNameMatch);
-static bool setRuleCheckAsUser_walker(Node *node, Oid *context);
-static void setRuleCheckAsUser_Query(Query *qry, Oid userid);
+static bool setRuleCheckAsUser_walker(Node * node, Oid * context);
+static void setRuleCheckAsUser_Query(Query * qry, Oid userid);
 
 
 /*
@@ -60,8 +60,8 @@ InsertRule(char *rulname,
 		   int evtype,
 		   Oid eventrel_oid,
 		   bool evinstead,
-		   Node *event_qual,
-		   List *action,
+		   Node * event_qual,
+		   List * action,
 		   bool replace)
 {
 	char	   *evqual = nodeToString(event_qual);
@@ -191,7 +191,7 @@ InsertRule(char *rulname,
  *		Execute a CREATE RULE command.
  */
 ObjectAddress
-DefineRule(RuleStmt *stmt, const char *queryString)
+DefineRule(RuleStmt * stmt, const char *queryString)
 {
 	List	   *actions;
 	Node	   *whereClause;
@@ -227,11 +227,11 @@ DefineRule(RuleStmt *stmt, const char *queryString)
 ObjectAddress
 DefineQueryRewrite(char *rulename,
 				   Oid event_relid,
-				   Node *event_qual,
+				   Node * event_qual,
 				   CmdType event_type,
 				   bool is_instead,
 				   bool replace,
-				   List *action)
+				   List * action)
 {
 	Relation	event_relation;
 	ListCell   *l;
@@ -647,7 +647,7 @@ DefineQueryRewrite(char *rulename,
  * A SELECT targetlist may optionally require that column names match.
  */
 static void
-checkRuleResultList(List *targetList, TupleDesc resultDesc, bool isSelect,
+checkRuleResultList(List * targetList, TupleDesc resultDesc, bool isSelect,
 					bool requireColumnNameMatch)
 {
 	ListCell   *tllist;
@@ -779,13 +779,13 @@ checkRuleResultList(List *targetList, TupleDesc resultDesc, bool isSelect,
  * them always.
  */
 void
-setRuleCheckAsUser(Node *node, Oid userid)
+setRuleCheckAsUser(Node * node, Oid userid)
 {
 	(void) setRuleCheckAsUser_walker(node, &userid);
 }
 
 static bool
-setRuleCheckAsUser_walker(Node *node, Oid *context)
+setRuleCheckAsUser_walker(Node * node, Oid * context)
 {
 	if (node == NULL)
 		return false;
@@ -799,7 +799,7 @@ setRuleCheckAsUser_walker(Node *node, Oid *context)
 }
 
 static void
-setRuleCheckAsUser_Query(Query *qry, Oid userid)
+setRuleCheckAsUser_Query(Query * qry, Oid userid)
 {
 	ListCell   *l;
 
@@ -900,7 +900,7 @@ EnableDisableRule(Relation rel, const char *rulename,
  * Perform permissions and integrity checks before acquiring a relation lock.
  */
 static void
-RangeVarCallbackForRenameRule(const RangeVar *rv, Oid relid, Oid oldrelid,
+RangeVarCallbackForRenameRule(const RangeVar * rv, Oid relid, Oid oldrelid,
 							  void *arg)
 {
 	HeapTuple	tuple;
@@ -936,7 +936,7 @@ RangeVarCallbackForRenameRule(const RangeVar *rv, Oid relid, Oid oldrelid,
  * Rename an existing rewrite rule.
  */
 ObjectAddress
-RenameRewriteRule(RangeVar *relation, const char *oldName,
+RenameRewriteRule(RangeVar * relation, const char *oldName,
 				  const char *newName)
 {
 	Oid			relid;

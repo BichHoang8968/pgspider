@@ -43,19 +43,19 @@ typedef struct ConnCacheEntry
 	bool		invalidated;	/* true if reconnect is pending */
 	uint32		server_hashvalue;	/* hash value of foreign server OID */
 	uint32		mapping_hashvalue;	/* hash value of user mapping OID */
-} ConnCacheEntry;
+}			ConnCacheEntry;
 
 /*
  * Connection cache (initialized on first use)
  */
-static HTAB *ConnectionHash = NULL;
+static HTAB * ConnectionHash = NULL;
 
 /* tracks whether any work is needed in callback functions */
 static bool xact_got_connection = false;
 
 
 static bool do_sql_command(sqlite3 * conn, const char *sql, int level);
-static void begin_remote_xact(ConnCacheEntry *entry);
+static void begin_remote_xact(ConnCacheEntry * entry);
 static void sqlitefdw_xact_callback(XactEvent event, void *arg);
 static void sqlitefdw_subxact_callback(SubXactEvent event,
 						   SubTransactionId mySubid,
@@ -69,7 +69,7 @@ static void sqlitefdw_subxact_callback(SubXactEvent event,
  * is established if we don't already have a suitable one.
  */
 sqlite3 *
-sqlite_get_connection(ForeignServer *server)
+sqlite_get_connection(ForeignServer * server)
 {
 	const char *dbpath = NULL;
 	bool		found;
@@ -235,7 +235,7 @@ do_sql_command(sqlite3 * conn, const char *sql, int level)
  * Start remote transaction or subtransaction, if needed.
  */
 static void
-begin_remote_xact(ConnCacheEntry *entry)
+begin_remote_xact(ConnCacheEntry * entry)
 {
 	int			curlevel = GetCurrentTransactionNestLevel();
 

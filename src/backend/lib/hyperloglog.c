@@ -62,7 +62,7 @@ static inline uint8 rho(uint32 x, uint8 b);
  * Must be between 4 and 16 inclusive.
  */
 void
-initHyperLogLog(hyperLogLogState *cState, uint8 bwidth)
+initHyperLogLog(hyperLogLogState * cState, uint8 bwidth)
 {
 	double		alpha;
 
@@ -124,7 +124,7 @@ initHyperLogLog(hyperLogLogState *cState, uint8 bwidth)
  * is between ~25% (bwidth=4) and 0.4% (bwidth=16).
  */
 void
-initHyperLogLogError(hyperLogLogState *cState, double error)
+initHyperLogLogError(hyperLogLogState * cState, double error)
 {
 	uint8		bwidth = 4;
 
@@ -147,7 +147,7 @@ initHyperLogLogError(hyperLogLogState *cState, double error)
  * allocated by palloc).
  */
 void
-freeHyperLogLog(hyperLogLogState *cState)
+freeHyperLogLog(hyperLogLogState * cState)
 {
 	Assert(cState->hashesArr != NULL);
 	pfree(cState->hashesArr);
@@ -163,7 +163,7 @@ freeHyperLogLog(hyperLogLogState *cState)
  * observed.
  */
 void
-addHyperLogLog(hyperLogLogState *cState, uint32 hash)
+addHyperLogLog(hyperLogLogState * cState, uint32 hash)
 {
 	uint8		count;
 	uint32		index;
@@ -182,7 +182,7 @@ addHyperLogLog(hyperLogLogState *cState, uint32 hash)
  * Estimates cardinality, based on elements added so far
  */
 double
-estimateHyperLogLog(hyperLogLogState *cState)
+estimateHyperLogLog(hyperLogLogState * cState)
 {
 	double		result;
 	double		sum = 0.0;

@@ -26,10 +26,10 @@
  * Pairing heap comparison function for the GISTSearchItem queue
  */
 static int
-pairingheap_GISTSearchItem_cmp(const pairingheap_node *a, const pairingheap_node *b, void *arg)
+pairingheap_GISTSearchItem_cmp(const pairingheap_node * a, const pairingheap_node * b, void *arg)
 {
-	const GISTSearchItem *sa = (const GISTSearchItem *) a;
-	const GISTSearchItem *sb = (const GISTSearchItem *) b;
+	const		GISTSearchItem *sa = (const GISTSearchItem *) a;
+	const		GISTSearchItem *sb = (const GISTSearchItem *) b;
 	IndexScanDesc scan = (IndexScanDesc) arg;
 	int			i;
 

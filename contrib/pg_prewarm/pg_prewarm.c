@@ -35,7 +35,7 @@ typedef enum
 	PREWARM_PREFETCH,
 	PREWARM_READ,
 	PREWARM_BUFFER
-} PrewarmType;
+}			PrewarmType;
 
 static char blockbuffer[BLCKSZ];
 

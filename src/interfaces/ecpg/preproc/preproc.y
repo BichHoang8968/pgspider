@@ -10480,12 +10480,15 @@ RETURNING target_list opt_ecpg_into
  $$ = cat_str(4,mm_strdup("("),$2,mm_strdup(")"),$4);
 }
 ;
+
+
  url:
  SCONST
  { 
  $$ = mm_strdup("sconst");
 }
 ;
+
 
  joined_table:
  '(' joined_table ')'

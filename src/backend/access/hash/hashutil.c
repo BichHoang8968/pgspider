@@ -324,8 +324,8 @@ _hash_get_indextuple_hashkey(IndexTuple itup)
  */
 bool
 _hash_convert_tuple(Relation index,
-					Datum *user_values, bool *user_isnull,
-					Datum *index_values, bool *index_isnull)
+					Datum * user_values, bool *user_isnull,
+					Datum * index_values, bool *index_isnull)
 {
 	uint32		hashkey;
 

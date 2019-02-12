@@ -77,7 +77,7 @@ typedef enum
 	WRKR_IDLE,
 	WRKR_WORKING,
 	WRKR_TERMINATED
-} T_WorkerStatus;
+}			T_WorkerStatus;
 
 /*
  * Private per-parallel-worker state (typedef for this is in parallel.h).
@@ -120,7 +120,7 @@ typedef struct
 {
 	ArchiveHandle *AH;			/* master database connection */
 	ParallelSlot *slot;			/* this worker's parallel slot */
-} WorkerInfo;
+}			WorkerInfo;
 
 /* Windows implementation of pipe access */
 static int	pgpipe(int handles[2]);
@@ -143,7 +143,7 @@ typedef struct ShutdownInformation
 {
 	ParallelState *pstate;
 	Archive    *AHX;
-} ShutdownInformation;
+}			ShutdownInformation;
 
 static ShutdownInformation shutdown_info;
 
@@ -164,7 +164,7 @@ typedef struct DumpSignalInformation
 #ifndef WIN32
 	bool		am_worker;		/* am I a worker process? */
 #endif
-} DumpSignalInformation;
+}			DumpSignalInformation;
 
 static volatile DumpSignalInformation signal_info;
 
@@ -198,26 +198,26 @@ DWORD		mainThreadId;
 static const char *modulename = gettext_noop("parallel archiver");
 
 /* Local function prototypes */
-static ParallelSlot *GetMyPSlot(ParallelState *pstate);
+static ParallelSlot * GetMyPSlot(ParallelState * pstate);
 static void archive_close_connection(int code, void *arg);
-static void ShutdownWorkersHard(ParallelState *pstate);
-static void WaitForTerminatingWorkers(ParallelState *pstate);
+static void ShutdownWorkersHard(ParallelState * pstate);
+static void WaitForTerminatingWorkers(ParallelState * pstate);
 static void setup_cancel_handler(void);
-static void set_cancel_pstate(ParallelState *pstate);
-static void set_cancel_slot_archive(ParallelSlot *slot, ArchiveHandle *AH);
-static void RunWorker(ArchiveHandle *AH, ParallelSlot *slot);
-static int	GetIdleWorker(ParallelState *pstate);
-static bool HasEveryWorkerTerminated(ParallelState *pstate);
-static void lockTableForWorker(ArchiveHandle *AH, TocEntry *te);
-static void WaitForCommands(ArchiveHandle *AH, int pipefd[2]);
-static bool ListenToWorkers(ArchiveHandle *AH, ParallelState *pstate,
+static void set_cancel_pstate(ParallelState * pstate);
+static void set_cancel_slot_archive(ParallelSlot * slot, ArchiveHandle * AH);
+static void RunWorker(ArchiveHandle * AH, ParallelSlot * slot);
+static int	GetIdleWorker(ParallelState * pstate);
+static bool HasEveryWorkerTerminated(ParallelState * pstate);
+static void lockTableForWorker(ArchiveHandle * AH, TocEntry * te);
+static void WaitForCommands(ArchiveHandle * AH, int pipefd[2]);
+static bool ListenToWorkers(ArchiveHandle * AH, ParallelState * pstate,
 				bool do_wait);
 static char *getMessageFromMaster(int pipefd[2]);
 static void sendMessageToMaster(int pipefd[2], const char *str);
-static int	select_loop(int maxFd, fd_set *workerset);
-static char *getMessageFromWorker(ParallelState *pstate,
+static int	select_loop(int maxFd, fd_set * workerset);
+static char *getMessageFromWorker(ParallelState * pstate,
 					 bool do_wait, int *worker);
-static void sendMessageToWorker(ParallelState *pstate,
+static void sendMessageToWorker(ParallelState * pstate,
 					int worker, const char *str);
 static char *readMessageFromPipe(int fd);
 
@@ -278,7 +278,7 @@ init_parallel_dump_utils(void)
  * Returns NULL if no matching slot is found (this implies we're the master).
  */
 static ParallelSlot *
-GetMyPSlot(ParallelState *pstate)
+GetMyPSlot(ParallelState * pstate)
 {
 	int			i;
 
@@ -342,7 +342,7 @@ getThreadLocalPQExpBuffer(void)
  * as soon as they've created the ArchiveHandle.
  */
 void
-on_exit_close_archive(Archive *AHX)
+on_exit_close_archive(Archive * AHX)
 {
 	shutdown_info.AHX = AHX;
 	on_exit_nicely(archive_close_connection, &shutdown_info);
@@ -409,7 +409,7 @@ archive_close_connection(int code, void *arg)
  * appropriate.
  */
 static void
-ShutdownWorkersHard(ParallelState *pstate)
+ShutdownWorkersHard(ParallelState * pstate)
 {
 	int			i;
 
@@ -458,7 +458,7 @@ ShutdownWorkersHard(ParallelState *pstate)
  * Wait for all workers to terminate.
  */
 static void
-WaitForTerminatingWorkers(ParallelState *pstate)
+WaitForTerminatingWorkers(ParallelState * pstate)
 {
 	while (!HasEveryWorkerTerminated(pstate))
 	{
@@ -739,7 +739,7 @@ setup_cancel_handler(void)
  * connection; or clear it if conn is NULL.
  */
 void
-set_archive_cancel_info(ArchiveHandle *AH, PGconn *conn)
+set_archive_cancel_info(ArchiveHandle * AH, PGconn * conn)
 {
 	PGcancel   *oldConnCancel;
 
@@ -798,7 +798,7 @@ set_archive_cancel_info(ArchiveHandle *AH, PGconn *conn)
  * We need this mainly to have an interlock against Windows signal thread.
  */
 static void
-set_cancel_pstate(ParallelState *pstate)
+set_cancel_pstate(ParallelState * pstate)
 {
 #ifdef WIN32
 	EnterCriticalSection(&signal_info_lock);
@@ -818,7 +818,7 @@ set_cancel_pstate(ParallelState *pstate)
  * We need this mainly to have an interlock against Windows signal thread.
  */
 static void
-set_cancel_slot_archive(ParallelSlot *slot, ArchiveHandle *AH)
+set_cancel_slot_archive(ParallelSlot * slot, ArchiveHandle * AH)
 {
 #ifdef WIN32
 	EnterCriticalSection(&signal_info_lock);
@@ -838,7 +838,7 @@ set_cancel_slot_archive(ParallelSlot *slot, ArchiveHandle *AH)
  * upon return.
  */
 static void
-RunWorker(ArchiveHandle *AH, ParallelSlot *slot)
+RunWorker(ArchiveHandle * AH, ParallelSlot * slot)
 {
 	int			pipefd[2];
 
@@ -883,7 +883,7 @@ RunWorker(ArchiveHandle *AH, ParallelSlot *slot)
  */
 #ifdef WIN32
 static unsigned __stdcall
-init_spawned_worker_win32(WorkerInfo *wi)
+init_spawned_worker_win32(WorkerInfo * wi)
 {
 	ArchiveHandle *AH = wi->AH;
 	ParallelSlot *slot = wi->slot;
@@ -906,7 +906,7 @@ init_spawned_worker_win32(WorkerInfo *wi)
  * workers are created with fork().
  */
 ParallelState *
-ParallelBackupStart(ArchiveHandle *AH)
+ParallelBackupStart(ArchiveHandle * AH)
 {
 	ParallelState *pstate;
 	int			i;
@@ -922,7 +922,7 @@ ParallelBackupStart(ArchiveHandle *AH)
 	if (AH->public.numWorkers == 1)
 		return pstate;
 
-	pstate->te = (TocEntry **)
+	pstate->te = (TocEntry * *)
 		pg_malloc0(pstate->numWorkers * sizeof(TocEntry *));
 	pstate->parallelSlot = (ParallelSlot *)
 		pg_malloc0(pstate->numWorkers * sizeof(ParallelSlot));
@@ -1076,7 +1076,7 @@ ParallelBackupStart(ArchiveHandle *AH)
  * Close down a parallel dump or restore.
  */
 void
-ParallelBackupEnd(ArchiveHandle *AH, ParallelState *pstate)
+ParallelBackupEnd(ArchiveHandle * AH, ParallelState * pstate)
 {
 	int			i;
 
@@ -1125,7 +1125,7 @@ ParallelBackupEnd(ArchiveHandle *AH, ParallelState *pstate)
  * The string is built in the caller-supplied buffer of size buflen.
  */
 static void
-buildWorkerCommand(ArchiveHandle *AH, TocEntry *te, T_Action act,
+buildWorkerCommand(ArchiveHandle * AH, TocEntry * te, T_Action act,
 				   char *buf, int buflen)
 {
 	if (act == ACT_DUMP)
@@ -1140,7 +1140,7 @@ buildWorkerCommand(ArchiveHandle *AH, TocEntry *te, T_Action act,
  * parseWorkerCommand: interpret a command string in a worker.
  */
 static void
-parseWorkerCommand(ArchiveHandle *AH, TocEntry **te, T_Action *act,
+parseWorkerCommand(ArchiveHandle * AH, TocEntry * *te, T_Action * act,
 				   const char *msg)
 {
 	DumpId		dumpId;
@@ -1174,7 +1174,7 @@ parseWorkerCommand(ArchiveHandle *AH, TocEntry **te, T_Action *act,
  * The string is built in the caller-supplied buffer of size buflen.
  */
 static void
-buildWorkerResponse(ArchiveHandle *AH, TocEntry *te, T_Action act, int status,
+buildWorkerResponse(ArchiveHandle * AH, TocEntry * te, T_Action act, int status,
 					char *buf, int buflen)
 {
 	snprintf(buf, buflen, "OK %d %d %d",
@@ -1189,7 +1189,7 @@ buildWorkerResponse(ArchiveHandle *AH, TocEntry *te, T_Action act, int status,
  * Returns the integer status code, and may update fields of AH and/or te.
  */
 static int
-parseWorkerResponse(ArchiveHandle *AH, TocEntry *te,
+parseWorkerResponse(ArchiveHandle * AH, TocEntry * te,
 					const char *msg)
 {
 	DumpId		dumpId;
@@ -1224,9 +1224,9 @@ parseWorkerResponse(ArchiveHandle *AH, TocEntry *te,
  * registered callback functions may be called.
  */
 void
-DispatchJobForTocEntry(ArchiveHandle *AH,
-					   ParallelState *pstate,
-					   TocEntry *te,
+DispatchJobForTocEntry(ArchiveHandle * AH,
+					   ParallelState * pstate,
+					   TocEntry * te,
 					   T_Action act,
 					   ParallelCompletionPtr callback,
 					   void *callback_data)
@@ -1255,7 +1255,7 @@ DispatchJobForTocEntry(ArchiveHandle *AH,
  * Return NO_SLOT if none are idle.
  */
 static int
-GetIdleWorker(ParallelState *pstate)
+GetIdleWorker(ParallelState * pstate)
 {
 	int			i;
 
@@ -1271,7 +1271,7 @@ GetIdleWorker(ParallelState *pstate)
  * Return true iff every worker is in the WRKR_TERMINATED state.
  */
 static bool
-HasEveryWorkerTerminated(ParallelState *pstate)
+HasEveryWorkerTerminated(ParallelState * pstate)
 {
 	int			i;
 
@@ -1287,7 +1287,7 @@ HasEveryWorkerTerminated(ParallelState *pstate)
  * Return true iff every worker is in the WRKR_IDLE state.
  */
 bool
-IsEveryWorkerIdle(ParallelState *pstate)
+IsEveryWorkerIdle(ParallelState * pstate)
 {
 	int			i;
 
@@ -1320,7 +1320,7 @@ IsEveryWorkerIdle(ParallelState *pstate)
  * so we have a deadlock.  We must fail the backup in that case.
  */
 static void
-lockTableForWorker(ArchiveHandle *AH, TocEntry *te)
+lockTableForWorker(ArchiveHandle * AH, TocEntry * te)
 {
 	const char *qualId;
 	PQExpBuffer query;
@@ -1356,7 +1356,7 @@ lockTableForWorker(ArchiveHandle *AH, TocEntry *te)
  * Read and execute commands from the master until we see EOF on the pipe.
  */
 static void
-WaitForCommands(ArchiveHandle *AH, int pipefd[2])
+WaitForCommands(ArchiveHandle * AH, int pipefd[2])
 {
 	char	   *command;
 	TocEntry   *te;
@@ -1418,7 +1418,7 @@ WaitForCommands(ArchiveHandle *AH, int pipefd[2])
  * the same time.
  */
 static bool
-ListenToWorkers(ArchiveHandle *AH, ParallelState *pstate, bool do_wait)
+ListenToWorkers(ArchiveHandle * AH, ParallelState * pstate, bool do_wait)
 {
 	int			worker;
 	char	   *msg;
@@ -1472,7 +1472,7 @@ ListenToWorkers(ArchiveHandle *AH, ParallelState *pstate, bool do_wait)
  * This function is executed in the master process.
  */
 void
-WaitForWorkers(ArchiveHandle *AH, ParallelState *pstate, WFW_WaitOption mode)
+WaitForWorkers(ArchiveHandle * AH, ParallelState * pstate, WFW_WaitOption mode)
 {
 	bool		do_wait = false;
 
@@ -1563,7 +1563,7 @@ sendMessageToMaster(int pipefd[2], const char *str)
  * Returns -1 on error, else the number of readable descriptors.
  */
 static int
-select_loop(int maxFd, fd_set *workerset)
+select_loop(int maxFd, fd_set * workerset)
 {
 	int			i;
 	fd_set		saveSet = *workerset;
@@ -1602,7 +1602,7 @@ select_loop(int maxFd, fd_set *workerset)
  * This function is executed in the master process.
  */
 static char *
-getMessageFromWorker(ParallelState *pstate, bool do_wait, int *worker)
+getMessageFromWorker(ParallelState * pstate, bool do_wait, int *worker)
 {
 	int			i;
 	fd_set		workerset;
@@ -1665,7 +1665,7 @@ getMessageFromWorker(ParallelState *pstate, bool do_wait, int *worker)
  * This function is executed in the master process.
  */
 static void
-sendMessageToWorker(ParallelState *pstate, int worker, const char *str)
+sendMessageToWorker(ParallelState * pstate, int worker, const char *str)
 {
 	int			len = strlen(str) + 1;
 
@@ -1766,7 +1766,7 @@ pgpipe(int handles[2])
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(0);
 	serv_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-	if (bind(s, (SOCKADDR *) &serv_addr, len) == SOCKET_ERROR)
+	if (bind(s, (SOCKADDR *) & serv_addr, len) == SOCKET_ERROR)
 	{
 		write_msg(modulename, "pgpipe: could not bind: error code %d\n",
 				  WSAGetLastError());
@@ -1780,7 +1780,7 @@ pgpipe(int handles[2])
 		closesocket(s);
 		return -1;
 	}
-	if (getsockname(s, (SOCKADDR *) &serv_addr, &len) == SOCKET_ERROR)
+	if (getsockname(s, (SOCKADDR *) & serv_addr, &len) == SOCKET_ERROR)
 	{
 		write_msg(modulename, "pgpipe: getsockname() failed: error code %d\n",
 				  WSAGetLastError());
@@ -1800,7 +1800,7 @@ pgpipe(int handles[2])
 	}
 	handles[1] = (int) tmp_sock;
 
-	if (connect(handles[1], (SOCKADDR *) &serv_addr, len) == SOCKET_ERROR)
+	if (connect(handles[1], (SOCKADDR *) & serv_addr, len) == SOCKET_ERROR)
 	{
 		write_msg(modulename, "pgpipe: could not connect socket: error code %d\n",
 				  WSAGetLastError());
@@ -1809,7 +1809,7 @@ pgpipe(int handles[2])
 		closesocket(s);
 		return -1;
 	}
-	if ((tmp_sock = accept(s, (SOCKADDR *) &serv_addr, &len)) == PGINVALID_SOCKET)
+	if ((tmp_sock = accept(s, (SOCKADDR *) & serv_addr, &len)) == PGINVALID_SOCKET)
 	{
 		write_msg(modulename, "pgpipe: could not accept connection: error code %d\n",
 				  WSAGetLastError());

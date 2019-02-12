@@ -102,7 +102,7 @@ typedef struct ExpandedObjectHeader ExpandedObjectHeader;
 typedef struct varatt_expanded
 {
 	ExpandedObjectHeader *eohptr;
-} varatt_expanded;
+}			varatt_expanded;
 
 /*
  * Type tag for the various sorts of "TOAST pointer" datums.  The peculiar
@@ -155,13 +155,13 @@ typedef union
 		uint32		va_rawsize; /* Original data size (excludes header) */
 		char		va_data[FLEXIBLE_ARRAY_MEMBER]; /* Compressed data */
 	}			va_compressed;
-} varattrib_4b;
+}			varattrib_4b;
 
 typedef struct
 {
 	uint8		va_header;
 	char		va_data[FLEXIBLE_ARRAY_MEMBER]; /* Data begins here */
-} varattrib_1b;
+}			varattrib_1b;
 
 /* TOAST pointers are a subset of varattrib_1b with an identifying tag byte */
 typedef struct
@@ -169,7 +169,7 @@ typedef struct
 	uint8		va_header;		/* Always 0x80 or 0x01 */
 	uint8		va_tag;			/* Type of datum */
 	char		va_data[FLEXIBLE_ARRAY_MEMBER]; /* Type-specific data */
-} varattrib_1b_e;
+}			varattrib_1b_e;
 
 /*
  * Bit layouts for varlena headers on big-endian machines:
@@ -378,7 +378,7 @@ typedef uintptr_t Datum;
 
 #define SIZEOF_DATUM SIZEOF_VOID_P
 
-typedef Datum *DatumPtr;
+typedef Datum * DatumPtr;
 
 #define GET_1_BYTE(datum)	(((Datum) (datum)) & 0x000000ff)
 #define GET_2_BYTES(datum)	(((Datum) (datum)) & 0x0000ffff)

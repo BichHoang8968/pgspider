@@ -25,7 +25,7 @@ typedef struct
 {
 	char	   *lexeme;			/* lexeme (not NULL terminated!) */
 	int			length;			/* its length in bytes */
-} LexemeHashKey;
+}			LexemeHashKey;
 
 /* A hash table entry for the Lossy Counting algorithm */
 typedef struct
@@ -33,13 +33,13 @@ typedef struct
 	LexemeHashKey key;			/* This is 'e' from the LC algorithm. */
 	int			frequency;		/* This is 'f'. */
 	int			delta;			/* And this is 'delta'. */
-} TrackItem;
+}			TrackItem;
 
-static void compute_tsvector_stats(VacAttrStats *stats,
+static void compute_tsvector_stats(VacAttrStats * stats,
 					   AnalyzeAttrFetchFunc fetchfunc,
 					   int samplerows,
 					   double totalrows);
-static void prune_lexemes_hashtable(HTAB *lexemes_tab, int b_current);
+static void prune_lexemes_hashtable(HTAB * lexemes_tab, int b_current);
 static uint32 lexeme_hash(const void *key, Size keysize);
 static int	lexeme_match(const void *key1, const void *key2, Size keysize);
 static int	lexeme_compare(const void *key1, const void *key2);
@@ -136,7 +136,7 @@ ts_typanalyze(PG_FUNCTION_ARGS)
  *	want.
  */
 static void
-compute_tsvector_stats(VacAttrStats *stats,
+compute_tsvector_stats(VacAttrStats * stats,
 					   AnalyzeAttrFetchFunc fetchfunc,
 					   int samplerows,
 					   double totalrows)
@@ -318,7 +318,7 @@ compute_tsvector_stats(VacAttrStats *stats,
 		cutoff_freq = 9 * lexeme_no / bucket_width;
 
 		i = hash_get_num_entries(lexemes_tab);	/* surely enough space */
-		sort_table = (TrackItem **) palloc(sizeof(TrackItem *) * i);
+		sort_table = (TrackItem * *) palloc(sizeof(TrackItem *) * i);
 
 		hash_seq_init(&scan_status, lexemes_tab);
 		track_len = 0;
@@ -447,7 +447,7 @@ compute_tsvector_stats(VacAttrStats *stats,
  *	Consult compute_tsvector_stats() for wider explanation.
  */
 static void
-prune_lexemes_hashtable(HTAB *lexemes_tab, int b_current)
+prune_lexemes_hashtable(HTAB * lexemes_tab, int b_current)
 {
 	HASH_SEQ_STATUS scan_status;
 	TrackItem  *item;
@@ -474,7 +474,7 @@ prune_lexemes_hashtable(HTAB *lexemes_tab, int b_current)
 static uint32
 lexeme_hash(const void *key, Size keysize)
 {
-	const LexemeHashKey *l = (const LexemeHashKey *) key;
+	const		LexemeHashKey *l = (const LexemeHashKey *) key;
 
 	return DatumGetUInt32(hash_any((const unsigned char *) l->lexeme,
 								   l->length));
@@ -496,8 +496,8 @@ lexeme_match(const void *key1, const void *key2, Size keysize)
 static int
 lexeme_compare(const void *key1, const void *key2)
 {
-	const LexemeHashKey *d1 = (const LexemeHashKey *) key1;
-	const LexemeHashKey *d2 = (const LexemeHashKey *) key2;
+	const		LexemeHashKey *d1 = (const LexemeHashKey *) key1;
+	const		LexemeHashKey *d2 = (const LexemeHashKey *) key2;
 
 	/* First, compare by length */
 	if (d1->length > d2->length)
@@ -514,8 +514,8 @@ lexeme_compare(const void *key1, const void *key2)
 static int
 trackitem_compare_frequencies_desc(const void *e1, const void *e2)
 {
-	const TrackItem *const *t1 = (const TrackItem *const *) e1;
-	const TrackItem *const *t2 = (const TrackItem *const *) e2;
+	const		TrackItem *const *t1 = (const TrackItem * const *) e1;
+	const		TrackItem *const *t2 = (const TrackItem * const *) e2;
 
 	return (*t2)->frequency - (*t1)->frequency;
 }
@@ -526,8 +526,8 @@ trackitem_compare_frequencies_desc(const void *e1, const void *e2)
 static int
 trackitem_compare_lexemes(const void *e1, const void *e2)
 {
-	const TrackItem *const *t1 = (const TrackItem *const *) e1;
-	const TrackItem *const *t2 = (const TrackItem *const *) e2;
+	const		TrackItem *const *t1 = (const TrackItem * const *) e1;
+	const		TrackItem *const *t2 = (const TrackItem * const *) e2;
 
 	return lexeme_compare(&(*t1)->key, &(*t2)->key);
 }

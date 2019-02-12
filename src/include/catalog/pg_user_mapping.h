@@ -42,7 +42,7 @@ CATALOG(pg_user_mapping,1418)
  *		the format of pg_user_mapping relation.
  * ----------------
  */
-typedef FormData_pg_user_mapping *Form_pg_user_mapping;
+typedef FormData_pg_user_mapping * Form_pg_user_mapping;
 
 /* ----------------
  *		compiler constants for pg_user_mapping

@@ -35,7 +35,7 @@ pg_crc32c
 pg_comp_crc32c_sb8(pg_crc32c crc, const void *data, size_t len)
 {
 	const unsigned char *p = data;
-	const uint32 *p4;
+	const		uint32 *p4;
 
 	/*
 	 * Handle 0-3 initial bytes one at a time, so that the loop below starts
@@ -57,23 +57,23 @@ pg_comp_crc32c_sb8(pg_crc32c crc, const void *data, size_t len)
 		uint32		b = *p4++;
 
 #ifdef WORDS_BIGENDIAN
-		const uint8 c0 = b;
-		const uint8 c1 = b >> 8;
-		const uint8 c2 = b >> 16;
-		const uint8 c3 = b >> 24;
-		const uint8 c4 = a;
-		const uint8 c5 = a >> 8;
-		const uint8 c6 = a >> 16;
-		const uint8 c7 = a >> 24;
+		const		uint8 c0 = b;
+		const		uint8 c1 = b >> 8;
+		const		uint8 c2 = b >> 16;
+		const		uint8 c3 = b >> 24;
+		const		uint8 c4 = a;
+		const		uint8 c5 = a >> 8;
+		const		uint8 c6 = a >> 16;
+		const		uint8 c7 = a >> 24;
 #else
-		const uint8 c0 = b >> 24;
-		const uint8 c1 = b >> 16;
-		const uint8 c2 = b >> 8;
-		const uint8 c3 = b;
-		const uint8 c4 = a >> 24;
-		const uint8 c5 = a >> 16;
-		const uint8 c6 = a >> 8;
-		const uint8 c7 = a;
+		const		uint8 c0 = b >> 24;
+		const		uint8 c1 = b >> 16;
+		const		uint8 c2 = b >> 8;
+		const		uint8 c3 = b;
+		const		uint8 c4 = a >> 24;
+		const		uint8 c5 = a >> 16;
+		const		uint8 c6 = a >> 8;
+		const		uint8 c7 = a;
 #endif
 
 		crc =

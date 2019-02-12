@@ -10,23 +10,23 @@ PG_MODULE_MAGIC;
 extern void _PG_init(void);
 
 /* Linkage to functions in plpython module */
-typedef char *(*PLyObject_AsString_t) (PyObject *plrv);
+typedef char *(*PLyObject_AsString_t) (PyObject * plrv);
 static PLyObject_AsString_t PLyObject_AsString_p;
 #if PY_MAJOR_VERSION >= 3
-typedef PyObject *(*PLyUnicode_FromStringAndSize_t) (const char *s, Py_ssize_t size);
+typedef PyObject * (*PLyUnicode_FromStringAndSize_t) (const char *s, Py_ssize_t size);
 static PLyUnicode_FromStringAndSize_t PLyUnicode_FromStringAndSize_p;
 #endif
 
 /* Linkage to functions in hstore module */
-typedef HStore *(*hstoreUpgrade_t) (Datum orig);
+typedef HStore * (*hstoreUpgrade_t) (Datum orig);
 static hstoreUpgrade_t hstoreUpgrade_p;
-typedef int (*hstoreUniquePairs_t) (Pairs *a, int32 l, int32 *buflen);
+typedef int (*hstoreUniquePairs_t) (Pairs * a, int32 l, int32 * buflen);
 static hstoreUniquePairs_t hstoreUniquePairs_p;
-typedef HStore *(*hstorePairs_t) (Pairs *pairs, int32 pcount, int32 buflen);
+typedef HStore * (*hstorePairs_t) (Pairs * pairs, int32 pcount, int32 buflen);
 static hstorePairs_t hstorePairs_p;
-typedef size_t (*hstoreCheckKeyLen_t) (size_t len);
+typedef size_t(*hstoreCheckKeyLen_t) (size_t len);
 static hstoreCheckKeyLen_t hstoreCheckKeyLen_p;
-typedef size_t (*hstoreCheckValLen_t) (size_t len);
+typedef size_t(*hstoreCheckValLen_t) (size_t len);
 static hstoreCheckValLen_t hstoreCheckValLen_p;
 
 
@@ -124,7 +124,7 @@ Datum
 plpython_to_hstore(PG_FUNCTION_ARGS)
 {
 	PyObject   *dict;
-	volatile PyObject *items_v = NULL;
+	volatile	PyObject *items_v = NULL;
 	int32		pcount;
 	HStore	   *out;
 

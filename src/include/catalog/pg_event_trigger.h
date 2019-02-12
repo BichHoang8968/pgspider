@@ -47,7 +47,7 @@ CATALOG(pg_event_trigger,3466)
  *		the format of pg_event_trigger relation.
  * ----------------
  */
-typedef FormData_pg_event_trigger *Form_pg_event_trigger;
+typedef FormData_pg_event_trigger * Form_pg_event_trigger;
 
 /* ----------------
  *		compiler constants for pg_event_trigger

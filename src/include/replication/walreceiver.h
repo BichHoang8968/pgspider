@@ -49,7 +49,7 @@ typedef enum
 	WALRCV_WAITING,				/* stopped streaming, waiting for orders */
 	WALRCV_RESTARTING,			/* asked to restart streaming */
 	WALRCV_STOPPING				/* requested to stop, but still running */
-} WalRcvState;
+}			WalRcvState;
 
 /* Shared memory area for management of walreceiver process */
 typedef struct
@@ -134,9 +134,9 @@ typedef struct
 	 * normally mapped to procLatch when walreceiver is running.
 	 */
 	Latch	   *latch;
-} WalRcvData;
+}			WalRcvData;
 
-extern WalRcvData *WalRcv;
+extern WalRcvData * WalRcv;
 
 typedef struct
 {
@@ -157,7 +157,7 @@ typedef struct
 			List	   *publication_names;	/* String list of publications */
 		}			logical;
 	}			proto;
-} WalRcvStreamOptions;
+}			WalRcvStreamOptions;
 
 struct WalReceiverConn;
 typedef struct WalReceiverConn WalReceiverConn;
@@ -177,7 +177,7 @@ typedef enum
 	WALRCV_OK_COPY_OUT,			/* Query started COPY TO. */
 	WALRCV_OK_COPY_BOTH			/* Query started COPY BOTH replication
 								 * protocol. */
-} WalRcvExecStatus;
+}			WalRcvExecStatus;
 
 /*
  * Return value for walrcv_query, returns the status of the execution and
@@ -189,38 +189,38 @@ typedef struct WalRcvExecResult
 	char	   *err;
 	Tuplestorestate *tuplestore;
 	TupleDesc	tupledesc;
-} WalRcvExecResult;
+}			WalRcvExecResult;
 
 /* libpqwalreceiver hooks */
-typedef WalReceiverConn *(*walrcv_connect_fn) (const char *conninfo, bool logical,
-											   const char *appname,
-											   char **err);
+typedef WalReceiverConn * (*walrcv_connect_fn) (const char *conninfo, bool logical,
+												const char *appname,
+												char **err);
 typedef void (*walrcv_check_conninfo_fn) (const char *conninfo);
-typedef char *(*walrcv_get_conninfo_fn) (WalReceiverConn *conn);
-typedef char *(*walrcv_identify_system_fn) (WalReceiverConn *conn,
-											TimeLineID *primary_tli,
+typedef char *(*walrcv_get_conninfo_fn) (WalReceiverConn * conn);
+typedef char *(*walrcv_identify_system_fn) (WalReceiverConn * conn,
+											TimeLineID * primary_tli,
 											int *server_version);
-typedef void (*walrcv_readtimelinehistoryfile_fn) (WalReceiverConn *conn,
+typedef void (*walrcv_readtimelinehistoryfile_fn) (WalReceiverConn * conn,
 												   TimeLineID tli,
 												   char **filename,
 												   char **content, int *size);
-typedef bool (*walrcv_startstreaming_fn) (WalReceiverConn *conn,
-										  const WalRcvStreamOptions *options);
-typedef void (*walrcv_endstreaming_fn) (WalReceiverConn *conn,
-										TimeLineID *next_tli);
-typedef int (*walrcv_receive_fn) (WalReceiverConn *conn, char **buffer,
-								  pgsocket *wait_fd);
-typedef void (*walrcv_send_fn) (WalReceiverConn *conn, const char *buffer,
+typedef bool (*walrcv_startstreaming_fn) (WalReceiverConn * conn,
+										  const WalRcvStreamOptions * options);
+typedef void (*walrcv_endstreaming_fn) (WalReceiverConn * conn,
+										TimeLineID * next_tli);
+typedef int (*walrcv_receive_fn) (WalReceiverConn * conn, char **buffer,
+								  pgsocket * wait_fd);
+typedef void (*walrcv_send_fn) (WalReceiverConn * conn, const char *buffer,
 								int nbytes);
-typedef char *(*walrcv_create_slot_fn) (WalReceiverConn *conn,
+typedef char *(*walrcv_create_slot_fn) (WalReceiverConn * conn,
 										const char *slotname, bool temporary,
 										CRSSnapshotAction snapshot_action,
-										XLogRecPtr *lsn);
-typedef WalRcvExecResult *(*walrcv_exec_fn) (WalReceiverConn *conn,
-											 const char *query,
-											 const int nRetTypes,
-											 const Oid *retTypes);
-typedef void (*walrcv_disconnect_fn) (WalReceiverConn *conn);
+										XLogRecPtr * lsn);
+typedef WalRcvExecResult * (*walrcv_exec_fn) (WalReceiverConn * conn,
+											  const char *query,
+											  const int nRetTypes,
+											  const Oid * retTypes);
+typedef void (*walrcv_disconnect_fn) (WalReceiverConn * conn);
 
 typedef struct WalReceiverFunctionsType
 {
@@ -236,9 +236,9 @@ typedef struct WalReceiverFunctionsType
 	walrcv_create_slot_fn walrcv_create_slot;
 	walrcv_exec_fn walrcv_exec;
 	walrcv_disconnect_fn walrcv_disconnect;
-} WalReceiverFunctionsType;
+}			WalReceiverFunctionsType;
 
-extern PGDLLIMPORT WalReceiverFunctionsType *WalReceiverFunctions;
+extern PGDLLIMPORT WalReceiverFunctionsType * WalReceiverFunctions;
 
 #define walrcv_connect(conninfo, logical, appname, err) \
 	WalReceiverFunctions->walrcv_connect(conninfo, logical, appname, err)
@@ -266,7 +266,7 @@ extern PGDLLIMPORT WalReceiverFunctionsType *WalReceiverFunctions;
 	WalReceiverFunctions->walrcv_disconnect(conn)
 
 static inline void
-walrcv_clear_result(WalRcvExecResult *walres)
+walrcv_clear_result(WalRcvExecResult * walres)
 {
 	if (!walres)
 		return;
@@ -294,7 +294,7 @@ extern bool WalRcvStreaming(void);
 extern bool WalRcvRunning(void);
 extern void RequestXLogStreaming(TimeLineID tli, XLogRecPtr recptr,
 					 const char *conninfo, const char *slotname);
-extern XLogRecPtr GetWalRcvWriteRecPtr(XLogRecPtr *latestChunkStart, TimeLineID *receiveTLI);
+extern XLogRecPtr GetWalRcvWriteRecPtr(XLogRecPtr * latestChunkStart, TimeLineID * receiveTLI);
 extern int	GetReplicationApplyDelay(void);
 extern int	GetReplicationTransferLatency(void);
 extern void WalRcvForceReply(void);

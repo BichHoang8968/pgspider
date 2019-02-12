@@ -39,51 +39,51 @@ typedef struct convert_testexpr_context
 {
 	PlannerInfo *root;
 	List	   *subst_nodes;	/* Nodes to substitute for Params */
-} convert_testexpr_context;
+}			convert_testexpr_context;
 
 typedef struct process_sublinks_context
 {
 	PlannerInfo *root;
 	bool		isTopQual;
-} process_sublinks_context;
+}			process_sublinks_context;
 
 typedef struct finalize_primnode_context
 {
 	PlannerInfo *root;
 	Bitmapset  *paramids;		/* Non-local PARAM_EXEC paramids found */
-} finalize_primnode_context;
+}			finalize_primnode_context;
 
 
-static Node *build_subplan(PlannerInfo *root, Plan *plan, PlannerInfo *subroot,
-			  List *plan_params,
-			  SubLinkType subLinkType, int subLinkId,
-			  Node *testexpr, bool adjust_testexpr,
-			  bool unknownEqFalse);
-static List *generate_subquery_params(PlannerInfo *root, List *tlist,
-						 List **paramIds);
-static List *generate_subquery_vars(PlannerInfo *root, List *tlist,
-					   Index varno);
-static Node *convert_testexpr(PlannerInfo *root,
-				 Node *testexpr,
-				 List *subst_nodes);
-static Node *convert_testexpr_mutator(Node *node,
-						 convert_testexpr_context *context);
-static bool subplan_is_hashable(Plan *plan);
-static bool testexpr_is_hashable(Node *testexpr);
-static bool hash_ok_operator(OpExpr *expr);
-static bool simplify_EXISTS_query(PlannerInfo *root, Query *query);
-static Query *convert_EXISTS_to_ANY(PlannerInfo *root, Query *subselect,
-					  Node **testexpr, List **paramIds);
-static Node *replace_correlation_vars_mutator(Node *node, PlannerInfo *root);
-static Node *process_sublinks_mutator(Node *node,
-						 process_sublinks_context *context);
-static Bitmapset *finalize_plan(PlannerInfo *root,
-			  Plan *plan,
-			  int gather_param,
-			  Bitmapset *valid_params,
-			  Bitmapset *scan_params);
-static bool finalize_primnode(Node *node, finalize_primnode_context *context);
-static bool finalize_agg_primnode(Node *node, finalize_primnode_context *context);
+static Node * build_subplan(PlannerInfo * root, Plan * plan, PlannerInfo * subroot,
+							List * plan_params,
+							SubLinkType subLinkType, int subLinkId,
+							Node * testexpr, bool adjust_testexpr,
+							bool unknownEqFalse);
+static List * generate_subquery_params(PlannerInfo * root, List * tlist,
+									   List * *paramIds);
+static List * generate_subquery_vars(PlannerInfo * root, List * tlist,
+									 Index varno);
+static Node * convert_testexpr(PlannerInfo * root,
+							   Node * testexpr,
+							   List * subst_nodes);
+static Node * convert_testexpr_mutator(Node * node,
+									   convert_testexpr_context * context);
+static bool subplan_is_hashable(Plan * plan);
+static bool testexpr_is_hashable(Node * testexpr);
+static bool hash_ok_operator(OpExpr * expr);
+static bool simplify_EXISTS_query(PlannerInfo * root, Query * query);
+static Query * convert_EXISTS_to_ANY(PlannerInfo * root, Query * subselect,
+									 Node * *testexpr, List * *paramIds);
+static Node * replace_correlation_vars_mutator(Node * node, PlannerInfo * root);
+static Node * process_sublinks_mutator(Node * node,
+									   process_sublinks_context * context);
+static Bitmapset * finalize_plan(PlannerInfo * root,
+								 Plan * plan,
+								 int gather_param,
+								 Bitmapset * valid_params,
+								 Bitmapset * scan_params);
+static bool finalize_primnode(Node * node, finalize_primnode_context * context);
+static bool finalize_agg_primnode(Node * node, finalize_primnode_context * context);
 
 
 /*
@@ -92,7 +92,7 @@ static bool finalize_agg_primnode(Node *node, finalize_primnode_context *context
  * If the Var already has a param in the current context, return that one.
  */
 static int
-assign_param_for_var(PlannerInfo *root, Var *var)
+assign_param_for_var(PlannerInfo * root, Var * var)
 {
 	ListCell   *ppl;
 	PlannerParamItem *pitem;
@@ -143,7 +143,7 @@ assign_param_for_var(PlannerInfo *root, Var *var)
  * which is expected to have varlevelsup > 0 (ie, it is not local).
  */
 static Param *
-replace_outer_var(PlannerInfo *root, Var *var)
+replace_outer_var(PlannerInfo * root, Var * var)
 {
 	Param	   *retval;
 	int			i;
@@ -172,7 +172,7 @@ replace_outer_var(PlannerInfo *root, Var *var)
  * the Var to be local to the current query level.
  */
 Param *
-assign_nestloop_param_var(PlannerInfo *root, Var *var)
+assign_nestloop_param_var(PlannerInfo * root, Var * var)
 {
 	Param	   *retval;
 	int			i;
@@ -200,7 +200,7 @@ assign_nestloop_param_var(PlannerInfo *root, Var *var)
  * This is just like assign_param_for_var, except for PlaceHolderVars.
  */
 static int
-assign_param_for_placeholdervar(PlannerInfo *root, PlaceHolderVar *phv)
+assign_param_for_placeholdervar(PlannerInfo * root, PlaceHolderVar * phv)
 {
 	ListCell   *ppl;
 	PlannerParamItem *pitem;
@@ -248,7 +248,7 @@ assign_param_for_placeholdervar(PlannerInfo *root, PlaceHolderVar *phv)
  * This is just like replace_outer_var, except for PlaceHolderVars.
  */
 static Param *
-replace_outer_placeholdervar(PlannerInfo *root, PlaceHolderVar *phv)
+replace_outer_placeholdervar(PlannerInfo * root, PlaceHolderVar * phv)
 {
 	Param	   *retval;
 	int			i;
@@ -276,7 +276,7 @@ replace_outer_placeholdervar(PlannerInfo *root, PlaceHolderVar *phv)
  * This is just like assign_nestloop_param_var, except for PlaceHolderVars.
  */
 Param *
-assign_nestloop_param_placeholdervar(PlannerInfo *root, PlaceHolderVar *phv)
+assign_nestloop_param_placeholdervar(PlannerInfo * root, PlaceHolderVar * phv)
 {
 	Param	   *retval;
 	int			i;
@@ -301,7 +301,7 @@ assign_nestloop_param_placeholdervar(PlannerInfo *root, PlaceHolderVar *phv)
  * which is expected to have agglevelsup > 0 (ie, it is not local).
  */
 static Param *
-replace_outer_agg(PlannerInfo *root, Aggref *agg)
+replace_outer_agg(PlannerInfo * root, Aggref * agg)
 {
 	Param	   *retval;
 	PlannerParamItem *pitem;
@@ -343,7 +343,7 @@ replace_outer_agg(PlannerInfo *root, Aggref *agg)
  * expected to have agglevelsup > 0 (ie, it is not local).
  */
 static Param *
-replace_outer_grouping(PlannerInfo *root, GroupingFunc *grp)
+replace_outer_grouping(PlannerInfo * root, GroupingFunc * grp)
 {
 	Param	   *retval;
 	PlannerParamItem *pitem;
@@ -388,7 +388,7 @@ replace_outer_grouping(PlannerInfo *root, GroupingFunc *grp)
  * need to record the PARAM_EXEC slot number as being allocated.
  */
 static Param *
-generate_new_param(PlannerInfo *root, Oid paramtype, int32 paramtypmod,
+generate_new_param(PlannerInfo * root, Oid paramtype, int32 paramtypmod,
 				   Oid paramcollation)
 {
 	Param	   *retval;
@@ -413,7 +413,7 @@ generate_new_param(PlannerInfo *root, Oid paramtype, int32 paramtypmod,
  * exists with this ID, however.
  */
 int
-SS_assign_special_param(PlannerInfo *root)
+SS_assign_special_param(PlannerInfo * root)
 {
 	return root->glob->nParamExec++;
 }
@@ -428,8 +428,8 @@ SS_assign_special_param(PlannerInfo *root)
  * always.
  */
 static void
-get_first_col_type(Plan *plan, Oid *coltype, int32 *coltypmod,
-				   Oid *colcollation)
+get_first_col_type(Plan * plan, Oid * coltype, int32 * coltypmod,
+				   Oid * colcollation)
 {
 	/* In cases such as EXISTS, tlist might be empty; arbitrarily use VOID */
 	if (plan->targetlist)
@@ -472,9 +472,9 @@ get_first_col_type(Plan *plan, Oid *coltype, int32 *coltypmod,
  * subquery itself is in a resjunk tlist entry whose value is uninteresting).
  */
 static Node *
-make_subplan(PlannerInfo *root, Query *orig_subquery,
+make_subplan(PlannerInfo * root, Query * orig_subquery,
 			 SubLinkType subLinkType, int subLinkId,
-			 Node *testexpr, bool isTopQual)
+			 Node * testexpr, bool isTopQual)
 {
 	Query	   *subquery;
 	bool		simple_exists = false;
@@ -630,10 +630,10 @@ make_subplan(PlannerInfo *root, Query *orig_subquery,
  * make it an InitPlan, as explained in the comments for make_subplan.
  */
 static Node *
-build_subplan(PlannerInfo *root, Plan *plan, PlannerInfo *subroot,
-			  List *plan_params,
+build_subplan(PlannerInfo * root, Plan * plan, PlannerInfo * subroot,
+			  List * plan_params,
 			  SubLinkType subLinkType, int subLinkId,
-			  Node *testexpr, bool adjust_testexpr,
+			  Node * testexpr, bool adjust_testexpr,
 			  bool unknownEqFalse)
 {
 	Node	   *result;
@@ -898,7 +898,7 @@ build_subplan(PlannerInfo *root, Plan *plan, PlannerInfo *subroot,
  * We also return an integer list of the paramids of the Params.
  */
 static List *
-generate_subquery_params(PlannerInfo *root, List *tlist, List **paramIds)
+generate_subquery_params(PlannerInfo * root, List * tlist, List * *paramIds)
 {
 	List	   *result;
 	List	   *ids;
@@ -931,7 +931,7 @@ generate_subquery_params(PlannerInfo *root, List *tlist, List **paramIds)
  * The Vars have the specified varno (RTE index).
  */
 static List *
-generate_subquery_vars(PlannerInfo *root, List *tlist, Index varno)
+generate_subquery_vars(PlannerInfo * root, List * tlist, Index varno)
 {
 	List	   *result;
 	ListCell   *lc;
@@ -960,9 +960,9 @@ generate_subquery_vars(PlannerInfo *root, List *tlist, Index varno)
  * generate_subquery_params or generate_subquery_vars.
  */
 static Node *
-convert_testexpr(PlannerInfo *root,
-				 Node *testexpr,
-				 List *subst_nodes)
+convert_testexpr(PlannerInfo * root,
+				 Node * testexpr,
+				 List * subst_nodes)
 {
 	convert_testexpr_context context;
 
@@ -972,8 +972,8 @@ convert_testexpr(PlannerInfo *root,
 }
 
 static Node *
-convert_testexpr_mutator(Node *node,
-						 convert_testexpr_context *context)
+convert_testexpr_mutator(Node * node,
+						 convert_testexpr_context * context)
 {
 	if (node == NULL)
 		return NULL;
@@ -1027,7 +1027,7 @@ convert_testexpr_mutator(Node *node,
  * subplan_is_hashable: can we implement an ANY subplan by hashing?
  */
 static bool
-subplan_is_hashable(Plan *plan)
+subplan_is_hashable(Plan * plan)
 {
 	double		subquery_size;
 
@@ -1049,7 +1049,7 @@ subplan_is_hashable(Plan *plan)
  * testexpr_is_hashable: is an ANY SubLink's test expression hashable?
  */
 static bool
-testexpr_is_hashable(Node *testexpr)
+testexpr_is_hashable(Node * testexpr)
 {
 	/*
 	 * The testexpr must be a single OpExpr, or an AND-clause containing only
@@ -1093,7 +1093,7 @@ testexpr_is_hashable(Node *testexpr)
  * avoid a redundant cache lookup.
  */
 static bool
-hash_ok_operator(OpExpr *expr)
+hash_ok_operator(OpExpr * expr)
 {
 	Oid			opid = expr->opno;
 
@@ -1138,7 +1138,7 @@ hash_ok_operator(OpExpr *expr)
  * each CTE's initplan.
  */
 void
-SS_process_ctes(PlannerInfo *root)
+SS_process_ctes(PlannerInfo * root)
 {
 	ListCell   *lc;
 
@@ -1297,7 +1297,7 @@ SS_process_ctes(PlannerInfo *root)
  * the JoinExpr's rarg.
  */
 JoinExpr *
-convert_ANY_sublink_to_join(PlannerInfo *root, SubLink *sublink,
+convert_ANY_sublink_to_join(PlannerInfo * root, SubLink * sublink,
 							Relids available_rels)
 {
 	JoinExpr   *result;
@@ -1402,7 +1402,7 @@ convert_ANY_sublink_to_join(PlannerInfo *root, SubLink *sublink,
  * so we need an additional input parameter "under_not".
  */
 JoinExpr *
-convert_EXISTS_sublink_to_join(PlannerInfo *root, SubLink *sublink,
+convert_EXISTS_sublink_to_join(PlannerInfo * root, SubLink * sublink,
 							   bool under_not, Relids available_rels)
 {
 	JoinExpr   *result;
@@ -1566,7 +1566,7 @@ convert_EXISTS_sublink_to_join(PlannerInfo *root, SubLink *sublink,
  * Returns TRUE if was able to discard the targetlist, else FALSE.
  */
 static bool
-simplify_EXISTS_query(PlannerInfo *root, Query *query)
+simplify_EXISTS_query(PlannerInfo * root, Query * query)
 {
 	/*
 	 * We don't try to simplify at all if the query uses set operations,
@@ -1654,8 +1654,8 @@ simplify_EXISTS_query(PlannerInfo *root, Query *query)
  * On failure, returns NULL.
  */
 static Query *
-convert_EXISTS_to_ANY(PlannerInfo *root, Query *subselect,
-					  Node **testexpr, List **paramIds)
+convert_EXISTS_to_ANY(PlannerInfo * root, Query * subselect,
+					  Node * *testexpr, List * *paramIds)
 {
 	Node	   *whereClause;
 	List	   *leftargs,
@@ -1896,14 +1896,14 @@ convert_EXISTS_to_ANY(PlannerInfo *root, Query *subselect,
  * (this is actually taken care of in build_subplan).
  */
 Node *
-SS_replace_correlation_vars(PlannerInfo *root, Node *expr)
+SS_replace_correlation_vars(PlannerInfo * root, Node * expr)
 {
 	/* No setup needed for tree walk, so away we go */
 	return replace_correlation_vars_mutator(expr, root);
 }
 
 static Node *
-replace_correlation_vars_mutator(Node *node, PlannerInfo *root)
+replace_correlation_vars_mutator(Node * node, PlannerInfo * root)
 {
 	if (node == NULL)
 		return NULL;
@@ -1941,7 +1941,7 @@ replace_correlation_vars_mutator(Node *node, PlannerInfo *root)
  * not distinguish FALSE from UNKNOWN return values.
  */
 Node *
-SS_process_sublinks(PlannerInfo *root, Node *expr, bool isQual)
+SS_process_sublinks(PlannerInfo * root, Node * expr, bool isQual)
 {
 	process_sublinks_context context;
 
@@ -1951,7 +1951,7 @@ SS_process_sublinks(PlannerInfo *root, Node *expr, bool isQual)
 }
 
 static Node *
-process_sublinks_mutator(Node *node, process_sublinks_context *context)
+process_sublinks_mutator(Node * node, process_sublinks_context * context)
 {
 	process_sublinks_context locContext;
 
@@ -2088,7 +2088,7 @@ process_sublinks_mutator(Node *node, process_sublinks_context *context)
  * plan_params lists are transient and will be gone by then.)
  */
 void
-SS_identify_outer_params(PlannerInfo *root)
+SS_identify_outer_params(PlannerInfo * root)
 {
 	Bitmapset  *outer_params;
 	PlannerInfo *proot;
@@ -2150,7 +2150,7 @@ SS_identify_outer_params(PlannerInfo *root)
  * to have included their cost already.
  */
 void
-SS_charge_for_initplans(PlannerInfo *root, RelOptInfo *final_rel)
+SS_charge_for_initplans(PlannerInfo * root, RelOptInfo * final_rel)
 {
 	Cost		initplan_cost;
 	ListCell   *lc;
@@ -2200,7 +2200,7 @@ SS_charge_for_initplans(PlannerInfo *root, RelOptInfo *final_rel)
  * accounted for in path costing.
  */
 void
-SS_attach_initplans(PlannerInfo *root, Plan *plan)
+SS_attach_initplans(PlannerInfo * root, Plan * plan)
 {
 	plan->initPlan = root->init_plans;
 }
@@ -2215,7 +2215,7 @@ SS_attach_initplans(PlannerInfo *root, Plan *plan)
  * subplans the plan tree could reference.
  */
 void
-SS_finalize_plan(PlannerInfo *root, Plan *plan)
+SS_finalize_plan(PlannerInfo * root, Plan * plan)
 {
 	/* No setup needed, just recurse through plan tree. */
 	(void) finalize_plan(root, plan, -1, root->outer_params, NULL);
@@ -2253,10 +2253,10 @@ SS_finalize_plan(PlannerInfo *root, Plan *plan)
  * can be handled more cleanly.
  */
 static Bitmapset *
-finalize_plan(PlannerInfo *root, Plan *plan,
+finalize_plan(PlannerInfo * root, Plan * plan,
 			  int gather_param,
-			  Bitmapset *valid_params,
-			  Bitmapset *scan_params)
+			  Bitmapset * valid_params,
+			  Bitmapset * scan_params)
 {
 	finalize_primnode_context context;
 	int			locally_added_param;
@@ -2857,7 +2857,7 @@ finalize_plan(PlannerInfo *root, Plan *plan,
  * expression tree to the result set.
  */
 static bool
-finalize_primnode(Node *node, finalize_primnode_context *context)
+finalize_primnode(Node * node, finalize_primnode_context * context)
 {
 	if (node == NULL)
 		return false;
@@ -2922,7 +2922,7 @@ finalize_primnode(Node *node, finalize_primnode_context *context)
  * arguments to the result set.
  */
 static bool
-finalize_agg_primnode(Node *node, finalize_primnode_context *context)
+finalize_agg_primnode(Node * node, finalize_primnode_context * context)
 {
 	if (node == NULL)
 		return false;
@@ -2949,7 +2949,7 @@ finalize_agg_primnode(Node *node, finalize_primnode_context *context)
  * is no big deal.
  */
 Param *
-SS_make_initplan_output_param(PlannerInfo *root,
+SS_make_initplan_output_param(PlannerInfo * root,
 							  Oid resulttype, int32 resulttypmod,
 							  Oid resultcollation)
 {
@@ -2964,9 +2964,9 @@ SS_make_initplan_output_param(PlannerInfo *root,
  * output has already been assigned using SS_make_initplan_output_param.
  */
 void
-SS_make_initplan_from_plan(PlannerInfo *root,
-						   PlannerInfo *subroot, Plan *plan,
-						   Param *prm)
+SS_make_initplan_from_plan(PlannerInfo * root,
+						   PlannerInfo * subroot, Plan * plan,
+						   Param * prm)
 {
 	SubPlan    *node;
 

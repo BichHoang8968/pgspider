@@ -99,7 +99,7 @@ gin_extract_tsquery(PG_FUNCTION_ARGS)
 
 	/* StrategyNumber strategy = PG_GETARG_UINT16(2); */
 	bool	  **ptr_partialmatch = (bool **) PG_GETARG_POINTER(3);
-	Pointer   **extra_data = (Pointer **) PG_GETARG_POINTER(4);
+	Pointer   **extra_data = (Pointer * *) PG_GETARG_POINTER(4);
 
 	/* bool   **nullFlags = (bool **) PG_GETARG_POINTER(5); */
 	int32	   *searchMode = (int32 *) PG_GETARG_POINTER(6);
@@ -176,10 +176,10 @@ typedef struct
 	GinTernaryValue *check;
 	int		   *map_item_operand;
 	bool	   *need_recheck;
-} GinChkVal;
+}			GinChkVal;
 
 static GinTernaryValue
-checkcondition_gin_internal(GinChkVal *gcv, QueryOperand *val, ExecPhraseData *data)
+checkcondition_gin_internal(GinChkVal * gcv, QueryOperand * val, ExecPhraseData * data)
 {
 	int			j;
 
@@ -201,7 +201,7 @@ checkcondition_gin_internal(GinChkVal *gcv, QueryOperand *val, ExecPhraseData *d
  * Wrapper of check condition function for TS_execute.
  */
 static bool
-checkcondition_gin(void *checkval, QueryOperand *val, ExecPhraseData *data)
+checkcondition_gin(void *checkval, QueryOperand * val, ExecPhraseData * data)
 {
 	return checkcondition_gin_internal((GinChkVal *) checkval,
 									   val,
@@ -212,7 +212,7 @@ checkcondition_gin(void *checkval, QueryOperand *val, ExecPhraseData *data)
  * Evaluate tsquery boolean expression using ternary logic.
  */
 static GinTernaryValue
-TS_execute_ternary(GinChkVal *gcv, QueryItem *curitem, bool in_phrase)
+TS_execute_ternary(GinChkVal * gcv, QueryItem * curitem, bool in_phrase)
 {
 	GinTernaryValue val1,
 				val2,

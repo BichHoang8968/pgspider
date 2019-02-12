@@ -37,8 +37,8 @@ static bool _bt_mark_page_halfdead(Relation rel, Buffer buf, BTStack stack);
 static bool _bt_unlink_halfdead_page(Relation rel, Buffer leafbuf,
 						 bool *rightsib_empty);
 static bool _bt_lock_branch_parent(Relation rel, BlockNumber child,
-					   BTStack stack, Buffer *topparent, OffsetNumber *topoff,
-					   BlockNumber *target, BlockNumber *rightsib);
+					   BTStack stack, Buffer * topparent, OffsetNumber * topoff,
+					   BlockNumber * target, BlockNumber * rightsib);
 static void _bt_log_reuse_page(Relation rel, BlockNumber blkno,
 				   TransactionId latestRemovedXid);
 
@@ -795,7 +795,7 @@ _bt_page_recyclable(Page page)
  */
 void
 _bt_delitems_vacuum(Relation rel, Buffer buf,
-					OffsetNumber *itemnos, int nitems,
+					OffsetNumber * itemnos, int nitems,
 					BlockNumber lastBlockVacuumed)
 {
 	Page		page = BufferGetPage(buf);
@@ -868,7 +868,7 @@ _bt_delitems_vacuum(Relation rel, Buffer buf,
  */
 void
 _bt_delitems_delete(Relation rel, Buffer buf,
-					OffsetNumber *itemnos, int nitems,
+					OffsetNumber * itemnos, int nitems,
 					Relation heapRel)
 {
 	Page		page = BufferGetPage(buf);
@@ -977,8 +977,8 @@ _bt_is_page_halfdead(Relation rel, BlockNumber blk)
  */
 static bool
 _bt_lock_branch_parent(Relation rel, BlockNumber child, BTStack stack,
-					   Buffer *topparent, OffsetNumber *topoff,
-					   BlockNumber *target, BlockNumber *rightsib)
+					   Buffer * topparent, OffsetNumber * topoff,
+					   BlockNumber * target, BlockNumber * rightsib)
 {
 	BlockNumber parent;
 	OffsetNumber poffset,
@@ -1460,7 +1460,7 @@ _bt_mark_page_halfdead(Relation rel, Buffer leafbuf, BTStack stack)
 		ItemPointerSet(&trunctuple.t_tid, target, P_HIKEY);
 	else
 		ItemPointerSetInvalid(&trunctuple.t_tid);
-	if (PageAddItem(page, (Item) &trunctuple, sizeof(IndexTupleData), P_HIKEY,
+	if (PageAddItem(page, (Item) & trunctuple, sizeof(IndexTupleData), P_HIKEY,
 					false, false) == InvalidOffsetNumber)
 		elog(ERROR, "could not add dummy high key to half-dead page");
 

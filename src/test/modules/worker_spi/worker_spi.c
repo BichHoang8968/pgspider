@@ -61,7 +61,7 @@ typedef struct worktable
 {
 	const char *schema;
 	const char *name;
-} worktable;
+}			worktable;
 
 /*
  * Signal handler for SIGTERM
@@ -100,7 +100,7 @@ worker_spi_sighup(SIGNAL_ARGS)
  * already exist.
  */
 static void
-initialize_worker_spi(worktable *table)
+initialize_worker_spi(worktable * table)
 {
 	int			ret;
 	int			ntup;

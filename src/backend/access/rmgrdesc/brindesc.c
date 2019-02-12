@@ -17,7 +17,7 @@
 #include "access/brin_xlog.h"
 
 void
-brin_desc(StringInfo buf, XLogReaderState *record)
+brin_desc(StringInfo buf, XLogReaderState * record)
 {
 	char	   *rec = XLogRecGetData(record);
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;

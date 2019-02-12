@@ -124,8 +124,8 @@ do { \
 } while(0)
 
 static IndexScanDesc index_beginscan_internal(Relation indexRelation,
-						 int nkeys, int norderbys, Snapshot snapshot,
-						 ParallelIndexScanDesc pscan, bool temp_snap);
+											  int nkeys, int norderbys, Snapshot snapshot,
+											  ParallelIndexScanDesc pscan, bool temp_snap);
 
 
 /* ----------------------------------------------------------------
@@ -192,12 +192,12 @@ index_close(Relation relation, LOCKMODE lockmode)
  */
 bool
 index_insert(Relation indexRelation,
-			 Datum *values,
+			 Datum * values,
 			 bool *isnull,
 			 ItemPointer heap_t_ctid,
 			 Relation heapRelation,
 			 IndexUniqueCheck checkUnique,
-			 IndexInfo *indexInfo)
+			 IndexInfo * indexInfo)
 {
 	RELATION_CHECKS;
 	CHECK_REL_PROCEDURE(aminsert);
@@ -710,7 +710,7 @@ index_getnext(IndexScanDesc scan, ScanDirection direction)
  * ----------------
  */
 int64
-index_getbitmap(IndexScanDesc scan, TIDBitmap *bitmap)
+index_getbitmap(IndexScanDesc scan, TIDBitmap * bitmap)
 {
 	int64		ntids;
 
@@ -740,8 +740,8 @@ index_getbitmap(IndexScanDesc scan, TIDBitmap *bitmap)
  * ----------------
  */
 IndexBulkDeleteResult *
-index_bulk_delete(IndexVacuumInfo *info,
-				  IndexBulkDeleteResult *stats,
+index_bulk_delete(IndexVacuumInfo * info,
+				  IndexBulkDeleteResult * stats,
 				  IndexBulkDeleteCallback callback,
 				  void *callback_state)
 {
@@ -761,8 +761,8 @@ index_bulk_delete(IndexVacuumInfo *info,
  * ----------------
  */
 IndexBulkDeleteResult *
-index_vacuum_cleanup(IndexVacuumInfo *info,
-					 IndexBulkDeleteResult *stats)
+index_vacuum_cleanup(IndexVacuumInfo * info,
+					 IndexBulkDeleteResult * stats)
 {
 	Relation	indexRelation = info->index;
 

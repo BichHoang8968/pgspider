@@ -23,7 +23,7 @@
 typedef enum
 {
 	AVW_BRINSummarizeRange
-} AutoVacuumWorkItemType;
+}			AutoVacuumWorkItemType;
 
 
 /* GUC variables */

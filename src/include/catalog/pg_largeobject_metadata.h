@@ -42,7 +42,7 @@ CATALOG(pg_largeobject_metadata,2995)
  *		with the format of pg_largeobject_metadata relation.
  * ----------------
  */
-typedef FormData_pg_largeobject_metadata *Form_pg_largeobject_metadata;
+typedef FormData_pg_largeobject_metadata * Form_pg_largeobject_metadata;
 
 /* ----------------
  *		compiler constants for pg_largeobject_metadata

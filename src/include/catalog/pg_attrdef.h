@@ -44,7 +44,7 @@ CATALOG(pg_attrdef,2604)
  *		the format of pg_attrdef relation.
  * ----------------
  */
-typedef FormData_pg_attrdef *Form_pg_attrdef;
+typedef FormData_pg_attrdef * Form_pg_attrdef;
 
 /* ----------------
  *		compiler constants for pg_attrdef

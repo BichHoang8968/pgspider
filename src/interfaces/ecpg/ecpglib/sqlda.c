@@ -42,7 +42,7 @@ ecpg_sqlda_align_add_size(long offset, int alignment, int size, long *current, l
 }
 
 static long
-sqlda_compat_empty_size(const PGresult *res)
+sqlda_compat_empty_size(const PGresult * res)
 {
 	long		offset;
 	int			i;
@@ -62,7 +62,7 @@ sqlda_compat_empty_size(const PGresult *res)
 }
 
 static long
-sqlda_common_total_size(const PGresult *res, int row, enum COMPAT_MODE compat, long offset)
+sqlda_common_total_size(const PGresult * res, int row, enum COMPAT_MODE compat, long offset)
 {
 	int			sqld = PQnfields(res);
 	int			i;
@@ -151,7 +151,7 @@ sqlda_common_total_size(const PGresult *res, int row, enum COMPAT_MODE compat, l
 
 
 static long
-sqlda_compat_total_size(const PGresult *res, int row, enum COMPAT_MODE compat)
+sqlda_compat_total_size(const PGresult * res, int row, enum COMPAT_MODE compat)
 {
 	long		offset;
 
@@ -165,7 +165,7 @@ sqlda_compat_total_size(const PGresult *res, int row, enum COMPAT_MODE compat)
 }
 
 static long
-sqlda_native_empty_size(const PGresult *res)
+sqlda_native_empty_size(const PGresult * res)
 {
 	long		offset;
 	int			sqld = PQnfields(res);
@@ -180,7 +180,7 @@ sqlda_native_empty_size(const PGresult *res)
 }
 
 static long
-sqlda_native_total_size(const PGresult *res, int row, enum COMPAT_MODE compat)
+sqlda_native_total_size(const PGresult * res, int row, enum COMPAT_MODE compat)
 {
 	long		offset;
 
@@ -199,7 +199,7 @@ sqlda_native_total_size(const PGresult *res, int row, enum COMPAT_MODE compat)
  * the given row number
  */
 struct sqlda_compat *
-ecpg_build_compat_sqlda(int line, PGresult *res, int row, enum COMPAT_MODE compat)
+ecpg_build_compat_sqlda(int line, PGresult * res, int row, enum COMPAT_MODE compat)
 {
 	struct sqlda_compat *sqlda;
 	struct sqlvar_compat *sqlvar;
@@ -249,7 +249,7 @@ static int16 value_is_null = -1;
 static int16 value_is_not_null = 0;
 
 void
-ecpg_set_compat_sqlda(int lineno, struct sqlda_compat **_sqlda, const PGresult *res, int row, enum COMPAT_MODE compat)
+ecpg_set_compat_sqlda(int lineno, struct sqlda_compat **_sqlda, const PGresult * res, int row, enum COMPAT_MODE compat)
 {
 	struct sqlda_compat *sqlda = (*_sqlda);
 	int			i;
@@ -406,7 +406,7 @@ ecpg_set_compat_sqlda(int lineno, struct sqlda_compat **_sqlda, const PGresult *
 }
 
 struct sqlda_struct *
-ecpg_build_native_sqlda(int line, PGresult *res, int row, enum COMPAT_MODE compat)
+ecpg_build_native_sqlda(int line, PGresult * res, int row, enum COMPAT_MODE compat)
 {
 	struct sqlda_struct *sqlda;
 	long		size;
@@ -438,7 +438,7 @@ ecpg_build_native_sqlda(int line, PGresult *res, int row, enum COMPAT_MODE compa
 }
 
 void
-ecpg_set_native_sqlda(int lineno, struct sqlda_struct **_sqlda, const PGresult *res, int row, enum COMPAT_MODE compat)
+ecpg_set_native_sqlda(int lineno, struct sqlda_struct **_sqlda, const PGresult * res, int row, enum COMPAT_MODE compat)
 {
 	struct sqlda_struct *sqlda = (*_sqlda);
 	int			i;

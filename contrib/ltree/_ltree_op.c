@@ -29,12 +29,12 @@ PG_FUNCTION_INFO_V1(_ltxtq_extract_exec);
 
 PG_FUNCTION_INFO_V1(_lca);
 
-typedef Datum (*PGCALL2) (PG_FUNCTION_ARGS);
+typedef Datum(*PGCALL2) (PG_FUNCTION_ARGS);
 
 #define NEXTVAL(x) ( (ltree*)( (char*)(x) + INTALIGN( VARSIZE(x) ) ) )
 
 static bool
-array_iterator(ArrayType *la, PGCALL2 callback, void *param, ltree **found)
+array_iterator(ArrayType * la, PGCALL2 callback, void *param, ltree * *found)
 {
 	int			num = ArrayGetNItems(ARR_NDIM(la), ARR_DIMS(la));
 	ltree	   *item = (ltree *) ARR_DATA_PTR(la);
@@ -306,7 +306,7 @@ _lca(PG_FUNCTION_ARGS)
 				(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
 				 errmsg("array must not contain nulls")));
 
-	a = (ltree **) palloc(sizeof(ltree *) * num);
+	a = (ltree * *) palloc(sizeof(ltree *) * num);
 	while (num > 0)
 	{
 		num--;

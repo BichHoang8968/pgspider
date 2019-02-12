@@ -51,7 +51,7 @@ typedef struct xl_brin_createidx
 {
 	BlockNumber pagesPerRange;
 	uint16		version;
-} xl_brin_createidx;
+}			xl_brin_createidx;
 #define SizeOfBrinCreateIdx (offsetof(xl_brin_createidx, version) + sizeof(uint16))
 
 /*
@@ -69,7 +69,7 @@ typedef struct xl_brin_insert
 
 	/* offset number in the main page to insert the tuple to. */
 	OffsetNumber offnum;
-} xl_brin_insert;
+}			xl_brin_insert;
 
 #define SizeOfBrinInsert	(offsetof(xl_brin_insert, offnum) + sizeof(OffsetNumber))
 
@@ -90,7 +90,7 @@ typedef struct xl_brin_update
 	OffsetNumber oldOffnum;
 
 	xl_brin_insert insert;
-} xl_brin_update;
+}			xl_brin_update;
 
 #define SizeOfBrinUpdate	(offsetof(xl_brin_update, insert) + SizeOfBrinInsert)
 
@@ -102,7 +102,7 @@ typedef struct xl_brin_update
 typedef struct xl_brin_samepage_update
 {
 	OffsetNumber offnum;
-} xl_brin_samepage_update;
+}			xl_brin_samepage_update;
 
 #define SizeOfBrinSamepageUpdate		(sizeof(OffsetNumber))
 
@@ -119,7 +119,7 @@ typedef struct xl_brin_revmap_extend
 	 * backup block 1.
 	 */
 	BlockNumber targetBlk;
-} xl_brin_revmap_extend;
+}			xl_brin_revmap_extend;
 
 #define SizeOfBrinRevmapExtend	(offsetof(xl_brin_revmap_extend, targetBlk) + \
 								 sizeof(BlockNumber))
@@ -137,14 +137,14 @@ typedef struct xl_brin_desummarize
 	BlockNumber heapBlk;
 	/* offset of item to delete in regular index page */
 	OffsetNumber regOffset;
-} xl_brin_desummarize;
+}			xl_brin_desummarize;
 
 #define SizeOfBrinDesummarize	(offsetof(xl_brin_desummarize, regOffset) + \
 								 sizeof(OffsetNumber))
 
 
-extern void brin_redo(XLogReaderState *record);
-extern void brin_desc(StringInfo buf, XLogReaderState *record);
+extern void brin_redo(XLogReaderState * record);
+extern void brin_desc(StringInfo buf, XLogReaderState * record);
 extern const char *brin_identify(uint8 info);
 extern void brin_mask(char *pagedata, BlockNumber blkno);
 

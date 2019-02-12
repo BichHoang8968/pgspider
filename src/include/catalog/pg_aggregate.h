@@ -84,7 +84,7 @@ CATALOG(pg_aggregate,2600) BKI_WITHOUT_OIDS
  *		the format of pg_aggregate relation.
  * ----------------
  */
-typedef FormData_pg_aggregate *Form_pg_aggregate;
+typedef FormData_pg_aggregate * Form_pg_aggregate;
 
 /* ----------------
  *		compiler constants for pg_aggregate
@@ -319,33 +319,33 @@ DATA(insert ( 3992	h 1 ordered_set_transition_multi	dense_rank_final						-	-	-	
  * prototypes for functions in pg_aggregate.c
  */
 extern ObjectAddress AggregateCreate(const char *aggName,
-				Oid aggNamespace,
-				char aggKind,
-				int numArgs,
-				int numDirectArgs,
-				oidvector *parameterTypes,
-				Datum allParameterTypes,
-				Datum parameterModes,
-				Datum parameterNames,
-				List *parameterDefaults,
-				Oid variadicArgType,
-				List *aggtransfnName,
-				List *aggfinalfnName,
-				List *aggcombinefnName,
-				List *aggserialfnName,
-				List *aggdeserialfnName,
-				List *aggmtransfnName,
-				List *aggminvtransfnName,
-				List *aggmfinalfnName,
-				bool finalfnExtraArgs,
-				bool mfinalfnExtraArgs,
-				List *aggsortopName,
-				Oid aggTransType,
-				int32 aggTransSpace,
-				Oid aggmTransType,
-				int32 aggmTransSpace,
-				const char *agginitval,
-				const char *aggminitval,
-				char proparallel);
+									 Oid aggNamespace,
+									 char aggKind,
+									 int numArgs,
+									 int numDirectArgs,
+									 oidvector * parameterTypes,
+									 Datum allParameterTypes,
+									 Datum parameterModes,
+									 Datum parameterNames,
+									 List * parameterDefaults,
+									 Oid variadicArgType,
+									 List * aggtransfnName,
+									 List * aggfinalfnName,
+									 List * aggcombinefnName,
+									 List * aggserialfnName,
+									 List * aggdeserialfnName,
+									 List * aggmtransfnName,
+									 List * aggminvtransfnName,
+									 List * aggmfinalfnName,
+									 bool finalfnExtraArgs,
+									 bool mfinalfnExtraArgs,
+									 List * aggsortopName,
+									 Oid aggTransType,
+									 int32 aggTransSpace,
+									 Oid aggmTransType,
+									 int32 aggmTransSpace,
+									 const char *agginitval,
+									 const char *aggminitval,
+									 char proparallel);
 
 #endif							/* PG_AGGREGATE_H */

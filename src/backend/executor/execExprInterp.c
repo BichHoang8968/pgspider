@@ -127,35 +127,35 @@ static const void **dispatch_table = NULL;
 	} while (0)
 
 
-static Datum ExecInterpExpr(ExprState *state, ExprContext *econtext, bool *isnull);
+static Datum ExecInterpExpr(ExprState * state, ExprContext * econtext, bool *isnull);
 static void ExecInitInterpreter(void);
 
 /* support functions */
-static void CheckVarSlotCompatibility(TupleTableSlot *slot, int attnum, Oid vartype);
+static void CheckVarSlotCompatibility(TupleTableSlot * slot, int attnum, Oid vartype);
 static TupleDesc get_cached_rowtype(Oid type_id, int32 typmod,
-				   TupleDesc *cache_field, ExprContext *econtext);
+									TupleDesc * cache_field, ExprContext * econtext);
 static void ShutdownTupleDescRef(Datum arg);
-static void ExecEvalRowNullInt(ExprState *state, ExprEvalStep *op,
-				   ExprContext *econtext, bool checkisnull);
+static void ExecEvalRowNullInt(ExprState * state, ExprEvalStep * op,
+				   ExprContext * econtext, bool checkisnull);
 
 /* fast-path evaluation functions */
-static Datum ExecJustInnerVarFirst(ExprState *state, ExprContext *econtext, bool *isnull);
-static Datum ExecJustInnerVar(ExprState *state, ExprContext *econtext, bool *isnull);
-static Datum ExecJustOuterVarFirst(ExprState *state, ExprContext *econtext, bool *isnull);
-static Datum ExecJustOuterVar(ExprState *state, ExprContext *econtext, bool *isnull);
-static Datum ExecJustScanVarFirst(ExprState *state, ExprContext *econtext, bool *isnull);
-static Datum ExecJustScanVar(ExprState *state, ExprContext *econtext, bool *isnull);
-static Datum ExecJustConst(ExprState *state, ExprContext *econtext, bool *isnull);
-static Datum ExecJustAssignInnerVar(ExprState *state, ExprContext *econtext, bool *isnull);
-static Datum ExecJustAssignOuterVar(ExprState *state, ExprContext *econtext, bool *isnull);
-static Datum ExecJustAssignScanVar(ExprState *state, ExprContext *econtext, bool *isnull);
+static Datum ExecJustInnerVarFirst(ExprState * state, ExprContext * econtext, bool *isnull);
+static Datum ExecJustInnerVar(ExprState * state, ExprContext * econtext, bool *isnull);
+static Datum ExecJustOuterVarFirst(ExprState * state, ExprContext * econtext, bool *isnull);
+static Datum ExecJustOuterVar(ExprState * state, ExprContext * econtext, bool *isnull);
+static Datum ExecJustScanVarFirst(ExprState * state, ExprContext * econtext, bool *isnull);
+static Datum ExecJustScanVar(ExprState * state, ExprContext * econtext, bool *isnull);
+static Datum ExecJustConst(ExprState * state, ExprContext * econtext, bool *isnull);
+static Datum ExecJustAssignInnerVar(ExprState * state, ExprContext * econtext, bool *isnull);
+static Datum ExecJustAssignOuterVar(ExprState * state, ExprContext * econtext, bool *isnull);
+static Datum ExecJustAssignScanVar(ExprState * state, ExprContext * econtext, bool *isnull);
 
 
 /*
  * Prepare ExprState for interpreted execution.
  */
 void
-ExecReadyInterpretedExpr(ExprState *state)
+ExecReadyInterpretedExpr(ExprState * state)
 {
 	/* Ensure one-time interpreter setup has been done */
 	ExecInitInterpreter();
@@ -272,7 +272,7 @@ ExecReadyInterpretedExpr(ExprState *state)
  * (Only applies when EEO_USE_COMPUTED_GOTO is defined.)
  */
 static Datum
-ExecInterpExpr(ExprState *state, ExprContext *econtext, bool *isnull)
+ExecInterpExpr(ExprState * state, ExprContext * econtext, bool *isnull)
 {
 	ExprEvalStep *op;
 	TupleTableSlot *resultslot;
@@ -1525,7 +1525,7 @@ out:
  * since the expression tree has been created.
  */
 static void
-CheckVarSlotCompatibility(TupleTableSlot *slot, int attnum, Oid vartype)
+CheckVarSlotCompatibility(TupleTableSlot * slot, int attnum, Oid vartype)
 {
 	/*
 	 * What we have to check for here is the possibility of an attribute
@@ -1586,7 +1586,7 @@ CheckVarSlotCompatibility(TupleTableSlot *slot, int attnum, Oid vartype)
  */
 static TupleDesc
 get_cached_rowtype(Oid type_id, int32 typmod,
-				   TupleDesc *cache_field, ExprContext *econtext)
+				   TupleDesc * cache_field, ExprContext * econtext)
 {
 	TupleDesc	tupDesc = *cache_field;
 
@@ -1633,7 +1633,7 @@ ShutdownTupleDescRef(Datum arg)
 
 /* Simple reference to inner Var, first time through */
 static Datum
-ExecJustInnerVarFirst(ExprState *state, ExprContext *econtext, bool *isnull)
+ExecJustInnerVarFirst(ExprState * state, ExprContext * econtext, bool *isnull)
 {
 	ExprEvalStep *op = &state->steps[1];
 	int			attnum = op->d.var.attnum + 1;
@@ -1655,7 +1655,7 @@ ExecJustInnerVarFirst(ExprState *state, ExprContext *econtext, bool *isnull)
 
 /* Simple reference to inner Var */
 static Datum
-ExecJustInnerVar(ExprState *state, ExprContext *econtext, bool *isnull)
+ExecJustInnerVar(ExprState * state, ExprContext * econtext, bool *isnull)
 {
 	ExprEvalStep *op = &state->steps[1];
 	int			attnum = op->d.var.attnum + 1;
@@ -1667,7 +1667,7 @@ ExecJustInnerVar(ExprState *state, ExprContext *econtext, bool *isnull)
 
 /* Simple reference to outer Var, first time through */
 static Datum
-ExecJustOuterVarFirst(ExprState *state, ExprContext *econtext, bool *isnull)
+ExecJustOuterVarFirst(ExprState * state, ExprContext * econtext, bool *isnull)
 {
 	ExprEvalStep *op = &state->steps[1];
 	int			attnum = op->d.var.attnum + 1;
@@ -1683,7 +1683,7 @@ ExecJustOuterVarFirst(ExprState *state, ExprContext *econtext, bool *isnull)
 
 /* Simple reference to outer Var */
 static Datum
-ExecJustOuterVar(ExprState *state, ExprContext *econtext, bool *isnull)
+ExecJustOuterVar(ExprState * state, ExprContext * econtext, bool *isnull)
 {
 	ExprEvalStep *op = &state->steps[1];
 	int			attnum = op->d.var.attnum + 1;
@@ -1695,7 +1695,7 @@ ExecJustOuterVar(ExprState *state, ExprContext *econtext, bool *isnull)
 
 /* Simple reference to scan Var, first time through */
 static Datum
-ExecJustScanVarFirst(ExprState *state, ExprContext *econtext, bool *isnull)
+ExecJustScanVarFirst(ExprState * state, ExprContext * econtext, bool *isnull)
 {
 	ExprEvalStep *op = &state->steps[1];
 	int			attnum = op->d.var.attnum + 1;
@@ -1711,7 +1711,7 @@ ExecJustScanVarFirst(ExprState *state, ExprContext *econtext, bool *isnull)
 
 /* Simple reference to scan Var */
 static Datum
-ExecJustScanVar(ExprState *state, ExprContext *econtext, bool *isnull)
+ExecJustScanVar(ExprState * state, ExprContext * econtext, bool *isnull)
 {
 	ExprEvalStep *op = &state->steps[1];
 	int			attnum = op->d.var.attnum + 1;
@@ -1723,7 +1723,7 @@ ExecJustScanVar(ExprState *state, ExprContext *econtext, bool *isnull)
 
 /* Simple Const expression */
 static Datum
-ExecJustConst(ExprState *state, ExprContext *econtext, bool *isnull)
+ExecJustConst(ExprState * state, ExprContext * econtext, bool *isnull)
 {
 	ExprEvalStep *op = &state->steps[0];
 
@@ -1733,7 +1733,7 @@ ExecJustConst(ExprState *state, ExprContext *econtext, bool *isnull)
 
 /* Evaluate inner Var and assign to appropriate column of result tuple */
 static Datum
-ExecJustAssignInnerVar(ExprState *state, ExprContext *econtext, bool *isnull)
+ExecJustAssignInnerVar(ExprState * state, ExprContext * econtext, bool *isnull)
 {
 	ExprEvalStep *op = &state->steps[1];
 	int			attnum = op->d.assign_var.attnum + 1;
@@ -1756,7 +1756,7 @@ ExecJustAssignInnerVar(ExprState *state, ExprContext *econtext, bool *isnull)
 
 /* Evaluate outer Var and assign to appropriate column of result tuple */
 static Datum
-ExecJustAssignOuterVar(ExprState *state, ExprContext *econtext, bool *isnull)
+ExecJustAssignOuterVar(ExprState * state, ExprContext * econtext, bool *isnull)
 {
 	ExprEvalStep *op = &state->steps[1];
 	int			attnum = op->d.assign_var.attnum + 1;
@@ -1772,7 +1772,7 @@ ExecJustAssignOuterVar(ExprState *state, ExprContext *econtext, bool *isnull)
 
 /* Evaluate scan Var and assign to appropriate column of result tuple */
 static Datum
-ExecJustAssignScanVar(ExprState *state, ExprContext *econtext, bool *isnull)
+ExecJustAssignScanVar(ExprState * state, ExprContext * econtext, bool *isnull)
 {
 	ExprEvalStep *op = &state->steps[1];
 	int			attnum = op->d.assign_var.attnum + 1;
@@ -1812,7 +1812,7 @@ ExecInitInterpreter(void)
  * that's sorted on the address, so a binary search can be performed.
  */
 ExprEvalOp
-ExecEvalStepOp(ExprState *state, ExprEvalStep *op)
+ExecEvalStepOp(ExprState * state, ExprEvalStep * op)
 {
 #if defined(EEO_USE_COMPUTED_GOTO)
 	if (state->flags & EEO_FLAG_DIRECT_THREADED)
@@ -1844,7 +1844,7 @@ ExecEvalStepOp(ExprState *state, ExprEvalStep *op)
  * ecxt_param_exec_vals array, and can be accessed by array index.
  */
 void
-ExecEvalParamExec(ExprState *state, ExprEvalStep *op, ExprContext *econtext)
+ExecEvalParamExec(ExprState * state, ExprEvalStep * op, ExprContext * econtext)
 {
 	ParamExecData *prm;
 
@@ -1866,7 +1866,7 @@ ExecEvalParamExec(ExprState *state, ExprEvalStep *op, ExprContext *econtext)
  * PARAM_EXTERN parameters must be sought in ecxt_param_list_info.
  */
 void
-ExecEvalParamExtern(ExprState *state, ExprEvalStep *op, ExprContext *econtext)
+ExecEvalParamExtern(ExprState * state, ExprEvalStep * op, ExprContext * econtext)
 {
 	ParamListInfo paramInfo = econtext->ecxt_param_list_info;
 	int			paramId = op->d.param.paramid;
@@ -1905,7 +1905,7 @@ ExecEvalParamExtern(ExprState *state, ExprEvalStep *op, ExprContext *econtext)
  * Evaluate a SQLValueFunction expression.
  */
 void
-ExecEvalSQLValueFunction(ExprState *state, ExprEvalStep *op)
+ExecEvalSQLValueFunction(ExprState * state, ExprEvalStep * op)
 {
 	SQLValueFunction *svf = op->d.sqlvaluefunction.svf;
 	FunctionCallInfoData fcinfo;
@@ -1972,7 +1972,7 @@ ExecEvalSQLValueFunction(ExprState *state, ExprEvalStep *op)
  * table whose FDW doesn't handle it, and complain accordingly.
  */
 void
-ExecEvalCurrentOfExpr(ExprState *state, ExprEvalStep *op)
+ExecEvalCurrentOfExpr(ExprState * state, ExprEvalStep * op)
 {
 	ereport(ERROR,
 			(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
@@ -1983,7 +1983,7 @@ ExecEvalCurrentOfExpr(ExprState *state, ExprEvalStep *op)
  * Evaluate NextValueExpr.
  */
 void
-ExecEvalNextValueExpr(ExprState *state, ExprEvalStep *op)
+ExecEvalNextValueExpr(ExprState * state, ExprEvalStep * op)
 {
 	int64		newval = nextval_internal(op->d.nextvalueexpr.seqid, false);
 
@@ -2009,7 +2009,7 @@ ExecEvalNextValueExpr(ExprState *state, ExprEvalStep *op)
  * Evaluate NullTest / IS NULL for rows.
  */
 void
-ExecEvalRowNull(ExprState *state, ExprEvalStep *op, ExprContext *econtext)
+ExecEvalRowNull(ExprState * state, ExprEvalStep * op, ExprContext * econtext)
 {
 	ExecEvalRowNullInt(state, op, econtext, true);
 }
@@ -2018,15 +2018,15 @@ ExecEvalRowNull(ExprState *state, ExprEvalStep *op, ExprContext *econtext)
  * Evaluate NullTest / IS NOT NULL for rows.
  */
 void
-ExecEvalRowNotNull(ExprState *state, ExprEvalStep *op, ExprContext *econtext)
+ExecEvalRowNotNull(ExprState * state, ExprEvalStep * op, ExprContext * econtext)
 {
 	ExecEvalRowNullInt(state, op, econtext, false);
 }
 
 /* Common code for IS [NOT] NULL on a row value */
 static void
-ExecEvalRowNullInt(ExprState *state, ExprEvalStep *op,
-				   ExprContext *econtext, bool checkisnull)
+ExecEvalRowNullInt(ExprState * state, ExprEvalStep * op,
+				   ExprContext * econtext, bool checkisnull)
 {
 	Datum		value = *op->resvalue;
 	bool		isnull = *op->resnull;
@@ -2113,7 +2113,7 @@ ExecEvalRowNullInt(ExprState *state, ExprEvalStep *op,
  * into op->d.arrayexpr.elemvalues[]/elemnulls[].
  */
 void
-ExecEvalArrayExpr(ExprState *state, ExprEvalStep *op)
+ExecEvalArrayExpr(ExprState * state, ExprEvalStep * op)
 {
 	ArrayType  *result;
 	Oid			element_type = op->d.arrayexpr.elemtype;
@@ -2173,7 +2173,7 @@ ExecEvalArrayExpr(ExprState *state, ExprEvalStep *op)
 		int			i;
 
 		subdata = (char **) palloc(nelems * sizeof(char *));
-		subbitmaps = (bits8 **) palloc(nelems * sizeof(bits8 *));
+		subbitmaps = (bits8 * *) palloc(nelems * sizeof(bits8 *));
 		subbytes = (int *) palloc(nelems * sizeof(int));
 		subnitems = (int *) palloc(nelems * sizeof(int));
 
@@ -2328,7 +2328,7 @@ ExecEvalArrayExpr(ExprState *state, ExprEvalStep *op)
  * Source array is in step's result variable.
  */
 void
-ExecEvalArrayCoerce(ExprState *state, ExprEvalStep *op)
+ExecEvalArrayCoerce(ExprState * state, ExprEvalStep * op)
 {
 	ArrayCoerceExpr *acoerce = op->d.arraycoerce.coerceexpr;
 	Datum		arraydatum;
@@ -2382,7 +2382,7 @@ ExecEvalArrayCoerce(ExprState *state, ExprEvalStep *op)
  * op->d.row.elemvalues[]/elemnulls[].
  */
 void
-ExecEvalRow(ExprState *state, ExprEvalStep *op)
+ExecEvalRow(ExprState * state, ExprEvalStep * op)
 {
 	HeapTuple	tuple;
 
@@ -2402,7 +2402,7 @@ ExecEvalRow(ExprState *state, ExprEvalStep *op)
  * op->d.minmax.values[]/nulls[].
  */
 void
-ExecEvalMinMax(ExprState *state, ExprEvalStep *op)
+ExecEvalMinMax(ExprState * state, ExprEvalStep * op)
 {
 	Datum	   *values = op->d.minmax.values;
 	bool	   *nulls = op->d.minmax.nulls;
@@ -2456,7 +2456,7 @@ ExecEvalMinMax(ExprState *state, ExprEvalStep *op)
  * Source record is in step's result variable.
  */
 void
-ExecEvalFieldSelect(ExprState *state, ExprEvalStep *op, ExprContext *econtext)
+ExecEvalFieldSelect(ExprState * state, ExprEvalStep * op, ExprContext * econtext)
 {
 	AttrNumber	fieldnum = op->d.fieldselect.fieldnum;
 	Datum		tupDatum;
@@ -2534,7 +2534,7 @@ ExecEvalFieldSelect(ExprState *state, ExprEvalStep *op, ExprContext *econtext)
  * Source record is in step's result variable.
  */
 void
-ExecEvalFieldStoreDeForm(ExprState *state, ExprEvalStep *op, ExprContext *econtext)
+ExecEvalFieldStoreDeForm(ExprState * state, ExprEvalStep * op, ExprContext * econtext)
 {
 	TupleDesc	tupDesc;
 
@@ -2580,7 +2580,7 @@ ExecEvalFieldStoreDeForm(ExprState *state, ExprEvalStep *op, ExprContext *econte
  * FieldStore expression has been evaluated.
  */
 void
-ExecEvalFieldStoreForm(ExprState *state, ExprEvalStep *op, ExprContext *econtext)
+ExecEvalFieldStoreForm(ExprState * state, ExprEvalStep * op, ExprContext * econtext)
 {
 	HeapTuple	tuple;
 
@@ -2605,7 +2605,7 @@ ExecEvalFieldStoreForm(ExprState *state, ExprEvalStep *op, ExprContext *econtext
  * lowerindex[] for use later.
  */
 bool
-ExecEvalArrayRefSubscript(ExprState *state, ExprEvalStep *op)
+ExecEvalArrayRefSubscript(ExprState * state, ExprEvalStep * op)
 {
 	ArrayRefState *arefstate = op->d.arrayref_subscript.state;
 	int		   *indexes;
@@ -2640,7 +2640,7 @@ ExecEvalArrayRefSubscript(ExprState *state, ExprEvalStep *op)
  * Source array is in step's result variable.
  */
 void
-ExecEvalArrayRefFetch(ExprState *state, ExprEvalStep *op)
+ExecEvalArrayRefFetch(ExprState * state, ExprEvalStep * op)
 {
 	ArrayRefState *arefstate = op->d.arrayref.state;
 
@@ -2682,7 +2682,7 @@ ExecEvalArrayRefFetch(ExprState *state, ExprEvalStep *op)
  * ArrayRefState's prevvalue/prevnull fields.
  */
 void
-ExecEvalArrayRefOld(ExprState *state, ExprEvalStep *op)
+ExecEvalArrayRefOld(ExprState * state, ExprEvalStep * op)
 {
 	ArrayRefState *arefstate = op->d.arrayref.state;
 
@@ -2729,7 +2729,7 @@ ExecEvalArrayRefOld(ExprState *state, ExprEvalStep *op)
  * ArrayRefState's replacevalue/replacenull.
  */
 void
-ExecEvalArrayRefAssign(ExprState *state, ExprEvalStep *op)
+ExecEvalArrayRefAssign(ExprState * state, ExprEvalStep * op)
 {
 	ArrayRefState *arefstate = op->d.arrayref.state;
 
@@ -2794,7 +2794,7 @@ ExecEvalArrayRefAssign(ExprState *state, ExprEvalStep *op)
  * Source record is in step's result variable.
  */
 void
-ExecEvalConvertRowtype(ExprState *state, ExprEvalStep *op, ExprContext *econtext)
+ExecEvalConvertRowtype(ExprState * state, ExprEvalStep * op, ExprContext * econtext)
 {
 	ConvertRowtypeExpr *convert = op->d.convert_rowtype.convert;
 	HeapTuple	result;
@@ -2894,7 +2894,7 @@ ExecEvalConvertRowtype(ExprState *state, ExprEvalStep *op, ExprContext *econtext
  * we short-circuit as soon as the result is known.
  */
 void
-ExecEvalScalarArrayOp(ExprState *state, ExprEvalStep *op)
+ExecEvalScalarArrayOp(ExprState * state, ExprEvalStep * op)
 {
 	FunctionCallInfo fcinfo = op->d.scalararrayop.fcinfo_data;
 	bool		useOr = op->d.scalararrayop.useOr;
@@ -3045,7 +3045,7 @@ ExecEvalScalarArrayOp(ExprState *state, ExprEvalStep *op)
  * Evaluate a NOT NULL domain constraint.
  */
 void
-ExecEvalConstraintNotNull(ExprState *state, ExprEvalStep *op)
+ExecEvalConstraintNotNull(ExprState * state, ExprEvalStep * op)
 {
 	if (*op->resnull)
 		ereport(ERROR,
@@ -3059,7 +3059,7 @@ ExecEvalConstraintNotNull(ExprState *state, ExprEvalStep *op)
  * Evaluate a CHECK domain constraint.
  */
 void
-ExecEvalConstraintCheck(ExprState *state, ExprEvalStep *op)
+ExecEvalConstraintCheck(ExprState * state, ExprEvalStep * op)
 {
 	if (!*op->d.domaincheck.checknull &&
 		!DatumGetBool(*op->d.domaincheck.checkvalue))
@@ -3079,7 +3079,7 @@ ExecEvalConstraintCheck(ExprState *state, ExprEvalStep *op)
  * and/or argvalue/argnull arrays.
  */
 void
-ExecEvalXmlExpr(ExprState *state, ExprEvalStep *op)
+ExecEvalXmlExpr(ExprState * state, ExprEvalStep * op)
 {
 	XmlExpr    *xexpr = op->d.xmlexpr.xexpr;
 	Datum		value;
@@ -3299,7 +3299,7 @@ ExecEvalXmlExpr(ExprState *state, ExprEvalStep *op)
  * grouping expressions in the current grouping set.
  */
 void
-ExecEvalGroupingFunc(ExprState *state, ExprEvalStep *op)
+ExecEvalGroupingFunc(ExprState * state, ExprEvalStep * op)
 {
 	int			result = 0;
 	Bitmapset  *grouped_cols = op->d.grouping_func.parent->grouped_cols;
@@ -3323,7 +3323,7 @@ ExecEvalGroupingFunc(ExprState *state, ExprEvalStep *op)
  * Hand off evaluation of a subplan to nodeSubplan.c
  */
 void
-ExecEvalSubPlan(ExprState *state, ExprEvalStep *op, ExprContext *econtext)
+ExecEvalSubPlan(ExprState * state, ExprEvalStep * op, ExprContext * econtext)
 {
 	SubPlanState *sstate = op->d.subplan.sstate;
 
@@ -3337,7 +3337,7 @@ ExecEvalSubPlan(ExprState *state, ExprEvalStep *op, ExprContext *econtext)
  * Hand off evaluation of an alternative subplan to nodeSubplan.c
  */
 void
-ExecEvalAlternativeSubPlan(ExprState *state, ExprEvalStep *op, ExprContext *econtext)
+ExecEvalAlternativeSubPlan(ExprState * state, ExprEvalStep * op, ExprContext * econtext)
 {
 	AlternativeSubPlanState *asstate = op->d.alternative_subplan.asstate;
 
@@ -3354,7 +3354,7 @@ ExecEvalAlternativeSubPlan(ExprState *state, ExprEvalStep *op, ExprContext *econ
  * with respect to given expression context.
  */
 void
-ExecEvalWholeRowVar(ExprState *state, ExprEvalStep *op, ExprContext *econtext)
+ExecEvalWholeRowVar(ExprState * state, ExprEvalStep * op, ExprContext * econtext)
 {
 	Var		   *variable = op->d.wholerow.var;
 	TupleTableSlot *slot;

@@ -109,7 +109,7 @@ typedef struct
 									 * alone, if there's no namespace) be
 									 * considered a unique identifier for an
 									 * object of this class? */
-} ObjectPropertyType;
+}			ObjectPropertyType;
 
 static const ObjectPropertyType ObjectProperty[] =
 {
@@ -715,7 +715,7 @@ static const struct object_type_map
 	}
 };
 
-const ObjectAddress InvalidObjectAddress =
+const		ObjectAddress InvalidObjectAddress =
 {
 	InvalidOid,
 	InvalidOid,
@@ -723,32 +723,32 @@ const ObjectAddress InvalidObjectAddress =
 };
 
 static ObjectAddress get_object_address_unqualified(ObjectType objtype,
-							   Value *strval, bool missing_ok);
+													Value * strval, bool missing_ok);
 static ObjectAddress get_relation_by_qualified_name(ObjectType objtype,
-							   List *object, Relation *relp,
-							   LOCKMODE lockmode, bool missing_ok);
+													List * object, Relation * relp,
+													LOCKMODE lockmode, bool missing_ok);
 static ObjectAddress get_object_address_relobject(ObjectType objtype,
-							 List *object, Relation *relp, bool missing_ok);
+												  List * object, Relation * relp, bool missing_ok);
 static ObjectAddress get_object_address_attribute(ObjectType objtype,
-							 List *object, Relation *relp,
-							 LOCKMODE lockmode, bool missing_ok);
+												  List * object, Relation * relp,
+												  LOCKMODE lockmode, bool missing_ok);
 static ObjectAddress get_object_address_attrdef(ObjectType objtype,
-						   List *object, Relation *relp, LOCKMODE lockmode,
-						   bool missing_ok);
+												List * object, Relation * relp, LOCKMODE lockmode,
+												bool missing_ok);
 static ObjectAddress get_object_address_type(ObjectType objtype,
-						TypeName *typename, bool missing_ok);
-static ObjectAddress get_object_address_opcf(ObjectType objtype, List *object,
-						bool missing_ok);
+											 TypeName * typename, bool missing_ok);
+static ObjectAddress get_object_address_opcf(ObjectType objtype, List * object,
+											 bool missing_ok);
 static ObjectAddress get_object_address_opf_member(ObjectType objtype,
-							  List *object, bool missing_ok);
+												   List * object, bool missing_ok);
 
-static ObjectAddress get_object_address_usermapping(List *object,
-							   bool missing_ok);
-static ObjectAddress get_object_address_publication_rel(List *object,
-								   Relation *relp,
-								   bool missing_ok);
-static ObjectAddress get_object_address_defacl(List *object,
-						  bool missing_ok);
+static ObjectAddress get_object_address_usermapping(List * object,
+													bool missing_ok);
+static ObjectAddress get_object_address_publication_rel(List * object,
+														Relation * relp,
+														bool missing_ok);
+static ObjectAddress get_object_address_defacl(List * object,
+											   bool missing_ok);
 static const ObjectPropertyType *get_object_property_data(Oid class_id);
 
 static void getRelationDescription(StringInfo buffer, Oid relid);
@@ -757,8 +757,8 @@ static void getRelationTypeDescription(StringInfo buffer, Oid relid,
 						   int32 objectSubId);
 static void getProcedureTypeDescription(StringInfo buffer, Oid procid);
 static void getConstraintTypeDescription(StringInfo buffer, Oid constroid);
-static void getOpFamilyIdentity(StringInfo buffer, Oid opfid, List **object);
-static void getRelationIdentity(StringInfo buffer, Oid relid, List **object);
+static void getOpFamilyIdentity(StringInfo buffer, Oid opfid, List * *object);
+static void getRelationIdentity(StringInfo buffer, Oid relid, List * *object);
 
 /*
  * Translate an object name and arguments (as passed by the parser) to an
@@ -792,8 +792,8 @@ static void getRelationIdentity(StringInfo buffer, Oid relid, List **object);
  * better to add some support for that in this function.
  */
 ObjectAddress
-get_object_address(ObjectType objtype, Node *object,
-				   Relation *relp, LOCKMODE lockmode, bool missing_ok)
+get_object_address(ObjectType objtype, Node * object,
+				   Relation * relp, LOCKMODE lockmode, bool missing_ok)
 {
 	ObjectAddress address;
 	ObjectAddress old_address = {InvalidOid, InvalidOid, 0};
@@ -1089,8 +1089,8 @@ get_object_address(ObjectType objtype, Node *object,
  * considerations are exactly as for get_object_address above.
  */
 ObjectAddress
-get_object_address_rv(ObjectType objtype, RangeVar *rel, List *object,
-					  Relation *relp, LOCKMODE lockmode,
+get_object_address_rv(ObjectType objtype, RangeVar * rel, List * object,
+					  Relation * relp, LOCKMODE lockmode,
 					  bool missing_ok)
 {
 	if (rel)
@@ -1112,7 +1112,7 @@ get_object_address_rv(ObjectType objtype, RangeVar *rel, List *object,
  */
 static ObjectAddress
 get_object_address_unqualified(ObjectType objtype,
-							   Value *strval, bool missing_ok)
+							   Value * strval, bool missing_ok)
 {
 	const char *name;
 	ObjectAddress address;
@@ -1197,8 +1197,8 @@ get_object_address_unqualified(ObjectType objtype,
  * Locate a relation by qualified name.
  */
 static ObjectAddress
-get_relation_by_qualified_name(ObjectType objtype, List *object,
-							   Relation *relp, LOCKMODE lockmode,
+get_relation_by_qualified_name(ObjectType objtype, List * object,
+							   Relation * relp, LOCKMODE lockmode,
 							   bool missing_ok)
 {
 	Relation	relation;
@@ -1278,8 +1278,8 @@ get_relation_by_qualified_name(ObjectType objtype, List *object,
  * mode for the object itself, not the relation to which it is attached.
  */
 static ObjectAddress
-get_object_address_relobject(ObjectType objtype, List *object,
-							 Relation *relp, bool missing_ok)
+get_object_address_relobject(ObjectType objtype, List * object,
+							 Relation * relp, bool missing_ok)
 {
 	ObjectAddress address;
 	Relation	relation = NULL;
@@ -1357,8 +1357,8 @@ get_object_address_relobject(ObjectType objtype, List *object,
  * Find the ObjectAddress for an attribute.
  */
 static ObjectAddress
-get_object_address_attribute(ObjectType objtype, List *object,
-							 Relation *relp, LOCKMODE lockmode,
+get_object_address_attribute(ObjectType objtype, List * object,
+							 Relation * relp, LOCKMODE lockmode,
 							 bool missing_ok)
 {
 	ObjectAddress address;
@@ -1408,8 +1408,8 @@ get_object_address_attribute(ObjectType objtype, List *object,
  * Find the ObjectAddress for an attribute's default value.
  */
 static ObjectAddress
-get_object_address_attrdef(ObjectType objtype, List *object,
-						   Relation *relp, LOCKMODE lockmode,
+get_object_address_attrdef(ObjectType objtype, List * object,
+						   Relation * relp, LOCKMODE lockmode,
 						   bool missing_ok)
 {
 	ObjectAddress address;
@@ -1490,7 +1490,7 @@ get_object_address_attrdef(ObjectType objtype, List *object,
  * Find the ObjectAddress for a type or domain
  */
 static ObjectAddress
-get_object_address_type(ObjectType objtype, TypeName *typename, bool missing_ok)
+get_object_address_type(ObjectType objtype, TypeName * typename, bool missing_ok)
 {
 	ObjectAddress address;
 	Type		tup;
@@ -1529,7 +1529,7 @@ get_object_address_type(ObjectType objtype, TypeName *typename, bool missing_ok)
  * Find the ObjectAddress for an opclass or opfamily.
  */
 static ObjectAddress
-get_object_address_opcf(ObjectType objtype, List *object, bool missing_ok)
+get_object_address_opcf(ObjectType objtype, List * object, bool missing_ok)
 {
 	Oid			amoid;
 	ObjectAddress address;
@@ -1568,7 +1568,7 @@ get_object_address_opcf(ObjectType objtype, List *object, bool missing_ok)
  */
 static ObjectAddress
 get_object_address_opf_member(ObjectType objtype,
-							  List *object, bool missing_ok)
+							  List * object, bool missing_ok)
 {
 	ObjectAddress famaddr;
 	ObjectAddress address;
@@ -1677,7 +1677,7 @@ get_object_address_opf_member(ObjectType objtype,
  * Find the ObjectAddress for a user mapping.
  */
 static ObjectAddress
-get_object_address_usermapping(List *object, bool missing_ok)
+get_object_address_usermapping(List * object, bool missing_ok)
 {
 	ObjectAddress address;
 	Oid			userid;
@@ -1748,8 +1748,8 @@ get_object_address_usermapping(List *object, bool missing_ok)
  * publication name.
  */
 static ObjectAddress
-get_object_address_publication_rel(List *object,
-								   Relation *relp, bool missing_ok)
+get_object_address_publication_rel(List * object,
+								   Relation * relp, bool missing_ok)
 {
 	ObjectAddress address;
 	Relation	relation;
@@ -1800,7 +1800,7 @@ get_object_address_publication_rel(List *object,
  * Find the ObjectAddress for a default ACL.
  */
 static ObjectAddress
-get_object_address_defacl(List *object, bool missing_ok)
+get_object_address_defacl(List * object, bool missing_ok)
 {
 	HeapTuple	tp;
 	Oid			userid;
@@ -1916,7 +1916,7 @@ not_found:
  * parser, which is what get_object_address uses as input.
  */
 static List *
-textarray_to_strvaluelist(ArrayType *arr)
+textarray_to_strvaluelist(ArrayType * arr)
 {
 	Datum	   *elems;
 	bool	   *nulls;
@@ -2220,7 +2220,7 @@ pg_get_object_address(PG_FUNCTION_ARGS)
  */
 void
 check_object_ownership(Oid roleid, ObjectType objtype, ObjectAddress address,
-					   Node *object, Relation relation)
+					   Node * object, Relation relation)
 {
 	switch (objtype)
 	{
@@ -2418,13 +2418,13 @@ check_object_ownership(Oid roleid, ObjectType objtype, ObjectAddress address,
  * this function returns InvalidOid.
  */
 Oid
-get_object_namespace(const ObjectAddress *address)
+get_object_namespace(const ObjectAddress * address)
 {
 	int			cache;
 	HeapTuple	tuple;
 	bool		isnull;
 	Oid			oid;
-	const ObjectPropertyType *property;
+	const		ObjectPropertyType *property;
 
 	/* If not owned by a namespace, just return InvalidOid. */
 	property = get_object_property_data(address->classId);
@@ -2479,7 +2479,7 @@ read_objtype_from_string(const char *objtype)
 Oid
 get_object_oid_index(Oid class_id)
 {
-	const ObjectPropertyType *prop = get_object_property_data(class_id);
+	const		ObjectPropertyType *prop = get_object_property_data(class_id);
 
 	return prop->oid_index_oid;
 }
@@ -2487,7 +2487,7 @@ get_object_oid_index(Oid class_id)
 int
 get_object_catcache_oid(Oid class_id)
 {
-	const ObjectPropertyType *prop = get_object_property_data(class_id);
+	const		ObjectPropertyType *prop = get_object_property_data(class_id);
 
 	return prop->oid_catcache_id;
 }
@@ -2495,7 +2495,7 @@ get_object_catcache_oid(Oid class_id)
 int
 get_object_catcache_name(Oid class_id)
 {
-	const ObjectPropertyType *prop = get_object_property_data(class_id);
+	const		ObjectPropertyType *prop = get_object_property_data(class_id);
 
 	return prop->name_catcache_id;
 }
@@ -2503,7 +2503,7 @@ get_object_catcache_name(Oid class_id)
 AttrNumber
 get_object_attnum_name(Oid class_id)
 {
-	const ObjectPropertyType *prop = get_object_property_data(class_id);
+	const		ObjectPropertyType *prop = get_object_property_data(class_id);
 
 	return prop->attnum_name;
 }
@@ -2511,7 +2511,7 @@ get_object_attnum_name(Oid class_id)
 AttrNumber
 get_object_attnum_namespace(Oid class_id)
 {
-	const ObjectPropertyType *prop = get_object_property_data(class_id);
+	const		ObjectPropertyType *prop = get_object_property_data(class_id);
 
 	return prop->attnum_namespace;
 }
@@ -2519,7 +2519,7 @@ get_object_attnum_namespace(Oid class_id)
 AttrNumber
 get_object_attnum_owner(Oid class_id)
 {
-	const ObjectPropertyType *prop = get_object_property_data(class_id);
+	const		ObjectPropertyType *prop = get_object_property_data(class_id);
 
 	return prop->attnum_owner;
 }
@@ -2527,7 +2527,7 @@ get_object_attnum_owner(Oid class_id)
 AttrNumber
 get_object_attnum_acl(Oid class_id)
 {
-	const ObjectPropertyType *prop = get_object_property_data(class_id);
+	const		ObjectPropertyType *prop = get_object_property_data(class_id);
 
 	return prop->attnum_acl;
 }
@@ -2535,7 +2535,7 @@ get_object_attnum_acl(Oid class_id)
 AclObjectKind
 get_object_aclkind(Oid class_id)
 {
-	const ObjectPropertyType *prop = get_object_property_data(class_id);
+	const		ObjectPropertyType *prop = get_object_property_data(class_id);
 
 	return prop->acl_kind;
 }
@@ -2543,7 +2543,7 @@ get_object_aclkind(Oid class_id)
 bool
 get_object_namensp_unique(Oid class_id)
 {
-	const ObjectPropertyType *prop = get_object_property_data(class_id);
+	const		ObjectPropertyType *prop = get_object_property_data(class_id);
 
 	return prop->is_nsp_name_unique;
 }
@@ -2652,7 +2652,7 @@ get_catalog_object_by_oid(Relation catalog, Oid objectId)
  * The result is a palloc'd string.
  */
 char *
-getObjectDescription(const ObjectAddress *object)
+getObjectDescription(const ObjectAddress * object)
 {
 	StringInfoData buffer;
 
@@ -3837,7 +3837,7 @@ pg_identify_object_as_address(PG_FUNCTION_ARGS)
  * Keep ObjectTypeMap in sync with this.
  */
 char *
-getObjectTypeDescription(const ObjectAddress *object)
+getObjectTypeDescription(const ObjectAddress * object)
 {
 	StringInfoData buffer;
 
@@ -4118,7 +4118,7 @@ getProcedureTypeDescription(StringInfo buffer, Oid procid)
  * schema-qualified when appropriate.
  */
 char *
-getObjectIdentity(const ObjectAddress *object)
+getObjectIdentity(const ObjectAddress * object)
 {
 	return getObjectIdentityParts(object, NULL, NULL);
 }
@@ -4132,8 +4132,8 @@ getObjectIdentity(const ObjectAddress *object)
  * get_object_address() to reconstruct the ObjectAddress.
  */
 char *
-getObjectIdentityParts(const ObjectAddress *object,
-					   List **objname, List **objargs)
+getObjectIdentityParts(const ObjectAddress * object,
+					   List * *objname, List * *objargs)
 {
 	StringInfoData buffer;
 
@@ -5065,7 +5065,7 @@ getObjectIdentityParts(const ObjectAddress *object,
 }
 
 static void
-getOpFamilyIdentity(StringInfo buffer, Oid opfid, List **object)
+getOpFamilyIdentity(StringInfo buffer, Oid opfid, List * *object)
 {
 	HeapTuple	opfTup;
 	Form_pg_opfamily opfForm;
@@ -5104,7 +5104,7 @@ getOpFamilyIdentity(StringInfo buffer, Oid opfid, List **object)
  * StringInfo.
  */
 static void
-getRelationIdentity(StringInfo buffer, Oid relid, List **object)
+getRelationIdentity(StringInfo buffer, Oid relid, List * *object)
 {
 	HeapTuple	relTup;
 	Form_pg_class relForm;
@@ -5130,7 +5130,7 @@ getRelationIdentity(StringInfo buffer, Oid relid, List **object)
  * Auxiliary function to return a TEXT array out of a list of C-strings.
  */
 ArrayType *
-strlist_to_textarray(List *list)
+strlist_to_textarray(List * list)
 {
 	ArrayType  *arr;
 	Datum	   *datums;

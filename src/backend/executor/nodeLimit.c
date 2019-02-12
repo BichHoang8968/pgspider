@@ -26,8 +26,8 @@
 #include "miscadmin.h"
 #include "nodes/nodeFuncs.h"
 
-static void recompute_limits(LimitState *node);
-static void pass_down_bound(LimitState *node, PlanState *child_node);
+static void recompute_limits(LimitState * node);
+static void pass_down_bound(LimitState * node, PlanState * child_node);
 
 
 /* ----------------------------------------------------------------
@@ -38,7 +38,7 @@ static void pass_down_bound(LimitState *node, PlanState *child_node);
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *			/* return: a tuple or NULL */
-ExecLimit(PlanState *pstate)
+ExecLimit(PlanState * pstate)
 {
 	LimitState *node = castNode(LimitState, pstate);
 	ScanDirection direction;
@@ -235,7 +235,7 @@ ExecLimit(PlanState *pstate)
  * This is also a handy place to reset the current-position state info.
  */
 static void
-recompute_limits(LimitState *node)
+recompute_limits(LimitState * node)
 {
 	ExprContext *econtext = node->ps.ps_ExprContext;
 	Datum		val;
@@ -320,7 +320,7 @@ recompute_limits(LimitState *node)
  * good idea to integrate this signaling with the parameter-change mechanism.
  */
 static void
-pass_down_bound(LimitState *node, PlanState *child_node)
+pass_down_bound(LimitState * node, PlanState * child_node)
 {
 	if (IsA(child_node, SortState))
 	{
@@ -367,7 +367,7 @@ pass_down_bound(LimitState *node, PlanState *child_node)
  * ----------------------------------------------------------------
  */
 LimitState *
-ExecInitLimit(Limit *node, EState *estate, int eflags)
+ExecInitLimit(Limit * node, EState * estate, int eflags)
 {
 	LimitState *limitstate;
 	Plan	   *outerPlan;
@@ -430,7 +430,7 @@ ExecInitLimit(Limit *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndLimit(LimitState *node)
+ExecEndLimit(LimitState * node)
 {
 	ExecFreeExprContext(&node->ps);
 	ExecEndNode(outerPlanState(node));
@@ -438,7 +438,7 @@ ExecEndLimit(LimitState *node)
 
 
 void
-ExecReScanLimit(LimitState *node)
+ExecReScanLimit(LimitState * node)
 {
 	/*
 	 * Recompute limit/offset in case parameters changed, and reset the state

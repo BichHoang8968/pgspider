@@ -32,30 +32,30 @@ typedef struct PLySRFState
 	PyObject   *iter;			/* Python iterator producing results */
 	PLySavedArgs *savedargs;	/* function argument values */
 	MemoryContextCallback callback; /* for releasing refcounts when done */
-} PLySRFState;
+}			PLySRFState;
 
-static PyObject *PLy_function_build_args(FunctionCallInfo fcinfo, PLyProcedure *proc);
-static PLySavedArgs *PLy_function_save_args(PLyProcedure *proc);
-static void PLy_function_restore_args(PLyProcedure *proc, PLySavedArgs *savedargs);
-static void PLy_function_drop_args(PLySavedArgs *savedargs);
-static void PLy_global_args_push(PLyProcedure *proc);
-static void PLy_global_args_pop(PLyProcedure *proc);
+static PyObject * PLy_function_build_args(FunctionCallInfo fcinfo, PLyProcedure * proc);
+static PLySavedArgs * PLy_function_save_args(PLyProcedure * proc);
+static void PLy_function_restore_args(PLyProcedure * proc, PLySavedArgs * savedargs);
+static void PLy_function_drop_args(PLySavedArgs * savedargs);
+static void PLy_global_args_push(PLyProcedure * proc);
+static void PLy_global_args_pop(PLyProcedure * proc);
 static void plpython_srf_cleanup_callback(void *arg);
 static void plpython_return_error_callback(void *arg);
 
-static PyObject *PLy_trigger_build_args(FunctionCallInfo fcinfo, PLyProcedure *proc,
-					   HeapTuple *rv);
-static HeapTuple PLy_modify_tuple(PLyProcedure *proc, PyObject *pltd,
-				 TriggerData *tdata, HeapTuple otup);
+static PyObject * PLy_trigger_build_args(FunctionCallInfo fcinfo, PLyProcedure * proc,
+										 HeapTuple * rv);
+static HeapTuple PLy_modify_tuple(PLyProcedure * proc, PyObject * pltd,
+								  TriggerData * tdata, HeapTuple otup);
 static void plpython_trigger_error_callback(void *arg);
 
-static PyObject *PLy_procedure_call(PLyProcedure *proc, const char *kargs, PyObject *vargs);
+static PyObject * PLy_procedure_call(PLyProcedure * proc, const char *kargs, PyObject * vargs);
 static void PLy_abort_open_subtransactions(int save_subxact_level);
 
 
 /* function subhandler */
 Datum
-PLy_exec_function(FunctionCallInfo fcinfo, PLyProcedure *proc)
+PLy_exec_function(FunctionCallInfo fcinfo, PLyProcedure * proc)
 {
 	Datum		rv;
 	PyObject   *volatile plargs = NULL;
@@ -322,7 +322,7 @@ PLy_exec_function(FunctionCallInfo fcinfo, PLyProcedure *proc)
  * to take no arguments and return an argument of type trigger.
  */
 HeapTuple
-PLy_exec_trigger(FunctionCallInfo fcinfo, PLyProcedure *proc)
+PLy_exec_trigger(FunctionCallInfo fcinfo, PLyProcedure * proc)
 {
 	HeapTuple	rv = NULL;
 	PyObject   *volatile plargs = NULL;
@@ -425,7 +425,7 @@ PLy_exec_trigger(FunctionCallInfo fcinfo, PLyProcedure *proc)
 /* helper functions for Python code execution */
 
 static PyObject *
-PLy_function_build_args(FunctionCallInfo fcinfo, PLyProcedure *proc)
+PLy_function_build_args(FunctionCallInfo fcinfo, PLyProcedure * proc)
 {
 	PyObject   *volatile arg = NULL;
 	PyObject   *volatile args = NULL;
@@ -529,7 +529,7 @@ PLy_function_build_args(FunctionCallInfo fcinfo, PLyProcedure *proc)
  * available via the proc's globals :-( ... but we're stuck with that now.
  */
 static PLySavedArgs *
-PLy_function_save_args(PLyProcedure *proc)
+PLy_function_save_args(PLyProcedure * proc)
 {
 	PLySavedArgs *result;
 
@@ -568,7 +568,7 @@ PLy_function_save_args(PLyProcedure *proc)
  * then free the struct.
  */
 static void
-PLy_function_restore_args(PLyProcedure *proc, PLySavedArgs *savedargs)
+PLy_function_restore_args(PLyProcedure * proc, PLySavedArgs * savedargs)
 {
 	/* Restore named arguments into their slots in the globals dict */
 	if (proc->argnames)
@@ -601,7 +601,7 @@ PLy_function_restore_args(PLyProcedure *proc, PLySavedArgs *savedargs)
  * Free a PLySavedArgs struct without restoring the values.
  */
 static void
-PLy_function_drop_args(PLySavedArgs *savedargs)
+PLy_function_drop_args(PLySavedArgs * savedargs)
 {
 	int			i;
 
@@ -629,7 +629,7 @@ PLy_function_drop_args(PLySavedArgs *savedargs)
  * of proc->argstack.
  */
 static void
-PLy_global_args_push(PLyProcedure *proc)
+PLy_global_args_push(PLyProcedure * proc)
 {
 	/* We only need to push if we are already inside some active call */
 	if (proc->calldepth > 0)
@@ -659,7 +659,7 @@ PLy_global_args_push(PLyProcedure *proc)
  * tolerable.
  */
 static void
-PLy_global_args_pop(PLyProcedure *proc)
+PLy_global_args_pop(PLyProcedure * proc)
 {
 	Assert(proc->calldepth > 0);
 	/* We only need to pop if we were already inside some active call */
@@ -720,7 +720,7 @@ plpython_return_error_callback(void *arg)
 }
 
 static PyObject *
-PLy_trigger_build_args(FunctionCallInfo fcinfo, PLyProcedure *proc, HeapTuple *rv)
+PLy_trigger_build_args(FunctionCallInfo fcinfo, PLyProcedure * proc, HeapTuple * rv)
 {
 	TriggerData *tdata = (TriggerData *) fcinfo->context;
 	PyObject   *pltname,
@@ -898,7 +898,7 @@ PLy_trigger_build_args(FunctionCallInfo fcinfo, PLyProcedure *proc, HeapTuple *r
 }
 
 static HeapTuple
-PLy_modify_tuple(PLyProcedure *proc, PyObject *pltd, TriggerData *tdata,
+PLy_modify_tuple(PLyProcedure * proc, PyObject * pltd, TriggerData * tdata,
 				 HeapTuple otup)
 {
 	HeapTuple	rtup;
@@ -1048,7 +1048,7 @@ plpython_trigger_error_callback(void *arg)
 
 /* execute Python code, propagate Python errors to the backend */
 static PyObject *
-PLy_procedure_call(PLyProcedure *proc, const char *kargs, PyObject *vargs)
+PLy_procedure_call(PLyProcedure * proc, const char *kargs, PyObject * vargs)
 {
 	PyObject   *rv;
 	int volatile save_subxact_level = list_length(explicit_subtransactions);

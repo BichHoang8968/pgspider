@@ -26,14 +26,14 @@ typedef struct
 	char	   *buffer;			/* text to parse */
 	int			len;			/* length of the text in buffer */
 	int			pos;			/* position of the parser */
-} ParserState;
+}			ParserState;
 
 typedef struct
 {
 	int			lexid;
 	char	   *alias;
 	char	   *descr;
-} LexDescr;
+}			LexDescr;
 
 /*
  * functions

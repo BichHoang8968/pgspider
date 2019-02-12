@@ -32,31 +32,31 @@ typedef struct
 {
 	Relids		varnos;
 	int			sublevels_up;
-} pull_varnos_context;
+}			pull_varnos_context;
 
 typedef struct
 {
 	Bitmapset  *varattnos;
 	Index		varno;
-} pull_varattnos_context;
+}			pull_varattnos_context;
 
 typedef struct
 {
 	List	   *vars;
 	int			sublevels_up;
-} pull_vars_context;
+}			pull_vars_context;
 
 typedef struct
 {
 	int			var_location;
 	int			sublevels_up;
-} locate_var_of_level_context;
+}			locate_var_of_level_context;
 
 typedef struct
 {
 	List	   *varlist;
 	int			flags;
-} pull_var_clause_context;
+}			pull_var_clause_context;
 
 typedef struct
 {
@@ -64,21 +64,21 @@ typedef struct
 	int			sublevels_up;
 	bool		possible_sublink;	/* could aliases include a SubLink? */
 	bool		inserted_sublink;	/* have we inserted a SubLink? */
-} flatten_join_alias_vars_context;
+}			flatten_join_alias_vars_context;
 
-static bool pull_varnos_walker(Node *node,
-				   pull_varnos_context *context);
-static bool pull_varattnos_walker(Node *node, pull_varattnos_context *context);
-static bool pull_vars_walker(Node *node, pull_vars_context *context);
-static bool contain_var_clause_walker(Node *node, void *context);
-static bool contain_vars_of_level_walker(Node *node, int *sublevels_up);
-static bool locate_var_of_level_walker(Node *node,
-						   locate_var_of_level_context *context);
-static bool pull_var_clause_walker(Node *node,
-					   pull_var_clause_context *context);
-static Node *flatten_join_alias_vars_mutator(Node *node,
-								flatten_join_alias_vars_context *context);
-static Relids alias_relid_set(PlannerInfo *root, Relids relids);
+static bool pull_varnos_walker(Node * node,
+				   pull_varnos_context * context);
+static bool pull_varattnos_walker(Node * node, pull_varattnos_context * context);
+static bool pull_vars_walker(Node * node, pull_vars_context * context);
+static bool contain_var_clause_walker(Node * node, void *context);
+static bool contain_vars_of_level_walker(Node * node, int *sublevels_up);
+static bool locate_var_of_level_walker(Node * node,
+						   locate_var_of_level_context * context);
+static bool pull_var_clause_walker(Node * node,
+					   pull_var_clause_context * context);
+static Node * flatten_join_alias_vars_mutator(Node * node,
+											  flatten_join_alias_vars_context * context);
+static Relids alias_relid_set(PlannerInfo * root, Relids relids);
 
 
 /*
@@ -92,7 +92,7 @@ static Relids alias_relid_set(PlannerInfo *root, Relids relids);
  * SubPlan, we only need to look at the parameters passed to the subplan.
  */
 Relids
-pull_varnos(Node *node)
+pull_varnos(Node * node)
 {
 	pull_varnos_context context;
 
@@ -117,7 +117,7 @@ pull_varnos(Node *node)
  *		Only Vars of the specified level are considered.
  */
 Relids
-pull_varnos_of_level(Node *node, int levelsup)
+pull_varnos_of_level(Node * node, int levelsup)
 {
 	pull_varnos_context context;
 
@@ -137,7 +137,7 @@ pull_varnos_of_level(Node *node, int levelsup)
 }
 
 static bool
-pull_varnos_walker(Node *node, pull_varnos_context *context)
+pull_varnos_walker(Node * node, pull_varnos_context * context)
 {
 	if (node == NULL)
 		return false;
@@ -216,7 +216,7 @@ pull_varnos_walker(Node *node, pull_varnos_context *context)
  * contain any other references to Vars of the current level.)
  */
 void
-pull_varattnos(Node *node, Index varno, Bitmapset **varattnos)
+pull_varattnos(Node * node, Index varno, Bitmapset * *varattnos)
 {
 	pull_varattnos_context context;
 
@@ -229,7 +229,7 @@ pull_varattnos(Node *node, Index varno, Bitmapset **varattnos)
 }
 
 static bool
-pull_varattnos_walker(Node *node, pull_varattnos_context *context)
+pull_varattnos_walker(Node * node, pull_varattnos_context * context)
 {
 	if (node == NULL)
 		return false;
@@ -260,7 +260,7 @@ pull_varattnos_walker(Node *node, pull_varattnos_context *context)
  * Caution: the Vars are not copied, only linked into the list.
  */
 List *
-pull_vars_of_level(Node *node, int levelsup)
+pull_vars_of_level(Node * node, int levelsup)
 {
 	pull_vars_context context;
 
@@ -280,7 +280,7 @@ pull_vars_of_level(Node *node, int levelsup)
 }
 
 static bool
-pull_vars_walker(Node *node, pull_vars_context *context)
+pull_vars_walker(Node * node, pull_vars_context * context)
 {
 	if (node == NULL)
 		return false;
@@ -328,13 +328,13 @@ pull_vars_walker(Node *node, pull_vars_context *context)
  * of sublinks to subplans!
  */
 bool
-contain_var_clause(Node *node)
+contain_var_clause(Node * node)
 {
 	return contain_var_clause_walker(node, NULL);
 }
 
 static bool
-contain_var_clause_walker(Node *node, void *context)
+contain_var_clause_walker(Node * node, void *context)
 {
 	if (node == NULL)
 		return false;
@@ -366,7 +366,7 @@ contain_var_clause_walker(Node *node, void *context)
  * Will recurse into sublinks.  Also, may be invoked directly on a Query.
  */
 bool
-contain_vars_of_level(Node *node, int levelsup)
+contain_vars_of_level(Node * node, int levelsup)
 {
 	int			sublevels_up = levelsup;
 
@@ -377,7 +377,7 @@ contain_vars_of_level(Node *node, int levelsup)
 }
 
 static bool
-contain_vars_of_level_walker(Node *node, int *sublevels_up)
+contain_vars_of_level_walker(Node * node, int *sublevels_up)
 {
 	if (node == NULL)
 		return false;
@@ -434,7 +434,7 @@ contain_vars_of_level_walker(Node *node, int *sublevels_up)
  * and so shaving cycles probably isn't very important.
  */
 int
-locate_var_of_level(Node *node, int levelsup)
+locate_var_of_level(Node * node, int levelsup)
 {
 	locate_var_of_level_context context;
 
@@ -450,8 +450,8 @@ locate_var_of_level(Node *node, int levelsup)
 }
 
 static bool
-locate_var_of_level_walker(Node *node,
-						   locate_var_of_level_context *context)
+locate_var_of_level_walker(Node * node,
+						   locate_var_of_level_context * context)
 {
 	if (node == NULL)
 		return false;
@@ -532,7 +532,7 @@ locate_var_of_level_walker(Node *node,
  * of sublinks to subplans!
  */
 List *
-pull_var_clause(Node *node, int flags)
+pull_var_clause(Node * node, int flags)
 {
 	pull_var_clause_context context;
 
@@ -552,7 +552,7 @@ pull_var_clause(Node *node, int flags)
 }
 
 static bool
-pull_var_clause_walker(Node *node, pull_var_clause_context *context)
+pull_var_clause_walker(Node * node, pull_var_clause_context * context)
 {
 	if (node == NULL)
 		return false;
@@ -667,7 +667,7 @@ pull_var_clause_walker(Node *node, pull_var_clause_context *context)
  * subqueries).
  */
 Node *
-flatten_join_alias_vars(PlannerInfo *root, Node *node)
+flatten_join_alias_vars(PlannerInfo * root, Node * node)
 {
 	flatten_join_alias_vars_context context;
 
@@ -682,8 +682,8 @@ flatten_join_alias_vars(PlannerInfo *root, Node *node)
 }
 
 static Node *
-flatten_join_alias_vars_mutator(Node *node,
-								flatten_join_alias_vars_context *context)
+flatten_join_alias_vars_mutator(Node * node,
+								flatten_join_alias_vars_context * context)
 {
 	if (node == NULL)
 		return NULL;
@@ -823,7 +823,7 @@ flatten_join_alias_vars_mutator(Node *node,
  * underlying base relids
  */
 static Relids
-alias_relid_set(PlannerInfo *root, Relids relids)
+alias_relid_set(PlannerInfo * root, Relids relids)
 {
 	Relids		result = NULL;
 	int			rtindex;

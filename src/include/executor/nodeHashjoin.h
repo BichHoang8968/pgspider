@@ -17,11 +17,11 @@
 #include "nodes/execnodes.h"
 #include "storage/buffile.h"
 
-extern HashJoinState *ExecInitHashJoin(HashJoin *node, EState *estate, int eflags);
-extern void ExecEndHashJoin(HashJoinState *node);
-extern void ExecReScanHashJoin(HashJoinState *node);
+extern HashJoinState * ExecInitHashJoin(HashJoin * node, EState * estate, int eflags);
+extern void ExecEndHashJoin(HashJoinState * node);
+extern void ExecReScanHashJoin(HashJoinState * node);
 
 extern void ExecHashJoinSaveTuple(MinimalTuple tuple, uint32 hashvalue,
-					  BufFile **fileptr);
+					  BufFile * *fileptr);
 
 #endif							/* NODEHASHJOIN_H */

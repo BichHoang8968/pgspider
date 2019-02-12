@@ -39,7 +39,7 @@ static int	compare(const void *arg1, const void *arg2);
  *		allocates memory for GA pool
  */
 Pool *
-alloc_pool(PlannerInfo *root, int pool_size, int string_length)
+alloc_pool(PlannerInfo * root, int pool_size, int string_length)
 {
 	Pool	   *new_pool;
 	Chromosome *chromo;
@@ -66,7 +66,7 @@ alloc_pool(PlannerInfo *root, int pool_size, int string_length)
  *		deallocates memory for GA pool
  */
 void
-free_pool(PlannerInfo *root, Pool *pool)
+free_pool(PlannerInfo * root, Pool * pool)
 {
 	Chromosome *chromo;
 	int			i;
@@ -88,7 +88,7 @@ free_pool(PlannerInfo *root, Pool *pool)
  *		initialize genetic pool
  */
 void
-random_init_pool(PlannerInfo *root, Pool *pool)
+random_init_pool(PlannerInfo * root, Pool * pool)
 {
 	Chromosome *chromo = (Chromosome *) pool->data;
 	int			i;
@@ -132,7 +132,7 @@ random_init_pool(PlannerInfo *root, Pool *pool)
  *	 maybe you have to change compare() for different ordering ...
  */
 void
-sort_pool(PlannerInfo *root, Pool *pool)
+sort_pool(PlannerInfo * root, Pool * pool)
 {
 	qsort(pool->data, pool->size, sizeof(Chromosome), compare);
 }
@@ -144,8 +144,8 @@ sort_pool(PlannerInfo *root, Pool *pool)
 static int
 compare(const void *arg1, const void *arg2)
 {
-	const Chromosome *chromo1 = (const Chromosome *) arg1;
-	const Chromosome *chromo2 = (const Chromosome *) arg2;
+	const		Chromosome *chromo1 = (const Chromosome *) arg1;
+	const		Chromosome *chromo2 = (const Chromosome *) arg2;
 
 	if (chromo1->worth == chromo2->worth)
 		return 0;
@@ -159,7 +159,7 @@ compare(const void *arg1, const void *arg2)
  *	  allocates a chromosome and string space
  */
 Chromosome *
-alloc_chromo(PlannerInfo *root, int string_length)
+alloc_chromo(PlannerInfo * root, int string_length)
 {
 	Chromosome *chromo;
 
@@ -173,7 +173,7 @@ alloc_chromo(PlannerInfo *root, int string_length)
  *	  deallocates a chromosome and string space
  */
 void
-free_chromo(PlannerInfo *root, Chromosome *chromo)
+free_chromo(PlannerInfo * root, Chromosome * chromo)
 {
 	pfree(chromo->string);
 	pfree(chromo);
@@ -184,7 +184,7 @@ free_chromo(PlannerInfo *root, Chromosome *chromo)
  *	 assumes best->worst = smallest->largest
  */
 void
-spread_chromo(PlannerInfo *root, Chromosome *chromo, Pool *pool)
+spread_chromo(PlannerInfo * root, Chromosome * chromo, Pool * pool)
 {
 	int			top,
 				mid,

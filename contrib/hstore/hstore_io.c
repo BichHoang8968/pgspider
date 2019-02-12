@@ -37,7 +37,7 @@ typedef struct
 	Pairs	   *pairs;
 	int			pcur;
 	int			plen;
-} HSParser;
+}			HSParser;
 
 #define RESIZEPRSBUF \
 do { \
@@ -58,7 +58,7 @@ do { \
 #define GV_WAITESCESCIN 4
 
 static bool
-get_val(HSParser *state, bool ignoreeq, bool *escaped)
+get_val(HSParser * state, bool ignoreeq, bool *escaped)
 {
 	int			st = GV_WAITVAL;
 
@@ -180,7 +180,7 @@ get_val(HSParser *state, bool ignoreeq, bool *escaped)
 
 
 static void
-parse_hstore(HSParser *state)
+parse_hstore(HSParser * state)
 {
 	int			st = WKEY;
 	bool		escaped = false;
@@ -281,8 +281,8 @@ parse_hstore(HSParser *state)
 static int
 comparePairs(const void *a, const void *b)
 {
-	const Pairs *pa = a;
-	const Pairs *pb = b;
+	const		Pairs *pa = a;
+	const		Pairs *pb = b;
 
 	if (pa->keylen == pb->keylen)
 	{
@@ -309,7 +309,7 @@ comparePairs(const void *a, const void *b)
  * and (b) who knows whether they might be needed by some caller.
  */
 int
-hstoreUniquePairs(Pairs *a, int32 l, int32 *buflen)
+hstoreUniquePairs(Pairs * a, int32 l, int32 * buflen)
 {
 	Pairs	   *ptr,
 			   *res;
@@ -372,7 +372,7 @@ hstoreCheckValLen(size_t len)
 
 
 HStore *
-hstorePairs(Pairs *pairs, int32 pcount, int32 buflen)
+hstorePairs(Pairs * pairs, int32 pcount, int32 buflen)
 {
 	HStore	   *out;
 	HEntry	   *entry;
@@ -746,7 +746,7 @@ typedef struct ColumnIOData
 	Oid			typiofunc;
 	Oid			typioparam;
 	FmgrInfo	proc;
-} ColumnIOData;
+}			ColumnIOData;
 
 typedef struct RecordIOData
 {
@@ -754,7 +754,7 @@ typedef struct RecordIOData
 	int32		record_typmod;
 	int			ncolumns;
 	ColumnIOData columns[FLEXIBLE_ARRAY_MEMBER];
-} RecordIOData;
+}			RecordIOData;
 
 PG_FUNCTION_INFO_V1(hstore_from_record);
 Datum

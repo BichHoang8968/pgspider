@@ -37,12 +37,12 @@ typedef struct
 {
 	RelOptInfo *joinrel;		/* joinrel for the set of relations */
 	int			size;			/* number of input relations in clump */
-} Clump;
+}			Clump;
 
-static List *merge_clump(PlannerInfo *root, List *clumps, Clump *new_clump,
-			bool force);
-static bool desirable_join(PlannerInfo *root,
-			   RelOptInfo *outer_rel, RelOptInfo *inner_rel);
+static List * merge_clump(PlannerInfo * root, List * clumps, Clump * new_clump,
+						  bool force);
+static bool desirable_join(PlannerInfo * root,
+			   RelOptInfo * outer_rel, RelOptInfo * inner_rel);
 
 
 /*
@@ -54,7 +54,7 @@ static bool desirable_join(PlannerInfo *root,
  * returns DBL_MAX.
  */
 Cost
-geqo_eval(PlannerInfo *root, Gene *tour, int num_gene)
+geqo_eval(PlannerInfo * root, Gene * tour, int num_gene)
 {
 	MemoryContext mycontext;
 	MemoryContext oldcxt;
@@ -160,7 +160,7 @@ geqo_eval(PlannerInfo *root, Gene *tour, int num_gene)
  * since there's no provision for un-clumping, this must lead to failure.)
  */
 RelOptInfo *
-gimme_tree(PlannerInfo *root, Gene *tour, int num_gene)
+gimme_tree(PlannerInfo * root, Gene * tour, int num_gene)
 {
 	GeqoPrivateData *private = (GeqoPrivateData *) root->join_search_private;
 	List	   *clumps;
@@ -235,7 +235,7 @@ gimme_tree(PlannerInfo *root, Gene *tour, int num_gene)
  * "desirable" joins.
  */
 static List *
-merge_clump(PlannerInfo *root, List *clumps, Clump *new_clump, bool force)
+merge_clump(PlannerInfo * root, List * clumps, Clump * new_clump, bool force)
 {
 	ListCell   *prev;
 	ListCell   *lc;
@@ -320,8 +320,8 @@ merge_clump(PlannerInfo *root, List *clumps, Clump *new_clump, bool force)
  * Heuristics for gimme_tree: do we want to join these two relations?
  */
 static bool
-desirable_join(PlannerInfo *root,
-			   RelOptInfo *outer_rel, RelOptInfo *inner_rel)
+desirable_join(PlannerInfo * root,
+			   RelOptInfo * outer_rel, RelOptInfo * inner_rel)
 {
 	/*
 	 * Join if there is an applicable join clause, or if there is a join order

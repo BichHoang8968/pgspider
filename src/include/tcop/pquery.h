@@ -21,25 +21,25 @@
 extern PGDLLIMPORT Portal ActivePortal;
 
 
-extern PortalStrategy ChoosePortalStrategy(List *stmts);
+extern PortalStrategy ChoosePortalStrategy(List * stmts);
 
-extern List *FetchPortalTargetList(Portal portal);
+extern List * FetchPortalTargetList(Portal portal);
 
-extern List *FetchStatementTargetList(Node *stmt);
+extern List * FetchStatementTargetList(Node * stmt);
 
 extern void PortalStart(Portal portal, ParamListInfo params,
 			int eflags, Snapshot snapshot);
 
 extern void PortalSetResultFormat(Portal portal, int nFormats,
-					  int16 *formats);
+					  int16 * formats);
 
 extern bool PortalRun(Portal portal, long count, bool isTopLevel,
-		  bool run_once, DestReceiver *dest, DestReceiver *altdest,
+		  bool run_once, DestReceiver * dest, DestReceiver * altdest,
 		  char *completionTag);
 
 extern uint64 PortalRunFetch(Portal portal,
-			   FetchDirection fdirection,
-			   long count,
-			   DestReceiver *dest);
+							 FetchDirection fdirection,
+							 long count,
+							 DestReceiver * dest);
 
 #endif							/* PQUERY_H */

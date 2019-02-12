@@ -84,7 +84,7 @@ pg_GSS_error_int(PQExpBuffer str, const char *mprefix,
  * GSSAPI errors contain two parts; put both into conn->errorMessage.
  */
 static void
-pg_GSS_error(const char *mprefix, PGconn *conn,
+pg_GSS_error(const char *mprefix, PGconn * conn,
 			 OM_uint32 maj_stat, OM_uint32 min_stat)
 {
 	resetPQExpBuffer(&conn->errorMessage);
@@ -100,7 +100,7 @@ pg_GSS_error(const char *mprefix, PGconn *conn,
  * Continue GSS authentication with next token as needed.
  */
 static int
-pg_GSS_continue(PGconn *conn, int payloadlen)
+pg_GSS_continue(PGconn * conn, int payloadlen)
 {
 	OM_uint32	maj_stat,
 				min_stat,
@@ -193,7 +193,7 @@ pg_GSS_continue(PGconn *conn, int payloadlen)
  * Send initial GSS authentication token
  */
 static int
-pg_GSS_startup(PGconn *conn, int payloadlen)
+pg_GSS_startup(PGconn * conn, int payloadlen)
 {
 	OM_uint32	maj_stat,
 				min_stat;
@@ -260,7 +260,7 @@ pg_GSS_startup(PGconn *conn, int payloadlen)
  */
 
 static void
-pg_SSPI_error(PGconn *conn, const char *mprefix, SECURITY_STATUS r)
+pg_SSPI_error(PGconn * conn, const char *mprefix, SECURITY_STATUS r)
 {
 	char		sysmsg[256];
 
@@ -279,7 +279,7 @@ pg_SSPI_error(PGconn *conn, const char *mprefix, SECURITY_STATUS r)
  * Continue SSPI authentication with next token as needed.
  */
 static int
-pg_SSPI_continue(PGconn *conn, int payloadlen)
+pg_SSPI_continue(PGconn * conn, int payloadlen)
 {
 	SECURITY_STATUS r;
 	CtxtHandle	newContext;
@@ -410,7 +410,7 @@ pg_SSPI_continue(PGconn *conn, int payloadlen)
  * which supports both kerberos and NTLM, but is not compatible with Unix.
  */
 static int
-pg_SSPI_startup(PGconn *conn, int use_negotiate, int payloadlen)
+pg_SSPI_startup(PGconn * conn, int use_negotiate, int payloadlen)
 {
 	SECURITY_STATUS r;
 	TimeStamp	expire;
@@ -483,7 +483,7 @@ pg_SSPI_startup(PGconn *conn, int use_negotiate, int payloadlen)
  * Initialize SASL authentication exchange.
  */
 static int
-pg_SASL_init(PGconn *conn, int payloadlen)
+pg_SASL_init(PGconn * conn, int payloadlen)
 {
 	char	   *initialresponse = NULL;
 	int			initialresponselen;
@@ -616,7 +616,7 @@ oom_error:
  * the protocol.
  */
 static int
-pg_SASL_continue(PGconn *conn, int payloadlen, bool final)
+pg_SASL_continue(PGconn * conn, int payloadlen, bool final)
 {
 	char	   *output;
 	int			outputlen;
@@ -686,7 +686,7 @@ pg_SASL_continue(PGconn *conn, int payloadlen, bool final)
  * getpeereid() function isn't provided by libc).
  */
 static int
-pg_local_sendauth(PGconn *conn)
+pg_local_sendauth(PGconn * conn)
 {
 #ifdef HAVE_STRUCT_CMSGCRED
 	char		buf;
@@ -738,7 +738,7 @@ pg_local_sendauth(PGconn *conn)
 }
 
 static int
-pg_password_sendauth(PGconn *conn, const char *password, AuthRequest areq)
+pg_password_sendauth(PGconn * conn, const char *password, AuthRequest areq)
 {
 	int			ret;
 	char	   *crypt_pwd = NULL;
@@ -814,7 +814,7 @@ pg_password_sendauth(PGconn *conn, const char *password, AuthRequest areq)
  * the message.
  */
 int
-pg_fe_sendauth(AuthRequest areq, int payloadlen, PGconn *conn)
+pg_fe_sendauth(AuthRequest areq, int payloadlen, PGconn * conn)
 {
 	switch (areq)
 	{
@@ -1137,7 +1137,7 @@ PQencryptPassword(const char *passwd, const char *user)
  * returns NULL.
  */
 char *
-PQencryptPasswordConn(PGconn *conn, const char *passwd, const char *user,
+PQencryptPasswordConn(PGconn * conn, const char *passwd, const char *user,
 					  const char *algorithm)
 {
 #define MAX_ALGORITHM_NAME_LEN 50

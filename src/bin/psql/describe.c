@@ -31,7 +31,7 @@ static bool describeOneTableDetails(const char *schemaname,
 						const char *relationname,
 						const char *oid,
 						bool verbose);
-static void add_tablespace_footer(printTableContent *const cont, char relkind,
+static void add_tablespace_footer(printTableContent * const cont, char relkind,
 					  Oid tablespace, const bool newline);
 static void add_role_attribute(PQExpBuffer buf, const char *const str);
 static bool listTSParsersVerbose(const char *pattern);
@@ -3011,7 +3011,7 @@ error_return:
  * footer.
  */
 static void
-add_tablespace_footer(printTableContent *const cont, char relkind,
+add_tablespace_footer(printTableContent * const cont, char relkind,
 					  Oid tablespace, const bool newline)
 {
 	/* relkinds for which we support tablespaces */

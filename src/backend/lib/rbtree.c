@@ -60,7 +60,10 @@ struct RBTree
  */
 #define RBNIL (&sentinel)
 
-static RBNode sentinel = {RBBLACK, RBNIL, RBNIL, NULL};
+static RBNode sentinel =
+{
+	RBBLACK, RBNIL, RBNIL, NULL
+};
 
 /*
  * Values used in the RBTreeIterator.next_state field, with an
@@ -72,7 +75,7 @@ typedef enum InvertedWalkNextStep
 	NextStepUp,
 	NextStepLeft,
 	NextStepRight
-} InvertedWalkNextStep;
+}			InvertedWalkNextStep;
 
 /*
  * rb_create: create an empty RBTree
@@ -132,7 +135,7 @@ rb_create(Size node_size,
 
 /* Copy the additional data fields from one RBNode to another */
 static inline void
-rb_copy_data(RBTree *rb, RBNode *dest, const RBNode *src)
+rb_copy_data(RBTree * rb, RBNode * dest, const RBNode * src)
 {
 	memcpy(dest + 1, src + 1, rb->node_size - sizeof(RBNode));
 }
@@ -150,7 +153,7 @@ rb_copy_data(RBTree *rb, RBNode *dest, const RBNode *src)
  * Returns the matching tree entry, or NULL if no match is found.
  */
 RBNode *
-rb_find(RBTree *rb, const RBNode *data)
+rb_find(RBTree * rb, const RBNode * data)
 {
 	RBNode	   *node = rb->root;
 
@@ -178,7 +181,7 @@ rb_find(RBTree *rb, const RBNode *data)
  * you want.
  */
 RBNode *
-rb_leftmost(RBTree *rb)
+rb_leftmost(RBTree * rb)
 {
 	RBNode	   *node = rb->root;
 	RBNode	   *leftmost = rb->root;
@@ -206,7 +209,7 @@ rb_leftmost(RBTree *rb)
  * child of that node.
  */
 static void
-rb_rotate_left(RBTree *rb, RBNode *x)
+rb_rotate_left(RBTree * rb, RBNode * x)
 {
 	RBNode	   *y = x->right;
 
@@ -243,7 +246,7 @@ rb_rotate_left(RBTree *rb, RBNode *x)
  * child of that node.
  */
 static void
-rb_rotate_right(RBTree *rb, RBNode *x)
+rb_rotate_right(RBTree * rb, RBNode * x)
 {
 	RBNode	   *y = x->left;
 
@@ -287,7 +290,7 @@ rb_rotate_right(RBTree *rb, RBNode *x)
  * the invariant that every leaf has equal black-height.)
  */
 static void
-rb_insert_fixup(RBTree *rb, RBNode *x)
+rb_insert_fixup(RBTree * rb, RBNode * x)
 {
 	/*
 	 * x is always a red node.  Initially, it is the newly inserted node. Each
@@ -396,7 +399,7 @@ rb_insert_fixup(RBTree *rb, RBNode *x)
  * variable in the caller.
  */
 RBNode *
-rb_insert(RBTree *rb, const RBNode *data, bool *isNew)
+rb_insert(RBTree * rb, const RBNode * data, bool *isNew)
 {
 	RBNode	   *current,
 			   *parent,
@@ -464,7 +467,7 @@ rb_insert(RBTree *rb, const RBNode *data, bool *isNew)
  * Maintain Red-Black tree balance after deleting a black node.
  */
 static void
-rb_delete_fixup(RBTree *rb, RBNode *x)
+rb_delete_fixup(RBTree * rb, RBNode * x)
 {
 	/*
 	 * x is always a black node.  Initially, it is the former child of the
@@ -562,7 +565,7 @@ rb_delete_fixup(RBTree *rb, RBNode *x)
  * Delete node z from tree.
  */
 static void
-rb_delete_node(RBTree *rb, RBNode *z)
+rb_delete_node(RBTree * rb, RBNode * z)
 {
 	RBNode	   *x,
 			   *y;
@@ -637,7 +640,7 @@ rb_delete_node(RBTree *rb, RBNode *z)
  * may be the one actually freed!)
  */
 void
-rb_delete(RBTree *rb, RBNode *node)
+rb_delete(RBTree * rb, RBNode * node)
 {
 	rb_delete_node(rb, node);
 }
@@ -647,7 +650,7 @@ rb_delete(RBTree *rb, RBNode *node)
  **********************************************************************/
 
 static RBNode *
-rb_left_right_iterator(RBTreeIterator *iter)
+rb_left_right_iterator(RBTreeIterator * iter)
 {
 	if (iter->last_visited == NULL)
 	{
@@ -689,7 +692,7 @@ rb_left_right_iterator(RBTreeIterator *iter)
 }
 
 static RBNode *
-rb_right_left_iterator(RBTreeIterator *iter)
+rb_right_left_iterator(RBTreeIterator * iter)
 {
 	if (iter->last_visited == NULL)
 	{
@@ -731,7 +734,7 @@ rb_right_left_iterator(RBTreeIterator *iter)
 }
 
 static RBNode *
-rb_direct_iterator(RBTreeIterator *iter)
+rb_direct_iterator(RBTreeIterator * iter)
 {
 	if (iter->last_visited == NULL)
 	{
@@ -778,7 +781,7 @@ rb_direct_iterator(RBTreeIterator *iter)
 }
 
 static RBNode *
-rb_inverted_iterator(RBTreeIterator *iter)
+rb_inverted_iterator(RBTreeIterator * iter)
 {
 	RBNode	   *came_from;
 	RBNode	   *current;
@@ -852,7 +855,7 @@ loop:
  * treat it as opaque struct.
  */
 void
-rb_begin_iterate(RBTree *rb, RBOrderControl ctrl, RBTreeIterator *iter)
+rb_begin_iterate(RBTree * rb, RBOrderControl ctrl, RBTreeIterator * iter)
 {
 	/* Common initialization for all traversal orders */
 	iter->rb = rb;
@@ -883,7 +886,7 @@ rb_begin_iterate(RBTree *rb, RBOrderControl ctrl, RBTreeIterator *iter)
  * rb_iterate: return the next node in traversal order, or NULL if no more
  */
 RBNode *
-rb_iterate(RBTreeIterator *iter)
+rb_iterate(RBTreeIterator * iter)
 {
 	if (iter->is_over)
 		return NULL;

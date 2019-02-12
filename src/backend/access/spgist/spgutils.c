@@ -78,7 +78,7 @@ spghandler(PG_FUNCTION_ARGS)
 
 /* Fill in a SpGistTypeDesc struct with info about the specified data type */
 static void
-fillTypeDesc(SpGistTypeDesc *desc, Oid type)
+fillTypeDesc(SpGistTypeDesc * desc, Oid type)
 {
 	desc->type = type;
 	get_typlenbyval(type, &desc->attlen, &desc->attbyval);
@@ -155,7 +155,7 @@ spgGetCache(Relation index)
 
 /* Initialize SpGistState for working with the given index */
 void
-initSpGistState(SpGistState *state, Relation index)
+initSpGistState(SpGistState * state, Relation index)
 {
 	SpGistCache *cache;
 
@@ -552,7 +552,7 @@ spgoptions(Datum reloptions, bool validate)
  * just stored in their Datum representation (compare memcpyDatum).
  */
 unsigned int
-SpGistGetTypeSize(SpGistTypeDesc *att, Datum datum)
+SpGistGetTypeSize(SpGistTypeDesc * att, Datum datum)
 {
 	unsigned int size;
 
@@ -570,7 +570,7 @@ SpGistGetTypeSize(SpGistTypeDesc *att, Datum datum)
  * Copy the given non-null datum to *target
  */
 static void
-memcpyDatum(void *target, SpGistTypeDesc *att, Datum datum)
+memcpyDatum(void *target, SpGistTypeDesc * att, Datum datum)
 {
 	unsigned int size;
 
@@ -589,7 +589,7 @@ memcpyDatum(void *target, SpGistTypeDesc *att, Datum datum)
  * Construct a leaf tuple containing the given heap TID and datum value
  */
 SpGistLeafTuple
-spgFormLeafTuple(SpGistState *state, ItemPointer heapPtr,
+spgFormLeafTuple(SpGistState * state, ItemPointer heapPtr,
 				 Datum datum, bool isnull)
 {
 	SpGistLeafTuple tup;
@@ -626,7 +626,7 @@ spgFormLeafTuple(SpGistState *state, ItemPointer heapPtr,
  * it in later.
  */
 SpGistNodeTuple
-spgFormNodeTuple(SpGistState *state, Datum label, bool isnull)
+spgFormNodeTuple(SpGistState * state, Datum label, bool isnull)
 {
 	SpGistNodeTuple tup;
 	unsigned int size;
@@ -668,8 +668,8 @@ spgFormNodeTuple(SpGistState *state, Datum label, bool isnull)
  * Construct an inner tuple containing the given prefix and node array
  */
 SpGistInnerTuple
-spgFormInnerTuple(SpGistState *state, bool hasPrefix, Datum prefix,
-				  int nNodes, SpGistNodeTuple *nodes)
+spgFormInnerTuple(SpGistState * state, bool hasPrefix, Datum prefix,
+				  int nNodes, SpGistNodeTuple * nodes)
 {
 	SpGistInnerTuple tup;
 	unsigned int size;
@@ -751,7 +751,7 @@ spgFormInnerTuple(SpGistState *state, bool hasPrefix, Datum prefix,
  * call with different parameters can occur.
  */
 SpGistDeadTuple
-spgFormDeadTuple(SpGistState *state, int tupstate,
+spgFormDeadTuple(SpGistState * state, int tupstate,
 				 BlockNumber blkno, OffsetNumber offnum)
 {
 	SpGistDeadTuple tuple = (SpGistDeadTuple) state->deadTupleStorage;
@@ -781,7 +781,7 @@ spgFormDeadTuple(SpGistState *state, int tupstate,
  * Returns NULL if label datums are NULLs
  */
 Datum *
-spgExtractNodeLabels(SpGistState *state, SpGistInnerTuple innerTuple)
+spgExtractNodeLabels(SpGistState * state, SpGistInnerTuple innerTuple)
 {
 	Datum	   *nodeLabels;
 	int			i;
@@ -824,8 +824,8 @@ spgExtractNodeLabels(SpGistState *state, SpGistInnerTuple innerTuple)
  * rather than returning InvalidOffsetNumber.
  */
 OffsetNumber
-SpGistPageAddNewItem(SpGistState *state, Page page, Item item, Size size,
-					 OffsetNumber *startOffset, bool errorOK)
+SpGistPageAddNewItem(SpGistState * state, Page page, Item item, Size size,
+					 OffsetNumber * startOffset, bool errorOK)
 {
 	SpGistPageOpaque opaque = SpGistPageGetOpaque(page);
 	OffsetNumber i,

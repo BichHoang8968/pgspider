@@ -29,7 +29,7 @@ typedef struct SHM_QUEUE
 {
 	struct SHM_QUEUE *prev;
 	struct SHM_QUEUE *next;
-} SHM_QUEUE;
+}			SHM_QUEUE;
 
 /* shmem.c */
 extern void InitShmemAccess(void *seghdr);
@@ -39,8 +39,8 @@ extern void *ShmemAllocNoError(Size size);
 extern void *ShmemAllocUnlocked(Size size);
 extern bool ShmemAddrIsValid(const void *addr);
 extern void InitShmemIndex(void);
-extern HTAB *ShmemInitHash(const char *name, long init_size, long max_size,
-			  HASHCTL *infoP, int hash_flags);
+extern HTAB * ShmemInitHash(const char *name, long init_size, long max_size,
+							HASHCTL * infoP, int hash_flags);
 extern void *ShmemInitStruct(const char *name, Size size, bool *foundPtr);
 extern Size add_size(Size s1, Size s2);
 extern Size mul_size(Size s1, Size s2);
@@ -60,21 +60,21 @@ typedef struct
 	char		key[SHMEM_INDEX_KEYSIZE];	/* string name */
 	void	   *location;		/* location in shared mem */
 	Size		size;			/* # bytes allocated for the structure */
-} ShmemIndexEnt;
+}			ShmemIndexEnt;
 
 /*
  * prototypes for functions in shmqueue.c
  */
-extern void SHMQueueInit(SHM_QUEUE *queue);
-extern void SHMQueueElemInit(SHM_QUEUE *queue);
-extern void SHMQueueDelete(SHM_QUEUE *queue);
-extern void SHMQueueInsertBefore(SHM_QUEUE *queue, SHM_QUEUE *elem);
-extern void SHMQueueInsertAfter(SHM_QUEUE *queue, SHM_QUEUE *elem);
-extern Pointer SHMQueueNext(const SHM_QUEUE *queue, const SHM_QUEUE *curElem,
-			 Size linkOffset);
-extern Pointer SHMQueuePrev(const SHM_QUEUE *queue, const SHM_QUEUE *curElem,
-			 Size linkOffset);
-extern bool SHMQueueEmpty(const SHM_QUEUE *queue);
-extern bool SHMQueueIsDetached(const SHM_QUEUE *queue);
+extern void SHMQueueInit(SHM_QUEUE * queue);
+extern void SHMQueueElemInit(SHM_QUEUE * queue);
+extern void SHMQueueDelete(SHM_QUEUE * queue);
+extern void SHMQueueInsertBefore(SHM_QUEUE * queue, SHM_QUEUE * elem);
+extern void SHMQueueInsertAfter(SHM_QUEUE * queue, SHM_QUEUE * elem);
+extern Pointer SHMQueueNext(const SHM_QUEUE * queue, const SHM_QUEUE * curElem,
+							Size linkOffset);
+extern Pointer SHMQueuePrev(const SHM_QUEUE * queue, const SHM_QUEUE * curElem,
+							Size linkOffset);
+extern bool SHMQueueEmpty(const SHM_QUEUE * queue);
+extern bool SHMQueueIsDetached(const SHM_QUEUE * queue);
 
 #endif							/* SHMEM_H */

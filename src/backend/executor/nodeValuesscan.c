@@ -28,7 +28,7 @@
 #include "utils/expandeddatum.h"
 
 
-static TupleTableSlot *ValuesNext(ValuesScanState *node);
+static TupleTableSlot * ValuesNext(ValuesScanState * node);
 
 
 /* ----------------------------------------------------------------
@@ -43,7 +43,7 @@ static TupleTableSlot *ValuesNext(ValuesScanState *node);
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ValuesNext(ValuesScanState *node)
+ValuesNext(ValuesScanState * node)
 {
 	TupleTableSlot *slot;
 	EState	   *estate;
@@ -181,7 +181,7 @@ ValuesNext(ValuesScanState *node)
  * ValuesRecheck -- access method routine to recheck a tuple in EvalPlanQual
  */
 static bool
-ValuesRecheck(ValuesScanState *node, TupleTableSlot *slot)
+ValuesRecheck(ValuesScanState * node, TupleTableSlot * slot)
 {
 	/* nothing to check */
 	return true;
@@ -197,7 +197,7 @@ ValuesRecheck(ValuesScanState *node, TupleTableSlot *slot)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecValuesScan(PlanState *pstate)
+ExecValuesScan(PlanState * pstate)
 {
 	ValuesScanState *node = castNode(ValuesScanState, pstate);
 
@@ -211,7 +211,7 @@ ExecValuesScan(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 ValuesScanState *
-ExecInitValuesScan(ValuesScan *node, EState *estate, int eflags)
+ExecInitValuesScan(ValuesScan * node, EState * estate, int eflags)
 {
 	ValuesScanState *scanstate;
 	TupleDesc	tupdesc;
@@ -273,7 +273,7 @@ ExecInitValuesScan(ValuesScan *node, EState *estate, int eflags)
 	scanstate->array_len = list_length(node->values_lists);
 
 	/* convert list of sublists into array of sublists for easy addressing */
-	scanstate->exprlists = (List **)
+	scanstate->exprlists = (List * *)
 		palloc(scanstate->array_len * sizeof(List *));
 	i = 0;
 	foreach(vtl, node->values_lists)
@@ -297,7 +297,7 @@ ExecInitValuesScan(ValuesScan *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndValuesScan(ValuesScanState *node)
+ExecEndValuesScan(ValuesScanState * node)
 {
 	/*
 	 * Free both exprcontexts
@@ -320,7 +320,7 @@ ExecEndValuesScan(ValuesScanState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanValuesScan(ValuesScanState *node)
+ExecReScanValuesScan(ValuesScanState * node)
 {
 	ExecClearTuple(node->ss.ps.ps_ResultTupleSlot);
 

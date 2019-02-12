@@ -52,7 +52,7 @@ typedef struct pushdown_safety_info
 	bool	   *unsafeColumns;	/* which output columns are unsafe to use */
 	bool		unsafeVolatile; /* don't push down volatile quals */
 	bool		unsafeLeaky;	/* don't push down leaky quals */
-} pushdown_safety_info;
+}			pushdown_safety_info;
 
 /* These parameters are set by GUC */
 bool		enable_geqo = false;	/* just in case GUC doesn't set it */
@@ -67,73 +67,73 @@ set_rel_pathlist_hook_type set_rel_pathlist_hook = NULL;
 join_search_hook_type join_search_hook = NULL;
 
 
-static void set_base_rel_consider_startup(PlannerInfo *root);
-static void set_base_rel_sizes(PlannerInfo *root);
-static void set_base_rel_pathlists(PlannerInfo *root);
-static void set_rel_size(PlannerInfo *root, RelOptInfo *rel,
-			 Index rti, RangeTblEntry *rte);
-static void set_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
-				 Index rti, RangeTblEntry *rte);
-static void set_plain_rel_size(PlannerInfo *root, RelOptInfo *rel,
-				   RangeTblEntry *rte);
-static void create_plain_partial_paths(PlannerInfo *root, RelOptInfo *rel);
-static void set_rel_consider_parallel(PlannerInfo *root, RelOptInfo *rel,
-						  RangeTblEntry *rte);
-static void set_plain_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
-					   RangeTblEntry *rte);
-static void set_tablesample_rel_size(PlannerInfo *root, RelOptInfo *rel,
-						 RangeTblEntry *rte);
-static void set_tablesample_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
-							 RangeTblEntry *rte);
-static void set_foreign_size(PlannerInfo *root, RelOptInfo *rel,
-				 RangeTblEntry *rte);
-static void set_foreign_pathlist(PlannerInfo *root, RelOptInfo *rel,
-					 RangeTblEntry *rte);
-static void set_append_rel_size(PlannerInfo *root, RelOptInfo *rel,
-					Index rti, RangeTblEntry *rte);
-static void set_append_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
-						Index rti, RangeTblEntry *rte);
-static void generate_mergeappend_paths(PlannerInfo *root, RelOptInfo *rel,
-						   List *live_childrels,
-						   List *all_child_pathkeys,
-						   List *partitioned_rels);
-static Path *get_cheapest_parameterized_child_path(PlannerInfo *root,
-									  RelOptInfo *rel,
-									  Relids required_outer);
-static List *accumulate_append_subpath(List *subpaths, Path *path);
-static void set_subquery_pathlist(PlannerInfo *root, RelOptInfo *rel,
-					  Index rti, RangeTblEntry *rte);
-static void set_function_pathlist(PlannerInfo *root, RelOptInfo *rel,
-					  RangeTblEntry *rte);
-static void set_values_pathlist(PlannerInfo *root, RelOptInfo *rel,
-					RangeTblEntry *rte);
-static void set_tablefunc_pathlist(PlannerInfo *root, RelOptInfo *rel,
-					   RangeTblEntry *rte);
-static void set_cte_pathlist(PlannerInfo *root, RelOptInfo *rel,
-				 RangeTblEntry *rte);
-static void set_namedtuplestore_pathlist(PlannerInfo *root, RelOptInfo *rel,
-							 RangeTblEntry *rte);
-static void set_worktable_pathlist(PlannerInfo *root, RelOptInfo *rel,
-					   RangeTblEntry *rte);
-static RelOptInfo *make_rel_from_joinlist(PlannerInfo *root, List *joinlist);
-static bool subquery_is_pushdown_safe(Query *subquery, Query *topquery,
-						  pushdown_safety_info *safetyInfo);
-static bool recurse_pushdown_safe(Node *setOp, Query *topquery,
-					  pushdown_safety_info *safetyInfo);
-static void check_output_expressions(Query *subquery,
-						 pushdown_safety_info *safetyInfo);
-static void compare_tlist_datatypes(List *tlist, List *colTypes,
-						pushdown_safety_info *safetyInfo);
-static bool targetIsInAllPartitionLists(TargetEntry *tle, Query *query);
-static bool qual_is_pushdown_safe(Query *subquery, Index rti, Node *qual,
-					  pushdown_safety_info *safetyInfo);
-static void subquery_push_qual(Query *subquery,
-				   RangeTblEntry *rte, Index rti, Node *qual);
-static void recurse_push_qual(Node *setOp, Query *topquery,
-				  RangeTblEntry *rte, Index rti, Node *qual);
-static void remove_unused_subquery_outputs(Query *subquery, RelOptInfo *rel);
-static void add_paths_to_append_rel(PlannerInfo *root, RelOptInfo *rel,
-						List *live_childrels);
+static void set_base_rel_consider_startup(PlannerInfo * root);
+static void set_base_rel_sizes(PlannerInfo * root);
+static void set_base_rel_pathlists(PlannerInfo * root);
+static void set_rel_size(PlannerInfo * root, RelOptInfo * rel,
+			 Index rti, RangeTblEntry * rte);
+static void set_rel_pathlist(PlannerInfo * root, RelOptInfo * rel,
+				 Index rti, RangeTblEntry * rte);
+static void set_plain_rel_size(PlannerInfo * root, RelOptInfo * rel,
+				   RangeTblEntry * rte);
+static void create_plain_partial_paths(PlannerInfo * root, RelOptInfo * rel);
+static void set_rel_consider_parallel(PlannerInfo * root, RelOptInfo * rel,
+						  RangeTblEntry * rte);
+static void set_plain_rel_pathlist(PlannerInfo * root, RelOptInfo * rel,
+					   RangeTblEntry * rte);
+static void set_tablesample_rel_size(PlannerInfo * root, RelOptInfo * rel,
+						 RangeTblEntry * rte);
+static void set_tablesample_rel_pathlist(PlannerInfo * root, RelOptInfo * rel,
+							 RangeTblEntry * rte);
+static void set_foreign_size(PlannerInfo * root, RelOptInfo * rel,
+				 RangeTblEntry * rte);
+static void set_foreign_pathlist(PlannerInfo * root, RelOptInfo * rel,
+					 RangeTblEntry * rte);
+static void set_append_rel_size(PlannerInfo * root, RelOptInfo * rel,
+					Index rti, RangeTblEntry * rte);
+static void set_append_rel_pathlist(PlannerInfo * root, RelOptInfo * rel,
+						Index rti, RangeTblEntry * rte);
+static void generate_mergeappend_paths(PlannerInfo * root, RelOptInfo * rel,
+						   List * live_childrels,
+						   List * all_child_pathkeys,
+						   List * partitioned_rels);
+static Path * get_cheapest_parameterized_child_path(PlannerInfo * root,
+													RelOptInfo * rel,
+													Relids required_outer);
+static List * accumulate_append_subpath(List * subpaths, Path * path);
+static void set_subquery_pathlist(PlannerInfo * root, RelOptInfo * rel,
+					  Index rti, RangeTblEntry * rte);
+static void set_function_pathlist(PlannerInfo * root, RelOptInfo * rel,
+					  RangeTblEntry * rte);
+static void set_values_pathlist(PlannerInfo * root, RelOptInfo * rel,
+					RangeTblEntry * rte);
+static void set_tablefunc_pathlist(PlannerInfo * root, RelOptInfo * rel,
+					   RangeTblEntry * rte);
+static void set_cte_pathlist(PlannerInfo * root, RelOptInfo * rel,
+				 RangeTblEntry * rte);
+static void set_namedtuplestore_pathlist(PlannerInfo * root, RelOptInfo * rel,
+							 RangeTblEntry * rte);
+static void set_worktable_pathlist(PlannerInfo * root, RelOptInfo * rel,
+					   RangeTblEntry * rte);
+static RelOptInfo * make_rel_from_joinlist(PlannerInfo * root, List * joinlist);
+static bool subquery_is_pushdown_safe(Query * subquery, Query * topquery,
+						  pushdown_safety_info * safetyInfo);
+static bool recurse_pushdown_safe(Node * setOp, Query * topquery,
+					  pushdown_safety_info * safetyInfo);
+static void check_output_expressions(Query * subquery,
+						 pushdown_safety_info * safetyInfo);
+static void compare_tlist_datatypes(List * tlist, List * colTypes,
+						pushdown_safety_info * safetyInfo);
+static bool targetIsInAllPartitionLists(TargetEntry * tle, Query * query);
+static bool qual_is_pushdown_safe(Query * subquery, Index rti, Node * qual,
+					  pushdown_safety_info * safetyInfo);
+static void subquery_push_qual(Query * subquery,
+				   RangeTblEntry * rte, Index rti, Node * qual);
+static void recurse_push_qual(Node * setOp, Query * topquery,
+				  RangeTblEntry * rte, Index rti, Node * qual);
+static void remove_unused_subquery_outputs(Query * subquery, RelOptInfo * rel);
+static void add_paths_to_append_rel(PlannerInfo * root, RelOptInfo * rel,
+						List * live_childrels);
 
 
 /*
@@ -142,7 +142,7 @@ static void add_paths_to_append_rel(PlannerInfo *root, RelOptInfo *rel,
  *	  single rel that represents the join of all base rels in the query.
  */
 RelOptInfo *
-make_one_rel(PlannerInfo *root, List *joinlist)
+make_one_rel(PlannerInfo * root, List * joinlist)
 {
 	RelOptInfo *rel;
 	Index		rti;
@@ -202,7 +202,7 @@ make_one_rel(PlannerInfo *root, List *joinlist)
  * be better to move it here.
  */
 static void
-set_base_rel_consider_startup(PlannerInfo *root)
+set_base_rel_consider_startup(PlannerInfo * root)
 {
 	/*
 	 * Since parameterized paths can only be used on the inside of a nestloop
@@ -245,7 +245,7 @@ set_base_rel_consider_startup(PlannerInfo *root)
  * generate paths.
  */
 static void
-set_base_rel_sizes(PlannerInfo *root)
+set_base_rel_sizes(PlannerInfo * root)
 {
 	Index		rti;
 
@@ -288,7 +288,7 @@ set_base_rel_sizes(PlannerInfo *root)
  *	  Each useful path is attached to its relation's 'pathlist' field.
  */
 static void
-set_base_rel_pathlists(PlannerInfo *root)
+set_base_rel_pathlists(PlannerInfo * root)
 {
 	Index		rti;
 
@@ -315,8 +315,8 @@ set_base_rel_pathlists(PlannerInfo *root)
  *	  Set size estimates for a base relation
  */
 static void
-set_rel_size(PlannerInfo *root, RelOptInfo *rel,
-			 Index rti, RangeTblEntry *rte)
+set_rel_size(PlannerInfo * root, RelOptInfo * rel,
+			 Index rti, RangeTblEntry * rte)
 {
 	if (rel->reloptkind == RELOPT_BASEREL &&
 		relation_excluded_by_constraints(root, rel, rte))
@@ -418,8 +418,8 @@ set_rel_size(PlannerInfo *root, RelOptInfo *rel,
  *	  Build access paths for a base relation
  */
 static void
-set_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
-				 Index rti, RangeTblEntry *rte)
+set_rel_pathlist(PlannerInfo * root, RelOptInfo * rel,
+				 Index rti, RangeTblEntry * rte)
 {
 	if (IS_DUMMY_REL(rel))
 	{
@@ -509,7 +509,7 @@ set_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
  *	  Set size estimates for a plain relation (no subquery, no inheritance)
  */
 static void
-set_plain_rel_size(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
+set_plain_rel_size(PlannerInfo * root, RelOptInfo * rel, RangeTblEntry * rte)
 {
 	/*
 	 * Test any partial indexes of rel for applicability.  We must do this
@@ -526,8 +526,8 @@ set_plain_rel_size(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
  * its consider_parallel flag.
  */
 static void
-set_rel_consider_parallel(PlannerInfo *root, RelOptInfo *rel,
-						  RangeTblEntry *rte)
+set_rel_consider_parallel(PlannerInfo * root, RelOptInfo * rel,
+						  RangeTblEntry * rte)
 {
 	/*
 	 * The flag has previously been initialized to false, so we can just
@@ -684,7 +684,7 @@ set_rel_consider_parallel(PlannerInfo *root, RelOptInfo *rel,
  *	  Build access paths for a plain relation (no subquery, no inheritance)
  */
 static void
-set_plain_rel_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
+set_plain_rel_pathlist(PlannerInfo * root, RelOptInfo * rel, RangeTblEntry * rte)
 {
 	Relids		required_outer;
 
@@ -714,7 +714,7 @@ set_plain_rel_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
  *	  Build partial access paths for parallel scan of a plain relation
  */
 static void
-create_plain_partial_paths(PlannerInfo *root, RelOptInfo *rel)
+create_plain_partial_paths(PlannerInfo * root, RelOptInfo * rel)
 {
 	int			parallel_workers;
 
@@ -733,7 +733,7 @@ create_plain_partial_paths(PlannerInfo *root, RelOptInfo *rel)
  *	  Set size estimates for a sampled relation
  */
 static void
-set_tablesample_rel_size(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
+set_tablesample_rel_size(PlannerInfo * root, RelOptInfo * rel, RangeTblEntry * rte)
 {
 	TableSampleClause *tsc = rte->tablesample;
 	TsmRoutine *tsm;
@@ -773,7 +773,7 @@ set_tablesample_rel_size(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
  *	  Build access paths for a sampled relation
  */
 static void
-set_tablesample_rel_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
+set_tablesample_rel_pathlist(PlannerInfo * root, RelOptInfo * rel, RangeTblEntry * rte)
 {
 	Relids		required_outer;
 	Path	   *path;
@@ -821,7 +821,7 @@ set_tablesample_rel_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *
  *		Set size estimates for a foreign table RTE
  */
 static void
-set_foreign_size(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
+set_foreign_size(PlannerInfo * root, RelOptInfo * rel, RangeTblEntry * rte)
 {
 	/* Mark rel with estimated output rows, width, etc */
 	set_foreign_size_estimates(root, rel);
@@ -838,7 +838,7 @@ set_foreign_size(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
  *		Build access paths for a foreign table RTE
  */
 static void
-set_foreign_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
+set_foreign_pathlist(PlannerInfo * root, RelOptInfo * rel, RangeTblEntry * rte)
 {
 	/* Call the FDW's GetForeignPaths function to generate path(s) */
 	rel->fdwroutine->GetForeignPaths(root, rel, rte->relid);
@@ -856,8 +856,8 @@ set_foreign_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
  * a good thing because their outputs are not the same size.
  */
 static void
-set_append_rel_size(PlannerInfo *root, RelOptInfo *rel,
-					Index rti, RangeTblEntry *rte)
+set_append_rel_size(PlannerInfo * root, RelOptInfo * rel,
+					Index rti, RangeTblEntry * rte)
 {
 	int			parentRTindex = rti;
 	bool		has_live_children;
@@ -1205,8 +1205,8 @@ set_append_rel_size(PlannerInfo *root, RelOptInfo *rel,
  *	  Build access paths for an "append relation"
  */
 static void
-set_append_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
-						Index rti, RangeTblEntry *rte)
+set_append_rel_pathlist(PlannerInfo * root, RelOptInfo * rel,
+						Index rti, RangeTblEntry * rte)
 {
 	int			parentRTindex = rti;
 	List	   *live_childrels = NIL;
@@ -1275,8 +1275,8 @@ set_append_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
  * non-dummy children to create partial append paths.
  */
 static void
-add_paths_to_append_rel(PlannerInfo *root, RelOptInfo *rel,
-						List *live_childrels)
+add_paths_to_append_rel(PlannerInfo * root, RelOptInfo * rel,
+						List * live_childrels)
 {
 	List	   *subpaths = NIL;
 	bool		subpaths_valid = true;
@@ -1539,10 +1539,10 @@ add_paths_to_append_rel(PlannerInfo *root, RelOptInfo *rel,
  * optimizer/README for why that might not ever happen, though.)
  */
 static void
-generate_mergeappend_paths(PlannerInfo *root, RelOptInfo *rel,
-						   List *live_childrels,
-						   List *all_child_pathkeys,
-						   List *partitioned_rels)
+generate_mergeappend_paths(PlannerInfo * root, RelOptInfo * rel,
+						   List * live_childrels,
+						   List * all_child_pathkeys,
+						   List * partitioned_rels)
 {
 	ListCell   *lcp;
 
@@ -1626,7 +1626,7 @@ generate_mergeappend_paths(PlannerInfo *root, RelOptInfo *rel,
  * Returns NULL if unable to create such a path.
  */
 static Path *
-get_cheapest_parameterized_child_path(PlannerInfo *root, RelOptInfo *rel,
+get_cheapest_parameterized_child_path(PlannerInfo * root, RelOptInfo * rel,
 									  Relids required_outer)
 {
 	Path	   *cheapest;
@@ -1707,7 +1707,7 @@ get_cheapest_parameterized_child_path(PlannerInfo *root, RelOptInfo *rel,
  * MergeAppend, there's no point in a separate sort on a child.
  */
 static List *
-accumulate_append_subpath(List *subpaths, Path *path)
+accumulate_append_subpath(List * subpaths, Path * path)
 {
 	if (IsA(path, AppendPath))
 	{
@@ -1737,7 +1737,7 @@ accumulate_append_subpath(List *subpaths, Path *path)
  * This is exported because inheritance_planner() has need for it.
  */
 void
-set_dummy_rel_pathlist(RelOptInfo *rel)
+set_dummy_rel_pathlist(RelOptInfo * rel)
 {
 	/* Set dummy size estimates --- we leave attr_widths[] as zeroes */
 	rel->rows = 0;
@@ -1760,7 +1760,7 @@ set_dummy_rel_pathlist(RelOptInfo *rel)
 
 /* quick-and-dirty test to see if any joining is needed */
 static bool
-has_multiple_baserels(PlannerInfo *root)
+has_multiple_baserels(PlannerInfo * root)
 {
 	int			num_base_rels = 0;
 	Index		rti;
@@ -1793,8 +1793,8 @@ has_multiple_baserels(PlannerInfo *root)
  * for a separate set_subquery_size phase: just make the paths right away.
  */
 static void
-set_subquery_pathlist(PlannerInfo *root, RelOptInfo *rel,
-					  Index rti, RangeTblEntry *rte)
+set_subquery_pathlist(PlannerInfo * root, RelOptInfo * rel,
+					  Index rti, RangeTblEntry * rte)
 {
 	Query	   *parse = root->parse;
 	Query	   *subquery = rte->subquery;
@@ -1970,7 +1970,7 @@ set_subquery_pathlist(PlannerInfo *root, RelOptInfo *rel,
  *		Build the (single) access path for a function RTE
  */
 static void
-set_function_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
+set_function_pathlist(PlannerInfo * root, RelOptInfo * rel, RangeTblEntry * rte)
 {
 	Relids		required_outer;
 	List	   *pathkeys = NIL;
@@ -2038,7 +2038,7 @@ set_function_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
  *		Build the (single) access path for a VALUES RTE
  */
 static void
-set_values_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
+set_values_pathlist(PlannerInfo * root, RelOptInfo * rel, RangeTblEntry * rte)
 {
 	Relids		required_outer;
 
@@ -2058,7 +2058,7 @@ set_values_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
  *		Build the (single) access path for a table func RTE
  */
 static void
-set_tablefunc_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
+set_tablefunc_pathlist(PlannerInfo * root, RelOptInfo * rel, RangeTblEntry * rte)
 {
 	Relids		required_outer;
 
@@ -2082,7 +2082,7 @@ set_tablefunc_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
  * support join-qual-parameterized paths for CTEs.
  */
 static void
-set_cte_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
+set_cte_pathlist(PlannerInfo * root, RelOptInfo * rel, RangeTblEntry * rte)
 {
 	Plan	   *cteplan;
 	PlannerInfo *cteroot;
@@ -2148,8 +2148,8 @@ set_cte_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
  * don't support join-qual-parameterized paths for tuplestores.
  */
 static void
-set_namedtuplestore_pathlist(PlannerInfo *root, RelOptInfo *rel,
-							 RangeTblEntry *rte)
+set_namedtuplestore_pathlist(PlannerInfo * root, RelOptInfo * rel,
+							 RangeTblEntry * rte)
 {
 	Relids		required_outer;
 
@@ -2178,7 +2178,7 @@ set_namedtuplestore_pathlist(PlannerInfo *root, RelOptInfo *rel,
  * support join-qual-parameterized paths for CTEs.
  */
 static void
-set_worktable_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
+set_worktable_pathlist(PlannerInfo * root, RelOptInfo * rel, RangeTblEntry * rte)
 {
 	Path	   *ctepath;
 	PlannerInfo *cteroot;
@@ -2230,7 +2230,7 @@ set_worktable_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
  * path that some GatherPath or GatherMergePath has a reference to.)
  */
 void
-generate_gather_paths(PlannerInfo *root, RelOptInfo *rel)
+generate_gather_paths(PlannerInfo * root, RelOptInfo * rel)
 {
 	Path	   *cheapest_partial_path;
 	Path	   *simple_gather_path;
@@ -2277,7 +2277,7 @@ generate_gather_paths(PlannerInfo *root, RelOptInfo *rel)
  * data structure.
  */
 static RelOptInfo *
-make_rel_from_joinlist(PlannerInfo *root, List *joinlist)
+make_rel_from_joinlist(PlannerInfo * root, List * joinlist)
 {
 	int			levels_needed;
 	List	   *initial_rels;
@@ -2382,7 +2382,7 @@ make_rel_from_joinlist(PlannerInfo *root, List *joinlist)
  * original states of those data structures.  See geqo_eval() for an example.
  */
 RelOptInfo *
-standard_join_search(PlannerInfo *root, int levels_needed, List *initial_rels)
+standard_join_search(PlannerInfo * root, int levels_needed, List * initial_rels)
 {
 	int			lev;
 	RelOptInfo *rel;
@@ -2404,7 +2404,7 @@ standard_join_search(PlannerInfo *root, int levels_needed, List *initial_rels)
 	 * set root->join_rel_level[1] to represent all the single-jointree-item
 	 * relations.
 	 */
-	root->join_rel_level = (List **) palloc0((levels_needed + 1) * sizeof(List *));
+	root->join_rel_level = (List * *) palloc0((levels_needed + 1) * sizeof(List *));
 
 	root->join_rel_level[1] = initial_rels;
 
@@ -2530,8 +2530,8 @@ standard_join_search(PlannerInfo *root, int levels_needed, List *initial_rels)
  * behavior with DISTINCT.
  */
 static bool
-subquery_is_pushdown_safe(Query *subquery, Query *topquery,
-						  pushdown_safety_info *safetyInfo)
+subquery_is_pushdown_safe(Query * subquery, Query * topquery,
+						  pushdown_safety_info * safetyInfo)
 {
 	SetOperationStmt *topop;
 
@@ -2582,8 +2582,8 @@ subquery_is_pushdown_safe(Query *subquery, Query *topquery,
  * Helper routine to recurse through setOperations tree
  */
 static bool
-recurse_pushdown_safe(Node *setOp, Query *topquery,
-					  pushdown_safety_info *safetyInfo)
+recurse_pushdown_safe(Node * setOp, Query * topquery,
+					  pushdown_safety_info * safetyInfo)
 {
 	if (IsA(setOp, RangeTblRef))
 	{
@@ -2649,7 +2649,7 @@ recurse_pushdown_safe(Node *setOp, Query *topquery,
  * subquery_is_pushdown_safe handles that.)
  */
 static void
-check_output_expressions(Query *subquery, pushdown_safety_info *safetyInfo)
+check_output_expressions(Query * subquery, pushdown_safety_info * safetyInfo)
 {
 	ListCell   *lc;
 
@@ -2717,8 +2717,8 @@ check_output_expressions(Query *subquery, pushdown_safety_info *safetyInfo)
  * safetyInfo->unsafeColumns[] is the result array.
  */
 static void
-compare_tlist_datatypes(List *tlist, List *colTypes,
-						pushdown_safety_info *safetyInfo)
+compare_tlist_datatypes(List * tlist, List * colTypes,
+						pushdown_safety_info * safetyInfo)
 {
 	ListCell   *l;
 	ListCell   *colType = list_head(colTypes);
@@ -2750,7 +2750,7 @@ compare_tlist_datatypes(List *tlist, List *colTypes,
  * unreferenced window definitions are probably infrequent in practice.
  */
 static bool
-targetIsInAllPartitionLists(TargetEntry *tle, Query *query)
+targetIsInAllPartitionLists(TargetEntry * tle, Query * query)
 {
 	ListCell   *lc;
 
@@ -2790,8 +2790,8 @@ targetIsInAllPartitionLists(TargetEntry *tle, Query *query)
  * found to be unsafe to reference by subquery_is_pushdown_safe().
  */
 static bool
-qual_is_pushdown_safe(Query *subquery, Index rti, Node *qual,
-					  pushdown_safety_info *safetyInfo)
+qual_is_pushdown_safe(Query * subquery, Index rti, Node * qual,
+					  pushdown_safety_info * safetyInfo)
 {
 	bool		safe = true;
 	List	   *vars;
@@ -2867,7 +2867,7 @@ qual_is_pushdown_safe(Query *subquery, Index rti, Node *qual,
  * subquery_push_qual - push down a qual that we have determined is safe
  */
 static void
-subquery_push_qual(Query *subquery, RangeTblEntry *rte, Index rti, Node *qual)
+subquery_push_qual(Query * subquery, RangeTblEntry * rte, Index rti, Node * qual)
 {
 	if (subquery->setOperations != NULL)
 	{
@@ -2914,8 +2914,8 @@ subquery_push_qual(Query *subquery, RangeTblEntry *rte, Index rti, Node *qual)
  * Helper routine to recurse through setOperations tree
  */
 static void
-recurse_push_qual(Node *setOp, Query *topquery,
-				  RangeTblEntry *rte, Index rti, Node *qual)
+recurse_push_qual(Node * setOp, Query * topquery,
+				  RangeTblEntry * rte, Index rti, Node * qual)
 {
 	if (IsA(setOp, RangeTblRef))
 	{
@@ -2961,7 +2961,7 @@ recurse_push_qual(Node *setOp, Query *topquery,
  * constants.  This is implemented by modifying subquery->targetList.
  */
 static void
-remove_unused_subquery_outputs(Query *subquery, RelOptInfo *rel)
+remove_unused_subquery_outputs(Query * subquery, RelOptInfo * rel)
 {
 	Bitmapset  *attrs_used = NULL;
 	ListCell   *lc;
@@ -3066,8 +3066,8 @@ remove_unused_subquery_outputs(Query *subquery, RelOptInfo *rel)
  *	  Build partial bitmap heap path for the relation
  */
 void
-create_partial_bitmap_paths(PlannerInfo *root, RelOptInfo *rel,
-							Path *bitmapqual)
+create_partial_bitmap_paths(PlannerInfo * root, RelOptInfo * rel,
+							Path * bitmapqual)
 {
 	int			parallel_workers;
 	double		pages_fetched;
@@ -3098,7 +3098,7 @@ create_partial_bitmap_paths(PlannerInfo *root, RelOptInfo *rel,
  * -1 if we don't expect to scan any.
  */
 int
-compute_parallel_worker(RelOptInfo *rel, double heap_pages, double index_pages)
+compute_parallel_worker(RelOptInfo * rel, double heap_pages, double index_pages)
 {
 	int			parallel_workers = 0;
 
@@ -3185,7 +3185,7 @@ compute_parallel_worker(RelOptInfo *rel, double heap_pages, double index_pages)
 #ifdef OPTIMIZER_DEBUG
 
 static void
-print_relids(PlannerInfo *root, Relids relids)
+print_relids(PlannerInfo * root, Relids relids)
 {
 	int			x;
 	bool		first = true;
@@ -3205,7 +3205,7 @@ print_relids(PlannerInfo *root, Relids relids)
 }
 
 static void
-print_restrictclauses(PlannerInfo *root, List *clauses)
+print_restrictclauses(PlannerInfo * root, List * clauses)
 {
 	ListCell   *l;
 
@@ -3220,7 +3220,7 @@ print_restrictclauses(PlannerInfo *root, List *clauses)
 }
 
 static void
-print_path(PlannerInfo *root, Path *path, int indent)
+print_path(PlannerInfo * root, Path * path, int indent)
 {
 	const char *ptype;
 	bool		join = false;
@@ -3438,7 +3438,7 @@ print_path(PlannerInfo *root, Path *path, int indent)
 }
 
 void
-debug_print_rel(PlannerInfo *root, RelOptInfo *rel)
+debug_print_rel(PlannerInfo * root, RelOptInfo * rel)
 {
 	ListCell   *l;
 

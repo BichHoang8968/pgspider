@@ -23,7 +23,7 @@
 #include "utils/memutils.h"
 
 
-static bool tlist_matches_tupdesc(PlanState *ps, List *tlist, Index varno, TupleDesc tupdesc);
+static bool tlist_matches_tupdesc(PlanState * ps, List * tlist, Index varno, TupleDesc tupdesc);
 
 
 /*
@@ -34,7 +34,7 @@ static bool tlist_matches_tupdesc(PlanState *ps, List *tlist, Index varno, Tuple
  * the access method's next-tuple routine.
  */
 static inline TupleTableSlot *
-ExecScanFetch(ScanState *node,
+ExecScanFetch(ScanState * node,
 			  ExecScanAccessMtd accessMtd,
 			  ExecScanRecheckMtd recheckMtd)
 {
@@ -120,7 +120,7 @@ ExecScanFetch(ScanState *node,
  * ----------------------------------------------------------------
  */
 TupleTableSlot *
-ExecScan(ScanState *node,
+ExecScan(ScanState * node,
 		 ExecScanAccessMtd accessMtd,	/* function returning a tuple */
 		 ExecScanRecheckMtd recheckMtd)
 {
@@ -234,7 +234,7 @@ ExecScan(ScanState *node,
  * ExecAssignScanType must have been called already.
  */
 void
-ExecAssignScanProjectionInfo(ScanState *node)
+ExecAssignScanProjectionInfo(ScanState * node)
 {
 	Scan	   *scan = (Scan *) node->ps.plan;
 
@@ -246,7 +246,7 @@ ExecAssignScanProjectionInfo(ScanState *node)
  *		As above, but caller can specify varno expected in Vars in the tlist.
  */
 void
-ExecAssignScanProjectionInfoWithVarno(ScanState *node, Index varno)
+ExecAssignScanProjectionInfoWithVarno(ScanState * node, Index varno)
 {
 	Scan	   *scan = (Scan *) node->ps.plan;
 
@@ -261,7 +261,7 @@ ExecAssignScanProjectionInfoWithVarno(ScanState *node, Index varno)
 }
 
 static bool
-tlist_matches_tupdesc(PlanState *ps, List *tlist, Index varno, TupleDesc tupdesc)
+tlist_matches_tupdesc(PlanState * ps, List * tlist, Index varno, TupleDesc tupdesc)
 {
 	int			numattrs = tupdesc->natts;
 	int			attrno;
@@ -326,7 +326,7 @@ tlist_matches_tupdesc(PlanState *ps, List *tlist, Index varno, TupleDesc tupdesc
  * that uses ExecScan().
  */
 void
-ExecScanReScan(ScanState *node)
+ExecScanReScan(ScanState * node)
 {
 	EState	   *estate = node->ps.state;
 

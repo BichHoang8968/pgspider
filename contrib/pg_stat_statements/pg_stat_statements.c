@@ -120,7 +120,7 @@ typedef enum pgssVersion
 	PGSS_V1_1,
 	PGSS_V1_2,
 	PGSS_V1_3
-} pgssVersion;
+}			pgssVersion;
 
 /*
  * Hashtable key that defines the identity of a hashtable entry.  We separate
@@ -131,7 +131,7 @@ typedef struct pgssHashKey
 	Oid			userid;			/* user OID */
 	Oid			dbid;			/* database OID */
 	uint32		queryid;		/* query identifier */
-} pgssHashKey;
+}			pgssHashKey;
 
 /*
  * The actual stats counters kept within pgssEntry.
@@ -158,7 +158,7 @@ typedef struct Counters
 	double		blk_read_time;	/* time spent reading, in msec */
 	double		blk_write_time; /* time spent writing, in msec */
 	double		usage;			/* usage factor */
-} Counters;
+}			Counters;
 
 /*
  * Statistics per statement
@@ -175,7 +175,7 @@ typedef struct pgssEntry
 	int			query_len;		/* # of valid bytes in query string, or -1 */
 	int			encoding;		/* query text encoding */
 	slock_t		mutex;			/* protects the counters only */
-} pgssEntry;
+}			pgssEntry;
 
 /*
  * Global shared state
@@ -189,7 +189,7 @@ typedef struct pgssSharedState
 	Size		extent;			/* current extent of query file */
 	int			n_writers;		/* number of active writers to query file */
 	int			gc_count;		/* query file garbage collection cycle count */
-} pgssSharedState;
+}			pgssSharedState;
 
 /*
  * Struct for tracking locations/lengths of constants during normalization
@@ -198,7 +198,7 @@ typedef struct pgssLocationLen
 {
 	int			location;		/* start offset in query text */
 	int			length;			/* length in bytes, or -1 to ignore */
-} pgssLocationLen;
+}			pgssLocationLen;
 
 /*
  * Working state for computing a query jumble and producing a normalized
@@ -223,7 +223,7 @@ typedef struct pgssJumbleState
 
 	/* highest Param id we've seen, in order to start normalization correctly */
 	int			highest_extern_param_id;
-} pgssJumbleState;
+}			pgssJumbleState;
 
 /*---- Local variables ----*/
 
@@ -240,8 +240,8 @@ static ExecutorEnd_hook_type prev_ExecutorEnd = NULL;
 static ProcessUtility_hook_type prev_ProcessUtility = NULL;
 
 /* Links to shared memory state */
-static pgssSharedState *pgss = NULL;
-static HTAB *pgss_hash = NULL;
+static pgssSharedState * pgss = NULL;
+static HTAB * pgss_hash = NULL;
 
 /*---- GUC variables ----*/
 
@@ -290,49 +290,49 @@ PG_FUNCTION_INFO_V1(pg_stat_statements);
 
 static void pgss_shmem_startup(void);
 static void pgss_shmem_shutdown(int code, Datum arg);
-static void pgss_post_parse_analyze(ParseState *pstate, Query *query);
-static void pgss_ExecutorStart(QueryDesc *queryDesc, int eflags);
-static void pgss_ExecutorRun(QueryDesc *queryDesc,
+static void pgss_post_parse_analyze(ParseState * pstate, Query * query);
+static void pgss_ExecutorStart(QueryDesc * queryDesc, int eflags);
+static void pgss_ExecutorRun(QueryDesc * queryDesc,
 				 ScanDirection direction,
 				 uint64 count, bool execute_once);
-static void pgss_ExecutorFinish(QueryDesc *queryDesc);
-static void pgss_ExecutorEnd(QueryDesc *queryDesc);
-static void pgss_ProcessUtility(PlannedStmt *pstmt, const char *queryString,
+static void pgss_ExecutorFinish(QueryDesc * queryDesc);
+static void pgss_ExecutorEnd(QueryDesc * queryDesc);
+static void pgss_ProcessUtility(PlannedStmt * pstmt, const char *queryString,
 					ProcessUtilityContext context, ParamListInfo params,
-					QueryEnvironment *queryEnv,
-					DestReceiver *dest, char *completionTag);
+					QueryEnvironment * queryEnv,
+					DestReceiver * dest, char *completionTag);
 static uint32 pgss_hash_fn(const void *key, Size keysize);
 static int	pgss_match_fn(const void *key1, const void *key2, Size keysize);
 static uint32 pgss_hash_string(const char *str, int len);
 static void pgss_store(const char *query, uint32 queryId,
 		   int query_location, int query_len,
 		   double total_time, uint64 rows,
-		   const BufferUsage *bufusage,
-		   pgssJumbleState *jstate);
+		   const BufferUsage * bufusage,
+		   pgssJumbleState * jstate);
 static void pg_stat_statements_internal(FunctionCallInfo fcinfo,
 							pgssVersion api_version,
 							bool showtext);
 static Size pgss_memsize(void);
-static pgssEntry *entry_alloc(pgssHashKey *key, Size query_offset, int query_len,
-			int encoding, bool sticky);
+static pgssEntry * entry_alloc(pgssHashKey * key, Size query_offset, int query_len,
+							   int encoding, bool sticky);
 static void entry_dealloc(void);
 static bool qtext_store(const char *query, int query_len,
-			Size *query_offset, int *gc_count);
-static char *qtext_load_file(Size *buffer_size);
+			Size * query_offset, int *gc_count);
+static char *qtext_load_file(Size * buffer_size);
 static char *qtext_fetch(Size query_offset, int query_len,
 			char *buffer, Size buffer_size);
 static bool need_gc_qtexts(void);
 static void gc_qtexts(void);
 static void entry_reset(void);
-static void AppendJumble(pgssJumbleState *jstate,
+static void AppendJumble(pgssJumbleState * jstate,
 			 const unsigned char *item, Size size);
-static void JumbleQuery(pgssJumbleState *jstate, Query *query);
-static void JumbleRangeTable(pgssJumbleState *jstate, List *rtable);
-static void JumbleExpr(pgssJumbleState *jstate, Node *node);
-static void RecordConstLocation(pgssJumbleState *jstate, int location);
-static char *generate_normalized_query(pgssJumbleState *jstate, const char *query,
+static void JumbleQuery(pgssJumbleState * jstate, Query * query);
+static void JumbleRangeTable(pgssJumbleState * jstate, List * rtable);
+static void JumbleExpr(pgssJumbleState * jstate, Node * node);
+static void RecordConstLocation(pgssJumbleState * jstate, int location);
+static char *generate_normalized_query(pgssJumbleState * jstate, const char *query,
 						  int query_loc, int *query_len_p, int encoding);
-static void fill_in_constant_lengths(pgssJumbleState *jstate, const char *query,
+static void fill_in_constant_lengths(pgssJumbleState * jstate, const char *query,
 						 int query_loc);
 static int	comp_location(const void *a, const void *b);
 
@@ -773,7 +773,7 @@ error:
  * Post-parse-analysis hook: mark query with a queryId
  */
 static void
-pgss_post_parse_analyze(ParseState *pstate, Query *query)
+pgss_post_parse_analyze(ParseState * pstate, Query * query)
 {
 	pgssJumbleState jstate;
 
@@ -843,7 +843,7 @@ pgss_post_parse_analyze(ParseState *pstate, Query *query)
  * ExecutorStart hook: start up tracking if needed
  */
 static void
-pgss_ExecutorStart(QueryDesc *queryDesc, int eflags)
+pgss_ExecutorStart(QueryDesc * queryDesc, int eflags)
 {
 	if (prev_ExecutorStart)
 		prev_ExecutorStart(queryDesc, eflags);
@@ -877,7 +877,7 @@ pgss_ExecutorStart(QueryDesc *queryDesc, int eflags)
  * ExecutorRun hook: all we need do is track nesting depth
  */
 static void
-pgss_ExecutorRun(QueryDesc *queryDesc, ScanDirection direction, uint64 count,
+pgss_ExecutorRun(QueryDesc * queryDesc, ScanDirection direction, uint64 count,
 				 bool execute_once)
 {
 	nested_level++;
@@ -901,7 +901,7 @@ pgss_ExecutorRun(QueryDesc *queryDesc, ScanDirection direction, uint64 count,
  * ExecutorFinish hook: all we need do is track nesting depth
  */
 static void
-pgss_ExecutorFinish(QueryDesc *queryDesc)
+pgss_ExecutorFinish(QueryDesc * queryDesc)
 {
 	nested_level++;
 	PG_TRY();
@@ -924,7 +924,7 @@ pgss_ExecutorFinish(QueryDesc *queryDesc)
  * ExecutorEnd hook: store results if needed
  */
 static void
-pgss_ExecutorEnd(QueryDesc *queryDesc)
+pgss_ExecutorEnd(QueryDesc * queryDesc)
 {
 	uint32		queryId = queryDesc->plannedstmt->queryId;
 
@@ -956,10 +956,10 @@ pgss_ExecutorEnd(QueryDesc *queryDesc)
  * ProcessUtility hook
  */
 static void
-pgss_ProcessUtility(PlannedStmt *pstmt, const char *queryString,
+pgss_ProcessUtility(PlannedStmt * pstmt, const char *queryString,
 					ProcessUtilityContext context,
-					ParamListInfo params, QueryEnvironment *queryEnv,
-					DestReceiver *dest, char *completionTag)
+					ParamListInfo params, QueryEnvironment * queryEnv,
+					DestReceiver * dest, char *completionTag)
 {
 	Node	   *parsetree = pstmt->utilityStmt;
 
@@ -1075,7 +1075,7 @@ pgss_ProcessUtility(PlannedStmt *pstmt, const char *queryString,
 static uint32
 pgss_hash_fn(const void *key, Size keysize)
 {
-	const pgssHashKey *k = (const pgssHashKey *) key;
+	const		pgssHashKey *k = (const pgssHashKey *) key;
 
 	return hash_uint32((uint32) k->userid) ^
 		hash_uint32((uint32) k->dbid) ^
@@ -1088,8 +1088,8 @@ pgss_hash_fn(const void *key, Size keysize)
 static int
 pgss_match_fn(const void *key1, const void *key2, Size keysize)
 {
-	const pgssHashKey *k1 = (const pgssHashKey *) key1;
-	const pgssHashKey *k2 = (const pgssHashKey *) key2;
+	const		pgssHashKey *k1 = (const pgssHashKey *) key1;
+	const		pgssHashKey *k2 = (const pgssHashKey *) key2;
 
 	if (k1->userid == k2->userid &&
 		k1->dbid == k2->dbid &&
@@ -1124,8 +1124,8 @@ static void
 pgss_store(const char *query, uint32 queryId,
 		   int query_location, int query_len,
 		   double total_time, uint64 rows,
-		   const BufferUsage *bufusage,
-		   pgssJumbleState *jstate)
+		   const BufferUsage * bufusage,
+		   pgssJumbleState * jstate)
 {
 	pgssHashKey key;
 	pgssEntry  *entry;
@@ -1257,7 +1257,7 @@ pgss_store(const char *query, uint32 queryId,
 		 * Grab the spinlock while updating the counters (see comment about
 		 * locking rules at the head of the file)
 		 */
-		volatile pgssEntry *e = (volatile pgssEntry *) entry;
+		volatile	pgssEntry *e = (volatile pgssEntry *) entry;
 
 		SpinLockAcquire(&e->mutex);
 
@@ -1482,7 +1482,7 @@ pg_stat_statements_internal(FunctionCallInfo fcinfo,
 
 		/* Take the mutex so we can examine variables */
 		{
-			volatile pgssSharedState *s = (volatile pgssSharedState *) pgss;
+			volatile	pgssSharedState *s = (volatile pgssSharedState *) pgss;
 
 			SpinLockAcquire(&s->mutex);
 			extent = s->extent;
@@ -1602,7 +1602,7 @@ pg_stat_statements_internal(FunctionCallInfo fcinfo,
 
 		/* copy counters to a local variable to keep locking time short */
 		{
-			volatile pgssEntry *e = (volatile pgssEntry *) entry;
+			volatile	pgssEntry *e = (volatile pgssEntry *) entry;
 
 			SpinLockAcquire(&e->mutex);
 			tmp = e->counters;
@@ -1702,7 +1702,7 @@ pgss_memsize(void)
  * have made the entry while we waited to get exclusive lock.
  */
 static pgssEntry *
-entry_alloc(pgssHashKey *key, Size query_offset, int query_len, int encoding,
+entry_alloc(pgssHashKey * key, Size query_offset, int query_len, int encoding,
 			bool sticky)
 {
 	pgssEntry  *entry;
@@ -1741,8 +1741,8 @@ entry_alloc(pgssHashKey *key, Size query_offset, int query_len, int encoding,
 static int
 entry_cmp(const void *lhs, const void *rhs)
 {
-	double		l_usage = (*(pgssEntry *const *) lhs)->counters.usage;
-	double		r_usage = (*(pgssEntry *const *) rhs)->counters.usage;
+	double		l_usage = (*(pgssEntry * const *) lhs)->counters.usage;
+	double		r_usage = (*(pgssEntry * const *) rhs)->counters.usage;
 
 	if (l_usage < r_usage)
 		return -1;
@@ -1845,7 +1845,7 @@ entry_dealloc(void)
  */
 static bool
 qtext_store(const char *query, int query_len,
-			Size *query_offset, int *gc_count)
+			Size * query_offset, int *gc_count)
 {
 	Size		off;
 	int			fd;
@@ -1855,7 +1855,7 @@ qtext_store(const char *query, int query_len,
 	 * multiple processes may execute this function concurrently.
 	 */
 	{
-		volatile pgssSharedState *s = (volatile pgssSharedState *) pgss;
+		volatile	pgssSharedState *s = (volatile pgssSharedState *) pgss;
 
 		SpinLockAcquire(&s->mutex);
 		off = s->extent;
@@ -1886,7 +1886,7 @@ qtext_store(const char *query, int query_len,
 
 	/* Mark our write complete */
 	{
-		volatile pgssSharedState *s = (volatile pgssSharedState *) pgss;
+		volatile	pgssSharedState *s = (volatile pgssSharedState *) pgss;
 
 		SpinLockAcquire(&s->mutex);
 		s->n_writers--;
@@ -1906,7 +1906,7 @@ error:
 
 	/* Mark our write complete */
 	{
-		volatile pgssSharedState *s = (volatile pgssSharedState *) pgss;
+		volatile	pgssSharedState *s = (volatile pgssSharedState *) pgss;
 
 		SpinLockAcquire(&s->mutex);
 		s->n_writers--;
@@ -1928,7 +1928,7 @@ error:
  * the caller is responsible for verifying that the result is sane.
  */
 static char *
-qtext_load_file(Size *buffer_size)
+qtext_load_file(Size * buffer_size)
 {
 	char	   *buf;
 	int			fd;
@@ -2034,7 +2034,7 @@ need_gc_qtexts(void)
 
 	/* Read shared extent pointer */
 	{
-		volatile pgssSharedState *s = (volatile pgssSharedState *) pgss;
+		volatile	pgssSharedState *s = (volatile pgssSharedState *) pgss;
 
 		SpinLockAcquire(&s->mutex);
 		extent = s->extent;
@@ -2309,7 +2309,7 @@ done:
  * the current jumble.
  */
 static void
-AppendJumble(pgssJumbleState *jstate, const unsigned char *item, Size size)
+AppendJumble(pgssJumbleState * jstate, const unsigned char *item, Size size)
 {
 	unsigned char *jumble = jstate->jumble;
 	Size		jumble_len = jstate->jumble_len;
@@ -2358,7 +2358,7 @@ AppendJumble(pgssJumbleState *jstate, const unsigned char *item, Size size)
  * of information).
  */
 static void
-JumbleQuery(pgssJumbleState *jstate, Query *query)
+JumbleQuery(pgssJumbleState * jstate, Query * query)
 {
 	Assert(IsA(query, Query));
 	Assert(query->utilityStmt == NULL);
@@ -2387,7 +2387,7 @@ JumbleQuery(pgssJumbleState *jstate, Query *query)
  * Jumble a range table
  */
 static void
-JumbleRangeTable(pgssJumbleState *jstate, List *rtable)
+JumbleRangeTable(pgssJumbleState * jstate, List * rtable)
 {
 	ListCell   *lc;
 
@@ -2451,7 +2451,7 @@ JumbleRangeTable(pgssJumbleState *jstate, List *rtable)
  * about any unrecognized node type.
  */
 static void
-JumbleExpr(pgssJumbleState *jstate, Node *node)
+JumbleExpr(pgssJumbleState * jstate, Node * node)
 {
 	ListCell   *temp;
 
@@ -2928,7 +2928,7 @@ JumbleExpr(pgssJumbleState *jstate, Node *node)
  * that is currently being walked.
  */
 static void
-RecordConstLocation(pgssJumbleState *jstate, int location)
+RecordConstLocation(pgssJumbleState * jstate, int location)
 {
 	/* -1 indicates unknown or undefined location */
 	if (location >= 0)
@@ -2969,7 +2969,7 @@ RecordConstLocation(pgssJumbleState *jstate, int location)
  * Returns a palloc'd string.
  */
 static char *
-generate_normalized_query(pgssJumbleState *jstate, const char *query,
+generate_normalized_query(pgssJumbleState * jstate, const char *query,
 						  int query_loc, int *query_len_p, int encoding)
 {
 	char	   *norm_query;
@@ -3076,7 +3076,7 @@ generate_normalized_query(pgssJumbleState *jstate, const char *query,
  * reason for a constant to start with a '-'.
  */
 static void
-fill_in_constant_lengths(pgssJumbleState *jstate, const char *query,
+fill_in_constant_lengths(pgssJumbleState * jstate, const char *query,
 						 int query_loc)
 {
 	pgssLocationLen *locs;

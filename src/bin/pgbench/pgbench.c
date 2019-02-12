@@ -69,7 +69,7 @@
 typedef struct win32_pthread *pthread_t;
 typedef int pthread_attr_t;
 
-static int	pthread_create(pthread_t *thread, pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);
+static int	pthread_create(pthread_t * thread, pthread_attr_t * attr, void *(*start_routine) (void *), void *arg);
 static int	pthread_join(pthread_t th, void **thread_return);
 #elif defined(ENABLE_THREAD_SAFETY)
 /* Use platform-dependent pthread capability */
@@ -202,7 +202,7 @@ typedef struct
 	char	   *value;			/* its value in string form, if known */
 	bool		is_numeric;		/* is numeric value known? */
 	PgBenchValue num_value;		/* variable's value in numeric form */
-} Variable;
+}			Variable;
 
 #define MAX_SCRIPTS		128		/* max number of SQL scripts allowed */
 #define SHELL_COMMAND_SIZE	256 /* maximum size allowed for shell command */
@@ -220,7 +220,7 @@ typedef struct SimpleStats
 	double		max;			/* the maximum seen */
 	double		sum;			/* sum of values */
 	double		sum2;			/* sum of squared values */
-} SimpleStats;
+}			SimpleStats;
 
 /*
  * Data structure to hold various statistics: per-thread and per-script stats
@@ -234,7 +234,7 @@ typedef struct StatsData
 								 * and --latency-limit */
 	SimpleStats latency;
 	SimpleStats lag;
-} StatsData;
+}			StatsData;
 
 /*
  * Connection state machine states.
@@ -301,7 +301,7 @@ typedef enum
 	 */
 	CSTATE_ABORTED,
 	CSTATE_FINISHED
-} ConnectionStateEnum;
+}			ConnectionStateEnum;
 
 /*
  * Connection state.
@@ -331,7 +331,7 @@ typedef struct
 	/* per client collected stats */
 	int64		cnt;			/* transaction count */
 	int			ecnt;			/* error count */
-} CState;
+}			CState;
 
 /*
  * Thread state
@@ -351,7 +351,7 @@ typedef struct
 	instr_time	conn_time;
 	StatsData	stats;
 	int64		latency_late;	/* executed but late transactions */
-} TState;
+}			TState;
 
 #define INVALID_THREAD		((pthread_t) 0)
 
@@ -368,7 +368,7 @@ typedef enum QueryMode
 	QUERY_EXTENDED,				/* extended query */
 	QUERY_PREPARED,				/* extended query with prepared statements */
 	NUM_QUERYMODE
-} QueryMode;
+}			QueryMode;
 
 static QueryMode querymode = QUERY_SIMPLE;
 static const char *QUERYMODE[] = {"simple", "extended", "prepared"};
@@ -382,7 +382,7 @@ typedef struct
 	char	   *argv[MAX_ARGS]; /* command word list */
 	PgBenchExpr *expr;			/* parsed expression, if needed */
 	SimpleStats stats;			/* time spent in this command */
-} Command;
+}			Command;
 
 typedef struct ParsedScript
 {
@@ -390,7 +390,7 @@ typedef struct ParsedScript
 	int			weight;			/* selection weight */
 	Command   **commands;		/* NULL-terminated array of Commands */
 	StatsData	stats;			/* total time spent in script */
-} ParsedScript;
+}			ParsedScript;
 
 static ParsedScript sql_script[MAX_SCRIPTS];	/* SQL script files */
 static int	num_scripts;		/* number of scripts in sql_script[] */
@@ -405,7 +405,7 @@ typedef struct BuiltinScript
 	const char *name;			/* very short name for -b ... */
 	const char *desc;			/* short description */
 	const char *script;			/* actual pgbench script */
-} BuiltinScript;
+}			BuiltinScript;
 
 static const BuiltinScript builtin_script[] =
 {
@@ -447,13 +447,13 @@ static const BuiltinScript builtin_script[] =
 
 
 /* Function prototypes */
-static void setIntValue(PgBenchValue *pv, int64 ival);
-static void setDoubleValue(PgBenchValue *pv, double dval);
+static void setIntValue(PgBenchValue * pv, int64 ival);
+static void setDoubleValue(PgBenchValue * pv, double dval);
 static bool evaluateExpr(TState *, CState *, PgBenchExpr *, PgBenchValue *);
-static void doLog(TState *thread, CState *st,
-	  StatsData *agg, bool skipped, double latency, double lag);
-static void processXactStats(TState *thread, CState *st, instr_time *now,
-				 bool skipped, StatsData *agg);
+static void doLog(TState * thread, CState * st,
+	  StatsData * agg, bool skipped, double latency, double lag);
+static void processXactStats(TState * thread, CState * st, instr_time * now,
+				 bool skipped, StatsData * agg);
 static void pgbench_error(const char *fmt,...) pg_attribute_printf(1, 2);
 static void addScript(ParsedScript script);
 static void *threadRun(void *arg);
@@ -624,7 +624,7 @@ gotdigits:
 
 /* random number generator: uniform distribution from min to max inclusive */
 static int64
-getrand(TState *thread, int64 min, int64 max)
+getrand(TState * thread, int64 min, int64 max)
 {
 	/*
 	 * Odd coding is so that min and max have approximately the same chance of
@@ -644,7 +644,7 @@ getrand(TState *thread, int64 min, int64 max)
  * value is exp(-parameter).
  */
 static int64
-getExponentialRand(TState *thread, int64 min, int64 max, double parameter)
+getExponentialRand(TState * thread, int64 min, int64 max, double parameter)
 {
 	double		cut,
 				uniform,
@@ -667,7 +667,7 @@ getExponentialRand(TState *thread, int64 min, int64 max, double parameter)
 
 /* random number generator: gaussian distribution from min to max inclusive */
 static int64
-getGaussianRand(TState *thread, int64 min, int64 max, double parameter)
+getGaussianRand(TState * thread, int64 min, int64 max, double parameter)
 {
 	double		stdev;
 	double		rand;
@@ -723,7 +723,7 @@ getGaussianRand(TState *thread, int64 min, int64 max, double parameter)
  * will approximate a Poisson distribution centered on the given value.
  */
 static int64
-getPoissonRand(TState *thread, int64 center)
+getPoissonRand(TState * thread, int64 center)
 {
 	/*
 	 * Use inverse transform sampling to generate a value > 0, such that the
@@ -741,7 +741,7 @@ getPoissonRand(TState *thread, int64 center)
  * Initialize the given SimpleStats struct to all zeroes
  */
 static void
-initSimpleStats(SimpleStats *ss)
+initSimpleStats(SimpleStats * ss)
 {
 	memset(ss, 0, sizeof(SimpleStats));
 }
@@ -750,7 +750,7 @@ initSimpleStats(SimpleStats *ss)
  * Accumulate one value into a SimpleStats struct.
  */
 static void
-addToSimpleStats(SimpleStats *ss, double val)
+addToSimpleStats(SimpleStats * ss, double val)
 {
 	if (ss->count == 0 || val < ss->min)
 		ss->min = val;
@@ -765,7 +765,7 @@ addToSimpleStats(SimpleStats *ss, double val)
  * Merge two SimpleStats objects
  */
 static void
-mergeSimpleStats(SimpleStats *acc, SimpleStats *ss)
+mergeSimpleStats(SimpleStats * acc, SimpleStats * ss)
 {
 	if (acc->count == 0 || ss->min < acc->min)
 		acc->min = ss->min;
@@ -781,7 +781,7 @@ mergeSimpleStats(SimpleStats *acc, SimpleStats *ss)
  * the given value.
  */
 static void
-initStats(StatsData *sd, time_t start_time)
+initStats(StatsData * sd, time_t start_time)
 {
 	sd->start_time = start_time;
 	sd->cnt = 0;
@@ -794,7 +794,7 @@ initStats(StatsData *sd, time_t start_time)
  * Accumulate one additional item into the given stats object.
  */
 static void
-accumStats(StatsData *stats, bool skipped, double lat, double lag)
+accumStats(StatsData * stats, bool skipped, double lat, double lag)
 {
 	stats->cnt++;
 
@@ -815,7 +815,7 @@ accumStats(StatsData *stats, bool skipped, double lat, double lag)
 
 /* call PQexec() and exit() on failure */
 static void
-executeStatement(PGconn *con, const char *sql)
+executeStatement(PGconn * con, const char *sql)
 {
 	PGresult   *res;
 
@@ -830,7 +830,7 @@ executeStatement(PGconn *con, const char *sql)
 
 /* call PQexec() and complain, but without exiting, on failure */
 static void
-tryExecuteStatement(PGconn *con, const char *sql)
+tryExecuteStatement(PGconn * con, const char *sql)
 {
 	PGresult   *res;
 
@@ -914,7 +914,7 @@ doConnect(void)
 
 /* throw away response from backend */
 static void
-discard_response(CState *state)
+discard_response(CState * state)
 {
 	PGresult   *res;
 
@@ -936,7 +936,7 @@ compareVariableNames(const void *v1, const void *v2)
 
 /* Locate a variable by name; returns NULL if unknown */
 static Variable *
-lookupVariable(CState *st, char *name)
+lookupVariable(CState * st, char *name)
 {
 	Variable	key;
 
@@ -963,7 +963,7 @@ lookupVariable(CState *st, char *name)
 
 /* Get the value of a variable, in string form; returns NULL if unknown */
 static char *
-getVariable(CState *st, char *name)
+getVariable(CState * st, char *name)
 {
 	Variable   *var;
 	char		stringform[64];
@@ -992,7 +992,7 @@ getVariable(CState *st, char *name)
 
 /* Try to convert variable to numeric form; return false on failure */
 static bool
-makeVariableNumeric(Variable *var)
+makeVariableNumeric(Variable * var)
 {
 	if (var->is_numeric)
 		return true;			/* no work */
@@ -1041,7 +1041,7 @@ isLegalVariableName(const char *name)
  * Returns NULL on failure (bad name).
  */
 static Variable *
-lookupCreateVariable(CState *st, const char *context, char *name)
+lookupCreateVariable(CState * st, const char *context, char *name)
 {
 	Variable   *var;
 
@@ -1087,7 +1087,7 @@ lookupCreateVariable(CState *st, const char *context, char *name)
 /* Assign a string value to a variable, creating it if need be */
 /* Returns false on failure (bad name) */
 static bool
-putVariable(CState *st, const char *context, char *name, const char *value)
+putVariable(CState * st, const char *context, char *name, const char *value)
 {
 	Variable   *var;
 	char	   *val;
@@ -1110,8 +1110,8 @@ putVariable(CState *st, const char *context, char *name, const char *value)
 /* Assign a numeric value to a variable, creating it if need be */
 /* Returns false on failure (bad name) */
 static bool
-putVariableNumber(CState *st, const char *context, char *name,
-				  const PgBenchValue *value)
+putVariableNumber(CState * st, const char *context, char *name,
+				  const PgBenchValue * value)
 {
 	Variable   *var;
 
@@ -1131,7 +1131,7 @@ putVariableNumber(CState *st, const char *context, char *name,
 /* Assign an integer value to a variable, creating it if need be */
 /* Returns false on failure (bad name) */
 static bool
-putVariableInt(CState *st, const char *context, char *name, int64 value)
+putVariableInt(CState * st, const char *context, char *name, int64 value)
 {
 	PgBenchValue val;
 
@@ -1181,7 +1181,7 @@ replaceVariable(char **sql, char *param, int len, char *value)
 }
 
 static char *
-assignVariables(CState *st, char *sql)
+assignVariables(CState * st, char *sql)
 {
 	char	   *p,
 			   *name,
@@ -1217,7 +1217,7 @@ assignVariables(CState *st, char *sql)
 }
 
 static void
-getQueryParams(CState *st, const Command *command, const char **params)
+getQueryParams(CState * st, const Command * command, const char **params)
 {
 	int			i;
 
@@ -1227,7 +1227,7 @@ getQueryParams(CState *st, const Command *command, const char **params)
 
 /* get a value as an int, tell if there is a problem */
 static bool
-coerceToInt(PgBenchValue *pval, int64 *ival)
+coerceToInt(PgBenchValue * pval, int64 * ival)
 {
 	if (pval->type == PGBT_INT)
 	{
@@ -1251,7 +1251,7 @@ coerceToInt(PgBenchValue *pval, int64 *ival)
 
 /* get a value as a double, or tell if there is a problem */
 static bool
-coerceToDouble(PgBenchValue *pval, double *dval)
+coerceToDouble(PgBenchValue * pval, double *dval)
 {
 	if (pval->type == PGBT_DOUBLE)
 	{
@@ -1268,7 +1268,7 @@ coerceToDouble(PgBenchValue *pval, double *dval)
 
 /* assign an integer value */
 static void
-setIntValue(PgBenchValue *pv, int64 ival)
+setIntValue(PgBenchValue * pv, int64 ival)
 {
 	pv->type = PGBT_INT;
 	pv->u.ival = ival;
@@ -1276,7 +1276,7 @@ setIntValue(PgBenchValue *pv, int64 ival)
 
 /* assign a double value */
 static void
-setDoubleValue(PgBenchValue *pv, double dval)
+setDoubleValue(PgBenchValue * pv, double dval)
 {
 	pv->type = PGBT_DOUBLE;
 	pv->u.dval = dval;
@@ -1289,8 +1289,8 @@ setDoubleValue(PgBenchValue *pv, double dval)
  * Recursive evaluation of functions
  */
 static bool
-evalFunc(TState *thread, CState *st,
-		 PgBenchFunction func, PgBenchExprLink *args, PgBenchValue *retval)
+evalFunc(TState * thread, CState * st,
+		 PgBenchFunction func, PgBenchExprLink * args, PgBenchValue * retval)
 {
 	/* evaluate all function arguments */
 	int			nargs = 0;
@@ -1650,7 +1650,7 @@ evalFunc(TState *thread, CState *st,
  * the value itself is returned through the retval pointer.
  */
 static bool
-evaluateExpr(TState *thread, CState *st, PgBenchExpr *expr, PgBenchValue *retval)
+evaluateExpr(TState * thread, CState * st, PgBenchExpr * expr, PgBenchValue * retval)
 {
 	switch (expr->etype)
 	{
@@ -1697,7 +1697,7 @@ evaluateExpr(TState *thread, CState *st, PgBenchExpr *expr, PgBenchValue *retval
  * Return true if succeeded, or false on error.
  */
 static bool
-runShellCommand(CState *st, char *variable, char **argv, int argc)
+runShellCommand(CState * st, char *variable, char **argv, int argc)
 {
 	char		command[SHELL_COMMAND_SIZE];
 	int			i,
@@ -1808,7 +1808,7 @@ preparedStatementName(char *buffer, int file, int state)
 }
 
 static void
-commandFailed(CState *st, char *message)
+commandFailed(CState * st, char *message)
 {
 	fprintf(stderr,
 			"client %d aborted in command %d of script %d; %s\n",
@@ -1817,7 +1817,7 @@ commandFailed(CState *st, char *message)
 
 /* return a script number with a weighted choice. */
 static int
-chooseScript(TState *thread)
+chooseScript(TState * thread)
 {
 	int			i = 0;
 	int64		w;
@@ -1836,7 +1836,7 @@ chooseScript(TState *thread)
 
 /* Send a SQL command, using the chosen querymode */
 static bool
-sendCommand(CState *st, Command *command)
+sendCommand(CState * st, Command * command)
 {
 	int			r;
 
@@ -1919,7 +1919,7 @@ sendCommand(CState *st, Command *command)
  * of delay, in microseconds.  Returns true on success, false on error.
  */
 static bool
-evaluateSleep(CState *st, int argc, char **argv, int *usecs)
+evaluateSleep(CState * st, int argc, char **argv, int *usecs)
 {
 	char	   *var;
 	int			usec;
@@ -1955,7 +1955,7 @@ evaluateSleep(CState *st, int argc, char **argv, int *usecs)
  * Advance the state machine of a connection, if possible.
  */
 static void
-doCustom(TState *thread, CState *st, StatsData *agg)
+doCustom(TState * thread, CState * st, StatsData * agg)
 {
 	PGresult   *res;
 	Command    *command;
@@ -2430,8 +2430,8 @@ doCustom(TState *thread, CState *st, StatsData *agg)
  * with that, we just eat the cost of an extra syscall in all cases.
  */
 static void
-doLog(TState *thread, CState *st,
-	  StatsData *agg, bool skipped, double latency, double lag)
+doLog(TState * thread, CState * st,
+	  StatsData * agg, bool skipped, double latency, double lag)
 {
 	FILE	   *logfile = thread->logfile;
 
@@ -2510,8 +2510,8 @@ doLog(TState *thread, CState *st,
  * (This is also called when a transaction is late and thus skipped.)
  */
 static void
-processXactStats(TState *thread, CState *st, instr_time *now,
-				 bool skipped, StatsData *agg)
+processXactStats(TState * thread, CState * st, instr_time * now,
+				 bool skipped, StatsData * agg)
 {
 	double		latency = 0.0,
 				lag = 0.0;
@@ -2548,7 +2548,7 @@ processXactStats(TState *thread, CState *st, instr_time *now,
 
 /* discard connections */
 static void
-disconnect_all(CState *state, int length)
+disconnect_all(CState * state, int length)
 {
 	int			i;
 
@@ -2844,7 +2844,7 @@ init(bool is_no_vacuum)
  * is a modifiable string in cmd->argv[0].
  */
 static bool
-parseQuery(Command *cmd)
+parseQuery(Command * cmd)
 {
 	char	   *sql,
 			   *p;
@@ -3195,7 +3195,7 @@ ParseScript(const char *script, const char *desc, int weight)
 	/* Initialize all fields of ps */
 	ps.desc = desc;
 	ps.weight = weight;
-	ps.commands = (Command **) pg_malloc(sizeof(Command *) * alloc_num);
+	ps.commands = (Command * *) pg_malloc(sizeof(Command *) * alloc_num);
 	initStats(&ps.stats, 0);
 
 	/* Prepare to parse script */
@@ -3236,7 +3236,7 @@ ParseScript(const char *script, const char *desc, int weight)
 			if (index >= alloc_num)
 			{
 				alloc_num += COMMANDS_ALLOC_NUM;
-				ps.commands = (Command **)
+				ps.commands = (Command * *)
 					pg_realloc(ps.commands, sizeof(Command *) * alloc_num);
 			}
 		}
@@ -3253,7 +3253,7 @@ ParseScript(const char *script, const char *desc, int weight)
 				if (index >= alloc_num)
 				{
 					alloc_num += COMMANDS_ALLOC_NUM;
-					ps.commands = (Command **)
+					ps.commands = (Command * *)
 						pg_realloc(ps.commands, sizeof(Command *) * alloc_num);
 				}
 			}
@@ -3280,7 +3280,7 @@ ParseScript(const char *script, const char *desc, int weight)
  * in this program, because we'll free it as soon as we've parsed the script.
  */
 static char *
-read_file_contents(FILE *fd)
+read_file_contents(FILE * fd)
 {
 	char	   *buf;
 	size_t		buflen = BUFSIZ;
@@ -3347,7 +3347,7 @@ process_file(const char *filename, int weight)
 
 /* Parse the given builtin script and add it to the list. */
 static void
-process_builtin(const BuiltinScript *bi, int weight)
+process_builtin(const BuiltinScript * bi, int weight)
 {
 	ParseScript(bi->script, bi->desc, weight);
 }
@@ -3371,7 +3371,7 @@ findBuiltin(const char *name)
 	int			i,
 				found = 0,
 				len = strlen(name);
-	const BuiltinScript *result = NULL;
+	const		BuiltinScript *result = NULL;
 
 	for (i = 0; i < lengthof(builtin_script); i++)
 	{
@@ -3466,7 +3466,7 @@ addScript(ParsedScript script)
 }
 
 static void
-printSimpleStats(char *prefix, SimpleStats *ss)
+printSimpleStats(char *prefix, SimpleStats * ss)
 {
 	/* print NaN if no transactions where executed */
 	double		latency = ss->sum / ss->count;
@@ -3478,7 +3478,7 @@ printSimpleStats(char *prefix, SimpleStats *ss)
 
 /* print out results */
 static void
-printResults(TState *threads, StatsData *total, instr_time total_time,
+printResults(TState * threads, StatsData * total, instr_time total_time,
 			 instr_time conn_total_time, int latency_late)
 {
 	double		time_include,
@@ -4553,12 +4553,12 @@ threadRun(void *arg)
 					timeout.tv_usec = min_usec % 1000000;
 					nsocks = select(maxsock + 1, &input_mask, NULL, NULL, &timeout);
 				}
-				else /* nothing active, simple sleep */
+				else			/* nothing active, simple sleep */
 				{
 					pg_usleep(min_usec);
 				}
 			}
-			else /* no explicit delay, select without timeout */
+			else				/* no explicit delay, select without timeout */
 			{
 				nsocks = select(maxsock + 1, &input_mask, NULL, NULL, NULL);
 			}
@@ -4575,7 +4575,8 @@ threadRun(void *arg)
 				goto done;
 			}
 		}
-		else /* min_usec == 0, i.e. something needs to be executed */
+		else					/* min_usec == 0, i.e. something needs to be
+								 * executed */
 		{
 			/* If we didn't call select(), don't try to read any data */
 			FD_ZERO(&input_mask);
@@ -4764,7 +4765,7 @@ setalarm(int seconds)
 
 	/* This function will be called at most once, so we can cheat a bit. */
 	queue = CreateTimerQueue();
-	if (seconds > ((DWORD) -1) / 1000 ||
+	if (seconds > ((DWORD) - 1) / 1000 ||
 		!CreateTimerQueueTimer(&timer, queue,
 							   win32_timer_callback, NULL, seconds * 1000, 0,
 							   WT_EXECUTEINTIMERTHREAD | WT_EXECUTEONLYONCE))
@@ -4782,7 +4783,7 @@ typedef struct win32_pthread
 	void	   *(*routine) (void *);
 	void	   *arg;
 	void	   *result;
-} win32_pthread;
+}			win32_pthread;
 
 static unsigned __stdcall
 win32_pthread_run(void *arg)
@@ -4795,8 +4796,8 @@ win32_pthread_run(void *arg)
 }
 
 static int
-pthread_create(pthread_t *thread,
-			   pthread_attr_t *attr,
+pthread_create(pthread_t * thread,
+			   pthread_attr_t * attr,
 			   void *(*start_routine) (void *),
 			   void *arg)
 {

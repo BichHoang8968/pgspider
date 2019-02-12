@@ -47,15 +47,15 @@ typedef struct Value
 		long		ival;		/* machine integer */
 		char	   *str;		/* string */
 	}			val;
-} Value;
+}			Value;
 
 #define intVal(v)		(((Value *)(v))->val.ival)
 #define floatVal(v)		atof(((Value *)(v))->val.str)
 #define strVal(v)		(((Value *)(v))->val.str)
 
-extern Value *makeInteger(long i);
-extern Value *makeFloat(char *numericStr);
-extern Value *makeString(char *str);
-extern Value *makeBitString(char *str);
+extern Value * makeInteger(long i);
+extern Value * makeFloat(char *numericStr);
+extern Value * makeString(char *str);
+extern Value * makeBitString(char *str);
 
 #endif							/* VALUE_H */

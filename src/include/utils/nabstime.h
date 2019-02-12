@@ -40,9 +40,9 @@ typedef struct
 {
 	int32		status;
 	AbsoluteTime data[2];
-} TimeIntervalData;
+}			TimeIntervalData;
 
-typedef TimeIntervalData *TimeInterval;
+typedef TimeIntervalData * TimeInterval;
 
 /*
  * Macros for fmgr-callable functions.

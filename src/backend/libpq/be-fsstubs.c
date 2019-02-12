@@ -69,7 +69,7 @@ bool		lo_compat_privileges;
  * dynamically allocated in that context.  Its current allocated size is
  * cookies_len entries, of which any unused entries will be NULL.
  */
-static LargeObjectDesc **cookies = NULL;
+static LargeObjectDesc * *cookies = NULL;
 static int	cookies_size = 0;
 
 static MemoryContext fscxt = NULL;
@@ -83,9 +83,9 @@ static MemoryContext fscxt = NULL;
 	} while (0)
 
 
-static int	newLOfd(LargeObjectDesc *lobjCookie);
+static int	newLOfd(LargeObjectDesc * lobjCookie);
 static void deleteLOfd(int fd);
-static Oid	lo_import_internal(text *filename, Oid lobjOid);
+static Oid lo_import_internal(text * filename, Oid lobjOid);
 
 
 /*****************************************************************************
@@ -438,7 +438,7 @@ be_lo_import_with_oid(PG_FUNCTION_ARGS)
 }
 
 static Oid
-lo_import_internal(text *filename, Oid lobjOid)
+lo_import_internal(text * filename, Oid lobjOid)
 {
 	int			fd;
 	int			nbytes,
@@ -714,7 +714,7 @@ AtEOSubXact_LargeObject(bool isCommit, SubTransactionId mySubid,
  *****************************************************************************/
 
 static int
-newLOfd(LargeObjectDesc *lobjCookie)
+newLOfd(LargeObjectDesc * lobjCookie)
 {
 	int			i,
 				newsize;
@@ -735,7 +735,7 @@ newLOfd(LargeObjectDesc *lobjCookie)
 		/* First time through, arbitrarily make 64-element array */
 		i = 0;
 		newsize = 64;
-		cookies = (LargeObjectDesc **)
+		cookies = (LargeObjectDesc * *)
 			MemoryContextAllocZero(fscxt, newsize * sizeof(LargeObjectDesc *));
 		cookies_size = newsize;
 	}
@@ -744,7 +744,7 @@ newLOfd(LargeObjectDesc *lobjCookie)
 		/* Double size of array */
 		i = cookies_size;
 		newsize = cookies_size * 2;
-		cookies = (LargeObjectDesc **)
+		cookies = (LargeObjectDesc * *)
 			repalloc(cookies, newsize * sizeof(LargeObjectDesc *));
 		MemSet(cookies + cookies_size, 0,
 			   (newsize - cookies_size) * sizeof(LargeObjectDesc *));

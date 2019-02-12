@@ -38,7 +38,7 @@ typedef struct
 {
 	trgm		trg;
 	int			index;
-} pos_trgm;
+}			pos_trgm;
 
 /*
  * Module load callback
@@ -112,7 +112,7 @@ comp_trgm(const void *a, const void *b)
 }
 
 static int
-unique_array(trgm *a, int len)
+unique_array(trgm * a, int len)
 {
 	trgm	   *curend,
 			   *tmp;
@@ -163,7 +163,7 @@ find_word(char *str, int lenstr, char **endword, int *charlen)
  * characters, we just use them as-is; otherwise we form a hash value.
  */
 void
-compact_trigram(trgm *tptr, char *str, int bytelen)
+compact_trigram(trgm * tptr, char *str, int bytelen)
 {
 	if (bytelen == 3)
 	{
@@ -188,7 +188,7 @@ compact_trigram(trgm *tptr, char *str, int bytelen)
  * Adds trigrams from words (already padded).
  */
 static trgm *
-make_trigrams(trgm *tptr, char *str, int bytelen, int charlen)
+make_trigrams(trgm * tptr, char *str, int bytelen, int charlen)
 {
 	char	   *ptr = str;
 
@@ -239,7 +239,7 @@ make_trigrams(trgm *tptr, char *str, int bytelen, int charlen)
  * Returns length of the generated array.
  */
 static int
-generate_trgm_only(trgm *trg, char *str, int slen)
+generate_trgm_only(trgm * trg, char *str, int slen)
 {
 	trgm	   *tptr;
 	char	   *buf;
@@ -359,7 +359,7 @@ generate_trgm(char *str, int slen)
  * Returns concatenated trigram array.
  */
 static pos_trgm *
-make_positional_trgm(trgm *trg1, int len1, trgm *trg2, int len2)
+make_positional_trgm(trgm * trg1, int len1, trgm * trg2, int len2)
 {
 	pos_trgm   *result;
 	int			i,
@@ -388,8 +388,8 @@ make_positional_trgm(trgm *trg1, int len1, trgm *trg2, int len2)
 static int
 comp_ptrgm(const void *v1, const void *v2)
 {
-	const pos_trgm *p1 = (const pos_trgm *) v1;
-	const pos_trgm *p2 = (const pos_trgm *) v2;
+	const		pos_trgm *p1 = (const pos_trgm *) v1;
+	const		pos_trgm *p2 = (const pos_trgm *) v2;
 	int			cmp;
 
 	cmp = CMPTRGM(p1->trg, p2->trg);
@@ -862,7 +862,7 @@ generate_wildcard_trgm(const char *str, int slen)
 }
 
 uint32
-trgm2int(trgm *ptr)
+trgm2int(trgm * ptr)
 {
 	uint32		val = 0;
 
@@ -925,7 +925,7 @@ show_trgm(PG_FUNCTION_ARGS)
 }
 
 float4
-cnt_sml(TRGM *trg1, TRGM *trg2, bool inexact)
+cnt_sml(TRGM * trg1, TRGM * trg2, bool inexact)
 {
 	trgm	   *ptr1,
 			   *ptr2;
@@ -973,7 +973,7 @@ cnt_sml(TRGM *trg1, TRGM *trg2, bool inexact)
  * This relies on the trigram arrays being sorted.
  */
 bool
-trgm_contained_by(TRGM *trg1, TRGM *trg2)
+trgm_contained_by(TRGM * trg1, TRGM * trg2)
 {
 	trgm	   *ptr1,
 			   *ptr2;
@@ -1012,7 +1012,7 @@ trgm_contained_by(TRGM *trg1, TRGM *trg2)
  * This relies on the "key" array being sorted, but "query" need not be.
  */
 bool *
-trgm_presence_map(TRGM *query, TRGM *key)
+trgm_presence_map(TRGM * query, TRGM * key)
 {
 	bool	   *result;
 	trgm	   *ptrq = GETARR(query),

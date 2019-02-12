@@ -37,19 +37,19 @@
 #define HMAC_OPAD 0x5C
 
 static unsigned
-hmac_result_size(PX_HMAC *h)
+hmac_result_size(PX_HMAC * h)
 {
 	return px_md_result_size(h->md);
 }
 
 static unsigned
-hmac_block_size(PX_HMAC *h)
+hmac_block_size(PX_HMAC * h)
 {
 	return px_md_block_size(h->md);
 }
 
 static void
-hmac_init(PX_HMAC *h, const uint8 *key, unsigned klen)
+hmac_init(PX_HMAC * h, const uint8 * key, unsigned klen)
 {
 	unsigned	bs,
 				i;
@@ -82,7 +82,7 @@ hmac_init(PX_HMAC *h, const uint8 *key, unsigned klen)
 }
 
 static void
-hmac_reset(PX_HMAC *h)
+hmac_reset(PX_HMAC * h)
 {
 	PX_MD	   *md = h->md;
 	unsigned	bs = px_md_block_size(md);
@@ -92,13 +92,13 @@ hmac_reset(PX_HMAC *h)
 }
 
 static void
-hmac_update(PX_HMAC *h, const uint8 *data, unsigned dlen)
+hmac_update(PX_HMAC * h, const uint8 * data, unsigned dlen)
 {
 	px_md_update(h->md, data, dlen);
 }
 
 static void
-hmac_finish(PX_HMAC *h, uint8 *dst)
+hmac_finish(PX_HMAC * h, uint8 * dst)
 {
 	PX_MD	   *md = h->md;
 	unsigned	bs,
@@ -122,7 +122,7 @@ hmac_finish(PX_HMAC *h, uint8 *dst)
 }
 
 static void
-hmac_free(PX_HMAC *h)
+hmac_free(PX_HMAC * h)
 {
 	unsigned	bs;
 
@@ -140,7 +140,7 @@ hmac_free(PX_HMAC *h)
 /* PUBLIC FUNCTIONS */
 
 int
-px_find_hmac(const char *name, PX_HMAC **res)
+px_find_hmac(const char *name, PX_HMAC * *res)
 {
 	int			err;
 	PX_MD	   *md;

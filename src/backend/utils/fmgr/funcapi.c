@@ -32,13 +32,13 @@
 
 static void shutdown_MultiFuncCall(Datum arg);
 static TypeFuncClass internal_get_result_type(Oid funcid,
-						 Node *call_expr,
-						 ReturnSetInfo *rsinfo,
-						 Oid *resultTypeId,
-						 TupleDesc *resultTupleDesc);
+											  Node * call_expr,
+											  ReturnSetInfo * rsinfo,
+											  Oid * resultTypeId,
+											  TupleDesc * resultTupleDesc);
 static bool resolve_polymorphic_tupdesc(TupleDesc tupdesc,
-							oidvector *declared_args,
-							Node *call_expr);
+							oidvector * declared_args,
+							Node * call_expr);
 static TypeFuncClass get_type_func_class(Oid typid);
 
 
@@ -152,7 +152,7 @@ per_MultiFuncCall(PG_FUNCTION_ARGS)
  * Clean up after init_MultiFuncCall
  */
 void
-end_MultiFuncCall(PG_FUNCTION_ARGS, FuncCallContext *funcctx)
+end_MultiFuncCall(PG_FUNCTION_ARGS, FuncCallContext * funcctx)
 {
 	ReturnSetInfo *rsi = (ReturnSetInfo *) fcinfo->resultinfo;
 
@@ -209,8 +209,8 @@ shutdown_MultiFuncCall(Datum arg)
  */
 TypeFuncClass
 get_call_result_type(FunctionCallInfo fcinfo,
-					 Oid *resultTypeId,
-					 TupleDesc *resultTupleDesc)
+					 Oid * resultTypeId,
+					 TupleDesc * resultTupleDesc)
 {
 	return internal_get_result_type(fcinfo->flinfo->fn_oid,
 									fcinfo->flinfo->fn_expr,
@@ -224,9 +224,9 @@ get_call_result_type(FunctionCallInfo fcinfo,
  *		As above, but work from a calling expression node tree
  */
 TypeFuncClass
-get_expr_result_type(Node *expr,
-					 Oid *resultTypeId,
-					 TupleDesc *resultTupleDesc)
+get_expr_result_type(Node * expr,
+					 Oid * resultTypeId,
+					 TupleDesc * resultTupleDesc)
 {
 	TypeFuncClass result;
 
@@ -267,8 +267,8 @@ get_expr_result_type(Node *expr,
  */
 TypeFuncClass
 get_func_result_type(Oid functionId,
-					 Oid *resultTypeId,
-					 TupleDesc *resultTupleDesc)
+					 Oid * resultTypeId,
+					 TupleDesc * resultTupleDesc)
 {
 	return internal_get_result_type(functionId,
 									NULL,
@@ -287,10 +287,10 @@ get_func_result_type(Oid functionId,
  */
 static TypeFuncClass
 internal_get_result_type(Oid funcid,
-						 Node *call_expr,
-						 ReturnSetInfo *rsinfo,
-						 Oid *resultTypeId,
-						 TupleDesc *resultTupleDesc)
+						 Node * call_expr,
+						 ReturnSetInfo * rsinfo,
+						 Oid * resultTypeId,
+						 TupleDesc * resultTupleDesc)
 {
 	TypeFuncClass result;
 	HeapTuple	tp;
@@ -400,8 +400,8 @@ internal_get_result_type(Oid funcid,
  * FALSE if not.
  */
 static bool
-resolve_polymorphic_tupdesc(TupleDesc tupdesc, oidvector *declared_args,
-							Node *call_expr)
+resolve_polymorphic_tupdesc(TupleDesc tupdesc, oidvector * declared_args,
+							Node * call_expr)
 {
 	int			natts = tupdesc->natts;
 	int			nargs = declared_args->dim1;
@@ -594,8 +594,8 @@ resolve_polymorphic_tupdesc(TupleDesc tupdesc, oidvector *declared_args,
  * argmodes may be NULL, in which case all arguments are assumed to be IN mode.
  */
 bool
-resolve_polymorphic_argtypes(int numargs, Oid *argtypes, char *argmodes,
-							 Node *call_expr)
+resolve_polymorphic_argtypes(int numargs, Oid * argtypes, char *argmodes,
+							 Node * call_expr)
 {
 	bool		have_anyelement_result = false;
 	bool		have_anyarray_result = false;
@@ -789,7 +789,7 @@ get_type_func_class(Oid typid)
  */
 int
 get_func_arg_info(HeapTuple procTup,
-				  Oid **p_argtypes, char ***p_argnames, char **p_argmodes)
+				  Oid * *p_argtypes, char ***p_argnames, char **p_argmodes)
 {
 	Form_pg_proc procStruct = (Form_pg_proc) GETSTRUCT(procTup);
 	Datum		proallargtypes;
@@ -883,7 +883,7 @@ get_func_arg_info(HeapTuple procTup,
  */
 int
 get_func_trftypes(HeapTuple procTup,
-				  Oid **p_trftypes)
+				  Oid * *p_trftypes)
 {
 	Datum		protrftypes;
 	ArrayType  *arr;
@@ -1316,7 +1316,7 @@ RelationNameGetTupleDesc(const char *relname)
  * If the type is a base type, a single item alias List is required.
  */
 TupleDesc
-TypeGetTupleDesc(Oid typeoid, List *colaliases)
+TypeGetTupleDesc(Oid typeoid, List * colaliases)
 {
 	TypeFuncClass functypclass = get_type_func_class(typeoid);
 	TupleDesc	tupdesc = NULL;
@@ -1414,14 +1414,15 @@ TypeGetTupleDesc(Oid typeoid, List *colaliases)
  */
 int
 extract_variadic_args(FunctionCallInfo fcinfo, int variadic_start,
-					  bool convert_unknown, Datum **args, Oid **types,
+					  bool convert_unknown, Datum * *args, Oid * *types,
 					  bool **nulls)
 {
 	bool		variadic = get_fn_expr_variadic(fcinfo->flinfo);
 	Datum	   *args_res;
 	bool	   *nulls_res;
 	Oid		   *types_res;
-	int			nargs, i;
+	int			nargs,
+				i;
 
 	*args = NULL;
 	*types = NULL;
@@ -1457,7 +1458,7 @@ extract_variadic_args(FunctionCallInfo fcinfo, int variadic_start,
 	else
 	{
 		nargs = PG_NARGS() - variadic_start;
-		Assert (nargs > 0);
+		Assert(nargs > 0);
 		nulls_res = (bool *) palloc0(nargs * sizeof(bool));
 		args_res = (Datum *) palloc0(nargs * sizeof(Datum));
 		types_res = (Oid *) palloc0(nargs * sizeof(Oid));
@@ -1471,10 +1472,9 @@ extract_variadic_args(FunctionCallInfo fcinfo, int variadic_start,
 			/*
 			 * Turn a constant (more or less literal) value that's of unknown
 			 * type into text if required . Unknowns come in as a cstring
-			 * pointer.
-			 * Note: for functions declared as taking type "any", the parser
-			 * will not do any type conversion on unknown-type literals (that
-			 * is, undecorated strings or NULLs).
+			 * pointer. Note: for functions declared as taking type "any", the
+			 * parser will not do any type conversion on unknown-type literals
+			 * (that is, undecorated strings or NULLs).
 			 */
 			if (convert_unknown &&
 				types_res[i] == UNKNOWNOID &&

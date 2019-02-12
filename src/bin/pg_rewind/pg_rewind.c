@@ -33,12 +33,12 @@ static void usage(const char *progname);
 static void createBackupLabel(XLogRecPtr startpoint, TimeLineID starttli,
 				  XLogRecPtr checkpointloc);
 
-static void digestControlFile(ControlFileData *ControlFile, char *source,
+static void digestControlFile(ControlFileData * ControlFile, char *source,
 				  size_t size);
-static void updateControlFile(ControlFileData *ControlFile);
+static void updateControlFile(ControlFileData * ControlFile);
 static void syncTargetDirectory(const char *argv0);
 static void sanityChecks(void);
-static void findCommonAncestorTimeline(XLogRecPtr *recptr, int *tliIndex);
+static void findCommonAncestorTimeline(XLogRecPtr * recptr, int *tliIndex);
 
 static ControlFileData ControlFile_target;
 static ControlFileData ControlFile_source;
@@ -435,7 +435,7 @@ MinXLogRecPtr(XLogRecPtr a, XLogRecPtr b)
  * either source or target.
  */
 static TimeLineHistoryEntry *
-getTimelineHistory(ControlFileData *controlFile, int *nentries)
+getTimelineHistory(ControlFileData * controlFile, int *nentries)
 {
 	TimeLineHistoryEntry *history;
 	TimeLineID	tli;
@@ -514,7 +514,7 @@ getTimelineHistory(ControlFileData *controlFile, int *nentries)
  * before calling this routine.
  */
 static void
-findCommonAncestorTimeline(XLogRecPtr *recptr, int *tliIndex)
+findCommonAncestorTimeline(XLogRecPtr * recptr, int *tliIndex)
 {
 	TimeLineHistoryEntry *sourceHistory;
 	int			sourceNentries;
@@ -605,7 +605,7 @@ createBackupLabel(XLogRecPtr startpoint, TimeLineID starttli, XLogRecPtr checkpo
  * Check CRC of control file
  */
 static void
-checkControlFile(ControlFileData *ControlFile)
+checkControlFile(ControlFileData * ControlFile)
 {
 	pg_crc32c	crc;
 
@@ -623,7 +623,7 @@ checkControlFile(ControlFileData *ControlFile)
  * Verify control file contents in the buffer src, and copy it to *ControlFile.
  */
 static void
-digestControlFile(ControlFileData *ControlFile, char *src, size_t size)
+digestControlFile(ControlFileData * ControlFile, char *src, size_t size)
 {
 	if (size != PG_CONTROL_FILE_SIZE)
 		pg_fatal("unexpected control file size %d, expected %d\n",
@@ -639,7 +639,7 @@ digestControlFile(ControlFileData *ControlFile, char *src, size_t size)
  * Update the target's control file.
  */
 static void
-updateControlFile(ControlFileData *ControlFile)
+updateControlFile(ControlFileData * ControlFile)
 {
 	char		buffer[PG_CONTROL_FILE_SIZE];
 

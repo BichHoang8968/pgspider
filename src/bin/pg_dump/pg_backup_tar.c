@@ -41,24 +41,24 @@
 #include <limits.h>
 #include <unistd.h>
 
-static void _ArchiveEntry(ArchiveHandle *AH, TocEntry *te);
-static void _StartData(ArchiveHandle *AH, TocEntry *te);
-static void _WriteData(ArchiveHandle *AH, const void *data, size_t dLen);
-static void _EndData(ArchiveHandle *AH, TocEntry *te);
-static int	_WriteByte(ArchiveHandle *AH, const int i);
+static void _ArchiveEntry(ArchiveHandle * AH, TocEntry * te);
+static void _StartData(ArchiveHandle * AH, TocEntry * te);
+static void _WriteData(ArchiveHandle * AH, const void *data, size_t dLen);
+static void _EndData(ArchiveHandle * AH, TocEntry * te);
+static int	_WriteByte(ArchiveHandle * AH, const int i);
 static int	_ReadByte(ArchiveHandle *);
-static void _WriteBuf(ArchiveHandle *AH, const void *buf, size_t len);
-static void _ReadBuf(ArchiveHandle *AH, void *buf, size_t len);
-static void _CloseArchive(ArchiveHandle *AH);
-static void _PrintTocData(ArchiveHandle *AH, TocEntry *te);
-static void _WriteExtraToc(ArchiveHandle *AH, TocEntry *te);
-static void _ReadExtraToc(ArchiveHandle *AH, TocEntry *te);
-static void _PrintExtraToc(ArchiveHandle *AH, TocEntry *te);
+static void _WriteBuf(ArchiveHandle * AH, const void *buf, size_t len);
+static void _ReadBuf(ArchiveHandle * AH, void *buf, size_t len);
+static void _CloseArchive(ArchiveHandle * AH);
+static void _PrintTocData(ArchiveHandle * AH, TocEntry * te);
+static void _WriteExtraToc(ArchiveHandle * AH, TocEntry * te);
+static void _ReadExtraToc(ArchiveHandle * AH, TocEntry * te);
+static void _PrintExtraToc(ArchiveHandle * AH, TocEntry * te);
 
-static void _StartBlobs(ArchiveHandle *AH, TocEntry *te);
-static void _StartBlob(ArchiveHandle *AH, TocEntry *te, Oid oid);
-static void _EndBlob(ArchiveHandle *AH, TocEntry *te, Oid oid);
-static void _EndBlobs(ArchiveHandle *AH, TocEntry *te);
+static void _StartBlobs(ArchiveHandle * AH, TocEntry * te);
+static void _StartBlob(ArchiveHandle * AH, TocEntry * te, Oid oid);
+static void _EndBlob(ArchiveHandle * AH, TocEntry * te, Oid oid);
+static void _EndBlobs(ArchiveHandle * AH, TocEntry * te);
 
 #define K_STD_BUF_SIZE 1024
 
@@ -78,7 +78,7 @@ typedef struct
 	pgoff_t		pos;
 	pgoff_t		fileLen;
 	ArchiveHandle *AH;
-} TAR_MEMBER;
+}			TAR_MEMBER;
 
 typedef struct
 {
@@ -91,42 +91,42 @@ typedef struct
 	TAR_MEMBER *FH;
 	int			isSpecialScript;
 	TAR_MEMBER *scriptTH;
-} lclContext;
+}			lclContext;
 
 typedef struct
 {
 	TAR_MEMBER *TH;
 	char	   *filename;
-} lclTocEntry;
+}			lclTocEntry;
 
 /* translator: this is a module name */
 static const char *modulename = gettext_noop("tar archiver");
 
-static void _LoadBlobs(ArchiveHandle *AH);
+static void _LoadBlobs(ArchiveHandle * AH);
 
-static TAR_MEMBER *tarOpen(ArchiveHandle *AH, const char *filename, char mode);
-static void tarClose(ArchiveHandle *AH, TAR_MEMBER *TH);
+static TAR_MEMBER * tarOpen(ArchiveHandle * AH, const char *filename, char mode);
+static void tarClose(ArchiveHandle * AH, TAR_MEMBER * TH);
 
 #ifdef __NOT_USED__
-static char *tarGets(char *buf, size_t len, TAR_MEMBER *th);
+static char *tarGets(char *buf, size_t len, TAR_MEMBER * th);
 #endif
-static int	tarPrintf(ArchiveHandle *AH, TAR_MEMBER *th, const char *fmt,...) pg_attribute_printf(3, 4);
+static int	tarPrintf(ArchiveHandle * AH, TAR_MEMBER * th, const char *fmt,...) pg_attribute_printf(3, 4);
 
-static void _tarAddFile(ArchiveHandle *AH, TAR_MEMBER *th);
-static TAR_MEMBER *_tarPositionTo(ArchiveHandle *AH, const char *filename);
-static size_t tarRead(void *buf, size_t len, TAR_MEMBER *th);
-static size_t tarWrite(const void *buf, size_t len, TAR_MEMBER *th);
-static void _tarWriteHeader(TAR_MEMBER *th);
-static int	_tarGetHeader(ArchiveHandle *AH, TAR_MEMBER *th);
-static size_t _tarReadRaw(ArchiveHandle *AH, void *buf, size_t len, TAR_MEMBER *th, FILE *fh);
+static void _tarAddFile(ArchiveHandle * AH, TAR_MEMBER * th);
+static TAR_MEMBER * _tarPositionTo(ArchiveHandle * AH, const char *filename);
+static size_t tarRead(void *buf, size_t len, TAR_MEMBER * th);
+static size_t tarWrite(const void *buf, size_t len, TAR_MEMBER * th);
+static void _tarWriteHeader(TAR_MEMBER * th);
+static int	_tarGetHeader(ArchiveHandle * AH, TAR_MEMBER * th);
+static size_t _tarReadRaw(ArchiveHandle * AH, void *buf, size_t len, TAR_MEMBER * th, FILE * fh);
 
-static size_t _scriptOut(ArchiveHandle *AH, const void *buf, size_t len);
+static size_t _scriptOut(ArchiveHandle * AH, const void *buf, size_t len);
 
 /*
  *	Initializer
  */
 void
-InitArchiveFmt_Tar(ArchiveHandle *AH)
+InitArchiveFmt_Tar(ArchiveHandle * AH)
 {
 	lclContext *ctx;
 
@@ -254,7 +254,7 @@ InitArchiveFmt_Tar(ArchiveHandle *AH)
  *	 Setup the output file name.
  */
 static void
-_ArchiveEntry(ArchiveHandle *AH, TocEntry *te)
+_ArchiveEntry(ArchiveHandle * AH, TocEntry * te)
 {
 	lclTocEntry *ctx;
 	char		fn[K_STD_BUF_SIZE];
@@ -281,7 +281,7 @@ _ArchiveEntry(ArchiveHandle *AH, TocEntry *te)
 }
 
 static void
-_WriteExtraToc(ArchiveHandle *AH, TocEntry *te)
+_WriteExtraToc(ArchiveHandle * AH, TocEntry * te)
 {
 	lclTocEntry *ctx = (lclTocEntry *) te->formatData;
 
@@ -292,7 +292,7 @@ _WriteExtraToc(ArchiveHandle *AH, TocEntry *te)
 }
 
 static void
-_ReadExtraToc(ArchiveHandle *AH, TocEntry *te)
+_ReadExtraToc(ArchiveHandle * AH, TocEntry * te)
 {
 	lclTocEntry *ctx = (lclTocEntry *) te->formatData;
 
@@ -312,7 +312,7 @@ _ReadExtraToc(ArchiveHandle *AH, TocEntry *te)
 }
 
 static void
-_PrintExtraToc(ArchiveHandle *AH, TocEntry *te)
+_PrintExtraToc(ArchiveHandle * AH, TocEntry * te)
 {
 	lclTocEntry *ctx = (lclTocEntry *) te->formatData;
 
@@ -321,7 +321,7 @@ _PrintExtraToc(ArchiveHandle *AH, TocEntry *te)
 }
 
 static void
-_StartData(ArchiveHandle *AH, TocEntry *te)
+_StartData(ArchiveHandle * AH, TocEntry * te)
 {
 	lclTocEntry *tctx = (lclTocEntry *) te->formatData;
 
@@ -329,7 +329,7 @@ _StartData(ArchiveHandle *AH, TocEntry *te)
 }
 
 static TAR_MEMBER *
-tarOpen(ArchiveHandle *AH, const char *filename, char mode)
+tarOpen(ArchiveHandle * AH, const char *filename, char mode)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	TAR_MEMBER *tm;
@@ -446,7 +446,7 @@ tarOpen(ArchiveHandle *AH, const char *filename, char mode)
 }
 
 static void
-tarClose(ArchiveHandle *AH, TAR_MEMBER *th)
+tarClose(ArchiveHandle * AH, TAR_MEMBER * th)
 {
 	/*
 	 * Close the GZ file since we dup'd. This will flush the buffers.
@@ -472,7 +472,7 @@ tarClose(ArchiveHandle *AH, TAR_MEMBER *th)
 
 #ifdef __NOT_USED__
 static char *
-tarGets(char *buf, size_t len, TAR_MEMBER *th)
+tarGets(char *buf, size_t len, TAR_MEMBER * th)
 {
 	char	   *s;
 	size_t		cnt = 0;
@@ -516,7 +516,7 @@ tarGets(char *buf, size_t len, TAR_MEMBER *th)
  * that is used for ALL reads on a tar file.
  */
 static size_t
-_tarReadRaw(ArchiveHandle *AH, void *buf, size_t len, TAR_MEMBER *th, FILE *fh)
+_tarReadRaw(ArchiveHandle * AH, void *buf, size_t len, TAR_MEMBER * th, FILE * fh)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	size_t		avail;
@@ -587,7 +587,7 @@ _tarReadRaw(ArchiveHandle *AH, void *buf, size_t len, TAR_MEMBER *th, FILE *fh)
 }
 
 static size_t
-tarRead(void *buf, size_t len, TAR_MEMBER *th)
+tarRead(void *buf, size_t len, TAR_MEMBER * th)
 {
 	size_t		res;
 
@@ -605,7 +605,7 @@ tarRead(void *buf, size_t len, TAR_MEMBER *th)
 }
 
 static size_t
-tarWrite(const void *buf, size_t len, TAR_MEMBER *th)
+tarWrite(const void *buf, size_t len, TAR_MEMBER * th)
 {
 	size_t		res;
 
@@ -619,7 +619,7 @@ tarWrite(const void *buf, size_t len, TAR_MEMBER *th)
 }
 
 static void
-_WriteData(ArchiveHandle *AH, const void *data, size_t dLen)
+_WriteData(ArchiveHandle * AH, const void *data, size_t dLen)
 {
 	lclTocEntry *tctx = (lclTocEntry *) AH->currToc->formatData;
 
@@ -630,7 +630,7 @@ _WriteData(ArchiveHandle *AH, const void *data, size_t dLen)
 }
 
 static void
-_EndData(ArchiveHandle *AH, TocEntry *te)
+_EndData(ArchiveHandle * AH, TocEntry * te)
 {
 	lclTocEntry *tctx = (lclTocEntry *) te->formatData;
 
@@ -643,7 +643,7 @@ _EndData(ArchiveHandle *AH, TocEntry *te)
  * Print data for a given file
  */
 static void
-_PrintFileData(ArchiveHandle *AH, char *filename)
+_PrintFileData(ArchiveHandle * AH, char *filename)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	char		buf[4096];
@@ -670,7 +670,7 @@ _PrintFileData(ArchiveHandle *AH, char *filename)
  * Print data for a given TOC entry
 */
 static void
-_PrintTocData(ArchiveHandle *AH, TocEntry *te)
+_PrintTocData(ArchiveHandle * AH, TocEntry * te)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	lclTocEntry *tctx = (lclTocEntry *) te->formatData;
@@ -725,7 +725,7 @@ _PrintTocData(ArchiveHandle *AH, TocEntry *te)
 }
 
 static void
-_LoadBlobs(ArchiveHandle *AH)
+_LoadBlobs(ArchiveHandle * AH)
 {
 	Oid			oid;
 	lclContext *ctx = (lclContext *) AH->formatData;
@@ -781,7 +781,7 @@ _LoadBlobs(ArchiveHandle *AH)
 
 
 static int
-_WriteByte(ArchiveHandle *AH, const int i)
+_WriteByte(ArchiveHandle * AH, const int i)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	char		b = i;			/* Avoid endian problems */
@@ -794,7 +794,7 @@ _WriteByte(ArchiveHandle *AH, const int i)
 }
 
 static int
-_ReadByte(ArchiveHandle *AH)
+_ReadByte(ArchiveHandle * AH)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	size_t		res;
@@ -810,7 +810,7 @@ _ReadByte(ArchiveHandle *AH)
 }
 
 static void
-_WriteBuf(ArchiveHandle *AH, const void *buf, size_t len)
+_WriteBuf(ArchiveHandle * AH, const void *buf, size_t len)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
@@ -821,7 +821,7 @@ _WriteBuf(ArchiveHandle *AH, const void *buf, size_t len)
 }
 
 static void
-_ReadBuf(ArchiveHandle *AH, void *buf, size_t len)
+_ReadBuf(ArchiveHandle * AH, void *buf, size_t len)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
@@ -835,7 +835,7 @@ _ReadBuf(ArchiveHandle *AH, void *buf, size_t len)
 }
 
 static void
-_CloseArchive(ArchiveHandle *AH)
+_CloseArchive(ArchiveHandle * AH)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	TAR_MEMBER *th;
@@ -924,7 +924,7 @@ _CloseArchive(ArchiveHandle *AH)
 }
 
 static size_t
-_scriptOut(ArchiveHandle *AH, const void *buf, size_t len)
+_scriptOut(ArchiveHandle * AH, const void *buf, size_t len)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
@@ -946,7 +946,7 @@ _scriptOut(ArchiveHandle *AH, const void *buf, size_t len)
  *
  */
 static void
-_StartBlobs(ArchiveHandle *AH, TocEntry *te)
+_StartBlobs(ArchiveHandle * AH, TocEntry * te)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	char		fname[K_STD_BUF_SIZE];
@@ -963,7 +963,7 @@ _StartBlobs(ArchiveHandle *AH, TocEntry *te)
  * Must save the passed OID for retrieval at restore-time.
  */
 static void
-_StartBlob(ArchiveHandle *AH, TocEntry *te, Oid oid)
+_StartBlob(ArchiveHandle * AH, TocEntry * te, Oid oid)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	lclTocEntry *tctx = (lclTocEntry *) te->formatData;
@@ -992,7 +992,7 @@ _StartBlob(ArchiveHandle *AH, TocEntry *te, Oid oid)
  *
  */
 static void
-_EndBlob(ArchiveHandle *AH, TocEntry *te, Oid oid)
+_EndBlob(ArchiveHandle * AH, TocEntry * te, Oid oid)
 {
 	lclTocEntry *tctx = (lclTocEntry *) te->formatData;
 
@@ -1006,7 +1006,7 @@ _EndBlob(ArchiveHandle *AH, TocEntry *te, Oid oid)
  *
  */
 static void
-_EndBlobs(ArchiveHandle *AH, TocEntry *te)
+_EndBlobs(ArchiveHandle * AH, TocEntry * te)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
@@ -1024,7 +1024,7 @@ _EndBlobs(ArchiveHandle *AH, TocEntry *te)
  */
 
 static int
-tarPrintf(ArchiveHandle *AH, TAR_MEMBER *th, const char *fmt,...)
+tarPrintf(ArchiveHandle * AH, TAR_MEMBER * th, const char *fmt,...)
 {
 	char	   *p;
 	size_t		len = 128;		/* initial assumption about buffer size */
@@ -1082,7 +1082,7 @@ isValidTarHeader(char *header)
 
 /* Given the member, write the TAR header & copy the file */
 static void
-_tarAddFile(ArchiveHandle *AH, TAR_MEMBER *th)
+_tarAddFile(ArchiveHandle * AH, TAR_MEMBER * th)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	FILE	   *tmp = th->tmpFH;	/* Grab it for convenience */
@@ -1141,7 +1141,7 @@ _tarAddFile(ArchiveHandle *AH, TAR_MEMBER *th)
 
 /* Locate the file in the archive, read header and position to data */
 static TAR_MEMBER *
-_tarPositionTo(ArchiveHandle *AH, const char *filename)
+_tarPositionTo(ArchiveHandle * AH, const char *filename)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	TAR_MEMBER *th = pg_malloc0(sizeof(TAR_MEMBER));
@@ -1223,7 +1223,7 @@ _tarPositionTo(ArchiveHandle *AH, const char *filename)
 
 /* Read & verify a header */
 static int
-_tarGetHeader(ArchiveHandle *AH, TAR_MEMBER *th)
+_tarGetHeader(ArchiveHandle * AH, TAR_MEMBER * th)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	char		h[512];
@@ -1311,7 +1311,7 @@ _tarGetHeader(ArchiveHandle *AH, TAR_MEMBER *th)
 
 
 static void
-_tarWriteHeader(TAR_MEMBER *th)
+_tarWriteHeader(TAR_MEMBER * th)
 {
 	char		h[512];
 

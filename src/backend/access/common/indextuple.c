@@ -35,7 +35,7 @@
  */
 IndexTuple
 index_form_tuple(TupleDesc tupleDescriptor,
-				 Datum *values,
+				 Datum * values,
 				 bool *isnull)
 {
 	char	   *tp;				/* tuple pointer */
@@ -414,7 +414,7 @@ nocache_index_getattr(IndexTuple tup,
  */
 void
 index_deform_tuple(IndexTuple tup, TupleDesc tupleDescriptor,
-				   Datum *values, bool *isnull)
+				   Datum * values, bool *isnull)
 {
 	int			i;
 

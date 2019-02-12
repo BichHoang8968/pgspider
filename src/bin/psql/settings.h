@@ -38,21 +38,21 @@ typedef enum
 	PSQL_ECHO_QUERIES,
 	PSQL_ECHO_ERRORS,
 	PSQL_ECHO_ALL
-} PSQL_ECHO;
+}			PSQL_ECHO;
 
 typedef enum
 {
 	PSQL_ECHO_HIDDEN_OFF,
 	PSQL_ECHO_HIDDEN_ON,
 	PSQL_ECHO_HIDDEN_NOEXEC
-} PSQL_ECHO_HIDDEN;
+}			PSQL_ECHO_HIDDEN;
 
 typedef enum
 {
 	PSQL_ERROR_ROLLBACK_OFF,
 	PSQL_ERROR_ROLLBACK_INTERACTIVE,
 	PSQL_ERROR_ROLLBACK_ON
-} PSQL_ERROR_ROLLBACK;
+}			PSQL_ERROR_ROLLBACK;
 
 typedef enum
 {
@@ -60,7 +60,7 @@ typedef enum
 	PSQL_COMP_CASE_PRESERVE_LOWER,
 	PSQL_COMP_CASE_UPPER,
 	PSQL_COMP_CASE_LOWER
-} PSQL_COMP_CASE;
+}			PSQL_COMP_CASE;
 
 typedef enum
 {
@@ -138,7 +138,7 @@ typedef struct _psqlSettings
 	const char *prompt3;
 	PGVerbosity verbosity;		/* current error verbosity level */
 	PGContextVisibility show_context;	/* current context display level */
-} PsqlSettings;
+}			PsqlSettings;
 
 extern PsqlSettings pset;
 

@@ -54,20 +54,20 @@ typedef struct
 	HeapTuple	htup;
 	Datum	   *orderbyvals;
 	bool	   *orderbynulls;
-} ReorderTuple;
+}			ReorderTuple;
 
-static TupleTableSlot *IndexNext(IndexScanState *node);
-static TupleTableSlot *IndexNextWithReorder(IndexScanState *node);
-static void EvalOrderByExpressions(IndexScanState *node, ExprContext *econtext);
-static bool IndexRecheck(IndexScanState *node, TupleTableSlot *slot);
-static int cmp_orderbyvals(const Datum *adist, const bool *anulls,
-				const Datum *bdist, const bool *bnulls,
-				IndexScanState *node);
-static int reorderqueue_cmp(const pairingheap_node *a,
-				 const pairingheap_node *b, void *arg);
-static void reorderqueue_push(IndexScanState *node, HeapTuple tuple,
-				  Datum *orderbyvals, bool *orderbynulls);
-static HeapTuple reorderqueue_pop(IndexScanState *node);
+static TupleTableSlot * IndexNext(IndexScanState * node);
+static TupleTableSlot * IndexNextWithReorder(IndexScanState * node);
+static void EvalOrderByExpressions(IndexScanState * node, ExprContext * econtext);
+static bool IndexRecheck(IndexScanState * node, TupleTableSlot * slot);
+static int cmp_orderbyvals(const Datum * adist, const bool *anulls,
+				const Datum * bdist, const bool *bnulls,
+				IndexScanState * node);
+static int reorderqueue_cmp(const pairingheap_node * a,
+				 const pairingheap_node * b, void *arg);
+static void reorderqueue_push(IndexScanState * node, HeapTuple tuple,
+				  Datum * orderbyvals, bool *orderbynulls);
+static HeapTuple reorderqueue_pop(IndexScanState * node);
 
 
 /* ----------------------------------------------------------------
@@ -78,7 +78,7 @@ static HeapTuple reorderqueue_pop(IndexScanState *node);
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-IndexNext(IndexScanState *node)
+IndexNext(IndexScanState * node)
 {
 	EState	   *estate;
 	ExprContext *econtext;
@@ -180,7 +180,7 @@ IndexNext(IndexScanState *node)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-IndexNextWithReorder(IndexScanState *node)
+IndexNextWithReorder(IndexScanState * node)
 {
 	EState	   *estate;
 	ExprContext *econtext;
@@ -383,7 +383,7 @@ next_indextuple:
  * Calculate the expressions in the ORDER BY clause, based on the heap tuple.
  */
 static void
-EvalOrderByExpressions(IndexScanState *node, ExprContext *econtext)
+EvalOrderByExpressions(IndexScanState * node, ExprContext * econtext)
 {
 	int			i;
 	ListCell   *l;
@@ -409,7 +409,7 @@ EvalOrderByExpressions(IndexScanState *node, ExprContext *econtext)
  * IndexRecheck -- access method routine to recheck a tuple in EvalPlanQual
  */
 static bool
-IndexRecheck(IndexScanState *node, TupleTableSlot *slot)
+IndexRecheck(IndexScanState * node, TupleTableSlot * slot)
 {
 	ExprContext *econtext;
 
@@ -431,9 +431,9 @@ IndexRecheck(IndexScanState *node, TupleTableSlot *slot)
  * Compare ORDER BY expression values.
  */
 static int
-cmp_orderbyvals(const Datum *adist, const bool *anulls,
-				const Datum *bdist, const bool *bnulls,
-				IndexScanState *node)
+cmp_orderbyvals(const Datum * adist, const bool *anulls,
+				const Datum * bdist, const bool *bnulls,
+				IndexScanState * node)
 {
 	int			i;
 	int			result;
@@ -467,7 +467,7 @@ cmp_orderbyvals(const Datum *adist, const bool *anulls,
  * ascending sort.  That's why we invert the sort order.
  */
 static int
-reorderqueue_cmp(const pairingheap_node *a, const pairingheap_node *b,
+reorderqueue_cmp(const pairingheap_node * a, const pairingheap_node * b,
 				 void *arg)
 {
 	ReorderTuple *rta = (ReorderTuple *) a;
@@ -483,8 +483,8 @@ reorderqueue_cmp(const pairingheap_node *a, const pairingheap_node *b,
  * Helper function to push a tuple to the reorder queue.
  */
 static void
-reorderqueue_push(IndexScanState *node, HeapTuple tuple,
-				  Datum *orderbyvals, bool *orderbynulls)
+reorderqueue_push(IndexScanState * node, HeapTuple tuple,
+				  Datum * orderbyvals, bool *orderbynulls)
 {
 	IndexScanDesc scandesc = node->iss_ScanDesc;
 	EState	   *estate = node->ss.ps.state;
@@ -517,7 +517,7 @@ reorderqueue_push(IndexScanState *node, HeapTuple tuple,
  * Helper function to pop the next tuple from the reorder queue.
  */
 static HeapTuple
-reorderqueue_pop(IndexScanState *node)
+reorderqueue_pop(IndexScanState * node)
 {
 	HeapTuple	result;
 	ReorderTuple *topmost;
@@ -544,7 +544,7 @@ reorderqueue_pop(IndexScanState *node)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecIndexScan(PlanState *pstate)
+ExecIndexScan(PlanState * pstate)
 {
 	IndexScanState *node = castNode(IndexScanState, pstate);
 
@@ -576,7 +576,7 @@ ExecIndexScan(PlanState *pstate)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanIndexScan(IndexScanState *node)
+ExecReScanIndexScan(IndexScanState * node)
 {
 	/*
 	 * If we are doing runtime key calculations (ie, any of the index key
@@ -619,8 +619,8 @@ ExecReScanIndexScan(IndexScanState *node)
  *		Evaluate any runtime key values, and update the scankeys.
  */
 void
-ExecIndexEvalRuntimeKeys(ExprContext *econtext,
-						 IndexRuntimeKeyInfo *runtimeKeys, int numRuntimeKeys)
+ExecIndexEvalRuntimeKeys(ExprContext * econtext,
+						 IndexRuntimeKeyInfo * runtimeKeys, int numRuntimeKeys)
 {
 	int			j;
 	MemoryContext oldContext;
@@ -681,8 +681,8 @@ ExecIndexEvalRuntimeKeys(ExprContext *econtext,
  * result, the scankeys are initialized with the first elements of the arrays.
  */
 bool
-ExecIndexEvalArrayKeys(ExprContext *econtext,
-					   IndexArrayKeyInfo *arrayKeys, int numArrayKeys)
+ExecIndexEvalArrayKeys(ExprContext * econtext,
+					   IndexArrayKeyInfo * arrayKeys, int numArrayKeys)
 {
 	bool		result = true;
 	int			j;
@@ -760,7 +760,7 @@ ExecIndexEvalArrayKeys(ExprContext *econtext,
  * On TRUE result, the scankeys are initialized with the next set of values.
  */
 bool
-ExecIndexAdvanceArrayKeys(IndexArrayKeyInfo *arrayKeys, int numArrayKeys)
+ExecIndexAdvanceArrayKeys(IndexArrayKeyInfo * arrayKeys, int numArrayKeys)
 {
 	bool		found = false;
 	int			j;
@@ -805,7 +805,7 @@ ExecIndexAdvanceArrayKeys(IndexArrayKeyInfo *arrayKeys, int numArrayKeys)
  * ----------------------------------------------------------------
  */
 void
-ExecEndIndexScan(IndexScanState *node)
+ExecEndIndexScan(IndexScanState * node)
 {
 	Relation	indexRelationDesc;
 	IndexScanDesc indexScanDesc;
@@ -855,7 +855,7 @@ ExecEndIndexScan(IndexScanState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecIndexMarkPos(IndexScanState *node)
+ExecIndexMarkPos(IndexScanState * node)
 {
 	EState	   *estate = node->ss.ps.state;
 
@@ -890,7 +890,7 @@ ExecIndexMarkPos(IndexScanState *node)
  * ----------------------------------------------------------------
  */
 void
-ExecIndexRestrPos(IndexScanState *node)
+ExecIndexRestrPos(IndexScanState * node)
 {
 	EState	   *estate = node->ss.ps.state;
 
@@ -924,7 +924,7 @@ ExecIndexRestrPos(IndexScanState *node)
  * ----------------------------------------------------------------
  */
 IndexScanState *
-ExecInitIndexScan(IndexScan *node, EState *estate, int eflags)
+ExecInitIndexScan(IndexScan * node, EState * estate, int eflags)
 {
 	IndexScanState *indexstate;
 	Relation	currentRelation;
@@ -1184,11 +1184,11 @@ ExecInitIndexScan(IndexScan *node, EState *estate, int eflags)
  * IndexArrayKeyInfos are not supported.
  */
 void
-ExecIndexBuildScanKeys(PlanState *planstate, Relation index,
-					   List *quals, bool isorderby,
-					   ScanKey *scanKeys, int *numScanKeys,
-					   IndexRuntimeKeyInfo **runtimeKeys, int *numRuntimeKeys,
-					   IndexArrayKeyInfo **arrayKeys, int *numArrayKeys)
+ExecIndexBuildScanKeys(PlanState * planstate, Relation index,
+					   List * quals, bool isorderby,
+					   ScanKey * scanKeys, int *numScanKeys,
+					   IndexRuntimeKeyInfo * *runtimeKeys, int *numRuntimeKeys,
+					   IndexArrayKeyInfo * *arrayKeys, int *numArrayKeys)
 {
 	ListCell   *qual_cell;
 	ScanKey		scan_keys;
@@ -1693,8 +1693,8 @@ ExecIndexBuildScanKeys(PlanState *planstate, Relation index,
  * ----------------------------------------------------------------
  */
 void
-ExecIndexScanEstimate(IndexScanState *node,
-					  ParallelContext *pcxt)
+ExecIndexScanEstimate(IndexScanState * node,
+					  ParallelContext * pcxt)
 {
 	EState	   *estate = node->ss.ps.state;
 
@@ -1711,8 +1711,8 @@ ExecIndexScanEstimate(IndexScanState *node,
  * ----------------------------------------------------------------
  */
 void
-ExecIndexScanInitializeDSM(IndexScanState *node,
-						   ParallelContext *pcxt)
+ExecIndexScanInitializeDSM(IndexScanState * node,
+						   ParallelContext * pcxt)
 {
 	EState	   *estate = node->ss.ps.state;
 	ParallelIndexScanDesc piscan;
@@ -1747,8 +1747,8 @@ ExecIndexScanInitializeDSM(IndexScanState *node,
  * ----------------------------------------------------------------
  */
 void
-ExecIndexScanReInitializeDSM(IndexScanState *node,
-							 ParallelContext *pcxt)
+ExecIndexScanReInitializeDSM(IndexScanState * node,
+							 ParallelContext * pcxt)
 {
 	index_parallelrescan(node->iss_ScanDesc);
 }
@@ -1760,7 +1760,7 @@ ExecIndexScanReInitializeDSM(IndexScanState *node,
  * ----------------------------------------------------------------
  */
 void
-ExecIndexScanInitializeWorker(IndexScanState *node, shm_toc *toc)
+ExecIndexScanInitializeWorker(IndexScanState * node, shm_toc * toc)
 {
 	ParallelIndexScanDesc piscan;
 

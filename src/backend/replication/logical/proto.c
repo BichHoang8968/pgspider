@@ -30,8 +30,8 @@ static void logicalrep_write_attrs(StringInfo out, Relation rel);
 static void logicalrep_write_tuple(StringInfo out, Relation rel,
 					   HeapTuple tuple);
 
-static void logicalrep_read_attrs(StringInfo in, LogicalRepRelation *rel);
-static void logicalrep_read_tuple(StringInfo in, LogicalRepTupleData *tuple);
+static void logicalrep_read_attrs(StringInfo in, LogicalRepRelation * rel);
+static void logicalrep_read_tuple(StringInfo in, LogicalRepTupleData * tuple);
 
 static void logicalrep_write_namespace(StringInfo out, Oid nspid);
 static const char *logicalrep_read_namespace(StringInfo in);
@@ -40,7 +40,7 @@ static const char *logicalrep_read_namespace(StringInfo in);
  * Write BEGIN to the output stream.
  */
 void
-logicalrep_write_begin(StringInfo out, ReorderBufferTXN *txn)
+logicalrep_write_begin(StringInfo out, ReorderBufferTXN * txn)
 {
 	pq_sendbyte(out, 'B');		/* BEGIN */
 
@@ -54,7 +54,7 @@ logicalrep_write_begin(StringInfo out, ReorderBufferTXN *txn)
  * Read transaction BEGIN from the stream.
  */
 void
-logicalrep_read_begin(StringInfo in, LogicalRepBeginData *begin_data)
+logicalrep_read_begin(StringInfo in, LogicalRepBeginData * begin_data)
 {
 	/* read fields */
 	begin_data->final_lsn = pq_getmsgint64(in);
@@ -69,7 +69,7 @@ logicalrep_read_begin(StringInfo in, LogicalRepBeginData *begin_data)
  * Write COMMIT to the output stream.
  */
 void
-logicalrep_write_commit(StringInfo out, ReorderBufferTXN *txn,
+logicalrep_write_commit(StringInfo out, ReorderBufferTXN * txn,
 						XLogRecPtr commit_lsn)
 {
 	uint8		flags = 0;
@@ -89,7 +89,7 @@ logicalrep_write_commit(StringInfo out, ReorderBufferTXN *txn,
  * Read transaction COMMIT from the stream.
  */
 void
-logicalrep_read_commit(StringInfo in, LogicalRepCommitData *commit_data)
+logicalrep_read_commit(StringInfo in, LogicalRepCommitData * commit_data)
 {
 	/* read flags (unused for now) */
 	uint8		flags = pq_getmsgbyte(in);
@@ -123,7 +123,7 @@ logicalrep_write_origin(StringInfo out, const char *origin,
  * Read ORIGIN from the output stream.
  */
 char *
-logicalrep_read_origin(StringInfo in, XLogRecPtr *origin_lsn)
+logicalrep_read_origin(StringInfo in, XLogRecPtr * origin_lsn)
 {
 	/* fixed fields */
 	*origin_lsn = pq_getmsgint64(in);
@@ -157,7 +157,7 @@ logicalrep_write_insert(StringInfo out, Relation rel, HeapTuple newtuple)
  * Fills the new tuple.
  */
 LogicalRepRelId
-logicalrep_read_insert(StringInfo in, LogicalRepTupleData *newtup)
+logicalrep_read_insert(StringInfo in, LogicalRepTupleData * newtup)
 {
 	char		action;
 	LogicalRepRelId relid;
@@ -209,8 +209,8 @@ logicalrep_write_update(StringInfo out, Relation rel, HeapTuple oldtuple,
  */
 LogicalRepRelId
 logicalrep_read_update(StringInfo in, bool *has_oldtuple,
-					   LogicalRepTupleData *oldtup,
-					   LogicalRepTupleData *newtup)
+					   LogicalRepTupleData * oldtup,
+					   LogicalRepTupleData * newtup)
 {
 	char		action;
 	LogicalRepRelId relid;
@@ -274,7 +274,7 @@ logicalrep_write_delete(StringInfo out, Relation rel, HeapTuple oldtuple)
  * Fills the old tuple.
  */
 LogicalRepRelId
-logicalrep_read_delete(StringInfo in, LogicalRepTupleData *oldtup)
+logicalrep_read_delete(StringInfo in, LogicalRepTupleData * oldtup)
 {
 	char		action;
 	LogicalRepRelId relid;
@@ -373,7 +373,7 @@ logicalrep_write_typ(StringInfo out, Oid typoid)
  * Read type info from the output stream.
  */
 void
-logicalrep_read_typ(StringInfo in, LogicalRepTyp *ltyp)
+logicalrep_read_typ(StringInfo in, LogicalRepTyp * ltyp)
 {
 	ltyp->remoteid = pq_getmsgint(in, 4);
 
@@ -454,7 +454,7 @@ logicalrep_write_tuple(StringInfo out, Relation rel, HeapTuple tuple)
  * The returned tuple points into the input stringinfo.
  */
 static void
-logicalrep_read_tuple(StringInfo in, LogicalRepTupleData *tuple)
+logicalrep_read_tuple(StringInfo in, LogicalRepTupleData * tuple)
 {
 	int			i;
 	int			natts;
@@ -564,7 +564,7 @@ logicalrep_write_attrs(StringInfo out, Relation rel)
  * Read relation attribute names from the stream.
  */
 static void
-logicalrep_read_attrs(StringInfo in, LogicalRepRelation *rel)
+logicalrep_read_attrs(StringInfo in, LogicalRepRelation * rel)
 {
 	int			i;
 	int			natts;

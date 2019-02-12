@@ -29,17 +29,17 @@
 #include "utils/memutils.h"
 #endif
 
-static bool allocate_recordbuf(XLogReaderState *state, uint32 reclength);
+static bool allocate_recordbuf(XLogReaderState * state, uint32 reclength);
 
-static bool ValidXLogRecordHeader(XLogReaderState *state, XLogRecPtr RecPtr,
-					  XLogRecPtr PrevRecPtr, XLogRecord *record, bool randAccess);
-static bool ValidXLogRecord(XLogReaderState *state, XLogRecord *record,
+static bool ValidXLogRecordHeader(XLogReaderState * state, XLogRecPtr RecPtr,
+					  XLogRecPtr PrevRecPtr, XLogRecord * record, bool randAccess);
+static bool ValidXLogRecord(XLogReaderState * state, XLogRecord * record,
 				XLogRecPtr recptr);
-static int ReadPageInternal(XLogReaderState *state, XLogRecPtr pageptr,
+static int ReadPageInternal(XLogReaderState * state, XLogRecPtr pageptr,
 				 int reqLen);
-static void report_invalid_record(XLogReaderState *state, const char *fmt,...) pg_attribute_printf(2, 3);
+static void report_invalid_record(XLogReaderState * state, const char *fmt,...) pg_attribute_printf(2, 3);
 
-static void ResetDecoder(XLogReaderState *state);
+static void ResetDecoder(XLogReaderState * state);
 
 /* size of the buffer allocated for error message. */
 #define MAX_ERRORMSG_LEN 1000
@@ -49,7 +49,7 @@ static void ResetDecoder(XLogReaderState *state);
  * the current record being read.
  */
 static void
-report_invalid_record(XLogReaderState *state, const char *fmt,...)
+report_invalid_record(XLogReaderState * state, const char *fmt,...)
 {
 	va_list		args;
 
@@ -124,7 +124,7 @@ XLogReaderAllocate(XLogPageReadCB pagereadfunc, void *private_data)
 }
 
 void
-XLogReaderFree(XLogReaderState *state)
+XLogReaderFree(XLogReaderState * state)
 {
 	int			block_id;
 
@@ -155,7 +155,7 @@ XLogReaderFree(XLogReaderState *state)
  * abort records might need more space.)
  */
 static bool
-allocate_recordbuf(XLogReaderState *state, uint32 reclength)
+allocate_recordbuf(XLogReaderState * state, uint32 reclength)
 {
 	uint32		newSize = reclength;
 
@@ -211,7 +211,7 @@ allocate_recordbuf(XLogReaderState *state, uint32 reclength)
  * valid until the next call to XLogReadRecord.
  */
 XLogRecord *
-XLogReadRecord(XLogReaderState *state, XLogRecPtr RecPtr, char **errormsg)
+XLogReadRecord(XLogReaderState * state, XLogRecPtr RecPtr, char **errormsg)
 {
 	XLogRecord *record;
 	XLogRecPtr	targetPagePtr;
@@ -521,7 +521,7 @@ err:
  * data and if there hasn't been any error since caching the data.
  */
 static int
-ReadPageInternal(XLogReaderState *state, XLogRecPtr pageptr, int reqLen)
+ReadPageInternal(XLogReaderState * state, XLogRecPtr pageptr, int reqLen)
 {
 	int			readLen;
 	uint32		targetPageOff;
@@ -620,7 +620,7 @@ err:
  * Invalidate the xlogreader's read state to force a re-read.
  */
 void
-XLogReaderInvalReadState(XLogReaderState *state)
+XLogReaderInvalReadState(XLogReaderState * state)
 {
 	state->readSegNo = 0;
 	state->readOff = 0;
@@ -634,8 +634,8 @@ XLogReaderInvalReadState(XLogReaderState *state)
  * XLogReadRecord.  It's not intended for use from anywhere else.
  */
 static bool
-ValidXLogRecordHeader(XLogReaderState *state, XLogRecPtr RecPtr,
-					  XLogRecPtr PrevRecPtr, XLogRecord *record,
+ValidXLogRecordHeader(XLogReaderState * state, XLogRecPtr RecPtr,
+					  XLogRecPtr PrevRecPtr, XLogRecord * record,
 					  bool randAccess)
 {
 	if (record->xl_tot_len < SizeOfXLogRecord)
@@ -703,7 +703,7 @@ ValidXLogRecordHeader(XLogReaderState *state, XLogRecPtr RecPtr,
  * SizeOfXlogRecord.
  */
 static bool
-ValidXLogRecord(XLogReaderState *state, XLogRecord *record, XLogRecPtr recptr)
+ValidXLogRecord(XLogReaderState * state, XLogRecord * record, XLogRecPtr recptr)
 {
 	pg_crc32c	crc;
 
@@ -732,7 +732,7 @@ ValidXLogRecord(XLogReaderState *state, XLogRecord *record, XLogRecPtr recptr)
  * 'recptr'.
  */
 bool
-XLogReaderValidatePageHeader(XLogReaderState *state, XLogRecPtr recptr,
+XLogReaderValidatePageHeader(XLogReaderState * state, XLogRecPtr recptr,
 							 char *phdr)
 {
 	XLogRecPtr	recaddr;
@@ -827,9 +827,9 @@ XLogReaderValidatePageHeader(XLogReaderState *state, XLogRecPtr recptr,
 	}
 
 	/*
-	 * Check that the address on the page agrees with what we expected.
-	 * This check typically fails when an old WAL segment is recycled,
-	 * and hasn't yet been overwritten with new data yet.
+	 * Check that the address on the page agrees with what we expected. This
+	 * check typically fails when an old WAL segment is recycled, and hasn't
+	 * yet been overwritten with new data yet.
 	 */
 	if (hdr->xlp_pageaddr != recaddr)
 	{
@@ -892,7 +892,7 @@ XLogReaderValidatePageHeader(XLogReaderState *state, XLogRecPtr recptr,
  * debugging purposes.
  */
 XLogRecPtr
-XLogFindNextRecord(XLogReaderState *state, XLogRecPtr RecPtr)
+XLogFindNextRecord(XLogReaderState * state, XLogRecPtr RecPtr)
 {
 	XLogReaderState saved_state = *state;
 	XLogRecPtr	tmpRecPtr;
@@ -1012,7 +1012,7 @@ out:
 
 /* private function to reset the state between records */
 static void
-ResetDecoder(XLogReaderState *state)
+ResetDecoder(XLogReaderState * state)
 {
 	int			block_id;
 
@@ -1037,7 +1037,7 @@ ResetDecoder(XLogReaderState *state)
  * the return value is false.
  */
 bool
-DecodeXLogRecord(XLogReaderState *state, XLogRecord *record, char **errormsg)
+DecodeXLogRecord(XLogReaderState * state, XLogRecord * record, char **errormsg)
 {
 	/*
 	 * read next _size bytes from record buffer, but check for overrun first.
@@ -1347,8 +1347,8 @@ err:
  * Otherwise returns FALSE.
  */
 bool
-XLogRecGetBlockTag(XLogReaderState *record, uint8 block_id,
-				   RelFileNode *rnode, ForkNumber *forknum, BlockNumber *blknum)
+XLogRecGetBlockTag(XLogReaderState * record, uint8 block_id,
+				   RelFileNode * rnode, ForkNumber * forknum, BlockNumber * blknum)
 {
 	DecodedBkpBlock *bkpb;
 
@@ -1371,7 +1371,7 @@ XLogRecGetBlockTag(XLogReaderState *record, uint8 block_id,
  * pointer points to a MAXALIGNed buffer.
  */
 char *
-XLogRecGetBlockData(XLogReaderState *record, uint8 block_id, Size *len)
+XLogRecGetBlockData(XLogReaderState * record, uint8 block_id, Size * len)
 {
 	DecodedBkpBlock *bkpb;
 
@@ -1400,7 +1400,7 @@ XLogRecGetBlockData(XLogReaderState *record, uint8 block_id, Size *len)
  * Returns the buffer number containing the page.
  */
 bool
-RestoreBlockImage(XLogReaderState *record, uint8 block_id, char *page)
+RestoreBlockImage(XLogReaderState * record, uint8 block_id, char *page)
 {
 	DecodedBkpBlock *bkpb;
 	char	   *ptr;

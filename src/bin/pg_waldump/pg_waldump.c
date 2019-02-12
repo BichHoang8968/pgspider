@@ -33,7 +33,7 @@ typedef struct XLogDumpPrivate
 	XLogRecPtr	startptr;
 	XLogRecPtr	endptr;
 	bool		endptr_reached;
-} XLogDumpPrivate;
+}			XLogDumpPrivate;
 
 typedef struct XLogDumpConfig
 {
@@ -49,14 +49,14 @@ typedef struct XLogDumpConfig
 	int			filter_by_rmgr;
 	TransactionId filter_by_xid;
 	bool		filter_by_xid_enabled;
-} XLogDumpConfig;
+}			XLogDumpConfig;
 
 typedef struct Stats
 {
 	uint64		count;
 	uint64		rec_len;
 	uint64		fpi_len;
-} Stats;
+}			Stats;
 
 #define MAX_XLINFO_TYPES 16
 
@@ -65,7 +65,7 @@ typedef struct XLogDumpStats
 	uint64		count;
 	Stats		rmgr_stats[RM_NEXT_ID];
 	Stats		record_stats[RM_NEXT_ID][MAX_XLINFO_TYPES];
-} XLogDumpStats;
+}			XLogDumpStats;
 
 static void fatal_error(const char *fmt,...) pg_attribute_printf(1, 2);
 
@@ -337,8 +337,8 @@ XLogDumpXLogRead(const char *directory, TimeLineID timeline_id,
  * XLogReader read_page callback
  */
 static int
-XLogDumpReadPage(XLogReaderState *state, XLogRecPtr targetPagePtr, int reqLen,
-				 XLogRecPtr targetPtr, char *readBuff, TimeLineID *curFileTLI)
+XLogDumpReadPage(XLogReaderState * state, XLogRecPtr targetPagePtr, int reqLen,
+				 XLogRecPtr targetPtr, char *readBuff, TimeLineID * curFileTLI)
 {
 	XLogDumpPrivate *private = state->private_data;
 	int			count = XLOG_BLCKSZ;
@@ -366,7 +366,7 @@ XLogDumpReadPage(XLogReaderState *state, XLogRecPtr targetPagePtr, int reqLen,
  * Calculate the size of a record, split into !FPI and FPI parts.
  */
 static void
-XLogDumpRecordLen(XLogReaderState *record, uint32 *rec_len, uint32 *fpi_len)
+XLogDumpRecordLen(XLogReaderState * record, uint32 * rec_len, uint32 * fpi_len)
 {
 	int			block_id;
 
@@ -395,8 +395,8 @@ XLogDumpRecordLen(XLogReaderState *record, uint32 *rec_len, uint32 *fpi_len)
  * Store per-rmgr and per-record statistics for a given record.
  */
 static void
-XLogDumpCountRecord(XLogDumpConfig *config, XLogDumpStats *stats,
-					XLogReaderState *record)
+XLogDumpCountRecord(XLogDumpConfig * config, XLogDumpStats * stats,
+					XLogReaderState * record)
 {
 	RmgrId		rmid;
 	uint8		recid;
@@ -433,10 +433,10 @@ XLogDumpCountRecord(XLogDumpConfig *config, XLogDumpStats *stats,
  * Print a record to stdout
  */
 static void
-XLogDumpDisplayRecord(XLogDumpConfig *config, XLogReaderState *record)
+XLogDumpDisplayRecord(XLogDumpConfig * config, XLogReaderState * record)
 {
 	const char *id;
-	const RmgrDescData *desc = &RmgrDescTable[XLogRecGetRmid(record)];
+	const		RmgrDescData *desc = &RmgrDescTable[XLogRecGetRmid(record)];
 	uint32		rec_len;
 	uint32		fpi_len;
 	RelFileNode rnode;
@@ -582,7 +582,7 @@ XLogDumpStatsRow(const char *name,
  * Display summary statistics about the records seen so far.
  */
 static void
-XLogDumpDisplayStats(XLogDumpConfig *config, XLogDumpStats *stats)
+XLogDumpDisplayStats(XLogDumpConfig * config, XLogDumpStats * stats)
 {
 	int			ri,
 				rj;
@@ -627,7 +627,7 @@ XLogDumpDisplayStats(XLogDumpConfig *config, XLogDumpStats *stats)
 					rec_len,
 					fpi_len,
 					tot_len;
-		const RmgrDescData *desc = &RmgrDescTable[ri];
+		const		RmgrDescData *desc = &RmgrDescTable[ri];
 
 		if (!config->stats_per_record)
 		{

@@ -45,20 +45,20 @@ typedef union SemTPadded
 {
 	sem_t		pgsem;
 	char		pad[PG_CACHE_LINE_SIZE];
-} SemTPadded;
+}			SemTPadded;
 
 /* typedef PGSemaphore is equivalent to pointer to sem_t */
 typedef struct PGSemaphoreData
 {
 	SemTPadded	sem_padded;
-} PGSemaphoreData;
+}			PGSemaphoreData;
 
 #define PG_SEM_REF(x)	(&(x)->sem_padded.pgsem)
 
 #define IPCProtection	(0600)	/* access/modify by user only */
 
 #ifdef USE_NAMED_POSIX_SEMAPHORES
-static sem_t **mySemPointers;	/* keep track of created semaphores */
+static sem_t * *mySemPointers;	/* keep track of created semaphores */
 #else
 static PGSemaphore sharedSemas; /* array of PGSemaphoreData in shared memory */
 #endif
@@ -131,7 +131,7 @@ PosixSemaphoreCreate(void)
  * Attempt to create a new unnamed semaphore.
  */
 static void
-PosixSemaphoreCreate(sem_t *sem)
+PosixSemaphoreCreate(sem_t * sem)
 {
 	if (sem_init(sem, 1, 1) < 0)
 		elog(FATAL, "sem_init failed: %m");
@@ -143,7 +143,7 @@ PosixSemaphoreCreate(sem_t *sem)
  * PosixSemaphoreKill	- removes a semaphore
  */
 static void
-PosixSemaphoreKill(sem_t *sem)
+PosixSemaphoreKill(sem_t * sem)
 {
 #ifdef USE_NAMED_POSIX_SEMAPHORES
 	/* Got to use sem_close for named semaphores */
@@ -199,7 +199,7 @@ void
 PGReserveSemaphores(int maxSemas, int port)
 {
 #ifdef USE_NAMED_POSIX_SEMAPHORES
-	mySemPointers = (sem_t **) malloc(maxSemas * sizeof(sem_t *));
+	mySemPointers = (sem_t * *) malloc(maxSemas * sizeof(sem_t *));
 	if (mySemPointers == NULL)
 		elog(PANIC, "out of memory");
 #else
