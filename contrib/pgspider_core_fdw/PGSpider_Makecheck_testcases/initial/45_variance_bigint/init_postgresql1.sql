@@ -1,0 +1,3 @@
+CREATE TABLE variancebigint (i bigint);
+INSERT INTO variancebigint VALUES (9187846443212164687);
+INSERT INTO variancebigint VALUES (-7994644313164657987);

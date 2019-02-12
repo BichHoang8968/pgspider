@@ -1,0 +1,4 @@
+CREATE TABLE stddevreal (i real);
+INSERT INTO stddevreal VALUES (1.723526E37);
+INSERT INTO stddevreal VALUES (7.7324E27);
+INSERT INTO stddevreal VALUES (5.84356E12);

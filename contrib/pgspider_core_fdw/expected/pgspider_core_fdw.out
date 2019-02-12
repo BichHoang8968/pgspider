@@ -1,0 +1,252 @@
+CREATE EXTENSION pgspider_core_fdw;
+CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1',port '50849');
+INFO:  option name = "service" key word = host
+INFO:  option name = "user" key word = host
+INFO:  option name = "password" key word = host
+INFO:  option name = "passfile" key word = host
+INFO:  option name = "connect_timeout" key word = host
+INFO:  option name = "dbname" key word = host
+INFO:  option name = "host" key word = host
+INFO:  option name = "service" key word = port
+INFO:  option name = "user" key word = port
+INFO:  option name = "password" key word = port
+INFO:  option name = "passfile" key word = port
+INFO:  option name = "connect_timeout" key word = port
+INFO:  option name = "dbname" key word = port
+INFO:  option name = "host" key word = port
+INFO:  option name = "hostaddr" key word = port
+INFO:  option name = "port" key word = port
+CREATE USER mapping for public server pgspider_svr OPTIONS(user 'postgres',password 'postgres');
+INFO:  option name = "service" key word = user
+INFO:  option name = "user" key word = user
+INFO:  option name = "service" key word = password
+INFO:  option name = "user" key word = password
+INFO:  option name = "password" key word = password
+CREATE FOREIGN TABLE test1 (i int) SERVER pgspider_svr;
+SELECT * FROM test1;
+ERROR:  Cannot Find child datasources. 
+
+SELECT * FROM test1 UNDER '/test2/';
+ERROR:  Cannot Find child datasources. 
+
+CREATE EXTENSION postgres_fdw;
+CREATE EXTENSION file_fdw;
+CREATE EXTENSION sqlite_fdw;
+CREATE EXTENSION tinybrace_fdw;
+CREATE EXTENSION mysql_fdw;
+CREATE SERVER file_svr FOREIGN DATA WRAPPER file_fdw;
+CREATE SERVER filesvr2 FOREIGN DATA WRAPPER file_fdw;
+CREATE FOREIGN TABLE test1__file_svr__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
+SELECT * FROM test1;
+ i 
+---
+ 1
+ 2
+ 3
+ 4
+(4 rows)
+
+CREATE FOREIGN TABLE test1__filesvr2__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
+SELECT * FROM test1 order by i;
+ i 
+---
+ 1
+ 1
+ 2
+ 2
+ 3
+ 3
+ 4
+ 4
+(8 rows)
+
+SELECT * FROM test1 UNDER '/file_svr/';
+ i 
+---
+ 1
+ 1
+ 2
+ 2
+ 3
+ 3
+ 4
+ 4
+(8 rows)
+
+SELECT * FROM test1 under '/file_svr/' where i = 1;
+ i 
+---
+ 1
+ 1
+ 2
+ 2
+ 3
+ 3
+ 4
+ 4
+(8 rows)
+
+CREATE SERVER tiny_svr FOREIGN DATA WRAPPER tinybrace_fdw OPTIONS (host '127.0.0.1',port '5100', dbname 'test.db');
+INFO:  option name = "host"
+INFO:  option name = "port"
+INFO:  option name = "dbname"
+CREATE USER mapping for public server tiny_svr OPTIONS(username 'user',password 'testuser');
+INFO:  option name = "username"
+INFO:  option name = "password"
+CREATE FOREIGN TABLE test1__tiny_svr__0 (i int) SERVER tiny_svr OPTIONS(table_name 'test1');
+INFO:  option name = "table_name"
+SELECT * FROM test1__tiny_svr__0;
+ i 
+---
+ 1
+(1 row)
+
+SELECT * FROM test1 ORDER BY i;
+ i 
+---
+ 1
+ 1
+ 1
+ 2
+ 2
+ 3
+ 3
+ 4
+ 4
+(9 rows)
+
+SELECT * FROM test1 UNDER '/tiny_svr/';
+ i 
+---
+ 1
+(1 row)
+
+SELECT * FROM test1 under '/tiny_svr/' where i = 1;
+ i 
+---
+ 1
+(1 row)
+
+CREATE SERVER post_svr FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1',port '15432');
+CREATE USER mapping for public server post_svr OPTIONS(user 'postgres',password 'postgres');
+CREATE FOREIGN TABLE test1__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test1');
+SELECT * FROM test1__post_svr__0;
+  i   
+------
+ 1111
+(1 row)
+
+SELECT * FROM test1 ORDER BY i;
+  i   
+------
+    1
+    1
+    1
+    2
+    2
+    3
+    3
+    4
+    4
+ 1111
+(10 rows)
+
+SELECT * FROM test1 UNDER '/post_svr/';
+  i   
+------
+ 1111
+(1 row)
+
+SELECT * FROM test1 under '/post_svr/' where i = 1;
+ i 
+---
+(0 rows)
+
+CREATE SERVER sqlite_svr FOREIGN DATA WRAPPER sqlite_fdw OPTIONS (database '/tmp/pgtest.db');
+CREATE FOREIGN TABLE test1__sqlite_svr__0 (i int) SERVER sqlite_svr OPTIONS(table 'test1');
+SELECT * FROM test1 ORDER BY i;
+   i   
+-------
+     1
+     1
+     1
+     1
+     2
+     2
+     3
+     3
+     4
+     4
+  1111
+ 22222
+(12 rows)
+
+SELECT * FROM test1 UNDER '/sqlite_svr/';
+   i   
+-------
+     1
+ 22222
+(2 rows)
+
+SELECT * FROM test1 under '/sqlite_svr/' where i = 4;
+ i 
+---
+(0 rows)
+
+CREATE SERVER mysql_svr FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
+CREATE USER mapping for public server mysql_svr OPTIONS(username 'root',password 'mysql');
+CREATE FOREIGN TABLE test1__mysql_svr__0 (i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test1');
+SELECT * FROM test1 ORDER BY i;
+   i   
+-------
+     1
+     1
+     1
+     1
+     2
+     2
+     3
+     3
+     4
+     4
+   777
+   777
+   777
+   777
+  1111
+ 22222
+(16 rows)
+
+SELECT * FROM test1 UNDER '/mysql_svr/';
+  i  
+-----
+ 777
+ 777
+ 777
+ 777
+(4 rows)
+
+SELECT * FROM test1 where i = 1;
+ i 
+---
+ 1
+ 1
+ 1
+ 2
+ 2
+ 3
+ 3
+ 4
+ 4
+ 1
+(10 rows)
+
+SELECT * FROM test1 under '/mysql_svr/' where i = 5;
+ i 
+---
+(0 rows)
+
+DROP USER MAPPING FOR public SERVER pgspider_svr;
+DROP FOREIGN TABLE test1;
+DROP SERVER pgspider_svr;
+DROP EXTENSION pgspider_core_fdw;

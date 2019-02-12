@@ -1,0 +1,3 @@
+CREATE TABLE avgint (i int);
+INSERT INTO avgint VALUES (757147);
+INSERT INTO avgint VALUES (-301413356);

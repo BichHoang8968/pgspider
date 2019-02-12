@@ -1,0 +1,5 @@
+CREATE TABLE mindate (i date);
+INSERT INTO mindate VALUES ('1998-12-12');
+INSERT INTO mindate VALUES ('1965-08-09');
+INSERT INTO mindate VALUES ('2011-Oct-08');
+INSERT INTO mindate VALUES ('2013-01-01');

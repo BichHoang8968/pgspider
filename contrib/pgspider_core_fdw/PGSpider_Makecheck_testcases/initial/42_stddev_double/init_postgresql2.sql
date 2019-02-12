@@ -1,0 +1,5 @@
+CREATE TABLE stddevdouble (i double precision);
+INSERT INTO stddevdouble VALUES (7.945432165E153);
+INSERT INTO stddevdouble VALUES (5.1879831739E105);
+INSERT INTO stddevdouble VALUES (-3.7897445748E77);
+INSERT INTO stddevdouble VALUES (6.178974165487E45);

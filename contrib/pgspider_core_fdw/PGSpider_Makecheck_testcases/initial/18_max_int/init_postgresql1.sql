@@ -1,0 +1,3 @@
+CREATE TABLE maxint (i int);
+INSERT INTO maxint VALUES (757147);
+INSERT INTO maxint VALUES (-301413356);

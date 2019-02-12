@@ -1,0 +1,3 @@
+CREATE TABLE sumint (i int);
+INSERT INTO sumint VALUES (757147);
+INSERT INTO sumint VALUES (-301413356);
