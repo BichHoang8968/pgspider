@@ -1300,6 +1300,7 @@ postgresBeginForeignScan(ForeignScanState *node, int eflags)
 	 */
 	fsstate = (PgFdwScanState *) palloc0(sizeof(PgFdwScanState));
 	node->fdw_state = (void *) fsstate;
+
 	/*
 	 * Identify which user to do the remote access as.  This should match what
 	 * ExecCheckRTEPerms() does.  In case of a join or aggregate, use the

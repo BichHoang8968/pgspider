@@ -164,7 +164,7 @@ GetConnection(ForeignServer *server,UserMapping *user, bool will_prep_stmt)
 	}
 
 	/* Reject further use of connections which failed abort cleanup. */
-	//pgfdw_reject_incomplete_xact_state_change(entry);
+	pgfdw_reject_incomplete_xact_state_change(entry);
 
 	/*
 	 * If the connection needs to be remade due to invalidation, disconnect as
@@ -208,8 +208,8 @@ GetConnection(ForeignServer *server,UserMapping *user, bool will_prep_stmt)
 		/* Now try to make the connection */
 		entry->conn = connect_pg_server(server, user);
 
-		elog(DEBUG3, "new postgres_fdw connection %p for server \"%s\" (user mapping oid %u, userid %u)",
-			 entry->conn, server->servername, user->umid, user->userid);
+		elog(DEBUG3, "new postgres_fdw connection %p for server \"%s\" (user mapping oid %u, userid %u,thredid %u)",
+			 entry->conn, server->servername, user->umid, user->userid,pthread_self());
 	}
 
 	/*
@@ -815,8 +815,10 @@ pgfdw_xact_callback(XactEvent event, void *arg)
 		entry->xact_depth = 0;
 
 		elog(DEBUG3, "discarding connection %p", entry->conn);
-		PQfinish(entry->conn);
+/*
+ 		PQfinish(entry->conn);
 		entry->conn = NULL;
+*/
 #if 1
 		/*
 		 * If the connection isn't in a good idle state, discard it to
