@@ -413,7 +413,7 @@ typedef struct ResultRelInfo
 	/* relation descriptor for root partitioned table */
 	Relation	ri_PartitionRoot;
 } ResultRelInfo;
-
+#ifdef GETPROGRESS_ENABLED
 typedef struct ProgressState
 {
 	uint64_t		ps_totalRows;
@@ -423,7 +423,7 @@ typedef struct ProgressState
 	TupleTableSlot	*ps_aggResult;
 	void 			*dest; /*Destination receiver */
 }	ProgressState;
-
+#endif
 /* ----------------
  *	  EState information
  *
@@ -516,9 +516,10 @@ typedef struct EState
 	HeapTuple  *es_epqTuple;	/* array of EPQ substitute tuples */
 	bool	   *es_epqTupleSet; /* true if EPQ tuple is provided */
 	bool	   *es_epqScanDone; /* true if EPQ tuple has been fetched */
-
+#ifdef GETPROGRESS_ENABLED
 	ProgressState *es_progressState;	/* Get progress operations */
 	bool		agg_query;	/* To Indicate the type of the query, ForeignScan or Agg */
+#endif
 	/* The per-query shared memory area to use for parallel execution. */
 	struct dsa_area *es_query_dsa;
 

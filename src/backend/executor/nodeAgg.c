@@ -2734,7 +2734,6 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 	 */
 	aggstate = makeNode(AggState);
 	aggstate->ss.ps.plan = (Plan *) node;
-	estate->agg_query = true;
 	aggstate->ss.ps.state = estate;
 	aggstate->ss.ps.ExecProcNode = ExecAgg;
 

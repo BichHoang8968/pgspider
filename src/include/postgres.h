@@ -286,8 +286,6 @@ typedef struct
 #define VARDATA_4B_C(PTR)	(((varattrib_4b *) (PTR))->va_compressed.va_data)
 #define VARDATA_1B(PTR)		(((varattrib_1b *) (PTR))->va_data)
 #define VARDATA_1B_E(PTR)	(((varattrib_1b_e *) (PTR))->va_data)
-#define NUM_QUERIES_ONE 1
-#define NUM_QUERIES_TWO 2
 #define VARRAWSIZE_4B_C(PTR) \
 	(((varattrib_4b *) (PTR))->va_compressed.va_rawsize)
 

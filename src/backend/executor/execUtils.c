@@ -163,9 +163,8 @@ CreateExecutorState(void)
 
 #ifdef GETPROGRESS_ENABLED
 	estate->es_progressState = gl_progressPtr;	/* Get progress initialization */
-#else
-	estate->es_use_parallel_mode = false;
 #endif
+	estate->es_use_parallel_mode = false;
 	/*
 	 * Return the executor state structure
 	 */

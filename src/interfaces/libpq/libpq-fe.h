@@ -40,6 +40,8 @@ extern "C"
 #define PG_COPYRES_EVENTS		  0x04
 #define PG_COPYRES_NOTICEHOOKS	  0x08
 
+
+#define GETPROGRESS_ENABLED
 /* Application-visible enum types */
 
 /*
@@ -424,10 +426,12 @@ extern int PQsendQueryPrepared(PGconn *conn,
 					int resultFormat);
 extern int	PQsetSingleRowMode(PGconn *conn);
 extern PGresult *PQgetResult(PGconn *conn);
+#ifdef GETPROGRESS_ENABLED
  /* API for getting current progress of SELECT Query */
 extern PGresult *PQgetCurrentResult(PGconn *conn, pqbool continueFlag, pqbool needCompleteResultSet, pqbool *isFinalResult); 
  /* API for getting progress of SELECT Query */
 extern int	PQgetProgress(PGconn *conn, double *progress);
+#endif
 
 /* Routines for managing an asynchronous query */
 extern int	PQisBusy(PGconn *conn);
