@@ -163,15 +163,6 @@ spd_fdw_validator(PG_FUNCTION_ARGS)
 						 errmsg("%s requires a non-negative numeric value",
 								def->defname)));
 		}
-		else if (strcmp(def->defname, "config_file") == 0)
-		{
-			char		sql[512];
-
-			/* CREATE SERVER */
-			ereport(INFO,
-					(errcode(ERRCODE_SYNTAX_ERROR),
-					 errmsg("config name = %s", sql)));
-		}
 	}
 
 	PG_RETURN_VOID();

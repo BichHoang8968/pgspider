@@ -38,41 +38,4 @@ extern int ExtractConnectionOptions(List * defelems,
 						 const char **keywords,
 						 const char **values);
 
-/* in deparse.c */
-extern void spd_classifyConditions(PlannerInfo * root,
-					   RelOptInfo * baserel,
-					   List * input_conds,
-					   List * *remote_conds,
-					   List * *local_conds);
-extern bool spd_is_foreign_expr(PlannerInfo * root,
-					RelOptInfo * baserel,
-					Expr * expr);
-extern void spd_deparseSelectSql(StringInfo buf,
-					 PlannerInfo * root,
-					 RelOptInfo * baserel,
-					 Bitmapset * attrs_used,
-					 List * *retrieved_attrs);
-extern void spd_appendWhereClause(StringInfo buf,
-					  PlannerInfo * root,
-					  RelOptInfo * baserel,
-					  List * exprs,
-					  bool is_first,
-					  List * *params);
-extern void spd_deparseInsertSql(StringInfo buf, PlannerInfo * root,
-					 Index rtindex, Relation rel,
-					 List * targetAttrs, bool doNothing, List * returningList,
-					 List * *retrieved_attrs);
-extern void spd_deparseUpdateSql(StringInfo buf, PlannerInfo * root,
-					 Index rtindex, Relation rel,
-					 List * targetAttrs, List * returningList,
-					 List * *retrieved_attrs);
-extern void spd_deparseDeleteSql(StringInfo buf, PlannerInfo * root,
-					 Index rtindex, Relation rel,
-					 List * returningList,
-					 List * *retrieved_attrs);
-extern void spd_deparseAnalyzeSizeSql(StringInfo buf, Relation rel);
-extern void spd_deparseAnalyzeSql(StringInfo buf, Relation rel,
-					  List * *retrieved_attrs);
-extern void spd_deparseStringLiteral(StringInfo buf, const char *val);
-
 #endif							/* SPD_FDW_H */
