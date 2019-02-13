@@ -1772,15 +1772,6 @@ spd_makedivtlist(Aggref * aggref, List * newList, SpdFdwPrivate * fdw_private)
  * @param[in] input_rel - input RelOptInfo
  * @param[out] output_rel - output RelOptInfo
  */
-#define BIGINT_OID 20
-#define SMALLINT_OID 21
-#define INT_OID 23
-#define FLOAT_OID 700
-#define FLOAT8_OID 701
-#define NUMERIC_OID 1700
-#define BOOL_OID 16
-#define TEXT_OID 25
-#define DATE_OID 1082
 static void
 spd_GetForeignUpperPaths(PlannerInfo * root, UpperRelationKind stage,
 						 RelOptInfo * input_rel, RelOptInfo * output_rel)
@@ -3008,6 +2999,7 @@ spd_BeginForeignScan(ForeignScanState * node, int eflags)
 					}
 					if (!strcmpi(agg_command, "VARIANCE") || !strcmpi(agg_command, "STDDEV"))
 					{
+						j++;
 						attrs[j] = palloc(sizeof(FormData_pg_attribute));
 						memcpy(attrs[j], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[org_attrincr],
 							   sizeof(FormData_pg_attribute));
@@ -3024,7 +3016,6 @@ spd_BeginForeignScan(ForeignScanState * node, int eflags)
 						attrs[j]->attbyval = 1;
 						org_attrincr++;
 						natts++;
-						j++;
 					}
 					org_attrincr++;
 					natts++;
@@ -3308,42 +3299,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 						fdw_private->agg_values[k][colid] = BoolGetDatum(DatumGetBool(SPI_getbinval(SPI_tuptable->vals[k],
 																									SPI_tuptable->tupdesc,
 																									colid + 1,
-																									&isnull));
-					
-				break;
-			case INT4OID:
-				fdw_private->agg_values[k][colid] = Int32GetDatum(DatumGetInt32(SPI_getbinval(SPI_tuptable->vals[k],
-																							  SPI_tuptable->tupdesc,
-																							  colid + 1,
-																							  &isnull)));
-				break;
-			case INT8OID:
-				fdw_private->agg_values[k][colid] = Int64GetDatum(DatumGetInt64(SPI_getbinval(SPI_tuptable->vals[k],
-																							  SPI_tuptable->tupdesc,
-																							  colid + 1,
-																							  &isnull)));
-				break;
-			case INT2OID:
-				fdw_private->agg_values[k][colid] = Int16GetDatum(DatumGetInt16(SPI_getbinval(SPI_tuptable->vals[k],
-																							  SPI_tuptable->tupdesc,
-																							  colid + 1,
-																							  &isnull)));
-				break;
-			case FLOAT4OID:
-				fdw_private->agg_values[k][colid] = Float4GetDatum(DatumGetFloat4(SPI_getbinval(SPI_tuptable->vals[k],
-																								SPI_tuptable->tupdesc,
-																								colid + 1,
-																								&isnull)));
-				break;
-			case FLOAT8OID:
-				temp = DatumGetFloat8(SPI_getbinval(SPI_tuptable->vals[k], SPI_tuptable->tupdesc, colid + 1, &isnull));
-				fdw_private->agg_values[k][colid] = Float8GetDatum(temp);
-				break;
-			case BOOLOID:
-				fdw_private->agg_values[k][colid] = BoolGetDatum(DatumGetBool(SPI_getbinval(SPI_tuptable->vals[k],
-																							SPI_tuptable->tupdesc,
-																							colid + 1,
-																							&isnull)));
+																									&isnull)));
 			case TIMESTAMPOID:
 			case DATEOID:
 				fdw_private->agg_values[k][colid] = CStringGetDatum(DatumGetCString(SPI_getbinval(SPI_tuptable->vals[k],
@@ -3358,6 +3314,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 					fdw_private->agg_nulls[k][colid] = TRUE;
 			colid++;
 		}
+	}
 	}
 	return slot;
 }
@@ -3436,18 +3393,18 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot * slot
 				case DATEOID:
 				default:
 					break;
-			}
-			cnt = (float8) DatumGetInt32(fdw_private->agg_values[rowid][count_mapping]);
-			if (cnt == 0)
-				elog(ERROR, "Record count is 0. Divide by zero error encountered.");
-			if (clist_parent.aggtype == AVGFLAG)
-				result = sum / cnt;
-			else
-			{
-				int			vardev_mapping = clist.mapping[2];
-				float8		sum2 = 0.0;
-				float8		right = 0.0;
-				float8		left = 0.0;
+				}
+				cnt = (float8) DatumGetInt32(fdw_private->agg_values[rowid][count_mapping]);
+				if (cnt == 0)
+					elog(ERROR, "Record count is 0. Divide by zero error encountered.");
+				if (clist_parent.aggtype == AVGFLAG)
+					result = sum / cnt;
+				else
+				{
+					int			vardev_mapping = clist.mapping[2];
+					float8		sum2 = 0.0;
+					float8		right = 0.0;
+					float8		left = 0.0;
 
 				switch (fdw_private->agg_value_type[vardev_mapping])
 				{
@@ -3473,42 +3430,6 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot * slot
 					default:
 						break;
 				}
-				cnt = (float8) DatumGetInt32(fdw_private->agg_values[rowid][count_mapping]);
-				if(cnt == 0)
-					elog(ERROR, "Record count is 0. Divide by zero error encountered.");
-				if (clist_parent.aggtype == AVGFLAG)
-					result = sum / cnt;
-				else
-				{
-					int			vardev_mapping = clist.mapping[2];
-					float8		sum2 = 0.0;
-					float8		right = 0.0;
-					float8		left = 0.0;
-
-					switch (fdw_private->agg_value_type[vardev_mapping])
-					{
-					case NUMERICOID:
-					case INT4OID:
-						sum2 = (float8) DatumGetInt32(fdw_private->agg_values[rowid][vardev_mapping]);
-						break;
-					case INT8OID:
-						sum2 = (float8) DatumGetInt64(fdw_private->agg_values[rowid][vardev_mapping]);
-						break;
-					case INT2OID:
-						sum2 = (float8) DatumGetInt16(fdw_private->agg_values[rowid][vardev_mapping]);
-						break;
-					case FLOAT4OID:
-						sum2 = (float8) DatumGetFloat4(fdw_private->agg_values[rowid][vardev_mapping]);
-						break;
-					case FLOAT8OID:
-						sum2 = (float8) DatumGetFloat8(fdw_private->agg_values[rowid][vardev_mapping]);
-						break;
-					case BOOLOID:
-					case TIMESTAMPOID:
-					case DATEOID:
-					default:
-						break;
-					}
 					if(cnt == 1)
 						elog(ERROR, "Record count is 1. Divide by zero error encountered.");
 					right = sum2;
@@ -3522,11 +3443,11 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot * slot
 						result = sqrt(var);
 					}
 				}
-			}
 			if (fdw_private->agg_value_type[sum_mapping] == FLOAT8OID || fdw_private->agg_value_type[sum_mapping] == FLOAT4OID)
 				ret_agg_values[target_column] = Float8GetDatumFast(result);
 			else
 				ret_agg_values[target_column] = DirectFunctionCall1(float8_numeric, Float8GetDatumFast(result));
+		}
 		}
 		else if (target_column == mapping_parent)
 		{
