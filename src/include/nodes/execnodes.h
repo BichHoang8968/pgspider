@@ -30,7 +30,7 @@
 #include "nodes/tidbitmap.h"
 #include "storage/condition_variable.h"
 
-
+#define GETPROGRESS_ENABLED
 /* ----------------
  *		ExprState node
  *
@@ -416,11 +416,11 @@ typedef struct ResultRelInfo
 #ifdef GETPROGRESS_ENABLED
 typedef struct ProgressState
 {
-	uint64_t	ps_totalRows;
-	int			ps_fetchedRows;
-	bool		ps_aggQuery;
-	Datum	   *ps_aggvalues;
-	TupleTableSlot *ps_aggResult;
+	uint64_t	ps_totalRows;     /* Total of rows */
+	int			ps_fetchedRows;   /* How many rows fetched */
+	bool		ps_aggQuery;      /* Agg Query internal */
+	Datum	   *ps_aggvalues;     /* Agg value internal  */
+	TupleTableSlot *ps_aggResult; /* Result slot  */
 	void	   *dest;			/* Destination receiver */
 }			ProgressState;
 #endif

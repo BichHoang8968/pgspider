@@ -6036,7 +6036,6 @@ make_agg(List * tlist, List * qual,
 	plan->righttree = NULL;
 
 	printf("make agg node\n");
-	pprint(node);
 	return node;
 }
 
@@ -6624,4 +6623,8 @@ is_projection_capable_plan(Plan * plan)
 			break;
 	}
 	return true;
+}
+List *
+PG_build_path_tlist(PlannerInfo *root, Path *path){
+	return build_path_tlist(root, path);
 }

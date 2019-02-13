@@ -2059,8 +2059,8 @@ PQgetResult(PGconn *conn)
 #ifdef GETPROGRESS_ENABLED
 	if ((conn->asyncStatus != PGASYNC_PROGRESS_READY) &&
 		(conn->asyncStatus != PGASYNC_PROGRESS_IDLE))
-#enfif
-	parseInput(conn);
+#endif
+		parseInput(conn);
 
 	/* If not ready to return something, block until we are. */
 #ifdef GETPROGRESS_ENABLED

@@ -2520,4 +2520,4 @@
 #define F_PG_RELATION_IS_PUBLISHABLE 6121
 #define F_NUMERIC_SCALE 8888
 
-#endif							/* FMGROIDS_H */
+#endif /* FMGROIDS_H */

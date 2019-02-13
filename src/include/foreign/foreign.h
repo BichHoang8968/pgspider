@@ -92,7 +92,6 @@ typedef struct ForeignScanThreadInfo
 	bool		queryRescan;
 	struct TupleTableSlot *tuple;	/* use it for storing tuple, which is
 									 * retrieved from the DS */
-	ForeignScanStatus status;	/* it store the status of the DS */
 	int			nodeIndex;		/* Index of the node */
 	MemoryContext threadMemoryContext;
 	pthread_mutex_t nodeMutex;	/* Use for ReScan call */
