@@ -4021,7 +4021,7 @@ spd_check_url_update(SpdFdwPrivate * fdw_private, RangeTblEntry * target_rte)
 		fdw_private->url_parse_list->length < 1)
 	{
 		/* DO NOTHING */
-		elog(ERROR, "NO URL is detected, INSERT/UPDATE/DELETE need to set URL");
+		elog(ERROR, "no URL is specified, INSERT/UPDATE/DELETE need to set URL");
 	}
 	else
 	{
@@ -4085,7 +4085,7 @@ spd_AddForeignUpdateTargets(Query * parsetree,
 	if (target_rte->url != NULL)
 		spd_check_url_update(fdw_private, target_rte);
 	else
-		elog(ERROR, "NO URL is detected, INSERT/UPDATE/DELETE need to set URL");
+		elog(ERROR, "no URL is specified, INSERT/UPDATE/DELETE need to set URL");
 	spd_spi_exec_child_relname(RelationGetRelationName(target_relation), fdw_private, &oid);
 	if (fdw_private->node_num == 0)
 		ereport(ERROR, (errmsg("Cannot Find child datasources. ")));
@@ -4133,7 +4133,7 @@ spd_PlanForeignModify(PlannerInfo * root,
 	if (rte->url != NULL)
 		spd_check_url_update(fdw_private, rte);
 	else
-		elog(ERROR, "NO URL is detected, INSERT/UPDATE/DELETE need to set URL");
+		elog(ERROR, "no URL is specified, INSERT/UPDATE/DELETE need to set URL");
 	rel = heap_open(rte->relid, NoLock);
 
 	spd_spi_exec_child_relname(RelationGetRelationName(rel), fdw_private, &oid);
