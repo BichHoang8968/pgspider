@@ -97,10 +97,10 @@ typedef struct list_ds
  *
  * Raise an ERROR if the option or its value is considered invalid.
  */
-PG_FUNCTION_INFO_V1(spd_fdw_validator);
+PG_FUNCTION_INFO_V1(pgspider_fdw_validator);
 
 Datum
-spd_fdw_validator(PG_FUNCTION_ARGS)
+pgspider_fdw_validator(PG_FUNCTION_ARGS)
 {
 	List	   *options_list = untransformRelOptions(PG_GETARG_DATUM(0));
 	Oid			catalog = PG_GETARG_OID(1);
@@ -167,27 +167,6 @@ spd_fdw_validator(PG_FUNCTION_ARGS)
 
 	PG_RETURN_VOID();
 }
-
-void
-SpdFdwCreateSpi(char *sql_text, int expect_ret)
-{
-	StringInfoData buf;
-	int			ret;
-
-	if ((ret = SPI_connect()) < 0)
-		/* internal error */
-		elog(ERROR, "SPI connect failure - returned %d", ret);
-
-	initStringInfo(&buf);
-	ereport(INFO,
-			(errcode(ERRCODE_CARDINALITY_VIOLATION),
-			 errmsg("create forreing another table")));
-	appendStringInfoString(&buf, sql_text);
-	ret = SPI_exec(buf.data, 1);
-	pfree(buf.data);
-	SPI_finish();
-}
-
 /*
  * Initialize option lists.
  */
