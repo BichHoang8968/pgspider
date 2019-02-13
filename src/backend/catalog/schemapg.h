@@ -211,4 +211,4 @@
 { 6100, {"subsynccommit"}, 25, -1, -1, 7, 0, -1, -1, false, 'x', 'i', true, false, '\0', false, true, 0, 100 }, \
 { 6100, {"subpublications"}, 1009, -1, -1, 8, 1, -1, -1, false, 'x', 'i', true, false, '\0', false, true, 0, 100 }
 
-#endif /* SCHEMAPG_H */
+#endif							/* SCHEMAPG_H */

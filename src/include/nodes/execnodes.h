@@ -416,11 +416,11 @@ typedef struct ResultRelInfo
 #ifdef GETPROGRESS_ENABLED
 typedef struct ProgressState
 {
-	uint64_t	ps_totalRows;     /* Total of rows */
-	int			ps_fetchedRows;   /* How many rows fetched */
-	bool		ps_aggQuery;      /* Agg Query internal */
-	Datum	   *ps_aggvalues;     /* Agg value internal  */
-	TupleTableSlot *ps_aggResult; /* Result slot  */
+	uint64_t	ps_totalRows;	/* Total of rows */
+	int			ps_fetchedRows; /* How many rows fetched */
+	bool		ps_aggQuery;	/* Agg Query internal */
+	Datum	   *ps_aggvalues;	/* Agg value internal  */
+	TupleTableSlot *ps_aggResult;	/* Result slot  */
 	void	   *dest;			/* Destination receiver */
 }			ProgressState;
 #endif

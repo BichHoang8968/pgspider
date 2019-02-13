@@ -1757,6 +1757,7 @@ ddsf_get_agg_Info_push(TupleTableSlot * aggSlot, const ForeignScanState * node, 
 						 */
 
 						/*
+						 *
 						 * agginfodata[count-1].result[natts].aggdata.avg.count.value
 						 * = strtod(outputstr, NULL);
 						 */
@@ -2141,6 +2142,7 @@ ddsf_get_agg_Info(ForeignScanThreadInfo thrdInfo, const ForeignScanState * node,
 						agginfodata[count - 1].result[natts].aggdata.count.value = DatumGetInt64(datum);
 
 						/*
+						 *
 						 * agginfodata[count-1].result[natts].aggdata.count.value
 						 * ++;
 						 */

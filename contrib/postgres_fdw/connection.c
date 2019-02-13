@@ -816,6 +816,7 @@ pgfdw_xact_callback(XactEvent event, void *arg)
 		entry->xact_depth = 0;
 
 		elog(DEBUG3, "discarding connection %p", entry->conn);
+
 		/*
 		 * If the connection isn't in a good idle state, discard it to
 		 * recover. Next GetConnection will open a new connection.

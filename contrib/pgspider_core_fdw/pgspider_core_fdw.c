@@ -181,7 +181,7 @@ enum SpdFdwScanPrivateIndex
 enum SpdFdwModifyPrivateIndex
 {
 	/* SQL statement to execute remotely (as a String node) */
-    ForeignFdwPrivate,
+	ForeignFdwPrivate,
 	/* Integer list of target attribute numbers for INSERT/UPDATE */
 	ServerOid
 };
@@ -207,7 +207,8 @@ typedef struct Mappingcells
 }			Mappingcells;
 
 
-typedef struct ChildInfo{
+typedef struct ChildInfo
+{
 	PlannerInfo *root;
 	RelOptInfo *baserel;
 	Plan	   *plan;
@@ -218,9 +219,9 @@ typedef struct ChildInfo{
 	AggPath    *aggpath;
 	PlannerInfo *grouped_root_local;
 	RelOptInfo *grouped_rel_local;
-	Agg		   *pAgg;	/* "Aggref" for Disable of aggregation
-									 * push down servers */
-} ChildInfo;
+	Agg		   *pAgg;			/* "Aggref" for Disable of aggregation push
+								 * down servers */
+}			ChildInfo;
 
 /*
  * SpdFdwPrivate keep child node plan information for each child tables belonging to the parent table.
@@ -234,7 +235,7 @@ typedef struct SpdFdwPrivate
 	int			thrdsCreated;	/* child node thread is created or not */
 	int			node_num;		/* number of child tables */
 	bool		under_flag;		/* using UNDER clause or NOT */
-	ChildInfo       *childinfo;      /* ChildInfo List */
+	ChildInfo  *childinfo;		/* ChildInfo List */
 	List	   *url_parse_list; /* lieteral of parse UNDER clause */
 	pthread_t	foreign_scan_threads[NODES_MAX];	/* child node thread  */
 	ResourceOwner thread_resource_owner;	/* child thread resource owner */
@@ -248,14 +249,15 @@ typedef struct SpdFdwPrivate
 	bool		agg_query;		/* aggregation flag */
 	bool		isFirst;		/* First time of iteration foreign scan with
 								 * aggregation query */
-	Datum	  **agg_values;      /* aggregation temp table result set */
-	bool	  **agg_nulls;       /* aggregation temp table result set */
-	int			agg_tuples;      /* Number of aggregation tuples from temp table */
-	int			agg_num;         /* agg_values cursor */
-	int		   *agg_value_type;  /* aggregation parameters */
-	List	   *split_tlist;       /* child div(not compressd) target list */
-	List	   *child_comp_tlist;/* child complite target list */
-    List       *mapping_tlist;   /* mapping list orig and pgspider */
+	Datum	  **agg_values;		/* aggregation temp table result set */
+	bool	  **agg_nulls;		/* aggregation temp table result set */
+	int			agg_tuples;		/* Number of aggregation tuples from temp
+								 * table */
+	int			agg_num;		/* agg_values cursor */
+	int		   *agg_value_type; /* aggregation parameters */
+	List	   *split_tlist;	/* child div(not compressd) target list */
+	List	   *child_comp_tlist;	/* child complite target list */
+	List	   *mapping_tlist;	/* mapping list orig and pgspider */
 	struct PathTarget *child_tlist[UPPERREL_FINAL + 1]; /* */
 	int			child_num;		/* number of push down child column */
 	int			child_uninum;	/* number of NOT push down child column */
@@ -270,7 +272,7 @@ typedef struct SpdFdwPrivate
 
 typedef struct SpdFdwModifyState
 {
-	Oid		    modify_server_oid;
+	Oid			modify_server_oid;
 }			SpdFdwModifyState;
 
 pthread_mutex_t scan_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -421,7 +423,8 @@ spd_add_to_flat_tlist(List * tlist, List * exprs, List * *mapping_tlist, List * 
 		Mappingcells *mapcells = (struct Mappingcells *) palloc(sizeof(struct Mappingcells));
 
 		aggref = (Aggref *) expr;
-		if (OIDCHECK(aggref->aggfnoid)) {
+		if (OIDCHECK(aggref->aggfnoid))
+		{
 			/* Prepare COUNT Query */
 			Aggref	   *tempCount = copyObject((Aggref *) expr);
 			Aggref	   *tempSum;
@@ -431,7 +434,7 @@ spd_add_to_flat_tlist(List * tlist, List * exprs, List * *mapping_tlist, List * 
 			tempCount->aggfnoid = COUNT_OID;
 			tempSum = copyObject(tempCount);
 			tempSum->aggfnoid = SUM_OID;
-			if ( FLOAT4OID <= tempCount->aggtype||tempCount->aggtype <= FLOAT8OID)
+			if (FLOAT4OID <= tempCount->aggtype || tempCount->aggtype <= FLOAT8OID)
 			{
 				tempSum->aggfnoid = SUM_FLOAT8_OID;
 				tempSum->aggtype = FLOAT8OID;
@@ -1095,15 +1098,13 @@ spd_ParseUrl(char *url_str, SpdFdwPrivate * fdw_private)
 		return;					/* Pattern4 */
 
 	/*
-     *  url_option = /sample\ntest/code
-	 *                ^ *tp position
-     *  url_str =    /sample/test/code/
-     *                      |---------| <-Throwing URL
-	 *                      * <- This pointer is url_str[strlen(tp)+ 1]
-     */
+	 * url_option = /sample\ntest/code ^ *tp position url_str =
+	 * /sample/test/code/ |---------| <-Throwing URL * <- This pointer is
+	 * url_str[strlen(tp)+ 1]
+	 */
 	original_len = strlen(tp) + 1;
 	throwing_url = pstrdup(&url_str[original_len]);
-	tp = strtok_r(url_option, "/", &next); /* First URL */
+	tp = strtok_r(url_option, "/", &next);	/* First URL */
 	fdw_private->url_parse_list = lappend(fdw_private->url_parse_list, tp);
 	fdw_private->url_parse_list = lappend(fdw_private->url_parse_list, throwing_url);
 }
@@ -1386,7 +1387,7 @@ spd_CreateDummyRoot(PlannerInfo * root, RelOptInfo * baserel, Datum * oid, int o
 	int			i = 0;
 	ForeignServer *fs;
 	ForeignDataWrapper *fdw;
-	ChildInfo *childinfo = fdw_private->childinfo;
+	ChildInfo  *childinfo = fdw_private->childinfo;
 
 	for (i = 0; i < oid_nums; i++)
 	{
@@ -1610,7 +1611,7 @@ spd_GetForeignRelSize(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntable
 		ereport(ERROR, (errmsg("Cannot Find child datasources. ")));
 
 	fdw_private->node_num = nums;
-    fdw_private->childinfo = (ChildInfo*)palloc0(sizeof(ChildInfo)*nums);
+	fdw_private->childinfo = (ChildInfo *) palloc0(sizeof(ChildInfo) * nums);
 
 	for (int i = 0; i < nums; i++)
 		fdw_private->childinfo[i].oid = oid[i];
@@ -1656,6 +1657,7 @@ spd_GetForeignRelSize(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntable
 	/* Set the relation index. */
 	fdw_private->rinfo.relation_index = baserel->relid;
 }
+
 /**
  * spd_makedivtlist
  *
@@ -1664,7 +1666,7 @@ spd_GetForeignRelSize(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntable
  * @param[in,out] fdw_private - fdw global data
  */
 
-static List*
+static List *
 spd_makedivtlist(Aggref * aggref, List * newList, SpdFdwPrivate * fdw_private)
 {
 	/* Prepare SUM Query */
@@ -1852,7 +1854,7 @@ spd_GetForeignUpperPaths(PlannerInfo * root, UpperRelationKind stage,
 		listn++;
 		if (OIDCHECK(aggref->aggfnoid))
 		{
-			newList=spd_makedivtlist(aggref,newList,fdw_private);
+			newList = spd_makedivtlist(aggref, newList, fdw_private);
 		}
 		else
 		{
@@ -1890,8 +1892,10 @@ spd_GetForeignUpperPaths(PlannerInfo * root, UpperRelationKind stage,
 		Datum		oid_server;
 		FdwRoutine *fdwroutine;
 		int			i = 0;
-		ChildInfo *childinfo = in_fdw_private->childinfo;
-		for(i=0; i<fdw_private->node_num; i++){
+		ChildInfo  *childinfo = in_fdw_private->childinfo;
+
+		for (i = 0; i < fdw_private->node_num; i++)
+		{
 			List	   *newList = NIL;
 			Oid			rel_oid = childinfo[i].oid;
 			RelOptInfo *entry = childinfo[i].baserel;
@@ -1936,7 +1940,7 @@ spd_GetForeignUpperPaths(PlannerInfo * root, UpperRelationKind stage,
 				listn++;
 				if (OIDCHECK(aggref->aggfnoid))
 				{
-					newList=spd_makedivtlist(aggref,newList,fdw_private);
+					newList = spd_makedivtlist(aggref, newList, fdw_private);
 				}
 				else
 				{
@@ -2284,8 +2288,8 @@ spd_GetForeignPaths(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid
 	Cost		startup_cost;
 	Cost		total_cost;
 	ListCell   *lc;
-	ChildInfo *childinfo;
-	
+	ChildInfo  *childinfo;
+
 	if (fdw_private == NULL)
 	{
 		elog(ERROR, "fdw_private is NULL");
@@ -2338,7 +2342,7 @@ spd_GetForeignPaths(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid
 			 * fdw_private->child_table_alive to FALSE
 			 */
 			childinfo[i].child_table_alive = FALSE;
-			elog(WARNING, "fdw GetForeignPaths error is occurred.table oid is %d",DatumGetObjectId(oid[i]));
+			elog(WARNING, "fdw GetForeignPaths error is occurred.table oid is %d", DatumGetObjectId(oid[i]));
 		}
 		PG_END_TRY();
 	}
@@ -2619,7 +2623,8 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 	ListCell   *lc;
 	int			colname_tlist_length = 0;
 	TargetEntry *tle;
-	ChildInfo *childinfo;
+	ChildInfo  *childinfo;
+
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 
 	if (fdw_private == NULL)
@@ -2857,8 +2862,9 @@ spd_BeginForeignScan(ForeignScanState * node, int eflags)
 								 * fssThrdInfo. */
 	int			private_incr;	/* private_incr is variable of number of
 								 * fdw_private */
-	ChildInfo *childinfo;
-	int i,j=0;
+	ChildInfo  *childinfo;
+	int			i,
+				j = 0;
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	node->spd_fsstate = NULL;
@@ -3237,9 +3243,9 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 		return NULL;
 	}
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
-	fdw_private->agg_values = (Datum **) palloc0(SPI_processed * sizeof(Datum *));
+	fdw_private->agg_values = (Datum * *) palloc0(SPI_processed * sizeof(Datum *));
 	fdw_private->agg_nulls = (bool **) palloc0(SPI_processed * sizeof(bool *));
-    fdw_private->agg_value_type = (int *) palloc0(SPI_processed * sizeof(int));
+	fdw_private->agg_value_type = (int *) palloc0(SPI_processed * sizeof(int));
 	for (i = 0; i < SPI_processed; i++)
 	{
 		fdw_private->agg_values[i] = (Datum *) palloc0(slot->tts_tupleDescriptor->natts * sizeof(Datum));
@@ -3300,21 +3306,21 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 																									SPI_tuptable->tupdesc,
 																									colid + 1,
 																									&isnull)));
-			case TIMESTAMPOID:
-			case DATEOID:
-				fdw_private->agg_values[k][colid] = CStringGetDatum(DatumGetCString(SPI_getbinval(SPI_tuptable->vals[k],
-																								  SPI_tuptable->tupdesc,
-																								  colid + 1,
-																								  &isnull)));
-				break;
-			default:
-				break;
-			}
-				if(isnull == TRUE)
+					case TIMESTAMPOID:
+					case DATEOID:
+						fdw_private->agg_values[k][colid] = CStringGetDatum(DatumGetCString(SPI_getbinval(SPI_tuptable->vals[k],
+																										  SPI_tuptable->tupdesc,
+																										  colid + 1,
+																										  &isnull)));
+						break;
+					default:
+						break;
+				}
+				if (isnull == TRUE)
 					fdw_private->agg_nulls[k][colid] = TRUE;
-			colid++;
+				colid++;
+			}
 		}
-	}
 	}
 	return slot;
 }
@@ -3362,37 +3368,40 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot * slot
 			float8		result = 0.0;
 			float8		sum = 0.0;
 			float8		cnt = 0.0;
-			if(fdw_private->agg_nulls[rowid][count_mapping] == TRUE){
-				elog(ERROR,"COUNT() column is NULL.");
+
+			if (fdw_private->agg_nulls[rowid][count_mapping] == TRUE)
+			{
+				elog(ERROR, "COUNT() column is NULL.");
 			}
-			if(fdw_private->agg_nulls[rowid][sum_mapping] == TRUE)
+			if (fdw_private->agg_nulls[rowid][sum_mapping] == TRUE)
 				nulls[target_column] = TRUE;
-			else{
+			else
+			{
 				if (target_column != mapping_parent)
 					continue;
 				switch (fdw_private->agg_value_type[sum_mapping])
 				{
-				case NUMERICOID:
-				case INT4OID:
-					sum = (float8) DatumGetInt32(fdw_private->agg_values[rowid][sum_mapping]);
-					break;
-				case INT8OID:
-					sum = (float8) DatumGetInt64(fdw_private->agg_values[rowid][sum_mapping]);
-					break;
-				case INT2OID:
-					sum = (float8) DatumGetInt16(fdw_private->agg_values[rowid][sum_mapping]);
-					break;
-				case FLOAT4OID:
-					sum = (float8) DatumGetFloat4(fdw_private->agg_values[rowid][sum_mapping]);
-					break;
-				case FLOAT8OID:
-					sum = (float8) DatumGetFloat8(fdw_private->agg_values[rowid][sum_mapping]);
-					break;
-				case BOOLOID:
-				case TIMESTAMPOID:
-				case DATEOID:
-				default:
-					break;
+					case NUMERICOID:
+					case INT4OID:
+						sum = (float8) DatumGetInt32(fdw_private->agg_values[rowid][sum_mapping]);
+						break;
+					case INT8OID:
+						sum = (float8) DatumGetInt64(fdw_private->agg_values[rowid][sum_mapping]);
+						break;
+					case INT2OID:
+						sum = (float8) DatumGetInt16(fdw_private->agg_values[rowid][sum_mapping]);
+						break;
+					case FLOAT4OID:
+						sum = (float8) DatumGetFloat4(fdw_private->agg_values[rowid][sum_mapping]);
+						break;
+					case FLOAT8OID:
+						sum = (float8) DatumGetFloat8(fdw_private->agg_values[rowid][sum_mapping]);
+						break;
+					case BOOLOID:
+					case TIMESTAMPOID:
+					case DATEOID:
+					default:
+						break;
 				}
 				cnt = (float8) DatumGetInt32(fdw_private->agg_values[rowid][count_mapping]);
 				if (cnt == 0)
@@ -3406,31 +3415,31 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot * slot
 					float8		right = 0.0;
 					float8		left = 0.0;
 
-				switch (fdw_private->agg_value_type[vardev_mapping])
-				{
-					case NUMERICOID:
-					case INT4OID:
-						sum2 = (float8) DatumGetInt32(fdw_private->agg_values[rowid][vardev_mapping]);
-						break;
-					case INT8OID:
-						sum2 = (float8) DatumGetInt64(fdw_private->agg_values[rowid][vardev_mapping]);
-						break;
-					case INT2OID:
-						sum2 = (float8) DatumGetInt16(fdw_private->agg_values[rowid][vardev_mapping]);
-						break;
-					case FLOAT4OID:
-						sum2 = (float8) DatumGetFloat4(fdw_private->agg_values[rowid][vardev_mapping]);
-						break;
-					case FLOAT8OID:
-						sum2 = (float8) DatumGetFloat8(fdw_private->agg_values[rowid][vardev_mapping]);
-						break;
-					case BOOLOID:
-					case TIMESTAMPOID:
-					case DATEOID:
-					default:
-						break;
-				}
-					if(cnt == 1)
+					switch (fdw_private->agg_value_type[vardev_mapping])
+					{
+						case NUMERICOID:
+						case INT4OID:
+							sum2 = (float8) DatumGetInt32(fdw_private->agg_values[rowid][vardev_mapping]);
+							break;
+						case INT8OID:
+							sum2 = (float8) DatumGetInt64(fdw_private->agg_values[rowid][vardev_mapping]);
+							break;
+						case INT2OID:
+							sum2 = (float8) DatumGetInt16(fdw_private->agg_values[rowid][vardev_mapping]);
+							break;
+						case FLOAT4OID:
+							sum2 = (float8) DatumGetFloat4(fdw_private->agg_values[rowid][vardev_mapping]);
+							break;
+						case FLOAT8OID:
+							sum2 = (float8) DatumGetFloat8(fdw_private->agg_values[rowid][vardev_mapping]);
+							break;
+						case BOOLOID:
+						case TIMESTAMPOID:
+						case DATEOID:
+						default:
+							break;
+					}
+					if (cnt == 1)
 						elog(ERROR, "Record count is 1. Divide by zero error encountered.");
 					right = sum2;
 					left = pow(sum, 2) / cnt;
@@ -3443,15 +3452,15 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot * slot
 						result = sqrt(var);
 					}
 				}
-			if (fdw_private->agg_value_type[sum_mapping] == FLOAT8OID || fdw_private->agg_value_type[sum_mapping] == FLOAT4OID)
-				ret_agg_values[target_column] = Float8GetDatumFast(result);
-			else
-				ret_agg_values[target_column] = DirectFunctionCall1(float8_numeric, Float8GetDatumFast(result));
-		}
+				if (fdw_private->agg_value_type[sum_mapping] == FLOAT8OID || fdw_private->agg_value_type[sum_mapping] == FLOAT4OID)
+					ret_agg_values[target_column] = Float8GetDatumFast(result);
+				else
+					ret_agg_values[target_column] = DirectFunctionCall1(float8_numeric, Float8GetDatumFast(result));
+			}
 		}
 		else if (target_column == mapping_parent)
 		{
-			if(fdw_private->agg_nulls[rowid][mapping] == TRUE)
+			if (fdw_private->agg_nulls[rowid][mapping] == TRUE)
 				nulls[target_column] = TRUE;
 			ret_agg_values[target_column] = fdw_private->agg_values[rowid][mapping];
 			target_column++;
@@ -3552,7 +3561,7 @@ spd_spi_select_table(TupleTableSlot * slot, ForeignScanState * node, SpdFdwPriva
  */
 
 static TupleTableSlot *
-spd_select_return_aggslot(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate * fdw_private)
+spd_select_return_aggslot(TupleTableSlot * slot, ForeignScanState * node, SpdFdwPrivate * fdw_private)
 {
 	if (fdw_private->agg_num < fdw_private->agg_tuples)
 	{
@@ -3751,7 +3760,7 @@ spd_IterateForeignScan(ForeignScanState * node)
 	StringInfo	create_sql = makeStringInfo();
 	ForeignScanThreadInfo *fssThrdInfo = node->spd_fsstate;
 	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
-    TupleTableSlot *slot = NULL,
+	TupleTableSlot *slot = NULL,
 			   *tempSlot = NULL;
 	SpdFdwPrivate *fdw_private;
 	List	   *mapping_tlist;
@@ -3852,8 +3861,9 @@ spd_IterateForeignScan(ForeignScanState * node)
 			tempSlot = node->ss.ss_ScanTupleSlot;
 			tempSlot = spd_select_return_aggslot(tempSlot, node, fdw_private);
 		}
-		if (tempSlot != NULL){
-			fssThrdInfo[count +1].tuple = NULL;
+		if (tempSlot != NULL)
+		{
+			fssThrdInfo[count + 1].tuple = NULL;
 			slot = node->ss.ss_ScanTupleSlot;
 			ExecCopySlot(slot, tempSlot);
 		}
@@ -4116,7 +4126,7 @@ spd_PlanForeignModify(PlannerInfo * root,
 	Datum		oid_server = 0;
 	List	   *child_list = NULL;
 
-	
+
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	fdw_private = spd_AllocatePrivate();
 
@@ -4137,7 +4147,7 @@ spd_PlanForeignModify(PlannerInfo * root,
 		child_list = fdwroutine->PlanForeignModify(root, plan, resultRelation, subplan_index);
 	}
 	heap_close(rel, NoLock);
-	return list_make2(child_list,makeInteger(oid_server));
+	return list_make2(child_list, makeInteger(oid_server));
 }
 
 /**
@@ -4160,11 +4170,12 @@ spd_BeginForeignModify(ModifyTableState * mtstate,
 					   int subplan_index,
 					   int eflags)
 {
-	
-	Oid			oid_server = intVal(list_nth(fdw_private,ServerOid));
-    List* child_fdw_private = (List *) list_nth(fdw_private,ForeignFdwPrivate);
+
+	Oid			oid_server = intVal(list_nth(fdw_private, ServerOid));
+	List	   *child_fdw_private = (List *) list_nth(fdw_private, ForeignFdwPrivate);
 	FdwRoutine *fdwroutine;
 	SpdFdwModifyState *fmstate = (SpdFdwModifyState *) palloc0(sizeof(SpdFdwModifyState));
+
 	fmstate->modify_server_oid = oid_server;
 
 	fdwroutine = GetFdwRoutineByServerId(oid_server);

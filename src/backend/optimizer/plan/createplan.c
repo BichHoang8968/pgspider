@@ -6625,6 +6625,7 @@ is_projection_capable_plan(Plan * plan)
 	return true;
 }
 List *
-PG_build_path_tlist(PlannerInfo *root, Path *path){
+PG_build_path_tlist(PlannerInfo * root, Path * path)
+{
 	return build_path_tlist(root, path);
 }

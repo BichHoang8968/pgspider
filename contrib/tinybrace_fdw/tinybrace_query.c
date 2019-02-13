@@ -140,8 +140,8 @@ tinybrace_convert_to_pg(Oid pgtyp, int pgtypmod, TBC_DATA * column)
 			 * character. For exmple in Tinybrace
 			 *
 			 * CREATE TABLE t (b BIT(8)); INSERT INTO t SET b = b'1001';
-			 * SELECT BIN(b) FROM t; +--------+ | BIN(b) | +--------+ | 1001
-			 * | +--------+
+			 * SELECT BIN(b) FROM t; +--------+ | BIN(b) | +--------+ | 1001 |
+			 * +--------+
 			 *
 			 * PostgreSQL expacts all binary data to be composed of either '0'
 			 * or '1'. Tinybrace gives value 9 hence PostgreSQL reports error.

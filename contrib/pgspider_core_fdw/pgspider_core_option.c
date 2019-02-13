@@ -167,6 +167,7 @@ pgspider_fdw_validator(PG_FUNCTION_ARGS)
 
 	PG_RETURN_VOID();
 }
+
 /*
  * Initialize option lists.
  */
