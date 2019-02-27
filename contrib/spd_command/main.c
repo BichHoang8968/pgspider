@@ -29,13 +29,14 @@ void
 print_usage()
 {
 #ifdef SET_NODE
-	printf("Usage:./spd_node_set ParentIP ParentPort ParentUserName ParentPassword spd|postgres|mysql|tinybrace|sqlite|file .. \n \
- spd       : ChildNodeName	ChildNodeIp	ChildNodePort	ChildNodeUser	ChildNodePass \n \
- postgres  : ChildNodeName	ChildNodeIp	ChildNodePort	ChildNodeUser	ChildNodePass \n \
- mysql     : ChildNodeName	ChildNodeIp	ChildNodePort	ChildNodeUser	ChildNodePass \n \
- tinybrace : ChildNodeName	ChildNodeIp	ChildNodePort	ChildNodeUser	ChildNodePass	ChildNodeDBName \n \
- sqlite    : ChildNodeName	ChildNodeDBPath \n \
- file      : ChildNodeName\n");
+	printf("Usage:./spd_node_set ParentIP ParentPort ParentUserName ParentPassword pgspider|pgspider_core|postgres|mysql|tinybrace|sqlite|file .. \n \
+ pgspider_core : ChildNodeName	ChildNodeIp	ChildNodePort	ChildNodeUser	ChildNodePass \n \
+ pgspider      : ChildNodeName	ChildNodeIp	ChildNodePort	ChildNodeUser	ChildNodePass \n \
+ postgres      : ChildNodeName	ChildNodeIp	ChildNodePort	ChildNodeUser	ChildNodePass \n \
+ mysql         : ChildNodeName	ChildNodeIp	ChildNodePort	ChildNodeUser	ChildNodePass \n \
+ tinybrace     : ChildNodeName	ChildNodeIp	ChildNodePort	ChildNodeUser	ChildNodePass	ChildNodeDBName \n \
+ sqlite        : ChildNodeName	ChildNodeDBPath \n \
+ file          : ChildNodeName\n");
 #endif
 #ifdef GET_NODE
 	printf("Usage: ./spd_node_get ParentIP ParentPort ParentUserName ParentPassword\n");
@@ -54,7 +55,8 @@ print_usage()
 #endif
 #ifdef SET_MAPPING
 	printf("Usage: ./spd_mapping_set ParentIP ParentPort ParentUserName ParentPassword ParentTableName ParentTableName ColumnInfo .. \n \
- spd       : ChildNodeName	ChildNodeTableName \n \
+ pgspider       : ChildNodeName	ChildNodeTableName \n \
+ pgspider_core  : ChildNodeName	ChildNodeTableName \n \
  postgres  : ChildNodeName	ChildNodeTableName \n \
  mysql     : ChildNodeName	ChildNodeTableName\tChildNodeDBName \n \
  tinybrace : ChildNodeName	ChildNodeTableName \n \
@@ -157,10 +159,10 @@ node_set_spd(char *option[], PGconn * conn, int option_length)
 		print_usage();
 		return -1;
 	}
-	sprintf(sql, "CREATE EXTENSION spd_fdw;");
+	sprintf(sql, "CREATE EXTENSION pgspider_core_fdw;");
 	pqexe_wrp_nocheck(conn, sql, option);
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s');\n", option[5], "spd_fdw", option[6], option[7]);
+	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s');\n", option[5], "pgspider_core_fdw", option[6], option[7]);
 	rtn = pqexe_wrp(conn, sql);
 	if (rtn != 0)
 	{
@@ -344,7 +346,7 @@ node_set(char *option[], PGconn * conn, int option_length)
 		return -1;
 	}
 
-	if (strcasecmp(option[4], "spd") == 0)
+	if (strcasecmp(option[4], "pgspider_core") == 0)
 	{
 		rtn = node_set_spd(option, conn, option_length);
 	}
@@ -355,6 +357,10 @@ node_set(char *option[], PGconn * conn, int option_length)
 	else if (strcasecmp(option[4], "mysql") == 0)
 	{
 		rtn = node_set_my(option, conn, option_length);
+	}
+	else if (strcasecmp(option[4], "pgspider") == 0)
+	{
+		rtn = node_set_pg(option, conn, option_length);
 	}
 	else if (strcasecmp(option[4], "postgres") == 0)
 	{
@@ -374,7 +380,7 @@ node_set(char *option[], PGconn * conn, int option_length)
 	}
 	else
 	{
-		fprintf(stdout, "Datasouce %s is not support. Supported spd/tinybrace/mysql/postgres/sqlite/file\n", option[4]);
+		fprintf(stdout, "Datasouce %s is not support. Supported pgspider/pgspider_core/tinybrace/mysql/postgres/sqlite/file\n", option[4]);
 		rtn = -1;
 	}
 	if (rtn != -1)
@@ -832,7 +838,7 @@ mapping_set(char *option[], PGconn * conn, int option_length)
 	{
 		if (strcasecmp(option[6], PQgetvalue(res, loop, 0)) == 0)
 		{
-			if (strcasecmp(PQgetvalue(res, loop, 1), "spd_fdw") == 0)
+			if (strcasecmp(PQgetvalue(res, loop, 1), "pgspider_core_fdw") == 0)
 			{
 				rtn = mapping_set_spd(option, conn, option_length, table_name);
 			}
@@ -845,6 +851,10 @@ mapping_set(char *option[], PGconn * conn, int option_length)
 				rtn = mapping_set_my(option, conn, option_length, table_name);
 			}
 			else if (strcasecmp(PQgetvalue(res, loop, 1), "postgres_fdw") == 0)
+			{
+				rtn = mapping_set_pg(option, conn, option_length, table_name);
+			}
+			else if (strcasecmp(PQgetvalue(res, loop, 1), "pgspider_fdw") == 0)
 			{
 				rtn = mapping_set_pg(option, conn, option_length, table_name);
 			}
@@ -862,7 +872,7 @@ mapping_set(char *option[], PGconn * conn, int option_length)
 			}
 			else
 			{
-				fprintf(stdout, "%s is not support. Supported spd|tinybrace|mysql|postgres|sqlite|file\n", option[6]);
+				fprintf(stdout, "%s is not support. Supported pgspider|pgspider_core|tinybrace|mysql|postgres|sqlite|file\n", option[6]);
 				return -1;
 			}
 

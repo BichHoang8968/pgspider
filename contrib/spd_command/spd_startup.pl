@@ -8,25 +8,32 @@ my $spd_ip;
 my $spd_port;
 my $spd_user;
 my $spd_pass;
+my $spd_name;
 my $spd_dbpath;
 my @spd_extensions;
 
 my @enable_extensions;
 
 $spd_extensions[0]="file_fdw";
-$spd_extensions[1]="spd_fdw";
-$spd_extensions[2]="postgres_fdw";
-$spd_extensions[3]="sqlite_fdw";
-$spd_extensions[4]="tinybrace_fdw";
-$spd_extensions[5]="mysql_fdw";
-$spd_extensions[6]="griddb_fdw";
+$spd_extensions[1]="pgspider_core_fdw";
+$spd_extensions[2]="pgspider_fdw";
+$spd_extensions[3]="postgres_fdw";
+$spd_extensions[4]="sqlite_fdw";
+$spd_extensions[5]="tinybrace_fdw";
+$spd_extensions[6]="mysql_fdw";
+$spd_extensions[7]="griddb_fdw";
+$spd_extensions[8]="influxdb_fdw";
 
+my $DefExtNum = 4;
+
+my $psql_cmd = "./psql";
 
 GetOptions(
     'enable_sqlite'  => \$enable_extensions[0],
     'enable_tinybrace'  => \$enable_extensions[1],
     'enable_mysql'  => \$enable_extensions[2],
     'enable_griddb'  => \$enable_extensions[3]
+#    'enable_influxdb'  => \$enable_extensions[4]
     );
 
 sub rewrite_setting(){
@@ -71,7 +78,7 @@ sub stop_spd(){
 }
 
 sub create_roll(){
-    $cmd = "./psql postgres -c \"CREATE ROLE postgres SUPERUSER LOGIN;\" -t";
+    $cmd = "$psql_cmd -c \"CREATE ROLE postgres SUPERUSER LOGIN;\" -t";
     $result = system($cmd);
     if($result != 0){
         print "Can not create roll.";
@@ -91,7 +98,7 @@ sub delete_allserver{
 	
     sleep(1);
 #get foreign servers
-    $cmd = "./psql postgres -c \"select srvname from pg_foreign_server;\" -t";
+    $cmd = $psql_command." -c \"select srvname from pg_foreign_server;\" -t";
     open my $rs, "$cmd 2>&1 |";
     my @rlist = <$rs>;
     close $rs;
@@ -102,7 +109,7 @@ sub delete_allserver{
         chomp($item);
         if($item){
             $sql = "DROP SERVER ".$item." CASCADE;";
-            $cmd = "./psql postgres -t -c \"".$sql."\"\n";
+            $cmd = $psql_command." -t -c \"".$sql."\"\n";
             $result = system($cmd);
             if($result != 0 ){
                 printf("Failed to add node %s. Please check setting.json. \n",$fdw_name);
@@ -111,19 +118,20 @@ sub delete_allserver{
         }
     }
     foreach my $item (@spd_extensions){
-        $cmd = "./psql postgres -c \"DROP EXTENSION ".$item." CASCADE;\"";
+        $cmd =  $psql_command." -c \"DROP EXTENSION ".$item." CASCADE;\"";
         $result = system($cmd);
         #		printf("drop extention = %d \n", $result);
     }
-    stop_spd();
+    #stop_spd();
 	  printf("-------------------------------------------\nCompliete delete all spd settings. Please check error message. \n");
 }
 
 sub create_extention{
     my $i=0;
     foreach my $item (@spd_extensions){
-       	if($i<3 || ($i>=3 && $enable_extensions[$i-3] eq 1)){
-            $cmd = "./psql postgres -c \"CREATE EXTENSION ".$item.";\"";
+       	if($i<$DefExtNum || ($i>=$DefExtNum && $enable_extensions[$i-$DefExtNum] eq 1)){
+            $cmd = $psql_cmd." -c \"CREATE EXTENSION ".$item.";\"";
+			print $cmd;
             $result = system($cmd);
             if($result != 0){
                 delete_allserver();
@@ -140,25 +148,23 @@ sub create_extention{
 sub import_schema{
     my $cmd;
 
-    $cmd = "./psql postgres -c \"DROP SCHEMA if exists temp_schema;\"";
+    $cmd = $psql_command." -c \"DROP SCHEMA if exists temp_schema;\"";
     $result = system($cmd);
     if($result !=0){
         delete_allserver;
         exit(0);
     }
-
-    $cmd = "./psql postgres -c \"CREATE SCHEMA temp_schema;\"";
+    $cmd = $psql_command." -c \"CREATE SCHEMA temp_schema;\"";
     $result = system($cmd);
     if($result !=0){
         delete_allserver;
         exit(0);
     }
-
 	if($_[1] eq NULL){
-		$cmd = "./psql postgres -c \"import foreign schema public from server ".$_[0]." into temp_schema;\" -t";
+		$cmd = $psql_command." -c \"import foreign schema public from server ".$_[0]." into temp_schema;\" -t";
 	}
 	else{
-		$cmd = "./psql postgres -c \"import foreign schema ".$_[1]." from server ".$_[0]." into temp_schema;\" -t";	    
+		$cmd = $psql_command." -c \"import foreign schema ".$_[1]." from server ".$_[0]." into temp_schema;\" -t";	    
 	}
 	
     $result = system($cmd);
@@ -188,7 +194,7 @@ sub load_filefdw{
 		    exit();
 		}
 		my $sql3 = "CREATE FOREIGN TABLE IF NOT EXISTS ".$tablename."(".$_[1].")server spd;";
-		my $cmd3 = "./psql postgres -t -c \"".$sql3."\"\n";
+		my $cmd3 = $psql_command." -t -c \"".$sql3."\"\n";
 		$result = system($cmd3);
 		if($result !=0){
 			delete_allserver;
@@ -205,8 +211,8 @@ sub load_filefdw{
 }
 
 sub rename_foreign_table{
-    $cmd = "./psql postgres -c \"select foreign_table_name from information_schema.foreign_tables where foreign_table_schema='temp_schema';\" -t";
-    $cmd2 = "./psql postgres -c \"select foreign_server_name from information_schema.foreign_tables where foreign_table_schema='temp_schema';\" -t";
+    $cmd = $psql_command." -c \"select foreign_table_name from information_schema.foreign_tables where foreign_table_schema='temp_schema';\" -t";
+    $cmd2 = $psql_command." -c \"select foreign_server_name from information_schema.foreign_tables where foreign_table_schema='temp_schema';\" -t";
     open my $rs, "$cmd 2>&1 |";
     my @rlists = <$rs>;
     close $rs;
@@ -238,14 +244,14 @@ sub rename_foreign_table{
             
             #Get spd table
             $sql1="select column_name from information_schema.columns where table_name = '".$item."';";
-            $cmd1 = "./psql postgres -t -c \"".$sql1."\"\n";
+            $cmd1 = $psql_command." -t -c \"".$sql1."\"\n";
             open my $rs, "$cmd1 2>&1 |";
             my @attr_rlists = <$rs>;
             close $rs;
             my $column_result = join '', @attr_rlists;
 
             $sql2="select data_type from information_schema.columns where table_name = '".$item."';";
-            $cmd2 = "./psql postgres -t -c \"".$sql2."\"\n";
+            $cmd2 = $psql_command." -t -c \"".$sql2."\"\n";
             open my $rs, "$cmd2 2>&1 |";
             my @type_rlists = <$rs>;
             close $rs;
@@ -253,7 +259,7 @@ sub rename_foreign_table{
             
             #change table name			
             $sql = "ALTER TABLE temp_schema.".$item." RENAME to ".$newtable.";";
-            $cmd = "./psql postgres -t -c \"".$sql."\"\n";
+            $cmd = $psql_command." -t -c \"".$sql."\"\n";
             $result = system($cmd);
             #			printf("%s result = %d \n",$cmd, $result);
             if($result !=0){
@@ -263,7 +269,7 @@ sub rename_foreign_table{
             
             #change schema name	
             $sql = "ALTER TABLE temp_schema.".$newtable." set schema public;";
-            $cmd = "./psql postgres -t -c \"".$sql."\"\n";
+            $cmd = $psql_command." -t -c \"".$sql."\"\n";
             $result = system($cmd);
             if($result !=0){
                 delete_allserver;
@@ -271,7 +277,7 @@ sub rename_foreign_table{
             }
             if ($items->{FDW} eq "tinybrace") {
                 $sql = "ALTER TABLE ".$newtable." options (set table_name '".$item."');";
-                $cmd = "./psql postgres -t -c \"".$sql."\"\n";
+                $cmd = $psql_command." -t -c \"".$sql."\"\n";
                 $result = system($cmd);
                 $result = system($cmd);
                 if($result !=0){
@@ -281,7 +287,7 @@ sub rename_foreign_table{
             }
             elsif($items->{FDW} eq "mysql") {
                 $sql = "ALTER TABLE ".$newtable." options (set tablename '".$item."');";
-                $cmd = "./psql postgres -t -c \"".$sql."\"\n";
+                $cmd = $psql_command." -t -c \"".$sql."\"\n";
                 $result = system($cmd);
                 if($result !=0){
                     delete_allserver;
@@ -290,7 +296,7 @@ sub rename_foreign_table{
             }
             elsif($items->{FDW} eq "sqlite") {
                 $sql = "ALTER TABLE ".$newtable." options (set table '".$item."');";
-                $cmd = "./psql postgres -t -c \"".$sql."\"\n";
+                $cmd = $psql_command." -t -c \"".$sql."\"\n";
                 $result = system($cmd);
                 if($result !=0){
                     delete_allserver;
@@ -309,7 +315,7 @@ sub rename_foreign_table{
 			    $i+=1;
             }
             $sql3 = $sql3." )server spd;";
-            my $cmd3 = "./psql postgres -t -c \"".$sql3."\"\n";
+            my $cmd3 = $psql_command." -t -c \"".$sql3."\"\n";
             $result = system($cmd3);
             if($result !=0){
                 delete_allserver;
@@ -337,18 +343,20 @@ eval{
        $spd_port = $item->{SPD_PORT};
        $spd_user = $item->{SPD_USER};
        $spd_pass = $item->{SPD_PASS};
+       $spd_dbname = $item->{SPD_DBNAME};
        $spd_dbpath = $item->{SPD_DBPATH};
+	   $psql_cmd = $psql_cmd." -U ".$spd_user." -p ".$spd_port." -d postgres ";
 
        #initdb
-       initdb_spd();
+       #initdb_spd();
        #start up server
-       start_spd();
+       #start_spd();
        #create roll
-       create_roll();
+       #create_roll();
        #create extention
        create_extention();
 
-       $command = "./spd_command/spd_node_set ".$spd_ip." ".$spd_port." ".$spd_user." ".$spd_pass." spd ". "spd ".$spd_ip." ".$spd_port." ".$spd_user." ".$spd_pass;
+       $command = "./spd_command/spd_node_set ".$spd_ip." ".$spd_port." ".$spd_user." ".$spd_pass." pgspider_core ". "pgspider_core ".$spd_ip." ".$spd_port." ".$spd_user." ".$spd_pass;
        printf("%s %s %s %s",$spd_ip." ".$spd_port." ".$spd_user." ".$spd_pass);
 	   $result = system($command);
 	   if($result != 0 ){
@@ -373,8 +381,13 @@ eval{
                $command = "./spd_command/spd_node_set ".$spd_ip." ".$spd_port." ".$spd_user." ".$spd_pass." ".$items->{FDW}." ".$items->{Name}." ".$items->{IP}." ".$items->{Port}." ".$items->{user}." ".$items->{password};
                printf "%s\n",$command;
            }
-           elsif($items->{FDW} eq "spd") {
-               printf("========spd=========\n");
+           elsif($items->{FDW} eq "pgspider") {
+               printf("========pgspider=========\n");
+               $command = "./spd_command/spd_node_set ".$spd_ip." ".$spd_port." ".$spd_user." ".$spd_pass." ".$items->{FDW}." ".$items->{Name}." ".$items->{IP}." ".$items->{Port}." ".$items->{user}." ".$items->{password};
+               printf "%s\n",$command;
+           }
+           elsif($items->{FDW} eq "pgspider_core") {
+               printf("========pgspider_core=========\n");
                $command = "./spd_command/spd_node_set ".$spd_ip." ".$spd_port." ".$spd_user." ".$spd_pass." ".$items->{FDW}." ".$items->{Name}." ".$items->{IP}." ".$items->{Port}." ".$items->{user}." ".$items->{password};
                printf "%s\n",$command;
            }
@@ -404,7 +417,9 @@ eval{
                printf("========filefdw=========\n");
                $command = "./spd_command/spd_node_set ".$spd_ip." ".$spd_port." ".$spd_user." ".$spd_pass." ".$items->{FDW}." ".$items->{Name}." ".$items->{FilePath}." ".$items->{TableName}." \"".$items->{Column}."\"";
                printf "%s\n",$command;
-			   load_filefdw($items->{FilePath},$items->{Column});
+           }
+           elsif($items->{FDW} eq "influxdb") {
+               printf("========filefdw=========\n");
            }
            else{
                printf("Failed to add node %s. Please check setting.json. \n",$fdw_name); 
@@ -424,7 +439,7 @@ eval{
 		   }
        }
    }
-   stop_spd();
+   #stop_spd();
    print "-------------------------------------------\nSuccess To SPD initialize!\n";
    print "server start command: \"pg_ctl start -D ".$spd_dbpath."\"\n";
 };

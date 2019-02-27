@@ -4,6 +4,7 @@
         "SPD_PORT" : "5432",
         "SPD_USER" : "postgres",
         "SPD_PASS" : "postgres",
+        "SPD_DBNAME" : "postgres",
         "SPD_DBPATH" : "/home/lx_user/install/"
     },
     "nodes":[ 
@@ -15,6 +16,14 @@
             "user":"user",
             "password":"testuser",
             "dbname":"test.db"
+        },
+        {
+            "FDW":"pgspider",
+            "Name":"pgs1",
+            "IP":"127.0.0.1",
+            "Port":"15432",
+            "user":"postgres",
+            "password":"postgres"
         },
         {
             "FDW":"postgres",
