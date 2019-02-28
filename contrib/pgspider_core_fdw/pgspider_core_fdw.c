@@ -319,14 +319,14 @@ spd_is_builtin(Oid objectId)
 }
 
 /* declarations for dynamic loading */
-PG_FUNCTION_INFO_V1(pgspider_fdw_handler);
+PG_FUNCTION_INFO_V1(pgspider_core_fdw_handler);
 
 /*
  * pgspider_fdw_handler populates an FdwRoutine with pointers to the functions
  * implemented within this file.
  */
 Datum
-pgspider_fdw_handler(PG_FUNCTION_ARGS)
+pgspider_core_fdw_handler(PG_FUNCTION_ARGS)
 {
 	FdwRoutine *fdwroutine = makeNode(FdwRoutine);
 

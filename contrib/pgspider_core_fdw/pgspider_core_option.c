@@ -97,10 +97,10 @@ typedef struct list_ds
  *
  * Raise an ERROR if the option or its value is considered invalid.
  */
-PG_FUNCTION_INFO_V1(pgspider_fdw_validator);
+PG_FUNCTION_INFO_V1(pgspider_core_fdw_validator);
 
 Datum
-pgspider_fdw_validator(PG_FUNCTION_ARGS)
+pgspider_core_fdw_validator(PG_FUNCTION_ARGS)
 {
 	List	   *options_list = untransformRelOptions(PG_GETARG_DATUM(0));
 	Oid			catalog = PG_GETARG_OID(1);
