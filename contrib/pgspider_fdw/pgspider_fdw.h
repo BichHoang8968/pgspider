@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
  *
- * postgres_fdw.h
- *		  Foreign-data wrapper for remote PostgreSQL servers
+ * pgspider_fdw.h
+ *		  Foreign-data wrapper for remote PgspiderQL servers
  *
- * Portions Copyright (c) 2012-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2012-2017, PgspiderQL Global Development Group
  *
  * IDENTIFICATION
- *		  contrib/postgres_fdw/pgspider_fdw.h
+ *		  contrib/pgspider_fdw/pgspider_fdw.h
  *
  *-------------------------------------------------------------------------
  */
@@ -27,7 +27,7 @@
  * pgspiderGetForeignJoinPaths creates it for a joinrel, and
  * pgspiderGetForeignUpperPaths creates it for an upperrel.
  */
-typedef struct SpdFFdwRelationInfo
+typedef struct PgFdwRelationInfo
 {
 	/*
 	 * True means that the relation can be pushed down. Always true for simple
@@ -108,9 +108,9 @@ typedef struct SpdFFdwRelationInfo
 	 * representing the relation.
 	 */
 	int			relation_index;
-}			SpdFFdwRelationInfo;
+}			PgFdwRelationInfo;
 
-/* in pgspider_fdw.c */
+/* in postgres_fdw.c */
 extern int	set_transmission_modes(void);
 extern void reset_transmission_modes(int nestlevel);
 
@@ -119,10 +119,10 @@ extern PGconn * GetConnection(ForeignServer * server, UserMapping * user, bool w
 extern void ReleaseConnection(PGconn * conn);
 extern unsigned int GetCursorNumber(PGconn * conn);
 extern unsigned int GetPrepStmtNumber(PGconn * conn);
-extern PGresult * spdffdw_get_result(PGconn * conn, const char *query);
-extern PGresult * spdffdw_exec_query(PGconn * conn, const char *query);
-extern void spdffdw_report_error(int elevel, PGresult * res, PGconn * conn,
-					 bool clear, const char *sql);
+extern PGresult * pgfdw_get_result(PGconn * conn, const char *query);
+extern PGresult * pgfdw_exec_query(PGconn * conn, const char *query);
+extern void pgfdw_report_error(int elevel, PGresult * res, PGconn * conn,
+				   bool clear, const char *sql);
 
 /* in option.c */
 extern int ExtractConnectionOptions(List * defelems,
@@ -180,6 +180,6 @@ extern const char *get_jointype_name(JoinType jointype);
 
 /* in shippable.c */
 extern bool is_builtin(Oid objectId);
-extern bool is_shippable(Oid objectId, Oid classId, SpdFFdwRelationInfo * fpinfo);
+extern bool is_shippable(Oid objectId, Oid classId, PgFdwRelationInfo * fpinfo);
 
 #endif							/* PGSPIDER_FDW_H */

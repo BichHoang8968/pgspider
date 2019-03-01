@@ -229,7 +229,7 @@ is_foreign_expr(PlannerInfo * root,
 {
 	foreign_glob_cxt glob_cxt;
 	foreign_loc_cxt loc_cxt;
-	SpdFFdwRelationInfo *fpinfo = (SpdFFdwRelationInfo *) (baserel->fdw_private);
+	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) (baserel->fdw_private);
 
 	/*
 	 * Check that the expression consists of nodes that are safe to execute
@@ -292,7 +292,7 @@ foreign_expr_walker(Node * node,
 					foreign_loc_cxt * outer_cxt)
 {
 	bool		check_type = true;
-	SpdFFdwRelationInfo *fpinfo;
+	PgFdwRelationInfo *fpinfo;
 	foreign_loc_cxt inner_cxt;
 	Oid			collation;
 	FDWCollateState state;
@@ -302,7 +302,7 @@ foreign_expr_walker(Node * node,
 		return true;
 
 	/* May need server info from baserel's fdw_private struct */
-	fpinfo = (SpdFFdwRelationInfo *) (glob_cxt->foreignrel->fdw_private);
+	fpinfo = (PgFdwRelationInfo *) (glob_cxt->foreignrel->fdw_private);
 
 	/* Set up inner_cxt for possible recursion to child nodes */
 	inner_cxt.collation = InvalidOid;
@@ -868,7 +868,7 @@ List *
 build_tlist_to_deparse(RelOptInfo * foreignrel)
 {
 	List	   *tlist = NIL;
-	SpdFFdwRelationInfo *fpinfo = (SpdFFdwRelationInfo *) foreignrel->fdw_private;
+	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) foreignrel->fdw_private;
 	ListCell   *lc;
 
 	/*
@@ -928,7 +928,7 @@ deparseSelectStmtForRel(StringInfo buf, PlannerInfo * root, RelOptInfo * rel,
 						List * *params_list)
 {
 	deparse_expr_cxt context;
-	SpdFFdwRelationInfo *fpinfo = (SpdFFdwRelationInfo *) rel->fdw_private;
+	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) rel->fdw_private;
 	List	   *quals;
 
 	/*
@@ -954,9 +954,9 @@ deparseSelectStmtForRel(StringInfo buf, PlannerInfo * root, RelOptInfo * rel,
 	 */
 	if (IS_UPPER_REL(rel))
 	{
-		SpdFFdwRelationInfo *ofpinfo;
+		PgFdwRelationInfo *ofpinfo;
 
-		ofpinfo = (SpdFFdwRelationInfo *) fpinfo->outerrel->fdw_private;
+		ofpinfo = (PgFdwRelationInfo *) fpinfo->outerrel->fdw_private;
 		quals = ofpinfo->remote_conds;
 	}
 	else
@@ -1006,7 +1006,7 @@ deparseSelectSql(List * tlist, bool is_subquery, List * *retrieved_attrs,
 	StringInfo	buf = context->buf;
 	RelOptInfo *foreignrel = context->foreignrel;
 	PlannerInfo *root = context->root;
-	SpdFFdwRelationInfo *fpinfo = (SpdFFdwRelationInfo *) foreignrel->fdw_private;
+	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) foreignrel->fdw_private;
 
 	/*
 	 * Construct SELECT list
@@ -1189,7 +1189,7 @@ deparseLockingClause(deparse_expr_cxt * context)
 	StringInfo	buf = context->buf;
 	PlannerInfo *root = context->root;
 	RelOptInfo *rel = context->scanrel;
-	SpdFFdwRelationInfo *fpinfo = (SpdFFdwRelationInfo *) rel->fdw_private;
+	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) rel->fdw_private;
 	int			relid = -1;
 
 	while ((relid = bms_next_member(rel->relids, relid)) >= 0)
@@ -1411,7 +1411,7 @@ static void
 deparseFromExprForRel(StringInfo buf, PlannerInfo * root, RelOptInfo * foreignrel,
 					  bool use_alias, List * *params_list)
 {
-	SpdFFdwRelationInfo *fpinfo = (SpdFFdwRelationInfo *) foreignrel->fdw_private;
+	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) foreignrel->fdw_private;
 
 	if (IS_JOIN_REL(foreignrel))
 	{
@@ -1488,7 +1488,7 @@ static void
 deparseRangeTblRef(StringInfo buf, PlannerInfo * root, RelOptInfo * foreignrel,
 				   bool make_subquery, List * *params_list)
 {
-	SpdFFdwRelationInfo *fpinfo = (SpdFFdwRelationInfo *) foreignrel->fdw_private;
+	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) foreignrel->fdw_private;
 
 	/* Should only be called in these cases. */
 	Assert(IS_SIMPLE_REL(foreignrel) || IS_JOIN_REL(foreignrel));
@@ -2912,7 +2912,7 @@ printRemoteParam(int paramindex, Oid paramtype, int32 paramtypmod,
  * want the remote planner to generate a plan that depends on such a value
  * anyway.  Thus, we can't do something simple like "$1::paramtype".
  * Instead, we emit "((SELECT null::paramtype)::paramtype)".
- * In all extant versions of Postgres, the planner will see that as an unknown
+ * In all extant versions of Pgspider, the planner will see that as an unknown
  * constant value, which is what we want.  This might need adjustment if we
  * ever make the planner flatten scalar subqueries.  Note: the reason for the
  * apparently useless outer cast is to ensure that the representation as a
@@ -3094,7 +3094,7 @@ deparseSortGroupClause(Index ref, List * tlist, bool force_colno,
 static bool
 is_subquery_var(Var * node, RelOptInfo * foreignrel, int *relno, int *colno)
 {
-	SpdFFdwRelationInfo *fpinfo = (SpdFFdwRelationInfo *) foreignrel->fdw_private;
+	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) foreignrel->fdw_private;
 	RelOptInfo *outerrel = fpinfo->outerrel;
 	RelOptInfo *innerrel = fpinfo->innerrel;
 
@@ -3157,7 +3157,7 @@ static void
 get_relation_column_alias_ids(Var * node, RelOptInfo * foreignrel,
 							  int *relno, int *colno)
 {
-	SpdFFdwRelationInfo *fpinfo = (SpdFFdwRelationInfo *) foreignrel->fdw_private;
+	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) foreignrel->fdw_private;
 	int			i;
 	ListCell   *lc;
 

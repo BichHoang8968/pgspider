@@ -1,8 +1,8 @@
-# contrib/postgres_fdw/Makefile
+# contrib/pgspider_fdw/Makefile
 
 MODULE_big = pgspider_fdw
 OBJS = pgspider_fdw.o option.o deparse.o connection.o shippable.o $(WIN32RES)
-PGFILEDESC = "pgspider_fdw - foreign data wrapper for PostgreSQL"
+PGFILEDESC = "pgspider_fdw - foreign data wrapper for PgspiderQL"
 
 PG_CPPFLAGS = -I$(libpq_srcdir)
 SHLIB_LINK = $(libpq)

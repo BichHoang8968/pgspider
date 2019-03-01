@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
  *
  * connection.c
- *		  Connection management functions for postgres_fdw
+ *		  Connection management functions for pgspider_fdw
  *
- * Portions Copyright (c) 2012-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2012-2017, PgspiderQL Global Development Group
  *
  * IDENTIFICATION
- *		  contrib/postgres_fdw/connection.c
+ *		  contrib/pgspider_fdw/connection.c
  *
  *-------------------------------------------------------------------------
  */
@@ -86,18 +86,18 @@ static void check_conn_params(const char **keywords, const char **values);
 static void configure_remote_session(PGconn * conn);
 static void do_sql_command(PGconn * conn, const char *sql);
 static void begin_remote_xact(ConnCacheEntry * entry);
-static void spdffdw_xact_callback(XactEvent event, void *arg);
-static void spdffdw_subxact_callback(SubXactEvent event,
+static void pgfdw_xact_callback(XactEvent event, void *arg);
+static void pgfdw_subxact_callback(SubXactEvent event,
 						 SubTransactionId mySubid,
 						 SubTransactionId parentSubid,
 						 void *arg);
-static void spdffdw_inval_callback(Datum arg, int cacheid, uint32 hashvalue);
-static void spdffdw_reject_incomplete_xact_state_change(ConnCacheEntry * entry);
-static bool spdffdw_cancel_query(PGconn * conn);
-static bool spdffdw_exec_cleanup_query(PGconn * conn, const char *query,
-						   bool ignore_errors);
-static bool spdffdw_get_cleanup_result(PGconn * conn, TimestampTz endtime,
-						   PGresult * *result);
+static void pgfdw_inval_callback(Datum arg, int cacheid, uint32 hashvalue);
+static void pgfdw_reject_incomplete_xact_state_change(ConnCacheEntry * entry);
+static bool pgfdw_cancel_query(PGconn * conn);
+static bool pgfdw_exec_cleanup_query(PGconn * conn, const char *query,
+						 bool ignore_errors);
+static bool pgfdw_get_cleanup_result(PGconn * conn, TimestampTz endtime,
+						 PGresult * *result);
 
 
 /*
@@ -127,7 +127,7 @@ GetConnection(ForeignServer * server, UserMapping * user, bool will_prep_stmt)
 		ctl.entrysize = sizeof(ConnCacheEntry);
 		/* allocate ConnectionHash in the cache context */
 		ctl.hcxt = CacheMemoryContext;
-		ConnectionHash = hash_create("postgres_fdw connections", 8,
+		ConnectionHash = hash_create("pgspider_fdw connections", 8,
 									 &ctl,
 									 HASH_ELEM | HASH_BLOBS | HASH_CONTEXT);
 
@@ -135,12 +135,12 @@ GetConnection(ForeignServer * server, UserMapping * user, bool will_prep_stmt)
 		 * Register some callback functions that manage connection cleanup.
 		 * This should be done just once in each backend.
 		 */
-		RegisterXactCallback(spdffdw_xact_callback, NULL);
-		RegisterSubXactCallback(spdffdw_subxact_callback, NULL);
+		RegisterXactCallback(pgfdw_xact_callback, NULL);
+		RegisterSubXactCallback(pgfdw_subxact_callback, NULL);
 		CacheRegisterSyscacheCallback(FOREIGNSERVEROID,
-									  spdffdw_inval_callback, (Datum) 0);
+									  pgfdw_inval_callback, (Datum) 0);
 		CacheRegisterSyscacheCallback(USERMAPPINGOID,
-									  spdffdw_inval_callback, (Datum) 0);
+									  pgfdw_inval_callback, (Datum) 0);
 	}
 
 	/* Set flag that we did GetConnection during the current transaction */
@@ -165,7 +165,7 @@ GetConnection(ForeignServer * server, UserMapping * user, bool will_prep_stmt)
 	}
 
 	/* Reject further use of connections which failed abort cleanup. */
-	spdffdw_reject_incomplete_xact_state_change(entry);
+	pgfdw_reject_incomplete_xact_state_change(entry);
 
 	/*
 	 * If the connection needs to be remade due to invalidation, disconnect as
@@ -209,7 +209,7 @@ GetConnection(ForeignServer * server, UserMapping * user, bool will_prep_stmt)
 		/* Now try to make the connection */
 		entry->conn = connect_pg_server(server, user);
 
-		elog(DEBUG3, "new postgres_fdw connection %p for server \"%s\" (user mapping oid %u, userid %u,thredid %u)",
+		elog(DEBUG3, "new pgspider_fdw connection %p for server \"%s\" (user mapping oid %u, userid %u,thredid %u)",
 			 entry->conn, server->servername, user->umid, user->userid, pthread_self());
 	}
 
@@ -257,9 +257,9 @@ connect_pg_server(ForeignServer * server, UserMapping * user)
 		n += ExtractConnectionOptions(user->options,
 									  keywords + n, values + n);
 
-		/* Use "postgres_fdw" as fallback_application_name. */
+		/* Use "pgspider_fdw" as fallback_application_name. */
 		keywords[n] = "fallback_application_name";
-		values[n] = "postgres_fdw";
+		values[n] = "pgspider_fdw";
 		n++;
 
 		/* Set client_encoding so that libpq can convert encoding properly. */
@@ -282,7 +282,7 @@ connect_pg_server(ForeignServer * server, UserMapping * user)
 
 		/*
 		 * Check that non-superuser has used password to establish connection;
-		 * otherwise, he's piggybacking on the postgres server's user
+		 * otherwise, he's piggybacking on the pgspider server's user
 		 * identity. See also dblink_security_check() in contrib/dblink.
 		 */
 		if (!superuser() && !PQconnectionUsedPassword(conn))
@@ -326,7 +326,7 @@ disconnect_pg_server(ConnCacheEntry * entry)
 /*
  * For non-superusers, insist that the connstr specify a password.  This
  * prevents a password from being picked up from .pgpass, a service file,
- * the environment, etc.  We don't want the postgres user's passwords
+ * the environment, etc.  We don't want the pgspider user's passwords
  * to be accessible to non-superusers.  (See also dblink_connstr_check in
  * contrib/dblink.)
  */
@@ -385,7 +385,7 @@ configure_remote_session(PGconn * conn)
 	/*
 	 * Set values needed to ensure unambiguous data output from remote.  (This
 	 * logic should match what pg_dump does.  See also set_transmission_modes
-	 * in postgres_fdw.c.)
+	 * in pgspider_fdw.c.)
 	 */
 	do_sql_command(conn, "SET datestyle = ISO");
 	if (remoteversion >= 80400)
@@ -405,10 +405,10 @@ do_sql_command(PGconn * conn, const char *sql)
 	PGresult   *res;
 
 	if (!PQsendQuery(conn, sql))
-		spdffdw_report_error(ERROR, NULL, conn, false, sql);
-	res = spdffdw_get_result(conn, sql);
+		pgfdw_report_error(ERROR, NULL, conn, false, sql);
+	res = pgfdw_get_result(conn, sql);
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
-		spdffdw_report_error(ERROR, res, conn, true, sql);
+		pgfdw_report_error(ERROR, res, conn, true, sql);
 	PQclear(res);
 }
 
@@ -514,17 +514,17 @@ GetPrepStmtNumber(PGconn * conn)
  * Caller is responsible for the error handling on the result.
  */
 PGresult *
-spdffdw_exec_query(PGconn * conn, const char *query)
+pgfdw_exec_query(PGconn * conn, const char *query)
 {
 	/*
 	 * Submit a query.  Since we don't use non-blocking mode, this also can
 	 * block.  But its risk is relatively small, so we ignore that for now.
 	 */
 	if (!PQsendQuery(conn, query))
-		spdffdw_report_error(ERROR, NULL, conn, false, query);
+		pgfdw_report_error(ERROR, NULL, conn, false, query);
 
 	/* Wait for the result. */
-	return spdffdw_get_result(conn, query);
+	return pgfdw_get_result(conn, query);
 }
 
 /*
@@ -538,7 +538,7 @@ spdffdw_exec_query(PGconn * conn, const char *query)
  * Caller is responsible for the error handling on the result.
  */
 PGresult *
-spdffdw_get_result(PGconn * conn, const char *query)
+pgfdw_get_result(PGconn * conn, const char *query)
 {
 	PGresult   *volatile last_res = NULL;
 
@@ -566,7 +566,7 @@ spdffdw_get_result(PGconn * conn, const char *query)
 				if (wc & WL_SOCKET_READABLE)
 				{
 					if (!PQconsumeInput(conn))
-						spdffdw_report_error(ERROR, NULL, conn, false, query);
+						pgfdw_report_error(ERROR, NULL, conn, false, query);
 				}
 			}
 
@@ -602,8 +602,8 @@ spdffdw_get_result(PGconn * conn, const char *query)
  * marked with have_error = true.
  */
 void
-spdffdw_report_error(int elevel, PGresult * res, PGconn * conn,
-					 bool clear, const char *sql)
+pgfdw_report_error(int elevel, PGresult * res, PGconn * conn,
+				   bool clear, const char *sql)
 {
 	/* If requested, PGresult must be released before leaving this function. */
 	PG_TRY();
@@ -653,10 +653,10 @@ spdffdw_report_error(int elevel, PGresult * res, PGconn * conn,
 }
 
 /*
- * spdffdw_xact_callback --- cleanup at main-transaction end.
+ * pgfdw_xact_callback --- cleanup at main-transaction end.
  */
 static void
-spdffdw_xact_callback(XactEvent event, void *arg)
+pgfdw_xact_callback(XactEvent event, void *arg)
 {
 	HASH_SEQ_STATUS scan;
 	ConnCacheEntry *entry;
@@ -695,7 +695,7 @@ spdffdw_xact_callback(XactEvent event, void *arg)
 					 * If abort cleanup previously failed for this connection,
 					 * we can't issue any more commands against it.
 					 */
-					spdffdw_reject_incomplete_xact_state_change(entry);
+					pgfdw_reject_incomplete_xact_state_change(entry);
 
 					/* Commit all remote transactions during pre-commit */
 					entry->changing_xact_state = true;
@@ -710,7 +710,7 @@ spdffdw_xact_callback(XactEvent event, void *arg)
 					 * probably not worth trying harder.
 					 *
 					 * DEALLOCATE ALL only exists in 8.3 and later, so this
-					 * constrains how old a server postgres_fdw can
+					 * constrains how old a server pgspider_fdw can
 					 * communicate with.  We intentionally ignore errors in
 					 * the DEALLOCATE, so that we can hobble along to some
 					 * extent with older servers (leaking prepared statements
@@ -780,12 +780,12 @@ spdffdw_xact_callback(XactEvent event, void *arg)
 					 * and if so, request cancellation of the command.
 					 */
 					if (PQtransactionStatus(entry->conn) == PQTRANS_ACTIVE &&
-						!spdffdw_cancel_query(entry->conn))
+						!pgfdw_cancel_query(entry->conn))
 					{
 						/* Unable to cancel running query. */
 						abort_cleanup_failure = true;
 					}
-					else if (!spdffdw_exec_cleanup_query(entry->conn,
+					else if (!pgfdw_exec_cleanup_query(entry->conn,
 														 "ABORT TRANSACTION",
 														 false))
 					{
@@ -793,7 +793,7 @@ spdffdw_xact_callback(XactEvent event, void *arg)
 						abort_cleanup_failure = true;
 					}
 					else if (entry->have_prep_stmt && entry->have_error &&
-							 !spdffdw_exec_cleanup_query(entry->conn,
+							 !pgfdw_exec_cleanup_query(entry->conn,
 														 "DEALLOCATE ALL",
 														 true))
 					{
@@ -816,11 +816,7 @@ spdffdw_xact_callback(XactEvent event, void *arg)
 		entry->xact_depth = 0;
 
 		elog(DEBUG3, "discarding connection %p", entry->conn);
-/*
- 		PQfinish(entry->conn);
-		entry->conn = NULL;
-*/
-#if 1
+
 
 		/*
 		 * If the connection isn't in a good idle state, discard it to
@@ -833,7 +829,6 @@ spdffdw_xact_callback(XactEvent event, void *arg)
 			elog(DEBUG3, "discarding connection %p", entry->conn);
 			disconnect_pg_server(entry);
 		}
-#endif
 	}
 
 	/*
@@ -848,10 +843,10 @@ spdffdw_xact_callback(XactEvent event, void *arg)
 }
 
 /*
- * spdffdw_subxact_callback --- cleanup at subtransaction end.
+ * pgfdw_subxact_callback --- cleanup at subtransaction end.
  */
 static void
-spdffdw_subxact_callback(SubXactEvent event, SubTransactionId mySubid,
+pgfdw_subxact_callback(SubXactEvent event, SubTransactionId mySubid,
 						 SubTransactionId parentSubid, void *arg)
 {
 	HASH_SEQ_STATUS scan;
@@ -894,7 +889,7 @@ spdffdw_subxact_callback(SubXactEvent event, SubTransactionId mySubid,
 			 * If abort cleanup previously failed for this connection, we
 			 * can't issue any more commands against it.
 			 */
-			spdffdw_reject_incomplete_xact_state_change(entry);
+			pgfdw_reject_incomplete_xact_state_change(entry);
 
 			/* Commit all remote subtransactions during pre-commit */
 			snprintf(sql, sizeof(sql), "RELEASE SAVEPOINT s%d", curlevel);
@@ -928,7 +923,7 @@ spdffdw_subxact_callback(SubXactEvent event, SubTransactionId mySubid,
 			 * of the command.
 			 */
 			if (PQtransactionStatus(entry->conn) == PQTRANS_ACTIVE &&
-				!spdffdw_cancel_query(entry->conn))
+				!pgfdw_cancel_query(entry->conn))
 				abort_cleanup_failure = true;
 			else
 			{
@@ -936,7 +931,7 @@ spdffdw_subxact_callback(SubXactEvent event, SubTransactionId mySubid,
 				snprintf(sql, sizeof(sql),
 						 "ROLLBACK TO SAVEPOINT s%d; RELEASE SAVEPOINT s%d",
 						 curlevel, curlevel);
-				if (!spdffdw_exec_cleanup_query(entry->conn, sql, false))
+				if (!pgfdw_exec_cleanup_query(entry->conn, sql, false))
 					abort_cleanup_failure = true;
 			}
 
@@ -965,7 +960,7 @@ spdffdw_subxact_callback(SubXactEvent event, SubTransactionId mySubid,
  * individual option values, but it seems too much effort for the gain.
  */
 static void
-spdffdw_inval_callback(Datum arg, int cacheid, uint32 hashvalue)
+pgfdw_inval_callback(Datum arg, int cacheid, uint32 hashvalue)
 {
 	HASH_SEQ_STATUS scan;
 	ConnCacheEntry *entry;
@@ -1001,7 +996,7 @@ spdffdw_inval_callback(Datum arg, int cacheid, uint32 hashvalue)
  * performed, so that's not an option, either. Thus, we must abort.
  */
 static void
-spdffdw_reject_incomplete_xact_state_change(ConnCacheEntry * entry)
+pgfdw_reject_incomplete_xact_state_change(ConnCacheEntry * entry)
 {
 	HeapTuple	tup;
 	Form_pg_user_mapping umform;
@@ -1036,7 +1031,7 @@ spdffdw_reject_incomplete_xact_state_change(ConnCacheEntry * entry)
  * and discard any pending result, and false if not.
  */
 static bool
-spdffdw_cancel_query(PGconn * conn)
+pgfdw_cancel_query(PGconn * conn)
 {
 	PGcancel   *cancel;
 	char		errbuf[256];
@@ -1068,7 +1063,7 @@ spdffdw_cancel_query(PGconn * conn)
 	}
 
 	/* Get and discard the result of the query. */
-	if (spdffdw_get_cleanup_result(conn, endtime, &result))
+	if (pgfdw_get_cleanup_result(conn, endtime, &result))
 		return false;
 	PQclear(result);
 
@@ -1083,7 +1078,7 @@ spdffdw_cancel_query(PGconn * conn)
  * sent or times out, the return value is false.
  */
 static bool
-spdffdw_exec_cleanup_query(PGconn * conn, const char *query, bool ignore_errors)
+pgfdw_exec_cleanup_query(PGconn * conn, const char *query, bool ignore_errors)
 {
 	PGresult   *result = NULL;
 	TimestampTz endtime;
@@ -1102,18 +1097,18 @@ spdffdw_exec_cleanup_query(PGconn * conn, const char *query, bool ignore_errors)
 	 */
 	if (!PQsendQuery(conn, query))
 	{
-		spdffdw_report_error(WARNING, NULL, conn, false, query);
+		pgfdw_report_error(WARNING, NULL, conn, false, query);
 		return false;
 	}
 
 	/* Get the result of the query. */
-	if (spdffdw_get_cleanup_result(conn, endtime, &result))
+	if (pgfdw_get_cleanup_result(conn, endtime, &result))
 		return false;
 
 	/* Issue a warning if not successful. */
 	if (PQresultStatus(result) != PGRES_COMMAND_OK)
 	{
-		spdffdw_report_error(WARNING, result, conn, true, query);
+		pgfdw_report_error(WARNING, result, conn, true, query);
 		return ignore_errors;
 	}
 	PQclear(result);
@@ -1137,7 +1132,7 @@ spdffdw_exec_cleanup_query(PGconn * conn, const char *query, bool ignore_errors)
  * Sets *result except in case of a timeout.
  */
 static bool
-spdffdw_get_cleanup_result(PGconn * conn, TimestampTz endtime, PGresult * *result)
+pgfdw_get_cleanup_result(PGconn * conn, TimestampTz endtime, PGresult * *result)
 {
 	volatile bool timed_out = false;
 	PGresult   *volatile last_res = NULL;

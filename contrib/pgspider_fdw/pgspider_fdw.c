@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
  *
- * spdfront_fdw.c
- *		  Foreign-data wrapper for remote SpdfrontQL servers
+ * pgspider_fdw.c
+ *		  Foreign-data wrapper for remote PgspiderQL servers
  *
- * Portions Copyright (c) 2012-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2012-2017, PgspiderQL Global Development Group
  *
  * IDENTIFICATION
- *		  contrib/spdfront_fdw/spdfront_fdw.c
+ *		  contrib/pgspider_fdw/pgspider_fdw.c
  *
  *-------------------------------------------------------------------------
  */
@@ -122,7 +122,7 @@ enum FdwDirectModifyPrivateIndex
 /*
  * Execution state of a foreign scan using pgspider_fdw.
  */
-typedef struct SpdfFdwScanState
+typedef struct PgFdwScanState
 {
 	Relation	rel;			/* relcache entry for the foreign table. NULL
 								 * for a foreign join scan. */
@@ -156,12 +156,12 @@ typedef struct SpdfFdwScanState
 	MemoryContext temp_cxt;		/* context for per-tuple temporary data */
 
 	int			fetch_size;		/* number of tuples per fetch */
-}			SpdfFdwScanState;
+}			PgFdwScanState;
 
 /*
  * Execution state of a foreign insert/update/delete operation.
  */
-typedef struct SpdfFdwModifyState
+typedef struct PgFdwModifyState
 {
 	Relation	rel;			/* relcache entry for the foreign table */
 	AttInMetadata *attinmeta;	/* attribute datatype conversion metadata */
@@ -183,12 +183,12 @@ typedef struct SpdfFdwModifyState
 
 	/* working memory context */
 	MemoryContext temp_cxt;		/* context for per-tuple temporary data */
-}			SpdfFdwModifyState;
+}			PgFdwModifyState;
 
 /*
  * Execution state of a foreign scan that modifies a foreign table directly.
  */
-typedef struct SpdfFdwDirectModifyState
+typedef struct PgFdwDirectModifyState
 {
 	Relation	rel;			/* relcache entry for the foreign table */
 	AttInMetadata *attinmeta;	/* attribute datatype conversion metadata */
@@ -213,12 +213,12 @@ typedef struct SpdfFdwDirectModifyState
 
 	/* working memory context */
 	MemoryContext temp_cxt;		/* context for per-tuple temporary data */
-}			SpdfFdwDirectModifyState;
+}			PgFdwDirectModifyState;
 
 /*
  * Workspace for analyzing a foreign table.
  */
-typedef struct SpdfFdwAnalyzeState
+typedef struct PgFdwAnalyzeState
 {
 	Relation	rel;			/* relcache entry for the foreign table */
 	AttInMetadata *attinmeta;	/* attribute datatype conversion metadata */
@@ -237,7 +237,7 @@ typedef struct SpdfFdwAnalyzeState
 	/* working memory contexts */
 	MemoryContext anl_cxt;		/* context for per-analyze lifespan data */
 	MemoryContext temp_cxt;		/* context for per-tuple temporary data */
-}			SpdfFdwAnalyzeState;
+}			PgFdwAnalyzeState;
 
 /*
  * Identify the attribute where data conversion fails.
@@ -370,11 +370,11 @@ static bool ec_member_matches_foreign(PlannerInfo * root, RelOptInfo * rel,
 static void create_cursor(ForeignScanState * node);
 static void fetch_more_data(ForeignScanState * node);
 static void close_cursor(PGconn * conn, unsigned int cursor_number);
-static void prepare_foreign_modify(SpdfFdwModifyState * fmstate);
-static const char **convert_prep_stmt_params(SpdfFdwModifyState * fmstate,
+static void prepare_foreign_modify(PgFdwModifyState * fmstate);
+static const char **convert_prep_stmt_params(PgFdwModifyState * fmstate,
 						 ItemPointer tupleid,
 						 TupleTableSlot * slot);
-static void store_returning_result(SpdfFdwModifyState * fmstate,
+static void store_returning_result(PgFdwModifyState * fmstate,
 					   TupleTableSlot * slot, PGresult * res);
 static void execute_dml_stmt(ForeignScanState * node);
 static TupleTableSlot * get_returning_data(ForeignScanState * node);
@@ -393,7 +393,7 @@ static int pgspiderAcquireSampleRowsFunc(Relation relation, int elevel,
 							  double *totalrows,
 							  double *totaldeadrows);
 static void analyze_row_processor(PGresult * res, int row,
-					  SpdfFdwAnalyzeState * astate);
+					  PgFdwAnalyzeState * astate);
 static HeapTuple make_tuple_from_result_row(PGresult * res,
 											int row,
 											Relation rel,
@@ -414,11 +414,11 @@ static void add_paths_with_pathkeys_for_rel(PlannerInfo * root, RelOptInfo * rel
 static void add_foreign_grouping_paths(PlannerInfo * root,
 						   RelOptInfo * input_rel,
 						   RelOptInfo * grouped_rel);
-static void apply_server_options(SpdFFdwRelationInfo * fpinfo);
-static void apply_table_options(SpdFFdwRelationInfo * fpinfo);
-static void merge_fdw_options(SpdFFdwRelationInfo * fpinfo,
-				  const SpdFFdwRelationInfo * fpinfo_o,
-				  const SpdFFdwRelationInfo * fpinfo_i);
+static void apply_server_options(PgFdwRelationInfo * fpinfo);
+static void apply_table_options(PgFdwRelationInfo * fpinfo);
+static void merge_fdw_options(PgFdwRelationInfo * fpinfo,
+				  const PgFdwRelationInfo * fpinfo_o,
+				  const PgFdwRelationInfo * fpinfo_i);
 
 
 /*
@@ -487,7 +487,7 @@ pgspiderGetForeignRelSize(PlannerInfo * root,
 						  RelOptInfo * baserel,
 						  Oid foreigntableid)
 {
-	SpdFFdwRelationInfo *fpinfo;
+	PgFdwRelationInfo *fpinfo;
 	ListCell   *lc;
 	RangeTblEntry *rte = planner_rt_fetch(baserel->relid, root);
 	const char *namespace;
@@ -495,10 +495,10 @@ pgspiderGetForeignRelSize(PlannerInfo * root,
 	const char *refname;
 
 	/*
-	 * We use SpdFFdwRelationInfo to pass various information to subsequent
+	 * We use PgFdwRelationInfo to pass various information to subsequent
 	 * functions.
 	 */
-	fpinfo = (SpdFFdwRelationInfo *) palloc0(sizeof(SpdFFdwRelationInfo));
+	fpinfo = (PgFdwRelationInfo *) palloc0(sizeof(PgFdwRelationInfo));
 	baserel->fdw_private = (void *) fpinfo;
 
 	/* Base foreign tables need to be pushed down always. */
@@ -779,7 +779,7 @@ get_useful_pathkeys_for_relation(PlannerInfo * root, RelOptInfo * rel)
 {
 	List	   *useful_pathkeys_list = NIL;
 	List	   *useful_eclass_list;
-	SpdFFdwRelationInfo *fpinfo = (SpdFFdwRelationInfo *) rel->fdw_private;
+	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) rel->fdw_private;
 	EquivalenceClass *query_ec = NULL;
 	ListCell   *lc;
 
@@ -886,7 +886,7 @@ pgspiderGetForeignPaths(PlannerInfo * root,
 						RelOptInfo * baserel,
 						Oid foreigntableid)
 {
-	SpdFFdwRelationInfo *fpinfo = (SpdFFdwRelationInfo *) baserel->fdw_private;
+	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) baserel->fdw_private;
 	ForeignPath *path;
 	List	   *ppi_list;
 	ListCell   *lc;
@@ -1096,7 +1096,7 @@ pgspiderGetForeignPlan(PlannerInfo * root,
 					   List * scan_clauses,
 					   Plan * outer_plan)
 {
-	SpdFFdwRelationInfo *fpinfo = (SpdFFdwRelationInfo *) foreignrel->fdw_private;
+	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) foreignrel->fdw_private;
 	Index		scan_relid;
 	List	   *fdw_private;
 	List	   *remote_exprs = NIL;
@@ -1248,6 +1248,7 @@ pgspiderGetForeignPlan(PlannerInfo * root,
 	 * Build the fdw_private list that will be available to the executor.
 	 * Items in the list must match order in enum FdwScanPrivateIndex.
 	 */
+	elog(WARNING,"sql = %s",sql.data);
 	fdw_private = list_make3(makeString(sql.data),
 							 retrieved_attrs,
 							 makeInteger(fpinfo->fetch_size));
@@ -1281,7 +1282,7 @@ pgspiderBeginForeignScan(ForeignScanState * node, int eflags)
 {
 	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
 	EState	   *estate = node->ss.ps.state;
-	SpdfFdwScanState *fsstate;
+	PgFdwScanState *fsstate;
 	RangeTblEntry *rte;
 	Oid			userid;
 	ForeignTable *table;
@@ -1298,7 +1299,7 @@ pgspiderBeginForeignScan(ForeignScanState * node, int eflags)
 	/*
 	 * We'll save private state in node->fdw_state.
 	 */
-	fsstate = (SpdfFdwScanState *) palloc0(sizeof(SpdfFdwScanState));
+	fsstate = (PgFdwScanState *) palloc0(sizeof(PgFdwScanState));
 	node->fdw_state = (void *) fsstate;
 
 	/*
@@ -1383,7 +1384,7 @@ pgspiderBeginForeignScan(ForeignScanState * node, int eflags)
 static TupleTableSlot *
 pgspiderIterateForeignScan(ForeignScanState * node)
 {
-	SpdfFdwScanState *fsstate = (SpdfFdwScanState *) node->fdw_state;
+	PgFdwScanState *fsstate = (PgFdwScanState *) node->fdw_state;
 	TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
 
 	/*
@@ -1424,7 +1425,7 @@ pgspiderIterateForeignScan(ForeignScanState * node)
 static void
 pgspiderReScanForeignScan(ForeignScanState * node)
 {
-	SpdfFdwScanState *fsstate = (SpdfFdwScanState *) node->fdw_state;
+	PgFdwScanState *fsstate = (PgFdwScanState *) node->fdw_state;
 	char		sql[64];
 	PGresult   *res;
 
@@ -1457,12 +1458,12 @@ pgspiderReScanForeignScan(ForeignScanState * node)
 	}
 
 	/*
-	 * We don't use a SPDF_TRY block here, so be careful not to throw error
-	 * without releasing the SPDFresult.
+	 * We don't use a PG_TRY block here, so be careful not to throw error
+	 * without releasing the PGresult.
 	 */
-	res = spdffdw_exec_query(fsstate->conn, sql);
+	res = pgfdw_exec_query(fsstate->conn, sql);
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
-		spdffdw_report_error(ERROR, res, fsstate->conn, true, sql);
+		pgfdw_report_error(ERROR, res, fsstate->conn, true, sql);
 	PQclear(res);
 
 	/* Now force a fresh FETCH. */
@@ -1480,7 +1481,7 @@ pgspiderReScanForeignScan(ForeignScanState * node)
 static void
 pgspiderEndForeignScan(ForeignScanState * node)
 {
-	SpdfFdwScanState *fsstate = (SpdfFdwScanState *) node->fdw_state;
+	PgFdwScanState *fsstate = (PgFdwScanState *) node->fdw_state;
 
 	/* if fsstate is NULL, we are in EXPLAIN; nothing to do */
 	if (fsstate == NULL)
@@ -1663,7 +1664,7 @@ pgspiderBeginForeignModify(ModifyTableState * mtstate,
 						   int subplan_index,
 						   int eflags)
 {
-	SpdfFdwModifyState *fmstate;
+	PgFdwModifyState *fmstate;
 	EState	   *estate = mtstate->ps.state;
 	CmdType		operation = mtstate->operation;
 	Relation	rel = resultRelInfo->ri_RelationDesc;
@@ -1683,8 +1684,8 @@ pgspiderBeginForeignModify(ModifyTableState * mtstate,
 	if (eflags & EXEC_FLAG_EXPLAIN_ONLY)
 		return;
 
-	/* Begin constructing SpdfFdwModifyState. */
-	fmstate = (SpdfFdwModifyState *) palloc0(sizeof(SpdfFdwModifyState));
+	/* Begin constructing PgFdwModifyState. */
+	fmstate = (PgFdwModifyState *) palloc0(sizeof(PgFdwModifyState));
 	fmstate->rel = rel;
 
 	/*
@@ -1773,7 +1774,7 @@ pgspiderExecForeignInsert(EState * estate,
 						  TupleTableSlot * slot,
 						  TupleTableSlot * planSlot)
 {
-	SpdfFdwModifyState *fmstate = (SpdfFdwModifyState *) resultRelInfo->ri_FdwState;
+	PgFdwModifyState *fmstate = (PgFdwModifyState *) resultRelInfo->ri_FdwState;
 	const char **p_values;
 	PGresult   *res;
 	int			n_rows;
@@ -1795,7 +1796,7 @@ pgspiderExecForeignInsert(EState * estate,
 							 NULL,
 							 NULL,
 							 0))
-		spdffdw_report_error(ERROR, NULL, fmstate->conn, false, fmstate->query);
+		pgfdw_report_error(ERROR, NULL, fmstate->conn, false, fmstate->query);
 
 	/*
 	 * Get the result, and check for success.
@@ -1803,10 +1804,10 @@ pgspiderExecForeignInsert(EState * estate,
 	 * We don't use a PG_TRY block here, so be careful not to throw error
 	 * without releasing the PGresult.
 	 */
-	res = spdffdw_get_result(fmstate->conn, fmstate->query);
+	res = pgfdw_get_result(fmstate->conn, fmstate->query);
 	if (PQresultStatus(res) !=
 		(fmstate->has_returning ? PGRES_TUPLES_OK : PGRES_COMMAND_OK))
-		spdffdw_report_error(ERROR, res, fmstate->conn, true, fmstate->query);
+		pgfdw_report_error(ERROR, res, fmstate->conn, true, fmstate->query);
 
 	/* Check number of rows affected, and fetch RETURNING tuple if any */
 	if (fmstate->has_returning)
@@ -1837,7 +1838,7 @@ pgspiderExecForeignUpdate(EState * estate,
 						  TupleTableSlot * slot,
 						  TupleTableSlot * planSlot)
 {
-	SpdfFdwModifyState *fmstate = (SpdfFdwModifyState *) resultRelInfo->ri_FdwState;
+	PgFdwModifyState *fmstate = (PgFdwModifyState *) resultRelInfo->ri_FdwState;
 	Datum		datum;
 	bool		isNull;
 	const char **p_values;
@@ -1871,18 +1872,18 @@ pgspiderExecForeignUpdate(EState * estate,
 							 NULL,
 							 NULL,
 							 0))
-		spdffdw_report_error(ERROR, NULL, fmstate->conn, false, fmstate->query);
+		pgfdw_report_error(ERROR, NULL, fmstate->conn, false, fmstate->query);
 
 	/*
 	 * Get the result, and check for success.
 	 *
-	 * We don't use a SPDF_TRY block here, so be careful not to throw error
-	 * without releasing the SPDFresult.
+	 * We don't use a PG_TRY block here, so be careful not to throw error
+	 * without releasing the PGresult.
 	 */
-	res = spdffdw_get_result(fmstate->conn, fmstate->query);
+	res = pgfdw_get_result(fmstate->conn, fmstate->query);
 	if (PQresultStatus(res) !=
 		(fmstate->has_returning ? PGRES_TUPLES_OK : PGRES_COMMAND_OK))
-		spdffdw_report_error(ERROR, res, fmstate->conn, true, fmstate->query);
+		pgfdw_report_error(ERROR, res, fmstate->conn, true, fmstate->query);
 
 	/* Check number of rows affected, and fetch RETURNING tuple if any */
 	if (fmstate->has_returning)
@@ -1913,7 +1914,7 @@ pgspiderExecForeignDelete(EState * estate,
 						  TupleTableSlot * slot,
 						  TupleTableSlot * planSlot)
 {
-	SpdfFdwModifyState *fmstate = (SpdfFdwModifyState *) resultRelInfo->ri_FdwState;
+	PgFdwModifyState *fmstate = (PgFdwModifyState *) resultRelInfo->ri_FdwState;
 	Datum		datum;
 	bool		isNull;
 	const char **p_values;
@@ -1947,7 +1948,7 @@ pgspiderExecForeignDelete(EState * estate,
 							 NULL,
 							 NULL,
 							 0))
-		spdffdw_report_error(ERROR, NULL, fmstate->conn, false, fmstate->query);
+		pgfdw_report_error(ERROR, NULL, fmstate->conn, false, fmstate->query);
 
 	/*
 	 * Get the result, and check for success.
@@ -1955,10 +1956,10 @@ pgspiderExecForeignDelete(EState * estate,
 	 * We don't use a PG_TRY block here, so be careful not to throw error
 	 * without releasing the PGresult.
 	 */
-	res = spdffdw_get_result(fmstate->conn, fmstate->query);
+	res = pgfdw_get_result(fmstate->conn, fmstate->query);
 	if (PQresultStatus(res) !=
 		(fmstate->has_returning ? PGRES_TUPLES_OK : PGRES_COMMAND_OK))
-		spdffdw_report_error(ERROR, res, fmstate->conn, true, fmstate->query);
+		pgfdw_report_error(ERROR, res, fmstate->conn, true, fmstate->query);
 
 	/* Check number of rows affected, and fetch RETURNING tuple if any */
 	if (fmstate->has_returning)
@@ -1987,7 +1988,7 @@ static void
 pgspiderEndForeignModify(EState * estate,
 						 ResultRelInfo * resultRelInfo)
 {
-	SpdfFdwModifyState *fmstate = (SpdfFdwModifyState *) resultRelInfo->ri_FdwState;
+	PgFdwModifyState *fmstate = (PgFdwModifyState *) resultRelInfo->ri_FdwState;
 
 	/* If fmstate is NULL, we are in EXPLAIN; nothing to do */
 	if (fmstate == NULL)
@@ -2005,9 +2006,9 @@ pgspiderEndForeignModify(EState * estate,
 		 * We don't use a PG_TRY block here, so be careful not to throw error
 		 * without releasing the PGresult.
 		 */
-		res = spdffdw_exec_query(fmstate->conn, sql);
+		res = pgfdw_exec_query(fmstate->conn, sql);
 		if (PQresultStatus(res) != PGRES_COMMAND_OK)
-			spdffdw_report_error(ERROR, res, fmstate->conn, true, sql);
+			pgfdw_report_error(ERROR, res, fmstate->conn, true, sql);
 		PQclear(res);
 		fmstate->p_name = NULL;
 	}
@@ -2107,7 +2108,7 @@ pgspiderPlanDirectModify(PlannerInfo * root,
 	Plan	   *subplan;
 	RelOptInfo *foreignrel;
 	RangeTblEntry *rte;
-	SpdFFdwRelationInfo *fpinfo;
+	PgFdwRelationInfo *fpinfo;
 	Relation	rel;
 	StringInfoData sql;
 	ForeignScan *fscan;
@@ -2152,7 +2153,7 @@ pgspiderPlanDirectModify(PlannerInfo * root,
 	/* Safe to fetch data about the target foreign rel */
 	foreignrel = root->simple_rel_array[resultRelation];
 	rte = root->simple_rte_array[resultRelation];
-	fpinfo = (SpdFFdwRelationInfo *) foreignrel->fdw_private;
+	fpinfo = (PgFdwRelationInfo *) foreignrel->fdw_private;
 
 	/*
 	 * It's unsafe to update a foreign table directly, if any expressions to
@@ -2267,7 +2268,7 @@ pgspiderBeginDirectModify(ForeignScanState * node, int eflags)
 {
 	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
 	EState	   *estate = node->ss.ps.state;
-	SpdfFdwDirectModifyState *dmstate;
+	PgFdwDirectModifyState *dmstate;
 	RangeTblEntry *rte;
 	Oid			userid;
 	ForeignTable *table;
@@ -2283,7 +2284,7 @@ pgspiderBeginDirectModify(ForeignScanState * node, int eflags)
 	/*
 	 * We'll save private state in node->fdw_state.
 	 */
-	dmstate = (SpdfFdwDirectModifyState *) palloc0(sizeof(SpdfFdwDirectModifyState));
+	dmstate = (PgFdwDirectModifyState *) palloc0(sizeof(PgFdwDirectModifyState));
 	node->fdw_state = (void *) dmstate;
 
 	/*
@@ -2347,7 +2348,7 @@ pgspiderBeginDirectModify(ForeignScanState * node, int eflags)
 static TupleTableSlot *
 pgspiderIterateDirectModify(ForeignScanState * node)
 {
-	SpdfFdwDirectModifyState *dmstate = (SpdfFdwDirectModifyState *) node->fdw_state;
+	PgFdwDirectModifyState *dmstate = (PgFdwDirectModifyState *) node->fdw_state;
 	EState	   *estate = node->ss.ps.state;
 	ResultRelInfo *resultRelInfo = estate->es_result_relation_info;
 
@@ -2391,7 +2392,7 @@ pgspiderIterateDirectModify(ForeignScanState * node)
 static void
 pgspiderEndDirectModify(ForeignScanState * node)
 {
-	SpdfFdwDirectModifyState *dmstate = (SpdfFdwDirectModifyState *) node->fdw_state;
+	PgFdwDirectModifyState *dmstate = (PgFdwDirectModifyState *) node->fdw_state;
 
 	/* if dmstate is NULL, we are in EXPLAIN; nothing to do */
 	if (dmstate == NULL)
@@ -2501,7 +2502,7 @@ estimate_path_cost_size(PlannerInfo * root,
 						double *p_rows, int *p_width,
 						Cost * p_startup_cost, Cost * p_total_cost)
 {
-	SpdFFdwRelationInfo *fpinfo = (SpdFFdwRelationInfo *) foreignrel->fdw_private;
+	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) foreignrel->fdw_private;
 	double		rows;
 	double		retrieved_rows;
 	int			width;
@@ -2621,8 +2622,8 @@ estimate_path_cost_size(PlannerInfo * root,
 		}
 		else if (IS_JOIN_REL(foreignrel))
 		{
-			SpdFFdwRelationInfo *fpinfo_i;
-			SpdFFdwRelationInfo *fpinfo_o;
+			PgFdwRelationInfo *fpinfo_i;
+			PgFdwRelationInfo *fpinfo_o;
 			QualCost	join_cost;
 			QualCost	remote_conds_cost;
 			double		nrows;
@@ -2630,8 +2631,8 @@ estimate_path_cost_size(PlannerInfo * root,
 			/* For join we expect inner and outer relations set */
 			Assert(fpinfo->innerrel && fpinfo->outerrel);
 
-			fpinfo_i = (SpdFFdwRelationInfo *) fpinfo->innerrel->fdw_private;
-			fpinfo_o = (SpdFFdwRelationInfo *) fpinfo->outerrel->fdw_private;
+			fpinfo_i = (PgFdwRelationInfo *) fpinfo->innerrel->fdw_private;
+			fpinfo_o = (PgFdwRelationInfo *) fpinfo->outerrel->fdw_private;
 
 			/* Estimate of number of rows in cross product */
 			nrows = fpinfo_i->rows * fpinfo_o->rows;
@@ -2687,7 +2688,7 @@ estimate_path_cost_size(PlannerInfo * root,
 		}
 		else if (IS_UPPER_REL(foreignrel))
 		{
-			SpdFFdwRelationInfo *ofpinfo;
+			PgFdwRelationInfo *ofpinfo;
 			PathTarget *ptarget = root->upper_targets[UPPERREL_GROUP_AGG];
 			AggClauseCosts aggcosts;
 			double		input_rows;
@@ -2706,7 +2707,7 @@ estimate_path_cost_size(PlannerInfo * root,
 			 * considering remote and local conditions for costing.
 			 */
 
-			ofpinfo = (SpdFFdwRelationInfo *) fpinfo->outerrel->fdw_private;
+			ofpinfo = (PgFdwRelationInfo *) fpinfo->outerrel->fdw_private;
 
 			/* Get rows and width from input rel */
 			input_rows = ofpinfo->rows;
@@ -2851,9 +2852,9 @@ get_remote_estimate(const char *sql, PGconn * conn,
 		/*
 		 * Execute EXPLAIN remotely.
 		 */
-		res = spdffdw_exec_query(conn, sql);
+		res = pgfdw_exec_query(conn, sql);
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
-			spdffdw_report_error(ERROR, res, conn, false, sql);
+			pgfdw_report_error(ERROR, res, conn, false, sql);
 
 		/*
 		 * Extract cost numbers for topmost plan node.  Note we search for a
@@ -2918,7 +2919,7 @@ ec_member_matches_foreign(PlannerInfo * root, RelOptInfo * rel,
 static void
 create_cursor(ForeignScanState * node)
 {
-	SpdfFdwScanState *fsstate = (SpdfFdwScanState *) node->fdw_state;
+	PgFdwScanState *fsstate = (PgFdwScanState *) node->fdw_state;
 	ExprContext *econtext = node->ss.ps.ps_ExprContext;
 	int			numParams = fsstate->numParams;
 	const char **values = fsstate->param_values;
@@ -2959,7 +2960,7 @@ create_cursor(ForeignScanState * node)
 	 */
 	if (!PQsendQueryParams(conn, buf.data, numParams,
 						   NULL, values, NULL, NULL, 0))
-		spdffdw_report_error(ERROR, NULL, conn, false, buf.data);
+		pgfdw_report_error(ERROR, NULL, conn, false, buf.data);
 
 	/*
 	 * Get the result, and check for success.
@@ -2967,9 +2968,9 @@ create_cursor(ForeignScanState * node)
 	 * We don't use a PG_TRY block here, so be careful not to throw error
 	 * without releasing the PGresult.
 	 */
-	res = spdffdw_get_result(conn, buf.data);
+	res = pgfdw_get_result(conn, buf.data);
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
-		spdffdw_report_error(ERROR, res, conn, true, fsstate->query);
+		pgfdw_report_error(ERROR, res, conn, true, fsstate->query);
 	PQclear(res);
 
 	/* Mark the cursor as created, and show no tuples have been retrieved */
@@ -2990,7 +2991,7 @@ create_cursor(ForeignScanState * node)
 static void
 fetch_more_data(ForeignScanState * node)
 {
-	SpdfFdwScanState *fsstate = (SpdfFdwScanState *) node->fdw_state;
+	PgFdwScanState *fsstate = (PgFdwScanState *) node->fdw_state;
 	PGresult   *volatile res = NULL;
 	MemoryContext oldcontext;
 
@@ -3013,10 +3014,10 @@ fetch_more_data(ForeignScanState * node)
 		snprintf(sql, sizeof(sql), "FETCH %d FROM c%u",
 				 fsstate->fetch_size, fsstate->cursor_number);
 
-		res = spdffdw_exec_query(conn, sql);
+		res = pgfdw_exec_query(conn, sql);
 		/* On error, report the original query, not the FETCH. */
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
-			spdffdw_report_error(ERROR, res, conn, false, fsstate->query);
+			pgfdw_report_error(ERROR, res, conn, false, fsstate->query);
 
 		/* Convert the data into HeapTuples */
 		numrows = PQntuples(res);
@@ -3088,7 +3089,7 @@ set_transmission_modes(void)
 								 PGC_USERSET, PGC_S_SESSION,
 								 GUC_ACTION_SAVE, true, 0, false);
 	if (IntervalStyle != INTSTYLE_POSTGRES)
-		(void) set_config_option("intervalstyle", "pgspider",
+		(void) set_config_option("intervalstyle", "postgres",
 								 PGC_USERSET, PGC_S_SESSION,
 								 GUC_ACTION_SAVE, true, 0, false);
 	if (extra_float_digits < 3)
@@ -3123,9 +3124,9 @@ close_cursor(PGconn * conn, unsigned int cursor_number)
 	 * We don't use a PG_TRY block here, so be careful not to throw error
 	 * without releasing the PGresult.
 	 */
-	res = spdffdw_exec_query(conn, sql);
+	res = pgfdw_exec_query(conn, sql);
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
-		spdffdw_report_error(ERROR, res, conn, true, sql);
+		pgfdw_report_error(ERROR, res, conn, true, sql);
 	PQclear(res);
 }
 
@@ -3134,14 +3135,14 @@ close_cursor(PGconn * conn, unsigned int cursor_number)
  *		Establish a prepared statement for execution of INSERT/UPDATE/DELETE
  */
 static void
-prepare_foreign_modify(SpdfFdwModifyState * fmstate)
+prepare_foreign_modify(PgFdwModifyState * fmstate)
 {
 	char		prep_name[NAMEDATALEN];
 	char	   *p_name;
 	PGresult   *res;
 
 	/* Construct name we'll use for the prepared statement. */
-	snprintf(prep_name, sizeof(prep_name), "spdfsql_fdw_prep_%u",
+	snprintf(prep_name, sizeof(prep_name), "pgsql_fdw_prep_%u",
 			 GetPrepStmtNumber(fmstate->conn));
 	p_name = pstrdup(prep_name);
 
@@ -3157,7 +3158,7 @@ prepare_foreign_modify(SpdfFdwModifyState * fmstate)
 					   fmstate->query,
 					   0,
 					   NULL))
-		spdffdw_report_error(ERROR, NULL, fmstate->conn, false, fmstate->query);
+		pgfdw_report_error(ERROR, NULL, fmstate->conn, false, fmstate->query);
 
 	/*
 	 * Get the result, and check for success.
@@ -3165,9 +3166,9 @@ prepare_foreign_modify(SpdfFdwModifyState * fmstate)
 	 * We don't use a PG_TRY block here, so be careful not to throw error
 	 * without releasing the PGresult.
 	 */
-	res = spdffdw_get_result(fmstate->conn, fmstate->query);
+	res = pgfdw_get_result(fmstate->conn, fmstate->query);
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
-		spdffdw_report_error(ERROR, res, fmstate->conn, true, fmstate->query);
+		pgfdw_report_error(ERROR, res, fmstate->conn, true, fmstate->query);
 	PQclear(res);
 
 	/* This action shows that the prepare has been done. */
@@ -3184,7 +3185,7 @@ prepare_foreign_modify(SpdfFdwModifyState * fmstate)
  * Data is constructed in temp_cxt; caller should reset that after use.
  */
 static const char **
-convert_prep_stmt_params(SpdfFdwModifyState * fmstate,
+convert_prep_stmt_params(PgFdwModifyState * fmstate,
 						 ItemPointer tupleid,
 						 TupleTableSlot * slot)
 {
@@ -3242,11 +3243,11 @@ convert_prep_stmt_params(SpdfFdwModifyState * fmstate,
  * store_returning_result
  *		Store the result of a RETURNING clause
  *
- * On error, be sure to release the SPDFresult on the way out.  Callers do not
- * have SPDF_TRY blocks to ensure this happens.
+ * On error, be sure to release the PGresult on the way out.  Callers do not
+ * have PG_TRY blocks to ensure this happens.
  */
 static void
-store_returning_result(SpdfFdwModifyState * fmstate,
+store_returning_result(PgFdwModifyState * fmstate,
 					   TupleTableSlot * slot, PGresult * res)
 {
 	PG_TRY();
@@ -3277,7 +3278,7 @@ store_returning_result(SpdfFdwModifyState * fmstate,
 static void
 execute_dml_stmt(ForeignScanState * node)
 {
-	SpdfFdwDirectModifyState *dmstate = (SpdfFdwDirectModifyState *) node->fdw_state;
+	PgFdwDirectModifyState *dmstate = (PgFdwDirectModifyState *) node->fdw_state;
 	ExprContext *econtext = node->ss.ps.ps_ExprContext;
 	int			numParams = dmstate->numParams;
 	const char **values = dmstate->param_values;
@@ -3300,7 +3301,7 @@ execute_dml_stmt(ForeignScanState * node)
 	 */
 	if (!PQsendQueryParams(dmstate->conn, dmstate->query, numParams,
 						   NULL, values, NULL, NULL, 0))
-		spdffdw_report_error(ERROR, NULL, dmstate->conn, false, dmstate->query);
+		pgfdw_report_error(ERROR, NULL, dmstate->conn, false, dmstate->query);
 
 	/*
 	 * Get the result, and check for success.
@@ -3308,10 +3309,10 @@ execute_dml_stmt(ForeignScanState * node)
 	 * We don't use a PG_TRY block here, so be careful not to throw error
 	 * without releasing the PGresult.
 	 */
-	dmstate->result = spdffdw_get_result(dmstate->conn, dmstate->query);
+	dmstate->result = pgfdw_get_result(dmstate->conn, dmstate->query);
 	if (PQresultStatus(dmstate->result) !=
 		(dmstate->has_returning ? PGRES_TUPLES_OK : PGRES_COMMAND_OK))
-		spdffdw_report_error(ERROR, dmstate->result, dmstate->conn, true,
+		pgfdw_report_error(ERROR, dmstate->result, dmstate->conn, true,
 							 dmstate->query);
 
 	/* Get the number of rows affected. */
@@ -3327,7 +3328,7 @@ execute_dml_stmt(ForeignScanState * node)
 static TupleTableSlot *
 get_returning_data(ForeignScanState * node)
 {
-	SpdfFdwDirectModifyState *dmstate = (SpdfFdwDirectModifyState *) node->fdw_state;
+	PgFdwDirectModifyState *dmstate = (PgFdwDirectModifyState *) node->fdw_state;
 	EState	   *estate = node->ss.ps.state;
 	ResultRelInfo *resultRelInfo = estate->es_result_relation_info;
 	TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
@@ -3511,9 +3512,9 @@ pgspiderAnalyzeForeignTable(Relation relation,
 	/* In what follows, do not risk leaking any PGresults. */
 	PG_TRY();
 	{
-		res = spdffdw_exec_query(conn, sql.data);
+		res = pgfdw_exec_query(conn, sql.data);
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
-			spdffdw_report_error(ERROR, res, conn, false, sql.data);
+			pgfdw_report_error(ERROR, res, conn, false, sql.data);
 
 		if (PQntuples(res) != 1 || PQnfields(res) != 1)
 			elog(ERROR, "unexpected result from deparseAnalyzeSizeSql query");
@@ -3557,7 +3558,7 @@ pgspiderAcquireSampleRowsFunc(Relation relation, int elevel,
 							  double *totalrows,
 							  double *totaldeadrows)
 {
-	SpdfFdwAnalyzeState astate;
+	PgFdwAnalyzeState astate;
 	ForeignTable *table;
 	ForeignServer *server;
 	UserMapping *user;
@@ -3603,9 +3604,9 @@ pgspiderAcquireSampleRowsFunc(Relation relation, int elevel,
 	/* In what follows, do not risk leaking any PGresults. */
 	PG_TRY();
 	{
-		res = spdffdw_exec_query(conn, sql.data);
+		res = pgfdw_exec_query(conn, sql.data);
 		if (PQresultStatus(res) != PGRES_COMMAND_OK)
-			spdffdw_report_error(ERROR, res, conn, false, sql.data);
+			pgfdw_report_error(ERROR, res, conn, false, sql.data);
 		PQclear(res);
 		res = NULL;
 
@@ -3654,10 +3655,10 @@ pgspiderAcquireSampleRowsFunc(Relation relation, int elevel,
 			snprintf(fetch_sql, sizeof(fetch_sql), "FETCH %d FROM c%u",
 					 fetch_size, cursor_number);
 
-			res = spdffdw_exec_query(conn, fetch_sql);
+			res = pgfdw_exec_query(conn, fetch_sql);
 			/* On error, report the original query, not the FETCH. */
 			if (PQresultStatus(res) != PGRES_TUPLES_OK)
-				spdffdw_report_error(ERROR, res, conn, false, sql.data);
+				pgfdw_report_error(ERROR, res, conn, false, sql.data);
 
 			/* Process whatever we got. */
 			numrows = PQntuples(res);
@@ -3708,7 +3709,7 @@ pgspiderAcquireSampleRowsFunc(Relation relation, int elevel,
  *	 - Subsequently, replace already-sampled tuples randomly.
  */
 static void
-analyze_row_processor(PGresult * res, int row, SpdfFdwAnalyzeState * astate)
+analyze_row_processor(PGresult * res, int row, PgFdwAnalyzeState * astate)
 {
 	int			targrows = astate->targrows;
 	int			pos;			/* array index to store tuple in */
@@ -3829,9 +3830,9 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt * stmt, Oid serverOid)
 		appendStringInfoString(&buf, "SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname = ");
 		deparseStringLiteral(&buf, stmt->remote_schema);
 
-		res = spdffdw_exec_query(conn, buf.data);
+		res = pgfdw_exec_query(conn, buf.data);
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
-			spdffdw_report_error(ERROR, res, conn, false, buf.data);
+			pgfdw_report_error(ERROR, res, conn, false, buf.data);
 
 		if (PQntuples(res) != 1)
 			ereport(ERROR,
@@ -3856,9 +3857,9 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt * stmt, Oid serverOid)
 		 * remote data set locally in the schema imported.
 		 *
 		 * Note: because we run the connection with search_path restricted to
-		 * spdf_catalog, the format_type() and spdf_get_expr() outputs will
-		 * always include a schema name for types/functions in other schemas,
-		 * which is what we want.
+		 * pg_catalog, the format_type() and pg_get_expr() outputs will always
+		 * include a schema name for types/functions in other schemas, which
+		 * is what we want.
 		 */
 		if (import_collate)
 			appendStringInfoString(&buf,
@@ -3941,9 +3942,9 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt * stmt, Oid serverOid)
 		appendStringInfoString(&buf, " ORDER BY c.relname, a.attnum");
 
 		/* Fetch the data */
-		res = spdffdw_exec_query(conn, buf.data);
+		res = pgfdw_exec_query(conn, buf.data);
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
-			spdffdw_report_error(ERROR, res, conn, false, buf.data);
+			pgfdw_report_error(ERROR, res, conn, false, buf.data);
 
 		/* Process results */
 		numrows = PQntuples(res);
@@ -4062,9 +4063,9 @@ foreign_join_ok(PlannerInfo * root, RelOptInfo * joinrel, JoinType jointype,
 				RelOptInfo * outerrel, RelOptInfo * innerrel,
 				JoinPathExtraData * extra)
 {
-	SpdFFdwRelationInfo *fpinfo;
-	SpdFFdwRelationInfo *fpinfo_o;
-	SpdFFdwRelationInfo *fpinfo_i;
+	PgFdwRelationInfo *fpinfo;
+	PgFdwRelationInfo *fpinfo_o;
+	PgFdwRelationInfo *fpinfo_i;
 	ListCell   *lc;
 	List	   *joinclauses;
 
@@ -4081,9 +4082,9 @@ foreign_join_ok(PlannerInfo * root, RelOptInfo * joinrel, JoinType jointype,
 	 * If either of the joining relations is marked as unsafe to pushdown, the
 	 * join can not be pushed down.
 	 */
-	fpinfo = (SpdFFdwRelationInfo *) joinrel->fdw_private;
-	fpinfo_o = (SpdFFdwRelationInfo *) outerrel->fdw_private;
-	fpinfo_i = (SpdFFdwRelationInfo *) innerrel->fdw_private;
+	fpinfo = (PgFdwRelationInfo *) joinrel->fdw_private;
+	fpinfo_o = (PgFdwRelationInfo *) outerrel->fdw_private;
+	fpinfo_i = (PgFdwRelationInfo *) innerrel->fdw_private;
 	if (!fpinfo_o || !fpinfo_o->pushdown_safe ||
 		!fpinfo_i || !fpinfo_i->pushdown_safe)
 		return false;
@@ -4369,7 +4370,7 @@ add_paths_with_pathkeys_for_rel(PlannerInfo * root, RelOptInfo * rel,
  * New options might also require tweaking merge_fdw_options().
  */
 static void
-apply_server_options(SpdFFdwRelationInfo * fpinfo)
+apply_server_options(PgFdwRelationInfo * fpinfo)
 {
 	ListCell   *lc;
 
@@ -4397,7 +4398,7 @@ apply_server_options(SpdFFdwRelationInfo * fpinfo)
  * New options might also require tweaking merge_fdw_options().
  */
 static void
-apply_table_options(SpdFFdwRelationInfo * fpinfo)
+apply_table_options(PgFdwRelationInfo * fpinfo)
 {
 	ListCell   *lc;
 
@@ -4422,9 +4423,9 @@ apply_table_options(SpdFFdwRelationInfo * fpinfo)
  * expected to NULL.
  */
 static void
-merge_fdw_options(SpdFFdwRelationInfo * fpinfo,
-				  const SpdFFdwRelationInfo * fpinfo_o,
-				  const SpdFFdwRelationInfo * fpinfo_i)
+merge_fdw_options(PgFdwRelationInfo * fpinfo,
+				  const PgFdwRelationInfo * fpinfo_o,
+				  const PgFdwRelationInfo * fpinfo_i)
 {
 	/* We must always have fpinfo_o. */
 	Assert(fpinfo_o);
@@ -4479,7 +4480,7 @@ pgspiderGetForeignJoinPaths(PlannerInfo * root,
 							JoinType jointype,
 							JoinPathExtraData * extra)
 {
-	SpdFFdwRelationInfo *fpinfo;
+	PgFdwRelationInfo *fpinfo;
 	ForeignPath *joinpath;
 	double		rows;
 	int			width;
@@ -4495,13 +4496,13 @@ pgspiderGetForeignJoinPaths(PlannerInfo * root,
 		return;
 
 	/*
-	 * Create unfinished SpdFFdwRelationInfo entry which is used to indicate
+	 * Create unfinished PgFdwRelationInfo entry which is used to indicate
 	 * that the join relation is already considered, so that we won't waste
 	 * time in judging safety of join pushdown and adding the same paths again
 	 * if found safe. Once we know that this join can be pushed down, we fill
 	 * the entry.
 	 */
-	fpinfo = (SpdFFdwRelationInfo *) palloc0(sizeof(SpdFFdwRelationInfo));
+	fpinfo = (PgFdwRelationInfo *) palloc0(sizeof(PgFdwRelationInfo));
 	fpinfo->pushdown_safe = false;
 	joinrel->fdw_private = fpinfo;
 	/* attrs_used is only for base relations. */
@@ -4601,15 +4602,15 @@ pgspiderGetForeignJoinPaths(PlannerInfo * root,
 /*
  * Assess whether the aggregation, grouping and having operations can be pushed
  * down to the foreign server.  As a side effect, save information we obtain in
- * this function to SpdFFdwRelationInfo of the input relation.
+ * this function to PgFdwRelationInfo of the input relation.
  */
 static bool
 foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 {
 	Query	   *query = root->parse;
 	PathTarget *grouping_target = root->upper_targets[UPPERREL_GROUP_AGG];
-	SpdFFdwRelationInfo *fpinfo = (SpdFFdwRelationInfo *) grouped_rel->fdw_private;
-	SpdFFdwRelationInfo *ofpinfo;
+	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) grouped_rel->fdw_private;
+	PgFdwRelationInfo *ofpinfo;
 	List	   *aggvars;
 	ListCell   *lc;
 	int			i;
@@ -4620,7 +4621,7 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 		return false;
 
 	/* Get the fpinfo of the underlying scan relation. */
-	ofpinfo = (SpdFFdwRelationInfo *) fpinfo->outerrel->fdw_private;
+	ofpinfo = (PgFdwRelationInfo *) fpinfo->outerrel->fdw_private;
 
 	/*
 	 * If underlying scan relation has any local conditions, those conditions
@@ -4821,21 +4822,21 @@ static void
 pgspiderGetForeignUpperPaths(PlannerInfo * root, UpperRelationKind stage,
 							 RelOptInfo * input_rel, RelOptInfo * output_rel)
 {
-	SpdFFdwRelationInfo *fpinfo;
+	PgFdwRelationInfo *fpinfo;
 
 	/*
 	 * If input rel is not safe to pushdown, then simply return as we cannot
 	 * perform any post-join operations on the foreign server.
 	 */
 	if (!input_rel->fdw_private ||
-		!((SpdFFdwRelationInfo *) input_rel->fdw_private)->pushdown_safe)
+		!((PgFdwRelationInfo *) input_rel->fdw_private)->pushdown_safe)
 		return;
 
 	/* Ignore stages we don't support; and skip any duplicate calls. */
 	if (stage != UPPERREL_GROUP_AGG || output_rel->fdw_private)
 		return;
 
-	fpinfo = (SpdFFdwRelationInfo *) palloc0(sizeof(SpdFFdwRelationInfo));
+	fpinfo = (PgFdwRelationInfo *) palloc0(sizeof(PgFdwRelationInfo));
 	fpinfo->pushdown_safe = false;
 	output_rel->fdw_private = fpinfo;
 
@@ -4854,8 +4855,8 @@ add_foreign_grouping_paths(PlannerInfo * root, RelOptInfo * input_rel,
 						   RelOptInfo * grouped_rel)
 {
 	Query	   *parse = root->parse;
-	SpdFFdwRelationInfo *ifpinfo = input_rel->fdw_private;
-	SpdFFdwRelationInfo *fpinfo = grouped_rel->fdw_private;
+	PgFdwRelationInfo *ifpinfo = input_rel->fdw_private;
+	PgFdwRelationInfo *fpinfo = grouped_rel->fdw_private;
 	ForeignPath *grouppath;
 	PathTarget *grouping_target;
 	double		rows;
@@ -4954,10 +4955,10 @@ make_tuple_from_result_row(PGresult * res,
 		tupdesc = RelationGetDescr(rel);
 	else
 	{
-		SpdfFdwScanState *fdw_sstate;
+		PgFdwScanState *fdw_sstate;
 
 		Assert(fsstate);
-		fdw_sstate = (SpdfFdwScanState *) fsstate->fdw_state;
+		fdw_sstate = (PgFdwScanState *) fsstate->fdw_state;
 		tupdesc = fdw_sstate->tupdesc;
 	}
 
