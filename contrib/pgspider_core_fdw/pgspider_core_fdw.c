@@ -420,7 +420,7 @@ spd_add_to_flat_tlist(List * tlist, List * exprs, List * *mapping_tlist, List * 
 		TargetEntry *tle_temp;
 		TargetEntry *tle;
 		Aggref	   *aggref;
-		Mappingcells *mapcells = (struct Mappingcells *) palloc(sizeof(struct Mappingcells));
+		Mappingcells *mapcells = (struct Mappingcells *) palloc0(sizeof(struct Mappingcells));
 
 		aggref = (Aggref *) expr;
 		if (OIDCHECK(aggref->aggfnoid))
@@ -650,7 +650,7 @@ spd_spi_exec_datasouce_num(Oid foreigntableid, int *nums, Datum * *oid)
 	}
 	spi_temp = SPI_processed;
 	spicontext = MemoryContextSwitchTo(oldcontext);
-	*oid = (Datum *) palloc(sizeof(Datum) * spi_temp);
+	*oid = (Datum *) palloc0(sizeof(Datum) * spi_temp);
 	MemoryContextSwitchTo(spicontext);
 	if (SPI_processed == 0)
 	{
@@ -799,7 +799,7 @@ spd_spi_exec_child_relname(char *parentTableName, SpdFdwPrivate * fdw_private, D
 		elog(ERROR, "error SPIexecute failure child table not found");
 	}
 	spicontext = MemoryContextSwitchTo(oldcontext);
-	*oid = (Datum *) palloc(sizeof(Datum) * SPI_processed);
+	*oid = (Datum *) palloc0(sizeof(Datum) * SPI_processed);
 	MemoryContextSwitchTo(spicontext);
 	for (i = 0; i < SPI_processed; i++)
 	{
@@ -1440,7 +1440,7 @@ spd_CreateDummyRoot(PlannerInfo * root, RelOptInfo * baserel, Datum * oid, int o
 		 */
 		if (new_underurl != NULL)
 		{
-			rte->url = palloc(sizeof(char) * strlen(new_underurl));
+			rte->url = palloc0(sizeof(char) * strlen(new_underurl));
 			strcpy(rte->url, new_underurl);
 		}
 
@@ -2302,6 +2302,8 @@ spd_GetForeignPaths(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid
 	childinfo = fdw_private->childinfo;
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
+		ForeignServer *fs;
+		ForeignDataWrapper *fdw;
 		/* skip to can not access child table at spd_GetForeignRelSize. */
 		if (childinfo[i].child_table_alive != TRUE)
 		{
@@ -2310,22 +2312,25 @@ spd_GetForeignPaths(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid
 		server_oid = spd_spi_exec_datasource_oid(childinfo[i].oid);
 		fdwroutine = GetFdwRoutineByServerId(server_oid);
 		childinfo[i].server_oid = server_oid;
-
-		foreach(lc, childinfo[i].baserel->reltarget->exprs)
-		{
-			RangeTblEntry *rte;
-			char	   *colname;
-			Node	   *node = (Node *) lfirst(lc);
-
-			if (IsA(node, Var))
+		fs = GetForeignServer(server_oid);
+		fdw = GetForeignDataWrapper(fs->fdwid);
+		if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0){
+			foreach(lc, childinfo[i].baserel->reltarget->exprs)
 			{
-				Var		   *var = (Var *) node;
+				RangeTblEntry *rte;
+				char	   *colname;
+				Node	   *node = (Node *) lfirst(lc);
 
-				rte = planner_rt_fetch(var->varno, root);
-				colname = get_relid_attribute_name(rte->relid, var->varattno);
-				if (strcmp(colname, SPDURL) == 0)
+				if (IsA(node, Var))
 				{
-					list_delete_ptr(childinfo[i].baserel->reltarget->exprs, lfirst(lc));
+					Var		   *var = (Var *) node;
+
+					rte = planner_rt_fetch(var->varno, root);
+					colname = get_relid_attribute_name(rte->relid, var->varattno);
+					if (strcmp(colname, SPDURL) == 0)
+					{
+						list_delete_ptr(childinfo[i].baserel->reltarget->exprs, lfirst(lc));
+					}
 				}
 			}
 		}
@@ -2542,7 +2547,6 @@ static void
 spd_checkurl_clauses(List * scan_clauses, List * push_scan_clauses, PlannerInfo * root, List * baserestrictinfo)
 {
 	ListCell   *lc;
-
 	foreach(lc, scan_clauses)
 	{
 		RestrictInfo *clause = (RestrictInfo *) lfirst(lc);
@@ -2647,7 +2651,6 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 			}
 		}
 	}
-
 	if (tlist->length == colname_tlist_length)
 		elog(ERROR, "SELECT column name attribute ONLY");
 
@@ -2766,7 +2769,7 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 			{
 				temptlist = (List *) build_physical_tlist(childinfo[i].root, childinfo[i].baserel);
 				temp_obj = fdwroutine->GetForeignPlan(
-													  (PlannerInfo *) childinfo[i].root,
+					                                  (PlannerInfo *) childinfo[i].root,
 													  (RelOptInfo *) childinfo[i].baserel,
 													  DatumGetObjectId(oid[i]),
 													  (ForeignPath *) tmp_path,
@@ -2961,7 +2964,7 @@ spd_BeginForeignScan(ForeignScanState * node, int eflags)
 			 * Extract attribute details. The tupledesc made here is just
 			 * transient.
 			 */
-			attrs = palloc(child_natts * sizeof(Form_pg_attribute));
+			attrs = palloc0(child_natts * sizeof(Form_pg_attribute));
 			org_attrincr = 0;
 			for (j = 0; j < fdw_private->child_uninum; j++)
 			{
@@ -3023,9 +3026,9 @@ spd_BeginForeignScan(ForeignScanState * node, int eflags)
 						org_attrincr++;
 						natts++;
 					}
-					org_attrincr++;
-					natts++;
 				}
+				org_attrincr++;
+				natts++;
 			}
 			/* Construct TupleDesc, and assign a local typmod. */
 			tupledesc = CreateTupleDesc(fdw_private->child_uninum, true, attrs);
@@ -3243,7 +3246,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 		return NULL;
 	}
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
-	fdw_private->agg_values = (Datum * *) palloc0(SPI_processed * sizeof(Datum *));
+	fdw_private->agg_values = (Datum **) palloc0(SPI_processed * sizeof(Datum *));
 	fdw_private->agg_nulls = (bool **) palloc0(SPI_processed * sizeof(bool *));
 	fdw_private->agg_value_type = (int *) palloc0(SPI_processed * sizeof(int));
 	for (i = 0; i < SPI_processed; i++)
@@ -3625,7 +3628,6 @@ spd_createtable_sql(StringInfo create_sql, List * mapping_tlist, ForeignScanThre
 	appendStringInfo(create_sql, ")");
 	elog(DEBUG1, "create table  = %s", create_sql->data);
 }
-
 
 /**
  * spd_AddNodeColumn
@@ -4025,7 +4027,7 @@ spd_check_url_update(SpdFdwPrivate * fdw_private, RangeTblEntry * target_rte)
 	}
 	else
 	{
-		char	   *srvname = palloc(sizeof(char) * (MAX_URL_LENGTH));
+		char	   *srvname = palloc0(sizeof(char) * (MAX_URL_LENGTH));
 
 		/*
 		 * entry is first parsing word(/foo/bar/, then entry is
@@ -4049,7 +4051,7 @@ spd_check_url_update(SpdFdwPrivate * fdw_private, RangeTblEntry * target_rte)
 			char		temp[QUERY_LENGTH];
 
 			sprintf(temp, "/%s/", target_url);
-			new_underurl = palloc(sizeof(char) * (QUERY_LENGTH));
+			new_underurl = palloc0(sizeof(char) * (QUERY_LENGTH));
 			strcpy(new_underurl, throwing_url);
 		}
 		pfree(srvname);
