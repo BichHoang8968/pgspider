@@ -71,7 +71,7 @@ static PGresult * PQexecFinish(PGconn * conn);
 static int PQsendDescribe(PGconn * conn, char desc_type,
 			   const char *desc_target);
 static int	check_field_number(const PGresult * res, int field_num);
-//#define GETPROGRESS_ENABLED
+#define GETPROGRESS_ENABLED
 #ifdef GETPROGRESS_ENABLED
 static PGresult * pqGetProgressResult(PGconn * conn);
 static int	PQsetvalueFromIndex(PGresult * res, int tup_num, int field_num, char *value, int len, int StartIndex);

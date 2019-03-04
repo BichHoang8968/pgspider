@@ -80,7 +80,7 @@
 #include <pthread.h>
 #include <sys/syscall.h>
 
-//#define GETPROGRESS_ENABLED
+#define GETPROGRESS_ENABLED
 /* ----------------
  *		global variables
  * ----------------

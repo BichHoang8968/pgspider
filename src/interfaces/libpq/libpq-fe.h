@@ -41,7 +41,7 @@ extern "C"
 #define PG_COPYRES_NOTICEHOOKS	  0x08
 
 
-//#define GETPROGRESS_ENABLED
+#define GETPROGRESS_ENABLED
 /* Application-visible enum types */
 
 /*
