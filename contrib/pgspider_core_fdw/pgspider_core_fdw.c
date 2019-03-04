@@ -3923,7 +3923,7 @@ spd_IterateForeignScan(ForeignScanState * node)
 				count = 0;
 				for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 				{
-					if (fssThrdInfo[node_incr].iFlag == false && fssThrdInfo[count - 1].tuple == NULL){
+					if (fssThrdInfo[node_incr].iFlag == false && fssThrdInfo[node_incr].tuple == NULL){
 						iFlagNum++;
 					}
 				}
