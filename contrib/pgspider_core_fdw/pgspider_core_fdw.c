@@ -65,7 +65,7 @@ PG_MODULE_MAGIC;
 #include "funcapi.h"
 #include "postgres_fdw/postgres_fdw.h"
 
-//#define GETPROGRESS_ENABLED
+#define GETPROGRESS_ENABLED
 #define BUFFERSIZE 1024
 #define QUERY_LENGTH 512
 #define MAX_URL_LENGTH	256
@@ -2772,7 +2772,7 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 			 * check scan_clauses include "__spd_url" If include "__spd_url"
 			 * in WHERE clauses, then NOT pushdown all caluses.
 			 */
-			//spd_checkurl_clauses(scan_clauses, push_scan_clauses, root, fdw_private->baserestrictinfo);
+			spd_checkurl_clauses(scan_clauses, push_scan_clauses, root, fdw_private->baserestrictinfo);
 
 			/* create plan */
 			if (childinfo[i].grouped_rel_local != NULL)
@@ -3923,7 +3923,7 @@ spd_IterateForeignScan(ForeignScanState * node)
 				count = 0;
 				for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 				{
-					if (fssThrdInfo[node_incr].iFlag == false && fssThrdInfo[node_incr].tuple){
+					if (fssThrdInfo[node_incr].iFlag == false && fssThrdInfo[count - 1].tuple == NULL){
 						iFlagNum++;
 					}
 				}
