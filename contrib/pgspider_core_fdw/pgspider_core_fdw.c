@@ -261,6 +261,7 @@ typedef struct SpdFdwPrivate
 	struct PathTarget *child_tlist[UPPERREL_FINAL + 1]; /* */
 	int			child_num;		/* number of push down child column */
 	int			child_uninum;	/* number of NOT push down child column */
+	int         groupby_target; /* group target tlist number*/
 	PlannerInfo *spd_root;		/* Copyt of root planner info. This is used by
 								 * aggregation pushdown. */
 	RelOptInfo *spd_baserel;	/* root node base */
@@ -2131,7 +2132,7 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 		Index		sgref = get_pathtarget_sortgroupref(grouping_target, i);
 		ListCell   *l;
 
-		elog(DEBUG1, "sgref = %d", sgref);
+		elog(INFO, "i = %d", i);
 		/* Check whether this expression is part of GROUP BY clause */
 		if (sgref && get_sortgroupref_clause_noerr(sgref, query->groupClause))
 		{
@@ -2142,7 +2143,9 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 			if (!is_foreign_expr(root, grouped_rel, expr))
 				return false;
 			/* Pushable, add to tlist */
+			int before_listnum = child_uninum;
 			tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
+			fpinfo->groupby_target = i + child_uninum - before_listnum;
 		}
 		else
 		{
@@ -2150,8 +2153,9 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 			if (is_foreign_expr(root, grouped_rel, expr))
 			{
 				/* Pushable, add to tlist */
+				int before_listnum = child_uninum;
 				tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
-
+				//fpinfo->groupby_target+=child_uninum - before_listnum;
 			}
 			else
 			{
@@ -2186,10 +2190,15 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 					Expr	   *expr = (Expr *) lfirst(l);
 
 					if (IsA(expr, Aggref))
+					{
+						int before_listnum = child_uninum;
 						tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
+						fpinfo->groupby_target+=child_uninum - before_listnum;
+					}
 				}
 			}
 		}
+		i++;
 	}
 
 	/*
@@ -2669,6 +2678,7 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 		appendStringInfo(fdw_private->groupby_string, "GROUP BY ");
 		foreach(lc, query->groupClause)
 		{
+			SortGroupClause *cl = (SortGroupClause *) lfirst(lc);
 			char	   *colname = NULL;
 
 			if (!first)
@@ -2677,7 +2687,7 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 
 			appendStringInfoString(fdw_private->groupby_string, "(");
 
-			colname = psprintf("col%d", fdw_private->child_uninum - 1);
+			colname = psprintf("col%d",fdw_private->groupby_target - 1);
 			appendStringInfoString(fdw_private->groupby_string, colname);
 			appendStringInfoString(fdw_private->groupby_string, ")");
 		}
@@ -3125,7 +3135,7 @@ spd_spi_ddl_table(char *query)
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
 	ret = SPI_exec(query, 1);
-	elog(DEBUG1, "execute temp table DDL %s", query);
+	elog(INFO, "execute temp table DDL %s", query);
 	if (ret != SPI_OK_UTILITY)
 	{
 		elog(ERROR, "execute spi CREATE TEMP TABLE failed %d", ret);
@@ -3163,6 +3173,7 @@ spd_spi_insert_table(TupleTableSlot * slot, ForeignScanState * node, SpdFdwPriva
 	foreach(lc, mapping_tlist)
 	{
 		Mappingcells *mapcels = (Mappingcells *) lfirst(lc);
+		int			mapping;
 		Datum		attr;
 		char	   *value;
 		bool		isnull;
@@ -3172,8 +3183,10 @@ spd_spi_insert_table(TupleTableSlot * slot, ForeignScanState * node, SpdFdwPriva
 
 		for (i = 0; i < MAXDIVNUM; i++)
 		{
-			if (colid != mapcels->mapping_tlist.mapping[i])
+			mapping = mapcels->mapping_tlist.mapping[i];
+			if (colid != mapping)
 				continue;
+
 			if (isfirst == TRUE)
 				isfirst = FALSE;
 			else
@@ -3190,17 +3203,17 @@ spd_spi_insert_table(TupleTableSlot * slot, ForeignScanState * node, SpdFdwPriva
 			child_typid = fssThrdInfo[0].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[colid]->atttypid;
 			if (value != NULL)
 			{
-				if (child_typid == DATEOID)
+				if (child_typid == DATEOID||child_typid == TEXTOID)
 					appendStringInfo(sql, "'");
 				appendStringInfo(sql, "%s", value);
-				if (child_typid == DATEOID)
+				if (child_typid == DATEOID||child_typid == TEXTOID)
 					appendStringInfo(sql, "'");
 			}
 			colid++;
 		}
 	}
 	appendStringInfo(sql, ")");
-	elog(DEBUG1, "insert  = %s", sql->data);
+	elog(INFO, "insert  = %s", sql->data);
 
 	ret = SPI_exec(sql->data, 1);
 	if (ret != SPI_OK_INSERT)
@@ -3310,6 +3323,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 																									colid + 1,
 																									&isnull)));
 					case TIMESTAMPOID:
+					case TEXTOID:
 					case DATEOID:
 						fdw_private->agg_values[k][colid] = CStringGetDatum(DatumGetCString(SPI_getbinval(SPI_tuptable->vals[k],
 																										  SPI_tuptable->tupdesc,
@@ -3349,6 +3363,8 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot * slot
 	Mappingcells *mapcells;
 
 	target_column = 0;
+	if(slot==NULL)
+		elog(ERROR,"Nothing retrun data.");
 	ret_agg_values = (Datum *) palloc0(slot->tts_tupleDescriptor->natts * sizeof(Datum));
 	nulls = (bool *) palloc0(slot->tts_tupleDescriptor->natts * sizeof(bool));
 
