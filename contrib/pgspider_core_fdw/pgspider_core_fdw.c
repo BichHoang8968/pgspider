@@ -3559,7 +3559,7 @@ spd_spi_select_table(TupleTableSlot * slot, ForeignScanState * node, SpdFdwPriva
 	/* group by clause */
 	if (fdw_private->groupby_string != 0)
 		appendStringInfo(sql, "%s", fdw_private->groupby_string->data);
-	elog(DEBUG1, "execute spi exec %s", sql->data);
+	elog(INFO, "execute spi exec %s", sql->data);
 
 	/* calc and set agg values */
 	slot = spd_spi_exec_select(fdw_private, sql, slot);
