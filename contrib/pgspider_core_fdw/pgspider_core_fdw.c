@@ -197,6 +197,7 @@ enum Aggtype
 typedef struct Mappingcell
 {
 	int			mapping[MAXDIVNUM];
+	//int         grouping[MAXDIVNUM];
 	enum Aggtype aggtype;
 }			Mappingcell;
 
@@ -261,7 +262,7 @@ typedef struct SpdFdwPrivate
 	struct PathTarget *child_tlist[UPPERREL_FINAL + 1]; /* */
 	int			child_num;		/* number of push down child column */
 	int			child_uninum;	/* number of NOT push down child column */
-	int         groupby_target; /* group target tlist number*/
+    List        groupby_target; /* group target tlist number*/
 	PlannerInfo *spd_root;		/* Copyt of root planner info. This is used by
 								 * aggregation pushdown. */
 	RelOptInfo *spd_baserel;	/* root node base */
@@ -2126,7 +2127,7 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 	 * then be used to pass to foreign server.
 	 */
 	i = 0;
-	fpinfo->groupby_target=0;
+	fpinfo->groupby_target=NULL;
 	foreach(lc, grouping_target->exprs)
 	{
 		Expr	   *expr = (Expr *) lfirst(lc);
@@ -2147,7 +2148,7 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 			int before_listnum = child_uninum;
 			tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
 			elog(INFO, "i = %d %d", child_uninum,before_listnum);
-			fpinfo->groupby_target += i + child_uninum - before_listnum;
+		    lappend(fpinfo->groupby_target,i + child_uninum - before_listnum);
 		}
 		else
 		{
@@ -2158,8 +2159,6 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 				int before_listnum = child_uninum;
 				tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
 				elog(INFO, "c b = %d %d", child_uninum,before_listnum);
-				if(child_uninum - before_listnum > 1)
-					fpinfo->groupby_target += child_uninum - before_listnum - 1;
 			}
 			else
 			{
@@ -2197,9 +2196,9 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 					{
 						int before_listnum = child_uninum;
 						tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
-						fpinfo->groupby_target+=child_uninum - before_listnum;
+						i += child_uninum - before_listnum;
 						if(child_uninum - before_listnum > 1)
-							fpinfo->groupby_target += child_uninum - before_listnum - 1;
+							i += child_uninum - before_listnum - 1;
 					}
 				}
 			}
@@ -2687,9 +2686,9 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 
 		fdw_private->groupby_string = makeStringInfo();
 		appendStringInfo(fdw_private->groupby_string, "GROUP BY ");
-		foreach(lc, query->groupClause)
+		foreach(lc, fdw_private->groupby_target)
 		{
-			SortGroupClause *cl = (SortGroupClause *) lfirst(lc);
+		    ListCell *cl = (SortGroupClause *) lfirst(lc);
 			char	   *colname = NULL;
 
 			if (!first)
@@ -2698,7 +2697,7 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 
 			appendStringInfoString(fdw_private->groupby_string, "(");
 
-			colname = psprintf("col%d",fdw_private->groupby_target - 1);
+			colname = psprintf("col%d",(int)cl->data - 1);
 			appendStringInfoString(fdw_private->groupby_string, colname);
 			appendStringInfoString(fdw_private->groupby_string, ")");
 		}
@@ -3212,6 +3211,7 @@ spd_spi_insert_table(TupleTableSlot * slot, ForeignScanState * node, SpdFdwPriva
 			if (isnull)
 			{
 				appendStringInfo(sql, "NULL");
+				colid++;
 				continue;
 			}
 			getTypeOutputInfo(slot->tts_tupleDescriptor->attrs[colid]->atttypid,
@@ -3562,10 +3562,13 @@ spd_spi_select_table(TupleTableSlot * slot, ForeignScanState * node, SpdFdwPriva
 					appendStringInfo(sql, "col%d", max_col);
 					continue;
 				}
-				if (!strcmpi(agg_command, "SUM") || !strcmpi(agg_command, "COUNT") || !strcmpi(agg_command, "AVG") || !strcmpi(agg_command, "VARIANCE") || !strcmpi(agg_command, "STDDEV")||strcmpi(agg_command, "LAST"))
+				elog(INFO,"resname %s",agg_command);
+				if (!strcmpi(agg_command, "SUM") || !strcmpi(agg_command, "COUNT") || !strcmpi(agg_command, "AVG") || !strcmpi(agg_command, "VARIANCE") || !strcmpi(agg_command, "STDDEV")||!strcmpi(agg_command, "LAST"))
 					appendStringInfo(sql, "SUM(col%d)", max_col);
-				else if (!strcmpi(agg_command, "MAX") || !strcmpi(agg_command, "MIN") || !strcmpi(agg_command, "BIT_OR") || !strcmpi(agg_command, "BIT_AND") || !strcmpi(agg_command, "BOOL_AND") || !strcmpi(agg_command, "BOOL_OR") || !strcmpi(agg_command, "EVERY") || !strcmpi(agg_command, "STRING_AGG") )
+				else if (!strcmpi(agg_command, "MAX") || !strcmpi(agg_command, "MIN") || !strcmpi(agg_command, "BIT_OR") || !strcmpi(agg_command, "BIT_AND") || !strcmpi(agg_command, "BOOL_AND") || !strcmpi(agg_command, "BOOL_OR") || !strcmpi(agg_command, "EVERY") || !strcmpi(agg_command, "STRING_AGG"))
 					appendStringInfo(sql, "%s(col%d)", agg_command, max_col);
+				else if(!strcmpi(agg_command, "influx_time"))
+						appendStringInfo(sql, "MIN(col%d)", max_col);
 				else
 					appendStringInfo(sql, "col%d", max_col);
 				max_col++;
@@ -3653,6 +3656,10 @@ spd_createtable_sql(StringInfo create_sql, List * mapping_tlist, ForeignScanThre
 					appendStringInfo(create_sql, " bit");
 				else if (typeid == DATEOID)
 					appendStringInfo(create_sql, " date");
+				else if (typeid == TIMESTAMPOID)
+					appendStringInfo(create_sql, " timestamp");
+				else if (typeid == TIMESTAMPTZOID)
+					appendStringInfo(create_sql, " timestamp with time zone");
 				else
 					appendStringInfo(create_sql, " numeric");
 				colid++;
