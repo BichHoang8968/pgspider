@@ -2133,7 +2133,6 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 		Expr	   *expr = (Expr *) lfirst(lc);
 		Index		sgref = get_pathtarget_sortgroupref(grouping_target, i);
 		ListCell   *l;
-		elog(INFO, "sgref = %d", i);
 		/* Check whether this expression is part of GROUP BY clause */
 		if (sgref && get_sortgroupref_clause_noerr(sgref, query->groupClause))
 		{
@@ -2146,7 +2145,6 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 			/* Pushable, add to tlist */
 			int before_listnum = child_uninum;
 			tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
-			elog(INFO, "i = %d %d %d", child_uninum,before_listnum, groupby_cursor + child_uninum - before_listnum);
 			if(child_uninum - before_listnum > 0)
 				groupby_cursor += child_uninum - before_listnum;
 		    fpinfo->groupby_target = lappend_int(fpinfo->groupby_target, groupby_cursor - 1);
@@ -2159,7 +2157,6 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 				/* Pushable, add to tlist */
 				int before_listnum = child_uninum;
 				tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
-				elog(INFO, "c b = %d %d", child_uninum,before_listnum);
 				if(child_uninum - before_listnum > 0)
 					groupby_cursor += child_uninum - before_listnum;
 			}
@@ -3153,7 +3150,7 @@ spd_spi_ddl_table(char *query)
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
 	ret = SPI_exec(query, 1);
-	elog(INFO, "execute temp table DDL %s", query);
+	elog(DEBUG1, "execute temp table DDL %s", query);
 	if (ret != SPI_OK_UTILITY)
 	{
 		elog(ERROR, "execute spi CREATE TEMP TABLE failed %d", ret);
@@ -3232,7 +3229,7 @@ spd_spi_insert_table(TupleTableSlot * slot, ForeignScanState * node, SpdFdwPriva
 		}
 	}
 	appendStringInfo(sql, ")");
-	elog(INFO, "insert  = %s", sql->data);
+	elog(DEBUG1, "insert  = %s", sql->data);
 
 	ret = SPI_exec(sql->data, 1);
 	if (ret != SPI_OK_INSERT)
@@ -3564,7 +3561,7 @@ spd_spi_select_table(TupleTableSlot * slot, ForeignScanState * node, SpdFdwPriva
 					appendStringInfo(sql, "col%d", max_col);
 					continue;
 				}
-				elog(INFO,"resname %s",agg_command);
+				elog(DEBUG1,"resname %s",agg_command);
 				if (!strcmpi(agg_command, "SUM") || !strcmpi(agg_command, "COUNT") || !strcmpi(agg_command, "AVG") || !strcmpi(agg_command, "VARIANCE") || !strcmpi(agg_command, "STDDEV"))
 					appendStringInfo(sql, "SUM(col%d)", max_col);
 				else if (!strcmpi(agg_command, "MAX") || !strcmpi(agg_command, "MIN") || !strcmpi(agg_command, "BIT_OR") || !strcmpi(agg_command, "BIT_AND") || !strcmpi(agg_command, "BOOL_AND") || !strcmpi(agg_command, "BOOL_OR") || !strcmpi(agg_command, "EVERY") || !strcmpi(agg_command, "STRING_AGG"))
@@ -3582,7 +3579,7 @@ spd_spi_select_table(TupleTableSlot * slot, ForeignScanState * node, SpdFdwPriva
 	/* group by clause */
 	if (fdw_private->groupby_string != 0)
 		appendStringInfo(sql, "%s", fdw_private->groupby_string->data);
-	elog(INFO, "execute spi exec %s", sql->data);
+	elog(DEBUG1, "execute spi exec %s", sql->data);
 
 	/* calc and set agg values */
 	slot = spd_spi_exec_select(fdw_private, sql, slot);
