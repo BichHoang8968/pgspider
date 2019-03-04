@@ -30,7 +30,7 @@
 #include "nodes/tidbitmap.h"
 #include "storage/condition_variable.h"
 
-#define GETPROGRESS_ENABLED
+//#define GETPROGRESS_ENABLED
 /* ----------------
  *		ExprState node
  *
@@ -518,9 +518,9 @@ typedef struct EState
 	bool	   *es_epqScanDone; /* true if EPQ tuple has been fetched */
 #ifdef GETPROGRESS_ENABLED
 	ProgressState *es_progressState;	/* Get progress operations */
+#endif
 	bool		agg_query;		/* To Indicate the type of the query,
 								 * ForeignScan or Agg */
-#endif
 	/* The per-query shared memory area to use for parallel execution. */
 	struct dsa_area *es_query_dsa;
 
