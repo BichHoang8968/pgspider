@@ -197,7 +197,6 @@ enum Aggtype
 typedef struct Mappingcell
 {
 	int			mapping[MAXDIVNUM];
-	//int         grouping[MAXDIVNUM];
 	enum Aggtype aggtype;
 }			Mappingcell;
 
@@ -262,7 +261,7 @@ typedef struct SpdFdwPrivate
 	struct PathTarget *child_tlist[UPPERREL_FINAL + 1]; /* */
 	int			child_num;		/* number of push down child column */
 	int			child_uninum;	/* number of NOT push down child column */
-    List        groupby_target; /* group target tlist number*/
+    List       *groupby_target; /* group target tlist number*/
 	PlannerInfo *spd_root;		/* Copyt of root planner info. This is used by
 								 * aggregation pushdown. */
 	RelOptInfo *spd_baserel;	/* root node base */
@@ -2089,6 +2088,7 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 	ListCell   *lc;
 	int			i;
 	int			child_uninum = 0;
+	int         groupby_cursor=0;
 	List	   *tlist = NIL;
 	List	   *mapping_tlist = NIL;
 	List	   *mapping_orig_tlist = NIL;
@@ -2134,7 +2134,6 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 		Index		sgref = get_pathtarget_sortgroupref(grouping_target, i);
 		ListCell   *l;
 		elog(INFO, "sgref = %d", i);
-		elog(INFO, "fpinfo = %d", fpinfo->groupby_target);
 		/* Check whether this expression is part of GROUP BY clause */
 		if (sgref && get_sortgroupref_clause_noerr(sgref, query->groupClause))
 		{
@@ -2147,8 +2146,10 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 			/* Pushable, add to tlist */
 			int before_listnum = child_uninum;
 			tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
-			elog(INFO, "i = %d %d", child_uninum,before_listnum);
-		    lappend(fpinfo->groupby_target,i + child_uninum - before_listnum);
+			elog(INFO, "i = %d %d %d", child_uninum,before_listnum, groupby_cursor + child_uninum - before_listnum);
+			if(child_uninum - before_listnum > 0)
+				groupby_cursor += child_uninum - before_listnum;
+		    fpinfo->groupby_target = lappend_int(fpinfo->groupby_target, groupby_cursor - 1);
 		}
 		else
 		{
@@ -2159,6 +2160,8 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 				int before_listnum = child_uninum;
 				tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
 				elog(INFO, "c b = %d %d", child_uninum,before_listnum);
+				if(child_uninum - before_listnum > 0)
+					groupby_cursor += child_uninum - before_listnum;
 			}
 			else
 			{
@@ -2197,8 +2200,8 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 						int before_listnum = child_uninum;
 						tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
 						i += child_uninum - before_listnum;
-						if(child_uninum - before_listnum > 1)
-							i += child_uninum - before_listnum - 1;
+						if(child_uninum - before_listnum > 0)
+							groupby_cursor += child_uninum - before_listnum;
 					}
 				}
 			}
@@ -2688,7 +2691,7 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 		appendStringInfo(fdw_private->groupby_string, "GROUP BY ");
 		foreach(lc, fdw_private->groupby_target)
 		{
-		    ListCell *cl = (SortGroupClause *) lfirst(lc);
+		    int *cl = lfirst(lc);
 			char	   *colname = NULL;
 
 			if (!first)
@@ -2697,7 +2700,7 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 
 			appendStringInfoString(fdw_private->groupby_string, "(");
 
-			colname = psprintf("col%d",(int)cl->data - 1);
+			colname = psprintf("col%d",cl);
 			appendStringInfoString(fdw_private->groupby_string, colname);
 			appendStringInfoString(fdw_private->groupby_string, ")");
 		}
@@ -2961,8 +2964,7 @@ spd_BeginForeignScan(ForeignScanState * node, int eflags)
 		fsplan->fdw_private = ((ForeignScan *) childinfo[node_incr].plan)->fdw_private;
 		fssThrdInfo[node_incr].fsstate->ss.ps.state = CreateExecutorState();
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_top_eflags = eflags;
-		//fsplan->scan.scanrelid = 0;
-
+		
 		/* This should be a new RTE list. coming from dummy rtable */
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_range_table =
 			((PlannerInfo *) childinfo[node_incr].root)
@@ -3563,12 +3565,12 @@ spd_spi_select_table(TupleTableSlot * slot, ForeignScanState * node, SpdFdwPriva
 					continue;
 				}
 				elog(INFO,"resname %s",agg_command);
-				if (!strcmpi(agg_command, "SUM") || !strcmpi(agg_command, "COUNT") || !strcmpi(agg_command, "AVG") || !strcmpi(agg_command, "VARIANCE") || !strcmpi(agg_command, "STDDEV")||!strcmpi(agg_command, "LAST"))
+				if (!strcmpi(agg_command, "SUM") || !strcmpi(agg_command, "COUNT") || !strcmpi(agg_command, "AVG") || !strcmpi(agg_command, "VARIANCE") || !strcmpi(agg_command, "STDDEV"))
 					appendStringInfo(sql, "SUM(col%d)", max_col);
 				else if (!strcmpi(agg_command, "MAX") || !strcmpi(agg_command, "MIN") || !strcmpi(agg_command, "BIT_OR") || !strcmpi(agg_command, "BIT_AND") || !strcmpi(agg_command, "BOOL_AND") || !strcmpi(agg_command, "BOOL_OR") || !strcmpi(agg_command, "EVERY") || !strcmpi(agg_command, "STRING_AGG"))
 					appendStringInfo(sql, "%s(col%d)", agg_command, max_col);
-				else if(!strcmpi(agg_command, "influx_time"))
-						appendStringInfo(sql, "MIN(col%d)", max_col);
+				else if(!strcmpi(agg_command, "INFLUX_TIME")||!strcmpi(agg_command, "LAST"))
+						appendStringInfo(sql, "MAX(col%d)", max_col);
 				else
 					appendStringInfo(sql, "col%d", max_col);
 				max_col++;
@@ -3947,7 +3949,6 @@ spd_IterateForeignScan(ForeignScanState * node)
 		slot = spd_AddNodeColumn(fssThrdInfo, node->ss.ss_ScanTupleSlot, count);
 	}
 	/* clear tuple buffer */
-	elog(INFO,"pgs iterate");
 	fssThrdInfo[count - 1].tuple = NULL;
 	MemoryContextSwitchTo(oldcontext);
 	return slot;
