@@ -1357,7 +1357,6 @@ check_basestrictinfo(PlannerInfo * root, ForeignDataWrapper * fdw, RelOptInfo * 
 		{
 			RestrictInfo *clause = (RestrictInfo *) lfirst(lc);
 			Expr	   *expr = (Expr *) clause->clause;
-
 			if (spd_basestrictinfo_tree_walker((Node *) expr, root) == TRUE)
 				entry_baserel->baserestrictinfo = NULL;
 		}
@@ -1968,7 +1967,8 @@ spd_GetForeignUpperPaths(PlannerInfo * root, UpperRelationKind stage,
 												 dummy_root,
 												 stage, entry,
 												 dummy_output_rel);
-
+			}
+			if(dummy_output_rel->pathlist != NULL){
 				childinfo[i].grouped_root_local = dummy_root;
 				childinfo[i].grouped_rel_local = dummy_output_rel;
 				fdw_private->pPseudoAggPushList = lappend_oid(fdw_private->pPseudoAggPushList, oid_server);
@@ -2126,13 +2126,14 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 	 * then be used to pass to foreign server.
 	 */
 	i = 0;
+	fpinfo->groupby_target=0;
 	foreach(lc, grouping_target->exprs)
 	{
 		Expr	   *expr = (Expr *) lfirst(lc);
 		Index		sgref = get_pathtarget_sortgroupref(grouping_target, i);
 		ListCell   *l;
-
-		elog(INFO, "i = %d", i);
+		elog(INFO, "sgref = %d", i);
+		elog(INFO, "fpinfo = %d", fpinfo->groupby_target);
 		/* Check whether this expression is part of GROUP BY clause */
 		if (sgref && get_sortgroupref_clause_noerr(sgref, query->groupClause))
 		{
@@ -2145,7 +2146,8 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 			/* Pushable, add to tlist */
 			int before_listnum = child_uninum;
 			tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
-			fpinfo->groupby_target = i + child_uninum - before_listnum;
+			elog(INFO, "i = %d %d", child_uninum,before_listnum);
+			fpinfo->groupby_target += i + child_uninum - before_listnum;
 		}
 		else
 		{
@@ -2155,7 +2157,9 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 				/* Pushable, add to tlist */
 				int before_listnum = child_uninum;
 				tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
-				//fpinfo->groupby_target+=child_uninum - before_listnum;
+				elog(INFO, "c b = %d %d", child_uninum,before_listnum);
+				if(child_uninum - before_listnum > 1)
+					fpinfo->groupby_target += child_uninum - before_listnum - 1;
 			}
 			else
 			{
@@ -2194,6 +2198,8 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 						int before_listnum = child_uninum;
 						tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
 						fpinfo->groupby_target+=child_uninum - before_listnum;
+						if(child_uninum - before_listnum > 1)
+							fpinfo->groupby_target += child_uninum - before_listnum - 1;
 					}
 				}
 			}
@@ -2336,10 +2342,12 @@ spd_GetForeignPaths(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid
 
 					rte = planner_rt_fetch(var->varno, root);
 					colname = get_relid_attribute_name(rte->relid, var->varattno);
+
 					if (strcmp(colname, SPDURL) == 0)
 					{
 						list_delete_ptr(childinfo[i].baserel->reltarget->exprs, lfirst(lc));
 					}
+
 				}
 			}
 		}
@@ -2578,8 +2586,10 @@ spd_checkurl_clauses(List * scan_clauses, List * push_scan_clauses, PlannerInfo 
 
 				rte = planner_rt_fetch(var->varno, root);
 				colname = get_relid_attribute_name(rte->relid, var->varattno);
+
 				if (strcmp(colname, SPDURL) == 0)
 					push_scan_clauses = NULL;
+
 				else
 					push_scan_clauses = baserestrictinfo;
 			}
@@ -2594,6 +2604,7 @@ spd_checkurl_clauses(List * scan_clauses, List * push_scan_clauses, PlannerInfo 
 
 				rte = planner_rt_fetch(var->varno, root);
 				colname = get_relid_attribute_name(rte->relid, var->varattno);
+
 				if (strcmp(colname, SPDURL) == 0)
 				{
 					push_scan_clauses = NULL;
@@ -2761,7 +2772,7 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 			 * check scan_clauses include "__spd_url" If include "__spd_url"
 			 * in WHERE clauses, then NOT pushdown all caluses.
 			 */
-			spd_checkurl_clauses(scan_clauses, push_scan_clauses, root, fdw_private->baserestrictinfo);
+			//spd_checkurl_clauses(scan_clauses, push_scan_clauses, root, fdw_private->baserestrictinfo);
 
 			/* create plan */
 			if (childinfo[i].grouped_rel_local != NULL)
@@ -2814,6 +2825,7 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 										 NIL,
 										 childinfo[i].aggpath->path.rows,
 										 (Plan *) temp_obj);
+			
 		}
 		childinfo[i].plan = (Plan *) temp_obj;
 	}
@@ -2946,7 +2958,7 @@ spd_BeginForeignScan(ForeignScanState * node, int eflags)
 		fsplan->fdw_private = ((ForeignScan *) childinfo[node_incr].plan)->fdw_private;
 		fssThrdInfo[node_incr].fsstate->ss.ps.state = CreateExecutorState();
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_top_eflags = eflags;
-		fsplan->scan.scanrelid = 0;
+		//fsplan->scan.scanrelid = 0;
 
 		/* This should be a new RTE list. coming from dummy rtable */
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_range_table =
@@ -2969,6 +2981,7 @@ spd_BeginForeignScan(ForeignScanState * node, int eflags)
 		{
 			int			org_attrincr = 0;
 			int			child_natts = natts;
+			fsplan->scan.scanrelid = 0;
 
 			/*
 			 * Extract attribute details. The tupledesc made here is just
@@ -3796,6 +3809,8 @@ spd_IterateForeignScan(ForeignScanState * node)
 	if (getResultFlag)
 		return NULL;
 #endif
+	if(fdw_private->nThreads == 0)
+		return NULL;
 	/* Get all the foreign nodes from conf file */
 	mapping_tlist = fdw_private->mapping_tlist;
 
