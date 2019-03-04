@@ -65,7 +65,7 @@ PG_MODULE_MAGIC;
 #include "funcapi.h"
 #include "postgres_fdw/postgres_fdw.h"
 
-#define GETPROGRESS_ENABLED
+//#define GETPROGRESS_ENABLED
 #define BUFFERSIZE 1024
 #define QUERY_LENGTH 512
 #define MAX_URL_LENGTH	256
@@ -3917,21 +3917,21 @@ spd_IterateForeignScan(ForeignScanState * node)
 		/* tuple getting is finished */
 		for (; fssThrdInfo[count++].tuple == NULL;)
 		{
+            int iFlagNum = 0;
 			if (count >= fdw_private->nThreads)
 			{
 				count = 0;
 				for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 				{
-					if (fssThrdInfo[node_incr].iFlag)
-						break;
+					if (fssThrdInfo[node_incr].iFlag == false){
+						iFlagNum++;
+					}
 				}
-				if (node_incr == fdw_private->nThreads)
+				if (iFlagNum == fdw_private->nThreads)
 					return NULL;	/* There is no iterating thread. */
 				usleep(1);
 			}
 		}
-		if (fdw_private->nThreads < count)
-			return NULL;
 		slot = spd_AddNodeColumn(fssThrdInfo, node->ss.ss_ScanTupleSlot, count);
 	}
 	/* clear tuple buffer */
