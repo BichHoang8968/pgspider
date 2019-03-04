@@ -65,7 +65,7 @@ PG_MODULE_MAGIC;
 #include "funcapi.h"
 #include "postgres_fdw/postgres_fdw.h"
 
-#define GETPROGRESS_ENABLED
+//#define GETPROGRESS_ENABLED
 #define BUFFERSIZE 1024
 #define QUERY_LENGTH 512
 #define MAX_URL_LENGTH	256
@@ -2896,11 +2896,12 @@ spd_BeginForeignScan(ForeignScanState * node, int eflags)
 	fdw_private = (SpdFdwPrivate *)
 		((Value *) list_nth(fsplan->fdw_private, FdwScanPrivateSelectSql))->val.ival;
 	/* Type of Query to be used for computing intermediate results */
+#ifdef GETPROGRESS_ENABLED
 	if (fdw_private->agg_query)
 		node->ss.ps.state->es_progressState->ps_aggQuery = true;
 	else
 		node->ss.ps.state->es_progressState->ps_aggQuery = false;
-
+#endif 
 	node->ss.ps.state->agg_query = 0;
 #ifdef GETPROGRESS_ENABLED
 	if (getResultFlag)
@@ -2911,8 +2912,11 @@ spd_BeginForeignScan(ForeignScanState * node, int eflags)
 													sizeof(ForeignScanThreadInfo) * fdw_private->node_num);
 	node->spd_fsstate = fssThrdInfo;
 	/* Supporting for Progress */
+
+#ifdef GETPROGRESS_ENABLED
 	node->ss.ps.state->es_progressState->ps_totalRows = 0;
 	node->ss.ps.state->es_progressState->ps_fetchedRows = 0;
+#endif
 
 	node_incr = 0;
 	private_incr = 0;
