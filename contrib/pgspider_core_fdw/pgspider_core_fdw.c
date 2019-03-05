@@ -261,7 +261,7 @@ typedef struct SpdFdwPrivate
 	struct PathTarget *child_tlist[UPPERREL_FINAL + 1]; /* */
 	int			child_num;		/* number of push down child column */
 	int			child_uninum;	/* number of NOT push down child column */
-    List       *groupby_target; /* group target tlist number*/
+	List	   *groupby_target; /* group target tlist number */
 	PlannerInfo *spd_root;		/* Copyt of root planner info. This is used by
 								 * aggregation pushdown. */
 	RelOptInfo *spd_baserel;	/* root node base */
@@ -1357,6 +1357,7 @@ check_basestrictinfo(PlannerInfo * root, ForeignDataWrapper * fdw, RelOptInfo * 
 		{
 			RestrictInfo *clause = (RestrictInfo *) lfirst(lc);
 			Expr	   *expr = (Expr *) clause->clause;
+
 			if (spd_basestrictinfo_tree_walker((Node *) expr, root) == TRUE)
 				entry_baserel->baserestrictinfo = NULL;
 		}
@@ -1968,7 +1969,8 @@ spd_GetForeignUpperPaths(PlannerInfo * root, UpperRelationKind stage,
 												 stage, entry,
 												 dummy_output_rel);
 			}
-			if(dummy_output_rel->pathlist != NULL){
+			if (dummy_output_rel->pathlist != NULL)
+			{
 				childinfo[i].grouped_root_local = dummy_root;
 				childinfo[i].grouped_rel_local = dummy_output_rel;
 				fdw_private->pPseudoAggPushList = lappend_oid(fdw_private->pPseudoAggPushList, oid_server);
@@ -2088,7 +2090,7 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 	ListCell   *lc;
 	int			i;
 	int			child_uninum = 0;
-	int         groupby_cursor=0;
+	int			groupby_cursor = 0;
 	List	   *tlist = NIL;
 	List	   *mapping_tlist = NIL;
 	List	   *mapping_orig_tlist = NIL;
@@ -2127,16 +2129,18 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 	 * then be used to pass to foreign server.
 	 */
 	i = 0;
-	fpinfo->groupby_target=NULL;
+	fpinfo->groupby_target = NULL;
 	foreach(lc, grouping_target->exprs)
 	{
 		Expr	   *expr = (Expr *) lfirst(lc);
 		Index		sgref = get_pathtarget_sortgroupref(grouping_target, i);
 		ListCell   *l;
+
 		/* Check whether this expression is part of GROUP BY clause */
 		if (sgref && get_sortgroupref_clause_noerr(sgref, query->groupClause))
 		{
-			int before_listnum;
+			int			before_listnum;
+
 			/*
 			 * If any of the GROUP BY expression is not shippable we can not
 			 * push down aggregation to the foreign server.
@@ -2146,9 +2150,9 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 			/* Pushable, add to tlist */
 			before_listnum = child_uninum;
 			tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
-			if(child_uninum - before_listnum > 0)
+			if (child_uninum - before_listnum > 0)
 				groupby_cursor += child_uninum - before_listnum;
-		    fpinfo->groupby_target = lappend_int(fpinfo->groupby_target, groupby_cursor - 1);
+			fpinfo->groupby_target = lappend_int(fpinfo->groupby_target, groupby_cursor - 1);
 		}
 		else
 		{
@@ -2156,9 +2160,10 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 			if (is_foreign_expr(root, grouped_rel, expr))
 			{
 				/* Pushable, add to tlist */
-				int before_listnum = child_uninum;
+				int			before_listnum = child_uninum;
+
 				tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
-				if(child_uninum - before_listnum > 0)
+				if (child_uninum - before_listnum > 0)
 					groupby_cursor += child_uninum - before_listnum;
 			}
 			else
@@ -2195,10 +2200,11 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 
 					if (IsA(expr, Aggref))
 					{
-						int before_listnum = child_uninum;
+						int			before_listnum = child_uninum;
+
 						tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
 						i += child_uninum - before_listnum;
-						if(child_uninum - before_listnum > 0)
+						if (child_uninum - before_listnum > 0)
 							groupby_cursor += child_uninum - before_listnum;
 					}
 				}
@@ -2319,6 +2325,7 @@ spd_GetForeignPaths(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid
 	{
 		ForeignServer *fs;
 		ForeignDataWrapper *fdw;
+
 		/* skip to can not access child table at spd_GetForeignRelSize. */
 		if (childinfo[i].child_table_alive != TRUE)
 		{
@@ -2329,7 +2336,8 @@ spd_GetForeignPaths(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid
 		childinfo[i].server_oid = server_oid;
 		fs = GetForeignServer(server_oid);
 		fdw = GetForeignDataWrapper(fs->fdwid);
-		if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0){
+		if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
+		{
 			foreach(lc, childinfo[i].baserel->reltarget->exprs)
 			{
 				RangeTblEntry *rte;
@@ -2564,6 +2572,7 @@ static void
 spd_checkurl_clauses(List * scan_clauses, List * push_scan_clauses, PlannerInfo * root, List * baserestrictinfo)
 {
 	ListCell   *lc;
+
 	foreach(lc, scan_clauses)
 	{
 		RestrictInfo *clause = (RestrictInfo *) lfirst(lc);
@@ -2688,7 +2697,7 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 		appendStringInfo(fdw_private->groupby_string, "GROUP BY ");
 		foreach(lc, fdw_private->groupby_target)
 		{
-		    int cl = lfirst_int(lc);
+			int			cl = lfirst_int(lc);
 			char	   *colname = NULL;
 
 			if (!first)
@@ -2697,7 +2706,7 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 
 			appendStringInfoString(fdw_private->groupby_string, "(");
 
-			colname = psprintf("col%d",cl);
+			colname = psprintf("col%d", cl);
 			appendStringInfoString(fdw_private->groupby_string, colname);
 			appendStringInfoString(fdw_private->groupby_string, ")");
 		}
@@ -2790,7 +2799,7 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 			{
 				temptlist = (List *) build_physical_tlist(childinfo[i].root, childinfo[i].baserel);
 				temp_obj = fdwroutine->GetForeignPlan(
-					                                  (PlannerInfo *) childinfo[i].root,
+													  (PlannerInfo *) childinfo[i].root,
 													  (RelOptInfo *) childinfo[i].baserel,
 													  DatumGetObjectId(oid[i]),
 													  (ForeignPath *) tmp_path,
@@ -2825,7 +2834,7 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 										 NIL,
 										 childinfo[i].aggpath->path.rows,
 										 (Plan *) temp_obj);
-			
+
 		}
 		childinfo[i].plan = (Plan *) temp_obj;
 	}
@@ -2899,7 +2908,7 @@ spd_BeginForeignScan(ForeignScanState * node, int eflags)
 		node->ss.ps.state->es_progressState->ps_aggQuery = true;
 	else
 		node->ss.ps.state->es_progressState->ps_aggQuery = false;
-#endif 
+#endif
 	node->ss.ps.state->agg_query = 0;
 #ifdef GETPROGRESS_ENABLED
 	if (getResultFlag)
@@ -2960,7 +2969,7 @@ spd_BeginForeignScan(ForeignScanState * node, int eflags)
 		fsplan->fdw_private = ((ForeignScan *) childinfo[node_incr].plan)->fdw_private;
 		fssThrdInfo[node_incr].fsstate->ss.ps.state = CreateExecutorState();
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_top_eflags = eflags;
-		
+
 		/* This should be a new RTE list. coming from dummy rtable */
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_range_table =
 			((PlannerInfo *) childinfo[node_incr].root)
@@ -2982,6 +2991,7 @@ spd_BeginForeignScan(ForeignScanState * node, int eflags)
 		{
 			int			org_attrincr = 0;
 			int			child_natts = natts;
+
 			fsplan->scan.scanrelid = 0;
 
 			/*
@@ -3218,10 +3228,10 @@ spd_spi_insert_table(TupleTableSlot * slot, ForeignScanState * node, SpdFdwPriva
 			child_typid = fssThrdInfo[0].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[colid]->atttypid;
 			if (value != NULL)
 			{
-				if (child_typid == DATEOID||child_typid == TEXTOID||child_typid == TIMESTAMPOID||child_typid == TIMESTAMPTZOID)
+				if (child_typid == DATEOID || child_typid == TEXTOID || child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID)
 					appendStringInfo(sql, "'");
 				appendStringInfo(sql, "%s", value);
-				if (child_typid == DATEOID||child_typid == TEXTOID||child_typid == TIMESTAMPOID||child_typid == TIMESTAMPTZOID)
+				if (child_typid == DATEOID || child_typid == TEXTOID || child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID)
 					appendStringInfo(sql, "'");
 			}
 			colid++;
@@ -3274,7 +3284,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 		return NULL;
 	}
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
-	fdw_private->agg_values = (Datum **) palloc0(SPI_processed * sizeof(Datum *));
+	fdw_private->agg_values = (Datum * *) palloc0(SPI_processed * sizeof(Datum *));
 	fdw_private->agg_nulls = (bool **) palloc0(SPI_processed * sizeof(bool *));
 	fdw_private->agg_value_type = (int *) palloc0(SPI_processed * sizeof(int));
 	for (i = 0; i < SPI_processed; i++)
@@ -3558,17 +3568,18 @@ spd_spi_select_table(TupleTableSlot * slot, ForeignScanState * node, SpdFdwPriva
 					appendStringInfo(sql, "col%d", max_col);
 					continue;
 				}
-				elog(DEBUG1,"resname %s",agg_command);
+				elog(DEBUG1, "resname %s", agg_command);
 				if (!strcmpi(agg_command, "SUM") || !strcmpi(agg_command, "COUNT") || !strcmpi(agg_command, "AVG") || !strcmpi(agg_command, "VARIANCE") || !strcmpi(agg_command, "STDDEV"))
 					appendStringInfo(sql, "SUM(col%d)", max_col);
 				else if (!strcmpi(agg_command, "MAX") || !strcmpi(agg_command, "MIN") || !strcmpi(agg_command, "BIT_OR") || !strcmpi(agg_command, "BIT_AND") || !strcmpi(agg_command, "BOOL_AND") || !strcmpi(agg_command, "BOOL_OR") || !strcmpi(agg_command, "EVERY") || !strcmpi(agg_command, "STRING_AGG"))
 					appendStringInfo(sql, "%s(col%d)", agg_command, max_col);
-				/* 
-				 *  This is for influx db functions. MAX has not effect to result.
-				 *  We have to consider multi-tenant.
+
+				/*
+				 * This is for influx db functions. MAX has not effect to
+				 * result. We have to consider multi-tenant.
 				 */
-				else if(!strcmpi(agg_command, "INFLUX_TIME")||!strcmpi(agg_command, "LAST"))
-						appendStringInfo(sql, "MAX(col%d)", max_col);
+				else if (!strcmpi(agg_command, "INFLUX_TIME") || !strcmpi(agg_command, "LAST"))
+					appendStringInfo(sql, "MAX(col%d)", max_col);
 				else
 					appendStringInfo(sql, "col%d", max_col);
 				max_col++;
@@ -3821,7 +3832,7 @@ spd_IterateForeignScan(ForeignScanState * node)
 	if (getResultFlag)
 		return NULL;
 #endif
-	if(fdw_private->nThreads == 0)
+	if (fdw_private->nThreads == 0)
 		return NULL;
 	/* Get all the foreign nodes from conf file */
 	mapping_tlist = fdw_private->mapping_tlist;
@@ -3929,13 +3940,15 @@ spd_IterateForeignScan(ForeignScanState * node)
 		/* tuple getting is finished */
 		for (; fssThrdInfo[count++].tuple == NULL;)
 		{
-            int iFlagNum = 0;
+			int			iFlagNum = 0;
+
 			if (count >= fdw_private->nThreads)
 			{
 				count = 0;
 				for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 				{
-					if (fssThrdInfo[node_incr].iFlag == false && fssThrdInfo[node_incr].tuple == NULL){
+					if (fssThrdInfo[node_incr].iFlag == false && fssThrdInfo[node_incr].tuple == NULL)
+					{
 						iFlagNum++;
 					}
 				}
@@ -4014,9 +4027,11 @@ spd_EndForeignScan(ForeignScanState * node)
 	int			rtn;
 	ForeignScanThreadInfo *fssThrdInfo;
 	SpdFdwPrivate *fdw_private;
+
 	if (!node->ss.ps.state->agg_query)
 	{
-		StringInfo  drop_sql = makeStringInfo();
+		StringInfo	drop_sql = makeStringInfo();
+
 		resetStringInfo(drop_sql);
 		appendStringInfo(drop_sql, "DROP TABLE IF EXISTS __spd__temptable;");
 		spd_spi_ddl_table(drop_sql->data);
