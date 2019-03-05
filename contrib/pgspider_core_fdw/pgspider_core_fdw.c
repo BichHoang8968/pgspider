@@ -2697,7 +2697,7 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 
 			appendStringInfoString(fdw_private->groupby_string, "(");
 
-			colname = psprintf("col%d",*(int*)cl);
+			colname = psprintf("col%d",cl);
 			appendStringInfoString(fdw_private->groupby_string, colname);
 			appendStringInfoString(fdw_private->groupby_string, ")");
 		}
