@@ -2738,6 +2738,7 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 			 * dummy_root_list check for any other better way then this in
 			 * future
 			 */
+			fdw_private->agg_query = 0;
 			if (root->parse->groupClause != NULL)
 			{
 				((PlannerInfo *) childinfo[i].root)->parse->groupClause =
@@ -2828,8 +2829,6 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 		}
 		childinfo[i].plan = (Plan *) temp_obj;
 	}
-	if (root->parse->hasAggs && root->parse->groupClause == NULL)
-		fdw_private->agg_query = true;
 	scan_relid = baserel->relid;
 	MemoryContextSwitchTo(oldcontext);
 /*
