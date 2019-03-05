@@ -246,6 +246,41 @@ SELECT * FROM test1 under '/mysql_svr/' where i = 5;
 ---
 (0 rows)
 
+ SELECT sum(i),t FROM t1 group by t;
+ sum | t 
+-----+---
+   1 | a
+   5 | b
+   4 | c
+(3 rows)
+
+ SELECT sum(i),t,count(i) FROM t1 group by t;
+
+ sum | t | count 
+-----+---+-------
+   1 | a |     1
+   5 | b |     2
+   4 | c |     1
+(3 rows)
+
+ SELECT sum(i),sum(i),t,count(i) FROM t1 group by t;
+ sum | sum | t | count 
+-----+-----+---+-------
+   1 |   1 | a |     1
+   5 |   5 | b |     2
+   4 |   4 | c |     1
+(3 rows)
+
+ SELECT i,t,a FROM t2;
+NOTICE:  table "__spd__temptable" does not exist, skipping
+ i | t | a 
+---+---+---
+ 1 | a | 
+ 2 |   | a
+   | a | a
+   |   | 
+(4 rows)
+
 DROP USER MAPPING FOR public SERVER pgspider_svr;
 DROP FOREIGN TABLE test1;
 DROP SERVER pgspider_svr;

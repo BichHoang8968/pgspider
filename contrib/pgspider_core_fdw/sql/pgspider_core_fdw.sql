@@ -1,7 +1,7 @@
 CREATE EXTENSION pgspider_core_fdw;
 CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1',port '50849');
 CREATE USER mapping for public server pgspider_svr OPTIONS(user 'postgres',password 'postgres');
-CREATE FOREIGN TABLE test1 (i int) SERVER pgspider_svr;
+CREATE FOREIGN TABLE test1 (i int,__spd_url text) SERVER pgspider_svr;
 SELECT * FROM test1;
 SELECT * FROM test1 UNDER '/test2/';
 CREATE EXTENSION postgres_fdw;
@@ -92,7 +92,18 @@ SELECT * FROM test1 ORDER BY i;
 SELECT * FROM test1 UNDER '/mysql_svr/';
 SELECT * FROM test1 where i = 1;
 SELECT * FROM test1 under '/mysql_svr/' where i = 5;
+CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
+CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS(table_name 't1');
+SELECT sum(i),t FROM t1 group by t;
+SELECT sum(i),t,count(i) FROM t1 group by t;
+SELECT sum(i),sum(i),t,count(i) FROM t1 group by t;
+CREATE FOREIGN TABLE t2 (i int, t text, a text,__spd_url text) SERVER pgspider_svr;
+CREATE FOREIGN TABLE t2__post_svr__0 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+SELECT i,t,a FROM t1;
 DROP USER MAPPING FOR public SERVER pgspider_svr;
 DROP FOREIGN TABLE test1;
+DROP FOREIGN TABLE t1;
+DROP FOREIGN TABLE t2;
 DROP SERVER pgspider_svr;
 DROP EXTENSION pgspider_core_fdw;
+

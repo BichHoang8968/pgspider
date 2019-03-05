@@ -3379,8 +3379,6 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot * slot
 	Mappingcells *mapcells;
 
 	target_column = 0;
-	if(slot==NULL)
-		elog(ERROR,"Nothing retrun data.");
 	ret_agg_values = (Datum *) palloc0(slot->tts_tupleDescriptor->natts * sizeof(Datum));
 	nulls = (bool *) palloc0(slot->tts_tupleDescriptor->natts * sizeof(bool));
 
@@ -3565,6 +3563,10 @@ spd_spi_select_table(TupleTableSlot * slot, ForeignScanState * node, SpdFdwPriva
 					appendStringInfo(sql, "SUM(col%d)", max_col);
 				else if (!strcmpi(agg_command, "MAX") || !strcmpi(agg_command, "MIN") || !strcmpi(agg_command, "BIT_OR") || !strcmpi(agg_command, "BIT_AND") || !strcmpi(agg_command, "BOOL_AND") || !strcmpi(agg_command, "BOOL_OR") || !strcmpi(agg_command, "EVERY") || !strcmpi(agg_command, "STRING_AGG"))
 					appendStringInfo(sql, "%s(col%d)", agg_command, max_col);
+				/* 
+				 *  This is for influx db functions. MAX has not effect to result.
+				 *  We have to consider multi-tenant.
+				 */
 				else if(!strcmpi(agg_command, "INFLUX_TIME")||!strcmpi(agg_command, "LAST"))
 						appendStringInfo(sql, "MAX(col%d)", max_col);
 				else
@@ -4012,9 +4014,12 @@ spd_EndForeignScan(ForeignScanState * node)
 	int			rtn;
 	ForeignScanThreadInfo *fssThrdInfo;
 	SpdFdwPrivate *fdw_private;
-
 	if (!node->ss.ps.state->agg_query)
 	{
+		StringInfo  drop_sql = makeStringInfo();
+		resetStringInfo(drop_sql);
+		appendStringInfo(drop_sql, "DROP TABLE IF EXISTS __spd__temptable;");
+		spd_spi_ddl_table(drop_sql->data);
 		if (node->spd_fsstate == NULL)
 		{
 			return;
