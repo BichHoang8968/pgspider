@@ -2688,7 +2688,7 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 		appendStringInfo(fdw_private->groupby_string, "GROUP BY ");
 		foreach(lc, fdw_private->groupby_target)
 		{
-		    int *cl = lfirst(lc);
+		    int cl = lfirst_int(lc);
 			char	   *colname = NULL;
 
 			if (!first)
