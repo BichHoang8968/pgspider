@@ -2136,6 +2136,7 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 		/* Check whether this expression is part of GROUP BY clause */
 		if (sgref && get_sortgroupref_clause_noerr(sgref, query->groupClause))
 		{
+			int before_listnum;
 			/*
 			 * If any of the GROUP BY expression is not shippable we can not
 			 * push down aggregation to the foreign server.
@@ -2143,7 +2144,7 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 			if (!is_foreign_expr(root, grouped_rel, expr))
 				return false;
 			/* Pushable, add to tlist */
-			int before_listnum = child_uninum;
+			before_listnum = child_uninum;
 			tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
 			if(child_uninum - before_listnum > 0)
 				groupby_cursor += child_uninum - before_listnum;
@@ -2681,7 +2682,6 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 	/* Create "GROUP BY" string */
 	if (root->parse->groupClause != NULL)
 	{
-		Query	   *query = root->parse;
 		bool		first = true;
 
 		fdw_private->groupby_string = makeStringInfo();
@@ -2697,7 +2697,7 @@ spd_GetForeignPlan(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid,
 
 			appendStringInfoString(fdw_private->groupby_string, "(");
 
-			colname = psprintf("col%d",cl);
+			colname = psprintf("col%d",*(int*)cl);
 			appendStringInfoString(fdw_private->groupby_string, colname);
 			appendStringInfoString(fdw_private->groupby_string, ")");
 		}
