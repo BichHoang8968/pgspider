@@ -269,6 +269,7 @@ typedef struct SpdFdwPrivate
 	int			nThreads;		/* Number of alive threads */
 	List	   *baserestrictinfo;	/* root node base strict info */
 	Datum	   *ret_agg_values; /* result for groupby */
+	bool        is_drop_temp_table; /* drop temp table flag in aggregation */
 }			SpdFdwPrivate;
 
 typedef struct SpdFdwModifyState
@@ -3838,7 +3839,7 @@ spd_IterateForeignScan(ForeignScanState * node)
 	mapping_tlist = fdw_private->mapping_tlist;
 
 	/* CREATE TEMP TABLE SQL */
-
+	fdw_private->is_drop_temp_table= TRUE;
 	if (fdw_private->agg_query)
 	{
 		if (fdw_private->isFirst)
@@ -3847,7 +3848,7 @@ spd_IterateForeignScan(ForeignScanState * node)
 			fin_flag = palloc0(sizeof(int) * fdw_private->nThreads);
 			spd_createtable_sql(create_sql, mapping_tlist, fssThrdInfo);
 			spd_spi_ddl_table(create_sql->data);
-
+			fdw_private->is_drop_temp_table = FALSE;
 			/*
 			 * run aggregation query for all data source threads and combine
 			 * results
@@ -3858,13 +3859,13 @@ spd_IterateForeignScan(ForeignScanState * node)
 
 				for (; fssThrdInfo[temp_count].tuple == NULL;)
 				{
-					if (!fssThrdInfo[node_incr].iFlag)
+					if (!fssThrdInfo[temp_count].iFlag)
 					{
 						/* There is no iterating thread. */
-						if (fin_flag[temp_count] == 0)
+						if (fin_flag[temp_count] == 0 && fssThrdInfo[temp_count].tuple == NULL)
 						{
 							fin_count++;
-							fin_flag[temp_count] = TRUE;
+							fin_flag[temp_count] = 1;
 						}
 						if (fin_count >= fdw_private->nThreads)
 							break;
@@ -3878,16 +3879,6 @@ spd_IterateForeignScan(ForeignScanState * node)
 				if (fssThrdInfo[count].tuple != NULL)
 					/* if this child node finished, update finish flag */
 					spd_spi_insert_table(fssThrdInfo[count].tuple, node, fdw_private);
-				else
-				{
-					/* if this child node finished, update finish flag */
-					if (fin_flag[count] == 0)
-					{
-						fin_count++;
-						fin_flag[count] = 1;
-					}
-				}
-				tempSlot = fssThrdInfo[count].tuple;
 				fssThrdInfo[count].tuple = NULL;
 				/* Intermediate results for aggregation query requested */
 				if (fin_count >= fdw_private->nThreads)
@@ -3902,9 +3893,6 @@ spd_IterateForeignScan(ForeignScanState * node)
 				if (getResultFlag)
 					break;
 #endif
-				count++;
-				if (count >= fdw_private->nThreads)
-					count = 0;
 			}
 			/* First time getting with pushdown from temp table */
 			tempSlot = node->ss.ss_ScanTupleSlot;
@@ -3933,6 +3921,7 @@ spd_IterateForeignScan(ForeignScanState * node)
 			appendStringInfo(create_sql, "DROP TABLE __spd__temptable");
 			spd_spi_ddl_table(create_sql->data);
 			fdw_private->isFirst = TRUE;
+			fdw_private->is_drop_temp_table = TRUE;
 		}
 	}							/* if (fdw_private->agg_query) */
 	else
@@ -4028,42 +4017,45 @@ spd_EndForeignScan(ForeignScanState * node)
 	ForeignScanThreadInfo *fssThrdInfo;
 	SpdFdwPrivate *fdw_private;
 
-	if (!node->ss.ps.state->agg_query)
+	fssThrdInfo = node->spd_fsstate;
+	fdw_private = fssThrdInfo->private;
+
+	if (fdw_private->is_drop_temp_table == FALSE)
 	{
 		StringInfo	drop_sql = makeStringInfo();
-
 		resetStringInfo(drop_sql);
 		appendStringInfo(drop_sql, "DROP TABLE IF EXISTS __spd__temptable;");
 		spd_spi_ddl_table(drop_sql->data);
-		if (node->spd_fsstate == NULL)
-		{
-			return;
-		}
-		fssThrdInfo = node->spd_fsstate;
-		fdw_private = (SpdFdwPrivate *) fssThrdInfo->private;
-		if (fdw_private == NULL)
-			return;
-		for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
-		{
-			fssThrdInfo[node_incr].EndFlag = true;
-		}
-
-		/* wait until all the remote connections get closed. */
-		for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
-		{
-			/* Cleanup the thread-local structures */
-			rtn = pthread_join(fdw_private->foreign_scan_threads[node_incr], NULL);
-			if (rtn != 0)
-				elog(WARNING, "error is occurred, pthread_join fail in EndForeignScan. ");
-			if (fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation)
-				RelationClose(fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation);
-			spd_ReleasePrivate(fdw_private);
-			pfree(fssThrdInfo[node_incr].fsstate);
-			MemoryContextDelete(fssThrdInfo[node_incr].threadMemoryContext);
-		}
-		if (fdw_private->thrdsCreated)
-			pfree(node->spd_fsstate);
 	}
+	if (node->spd_fsstate == NULL)
+	{
+		return;
+	}
+	fssThrdInfo = node->spd_fsstate;
+	fdw_private = (SpdFdwPrivate *) fssThrdInfo->private;
+	if (fdw_private == NULL)
+		return;
+	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
+	{
+		fssThrdInfo[node_incr].EndFlag = true;
+	}
+
+	/* wait until all the remote connections get closed. */
+	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
+	{
+		/* Cleanup the thread-local structures */
+		rtn = pthread_join(fdw_private->foreign_scan_threads[node_incr], NULL);
+		if (rtn != 0)
+			elog(WARNING, "error is occurred, pthread_join fail in EndForeignScan. ");
+		if (fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation)
+			RelationClose(fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation);
+		spd_ReleasePrivate(fdw_private);
+		pfree(fssThrdInfo[node_incr].fsstate);
+		MemoryContextDelete(fssThrdInfo[node_incr].threadMemoryContext);
+	}
+	if (fdw_private->thrdsCreated)
+		pfree(node->spd_fsstate);
+	
 }
 
 /**

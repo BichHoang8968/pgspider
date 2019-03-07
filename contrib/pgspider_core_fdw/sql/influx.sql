@@ -49,8 +49,7 @@ CREATE FOREIGN TABLE hist__server1__0 (
     q bigint,
     ts bigint,
     v float8,
-    vr text,
-    __spd_url text
+    vr text
 ) SERVER server1 OPTIONS (
     TABLE 'hist'
 );
