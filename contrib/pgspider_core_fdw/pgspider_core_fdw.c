@@ -65,7 +65,7 @@ PG_MODULE_MAGIC;
 #include "funcapi.h"
 #include "postgres_fdw/postgres_fdw.h"
 
-#define GETPROGRESS_ENABLED
+//#define GETPROGRESS_ENABLED
 #define BUFFERSIZE 1024
 #define QUERY_LENGTH 512
 #define MAX_URL_LENGTH	256
@@ -872,8 +872,11 @@ spd_ForeignScan_thread(void *arg)
 	pthread_mutex_init((pthread_mutex_t *) & fssthrdInfo->nodeMutex, NULL);
 	PG_TRY();
 	{
+		pthread_mutex_lock(&error_mutex);
 		fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
 												  fssthrdInfo->eflags);
+		pthread_mutex_unlock(&error_mutex);
+
 #ifdef MEASURE_TIME
 		gettimeofday(&e, NULL);
 		elog(DEBUG1, "thread%d begin foreign scan time = %lf", fssthrdInfo->serverId, (e.tv_sec - s.tv_sec) + (e.tv_usec - s.tv_usec) * 1.0E-6);
@@ -946,7 +949,9 @@ RESCAN:
 				}
 				else
 				{
+					pthread_mutex_lock(&error_mutex);
 					slot = fssthrdInfo->fdwroutine->IterateForeignScan(fssthrdInfo->fsstate);
+					pthread_mutex_unlock(&error_mutex);
 				}
 
 				if (slot == NULL)
