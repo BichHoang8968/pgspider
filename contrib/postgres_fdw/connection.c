@@ -150,6 +150,7 @@ GetConnection(ForeignServer * server, UserMapping * user, bool will_prep_stmt)
 	key.serverid = server->serverid;
 	key.userid = user->userid;
 	key.threadid = pthread_self();
+	//elog(INFO,"key.threadid %d",key.threadid);
 
 	/*
 	 * Find or create cached entry for requested connection.
@@ -316,6 +317,7 @@ connect_pg_server(ForeignServer * server, UserMapping * user)
 static void
 disconnect_pg_server(ConnCacheEntry * entry)
 {
+	
 	if (entry->conn != NULL)
 	{
 		PQfinish(entry->conn);
@@ -816,7 +818,8 @@ pgfdw_xact_callback(XactEvent event, void *arg)
 		entry->xact_depth = 0;
 
 		elog(DEBUG3, "discarding connection %p", entry->conn);
-
+		PQfinish(entry->conn);
+		entry->conn = NULL;
 		/*
 		 * If the connection isn't in a good idle state, discard it to
 		 * recover. Next GetConnection will open a new connection.
@@ -829,7 +832,8 @@ pgfdw_xact_callback(XactEvent event, void *arg)
 			disconnect_pg_server(entry);
 		}
 	}
-
+	hash_destroy(ConnectionHash);
+	ConnectionHash = NULL;
 	/*
 	 * Regardless of the event type, we can now mark ourselves as out of the
 	 * transaction.  (Note: if we are here during PRE_COMMIT or PRE_PREPARE,
@@ -1009,8 +1013,8 @@ pgfdw_reject_incomplete_xact_state_change(ConnCacheEntry * entry)
 	disconnect_pg_server(entry);
 
 	/* find server name to be shown in the message below */
-	tup = SearchSysCache3(USERMAPPINGOID,
-						  ObjectIdGetDatum(entry->key.serverid), ObjectIdGetDatum(entry->key.userid), ObjectIdGetDatum(entry->key.threadid));
+	tup = SearchSysCache1(USERMAPPINGOID,
+						  ObjectIdGetDatum(entry->key.userid));
 
 	if (!HeapTupleIsValid(tup))
 		elog(ERROR, "cache lookup failed for user mapping %u", entry->key);
