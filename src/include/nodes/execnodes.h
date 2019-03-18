@@ -30,7 +30,7 @@
 #include "nodes/tidbitmap.h"
 #include "storage/condition_variable.h"
 
-#define GETPROGRESS_ENABLED
+//#define GETPROGRESS_ENABLED
 /* ----------------
  *		ExprState node
  *
