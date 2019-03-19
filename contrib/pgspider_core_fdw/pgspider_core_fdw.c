@@ -3161,6 +3161,7 @@ spd_spi_ddl_table(char *query)
 {
 	int			ret;
 
+	pthread_mutex_lock(&error_mutex);
 	ret = SPI_connect();
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
@@ -3171,6 +3172,7 @@ spd_spi_ddl_table(char *query)
 		elog(ERROR, "execute spi CREATE TEMP TABLE failed %d", ret);
 	}
 	SPI_finish();
+	pthread_mutex_unlock(&error_mutex);
 }
 
 /**
@@ -3194,6 +3196,7 @@ spd_spi_insert_table(TupleTableSlot * slot, ForeignScanState * node, SpdFdwPriva
 	ForeignScanThreadInfo *fssThrdInfo = node->spd_fsstate;
 	ListCell   *lc;
 
+	pthread_mutex_lock(&error_mutex);
 	ret = SPI_connect();
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
@@ -3245,11 +3248,11 @@ spd_spi_insert_table(TupleTableSlot * slot, ForeignScanState * node, SpdFdwPriva
 	}
 	appendStringInfo(sql, ")");
 	elog(DEBUG1, "insert  = %s", sql->data);
-
 	ret = SPI_exec(sql->data, 1);
 	if (ret != SPI_OK_INSERT)
 		elog(ERROR, "execute spi INSERT TEMP TABLE failed ");
 	SPI_finish();
+	pthread_mutex_unlock(&error_mutex);
 }
 
 /**
