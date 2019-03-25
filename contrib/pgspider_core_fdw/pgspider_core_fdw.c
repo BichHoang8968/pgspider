@@ -145,6 +145,10 @@ static void spd_BeginForeignModify(ModifyTableState * mtstate,
 					   int subplan_index,
 					   int eflags);
 
+static void
+spd_ExplainForeignScan(ForeignScanState *node,
+					   struct ExplainState *es);
+
 static TupleTableSlot * spd_ExecForeignInsert(EState * estate,
 											  ResultRelInfo * rinfo,
 											  TupleTableSlot * slot,
@@ -340,7 +344,8 @@ pgspider_core_fdw_handler(PG_FUNCTION_ARGS)
 	fdwroutine->ReScanForeignScan = spd_ReScanForeignScan;
 	fdwroutine->EndForeignScan = spd_EndForeignScan;
 	fdwroutine->GetForeignUpperPaths = spd_GetForeignUpperPaths;
-
+	fdwroutine->ExplainForeignScan = spd_ExplainForeignScan;
+	
 	fdwroutine->AddForeignUpdateTargets = spd_AddForeignUpdateTargets;
 	fdwroutine->PlanForeignModify = spd_PlanForeignModify;
 	fdwroutine->BeginForeignModify = spd_BeginForeignModify;
@@ -2288,6 +2293,59 @@ foreign_grouping_ok(PlannerInfo * root, RelOptInfo * grouped_rel)
 	return true;
 }
 
+static void
+spd_ExplainForeignScan(ForeignScanState *node,
+							struct ExplainState *es)
+{
+	MemoryContext oldcontext;
+	FdwRoutine *fdwroutine;
+	Datum	   *oid;
+	Datum		server_oid;
+	int			nums;
+	int			i;
+	Cost		startup_cost;
+	Cost		total_cost;
+	ListCell   *lc;
+	ChildInfo  *childinfo;
+	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
+	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *)
+		((Value *) list_nth(fsplan->fdw_private, FdwScanPrivateSelectSql))->val.ival;
+
+	if (fdw_private == NULL)
+	{
+		elog(ERROR, "fdw_private is NULL");
+	}
+	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
+
+	/* Create Foreign paths using base_rel_list to each child node. */
+	childinfo = fdw_private->childinfo;
+	for (i = 0; i < fdw_private->node_num; i++)
+	{
+		ForeignServer *fs;
+		ForeignDataWrapper *fdw;
+
+		/* skip to can not access child table at spd_GetForeignRelSize. */
+		if (childinfo[i].child_table_alive != TRUE)
+		{
+			continue;
+		}
+		PG_TRY();
+		{
+			fdwroutine->ExplainForeignScan(node,es);
+		}
+		PG_CATCH();
+		{
+			/*
+			 * If fail to create foreign paths, then set
+			 * fdw_private->child_table_alive to FALSE
+			 */
+			childinfo[i].child_table_alive = FALSE;
+			elog(WARNING, "fdw GetForeignPaths error is occurred.table oid is %d", DatumGetObjectId(oid[i]));
+		}
+		PG_END_TRY();
+	}
+	MemoryContextSwitchTo(oldcontext);
+}
 
 /**
  * spd_GetForeignPaths
@@ -2367,9 +2425,15 @@ spd_GetForeignPaths(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid
 		}
 		PG_TRY();
 		{
-			fdwroutine->GetForeignPaths((PlannerInfo *) childinfo[i].root,
+			Path *childpath;
+		    fdwroutine->GetForeignPaths((PlannerInfo *) childinfo[i].root,
 										(RelOptInfo *) childinfo[i].baserel,
 										DatumGetObjectId(oid[i]));
+			/* Agg child node costs */
+			childpath = lfirst_node(Path, childinfo[i].baserel->pathlist->head);
+		    startup_cost += childpath->startup_cost;
+			total_cost += childpath->total_cost;
+			baserel->rows += childpath->rows;
 		}
 		PG_CATCH();
 		{
@@ -2384,8 +2448,7 @@ spd_GetForeignPaths(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid
 	}
 	MemoryContextSwitchTo(oldcontext);
 
-	startup_cost = 0;
-	total_cost = startup_cost + baserel->rows;
+	total_cost = startup_cost + baserel->rows + baserel->rows;
 	add_path(baserel, (Path *) create_foreignscan_path(root, baserel, NULL, baserel->rows,
 													   startup_cost, total_cost, NIL,
 													   NULL, NULL, NIL));
@@ -3817,6 +3880,7 @@ spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot * child_sl
 static TupleTableSlot *
 spd_IterateForeignScan(ForeignScanState * node)
 {
+
 	int			count = 0;
 	int			node_incr = 0;
 
@@ -3955,6 +4019,7 @@ spd_IterateForeignScan(ForeignScanState * node)
 			}
 		}
 		slot = spd_AddNodeColumn(fssThrdInfo, node->ss.ss_ScanTupleSlot, count);
+		//slot = fssThrdInfo[count - 1].tuple;
 	}
 	/* clear tuple buffer */
 	fssThrdInfo[count - 1].tuple = NULL;
@@ -3981,7 +4046,6 @@ spd_ReScanForeignScan(ForeignScanState * node)
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	fssThrdInfo = node->spd_fsstate;
 	fdw_private = fssThrdInfo->private;
-
 	/*
 	 * Number of child threads is only alive threads. firstly, check to number
 	 * of alive child threads.
