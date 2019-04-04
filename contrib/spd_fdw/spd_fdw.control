@@ -1,5 +1,0 @@
-# spd_fdw extension
-comment = 'spd foreign-data wrapper for remote PostgreSQL servers'
-default_version = '1.0'
-module_pathname = '$libdir/spd_fdw'
-relocatable = true

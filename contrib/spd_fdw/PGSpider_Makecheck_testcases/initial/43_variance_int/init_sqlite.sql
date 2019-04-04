@@ -1,4 +1,0 @@
-CREATE TABLE varianceint (i int);
-INSERT INTO varianceint VALUES (1797976465);
-INSERT INTO varianceint VALUES (7878454572);
-INSERT INTO varianceint VALUES (632548787);

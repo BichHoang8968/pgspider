@@ -1,5 +1,0 @@
-CREATE TABLE mindouble (i double precision);
-INSERT INTO mindouble VALUES (4.127989E123);
-INSERT INTO mindouble VALUES (-7.25878978E86);
-INSERT INTO mindouble VALUES (-8.7815266E63);
-INSERT INTO mindouble VALUES (3.48787E96);
