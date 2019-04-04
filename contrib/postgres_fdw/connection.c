@@ -832,8 +832,7 @@ pgfdw_xact_callback(XactEvent event, void *arg)
 			disconnect_pg_server(entry);
 		}
 	}
-	hash_destroy(ConnectionHash);
-	ConnectionHash = NULL;
+
 	/*
 	 * Regardless of the event type, we can now mark ourselves as out of the
 	 * transaction.  (Note: if we are here during PRE_COMMIT or PRE_PREPARE,
