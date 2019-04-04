@@ -40,3 +40,5 @@ lib*.pc
 /Debug/
 /Release/
 /tmp_install/
+*.ipch
+*.bin
