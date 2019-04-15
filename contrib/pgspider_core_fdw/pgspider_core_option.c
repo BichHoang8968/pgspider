@@ -279,7 +279,7 @@ is_valid_option(const char *keyword, Oid context)
 
 	for (opt = spd_fdw_options; opt->keyword; opt++)
 	{
-		ereport(INFO,
+		ereport(DEBUG1,
 				(errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
 				 errmsg("option name = \"%s\" key word = %s", opt->keyword, keyword)));
 		if (context == opt->optcontext && strcmp(opt->keyword, keyword) == 0)
