@@ -957,7 +957,15 @@ RESCAN:
 				else
 				{
 					pthread_mutex_lock(&scan_mutex);
-					slot = fssthrdInfo->fdwroutine->IterateForeignScan(fssthrdInfo->fsstate);
+					PG_TRY();
+					{
+						slot = fssthrdInfo->fdwroutine->IterateForeignScan(fssthrdInfo->fsstate);
+					}
+					PG_CATCH();
+					{
+						pthread_mutex_unlock(&scan_mutex);
+						PG_RE_THROW();
+					} PG_END_TRY();
 					pthread_mutex_unlock(&scan_mutex);
 				}
 
@@ -3257,19 +3265,27 @@ static void
 spd_spi_ddl_table(char *query)
 {
 	int			ret;
-
-	pthread_mutex_lock(&scan_mutex);
-	ret = SPI_connect();
-	if (ret < 0)
-		elog(ERROR, "SPI connect failure - returned %d", ret);
-	ret = SPI_exec(query, 1);
-	elog(DEBUG1, "execute temp table DDL %s", query);
-	if (ret != SPI_OK_UTILITY)
+	PG_TRY();
 	{
-		elog(ERROR, "execute spi CREATE TEMP TABLE failed %d", ret);
+		pthread_mutex_lock(&scan_mutex);
+		ret = SPI_connect();
+		if (ret < 0)
+			elog(ERROR, "SPI connect failure - returned %d", ret);
+		ret = SPI_exec(query, 1);
+		elog(DEBUG1, "execute temp table DDL %s", query);
+		if (ret != SPI_OK_UTILITY)
+		{
+			elog(ERROR, "execute spi CREATE TEMP TABLE failed %d", ret);
+		}
+		SPI_finish();
+		pthread_mutex_unlock(&scan_mutex);
 	}
-	SPI_finish();
-	pthread_mutex_unlock(&scan_mutex);
+	PG_CATCH();
+	{
+		pthread_mutex_unlock(&scan_mutex);
+		PG_RE_THROW();
+	}
+	PG_END_TRY();
 }
 
 /**
@@ -3292,64 +3308,72 @@ spd_spi_insert_table(TupleTableSlot * slot, ForeignScanState * node, SpdFdwPriva
 	List	   *mapping_tlist;
 	ForeignScanThreadInfo *fssThrdInfo = node->spd_fsstate;
 	ListCell   *lc;
-
-	pthread_mutex_lock(&scan_mutex);
-	ret = SPI_connect();
-	if (ret < 0)
-		elog(ERROR, "SPI connect failure - returned %d", ret);
-	appendStringInfo(sql, "INSERT INTO %s VALUES( ", AGGTEMPTABLE);
-	colid = 0;
-	mapping_tlist = fdw_private->mapping_tlist;
-	foreach(lc, mapping_tlist)
+	PG_TRY();
 	{
-		Mappingcells *mapcels = (Mappingcells *) lfirst(lc);
-		int			mapping;
-		Datum		attr;
-		char	   *value;
-		bool		isnull;
-		Oid			typoutput;
-		bool		typisvarlena;
-		int			child_typid;
-
-		for (i = 0; i < MAXDIVNUM; i++)
+		pthread_mutex_lock(&scan_mutex);
+		ret = SPI_connect();
+		if (ret < 0)
+			elog(ERROR, "SPI connect failure - returned %d", ret);
+		appendStringInfo(sql, "INSERT INTO %s VALUES( ", AGGTEMPTABLE);
+		colid = 0;
+		mapping_tlist = fdw_private->mapping_tlist;
+		foreach(lc, mapping_tlist)
 		{
-			mapping = mapcels->mapping_tlist.mapping[i];
-			if (colid != mapping)
-				continue;
+			Mappingcells *mapcels = (Mappingcells *) lfirst(lc);
+			int			mapping;
+			Datum		attr;
+			char	   *value;
+			bool		isnull;
+			Oid			typoutput;
+			bool		typisvarlena;
+			int			child_typid;
 
-			if (isfirst == TRUE)
-				isfirst = FALSE;
-			else
-				appendStringInfo(sql, ",");
-			attr = slot_getattr(slot, mapcels->mapping_tlist.mapping[i] + 1, &isnull);
-			if (isnull)
+			for (i = 0; i < MAXDIVNUM; i++)
 			{
-				appendStringInfo(sql, "NULL");
+				mapping = mapcels->mapping_tlist.mapping[i];
+				if (colid != mapping)
+					continue;
+
+				if (isfirst == TRUE)
+					isfirst = FALSE;
+				else
+					appendStringInfo(sql, ",");
+				attr = slot_getattr(slot, mapcels->mapping_tlist.mapping[i] + 1, &isnull);
+				if (isnull)
+				{
+					appendStringInfo(sql, "NULL");
+					colid++;
+					continue;
+				}
+				getTypeOutputInfo(slot->tts_tupleDescriptor->attrs[colid]->atttypid,
+								&typoutput, &typisvarlena);
+				value = OidOutputFunctionCall(typoutput, attr);
+				child_typid = fssThrdInfo[0].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[colid]->atttypid;
+				if (value != NULL)
+				{
+					if (child_typid == DATEOID || child_typid == TEXTOID || child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID)
+						appendStringInfo(sql, "'");
+					appendStringInfo(sql, "%s", value);
+					if (child_typid == DATEOID || child_typid == TEXTOID || child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID)
+						appendStringInfo(sql, "'");
+				}
 				colid++;
-				continue;
 			}
-			getTypeOutputInfo(slot->tts_tupleDescriptor->attrs[colid]->atttypid,
-							  &typoutput, &typisvarlena);
-			value = OidOutputFunctionCall(typoutput, attr);
-			child_typid = fssThrdInfo[0].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[colid]->atttypid;
-			if (value != NULL)
-			{
-				if (child_typid == DATEOID || child_typid == TEXTOID || child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID)
-					appendStringInfo(sql, "'");
-				appendStringInfo(sql, "%s", value);
-				if (child_typid == DATEOID || child_typid == TEXTOID || child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID)
-					appendStringInfo(sql, "'");
-			}
-			colid++;
 		}
+		appendStringInfo(sql, ")");
+		elog(DEBUG1, "insert  = %s", sql->data);
+		ret = SPI_exec(sql->data, 1);
+		if (ret != SPI_OK_INSERT)
+			elog(ERROR, "execute spi INSERT TEMP TABLE failed ");
+		SPI_finish();
+		pthread_mutex_unlock(&scan_mutex);
 	}
-	appendStringInfo(sql, ")");
-	elog(DEBUG1, "insert  = %s", sql->data);
-	ret = SPI_exec(sql->data, 1);
-	if (ret != SPI_OK_INSERT)
-		elog(ERROR, "execute spi INSERT TEMP TABLE failed ");
-	SPI_finish();
-	pthread_mutex_unlock(&scan_mutex);
+	PG_CATCH();
+	{
+		pthread_mutex_unlock(&scan_mutex);
+		PG_RE_THROW();
+	}
+	PG_END_TRY();
 }
 
 /**
