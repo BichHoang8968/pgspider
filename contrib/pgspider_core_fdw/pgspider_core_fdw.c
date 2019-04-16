@@ -66,7 +66,7 @@ PG_MODULE_MAGIC;
 #include "funcapi.h"
 #include "postgres_fdw/postgres_fdw.h"
 
-#define GETPROGRESS_ENABLED
+//#define GETPROGRESS_ENABLED
 #define BUFFERSIZE 1024
 #define QUERY_LENGTH 512
 #define MAX_URL_LENGTH	256
