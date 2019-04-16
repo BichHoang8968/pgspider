@@ -42,3 +42,7 @@ lib*.pc
 /tmp_install/
 *.ipch
 *.bin
+
+/contrib/pgspider_core_fdw/tmp_check/
+/contrib/pgspider_core_fdw/log
+/contrib/pgspider_fdw/tmp_check/
