@@ -25,7 +25,6 @@
 #include "utils/inval.h"
 #include "utils/memutils.h"
 #include "utils/syscache.h"
-#include <pthread.h>
 
 
 /*
@@ -44,13 +43,7 @@
  * ourselves, so that rolling back a subtransaction will kill the right
  * queries and not the wrong ones.
  */
-/* typedef Oid ConnCacheKey; */
-typedef struct ConnCacheKey
-{
-	Oid			serverid;		/* OID of foreign server */
-	Oid			userid;			/* OID of local user whose mapping we use */
-	pthread_t	threadid;
-}			ConnCacheKey;
+typedef Oid ConnCacheKey;
 
 typedef struct ConnCacheEntry
 {
@@ -111,7 +104,7 @@ static bool pgfdw_get_cleanup_result(PGconn * conn, TimestampTz endtime,
  * (not even on error), we need this flag to cue manual cleanup.
  */
 PGconn *
-GetConnection(ForeignServer * server, UserMapping * user, bool will_prep_stmt)
+GetConnection(UserMapping * user, bool will_prep_stmt)
 {
 	bool		found;
 	ConnCacheEntry *entry;
@@ -147,10 +140,7 @@ GetConnection(ForeignServer * server, UserMapping * user, bool will_prep_stmt)
 	xact_got_connection = true;
 
 	/* Create hash key for the entry.  Assume no pad bytes in key struct */
-	key.serverid = server->serverid;
-	key.userid = user->userid;
-	key.threadid = pthread_self();
-	//elog(INFO,"key.threadid %d",key.threadid);
+	key = user->umid;
 
 	/*
 	 * Find or create cached entry for requested connection.
@@ -210,8 +200,8 @@ GetConnection(ForeignServer * server, UserMapping * user, bool will_prep_stmt)
 		/* Now try to make the connection */
 		entry->conn = connect_pg_server(server, user);
 
-		elog(DEBUG3, "new postgres_fdw connection %p for server \"%s\" (user mapping oid %u, userid %u,thredid %u)",
-			 entry->conn, server->servername, user->umid, user->userid, pthread_self());
+		elog(DEBUG3, "new postgres_fdw connection %p for server \"%s\" (user mapping oid %u, userid %u)",
+			 entry->conn, server->servername, user->umid, user->userid);
 	}
 
 	/*
@@ -317,7 +307,6 @@ connect_pg_server(ForeignServer * server, UserMapping * user)
 static void
 disconnect_pg_server(ConnCacheEntry * entry)
 {
-	
 	if (entry->conn != NULL)
 	{
 		PQfinish(entry->conn);
@@ -817,9 +806,6 @@ pgfdw_xact_callback(XactEvent event, void *arg)
 		/* Reset state to show we're out of a transaction */
 		entry->xact_depth = 0;
 
-		elog(DEBUG3, "discarding connection %p", entry->conn);
-		PQfinish(entry->conn);
-		entry->conn = NULL;
 		/*
 		 * If the connection isn't in a good idle state, discard it to
 		 * recover. Next GetConnection will open a new connection.
@@ -1013,8 +999,7 @@ pgfdw_reject_incomplete_xact_state_change(ConnCacheEntry * entry)
 
 	/* find server name to be shown in the message below */
 	tup = SearchSysCache1(USERMAPPINGOID,
-						  ObjectIdGetDatum(entry->key.userid));
-
+						  ObjectIdGetDatum(entry->key));
 	if (!HeapTupleIsValid(tup))
 		elog(ERROR, "cache lookup failed for user mapping %u", entry->key);
 	umform = (Form_pg_user_mapping) GETSTRUCT(tup);
