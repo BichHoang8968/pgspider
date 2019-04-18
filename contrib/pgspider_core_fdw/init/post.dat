@@ -1,0 +1,12 @@
+CREATE TABLE test1 (i int);
+INSERT INTO test1 VALUES(1111);
+CREATE TABLE t1 (i int, t text);
+CREATE TABLE t2 (i int, t text,a text);
+insert into t1 values(1,'a');
+insert into t1 values(2,'b');
+insert into t1 values(3,'b');
+insert into t1 values(4,'c');
+insert into t2 values(1,'a',null);
+insert into t2 values(2,null,'a');
+insert into t2 values(null,'a','a');
+insert into t2 values(null,null,null);

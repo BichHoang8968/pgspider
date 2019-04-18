@@ -1,0 +1,2 @@
+CREATE TABLE test1 (i int);
+INSERT INTO test1 VALUES(1);
