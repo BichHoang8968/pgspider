@@ -628,7 +628,7 @@ spd_add_to_flat_tlist(List * tlist, List * exprs, List * *mapping_tlist, List * 
  * @param[out] oid
  */
 static void
-spd_spi_exec_datasouce_num(Oid foreigntableid, int *nums, Datum * *oid)
+spd_spi_exec_datasouce_num(Oid foreigntableid, int *nums, Datum **oid)
 {
 	char		query[QUERY_LENGTH];
 	int			ret;
@@ -1128,7 +1128,8 @@ spd_ParseUrl(char *url_str, SpdFdwPrivate * fdw_private)
 	throwing_url = pstrdup(&url_str[original_len]);
 	tp = strtok_r(url_option, "/", &next);	/* First URL */
 	fdw_private->url_parse_list = lappend(fdw_private->url_parse_list, tp);
-	fdw_private->url_parse_list = lappend(fdw_private->url_parse_list, throwing_url);
+	if(strlen(throwing_url)!=1)
+		fdw_private->url_parse_list = lappend(fdw_private->url_parse_list, throwing_url);
 }
 
 
@@ -1201,14 +1202,15 @@ spd_create_child_url(int childnums, RangeTblEntry * r_entry, SpdFdwPrivate * fdw
 
 		if (throwing_url != NULL)
 		{
-			if (strcmp(temp_fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
-			{
-				elog(ERROR, "Child node is not spd");
-			}
+
 			/* check child table fdw is spd or not */
 			temp_tableid = GetForeignServerIdByRelId(temp_oid);
 			temp_server = GetForeignServer(temp_tableid);
 			temp_fdw = GetForeignDataWrapper(temp_server->fdwid);
+			if (strcmp(temp_fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
+			{
+				elog(ERROR, "Child node is not spd");
+			}
 			/* if child table fdw is spd, then execute operation */
 			fdw_private->under_flag = 1;
 			*new_underurl = pstrdup(first_url);
@@ -2401,7 +2403,7 @@ spd_GetForeignPaths(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid
 	}
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 
-	spd_spi_exec_datasouce_num(foreigntableid, &nums, &oid);
+	//spd_spi_exec_datasouce_num(foreigntableid, &nums, &oid);
 
 	/* Create Foreign paths using base_rel_list to each child node. */
 	childinfo = fdw_private->childinfo;
@@ -2448,10 +2450,9 @@ spd_GetForeignPaths(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid
 		PG_TRY();
 		{
 			Path *childpath;
-			int i=0;
-		    fdwroutine->GetForeignPaths((PlannerInfo *) childinfo[i].root,
+			fdwroutine->GetForeignPaths((PlannerInfo *) childinfo[i].root,
 										(RelOptInfo *) childinfo[i].baserel,
-										DatumGetObjectId(oid[i]));
+										DatumGetObjectId(childinfo[i].oid));
 			/* Agg child node costs */
 			if(childinfo[i].baserel->pathlist!=NULL && childinfo[i].baserel->pathlist!=0){
 				childpath = lfirst_node(Path, childinfo[i].baserel->pathlist->head);
@@ -3070,12 +3071,12 @@ spd_BeginForeignScan(ForeignScanState * node, int eflags)
 				copyObject(node->ss.ps.plan);
 		}
 		fsplan = (ForeignScan *) fssThrdInfo[node_incr].fsstate->ss.ps.plan;
-		fsplan->fdw_private = ((ForeignScan *) childinfo[node_incr].plan)->fdw_private;
+		fsplan->fdw_private = ((ForeignScan *) childinfo[private_incr].plan)->fdw_private;
 		fssThrdInfo[node_incr].fsstate->ss.ps.state = CreateExecutorState();
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_top_eflags = eflags;
 
 		/* This should be a new RTE list. coming from dummy rtable */
-		query = ((PlannerInfo *) childinfo[node_incr].root)->parse;
+		query = ((PlannerInfo *) childinfo[private_incr].root)->parse;
 		rte = lfirst_node(RangeTblEntry, query->rtable->head);
 		
 		if(query->rtable->length != estate->es_range_table->length){
@@ -3084,7 +3085,7 @@ spd_BeginForeignScan(ForeignScanState * node, int eflags)
 				query->rtable = lappend(query->rtable, rte);
 			}
 		}
-		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_range_table = ((PlannerInfo *) childinfo[node_incr].root)->parse->rtable;
+		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_range_table = ((PlannerInfo *) childinfo[private_incr].root)->parse->rtable;
 
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt =
 			copyObject(node->ss.ps.state->es_plannedstmt);
