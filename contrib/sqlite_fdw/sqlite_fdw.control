@@ -1,5 +1,0 @@
-# sqlite FDW
-comment = 'SQLite Foreign Data Wrapper'
-default_version = '1.0'
-module_pathname = '$libdir/sqlite_fdw'
-relocatable = true
