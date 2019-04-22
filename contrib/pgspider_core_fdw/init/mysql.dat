@@ -1,3 +1,5 @@
+drop database if exists test;
+create database  test;
 use test;
 CREATE TABLE test1 (i int);
 INSERT INTO test1 VALUES(777);
