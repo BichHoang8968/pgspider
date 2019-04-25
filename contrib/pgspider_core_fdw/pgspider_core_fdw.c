@@ -2425,7 +2425,7 @@ spd_GetForeignPaths(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid
 
 		if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
 		{
-			foreach(lc, childinfo[i].baserel->reltarget->exprs)
+			for ((lc) = list_head(childinfo[i].baserel->reltarget->exprs); (lc) != NULL;)
 			{
 				RangeTblEntry *rte;
 				char	   *colname;
@@ -2440,10 +2440,16 @@ spd_GetForeignPaths(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid
 
 					if (strcmp(colname, SPDURL) == 0)
 					{
-						childinfo[i].baserel->reltarget->exprs = list_delete_ptr(childinfo[i].baserel->reltarget->exprs, lfirst(lc));
+						ListCell   *temp = lc;
+
+						lc = lnext(lc);
+						childinfo[i].baserel->reltarget->exprs =
+							list_delete_ptr(childinfo[i].baserel->reltarget->exprs, temp);
+						continue;
 					}
 
 				}
+				lc = lnext(lc);
 			}
 		}
 
