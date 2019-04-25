@@ -2444,7 +2444,7 @@ spd_GetForeignPaths(PlannerInfo * root, RelOptInfo * baserel, Oid foreigntableid
 
 						lc = lnext(lc);
 						childinfo[i].baserel->reltarget->exprs =
-							list_delete_ptr(childinfo[i].baserel->reltarget->exprs, temp);
+							list_delete_ptr(childinfo[i].baserel->reltarget->exprs, lfirst(temp));
 						continue;
 					}
 
