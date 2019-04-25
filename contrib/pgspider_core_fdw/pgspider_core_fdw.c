@@ -2465,9 +2465,9 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 										(RelOptInfo *) childinfo[i].baserel,
 										DatumGetObjectId(childinfo[i].oid));
 			/* Agg child node costs */
-			if (childinfo[i].baserel->pathlist != NULL && childinfo[i].baserel->pathlist != 0)
+			if (childinfo[i].baserel->pathlist != NULL)
 			{
-				childpath = lfirst_node(Path, childinfo[i].baserel->pathlist->head);
+				childpath = lfirst_node(ForeignPath, childinfo[i].baserel->pathlist->head);
 				startup_cost += childpath->startup_cost;
 				total_cost += childpath->total_cost;
 				rows += childpath->rows;
@@ -3279,7 +3279,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 static void
 spd_spi_ddl_table(char *query)
 {
-	int			ret;
+	int			ret; 
 
 	PG_TRY();
 	{
