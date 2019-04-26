@@ -3013,6 +3013,12 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	RangeTblEntry *rte;
 	int			k;
 
+	/*
+	 * Register callback to query memory context to reset normalize id hash
+	 * table at the end of the query
+	 */
+	hash_register_reset_callback(node->ss.ps.state->es_query_cxt);
+
 	if (eflags & EXEC_FLAG_EXPLAIN_ONLY)
 		return;
 
@@ -3279,7 +3285,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 static void
 spd_spi_ddl_table(char *query)
 {
-	int			ret; 
+	int			ret;
 
 	PG_TRY();
 	{

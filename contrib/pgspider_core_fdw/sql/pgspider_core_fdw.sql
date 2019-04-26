@@ -68,10 +68,15 @@ SELECT sum(i),t,count(i) FROM t1 group by t;
 CREATE FOREIGN TABLE t2 (i int, t text, a text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t2__post_svr__0 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 SELECT i,t,a FROM t2 ORDER BY i,__spd_url;
+
+CREATE FOREIGN TABLE t2__post_svr__1 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+CREATE FOREIGN TABLE t2__post_svr__2 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+CREATE FOREIGN TABLE t2__post_svr__3 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+SELECT i,t,a FROM t2 ORDER BY i,__spd_url;
+
 DROP USER MAPPING FOR public SERVER pgspider_svr;
 DROP FOREIGN TABLE test1;
 DROP FOREIGN TABLE t1;
 DROP FOREIGN TABLE t2;
 DROP SERVER pgspider_svr;
 DROP EXTENSION pgspider_core_fdw;
-
