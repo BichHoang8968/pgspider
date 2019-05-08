@@ -42,6 +42,7 @@ static const char tabname_array[][HASH_TABLE_NAME_LEN] = {
 	"Event Trigger Cache",
 	"Function stat entries",
 	"JoinRelHashTable",
+	"keep alive",
 	"LOCALLOCK hash",
 	"LOCK hash",
 	"Local Buffer Lookup Table",
