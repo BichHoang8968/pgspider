@@ -291,7 +291,6 @@ static void *hash_seq_search_orig(HASH_SEQ_STATUS *status);
  */
 static MemoryContext CurrentDynaHashCxt = NULL;
 
-/* */
 #include "dynahash_thread.c"
 
 static void *

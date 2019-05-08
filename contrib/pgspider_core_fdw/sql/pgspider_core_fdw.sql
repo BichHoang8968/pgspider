@@ -72,7 +72,7 @@ SELECT i,t,a FROM t2 ORDER BY i,__spd_url;
 CREATE FOREIGN TABLE t2__post_svr__1 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 CREATE FOREIGN TABLE t2__post_svr__2 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 CREATE FOREIGN TABLE t2__post_svr__3 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
-SELECT i,t,a FROM t2 ORDER BY i,__spd_url;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 
 DROP USER MAPPING FOR public SERVER pgspider_svr;
 DROP FOREIGN TABLE test1;

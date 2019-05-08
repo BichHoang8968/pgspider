@@ -107,7 +107,7 @@ static const char tabname_array[][HASH_TABLE_NAME_LEN] = {
 	"logical replication output relation cache",
 	"logicalrep relation map cache",
 	"logicalrep type map cache",
-	"lwlock stats",
+	"lwlock stats", 
 	"pg_stat_statements hash",
 	"pgstat TabStatusArray lookup hash table",
 	"set_rtable_names names",
@@ -130,7 +130,13 @@ static bool registered_callback = false;
 static void hash_reset_id(void *arg);
 static void *get_key_with_id(HTAB *hashp, const void *keyPtr);
 
-static void *
+
+/**
+ * Initialize and return a hash table which has same data as tabname_array
+ *
+ * @return hash table
+ */
+static HTAB *
 hash_tabname_init()
 {
 	HASHCTL		ctl;
@@ -427,7 +433,17 @@ hash_search(HTAB *hashp,
 void
 hash_seq_init(HASH_SEQ_STATUS *status, HTAB *hashp)
 {
+	if (!hashp->isfdw)
+	{
+		hash_seq_init_orig(status, hashp);
+		return;
+	}
+
+	pthread_mutex_lock(&hash_mutex);
+	/* TRY CATCH is not necessary because this does not cause error */
 	hash_seq_init_orig(status, hashp);
+
+	pthread_mutex_unlock(&hash_mutex);
 }
 
 void *
@@ -440,14 +456,13 @@ hash_seq_search(HASH_SEQ_STATUS *status)
 		return hash_seq_search_orig(status);
 	}
 
-	/*
-	 * Not lock mutex because this function is not called in FDW thread and
-	 * mutex cannot be unlocked if caller may call elog(ERROR)
-	 */
+	pthread_mutex_lock(&hash_mutex);
+	/* TRY CATCH is not necessary because this does not cause error */
 	key = hash_seq_search_orig(status);
 	if (key != NULL)
 		ADJUST_KEY_OFFSET(key);
 
+	pthread_mutex_unlock(&hash_mutex);
 	return key;
 }
 
@@ -456,12 +471,20 @@ hash_destroy(HTAB *hashp)
 {
 	if (hashp != NULL)
 	{
-		if (hashp->isfdw)
+		if (!hashp->isfdw)
 		{
-			hash_destroy_orig(hashp->nomralized_id_htab);
-			normalized_tables = list_delete_ptr(normalized_tables, hashp->nomralized_id_htab);
+			hash_destroy_orig(hashp);
+			return;
 		}
+
+		pthread_mutex_lock(&hash_mutex);
+
+		hash_destroy_orig(hashp->nomralized_id_htab);
+		normalized_tables = list_delete_ptr(normalized_tables, hashp->nomralized_id_htab);
+
 		hash_destroy_orig(hashp);
+
+		pthread_mutex_unlock(&hash_mutex);
 	}
 }
 
@@ -513,8 +536,8 @@ hash_register_reset_callback(MemoryContext query_context)
 {
 	if (!registered_callback)
 	{
-		registered_callback = true;
 		MemoryContextCallback *cb = MemoryContextAlloc(query_context, sizeof(MemoryContextCallback));
+		registered_callback = true;
 
 		cb->arg = NULL;
 		cb->func = hash_reset_id;
