@@ -92,36 +92,63 @@ CREATE SERVER post_svr FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.
 CREATE USER mapping for public server post_svr OPTIONS(user 'postgres',password 'postgres');
 CREATE FOREIGN TABLE test1__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test1');
 SELECT * FROM test1__post_svr__0 ORDER BY i;
-  i   
-------
- 1111
-(1 row)
+ i 
+---
+ 1
+ 1
+ 1
+ 2
+ 2
+ 3
+ 3
+ 4
+ 4
+(9 rows)
 
 SELECT * FROM test1 ORDER BY i,__spd_url;
-  i   | __spd_url  
-------+------------
-    1 | /file_svr/
-    1 | /file_svr/
-    1 | /tiny_svr/
-    2 | /file_svr/
-    2 | /file_svr/
-    3 | /file_svr/
-    3 | /file_svr/
-    4 | /file_svr/
-    4 | /file_svr/
- 1111 | /post_svr/
-(10 rows)
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 1 | /file_svr/
+ 1 | /post_svr/
+ 1 | /post_svr/
+ 1 | /post_svr/
+ 1 | /tiny_svr/
+ 2 | /file_svr/
+ 2 | /file_svr/
+ 2 | /post_svr/
+ 2 | /post_svr/
+ 3 | /file_svr/
+ 3 | /file_svr/
+ 3 | /post_svr/
+ 3 | /post_svr/
+ 4 | /file_svr/
+ 4 | /file_svr/
+ 4 | /post_svr/
+ 4 | /post_svr/
+(18 rows)
 
 SELECT * FROM test1 UNDER '/post_svr/' ORDER BY i,__spd_url; 
-  i   | __spd_url  
-------+------------
- 1111 | /post_svr/
-(1 row)
+ i | __spd_url  
+---+------------
+ 1 | /post_svr/
+ 1 | /post_svr/
+ 1 | /post_svr/
+ 2 | /post_svr/
+ 2 | /post_svr/
+ 3 | /post_svr/
+ 3 | /post_svr/
+ 4 | /post_svr/
+ 4 | /post_svr/
+(9 rows)
 
 SELECT * FROM test1 under '/post_svr/' where i = 1 ORDER BY i,__spd_url;
- i | __spd_url 
----+-----------
-(0 rows)
+ i | __spd_url  
+---+------------
+ 1 | /post_svr/
+ 1 | /post_svr/
+ 1 | /post_svr/
+(3 rows)
 
 CREATE SERVER sqlite_svr FOREIGN DATA WRAPPER sqlite_fdw OPTIONS (database '/tmp/pgtest.db');
 CREATE FOREIGN TABLE test1__sqlite_svr__0 (i int) SERVER sqlite_svr OPTIONS(table 'test1');
@@ -130,17 +157,25 @@ SELECT * FROM test1 ORDER BY i,__spd_url;
 -------+--------------
      1 | /file_svr/
      1 | /file_svr/
+     1 | /post_svr/
+     1 | /post_svr/
+     1 | /post_svr/
      1 | /sqlite_svr/
      1 | /tiny_svr/
      2 | /file_svr/
      2 | /file_svr/
+     2 | /post_svr/
+     2 | /post_svr/
      3 | /file_svr/
      3 | /file_svr/
+     3 | /post_svr/
+     3 | /post_svr/
      4 | /file_svr/
      4 | /file_svr/
-  1111 | /post_svr/
+     4 | /post_svr/
+     4 | /post_svr/
  22222 | /sqlite_svr/
-(12 rows)
+(20 rows)
 
 SELECT * FROM test1 UNDER '/sqlite_svr/' ORDER BY i,__spd_url;
    i   |  __spd_url   
@@ -162,21 +197,29 @@ SELECT * FROM test1 ORDER BY i,__spd_url;
 -------+--------------
      1 | /file_svr/
      1 | /file_svr/
+     1 | /post_svr/
+     1 | /post_svr/
+     1 | /post_svr/
      1 | /sqlite_svr/
      1 | /tiny_svr/
      2 | /file_svr/
      2 | /file_svr/
+     2 | /post_svr/
+     2 | /post_svr/
      3 | /file_svr/
      3 | /file_svr/
+     3 | /post_svr/
+     3 | /post_svr/
      4 | /file_svr/
      4 | /file_svr/
+     4 | /post_svr/
+     4 | /post_svr/
    777 | /mysql_svr/
    777 | /mysql_svr/
    777 | /mysql_svr/
    777 | /mysql_svr/
-  1111 | /post_svr/
  22222 | /sqlite_svr/
-(16 rows)
+(24 rows)
 
 SELECT * FROM test1 UNDER '/mysql_svr/' ORDER BY i,__spd_url;
   i  |  __spd_url  
@@ -192,9 +235,12 @@ SELECT * FROM test1 where i = 1 ORDER BY i,__spd_url;
 ---+--------------
  1 | /file_svr/
  1 | /file_svr/
+ 1 | /post_svr/
+ 1 | /post_svr/
+ 1 | /post_svr/
  1 | /sqlite_svr/
  1 | /tiny_svr/
-(4 rows)
+(7 rows)
 
 SELECT * FROM test1 under '/mysql_svr/' where i = 5 ORDER BY i,__spd_url;
  i | __spd_url 
@@ -206,21 +252,29 @@ SELECT * FROM test1 ORDER BY i,__spd_url;
 -------+--------------
      1 | /file_svr/
      1 | /file_svr/
+     1 | /post_svr/
+     1 | /post_svr/
+     1 | /post_svr/
      1 | /sqlite_svr/
      1 | /tiny_svr/
      2 | /file_svr/
      2 | /file_svr/
+     2 | /post_svr/
+     2 | /post_svr/
      3 | /file_svr/
      3 | /file_svr/
+     3 | /post_svr/
+     3 | /post_svr/
      4 | /file_svr/
      4 | /file_svr/
+     4 | /post_svr/
+     4 | /post_svr/
    777 | /mysql_svr/
    777 | /mysql_svr/
    777 | /mysql_svr/
    777 | /mysql_svr/
-  1111 | /post_svr/
  22222 | /sqlite_svr/
-(16 rows)
+(24 rows)
 
 SELECT * FROM test1 UNDER '/test2/' ORDER BY i,__spd_url;
  i | __spd_url 
@@ -232,21 +286,29 @@ SELECT * FROM test1 order by i,__spd_url;
 -------+--------------
      1 | /file_svr/
      1 | /file_svr/
+     1 | /post_svr/
+     1 | /post_svr/
+     1 | /post_svr/
      1 | /sqlite_svr/
      1 | /tiny_svr/
      2 | /file_svr/
      2 | /file_svr/
+     2 | /post_svr/
+     2 | /post_svr/
      3 | /file_svr/
      3 | /file_svr/
+     3 | /post_svr/
+     3 | /post_svr/
      4 | /file_svr/
      4 | /file_svr/
+     4 | /post_svr/
+     4 | /post_svr/
    777 | /mysql_svr/
    777 | /mysql_svr/
    777 | /mysql_svr/
    777 | /mysql_svr/
-  1111 | /post_svr/
  22222 | /sqlite_svr/
-(16 rows)
+(24 rows)
 
 SELECT * FROM test1 UNDER '/file_svr/' ORDER BY i,__spd_url;
  i | __spd_url  
@@ -279,21 +341,29 @@ SELECT * FROM test1 ORDER BY i,__spd_url;
 -------+--------------
      1 | /file_svr/
      1 | /file_svr/
+     1 | /post_svr/
+     1 | /post_svr/
+     1 | /post_svr/
      1 | /sqlite_svr/
      1 | /tiny_svr/
      2 | /file_svr/
      2 | /file_svr/
+     2 | /post_svr/
+     2 | /post_svr/
      3 | /file_svr/
      3 | /file_svr/
+     3 | /post_svr/
+     3 | /post_svr/
      4 | /file_svr/
      4 | /file_svr/
+     4 | /post_svr/
+     4 | /post_svr/
    777 | /mysql_svr/
    777 | /mysql_svr/
    777 | /mysql_svr/
    777 | /mysql_svr/
-  1111 | /post_svr/
  22222 | /sqlite_svr/
-(16 rows)
+(24 rows)
 
 SELECT * FROM test1 UNDER '/tiny_svr/';
  i | __spd_url  
@@ -308,63 +378,98 @@ SELECT * FROM test1 under '/tiny_svr/' where i = 1;
 (1 row)
 
 SELECT * FROM test1__post_svr__0 order by i;
-  i   
-------
- 1111
-(1 row)
+ i 
+---
+ 1
+ 1
+ 1
+ 2
+ 2
+ 3
+ 3
+ 4
+ 4
+(9 rows)
 
 SELECT * FROM test1 ORDER BY i,__spd_url;
    i   |  __spd_url   
 -------+--------------
      1 | /file_svr/
      1 | /file_svr/
+     1 | /post_svr/
+     1 | /post_svr/
+     1 | /post_svr/
      1 | /sqlite_svr/
      1 | /tiny_svr/
      2 | /file_svr/
      2 | /file_svr/
+     2 | /post_svr/
+     2 | /post_svr/
      3 | /file_svr/
      3 | /file_svr/
+     3 | /post_svr/
+     3 | /post_svr/
      4 | /file_svr/
      4 | /file_svr/
+     4 | /post_svr/
+     4 | /post_svr/
    777 | /mysql_svr/
    777 | /mysql_svr/
    777 | /mysql_svr/
    777 | /mysql_svr/
-  1111 | /post_svr/
  22222 | /sqlite_svr/
-(16 rows)
+(24 rows)
 
 SELECT * FROM test1 UNDER '/post_svr/' ORDER BY i,__spd_url;
-  i   | __spd_url  
-------+------------
- 1111 | /post_svr/
-(1 row)
+ i | __spd_url  
+---+------------
+ 1 | /post_svr/
+ 1 | /post_svr/
+ 1 | /post_svr/
+ 2 | /post_svr/
+ 2 | /post_svr/
+ 3 | /post_svr/
+ 3 | /post_svr/
+ 4 | /post_svr/
+ 4 | /post_svr/
+(9 rows)
 
 SELECT * FROM test1 under '/post_svr/' where i = 1 ORDER BY i,__spd_url;
- i | __spd_url 
----+-----------
-(0 rows)
+ i | __spd_url  
+---+------------
+ 1 | /post_svr/
+ 1 | /post_svr/
+ 1 | /post_svr/
+(3 rows)
 
 SELECT * FROM test1 ORDER BY i,__spd_url;
    i   |  __spd_url   
 -------+--------------
      1 | /file_svr/
      1 | /file_svr/
+     1 | /post_svr/
+     1 | /post_svr/
+     1 | /post_svr/
      1 | /sqlite_svr/
      1 | /tiny_svr/
      2 | /file_svr/
      2 | /file_svr/
+     2 | /post_svr/
+     2 | /post_svr/
      3 | /file_svr/
      3 | /file_svr/
+     3 | /post_svr/
+     3 | /post_svr/
      4 | /file_svr/
      4 | /file_svr/
+     4 | /post_svr/
+     4 | /post_svr/
    777 | /mysql_svr/
    777 | /mysql_svr/
    777 | /mysql_svr/
    777 | /mysql_svr/
-  1111 | /post_svr/
  22222 | /sqlite_svr/
-(16 rows)
+(24 rows)
 
 SELECT * FROM test1 UNDER '/sqlite_svr/' ORDER BY i,__spd_url;
    i   |  __spd_url   
@@ -383,21 +488,29 @@ SELECT * FROM test1 ORDER BY i,__spd_url;
 -------+--------------
      1 | /file_svr/
      1 | /file_svr/
+     1 | /post_svr/
+     1 | /post_svr/
+     1 | /post_svr/
      1 | /sqlite_svr/
      1 | /tiny_svr/
      2 | /file_svr/
      2 | /file_svr/
+     2 | /post_svr/
+     2 | /post_svr/
      3 | /file_svr/
      3 | /file_svr/
+     3 | /post_svr/
+     3 | /post_svr/
      4 | /file_svr/
      4 | /file_svr/
+     4 | /post_svr/
+     4 | /post_svr/
    777 | /mysql_svr/
    777 | /mysql_svr/
    777 | /mysql_svr/
    777 | /mysql_svr/
-  1111 | /post_svr/
  22222 | /sqlite_svr/
-(16 rows)
+(24 rows)
 
 SELECT * FROM test1 UNDER '/mysql_svr/' ORDER BY i,__spd_url;
   i  |  __spd_url  
@@ -413,9 +526,12 @@ SELECT * FROM test1 where i = 1 ORDER BY i,__spd_url;
 ---+--------------
  1 | /file_svr/
  1 | /file_svr/
+ 1 | /post_svr/
+ 1 | /post_svr/
+ 1 | /post_svr/
  1 | /sqlite_svr/
  1 | /tiny_svr/
-(4 rows)
+(7 rows)
 
 SELECT * FROM test1 under '/mysql_svr/' where i = 5 ORDER BY i,__spd_url;
  i | __spd_url 
@@ -449,7 +565,8 @@ SELECT i,t,a FROM t2 ORDER BY i,__spd_url;
  2 |   | a
    | a | a
    |   | 
-(4 rows)
+   |   | 
+(5 rows)
 
 DROP USER MAPPING FOR public SERVER pgspider_svr;
 DROP FOREIGN TABLE test1;
