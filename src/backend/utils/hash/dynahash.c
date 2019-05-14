@@ -116,10 +116,10 @@
 #define NUM_FREELISTS			32
 
 /* A hash bucket is a linked list of HASHELEMENTs */
-typedef HASHELEMENT * HASHBUCKET;
+typedef HASHELEMENT *HASHBUCKET;
 
 /* A hash segment is an array of bucket headers */
-typedef HASHBUCKET * HASHSEGMENT;
+typedef HASHBUCKET *HASHSEGMENT;
 
 /*
  * Per-freelist data.
@@ -143,7 +143,7 @@ typedef struct
 	slock_t		mutex;			/* spinlock for this freelist */
 	long		nentries;		/* number of entries in associated buckets */
 	HASHELEMENT *freeList;		/* chain of free elements */
-}			FreeListData;
+} FreeListData;
 
 /*
  * Header structure for a hash table --- contains all changeable info
@@ -225,6 +225,9 @@ struct HTAB
 	Size		keysize;		/* hash key length in bytes */
 	long		ssize;			/* segment size --- must be power of 2 */
 	int			sshift;			/* segment shift = log2(ssize) */
+
+	bool		isfdw;			/* if true, this is used in fdw */
+	HTAB	   *nomralized_id_htab; /* normalized hash table */
 };
 
 /*
@@ -253,26 +256,42 @@ static long hash_accesses,
  * Private function prototypes
  */
 static void *DynaHashAlloc(Size size);
-static HASHSEGMENT seg_alloc(HTAB * hashp);
-static bool element_alloc(HTAB * hashp, int nelem, int freelist_idx);
-static bool dir_realloc(HTAB * hashp);
-static bool expand_table(HTAB * hashp);
-static HASHBUCKET get_hash_entry(HTAB * hashp, int freelist_idx);
-static void hdefault(HTAB * hashp);
+static HASHSEGMENT seg_alloc(HTAB *hashp);
+static bool element_alloc(HTAB *hashp, int nelem, int freelist_idx);
+static bool dir_realloc(HTAB *hashp);
+static bool expand_table(HTAB *hashp);
+static HASHBUCKET get_hash_entry(HTAB *hashp, int freelist_idx);
+static void hdefault(HTAB *hashp);
 static int	choose_nelem_alloc(Size entrysize);
-static bool init_htab(HTAB * hashp, long nelem);
-static void hash_corrupted(HTAB * hashp);
+static bool init_htab(HTAB *hashp, long nelem);
+static void hash_corrupted(HTAB *hashp);
 static long next_pow2_long(long num);
 static int	next_pow2_int(long num);
-static void register_seq_scan(HTAB * hashp);
-static void deregister_seq_scan(HTAB * hashp);
-static bool has_seq_scans(HTAB * hashp);
+static void register_seq_scan(HTAB *hashp);
+static void deregister_seq_scan(HTAB *hashp);
+static bool has_seq_scans(HTAB *hashp);
 
+static HTAB *hash_create_orig(const char *tabname, long nelem,
+				 HASHCTL *info, int flags);
+static void hash_destroy_orig(HTAB *hashp);
+
+static void *hash_search_orig(HTAB *hashp, const void *keyPtr, HASHACTION action,
+				 bool *foundPtr);
+static uint32 get_hash_value_orig(HTAB *hashp, const void *keyPtr);
+static void *hash_search_with_hash_value_orig(HTAB *hashp, const void *keyPtr,
+								 uint32 hashvalue, HASHACTION action,
+								 bool *foundPtr);
+static bool hash_update_hash_key_orig(HTAB *hashp, void *existingEntry,
+						  const void *newKeyPtr);
+static void hash_seq_init_orig(HASH_SEQ_STATUS *status, HTAB *hashp);
+static void *hash_seq_search_orig(HASH_SEQ_STATUS *status);
 
 /*
  * memory allocation support
  */
 static MemoryContext CurrentDynaHashCxt = NULL;
+
+#include "dynahash_thread.c"
 
 static void *
 DynaHashAlloc(Size size)
@@ -313,7 +332,7 @@ string_compare(const char *key1, const char *key2, Size keysize)
  * large nelem will penalize hash_seq_search speed without buying much.
  */
 HTAB *
-hash_create(const char *tabname, long nelem, HASHCTL * info, int flags)
+hash_create_orig(const char *tabname, long nelem, HASHCTL *info, int flags)
 {
 	HTAB	   *hashp;
 	HASHHDR    *hctl;
@@ -563,7 +582,7 @@ hash_create(const char *tabname, long nelem, HASHCTL * info, int flags)
  * Set default HASHHDR parameters.
  */
 static void
-hdefault(HTAB * hashp)
+hdefault(HTAB *hashp)
 {
 	HASHHDR    *hctl = hashp->hctl;
 
@@ -629,7 +648,7 @@ choose_nelem_alloc(Size entrysize)
  * arrays
  */
 static bool
-init_htab(HTAB * hashp, long nelem)
+init_htab(HTAB *hashp, long nelem)
 {
 	HASHHDR    *hctl = hashp->hctl;
 	HASHSEGMENT *segp;
@@ -796,7 +815,7 @@ hash_select_dirsize(long num_entries)
  * and for the (non expansible) directory.
  */
 Size
-hash_get_shared_size(HASHCTL * info, int flags)
+hash_get_shared_size(HASHCTL *info, int flags)
 {
 	Assert(flags & HASH_DIRSIZE);
 	Assert(info->dsize == info->max_dsize);
@@ -807,7 +826,7 @@ hash_get_shared_size(HASHCTL * info, int flags)
 /********************** DESTROY ROUTINES ************************/
 
 void
-hash_destroy(HTAB * hashp)
+hash_destroy_orig(HTAB *hashp)
 {
 	if (hashp != NULL)
 	{
@@ -826,7 +845,7 @@ hash_destroy(HTAB * hashp)
 }
 
 void
-hash_stats(const char *where, HTAB * hashp)
+hash_stats(const char *where, HTAB *hashp)
 {
 #if HASH_STATISTICS
 	fprintf(stderr, "%s: this HTAB -- accesses %ld collisions %ld\n",
@@ -853,14 +872,14 @@ hash_stats(const char *where, HTAB * hashp)
  * searching.
  */
 uint32
-get_hash_value(HTAB * hashp, const void *keyPtr)
+get_hash_value_orig(HTAB *hashp, const void *keyPtr)
 {
 	return hashp->hash(keyPtr, hashp->keysize);
 }
 
 /* Convert a hash value to a bucket number */
 static inline uint32
-calc_bucket(HASHHDR * hctl, uint32 hash_val)
+calc_bucket(HASHHDR *hctl, uint32 hash_val)
 {
 	uint32		bucket;
 
@@ -899,24 +918,24 @@ calc_bucket(HASHHDR * hctl, uint32 hash_val)
  * calculated with get_hash_value().
  */
 void *
-hash_search(HTAB * hashp,
-			const void *keyPtr,
-			HASHACTION action,
-			bool *foundPtr)
+hash_search_orig(HTAB *hashp,
+				 const void *keyPtr,
+				 HASHACTION action,
+				 bool *foundPtr)
 {
-	return hash_search_with_hash_value(hashp,
-									   keyPtr,
-									   hashp->hash(keyPtr, hashp->keysize),
-									   action,
-									   foundPtr);
+	return hash_search_with_hash_value_orig(hashp,
+											keyPtr,
+											hashp->hash(keyPtr, hashp->keysize),
+											action,
+											foundPtr);
 }
 
 void *
-hash_search_with_hash_value(HTAB * hashp,
-							const void *keyPtr,
-							uint32 hashvalue,
-							HASHACTION action,
-							bool *foundPtr)
+hash_search_with_hash_value_orig(HTAB *hashp,
+								 const void *keyPtr,
+								 uint32 hashvalue,
+								 HASHACTION action,
+								 bool *foundPtr)
 {
 	HASHHDR    *hctl = hashp->hctl;
 	int			freelist_idx = FREELIST_IDX(hctl, hashvalue);
@@ -1108,9 +1127,9 @@ hash_search_with_hash_value(HTAB * hashp,
  * partitions, if the new hash key would belong to a different partition.
  */
 bool
-hash_update_hash_key(HTAB * hashp,
-					 void *existingEntry,
-					 const void *newKeyPtr)
+hash_update_hash_key_orig(HTAB *hashp,
+						  void *existingEntry,
+						  const void *newKeyPtr)
 {
 	HASHELEMENT *existingElement = ELEMENT_FROM_KEY(existingEntry);
 	HASHHDR    *hctl = hashp->hctl;
@@ -1243,7 +1262,7 @@ hash_update_hash_key(HTAB * hashp,
  * we won't return at all.)
  */
 static HASHBUCKET
-get_hash_entry(HTAB * hashp, int freelist_idx)
+get_hash_entry(HTAB *hashp, int freelist_idx)
 {
 	HASHHDR    *hctl = hashp->hctl;
 	HASHBUCKET	newElement;
@@ -1328,7 +1347,7 @@ get_hash_entry(HTAB * hashp, int freelist_idx)
  * hash_get_num_entries -- get the number of entries in a hashtable
  */
 long
-hash_get_num_entries(HTAB * hashp)
+hash_get_num_entries(HTAB *hashp)
 {
 	int			i;
 	long		sum = hashp->hctl->freeList[0].nentries;
@@ -1372,7 +1391,7 @@ hash_get_num_entries(HTAB * hashp)
  * with concurrent insertions or deletions by another.
  */
 void
-hash_seq_init(HASH_SEQ_STATUS * status, HTAB * hashp)
+hash_seq_init_orig(HASH_SEQ_STATUS *status, HTAB *hashp)
 {
 	status->hashp = hashp;
 	status->curBucket = 0;
@@ -1382,7 +1401,7 @@ hash_seq_init(HASH_SEQ_STATUS * status, HTAB * hashp)
 }
 
 void *
-hash_seq_search(HASH_SEQ_STATUS * status)
+hash_seq_search_orig(HASH_SEQ_STATUS *status)
 {
 	HTAB	   *hashp;
 	HASHHDR    *hctl;
@@ -1458,7 +1477,7 @@ hash_seq_search(HASH_SEQ_STATUS * status)
 }
 
 void
-hash_seq_term(HASH_SEQ_STATUS * status)
+hash_seq_term(HASH_SEQ_STATUS *status)
 {
 	if (!status->hashp->frozen)
 		deregister_seq_scan(status->hashp);
@@ -1478,7 +1497,7 @@ hash_seq_term(HASH_SEQ_STATUS * status)
  * with active scans (since hash_seq_term would then do the wrong thing).
  */
 void
-hash_freeze(HTAB * hashp)
+hash_freeze(HTAB *hashp)
 {
 	if (hashp->isshared)
 		elog(ERROR, "cannot freeze shared hashtable \"%s\"", hashp->tabname);
@@ -1495,7 +1514,7 @@ hash_freeze(HTAB * hashp)
  * Expand the table by adding one more hash bucket.
  */
 static bool
-expand_table(HTAB * hashp)
+expand_table(HTAB *hashp)
 {
 	HASHHDR    *hctl = hashp->hctl;
 	HASHSEGMENT old_seg,
@@ -1592,7 +1611,7 @@ expand_table(HTAB * hashp)
 
 
 static bool
-dir_realloc(HTAB * hashp)
+dir_realloc(HTAB *hashp)
 {
 	HASHSEGMENT *p;
 	HASHSEGMENT *old_p;
@@ -1631,7 +1650,7 @@ dir_realloc(HTAB * hashp)
 
 
 static HASHSEGMENT
-seg_alloc(HTAB * hashp)
+seg_alloc(HTAB *hashp)
 {
 	HASHSEGMENT segp;
 
@@ -1650,7 +1669,7 @@ seg_alloc(HTAB * hashp)
  * allocate some new elements and link them into the indicated free list
  */
 static bool
-element_alloc(HTAB * hashp, int nelem, int freelist_idx)
+element_alloc(HTAB *hashp, int nelem, int freelist_idx)
 {
 	HASHHDR    *hctl = hashp->hctl;
 	Size		elementSize;
@@ -1697,7 +1716,7 @@ element_alloc(HTAB * hashp, int nelem, int freelist_idx)
 
 /* complain when we have detected a corrupted hashtable */
 static void
-hash_corrupted(HTAB * hashp)
+hash_corrupted(HTAB *hashp)
 {
 	/*
 	 * If the corruption is in a shared hashtable, we'd better force a
@@ -1773,14 +1792,14 @@ next_pow2_int(long num)
 
 #define MAX_SEQ_SCANS 100
 
-static HTAB * seq_scan_tables[MAX_SEQ_SCANS];	/* tables being scanned */
+static HTAB *seq_scan_tables[MAX_SEQ_SCANS];	/* tables being scanned */
 static int	seq_scan_level[MAX_SEQ_SCANS];	/* subtransaction nest level */
 static int	num_seq_scans = 0;
 
 
 /* Register a table as having an active hash_seq_search scan */
 static void
-register_seq_scan(HTAB * hashp)
+register_seq_scan(HTAB *hashp)
 {
 	if (num_seq_scans >= MAX_SEQ_SCANS)
 		elog(ERROR, "too many active hash_seq_search scans, cannot start one on \"%s\"",
@@ -1792,7 +1811,7 @@ register_seq_scan(HTAB * hashp)
 
 /* Deregister an active scan */
 static void
-deregister_seq_scan(HTAB * hashp)
+deregister_seq_scan(HTAB *hashp)
 {
 	int			i;
 
@@ -1813,7 +1832,7 @@ deregister_seq_scan(HTAB * hashp)
 
 /* Check if a table has any active scan */
 static bool
-has_seq_scans(HTAB * hashp)
+has_seq_scans(HTAB *hashp)
 {
 	int			i;
 

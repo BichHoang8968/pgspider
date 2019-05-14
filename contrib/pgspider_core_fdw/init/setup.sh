@@ -9,10 +9,11 @@ sqlite3 /tmp/pgtest.db < sqlite.dat
 mysql -uroot -pmysql  < mysql.dat
  
 # postgres should be already started with port=15432
+# pg_ctl -o "-p 15432" start -D data
 
 # CREATE USER mapping for public server post_svr OPTIONS(user 'postgres',password 'postgres');
 # psql -p 15432 postgres
 # create user postgres with encrypted password 'postgres';
 # grant all privileges on database postgres to postgres;
 # GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;
-psql postgres -p 15432  < post.dat
+psql postgres -p 15432  -U postgres < post.dat

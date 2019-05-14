@@ -2542,9 +2542,9 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 										(RelOptInfo *) childinfo[i].baserel,
 										DatumGetObjectId(childinfo[i].oid));
 			/* Agg child node costs */
-			if (childinfo[i].baserel->pathlist != NULL && childinfo[i].baserel->pathlist != 0)
+			if (childinfo[i].baserel->pathlist != NULL)
 			{
-				childpath = lfirst_node(Path, childinfo[i].baserel->pathlist->head);
+				childpath = lfirst_node(ForeignPath, childinfo[i].baserel->pathlist->head);
 				startup_cost += childpath->startup_cost;
 				total_cost += childpath->total_cost;
 				rows += childpath->rows;
@@ -3114,6 +3114,12 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	Query	   *query;
 	RangeTblEntry *rte;
 	int			k;
+
+	/*
+	 * Register callback to query memory context to reset normalize id hash
+	 * table at the end of the query
+	 */
+	hash_register_reset_callback(node->ss.ps.state->es_query_cxt);
 
 	if (eflags & EXEC_FLAG_EXPLAIN_ONLY)
 		return;
