@@ -301,7 +301,7 @@ create_child_info(NODEINFO * nodeInfo, pthread_t **threads, int svrnum)
 		strcpy(key.ip, nodeInfo[i].tag.ip);
 		entry = hash_search(keepshNodeHash, &key, HASH_ENTER, &found);
 		entry->isAlive = TRUE;
-		Assert(found);
+		Assert(!found);
 	}
 }
 
@@ -411,7 +411,7 @@ delete_oldhash(NODEINFO * nodeInfo, int svrnum)
 		strcpy(key.nodeName, nodeInfo[i].tag.nodeName);
 		strcpy(key.ip, nodeInfo[i].tag.ip);
 		hash_search(keepshNodeHash, &key, HASH_REMOVE, &found);
-		Assert(found);
+		Assert(!found);
 	}
 }
 
