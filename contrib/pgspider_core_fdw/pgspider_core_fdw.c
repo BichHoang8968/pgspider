@@ -49,6 +49,7 @@ PG_MODULE_MAGIC;
 #include "optimizer/cost.h"
 #include "optimizer/clauses.h"
 #include "parser/parsetree.h"
+#include "utils/guc.h"
 #include "utils/memutils.h"
 #include "utils/palloc.h"
 #include "utils/lsyscache.h"
@@ -65,6 +66,7 @@ PG_MODULE_MAGIC;
 #include "pgspider_core_fdw_defs.h"
 #include "funcapi.h"
 #include "postgres_fdw/postgres_fdw.h"
+#include "pgspider_keepalive/pgspider_keepalive.h"
 
 /* #define GETPROGRESS_ENABLED */
 #define BUFFERSIZE 1024
@@ -106,6 +108,7 @@ PG_MODULE_MAGIC;
 
 /* local function forward declarations */
 bool		spd_is_builtin(Oid objectId);
+void		_PG_init(void);
 static void spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel,
 					  Oid foreigntableid);
 static void spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel,
@@ -169,6 +172,7 @@ static void spd_EndForeignModify(EState *estate,
 static TargetEntry *spd_tlist_member(Expr *node, List *targetlist, int *target_num);
 
 static List *spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **mapping_orig_tlist, List **temp_tlist, int *child_uninum, Index sgref);
+static void spd_spi_exec_child_ip(char *serverName, char *ip);
 
 enum SpdFdwScanPrivateIndex
 {
@@ -197,6 +201,13 @@ enum Aggtype
 	DEVFLAG,
 };
 
+enum SpdServerstatus
+{
+	ServerStatusAlive,
+	ServerStatusUnder,
+	ServerStatusDead,
+};
+
 typedef struct Mappingcell
 {
 	int			mapping[MAXDIVNUM];
@@ -210,13 +221,13 @@ typedef struct Mappingcells
 }			Mappingcells;
 
 
+
 typedef struct ChildInfo
 {
 	PlannerInfo *root;
 	RelOptInfo *baserel;
 	Plan	   *plan;
-	bool		child_table_alive;	/* alive child nodes list. alive is TRUE,
-									 * dead is FALSE */
+	enum SpdServerstatus child_node_status;
 	Oid			server_oid;		/* child table's server oid */
 	Oid			oid;			/* child table's table oid */
 	AggPath    *aggpath;
@@ -275,7 +286,9 @@ typedef struct SpdFdwPrivate
 	bool		is_drop_temp_table; /* drop temp table flag in aggregation */
 }			SpdFdwPrivate;
 
-int			repeatpath = 0;
+/* postgresql.conf paramater */
+static bool throwErrorIfDead;
+static bool isPrintError;
 
 typedef struct SpdFdwModifyState
 {
@@ -823,6 +836,45 @@ spd_spi_exec_child_relname(char *parentTableName, SpdFdwPrivate * fdw_private, D
 }
 
 static void
+spd_spi_exec_child_ip(char *serverName, char *ip)
+{
+	char		sql[NAMEDATALEN * 2] = {};
+	char	   *ipstr;
+	int			rtn;
+
+	sprintf(sql, "SELECT ip FROM pg_spd_node_info WHERE servername = '%s';", serverName);
+	SPI_connect();
+	PG_TRY();
+	{
+		rtn = SPI_execute(sql, false, 0);
+	}
+	PG_CATCH();
+	{
+		SPI_finish();
+		return;
+	}
+	PG_END_TRY();
+	/* Searching server ip from __spd_node_info */
+	if (rtn != SPI_OK_SELECT || SPI_processed != 1)
+	{
+		SPI_finish();
+		return;
+	}
+	ipstr = SPI_getvalue(SPI_tuptable->vals[0],
+						 SPI_tuptable->tupdesc,
+						 1);
+	strcpy(ip, ipstr);
+	SPI_finish();
+	return;
+}
+
+static void
+spd_aliveError(ForeignServer *fs)
+{
+	elog(ERROR, "PGSpider can not get data from child node : %s", fs->servername);
+}
+
+static void
 spd_ErrorCb(void *arg)
 {
 	pthread_mutex_lock(&error_mutex);
@@ -1153,7 +1205,9 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 	{
 		/* UNDER clause does not use. all child table is alive now. */
 		for (int i = 0; i < childnums; i++)
-			fdw_private->childinfo[i].child_table_alive = TRUE;
+		{
+			fdw_private->childinfo[i].child_node_status = ServerStatusAlive;
+		}
 		return;
 	}
 
@@ -1167,7 +1221,7 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 	if (fdw_private->url_parse_list->length == 0)
 	{
 		for (int i = 0; i < childnums; i++)
-			fdw_private->childinfo[i].child_table_alive = TRUE;
+			fdw_private->childinfo[i].child_node_status = ServerStatusAlive;
 		return;
 	}
 	original_url = (char *) list_nth(fdw_private->url_parse_list, 0);
@@ -1190,10 +1244,10 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 		if (strcmp(original_url, srvname) != 0)
 		{
 			elog(DEBUG1, "Can not find URL");
-			fdw_private->childinfo[i].child_table_alive = FALSE;
+			fdw_private->childinfo[i].child_node_status = ServerStatusUnder;
 			continue;
 		}
-		fdw_private->childinfo[i].child_table_alive = TRUE;
+		fdw_private->childinfo[i].child_node_status = ServerStatusAlive;
 
 		/*
 		 * if child-child node is exist, then create New UNDER clause. New
@@ -1381,7 +1435,7 @@ check_basestrictinfo(PlannerInfo *root, ForeignDataWrapper *fdw, RelOptInfo *ent
 			RestrictInfo *clause = (RestrictInfo *) lfirst(lc);
 			Expr	   *expr = (Expr *) clause->clause;
 
-			if (spd_basestrictinfo_tree_walker((Node *) expr, root) == TRUE)
+			if (spd_basestrictinfo_tree_walker((Node *) expr, root))
 				entry_baserel->baserestrictinfo = NULL;
 		}
 	}
@@ -1397,6 +1451,7 @@ check_basestrictinfo(PlannerInfo *root, ForeignDataWrapper *fdw, RelOptInfo *ent
 		}
 	}
 }
+
 
 /**
  * spd_CreateDummyRoot
@@ -1432,6 +1487,7 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Datum *oid, int oid_
 		PlannerGlobal *glob;
 		RangeTblEntry *rte;
 		int			k;
+		char		ip[NAMEDATALEN] = {0};
 
 		rel_oid = childinfo[i].oid;
 		if (rel_oid == 0)
@@ -1507,32 +1563,47 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Datum *oid, int oid_
 		fs = GetForeignServer(oid_server);
 		fdw = GetForeignDataWrapper(fs->fdwid);
 		check_basestrictinfo(root, fdw, entry_baserel);
-
-		PG_TRY();
+		childinfo[i].server_oid = oid_server;
+		spd_spi_exec_child_ip(fs->servername, ip);
+		/* Check server name and ip */
+		if (check_server_ipname(fs->servername, ip))
 		{
-			fdwroutine->GetForeignRelSize(dummy_root, entry_baserel, DatumGetObjectId(rel_oid));
-			childinfo[i].baserel = entry_baserel;
-			childinfo[i].root = dummy_root;
+			/* Do child node's GetForeignRelSize */
+			PG_TRY();
+			{
+				fdwroutine->GetForeignRelSize(dummy_root, entry_baserel, DatumGetObjectId(rel_oid));
+				childinfo[i].root = dummy_root;
+			}
+			PG_CATCH();
+			{
+				/*
+				 * Even If fail to create dummy_root_list, then append
+				 * dummy_base_rel_list and dummy_root_list success to
+				 * creating. But spd should stop following step for failed
+				 * child table, so, set fdw_private->child_table_alive to
+				 * FALSE
+				 *
+				 * spd_beginForeignScan() get information of child tables from
+				 * system table and compare it with
+				 * fdw_private->dummy_base_rel_list. That's why, the length of
+				 * fdw_private->dummy_base_rel_list should match the number of
+				 * all of the child tables belong to parent table.
+				 */
+				childinfo[i].root = root;
+				childinfo[i].child_node_status = ServerStatusDead;
+				if (throwErrorIfDead)
+					spd_aliveError(fs);
+			}
+			PG_END_TRY();
 		}
-		PG_CATCH();
+		else
 		{
-			/*
-			 * Even If fail to create dummy_root_list, then append
-			 * dummy_base_rel_list and dummy_root_list success to creating.
-			 * But spd should stop following step for failed child table, so,
-			 * set fdw_private->child_table_alive to FALSE
-			 *
-			 * spd_beginForeignScan() get information of child tables from
-			 * system table and compare it with
-			 * fdw_private->dummy_base_rel_list. That's why, the length of
-			 * fdw_private->dummy_base_rel_list should match the number of all
-			 * of the child tables belong to parent table.
-			 */
-			childinfo[i].baserel = entry_baserel;
 			childinfo[i].root = root;
-			childinfo[i].child_table_alive = FALSE;
+			childinfo[i].child_node_status = ServerStatusDead;
+			if (throwErrorIfDead)
+				spd_aliveError(fs);
 		}
-		PG_END_TRY();
+		childinfo[i].baserel = entry_baserel;
 	}
 }
 
@@ -1660,8 +1731,11 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	else
 	{
 		for (int i = 0; i < nums; i++)
-			fdw_private->childinfo[i].child_table_alive = TRUE;
+		{
+			fdw_private->childinfo[i].child_node_status = ServerStatusAlive;
+		}
 	}
+
 	/* Create base plan for each child tables and exec GetForeignRelSize */
 	spd_CreateDummyRoot(root, baserel, oid, nums, r_entry, new_underurl, fdw_private);
 
@@ -2343,7 +2417,7 @@ spd_ExplainForeignScan(ForeignScanState *node,
 		fs = GetForeignServer(childinfo[i].server_oid);
 		fdwroutine = GetFdwRoutineByServerId(childinfo[i].server_oid);
 		/* skip to can not access child table at spd_GetForeignRelSize. */
-		if (childinfo[i].child_table_alive != TRUE)
+		if (childinfo[i].child_node_status != ServerStatusAlive)
 		{
 			continue;
 		}
@@ -2364,7 +2438,7 @@ spd_ExplainForeignScan(ForeignScanState *node,
 			 * If fail to create foreign paths, then set
 			 * fdw_private->child_table_alive to FALSE
 			 */
-			childinfo[i].child_table_alive = FALSE;
+			childinfo[i].child_node_status = ServerStatusDead;
 			elog(WARNING, "fdw ExplainForeignScan error is occurred.");
 		}
 		PG_END_TRY();
@@ -2390,9 +2464,7 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 {
 	MemoryContext oldcontext;
 	FdwRoutine *fdwroutine;
-	Datum	   *oid;
 	Datum		server_oid;
-	int			nums;
 	int			i;
 	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *) baserel->fdw_private;
 	Cost		startup_cost = 0;
@@ -2407,8 +2479,6 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 	}
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 
-	/* spd_spi_exec_datasouce_num(foreigntableid, &nums, &oid); */
-
 	/* Create Foreign paths using base_rel_list to each child node. */
 	childinfo = fdw_private->childinfo;
 	for (i = 0; i < fdw_private->node_num; i++)
@@ -2417,7 +2487,7 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 		ForeignDataWrapper *fdw;
 
 		/* skip to can not access child table at spd_GetForeignRelSize. */
-		if (childinfo[i].child_table_alive != TRUE)
+		if (childinfo[i].child_node_status != ServerStatusAlive)
 		{
 			continue;
 		}
@@ -2465,9 +2535,9 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 										(RelOptInfo *) childinfo[i].baserel,
 										DatumGetObjectId(childinfo[i].oid));
 			/* Agg child node costs */
-			if (childinfo[i].baserel->pathlist != NULL)
+		    if (childinfo[i].baserel->pathlist != NULL)
 			{
-				childpath = lfirst_node(ForeignPath, childinfo[i].baserel->pathlist->head);
+				childpath = lfirst_node(Path, childinfo[i].baserel->pathlist->head);
 				startup_cost += childpath->startup_cost;
 				total_cost += childpath->total_cost;
 				rows += childpath->rows;
@@ -2479,8 +2549,11 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 			 * If fail to create foreign paths, then set
 			 * fdw_private->child_table_alive to FALSE
 			 */
-			childinfo[i].child_table_alive = FALSE;
-			elog(WARNING, "fdw GetForeignPaths error is occurred.table oid is %d", DatumGetObjectId(oid[i]));
+			childinfo[i].child_node_status = ServerStatusDead;
+
+			elog(WARNING, "Fdw GetForeignPaths error is occurred.");
+			if (throwErrorIfDead)
+				spd_aliveError(fs);
 		}
 		PG_END_TRY();
 	}
@@ -2764,6 +2837,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	int			colname_tlist_length = 0;
 	TargetEntry *tle;
 	ChildInfo  *childinfo;
+	ForeignServer *fs;
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	if (fdw_private == NULL)
@@ -2831,7 +2905,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		/* skip to can not access child table at spd_GetForeignRelSize. */
 		if (childinfo[i].baserel == NULL)
 			break;
-		if (childinfo[i].child_table_alive != TRUE)
+		if (childinfo[i].child_node_status != ServerStatusAlive)
 		{
 			continue;
 		}
@@ -2924,8 +2998,13 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			 * If fail to get foreign plan, then set
 			 * fdw_private->child_table_alive to FALSE
 			 */
-			childinfo[i].child_table_alive = FALSE;
+			childinfo[i].child_node_status = ServerStatusDead;
 			elog(WARNING, "dummy plan list failed ");
+			if (throwErrorIfDead)
+			{
+				fs = GetForeignServer(childinfo[i].server_oid);
+				spd_aliveError(fs);
+			}
 		}
 		PG_END_TRY();
 		/* For aggregation and can not pushdown fdw's */
@@ -2976,6 +3055,22 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 							outer_plan);
 }
 
+static void
+spd_PrintError(int childnums, ChildInfo * childinfo)
+{
+	int			i;
+	ForeignServer *fs;
+
+	for (i = 0; i < childnums; i++)
+	{
+		if (childinfo[i].child_node_status == ServerStatusDead)
+		{
+			fs = GetForeignServer(childinfo[i].server_oid);
+			elog(WARNING, "Can not get data from %s", fs->servername);
+		}
+	}
+}
+
 /**
  * spd_BeginForeignScan
  * Main thread create iterate foreing scan information
@@ -3012,7 +3107,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	Query	   *query;
 	RangeTblEntry *rte;
 	int			k;
-
 	/*
 	 * Register callback to query memory context to reset normalize id hash
 	 * table at the end of the query
@@ -3063,7 +3157,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		 * check child table node is dead or alive. Execute(Create child
 		 * thread) alive table node only.
 		 */
-		if (childinfo[i].child_table_alive != TRUE)
+		if (childinfo[i].child_node_status != ServerStatusAlive)
 		{
 			private_incr++;
 			continue;
@@ -3357,7 +3451,7 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 				if (colid != mapping)
 					continue;
 
-				if (isfirst == TRUE)
+				if (isfirst)
 					isfirst = FALSE;
 				else
 					appendStringInfo(sql, ",");
@@ -3512,7 +3606,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 					default:
 						break;
 				}
-				if (isnull == TRUE)
+				if (isnull)
 					fdw_private->agg_nulls[k][colid] = TRUE;
 				colid++;
 			}
@@ -3565,11 +3659,11 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 			float8		sum = 0.0;
 			float8		cnt = 0.0;
 
-			if (fdw_private->agg_nulls[rowid][count_mapping] == TRUE)
+			if (fdw_private->agg_nulls[rowid][count_mapping])
 			{
 				elog(ERROR, "COUNT() column is NULL.");
 			}
-			if (fdw_private->agg_nulls[rowid][sum_mapping] == TRUE)
+			if (fdw_private->agg_nulls[rowid][sum_mapping])
 				nulls[target_column] = TRUE;
 			else
 			{
@@ -3656,7 +3750,7 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 		}
 		else if (target_column == mapping_parent)
 		{
-			if (fdw_private->agg_nulls[rowid][mapping] == TRUE)
+			if (fdw_private->agg_nulls[rowid][mapping])
 				nulls[target_column] = TRUE;
 			ret_agg_values[target_column] = fdw_private->agg_values[rowid][mapping];
 			target_column++;
@@ -3712,7 +3806,7 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 
 			if (max_col == mapping)
 			{
-				if (isfirst == TRUE)
+				if (isfirst)
 					isfirst = FALSE;
 				else
 					appendStringInfo(sql, ",");
@@ -3896,7 +3990,7 @@ spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *child_slo
 				Datum		col = slot_getattr(node_slot, i + 1, &isnull);
 				char	   *s;
 
-				if (isnull == TRUE)
+				if (isnull)
 				{
 					elog(ERROR, "PGSpider column name error. Child node Name is nothing.");
 				}
@@ -4101,7 +4195,6 @@ spd_IterateForeignScan(ForeignScanState *node)
 			}
 		}
 		slot = spd_AddNodeColumn(fssThrdInfo, node->ss.ss_ScanTupleSlot, count);
-		/* slot = fssThrdInfo[count - 1].tuple; */
 	}
 	/* clear tuple buffer */
 	fssThrdInfo[count - 1].tuple = NULL;
@@ -4178,6 +4271,10 @@ spd_EndForeignScan(ForeignScanState *node)
 	fdw_private = fssThrdInfo->private;
 	if (!fdw_private)
 		return;
+
+	/* print error nodes */
+	if (isPrintError)
+		spd_PrintError(fdw_private->node_num, fdw_private->childinfo);
 
 	if (fdw_private->is_drop_temp_table == FALSE)
 	{
@@ -4480,4 +4577,34 @@ spd_EndForeignModify(EState *estate,
 
 	fdwroutine = GetFdwRoutineByServerId(oid_server);
 	fdwroutine->EndForeignModify(estate, resultRelInfo);
+}
+
+
+
+void
+_PG_init(void)
+{
+	/* get the configuration */
+	DefineCustomBoolVariable("pgspider_core_fdw.throw_error_ifdead",
+							 "set alive error",
+							 NULL,
+							 &throwErrorIfDead,
+							 FALSE,
+							 PGC_USERSET,
+							 0,
+							 NULL,
+							 NULL,
+							 NULL);
+
+/* get the configuration */
+	DefineCustomBoolVariable("pgspider_core_fdw.print_error_nodes",
+							 "print error nodes",
+							 NULL,
+							 &isPrintError,
+							 FALSE,
+							 PGC_USERSET,
+							 0,
+							 NULL,
+							 NULL,
+							 NULL);
 }

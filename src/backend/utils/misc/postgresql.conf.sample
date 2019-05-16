@@ -656,3 +656,5 @@
 #------------------------------------------------------------------------------
 
 # Add settings for extensions here
+shared_preload_libraries = 'pgspider_keepalive'
+

@@ -39,6 +39,7 @@
 #include "catalog/pg_subscription.h"
 #include "catalog/pg_tablespace.h"
 #include "catalog/pg_type.h"
+#include "catalog/pg_spd_node_info.h"
 #include "catalog/toasting.h"
 #include "miscadmin.h"
 #include "storage/fd.h"
@@ -225,6 +226,7 @@ IsSharedRelation(Oid relationId)
 		relationId == DatabaseRelationId ||
 		relationId == PLTemplateRelationId ||
 		relationId == SharedDescriptionRelationId ||
+		relationId == SharedPgspiderNodeInfoRelationId ||
 		relationId == SharedDependRelationId ||
 		relationId == SharedSecLabelRelationId ||
 		relationId == TableSpaceRelationId ||
