@@ -33,8 +33,8 @@
 #include "utils/memutils.h"
 #include "unistd.h"
 
-#define IPV6LEN (45)
 #define CMDLEN (50 + IPV6LEN)
+#define IPV6LEN (45)
 
 PG_MODULE_MAGIC;
 
@@ -128,7 +128,7 @@ pgspider_check_childnnode(void *arg)
 	char		cmd[CMDLEN];
 	int			ret;
 	int			i;
-	nodeinfotag key = {};
+	nodeinfotag key = {{0}};
 
 	strcpy(key.nodeName, nodeInfo->tag.nodeName);
 	strcpy(key.ip, nodeInfo->tag.ip);
@@ -137,7 +137,7 @@ pgspider_check_childnnode(void *arg)
 #else
 	sprintf(cmd, "ping %s -n 1 -w %d > nul ", nodeInfo->tag.ip, timeout_time * 1000);
 #endif
-	elog(LOG, "KeepAlive threads start '%s %s' ", nodeInfo->tag.nodeName, nodeInfo->tag.ip);
+	elog(INFO, "KeepAlive threads start '%s %s' ", nodeInfo->tag.nodeName, nodeInfo->tag.ip);
 	while (1)
 	{
 		/* Check child nodes using ping */
@@ -235,7 +235,7 @@ create_alive_list(StringInfoData *buf, NODEINFO * *nodeInfo, char ***fdwname, in
 		 * pg_spd_node_info.
 		 */
 		FlushErrorState();
-		elog(LOG, "'SELECT * FROM pg_spd_node_info' is failed");
+		elog(INFO, "'SELECT * FROM pg_spd_node_info' is failed");
 		*svrnum = 0;
 		SPI_finish();
 		PopActiveSnapshot();
@@ -267,7 +267,7 @@ create_alive_list(StringInfoData *buf, NODEINFO * *nodeInfo, char ***fdwname, in
 		ipstr = SPI_getvalue(SPI_tuptable->vals[i],
 							 SPI_tuptable->tupdesc,
 							 4);
-
+		/* TODO: Delete this line when fix setting script */
 		if (strcmp(fdwstr, "griddb_fdw") == 0)
 			strcpy((*nodeInfo)[i].tag.ip, "");
 		else
@@ -295,14 +295,13 @@ create_child_info(NODEINFO * nodeInfo, pthread_t **threads, int svrnum)
 		*threads = palloc(sizeof(pthread_t) * svrnum);
 	for (i = 0; i < svrnum; i++)
 	{
-		nodeinfotag key = {};
+		nodeinfotag key = {{0}};
 
 		strcpy(key.nodeName, nodeInfo[i].tag.nodeName);
 		strcpy(key.ip, nodeInfo[i].tag.ip);
 		entry = hash_search(keepshNodeHash, &key, HASH_ENTER, &found);
 		entry->isAlive = TRUE;
-		if (found)
-			elog(LOG, "Find same hash in pgspider_keepalive");
+		Assert(found);
 	}
 }
 
@@ -341,7 +340,7 @@ create_child_threads(NODEINFO * nodeInfo, int *numThreads, pthread_t *threads, i
 static bool
 check_hashtable_with_nodeinfotable(char *serverName, char *ip, bool *ret)
 {
-	nodeinfotag key = {};
+	nodeinfotag key = {{0}};
 	bool		found;
 	NODEINFO   *entry;
 
@@ -388,6 +387,8 @@ check_server_ipname(char *serverName, char *ip)
 									   &info,
 									   HASH_ELEM | HASH_BLOBS | HASH_PARTITION);
 	}
+	if (ip == NULL)
+		return TRUE;
 	/* check node info table */
 	if (check_hashtable_with_nodeinfotable(serverName, ip, &ret))
 		return ret;
@@ -405,13 +406,12 @@ delete_oldhash(NODEINFO * nodeInfo, int svrnum)
 
 	for (i = 0; i < svrnum; i++)
 	{
-		nodeinfotag key = {};
+		nodeinfotag key = {{0}};
 
 		strcpy(key.nodeName, nodeInfo[i].tag.nodeName);
 		strcpy(key.ip, nodeInfo[i].tag.ip);
 		hash_search(keepshNodeHash, &key, HASH_REMOVE, &found);
-		if (!found)
-			elog(LOG, "Find same hash in pgspider_keepalive");
+		Assert(found);
 	}
 }
 
@@ -425,6 +425,21 @@ join_childs(int numThreads, pthread_t *threads)
 	{
 		pthread_join(threads[i], NULL);
 	}
+}
+
+static void
+freenodeInfos(int curSvrNum, char **curFdwName, NODEINFO * curNodeInfo)
+{
+	int			i;
+
+	for (i = 0; i < curSvrNum; i++)
+	{
+		pfree(curFdwName[i]);
+	}
+	if (curFdwName != NULL)
+		pfree(curFdwName);
+	if (curNodeInfo != NULL)
+		pfree(curNodeInfo);
 }
 
 /*
@@ -455,18 +470,11 @@ check_server_info(NODEINFO * latestNodeInfo, char **latestFdwName, int numThread
 		 */
 		for (i = 0; i < curSvrNum; i++)
 		{
-			if (curSvrNum != svrnum || strcmp(curNodeInfo[i].tag.nodeName, latestNodeInfo[i].tag.nodeName) != 0 ||
+			if (strcmp(curNodeInfo[i].tag.nodeName, latestNodeInfo[i].tag.nodeName) != 0 ||
 				strcmp(curFdwName[i], latestFdwName[i]) != 0)
 				goto END;
 		}
-		for (i = 0; i < curSvrNum; i++)
-		{
-			pfree(curFdwName[i]);
-		}
-		if (curFdwName != NULL)
-			pfree(curFdwName);
-		if (curNodeInfo != NULL)
-			pfree(curNodeInfo);
+		freenodeInfos(curSvrNum, curFdwName, curNodeInfo);
 		rc = WaitLatch(MyLatch,
 					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
 					   keepalive_time * 1000L,
@@ -483,14 +491,7 @@ END:
 	join_childs(numThreads, threads);
 	/* delete all hash table data */
 	delete_oldhash(latestNodeInfo, svrnum);
-	for (i = 0; i < curSvrNum; i++)
-	{
-		pfree(curFdwName[i]);
-	}
-	if (curFdwName != NULL)
-		pfree(curFdwName);
-	if (curNodeInfo != NULL)
-		pfree(curNodeInfo);
+	freenodeInfos(curSvrNum, curFdwName, curNodeInfo);
 }
 
 /*
