@@ -4039,6 +4039,8 @@ spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *child_slo
 		/* tuple mode is VIRTUAL */
 		node_slot->tts_values[tnum] = values[tnum];
 		node_slot->tts_isnull[tnum] = false;
+		/* to avoid assert failure in ExecStoreVirtualTuple */
+		node_slot->tts_isempty = true;
 		ExecStoreVirtualTuple(node_slot);
 	}
 	ExecCopySlot(slot, node_slot);
