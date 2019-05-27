@@ -77,7 +77,7 @@ CREATE USER mapping for public server post_svr2 OPTIONS(user 'postgres',password
 CREATE FOREIGN TABLE t2__post_svr2__0 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 INSERT INTO pg_spd_node_info VALUES(0,'post_svr','postgres_fdw','127.0.0.1');
 INSERT INTO pg_spd_node_info VALUES(0,'post_svr2','postgres_fdw','127.0.0.1');
-SELECT pg_sleep(20);
+SELECT pg_sleep(2);
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
 SET pgspider_core_fdw.throw_error_ifdead to true;
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
@@ -91,7 +91,9 @@ CREATE SERVER post_svr3 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '192.168
 CREATE USER mapping for public server post_svr3 OPTIONS(user 'postgres',password 'postgres');
 CREATE FOREIGN TABLE t2__post_svr3__0 (i int, t text,a text) SERVER post_svr3 OPTIONS(table_name 't2');
 INSERT INTO pg_spd_node_info VALUES(0,'post_svr3','postgres_fdw','192.168.11.12');
-SELECT pg_sleep(20);
+SELECT pg_sleep(2);
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
+SET pgspider_core_fdw.throw_error_ifdead to true;
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 SET pgspider_core_fdw.throw_error_ifdead to false;
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
@@ -101,7 +103,7 @@ SET pgspider_core_fdw.print_error_nodes to false;
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 DROP FOREIGN TABLE t2__post_svr3__0;
 DELETE FROM pg_spd_node_info WHERE servername = 't2__post_svr3__0';
-SELECT pg_sleep(10);
+SELECT pg_sleep(2);
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 DROP USER MAPPING FOR public SERVER pgspider_svr;
 DROP FOREIGN TABLE test1;
