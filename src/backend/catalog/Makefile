@@ -47,6 +47,7 @@ POSTGRES_BKI_SRCS = $(addprefix $(top_srcdir)/src/include/catalog/,\
 	pg_sequence.h pg_publication.h pg_publication_rel.h pg_subscription.h \
 	pg_subscription_rel.h toasting.h indexing.h \
 	toasting.h indexing.h \
+	pg_spd_node_info.h \
     )
 
 # location of Catalog.pm
