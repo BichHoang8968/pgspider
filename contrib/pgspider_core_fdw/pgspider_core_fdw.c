@@ -316,7 +316,7 @@ spd_AllocatePrivate()
 	MemoryContextAllocZero(TopTransactionContext, sizeof(*p));
 
 	p->thread_resource_owner = ResourceOwnerCreate(
-												   NULL, "SPD fdw resource owner"
+												   CurrentResourceOwner, "SPD fdw resource owner"
 		);
 	return p;
 }
@@ -324,12 +324,14 @@ spd_AllocatePrivate()
 static void
 spd_ReleasePrivate(SpdFdwPrivate * p)
 {
+
 	ResourceOwnerRelease(p->thread_resource_owner,
 						 RESOURCE_RELEASE_BEFORE_LOCKS, false, false);
 	ResourceOwnerRelease(p->thread_resource_owner,
 						 RESOURCE_RELEASE_LOCKS, false, false);
 	ResourceOwnerRelease(p->thread_resource_owner,
 						 RESOURCE_RELEASE_AFTER_LOCKS, false, false);
+
 }
 
 bool
@@ -2537,7 +2539,7 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 			/* Agg child node costs */
 		    if (childinfo[i].baserel->pathlist != NULL)
 			{
-				childpath = lfirst_node(Path, childinfo[i].baserel->pathlist->head);
+				childpath = (Path *) lfirst_node(ForeignPath, childinfo[i].baserel->pathlist->head);
 				startup_cost += childpath->startup_cost;
 				total_cost += childpath->total_cost;
 				rows += childpath->rows;
