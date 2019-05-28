@@ -278,7 +278,6 @@ typedef struct SpdFdwPrivate
 	List	   *groupby_target; /* group target tlist number */
 	PlannerInfo *spd_root;		/* Copyt of root planner info. This is used by
 								 * aggregation pushdown. */
-	RelOptInfo *spd_baserel;	/* root node base */
 	StringInfo	groupby_string; /* GROUP BY string for aggregation temp table */
 	int			nThreads;		/* Number of alive threads */
 	List	   *baserestrictinfo;	/* root node base strict info */
@@ -1669,9 +1668,6 @@ spd_CopyRoot(PlannerInfo *root, RelOptInfo *baserel, SpdFdwPrivate * fdw_private
 	 * Build RelOptInfo Build simple relation and copy target list and strict
 	 * info from root information.
 	 */
-	fdw_private->spd_baserel = build_simple_rel(fdw_private->spd_root, baserel->relid, RELOPT_BASEREL);
-	fdw_private->spd_baserel->reltarget->exprs = copyObject(baserel->reltarget->exprs);
-	fdw_private->spd_baserel->baserestrictinfo = copyObject(baserel->baserestrictinfo);
 	fdw_private->baserestrictinfo = copyObject(baserel->baserestrictinfo);
 }
 
