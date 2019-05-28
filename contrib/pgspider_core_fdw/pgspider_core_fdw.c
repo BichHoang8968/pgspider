@@ -3615,6 +3615,39 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 	return slot;
 }
 
+
+static float8
+datum_to_float8(Oid type, Datum value)
+{
+	double		sum = 0;
+
+	switch (type)
+	{
+	case NUMERICOID:
+	case INT4OID:
+			sum = (float8) DatumGetInt32(value);
+		break;
+	case INT8OID:
+			sum = (float8) DatumGetInt64(value);
+		break;
+	case INT2OID:
+			sum = (float8) DatumGetInt16(value);
+		break;
+	case FLOAT4OID:
+			sum = (float8) DatumGetFloat4(value);
+		break;
+	case FLOAT8OID:
+			sum = (float8) DatumGetFloat8(value);
+		break;
+	case BOOLOID:
+	case TIMESTAMPOID:
+	case DATEOID:
+	default:
+		break;
+	}
+	return sum;
+}
+
 /**
  * spd_calc_aggvalues
  *
@@ -3669,30 +3702,9 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 			{
 				if (target_column != mapping_parent)
 					continue;
-				switch (fdw_private->agg_value_type[sum_mapping])
-				{
-					case NUMERICOID:
-					case INT4OID:
-						sum = (float8) DatumGetInt32(fdw_private->agg_values[rowid][sum_mapping]);
-						break;
-					case INT8OID:
-						sum = (float8) DatumGetInt64(fdw_private->agg_values[rowid][sum_mapping]);
-						break;
-					case INT2OID:
-						sum = (float8) DatumGetInt16(fdw_private->agg_values[rowid][sum_mapping]);
-						break;
-					case FLOAT4OID:
-						sum = (float8) DatumGetFloat4(fdw_private->agg_values[rowid][sum_mapping]);
-						break;
-					case FLOAT8OID:
-						sum = (float8) DatumGetFloat8(fdw_private->agg_values[rowid][sum_mapping]);
-						break;
-					case BOOLOID:
-					case TIMESTAMPOID:
-					case DATEOID:
-					default:
-						break;
-				}
+
+				sum = datum_to_float8(fdw_private->agg_value_type[sum_mapping], fdw_private->agg_values[rowid][sum_mapping]);
+				
 				cnt = (float8) DatumGetInt32(fdw_private->agg_values[rowid][count_mapping]);
 				if (cnt == 0)
 					elog(ERROR, "Record count is 0. Divide by zero error encountered.");
@@ -3705,30 +3717,8 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 					float8		right = 0.0;
 					float8		left = 0.0;
 
-					switch (fdw_private->agg_value_type[vardev_mapping])
-					{
-						case NUMERICOID:
-						case INT4OID:
-							sum2 = (float8) DatumGetInt32(fdw_private->agg_values[rowid][vardev_mapping]);
-							break;
-						case INT8OID:
-							sum2 = (float8) DatumGetInt64(fdw_private->agg_values[rowid][vardev_mapping]);
-							break;
-						case INT2OID:
-							sum2 = (float8) DatumGetInt16(fdw_private->agg_values[rowid][vardev_mapping]);
-							break;
-						case FLOAT4OID:
-							sum2 = (float8) DatumGetFloat4(fdw_private->agg_values[rowid][vardev_mapping]);
-							break;
-						case FLOAT8OID:
-							sum2 = (float8) DatumGetFloat8(fdw_private->agg_values[rowid][vardev_mapping]);
-							break;
-						case BOOLOID:
-						case TIMESTAMPOID:
-						case DATEOID:
-						default:
-							break;
-					}
+					sum2 = datum_to_float8(fdw_private->agg_value_type[vardev_mapping], fdw_private->agg_values[rowid][vardev_mapping]);
+					
 					if (cnt == 1)
 						elog(ERROR, "Record count is 1. Divide by zero error encountered.");
 					right = sum2;
