@@ -3501,7 +3501,8 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
  * @param[in,out] fdw_private
  */
 
-static TupleTableSlot *
+
+void
 spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot *slot)
 {
 	int			ret;
@@ -3526,8 +3527,9 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 	if (SPI_processed == 0)
 	{
 		SPI_finish();
-		return NULL;
+		return;
 	}
+
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	fdw_private->agg_values = (Datum **) palloc0(SPI_processed * sizeof(Datum *));
 	fdw_private->agg_nulls = (bool **) palloc0(SPI_processed * sizeof(bool *));
@@ -3610,7 +3612,6 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 			}
 		}
 	}
-	return slot;
 }
 
 
@@ -3828,8 +3829,7 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 		appendStringInfo(sql, "%s", fdw_private->groupby_string->data);
 	elog(DEBUG1, "execute spi exec %s", sql->data);
 
-	/* calc and set agg values */
-	slot = spd_spi_exec_select(fdw_private, sql, slot);
+	spd_spi_exec_select(fdw_private, sql, slot);
 	/* calc and set agg values */
 	slot = spd_calc_aggvalues(fdw_private, 0, slot);
 	SPI_finish();
