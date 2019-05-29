@@ -4112,7 +4112,6 @@ spd_IterateForeignScan(ForeignScanState *node)
 		}
 		if (tempSlot != NULL)
 		{
-			fssThrdInfo[count + 1].tuple = NULL;
 			slot = node->ss.ss_ScanTupleSlot;
 			ExecCopySlot(slot, tempSlot);
 		}
