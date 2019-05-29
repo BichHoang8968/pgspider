@@ -54,6 +54,7 @@ PG_MODULE_MAGIC;
 #include "utils/palloc.h"
 #include "utils/lsyscache.h"
 #include "utils/builtins.h"
+#include "utils/datum.h"
 #include "utils/rel.h"
 #include "utils/elog.h"
 #include "utils/selfuncs.h"
