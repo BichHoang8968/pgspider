@@ -3544,58 +3544,23 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 				if (colid != mapping)
 					continue;
 				fdw_private->agg_value_type[colid] = SPI_tuptable->tupdesc->attrs[colid]->atttypid;
-				switch (SPI_tuptable->tupdesc->attrs[colid]->atttypid)
-				{
-					case NUMERICOID:
-						fdw_private->agg_values[k][colid] = DirectFunctionCall1(numeric_int8, SPI_getbinval(SPI_tuptable->vals[k],
+
+				Datum		datum = SPI_getbinval(SPI_tuptable->vals[k],
 																											SPI_tuptable->tupdesc,
 																											colid + 1,
-																											&isnull));
-						break;
-					case INT4OID:
-						fdw_private->agg_values[k][colid] = Int32GetDatum(DatumGetInt32(SPI_getbinval(SPI_tuptable->vals[k],
-																									  SPI_tuptable->tupdesc,
-																									  colid + 1,
-																									  &isnull)));
-						break;
-					case INT8OID:
-						fdw_private->agg_values[k][colid] = Int64GetDatum(DatumGetInt64(SPI_getbinval(SPI_tuptable->vals[k],
-																									  SPI_tuptable->tupdesc,
-																									  colid + 1,
-																									  &isnull)));
-						break;
-					case INT2OID:
-						fdw_private->agg_values[k][colid] = Int16GetDatum(DatumGetInt16(SPI_getbinval(SPI_tuptable->vals[k],
-																									  SPI_tuptable->tupdesc,
-																									  colid + 1,
-																									  &isnull)));
-						break;
-					case FLOAT4OID:
-						fdw_private->agg_values[k][colid] = Float4GetDatum(DatumGetFloat4(SPI_getbinval(SPI_tuptable->vals[k],
-																										SPI_tuptable->tupdesc,
-																										colid + 1,
-																										&isnull)));
-						break;
-					case FLOAT8OID:
-						temp = DatumGetFloat8(SPI_getbinval(SPI_tuptable->vals[k], SPI_tuptable->tupdesc, colid + 1, &isnull));
-						fdw_private->agg_values[k][colid] = Float8GetDatum(temp);
-						break;
-					case BOOLOID:
-						fdw_private->agg_values[k][colid] = BoolGetDatum(DatumGetBool(SPI_getbinval(SPI_tuptable->vals[k],
-																									SPI_tuptable->tupdesc,
-																									colid + 1,
-																									&isnull)));
-					case TIMESTAMPOID:
-					case TIMESTAMPTZOID:
-					case TEXTOID:
-					case DATEOID:
-						fdw_private->agg_values[k][colid] = CStringGetDatum(DatumGetCString(SPI_getbinval(SPI_tuptable->vals[k],
-																										  SPI_tuptable->tupdesc,
-																										  colid + 1,
-																										  &isnull)));
-						break;
-					default:
-						break;
+												  &isnull);
+
+				/* We need to deep copy datum from SPI memory context */
+				if (fdw_private->agg_value_type[colid] == NUMERICOID)
+				{
+					/* Convert from numeric to int8 */
+					fdw_private->agg_values[k][colid] = DirectFunctionCall1(numeric_int8, datum);
+				}
+				else
+				{
+					fdw_private->agg_values[k][colid] = datumCopy(datum,
+																  SPI_tuptable->tupdesc->attrs[colid]->attbyval,
+																  SPI_tuptable->tupdesc->attrs[colid]->attlen);
 				}
 				if (isnull)
 					fdw_private->agg_nulls[k][colid] = TRUE;
