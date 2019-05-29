@@ -3587,27 +3587,27 @@ datum_to_float8(Oid type, Datum value)
 
 	switch (type)
 	{
-	case NUMERICOID:
-	case INT4OID:
+		case NUMERICOID:
+		case INT4OID:
 			sum = (float8) DatumGetInt32(value);
-		break;
-	case INT8OID:
+			break;
+		case INT8OID:
 			sum = (float8) DatumGetInt64(value);
-		break;
-	case INT2OID:
+			break;
+		case INT2OID:
 			sum = (float8) DatumGetInt16(value);
-		break;
-	case FLOAT4OID:
+			break;
+		case FLOAT4OID:
 			sum = (float8) DatumGetFloat4(value);
-		break;
-	case FLOAT8OID:
+			break;
+		case FLOAT8OID:
 			sum = (float8) DatumGetFloat8(value);
-		break;
-	case BOOLOID:
-	case TIMESTAMPOID:
-	case DATEOID:
-	default:
-		break;
+			break;
+		case BOOLOID:
+		case TIMESTAMPOID:
+		case DATEOID:
+		default:
+			break;
 	}
 	return sum;
 }
@@ -4148,8 +4148,8 @@ spd_IterateForeignScan(ForeignScanState *node)
 			}
 		}
 		slot = spd_AddNodeColumn(fssThrdInfo, node->ss.ss_ScanTupleSlot, count);
-	/* clear tuple buffer */
-	fssThrdInfo[count - 1].tuple = NULL;
+		/* clear tuple buffer */
+		fssThrdInfo[count - 1].tuple = NULL;
 	}
 	MemoryContextSwitchTo(oldcontext);
 	return slot;
