@@ -2499,7 +2499,6 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 	Cost		startup_cost = 0;
 	Cost		total_cost = 0;
 	Cost		rows = 0;
-	ListCell   *lc;
 	ChildInfo  *childinfo;
 
 	if (fdw_private == NULL)
@@ -2513,7 +2512,6 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
 		ForeignServer *fs;
-		ForeignDataWrapper *fdw;
 
 		/* skip to can not access child table at spd_GetForeignRelSize. */
 		if (childinfo[i].child_node_status != ServerStatusAlive)
@@ -2524,7 +2522,6 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 		fdwroutine = GetFdwRoutineByServerId(server_oid);
 		childinfo[i].server_oid = server_oid;
 		fs = GetForeignServer(server_oid);
-		fdw = GetForeignDataWrapper(fs->fdwid);
 
 
 		PG_TRY();
@@ -3504,7 +3501,7 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
  */
 
 
-void
+static void
 spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot *slot)
 {
 	int			ret;
@@ -3515,7 +3512,6 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 	bool		isnull = false;
 	MemoryContext oldcontext;
 	Mappingcells *mapcells;
-	float8		temp;
 	ListCell   *lc;
 
 	ret = SPI_connect();
@@ -3551,12 +3547,14 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 			mapcells = (Mappingcells *) lfirst(lc);
 			for (i = 0; i < MAXDIVNUM; i++)
 			{
+				Datum		datum;
+
 				mapping = mapcells->mapping_tlist.mapping[i];
 				if (colid != mapping)
 					continue;
 				fdw_private->agg_value_type[colid] = SPI_tuptable->tupdesc->attrs[colid]->atttypid;
 
-				Datum		datum = SPI_getbinval(SPI_tuptable->vals[k],
+				datum = SPI_getbinval(SPI_tuptable->vals[k],
 																											SPI_tuptable->tupdesc,
 																											colid + 1,
 												  &isnull);
