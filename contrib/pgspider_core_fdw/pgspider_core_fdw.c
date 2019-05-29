@@ -1971,11 +1971,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 		newList = lappend(newList, temp_expr);
 		fdw_private->split_tlist = lappend(fdw_private->split_tlist, 0);
 	}
-	foreach(lc, spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs)
-	{
-		spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs =
-			list_delete_first(spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs);
-	}
+	spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = NIL;
 	foreach(lc, newList)
 	{
 		Expr	   *expr = (Expr *) lfirst(lc);
@@ -2054,11 +2050,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 					elog(DEBUG1, "insert orign expr");
 					newList = lappend(newList, expr);
 				}
-			}
-			foreach(lc, dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs)
-			{
-				dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs =
-					list_delete_first(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs);
 			}
 			dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = NIL;
 			foreach(lc, newList)
