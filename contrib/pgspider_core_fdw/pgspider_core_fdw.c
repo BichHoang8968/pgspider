@@ -3514,6 +3514,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 	Mappingcells *mapcells;
 	ListCell   *lc;
 
+	oldcontext = CurrentMemoryContext;
 	ret = SPI_connect();
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
@@ -3528,7 +3529,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 		return;
 	}
 
-	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
+	MemoryContextSwitchTo(oldcontext);
 	fdw_private->agg_values = (Datum **) palloc0(SPI_processed * sizeof(Datum *));
 	fdw_private->agg_nulls = (bool **) palloc0(SPI_processed * sizeof(bool *));
 	fdw_private->agg_value_type = (int *) palloc0(SPI_processed * sizeof(int));
@@ -3538,7 +3539,6 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 		fdw_private->agg_nulls[i] = (bool *) palloc0(SPI_processed * sizeof(bool));
 	}
 	fdw_private->agg_tuples = SPI_processed;
-	MemoryContextSwitchTo(oldcontext);
 	for (k = 0; k < SPI_processed; k++)
 	{
 		colid = 0;
@@ -3555,9 +3555,9 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 				fdw_private->agg_value_type[colid] = SPI_tuptable->tupdesc->attrs[colid]->atttypid;
 
 				datum = SPI_getbinval(SPI_tuptable->vals[k],
-																											SPI_tuptable->tupdesc,
-																											colid + 1,
-												  &isnull);
+									  SPI_tuptable->tupdesc,
+									  colid + 1,
+									  &isnull);
 
 				/* We need to deep copy datum from SPI memory context */
 				if (fdw_private->agg_value_type[colid] == NUMERICOID)
@@ -3577,8 +3577,8 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 			}
 		}
 	}
+	SPI_finish();
 }
-
 
 static float8
 datum_to_float8(Oid type, Datum value)
@@ -3793,11 +3793,10 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 	if (fdw_private->groupby_string != 0)
 		appendStringInfo(sql, "%s", fdw_private->groupby_string->data);
 	elog(DEBUG1, "execute spi exec %s", sql->data);
-
+	/* Execute aggregate query to temp table */
 	spd_spi_exec_select(fdw_private, sql, slot);
 	/* calc and set agg values */
 	slot = spd_calc_aggvalues(fdw_private, 0, slot);
-	SPI_finish();
 	return slot;
 }
 
