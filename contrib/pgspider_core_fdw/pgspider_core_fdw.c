@@ -4152,9 +4152,9 @@ spd_IterateForeignScan(ForeignScanState *node)
 			}
 		}
 		slot = spd_AddNodeColumn(fssThrdInfo, node->ss.ss_ScanTupleSlot, count);
-	}
 	/* clear tuple buffer */
 	fssThrdInfo[count - 1].tuple = NULL;
+	}
 	MemoryContextSwitchTo(oldcontext);
 	return slot;
 }
