@@ -1453,6 +1453,39 @@ check_basestrictinfo(PlannerInfo *root, ForeignDataWrapper *fdw, RelOptInfo *ent
 	}
 }
 
+/* Remove __spd_url from target lists */
+static List *
+remove_spdurl_from_targets(List *exprs, PlannerInfo *root)
+{
+	ListCell   *lc;
+
+	/* Cannot use foreach because we modify exprs in the loop */
+	for ((lc) = list_head(exprs); (lc) != NULL;)
+	{
+		RangeTblEntry *rte;
+		char	   *colname;
+		Node	   *node = (Node *) lfirst(lc);
+
+		if (IsA(node, Var))
+		{
+			Var		   *var = (Var *) node;
+
+			rte = planner_rt_fetch(var->varno, root);
+			colname = get_relid_attribute_name(rte->relid, var->varattno);
+
+			if (strcmp(colname, SPDURL) == 0)
+			{
+				ListCell   *temp = lc;
+
+				lc = lnext(lc);
+				exprs = list_delete_ptr(exprs, lfirst(temp));
+				continue;
+			}
+		}
+		lc = lnext(lc);
+	}
+	return exprs;
+}
 
 /**
  * spd_CreateDummyRoot
@@ -1555,14 +1588,21 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Datum *oid, int oid_
 		entry_baserel->reltarget->exprs = copyObject(baserel->reltarget->exprs);
 		entry_baserel->baserestrictinfo = copyObject(baserel->baserestrictinfo);
 
+		fs = GetForeignServer(oid_server);
+		fdw = GetForeignDataWrapper(fs->fdwid);
+
+		/* Remove __spd_url from target lists if a child is not pgspider_fdw */
+		if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
+		{
+			entry_baserel->reltarget->exprs = remove_spdurl_from_targets(entry_baserel->reltarget->exprs, root);
+		}
+
 		/*
 		 * For File FDW. File FDW check column type and num with
 		 * basestrictinfo. Delete spd_url column info from child node
 		 * baserel's basestrictinfo. (PGSpider FDW use parent basestrictinfo)
 		 *
 		 */
-		fs = GetForeignServer(oid_server);
-		fdw = GetForeignDataWrapper(fs->fdwid);
 		check_basestrictinfo(root, fdw, entry_baserel);
 		childinfo[i].server_oid = oid_server;
 		spd_spi_exec_child_ip(fs->servername, ip);
@@ -2486,35 +2526,6 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 		fs = GetForeignServer(server_oid);
 		fdw = GetForeignDataWrapper(fs->fdwid);
 
-		if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
-		{
-			for ((lc) = list_head(childinfo[i].baserel->reltarget->exprs); (lc) != NULL;)
-			{
-				RangeTblEntry *rte;
-				char	   *colname;
-				Node	   *node = (Node *) lfirst(lc);
-
-				if (IsA(node, Var))
-				{
-					Var		   *var = (Var *) node;
-
-					rte = planner_rt_fetch(var->varno, root);
-					colname = get_relid_attribute_name(rte->relid, var->varattno);
-
-					if (strcmp(colname, SPDURL) == 0)
-					{
-						ListCell   *temp = lc;
-
-						lc = lnext(lc);
-						childinfo[i].baserel->reltarget->exprs =
-							list_delete_ptr(childinfo[i].baserel->reltarget->exprs, lfirst(temp));
-						continue;
-					}
-
-				}
-				lc = lnext(lc);
-			}
-		}
 
 		PG_TRY();
 		{
