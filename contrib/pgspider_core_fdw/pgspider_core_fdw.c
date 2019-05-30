@@ -54,6 +54,7 @@ PG_MODULE_MAGIC;
 #include "utils/palloc.h"
 #include "utils/lsyscache.h"
 #include "utils/builtins.h"
+#include "utils/datum.h"
 #include "utils/rel.h"
 #include "utils/elog.h"
 #include "utils/selfuncs.h"
@@ -1453,6 +1454,39 @@ check_basestrictinfo(PlannerInfo *root, ForeignDataWrapper *fdw, RelOptInfo *ent
 	}
 }
 
+/* Remove __spd_url from target lists */
+static List *
+remove_spdurl_from_targets(List *exprs, PlannerInfo *root)
+{
+	ListCell   *lc;
+
+	/* Cannot use foreach because we modify exprs in the loop */
+	for ((lc) = list_head(exprs); (lc) != NULL;)
+	{
+		RangeTblEntry *rte;
+		char	   *colname;
+		Node	   *node = (Node *) lfirst(lc);
+
+		if (IsA(node, Var))
+		{
+			Var		   *var = (Var *) node;
+
+			rte = planner_rt_fetch(var->varno, root);
+			colname = get_relid_attribute_name(rte->relid, var->varattno);
+
+			if (strcmp(colname, SPDURL) == 0)
+			{
+				ListCell   *temp = lc;
+
+				lc = lnext(lc);
+				exprs = list_delete_ptr(exprs, lfirst(temp));
+				continue;
+			}
+		}
+		lc = lnext(lc);
+	}
+	return exprs;
+}
 
 /**
  * spd_CreateDummyRoot
@@ -1555,14 +1589,21 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Datum *oid, int oid_
 		entry_baserel->reltarget->exprs = copyObject(baserel->reltarget->exprs);
 		entry_baserel->baserestrictinfo = copyObject(baserel->baserestrictinfo);
 
+		fs = GetForeignServer(oid_server);
+		fdw = GetForeignDataWrapper(fs->fdwid);
+
+		/* Remove __spd_url from target lists if a child is not pgspider_fdw */
+		if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
+		{
+			entry_baserel->reltarget->exprs = remove_spdurl_from_targets(entry_baserel->reltarget->exprs, root);
+		}
+
 		/*
 		 * For File FDW. File FDW check column type and num with
 		 * basestrictinfo. Delete spd_url column info from child node
 		 * baserel's basestrictinfo. (PGSpider FDW use parent basestrictinfo)
 		 *
 		 */
-		fs = GetForeignServer(oid_server);
-		fdw = GetForeignDataWrapper(fs->fdwid);
 		check_basestrictinfo(root, fdw, entry_baserel);
 		childinfo[i].server_oid = oid_server;
 		spd_spi_exec_child_ip(fs->servername, ip);
@@ -1971,11 +2012,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 		newList = lappend(newList, temp_expr);
 		fdw_private->split_tlist = lappend(fdw_private->split_tlist, 0);
 	}
-	foreach(lc, spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs)
-	{
-		spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs =
-			list_delete_first(spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs);
-	}
+	spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = NIL;
 	foreach(lc, newList)
 	{
 		Expr	   *expr = (Expr *) lfirst(lc);
@@ -2054,11 +2091,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 					elog(DEBUG1, "insert orign expr");
 					newList = lappend(newList, expr);
 				}
-			}
-			foreach(lc, dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs)
-			{
-				dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs =
-					list_delete_first(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs);
 			}
 			dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = NIL;
 			foreach(lc, newList)
@@ -2468,7 +2500,6 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 	Cost		startup_cost = 0;
 	Cost		total_cost = 0;
 	Cost		rows = 0;
-	ListCell   *lc;
 	ChildInfo  *childinfo;
 
 	if (fdw_private == NULL)
@@ -2482,7 +2513,6 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
 		ForeignServer *fs;
-		ForeignDataWrapper *fdw;
 
 		/* skip to can not access child table at spd_GetForeignRelSize. */
 		if (childinfo[i].child_node_status != ServerStatusAlive)
@@ -2493,37 +2523,7 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 		fdwroutine = GetFdwRoutineByServerId(server_oid);
 		childinfo[i].server_oid = server_oid;
 		fs = GetForeignServer(server_oid);
-		fdw = GetForeignDataWrapper(fs->fdwid);
 
-		if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
-		{
-			for ((lc) = list_head(childinfo[i].baserel->reltarget->exprs); (lc) != NULL;)
-			{
-				RangeTblEntry *rte;
-				char	   *colname;
-				Node	   *node = (Node *) lfirst(lc);
-
-				if (IsA(node, Var))
-				{
-					Var		   *var = (Var *) node;
-
-					rte = planner_rt_fetch(var->varno, root);
-					colname = get_relid_attribute_name(rte->relid, var->varattno);
-
-					if (strcmp(colname, SPDURL) == 0)
-					{
-						ListCell   *temp = lc;
-
-						lc = lnext(lc);
-						childinfo[i].baserel->reltarget->exprs =
-							list_delete_ptr(childinfo[i].baserel->reltarget->exprs, lfirst(temp));
-						continue;
-					}
-
-				}
-				lc = lnext(lc);
-			}
-		}
 
 		PG_TRY();
 		{
@@ -3502,7 +3502,7 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
  */
 
 
-void
+static void
 spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot *slot)
 {
 	int			ret;
@@ -3513,9 +3513,9 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 	bool		isnull = false;
 	MemoryContext oldcontext;
 	Mappingcells *mapcells;
-	float8		temp;
 	ListCell   *lc;
 
+	oldcontext = CurrentMemoryContext;
 	ret = SPI_connect();
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
@@ -3530,7 +3530,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 		return;
 	}
 
-	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
+	MemoryContextSwitchTo(oldcontext);
 	fdw_private->agg_values = (Datum **) palloc0(SPI_processed * sizeof(Datum *));
 	fdw_private->agg_nulls = (bool **) palloc0(SPI_processed * sizeof(bool *));
 	fdw_private->agg_value_type = (int *) palloc0(SPI_processed * sizeof(int));
@@ -3540,7 +3540,6 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 		fdw_private->agg_nulls[i] = (bool *) palloc0(SPI_processed * sizeof(bool));
 	}
 	fdw_private->agg_tuples = SPI_processed;
-	MemoryContextSwitchTo(oldcontext);
 	for (k = 0; k < SPI_processed; k++)
 	{
 		colid = 0;
@@ -3549,62 +3548,29 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 			mapcells = (Mappingcells *) lfirst(lc);
 			for (i = 0; i < MAXDIVNUM; i++)
 			{
+				Datum		datum;
+
 				mapping = mapcells->mapping_tlist.mapping[i];
 				if (colid != mapping)
 					continue;
 				fdw_private->agg_value_type[colid] = SPI_tuptable->tupdesc->attrs[colid]->atttypid;
-				switch (SPI_tuptable->tupdesc->attrs[colid]->atttypid)
+
+				datum = SPI_getbinval(SPI_tuptable->vals[k],
+									  SPI_tuptable->tupdesc,
+									  colid + 1,
+									  &isnull);
+
+				/* We need to deep copy datum from SPI memory context */
+				if (fdw_private->agg_value_type[colid] == NUMERICOID)
 				{
-					case NUMERICOID:
-						fdw_private->agg_values[k][colid] = DirectFunctionCall1(numeric_int8, SPI_getbinval(SPI_tuptable->vals[k],
-																											SPI_tuptable->tupdesc,
-																											colid + 1,
-																											&isnull));
-						break;
-					case INT4OID:
-						fdw_private->agg_values[k][colid] = Int32GetDatum(DatumGetInt32(SPI_getbinval(SPI_tuptable->vals[k],
-																									  SPI_tuptable->tupdesc,
-																									  colid + 1,
-																									  &isnull)));
-						break;
-					case INT8OID:
-						fdw_private->agg_values[k][colid] = Int64GetDatum(DatumGetInt64(SPI_getbinval(SPI_tuptable->vals[k],
-																									  SPI_tuptable->tupdesc,
-																									  colid + 1,
-																									  &isnull)));
-						break;
-					case INT2OID:
-						fdw_private->agg_values[k][colid] = Int16GetDatum(DatumGetInt16(SPI_getbinval(SPI_tuptable->vals[k],
-																									  SPI_tuptable->tupdesc,
-																									  colid + 1,
-																									  &isnull)));
-						break;
-					case FLOAT4OID:
-						fdw_private->agg_values[k][colid] = Float4GetDatum(DatumGetFloat4(SPI_getbinval(SPI_tuptable->vals[k],
-																										SPI_tuptable->tupdesc,
-																										colid + 1,
-																										&isnull)));
-						break;
-					case FLOAT8OID:
-						temp = DatumGetFloat8(SPI_getbinval(SPI_tuptable->vals[k], SPI_tuptable->tupdesc, colid + 1, &isnull));
-						fdw_private->agg_values[k][colid] = Float8GetDatum(temp);
-						break;
-					case BOOLOID:
-						fdw_private->agg_values[k][colid] = BoolGetDatum(DatumGetBool(SPI_getbinval(SPI_tuptable->vals[k],
-																									SPI_tuptable->tupdesc,
-																									colid + 1,
-																									&isnull)));
-					case TIMESTAMPOID:
-					case TIMESTAMPTZOID:
-					case TEXTOID:
-					case DATEOID:
-						fdw_private->agg_values[k][colid] = CStringGetDatum(DatumGetCString(SPI_getbinval(SPI_tuptable->vals[k],
-																										  SPI_tuptable->tupdesc,
-																										  colid + 1,
-																										  &isnull)));
-						break;
-					default:
-						break;
+					/* Convert from numeric to int8 */
+					fdw_private->agg_values[k][colid] = DirectFunctionCall1(numeric_int8, datum);
+				}
+				else
+				{
+					fdw_private->agg_values[k][colid] = datumCopy(datum,
+																  SPI_tuptable->tupdesc->attrs[colid]->attbyval,
+																  SPI_tuptable->tupdesc->attrs[colid]->attlen);
 				}
 				if (isnull)
 					fdw_private->agg_nulls[k][colid] = TRUE;
@@ -3612,8 +3578,8 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 			}
 		}
 	}
+	SPI_finish();
 }
-
 
 static float8
 datum_to_float8(Oid type, Datum value)
@@ -3622,27 +3588,27 @@ datum_to_float8(Oid type, Datum value)
 
 	switch (type)
 	{
-	case NUMERICOID:
-	case INT4OID:
+		case NUMERICOID:
+		case INT4OID:
 			sum = (float8) DatumGetInt32(value);
-		break;
-	case INT8OID:
+			break;
+		case INT8OID:
 			sum = (float8) DatumGetInt64(value);
-		break;
-	case INT2OID:
+			break;
+		case INT2OID:
 			sum = (float8) DatumGetInt16(value);
-		break;
-	case FLOAT4OID:
+			break;
+		case FLOAT4OID:
 			sum = (float8) DatumGetFloat4(value);
-		break;
-	case FLOAT8OID:
+			break;
+		case FLOAT8OID:
 			sum = (float8) DatumGetFloat8(value);
-		break;
-	case BOOLOID:
-	case TIMESTAMPOID:
-	case DATEOID:
-	default:
-		break;
+			break;
+		case BOOLOID:
+		case TIMESTAMPOID:
+		case DATEOID:
+		default:
+			break;
 	}
 	return sum;
 }
@@ -3828,11 +3794,10 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 	if (fdw_private->groupby_string != 0)
 		appendStringInfo(sql, "%s", fdw_private->groupby_string->data);
 	elog(DEBUG1, "execute spi exec %s", sql->data);
-
+	/* Execute aggregate query to temp table */
 	spd_spi_exec_select(fdw_private, sql, slot);
 	/* calc and set agg values */
 	slot = spd_calc_aggvalues(fdw_private, 0, slot);
-	SPI_finish();
 	return slot;
 }
 
@@ -4145,7 +4110,6 @@ spd_IterateForeignScan(ForeignScanState *node)
 		}
 		if (tempSlot != NULL)
 		{
-			fssThrdInfo[count + 1].tuple = NULL;
 			slot = node->ss.ss_ScanTupleSlot;
 			ExecCopySlot(slot, tempSlot);
 		}
@@ -4185,9 +4149,9 @@ spd_IterateForeignScan(ForeignScanState *node)
 			}
 		}
 		slot = spd_AddNodeColumn(fssThrdInfo, node->ss.ss_ScanTupleSlot, count);
+		/* clear tuple buffer */
+		fssThrdInfo[count - 1].tuple = NULL;
 	}
-	/* clear tuple buffer */
-	fssThrdInfo[count - 1].tuple = NULL;
 	MemoryContextSwitchTo(oldcontext);
 	return slot;
 }
