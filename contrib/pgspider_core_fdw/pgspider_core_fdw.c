@@ -4219,13 +4219,11 @@ spd_EndForeignScan(ForeignScanState *node)
 {
 	int			node_incr;
 	int			rtn;
-	ForeignScanThreadInfo *fssThrdInfo;
-	SpdFdwPrivate *fdw_private;
+	ForeignScanThreadInfo *fssThrdInfo = node->spd_fsstate;
+	SpdFdwPrivate *fdw_private = fssThrdInfo->private;
 
-	fssThrdInfo = node->spd_fsstate;
 	if (!fssThrdInfo)
 		return;
-	fdw_private = fssThrdInfo->private;
 	if (!fdw_private)
 		return;
 
@@ -4235,20 +4233,8 @@ spd_EndForeignScan(ForeignScanState *node)
 
 	if (fdw_private->is_drop_temp_table == FALSE)
 	{
-		StringInfo	drop_sql = makeStringInfo();
-
-		resetStringInfo(drop_sql);
-		appendStringInfo(drop_sql, "DROP TABLE IF EXISTS __spd__temptable;");
-		spd_spi_ddl_table(drop_sql->data);
+		spd_spi_ddl_table("DROP TABLE IF EXISTS __spd__temptable;");
 	}
-	if (node->spd_fsstate == NULL)
-	{
-		return;
-	}
-	fssThrdInfo = node->spd_fsstate;
-	fdw_private = (SpdFdwPrivate *) fssThrdInfo->private;
-	if (fdw_private == NULL)
-		return;
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 	{
 		fssThrdInfo[node_incr].EndFlag = true;
