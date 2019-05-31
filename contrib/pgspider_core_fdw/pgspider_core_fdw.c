@@ -4220,10 +4220,12 @@ spd_EndForeignScan(ForeignScanState *node)
 	int			node_incr;
 	int			rtn;
 	ForeignScanThreadInfo *fssThrdInfo = node->spd_fsstate;
-	SpdFdwPrivate *fdw_private = fssThrdInfo->private;
+	SpdFdwPrivate *fdw_private;
 
 	if (!fssThrdInfo)
 		return;
+	
+	fdw_private = fssThrdInfo->private;
 	if (!fdw_private)
 		return;
 
