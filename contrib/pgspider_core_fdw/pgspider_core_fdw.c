@@ -3028,7 +3028,14 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		}
 		childinfo[i].plan = (Plan *) temp_obj;
 	}
-	scan_relid = baserel->relid;
+
+	if (IS_SIMPLE_REL(baserel))
+	{
+		scan_relid = baserel->relid;
+	} else {
+		/* Aggregate push down */
+		scan_relid = 0;
+	}
 	MemoryContextSwitchTo(oldcontext);
 /*
  * TODO: Following is main thread's foreign plan.
@@ -3218,8 +3225,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		{
 			int			org_attrincr = 0;
 			int			child_natts = natts;
-
-			fsplan->scan.scanrelid = 0;
 
 			/*
 			 * Extract attribute details. The tupledesc made here is just
