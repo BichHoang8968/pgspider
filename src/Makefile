@@ -29,7 +29,8 @@ SUBDIRS = \
 	makefiles \
 	test/regress \
 	test/isolation \
-	test/perl
+	test/perl \
+  ../contrib/pgspider_keepalive
 
 # There are too many interdependencies between the subdirectories, so
 # don't attempt parallel make here.
