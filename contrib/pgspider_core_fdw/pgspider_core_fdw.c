@@ -2461,9 +2461,17 @@ spd_ExplainForeignScan(ForeignScanState *node,
 		PG_TRY();
 		{
 			fsplan->fdw_private = ((ForeignScan *) childinfo[i].plan)->fdw_private;
-			fdwroutine->ExplainForeignScan(node, es);
-			if (es->verbose)
-				ExplainPropertyText("  NodeName", fs->servername, es);
+			
+			/* TODO: Call ExplainForeignScan. Now it cause crash because node is not child plan */
+			/* fdwroutine->ExplainForeignScan(node, es); */
+			if (es->verbose) {
+				char *buf = "NodeName";
+				if (fdw_private->agg_query) {
+					buf = psprintf("Agg push-down: %s / NodeName", childinfo[i].aggpath ? "no":"yes");
+				}
+				ExplainPropertyText(buf, fs->servername, es);
+			}
+
 		}
 		PG_CATCH();
 		{
