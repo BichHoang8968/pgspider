@@ -2109,6 +2109,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			}
 			if (dummy_output_rel->pathlist != NULL)
 			{
+				/* Push down aggregate case */
 				childinfo[i].grouped_root_local = dummy_root;
 				childinfo[i].grouped_rel_local = dummy_output_rel;
 				fdw_private->pPseudoAggPushList = lappend_oid(fdw_private->pPseudoAggPushList, oid_server);
@@ -2436,9 +2437,8 @@ spd_ExplainForeignScan(ForeignScanState *node,
 	((Value *) list_nth(fsplan->fdw_private, FdwScanPrivateSelectSql))->val.ival;
 
 	if (fdw_private == NULL)
-	{
 		elog(ERROR, "fdw_private is NULL");
-	}
+
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 
 	/* Create Foreign paths using base_rel_list to each child node. */
@@ -2451,9 +2451,8 @@ spd_ExplainForeignScan(ForeignScanState *node,
 		fdwroutine = GetFdwRoutineByServerId(childinfo[i].server_oid);
 		/* skip to can not access child table at spd_GetForeignRelSize. */
 		if (childinfo[i].child_node_status != ServerStatusAlive)
-		{
 			continue;
-		}
+
 		if (fdwroutine->ExplainForeignScan == NULL)
 			continue;
 
@@ -3182,17 +3181,20 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		if (list_member_oid(fdw_private->pPseudoAggList,
 							server_oid))
 		{
+			/* Not push down aggregate to child fdw */
 			fssThrdInfo[node_incr].fsstate->ss.ps.plan =
 				copyObject(childinfo[i].plan);
 		}
 		else
 		{
+			/* Push down case */
 			fssThrdInfo[node_incr].fsstate->ss = node->ss;
 			fssThrdInfo[node_incr].fsstate->ss.ps.plan =
 				copyObject(node->ss.ps.plan);
 		}
 		fsplan = (ForeignScan *) fssThrdInfo[node_incr].fsstate->ss.ps.plan;
 		fsplan->fdw_private = ((ForeignScan *) childinfo[private_incr].plan)->fdw_private;
+		/* Create and initialize EState*/
 		fssThrdInfo[node_incr].fsstate->ss.ps.state = CreateExecutorState();
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_top_eflags = eflags;
 
@@ -3211,10 +3213,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt =
 			copyObject(node->ss.ps.state->es_plannedstmt);
-		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_tupleTable = NIL;
-		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_trig_tuple_slot = NULL;
-		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_trig_oldtup_slot = NULL;
-		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_trig_newtup_slot = NULL;
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_query_cxt = node->ss.ps.state->es_query_cxt;
 		ExecAssignExprContext((EState *) fssThrdInfo[node_incr].fsstate->ss.ps.state, &fssThrdInfo[node_incr].fsstate->ss.ps);
 		fssThrdInfo[node_incr].eflags = eflags;
