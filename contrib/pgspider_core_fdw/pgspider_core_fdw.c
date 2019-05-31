@@ -2118,14 +2118,17 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				/* Not Push Down case */
 				struct Path *tmp_path;
 				Query	   *query = root->parse;
+				AggClauseCosts dummy_aggcosts;
 
+				MemSet(&dummy_aggcosts, 0, sizeof(AggClauseCosts));
 				tmp_path = entry->pathlist->head->data.ptr_value;
+				/* Pass dummy_aggcosts because create_agg_path requires aggcosts in cases other than AGG_HASH */
 				childinfo[i].aggpath = (AggPath *) create_agg_path((PlannerInfo *) dummy_root,
 																   dummy_output_rel,
 																   tmp_path,
 																   dummy_root->upper_targets[UPPERREL_GROUP_AGG],
 																   query->groupClause ? AGG_SORTED : AGG_PLAIN, AGGSPLIT_SIMPLE,
-																   query->groupClause, NULL, NULL,
+																   query->groupClause, NULL,&dummy_aggcosts,
 																   1);
 				fdw_private->pPseudoAggList = lappend_oid(fdw_private->pPseudoAggList, oid_server);
 			}
