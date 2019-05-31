@@ -4249,13 +4249,12 @@ spd_EndForeignScan(ForeignScanState *node)
 			elog(WARNING, "error is occurred, pthread_join fail in EndForeignScan. ");
 		if (fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation)
 			RelationClose(fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation);
-		spd_ReleasePrivate(fdw_private);
 		pfree(fssThrdInfo[node_incr].fsstate);
 		MemoryContextDelete(fssThrdInfo[node_incr].threadMemoryContext);
 	}
 	if (fdw_private->thrdsCreated)
 		pfree(node->spd_fsstate);
-
+	spd_ReleasePrivate(fdw_private);
 }
 
 /**
