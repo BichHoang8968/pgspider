@@ -1,5 +1,0 @@
-# ddsf_fdw extension
-comment = 'ddsf foreign-data wrapper for remote PostgreSQL servers'
-default_version = '1.0'
-module_pathname = '$libdir/ddsf_fdw'
-relocatable = true
