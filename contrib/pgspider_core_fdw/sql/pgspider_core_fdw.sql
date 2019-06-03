@@ -61,10 +61,46 @@ SELECT * FROM test1 ORDER BY i,__spd_url;
 SELECT * FROM test1 UNDER '/mysql_svr/' ORDER BY i,__spd_url;
 SELECT * FROM test1 where i = 1 ORDER BY i,__spd_url;
 SELECT * FROM test1 under '/mysql_svr/' where i = 5 ORDER BY i,__spd_url;
+
+--sometimes crash:
+--SELECT sum(i) FROM test1;
+
+--crash:
+--SELECT avg(i) FROM test1;
+
 CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS(table_name 't1');
 SELECT sum(i),t FROM t1 group by t;
 SELECT sum(i),t,count(i) FROM t1 group by t;
+
+SELECT * FROM t1 WHERE i = 1;
+SELECT sum(i),t FROM t1 group by t;
+
+--wrong result and warning:
+--SELECT sum(i),t FROM t1 WHERE i = 1 group by t ;
+--WARNING:  problem in alloc set TopTransactionContext: detected write past chunk end in block 0x2557520, chunk 0x2558658
+--  sum | t 
+-- -----+---
+--    1 | 
+-- (1 row)
+
+
+-- wrong result:
+-- SELECT sum(i),t  FROM t1 group by t having sum(i) > 2;
+--  sum | t 
+-- -----+---
+--    1 | a
+--    5 | b
+--    4 | c
+-- (3 rows)
+
+-- wrong result and warning:
+-- SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t;
+-- WARNING:  dummy plan list failed
+--   t | __spd_url 
+--  ---+-----------
+--  (0 rows)
+
 CREATE FOREIGN TABLE t2 (i int, t text, a text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t2__post_svr__0 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 SELECT i,t,a FROM t2 ORDER BY i,__spd_url;
@@ -72,6 +108,18 @@ CREATE FOREIGN TABLE t2__post_svr__1 (i int, t text,a text) SERVER post_svr OPTI
 CREATE FOREIGN TABLE t2__post_svr__2 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 CREATE FOREIGN TABLE t2__post_svr__3 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
+SELECT a,i, __spd_url, t FROM t2 ORDER BY i,t,a,__spd_url;
+
+
+--SELECT __spd_url FROM t2 WHERE __spd_url='/post_svr/';
+--ERROR:  SELECT column name attribute ONLY
+
+SELECT __spd_url,i FROM t2 WHERE __spd_url='/post_svr/' ORDER BY i LIMIT 1;
+
+--Crash: 
+--SELECT i FROM t2 UNION ALL SELECT i FROM test1;
+
+-- Keep alive test
 CREATE SERVER post_svr2 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '192.168.11.11',port '15432');
 CREATE USER mapping for public server post_svr2 OPTIONS(user 'postgres',password 'postgres');
 CREATE FOREIGN TABLE t2__post_svr2__0 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
