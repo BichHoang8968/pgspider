@@ -11,9 +11,7 @@ mysql -uroot -pmysql  < mysql.dat
 # postgres should be already started with port=15432
 # pg_ctl -o "-p 15432" start -D data
 
-# CREATE USER mapping for public server post_svr OPTIONS(user 'postgres',password 'postgres');
-# psql -p 15432 postgres
-# create user postgres with encrypted password 'postgres';
-# grant all privileges on database postgres to postgres;
-# GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;
+psql -p 15432 postgres -c "create user postgres with encrypted password 'postgres';"
+psql -p 15432 postgres -c "grant all privileges on database postgres to postgres;"
+psql -p 15432 postgres -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
 psql postgres -p 15432  -U postgres < post.dat
