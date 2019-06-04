@@ -301,7 +301,6 @@ create_child_info(NODEINFO * nodeInfo, pthread_t **threads, int svrnum)
 		strcpy(key.ip, nodeInfo[i].tag.ip);
 		entry = hash_search(keepshNodeHash, &key, HASH_ENTER, &found);
 		entry->isAlive = TRUE;
-		Assert(!found);
 	}
 }
 
@@ -411,7 +410,6 @@ delete_oldhash(NODEINFO * nodeInfo, int svrnum)
 		strcpy(key.nodeName, nodeInfo[i].tag.nodeName);
 		strcpy(key.ip, nodeInfo[i].tag.ip);
 		hash_search(keepshNodeHash, &key, HASH_REMOVE, &found);
-		Assert(!found);
 	}
 }
 
@@ -432,12 +430,14 @@ freenodeInfos(int curSvrNum, char **curFdwName, NODEINFO * curNodeInfo)
 {
 	int			i;
 
-	for (i = 0; i < curSvrNum; i++)
-	{
-		pfree(curFdwName[i]);
+	if(curFdwName != NULL){
+		for (i = 0; i < curSvrNum; i++)
+		{
+			pfree(curFdwName[i]);
+		}
+		if (curFdwName != NULL)
+			pfree(curFdwName);
 	}
-	if (curFdwName != NULL)
-		pfree(curFdwName);
 	if (curNodeInfo != NULL)
 		pfree(curNodeInfo);
 }
@@ -554,12 +554,13 @@ worker_pgspider_keepalive(Datum main_arg)
 		check_server_info(nodeInfo, fdwName, numThreads, threads, svrnum);
 
 		/* initialize */
-		for (i = 0; i < svrnum; i++)
-		{
-			pfree(fdwName[i]);
-		}
-		if (fdwName != NULL)
+		if (fdwName != NULL){
+			for (i = 0; i < svrnum; i++)
+			{
+				pfree(fdwName[i]);
+			}
 			pfree(fdwName);
+		}
 		if (nodeInfo != NULL)
 			pfree(nodeInfo);
 		if (threads != NULL)
