@@ -1,4 +1,4 @@
-SELECT pg_sleep(15);
+--SELECT pg_sleep(15);
 CREATE EXTENSION pgspider_core_fdw;
 CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1',port '50849');
 CREATE USER mapping for public server pgspider_svr OPTIONS(user 'postgres',password 'postgres');
