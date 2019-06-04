@@ -253,7 +253,6 @@ typedef struct SpdFdwPrivate
 	ChildInfo  *childinfo;		/* ChildInfo List */
 	List	   *url_parse_list; /* lieteral of parse UNDER clause */
 	pthread_t	foreign_scan_threads[NODES_MAX];	/* child node thread  */
-	ResourceOwner thread_resource_owner;	/* child thread resource owner */
 	PgFdwRelationInfo rinfo;	/* pgspider reration info */
 	List	   *pPseudoAggPushList; /* Enable of aggregation push down server
 									 * list */
@@ -314,25 +313,9 @@ spd_AllocatePrivate()
 	 */
 	SpdFdwPrivate *p = (SpdFdwPrivate *)
 	MemoryContextAllocZero(TopTransactionContext, sizeof(*p));
-
-	p->thread_resource_owner = ResourceOwnerCreate(
-												   CurrentResourceOwner, "SPD fdw resource owner"
-		);
 	return p;
 }
 
-static void
-spd_ReleasePrivate(SpdFdwPrivate * p)
-{
-
-	ResourceOwnerRelease(p->thread_resource_owner,
-						 RESOURCE_RELEASE_BEFORE_LOCKS, false, false);
-	ResourceOwnerRelease(p->thread_resource_owner,
-						 RESOURCE_RELEASE_LOCKS, false, false);
-	ResourceOwnerRelease(p->thread_resource_owner,
-						 RESOURCE_RELEASE_AFTER_LOCKS, false, false);
-
-}
 
 bool
 spd_is_builtin(Oid objectId)
@@ -915,8 +898,7 @@ spd_ForeignScan_thread(void *arg)
 	SpdFdwPrivate *fdw_private = fssthrdInfo->private;
 	AggState   *aggState = NULL;
 
-	CurrentResourceOwner = fdw_private->thread_resource_owner;
-
+	CurrentResourceOwner = fssthrdInfo->thrd_ResourceOwner;
 #ifdef MEASURE_TIME
 	gettimeofday(&s, NULL);
 #endif
@@ -3177,8 +3159,8 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 		/*
 		 * check child table node is dead or alive. Execute(Create child
-		 * thread) alive table node only.
-		 * So, childinfo[i] and fssThrdInfo[i] do not corresponds
+		 * thread) alive table node only. So, childinfo[i] and fssThrdInfo[i]
+		 * do not corresponds
 		 */
 		if (childinfo[i].child_node_status != ServerStatusAlive)
 		{
@@ -3350,6 +3332,9 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 								  ALLOCSET_DEFAULT_MINSIZE,
 								  ALLOCSET_DEFAULT_INITSIZE,
 								  ALLOCSET_DEFAULT_MAXSIZE);
+		fssThrdInfo[node_incr].thrd_ResourceOwner =
+			ResourceOwnerCreate(CurrentResourceOwner, "thread resource owner");
+
 		fssThrdInfo[node_incr].private = fdw_private;
 		thread_create_err =
 			pthread_create(&fdw_private->foreign_scan_threads[node_incr],
@@ -4263,11 +4248,20 @@ spd_EndForeignScan(ForeignScanState *node)
 		if (fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation)
 			RelationClose(fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation);
 		pfree(fssThrdInfo[node_incr].fsstate);
+
 		MemoryContextDelete(fssThrdInfo[node_incr].threadMemoryContext);
+
+		ResourceOwnerRelease(fssThrdInfo[node_incr].thrd_ResourceOwner,
+							 RESOURCE_RELEASE_BEFORE_LOCKS, false, false);
+		ResourceOwnerRelease(fssThrdInfo[node_incr].thrd_ResourceOwner,
+							 RESOURCE_RELEASE_LOCKS, false, false);
+		ResourceOwnerRelease(fssThrdInfo[node_incr].thrd_ResourceOwner,
+							 RESOURCE_RELEASE_AFTER_LOCKS, false, false);
+		ResourceOwnerDelete(fssThrdInfo[node_incr].thrd_ResourceOwner);
 	}
 	if (fdw_private->thrdsCreated)
 		pfree(node->spd_fsstate);
-	spd_ReleasePrivate(fdw_private);
+
 }
 
 /**
