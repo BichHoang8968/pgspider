@@ -979,7 +979,7 @@ RESCAN:
 	if (list_member_oid(fdw_private->pPseudoAggList, fssthrdInfo->serverId))
 	{
 		aggState = SPI_execIntiAgg(
-								   fdw_private->childinfo[fssthrdInfo->nodeIndex].pAgg,
+								   fdw_private->childinfo[fssthrdInfo->childInfoIndex].pAgg,
 								   fssthrdInfo->fsstate->ss.ps.state, 0);
 	}
 	PG_TRY();
@@ -3331,7 +3331,8 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		fssThrdInfo[node_incr].iFlag = true;
 		fssThrdInfo[node_incr].EndFlag = false;
 		fssThrdInfo[node_incr].tuple = NULL;
-		fssThrdInfo[node_incr].nodeIndex = node_incr;
+		/* We set index of child info, not set node_incr */
+		fssThrdInfo[node_incr].childInfoIndex = i;
 
 		serverId = server_oid;
 

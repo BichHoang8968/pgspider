@@ -92,7 +92,7 @@ typedef struct ForeignScanThreadInfo
 	bool		queryRescan;
 	struct TupleTableSlot *tuple;	/* use it for storing tuple, which is
 									 * retrieved from the DS */
-	int			nodeIndex;		/* Index of the node */
+	int			childInfoIndex;		/* index of child info array */
 	MemoryContext threadMemoryContext;
 	pthread_mutex_t nodeMutex;	/* Use for ReScan call */
 	SpdForeignScanThreadState state;
