@@ -1064,7 +1064,6 @@ RESCAN:
 	}
 	PG_CATCH();
 	{
-		fssthrdInfo->state = SPD_FS_STATE_ERROR;
 		errflag = 1;
 		fssthrdInfo->state = SPD_FS_STATE_ERROR;
 		fssthrdInfo->iFlag = false;
