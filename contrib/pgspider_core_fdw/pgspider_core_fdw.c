@@ -3103,25 +3103,21 @@ static void
 spd_BeginForeignScan(ForeignScanState *node, int eflags)
 {
 	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
-	FdwRoutine *fdwroutine;
-	Oid			serverId;
 	ForeignScanThreadInfo *fssThrdInfo;
 	EState	   *estate = node->ss.ps.state;
-	char		contextStr[BUFFERSIZE];
 	int			thread_create_err;
-	Datum		server_oid;
+	Oid			server_oid;
 	SpdFdwPrivate *fdw_private;
 	MemoryContext oldcontext;
 	int			node_incr;		/* node_incr is variable of number of
 								 * fssThrdInfo. */
-	int			private_incr;	/* private_incr is variable of number of
-								 * fdw_private */
 	ChildInfo  *childinfo;
 	int			i,
 				j = 0;
 	Query	   *query;
 	RangeTblEntry *rte;
 	int			k;
+
 	/*
 	 * Register callback to query memory context to reset normalize id hash
 	 * table at the end of the query
@@ -3159,8 +3155,8 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 #endif
 
 	node_incr = 0;
-	private_incr = 0;
 	childinfo = fdw_private->childinfo;
+
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
 		Relation	rd;
@@ -3171,10 +3167,11 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		/*
 		 * check child table node is dead or alive. Execute(Create child
 		 * thread) alive table node only.
+		 * So, childinfo[i] and fssThrdInfo[i] do not corresponds
 		 */
 		if (childinfo[i].child_node_status != ServerStatusAlive)
 		{
-			private_incr++;
+			/* Not increment node_incr in this case */
 			continue;
 		}
 		server_oid = childinfo[i].server_oid;
@@ -3201,13 +3198,13 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 				copyObject(node->ss.ps.plan);
 		}
 		fsplan = (ForeignScan *) fssThrdInfo[node_incr].fsstate->ss.ps.plan;
-		fsplan->fdw_private = ((ForeignScan *) childinfo[private_incr].plan)->fdw_private;
-		/* Create and initialize EState*/
+		fsplan->fdw_private = ((ForeignScan *) childinfo[i].plan)->fdw_private;
+		/* Create and initialize EState */
 		fssThrdInfo[node_incr].fsstate->ss.ps.state = CreateExecutorState();
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_top_eflags = eflags;
 
 		/* This should be a new RTE list. coming from dummy rtable */
-		query = ((PlannerInfo *) childinfo[private_incr].root)->parse;
+		query = ((PlannerInfo *) childinfo[i].root)->parse;
 		rte = lfirst_node(RangeTblEntry, query->rtable->head);
 
 		if (query->rtable->length != estate->es_range_table->length)
@@ -3217,7 +3214,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 				query->rtable = lappend(query->rtable, rte);
 			}
 		}
-		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_range_table = ((PlannerInfo *) childinfo[private_incr].root)->parse->rtable;
+		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_range_table = ((PlannerInfo *) childinfo[i].root)->parse->rtable;
 
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt =
 			copyObject(node->ss.ps.state->es_plannedstmt);
@@ -3323,9 +3320,9 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 		/*
 		 * current relation ID gets from current server oid, it means
-		 * private_incr
+		 * childinfo[i].oid
 		 */
-		rd = RelationIdGetRelation(childinfo[private_incr].oid);
+		rd = RelationIdGetRelation(childinfo[i].oid);
 		fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation = rd;
 
 		fssThrdInfo[node_incr].iFlag = true;
@@ -3334,15 +3331,11 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		/* We set index of child info, not set node_incr */
 		fssThrdInfo[node_incr].childInfoIndex = i;
 
-		serverId = server_oid;
-
-		fssThrdInfo[node_incr].serverId = serverId;
-		fdwroutine = GetFdwRoutineByServerId(server_oid);
-		fssThrdInfo[node_incr].fdwroutine = fdwroutine;
-		memset(contextStr, 0, BUFFERSIZE);
+		fssThrdInfo[node_incr].serverId = server_oid;
+		fssThrdInfo[node_incr].fdwroutine = GetFdwRoutineByServerId(server_oid);
 		fssThrdInfo[node_incr].threadMemoryContext =
 			AllocSetContextCreate(TopMemoryContext,
-								  contextStr,
+								  "thread memory context",
 								  ALLOCSET_DEFAULT_MINSIZE,
 								  ALLOCSET_DEFAULT_INITSIZE,
 								  ALLOCSET_DEFAULT_MAXSIZE);
@@ -3357,7 +3350,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			ereport(ERROR, (errmsg("Cannot create thread! error=%d",
 								   thread_create_err)));
 		}
-		private_incr++;
 		node_incr++;
 	}
 	fdw_private->nThreads = node_incr;
