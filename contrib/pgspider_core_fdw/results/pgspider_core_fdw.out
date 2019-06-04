@@ -1,4 +1,9 @@
 SELECT pg_sleep(15);
+ pg_sleep 
+----------
+ 
+(1 row)
+
 CREATE EXTENSION pgspider_core_fdw;
 CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1',port '50849');
 CREATE USER mapping for public server pgspider_svr OPTIONS(user 'postgres',password 'postgres');
@@ -22,61 +27,316 @@ CREATE SERVER tiny_svr FOREIGN DATA WRAPPER tinybrace_fdw OPTIONS (host '127.0.0
 CREATE USER mapping for public server tiny_svr OPTIONS(username 'user',password 'testuser');
 CREATE FOREIGN TABLE test1__tiny_svr__0 (i int) SERVER tiny_svr OPTIONS(table_name 'test1');
 SELECT * FROM test1__tiny_svr__0 ORDER BY i;
+ i 
+---
+ 1
+(1 row)
+
 SELECT * FROM test1 ORDER BY i,__spd_url;
+ i | __spd_url  
+---+------------
+ 1 | /tiny_svr/
+(1 row)
+
 SELECT * FROM test1 UNDER '/tiny_svr/';
+ i | __spd_url  
+---+------------
+ 1 | /tiny_svr/
+(1 row)
+
 SELECT * FROM test1 under '/tiny_svr/' where i = 1;
+ i | __spd_url  
+---+------------
+ 1 | /tiny_svr/
+(1 row)
+
 CREATE SERVER post_svr FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1',port '15432');
 CREATE USER mapping for public server post_svr OPTIONS(user 'postgres',password 'postgres');
 CREATE FOREIGN TABLE test1__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test1');
 SELECT * FROM test1__post_svr__0 ORDER BY i;
+  i   
+------
+ 1111
+(1 row)
+
 SELECT * FROM test1 ORDER BY i,__spd_url;
+  i   | __spd_url  
+------+------------
+    1 | /tiny_svr/
+ 1111 | /post_svr/
+(2 rows)
+
 SELECT * FROM test1 UNDER '/post_svr/' ORDER BY i,__spd_url; 
+  i   | __spd_url  
+------+------------
+ 1111 | /post_svr/
+(1 row)
+
 SELECT * FROM test1 under '/post_svr/' where i = 1 ORDER BY i,__spd_url;
+ i | __spd_url 
+---+-----------
+(0 rows)
+
 CREATE SERVER sqlite_svr FOREIGN DATA WRAPPER sqlite_fdw OPTIONS (database '/tmp/pgtest.db');
 CREATE FOREIGN TABLE test1__sqlite_svr__0 (i int) SERVER sqlite_svr OPTIONS(table 'test1');
 SELECT * FROM test1 ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /sqlite_svr/
+     1 | /tiny_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
+(4 rows)
+
 SELECT * FROM test1 UNDER '/sqlite_svr/' ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /sqlite_svr/
+ 22222 | /sqlite_svr/
+(2 rows)
+
 SELECT * FROM test1 under '/sqlite_svr/' where i = 4 ORDER BY i,__spd_url;
+ i | __spd_url 
+---+-----------
+(0 rows)
+
 CREATE SERVER mysql_svr FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
 CREATE USER mapping for public server mysql_svr OPTIONS(username 'root',password 'mysql');
 CREATE FOREIGN TABLE test1__mysql_svr__0 (i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test1');
 SELECT * FROM test1 ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /sqlite_svr/
+     1 | /tiny_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
+(8 rows)
+
 SELECT * FROM test1 UNDER '/mysql_svr/' ORDER BY i,__spd_url;
+  i  |  __spd_url  
+-----+-------------
+ 777 | /mysql_svr/
+ 777 | /mysql_svr/
+ 777 | /mysql_svr/
+ 777 | /mysql_svr/
+(4 rows)
+
 SELECT * FROM test1 where i = 1 ORDER BY i,__spd_url;
+ i |  __spd_url   
+---+--------------
+ 1 | /sqlite_svr/
+ 1 | /tiny_svr/
+(2 rows)
+
 SELECT * FROM test1 under '/mysql_svr/' where i = 5 ORDER BY i,__spd_url;
+ i | __spd_url 
+---+-----------
+(0 rows)
+
 SELECT * FROM test1 ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /sqlite_svr/
+     1 | /tiny_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
+(8 rows)
+
 SELECT * FROM test1 UNDER '/test2/' ORDER BY i,__spd_url;
+ i | __spd_url 
+---+-----------
+(0 rows)
+
 SELECT * FROM test1 order by i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /sqlite_svr/
+     1 | /tiny_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
+(8 rows)
+
 SELECT * FROM test1 UNDER '/file_svr/' ORDER BY i,__spd_url;
+ i | __spd_url 
+---+-----------
+(0 rows)
+
 SELECT * FROM test1 under '/file_svr/' where i = 1 ORDER BY i,__spd_url;
+ i | __spd_url 
+---+-----------
+(0 rows)
+
 SELECT * FROM test1__tiny_svr__0 order by i;
+ i 
+---
+ 1
+(1 row)
+
 SELECT * FROM test1 ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /sqlite_svr/
+     1 | /tiny_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
+(8 rows)
+
 SELECT * FROM test1 UNDER '/tiny_svr/';
+ i | __spd_url  
+---+------------
+ 1 | /tiny_svr/
+(1 row)
+
 SELECT * FROM test1 under '/tiny_svr/' where i = 1;
+ i | __spd_url  
+---+------------
+ 1 | /tiny_svr/
+(1 row)
+
 SELECT * FROM test1__post_svr__0 order by i;
+  i   
+------
+ 1111
+(1 row)
+
 SELECT * FROM test1 ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /sqlite_svr/
+     1 | /tiny_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
+(8 rows)
+
 SELECT * FROM test1 UNDER '/post_svr/' ORDER BY i,__spd_url;
+  i   | __spd_url  
+------+------------
+ 1111 | /post_svr/
+(1 row)
+
 SELECT * FROM test1 under '/post_svr/' where i = 1 ORDER BY i,__spd_url;
+ i | __spd_url 
+---+-----------
+(0 rows)
+
 SELECT * FROM test1 ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /sqlite_svr/
+     1 | /tiny_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
+(8 rows)
+
 SELECT * FROM test1 UNDER '/sqlite_svr/' ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /sqlite_svr/
+ 22222 | /sqlite_svr/
+(2 rows)
+
 SELECT * FROM test1 under '/sqlite_svr/' where i = 4 ORDER BY i,__spd_url;
+ i | __spd_url 
+---+-----------
+(0 rows)
+
 SELECT * FROM test1 ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /sqlite_svr/
+     1 | /tiny_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
+(8 rows)
+
 SELECT * FROM test1 UNDER '/mysql_svr/' ORDER BY i,__spd_url;
+  i  |  __spd_url  
+-----+-------------
+ 777 | /mysql_svr/
+ 777 | /mysql_svr/
+ 777 | /mysql_svr/
+ 777 | /mysql_svr/
+(4 rows)
+
 SELECT * FROM test1 where i = 1 ORDER BY i,__spd_url;
+ i |  __spd_url   
+---+--------------
+ 1 | /sqlite_svr/
+ 1 | /tiny_svr/
+(2 rows)
+
 SELECT * FROM test1 under '/mysql_svr/' where i = 5 ORDER BY i,__spd_url;
+ i | __spd_url 
+---+-----------
+(0 rows)
 
 SELECT sum(i) FROM test1;
+  sum  
+-------
+ 26443
+(1 row)
 
 --crash:
 --SELECT avg(i) FROM test1;
-
 CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS(table_name 't1');
 SELECT sum(i),t FROM t1 group by t;
+ sum | t 
+-----+---
+   1 | a
+   5 | b
+   4 | c
+(3 rows)
+
 SELECT sum(i),t,count(i) FROM t1 group by t;
+ sum | t | count 
+-----+---+-------
+   1 | a |     1
+   5 | b |     2
+   4 | c |     1
+(3 rows)
 
 SELECT * FROM t1 WHERE i = 1;
+ i | t | __spd_url  
+---+---+------------
+ 1 | a | /post_svr/
+(1 row)
+
 SELECT sum(i),t FROM t1 group by t;
+ sum | t 
+-----+---
+   1 | a
+   5 | b
+   4 | c
+(3 rows)
 
 --wrong result and warning:
 --SELECT sum(i),t FROM t1 WHERE i = 1 group by t ;
@@ -85,8 +345,6 @@ SELECT sum(i),t FROM t1 group by t;
 -- -----+---
 --    1 | 
 -- (1 row)
-
-
 -- wrong result:
 -- SELECT sum(i),t  FROM t1 group by t having sum(i) > 2;
 --  sum | t 
@@ -95,32 +353,78 @@ SELECT sum(i),t FROM t1 group by t;
 --    5 | b
 --    4 | c
 -- (3 rows)
-
 -- wrong result and warning:
 -- SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t;
 -- WARNING:  dummy plan list failed
 --   t | __spd_url 
 --  ---+-----------
 --  (0 rows)
-
 CREATE FOREIGN TABLE t2 (i int, t text, a text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t2__post_svr__0 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 SELECT i,t,a FROM t2 ORDER BY i,__spd_url;
+ i | t | a 
+---+---+---
+ 1 | a | 
+ 2 |   | a
+   | a | a
+   |   | 
+(4 rows)
+
 CREATE FOREIGN TABLE t2__post_svr__1 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 CREATE FOREIGN TABLE t2__post_svr__2 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 CREATE FOREIGN TABLE t2__post_svr__3 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
-SELECT a,i, __spd_url, t FROM t2 ORDER BY i,t,a,__spd_url;
+ i | t | a 
+---+---+---
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+   | a | a
+   | a | a
+   | a | a
+   | a | a
+   |   | 
+   |   | 
+   |   | 
+   |   | 
+(16 rows)
 
+SELECT a,i, __spd_url, t FROM t2 ORDER BY i,t,a,__spd_url;
+ a | i | __spd_url  | t 
+---+---+------------+---
+   | 1 | /post_svr/ | a
+   | 1 | /post_svr/ | a
+   | 1 | /post_svr/ | a
+   | 1 | /post_svr/ | a
+ a | 2 | /post_svr/ | 
+ a | 2 | /post_svr/ | 
+ a | 2 | /post_svr/ | 
+ a | 2 | /post_svr/ | 
+ a |   | /post_svr/ | a
+ a |   | /post_svr/ | a
+ a |   | /post_svr/ | a
+ a |   | /post_svr/ | a
+   |   | /post_svr/ | 
+   |   | /post_svr/ | 
+   |   | /post_svr/ | 
+   |   | /post_svr/ | 
+(16 rows)
 
 --SELECT __spd_url FROM t2 WHERE __spd_url='/post_svr/';
 --ERROR:  SELECT column name attribute ONLY
-
 SELECT __spd_url,i FROM t2 WHERE __spd_url='/post_svr/' ORDER BY i LIMIT 1;
+ __spd_url  | i 
+------------+---
+ /post_svr/ | 1
+(1 row)
 
 --Crash: 
 --SELECT i FROM t2 UNION ALL SELECT i FROM test1;
-
 -- Keep alive test
 CREATE SERVER post_svr2 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '192.168.11.11',port '15432');
 CREATE USER mapping for public server post_svr2 OPTIONS(user 'postgres',password 'postgres');
@@ -128,20 +432,149 @@ CREATE FOREIGN TABLE t2__post_svr2__0 (i int, t text,a text) SERVER post_svr OPT
 INSERT INTO pg_spd_node_info VALUES(0,'post_svr','postgres_fdw','127.0.0.1');
 INSERT INTO pg_spd_node_info VALUES(0,'post_svr2','postgres_fdw','127.0.0.1');
 SELECT pg_sleep(2);
+ pg_sleep 
+----------
+ 
+(1 row)
+
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+ i | t | a 
+---+---+---
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+   | a | a
+   | a | a
+   | a | a
+   | a | a
+   | a | a
+   |   | 
+   |   | 
+   |   | 
+   |   | 
+   |   | 
+(20 rows)
+
 SET pgspider_core_fdw.throw_error_ifdead to true;
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+ i | t | a 
+---+---+---
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+   | a | a
+   | a | a
+   | a | a
+   | a | a
+   | a | a
+   |   | 
+   |   | 
+   |   | 
+   |   | 
+   |   | 
+(20 rows)
+
 SET pgspider_core_fdw.throw_error_ifdead to false;
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+ i | t | a 
+---+---+---
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+   | a | a
+   | a | a
+   | a | a
+   | a | a
+   | a | a
+   |   | 
+   |   | 
+   |   | 
+   |   | 
+   |   | 
+(20 rows)
+
 SET pgspider_core_fdw.print_error_nodes to true;
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+ i | t | a 
+---+---+---
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+   | a | a
+   | a | a
+   | a | a
+   | a | a
+   | a | a
+   |   | 
+   |   | 
+   |   | 
+   |   | 
+   |   | 
+(20 rows)
+
 SET pgspider_core_fdw.print_error_nodes to false;
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+ i | t | a 
+---+---+---
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+   | a | a
+   | a | a
+   | a | a
+   | a | a
+   | a | a
+   |   | 
+   |   | 
+   |   | 
+   |   | 
+   |   | 
+(20 rows)
+
 CREATE SERVER post_svr3 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '192.168.11.12',port '15432');
 CREATE USER mapping for public server post_svr3 OPTIONS(user 'postgres',password 'postgres');
 CREATE FOREIGN TABLE t2__post_svr3__0 (i int, t text,a text) SERVER post_svr3 OPTIONS(table_name 't2');
 INSERT INTO pg_spd_node_info VALUES(0,'post_svr3','postgres_fdw','192.168.11.12');
 SELECT pg_sleep(2);
+ pg_sleep 
+----------
+ 
+(1 row)
 
 /*
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
@@ -164,4 +597,3 @@ DROP FOREIGN TABLE t1;
 DROP FOREIGN TABLE t2;
 DROP SERVER pgspider_svr;
 DROP EXTENSION pgspider_core_fdw CASCADE;
-
