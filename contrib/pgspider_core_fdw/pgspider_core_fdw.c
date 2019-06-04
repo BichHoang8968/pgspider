@@ -3347,8 +3347,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 								  ALLOCSET_DEFAULT_INITSIZE,
 								  ALLOCSET_DEFAULT_MAXSIZE);
 		fssThrdInfo[node_incr].private = fdw_private;
-		pthread_mutex_init((pthread_mutex_t *) &fdw_private->foreign_scan_threads[node_incr], NULL);
-
 		thread_create_err =
 			pthread_create(&fdw_private->foreign_scan_threads[node_incr],
 						   NULL,
