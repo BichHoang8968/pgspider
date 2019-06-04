@@ -2123,13 +2123,17 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 
 				MemSet(&dummy_aggcosts, 0, sizeof(AggClauseCosts));
 				tmp_path = entry->pathlist->head->data.ptr_value;
-				/* Pass dummy_aggcosts because create_agg_path requires aggcosts in cases other than AGG_HASH */
+
+				/*
+				 * Pass dummy_aggcosts because create_agg_path requires
+				 * aggcosts in cases other than AGG_HASH
+				 */
 				childinfo[i].aggpath = (AggPath *) create_agg_path((PlannerInfo *) dummy_root,
 																   dummy_output_rel,
 																   tmp_path,
 																   dummy_root->upper_targets[UPPERREL_GROUP_AGG],
 																   query->groupClause ? AGG_SORTED : AGG_PLAIN, AGGSPLIT_SIMPLE,
-																   query->groupClause, NULL,&dummy_aggcosts,
+																   query->groupClause, NULL, &dummy_aggcosts,
 																   1);
 				fdw_private->pPseudoAggList = lappend_oid(fdw_private->pPseudoAggList, oid_server);
 			}
@@ -2460,13 +2464,19 @@ spd_ExplainForeignScan(ForeignScanState *node,
 		PG_TRY();
 		{
 			fsplan->fdw_private = ((ForeignScan *) childinfo[i].plan)->fdw_private;
-			
-			/* TODO: Call ExplainForeignScan. Now it cause crash because node is not child plan */
+
+			/*
+			 * TODO: Call ExplainForeignScan. Now it cause crash because node
+			 * is not child plan
+			 */
 			/* fdwroutine->ExplainForeignScan(node, es); */
-			if (es->verbose) {
-				char *buf = "NodeName";
-				if (fdw_private->agg_query) {
-					buf = psprintf("Agg push-down: %s / NodeName", childinfo[i].aggpath ? "no":"yes");
+			if (es->verbose)
+			{
+				char	   *buf = "NodeName";
+
+				if (fdw_private->agg_query)
+				{
+					buf = psprintf("Agg push-down: %s / NodeName", childinfo[i].aggpath ? "no" : "yes");
 				}
 				ExplainPropertyText(buf, fs->servername, es);
 			}
@@ -2543,7 +2553,7 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 										(RelOptInfo *) childinfo[i].baserel,
 										DatumGetObjectId(childinfo[i].oid));
 			/* Agg child node costs */
-		    if (childinfo[i].baserel->pathlist != NULL)
+			if (childinfo[i].baserel->pathlist != NULL)
 			{
 				childpath = (Path *) lfirst_node(ForeignPath, childinfo[i].baserel->pathlist->head);
 				startup_cost += childpath->startup_cost;
@@ -3039,7 +3049,9 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	if (IS_SIMPLE_REL(baserel))
 	{
 		scan_relid = baserel->relid;
-	} else {
+	}
+	else
+	{
 		/* Aggregate push down */
 		scan_relid = 0;
 	}
@@ -3674,7 +3686,7 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 					continue;
 
 				sum = datum_to_float8(fdw_private->agg_value_type[sum_mapping], fdw_private->agg_values[rowid][sum_mapping]);
-				
+
 				cnt = (float8) DatumGetInt32(fdw_private->agg_values[rowid][count_mapping]);
 				if (cnt == 0)
 					elog(ERROR, "Record count is 0. Divide by zero error encountered.");
@@ -3688,7 +3700,7 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 					float8		left = 0.0;
 
 					sum2 = datum_to_float8(fdw_private->agg_value_type[vardev_mapping], fdw_private->agg_values[rowid][vardev_mapping]);
-					
+
 					if (cnt == 1)
 						elog(ERROR, "Record count is 1. Divide by zero error encountered.");
 					right = sum2;
@@ -4124,9 +4136,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 			 * If all tupple getting is finished, then return NULL and drop
 			 * table
 			 */
-			resetStringInfo(create_sql);
-			appendStringInfo(create_sql, "DROP TABLE __spd__temptable");
-			spd_spi_ddl_table(create_sql->data);
+			spd_spi_ddl_table("DROP TABLE __spd__temptable");
 			fdw_private->isFirst = TRUE;
 			fdw_private->is_drop_temp_table = TRUE;
 		}
@@ -4226,7 +4236,7 @@ spd_EndForeignScan(ForeignScanState *node)
 
 	if (!fssThrdInfo)
 		return;
-	
+
 	fdw_private = fssThrdInfo->private;
 	if (!fdw_private)
 		return;
