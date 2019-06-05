@@ -313,6 +313,7 @@ spd_AllocatePrivate()
 	 */
 	SpdFdwPrivate *p = (SpdFdwPrivate *)
 	MemoryContextAllocZero(TopTransactionContext, sizeof(*p));
+
 	return p;
 }
 
@@ -626,7 +627,7 @@ spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **map
  * @param[out] oid
  */
 static void
-spd_spi_exec_datasouce_num(Oid foreigntableid, int *nums, Datum **oid)
+spd_spi_exec_datasouce_num(Oid foreigntableid, int *nums, Oid **oid)
 {
 	char		query[QUERY_LENGTH];
 	int			ret;
@@ -656,7 +657,7 @@ spd_spi_exec_datasouce_num(Oid foreigntableid, int *nums, Datum **oid)
 	}
 	spi_temp = SPI_processed;
 	spicontext = MemoryContextSwitchTo(oldcontext);
-	*oid = (Datum *) palloc0(sizeof(Datum) * spi_temp);
+	*oid = (Oid *) palloc0(sizeof(Oid) * spi_temp);
 	MemoryContextSwitchTo(spicontext);
 	if (SPI_processed == 0)
 	{
@@ -667,7 +668,7 @@ spd_spi_exec_datasouce_num(Oid foreigntableid, int *nums, Datum **oid)
 	{
 		bool		isnull;
 
-		oid[0][i] = SPI_getbinval(SPI_tuptable->vals[i], SPI_tuptable->tupdesc, 1, &isnull);
+		oid[0][i] = DatumGetObjectId(SPI_getbinval(SPI_tuptable->vals[i], SPI_tuptable->tupdesc, 1, &isnull));
 	}
 	*nums = SPI_processed;
 	SPI_finish();
@@ -682,12 +683,12 @@ spd_spi_exec_datasouce_num(Oid foreigntableid, int *nums, Datum **oid)
  */
 
 static Datum
-spd_spi_exec_datasource_oid(Datum foreigntableid)
+spd_spi_exec_datasource_oid(Oid foreigntableid)
 {
 	char		query[QUERY_LENGTH];
 	int			ret;
 	bool		isnull;
-	Datum		oid = 0;
+	Oid			oid = 0;
 
 	/*
 	 * child table name is "ParentTableName_NodeName_sequenceNum". This SQL
@@ -708,7 +709,7 @@ spd_spi_exec_datasource_oid(Datum foreigntableid)
 		SPI_finish();
 		elog(ERROR, "error SPIexecute can not find datasource");
 	}
-	oid = SPI_getbinval(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1, &isnull);
+	oid = DatumGetObjectId(SPI_getbinval(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1, &isnull));
 	SPI_finish();
 	return oid;
 }
@@ -723,7 +724,7 @@ spd_spi_exec_datasource_oid(Datum foreigntableid)
  */
 
 static void
-spd_spi_exec_datasource_name(Datum foreigntableid, char *srvname)
+spd_spi_exec_datasource_name(Oid foreigntableid, char *srvname)
 {
 	char		query[QUERY_LENGTH];
 	char	   *temp;
@@ -763,16 +764,14 @@ spd_spi_exec_datasource_name(Datum foreigntableid, char *srvname)
  */
 
 static void
-spd_spi_exec_child_relname(char *parentTableName, SpdFdwPrivate * fdw_private, Datum **oid)
+spd_spi_exec_child_relname(char *parentTableName, SpdFdwPrivate * fdw_private, Oid **oid)
 {
 	char		query[QUERY_LENGTH];
 	char	   *entry = NULL;
 	int			i;
 	int			ret;
-	MemoryContext oldcontext;
-	MemoryContext spicontext;
+	MemoryContext oldcontext = CurrentMemoryContext;
 
-	oldcontext = CurrentMemoryContext;
 	if (fdw_private->url_parse_list != NIL)
 	{
 		entry = (char *) list_nth(fdw_private->url_parse_list, 0);
@@ -804,17 +803,15 @@ spd_spi_exec_child_relname(char *parentTableName, SpdFdwPrivate * fdw_private, D
 		SPI_finish();
 		elog(ERROR, "error SPIexecute failure child table not found");
 	}
-	spicontext = MemoryContextSwitchTo(oldcontext);
-	*oid = (Datum *) palloc0(sizeof(Datum) * SPI_processed);
-	MemoryContextSwitchTo(spicontext);
+	*oid = MemoryContextAlloc(oldcontext, sizeof(Oid) * SPI_processed);
 	for (i = 0; i < SPI_processed; i++)
 	{
 		bool		isnull;
 
-		(*oid)[i] = SPI_getbinval(SPI_tuptable->vals[i],
-								  SPI_tuptable->tupdesc,
-								  1,
-								  &isnull);
+		(*oid)[i] = DatumGetObjectId(SPI_getbinval(SPI_tuptable->vals[i],
+												   SPI_tuptable->tupdesc,
+												   1,
+												   &isnull));
 	}
 	fdw_private->node_num = SPI_processed;
 	SPI_finish();
@@ -1484,12 +1481,12 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root)
  * @param[inout] fdw_private - child table's base plan is saved
  */
 static void
-spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Datum *oid, int oid_nums, RangeTblEntry *r_entry,
+spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Oid *oid, int oid_nums, RangeTblEntry *r_entry,
 					char *new_underurl, SpdFdwPrivate * fdw_private)
 {
 	RelOptInfo *entry_baserel;
 	FdwRoutine *fdwroutine;
-	Datum		oid_server;
+	Oid			oid_server;
 	int			i = 0;
 	ForeignServer *fs;
 	ForeignDataWrapper *fdw;
@@ -1594,7 +1591,7 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Datum *oid, int oid_
 			/* Do child node's GetForeignRelSize */
 			PG_TRY();
 			{
-				fdwroutine->GetForeignRelSize(dummy_root, entry_baserel, DatumGetObjectId(rel_oid));
+				fdwroutine->GetForeignRelSize(dummy_root, entry_baserel, rel_oid);
 				childinfo[i].root = dummy_root;
 			}
 			PG_CATCH();
@@ -1716,7 +1713,7 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 {
 	MemoryContext oldcontext;
 	SpdFdwPrivate *fdw_private;
-	Datum	   *oid = NULL;
+	Oid		   *oid = NULL;
 	int			nums;
 	char	   *new_underurl = NULL;
 	RangeTblEntry *r_entry;
@@ -2014,7 +2011,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	/* Call the below FDW's GetForeignUpperPaths */
 	if (in_fdw_private->childinfo != NULL)
 	{
-		Datum		oid_server;
+		Oid			oid_server;
 		FdwRoutine *fdwroutine;
 		int			i = 0;
 		ChildInfo  *childinfo = in_fdw_private->childinfo;
@@ -2495,7 +2492,7 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 {
 	MemoryContext oldcontext;
 	FdwRoutine *fdwroutine;
-	Datum		server_oid;
+	Oid			server_oid;
 	int			i;
 	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *) baserel->fdw_private;
 	Cost		startup_cost = 0;
@@ -2532,7 +2529,7 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 
 			fdwroutine->GetForeignPaths((PlannerInfo *) childinfo[i].root,
 										(RelOptInfo *) childinfo[i].baserel,
-										DatumGetObjectId(childinfo[i].oid));
+										childinfo[i].oid);
 			/* Agg child node costs */
 			if (childinfo[i].baserel->pathlist != NULL)
 			{
@@ -2824,8 +2821,8 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	FdwRoutine *fdwroutine;
 	int			nums;
 	int			i;
-	Datum	   *oid = NULL;
-	Datum		server_oid;
+	Oid		   *oid = NULL;
+	Oid			server_oid;
 	MemoryContext oldcontext;
 	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *) baserel->fdw_private;
 	Index		scan_relid;
@@ -2971,7 +2968,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				temp_obj = fdwroutine->GetForeignPlan(
 													  childinfo[i].grouped_root_local,
 													  childinfo[i].grouped_rel_local,
-													  DatumGetObjectId(oid[i]),
+													  oid[i],
 													  (ForeignPath *) tmp_path,
 													  temptlist,
 													  push_scan_clauses,
@@ -2984,7 +2981,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				temp_obj = fdwroutine->GetForeignPlan(
 													  (PlannerInfo *) childinfo[i].root,
 													  (RelOptInfo *) childinfo[i].baserel,
-													  DatumGetObjectId(oid[i]),
+													  oid[i],
 													  (ForeignPath *) tmp_path,
 													  temptlist,
 													  push_scan_clauses,
@@ -3556,10 +3553,10 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 					continue;
 				fdw_private->agg_value_type[colid] = SPI_tuptable->tupdesc->attrs[colid]->atttypid;
 
-				datum = SPI_getbinval(SPI_tuptable->vals[k],
-									  SPI_tuptable->tupdesc,
-									  colid + 1,
-									  &isnull);
+				datum = DatumGetObjectId(SPI_getbinval(SPI_tuptable->vals[k],
+													   SPI_tuptable->tupdesc,
+													   colid + 1,
+													   &isnull));
 
 				/* We need to deep copy datum from SPI memory context */
 				if (fdw_private->agg_value_type[colid] == NUMERICOID)
@@ -4336,9 +4333,8 @@ spd_AddForeignUpdateTargets(Query *parsetree,
 	MemoryContext oldcontext;
 	FdwRoutine *fdwroutine;
 	SpdFdwPrivate *fdw_private;
-	Datum	   *oid = NULL;
-	Datum		oid_server = 0;
-
+	Oid		   *oid = NULL;
+	Oid			oid_server = 0;
 
 	fdw_private = spd_AllocatePrivate();
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
@@ -4383,8 +4379,8 @@ spd_PlanForeignModify(PlannerInfo *root,
 	FdwRoutine *fdwroutine;
 	SpdFdwPrivate *fdw_private;
 	Relation	rel;
-	Datum	   *oid = NULL;
-	Datum		oid_server = 0;
+	Oid		   *oid = NULL;
+	Oid			oid_server = 0;
 	List	   *child_list = NULL;
 
 
