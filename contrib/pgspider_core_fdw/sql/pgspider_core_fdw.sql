@@ -1,3 +1,4 @@
+DELETE FROM pg_spd_node_info;
 --SELECT pg_sleep(15);
 CREATE EXTENSION pgspider_core_fdw;
 CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1',port '50849');
