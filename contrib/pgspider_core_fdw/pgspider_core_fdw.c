@@ -4246,8 +4246,7 @@ spd_EndForeignScan(ForeignScanState *node)
 			RelationClose(fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation);
 		pfree(fssThrdInfo[node_incr].fsstate);
 
-		MemoryContextDelete(fssThrdInfo[node_incr].threadMemoryContext);
-
+		/* Free ResouceOwner before MemoryContextDelete */
 		ResourceOwnerRelease(fssThrdInfo[node_incr].thrd_ResourceOwner,
 							 RESOURCE_RELEASE_BEFORE_LOCKS, false, false);
 		ResourceOwnerRelease(fssThrdInfo[node_incr].thrd_ResourceOwner,
@@ -4255,6 +4254,8 @@ spd_EndForeignScan(ForeignScanState *node)
 		ResourceOwnerRelease(fssThrdInfo[node_incr].thrd_ResourceOwner,
 							 RESOURCE_RELEASE_AFTER_LOCKS, false, false);
 		ResourceOwnerDelete(fssThrdInfo[node_incr].thrd_ResourceOwner);
+
+		MemoryContextDelete(fssThrdInfo[node_incr].threadMemoryContext);
 	}
 	if (fdw_private->thrdsCreated)
 		pfree(node->spd_fsstate);
