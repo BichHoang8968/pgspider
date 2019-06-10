@@ -4170,9 +4170,7 @@ spd_ReScanForeignScan(ForeignScanState *node)
 	SpdFdwPrivate *fdw_private;
 	int			node_incr;
 	ForeignScanThreadInfo *fssThrdInfo;
-	MemoryContext oldcontext;
 
-	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	fssThrdInfo = node->spd_fsstate;
 	fdw_private = fssThrdInfo->private;
 
@@ -4182,7 +4180,9 @@ spd_ReScanForeignScan(ForeignScanState *node)
 	 */
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 	{
-		if (fssThrdInfo[node_incr].state != SPD_FS_STATE_ERROR && fssThrdInfo[node_incr].state != SPD_FS_STATE_FINISH && fssThrdInfo[node_incr].state != SPD_FS_STATE_ITERATE)
+		if (fssThrdInfo[node_incr].state != SPD_FS_STATE_ERROR &&
+			fssThrdInfo[node_incr].state != SPD_FS_STATE_FINISH &&
+			fssThrdInfo[node_incr].state != SPD_FS_STATE_ITERATE)
 		{
 			fssThrdInfo[node_incr].queryRescan = true;
 		}
@@ -4192,7 +4192,8 @@ spd_ReScanForeignScan(ForeignScanState *node)
 
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 	{
-		if (fssThrdInfo[node_incr].state != SPD_FS_STATE_ERROR && fssThrdInfo[node_incr].state != SPD_FS_STATE_FINISH)
+		if (fssThrdInfo[node_incr].state != SPD_FS_STATE_ERROR &&
+			fssThrdInfo[node_incr].state != SPD_FS_STATE_FINISH)
 		{
 			while (fssThrdInfo[node_incr].queryRescan)
 			{
@@ -4200,7 +4201,7 @@ spd_ReScanForeignScan(ForeignScanState *node)
 			}
 		}
 	}
-	MemoryContextSwitchTo(oldcontext);
+
 	return;
 }
 
