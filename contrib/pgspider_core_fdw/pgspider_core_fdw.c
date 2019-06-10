@@ -296,7 +296,7 @@ typedef struct SpdFdwModifyState
 
 pthread_mutex_t scan_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t error_mutex = PTHREAD_MUTEX_INITIALIZER;
-
+static MemoryContext thread_top_contexts[NODES_MAX] = {NULL};
 static bool
 is_foreign_expr2(PlannerInfo *root, RelOptInfo *baserel, Expr *expr)
 {
@@ -895,7 +895,7 @@ spd_ForeignScan_thread(void *arg)
 	AggState   *aggState = NULL;
 
 	CurrentResourceOwner = fssthrdInfo->thrd_ResourceOwner;
-	TopMemoryContext = fssthrdInfo->threadMemoryContext;
+	TopMemoryContext = fssthrdInfo->threadTopMemoryContext;
 
 #ifdef MEASURE_TIME
 	gettimeofday(&s, NULL);
@@ -3209,11 +3209,36 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt = copyObject(node->ss.ps.state->es_plannedstmt);
 
-		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_query_cxt = AllocSetContextCreate(estate->es_query_cxt,
+
+		/* Allocate top memory context for each thread to avoid race condtion */
+		if (thread_top_contexts[node_incr] == NULL)
+		{
+			thread_top_contexts[node_incr] = AllocSetContextCreate(TopMemoryContext,
+																   "thread top memory context",
+																   ALLOCSET_DEFAULT_MINSIZE,
+																   ALLOCSET_DEFAULT_INITSIZE,
+																   ALLOCSET_DEFAULT_MAXSIZE);
+		}
+		fssThrdInfo[node_incr].threadTopMemoryContext = thread_top_contexts[node_incr];
+		
+		/*
+		 * memory context tree: paraent es_query_cxt -> threadMemoryContext ->
+		 * child es_query_cxt -> child expr context
+		 */
+		fssThrdInfo[node_incr].threadMemoryContext =
+			AllocSetContextCreate(estate->es_query_cxt,
+								  "thread memory context",
+								  ALLOCSET_DEFAULT_MINSIZE,
+								  ALLOCSET_DEFAULT_INITSIZE,
+								  ALLOCSET_DEFAULT_MAXSIZE);
+
+		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_query_cxt =
+			AllocSetContextCreate(fssThrdInfo[node_incr].threadMemoryContext,
 																						  "thread es_query_cxt",
 																						  ALLOCSET_DEFAULT_MINSIZE,
 																						  ALLOCSET_DEFAULT_INITSIZE,
 																						  ALLOCSET_DEFAULT_MAXSIZE);
+
 		ExecAssignExprContext((EState *) fssThrdInfo[node_incr].fsstate->ss.ps.state, &fssThrdInfo[node_incr].fsstate->ss.ps);
 		fssThrdInfo[node_incr].eflags = eflags;
 
@@ -3328,12 +3353,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 		fssThrdInfo[node_incr].serverId = server_oid;
 		fssThrdInfo[node_incr].fdwroutine = GetFdwRoutineByServerId(server_oid);
-		fssThrdInfo[node_incr].threadMemoryContext =
-			AllocSetContextCreate(TopMemoryContext,
-								  "thread memory context",
-								  ALLOCSET_DEFAULT_MINSIZE,
-								  ALLOCSET_DEFAULT_INITSIZE,
-								  ALLOCSET_DEFAULT_MAXSIZE);
+
 		fssThrdInfo[node_incr].thrd_ResourceOwner =
 			ResourceOwnerCreate(CurrentResourceOwner, "thread resource owner");
 

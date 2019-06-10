@@ -94,6 +94,7 @@ typedef struct ForeignScanThreadInfo
 									 * retrieved from the DS */
 	int			childInfoIndex;		/* index of child info array */
 	MemoryContext threadMemoryContext;
+	MemoryContext threadTopMemoryContext;
 	pthread_mutex_t nodeMutex;	/* Use for ReScan call */
 	SpdForeignScanThreadState state;
 	pthread_t	me;
