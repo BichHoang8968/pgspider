@@ -3206,9 +3206,13 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		}
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_range_table = ((PlannerInfo *) childinfo[i].root)->parse->rtable;
 
-		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt =
-			copyObject(node->ss.ps.state->es_plannedstmt);
-		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_query_cxt = node->ss.ps.state->es_query_cxt;
+		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt = copyObject(node->ss.ps.state->es_plannedstmt);
+
+		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_query_cxt = AllocSetContextCreate(estate->es_query_cxt,
+																						  "thread es_query_cxt",
+																						  ALLOCSET_DEFAULT_MINSIZE,
+																						  ALLOCSET_DEFAULT_INITSIZE,
+																						  ALLOCSET_DEFAULT_MAXSIZE);
 		ExecAssignExprContext((EState *) fssThrdInfo[node_incr].fsstate->ss.ps.state, &fssThrdInfo[node_incr].fsstate->ss.ps);
 		fssThrdInfo[node_incr].eflags = eflags;
 
