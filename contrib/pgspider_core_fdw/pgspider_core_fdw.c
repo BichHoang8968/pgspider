@@ -1003,13 +1003,7 @@ RESCAN:
 					pthread_mutex_unlock(&scan_mutex);
 				}
 
-				if (slot == NULL)
-				{
-					fssthrdInfo->iFlag = false;
-					fssthrdInfo->tuple = NULL;
-					break;
-				}
-				if (slot->tts_isempty)
+				if (slot == NULL || slot->tts_isempty)
 				{
 					fssthrdInfo->iFlag = false;
 					fssthrdInfo->tuple = NULL;
@@ -1047,6 +1041,7 @@ RESCAN:
 		errflag = 1;
 		fssthrdInfo->state = SPD_FS_STATE_ERROR;
 		fssthrdInfo->iFlag = false;
+#ifdef GETPROGRESS_ENABLED
 		if (fssthrdInfo->fsstate->conn)
 		{
 			cancel = PQgetCancel((PGconn *) fssthrdInfo->fsstate->conn);
@@ -1054,6 +1049,7 @@ RESCAN:
 				elog(WARNING, " Failed to PQgetCancel");
 			PQfreeCancel(cancel);
 		}
+#endif
 		elog(DEBUG1, "Thread error occurred during IterateForeignScan(). %s:%d",
 			 __FILE__, __LINE__);
 	}
