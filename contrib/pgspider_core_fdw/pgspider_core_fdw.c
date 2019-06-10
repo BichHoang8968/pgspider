@@ -881,8 +881,7 @@ static void *
 spd_ForeignScan_thread(void *arg)
 {
 	ForeignScanThreadInfo *fssthrdInfo = (ForeignScanThreadInfo *) arg;
-	MemoryContext oldcontext = MemoryContextSwitchTo(
-													 fssthrdInfo->threadMemoryContext);
+	MemoryContext oldcontext = MemoryContextSwitchTo(fssthrdInfo->threadMemoryContext);
 	PGcancel   *cancel;
 	char		errbuf[BUFFERSIZE];
 	int			errflag = 0;
@@ -896,6 +895,8 @@ spd_ForeignScan_thread(void *arg)
 	AggState   *aggState = NULL;
 
 	CurrentResourceOwner = fssthrdInfo->thrd_ResourceOwner;
+	TopMemoryContext = fssthrdInfo->threadMemoryContext;
+
 #ifdef MEASURE_TIME
 	gettimeofday(&s, NULL);
 #endif
