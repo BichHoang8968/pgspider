@@ -882,8 +882,10 @@ spd_ForeignScan_thread(void *arg)
 {
 	ForeignScanThreadInfo *fssthrdInfo = (ForeignScanThreadInfo *) arg;
 	MemoryContext oldcontext = MemoryContextSwitchTo(fssthrdInfo->threadMemoryContext);
+#ifdef GETPROGRESS_ENABLED
 	PGcancel   *cancel;
 	char		errbuf[BUFFERSIZE];
+#endif
 	int			errflag = 0;
 #ifdef MEASURE_TIME
 	struct timeval s,
