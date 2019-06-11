@@ -106,6 +106,14 @@ PG_MODULE_MAGIC;
 
 #define OIDCHECK(aggfnoid) ((aggfnoid >= AVG_MIN_OID && aggfnoid <= AVG_MAX_OID) ||(aggfnoid >= VAR_MIN_OID && aggfnoid <= VAR_MAX_OID) ||(aggfnoid >= STD_MIN_OID && aggfnoid <= STD_MAX_OID))
 
+/* Macro for ensuring mutex is unlocked when error occurs */
+#define SPD_LOCK_TRY(mutex) pthread_mutex_lock(mutex); PG_TRY(); {
+#define SPD_UNLOCK_CATCH(mutex) } PG_CATCH();\
+	{ \
+		pthread_mutex_unlock(mutex); \
+		PG_RE_THROW();\
+	} PG_END_TRY();\
+	pthread_mutex_unlock(mutex);
 
 /* local function forward declarations */
 bool		spd_is_builtin(Oid objectId);
@@ -951,7 +959,9 @@ RESCAN:
 	if (fssthrdInfo->queryRescan &&
 		fssthrdInfo->state != SPD_FS_STATE_BEGIN)
 	{
+		SPD_LOCK_TRY(&scan_mutex);
 		fssthrdInfo->fdwroutine->ReScanForeignScan(fssthrdInfo->fsstate);
+		SPD_UNLOCK_CATCH(&scan_mutex);
 		fssthrdInfo->iFlag = true;
 		fssthrdInfo->tuple = NULL;
 		fssthrdInfo->queryRescan = false;
@@ -960,9 +970,11 @@ RESCAN:
 
 	if (list_member_oid(fdw_private->pPseudoAggList, fssthrdInfo->serverId))
 	{
+		SPD_LOCK_TRY(&scan_mutex);
 		aggState = SPI_execIntiAgg(
 								   fdw_private->childinfo[fssthrdInfo->childInfoIndex].pAgg,
 								   fssthrdInfo->fsstate->ss.ps.state, 0);
+		SPD_UNLOCK_CATCH(&scan_mutex);
 	}
 	PG_TRY();
 	{
@@ -988,7 +1000,9 @@ RESCAN:
 					 * Retreives aggregated value tuple from underlying non
 					 * pushdown source
 					 */
+					SPD_LOCK_TRY(&scan_mutex);
 					slot = SPI_execAgg(aggState);
+					SPD_UNLOCK_CATCH(&scan_mutex);
 				}
 				else
 				{
@@ -1077,7 +1091,9 @@ RESCAN:
 		{
 			if (fssthrdInfo->EndFlag || errflag)
 			{
+				SPD_LOCK_TRY(&scan_mutex);
 				fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
+				SPD_UNLOCK_CATCH(&scan_mutex);
 				fssthrdInfo->EndFlag = false;
 				break;
 			}
@@ -3218,7 +3234,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 																   ALLOCSET_DEFAULT_MAXSIZE);
 		}
 		fssThrdInfo[node_incr].threadTopMemoryContext = thread_top_contexts[node_incr];
-		
+
 		/*
 		 * memory context tree: paraent es_query_cxt -> threadMemoryContext ->
 		 * child es_query_cxt -> child expr context
@@ -3232,10 +3248,10 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_query_cxt =
 			AllocSetContextCreate(fssThrdInfo[node_incr].threadMemoryContext,
-																						  "thread es_query_cxt",
-																						  ALLOCSET_DEFAULT_MINSIZE,
-																						  ALLOCSET_DEFAULT_INITSIZE,
-																						  ALLOCSET_DEFAULT_MAXSIZE);
+								  "thread es_query_cxt",
+								  ALLOCSET_DEFAULT_MINSIZE,
+								  ALLOCSET_DEFAULT_INITSIZE,
+								  ALLOCSET_DEFAULT_MAXSIZE);
 
 		ExecAssignExprContext((EState *) fssThrdInfo[node_incr].fsstate->ss.ps.state, &fssThrdInfo[node_incr].fsstate->ss.ps);
 		fssThrdInfo[node_incr].eflags = eflags;
