@@ -1991,10 +1991,10 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 		else
 		{
 			newList = lappend(newList, temp_expr);
-			fdw_private->split_tlist = lappend(fdw_private->split_tlist, 0);
+			fdw_private->split_tlist = lappend_int(fdw_private->split_tlist, 0);
 		}
 		newList = lappend(newList, temp_expr);
-		fdw_private->split_tlist = lappend(fdw_private->split_tlist, 0);
+		fdw_private->split_tlist = lappend_int(fdw_private->split_tlist, 0);
 	}
 	spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = NIL;
 	foreach(lc, newList)
