@@ -919,13 +919,12 @@ spd_ForeignScan_thread(void *arg)
 
 	/* Begin Foreign Scan */
 	fssthrdInfo->state = SPD_FS_STATE_BEGIN;
-	pthread_mutex_init((pthread_mutex_t *) &fssthrdInfo->nodeMutex, NULL);
 	PG_TRY();
 	{
-		pthread_mutex_lock(&scan_mutex);
+		SPD_LOCK_TRY(&scan_mutex);
 		fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
 												  fssthrdInfo->eflags);
-		pthread_mutex_unlock(&scan_mutex);
+		SPD_UNLOCK_CATCH(&scan_mutex);
 
 #ifdef MEASURE_TIME
 		gettimeofday(&e, NULL);
@@ -935,7 +934,6 @@ spd_ForeignScan_thread(void *arg)
 	PG_CATCH();
 	{
 		errflag = 1;
-		pthread_mutex_unlock(&scan_mutex);
 		fssthrdInfo->state = SPD_FS_STATE_ERROR;
 	}
 	PG_END_TRY();
@@ -962,6 +960,7 @@ RESCAN:
 		SPD_LOCK_TRY(&scan_mutex);
 		fssthrdInfo->fdwroutine->ReScanForeignScan(fssthrdInfo->fsstate);
 		SPD_UNLOCK_CATCH(&scan_mutex);
+
 		fssthrdInfo->iFlag = true;
 		fssthrdInfo->tuple = NULL;
 		fssthrdInfo->queryRescan = false;
@@ -971,8 +970,7 @@ RESCAN:
 	if (list_member_oid(fdw_private->pPseudoAggList, fssthrdInfo->serverId))
 	{
 		SPD_LOCK_TRY(&scan_mutex);
-		aggState = SPI_execIntiAgg(
-								   fdw_private->childinfo[fssthrdInfo->childInfoIndex].pAgg,
+		aggState = SPI_execIntiAgg(fdw_private->childinfo[fssthrdInfo->childInfoIndex].pAgg,
 								   fssthrdInfo->fsstate->ss.ps.state, 0);
 		SPD_UNLOCK_CATCH(&scan_mutex);
 	}
@@ -1006,17 +1004,10 @@ RESCAN:
 				}
 				else
 				{
-					pthread_mutex_lock(&scan_mutex);
-					PG_TRY();
-					{
-						slot = fssthrdInfo->fdwroutine->IterateForeignScan(fssthrdInfo->fsstate);
-					}
-					PG_CATCH();
-					{
-						pthread_mutex_unlock(&scan_mutex);
-						PG_RE_THROW();
-					} PG_END_TRY();
-					pthread_mutex_unlock(&scan_mutex);
+					SPD_LOCK_TRY(&scan_mutex);
+					slot = fssthrdInfo->fdwroutine->IterateForeignScan(fssthrdInfo->fsstate);
+					SPD_UNLOCK_CATCH(&scan_mutex);
+
 				}
 
 				if (slot == NULL || slot->tts_isempty)
