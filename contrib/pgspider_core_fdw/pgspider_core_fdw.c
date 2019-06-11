@@ -104,7 +104,8 @@ PG_MODULE_MAGIC;
 #define SPDURL "__spd_url"
 #define AGGTEMPTABLE "__spd__temptable"
 
-#define OIDCHECK(aggfnoid) ((aggfnoid >= AVG_MIN_OID && aggfnoid <= AVG_MAX_OID) ||(aggfnoid >= VAR_MIN_OID && aggfnoid <= VAR_MAX_OID) ||(aggfnoid >= STD_MIN_OID && aggfnoid <= STD_MAX_OID))
+/* Return true if avg, var, stddev */
+#define IS_SPLIT_AGG(aggfnoid) ((aggfnoid >= AVG_MIN_OID && aggfnoid <= AVG_MAX_OID) ||(aggfnoid >= VAR_MIN_OID && aggfnoid <= VAR_MAX_OID) ||(aggfnoid >= STD_MIN_OID && aggfnoid <= STD_MAX_OID))
 
 /* Macro for ensuring mutex is unlocked when error occurs */
 #define SPD_LOCK_TRY(mutex) pthread_mutex_lock(mutex); PG_TRY(); {
@@ -438,7 +439,7 @@ spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **map
 		Mappingcells *mapcells = (struct Mappingcells *) palloc0(sizeof(struct Mappingcells));
 
 		aggref = (Aggref *) expr;
-		if (OIDCHECK(aggref->aggfnoid))
+		if (IS_SPLIT_AGG(aggref->aggfnoid))
 		{
 			/* Prepare COUNT Query */
 			Aggref	   *tempCount = copyObject((Aggref *) expr);
@@ -1938,15 +1939,11 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	in_fdw_private = (SpdFdwPrivate *) input_rel->fdw_private;
 	output_rel_tmp->fdw_private = (SpdFdwPrivate *) palloc0(sizeof(SpdFdwPrivate));
 
-	/* Prepare SpdFdwPrivate for output RelOptInfo */
+	/* Prepare SpdFdwPrivate for output RelOptInfo. spd_AllocatePrivate do zero clear */
 	fdw_private = spd_AllocatePrivate();
 	fdw_private->thrdsCreated = in_fdw_private->thrdsCreated;
 	fdw_private->node_num = in_fdw_private->node_num;
 	fdw_private->under_flag = in_fdw_private->under_flag;
-	fdw_private->pPseudoAggPushList = NIL;
-	fdw_private->pPseudoAggList = NIL;
-	fdw_private->pPseudoAggTypeList = NIL;
-	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 
 	spd_root = in_fdw_private->spd_root;
 
@@ -1984,7 +1981,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 		temp_expr = list_nth(fdw_private->child_tlist[UPPERREL_GROUP_AGG]->exprs, listn);
 		aggref = (Aggref *) temp_expr;
 		listn++;
-		if (OIDCHECK(aggref->aggfnoid))
+		if (IS_SPLIT_AGG(aggref->aggfnoid))
 		{
 			newList = spd_makedivtlist(aggref, newList, fdw_private);
 		}
@@ -2066,7 +2063,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 
 				aggref = (Aggref *) expr;
 				listn++;
-				if (OIDCHECK(aggref->aggfnoid))
+				if (IS_SPLIT_AGG(aggref->aggfnoid))
 				{
 					newList = spd_makedivtlist(aggref, newList, fdw_private);
 				}
@@ -3040,19 +3037,19 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		scan_relid = 0;
 	}
 	MemoryContextSwitchTo(oldcontext);
+
 /*
- * TODO: Following is main thread's foreign plan.
- * If all FDW use where clauses, scan_clauses is OK.
- * But FileFDW, SqliteFDW and some FDW can not use where clauses.
- * If it is not NIL, then can not get record from there.
+	 * TODO: Following is main thread's foreign plan. If all FDW use where
+	 * clauses, scan_clauses is OK. But FileFDW, SqliteFDW and some FDW can
+	 * not use where clauses. If it is not NIL, then can not get record from
+	 * there.
  *
- * Following is resolution plan.
- * 1. change NIL
- * 2. Add filter for can not use where clauses FDW.
+	 * Following is resolution plan. 1. change NIL 2. Add filter for can not
+	 * use where clauses FDW.
  *
- * 1. is redundancy operation for where clauses avaiable FDW.
- * 2. is change iterate foreign scan and check to remote expars.
- * Modify cost is so big, currently solution is 1.
+	 * 1. is redundancy operation for where clauses avaiable FDW. 2. is change
+	 * iterate foreign scan and check to remote expars. Modify cost is so big,
+	 * currently solution is 1.
  */
 	scan_clauses = extract_actual_clauses(scan_clauses, false);
 	return make_foreignscan(tlist,
@@ -3140,8 +3137,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		return;
 #endif
 	/* Get all the foreign nodes from conf file */
-	fssThrdInfo = (ForeignScanThreadInfo *) palloc0(
-													sizeof(ForeignScanThreadInfo) * fdw_private->node_num);
+	fssThrdInfo = (ForeignScanThreadInfo *) palloc0(sizeof(ForeignScanThreadInfo) * fdw_private->node_num);
 	node->spd_fsstate = fssThrdInfo;
 	/* Supporting for Progress */
 
@@ -3176,22 +3172,18 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			break;
 #endif
 		fssThrdInfo[node_incr].fsstate = makeNode(ForeignScanState);
-		memcpy(&fssThrdInfo[node_incr].fsstate->ss, &node->ss,
-			   sizeof(ScanState));
+		memcpy(&fssThrdInfo[node_incr].fsstate->ss, &node->ss, sizeof(ScanState));
 		/* copy Agg plan when psuedo aggregation case. */
-		if (list_member_oid(fdw_private->pPseudoAggList,
-							server_oid))
+		if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
 		{
 			/* Not push down aggregate to child fdw */
-			fssThrdInfo[node_incr].fsstate->ss.ps.plan =
-				copyObject(childinfo[i].plan);
+			fssThrdInfo[node_incr].fsstate->ss.ps.plan = copyObject(childinfo[i].plan);
 		}
 		else
 		{
 			/* Push down case */
 			fssThrdInfo[node_incr].fsstate->ss = node->ss;
-			fssThrdInfo[node_incr].fsstate->ss.ps.plan =
-				copyObject(node->ss.ps.plan);
+			fssThrdInfo[node_incr].fsstate->ss.ps.plan = copyObject(node->ss.ps.plan);
 		}
 		fsplan = (ForeignScan *) fssThrdInfo[node_incr].fsstate->ss.ps.plan;
 		fsplan->fdw_private = ((ForeignScan *) childinfo[i].plan)->fdw_private;
@@ -3536,7 +3528,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 	int			ret;
 	int			i,
 				k;
-	int			colid;
+	int			colid = 0;
 	int			mapping;
 	bool		isnull = false;
 	MemoryContext oldcontext;
@@ -3686,9 +3678,8 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 			float8		cnt = 0.0;
 
 			if (fdw_private->agg_nulls[rowid][count_mapping])
-			{
 				elog(ERROR, "COUNT() column is NULL.");
-			}
+
 			if (fdw_private->agg_nulls[rowid][sum_mapping])
 				nulls[target_column] = TRUE;
 			else
@@ -3696,11 +3687,13 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 				if (target_column != mapping_parent)
 					continue;
 
-				sum = datum_to_float8(fdw_private->agg_value_type[sum_mapping], fdw_private->agg_values[rowid][sum_mapping]);
+				sum = datum_to_float8(fdw_private->agg_value_type[sum_mapping],
+									  fdw_private->agg_values[rowid][sum_mapping]);
 
 				cnt = (float8) DatumGetInt32(fdw_private->agg_values[rowid][count_mapping]);
 				if (cnt == 0)
 					elog(ERROR, "Record count is 0. Divide by zero error encountered.");
+
 				if (clist_parent.aggtype == AVGFLAG)
 					result = sum / cnt;
 				else
@@ -3710,10 +3703,12 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 					float8		right = 0.0;
 					float8		left = 0.0;
 
-					sum2 = datum_to_float8(fdw_private->agg_value_type[vardev_mapping], fdw_private->agg_values[rowid][vardev_mapping]);
-
 					if (cnt == 1)
 						elog(ERROR, "Record count is 1. Divide by zero error encountered.");
+
+					sum2 = datum_to_float8(fdw_private->agg_value_type[vardev_mapping],
+										   fdw_private->agg_values[rowid][vardev_mapping]);
+
 					right = sum2;
 					left = pow(sum, 2) / cnt;
 					result = (float8) (right - left) / (float8) (cnt - 1);
@@ -3725,7 +3720,9 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 						result = sqrt(var);
 					}
 				}
-				if (fdw_private->agg_value_type[sum_mapping] == FLOAT8OID || fdw_private->agg_value_type[sum_mapping] == FLOAT4OID)
+
+				if (fdw_private->agg_value_type[sum_mapping] == FLOAT8OID ||
+					fdw_private->agg_value_type[sum_mapping] == FLOAT4OID)
 					ret_agg_values[target_column] = Float8GetDatumFast(result);
 				else
 					ret_agg_values[target_column] = DirectFunctionCall1(float8_numeric, Float8GetDatumFast(result));
