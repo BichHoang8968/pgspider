@@ -3930,7 +3930,8 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist, ForeignScanThrea
  * @param[in] node
  */
 static TupleTableSlot *
-spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *child_slot, int count)
+spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *child_slot,
+				  int count, TupleTableSlot *node_slot)
 {
 	Datum	   *values;
 	bool	   *nulls;
@@ -3938,7 +3939,6 @@ spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *child_slo
 	ForeignServer *fs;
 	ForeignDataWrapper *fdw;
 	TupleTableSlot *slot = NULL;
-	TupleTableSlot *node_slot;
 	Datum		value_datum = 0;
 	Datum		valueDatum = 0;
 	HeapTuple	temp_tuple;
@@ -3948,14 +3948,9 @@ spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *child_slo
 	int			tnum = 0;
 	HeapTuple	newtuple;
 
-	if (count == 0)
-	{
-		count = 1;
-	}
 
-	fs = GetForeignServer(fssThrdInfo[count - 1].serverId);
+	fs = GetForeignServer(fssThrdInfo[count].serverId);
 	fdw = GetForeignDataWrapper(fs->fdwid);
-	node_slot = fssThrdInfo[count - 1].tuple;
 
 	/* Initialize new tuple buffer */
 	values = palloc0(sizeof(Datum) * node_slot->tts_tupleDescriptor->natts);
@@ -4040,6 +4035,44 @@ spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *child_slo
 	return slot;
 }
 
+/*
+  Return slot and nodeId of child which returns the slot if available.
+  Return NULL if all threads are finished.
+ */
+static TupleTableSlot *
+nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId)
+{
+	int			count = 0;
+	bool		all_thread_finished = true;
+
+	for (count = 0;; count++)
+	{
+		if (count >= nThreads)
+		{
+			if (all_thread_finished)
+			{
+				return NULL;	/* There is no iterating thread. */
+			}
+			all_thread_finished = true;
+			count = 0;
+			usleep(1);
+		}
+
+		if (fssThrdInfo[count].tuple != NULL)
+		{
+			/* tuple found */
+			*nodeId = count;
+			return fssThrdInfo[count].tuple;
+		}
+		else if (fssThrdInfo[count].iFlag)
+		{
+			/* no tuple yet, but the thread is running */
+			all_thread_finished = false;
+		}
+	}
+	Assert(false);
+}
+
 /**
  * spd_IterateForeignScan
  * spd_IterateForeignScan iterate on each child node and return the tuple table slot
@@ -4052,15 +4085,12 @@ spd_IterateForeignScan(ForeignScanState *node)
 {
 
 	int			count = 0;
-	int			node_incr = 0;
 	ForeignScanThreadInfo *fssThrdInfo = node->spd_fsstate;
 	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
 	TupleTableSlot *slot = NULL,
 			   *tempSlot = NULL;
 	SpdFdwPrivate *fdw_private;
 	List	   *mapping_tlist;
-	int		   *fin_flag;
-	int			fin_count = 0;
 	MemoryContext oldcontext;
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
@@ -4085,12 +4115,11 @@ spd_IterateForeignScan(ForeignScanState *node)
 		if (fdw_private->isFirst)
 		{
 
-			StringInfo create_sql = makeStringInfo();
+			StringInfo	create_sql = makeStringInfo();
+
 			spd_createtable_sql(create_sql, mapping_tlist, fssThrdInfo);
 			spd_spi_ddl_table(create_sql->data);
 			fdw_private->is_drop_temp_table = FALSE;
-
-			fin_flag = palloc0(sizeof(int) * fdw_private->nThreads);
 
 			/*
 			 * run aggregation query for all data source threads and combine
@@ -4098,44 +4127,18 @@ spd_IterateForeignScan(ForeignScanState *node)
 			 */
 			for (;;)
 			{
-				int			temp_count = 0;
-
-				for (;;)
-				{
-					if (fssThrdInfo[temp_count].tuple != NULL)
-						break;	/* Tuple returned */
-
-					if (!fssThrdInfo[temp_count].iFlag)
-					{
-						/* There is no iterating thread. */
-						if (fin_flag[temp_count] == 0 && fssThrdInfo[temp_count].tuple == NULL)
-						{
-							fin_count++;
-							fin_flag[temp_count] = 1;
-						}
-						if (fin_count >= fdw_private->nThreads)
-							break;
-					}
-					temp_count++;
-					if (temp_count >= fdw_private->nThreads)
-						temp_count = 0;
-					usleep(1);
-				}
-				count = temp_count;
-				if (fssThrdInfo[count].tuple != NULL)
-					/* if this child node finished, update finish flag */
-					spd_spi_insert_table(fssThrdInfo[count].tuple, node, fdw_private);
-
-				fssThrdInfo[count].tuple = NULL;
-				/* Intermediate results for aggregation query requested */
-				if (fin_count >= fdw_private->nThreads)
-				{
-					/*
-					 * Aggregation Query Cancellation : Return existing
-					 * intermediate result
-					 */
+				slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count);
+				if (slot != NULL)
+					spd_spi_insert_table(slot, node, fdw_private);
+				else
 					break;
-				}
+
+				/*
+				 * We should clear after use because child thread delete tuple
+				 * if it is cleared
+				 */
+				fssThrdInfo[count].tuple = NULL;
+
 #ifdef GETPROGRESS_ENABLED
 				if (getResultFlag)
 					break;
@@ -4170,29 +4173,17 @@ spd_IterateForeignScan(ForeignScanState *node)
 	}							/* if (fdw_private->agg_query) */
 	else
 	{
-		/* tuple getting is finished */
-		for (; fssThrdInfo[count++].tuple == NULL;)
-		{
-			int			iFlagNum = 0;
 
-			if (count >= fdw_private->nThreads)
-			{
-				count = 0;
-				for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
-				{
-					if (fssThrdInfo[node_incr].iFlag == false && fssThrdInfo[node_incr].tuple == NULL)
-					{
-						iFlagNum++;
-					}
-				}
-				if (iFlagNum == fdw_private->nThreads)
-					return NULL;	/* There is no iterating thread. */
-				usleep(1);
-			}
-		}
-		slot = spd_AddNodeColumn(fssThrdInfo, node->ss.ss_ScanTupleSlot, count);
-		/* clear tuple buffer */
-		fssThrdInfo[count - 1].tuple = NULL;
+		slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count);
+		if (slot != NULL)
+			slot = spd_AddNodeColumn(fssThrdInfo, node->ss.ss_ScanTupleSlot, count, slot);
+
+		/*
+		 * We should clear after use because child thread delete tuple if it
+		 * is cleared
+		 */
+		fssThrdInfo[count].tuple = NULL;
+
 	}
 	MemoryContextSwitchTo(oldcontext);
 	return slot;
