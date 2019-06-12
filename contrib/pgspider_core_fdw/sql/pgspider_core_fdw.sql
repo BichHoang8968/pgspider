@@ -79,6 +79,12 @@ SELECT sum(i),t,count(i) FROM t1 group by t;
 SELECT * FROM t1 WHERE i = 1;
 SELECT sum(i),t FROM t1 group by t;
 
+SELECT avg(i) FROM t1;
+
+-- crash
+-- SELECT avg(i),sum(i) FROM t1;
+
+
 --wrong result and warning:
 --SELECT sum(i),t FROM t1 WHERE i = 1 group by t ;
 --WARNING:  problem in alloc set TopTransactionContext: detected write past chunk end in block 0x2557520, chunk 0x2558658
