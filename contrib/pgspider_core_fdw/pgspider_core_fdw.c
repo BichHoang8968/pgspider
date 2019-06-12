@@ -292,6 +292,7 @@ typedef struct SpdFdwPrivate
 	List	   *baserestrictinfo;	/* root node base strict info */
 	Datum	   *ret_agg_values; /* result for groupby */
 	bool		is_drop_temp_table; /* drop temp table flag in aggregation */
+	int			temp_num_cols;	/* number of columns of temp table */
 }			SpdFdwPrivate;
 
 /* postgresql.conf paramater */
@@ -3551,11 +3552,16 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 	MemoryContextSwitchTo(oldcontext);
 	fdw_private->agg_values = (Datum **) palloc0(SPI_processed * sizeof(Datum *));
 	fdw_private->agg_nulls = (bool **) palloc0(SPI_processed * sizeof(bool *));
-	fdw_private->agg_value_type = (int *) palloc0(SPI_processed * sizeof(int));
+
+	/*
+	 * Length of agg_value_type, agg_values[i] and agg_nulls[i] are the number
+	 * of columns of the temp table
+	 */
+	fdw_private->agg_value_type = (Oid *) palloc0(fdw_private->temp_num_cols * sizeof(Oid));
 	for (i = 0; i < SPI_processed; i++)
 	{
-		fdw_private->agg_values[i] = (Datum *) palloc0(slot->tts_tupleDescriptor->natts * sizeof(Datum));
-		fdw_private->agg_nulls[i] = (bool *) palloc0(SPI_processed * sizeof(bool));
+		fdw_private->agg_values[i] = (Datum *) palloc0(fdw_private->temp_num_cols * sizeof(Datum));
+		fdw_private->agg_nulls[i] = (bool *) palloc0(fdw_private->temp_num_cols * sizeof(bool));
 	}
 	fdw_private->agg_tuples = SPI_processed;
 	for (k = 0; k < SPI_processed; k++)
@@ -3728,6 +3734,7 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 		}
 		else if (target_column == mapping_parent)
 		{
+			Assert(mapping < fdw_private->temp_num_cols);
 			if (fdw_private->agg_nulls[rowid][mapping])
 				nulls[target_column] = TRUE;
 			ret_agg_values[target_column] = fdw_private->agg_values[rowid][mapping];
@@ -3812,6 +3819,8 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 		}
 		j++;
 	}
+
+	fdw_private->temp_num_cols = max_col;
 	appendStringInfo(sql, " FROM __spd__temptable ");
 	/* group by clause */
 	if (fdw_private->groupby_string != 0)
