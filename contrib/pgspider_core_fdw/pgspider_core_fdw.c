@@ -3629,10 +3629,12 @@ datum_to_float8(Oid type, Datum value)
 		case FLOAT8OID:
 			sum = (float8) DatumGetFloat8(value);
 			break;
+		case NUMERICOID:
 		case BOOLOID:
 		case TIMESTAMPOID:
 		case DATEOID:
 		default:
+			Assert(false);
 			break;
 	}
 	return sum;
