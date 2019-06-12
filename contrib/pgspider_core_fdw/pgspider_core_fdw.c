@@ -3603,6 +3603,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 			}
 		}
 	}
+	Assert(colid == fdw_private->temp_num_cols);
 	SPI_finish();
 }
 
@@ -3613,7 +3614,6 @@ datum_to_float8(Oid type, Datum value)
 
 	switch (type)
 	{
-		case NUMERICOID:
 		case INT4OID:
 			sum = (float8) DatumGetInt32(value);
 			break;
