@@ -277,7 +277,7 @@ typedef struct SpdFdwPrivate
 	int			agg_tuples;		/* Number of aggregation tuples from temp
 								 * table */
 	int			agg_num;		/* agg_values cursor */
-	int		   *agg_value_type; /* aggregation parameters */
+	Oid		   *agg_value_type; /* aggregation parameters */
 	List	   *split_tlist;	/* child div(not compressd) target list */
 	List	   *child_comp_tlist;	/* child complite target list */
 	List	   *mapping_tlist;	/* mapping list orig and pgspider */
@@ -292,6 +292,7 @@ typedef struct SpdFdwPrivate
 	List	   *baserestrictinfo;	/* root node base strict info */
 	Datum	   *ret_agg_values; /* result for groupby */
 	bool		is_drop_temp_table; /* drop temp table flag in aggregation */
+	int			temp_num_cols;	/* number of columns of temp table */
 }			SpdFdwPrivate;
 
 /* postgresql.conf paramater */
@@ -1993,18 +1994,9 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			newList = lappend(newList, temp_expr);
 			fdw_private->split_tlist = lappend_int(fdw_private->split_tlist, 0);
 		}
-		newList = lappend(newList, temp_expr);
-		fdw_private->split_tlist = lappend_int(fdw_private->split_tlist, 0);
 	}
-	spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = NIL;
-	foreach(lc, newList)
-	{
-		Expr	   *expr = (Expr *) lfirst(lc);
+	spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = list_copy(newList);
 
-		elog(DEBUG1, "insert expr");
-		spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs =
-			lappend(spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs, expr);
-	}
 	/* pthread_mutex_unlock(&scan_mutex); */
 	elog(DEBUG1, "main upperpath add");
 	fdw_private->split_tlist = split_tlist;
@@ -3241,82 +3233,87 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		ExecAssignExprContext((EState *) fssThrdInfo[node_incr].fsstate->ss.ps.state, &fssThrdInfo[node_incr].fsstate->ss.ps);
 		fssThrdInfo[node_incr].eflags = eflags;
 
+		/*
+		 * TODO: Should use CreateTemplateTupleDesc and
+		 * TupleDescInitBuiltinEntry
+		 */
 		/* Modify child tuple descripter */
 		natts = node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->natts;
 		if (fdw_private->pPseudoAggPushList || fdw_private->pPseudoAggList)
 		{
-			int			org_attrincr = 0;
-			int			child_natts = natts;
+			int			parent_attr,	/* attribute number of parent */
+						child_attr; /* attribute number of child */
 
 			/*
 			 * Extract attribute details. The tupledesc made here is just
 			 * transient.
 			 */
-			attrs = palloc0(child_natts * sizeof(Form_pg_attribute));
-			org_attrincr = 0;
-			for (j = 0; j < node->ss.ps.plan->targetlist->length; j++)
+			attrs = palloc0(fdw_private->child_uninum * sizeof(Form_pg_attribute));
+
+			for (parent_attr = 0, child_attr = 0; parent_attr < node->ss.ps.plan->targetlist->length;
+				 parent_attr++, child_attr++)
 			{
-				TargetEntry *target = (TargetEntry *) list_nth(node->ss.ps.plan->targetlist, org_attrincr);
+				TargetEntry *target = (TargetEntry *) list_nth(node->ss.ps.plan->targetlist, parent_attr);
 				char	   *agg_command = target->resname;
 
-				attrs[j] = palloc(sizeof(FormData_pg_attribute));
-				memcpy(attrs[j], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[org_attrincr],
+				attrs[child_attr] = palloc(sizeof(FormData_pg_attribute));
+				memcpy(attrs[child_attr], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[parent_attr],
 					   sizeof(FormData_pg_attribute));
 
 				/*
-				 * Extend tuple desc when avg,var,stddev operation is
+				 * Extend child tuple desc when avg,var,stddev operation is
 				 * occurred. AVG is divided SUM and COUNT, VAR and STDDEV are
 				 * divided SUM,COUNT,SUM(i*i)
 				 */
 				if (agg_command == NULL)
 					continue;
-				if (!strcmpi(agg_command, "AVG") || !strcmpi(agg_command, "VARIANCE") || !strcmpi(agg_command, "STDDEV"))
+
+				if (!strcmpi(agg_command, "AVG") || !strcmpi(agg_command, "VARIANCE") ||
+					!strcmpi(agg_command, "STDDEV"))
 				{
-					j++;
-					attrs[j] = palloc(sizeof(FormData_pg_attribute));
-					memcpy(attrs[j], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[org_attrincr],
+					child_attr++;
+					attrs[child_attr] = palloc(sizeof(FormData_pg_attribute));
+					memcpy(attrs[child_attr], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[parent_attr],
 						   sizeof(FormData_pg_attribute));
-					if (attrs[j]->atttypid <= INT8OID || attrs[j]->atttypid == NUMERICOID)
+					Assert(child_attr - 1 >= 0 && child_attr < fdw_private->child_uninum);
+					if (attrs[child_attr]->atttypid <= INT8OID || attrs[child_attr]->atttypid == NUMERICOID)
 					{
-						attrs[j - 1]->atttypid = INT8OID;
-						attrs[j]->atttypid = INT8OID;
-						attrs[j - 1]->attalign = 'd';
-						attrs[j]->attalign = 'd';
-						attrs[j - 1]->attlen = DOUBLE_LENGTH;
-						attrs[j]->attlen = DOUBLE_LENGTH;
-						attrs[j - 1]->attbyval = 1;
-						attrs[j]->attbyval = 1;
+						attrs[child_attr - 1]->atttypid = INT8OID;
+						attrs[child_attr]->atttypid = INT8OID;
+						attrs[child_attr - 1]->attalign = 'd';
+						attrs[child_attr]->attalign = 'd';
+						attrs[child_attr - 1]->attlen = DOUBLE_LENGTH;
+						attrs[child_attr]->attlen = DOUBLE_LENGTH;
+						attrs[child_attr - 1]->attbyval = 1;
+						attrs[child_attr]->attbyval = 1;
 					}
 					else
 					{
-						attrs[j - 1]->atttypid = INT4OID;
-						attrs[j]->attlen = DOUBLE_LENGTH;
-						attrs[j]->attalign = 'd';
-						attrs[j]->atttypid = FLOAT8OID;
+						attrs[child_attr - 1]->atttypid = INT4OID;
+						attrs[child_attr]->attlen = DOUBLE_LENGTH;
+						attrs[child_attr]->attalign = 'd';
+						attrs[child_attr]->atttypid = FLOAT8OID;
 					}
+
 					if (!strcmpi(agg_command, "VARIANCE") || !strcmpi(agg_command, "STDDEV"))
 					{
-						j++;
-						attrs[j] = palloc(sizeof(FormData_pg_attribute));
-						memcpy(attrs[j], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[org_attrincr],
+						child_attr++;
+						attrs[child_attr] = palloc(sizeof(FormData_pg_attribute));
+						memcpy(attrs[child_attr], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[parent_attr],
 							   sizeof(FormData_pg_attribute));
-						if (attrs[j]->atttypid <= INT8OID || attrs[j]->atttypid == NUMERICOID)
+						if (attrs[child_attr]->atttypid <= INT8OID || attrs[child_attr]->atttypid == NUMERICOID)
 						{
-							attrs[j]->atttypid = INT8OID;
+							attrs[child_attr]->atttypid = INT8OID;
 						}
 						else
 						{
-							attrs[j]->atttypid = FLOAT8OID;
+							attrs[child_attr]->atttypid = FLOAT8OID;
 						}
-						attrs[j]->attlen = DOUBLE_LENGTH;
-						attrs[j]->attalign = 'd';
-						attrs[j]->attbyval = 1;
-						org_attrincr++;
-						natts++;
+						attrs[child_attr]->attlen = DOUBLE_LENGTH;
+						attrs[child_attr]->attalign = 'd';
+						attrs[child_attr]->attbyval = 1;
 					}
 				}
-				org_attrincr++;
-				natts++;
 			}
 			/* Construct TupleDesc, and assign a local typmod. */
 			tupledesc = CreateTupleDesc(fdw_private->child_uninum, true, attrs);
@@ -3555,11 +3552,16 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 	MemoryContextSwitchTo(oldcontext);
 	fdw_private->agg_values = (Datum **) palloc0(SPI_processed * sizeof(Datum *));
 	fdw_private->agg_nulls = (bool **) palloc0(SPI_processed * sizeof(bool *));
-	fdw_private->agg_value_type = (int *) palloc0(SPI_processed * sizeof(int));
+
+	/*
+	 * Length of agg_value_type, agg_values[i] and agg_nulls[i] are the number
+	 * of columns of the temp table
+	 */
+	fdw_private->agg_value_type = (Oid *) palloc0(fdw_private->temp_num_cols * sizeof(Oid));
 	for (i = 0; i < SPI_processed; i++)
 	{
-		fdw_private->agg_values[i] = (Datum *) palloc0(slot->tts_tupleDescriptor->natts * sizeof(Datum));
-		fdw_private->agg_nulls[i] = (bool *) palloc0(SPI_processed * sizeof(bool));
+		fdw_private->agg_values[i] = (Datum *) palloc0(fdw_private->temp_num_cols * sizeof(Datum));
+		fdw_private->agg_nulls[i] = (bool *) palloc0(fdw_private->temp_num_cols * sizeof(bool));
 	}
 	fdw_private->agg_tuples = SPI_processed;
 	for (k = 0; k < SPI_processed; k++)
@@ -3587,6 +3589,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 				{
 					/* Convert from numeric to int8 */
 					fdw_private->agg_values[k][colid] = DirectFunctionCall1(numeric_int8, datum);
+					fdw_private->agg_value_type[colid] = INT8OID;
 				}
 				else
 				{
@@ -3600,6 +3603,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 			}
 		}
 	}
+	Assert(colid == fdw_private->temp_num_cols);
 	SPI_finish();
 }
 
@@ -3610,7 +3614,6 @@ datum_to_float8(Oid type, Datum value)
 
 	switch (type)
 	{
-		case NUMERICOID:
 		case INT4OID:
 			sum = (float8) DatumGetInt32(value);
 			break;
@@ -3626,10 +3629,12 @@ datum_to_float8(Oid type, Datum value)
 		case FLOAT8OID:
 			sum = (float8) DatumGetFloat8(value);
 			break;
+		case NUMERICOID:
 		case BOOLOID:
 		case TIMESTAMPOID:
 		case DATEOID:
 		default:
+			Assert(false);
 			break;
 	}
 	return sum;
@@ -3692,7 +3697,10 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 				sum = datum_to_float8(fdw_private->agg_value_type[sum_mapping],
 									  fdw_private->agg_values[rowid][sum_mapping]);
 
-				cnt = (float8) DatumGetInt32(fdw_private->agg_values[rowid][count_mapping]);
+				/* Result of count should be INT8OID */
+				Assert(fdw_private->agg_value_type[count_mapping] == INT8OID);
+				cnt = (float8) DatumGetInt64(fdw_private->agg_values[rowid][count_mapping]);
+
 				if (cnt == 0)
 					elog(ERROR, "Record count is 0. Divide by zero error encountered.");
 
@@ -3732,12 +3740,15 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 		}
 		else if (target_column == mapping_parent)
 		{
+			Assert(mapping < fdw_private->temp_num_cols);
 			if (fdw_private->agg_nulls[rowid][mapping])
 				nulls[target_column] = TRUE;
 			ret_agg_values[target_column] = fdw_private->agg_values[rowid][mapping];
-			target_column++;
+
 		}
+		target_column++;
 	}
+	Assert(target_column == slot->tts_tupleDescriptor->natts);
 	tuple = heap_form_tuple(slot->tts_tupleDescriptor, ret_agg_values, nulls);
 	ExecStoreTuple(tuple, slot, InvalidBuffer, false);
 	fdw_private->agg_num++;
@@ -3816,6 +3827,8 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 		}
 		j++;
 	}
+
+	fdw_private->temp_num_cols = max_col;
 	appendStringInfo(sql, " FROM __spd__temptable ");
 	/* group by clause */
 	if (fdw_private->groupby_string != 0)
