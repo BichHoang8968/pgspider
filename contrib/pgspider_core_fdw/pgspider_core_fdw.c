@@ -3744,9 +3744,11 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 			if (fdw_private->agg_nulls[rowid][mapping])
 				nulls[target_column] = TRUE;
 			ret_agg_values[target_column] = fdw_private->agg_values[rowid][mapping];
-			target_column++;
+
 		}
+		target_column++;
 	}
+	Assert(target_column == slot->tts_tupleDescriptor->natts);
 	tuple = heap_form_tuple(slot->tts_tupleDescriptor, ret_agg_values, nulls);
 	ExecStoreTuple(tuple, slot, InvalidBuffer, false);
 	fdw_private->agg_num++;
