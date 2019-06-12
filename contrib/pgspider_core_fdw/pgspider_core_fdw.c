@@ -3232,82 +3232,87 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		ExecAssignExprContext((EState *) fssThrdInfo[node_incr].fsstate->ss.ps.state, &fssThrdInfo[node_incr].fsstate->ss.ps);
 		fssThrdInfo[node_incr].eflags = eflags;
 
+		/*
+		 * TODO: Should use CreateTemplateTupleDesc and
+		 * TupleDescInitBuiltinEntry
+		 */
 		/* Modify child tuple descripter */
 		natts = node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->natts;
 		if (fdw_private->pPseudoAggPushList || fdw_private->pPseudoAggList)
 		{
-			int			org_attrincr = 0;
-			int			child_natts = natts;
+			int			parent_attr,	/* attribute number of parent */
+						child_attr; /* attribute number of child */
 
 			/*
 			 * Extract attribute details. The tupledesc made here is just
 			 * transient.
 			 */
-			attrs = palloc0(child_natts * sizeof(Form_pg_attribute));
-			org_attrincr = 0;
-			for (j = 0; j < node->ss.ps.plan->targetlist->length; j++)
+			attrs = palloc0(fdw_private->child_uninum * sizeof(Form_pg_attribute));
+
+			for (parent_attr = 0, child_attr = 0; parent_attr < node->ss.ps.plan->targetlist->length;
+				 parent_attr++, child_attr++)
 			{
-				TargetEntry *target = (TargetEntry *) list_nth(node->ss.ps.plan->targetlist, org_attrincr);
+				TargetEntry *target = (TargetEntry *) list_nth(node->ss.ps.plan->targetlist, parent_attr);
 				char	   *agg_command = target->resname;
 
-				attrs[j] = palloc(sizeof(FormData_pg_attribute));
-				memcpy(attrs[j], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[org_attrincr],
+				attrs[child_attr] = palloc(sizeof(FormData_pg_attribute));
+				memcpy(attrs[child_attr], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[parent_attr],
 					   sizeof(FormData_pg_attribute));
 
 				/*
-				 * Extend tuple desc when avg,var,stddev operation is
+				 * Extend child tuple desc when avg,var,stddev operation is
 				 * occurred. AVG is divided SUM and COUNT, VAR and STDDEV are
 				 * divided SUM,COUNT,SUM(i*i)
 				 */
 				if (agg_command == NULL)
 					continue;
-				if (!strcmpi(agg_command, "AVG") || !strcmpi(agg_command, "VARIANCE") || !strcmpi(agg_command, "STDDEV"))
+
+				if (!strcmpi(agg_command, "AVG") || !strcmpi(agg_command, "VARIANCE") ||
+					!strcmpi(agg_command, "STDDEV"))
 				{
-					j++;
-					attrs[j] = palloc(sizeof(FormData_pg_attribute));
-					memcpy(attrs[j], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[org_attrincr],
+					child_attr++;
+					attrs[child_attr] = palloc(sizeof(FormData_pg_attribute));
+					memcpy(attrs[child_attr], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[parent_attr],
 						   sizeof(FormData_pg_attribute));
-					if (attrs[j]->atttypid <= INT8OID || attrs[j]->atttypid == NUMERICOID)
+					Assert(child_attr - 1 >= 0 && child_attr < fdw_private->child_uninum);
+					if (attrs[child_attr]->atttypid <= INT8OID || attrs[child_attr]->atttypid == NUMERICOID)
 					{
-						attrs[j - 1]->atttypid = INT8OID;
-						attrs[j]->atttypid = INT8OID;
-						attrs[j - 1]->attalign = 'd';
-						attrs[j]->attalign = 'd';
-						attrs[j - 1]->attlen = DOUBLE_LENGTH;
-						attrs[j]->attlen = DOUBLE_LENGTH;
-						attrs[j - 1]->attbyval = 1;
-						attrs[j]->attbyval = 1;
+						attrs[child_attr - 1]->atttypid = INT8OID;
+						attrs[child_attr]->atttypid = INT8OID;
+						attrs[child_attr - 1]->attalign = 'd';
+						attrs[child_attr]->attalign = 'd';
+						attrs[child_attr - 1]->attlen = DOUBLE_LENGTH;
+						attrs[child_attr]->attlen = DOUBLE_LENGTH;
+						attrs[child_attr - 1]->attbyval = 1;
+						attrs[child_attr]->attbyval = 1;
 					}
 					else
 					{
-						attrs[j - 1]->atttypid = INT4OID;
-						attrs[j]->attlen = DOUBLE_LENGTH;
-						attrs[j]->attalign = 'd';
-						attrs[j]->atttypid = FLOAT8OID;
+						attrs[child_attr - 1]->atttypid = INT4OID;
+						attrs[child_attr]->attlen = DOUBLE_LENGTH;
+						attrs[child_attr]->attalign = 'd';
+						attrs[child_attr]->atttypid = FLOAT8OID;
 					}
+
 					if (!strcmpi(agg_command, "VARIANCE") || !strcmpi(agg_command, "STDDEV"))
 					{
-						j++;
-						attrs[j] = palloc(sizeof(FormData_pg_attribute));
-						memcpy(attrs[j], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[org_attrincr],
+						child_attr++;
+						attrs[child_attr] = palloc(sizeof(FormData_pg_attribute));
+						memcpy(attrs[child_attr], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[parent_attr],
 							   sizeof(FormData_pg_attribute));
-						if (attrs[j]->atttypid <= INT8OID || attrs[j]->atttypid == NUMERICOID)
+						if (attrs[child_attr]->atttypid <= INT8OID || attrs[child_attr]->atttypid == NUMERICOID)
 						{
-							attrs[j]->atttypid = INT8OID;
+							attrs[child_attr]->atttypid = INT8OID;
 						}
 						else
 						{
-							attrs[j]->atttypid = FLOAT8OID;
+							attrs[child_attr]->atttypid = FLOAT8OID;
 						}
-						attrs[j]->attlen = DOUBLE_LENGTH;
-						attrs[j]->attalign = 'd';
-						attrs[j]->attbyval = 1;
-						org_attrincr++;
-						natts++;
+						attrs[child_attr]->attlen = DOUBLE_LENGTH;
+						attrs[child_attr]->attalign = 'd';
+						attrs[child_attr]->attbyval = 1;
 					}
 				}
-				org_attrincr++;
-				natts++;
 			}
 			/* Construct TupleDesc, and assign a local typmod. */
 			tupledesc = CreateTupleDesc(fdw_private->child_uninum, true, attrs);
