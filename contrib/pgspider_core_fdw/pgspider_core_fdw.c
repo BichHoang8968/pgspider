@@ -3589,6 +3589,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 				{
 					/* Convert from numeric to int8 */
 					fdw_private->agg_values[k][colid] = DirectFunctionCall1(numeric_int8, datum);
+					fdw_private->agg_value_type[colid] = INT8OID;
 				}
 				else
 				{
@@ -3694,7 +3695,10 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 				sum = datum_to_float8(fdw_private->agg_value_type[sum_mapping],
 									  fdw_private->agg_values[rowid][sum_mapping]);
 
-				cnt = (float8) DatumGetInt32(fdw_private->agg_values[rowid][count_mapping]);
+				/* Result of count should be INT8OID */
+				Assert(fdw_private->agg_value_type[count_mapping] == INT8OID);
+				cnt = (float8) DatumGetInt64(fdw_private->agg_values[rowid][count_mapping]);
+
 				if (cnt == 0)
 					elog(ERROR, "Record count is 0. Divide by zero error encountered.");
 
