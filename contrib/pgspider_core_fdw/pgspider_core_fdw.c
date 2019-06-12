@@ -3040,19 +3040,19 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	}
 	MemoryContextSwitchTo(oldcontext);
 
-/*
+	/*
 	 * TODO: Following is main thread's foreign plan. If all FDW use where
 	 * clauses, scan_clauses is OK. But FileFDW, SqliteFDW and some FDW can
 	 * not use where clauses. If it is not NIL, then can not get record from
 	 * there.
- *
+	 *
 	 * Following is resolution plan. 1. change NIL 2. Add filter for can not
 	 * use where clauses FDW.
- *
+	 *
 	 * 1. is redundancy operation for where clauses avaiable FDW. 2. is change
 	 * iterate foreign scan and check to remote expars. Modify cost is so big,
 	 * currently solution is 1.
- */
+	 */
 	scan_clauses = extract_actual_clauses(scan_clauses, false);
 	return make_foreignscan(tlist,
 							scan_clauses,	/* scan_clauses, */
@@ -4040,8 +4040,6 @@ spd_IterateForeignScan(ForeignScanState *node)
 
 	int			count = 0;
 	int			node_incr = 0;
-
-	StringInfo	create_sql = makeStringInfo();
 	ForeignScanThreadInfo *fssThrdInfo = node->spd_fsstate;
 	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
 	TupleTableSlot *slot = NULL,
@@ -4073,11 +4071,13 @@ spd_IterateForeignScan(ForeignScanState *node)
 	{
 		if (fdw_private->isFirst)
 		{
-			/* TODO create* */
-			fin_flag = palloc0(sizeof(int) * fdw_private->nThreads);
+
+			StringInfo create_sql = makeStringInfo();
 			spd_createtable_sql(create_sql, mapping_tlist, fssThrdInfo);
 			spd_spi_ddl_table(create_sql->data);
 			fdw_private->is_drop_temp_table = FALSE;
+
+			fin_flag = palloc0(sizeof(int) * fdw_private->nThreads);
 
 			/*
 			 * run aggregation query for all data source threads and combine
@@ -4087,8 +4087,11 @@ spd_IterateForeignScan(ForeignScanState *node)
 			{
 				int			temp_count = 0;
 
-				for (; fssThrdInfo[temp_count].tuple == NULL;)
+				for (;;)
 				{
+					if (fssThrdInfo[temp_count].tuple != NULL)
+						break;	/* Tuple returned */
+
 					if (!fssThrdInfo[temp_count].iFlag)
 					{
 						/* There is no iterating thread. */
@@ -4109,6 +4112,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 				if (fssThrdInfo[count].tuple != NULL)
 					/* if this child node finished, update finish flag */
 					spd_spi_insert_table(fssThrdInfo[count].tuple, node, fdw_private);
+
 				fssThrdInfo[count].tuple = NULL;
 				/* Intermediate results for aggregation query requested */
 				if (fin_count >= fdw_private->nThreads)
