@@ -277,7 +277,7 @@ typedef struct SpdFdwPrivate
 	int			agg_tuples;		/* Number of aggregation tuples from temp
 								 * table */
 	int			agg_num;		/* agg_values cursor */
-	int		   *agg_value_type; /* aggregation parameters */
+	Oid		   *agg_value_type; /* aggregation parameters */
 	List	   *split_tlist;	/* child div(not compressd) target list */
 	List	   *child_comp_tlist;	/* child complite target list */
 	List	   *mapping_tlist;	/* mapping list orig and pgspider */
