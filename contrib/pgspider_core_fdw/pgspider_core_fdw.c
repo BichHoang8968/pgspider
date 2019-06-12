@@ -1993,18 +1993,9 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			newList = lappend(newList, temp_expr);
 			fdw_private->split_tlist = lappend_int(fdw_private->split_tlist, 0);
 		}
-		newList = lappend(newList, temp_expr);
-		fdw_private->split_tlist = lappend_int(fdw_private->split_tlist, 0);
 	}
-	spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = NIL;
-	foreach(lc, newList)
-	{
-		Expr	   *expr = (Expr *) lfirst(lc);
+	spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = list_copy(newList);
 
-		elog(DEBUG1, "insert expr");
-		spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs =
-			lappend(spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs, expr);
-	}
 	/* pthread_mutex_unlock(&scan_mutex); */
 	elog(DEBUG1, "main upperpath add");
 	fdw_private->split_tlist = split_tlist;
