@@ -1939,7 +1939,10 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	in_fdw_private = (SpdFdwPrivate *) input_rel->fdw_private;
 	output_rel_tmp->fdw_private = (SpdFdwPrivate *) palloc0(sizeof(SpdFdwPrivate));
 
-	/* Prepare SpdFdwPrivate for output RelOptInfo. spd_AllocatePrivate do zero clear */
+	/*
+	 * Prepare SpdFdwPrivate for output RelOptInfo. spd_AllocatePrivate do
+	 * zero clear
+	 */
 	fdw_private = spd_AllocatePrivate();
 	fdw_private->thrdsCreated = in_fdw_private->thrdsCreated;
 	fdw_private->node_num = in_fdw_private->node_num;
@@ -2047,7 +2050,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 						dummy_output_rel);
 			/* make pathtarget */
 
-			MemoryContextSwitchTo(TopTransactionContext);
 			dummy_root->upper_targets[UPPERREL_GROUP_AGG] =
 				copy_pathtarget(spd_root->upper_targets[UPPERREL_GROUP_AGG]);
 			dummy_root->upper_targets[UPPERREL_WINDOW] =
