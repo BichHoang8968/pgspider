@@ -2045,17 +2045,15 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			foreach(lc, root->upper_targets[UPPERREL_GROUP_AGG]->exprs)
 			{
 				Expr	   *expr = (Expr *) lfirst(lc);
-				Aggref	   *aggref;
 
-				aggref = (Aggref *) expr;
 				listn++;
-				if (IS_SPLIT_AGG(aggref->aggfnoid))
+				if (IsA(expr, Aggref) && IS_SPLIT_AGG(castNode(Aggref, expr)->aggfnoid))
 				{
-					newList = spd_makedivtlist(aggref, newList, fdw_private);
+					newList = spd_makedivtlist(castNode(Aggref, expr), newList, fdw_private);
 				}
 				else
 				{
-					elog(DEBUG1, "insert orign expr");
+					/* non aggref is possible if is is group-by target */
 					newList = lappend(newList, expr);
 				}
 			}
