@@ -3574,22 +3574,24 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 													   SPI_tuptable->tupdesc,
 													   colid + 1,
 													   &isnull));
-
-				/* We need to deep copy datum from SPI memory context */
-				if (fdw_private->agg_value_type[colid] == NUMERICOID)
-				{
-					/* Convert from numeric to int8 */
-					fdw_private->agg_values[k][colid] = DirectFunctionCall1(numeric_int8, datum);
-					fdw_private->agg_value_type[colid] = INT8OID;
-				}
-				else
-				{
-					fdw_private->agg_values[k][colid] = datumCopy(datum,
-																  SPI_tuptable->tupdesc->attrs[colid]->attbyval,
-																  SPI_tuptable->tupdesc->attrs[colid]->attlen);
-				}
 				if (isnull)
 					fdw_private->agg_nulls[k][colid] = TRUE;
+				else
+				{
+					/* We need to deep copy datum from SPI memory context */
+					if (fdw_private->agg_value_type[colid] == NUMERICOID)
+					{
+						/* Convert from numeric to int8 */
+						fdw_private->agg_values[k][colid] = DirectFunctionCall1(numeric_int8, datum);
+						fdw_private->agg_value_type[colid] = INT8OID;
+					}
+					else
+					{
+						fdw_private->agg_values[k][colid] = datumCopy(datum,
+																	  SPI_tuptable->tupdesc->attrs[colid]->attbyval,
+																	  SPI_tuptable->tupdesc->attrs[colid]->attlen);
+					}
+				}
 				colid++;
 			}
 		}
