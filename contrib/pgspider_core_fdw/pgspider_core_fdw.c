@@ -2059,21 +2059,15 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 					newList = lappend(newList, expr);
 				}
 			}
-			dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = NIL;
-			foreach(lc, newList)
-			{
-				Expr	   *expr = (Expr *) lfirst(lc);
+			dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = list_copy(newList);
 
-				dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs =
-					lappend(dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs, expr);
-			}
 			if (fdwroutine->GetForeignUpperPaths != NULL)
 			{
-				fdwroutine->GetForeignUpperPaths(
-												 dummy_root,
+				fdwroutine->GetForeignUpperPaths(dummy_root,
 												 stage, entry,
 												 dummy_output_rel);
 			}
+
 			if (dummy_output_rel->pathlist != NULL)
 			{
 				/* Push down aggregate case */
