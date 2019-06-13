@@ -576,8 +576,8 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 				*compress_tlist = lappend(*compress_tlist, tle_temp);
 				*child_uninum += 1;
 			}
+			mapcells->mapping_tlist.mapping[2] = target_num;
 		}
-		mapcells->mapping_tlist.mapping[2] = target_num;
 	}
 	else
 	{
