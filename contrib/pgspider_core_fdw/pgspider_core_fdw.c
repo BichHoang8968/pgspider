@@ -455,7 +455,7 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 		tempCount->aggfnoid = COUNT_OID;
 		tempSum = copyObject(tempCount);
 		tempSum->aggfnoid = SUM_OID;
-		if (FLOAT4OID <= tempCount->aggtype || tempCount->aggtype <= FLOAT8OID)
+		if (aggref->aggtype == FLOAT4OID || aggref->aggtype == FLOAT8OID)
 		{
 			tempSum->aggfnoid = SUM_FLOAT8_OID;
 			tempSum->aggtype = FLOAT8OID;
