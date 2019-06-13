@@ -447,14 +447,13 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 	if (IS_SPLIT_AGG(aggref->aggfnoid))
 	{
 		/* Prepare COUNT Query */
-		Aggref	   *tempCount = copyObject((Aggref *) expr);
+		Aggref	   *tempCount = copyObject(aggref);
 		Aggref	   *tempSum;
 		Aggref	   *tempVar;
 
-		tempVar = copyObject(tempCount);
-		tempCount->aggfnoid = COUNT_OID;
-		tempSum = copyObject(tempCount);
-		tempSum->aggfnoid = SUM_OID;
+		tempVar = copyObject(aggref);
+		tempSum = copyObject(aggref);
+
 		if (aggref->aggtype == FLOAT4OID || aggref->aggtype == FLOAT8OID)
 		{
 			tempSum->aggfnoid = SUM_FLOAT8_OID;
@@ -463,11 +462,14 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 		}
 		else
 		{
+			tempSum->aggfnoid = SUM_INT4_OID;
 			tempSum->aggtype = INT8OID;
 			tempSum->aggtranstype = INT8OID;
 		}
+		tempCount->aggfnoid = COUNT_OID;
 		tempCount->aggtype = INT8OID;
 		tempCount->aggtranstype = INT8OID;
+
 		/* Prepare SUM Query */
 
 		tempVar->aggfnoid = VAR_OID;
@@ -579,6 +581,7 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 	}
 	else
 	{
+		/* Non split agg case */
 		TargetEntry *tle_temp;
 		TargetEntry *tle;
 
@@ -1891,7 +1894,6 @@ spd_makedivtlist(Aggref *aggref, List *newList, SpdFdwPrivate * fdw_private)
 								   false);
 		newList = lappend(newList, tle_temp);
 	}
-	elog(DEBUG1, "div tlist");
 	/* add original mapping list */
 	fdw_private->split_tlist = lappend_int(fdw_private->split_tlist, 1);
 	return newList;
@@ -1999,7 +2001,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = list_copy(newList);
 
 	/* pthread_mutex_unlock(&scan_mutex); */
-	elog(DEBUG1, "main upperpath add");
 	fdw_private->split_tlist = split_tlist;
 	fdw_private->childinfo = in_fdw_private->childinfo;
 	fdw_private->rinfo.pushdown_safe = false;
@@ -2892,16 +2893,14 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		if (childinfo[i].baserel == NULL)
 			break;
 		if (childinfo[i].child_node_status != ServerStatusAlive)
-		{
 			continue;
-		}
+
 		/* get child node's oid. */
 		server_oid = childinfo[i].server_oid;
 		entry = (RelOptInfo *) childinfo[i].baserel;
 		if (entry == NULL)
-		{
 			continue;
-		}
+
 		fdwroutine = GetFdwRoutineByServerId(server_oid);
 		if (list_member_oid(fdw_private->pPseudoAggPushList, server_oid) ||
 			list_member_oid(fdw_private->pPseudoAggList, server_oid))
@@ -2955,6 +2954,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			/* create plan */
 			if (childinfo[i].grouped_rel_local != NULL)
 			{
+				/* Push down case */
 				temp_obj = fdwroutine->GetForeignPlan(
 													  childinfo[i].grouped_root_local,
 													  childinfo[i].grouped_rel_local,
@@ -2966,6 +2966,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			}
 			else
 			{
+				/* Not push down case */
 				temptlist = (List *) build_physical_tlist(childinfo[i].root, childinfo[i].baserel);
 				childinfo[i].baserel->reltarget->exprs = temptlist;
 				temp_obj = fdwroutine->GetForeignPlan(
@@ -3446,7 +3447,6 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 		foreach(lc, mapping_tlist)
 		{
 			Mappingcells *mapcels = (Mappingcells *) lfirst(lc);
-			int			mapping;
 			Datum		attr;
 			char	   *value;
 			bool		isnull;
@@ -3456,8 +3456,7 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 
 			for (i = 0; i < MAXDIVNUM; i++)
 			{
-				mapping = mapcels->mapping_tlist.mapping[i];
-				if (colid != mapping)
+				if (colid != mapcels->mapping_tlist.mapping[i])
 					continue;
 
 				if (isfirst)
@@ -3800,7 +3799,6 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 					appendStringInfo(sql, "col%d", max_col);
 					continue;
 				}
-				elog(DEBUG1, "resname %s", agg_command);
 				if (!strcmpi(agg_command, "SUM") || !strcmpi(agg_command, "COUNT") || !strcmpi(agg_command, "AVG") || !strcmpi(agg_command, "VARIANCE") || !strcmpi(agg_command, "STDDEV"))
 					appendStringInfo(sql, "SUM(col%d)", max_col);
 				else if (!strcmpi(agg_command, "MAX") || !strcmpi(agg_command, "MIN") || !strcmpi(agg_command, "BIT_OR") || !strcmpi(agg_command, "BIT_AND") || !strcmpi(agg_command, "BOOL_AND") || !strcmpi(agg_command, "BOOL_OR") || !strcmpi(agg_command, "EVERY") || !strcmpi(agg_command, "STRING_AGG"))
@@ -3870,11 +3868,8 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist, ForeignScanThrea
 
 		for (i = 0; i < MAXDIVNUM; i++)
 		{
-			Mappingcell clist = cells->mapping_tlist;
-			int			mapping = clist.mapping[i];
-
 			/* append aggregate string */
-			if (colid == mapping)
+			if (colid == cells->mapping_tlist.mapping[i])
 			{
 				if (colid != 0)
 					appendStringInfo(create_sql, ",");
@@ -4097,7 +4092,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 #endif
 	if (fdw_private->nThreads == 0)
 		return NULL;
-	/* Get all the foreign nodes from conf file */
+
 	mapping_tlist = fdw_private->mapping_tlist;
 
 	/* CREATE TEMP TABLE SQL */
