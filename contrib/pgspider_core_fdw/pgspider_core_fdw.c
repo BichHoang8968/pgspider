@@ -567,7 +567,6 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 			}
 		}
 		mapcells->mapping_tlist.mapping[2] = target_num;
-		*mapping_tlist = lappend(*mapping_tlist, mapcells);
 	}
 	else
 	{
@@ -600,8 +599,8 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 		}
 		mapcells->mapping_tlist.aggtype = NOFLAG;
 		mapcells->mapping_tlist.mapping[0] = target_num;
-		*mapping_tlist = lappend(*mapping_tlist, mapcells);
 	}
+	*mapping_tlist = lappend(*mapping_tlist, mapcells);
 
 	return tlist;
 }
