@@ -256,7 +256,6 @@ typedef struct ChildInfo
  */
 typedef struct SpdFdwPrivate
 {
-	int			thrdsCreated;	/* child node thread is created or not */
 	int			node_num;		/* number of child tables */
 	bool		under_flag;		/* using UNDER clause or NOT */
 	ChildInfo  *childinfo;		/* ChildInfo List */
@@ -1945,7 +1944,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	 * zero clear
 	 */
 	fdw_private = spd_AllocatePrivate();
-	fdw_private->thrdsCreated = in_fdw_private->thrdsCreated;
 	fdw_private->node_num = in_fdw_private->node_num;
 	fdw_private->under_flag = in_fdw_private->under_flag;
 
@@ -4295,9 +4293,6 @@ spd_EndForeignScan(ForeignScanState *node)
 
 		MemoryContextDelete(fssThrdInfo[node_incr].threadMemoryContext);
 	}
-	if (fdw_private->thrdsCreated)
-		pfree(node->spd_fsstate);
-
 }
 
 /**
