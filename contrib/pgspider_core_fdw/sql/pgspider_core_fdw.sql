@@ -84,14 +84,7 @@ SELECT avg(i) FROM t1;
 -- crash
 -- SELECT avg(i),sum(i) FROM t1;
 
-
---wrong result and warning:
---SELECT sum(i),t FROM t1 WHERE i = 1 group by t ;
---WARNING:  problem in alloc set TopTransactionContext: detected write past chunk end in block 0x2557520, chunk 0x2558658
---  sum | t 
--- -----+---
---    1 | 
--- (1 row)
+SELECT sum(i),t FROM t1 WHERE i = 1 group by t;
 
 
 -- wrong result:
