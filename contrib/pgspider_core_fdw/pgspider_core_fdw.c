@@ -433,7 +433,16 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 	TargetEntry *tle;
 	Aggref	   *aggref;
 	Mappingcells *mapcells = (struct Mappingcells *) palloc0(sizeof(struct Mappingcells));
+	int			i;
 
+	mapcells->mapping_tlist.aggtype = -1;
+	mapcells->mapping_orig_tlist.aggtype = -1;
+	for (i = 0; i < MAXDIVNUM; i++)
+	{
+		/* these store 0-index, so initialize with -1 */
+		mapcells->mapping_tlist.mapping[i] = -1;
+		mapcells->mapping_orig_tlist.mapping[i] = -1;
+	}
 	aggref = (Aggref *) expr;
 	if (IS_SPLIT_AGG(aggref->aggfnoid))
 	{
