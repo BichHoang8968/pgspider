@@ -3098,10 +3098,9 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 								 * fssThrdInfo. */
 	ChildInfo  *childinfo;
 	int			i,
-				j = 0;
+				k;
 	Query	   *query;
 	RangeTblEntry *rte;
-	int			k;
 
 	/*
 	 * Register callback to query memory context to reset normalize id hash
@@ -4168,7 +4167,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 			fdw_private->isFirst = TRUE;
 			fdw_private->is_drop_temp_table = TRUE;
 		}
-	}							/* if (fdw_private->agg_query) */
+	}
 	else
 	{
 
