@@ -181,7 +181,7 @@ static void spd_EndForeignModify(EState *estate,
 
 static TargetEntry *spd_tlist_member(Expr *node, List *targetlist, int *target_num);
 
-static List *spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **mapping_orig_tlist, List **temp_tlist, int *child_uninum, Index sgref);
+static List *spd_add_to_flat_tlist(List *tlist, Expr *exprs, List **mapping_tlist, List **mapping_orig_tlist, List **temp_tlist, int *child_uninum, Index sgref);
 static void spd_spi_exec_child_ip(char *serverName, char *ip);
 
 enum SpdFdwScanPrivateIndex
@@ -423,191 +423,186 @@ spd_tlist_member(Expr *node, List *targetlist, int *target_num)
  */
 
 static List *
-spd_add_to_flat_tlist(List *tlist, List *exprs, List **mapping_tlist, List **mapping_orig_tlist, List **compress_tlist, int *child_uninum, Index sgref)
+spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
+					  List **mapping_orig_tlist, List **compress_tlist, int *child_uninum, Index sgref)
 {
 	int			next_resno = list_length(tlist) + 1;
 	int			next_resno_temp = list_length(*compress_tlist) + 1;
 	int			target_num = 0;
-	ListCell   *lc;
+	TargetEntry *tle_temp;
+	TargetEntry *tle;
+	Aggref	   *aggref;
+	Mappingcells *mapcells = (struct Mappingcells *) palloc0(sizeof(struct Mappingcells));
 
-	foreach(lc, exprs)
+	aggref = (Aggref *) expr;
+	if (IS_SPLIT_AGG(aggref->aggfnoid))
 	{
-		Expr	   *expr = (Expr *) lfirst(lc);
-		TargetEntry *tle_temp;
-		TargetEntry *tle;
-		Aggref	   *aggref;
-		Mappingcells *mapcells = (struct Mappingcells *) palloc0(sizeof(struct Mappingcells));
+		/* Prepare COUNT Query */
+		Aggref	   *tempCount = copyObject((Aggref *) expr);
+		Aggref	   *tempSum;
+		Aggref	   *tempVar;
 
-		aggref = (Aggref *) expr;
-		if (IS_SPLIT_AGG(aggref->aggfnoid))
+		tempVar = copyObject(tempCount);
+		tempCount->aggfnoid = COUNT_OID;
+		tempSum = copyObject(tempCount);
+		tempSum->aggfnoid = SUM_OID;
+		if (FLOAT4OID <= tempCount->aggtype || tempCount->aggtype <= FLOAT8OID)
 		{
-			/* Prepare COUNT Query */
-			Aggref	   *tempCount = copyObject((Aggref *) expr);
-			Aggref	   *tempSum;
-			Aggref	   *tempVar;
-
-			tempVar = copyObject(tempCount);
-			tempCount->aggfnoid = COUNT_OID;
-			tempSum = copyObject(tempCount);
-			tempSum->aggfnoid = SUM_OID;
-			if (FLOAT4OID <= tempCount->aggtype || tempCount->aggtype <= FLOAT8OID)
-			{
-				tempSum->aggfnoid = SUM_FLOAT8_OID;
-				tempSum->aggtype = FLOAT8OID;
-				tempSum->aggtranstype = FLOAT8OID;
-			}
-			else
-			{
-				tempSum->aggtype = INT8OID;
-				tempSum->aggtranstype = INT8OID;
-			}
-			tempCount->aggtype = INT8OID;
-			tempCount->aggtranstype = INT8OID;
-			/* Prepare SUM Query */
-
-			tempVar->aggfnoid = VAR_OID;
-
-			/* add original mapping list to avg,var,stddev */
-			if (!spd_tlist_member(expr, tlist, &target_num))
-			{
-				tle = makeTargetEntry(copyObject(expr),
-									  next_resno++,
-									  NULL,
-									  false);
-				tlist = lappend(tlist, tle);
-
-			}
-			mapcells->mapping_orig_tlist.mapping[0] = target_num;
-			/* set avg flag */
-			if (aggref->aggfnoid >= AVG_MIN_OID && aggref->aggfnoid <= AVG_MAX_OID)
-				mapcells->mapping_orig_tlist.aggtype = AVGFLAG;
-			else if (aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
-				mapcells->mapping_orig_tlist.aggtype = VARFLAG;
-			else if (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID)
-				mapcells->mapping_orig_tlist.aggtype = DEVFLAG;
-
-			/* count */
-			if (!spd_tlist_member((Expr *) tempCount, *compress_tlist, &target_num))
-			{
-				tle_temp = makeTargetEntry((Expr *) tempCount,
-										   next_resno_temp++,
-										   NULL,
-										   false);
-				*compress_tlist = lappend(*compress_tlist, tle_temp);
-				*child_uninum += 1;
-			}
-			mapcells->mapping_tlist.mapping[0] = target_num;
-			/* sum */
-			if (!spd_tlist_member((Expr *) tempSum, *compress_tlist, &target_num))
-			{
-				tle_temp = makeTargetEntry((Expr *) tempSum,
-										   next_resno_temp++,
-										   NULL,
-										   false);
-				*compress_tlist = lappend(*compress_tlist, tle_temp);
-				*child_uninum += 1;
-			}
-			mapcells->mapping_tlist.mapping[1] = target_num;
-			/* variance(SUM(x*x)) */
-			if ((aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
-				|| (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
-			{
-				if (!spd_tlist_member((Expr *) tempVar, *compress_tlist, &target_num))
-				{
-					TargetEntry *tarexpr;
-					TargetEntry *oparg = (TargetEntry *) tempVar->args->head->data.ptr_value;
-					Var		   *opvar = (Var *) oparg->expr;
-					OpExpr	   *opexpr = copyObject((OpExpr *) opvar);
-					OpExpr	   *opexpr2 = copyObject(opexpr);
-
-					opexpr->xpr.type = T_OpExpr;
-					opexpr->opretset = false;
-					opexpr->opcollid = 0;
-					opexpr->inputcollid = 0;
-					opexpr->location = 0;
-					opexpr->args = NULL;
-
-					/* Create top targetentry */
-					if (tempVar->aggtype <= INT4OID || tempVar->aggtype == NUMERICOID)
-					{
-						tempVar->aggtype = INT8OID;
-						tempVar->aggtranstype = INT8OID;
-						tempVar->aggfnoid = SUM_OID;
-						opexpr->opno = OPEXPER_OID;
-						opexpr->opfuncid = OPEXPER_FUNCID;
-						opexpr->opresulttype = INT8OID;
-					}
-					else
-					{
-						tempVar->aggtype = FLOAT8OID;
-						tempVar->aggtranstype = FLOAT8OID;
-						tempVar->aggfnoid = SUM_FLOAT8_OID;
-						opexpr->opresulttype = FLOAT8OID;
-						opexpr->opno = FLOAT8MUL_OID;
-						opexpr->opfuncid = FLOAT8MUL_FUNID;
-						opexpr->opresulttype = FLOAT8OID;
-					}
-					opexpr->args = lappend(opexpr->args, opvar);
-					opexpr->args = lappend(opexpr->args, opvar);
-					/* Create var targetentry */
-					tarexpr = makeTargetEntry((Expr *) opexpr,
-											  next_resno_temp,
-											  NULL,
-											  false);
-					opexpr2 = (OpExpr *) tarexpr->expr;
-					opexpr2->opretset = false;
-					opexpr2->opcollid = 0;
-					opexpr2->inputcollid = 0;
-					opexpr2->location = 0;
-					tarexpr->resno = 1;
-					tempVar->args = lappend(tempVar->args, tarexpr);
-					tempVar->args = list_delete_first(tempVar->args);
-					tle_temp = makeTargetEntry((Expr *) tempVar,
-											   next_resno_temp++,
-											   NULL,
-											   false);
-					*compress_tlist = lappend(*compress_tlist, tle_temp);
-					*child_uninum += 1;
-				}
-			}
-			mapcells->mapping_tlist.mapping[2] = target_num;
-			*mapping_tlist = lappend(*mapping_tlist, mapcells);
+			tempSum->aggfnoid = SUM_FLOAT8_OID;
+			tempSum->aggtype = FLOAT8OID;
+			tempSum->aggtranstype = FLOAT8OID;
 		}
 		else
 		{
-			Expr	   *expr = (Expr *) lfirst(lc);
-			TargetEntry *tle_temp;
-			TargetEntry *tle;
+			tempSum->aggtype = INT8OID;
+			tempSum->aggtranstype = INT8OID;
+		}
+		tempCount->aggtype = INT8OID;
+		tempCount->aggtranstype = INT8OID;
+		/* Prepare SUM Query */
 
-			/* original */
-			if (!spd_tlist_member(expr, tlist, &target_num))
+		tempVar->aggfnoid = VAR_OID;
+
+		/* add original mapping list to avg,var,stddev */
+		if (!spd_tlist_member(expr, tlist, &target_num))
+		{
+			tle = makeTargetEntry(copyObject(expr),
+								  next_resno++,
+								  NULL,
+								  false);
+			tlist = lappend(tlist, tle);
+
+		}
+		mapcells->mapping_orig_tlist.mapping[0] = target_num;
+		/* set avg flag */
+		if (aggref->aggfnoid >= AVG_MIN_OID && aggref->aggfnoid <= AVG_MAX_OID)
+			mapcells->mapping_orig_tlist.aggtype = AVGFLAG;
+		else if (aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
+			mapcells->mapping_orig_tlist.aggtype = VARFLAG;
+		else if (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID)
+			mapcells->mapping_orig_tlist.aggtype = DEVFLAG;
+
+		/* count */
+		if (!spd_tlist_member((Expr *) tempCount, *compress_tlist, &target_num))
+		{
+			tle_temp = makeTargetEntry((Expr *) tempCount,
+									   next_resno_temp++,
+									   NULL,
+									   false);
+			*compress_tlist = lappend(*compress_tlist, tle_temp);
+			*child_uninum += 1;
+		}
+		mapcells->mapping_tlist.mapping[0] = target_num;
+		/* sum */
+		if (!spd_tlist_member((Expr *) tempSum, *compress_tlist, &target_num))
+		{
+			tle_temp = makeTargetEntry((Expr *) tempSum,
+									   next_resno_temp++,
+									   NULL,
+									   false);
+			*compress_tlist = lappend(*compress_tlist, tle_temp);
+			*child_uninum += 1;
+		}
+		mapcells->mapping_tlist.mapping[1] = target_num;
+		/* variance(SUM(x*x)) */
+		if ((aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
+			|| (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
+		{
+			if (!spd_tlist_member((Expr *) tempVar, *compress_tlist, &target_num))
 			{
-				tle = makeTargetEntry(copyObject(expr),
-									  next_resno++,
-									  NULL,
-									  false);
-				tle->ressortgroupref = sgref;
-				tlist = lappend(tlist, tle);
-			}
-			/* append original target list */
-			mapcells->mapping_orig_tlist.aggtype = NOFLAG;
-			mapcells->mapping_orig_tlist.mapping[0] = target_num;
-			/* div tlist */
-			if (!spd_tlist_member(expr, *compress_tlist, &target_num))
-			{
-				tle_temp = makeTargetEntry(copyObject(expr),
+				TargetEntry *tarexpr;
+				TargetEntry *oparg = (TargetEntry *) tempVar->args->head->data.ptr_value;
+				Var		   *opvar = (Var *) oparg->expr;
+				OpExpr	   *opexpr = copyObject((OpExpr *) opvar);
+				OpExpr	   *opexpr2 = copyObject(opexpr);
+
+				opexpr->xpr.type = T_OpExpr;
+				opexpr->opretset = false;
+				opexpr->opcollid = 0;
+				opexpr->inputcollid = 0;
+				opexpr->location = 0;
+				opexpr->args = NULL;
+
+				/* Create top targetentry */
+				if (tempVar->aggtype <= INT4OID || tempVar->aggtype == NUMERICOID)
+				{
+					tempVar->aggtype = INT8OID;
+					tempVar->aggtranstype = INT8OID;
+					tempVar->aggfnoid = SUM_OID;
+					opexpr->opno = OPEXPER_OID;
+					opexpr->opfuncid = OPEXPER_FUNCID;
+					opexpr->opresulttype = INT8OID;
+				}
+				else
+				{
+					tempVar->aggtype = FLOAT8OID;
+					tempVar->aggtranstype = FLOAT8OID;
+					tempVar->aggfnoid = SUM_FLOAT8_OID;
+					opexpr->opresulttype = FLOAT8OID;
+					opexpr->opno = FLOAT8MUL_OID;
+					opexpr->opfuncid = FLOAT8MUL_FUNID;
+					opexpr->opresulttype = FLOAT8OID;
+				}
+				opexpr->args = lappend(opexpr->args, opvar);
+				opexpr->args = lappend(opexpr->args, opvar);
+				/* Create var targetentry */
+				tarexpr = makeTargetEntry((Expr *) opexpr,
+										  next_resno_temp,
+										  NULL,
+										  false);
+				opexpr2 = (OpExpr *) tarexpr->expr;
+				opexpr2->opretset = false;
+				opexpr2->opcollid = 0;
+				opexpr2->inputcollid = 0;
+				opexpr2->location = 0;
+				tarexpr->resno = 1;
+				tempVar->args = lappend(tempVar->args, tarexpr);
+				tempVar->args = list_delete_first(tempVar->args);
+				tle_temp = makeTargetEntry((Expr *) tempVar,
 										   next_resno_temp++,
 										   NULL,
 										   false);
-				tle_temp->ressortgroupref = sgref;
 				*compress_tlist = lappend(*compress_tlist, tle_temp);
 				*child_uninum += 1;
 			}
-			mapcells->mapping_tlist.aggtype = NOFLAG;
-			mapcells->mapping_tlist.mapping[0] = target_num;
-			*mapping_tlist = lappend(*mapping_tlist, mapcells);
 		}
+		mapcells->mapping_tlist.mapping[2] = target_num;
+		*mapping_tlist = lappend(*mapping_tlist, mapcells);
 	}
+	else
+	{
+		TargetEntry *tle_temp;
+		TargetEntry *tle;
+
+		/* original */
+		if (!spd_tlist_member(expr, tlist, &target_num))
+		{
+			tle = makeTargetEntry(copyObject(expr),
+								  next_resno++,
+								  NULL,
+								  false);
+			tle->ressortgroupref = sgref;
+			tlist = lappend(tlist, tle);
+		}
+		/* append original target list */
+		mapcells->mapping_orig_tlist.aggtype = NOFLAG;
+		mapcells->mapping_orig_tlist.mapping[0] = target_num;
+		/* div tlist */
+		if (!spd_tlist_member(expr, *compress_tlist, &target_num))
+		{
+			tle_temp = makeTargetEntry(copyObject(expr),
+									   next_resno_temp++,
+									   NULL,
+									   false);
+			tle_temp->ressortgroupref = sgref;
+			*compress_tlist = lappend(*compress_tlist, tle_temp);
+			*child_uninum += 1;
+		}
+		mapcells->mapping_tlist.aggtype = NOFLAG;
+		mapcells->mapping_tlist.mapping[0] = target_num;
+		*mapping_tlist = lappend(*mapping_tlist, mapcells);
+	}
+
 	return tlist;
 }
 
@@ -2268,7 +2263,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 				return false;
 			/* Pushable, add to tlist */
 			before_listnum = child_uninum;
-			tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
+			tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
 			if (child_uninum - before_listnum > 0)
 				groupby_cursor += child_uninum - before_listnum;
 			fpinfo->groupby_target = lappend_int(fpinfo->groupby_target, groupby_cursor - 1);
@@ -2281,7 +2276,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 				/* Pushable, add to tlist */
 				int			before_listnum = child_uninum;
 
-				tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
+				tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
 				if (child_uninum - before_listnum > 0)
 					groupby_cursor += child_uninum - before_listnum;
 			}
@@ -2321,7 +2316,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 					{
 						int			before_listnum = child_uninum;
 
-						tlist = spd_add_to_flat_tlist(tlist, list_make1(expr), &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
+						tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
 						i += child_uninum - before_listnum;
 						if (child_uninum - before_listnum > 0)
 							groupby_cursor += child_uninum - before_listnum;
