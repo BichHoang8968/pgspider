@@ -85,6 +85,11 @@ SELECT sum(i),t FROM t1 WHERE i = 1 group by t;
 
 SELECT avg(i),sum(i) FROM t1;
 
+SELECT sum(i),sum(i) FROM t1;
+
+-- crash
+-- SELECT avg(i),t FROM t1 group by t;
+-- CONTEXT:  Remote SQL command: SELECT count(i), sum(i), t FROM public.t1 GROUP BY 2
 
 -- wrong result:
 -- SELECT sum(i),t  FROM t1 group by t having sum(i) > 2;
