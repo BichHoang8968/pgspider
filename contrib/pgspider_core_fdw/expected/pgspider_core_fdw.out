@@ -340,12 +340,16 @@ SELECT avg(i) FROM t1;
  2.5
 (1 row)
 
--- crash
--- SELECT avg(i),sum(i) FROM t1;
-SELECT sum(i),t FROM t1 WHERE i = 1 group by t ;
+SELECT sum(i),t FROM t1 WHERE i = 1 group by t;
  sum | t 
 -----+---
    1 | a
+(1 row)
+
+SELECT avg(i),sum(i) FROM t1;
+ avg | sum 
+-----+-----
+ 2.5 |  10
 (1 row)
 
 -- wrong result:
