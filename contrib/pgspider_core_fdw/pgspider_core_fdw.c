@@ -230,13 +230,13 @@ typedef struct Mappingcell
 	 */
 	int			mapping[MAXDIVNUM];
 
-	enum Aggtype aggtype;
 }			Mappingcell;
 
 typedef struct Mappingcells
 {
 	Mappingcell mapping_tlist;	/* pgspider target list */
-	Mappingcell mapping_orig_tlist; /* original target list */
+	enum Aggtype aggtype;
+	int			original_attnum;	/* original attribute */
 }			Mappingcells;
 
 
@@ -448,7 +448,7 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 	{
 		/* these store 0-index, so initialize with -1 */
 		mapcells->mapping_tlist.mapping[i] = -1;
-		mapcells->mapping_orig_tlist.mapping[i] = -1;
+		mapcells->original_attnum = -1;
 	}
 	aggref = (Aggref *) expr;
 	if (IsA(expr, Aggref) &&IS_SPLIT_AGG(aggref->aggfnoid))
@@ -491,14 +491,14 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 			tlist = lappend(tlist, tle);
 
 		}
-		mapcells->mapping_orig_tlist.mapping[0] = target_num;
+		mapcells->original_attnum = target_num;
 		/* set avg flag */
 		if (aggref->aggfnoid >= AVG_MIN_OID && aggref->aggfnoid <= AVG_MAX_OID)
-			mapcells->mapping_orig_tlist.aggtype = AVGFLAG;
+			mapcells->aggtype = AVGFLAG;
 		else if (aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
-			mapcells->mapping_orig_tlist.aggtype = VARFLAG;
+			mapcells->aggtype = VARFLAG;
 		else if (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID)
-			mapcells->mapping_orig_tlist.aggtype = DEVFLAG;
+			mapcells->aggtype = DEVFLAG;
 
 		/* count */
 		if (!spd_tlist_member((Expr *) tempCount, *compress_tlist, &target_num))
@@ -604,11 +604,11 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 		}
 		/* append original target list */
 		if (IsA(expr, Aggref))
-			mapcells->mapping_orig_tlist.aggtype = NON_SPLIT_AGGFLAG;
+			mapcells->aggtype = NON_SPLIT_AGGFLAG;
 		else
-			mapcells->mapping_orig_tlist.aggtype = NONAGGFLAG;
+			mapcells->aggtype = NONAGGFLAG;
 
-		mapcells->mapping_orig_tlist.mapping[0] = target_num;
+		mapcells->original_attnum = target_num;
 		/* div tlist */
 		if (!spd_tlist_member(expr, *compress_tlist, &target_num))
 		{
@@ -3619,17 +3619,16 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 	foreach(lc, fdw_private->mapping_tlist)
 	{
 		Mappingcell clist;
-		Mappingcell clist_parent;
 		int			mapping;
-		int			mapping_parent;
 
 		mapcells = (Mappingcells *) lfirst(lc);
 		clist = mapcells->mapping_tlist;
-		clist_parent = mapcells->mapping_orig_tlist;
+
 		mapping = clist.mapping[0];
-		mapping_parent = clist_parent.mapping[0];
-		if (clist_parent.aggtype != NON_SPLIT_AGGFLAG &&
-			clist_parent.aggtype != NONAGGFLAG)
+		if (target_column != mapcells->original_attnum)
+			continue;
+		if (mapcells->aggtype != NON_SPLIT_AGGFLAG &&
+			mapcells->aggtype != NONAGGFLAG)
 		{
 			int			count_mapping = clist.mapping[0];
 			int			sum_mapping = clist.mapping[1];
@@ -3644,8 +3643,6 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 				nulls[target_column] = TRUE;
 			else
 			{
-				if (target_column != mapping_parent)
-					continue;
 
 				sum = datum_to_float8(fdw_private->agg_value_type[sum_mapping],
 									  fdw_private->agg_values[rowid][sum_mapping]);
@@ -3657,7 +3654,7 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 				if (cnt == 0)
 					elog(ERROR, "Record count is 0. Divide by zero error encountered.");
 
-				if (clist_parent.aggtype == AVGFLAG)
+				if (mapcells->aggtype == AVGFLAG)
 					result = sum / cnt;
 				else
 				{
@@ -3675,7 +3672,7 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 					right = sum2;
 					left = pow(sum, 2) / cnt;
 					result = (float8) (right - left) / (float8) (cnt - 1);
-					if (clist_parent.aggtype == DEVFLAG)
+					if (mapcells->aggtype == DEVFLAG)
 					{
 						float		var = 0.0;
 
@@ -3691,7 +3688,7 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 					ret_agg_values[target_column] = DirectFunctionCall1(float8_numeric, Float8GetDatumFast(result));
 			}
 		}
-		else if (target_column == mapping_parent)
+		else
 		{
 			Assert(mapping < fdw_private->temp_num_cols);
 			if (fdw_private->agg_nulls[rowid][mapping])
