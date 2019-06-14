@@ -205,7 +205,8 @@ enum SpdFdwModifyPrivateIndex
 
 enum Aggtype
 {
-	NOFLAG,
+	NONAGGFLAG,
+	NON_SPLIT_AGGFLAG,
 	AVGFLAG,
 	VARFLAG,
 	DEVFLAG,
@@ -220,7 +221,12 @@ enum SpdServerstatus
 
 typedef struct Mappingcell
 {
+	/*
+	 * store attribute number. mapping[0]:agg or non-split agg like
+	 * sum(x), mapping[1]:SUM(x), mapping[2]:SUM(x*sx)
+	 */
 	int			mapping[MAXDIVNUM];
+
 	enum Aggtype aggtype;
 }			Mappingcell;
 
@@ -435,8 +441,6 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 	Mappingcells *mapcells = (struct Mappingcells *) palloc0(sizeof(struct Mappingcells));
 	int			i;
 
-	mapcells->mapping_tlist.aggtype = -1;
-	mapcells->mapping_orig_tlist.aggtype = -1;
 	for (i = 0; i < MAXDIVNUM; i++)
 	{
 		/* these store 0-index, so initialize with -1 */
@@ -444,7 +448,7 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 		mapcells->mapping_orig_tlist.mapping[i] = -1;
 	}
 	aggref = (Aggref *) expr;
-	if (IS_SPLIT_AGG(aggref->aggfnoid))
+	if (IsA(expr, Aggref) &&IS_SPLIT_AGG(aggref->aggfnoid))
 	{
 		/* Prepare COUNT Query */
 		Aggref	   *tempCount = copyObject(aggref);
@@ -581,7 +585,7 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 	}
 	else
 	{
-		/* Non split agg case */
+		/* Non agg or non split agg such as sum or count */
 		TargetEntry *tle_temp;
 		TargetEntry *tle;
 
@@ -596,7 +600,11 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 			tlist = lappend(tlist, tle);
 		}
 		/* append original target list */
-		mapcells->mapping_orig_tlist.aggtype = NOFLAG;
+		if (IsA(expr, Aggref))
+			mapcells->mapping_orig_tlist.aggtype = NON_SPLIT_AGGFLAG;
+		else
+			mapcells->mapping_orig_tlist.aggtype = NONAGGFLAG;
+
 		mapcells->mapping_orig_tlist.mapping[0] = target_num;
 		/* div tlist */
 		if (!spd_tlist_member(expr, *compress_tlist, &target_num))
@@ -609,7 +617,6 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 			*compress_tlist = lappend(*compress_tlist, tle_temp);
 			*child_uninum += 1;
 		}
-		mapcells->mapping_tlist.aggtype = NOFLAG;
 		mapcells->mapping_tlist.mapping[0] = target_num;
 	}
 	*mapping_tlist = lappend(*mapping_tlist, mapcells);
@@ -2057,7 +2064,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				Expr	   *expr = (Expr *) lfirst(lc);
 
 				listn++;
-				if (IsA(expr, Aggref) && IS_SPLIT_AGG(castNode(Aggref, expr)->aggfnoid))
+				if (IsA(expr, Aggref) &&IS_SPLIT_AGG(castNode(Aggref, expr)->aggfnoid))
 				{
 					newList = spd_makedivtlist(castNode(Aggref, expr), newList, fdw_private);
 				}
@@ -3140,7 +3147,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		Relation	rd;
 		int			natts;
 		Form_pg_attribute *attrs;
-		TupleDesc	tupledesc;
 
 		/*
 		 * check child table node is dead or alive. Execute(Create child
@@ -3226,89 +3232,41 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		fssThrdInfo[node_incr].eflags = eflags;
 
 		/*
-		 * TODO: Should use CreateTemplateTupleDesc and
-		 * TupleDescInitBuiltinEntry
+		 * Create child descriptor using mapping_tlist and child
+		 * child_comp_tlist
 		 */
-		/* Modify child tuple descripter */
 		natts = node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->natts;
 		if (fdw_private->pPseudoAggPushList || fdw_private->pPseudoAggList)
 		{
-			int			parent_attr,	/* attribute number of parent */
-						child_attr; /* attribute number of child */
+			int			parent_attr = 0,	/* attribute number of parent */
+						child_attr = 0; /* attribute number of child */
+			ListCell   *lc;
+			TupleDesc	tupledesc = CreateTemplateTupleDesc(fdw_private->child_uninum, false);
 
-			/*
-			 * Extract attribute details. The tupledesc made here is just
-			 * transient.
-			 */
-			attrs = palloc0(fdw_private->child_uninum * sizeof(Form_pg_attribute));
+			Assert(list_length(fdw_private->mapping_tlist) == node->ss.ps.plan->targetlist->length);
 
-			for (parent_attr = 0, child_attr = 0; parent_attr < node->ss.ps.plan->targetlist->length;
-				 parent_attr++, child_attr++)
+			foreach(lc, fdw_private->mapping_tlist)
 			{
-				TargetEntry *target = (TargetEntry *) list_nth(node->ss.ps.plan->targetlist, parent_attr);
-				char	   *agg_command = target->resname;
+				Mappingcells *mapcels = (Mappingcells *) lfirst(lc);
+				int			j;
 
-				attrs[child_attr] = palloc(sizeof(FormData_pg_attribute));
-				memcpy(attrs[child_attr], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[parent_attr],
-					   sizeof(FormData_pg_attribute));
 
-				/*
-				 * Extend child tuple desc when avg,var,stddev operation is
-				 * occurred. AVG is divided SUM and COUNT, VAR and STDDEV are
-				 * divided SUM,COUNT,SUM(i*i)
-				 */
-				if (agg_command == NULL)
+				for (j = 0; j < MAXDIVNUM; j++)
+				{
+					if (child_attr != mapcels->mapping_tlist.mapping[j])
 					continue;
 
-				if (!strcmpi(agg_command, "AVG") || !strcmpi(agg_command, "VARIANCE") ||
-					!strcmpi(agg_command, "STDDEV"))
-				{
-					child_attr++;
-					attrs[child_attr] = palloc(sizeof(FormData_pg_attribute));
-					memcpy(attrs[child_attr], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[parent_attr],
-						   sizeof(FormData_pg_attribute));
-					Assert(child_attr - 1 >= 0 && child_attr < fdw_private->child_uninum);
-					if (attrs[child_attr]->atttypid <= INT8OID || attrs[child_attr]->atttypid == NUMERICOID)
-					{
-						attrs[child_attr - 1]->atttypid = INT8OID;
-						attrs[child_attr]->atttypid = INT8OID;
-						attrs[child_attr - 1]->attalign = 'd';
-						attrs[child_attr]->attalign = 'd';
-						attrs[child_attr - 1]->attlen = DOUBLE_LENGTH;
-						attrs[child_attr]->attlen = DOUBLE_LENGTH;
-						attrs[child_attr - 1]->attbyval = 1;
-						attrs[child_attr]->attbyval = 1;
-					}
-					else
-					{
-						attrs[child_attr - 1]->atttypid = INT4OID;
-						attrs[child_attr]->attlen = DOUBLE_LENGTH;
-						attrs[child_attr]->attalign = 'd';
-						attrs[child_attr]->atttypid = FLOAT8OID;
-					}
+					TargetEntry *ent = list_nth(fdw_private->child_comp_tlist, child_attr);
 
-					if (!strcmpi(agg_command, "VARIANCE") || !strcmpi(agg_command, "STDDEV"))
-					{
-						child_attr++;
-						attrs[child_attr] = palloc(sizeof(FormData_pg_attribute));
-						memcpy(attrs[child_attr], node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[parent_attr],
-							   sizeof(FormData_pg_attribute));
-						if (attrs[child_attr]->atttypid <= INT8OID || attrs[child_attr]->atttypid == NUMERICOID)
-						{
-							attrs[child_attr]->atttypid = INT8OID;
-						}
-						else
-						{
-							attrs[child_attr]->atttypid = FLOAT8OID;
-						}
-						attrs[child_attr]->attlen = DOUBLE_LENGTH;
-						attrs[child_attr]->attalign = 'd';
-						attrs[child_attr]->attbyval = 1;
+					TupleDescInitEntry(tupledesc, child_attr + 1, NULL, exprType((Aggref *) ent->expr), -1, 0);
+
+					child_attr++;
 					}
-				}
+				parent_attr++;
+
 			}
+			Assert(child_attr == fdw_private->child_uninum);
 			/* Construct TupleDesc, and assign a local typmod. */
-			tupledesc = CreateTupleDesc(fdw_private->child_uninum, true, attrs);
 			tupledesc = BlessTupleDesc(tupledesc);
 			natts = fdw_private->child_uninum;
 			fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
@@ -3668,7 +3626,8 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 		clist_parent = mapcells->mapping_orig_tlist;
 		mapping = clist.mapping[0];
 		mapping_parent = clist_parent.mapping[0];
-		if (clist_parent.aggtype != NOFLAG)
+		if (clist_parent.aggtype != NON_SPLIT_AGGFLAG &&
+			clist_parent.aggtype != NONAGGFLAG)
 		{
 			int			count_mapping = clist.mapping[0];
 			int			sum_mapping = clist.mapping[1];
