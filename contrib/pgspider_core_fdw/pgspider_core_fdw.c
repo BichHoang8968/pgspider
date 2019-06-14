@@ -35,6 +35,7 @@ PG_MODULE_MAGIC;
 #include "executor/nodeAgg.h"
 #include "miscadmin.h"
 #include "nodes/execnodes.h"
+#include "nodes/nodeFuncs.h"
 #include "nodes/nodes.h"
 #include "nodes/pg_list.h"
 #include "nodes/plannodes.h"
@@ -74,10 +75,12 @@ PG_MODULE_MAGIC;
 #define QUERY_LENGTH 512
 #define MAX_URL_LENGTH	256
 
+/* See pg_proc.h or pg_aggregate.h */
 #define COUNT_OID 2147
 #define SUM_OID 2108
 #define STD_OID 2155
 #define VAR_OID 2148
+
 #define AVG_MIN_OID 2100
 #define AVG_MAX_OID 2106
 #define VAR_MIN_OID 2148
@@ -222,8 +225,8 @@ enum SpdServerstatus
 typedef struct Mappingcell
 {
 	/*
-	 * store attribute number. mapping[0]:agg or non-split agg like
-	 * sum(x), mapping[1]:SUM(x), mapping[2]:SUM(x*sx)
+	 * store attribute number. mapping[0]:agg or non-split agg like sum(x),
+	 * mapping[1]:SUM(x), mapping[2]:SUM(x*sx)
 	 */
 	int			mapping[MAXDIVNUM];
 
@@ -3146,7 +3149,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	{
 		Relation	rd;
 		int			natts;
-		Form_pg_attribute *attrs;
 
 		/*
 		 * check child table node is dead or alive. Execute(Create child
@@ -3253,15 +3255,15 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 				for (j = 0; j < MAXDIVNUM; j++)
 				{
+					TargetEntry *ent;
+
 					if (child_attr != mapcels->mapping_tlist.mapping[j])
-					continue;
+						continue;
 
-					TargetEntry *ent = list_nth(fdw_private->child_comp_tlist, child_attr);
-
-					TupleDescInitEntry(tupledesc, child_attr + 1, NULL, exprType((Aggref *) ent->expr), -1, 0);
-
+					ent = list_nth(fdw_private->child_comp_tlist, child_attr);
+					TupleDescInitEntry(tupledesc, child_attr + 1, NULL, exprType((Node *) ent->expr), -1, 0);
 					child_attr++;
-					}
+				}
 				parent_attr++;
 
 			}
