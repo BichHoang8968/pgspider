@@ -181,7 +181,7 @@ static void spd_EndForeignModify(EState *estate,
 
 static TargetEntry *spd_tlist_member(Expr *node, List *targetlist, int *target_num);
 
-static List *spd_add_to_flat_tlist(List *tlist, Expr *exprs, List **mapping_tlist, List **mapping_orig_tlist, List **temp_tlist, int *child_uninum, Index sgref);
+static List *spd_add_to_flat_tlist(List *tlist, Expr *exprs, List **mapping_tlist, List **temp_tlist, int *child_uninum, Index sgref);
 static void spd_spi_exec_child_ip(char *serverName, char *ip);
 
 enum SpdFdwScanPrivateIndex
@@ -424,7 +424,7 @@ spd_tlist_member(Expr *node, List *targetlist, int *target_num)
 
 static List *
 spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
-					  List **mapping_orig_tlist, List **compress_tlist, int *child_uninum, Index sgref)
+					  List **compress_tlist, int *child_uninum, Index sgref)
 {
 	int			next_resno = list_length(tlist) + 1;
 	int			next_resno_temp = list_length(*compress_tlist) + 1;
@@ -2208,7 +2208,6 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 	int			groupby_cursor = 0;
 	List	   *tlist = NIL;
 	List	   *mapping_tlist = NIL;
-	List	   *mapping_orig_tlist = NIL;
 	List	   *temp_tlist = NIL;
 
 	/* Grouping Sets are not pushable */
@@ -2264,7 +2263,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 				return false;
 			/* Pushable, add to tlist */
 			before_listnum = child_uninum;
-			tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
+			tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &temp_tlist, &child_uninum, sgref);
 			if (child_uninum - before_listnum > 0)
 				groupby_cursor += child_uninum - before_listnum;
 			fpinfo->groupby_target = lappend_int(fpinfo->groupby_target, groupby_cursor - 1);
@@ -2277,7 +2276,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 				/* Pushable, add to tlist */
 				int			before_listnum = child_uninum;
 
-				tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
+				tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &temp_tlist, &child_uninum, sgref);
 				if (child_uninum - before_listnum > 0)
 					groupby_cursor += child_uninum - before_listnum;
 			}
@@ -2317,7 +2316,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 					{
 						int			before_listnum = child_uninum;
 
-						tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &mapping_orig_tlist, &temp_tlist, &child_uninum, sgref);
+						tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &temp_tlist, &child_uninum, sgref);
 						i += child_uninum - before_listnum;
 						if (child_uninum - before_listnum > 0)
 							groupby_cursor += child_uninum - before_listnum;
