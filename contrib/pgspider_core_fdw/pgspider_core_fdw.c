@@ -205,7 +205,7 @@ enum SpdFdwModifyPrivateIndex
 	/* Integer list of target attribute numbers for INSERT/UPDATE */
 	ServerOid
 };
-
+const char *AggtypeStr[] = {"non agg", "non split", "avg", "var", "dev"};
 enum Aggtype
 {
 	NONAGGFLAG,
@@ -373,6 +373,22 @@ pgspider_core_fdw_handler(PG_FUNCTION_ARGS)
 	fdwroutine->EndForeignModify = spd_EndForeignModify;
 
 	PG_RETURN_POINTER(fdwroutine);
+}
+
+static void
+print_mapping_tlist(List *mapping_tlist)
+{
+	ListCell   *lc;
+
+	foreach(lc, mapping_tlist)
+	{
+		Mappingcells *cells = lfirst(lc);
+		Mappingcell clist = cells->mapping_tlist;
+
+		elog(DEBUG1, "mapping_tlist (%d %d %d)/ original_attnum=%d  orig_tlist aggtype=\"%s\"",
+			 clist.mapping[0], clist.mapping[1], clist.mapping[2],
+			 cells->original_attnum, AggtypeStr[cells->aggtype]);
+	}
 }
 
 static int
@@ -3049,6 +3065,10 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	 * currently solution is 1.
 	 */
 	scan_clauses = extract_actual_clauses(scan_clauses, false);
+
+	/* for debug */
+	print_mapping_tlist(fdw_private->mapping_tlist);
+
 	return make_foreignscan(tlist,
 							scan_clauses,	/* scan_clauses, */
 	/* NULL, */
