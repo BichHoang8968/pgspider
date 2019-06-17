@@ -376,7 +376,7 @@ pgspider_core_fdw_handler(PG_FUNCTION_ARGS)
 }
 
 static void
-print_mapping_tlist(List *mapping_tlist)
+print_mapping_tlist(List *mapping_tlist, int loglevel)
 {
 	ListCell   *lc;
 
@@ -385,7 +385,7 @@ print_mapping_tlist(List *mapping_tlist)
 		Mappingcells *cells = lfirst(lc);
 		Mappingcell clist = cells->mapping_tlist;
 
-		elog(DEBUG1, "mapping_tlist (%d %d %d)/ original_attnum=%d  orig_tlist aggtype=\"%s\"",
+		elog(loglevel, "mapping_tlist (%d %d %d)/ original_attnum=%d  orig_tlist aggtype=\"%s\"",
 			 clist.mapping[0], clist.mapping[1], clist.mapping[2],
 			 cells->original_attnum, AggtypeStr[cells->aggtype]);
 	}
@@ -3067,7 +3067,8 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	scan_clauses = extract_actual_clauses(scan_clauses, false);
 
 	/* for debug */
-	print_mapping_tlist(fdw_private->mapping_tlist);
+	if (log_min_messages <= DEBUG1)
+		print_mapping_tlist(fdw_private->mapping_tlist, DEBUG1);
 
 	return make_foreignscan(tlist,
 							scan_clauses,	/* scan_clauses, */
