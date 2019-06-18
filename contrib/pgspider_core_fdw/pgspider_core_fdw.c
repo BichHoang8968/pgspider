@@ -2046,12 +2046,11 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			RelOptInfo *entry = childinfo[i].baserel;
 			PlannerInfo *dummy_root = childinfo[i].root;
 			RelOptInfo *dummy_output_rel;
-
+			Index	   *sortgrouprefs;
 			int			listn = 0;
 
 			dummy_root->parse->groupClause = root->parse->groupClause;
 			oid_server = spd_spi_exec_datasource_oid(rel_oid);
-			/* pthread_mutex_lock(&scan_mutex); */
 			fdwroutine = GetFdwRoutineByServerId(oid_server);
 			/* Currently dummy. @todo more better parsed object. */
 			dummy_root->parse->hasAggs = true;
@@ -2091,6 +2090,17 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				}
 			}
 			dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = list_copy(newList);
+
+			/* Fill sortgrouprefs for child using child target entry list*/
+			sortgrouprefs = palloc(sizeof(Index) * fdw_private->child_uninum);
+			listn = 0;
+			foreach(lc, fdw_private->child_comp_tlist)
+			{
+				TargetEntry *entry = (TargetEntry *) lfirst(lc);
+				sortgrouprefs[listn++] = entry->ressortgroupref;
+			}
+
+			dummy_root->upper_targets[UPPERREL_GROUP_AGG]->sortgrouprefs = sortgrouprefs;
 
 			if (fdwroutine->GetForeignUpperPaths != NULL)
 			{
