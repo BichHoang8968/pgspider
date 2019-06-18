@@ -2943,19 +2943,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		}
 		PG_TRY();
 		{
-			RelOptInfo *tmp = childinfo[i].baserel;
-			struct Path *tmp_path;
-
-			if (childinfo[i].grouped_rel_local != NULL)
-				tmp = childinfo[i].grouped_rel_local;
-			if (tmp->pathlist != NULL)
-			{
-				tmp_path = tmp->pathlist->head->data.ptr_value;
-				temptlist = PG_build_path_tlist((PlannerInfo *) childinfo[i].root, tmp_path);
-			}
-			else
-				tmp_path = (Path *) best_path;
-
 			/*
 			 * For can not aggregation pushdown FDW's. push down quals when
 			 * aggregation is occurred
@@ -2972,12 +2959,18 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			/* create plan */
 			if (childinfo[i].grouped_rel_local != NULL)
 			{
-				/* Push down case */
+				/* In this case, child fdw generated agg push down path */
+				struct Path *child_path;
+
+				Assert(childinfo[i].grouped_rel_local->pathlist);
+				/* Pick any agg path */
+				child_path = lfirst(list_head(childinfo[i].grouped_rel_local->pathlist));
+				temptlist = PG_build_path_tlist((PlannerInfo *) childinfo[i].root, child_path);
 				temp_obj = fdwroutine->GetForeignPlan(
 													  childinfo[i].grouped_root_local,
 													  childinfo[i].grouped_rel_local,
 													  oid[i],
-													  (ForeignPath *) tmp_path,
+													  (ForeignPath *) child_path,
 													  temptlist,
 													  push_scan_clauses,
 													  outer_plan);
@@ -2991,7 +2984,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 													  (PlannerInfo *) childinfo[i].root,
 													  (RelOptInfo *) childinfo[i].baserel,
 													  oid[i],
-													  (ForeignPath *) tmp_path,
+													  (ForeignPath *) best_path,
 													  temptlist,
 													  push_scan_clauses,
 													  outer_plan);
