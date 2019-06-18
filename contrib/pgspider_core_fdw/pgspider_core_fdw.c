@@ -271,8 +271,6 @@ typedef struct SpdFdwPrivate
 	List	   *url_parse_list; /* lieteral of parse UNDER clause */
 	pthread_t	foreign_scan_threads[NODES_MAX];	/* child node thread  */
 	PgFdwRelationInfo rinfo;	/* pgspider reration info */
-	List	   *pPseudoAggPushList; /* Enable of aggregation push down server
-									 * list */
 	List	   *pPseudoAggList; /* Disable of aggregation push down server
 								 * list */
 	List	   *pPseudoAggTypeList; /* Push down type list */
@@ -1974,7 +1972,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	fdw_private = spd_AllocatePrivate();
 	fdw_private->node_num = in_fdw_private->node_num;
 	fdw_private->under_flag = in_fdw_private->under_flag;
-
+	fdw_private->agg_query = true;
 	spd_root = in_fdw_private->spd_root;
 
 	/* Create child tlist */
@@ -2103,7 +2101,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				/* Push down aggregate case */
 				childinfo[i].grouped_root_local = dummy_root;
 				childinfo[i].grouped_rel_local = dummy_output_rel;
-				fdw_private->pPseudoAggPushList = lappend_oid(fdw_private->pPseudoAggPushList, oid_server);
 			}
 			else
 			{
@@ -2923,10 +2920,8 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			continue;
 
 		fdwroutine = GetFdwRoutineByServerId(server_oid);
-		if (list_member_oid(fdw_private->pPseudoAggPushList, server_oid) ||
-			list_member_oid(fdw_private->pPseudoAggList, server_oid))
+		if (fdw_private->agg_query)
 		{
-			fdw_private->agg_query = 1;
 			child_tlist = spd_createPushDownPlan(fdw_private->child_comp_tlist, &fdw_private->agg_query, fdw_private);
 		}
 		else
@@ -2936,7 +2931,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			 * dummy_root_list check for any other better way then this in
 			 * future
 			 */
-			fdw_private->agg_query = 0;
 			if (root->parse->groupClause != NULL)
 			{
 				((PlannerInfo *) childinfo[i].root)->parse->groupClause =
@@ -3255,7 +3249,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		 * child_comp_tlist
 		 */
 		natts = node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->natts;
-		if (fdw_private->pPseudoAggPushList || fdw_private->pPseudoAggList)
+		if (fdw_private->agg_query)
 		{
 			int			parent_attr = 0,	/* attribute number of parent */
 						child_attr = 0; /* attribute number of child */
@@ -3268,8 +3262,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			{
 				Mappingcells *mapcels = (Mappingcells *) lfirst(lc);
 				int			j;
-
-
 				for (j = 0; j < MAXDIVNUM; j++)
 				{
 					TargetEntry *ent;
@@ -3282,7 +3274,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 					child_attr++;
 				}
 				parent_attr++;
-
 			}
 			Assert(child_attr == fdw_private->child_uninum);
 			/* Construct TupleDesc, and assign a local typmod. */
