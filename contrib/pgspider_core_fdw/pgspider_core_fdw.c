@@ -2000,12 +2000,14 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 		if (root->upper_targets[i] != NULL)
 			fdw_private->child_tlist[i] = copy_pathtarget(root->upper_targets[i]);
 	}
+
+	/* Devide split agg */
 	foreach(lc, spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs)
 	{
 		Aggref	   *aggref;
 		Expr	   *temp_expr;
 
-		temp_expr = list_nth(fdw_private->child_tlist[UPPERREL_GROUP_AGG]->exprs, listn);
+		temp_expr = lfirst(lc);
 		aggref = (Aggref *) temp_expr;
 		listn++;
 		if (IS_SPLIT_AGG(aggref->aggfnoid))
@@ -2020,15 +2022,16 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	}
 	spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = list_copy(newList);
 
-	/* pthread_mutex_unlock(&scan_mutex); */
 	fdw_private->split_tlist = split_tlist;
 	fdw_private->childinfo = in_fdw_private->childinfo;
 	fdw_private->rinfo.pushdown_safe = false;
 	output_rel->fdw_private = fdw_private;
 	output_rel->relid = input_rel->relid;
+
+	/* Add parent agg path and create mapping_tlist */
 	add_foreign_grouping_paths(root, input_rel, output_rel);
 
-	/* Call the below FDW's GetForeignUpperPaths */
+	/* Call the child FDW's GetForeignUpperPaths */
 	if (in_fdw_private->childinfo != NULL)
 	{
 		Oid			oid_server;
