@@ -68,8 +68,8 @@ SELECT * FROM test1 under '/mysql_svr/' where i = 5 ORDER BY i,__spd_url;
 
 SELECT sum(i) FROM test1;
 
---crash:
---SELECT avg(i) FROM test1;
+SELECT avg(i) FROM test1;
+SELECT avg(i),i FROM test1 group by i order by i;
 
 CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS(table_name 't1');
@@ -89,6 +89,7 @@ SELECT avg(i),sum(i) FROM t1;
 SELECT sum(i),sum(i) FROM t1;
 
 SELECT avg(i),t FROM t1 group by t;
+SELECT avg(i) FROM t1 group by i;
 
 -- wrong result:
 -- SELECT sum(i),t  FROM t1 group by t having sum(i) > 2;
