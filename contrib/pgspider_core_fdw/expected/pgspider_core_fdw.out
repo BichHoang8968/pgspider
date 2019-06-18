@@ -300,10 +300,32 @@ SELECT sum(i) FROM test1;
  26443
 (1 row)
 
---crash:
---SELECT avg(i) FROM test1;
+SELECT avg(i) FROM test1;
+   avg    
+----------
+ 3305.375
+(1 row)
+
+SELECT avg(i),i FROM test1 group by i order by i;
+  avg  |   i   
+-------+-------
+     1 |     1
+   777 |   777
+  1111 |  1111
+ 22222 | 22222
+(4 rows)
+
 CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS(table_name 't1');
+SELECT * FROM t1;
+ i | t | __spd_url  
+---+---+------------
+ 1 | a | /post_svr/
+ 2 | b | /post_svr/
+ 3 | b | /post_svr/
+ 4 | c | /post_svr/
+(4 rows)
+
 SELECT sum(i),t FROM t1 group by t;
  sum | t 
 -----+---
@@ -358,9 +380,23 @@ SELECT sum(i),sum(i) FROM t1;
   10 |  10
 (1 row)
 
--- crash
--- SELECT avg(i),t FROM t1 group by t;
--- CONTEXT:  Remote SQL command: SELECT count(i), sum(i), t FROM public.t1 GROUP BY 2
+SELECT avg(i),t FROM t1 group by t;
+ avg | t 
+-----+---
+   1 | a
+ 2.5 | b
+   4 | c
+(3 rows)
+
+SELECT avg(i) FROM t1 group by i;
+ avg 
+-----
+   3
+   4
+   2
+   1
+(4 rows)
+
 -- wrong result:
 -- SELECT sum(i),t  FROM t1 group by t having sum(i) > 2;
 --  sum | t 
