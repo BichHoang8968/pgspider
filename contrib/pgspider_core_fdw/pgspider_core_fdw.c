@@ -1948,14 +1948,12 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	List	   *newList = NIL;
 	ListCell   *lc;
 	MemoryContext oldcontext;
-	RelOptInfo *output_rel_tmp = (RelOptInfo *) palloc0(sizeof(RelOptInfo));
 	PlannerInfo *spd_root;
 	int			i;
 	int			listn = 0;
 	RelOptInfo *dummy_output_rel;
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
-	output_rel_tmp = (RelOptInfo *) palloc0(sizeof(RelOptInfo));
 
 	/*
 	 * If input rel is not safe to pushdown, then simply return as we cannot
@@ -1968,7 +1966,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	if (stage != UPPERREL_GROUP_AGG || output_rel->fdw_private)
 		return;
 	in_fdw_private = (SpdFdwPrivate *) input_rel->fdw_private;
-	output_rel_tmp->fdw_private = (SpdFdwPrivate *) palloc0(sizeof(SpdFdwPrivate));
 
 	/*
 	 * Prepare SpdFdwPrivate for output RelOptInfo. spd_AllocatePrivate do
@@ -1981,7 +1978,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	spd_root = in_fdw_private->spd_root;
 
 	/* Create child tlist */
-
 
 	/* Currently dummy. @todo more better parsed object. */
 	spd_root->parse->hasAggs = true;
