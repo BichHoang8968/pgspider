@@ -397,6 +397,28 @@ SELECT avg(i) FROM t1 group by i;
    1
 (4 rows)
 
+CREATE FOREIGN TABLE t3 (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
+CREATE FOREIGN TABLE t3__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t2) FROM t3;
+ count 
+-------
+     3
+(1 row)
+
+SELECT count(i) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+DROP FOREIGN TABLE t3;
+DROP FOREIGN TABLE t3__mysql_svr__0;
 -- wrong result:
 -- SELECT sum(i),t  FROM t1 group by t having sum(i) > 2;
 --  sum | t 
