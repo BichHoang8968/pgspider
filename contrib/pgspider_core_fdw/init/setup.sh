@@ -6,7 +6,7 @@ rm /tmp/pgtest.db
 sqlite3 /tmp/pgtest.db < sqlite.dat
 
 # SET PASSWORD = PASSWORD('mysql')
-mysql -uroot -pmysql  < mysql.dat
+mysql -uroot -pMysql_1234 < mysql.dat
  
 # postgres should be already started with port=15432
 # pg_ctl -o "-p 15432" start -D data
