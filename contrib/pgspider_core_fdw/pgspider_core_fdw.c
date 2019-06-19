@@ -2465,11 +2465,8 @@ spd_ExplainForeignScan(ForeignScanState *node,
 		{
 			fsplan->fdw_private = ((ForeignScan *) childinfo[i].plan)->fdw_private;
 
-			/*
-			 * TODO: Call ExplainForeignScan. Now it cause crash because node
-			 * is not child plan
-			 */
-			/* fdwroutine->ExplainForeignScan(node, es); */
+			/* TODO : fix */
+			fdwroutine->ExplainForeignScan(node, es);
 			if (es->verbose)
 			{
 				char	   *buf = "NodeName";
