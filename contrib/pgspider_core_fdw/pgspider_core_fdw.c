@@ -3238,7 +3238,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_range_table = ((PlannerInfo *) childinfo[i].root)->parse->rtable;
 
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt = copyObject(node->ss.ps.state->es_plannedstmt);
-		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt->planTree = copyObject(fssThrdInfo[i].fsstate->ss.ps.plan);
+		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt->planTree = copyObject(fssThrdInfo[node_incr].fsstate->ss.ps.plan);
 
 		/* Allocate top memory context for each thread to avoid race condtion */
 		if (thread_top_contexts[node_incr] == NULL)
