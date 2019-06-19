@@ -249,7 +249,7 @@ typedef struct ChildInfo
 	enum SpdServerstatus child_node_status;
 	Oid			server_oid;		/* child table's server oid */
 	Oid			oid;			/* child table's table oid */
-	int scan_relid;
+	int			scan_relid;
 	AggPath    *aggpath;
 	PlannerInfo *grouped_root_local;
 	RelOptInfo *grouped_rel_local;
@@ -934,7 +934,7 @@ spd_ForeignScan_thread(void *arg)
 #endif
 	ErrorContextCallback errcallback;
 	SpdFdwPrivate *fdw_private = fssthrdInfo->private;
-	PlanState *result=NULL;
+	PlanState  *result = NULL;
 
 	CurrentResourceOwner = fssthrdInfo->thrd_ResourceOwner;
 	TopMemoryContext = fssthrdInfo->threadTopMemoryContext;
@@ -954,9 +954,15 @@ spd_ForeignScan_thread(void *arg)
 	PG_TRY();
 	{
 		SPD_LOCK_TRY(&scan_mutex);
-		if(!list_member_oid(fdw_private->pPseudoAggList, fssthrdInfo->serverId)){
-		fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
-												  fssthrdInfo->eflags);
+
+		/*
+		 * If Aggregation does not push down, then BeginForeignScan execute in
+		 * ExecInitNode
+		 */
+		if (!list_member_oid(fdw_private->pPseudoAggList, fssthrdInfo->serverId))
+		{
+			fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
+													  fssthrdInfo->eflags);
 		}
 		SPD_UNLOCK_CATCH(&scan_mutex);
 
@@ -1004,7 +1010,7 @@ RESCAN:
 	if (list_member_oid(fdw_private->pPseudoAggList, fssthrdInfo->serverId))
 	{
 		SPD_LOCK_TRY(&scan_mutex);
-		result = ExecInitNode((Plan *)fdw_private->childinfo[fssthrdInfo->childInfoIndex].pAgg,fssthrdInfo->fsstate->ss.ps.state,0);
+		result = ExecInitNode((Plan *) fdw_private->childinfo[fssthrdInfo->childInfoIndex].pAgg, fssthrdInfo->fsstate->ss.ps.state, 0);
 		SPD_UNLOCK_CATCH(&scan_mutex);
 	}
 	PG_TRY();
@@ -1032,7 +1038,7 @@ RESCAN:
 					 * pushdown source
 					 */
 					SPD_LOCK_TRY(&scan_mutex);
-					slot = SPI_execAgg((AggState *)result);
+					slot = SPI_execAgg((AggState *) result);
 					SPD_UNLOCK_CATCH(&scan_mutex);
 				}
 				else
@@ -1116,9 +1122,9 @@ RESCAN:
 			if (fssthrdInfo->EndFlag || errflag)
 			{
 				SPD_LOCK_TRY(&scan_mutex);
-				if(!list_member_oid(fdw_private->pPseudoAggList,
-									fssthrdInfo->serverId))
-				fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
+				if (!list_member_oid(fdw_private->pPseudoAggList,
+									 fssthrdInfo->serverId))
+					fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
 				SPD_UNLOCK_CATCH(&scan_mutex);
 				fssthrdInfo->EndFlag = false;
 				break;
@@ -2095,12 +2101,13 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			}
 			dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = list_copy(newList);
 
-			/* Fill sortgrouprefs for child using child target entry list*/
+			/* Fill sortgrouprefs for child using child target entry list */
 			sortgrouprefs = palloc(sizeof(Index) * fdw_private->child_uninum);
 			listn = 0;
 			foreach(lc, fdw_private->child_comp_tlist)
 			{
 				TargetEntry *entry = (TargetEntry *) lfirst(lc);
+
 				sortgrouprefs[listn++] = entry->ressortgroupref;
 			}
 
@@ -2623,12 +2630,14 @@ spd_expression_tree_walker(Node *node, int att)
 				Var		   *expr = (Var *) node;
 
 				expr->varno = OUTER_VAR;
-				if(att != 0){
-				expr->varattno = att;
-				att++;
+				if (att != 0)
+				{
+					expr->varattno = att;
+					att++;
 				}
-				else{
-					expr->varattno=expr->varoattno;
+				else
+				{
+					expr->varattno = expr->varoattno;
 				}
 				return true;
 			}
@@ -2739,7 +2748,7 @@ spd_expression_tree_walker(Node *node, int att)
  *
  */
 static List *
-spd_createPushDownPlan(List *tlist, int isPushdown, bool *agg_query, SpdFdwPrivate * fdw_private)
+spd_createPushDownPlan(List *tlist, bool isUnPushdown, SpdFdwPrivate * fdw_private)
 {
 
 	/*
@@ -2756,10 +2765,10 @@ spd_createPushDownPlan(List *tlist, int isPushdown, bool *agg_query, SpdFdwPriva
 	{
 		tle = lfirst_node(TargetEntry, lc);
 		aggref = (Aggref *) tle->expr;
-		if(isPushdown)
+		if (isUnPushdown)
 			spd_expression_tree_walker((Node *) aggref, 0);
 		else
-		spd_expression_tree_walker((Node *) aggref, 1);
+			spd_expression_tree_walker((Node *) aggref, 1);
 	}
 	return dummy_tlist;
 }
@@ -2947,10 +2956,10 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		fdwroutine = GetFdwRoutineByServerId(server_oid);
 		if (fdw_private->agg_query)
 		{
-		    if(list_member_oid(fdw_private->pPseudoAggList, server_oid))
-				child_tlist = spd_createPushDownPlan(fdw_private->child_comp_tlist, 1, &fdw_private->agg_query, fdw_private);
+			if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
+				child_tlist = spd_createPushDownPlan(fdw_private->child_comp_tlist, true, fdw_private);
 			else
-				child_tlist = spd_createPushDownPlan(fdw_private->child_comp_tlist, 0, &fdw_private->agg_query, fdw_private);
+				child_tlist = spd_createPushDownPlan(fdw_private->child_comp_tlist, false, fdw_private);
 		}
 		else
 		{
@@ -3232,7 +3241,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_range_table = ((PlannerInfo *) childinfo[i].root)->parse->rtable;
 
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt = copyObject(node->ss.ps.state->es_plannedstmt);
-		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt->planTree = copyObject(fssThrdInfo[node_incr].fsstate->ss.ps.plan);
+		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt->planTree = copyObject(fssThrdInfo[i].fsstate->ss.ps.plan);
 
 		/* Allocate top memory context for each thread to avoid race condtion */
 		if (thread_top_contexts[node_incr] == NULL)
@@ -3284,6 +3293,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			{
 				Mappingcells *mapcels = (Mappingcells *) lfirst(lc);
 				int			j;
+
 				for (j = 0; j < MAXDIVNUM; j++)
 				{
 					TargetEntry *ent;
