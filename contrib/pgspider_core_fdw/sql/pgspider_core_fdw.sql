@@ -39,7 +39,7 @@ SELECT * FROM test1 ORDER BY i,__spd_url;
 SELECT * FROM test1 UNDER '/sqlite_svr/' ORDER BY i,__spd_url;
 SELECT * FROM test1 under '/sqlite_svr/' where i = 4 ORDER BY i,__spd_url;
 CREATE SERVER mysql_svr FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
-CREATE USER mapping for public server mysql_svr OPTIONS(username 'root',password 'mysql');
+CREATE USER mapping for public server mysql_svr OPTIONS(username 'root',password 'Mysql_1234');
 CREATE FOREIGN TABLE test1__mysql_svr__0 (i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test1');
 SELECT * FROM test1 ORDER BY i,__spd_url;
 SELECT * FROM test1 UNDER '/mysql_svr/' ORDER BY i,__spd_url;
