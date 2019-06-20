@@ -90,6 +90,7 @@ pipeline {
                         pwd
                         rm -rf make_check.out || true
                         make check | tee make_check.out
+                        cat src/test/regress/regression.diffs || true
                     '''
                 }
                 // Check test result
@@ -115,6 +116,7 @@ pipeline {
                             chmod +x ./*.sh
                             chmod +x ./init/*.sh
                             ./test.sh
+                            cat regression.diff || true
                         '''
                     }
                     script {
