@@ -1658,6 +1658,7 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Oid *oid, int oid_nu
 				 */
 				childinfo[i].root = root;
 				childinfo[i].child_node_status = ServerStatusDead;
+				elog(WARNING, "GetForeignRelSize failed");
 				if (throwErrorIfDead)
 					spd_aliveError(fs);
 			}
@@ -2059,6 +2060,8 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			Index	   *sortgrouprefs;
 			int			listn = 0;
 
+			if (childinfo[i].child_node_status != ServerStatusAlive)
+				continue;
 			dummy_root->parse->groupClause = root->parse->groupClause;
 			oid_server = spd_spi_exec_datasource_oid(rel_oid);
 			fdwroutine = GetFdwRoutineByServerId(oid_server);
