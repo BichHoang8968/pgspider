@@ -397,6 +397,12 @@ SELECT avg(i) FROM t1 group by i;
    1
 (4 rows)
 
+SELECT * FROM (SELECT sum(i) FROM t1) A,(SELECT count(i) FROM t1) B;
+ sum | count 
+-----+-------
+  10 |     4
+(1 row)
+
 CREATE FOREIGN TABLE t3 (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t3__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
 SELECT count(t) FROM t3;
