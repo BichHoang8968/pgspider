@@ -300,6 +300,7 @@ typedef struct SpdFdwPrivate
 	Datum	   *ret_agg_values; /* result for groupby */
 	bool		is_drop_temp_table; /* drop temp table flag in aggregation */
 	int			temp_num_cols;	/* number of columns of temp table */
+	char	   *temp_table_name;	/* name of temp table */
 }			SpdFdwPrivate;
 
 /* postgresql.conf paramater */
@@ -314,6 +315,7 @@ typedef struct SpdFdwModifyState
 pthread_mutex_t scan_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t error_mutex = PTHREAD_MUTEX_INITIALIZER;
 static MemoryContext thread_top_contexts[NODES_MAX] = {NULL};
+static int64 temp_table_id = 0;
 static bool
 is_foreign_expr2(PlannerInfo *root, RelOptInfo *baserel, Expr *expr)
 {
@@ -3437,7 +3439,7 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 		ret = SPI_connect();
 		if (ret < 0)
 			elog(ERROR, "SPI connect failure - returned %d", ret);
-		appendStringInfo(sql, "INSERT INTO %s VALUES( ", AGGTEMPTABLE);
+		appendStringInfo(sql, "INSERT INTO %s VALUES( ", fdw_private->temp_table_name);
 		colid = 0;
 		mapping_tlist = fdw_private->mapping_tlist;
 		foreach(lc, mapping_tlist)
@@ -3818,7 +3820,7 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 	}
 
 	fdw_private->temp_num_cols = max_col;
-	appendStringInfo(sql, " FROM __spd__temptable ");
+	appendStringInfo(sql, " FROM %s ", fdw_private->temp_table_name);
 	/* group by clause */
 	if (fdw_private->groupby_string != 0)
 		appendStringInfo(sql, "%s", fdw_private->groupby_string->data);
@@ -3853,14 +3855,15 @@ spd_select_return_aggslot(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPr
 }
 
 static void
-spd_createtable_sql(StringInfo create_sql, List *mapping_tlist, ForeignScanThreadInfo * fssThrdInfo)
+spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
+					ForeignScanThreadInfo * fssThrdInfo, char *temp_table)
 {
 	ListCell   *lc;
 	int			colid = 0;
 	int			i;
 	int			typeid;
 
-	appendStringInfo(create_sql, "CREATE TEMP TABLE __spd__temptable(");
+	appendStringInfo(create_sql, "CREATE TEMP TABLE %s(", temp_table);
 	foreach(lc, mapping_tlist)
 	{
 		Mappingcells *cells = lfirst(lc);
@@ -4103,7 +4106,13 @@ spd_IterateForeignScan(ForeignScanState *node)
 
 			StringInfo	create_sql = makeStringInfo();
 
-			spd_createtable_sql(create_sql, mapping_tlist, fssThrdInfo);
+			/*
+			 * Use temp table name like __spd__temptable_(NUMBER) to avoid
+			 * using the same table in different foreign scan
+			 */
+			fdw_private->temp_table_name = psprintf(AGGTEMPTABLE "_" INT64_FORMAT,
+													temp_table_id++);
+			spd_createtable_sql(create_sql, mapping_tlist, fssThrdInfo, fdw_private->temp_table_name);
 			spd_spi_ddl_table(create_sql->data);
 			fdw_private->is_drop_temp_table = FALSE;
 
@@ -4152,7 +4161,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 			 * If all tupple getting is finished, then return NULL and drop
 			 * table
 			 */
-			spd_spi_ddl_table("DROP TABLE __spd__temptable");
+			spd_spi_ddl_table(psprintf("DROP TABLE %s", fdw_private->temp_table_name));
 			fdw_private->isFirst = TRUE;
 			fdw_private->is_drop_temp_table = TRUE;
 		}
@@ -4252,7 +4261,7 @@ spd_EndForeignScan(ForeignScanState *node)
 
 	if (fdw_private->is_drop_temp_table == FALSE)
 	{
-		spd_spi_ddl_table("DROP TABLE IF EXISTS __spd__temptable;");
+		spd_spi_ddl_table(psprintf("DROP TABLE IF EXISTS %s", fdw_private->temp_table_name));
 	}
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 	{
