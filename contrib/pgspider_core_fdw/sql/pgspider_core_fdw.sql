@@ -66,6 +66,8 @@ SELECT * FROM test1 UNDER '/mysql_svr/' ORDER BY i,__spd_url;
 SELECT * FROM test1 where i = 1 ORDER BY i,__spd_url;
 SELECT * FROM test1 under '/mysql_svr/' where i = 5 ORDER BY i,__spd_url;
 
+SELECT * FROM test1 UNION ALL SELECT * FROM test1 ORDER BY i,__spd_url;
+
 SELECT sum(i) FROM test1;
 
 SELECT avg(i) FROM test1;
@@ -128,9 +130,6 @@ SELECT a,i, __spd_url, t FROM t2 ORDER BY i,t,a,__spd_url;
 --ERROR:  SELECT column name attribute ONLY
 
 SELECT __spd_url,i FROM t2 WHERE __spd_url='/post_svr/' ORDER BY i LIMIT 1;
-
---Crash: 
---SELECT i FROM t2 UNION ALL SELECT i FROM test1;
 
 -- Keep alive test
 CREATE SERVER post_svr2 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '192.168.11.11',port '15432');

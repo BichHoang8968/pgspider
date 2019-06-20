@@ -294,6 +294,27 @@ SELECT * FROM test1 under '/mysql_svr/' where i = 5 ORDER BY i,__spd_url;
 ---+-----------
 (0 rows)
 
+SELECT * FROM test1 UNION ALL SELECT * FROM test1 ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /sqlite_svr/
+     1 | /sqlite_svr/
+     1 | /tiny_svr/
+     1 | /tiny_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+  1111 | /post_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
+ 22222 | /sqlite_svr/
+(16 rows)
+
 SELECT sum(i) FROM test1;
   sum  
 -------
@@ -503,8 +524,6 @@ SELECT __spd_url,i FROM t2 WHERE __spd_url='/post_svr/' ORDER BY i LIMIT 1;
  /post_svr/ | 1
 (1 row)
 
---Crash: 
---SELECT i FROM t2 UNION ALL SELECT i FROM test1;
 -- Keep alive test
 CREATE SERVER post_svr2 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '192.168.11.11',port '15432');
 CREATE USER mapping for public server post_svr2 OPTIONS(user 'postgres',password 'postgres');

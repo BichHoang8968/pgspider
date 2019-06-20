@@ -1788,7 +1788,8 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 
 	for (int i = 0; i < nums; i++)
 		fdw_private->childinfo[i].oid = oid[i];
-	Assert(baserel->reloptkind == RELOPT_BASEREL);
+
+	Assert(IS_SIMPLE_REL(baserel));
 	r_entry = root->simple_rte_array[baserel->relid];
 	Assert(r_entry != NULL);
 
