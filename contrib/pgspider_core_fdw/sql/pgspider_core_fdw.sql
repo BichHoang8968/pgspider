@@ -90,6 +90,12 @@ SELECT avg(i) FROM t1 group by i;
 
 SELECT * FROM (SELECT sum(i) FROM t1) A,(SELECT count(i) FROM t1) B;
 
+PREPARE stmt AS SELECT * FROM t1;
+-- First time is OK
+EXECUTE stmt;
+-- second time is crash :invalid memory alloc
+-- EXECUTE stmt;
+
 CREATE FOREIGN TABLE t3 (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t3__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
 
@@ -125,9 +131,8 @@ CREATE FOREIGN TABLE t2__post_svr__3 (i int, t text,a text) SERVER post_svr OPTI
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 SELECT a,i, __spd_url, t FROM t2 ORDER BY i,t,a,__spd_url;
 
-
---SELECT __spd_url FROM t2 WHERE __spd_url='/post_svr/';
---ERROR:  SELECT column name attribute ONLY
+--expected error
+SELECT __spd_url FROM t2 WHERE __spd_url='/post_svr/';
 
 SELECT __spd_url,i FROM t2 WHERE __spd_url='/post_svr/' ORDER BY i LIMIT 1;
 
