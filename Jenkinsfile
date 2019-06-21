@@ -130,7 +130,7 @@ pipeline {
                             unstable(message: "Set UNSTABLE result")
                             // Send email and attach test results
                             emailext subject: '[CI PGSpider] pgspider_core_fdw Test FAILED ' + BRANCH_NAME, body: BUILD_INFO + "\nGit commit: " + env.GIT_URL.replace(".git", "/commit/") + env.GIT_COMMIT + "\n" + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
-                            sh 'cat regression.diff || true'
+                            sh 'cat regression.diffs || true'
                         }
                     }
                 }
