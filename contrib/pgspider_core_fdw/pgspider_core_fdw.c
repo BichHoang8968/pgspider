@@ -2897,19 +2897,15 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		foreach(lc, fdw_private->groupby_target)
 		{
 			int			cl = lfirst_int(lc);
-			char	   *colname = NULL;
 
 			if (!first)
 				appendStringInfoString(fdw_private->groupby_string, ", ");
 			first = false;
 
-			appendStringInfoString(fdw_private->groupby_string, "(");
-
-			colname = psprintf("col%d", cl);
-			appendStringInfoString(fdw_private->groupby_string, colname);
-			appendStringInfoString(fdw_private->groupby_string, ")");
+			appendStringInfo(fdw_private->groupby_string, "col%d", cl);
 		}
 	}
+
 	childinfo = fdw_private->childinfo;
 	/* Create Foreign Plans using base_rel_list to each child. */
 	for (i = 0; i < fdw_private->node_num; i++)
