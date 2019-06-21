@@ -177,7 +177,7 @@ SELECT a,i, __spd_url, t FROM t2 ORDER BY i,t,a,__spd_url;
 SELECT __spd_url,i FROM t2 WHERE __spd_url='/post_svr/' ORDER BY i LIMIT 1;
 
 -- Keep alive test
-CREATE SERVER post_svr2 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1',port '35432');
+CREATE SERVER post_svr2 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1',port '49503');
 CREATE USER mapping for public server post_svr2 OPTIONS(user 'postgres',password 'postgres');
 CREATE FOREIGN TABLE t2__post_svr2__0 (i int, t text,a text) SERVER post_svr2 OPTIONS(table_name 't2');
 INSERT INTO pg_spd_node_info VALUES(0,'post_svr','postgres_fdw','127.0.0.1');

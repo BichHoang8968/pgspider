@@ -902,7 +902,6 @@ static void
 spd_ErrorCb(void *arg)
 {
 	pthread_mutex_lock(&error_mutex);
-	EmitErrorReport();
 	pthread_mutex_unlock(&error_mutex);
 }
 
@@ -945,18 +944,19 @@ spd_ForeignScan_thread(void *arg)
 	gettimeofday(&s, NULL);
 #endif
 	/* Declare ereport/elog jump is not available. */
+ 
 	PG_exception_stack = NULL;
 	errcallback.callback = spd_ErrorCb;
 	errcallback.arg = NULL;
 	errcallback.previous = NULL;
 	error_context_stack = &errcallback;
 
+
 	/* Begin Foreign Scan */
 	fssthrdInfo->state = SPD_FS_STATE_BEGIN;
 	PG_TRY();
 	{
-		SPD_LOCK_TRY(&scan_mutex);
-
+		//SPD_LOCK_TRY(&scan_mutex);
 		/*
 		 * If Aggregation does not push down, then BeginForeignScan execute in
 		 * ExecInitNode
@@ -966,7 +966,7 @@ spd_ForeignScan_thread(void *arg)
 			fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
 													  fssthrdInfo->eflags);
 		}
-		SPD_UNLOCK_CATCH(&scan_mutex);
+		//SPD_UNLOCK_CATCH(&scan_mutex);
 
 #ifdef MEASURE_TIME
 		gettimeofday(&e, NULL);
@@ -975,7 +975,13 @@ spd_ForeignScan_thread(void *arg)
 	}
 	PG_CATCH();
 	{
-		errflag = 1;
+		errflag = true;
+		if (throwErrorIfDead){
+			//ForeignServer *fs;
+			//fs = GetForeignServer(fssthrdInfo->serverId);
+			//spd_aliveError(fs);
+		}
+		//FlushErrorState();
 		fssthrdInfo->state = SPD_FS_STATE_ERROR;
 	}
 	PG_END_TRY();
@@ -1665,7 +1671,7 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Oid *oid, int oid_nu
 				 * It should be clear Error stack.
 				 */
 				elog(WARNING, "GetForeignRelSize failed");
-				if (throwErrorIfDead)
+				if (throwErrorIfDead){
 					spd_aliveError(fs);
 					PG_RE_THROW();
 				}
@@ -4017,7 +4023,7 @@ spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *child_slo
   Return NULL if all threads are finished.
  */
 static TupleTableSlot *
-nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId)
+nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId, ChildInfo* childinfo)
 {
 	int			count = 0;
 	bool		all_thread_finished = true;
@@ -4045,6 +4051,9 @@ nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId)
 		{
 			/* no tuple yet, but the thread is running */
 			all_thread_finished = false;
+		}
+		else if(!fssThrdInfo[count].iFlag && fssThrdInfo[count].state == SPD_FS_STATE_ERROR){
+			    childinfo[count].child_node_status = ServerStatusDead;
 		}
 	}
 	Assert(false);
@@ -4110,7 +4119,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 			 */
 			for (;;)
 			{
-				slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count);
+				slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count,fdw_private->childinfo);
 				if (slot != NULL)
 					spd_spi_insert_table(slot, node, fdw_private);
 				else
@@ -4157,7 +4166,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 	else
 	{
 
-		slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count);
+		slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count, fdw_private->childinfo);
 		if (slot != NULL)
 			slot = spd_AddNodeColumn(fssThrdInfo, node->ss.ss_ScanTupleSlot, count, slot);
 
@@ -4277,6 +4286,15 @@ spd_EndForeignScan(ForeignScanState *node)
 		ResourceOwnerDelete(fssThrdInfo[node_incr].thrd_ResourceOwner);
 
 		MemoryContextDelete(fssThrdInfo[node_incr].threadMemoryContext);
+	}
+
+	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
+	{
+		if (throwErrorIfDead && fdw_private->childinfo[node_incr].child_node_status == ServerStatusDead){
+			ForeignServer *fs;
+			fs = GetForeignServer(fdw_private->childinfo[node_incr].server_oid);
+			spd_aliveError(fs);
+		}
 	}
 }
 
