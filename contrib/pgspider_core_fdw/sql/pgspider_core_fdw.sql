@@ -66,6 +66,11 @@ SELECT * FROM test1 UNDER '/mysql_svr/' ORDER BY i,__spd_url;
 SELECT * FROM test1 where i = 1 ORDER BY i,__spd_url;
 SELECT * FROM test1 under '/mysql_svr/' where i = 5 ORDER BY i,__spd_url;
 
+SELECT * FROM test1 UNION ALL SELECT * FROM test1 ORDER BY i,__spd_url;
+
+-- only __spd_url target list is OK
+SELECT __spd_url FROM test1 ORDER BY __spd_url;
+
 SELECT sum(i) FROM test1;
 
 SELECT avg(i) FROM test1;
@@ -79,17 +84,20 @@ SELECT sum(i),t,count(i) FROM t1 group by t;
 
 SELECT * FROM t1 WHERE i = 1;
 SELECT sum(i),t FROM t1 group by t;
-
 SELECT avg(i) FROM t1;
-
 SELECT sum(i),t FROM t1 WHERE i = 1 group by t;
-
 SELECT avg(i),sum(i) FROM t1;
-
 SELECT sum(i),sum(i) FROM t1;
-
 SELECT avg(i),t FROM t1 group by t;
 SELECT avg(i) FROM t1 group by i;
+
+SELECT * FROM (SELECT sum(i) FROM t1) A,(SELECT count(i) FROM t1) B;
+
+PREPARE stmt AS SELECT * FROM t1;
+-- First time is OK
+EXECUTE stmt;
+-- second time is crash :invalid memory alloc
+-- EXECUTE stmt;
 
 CREATE FOREIGN TABLE t3 (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t3__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
@@ -166,14 +174,7 @@ CREATE FOREIGN TABLE t2__post_svr__3 (i int, t text,a text) SERVER post_svr OPTI
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 SELECT a,i, __spd_url, t FROM t2 ORDER BY i,t,a,__spd_url;
 
-
---SELECT __spd_url FROM t2 WHERE __spd_url='/post_svr/';
---ERROR:  SELECT column name attribute ONLY
-
 SELECT __spd_url,i FROM t2 WHERE __spd_url='/post_svr/' ORDER BY i LIMIT 1;
-
---Crash: 
---SELECT i FROM t2 UNION ALL SELECT i FROM test1;
 
 -- Keep alive test
 CREATE SERVER post_svr2 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1',port '35432');

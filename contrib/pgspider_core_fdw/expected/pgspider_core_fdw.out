@@ -294,6 +294,41 @@ SELECT * FROM test1 under '/mysql_svr/' where i = 5 ORDER BY i,__spd_url;
 ---+-----------
 (0 rows)
 
+SELECT * FROM test1 UNION ALL SELECT * FROM test1 ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /sqlite_svr/
+     1 | /sqlite_svr/
+     1 | /tiny_svr/
+     1 | /tiny_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+  1111 | /post_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
+ 22222 | /sqlite_svr/
+(16 rows)
+
+-- only __spd_url target list is OK
+SELECT __spd_url FROM test1 ORDER BY __spd_url;
+  __spd_url   
+--------------
+ /mysql_svr/
+ /mysql_svr/
+ /mysql_svr/
+ /mysql_svr/
+ /post_svr/
+ /sqlite_svr/
+ /sqlite_svr/
+ /tiny_svr/
+(8 rows)
+
 SELECT sum(i) FROM test1;
   sum  
 -------
@@ -397,6 +432,25 @@ SELECT avg(i) FROM t1 group by i;
    1
 (4 rows)
 
+SELECT * FROM (SELECT sum(i) FROM t1) A,(SELECT count(i) FROM t1) B;
+ sum | count 
+-----+-------
+  10 |     4
+(1 row)
+
+PREPARE stmt AS SELECT * FROM t1;
+-- First time is OK
+EXECUTE stmt;
+ i | t | __spd_url  
+---+---+------------
+ 1 | a | /post_svr/
+ 2 | b | /post_svr/
+ 3 | b | /post_svr/
+ 4 | c | /post_svr/
+(4 rows)
+
+-- second time is crash :invalid memory alloc
+-- EXECUTE stmt;
 CREATE FOREIGN TABLE t3 (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t3__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
 SELECT count(t) FROM t3;
@@ -686,16 +740,12 @@ SELECT a,i, __spd_url, t FROM t2 ORDER BY i,t,a,__spd_url;
    |   | /post_svr/ | 
 (16 rows)
 
---SELECT __spd_url FROM t2 WHERE __spd_url='/post_svr/';
---ERROR:  SELECT column name attribute ONLY
 SELECT __spd_url,i FROM t2 WHERE __spd_url='/post_svr/' ORDER BY i LIMIT 1;
  __spd_url  | i 
 ------------+---
  /post_svr/ | 1
 (1 row)
 
---Crash: 
---SELECT i FROM t2 UNION ALL SELECT i FROM test1;
 -- Keep alive test
 CREATE SERVER post_svr2 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '192.168.11.11',port '15432');
 CREATE USER mapping for public server post_svr2 OPTIONS(user 'postgres',password 'postgres');
