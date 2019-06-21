@@ -2878,6 +2878,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	ListCell   *lc;
 	ChildInfo  *childinfo;
 	ForeignServer *fs;
+
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	if (fdw_private == NULL)
 		elog(ERROR, "fdw_private is NULL");
@@ -3448,6 +3449,11 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 				child_typid = fssThrdInfo[0].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[colid]->atttypid;
 				if (value != NULL)
 				{
+					if (child_typid == BOOLOID)
+						if (strcmp(value, "t") == 0)
+							value = "true";
+						else
+							value = "false";
 					if (child_typid == DATEOID || child_typid == TEXTOID || child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID)
 						appendStringInfo(sql, "'");
 					appendStringInfo(sql, "%s", value);
@@ -3874,6 +3880,8 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 					appendStringInfo(create_sql, " timestamp");
 				else if (typeid == TIMESTAMPTZOID)
 					appendStringInfo(create_sql, " timestamp with time zone");
+				else if (typeid == BOOLOID)
+					appendStringInfo(create_sql, " boolean");
 				else
 					appendStringInfo(create_sql, " numeric");
 				colid++;
