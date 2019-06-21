@@ -417,8 +417,205 @@ SELECT count(i) FROM t3;
      4
 (1 row)
 
+-- error stack test
+CREATE SERVER mysql_svr2 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
+CREATE USER mapping for public server mysql_svr2 OPTIONS(username 'root',password 'wrongpass');
+CREATE FOREIGN TABLE t3__mysql_svr2__0 (t text,t2 text,i int) SERVER mysql_svr2 OPTIONS(dbname 'test',table_name 'test3');
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
 DROP FOREIGN TABLE t3;
 DROP FOREIGN TABLE t3__mysql_svr__0;
+DROP FOREIGN TABLE t3__mysql_svr2__0;
 -- wrong result:
 -- SELECT sum(i),t  FROM t1 group by t having sum(i) > 2;
 --  sum | t 

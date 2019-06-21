@@ -1658,8 +1658,15 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Oid *oid, int oid_nu
 				 */
 				childinfo[i].root = root;
 				childinfo[i].child_node_status = ServerStatusDead;
-				if (throwErrorIfDead)
+				/*
+				 * If error is occurred, child node fdw does not output Error.
+				 * It should be clear Error stack.
+				 */
+				if (throwErrorIfDead){
 					spd_aliveError(fs);
+					PG_RE_THROW();
+				}
+				FlushErrorState();
 			}
 			PG_END_TRY();
 		}
@@ -2059,6 +2066,10 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			Index	   *sortgrouprefs;
 			int			listn = 0;
 
+			
+			if (childinfo[i].child_node_status != ServerStatusAlive)
+				continue;
+			
 			dummy_root->parse->groupClause = root->parse->groupClause;
 			oid_server = spd_spi_exec_datasource_oid(rel_oid);
 			fdwroutine = GetFdwRoutineByServerId(oid_server);
@@ -2106,9 +2117,9 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			listn = 0;
 			foreach(lc, fdw_private->child_comp_tlist)
 			{
-				TargetEntry *entry = (TargetEntry *) lfirst(lc);
+				TargetEntry *tmp_entry = (TargetEntry *) lfirst(lc);
 
-				sortgrouprefs[listn++] = entry->ressortgroupref;
+				sortgrouprefs[listn++] = tmp_entry->ressortgroupref;
 			}
 
 			dummy_root->upper_targets[UPPERREL_GROUP_AGG]->sortgrouprefs = sortgrouprefs;
@@ -2498,6 +2509,7 @@ spd_ExplainForeignScan(ForeignScanState *node,
 			 */
 			childinfo[i].child_node_status = ServerStatusDead;
 			elog(WARNING, "fdw ExplainForeignScan error is occurred.");
+			FlushErrorState();
 		}
 		PG_END_TRY();
 	}
@@ -2578,6 +2590,7 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 			childinfo[i].child_node_status = ServerStatusDead;
 
 			elog(WARNING, "Fdw GetForeignPaths error is occurred.");
+			FlushErrorState();
 			if (throwErrorIfDead)
 				spd_aliveError(fs);
 		}
@@ -3030,6 +3043,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			 */
 			childinfo[i].child_node_status = ServerStatusDead;
 			elog(WARNING, "dummy plan list failed ");
+			FlushErrorState();
 			if (throwErrorIfDead)
 			{
 				fs = GetForeignServer(childinfo[i].server_oid);

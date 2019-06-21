@@ -2,7 +2,7 @@ DELETE FROM pg_spd_node_info;
 --SELECT pg_sleep(15);
 CREATE EXTENSION pgspider_core_fdw;
 CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1',port '50849');
-CREATE USER mapping for public server pgspider_svr OPTIONS(user 'postgres',password 'postgres');
+CREATE USER mapping for public server mysql_svr OPTIONS(username 'root',password 'Mysql_1234');
 CREATE FOREIGN TABLE test1 (i int,__spd_url text) SERVER pgspider_svr;
 CREATE EXTENSION postgres_fdw;
 CREATE EXTENSION file_fdw;
@@ -39,7 +39,7 @@ SELECT * FROM test1 ORDER BY i,__spd_url;
 SELECT * FROM test1 UNDER '/sqlite_svr/' ORDER BY i,__spd_url;
 SELECT * FROM test1 under '/sqlite_svr/' where i = 4 ORDER BY i,__spd_url;
 CREATE SERVER mysql_svr FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
-CREATE USER mapping for public server mysql_svr OPTIONS(username 'root',password 'Mysql_1234');
+CREATE USER mapping for public server mysql_svr OPTIONS(username 'root',password 'mysql');
 CREATE FOREIGN TABLE test1__mysql_svr__0 (i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test1');
 SELECT * FROM test1 ORDER BY i,__spd_url;
 SELECT * FROM test1 UNDER '/mysql_svr/' ORDER BY i,__spd_url;
@@ -98,8 +98,48 @@ SELECT count(t) FROM t3;
 SELECT count(t2) FROM t3;
 SELECT count(i) FROM t3;
 
+
+-- error stack test
+CREATE SERVER mysql_svr2 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
+CREATE USER mapping for public server mysql_svr2 OPTIONS(username 'root',password 'wrongpass');
+CREATE FOREIGN TABLE t3__mysql_svr2__0 (t text,t2 text,i int) SERVER mysql_svr2 OPTIONS(dbname 'test',table_name 'test3');
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+SELECT count(t) FROM t3;
+
+
 DROP FOREIGN TABLE t3;
 DROP FOREIGN TABLE t3__mysql_svr__0;
+DROP FOREIGN TABLE t3__mysql_svr2__0;
 
 -- wrong result:
 -- SELECT sum(i),t  FROM t1 group by t having sum(i) > 2;
@@ -136,9 +176,9 @@ SELECT __spd_url,i FROM t2 WHERE __spd_url='/post_svr/' ORDER BY i LIMIT 1;
 --SELECT i FROM t2 UNION ALL SELECT i FROM test1;
 
 -- Keep alive test
-CREATE SERVER post_svr2 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '192.168.11.11',port '15432');
+CREATE SERVER post_svr2 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1',port '35432');
 CREATE USER mapping for public server post_svr2 OPTIONS(user 'postgres',password 'postgres');
-CREATE FOREIGN TABLE t2__post_svr2__0 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+CREATE FOREIGN TABLE t2__post_svr2__0 (i int, t text,a text) SERVER post_svr2 OPTIONS(table_name 't2');
 INSERT INTO pg_spd_node_info VALUES(0,'post_svr','postgres_fdw','127.0.0.1');
 INSERT INTO pg_spd_node_info VALUES(0,'post_svr2','postgres_fdw','127.0.0.1');
 SELECT pg_sleep(2);
@@ -178,4 +218,3 @@ DROP FOREIGN TABLE t1;
 DROP FOREIGN TABLE t2;
 DROP SERVER pgspider_svr;
 DROP EXTENSION pgspider_core_fdw CASCADE;
-
