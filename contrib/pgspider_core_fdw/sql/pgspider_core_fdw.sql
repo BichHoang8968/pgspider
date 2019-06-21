@@ -68,6 +68,9 @@ SELECT * FROM test1 under '/mysql_svr/' where i = 5 ORDER BY i,__spd_url;
 
 SELECT * FROM test1 UNION ALL SELECT * FROM test1 ORDER BY i,__spd_url;
 
+-- only __spd_url target list is OK
+SELECT __spd_url FROM test1 ORDER BY __spd_url;
+
 SELECT sum(i) FROM test1;
 
 SELECT avg(i) FROM test1;
@@ -130,9 +133,6 @@ CREATE FOREIGN TABLE t2__post_svr__2 (i int, t text,a text) SERVER post_svr OPTI
 CREATE FOREIGN TABLE t2__post_svr__3 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 SELECT a,i, __spd_url, t FROM t2 ORDER BY i,t,a,__spd_url;
-
---expected error
-SELECT __spd_url FROM t2 WHERE __spd_url='/post_svr/';
 
 SELECT __spd_url,i FROM t2 WHERE __spd_url='/post_svr/' ORDER BY i LIMIT 1;
 

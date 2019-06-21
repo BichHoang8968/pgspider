@@ -2884,29 +2884,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	if (fdw_private == NULL)
 		elog(ERROR, "fdw_private is NULL");
-	/* check column is Not Only "__spd_url" */
-	if (tlist)
-	{
-		if (tlist->length == 1)
-		{
-			tle = lfirst_node(TargetEntry, tlist->head);
-			if (IsA(tle->expr, Var))
-			{
-				Var		   *var = (Var *) tle->expr;
-				RangeTblEntry *rte;
-				char	   *colname;
-
-				rte = planner_rt_fetch(var->varno, root);
-				colname = get_relid_attribute_name(rte->relid, var->varattno);
-				if (strcmp(colname, SPDURL) == 0)
-				{
-					colname_tlist_length++;
-				}
-			}
-		}
-		if (tlist->length == colname_tlist_length)
-			elog(ERROR, "SELECT column name attribute ONLY");
-	}
 
 	spd_spi_exec_datasouce_num(foreigntableid, &nums, &oid);
 

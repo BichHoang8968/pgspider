@@ -315,6 +315,20 @@ SELECT * FROM test1 UNION ALL SELECT * FROM test1 ORDER BY i,__spd_url;
  22222 | /sqlite_svr/
 (16 rows)
 
+-- only __spd_url target list is OK
+SELECT __spd_url FROM test1 ORDER BY __spd_url;
+  __spd_url   
+--------------
+ /mysql_svr/
+ /mysql_svr/
+ /mysql_svr/
+ /mysql_svr/
+ /post_svr/
+ /sqlite_svr/
+ /sqlite_svr/
+ /tiny_svr/
+(8 rows)
+
 SELECT sum(i) FROM test1;
   sum  
 -------
@@ -529,9 +543,6 @@ SELECT a,i, __spd_url, t FROM t2 ORDER BY i,t,a,__spd_url;
    |   | /post_svr/ | 
 (16 rows)
 
---expected error
-SELECT __spd_url FROM t2 WHERE __spd_url='/post_svr/';
-ERROR:  SELECT column name attribute ONLY
 SELECT __spd_url,i FROM t2 WHERE __spd_url='/post_svr/' ORDER BY i LIMIT 1;
  __spd_url  | i 
 ------------+---
