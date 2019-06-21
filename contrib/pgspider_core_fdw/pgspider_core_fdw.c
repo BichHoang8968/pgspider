@@ -2876,11 +2876,8 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	List	   *child_tlist;
 	List	   *push_scan_clauses = scan_clauses;
 	ListCell   *lc;
-	int			colname_tlist_length = 0;
-	TargetEntry *tle;
 	ChildInfo  *childinfo;
 	ForeignServer *fs;
-
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	if (fdw_private == NULL)
 		elog(ERROR, "fdw_private is NULL");
