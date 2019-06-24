@@ -58,8 +58,11 @@ pipeline {
                 // Build fdw
                 dir("contrib/") {
                     // Build mysql_fdw 
-                    sh 'rm -rf mysql_fdw || true'
-                    git credentialsId: 'dac43358-2ffd-4a4b-b9c4-879554f2e1be', url: MYSQL_FDW_URL
+                    sh 'rm -rf mysql_fdw || true && mkdir mysql_fdw'
+                    dir("mysql_fdw") {
+                        git credentialsId: 'dac43358-2ffd-4a4b-b9c4-879554f2e1be', url: MYSQL_FDW_URL
+                        sh 'cp -a mysql_fdw/* ./ && rm -rf mysql_fdw'
+                    }
                     sh '''
                         cd mysql_fdw
                         make clean && make && make install
