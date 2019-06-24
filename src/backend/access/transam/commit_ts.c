@@ -15,7 +15,7 @@
  * re-perform the status update on redo; so we need make no additional XLOG
  * entry here.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/backend/access/transam/commit_ts.c
@@ -58,7 +58,7 @@ typedef struct CommitTimestampEntry
 {
 	TimestampTz time;
 	RepOriginId nodeid;
-}			CommitTimestampEntry;
+} CommitTimestampEntry;
 
 #define SizeOfCommitTimestampEntry (offsetof(CommitTimestampEntry, nodeid) + \
 									sizeof(RepOriginId))
@@ -94,7 +94,7 @@ typedef struct CommitTimestampShared
 	TransactionId xidLastCommit;
 	CommitTimestampEntry dataLastCommit;
 	bool		commitTsActive;
-}			CommitTimestampShared;
+} CommitTimestampShared;
 
 CommitTimestampShared *commitTsShared;
 
@@ -103,7 +103,7 @@ CommitTimestampShared *commitTsShared;
 bool		track_commit_timestamp;
 
 static void SetXidCommitTsInPage(TransactionId xid, int nsubxids,
-					 TransactionId * subxids, TimestampTz ts,
+					 TransactionId *subxids, TimestampTz ts,
 					 RepOriginId nodeid, int pageno);
 static void TransactionIdSetCommitTs(TransactionId xid, TimestampTz ts,
 						 RepOriginId nodeid, int slotno);
@@ -115,7 +115,7 @@ static void DeactivateCommitTs(void);
 static void WriteZeroPageXlogRec(int pageno);
 static void WriteTruncateXlogRec(int pageno, TransactionId oldestXid);
 static void WriteSetTimestampXlogRec(TransactionId mainxid, int nsubxids,
-						 TransactionId * subxids, TimestampTz timestamp,
+						 TransactionId *subxids, TimestampTz timestamp,
 						 RepOriginId nodeid);
 
 /*
@@ -143,7 +143,7 @@ static void WriteSetTimestampXlogRec(TransactionId mainxid, int nsubxids,
  */
 void
 TransactionTreeSetCommitTsData(TransactionId xid, int nsubxids,
-							   TransactionId * subxids, TimestampTz timestamp,
+							   TransactionId *subxids, TimestampTz timestamp,
 							   RepOriginId nodeid, bool write_xlog)
 {
 	int			i;
@@ -229,7 +229,7 @@ TransactionTreeSetCommitTsData(TransactionId xid, int nsubxids,
  */
 static void
 SetXidCommitTsInPage(TransactionId xid, int nsubxids,
-					 TransactionId * subxids, TimestampTz ts,
+					 TransactionId *subxids, TimestampTz ts,
 					 RepOriginId nodeid, int pageno)
 {
 	int			slotno;
@@ -279,8 +279,8 @@ TransactionIdSetCommitTs(TransactionId xid, TimestampTz ts,
  * null.
  */
 bool
-TransactionIdGetCommitTsData(TransactionId xid, TimestampTz * ts,
-							 RepOriginId * nodeid)
+TransactionIdGetCommitTsData(TransactionId xid, TimestampTz *ts,
+							 RepOriginId *nodeid)
 {
 	int			pageno = TransactionIdToCTsPage(xid);
 	int			entryno = TransactionIdToCTsEntry(xid);
@@ -365,7 +365,7 @@ TransactionIdGetCommitTsData(TransactionId xid, TimestampTz * ts,
  * as NULL if not wanted.
  */
 TransactionId
-GetLatestCommitTsData(TimestampTz * ts, RepOriginId * nodeid)
+GetLatestCommitTsData(TimestampTz *ts, RepOriginId *nodeid)
 {
 	TransactionId xid;
 
@@ -531,7 +531,7 @@ BootStrapCommitTs(void)
 
 /*
  * Initialize (or reinitialize) a page of CommitTs to zeroes.
- * If writeXlog is TRUE, also emit an XLOG record saying we did this.
+ * If writeXlog is true, also emit an XLOG record saying we did this.
  *
  * The page is not actually written, just set up in shared memory.
  * The slot number of the new page is returned.
@@ -573,10 +573,9 @@ CompleteCommitTsInitialization(void)
 	 * any leftover data.
 	 *
 	 * Conversely, we activate the module if the feature is enabled.  This is
-	 * not necessary in a master system because we already did it earlier, but
-	 * if we're in a standby server that got promoted which had the feature
-	 * enabled and was following a master that had the feature disabled, this
-	 * is where we turn it on locally.
+	 * necessary for primary and standby as the activation depends on the
+	 * control file contents at the beginning of recovery or when a
+	 * XLOG_PARAMETER_CHANGE is replayed.
 	 */
 	if (!track_commit_timestamp)
 		DeactivateCommitTs();
@@ -586,7 +585,7 @@ CompleteCommitTsInitialization(void)
 
 /*
  * Activate or deactivate CommitTs' upon reception of a XLOG_PARAMETER_CHANGE
- * XLog record in a standby.
+ * XLog record during recovery.
  */
 void
 CommitTsParameterChange(bool newvalue, bool oldvalue)
@@ -884,7 +883,8 @@ AdvanceOldestCommitTsXid(TransactionId oldestXact)
 
 
 /*
- * Decide which of two CLOG page numbers is "older" for truncation purposes.
+ * Decide which of two commitTS page numbers is "older" for truncation
+ * purposes.
  *
  * We need to use comparison of TransactionIds here in order to do the right
  * thing with wraparound XID arithmetic.  However, if we are asked about
@@ -939,7 +939,7 @@ WriteTruncateXlogRec(int pageno, TransactionId oldestXid)
  */
 static void
 WriteSetTimestampXlogRec(TransactionId mainxid, int nsubxids,
-						 TransactionId * subxids, TimestampTz timestamp,
+						 TransactionId *subxids, TimestampTz timestamp,
 						 RepOriginId nodeid)
 {
 	xl_commit_ts_set record;
@@ -960,7 +960,7 @@ WriteSetTimestampXlogRec(TransactionId mainxid, int nsubxids,
  * CommitTS resource manager's routines
  */
 void
-commit_ts_redo(XLogReaderState * record)
+commit_ts_redo(XLogReaderState *record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 

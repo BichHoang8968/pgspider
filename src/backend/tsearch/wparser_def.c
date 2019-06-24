@@ -3,7 +3,7 @@
  * wparser_def.c
  *		Default text search parser
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -194,7 +194,7 @@ typedef enum
 	TPS_InHyphenNumWordPart,
 	TPS_InHyphenUnsignedInt,
 	TPS_Null					/* last state (fake value) */
-}			TParserState;
+} TParserState;
 
 /* forward declaration */
 struct TParser;
@@ -212,7 +212,7 @@ typedef struct
 	TParserState tostate;
 	int			type;
 	TParserSpecial special;
-}			TParserStateActionItem;
+} TParserStateActionItem;
 
 /* Flag bits in TParserStateActionItem.flags */
 #define A_NEXT		0x0000
@@ -233,19 +233,17 @@ typedef struct TParserPosition
 	int			lenchartoken;	/* and in chars */
 	TParserState state;
 	struct TParserPosition *prev;
-	const		TParserStateActionItem *pushedAtAction;
-}			TParserPosition;
+	const TParserStateActionItem *pushedAtAction;
+} TParserPosition;
 
 typedef struct TParser
 {
 	/* string and position information */
 	char	   *str;			/* multibyte string */
 	int			lenstr;			/* length of mbstring */
-#ifdef USE_WIDE_UPPER_LOWER
 	wchar_t    *wstr;			/* wide character string */
 	pg_wchar   *pgwstr;			/* wide character string for C-locale */
 	bool		usewide;
-#endif
 
 	/* State of parse */
 	int			charmaxlen;
@@ -261,15 +259,15 @@ typedef struct TParser
 	int			lenbytetoken;
 	int			lenchartoken;
 	int			type;
-}			TParser;
+} TParser;
 
 
 /* forward decls here */
-static bool TParserGet(TParser * prs);
+static bool TParserGet(TParser *prs);
 
 
 static TParserPosition *
-newTParserPosition(TParserPosition * prev)
+newTParserPosition(TParserPosition *prev)
 {
 	TParserPosition *res = (TParserPosition *) palloc(sizeof(TParserPosition));
 
@@ -293,8 +291,6 @@ TParserInit(char *str, int len)
 	prs->charmaxlen = pg_database_encoding_max_length();
 	prs->str = str;
 	prs->lenstr = len;
-
-#ifdef USE_WIDE_UPPER_LOWER
 
 	/*
 	 * Use wide char code only when max encoding length > 1.
@@ -323,7 +319,6 @@ TParserInit(char *str, int len)
 	}
 	else
 		prs->usewide = false;
-#endif
 
 	prs->state = newTParserPosition(NULL);
 	prs->state->state = TPS_Base;
@@ -353,22 +348,19 @@ TParserInit(char *str, int len)
  * Obviously one must not close the original TParser before the copy.
  */
 static TParser *
-TParserCopyInit(const TParser * orig)
+TParserCopyInit(const TParser *orig)
 {
 	TParser    *prs = (TParser *) palloc0(sizeof(TParser));
 
 	prs->charmaxlen = orig->charmaxlen;
 	prs->str = orig->str + orig->state->posbyte;
 	prs->lenstr = orig->lenstr - orig->state->posbyte;
-
-#ifdef USE_WIDE_UPPER_LOWER
 	prs->usewide = orig->usewide;
 
 	if (orig->pgwstr)
 		prs->pgwstr = orig->pgwstr + orig->state->poschar;
 	if (orig->wstr)
 		prs->wstr = orig->wstr + orig->state->poschar;
-#endif
 
 	prs->state = newTParserPosition(NULL);
 	prs->state->state = TPS_Base;
@@ -383,7 +375,7 @@ TParserCopyInit(const TParser * orig)
 
 
 static void
-TParserClose(TParser * prs)
+TParserClose(TParser *prs)
 {
 	while (prs->state)
 	{
@@ -393,12 +385,10 @@ TParserClose(TParser * prs)
 		prs->state = ptr;
 	}
 
-#ifdef USE_WIDE_UPPER_LOWER
 	if (prs->wstr)
 		pfree(prs->wstr);
 	if (prs->pgwstr)
 		pfree(prs->pgwstr);
-#endif
 
 #ifdef WPARSER_TRACE
 	fprintf(stderr, "closing parser\n");
@@ -410,7 +400,7 @@ TParserClose(TParser * prs)
  * Close a parser created with TParserCopyInit
  */
 static void
-TParserCopyClose(TParser * prs)
+TParserCopyClose(TParser *prs)
 {
 	while (prs->state)
 	{
@@ -437,172 +427,88 @@ TParserCopyClose(TParser * prs)
  *	- if locale is C then we use pgwstr instead of wstr.
  */
 
-#ifdef USE_WIDE_UPPER_LOWER
-
-#define p_iswhat(type)														\
+#define p_iswhat(type, nonascii)											\
+																			\
 static int																	\
-p_is##type(TParser *prs) {													\
-	Assert( prs->state );													\
-	if ( prs->usewide )														\
+p_is##type(TParser *prs)													\
+{																			\
+	Assert(prs->state);														\
+	if (prs->usewide)														\
 	{																		\
-		if ( prs->pgwstr )													\
+		if (prs->pgwstr)													\
 		{																	\
 			unsigned int c = *(prs->pgwstr + prs->state->poschar);			\
-			if ( c > 0x7f )													\
-				return 0;													\
-			return is##type( c );											\
+			if (c > 0x7f)													\
+				return nonascii;											\
+			return is##type(c);												\
 		}																	\
-		return isw##type( *( prs->wstr + prs->state->poschar ) );			\
+		return isw##type(*(prs->wstr + prs->state->poschar));				\
 	}																		\
-																			\
-	return is##type( *(unsigned char*)( prs->str + prs->state->posbyte ) ); \
-}	\
+	return is##type(*(unsigned char *) (prs->str + prs->state->posbyte));	\
+}																			\
 																			\
 static int																	\
-p_isnot##type(TParser *prs) {												\
+p_isnot##type(TParser *prs)													\
+{																			\
 	return !p_is##type(prs);												\
 }
 
-static int
-p_isalnum(TParser * prs)
-{
-	Assert(prs->state);
-
-	if (prs->usewide)
-	{
-		if (prs->pgwstr)
-		{
-			unsigned int c = *(prs->pgwstr + prs->state->poschar);
-
-			/*
-			 * any non-ascii symbol with multibyte encoding with C-locale is
-			 * an alpha character
-			 */
-			if (c > 0x7f)
-				return 1;
-
-			return isalnum(c);
-		}
-
-		return iswalnum(*(prs->wstr + prs->state->poschar));
-	}
-
-	return isalnum(*(unsigned char *) (prs->str + prs->state->posbyte));
-}
-static int
-p_isnotalnum(TParser * prs)
-{
-	return !p_isalnum(prs);
-}
-
-static int
-p_isalpha(TParser * prs)
-{
-	Assert(prs->state);
-
-	if (prs->usewide)
-	{
-		if (prs->pgwstr)
-		{
-			unsigned int c = *(prs->pgwstr + prs->state->poschar);
-
-			/*
-			 * any non-ascii symbol with multibyte encoding with C-locale is
-			 * an alpha character
-			 */
-			if (c > 0x7f)
-				return 1;
-
-			return isalpha(c);
-		}
-
-		return iswalpha(*(prs->wstr + prs->state->poschar));
-	}
-
-	return isalpha(*(unsigned char *) (prs->str + prs->state->posbyte));
-}
-
-static int
-p_isnotalpha(TParser * prs)
-{
-	return !p_isalpha(prs);
-}
+/*
+ * In C locale with a multibyte encoding, any non-ASCII symbol is considered
+ * an alpha character, but not a member of other char classes.
+ */
+p_iswhat(alnum, 1)
+p_iswhat(alpha, 1)
+p_iswhat(digit, 0)
+p_iswhat(lower, 0)
+p_iswhat(print, 0)
+p_iswhat(punct, 0)
+p_iswhat(space, 0)
+p_iswhat(upper, 0)
+p_iswhat(xdigit, 0)
 
 /* p_iseq should be used only for ascii symbols */
 
 static int
-p_iseq(TParser * prs, char c)
+p_iseq(TParser *prs, char c)
 {
 	Assert(prs->state);
 	return ((prs->state->charlen == 1 && *(prs->str + prs->state->posbyte) == c)) ? 1 : 0;
 }
-#else							/* USE_WIDE_UPPER_LOWER */
-
-#define p_iswhat(type)														\
-static int																	\
-p_is##type(TParser *prs) {													\
-	Assert( prs->state );													\
-	return is##type( (unsigned char)*( prs->str + prs->state->posbyte ) );	\
-}	\
-																			\
-static int																	\
-p_isnot##type(TParser *prs) {												\
-	return !p_is##type(prs);												\
-}
-
 
 static int
-p_iseq(TParser * prs, char c)
-{
-	Assert(prs->state);
-	return (*(prs->str + prs->state->posbyte) == c) ? 1 : 0;
-}
-
-p_iswhat(alnum)
-p_iswhat(alpha)
-#endif							/* USE_WIDE_UPPER_LOWER */
-
-p_iswhat(digit)
-p_iswhat(lower)
-p_iswhat(print)
-p_iswhat(punct)
-p_iswhat(space)
-p_iswhat(upper)
-p_iswhat(xdigit)
-
-static int
-p_isEOF(TParser * prs)
+p_isEOF(TParser *prs)
 {
 	Assert(prs->state);
 	return (prs->state->posbyte == prs->lenstr || prs->state->charlen == 0) ? 1 : 0;
 }
 
 static int
-p_iseqC(TParser * prs)
+p_iseqC(TParser *prs)
 {
 	return p_iseq(prs, prs->c);
 }
 
 static int
-p_isneC(TParser * prs)
+p_isneC(TParser *prs)
 {
 	return !p_iseq(prs, prs->c);
 }
 
 static int
-p_isascii(TParser * prs)
+p_isascii(TParser *prs)
 {
 	return (prs->state->charlen == 1 && isascii((unsigned char) *(prs->str + prs->state->posbyte))) ? 1 : 0;
 }
 
 static int
-p_isasclet(TParser * prs)
+p_isasclet(TParser *prs)
 {
 	return (p_isascii(prs) && p_isalpha(prs)) ? 1 : 0;
 }
 
 static int
-p_isurlchar(TParser * prs)
+p_isurlchar(TParser *prs)
 {
 	char		ch;
 
@@ -661,7 +567,7 @@ _make_compiler_happy(void)
 
 
 static void
-SpecialTags(TParser * prs)
+SpecialTags(TParser *prs)
 {
 	switch (prs->state->lenchartoken)
 	{
@@ -685,7 +591,7 @@ SpecialTags(TParser * prs)
 }
 
 static void
-SpecialFURL(TParser * prs)
+SpecialFURL(TParser *prs)
 {
 	prs->wanthost = true;
 	prs->state->posbyte -= prs->state->lenbytetoken;
@@ -693,14 +599,14 @@ SpecialFURL(TParser * prs)
 }
 
 static void
-SpecialHyphen(TParser * prs)
+SpecialHyphen(TParser *prs)
 {
 	prs->state->posbyte -= prs->state->lenbytetoken;
 	prs->state->poschar -= prs->state->lenchartoken;
 }
 
 static void
-SpecialVerVersion(TParser * prs)
+SpecialVerVersion(TParser *prs)
 {
 	prs->state->posbyte -= prs->state->lenbytetoken;
 	prs->state->poschar -= prs->state->lenchartoken;
@@ -709,7 +615,7 @@ SpecialVerVersion(TParser * prs)
 }
 
 static int
-p_isstophost(TParser * prs)
+p_isstophost(TParser *prs)
 {
 	if (prs->wanthost)
 	{
@@ -720,13 +626,13 @@ p_isstophost(TParser * prs)
 }
 
 static int
-p_isignore(TParser * prs)
+p_isignore(TParser *prs)
 {
 	return (prs->ignore) ? 1 : 0;
 }
 
 static int
-p_ishost(TParser * prs)
+p_ishost(TParser *prs)
 {
 	TParser    *tmpprs = TParserCopyInit(prs);
 	int			res = 0;
@@ -748,7 +654,7 @@ p_ishost(TParser * prs)
 }
 
 static int
-p_isURLPath(TParser * prs)
+p_isURLPath(TParser *prs)
 {
 	TParser    *tmpprs = TParserCopyInit(prs);
 	int			res = 0;
@@ -777,15 +683,13 @@ p_isURLPath(TParser * prs)
  * In beginning of word they aren't a part of it.
  */
 static int
-p_isspecial(TParser * prs)
+p_isspecial(TParser *prs)
 {
 	/*
 	 * pg_dsplen could return -1 which means error or control character
 	 */
 	if (pg_dsplen(prs->str + prs->state->posbyte) == 0)
 		return 1;
-
-#ifdef USE_WIDE_UPPER_LOWER
 
 	/*
 	 * Unicode Characters in the 'Mark, Spacing Combining' Category That
@@ -1029,7 +933,7 @@ p_isspecial(TParser * prs)
 			0xAA34,				/* CHAM CONSONANT SIGN RA */
 			0xAA4D				/* CHAM CONSONANT SIGN FINAL H */
 		};
-		const		pg_wchar *StopLow = strange_letter,
+		const pg_wchar *StopLow = strange_letter,
 				   *StopHigh = strange_letter + lengthof(strange_letter),
 				   *StopMiddle;
 		pg_wchar	c;
@@ -1037,7 +941,7 @@ p_isspecial(TParser * prs)
 		if (prs->pgwstr)
 			c = *(prs->pgwstr + prs->state->poschar);
 		else
-			c = (pg_wchar) * (prs->wstr + prs->state->poschar);
+			c = (pg_wchar) *(prs->wstr + prs->state->poschar);
 
 		while (StopLow < StopHigh)
 		{
@@ -1050,7 +954,6 @@ p_isspecial(TParser * prs)
 				StopHigh = StopMiddle;
 		}
 	}
-#endif
 
 	return 0;
 }
@@ -1697,12 +1600,12 @@ static const TParserStateActionItem actionTPS_InHyphenUnsignedInt[] = {
  */
 typedef struct
 {
-	const		TParserStateActionItem *action; /* the actual state info */
+	const TParserStateActionItem *action;	/* the actual state info */
 	TParserState state;			/* only for Assert crosscheck */
 #ifdef WPARSER_TRACE
 	const char *state_name;		/* only for debug printout */
 #endif
-}			TParserStateAction;
+} TParserStateAction;
 
 #ifdef WPARSER_TRACE
 #define TPARSERSTATEACTION(state) \
@@ -1798,9 +1701,9 @@ static const TParserStateAction Actions[] = {
 
 
 static bool
-TParserGet(TParser * prs)
+TParserGet(TParser *prs)
 {
-	const		TParserStateActionItem *item = NULL;
+	const TParserStateActionItem *item = NULL;
 
 	Assert(prs->state);
 
@@ -2027,10 +1930,10 @@ typedef struct
 {
 	HeadlineWordEntry *words;
 	int			len;
-}			hlCheck;
+} hlCheck;
 
 static bool
-checkcondition_HL(void *opaque, QueryOperand * val, ExecPhraseData * data)
+checkcondition_HL(void *opaque, QueryOperand *val, ExecPhraseData *data)
 {
 	int			i;
 	hlCheck    *checkval = (hlCheck *) opaque;
@@ -2065,7 +1968,7 @@ checkcondition_HL(void *opaque, QueryOperand * val, ExecPhraseData * data)
 
 
 static bool
-hlCover(HeadlineParsedText * prs, TSQuery query, int *p, int *q)
+hlCover(HeadlineParsedText *prs, TSQuery query, int *p, int *q)
 {
 	int			i,
 				j;
@@ -2136,7 +2039,7 @@ hlCover(HeadlineParsedText * prs, TSQuery query, int *p, int *q)
 }
 
 static void
-mark_fragment(HeadlineParsedText * prs, int highlight, int startpos, int endpos)
+mark_fragment(HeadlineParsedText *prs, int highlight, int startpos, int endpos)
 {
 	int			i;
 
@@ -2169,10 +2072,10 @@ typedef struct
 	int32		curlen;
 	int16		in;
 	int16		excluded;
-}			CoverPos;
+} CoverPos;
 
 static void
-get_next_fragment(HeadlineParsedText * prs, int *startpos, int *endpos,
+get_next_fragment(HeadlineParsedText *prs, int *startpos, int *endpos,
 				  int *curlen, int *poslen, int max_words)
 {
 	int			i;
@@ -2217,7 +2120,7 @@ get_next_fragment(HeadlineParsedText * prs, int *startpos, int *endpos,
 }
 
 static void
-mark_hl_fragments(HeadlineParsedText * prs, TSQuery query, int highlight,
+mark_hl_fragments(HeadlineParsedText *prs, TSQuery query, int highlight,
 				  int shortword, int min_words,
 				  int max_words, int max_fragments)
 {
@@ -2388,7 +2291,7 @@ mark_hl_fragments(HeadlineParsedText * prs, TSQuery query, int highlight,
 }
 
 static void
-mark_hl_words(HeadlineParsedText * prs, TSQuery query, int highlight,
+mark_hl_words(HeadlineParsedText *prs, TSQuery query, int highlight,
 			  int shortword, int min_words, int max_words)
 {
 	int			p = 0,

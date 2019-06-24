@@ -3,7 +3,7 @@
  * sampling.h
  *	  definitions for sampling functions
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/sampling.h
@@ -33,9 +33,9 @@ typedef struct
 	BlockNumber t;				/* current block number */
 	int			m;				/* blocks selected so far */
 	SamplerRandomState randstate;	/* random generator state */
-}			BlockSamplerData;
+} BlockSamplerData;
 
-typedef BlockSamplerData * BlockSampler;
+typedef BlockSamplerData *BlockSampler;
 
 extern void BlockSampler_Init(BlockSampler bs, BlockNumber nblocks,
 				  int samplesize, long randseed);
@@ -48,9 +48,9 @@ typedef struct
 {
 	double		W;
 	SamplerRandomState randstate;	/* random generator state */
-}			ReservoirStateData;
+} ReservoirStateData;
 
-typedef ReservoirStateData * ReservoirState;
+typedef ReservoirStateData *ReservoirState;
 
 extern void reservoir_init_selection_state(ReservoirState rs, int n);
 extern double reservoir_get_next_S(ReservoirState rs, double t, int n);

@@ -3,7 +3,7 @@
  * wparser.c
  *		Standard interface to word parser
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -30,7 +30,7 @@ typedef struct
 {
 	int			cur;
 	LexDescr   *list;
-}			TSTokenTypeStorage;
+} TSTokenTypeStorage;
 
 /* state for ts_headline_json_* */
 typedef struct HeadlineJsonState
@@ -41,12 +41,12 @@ typedef struct HeadlineJsonState
 	TSQuery		query;
 	List	   *prsoptions;
 	bool		transformed;
-}			HeadlineJsonState;
+} HeadlineJsonState;
 
-static text * headline_json_value(void *_state, char *elem_value, int elem_len);
+static text *headline_json_value(void *_state, char *elem_value, int elem_len);
 
 static void
-tt_setup_firstcall(FuncCallContext * funcctx, Oid prsid)
+tt_setup_firstcall(FuncCallContext *funcctx, Oid prsid)
 {
 	TupleDesc	tupdesc;
 	MemoryContext oldcontext;
@@ -79,7 +79,7 @@ tt_setup_firstcall(FuncCallContext * funcctx, Oid prsid)
 }
 
 static Datum
-tt_process_call(FuncCallContext * funcctx)
+tt_process_call(FuncCallContext *funcctx)
 {
 	TSTokenTypeStorage *st;
 
@@ -156,18 +156,18 @@ typedef struct
 {
 	int			type;
 	char	   *lexeme;
-}			LexemeEntry;
+} LexemeEntry;
 
 typedef struct
 {
 	int			cur;
 	int			len;
 	LexemeEntry *list;
-}			PrsStorage;
+} PrsStorage;
 
 
 static void
-prs_setup_firstcall(FuncCallContext * funcctx, Oid prsid, text * txt)
+prs_setup_firstcall(FuncCallContext *funcctx, Oid prsid, text *txt)
 {
 	TupleDesc	tupdesc;
 	MemoryContext oldcontext;
@@ -223,7 +223,7 @@ prs_setup_firstcall(FuncCallContext * funcctx, Oid prsid, text * txt)
 }
 
 static Datum
-prs_process_call(FuncCallContext * funcctx)
+prs_process_call(FuncCallContext *funcctx)
 {
 	PrsStorage *st;
 
@@ -383,7 +383,7 @@ Datum
 ts_headline_jsonb_byid_opt(PG_FUNCTION_ARGS)
 {
 	Oid			tsconfig = PG_GETARG_OID(0);
-	Jsonb	   *jb = PG_GETARG_JSONB(1);
+	Jsonb	   *jb = PG_GETARG_JSONB_P(1);
 	TSQuery		query = PG_GETARG_TSQUERY(2);
 	text	   *opt = (PG_NARGS() > 3 && PG_GETARG_POINTER(3)) ? PG_GETARG_TEXT_P(3) : NULL;
 	Jsonb	   *out;
@@ -424,7 +424,7 @@ ts_headline_jsonb_byid_opt(PG_FUNCTION_ARGS)
 		pfree(prs.stopsel);
 	}
 
-	PG_RETURN_JSONB(out);
+	PG_RETURN_JSONB_P(out);
 }
 
 Datum

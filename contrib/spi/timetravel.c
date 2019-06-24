@@ -28,21 +28,21 @@ typedef struct
 {
 	char	   *ident;
 	SPIPlanPtr	splan;
-}			EPlan;
+} EPlan;
 
-static EPlan * Plans = NULL;	/* for UPDATE/DELETE */
+static EPlan *Plans = NULL;		/* for UPDATE/DELETE */
 static int	nPlans = 0;
 
 typedef struct _TTOffList
 {
 	struct _TTOffList *next;
 	char		name[FLEXIBLE_ARRAY_MEMBER];
-}			TTOffList;
+} TTOffList;
 
-static TTOffList * TTOff = NULL;
+static TTOffList *TTOff = NULL;
 
 static int	findTTStatus(char *name);
-static EPlan * find_plan(char *ident, EPlan * *eplan, int *nplans);
+static EPlan *find_plan(char *ident, EPlan **eplan, int *nplans);
 
 /*
  * timetravel () --
@@ -328,7 +328,7 @@ timetravel(PG_FUNCTION_ARGS)
 		for (i = 1; i <= natts; i++)
 		{
 			ctypes[i - 1] = SPI_gettypeid(tupdesc, i);
-			if (!(tupdesc->attrs[i - 1]->attisdropped)) /* skip dropped columns */
+			if (!(TupleDescAttr(tupdesc, i - 1)->attisdropped)) /* skip dropped columns */
 			{
 				snprintf(sql + strlen(sql), sizeof(sql) - strlen(sql), "%c$%d", separ, i);
 				separ = ',';
@@ -341,7 +341,7 @@ timetravel(PG_FUNCTION_ARGS)
 		/* Prepare plan for query */
 		pplan = SPI_prepare(sql, natts, ctypes);
 		if (pplan == NULL)
-			elog(ERROR, "timetravel (%s): SPI_prepare returned %d", relname, SPI_result);
+			elog(ERROR, "timetravel (%s): SPI_prepare returned %s", relname, SPI_result_code_string(SPI_result));
 
 		/*
 		 * Remember that SPI_prepare places plan in current memory context -
@@ -517,12 +517,12 @@ findTTStatus(char *name)
 AbsoluteTime
 currabstime()
 {
-	return (GetCurrentAbsoluteTime());
+	return GetCurrentAbsoluteTime();
 }
 */
 
 static EPlan *
-find_plan(char *ident, EPlan * *eplan, int *nplans)
+find_plan(char *ident, EPlan **eplan, int *nplans)
 {
 	EPlan	   *newp;
 	int			i;
@@ -549,5 +549,5 @@ find_plan(char *ident, EPlan * *eplan, int *nplans)
 	newp->splan = NULL;
 	(*nplans)++;
 
-	return (newp);
+	return newp;
 }

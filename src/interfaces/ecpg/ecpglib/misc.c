@@ -93,7 +93,7 @@ static pthread_mutex_t debug_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t debug_init_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 static int	simple_debug = 0;
-static FILE * debugstream = NULL;
+static FILE *debugstream = NULL;
 
 void
 ecpg_init_sqlca(struct sqlca_t *sqlca)
@@ -110,7 +110,7 @@ ecpg_init(const struct connection *con, const char *connection_name, const int l
 	{
 		ecpg_raise(lineno, ECPG_OUT_OF_MEMORY, ECPG_SQLSTATE_ECPG_OUT_OF_MEMORY,
 				   NULL);
-		return (false);
+		return false;
 	}
 
 	ecpg_init_sqlca(sqlca);
@@ -118,10 +118,10 @@ ecpg_init(const struct connection *con, const char *connection_name, const int l
 	{
 		ecpg_raise(lineno, ECPG_NO_CONN, ECPG_SQLSTATE_CONNECTION_DOES_NOT_EXIST,
 				   connection_name ? connection_name : ecpg_gettext("NULL"));
-		return (false);
+		return false;
 	}
 
-	return (true);
+	return true;
 }
 
 #ifdef ENABLE_THREAD_SAFETY
@@ -155,9 +155,9 @@ ECPGget_sqlca(void)
 		ecpg_init_sqlca(sqlca);
 		pthread_setspecific(sqlca_key, sqlca);
 	}
-	return (sqlca);
+	return sqlca;
 #else
-	return (&sqlca);
+	return &sqlca;
 #endif
 }
 
@@ -167,7 +167,7 @@ ECPGstatus(int lineno, const char *connection_name)
 	struct connection *con = ecpg_get_connection(connection_name);
 
 	if (!ecpg_init(con, connection_name, lineno))
-		return (false);
+		return false;
 
 	/* are we connected? */
 	if (con->connection == NULL)
@@ -176,7 +176,7 @@ ECPGstatus(int lineno, const char *connection_name)
 		return false;
 	}
 
-	return (true);
+	return true;
 }
 
 PGTransactionStatusType
@@ -202,7 +202,7 @@ ECPGtrans(int lineno, const char *connection_name, const char *transaction)
 	struct connection *con = ecpg_get_connection(connection_name);
 
 	if (!ecpg_init(con, connection_name, lineno))
-		return (false);
+		return false;
 
 	ecpg_log("ECPGtrans on line %d: action \"%s\"; connection \"%s\"\n", lineno, transaction, con ? con->name : "null");
 
@@ -225,13 +225,13 @@ ECPGtrans(int lineno, const char *connection_name, const char *transaction)
 		{
 			res = PQexec(con->connection, "begin transaction");
 			if (!ecpg_check_PQresult(res, lineno, con->connection, ECPG_COMPAT_PGSQL))
-				return FALSE;
+				return false;
 			PQclear(res);
 		}
 
 		res = PQexec(con->connection, transaction);
 		if (!ecpg_check_PQresult(res, lineno, con->connection, ECPG_COMPAT_PGSQL))
-			return FALSE;
+			return false;
 		PQclear(res);
 	}
 
@@ -240,7 +240,7 @@ ECPGtrans(int lineno, const char *connection_name, const char *transaction)
 
 
 void
-ECPGdebug(int n, FILE * dbgs)
+ECPGdebug(int n, FILE *dbgs)
 {
 #ifdef ENABLE_THREAD_SAFETY
 	pthread_mutex_lock(&debug_init_mutex);
@@ -375,7 +375,7 @@ ECPGset_noind_null(enum ECPGttype type, void *ptr)
 }
 
 static bool
-_check(unsigned char *ptr, int length)
+_check(const unsigned char *ptr, int length)
 {
 	for (length--; length >= 0; length--)
 		if (ptr[length] != 0xff)
@@ -385,62 +385,62 @@ _check(unsigned char *ptr, int length)
 }
 
 bool
-ECPGis_noind_null(enum ECPGttype type, void *ptr)
+ECPGis_noind_null(enum ECPGttype type, const void *ptr)
 {
 	switch (type)
 	{
 		case ECPGt_char:
 		case ECPGt_unsigned_char:
 		case ECPGt_string:
-			if (*((char *) ptr) == '\0')
+			if (*((const char *) ptr) == '\0')
 				return true;
 			break;
 		case ECPGt_short:
 		case ECPGt_unsigned_short:
-			if (*((short int *) ptr) == SHRT_MIN)
+			if (*((const short int *) ptr) == SHRT_MIN)
 				return true;
 			break;
 		case ECPGt_int:
 		case ECPGt_unsigned_int:
-			if (*((int *) ptr) == INT_MIN)
+			if (*((const int *) ptr) == INT_MIN)
 				return true;
 			break;
 		case ECPGt_long:
 		case ECPGt_unsigned_long:
 		case ECPGt_date:
-			if (*((long *) ptr) == LONG_MIN)
+			if (*((const long *) ptr) == LONG_MIN)
 				return true;
 			break;
 #ifdef HAVE_LONG_LONG_INT
 		case ECPGt_long_long:
 		case ECPGt_unsigned_long_long:
-			if (*((long long *) ptr) == LONG_LONG_MIN)
+			if (*((const long long *) ptr) == LONG_LONG_MIN)
 				return true;
 			break;
 #endif							/* HAVE_LONG_LONG_INT */
 		case ECPGt_float:
-			return (_check(ptr, sizeof(float)));
+			return _check(ptr, sizeof(float));
 			break;
 		case ECPGt_double:
-			return (_check(ptr, sizeof(double)));
+			return _check(ptr, sizeof(double));
 			break;
 		case ECPGt_varchar:
-			if (*(((struct ECPGgeneric_varchar *) ptr)->arr) == 0x00)
+			if (*(((const struct ECPGgeneric_varchar *) ptr)->arr) == 0x00)
 				return true;
 			break;
 		case ECPGt_decimal:
-			if (((decimal *) ptr)->sign == NUMERIC_NULL)
+			if (((const decimal *) ptr)->sign == NUMERIC_NULL)
 				return true;
 			break;
 		case ECPGt_numeric:
-			if (((numeric *) ptr)->sign == NUMERIC_NULL)
+			if (((const numeric *) ptr)->sign == NUMERIC_NULL)
 				return true;
 			break;
 		case ECPGt_interval:
-			return (_check(ptr, sizeof(interval)));
+			return _check(ptr, sizeof(interval));
 			break;
 		case ECPGt_timestamp:
-			return (_check(ptr, sizeof(timestamp)));
+			return _check(ptr, sizeof(timestamp));
 			break;
 		default:
 			break;
@@ -453,22 +453,22 @@ ECPGis_noind_null(enum ECPGttype type, void *ptr)
 #ifdef ENABLE_THREAD_SAFETY
 
 void
-win32_pthread_mutex(volatile pthread_mutex_t * mutex)
+win32_pthread_mutex(volatile pthread_mutex_t *mutex)
 {
 	if (mutex->handle == NULL)
 	{
-		while (InterlockedExchange((LONG *) & mutex->initlock, 1) == 1)
+		while (InterlockedExchange((LONG *) &mutex->initlock, 1) == 1)
 			Sleep(0);
 		if (mutex->handle == NULL)
 			mutex->handle = CreateMutex(NULL, FALSE, NULL);
-		InterlockedExchange((LONG *) & mutex->initlock, 0);
+		InterlockedExchange((LONG *) &mutex->initlock, 0);
 	}
 }
 
 static pthread_mutex_t win32_pthread_once_lock = PTHREAD_MUTEX_INITIALIZER;
 
 void
-win32_pthread_once(volatile pthread_once_t * once, void (*fn) (void))
+win32_pthread_once(volatile pthread_once_t *once, void (*fn) (void))
 {
 	if (!*once)
 	{

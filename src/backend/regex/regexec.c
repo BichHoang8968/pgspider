@@ -138,7 +138,7 @@ static struct dfa *getsubdfa(struct vars *, struct subre *);
 static struct dfa *getladfa(struct vars *, int);
 static int	find(struct vars *, struct cnfa *, struct colormap *);
 static int	cfind(struct vars *, struct cnfa *, struct colormap *);
-static int	cfindloop(struct vars *, struct cnfa *, struct colormap *, struct dfa *, struct dfa *, chr * *);
+static int	cfindloop(struct vars *, struct cnfa *, struct colormap *, struct dfa *, struct dfa *, chr **);
 static void zapallsubs(regmatch_t *, size_t);
 static void zaptreesubs(struct vars *, struct subre *);
 static void subset(struct vars *, struct subre *, chr *, chr *);
@@ -151,10 +151,10 @@ static int	citerdissect(struct vars *, struct subre *, chr *, chr *);
 static int	creviterdissect(struct vars *, struct subre *, chr *, chr *);
 
 /* === rege_dfa.c === */
-static chr * longest(struct vars *, struct dfa *, chr *, chr *, int *);
-static chr * shortest(struct vars *, struct dfa *, chr *, chr *, chr *, chr * *, int *);
-static int	matchuntil(struct vars *, struct dfa *, chr *, struct sset **, chr * *);
-static chr * lastcold(struct vars *, struct dfa *);
+static chr *longest(struct vars *, struct dfa *, chr *, chr *, int *);
+static chr *shortest(struct vars *, struct dfa *, chr *, chr *, chr *, chr **, int *);
+static int	matchuntil(struct vars *, struct dfa *, chr *, struct sset **, chr **);
+static chr *lastcold(struct vars *, struct dfa *);
 static struct dfa *newdfa(struct vars *, struct cnfa *, struct colormap *, struct smalldfa *);
 static void freedfa(struct dfa *);
 static unsigned hash(unsigned *, int);
@@ -169,11 +169,11 @@ static struct sset *pickss(struct vars *, struct dfa *, chr *, chr *);
  * pg_regexec - match regular expression
  */
 int
-pg_regexec(regex_t * re,
-		   const chr * string,
+pg_regexec(regex_t *re,
+		   const chr *string,
 		   size_t len,
 		   size_t search_start,
-		   rm_detail_t * details,
+		   rm_detail_t *details,
 		   size_t nmatch,
 		   regmatch_t pmatch[],
 		   int flags)
@@ -266,7 +266,7 @@ pg_regexec(regex_t * re,
 		for (i = 0; i < n; i++)
 			v->ladfas[i] = NULL;
 		v->lblastcss = (struct sset **) MALLOC(n * sizeof(struct sset *));
-		v->lblastcp = (chr * *) MALLOC(n * sizeof(chr *));
+		v->lblastcp = (chr **) MALLOC(n * sizeof(chr *));
 		if (v->lblastcss == NULL || v->lblastcp == NULL)
 		{
 			st = REG_ESPACE;
@@ -423,7 +423,7 @@ find(struct vars *v,
 		MDEBUG(("\nfind trying at %ld\n", LOFF(begin)));
 		if (shorter)
 			end = shortest(v, d, begin, begin, v->stop,
-						   (chr * *) NULL, &hitend);
+						   (chr **) NULL, &hitend);
 		else
 			end = longest(v, d, begin, v->stop, &hitend);
 		if (ISERR())
@@ -508,7 +508,7 @@ cfindloop(struct vars *v,
 		  struct colormap *cm,
 		  struct dfa *d,
 		  struct dfa *s,
-		  chr * *coldp)			/* where to put coldstart pointer */
+		  chr **coldp)			/* where to put coldstart pointer */
 {
 	chr		   *begin;
 	chr		   *end;
@@ -551,7 +551,7 @@ cfindloop(struct vars *v,
 				/* Here we use the top node's detailed RE */
 				if (shorter)
 					end = shortest(v, d, begin, estart,
-								   estop, (chr * *) NULL, &hitend);
+								   estop, (chr **) NULL, &hitend);
 				else
 					end = longest(v, d, begin, estop,
 								  &hitend);
@@ -616,7 +616,7 @@ cfindloop(struct vars *v,
  * zapallsubs - initialize all subexpression matches to "no match"
  */
 static void
-zapallsubs(regmatch_t * p,
+zapallsubs(regmatch_t *p,
 		   size_t n)
 {
 	size_t		i;
@@ -659,8 +659,8 @@ zaptreesubs(struct vars *v,
 static void
 subset(struct vars *v,
 	   struct subre *sub,
-	   chr * begin,
-	   chr * end)
+	   chr *begin,
+	   chr *end)
 {
 	int			n = sub->subno;
 
@@ -691,8 +691,8 @@ subset(struct vars *v,
 static int						/* regexec return code */
 cdissect(struct vars *v,
 		 struct subre *t,
-		 chr * begin,			/* beginning of relevant substring */
-		 chr * end)				/* end of same */
+		 chr *begin,			/* beginning of relevant substring */
+		 chr *end)				/* end of same */
 {
 	int			er;
 
@@ -762,8 +762,8 @@ cdissect(struct vars *v,
 static int						/* regexec return code */
 ccondissect(struct vars *v,
 			struct subre *t,
-			chr * begin,		/* beginning of relevant substring */
-			chr * end)			/* end of same */
+			chr *begin,			/* beginning of relevant substring */
+			chr *end)			/* end of same */
 {
 	struct dfa *d;
 	struct dfa *d2;
@@ -840,8 +840,8 @@ ccondissect(struct vars *v,
 static int						/* regexec return code */
 crevcondissect(struct vars *v,
 			   struct subre *t,
-			   chr * begin,		/* beginning of relevant substring */
-			   chr * end)		/* end of same */
+			   chr *begin,		/* beginning of relevant substring */
+			   chr *end)		/* end of same */
 {
 	struct dfa *d;
 	struct dfa *d2;
@@ -860,7 +860,7 @@ crevcondissect(struct vars *v,
 	MDEBUG(("crevcon %d\n", t->id));
 
 	/* pick a tentative midpoint */
-	mid = shortest(v, d, begin, begin, end, (chr * *) NULL, (int *) NULL);
+	mid = shortest(v, d, begin, begin, end, (chr **) NULL, (int *) NULL);
 	NOERR();
 	if (mid == NULL)
 		return REG_NOMATCH;
@@ -895,7 +895,7 @@ crevcondissect(struct vars *v,
 			MDEBUG(("%d no midpoint\n", t->id));
 			return REG_NOMATCH;
 		}
-		mid = shortest(v, d, begin, mid + 1, end, (chr * *) NULL, (int *) NULL);
+		mid = shortest(v, d, begin, mid + 1, end, (chr **) NULL, (int *) NULL);
 		NOERR();
 		if (mid == NULL)
 		{
@@ -918,8 +918,8 @@ crevcondissect(struct vars *v,
 static int						/* regexec return code */
 cbrdissect(struct vars *v,
 		   struct subre *t,
-		   chr * begin,			/* beginning of relevant substring */
-		   chr * end)			/* end of same */
+		   chr *begin,			/* beginning of relevant substring */
+		   chr *end)			/* end of same */
 {
 	int			n = t->subno;
 	size_t		numreps;
@@ -999,8 +999,8 @@ cbrdissect(struct vars *v,
 static int						/* regexec return code */
 caltdissect(struct vars *v,
 			struct subre *t,
-			chr * begin,		/* beginning of relevant substring */
-			chr * end)			/* end of same */
+			chr *begin,			/* beginning of relevant substring */
+			chr *end)			/* end of same */
 {
 	struct dfa *d;
 	int			er;
@@ -1036,8 +1036,8 @@ caltdissect(struct vars *v,
 static int						/* regexec return code */
 citerdissect(struct vars *v,
 			 struct subre *t,
-			 chr * begin,		/* beginning of relevant substring */
-			 chr * end)			/* end of same */
+			 chr *begin,		/* beginning of relevant substring */
+			 chr *end)			/* end of same */
 {
 	struct dfa *d;
 	chr		  **endpts;
@@ -1081,7 +1081,7 @@ citerdissect(struct vars *v,
 		max_matches = t->max;
 	if (max_matches < min_matches)
 		max_matches = min_matches;
-	endpts = (chr * *) MALLOC((max_matches + 1) * sizeof(chr *));
+	endpts = (chr **) MALLOC((max_matches + 1) * sizeof(chr *));
 	if (endpts == NULL)
 		return REG_ESPACE;
 	endpts[0] = begin;
@@ -1237,8 +1237,8 @@ backtrack:
 static int						/* regexec return code */
 creviterdissect(struct vars *v,
 				struct subre *t,
-				chr * begin,	/* beginning of relevant substring */
-				chr * end)		/* end of same */
+				chr *begin,		/* beginning of relevant substring */
+				chr *end)		/* end of same */
 {
 	struct dfa *d;
 	chr		  **endpts;
@@ -1282,7 +1282,7 @@ creviterdissect(struct vars *v,
 		max_matches = t->max;
 	if (max_matches < min_matches)
 		max_matches = min_matches;
-	endpts = (chr * *) MALLOC((max_matches + 1) * sizeof(chr *));
+	endpts = (chr **) MALLOC((max_matches + 1) * sizeof(chr *));
 	if (endpts == NULL)
 		return REG_ESPACE;
 	endpts[0] = begin;
@@ -1325,7 +1325,7 @@ creviterdissect(struct vars *v,
 
 		/* try to find an endpoint for the k'th sub-match */
 		endpts[k] = shortest(v, d, endpts[k - 1], limit, end,
-							 (chr * *) NULL, (int *) NULL);
+							 (chr **) NULL, (int *) NULL);
 		if (ISERR())
 		{
 			FREE(endpts);

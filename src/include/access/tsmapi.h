@@ -3,7 +3,7 @@
  * tsmapi.h
  *	  API for tablesample methods
  *
- * Copyright (c) 2015-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2015-2018, PostgreSQL Global Development Group
  *
  * src/include/access/tsmapi.h
  *
@@ -20,27 +20,27 @@
  * Callback function signatures --- see tablesample-method.sgml for more info.
  */
 
-typedef void (*SampleScanGetSampleSize_function) (PlannerInfo * root,
-												  RelOptInfo * baserel,
-												  List * paramexprs,
-												  BlockNumber * pages,
+typedef void (*SampleScanGetSampleSize_function) (PlannerInfo *root,
+												  RelOptInfo *baserel,
+												  List *paramexprs,
+												  BlockNumber *pages,
 												  double *tuples);
 
-typedef void (*InitSampleScan_function) (SampleScanState * node,
+typedef void (*InitSampleScan_function) (SampleScanState *node,
 										 int eflags);
 
-typedef void (*BeginSampleScan_function) (SampleScanState * node,
-										  Datum * params,
+typedef void (*BeginSampleScan_function) (SampleScanState *node,
+										  Datum *params,
 										  int nparams,
 										  uint32 seed);
 
-typedef BlockNumber(*NextSampleBlock_function) (SampleScanState * node);
+typedef BlockNumber (*NextSampleBlock_function) (SampleScanState *node);
 
-typedef OffsetNumber(*NextSampleTuple_function) (SampleScanState * node,
-												 BlockNumber blockno,
-												 OffsetNumber maxoffset);
+typedef OffsetNumber (*NextSampleTuple_function) (SampleScanState *node,
+												  BlockNumber blockno,
+												  OffsetNumber maxoffset);
 
-typedef void (*EndSampleScan_function) (SampleScanState * node);
+typedef void (*EndSampleScan_function) (SampleScanState *node);
 
 /*
  * TsmRoutine is the struct returned by a tablesample method's handler
@@ -72,10 +72,10 @@ typedef struct TsmRoutine
 	NextSampleBlock_function NextSampleBlock;	/* can be NULL */
 	NextSampleTuple_function NextSampleTuple;
 	EndSampleScan_function EndSampleScan;	/* can be NULL */
-}			TsmRoutine;
+} TsmRoutine;
 
 
 /* Functions in access/tablesample/tablesample.c */
-extern TsmRoutine * GetTsmRoutine(Oid tsmhandler);
+extern TsmRoutine *GetTsmRoutine(Oid tsmhandler);
 
 #endif							/* TSMAPI_H */

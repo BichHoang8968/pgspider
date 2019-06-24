@@ -21,10 +21,10 @@ PG_MODULE_MAGIC;
 /* These prototypes just prevent possible warnings from gcc. */
 
 int			add_one(int arg);
-float8	   *add_one_float8(float8 * arg);
-Point	   *makepoint(Point * pointx, Point * pointy);
-text	   *copytext(text * t);
-text	   *concat_text(text * arg1, text * arg2);
+float8	   *add_one_float8(float8 *arg);
+Point	   *makepoint(Point *pointx, Point *pointy);
+text	   *copytext(text *t);
+text	   *concat_text(text *arg1, text *arg2);
 bool c_overpaid(HeapTupleHeader t,		/* the current instance of EMP */
 		   int32 limit);
 
@@ -40,7 +40,7 @@ add_one(int arg)
 /* By Reference, Fixed Length */
 
 float8 *
-add_one_float8(float8 * arg)
+add_one_float8(float8 *arg)
 {
 	float8	   *result = (float8 *) palloc(sizeof(float8));
 
@@ -50,7 +50,7 @@ add_one_float8(float8 * arg)
 }
 
 Point *
-makepoint(Point * pointx, Point * pointy)
+makepoint(Point *pointx, Point *pointy)
 {
 	Point	   *new_point = (Point *) palloc(sizeof(Point));
 
@@ -63,7 +63,7 @@ makepoint(Point * pointx, Point * pointy)
 /* By Reference, Variable Length */
 
 text *
-copytext(text * t)
+copytext(text *t)
 {
 	/*
 	 * VARSIZE is the total size of the struct in bytes.
@@ -82,7 +82,7 @@ copytext(text * t)
 }
 
 text *
-concat_text(text * arg1, text * arg2)
+concat_text(text *arg1, text *arg2)
 {
 	int32		arg1_size = VARSIZE(arg1) - VARHDRSZ;
 	int32		arg2_size = VARSIZE(arg2) - VARHDRSZ;

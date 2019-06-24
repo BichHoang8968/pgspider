@@ -3,7 +3,7 @@
  * mxactdesc.c
  *	  rmgr descriptor routines for access/transam/multixact.c
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -17,7 +17,7 @@
 #include "access/multixact.h"
 
 static void
-out_member(StringInfo buf, MultiXactMember * member)
+out_member(StringInfo buf, MultiXactMember *member)
 {
 	appendStringInfo(buf, "%u ", member->xid);
 	switch (member->status)
@@ -47,7 +47,7 @@ out_member(StringInfo buf, MultiXactMember * member)
 }
 
 void
-multixact_desc(StringInfo buf, XLogReaderState * record)
+multixact_desc(StringInfo buf, XLogReaderState *record)
 {
 	char	   *rec = XLogRecGetData(record);
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;

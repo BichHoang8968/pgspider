@@ -3,7 +3,7 @@
  * nodeTableFuncscan.c
  *	  Support routines for scanning RangeTableFunc (XMLTABLE like functions).
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -33,12 +33,12 @@
 #include "utils/xml.h"
 
 
-static TupleTableSlot * TableFuncNext(TableFuncScanState * node);
-static bool TableFuncRecheck(TableFuncScanState * node, TupleTableSlot * slot);
+static TupleTableSlot *TableFuncNext(TableFuncScanState *node);
+static bool TableFuncRecheck(TableFuncScanState *node, TupleTableSlot *slot);
 
-static void tfuncFetchRows(TableFuncScanState * tstate, ExprContext * econtext);
-static void tfuncInitialize(TableFuncScanState * tstate, ExprContext * econtext, Datum doc);
-static void tfuncLoadRows(TableFuncScanState * tstate, ExprContext * econtext);
+static void tfuncFetchRows(TableFuncScanState *tstate, ExprContext *econtext);
+static void tfuncInitialize(TableFuncScanState *tstate, ExprContext *econtext, Datum doc);
+static void tfuncLoadRows(TableFuncScanState *tstate, ExprContext *econtext);
 
 /* ----------------------------------------------------------------
  *						Scan Support
@@ -51,7 +51,7 @@ static void tfuncLoadRows(TableFuncScanState * tstate, ExprContext * econtext);
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-TableFuncNext(TableFuncScanState * node)
+TableFuncNext(TableFuncScanState *node)
 {
 	TupleTableSlot *scanslot;
 
@@ -78,7 +78,7 @@ TableFuncNext(TableFuncScanState * node)
  * TableFuncRecheck -- access method routine to recheck a tuple in EvalPlanQual
  */
 static bool
-TableFuncRecheck(TableFuncScanState * node, TupleTableSlot * slot)
+TableFuncRecheck(TableFuncScanState *node, TupleTableSlot *slot)
 {
 	/* nothing to check */
 	return true;
@@ -94,7 +94,7 @@ TableFuncRecheck(TableFuncScanState * node, TupleTableSlot * slot)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecTableFuncScan(PlanState * pstate)
+ExecTableFuncScan(PlanState *pstate)
 {
 	TableFuncScanState *node = castNode(TableFuncScanState, pstate);
 
@@ -108,7 +108,7 @@ ExecTableFuncScan(PlanState * pstate)
  * ----------------------------------------------------------------
  */
 TableFuncScanState *
-ExecInitTableFuncScan(TableFuncScan * node, EState * estate, int eflags)
+ExecInitTableFuncScan(TableFuncScan *node, EState *estate, int eflags)
 {
 	TableFuncScanState *scanstate;
 	TableFunc  *tf = node->tablefunc;
@@ -140,37 +140,31 @@ ExecInitTableFuncScan(TableFuncScan * node, EState * estate, int eflags)
 	ExecAssignExprContext(estate, &scanstate->ss.ps);
 
 	/*
-	 * initialize child expressions
-	 */
-	scanstate->ss.ps.qual =
-		ExecInitQual(node->scan.plan.qual, &scanstate->ss.ps);
-
-	/*
-	 * tuple table initialization
-	 */
-	ExecInitResultTupleSlot(estate, &scanstate->ss.ps);
-	ExecInitScanTupleSlot(estate, &scanstate->ss);
-
-	/*
 	 * initialize source tuple type
 	 */
 	tupdesc = BuildDescFromLists(tf->colnames,
 								 tf->coltypes,
 								 tf->coltypmods,
 								 tf->colcollations);
-
-	ExecAssignScanType(&scanstate->ss, tupdesc);
+	/* and the corresponding scan slot */
+	ExecInitScanTupleSlot(estate, &scanstate->ss, tupdesc);
 
 	/*
-	 * Initialize result tuple type and projection info.
+	 * Initialize result slot, type and projection.
 	 */
-	ExecAssignResultTypeFromTL(&scanstate->ss.ps);
+	ExecInitResultTupleSlotTL(estate, &scanstate->ss.ps);
 	ExecAssignScanProjectionInfo(&scanstate->ss);
+
+	/*
+	 * initialize child expressions
+	 */
+	scanstate->ss.ps.qual =
+		ExecInitQual(node->scan.plan.qual, &scanstate->ss.ps);
 
 	/* Only XMLTABLE is supported currently */
 	scanstate->routine = &XmlTableRoutine;
 
-	scanstate->perValueCxt =
+	scanstate->perTableCxt =
 		AllocSetContextCreate(CurrentMemoryContext,
 							  "TableFunc per value context",
 							  ALLOCSET_DEFAULT_SIZES);
@@ -202,7 +196,7 @@ ExecInitTableFuncScan(TableFuncScan * node, EState * estate, int eflags)
 	{
 		Oid			in_funcid;
 
-		getTypeInputInfo(tupdesc->attrs[i]->atttypid,
+		getTypeInputInfo(TupleDescAttr(tupdesc, i)->atttypid,
 						 &in_funcid, &scanstate->typioparams[i]);
 		fmgr_info(in_funcid, &scanstate->in_functions[i]);
 	}
@@ -217,7 +211,7 @@ ExecInitTableFuncScan(TableFuncScan * node, EState * estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndTableFuncScan(TableFuncScanState * node)
+ExecEndTableFuncScan(TableFuncScanState *node)
 {
 	/*
 	 * Free the exprcontext
@@ -245,7 +239,7 @@ ExecEndTableFuncScan(TableFuncScanState * node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanTableFuncScan(TableFuncScanState * node)
+ExecReScanTableFuncScan(TableFuncScanState *node)
 {
 	Bitmapset  *chgparam = node->ss.ps.chgParam;
 
@@ -275,9 +269,9 @@ ExecReScanTableFuncScan(TableFuncScanState * node)
  * ----------------------------------------------------------------
  */
 static void
-tfuncFetchRows(TableFuncScanState * tstate, ExprContext * econtext)
+tfuncFetchRows(TableFuncScanState *tstate, ExprContext *econtext)
 {
-	const		TableFuncRoutine *routine = tstate->routine;
+	const TableFuncRoutine *routine = tstate->routine;
 	MemoryContext oldcxt;
 	Datum		value;
 	bool		isnull;
@@ -287,6 +281,16 @@ tfuncFetchRows(TableFuncScanState * tstate, ExprContext * econtext)
 	/* build tuplestore for the result */
 	oldcxt = MemoryContextSwitchTo(econtext->ecxt_per_query_memory);
 	tstate->tupstore = tuplestore_begin_heap(false, false, work_mem);
+
+	/*
+	 * Each call to fetch a new set of rows - of which there may be very many
+	 * if XMLTABLE is being used in a lateral join - will allocate a possibly
+	 * substantial amount of memory, so we cannot use the per-query context
+	 * here. perTableCxt now serves the same function as "argcontext" does in
+	 * FunctionScan - a place to store per-one-call (i.e. one result table)
+	 * lifetime data (as opposed to per-query or per-result-tuple).
+	 */
+	MemoryContextSwitchTo(tstate->perTableCxt);
 
 	PG_TRY();
 	{
@@ -319,14 +323,16 @@ tfuncFetchRows(TableFuncScanState * tstate, ExprContext * econtext)
 	}
 	PG_END_TRY();
 
-	/* return to original memory context, and clean up */
-	MemoryContextSwitchTo(oldcxt);
+	/* clean up and return to original memory context */
 
 	if (tstate->opaque != NULL)
 	{
 		routine->DestroyOpaque(tstate);
 		tstate->opaque = NULL;
 	}
+
+	MemoryContextSwitchTo(oldcxt);
+	MemoryContextReset(tstate->perTableCxt);
 
 	return;
 }
@@ -336,9 +342,9 @@ tfuncFetchRows(TableFuncScanState * tstate, ExprContext * econtext)
  * table expression builder context.
  */
 static void
-tfuncInitialize(TableFuncScanState * tstate, ExprContext * econtext, Datum doc)
+tfuncInitialize(TableFuncScanState *tstate, ExprContext *econtext, Datum doc)
 {
-	const		TableFuncRoutine *routine = tstate->routine;
+	const TableFuncRoutine *routine = tstate->routine;
 	TupleDesc	tupdesc;
 	ListCell   *lc1,
 			   *lc2;
@@ -358,8 +364,9 @@ tfuncInitialize(TableFuncScanState * tstate, ExprContext * econtext, Datum doc)
 	forboth(lc1, tstate->ns_uris, lc2, tstate->ns_names)
 	{
 		ExprState  *expr = (ExprState *) lfirst(lc1);
-		char	   *ns_name = strVal(lfirst(lc2));
+		Value	   *ns_node = (Value *) lfirst(lc2);
 		char	   *ns_uri;
+		char	   *ns_name;
 
 		value = ExecEvalExpr((ExprState *) expr, econtext, &isnull);
 		if (isnull)
@@ -367,6 +374,9 @@ tfuncInitialize(TableFuncScanState * tstate, ExprContext * econtext, Datum doc)
 					(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
 					 errmsg("namespace URI must not be null")));
 		ns_uri = TextDatumGetCString(value);
+
+		/* DEFAULT is passed down to SetNamespace as NULL */
+		ns_name = ns_node ? strVal(ns_node) : NULL;
 
 		routine->SetNamespace(tstate, ns_name, ns_uri);
 	}
@@ -390,6 +400,7 @@ tfuncInitialize(TableFuncScanState * tstate, ExprContext * econtext, Datum doc)
 	foreach(lc1, tstate->colexprs)
 	{
 		char	   *colfilter;
+		Form_pg_attribute att = TupleDescAttr(tupdesc, colno);
 
 		if (colno != ordinalitycol)
 		{
@@ -403,11 +414,11 @@ tfuncInitialize(TableFuncScanState * tstate, ExprContext * econtext, Datum doc)
 							(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
 							 errmsg("column filter expression must not be null"),
 							 errdetail("Filter for column \"%s\" is null.",
-									   NameStr(tupdesc->attrs[colno]->attname))));
+									   NameStr(att->attname))));
 				colfilter = TextDatumGetCString(value);
 			}
 			else
-				colfilter = NameStr(tupdesc->attrs[colno]->attname);
+				colfilter = NameStr(att->attname);
 
 			routine->SetColumnFilter(tstate, colfilter, colno);
 		}
@@ -420,9 +431,9 @@ tfuncInitialize(TableFuncScanState * tstate, ExprContext * econtext, Datum doc)
  * Load all the rows from the TableFunc table builder into a tuplestore.
  */
 static void
-tfuncLoadRows(TableFuncScanState * tstate, ExprContext * econtext)
+tfuncLoadRows(TableFuncScanState *tstate, ExprContext *econtext)
 {
-	const		TableFuncRoutine *routine = tstate->routine;
+	const TableFuncRoutine *routine = tstate->routine;
 	TupleTableSlot *slot = tstate->ss.ss_ScanTupleSlot;
 	TupleDesc	tupdesc = slot->tts_tupleDescriptor;
 	Datum	   *values = slot->tts_values;
@@ -433,7 +444,14 @@ tfuncLoadRows(TableFuncScanState * tstate, ExprContext * econtext)
 
 	ordinalitycol =
 		((TableFuncScan *) (tstate->ss.ps.plan))->tablefunc->ordinalitycol;
-	oldcxt = MemoryContextSwitchTo(tstate->perValueCxt);
+
+	/*
+	 * We need a short-lived memory context that we can clean up each time
+	 * around the loop, to avoid wasting space. Our default per-tuple context
+	 * is fine for the job, since we won't have used it for anything yet in
+	 * this tuple cycle.
+	 */
+	oldcxt = MemoryContextSwitchTo(econtext->ecxt_per_tuple_memory);
 
 	/*
 	 * Keep requesting rows from the table builder until there aren't any.
@@ -453,6 +471,8 @@ tfuncLoadRows(TableFuncScanState * tstate, ExprContext * econtext)
 		 */
 		for (colno = 0; colno < natts; colno++)
 		{
+			Form_pg_attribute att = TupleDescAttr(tupdesc, colno);
+
 			if (colno == ordinalitycol)
 			{
 				/* Fast path for ordinality column */
@@ -465,8 +485,8 @@ tfuncLoadRows(TableFuncScanState * tstate, ExprContext * econtext)
 
 				values[colno] = routine->GetValue(tstate,
 												  colno,
-												  tupdesc->attrs[colno]->atttypid,
-												  tupdesc->attrs[colno]->atttypmod,
+												  att->atttypid,
+												  att->atttypmod,
 												  &isnull);
 
 				/* No value?  Evaluate and apply the default, if any */
@@ -484,7 +504,7 @@ tfuncLoadRows(TableFuncScanState * tstate, ExprContext * econtext)
 					ereport(ERROR,
 							(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
 							 errmsg("null is not allowed in column \"%s\"",
-									NameStr(tupdesc->attrs[colno]->attname))));
+									NameStr(att->attname))));
 
 				nulls[colno] = isnull;
 			}
@@ -496,7 +516,7 @@ tfuncLoadRows(TableFuncScanState * tstate, ExprContext * econtext)
 
 		tuplestore_putvalues(tstate->tupstore, tupdesc, values, nulls);
 
-		MemoryContextReset(tstate->perValueCxt);
+		MemoryContextReset(econtext->ecxt_per_tuple_memory);
 	}
 
 	MemoryContextSwitchTo(oldcxt);

@@ -42,11 +42,11 @@ static const unsigned char _base64[] =
 "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 static int
-b64_encode(const uint8 * src, unsigned len, uint8 * dst)
+pg_base64_encode(const uint8 *src, unsigned len, uint8 *dst)
 {
 	uint8	   *p,
 			   *lend = dst + 76;
-	const		uint8 *s,
+	const uint8 *s,
 			   *end = src + len;
 	int			pos = 2;
 	unsigned long buf = 0;
@@ -92,9 +92,9 @@ b64_encode(const uint8 * src, unsigned len, uint8 * dst)
 
 /* probably should use lookup table */
 static int
-b64_decode(const uint8 * src, unsigned len, uint8 * dst)
+pg_base64_decode(const uint8 *src, unsigned len, uint8 *dst)
 {
-	const		uint8 *srcend = src + len,
+	const uint8 *srcend = src + len,
 			   *s = src;
 	uint8	   *p = dst;
 	char		c;
@@ -160,7 +160,7 @@ b64_decode(const uint8 * src, unsigned len, uint8 * dst)
 }
 
 static unsigned
-b64_enc_len(unsigned srclen)
+pg_base64_enc_len(unsigned srclen)
 {
 	/*
 	 * 3 bytes will be converted to 4, linefeed after 76 chars
@@ -169,7 +169,7 @@ b64_enc_len(unsigned srclen)
 }
 
 static unsigned
-b64_dec_len(unsigned srclen)
+pg_base64_dec_len(unsigned srclen)
 {
 	return (srclen * 3) >> 2;
 }
@@ -185,7 +185,7 @@ static const char *armor_footer = "\n-----END PGP MESSAGE-----\n";
 #define CRC24_INIT 0x00b704ceL
 #define CRC24_POLY 0x01864cfbL
 static long
-crc24(const uint8 * data, unsigned len)
+crc24(const uint8 *data, unsigned len)
 {
 	unsigned	crc = CRC24_INIT;
 	int			i;
@@ -204,7 +204,7 @@ crc24(const uint8 * data, unsigned len)
 }
 
 void
-pgp_armor_encode(const uint8 * src, unsigned len, StringInfo dst,
+pgp_armor_encode(const uint8 *src, unsigned len, StringInfo dst,
 				 int num_headers, char **keys, char **values)
 {
 	int			n;
@@ -218,11 +218,11 @@ pgp_armor_encode(const uint8 * src, unsigned len, StringInfo dst,
 		appendStringInfo(dst, "%s: %s\n", keys[n], values[n]);
 	appendStringInfoChar(dst, '\n');
 
-	/* make sure we have enough room to b64_encode() */
-	b64len = b64_enc_len(len);
+	/* make sure we have enough room to pg_base64_encode() */
+	b64len = pg_base64_enc_len(len);
 	enlargeStringInfo(dst, (int) b64len);
 
-	res = b64_encode(src, len, (uint8 *) dst->data + dst->len);
+	res = pg_base64_encode(src, len, (uint8 *) dst->data + dst->len);
 	if (res > b64len)
 		elog(FATAL, "overflow - encode estimate too small");
 	dst->len += res;
@@ -240,9 +240,9 @@ pgp_armor_encode(const uint8 * src, unsigned len, StringInfo dst,
 }
 
 static const uint8 *
-find_str(const uint8 * data, const uint8 * data_end, const char *str, int strlen)
+find_str(const uint8 *data, const uint8 *data_end, const char *str, int strlen)
 {
-	const		uint8 *p = data;
+	const uint8 *p = data;
 
 	if (!strlen)
 		return NULL;
@@ -263,10 +263,10 @@ find_str(const uint8 * data, const uint8 * data_end, const char *str, int strlen
 }
 
 static int
-find_header(const uint8 * data, const uint8 * datend,
-			const uint8 * *start_p, int is_end)
+find_header(const uint8 *data, const uint8 *datend,
+			const uint8 **start_p, int is_end)
 {
-	const		uint8 *p = data;
+	const uint8 *p = data;
 	static const char *start_sep = "-----BEGIN";
 	static const char *end_sep = "-----END";
 	const char *sep = is_end ? end_sep : start_sep;
@@ -311,14 +311,14 @@ find_header(const uint8 * data, const uint8 * datend,
 }
 
 int
-pgp_armor_decode(const uint8 * src, int len, StringInfo dst)
+pgp_armor_decode(const uint8 *src, int len, StringInfo dst)
 {
-	const		uint8 *p = src;
-	const		uint8 *data_end = src + len;
+	const uint8 *p = src;
+	const uint8 *data_end = src + len;
 	long		crc;
-	const		uint8 *base64_start,
+	const uint8 *base64_start,
 			   *armor_end;
-	const		uint8 *base64_end = NULL;
+	const uint8 *base64_end = NULL;
 	uint8		buf[4];
 	int			hlen;
 	int			blen;
@@ -358,14 +358,14 @@ pgp_armor_decode(const uint8 * src, int len, StringInfo dst)
 		goto out;
 
 	/* decode crc */
-	if (b64_decode(p + 1, 4, buf) != 3)
+	if (pg_base64_decode(p + 1, 4, buf) != 3)
 		goto out;
 	crc = (((long) buf[0]) << 16) + (((long) buf[1]) << 8) + (long) buf[2];
 
 	/* decode data */
-	blen = (int) b64_dec_len(len);
+	blen = (int) pg_base64_dec_len(len);
 	enlargeStringInfo(dst, blen);
-	res = b64_decode(base64_start, base64_end - base64_start, (uint8 *) dst->data);
+	res = pg_base64_decode(base64_start, base64_end - base64_start, (uint8 *) dst->data);
 	if (res > blen)
 		elog(FATAL, "overflow - decode estimate too small");
 	if (res >= 0)
@@ -387,14 +387,14 @@ out:
  * *nkeys and *nvalues.
  */
 int
-pgp_extract_armor_headers(const uint8 * src, unsigned len,
+pgp_extract_armor_headers(const uint8 *src, unsigned len,
 						  int *nheaders, char ***keys, char ***values)
 {
-	const		uint8 *data_end = src + len;
-	const		uint8 *p;
-	const		uint8 *base64_start;
-	const		uint8 *armor_start;
-	const		uint8 *armor_end;
+	const uint8 *data_end = src + len;
+	const uint8 *p;
+	const uint8 *base64_start;
+	const uint8 *armor_start;
+	const uint8 *armor_end;
 	Size		armor_len;
 	char	   *line;
 	char	   *nextline;

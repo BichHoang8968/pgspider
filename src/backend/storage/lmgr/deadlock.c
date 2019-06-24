@@ -7,7 +7,7 @@
  * detection and resolution algorithms.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -50,7 +50,7 @@ typedef struct
 	LOCK	   *lock;			/* the lock being waited for */
 	int			pred;			/* workspace for TopoSort */
 	int			link;			/* workspace for TopoSort */
-}			EDGE;
+} EDGE;
 
 /* One potential reordering of a lock's wait queue */
 typedef struct
@@ -58,7 +58,7 @@ typedef struct
 	LOCK	   *lock;			/* the lock whose wait queue is described */
 	PGPROC	  **procs;			/* array of PGPROC *'s in new wait order */
 	int			nProcs;
-}			WAIT_ORDER;
+} WAIT_ORDER;
 
 /*
  * Information saved about each edge in a detected deadlock cycle.  This
@@ -73,24 +73,24 @@ typedef struct
 	LOCKTAG		locktag;		/* ID of awaited lock object */
 	LOCKMODE	lockmode;		/* type of lock we're waiting for */
 	int			pid;			/* PID of blocked backend */
-}			DEADLOCK_INFO;
+} DEADLOCK_INFO;
 
 
-static bool DeadLockCheckRecurse(PGPROC * proc);
-static int	TestConfiguration(PGPROC * startProc);
-static bool FindLockCycle(PGPROC * checkProc,
-			  EDGE * softEdges, int *nSoftEdges);
-static bool FindLockCycleRecurse(PGPROC * checkProc, int depth,
-					 EDGE * softEdges, int *nSoftEdges);
-static bool FindLockCycleRecurseMember(PGPROC * checkProc,
-						   PGPROC * checkProcLeader,
-						   int depth, EDGE * softEdges, int *nSoftEdges);
-static bool ExpandConstraints(EDGE * constraints, int nConstraints);
-static bool TopoSort(LOCK * lock, EDGE * constraints, int nConstraints,
-		 PGPROC * *ordering);
+static bool DeadLockCheckRecurse(PGPROC *proc);
+static int	TestConfiguration(PGPROC *startProc);
+static bool FindLockCycle(PGPROC *checkProc,
+			  EDGE *softEdges, int *nSoftEdges);
+static bool FindLockCycleRecurse(PGPROC *checkProc, int depth,
+					 EDGE *softEdges, int *nSoftEdges);
+static bool FindLockCycleRecurseMember(PGPROC *checkProc,
+						   PGPROC *checkProcLeader,
+						   int depth, EDGE *softEdges, int *nSoftEdges);
+static bool ExpandConstraints(EDGE *constraints, int nConstraints);
+static bool TopoSort(LOCK *lock, EDGE *constraints, int nConstraints,
+		 PGPROC **ordering);
 
 #ifdef DEBUG_DEADLOCK
-static void PrintLockQueue(LOCK * lock, const char *info);
+static void PrintLockQueue(LOCK *lock, const char *info);
 #endif
 
 
@@ -99,33 +99,33 @@ static void PrintLockQueue(LOCK * lock, const char *info);
  */
 
 /* Workspace for FindLockCycle */
-static PGPROC * *visitedProcs;	/* Array of visited procs */
+static PGPROC **visitedProcs;	/* Array of visited procs */
 static int	nVisitedProcs;
 
 /* Workspace for TopoSort */
-static PGPROC * *topoProcs;		/* Array of not-yet-output procs */
+static PGPROC **topoProcs;		/* Array of not-yet-output procs */
 static int *beforeConstraints;	/* Counts of remaining before-constraints */
 static int *afterConstraints;	/* List head for after-constraints */
 
 /* Output area for ExpandConstraints */
-static WAIT_ORDER * waitOrders; /* Array of proposed queue rearrangements */
+static WAIT_ORDER *waitOrders;	/* Array of proposed queue rearrangements */
 static int	nWaitOrders;
-static PGPROC * *waitOrderProcs;	/* Space for waitOrders queue contents */
+static PGPROC **waitOrderProcs; /* Space for waitOrders queue contents */
 
 /* Current list of constraints being considered */
-static EDGE * curConstraints;
+static EDGE *curConstraints;
 static int	nCurConstraints;
 static int	maxCurConstraints;
 
 /* Storage space for results from FindLockCycle */
-static EDGE * possibleConstraints;
+static EDGE *possibleConstraints;
 static int	nPossibleConstraints;
 static int	maxPossibleConstraints;
-static DEADLOCK_INFO * deadlockDetails;
+static DEADLOCK_INFO *deadlockDetails;
 static int	nDeadlockDetails;
 
 /* PGPROC pointer of any blocking autovacuum worker found */
-static PGPROC * blocking_autovacuum_proc = NULL;
+static PGPROC *blocking_autovacuum_proc = NULL;
 
 
 /*
@@ -151,7 +151,7 @@ InitDeadLockChecking(void)
 	 * FindLockCycle needs at most MaxBackends entries in visitedProcs[] and
 	 * deadlockDetails[].
 	 */
-	visitedProcs = (PGPROC * *) palloc(MaxBackends * sizeof(PGPROC *));
+	visitedProcs = (PGPROC **) palloc(MaxBackends * sizeof(PGPROC *));
 	deadlockDetails = (DEADLOCK_INFO *) palloc(MaxBackends * sizeof(DEADLOCK_INFO));
 
 	/*
@@ -170,7 +170,7 @@ InitDeadLockChecking(void)
 	 */
 	waitOrders = (WAIT_ORDER *)
 		palloc((MaxBackends / 2) * sizeof(WAIT_ORDER));
-	waitOrderProcs = (PGPROC * *) palloc(MaxBackends * sizeof(PGPROC *));
+	waitOrderProcs = (PGPROC **) palloc(MaxBackends * sizeof(PGPROC *));
 
 	/*
 	 * Allow at most MaxBackends distinct constraints in a configuration. (Is
@@ -214,7 +214,7 @@ InitDeadLockChecking(void)
  * and (b) we are typically invoked inside a signal handler.
  */
 DeadLockState
-DeadLockCheck(PGPROC * proc)
+DeadLockCheck(PGPROC *proc)
 {
 	int			i,
 				j;
@@ -307,12 +307,12 @@ GetBlockingAutoVacuumPgproc(void)
  * by an outer level of recursion.  Add to this each possible solution
  * constraint for any cycle detected at this level.
  *
- * Returns TRUE if no solution exists.  Returns FALSE if a deadlock-free
+ * Returns true if no solution exists.  Returns false if a deadlock-free
  * state is attainable, in which case waitOrders[] shows the required
  * rearrangements of lock wait queues (if any).
  */
 static bool
-DeadLockCheckRecurse(PGPROC * proc)
+DeadLockCheckRecurse(PGPROC *proc)
 {
 	int			nEdges;
 	int			oldPossibleConstraints;
@@ -378,7 +378,7 @@ DeadLockCheckRecurse(PGPROC * proc)
  *--------------------
  */
 static int
-TestConfiguration(PGPROC * startProc)
+TestConfiguration(PGPROC *startProc)
 {
 	int			softFound = 0;
 	EDGE	   *softEdges = possibleConstraints + nPossibleConstraints;
@@ -432,8 +432,8 @@ TestConfiguration(PGPROC * startProc)
  * FindLockCycle -- basic check for deadlock cycles
  *
  * Scan outward from the given proc to see if there is a cycle in the
- * waits-for graph that includes this proc.  Return TRUE if a cycle
- * is found, else FALSE.  If a cycle is found, we return a list of
+ * waits-for graph that includes this proc.  Return true if a cycle
+ * is found, else false.  If a cycle is found, we return a list of
  * the "soft edges", if any, included in the cycle.  These edges could
  * potentially be eliminated by rearranging wait queues.  We also fill
  * deadlockDetails[] with information about the detected cycle; this info
@@ -446,8 +446,8 @@ TestConfiguration(PGPROC * startProc)
  * be believed in preference to the actual ordering seen in the locktable.
  */
 static bool
-FindLockCycle(PGPROC * checkProc,
-			  EDGE * softEdges, /* output argument */
+FindLockCycle(PGPROC *checkProc,
+			  EDGE *softEdges,	/* output argument */
 			  int *nSoftEdges)	/* output argument */
 {
 	nVisitedProcs = 0;
@@ -457,9 +457,9 @@ FindLockCycle(PGPROC * checkProc,
 }
 
 static bool
-FindLockCycleRecurse(PGPROC * checkProc,
+FindLockCycleRecurse(PGPROC *checkProc,
 					 int depth,
-					 EDGE * softEdges,	/* output argument */
+					 EDGE *softEdges,	/* output argument */
 					 int *nSoftEdges)	/* output argument */
 {
 	int			i;
@@ -536,10 +536,10 @@ FindLockCycleRecurse(PGPROC * checkProc,
 }
 
 static bool
-FindLockCycleRecurseMember(PGPROC * checkProc,
-						   PGPROC * checkProcLeader,
+FindLockCycleRecurseMember(PGPROC *checkProc,
+						   PGPROC *checkProcLeader,
 						   int depth,
-						   EDGE * softEdges,	/* output argument */
+						   EDGE *softEdges, /* output argument */
 						   int *nSoftEdges) /* output argument */
 {
 	PGPROC	   *proc;
@@ -792,11 +792,11 @@ FindLockCycleRecurseMember(PGPROC * checkProc,
  * of nWaitOrders WAIT_ORDER structs in waitOrders[], with PGPROC array
  * workspace in waitOrderProcs[].
  *
- * Returns TRUE if able to build an ordering that satisfies all the
- * constraints, FALSE if not (there are contradictory constraints).
+ * Returns true if able to build an ordering that satisfies all the
+ * constraints, false if not (there are contradictory constraints).
  */
 static bool
-ExpandConstraints(EDGE * constraints,
+ExpandConstraints(EDGE *constraints,
 				  int nConstraints)
 {
 	int			nWaitOrderProcs = 0;
@@ -864,14 +864,14 @@ ExpandConstraints(EDGE * constraints,
  * the "blocker" in the output array.  The EDGE array may well contain
  * edges associated with other locks; these should be ignored.
  *
- * Returns TRUE if able to build an ordering that satisfies all the
- * constraints, FALSE if not (there are contradictory constraints).
+ * Returns true if able to build an ordering that satisfies all the
+ * constraints, false if not (there are contradictory constraints).
  */
 static bool
-TopoSort(LOCK * lock,
-		 EDGE * constraints,
+TopoSort(LOCK *lock,
+		 EDGE *constraints,
 		 int nConstraints,
-		 PGPROC * *ordering)	/* output argument */
+		 PGPROC **ordering)		/* output argument */
 {
 	PROC_QUEUE *waitQueue = &(lock->waitProcs);
 	int			queue_size = waitQueue->size;
@@ -1051,7 +1051,7 @@ TopoSort(LOCK * lock,
 
 #ifdef DEBUG_DEADLOCK
 static void
-PrintLockQueue(LOCK * lock, const char *info)
+PrintLockQueue(LOCK *lock, const char *info)
 {
 	PROC_QUEUE *waitQueue = &(lock->waitProcs);
 	int			queue_size = waitQueue->size;
@@ -1146,10 +1146,10 @@ DeadLockReport(void)
  * on lock, but proc2 is already waiting and would be blocked by proc1.
  */
 void
-RememberSimpleDeadLock(PGPROC * proc1,
+RememberSimpleDeadLock(PGPROC *proc1,
 					   LOCKMODE lockmode,
-					   LOCK * lock,
-					   PGPROC * proc2)
+					   LOCK *lock,
+					   PGPROC *proc2)
 {
 	DEADLOCK_INFO *info = &deadlockDetails[0];
 

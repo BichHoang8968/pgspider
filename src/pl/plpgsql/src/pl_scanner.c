@@ -4,7 +4,7 @@
  *	  lexical scanning for PL/pgSQL
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -102,10 +102,12 @@ static const ScanKeyword unreserved_keywords[] = {
 	PG_KEYWORD("array", K_ARRAY, UNRESERVED_KEYWORD)
 	PG_KEYWORD("assert", K_ASSERT, UNRESERVED_KEYWORD)
 	PG_KEYWORD("backward", K_BACKWARD, UNRESERVED_KEYWORD)
+	PG_KEYWORD("call", K_CALL, UNRESERVED_KEYWORD)
 	PG_KEYWORD("close", K_CLOSE, UNRESERVED_KEYWORD)
 	PG_KEYWORD("collate", K_COLLATE, UNRESERVED_KEYWORD)
 	PG_KEYWORD("column", K_COLUMN, UNRESERVED_KEYWORD)
 	PG_KEYWORD("column_name", K_COLUMN_NAME, UNRESERVED_KEYWORD)
+	PG_KEYWORD("commit", K_COMMIT, UNRESERVED_KEYWORD)
 	PG_KEYWORD("constant", K_CONSTANT, UNRESERVED_KEYWORD)
 	PG_KEYWORD("constraint", K_CONSTRAINT, UNRESERVED_KEYWORD)
 	PG_KEYWORD("constraint_name", K_CONSTRAINT_NAME, UNRESERVED_KEYWORD)
@@ -117,6 +119,7 @@ static const ScanKeyword unreserved_keywords[] = {
 	PG_KEYWORD("default", K_DEFAULT, UNRESERVED_KEYWORD)
 	PG_KEYWORD("detail", K_DETAIL, UNRESERVED_KEYWORD)
 	PG_KEYWORD("diagnostics", K_DIAGNOSTICS, UNRESERVED_KEYWORD)
+	PG_KEYWORD("do", K_DO, UNRESERVED_KEYWORD)
 	PG_KEYWORD("dump", K_DUMP, UNRESERVED_KEYWORD)
 	PG_KEYWORD("elseif", K_ELSIF, UNRESERVED_KEYWORD)
 	PG_KEYWORD("elsif", K_ELSIF, UNRESERVED_KEYWORD)
@@ -154,15 +157,18 @@ static const ScanKeyword unreserved_keywords[] = {
 	PG_KEYWORD("query", K_QUERY, UNRESERVED_KEYWORD)
 	PG_KEYWORD("raise", K_RAISE, UNRESERVED_KEYWORD)
 	PG_KEYWORD("relative", K_RELATIVE, UNRESERVED_KEYWORD)
+	PG_KEYWORD("reset", K_RESET, UNRESERVED_KEYWORD)
 	PG_KEYWORD("result_oid", K_RESULT_OID, UNRESERVED_KEYWORD)
 	PG_KEYWORD("return", K_RETURN, UNRESERVED_KEYWORD)
 	PG_KEYWORD("returned_sqlstate", K_RETURNED_SQLSTATE, UNRESERVED_KEYWORD)
 	PG_KEYWORD("reverse", K_REVERSE, UNRESERVED_KEYWORD)
+	PG_KEYWORD("rollback", K_ROLLBACK, UNRESERVED_KEYWORD)
 	PG_KEYWORD("row_count", K_ROW_COUNT, UNRESERVED_KEYWORD)
 	PG_KEYWORD("rowtype", K_ROWTYPE, UNRESERVED_KEYWORD)
 	PG_KEYWORD("schema", K_SCHEMA, UNRESERVED_KEYWORD)
 	PG_KEYWORD("schema_name", K_SCHEMA_NAME, UNRESERVED_KEYWORD)
 	PG_KEYWORD("scroll", K_SCROLL, UNRESERVED_KEYWORD)
+	PG_KEYWORD("set", K_SET, UNRESERVED_KEYWORD)
 	PG_KEYWORD("slice", K_SLICE, UNRESERVED_KEYWORD)
 	PG_KEYWORD("sqlstate", K_SQLSTATE, UNRESERVED_KEYWORD)
 	PG_KEYWORD("stacked", K_STACKED, UNRESERVED_KEYWORD)
@@ -197,7 +203,7 @@ typedef struct
 	YYSTYPE		lval;			/* semantic information */
 	YYLTYPE		lloc;			/* offset in scanbuf */
 	int			leng;			/* length in bytes */
-}			TokenAuxData;
+} TokenAuxData;
 
 /*
  * Scanner working state.  At some point we might wish to fold all this
@@ -232,8 +238,8 @@ static const char *cur_line_end;
 static int	cur_line_num;
 
 /* Internal functions */
-static int	internal_yylex(TokenAuxData * auxdata);
-static void push_back_token(int token, TokenAuxData * auxdata);
+static int	internal_yylex(TokenAuxData *auxdata);
+static void push_back_token(int token, TokenAuxData *auxdata);
 static void location_lineno_init(void);
 
 
@@ -251,7 +257,7 @@ plpgsql_yylex(void)
 {
 	int			tok1;
 	TokenAuxData aux1;
-	const		ScanKeyword *kw;
+	const ScanKeyword *kw;
 
 	tok1 = internal_yylex(&aux1);
 	if (tok1 == IDENT || tok1 == PARAM)
@@ -421,7 +427,7 @@ plpgsql_yylex(void)
  * interfacing from the core_YYSTYPE to YYSTYPE union.
  */
 static int
-internal_yylex(TokenAuxData * auxdata)
+internal_yylex(TokenAuxData *auxdata)
 {
 	int			token;
 	const char *yytext;
@@ -467,7 +473,7 @@ internal_yylex(TokenAuxData * auxdata)
  * Push back a token to be re-read by next internal_yylex() call.
  */
 static void
-push_back_token(int token, TokenAuxData * auxdata)
+push_back_token(int token, TokenAuxData *auxdata)
 {
 	if (num_pushbacks >= MAX_PUSHBACKS)
 		elog(ERROR, "too many tokens pushed back");

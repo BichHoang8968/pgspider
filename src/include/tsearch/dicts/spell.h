@@ -4,7 +4,7 @@
  *
  * Declarations for ISpell dictionary
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  * src/include/tsearch/dicts/spell.h
  *
@@ -33,7 +33,7 @@ typedef struct
 	/* Reference to an entry of the AffixData field */
 				affix:19;
 	struct SPNode *node;
-}			SPNodeData;
+} SPNodeData;
 
 /*
  * Names of FF_ are correlated with Hunspell options in affix file
@@ -51,7 +51,7 @@ typedef struct SPNode
 {
 	uint32		length;
 	SPNodeData	data[FLEXIBLE_ARRAY_MEMBER];
-}			SPNode;
+} SPNode;
 
 #define SPNHDRSZ	(offsetof(SPNode,data))
 
@@ -77,7 +77,7 @@ typedef struct spell_struct
 		}			d;
 	}			p;
 	char		word[FLEXIBLE_ARRAY_MEMBER];
-}			SPELL;
+} SPELL;
 
 #define SPELLHDRSZ	(offsetof(SPELL, word))
 
@@ -100,7 +100,7 @@ typedef struct aff_struct
 		regex_t		regex;
 		Regis		regis;
 	}			reg;
-}			AFFIX;
+} AFFIX;
 
 /*
  * affixes use dictionary flags too
@@ -128,14 +128,14 @@ typedef struct
 				naff:24;
 	AFFIX	  **aff;
 	struct AffixNode *node;
-}			AffixNodeData;
+} AffixNodeData;
 
 typedef struct AffixNode
 {
 	uint32		isvoid:1,
 				length:31;
 	AffixNodeData data[FLEXIBLE_ARRAY_MEMBER];
-}			AffixNode;
+} AffixNode;
 
 #define ANHRDSZ		   (offsetof(AffixNode, data))
 
@@ -144,7 +144,7 @@ typedef struct
 	char	   *affix;
 	int			len;
 	bool		issuffix;
-}			CMPDAffix;
+} CMPDAffix;
 
 /*
  * Type of encoding affix flags in Hunspell dictionaries
@@ -154,7 +154,7 @@ typedef enum
 	FM_CHAR,					/* one character (like ispell) */
 	FM_LONG,					/* two characters */
 	FM_NUM						/* number, >= 0 and < 65536 */
-}			FlagMode;
+} FlagMode;
 
 /*
  * Structure to store Hunspell options. Flag representation depends on flag
@@ -172,7 +172,7 @@ typedef struct CompoundAffixFlag
 	/* we don't have a bsearch_arg version, so, copy FlagMode */
 	FlagMode	flagMode;
 	uint32		value;
-}			CompoundAffixFlag;
+} CompoundAffixFlag;
 
 #define FLAGNUM_MAXSIZE		(1 << 16)
 
@@ -222,15 +222,15 @@ typedef struct
 	/* These are used to allocate "compact" data without palloc overhead */
 	char	   *firstfree;		/* first free address (always maxaligned) */
 	size_t		avail;			/* free space remaining at firstfree */
-}			IspellDict;
+} IspellDict;
 
-extern TSLexeme * NINormalizeWord(IspellDict * Conf, char *word);
+extern TSLexeme *NINormalizeWord(IspellDict *Conf, char *word);
 
-extern void NIStartBuild(IspellDict * Conf);
-extern void NIImportAffixes(IspellDict * Conf, const char *filename);
-extern void NIImportDictionary(IspellDict * Conf, const char *filename);
-extern void NISortDictionary(IspellDict * Conf);
-extern void NISortAffixes(IspellDict * Conf);
-extern void NIFinishBuild(IspellDict * Conf);
+extern void NIStartBuild(IspellDict *Conf);
+extern void NIImportAffixes(IspellDict *Conf, const char *filename);
+extern void NIImportDictionary(IspellDict *Conf, const char *filename);
+extern void NISortDictionary(IspellDict *Conf);
+extern void NISortAffixes(IspellDict *Conf);
+extern void NIFinishBuild(IspellDict *Conf);
 
 #endif

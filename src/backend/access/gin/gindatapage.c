@@ -4,7 +4,7 @@
  *	  routines for handling GIN posting tree pages.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -19,6 +19,7 @@
 #include "access/xloginsert.h"
 #include "lib/ilist.h"
 #include "miscadmin.h"
+#include "storage/predicate.h"
 #include "utils/rel.h"
 
 /*
@@ -64,7 +65,7 @@ typedef struct
 	 */
 	char	   *walinfo;		/* buffer start */
 	int			walinfolen;		/* and length */
-}			disassembledLeaf;
+} disassembledLeaf;
 
 typedef struct
 {
@@ -99,22 +100,22 @@ typedef struct
 	GinPostingList *seg;
 	ItemPointer items;
 	int			nitems;			/* # of items in 'items', if items != NULL */
-}			leafSegmentInfo;
+} leafSegmentInfo;
 
 static ItemPointer dataLeafPageGetUncompressed(Page page, int *nitems);
 static void dataSplitPageInternal(GinBtree btree, Buffer origbuf,
-					  GinBtreeStack * stack,
+					  GinBtreeStack *stack,
 					  void *insertdata, BlockNumber updateblkno,
-					  Page * newlpage, Page * newrpage);
+					  Page *newlpage, Page *newrpage);
 
-static disassembledLeaf * disassembleLeaf(Page page);
-static bool leafRepackItems(disassembledLeaf * leaf, ItemPointer remaining);
-static bool addItemsToLeaf(disassembledLeaf * leaf, ItemPointer newItems,
+static disassembledLeaf *disassembleLeaf(Page page);
+static bool leafRepackItems(disassembledLeaf *leaf, ItemPointer remaining);
+static bool addItemsToLeaf(disassembledLeaf *leaf, ItemPointer newItems,
 			   int nNewItems);
 
-static void computeLeafRecompressWALData(disassembledLeaf * leaf);
-static void dataPlaceToPageLeafRecompress(Buffer buf, disassembledLeaf * leaf);
-static void dataPlaceToPageLeafSplit(disassembledLeaf * leaf,
+static void computeLeafRecompressWALData(disassembledLeaf *leaf);
+static void dataPlaceToPageLeafRecompress(Buffer buf, disassembledLeaf *leaf);
+static void dataPlaceToPageLeafSplit(disassembledLeaf *leaf,
 						 ItemPointerData lbound, ItemPointerData rbound,
 						 Page lpage, Page rpage);
 
@@ -178,7 +179,7 @@ GinDataLeafPageGetItems(Page page, int *nitems, ItemPointerData advancePast)
  * Places all TIDs from leaf data page to bitmap.
  */
 int
-GinDataLeafPageGetItemsToTbm(Page page, TIDBitmap * tbm)
+GinDataLeafPageGetItemsToTbm(Page page, TIDBitmap *tbm)
 {
 	ItemPointer uncompressed;
 	int			nitems;
@@ -235,9 +236,9 @@ dataIsMoveRight(GinBtree btree, Page page)
 	ItemPointer iptr = GinDataPageGetRightBound(page);
 
 	if (GinPageRightMost(page))
-		return FALSE;
+		return false;
 
-	return (ginCompareItemPointers(&btree->itemptr, iptr) > 0) ? TRUE : FALSE;
+	return (ginCompareItemPointers(&btree->itemptr, iptr) > 0) ? true : false;
 }
 
 /*
@@ -245,7 +246,7 @@ dataIsMoveRight(GinBtree btree, Page page)
  * the correct page, and the searched value SHOULD be on the page.
  */
 static BlockNumber
-dataLocateItem(GinBtree btree, GinBtreeStack * stack)
+dataLocateItem(GinBtree btree, GinBtreeStack *stack)
 {
 	OffsetNumber low,
 				high,
@@ -373,7 +374,7 @@ dataGetLeftMostPage(GinBtree btree, Page page)
  * Add PostingItem to a non-leaf page.
  */
 void
-GinDataPageAddPostingItem(Page page, PostingItem * data, OffsetNumber offset)
+GinDataPageAddPostingItem(Page page, PostingItem *data, OffsetNumber offset)
 {
 	OffsetNumber maxoff = GinPageGetOpaque(page)->maxoff;
 	char	   *ptr;
@@ -441,10 +442,10 @@ GinPageDeletePostingItem(Page page, OffsetNumber offset)
  * In neither case should the given page buffer be modified here.
  */
 static GinPlaceToPageRC
-dataBeginPlaceToPageLeaf(GinBtree btree, Buffer buf, GinBtreeStack * stack,
+dataBeginPlaceToPageLeaf(GinBtree btree, Buffer buf, GinBtreeStack *stack,
 						 void *insertdata,
 						 void **ptp_workspace,
-						 Page * newlpage, Page * newrpage)
+						 Page *newlpage, Page *newrpage)
 {
 	GinBtreeDataLeafInsertData *items = insertdata;
 	ItemPointer newItems = &items->items[items->curitem];
@@ -709,7 +710,7 @@ dataBeginPlaceToPageLeaf(GinBtree btree, Buffer buf, GinBtreeStack * stack,
  * needed) is already started.  The target buffer is registered in slot 0.
  */
 static void
-dataExecPlaceToPageLeaf(GinBtree btree, Buffer buf, GinBtreeStack * stack,
+dataExecPlaceToPageLeaf(GinBtree btree, Buffer buf, GinBtreeStack *stack,
 						void *insertdata, void *ptp_workspace)
 {
 	disassembledLeaf *leaf = (disassembledLeaf *) ptp_workspace;
@@ -728,7 +729,7 @@ dataExecPlaceToPageLeaf(GinBtree btree, Buffer buf, GinBtreeStack * stack,
  * Vacuum a posting tree leaf page.
  */
 void
-ginVacuumPostingTreeLeaf(Relation indexrel, Buffer buffer, GinVacuumState * gvs)
+ginVacuumPostingTreeLeaf(Relation indexrel, Buffer buffer, GinVacuumState *gvs)
 {
 	Page		page = BufferGetPage(buffer);
 	disassembledLeaf *leaf;
@@ -862,7 +863,7 @@ ginVacuumPostingTreeLeaf(Relation indexrel, Buffer buffer, GinVacuumState * gvs)
  * we enter the critical section that actually updates the page.)
  */
 static void
-computeLeafRecompressWALData(disassembledLeaf * leaf)
+computeLeafRecompressWALData(disassembledLeaf *leaf)
 {
 	int			nmodified = 0;
 	char	   *walbufbegin;
@@ -968,7 +969,7 @@ computeLeafRecompressWALData(disassembledLeaf * leaf)
  * segments have not been modified either.
  */
 static void
-dataPlaceToPageLeafRecompress(Buffer buf, disassembledLeaf * leaf)
+dataPlaceToPageLeafRecompress(Buffer buf, disassembledLeaf *leaf)
 {
 	Page		page = BufferGetPage(buf);
 	char	   *ptr;
@@ -1024,7 +1025,7 @@ dataPlaceToPageLeafRecompress(Buffer buf, disassembledLeaf * leaf)
  * the new left and right pages.
  */
 static void
-dataPlaceToPageLeafSplit(disassembledLeaf * leaf,
+dataPlaceToPageLeafSplit(disassembledLeaf *leaf,
 						 ItemPointerData lbound, ItemPointerData rbound,
 						 Page lpage, Page rpage)
 {
@@ -1109,10 +1110,10 @@ dataPlaceToPageLeafSplit(disassembledLeaf * leaf,
  * point to updateblkno.
  */
 static GinPlaceToPageRC
-dataBeginPlaceToPageInternal(GinBtree btree, Buffer buf, GinBtreeStack * stack,
+dataBeginPlaceToPageInternal(GinBtree btree, Buffer buf, GinBtreeStack *stack,
 							 void *insertdata, BlockNumber updateblkno,
 							 void **ptp_workspace,
-							 Page * newlpage, Page * newrpage)
+							 Page *newlpage, Page *newrpage)
 {
 	Page		page = BufferGetPage(buf);
 
@@ -1135,7 +1136,7 @@ dataBeginPlaceToPageInternal(GinBtree btree, Buffer buf, GinBtreeStack * stack,
  * needed) is already started.  The target buffer is registered in slot 0.
  */
 static void
-dataExecPlaceToPageInternal(GinBtree btree, Buffer buf, GinBtreeStack * stack,
+dataExecPlaceToPageInternal(GinBtree btree, Buffer buf, GinBtreeStack *stack,
 							void *insertdata, BlockNumber updateblkno,
 							void *ptp_workspace)
 {
@@ -1188,10 +1189,10 @@ dataExecPlaceToPageInternal(GinBtree btree, Buffer buf, GinBtreeStack * stack,
  * very differently.
  */
 static GinPlaceToPageRC
-dataBeginPlaceToPage(GinBtree btree, Buffer buf, GinBtreeStack * stack,
+dataBeginPlaceToPage(GinBtree btree, Buffer buf, GinBtreeStack *stack,
 					 void *insertdata, BlockNumber updateblkno,
 					 void **ptp_workspace,
-					 Page * newlpage, Page * newrpage)
+					 Page *newlpage, Page *newrpage)
 {
 	Page		page = BufferGetPage(buf);
 
@@ -1218,7 +1219,7 @@ dataBeginPlaceToPage(GinBtree btree, Buffer buf, GinBtreeStack * stack,
  * very differently.
  */
 static void
-dataExecPlaceToPage(GinBtree btree, Buffer buf, GinBtreeStack * stack,
+dataExecPlaceToPage(GinBtree btree, Buffer buf, GinBtreeStack *stack,
 					void *insertdata, BlockNumber updateblkno,
 					void *ptp_workspace)
 {
@@ -1240,9 +1241,9 @@ dataExecPlaceToPage(GinBtree btree, Buffer buf, GinBtreeStack * stack,
  */
 static void
 dataSplitPageInternal(GinBtree btree, Buffer origbuf,
-					  GinBtreeStack * stack,
+					  GinBtreeStack *stack,
 					  void *insertdata, BlockNumber updateblkno,
-					  Page * newlpage, Page * newrpage)
+					  Page *newlpage, Page *newrpage)
 {
 	Page		oldpage = BufferGetPage(origbuf);
 	OffsetNumber off = stack->off;
@@ -1431,7 +1432,7 @@ disassembleLeaf(Page page)
  * duplicates of existing items on the page.
  */
 static bool
-addItemsToLeaf(disassembledLeaf * leaf, ItemPointer newItems, int nNewItems)
+addItemsToLeaf(disassembledLeaf *leaf, ItemPointer newItems, int nNewItems)
 {
 	dlist_iter	iter;
 	ItemPointer nextnew = newItems;
@@ -1558,7 +1559,7 @@ addItemsToLeaf(disassembledLeaf * leaf, ItemPointer newItems, int nNewItems)
  * Returns true if the page has to be split.
  */
 static bool
-leafRepackItems(disassembledLeaf * leaf, ItemPointer remaining)
+leafRepackItems(disassembledLeaf *leaf, ItemPointer remaining)
 {
 	int			pgused = 0;
 	bool		needsplit = false;
@@ -1762,8 +1763,8 @@ leafRepackItems(disassembledLeaf * leaf, ItemPointer remaining)
  * items[] must be in sorted order with no duplicates.
  */
 BlockNumber
-createPostingTree(Relation index, ItemPointerData * items, uint32 nitems,
-				  GinStatsData * buildStats)
+createPostingTree(Relation index, ItemPointerData *items, uint32 nitems,
+				  GinStatsData *buildStats, Buffer entrybuffer)
 {
 	BlockNumber blkno;
 	Buffer		buffer;
@@ -1814,6 +1815,12 @@ createPostingTree(Relation index, ItemPointerData * items, uint32 nitems,
 	page = BufferGetPage(buffer);
 	blkno = BufferGetBlockNumber(buffer);
 
+	/*
+	 * Copy any predicate locks from the entry tree leaf (containing posting
+	 * list) to the posting tree.
+	 */
+	PredicateLockPageSplit(index, BufferGetBlockNumber(entrybuffer), blkno);
+
 	START_CRIT_SECTION();
 
 	PageRestoreTempPage(tmppage, page);
@@ -1861,7 +1868,7 @@ createPostingTree(Relation index, ItemPointerData * items, uint32 nitems,
 	return blkno;
 }
 
-void
+static void
 ginPrepareDataScan(GinBtree btree, Relation index, BlockNumber rootBlkno)
 {
 	memset(btree, 0, sizeof(GinBtreeData));
@@ -1879,9 +1886,9 @@ ginPrepareDataScan(GinBtree btree, Relation index, BlockNumber rootBlkno)
 	btree->fillRoot = ginDataFillRoot;
 	btree->prepareDownlink = dataPrepareDownlink;
 
-	btree->isData = TRUE;
-	btree->fullScan = FALSE;
-	btree->isBuild = FALSE;
+	btree->isData = true;
+	btree->fullScan = false;
+	btree->isBuild = false;
 }
 
 /*
@@ -1889,8 +1896,8 @@ ginPrepareDataScan(GinBtree btree, Relation index, BlockNumber rootBlkno)
  */
 void
 ginInsertItemPointers(Relation index, BlockNumber rootBlkno,
-					  ItemPointerData * items, uint32 nitem,
-					  GinStatsData * buildStats)
+					  ItemPointerData *items, uint32 nitem,
+					  GinStatsData *buildStats)
 {
 	GinBtreeData btree;
 	GinBtreeDataLeafInsertData insertdata;
@@ -1906,7 +1913,7 @@ ginInsertItemPointers(Relation index, BlockNumber rootBlkno,
 	{
 		/* search for the leaf page where the first item should go to */
 		btree.itemptr = insertdata.items[insertdata.curitem];
-		stack = ginFindLeafPage(&btree, false, NULL);
+		stack = ginFindLeafPage(&btree, false, true, NULL);
 
 		ginInsertValue(&btree, stack, &insertdata, buildStats);
 	}
@@ -1923,9 +1930,9 @@ ginScanBeginPostingTree(GinBtree btree, Relation index, BlockNumber rootBlkno,
 
 	ginPrepareDataScan(btree, index, rootBlkno);
 
-	btree->fullScan = TRUE;
+	btree->fullScan = true;
 
-	stack = ginFindLeafPage(btree, TRUE, snapshot);
+	stack = ginFindLeafPage(btree, true, false, snapshot);
 
 	return stack;
 }

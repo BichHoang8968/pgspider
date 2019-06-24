@@ -4,7 +4,7 @@
  *	  build algorithm for GiST indexes implementation.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -50,12 +50,13 @@ typedef enum
 								 * before switching to the buffering build
 								 * mode */
 	GIST_BUFFERING_ACTIVE		/* in buffering build mode */
-}			GistBufferingMode;
+} GistBufferingMode;
 
 /* Working state for gistbuild and its callback */
 typedef struct
 {
 	Relation	indexrel;
+	Relation	heaprel;
 	GISTSTATE  *giststate;
 
 	int64		indtuples;		/* number of tuples indexed */
@@ -72,38 +73,38 @@ typedef struct
 	HTAB	   *parentMap;
 
 	GistBufferingMode bufferingMode;
-}			GISTBuildState;
+} GISTBuildState;
 
 /* prototypes for private functions */
-static void gistInitBuffering(GISTBuildState * buildstate);
-static int	calculatePagesPerBuffer(GISTBuildState * buildstate, int levelStep);
+static void gistInitBuffering(GISTBuildState *buildstate);
+static int	calculatePagesPerBuffer(GISTBuildState *buildstate, int levelStep);
 static void gistBuildCallback(Relation index,
 				  HeapTuple htup,
-				  Datum * values,
+				  Datum *values,
 				  bool *isnull,
 				  bool tupleIsAlive,
 				  void *state);
-static void gistBufferingBuildInsert(GISTBuildState * buildstate,
+static void gistBufferingBuildInsert(GISTBuildState *buildstate,
 						 IndexTuple itup);
-static bool gistProcessItup(GISTBuildState * buildstate, IndexTuple itup,
+static bool gistProcessItup(GISTBuildState *buildstate, IndexTuple itup,
 				BlockNumber startblkno, int startlevel);
-static BlockNumber gistbufferinginserttuples(GISTBuildState * buildstate,
-											 Buffer buffer, int level,
-											 IndexTuple * itup, int ntup, OffsetNumber oldoffnum,
-											 BlockNumber parentblk, OffsetNumber downlinkoffnum);
-static Buffer gistBufferingFindCorrectParent(GISTBuildState * buildstate,
-											 BlockNumber childblkno, int level,
-											 BlockNumber * parentblk,
-											 OffsetNumber * downlinkoffnum);
-static void gistProcessEmptyingQueue(GISTBuildState * buildstate);
-static void gistEmptyAllBuffers(GISTBuildState * buildstate);
+static BlockNumber gistbufferinginserttuples(GISTBuildState *buildstate,
+						  Buffer buffer, int level,
+						  IndexTuple *itup, int ntup, OffsetNumber oldoffnum,
+						  BlockNumber parentblk, OffsetNumber downlinkoffnum);
+static Buffer gistBufferingFindCorrectParent(GISTBuildState *buildstate,
+							   BlockNumber childblkno, int level,
+							   BlockNumber *parentblk,
+							   OffsetNumber *downlinkoffnum);
+static void gistProcessEmptyingQueue(GISTBuildState *buildstate);
+static void gistEmptyAllBuffers(GISTBuildState *buildstate);
 static int	gistGetMaxLevel(Relation index);
 
-static void gistInitParentMap(GISTBuildState * buildstate);
-static void gistMemorizeParent(GISTBuildState * buildstate, BlockNumber child,
+static void gistInitParentMap(GISTBuildState *buildstate);
+static void gistMemorizeParent(GISTBuildState *buildstate, BlockNumber child,
 				   BlockNumber parent);
-static void gistMemorizeAllDownlinks(GISTBuildState * buildstate, Buffer parent);
-static BlockNumber gistGetParent(GISTBuildState * buildstate, BlockNumber child);
+static void gistMemorizeAllDownlinks(GISTBuildState *buildstate, Buffer parent);
+static BlockNumber gistGetParent(GISTBuildState *buildstate, BlockNumber child);
 
 /*
  * Main entry point to GiST index build. Initially calls insert over and over,
@@ -111,7 +112,7 @@ static BlockNumber gistGetParent(GISTBuildState * buildstate, BlockNumber child)
  * number of tuples (unless buffering mode is disabled).
  */
 IndexBuildResult *
-gistbuild(Relation heap, Relation index, IndexInfo * indexInfo)
+gistbuild(Relation heap, Relation index, IndexInfo *indexInfo)
 {
 	IndexBuildResult *result;
 	double		reltuples;
@@ -122,6 +123,7 @@ gistbuild(Relation heap, Relation index, IndexInfo * indexInfo)
 	int			fillfactor;
 
 	buildstate.indexrel = index;
+	buildstate.heaprel = heap;
 	if (index->rd_options)
 	{
 		/* Get buffering mode from the options string */
@@ -203,7 +205,7 @@ gistbuild(Relation heap, Relation index, IndexInfo * indexInfo)
 	 * Do the heap scan.
 	 */
 	reltuples = IndexBuildHeapScan(heap, index, indexInfo, true,
-								   gistBuildCallback, (void *) &buildstate);
+								   gistBuildCallback, (void *) &buildstate, NULL);
 
 	/*
 	 * If buffering was used, flush out all the tuples that are still in the
@@ -238,7 +240,7 @@ gistbuild(Relation heap, Relation index, IndexInfo * indexInfo)
  * and "auto" values.
  */
 void
-gistValidateBufferingOption(char *value)
+gistValidateBufferingOption(const char *value)
 {
 	if (value == NULL ||
 		(strcmp(value, "on") != 0 &&
@@ -261,7 +263,7 @@ gistValidateBufferingOption(char *value)
  * GIST_BUFFERING_ACTIVE.
  */
 static void
-gistInitBuffering(GISTBuildState * buildstate)
+gistInitBuffering(GISTBuildState *buildstate)
 {
 	Relation	index = buildstate->indexrel;
 	int			pagesPerBuffer;
@@ -295,10 +297,10 @@ gistInitBuffering(GISTBuildState * buildstate)
 	itupMinSize = (Size) MAXALIGN(sizeof(IndexTupleData));
 	for (i = 0; i < index->rd_att->natts; i++)
 	{
-		if (index->rd_att->attrs[i]->attlen < 0)
+		if (TupleDescAttr(index->rd_att, i)->attlen < 0)
 			itupMinSize += VARHDRSZ;
 		else
-			itupMinSize += index->rd_att->attrs[i]->attlen;
+			itupMinSize += TupleDescAttr(index->rd_att, i)->attlen;
 	}
 
 	/* Calculate average and maximal number of index tuples which fit to page */
@@ -422,7 +424,7 @@ gistInitBuffering(GISTBuildState * buildstate)
  * at the next lower level.
  */
 static int
-calculatePagesPerBuffer(GISTBuildState * buildstate, int levelStep)
+calculatePagesPerBuffer(GISTBuildState *buildstate, int levelStep)
 {
 	double		pagesPerBuffer;
 	double		avgIndexTuplesPerPage;
@@ -457,7 +459,7 @@ calculatePagesPerBuffer(GISTBuildState * buildstate, int levelStep)
 static void
 gistBuildCallback(Relation index,
 				  HeapTuple htup,
-				  Datum * values,
+				  Datum *values,
 				  bool *isnull,
 				  bool tupleIsAlive,
 				  void *state)
@@ -484,7 +486,7 @@ gistBuildCallback(Relation index,
 		 * locked, we call gistdoinsert directly.
 		 */
 		gistdoinsert(index, itup, buildstate->freespace,
-					 buildstate->giststate);
+					 buildstate->giststate, buildstate->heaprel);
 	}
 
 	/* Update tuple count and total size. */
@@ -527,7 +529,7 @@ gistBuildCallback(Relation index,
  * Insert function for buffering index build.
  */
 static void
-gistBufferingBuildInsert(GISTBuildState * buildstate, IndexTuple itup)
+gistBufferingBuildInsert(GISTBuildState *buildstate, IndexTuple itup)
 {
 	/* Insert the tuple to buffers. */
 	gistProcessItup(buildstate, itup, 0, buildstate->gfbb->rootlevel);
@@ -543,7 +545,7 @@ gistBufferingBuildInsert(GISTBuildState * buildstate, IndexTuple itup)
  * index tuples anymore).
  */
 static bool
-gistProcessItup(GISTBuildState * buildstate, IndexTuple itup,
+gistProcessItup(GISTBuildState *buildstate, IndexTuple itup,
 				BlockNumber startblkno, int startlevel)
 {
 	GISTSTATE  *giststate = buildstate->giststate;
@@ -674,8 +676,8 @@ gistProcessItup(GISTBuildState * buildstate, IndexTuple itup,
  * and unpin it.
  */
 static BlockNumber
-gistbufferinginserttuples(GISTBuildState * buildstate, Buffer buffer, int level,
-						  IndexTuple * itup, int ntup, OffsetNumber oldoffnum,
+gistbufferinginserttuples(GISTBuildState *buildstate, Buffer buffer, int level,
+						  IndexTuple *itup, int ntup, OffsetNumber oldoffnum,
 						  BlockNumber parentblk, OffsetNumber downlinkoffnum)
 {
 	GISTBuildBuffers *gfbb = buildstate->gfbb;
@@ -690,7 +692,8 @@ gistbufferinginserttuples(GISTBuildState * buildstate, Buffer buffer, int level,
 							   itup, ntup, oldoffnum, &placed_to_blk,
 							   InvalidBuffer,
 							   &splitinfo,
-							   false);
+							   false,
+							   buildstate->heaprel);
 
 	/*
 	 * If this is a root split, update the root path item kept in memory. This
@@ -842,10 +845,10 @@ gistbufferinginserttuples(GISTBuildState * buildstate, Buffer buffer, int level,
  * with concurrent inserts.
  */
 static Buffer
-gistBufferingFindCorrectParent(GISTBuildState * buildstate,
+gistBufferingFindCorrectParent(GISTBuildState *buildstate,
 							   BlockNumber childblkno, int level,
-							   BlockNumber * parentblkno,
-							   OffsetNumber * downlinkoffnum)
+							   BlockNumber *parentblkno,
+							   OffsetNumber *downlinkoffnum)
 {
 	BlockNumber parent;
 	Buffer		buffer;
@@ -916,7 +919,7 @@ gistBufferingFindCorrectParent(GISTBuildState * buildstate,
  * process finished, e.g. until buffers emptying stack is empty.
  */
 static void
-gistProcessEmptyingQueue(GISTBuildState * buildstate)
+gistProcessEmptyingQueue(GISTBuildState *buildstate)
 {
 	GISTBuildBuffers *gfbb = buildstate->gfbb;
 
@@ -989,7 +992,7 @@ gistProcessEmptyingQueue(GISTBuildState * buildstate)
  * be inserted to after this call.
  */
 static void
-gistEmptyAllBuffers(GISTBuildState * buildstate)
+gistEmptyAllBuffers(GISTBuildState *buildstate)
 {
 	GISTBuildBuffers *gfbb = buildstate->gfbb;
 	MemoryContext oldCtx;
@@ -1130,10 +1133,10 @@ typedef struct
 {
 	BlockNumber childblkno;		/* hash key */
 	BlockNumber parentblkno;
-}			ParentMapEntry;
+} ParentMapEntry;
 
 static void
-gistInitParentMap(GISTBuildState * buildstate)
+gistInitParentMap(GISTBuildState *buildstate)
 {
 	HASHCTL		hashCtl;
 
@@ -1147,7 +1150,7 @@ gistInitParentMap(GISTBuildState * buildstate)
 }
 
 static void
-gistMemorizeParent(GISTBuildState * buildstate, BlockNumber child, BlockNumber parent)
+gistMemorizeParent(GISTBuildState *buildstate, BlockNumber child, BlockNumber parent)
 {
 	ParentMapEntry *entry;
 	bool		found;
@@ -1163,7 +1166,7 @@ gistMemorizeParent(GISTBuildState * buildstate, BlockNumber child, BlockNumber p
  * Scan all downlinks on a page, and memorize their parent.
  */
 static void
-gistMemorizeAllDownlinks(GISTBuildState * buildstate, Buffer parentbuf)
+gistMemorizeAllDownlinks(GISTBuildState *buildstate, Buffer parentbuf)
 {
 	OffsetNumber maxoff;
 	OffsetNumber off;
@@ -1184,7 +1187,7 @@ gistMemorizeAllDownlinks(GISTBuildState * buildstate, Buffer parentbuf)
 }
 
 static BlockNumber
-gistGetParent(GISTBuildState * buildstate, BlockNumber child)
+gistGetParent(GISTBuildState *buildstate, BlockNumber child)
 {
 	ParentMapEntry *entry;
 	bool		found;

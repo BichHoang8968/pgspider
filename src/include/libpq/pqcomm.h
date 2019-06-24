@@ -6,7 +6,7 @@
  * NOTE: for historical reasons, this does not correspond to pqcomm.c.
  * pqcomm.c's routines are declared in libpq.h.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/libpq/pqcomm.h
@@ -63,7 +63,7 @@ typedef struct
 {
 	struct sockaddr_storage addr;
 	ACCEPT_TYPE_ARG3 salen;
-}			SockAddr;
+} SockAddr;
 
 /* Configure the UNIX socket location for the well known port. */
 
@@ -147,7 +147,7 @@ typedef struct StartupPacket
 	char		options[SM_OPTIONS];	/* Optional additional args */
 	char		unused[SM_UNUSED];	/* Unused */
 	char		tty[SM_TTY];	/* Tty for debug output */
-}			StartupPacket;
+} StartupPacket;
 
 extern bool Db_user_namespace;
 
@@ -195,7 +195,7 @@ typedef struct CancelRequestPacket
 	MsgType		cancelRequestCode;	/* code to identify a cancel request */
 	uint32		backendPID;		/* PID of client's backend */
 	uint32		cancelAuthCode; /* secret key to authorize cancel */
-}			CancelRequestPacket;
+} CancelRequestPacket;
 
 
 /*

@@ -4,7 +4,7 @@
  *	  prototypes for planner.c.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/optimizer/planner.h
@@ -19,44 +19,46 @@
 
 
 /* Hook for plugins to get control in planner() */
-typedef PlannedStmt * (*planner_hook_type) (Query * parse,
-											int cursorOptions,
-											ParamListInfo boundParams);
+typedef PlannedStmt *(*planner_hook_type) (Query *parse,
+										   int cursorOptions,
+										   ParamListInfo boundParams);
 extern PGDLLIMPORT planner_hook_type planner_hook;
 
 /* Hook for plugins to get control when grouping_planner() plans upper rels */
-typedef void (*create_upper_paths_hook_type) (PlannerInfo * root,
+typedef void (*create_upper_paths_hook_type) (PlannerInfo *root,
 											  UpperRelationKind stage,
-											  RelOptInfo * input_rel,
-											  RelOptInfo * output_rel);
+											  RelOptInfo *input_rel,
+											  RelOptInfo *output_rel,
+											  void *extra);
 extern PGDLLIMPORT create_upper_paths_hook_type create_upper_paths_hook;
 
 
-extern PlannedStmt * planner(Query * parse, int cursorOptions,
-							 ParamListInfo boundParams);
-extern PlannedStmt * standard_planner(Query * parse, int cursorOptions,
-									  ParamListInfo boundParams);
+extern PlannedStmt *planner(Query *parse, int cursorOptions,
+		ParamListInfo boundParams);
+extern PlannedStmt *standard_planner(Query *parse, int cursorOptions,
+				 ParamListInfo boundParams);
 
-extern PlannerInfo * subquery_planner(PlannerGlobal * glob, Query * parse,
-									  PlannerInfo * parent_root,
-									  bool hasRecursion, double tuple_fraction);
+extern PlannerInfo *subquery_planner(PlannerGlobal *glob, Query *parse,
+				 PlannerInfo *parent_root,
+				 bool hasRecursion, double tuple_fraction);
 
-extern bool is_dummy_plan(Plan * plan);
+extern bool is_dummy_plan(Plan *plan);
 
-extern RowMarkType select_rowmark_type(RangeTblEntry * rte,
-									   LockClauseStrength strength);
+extern RowMarkType select_rowmark_type(RangeTblEntry *rte,
+					LockClauseStrength strength);
 
-extern void mark_partial_aggref(Aggref * agg, AggSplit aggsplit);
+extern bool limit_needed(Query *parse);
 
-extern Path * get_cheapest_fractional_path(RelOptInfo * rel,
-										   double tuple_fraction);
+extern void mark_partial_aggref(Aggref *agg, AggSplit aggsplit);
 
-extern Expr * expression_planner(Expr * expr);
+extern Path *get_cheapest_fractional_path(RelOptInfo *rel,
+							 double tuple_fraction);
 
-extern Expr * preprocess_phv_expression(PlannerInfo * root, Expr * expr);
+extern Expr *expression_planner(Expr *expr);
+
+extern Expr *preprocess_phv_expression(PlannerInfo *root, Expr *expr);
 
 extern bool plan_cluster_use_sort(Oid tableOid, Oid indexOid);
-
-extern List * get_partitioned_child_rels(PlannerInfo * root, Index rti);
+extern int	plan_create_index_workers(Oid tableOid, Oid indexOid);
 
 #endif							/* PLANNER_H */

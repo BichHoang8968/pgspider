@@ -4,7 +4,7 @@
  *		Common support routines for bin/scripts/
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/bin/scripts/common.c
@@ -22,7 +22,7 @@
 #include "fe_utils/string_utils.h"
 
 
-static PGcancel * volatile cancelConn = NULL;
+static PGcancel *volatile cancelConn = NULL;
 bool		CancelRequested = false;
 
 #ifdef WIN32
@@ -182,7 +182,7 @@ connectMaintenanceDatabase(const char *maintenance_db,
  * Run a query, return the results, exit program on failure.
  */
 PGresult *
-executeQuery(PGconn * conn, const char *query, const char *progname, bool echo)
+executeQuery(PGconn *conn, const char *query, const char *progname, bool echo)
 {
 	PGresult   *res;
 
@@ -209,7 +209,7 @@ executeQuery(PGconn * conn, const char *query, const char *progname, bool echo)
  * As above for a SQL command (which returns nothing).
  */
 void
-executeCommand(PGconn * conn, const char *query,
+executeCommand(PGconn *conn, const char *query,
 			   const char *progname, bool echo)
 {
 	PGresult   *res;
@@ -239,7 +239,7 @@ executeCommand(PGconn * conn, const char *query,
  * interrupt it.
  */
 bool
-executeMaintenanceCommand(PGconn * conn, const char *query, bool echo)
+executeMaintenanceCommand(PGconn *conn, const char *query, bool echo)
 {
 	PGresult   *res;
 	bool		r;
@@ -303,7 +303,7 @@ split_table_columns_spec(const char *spec, int encoding,
  */
 void
 appendQualifiedRelation(PQExpBuffer buf, const char *spec,
-						PGconn * conn, const char *progname, bool echo)
+						PGconn *conn, const char *progname, bool echo)
 {
 	char	   *table;
 	const char *columns;
@@ -356,8 +356,7 @@ appendQualifiedRelation(PQExpBuffer buf, const char *spec,
 		exit(1);
 	}
 	appendPQExpBufferStr(buf,
-						 fmtQualifiedId(PQserverVersion(conn),
-										PQgetvalue(res, 0, 1),
+						 fmtQualifiedId(PQgetvalue(res, 0, 1),
 										PQgetvalue(res, 0, 0)));
 	appendPQExpBufferStr(buf, columns);
 	PQclear(res);
@@ -411,7 +410,7 @@ yesno_prompt(const char *question)
  * Set cancelConn to point to the current database connection.
  */
 void
-SetCancelConn(PGconn * conn)
+SetCancelConn(PGconn *conn)
 {
 	PGcancel   *oldCancelConn;
 

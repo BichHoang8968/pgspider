@@ -29,24 +29,24 @@
 
 #include "libpq/libpq-fs.h"
 
-static void _WriteData(ArchiveHandle * AH, const void *data, size_t dLen);
-static void _WriteBlobData(ArchiveHandle * AH, const void *data, size_t dLen);
-static void _EndData(ArchiveHandle * AH, TocEntry * te);
-static int	_WriteByte(ArchiveHandle * AH, const int i);
-static void _WriteBuf(ArchiveHandle * AH, const void *buf, size_t len);
-static void _CloseArchive(ArchiveHandle * AH);
-static void _PrintTocData(ArchiveHandle * AH, TocEntry * te);
-static void _StartBlobs(ArchiveHandle * AH, TocEntry * te);
-static void _StartBlob(ArchiveHandle * AH, TocEntry * te, Oid oid);
-static void _EndBlob(ArchiveHandle * AH, TocEntry * te, Oid oid);
-static void _EndBlobs(ArchiveHandle * AH, TocEntry * te);
+static void _WriteData(ArchiveHandle *AH, const void *data, size_t dLen);
+static void _WriteBlobData(ArchiveHandle *AH, const void *data, size_t dLen);
+static void _EndData(ArchiveHandle *AH, TocEntry *te);
+static int	_WriteByte(ArchiveHandle *AH, const int i);
+static void _WriteBuf(ArchiveHandle *AH, const void *buf, size_t len);
+static void _CloseArchive(ArchiveHandle *AH);
+static void _PrintTocData(ArchiveHandle *AH, TocEntry *te);
+static void _StartBlobs(ArchiveHandle *AH, TocEntry *te);
+static void _StartBlob(ArchiveHandle *AH, TocEntry *te, Oid oid);
+static void _EndBlob(ArchiveHandle *AH, TocEntry *te, Oid oid);
+static void _EndBlobs(ArchiveHandle *AH, TocEntry *te);
 
 
 /*
  *	Initializer
  */
 void
-InitArchiveFmt_Null(ArchiveHandle * AH)
+InitArchiveFmt_Null(ArchiveHandle *AH)
 {
 	/* Assuming static functions, this can be copied for each format. */
 	AH->WriteDataPtr = _WriteData;
@@ -83,7 +83,7 @@ InitArchiveFmt_Null(ArchiveHandle * AH)
  * Called by dumper via archiver from within a data dump routine
  */
 static void
-_WriteData(ArchiveHandle * AH, const void *data, size_t dLen)
+_WriteData(ArchiveHandle *AH, const void *data, size_t dLen)
 {
 	/* Just send it to output, ahwrite() already errors on failure */
 	ahwrite(data, 1, dLen, AH);
@@ -95,7 +95,7 @@ _WriteData(ArchiveHandle * AH, const void *data, size_t dLen)
  * We substitute this for _WriteData while emitting a BLOB
  */
 static void
-_WriteBlobData(ArchiveHandle * AH, const void *data, size_t dLen)
+_WriteBlobData(ArchiveHandle *AH, const void *data, size_t dLen)
 {
 	if (dLen > 0)
 	{
@@ -114,7 +114,7 @@ _WriteBlobData(ArchiveHandle * AH, const void *data, size_t dLen)
 }
 
 static void
-_EndData(ArchiveHandle * AH, TocEntry * te)
+_EndData(ArchiveHandle *AH, TocEntry *te)
 {
 	ahprintf(AH, "\n\n");
 }
@@ -129,7 +129,7 @@ _EndData(ArchiveHandle * AH, TocEntry * te)
  * Optional, but strongly recommended.
  */
 static void
-_StartBlobs(ArchiveHandle * AH, TocEntry * te)
+_StartBlobs(ArchiveHandle *AH, TocEntry *te)
 {
 	ahprintf(AH, "BEGIN;\n\n");
 }
@@ -142,7 +142,7 @@ _StartBlobs(ArchiveHandle * AH, TocEntry * te)
  * Must save the passed OID for retrieval at restore-time.
  */
 static void
-_StartBlob(ArchiveHandle * AH, TocEntry * te, Oid oid)
+_StartBlob(ArchiveHandle *AH, TocEntry *te, Oid oid)
 {
 	bool		old_blob_style = (AH->version < K_VERS_1_12);
 
@@ -169,7 +169,7 @@ _StartBlob(ArchiveHandle * AH, TocEntry * te, Oid oid)
  * Optional.
  */
 static void
-_EndBlob(ArchiveHandle * AH, TocEntry * te, Oid oid)
+_EndBlob(ArchiveHandle *AH, TocEntry *te, Oid oid)
 {
 	AH->WriteDataPtr = _WriteData;
 
@@ -182,7 +182,7 @@ _EndBlob(ArchiveHandle * AH, TocEntry * te, Oid oid)
  * Optional.
  */
 static void
-_EndBlobs(ArchiveHandle * AH, TocEntry * te)
+_EndBlobs(ArchiveHandle *AH, TocEntry *te)
 {
 	ahprintf(AH, "COMMIT;\n\n");
 }
@@ -193,7 +193,7 @@ _EndBlobs(ArchiveHandle * AH, TocEntry * te)
  *------
  */
 static void
-_PrintTocData(ArchiveHandle * AH, TocEntry * te)
+_PrintTocData(ArchiveHandle *AH, TocEntry *te)
 {
 	if (te->dataDumper)
 	{
@@ -202,7 +202,7 @@ _PrintTocData(ArchiveHandle * AH, TocEntry * te)
 		if (strcmp(te->desc, "BLOBS") == 0)
 			_StartBlobs(AH, te);
 
-		(*te->dataDumper) ((Archive *) AH, te->dataDumperArg);
+		te->dataDumper((Archive *) AH, te->dataDumperArg);
 
 		if (strcmp(te->desc, "BLOBS") == 0)
 			_EndBlobs(AH, te);
@@ -212,21 +212,21 @@ _PrintTocData(ArchiveHandle * AH, TocEntry * te)
 }
 
 static int
-_WriteByte(ArchiveHandle * AH, const int i)
+_WriteByte(ArchiveHandle *AH, const int i)
 {
 	/* Don't do anything */
 	return 0;
 }
 
 static void
-_WriteBuf(ArchiveHandle * AH, const void *buf, size_t len)
+_WriteBuf(ArchiveHandle *AH, const void *buf, size_t len)
 {
 	/* Don't do anything */
 	return;
 }
 
 static void
-_CloseArchive(ArchiveHandle * AH)
+_CloseArchive(ArchiveHandle *AH)
 {
 	/* Nothing to do */
 }

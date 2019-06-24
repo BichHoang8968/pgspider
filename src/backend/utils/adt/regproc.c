@@ -8,7 +8,7 @@
  * special I/O conversion routines.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -43,7 +43,7 @@
 static char *format_operator_internal(Oid operator_oid, bool force_qualify);
 static char *format_procedure_internal(Oid procedure_oid, bool force_qualify);
 static void parseNameAndArgTypes(const char *string, bool allowNone,
-					 List * *names, int *nargs, Oid * argtypes);
+					 List **names, int *nargs, Oid *argtypes);
 
 
 /*****************************************************************************
@@ -405,7 +405,7 @@ format_procedure_internal(Oid procedure_oid, bool force_qualify)
  * This can be used to feed get_object_address.
  */
 void
-format_procedure_parts(Oid procedure_oid, List * *objnames, List * *objargs)
+format_procedure_parts(Oid procedure_oid, List **objnames, List **objargs)
 {
 	HeapTuple	proctup;
 	Form_pg_proc procform;
@@ -829,7 +829,7 @@ format_operator_qualified(Oid operator_oid)
 }
 
 void
-format_operator_parts(Oid operator_oid, List * *objnames, List * *objargs)
+format_operator_parts(Oid operator_oid, List **objnames, List **objargs)
 {
 	HeapTuple	opertup;
 	Form_pg_operator oprForm;
@@ -1728,12 +1728,12 @@ stringToQualifiedNameList(const char *string)
  * the argtypes array should be of size FUNC_MAX_ARGS).  The function or
  * operator name is returned to *names as a List of Strings.
  *
- * If allowNone is TRUE, accept "NONE" and return it as InvalidOid (this is
+ * If allowNone is true, accept "NONE" and return it as InvalidOid (this is
  * for unary operators).
  */
 static void
-parseNameAndArgTypes(const char *string, bool allowNone, List * *names,
-					 int *nargs, Oid * argtypes)
+parseNameAndArgTypes(const char *string, bool allowNone, List **names,
+					 int *nargs, Oid *argtypes)
 {
 	char	   *rawname;
 	char	   *ptr;

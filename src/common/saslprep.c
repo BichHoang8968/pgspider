@@ -12,7 +12,7 @@
  *	  http://www.ietf.org/rfc/rfc4013.txt
  *
  *
- * Portions Copyright (c) 2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2017-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/common/saslprep.c
@@ -57,7 +57,7 @@
 
 /* Prototypes for local functions */
 static int	codepoint_range_cmp(const void *a, const void *b);
-static bool is_code_in_table(pg_wchar code, const pg_wchar * map, int mapsize);
+static bool is_code_in_table(pg_wchar code, const pg_wchar *map, int mapsize);
 static int	pg_utf8_string_len(const char *source);
 static bool pg_is_ascii_string(const char *p);
 
@@ -979,8 +979,8 @@ static const pg_wchar LCat_codepoint_ranges[] =
 static int
 codepoint_range_cmp(const void *a, const void *b)
 {
-	const		pg_wchar *key = (const pg_wchar *) a;
-	const		pg_wchar *range = (const pg_wchar *) b;
+	const pg_wchar *key = (const pg_wchar *) a;
+	const pg_wchar *range = (const pg_wchar *) b;
 
 	if (*key < range[0])
 		return -1;				/* less than lower bound */
@@ -991,7 +991,7 @@ codepoint_range_cmp(const void *a, const void *b)
 }
 
 static bool
-is_code_in_table(pg_wchar code, const pg_wchar * map, int mapsize)
+is_code_in_table(pg_wchar code, const pg_wchar *map, int mapsize)
 {
 	Assert(mapsize % 2 == 0);
 
@@ -1081,6 +1081,9 @@ pg_saslprep(const char *input, char **output)
 	unsigned char *p;
 	pg_wchar   *wp;
 
+	/* Ensure we return *output as NULL on failure */
+	*output = NULL;
+
 	/* Check that the password isn't stupendously long */
 	if (strlen(input) > MAX_PASSWORD_LENGTH)
 	{
@@ -1112,10 +1115,7 @@ pg_saslprep(const char *input, char **output)
 	 */
 	input_size = pg_utf8_string_len(input);
 	if (input_size < 0)
-	{
-		*output = NULL;
 		return SASLPREP_INVALID_UTF8;
-	}
 
 	input_chars = ALLOC((input_size + 1) * sizeof(pg_wchar));
 	if (!input_chars)
@@ -1246,6 +1246,11 @@ pg_saslprep(const char *input, char **output)
 	result = ALLOC(result_size + 1);
 	if (!result)
 		goto oom;
+
+	/*
+	 * There are no error exits below here, so the error exit paths don't need
+	 * to worry about possibly freeing "result".
+	 */
 	p = (unsigned char *) result;
 	for (wp = output_chars; *wp; wp++)
 	{

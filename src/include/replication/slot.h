@@ -2,7 +2,7 @@
  * slot.h
  *	   Replication slot management.
  *
- * Copyright (c) 2012-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2012-2018, PostgreSQL Global Development Group
  *
  *-------------------------------------------------------------------------
  */
@@ -35,7 +35,7 @@ typedef enum ReplicationSlotPersistency
 	RS_PERSISTENT,
 	RS_EPHEMERAL,
 	RS_TEMPORARY
-}			ReplicationSlotPersistency;
+} ReplicationSlotPersistency;
 
 /*
  * On-Disk data of a replication slot, preserved across restarts.
@@ -82,10 +82,23 @@ typedef struct ReplicationSlotPersistentData
 
 	/* plugin name */
 	NameData	plugin;
-}			ReplicationSlotPersistentData;
+} ReplicationSlotPersistentData;
 
 /*
  * Shared memory state of a single replication slot.
+ *
+ * The in-memory data of replication slots follows a locking model based
+ * on two linked concepts:
+ * - A replication slot's in_use flag is switched when added or discarded using
+ * the LWLock ReplicationSlotControlLock, which needs to be hold in exclusive
+ * mode when updating the flag by the backend owning the slot and doing the
+ * operation, while readers (concurrent backends not owning the slot) need
+ * to hold it in shared mode when looking at replication slot data.
+ * - Individual fields are protected by mutex where only the backend owning
+ * the slot is authorized to update the fields from its own slot.  The
+ * backend owning the slot does not need to take this lock when reading its
+ * own fields, while concurrent backends not owning this slot should take the
+ * lock when reading this slot's data.
  */
 typedef struct ReplicationSlot
 {
@@ -136,7 +149,7 @@ typedef struct ReplicationSlot
 	XLogRecPtr	candidate_xmin_lsn;
 	XLogRecPtr	candidate_restart_valid;
 	XLogRecPtr	candidate_restart_lsn;
-}			ReplicationSlot;
+} ReplicationSlot;
 
 #define SlotIsPhysical(slot) (slot->data.database == InvalidOid)
 #define SlotIsLogical(slot) (slot->data.database != InvalidOid)
@@ -151,13 +164,13 @@ typedef struct ReplicationSlotCtlData
 	 * reason you can't do that in an otherwise-empty struct.
 	 */
 	ReplicationSlot replication_slots[1];
-}			ReplicationSlotCtlData;
+} ReplicationSlotCtlData;
 
 /*
  * Pointers to shared memory
  */
-extern ReplicationSlotCtlData * ReplicationSlotCtl;
-extern PGDLLIMPORT ReplicationSlot * MyReplicationSlot;
+extern ReplicationSlotCtlData *ReplicationSlotCtl;
+extern PGDLLIMPORT ReplicationSlot *MyReplicationSlot;
 
 /* GUCs */
 extern PGDLLIMPORT int max_replication_slots;

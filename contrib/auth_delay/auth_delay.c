@@ -2,7 +2,7 @@
  *
  * auth_delay.c
  *
- * Copyright (c) 2010-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2010-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		contrib/auth_delay/auth_delay.c
@@ -32,7 +32,7 @@ static ClientAuthentication_hook_type original_client_auth_hook = NULL;
  * Check authentication
  */
 static void
-auth_delay_checks(Port * port, int status)
+auth_delay_checks(Port *port, int status)
 {
 	/*
 	 * Any other plugins which use ClientAuthentication_hook.

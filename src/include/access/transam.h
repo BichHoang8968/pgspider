@@ -4,7 +4,7 @@
  *	  postgres transaction access method support code
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/transam.h
@@ -140,9 +140,9 @@ typedef struct VariableCacheData
 	 */
 	TransactionId oldestClogXid;	/* oldest it's safe to look up in clog */
 
-}			VariableCacheData;
+} VariableCacheData;
 
-typedef VariableCacheData * VariableCache;
+typedef VariableCacheData *VariableCache;
 
 
 /* ----------------
@@ -163,15 +163,15 @@ extern bool TransactionIdDidCommit(TransactionId transactionId);
 extern bool TransactionIdDidAbort(TransactionId transactionId);
 extern bool TransactionIdIsKnownCompleted(TransactionId transactionId);
 extern void TransactionIdAbort(TransactionId transactionId);
-extern void TransactionIdCommitTree(TransactionId xid, int nxids, TransactionId * xids);
-extern void TransactionIdAsyncCommitTree(TransactionId xid, int nxids, TransactionId * xids, XLogRecPtr lsn);
-extern void TransactionIdAbortTree(TransactionId xid, int nxids, TransactionId * xids);
+extern void TransactionIdCommitTree(TransactionId xid, int nxids, TransactionId *xids);
+extern void TransactionIdAsyncCommitTree(TransactionId xid, int nxids, TransactionId *xids, XLogRecPtr lsn);
+extern void TransactionIdAbortTree(TransactionId xid, int nxids, TransactionId *xids);
 extern bool TransactionIdPrecedes(TransactionId id1, TransactionId id2);
 extern bool TransactionIdPrecedesOrEquals(TransactionId id1, TransactionId id2);
 extern bool TransactionIdFollows(TransactionId id1, TransactionId id2);
 extern bool TransactionIdFollowsOrEquals(TransactionId id1, TransactionId id2);
 extern TransactionId TransactionIdLatest(TransactionId mainxid,
-										 int nxids, const TransactionId * xids);
+					int nxids, const TransactionId *xids);
 extern XLogRecPtr TransactionIdGetCommitLSN(TransactionId xid);
 
 /* in transam/varsup.c */
@@ -181,6 +181,6 @@ extern void SetTransactionIdLimit(TransactionId oldest_datfrozenxid,
 					  Oid oldest_datoid);
 extern void AdvanceOldestClogXid(TransactionId oldest_datfrozenxid);
 extern bool ForceTransactionIdLimitUpdate(void);
-extern Oid GetNewObjectId(void);
+extern Oid	GetNewObjectId(void);
 
 #endif							/* TRAMSAM_H */

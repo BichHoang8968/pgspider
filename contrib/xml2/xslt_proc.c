@@ -35,10 +35,10 @@
 #ifdef USE_LIBXSLT
 
 /* declarations to come from xpath.c */
-extern PgXmlErrorContext * pgxml_parser_init(PgXmlStrictness strictness);
+extern PgXmlErrorContext *pgxml_parser_init(PgXmlStrictness strictness);
 
 /* local defs */
-static const char **parse_params(text * paramstr);
+static const char **parse_params(text *paramstr);
 #endif							/* USE_LIBXSLT */
 
 
@@ -55,11 +55,11 @@ xslt_process(PG_FUNCTION_ARGS)
 	text	   *paramstr;
 	const char **params;
 	PgXmlErrorContext *xmlerrcxt;
-	volatile	xsltStylesheetPtr stylesheet = NULL;
-	volatile	xmlDocPtr doctree = NULL;
-	volatile	xmlDocPtr restree = NULL;
-	volatile	xsltSecurityPrefsPtr xslt_sec_prefs = NULL;
-	volatile	xsltTransformContextPtr xslt_ctxt = NULL;
+	volatile xsltStylesheetPtr stylesheet = NULL;
+	volatile xmlDocPtr doctree = NULL;
+	volatile xmlDocPtr restree = NULL;
+	volatile xsltSecurityPrefsPtr xslt_sec_prefs = NULL;
+	volatile xsltTransformContextPtr xslt_ctxt = NULL;
 	volatile int resstat = -1;
 	xmlChar    *resstr = NULL;
 	int			reslen = 0;
@@ -195,7 +195,7 @@ xslt_process(PG_FUNCTION_ARGS)
 #ifdef USE_LIBXSLT
 
 static const char **
-parse_params(text * paramstr)
+parse_params(text *paramstr)
 {
 	char	   *pos;
 	char	   *pstr;

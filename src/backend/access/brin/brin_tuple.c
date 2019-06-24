@@ -23,7 +23,7 @@
  * Note the size of the null bitmask may not be the same as that of the
  * datum array.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -39,16 +39,16 @@
 #include "utils/memutils.h"
 
 
-static inline void brin_deconstruct_tuple(BrinDesc * brdesc,
-					   char *tp, bits8 * nullbits, bool nulls,
-					   Datum * values, bool *allnulls, bool *hasnulls);
+static inline void brin_deconstruct_tuple(BrinDesc *brdesc,
+					   char *tp, bits8 *nullbits, bool nulls,
+					   Datum *values, bool *allnulls, bool *hasnulls);
 
 
 /*
  * Return a tuple descriptor used for on-disk storage of BRIN tuples.
  */
 static TupleDesc
-brtuple_disk_tupdesc(BrinDesc * brdesc)
+brtuple_disk_tupdesc(BrinDesc *brdesc)
 {
 	/* We cache these in the BrinDesc */
 	if (brdesc->bd_disktdesc == NULL)
@@ -86,8 +86,8 @@ brtuple_disk_tupdesc(BrinDesc * brdesc)
  * See brin_form_placeholder_tuple if you touch this.
  */
 BrinTuple *
-brin_form_tuple(BrinDesc * brdesc, BlockNumber blkno, BrinMemTuple * tuple,
-				Size * size)
+brin_form_tuple(BrinDesc *brdesc, BlockNumber blkno, BrinMemTuple *tuple,
+				Size *size)
 {
 	Datum	   *values;
 	bool	   *nulls;
@@ -260,7 +260,7 @@ brin_form_tuple(BrinDesc * brdesc, BlockNumber blkno, BrinMemTuple * tuple,
  * This is a cut-down version of brin_form_tuple.
  */
 BrinTuple *
-brin_form_placeholder_tuple(BrinDesc * brdesc, BlockNumber blkno, Size * size)
+brin_form_placeholder_tuple(BrinDesc *brdesc, BlockNumber blkno, Size *size)
 {
 	Size		len;
 	Size		hoff;
@@ -305,7 +305,7 @@ brin_form_placeholder_tuple(BrinDesc * brdesc, BlockNumber blkno, Size * size)
  * Free a tuple created by brin_form_tuple
  */
 void
-brin_free_tuple(BrinTuple * tuple)
+brin_free_tuple(BrinTuple *tuple)
 {
 	pfree(tuple);
 }
@@ -318,7 +318,7 @@ brin_free_tuple(BrinTuple * tuple)
  * are being processed in loops.
  */
 BrinTuple *
-brin_copy_tuple(BrinTuple * tuple, Size len, BrinTuple * dest, Size * destsz)
+brin_copy_tuple(BrinTuple *tuple, Size len, BrinTuple *dest, Size *destsz)
 {
 	if (!destsz || *destsz == 0)
 		dest = palloc(len);
@@ -337,7 +337,7 @@ brin_copy_tuple(BrinTuple * tuple, Size len, BrinTuple * dest, Size * destsz)
  * Return whether two BrinTuples are bitwise identical.
  */
 bool
-brin_tuples_equal(const BrinTuple * a, Size alen, const BrinTuple * b, Size blen)
+brin_tuples_equal(const BrinTuple *a, Size alen, const BrinTuple *b, Size blen)
 {
 	if (alen != blen)
 		return false;
@@ -354,7 +354,7 @@ brin_tuples_equal(const BrinTuple * a, Size alen, const BrinTuple * b, Size blen
  * use a temporary memory context.
  */
 BrinMemTuple *
-brin_new_memtuple(BrinDesc * brdesc)
+brin_new_memtuple(BrinDesc *brdesc)
 {
 	BrinMemTuple *dtup;
 	long		basesize;
@@ -381,7 +381,7 @@ brin_new_memtuple(BrinDesc * brdesc)
  * notational convenience.
  */
 BrinMemTuple *
-brin_memtuple_initialize(BrinMemTuple * dtuple, BrinDesc * brdesc)
+brin_memtuple_initialize(BrinMemTuple *dtuple, BrinDesc *brdesc)
 {
 	int			i;
 	char	   *currdatum;
@@ -419,7 +419,7 @@ brin_memtuple_initialize(BrinMemTuple * dtuple, BrinDesc * brdesc)
  * deconstruct the tuple from the on-disk format.
  */
 BrinMemTuple *
-brin_deform_tuple(BrinDesc * brdesc, BrinTuple * tuple, BrinMemTuple * dMemtuple)
+brin_deform_tuple(BrinDesc *brdesc, BrinTuple *tuple, BrinMemTuple *dMemtuple)
 {
 	BrinMemTuple *dtup;
 	Datum	   *values;
@@ -502,9 +502,9 @@ brin_deform_tuple(BrinDesc * brdesc, BrinTuple * tuple, BrinMemTuple * dMemtuple
  * Output arrays must have been allocated by caller.
  */
 static inline void
-brin_deconstruct_tuple(BrinDesc * brdesc,
-					   char *tp, bits8 * nullbits, bool nulls,
-					   Datum * values, bool *allnulls, bool *hasnulls)
+brin_deconstruct_tuple(BrinDesc *brdesc,
+					   char *tp, bits8 *nullbits, bool nulls,
+					   Datum *values, bool *allnulls, bool *hasnulls)
 {
 	int			attnum;
 	int			stored;
@@ -559,7 +559,7 @@ brin_deconstruct_tuple(BrinDesc * brdesc,
 			 datumno < brdesc->bd_info[attnum]->oi_nstored;
 			 datumno++)
 		{
-			Form_pg_attribute thisatt = diskdsc->attrs[stored];
+			Form_pg_attribute thisatt = TupleDescAttr(diskdsc, stored);
 
 			if (thisatt->attlen == -1)
 			{

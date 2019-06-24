@@ -4,7 +4,7 @@
  *	 functions for instrumentation of plan execution
  *
  *
- * Copyright (c) 2001-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2001-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/executor/instrument.c
@@ -20,9 +20,9 @@
 BufferUsage pgBufferUsage;
 static BufferUsage save_pgBufferUsage;
 
-static void BufferUsageAdd(BufferUsage * dst, const BufferUsage * add);
-static void BufferUsageAccumDiff(BufferUsage * dst,
-					 const BufferUsage * add, const BufferUsage * sub);
+static void BufferUsageAdd(BufferUsage *dst, const BufferUsage *add);
+static void BufferUsageAccumDiff(BufferUsage *dst,
+					 const BufferUsage *add, const BufferUsage *sub);
 
 
 /* Allocate new instrumentation structure(s) */
@@ -49,9 +49,9 @@ InstrAlloc(int n, int instrument_options)
 	return instr;
 }
 
-/* Initialize an pre-allocated instrumentation structure. */
+/* Initialize a pre-allocated instrumentation structure. */
 void
-InstrInit(Instrumentation * instr, int instrument_options)
+InstrInit(Instrumentation *instr, int instrument_options)
 {
 	memset(instr, 0, sizeof(Instrumentation));
 	instr->need_bufusage = (instrument_options & INSTRUMENT_BUFFERS) != 0;
@@ -60,7 +60,7 @@ InstrInit(Instrumentation * instr, int instrument_options)
 
 /* Entry to a plan node */
 void
-InstrStartNode(Instrumentation * instr)
+InstrStartNode(Instrumentation *instr)
 {
 	if (instr->need_timer)
 	{
@@ -77,7 +77,7 @@ InstrStartNode(Instrumentation * instr)
 
 /* Exit from a plan node */
 void
-InstrStopNode(Instrumentation * instr, double nTuples)
+InstrStopNode(Instrumentation *instr, double nTuples)
 {
 	instr_time	endtime;
 
@@ -111,7 +111,7 @@ InstrStopNode(Instrumentation * instr, double nTuples)
 
 /* Finish a run cycle for a plan node */
 void
-InstrEndLoop(Instrumentation * instr)
+InstrEndLoop(Instrumentation *instr)
 {
 	double		totaltime;
 
@@ -140,7 +140,7 @@ InstrEndLoop(Instrumentation * instr)
 
 /* aggregate instrumentation information */
 void
-InstrAggNode(Instrumentation * dst, Instrumentation * add)
+InstrAggNode(Instrumentation *dst, Instrumentation *add)
 {
 	if (!dst->running && add->running)
 	{
@@ -156,6 +156,7 @@ InstrAggNode(Instrumentation * dst, Instrumentation * add)
 	dst->startup += add->startup;
 	dst->total += add->total;
 	dst->ntuples += add->ntuples;
+	dst->ntuples2 += add->ntuples2;
 	dst->nloops += add->nloops;
 	dst->nfiltered1 += add->nfiltered1;
 	dst->nfiltered2 += add->nfiltered2;
@@ -174,7 +175,7 @@ InstrStartParallelQuery(void)
 
 /* report usage after parallel executor shutdown */
 void
-InstrEndParallelQuery(BufferUsage * result)
+InstrEndParallelQuery(BufferUsage *result)
 {
 	memset(result, 0, sizeof(BufferUsage));
 	BufferUsageAccumDiff(result, &pgBufferUsage, &save_pgBufferUsage);
@@ -182,14 +183,14 @@ InstrEndParallelQuery(BufferUsage * result)
 
 /* accumulate work done by workers in leader's stats */
 void
-InstrAccumParallelQuery(BufferUsage * result)
+InstrAccumParallelQuery(BufferUsage *result)
 {
 	BufferUsageAdd(&pgBufferUsage, result);
 }
 
 /* dst += add */
 static void
-BufferUsageAdd(BufferUsage * dst, const BufferUsage * add)
+BufferUsageAdd(BufferUsage *dst, const BufferUsage *add)
 {
 	dst->shared_blks_hit += add->shared_blks_hit;
 	dst->shared_blks_read += add->shared_blks_read;
@@ -207,9 +208,9 @@ BufferUsageAdd(BufferUsage * dst, const BufferUsage * add)
 
 /* dst += add - sub */
 static void
-BufferUsageAccumDiff(BufferUsage * dst,
-					 const BufferUsage * add,
-					 const BufferUsage * sub)
+BufferUsageAccumDiff(BufferUsage *dst,
+					 const BufferUsage *add,
+					 const BufferUsage *sub)
 {
 	dst->shared_blks_hit += add->shared_blks_hit - sub->shared_blks_hit;
 	dst->shared_blks_read += add->shared_blks_read - sub->shared_blks_read;

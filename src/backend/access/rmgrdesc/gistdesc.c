@@ -3,7 +3,7 @@
  * gistdesc.c
  *	  rmgr descriptor routines for access/gist/gistxlog.c
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -19,19 +19,19 @@
 #include "storage/relfilenode.h"
 
 static void
-out_gistxlogPageUpdate(StringInfo buf, gistxlogPageUpdate * xlrec)
+out_gistxlogPageUpdate(StringInfo buf, gistxlogPageUpdate *xlrec)
 {
 }
 
 static void
-out_gistxlogPageSplit(StringInfo buf, gistxlogPageSplit * xlrec)
+out_gistxlogPageSplit(StringInfo buf, gistxlogPageSplit *xlrec)
 {
 	appendStringInfo(buf, "page_split: splits to %d pages",
 					 xlrec->npage);
 }
 
 void
-gist_desc(StringInfo buf, XLogReaderState * record)
+gist_desc(StringInfo buf, XLogReaderState *record)
 {
 	char	   *rec = XLogRecGetData(record);
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;

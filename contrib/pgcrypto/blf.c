@@ -250,8 +250,8 @@ static const uint32 sbox3[] = {
 #define ROUND(n) ( xL ^= P[n], t = xL, xL = F(xL) ^ xR, xR = t )
 
 static void
-blowfish_encrypt(uint32 xL, uint32 xR, uint32 * output,
-				 BlowfishContext * ctx)
+blowfish_encrypt(uint32 xL, uint32 xR, uint32 *output,
+				 BlowfishContext *ctx)
 {
 	uint32	   *S0 = ctx->S0;
 	uint32	   *S1 = ctx->S1;
@@ -284,8 +284,8 @@ blowfish_encrypt(uint32 xL, uint32 xR, uint32 * output,
 }
 
 static void
-blowfish_decrypt(uint32 xL, uint32 xR, uint32 * output,
-				 BlowfishContext * ctx)
+blowfish_decrypt(uint32 xL, uint32 xR, uint32 *output,
+				 BlowfishContext *ctx)
 {
 	uint32	   *S0 = ctx->S0;
 	uint32	   *S1 = ctx->S1;
@@ -318,7 +318,7 @@ blowfish_decrypt(uint32 xL, uint32 xR, uint32 * output,
 }
 
 void
-blowfish_encrypt_cbc(uint8 * blk, int len, BlowfishContext * ctx)
+blowfish_encrypt_cbc(uint8 *blk, int len, BlowfishContext *ctx)
 {
 	uint32		xL,
 				xR,
@@ -351,7 +351,7 @@ blowfish_encrypt_cbc(uint8 * blk, int len, BlowfishContext * ctx)
 }
 
 void
-blowfish_decrypt_cbc(uint8 * blk, int len, BlowfishContext * ctx)
+blowfish_decrypt_cbc(uint8 *blk, int len, BlowfishContext *ctx)
 {
 	uint32		xL,
 				xR,
@@ -384,7 +384,7 @@ blowfish_decrypt_cbc(uint8 * blk, int len, BlowfishContext * ctx)
 }
 
 void
-blowfish_encrypt_ecb(uint8 * blk, int len, BlowfishContext * ctx)
+blowfish_encrypt_ecb(uint8 *blk, int len, BlowfishContext *ctx)
 {
 	uint32		xL,
 				xR,
@@ -405,7 +405,7 @@ blowfish_encrypt_ecb(uint8 * blk, int len, BlowfishContext * ctx)
 }
 
 void
-blowfish_decrypt_ecb(uint8 * blk, int len, BlowfishContext * ctx)
+blowfish_decrypt_ecb(uint8 *blk, int len, BlowfishContext *ctx)
 {
 	uint32		xL,
 				xR,
@@ -426,8 +426,8 @@ blowfish_decrypt_ecb(uint8 * blk, int len, BlowfishContext * ctx)
 }
 
 void
-blowfish_setkey(BlowfishContext * ctx,
-				const uint8 * key, short keybytes)
+blowfish_setkey(BlowfishContext *ctx,
+				const uint8 *key, short keybytes)
 {
 	uint32	   *S0 = ctx->S0;
 	uint32	   *S1 = ctx->S1;
@@ -492,7 +492,7 @@ blowfish_setkey(BlowfishContext * ctx,
 }
 
 void
-blowfish_setiv(BlowfishContext * ctx, const uint8 * iv)
+blowfish_setiv(BlowfishContext *ctx, const uint8 *iv)
 {
 	ctx->iv0 = GET_32BIT_MSB_FIRST(iv);
 	ctx->iv1 = GET_32BIT_MSB_FIRST(iv + 4);

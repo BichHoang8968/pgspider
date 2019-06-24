@@ -38,7 +38,7 @@
 #if defined(CX)					/* currently used only in CX mode */
 
 void
-geqo_mutation(PlannerInfo * root, Gene * tour, int num_gene)
+geqo_mutation(PlannerInfo *root, Gene *tour, int num_gene)
 {
 	int			swap1;
 	int			swap2;

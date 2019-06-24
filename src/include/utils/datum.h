@@ -8,7 +8,7 @@
  * of the Datum.  (We do it this way because in most situations the caller
  * can look up the info just once and use it for many per-datum operations.)
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/datum.h
@@ -51,7 +51,7 @@ extern bool datumIsEqual(Datum value1, Datum value2,
  * workers.
  */
 extern Size datumEstimateSpace(Datum value, bool isnull, bool typByVal,
-							   int typLen);
+				   int typLen);
 extern void datumSerialize(Datum value, bool isnull, bool typByVal,
 			   int typLen, char **start_address);
 extern Datum datumRestore(char **start_address, bool *isnull);

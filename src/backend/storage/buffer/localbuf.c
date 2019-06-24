@@ -4,7 +4,7 @@
  *	  local buffer manager. Fast buffer manager for temporary tables,
  *	  which never need to be WAL-logged or checkpointed, etc.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994-5, Regents of the University of California
  *
  *
@@ -32,7 +32,7 @@ typedef struct
 {
 	BufferTag	key;			/* Tag of a disk page */
 	int			id;				/* Associated local buffer's index */
-}			LocalBufferLookupEnt;
+} LocalBufferLookupEnt;
 
 /* Note: this macro only works on local buffers, not shared ones! */
 #define LocalBufHdrGetBlock(bufHdr) \
@@ -46,7 +46,7 @@ int32	   *LocalRefCount = NULL;
 
 static int	nextFreeLocalBuf = 0;
 
-static HTAB * LocalBufHash = NULL;
+static HTAB *LocalBufHash = NULL;
 
 
 static void InitLocalBuffers(void);
@@ -145,11 +145,11 @@ LocalBufferAlloc(SMgrRelation smgr, ForkNumber forkNum, BlockNumber blockNum,
 		ResourceOwnerRememberBuffer(CurrentResourceOwner,
 									BufferDescriptorGetBuffer(bufHdr));
 		if (buf_state & BM_VALID)
-			*foundPtr = TRUE;
+			*foundPtr = true;
 		else
 		{
 			/* Previous read attempt must have failed; try again */
-			*foundPtr = FALSE;
+			*foundPtr = false;
 		}
 		return bufHdr;
 	}
@@ -268,7 +268,7 @@ LocalBufferAlloc(SMgrRelation smgr, ForkNumber forkNum, BlockNumber blockNum,
 	buf_state += BUF_USAGECOUNT_ONE;
 	pg_atomic_unlocked_write_u32(&bufHdr->state, buf_state);
 
-	*foundPtr = FALSE;
+	*foundPtr = false;
 	return bufHdr;
 }
 

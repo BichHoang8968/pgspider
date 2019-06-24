@@ -15,7 +15,7 @@
  * a usable vsnprintf(), then a copy of our own implementation of it will
  * be linked into libpq.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/interfaces/libpq/pqexpbuffer.h
@@ -46,9 +46,9 @@ typedef struct PQExpBufferData
 	char	   *data;
 	size_t		len;
 	size_t		maxlen;
-}			PQExpBufferData;
+} PQExpBufferData;
 
-typedef PQExpBufferData * PQExpBuffer;
+typedef PQExpBufferData *PQExpBuffer;
 
 /*------------------------
  * Test for a broken (out of memory) PQExpBuffer.

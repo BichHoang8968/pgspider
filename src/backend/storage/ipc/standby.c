@@ -7,7 +7,7 @@
  *	AccessExclusiveLocks and starting snapshots for Hot Standby mode.
  *	Plus conflict recovery processing.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -40,13 +40,13 @@ int			vacuum_defer_cleanup_age;
 int			max_standby_archive_delay = 30 * 1000;
 int			max_standby_streaming_delay = 30 * 1000;
 
-static HTAB * RecoveryLockLists;
+static HTAB *RecoveryLockLists;
 
-static void ResolveRecoveryConflictWithVirtualXIDs(VirtualTransactionId * waitlist,
+static void ResolveRecoveryConflictWithVirtualXIDs(VirtualTransactionId *waitlist,
 									   ProcSignalReason reason);
 static void SendRecoveryConflictWithBufferPin(ProcSignalReason reason);
 static XLogRecPtr LogCurrentRunningXacts(RunningTransactions CurrRunningXacts);
-static void LogAccessExclusiveLocks(int nlocks, xl_standby_lock * locks);
+static void LogAccessExclusiveLocks(int nlocks, xl_standby_lock *locks);
 
 /*
  * Keep track of all the locks owned by a given transaction.
@@ -55,7 +55,7 @@ typedef struct RecoveryLockListsEntry
 {
 	TransactionId xid;
 	List	   *locks;
-}			RecoveryLockListsEntry;
+} RecoveryLockListsEntry;
 
 /*
  * InitRecoveryTransactionEnvironment
@@ -218,7 +218,7 @@ WaitExceedsMaxStandbyDelay(void)
  * then throw the required error as instructed.
  */
 static void
-ResolveRecoveryConflictWithVirtualXIDs(VirtualTransactionId * waitlist,
+ResolveRecoveryConflictWithVirtualXIDs(VirtualTransactionId *waitlist,
 									   ProcSignalReason reason)
 {
 	TimestampTz waitStart;
@@ -661,11 +661,11 @@ StandbyAcquireAccessExclusiveLock(TransactionId xid, Oid dbOid, Oid relOid)
 
 	SET_LOCKTAG_RELATION(locktag, newlock->dbOid, newlock->relOid);
 
-	LockAcquireExtended(&locktag, AccessExclusiveLock, true, false, false);
+	(void) LockAcquire(&locktag, AccessExclusiveLock, true, false);
 }
 
 static void
-StandbyReleaseLockList(List * locks)
+StandbyReleaseLockList(List *locks)
 {
 	while (locks)
 	{
@@ -713,7 +713,7 @@ StandbyReleaseLocks(TransactionId xid)
  * to remove any AccessExclusiveLocks requested by a transaction.
  */
 void
-StandbyReleaseLockTree(TransactionId xid, int nsubxids, TransactionId * subxids)
+StandbyReleaseLockTree(TransactionId xid, int nsubxids, TransactionId *subxids)
 {
 	int			i;
 
@@ -748,7 +748,7 @@ StandbyReleaseAllLocks(void)
  *		as long as they're not prepared transactions.
  */
 void
-StandbyReleaseOldLocks(int nxids, TransactionId * xids)
+StandbyReleaseOldLocks(TransactionId oldxid)
 {
 	HASH_SEQ_STATUS status;
 	RecoveryLockListsEntry *entry;
@@ -756,38 +756,19 @@ StandbyReleaseOldLocks(int nxids, TransactionId * xids)
 	hash_seq_init(&status, RecoveryLockLists);
 	while ((entry = hash_seq_search(&status)))
 	{
-		bool		remove = false;
-
 		Assert(TransactionIdIsValid(entry->xid));
 
+		/* Skip if prepared transaction. */
 		if (StandbyTransactionIdIsPrepared(entry->xid))
-			remove = false;
-		else
-		{
-			int			i;
-			bool		found = false;
+			continue;
 
-			for (i = 0; i < nxids; i++)
-			{
-				if (entry->xid == xids[i])
-				{
-					found = true;
-					break;
-				}
-			}
+		/* Skip if >= oldxid. */
+		if (!TransactionIdPrecedes(entry->xid, oldxid))
+			continue;
 
-			/*
-			 * If its not a running transaction, remove it.
-			 */
-			if (!found)
-				remove = true;
-		}
-
-		if (remove)
-		{
-			StandbyReleaseLockList(entry->locks);
-			hash_search(RecoveryLockLists, entry, HASH_REMOVE, NULL);
-		}
+		/* Remove all locks and hash table entry. */
+		StandbyReleaseLockList(entry->locks);
+		hash_search(RecoveryLockLists, entry, HASH_REMOVE, NULL);
 	}
 }
 
@@ -800,7 +781,7 @@ StandbyReleaseOldLocks(int nxids, TransactionId * xids)
  */
 
 void
-standby_redo(XLogReaderState * record)
+standby_redo(XLogReaderState *record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 
@@ -1037,7 +1018,7 @@ LogCurrentRunningXacts(RunningTransactions CurrRunningXacts)
  * logged, as described in backend/storage/lmgr/README.
  */
 static void
-LogAccessExclusiveLocks(int nlocks, xl_standby_lock * locks)
+LogAccessExclusiveLocks(int nlocks, xl_standby_lock *locks)
 {
 	xl_standby_locks xlrec;
 
@@ -1061,11 +1042,6 @@ LogAccessExclusiveLock(Oid dbOid, Oid relOid)
 
 	xlrec.xid = GetCurrentTransactionId();
 
-	/*
-	 * Decode the locktag back to the original values, to avoid sending lots
-	 * of empty bytes with every message.  See lock.h to check how a locktag
-	 * is defined for LOCKTAG_RELATION
-	 */
 	xlrec.dbOid = dbOid;
 	xlrec.relOid = relOid;
 
@@ -1099,7 +1075,7 @@ LogAccessExclusiveLockPrepare(void)
  * an xid but which contain invalidations.
  */
 void
-LogStandbyInvalidations(int nmsgs, SharedInvalidationMessage * msgs,
+LogStandbyInvalidations(int nmsgs, SharedInvalidationMessage *msgs,
 						bool relcacheInitFileInval)
 {
 	xl_invalidations xlrec;

@@ -15,7 +15,7 @@
  *
  * This code is released under the terms of the PostgreSQL License.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  * src/bin/pg_config/pg_config.c
  *
@@ -38,7 +38,7 @@ typedef struct
 {
 	const char *switchname;
 	const char *configname;
-}			InfoItem;
+} InfoItem;
 
 static const InfoItem info_items[] = {
 	{"--bindir", "BINDIR"},
@@ -113,7 +113,7 @@ advice(void)
 
 static void
 show_item(const char *configname,
-		  ConfigData * configdata,
+		  ConfigData *configdata,
 		  size_t configdata_len)
 {
 	int			i;

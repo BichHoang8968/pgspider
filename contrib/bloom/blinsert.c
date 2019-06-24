@@ -3,7 +3,7 @@
  * blinsert.c
  *		Bloom index build and insert functions.
  *
- * Copyright (c) 2016-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2016-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  contrib/bloom/blinsert.c
@@ -33,17 +33,18 @@ PG_MODULE_MAGIC;
 typedef struct
 {
 	BloomState	blstate;		/* bloom index state */
+	int64		indtuples;		/* total number of tuples indexed */
 	MemoryContext tmpCtx;		/* temporary memory context reset after each
 								 * tuple */
-	char		data[BLCKSZ];	/* cached page */
-	int64		count;			/* number of tuples in cached page */
-}			BloomBuildState;
+	PGAlignedBlock data;		/* cached page */
+	int			count;			/* number of tuples in cached page */
+} BloomBuildState;
 
 /*
  * Flush page cached in BloomBuildState.
  */
 static void
-flushCachedPage(Relation index, BloomBuildState * buildstate)
+flushCachedPage(Relation index, BloomBuildState *buildstate)
 {
 	Page		page;
 	Buffer		buffer = BloomNewBuffer(index);
@@ -51,7 +52,7 @@ flushCachedPage(Relation index, BloomBuildState * buildstate)
 
 	state = GenericXLogStart(index);
 	page = GenericXLogRegisterBuffer(state, buffer, GENERIC_XLOG_FULL_IMAGE);
-	memcpy(page, buildstate->data, BLCKSZ);
+	memcpy(page, buildstate->data.data, BLCKSZ);
 	GenericXLogFinish(state);
 	UnlockReleaseBuffer(buffer);
 }
@@ -60,10 +61,10 @@ flushCachedPage(Relation index, BloomBuildState * buildstate)
  * (Re)initialize cached page in BloomBuildState.
  */
 static void
-initCachedPage(BloomBuildState * buildstate)
+initCachedPage(BloomBuildState *buildstate)
 {
-	memset(buildstate->data, 0, BLCKSZ);
-	BloomInitPage(buildstate->data, 0);
+	memset(buildstate->data.data, 0, BLCKSZ);
+	BloomInitPage(buildstate->data.data, 0);
 	buildstate->count = 0;
 }
 
@@ -71,7 +72,7 @@ initCachedPage(BloomBuildState * buildstate)
  * Per-tuple callback from IndexBuildHeapScan.
  */
 static void
-bloomBuildCallback(Relation index, HeapTuple htup, Datum * values,
+bloomBuildCallback(Relation index, HeapTuple htup, Datum *values,
 				   bool *isnull, bool tupleIsAlive, void *state)
 {
 	BloomBuildState *buildstate = (BloomBuildState *) state;
@@ -83,7 +84,7 @@ bloomBuildCallback(Relation index, HeapTuple htup, Datum * values,
 	itup = BloomFormTuple(&buildstate->blstate, &htup->t_self, values, isnull);
 
 	/* Try to add next item to cached page */
-	if (BloomPageAddItem(&buildstate->blstate, buildstate->data, itup))
+	if (BloomPageAddItem(&buildstate->blstate, buildstate->data.data, itup))
 	{
 		/* Next item was added successfully */
 		buildstate->count++;
@@ -97,12 +98,18 @@ bloomBuildCallback(Relation index, HeapTuple htup, Datum * values,
 
 		initCachedPage(buildstate);
 
-		if (!BloomPageAddItem(&buildstate->blstate, buildstate->data, itup))
+		if (!BloomPageAddItem(&buildstate->blstate, buildstate->data.data, itup))
 		{
 			/* We shouldn't be here since we're inserting to the empty page */
 			elog(ERROR, "could not add new bloom tuple to empty page");
 		}
+
+		/* Next item was added successfully */
+		buildstate->count++;
 	}
+
+	/* Update total tuple count */
+	buildstate->indtuples += 1;
 
 	MemoryContextSwitchTo(oldCtx);
 	MemoryContextReset(buildstate->tmpCtx);
@@ -112,7 +119,7 @@ bloomBuildCallback(Relation index, HeapTuple htup, Datum * values,
  * Build a new bloom index.
  */
 IndexBuildResult *
-blbuild(Relation heap, Relation index, IndexInfo * indexInfo)
+blbuild(Relation heap, Relation index, IndexInfo *indexInfo)
 {
 	IndexBuildResult *result;
 	double		reltuples;
@@ -135,19 +142,18 @@ blbuild(Relation heap, Relation index, IndexInfo * indexInfo)
 
 	/* Do the heap scan */
 	reltuples = IndexBuildHeapScan(heap, index, indexInfo, true,
-								   bloomBuildCallback, (void *) &buildstate);
+								   bloomBuildCallback, (void *) &buildstate,
+								   NULL);
 
-	/*
-	 * There are could be some items in cached page.  Flush this page if
-	 * needed.
-	 */
+	/* Flush last page if needed (it will be, unless heap was empty) */
 	if (buildstate.count > 0)
 		flushCachedPage(index, &buildstate);
 
 	MemoryContextDelete(buildstate.tmpCtx);
 
 	result = (IndexBuildResult *) palloc(sizeof(IndexBuildResult));
-	result->heap_tuples = result->index_tuples = reltuples;
+	result->heap_tuples = reltuples;
+	result->index_tuples = buildstate.indtuples;
 
 	return result;
 }
@@ -175,7 +181,7 @@ blbuildempty(Relation index)
 	smgrwrite(index->rd_smgr, INIT_FORKNUM, BLOOM_METAPAGE_BLKNO,
 			  (char *) metapage, true);
 	log_newpage(&index->rd_smgr->smgr_rnode.node, INIT_FORKNUM,
-				BLOOM_METAPAGE_BLKNO, metapage, false);
+				BLOOM_METAPAGE_BLKNO, metapage, true);
 
 	/*
 	 * An immediate sync is required even if we xlog'd the page, because the
@@ -189,10 +195,10 @@ blbuildempty(Relation index)
  * Insert new tuple to the bloom index.
  */
 bool
-blinsert(Relation index, Datum * values, bool *isnull,
+blinsert(Relation index, Datum *values, bool *isnull,
 		 ItemPointer ht_ctid, Relation heapRel,
 		 IndexUniqueCheck checkUnique,
-		 IndexInfo * indexInfo)
+		 IndexInfo *indexInfo)
 {
 	BloomState	blstate;
 	BloomTuple *itup;

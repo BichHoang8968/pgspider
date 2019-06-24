@@ -10,7 +10,7 @@
  *	  Over time, this has also become the preferred place for widely known
  *	  resource-limitation stuff, such as work_mem and check_stack_depth().
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/miscadmin.h
@@ -88,7 +88,7 @@ extern volatile bool ClientConnectionLost;
 /* these are marked volatile because they are examined by signal handlers: */
 extern PGDLLIMPORT volatile uint32 InterruptHoldoffCount;
 extern PGDLLIMPORT volatile uint32 QueryCancelHoldoffCount;
-extern PGDLLIMPORT __thread volatile uint32 CritSectionCount;
+extern PGDLLIMPORT volatile uint32 CritSectionCount;
 
 /* in tcop/postgres.c */
 extern void ProcessInterrupts(void);
@@ -153,6 +153,7 @@ extern PGDLLIMPORT bool IsBinaryUpgrade;
 extern PGDLLIMPORT bool ExitOnAnyError;
 
 extern PGDLLIMPORT char *DataDir;
+extern PGDLLIMPORT int data_directory_mode;
 
 extern PGDLLIMPORT int NBuffers;
 extern PGDLLIMPORT int MaxBackends;
@@ -241,7 +242,7 @@ extern bool enableFsync;
 extern PGDLLIMPORT bool allowSystemTableMods;
 extern PGDLLIMPORT int work_mem;
 extern PGDLLIMPORT int maintenance_work_mem;
-extern PGDLLIMPORT int replacement_sort_tuples;
+extern PGDLLIMPORT int max_parallel_maintenance_workers;
 
 extern int	VacuumCostPageHit;
 extern int	VacuumCostPageMiss;
@@ -256,6 +257,8 @@ extern int	VacuumPageDirty;
 extern int	VacuumCostBalance;
 extern bool VacuumCostActive;
 
+extern double vacuum_cleanup_index_scale_factor;
+
 
 /* in tcop/postgres.c */
 
@@ -264,7 +267,7 @@ typedef struct
 {
 	char	   *stack_base_ptr;
 	char	   *register_stack_base_ptr;
-}			pg_stack_base_t;
+} pg_stack_base_t;
 #else
 typedef char *pg_stack_base_t;
 #endif
@@ -304,23 +307,24 @@ extern void InitStandaloneProcess(const char *argv0);
 extern void SetDatabasePath(const char *path);
 
 extern char *GetUserNameFromId(Oid roleid, bool noerr);
-extern Oid GetUserId(void);
-extern Oid GetOuterUserId(void);
-extern Oid GetSessionUserId(void);
-extern Oid GetAuthenticatedUserId(void);
-extern void GetUserIdAndSecContext(Oid * userid, int *sec_context);
+extern Oid	GetUserId(void);
+extern Oid	GetOuterUserId(void);
+extern Oid	GetSessionUserId(void);
+extern Oid	GetAuthenticatedUserId(void);
+extern void GetUserIdAndSecContext(Oid *userid, int *sec_context);
 extern void SetUserIdAndSecContext(Oid userid, int sec_context);
 extern bool InLocalUserIdChange(void);
 extern bool InSecurityRestrictedOperation(void);
 extern bool InNoForceRLSOperation(void);
-extern void GetUserIdAndContext(Oid * userid, bool *sec_def_context);
+extern void GetUserIdAndContext(Oid *userid, bool *sec_def_context);
 extern void SetUserIdAndContext(Oid userid, bool sec_def_context);
 extern void InitializeSessionUserId(const char *rolename, Oid useroid);
 extern void InitializeSessionUserIdStandalone(void);
 extern void SetSessionAuthorization(Oid userid, bool is_superuser);
-extern Oid GetCurrentRoleId(void);
+extern Oid	GetCurrentRoleId(void);
 extern void SetCurrentRoleId(Oid roleid, bool is_superuser);
 
+extern void checkDataDir(void);
 extern void SetDataDir(const char *dir);
 extern void ChangeToDataDir(void);
 
@@ -361,7 +365,7 @@ typedef enum ProcessingMode
 	BootstrapProcessing,		/* bootstrap creation of template database */
 	InitProcessing,				/* initializing system */
 	NormalProcessing			/* normal processing */
-}			ProcessingMode;
+} ProcessingMode;
 
 extern ProcessingMode Mode;
 
@@ -398,7 +402,7 @@ typedef enum
 	WalReceiverProcess,
 
 	NUM_AUXPROCTYPES			/* Must be last! */
-}			AuxProcType;
+} AuxProcType;
 
 extern AuxProcType MyAuxProcType;
 
@@ -419,7 +423,7 @@ extern AuxProcType MyAuxProcType;
 extern void pg_split_opts(char **argv, int *argcp, const char *optstr);
 extern void InitializeMaxBackends(void);
 extern void InitPostgres(const char *in_dbname, Oid dboid, const char *username,
-			 Oid useroid, char *out_dbname);
+			 Oid useroid, char *out_dbname, bool override_allow_connections);
 extern void BaseInit(void);
 
 /* in utils/init/miscinit.c */

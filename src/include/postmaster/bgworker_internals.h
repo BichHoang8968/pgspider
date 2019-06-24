@@ -2,7 +2,7 @@
  * bgworker_internals.h
  *		POSTGRES pluggable background workers internals
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -40,16 +40,16 @@ typedef struct RegisteredBgWorker
 	int			rw_shmem_slot;
 	bool		rw_terminate;
 	slist_node	rw_lnode;		/* list link */
-}			RegisteredBgWorker;
+} RegisteredBgWorker;
 
 extern slist_head BackgroundWorkerList;
 
 extern Size BackgroundWorkerShmemSize(void);
 extern void BackgroundWorkerShmemInit(void);
 extern void BackgroundWorkerStateChange(void);
-extern void ForgetBackgroundWorker(slist_mutable_iter * cur);
+extern void ForgetBackgroundWorker(slist_mutable_iter *cur);
 extern void ReportBackgroundWorkerPID(RegisteredBgWorker *);
-extern void ReportBackgroundWorkerExit(slist_mutable_iter * cur);
+extern void ReportBackgroundWorkerExit(slist_mutable_iter *cur);
 extern void BackgroundWorkerStopNotifications(pid_t pid);
 extern void ResetBackgroundWorkerCrashTimes(void);
 
@@ -57,7 +57,7 @@ extern void ResetBackgroundWorkerCrashTimes(void);
 extern void StartBackgroundWorker(void) pg_attribute_noreturn();
 
 #ifdef EXEC_BACKEND
-extern BackgroundWorker * BackgroundWorkerEntry(int slotno);
+extern BackgroundWorker *BackgroundWorkerEntry(int slotno);
 #endif
 
 #endif							/* BGWORKER_INTERNALS_H */

@@ -4,7 +4,7 @@
  *	  Definitions for tagged nodes.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/nodes/nodes.h
@@ -34,6 +34,7 @@ typedef enum NodeTag
 	T_ExprContext,
 	T_ProjectionInfo,
 	T_JunkFilter,
+	T_OnConflictSetState,
 	T_ResultRelInfo,
 	T_EState,
 	T_TupleTableSlot,
@@ -86,6 +87,10 @@ typedef enum NodeTag
 	/* these aren't subclasses of Plan: */
 	T_NestLoopParam,
 	T_PlanRowMark,
+	T_PartitionPruneInfo,
+	T_PartitionedRelPruneInfo,
+	T_PartitionPruneStepOp,
+	T_PartitionPruneStepCombine,
 	T_PlanInvalItem,
 
 	/*
@@ -260,7 +265,6 @@ typedef enum NodeTag
 	T_PlaceHolderVar,
 	T_SpecialJoinInfo,
 	T_AppendRelInfo,
-	T_PartitionedChildRelInfo,
 	T_PlaceHolderInfo,
 	T_MinMaxAggInfo,
 	T_PlannerParamItem,
@@ -274,6 +278,7 @@ typedef enum NodeTag
 	T_MemoryContext,
 	T_AllocSetContext,
 	T_SlabContext,
+	T_GenerationContext,
 
 	/*
 	 * TAGS FOR VALUE NODES (value.h)
@@ -413,6 +418,7 @@ typedef enum NodeTag
 	T_DropSubscriptionStmt,
 	T_CreateStatsStmt,
 	T_AlterCollationStmt,
+	T_CallStmt,
 
 	/*
 	 * TAGS FOR PARSE TREE NODES (parsenodes.h)
@@ -468,6 +474,7 @@ typedef enum NodeTag
 	T_PartitionBoundSpec,
 	T_PartitionRangeDatum,
 	T_PartitionCmd,
+	T_VacuumRelation,
 
 	/*
 	 * TAGS FOR REPLICATION GRAMMAR PARSE NODES (replnodes.h)
@@ -497,8 +504,9 @@ typedef enum NodeTag
 	T_FdwRoutine,				/* in foreign/fdwapi.h */
 	T_IndexAmRoutine,			/* in access/amapi.h */
 	T_TsmRoutine,				/* in access/tsmapi.h */
-	T_ForeignKeyCacheInfo		/* in utils/rel.h */
-}			NodeTag;
+	T_ForeignKeyCacheInfo,		/* in utils/rel.h */
+	T_CallContext				/* in nodes/parsenodes.h */
+} NodeTag;
 
 /*
  * The first field of a node of any type is guaranteed to be the NodeTag.
@@ -509,7 +517,7 @@ typedef enum NodeTag
 typedef struct Node
 {
 	NodeTag		type;
-}			Node;
+} Node;
 
 #define nodeTag(nodeptr)		(((const Node*)(nodeptr))->type)
 
@@ -542,7 +550,7 @@ typedef struct Node
  *	Fortunately, this macro isn't recursive so we just define
  *	a global variable for this purpose.
  */
-extern PGDLLIMPORT Node * newNodeMacroHolder;
+extern PGDLLIMPORT Node *newNodeMacroHolder;
 
 #define newNode(size, tag) \
 ( \
@@ -607,8 +615,8 @@ extern struct Bitmapset *readBitmapset(void);
 extern uintptr_t readDatum(bool typbyval);
 extern bool *readBoolCols(int numCols);
 extern int *readIntCols(int numCols);
-extern Oid * readOidCols(int numCols);
-extern int16 * readAttrNumberCols(int numCols);
+extern Oid *readOidCols(int numCols);
+extern int16 *readAttrNumberCols(int numCols);
 
 /*
  * nodes/copyfuncs.c
@@ -617,7 +625,7 @@ extern void *copyObjectImpl(const void *obj);
 
 /* cast result back to argument type, if supported by compiler */
 #ifdef HAVE_TYPEOF
-#define copyObject(obj) ((__typeof__(obj)) copyObjectImpl(obj))
+#define copyObject(obj) ((typeof(obj)) copyObjectImpl(obj))
 #else
 #define copyObject(obj) copyObjectImpl(obj)
 #endif
@@ -657,7 +665,7 @@ typedef enum CmdType
 								 * etc. */
 	CMD_NOTHING					/* dummy command for instead nothing rules
 								 * with qual */
-}			CmdType;
+} CmdType;
 
 
 /*
@@ -703,7 +711,7 @@ typedef enum JoinType
 	/*
 	 * We might need additional join types someday.
 	 */
-}			JoinType;
+} JoinType;
 
 /*
  * OUTER joins are those for which pushed-down quals must behave differently
@@ -738,7 +746,7 @@ typedef enum AggStrategy
 	AGG_SORTED,					/* grouped agg, input must be sorted */
 	AGG_HASHED,					/* grouped agg, use internal hashtable */
 	AGG_MIXED					/* grouped agg, hash and sort both used */
-}			AggStrategy;
+} AggStrategy;
 
 /*
  * AggSplit -
@@ -782,13 +790,13 @@ typedef enum SetOpCmd
 	SETOPCMD_INTERSECT_ALL,
 	SETOPCMD_EXCEPT,
 	SETOPCMD_EXCEPT_ALL
-}			SetOpCmd;
+} SetOpCmd;
 
 typedef enum SetOpStrategy
 {
 	SETOP_SORTED,				/* input must be sorted */
 	SETOP_HASHED				/* use internal hashtable */
-}			SetOpStrategy;
+} SetOpStrategy;
 
 /*
  * OnConflictAction -
@@ -801,6 +809,6 @@ typedef enum OnConflictAction
 	ONCONFLICT_NONE,			/* No "ON CONFLICT" clause */
 	ONCONFLICT_NOTHING,			/* ON CONFLICT ... DO NOTHING */
 	ONCONFLICT_UPDATE			/* ON CONFLICT ... DO UPDATE */
-}			OnConflictAction;
+} OnConflictAction;
 
 #endif							/* NODES_H */

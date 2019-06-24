@@ -3,7 +3,7 @@
  * spgxlog.h
  *	  xlog declarations for SP-GiST access method.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/spgxlog.h
@@ -37,7 +37,7 @@ typedef struct spgxlogState
 {
 	TransactionId myXid;
 	bool		isBuild;
-}			spgxlogState;
+} spgxlogState;
 
 /*
  * Backup Blk 0: destination page for leaf tuple
@@ -54,7 +54,7 @@ typedef struct spgxlogAddLeaf
 	uint16		nodeI;
 
 	/* new leaf tuple follows (unaligned!) */
-}			spgxlogAddLeaf;
+} spgxlogAddLeaf;
 
 /*
  * Backup Blk 0: source leaf page
@@ -86,7 +86,7 @@ typedef struct spgxlogMoveLeafs
 	 *----------
 	 */
 	OffsetNumber offsets[FLEXIBLE_ARRAY_MEMBER];
-}			spgxlogMoveLeafs;
+} spgxlogMoveLeafs;
 
 #define SizeOfSpgxlogMoveLeafs	offsetof(spgxlogMoveLeafs, offsets)
 
@@ -132,7 +132,7 @@ typedef struct spgxlogAddNode
 	/*
 	 * updated inner tuple follows (unaligned!)
 	 */
-}			spgxlogAddNode;
+} spgxlogAddNode;
 
 /*
  * Backup Blk 0: where the prefix tuple goes
@@ -153,7 +153,7 @@ typedef struct spgxlogSplitTuple
 	 * new prefix inner tuple follows, then new postfix inner tuple (both are
 	 * unaligned!)
 	 */
-}			spgxlogSplitTuple;
+} spgxlogSplitTuple;
 
 /*
  * Buffer references in the rdata array are:
@@ -194,7 +194,7 @@ typedef struct spgxlogPickSplit
 	 *----------
 	 */
 	OffsetNumber offsets[FLEXIBLE_ARRAY_MEMBER];
-}			spgxlogPickSplit;
+} spgxlogPickSplit;
 
 #define SizeOfSpgxlogPickSplit offsetof(spgxlogPickSplit, offsets)
 
@@ -218,7 +218,7 @@ typedef struct spgxlogVacuumLeaf
 	 *----------
 	 */
 	OffsetNumber offsets[FLEXIBLE_ARRAY_MEMBER];
-}			spgxlogVacuumLeaf;
+} spgxlogVacuumLeaf;
 
 #define SizeOfSpgxlogVacuumLeaf offsetof(spgxlogVacuumLeaf, offsets)
 
@@ -231,7 +231,7 @@ typedef struct spgxlogVacuumRoot
 
 	/* offsets of tuples to delete follow */
 	OffsetNumber offsets[FLEXIBLE_ARRAY_MEMBER];
-}			spgxlogVacuumRoot;
+} spgxlogVacuumRoot;
 
 #define SizeOfSpgxlogVacuumRoot offsetof(spgxlogVacuumRoot, offsets)
 
@@ -243,12 +243,12 @@ typedef struct spgxlogVacuumRedirect
 
 	/* offsets of redirect tuples to make placeholders follow */
 	OffsetNumber offsets[FLEXIBLE_ARRAY_MEMBER];
-}			spgxlogVacuumRedirect;
+} spgxlogVacuumRedirect;
 
 #define SizeOfSpgxlogVacuumRedirect offsetof(spgxlogVacuumRedirect, offsets)
 
-extern void spg_redo(XLogReaderState * record);
-extern void spg_desc(StringInfo buf, XLogReaderState * record);
+extern void spg_redo(XLogReaderState *record);
+extern void spg_desc(StringInfo buf, XLogReaderState *record);
 extern const char *spg_identify(uint8 info);
 extern void spg_xlog_startup(void);
 extern void spg_xlog_cleanup(void);

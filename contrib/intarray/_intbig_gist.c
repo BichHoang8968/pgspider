@@ -66,7 +66,7 @@ _intbig_out(PG_FUNCTION_ARGS)
 ** intbig functions
 *********************************************************************/
 static bool
-_intbig_overlap(GISTTYPE * a, ArrayType * b)
+_intbig_overlap(GISTTYPE *a, ArrayType *b)
 {
 	int			num = ARRNELEMS(b);
 	int32	   *ptr = ARRPTR(b);
@@ -84,7 +84,7 @@ _intbig_overlap(GISTTYPE * a, ArrayType * b)
 }
 
 static bool
-_intbig_contains(GISTTYPE * a, ArrayType * b)
+_intbig_contains(GISTTYPE *a, ArrayType *b)
 {
 	int			num = ARRNELEMS(b);
 	int32	   *ptr = ARRPTR(b);
@@ -168,7 +168,7 @@ g_intbig_compress(PG_FUNCTION_ARGS)
 		retval = (GISTENTRY *) palloc(sizeof(GISTENTRY));
 		gistentryinit(*retval, PointerGetDatum(res),
 					  entry->rel, entry->page,
-					  entry->offset, FALSE);
+					  entry->offset, false);
 
 		if (in != DatumGetArrayTypeP(entry->key))
 			pfree(in);
@@ -195,7 +195,7 @@ g_intbig_compress(PG_FUNCTION_ARGS)
 		retval = (GISTENTRY *) palloc(sizeof(GISTENTRY));
 		gistentryinit(*retval, PointerGetDatum(res),
 					  entry->rel, entry->page,
-					  entry->offset, FALSE);
+					  entry->offset, false);
 
 		PG_RETURN_POINTER(retval);
 	}
@@ -231,7 +231,7 @@ hemdistsign(BITVECP a, BITVECP b)
 }
 
 static int
-hemdist(GISTTYPE * a, GISTTYPE * b)
+hemdist(GISTTYPE *a, GISTTYPE *b)
 {
 	if (ISALLTRUE(a))
 	{
@@ -253,7 +253,7 @@ g_intbig_decompress(PG_FUNCTION_ARGS)
 }
 
 static int32
-unionkey(BITVECP sbase, GISTTYPE * add)
+unionkey(BITVECP sbase, GISTTYPE *add)
 {
 	int32		i;
 	BITVECP		sadd = GETSIGN(add);
@@ -315,7 +315,7 @@ typedef struct
 {
 	OffsetNumber pos;
 	int32		cost;
-}			SPLITCOST;
+} SPLITCOST;
 
 static int
 comparecost(const void *a, const void *b)
@@ -594,7 +594,7 @@ g_intbig_consistent(PG_FUNCTION_ARGS)
 				retval = _intbig_overlap((GISTTYPE *) DatumGetPointer(entry->key), query);
 			break;
 		default:
-			retval = FALSE;
+			retval = false;
 	}
 	PG_FREE_IF_COPY(query, 1);
 	PG_RETURN_BOOL(retval);

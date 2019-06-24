@@ -6,7 +6,7 @@
  * See utils/resowner/README for more info.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/resowner_private.h
@@ -31,8 +31,8 @@ extern void ResourceOwnerRememberBuffer(ResourceOwner owner, Buffer buffer);
 extern void ResourceOwnerForgetBuffer(ResourceOwner owner, Buffer buffer);
 
 /* support for local lock management */
-extern void ResourceOwnerRememberLock(ResourceOwner owner, LOCALLOCK * locallock);
-extern void ResourceOwnerForgetLock(ResourceOwner owner, LOCALLOCK * locallock);
+extern void ResourceOwnerRememberLock(ResourceOwner owner, LOCALLOCK *locallock);
+extern void ResourceOwnerForgetLock(ResourceOwner owner, LOCALLOCK *locallock);
 
 /* support for catcache refcount management */
 extern void ResourceOwnerEnlargeCatCacheRefs(ResourceOwner owner);
@@ -42,9 +42,9 @@ extern void ResourceOwnerForgetCatCacheRef(ResourceOwner owner,
 							   HeapTuple tuple);
 extern void ResourceOwnerEnlargeCatCacheListRefs(ResourceOwner owner);
 extern void ResourceOwnerRememberCatCacheListRef(ResourceOwner owner,
-									 CatCList * list);
+									 CatCList *list);
 extern void ResourceOwnerForgetCatCacheListRef(ResourceOwner owner,
-								   CatCList * list);
+								   CatCList *list);
 
 /* support for relcache refcount management */
 extern void ResourceOwnerEnlargeRelationRefs(ResourceOwner owner);
@@ -56,9 +56,9 @@ extern void ResourceOwnerForgetRelationRef(ResourceOwner owner,
 /* support for plancache refcount management */
 extern void ResourceOwnerEnlargePlanCacheRefs(ResourceOwner owner);
 extern void ResourceOwnerRememberPlanCacheRef(ResourceOwner owner,
-								  CachedPlan * plan);
+								  CachedPlan *plan);
 extern void ResourceOwnerForgetPlanCacheRef(ResourceOwner owner,
-								CachedPlan * plan);
+								CachedPlan *plan);
 
 /* support for tupledesc refcount management */
 extern void ResourceOwnerEnlargeTupleDescs(ResourceOwner owner);
@@ -87,5 +87,12 @@ extern void ResourceOwnerRememberDSM(ResourceOwner owner,
 						 dsm_segment *);
 extern void ResourceOwnerForgetDSM(ResourceOwner owner,
 					   dsm_segment *);
+
+/* support for JITContext management */
+extern void ResourceOwnerEnlargeJIT(ResourceOwner owner);
+extern void ResourceOwnerRememberJIT(ResourceOwner owner,
+						 Datum handle);
+extern void ResourceOwnerForgetJIT(ResourceOwner owner,
+					   Datum handle);
 
 #endif							/* RESOWNER_PRIVATE_H */

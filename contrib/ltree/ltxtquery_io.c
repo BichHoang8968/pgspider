@@ -32,7 +32,7 @@ typedef struct NODE
 	int16		length;
 	uint16		flag;
 	struct NODE *next;
-}			NODE;
+} NODE;
 
 typedef struct
 {
@@ -49,13 +49,13 @@ typedef struct
 	int32		sumlen;
 	char	   *op;
 	char	   *curop;
-}			QPRS_STATE;
+} QPRS_STATE;
 
 /*
  * get token from query string
  */
 static int32
-gettoken_query(QPRS_STATE * state, int32 * val, int32 * lenval, char **strval, uint16 * flag)
+gettoken_query(QPRS_STATE *state, int32 *val, int32 *lenval, char **strval, uint16 *flag)
 {
 	int			charlen;
 
@@ -115,7 +115,7 @@ gettoken_query(QPRS_STATE * state, int32 * val, int32 * lenval, char **strval, u
 				if (charlen == 1 && (t_iseq(state->buf, '&') || t_iseq(state->buf, '|')))
 				{
 					state->state = WAITOPERAND;
-					*val = (int32) * (state->buf);
+					*val = (int32) *(state->buf);
 					(state->buf)++;
 					return OPR;
 				}
@@ -143,7 +143,7 @@ gettoken_query(QPRS_STATE * state, int32 * val, int32 * lenval, char **strval, u
  * push new one in polish notation reverse view
  */
 static void
-pushquery(QPRS_STATE * state, int32 type, int32 val, int32 distance, int32 lenval, uint16 flag)
+pushquery(QPRS_STATE *state, int32 type, int32 val, int32 distance, int32 lenval, uint16 flag)
 {
 	NODE	   *tmp = (NODE *) palloc(sizeof(NODE));
 
@@ -169,7 +169,7 @@ pushquery(QPRS_STATE * state, int32 type, int32 val, int32 distance, int32 lenva
  * This function is used for query_txt parsing
  */
 static void
-pushval_asis(QPRS_STATE * state, int type, char *strval, int lenval, uint16 flag)
+pushval_asis(QPRS_STATE *state, int type, char *strval, int lenval, uint16 flag)
 {
 	if (lenval > 0xffff)
 		ereport(ERROR,
@@ -200,7 +200,7 @@ pushval_asis(QPRS_STATE * state, int type, char *strval, int lenval, uint16 flag
  * make polish notation of query
  */
 static int32
-makepol(QPRS_STATE * state)
+makepol(QPRS_STATE *state)
 {
 	int32		val = 0,
 				type;
@@ -275,7 +275,7 @@ makepol(QPRS_STATE * state)
 }
 
 static void
-findoprnd(ITEM * ptr, int32 * pos)
+findoprnd(ITEM *ptr, int32 *pos)
 {
 	/* since this function recurses, it could be driven to stack overflow. */
 	check_stack_depth();
@@ -398,7 +398,7 @@ typedef struct
 	char	   *cur;
 	char	   *op;
 	int32		buflen;
-}			INFIX;
+} INFIX;
 
 #define RESIZEBUF(inf,addsize) \
 while( ( (inf)->cur - (inf)->buf ) + (addsize) + 1 >= (inf)->buflen ) \
@@ -414,7 +414,7 @@ while( ( (inf)->cur - (inf)->buf ) + (addsize) + 1 >= (inf)->buflen ) \
  * infix (human-readable) view
  */
 static void
-infix(INFIX * in, bool first)
+infix(INFIX *in, bool first)
 {
 	/* since this function recurses, it could be driven to stack overflow. */
 	check_stack_depth();
@@ -515,7 +515,7 @@ infix(INFIX * in, bool first)
 Datum
 ltxtq_out(PG_FUNCTION_ARGS)
 {
-	ltxtquery  *query = PG_GETARG_LTXTQUERY(0);
+	ltxtquery  *query = PG_GETARG_LTXTQUERY_P(0);
 	INFIX		nrm;
 
 	if (query->size == 0)

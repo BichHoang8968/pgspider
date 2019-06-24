@@ -5,9 +5,9 @@
  *
  * This implementation is based on pseudocode found at:
  *
- * http://en.wikipedia.org/w/index.php?title=Hopcroft%E2%80%93Karp_algorithm&oldid=593898016
+ * https://en.wikipedia.org/w/index.php?title=Hopcroft%E2%80%93Karp_algorithm&oldid=593898016
  *
- * Copyright (c) 2015-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2015-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/lib/bipartite_match.c
@@ -28,8 +28,8 @@
  */
 #define HK_INFINITY  SHRT_MAX
 
-static bool hk_breadth_search(BipartiteMatchState * state);
-static bool hk_depth_search(BipartiteMatchState * state, int u);
+static bool hk_breadth_search(BipartiteMatchState *state);
+static bool hk_depth_search(BipartiteMatchState *state, int u);
 
 /*
  * Given the size of U and V, where each is indexed 1..size, and an adjacency
@@ -75,7 +75,7 @@ BipartiteMatch(int u_size, int v_size, short **adjacency)
  * list, which is owned by the caller. This only frees memory, so it's optional.
  */
 void
-BipartiteMatchFree(BipartiteMatchState * state)
+BipartiteMatchFree(BipartiteMatchState *state)
 {
 	/* adjacency matrix is treated as owned by the caller */
 	pfree(state->pair_uv);
@@ -90,7 +90,7 @@ BipartiteMatchFree(BipartiteMatchState * state)
  * Returns true if successful.
  */
 static bool
-hk_breadth_search(BipartiteMatchState * state)
+hk_breadth_search(BipartiteMatchState *state)
 {
 	int			usize = state->u_size;
 	short	   *queue = state->queue;
@@ -143,7 +143,7 @@ hk_breadth_search(BipartiteMatchState * state)
  * Returns true if successful.
  */
 static bool
-hk_depth_search(BipartiteMatchState * state, int u)
+hk_depth_search(BipartiteMatchState *state, int u)
 {
 	short	   *distance = state->distance;
 	short	   *pair_uv = state->pair_uv;

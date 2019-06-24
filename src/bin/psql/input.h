@@ -1,7 +1,7 @@
 /*
  * psql - the PostgreSQL interactive terminal
  *
- * Copyright (c) 2000-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2018, PostgreSQL Global Development Group
  *
  * src/bin/psql/input.h
  */
@@ -39,7 +39,7 @@
 
 
 extern char *gets_interactive(const char *prompt, PQExpBuffer query_buf);
-extern char *gets_fromFile(FILE * source);
+extern char *gets_fromFile(FILE *source);
 
 extern void initializeInput(int flags);
 

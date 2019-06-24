@@ -3,7 +3,7 @@
  * pg_depend.c
  *	  routines to support manipulation of the pg_depend relation
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -30,7 +30,7 @@
 #include "utils/tqual.h"
 
 
-static bool isObjectPinned(const ObjectAddress * object, Relation rel);
+static bool isObjectPinned(const ObjectAddress *object, Relation rel);
 
 
 /*
@@ -41,8 +41,8 @@ static bool isObjectPinned(const ObjectAddress * object, Relation rel);
  * This simply creates an entry in pg_depend, without any other processing.
  */
 void
-recordDependencyOn(const ObjectAddress * depender,
-				   const ObjectAddress * referenced,
+recordDependencyOn(const ObjectAddress *depender,
+				   const ObjectAddress *referenced,
 				   DependencyType behavior)
 {
 	recordMultipleDependencies(depender, referenced, 1, behavior);
@@ -53,8 +53,8 @@ recordDependencyOn(const ObjectAddress * depender,
  * object.  This has a little less overhead than recording each separately.
  */
 void
-recordMultipleDependencies(const ObjectAddress * depender,
-						   const ObjectAddress * referenced,
+recordMultipleDependencies(const ObjectAddress *depender,
+						   const ObjectAddress *referenced,
 						   int nreferenced,
 						   DependencyType behavior)
 {
@@ -136,7 +136,7 @@ recordMultipleDependencies(const ObjectAddress * depender,
  * could not already be a member of any extension.
  */
 void
-recordDependencyOnCurrentExtension(const ObjectAddress * object,
+recordDependencyOnCurrentExtension(const ObjectAddress *object,
 								   bool isReplace)
 {
 	/* Only whole objects can be extension members */
@@ -386,7 +386,7 @@ changeDependencyFor(Oid classId, Oid objectId,
  * are pinned (and that this implies pinning their components).
  */
 static bool
-isObjectPinned(const ObjectAddress * object, Relation rel)
+isObjectPinned(const ObjectAddress *object, Relation rel)
 {
 	bool		ret = false;
 	SysScanDesc scan;
@@ -490,14 +490,14 @@ getExtensionOfObject(Oid classId, Oid objectId)
  *
  * An ownership marker is an AUTO or INTERNAL dependency from the sequence to the
  * column.  If we find one, store the identity of the owning column
- * into *tableId and *colId and return TRUE; else return FALSE.
+ * into *tableId and *colId and return true; else return false.
  *
  * Note: if there's more than one such pg_depend entry then you get
  * a random one of them returned into the out parameters.  This should
  * not happen, though.
  */
 bool
-sequenceIsOwned(Oid seqId, char deptype, Oid * tableId, int32 * colId)
+sequenceIsOwned(Oid seqId, char deptype, Oid *tableId, int32 *colId)
 {
 	bool		ret = false;
 	Relation	depRel;
@@ -656,14 +656,19 @@ get_constraint_index(Oid constraintId)
 
 		/*
 		 * We assume any internal dependency of an index on the constraint
-		 * must be what we are looking for.  (The relkind test is just
-		 * paranoia; there shouldn't be any such dependencies otherwise.)
+		 * must be what we are looking for.
 		 */
 		if (deprec->classid == RelationRelationId &&
 			deprec->objsubid == 0 &&
-			deprec->deptype == DEPENDENCY_INTERNAL &&
-			get_rel_relkind(deprec->objid) == RELKIND_INDEX)
+			deprec->deptype == DEPENDENCY_INTERNAL)
 		{
+			char		relkind = get_rel_relkind(deprec->objid);
+
+			/* This is pure paranoia; there shouldn't be any such */
+			if (relkind != RELKIND_INDEX &&
+				relkind != RELKIND_PARTITIONED_INDEX)
+				break;
+
 			indexId = deprec->objid;
 			break;
 		}

@@ -63,7 +63,7 @@
  * the standbys which are considered as synchronous at that moment
  * will release waiters from the queue.
  *
- * Portions Copyright (c) 2010-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2010-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/replication/syncrep.c
@@ -101,21 +101,21 @@ static void SyncRepQueueInsert(int mode);
 static void SyncRepCancelWait(void);
 static int	SyncRepWakeQueue(bool all, int mode);
 
-static bool SyncRepGetSyncRecPtr(XLogRecPtr * writePtr,
-					 XLogRecPtr * flushPtr,
-					 XLogRecPtr * applyPtr,
+static bool SyncRepGetSyncRecPtr(XLogRecPtr *writePtr,
+					 XLogRecPtr *flushPtr,
+					 XLogRecPtr *applyPtr,
 					 bool *am_sync);
-static void SyncRepGetOldestSyncRecPtr(XLogRecPtr * writePtr,
-						   XLogRecPtr * flushPtr,
-						   XLogRecPtr * applyPtr,
-						   List * sync_standbys);
-static void SyncRepGetNthLatestSyncRecPtr(XLogRecPtr * writePtr,
-							  XLogRecPtr * flushPtr,
-							  XLogRecPtr * applyPtr,
-							  List * sync_standbys, uint8 nth);
+static void SyncRepGetOldestSyncRecPtr(XLogRecPtr *writePtr,
+						   XLogRecPtr *flushPtr,
+						   XLogRecPtr *applyPtr,
+						   List *sync_standbys);
+static void SyncRepGetNthLatestSyncRecPtr(XLogRecPtr *writePtr,
+							  XLogRecPtr *flushPtr,
+							  XLogRecPtr *applyPtr,
+							  List *sync_standbys, uint8 nth);
 static int	SyncRepGetStandbyPriority(void);
-static List * SyncRepGetSyncStandbysPriority(bool *am_sync);
-static List * SyncRepGetSyncStandbysQuorum(bool *am_sync);
+static List *SyncRepGetSyncStandbysPriority(bool *am_sync);
+static List *SyncRepGetSyncStandbysQuorum(bool *am_sync);
 static int	cmp_lsn(const void *a, const void *b);
 
 #ifdef USE_ASSERT_CHECKING
@@ -156,11 +156,9 @@ SyncRepWaitForLSN(XLogRecPtr lsn, bool commit)
 		mode = Min(SyncRepWaitMode, SYNC_REP_WAIT_FLUSH);
 
 	/*
-	 * Fast exit if user has not requested sync replication, or there are no
-	 * sync replication standby names defined. Note that those standbys don't
-	 * need to be connected.
+	 * Fast exit if user has not requested sync replication.
 	 */
-	if (!SyncRepRequested() || !SyncStandbysDefined())
+	if (!SyncRepRequested())
 		return;
 
 	Assert(SHMQueueIsDetached(&(MyProc->syncRepLinks)));
@@ -411,7 +409,7 @@ SyncRepInitConfig(void)
 void
 SyncRepReleaseWaiters(void)
 {
-	volatile	WalSndCtlData *walsndctl = WalSndCtl;
+	volatile WalSndCtlData *walsndctl = WalSndCtl;
 	XLogRecPtr	writePtr;
 	XLogRecPtr	flushPtr;
 	XLogRecPtr	applyPtr;
@@ -425,10 +423,12 @@ SyncRepReleaseWaiters(void)
 	 * If this WALSender is serving a standby that is not on the list of
 	 * potential sync standbys then we have nothing to do. If we are still
 	 * starting up, still running base backup or the current flush position is
-	 * still invalid, then leave quickly also.
+	 * still invalid, then leave quickly also.  Streaming or stopping WAL
+	 * senders are allowed to release waiters.
 	 */
 	if (MyWalSnd->sync_standby_priority == 0 ||
-		MyWalSnd->state < WALSNDSTATE_STREAMING ||
+		(MyWalSnd->state != WALSNDSTATE_STREAMING &&
+		 MyWalSnd->state != WALSNDSTATE_STOPPING) ||
 		XLogRecPtrIsInvalid(MyWalSnd->flush))
 	{
 		announce_next_takeover = true;
@@ -515,8 +515,8 @@ SyncRepReleaseWaiters(void)
  * sync standby. Otherwise it's set to false.
  */
 static bool
-SyncRepGetSyncRecPtr(XLogRecPtr * writePtr, XLogRecPtr * flushPtr,
-					 XLogRecPtr * applyPtr, bool *am_sync)
+SyncRepGetSyncRecPtr(XLogRecPtr *writePtr, XLogRecPtr *flushPtr,
+					 XLogRecPtr *applyPtr, bool *am_sync)
 {
 	List	   *sync_standbys;
 
@@ -572,8 +572,8 @@ SyncRepGetSyncRecPtr(XLogRecPtr * writePtr, XLogRecPtr * flushPtr,
  * Calculate the oldest Write, Flush and Apply positions among sync standbys.
  */
 static void
-SyncRepGetOldestSyncRecPtr(XLogRecPtr * writePtr, XLogRecPtr * flushPtr,
-						   XLogRecPtr * applyPtr, List * sync_standbys)
+SyncRepGetOldestSyncRecPtr(XLogRecPtr *writePtr, XLogRecPtr *flushPtr,
+						   XLogRecPtr *applyPtr, List *sync_standbys)
 {
 	ListCell   *cell;
 
@@ -608,8 +608,8 @@ SyncRepGetOldestSyncRecPtr(XLogRecPtr * writePtr, XLogRecPtr * flushPtr,
  * standbys.
  */
 static void
-SyncRepGetNthLatestSyncRecPtr(XLogRecPtr * writePtr, XLogRecPtr * flushPtr,
-							  XLogRecPtr * applyPtr, List * sync_standbys, uint8 nth)
+SyncRepGetNthLatestSyncRecPtr(XLogRecPtr *writePtr, XLogRecPtr *flushPtr,
+							  XLogRecPtr *applyPtr, List *sync_standbys, uint8 nth)
 {
 	ListCell   *cell;
 	XLogRecPtr *write_array;
@@ -707,7 +707,7 @@ SyncRepGetSyncStandbysQuorum(bool *am_sync)
 {
 	List	   *result = NIL;
 	int			i;
-	volatile	WalSnd *walsnd; /* Use volatile pointer to prevent code
+	volatile WalSnd *walsnd;	/* Use volatile pointer to prevent code
 								 * rearrangement */
 
 	Assert(SyncRepConfig->syncrep_method == SYNC_REP_QUORUM);
@@ -730,8 +730,9 @@ SyncRepGetSyncStandbysQuorum(bool *am_sync)
 		if (pid == 0)
 			continue;
 
-		/* Must be streaming */
-		if (state != WALSNDSTATE_STREAMING)
+		/* Must be streaming or stopping */
+		if (state != WALSNDSTATE_STREAMING &&
+			state != WALSNDSTATE_STOPPING)
 			continue;
 
 		/* Must be synchronous */
@@ -778,7 +779,7 @@ SyncRepGetSyncStandbysPriority(bool *am_sync)
 	int			priority;
 	int			i;
 	bool		am_in_pending = false;
-	volatile	WalSnd *walsnd; /* Use volatile pointer to prevent code
+	volatile WalSnd *walsnd;	/* Use volatile pointer to prevent code
 								 * rearrangement */
 
 	Assert(SyncRepConfig->syncrep_method == SYNC_REP_PRIORITY);
@@ -809,8 +810,9 @@ SyncRepGetSyncStandbysPriority(bool *am_sync)
 		if (pid == 0)
 			continue;
 
-		/* Must be streaming */
-		if (state != WALSNDSTATE_STREAMING)
+		/* Must be streaming or stopping */
+		if (state != WALSNDSTATE_STREAMING &&
+			state != WALSNDSTATE_STOPPING)
 			continue;
 
 		/* Must be synchronous */
@@ -995,7 +997,7 @@ SyncRepGetStandbyPriority(void)
 static int
 SyncRepWakeQueue(bool all, int mode)
 {
-	volatile	WalSndCtlData *walsndctl = WalSndCtl;
+	volatile WalSndCtlData *walsndctl = WalSndCtl;
 	PGPROC	   *proc = NULL;
 	PGPROC	   *thisproc = NULL;
 	int			numprocs = 0;

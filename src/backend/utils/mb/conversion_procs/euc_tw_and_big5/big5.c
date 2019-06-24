@@ -19,7 +19,7 @@ typedef struct
 {
 	unsigned short code,
 				peer;
-}			codes_t;
+} codes_t;
 
 /* map Big5 Level 1 to CNS 11643-1992 Plane 1 */
 static const codes_t big5Level1ToCnsPlane1[25] = {	/* range */
@@ -205,7 +205,7 @@ static const unsigned short b2c3[][2] = {
 };
 
 static unsigned short BinarySearchRange
-			(const codes_t * array, int high, unsigned short code)
+			(const codes_t *array, int high, unsigned short code)
 {
 	int			low,
 				mid,
@@ -361,14 +361,14 @@ CNStoBIG5(unsigned short cns, unsigned char lc)
 			for (i = 0; i < sizeof(b2c3) / (sizeof(unsigned short) * 2); i++)
 			{
 				if (b2c3[i][1] == cns)
-					return (b2c3[i][0]);
+					return b2c3[i][0];
 			}
 			break;
 		case LC_CNS11643_4:
 			for (i = 0; i < sizeof(b1c4) / (sizeof(unsigned short) * 2); i++)
 			{
 				if (b1c4[i][1] == cns)
-					return (b1c4[i][0]);
+					return b1c4[i][0];
 			}
 		default:
 			break;

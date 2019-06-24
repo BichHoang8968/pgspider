@@ -4,7 +4,7 @@
  *	  storage manager switch public interface declarations.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/smgr.h
@@ -15,6 +15,7 @@
 #define SMGR_H
 
 #include "fmgr.h"
+#include "lib/ilist.h"
 #include "storage/block.h"
 #include "storage/relfilenode.h"
 
@@ -72,10 +73,10 @@ typedef struct SMgrRelationData
 	struct _MdfdVec *md_seg_fds[MAX_FORKNUM + 1];
 
 	/* if unowned, list link in list of all unowned SMgrRelations */
-	struct SMgrRelationData *next_unowned_reln;
-}			SMgrRelationData;
+	dlist_node	node;
+} SMgrRelationData;
 
-typedef SMgrRelationData * SMgrRelation;
+typedef SMgrRelationData *SMgrRelation;
 
 #define SmgrIsTemp(smgr) \
 	RelFileNodeBackendIsTemp((smgr)->smgr_rnode)
@@ -83,14 +84,14 @@ typedef SMgrRelationData * SMgrRelation;
 extern void smgrinit(void);
 extern SMgrRelation smgropen(RelFileNode rnode, BackendId backend);
 extern bool smgrexists(SMgrRelation reln, ForkNumber forknum);
-extern void smgrsetowner(SMgrRelation * owner, SMgrRelation reln);
-extern void smgrclearowner(SMgrRelation * owner, SMgrRelation reln);
+extern void smgrsetowner(SMgrRelation *owner, SMgrRelation reln);
+extern void smgrclearowner(SMgrRelation *owner, SMgrRelation reln);
 extern void smgrclose(SMgrRelation reln);
 extern void smgrcloseall(void);
 extern void smgrclosenode(RelFileNodeBackend rnode);
 extern void smgrcreate(SMgrRelation reln, ForkNumber forknum, bool isRedo);
 extern void smgrdounlink(SMgrRelation reln, bool isRedo);
-extern void smgrdounlinkall(SMgrRelation * rels, int nrels, bool isRedo);
+extern void smgrdounlinkall(SMgrRelation *rels, int nrels, bool isRedo);
 extern void smgrdounlinkfork(SMgrRelation reln, ForkNumber forknum, bool isRedo);
 extern void smgrextend(SMgrRelation reln, ForkNumber forknum,
 		   BlockNumber blocknum, char *buffer, bool skipFsync);
@@ -143,6 +144,6 @@ extern void RememberFsyncRequest(RelFileNode rnode, ForkNumber forknum,
 					 BlockNumber segno);
 extern void ForgetRelationFsyncRequests(RelFileNode rnode, ForkNumber forknum);
 extern void ForgetDatabaseFsyncRequests(Oid dbid);
-extern void DropRelationFiles(RelFileNode * delrels, int ndelrels, bool isRedo);
+extern void DropRelationFiles(RelFileNode *delrels, int ndelrels, bool isRedo);
 
 #endif							/* SMGR_H */

@@ -1,7 +1,7 @@
 /*
  * psql - the PostgreSQL interactive terminal
  *
- * Copyright (c) 2000-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2018, PostgreSQL Global Development Group
  *
  * src/bin/psql/settings.h
  */
@@ -38,21 +38,21 @@ typedef enum
 	PSQL_ECHO_QUERIES,
 	PSQL_ECHO_ERRORS,
 	PSQL_ECHO_ALL
-}			PSQL_ECHO;
+} PSQL_ECHO;
 
 typedef enum
 {
 	PSQL_ECHO_HIDDEN_OFF,
 	PSQL_ECHO_HIDDEN_ON,
 	PSQL_ECHO_HIDDEN_NOEXEC
-}			PSQL_ECHO_HIDDEN;
+} PSQL_ECHO_HIDDEN;
 
 typedef enum
 {
 	PSQL_ERROR_ROLLBACK_OFF,
 	PSQL_ERROR_ROLLBACK_INTERACTIVE,
 	PSQL_ERROR_ROLLBACK_ON
-}			PSQL_ERROR_ROLLBACK;
+} PSQL_ERROR_ROLLBACK;
 
 typedef enum
 {
@@ -60,7 +60,7 @@ typedef enum
 	PSQL_COMP_CASE_PRESERVE_LOWER,
 	PSQL_COMP_CASE_UPPER,
 	PSQL_COMP_CASE_LOWER
-}			PSQL_COMP_CASE;
+} PSQL_COMP_CASE;
 
 typedef enum
 {
@@ -93,7 +93,8 @@ typedef struct _psqlSettings
 	char	   *gfname;			/* one-shot file output argument for \g */
 	bool		g_expanded;		/* one-shot expanded output requested via \gx */
 	char	   *gset_prefix;	/* one-shot prefix argument for \gset */
-	bool		gexec_flag;		/* one-shot flag to execute query's results */
+	bool		gdesc_flag;		/* one-shot request to describe query results */
+	bool		gexec_flag;		/* one-shot request to execute query results */
 	bool		crosstab_flag;	/* one-shot request to crosstab results */
 	char	   *ctv_args[4];	/* \crosstabview arguments */
 
@@ -138,7 +139,7 @@ typedef struct _psqlSettings
 	const char *prompt3;
 	PGVerbosity verbosity;		/* current error verbosity level */
 	PGContextVisibility show_context;	/* current context display level */
-}			PsqlSettings;
+} PsqlSettings;
 
 extern PsqlSettings pset;
 

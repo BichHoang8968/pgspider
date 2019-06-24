@@ -27,7 +27,7 @@
  * the backend's "backend/libpq" is quite separate from "interfaces/libpq".
  * All that remains is similarities of names to trap the unwary...
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *	src/backend/libpq/pqcomm.c
@@ -81,7 +81,6 @@
 #ifdef HAVE_NETINET_TCP_H
 #include <netinet/tcp.h>
 #endif
-#include <arpa/inet.h>
 #ifdef HAVE_UTIME_H
 #include <utime.h>
 #endif
@@ -92,6 +91,7 @@
 #include "common/ip.h"
 #include "libpq/libpq.h"
 #include "miscadmin.h"
+#include "port/pg_bswap.h"
 #include "storage/ipc.h"
 #include "utils/guc.h"
 #include "utils/memutils.h"
@@ -122,7 +122,7 @@ int			Unix_socket_permissions;
 char	   *Unix_socket_group;
 
 /* Where the Unix socket files are (list of palloc'd strings) */
-static List * sock_paths = NIL;
+static List *sock_paths = NIL;
 
 /*
  * Buffers for low-level I/O.
@@ -170,16 +170,15 @@ static int	Lock_AF_UNIX(char *unixSocketDir, char *unixSocketPath);
 static int	Setup_AF_UNIX(char *sock_path);
 #endif							/* HAVE_UNIX_SOCKETS */
 
-static PQcommMethods PqCommSocketMethods =
-{
+static PQcommMethods PqCommSocketMethods = {
 	socket_comm_reset,
-		socket_flush,
-		socket_flush_if_writable,
-		socket_is_send_pending,
-		socket_putmessage,
-		socket_putmessage_noblock,
-		socket_startcopyout,
-		socket_endcopyout
+	socket_flush,
+	socket_flush_if_writable,
+	socket_is_send_pending,
+	socket_putmessage,
+	socket_putmessage_noblock,
+	socket_startcopyout,
+	socket_endcopyout
 };
 
 PQcommMethods *PqCommMethods = &PqCommSocketMethods;
@@ -714,7 +713,7 @@ Setup_AF_UNIX(char *sock_path)
  * RETURNS: STATUS_OK or STATUS_ERROR
  */
 int
-StreamConnection(pgsocket server_fd, Port * port)
+StreamConnection(pgsocket server_fd, Port *port)
 {
 	/* accept connection and fill in the client (remote) address */
 	port->raddr.salen = sizeof(port->raddr.addr);
@@ -915,7 +914,7 @@ RemoveSocketFiles(void)
 /* --------------------------------
  *			  socket_set_nonblocking - set socket blocking/non-blocking
  *
- * Sets the socket non-blocking if nonblocking is TRUE, or sets it
+ * Sets the socket non-blocking if nonblocking is true, or sets it
  * blocking otherwise.
  * --------------------------------
  */
@@ -1287,7 +1286,7 @@ pq_getmessage(StringInfo s, int maxlen)
 		return EOF;
 	}
 
-	len = ntohl(len);
+	len = pg_ntoh32(len);
 
 	if (len < 4 ||
 		(maxlen > 0 && len > maxlen))
@@ -1570,7 +1569,7 @@ socket_putmessage(char msgtype, const char *s, size_t len)
 	{
 		uint32		n32;
 
-		n32 = htonl((uint32) (len + 4));
+		n32 = pg_hton32((uint32) (len + 4));
 		if (internal_putbytes((char *) &n32, 4))
 			goto fail;
 	}
@@ -1656,7 +1655,7 @@ socket_endcopyout(bool errorAbort)
  */
 #if defined(WIN32) && defined(SIO_KEEPALIVE_VALS)
 static int
-pq_setkeepaliveswin32(Port * port, int idle, int interval)
+pq_setkeepaliveswin32(Port *port, int idle, int interval)
 {
 	struct tcp_keepalive ka;
 	DWORD		retsize;
@@ -1672,7 +1671,7 @@ pq_setkeepaliveswin32(Port * port, int idle, int interval)
 
 	if (WSAIoctl(port->sock,
 				 SIO_KEEPALIVE_VALS,
-				 (LPVOID) & ka,
+				 (LPVOID) &ka,
 				 sizeof(ka),
 				 NULL,
 				 0,
@@ -1694,7 +1693,7 @@ pq_setkeepaliveswin32(Port * port, int idle, int interval)
 #endif
 
 int
-pq_getkeepalivesidle(Port * port)
+pq_getkeepalivesidle(Port *port)
 {
 #if defined(PG_TCP_KEEPALIVE_IDLE) || defined(SIO_KEEPALIVE_VALS)
 	if (port == NULL || IS_AF_UNIX(port->laddr.addr.ss_family))
@@ -1728,7 +1727,7 @@ pq_getkeepalivesidle(Port * port)
 }
 
 int
-pq_setkeepalivesidle(int idle, Port * port)
+pq_setkeepalivesidle(int idle, Port *port)
 {
 	if (port == NULL || IS_AF_UNIX(port->laddr.addr.ss_family))
 		return STATUS_OK;
@@ -1776,7 +1775,7 @@ pq_setkeepalivesidle(int idle, Port * port)
 }
 
 int
-pq_getkeepalivesinterval(Port * port)
+pq_getkeepalivesinterval(Port *port)
 {
 #if defined(TCP_KEEPINTVL) || defined(SIO_KEEPALIVE_VALS)
 	if (port == NULL || IS_AF_UNIX(port->laddr.addr.ss_family))
@@ -1810,7 +1809,7 @@ pq_getkeepalivesinterval(Port * port)
 }
 
 int
-pq_setkeepalivesinterval(int interval, Port * port)
+pq_setkeepalivesinterval(int interval, Port *port)
 {
 	if (port == NULL || IS_AF_UNIX(port->laddr.addr.ss_family))
 		return STATUS_OK;
@@ -1857,7 +1856,7 @@ pq_setkeepalivesinterval(int interval, Port * port)
 }
 
 int
-pq_getkeepalivescount(Port * port)
+pq_getkeepalivescount(Port *port)
 {
 #ifdef TCP_KEEPCNT
 	if (port == NULL || IS_AF_UNIX(port->laddr.addr.ss_family))
@@ -1886,7 +1885,7 @@ pq_getkeepalivescount(Port * port)
 }
 
 int
-pq_setkeepalivescount(int count, Port * port)
+pq_setkeepalivescount(int count, Port *port)
 {
 	if (port == NULL || IS_AF_UNIX(port->laddr.addr.ss_family))
 		return STATUS_OK;

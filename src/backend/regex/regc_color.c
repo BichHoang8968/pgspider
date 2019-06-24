@@ -137,7 +137,7 @@ pg_reg_getcolor(struct colormap *cm, chr c)
 	while (low < high)
 	{
 		int			middle = low + (high - low) / 2;
-		const		colormaprange *cmr = &cm->cmranges[middle];
+		const colormaprange *cmr = &cm->cmranges[middle];
 
 		if (c < cmr->cmin)
 			high = middle;
@@ -363,7 +363,7 @@ subcolor(struct colormap *cm, chr c)
  * colormap, which do not necessarily correspond to exactly one chr code.
  */
 static color
-subcolorhi(struct colormap *cm, color * pco)
+subcolorhi(struct colormap *cm, color *pco)
 {
 	color		co;				/* current color of entry */
 	color		sco;			/* new subcolor */
@@ -529,7 +529,7 @@ subcolorcvec(struct vars *v,
 	chr			ch,
 				from,
 				to;
-	const		chr *p;
+	const chr  *p;
 	int			i;
 
 	/* ordinary characters */
@@ -625,7 +625,7 @@ subcoloronechr(struct vars *v,
 			   chr ch,
 			   struct state *lp,
 			   struct state *rp,
-			   color * lastsubcolor)
+			   color *lastsubcolor)
 {
 	struct colormap *cm = v->cm;
 	colormaprange *newranges;
@@ -749,7 +749,7 @@ subcoloronerange(struct vars *v,
 				 chr to,
 				 struct state *lp,
 				 struct state *rp,
-				 color * lastsubcolor)
+				 color *lastsubcolor)
 {
 	struct colormap *cm = v->cm;
 	colormaprange *newranges;
@@ -886,7 +886,7 @@ subcoloronerow(struct vars *v,
 			   int rownum,
 			   struct state *lp,
 			   struct state *rp,
-			   color * lastsubcolor)
+			   color *lastsubcolor)
 {
 	struct colormap *cm = v->cm;
 	color	   *pco;
@@ -1063,7 +1063,7 @@ colorcomplement(struct nfa *nfa,
  */
 static void
 dumpcolors(struct colormap *cm,
-		   FILE * f)
+		   FILE *f)
 {
 	struct colordesc *cd;
 	struct colordesc *end;
@@ -1096,7 +1096,7 @@ dumpcolors(struct colormap *cm,
 	{
 		int			r,
 					c;
-		const		color *rowptr;
+		const color *rowptr;
 
 		fprintf(f, "other:\t");
 		for (c = 0; c < cm->hiarraycols; c++)
@@ -1127,7 +1127,7 @@ dumpcolors(struct colormap *cm,
  */
 static void
 dumpchr(chr c,
-		FILE * f)
+		FILE *f)
 {
 	if (c == '\\')
 		fprintf(f, "\\\\");

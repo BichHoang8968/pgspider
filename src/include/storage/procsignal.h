@@ -4,7 +4,7 @@
  *	  Routines for interprocess signalling
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/procsignal.h
@@ -43,7 +43,7 @@ typedef enum
 	PROCSIG_RECOVERY_CONFLICT_STARTUP_DEADLOCK,
 
 	NUM_PROCSIGNALS				/* Must be last! */
-}			ProcSignalReason;
+} ProcSignalReason;
 
 /*
  * prototypes for functions in procsignal.c

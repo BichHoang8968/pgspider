@@ -3,7 +3,7 @@
  * gindesc.c
  *	  rmgr descriptor routines for access/transam/gin/ginxlog.c
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -20,7 +20,7 @@
 #include "storage/relfilenode.h"
 
 static void
-desc_recompress_leaf(StringInfo buf, ginxlogRecompressDataLeaf * insertData)
+desc_recompress_leaf(StringInfo buf, ginxlogRecompressDataLeaf *insertData)
 {
 	int			i;
 	char	   *walbuf = ((char *) insertData) + sizeof(ginxlogRecompressDataLeaf);
@@ -71,7 +71,7 @@ desc_recompress_leaf(StringInfo buf, ginxlogRecompressDataLeaf * insertData)
 }
 
 void
-gin_desc(StringInfo buf, XLogReaderState * record)
+gin_desc(StringInfo buf, XLogReaderState *record)
 {
 	char	   *rec = XLogRecGetData(record);
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;

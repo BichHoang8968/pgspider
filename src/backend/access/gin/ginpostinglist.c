@@ -4,7 +4,7 @@
  *	  routines for dealing with posting lists.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -266,7 +266,7 @@ ginCompressPostingList(const ItemPointer ipd, int nipd, int maxsize,
  * The number of items is returned in *ndecoded.
  */
 ItemPointer
-ginPostingListDecode(GinPostingList * plist, int *ndecoded)
+ginPostingListDecode(GinPostingList *plist, int *ndecoded)
 {
 	return ginPostingListDecodeAllSegments(plist,
 										   SizeOfGinPostingList(plist),
@@ -279,7 +279,7 @@ ginPostingListDecode(GinPostingList * plist, int *ndecoded)
  * one after each other, with total size 'len' bytes.
  */
 ItemPointer
-ginPostingListDecodeAllSegments(GinPostingList * segment, int len, int *ndecoded_out)
+ginPostingListDecodeAllSegments(GinPostingList *segment, int len, int *ndecoded_out)
 {
 	ItemPointer result;
 	int			nallocated;
@@ -340,8 +340,8 @@ ginPostingListDecodeAllSegments(GinPostingList * segment, int len, int *ndecoded
  * Add all item pointers from a bunch of posting lists to a TIDBitmap.
  */
 int
-ginPostingListDecodeAllSegmentsToTbm(GinPostingList * ptr, int len,
-									 TIDBitmap * tbm)
+ginPostingListDecodeAllSegmentsToTbm(GinPostingList *ptr, int len,
+									 TIDBitmap *tbm)
 {
 	int			ndecoded;
 	ItemPointer items;
@@ -360,8 +360,8 @@ ginPostingListDecodeAllSegmentsToTbm(GinPostingList * ptr, int len,
  * the result, after eliminating duplicates.
  */
 ItemPointer
-ginMergeItemPointers(ItemPointerData * a, uint32 na,
-					 ItemPointerData * b, uint32 nb,
+ginMergeItemPointers(ItemPointerData *a, uint32 na,
+					 ItemPointerData *b, uint32 nb,
 					 int *nmerged)
 {
 	ItemPointerData *dst;

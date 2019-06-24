@@ -36,7 +36,7 @@
  *		ss_report_location	- update current scan location
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -92,31 +92,31 @@ typedef struct ss_scan_location_t
 {
 	RelFileNode relfilenode;	/* identity of a relation */
 	BlockNumber location;		/* last-reported location in the relation */
-}			ss_scan_location_t;
+} ss_scan_location_t;
 
 typedef struct ss_lru_item_t
 {
 	struct ss_lru_item_t *prev;
 	struct ss_lru_item_t *next;
 	ss_scan_location_t location;
-}			ss_lru_item_t;
+} ss_lru_item_t;
 
 typedef struct ss_scan_locations_t
 {
 	ss_lru_item_t *head;
 	ss_lru_item_t *tail;
 	ss_lru_item_t items[FLEXIBLE_ARRAY_MEMBER]; /* SYNC_SCAN_NELEM items */
-}			ss_scan_locations_t;
+} ss_scan_locations_t;
 
 #define SizeOfScanLocations(N) \
 	(offsetof(ss_scan_locations_t, items) + (N) * sizeof(ss_lru_item_t))
 
 /* Pointer to struct in shared memory */
-static ss_scan_locations_t * scan_locations;
+static ss_scan_locations_t *scan_locations;
 
 /* prototypes for internal functions */
 static BlockNumber ss_search(RelFileNode relfilenode,
-							 BlockNumber location, bool set);
+		  BlockNumber location, bool set);
 
 
 /*

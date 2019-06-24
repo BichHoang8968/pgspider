@@ -3,7 +3,7 @@
  * seclabel.c
  *	  routines to support security label feature.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * -------------------------------------------------------------------------
@@ -29,9 +29,9 @@ typedef struct
 {
 	const char *provider_name;
 	check_object_relabel_type hook;
-}			LabelProvider;
+} LabelProvider;
 
-static List * label_provider_list = NIL;
+static List *label_provider_list = NIL;
 
 /*
  * ExecSecLabelStmt --
@@ -41,7 +41,7 @@ static List * label_provider_list = NIL;
  * Returns the ObjectAddress of the object to which the policy was applied.
  */
 ObjectAddress
-ExecSecLabelStmt(SecLabelStmt * stmt)
+ExecSecLabelStmt(SecLabelStmt *stmt)
 {
 	LabelProvider *provider = NULL;
 	ObjectAddress address;
@@ -122,7 +122,7 @@ ExecSecLabelStmt(SecLabelStmt * stmt)
 	}
 
 	/* Provider gets control here, may throw ERROR to veto new label. */
-	(*provider->hook) (&address, stmt->label);
+	provider->hook(&address, stmt->label);
 
 	/* Apply new label. */
 	SetSecurityLabel(&address, provider->provider_name, stmt->label);
@@ -144,7 +144,7 @@ ExecSecLabelStmt(SecLabelStmt * stmt)
  * a given provider, or NULL if there is no such label.
  */
 static char *
-GetSharedSecurityLabel(const ObjectAddress * object, const char *provider)
+GetSharedSecurityLabel(const ObjectAddress *object, const char *provider)
 {
 	Relation	pg_shseclabel;
 	ScanKeyData keys[3];
@@ -192,7 +192,7 @@ GetSharedSecurityLabel(const ObjectAddress * object, const char *provider)
  * for a given provider, or NULL if there is no such label.
  */
 char *
-GetSecurityLabel(const ObjectAddress * object, const char *provider)
+GetSecurityLabel(const ObjectAddress *object, const char *provider)
 {
 	Relation	pg_seclabel;
 	ScanKeyData keys[4];
@@ -249,7 +249,7 @@ GetSecurityLabel(const ObjectAddress * object, const char *provider)
  * handle shared database objects.
  */
 static void
-SetSharedSecurityLabel(const ObjectAddress * object,
+SetSharedSecurityLabel(const ObjectAddress *object,
 					   const char *provider, const char *label)
 {
 	Relation	pg_shseclabel;
@@ -324,7 +324,7 @@ SetSharedSecurityLabel(const ObjectAddress * object,
  * any existing label should be deleted.
  */
 void
-SetSecurityLabel(const ObjectAddress * object,
+SetSecurityLabel(const ObjectAddress *object,
 				 const char *provider, const char *label)
 {
 	Relation	pg_seclabel;
@@ -443,7 +443,7 @@ DeleteSharedSecurityLabel(Oid objectId, Oid classId)
  * sub-objects, if applicable).
  */
 void
-DeleteSecurityLabel(const ObjectAddress * object)
+DeleteSecurityLabel(const ObjectAddress *object)
 {
 	Relation	pg_seclabel;
 	ScanKeyData skey[3];

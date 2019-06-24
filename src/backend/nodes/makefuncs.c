@@ -4,7 +4,7 @@
  *	  creator functions for primitive nodes. The functions here are for
  *	  the most frequently created nodes.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -28,8 +28,8 @@
  *		makes an A_Expr node
  */
 A_Expr *
-makeA_Expr(A_Expr_Kind kind, List * name,
-		   Node * lexpr, Node * rexpr, int location)
+makeA_Expr(A_Expr_Kind kind, List *name,
+		   Node *lexpr, Node *rexpr, int location)
 {
 	A_Expr	   *a = makeNode(A_Expr);
 
@@ -47,7 +47,7 @@ makeA_Expr(A_Expr_Kind kind, List * name,
  */
 A_Expr *
 makeSimpleA_Expr(A_Expr_Kind kind, char *name,
-				 Node * lexpr, Node * rexpr, int location)
+				 Node *lexpr, Node *rexpr, int location)
 {
 	A_Expr	   *a = makeNode(A_Expr);
 
@@ -102,7 +102,7 @@ makeVar(Index varno,
  */
 Var *
 makeVarFromTargetEntry(Index varno,
-					   TargetEntry * tle)
+					   TargetEntry *tle)
 {
 	return makeVar(varno,
 				   tle->resno,
@@ -120,8 +120,10 @@ makeVarFromTargetEntry(Index varno,
  * table entry, and varattno == 0 to signal that it references the whole
  * tuple.  (Use of zero here is unclean, since it could easily be confused
  * with error cases, but it's not worth changing now.)  The vartype indicates
- * a rowtype; either a named composite type, or RECORD.  This function
- * encapsulates the logic for determining the correct rowtype OID to use.
+ * a rowtype; either a named composite type, or a domain over a named
+ * composite type (only possible if the RTE is a function returning that),
+ * or RECORD.  This function encapsulates the logic for determining the
+ * correct rowtype OID to use.
  *
  * If allowScalar is true, then for the case where the RTE is a single function
  * returning a non-composite result type, we produce a normal Var referencing
@@ -129,7 +131,7 @@ makeVarFromTargetEntry(Index varno,
  * value that the whole-row notation might otherwise suggest.
  */
 Var *
-makeWholeRowVar(RangeTblEntry * rte,
+makeWholeRowVar(RangeTblEntry *rte,
 				Index varno,
 				Index varlevelsup,
 				bool allowScalar)
@@ -232,7 +234,7 @@ makeWholeRowVar(RangeTblEntry * rte,
  *	  creates a TargetEntry node
  */
 TargetEntry *
-makeTargetEntry(Expr * expr,
+makeTargetEntry(Expr *expr,
 				AttrNumber resno,
 				char *resname,
 				bool resjunk)
@@ -265,7 +267,7 @@ makeTargetEntry(Expr * expr,
  * a new expression.
  */
 TargetEntry *
-flatCopyTargetEntry(TargetEntry * src_tle)
+flatCopyTargetEntry(TargetEntry *src_tle)
 {
 	TargetEntry *tle = makeNode(TargetEntry);
 
@@ -279,7 +281,7 @@ flatCopyTargetEntry(TargetEntry * src_tle)
  *	  creates a FromExpr node
  */
 FromExpr *
-makeFromExpr(List * fromlist, Node * quals)
+makeFromExpr(List *fromlist, Node *quals)
 {
 	FromExpr   *f = makeNode(FromExpr);
 
@@ -363,7 +365,7 @@ makeBoolConst(bool value, bool isnull)
  *	  creates a BoolExpr node
  */
 Expr *
-makeBoolExpr(BoolExprType boolop, List * args, int location)
+makeBoolExpr(BoolExprType boolop, List *args, int location)
 {
 	BoolExpr   *b = makeNode(BoolExpr);
 
@@ -381,7 +383,7 @@ makeBoolExpr(BoolExprType boolop, List * args, int location)
  * NOTE: the given name is copied, but the colnames list (if any) isn't.
  */
 Alias *
-makeAlias(const char *aliasname, List * colnames)
+makeAlias(const char *aliasname, List *colnames)
 {
 	Alias	   *a = makeNode(Alias);
 
@@ -396,7 +398,7 @@ makeAlias(const char *aliasname, List * colnames)
  *	  creates a RelabelType node
  */
 RelabelType *
-makeRelabelType(Expr * arg, Oid rtype, int32 rtypmod, Oid rcollid,
+makeRelabelType(Expr *arg, Oid rtype, int32 rtypmod, Oid rcollid,
 				CoercionForm rformat)
 {
 	RelabelType *r = makeNode(RelabelType);
@@ -450,7 +452,7 @@ makeTypeName(char *typnam)
  * typmod is defaulted, but can be changed later by caller.
  */
 TypeName *
-makeTypeNameFromNameList(List * names)
+makeTypeNameFromNameList(List *names)
 {
 	TypeName   *n = makeNode(TypeName);
 
@@ -494,7 +496,6 @@ makeColumnDef(const char *colname, Oid typeOid, int32 typmod, Oid collOid)
 	n->is_local = true;
 	n->is_not_null = false;
 	n->is_from_type = false;
-	n->is_from_parent = false;
 	n->storage = 0;
 	n->raw_default = NULL;
 	n->cooked_default = NULL;
@@ -514,7 +515,7 @@ makeColumnDef(const char *colname, Oid typeOid, int32 typmod, Oid collOid)
  * The argument expressions must have been transformed already.
  */
 FuncExpr *
-makeFuncExpr(Oid funcid, Oid rettype, List * args,
+makeFuncExpr(Oid funcid, Oid rettype, List *args,
 			 Oid funccollid, Oid inputcollid, CoercionForm fformat)
 {
 	FuncExpr   *funcexpr;
@@ -541,7 +542,7 @@ makeFuncExpr(Oid funcid, Oid rettype, List * args,
  * and no special action.
  */
 DefElem *
-makeDefElem(char *name, Node * arg, int location)
+makeDefElem(char *name, Node *arg, int location)
 {
 	DefElem    *res = makeNode(DefElem);
 
@@ -559,7 +560,7 @@ makeDefElem(char *name, Node * arg, int location)
  *	build a DefElem node with all fields available to be specified
  */
 DefElem *
-makeDefElemExtended(char *nameSpace, char *name, Node * arg,
+makeDefElemExtended(char *nameSpace, char *name, Node *arg,
 					DefElemAction defaction, int location)
 {
 	DefElem    *res = makeNode(DefElem);
@@ -580,7 +581,7 @@ makeDefElemExtended(char *nameSpace, char *name, Node * arg,
  * supply.  Any non-default parameters have to be inserted by the caller.
  */
 FuncCall *
-makeFuncCall(List * name, List * args, int location)
+makeFuncCall(List *name, List *args, int location)
 {
 	FuncCall   *n = makeNode(FuncCall);
 
@@ -602,7 +603,7 @@ makeFuncCall(List * name, List * args, int location)
  *
  */
 GroupingSet *
-makeGroupingSet(GroupingSetKind kind, List * content, int location)
+makeGroupingSet(GroupingSetKind kind, List *content, int location)
 {
 	GroupingSet *n = makeNode(GroupingSet);
 
@@ -610,4 +611,19 @@ makeGroupingSet(GroupingSetKind kind, List * content, int location)
 	n->content = content;
 	n->location = location;
 	return n;
+}
+
+/*
+ * makeVacuumRelation -
+ *	  create a VacuumRelation node
+ */
+VacuumRelation *
+makeVacuumRelation(RangeVar *relation, Oid oid, List *va_cols)
+{
+	VacuumRelation *v = makeNode(VacuumRelation);
+
+	v->relation = relation;
+	v->oid = oid;
+	v->va_cols = va_cols;
+	return v;
 }

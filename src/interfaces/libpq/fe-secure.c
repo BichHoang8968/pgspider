@@ -6,7 +6,7 @@
  *	  message integrity and endpoint authentication.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -129,6 +129,14 @@ struct sigpipe_info
 /* ------------------------------------------------------------ */
 
 
+int
+PQsslInUse(PGconn *conn)
+{
+	if (!conn)
+		return 0;
+	return conn->ssl_in_use;
+}
+
 /*
  *	Exported function to allow application to tell us it's already
  *	initialized OpenSSL.
@@ -157,7 +165,7 @@ PQinitOpenSSL(int do_ssl, int do_crypto)
  *	Initialize global SSL context
  */
 int
-pqsecure_initialize(PGconn * conn)
+pqsecure_initialize(PGconn *conn)
 {
 	int			r = 0;
 
@@ -172,7 +180,7 @@ pqsecure_initialize(PGconn * conn)
  *	Begin or continue negotiating a secure session.
  */
 PostgresPollingStatusType
-pqsecure_open_client(PGconn * conn)
+pqsecure_open_client(PGconn *conn)
 {
 #ifdef USE_SSL
 	return pgtls_open_client(conn);
@@ -186,7 +194,7 @@ pqsecure_open_client(PGconn * conn)
  *	Close secure session.
  */
 void
-pqsecure_close(PGconn * conn)
+pqsecure_close(PGconn *conn)
 {
 #ifdef USE_SSL
 	if (conn->ssl_in_use)
@@ -202,7 +210,7 @@ pqsecure_close(PGconn * conn)
  * to determine whether to continue/retry after error.
  */
 ssize_t
-pqsecure_read(PGconn * conn, void *ptr, size_t len)
+pqsecure_read(PGconn *conn, void *ptr, size_t len)
 {
 	ssize_t		n;
 
@@ -221,7 +229,7 @@ pqsecure_read(PGconn * conn, void *ptr, size_t len)
 }
 
 ssize_t
-pqsecure_raw_read(PGconn * conn, void *ptr, size_t len)
+pqsecure_raw_read(PGconn *conn, void *ptr, size_t len)
 {
 	ssize_t		n;
 	int			result_errno = 0;
@@ -279,7 +287,7 @@ pqsecure_raw_read(PGconn * conn, void *ptr, size_t len)
  * to determine whether to continue/retry after error.
  */
 ssize_t
-pqsecure_write(PGconn * conn, const void *ptr, size_t len)
+pqsecure_write(PGconn *conn, const void *ptr, size_t len)
 {
 	ssize_t		n;
 
@@ -298,7 +306,7 @@ pqsecure_write(PGconn * conn, const void *ptr, size_t len)
 }
 
 ssize_t
-pqsecure_raw_write(PGconn * conn, const void *ptr, size_t len)
+pqsecure_raw_write(PGconn *conn, const void *ptr, size_t len)
 {
 	ssize_t		n;
 	int			flags = 0;
@@ -352,9 +360,10 @@ retry_masked:
 			case EPIPE:
 				/* Set flag for EPIPE */
 				REMEMBER_EPIPE(spinfo, true);
-				/* FALL THRU */
 
 #ifdef ECONNRESET
+				/* FALL THRU */
+
 			case ECONNRESET:
 #endif
 				printfPQExpBuffer(&conn->errorMessage,
@@ -384,32 +393,26 @@ retry_masked:
 /* Dummy versions of SSL info functions, when built without SSL support */
 #ifndef USE_SSL
 
-int
-PQsslInUse(PGconn * conn)
-{
-	return 0;
-}
-
 void *
-PQgetssl(PGconn * conn)
+PQgetssl(PGconn *conn)
 {
 	return NULL;
 }
 
 void *
-PQsslStruct(PGconn * conn, const char *struct_name)
+PQsslStruct(PGconn *conn, const char *struct_name)
 {
 	return NULL;
 }
 
 const char *
-PQsslAttribute(PGconn * conn, const char *attribute_name)
+PQsslAttribute(PGconn *conn, const char *attribute_name)
 {
 	return NULL;
 }
 
 const char *const *
-PQsslAttributeNames(PGconn * conn)
+PQsslAttributeNames(PGconn *conn)
 {
 	static const char *const result[] = {NULL};
 
@@ -425,7 +428,7 @@ PQsslAttributeNames(PGconn * conn)
  *	the application.
  */
 int
-pq_block_sigpipe(sigset_t * osigset, bool *sigpipe_pending)
+pq_block_sigpipe(sigset_t *osigset, bool *sigpipe_pending)
 {
 	sigset_t	sigpipe_sigset;
 	sigset_t	sigset;
@@ -465,17 +468,17 @@ pq_block_sigpipe(sigset_t * osigset, bool *sigpipe_pending)
  * As long as it doesn't queue multiple events, we're OK because the caller
  * can't tell the difference.
  *
- * The caller should say got_epipe = FALSE if it is certain that it
+ * The caller should say got_epipe = false if it is certain that it
  * didn't get an EPIPE error; in that case we'll skip the clear operation
  * and things are definitely OK, queuing or no.  If it got one or might have
- * gotten one, pass got_epipe = TRUE.
+ * gotten one, pass got_epipe = true.
  *
  * We do not want this to change errno, since if it did that could lose
  * the error code from a preceding send().  We essentially assume that if
  * we were able to do pq_block_sigpipe(), this can't fail.
  */
 void
-pq_reset_sigpipe(sigset_t * osigset, bool sigpipe_pending, bool got_epipe)
+pq_reset_sigpipe(sigset_t *osigset, bool sigpipe_pending, bool got_epipe)
 {
 	int			save_errno = SOCK_ERRNO;
 	int			signo;

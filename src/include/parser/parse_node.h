@@ -4,7 +4,7 @@
  *		Internal definitions for parser
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/parser/parse_node.h
@@ -45,6 +45,7 @@ typedef enum ParseExprKind
 	EXPR_KIND_WINDOW_ORDER,		/* window definition ORDER BY */
 	EXPR_KIND_WINDOW_FRAME_RANGE,	/* window frame clause with RANGE */
 	EXPR_KIND_WINDOW_FRAME_ROWS,	/* window frame clause with ROWS */
+	EXPR_KIND_WINDOW_FRAME_GROUPS,	/* window frame clause with GROUPS */
 	EXPR_KIND_SELECT_TARGET,	/* SELECT target list item */
 	EXPR_KIND_INSERT_TARGET,	/* INSERT target list item */
 	EXPR_KIND_UPDATE_SOURCE,	/* UPDATE assignment source item */
@@ -67,8 +68,9 @@ typedef enum ParseExprKind
 	EXPR_KIND_EXECUTE_PARAMETER,	/* parameter value in EXECUTE */
 	EXPR_KIND_TRIGGER_WHEN,		/* WHEN condition in CREATE TRIGGER */
 	EXPR_KIND_POLICY,			/* USING or WITH CHECK expr in policy */
-	EXPR_KIND_PARTITION_EXPRESSION	/* PARTITION BY expression */
-}			ParseExprKind;
+	EXPR_KIND_PARTITION_EXPRESSION, /* PARTITION BY expression */
+	EXPR_KIND_CALL_ARGUMENT		/* procedure argument in CALL */
+} ParseExprKind;
 
 
 /*
@@ -76,12 +78,12 @@ typedef enum ParseExprKind
  */
 typedef struct ParseState ParseState;
 
-typedef Node * (*PreParseColumnRefHook) (ParseState * pstate, ColumnRef * cref);
-typedef Node * (*PostParseColumnRefHook) (ParseState * pstate, ColumnRef * cref, Node * var);
-typedef Node * (*ParseParamRefHook) (ParseState * pstate, ParamRef * pref);
-typedef Node * (*CoerceParamHook) (ParseState * pstate, Param * param,
-								   Oid targetTypeId, int32 targetTypeMod,
-								   int location);
+typedef Node *(*PreParseColumnRefHook) (ParseState *pstate, ColumnRef *cref);
+typedef Node *(*PostParseColumnRefHook) (ParseState *pstate, ColumnRef *cref, Node *var);
+typedef Node *(*ParseParamRefHook) (ParseState *pstate, ParamRef *pref);
+typedef Node *(*CoerceParamHook) (ParseState *pstate, Param *param,
+								  Oid targetTypeId, int32 targetTypeMod,
+								  int location);
 
 
 /*
@@ -111,7 +113,7 @@ typedef Node * (*CoerceParamHook) (ParseState * pstate, Param * param,
  * namespace for table and column lookup.  (The RTEs listed here may be just
  * a subset of the whole rtable.  See ParseNamespaceItem comments below.)
  *
- * p_lateral_active: TRUE if we are currently parsing a LATERAL subexpression
+ * p_lateral_active: true if we are currently parsing a LATERAL subexpression
  * of this parse level.  This makes p_lateral_only namespace items visible,
  * whereas they are not visible when p_lateral_active is FALSE.
  *
@@ -248,7 +250,7 @@ typedef struct ParseNamespaceItem
 	bool		p_cols_visible; /* Column names visible as unqualified refs? */
 	bool		p_lateral_only; /* Is only visible to LATERAL expressions? */
 	bool		p_lateral_ok;	/* If so, does join type allow use? */
-}			ParseNamespaceItem;
+} ParseNamespaceItem;
 
 /* Support for parser_errposition_callback function */
 typedef struct ParseCallbackState
@@ -256,27 +258,27 @@ typedef struct ParseCallbackState
 	ParseState *pstate;
 	int			location;
 	ErrorContextCallback errcallback;
-}			ParseCallbackState;
+} ParseCallbackState;
 
 
-extern ParseState * make_parsestate(ParseState * parentParseState);
-extern void free_parsestate(ParseState * pstate);
-extern int	parser_errposition(ParseState * pstate, int location);
+extern ParseState *make_parsestate(ParseState *parentParseState);
+extern void free_parsestate(ParseState *pstate);
+extern int	parser_errposition(ParseState *pstate, int location);
 
-extern void setup_parser_errposition_callback(ParseCallbackState * pcbstate,
-								  ParseState * pstate, int location);
-extern void cancel_parser_errposition_callback(ParseCallbackState * pcbstate);
+extern void setup_parser_errposition_callback(ParseCallbackState *pcbstate,
+								  ParseState *pstate, int location);
+extern void cancel_parser_errposition_callback(ParseCallbackState *pcbstate);
 
-extern Var * make_var(ParseState * pstate, RangeTblEntry * rte, int attrno,
-					  int location);
-extern Oid transformArrayType(Oid * arrayType, int32 * arrayTypmod);
-extern ArrayRef * transformArraySubscripts(ParseState * pstate,
-										   Node * arrayBase,
-										   Oid arrayType,
-										   Oid elementType,
-										   int32 arrayTypMod,
-										   List * indirection,
-										   Node * assignFrom);
-extern Const * make_const(ParseState * pstate, Value * value, int location);
+extern Var *make_var(ParseState *pstate, RangeTblEntry *rte, int attrno,
+		 int location);
+extern Oid	transformArrayType(Oid *arrayType, int32 *arrayTypmod);
+extern ArrayRef *transformArraySubscripts(ParseState *pstate,
+						 Node *arrayBase,
+						 Oid arrayType,
+						 Oid elementType,
+						 int32 arrayTypMod,
+						 List *indirection,
+						 Node *assignFrom);
+extern Const *make_const(ParseState *pstate, Value *value, int location);
 
 #endif							/* PARSE_NODE_H */

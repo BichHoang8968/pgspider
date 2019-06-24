@@ -11,7 +11,7 @@
  * on callers, since this is an opaque structure.  This is the reason to
  * require a create function.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -42,7 +42,7 @@ create_queryEnv()
 }
 
 EphemeralNamedRelationMetadata
-get_visible_ENR_metadata(QueryEnvironment * queryEnv, const char *refname)
+get_visible_ENR_metadata(QueryEnvironment *queryEnv, const char *refname)
 {
 	EphemeralNamedRelation enr;
 
@@ -66,7 +66,7 @@ get_visible_ENR_metadata(QueryEnvironment * queryEnv, const char *refname)
  * be left NULL;
  */
 void
-register_ENR(QueryEnvironment * queryEnv, EphemeralNamedRelation enr)
+register_ENR(QueryEnvironment *queryEnv, EphemeralNamedRelation enr)
 {
 	Assert(enr != NULL);
 	Assert(get_ENR(queryEnv, enr->md.name) == NULL);
@@ -79,7 +79,7 @@ register_ENR(QueryEnvironment * queryEnv, EphemeralNamedRelation enr)
  * used function, but seems like it should be provided "just in case".
  */
 void
-unregister_ENR(QueryEnvironment * queryEnv, const char *name)
+unregister_ENR(QueryEnvironment *queryEnv, const char *name)
 {
 	EphemeralNamedRelation match;
 
@@ -93,7 +93,7 @@ unregister_ENR(QueryEnvironment * queryEnv, const char *name)
  * must quietly return NULL if no match is found.
  */
 EphemeralNamedRelation
-get_ENR(QueryEnvironment * queryEnv, const char *name)
+get_ENR(QueryEnvironment *queryEnv, const char *name)
 {
 	ListCell   *lc;
 

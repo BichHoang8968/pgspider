@@ -3,7 +3,7 @@
  * parse_expr.c
  *	  handle expressions in parser
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -89,50 +89,50 @@ static const int oldprecedence_r[] = {
 	0, 10, 10, 3, 2, 8, 4, 5, 6, 1, 1, 1, 7, 8, 9
 };
 
-static Node * transformExprRecurse(ParseState * pstate, Node * expr);
-static Node * transformParamRef(ParseState * pstate, ParamRef * pref);
-static Node * transformAExprOp(ParseState * pstate, A_Expr * a);
-static Node * transformAExprOpAny(ParseState * pstate, A_Expr * a);
-static Node * transformAExprOpAll(ParseState * pstate, A_Expr * a);
-static Node * transformAExprDistinct(ParseState * pstate, A_Expr * a);
-static Node * transformAExprNullIf(ParseState * pstate, A_Expr * a);
-static Node * transformAExprOf(ParseState * pstate, A_Expr * a);
-static Node * transformAExprIn(ParseState * pstate, A_Expr * a);
-static Node * transformAExprBetween(ParseState * pstate, A_Expr * a);
-static Node * transformBoolExpr(ParseState * pstate, BoolExpr * a);
-static Node * transformFuncCall(ParseState * pstate, FuncCall * fn);
-static Node * transformMultiAssignRef(ParseState * pstate, MultiAssignRef * maref);
-static Node * transformCaseExpr(ParseState * pstate, CaseExpr * c);
-static Node * transformSubLink(ParseState * pstate, SubLink * sublink);
-static Node * transformArrayExpr(ParseState * pstate, A_ArrayExpr * a,
-								 Oid array_type, Oid element_type, int32 typmod);
-static Node * transformRowExpr(ParseState * pstate, RowExpr * r, bool allowDefault);
-static Node * transformCoalesceExpr(ParseState * pstate, CoalesceExpr * c);
-static Node * transformMinMaxExpr(ParseState * pstate, MinMaxExpr * m);
-static Node * transformSQLValueFunction(ParseState * pstate,
-										SQLValueFunction * svf);
-static Node * transformXmlExpr(ParseState * pstate, XmlExpr * x);
-static Node * transformXmlSerialize(ParseState * pstate, XmlSerialize * xs);
-static Node * transformBooleanTest(ParseState * pstate, BooleanTest * b);
-static Node * transformCurrentOfExpr(ParseState * pstate, CurrentOfExpr * cexpr);
-static Node * transformColumnRef(ParseState * pstate, ColumnRef * cref);
-static Node * transformWholeRowRef(ParseState * pstate, RangeTblEntry * rte,
-								   int location);
-static Node * transformIndirection(ParseState * pstate, A_Indirection * ind);
-static Node * transformTypeCast(ParseState * pstate, TypeCast * tc);
-static Node * transformCollateClause(ParseState * pstate, CollateClause * c);
-static Node * make_row_comparison_op(ParseState * pstate, List * opname,
-									 List * largs, List * rargs, int location);
-static Node * make_row_distinct_op(ParseState * pstate, List * opname,
-								   RowExpr * lrow, RowExpr * rrow, int location);
-static Expr * make_distinct_op(ParseState * pstate, List * opname,
-							   Node * ltree, Node * rtree, int location);
-static Node * make_nulltest_from_distinct(ParseState * pstate,
-										  A_Expr * distincta, Node * arg);
-static int	operator_precedence_group(Node * node, const char **nodename);
-static void emit_precedence_warnings(ParseState * pstate,
+static Node *transformExprRecurse(ParseState *pstate, Node *expr);
+static Node *transformParamRef(ParseState *pstate, ParamRef *pref);
+static Node *transformAExprOp(ParseState *pstate, A_Expr *a);
+static Node *transformAExprOpAny(ParseState *pstate, A_Expr *a);
+static Node *transformAExprOpAll(ParseState *pstate, A_Expr *a);
+static Node *transformAExprDistinct(ParseState *pstate, A_Expr *a);
+static Node *transformAExprNullIf(ParseState *pstate, A_Expr *a);
+static Node *transformAExprOf(ParseState *pstate, A_Expr *a);
+static Node *transformAExprIn(ParseState *pstate, A_Expr *a);
+static Node *transformAExprBetween(ParseState *pstate, A_Expr *a);
+static Node *transformBoolExpr(ParseState *pstate, BoolExpr *a);
+static Node *transformFuncCall(ParseState *pstate, FuncCall *fn);
+static Node *transformMultiAssignRef(ParseState *pstate, MultiAssignRef *maref);
+static Node *transformCaseExpr(ParseState *pstate, CaseExpr *c);
+static Node *transformSubLink(ParseState *pstate, SubLink *sublink);
+static Node *transformArrayExpr(ParseState *pstate, A_ArrayExpr *a,
+				   Oid array_type, Oid element_type, int32 typmod);
+static Node *transformRowExpr(ParseState *pstate, RowExpr *r, bool allowDefault);
+static Node *transformCoalesceExpr(ParseState *pstate, CoalesceExpr *c);
+static Node *transformMinMaxExpr(ParseState *pstate, MinMaxExpr *m);
+static Node *transformSQLValueFunction(ParseState *pstate,
+						  SQLValueFunction *svf);
+static Node *transformXmlExpr(ParseState *pstate, XmlExpr *x);
+static Node *transformXmlSerialize(ParseState *pstate, XmlSerialize *xs);
+static Node *transformBooleanTest(ParseState *pstate, BooleanTest *b);
+static Node *transformCurrentOfExpr(ParseState *pstate, CurrentOfExpr *cexpr);
+static Node *transformColumnRef(ParseState *pstate, ColumnRef *cref);
+static Node *transformWholeRowRef(ParseState *pstate, RangeTblEntry *rte,
+					 int location);
+static Node *transformIndirection(ParseState *pstate, A_Indirection *ind);
+static Node *transformTypeCast(ParseState *pstate, TypeCast *tc);
+static Node *transformCollateClause(ParseState *pstate, CollateClause *c);
+static Node *make_row_comparison_op(ParseState *pstate, List *opname,
+					   List *largs, List *rargs, int location);
+static Node *make_row_distinct_op(ParseState *pstate, List *opname,
+					 RowExpr *lrow, RowExpr *rrow, int location);
+static Expr *make_distinct_op(ParseState *pstate, List *opname,
+				 Node *ltree, Node *rtree, int location);
+static Node *make_nulltest_from_distinct(ParseState *pstate,
+							A_Expr *distincta, Node *arg);
+static int	operator_precedence_group(Node *node, const char **nodename);
+static void emit_precedence_warnings(ParseState *pstate,
 						 int opgroup, const char *opname,
-						 Node * lchild, Node * rchild,
+						 Node *lchild, Node *rchild,
 						 int location);
 
 
@@ -143,7 +143,7 @@ static void emit_precedence_warnings(ParseState * pstate,
  *	  expression trees with fully determined semantics.
  */
 Node *
-transformExpr(ParseState * pstate, Node * expr, ParseExprKind exprKind)
+transformExpr(ParseState *pstate, Node *expr, ParseExprKind exprKind)
 {
 	Node	   *result;
 	ParseExprKind sv_expr_kind;
@@ -161,7 +161,7 @@ transformExpr(ParseState * pstate, Node * expr, ParseExprKind exprKind)
 }
 
 static Node *
-transformExprRecurse(ParseState * pstate, Node * expr)
+transformExprRecurse(ParseState *pstate, Node *expr)
 {
 	Node	   *result;
 
@@ -386,7 +386,7 @@ transformExprRecurse(ParseState * pstate, Node * expr)
  * selection from an arbitrary node needs it.)
  */
 static void
-unknown_attribute(ParseState * pstate, Node * relref, char *attname,
+unknown_attribute(ParseState *pstate, Node *relref, const char *attname,
 				  int location)
 {
 	RangeTblEntry *rte;
@@ -432,7 +432,7 @@ unknown_attribute(ParseState * pstate, Node * relref, char *attname,
 }
 
 static Node *
-transformIndirection(ParseState * pstate, A_Indirection * ind)
+transformIndirection(ParseState *pstate, A_Indirection *ind)
 {
 	Node	   *last_srf = pstate->p_last_srf;
 	Node	   *result = transformExprRecurse(pstate, ind->arg);
@@ -480,6 +480,7 @@ transformIndirection(ParseState * pstate, A_Indirection * ind)
 										  list_make1(result),
 										  last_srf,
 										  NULL,
+										  false,
 										  location);
 			if (newresult == NULL)
 				unknown_attribute(pstate, result, strVal(n), location);
@@ -505,7 +506,7 @@ transformIndirection(ParseState * pstate, A_Indirection * ind)
  * If you find yourself changing this code, see also ExpandColumnRefStar.
  */
 static Node *
-transformColumnRef(ParseState * pstate, ColumnRef * cref)
+transformColumnRef(ParseState *pstate, ColumnRef *cref)
 {
 	Node	   *node = NULL;
 	char	   *nspname = NULL;
@@ -527,7 +528,7 @@ transformColumnRef(ParseState * pstate, ColumnRef * cref)
 	 */
 	if (pstate->p_pre_columnref_hook != NULL)
 	{
-		node = (*pstate->p_pre_columnref_hook) (pstate, cref);
+		node = pstate->p_pre_columnref_hook(pstate, cref);
 		if (node != NULL)
 			return node;
 	}
@@ -629,6 +630,7 @@ transformColumnRef(ParseState * pstate, ColumnRef * cref)
 											 list_make1(node),
 											 pstate->p_last_srf,
 											 NULL,
+											 false,
 											 cref->location);
 				}
 				break;
@@ -676,6 +678,7 @@ transformColumnRef(ParseState * pstate, ColumnRef * cref)
 											 list_make1(node),
 											 pstate->p_last_srf,
 											 NULL,
+											 false,
 											 cref->location);
 				}
 				break;
@@ -736,6 +739,7 @@ transformColumnRef(ParseState * pstate, ColumnRef * cref)
 											 list_make1(node),
 											 pstate->p_last_srf,
 											 NULL,
+											 false,
 											 cref->location);
 				}
 				break;
@@ -758,7 +762,7 @@ transformColumnRef(ParseState * pstate, ColumnRef * cref)
 	{
 		Node	   *hookresult;
 
-		hookresult = (*pstate->p_post_columnref_hook) (pstate, cref, node);
+		hookresult = pstate->p_post_columnref_hook(pstate, cref, node);
 		if (node == NULL)
 			node = hookresult;
 		else if (hookresult != NULL)
@@ -804,7 +808,7 @@ transformColumnRef(ParseState * pstate, ColumnRef * cref)
 }
 
 static Node *
-transformParamRef(ParseState * pstate, ParamRef * pref)
+transformParamRef(ParseState *pstate, ParamRef *pref)
 {
 	Node	   *result;
 
@@ -813,7 +817,7 @@ transformParamRef(ParseState * pstate, ParamRef * pref)
 	 * call it.  If not, or if the hook returns NULL, throw a generic error.
 	 */
 	if (pstate->p_paramref_hook != NULL)
-		result = (*pstate->p_paramref_hook) (pstate, pref);
+		result = pstate->p_paramref_hook(pstate, pref);
 	else
 		result = NULL;
 
@@ -828,7 +832,7 @@ transformParamRef(ParseState * pstate, ParamRef * pref)
 
 /* Test whether an a_expr is a plain NULL constant or not */
 static bool
-exprIsNullConstant(Node * arg)
+exprIsNullConstant(Node *arg)
 {
 	if (arg && IsA(arg, A_Const))
 	{
@@ -841,7 +845,7 @@ exprIsNullConstant(Node * arg)
 }
 
 static Node *
-transformAExprOp(ParseState * pstate, A_Expr * a)
+transformAExprOp(ParseState *pstate, A_Expr *a)
 {
 	Node	   *lexpr = a->lexpr;
 	Node	   *rexpr = a->rexpr;
@@ -878,7 +882,7 @@ transformAExprOp(ParseState * pstate, A_Expr * a)
 		list_length(a->name) == 1 &&
 		strcmp(strVal(linitial(a->name)), "=") == 0 &&
 		(exprIsNullConstant(lexpr) || exprIsNullConstant(rexpr)) &&
-		(!IsA(lexpr, CaseTestExpr) && !IsA(rexpr, CaseTestExpr)))
+		(!IsA(lexpr, CaseTestExpr) &&!IsA(rexpr, CaseTestExpr)))
 	{
 		NullTest   *n = makeNode(NullTest);
 
@@ -942,7 +946,7 @@ transformAExprOp(ParseState * pstate, A_Expr * a)
 }
 
 static Node *
-transformAExprOpAny(ParseState * pstate, A_Expr * a)
+transformAExprOpAny(ParseState *pstate, A_Expr *a)
 {
 	Node	   *lexpr = a->lexpr;
 	Node	   *rexpr = a->rexpr;
@@ -965,7 +969,7 @@ transformAExprOpAny(ParseState * pstate, A_Expr * a)
 }
 
 static Node *
-transformAExprOpAll(ParseState * pstate, A_Expr * a)
+transformAExprOpAll(ParseState *pstate, A_Expr *a)
 {
 	Node	   *lexpr = a->lexpr;
 	Node	   *rexpr = a->rexpr;
@@ -988,7 +992,7 @@ transformAExprOpAll(ParseState * pstate, A_Expr * a)
 }
 
 static Node *
-transformAExprDistinct(ParseState * pstate, A_Expr * a)
+transformAExprDistinct(ParseState *pstate, A_Expr *a)
 {
 	Node	   *lexpr = a->lexpr;
 	Node	   *rexpr = a->rexpr;
@@ -1044,7 +1048,7 @@ transformAExprDistinct(ParseState * pstate, A_Expr * a)
 }
 
 static Node *
-transformAExprNullIf(ParseState * pstate, A_Expr * a)
+transformAExprNullIf(ParseState *pstate, A_Expr *a)
 {
 	Node	   *lexpr = transformExprRecurse(pstate, a->lexpr);
 	Node	   *rexpr = transformExprRecurse(pstate, a->rexpr);
@@ -1090,7 +1094,7 @@ transformAExprNullIf(ParseState * pstate, A_Expr * a)
  * in a boolean constant node.
  */
 static Node *
-transformAExprOf(ParseState * pstate, A_Expr * a)
+transformAExprOf(ParseState *pstate, A_Expr *a)
 {
 	Node	   *lexpr = a->lexpr;
 	Const	   *result;
@@ -1131,7 +1135,7 @@ transformAExprOf(ParseState * pstate, A_Expr * a)
 }
 
 static Node *
-transformAExprIn(ParseState * pstate, A_Expr * a)
+transformAExprIn(ParseState *pstate, A_Expr *a)
 {
 	Node	   *result = NULL;
 	Node	   *lexpr;
@@ -1291,7 +1295,7 @@ transformAExprIn(ParseState * pstate, A_Expr * a)
 }
 
 static Node *
-transformAExprBetween(ParseState * pstate, A_Expr * a)
+transformAExprBetween(ParseState *pstate, A_Expr *a)
 {
 	Node	   *aexpr;
 	Node	   *bexpr;
@@ -1401,7 +1405,7 @@ transformAExprBetween(ParseState * pstate, A_Expr * a)
 }
 
 static Node *
-transformBoolExpr(ParseState * pstate, BoolExpr * a)
+transformBoolExpr(ParseState *pstate, BoolExpr *a)
 {
 	List	   *args = NIL;
 	const char *opname;
@@ -1437,7 +1441,7 @@ transformBoolExpr(ParseState * pstate, BoolExpr * a)
 }
 
 static Node *
-transformFuncCall(ParseState * pstate, FuncCall * fn)
+transformFuncCall(ParseState *pstate, FuncCall *fn)
 {
 	Node	   *last_srf = pstate->p_last_srf;
 	List	   *targs;
@@ -1477,11 +1481,12 @@ transformFuncCall(ParseState * pstate, FuncCall * fn)
 							 targs,
 							 last_srf,
 							 fn,
+							 false,
 							 fn->location);
 }
 
 static Node *
-transformMultiAssignRef(ParseState * pstate, MultiAssignRef * maref)
+transformMultiAssignRef(ParseState *pstate, MultiAssignRef *maref)
 {
 	SubLink    *sublink;
 	RowExpr    *rexpr;
@@ -1628,7 +1633,7 @@ transformMultiAssignRef(ParseState * pstate, MultiAssignRef * maref)
 }
 
 static Node *
-transformCaseExpr(ParseState * pstate, CaseExpr * c)
+transformCaseExpr(ParseState *pstate, CaseExpr *c)
 {
 	CaseExpr   *newc = makeNode(CaseExpr);
 	Node	   *last_srf = pstate->p_last_srf;
@@ -1768,7 +1773,7 @@ transformCaseExpr(ParseState * pstate, CaseExpr * c)
 }
 
 static Node *
-transformSubLink(ParseState * pstate, SubLink * sublink)
+transformSubLink(ParseState *pstate, SubLink *sublink)
 {
 	Node	   *result = (Node *) sublink;
 	Query	   *qtree;
@@ -1800,6 +1805,7 @@ transformSubLink(ParseState * pstate, SubLink * sublink)
 		case EXPR_KIND_WINDOW_ORDER:
 		case EXPR_KIND_WINDOW_FRAME_RANGE:
 		case EXPR_KIND_WINDOW_FRAME_ROWS:
+		case EXPR_KIND_WINDOW_FRAME_GROUPS:
 		case EXPR_KIND_SELECT_TARGET:
 		case EXPR_KIND_INSERT_TARGET:
 		case EXPR_KIND_UPDATE_SOURCE:
@@ -1839,6 +1845,9 @@ transformSubLink(ParseState * pstate, SubLink * sublink)
 			break;
 		case EXPR_KIND_PARTITION_EXPRESSION:
 			err = _("cannot use subquery in partition key expression");
+			break;
+		case EXPR_KIND_CALL_ARGUMENT:
+			err = _("cannot use subquery in CALL argument");
 			break;
 
 			/*
@@ -2005,7 +2014,7 @@ transformSubLink(ParseState * pstate, SubLink * sublink)
  * for the elements using select_common_type().
  */
 static Node *
-transformArrayExpr(ParseState * pstate, A_ArrayExpr * a,
+transformArrayExpr(ParseState *pstate, A_ArrayExpr *a,
 				   Oid array_type, Oid element_type, int32 typmod)
 {
 	ArrayExpr  *newa = makeNode(ArrayExpr);
@@ -2163,7 +2172,7 @@ transformArrayExpr(ParseState * pstate, A_ArrayExpr * a,
 }
 
 static Node *
-transformRowExpr(ParseState * pstate, RowExpr * r, bool allowDefault)
+transformRowExpr(ParseState *pstate, RowExpr *r, bool allowDefault)
 {
 	RowExpr    *newr;
 	char		fname[16];
@@ -2195,7 +2204,7 @@ transformRowExpr(ParseState * pstate, RowExpr * r, bool allowDefault)
 }
 
 static Node *
-transformCoalesceExpr(ParseState * pstate, CoalesceExpr * c)
+transformCoalesceExpr(ParseState *pstate, CoalesceExpr *c)
 {
 	CoalesceExpr *newc = makeNode(CoalesceExpr);
 	Node	   *last_srf = pstate->p_last_srf;
@@ -2244,7 +2253,7 @@ transformCoalesceExpr(ParseState * pstate, CoalesceExpr * c)
 }
 
 static Node *
-transformMinMaxExpr(ParseState * pstate, MinMaxExpr * m)
+transformMinMaxExpr(ParseState *pstate, MinMaxExpr *m)
 {
 	MinMaxExpr *newm = makeNode(MinMaxExpr);
 	List	   *newargs = NIL;
@@ -2283,7 +2292,7 @@ transformMinMaxExpr(ParseState * pstate, MinMaxExpr * m)
 }
 
 static Node *
-transformSQLValueFunction(ParseState * pstate, SQLValueFunction * svf)
+transformSQLValueFunction(ParseState *pstate, SQLValueFunction *svf)
 {
 	/*
 	 * All we need to do is insert the correct result type and (where needed)
@@ -2336,7 +2345,7 @@ transformSQLValueFunction(ParseState * pstate, SQLValueFunction * svf)
 }
 
 static Node *
-transformXmlExpr(ParseState * pstate, XmlExpr * x)
+transformXmlExpr(ParseState *pstate, XmlExpr *x)
 {
 	XmlExpr    *newx;
 	ListCell   *lc;
@@ -2470,7 +2479,7 @@ transformXmlExpr(ParseState * pstate, XmlExpr * x)
 }
 
 static Node *
-transformXmlSerialize(ParseState * pstate, XmlSerialize * xs)
+transformXmlSerialize(ParseState *pstate, XmlSerialize *xs)
 {
 	Node	   *result;
 	XmlExpr    *xexpr;
@@ -2513,7 +2522,7 @@ transformXmlSerialize(ParseState * pstate, XmlSerialize * xs)
 }
 
 static Node *
-transformBooleanTest(ParseState * pstate, BooleanTest * b)
+transformBooleanTest(ParseState *pstate, BooleanTest *b)
 {
 	const char *clausename;
 
@@ -2558,7 +2567,7 @@ transformBooleanTest(ParseState * pstate, BooleanTest * b)
 }
 
 static Node *
-transformCurrentOfExpr(ParseState * pstate, CurrentOfExpr * cexpr)
+transformCurrentOfExpr(ParseState *pstate, CurrentOfExpr *cexpr)
 {
 	int			sublevels_up;
 
@@ -2585,9 +2594,9 @@ transformCurrentOfExpr(ParseState * pstate, CurrentOfExpr * cexpr)
 
 		/* See if there is a translation available from a parser hook */
 		if (pstate->p_pre_columnref_hook != NULL)
-			node = (*pstate->p_pre_columnref_hook) (pstate, cref);
+			node = pstate->p_pre_columnref_hook(pstate, cref);
 		if (node == NULL && pstate->p_post_columnref_hook != NULL)
-			node = (*pstate->p_post_columnref_hook) (pstate, cref, NULL);
+			node = pstate->p_post_columnref_hook(pstate, cref, NULL);
 
 		/*
 		 * XXX Should we throw an error if we get a translation that isn't a
@@ -2615,7 +2624,7 @@ transformCurrentOfExpr(ParseState * pstate, CurrentOfExpr * cexpr)
  * Construct a whole-row reference to represent the notation "relation.*".
  */
 static Node *
-transformWholeRowRef(ParseState * pstate, RangeTblEntry * rte, int location)
+transformWholeRowRef(ParseState *pstate, RangeTblEntry *rte, int location)
 {
 	Var		   *result;
 	int			vnum;
@@ -2650,7 +2659,7 @@ transformWholeRowRef(ParseState * pstate, RangeTblEntry * rte, int location)
  * coercion function(s).
  */
 static Node *
-transformTypeCast(ParseState * pstate, TypeCast * tc)
+transformTypeCast(ParseState *pstate, TypeCast *tc)
 {
 	Node	   *result;
 	Node	   *arg = tc->arg;
@@ -2743,7 +2752,7 @@ transformTypeCast(ParseState * pstate, TypeCast * tc)
  * Transform the argument, and look up the collation name.
  */
 static Node *
-transformCollateClause(ParseState * pstate, CollateClause * c)
+transformCollateClause(ParseState *pstate, CollateClause *c)
 {
 	CollateExpr *newc;
 	Oid			argtype;
@@ -2783,8 +2792,8 @@ transformCollateClause(ParseState * pstate, CollateClause * c)
  * behavior of the operators (ie, they behave as =, <>, or < <= > >=).
  */
 static Node *
-make_row_comparison_op(ParseState * pstate, List * opname,
-					   List * largs, List * rargs, int location)
+make_row_comparison_op(ParseState *pstate, List *opname,
+					   List *largs, List *rargs, int location)
 {
 	RowCompareExpr *rcexpr;
 	RowCompareType rctype;
@@ -2863,7 +2872,7 @@ make_row_comparison_op(ParseState * pstate, List * opname,
 	 * containing the operators, and see which interpretations (strategy
 	 * numbers) exist for each operator.
 	 */
-	opinfo_lists = (List * *) palloc(nopers * sizeof(List *));
+	opinfo_lists = (List **) palloc(nopers * sizeof(List *));
 	strats = NULL;
 	i = 0;
 	foreach(l, opexprs)
@@ -2985,8 +2994,8 @@ make_row_comparison_op(ParseState * pstate, List * opname,
  * The input RowExprs are already transformed
  */
 static Node *
-make_row_distinct_op(ParseState * pstate, List * opname,
-					 RowExpr * lrow, RowExpr * rrow,
+make_row_distinct_op(ParseState *pstate, List *opname,
+					 RowExpr *lrow, RowExpr *rrow,
 					 int location)
 {
 	Node	   *result = NULL;
@@ -3029,7 +3038,7 @@ make_row_distinct_op(ParseState * pstate, List * opname,
  * make the node for an IS DISTINCT FROM operator
  */
 static Expr *
-make_distinct_op(ParseState * pstate, List * opname, Node * ltree, Node * rtree,
+make_distinct_op(ParseState *pstate, List *opname, Node *ltree, Node *rtree,
 				 int location)
 {
 	Expr	   *result;
@@ -3062,7 +3071,7 @@ make_distinct_op(ParseState * pstate, List * opname, Node * ltree, Node * rtree,
  * "arg" is the untransformed other argument
  */
 static Node *
-make_nulltest_from_distinct(ParseState * pstate, A_Expr * distincta, Node * arg)
+make_nulltest_from_distinct(ParseState *pstate, A_Expr *distincta, Node *arg)
 {
 	NullTest   *nt = makeNode(NullTest);
 
@@ -3088,7 +3097,7 @@ make_nulltest_from_distinct(ParseState * pstate, A_Expr * distincta, Node * arg)
  * related to such nodes.
  */
 static int
-operator_precedence_group(Node * node, const char **nodename)
+operator_precedence_group(Node *node, const char **nodename)
 {
 	int			group = 0;
 
@@ -3145,7 +3154,7 @@ operator_precedence_group(Node * node, const char **nodename)
 				*nodename = strVal(linitial(aexpr->name));
 				/* Ignore if op was always higher priority than IS-tests */
 				if (strcmp(*nodename, "+") == 0 ||
-					strcmp(*nodename, "-"))
+					strcmp(*nodename, "-") == 0)
 					group = 0;
 				else
 					group = PREC_GROUP_PREFIX_OP;
@@ -3331,9 +3340,9 @@ operator_precedence_group(Node * node, const char **nodename)
  * In any case, operator_precedence_group() expects untransformed input.
  */
 static void
-emit_precedence_warnings(ParseState * pstate,
+emit_precedence_warnings(ParseState *pstate,
 						 int opgroup, const char *opname,
-						 Node * lchild, Node * rchild,
+						 Node *lchild, Node *rchild,
 						 int location)
 {
 	int			cgroup;
@@ -3422,6 +3431,8 @@ ParseExprKindName(ParseExprKind exprKind)
 			return "window RANGE";
 		case EXPR_KIND_WINDOW_FRAME_ROWS:
 			return "window ROWS";
+		case EXPR_KIND_WINDOW_FRAME_GROUPS:
+			return "window GROUPS";
 		case EXPR_KIND_SELECT_TARGET:
 			return "SELECT";
 		case EXPR_KIND_INSERT_TARGET:
@@ -3462,6 +3473,8 @@ ParseExprKindName(ParseExprKind exprKind)
 			return "WHEN";
 		case EXPR_KIND_PARTITION_EXPRESSION:
 			return "PARTITION BY";
+		case EXPR_KIND_CALL_ARGUMENT:
+			return "CALL";
 
 			/*
 			 * There is intentionally no default: case here, so that the

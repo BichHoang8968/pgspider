@@ -2,7 +2,7 @@
  * gin.h
  *	  Public header file for Generalized Inverted Index access method.
  *
- *	Copyright (c) 2006-2017, PostgreSQL Global Development Group
+ *	Copyright (c) 2006-2018, PostgreSQL Global Development Group
  *
  *	src/include/access/gin.h
  *--------------------------------------------------------------------------
@@ -46,13 +46,13 @@ typedef struct GinStatsData
 	BlockNumber nDataPages;
 	int64		nEntries;
 	int32		ginVersion;
-}			GinStatsData;
+} GinStatsData;
 
 /*
  * A ternary value used by tri-consistent functions.
  *
- * For convenience, this is compatible with booleans. A boolean can be
- * safely cast to a GinTernaryValue.
+ * This must be of the same size as a bool because some code will cast a
+ * pointer to a bool to a pointer to a GinTernaryValue.
  */
 typedef char GinTernaryValue;
 
@@ -70,7 +70,7 @@ extern PGDLLIMPORT int GinFuzzySearchLimit;
 extern int	gin_pending_list_limit;
 
 /* ginutil.c */
-extern void ginGetStats(Relation index, GinStatsData * stats);
-extern void ginUpdateStats(Relation index, const GinStatsData * stats);
+extern void ginGetStats(Relation index, GinStatsData *stats);
+extern void ginUpdateStats(Relation index, const GinStatsData *stats);
 
 #endif							/* GIN_H */

@@ -3,7 +3,7 @@
  * matview.c
  *	  materialized view support
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -53,16 +53,16 @@ typedef struct
 	CommandId	output_cid;		/* cmin to insert in output tuples */
 	int			hi_options;		/* heap_insert performance options */
 	BulkInsertState bistate;	/* bulk insert state */
-}			DR_transientrel;
+} DR_transientrel;
 
 static int	matview_maintenance_depth = 0;
 
-static void transientrel_startup(DestReceiver * self, int operation, TupleDesc typeinfo);
-static bool transientrel_receive(TupleTableSlot * slot, DestReceiver * self);
-static void transientrel_shutdown(DestReceiver * self);
-static void transientrel_destroy(DestReceiver * self);
-static uint64 refresh_matview_datafill(DestReceiver * dest, Query * query,
-									   const char *queryString);
+static void transientrel_startup(DestReceiver *self, int operation, TupleDesc typeinfo);
+static bool transientrel_receive(TupleTableSlot *slot, DestReceiver *self);
+static void transientrel_shutdown(DestReceiver *self);
+static void transientrel_destroy(DestReceiver *self);
+static uint64 refresh_matview_datafill(DestReceiver *dest, Query *query,
+						 const char *queryString);
 static char *make_temptable_name_n(char *tempname, int n);
 static void refresh_by_match_merge(Oid matviewOid, Oid tempOid, Oid relowner,
 					   int save_sec_context);
@@ -132,7 +132,7 @@ SetMatViewPopulatedState(Relation relation, bool newstate)
  * reflect the result set of the materialized view's query.
  */
 ObjectAddress
-ExecRefreshMatView(RefreshMatViewStmt * stmt, const char *queryString,
+ExecRefreshMatView(RefreshMatViewStmt *stmt, const char *queryString,
 				   ParamListInfo params, char *completionTag)
 {
 	Oid			matviewOid;
@@ -161,7 +161,7 @@ ExecRefreshMatView(RefreshMatViewStmt * stmt, const char *queryString,
 	 * Get a lock until end of transaction.
 	 */
 	matviewOid = RangeVarGetRelidExtended(stmt->relation,
-										  lockmode, false, false,
+										  lockmode, 0,
 										  RangeVarCallbackOwnsTable, NULL);
 	matviewRel = heap_open(matviewOid, NoLock);
 
@@ -368,7 +368,7 @@ ExecRefreshMatView(RefreshMatViewStmt * stmt, const char *queryString,
  * Returns number of rows inserted.
  */
 static uint64
-refresh_matview_datafill(DestReceiver * dest, Query * query,
+refresh_matview_datafill(DestReceiver *dest, Query *query,
 						 const char *queryString)
 {
 	List	   *rewritten;
@@ -445,7 +445,7 @@ CreateTransientRelDestReceiver(Oid transientoid)
  * transientrel_startup --- executor startup
  */
 static void
-transientrel_startup(DestReceiver * self, int operation, TupleDesc typeinfo)
+transientrel_startup(DestReceiver *self, int operation, TupleDesc typeinfo)
 {
 	DR_transientrel *myState = (DR_transientrel *) self;
 	Relation	transientrel;
@@ -475,7 +475,7 @@ transientrel_startup(DestReceiver * self, int operation, TupleDesc typeinfo)
  * transientrel_receive --- receive one tuple
  */
 static bool
-transientrel_receive(TupleTableSlot * slot, DestReceiver * self)
+transientrel_receive(TupleTableSlot *slot, DestReceiver *self)
 {
 	DR_transientrel *myState = (DR_transientrel *) self;
 	HeapTuple	tuple;
@@ -501,7 +501,7 @@ transientrel_receive(TupleTableSlot * slot, DestReceiver * self)
  * transientrel_shutdown --- executor end
  */
 static void
-transientrel_shutdown(DestReceiver * self)
+transientrel_shutdown(DestReceiver *self)
 {
 	DR_transientrel *myState = (DR_transientrel *) self;
 
@@ -520,7 +520,7 @@ transientrel_shutdown(DestReceiver * self)
  * transientrel_destroy --- release DestReceiver object
  */
 static void
-transientrel_destroy(DestReceiver * self)
+transientrel_destroy(DestReceiver *self)
 {
 	pfree(self);
 }
@@ -602,7 +602,7 @@ refresh_by_match_merge(Oid matviewOid, Oid tempOid, Oid relowner,
 										  RelationGetRelationName(tempRel));
 	diffname = make_temptable_name_n(tempname, 2);
 
-	relnatts = matviewRel->rd_rel->relnatts;
+	relnatts = RelationGetNumberOfAttributes(matviewRel);
 
 	/* Open SPI context. */
 	if (SPI_connect() != SPI_OK_CONNECT)
@@ -680,7 +680,7 @@ refresh_by_match_merge(Oid matviewOid, Oid tempOid, Oid relowner,
 		if (is_usable_unique_index(indexRel))
 		{
 			Form_pg_index indexStruct = indexRel->rd_index;
-			int			numatts = indexStruct->indnatts;
+			int			indnkeyatts = indexStruct->indnkeyatts;
 			oidvector  *indclass;
 			Datum		indclassDatum;
 			bool		isnull;
@@ -695,7 +695,7 @@ refresh_by_match_merge(Oid matviewOid, Oid tempOid, Oid relowner,
 			indclass = (oidvector *) DatumGetPointer(indclassDatum);
 
 			/* Add quals for all columns from this index. */
-			for (i = 0; i < numatts; i++)
+			for (i = 0; i < indnkeyatts; i++)
 			{
 				int			attnum = indexStruct->indkey.values[i];
 				Oid			opclass = indclass->values[i];

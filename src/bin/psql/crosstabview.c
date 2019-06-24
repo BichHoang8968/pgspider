@@ -1,7 +1,7 @@
 /*
  * psql - the PostgreSQL interactive terminal
  *
- * Copyright (c) 2000-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2018, PostgreSQL Global Development Group
  *
  * src/bin/psql/crosstabview.c
  */
@@ -43,7 +43,7 @@ typedef struct _pivot_field
 	 * reflect the desired order.
 	 */
 	int			rank;
-}			pivot_field;
+} pivot_field;
 
 /* Node in avl_tree */
 typedef struct _avl_node
@@ -63,7 +63,7 @@ typedef struct _avl_node
 	 * value.
 	 */
 	struct _avl_node *children[2];
-}			avl_node;
+} avl_node;
 
 /*
  * Control structure for the AVL tree (binary search tree kept
@@ -74,20 +74,20 @@ typedef struct _avl_tree
 	int			count;			/* Total number of nodes */
 	avl_node   *root;			/* root of the tree */
 	avl_node   *end;			/* Immutable dereferenceable empty tree */
-}			avl_tree;
+} avl_tree;
 
 
-static bool printCrosstab(const PGresult * results,
-			  int num_columns, pivot_field * piv_columns, int field_for_columns,
-			  int num_rows, pivot_field * piv_rows, int field_for_rows,
+static bool printCrosstab(const PGresult *results,
+			  int num_columns, pivot_field *piv_columns, int field_for_columns,
+			  int num_rows, pivot_field *piv_rows, int field_for_rows,
 			  int field_for_data);
-static void avlInit(avl_tree * tree);
-static void avlMergeValue(avl_tree * tree, char *name, char *sort_value);
-static int avlCollectFields(avl_tree * tree, avl_node * node,
-				 pivot_field * fields, int idx);
-static void avlFree(avl_tree * tree, avl_node * node);
-static void rankSort(int num_columns, pivot_field * piv_columns);
-static int	indexOfColumn(char *arg, const PGresult * res);
+static void avlInit(avl_tree *tree);
+static void avlMergeValue(avl_tree *tree, char *name, char *sort_value);
+static int avlCollectFields(avl_tree *tree, avl_node *node,
+				 pivot_field *fields, int idx);
+static void avlFree(avl_tree *tree, avl_node *node);
+static void rankSort(int num_columns, pivot_field *piv_columns);
+static int	indexOfColumn(char *arg, const PGresult *res);
 static int	pivotFieldCompare(const void *a, const void *b);
 static int	rankCompare(const void *a, const void *b);
 
@@ -100,7 +100,7 @@ static int	rankCompare(const void *a, const void *b);
  * then call printCrosstab() for the actual output.
  */
 bool
-PrintResultsInCrosstab(const PGresult * res)
+PrintResultsInCrosstab(const PGresult *res)
 {
 	bool		retval = false;
 	avl_tree	piv_columns;
@@ -282,9 +282,9 @@ error_return:
  * if successful, false otherwise.
  */
 static bool
-printCrosstab(const PGresult * results,
-			  int num_columns, pivot_field * piv_columns, int field_for_columns,
-			  int num_rows, pivot_field * piv_rows, int field_for_rows,
+printCrosstab(const PGresult *results,
+			  int num_columns, pivot_field *piv_columns, int field_for_columns,
+			  int num_rows, pivot_field *piv_rows, int field_for_rows,
 			  int field_for_data)
 {
 	printQueryOpt popt = pset.popt;
@@ -434,7 +434,7 @@ error:
  * search.
  */
 static void
-avlInit(avl_tree * tree)
+avlInit(avl_tree *tree)
 {
 	tree->end = (avl_node *) pg_malloc0(sizeof(avl_node));
 	tree->end->children[0] = tree->end->children[1] = tree->end;
@@ -444,7 +444,7 @@ avlInit(avl_tree * tree)
 
 /* Deallocate recursively an AVL tree, starting from node */
 static void
-avlFree(avl_tree * tree, avl_node * node)
+avlFree(avl_tree *tree, avl_node *node)
 {
 	if (node->children[0] != tree->end)
 	{
@@ -468,7 +468,7 @@ avlFree(avl_tree * tree, avl_node * node)
 
 /* Set the height to 1 plus the greatest of left and right heights */
 static void
-avlUpdateHeight(avl_node * n)
+avlUpdateHeight(avl_node *n)
 {
 	n->height = 1 + (n->children[0]->height > n->children[1]->height ?
 					 n->children[0]->height :
@@ -477,7 +477,7 @@ avlUpdateHeight(avl_node * n)
 
 /* Rotate a subtree left (dir=0) or right (dir=1). Not recursive */
 static avl_node *
-avlRotate(avl_node * *current, int dir)
+avlRotate(avl_node **current, int dir)
 {
 	avl_node   *before = *current;
 	avl_node   *after = (*current)->children[dir];
@@ -491,7 +491,7 @@ avlRotate(avl_node * *current, int dir)
 }
 
 static int
-avlBalance(avl_node * n)
+avlBalance(avl_node *n)
 {
 	return n->children[0]->height - n->children[1]->height;
 }
@@ -502,7 +502,7 @@ avlBalance(avl_node * n)
  * May update *node.
  */
 static void
-avlAdjustBalance(avl_tree * tree, avl_node * *node)
+avlAdjustBalance(avl_tree *tree, avl_node **node)
 {
 	avl_node   *current = *node;
 	int			b = avlBalance(current) / 2;
@@ -525,7 +525,7 @@ avlAdjustBalance(avl_tree * tree, avl_node * *node)
  * *node.  Do nothing if the value is already present in the tree.
  */
 static void
-avlInsertNode(avl_tree * tree, avl_node * *node, pivot_field field)
+avlInsertNode(avl_tree *tree, avl_node **node, pivot_field field)
 {
 	avl_node   *current = *node;
 
@@ -556,7 +556,7 @@ avlInsertNode(avl_tree * tree, avl_node * *node, pivot_field field)
 
 /* Insert the value into the AVL tree, if it does not preexist */
 static void
-avlMergeValue(avl_tree * tree, char *name, char *sort_value)
+avlMergeValue(avl_tree *tree, char *name, char *sort_value)
 {
 	pivot_field field;
 
@@ -573,7 +573,7 @@ avlMergeValue(avl_tree * tree, char *name, char *sort_value)
  * fields[] must be preallocated to hold tree->count entries
  */
 static int
-avlCollectFields(avl_tree * tree, avl_node * node, pivot_field * fields, int idx)
+avlCollectFields(avl_tree *tree, avl_node *node, pivot_field *fields, int idx)
 {
 	if (node == tree->end)
 		return idx;
@@ -584,7 +584,7 @@ avlCollectFields(avl_tree * tree, avl_node * node, pivot_field * fields, int idx
 }
 
 static void
-rankSort(int num_columns, pivot_field * piv_columns)
+rankSort(int num_columns, pivot_field *piv_columns)
 {
 	int		   *hmap;			/* [[offset in piv_columns, rank], ...for
 								 * every header entry] */
@@ -632,7 +632,7 @@ rankSort(int num_columns, pivot_field * piv_columns)
  * Note: may modify contents of "arg" string.
  */
 static int
-indexOfColumn(char *arg, const PGresult * res)
+indexOfColumn(char *arg, const PGresult *res)
 {
 	int			idx;
 
@@ -693,8 +693,8 @@ indexOfColumn(char *arg, const PGresult * res)
 static int
 pivotFieldCompare(const void *a, const void *b)
 {
-	const		pivot_field *pa = (const pivot_field *) a;
-	const		pivot_field *pb = (const pivot_field *) b;
+	const pivot_field *pa = (const pivot_field *) a;
+	const pivot_field *pb = (const pivot_field *) b;
 
 	/* test null values */
 	if (!pb->name)

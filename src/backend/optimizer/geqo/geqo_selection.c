@@ -3,7 +3,7 @@
  * geqo_selection.c
  *	  linear selection scheme for the genetic query optimizer
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/backend/optimizer/geqo/geqo_selection.c
@@ -42,7 +42,7 @@
 #include "optimizer/geqo_random.h"
 #include "optimizer/geqo_selection.h"
 
-static int	linear_rand(PlannerInfo * root, int max, double bias);
+static int	linear_rand(PlannerInfo *root, int max, double bias);
 
 
 /*
@@ -51,8 +51,8 @@ static int	linear_rand(PlannerInfo * root, int max, double bias);
  *	 first and second genes are selected from the pool
  */
 void
-geqo_selection(PlannerInfo * root, Chromosome * momma, Chromosome * daddy,
-			   Pool * pool, double bias)
+geqo_selection(PlannerInfo *root, Chromosome *momma, Chromosome *daddy,
+			   Pool *pool, double bias)
 {
 	int			first,
 				second;
@@ -89,7 +89,7 @@ geqo_selection(PlannerInfo * root, Chromosome * momma, Chromosome * daddy,
  *			 bias = (prob of first rule) / (prob of middle rule)
  */
 static int
-linear_rand(PlannerInfo * root, int pool_size, double bias)
+linear_rand(PlannerInfo *root, int pool_size, double bias)
 {
 	double		index;			/* index between 0 and pop_size */
 	double		max = (double) pool_size;

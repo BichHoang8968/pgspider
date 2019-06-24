@@ -3,7 +3,7 @@
  * pruneheap.c
  *	  heap page pruning and HOT-chain management code
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -39,20 +39,20 @@ typedef struct
 	OffsetNumber redirected[MaxHeapTuplesPerPage * 2];
 	OffsetNumber nowdead[MaxHeapTuplesPerPage];
 	OffsetNumber nowunused[MaxHeapTuplesPerPage];
-	/* marked[i] is TRUE if item i is entered in one of the above arrays */
+	/* marked[i] is true if item i is entered in one of the above arrays */
 	bool		marked[MaxHeapTuplesPerPage + 1];
-}			PruneState;
+} PruneState;
 
 /* Local functions */
 static int heap_prune_chain(Relation relation, Buffer buffer,
 				 OffsetNumber rootoffnum,
 				 TransactionId OldestXmin,
-				 PruneState * prstate);
-static void heap_prune_record_prunable(PruneState * prstate, TransactionId xid);
-static void heap_prune_record_redirect(PruneState * prstate,
+				 PruneState *prstate);
+static void heap_prune_record_prunable(PruneState *prstate, TransactionId xid);
+static void heap_prune_record_redirect(PruneState *prstate,
 						   OffsetNumber offnum, OffsetNumber rdoffnum);
-static void heap_prune_record_dead(PruneState * prstate, OffsetNumber offnum);
-static void heap_prune_record_unused(PruneState * prstate, OffsetNumber offnum);
+static void heap_prune_record_dead(PruneState *prstate, OffsetNumber offnum);
+static void heap_prune_record_unused(PruneState *prstate, OffsetNumber offnum);
 
 
 /*
@@ -170,7 +170,7 @@ heap_page_prune_opt(Relation relation, Buffer buffer)
  * or RECENTLY_DEAD (see HeapTupleSatisfiesVacuum).
  *
  * If report_stats is true then we send the number of reclaimed heap-only
- * tuples to pgstats.  (This must be FALSE during vacuum, since vacuum will
+ * tuples to pgstats.  (This must be false during vacuum, since vacuum will
  * send its own new total to pgstats, and we don't want this delta applied
  * on top of that.)
  *
@@ -179,7 +179,7 @@ heap_page_prune_opt(Relation relation, Buffer buffer)
  */
 int
 heap_page_prune(Relation relation, Buffer buffer, TransactionId OldestXmin,
-				bool report_stats, TransactionId * latestRemovedXid)
+				bool report_stats, TransactionId *latestRemovedXid)
 {
 	int			ndeleted = 0;
 	Page		page = BufferGetPage(buffer);
@@ -352,7 +352,7 @@ heap_page_prune(Relation relation, Buffer buffer, TransactionId OldestXmin,
 static int
 heap_prune_chain(Relation relation, Buffer buffer, OffsetNumber rootoffnum,
 				 TransactionId OldestXmin,
-				 PruneState * prstate)
+				 PruneState *prstate)
 {
 	int			ndeleted = 0;
 	Page		dp = (Page) BufferGetPage(buffer);
@@ -552,6 +552,9 @@ heap_prune_chain(Relation relation, Buffer buffer, OffsetNumber rootoffnum,
 		if (!HeapTupleHeaderIsHotUpdated(htup))
 			break;
 
+		/* HOT implies it can't have moved to different partition */
+		Assert(!HeapTupleHeaderIndicatesMovedPartitions(htup));
+
 		/*
 		 * Advance to next chain member.
 		 */
@@ -616,7 +619,7 @@ heap_prune_chain(Relation relation, Buffer buffer, OffsetNumber rootoffnum,
 
 /* Record lowest soon-prunable XID */
 static void
-heap_prune_record_prunable(PruneState * prstate, TransactionId xid)
+heap_prune_record_prunable(PruneState *prstate, TransactionId xid)
 {
 	/*
 	 * This should exactly match the PageSetPrunable macro.  We can't store
@@ -630,7 +633,7 @@ heap_prune_record_prunable(PruneState * prstate, TransactionId xid)
 
 /* Record item pointer to be redirected */
 static void
-heap_prune_record_redirect(PruneState * prstate,
+heap_prune_record_redirect(PruneState *prstate,
 						   OffsetNumber offnum, OffsetNumber rdoffnum)
 {
 	Assert(prstate->nredirected < MaxHeapTuplesPerPage);
@@ -645,7 +648,7 @@ heap_prune_record_redirect(PruneState * prstate,
 
 /* Record item pointer to be marked dead */
 static void
-heap_prune_record_dead(PruneState * prstate, OffsetNumber offnum)
+heap_prune_record_dead(PruneState *prstate, OffsetNumber offnum)
 {
 	Assert(prstate->ndead < MaxHeapTuplesPerPage);
 	prstate->nowdead[prstate->ndead] = offnum;
@@ -656,7 +659,7 @@ heap_prune_record_dead(PruneState * prstate, OffsetNumber offnum)
 
 /* Record item pointer to be marked unused */
 static void
-heap_prune_record_unused(PruneState * prstate, OffsetNumber offnum)
+heap_prune_record_unused(PruneState *prstate, OffsetNumber offnum)
 {
 	Assert(prstate->nunused < MaxHeapTuplesPerPage);
 	prstate->nowunused[prstate->nunused] = offnum;
@@ -677,9 +680,9 @@ heap_prune_record_unused(PruneState * prstate, OffsetNumber offnum)
  */
 void
 heap_page_prune_execute(Buffer buffer,
-						OffsetNumber * redirected, int nredirected,
-						OffsetNumber * nowdead, int ndead,
-						OffsetNumber * nowunused, int nunused)
+						OffsetNumber *redirected, int nredirected,
+						OffsetNumber *nowdead, int ndead,
+						OffsetNumber *nowunused, int nunused)
 {
 	Page		page = (Page) BufferGetPage(buffer);
 	OffsetNumber *offnum;
@@ -740,7 +743,7 @@ heap_page_prune_execute(Buffer buffer,
  * and reused by a completely unrelated tuple.
  */
 void
-heap_get_root_tuples(Page page, OffsetNumber * root_offsets)
+heap_get_root_tuples(Page page, OffsetNumber *root_offsets)
 {
 	OffsetNumber offnum,
 				maxoff;
@@ -822,6 +825,9 @@ heap_get_root_tuples(Page page, OffsetNumber * root_offsets)
 			/* Advance to next chain member, if any */
 			if (!HeapTupleHeaderIsHotUpdated(htup))
 				break;
+
+			/* HOT implies it can't have moved to different partition */
+			Assert(!HeapTupleHeaderIndicatesMovedPartitions(htup));
 
 			nextoffnum = ItemPointerGetOffsetNumber(&htup->t_ctid);
 			priorXmax = HeapTupleHeaderGetUpdateXid(htup);

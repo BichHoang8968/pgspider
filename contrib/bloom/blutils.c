@@ -3,7 +3,7 @@
  * blutils.c
  *		Bloom index utilities.
  *
- * Portions Copyright (c) 2016-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2016-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1990-1993, Regents of the University of California
  *
  * IDENTIFICATION
@@ -120,6 +120,7 @@ blhandler(PG_FUNCTION_ARGS)
 	amroutine->amclusterable = false;
 	amroutine->ampredlocks = false;
 	amroutine->amcanparallel = false;
+	amroutine->amcaninclude = false;
 	amroutine->amkeytype = InvalidOid;
 
 	amroutine->ambuild = blbuild;
@@ -150,7 +151,7 @@ blhandler(PG_FUNCTION_ARGS)
  * Fill BloomState structure for particular index.
  */
 void
-initBloomState(BloomState * state, Relation index)
+initBloomState(BloomState *state, Relation index)
 {
 	int			i;
 
@@ -248,7 +249,7 @@ mySrand(uint32 seed)
  * Add bits of given value to the signature.
  */
 void
-signValue(BloomState * state, BloomSignatureWord * sign, Datum value, int attno)
+signValue(BloomState *state, BloomSignatureWord *sign, Datum value, int attno)
 {
 	uint32		hashVal;
 	int			nBit,
@@ -281,7 +282,7 @@ signValue(BloomState * state, BloomSignatureWord * sign, Datum value, int attno)
  * Make bloom tuple from values.
  */
 BloomTuple *
-BloomFormTuple(BloomState * state, ItemPointer iptr, Datum * values, bool *isnull)
+BloomFormTuple(BloomState *state, ItemPointer iptr, Datum *values, bool *isnull)
 {
 	int			i;
 	BloomTuple *res = (BloomTuple *) palloc0(state->sizeOfBloomTuple);
@@ -306,7 +307,7 @@ BloomFormTuple(BloomState * state, ItemPointer iptr, Datum * values, bool *isnul
  * added to the page.  Returns false if it doesn't fit on the page.
  */
 bool
-BloomPageAddItem(BloomState * state, Page page, BloomTuple * tuple)
+BloomPageAddItem(BloomState *state, Page page, BloomTuple *tuple)
 {
 	BloomTuple *itup;
 	BloomPageOpaque opaque;

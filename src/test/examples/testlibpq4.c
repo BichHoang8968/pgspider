@@ -12,7 +12,7 @@
 #include "libpq-fe.h"
 
 static void
-exit_nicely(PGconn * conn1, PGconn * conn2)
+exit_nicely(PGconn *conn1, PGconn *conn2)
 {
 	if (conn1)
 		PQfinish(conn1);
@@ -22,7 +22,7 @@ exit_nicely(PGconn * conn1, PGconn * conn2)
 }
 
 static void
-check_prepare_conn(PGconn * conn, const char *dbName)
+check_prepare_conn(PGconn *conn, const char *dbName)
 {
 	PGresult   *res;
 

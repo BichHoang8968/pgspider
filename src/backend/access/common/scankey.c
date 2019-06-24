@@ -3,7 +3,7 @@
  * scankey.c
  *	  scan key support code
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -104,7 +104,7 @@ ScanKeyEntryInitializeWithInfo(ScanKey entry,
 							   StrategyNumber strategy,
 							   Oid subtype,
 							   Oid collation,
-							   FmgrInfo * finfo,
+							   FmgrInfo *finfo,
 							   Datum argument)
 {
 	entry->sk_flags = flags;

@@ -5,7 +5,7 @@
  *	  However, we define it here so that the format is documented.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/catalog/pg_control.h
@@ -21,7 +21,7 @@
 
 
 /* Version identifier for this pg_control format */
-#define PG_CONTROL_VERSION	1002
+#define PG_CONTROL_VERSION	1100
 
 /* Nonce key length, see below */
 #define MOCK_AUTH_NONCE_LEN		32
@@ -61,7 +61,7 @@ typedef struct CheckPoint
 	 * set to InvalidTransactionId.
 	 */
 	TransactionId oldestActiveXid;
-}			CheckPoint;
+} CheckPoint;
 
 /* XLOG info values for XLOG rmgr */
 #define XLOG_CHECKPOINT_SHUTDOWN		0x00
@@ -91,7 +91,7 @@ typedef enum DBState
 	DB_IN_CRASH_RECOVERY,
 	DB_IN_ARCHIVE_RECOVERY,
 	DB_IN_PRODUCTION
-}			DBState;
+} DBState;
 
 /*
  * Contents of pg_control.
@@ -127,7 +127,6 @@ typedef struct ControlFileData
 	DBState		state;			/* see enum above */
 	pg_time_t	time;			/* time stamp of last pg_control update */
 	XLogRecPtr	checkPoint;		/* last check point record ptr */
-	XLogRecPtr	prevCheckPoint; /* previous check point record ptr */
 
 	CheckPoint	checkPointCopy; /* copy of last check point record */
 
@@ -230,7 +229,7 @@ typedef struct ControlFileData
 
 	/* CRC of all above ... MUST BE LAST! */
 	pg_crc32c	crc;
-}			ControlFileData;
+} ControlFileData;
 
 /*
  * Maximum safe value of sizeof(ControlFileData).  For reliability's sake,

@@ -4,7 +4,7 @@
  *	  WAL replay logic for hash index.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -28,7 +28,7 @@
  * replay a hash index meta page
  */
 static void
-hash_xlog_init_meta_page(XLogReaderState * record)
+hash_xlog_init_meta_page(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	Page		page;
@@ -64,7 +64,7 @@ hash_xlog_init_meta_page(XLogReaderState * record)
  * replay a hash index bitmap page
  */
 static void
-hash_xlog_init_bitmap_page(XLogReaderState * record)
+hash_xlog_init_bitmap_page(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	Buffer		bitmapbuf;
@@ -126,7 +126,7 @@ hash_xlog_init_bitmap_page(XLogReaderState * record)
  * replay a hash index insert without split
  */
 static void
-hash_xlog_insert(XLogReaderState * record)
+hash_xlog_insert(XLogReaderState *record)
 {
 	HashMetaPage metap;
 	XLogRecPtr	lsn = record->EndRecPtr;
@@ -174,7 +174,7 @@ hash_xlog_insert(XLogReaderState * record)
  * replay addition of overflow page for hash index
  */
 static void
-hash_xlog_add_ovfl_page(XLogReaderState * record)
+hash_xlog_add_ovfl_page(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_hash_add_ovfl_page *xlrec = (xl_hash_add_ovfl_page *) XLogRecGetData(record);
@@ -313,7 +313,7 @@ hash_xlog_add_ovfl_page(XLogReaderState * record)
  * replay allocation of page for split operation
  */
 static void
-hash_xlog_split_allocate_page(XLogReaderState * record)
+hash_xlog_split_allocate_page(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_hash_split_allocate_page *xlrec = (xl_hash_split_allocate_page *) XLogRecGetData(record);
@@ -431,7 +431,7 @@ hash_xlog_split_allocate_page(XLogReaderState * record)
  * replay of split operation
  */
 static void
-hash_xlog_split_page(XLogReaderState * record)
+hash_xlog_split_page(XLogReaderState *record)
 {
 	Buffer		buf;
 
@@ -445,7 +445,7 @@ hash_xlog_split_page(XLogReaderState * record)
  * replay completion of split operation
  */
 static void
-hash_xlog_split_complete(XLogReaderState * record)
+hash_xlog_split_complete(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_hash_split_complete *xlrec = (xl_hash_split_complete *) XLogRecGetData(record);
@@ -504,7 +504,7 @@ hash_xlog_split_complete(XLogReaderState * record)
  * replay move of page contents for squeeze operation of hash index
  */
 static void
-hash_xlog_move_page_contents(XLogReaderState * record)
+hash_xlog_move_page_contents(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_hash_move_page_contents *xldata = (xl_hash_move_page_contents *) XLogRecGetData(record);
@@ -558,7 +558,7 @@ hash_xlog_move_page_contents(XLogReaderState * record)
 				Size		itemsz;
 				OffsetNumber l;
 
-				itemsz = IndexTupleDSize(*itup);
+				itemsz = IndexTupleSize(itup);
 				itemsz = MAXALIGN(itemsz);
 
 				data += itemsz;
@@ -630,7 +630,7 @@ hash_xlog_move_page_contents(XLogReaderState * record)
  * replay squeeze page operation of hash index
  */
 static void
-hash_xlog_squeeze_page(XLogReaderState * record)
+hash_xlog_squeeze_page(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_hash_squeeze_page *xldata = (xl_hash_squeeze_page *) XLogRecGetData(record);
@@ -686,7 +686,7 @@ hash_xlog_squeeze_page(XLogReaderState * record)
 				Size		itemsz;
 				OffsetNumber l;
 
-				itemsz = IndexTupleDSize(*itup);
+				itemsz = IndexTupleSize(itup);
 				itemsz = MAXALIGN(itemsz);
 
 				data += itemsz;
@@ -844,7 +844,7 @@ hash_xlog_squeeze_page(XLogReaderState * record)
  * replay delete operation of hash index
  */
 static void
-hash_xlog_delete(XLogReaderState * record)
+hash_xlog_delete(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_hash_delete *xldata = (xl_hash_delete *) XLogRecGetData(record);
@@ -922,7 +922,7 @@ hash_xlog_delete(XLogReaderState * record)
  * replay split cleanup flag operation for primary bucket page.
  */
 static void
-hash_xlog_split_cleanup(XLogReaderState * record)
+hash_xlog_split_cleanup(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	Buffer		buffer;
@@ -947,7 +947,7 @@ hash_xlog_split_cleanup(XLogReaderState * record)
  * replay for update meta page
  */
 static void
-hash_xlog_update_meta_page(XLogReaderState * record)
+hash_xlog_update_meta_page(XLogReaderState *record)
 {
 	HashMetaPage metap;
 	XLogRecPtr	lsn = record->EndRecPtr;
@@ -975,7 +975,7 @@ hash_xlog_update_meta_page(XLogReaderState * record)
  * on which this function is based.
  */
 static TransactionId
-hash_xlog_vacuum_get_latestRemovedXid(XLogReaderState * record)
+hash_xlog_vacuum_get_latestRemovedXid(XLogReaderState *record)
 {
 	xl_hash_vacuum_one_page *xlrec;
 	OffsetNumber *unused;
@@ -1123,7 +1123,7 @@ hash_xlog_vacuum_get_latestRemovedXid(XLogReaderState * record)
  * tuples marked as DEAD during index tuple insertion.
  */
 static void
-hash_xlog_vacuum_one_page(XLogReaderState * record)
+hash_xlog_vacuum_one_page(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_hash_vacuum_one_page *xldata;
@@ -1203,7 +1203,7 @@ hash_xlog_vacuum_one_page(XLogReaderState * record)
 }
 
 void
-hash_redo(XLogReaderState * record)
+hash_redo(XLogReaderState *record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 

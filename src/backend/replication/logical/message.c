@@ -3,7 +3,7 @@
  * message.c
  *	  Generic logical messages.
  *
- * Copyright (c) 2013-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2013-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/replication/logical/message.c
@@ -82,7 +82,7 @@ LogLogicalMessage(const char *prefix, const char *message, size_t size,
  * Redo is basically just noop for logical decoding messages.
  */
 void
-logicalmsg_redo(XLogReaderState * record)
+logicalmsg_redo(XLogReaderState *record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 

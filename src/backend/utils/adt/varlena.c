@@ -3,7 +3,7 @@
  * varlena.c
  *	  Functions for the variable-length built-in types.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -21,7 +21,7 @@
 #include "access/tuptoaster.h"
 #include "catalog/pg_collation.h"
 #include "catalog/pg_type.h"
-#include "common/md5.h"
+#include "common/int.h"
 #include "lib/hyperloglog.h"
 #include "libpq/pqformat.h"
 #include "miscadmin.h"
@@ -55,7 +55,7 @@ typedef struct
 	/* Skip table for Boyer-Moore-Horspool search algorithm: */
 	int			skiptablemask;	/* mask for ANDing with skiptable subscripts */
 	int			skiptable[256]; /* skip distance for given mismatched char */
-}			TextPositionState;
+} TextPositionState;
 
 typedef struct
 {
@@ -74,7 +74,7 @@ typedef struct
 	hyperLogLogState full_card; /* Full key cardinality state */
 	double		prop_card;		/* Required cardinality proportion */
 	pg_locale_t locale;
-}			VarStringSortSupport;
+} VarStringSortSupport;
 
 /*
  * This should be large enough that most strings will fit, but small enough
@@ -98,27 +98,27 @@ static int	varstrcmp_abbrev(Datum x, Datum y, SortSupport ssup);
 static Datum varstr_abbrev_convert(Datum original, SortSupport ssup);
 static bool varstr_abbrev_abort(int memtupcount, SortSupport ssup);
 static int32 text_length(Datum str);
-static text * text_catenate(text * t1, text * t2);
-static text * text_substring(Datum str,
-							 int32 start,
-							 int32 length,
-							 bool length_not_specified);
-static text * text_overlay(text * t1, text * t2, int sp, int sl);
-static int	text_position(text * t1, text * t2);
-static void text_position_setup(text * t1, text * t2, TextPositionState * state);
-static int	text_position_next(int start_pos, TextPositionState * state);
-static void text_position_cleanup(TextPositionState * state);
-static int	text_cmp(text * arg1, text * arg2, Oid collid);
-static bytea * bytea_catenate(bytea * t1, bytea * t2);
-static bytea * bytea_substring(Datum str,
-							   int S,
-							   int L,
-							   bool length_not_specified);
-static bytea * bytea_overlay(bytea * t1, bytea * t2, int sp, int sl);
-static void appendStringInfoText(StringInfo str, const text * t);
+static text *text_catenate(text *t1, text *t2);
+static text *text_substring(Datum str,
+			   int32 start,
+			   int32 length,
+			   bool length_not_specified);
+static text *text_overlay(text *t1, text *t2, int sp, int sl);
+static int	text_position(text *t1, text *t2);
+static void text_position_setup(text *t1, text *t2, TextPositionState *state);
+static int	text_position_next(int start_pos, TextPositionState *state);
+static void text_position_cleanup(TextPositionState *state);
+static int	text_cmp(text *arg1, text *arg2, Oid collid);
+static bytea *bytea_catenate(bytea *t1, bytea *t2);
+static bytea *bytea_substring(Datum str,
+				int S,
+				int L,
+				bool length_not_specified);
+static bytea *bytea_overlay(bytea *t1, bytea *t2, int sp, int sl);
+static void appendStringInfoText(StringInfo str, const text *t);
 static Datum text_to_array_internal(PG_FUNCTION_ARGS);
-static text * array_to_text_internal(FunctionCallInfo fcinfo, ArrayType * v,
-									 const char *fldsep, const char *null_string);
+static text *array_to_text_internal(FunctionCallInfo fcinfo, ArrayType *v,
+					   const char *fldsep, const char *null_string);
 static StringInfo makeStringAggState(FunctionCallInfo fcinfo);
 static bool text_format_parse_digits(const char **ptr, const char *end_ptr,
 						 int *value);
@@ -127,7 +127,7 @@ static const char *text_format_parse_format(const char *start_ptr,
 						 int *argpos, int *widthpos,
 						 int *flags, int *width);
 static void text_format_string_conversion(StringInfo buf, char conversion,
-							  FmgrInfo * typOutputInfo,
+							  FmgrInfo *typOutputInfo,
 							  Datum value, bool isNull,
 							  int flags, int width);
 static void text_format_append_string(StringInfo buf, const char *str,
@@ -179,7 +179,7 @@ cstring_to_text_with_len(const char *s, int len)
  * case here, we'd need another routine that did, anyway.
  */
 char *
-text_to_cstring(const text * t)
+text_to_cstring(const text *t)
 {
 	/* must cast away the const, unfortunately */
 	text	   *tunpacked = pg_detoast_datum_packed((struct varlena *) t);
@@ -210,7 +210,7 @@ text_to_cstring(const text * t)
  * case here, we'd need another routine that did, anyway.
  */
 void
-text_to_cstring_buffer(const text * src, char *dst, size_t dst_len)
+text_to_cstring_buffer(const text *src, char *dst, size_t dst_len)
 {
 	/* must cast away the const, unfortunately */
 	text	   *srcunpacked = pg_detoast_datum_packed((struct varlena *) src);
@@ -691,7 +691,7 @@ textcat(PG_FUNCTION_ARGS)
  * Arguments can be in short-header form, but not compressed or out-of-line
  */
 static text *
-text_catenate(text * t1, text * t2)
+text_catenate(text *t1, text *t2)
 {
 	text	   *result;
 	int			len1,
@@ -1031,7 +1031,7 @@ textoverlay_no_len(PG_FUNCTION_ARGS)
 }
 
 static text *
-text_overlay(text * t1, text * t2, int sp, int sl)
+text_overlay(text *t1, text *t2, int sp, int sl)
 {
 	text	   *result;
 	text	   *s1;
@@ -1047,8 +1047,7 @@ text_overlay(text * t1, text * t2, int sp, int sl)
 		ereport(ERROR,
 				(errcode(ERRCODE_SUBSTRING_ERROR),
 				 errmsg("negative substring length not allowed")));
-	sp_pl_sl = sp + sl;
-	if (sp_pl_sl <= sl)
+	if (pg_add_s32_overflow(sp, sl, &sp_pl_sl))
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("integer out of range")));
@@ -1092,7 +1091,7 @@ textpos(PG_FUNCTION_ARGS)
  *	functions.
  */
 static int
-text_position(text * t1, text * t2)
+text_position(text *t1, text *t2)
 {
 	TextPositionState state;
 	int			result;
@@ -1116,7 +1115,7 @@ text_position(text * t1, text * t2)
  */
 
 static void
-text_position_setup(text * t1, text * t2, TextPositionState * state)
+text_position_setup(text *t1, text *t2, TextPositionState *state)
 {
 	int			len1 = VARSIZE_ANY_EXHDR(t1);
 	int			len2 = VARSIZE_ANY_EXHDR(t2);
@@ -1219,7 +1218,7 @@ text_position_setup(text * t1, text * t2, TextPositionState * state)
 		}
 		else
 		{
-			const		pg_wchar *wstr2 = state->wstr2;
+			const pg_wchar *wstr2 = state->wstr2;
 
 			for (i = 0; i < last; i++)
 				state->skiptable[wstr2[i] & skiptablemask] = last - i;
@@ -1228,7 +1227,7 @@ text_position_setup(text * t1, text * t2, TextPositionState * state)
 }
 
 static int
-text_position_next(int start_pos, TextPositionState * state)
+text_position_next(int start_pos, TextPositionState *state)
 {
 	int			haystack_len = state->len1;
 	int			needle_len = state->len2;
@@ -1304,10 +1303,10 @@ text_position_next(int start_pos, TextPositionState * state)
 	else
 	{
 		/* The multibyte char version. This works exactly the same way. */
-		const		pg_wchar *haystack = state->wstr1;
-		const		pg_wchar *needle = state->wstr2;
-		const		pg_wchar *haystack_end = &haystack[haystack_len];
-		const		pg_wchar *hptr;
+		const pg_wchar *haystack = state->wstr1;
+		const pg_wchar *needle = state->wstr2;
+		const pg_wchar *haystack_end = &haystack[haystack_len];
+		const pg_wchar *hptr;
 
 		if (needle_len == 1)
 		{
@@ -1324,15 +1323,15 @@ text_position_next(int start_pos, TextPositionState * state)
 		}
 		else
 		{
-			const		pg_wchar *needle_last = &needle[needle_len - 1];
+			const pg_wchar *needle_last = &needle[needle_len - 1];
 
 			/* Start at startpos plus the length of the needle */
 			hptr = &haystack[start_pos + needle_len - 1];
 			while (hptr < haystack_end)
 			{
 				/* Match the needle scanning *backward* */
-				const		pg_wchar *nptr;
-				const		pg_wchar *p;
+				const pg_wchar *nptr;
+				const pg_wchar *p;
 
 				nptr = needle_last;
 				p = hptr;
@@ -1362,7 +1361,7 @@ text_position_next(int start_pos, TextPositionState * state)
 }
 
 static void
-text_position_cleanup(TextPositionState * state)
+text_position_cleanup(TextPositionState *state)
 {
 	if (state->use_wchar)
 	{
@@ -1379,7 +1378,7 @@ text_position_cleanup(TextPositionState * state)
  * whether arg1 is less than, equal to, or greater than arg2.
  */
 int
-varstr_cmp(char *arg1, int len1, char *arg2, int len2, Oid collid)
+varstr_cmp(const char *arg1, int len1, const char *arg2, int len2, Oid collid)
 {
 	int			result;
 
@@ -1614,7 +1613,7 @@ varstr_cmp(char *arg1, int len1, char *arg2, int len2, Oid collid)
  * Returns -1, 0 or 1
  */
 static int
-text_cmp(text * arg1, text * arg2, Oid collid)
+text_cmp(text *arg1, text *arg2, Oid collid)
 {
 	char	   *a1p,
 			   *a2p;
@@ -1758,6 +1757,34 @@ text_ge(PG_FUNCTION_ARGS)
 
 	PG_FREE_IF_COPY(arg1, 0);
 	PG_FREE_IF_COPY(arg2, 1);
+
+	PG_RETURN_BOOL(result);
+}
+
+Datum
+text_starts_with(PG_FUNCTION_ARGS)
+{
+	Datum		arg1 = PG_GETARG_DATUM(0);
+	Datum		arg2 = PG_GETARG_DATUM(1);
+	bool		result;
+	Size		len1,
+				len2;
+
+	len1 = toast_raw_datum_size(arg1);
+	len2 = toast_raw_datum_size(arg2);
+	if (len2 > len1)
+		result = false;
+	else
+	{
+		text	   *targ1 = DatumGetTextPP(arg1);
+		text	   *targ2 = DatumGetTextPP(arg2);
+
+		result = (memcmp(VARDATA_ANY(targ1), VARDATA_ANY(targ2),
+						 VARSIZE_ANY_EXHDR(targ2)) == 0);
+
+		PG_FREE_IF_COPY(targ1, 0);
+		PG_FREE_IF_COPY(targ2, 1);
+	}
 
 	PG_RETURN_BOOL(result);
 }
@@ -2621,7 +2648,7 @@ text_smaller(PG_FUNCTION_ARGS)
  */
 
 static int
-internal_text_pattern_compare(text * arg1, text * arg2)
+internal_text_pattern_compare(text *arg1, text *arg2)
 {
 	int			result;
 	int			len1,
@@ -2777,7 +2804,7 @@ byteacat(PG_FUNCTION_ARGS)
  * Arguments can be in short-header form, but not compressed or out-of-line
  */
 static bytea *
-bytea_catenate(bytea * t1, bytea * t2)
+bytea_catenate(bytea *t1, bytea *t2)
 {
 	bytea	   *result;
 	int			len1,
@@ -2934,7 +2961,7 @@ byteaoverlay_no_len(PG_FUNCTION_ARGS)
 }
 
 static bytea *
-bytea_overlay(bytea * t1, bytea * t2, int sp, int sl)
+bytea_overlay(bytea *t1, bytea *t2, int sp, int sl)
 {
 	bytea	   *result;
 	bytea	   *s1;
@@ -2950,8 +2977,7 @@ bytea_overlay(bytea * t1, bytea * t2, int sp, int sl)
 		ereport(ERROR,
 				(errcode(ERRCODE_SUBSTRING_ERROR),
 				 errmsg("negative substring length not allowed")));
-	sp_pl_sl = sp + sl;
-	if (sp_pl_sl <= sl)
+	if (pg_add_s32_overflow(sp, sl, &sp_pl_sl))
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("integer out of range")));
@@ -3203,7 +3229,7 @@ name_text(PG_FUNCTION_ARGS)
  * truncate names if they're too long.
  */
 List *
-textToQualifiedNameList(text * textval)
+textToQualifiedNameList(text *textval)
 {
 	char	   *rawname;
 	List	   *result = NIL;
@@ -3255,14 +3281,14 @@ textToQualifiedNameList(text * textval)
  *	namelist: filled with a palloc'd list of pointers to identifiers within
  *			  rawstring.  Caller should list_free() this even on error return.
  *
- * Returns TRUE if okay, FALSE if there is a syntax error in the string.
+ * Returns true if okay, false if there is a syntax error in the string.
  *
  * Note that an empty string is considered okay here, though not in
  * textToQualifiedNameList.
  */
 bool
 SplitIdentifierString(char *rawstring, char separator,
-					  List * *namelist)
+					  List **namelist)
 {
 	char	   *nextp = rawstring;
 	bool		done = false;
@@ -3383,13 +3409,13 @@ SplitIdentifierString(char *rawstring, char separator,
  *	namelist: filled with a palloc'd list of directory names.
  *			  Caller should list_free_deep() this even on error return.
  *
- * Returns TRUE if okay, FALSE if there is a syntax error in the string.
+ * Returns true if okay, false if there is a syntax error in the string.
  *
  * Note that an empty string is considered okay here.
  */
 bool
 SplitDirectoriesString(char *rawstring, char separator,
-					   List * *namelist)
+					   List **namelist)
 {
 	char	   *nextp = rawstring;
 	bool		done = false;
@@ -3510,7 +3536,7 @@ SplitDirectoriesString(char *rawstring, char separator,
  */
 bool
 SplitGUCList(char *rawstring, char separator,
-			 List * *namelist)
+			 List **namelist)
 {
 	char	   *nextp = rawstring;
 	bool		done = false;
@@ -3786,7 +3812,7 @@ bytea_sortsupport(PG_FUNCTION_ARGS)
  * Like appendStringInfoString(str, text_to_cstring(t)) but faster.
  */
 static void
-appendStringInfoText(StringInfo str, const text * t)
+appendStringInfoText(StringInfo str, const text *t)
 {
 	appendBinaryStringInfo(str, VARDATA_ANY(t), VARSIZE_ANY_EXHDR(t));
 }
@@ -3883,7 +3909,7 @@ replace_text(PG_FUNCTION_ARGS)
  * check whether replace_text contains escape char.
  */
 static bool
-check_replace_text_has_escape_char(const text * replace_text)
+check_replace_text_has_escape_char(const text *replace_text)
 {
 	const char *p = VARDATA_ANY(replace_text);
 	const char *p_end = p + VARSIZE_ANY_EXHDR(replace_text);
@@ -3916,8 +3942,8 @@ check_replace_text_has_escape_char(const text * replace_text)
  * at logical character position data_pos.
  */
 static void
-appendStringInfoRegexpSubstr(StringInfo str, text * replace_text,
-							 regmatch_t * pmatch,
+appendStringInfoRegexpSubstr(StringInfo str, text *replace_text,
+							 regmatch_t *pmatch,
 							 char *start_ptr, int data_pos)
 {
 	const char *p = VARDATA_ANY(replace_text);
@@ -4021,8 +4047,8 @@ appendStringInfoRegexpSubstr(StringInfo str, text * replace_text,
  * the regexp argument as void *, but really it's regex_t *.
  */
 text *
-replace_text_regexp(text * src_text, void *regexp,
-					text * replace_text, bool glob)
+replace_text_regexp(text *src_text, void *regexp,
+					text *replace_text, bool glob)
 {
 	text	   *ret_text;
 	regex_t    *re = (regex_t *) regexp;
@@ -4253,7 +4279,7 @@ split_text(PG_FUNCTION_ARGS)
  * Convenience function to return true when two text params are equal.
  */
 static bool
-text_isequal(text * txt1, text * txt2)
+text_isequal(text *txt1, text *txt2)
 {
 	return DatumGetBool(DirectFunctionCall2(texteq,
 											PointerGetDatum(txt1),
@@ -4511,7 +4537,7 @@ array_to_text_null(PG_FUNCTION_ARGS)
  * common code for array_to_text and array_to_text_null functions
  */
 static text *
-array_to_text_internal(FunctionCallInfo fcinfo, ArrayType * v,
+array_to_text_internal(FunctionCallInfo fcinfo, ArrayType *v,
 					   const char *fldsep, const char *null_string)
 {
 	text	   *result;
@@ -4678,53 +4704,6 @@ to_hex64(PG_FUNCTION_ARGS)
 }
 
 /*
- * Create an md5 hash of a text string and return it as hex
- *
- * md5 produces a 16 byte (128 bit) hash; double it for hex
- */
-#define MD5_HASH_LEN  32
-
-Datum
-md5_text(PG_FUNCTION_ARGS)
-{
-	text	   *in_text = PG_GETARG_TEXT_PP(0);
-	size_t		len;
-	char		hexsum[MD5_HASH_LEN + 1];
-
-	/* Calculate the length of the buffer using varlena metadata */
-	len = VARSIZE_ANY_EXHDR(in_text);
-
-	/* get the hash result */
-	if (pg_md5_hash(VARDATA_ANY(in_text), len, hexsum) == false)
-		ereport(ERROR,
-				(errcode(ERRCODE_OUT_OF_MEMORY),
-				 errmsg("out of memory")));
-
-	/* convert to text and return it */
-	PG_RETURN_TEXT_P(cstring_to_text(hexsum));
-}
-
-/*
- * Create an md5 hash of a bytea field and return it as a hex string:
- * 16-byte md5 digest is represented in 32 hex characters.
- */
-Datum
-md5_bytea(PG_FUNCTION_ARGS)
-{
-	bytea	   *in = PG_GETARG_BYTEA_PP(0);
-	size_t		len;
-	char		hexsum[MD5_HASH_LEN + 1];
-
-	len = VARSIZE_ANY_EXHDR(in);
-	if (pg_md5_hash(VARDATA_ANY(in), len, hexsum) == false)
-		ereport(ERROR,
-				(errcode(ERRCODE_OUT_OF_MEMORY),
-				 errmsg("out of memory")));
-
-	PG_RETURN_TEXT_P(cstring_to_text(hexsum));
-}
-
-/*
  * Return the size of a datum, possibly compressed
  *
  * Works on any data type
@@ -4850,10 +4829,47 @@ string_agg_finalfn(PG_FUNCTION_ARGS)
 }
 
 /*
+ * Prepare cache with fmgr info for the output functions of the datatypes of
+ * the arguments of a concat-like function, beginning with argument "argidx".
+ * (Arguments before that will have corresponding slots in the resulting
+ * FmgrInfo array, but we don't fill those slots.)
+ */
+static FmgrInfo *
+build_concat_foutcache(FunctionCallInfo fcinfo, int argidx)
+{
+	FmgrInfo   *foutcache;
+	int			i;
+
+	/* We keep the info in fn_mcxt so it survives across calls */
+	foutcache = (FmgrInfo *) MemoryContextAlloc(fcinfo->flinfo->fn_mcxt,
+												PG_NARGS() * sizeof(FmgrInfo));
+
+	for (i = argidx; i < PG_NARGS(); i++)
+	{
+		Oid			valtype;
+		Oid			typOutput;
+		bool		typIsVarlena;
+
+		valtype = get_fn_expr_argtype(fcinfo->flinfo, i);
+		if (!OidIsValid(valtype))
+			elog(ERROR, "could not determine data type of concat() input");
+
+		getTypeOutputInfo(valtype, &typOutput, &typIsVarlena);
+		fmgr_info_cxt(typOutput, &foutcache[i], fcinfo->flinfo->fn_mcxt);
+	}
+
+	fcinfo->flinfo->fn_extra = foutcache;
+
+	return foutcache;
+}
+
+/*
  * Implementation of both concat() and concat_ws().
  *
  * sepstr is the separator string to place between values.
- * argidx identifies the first argument to concatenate (counting from zero).
+ * argidx identifies the first argument to concatenate (counting from zero);
+ * note that this must be constant across any one series of calls.
+ *
  * Returns NULL if result should be NULL, else text value.
  */
 static text *
@@ -4862,6 +4878,7 @@ concat_internal(const char *sepstr, int argidx,
 {
 	text	   *result;
 	StringInfoData str;
+	FmgrInfo   *foutcache;
 	bool		first_arg = true;
 	int			i;
 
@@ -4903,14 +4920,16 @@ concat_internal(const char *sepstr, int argidx,
 	/* Normal case without explicit VARIADIC marker */
 	initStringInfo(&str);
 
+	/* Get output function info, building it if first time through */
+	foutcache = (FmgrInfo *) fcinfo->flinfo->fn_extra;
+	if (foutcache == NULL)
+		foutcache = build_concat_foutcache(fcinfo, argidx);
+
 	for (i = argidx; i < PG_NARGS(); i++)
 	{
 		if (!PG_ARGISNULL(i))
 		{
 			Datum		value = PG_GETARG_DATUM(i);
-			Oid			valtype;
-			Oid			typOutput;
-			bool		typIsVarlena;
 
 			/* add separator if appropriate */
 			if (first_arg)
@@ -4919,12 +4938,8 @@ concat_internal(const char *sepstr, int argidx,
 				appendStringInfoString(&str, sepstr);
 
 			/* call the appropriate type output function, append the result */
-			valtype = get_fn_expr_argtype(fcinfo->flinfo, i);
-			if (!OidIsValid(valtype))
-				elog(ERROR, "could not determine data type of concat() input");
-			getTypeOutputInfo(valtype, &typOutput, &typIsVarlena);
 			appendStringInfoString(&str,
-								   OidOutputFunctionCall(typOutput, value));
+								   OutputFunctionCall(&foutcache[i], value));
 		}
 	}
 
@@ -5355,13 +5370,13 @@ text_format_parse_digits(const char **ptr, const char *end_ptr, int *value)
 
 	while (*cp >= '0' && *cp <= '9')
 	{
-		int			newval = val * 10 + (*cp - '0');
+		int8		digit = (*cp - '0');
 
-		if (newval / 10 != val) /* overflow? */
+		if (unlikely(pg_mul_s32_overflow(val, 10, &val)) ||
+			unlikely(pg_add_s32_overflow(val, digit, &val)))
 			ereport(ERROR,
 					(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 					 errmsg("number is out of range")));
-		val = newval;
 		ADVANCE_PARSE_POINTER(cp, end_ptr);
 		found = true;
 	}
@@ -5474,7 +5489,7 @@ text_format_parse_format(const char *start_ptr, const char *end_ptr,
  */
 static void
 text_format_string_conversion(StringInfo buf, char conversion,
-							  FmgrInfo * typOutputInfo,
+							  FmgrInfo *typOutputInfo,
 							  Datum value, bool isNull,
 							  int flags, int width)
 {

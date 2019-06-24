@@ -3,7 +3,7 @@
  *
  *	multi-process support
  *
- *	Copyright (c) 2010-2017, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2018, PostgreSQL Global Development Group
  *	src/bin/pg_upgrade/parallel.c
  */
 
@@ -32,7 +32,7 @@ typedef struct
 	char	   *log_file;
 	char	   *opt_log_file;
 	char	   *cmd;
-}			exec_thread_arg;
+} exec_thread_arg;
 
 typedef struct
 {
@@ -41,7 +41,7 @@ typedef struct
 	char	   *old_pgdata;
 	char	   *new_pgdata;
 	char	   *old_tablespace;
-}			transfer_thread_arg;
+} transfer_thread_arg;
 
 exec_thread_arg **exec_thread_args;
 transfer_thread_arg **transfer_thread_args;
@@ -49,8 +49,8 @@ transfer_thread_arg **transfer_thread_args;
 /* track current thread_args struct so reap_child() can be used for all cases */
 void	  **cur_thread_args;
 
-DWORD		win32_exec_prog(exec_thread_arg * args);
-DWORD		win32_transfer_all_new_dbs(transfer_thread_arg * args);
+DWORD		win32_exec_prog(exec_thread_arg *args);
+DWORD		win32_transfer_all_new_dbs(transfer_thread_arg *args);
 #endif
 
 /*
@@ -156,7 +156,7 @@ parallel_exec_prog(const char *log_file, const char *opt_log_file,
 
 #ifdef WIN32
 DWORD
-win32_exec_prog(exec_thread_arg * args)
+win32_exec_prog(exec_thread_arg *args)
 {
 	int			ret;
 
@@ -175,7 +175,7 @@ win32_exec_prog(exec_thread_arg * args)
  *	by transferring multiple tablespaces in parallel
  */
 void
-parallel_transfer_all_new_dbs(DbInfoArr * old_db_arr, DbInfoArr * new_db_arr,
+parallel_transfer_all_new_dbs(DbInfoArr *old_db_arr, DbInfoArr *new_db_arr,
 							  char *old_pgdata, char *new_pgdata,
 							  char *old_tablespace)
 {
@@ -271,7 +271,7 @@ parallel_transfer_all_new_dbs(DbInfoArr * old_db_arr, DbInfoArr * new_db_arr,
 
 #ifdef WIN32
 DWORD
-win32_transfer_all_new_dbs(transfer_thread_arg * args)
+win32_transfer_all_new_dbs(transfer_thread_arg *args)
 {
 	transfer_all_new_dbs(args->old_db_arr, args->new_db_arr, args->old_pgdata,
 						 args->new_pgdata, args->old_tablespace);
@@ -290,7 +290,7 @@ reap_child(bool wait_for_child)
 {
 #ifndef WIN32
 	int			work_status;
-	int			ret;
+	pid_t		child;
 #else
 	int			thread_num;
 	DWORD		res;
@@ -300,14 +300,13 @@ reap_child(bool wait_for_child)
 		return false;
 
 #ifndef WIN32
-	ret = waitpid(-1, &work_status, wait_for_child ? 0 : WNOHANG);
-
-	/* no children or, for WNOHANG, no dead children */
-	if (ret <= 0 || !WIFEXITED(work_status))
-		return false;
-
-	if (WEXITSTATUS(work_status) != 0)
-		pg_fatal("child worker exited abnormally: %s\n", strerror(errno));
+	child = waitpid(-1, &work_status, wait_for_child ? 0 : WNOHANG);
+	if (child == (pid_t) -1)
+		pg_fatal("waitpid() failed: %s\n", strerror(errno));
+	if (child == 0)
+		return false;			/* no children, or no dead children */
+	if (work_status != 0)
+		pg_fatal("child process exited abnormally: status %d\n", work_status);
 #else
 	/* wait for one to finish */
 	thread_num = WaitForMultipleObjects(parallel_jobs, thread_handles,

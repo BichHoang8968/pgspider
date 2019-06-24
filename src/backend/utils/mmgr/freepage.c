@@ -42,7 +42,7 @@
  * where memory fragmentation is very severe, only a tiny fraction of
  * the pages under management are consumed by this btree.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -80,21 +80,21 @@ typedef struct FreePageBtreeHeader
 								 * FREE_PAGE_INTERNAL_MAGIC */
 	Size		nused;			/* number of items used */
 	RelptrFreePageBtree parent; /* uplink */
-}			FreePageBtreeHeader;
+} FreePageBtreeHeader;
 
 /* Internal key; points to next level of btree. */
 typedef struct FreePageBtreeInternalKey
 {
 	Size		first_page;		/* low bound for keys on child page */
 	RelptrFreePageBtree child;	/* downlink */
-}			FreePageBtreeInternalKey;
+} FreePageBtreeInternalKey;
 
 /* Leaf key; no payload data. */
 typedef struct FreePageBtreeLeafKey
 {
 	Size		first_page;		/* first page in span */
 	Size		npages;			/* number of pages in span */
-}			FreePageBtreeLeafKey;
+} FreePageBtreeLeafKey;
 
 /* Work out how many keys will fit on a page. */
 #define FPM_ITEMS_PER_INTERNAL_PAGE \
@@ -122,50 +122,50 @@ typedef struct FreePageBtreeSearchResult
 	Size		index;
 	bool		found;
 	unsigned	split_pages;
-}			FreePageBtreeSearchResult;
+} FreePageBtreeSearchResult;
 
 /* Helper functions */
-static void FreePageBtreeAdjustAncestorKeys(FreePageManager * fpm,
-								FreePageBtree * btp);
-static Size FreePageBtreeCleanup(FreePageManager * fpm);
-static FreePageBtree * FreePageBtreeFindLeftSibling(char *base,
-													FreePageBtree * btp);
-static FreePageBtree * FreePageBtreeFindRightSibling(char *base,
-													 FreePageBtree * btp);
-static Size FreePageBtreeFirstKey(FreePageBtree * btp);
-static FreePageBtree * FreePageBtreeGetRecycled(FreePageManager * fpm);
-static void FreePageBtreeInsertInternal(char *base, FreePageBtree * btp,
-							Size index, Size first_page, FreePageBtree * child);
-static void FreePageBtreeInsertLeaf(FreePageBtree * btp, Size index,
+static void FreePageBtreeAdjustAncestorKeys(FreePageManager *fpm,
+								FreePageBtree *btp);
+static Size FreePageBtreeCleanup(FreePageManager *fpm);
+static FreePageBtree *FreePageBtreeFindLeftSibling(char *base,
+							 FreePageBtree *btp);
+static FreePageBtree *FreePageBtreeFindRightSibling(char *base,
+							  FreePageBtree *btp);
+static Size FreePageBtreeFirstKey(FreePageBtree *btp);
+static FreePageBtree *FreePageBtreeGetRecycled(FreePageManager *fpm);
+static void FreePageBtreeInsertInternal(char *base, FreePageBtree *btp,
+							Size index, Size first_page, FreePageBtree *child);
+static void FreePageBtreeInsertLeaf(FreePageBtree *btp, Size index,
 						Size first_page, Size npages);
-static void FreePageBtreeRecycle(FreePageManager * fpm, Size pageno);
-static void FreePageBtreeRemove(FreePageManager * fpm, FreePageBtree * btp,
+static void FreePageBtreeRecycle(FreePageManager *fpm, Size pageno);
+static void FreePageBtreeRemove(FreePageManager *fpm, FreePageBtree *btp,
 					Size index);
-static void FreePageBtreeRemovePage(FreePageManager * fpm, FreePageBtree * btp);
-static void FreePageBtreeSearch(FreePageManager * fpm, Size first_page,
-					FreePageBtreeSearchResult * result);
-static Size FreePageBtreeSearchInternal(FreePageBtree * btp, Size first_page);
-static Size FreePageBtreeSearchLeaf(FreePageBtree * btp, Size first_page);
-static FreePageBtree * FreePageBtreeSplitPage(FreePageManager * fpm,
-											  FreePageBtree * btp);
-static void FreePageBtreeUpdateParentPointers(char *base, FreePageBtree * btp);
-static void FreePageManagerDumpBtree(FreePageManager * fpm, FreePageBtree * btp,
-						 FreePageBtree * parent, int level, StringInfo buf);
-static void FreePageManagerDumpSpans(FreePageManager * fpm,
-						 FreePageSpanLeader * span, Size expected_pages,
+static void FreePageBtreeRemovePage(FreePageManager *fpm, FreePageBtree *btp);
+static void FreePageBtreeSearch(FreePageManager *fpm, Size first_page,
+					FreePageBtreeSearchResult *result);
+static Size FreePageBtreeSearchInternal(FreePageBtree *btp, Size first_page);
+static Size FreePageBtreeSearchLeaf(FreePageBtree *btp, Size first_page);
+static FreePageBtree *FreePageBtreeSplitPage(FreePageManager *fpm,
+					   FreePageBtree *btp);
+static void FreePageBtreeUpdateParentPointers(char *base, FreePageBtree *btp);
+static void FreePageManagerDumpBtree(FreePageManager *fpm, FreePageBtree *btp,
+						 FreePageBtree *parent, int level, StringInfo buf);
+static void FreePageManagerDumpSpans(FreePageManager *fpm,
+						 FreePageSpanLeader *span, Size expected_pages,
 						 StringInfo buf);
-static bool FreePageManagerGetInternal(FreePageManager * fpm, Size npages,
-						   Size * first_page);
-static Size FreePageManagerPutInternal(FreePageManager * fpm, Size first_page,
-									   Size npages, bool soft);
-static void FreePagePopSpanLeader(FreePageManager * fpm, Size pageno);
-static void FreePagePushSpanLeader(FreePageManager * fpm, Size first_page,
+static bool FreePageManagerGetInternal(FreePageManager *fpm, Size npages,
+						   Size *first_page);
+static Size FreePageManagerPutInternal(FreePageManager *fpm, Size first_page,
+						   Size npages, bool soft);
+static void FreePagePopSpanLeader(FreePageManager *fpm, Size pageno);
+static void FreePagePushSpanLeader(FreePageManager *fpm, Size first_page,
 					   Size npages);
-static Size FreePageManagerLargestContiguous(FreePageManager * fpm);
-static void FreePageManagerUpdateLargest(FreePageManager * fpm);
+static Size FreePageManagerLargestContiguous(FreePageManager *fpm);
+static void FreePageManagerUpdateLargest(FreePageManager *fpm);
 
 #if FPM_EXTRA_ASSERTS
-static Size sum_free_pages(FreePageManager * fpm);
+static Size sum_free_pages(FreePageManager *fpm);
 #endif
 
 /*
@@ -180,7 +180,7 @@ static Size sum_free_pages(FreePageManager * fpm);
  * if managing a single contiguous extent of memory, the start of that extent.
  */
 void
-FreePageManagerInitialize(FreePageManager * fpm, char *base)
+FreePageManagerInitialize(FreePageManager *fpm, char *base)
 {
 	Size		f;
 
@@ -207,7 +207,7 @@ FreePageManagerInitialize(FreePageManager * fpm, char *base)
  * if true, the first page of the allocation is stored in *first_page.
  */
 bool
-FreePageManagerGet(FreePageManager * fpm, Size npages, Size * first_page)
+FreePageManagerGet(FreePageManager *fpm, Size npages, Size *first_page)
 {
 	bool		result;
 	Size		contiguous_pages;
@@ -249,7 +249,7 @@ FreePageManagerGet(FreePageManager * fpm, Size npages, Size * first_page)
 
 #ifdef FPM_EXTRA_ASSERTS
 static void
-sum_free_pages_recurse(FreePageManager * fpm, FreePageBtree * btp, Size * sum)
+sum_free_pages_recurse(FreePageManager *fpm, FreePageBtree *btp, Size *sum)
 {
 	char	   *base = fpm_segment_base(fpm);
 
@@ -271,7 +271,7 @@ sum_free_pages_recurse(FreePageManager * fpm, FreePageBtree * btp, Size * sum)
 	}
 }
 static Size
-sum_free_pages(FreePageManager * fpm)
+sum_free_pages(FreePageManager *fpm)
 {
 	FreePageSpanLeader *recycle;
 	char	   *base = fpm_segment_base(fpm);
@@ -321,7 +321,7 @@ sum_free_pages(FreePageManager * fpm)
  * successfully get.
  */
 static Size
-FreePageManagerLargestContiguous(FreePageManager * fpm)
+FreePageManagerLargestContiguous(FreePageManager *fpm)
 {
 	char	   *base;
 	Size		largest;
@@ -363,7 +363,7 @@ FreePageManagerLargestContiguous(FreePageManager * fpm)
  * successfully get, if it has been marked dirty.
  */
 static void
-FreePageManagerUpdateLargest(FreePageManager * fpm)
+FreePageManagerUpdateLargest(FreePageManager *fpm)
 {
 	if (!fpm->contiguous_pages_dirty)
 		return;
@@ -376,7 +376,7 @@ FreePageManagerUpdateLargest(FreePageManager * fpm)
  * Transfer a run of pages to the free page manager.
  */
 void
-FreePageManagerPut(FreePageManager * fpm, Size first_page, Size npages)
+FreePageManagerPut(FreePageManager *fpm, Size first_page, Size npages)
 {
 	Size		contiguous_pages;
 
@@ -421,7 +421,7 @@ FreePageManagerPut(FreePageManager * fpm, Size first_page, Size npages)
  * Produce a debugging dump of the state of a free page manager.
  */
 char *
-FreePageManagerDump(FreePageManager * fpm)
+FreePageManagerDump(FreePageManager *fpm)
 {
 	char	   *base = fpm_segment_base(fpm);
 	StringInfoData buf;
@@ -455,7 +455,7 @@ FreePageManagerDump(FreePageManager * fpm)
 	recycle = relptr_access(base, fpm->btree_recycle);
 	if (recycle != NULL)
 	{
-		appendStringInfo(&buf, "btree recycle:");
+		appendStringInfoString(&buf, "btree recycle:");
 		FreePageManagerDumpSpans(fpm, recycle, 1, &buf);
 	}
 
@@ -468,7 +468,7 @@ FreePageManagerDump(FreePageManager * fpm)
 			continue;
 		if (!dumped_any_freelist)
 		{
-			appendStringInfo(&buf, "freelists:\n");
+			appendStringInfoString(&buf, "freelists:\n");
 			dumped_any_freelist = true;
 		}
 		appendStringInfo(&buf, "  %zu:", f + 1);
@@ -498,7 +498,7 @@ FreePageManagerDump(FreePageManager * fpm)
  * or one less (if the first key increased).
  */
 static void
-FreePageBtreeAdjustAncestorKeys(FreePageManager * fpm, FreePageBtree * btp)
+FreePageBtreeAdjustAncestorKeys(FreePageManager *fpm, FreePageBtree *btp)
 {
 	char	   *base = fpm_segment_base(fpm);
 	Size		first_page;
@@ -577,7 +577,7 @@ FreePageBtreeAdjustAncestorKeys(FreePageManager * fpm, FreePageBtree * btp)
  * the largest range of contiguous pages created by the cleanup operation.
  */
 static Size
-FreePageBtreeCleanup(FreePageManager * fpm)
+FreePageBtreeCleanup(FreePageManager *fpm)
 {
 	char	   *base = fpm_segment_base(fpm);
 	Size		max_contiguous_pages = 0;
@@ -692,7 +692,7 @@ FreePageBtreeCleanup(FreePageManager * fpm)
  * if it's fairly empty.
  */
 static void
-FreePageBtreeConsolidate(FreePageManager * fpm, FreePageBtree * btp)
+FreePageBtreeConsolidate(FreePageManager *fpm, FreePageBtree *btp)
 {
 	char	   *base = fpm_segment_base(fpm);
 	FreePageBtree *np;
@@ -771,7 +771,7 @@ FreePageBtreeConsolidate(FreePageManager * fpm, FreePageBtree * btp)
  * of the tree whose keyspace immediately precedes ours.
  */
 static FreePageBtree *
-FreePageBtreeFindLeftSibling(char *base, FreePageBtree * btp)
+FreePageBtreeFindLeftSibling(char *base, FreePageBtree *btp)
 {
 	FreePageBtree *p = btp;
 	int			levels = 0;
@@ -816,7 +816,7 @@ FreePageBtreeFindLeftSibling(char *base, FreePageBtree * btp)
  * of the tree whose keyspace immediately follows ours.
  */
 static FreePageBtree *
-FreePageBtreeFindRightSibling(char *base, FreePageBtree * btp)
+FreePageBtreeFindRightSibling(char *base, FreePageBtree *btp)
 {
 	FreePageBtree *p = btp;
 	int			levels = 0;
@@ -860,7 +860,7 @@ FreePageBtreeFindRightSibling(char *base, FreePageBtree * btp)
  * Get the first key on a btree page.
  */
 static Size
-FreePageBtreeFirstKey(FreePageBtree * btp)
+FreePageBtreeFirstKey(FreePageBtree *btp)
 {
 	Assert(btp->hdr.nused > 0);
 
@@ -877,7 +877,7 @@ FreePageBtreeFirstKey(FreePageBtree * btp)
  * Get a page from the btree recycle list for use as a btree page.
  */
 static FreePageBtree *
-FreePageBtreeGetRecycled(FreePageManager * fpm)
+FreePageBtreeGetRecycled(FreePageManager *fpm)
 {
 	char	   *base = fpm_segment_base(fpm);
 	FreePageSpanLeader *victim = relptr_access(base, fpm->btree_recycle);
@@ -897,8 +897,8 @@ FreePageBtreeGetRecycled(FreePageManager * fpm)
  * Insert an item into an internal page.
  */
 static void
-FreePageBtreeInsertInternal(char *base, FreePageBtree * btp, Size index,
-							Size first_page, FreePageBtree * child)
+FreePageBtreeInsertInternal(char *base, FreePageBtree *btp, Size index,
+							Size first_page, FreePageBtree *child)
 {
 	Assert(btp->hdr.magic == FREE_PAGE_INTERNAL_MAGIC);
 	Assert(btp->hdr.nused <= FPM_ITEMS_PER_INTERNAL_PAGE);
@@ -914,7 +914,7 @@ FreePageBtreeInsertInternal(char *base, FreePageBtree * btp, Size index,
  * Insert an item into a leaf page.
  */
 static void
-FreePageBtreeInsertLeaf(FreePageBtree * btp, Size index, Size first_page,
+FreePageBtreeInsertLeaf(FreePageBtree *btp, Size index, Size first_page,
 						Size npages)
 {
 	Assert(btp->hdr.magic == FREE_PAGE_LEAF_MAGIC);
@@ -931,7 +931,7 @@ FreePageBtreeInsertLeaf(FreePageBtree * btp, Size index, Size first_page,
  * Put a page on the btree recycle list.
  */
 static void
-FreePageBtreeRecycle(FreePageManager * fpm, Size pageno)
+FreePageBtreeRecycle(FreePageManager *fpm, Size pageno)
 {
 	char	   *base = fpm_segment_base(fpm);
 	FreePageSpanLeader *head = relptr_access(base, fpm->btree_recycle);
@@ -952,7 +952,7 @@ FreePageBtreeRecycle(FreePageManager * fpm, Size pageno)
  * Remove an item from the btree at the given position on the given page.
  */
 static void
-FreePageBtreeRemove(FreePageManager * fpm, FreePageBtree * btp, Size index)
+FreePageBtreeRemove(FreePageManager *fpm, FreePageBtree *btp, Size index)
 {
 	Assert(btp->hdr.magic == FREE_PAGE_LEAF_MAGIC);
 	Assert(index < btp->hdr.nused);
@@ -984,7 +984,7 @@ FreePageBtreeRemove(FreePageManager * fpm, FreePageBtree * btp, Size index)
  * recycled list.
  */
 static void
-FreePageBtreeRemovePage(FreePageManager * fpm, FreePageBtree * btp)
+FreePageBtreeRemovePage(FreePageManager *fpm, FreePageBtree *btp)
 {
 	char	   *base = fpm_segment_base(fpm);
 	FreePageBtree *parent;
@@ -1061,8 +1061,8 @@ FreePageBtreeRemovePage(FreePageManager * fpm, FreePageBtree * btp)
  * undefined on return.
  */
 static void
-FreePageBtreeSearch(FreePageManager * fpm, Size first_page,
-					FreePageBtreeSearchResult * result)
+FreePageBtreeSearch(FreePageManager *fpm, Size first_page,
+					FreePageBtreeSearchResult *result)
 {
 	char	   *base = fpm_segment_base(fpm);
 	FreePageBtree *btp = relptr_access(base, fpm->btree_root);
@@ -1137,7 +1137,7 @@ FreePageBtreeSearch(FreePageManager * fpm, Size first_page,
  * of keys on the page if none.
  */
 static Size
-FreePageBtreeSearchInternal(FreePageBtree * btp, Size first_page)
+FreePageBtreeSearchInternal(FreePageBtree *btp, Size first_page)
 {
 	Size		low = 0;
 	Size		high = btp->hdr.nused;
@@ -1167,7 +1167,7 @@ FreePageBtreeSearchInternal(FreePageBtree * btp, Size first_page)
  * of keys on the page if none.
  */
 static Size
-FreePageBtreeSearchLeaf(FreePageBtree * btp, Size first_page)
+FreePageBtreeSearchLeaf(FreePageBtree *btp, Size first_page)
 {
 	Size		low = 0;
 	Size		high = btp->hdr.nused;
@@ -1198,7 +1198,7 @@ FreePageBtreeSearchLeaf(FreePageBtree * btp, Size first_page)
  * to which caller must add a downlink.
  */
 static FreePageBtree *
-FreePageBtreeSplitPage(FreePageManager * fpm, FreePageBtree * btp)
+FreePageBtreeSplitPage(FreePageManager *fpm, FreePageBtree *btp)
 {
 	FreePageBtree *newsibling;
 
@@ -1229,7 +1229,7 @@ FreePageBtreeSplitPage(FreePageManager * fpm, FreePageBtree * btp)
  * children must be updated.
  */
 static void
-FreePageBtreeUpdateParentPointers(char *base, FreePageBtree * btp)
+FreePageBtreeUpdateParentPointers(char *base, FreePageBtree *btp)
 {
 	Size		i;
 
@@ -1247,8 +1247,8 @@ FreePageBtreeUpdateParentPointers(char *base, FreePageBtree * btp)
  * Debugging dump of btree data.
  */
 static void
-FreePageManagerDumpBtree(FreePageManager * fpm, FreePageBtree * btp,
-						 FreePageBtree * parent, int level, StringInfo buf)
+FreePageManagerDumpBtree(FreePageManager *fpm, FreePageBtree *btp,
+						 FreePageBtree *parent, int level, StringInfo buf)
 {
 	char	   *base = fpm_segment_base(fpm);
 	Size		pageno = fpm_pointer_to_page(base, btp);
@@ -1275,7 +1275,7 @@ FreePageManagerDumpBtree(FreePageManager * fpm, FreePageBtree * btp,
 							 btp->u.leaf_key[index].first_page,
 							 btp->u.leaf_key[index].npages);
 	}
-	appendStringInfo(buf, "\n");
+	appendStringInfoChar(buf, '\n');
 
 	if (btp->hdr.magic == FREE_PAGE_INTERNAL_MAGIC)
 	{
@@ -1293,7 +1293,7 @@ FreePageManagerDumpBtree(FreePageManager * fpm, FreePageBtree * btp,
  * Debugging dump of free-span data.
  */
 static void
-FreePageManagerDumpSpans(FreePageManager * fpm, FreePageSpanLeader * span,
+FreePageManagerDumpSpans(FreePageManager *fpm, FreePageSpanLeader *span,
 						 Size expected_pages, StringInfo buf)
 {
 	char	   *base = fpm_segment_base(fpm);
@@ -1308,7 +1308,7 @@ FreePageManagerDumpSpans(FreePageManager * fpm, FreePageSpanLeader * span,
 		span = relptr_access(base, span->next);
 	}
 
-	appendStringInfo(buf, "\n");
+	appendStringInfoChar(buf, '\n');
 }
 
 /*
@@ -1316,7 +1316,7 @@ FreePageManagerDumpSpans(FreePageManager * fpm, FreePageSpanLeader * span,
  * page manager.
  */
 static bool
-FreePageManagerGetInternal(FreePageManager * fpm, Size npages, Size * first_page)
+FreePageManagerGetInternal(FreePageManager *fpm, Size npages, Size *first_page)
 {
 	char	   *base = fpm_segment_base(fpm);
 	FreePageSpanLeader *victim = NULL;
@@ -1470,12 +1470,10 @@ FreePageManagerGetInternal(FreePageManager * fpm, Size npages, Size * first_page
  * pages; if false, do it always.  Returns 0 if the soft flag caused the
  * insertion to be skipped, or otherwise the size of the contiguous span
  * created by the insertion.  This may be larger than npages if we're able
- * to consolidate with an adjacent range.  *internal_pages_used is set to
- * true if the btree allocated pages for internal purposes, which might
- * invalidate the current largest run requiring it to be recomputed.
+ * to consolidate with an adjacent range.
  */
 static Size
-FreePageManagerPutInternal(FreePageManager * fpm, Size first_page, Size npages,
+FreePageManagerPutInternal(FreePageManager *fpm, Size first_page, Size npages,
 						   bool soft)
 {
 	char	   *base = fpm_segment_base(fpm);
@@ -1526,6 +1524,8 @@ FreePageManagerPutInternal(FreePageManager * fpm, Size first_page, Size npages,
 
 			if (!relptr_is_null(fpm->btree_recycle))
 				root = FreePageBtreeGetRecycled(fpm);
+			else if (soft)
+				return 0;		/* Should not allocate if soft. */
 			else if (FreePageManagerGetInternal(fpm, 1, &root_page))
 				root = (FreePageBtree *) fpm_page_to_pointer(base, root_page);
 			else
@@ -1840,7 +1840,7 @@ FreePageManagerPutInternal(FreePageManager * fpm, Size first_page, Size npages,
  * because we're changing the size of the span, or because we're allocating it.
  */
 static void
-FreePagePopSpanLeader(FreePageManager * fpm, Size pageno)
+FreePagePopSpanLeader(FreePageManager *fpm, Size pageno)
 {
 	char	   *base = fpm_segment_base(fpm);
 	FreePageSpanLeader *span;
@@ -1868,7 +1868,7 @@ FreePagePopSpanLeader(FreePageManager * fpm, Size pageno)
  * Initialize a new FreePageSpanLeader and put it on the appropriate free list.
  */
 static void
-FreePagePushSpanLeader(FreePageManager * fpm, Size first_page, Size npages)
+FreePagePushSpanLeader(FreePageManager *fpm, Size first_page, Size npages)
 {
 	char	   *base = fpm_segment_base(fpm);
 	Size		f = Min(npages, FPM_NUM_FREELISTS) - 1;

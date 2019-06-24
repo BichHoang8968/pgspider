@@ -4,7 +4,7 @@
  *	  Standard POSTGRES buffer page definitions.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/bufpage.h
@@ -91,7 +91,7 @@ typedef struct
 {
 	uint32		xlogid;			/* high bits */
 	uint32		xrecoff;		/* low bits */
-}			PageXLogRecPtr;
+} PageXLogRecPtr;
 
 #define PageXLogRecPtrGet(val) \
 	((uint64) (val).xlogid << 32 | (val).xrecoff)
@@ -157,9 +157,9 @@ typedef struct PageHeaderData
 	uint16		pd_pagesize_version;
 	TransactionId pd_prune_xid; /* oldest prunable XID, or zero if none */
 	ItemIdData	pd_linp[FLEXIBLE_ARRAY_MEMBER]; /* line pointer array */
-}			PageHeaderData;
+} PageHeaderData;
 
-typedef PageHeaderData * PageHeader;
+typedef PageHeaderData *PageHeader;
 
 /*
  * pd_flags contains the following flag bits.  Undefined bits are initialized
@@ -417,7 +417,7 @@ do { \
 extern void PageInit(Page page, Size pageSize, Size specialSize);
 extern bool PageIsVerified(Page page, BlockNumber blkno);
 extern OffsetNumber PageAddItemExtended(Page page, Item item, Size size,
-										OffsetNumber offsetNumber, int flags);
+					OffsetNumber offsetNumber, int flags);
 extern Page PageGetTempPage(Page page);
 extern Page PageGetTempPageCopy(Page page);
 extern Page PageGetTempPageCopySpecial(Page page);
@@ -428,7 +428,7 @@ extern Size PageGetFreeSpaceForMultipleTuples(Page page, int ntups);
 extern Size PageGetExactFreeSpace(Page page);
 extern Size PageGetHeapFreeSpace(Page page);
 extern void PageIndexTupleDelete(Page page, OffsetNumber offset);
-extern void PageIndexMultiDelete(Page page, OffsetNumber * itemnos, int nitems);
+extern void PageIndexMultiDelete(Page page, OffsetNumber *itemnos, int nitems);
 extern void PageIndexTupleDeleteNoCompact(Page page, OffsetNumber offset);
 extern bool PageIndexTupleOverwrite(Page page, OffsetNumber offnum,
 						Item newtup, Size newsize);

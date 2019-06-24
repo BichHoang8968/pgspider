@@ -35,7 +35,7 @@
  * stack is empty.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -124,7 +124,7 @@ typedef struct OldSnapshotControlData
 	TimestampTz head_timestamp; /* time corresponding to head xid */
 	int			count_used;		/* how many slots are in use */
 	TransactionId xid_by_minute[FLEXIBLE_ARRAY_MEMBER];
-}			OldSnapshotControlData;
+} OldSnapshotControlData;
 
 static volatile OldSnapshotControlData *oldSnapshotControl;
 
@@ -141,14 +141,8 @@ static volatile OldSnapshotControlData *oldSnapshotControl;
  * These SnapshotData structs are static to simplify memory allocation
  * (see the hack in GetSnapshotData to avoid repeated malloc/free).
  */
-static SnapshotData CurrentSnapshotData =
-{
-	HeapTupleSatisfiesMVCC
-};
-static SnapshotData SecondarySnapshotData =
-{
-	HeapTupleSatisfiesMVCC
-};
+static SnapshotData CurrentSnapshotData = {HeapTupleSatisfiesMVCC};
+static SnapshotData SecondarySnapshotData = {HeapTupleSatisfiesMVCC};
 SnapshotData CatalogSnapshotData = {HeapTupleSatisfiesMVCC};
 
 /* Pointers to valid snapshots */
@@ -173,7 +167,7 @@ TransactionId RecentGlobalXmin = InvalidTransactionId;
 TransactionId RecentGlobalDataXmin = InvalidTransactionId;
 
 /* (table, ctid) => (cmin, cmax) mapping during timetravel */
-static HTAB * tuplecid_data = NULL;
+static HTAB *tuplecid_data = NULL;
 
 /*
  * Elements of the active snapshot stack.
@@ -188,25 +182,22 @@ typedef struct ActiveSnapshotElt
 	Snapshot	as_snap;
 	int			as_level;
 	struct ActiveSnapshotElt *as_next;
-}			ActiveSnapshotElt;
+} ActiveSnapshotElt;
 
 /* Top of the stack of active snapshots */
-static ActiveSnapshotElt * ActiveSnapshot = NULL;
+static ActiveSnapshotElt *ActiveSnapshot = NULL;
 
 /* Bottom of the stack of active snapshots */
-static ActiveSnapshotElt * OldestActiveSnapshot = NULL;
+static ActiveSnapshotElt *OldestActiveSnapshot = NULL;
 
 /*
  * Currently registered Snapshots.  Ordered in a heap by xmin, so that we can
  * quickly find the one with lowest xmin, to advance our MyPgXact->xmin.
  */
-static int xmin_cmp(const pairingheap_node * a, const pairingheap_node * b,
+static int xmin_cmp(const pairingheap_node *a, const pairingheap_node *b,
 		 void *arg);
 
-static pairingheap RegisteredSnapshots =
-{
-	&xmin_cmp, NULL, NULL
-};
+static pairingheap RegisteredSnapshots = {&xmin_cmp, NULL, NULL};
 
 /* first GetTransactionSnapshot call in a transaction? */
 bool		FirstSnapshotSet = false;
@@ -226,10 +217,10 @@ typedef struct ExportedSnapshot
 {
 	char	   *snapfile;
 	Snapshot	snapshot;
-}			ExportedSnapshot;
+} ExportedSnapshot;
 
 /* Current xact's exported snapshots (a list of ExportedSnapshot structs) */
-static List * exportedSnapshots = NIL;
+static List *exportedSnapshots = NIL;
 
 /* Prototypes for local functions */
 static TimestampTz AlignTimestampToMinuteBoundary(TimestampTz ts);
@@ -254,7 +245,7 @@ typedef struct SerializedSnapshotData
 	CommandId	curcid;
 	TimestampTz whenTaken;
 	XLogRecPtr	lsn;
-}			SerializedSnapshotData;
+} SerializedSnapshotData;
 
 Size
 SnapMgrShmemSize(void)
@@ -571,8 +562,8 @@ SnapshotSetCommandId(CommandId curcid)
  * in GetTransactionSnapshot.
  */
 static void
-SetTransactionSnapshot(Snapshot sourcesnap, VirtualTransactionId * sourcevxid,
-					   int sourcepid, PGPROC * sourceproc)
+SetTransactionSnapshot(Snapshot sourcesnap, VirtualTransactionId *sourcevxid,
+					   int sourcepid, PGPROC *sourceproc)
 {
 	/* Caller should have checked this already */
 	Assert(!FirstSnapshotSet);
@@ -950,10 +941,10 @@ UnregisterSnapshotFromOwner(Snapshot snapshot, ResourceOwner owner)
  * by xmin, so that the snapshot with smallest xmin is at the top.
  */
 static int
-xmin_cmp(const pairingheap_node * a, const pairingheap_node * b, void *arg)
+xmin_cmp(const pairingheap_node *a, const pairingheap_node *b, void *arg)
 {
-	const		SnapshotData *asnap = pairingheap_const_container(SnapshotData, ph_node, a);
-	const		SnapshotData *bsnap = pairingheap_const_container(SnapshotData, ph_node, b);
+	const SnapshotData *asnap = pairingheap_const_container(SnapshotData, ph_node, a);
+	const SnapshotData *bsnap = pairingheap_const_container(SnapshotData, ph_node, b);
 
 	if (TransactionIdPrecedes(asnap->xmin, bsnap->xmin))
 		return 1;
@@ -1180,7 +1171,7 @@ ExportSnapshot(Snapshot snapshot)
 	char		pathtmp[MAXPGPATH];
 
 	/*
-	 * It's tempting to call RequireTransactionChain here, since it's not very
+	 * It's tempting to call RequireTransactionBlock here, since it's not very
 	 * useful to export a snapshot that will disappear immediately afterwards.
 	 * However, we haven't got enough information to do that, since we don't
 	 * know if we're at top level or not.  For example, we could be inside a
@@ -1407,7 +1398,7 @@ parseXidFromText(const char *prefix, char **s, const char *filename)
 
 static void
 parseVxidFromText(const char *prefix, char **s, const char *filename,
-				  VirtualTransactionId * vxid)
+				  VirtualTransactionId *vxid)
 {
 	char	   *ptr = *s;
 	int			prefixlen = strlen(prefix);
@@ -1628,27 +1619,25 @@ DeleteAllExportedSnapshotFiles(void)
 	DIR		   *s_dir;
 	struct dirent *s_de;
 
-	if (!(s_dir = AllocateDir(SNAPSHOT_EXPORT_DIR)))
-	{
-		/*
-		 * We really should have that directory in a sane cluster setup. But
-		 * then again if we don't, it's not fatal enough to make it FATAL.
-		 * Since we're running in the postmaster, LOG is our best bet.
-		 */
-		elog(LOG, "could not open directory \"%s\": %m", SNAPSHOT_EXPORT_DIR);
-		return;
-	}
+	/*
+	 * Problems in reading the directory, or unlinking files, are reported at
+	 * LOG level.  Since we're running in the startup process, ERROR level
+	 * would prevent database start, and it's not important enough for that.
+	 */
+	s_dir = AllocateDir(SNAPSHOT_EXPORT_DIR);
 
-	while ((s_de = ReadDir(s_dir, SNAPSHOT_EXPORT_DIR)) != NULL)
+	while ((s_de = ReadDirExtended(s_dir, SNAPSHOT_EXPORT_DIR, LOG)) != NULL)
 	{
 		if (strcmp(s_de->d_name, ".") == 0 ||
 			strcmp(s_de->d_name, "..") == 0)
 			continue;
 
 		snprintf(buf, sizeof(buf), SNAPSHOT_EXPORT_DIR "/%s", s_de->d_name);
-		/* Again, unlink failure is not worthy of FATAL */
-		if (unlink(buf))
-			elog(LOG, "could not unlink file \"%s\": %m", buf);
+
+		if (unlink(buf) != 0)
+			ereport(LOG,
+					(errcode_for_file_access(),
+					 errmsg("could not remove file \"%s\": %m", buf)));
 	}
 
 	FreeDir(s_dir);
@@ -2009,7 +1998,7 @@ MaintainOldSnapshotTimeMapping(TimestampTz whenTaken, TransactionId xmin)
  * Needed for logical decoding.
  */
 void
-SetupHistoricSnapshot(Snapshot historic_snapshot, HTAB * tuplecids)
+SetupHistoricSnapshot(Snapshot historic_snapshot, HTAB *tuplecids)
 {
 	Assert(historic_snapshot != NULL);
 

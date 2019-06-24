@@ -6,7 +6,7 @@
  * and interpreting backend output.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/fe_utils/string_utils.c
@@ -26,8 +26,7 @@ static PQExpBuffer defaultGetLocalPQExpBuffer(void);
 
 /* Globals exported by this file */
 int			quote_all_identifiers = 0;
-
-PQExpBuffer(*getLocalPQExpBuffer) (void) = defaultGetLocalPQExpBuffer;
+PQExpBuffer (*getLocalPQExpBuffer) (void) = defaultGetLocalPQExpBuffer;
 
 
 /*
@@ -105,9 +104,9 @@ fmtId(const char *rawid)
 		 * Note: ScanKeywordLookup() does case-insensitive comparison, but
 		 * that's fine, since we already know we have all-lower-case.
 		 */
-		const		ScanKeyword *keyword = ScanKeywordLookup(rawid,
-															 ScanKeywords,
-															 NumScanKeywords);
+		const ScanKeyword *keyword = ScanKeywordLookup(rawid,
+													   ScanKeywords,
+													   NumScanKeywords);
 
 		if (keyword != NULL && keyword->category != UNRESERVED_KEYWORD)
 			need_quotes = true;
@@ -139,8 +138,7 @@ fmtId(const char *rawid)
 }
 
 /*
- * fmtQualifiedId - convert a qualified name to the proper format for
- * the source database.
+ * fmtQualifiedId - construct a schema-qualified name, with quoting as needed.
  *
  * Like fmtId, use the result before calling again.
  *
@@ -148,13 +146,13 @@ fmtId(const char *rawid)
  * use that buffer until we're finished with calling fmtId().
  */
 const char *
-fmtQualifiedId(int remoteVersion, const char *schema, const char *id)
+fmtQualifiedId(const char *schema, const char *id)
 {
 	PQExpBuffer id_return;
 	PQExpBuffer lcl_pqexp = createPQExpBuffer();
 
-	/* Suppress schema name if fetching from pre-7.3 DB */
-	if (remoteVersion >= 70300 && schema && *schema)
+	/* Some callers might fail to provide a schema name */
+	if (schema && *schema)
 	{
 		appendPQExpBuffer(lcl_pqexp, "%s.", fmtId(schema));
 	}
@@ -296,7 +294,7 @@ appendStringLiteral(PQExpBuffer buf, const char *str,
  * by current settings of the PGconn.
  */
 void
-appendStringLiteralConn(PQExpBuffer buf, const char *str, PGconn * conn)
+appendStringLiteralConn(PQExpBuffer buf, const char *str, PGconn *conn)
 {
 	size_t		length = strlen(str);
 
@@ -831,7 +829,7 @@ appendReloptionsArray(PQExpBuffer buffer, const char *reloptions,
  * The appended text, if any, will end with one too.
  */
 bool
-processSQLNamePattern(PGconn * conn, PQExpBuffer buf, const char *pattern,
+processSQLNamePattern(PGconn *conn, PQExpBuffer buf, const char *pattern,
 					  bool have_where, bool force_escape,
 					  const char *schemavar, const char *namevar,
 					  const char *altnamevar, const char *visibilityrule)

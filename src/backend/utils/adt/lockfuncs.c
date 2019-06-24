@@ -3,7 +3,7 @@
  * lockfuncs.c
  *		Functions for SQL access to various lock-manager capabilities.
  *
- * Copyright (c) 2002-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2002-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		src/backend/utils/adt/lockfuncs.c
@@ -50,7 +50,7 @@ typedef struct
 	int			currIdx;		/* current PROCLOCK index */
 	PredicateLockData *predLockData;	/* state data for pred locks */
 	int			predLockIdx;	/* current index for pred lock */
-}			PG_Lock_Status;
+} PG_Lock_Status;
 
 /* Number of columns in pg_locks output */
 #define NUM_LOCK_STATUS_COLUMNS		15

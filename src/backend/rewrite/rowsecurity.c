@@ -29,7 +29,7 @@
  * in the current environment, but that may change if the row_security GUC or
  * the current role changes.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  */
 #include "postgres.h"
@@ -38,7 +38,7 @@
 #include "access/htup_details.h"
 #include "access/sysattr.h"
 #include "catalog/pg_class.h"
-#include "catalog/pg_inherits_fn.h"
+#include "catalog/pg_inherits.h"
 #include "catalog/pg_policy.h"
 #include "catalog/pg_type.h"
 #include "miscadmin.h"
@@ -47,6 +47,7 @@
 #include "nodes/pg_list.h"
 #include "nodes/plannodes.h"
 #include "parser/parsetree.h"
+#include "rewrite/rewriteDefine.h"
 #include "rewrite/rewriteHandler.h"
 #include "rewrite/rewriteManip.h"
 #include "rewrite/rowsecurity.h"
@@ -59,29 +60,29 @@
 
 static void get_policies_for_relation(Relation relation,
 						  CmdType cmd, Oid user_id,
-						  List * *permissive_policies,
-						  List * *restrictive_policies);
+						  List **permissive_policies,
+						  List **restrictive_policies);
 
-static List * sort_policies_by_name(List * policies);
+static List *sort_policies_by_name(List *policies);
 
 static int	row_security_policy_cmp(const void *a, const void *b);
 
 static void add_security_quals(int rt_index,
-				   List * permissive_policies,
-				   List * restrictive_policies,
-				   List * *securityQuals,
+				   List *permissive_policies,
+				   List *restrictive_policies,
+				   List **securityQuals,
 				   bool *hasSubLinks);
 
 static void add_with_check_options(Relation rel,
 					   int rt_index,
 					   WCOKind kind,
-					   List * permissive_policies,
-					   List * restrictive_policies,
-					   List * *withCheckOptions,
+					   List *permissive_policies,
+					   List *restrictive_policies,
+					   List **withCheckOptions,
 					   bool *hasSubLinks,
 					   bool force_using);
 
-static bool check_role_for_policy(ArrayType * policy_roles, Oid user_id);
+static bool check_role_for_policy(ArrayType *policy_roles, Oid user_id);
 
 /*
  * hooks to allow extensions to add their own security policies
@@ -104,8 +105,8 @@ row_security_policy_hook_type row_security_policy_hook_restrictive = NULL;
  * set to true if any of the quals returned contain sublinks.
  */
 void
-get_row_security_policies(Query * root, RangeTblEntry * rte, int rt_index,
-						  List * *securityQuals, List * *withCheckOptions,
+get_row_security_policies(Query *root, RangeTblEntry *rte, int rt_index,
+						  List **securityQuals, List **withCheckOptions,
 						  bool *hasRowSecurity, bool *hasSubLinks)
 {
 	Oid			user_id;
@@ -382,6 +383,13 @@ get_row_security_policies(Query * root, RangeTblEntry * rte, int rt_index,
 	heap_close(rel, NoLock);
 
 	/*
+	 * Copy checkAsUser to the row security quals and WithCheckOption checks,
+	 * in case they contain any subqueries referring to other relations.
+	 */
+	setRuleCheckAsUser((Node *) *securityQuals, rte->checkAsUser);
+	setRuleCheckAsUser((Node *) *withCheckOptions, rte->checkAsUser);
+
+	/*
 	 * Mark this query as having row security, so plancache can invalidate it
 	 * when necessary (eg: role changes)
 	 */
@@ -400,8 +408,8 @@ get_row_security_policies(Query * root, RangeTblEntry * rte, int rt_index,
  */
 static void
 get_policies_for_relation(Relation relation, CmdType cmd, Oid user_id,
-						  List * *permissive_policies,
-						  List * *restrictive_policies)
+						  List **permissive_policies,
+						  List **restrictive_policies)
 {
 	ListCell   *item;
 
@@ -515,7 +523,7 @@ get_policies_for_relation(Relation relation, CmdType cmd, Oid user_id,
  * together using OR into a single WithCheckOption check.
  */
 static List *
-sort_policies_by_name(List * policies)
+sort_policies_by_name(List *policies)
 {
 	int			npol = list_length(policies);
 	RowSecurityPolicy *pols;
@@ -549,8 +557,8 @@ sort_policies_by_name(List * policies)
 static int
 row_security_policy_cmp(const void *a, const void *b)
 {
-	const		RowSecurityPolicy *pa = (const RowSecurityPolicy *) a;
-	const		RowSecurityPolicy *pb = (const RowSecurityPolicy *) b;
+	const RowSecurityPolicy *pa = (const RowSecurityPolicy *) a;
+	const RowSecurityPolicy *pb = (const RowSecurityPolicy *) b;
 
 	/* Guard against NULL policy names from extensions */
 	if (pa->policy_name == NULL)
@@ -574,9 +582,9 @@ row_security_policy_cmp(const void *a, const void *b)
  */
 static void
 add_security_quals(int rt_index,
-				   List * permissive_policies,
-				   List * restrictive_policies,
-				   List * *securityQuals,
+				   List *permissive_policies,
+				   List *restrictive_policies,
+				   List **securityQuals,
 				   bool *hasSubLinks)
 {
 	ListCell   *item;
@@ -672,9 +680,9 @@ static void
 add_with_check_options(Relation rel,
 					   int rt_index,
 					   WCOKind kind,
-					   List * permissive_policies,
-					   List * restrictive_policies,
-					   List * *withCheckOptions,
+					   List *permissive_policies,
+					   List *restrictive_policies,
+					   List **withCheckOptions,
 					   bool *hasSubLinks,
 					   bool force_using)
 {
@@ -790,7 +798,7 @@ add_with_check_options(Relation rel,
  *	 determines if the policy should be applied for the current role
  */
 static bool
-check_role_for_policy(ArrayType * policy_roles, Oid user_id)
+check_role_for_policy(ArrayType *policy_roles, Oid user_id)
 {
 	int			i;
 	Oid		   *roles = (Oid *) ARR_DATA_PTR(policy_roles);

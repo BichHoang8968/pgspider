@@ -22,7 +22,7 @@
  * The Windows implementation uses Windows events that are inherited by all
  * postmaster child processes. There's no need for the self-pipe trick there.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -127,15 +127,15 @@ static void drainSelfPipe(void);
 #endif							/* WIN32 */
 
 #if defined(WAIT_USE_EPOLL)
-static void WaitEventAdjustEpoll(WaitEventSet * set, WaitEvent * event, int action);
+static void WaitEventAdjustEpoll(WaitEventSet *set, WaitEvent *event, int action);
 #elif defined(WAIT_USE_POLL)
-static void WaitEventAdjustPoll(WaitEventSet * set, WaitEvent * event);
+static void WaitEventAdjustPoll(WaitEventSet *set, WaitEvent *event);
 #elif defined(WAIT_USE_WIN32)
-static void WaitEventAdjustWin32(WaitEventSet * set, WaitEvent * event);
+static void WaitEventAdjustWin32(WaitEventSet *set, WaitEvent *event);
 #endif
 
-static inline int WaitEventSetWaitBlock(WaitEventSet * set, int cur_timeout,
-					  WaitEvent * occurred_events, int nevents);
+static inline int WaitEventSetWaitBlock(WaitEventSet *set, int cur_timeout,
+					  WaitEvent *occurred_events, int nevents);
 
 /*
  * Initialize the process-local latch infrastructure.
@@ -217,7 +217,7 @@ InitializeLatchSupport(void)
  * Initialize a process-local latch.
  */
 void
-InitLatch(volatile Latch * latch)
+InitLatch(volatile Latch *latch)
 {
 	latch->is_set = false;
 	latch->owner_pid = MyProcPid;
@@ -249,7 +249,7 @@ InitLatch(volatile Latch * latch)
  * process references to postmaster-private latches or WaitEventSets.
  */
 void
-InitSharedLatch(volatile Latch * latch)
+InitSharedLatch(volatile Latch *latch)
 {
 #ifdef WIN32
 	SECURITY_ATTRIBUTES sa;
@@ -285,7 +285,7 @@ InitSharedLatch(volatile Latch * latch)
  * as shared latches use SIGUSR1 for inter-process communication.
  */
 void
-OwnLatch(volatile Latch * latch)
+OwnLatch(volatile Latch *latch)
 {
 	/* Sanity checks */
 	Assert(latch->is_shared);
@@ -305,7 +305,7 @@ OwnLatch(volatile Latch * latch)
  * Disown a shared latch currently owned by the current process.
  */
 void
-DisownLatch(volatile Latch * latch)
+DisownLatch(volatile Latch *latch)
 {
 	Assert(latch->is_shared);
 	Assert(latch->owner_pid == MyProcPid);
@@ -333,7 +333,7 @@ DisownLatch(volatile Latch * latch)
  * we return all of them in one call, but we will return at least one.
  */
 int
-WaitLatch(volatile Latch * latch, int wakeEvents, long timeout,
+WaitLatch(volatile Latch *latch, int wakeEvents, long timeout,
 		  uint32 wait_event_info)
 {
 	return WaitLatchOrSocket(latch, wakeEvents, PGINVALID_SOCKET, timeout,
@@ -353,7 +353,7 @@ WaitLatch(volatile Latch * latch, int wakeEvents, long timeout,
  * WaitEventSet instead; that's more efficient.
  */
 int
-WaitLatchOrSocket(volatile Latch * latch, int wakeEvents, pgsocket sock,
+WaitLatchOrSocket(volatile Latch *latch, int wakeEvents, pgsocket sock,
 				  long timeout, uint32 wait_event_info)
 {
 	int			ret = 0;
@@ -411,7 +411,7 @@ WaitLatchOrSocket(volatile Latch * latch, int wakeEvents, pgsocket sock,
  * throwing an error is not a good idea.
  */
 void
-SetLatch(volatile Latch * latch)
+SetLatch(volatile Latch *latch)
 {
 #ifndef WIN32
 	pid_t		owner_pid;
@@ -494,7 +494,7 @@ SetLatch(volatile Latch * latch)
  * the latch is set again before the WaitLatch call.
  */
 void
-ResetLatch(volatile Latch * latch)
+ResetLatch(volatile Latch *latch)
 {
 	/* Only the owner should reset the latch */
 	Assert(latch->owner_pid == MyProcPid);
@@ -604,7 +604,7 @@ CreateWaitEventSet(MemoryContext context, int nevents)
  * involved are non-inheritable.
  */
 void
-FreeWaitEventSet(WaitEventSet * set)
+FreeWaitEventSet(WaitEventSet *set)
 {
 #if defined(WAIT_USE_EPOLL)
 	close(set->epoll_fd);
@@ -663,7 +663,7 @@ FreeWaitEventSet(WaitEventSet * set)
  * events.
  */
 int
-AddWaitEventToSet(WaitEventSet * set, uint32 events, pgsocket fd, Latch * latch,
+AddWaitEventToSet(WaitEventSet *set, uint32 events, pgsocket fd, Latch *latch,
 				  void *user_data)
 {
 	WaitEvent  *event;
@@ -733,7 +733,7 @@ AddWaitEventToSet(WaitEventSet * set, uint32 events, pgsocket fd, Latch * latch,
  * 'pos' is the id returned by AddWaitEventToSet.
  */
 void
-ModifyWaitEvent(WaitEventSet * set, int pos, uint32 events, Latch * latch)
+ModifyWaitEvent(WaitEventSet *set, int pos, uint32 events, Latch *latch)
 {
 	WaitEvent  *event;
 
@@ -785,7 +785,7 @@ ModifyWaitEvent(WaitEventSet * set, int pos, uint32 events, Latch * latch)
  * action can be one of EPOLL_CTL_ADD | EPOLL_CTL_MOD | EPOLL_CTL_DEL
  */
 static void
-WaitEventAdjustEpoll(WaitEventSet * set, WaitEvent * event, int action)
+WaitEventAdjustEpoll(WaitEventSet *set, WaitEvent *event, int action)
 {
 	struct epoll_event epoll_ev;
 	int			rc;
@@ -832,7 +832,7 @@ WaitEventAdjustEpoll(WaitEventSet * set, WaitEvent * event, int action)
 
 #if defined(WAIT_USE_POLL)
 static void
-WaitEventAdjustPoll(WaitEventSet * set, WaitEvent * event)
+WaitEventAdjustPoll(WaitEventSet *set, WaitEvent *event)
 {
 	struct pollfd *pollfd = &set->pollfds[event->pos];
 
@@ -865,7 +865,7 @@ WaitEventAdjustPoll(WaitEventSet * set, WaitEvent * event)
 
 #if defined(WAIT_USE_WIN32)
 static void
-WaitEventAdjustWin32(WaitEventSet * set, WaitEvent * event)
+WaitEventAdjustWin32(WaitEventSet *set, WaitEvent *event)
 {
 	HANDLE	   *handle = &set->handles[event->pos + 1];
 
@@ -918,8 +918,8 @@ WaitEventAdjustWin32(WaitEventSet * set, WaitEvent * event)
  * values associated with the registered event.
  */
 int
-WaitEventSetWait(WaitEventSet * set, long timeout,
-				 WaitEvent * occurred_events, int nevents,
+WaitEventSetWait(WaitEventSet *set, long timeout,
+				 WaitEvent *occurred_events, int nevents,
 				 uint32 wait_event_info)
 {
 	int			returned_events = 0;
@@ -1036,8 +1036,8 @@ WaitEventSetWait(WaitEventSet * set, long timeout,
  * easy.
  */
 static inline int
-WaitEventSetWaitBlock(WaitEventSet * set, int cur_timeout,
-					  WaitEvent * occurred_events, int nevents)
+WaitEventSetWaitBlock(WaitEventSet *set, int cur_timeout,
+					  WaitEvent *occurred_events, int nevents)
 {
 	int			returned_events = 0;
 	int			rc;
@@ -1159,8 +1159,8 @@ WaitEventSetWaitBlock(WaitEventSet * set, int cur_timeout,
  * but requires iterating through all of set->pollfds.
  */
 static inline int
-WaitEventSetWaitBlock(WaitEventSet * set, int cur_timeout,
-					  WaitEvent * occurred_events, int nevents)
+WaitEventSetWaitBlock(WaitEventSet *set, int cur_timeout,
+					  WaitEvent *occurred_events, int nevents)
 {
 	int			returned_events = 0;
 	int			rc;
@@ -1282,8 +1282,8 @@ WaitEventSetWaitBlock(WaitEventSet * set, int cur_timeout,
  * that only one event is "consumed".
  */
 static inline int
-WaitEventSetWaitBlock(WaitEventSet * set, int cur_timeout,
-					  WaitEvent * occurred_events, int nevents)
+WaitEventSetWaitBlock(WaitEventSet *set, int cur_timeout,
+					  WaitEvent *occurred_events, int nevents)
 {
 	int			returned_events = 0;
 	DWORD		rc;
@@ -1362,7 +1362,7 @@ WaitEventSetWaitBlock(WaitEventSet * set, int cur_timeout,
 	 * With an offset of one, due to the always present pgwin32_signal_event,
 	 * the handle offset directly corresponds to a wait event.
 	 */
-	cur_event = (WaitEvent *) & set->events[rc - WAIT_OBJECT_0 - 1];
+	cur_event = (WaitEvent *) &set->events[rc - WAIT_OBJECT_0 - 1];
 
 	occurred_events->pos = cur_event->pos;
 	occurred_events->user_data = cur_event->user_data;

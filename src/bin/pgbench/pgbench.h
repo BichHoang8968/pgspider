@@ -2,7 +2,7 @@
  *
  * pgbench.h
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *-------------------------------------------------------------------------
@@ -33,10 +33,13 @@ union YYSTYPE;
  */
 typedef enum
 {
+	PGBT_NO_VALUE,
+	PGBT_NULL,
 	PGBT_INT,
-	PGBT_DOUBLE
+	PGBT_DOUBLE,
+	PGBT_BOOLEAN
 	/* add other types here */
-}			PgBenchValueType;
+} PgBenchValueType;
 
 typedef struct
 {
@@ -45,9 +48,10 @@ typedef struct
 	{
 		int64		ival;
 		double		dval;
+		bool		bval;
 		/* add other types here */
 	}			u;
-}			PgBenchValue;
+} PgBenchValue;
 
 /* Types of expression nodes */
 typedef enum PgBenchExprType
@@ -55,7 +59,7 @@ typedef enum PgBenchExprType
 	ENODE_CONSTANT,
 	ENODE_VARIABLE,
 	ENODE_FUNCTION
-}			PgBenchExprType;
+} PgBenchExprType;
 
 /* List of operators and callable functions */
 typedef enum PgBenchFunction
@@ -73,10 +77,30 @@ typedef enum PgBenchFunction
 	PGBENCH_DOUBLE,
 	PGBENCH_PI,
 	PGBENCH_SQRT,
+	PGBENCH_LN,
+	PGBENCH_EXP,
 	PGBENCH_RANDOM,
 	PGBENCH_RANDOM_GAUSSIAN,
-	PGBENCH_RANDOM_EXPONENTIAL
-}			PgBenchFunction;
+	PGBENCH_RANDOM_EXPONENTIAL,
+	PGBENCH_RANDOM_ZIPFIAN,
+	PGBENCH_POW,
+	PGBENCH_AND,
+	PGBENCH_OR,
+	PGBENCH_NOT,
+	PGBENCH_BITAND,
+	PGBENCH_BITOR,
+	PGBENCH_BITXOR,
+	PGBENCH_LSHIFT,
+	PGBENCH_RSHIFT,
+	PGBENCH_EQ,
+	PGBENCH_NE,
+	PGBENCH_LE,
+	PGBENCH_LT,
+	PGBENCH_IS,
+	PGBENCH_CASE,
+	PGBENCH_HASH_FNV1A,
+	PGBENCH_HASH_MURMUR2
+} PgBenchFunction;
 
 typedef struct PgBenchExpr PgBenchExpr;
 typedef struct PgBenchExprLink PgBenchExprLink;
@@ -113,7 +137,7 @@ struct PgBenchExprList
 	PgBenchExprLink *tail;
 };
 
-extern PgBenchExpr * expr_parse_result;
+extern PgBenchExpr *expr_parse_result;
 
 extern int	expr_yyparse(yyscan_t yyscanner);
 extern int	expr_yylex(union YYSTYPE *lvalp, yyscan_t yyscanner);
@@ -123,12 +147,13 @@ extern void expr_yyerror_more(yyscan_t yyscanner, const char *str,
 extern bool expr_lex_one_word(PsqlScanState state, PQExpBuffer word_buf,
 				  int *offset);
 extern yyscan_t expr_scanner_init(PsqlScanState state,
-								  const char *source, int lineno, int start_offset,
-								  const char *command);
+				  const char *source, int lineno, int start_offset,
+				  const char *command);
 extern void expr_scanner_finish(yyscan_t yyscanner);
 extern int	expr_scanner_offset(PsqlScanState state);
 extern char *expr_scanner_get_substring(PsqlScanState state,
-						   int start_offset, int end_offset);
+						   int start_offset, int end_offset,
+						   bool chomp);
 extern int	expr_scanner_get_lineno(PsqlScanState state, int offset);
 
 extern void syntax_error(const char *source, int lineno, const char *line,

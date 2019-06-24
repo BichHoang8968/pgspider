@@ -14,7 +14,7 @@ typedef struct
 {
 	Oid			lower;
 	Oid			upper;
-}			oidKEY;
+} oidKEY;
 
 /*
 ** enum ops
@@ -29,33 +29,33 @@ PG_FUNCTION_INFO_V1(gbt_enum_same);
 
 
 static bool
-gbt_enumgt(const void *a, const void *b, FmgrInfo * flinfo)
+gbt_enumgt(const void *a, const void *b, FmgrInfo *flinfo)
 {
 	return DatumGetBool(
 						CallerFInfoFunctionCall2(enum_gt, flinfo, InvalidOid, ObjectIdGetDatum(*((const Oid *) a)), ObjectIdGetDatum(*((const Oid *) b)))
 		);
 }
 static bool
-gbt_enumge(const void *a, const void *b, FmgrInfo * flinfo)
+gbt_enumge(const void *a, const void *b, FmgrInfo *flinfo)
 {
 	return DatumGetBool(
 						CallerFInfoFunctionCall2(enum_ge, flinfo, InvalidOid, ObjectIdGetDatum(*((const Oid *) a)), ObjectIdGetDatum(*((const Oid *) b)))
 		);
 }
 static bool
-gbt_enumeq(const void *a, const void *b, FmgrInfo * flinfo)
+gbt_enumeq(const void *a, const void *b, FmgrInfo *flinfo)
 {
 	return (*((const Oid *) a) == *((const Oid *) b));
 }
 static bool
-gbt_enumle(const void *a, const void *b, FmgrInfo * flinfo)
+gbt_enumle(const void *a, const void *b, FmgrInfo *flinfo)
 {
 	return DatumGetBool(
 						CallerFInfoFunctionCall2(enum_le, flinfo, InvalidOid, ObjectIdGetDatum(*((const Oid *) a)), ObjectIdGetDatum(*((const Oid *) b)))
 		);
 }
 static bool
-gbt_enumlt(const void *a, const void *b, FmgrInfo * flinfo)
+gbt_enumlt(const void *a, const void *b, FmgrInfo *flinfo)
 {
 	return DatumGetBool(
 						CallerFInfoFunctionCall2(enum_lt, flinfo, InvalidOid, ObjectIdGetDatum(*((const Oid *) a)), ObjectIdGetDatum(*((const Oid *) b)))
@@ -63,7 +63,7 @@ gbt_enumlt(const void *a, const void *b, FmgrInfo * flinfo)
 }
 
 static int
-gbt_enumkey_cmp(const void *a, const void *b, FmgrInfo * flinfo)
+gbt_enumkey_cmp(const void *a, const void *b, FmgrInfo *flinfo)
 {
 	oidKEY	   *ia = (oidKEY *) (((const Nsrt *) a)->t);
 	oidKEY	   *ib = (oidKEY *) (((const Nsrt *) b)->t);
@@ -134,8 +134,8 @@ gbt_enum_consistent(PG_FUNCTION_ARGS)
 	/* All cases served by this function are exact */
 	*recheck = false;
 
-	key.lower = (GBT_NUMKEY *) & kkk->lower;
-	key.upper = (GBT_NUMKEY *) & kkk->upper;
+	key.lower = (GBT_NUMKEY *) &kkk->lower;
+	key.upper = (GBT_NUMKEY *) &kkk->upper;
 
 	PG_RETURN_BOOL(
 				   gbt_num_consistent(&key, (void *) &query, &strategy, GIST_LEAF(entry), &tinfo, fcinfo->flinfo)

@@ -13,7 +13,7 @@
  * cutoff value computed from the selection probability by BeginSampleScan.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -45,24 +45,24 @@ typedef struct
 	uint32		seed;			/* random seed */
 	BlockNumber nextblock;		/* next block to consider sampling */
 	OffsetNumber lt;			/* last tuple returned from current block */
-}			SystemSamplerData;
+} SystemSamplerData;
 
 
-static void system_samplescangetsamplesize(PlannerInfo * root,
-							   RelOptInfo * baserel,
-							   List * paramexprs,
-							   BlockNumber * pages,
+static void system_samplescangetsamplesize(PlannerInfo *root,
+							   RelOptInfo *baserel,
+							   List *paramexprs,
+							   BlockNumber *pages,
 							   double *tuples);
-static void system_initsamplescan(SampleScanState * node,
+static void system_initsamplescan(SampleScanState *node,
 					  int eflags);
-static void system_beginsamplescan(SampleScanState * node,
-					   Datum * params,
+static void system_beginsamplescan(SampleScanState *node,
+					   Datum *params,
 					   int nparams,
 					   uint32 seed);
-static BlockNumber system_nextsampleblock(SampleScanState * node);
-static OffsetNumber system_nextsampletuple(SampleScanState * node,
-										   BlockNumber blockno,
-										   OffsetNumber maxoffset);
+static BlockNumber system_nextsampleblock(SampleScanState *node);
+static OffsetNumber system_nextsampletuple(SampleScanState *node,
+					   BlockNumber blockno,
+					   OffsetNumber maxoffset);
 
 
 /*
@@ -90,10 +90,10 @@ tsm_system_handler(PG_FUNCTION_ARGS)
  * Sample size estimation.
  */
 static void
-system_samplescangetsamplesize(PlannerInfo * root,
-							   RelOptInfo * baserel,
-							   List * paramexprs,
-							   BlockNumber * pages,
+system_samplescangetsamplesize(PlannerInfo *root,
+							   RelOptInfo *baserel,
+							   List *paramexprs,
+							   BlockNumber *pages,
 							   double *tuples)
 {
 	Node	   *pctnode;
@@ -132,7 +132,7 @@ system_samplescangetsamplesize(PlannerInfo * root,
  * Initialize during executor setup.
  */
 static void
-system_initsamplescan(SampleScanState * node, int eflags)
+system_initsamplescan(SampleScanState *node, int eflags)
 {
 	node->tsm_state = palloc0(sizeof(SystemSamplerData));
 }
@@ -141,8 +141,8 @@ system_initsamplescan(SampleScanState * node, int eflags)
  * Examine parameters and prepare for a sample scan.
  */
 static void
-system_beginsamplescan(SampleScanState * node,
-					   Datum * params,
+system_beginsamplescan(SampleScanState *node,
+					   Datum *params,
 					   int nparams,
 					   uint32 seed)
 {
@@ -180,7 +180,7 @@ system_beginsamplescan(SampleScanState * node,
  * Select next block to sample.
  */
 static BlockNumber
-system_nextsampleblock(SampleScanState * node)
+system_nextsampleblock(SampleScanState *node)
 {
 	SystemSamplerData *sampler = (SystemSamplerData *) node->tsm_state;
 	HeapScanDesc scan = node->ss.ss_currentScanDesc;
@@ -239,7 +239,7 @@ system_nextsampleblock(SampleScanState * node)
  * SampleScan to go to next block.
  */
 static OffsetNumber
-system_nextsampletuple(SampleScanState * node,
+system_nextsampletuple(SampleScanState *node,
 					   BlockNumber blockno,
 					   OffsetNumber maxoffset)
 {

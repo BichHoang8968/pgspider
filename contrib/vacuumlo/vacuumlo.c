@@ -3,7 +3,7 @@
  * vacuumlo.c
  *	  This removes orphaned large objects from a database.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -21,8 +21,9 @@
 #include <termios.h>
 #endif
 
-#include "catalog/pg_class.h"
+#include "catalog/pg_class_d.h"
 
+#include "fe_utils/connect.h"
 #include "libpq-fe.h"
 #include "pg_getopt.h"
 
@@ -140,11 +141,8 @@ vacuumlo(const char *database, const struct _param *param)
 			fprintf(stdout, "Test run: no large objects will be removed!\n");
 	}
 
-	/*
-	 * Don't get fooled by any non-system catalogs
-	 */
-	res = PQexec(conn, "SET search_path = pg_catalog");
-	if (PQresultStatus(res) != PGRES_COMMAND_OK)
+	res = PQexec(conn, ALWAYS_SECURE_SEARCH_PATH_SQL);
+	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
 		fprintf(stderr, "Failed to set search_path:\n");
 		fprintf(stderr, "%s", PQerrorMessage(conn));
@@ -318,7 +316,7 @@ vacuumlo(const char *database, const struct _param *param)
 
 	deleted = 0;
 
-	while (1)
+	do
 	{
 		res = PQexec(conn, buf);
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
@@ -356,8 +354,7 @@ vacuumlo(const char *database, const struct _param *param)
 					if (PQtransactionStatus(conn) == PQTRANS_INERROR)
 					{
 						success = false;
-						PQclear(res);
-						break;
+						break;	/* out of inner for-loop */
 					}
 				}
 				else
@@ -395,7 +392,7 @@ vacuumlo(const char *database, const struct _param *param)
 		}
 
 		PQclear(res);
-	}
+	} while (success);
 
 	/*
 	 * That's all folks!

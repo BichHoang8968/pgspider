@@ -4,7 +4,7 @@
  *	  definitions for replication grammar parse nodes
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/nodes/replnodes.h
@@ -21,7 +21,7 @@ typedef enum ReplicationKind
 {
 	REPLICATION_KIND_PHYSICAL,
 	REPLICATION_KIND_LOGICAL
-}			ReplicationKind;
+} ReplicationKind;
 
 
 /* ----------------------
@@ -31,7 +31,7 @@ typedef enum ReplicationKind
 typedef struct IdentifySystemCmd
 {
 	NodeTag		type;
-}			IdentifySystemCmd;
+} IdentifySystemCmd;
 
 
 /* ----------------------
@@ -42,7 +42,7 @@ typedef struct BaseBackupCmd
 {
 	NodeTag		type;
 	List	   *options;
-}			BaseBackupCmd;
+} BaseBackupCmd;
 
 
 /* ----------------------
@@ -57,7 +57,7 @@ typedef struct CreateReplicationSlotCmd
 	char	   *plugin;
 	bool		temporary;
 	List	   *options;
-}			CreateReplicationSlotCmd;
+} CreateReplicationSlotCmd;
 
 
 /* ----------------------
@@ -69,7 +69,7 @@ typedef struct DropReplicationSlotCmd
 	NodeTag		type;
 	char	   *slotname;
 	bool		wait;
-}			DropReplicationSlotCmd;
+} DropReplicationSlotCmd;
 
 
 /* ----------------------
@@ -84,7 +84,7 @@ typedef struct StartReplicationCmd
 	TimeLineID	timeline;
 	XLogRecPtr	startpoint;
 	List	   *options;
-}			StartReplicationCmd;
+} StartReplicationCmd;
 
 
 /* ----------------------
@@ -95,7 +95,7 @@ typedef struct TimeLineHistoryCmd
 {
 	NodeTag		type;
 	TimeLineID	timeline;
-}			TimeLineHistoryCmd;
+} TimeLineHistoryCmd;
 
 /* ----------------------
  *		SQL commands
@@ -104,6 +104,6 @@ typedef struct TimeLineHistoryCmd
 typedef struct SQLCmd
 {
 	NodeTag		type;
-}			SQLCmd;
+} SQLCmd;
 
 #endif							/* REPLNODES_H */

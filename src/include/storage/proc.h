@@ -4,7 +4,7 @@
  *	  per-process shared memory data structures
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/proc.h
@@ -14,6 +14,7 @@
 #ifndef _PROC_H_
 #define _PROC_H_
 
+#include "access/clog.h"
 #include "access/xlogdefs.h"
 #include "lib/ilist.h"
 #include "storage/latch.h"
@@ -113,6 +114,9 @@ struct PGPROC
 	Oid			databaseId;		/* OID of database this backend is using */
 	Oid			roleId;			/* OID of role using this backend */
 
+	Oid			tempNamespaceId;	/* OID of temp schema this backend is
+									 * using */
+
 	bool		isBackgroundWorker; /* true if background worker. */
 
 	/*
@@ -171,6 +175,17 @@ struct PGPROC
 
 	uint32		wait_event_info;	/* proc's wait information */
 
+	/* Support for group transaction status update. */
+	bool		clogGroupMember;	/* true, if member of clog group */
+	pg_atomic_uint32 clogGroupNext; /* next clog group member */
+	TransactionId clogGroupMemberXid;	/* transaction id of clog group member */
+	XidStatus	clogGroupMemberXidStatus;	/* transaction status of clog
+											 * group member */
+	int			clogGroupMemberPage;	/* clog page corresponding to
+										 * transaction id of clog group member */
+	XLogRecPtr	clogGroupMemberLsn; /* WAL location of commit record for clog
+									 * group member */
+
 	/* Per-backend LWLock.  Protects fields below (but not group fields). */
 	LWLock		backendLock;
 
@@ -193,7 +208,7 @@ struct PGPROC
 /* NOTE: "typedef struct PGPROC PGPROC" appears in storage/lock.h. */
 
 
-extern PGDLLIMPORT PGPROC * MyProc;
+extern PGDLLIMPORT PGPROC *MyProc;
 extern PGDLLIMPORT struct PGXACT *MyPgXact;
 
 /*
@@ -221,7 +236,7 @@ typedef struct PGXACT
 								 * previously called InCommit */
 
 	uint8		nxids;
-}			PGXACT;
+} PGXACT;
 
 /*
  * There is one ProcGlobal struct for the whole database cluster.
@@ -242,6 +257,8 @@ typedef struct PROC_HDR
 	PGPROC	   *bgworkerFreeProcs;
 	/* First pgproc waiting for group XID clear */
 	pg_atomic_uint32 procArrayGroupFirst;
+	/* First pgproc waiting for group transaction status update */
+	pg_atomic_uint32 clogGroupFirst;
 	/* WALWriter process's latch */
 	Latch	   *walwriterLatch;
 	/* Checkpointer process's latch */
@@ -253,11 +270,11 @@ typedef struct PROC_HDR
 	int			startupProcPid;
 	/* Buffer id of the buffer that Startup process waits for pin on, or -1 */
 	int			startupBufferPinWaitBufId;
-}			PROC_HDR;
+} PROC_HDR;
 
-extern PGDLLIMPORT PROC_HDR * ProcGlobal;
+extern PGDLLIMPORT PROC_HDR *ProcGlobal;
 
-extern PGPROC * PreparedXactProcs;
+extern PGPROC *PreparedXactProcs;
 
 /* Accessor for PGPROC given a pgprocno. */
 #define GetPGProcByNumber(n) (&ProcGlobal->allProcs[(n)])
@@ -297,10 +314,10 @@ extern int	GetStartupBufferPinWaitBufId(void);
 extern bool HaveNFreeProcs(int n);
 extern void ProcReleaseLocks(bool isCommit);
 
-extern void ProcQueueInit(PROC_QUEUE * queue);
-extern int	ProcSleep(LOCALLOCK * locallock, LockMethod lockMethodTable);
-extern PGPROC * ProcWakeup(PGPROC * proc, int waitStatus);
-extern void ProcLockWakeup(LockMethod lockMethodTable, LOCK * lock);
+extern void ProcQueueInit(PROC_QUEUE *queue);
+extern int	ProcSleep(LOCALLOCK *locallock, LockMethod lockMethodTable);
+extern PGPROC *ProcWakeup(PGPROC *proc, int waitStatus);
+extern void ProcLockWakeup(LockMethod lockMethodTable, LOCK *lock);
 extern void CheckDeadLockAlert(void);
 extern bool IsWaitingForLock(void);
 extern void LockErrorCleanup(void);
@@ -308,9 +325,9 @@ extern void LockErrorCleanup(void);
 extern void ProcWaitForSignal(uint32 wait_event_info);
 extern void ProcSendSignal(int pid);
 
-extern PGPROC * AuxiliaryPidGetProc(int pid);
+extern PGPROC *AuxiliaryPidGetProc(int pid);
 
 extern void BecomeLockGroupLeader(void);
-extern bool BecomeLockGroupMember(PGPROC * leader, int pid);
+extern bool BecomeLockGroupMember(PGPROC *leader, int pid);
 
 #endif							/* PROC_H */

@@ -50,7 +50,7 @@
  * there is a window (caused by pgstat delay) on which a worker may choose a
  * table that was already vacuumed; this is a bug in the current design.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -79,6 +79,7 @@
 #include "lib/ilist.h"
 #include "libpq/pqsignal.h"
 #include "miscadmin.h"
+#include "nodes/makefuncs.h"
 #include "pgstat.h"
 #include "postmaster/autovacuum.h"
 #include "postmaster/fork_process.h"
@@ -161,7 +162,7 @@ typedef struct avl_dbase
 	TimestampTz adl_next_worker;
 	int			adl_score;
 	dlist_node	adl_node;
-}			avl_dbase;
+} avl_dbase;
 
 /* struct to keep track of databases in worker */
 typedef struct avw_dbase
@@ -171,7 +172,7 @@ typedef struct avw_dbase
 	TransactionId adw_frozenxid;
 	MultiXactId adw_minmulti;
 	PgStat_StatDBEntry *adw_entry;
-}			avw_dbase;
+} avw_dbase;
 
 /* struct to keep track of tables to vacuum and/or analyze, in 1st pass */
 typedef struct av_relation
@@ -181,7 +182,7 @@ typedef struct av_relation
 	bool		ar_hasrelopts;
 	AutoVacOpts ar_reloptions;	/* copy of AutoVacOpts from the main table's
 								 * reloptions, or NULL if none */
-}			av_relation;
+} av_relation;
 
 /* struct to keep track of tables to vacuum and/or analyze, after rechecking */
 typedef struct autovac_table
@@ -196,7 +197,7 @@ typedef struct autovac_table
 	char	   *at_relname;
 	char	   *at_nspname;
 	char	   *at_datname;
-}			autovac_table;
+} autovac_table;
 
 /*-------------
  * This struct holds information about a single worker's whereabouts.  We keep
@@ -228,7 +229,7 @@ typedef struct WorkerInfoData
 	int			wi_cost_delay;
 	int			wi_cost_limit;
 	int			wi_cost_limit_base;
-}			WorkerInfoData;
+} WorkerInfoData;
 
 typedef struct WorkerInfoData *WorkerInfo;
 
@@ -258,7 +259,7 @@ typedef struct AutoVacuumWorkItem
 	Oid			avw_database;
 	Oid			avw_relation;
 	BlockNumber avw_blockNumber;
-}			AutoVacuumWorkItem;
+} AutoVacuumWorkItem;
 
 #define NUM_WORKITEMS	256
 
@@ -286,9 +287,9 @@ typedef struct
 	dlist_head	av_runningWorkers;
 	WorkerInfo	av_startingWorker;
 	AutoVacuumWorkItem av_workItems[NUM_WORKITEMS];
-}			AutoVacuumShmemStruct;
+} AutoVacuumShmemStruct;
 
-static AutoVacuumShmemStruct * AutoVacuumShmem;
+static AutoVacuumShmemStruct *AutoVacuumShmem;
 
 /*
  * the database list (of avl_dbase elements) in the launcher, and the context
@@ -310,11 +311,11 @@ static pid_t avworker_forkexec(void);
 NON_EXEC_STATIC void AutoVacWorkerMain(int argc, char *argv[]) pg_attribute_noreturn();
 NON_EXEC_STATIC void AutoVacLauncherMain(int argc, char *argv[]) pg_attribute_noreturn();
 
-static Oid do_start_worker(void);
+static Oid	do_start_worker(void);
 static void launcher_determine_sleep(bool canlaunch, bool recursing,
 						 struct timeval *nap);
 static void launch_worker(TimestampTz now);
-static List * get_database_list(void);
+static List *get_database_list(void);
 static void rebuild_database_list(Oid newdb);
 static int	db_comparator(const void *a, const void *b);
 static void autovac_balance_cost(void);
@@ -322,25 +323,25 @@ static void autovac_balance_cost(void);
 static void do_autovacuum(void);
 static void FreeWorkerInfo(int code, Datum arg);
 
-static autovac_table * table_recheck_autovac(Oid relid, HTAB * table_toast_map,
-											 TupleDesc pg_class_desc,
-											 int effective_multixact_freeze_max_age);
-static void relation_needs_vacanalyze(Oid relid, AutoVacOpts * relopts,
+static autovac_table *table_recheck_autovac(Oid relid, HTAB *table_toast_map,
+					  TupleDesc pg_class_desc,
+					  int effective_multixact_freeze_max_age);
+static void relation_needs_vacanalyze(Oid relid, AutoVacOpts *relopts,
 						  Form_pg_class classForm,
-						  PgStat_StatTabEntry * tabentry,
+						  PgStat_StatTabEntry *tabentry,
 						  int effective_multixact_freeze_max_age,
 						  bool *dovacuum, bool *doanalyze, bool *wraparound);
 
-static void autovacuum_do_vac_analyze(autovac_table * tab,
+static void autovacuum_do_vac_analyze(autovac_table *tab,
 						  BufferAccessStrategy bstrategy);
-static AutoVacOpts * extract_autovac_opts(HeapTuple tup,
-										  TupleDesc pg_class_desc);
-static PgStat_StatTabEntry * get_pgstat_tabentry_relid(Oid relid, bool isshared,
-													   PgStat_StatDBEntry * shared,
-													   PgStat_StatDBEntry * dbentry);
-static void perform_work_item(AutoVacuumWorkItem * workitem);
-static void autovac_report_activity(autovac_table * tab);
-static void autovac_report_workitem(AutoVacuumWorkItem * workitem,
+static AutoVacOpts *extract_autovac_opts(HeapTuple tup,
+					 TupleDesc pg_class_desc);
+static PgStat_StatTabEntry *get_pgstat_tabentry_relid(Oid relid, bool isshared,
+						  PgStat_StatDBEntry *shared,
+						  PgStat_StatDBEntry *dbentry);
+static void perform_work_item(AutoVacuumWorkItem *workitem);
+static void autovac_report_activity(autovac_table *tab);
+static void autovac_report_workitem(AutoVacuumWorkItem *workitem,
 						const char *nspname, const char *relname);
 static void av_sighup_handler(SIGNAL_ARGS);
 static void avl_sigusr2_handler(SIGNAL_ARGS);
@@ -435,7 +436,7 @@ AutoVacLauncherMain(int argc, char *argv[])
 	am_autovacuum_launcher = true;
 
 	/* Identify myself via ps */
-	init_ps_display("autovacuum launcher process", "", "", "");
+	init_ps_display(pgstat_get_backend_desc(B_AUTOVAC_LAUNCHER), "", "", "");
 
 	ereport(DEBUG1,
 			(errmsg("autovacuum launcher started")));
@@ -476,7 +477,7 @@ AutoVacLauncherMain(int argc, char *argv[])
 	InitProcess();
 #endif
 
-	InitPostgres(NULL, InvalidOid, NULL, InvalidOid, NULL);
+	InitPostgres(NULL, InvalidOid, NULL, InvalidOid, NULL, false);
 
 	SetProcessingMode(NormalProcessing);
 
@@ -530,7 +531,7 @@ AutoVacLauncherMain(int argc, char *argv[])
 		}
 		AtEOXact_Buffers(false);
 		AtEOXact_SMgr();
-		AtEOXact_Files();
+		AtEOXact_Files(false);
 		AtEOXact_HashTables(false);
 
 		/*
@@ -1524,7 +1525,7 @@ AutoVacWorkerMain(int argc, char *argv[])
 	am_autovacuum_worker = true;
 
 	/* Identify myself via ps */
-	init_ps_display("autovacuum worker process", "", "", "");
+	init_ps_display(pgstat_get_backend_desc(B_AUTOVAC_WORKER), "", "", "");
 
 	SetProcessingMode(InitProcessing);
 
@@ -1692,7 +1693,7 @@ AutoVacWorkerMain(int argc, char *argv[])
 		 * Note: if we have selected a just-deleted database (due to using
 		 * stale stats info), we'll fail and exit here.
 		 */
-		InitPostgres(NULL, dbid, NULL, InvalidOid, dbname);
+		InitPostgres(NULL, dbid, NULL, InvalidOid, dbname, false);
 		SetProcessingMode(NormalProcessing);
 		set_ps_display(dbname, false);
 		ereport(DEBUG1,
@@ -2083,14 +2084,11 @@ do_autovacuum(void)
 		 */
 		if (classForm->relpersistence == RELPERSISTENCE_TEMP)
 		{
-			int			backendID;
-
-			backendID = GetTempNamespaceBackendId(classForm->relnamespace);
-
-			/* We just ignore it if the owning backend is still active */
-			if (backendID != InvalidBackendId &&
-				(backendID == MyBackendId ||
-				 BackendIdGetProc(backendID) == NULL))
+			/*
+			 * We just ignore it if the owning backend is still active and
+			 * using the temporary schema.
+			 */
+			if (!isTempNamespaceInUse(classForm->relnamespace))
 			{
 				/*
 				 * The table seems to be orphaned -- although it might be that
@@ -2218,7 +2216,6 @@ do_autovacuum(void)
 	{
 		Oid			relid = lfirst_oid(cell);
 		Form_pg_class classForm;
-		int			backendID;
 		ObjectAddress object;
 
 		/*
@@ -2260,10 +2257,8 @@ do_autovacuum(void)
 			UnlockRelationOid(relid, AccessExclusiveLock);
 			continue;
 		}
-		backendID = GetTempNamespaceBackendId(classForm->relnamespace);
-		if (!(backendID != InvalidBackendId &&
-			  (backendID == MyBackendId ||
-			   BackendIdGetProc(backendID) == NULL)))
+
+		if (isTempNamespaceInUse(classForm->relnamespace))
 		{
 			UnlockRelationOid(relid, AccessExclusiveLock);
 			continue;
@@ -2627,7 +2622,7 @@ deleted:
  * Execute a previously registered work item.
  */
 static void
-perform_work_item(AutoVacuumWorkItem * workitem)
+perform_work_item(AutoVacuumWorkItem *workitem)
 {
 	char	   *cur_datname = NULL;
 	char	   *cur_nspname = NULL;
@@ -2651,7 +2646,7 @@ perform_work_item(AutoVacuumWorkItem * workitem)
 	if (!cur_relname || !cur_nspname || !cur_datname)
 		goto deleted2;
 
-	autovac_report_workitem(workitem, cur_nspname, cur_datname);
+	autovac_report_workitem(workitem, cur_nspname, cur_relname);
 
 	/* clean up memory before each work item */
 	MemoryContextResetAndDeleteChildren(PortalContext);
@@ -2759,8 +2754,8 @@ extract_autovac_opts(HeapTuple tup, TupleDesc pg_class_desc)
  * Fetch the pgstat entry of a table, either local to a database or shared.
  */
 static PgStat_StatTabEntry *
-get_pgstat_tabentry_relid(Oid relid, bool isshared, PgStat_StatDBEntry * shared,
-						  PgStat_StatDBEntry * dbentry)
+get_pgstat_tabentry_relid(Oid relid, bool isshared, PgStat_StatDBEntry *shared,
+						  PgStat_StatDBEntry *dbentry)
 {
 	PgStat_StatTabEntry *tabentry = NULL;
 
@@ -2786,7 +2781,7 @@ get_pgstat_tabentry_relid(Oid relid, bool isshared, PgStat_StatDBEntry * shared,
  * Note that the returned autovac_table does not have the name fields set.
  */
 static autovac_table *
-table_recheck_autovac(Oid relid, HTAB * table_toast_map,
+table_recheck_autovac(Oid relid, HTAB *table_toast_map,
 					  TupleDesc pg_class_desc,
 					  int effective_multixact_freeze_max_age)
 {
@@ -2969,9 +2964,9 @@ table_recheck_autovac(Oid relid, HTAB * table_toast_map,
  */
 static void
 relation_needs_vacanalyze(Oid relid,
-						  AutoVacOpts * relopts,
+						  AutoVacOpts *relopts,
 						  Form_pg_class classForm,
-						  PgStat_StatTabEntry * tabentry,
+						  PgStat_StatTabEntry *tabentry,
 						  int effective_multixact_freeze_max_age,
  /* output params below */
 						  bool *dovacuum,
@@ -3113,22 +3108,21 @@ relation_needs_vacanalyze(Oid relid,
  *		Vacuum and/or analyze the specified table
  */
 static void
-autovacuum_do_vac_analyze(autovac_table * tab, BufferAccessStrategy bstrategy)
+autovacuum_do_vac_analyze(autovac_table *tab, BufferAccessStrategy bstrategy)
 {
-	RangeVar	rangevar;
-
-	/* Set up command parameters --- use local variables instead of palloc */
-	MemSet(&rangevar, 0, sizeof(rangevar));
-
-	rangevar.schemaname = tab->at_nspname;
-	rangevar.relname = tab->at_relname;
-	rangevar.location = -1;
+	RangeVar   *rangevar;
+	VacuumRelation *rel;
+	List	   *rel_list;
 
 	/* Let pgstat know what we're doing */
 	autovac_report_activity(tab);
 
-	vacuum(tab->at_vacoptions, &rangevar, tab->at_relid, &tab->at_params, NIL,
-		   bstrategy, true);
+	/* Set up one VacuumRelation target, identified by OID, for vacuum() */
+	rangevar = makeRangeVar(tab->at_nspname, tab->at_relname, -1);
+	rel = makeVacuumRelation(rangevar, tab->at_relid, NIL);
+	rel_list = list_make1(rel);
+
+	vacuum(tab->at_vacoptions, rel_list, &tab->at_params, bstrategy, true);
 }
 
 /*
@@ -3143,7 +3137,7 @@ autovacuum_do_vac_analyze(autovac_table * tab, BufferAccessStrategy bstrategy)
  * bother to report "<IDLE>" or some such.
  */
 static void
-autovac_report_activity(autovac_table * tab)
+autovac_report_activity(autovac_table *tab)
 {
 #define MAX_AUTOVAC_ACTIV_LEN (NAMEDATALEN * 2 + 56)
 	char		activity[MAX_AUTOVAC_ACTIV_LEN];
@@ -3178,7 +3172,7 @@ autovac_report_activity(autovac_table * tab)
  *		Report to pgstat that autovacuum is processing a work item
  */
 static void
-autovac_report_workitem(AutoVacuumWorkItem * workitem,
+autovac_report_workitem(AutoVacuumWorkItem *workitem,
 						const char *nspname, const char *relname)
 {
 	char		activity[MAX_AUTOVAC_ACTIV_LEN + 12 + 2];

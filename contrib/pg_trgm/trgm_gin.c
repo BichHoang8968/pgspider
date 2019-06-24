@@ -75,7 +75,7 @@ gin_extract_query_trgm(PG_FUNCTION_ARGS)
 	StrategyNumber strategy = PG_GETARG_UINT16(2);
 
 	/* bool   **pmatch = (bool **) PG_GETARG_POINTER(3); */
-	Pointer   **extra_data = (Pointer * *) PG_GETARG_POINTER(4);
+	Pointer   **extra_data = (Pointer **) PG_GETARG_POINTER(4);
 
 	/* bool   **nullFlags = (bool **) PG_GETARG_POINTER(5); */
 	int32	   *searchMode = (int32 *) PG_GETARG_POINTER(6);
@@ -90,6 +90,7 @@ gin_extract_query_trgm(PG_FUNCTION_ARGS)
 	{
 		case SimilarityStrategyNumber:
 		case WordSimilarityStrategyNumber:
+		case StrictWordSimilarityStrategyNumber:
 			trg = generate_trgm(VARDATA_ANY(val), VARSIZE_ANY_EXHDR(val));
 			break;
 		case ILikeStrategyNumber:
@@ -187,8 +188,8 @@ gin_trgm_consistent(PG_FUNCTION_ARGS)
 	{
 		case SimilarityStrategyNumber:
 		case WordSimilarityStrategyNumber:
-			nlimit = (strategy == SimilarityStrategyNumber) ?
-				similarity_threshold : word_similarity_threshold;
+		case StrictWordSimilarityStrategyNumber:
+			nlimit = index_strategy_get_limit(strategy);
 
 			/* Count the matches */
 			ntrue = 0;
@@ -282,8 +283,8 @@ gin_trgm_triconsistent(PG_FUNCTION_ARGS)
 	{
 		case SimilarityStrategyNumber:
 		case WordSimilarityStrategyNumber:
-			nlimit = (strategy == SimilarityStrategyNumber) ?
-				similarity_threshold : word_similarity_threshold;
+		case StrictWordSimilarityStrategyNumber:
+			nlimit = index_strategy_get_limit(strategy);
 
 			/* Count the matches */
 			ntrue = 0;

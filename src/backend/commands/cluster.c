@@ -6,7 +6,7 @@
  * There is hardly anything left of Paul Brown's original implementation...
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994-5, Regents of the University of California
  *
  *
@@ -64,17 +64,17 @@ typedef struct
 {
 	Oid			tableOid;
 	Oid			indexOid;
-}			RelToCluster;
+} RelToCluster;
 
 
 static void rebuild_relation(Relation OldHeap, Oid indexOid, bool verbose);
 static void copy_heap_data(Oid OIDNewHeap, Oid OIDOldHeap, Oid OIDOldIndex,
 			   bool verbose, bool *pSwapToastByContent,
-			   TransactionId * pFreezeXid, MultiXactId * pCutoffMulti);
-static List * get_tables_to_cluster(MemoryContext cluster_context);
+			   TransactionId *pFreezeXid, MultiXactId *pCutoffMulti);
+static List *get_tables_to_cluster(MemoryContext cluster_context);
 static void reform_and_rewrite_tuple(HeapTuple tuple,
 						 TupleDesc oldTupDesc, TupleDesc newTupDesc,
-						 Datum * values, bool *isnull,
+						 Datum *values, bool *isnull,
 						 bool newRelHasOids, RewriteState rwstate);
 
 
@@ -103,7 +103,7 @@ static void reform_and_rewrite_tuple(HeapTuple tuple,
  *---------------------------------------------------------------------------
  */
 void
-cluster(ClusterStmt * stmt, bool isTopLevel)
+cluster(ClusterStmt *stmt, bool isTopLevel)
 {
 	if (stmt->relation != NULL)
 	{
@@ -115,7 +115,7 @@ cluster(ClusterStmt * stmt, bool isTopLevel)
 		/* Find, lock, and check permissions on the table */
 		tableOid = RangeVarGetRelidExtended(stmt->relation,
 											AccessExclusiveLock,
-											false, false,
+											0,
 											RangeVarCallbackOwnsTable, NULL);
 		rel = heap_open(tableOid, NoLock);
 
@@ -127,6 +127,14 @@ cluster(ClusterStmt * stmt, bool isTopLevel)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("cannot cluster temporary tables of other sessions")));
+
+		/*
+		 * Reject clustering a partitioned table.
+		 */
+		if (rel->rd_rel->relkind == RELKIND_PARTITIONED_TABLE)
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("cannot cluster a partitioned table")));
 
 		if (stmt->indexname == NULL)
 		{
@@ -194,7 +202,7 @@ cluster(ClusterStmt * stmt, bool isTopLevel)
 		 * We cannot run this form of CLUSTER inside a user transaction block;
 		 * we'd be holding locks way too long.
 		 */
-		PreventTransactionChain(isTopLevel, "CLUSTER");
+		PreventInTransactionBlock(isTopLevel, "CLUSTER");
 
 		/*
 		 * Create special memory context for cross-transaction storage.
@@ -445,7 +453,7 @@ check_index_is_clusterable(Relation OldHeap, Oid indexOid, bool recheck, LOCKMOD
 	 * seqscan pass over the table to copy the missing rows, but that seems
 	 * expensive and tedious.
 	 */
-	if (!heap_attisnull(OldIndex->rd_indextuple, Anum_pg_index_indpred))
+	if (!heap_attisnull(OldIndex->rd_indextuple, Anum_pg_index_indpred, NULL))
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("cannot cluster on partial index \"%s\"",
@@ -481,6 +489,12 @@ mark_index_clustered(Relation rel, Oid indexOid, bool is_internal)
 	Form_pg_index indexForm;
 	Relation	pg_index;
 	ListCell   *index;
+
+	/* Disallow applying to a partitioned table */
+	if (rel->rd_rel->relkind == RELKIND_PARTITIONED_TABLE)
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("cannot mark index clustered in partitioned table")));
 
 	/*
 	 * If the index is already marked clustered, no need to do anything.
@@ -678,6 +692,7 @@ make_new_heap(Oid OIDOldHeap, Oid NewTableSpace, char relpersistence,
 										  false,
 										  true,
 										  true,
+										  OIDOldHeap,
 										  NULL);
 	Assert(OIDNewHeap != InvalidOid);
 
@@ -732,8 +747,8 @@ make_new_heap(Oid OIDOldHeap, Oid NewTableSpace, char relpersistence,
  */
 static void
 copy_heap_data(Oid OIDNewHeap, Oid OIDOldHeap, Oid OIDOldIndex, bool verbose,
-			   bool *pSwapToastByContent, TransactionId * pFreezeXid,
-			   MultiXactId * pCutoffMulti)
+			   bool *pSwapToastByContent, TransactionId *pFreezeXid,
+			   MultiXactId *pCutoffMulti)
 {
 	Relation	NewHeap,
 				OldHeap,
@@ -895,7 +910,8 @@ copy_heap_data(Oid OIDNewHeap, Oid OIDOldHeap, Oid OIDOldIndex, bool verbose,
 	/* Set up sorting if wanted */
 	if (use_sort)
 		tuplesort = tuplesort_begin_cluster(oldTupDesc, OldIndex,
-											maintenance_work_mem, false);
+											maintenance_work_mem,
+											NULL, false);
 	else
 		tuplesort = NULL;
 
@@ -1162,7 +1178,7 @@ swap_relation_files(Oid r1, Oid r2, bool target_is_pg_class,
 					bool is_internal,
 					TransactionId frozenXid,
 					MultiXactId cutoffMulti,
-					Oid * mapped_tables)
+					Oid *mapped_tables)
 {
 	Relation	relRelation;
 	HeapTuple	reltup1,
@@ -1523,8 +1539,8 @@ finish_heap_swap(Oid OIDOldHeap, Oid OIDNewHeap,
 						frozenXid, cutoffMulti, mapped_tables);
 
 	/*
-	 * If it's a system catalog, queue an sinval message to flush all
-	 * catcaches on the catalog when we reach CommandCounterIncrement.
+	 * If it's a system catalog, queue a sinval message to flush all catcaches
+	 * on the catalog when we reach CommandCounterIncrement.
 	 */
 	if (is_system_catalog)
 		CacheInvalidateCatalog(OIDOldHeap);
@@ -1653,6 +1669,16 @@ finish_heap_swap(Oid OIDOldHeap, Oid OIDNewHeap,
 		}
 		relation_close(newrel, NoLock);
 	}
+
+	/* if it's not a catalog table, clear any missing attribute settings */
+	if (!is_system_catalog)
+	{
+		Relation	newrel;
+
+		newrel = heap_open(OIDOldHeap, NoLock);
+		RelationClearMissing(newrel);
+		relation_close(newrel, NoLock);
+	}
 }
 
 
@@ -1733,7 +1759,7 @@ get_tables_to_cluster(MemoryContext cluster_context)
 static void
 reform_and_rewrite_tuple(HeapTuple tuple,
 						 TupleDesc oldTupDesc, TupleDesc newTupDesc,
-						 Datum * values, bool *isnull,
+						 Datum *values, bool *isnull,
 						 bool newRelHasOids, RewriteState rwstate)
 {
 	HeapTuple	copiedTuple;
@@ -1744,7 +1770,7 @@ reform_and_rewrite_tuple(HeapTuple tuple,
 	/* Be sure to null out any dropped columns */
 	for (i = 0; i < newTupDesc->natts; i++)
 	{
-		if (newTupDesc->attrs[i]->attisdropped)
+		if (TupleDescAttr(newTupDesc, i)->attisdropped)
 			isnull[i] = true;
 	}
 

@@ -3,7 +3,7 @@
  * nodeNamedtuplestorescan.c
  *	  routines to handle NamedTuplestoreScan nodes.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -20,7 +20,7 @@
 #include "miscadmin.h"
 #include "utils/queryenvironment.h"
 
-static TupleTableSlot * NamedTuplestoreScanNext(NamedTuplestoreScanState * node);
+static TupleTableSlot *NamedTuplestoreScanNext(NamedTuplestoreScanState *node);
 
 /* ----------------------------------------------------------------
  *		NamedTuplestoreScanNext
@@ -29,7 +29,7 @@ static TupleTableSlot * NamedTuplestoreScanNext(NamedTuplestoreScanState * node)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-NamedTuplestoreScanNext(NamedTuplestoreScanState * node)
+NamedTuplestoreScanNext(NamedTuplestoreScanState *node)
 {
 	TupleTableSlot *slot;
 
@@ -50,7 +50,7 @@ NamedTuplestoreScanNext(NamedTuplestoreScanState * node)
  * EvalPlanQual
  */
 static bool
-NamedTuplestoreScanRecheck(NamedTuplestoreScanState * node, TupleTableSlot * slot)
+NamedTuplestoreScanRecheck(NamedTuplestoreScanState *node, TupleTableSlot *slot)
 {
 	/* nothing to check */
 	return true;
@@ -65,7 +65,7 @@ NamedTuplestoreScanRecheck(NamedTuplestoreScanState * node, TupleTableSlot * slo
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecNamedTuplestoreScan(PlanState * pstate)
+ExecNamedTuplestoreScan(PlanState *pstate)
 {
 	NamedTuplestoreScanState *node = castNode(NamedTuplestoreScanState, pstate);
 
@@ -80,7 +80,7 @@ ExecNamedTuplestoreScan(PlanState * pstate)
  * ----------------------------------------------------------------
  */
 NamedTuplestoreScanState *
-ExecInitNamedTuplestoreScan(NamedTuplestoreScan * node, EState * estate, int eflags)
+ExecInitNamedTuplestoreScan(NamedTuplestoreScan *node, EState *estate, int eflags)
 {
 	NamedTuplestoreScanState *scanstate;
 	EphemeralNamedRelation enr;
@@ -135,26 +135,21 @@ ExecInitNamedTuplestoreScan(NamedTuplestoreScan * node, EState * estate, int efl
 	ExecAssignExprContext(estate, &scanstate->ss.ps);
 
 	/*
+	 * Tuple table and result type initialization. The scan tuple type is
+	 * specified for the tuplestore.
+	 */
+	ExecInitResultTupleSlotTL(estate, &scanstate->ss.ps);
+	ExecInitScanTupleSlot(estate, &scanstate->ss, scanstate->tupdesc);
+
+	/*
 	 * initialize child expressions
 	 */
 	scanstate->ss.ps.qual =
 		ExecInitQual(node->scan.plan.qual, (PlanState *) scanstate);
 
 	/*
-	 * tuple table initialization
+	 * Initialize projection.
 	 */
-	ExecInitResultTupleSlot(estate, &scanstate->ss.ps);
-	ExecInitScanTupleSlot(estate, &scanstate->ss);
-
-	/*
-	 * The scan tuple type is specified for the tuplestore.
-	 */
-	ExecAssignScanType(&scanstate->ss, scanstate->tupdesc);
-
-	/*
-	 * Initialize result tuple type and projection info.
-	 */
-	ExecAssignResultTypeFromTL(&scanstate->ss.ps);
 	ExecAssignScanProjectionInfo(&scanstate->ss);
 
 	return scanstate;
@@ -167,7 +162,7 @@ ExecInitNamedTuplestoreScan(NamedTuplestoreScan * node, EState * estate, int efl
  * ----------------------------------------------------------------
  */
 void
-ExecEndNamedTuplestoreScan(NamedTuplestoreScanState * node)
+ExecEndNamedTuplestoreScan(NamedTuplestoreScanState *node)
 {
 	/*
 	 * Free exprcontext
@@ -188,7 +183,7 @@ ExecEndNamedTuplestoreScan(NamedTuplestoreScanState * node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanNamedTuplestoreScan(NamedTuplestoreScanState * node)
+ExecReScanNamedTuplestoreScan(NamedTuplestoreScanState *node)
 {
 	Tuplestorestate *tuplestorestate = node->relation;
 

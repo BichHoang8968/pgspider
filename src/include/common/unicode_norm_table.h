@@ -3,7 +3,7 @@
  * unicode_norm_table.h
  *	  Composition table used for Unicode normalization
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/common/unicode_norm_table.h
@@ -23,7 +23,7 @@ typedef struct
 	uint8		dec_size_flags; /* size and flags of decomposition code list */
 	uint16		dec_index;		/* index into UnicodeDecomp_codepoints, or the
 								 * decomposition itself if DECOMP_INLINE */
-}			pg_unicode_decomposition;
+} pg_unicode_decomposition;
 
 #define DECOMP_NO_COMPOSE	0x80	/* don't use for re-composition */
 #define DECOMP_INLINE		0x40	/* decomposition is stored inline in

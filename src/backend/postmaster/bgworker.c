@@ -2,7 +2,7 @@
  * bgworker.c
  *		POSTGRES pluggable background workers implementation
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/postmaster/bgworker.c
@@ -81,7 +81,7 @@ typedef struct BackgroundWorkerSlot
 	pid_t		pid;			/* InvalidPid = not started yet; 0 = dead */
 	uint64		generation;		/* incremented when slot is recycled */
 	BackgroundWorker worker;
-}			BackgroundWorkerSlot;
+} BackgroundWorkerSlot;
 
 /*
  * In order to limit the total number of parallel workers (according to
@@ -100,7 +100,7 @@ typedef struct BackgroundWorkerArray
 	uint32		parallel_register_count;
 	uint32		parallel_terminate_count;
 	BackgroundWorkerSlot slot[FLEXIBLE_ARRAY_MEMBER];
-}			BackgroundWorkerArray;
+} BackgroundWorkerArray;
 
 struct BackgroundWorkerHandle
 {
@@ -108,7 +108,7 @@ struct BackgroundWorkerHandle
 	uint64		generation;
 };
 
-static BackgroundWorkerArray * BackgroundWorkerData;
+static BackgroundWorkerArray *BackgroundWorkerData;
 
 /*
  * List of internal background worker entry points.  We need this for
@@ -344,6 +344,8 @@ BackgroundWorkerStateChange(void)
 		 */
 		ascii_safe_strlcpy(rw->rw_worker.bgw_name,
 						   slot->worker.bgw_name, BGW_MAXLEN);
+		ascii_safe_strlcpy(rw->rw_worker.bgw_type,
+						   slot->worker.bgw_type, BGW_MAXLEN);
 		ascii_safe_strlcpy(rw->rw_worker.bgw_library_name,
 						   slot->worker.bgw_library_name, BGW_MAXLEN);
 		ascii_safe_strlcpy(rw->rw_worker.bgw_function_name,
@@ -407,7 +409,7 @@ BackgroundWorkerStateChange(void)
  * This function must be invoked only in the postmaster.
  */
 void
-ForgetBackgroundWorker(slist_mutable_iter * cur)
+ForgetBackgroundWorker(slist_mutable_iter *cur)
 {
 	RegisteredBgWorker *rw;
 	BackgroundWorkerSlot *slot;
@@ -435,7 +437,7 @@ ForgetBackgroundWorker(slist_mutable_iter * cur)
  * This function should only be called from the postmaster.
  */
 void
-ReportBackgroundWorkerPID(RegisteredBgWorker * rw)
+ReportBackgroundWorkerPID(RegisteredBgWorker *rw)
 {
 	BackgroundWorkerSlot *slot;
 
@@ -454,7 +456,7 @@ ReportBackgroundWorkerPID(RegisteredBgWorker * rw)
  * This function should only be called from the postmaster.
  */
 void
-ReportBackgroundWorkerExit(slist_mutable_iter * cur)
+ReportBackgroundWorkerExit(slist_mutable_iter *cur)
 {
 	RegisteredBgWorker *rw;
 	BackgroundWorkerSlot *slot;
@@ -578,7 +580,7 @@ BackgroundWorkerEntry(int slotno)
  * which case we won't return at all in the not-OK case).
  */
 static bool
-SanityCheckBackgroundWorker(BackgroundWorker * worker, int elevel)
+SanityCheckBackgroundWorker(BackgroundWorker *worker, int elevel)
 {
 	/* sanity check for flags */
 	if (worker->bgw_flags & BGWORKER_BACKEND_DATABASE_CONNECTION)
@@ -630,34 +632,33 @@ SanityCheckBackgroundWorker(BackgroundWorker * worker, int elevel)
 		return false;
 	}
 
+	/*
+	 * If bgw_type is not filled in, use bgw_name.
+	 */
+	if (strcmp(worker->bgw_type, "") == 0)
+		strcpy(worker->bgw_type, worker->bgw_name);
+
 	return true;
 }
 
 static void
 bgworker_quickdie(SIGNAL_ARGS)
 {
-	sigaddset(&BlockSig, SIGQUIT);	/* prevent nested calls */
-	PG_SETMASK(&BlockSig);
-
 	/*
-	 * We DO NOT want to run proc_exit() callbacks -- we're here because
-	 * shared memory may be corrupted, so we don't want to try to clean up our
-	 * transaction.  Just nail the windows shut and get out of town.  Now that
-	 * there's an atexit callback to prevent third-party code from breaking
-	 * things by calling exit() directly, we have to reset the callbacks
-	 * explicitly to make this work as intended.
-	 */
-	on_exit_reset();
-
-	/*
-	 * Note we do exit(2) not exit(0).  This is to force the postmaster into a
-	 * system reset cycle if some idiot DBA sends a manual SIGQUIT to a random
+	 * We DO NOT want to run proc_exit() or atexit() callbacks -- we're here
+	 * because shared memory may be corrupted, so we don't want to try to
+	 * clean up our transaction.  Just nail the windows shut and get out of
+	 * town.  The callbacks wouldn't be safe to run from a signal handler,
+	 * anyway.
+	 *
+	 * Note we do _exit(2) not _exit(0).  This is to force the postmaster into
+	 * a system reset cycle if someone sends a manual SIGQUIT to a random
 	 * backend.  This is necessary precisely because we don't clean up our
 	 * shared memory state.  (The "dead man switch" mechanism in pmsignal.c
 	 * should ensure the postmaster sees this as a crash, too, but no harm in
 	 * being doubly sure.)
 	 */
-	exit(2);
+	_exit(2);
 }
 
 /*
@@ -671,7 +672,7 @@ bgworker_die(SIGNAL_ARGS)
 	ereport(FATAL,
 			(errcode(ERRCODE_ADMIN_SHUTDOWN),
 			 errmsg("terminating background worker \"%s\" due to administrator command",
-					MyBgworkerEntry->bgw_name)));
+					MyBgworkerEntry->bgw_type)));
 }
 
 /*
@@ -700,7 +701,6 @@ void
 StartBackgroundWorker(void)
 {
 	sigjmp_buf	local_sigjmp_buf;
-	char		buf[MAXPGPATH];
 	BackgroundWorker *worker = MyBgworkerEntry;
 	bgworker_main_type entrypt;
 
@@ -710,8 +710,7 @@ StartBackgroundWorker(void)
 	IsBackgroundWorker = true;
 
 	/* Identify myself via ps */
-	snprintf(buf, MAXPGPATH, "bgworker: %s", worker->bgw_name);
-	init_ps_display(buf, "", "", "");
+	init_ps_display(worker->bgw_name, "", "", "");
 
 	/*
 	 * If we're not supposed to have shared memory access, then detach from
@@ -846,7 +845,7 @@ StartBackgroundWorker(void)
  * otherwise it will have no effect.
  */
 void
-RegisterBackgroundWorker(BackgroundWorker * worker)
+RegisterBackgroundWorker(BackgroundWorker *worker)
 {
 	RegisteredBgWorker *rw;
 	static int	numworkers = 0;
@@ -930,8 +929,8 @@ RegisterBackgroundWorker(BackgroundWorker * worker)
  * free this pointer using pfree(), if desired.
  */
 bool
-RegisterDynamicBackgroundWorker(BackgroundWorker * worker,
-								BackgroundWorkerHandle * *handle)
+RegisterDynamicBackgroundWorker(BackgroundWorker *worker,
+								BackgroundWorkerHandle **handle)
 {
 	int			slotno;
 	bool		success = false;
@@ -1042,7 +1041,7 @@ RegisterDynamicBackgroundWorker(BackgroundWorker * worker,
  * started).
  */
 BgwHandleStatus
-GetBackgroundWorkerPid(BackgroundWorkerHandle * handle, pid_t * pidp)
+GetBackgroundWorkerPid(BackgroundWorkerHandle *handle, pid_t *pidp)
 {
 	BackgroundWorkerSlot *slot;
 	pid_t		pid;
@@ -1094,7 +1093,7 @@ GetBackgroundWorkerPid(BackgroundWorkerHandle * handle, pid_t * pidp)
  * take place.
  */
 BgwHandleStatus
-WaitForBackgroundWorkerStartup(BackgroundWorkerHandle * handle, pid_t * pidp)
+WaitForBackgroundWorkerStartup(BackgroundWorkerHandle *handle, pid_t *pidp)
 {
 	BgwHandleStatus status;
 	int			rc;
@@ -1136,7 +1135,7 @@ WaitForBackgroundWorkerStartup(BackgroundWorkerHandle * handle, pid_t * pidp)
  * notifies us when a worker's state changes.
  */
 BgwHandleStatus
-WaitForBackgroundWorkerShutdown(BackgroundWorkerHandle * handle)
+WaitForBackgroundWorkerShutdown(BackgroundWorkerHandle *handle)
 {
 	BgwHandleStatus status;
 	int			rc;
@@ -1175,7 +1174,7 @@ WaitForBackgroundWorkerShutdown(BackgroundWorkerHandle * handle)
  * unregistered.
  */
 void
-TerminateBackgroundWorker(BackgroundWorkerHandle * handle)
+TerminateBackgroundWorker(BackgroundWorkerHandle *handle)
 {
 	BackgroundWorkerSlot *slot;
 	bool		signal_postmaster = false;
@@ -1239,4 +1238,41 @@ LookupBackgroundWorkerFunction(const char *libraryname, const char *funcname)
 	/* Otherwise load from external library. */
 	return (bgworker_main_type)
 		load_external_function(libraryname, funcname, true, NULL);
+}
+
+/*
+ * Given a PID, get the bgw_type of the background worker.  Returns NULL if
+ * not a valid background worker.
+ *
+ * The return value is in static memory belonging to this function, so it has
+ * to be used before calling this function again.  This is so that the caller
+ * doesn't have to worry about the background worker locking protocol.
+ */
+const char *
+GetBackgroundWorkerTypeByPid(pid_t pid)
+{
+	int			slotno;
+	bool		found = false;
+	static char result[BGW_MAXLEN];
+
+	LWLockAcquire(BackgroundWorkerLock, LW_SHARED);
+
+	for (slotno = 0; slotno < BackgroundWorkerData->total_slots; slotno++)
+	{
+		BackgroundWorkerSlot *slot = &BackgroundWorkerData->slot[slotno];
+
+		if (slot->pid > 0 && slot->pid == pid)
+		{
+			strcpy(result, slot->worker.bgw_type);
+			found = true;
+			break;
+		}
+	}
+
+	LWLockRelease(BackgroundWorkerLock);
+
+	if (!found)
+		return NULL;
+
+	return result;
 }

@@ -41,7 +41,7 @@
  * function must be supplied; comparison defaults to memcmp() and key copying
  * to memcpy() when a user-defined hashing function is selected.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -225,9 +225,6 @@ struct HTAB
 	Size		keysize;		/* hash key length in bytes */
 	long		ssize;			/* segment size --- must be power of 2 */
 	int			sshift;			/* segment shift = log2(ssize) */
-
-	bool		isfdw;			/* if true, this is used in fdw */
-	HTAB	   *nomralized_id_htab; /* normalized hash table */
 };
 
 /*
@@ -271,27 +268,11 @@ static void register_seq_scan(HTAB *hashp);
 static void deregister_seq_scan(HTAB *hashp);
 static bool has_seq_scans(HTAB *hashp);
 
-static HTAB *hash_create_orig(const char *tabname, long nelem,
-				 HASHCTL *info, int flags);
-static void hash_destroy_orig(HTAB *hashp);
-
-static void *hash_search_orig(HTAB *hashp, const void *keyPtr, HASHACTION action,
-				 bool *foundPtr);
-static uint32 get_hash_value_orig(HTAB *hashp, const void *keyPtr);
-static void *hash_search_with_hash_value_orig(HTAB *hashp, const void *keyPtr,
-								 uint32 hashvalue, HASHACTION action,
-								 bool *foundPtr);
-static bool hash_update_hash_key_orig(HTAB *hashp, void *existingEntry,
-						  const void *newKeyPtr);
-static void hash_seq_init_orig(HASH_SEQ_STATUS *status, HTAB *hashp);
-static void *hash_seq_search_orig(HASH_SEQ_STATUS *status);
 
 /*
  * memory allocation support
  */
 static MemoryContext CurrentDynaHashCxt = NULL;
-
-#include "dynahash_thread.c"
 
 static void *
 DynaHashAlloc(Size size)
@@ -332,7 +313,7 @@ string_compare(const char *key1, const char *key2, Size keysize)
  * large nelem will penalize hash_seq_search speed without buying much.
  */
 HTAB *
-hash_create_orig(const char *tabname, long nelem, HASHCTL *info, int flags)
+hash_create(const char *tabname, long nelem, HASHCTL *info, int flags)
 {
 	HTAB	   *hashp;
 	HASHHDR    *hctl;
@@ -360,7 +341,7 @@ hash_create_orig(const char *tabname, long nelem, HASHCTL *info, int flags)
 		else
 			CurrentDynaHashCxt = TopMemoryContext;
 		CurrentDynaHashCxt = AllocSetContextCreate(CurrentDynaHashCxt,
-												   tabname,
+												   "dynahash",
 												   ALLOCSET_DEFAULT_SIZES);
 	}
 
@@ -370,6 +351,10 @@ hash_create_orig(const char *tabname, long nelem, HASHCTL *info, int flags)
 
 	hashp->tabname = (char *) (hashp + 1);
 	strcpy(hashp->tabname, tabname);
+
+	/* If we have a private context, label it with hashtable's name */
+	if (!(flags & HASH_SHARED_MEM))
+		MemoryContextSetIdentifier(CurrentDynaHashCxt, hashp->tabname);
 
 	/*
 	 * Select the appropriate hash function (see comments at head of file).
@@ -826,7 +811,7 @@ hash_get_shared_size(HASHCTL *info, int flags)
 /********************** DESTROY ROUTINES ************************/
 
 void
-hash_destroy_orig(HTAB *hashp)
+hash_destroy(HTAB *hashp)
 {
 	if (hashp != NULL)
 	{
@@ -872,7 +857,7 @@ hash_stats(const char *where, HTAB *hashp)
  * searching.
  */
 uint32
-get_hash_value_orig(HTAB *hashp, const void *keyPtr)
+get_hash_value(HTAB *hashp, const void *keyPtr)
 {
 	return hashp->hash(keyPtr, hashp->keysize);
 }
@@ -910,32 +895,32 @@ calc_bucket(HASHHDR *hctl, uint32 hash_val)
  * HASH_ENTER_NULL cannot be used with the default palloc-based allocator,
  * since palloc internally ereports on out-of-memory.
  *
- * If foundPtr isn't NULL, then *foundPtr is set TRUE if we found an
- * existing entry in the table, FALSE otherwise.  This is needed in the
+ * If foundPtr isn't NULL, then *foundPtr is set true if we found an
+ * existing entry in the table, false otherwise.  This is needed in the
  * HASH_ENTER case, but is redundant with the return value otherwise.
  *
  * For hash_search_with_hash_value, the hashvalue parameter must have been
  * calculated with get_hash_value().
  */
 void *
-hash_search_orig(HTAB *hashp,
-				 const void *keyPtr,
-				 HASHACTION action,
-				 bool *foundPtr)
+hash_search(HTAB *hashp,
+			const void *keyPtr,
+			HASHACTION action,
+			bool *foundPtr)
 {
-	return hash_search_with_hash_value_orig(hashp,
-											keyPtr,
-											hashp->hash(keyPtr, hashp->keysize),
-											action,
-											foundPtr);
+	return hash_search_with_hash_value(hashp,
+									   keyPtr,
+									   hashp->hash(keyPtr, hashp->keysize),
+									   action,
+									   foundPtr);
 }
 
 void *
-hash_search_with_hash_value_orig(HTAB *hashp,
-								 const void *keyPtr,
-								 uint32 hashvalue,
-								 HASHACTION action,
-								 bool *foundPtr)
+hash_search_with_hash_value(HTAB *hashp,
+							const void *keyPtr,
+							uint32 hashvalue,
+							HASHACTION action,
+							bool *foundPtr)
 {
 	HASHHDR    *hctl = hashp->hctl;
 	int			freelist_idx = FREELIST_IDX(hctl, hashvalue);
@@ -1115,21 +1100,21 @@ hash_search_with_hash_value_orig(HTAB *hashp,
  * Therefore this cannot suffer an out-of-memory failure, even if there are
  * other processes operating in other partitions of the hashtable.
  *
- * Returns TRUE if successful, FALSE if the requested new hash key is already
+ * Returns true if successful, false if the requested new hash key is already
  * present.  Throws error if the specified entry pointer isn't actually a
  * table member.
  *
  * NB: currently, there is no special case for old and new hash keys being
- * identical, which means we'll report FALSE for that situation.  This is
+ * identical, which means we'll report false for that situation.  This is
  * preferable for existing uses.
  *
  * NB: for a partitioned hashtable, caller must hold lock on both relevant
  * partitions, if the new hash key would belong to a different partition.
  */
 bool
-hash_update_hash_key_orig(HTAB *hashp,
-						  void *existingEntry,
-						  const void *newKeyPtr)
+hash_update_hash_key(HTAB *hashp,
+					 void *existingEntry,
+					 const void *newKeyPtr)
 {
 	HASHELEMENT *existingElement = ELEMENT_FROM_KEY(existingEntry);
 	HASHHDR    *hctl = hashp->hctl;
@@ -1391,7 +1376,7 @@ hash_get_num_entries(HTAB *hashp)
  * with concurrent insertions or deletions by another.
  */
 void
-hash_seq_init_orig(HASH_SEQ_STATUS *status, HTAB *hashp)
+hash_seq_init(HASH_SEQ_STATUS *status, HTAB *hashp)
 {
 	status->hashp = hashp;
 	status->curBucket = 0;
@@ -1401,7 +1386,7 @@ hash_seq_init_orig(HASH_SEQ_STATUS *status, HTAB *hashp)
 }
 
 void *
-hash_seq_search_orig(HASH_SEQ_STATUS *status)
+hash_seq_search(HASH_SEQ_STATUS *status)
 {
 	HTAB	   *hashp;
 	HASHHDR    *hctl;
