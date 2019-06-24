@@ -902,6 +902,7 @@ static void
 spd_ErrorCb(void *arg)
 {
 	pthread_mutex_lock(&error_mutex);
+    FlushErrorState();
 	pthread_mutex_unlock(&error_mutex);
 }
 
@@ -956,7 +957,7 @@ spd_ForeignScan_thread(void *arg)
 	fssthrdInfo->state = SPD_FS_STATE_BEGIN;
 	PG_TRY();
 	{
-		//SPD_LOCK_TRY(&scan_mutex);
+		SPD_LOCK_TRY(&scan_mutex);
 		/*
 		 * If Aggregation does not push down, then BeginForeignScan execute in
 		 * ExecInitNode
@@ -966,7 +967,7 @@ spd_ForeignScan_thread(void *arg)
 			fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
 													  fssthrdInfo->eflags);
 		}
-		//SPD_UNLOCK_CATCH(&scan_mutex);
+		SPD_UNLOCK_CATCH(&scan_mutex);
 
 #ifdef MEASURE_TIME
 		gettimeofday(&e, NULL);
@@ -976,16 +977,9 @@ spd_ForeignScan_thread(void *arg)
 	PG_CATCH();
 	{
 		errflag = true;
-		if (throwErrorIfDead){
-			//ForeignServer *fs;
-			//fs = GetForeignServer(fssthrdInfo->serverId);
-			//spd_aliveError(fs);
-		}
-		//FlushErrorState();
 		fssthrdInfo->state = SPD_FS_STATE_ERROR;
 	}
 	PG_END_TRY();
-
 	if (errflag)
 	{
 		goto THREAD_EXIT;
