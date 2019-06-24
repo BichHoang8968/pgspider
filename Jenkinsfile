@@ -2,7 +2,7 @@ def NODE_NAME = 'AWS_Instance_CentOS'
 def MAIL_TO = '$DEFAULT_RECIPIENTS'
 def BRANCH_NAME = 'Branch [' + env.BRANCH_NAME + ']'
 def BUILD_INFO = 'Jenkins: ' + env.BUILD_URL
-def MYSQL_FDW_URL = 'https://github.com/EnterpriseDB/mysql_fdw.git'
+def MYSQL_FDW_URL = 'https://tccloud2.toshiba.co.jp/swc/gitlab/g3033310/mysql-fdw.git'
 def SQLITE_FDW_URL = 'https://github.com/pgspider/sqlite_fdw.git'
 def TINYBRACE_FDW_URL = 'https://tccloud2.toshiba.co.jp/accio/svn/accio/branches/tinybrace_fdw'
 
@@ -59,7 +59,7 @@ pipeline {
                 dir("contrib/") {
                     // Build mysql_fdw 
                     sh 'rm -rf mysql_fdw || true'
-                    retrySh('git clone ' + MYSQL_FDW_URL)
+                    git credentialsId: 'dac43358-2ffd-4a4b-b9c4-879554f2e1be', url: MYSQL_FDW_URL
                     sh '''
                         cd mysql_fdw
                         make clean && make && make install
