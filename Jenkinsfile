@@ -2,7 +2,7 @@ def NODE_NAME = 'AWS_Instance_CentOS'
 def MAIL_TO = '$DEFAULT_RECIPIENTS'
 def BRANCH_NAME = 'Branch [' + env.BRANCH_NAME + ']'
 def BUILD_INFO = 'Jenkins: ' + env.BUILD_URL
-def MYSQL_FDW_URL = 'https://github.com/EnterpriseDB/mysql_fdw.git'
+def MYSQL_FDW_URL = 'https://tccloud2.toshiba.co.jp/swc/gitlab/g3033310/mysql-fdw.git'
 def SQLITE_FDW_URL = 'https://github.com/pgspider/sqlite_fdw.git'
 def TINYBRACE_FDW_URL = 'https://tccloud2.toshiba.co.jp/accio/svn/accio/branches/tinybrace_fdw'
 
