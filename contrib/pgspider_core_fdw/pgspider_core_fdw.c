@@ -3450,10 +3450,12 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 				if (value != NULL)
 				{
 					if (child_typid == BOOLOID)
+					{
 						if (strcmp(value, "t") == 0)
 							value = "true";
 						else
 							value = "false";
+					}
 					if (child_typid == DATEOID || child_typid == TEXTOID || child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID)
 						appendStringInfo(sql, "'");
 					appendStringInfo(sql, "%s", value);
