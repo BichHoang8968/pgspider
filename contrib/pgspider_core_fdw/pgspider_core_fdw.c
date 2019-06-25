@@ -285,7 +285,6 @@ typedef struct SpdFdwPrivate
 								 * table */
 	int			agg_num;		/* agg_values cursor */
 	Oid		   *agg_value_type; /* aggregation parameters */
-	List	   *split_tlist;	/* child div(not compressd) target list */
 	List	   *child_comp_tlist;	/* child complite target list */
 	List	   *mapping_tlist;	/* mapping list orig and pgspider */
 	struct PathTarget *child_tlist[UPPERREL_FINAL + 1]; /* */
@@ -1931,8 +1930,7 @@ spd_makedivtlist(Aggref *aggref, List *newList, SpdFdwPrivate * fdw_private)
 								   false);
 		newList = lappend(newList, tle_temp);
 	}
-	/* add original mapping list */
-	fdw_private->split_tlist = lappend_int(fdw_private->split_tlist, 1);
+
 	return newList;
 
 }
@@ -1955,7 +1953,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 {
 	SpdFdwPrivate *fdw_private,
 			   *in_fdw_private;
-	List	   *split_tlist = NIL;
 	List	   *newList = NIL;
 	ListCell   *lc;
 	MemoryContext oldcontext;
@@ -2030,12 +2027,10 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 		else
 		{
 			newList = lappend(newList, temp_expr);
-			fdw_private->split_tlist = lappend_int(fdw_private->split_tlist, 0);
 		}
 	}
 	spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = list_copy(newList);
 
-	fdw_private->split_tlist = split_tlist;
 	fdw_private->childinfo = in_fdw_private->childinfo;
 	fdw_private->rinfo.pushdown_safe = false;
 	output_rel->fdw_private = fdw_private;
