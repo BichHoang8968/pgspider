@@ -5,6 +5,13 @@ def BUILD_INFO = 'Jenkins: ' + env.BUILD_URL
 def MYSQL_FDW_URL = 'https://tccloud2.toshiba.co.jp/swc/gitlab/g3033310/mysql-fdw.git'
 def SQLITE_FDW_URL = 'https://github.com/pgspider/sqlite_fdw.git'
 def TINYBRACE_FDW_URL = 'https://tccloud2.toshiba.co.jp/accio/svn/accio/branches/tinybrace_fdw'
+def INFLUXDB_FDW_URL = 'https://github.com/pgspider/influxdb_fdw.git'
+def GRIDDB_FDW_URL = 'https://github.com/pgspider/griddb_fdw.git'
+def GRIDDB_CLIENT_DIR = '/home/jenkins/GridDB/c_client_4.1.0/griddb'
+def PGSPIDER_1_DIR = '/home/jenkins/PGSpider/PGS1'
+def PGSPIDER_1_PORT = 5433
+def PGSPIDER_2_DIR = '/home/jenkins/PGSpider/PGS2'
+def PGSPIDER_2_PORT = 5434
 
 def retrySh(String shCmd) {
     def MAX_RETRY = 10
@@ -16,13 +23,47 @@ def retrySh(String shCmd) {
                 echo "SUCCESS: "+shCmd
                 break
             } else {
-                echo "RETRY: "+shCmd 
+                echo "RETRY: "+shCmd
                 sleep 5
             }
         }
         if (status != 0) {
             sh(shCmd)
         }
+    }
+}
+
+def install_pgspider(String install_dir, int port) {
+    sh install_dir + "/bin/pg_ctl -D " + install_dir + "/databases stop || true"
+    sh "rm -rf " + install_dir + " || true"
+    sh "mkdir " + install_dir + " || true"
+    sh "./configure --prefix=" + install_dir
+    sh '''
+        make install
+        cd contrib/file_fdw/
+        make install
+        cd ../postgres_fdw/
+        make install
+        cd ../pgspider_fdw/
+        make install
+        cd ../pgspider_core_fdw/
+        make install
+        cd ../sqlite_fdw/
+        make install
+        cd ../mysql_fdw/
+        make install
+        cd ../tinybrace_fdw/
+        make install
+        cd ../influxdb_fdw/
+        make install
+        cd ../griddb_fdw/
+        make install
+    '''
+    dir(install_dir + "/bin") {
+        sh './initdb ../databases'
+        sh "sed -i 's/#port = 5432.*/port = "+ port + "/' ../databases/postgresql.conf"
+        sh './pg_ctl -D ../databases -l logfile start'
+        sh './createdb -p ' + port
     }
 }
 
@@ -57,28 +98,42 @@ pipeline {
                 '''
                 // Build fdw
                 dir("contrib/") {
-                    // Build mysql_fdw 
+                    // Build mysql_fdw
                     sh 'rm -rf mysql_fdw || true && mkdir mysql_fdw'
                     dir("mysql_fdw") {
                         git credentialsId: 'dac43358-2ffd-4a4b-b9c4-879554f2e1be', url: MYSQL_FDW_URL
                         sh 'cp -a mysql_fdw/* ./ && rm -rf mysql_fdw'
+                        sh 'make clean && make && make install'
                     }
-                    sh '''
-                        cd mysql_fdw
-                        make clean && make && make install
-                    '''
-                    // Build sqlite_fdw 
+                    // Build sqlite_fdw
                     sh 'rm -rf sqlite_fdw || true'
                     retrySh('git clone ' + SQLITE_FDW_URL)
                     sh '''
                         cd sqlite_fdw
                         make clean && make && make install
                     '''
-                    // Build tinybrace_fdw 
+                    // Build tinybrace_fdw
                     sh 'rm -rf tinybrace_fdw || true'
                     retrySh('svn co ' + TINYBRACE_FDW_URL)
                     sh '''
                         cd tinybrace_fdw
+                        make clean && make && make install
+                    '''
+                    // Build influxdb_fdw
+                    sh 'rm -rf influxdb_fdw || true'
+                    retrySh('git clone ' + INFLUXDB_FDW_URL)
+                    sh '''
+                        cd influxdb_fdw
+                        make clean && make && make install
+                    '''
+                    // Build griddb_fdw
+                    sh 'rm -rf griddb_fdw || true'
+                    retrySh('git clone ' + GRIDDB_FDW_URL)
+                    sh 'cd griddb_fdw && cp -a ' + GRIDDB_CLIENT_DIR + ' ./'
+                    sh '''
+                        cd griddb_fdw
+                        export GRIDDB_HOME=/home/jenkins/GridDB/griddb_nosql-4.1.0/
+                        export LD_LIBRARY_PATH=LD_LIBRARY_PATH:$(pwd)/griddb/bin/
                         make clean && make && make install
                     '''
                 }
@@ -133,6 +188,28 @@ pipeline {
                             unstable(message: "Set UNSTABLE result")
                             // Send email and attach test results
                             emailext subject: '[CI PGSpider] pgspider_core_fdw Test FAILED ' + BRANCH_NAME, body: BUILD_INFO + "\nGit commit: " + env.GIT_URL.replace(".git", "/commit/") + env.GIT_COMMIT + "\n" + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
+                            sh 'cat regression.diffs || true'
+                        }
+                    }
+                }
+            }
+        }
+        stage('pgspider_core_fdw_multi.sql') {
+            steps {
+                install_pgspider(PGSPIDER_1_DIR, PGSPIDER_1_PORT)
+                install_pgspider(PGSPIDER_2_DIR, PGSPIDER_2_PORT)
+                dir("contrib/pgspider_core_fdw") {
+                    sh '''
+                        chmod +x ./*.sh
+                        chmod +x ./init/*.sh
+                        ./test_multi.sh
+                    '''
+                    script {
+                        // Check if 'make_check.out' contains 'All [0-9]* tests passed'
+                        status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'make_check.out'")
+                        if (status != 0) {
+                            unstable(message: "Set UNSTABLE result")
+                            emailext subject: '[CI PGSpider] pgspider_core_fdw_multi Test FAILED ' + BRANCH_NAME, body: BUILD_INFO + "\nGit commit: " + env.GIT_URL.replace(".git", "/commit/") + env.GIT_COMMIT + "\n" + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
                             sh 'cat regression.diffs || true'
                         }
                     }
