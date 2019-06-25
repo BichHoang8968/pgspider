@@ -287,7 +287,6 @@ typedef struct SpdFdwPrivate
 	Oid		   *agg_value_type; /* aggregation parameters */
 	List	   *child_comp_tlist;	/* child complite target list */
 	List	   *mapping_tlist;	/* mapping list orig and pgspider */
-	struct PathTarget *child_tlist[UPPERREL_FINAL + 1]; /* */
 	int			child_uninum;	/* number of NOT push down child column */
 	List	   *groupby_target; /* group target tlist number */
 	PlannerInfo *spd_root;		/* Copyt of root planner info. This is used by
@@ -2004,12 +2003,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 		copy_pathtarget(root->upper_targets[UPPERREL_WINDOW]);
 	spd_root->upper_targets[UPPERREL_FINAL] =
 		copy_pathtarget(root->upper_targets[UPPERREL_FINAL]);
-	for (i = 0; i < UPPERREL_FINAL + 1; i++)
-	{
-		fdw_private->child_tlist[i] = (struct PathTarget *) palloc0(sizeof(struct PathTarget));
-		if (root->upper_targets[i] != NULL)
-			fdw_private->child_tlist[i] = copy_pathtarget(root->upper_targets[i]);
-	}
 
 	/* Devide split agg */
 	foreach(lc, spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs)
