@@ -3670,3 +3670,20 @@ aggregate_dummy(PG_FUNCTION_ARGS)
 		 fcinfo->flinfo->fn_oid);
 	return (Datum) 0;			/* keep compiler quiet */
 }
+
+
+/**
+ * Extern of agg_retrieve_direct
+ *
+ */
+TupleTableSlot *
+ExecRetreiveDirect(AggState *node)
+{
+	return agg_retrieve_direct(node);
+}
+
+TupleTableSlot *
+ExecDirectAgg(AggState *node)
+{
+	return ExecAgg(node);
+}

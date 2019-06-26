@@ -39,6 +39,7 @@ struct ExprContext;
 struct ExprEvalStep;			/* avoid including execExpr.h everywhere */
 
 
+/* #define GETPROGRESS_ENABLED */
 /* ----------------
  *		ExprState node
  *
@@ -463,7 +464,17 @@ typedef struct ResultRelInfo
 	/* true if ready for tuple routing */
 	bool		ri_PartitionReadyForRouting;
 } ResultRelInfo;
-
+#ifdef GETPROGRESS_ENABLED
+typedef struct ProgressState
+{
+	uint64_t	ps_totalRows;	/* Total of rows */
+	int			ps_fetchedRows; /* How many rows fetched */
+	bool		ps_aggQuery;	/* Agg Query internal */
+	Datum	   *ps_aggvalues;	/* Agg value internal  */
+	TupleTableSlot *ps_aggResult;	/* Result slot  */
+	void	   *dest;			/* Destination receiver */
+}			ProgressState;
+#endif
 /* ----------------
  *	  EState information
  *
@@ -561,7 +572,10 @@ typedef struct EState
 	bool	   *es_epqScanDone; /* true if EPQ tuple has been fetched */
 
 	bool		es_use_parallel_mode;	/* can we use parallel workers? */
-
+#ifdef GETPROGRESS_ENABLED
+	ProgressState *es_progressState;	/* Get progress operations */
+#endif
+	bool		agg_query;		/* To Indicate the type of the query,*/
 	/* The per-query shared memory area to use for parallel execution. */
 	struct dsa_area *es_query_dsa;
 
@@ -962,6 +976,7 @@ typedef struct PlanState
 	 * descriptor, without encoding knowledge about all executor nodes.
 	 */
 	TupleDesc	scandesc;
+	void	   *spdAggQry;		/* Currently used to point to queryDesc */
 } PlanState;
 
 /* ----------------
@@ -1653,6 +1668,9 @@ typedef struct ForeignScanState
 	/* use struct pointer to avoid including fdwapi.h here */
 	struct FdwRoutine *fdwroutine;
 	void	   *fdw_state;		/* foreign-data wrapper can keep state here */
+	void	   *spd_fsstate;
+	void	   *conn;			/* cast to PGconn. To refer ForeignServer
+								 * Connection, To use in PGcancel */
 } ForeignScanState;
 
 /* ----------------

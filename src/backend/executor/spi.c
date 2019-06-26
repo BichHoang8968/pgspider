@@ -489,6 +489,26 @@ SPI_exec(const char *src, long tcount)
 	return SPI_execute(src, false, tcount);
 }
 
+/* Obsolete version of SPI_execute */
+TupleTableSlot *
+SPI_execRetreiveDirect(AggState *aggState)
+{
+	return ExecRetreiveDirect(aggState);
+}
+
+/* Obsolete version of SPI_execute */
+TupleTableSlot *
+SPI_execAgg(AggState *aggState)
+{
+	return ExecDirectAgg(aggState);
+}
+
+AggState *
+SPI_execIntiAgg(Agg *node, EState *estate, int eflags)
+{
+	return ExecInitAgg(node, estate, eflags);
+}
+
 /* Execute a previously prepared plan */
 int
 SPI_execute_plan(SPIPlanPtr plan, Datum *Values, const char *Nulls,

@@ -116,6 +116,10 @@
 #include "nodes/nodeFuncs.h"
 #include "miscadmin.h"
 
+#ifdef GETPROGRESS_ENABLED
+/* Global isForeignScan flag to identify whether */
+extern bool isForeignScan;
+#endif
 
 static TupleTableSlot *ExecProcNodeFirst(PlanState *node);
 static TupleTableSlot *ExecProcNodeInstr(PlanState *node);
@@ -276,6 +280,9 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 		case T_ForeignScan:
 			result = (PlanState *) ExecInitForeignScan((ForeignScan *) node,
 													   estate, eflags);
+#ifdef GETPROGRESS_ENABLED
+			isForeignScan = true;
+#endif
 			break;
 
 		case T_CustomScan:
@@ -370,7 +377,12 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 			break;
 	}
 
-	ExecSetExecProcNode(result, result->ExecProcNode);
+	/*
+	 * Add a wrapper around the ExecProcNode callback that checks stack depth
+	 * during the first execution.
+	 */
+	result->ExecProcNodeReal = result->ExecProcNode;
+	result->ExecProcNode = ExecProcNodeFirst;
 
 	/*
 	 * Initialize any initPlans present in this node.  The planner put them in
@@ -736,7 +748,11 @@ ExecEndNode(PlanState *node)
  * ExecShutdownNode
  *
  * Give execution nodes a chance to stop asynchronous resource consumption
- * and release any resources still held.
+ * and release any resources still held.  Currently, this is only used for
+ * parallel query, but we might want to extend it to other cases also (e.g.
+ * FDW).  We might also want to call it sooner, as soon as it's evident that
+ * no more rows will be needed (e.g. when a Limit is filled) rather than only
+ * at the end of ExecutorRun.
  */
 bool
 ExecShutdownNode(PlanState *node)

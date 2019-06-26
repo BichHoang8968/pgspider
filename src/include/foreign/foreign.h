@@ -14,13 +14,15 @@
 #define FOREIGN_H
 
 #include "nodes/parsenodes.h"
-
+#include "lib/stringinfo.h"
+#include "utils/resowner.h"
+#include <pthread.h>
 
 /* Helper for obtaining username for user mapping */
 #define MappingUserName(userid) \
 	(OidIsValid(userid) ? GetUserNameFromId(userid, false) : "public")
 
-
+#define MAX_CHAR 1024
 /*
  * Generic option types for validation.
  * NB! These are treated as flags, so use only powers of two here.
@@ -67,6 +69,40 @@ typedef struct ForeignTable
 	Oid			serverid;		/* server Oid */
 	List	   *options;		/* ftoptions as DefElem list */
 } ForeignTable;
+
+typedef enum
+{
+	SPD_FS_STATE_INIT,
+	SPD_FS_STATE_BEGIN,
+	SPD_FS_STATE_ITERATE,
+	SPD_FS_STATE_END,
+	SPD_FS_STATE_FINISH,
+	SPD_FS_STATE_ERROR,
+}			SpdForeignScanThreadState;
+
+typedef struct ForeignScanThreadInfo
+{
+	struct FdwRoutine *fdwroutine;	/* Foreign Data wrapper  routine */
+	struct ForeignScanState *fsstate;	/* ForeignScan state data */
+	int			eflags;			/* it used to set on Plan nodes(bitwise OR of
+								 * the flag bits ) */
+	Oid			serverId;		/* use it for server id */
+	bool		iFlag;			/* use it for iteration scan */
+	bool		EndFlag;		/* use it for end scan */
+	bool		queryRescan;
+	struct TupleTableSlot *tuple;	/* use it for storing tuple, which is
+									 * retrieved from the DS */
+	int			nodeIndex;		/* Index of the node */
+	int			childInfoIndex;		/* index of child info array */
+	MemoryContext threadMemoryContext;
+	MemoryContext threadTopMemoryContext;
+	pthread_mutex_t nodeMutex;	/* Use for ReScan call */
+	SpdForeignScanThreadState state;
+	pthread_t	me;
+	ResourceOwner thrd_ResourceOwner;
+	void	   *private;
+}			ForeignScanThreadInfo;
+
 
 
 extern ForeignServer *GetForeignServer(Oid serverid);

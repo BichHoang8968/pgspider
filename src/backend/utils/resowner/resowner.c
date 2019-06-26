@@ -137,7 +137,7 @@ typedef struct ResourceOwnerData
  *	  GLOBAL MEMORY															 *
  *****************************************************************************/
 
-ResourceOwner CurrentResourceOwner = NULL;
+__thread ResourceOwner CurrentResourceOwner = NULL;
 ResourceOwner CurTransactionResourceOwner = NULL;
 ResourceOwner TopTransactionResourceOwner = NULL;
 
