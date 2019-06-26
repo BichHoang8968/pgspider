@@ -2895,7 +2895,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
 		ForeignScan *temp_obj;
-		RelOptInfo *entry;
 		List	   *temptlist;
 
 		/* skip to can not access child table at spd_GetForeignRelSize. */
@@ -2912,20 +2911,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			child_tlist = spd_createPushDownPlan(fdw_private->child_comp_tlist,
 												 list_member_oid(fdw_private->pPseudoAggList, server_oid),
 												 fdw_private);
-		else
-		{
-			/*
-			 * Group by clause for Pushdown case need to be added in
-			 * dummy_root_list check for any other better way then this in
-			 * future
-			 */
-			if (root->parse->groupClause != NULL)
-			{
-				((PlannerInfo *) childinfo[i].root)->parse->groupClause =
-					lappend(((PlannerInfo *) childinfo[i].root)->parse->groupClause,
-							root->parse->groupClause);
-			}
-		}
+
 		PG_TRY();
 		{
 			/*
