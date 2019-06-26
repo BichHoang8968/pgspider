@@ -1,4 +1,5 @@
-/usr/local/tinybrace/bin/tbcshell -id=user -pwd=testuser -server=127.0.0.1 -port=5100 -db=test.db < tiny.dat
+# /usr/local/tinybrace/bin/tbcshell -id=user -pwd=testuser -server=127.0.0.1 -port=5100 -db=test.db < tiny.dat
+/usr/local/tinybrace/bin/tbeshell /usr/local/tinybrace/databases/test.db < tiny.dat
 
 cp pgtest.csv /tmp/
 
