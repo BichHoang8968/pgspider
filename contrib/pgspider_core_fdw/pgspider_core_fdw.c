@@ -275,7 +275,6 @@ typedef struct SpdFdwPrivate
 	List	   *pPseudoAggList; /* Disable of aggregation push down server
 								 * list */
 	List	   *pPseudoAggTypeList; /* Push down type list */
-	List	   *tList;			/* target list */
 	bool		agg_query;		/* aggregation flag */
 	bool		isFirst;		/* First time of iteration foreign scan with
 								 * aggregation query */
@@ -1956,7 +1955,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	ListCell   *lc;
 	MemoryContext oldcontext;
 	PlannerInfo *spd_root;
-	int			i;
 	int			listn = 0;
 	RelOptInfo *dummy_output_rel;
 
@@ -2872,7 +2870,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	spd_spi_exec_datasouce_num(foreigntableid, &nums, &oid);
 
 	fdw_scan_tlist = fdw_private->rinfo.grouped_tlist;
-	fdw_private->tList = list_copy(tlist);
 
 	/* Create "GROUP BY" string */
 	if (root->parse->groupClause != NULL)
