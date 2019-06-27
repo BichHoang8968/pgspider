@@ -275,7 +275,6 @@ typedef struct SpdFdwPrivate
 	List	   *pPseudoAggList; /* Disable of aggregation push down server
 								 * list */
 	List	   *pPseudoAggTypeList; /* Push down type list */
-	List	   *tList;			/* target list */
 	bool		agg_query;		/* aggregation flag */
 	bool		isFirst;		/* First time of iteration foreign scan with
 								 * aggregation query */
@@ -1956,7 +1955,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	ListCell   *lc;
 	MemoryContext oldcontext;
 	PlannerInfo *spd_root;
-	int			i;
 	int			listn = 0;
 	RelOptInfo *dummy_output_rel;
 
@@ -2872,7 +2870,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	spd_spi_exec_datasouce_num(foreigntableid, &nums, &oid);
 
 	fdw_scan_tlist = fdw_private->rinfo.grouped_tlist;
-	fdw_private->tList = list_copy(tlist);
 
 	/* Create "GROUP BY" string */
 	if (root->parse->groupClause != NULL)
@@ -2898,7 +2895,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
 		ForeignScan *temp_obj;
-		RelOptInfo *entry;
 		List	   *temptlist;
 
 		/* skip to can not access child table at spd_GetForeignRelSize. */
@@ -2909,32 +2905,13 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
 		/* get child node's oid. */
 		server_oid = childinfo[i].server_oid;
-		entry = (RelOptInfo *) childinfo[i].baserel;
-		if (entry == NULL)
-			continue;
 
 		fdwroutine = GetFdwRoutineByServerId(server_oid);
 		if (fdw_private->agg_query)
-		{
-			if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
-				child_tlist = spd_createPushDownPlan(fdw_private->child_comp_tlist, true, fdw_private);
-			else
-				child_tlist = spd_createPushDownPlan(fdw_private->child_comp_tlist, false, fdw_private);
-		}
-		else
-		{
-			/*
-			 * Group by clause for Pushdown case need to be added in
-			 * dummy_root_list check for any other better way then this in
-			 * future
-			 */
-			if (root->parse->groupClause != NULL)
-			{
-				((PlannerInfo *) childinfo[i].root)->parse->groupClause =
-					lappend(((PlannerInfo *) childinfo[i].root)->parse->groupClause,
-							root->parse->groupClause);
-			}
-		}
+			child_tlist = spd_createPushDownPlan(fdw_private->child_comp_tlist,
+												 list_member_oid(fdw_private->pPseudoAggList, server_oid),
+												 fdw_private);
+
 		PG_TRY();
 		{
 			/*
@@ -2960,8 +2937,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				/* Pick any agg path */
 				child_path = lfirst(list_head(childinfo[i].grouped_rel_local->pathlist));
 				temptlist = PG_build_path_tlist((PlannerInfo *) childinfo[i].root, child_path);
-				temp_obj = fdwroutine->GetForeignPlan(
-													  childinfo[i].grouped_root_local,
+				temp_obj = fdwroutine->GetForeignPlan(childinfo[i].grouped_root_local,
 													  childinfo[i].grouped_rel_local,
 													  oid[i],
 													  (ForeignPath *) child_path,
@@ -2974,8 +2950,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				/* Not push down case */
 				temptlist = (List *) build_physical_tlist(childinfo[i].root, childinfo[i].baserel);
 				childinfo[i].baserel->reltarget->exprs = temptlist;
-				temp_obj = fdwroutine->GetForeignPlan(
-													  (PlannerInfo *) childinfo[i].root,
+				temp_obj = fdwroutine->GetForeignPlan((PlannerInfo *) childinfo[i].root,
 													  (RelOptInfo *) childinfo[i].baserel,
 													  oid[i],
 													  (ForeignPath *) best_path,
@@ -3004,8 +2979,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
 		{
 			/* Create aggregation plan with foreign table scan. */
-			childinfo[i].pAgg = make_agg(
-										 child_tlist,
+			childinfo[i].pAgg = make_agg(child_tlist,
 										 NULL,
 										 childinfo[i].aggpath->aggstrategy,
 										 childinfo[i].aggpath->aggsplit,
