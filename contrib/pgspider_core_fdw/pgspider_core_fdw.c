@@ -184,7 +184,7 @@ static void spd_EndForeignModify(EState *estate,
 
 static TargetEntry *spd_tlist_member(Expr *node, List *targetlist, int *target_num);
 
-static List *spd_add_to_flat_tlist(List *tlist, Expr *exprs, List **mapping_tlist, List **compress_tlist, int *child_uninum, Index sgref);
+static List *spd_add_to_flat_tlist(List *tlist, Expr *exprs, List **mapping_tlist, List **compress_tlist, Index sgref);
 static void spd_spi_exec_child_ip(char *serverName, char *ip);
 
 enum SpdFdwScanPrivateIndex
@@ -286,7 +286,6 @@ typedef struct SpdFdwPrivate
 	Oid		   *agg_value_type; /* aggregation parameters */
 	List	   *child_comp_tlist;	/* child complite target list */
 	List	   *mapping_tlist;	/* mapping list orig and pgspider */
-	int			child_uninum;	/* number of NOT push down child column */
 	List	   *groupby_target; /* group target tlist number */
 	PlannerInfo *spd_root;		/* Copyt of root planner info. This is used by
 								 * aggregation pushdown. */
@@ -441,12 +440,11 @@ spd_tlist_member(Expr *node, List *targetlist, int *target_num)
  * @param[out] mapping_tlist - target mapping list for child node
  * @param[out] mapping_orig_tlist - target mapping list
  * @param[out] compress_tlist  target - compress list for child node
- * @param[out] child_uninum - number of child list
  */
 
 static List *
 spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
-					  List **compress_tlist, int *child_uninum, Index sgref)
+					  List **compress_tlist, Index sgref)
 {
 	int			next_resno = list_length(tlist) + 1;
 	int			next_resno_temp = list_length(*compress_tlist) + 1;
@@ -521,7 +519,6 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 									   NULL,
 									   false);
 			*compress_tlist = lappend(*compress_tlist, tle_temp);
-			*child_uninum += 1;
 		}
 		mapcells->mapping_tlist.mapping[0] = target_num;
 		/* sum */
@@ -532,7 +529,6 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 									   NULL,
 									   false);
 			*compress_tlist = lappend(*compress_tlist, tle_temp);
-			*child_uninum += 1;
 		}
 		mapcells->mapping_tlist.mapping[1] = target_num;
 		/* variance(SUM(x*x)) */
@@ -594,7 +590,6 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 										   NULL,
 										   false);
 				*compress_tlist = lappend(*compress_tlist, tle_temp);
-				*child_uninum += 1;
 			}
 			mapcells->mapping_tlist.mapping[2] = target_num;
 		}
@@ -631,12 +626,10 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 									   false);
 			tle_temp->ressortgroupref = sgref;
 			*compress_tlist = lappend(*compress_tlist, tle_temp);
-			*child_uninum += 1;
 		}
 		mapcells->mapping_tlist.mapping[0] = target_num;
 	}
 	*mapping_tlist = lappend(*mapping_tlist, mapcells);
-
 	return tlist;
 }
 
@@ -2075,25 +2068,8 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				copy_pathtarget(spd_root->upper_targets[UPPERREL_FINAL]);
 			oldcontext = MemoryContextSwitchTo(MessageContext);
 
-			foreach(lc, root->upper_targets[UPPERREL_GROUP_AGG]->exprs)
-			{
-				Expr	   *expr = (Expr *) lfirst(lc);
-
-				listn++;
-				if (IsA(expr, Aggref) &&IS_SPLIT_AGG(castNode(Aggref, expr)->aggfnoid))
-				{
-					newList = spd_makedivtlist(castNode(Aggref, expr), newList, fdw_private);
-				}
-				else
-				{
-					/* non aggref is possible if is is group-by target */
-					newList = lappend(newList, expr);
-				}
-			}
-			dummy_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = list_copy(newList);
-
 			/* Fill sortgrouprefs for child using child target entry list */
-			sortgrouprefs = palloc(sizeof(Index) * fdw_private->child_uninum);
+			sortgrouprefs = palloc(sizeof(Index) * list_length(fdw_private->child_comp_tlist));
 			listn = 0;
 			foreach(lc, fdw_private->child_comp_tlist)
 			{
@@ -2238,7 +2214,6 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 	List	   *aggvars;
 	ListCell   *lc;
 	int			i;
-	int			child_uninum = 0;
 	int			groupby_cursor = 0;
 	List	   *tlist = NIL;
 	List	   *mapping_tlist = NIL;
@@ -2296,10 +2271,9 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 			if (!is_foreign_expr(root, grouped_rel, expr))
 				return false;
 			/* Pushable, add to tlist */
-			before_listnum = child_uninum;
-			tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, &child_uninum, sgref);
-			if (child_uninum - before_listnum > 0)
-				groupby_cursor += child_uninum - before_listnum;
+			before_listnum = list_length(compress_child_tlist);
+			tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, sgref);
+			groupby_cursor += list_length(compress_child_tlist) - before_listnum;
 			fpinfo->groupby_target = lappend_int(fpinfo->groupby_target, groupby_cursor - 1);
 		}
 		else
@@ -2308,11 +2282,10 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 			if (is_foreign_expr(root, grouped_rel, expr))
 			{
 				/* Pushable, add to tlist */
-				int			before_listnum = child_uninum;
+				int			before_listnum = list_length(compress_child_tlist);
 
-				tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, &child_uninum, sgref);
-				if (child_uninum - before_listnum > 0)
-					groupby_cursor += child_uninum - before_listnum;
+				tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, sgref);
+				groupby_cursor += list_length(compress_child_tlist) - before_listnum;
 			}
 			else
 			{
@@ -2348,12 +2321,11 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 
 					if (IsA(expr, Aggref))
 					{
-						int			before_listnum = child_uninum;
+						int			before_listnum = list_length(compress_child_tlist);
 
-						tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, &child_uninum, sgref);
-						i += child_uninum - before_listnum;
-						if (child_uninum - before_listnum > 0)
-							groupby_cursor += child_uninum - before_listnum;
+						tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, sgref);
+						i += list_length(compress_child_tlist) - before_listnum;
+						groupby_cursor += list_length(compress_child_tlist) - before_listnum;
 					}
 				}
 			}
@@ -2423,7 +2395,6 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 	appendStringInfo(fpinfo->rinfo.relation_name, "Aggregate on (%s)",
 					 ofpinfo->rinfo.relation_name->data);
 	fpinfo->mapping_tlist = mapping_tlist;
-	fpinfo->child_uninum = child_uninum;
 	fpinfo->child_comp_tlist = compress_child_tlist;
 
 	return true;
@@ -3213,13 +3184,12 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		 * Create child descriptor using mapping_tlist and child
 		 * child_comp_tlist
 		 */
-		natts = node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->natts;
 		if (fdw_private->agg_query)
 		{
 			int			parent_attr = 0,	/* attribute number of parent */
 						child_attr = 0; /* attribute number of child */
 			ListCell   *lc;
-			TupleDesc	tupledesc = CreateTemplateTupleDesc(fdw_private->child_uninum, false);
+			TupleDesc	tupledesc = CreateTemplateTupleDesc(list_length(fdw_private->child_comp_tlist), false);
 
 			Assert(list_length(fdw_private->mapping_tlist) == node->ss.ps.plan->targetlist->length);
 
@@ -3241,17 +3211,18 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 				}
 				parent_attr++;
 			}
-			Assert(child_attr == fdw_private->child_uninum);
+			Assert(child_attr == list_length(fdw_private->child_comp_tlist));
 			/* Construct TupleDesc, and assign a local typmod. */
 			tupledesc = BlessTupleDesc(tupledesc);
-			natts = fdw_private->child_uninum;
 			fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
 				MakeSingleTupleTableSlot(CreateTupleDescCopy(tupledesc));
+			natts = list_length(fdw_private->child_comp_tlist);
 		}
 		else
 		{
 			fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
 				MakeSingleTupleTableSlot(CreateTupleDescCopy(node->ss.ss_ScanTupleSlot->tts_tupleDescriptor));
+			natts = node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->natts;
 		}
 
 		fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_mcxt = node->ss.ss_ScanTupleSlot->tts_mcxt;
