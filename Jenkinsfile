@@ -1,10 +1,16 @@
 def NODE_NAME = 'AWS_Instance_CentOS'
 def MAIL_TO = '$DEFAULT_RECIPIENTS'
 def BRANCH_NAME = 'Branch [' + env.BRANCH_NAME + ']'
-def BUILD_INFO = 'Jenkins: ' + env.BUILD_URL
+def BUILD_INFO = 'Jenkins job: ' + env.BUILD_URL + '\n'
 def MYSQL_FDW_URL = 'https://tccloud2.toshiba.co.jp/swc/gitlab/g3033310/mysql-fdw.git'
 def SQLITE_FDW_URL = 'https://github.com/pgspider/sqlite_fdw.git'
 def TINYBRACE_FDW_URL = 'https://tccloud2.toshiba.co.jp/accio/svn/accio/branches/tinybrace_fdw'
+
+// Get result of previous build on current branch
+def prevResult = 'SUCCESS'
+if (currentBuild.previousBuild != null) {
+    prevResult = currentBuild.previousBuild.result
+}
 
 def retrySh(String shCmd) {
     def MAX_RETRY = 10
@@ -47,6 +53,11 @@ pipeline {
     stages {
         stage('Build') {
             steps {
+                script {
+                    if (env.GIT_URL != null) {
+                        BUILD_INFO = BUILD_INFO + "Git commit: " + env.GIT_URL.replace(".git", "/commit/") + env.GIT_COMMIT + "\n"
+                    }
+                }
                 // Build PGSpider
                 sh '''
                     rm -rf install || true
@@ -57,24 +68,21 @@ pipeline {
                 '''
                 // Build fdw
                 dir("contrib/") {
-                    // Build mysql_fdw 
+                    // Build mysql_fdw
                     sh 'rm -rf mysql_fdw || true && mkdir mysql_fdw'
                     dir("mysql_fdw") {
                         git credentialsId: 'dac43358-2ffd-4a4b-b9c4-879554f2e1be', url: MYSQL_FDW_URL
                         sh 'cp -a mysql_fdw/* ./ && rm -rf mysql_fdw'
+                        sh 'make clean && make && make install'
                     }
-                    sh '''
-                        cd mysql_fdw
-                        make clean && make && make install
-                    '''
-                    // Build sqlite_fdw 
+                    // Build sqlite_fdw
                     sh 'rm -rf sqlite_fdw || true'
                     retrySh('git clone ' + SQLITE_FDW_URL)
                     sh '''
                         cd sqlite_fdw
                         make clean && make && make install
                     '''
-                    // Build tinybrace_fdw 
+                    // Build tinybrace_fdw
                     sh 'rm -rf tinybrace_fdw || true'
                     retrySh('svn co ' + TINYBRACE_FDW_URL)
                     sh '''
@@ -86,7 +94,7 @@ pipeline {
             post {
                 failure {
                     echo '** BUILD FAILED !!! NEXT STAGE WILL BE SKIPPED **'
-                    emailext subject: '[CI PGSpider] BUILD PGSpider FAILED ' + BRANCH_NAME, body: BUILD_INFO + "\nGit commit: " + env.GIT_URL.replace(".git", "/commit/") + env.GIT_COMMIT + "\n" + '${BUILD_LOG, maxLines=200, escapeHtml=false}', to: "${MAIL_TO}", attachLog: false
+                    emailext subject: '[CI PGSpider] BUILD PGSpider FAILED ' + BRANCH_NAME, body: BUILD_INFO + '{BUILD_LOG, maxLines=200, escapeHtml=false}', to: "${MAIL_TO}", attachLog: false
                 }
             }
         }
@@ -95,7 +103,6 @@ pipeline {
                 // Execute "make check" and output log to 'make_check.out'
                 catchError() {
                     sh '''
-                        pwd
                         rm -rf make_check.out || true
                         make check | tee make_check.out
                     '''
@@ -107,7 +114,7 @@ pipeline {
                     if (status != 0) {
                         unstable(message: "Set UNSTABLE result")
                         // Send mail
-                        emailext subject: '[CI PGSpider] "make check" Test FAILED ' + BRANCH_NAME, body: BUILD_INFO + "\nGit commit: " + env.GIT_URL.replace(".git", "/commit/") + env.GIT_COMMIT + "\n" + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
+                        emailext subject: '[CI PGSpider] "make check" Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
                         sh 'cat src/test/regress/regression.diffs || true'
                     }
                 }
@@ -131,11 +138,20 @@ pipeline {
                         status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'make_check.out'")
                         if (status != 0) {
                             unstable(message: "Set UNSTABLE result")
-                            // Send email and attach test results
-                            emailext subject: '[CI PGSpider] pgspider_core_fdw Test FAILED ' + BRANCH_NAME, body: BUILD_INFO + "\nGit commit: " + env.GIT_URL.replace(".git", "/commit/") + env.GIT_COMMIT + "\n" + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
+                            // Send email
+                            emailext subject: '[CI PGSpider] pgspider_core_fdw Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
                             sh 'cat regression.diffs || true'
                         }
                     }
+                }
+            }
+        }
+    }
+    post {
+        success {
+            script {
+                if (prevResult != 'SUCCESS') {
+                    emailext subject: '[CI PGSpider] PGSpider_Test BACK TO NORMAL on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
                 }
             }
         }
