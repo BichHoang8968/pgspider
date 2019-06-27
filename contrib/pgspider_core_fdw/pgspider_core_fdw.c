@@ -1667,7 +1667,6 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Oid *oid, int oid_nu
 				elog(WARNING, "GetForeignRelSize failed");
 				if (throwErrorIfDead){
 					spd_aliveError(fs);
-					PG_RE_THROW();
 				}
 				FlushErrorState();
 			}
@@ -3312,7 +3311,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			MemoryContextAlloc(node->ss.ss_ScanTupleSlot->tts_mcxt, natts * sizeof(Datum));
 		fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_isnull = (bool *)
 			MemoryContextAlloc(node->ss.ss_ScanTupleSlot->tts_mcxt, natts * sizeof(bool));
-
+	    
 		/*
 		 * current relation ID gets from current server oid, it means
 		 * childinfo[i].oid
