@@ -113,7 +113,6 @@ pipeline {
                     sh 'rm -rf mysql_fdw || true && mkdir mysql_fdw'
                     dir("mysql_fdw") {
                         git credentialsId: 'dac43358-2ffd-4a4b-b9c4-879554f2e1be', url: MYSQL_FDW_URL
-                        sh 'cp -a mysql_fdw/* ./ && rm -rf mysql_fdw'
                         sh 'make clean && make && make install'
                     }
                     // Build sqlite_fdw
