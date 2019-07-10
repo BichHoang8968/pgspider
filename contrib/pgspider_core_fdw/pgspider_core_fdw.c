@@ -2863,7 +2863,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	/* Create Foreign Plans using base_rel_list to each child. */
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
-		ForeignScan *temp_obj;
+		ForeignScan *fsplan;
 		List	   *temptlist;
 
 		/* skip to can not access child table at spd_GetForeignRelSize. */
@@ -2902,13 +2902,13 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				/* Pick any agg path */
 				child_path = lfirst(list_head(childinfo[i].grouped_rel_local->pathlist));
 				temptlist = PG_build_path_tlist((PlannerInfo *) childinfo[i].root, child_path);
-				temp_obj = fdwroutine->GetForeignPlan(childinfo[i].grouped_root_local,
-													  childinfo[i].grouped_rel_local,
-													  oid[i],
-													  (ForeignPath *) child_path,
-													  temptlist,
-													  push_scan_clauses,
-													  outer_plan);
+				fsplan = fdwroutine->GetForeignPlan(childinfo[i].grouped_root_local,
+													childinfo[i].grouped_rel_local,
+													oid[i],
+													(ForeignPath *) child_path,
+													temptlist,
+													push_scan_clauses,
+													outer_plan);
 			}
 			else
 			{
@@ -2919,13 +2919,13 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				if (root->parse->groupClause != NULL)
 					apply_pathtarget_labeling_to_tlist(temptlist, ((Path *) best_path)->pathtarget);
 				childinfo[i].baserel->reltarget->exprs = temptlist;
-				temp_obj = fdwroutine->GetForeignPlan((PlannerInfo *) childinfo[i].root,
-													  (RelOptInfo *) childinfo[i].baserel,
-													  oid[i],
-													  (ForeignPath *) best_path,
-													  temptlist,
-													  push_scan_clauses,
-													  outer_plan);
+				fsplan = fdwroutine->GetForeignPlan((PlannerInfo *) childinfo[i].root,
+													(RelOptInfo *) childinfo[i].baserel,
+													oid[i],
+													(ForeignPath *) best_path,
+													temptlist,
+													push_scan_clauses,
+													outer_plan);
 				childinfo[i].scan_relid = childinfo[i].baserel->relid;
 			}
 		}
@@ -2963,15 +2963,15 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 										 childinfo[i].aggpath->aggsplit,
 										 list_length(childinfo[i].aggpath->groupClause),
 										 extract_grouping_cols(childinfo[i].aggpath->groupClause,
-															   temp_obj->scan.plan.targetlist),
+															   fsplan->scan.plan.targetlist),
 										 extract_grouping_ops(childinfo[i].aggpath->groupClause),
 										 root->parse->groupingSets,
 										 NIL,
 										 childinfo[i].aggpath->path.rows,
-										 (Plan *) temp_obj);
+										 (Plan *) fsplan);
 
 		}
-		childinfo[i].plan = (Plan *) temp_obj;
+		childinfo[i].plan = (Plan *) fsplan;
 	}
 
 	if (IS_SIMPLE_REL(baserel))
