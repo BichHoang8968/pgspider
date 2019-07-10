@@ -883,7 +883,11 @@ transformInsertStmt(ParseState * pstate, InsertStmt * stmt)
 	assign_query_collations(pstate, qry);
 	if (stmt->relation->spd_url != NULL)
 	{
-		rte->url = pstrdup(stmt->relation->spd_url);
+		rte->spd_url = pstrdup(stmt->relation->spd_url);
+	}
+	if (stmt->relation->spd_url != NULL)
+	{
+		rte->spd_url_list = list_copy(stmt->relation->spd_url_list);
 	}
 	return qry;
 }

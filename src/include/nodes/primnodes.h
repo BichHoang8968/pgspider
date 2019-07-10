@@ -72,6 +72,7 @@ typedef struct RangeVar
 	Alias	   *alias;			/* table alias & optional column aliases */
 	int			location;		/* token location, or -1 if unknown */
 	char	   *spd_url;		/* for UNDER Clause String, e.g. /foo/bar/ */
+    List	   *spd_url_list;		/* for UNDER Clause String, e.g. /foo/bar/ */
 }			RangeVar;
 
 /*

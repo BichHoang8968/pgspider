@@ -579,6 +579,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <node>		partbound_datum PartitionRangeDatum
 %type <list>		partbound_datum_list range_datum_list
 %type <str> url
+%type <list> url_list
 
 /*
  * Non-keyword token types.  These are hard-wired into the "flex" lexer.
@@ -677,7 +678,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 	TIME TIMESTAMP TO TRAILING TRANSACTION TRANSFORM TREAT TRIGGER TRIM TRUE_P
 	TRUNCATE TRUSTED TYPE_P TYPES_P
 
-		UNBOUNDED UNCOMMITTED UNDER UNENCRYPTED UNION UNIQUE UNKNOWN UNLISTEN UNLOGGED
+		UNBOUNDED UNCOMMITTED UNENCRYPTED UNION UNIQUE UNKNOWN UNLISTEN UNLOGGED
 	UNTIL UPDATE USER USING
 
 	VACUUM VALID VALIDATE VALIDATOR VALUE_P VALUES VARCHAR VARIADIC VARYING
@@ -10466,9 +10467,9 @@ insert_target:
 					$1->alias = makeAlias($3, NIL);
 					$$ = $1;
 				}
-			| qualified_name UNDER url
+| qualified_name IN_P  '(' url_list ')'
 				{
-					$1->spd_url = $3;
+					$1->spd_url_list = $4;
 					(void)$2;
 				    $$ = $1;
 				}
@@ -11427,11 +11428,10 @@ table_ref:	relation_expr opt_alias_clause
 					$1->alias = $2;
 					$$ = (Node *) $1;
 				}
-			| relation_expr UNDER url opt_alias_clause
+            | relation_expr IN_P '(' url_list ')' opt_alias_clause
 			{
-				$1->alias = $4;
-				$1->spd_url = $3;
-				(void)$2;
+				$1->alias = $6;
+				$1->spd_url_list = $4;
 				$$ = (Node *) $1;
 			}
 			| relation_expr opt_alias_clause tablesample_clause
@@ -11540,7 +11540,15 @@ table_ref:	relation_expr opt_alias_clause
 					$$ = (Node *) $2;
 				}
 		;
-url: SCONST {$$ = $1;};
+url_list:
+url { $$ = list_make1($1); }
+| url_list ',' url
+			{ $$ = lappend($1, $3); }
+		;
+url:
+IDENT {$$ = $1;}
+| Sconst {$$ = $1;}
+;
 
 /*
  * It may seem silly to separate joined_table from table_ref, but there is
@@ -11778,9 +11786,9 @@ relation_expr_opt_alias: relation_expr					%prec UMINUS
 					$1->alias = alias;
 					$$ = $1;
 				}
-			| relation_expr UNDER url
+| relation_expr IN_P '(' url_list ')'
 				{
-					$1->spd_url = $3;
+					$1->spd_url_list = $4;
 					(void)$2;
 				    $$ = $1;
 				}
@@ -14880,7 +14888,6 @@ unreserved_keyword:
 			| TYPES_P
 			| UNBOUNDED
 			| UNCOMMITTED
-			| UNDER
 			| UNENCRYPTED
 			| UNKNOWN
 			| UNLISTEN

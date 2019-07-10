@@ -255,6 +255,8 @@ typedef struct ChildInfo
 	RelOptInfo *grouped_rel_local;
 	Agg		   *pAgg;			/* "Aggref" for Disable of aggregation push
 								 * down servers */
+	bool		under_flag;		/* using UNDER clause or NOT */
+	List       *url_list;
 }			ChildInfo;
 
 /*
@@ -269,6 +271,7 @@ typedef struct SpdFdwPrivate
 	int			node_num;		/* number of child tables */
 	bool		under_flag;		/* using UNDER clause or NOT */
 	ChildInfo  *childinfo;		/* ChildInfo List */
+	List	   *url_list; /* lieteral of parse UNDER clause */
 	List	   *url_parse_list; /* lieteral of parse UNDER clause */
 	pthread_t	foreign_scan_threads[NODES_MAX];	/* child node thread  */
 	PgFdwRelationInfo rinfo;	/* pgspider reration info */
@@ -1177,40 +1180,50 @@ THREAD_EXIT:
  *  Original URL "sample" First URL NULL  Throwing URL NULL
  * Pattern4 Url = "/"
  *  Original URL NULL First URL NULL  Throwing URL NULL
+ * Pattern5 Url = "/sample"
+ *  Original URL sample First URL NULL  Throwing URL NULL
  *
  * @param[in] url_str - URL
  * @param[out] fdw_private - store to parsing URL
  */
 static void
-spd_ParseUrl(char *url_str, SpdFdwPrivate * fdw_private)
+spd_ParseUrl(List *spd_url_list, SpdFdwPrivate * fdw_private)
 {
 	char	   *tp;
 	char	   *url_option;
 	char	   *next = NULL;
 	char	   *throwing_url = NULL;
 	int			original_len;
+	ListCell   *lc;
 
-	url_option = pstrdup(url_str);
-	if (url_option[0] != '/')
-		elog(ERROR, "URL first character should set '/' ");
-	url_option++;
-	tp = strtok_r(url_option, "/", &next);
-	if (tp != NULL)
-		fdw_private->url_parse_list = lappend(fdw_private->url_parse_list, tp); /* Original URL */
-	else
-		return;					/* Pattern4 */
+	foreach(lc, spd_url_list)
+	{
+	    char *url_str = (char *) lfirst(lc);
+		List *url_parse_list=NULL;
 
-	/*
-	 * url_option = /sample\ntest/code ^ *tp position url_str =
-	 * /sample/test/code/ |---------| <-Throwing URL * <- This pointer is
-	 * url_str[strlen(tp)+ 1]
-	 */
-	original_len = strlen(tp) + 1;
-	throwing_url = pstrdup(&url_str[original_len]);
-	tp = strtok_r(url_option, "/", &next);	/* First URL */
-	fdw_private->url_parse_list = lappend(fdw_private->url_parse_list, tp);
-	if (strlen(throwing_url) != 1)
-		fdw_private->url_parse_list = lappend(fdw_private->url_parse_list, throwing_url);
+		url_option = pstrdup(url_str);
+		if (url_option[0] != '/')
+			elog(ERROR, "URL first character should set '/' ");
+		url_option++;
+		tp = strtok_r(url_option, "/", &next);
+		if (tp != NULL)
+		    url_parse_list = lappend(url_parse_list, tp); /* Original URL */
+		else
+			goto END;
+		/*
+		 * url_option = /sample\ntest/code ^ *tp position url_str =
+		 * /sample/test/code/ |---------| <-Throwing URL * <- This pointer is
+		 * url_str[strlen(tp)+ 1]
+		 */
+		original_len = strlen(tp) + 1;
+		throwing_url = pstrdup(&url_str[original_len]);
+		tp = strtok_r(url_option, "/", &next);	/* First URL */
+	    url_parse_list = lappend(url_parse_list, tp);
+		if (strlen(throwing_url) != 1)
+		    url_parse_list = lappend(url_parse_list, throwing_url);
+	END:
+		fdw_private->url_list = lappend(fdw_private->url_list, url_parse_list);
+	}
 }
 
 
@@ -1224,13 +1237,14 @@ spd_ParseUrl(char *url_str, SpdFdwPrivate * fdw_private)
  *
  */
 static void
-spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_private, char **new_underurl)
+spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_private)
 {
 	char	   *original_url = NULL;
 	char	   *throwing_url = NULL;
 	char	   *first_url = NULL;
+	ListCell   *lc;
 
-	if (r_entry->url == NULL)
+	if (r_entry->spd_url_list == NULL)
 	{
 		/* UNDER clause does not use. all child table is alive now. */
 		for (int i = 0; i < childnums; i++)
@@ -1244,59 +1258,66 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 	 * entry is first parsing word(/foo/bar/, then entry is "foo",entry2 is
 	 * "bar")
 	 */
-	spd_ParseUrl(r_entry->url, fdw_private);
-	if (fdw_private->url_parse_list == NULL)
+	spd_ParseUrl(r_entry->spd_url_list, fdw_private);
+	if (fdw_private->url_list == NULL)
 		elog(ERROR, "UNDER Clause use but can not find url. Please set UNDER string.");
-	if (fdw_private->url_parse_list->length == 0)
+	if (fdw_private->url_list->length == 0)
 	{
 		for (int i = 0; i < childnums; i++)
 			fdw_private->childinfo[i].child_node_status = ServerStatusAlive;
 		return;
 	}
-	original_url = (char *) list_nth(fdw_private->url_parse_list, 0);
-	if (fdw_private->url_parse_list->length > 2)
-	{
-		first_url = (char *) list_nth(fdw_private->url_parse_list, 1);
-		throwing_url = (char *) list_nth(fdw_private->url_parse_list, 2);
-	}
-	/* If UNDER Clause is used, then store to parsing url */
-	for (int i = 0; i < childnums; i++)
-	{
-		char		srvname[NAMEDATALEN];
-		Oid			temp_oid = fdw_private->childinfo[i].oid;
-		Oid			temp_tableid;
-		ForeignServer *temp_server;
-		ForeignDataWrapper *temp_fdw = NULL;
 
-		spd_spi_exec_datasource_name(temp_oid, srvname);
-
-		if (strcmp(original_url, srvname) != 0)
+	foreach(lc, fdw_private->url_list)
+	{
+	    List *url_parse_list = (List *) lfirst(lc);
+		original_url = (char *) list_nth(url_parse_list, 0);
+		if (url_parse_list->length > 2)
 		{
-			elog(DEBUG1, "Can not find URL");
-			fdw_private->childinfo[i].child_node_status = ServerStatusUnder;
-			continue;
+			first_url = (char *) list_nth(url_parse_list, 1);
+			throwing_url = (char *) list_nth(url_parse_list, 2);
 		}
-		fdw_private->childinfo[i].child_node_status = ServerStatusAlive;
-
-		/*
-		 * if child-child node is exist, then create New UNDER clause. New
-		 * UNDER clause is used by child spd server.
-		 */
-
-		if (throwing_url != NULL)
+		/* If UNDER Clause is used, then store to parsing url */
+		for (int i = 0; i < childnums; i++)
 		{
+			char		srvname[NAMEDATALEN];
+			Oid			temp_oid = fdw_private->childinfo[i].oid;
+			Oid			temp_tableid;
+			ForeignServer *temp_server;
+			ForeignDataWrapper *temp_fdw = NULL;
 
-			/* check child table fdw is spd or not */
-			temp_tableid = GetForeignServerIdByRelId(temp_oid);
-			temp_server = GetForeignServer(temp_tableid);
-			temp_fdw = GetForeignDataWrapper(temp_server->fdwid);
-			if (strcmp(temp_fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
+			spd_spi_exec_datasource_name(temp_oid, srvname);
+
+			if (strcmp(original_url, srvname) != 0)
 			{
-				elog(ERROR, "Child node is not spd");
+				elog(DEBUG1, "Can not find URL");
+				/* for multi under node */
+				if(fdw_private->childinfo[i].child_node_status != ServerStatusAlive)
+					fdw_private->childinfo[i].child_node_status = ServerStatusUnder;
+				continue;
 			}
-			/* if child table fdw is spd, then execute operation */
-			fdw_private->under_flag = 1;
-			*new_underurl = pstrdup(first_url);
+			fdw_private->childinfo[i].child_node_status = ServerStatusAlive;
+
+			/*
+			 * if child-child node is exist, then create New UNDER clause. New
+			 * UNDER clause is used by child spd server.
+			 */
+
+			if (throwing_url != NULL)
+			{
+
+				/* check child table fdw is spd or not */
+				temp_tableid = GetForeignServerIdByRelId(temp_oid);
+				temp_server = GetForeignServer(temp_tableid);
+				temp_fdw = GetForeignDataWrapper(temp_server->fdwid);
+				if (strcmp(temp_fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
+				{
+					elog(ERROR, "Child node is not spd");
+				}
+				/* if child table fdw is spd, then execute operation */
+				fdw_private->under_flag = 1;
+				fdw_private->url_list =  lappend(fdw_private->url_list,first_url);
+			}
 		}
 	}
 }
@@ -1531,7 +1552,7 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root)
  */
 static void
 spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Oid *oid, int oid_nums, RangeTblEntry *r_entry,
-					char *new_underurl, SpdFdwPrivate * fdw_private)
+				    List *new_underurl, SpdFdwPrivate * fdw_private)
 {
 	RelOptInfo *entry_baserel;
 	FdwRoutine *fdwroutine;
@@ -1591,10 +1612,11 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Oid *oid, int oid_nu
 		 * if child node is spd and UNDER clause is used, then should set new
 		 * UNDER clause URL at child node planner URL.
 		 */
-		if (new_underurl != NULL)
+		if (childinfo[i].url_list != NULL)
 		{
-			rte->url = palloc0(sizeof(char) * strlen(new_underurl));
-			strcpy(rte->url, new_underurl);
+			//rte->spd_url_list = palloc0(sizeof(char) * strlen(new_underurl));
+			//strcpy(rte->url, new_underurl);
+			rte->spd_url_list = list_copy(childinfo[i].url_list);
 		}
 
 		/*
@@ -1771,7 +1793,7 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	SpdFdwPrivate *fdw_private;
 	Oid		   *oid = NULL;
 	int			nums;
-	char	   *new_underurl = NULL;
+    List	   *new_underurl = NULL;
 	RangeTblEntry *r_entry;
 	char	   *namespace = NULL;
 	char	   *relname = NULL;
@@ -1794,14 +1816,17 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 
 	for (int i = 0; i < nums; i++)
 		fdw_private->childinfo[i].oid = oid[i];
+	/* Initialize all servers */
+	for (int i = 0; i < nums; i++)
+		fdw_private->childinfo[i].child_node_status = ServerStatusDead;
 
 	Assert(IS_SIMPLE_REL(baserel));
 	r_entry = root->simple_rte_array[baserel->relid];
 	Assert(r_entry != NULL);
 
 	/* Check to UNDER clause and execute only UNDER URL server */
-	if (r_entry->url != NULL)
-		spd_create_child_url(nums, r_entry, fdw_private, &new_underurl);
+	if (r_entry->spd_url_list != NULL)
+		spd_create_child_url(nums, r_entry, fdw_private);
 	else
 	{
 		for (int i = 0; i < nums; i++)
@@ -4078,6 +4103,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 
 	if (fdw_private == NULL)
 		elog(ERROR, "can't find node in iterateforeignscan");
+	fdw_private->is_drop_temp_table = TRUE;
 #ifdef GETPROGRESS_ENABLED
 	if (getResultFlag)
 		return NULL;
@@ -4088,7 +4114,6 @@ spd_IterateForeignScan(ForeignScanState *node)
 	mapping_tlist = fdw_private->mapping_tlist;
 
 	/* CREATE TEMP TABLE SQL */
-	fdw_private->is_drop_temp_table = TRUE;
 	if (fdw_private->agg_query)
 	{
 		if (fdw_private->isFirst)
@@ -4192,6 +4217,9 @@ spd_ReScanForeignScan(ForeignScanState *node)
 	fssThrdInfo = node->spd_fsstate;
 	fdw_private = fssThrdInfo->private;
 
+	if(fdw_private == NULL)
+		return;
+
 	/*
 	 * Number of child threads is only alive threads. firstly, check to number
 	 * of alive child threads.
@@ -4249,7 +4277,7 @@ spd_EndForeignScan(ForeignScanState *node)
 	if (isPrintError)
 		spd_PrintError(fdw_private->node_num, fdw_private->childinfo);
 
-	if (fdw_private->is_drop_temp_table == FALSE)
+	if (fdw_private->is_drop_temp_table == FALSE && fdw_private->temp_table_name != NULL)
 	{
 		spd_spi_ddl_table(psprintf("DROP TABLE IF EXISTS %s", fdw_private->temp_table_name));
 	}
@@ -4304,7 +4332,7 @@ spd_check_url_update(SpdFdwPrivate * fdw_private, RangeTblEntry *target_rte)
 {
 	char	   *new_underurl = NULL;
 
-	spd_ParseUrl(target_rte->url, fdw_private);
+	spd_ParseUrl(target_rte->spd_url_list, fdw_private);
 	if (fdw_private->url_parse_list == NIL ||
 		fdw_private->url_parse_list->length < 1)
 	{
@@ -4369,7 +4397,7 @@ spd_AddForeignUpdateTargets(Query *parsetree,
 	fdw_private = spd_AllocatePrivate();
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	/* Checking UNDER clause. */
-	if (target_rte->url != NULL)
+	if (target_rte->spd_url != NULL)
 		spd_check_url_update(fdw_private, target_rte);
 	else
 		elog(ERROR, "no URL is specified, INSERT/UPDATE/DELETE need to set URL");
@@ -4417,7 +4445,7 @@ spd_PlanForeignModify(PlannerInfo *root,
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	fdw_private = spd_AllocatePrivate();
 
-	if (rte->url != NULL)
+	if (rte->spd_url != NULL)
 		spd_check_url_update(fdw_private, rte);
 	else
 		elog(ERROR, "no URL is specified, INSERT/UPDATE/DELETE need to set URL");

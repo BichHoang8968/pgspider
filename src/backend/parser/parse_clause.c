@@ -1122,7 +1122,9 @@ transformFromClauseItem(ParseState * pstate, Node * n,
 		rtr = makeNode(RangeTblRef);
 		rtr->rtindex = rtindex;
 		if (rv->spd_url != NULL)
-			rte->url = pstrdup(rv->spd_url);
+			rte->spd_url = pstrdup(rv->spd_url);
+		if (rv->spd_url_list != NULL)
+			rte->spd_url_list = list_copy(rv->spd_url_list);
 		return (Node *) rtr;
 	}
 	else if (IsA(n, RangeSubselect))
