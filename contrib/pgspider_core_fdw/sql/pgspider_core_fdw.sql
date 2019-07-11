@@ -94,6 +94,7 @@ SELECT sum(i) FROM test1;
 
 SELECT avg(i) FROM test1;
 SELECT avg(i),i FROM test1 group by i order by i;
+SELECT sum(i),count(i),i FROM test1 group by i order by i;
 
 CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS(table_name 't1');
