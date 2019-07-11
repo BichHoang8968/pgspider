@@ -59,13 +59,13 @@ SELECT * FROM test1 ORDER BY i,__spd_url;
   i   | __spd_url  
 ------+------------
     1 | /tiny_svr/
-   1111 | /post_svr/
-  (2 rows)
-  
+ 1111 | /post_svr/
+(2 rows)
+
 SELECT * FROM test1 UNDER '/post_svr/' ORDER BY i,__spd_url; 
-    i   | __spd_url  
-  ------+------------
-   1111 | /post_svr/
+  i   | __spd_url  
+------+------------
+ 1111 | /post_svr/
 (1 row)
 
 SELECT * FROM test1 under '/post_svr/' where i = 1 ORDER BY i,__spd_url;
