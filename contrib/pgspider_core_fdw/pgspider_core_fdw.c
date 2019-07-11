@@ -1268,7 +1268,6 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 		original_url = (char *) list_nth(url_parse_list, 0);
 		if (url_parse_list->length > 2)
 		{
-			first_url = (char *) list_nth(url_parse_list, 1);
 			throwing_url = (char *) list_nth(url_parse_list, 2);
 		}
 		/* If UNDER Clause is used, then store to parsing url */
