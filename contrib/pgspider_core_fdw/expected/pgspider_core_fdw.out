@@ -102,6 +102,7 @@ CREATE FOREIGN TABLE test1__mysql_svr__0 (i int) SERVER mysql_svr OPTIONS(dbname
 SELECT * FROM test1 ORDER BY i,__spd_url;
    i   |  __spd_url   
 -------+--------------
+     1 | /mysql_svr/
      1 | /sqlite_svr/
      1 | /tiny_svr/
    777 | /mysql_svr/
@@ -110,23 +111,25 @@ SELECT * FROM test1 ORDER BY i,__spd_url;
    777 | /mysql_svr/
   1111 | /post_svr/
  22222 | /sqlite_svr/
-(8 rows)
+(9 rows)
 
 SELECT * FROM test1 UNDER '/mysql_svr/' ORDER BY i,__spd_url;
   i  |  __spd_url  
 -----+-------------
+   1 | /mysql_svr/
  777 | /mysql_svr/
  777 | /mysql_svr/
  777 | /mysql_svr/
  777 | /mysql_svr/
-(4 rows)
+(5 rows)
 
 SELECT * FROM test1 where i = 1 ORDER BY i,__spd_url;
  i |  __spd_url   
 ---+--------------
+ 1 | /mysql_svr/
  1 | /sqlite_svr/
  1 | /tiny_svr/
-(2 rows)
+(3 rows)
 
 SELECT * FROM test1 under '/mysql_svr/' where i = 5 ORDER BY i,__spd_url;
  i | __spd_url 
@@ -136,6 +139,7 @@ SELECT * FROM test1 under '/mysql_svr/' where i = 5 ORDER BY i,__spd_url;
 SELECT * FROM test1 ORDER BY i,__spd_url;
    i   |  __spd_url   
 -------+--------------
+     1 | /mysql_svr/
      1 | /sqlite_svr/
      1 | /tiny_svr/
    777 | /mysql_svr/
@@ -144,7 +148,7 @@ SELECT * FROM test1 ORDER BY i,__spd_url;
    777 | /mysql_svr/
   1111 | /post_svr/
  22222 | /sqlite_svr/
-(8 rows)
+(9 rows)
 
 SELECT * FROM test1 UNDER '/test2/' ORDER BY i,__spd_url;
  i | __spd_url 
@@ -154,6 +158,7 @@ SELECT * FROM test1 UNDER '/test2/' ORDER BY i,__spd_url;
 SELECT * FROM test1 order by i,__spd_url;
    i   |  __spd_url   
 -------+--------------
+     1 | /mysql_svr/
      1 | /sqlite_svr/
      1 | /tiny_svr/
    777 | /mysql_svr/
@@ -162,7 +167,7 @@ SELECT * FROM test1 order by i,__spd_url;
    777 | /mysql_svr/
   1111 | /post_svr/
  22222 | /sqlite_svr/
-(8 rows)
+(9 rows)
 
 SELECT * FROM test1 UNDER '/file_svr/' ORDER BY i,__spd_url;
  i | __spd_url 
@@ -183,6 +188,7 @@ SELECT * FROM test1__tiny_svr__0 order by i;
 SELECT * FROM test1 ORDER BY i,__spd_url;
    i   |  __spd_url   
 -------+--------------
+     1 | /mysql_svr/
      1 | /sqlite_svr/
      1 | /tiny_svr/
    777 | /mysql_svr/
@@ -191,7 +197,7 @@ SELECT * FROM test1 ORDER BY i,__spd_url;
    777 | /mysql_svr/
   1111 | /post_svr/
  22222 | /sqlite_svr/
-(8 rows)
+(9 rows)
 
 SELECT * FROM test1 UNDER '/tiny_svr/';
  i | __spd_url  
@@ -214,6 +220,7 @@ SELECT * FROM test1__post_svr__0 order by i;
 SELECT * FROM test1 ORDER BY i,__spd_url;
    i   |  __spd_url   
 -------+--------------
+     1 | /mysql_svr/
      1 | /sqlite_svr/
      1 | /tiny_svr/
    777 | /mysql_svr/
@@ -222,7 +229,7 @@ SELECT * FROM test1 ORDER BY i,__spd_url;
    777 | /mysql_svr/
   1111 | /post_svr/
  22222 | /sqlite_svr/
-(8 rows)
+(9 rows)
 
 SELECT * FROM test1 UNDER '/post_svr/' ORDER BY i,__spd_url;
   i   | __spd_url  
@@ -238,6 +245,7 @@ SELECT * FROM test1 under '/post_svr/' where i = 1 ORDER BY i,__spd_url;
 SELECT * FROM test1 ORDER BY i,__spd_url;
    i   |  __spd_url   
 -------+--------------
+     1 | /mysql_svr/
      1 | /sqlite_svr/
      1 | /tiny_svr/
    777 | /mysql_svr/
@@ -246,7 +254,7 @@ SELECT * FROM test1 ORDER BY i,__spd_url;
    777 | /mysql_svr/
   1111 | /post_svr/
  22222 | /sqlite_svr/
-(8 rows)
+(9 rows)
 
 SELECT * FROM test1 UNDER '/sqlite_svr/' ORDER BY i,__spd_url;
    i   |  __spd_url   
@@ -263,6 +271,7 @@ SELECT * FROM test1 under '/sqlite_svr/' where i = 4 ORDER BY i,__spd_url;
 SELECT * FROM test1 ORDER BY i,__spd_url;
    i   |  __spd_url   
 -------+--------------
+     1 | /mysql_svr/
      1 | /sqlite_svr/
      1 | /tiny_svr/
    777 | /mysql_svr/
@@ -271,23 +280,25 @@ SELECT * FROM test1 ORDER BY i,__spd_url;
    777 | /mysql_svr/
   1111 | /post_svr/
  22222 | /sqlite_svr/
-(8 rows)
+(9 rows)
 
 SELECT * FROM test1 UNDER '/mysql_svr/' ORDER BY i,__spd_url;
   i  |  __spd_url  
 -----+-------------
+   1 | /mysql_svr/
  777 | /mysql_svr/
  777 | /mysql_svr/
  777 | /mysql_svr/
  777 | /mysql_svr/
-(4 rows)
+(5 rows)
 
 SELECT * FROM test1 where i = 1 ORDER BY i,__spd_url;
  i |  __spd_url   
 ---+--------------
+ 1 | /mysql_svr/
  1 | /sqlite_svr/
  1 | /tiny_svr/
-(2 rows)
+(3 rows)
 
 SELECT * FROM test1 under '/mysql_svr/' where i = 5 ORDER BY i,__spd_url;
  i | __spd_url 
@@ -297,6 +308,8 @@ SELECT * FROM test1 under '/mysql_svr/' where i = 5 ORDER BY i,__spd_url;
 SELECT * FROM test1 UNION ALL SELECT * FROM test1 ORDER BY i,__spd_url;
    i   |  __spd_url   
 -------+--------------
+     1 | /mysql_svr/
+     1 | /mysql_svr/
      1 | /sqlite_svr/
      1 | /sqlite_svr/
      1 | /tiny_svr/
@@ -313,7 +326,7 @@ SELECT * FROM test1 UNION ALL SELECT * FROM test1 ORDER BY i,__spd_url;
   1111 | /post_svr/
  22222 | /sqlite_svr/
  22222 | /sqlite_svr/
-(16 rows)
+(18 rows)
 
 -- only __spd_url target list is OK
 SELECT __spd_url FROM test1 ORDER BY __spd_url;
@@ -323,22 +336,23 @@ SELECT __spd_url FROM test1 ORDER BY __spd_url;
  /mysql_svr/
  /mysql_svr/
  /mysql_svr/
+ /mysql_svr/
  /post_svr/
  /sqlite_svr/
  /sqlite_svr/
  /tiny_svr/
-(8 rows)
+(9 rows)
 
 SELECT sum(i) FROM test1;
   sum  
 -------
- 26443
+ 26444
 (1 row)
 
 SELECT avg(i) FROM test1;
-   avg    
-----------
- 3305.375
+       avg        
+------------------
+ 2938.22222222222
 (1 row)
 
 SELECT avg(i),i FROM test1 group by i order by i;
@@ -348,6 +362,15 @@ SELECT avg(i),i FROM test1 group by i order by i;
    777 |   777
   1111 |  1111
  22222 | 22222
+(4 rows)
+
+SELECT sum(i),count(i),i FROM test1 group by i order by i;
+  sum  | count |   i   
+-------+-------+-------
+     3 |     3 |     1
+  3108 |     4 |   777
+  1111 |     1 |  1111
+ 22222 |     1 | 22222
 (4 rows)
 
 CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
