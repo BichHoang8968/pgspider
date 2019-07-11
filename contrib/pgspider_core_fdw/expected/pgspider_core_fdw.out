@@ -1103,5 +1103,7 @@ DROP FOREIGN TABLE test1;
 DROP FOREIGN TABLE t1;
 DROP FOREIGN TABLE t2;
 DROP SERVER pgspider_svr CASCADE;
-NOTICE:  drop cascades to user mapping for public on server pgspider_svr
+NOTICE:  drop cascades to 2 other objects
+DETAIL:  drop cascades to user mapping for public on server pgspider_svr
+drop cascades to foreign table test1_1
 DROP EXTENSION pgspider_core_fdw CASCADE;
