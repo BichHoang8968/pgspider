@@ -59,13 +59,13 @@ SELECT * FROM test1 ORDER BY i,__spd_url;
   i   | __spd_url  
 ------+------------
     1 | /tiny_svr/
- 1111 | /post_svr/
-(2 rows)
-
- SELECT * FROM test1 UNDER '/post_svr/' ORDER BY i,__spd_url; 
-  i   | __spd_url  
-------+------------
- 1111 | /post_svr/
+   1111 | /post_svr/
+  (2 rows)
+  
+SELECT * FROM test1 UNDER '/post_svr/' ORDER BY i,__spd_url; 
+    i   | __spd_url  
+  ------+------------
+   1111 | /post_svr/
 (1 row)
 
 SELECT * FROM test1 under '/post_svr/' where i = 1 ORDER BY i,__spd_url;
@@ -933,4 +933,5 @@ DROP FOREIGN TABLE test1;
 DROP FOREIGN TABLE t1;
 DROP FOREIGN TABLE t2;
 DROP SERVER pgspider_svr CASCADE;
+NOTICE:  drop cascades to user mapping for public on server pgspider_svr
 DROP EXTENSION pgspider_core_fdw CASCADE;
