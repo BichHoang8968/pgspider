@@ -3993,10 +3993,6 @@ nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId, C
 			/* no tuple yet, but the thread is running */
 			all_thread_finished = false;
 		}
-		else if (!fssThrdInfo[count].iFlag && fssThrdInfo[count].state == SPD_FS_STATE_ERROR)
-		{
-			childinfo[count].child_node_status = ServerStatusDead;
-		}
 	}
 	Assert(false);
 }
@@ -4232,7 +4228,7 @@ spd_EndForeignScan(ForeignScanState *node)
 
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 	{
-		if (throwErrorIfDead && fdw_private->childinfo[node_incr].child_node_status == ServerStatusDead)
+		if (throwErrorIfDead && fssThrdInfo[node_incr].state == SPD_FS_STATE_ERROR)
 		{
 			ForeignServer *fs;
 
