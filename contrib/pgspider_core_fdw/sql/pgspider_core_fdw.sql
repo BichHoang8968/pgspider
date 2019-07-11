@@ -2,6 +2,7 @@ DELETE FROM pg_spd_node_info;
 --SELECT pg_sleep(15);
 CREATE EXTENSION pgspider_core_fdw;
 CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1',port '50849');
+CREATE USER mapping for public server pgspider_svr OPTIONS(user 'postgres',password 'postgres');
 CREATE FOREIGN TABLE test1 (i int,__spd_url text) SERVER pgspider_svr;
 CREATE EXTENSION postgres_fdw;
 CREATE EXTENSION file_fdw;
@@ -213,7 +214,6 @@ DELETE FROM pg_spd_node_info WHERE servername = 't2__post_svr3__0';
 SELECT pg_sleep(2);
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 */
-DROP USER MAPPING FOR public SERVER pgspider_svr;
 DROP FOREIGN TABLE test1;
 DROP FOREIGN TABLE t1;
 DROP FOREIGN TABLE t2;
