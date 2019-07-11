@@ -1236,7 +1236,6 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 {
 	char	   *original_url = NULL;
 	char	   *throwing_url = NULL;
-	char	   *first_url = NULL;
 	ListCell   *lc;
 
 	if (r_entry->spd_url_list == NULL)
