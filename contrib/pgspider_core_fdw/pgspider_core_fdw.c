@@ -1190,6 +1190,7 @@ static void
 spd_ParseUrl(List *spd_url_list, SpdFdwPrivate * fdw_private)
 {
 	char	   *tp;
+	char	   *throw_tp;
 	char	   *url_option;
 	char	   *next = NULL;
 	char	   *throwing_url = NULL;
@@ -1209,19 +1210,24 @@ spd_ParseUrl(List *spd_url_list, SpdFdwPrivate * fdw_private)
 		if (tp != NULL)
 		    url_parse_list = lappend(url_parse_list, tp); /* Original URL */
 		else
-			goto END;
+			return;
 		/*
 		 * url_option = /sample\ntest/code ^ *tp position url_str =
 		 * /sample/test/code/ |---------| <-Throwing URL * <- This pointer is
 		 * url_str[strlen(tp)+ 1]
 		 */
-		original_len = strlen(tp) + 1;
-		throwing_url = pstrdup(&url_str[original_len]);
-		tp = strtok_r(url_option, "/", &next);	/* First URL */
-	    url_parse_list = lappend(url_parse_list, tp);
-		if (strlen(throwing_url) != 1)
-		    url_parse_list = lappend(url_parse_list, throwing_url);
-	END:
+		throw_tp = strtok_r(NULL, "/", &next);
+		if(throw_tp == NULL){
+		    url_parse_list = lappend(url_parse_list, tp); /* first URL */
+			url_parse_list = lappend(url_parse_list, NULL); /* Throwing URL(nothing)*/
+		}
+		else{
+			url_parse_list = lappend(url_parse_list, throw_tp); /* first URL */
+			original_len = strlen(tp) + 1;
+			throwing_url = pstrdup(&url_str[original_len]); /* Throwing URL */
+			if (strlen(throwing_url) != 1)
+				url_parse_list = lappend(url_parse_list, throwing_url);
+		}
 		fdw_private->url_list = lappend(fdw_private->url_list, url_parse_list);
 	}
 }
@@ -1316,7 +1322,7 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 				}
 				/* if child table fdw is spd, then execute operation */
 				fdw_private->under_flag = 1;
-				fdw_private->url_list =  lappend(fdw_private->url_list,first_url);
+				fdw_private->childinfo[i].url_list =  lappend(fdw_private->childinfo[i].url_list, throwing_url);
 			}
 		}
 	}
@@ -1614,8 +1620,6 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Oid *oid, int oid_nu
 		 */
 		if (childinfo[i].url_list != NULL)
 		{
-			//rte->spd_url_list = palloc0(sizeof(char) * strlen(new_underurl));
-			//strcpy(rte->url, new_underurl);
 			rte->spd_url_list = list_copy(childinfo[i].url_list);
 		}
 

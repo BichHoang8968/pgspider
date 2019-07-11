@@ -1400,6 +1400,28 @@ deparseSubqueryTargetList(deparse_expr_cxt * context)
 		appendStringInfoString(buf, "NULL");
 }
 
+static void
+addURLExprForRel(StringInfo buf,RangeTblEntry *r_entry){
+	ListCell   *lc;
+	bool is_first=FALSE;
+	
+	foreach(lc, r_entry->spd_url_list)
+	{
+		char *url_str = (char *) lfirst(lc);
+		if(is_first==FALSE)
+			appendStringInfoString(buf, " IN (");
+		else
+			appendStringInfoString(buf, ",");
+
+		appendStringInfoString(buf, "'");
+		appendStringInfoString(buf,url_str);
+		appendStringInfoString(buf, "' ");
+		is_first = TRUE;
+	}
+	if(is_first==TRUE)
+		appendStringInfoString(buf, ") ");
+}
+
 /*
  * Construct FROM clause for given relation
  *
@@ -1413,10 +1435,12 @@ deparseFromExprForRel(StringInfo buf, PlannerInfo * root, RelOptInfo * foreignre
 {
 	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) foreignrel->fdw_private;
 
+
 	if (IS_JOIN_REL(foreignrel))
 	{
 		StringInfoData join_sql_o;
 		StringInfoData join_sql_i;
+		RangeTblEntry *r_entry = (RangeTblEntry *) list_nth(root->parse->rtable, 0);
 
 		/* Deparse outer relation */
 		initStringInfo(&join_sql_o);
@@ -1427,7 +1451,7 @@ deparseFromExprForRel(StringInfo buf, PlannerInfo * root, RelOptInfo * foreignre
 		initStringInfo(&join_sql_i);
 		deparseRangeTblRef(&join_sql_i, root, fpinfo->innerrel,
 						   fpinfo->make_innerrel_subquery, params_list);
-
+		addURLExprForRel(buf,r_entry);
 		/*
 		 * For a join relation FROM clause entry is deparsed as
 		 *
@@ -1469,6 +1493,7 @@ deparseFromExprForRel(StringInfo buf, PlannerInfo * root, RelOptInfo * foreignre
 
 		deparseRelation(buf, rel);
 
+		addURLExprForRel(buf,rte);
 		/*
 		 * Add a unique alias to avoid any conflict in relation names due to
 		 * pulled up subqueries in the query being built for a pushed down
@@ -1476,7 +1501,7 @@ deparseFromExprForRel(StringInfo buf, PlannerInfo * root, RelOptInfo * foreignre
 		 */
 		if (use_alias)
 			appendStringInfo(buf, " %s%d", REL_ALIAS_PREFIX, foreignrel->relid);
-
+		
 		heap_close(rel, NoLock);
 	}
 }
