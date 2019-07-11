@@ -3964,7 +3964,7 @@ spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *child_slo
   Return NULL if all threads are finished.
  */
 static TupleTableSlot *
-nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId, ChildInfo * childinfo)
+nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId)
 {
 	int			count = 0;
 	bool		all_thread_finished = true;
@@ -4057,7 +4057,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 			 */
 			for (;;)
 			{
-				slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count, fdw_private->childinfo);
+				slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count);
 				if (slot != NULL)
 					spd_spi_insert_table(slot, node, fdw_private);
 				else
@@ -4104,7 +4104,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 	else
 	{
 
-		slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count, fdw_private->childinfo);
+		slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count);
 		if (slot != NULL)
 			slot = spd_AddNodeColumn(fssThrdInfo, node->ss.ss_ScanTupleSlot, count, slot);
 
@@ -4191,17 +4191,23 @@ spd_EndForeignScan(ForeignScanState *node)
 		return;
 
 	/* print error nodes */
+	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++){
+		if (fssThrdInfo[node_incr].state == SPD_FS_STATE_ERROR)
+		{
+			int i;
+			for (i = 0; i < fdw_private->nThreads; i++){
+				if (fssThrdInfo[node_incr].serverId == fdw_private->childinfo[i].server_oid)
+				    fdw_private->childinfo[i].child_node_status = ServerStatusDead;
+			}
+		}
+	}
 	if (isPrintError)
 		spd_PrintError(fdw_private->node_num, fdw_private->childinfo);
 
 	if (fdw_private->is_drop_temp_table == FALSE)
-	{
 		spd_spi_ddl_table(psprintf("DROP TABLE IF EXISTS %s", fdw_private->temp_table_name));
-	}
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
-	{
 		fssThrdInfo[node_incr].EndFlag = true;
-	}
 
 	/* wait until all the remote connections get closed. */
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
