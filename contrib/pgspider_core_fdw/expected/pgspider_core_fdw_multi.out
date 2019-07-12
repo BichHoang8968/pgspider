@@ -170,7 +170,13 @@ SELECT * FROM test2 IN ('/pgspider_srv_2pgspider_srv_1/') WHERE i<>500 ORDER BY 
 ---+----+---+-----------
 (0 rows)
 
--- SELECT * FROM test1 IN ('/pgspider_srv_1/sqlite_svr/') ORDER BY i;
+SELECT * FROM test1 IN ('/pgspider_srv_1/sqlite_svr/') ORDER BY i;
+   i   |          __spd_url          
+-------+-----------------------------
+     1 | /pgspider_srv_1/sqlite_svr/
+ 22222 | /pgspider_srv_1/sqlite_svr/
+(2 rows)
+
 SELECT * FROM test1 WHERE __spd_url = '/pgspider_srv_1/sqlite_svr/' ORDER BY i;
    i   |          __spd_url          
 -------+-----------------------------
@@ -178,7 +184,16 @@ SELECT * FROM test1 WHERE __spd_url = '/pgspider_srv_1/sqlite_svr/' ORDER BY i;
  22222 | /pgspider_srv_1/sqlite_svr/
 (2 rows)
 
--- SELECT * FROM test1 IN ('/pgspider_srv_1/mysql_svr/') ORDER BY i;
+SELECT * FROM test1 IN ('/pgspider_srv_1/mysql_svr/') ORDER BY i;
+  i  |         __spd_url          
+-----+----------------------------
+   1 | /pgspider_srv_1/mysql_svr/
+ 777 | /pgspider_srv_1/mysql_svr/
+ 777 | /pgspider_srv_1/mysql_svr/
+ 777 | /pgspider_srv_1/mysql_svr/
+ 777 | /pgspider_srv_1/mysql_svr/
+(5 rows)
+
 SELECT * FROM test1 WHERE __spd_url = '/pgspider_srv_1/mysql_svr/' ORDER BY i;
   i  |         __spd_url          
 -----+----------------------------
@@ -189,7 +204,12 @@ SELECT * FROM test1 WHERE __spd_url = '/pgspider_srv_1/mysql_svr/' ORDER BY i;
  777 | /pgspider_srv_1/mysql_svr/
 (5 rows)
 
--- SELECT * FROM test1 IN ('/pgspider_srv_1/post_svr/') ORDER BY i;
+SELECT * FROM test1 IN ('/pgspider_srv_1/post_svr/') ORDER BY i;
+  i   |         __spd_url         
+------+---------------------------
+ 1111 | /pgspider_srv_1/post_svr/
+(1 row)
+
 SELECT * FROM test1 WHERE __spd_url = '/pgspider_srv_1/post_svr/' ORDER BY i;
   i   |         __spd_url         
 ------+---------------------------
@@ -197,7 +217,15 @@ SELECT * FROM test1 WHERE __spd_url = '/pgspider_srv_1/post_svr/' ORDER BY i;
 (1 row)
 
 --
--- SELECT * FROM test2 IN ('/pgspider_srv_1/mysql_svr/') ORDER BY i, t, t2, __spd_url;
+SELECT * FROM test2 IN ('/pgspider_srv_1/mysql_svr/') ORDER BY i, t, t2, __spd_url;
+  t  | t2  | i |         __spd_url          
+-----+-----+---+----------------------------
+ aaa | bbb | 1 | /pgspider_srv_1/mysql_svr/
+ aaa | bbb | 1 | /pgspider_srv_1/mysql_svr/
+ aaa | bbb | 1 | /pgspider_srv_1/mysql_svr/
+ aaa |     | 1 | /pgspider_srv_1/mysql_svr/
+(4 rows)
+
 SELECT * FROM test2 WHERE __spd_url = '/pgspider_srv_1/mysql_svr/' ORDER BY i, t, t2, __spd_url;
   t  | t2  | i |         __spd_url          
 -----+-----+---+----------------------------
@@ -400,7 +428,13 @@ SELECT * FROM test2 IN ('/test2/') WHERE i<>500 ORDER BY __spd_url;
 ---+----+---+-----------
 (0 rows)
 
---SELECT * FROM test1 IN ('/pgspider_srv_2/influxdb_svr/') ORDER BY i;
+SELECT * FROM test1 IN ('/pgspider_srv_2/influxdb_svr/') ORDER BY i;
+  i   |           __spd_url           
+------+-------------------------------
+ 2001 | /pgspider_srv_2/influxdb_svr/
+ 2002 | /pgspider_srv_2/influxdb_svr/
+(2 rows)
+
 SELECT * FROM test1 WHERE __spd_url = '/pgspider_srv_2/influxdb_svr/' ORDER BY i;
   i   |           __spd_url           
 ------+-------------------------------
@@ -408,7 +442,13 @@ SELECT * FROM test1 WHERE __spd_url = '/pgspider_srv_2/influxdb_svr/' ORDER BY i
  2002 | /pgspider_srv_2/influxdb_svr/
 (2 rows)
 
---SELECT * FROM test1 IN ('/pgspider_srv_2/griddb_svr/') ORDER BY i;
+SELECT * FROM test1 IN ('/pgspider_srv_2/griddb_svr/') ORDER BY i;
+  i   |          __spd_url          
+------+-----------------------------
+ 3001 | /pgspider_srv_2/griddb_svr/
+ 3002 | /pgspider_srv_2/griddb_svr/
+(2 rows)
+
 SELECT * FROM test1 WHERE __spd_url = '/pgspider_srv_2/griddb_svr/' ORDER BY i;
   i   |          __spd_url          
 ------+-----------------------------
@@ -416,7 +456,15 @@ SELECT * FROM test1 WHERE __spd_url = '/pgspider_srv_2/griddb_svr/' ORDER BY i;
  3002 | /pgspider_srv_2/griddb_svr/
 (2 rows)
 
---SELECT * FROM test1 IN ('/pgspider_srv_2/file_svr/') ORDER BY i;
+SELECT * FROM test1 IN ('/pgspider_srv_2/file_svr/') ORDER BY i;
+ i |         __spd_url         
+---+---------------------------
+ 1 | /pgspider_srv_2/file_svr/
+ 2 | /pgspider_srv_2/file_svr/
+ 3 | /pgspider_srv_2/file_svr/
+ 4 | /pgspider_srv_2/file_svr/
+(4 rows)
+
 SELECT * FROM test1 WHERE __spd_url = '/pgspider_srv_2/file_svr/' ORDER BY i;
  i |         __spd_url         
 ---+---------------------------
@@ -426,7 +474,14 @@ SELECT * FROM test1 WHERE __spd_url = '/pgspider_srv_2/file_svr/' ORDER BY i;
  4 | /pgspider_srv_2/file_svr/
 (4 rows)
 
---SELECT * FROM test2 IN ('/pgspider_srv_2/influxdb_svr/') ORDER BY i, t, t2, __spd_url;
+SELECT * FROM test2 IN ('/pgspider_srv_2/influxdb_svr/') ORDER BY i, t, t2, __spd_url;
+    t     |    t2    |  i   |           __spd_url           
+----------+----------+------+-------------------------------
+ influx1a | influx1b | 2101 | /pgspider_srv_2/influxdb_svr/
+ influx2a | influx2b | 2102 | /pgspider_srv_2/influxdb_svr/
+ influx3a | influx3b | 2103 | /pgspider_srv_2/influxdb_svr/
+(3 rows)
+
 SELECT * FROM test2 WHERE __spd_url = '/pgspider_srv_2/influxdb_svr/' ORDER BY i, t, t2, __spd_url;
     t     |    t2    |  i   |           __spd_url           
 ----------+----------+------+-------------------------------

@@ -28,14 +28,14 @@ SELECT * FROM test1 IN ('/pgspider_srv_1pgspider_srv_2/') ORDER BY i;
 SELECT * FROM test1 IN ('/pgspider_srv_1pgspider_srv_2/') WHERE i<>0 ORDER BY i;
 SELECT * FROM test2 IN ('/pgspider_srv_2pgspider_srv_1/') ORDER BY i;
 SELECT * FROM test2 IN ('/pgspider_srv_2pgspider_srv_1/') WHERE i<>500 ORDER BY __spd_url;
--- SELECT * FROM test1 IN ('/pgspider_srv_1/sqlite_svr/') ORDER BY i;
+SELECT * FROM test1 IN ('/pgspider_srv_1/sqlite_svr/') ORDER BY i;
 SELECT * FROM test1 WHERE __spd_url = '/pgspider_srv_1/sqlite_svr/' ORDER BY i;
--- SELECT * FROM test1 IN ('/pgspider_srv_1/mysql_svr/') ORDER BY i;
+SELECT * FROM test1 IN ('/pgspider_srv_1/mysql_svr/') ORDER BY i;
 SELECT * FROM test1 WHERE __spd_url = '/pgspider_srv_1/mysql_svr/' ORDER BY i;
--- SELECT * FROM test1 IN ('/pgspider_srv_1/post_svr/') ORDER BY i;
+SELECT * FROM test1 IN ('/pgspider_srv_1/post_svr/') ORDER BY i;
 SELECT * FROM test1 WHERE __spd_url = '/pgspider_srv_1/post_svr/' ORDER BY i;
 --
--- SELECT * FROM test2 IN ('/pgspider_srv_1/mysql_svr/') ORDER BY i, t, t2, __spd_url;
+SELECT * FROM test2 IN ('/pgspider_srv_1/mysql_svr/') ORDER BY i, t, t2, __spd_url;
 SELECT * FROM test2 WHERE __spd_url = '/pgspider_srv_1/mysql_svr/' ORDER BY i, t, t2, __spd_url;
 --- PGSpider 2
 CREATE SERVER pgspider_srv_2 FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (host '127.0.0.1', port '5434', dbname 'postgres');
@@ -61,13 +61,13 @@ SELECT * FROM test1 IN ('/test1/') ORDER BY i;
 SELECT * FROM test1 IN ('/test1/') WHERE i>0 ORDER BY i;
 SELECT * FROM test2 IN ('/test2/') ORDER BY i;
 SELECT * FROM test2 IN ('/test2/') WHERE i<>500 ORDER BY __spd_url;
---SELECT * FROM test1 IN ('/pgspider_srv_2/influxdb_svr/') ORDER BY i;
+SELECT * FROM test1 IN ('/pgspider_srv_2/influxdb_svr/') ORDER BY i;
 SELECT * FROM test1 WHERE __spd_url = '/pgspider_srv_2/influxdb_svr/' ORDER BY i;
---SELECT * FROM test1 IN ('/pgspider_srv_2/griddb_svr/') ORDER BY i;
+SELECT * FROM test1 IN ('/pgspider_srv_2/griddb_svr/') ORDER BY i;
 SELECT * FROM test1 WHERE __spd_url = '/pgspider_srv_2/griddb_svr/' ORDER BY i;
---SELECT * FROM test1 IN ('/pgspider_srv_2/file_svr/') ORDER BY i;
+SELECT * FROM test1 IN ('/pgspider_srv_2/file_svr/') ORDER BY i;
 SELECT * FROM test1 WHERE __spd_url = '/pgspider_srv_2/file_svr/' ORDER BY i;
---SELECT * FROM test2 IN ('/pgspider_srv_2/influxdb_svr/') ORDER BY i, t, t2, __spd_url;
+SELECT * FROM test2 IN ('/pgspider_srv_2/influxdb_svr/') ORDER BY i, t, t2, __spd_url;
 SELECT * FROM test2 WHERE __spd_url = '/pgspider_srv_2/influxdb_svr/' ORDER BY i, t, t2, __spd_url;
 -- SELECT WHERE
 SELECT * FROM test1 WHERE (i + 1000) = 1777 ORDER BY i, __spd_url;
