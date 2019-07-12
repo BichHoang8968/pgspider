@@ -218,7 +218,7 @@ enum Aggtype
 enum SpdServerstatus
 {
 	ServerStatusAlive,
-	ServerStatusUnder,
+	ServerStatusIn,
 	ServerStatusDead,
 };
 
@@ -255,7 +255,7 @@ typedef struct ChildInfo
 	RelOptInfo *grouped_rel_local;
 	Agg		   *pAgg;			/* "Aggref" for Disable of aggregation push
 								 * down servers */
-	bool		under_flag;		/* using UNDER clause or NOT */
+	bool		in_flag;		/* using IN clause or NOT */
 	List       *url_list;
 }			ChildInfo;
 
@@ -269,10 +269,10 @@ typedef struct ChildInfo
 typedef struct SpdFdwPrivate
 {
 	int			node_num;		/* number of child tables */
-	bool		under_flag;		/* using UNDER clause or NOT */
+	bool		in_flag;		/* using IN clause or NOT */
 	ChildInfo  *childinfo;		/* ChildInfo List */
-	List	   *url_list; /* lieteral of parse UNDER clause */
-	List	   *url_parse_list; /* lieteral of parse UNDER clause */
+	List	   *url_list; /* lieteral of parse IN clause */
+	List	   *url_parse_list; /* lieteral of parse IN clause */
 	pthread_t	foreign_scan_threads[NODES_MAX];	/* child node thread  */
 	PgFdwRelationInfo rinfo;	/* pgspider reration info */
 	List	   *pPseudoAggList; /* Disable of aggregation push down server
@@ -812,14 +812,14 @@ spd_spi_exec_child_relname(char *parentTableName, SpdFdwPrivate * fdw_private, O
 	}
 
 	/* get child server name from child's foreign table id */
-	if (fdw_private->under_flag == 0)
+	if (fdw_private->in_flag == 0)
 	{
 		sprintf(query, "SELECT oid from pg_class WHERE relname LIKE \
                 '%s\\_\\_\%%' ORDER BY relname;", parentTableName);
 	}
 	else
 	{
-		/* if UNDER clause is used, then return UNDER child tables only, */
+		/* if IN clause is used, then return IN child tables only, */
 		sprintf(query, "SELECT oid from pg_class WHERE relname LIKE \
                 '%s\\_\\_%s\\_\\_\%%' ORDER BY relname;", parentTableName, entry);
 	}
@@ -1028,7 +1028,7 @@ RESCAN:
 									fssthrdInfo->serverId))
 				{
 					/*
-					 * Retreives aggregated value tuple from underlying non
+					 * Retreives aggregated value tuple from inlying non
 					 * pushdown source
 					 */
 					SPD_LOCK_TRY(&scan_mutex);
@@ -1159,7 +1159,7 @@ THREAD_EXIT:
 }
 
 /**
- * Parse UNDER url name.
+ * Parse IN url name.
  * parse list is 3 pattern.
  * Pattern1 Url = /sample/test/code/
  *  Original URL "sample" First URL "test"  Throwing URL "/test/code/"
@@ -1228,7 +1228,7 @@ spd_ParseUrl(List *spd_url_list, SpdFdwPrivate * fdw_private)
  * @param[in] nums - num of child tables
  * @param[in] url_str - old URL
  * @param[in] fdw_private - store to parsing URL
- * @param[out] new_underurl - new URL
+ * @param[out] new_inurl - new URL
  *
  */
 static void
@@ -1240,7 +1240,7 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 
 	if (r_entry->spd_url_list == NULL)
 	{
-		/* UNDER clause does not use. all child table is alive now. */
+		/* IN clause does not use. all child table is alive now. */
 		for (int i = 0; i < childnums; i++)
 		{
 			fdw_private->childinfo[i].child_node_status = ServerStatusAlive;
@@ -1254,7 +1254,7 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 	 */
 	spd_ParseUrl(r_entry->spd_url_list, fdw_private);
 	if (fdw_private->url_list == NULL)
-		elog(ERROR, "UNDER Clause use but can not find url. Please set UNDER string.");
+		elog(ERROR, "IN Clause use but can not find url. Please set IN string.");
 	if (fdw_private->url_list->length == 0)
 	{
 		for (int i = 0; i < childnums; i++)
@@ -1270,7 +1270,7 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 		{
 			throwing_url = (char *) list_nth(url_parse_list, 2);
 		}
-		/* If UNDER Clause is used, then store to parsing url */
+		/* If IN Clause is used, then store to parsing url */
 		for (int i = 0; i < childnums; i++)
 		{
 			char		srvname[NAMEDATALEN];
@@ -1284,16 +1284,16 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 			if (strcmp(original_url, srvname) != 0)
 			{
 				elog(DEBUG1, "Can not find URL");
-				/* for multi under node */
+				/* for multi in node */
 				if(fdw_private->childinfo[i].child_node_status != ServerStatusAlive)
-					fdw_private->childinfo[i].child_node_status = ServerStatusUnder;
+					fdw_private->childinfo[i].child_node_status = ServerStatusIn;
 				continue;
 			}
 			fdw_private->childinfo[i].child_node_status = ServerStatusAlive;
 
 			/*
-			 * if child-child node is exist, then create New UNDER clause. New
-			 * UNDER clause is used by child spd server.
+			 * if child-child node is exist, then create New IN clause. New
+			 * IN clause is used by child spd server.
 			 */
 
 			if (throwing_url != NULL)
@@ -1308,7 +1308,7 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 					elog(ERROR, "Child node is not spd");
 				}
 				/* if child table fdw is spd, then execute operation */
-				fdw_private->under_flag = 1;
+				fdw_private->in_flag = 1;
 				fdw_private->childinfo[i].url_list =  lappend(fdw_private->childinfo[i].url_list, throwing_url);
 			}
 		}
@@ -1539,13 +1539,13 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root)
  * @param[in] oid - child table's oids
  * @param[in] nums - oid nums
  * @param[in] r_entry - Root entry
- * @param[in] new_underurl - new UNDER clause url
+ * @param[in] new_inurl - new IN clause url
  * @param[in] oid_server - Parent table oid
  * @param[inout] fdw_private - child table's base plan is saved
  */
 static void
 spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Oid *oid, int oid_nums, RangeTblEntry *r_entry,
-				    List *new_underurl, SpdFdwPrivate * fdw_private)
+				    List *new_inurl, SpdFdwPrivate * fdw_private)
 {
 	RelOptInfo *entry_baserel;
 	FdwRoutine *fdwroutine;
@@ -1602,8 +1602,8 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Oid *oid, int oid_nu
 		rte->eref = makeAlias(pstrdup(""), NIL);
 
 		/*
-		 * if child node is spd and UNDER clause is used, then should set new
-		 * UNDER clause URL at child node planner URL.
+		 * if child node is spd and IN clause is used, then should set new
+		 * IN clause URL at child node planner URL.
 		 */
 		if (childinfo[i].url_list != NULL)
 		{
@@ -1706,7 +1706,7 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Oid *oid, int oid_nu
  * @param[in] oid - child table's oids
  * @param[in] nums - oid nums
  * @param[in] r_entry - Root entry
- * @param[in] new_underurl - new UNDER clause url
+ * @param[in] new_inurl - new IN clause url
  * @param[in] oid_server - Parent table oid
  * @param[inout] fdw_private - child table's base plan is saved
  */
@@ -1764,7 +1764,7 @@ spd_CopyRoot(PlannerInfo *root, RelOptInfo *baserel, SpdFdwPrivate * fdw_private
  * spd_GetForeignRelSize
  *
  * 1. Check number of child tables and oid.
- * 2. Check UNDER clause and create next UNDER clause (delete head of URL)
+ * 2. Check IN clause and create next IN clause (delete head of URL)
  * 3. Create base plan for each child tables and save into fdw_private.
  *
  * Original FDW create fdw's using by root and baserel.
@@ -1784,7 +1784,7 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	SpdFdwPrivate *fdw_private;
 	Oid		   *oid = NULL;
 	int			nums;
-    List	   *new_underurl = NULL;
+    List	   *new_inurl = NULL;
 	RangeTblEntry *r_entry;
 	char	   *namespace = NULL;
 	char	   *relname = NULL;
@@ -1815,7 +1815,7 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	r_entry = root->simple_rte_array[baserel->relid];
 	Assert(r_entry != NULL);
 
-	/* Check to UNDER clause and execute only UNDER URL server */
+	/* Check to IN clause and execute only IN URL server */
 	if (r_entry->spd_url_list != NULL)
 		spd_create_child_url(nums, r_entry, fdw_private);
 	else
@@ -1827,7 +1827,7 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	}
 
 	/* Create base plan for each child tables and exec GetForeignRelSize */
-	spd_CreateDummyRoot(root, baserel, oid, nums, r_entry, new_underurl, fdw_private);
+	spd_CreateDummyRoot(root, baserel, oid, nums, r_entry, new_inurl, fdw_private);
 
 	MemoryContextSwitchTo(oldcontext);
 
@@ -2004,7 +2004,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	 */
 	fdw_private = spd_AllocatePrivate();
 	fdw_private->node_num = in_fdw_private->node_num;
-	fdw_private->under_flag = in_fdw_private->under_flag;
+	fdw_private->in_flag = in_fdw_private->in_flag;
 	fdw_private->agg_query = true;
 	spd_root = in_fdw_private->spd_root;
 
@@ -2157,7 +2157,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
  * add_foreign_grouping_paths
  *		Add foreign path for grouping and/or aggregation.
  *
- * Given input_rel represents the underlying scan.  The paths are added to the
+ * Given input_rel represents the inlying scan.  The paths are added to the
  * given grouped_rel.
  *
  * @param[in] root - base planner information
@@ -2255,11 +2255,11 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 	if (query->groupingSets)
 		return false;
 
-	/* Get the fpinfo of the underlying scan relation. */
+	/* Get the fpinfo of the inlying scan relation. */
 	ofpinfo = (SpdFdwPrivate *) fpinfo->rinfo.outerrel->fdw_private;
 
 	/*
-	 * If underneath input relation has any local conditions, those conditions
+	 * If inneath input relation has any local conditions, those conditions
 	 * are required to be applied before performing aggregation.  Hence the
 	 * aggregate cannot be pushed down.
 	 */
@@ -4277,7 +4277,7 @@ spd_EndForeignScan(ForeignScanState *node)
 static void
 spd_check_url_update(SpdFdwPrivate * fdw_private, RangeTblEntry *target_rte)
 {
-	char	   *new_underurl = NULL;
+	char	   *new_inurl = NULL;
 
 	spd_ParseUrl(target_rte->spd_url_list, fdw_private);
 	if (fdw_private->url_parse_list == NIL ||
@@ -4302,18 +4302,18 @@ spd_check_url_update(SpdFdwPrivate * fdw_private, RangeTblEntry *target_rte)
 			target_url = (char *) list_nth(fdw_private->url_parse_list, 1);
 			throwing_url = (char *) list_nth(fdw_private->url_parse_list, 2);
 		}
-		fdw_private->under_flag = true;
+		fdw_private->in_flag = true;
 
 		/*
-		 * if child - child is exist, then create child - child UNDER phrase
+		 * if child - child is exist, then create child - child IN phrase
 		 */
 		if (target_url != NULL)
 		{
 			char		temp[QUERY_LENGTH];
 
 			sprintf(temp, "/%s/", target_url);
-			new_underurl = palloc0(sizeof(char) * (QUERY_LENGTH));
-			strcpy(new_underurl, throwing_url);
+			new_inurl = palloc0(sizeof(char) * (QUERY_LENGTH));
+			strcpy(new_inurl, throwing_url);
 		}
 		pfree(srvname);
 	}
@@ -4324,7 +4324,7 @@ spd_check_url_update(SpdFdwPrivate * fdw_private, RangeTblEntry *target_rte)
  * Add column(s) needed for update/delete on a foreign table,
  * we are using first column as row identification column, so we are adding that into target
  * list.
- * Checking UNDER clause. In currently, must use UNDER.
+ * Checking IN clause. In currently, must use IN.
  *
  * @param[in] Query *parsetree,
  * @param[in] RangeTblEntry *target_rte
@@ -4343,7 +4343,7 @@ spd_AddForeignUpdateTargets(Query *parsetree,
 
 	fdw_private = spd_AllocatePrivate();
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
-	/* Checking UNDER clause. */
+	/* Checking IN clause. */
 	if (target_rte->spd_url != NULL)
 		spd_check_url_update(fdw_private, target_rte);
 	else
@@ -4366,7 +4366,7 @@ spd_AddForeignUpdateTargets(Query *parsetree,
  * Add column(s) needed for update/delete on a foreign table,
  * we are using first column as row identification column, so we are adding that into target
  * list.
- * Checking UNDER clause. In currently, must use UNDER.
+ * Checking IN clause. In currently, must use IN.
  *
  * @param[in] root
  * @param[in] plan
