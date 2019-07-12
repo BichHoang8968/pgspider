@@ -540,8 +540,8 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT sum(i), avg(i) FROM test1;
 
 -- only post_svr is alive
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM test1 IN ('/post_svr/');
-                       QUERY PLAN                       
---------------------------------------------------------
+                     QUERY PLAN                      
+-----------------------------------------------------
  Foreign Scan on public.test1
    Output: i, __spd_url
     * Node: mysql_svr / Status: Not specified by IN
