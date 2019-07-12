@@ -79,6 +79,9 @@ pipeline {
             label NODE_NAME
         }
     } 
+    options {
+        gitLabConnection('GitLabConnection')
+    }
     triggers { 
         gitlab(
             triggerOnPush: true,
@@ -152,6 +155,10 @@ pipeline {
                 failure {
                     echo '** BUILD FAILED !!! NEXT STAGE WILL BE SKIPPED **'
                     emailext subject: '[CI PGSpider] BUILD PGSpider FAILED ' + BRANCH_NAME, body: BUILD_INFO + '{BUILD_LOG, maxLines=200, escapeHtml=false}', to: "${MAIL_TO}", attachLog: false
+                    updateGitlabCommitStatus name: 'Build', state: 'failed'
+                }
+                success {
+                    updateGitlabCommitStatus name: 'Build', state: 'success'
                 }
             }
         }
@@ -173,6 +180,9 @@ pipeline {
                         // Send mail
                         emailext subject: '[CI PGSpider] "make check" Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
                         sh 'cat src/test/regress/regression.diffs || true'
+                        updateGitlabCommitStatus name: 'make_check', state: 'failed'
+                    } else {
+                        updateGitlabCommitStatus name: 'make_check', state: 'success'
                     }
                 }
             }
@@ -198,6 +208,9 @@ pipeline {
                             // Send email
                             emailext subject: '[CI PGSpider] pgspider_core_fdw Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
                             sh 'cat regression.diffs || true'
+                            updateGitlabCommitStatus name: 'pgspider_core_fdw', state: 'failed'
+                        } else {
+                            updateGitlabCommitStatus name: 'pgspider_core_fdw', state: 'success'
                         }
                     }
                 }
@@ -220,6 +233,9 @@ pipeline {
                             unstable(message: "Set UNSTABLE result")
                             emailext subject: '[CI PGSpider] pgspider_core_fdw_multi Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
                             sh 'cat regression.diffs || true'
+                            updateGitlabCommitStatus name: 'pgspider_core_fdw_multi', state: 'failed'
+                        } else {
+                            updateGitlabCommitStatus name: 'pgspider_core_fdw_multi', state: 'success'
                         }
                     }
                 }
