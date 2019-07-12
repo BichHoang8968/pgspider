@@ -222,6 +222,13 @@ enum SpdServerstatus
 	ServerStatusDead,
 };
 
+/* For EXPLAIN */
+static const char *SpdServerstatusStr[] = {
+	"Alive",
+	"Not specified by IN",
+	"Dead"
+};
+
 typedef struct Mappingcell
 {
 	/*
@@ -257,6 +264,7 @@ typedef struct ChildInfo
 								 * down servers */
 	bool		in_flag;		/* using IN clause or NOT */
 	List       *url_list;
+	int			index_threadinfo;	/* index for ForeignScanThreadInfo array */
 }			ChildInfo;
 
 /*
@@ -299,6 +307,7 @@ typedef struct SpdFdwPrivate
 	bool		is_drop_temp_table; /* drop temp table flag in aggregation */
 	int			temp_num_cols;	/* number of columns of temp table */
 	char	   *temp_table_name;	/* name of temp table */
+	bool		is_explain;		/* explain or not */
 }			SpdFdwPrivate;
 
 /* postgresql.conf paramater */
@@ -894,7 +903,7 @@ static void
 spd_ErrorCb(void *arg)
 {
 	pthread_mutex_lock(&error_mutex);
-    FlushErrorState();
+	FlushErrorState();
 	pthread_mutex_unlock(&error_mutex);
 }
 
@@ -937,7 +946,7 @@ spd_ForeignScan_thread(void *arg)
 	gettimeofday(&s, NULL);
 #endif
 	/* Declare ereport/elog jump is not available. */
- 
+
 	PG_exception_stack = NULL;
 	errcallback.callback = spd_ErrorCb;
 	errcallback.arg = NULL;
@@ -950,6 +959,7 @@ spd_ForeignScan_thread(void *arg)
 	PG_TRY();
 	{
 		SPD_LOCK_TRY(&scan_mutex);
+
 		/*
 		 * If Aggregation does not push down, then BeginForeignScan execute in
 		 * ExecInitNode
@@ -1673,12 +1683,14 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Oid *oid, int oid_nu
 				 */
 				childinfo[i].root = root;
 				childinfo[i].child_node_status = ServerStatusDead;
+
 				/*
 				 * If error is occurred, child node fdw does not output Error.
 				 * It should be clear Error stack.
 				 */
 				elog(WARNING, "GetForeignRelSize failed");
-				if (throwErrorIfDead){
+				if (throwErrorIfDead)
+				{
 					spd_aliveError(fs);
 				}
 				FlushErrorState();
@@ -2457,9 +2469,6 @@ spd_ExplainForeignScan(ForeignScanState *node,
 
 		fs = GetForeignServer(childinfo[i].server_oid);
 		fdwroutine = GetFdwRoutineByServerId(childinfo[i].server_oid);
-		/* skip to can not access child table at spd_GetForeignRelSize. */
-		if (childinfo[i].child_node_status != ServerStatusAlive)
-			continue;
 
 		if (fdwroutine->ExplainForeignScan == NULL)
 			continue;
@@ -2467,20 +2476,24 @@ spd_ExplainForeignScan(ForeignScanState *node,
 		/* create node info */
 		PG_TRY();
 		{
-			fsplan->fdw_private = ((ForeignScan *) childinfo[i].plan)->fdw_private;
+			int			idx;
 
-			/* TODO : fix */
-			fdwroutine->ExplainForeignScan(node, es);
+			ExplainPropertyText(psprintf(" * Node: %s / Status", fs->servername),
+								SpdServerstatusStr[childinfo[i].child_node_status], es);
+
+			if (childinfo[i].child_node_status != ServerStatusAlive)
+				continue;
+
 			if (es->verbose)
 			{
-				char	   *buf = "NodeName";
 
 				if (fdw_private->agg_query)
 				{
-					buf = psprintf("Agg push-down: %s / NodeName", childinfo[i].aggpath ? "no" : "yes");
+					ExplainPropertyText("Agg push-down", childinfo[i].aggpath ? "no" : "yes", es);
 				}
-				ExplainPropertyText(buf, fs->servername, es);
 			}
+			idx = childinfo[i].index_threadinfo;
+			fdwroutine->ExplainForeignScan(((ForeignScanThreadInfo *) node->spd_fsstate)[idx].fsstate, es);
 
 		}
 		PG_CATCH();
@@ -3104,13 +3117,20 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	 */
 	hash_register_reset_callback(node->ss.ps.state->es_query_cxt);
 
-	if (eflags & EXEC_FLAG_EXPLAIN_ONLY)
-		return;
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	node->spd_fsstate = NULL;
 	fdw_private = (SpdFdwPrivate *)
 		((Value *) list_nth(fsplan->fdw_private, FdwScanPrivateSelectSql))->val.ival;
+
+	/*
+	 * Not return from this function unlike usual fdw BeginForeignScan
+	 * implementation because we need to create ForeignScanState for child
+	 * fdws. It is assigned to fssThrdInfo[node_incr].fsstate.
+	 */
+	if (eflags & EXEC_FLAG_EXPLAIN_ONLY)
+		fdw_private->is_explain = true;
+
 	/* Type of Query to be used for computing intermediate results */
 #ifdef GETPROGRESS_ENABLED
 	if (fdw_private->agg_query)
@@ -3274,7 +3294,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			MemoryContextAlloc(node->ss.ss_ScanTupleSlot->tts_mcxt, natts * sizeof(Datum));
 		fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_isnull = (bool *)
 			MemoryContextAlloc(node->ss.ss_ScanTupleSlot->tts_mcxt, natts * sizeof(bool));
-	    
+
 		/*
 		 * current relation ID gets from current server oid, it means
 		 * childinfo[i].oid
@@ -3285,8 +3305,10 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		fssThrdInfo[node_incr].iFlag = true;
 		fssThrdInfo[node_incr].EndFlag = false;
 		fssThrdInfo[node_incr].tuple = NULL;
-		/* We set index of child info, not set node_incr */
+
+		/* We save correspondence between fssThrdInfo and childinfo */
 		fssThrdInfo[node_incr].childInfoIndex = i;
+		childinfo[i].index_threadinfo = node_incr;
 
 		fssThrdInfo[node_incr].serverId = server_oid;
 		fssThrdInfo[node_incr].fdwroutine = GetFdwRoutineByServerId(server_oid);
@@ -3295,19 +3317,42 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			ResourceOwnerCreate(CurrentResourceOwner, "thread resource owner");
 
 		fssThrdInfo[node_incr].private = fdw_private;
+
+		/*
+		 * For explain case, call BeginForeignScan because some
+		 * fdws(ex:mysql_fdw) requires BeginForeignScan is already called when
+		 * ExplainForeignScan is called . For non explain case, child threads
+		 * call BeginForeignScan
+		 */
+		if (eflags & EXEC_FLAG_EXPLAIN_ONLY)
+			fssThrdInfo[node_incr].fdwroutine->BeginForeignScan(fssThrdInfo[node_incr].fsstate,
+																eflags);
+		node_incr++;
+	}
+
+	fdw_private->nThreads = node_incr;
+
+	/* Skip thread creation in explain case */
+	if (eflags & EXEC_FLAG_EXPLAIN_ONLY)
+	{
+		MemoryContextSwitchTo(oldcontext);
+		return;
+	}
+
+	for (i = 0; i < fdw_private->nThreads; i++)
+	{
 		thread_create_err =
-			pthread_create(&fdw_private->foreign_scan_threads[node_incr],
+			pthread_create(&fdw_private->foreign_scan_threads[i],
 						   NULL,
 						   &spd_ForeignScan_thread,
-						   (void *) &fssThrdInfo[node_incr]);
+						   (void *) &fssThrdInfo[i]);
 		if (thread_create_err != 0)
 		{
 			ereport(ERROR, (errmsg("Cannot create thread! error=%d",
 								   thread_create_err)));
 		}
-		node_incr++;
 	}
-	fdw_private->nThreads = node_incr;
+
 
 	/* Wait for state change */
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
@@ -3666,7 +3711,7 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 										   fdw_private->agg_values[rowid][vardev_mapping]);
 
 					right = sum2;
-					left = pow(sum, 2) / cnt;
+					left = pow(sum, 2) /cnt;
 					result = (float8) (right - left) / (float8) (cnt - 1);
 					if (mapcells->aggtype == DEVFLAG)
 					{
@@ -3988,7 +4033,7 @@ spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *child_slo
   Return NULL if all threads are finished.
  */
 static TupleTableSlot *
-nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId, ChildInfo* childinfo)
+nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId)
 {
 	int			count = 0;
 	bool		all_thread_finished = true;
@@ -4016,9 +4061,6 @@ nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId, C
 		{
 			/* no tuple yet, but the thread is running */
 			all_thread_finished = false;
-		}
-		else if(!fssThrdInfo[count].iFlag && fssThrdInfo[count].state == SPD_FS_STATE_ERROR){
-			    childinfo[count].child_node_status = ServerStatusDead;
 		}
 	}
 	Assert(false);
@@ -4084,7 +4126,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 			 */
 			for (;;)
 			{
-				slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count,fdw_private->childinfo);
+				slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count);
 				if (slot != NULL)
 					spd_spi_insert_table(slot, node, fdw_private);
 				else
@@ -4131,7 +4173,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 	else
 	{
 
-		slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count, fdw_private->childinfo);
+		slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count);
 		if (slot != NULL)
 			slot = spd_AddNodeColumn(fssThrdInfo, node->ss.ss_ScanTupleSlot, count, slot);
 
@@ -4221,25 +4263,33 @@ spd_EndForeignScan(ForeignScanState *node)
 		return;
 
 	/* print error nodes */
+	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++){
+		if (fssThrdInfo[node_incr].state == SPD_FS_STATE_ERROR){
+			fdw_private->childinfo[fssThrdInfo[node_incr].childInfoIndex].child_node_status = ServerStatusDead;
+		}
+	}
 	if (isPrintError)
 		spd_PrintError(fdw_private->node_num, fdw_private->childinfo);
 
-	if (fdw_private->is_drop_temp_table == FALSE && fdw_private->temp_table_name != NULL)
+	if (!fdw_private->is_explain)
 	{
-		spd_spi_ddl_table(psprintf("DROP TABLE IF EXISTS %s", fdw_private->temp_table_name));
-	}
-	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
-	{
-		fssThrdInfo[node_incr].EndFlag = true;
+		if (fdw_private->is_drop_temp_table == FALSE && fdw_private->temp_table_name != NULL)
+		{
+			spd_spi_ddl_table(psprintf("DROP TABLE IF EXISTS %s", fdw_private->temp_table_name));
+		}
+		for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
+		{
+			fssThrdInfo[node_incr].EndFlag = true;
+			/* Cleanup the thread-local structures */
+			rtn = pthread_join(fdw_private->foreign_scan_threads[node_incr], NULL);
+			if (rtn != 0)
+				elog(WARNING, "error is occurred, pthread_join fail in EndForeignScan. ");
+		}
 	}
 
 	/* wait until all the remote connections get closed. */
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 	{
-		/* Cleanup the thread-local structures */
-		rtn = pthread_join(fdw_private->foreign_scan_threads[node_incr], NULL);
-		if (rtn != 0)
-			elog(WARNING, "error is occurred, pthread_join fail in EndForeignScan. ");
 		if (fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation)
 			RelationClose(fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation);
 		pfree(fssThrdInfo[node_incr].fsstate);
@@ -4258,8 +4308,10 @@ spd_EndForeignScan(ForeignScanState *node)
 
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 	{
-		if (throwErrorIfDead && fdw_private->childinfo[node_incr].child_node_status == ServerStatusDead){
+		if (throwErrorIfDead && fssThrdInfo[node_incr].state == SPD_FS_STATE_ERROR)
+		{
 			ForeignServer *fs;
+
 			fs = GetForeignServer(fdw_private->childinfo[node_incr].server_oid);
 			spd_aliveError(fs);
 		}

@@ -87,6 +87,12 @@ SELECT * FROM test1 IN ('/mysql_svr2/'), test1_1 IN ('/mysql_svr/') ORDER BY tes
 SELECT * FROM test1 IN ('/mysql_svr2/'), test1_1 IN ('/mysql_svr2/') ORDER BY test1.i,test1.__spd_url,test1_1.i,test1_1.__spd_url;
 SELECT * FROM test1 IN ('/sqlite_svr/','/mysql_svr2/'), test1_1 IN ('/sqlite_svr2/','/mysql_svr/') ORDER BY test1.i,test1.__spd_url,test1_1.i,test1_1.__spd_url;
 
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM test1;
+-- some fdw push down and some fdw not 
+EXPLAIN (VERBOSE, COSTS OFF) SELECT sum(i), avg(i) FROM test1;
+-- only post_svr is alive
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM test1 IN ('/post_svr/');
+
 -- only __spd_url target list is OK
 SELECT __spd_url FROM test1 ORDER BY __spd_url;
 

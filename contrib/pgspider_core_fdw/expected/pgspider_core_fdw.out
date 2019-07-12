@@ -498,6 +498,59 @@ SELECT * FROM test1 IN ('/sqlite_svr/','/mysql_svr2/'), test1_1 IN ('/sqlite_svr
  22222 | /sqlite_svr/ | 777 | /mysql_svr/
 (10 rows)
 
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM test1;
+                     QUERY PLAN                     
+----------------------------------------------------
+ Foreign Scan on public.test1
+   Output: i, __spd_url
+    * Node: mysql_svr / Status: Alive
+   Local server startup cost: 10
+   Remote query: SELECT `i` FROM `test`.`test1`
+    * Node: post_svr / Status: Alive
+   Remote SQL: SELECT i FROM public.test1
+    * Node: sqlite_svr / Status: Alive
+   SQLite query: SELECT `i` FROM main."test1"
+    * Node: tiny_svr / Status: Alive
+   TinyBrace query: SELECT `i` FROM "test1"
+   TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
+(12 rows)
+
+-- some fdw push down and some fdw not 
+EXPLAIN (VERBOSE, COSTS OFF) SELECT sum(i), avg(i) FROM test1;
+                          QUERY PLAN                           
+---------------------------------------------------------------
+ Foreign Scan
+   Output: (sum(i)), (avg(i))
+    * Node: mysql_svr / Status: Alive
+   Agg push-down: no
+   Local server startup cost: 10
+   Remote query: SELECT `i` FROM `test`.`test1`
+    * Node: post_svr / Status: Alive
+   Agg push-down: yes
+   Relations: Aggregate on (public.test1__post_svr__0)
+   Remote SQL: SELECT sum(i), count(i) FROM public.test1
+    * Node: sqlite_svr / Status: Alive
+   Agg push-down: yes
+   SQLite query: SELECT sum(`i`), count(`i`) FROM main."test1"
+    * Node: tiny_svr / Status: Alive
+   Agg push-down: yes
+   TinyBrace query: SELECT sum(`i`), count(`i`) FROM "test1"
+   TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
+(17 rows)
+
+-- only post_svr is alive
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM test1 IN ('/post_svr/');
+                       QUERY PLAN                       
+--------------------------------------------------------
+ Foreign Scan on public.test1
+   Output: i, __spd_url
+    * Node: mysql_svr / Status: Not specified by IN
+    * Node: post_svr / Status: Alive
+   Remote SQL: SELECT i FROM public.test1
+    * Node: sqlite_svr / Status: Not specified by IN
+    * Node: tiny_svr / Status: Not specified by IN
+(7 rows)
+
 -- only __spd_url target list is OK
 SELECT __spd_url FROM test1 ORDER BY __spd_url;
   __spd_url   
