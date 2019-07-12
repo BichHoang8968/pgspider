@@ -900,7 +900,7 @@ static void
 spd_ErrorCb(void *arg)
 {
 	pthread_mutex_lock(&error_mutex);
-	EmitErrorReport();
+	FlushErrorState();
 	pthread_mutex_unlock(&error_mutex);
 }
 
@@ -943,11 +943,13 @@ spd_ForeignScan_thread(void *arg)
 	gettimeofday(&s, NULL);
 #endif
 	/* Declare ereport/elog jump is not available. */
+
 	PG_exception_stack = NULL;
 	errcallback.callback = spd_ErrorCb;
 	errcallback.arg = NULL;
 	errcallback.previous = NULL;
 	error_context_stack = &errcallback;
+
 
 	/* Begin Foreign Scan */
 	fssthrdInfo->state = SPD_FS_STATE_BEGIN;
@@ -973,11 +975,10 @@ spd_ForeignScan_thread(void *arg)
 	}
 	PG_CATCH();
 	{
-		errflag = 1;
+		errflag = true;
 		fssthrdInfo->state = SPD_FS_STATE_ERROR;
 	}
 	PG_END_TRY();
-
 	if (errflag)
 	{
 		goto THREAD_EXIT;
@@ -1658,9 +1659,17 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Oid *oid, int oid_nu
 				 */
 				childinfo[i].root = root;
 				childinfo[i].child_node_status = ServerStatusDead;
+
+				/*
+				 * If error is occurred, child node fdw does not output Error.
+				 * It should be clear Error stack.
+				 */
 				elog(WARNING, "GetForeignRelSize failed");
 				if (throwErrorIfDead)
+				{
 					spd_aliveError(fs);
+				}
+				FlushErrorState();
 			}
 			PG_END_TRY();
 		}
@@ -2081,9 +2090,9 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			listn = 0;
 			foreach(lc, fdw_private->child_comp_tlist)
 			{
-				TargetEntry *entry = (TargetEntry *) lfirst(lc);
+				TargetEntry *tmp_entry = (TargetEntry *) lfirst(lc);
 
-				sortgrouprefs[listn++] = entry->ressortgroupref;
+				sortgrouprefs[listn++] = tmp_entry->ressortgroupref;
 			}
 
 			dummy_root->upper_targets[UPPERREL_GROUP_AGG]->sortgrouprefs = sortgrouprefs;
@@ -2468,6 +2477,7 @@ spd_ExplainForeignScan(ForeignScanState *node,
 			 */
 			childinfo[i].child_node_status = ServerStatusDead;
 			elog(WARNING, "fdw ExplainForeignScan error is occurred.");
+			FlushErrorState();
 		}
 		PG_END_TRY();
 	}
@@ -2548,6 +2558,7 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 			childinfo[i].child_node_status = ServerStatusDead;
 
 			elog(WARNING, "Fdw GetForeignPaths error is occurred.");
+			FlushErrorState();
 			if (throwErrorIfDead)
 				spd_aliveError(fs);
 		}
@@ -2947,6 +2958,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			 */
 			childinfo[i].child_node_status = ServerStatusDead;
 			elog(WARNING, "dummy plan list failed ");
+			FlushErrorState();
 			if (throwErrorIfDead)
 			{
 				fs = GetForeignServer(childinfo[i].server_oid);
@@ -3672,7 +3684,7 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 										   fdw_private->agg_values[rowid][vardev_mapping]);
 
 					right = sum2;
-					left = pow(sum, 2) / cnt;
+					left = pow(sum, 2) /cnt;
 					result = (float8) (right - left) / (float8) (cnt - 1);
 					if (mapcells->aggtype == DEVFLAG)
 					{
@@ -4221,6 +4233,11 @@ spd_EndForeignScan(ForeignScanState *node)
 		return;
 
 	/* print error nodes */
+	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++){
+		if (fssThrdInfo[node_incr].state == SPD_FS_STATE_ERROR){
+			fdw_private->childinfo[fssThrdInfo[node_incr].childInfoIndex].child_node_status = ServerStatusDead;
+		}
+	}
 	if (isPrintError)
 		spd_PrintError(fdw_private->node_num, fdw_private->childinfo);
 
@@ -4257,6 +4274,17 @@ spd_EndForeignScan(ForeignScanState *node)
 		ResourceOwnerDelete(fssThrdInfo[node_incr].thrd_ResourceOwner);
 
 		MemoryContextDelete(fssThrdInfo[node_incr].threadMemoryContext);
+	}
+
+	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
+	{
+		if (throwErrorIfDead && fssThrdInfo[node_incr].state == SPD_FS_STATE_ERROR)
+		{
+			ForeignServer *fs;
+
+			fs = GetForeignServer(fdw_private->childinfo[node_incr].server_oid);
+			spd_aliveError(fs);
+		}
 	}
 }
 
