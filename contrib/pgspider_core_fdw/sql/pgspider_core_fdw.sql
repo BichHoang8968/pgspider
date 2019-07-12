@@ -68,6 +68,12 @@ SELECT * FROM test1 under '/mysql_svr/' where i = 5 ORDER BY i,__spd_url;
 
 SELECT * FROM test1 UNION ALL SELECT * FROM test1 ORDER BY i,__spd_url;
 
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM test1;
+-- some fdw push down and some fdw not 
+EXPLAIN (VERBOSE, COSTS OFF) SELECT sum(i), avg(i) FROM test1;
+-- only post_svr is alive
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM test1 UNDER '/post_svr/';
+
 -- only __spd_url target list is OK
 SELECT __spd_url FROM test1 ORDER BY __spd_url;
 
