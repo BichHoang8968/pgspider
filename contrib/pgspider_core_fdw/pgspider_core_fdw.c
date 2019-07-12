@@ -4192,13 +4192,8 @@ spd_EndForeignScan(ForeignScanState *node)
 
 	/* print error nodes */
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++){
-		if (fssThrdInfo[node_incr].state == SPD_FS_STATE_ERROR)
-		{
-			int i;
-			for (i = 0; i < fdw_private->nThreads; i++){
-				if (fssThrdInfo[node_incr].serverId == fdw_private->childinfo[i].server_oid)
-				    fdw_private->childinfo[i].child_node_status = ServerStatusDead;
-			}
+		if (fssThrdInfo[node_incr].state == SPD_FS_STATE_ERROR){
+			fdw_private->childinfo[fssThrdInfo[node_incr].childInfoIndex].child_node_status = ServerStatusDead;
 		}
 	}
 	if (isPrintError)
