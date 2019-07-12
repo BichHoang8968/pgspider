@@ -51,51 +51,51 @@
 /* Convenience macro for the most common makeNamespaceItem() case */
 #define makeDefaultNSItem(rte)	makeNamespaceItem(rte, true, true, false, true)
 
-static void extractRemainingColumns(List * common_colnames,
-						List * src_colnames, List * src_colvars,
-						List * *res_colnames, List * *res_colvars);
-static Node * transformJoinUsingClause(ParseState * pstate,
-									   RangeTblEntry * leftRTE, RangeTblEntry * rightRTE,
-									   List * leftVars, List * rightVars);
-static Node * transformJoinOnClause(ParseState * pstate, JoinExpr * j,
-									List * namespace);
-static RangeTblEntry * getRTEForSpecialRelationTypes(ParseState * pstate,
-													 RangeVar * rv);
-static RangeTblEntry * transformTableEntry(ParseState * pstate, RangeVar * r);
-static RangeTblEntry * transformRangeSubselect(ParseState * pstate,
-											   RangeSubselect * r);
-static RangeTblEntry * transformRangeFunction(ParseState * pstate,
-											  RangeFunction * r);
-static RangeTblEntry * transformRangeTableFunc(ParseState * pstate,
-											   RangeTableFunc * t);
-static TableSampleClause * transformRangeTableSample(ParseState * pstate,
-													 RangeTableSample * rts);
-static Node * transformFromClauseItem(ParseState * pstate, Node * n,
-									  RangeTblEntry * *top_rte, int *top_rti,
-									  List * *namespace);
-static Node * buildMergedJoinVar(ParseState * pstate, JoinType jointype,
-								 Var * l_colvar, Var * r_colvar);
-static ParseNamespaceItem * makeNamespaceItem(RangeTblEntry * rte,
-											  bool rel_visible, bool cols_visible,
-											  bool lateral_only, bool lateral_ok);
-static void setNamespaceColumnVisibility(List * namespace, bool cols_visible);
-static void setNamespaceLateralState(List * namespace,
+static void extractRemainingColumns(List *common_colnames,
+						List *src_colnames, List *src_colvars,
+						List **res_colnames, List **res_colvars);
+static Node *transformJoinUsingClause(ParseState *pstate,
+						 RangeTblEntry *leftRTE, RangeTblEntry *rightRTE,
+						 List *leftVars, List *rightVars);
+static Node *transformJoinOnClause(ParseState *pstate, JoinExpr *j,
+					  List *namespace);
+static RangeTblEntry *getRTEForSpecialRelationTypes(ParseState *pstate,
+							  RangeVar *rv);
+static RangeTblEntry *transformTableEntry(ParseState *pstate, RangeVar *r);
+static RangeTblEntry *transformRangeSubselect(ParseState *pstate,
+						RangeSubselect *r);
+static RangeTblEntry *transformRangeFunction(ParseState *pstate,
+					   RangeFunction *r);
+static RangeTblEntry *transformRangeTableFunc(ParseState *pstate,
+						RangeTableFunc *t);
+static TableSampleClause *transformRangeTableSample(ParseState *pstate,
+						  RangeTableSample *rts);
+static Node *transformFromClauseItem(ParseState *pstate, Node *n,
+						RangeTblEntry **top_rte, int *top_rti,
+						List **namespace);
+static Node *buildMergedJoinVar(ParseState *pstate, JoinType jointype,
+				   Var *l_colvar, Var *r_colvar);
+static ParseNamespaceItem *makeNamespaceItem(RangeTblEntry *rte,
+				  bool rel_visible, bool cols_visible,
+				  bool lateral_only, bool lateral_ok);
+static void setNamespaceColumnVisibility(List *namespace, bool cols_visible);
+static void setNamespaceLateralState(List *namespace,
 						 bool lateral_only, bool lateral_ok);
-static void checkExprIsVarFree(ParseState * pstate, Node * n,
+static void checkExprIsVarFree(ParseState *pstate, Node *n,
 				   const char *constructName);
-static TargetEntry * findTargetlistEntrySQL92(ParseState * pstate, Node * node,
-											  List * *tlist, ParseExprKind exprKind);
-static TargetEntry * findTargetlistEntrySQL99(ParseState * pstate, Node * node,
-											  List * *tlist, ParseExprKind exprKind);
+static TargetEntry *findTargetlistEntrySQL92(ParseState *pstate, Node *node,
+						 List **tlist, ParseExprKind exprKind);
+static TargetEntry *findTargetlistEntrySQL99(ParseState *pstate, Node *node,
+						 List **tlist, ParseExprKind exprKind);
 static int get_matching_location(int sortgroupref,
-					  List * sortgrouprefs, List * exprs);
-static List * resolve_unique_index_expr(ParseState * pstate, InferClause * infer,
-										Relation heapRel);
-static List * addTargetToGroupList(ParseState * pstate, TargetEntry * tle,
-								   List * grouplist, List * targetlist, int location);
-static WindowClause * findWindowClause(List * wclist, const char *name);
-static Node * transformFrameOffset(ParseState * pstate, int frameOptions,
-								   Node * clause);
+					  List *sortgrouprefs, List *exprs);
+static List *resolve_unique_index_expr(ParseState *pstate, InferClause *infer,
+						  Relation heapRel);
+static List *addTargetToGroupList(ParseState *pstate, TargetEntry *tle,
+					 List *grouplist, List *targetlist, int location);
+static WindowClause *findWindowClause(List *wclist, const char *name);
+static Node *transformFrameOffset(ParseState *pstate, int frameOptions,
+					 Node *clause);
 
 
 /*
@@ -109,7 +109,7 @@ static Node * transformFrameOffset(ParseState * pstate, int frameOptions,
  * processing, as well as for UPDATE and DELETE.
  */
 void
-transformFromClause(ParseState * pstate, List * frmList)
+transformFromClause(ParseState *pstate, List *frmList)
 {
 	ListCell   *fl;
 
@@ -175,7 +175,7 @@ transformFromClause(ParseState * pstate, List * frmList)
  *	  Returns the rangetable index of the target relation.
  */
 int
-setTargetTable(ParseState * pstate, RangeVar * relation,
+setTargetTable(ParseState *pstate, RangeVar *relation,
 			   bool inh, bool alsoSource, AclMode requiredPerms)
 {
 	RangeTblEntry *rte;
@@ -252,7 +252,7 @@ setTargetTable(ParseState * pstate, RangeVar * relation,
  * code explicitly punts checking for oids to here.
  */
 bool
-interpretOidsOption(List * defList, bool allowOids)
+interpretOidsOption(List *defList, bool allowOids)
 {
 	ListCell   *cell;
 
@@ -285,9 +285,9 @@ interpretOidsOption(List * defList, bool allowOids)
  * Extract all not-in-common columns from column lists of a source table
  */
 static void
-extractRemainingColumns(List * common_colnames,
-						List * src_colnames, List * src_colvars,
-						List * *res_colnames, List * *res_colvars)
+extractRemainingColumns(List *common_colnames,
+						List *src_colnames, List *src_colvars,
+						List **res_colnames, List **res_colvars)
 {
 	List	   *new_colnames = NIL;
 	List	   *new_colvars = NIL;
@@ -330,9 +330,9 @@ extractRemainingColumns(List * common_colnames,
  *	  Result is a transformed qualification expression.
  */
 static Node *
-transformJoinUsingClause(ParseState * pstate,
-						 RangeTblEntry * leftRTE, RangeTblEntry * rightRTE,
-						 List * leftVars, List * rightVars)
+transformJoinUsingClause(ParseState *pstate,
+						 RangeTblEntry *leftRTE, RangeTblEntry *rightRTE,
+						 List *leftVars, List *rightVars)
 {
 	Node	   *result;
 	List	   *andargs = NIL;
@@ -390,7 +390,7 @@ transformJoinUsingClause(ParseState * pstate,
  *	  Result is a transformed qualification expression.
  */
 static Node *
-transformJoinOnClause(ParseState * pstate, JoinExpr * j, List * namespace)
+transformJoinOnClause(ParseState *pstate, JoinExpr *j, List *namespace)
 {
 	Node	   *result;
 	List	   *save_namespace;
@@ -420,7 +420,7 @@ transformJoinOnClause(ParseState * pstate, JoinExpr * j, List * namespace)
  * transformTableEntry --- transform a RangeVar (simple relation reference)
  */
 static RangeTblEntry *
-transformTableEntry(ParseState * pstate, RangeVar * r)
+transformTableEntry(ParseState *pstate, RangeVar *r)
 {
 	RangeTblEntry *rte;
 
@@ -434,7 +434,7 @@ transformTableEntry(ParseState * pstate, RangeVar * r)
  * transformRangeSubselect --- transform a sub-SELECT appearing in FROM
  */
 static RangeTblEntry *
-transformRangeSubselect(ParseState * pstate, RangeSubselect * r)
+transformRangeSubselect(ParseState *pstate, RangeSubselect *r)
 {
 	Query	   *query;
 	RangeTblEntry *rte;
@@ -501,7 +501,7 @@ transformRangeSubselect(ParseState * pstate, RangeSubselect * r)
  * transformRangeFunction --- transform a function call appearing in FROM
  */
 static RangeTblEntry *
-transformRangeFunction(ParseState * pstate, RangeFunction * r)
+transformRangeFunction(ParseState *pstate, RangeFunction *r)
 {
 	List	   *funcexprs = NIL;
 	List	   *funcnames = NIL;
@@ -726,7 +726,7 @@ transformRangeFunction(ParseState * pstate, RangeFunction * r)
  * default value expressions.
  */
 static RangeTblEntry *
-transformRangeTableFunc(ParseState * pstate, RangeTableFunc * rtf)
+transformRangeTableFunc(ParseState *pstate, RangeTableFunc *rtf)
 {
 	TableFunc  *tf = makeNode(TableFunc);
 	const char *constructName;
@@ -946,7 +946,7 @@ transformRangeTableFunc(ParseState * pstate, RangeTableFunc * rtf)
  * the remaining fields and create a TableSampleClause node.
  */
 static TableSampleClause *
-transformRangeTableSample(ParseState * pstate, RangeTableSample * rts)
+transformRangeTableSample(ParseState *pstate, RangeTableSample *rts)
 {
 	TableSampleClause *tablesample;
 	Oid			handlerOid;
@@ -1049,7 +1049,7 @@ transformRangeTableSample(ParseState * pstate, RangeTableSample * rts)
  * build and return an appropriate RTE, otherwise return NULL
  */
 static RangeTblEntry *
-getRTEForSpecialRelationTypes(ParseState * pstate, RangeVar * rv)
+getRTEForSpecialRelationTypes(ParseState *pstate, RangeVar *rv)
 {
 	CommonTableExpr *cte;
 	Index		levelsup;
@@ -1094,9 +1094,9 @@ getRTEForSpecialRelationTypes(ParseState * pstate, RangeVar * rv)
  * are indeterminate and should be explicitly set by the caller before use.)
  */
 static Node *
-transformFromClauseItem(ParseState * pstate, Node * n,
-						RangeTblEntry * *top_rte, int *top_rti,
-						List * *namespace)
+transformFromClauseItem(ParseState *pstate, Node *n,
+						RangeTblEntry **top_rte, int *top_rti,
+						List **namespace)
 {
 	if (IsA(n, RangeVar))
 	{
@@ -1539,8 +1539,8 @@ transformFromClauseItem(ParseState * pstate, Node * n,
  *	  generate a suitable replacement expression for a merged join column
  */
 static Node *
-buildMergedJoinVar(ParseState * pstate, JoinType jointype,
-				   Var * l_colvar, Var * r_colvar)
+buildMergedJoinVar(ParseState *pstate, JoinType jointype,
+				   Var *l_colvar, Var *r_colvar)
 {
 	Oid			outcoltype;
 	int32		outcoltypmod;
@@ -1658,7 +1658,7 @@ buildMergedJoinVar(ParseState * pstate, JoinType jointype,
  *	  Convenience subroutine to construct a ParseNamespaceItem.
  */
 static ParseNamespaceItem *
-makeNamespaceItem(RangeTblEntry * rte, bool rel_visible, bool cols_visible,
+makeNamespaceItem(RangeTblEntry *rte, bool rel_visible, bool cols_visible,
 				  bool lateral_only, bool lateral_ok)
 {
 	ParseNamespaceItem *nsitem;
@@ -1677,7 +1677,7 @@ makeNamespaceItem(RangeTblEntry * rte, bool rel_visible, bool cols_visible,
  *	  Convenience subroutine to update cols_visible flags in a namespace list.
  */
 static void
-setNamespaceColumnVisibility(List * namespace, bool cols_visible)
+setNamespaceColumnVisibility(List *namespace, bool cols_visible)
 {
 	ListCell   *lc;
 
@@ -1694,7 +1694,7 @@ setNamespaceColumnVisibility(List * namespace, bool cols_visible)
  *	  Convenience subroutine to update LATERAL flags in a namespace list.
  */
 static void
-setNamespaceLateralState(List * namespace, bool lateral_only, bool lateral_ok)
+setNamespaceLateralState(List *namespace, bool lateral_only, bool lateral_ok)
 {
 	ListCell   *lc;
 
@@ -1716,7 +1716,7 @@ setNamespaceLateralState(List * namespace, bool lateral_only, bool lateral_ok)
  * constructName does not affect the semantics, but is used in error messages
  */
 Node *
-transformWhereClause(ParseState * pstate, Node * clause,
+transformWhereClause(ParseState *pstate, Node *clause,
 					 ParseExprKind exprKind, const char *constructName)
 {
 	Node	   *qual;
@@ -1743,7 +1743,7 @@ transformWhereClause(ParseState * pstate, Node * clause,
  * constructName does not affect the semantics, but is used in error messages
  */
 Node *
-transformLimitClause(ParseState * pstate, Node * clause,
+transformLimitClause(ParseState *pstate, Node *clause,
 					 ParseExprKind exprKind, const char *constructName)
 {
 	Node	   *qual;
@@ -1774,7 +1774,7 @@ transformLimitClause(ParseState * pstate, Node * clause,
  * constructName does not affect the semantics, but is used in error messages
  */
 static void
-checkExprIsVarFree(ParseState * pstate, Node * n, const char *constructName)
+checkExprIsVarFree(ParseState *pstate, Node *n, const char *constructName)
 {
 	if (contain_vars_of_level(n, 0))
 	{
@@ -1799,7 +1799,7 @@ checkExprIsVarFree(ParseState * pstate, Node * n, const char *constructName)
  * targetlist item.
  */
 static void
-checkTargetlistEntrySQL92(ParseState * pstate, TargetEntry * tle,
+checkTargetlistEntrySQL92(ParseState *pstate, TargetEntry *tle,
 						  ParseExprKind exprKind)
 {
 	switch (exprKind)
@@ -1855,7 +1855,7 @@ checkTargetlistEntrySQL92(ParseState * pstate, TargetEntry * tle,
  * exprKind identifies clause type being processed
  */
 static TargetEntry *
-findTargetlistEntrySQL92(ParseState * pstate, Node * node, List * *tlist,
+findTargetlistEntrySQL92(ParseState *pstate, Node *node, List **tlist,
 						 ParseExprKind exprKind)
 {
 	ListCell   *tl;
@@ -2022,7 +2022,7 @@ findTargetlistEntrySQL92(ParseState * pstate, Node * node, List * *tlist,
  * exprKind identifies clause type being processed
  */
 static TargetEntry *
-findTargetlistEntrySQL99(ParseState * pstate, Node * node, List * *tlist,
+findTargetlistEntrySQL99(ParseState *pstate, Node *node, List **tlist,
 						 ParseExprKind exprKind)
 {
 	TargetEntry *target_result;
@@ -2108,7 +2108,7 @@ findTargetlistEntrySQL99(ParseState * pstate, Node * node, List * *tlist,
  *-------------------------------------------------------------------------
  */
 static Node *
-flatten_grouping_sets(Node * expr, bool toplevel, bool *hasGroupingSets)
+flatten_grouping_sets(Node *expr, bool toplevel, bool *hasGroupingSets)
 {
 	/* just in case of pathological input */
 	check_stack_depth();
@@ -2219,9 +2219,9 @@ flatten_grouping_sets(Node * expr, bool toplevel, bool *hasGroupingSets)
  * toplevel		false if within any grouping set
  */
 static Index
-transformGroupClauseExpr(List * *flatresult, Bitmapset * seen_local,
-						 ParseState * pstate, Node * gexpr,
-						 List * *targetlist, List * sortClause,
+transformGroupClauseExpr(List **flatresult, Bitmapset *seen_local,
+						 ParseState *pstate, Node *gexpr,
+						 List **targetlist, List *sortClause,
 						 ParseExprKind exprKind, bool useSQL99, bool toplevel)
 {
 	TargetEntry *tle;
@@ -2327,9 +2327,9 @@ transformGroupClauseExpr(List * *flatresult, Bitmapset * seen_local,
  * toplevel		false if within any grouping set
  */
 static List *
-transformGroupClauseList(List * *flatresult,
-						 ParseState * pstate, List * list,
-						 List * *targetlist, List * sortClause,
+transformGroupClauseList(List **flatresult,
+						 ParseState *pstate, List *list,
+						 List **targetlist, List *sortClause,
 						 ParseExprKind exprKind, bool useSQL99, bool toplevel)
 {
 	Bitmapset  *seen_local = NULL;
@@ -2380,9 +2380,9 @@ transformGroupClauseList(List * *flatresult,
  * toplevel		false if within any grouping set
  */
 static Node *
-transformGroupingSet(List * *flatresult,
-					 ParseState * pstate, GroupingSet * gset,
-					 List * *targetlist, List * sortClause,
+transformGroupingSet(List **flatresult,
+					 ParseState *pstate, GroupingSet *gset,
+					 List **targetlist, List *sortClause,
 					 ParseExprKind exprKind, bool useSQL99, bool toplevel)
 {
 	ListCell   *gl;
@@ -2484,8 +2484,8 @@ transformGroupingSet(List * *flatresult,
  * useSQL99		SQL99 rather than SQL92 syntax
  */
 List *
-transformGroupClause(ParseState * pstate, List * grouplist, List * *groupingSets,
-					 List * *targetlist, List * sortClause,
+transformGroupClause(ParseState *pstate, List *grouplist, List **groupingSets,
+					 List **targetlist, List *sortClause,
 					 ParseExprKind exprKind, bool useSQL99)
 {
 	List	   *result = NIL;
@@ -2584,9 +2584,9 @@ transformGroupClause(ParseState * pstate, List * grouplist, List * *groupingSets
  * almost the same, but are always interpreted per SQL99 rules).
  */
 List *
-transformSortClause(ParseState * pstate,
-					List * orderlist,
-					List * *targetlist,
+transformSortClause(ParseState *pstate,
+					List *orderlist,
+					List **targetlist,
 					ParseExprKind exprKind,
 					bool useSQL99)
 {
@@ -2617,9 +2617,9 @@ transformSortClause(ParseState * pstate,
  *		transform window definitions (WindowDef to WindowClause)
  */
 List *
-transformWindowDefinitions(ParseState * pstate,
-						   List * windowdefs,
-						   List * *targetlist)
+transformWindowDefinitions(ParseState *pstate,
+						   List *windowdefs,
+						   List **targetlist)
 {
 	List	   *result = NIL;
 	Index		winref = 0;
@@ -2788,8 +2788,8 @@ transformWindowDefinitions(ParseState * pstate,
  * of error messages.
  */
 List *
-transformDistinctClause(ParseState * pstate,
-						List * *targetlist, List * sortClause, bool is_agg)
+transformDistinctClause(ParseState *pstate,
+						List **targetlist, List *sortClause, bool is_agg)
 {
 	List	   *result = NIL;
 	ListCell   *slitem;
@@ -2872,8 +2872,8 @@ transformDistinctClause(ParseState * pstate,
  * operator.
  */
 List *
-transformDistinctOnClause(ParseState * pstate, List * distinctlist,
-						  List * *targetlist, List * sortClause)
+transformDistinctOnClause(ParseState *pstate, List *distinctlist,
+						  List **targetlist, List *sortClause)
 {
 	List	   *result = NIL;
 	List	   *sortgrouprefs = NIL;
@@ -2979,7 +2979,7 @@ transformDistinctOnClause(ParseState * pstate, List * distinctlist,
  * or ORDER BY list.)
  */
 static int
-get_matching_location(int sortgroupref, List * sortgrouprefs, List * exprs)
+get_matching_location(int sortgroupref, List *sortgrouprefs, List *exprs)
 {
 	ListCell   *lcs;
 	ListCell   *lce;
@@ -3004,7 +3004,7 @@ get_matching_location(int sortgroupref, List * sortgrouprefs, List * exprs)
  * to infer which unique index to use.
  */
 static List *
-resolve_unique_index_expr(ParseState * pstate, InferClause * infer,
+resolve_unique_index_expr(ParseState *pstate, InferClause *infer,
 						  Relation heapRel)
 {
 	List	   *result = NIL;
@@ -3101,10 +3101,10 @@ resolve_unique_index_expr(ParseState * pstate, InferClause * infer,
  * clause from inference specification clause.
  */
 void
-transformOnConflictArbiter(ParseState * pstate,
-						   OnConflictClause * onConflictClause,
-						   List * *arbiterExpr, Node * *arbiterWhere,
-						   Oid * constraint)
+transformOnConflictArbiter(ParseState *pstate,
+						   OnConflictClause *onConflictClause,
+						   List **arbiterExpr, Node **arbiterWhere,
+						   Oid *constraint)
 {
 	InferClause *infer = onConflictClause->infer;
 
@@ -3209,8 +3209,8 @@ transformOnConflictArbiter(ParseState * pstate,
  * Returns the updated SortGroupClause list.
  */
 List *
-addTargetToSortList(ParseState * pstate, TargetEntry * tle,
-					List * sortlist, List * targetlist, SortBy * sortby)
+addTargetToSortList(ParseState *pstate, TargetEntry *tle,
+					List *sortlist, List *targetlist, SortBy *sortby)
 {
 	Oid			restype = exprType((Node *) tle->expr);
 	Oid			sortop;
@@ -3352,8 +3352,8 @@ addTargetToSortList(ParseState * pstate, TargetEntry * tle,
  * Returns the updated SortGroupClause list.
  */
 static List *
-addTargetToGroupList(ParseState * pstate, TargetEntry * tle,
-					 List * grouplist, List * targetlist, int location)
+addTargetToGroupList(ParseState *pstate, TargetEntry *tle,
+					 List *grouplist, List *targetlist, int location)
 {
 	Oid			restype = exprType((Node *) tle->expr);
 
@@ -3407,7 +3407,7 @@ addTargetToGroupList(ParseState * pstate, TargetEntry * tle,
  * 'tlist' is the targetlist containing (or to contain) the given targetentry.
  */
 Index
-assignSortGroupRef(TargetEntry * tle, List * tlist)
+assignSortGroupRef(TargetEntry *tle, List *tlist)
 {
 	Index		maxRef;
 	ListCell   *l;
@@ -3448,7 +3448,7 @@ assignSortGroupRef(TargetEntry * tle, List * tlist)
  * is that a TLE might be in only one of the lists.
  */
 bool
-targetIsInSortList(TargetEntry * tle, Oid sortop, List * sortList)
+targetIsInSortList(TargetEntry *tle, Oid sortop, List *sortList)
 {
 	Index		ref = tle->ressortgroupref;
 	ListCell   *l;
@@ -3475,7 +3475,7 @@ targetIsInSortList(TargetEntry * tle, Oid sortop, List * sortList)
  *		Find the named WindowClause in the list, or return NULL if not there
  */
 static WindowClause *
-findWindowClause(List * wclist, const char *name)
+findWindowClause(List *wclist, const char *name)
 {
 	ListCell   *l;
 
@@ -3495,7 +3495,7 @@ findWindowClause(List * wclist, const char *name)
  *		Process a window frame offset expression
  */
 static Node *
-transformFrameOffset(ParseState * pstate, int frameOptions, Node * clause)
+transformFrameOffset(ParseState *pstate, int frameOptions, Node *clause)
 {
 	const char *constructName = NULL;
 	Node	   *node;

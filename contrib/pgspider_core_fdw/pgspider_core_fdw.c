@@ -263,7 +263,7 @@ typedef struct ChildInfo
 	Agg		   *pAgg;			/* "Aggref" for Disable of aggregation push
 								 * down servers */
 	bool		in_flag;		/* using IN clause or NOT */
-	List       *url_list;
+	List	   *url_list;
 	int			index_threadinfo;	/* index for ForeignScanThreadInfo array */
 }			ChildInfo;
 
@@ -279,7 +279,7 @@ typedef struct SpdFdwPrivate
 	int			node_num;		/* number of child tables */
 	bool		in_flag;		/* using IN clause or NOT */
 	ChildInfo  *childinfo;		/* ChildInfo List */
-	List	   *url_list; /* lieteral of parse IN clause */
+	List	   *url_list;		/* lieteral of parse IN clause */
 	List	   *url_parse_list; /* lieteral of parse IN clause */
 	pthread_t	foreign_scan_threads[NODES_MAX];	/* child node thread  */
 	PgFdwRelationInfo rinfo;	/* pgspider reration info */
@@ -1198,8 +1198,8 @@ spd_ParseUrl(List *spd_url_list, SpdFdwPrivate * fdw_private)
 
 	foreach(lc, spd_url_list)
 	{
-	    char *url_str = (char *) lfirst(lc);
-		List *url_parse_list=NULL;
+		char	   *url_str = (char *) lfirst(lc);
+		List	   *url_parse_list = NULL;
 
 		url_option = pstrdup(url_str);
 		if (url_option[0] != '/')
@@ -1207,20 +1207,23 @@ spd_ParseUrl(List *spd_url_list, SpdFdwPrivate * fdw_private)
 		url_option++;
 		tp = strtok_r(url_option, "/", &next);
 		if (tp != NULL)
-		    url_parse_list = lappend(url_parse_list, tp); /* Original URL */
+			url_parse_list = lappend(url_parse_list, tp);	/* Original URL */
 		else
 			return;
+
 		/*
 		 * url_option = /sample\ntest/code ^ *tp position url_str =
 		 * /sample/test/code/ |---------| <-Throwing URL * <- This pointer is
 		 * url_str[strlen(tp)+ 1]
 		 */
 		throw_tp = strtok_r(NULL, "/", &next);
-		if(throw_tp == NULL){
-		    url_parse_list = lappend(url_parse_list, tp); /* first URL */
-			url_parse_list = lappend(url_parse_list, NULL); /* Throwing URL(nothing)*/
+		if (throw_tp == NULL)
+		{
+			url_parse_list = lappend(url_parse_list, tp);	/* first URL */
+			url_parse_list = lappend(url_parse_list, NULL); /* Throwing URL(nothing) */
 		}
-		else{
+		else
+		{
 			url_parse_list = lappend(url_parse_list, throw_tp); /* first URL */
 			original_len = strlen(tp) + 1;
 			throwing_url = pstrdup(&url_str[original_len]); /* Throwing URL */
@@ -1274,7 +1277,8 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 
 	foreach(lc, fdw_private->url_list)
 	{
-	    List *url_parse_list = (List *) lfirst(lc);
+		List	   *url_parse_list = (List *) lfirst(lc);
+
 		original_url = (char *) list_nth(url_parse_list, 0);
 		if (url_parse_list->length > 2)
 		{
@@ -1295,15 +1299,15 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 			{
 				elog(DEBUG1, "Can not find URL");
 				/* for multi in node */
-				if(fdw_private->childinfo[i].child_node_status != ServerStatusAlive)
+				if (fdw_private->childinfo[i].child_node_status != ServerStatusAlive)
 					fdw_private->childinfo[i].child_node_status = ServerStatusIn;
 				continue;
 			}
 			fdw_private->childinfo[i].child_node_status = ServerStatusAlive;
 
 			/*
-			 * if child-child node is exist, then create New IN clause. New
-			 * IN clause is used by child spd server.
+			 * if child-child node is exist, then create New IN clause. New IN
+			 * clause is used by child spd server.
 			 */
 
 			if (throwing_url != NULL)
@@ -1319,7 +1323,7 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 				}
 				/* if child table fdw is spd, then execute operation */
 				fdw_private->in_flag = 1;
-				fdw_private->childinfo[i].url_list =  lappend(fdw_private->childinfo[i].url_list, throwing_url);
+				fdw_private->childinfo[i].url_list = lappend(fdw_private->childinfo[i].url_list, throwing_url);
 			}
 		}
 	}
@@ -1555,7 +1559,7 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root)
  */
 static void
 spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Oid *oid, int oid_nums, RangeTblEntry *r_entry,
-				    List *new_inurl, SpdFdwPrivate * fdw_private)
+					List *new_inurl, SpdFdwPrivate * fdw_private)
 {
 	RelOptInfo *entry_baserel;
 	FdwRoutine *fdwroutine;
@@ -1612,8 +1616,8 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Oid *oid, int oid_nu
 		rte->eref = makeAlias(pstrdup(""), NIL);
 
 		/*
-		 * if child node is spd and IN clause is used, then should set new
-		 * IN clause URL at child node planner URL.
+		 * if child node is spd and IN clause is used, then should set new IN
+		 * clause URL at child node planner URL.
 		 */
 		if (childinfo[i].url_list != NULL)
 		{
@@ -1796,7 +1800,7 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	SpdFdwPrivate *fdw_private;
 	Oid		   *oid = NULL;
 	int			nums;
-    List	   *new_inurl = NULL;
+	List	   *new_inurl = NULL;
 	RangeTblEntry *r_entry;
 	char	   *namespace = NULL;
 	char	   *relname = NULL;
@@ -4206,7 +4210,7 @@ spd_ReScanForeignScan(ForeignScanState *node)
 	fssThrdInfo = node->spd_fsstate;
 	fdw_private = fssThrdInfo->private;
 
-	if(fdw_private == NULL)
+	if (fdw_private == NULL)
 		return;
 
 	/*
@@ -4263,8 +4267,10 @@ spd_EndForeignScan(ForeignScanState *node)
 		return;
 
 	/* print error nodes */
-	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++){
-		if (fssThrdInfo[node_incr].state == SPD_FS_STATE_ERROR){
+	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
+	{
+		if (fssThrdInfo[node_incr].state == SPD_FS_STATE_ERROR)
+		{
 			fdw_private->childinfo[fssThrdInfo[node_incr].childInfoIndex].child_node_status = ServerStatusDead;
 		}
 	}

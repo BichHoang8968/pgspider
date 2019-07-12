@@ -48,36 +48,36 @@
 /* Hook for plugins to get control at end of parse analysis */
 post_parse_analyze_hook_type post_parse_analyze_hook = NULL;
 
-static Query * transformOptionalSelectInto(ParseState * pstate, Node * parseTree);
-static Query * transformDeleteStmt(ParseState * pstate, DeleteStmt * stmt);
-static Query * transformInsertStmt(ParseState * pstate, InsertStmt * stmt);
-static List * transformInsertRow(ParseState * pstate, List * exprlist,
-								 List * stmtcols, List * icolumns, List * attrnos,
-								 bool strip_indirection);
-static OnConflictExpr * transformOnConflictClause(ParseState * pstate,
-												  OnConflictClause * onConflictClause);
-static int	count_rowexpr_columns(ParseState * pstate, Node * expr);
-static Query * transformSelectStmt(ParseState * pstate, SelectStmt * stmt);
-static Query * transformValuesClause(ParseState * pstate, SelectStmt * stmt);
-static Query * transformSetOperationStmt(ParseState * pstate, SelectStmt * stmt);
-static Node * transformSetOperationTree(ParseState * pstate, SelectStmt * stmt,
-										bool isTopLevel, List * *targetlist);
-static void determineRecursiveColTypes(ParseState * pstate,
-						   Node * larg, List * nrtargetlist);
-static Query * transformUpdateStmt(ParseState * pstate, UpdateStmt * stmt);
-static List * transformReturningList(ParseState * pstate, List * returningList);
-static List * transformUpdateTargetList(ParseState * pstate,
-										List * targetList);
-static Query * transformDeclareCursorStmt(ParseState * pstate,
-										  DeclareCursorStmt * stmt);
-static Query * transformExplainStmt(ParseState * pstate,
-									ExplainStmt * stmt);
-static Query * transformCreateTableAsStmt(ParseState * pstate,
-										  CreateTableAsStmt * stmt);
-static void transformLockingClause(ParseState * pstate, Query * qry,
-					   LockingClause * lc, bool pushedDown);
+static Query *transformOptionalSelectInto(ParseState *pstate, Node *parseTree);
+static Query *transformDeleteStmt(ParseState *pstate, DeleteStmt *stmt);
+static Query *transformInsertStmt(ParseState *pstate, InsertStmt *stmt);
+static List *transformInsertRow(ParseState *pstate, List *exprlist,
+				   List *stmtcols, List *icolumns, List *attrnos,
+				   bool strip_indirection);
+static OnConflictExpr *transformOnConflictClause(ParseState *pstate,
+						  OnConflictClause *onConflictClause);
+static int	count_rowexpr_columns(ParseState *pstate, Node *expr);
+static Query *transformSelectStmt(ParseState *pstate, SelectStmt *stmt);
+static Query *transformValuesClause(ParseState *pstate, SelectStmt *stmt);
+static Query *transformSetOperationStmt(ParseState *pstate, SelectStmt *stmt);
+static Node *transformSetOperationTree(ParseState *pstate, SelectStmt *stmt,
+						  bool isTopLevel, List **targetlist);
+static void determineRecursiveColTypes(ParseState *pstate,
+						   Node *larg, List *nrtargetlist);
+static Query *transformUpdateStmt(ParseState *pstate, UpdateStmt *stmt);
+static List *transformReturningList(ParseState *pstate, List *returningList);
+static List *transformUpdateTargetList(ParseState *pstate,
+						  List *targetList);
+static Query *transformDeclareCursorStmt(ParseState *pstate,
+						   DeclareCursorStmt *stmt);
+static Query *transformExplainStmt(ParseState *pstate,
+					 ExplainStmt *stmt);
+static Query *transformCreateTableAsStmt(ParseState *pstate,
+						   CreateTableAsStmt *stmt);
+static void transformLockingClause(ParseState *pstate, Query *qry,
+					   LockingClause *lc, bool pushedDown);
 #ifdef RAW_EXPRESSION_COVERAGE_TEST
-static bool test_raw_expression_coverage(Node * node, void *context);
+static bool test_raw_expression_coverage(Node *node, void *context);
 #endif
 
 
@@ -93,9 +93,9 @@ static bool test_raw_expression_coverage(Node * node, void *context);
  * a dummy CMD_UTILITY Query node.
  */
 Query *
-parse_analyze(RawStmt * parseTree, const char *sourceText,
-			  Oid * paramTypes, int numParams,
-			  QueryEnvironment * queryEnv)
+parse_analyze(RawStmt *parseTree, const char *sourceText,
+			  Oid *paramTypes, int numParams,
+			  QueryEnvironment *queryEnv)
 {
 	ParseState *pstate = make_parsestate(NULL);
 	Query	   *query;
@@ -127,8 +127,8 @@ parse_analyze(RawStmt * parseTree, const char *sourceText,
  * be modified or enlarged (via repalloc).
  */
 Query *
-parse_analyze_varparams(RawStmt * parseTree, const char *sourceText,
-						Oid * *paramTypes, int *numParams)
+parse_analyze_varparams(RawStmt *parseTree, const char *sourceText,
+						Oid **paramTypes, int *numParams)
 {
 	ParseState *pstate = make_parsestate(NULL);
 	Query	   *query;
@@ -157,8 +157,8 @@ parse_analyze_varparams(RawStmt * parseTree, const char *sourceText,
  *		Entry point for recursively analyzing a sub-statement.
  */
 Query *
-parse_sub_analyze(Node * parseTree, ParseState * parentParseState,
-				  CommonTableExpr * parentCTE,
+parse_sub_analyze(Node *parseTree, ParseState *parentParseState,
+				  CommonTableExpr *parentCTE,
 				  bool locked_from_parent,
 				  bool resolve_unknowns)
 {
@@ -184,7 +184,7 @@ parse_sub_analyze(Node * parseTree, ParseState * parentParseState,
  * from the RawStmt into the finished Query.
  */
 Query *
-transformTopLevelStmt(ParseState * pstate, RawStmt * parseTree)
+transformTopLevelStmt(ParseState *pstate, RawStmt *parseTree)
 {
 	Query	   *result;
 
@@ -208,7 +208,7 @@ transformTopLevelStmt(ParseState * pstate, RawStmt * parseTree)
  * transformStmt() processing.
  */
 static Query *
-transformOptionalSelectInto(ParseState * pstate, Node * parseTree)
+transformOptionalSelectInto(ParseState *pstate, Node *parseTree)
 {
 	if (IsA(parseTree, SelectStmt))
 	{
@@ -217,7 +217,7 @@ transformOptionalSelectInto(ParseState * pstate, Node * parseTree)
 		/* If it's a set-operation tree, drill down to leftmost SelectStmt */
 		while (stmt && stmt->op != SETOP_NONE)
 			stmt = stmt->larg;
-		Assert(stmt && IsA(stmt, SelectStmt) && stmt->larg == NULL);
+		Assert(stmt && IsA(stmt, SelectStmt) &&stmt->larg == NULL);
 
 		if (stmt->intoClause)
 		{
@@ -247,7 +247,7 @@ transformOptionalSelectInto(ParseState * pstate, Node * parseTree)
  *	  recursively transform a Parse tree into a Query tree.
  */
 Query *
-transformStmt(ParseState * pstate, Node * parseTree)
+transformStmt(ParseState *pstate, Node *parseTree)
 {
 	Query	   *result;
 
@@ -345,7 +345,7 @@ transformStmt(ParseState * pstate, Node * parseTree)
  * Classification here should match transformStmt().
  */
 bool
-analyze_requires_snapshot(RawStmt * parseTree)
+analyze_requires_snapshot(RawStmt *parseTree)
 {
 	bool		result;
 
@@ -385,7 +385,7 @@ analyze_requires_snapshot(RawStmt * parseTree)
  *	  transforms a Delete Statement
  */
 static Query *
-transformDeleteStmt(ParseState * pstate, DeleteStmt * stmt)
+transformDeleteStmt(ParseState *pstate, DeleteStmt *stmt)
 {
 	Query	   *qry = makeNode(Query);
 	ParseNamespaceItem *nsitem;
@@ -455,7 +455,7 @@ transformDeleteStmt(ParseState * pstate, DeleteStmt * stmt)
  *	  transform an Insert Statement
  */
 static Query *
-transformInsertStmt(ParseState * pstate, InsertStmt * stmt)
+transformInsertStmt(ParseState *pstate, InsertStmt *stmt)
 {
 	Query	   *qry = makeNode(Query);
 	SelectStmt *selectStmt = (SelectStmt *) stmt->selectStmt;
@@ -636,7 +636,7 @@ transformInsertStmt(ParseState * pstate, InsertStmt * stmt)
 			if (tle->resjunk)
 				continue;
 			if (tle->expr &&
-				(IsA(tle->expr, Const) || IsA(tle->expr, Param)) &&
+				(IsA(tle->expr, Const) ||IsA(tle->expr, Param)) &&
 				exprType((Node *) tle->expr) == UNKNOWNOID)
 				expr = tle->expr;
 			else
@@ -903,8 +903,8 @@ transformInsertStmt(ParseState * pstate, InsertStmt * stmt)
  * strip_indirection: if true, remove any field/array assignment nodes
  */
 static List *
-transformInsertRow(ParseState * pstate, List * exprlist,
-				   List * stmtcols, List * icolumns, List * attrnos,
+transformInsertRow(ParseState *pstate, List *exprlist,
+				   List *stmtcols, List *icolumns, List *attrnos,
 				   bool strip_indirection)
 {
 	List	   *result;
@@ -1007,8 +1007,8 @@ transformInsertRow(ParseState * pstate, List * exprlist,
  *	  transforms an OnConflictClause in an INSERT
  */
 static OnConflictExpr *
-transformOnConflictClause(ParseState * pstate,
-						  OnConflictClause * onConflictClause)
+transformOnConflictClause(ParseState *pstate,
+						  OnConflictClause *onConflictClause)
 {
 	List	   *arbiterElems;
 	Node	   *arbiterWhere;
@@ -1168,7 +1168,7 @@ BuildOnConflictExcludedTargetlist(Relation targetrel,
  * because that's what we'll get in the INSERT ... SELECT (...) case.
  */
 static int
-count_rowexpr_columns(ParseState * pstate, Node * expr)
+count_rowexpr_columns(ParseState *pstate, Node *expr)
 {
 	if (expr == NULL)
 		return -1;
@@ -1210,7 +1210,7 @@ count_rowexpr_columns(ParseState * pstate, Node * expr)
  * see below for the other cases.
  */
 static Query *
-transformSelectStmt(ParseState * pstate, SelectStmt * stmt)
+transformSelectStmt(ParseState *pstate, SelectStmt *stmt)
 {
 	Query	   *qry = makeNode(Query);
 	Node	   *qual;
@@ -1346,7 +1346,7 @@ transformSelectStmt(ParseState * pstate, SelectStmt * stmt)
  *			SELECT * FROM (VALUES ...) AS "*VALUES*"
  */
 static Query *
-transformValuesClause(ParseState * pstate, SelectStmt * stmt)
+transformValuesClause(ParseState *pstate, SelectStmt *stmt)
 {
 	Query	   *qry = makeNode(Query);
 	List	   *exprsLists;
@@ -1411,7 +1411,7 @@ transformValuesClause(ParseState * pstate, SelectStmt * stmt)
 			/* Remember post-transformation length of first sublist */
 			sublist_length = list_length(sublist);
 			/* and allocate array for per-column lists */
-			colexprs = (List * *) palloc0(sublist_length * sizeof(List *));
+			colexprs = (List **) palloc0(sublist_length * sizeof(List *));
 		}
 		else if (sublist_length != list_length(sublist))
 		{
@@ -1584,7 +1584,7 @@ transformValuesClause(ParseState * pstate, SelectStmt * stmt)
  * the top-level Query.
  */
 static Query *
-transformSetOperationStmt(ParseState * pstate, SelectStmt * stmt)
+transformSetOperationStmt(ParseState *pstate, SelectStmt *stmt)
 {
 	Query	   *qry = makeNode(Query);
 	SelectStmt *leftmostSelect;
@@ -1825,8 +1825,8 @@ transformSetOperationStmt(ParseState * pstate, SelectStmt * stmt)
  * replace UNKNOWN Consts with properly-coerced constants.
  */
 static Node *
-transformSetOperationTree(ParseState * pstate, SelectStmt * stmt,
-						  bool isTopLevel, List * *targetlist)
+transformSetOperationTree(ParseState *pstate, SelectStmt *stmt,
+						  bool isTopLevel, List **targetlist)
 {
 	bool		isLeaf;
 
@@ -2173,7 +2173,7 @@ transformSetOperationTree(ParseState * pstate, SelectStmt * stmt,
  * to set up the parent CTE's columns
  */
 static void
-determineRecursiveColTypes(ParseState * pstate, Node * larg, List * nrtargetlist)
+determineRecursiveColTypes(ParseState *pstate, Node *larg, List *nrtargetlist)
 {
 	Node	   *node;
 	int			leftmostRTI;
@@ -2229,7 +2229,7 @@ determineRecursiveColTypes(ParseState * pstate, Node * larg, List * nrtargetlist
  *	  transforms an update statement
  */
 static Query *
-transformUpdateStmt(ParseState * pstate, UpdateStmt * stmt)
+transformUpdateStmt(ParseState *pstate, UpdateStmt *stmt)
 {
 	Query	   *qry = makeNode(Query);
 	ParseNamespaceItem *nsitem;
@@ -2295,7 +2295,7 @@ transformUpdateStmt(ParseState * pstate, UpdateStmt * stmt)
  *	handle SET clause in UPDATE/INSERT ... ON CONFLICT UPDATE
  */
 static List *
-transformUpdateTargetList(ParseState * pstate, List * origTlist)
+transformUpdateTargetList(ParseState *pstate, List *origTlist)
 {
 	List	   *tlist = NIL;
 	RangeTblEntry *target_rte;
@@ -2367,7 +2367,7 @@ transformUpdateTargetList(ParseState * pstate, List * origTlist)
  *	handle a RETURNING clause in INSERT/UPDATE/DELETE
  */
 static List *
-transformReturningList(ParseState * pstate, List * returningList)
+transformReturningList(ParseState *pstate, List *returningList)
 {
 	List	   *rlist;
 	int			save_next_resno;
@@ -2424,7 +2424,7 @@ transformReturningList(ParseState * pstate, List * returningList)
  * of parser hooks happen at the expected time.
  */
 static Query *
-transformDeclareCursorStmt(ParseState * pstate, DeclareCursorStmt * stmt)
+transformDeclareCursorStmt(ParseState *pstate, DeclareCursorStmt *stmt)
 {
 	Query	   *result;
 	Query	   *query;
@@ -2510,7 +2510,7 @@ transformDeclareCursorStmt(ParseState * pstate, DeclareCursorStmt * stmt)
  * of parser hooks happen at the expected time.
  */
 static Query *
-transformExplainStmt(ParseState * pstate, ExplainStmt * stmt)
+transformExplainStmt(ParseState *pstate, ExplainStmt *stmt)
 {
 	Query	   *result;
 
@@ -2534,7 +2534,7 @@ transformExplainStmt(ParseState * pstate, ExplainStmt * stmt)
  * As with DECLARE CURSOR and EXPLAIN, transform the contained statement now.
  */
 static Query *
-transformCreateTableAsStmt(ParseState * pstate, CreateTableAsStmt * stmt)
+transformCreateTableAsStmt(ParseState *pstate, CreateTableAsStmt *stmt)
 {
 	Query	   *result;
 	Query	   *query;
@@ -2636,7 +2636,7 @@ LCS_asString(LockClauseStrength strength)
  * exported so planner can check again after rewriting, query pullup, etc
  */
 void
-CheckSelectLocking(Query * qry, LockClauseStrength strength)
+CheckSelectLocking(Query *qry, LockClauseStrength strength)
 {
 	Assert(strength != LCS_NONE);	/* else caller error */
 
@@ -2700,7 +2700,7 @@ CheckSelectLocking(Query * qry, LockClauseStrength strength)
  * in rewriteHandler.c, and isLockedRefname() in parse_relation.c.
  */
 static void
-transformLockingClause(ParseState * pstate, Query * qry, LockingClause * lc,
+transformLockingClause(ParseState *pstate, Query *qry, LockingClause *lc,
 					   bool pushedDown)
 {
 	List	   *lockedRels = lc->lockedRels;
@@ -2871,7 +2871,7 @@ transformLockingClause(ParseState * pstate, Query * qry, LockingClause * lc,
  * Record locking info for a single rangetable item
  */
 void
-applyLockingClause(Query * qry, Index rtindex,
+applyLockingClause(Query *qry, Index rtindex,
 				   LockClauseStrength strength, LockWaitPolicy waitPolicy,
 				   bool pushedDown)
 {
@@ -2931,7 +2931,7 @@ applyLockingClause(Query * qry, Index rtindex,
 #ifdef RAW_EXPRESSION_COVERAGE_TEST
 
 static bool
-test_raw_expression_coverage(Node * node, void *context)
+test_raw_expression_coverage(Node *node, void *context)
 {
 	if (node == NULL)
 		return false;
