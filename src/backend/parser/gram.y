@@ -578,8 +578,8 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <partboundspec> ForValues
 %type <node>		partbound_datum PartitionRangeDatum
 %type <list>		partbound_datum_list range_datum_list
-%type <str> url
-%type <list> url_list
+%type <str>     url
+%type <list>    url_list
 
 /*
  * Non-keyword token types.  These are hard-wired into the "flex" lexer.
@@ -10467,7 +10467,7 @@ insert_target:
 					$1->alias = makeAlias($3, NIL);
 					$$ = $1;
 				}
-| qualified_name IN_P  '(' url_list ')'
+            | qualified_name IN_P  '(' url_list ')'
 				{
 					$1->spd_url_list = $4;
 					(void)$2;
@@ -11540,15 +11540,15 @@ table_ref:	relation_expr opt_alias_clause
 					$$ = (Node *) $2;
 				}
 		;
+
 url_list:
-url { $$ = list_make1($1); }
-| url_list ',' url
-			{ $$ = lappend($1, $3); }
-		;
-url:
-IDENT {$$ = $1;}
-| Sconst {$$ = $1;}
-;
+		url					{ $$ = list_make1($1); }
+		| url_list ',' url	{ $$ = lappend($1, $3); }
+	;
+
+url:    IDENT				{$$ = $1;}
+	    | Sconst			{$$ = $1;}
+	;
 
 /*
  * It may seem silly to separate joined_table from table_ref, but there is
@@ -11786,7 +11786,7 @@ relation_expr_opt_alias: relation_expr					%prec UMINUS
 					$1->alias = alias;
 					$$ = $1;
 				}
-| relation_expr IN_P '(' url_list ')'
+            | relation_expr IN_P '(' url_list ')'
 				{
 					$1->spd_url_list = $4;
 					(void)$2;
