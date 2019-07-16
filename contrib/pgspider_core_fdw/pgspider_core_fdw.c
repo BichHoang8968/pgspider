@@ -1170,17 +1170,15 @@ THREAD_EXIT:
 
 /**
  * Parse IN url name.
- * parse list is 3 pattern.
- * Pattern1 Url = /sample/test/code/
- *  Original URL "sample" First URL "test"  Throwing URL "/test/code/"
- * Pattern2 Url = /sample/test/
- *  Original URL "sample" First URL "test"  Throwing URL "/test/"
- * Pattern3 Url = /sample/
- *  Original URL "sample" First URL NULL  Throwing URL NULL
+ * parse list is 5 pattern.
+ * Pattern1 Url = /sample/test/
+ *  First URL "sample"  Throwing URL "/test/"
+ * Pattern2 Url = /sample/
+ *  First URL "sample"  Throwing URL NULL
  * Pattern4 Url = "/"
- *  Original URL NULL First URL NULL  Throwing URL NULL
+ *  First URL NULL  Throwing URL NULL
  * Pattern5 Url = "/sample"
- *  Original URL sample First URL NULL  Throwing URL NULL
+ *  First URL "sample"  Throwing URL NULL
  *
  * @param[in] url_str - URL
  * @param[out] fdw_private - store to parsing URL
@@ -1211,21 +1209,10 @@ spd_ParseUrl(List *spd_url_list, SpdFdwPrivate * fdw_private)
 		else
 			return;
 
-		/*
-		 * url_option = /sample\ntest/code ^ *tp position url_str =
-		 * /sample/test/code/ |---------| <-Throwing URL * <- This pointer is
-		 * url_str[strlen(tp)+ 1]
-		 */
 		throw_tp = strtok_r(NULL, "/", &next);
-		if (throw_tp == NULL)
+		if (throw_tp != NULL)
 		{
-			url_parse_list = lappend(url_parse_list, tp);	/* first URL */
-			url_parse_list = lappend(url_parse_list, NULL); /* Throwing URL(nothing) */
-		}
-		else
-		{
-			url_parse_list = lappend(url_parse_list, throw_tp); /* first URL */
-			original_len = strlen(tp) + 1;
+		    original_len = strlen(tp) + 1;
 			throwing_url = pstrdup(&url_str[original_len]); /* Throwing URL */
 			if (strlen(throwing_url) != 1)
 				url_parse_list = lappend(url_parse_list, throwing_url);
@@ -1251,16 +1238,6 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 	char	   *throwing_url = NULL;
 	ListCell   *lc;
 
-	if (r_entry->spd_url_list == NULL)
-	{
-		/* IN clause does not use. all child table is alive now. */
-		for (int i = 0; i < childnums; i++)
-		{
-			fdw_private->childinfo[i].child_node_status = ServerStatusAlive;
-		}
-		return;
-	}
-
 	/*
 	 * entry is first parsing word(/foo/bar/, then entry is "foo",entry2 is
 	 * "bar")
@@ -1268,21 +1245,15 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 	spd_ParseUrl(r_entry->spd_url_list, fdw_private);
 	if (fdw_private->url_list == NULL)
 		elog(ERROR, "IN Clause use but can not find url. Please set IN string.");
-	if (fdw_private->url_list->length == 0)
-	{
-		for (int i = 0; i < childnums; i++)
-			fdw_private->childinfo[i].child_node_status = ServerStatusAlive;
-		return;
-	}
 
 	foreach(lc, fdw_private->url_list)
 	{
 		List	   *url_parse_list = (List *) lfirst(lc);
 
 		original_url = (char *) list_nth(url_parse_list, 0);
-		if (url_parse_list->length > 2)
+		if (url_parse_list->length > 1)
 		{
-			throwing_url = (char *) list_nth(url_parse_list, 2);
+			throwing_url = (char *) list_nth(url_parse_list, 1);
 		}
 		/* If IN Clause is used, then store to parsing url */
 		for (int i = 0; i < childnums; i++)
@@ -4355,24 +4326,12 @@ spd_check_url_update(SpdFdwPrivate * fdw_private, RangeTblEntry *target_rte)
 		char	   *target_url = NULL;
 		char	   *throwing_url = NULL;
 
-		if (fdw_private->url_parse_list->length > 2)
+		if (fdw_private->url_parse_list->length > 1)
 		{
-			target_url = (char *) list_nth(fdw_private->url_parse_list, 1);
-			throwing_url = (char *) list_nth(fdw_private->url_parse_list, 2);
+			target_url = (char *) list_nth(fdw_private->url_parse_list, 0);
+			throwing_url = (char *) list_nth(fdw_private->url_parse_list, 1);
 		}
 		fdw_private->in_flag = true;
-
-		/*
-		 * if child - child is exist, then create child - child IN phrase
-		 */
-		if (target_url != NULL)
-		{
-			char		temp[QUERY_LENGTH];
-
-			sprintf(temp, "/%s/", target_url);
-			new_inurl = palloc0(sizeof(char) * (QUERY_LENGTH));
-			strcpy(new_inurl, throwing_url);
-		}
 		pfree(srvname);
 	}
 }
