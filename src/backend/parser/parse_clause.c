@@ -1121,7 +1121,7 @@ transformFromClauseItem(ParseState *pstate, Node *n,
 		*namespace = list_make1(makeDefaultNSItem(rte));
 		rtr = makeNode(RangeTblRef);
 		rtr->rtindex = rtindex;
-		if (rv->spd_url_list != NULL)
+		if (rv->spd_url_list != NIL)
 			rte->spd_url_list = list_copy(rv->spd_url_list);
 		return (Node *) rtr;
 	}

@@ -2321,7 +2321,7 @@ _copyRangeTblEntry(const RangeTblEntry *from)
 	COPY_BITMAPSET_FIELD(insertedCols);
 	COPY_BITMAPSET_FIELD(updatedCols);
 	COPY_NODE_FIELD(securityQuals);
-	if (from->spd_url_list != NULL)
+	if (from->spd_url_list != NIL)
 	{
 		newnode->spd_url_list = list_copy(from->spd_url_list);
 	}
