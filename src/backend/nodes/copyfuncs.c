@@ -2325,6 +2325,9 @@ _copyRangeTblEntry(const RangeTblEntry *from)
 	{
 		newnode->spd_url_list = list_copy(from->spd_url_list);
 	}
+	else{
+		newnode->spd_url_list = NIL;
+	}
 	return newnode;
 }
 

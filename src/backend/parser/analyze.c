@@ -881,10 +881,12 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt)
 	qry->hasSubLinks = pstate->p_hasSubLinks;
 
 	assign_query_collations(pstate, qry);
-	if (stmt->relation->spd_url_list != NULL)
+	if (stmt->relation->spd_url_list != NIL)
 	{
 		rte->spd_url_list = list_copy(stmt->relation->spd_url_list);
 	}
+	else
+		rte->spd_url_list = NIL;
 	return qry;
 }
 
