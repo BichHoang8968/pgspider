@@ -4306,7 +4306,6 @@ spd_EndForeignScan(ForeignScanState *node)
 static void
 spd_check_url_update(SpdFdwPrivate * fdw_private, RangeTblEntry *target_rte)
 {
-	char	   *new_inurl = NULL;
 
 	spd_ParseUrl(target_rte->spd_url_list, fdw_private);
 	if (fdw_private->url_parse_list == NIL ||
@@ -4323,14 +4322,7 @@ spd_check_url_update(SpdFdwPrivate * fdw_private, RangeTblEntry *target_rte)
 		 * entry is first parsing word(/foo/bar/, then entry is
 		 * "foo",target_url is "bar")
 		 */
-		char	   *target_url = NULL;
-		char	   *throwing_url = NULL;
 
-		if (fdw_private->url_parse_list->length > 1)
-		{
-			target_url = (char *) list_nth(fdw_private->url_parse_list, 0);
-			throwing_url = (char *) list_nth(fdw_private->url_parse_list, 1);
-		}
 		fdw_private->in_flag = true;
 		pfree(srvname);
 	}
@@ -4361,7 +4353,7 @@ spd_AddForeignUpdateTargets(Query *parsetree,
 	fdw_private = spd_AllocatePrivate();
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	/* Checking IN clause. */
-	if (target_rte->spd_url != NULL)
+	if (target_rte->spd_url_list != NULL)
 		spd_check_url_update(fdw_private, target_rte);
 	else
 		elog(ERROR, "no URL is specified, INSERT/UPDATE/DELETE need to set URL");
@@ -4409,7 +4401,7 @@ spd_PlanForeignModify(PlannerInfo *root,
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	fdw_private = spd_AllocatePrivate();
 
-	if (rte->spd_url != NULL)
+	if (rte->spd_url_list != NULL)
 		spd_check_url_update(fdw_private, rte);
 	else
 		elog(ERROR, "no URL is specified, INSERT/UPDATE/DELETE need to set URL");
