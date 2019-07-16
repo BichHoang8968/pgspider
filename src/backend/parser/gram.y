@@ -11426,6 +11426,7 @@ from_list:
 table_ref:	relation_expr opt_alias_clause
 				{
 					$1->alias = $2;
+					$1->spd_url_list = NIL;
 					$$ = (Node *) $1;
 				}
             | relation_expr IN_P '(' url_list ')' opt_alias_clause
