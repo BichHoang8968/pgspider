@@ -552,7 +552,7 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 				TargetEntry *tarexpr;
 				TargetEntry *oparg = (TargetEntry *) tempVar->args->head->data.ptr_value;
 				Var		   *opvar = (Var *) oparg->expr;
-				OpExpr	   *opexpr = copyObject((OpExpr *) opvar);
+				OpExpr	   *opexpr = (OpExpr *) oparg->xpr;
 				OpExpr	   *opexpr2 = copyObject(opexpr);
 
 				opexpr->xpr.type = T_OpExpr;
@@ -1890,7 +1890,7 @@ spd_makedivtlist(Aggref *aggref, List *newList, SpdFdwPrivate * fdw_private)
 		TargetEntry *tarexpr;
 		TargetEntry *oparg = (TargetEntry *) tempVar->args->head->data.ptr_value;
 		Var		   *opvar = (Var *) oparg->expr;
-		OpExpr	   *opexpr = copyObject((OpExpr *) opvar);
+		OpExpr	   *opexpr = (OpExpr *) oparg->xpr;
 		OpExpr	   *opexpr2 = copyObject(opexpr);
 
 		opexpr->xpr.type = T_OpExpr;
