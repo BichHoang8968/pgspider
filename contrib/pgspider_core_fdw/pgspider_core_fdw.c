@@ -1212,7 +1212,7 @@ spd_ParseUrl(List *spd_url_list, SpdFdwPrivate * fdw_private)
 		throw_tp = strtok_r(NULL, "/", &next);
 		if (throw_tp != NULL)
 		{
-		    original_len = strlen(tp) + 1;
+			original_len = strlen(tp) + 1;
 			throwing_url = pstrdup(&url_str[original_len]); /* Throwing URL */
 			if (strlen(throwing_url) != 1)
 				url_parse_list = lappend(url_parse_list, throwing_url);
@@ -3686,7 +3686,7 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 										   fdw_private->agg_values[rowid][vardev_mapping]);
 
 					right = sum2;
-					left = pow(sum, 2) /cnt;
+					left = pow(sum, 2) / cnt;
 					result = (float8) (right - left) / (float8) (cnt - 1);
 					if (mapcells->aggtype == DEVFLAG)
 					{
@@ -4306,7 +4306,6 @@ spd_EndForeignScan(ForeignScanState *node)
 static void
 spd_check_url_update(SpdFdwPrivate * fdw_private, RangeTblEntry *target_rte)
 {
-	char	   *new_inurl = NULL;
 
 	spd_ParseUrl(target_rte->spd_url_list, fdw_private);
 	if (fdw_private->url_parse_list == NIL ||
@@ -4318,19 +4317,6 @@ spd_check_url_update(SpdFdwPrivate * fdw_private, RangeTblEntry *target_rte)
 	else
 	{
 		char	   *srvname = palloc0(sizeof(char) * (MAX_URL_LENGTH));
-
-		/*
-		 * entry is first parsing word(/foo/bar/, then entry is
-		 * "foo",target_url is "bar")
-		 */
-		char	   *target_url = NULL;
-		char	   *throwing_url = NULL;
-
-		if (fdw_private->url_parse_list->length > 1)
-		{
-			target_url = (char *) list_nth(fdw_private->url_parse_list, 0);
-			throwing_url = (char *) list_nth(fdw_private->url_parse_list, 1);
-		}
 
 		fdw_private->in_flag = true;
 		pfree(srvname);
@@ -4410,7 +4396,7 @@ spd_PlanForeignModify(PlannerInfo *root,
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	fdw_private = spd_AllocatePrivate();
 
-    if (rte->spd_url != NULL)
+	if (rte->spd_url != NULL)
 		spd_check_url_update(fdw_private, rte);
 	else
 		elog(ERROR, "no URL is specified, INSERT/UPDATE/DELETE need to set URL");
