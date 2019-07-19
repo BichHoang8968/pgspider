@@ -33,7 +33,8 @@ OUTFILES=$(FILES:%=$(DSTDIR)/%)
 
 check: temp-install
 
-temp-install: EXTRA_INSTALL=contrib/postgres_fdw contrib/pgspider_core_fdw contrib/file_fdw contrib/tinybrace_fdw contrib/sqlite_fdw contrib/mysql_fdw contrib/pgspider_keepalive
+#temp-install: EXTRA_INSTALL=contrib/postgres_fdw contrib/pgspider_core_fdw contrib/file_fdw contrib/tinybrace_fdw contrib/sqlite_fdw contrib/mysql_fdw contrib/pgspider_keepalive
+checkprep: EXTRA_INSTALL+=contrib/postgres_fdw contrib/pgspider_core_fdw contrib/file_fdw contrib/tinybrace_fdw contrib/sqlite_fdw contrib/mysql_fdw contrib/pgspider_keepalive
 
 #check: copyfdw
 copyfdw:
