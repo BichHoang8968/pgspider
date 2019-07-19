@@ -566,6 +566,11 @@ SELECT __spd_url FROM test1 ORDER BY __spd_url;
  /tiny_svr/
 (9 rows)
 
+--SELECT i, __spd_url FROM test1 GROUP BY __spd_url, i;
+--SELECT __spd_url, i FROM test1 GROUP BY __spd_url, i;
+--SELECT avg(i), __spd_url FROM test1 GROUP BY __spd_url, i;
+--SELECT __spd_url, avg(i) FROM test1 GROUP BY __spd_url, i;
+--SELECT __spd_url, sum(i) FROM test1 GROUP BY __spd_url, i;
 SELECT sum(i) FROM test1;
   sum  
 -------
@@ -594,6 +599,15 @@ SELECT sum(i),count(i),i FROM test1 group by i order by i;
   3108 |     4 |   777
   1111 |     1 |  1111
  22222 |     1 | 22222
+(4 rows)
+
+SELECT avg(i), count(i) FROM test1 group by i;
+  avg  | count 
+-------+-------
+ 22222 |     1
+   777 |     4
+     1 |     3
+  1111 |     1
 (4 rows)
 
 CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
@@ -678,6 +692,25 @@ SELECT avg(i) FROM t1 group by i;
    1
 (4 rows)
 
+SELECT avg(i), count(i) FROM t1 GROUP BY i;
+ avg | count 
+-----+-------
+   3 |     1
+   4 |     1
+   2 |     1
+   1 |     1
+(4 rows)
+
+SELECT t, avg(i), t FROM t1 GROUP BY i, t;
+ t | avg | t 
+---+-----+---
+ b |   2 | b
+ a |   1 | a
+ b |   3 | b
+ c |   4 | c
+(4 rows)
+
+--SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t;
 SELECT * FROM (SELECT sum(i) FROM t1) A,(SELECT count(i) FROM t1) B;
  sum | count 
 -----+-------
@@ -956,12 +989,6 @@ DROP FOREIGN TABLE t3__mysql_svr2__0;
 --    5 | b
 --    4 | c
 -- (3 rows)
--- wrong result and warning:
--- SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t;
--- WARNING:  dummy plan list failed
---   t | __spd_url 
---  ---+-----------
---  (0 rows)
 CREATE FOREIGN TABLE t2 (i int, t text, a text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t2__post_svr__0 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 SELECT i,t,a FROM t2 ORDER BY i,__spd_url;

@@ -2080,7 +2080,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			/* make pathtarget */
 
 			dummy_root->upper_targets[UPPERREL_GROUP_AGG] =
-				copy_pathtarget(spd_root->upper_targets[UPPERREL_GROUP_AGG]);
+				make_pathtarget_from_tlist(fdw_private->child_comp_tlist);
 			dummy_root->upper_targets[UPPERREL_WINDOW] =
 				copy_pathtarget(spd_root->upper_targets[UPPERREL_WINDOW]);
 			dummy_root->upper_targets[UPPERREL_FINAL] =
