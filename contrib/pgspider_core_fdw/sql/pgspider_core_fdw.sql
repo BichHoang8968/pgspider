@@ -145,6 +145,32 @@ SELECT count(t) FROM t3;
 SELECT count(t2) FROM t3;
 SELECT count(i) FROM t3;
 
+SELECT * FROM t3;
+-- test target list push down for mysql fdw
+-- push down abs(-i*2) and i+1
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT abs(-i*2), i+1, i, i FROM t3;
+SELECT abs(-i*2), i+1, i, i FROM t3;
+
+-- can't push down abs(A.i) in join case
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT abs(A.i) FROM t3 A, t3 B LIMIT 3;
+SELECT abs(A.i) FROM t3 A, t3 B LIMIT 3;
+
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT abs(i) c1 FROM t3 UNION SELECT abs(i+1) FROM t3 ORDER BY c1;
+SELECT abs(i) c1 FROM t3 UNION SELECT abs(i+1) FROM t3 ORDER BY c1;
+
+SELECT i+1, __spd_url FROM t3;
+SELECT i, __spd_url FROM t3 ORDER BY i, __spd_url;
+SELECT i FROM t3 ORDER BY __spd_url;
+
+-- can't push down i+1 because test1 includes fdws other than mysql fdw
+EXPLAIN (VERBOSE, COSTS OFF) 
+SELECT i+1,__spd_url FROM test1 ORDER BY __spd_url, i;
+SELECT i+1,__spd_url FROM test1  ORDER BY __spd_url, i;
+SELECT __spd_url,i FROM test1 ORDER BY __spd_url, i;
+
 
 -- error stack test
 CREATE SERVER mysql_svr2 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
