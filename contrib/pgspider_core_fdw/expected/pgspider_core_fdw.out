@@ -750,6 +750,173 @@ SELECT count(i) FROM t3;
      4
 (1 row)
 
+SELECT * FROM t3;
+  t  | t2  | i |  __spd_url  
+-----+-----+---+-------------
+ aaa | bbb | 1 | /mysql_svr/
+ aaa | bbb | 1 | /mysql_svr/
+ aaa |     | 1 | /mysql_svr/
+ aaa | bbb | 1 | /mysql_svr/
+(4 rows)
+
+-- test target list push down for mysql fdw
+-- push down abs(-i*2) and i+1
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT abs(-i*2), i+1, i, i FROM t3;
+                                     QUERY PLAN                                     
+------------------------------------------------------------------------------------
+ Foreign Scan on public.t3
+   Output: (abs(((- i) * 2))), ((i + 1)), i, i
+    * Node: mysql_svr / Status: Alive
+   Local server startup cost: 10
+   Remote query: SELECT abs(((- `i`) * 2)), (`i` + 1), `i`, `i` FROM `test`.`test3`
+(5 rows)
+
+SELECT abs(-i*2), i+1, i, i FROM t3;
+ abs | ?column? | i | i 
+-----+----------+---+---
+   2 |        2 | 1 | 1
+   2 |        2 | 1 | 1
+   2 |        2 | 1 | 1
+   2 |        2 | 1 | 1
+(4 rows)
+
+-- can't push down abs(A.i) in join case
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT abs(A.i) FROM t3 A, t3 B LIMIT 3;
+                              QUERY PLAN                               
+-----------------------------------------------------------------------
+ Limit
+   Output: (abs(a.i))
+   ->  Nested Loop
+         Output: abs(a.i)
+         ->  Foreign Scan on public.t3 a
+               Output: a.t, a.t2, a.i, a.__spd_url
+                * Node: mysql_svr / Status: Alive
+               Local server startup cost: 10
+               Remote query: SELECT `t`, `t2`, `i` FROM `test`.`test3`
+         ->  Materialize
+               ->  Foreign Scan on public.t3 b
+                      * Node: mysql_svr / Status: Alive
+                     Local server startup cost: 10
+                     Remote query: SELECT NULL FROM `test`.`test3`
+(14 rows)
+
+SELECT abs(A.i) FROM t3 A, t3 B LIMIT 3;
+ abs 
+-----
+   1
+   1
+   1
+(3 rows)
+
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT abs(i) c1 FROM t3 UNION SELECT abs(i+1) FROM t3 ORDER BY c1;
+                                 QUERY PLAN                                  
+-----------------------------------------------------------------------------
+ Sort
+   Output: (abs(t3.i))
+   Sort Key: (abs(t3.i))
+   ->  HashAggregate
+         Output: (abs(t3.i))
+         Group Key: (abs(t3.i))
+         ->  Append
+               ->  Foreign Scan on public.t3
+                     Output: (abs(t3.i))
+                      * Node: mysql_svr / Status: Alive
+                     Local server startup cost: 10
+                     Remote query: SELECT abs(`i`) FROM `test`.`test3`
+               ->  Foreign Scan on public.t3 t3_1
+                     Output: (abs((t3_1.i + 1)))
+                      * Node: mysql_svr / Status: Alive
+                     Local server startup cost: 10
+                     Remote query: SELECT abs((`i` + 1)) FROM `test`.`test3`
+(17 rows)
+
+SELECT abs(i) c1 FROM t3 UNION SELECT abs(i+1) FROM t3 ORDER BY c1;
+ c1 
+----
+  1
+  2
+(2 rows)
+
+SELECT i+1, __spd_url FROM t3;
+ ?column? |  __spd_url  
+----------+-------------
+        2 | /mysql_svr/
+        2 | /mysql_svr/
+        2 | /mysql_svr/
+        2 | /mysql_svr/
+(4 rows)
+
+SELECT i, __spd_url FROM t3 ORDER BY i, __spd_url;
+ i |  __spd_url  
+---+-------------
+ 1 | /mysql_svr/
+ 1 | /mysql_svr/
+ 1 | /mysql_svr/
+ 1 | /mysql_svr/
+(4 rows)
+
+SELECT i FROM t3 ORDER BY __spd_url;
+ i 
+---
+ 1
+ 1
+ 1
+ 1
+(4 rows)
+
+-- can't push down i+1 because test1 includes fdws other than mysql fdw
+EXPLAIN (VERBOSE, COSTS OFF) 
+SELECT i+1,__spd_url FROM test1 ORDER BY __spd_url, i;
+                        QUERY PLAN                        
+----------------------------------------------------------
+ Sort
+   Output: ((i + 1)), __spd_url, i
+   Sort Key: test1.__spd_url, test1.i
+   ->  Foreign Scan on public.test1
+         Output: (i + 1), __spd_url, i
+          * Node: mysql_svr / Status: Alive
+         Local server startup cost: 10
+         Remote query: SELECT `i` FROM `test`.`test1`
+          * Node: post_svr / Status: Alive
+         Remote SQL: SELECT i FROM public.test1
+          * Node: sqlite_svr / Status: Alive
+         SQLite query: SELECT `i` FROM main."test1"
+          * Node: tiny_svr / Status: Alive
+         TinyBrace query: SELECT `i` FROM "test1"
+         TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
+(15 rows)
+
+SELECT i+1,__spd_url FROM test1  ORDER BY __spd_url, i;
+ ?column? |  __spd_url   
+----------+--------------
+        2 | /mysql_svr/
+      778 | /mysql_svr/
+      778 | /mysql_svr/
+      778 | /mysql_svr/
+      778 | /mysql_svr/
+     1112 | /post_svr/
+        2 | /sqlite_svr/
+    22223 | /sqlite_svr/
+        2 | /tiny_svr/
+(9 rows)
+
+SELECT __spd_url,i FROM test1 ORDER BY __spd_url, i;
+  __spd_url   |   i   
+--------------+-------
+ /mysql_svr/  |     1
+ /mysql_svr/  |   777
+ /mysql_svr/  |   777
+ /mysql_svr/  |   777
+ /mysql_svr/  |   777
+ /post_svr/   |  1111
+ /sqlite_svr/ |     1
+ /sqlite_svr/ | 22222
+ /tiny_svr/   |     1
+(9 rows)
+
 -- error stack test
 CREATE SERVER mysql_svr2 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
 CREATE USER mapping for public server mysql_svr2 OPTIONS(username 'root',password 'wrongpass');
