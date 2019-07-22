@@ -96,11 +96,19 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM test1 IN ('/post_svr/');
 -- only __spd_url target list is OK
 SELECT __spd_url FROM test1 ORDER BY __spd_url;
 
+--SELECT i, __spd_url FROM test1 GROUP BY __spd_url, i;
+--SELECT __spd_url, i FROM test1 GROUP BY __spd_url, i;
+--SELECT avg(i), __spd_url FROM test1 GROUP BY __spd_url, i;
+--SELECT __spd_url, avg(i) FROM test1 GROUP BY __spd_url, i;
+--SELECT __spd_url, sum(i) FROM test1 GROUP BY __spd_url, i;
+
 SELECT sum(i) FROM test1;
 
 SELECT avg(i) FROM test1;
 SELECT avg(i),i FROM test1 group by i order by i;
 SELECT sum(i),count(i),i FROM test1 group by i order by i;
+
+SELECT avg(i), count(i) FROM test1 group by i;
 
 CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS(table_name 't1');
@@ -116,6 +124,11 @@ SELECT avg(i),sum(i) FROM t1;
 SELECT sum(i),sum(i) FROM t1;
 SELECT avg(i),t FROM t1 group by t;
 SELECT avg(i) FROM t1 group by i;
+
+SELECT avg(i), count(i) FROM t1 GROUP BY i;
+SELECT t, avg(i), t FROM t1 GROUP BY i, t;
+
+--SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t;
 
 SELECT * FROM (SELECT sum(i) FROM t1) A,(SELECT count(i) FROM t1) B;
 
@@ -174,7 +187,6 @@ SELECT count(t) FROM t3;
 DROP FOREIGN TABLE t3;
 DROP FOREIGN TABLE t3__mysql_svr__0;
 DROP FOREIGN TABLE t3__mysql_svr2__0;
-
 -- wrong result:
 -- SELECT sum(i),t  FROM t1 group by t having sum(i) > 2;
 --  sum | t 
@@ -183,14 +195,6 @@ DROP FOREIGN TABLE t3__mysql_svr2__0;
 --    5 | b
 --    4 | c
 -- (3 rows)
-
--- wrong result and warning:
--- SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t;
--- WARNING:  dummy plan list failed
---   t | __spd_url 
---  ---+-----------
---  (0 rows)
-
 CREATE FOREIGN TABLE t2 (i int, t text, a text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t2__post_svr__0 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 SELECT i,t,a FROM t2 ORDER BY i,__spd_url;
