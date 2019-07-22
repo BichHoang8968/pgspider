@@ -52,7 +52,7 @@
  * Only TopMemoryContext and ErrorContext are initialized by
  * MemoryContextInit() itself.
  */
-extern PGDLLIMPORT MemoryContext TopMemoryContext;
+extern PGDLLIMPORT __thread MemoryContext TopMemoryContext;
 extern PGDLLIMPORT MemoryContext ErrorContext;
 extern PGDLLIMPORT MemoryContext PostmasterContext;
 extern PGDLLIMPORT MemoryContext CacheMemoryContext;

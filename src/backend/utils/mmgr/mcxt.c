@@ -41,7 +41,7 @@ __thread MemoryContext CurrentMemoryContext = NULL;
  * Standard top-level contexts. For a description of the purpose of each
  * of these contexts, refer to src/backend/utils/mmgr/README
  */
-MemoryContext TopMemoryContext = NULL;
+__thread MemoryContext TopMemoryContext = NULL;
 MemoryContext ErrorContext = NULL;
 MemoryContext PostmasterContext = NULL;
 MemoryContext CacheMemoryContext = NULL;
