@@ -2087,18 +2087,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				copy_pathtarget(spd_root->upper_targets[UPPERREL_FINAL]);
 			oldcontext = MemoryContextSwitchTo(MessageContext);
 
-			/* Fill sortgrouprefs for child using child target entry list */
-			sortgrouprefs = palloc(sizeof(Index) * list_length(fdw_private->child_comp_tlist));
-			listn = 0;
-			foreach(lc, fdw_private->child_comp_tlist)
-			{
-				TargetEntry *tmp_entry = (TargetEntry *) lfirst(lc);
-
-				sortgrouprefs[listn++] = tmp_entry->ressortgroupref;
-			}
-
-			dummy_root->upper_targets[UPPERREL_GROUP_AGG]->sortgrouprefs = sortgrouprefs;
-
 			if (fdwroutine->GetForeignUpperPaths != NULL)
 			{
 				fdwroutine->GetForeignUpperPaths(dummy_root,
