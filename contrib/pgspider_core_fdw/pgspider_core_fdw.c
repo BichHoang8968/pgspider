@@ -902,9 +902,6 @@ spd_aliveError(ForeignServer *fs)
 static void
 spd_ErrorCb(void *arg)
 {
-	pthread_mutex_lock(&error_mutex);
-	FlushErrorState();
-	pthread_mutex_unlock(&error_mutex);
 }
 
 /**
