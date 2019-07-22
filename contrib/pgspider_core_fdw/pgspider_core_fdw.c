@@ -3272,6 +3272,9 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 		fssThrdInfo[node_incr].serverId = server_oid;
 		fssThrdInfo[node_incr].fdwroutine = GetFdwRoutineByServerId(server_oid);
+		/* GetForeignServer and GetForeignDataWrapper are slow. So we will cache here */
+		fssThrdInfo[node_incr].foreignServer = GetForeignServer(server_oid);
+		fssThrdInfo[node_incr].fdw = GetForeignDataWrapper(fssThrdInfo[node_incr].foreignServer->fdwid);
 
 		fssThrdInfo[node_incr].thrd_ResourceOwner =
 			ResourceOwnerCreate(CurrentResourceOwner, "thread resource owner");
@@ -3892,18 +3895,12 @@ spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *child_slo
 	ForeignServer *fs;
 	ForeignDataWrapper *fdw;
 	TupleTableSlot *slot = NULL;
-	Datum		value_datum = 0;
-	Datum		valueDatum = 0;
-	HeapTuple	temp_tuple;
-	regproc		typeinput;
 	int			i;
-	int			typemod;
 	int			tnum = 0;
 	HeapTuple	newtuple;
 
-
-	fs = GetForeignServer(fssThrdInfo[count].serverId);
-	fdw = GetForeignDataWrapper(fs->fdwid);
+	fs = fssThrdInfo[count].foreignServer;
+	fdw = fssThrdInfo[count].fdw;
 
 	/* Initialize new tuple buffer */
 	values = palloc0(sizeof(Datum) * node_slot->tts_tupleDescriptor->natts);
@@ -3932,9 +3929,8 @@ spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *child_slo
 				char	   *s;
 
 				if (isnull)
-				{
 					elog(ERROR, "PGSpider column name error. Child node Name is nothing.");
-				}
+
 				s = TextDatumGetCString(col);
 
 				/*
@@ -3950,21 +3946,12 @@ spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *child_slo
 				 */
 				value = psprintf("/%s/", fs->servername);
 			}
-			/* Check tuple's column type */
-			temp_tuple = SearchSysCache1(TYPEOID, ObjectIdGetDatum(node_slot->tts_tupleDescriptor->attrs[i]->atttypid));
-			if (!HeapTupleIsValid(temp_tuple))
-				elog(ERROR, "cache lookup failed for type%u", node_slot->tts_tupleDescriptor->attrs[i]->atttypid);
-			typeinput = ((Form_pg_type) GETSTRUCT(temp_tuple))->typinput;
-			typemod = ((Form_pg_type) GETSTRUCT(temp_tuple))->typtypmod;
-			ReleaseSysCache(temp_tuple);
 
-			valueDatum = CStringGetDatum((char *) value);
-			value_datum = OidFunctionCall3(typeinput,
-										   valueDatum, ObjectIdGetDatum(InvalidOid),
-										   Int32GetDatum(typemod));
+			if (node_slot->tts_tupleDescriptor->attrs[i]->atttypid != TEXTOID)
+				elog(ERROR, "__spd_url column is not text type");
 			replaces[i] = true;
 			nulls[i] = false;
-			values[i] = value_datum;
+			values[i] = CStringGetTextDatum(value);
 			tnum = i;
 		}
 	}
