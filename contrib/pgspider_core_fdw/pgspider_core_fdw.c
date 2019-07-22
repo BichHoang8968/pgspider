@@ -2020,6 +2020,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	fdw_private->node_num = in_fdw_private->node_num;
 	fdw_private->in_flag = in_fdw_private->in_flag;
 	fdw_private->agg_query = true;
+	fdw_private->baserestrictinfo = copyObject(in_fdw_private->baserestrictinfo);
 	spd_root = in_fdw_private->spd_root;
 
 	/* Create child tlist */
@@ -2947,6 +2948,8 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			 */
 			if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
 				push_scan_clauses = fdw_private->baserestrictinfo;
+			else
+				push_scan_clauses = scan_clauses;
 
 			/*
 			 * check scan_clauses include "__spd_url" If include "__spd_url"
