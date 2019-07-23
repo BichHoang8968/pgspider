@@ -172,6 +172,11 @@ SELECT i+1,__spd_url FROM test1 ORDER BY __spd_url, i;
 SELECT i+1,__spd_url FROM test1  ORDER BY __spd_url, i;
 SELECT __spd_url,i FROM test1 ORDER BY __spd_url, i;
 
+-- t is not included in target list, but is pushed down, it is OK
+select t from t3 where i  = 1;
+
+-- t is not included and cannot be pushed down, so it is error
+-- select i from t3 where t COLLATE "ja_JP.utf8" = 'aa';
 
 -- error stack test
 CREATE SERVER mysql_svr2 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
@@ -228,6 +233,12 @@ SELECT i,t,a FROM t2 ORDER BY i,__spd_url;
 CREATE FOREIGN TABLE t2__post_svr__1 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 CREATE FOREIGN TABLE t2__post_svr__2 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 CREATE FOREIGN TABLE t2__post_svr__3 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+
+-- random cannot be pushed down and i=2 is pushed down
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM t2 WHERE i=2 AND random() < 2.0;
+SELECT * FROM t2 WHERE i=2 AND random() < 2.0;
+
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 SELECT a,i, __spd_url, t FROM t2 ORDER BY i,t,a,__spd_url;
 
