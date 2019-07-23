@@ -113,6 +113,7 @@ SELECT avg(i), count(i) FROM test1 group by i;
 CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS(table_name 't1');
 SELECT * FROM t1;
+SELECT * FROM t1 WHERE __spd_url='/post_svr/' and i = 1 and t = 'a';
 SELECT sum(i),t FROM t1 group by t;
 SELECT sum(i),t,count(i) FROM t1 group by t;
 
