@@ -3061,20 +3061,42 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	}
 	MemoryContextSwitchTo(oldcontext);
 
+
+	/* For simple rel, calculate which condition should be filtered in core */
+	if (IS_SIMPLE_REL(baserel))
+	{
+		scan_clauses = NIL;
+		if (fdw_private->baserestrictinfo && !push_scan_clauses)
+		{
 	/*
-	 * TODO: Following is main thread's foreign plan. If all FDW use where
-	 * clauses, scan_clauses is OK. But FileFDW, SqliteFDW and some FDW can
-	 * not use where clauses. If it is not NIL, then can not get record from
-	 * there.
-	 *
-	 * Following is resolution plan. 1. change NIL 2. Add filter for can not
-	 * use where clauses FDW.
-	 *
-	 * 1. is redundancy operation for where clauses avaiable FDW. 2. is change
-	 * iterate foreign scan and check to remote expars. Modify cost is so big,
-	 * currently solution is 1.
+			 * In this case, PGSpider should filter baserestrictinfo because
+			 * these are not passed to child fdw because of __spd_url
+			 */
+			foreach(lc, fdw_private->baserestrictinfo)
+			{
+				RestrictInfo *ri = lfirst_node(RestrictInfo, lc);
+
+				scan_clauses = lappend(scan_clauses, ri->clause);
+			}
+		}
+
+		/*
+		 * We collect local conditions each fdw did not push down to make
+		 * postgresql core execute that filter
 	 */
-	scan_clauses = extract_actual_clauses(scan_clauses, false);
+		for (i = 0; i < fdw_private->node_num; i++)
+		{
+			if (!childinfo[i].plan)
+				continue;
+
+			foreach(lc, childinfo[i].plan->qual)
+			{
+				Expr	   *expr = (Expr *) lfirst(lc);
+
+				scan_clauses = list_append_unique_ptr(scan_clauses, expr);
+			}
+		}
+	}
 
 	/* for debug */
 	if (log_min_messages <= DEBUG1)

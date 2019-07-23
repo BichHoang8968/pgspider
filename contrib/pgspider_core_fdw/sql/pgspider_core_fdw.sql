@@ -228,6 +228,12 @@ SELECT i,t,a FROM t2 ORDER BY i,__spd_url;
 CREATE FOREIGN TABLE t2__post_svr__1 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 CREATE FOREIGN TABLE t2__post_svr__2 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 CREATE FOREIGN TABLE t2__post_svr__3 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+
+-- random cannot be pushed down and i=2 is pushed down
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM t2 WHERE i=2 AND random() < 2.0;
+SELECT * FROM t2 WHERE i=2 AND random() < 2.0;
+
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 SELECT a,i, __spd_url, t FROM t2 ORDER BY i,t,a,__spd_url;
 

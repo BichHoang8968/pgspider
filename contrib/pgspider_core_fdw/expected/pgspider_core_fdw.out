@@ -1176,6 +1176,33 @@ SELECT i,t,a FROM t2 ORDER BY i,__spd_url;
 CREATE FOREIGN TABLE t2__post_svr__1 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 CREATE FOREIGN TABLE t2__post_svr__2 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 CREATE FOREIGN TABLE t2__post_svr__3 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+-- random cannot be pushed down and i=2 is pushed down
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM t2 WHERE i=2 AND random() < 2.0;
+                         QUERY PLAN                          
+-------------------------------------------------------------
+ Foreign Scan on public.t2
+   Output: i, t, a, __spd_url
+   Filter: (random() < '2'::double precision)
+    * Node: post_svr / Status: Alive
+   Remote SQL: SELECT i, t, a FROM public.t2 WHERE ((i = 2))
+    * Node: post_svr / Status: Alive
+   Remote SQL: SELECT i, t, a FROM public.t2 WHERE ((i = 2))
+    * Node: post_svr / Status: Alive
+   Remote SQL: SELECT i, t, a FROM public.t2 WHERE ((i = 2))
+    * Node: post_svr / Status: Alive
+   Remote SQL: SELECT i, t, a FROM public.t2 WHERE ((i = 2))
+(11 rows)
+
+SELECT * FROM t2 WHERE i=2 AND random() < 2.0;
+ i | t | a | __spd_url  
+---+---+---+------------
+ 2 |   | a | /post_svr/
+ 2 |   | a | /post_svr/
+ 2 |   | a | /post_svr/
+ 2 |   | a | /post_svr/
+(4 rows)
+
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
  i | t | a 
 ---+---+---
