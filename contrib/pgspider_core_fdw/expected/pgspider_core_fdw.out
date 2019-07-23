@@ -621,6 +621,12 @@ SELECT * FROM t1;
  4 | c | /post_svr/
 (4 rows)
 
+SELECT * FROM t1 WHERE __spd_url='/post_svr/' and i = 1 and t = 'a';
+ i | t | __spd_url  
+---+---+------------
+ 1 | a | /post_svr/
+(1 row)
+
 SELECT sum(i),t FROM t1 group by t;
  sum | t 
 -----+---

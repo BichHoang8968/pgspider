@@ -2767,73 +2767,55 @@ spd_createPushDownPlan(List *tlist, bool isUnPushdown, SpdFdwPrivate * fdw_priva
 	return dummy_tlist;
 }
 
+static bool
+check_spdurl_walker(Node *node, PlannerInfo *root)
+{
+	if (node == NULL)
+		return false;
+
+	if (IsA(node, Var))
+	{
+		Var		   *var = (Var *) node;
+				char	   *colname;
+				RangeTblEntry *rte;
+
+				rte = planner_rt_fetch(var->varno, root);
+				colname = get_relid_attribute_name(rte->relid, var->varattno);
+
+				if (strcmp(colname, SPDURL) == 0)
+		{
+			/* stop search and return true */
+			return true;
+		}
+				else
+			return false;
+			}
+	return expression_tree_walker(node, check_spdurl_walker, (void *) root);
+}
+
 /**
  * spd_checkurl_clauses
  *
- * Build aggregation plan for each push down cases.
- * saving each foreign plan into base rel list
- *
- * @param[in] scan_clauses -
- * @param[in] root
- * @param[in] baserestrictinfo -
- * @param[out] agg_query          - aggregation flag
- * @param[out] fdw_private        - Push down type list
- *
+ * search for spd_url
  */
-
 static void
-spd_checkurl_clauses(List *scan_clauses, List **push_scan_clauses, PlannerInfo *root, List *baserestrictinfo)
-{
+spd_checkurl_clauses(List *scan_clauses, PlannerInfo *root, List *baserestrictinfo, List **push_scan_clauses)
+			{
 	ListCell   *lc;
 
 	foreach(lc, scan_clauses)
 	{
 		RestrictInfo *clause = (RestrictInfo *) lfirst(lc);
 		Expr	   *expr = (Expr *) clause->clause;
-		ListCell   *arg;
 
-		if (nodeTag(expr) == T_OpExpr)
-		{
-			OpExpr	   *node = (OpExpr *) clause->clause;
-			Expr	   *expr2;
-
-			/* Deparse left operand. */
-			arg = list_head(node->args);
-			expr2 = (Expr *) lfirst(arg);
-			if (nodeTag(expr2) == T_Var)
-			{
-				Var		   *var = (Var *) expr2;
-				char	   *colname;
-				RangeTblEntry *rte;
-
-				rte = planner_rt_fetch(var->varno, root);
-				colname = get_relid_attribute_name(rte->relid, var->varattno);
-
-				if (strcmp(colname, SPDURL) == 0)
-					*push_scan_clauses = NULL;
-
-				else
-					*push_scan_clauses = baserestrictinfo;
-			}
-			/* Deparse right operand */
-			arg = list_tail(node->args);
-			expr2 = (Expr *) lfirst(arg);
-			if (nodeTag(expr2) == T_Var)
-			{
-				Var		   *var = (Var *) expr2;
-				char	   *colname;
-				RangeTblEntry *rte;
-
-				rte = planner_rt_fetch(var->varno, root);
-				colname = get_relid_attribute_name(rte->relid, var->varattno);
-
-				if (strcmp(colname, SPDURL) == 0)
+		if (expression_tree_walker((Node *) expr, check_spdurl_walker, root))
 				{
+			/* don't pushdown *all* where caluses if spd_url is found */
 					*push_scan_clauses = NULL;
-				}
-			}
+			return;
 		}
 	}
+	*push_scan_clauses = baserestrictinfo;
 }
 
 /**
@@ -2942,21 +2924,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
 		PG_TRY();
 		{
-			/*
-			 * For can not aggregation pushdown FDW's. push down quals when
-			 * aggregation is occurred
-			 */
-			if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
-				push_scan_clauses = fdw_private->baserestrictinfo;
-			else
-				push_scan_clauses = scan_clauses;
-
-			/*
-			 * check scan_clauses include "__spd_url" If include "__spd_url"
-			 * in WHERE clauses, then NOT pushdown all caluses.
-			 */
-			spd_checkurl_clauses(scan_clauses, &push_scan_clauses, root, fdw_private->baserestrictinfo);
-
 			/* create plan */
 			if (childinfo[i].grouped_rel_local != NULL)
 			{
@@ -2964,6 +2931,8 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				struct Path *child_path;
 
 				Assert(childinfo[i].grouped_rel_local->pathlist);
+				/* FDWs expect NULL scan clauses for UPPER REL */
+				push_scan_clauses = NULL;
 				/* Pick any agg path */
 				child_path = lfirst(list_head(childinfo[i].grouped_rel_local->pathlist));
 				temptlist = PG_build_path_tlist((PlannerInfo *) childinfo[i].root, child_path);
@@ -2997,6 +2966,21 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
 				/* mysql-fdw decide push down tlist or not based on this */
 				childinfo[i].baserel->is_tlist_pushdown = pushdown_all_tlist;
+
+				/*
+				 * For can not aggregation pushdown FDW's. push down quals
+				 * when aggregation is occurred
+				 */
+				if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
+					push_scan_clauses = fdw_private->baserestrictinfo;
+
+				/*
+				 * check scan_clauses include "__spd_url" If include
+				 * "__spd_url" in WHERE clauses, then NOT pushdown all
+				 * caluses.
+				 */
+				spd_checkurl_clauses(scan_clauses, root, fdw_private->baserestrictinfo, &push_scan_clauses);
+
 				fsplan = fdwroutine->GetForeignPlan((PlannerInfo *) childinfo[i].root,
 													(RelOptInfo *) childinfo[i].baserel,
 													oid[i],
