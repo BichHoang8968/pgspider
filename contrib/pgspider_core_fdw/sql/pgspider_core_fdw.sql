@@ -172,6 +172,11 @@ SELECT i+1,__spd_url FROM test1 ORDER BY __spd_url, i;
 SELECT i+1,__spd_url FROM test1  ORDER BY __spd_url, i;
 SELECT __spd_url,i FROM test1 ORDER BY __spd_url, i;
 
+-- t is not included in target list, but is pushed down, it is OK
+select t from t3 where i  = 1;
+
+-- t is not included and cannot be pushed down, so it is error
+-- select i from t3 where t COLLATE "ja_JP.utf8" = 'aa';
 
 -- error stack test
 CREATE SERVER mysql_svr2 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
