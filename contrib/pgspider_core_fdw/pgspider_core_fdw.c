@@ -2999,7 +2999,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			 * fdw_private->child_table_alive to FALSE
 			 */
 			childinfo[i].child_node_status = ServerStatusDead;
-			elog(WARNING, "dummy plan list failed ");
+			elog(WARNING, "GetForeignPlan failed ");
 			FlushErrorState();
 			if (throwErrorIfDead)
 			{
