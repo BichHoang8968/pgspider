@@ -2776,20 +2776,20 @@ check_spdurl_walker(Node *node, PlannerInfo *root)
 	if (IsA(node, Var))
 	{
 		Var		   *var = (Var *) node;
-				char	   *colname;
-				RangeTblEntry *rte;
+		char	   *colname;
+		RangeTblEntry *rte;
 
-				rte = planner_rt_fetch(var->varno, root);
-				colname = get_relid_attribute_name(rte->relid, var->varattno);
+		rte = planner_rt_fetch(var->varno, root);
+		colname = get_relid_attribute_name(rte->relid, var->varattno);
 
-				if (strcmp(colname, SPDURL) == 0)
+		if (strcmp(colname, SPDURL) == 0)
 		{
 			/* stop search and return true */
 			return true;
 		}
-				else
+		else
 			return false;
-			}
+	}
 	return expression_tree_walker(node, check_spdurl_walker, (void *) root);
 }
 
@@ -2800,7 +2800,7 @@ check_spdurl_walker(Node *node, PlannerInfo *root)
  */
 static void
 spd_checkurl_clauses(List *scan_clauses, PlannerInfo *root, List *baserestrictinfo, List **push_scan_clauses)
-			{
+{
 	ListCell   *lc;
 
 	foreach(lc, scan_clauses)
@@ -2809,9 +2809,9 @@ spd_checkurl_clauses(List *scan_clauses, PlannerInfo *root, List *baserestrictin
 		Expr	   *expr = (Expr *) clause->clause;
 
 		if (expression_tree_walker((Node *) expr, check_spdurl_walker, root))
-				{
+		{
 			/* don't pushdown *all* where caluses if spd_url is found */
-					*push_scan_clauses = NULL;
+			*push_scan_clauses = NULL;
 			return;
 		}
 	}
@@ -3068,7 +3068,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		scan_clauses = NIL;
 		if (fdw_private->baserestrictinfo && !push_scan_clauses)
 		{
-	/*
+			/*
 			 * In this case, PGSpider should filter baserestrictinfo because
 			 * these are not passed to child fdw because of __spd_url
 			 */
@@ -3083,7 +3083,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		/*
 		 * We collect local conditions each fdw did not push down to make
 		 * postgresql core execute that filter
-	 */
+		 */
 		for (i = 0; i < fdw_private->node_num; i++)
 		{
 			if (!childinfo[i].plan)
