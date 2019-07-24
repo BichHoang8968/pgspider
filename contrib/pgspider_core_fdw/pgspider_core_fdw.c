@@ -3186,21 +3186,17 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		node->ss.ps.state->es_progressState->ps_aggQuery = true;
 	else
 		node->ss.ps.state->es_progressState->ps_aggQuery = false;
-#endif
-	node->ss.ps.state->agg_query = 0;
-#ifdef GETPROGRESS_ENABLED
 	if (getResultFlag)
 		return;
-#endif
-	/* Get all the foreign nodes from conf file */
-	fssThrdInfo = (ForeignScanThreadInfo *) palloc0(sizeof(ForeignScanThreadInfo) * fdw_private->node_num);
-	node->spd_fsstate = fssThrdInfo;
 	/* Supporting for Progress */
-
-#ifdef GETPROGRESS_ENABLED
 	node->ss.ps.state->es_progressState->ps_totalRows = 0;
 	node->ss.ps.state->es_progressState->ps_fetchedRows = 0;
 #endif
+
+	node->ss.ps.state->agg_query = 0;
+	/* Get all the foreign nodes from conf file */
+	fssThrdInfo = (ForeignScanThreadInfo *) palloc0(sizeof(ForeignScanThreadInfo) * fdw_private->node_num);
+	node->spd_fsstate = fssThrdInfo;
 
 	node_incr = 0;
 	childinfo = fdw_private->childinfo;
