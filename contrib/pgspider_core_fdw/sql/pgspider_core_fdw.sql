@@ -96,11 +96,12 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM test1 IN ('/post_svr/');
 -- only __spd_url target list is OK
 SELECT __spd_url FROM test1 ORDER BY __spd_url;
 
---SELECT i, __spd_url FROM test1 GROUP BY __spd_url, i;
---SELECT __spd_url, i FROM test1 GROUP BY __spd_url, i;
---SELECT avg(i), __spd_url FROM test1 GROUP BY __spd_url, i;
---SELECT __spd_url, avg(i) FROM test1 GROUP BY __spd_url, i;
---SELECT __spd_url, sum(i) FROM test1 GROUP BY __spd_url, i;
+SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT __spd_url, avg(i) FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT __spd_url, sum(i) FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
 
 SELECT sum(i) FROM test1;
 
@@ -129,7 +130,15 @@ SELECT avg(i) FROM t1 group by i;
 SELECT avg(i), count(i) FROM t1 GROUP BY i;
 SELECT t, avg(i), t FROM t1 GROUP BY i, t;
 
---SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t;
+SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t;
+SELECT i, __spd_url FROM t1 GROUP BY __spd_url, i;
+SELECT __spd_url, i FROM t1 GROUP BY __spd_url, i;
+SELECT avg(i), __spd_url FROM t1 GROUP BY __spd_url, i;
+SELECT __spd_url, avg(i) FROM t1 GROUP BY __spd_url, i;
+SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i;
+SELECT __spd_url, sum(i) FROM t1 GROUP BY __spd_url, i;
+SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i;
+SELECT __spd_url, avg(i), sum(i), __spd_url FROM t1 GROUP BY __spd_url, i;
 
 SELECT * FROM (SELECT sum(i) FROM t1) A,(SELECT count(i) FROM t1) B;
 

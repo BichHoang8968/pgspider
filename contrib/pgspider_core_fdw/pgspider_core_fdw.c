@@ -1541,6 +1541,42 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
 }
 
 /**
+ * is_spdurl
+ *
+ * Check whether SPDURL existing in GROUP BY
+ *
+ * @param[in] root - Root planner info
+ *
+ */
+static bool
+is_spdurl(PlannerInfo *root)
+{
+	List 		*target_list = root->parse->targetList;
+	List		*group_clause = root->parse->groupClause;
+	ListCell 	*lc;
+	char	    *colname;
+	RangeTblEntry	*rte;
+
+	foreach (lc, group_clause){
+		SortGroupClause *sgc = (SortGroupClause*) lfirst(lc);
+		TargetEntry *te = get_sortgroupclause_tle(sgc, target_list);
+		if (te == NULL)
+			return false;
+		/* Check SPDURL in the target entry*/
+		if (IsA(te->expr, Var)){
+			Var *var = (Var*) te->expr;
+			rte = planner_rt_fetch(var->varno, root);
+			colname = get_relid_attribute_name(rte->relid, var->varattno);
+
+			if (strcmp(colname, SPDURL) == 0)
+				return true;
+		}
+	}
+	return false;
+}
+
+
+/**
  * spd_CreateDummyRoot
  *
  * Create base plan for each child tables and save into fdw_private.
@@ -2000,6 +2036,9 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 
+	/* We don't push down GROUP BY and Aggregate function if having SPDURL */
+	if (is_spdurl(root))
+		return;
 	/*
 	 * If input rel is not safe to pushdown, then simply return as we cannot
 	 * perform any post-join operations on the foreign server.
@@ -2953,7 +2992,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
 				/* Add all columns of the table */
 				temptlist = (List *) build_physical_tlist(childinfo[i].root, childinfo[i].baserel);
-				if (root->parse->groupClause != NULL)
+				if (!IS_SIMPLE_REL(baserel) && root->parse->groupClause != NULL)
 					apply_pathtarget_labeling_to_tlist(temptlist, ((Path *) best_path)->pathtarget);
 
 				/*
