@@ -143,7 +143,7 @@ static void spd_GetForeignUpperPaths(PlannerInfo *root,
  * Helper functions
  */
 static bool foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel);
-static void add_foreign_grouping_paths(PlannerInfo *root,
+static Path *get_foreign_grouping_paths(PlannerInfo *root,
 						   RelOptInfo *input_rel,
 						   RelOptInfo *grouped_rel);
 
@@ -1997,6 +1997,8 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	PlannerInfo *spd_root;
 	int			listn = 0;
 	RelOptInfo *dummy_output_rel;
+	Path	   *path;
+	bool		pushdown = false;
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 
@@ -2068,9 +2070,10 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	output_rel->fdw_private = fdw_private;
 	output_rel->relid = input_rel->relid;
 
-	/* Add parent agg path and create mapping_tlist */
-	add_foreign_grouping_paths(root, input_rel, output_rel);
-
+	/* Get parent agg path and create mapping_tlist */
+	path = get_foreign_grouping_paths(root, input_rel, output_rel);
+	if (path == NULL)
+		return;
 	/* Call the child FDW's GetForeignUpperPaths */
 	if (in_fdw_private->childinfo != NULL)
 	{
@@ -2125,6 +2128,12 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				/* Push down aggregate case */
 				childinfo[i].grouped_root_local = dummy_root;
 				childinfo[i].grouped_rel_local = dummy_output_rel;
+
+				/*
+				 * if at least one child fdw pushdown aggregate, parent push
+				 * down
+				 */
+				pushdown = true;
 			}
 			else
 			{
@@ -2151,12 +2160,15 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			}
 		}
 	}
+	/* Add generated path into grouped_rel by add_path(). */
+	if (pushdown)
+		add_path(output_rel, path);
 	MemoryContextSwitchTo(oldcontext);
 }
 
 /**
- * add_foreign_grouping_paths
- *		Add foreign path for grouping and/or aggregation.
+ * get_foreign_grouping_paths
+ *		Get foreign path for grouping and/or aggregation.
  *
  * Given input_rel represents the inlying scan.  The paths are added to the
  * given grouped_rel.
@@ -2165,8 +2177,8 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
  * @param[in] input_rel - input RelOptInfo
  * @param[in] grouped_rel - grouped relation RelOptInfo
  */
-static void
-add_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
+static Path *
+get_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 						   RelOptInfo *grouped_rel)
 {
 	Query	   *parse = root->parse;
@@ -2182,7 +2194,7 @@ add_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	/* Nothing to be done, if there is no grouping or aggregation required. */
 	if (!parse->groupClause && !parse->groupingSets && !parse->hasAggs &&
 		!root->hasHavingQual)
-		return;
+		return NULL;
 
 	grouping_target = root->upper_targets[UPPERREL_GROUP_AGG];
 
@@ -2199,7 +2211,7 @@ add_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 
 	/* Assess if it is safe to push down aggregation and grouping. */
 	if (!foreign_grouping_ok(root, grouped_rel))
-		return;
+		return NULL;
 
 	rows = 0;
 	width = 0;
@@ -2223,9 +2235,7 @@ add_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 										NULL,	/* no required_outer */
 										NULL,
 										NIL);	/* no fdw_private */
-
-	/* Add generated path into grouped_rel by add_path(). */
-	add_path(grouped_rel, (Path *) grouppath);
+	return (Path *) grouppath;
 }
 
 /**
@@ -2953,7 +2963,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
 				/* Add all columns of the table */
 				temptlist = (List *) build_physical_tlist(childinfo[i].root, childinfo[i].baserel);
-				if (root->parse->groupClause != NULL)
+				if (!IS_SIMPLE_REL(baserel) && root->parse->groupClause != NULL)
 					apply_pathtarget_labeling_to_tlist(temptlist, ((Path *) best_path)->pathtarget);
 
 				/*
