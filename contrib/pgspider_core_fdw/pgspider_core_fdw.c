@@ -2038,9 +2038,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 
-	/* We don't push down GROUP BY and Aggregate function if having SPDURL */
-	if (is_spdurl(root))
-		return;
 	/*
 	 * If input rel is not safe to pushdown, then simply return as we cannot
 	 * perform any post-join operations on the foreign server.
@@ -2300,6 +2297,10 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 	List	   *tlist = NIL;
 	List	   *mapping_tlist = NIL;
 	List	   *compress_child_tlist = NIL;
+
+	/* We don't push down GROUP BY and Aggregate function if having SPDURL */
+	if (is_spdurl(root))
+		return false;
 
 	/* Grouping Sets are not pushable */
 	if (query->groupingSets)
