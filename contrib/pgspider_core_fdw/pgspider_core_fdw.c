@@ -1541,6 +1541,42 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
 }
 
 /**
+ * groupby_has_spdurl
+ *
+ * Check whether SPDURL existing in GROUP BY
+ *
+ * @param[in] root - Root planner info
+ *
+ */
+static bool
+groupby_has_spdurl(PlannerInfo *root)
+{
+	List 		*target_list = root->parse->targetList;
+	List		*group_clause = root->parse->groupClause;
+	ListCell 	*lc;
+	char	    *colname;
+	RangeTblEntry	*rte;
+
+	foreach (lc, group_clause){
+		SortGroupClause *sgc = (SortGroupClause*) lfirst(lc);
+		TargetEntry *te = get_sortgroupclause_tle(sgc, target_list);
+		if (te == NULL)
+			return false;
+		/* Check SPDURL in the target entry*/
+		if (IsA(te->expr, Var)){
+			Var *var = (Var*) te->expr;
+			rte = planner_rt_fetch(var->varno, root);
+			colname = get_relid_attribute_name(rte->relid, var->varattno);
+
+			if (strcmp(colname, SPDURL) == 0)
+				return true;
+		}
+	}
+	return false;
+}
+
+
+/**
  * spd_CreateDummyRoot
  *
  * Create base plan for each child tables and save into fdw_private.
@@ -2261,6 +2297,10 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 	List	   *tlist = NIL;
 	List	   *mapping_tlist = NIL;
 	List	   *compress_child_tlist = NIL;
+
+	/* We don't push down GROUP BY and Aggregate function if having SPDURL */
+	if (groupby_has_spdurl(root))
+		return false;
 
 	/* Grouping Sets are not pushable */
 	if (query->groupingSets)

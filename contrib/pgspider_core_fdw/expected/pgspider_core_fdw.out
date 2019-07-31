@@ -566,11 +566,72 @@ SELECT __spd_url FROM test1 ORDER BY __spd_url;
  /tiny_svr/
 (9 rows)
 
---SELECT i, __spd_url FROM test1 GROUP BY __spd_url, i;
---SELECT __spd_url, i FROM test1 GROUP BY __spd_url, i;
---SELECT avg(i), __spd_url FROM test1 GROUP BY __spd_url, i;
---SELECT __spd_url, avg(i) FROM test1 GROUP BY __spd_url, i;
---SELECT __spd_url, sum(i) FROM test1 GROUP BY __spd_url, i;
+SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+   i   |  __spd_url   
+-------+--------------
+     1 | /tiny_svr/
+     1 | /mysql_svr/
+     1 | /sqlite_svr/
+   777 | /mysql_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
+(6 rows)
+
+SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i;
+  __spd_url   |   i   
+--------------+-------
+ /tiny_svr/   |     1
+ /mysql_svr/  |     1
+ /sqlite_svr/ |     1
+ /mysql_svr/  |   777
+ /post_svr/   |  1111
+ /sqlite_svr/ | 22222
+(6 rows)
+
+SELECT avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+          avg           |  __spd_url   
+------------------------+--------------
+ 1.00000000000000000000 | /tiny_svr/
+ 1.00000000000000000000 | /mysql_svr/
+ 1.00000000000000000000 | /sqlite_svr/
+   777.0000000000000000 | /mysql_svr/
+  1111.0000000000000000 | /post_svr/
+     22222.000000000000 | /sqlite_svr/
+(6 rows)
+
+SELECT __spd_url, avg(i) FROM test1 GROUP BY i, __spd_url ORDER BY i;
+  __spd_url   |          avg           
+--------------+------------------------
+ /tiny_svr/   | 1.00000000000000000000
+ /mysql_svr/  | 1.00000000000000000000
+ /sqlite_svr/ | 1.00000000000000000000
+ /mysql_svr/  |   777.0000000000000000
+ /post_svr/   |  1111.0000000000000000
+ /sqlite_svr/ |     22222.000000000000
+(6 rows)
+
+SELECT __spd_url, sum(i) FROM test1 GROUP BY i, __spd_url ORDER BY i;
+  __spd_url   |  sum  
+--------------+-------
+ /tiny_svr/   |     1
+ /mysql_svr/  |     1
+ /sqlite_svr/ |     1
+ /mysql_svr/  |  3108
+ /post_svr/   |  1111
+ /sqlite_svr/ | 22222
+(6 rows)
+
+SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+  __spd_url   |          avg           |  __spd_url   
+--------------+------------------------+--------------
+ /tiny_svr/   | 1.00000000000000000000 | /tiny_svr/
+ /mysql_svr/  | 1.00000000000000000000 | /mysql_svr/
+ /sqlite_svr/ | 1.00000000000000000000 | /sqlite_svr/
+ /mysql_svr/  |   777.0000000000000000 | /mysql_svr/
+ /post_svr/   |  1111.0000000000000000 | /post_svr/
+ /sqlite_svr/ |     22222.000000000000 | /sqlite_svr/
+(6 rows)
+
 SELECT sum(i) FROM test1;
   sum  
 -------
@@ -716,7 +777,86 @@ SELECT t, avg(i), t FROM t1 GROUP BY i, t;
  c |   4 | c
 (4 rows)
 
---SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t;
+SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t;
+ t | __spd_url  
+---+------------
+ b | /post_svr/
+ a | /post_svr/
+ c | /post_svr/
+(3 rows)
+
+SELECT i, __spd_url FROM t1 GROUP BY __spd_url, i;
+ i | __spd_url  
+---+------------
+ 4 | /post_svr/
+ 1 | /post_svr/
+ 3 | /post_svr/
+ 2 | /post_svr/
+(4 rows)
+
+SELECT __spd_url, i FROM t1 GROUP BY __spd_url, i;
+ __spd_url  | i 
+------------+---
+ /post_svr/ | 4
+ /post_svr/ | 1
+ /post_svr/ | 3
+ /post_svr/ | 2
+(4 rows)
+
+SELECT avg(i), __spd_url FROM t1 GROUP BY __spd_url, i;
+          avg           | __spd_url  
+------------------------+------------
+     4.0000000000000000 | /post_svr/
+ 1.00000000000000000000 | /post_svr/
+     3.0000000000000000 | /post_svr/
+     2.0000000000000000 | /post_svr/
+(4 rows)
+
+SELECT __spd_url, avg(i) FROM t1 GROUP BY __spd_url, i;
+ __spd_url  |          avg           
+------------+------------------------
+ /post_svr/ |     4.0000000000000000
+ /post_svr/ | 1.00000000000000000000
+ /post_svr/ |     3.0000000000000000
+ /post_svr/ |     2.0000000000000000
+(4 rows)
+
+SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i;
+ __spd_url  |          avg           | __spd_url  
+------------+------------------------+------------
+ /post_svr/ |     4.0000000000000000 | /post_svr/
+ /post_svr/ | 1.00000000000000000000 | /post_svr/
+ /post_svr/ |     3.0000000000000000 | /post_svr/
+ /post_svr/ |     2.0000000000000000 | /post_svr/
+(4 rows)
+
+SELECT __spd_url, sum(i) FROM t1 GROUP BY __spd_url, i;
+ __spd_url  | sum 
+------------+-----
+ /post_svr/ |   4
+ /post_svr/ |   1
+ /post_svr/ |   3
+ /post_svr/ |   2
+(4 rows)
+
+SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i;
+ __spd_url  |          avg           | __spd_url  
+------------+------------------------+------------
+ /post_svr/ |     4.0000000000000000 | /post_svr/
+ /post_svr/ | 1.00000000000000000000 | /post_svr/
+ /post_svr/ |     3.0000000000000000 | /post_svr/
+ /post_svr/ |     2.0000000000000000 | /post_svr/
+(4 rows)
+
+SELECT __spd_url, avg(i), sum(i), __spd_url FROM t1 GROUP BY __spd_url, i;
+ __spd_url  |          avg           | sum | __spd_url  
+------------+------------------------+-----+------------
+ /post_svr/ |     4.0000000000000000 |   4 | /post_svr/
+ /post_svr/ | 1.00000000000000000000 |   1 | /post_svr/
+ /post_svr/ |     3.0000000000000000 |   3 | /post_svr/
+ /post_svr/ |     2.0000000000000000 |   2 | /post_svr/
+(4 rows)
+
 SELECT * FROM (SELECT sum(i) FROM t1) A,(SELECT count(i) FROM t1) B;
  sum | count 
 -----+-------
