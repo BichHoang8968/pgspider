@@ -1541,7 +1541,7 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
 }
 
 /**
- * is_spdurl
+ * groupby_has_spdurl
  *
  * Check whether SPDURL existing in GROUP BY
  *
@@ -1549,7 +1549,7 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
  *
  */
 static bool
-is_spdurl(PlannerInfo *root)
+groupby_has_spdurl(PlannerInfo *root)
 {
 	List 		*target_list = root->parse->targetList;
 	List		*group_clause = root->parse->groupClause;
@@ -2299,7 +2299,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 	List	   *compress_child_tlist = NIL;
 
 	/* We don't push down GROUP BY and Aggregate function if having SPDURL */
-	if (is_spdurl(root))
+	if (groupby_has_spdurl(root))
 		return false;
 
 	/* Grouping Sets are not pushable */
