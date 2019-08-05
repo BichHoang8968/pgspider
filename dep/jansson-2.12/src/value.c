@@ -48,7 +48,7 @@ static JSON_INLINE void json_init(json_t *json, json_type type)
 
 extern volatile uint32_t hashtable_seed;
 
-json_t *json_object(void)
+json_t *jansson_object(void)
 {
     json_object_t *object = jsonp_malloc(sizeof(json_object_t));
     if(!object)
@@ -298,7 +298,7 @@ static json_t *json_object_copy(json_t *object)
     const char *key;
     json_t *value;
 
-    result = json_object();
+    result = jansson_object();
     if(!result)
         return NULL;
 
@@ -313,7 +313,7 @@ static json_t *json_object_deep_copy(const json_t *object)
     json_t *result;
     void *iter;
 
-    result = json_object();
+    result = jansson_object();
     if(!result)
         return NULL;
 

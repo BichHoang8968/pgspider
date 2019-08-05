@@ -123,8 +123,8 @@ static void test_equal_object()
 {
     json_t *object1, *object2;
 
-    object1 = json_object();
-    object2 = json_object();
+    object1 = jansson_object();
+    object2 = jansson_object();
     if(!object1 || !object2)
         fail("unable to create objects");
 

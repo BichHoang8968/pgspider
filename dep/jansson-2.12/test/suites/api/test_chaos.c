@@ -76,7 +76,7 @@ out:
 
 int dump_chaos_callback(const char *buffer, size_t size, void *data)
 {
-    json_t *obj = json_object();
+    json_t *obj = jansson_object();
 
     (void)buffer;
     (void)size;
@@ -95,7 +95,7 @@ static void test_chaos()
     json_malloc_t orig_malloc;
     json_free_t orig_free;
     json_t *json = NULL;
-    json_t *obj = json_object();
+    json_t *obj = jansson_object();
     json_t *arr1 = json_array();
     json_t *arr2 = json_array();
     json_t *txt = json_string("test");
@@ -152,7 +152,7 @@ static void test_chaos()
         char testkey[10];
 
         snprintf(testkey, sizeof(testkey), "test%d", keyno);
-        chaos_loop(json_object_set_new_nocheck(obj, testkey, json_object()),,);
+        chaos_loop(json_object_set_new_nocheck(obj, testkey, jansson_object()),,);
 #endif
         chaos_loop(json_array_append_new(arr1, json_null()),,);
         chaos_loop(json_array_insert_new(arr2, 0, json_null()),,);

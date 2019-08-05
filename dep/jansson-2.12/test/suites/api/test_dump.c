@@ -52,7 +52,7 @@ static void encode_twice()
     json_t *json;
     char *result;
 
-    json = json_object();
+    json = jansson_object();
     result = json_dumps(json, 0);
     if(!result || strcmp(result, "{}"))
       fail("json_dumps failed");
@@ -94,9 +94,9 @@ static void circular_references()
     json_t *json;
     char *result;
 
-    json = json_object();
-    json_object_set_new(json, "a", json_object());
-    json_object_set_new(json_object_get(json, "a"), "b", json_object());
+    json = jansson_object();
+    json_object_set_new(json, "a", jansson_object());
+    json_object_set_new(json_object_get(json, "a"), "b", jansson_object());
     json_object_set(json_object_get(json_object_get(json, "a"), "b"), "c",
                     json_object_get(json, "a"));
 
@@ -179,7 +179,7 @@ static void escape_slashes()
     json_t *json;
     char *result;
 
-    json = json_object();
+    json = jansson_object();
     json_object_set_new(json, "url", json_string("https://github.com/akheron/jansson"));
 
     result = json_dumps(json, 0);
@@ -219,7 +219,7 @@ static void dump_file()
     if (result != -1)
         fail("json_dump_file succeeded with invalid args");
 
-    json = json_object();
+    json = jansson_object();
     result = json_dump_file(json, "json_dump_file.json", 0);
     if (result != 0)
         fail("json_dump_file failed");
@@ -234,7 +234,7 @@ static void dumpb()
     json_t *obj;
     size_t size;
 
-    obj = json_object();
+    obj = jansson_object();
 
     size = json_dumpb(obj, buf, sizeof(buf), 0);
     if(size != 2 || strncmp(buf, "{}", 2))

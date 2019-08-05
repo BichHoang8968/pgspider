@@ -227,7 +227,7 @@ static char *read_string(scanner_t *s, va_list *ap,
 
 static json_t *pack_object(scanner_t *s, va_list *ap)
 {
-    json_t *object = json_object();
+    json_t *object = jansson_object();
     next_token(s);
 
     while(token(s) != '}') {

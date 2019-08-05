@@ -444,7 +444,7 @@ static void run_tests()
     check_error(json_error_null_value, "NULL object key", "<args>", 1, 2, 2);
 
     /* NULL value followed by object still steals the object's ref */
-    value = json_incref(json_object());
+    value = json_incref(jansson_object());
     if(json_pack_ex(&error, 0, "{s:s,s:o}", "badnull", NULL, "dontleak", value))
         fail("json_pack failed to catch NULL value");
     check_error(json_error_null_value, "NULL string", "<args>", 1, 4, 4);
@@ -512,7 +512,7 @@ static void run_tests()
         fail("json_pack failed to catch invalid format");
     check_error(json_error_invalid_format, "Unexpected format character '1'", "<format>", 1, 2, 2);
 
-    if(json_pack_ex(&error, 0, "[so]", NULL, json_object()))
+    if(json_pack_ex(&error, 0, "[so]", NULL, jansson_object()))
         fail("json_pack failed to catch NULL value");
     check_error(json_error_null_value, "NULL string", "<args>", 1, 2, 2);
 }

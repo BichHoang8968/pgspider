@@ -90,7 +90,7 @@ static void run_tests()
     json_decref(j);
 
     /* empty object */
-    j = json_object();
+    j = jansson_object();
     if(json_unpack(j, "{}"))
         fail("json_unpack empty object failed");
     json_decref(j);
@@ -102,14 +102,14 @@ static void run_tests()
     json_decref(j);
 
     /* non-incref'd object */
-    j = json_object();
+    j = jansson_object();
     rv = json_unpack(j, "o", &j2);
     if(rv || j2 != j || j->refcount != 1)
         fail("json_unpack object failed");
     json_decref(j);
 
     /* incref'd object */
-    j = json_object();
+    j = jansson_object();
     rv = json_unpack(j, "O", &j2);
     if(rv || j2 != j || j->refcount != 2)
         fail("json_unpack object failed");
@@ -352,7 +352,7 @@ static void run_tests()
     json_decref(j);
 
     /* Optional values */
-    j = json_object();
+    j = jansson_object();
     i1 = 0;
     if(json_unpack(j, "{s?i}", "foo", &i1))
         fail("json_unpack failed for optional key");
@@ -368,7 +368,7 @@ static void run_tests()
         fail("json_unpack failed to unpack an optional value");
     json_decref(j);
 
-    j = json_object();
+    j = jansson_object();
     i1 = i2 = i3 = 0;
     if(json_unpack(j, "{s?[ii]s?{s{si}}}",
                    "foo", &i1, &i2,

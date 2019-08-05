@@ -13,7 +13,7 @@ static void test_clear()
 {
     json_t *object, *ten;
 
-    object = json_object();
+    object = jansson_object();
     ten = json_integer(10);
 
     if(!object)
@@ -44,8 +44,8 @@ static void test_update()
 {
     json_t *object, *other, *nine, *ten;
 
-    object = json_object();
-    other = json_object();
+    object = jansson_object();
+    other = jansson_object();
 
     nine = json_integer(9);
     ten = json_integer(10);
@@ -146,7 +146,7 @@ static void test_set_many_keys()
     char buf[2];
     size_t i;
 
-    object = json_object();
+    object = jansson_object();
     if (!object)
         fail("unable to create object");
 
@@ -211,8 +211,8 @@ static void test_circular()
 {
     json_t *object1, *object2;
 
-    object1 = json_object();
-    object2 = json_object();
+    object1 = jansson_object();
+    object2 = jansson_object();
     if(!object1 || !object2)
         fail("unable to create object");
 
@@ -239,7 +239,7 @@ static void test_set_nocheck()
 {
     json_t *object, *string;
 
-    object = json_object();
+    object = jansson_object();
     string = json_string("bar");
 
     if(!object)
@@ -284,7 +284,7 @@ static void test_iterators()
     if(json_object_iter_next(NULL, NULL))
         fail("able to increment an iterator on a NULL object");
 
-    object = json_object();
+    object = jansson_object();
     foo = json_string("foo");
     bar = json_string("bar");
     baz = json_string("baz");
@@ -358,7 +358,7 @@ static void test_misc()
 {
     json_t *object, *string, *other_string, *value;
 
-    object = json_object();
+    object = jansson_object();
     string = json_string("test");
     other_string = json_string("other");
 
@@ -475,7 +475,7 @@ static void test_preserve_order()
 
     const char *expected = "{\"foobar\": 1, \"bazquux\": 6, \"lorem ipsum\": 3, \"sit amet\": 5, \"helicopter\": 7}";
 
-    object = json_object();
+    object = jansson_object();
 
     json_object_set_new(object, "foobar", json_integer(1));
     json_object_set_new(object, "bazquux", json_integer(2));
@@ -509,7 +509,7 @@ static void test_object_foreach()
     json_t *object1, *object2, *value;
 
     object1 = json_pack("{sisisi}", "foo", 1, "bar", 2, "baz", 3);
-    object2 = json_object();
+    object2 = jansson_object();
 
     json_object_foreach(object1, key, value)
         json_object_set(object2, key, value);
@@ -541,7 +541,7 @@ static void test_object_foreach_safe()
 
 static void test_bad_args(void)
 {
-    json_t *obj = json_object();
+    json_t *obj = jansson_object();
     json_t *num = json_integer(1);
     void *iter;
 
@@ -573,7 +573,7 @@ static void test_bad_args(void)
         fail("json_object_set_new_nocheck with non-object argument did not return error");
     if(!json_object_set_new_nocheck(obj, "test", json_incref(obj)))
         fail("json_object_set_new_nocheck with object == value did not return error");
-    if(!json_object_set_new_nocheck(obj, NULL, json_object()))
+    if(!json_object_set_new_nocheck(obj, NULL, jansson_object()))
         fail("json_object_set_new_nocheck with NULL key did not return error");
 
     if(!json_object_del(NULL, "test"))

@@ -27,7 +27,7 @@ static void create_and_free_object_with_oom()
 {
     int i;
     char key[4];
-    json_t *obj = json_object();
+    json_t *obj = jansson_object();
 
     for (i = 0; i < 10; i++)
     {

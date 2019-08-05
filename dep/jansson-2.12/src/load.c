@@ -693,7 +693,7 @@ static json_t *parse_value(lex_t *lex, size_t flags, json_error_t *error);
 
 static json_t *parse_object(lex_t *lex, size_t flags, json_error_t *error)
 {
-    json_t *object = json_object();
+    json_t *object = jansson_object();
     if(!object)
         return NULL;
 

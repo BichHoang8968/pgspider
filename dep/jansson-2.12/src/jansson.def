@@ -31,7 +31,7 @@ EXPORTS
     json_array_remove
     json_array_clear
     json_array_extend
-    json_object
+    jansson_object
     json_object_size
     json_object_get
     json_object_set_new

@@ -31,7 +31,7 @@ void print_json(json_t *root);
 void print_json_aux(json_t *element, int indent);
 void print_json_indent(int indent);
 const char *json_plural(int count);
-void print_json_object(json_t *element, int indent);
+void print_jansson_object(json_t *element, int indent);
 void print_json_array(json_t *element, int indent);
 void print_json_string(json_t *element, int indent);
 void print_json_integer(json_t *element, int indent);
@@ -47,7 +47,7 @@ void print_json(json_t *root) {
 void print_json_aux(json_t *element, int indent) {
     switch (json_typeof(element)) {
     case JSON_OBJECT:
-        print_json_object(element, indent);
+        print_jansson_object(element, indent);
         break;
     case JSON_ARRAY:
         print_json_array(element, indent);
@@ -84,7 +84,7 @@ const char *json_plural(int count) {
     return count == 1 ? "" : "s";
 }
 
-void print_json_object(json_t *element, int indent) {
+void print_jansson_object(json_t *element, int indent) {
     size_t size;
     const char *key;
     json_t *value;
