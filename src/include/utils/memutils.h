@@ -86,6 +86,8 @@ extern void MemoryContextStats(MemoryContext context);
 extern void MemoryContextStatsDetail(MemoryContext context, int max_children);
 extern void MemoryContextAllowInCriticalSection(MemoryContext context,
 									bool allow);
+extern void MemoryContextDeleteNodes(MemoryContext context);
+extern void MemoryContextDeleteChildrenNodes(MemoryContext context);
 
 #ifdef MEMORY_CONTEXT_CHECKING
 extern void MemoryContextCheck(MemoryContext context);

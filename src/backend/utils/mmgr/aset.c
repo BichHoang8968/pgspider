@@ -252,7 +252,7 @@ typedef struct AllocSetFreeList
 } AllocSetFreeList;
 
 /* context_freelists[0] is for default params, [1] for small params */
-static AllocSetFreeList context_freelists[2] =
+static __thread AllocSetFreeList context_freelists[2] =
 {
 	{
 		0, NULL
@@ -270,6 +270,7 @@ static void AllocSetFree(MemoryContext context, void *pointer);
 static void *AllocSetRealloc(MemoryContext context, void *pointer, Size size);
 static void AllocSetReset(MemoryContext context);
 static void AllocSetDelete(MemoryContext context);
+static void AllocSetDeleteChild(MemoryContext context);
 static Size AllocSetGetChunkSpace(MemoryContext context, void *pointer);
 static bool AllocSetIsEmpty(MemoryContext context);
 static void AllocSetStats(MemoryContext context,
@@ -289,6 +290,7 @@ static const MemoryContextMethods AllocSetMethods = {
 	AllocSetRealloc,
 	AllocSetReset,
 	AllocSetDelete,
+	AllocSetDeleteChild,
 	AllocSetGetChunkSpace,
 	AllocSetIsEmpty,
 	AllocSetStats
@@ -324,6 +326,7 @@ static const unsigned char LogTable256[256] =
 #define AllocFreeInfo(_cxt, _chunk)
 #define AllocAllocInfo(_cxt, _chunk)
 #endif
+
 
 /* ----------
  * AllocSetFreeIndex -
@@ -696,6 +699,76 @@ AllocSetDelete(MemoryContext context)
 	/* Finally, free the context header, including the keeper block */
 	free(set);
 }
+
+static void
+AllocSetDeleteChild(MemoryContext context)
+{
+	AllocSet	set = (AllocSet) context;
+	AllocBlock	block = set->blocks;
+
+	AssertArg(AllocSetIsValid(set));
+
+#ifdef MEMORY_CONTEXT_CHECKING
+	/* Check for corruption and leaks before freeing */
+	AllocSetCheck(context);
+#endif
+
+	/*
+	 * If the context is a candidate for a freelist, put it into that freelist
+	 * instead of destroying it.
+	 */
+	if (set->freeListIndex >= 0)
+	{
+		AllocSetFreeList *freelist = &context_freelists[set->freeListIndex];
+
+		/*
+		 * Reset the context, if it needs it, so that we aren't hanging on to
+		 * more than the initial malloc chunk.
+		 */
+		if (!context->isReset)
+			MemoryContextResetOnly(context);
+
+		/*
+		 * If the freelist is full, just discard what's already in it.  See
+		 * comments with context_freelists[].
+		 */
+		while (freelist->first_free != NULL)
+		{
+			AllocSetContext *oldset = freelist->first_free;
+			freelist->first_free = (AllocSetContext *) oldset->header.nextchild;
+			freelist->num_free--;
+				/* All that remains is to free the header/initial block */
+			free(oldset);
+		}
+		Assert(freelist->num_free == 0);
+
+		/* Now add the just-deleted context to the freelist. */
+		set->header.nextchild = (MemoryContext) freelist->first_free;
+		freelist->first_free = set;
+		freelist->num_free++;
+		
+		return;
+	}
+
+	/* Free all blocks, except the keeper which is part of context header */
+	while (block != NULL)
+	{
+		AllocBlock	next = block->next;
+
+#ifdef CLOBBER_FREED_MEMORY
+		wipe_mem(block, block->freeptr - ((char *) block));
+#endif
+
+		if (block != set->keeper)
+			free(block);
+
+		block = next;
+	}
+
+	/* Finally, free the context header, including the keeper block */
+	free(set);
+}
+
 
 /*
  * AllocSetAlloc

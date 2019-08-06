@@ -104,18 +104,18 @@ SELECT sum(i),count(i),i FROM test1 group by i order by i;
 
 CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS(table_name 't1');
-SELECT * FROM t1;
-SELECT sum(i),t FROM t1 group by t;
-SELECT sum(i),t,count(i) FROM t1 group by t;
+SELECT * FROM t1 order by i;
+SELECT sum(i),t FROM t1 group by t order by sum(i);
+SELECT sum(i),t,count(i) FROM t1 group by t order by t;
 
-SELECT * FROM t1 WHERE i = 1;
-SELECT sum(i),t FROM t1 group by t;
-SELECT avg(i) FROM t1;
-SELECT sum(i),t FROM t1 WHERE i = 1 group by t;
-SELECT avg(i),sum(i) FROM t1;
-SELECT sum(i),sum(i) FROM t1;
-SELECT avg(i),t FROM t1 group by t;
-SELECT avg(i) FROM t1 group by i;
+SELECT * FROM t1 WHERE i = 1 order by i;
+SELECT sum(i),t FROM t1 group by t order by sum(i);
+SELECT avg(i) FROM t1 order by avg(i);
+SELECT sum(i),t FROM t1 WHERE i = 1 group by t order by sum(i);
+SELECT avg(i),sum(i) FROM t1 order by avg(i);
+SELECT sum(i),sum(i) FROM t1 order by sum(i);
+SELECT avg(i),t FROM t1 group by t order by avg(i);
+SELECT avg(i) FROM t1 group by i order by avg(i);
 
 SELECT * FROM (SELECT sum(i) FROM t1) A,(SELECT count(i) FROM t1) B;
 
@@ -244,3 +244,8 @@ DROP FOREIGN TABLE t1;
 DROP FOREIGN TABLE t2;
 DROP SERVER pgspider_svr CASCADE;
 DROP EXTENSION pgspider_core_fdw CASCADE;
+DROP EXTENSION postgres_fdw CASCADE;
+DROP EXTENSION file_fdw CASCADE;
+DROP EXTENSION sqlite_fdw CASCADE;
+DROP EXTENSION tinybrace_fdw CASCADE;
+DROP EXTENSION mysql_fdw CASCADE;

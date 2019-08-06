@@ -373,7 +373,7 @@ hash_create_orig(const char *tabname, long nelem, HASHCTL *info, int flags)
 
 	/* If we have a private context, label it with hashtable's name */
 	if (!(flags & HASH_SHARED_MEM))
-		MemoryContextSetIdentifier(CurrentDynaHashCxt, hashp->tabname);
+		MemoryContextSetIdentifier(CurrentDynaHashCxt, tabname);
 
 	/*
 	 * Select the appropriate hash function (see comments at head of file).

@@ -574,17 +574,17 @@ SELECT sum(i) FROM test1;
 
 SELECT avg(i) FROM test1;
        avg        
-------------------
- 2938.22222222222
+-----------------------
+ 2938.2222222222222222
 (1 row)
 
 SELECT avg(i),i FROM test1 group by i order by i;
   avg  |   i   
--------+-------
-     1 |     1
-   777 |   777
-  1111 |  1111
- 22222 | 22222
+------------------------+-------
+ 1.00000000000000000000 |     1
+   777.0000000000000000 |   777
+  1111.0000000000000000 |  1111
+     22222.000000000000 | 22222
 (4 rows)
 
 SELECT sum(i),count(i),i FROM test1 group by i order by i;
@@ -598,7 +598,7 @@ SELECT sum(i),count(i),i FROM test1 group by i order by i;
 
 CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS(table_name 't1');
-SELECT * FROM t1;
+SELECT * FROM t1 order by i;
  i | t | __spd_url  
 ---+---+------------
  1 | a | /post_svr/
@@ -607,15 +607,15 @@ SELECT * FROM t1;
  4 | c | /post_svr/
 (4 rows)
 
-SELECT sum(i),t FROM t1 group by t;
+SELECT sum(i),t FROM t1 group by t order by sum(i);
  sum | t 
 -----+---
    1 | a
-   5 | b
    4 | c
+   5 | b
 (3 rows)
 
-SELECT sum(i),t,count(i) FROM t1 group by t;
+SELECT sum(i),t,count(i) FROM t1 group by t order by t;
  sum | t | count 
 -----+---+-------
    1 | a |     1
@@ -623,59 +623,59 @@ SELECT sum(i),t,count(i) FROM t1 group by t;
    4 | c |     1
 (3 rows)
 
-SELECT * FROM t1 WHERE i = 1;
+SELECT * FROM t1 WHERE i = 1 order by i;
  i | t | __spd_url  
 ---+---+------------
  1 | a | /post_svr/
 (1 row)
 
-SELECT sum(i),t FROM t1 group by t;
+SELECT sum(i),t FROM t1 group by t order by sum(i);
  sum | t 
 -----+---
    1 | a
-   5 | b
    4 | c
+   5 | b
 (3 rows)
 
-SELECT avg(i) FROM t1;
+SELECT avg(i) FROM t1 order by avg(i);
  avg 
------
- 2.5
+--------------------
+ 2.5000000000000000
 (1 row)
 
-SELECT sum(i),t FROM t1 WHERE i = 1 group by t;
+SELECT sum(i),t FROM t1 WHERE i = 1 group by t order by sum(i);
  sum | t 
 -----+---
    1 | a
 (1 row)
 
-SELECT avg(i),sum(i) FROM t1;
+SELECT avg(i),sum(i) FROM t1 order by avg(i);
  avg | sum 
------+-----
- 2.5 |  10
+--------------------+-----
+ 2.5000000000000000 |  10
 (1 row)
 
-SELECT sum(i),sum(i) FROM t1;
+SELECT sum(i),sum(i) FROM t1 order by sum(i);
  sum | sum 
 -----+-----
   10 |  10
 (1 row)
 
-SELECT avg(i),t FROM t1 group by t;
+SELECT avg(i),t FROM t1 group by t order by avg(i);
  avg | t 
------+---
-   1 | a
- 2.5 | b
-   4 | c
+------------------------+---
+ 1.00000000000000000000 | a
+     2.5000000000000000 | b
+     4.0000000000000000 | c
 (3 rows)
 
-SELECT avg(i) FROM t1 group by i;
+SELECT avg(i) FROM t1 group by i order by avg(i);
  avg 
------
-   3
-   4
-   2
-   1
+------------------------
+ 1.00000000000000000000
+     2.0000000000000000
+     3.0000000000000000
+     4.0000000000000000
 (4 rows)
 
 SELECT * FROM (SELECT sum(i) FROM t1) A,(SELECT count(i) FROM t1) B;
@@ -1160,3 +1160,40 @@ NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to user mapping for public on server pgspider_svr
 drop cascades to foreign table test1_1
 DROP EXTENSION pgspider_core_fdw CASCADE;
+DROP EXTENSION postgres_fdw CASCADE;
+NOTICE:  drop cascades to 15 other objects
+DETAIL:  drop cascades to server post_svr
+drop cascades to user mapping for public on server post_svr
+drop cascades to foreign table test1__post_svr__0
+drop cascades to foreign table test1_1__post_svr__0
+drop cascades to foreign table t1__post_svr__0
+drop cascades to foreign table t2__post_svr__0
+drop cascades to foreign table t2__post_svr__1
+drop cascades to foreign table t2__post_svr__2
+drop cascades to foreign table t2__post_svr__3
+drop cascades to server post_svr2
+drop cascades to user mapping for public on server post_svr2
+drop cascades to foreign table t2__post_svr2__0
+drop cascades to server post_svr3
+drop cascades to user mapping for public on server post_svr3
+drop cascades to foreign table t2__post_svr3__0
+DROP EXTENSION file_fdw CASCADE;
+DROP EXTENSION sqlite_fdw CASCADE;
+NOTICE:  drop cascades to 3 other objects
+DETAIL:  drop cascades to server sqlite_svr
+drop cascades to foreign table test1__sqlite_svr__0
+drop cascades to foreign table test1_1__sqlite_svr__0
+DROP EXTENSION tinybrace_fdw CASCADE;
+NOTICE:  drop cascades to 4 other objects
+DETAIL:  drop cascades to server tiny_svr
+drop cascades to user mapping for public on server tiny_svr
+drop cascades to foreign table test1__tiny_svr__0
+drop cascades to foreign table test1_1__tiny_svr__0
+DROP EXTENSION mysql_fdw CASCADE;
+NOTICE:  drop cascades to 6 other objects
+DETAIL:  drop cascades to server mysql_svr
+drop cascades to user mapping for public on server mysql_svr
+drop cascades to foreign table test1__mysql_svr__0
+drop cascades to foreign table test1_1__mysql_svr__0
+drop cascades to server mysql_svr2
+drop cascades to user mapping for public on server mysql_svr2
