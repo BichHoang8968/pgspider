@@ -4235,7 +4235,7 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 
 	/* Create tuple  descriptor */
 	TupleDesc	tuple_desc = CreateTemplateTupleDesc(list_length(fdw_private->child_comp_tlist), false);
-	Assert(list_length(fdw_private->mapping_tlist) == list_length(child_comp_tlist));
+	Assert(list_length(fdw_private->mapping_tlist) == list_length(fdw_private->child_comp_tlist));
 
 	foreach(lc, mapping_tlist)
 	{
@@ -4254,7 +4254,7 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 			colid++;
 		}
 	}
-	Assert(colid == list_length(child_comp_tlist));
+	Assert(colid == list_length(fdw_private->child_comp_tlist));
 	/* Construct TupleDesc, and assign a local typmod. */
 	tuple_desc = BlessTupleDesc(tuple_desc);
 	/* End create tuple descriptor */
