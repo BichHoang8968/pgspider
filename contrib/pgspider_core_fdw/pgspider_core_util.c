@@ -50,7 +50,7 @@ char *slot_list_nth(SlotList * list, int colid)
 			return cell->val;
 		}
 	}
-	return NULL;
+	return "NULL";
 }
 
 /* Remove duplicate item from an array */

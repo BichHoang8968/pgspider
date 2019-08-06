@@ -1551,15 +1551,15 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
 /* Remove __spd_url from group clause lists */
 static List *
 remove_spdurl_from_group_clause_list(List *tlist, List *groupClauseList, PlannerInfo *root){
-	ListCell *glitem = NULL;
+	ListCell *lc;
 
 	if (groupClauseList == NULL)
 		return NULL;
 
-	foreach(glitem, groupClauseList)
+	for ((lc) = list_head(groupClauseList); (lc) != NULL;)
 	{
-		SortGroupClause *groupcl = (SortGroupClause *) lfirst(glitem);
-		TargetEntry *tle = get_sortgroupclause_tle(groupcl, tlist);
+		SortGroupClause *sgc = (SortGroupClause *) lfirst(lc);
+		TargetEntry *tle = get_sortgroupclause_tle(sgc, tlist);
 		if (IsA(tle->expr, Var))
 		{
 			Var		   *var = (Var *) tle->expr;
@@ -1569,9 +1569,12 @@ remove_spdurl_from_group_clause_list(List *tlist, List *groupClauseList, Planner
 			rte = planner_rt_fetch(var->varno, root);
 			colname = get_relid_attribute_name(rte->relid, var->varattno);
 			if (strcmp(colname, SPDURL) ==0){
-				groupClauseList = list_delete_ptr(groupClauseList, groupcl);
+				lc = lnext(lc);
+				groupClauseList = list_delete_ptr(groupClauseList, sgc);
+				continue;
 			}
 		}
+		lc = lnext(lc);
 	}
 	return groupClauseList;
 }
@@ -3544,7 +3547,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 						if (child_attr != mapcels->mapping_tlist.mapping[j])
 							continue;
 
-						ent = list_nth(childinfo[i].child_tlist, child_attr);
+						ent = (TargetEntry*)list_nth(childinfo[i].child_tlist, child_attr);
 						/* Get colname from estate */
 						if (IsA(ent->expr, Var)){
 							Var	   *var = (Var *) ent->expr;
@@ -4235,7 +4238,6 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 
 	/* Create tuple  descriptor */
 	TupleDesc	tuple_desc = CreateTemplateTupleDesc(list_length(fdw_private->child_comp_tlist), false);
-	Assert(list_length(fdw_private->mapping_tlist) == list_length(fdw_private->child_comp_tlist));
 
 	foreach(lc, mapping_tlist)
 	{
@@ -4248,7 +4250,7 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 			if (colid != mapcels->mapping_tlist.mapping[j])
 				continue;
 
-			ent = list_nth(fdw_private->child_comp_tlist, colid);
+			ent = (TargetEntry*)list_nth(fdw_private->child_comp_tlist, colid);
 
 			TupleDescInitEntry(tuple_desc, colid + 1, NULL, exprType((Node *) ent->expr), -1, 0);
 			colid++;
