@@ -15,7 +15,7 @@ typedef struct SlotListCell
 {
 	struct SlotListCell *next;
 	int			colid;
-	char		*val;	/* variable length string */
+	char		val[FLEXIBLE_ARRAY_MEMBER];	/* variable length string */
 }			SlotListCell;
 
 typedef struct SlotList

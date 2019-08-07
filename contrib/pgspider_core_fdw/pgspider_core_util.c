@@ -18,9 +18,7 @@
 void slot_list_append(SlotList * list, const char *val, int colid)
 {
 	SlotListCell *cell;
-
-	cell = (SlotListCell *)palloc0(sizeof(SlotListCell));
-	cell->val = (char*)palloc0(strlen(val) + 1);
+	cell = (SlotListCell *)palloc0(offsetof(SlotListCell, val) + strlen(val) + 1);
 
 	cell->next = NULL;
 	cell->colid = colid;
@@ -36,7 +34,7 @@ void slot_list_append(SlotList * list, const char *val, int colid)
 
 
 /*
- * Get value in the list at colid
+ * Get value in the list at nth position
  *
  */
 char *slot_list_nth(SlotList * list, int colid)

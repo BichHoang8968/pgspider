@@ -3766,7 +3766,6 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, int count, Sp
 	Oid			typoutput;
 	bool		typisvarlena;
 	int			child_typid;
-	char		temp[QUERY_LENGTH];
 
 	PG_TRY();
 	{
@@ -3824,11 +3823,6 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, int count, Sp
 					else
 						value = "false";
 				}
-
-				if (child_typid == DATEOID || child_typid == TEXTOID || child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID){
-					sprintf(temp, "\'%s\'", value);
-					strcpy(value, temp);
-				}
 				slot_list_append(&sql_data, value, mapping_oricolid[i]);
 			}else
 				slot_list_append(&sql_data, "NULL", mapping_oricolid[i]);
@@ -3851,7 +3845,20 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, int count, Sp
 					isfirst = FALSE;
 				else
 					appendStringInfo(sql, ",");
-				appendStringInfo(sql, " %s", slot_list_nth(&sql_data, colid + 1));
+
+				/* Get index of column in the new tuple descriptor */
+				for (j = 0; j < nsize; j++)
+					if (colid + 1 == mapping_oricolid[j])
+						break;
+				child_typid = child_tlist_type(fdw_private, fssThrdInfo, j);
+
+				if (child_typid == DATEOID || child_typid == TEXTOID || child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID){
+					appendStringInfo(sql, "'");
+					appendStringInfo(sql, "%s", slot_list_nth(&sql_data, colid + 1));
+					appendStringInfo(sql, "'");
+				}else{
+					appendStringInfo(sql, "%s", slot_list_nth(&sql_data, colid + 1));
+				}
 				colid++;
 			}
 		}
