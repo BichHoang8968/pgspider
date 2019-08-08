@@ -96,26 +96,49 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM test1 IN ('/post_svr/');
 -- only __spd_url target list is OK
 SELECT __spd_url FROM test1 ORDER BY __spd_url;
 
+SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT __spd_url, avg(i) FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT __spd_url, sum(i) FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+
 SELECT sum(i) FROM test1;
 
 SELECT avg(i) FROM test1;
 SELECT avg(i),i FROM test1 group by i order by i;
 SELECT sum(i),count(i),i FROM test1 group by i order by i;
 
+SELECT avg(i), count(i) FROM test1 group by i;
+
 CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS(table_name 't1');
-SELECT * FROM t1 order by i;
-SELECT sum(i),t FROM t1 group by t order by sum(i);
-SELECT sum(i),t,count(i) FROM t1 group by t order by t;
+SELECT * FROM t1;
+SELECT * FROM t1 WHERE __spd_url='/post_svr/' and i = 1 and t = 'a';
+SELECT sum(i),t FROM t1 group by t;
+SELECT sum(i),t,count(i) FROM t1 group by t;
 
-SELECT * FROM t1 WHERE i = 1 order by i;
-SELECT sum(i),t FROM t1 group by t order by sum(i);
-SELECT avg(i) FROM t1 order by avg(i);
-SELECT sum(i),t FROM t1 WHERE i = 1 group by t order by sum(i);
-SELECT avg(i),sum(i) FROM t1 order by avg(i);
-SELECT sum(i),sum(i) FROM t1 order by sum(i);
-SELECT avg(i),t FROM t1 group by t order by avg(i);
-SELECT avg(i) FROM t1 group by i order by avg(i);
+SELECT * FROM t1 WHERE i = 1;
+SELECT sum(i),t FROM t1 group by t;
+SELECT avg(i) FROM t1;
+SELECT sum(i),t FROM t1 WHERE i = 1 group by t;
+SELECT avg(i),sum(i) FROM t1;
+SELECT sum(i),sum(i) FROM t1;
+SELECT avg(i),t FROM t1 group by t;
+SELECT avg(i) FROM t1 group by i;
+
+SELECT avg(i), count(i) FROM t1 GROUP BY i;
+SELECT t, avg(i), t FROM t1 GROUP BY i, t;
+
+SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t;
+SELECT i, __spd_url FROM t1 GROUP BY __spd_url, i;
+SELECT __spd_url, i FROM t1 GROUP BY __spd_url, i;
+SELECT avg(i), __spd_url FROM t1 GROUP BY __spd_url, i;
+SELECT __spd_url, avg(i) FROM t1 GROUP BY __spd_url, i;
+SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i;
+SELECT __spd_url, sum(i) FROM t1 GROUP BY __spd_url, i;
+SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i;
+SELECT __spd_url, avg(i), sum(i), __spd_url FROM t1 GROUP BY __spd_url, i;
 
 SELECT * FROM (SELECT sum(i) FROM t1) A,(SELECT count(i) FROM t1) B;
 
@@ -132,6 +155,37 @@ SELECT count(t) FROM t3;
 SELECT count(t2) FROM t3;
 SELECT count(i) FROM t3;
 
+SELECT * FROM t3;
+-- test target list push down for mysql fdw
+-- push down abs(-i*2) and i+1
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT abs(-i*2), i+1, i, i FROM t3;
+SELECT abs(-i*2), i+1, i, i FROM t3;
+
+-- can't push down abs(A.i) in join case
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT abs(A.i) FROM t3 A, t3 B LIMIT 3;
+SELECT abs(A.i) FROM t3 A, t3 B LIMIT 3;
+
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT abs(i) c1 FROM t3 UNION SELECT abs(i+1) FROM t3 ORDER BY c1;
+SELECT abs(i) c1 FROM t3 UNION SELECT abs(i+1) FROM t3 ORDER BY c1;
+
+SELECT i+1, __spd_url FROM t3;
+SELECT i, __spd_url FROM t3 ORDER BY i, __spd_url;
+SELECT i FROM t3 ORDER BY __spd_url;
+
+-- can't push down i+1 because test1 includes fdws other than mysql fdw
+EXPLAIN (VERBOSE, COSTS OFF) 
+SELECT i+1,__spd_url FROM test1 ORDER BY __spd_url, i;
+SELECT i+1,__spd_url FROM test1  ORDER BY __spd_url, i;
+SELECT __spd_url,i FROM test1 ORDER BY __spd_url, i;
+
+-- t is not included in target list, but is pushed down, it is OK
+select t from t3 where i  = 1;
+
+-- t is not included and cannot be pushed down, so it is error
+-- select i from t3 where t COLLATE "ja_JP.utf8" = 'aa';
 
 -- error stack test
 CREATE SERVER mysql_svr2 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
@@ -174,7 +228,6 @@ SELECT count(t) FROM t3;
 DROP FOREIGN TABLE t3;
 DROP FOREIGN TABLE t3__mysql_svr__0;
 DROP FOREIGN TABLE t3__mysql_svr2__0;
-
 -- wrong result:
 -- SELECT sum(i),t  FROM t1 group by t having sum(i) > 2;
 --  sum | t 
@@ -183,20 +236,18 @@ DROP FOREIGN TABLE t3__mysql_svr2__0;
 --    5 | b
 --    4 | c
 -- (3 rows)
-
--- wrong result and warning:
--- SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t;
--- WARNING:  dummy plan list failed
---   t | __spd_url 
---  ---+-----------
---  (0 rows)
-
 CREATE FOREIGN TABLE t2 (i int, t text, a text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t2__post_svr__0 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 SELECT i,t,a FROM t2 ORDER BY i,__spd_url;
 CREATE FOREIGN TABLE t2__post_svr__1 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 CREATE FOREIGN TABLE t2__post_svr__2 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 CREATE FOREIGN TABLE t2__post_svr__3 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+
+-- random cannot be pushed down and i=2 is pushed down
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM t2 WHERE i=2 AND random() < 2.0;
+SELECT * FROM t2 WHERE i=2 AND random() < 2.0;
+
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 SELECT a,i, __spd_url, t FROM t2 ORDER BY i,t,a,__spd_url;
 
@@ -244,8 +295,3 @@ DROP FOREIGN TABLE t1;
 DROP FOREIGN TABLE t2;
 DROP SERVER pgspider_svr CASCADE;
 DROP EXTENSION pgspider_core_fdw CASCADE;
-DROP EXTENSION postgres_fdw CASCADE;
-DROP EXTENSION file_fdw CASCADE;
-DROP EXTENSION sqlite_fdw CASCADE;
-DROP EXTENSION tinybrace_fdw CASCADE;
-DROP EXTENSION mysql_fdw CASCADE;

@@ -87,12 +87,13 @@ typedef struct ForeignScanThreadInfo
 	int			eflags;			/* it used to set on Plan nodes(bitwise OR of
 								 * the flag bits ) */
 	Oid			serverId;		/* use it for server id */
+	ForeignServer		*foreignServer;	/* cache this for performance */
+	ForeignDataWrapper	*fdw;	/* cache this for performance */
 	bool		iFlag;			/* use it for iteration scan */
 	bool		EndFlag;		/* use it for end scan */
 	bool		queryRescan;
 	struct TupleTableSlot *tuple;	/* use it for storing tuple, which is
 									 * retrieved from the DS */
-	int			nodeIndex;		/* Index of the node */
 	int			childInfoIndex;		/* index of child info array */
 	MemoryContext threadMemoryContext;
 	MemoryContext threadTopMemoryContext;

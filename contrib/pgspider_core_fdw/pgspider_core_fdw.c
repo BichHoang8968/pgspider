@@ -310,6 +310,9 @@ typedef struct SpdFdwPrivate
 	char	   *temp_table_name;	/* name of temp table */
 	List       *upper_targets;
 	bool		is_explain;		/* explain or not */
+	int			idx_url_tlist;	/* index of __spd_url in tlist. -1 if not used */
+	bool		is_pushdown_tlist;	/* pushed down target list or not. For
+									 * aggregation, always false */
 }			SpdFdwPrivate;
 
 /* postgresql.conf paramater */
@@ -908,9 +911,6 @@ spd_aliveError(ForeignServer *fs)
 static void
 spd_ErrorCb(void *arg)
 {
-	pthread_mutex_lock(&error_mutex);
-	//FlushErrorState();
-	pthread_mutex_unlock(&error_mutex);
 }
 
 /**
@@ -947,7 +947,6 @@ spd_ForeignScan_thread(void *arg)
 
 	CurrentResourceOwner = fssthrdInfo->thrd_ResourceOwner;
 	TopMemoryContext = fssthrdInfo->threadTopMemoryContext;
-
 #ifdef MEASURE_TIME
 	gettimeofday(&s, NULL);
 #endif
@@ -958,8 +957,8 @@ spd_ForeignScan_thread(void *arg)
 	errcallback.previous = NULL;
 	error_context_stack = &errcallback;
 
-
 	/* Begin Foreign Scan */
+	MemoryContextSwitchTo(fssthrdInfo->threadMemoryContext);
 	fssthrdInfo->state = SPD_FS_STATE_BEGIN;
 	PG_TRY();
 	{
@@ -991,6 +990,7 @@ spd_ForeignScan_thread(void *arg)
 		goto THREAD_EXIT;
 	}
 RESCAN:
+	MemoryContextStats(fssthrdInfo->threadMemoryContext);
 
 	/*
 	 * Do rescan after return .. If Rescan is queried before iteration, just
@@ -1053,7 +1053,6 @@ RESCAN:
 					SPD_LOCK_TRY(&scan_mutex);
 					slot = fssthrdInfo->fdwroutine->IterateForeignScan(fssthrdInfo->fsstate);
 					SPD_UNLOCK_CATCH(&scan_mutex);
-
 				}
 
 				if (slot == NULL || slot->tts_isempty)
@@ -1483,39 +1482,101 @@ check_basestrictinfo(PlannerInfo *root, ForeignDataWrapper *fdw, RelOptInfo *ent
 	}
 }
 
-/* Remove __spd_url from target lists */
+
+/**
+ * remove_spdurl_from_targets
+ *
+ * Remove __spd_url from target lists and if spd_url found,
+ * save index to "url_idx".
+ */
 static List *
-remove_spdurl_from_targets(List *exprs, PlannerInfo *root)
+remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
+						   bool is_target_entry, int *url_idx)
 {
 	ListCell   *lc;
+	int			i = 0;
 
+	*url_idx = -1;
 	/* Cannot use foreach because we modify exprs in the loop */
 	for ((lc) = list_head(exprs); (lc) != NULL;)
 	{
 		RangeTblEntry *rte;
 		char	   *colname;
 		Node	   *node = (Node *) lfirst(lc);
+		Node	   *varnode;
 
-		if (IsA(node, Var))
+		if (is_target_entry)
 		{
-			Var		   *var = (Var *) node;
+			Assert(IsA(node, TargetEntry));
+			varnode = (Node *) (((TargetEntry *) node)->expr);
+		}
+		else
+		{
+			Assert(!IsA(node, TargetEntry));
+			varnode = node;
+		}
+
+		if (IsA(varnode, Var))
+		{
+			Var		   *var = (Var *) varnode;
 
 			rte = planner_rt_fetch(var->varno, root);
 			colname = get_attname(rte->relid, var->varattno,false);
 
 			if (strcmp(colname, SPDURL) == 0)
 			{
-				ListCell   *temp = lc;
+				/* TODO: Allow multiple __spd_url */
+				if (*url_idx != -1)
+					elog(ERROR, "Using __spd_url multiple times is not allowed");
 
+				*url_idx = i;
 				lc = lnext(lc);
-				exprs = list_delete_ptr(exprs, lfirst(temp));
+				exprs = list_delete_ptr(exprs, node);
+
 				continue;
 			}
 		}
 		lc = lnext(lc);
+		i++;
 	}
 	return exprs;
 }
+
+/**
+ * groupby_has_spdurl
+ *
+ * Check whether SPDURL existing in GROUP BY
+ *
+ * @param[in] root - Root planner info
+ *
+ */
+static bool
+groupby_has_spdurl(PlannerInfo *root)
+{
+	List 		*target_list = root->parse->targetList;
+	List		*group_clause = root->parse->groupClause;
+	ListCell 	*lc;
+	char	    *colname;
+	RangeTblEntry	*rte;
+
+	foreach (lc, group_clause){
+		SortGroupClause *sgc = (SortGroupClause*) lfirst(lc);
+		TargetEntry *te = get_sortgroupclause_tle(sgc, target_list);
+		if (te == NULL)
+			return false;
+		/* Check SPDURL in the target entry*/
+		if (IsA(te->expr, Var)){
+			Var *var = (Var*) te->expr;
+			rte = planner_rt_fetch(var->varno, root);
+			colname = get_attname(rte->relid, var->varattno,false);
+
+			if (strcmp(colname, SPDURL) == 0)
+				return true;
+		}
+	}
+	return false;
+}
+
 
 /**
  * spd_CreateDummyRoot
@@ -1623,7 +1684,8 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Oid *oid, int oid_nu
 		/* Remove __spd_url from target lists if a child is not pgspider_fdw */
 		if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
 		{
-			entry_baserel->reltarget->exprs = remove_spdurl_from_targets(entry_baserel->reltarget->exprs, root);
+			entry_baserel->reltarget->exprs = remove_spdurl_from_targets(entry_baserel->reltarget->exprs,
+																		 root, false, &fdw_private->idx_url_tlist);
 		}
 
 		/*
@@ -1993,9 +2055,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	 * Prepare SpdFdwPrivate for output RelOptInfo. spd_AllocatePrivate do
 	 * zero clear
 	 */
-	//MemoryContextSwitchTo(oldcontext);
 	fdw_private = spd_AllocatePrivate();
-	//oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	fdw_private->node_num = in_fdw_private->node_num;
 	fdw_private->in_flag = in_fdw_private->in_flag;
 	fdw_private->agg_query = true;
@@ -2040,9 +2100,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			newList = lappend(newList, temp_expr);
 		}
 	}
-	//spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = list_copy(fdw_private->upper_targets);
 	spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = list_copy(newList);
- 
 	fdw_private->childinfo = in_fdw_private->childinfo;
 	fdw_private->rinfo.pushdown_safe = false;
 	output_rel->fdw_private = fdw_private;
@@ -2089,7 +2147,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				dummy_output_rel->reltarget = copy_pathtarget(output_rel->reltarget);
 				dummy_output_rel->reltarget->exprs = list_copy(fdw_private->upper_targets);
 
-			    //dummy_root_child->upper_targets = create_empty_pathtarget();
 				dummy_root_child->upper_rels[UPPERREL_GROUP_AGG] =
 					lappend(dummy_root_child->upper_rels[UPPERREL_GROUP_AGG],
 							dummy_output_rel);
@@ -2110,12 +2167,13 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				foreach(lc, fdw_private->child_comp_tlist)
 				{
 					TargetEntry *tmp_entry = (TargetEntry *) lfirst(lc);
-					//elog(INFO,"%d %d",listn,tmp_entry->ressortgroupref);
-					sortgrouprefs[listn++] = tmp_entry->ressortgroupref;
+				    sortgrouprefs[listn++] = tmp_entry->ressortgroupref;
 				}
-
 			    dummy_root_child->upper_targets[UPPERREL_GROUP_AGG]->sortgrouprefs = sortgrouprefs;
 				dummy_output_rel->reltarget->sortgrouprefs = sortgrouprefs;
+				fdwroutine->GetForeignUpperPaths(dummy_root_child,
+												 stage, entry,
+												 dummy_output_rel,extra);
 			}
 			else
 			{
@@ -2143,7 +2201,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 					copy_pathtarget(spd_root->upper_targets[UPPERREL_WINDOW]);
 				dummy_root_child->upper_targets[UPPERREL_FINAL] =
 					copy_pathtarget(spd_root->upper_targets[UPPERREL_FINAL]);
-				//oldcontext = MemoryContextSwitchTo(MessageContext);
 			}
 			if (dummy_output_rel->pathlist != NULL)
 			{
@@ -2288,6 +2345,10 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 	List	   *mapping_tlist = NIL;
 	List	   *compress_child_tlist = NIL;
 	List	   *upper_targets = NIL;
+	
+	/* We don't push down GROUP BY and Aggregate function if having SPDURL */
+	if (groupby_has_spdurl(root))
+		return false;
 
 	/* Grouping Sets are not pushable */
 	if (query->groupingSets)
@@ -2818,73 +2879,54 @@ spd_createPushDownPlan(List *tlist, bool isUnPushdown, SpdFdwPrivate * fdw_priva
 	return dummy_tlist;
 }
 
+static bool
+check_spdurl_walker(Node *node, PlannerInfo *root)
+		{
+	if (node == NULL)
+		return false;
+
+	if (IsA(node, Var))
+			{
+				Var		   *var = (Var *) node;
+				char	   *colname;
+				RangeTblEntry *rte;
+
+				rte = planner_rt_fetch(var->varno, root);
+				colname = get_attname(rte->relid, var->varattno,false);
+				if (strcmp(colname, SPDURL) == 0)
+		{
+			/* stop search and return true */
+			return true;
+		}
+				else
+			return false;
+	}
+	return expression_tree_walker(node, check_spdurl_walker, (void *) root);
+			}
+
 /**
  * spd_checkurl_clauses
  *
- * Build aggregation plan for each push down cases.
- * saving each foreign plan into base rel list
- *
- * @param[in] scan_clauses -
- * @param[in] root
- * @param[in] baserestrictinfo -
- * @param[out] agg_query          - aggregation flag
- * @param[out] fdw_private        - Push down type list
- *
+ * search for spd_url
  */
-
 static void
-spd_checkurl_clauses(List *scan_clauses, List **push_scan_clauses, PlannerInfo *root, List *baserestrictinfo)
-{
+spd_checkurl_clauses(List *scan_clauses, PlannerInfo *root, List *baserestrictinfo, List **push_scan_clauses)
+			{
 	ListCell   *lc;
 
 	foreach(lc, scan_clauses)
 	{
 		RestrictInfo *clause = (RestrictInfo *) lfirst(lc);
 		Expr	   *expr = (Expr *) clause->clause;
-		ListCell   *arg;
 
-		if (nodeTag(expr) == T_OpExpr)
-		{
-			OpExpr	   *node = (OpExpr *) clause->clause;
-			Expr	   *expr2;
-
-			/* Deparse left operand. */
-			arg = list_head(node->args);
-			expr2 = (Expr *) lfirst(arg);
-			if (nodeTag(expr2) == T_Var)
-			{
-				Var		   *var = (Var *) expr2;
-				char	   *colname;
-				RangeTblEntry *rte;
-
-				rte = planner_rt_fetch(var->varno, root);
-				colname = get_attname(rte->relid, var->varattno, false);
-
-				if (strcmp(colname, SPDURL) == 0)
-					*push_scan_clauses = NULL;
-
-				else
-					*push_scan_clauses = baserestrictinfo;
-			}
-			/* Deparse right operand */
-			arg = list_tail(node->args);
-			expr2 = (Expr *) lfirst(arg);
-			if (nodeTag(expr2) == T_Var)
-			{
-				Var		   *var = (Var *) expr2;
-				char	   *colname;
-				RangeTblEntry *rte;
-
-				rte = planner_rt_fetch(var->varno, root);
-				colname = get_attname(rte->relid, var->varattno,false);
-
-				if (strcmp(colname, SPDURL) == 0)
+		if (expression_tree_walker((Node *) expr, check_spdurl_walker, root))
 				{
+			/* don't pushdown *all* where caluses if spd_url is found */
 					*push_scan_clauses = NULL;
+			return;
 				}
 			}
-		}
-	}
+	*push_scan_clauses = baserestrictinfo;
 }
 
 /**
@@ -2919,7 +2961,8 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	ListCell   *lc;
 	ChildInfo  *childinfo;
 	ForeignServer *fs;
-	ForeignScan *temp;
+	bool		pushdown_all_tlist;
+	ForeignDataWrapper *fdw;
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	if (fdw_private == NULL)
@@ -2939,20 +2982,38 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		foreach(lc, fdw_private->groupby_target)
 		{
 			int			cl = lfirst_int(lc);
-			char	   *colname = NULL;
 
 			if (!first)
 				appendStringInfoString(fdw_private->groupby_string, ", ");
 			first = false;
 
-			appendStringInfoString(fdw_private->groupby_string, "(");
-
-			colname = psprintf("col%d", cl);
-			appendStringInfoString(fdw_private->groupby_string, colname);
-			appendStringInfoString(fdw_private->groupby_string, ")");
+			appendStringInfo(fdw_private->groupby_string, "col%d", cl);
 		}
 	}
 	childinfo = fdw_private->childinfo;
+
+	/*
+	 * We enable target list pushdown if all nodes are mysql_fdw. This is
+	 * temporary solution
+	 */
+	if (IS_SIMPLE_REL(baserel))
+	{
+		pushdown_all_tlist = true;
+		for (i = 0; i < fdw_private->node_num; i++)
+		{
+			if (childinfo[i].child_node_status != ServerStatusAlive)
+				continue;
+			fs = GetForeignServer(childinfo[i].server_oid);
+			fdw = GetForeignDataWrapper(fs->fdwid);
+			if (strcmp(fdw->fdwname, "mysql_fdw") != 0)
+				pushdown_all_tlist = false;
+		}
+	}
+	else
+	{
+		pushdown_all_tlist = false;
+	}
+
 	/* Create Foreign Plans using base_rel_list to each child. */
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
@@ -2969,24 +3030,11 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		server_oid = childinfo[i].server_oid;
 
 		fdwroutine = GetFdwRoutineByServerId(server_oid);
+		fs = GetForeignServer(server_oid);
+		fdw = GetForeignDataWrapper(fs->fdwid);
 
 		PG_TRY();
 		{
-			/*
-			 * For can not aggregation pushdown FDW's. push down quals when
-			 * aggregation is occurred
-			 */
-			if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
-				push_scan_clauses = fdw_private->baserestrictinfo;
-			else
-				push_scan_clauses = scan_clauses;
-
-			/*
-			 * check scan_clauses include "__spd_url" If include "__spd_url"
-			 * in WHERE clauses, then NOT pushdown all caluses.
-			 */
-			spd_checkurl_clauses(scan_clauses, &push_scan_clauses, root, fdw_private->baserestrictinfo);
-
 			/* create plan */
 			if (childinfo[i].grouped_rel_local != NULL)
 			{
@@ -2994,6 +3042,8 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				struct Path *child_path;
 
 				Assert(childinfo[i].grouped_rel_local->pathlist);
+				/* FDWs expect NULL scan clauses for UPPER REL */
+				push_scan_clauses = NULL;
 				/* Pick any agg path */
 				child_path = lfirst(list_head(childinfo[i].grouped_rel_local->pathlist));
 				temptlist = PG_build_path_tlist((PlannerInfo *) childinfo[i].root, child_path);
@@ -3007,13 +3057,41 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			}
 			else
 			{
-				/* Non agg query or not push down agg case */
+				/*
+				 * For non agg query or not push down agg case, do same thing
+				 * as create_scan_plan() to generate target list
+				 */
 
-				/* Do same thing as create_scan_plan() */
+				/* Add all columns of the table */
 				temptlist = (List *) build_physical_tlist(childinfo[i].root, childinfo[i].baserel);
 				if (!IS_SIMPLE_REL(baserel) && root->parse->groupClause != NULL)
 					apply_pathtarget_labeling_to_tlist(temptlist, ((Path *) best_path)->pathtarget);
-				childinfo[i].baserel->reltarget->exprs = temptlist;
+
+				/*
+				 * Remove __spd_url from target lists if a child is not
+				 * pgspider_fdw
+				 */
+				if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0 && IS_SIMPLE_REL(baserel))
+					temptlist = remove_spdurl_from_targets(list_copy(tlist), root,
+														   true, &fdw_private->idx_url_tlist);
+
+				/* mysql-fdw decide push down tlist or not based on this */
+				childinfo[i].baserel->is_tlist_pushdown = pushdown_all_tlist;
+
+				/*
+				 * For can not aggregation pushdown FDW's. push down quals
+				 * when aggregation is occurred
+				 */
+				if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
+					push_scan_clauses = fdw_private->baserestrictinfo;
+
+				/*
+				 * check scan_clauses include "__spd_url" If include
+				 * "__spd_url" in WHERE clauses, then NOT pushdown all
+				 * caluses.
+				 */
+				spd_checkurl_clauses(scan_clauses, root, fdw_private->baserestrictinfo, &push_scan_clauses);
+
 				fsplan = fdwroutine->GetForeignPlan((PlannerInfo *) childinfo[i].root,
 													(RelOptInfo *) childinfo[i].baserel,
 													oid[i],
@@ -3021,8 +3099,9 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 													temptlist,
 													push_scan_clauses,
 													outer_plan);
-				childinfo[i].scan_relid = childinfo[i].baserel->relid;
 			}
+			childinfo[i].scan_relid = childinfo[i].baserel->relid;
+
 		}
 		PG_CATCH();
 		{
@@ -3031,7 +3110,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			 * fdw_private->child_table_alive to FALSE
 			 */
 			childinfo[i].child_node_status = ServerStatusDead;
-			elog(WARNING, "dummy plan list failed ");
+			elog(WARNING, "GetForeignPlan failed ");
 			FlushErrorState();
 			if (throwErrorIfDead)
 			{
@@ -3070,8 +3149,20 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		childinfo[i].plan = (Plan *) fsplan;
 	}
 
+	fdw_private->is_pushdown_tlist = pushdown_all_tlist;
+
 	if (IS_SIMPLE_REL(baserel))
 	{
+		/*
+		 * Core expects fdw returns fdw_scan_tlist whch is parameter of
+		 * make_foreignscan. So we will assign tlist to fdw_scan_tlist for
+		 * target list pushdown. Also, core create tuple descriptor based on
+		 * fdw_scan_tlist
+		 */
+		if (pushdown_all_tlist)
+			fdw_scan_tlist = tlist;
+		else
+			fdw_scan_tlist = NIL;
 		scan_relid = baserel->relid;
 	}
 	else
@@ -3079,38 +3170,58 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		/* Aggregate push down */
 		scan_relid = 0;
 	}
+	MemoryContextSwitchTo(oldcontext);
+
+
+	/* For simple rel, calculate which condition should be filtered in core */
+	if (IS_SIMPLE_REL(baserel))
+	{
+		scan_clauses = NIL;
+		if (fdw_private->baserestrictinfo && !push_scan_clauses)
+		{
+			/*
+			 * In this case, PGSpider should filter baserestrictinfo because
+			 * these are not passed to child fdw because of __spd_url
+			 */
+			foreach(lc, fdw_private->baserestrictinfo)
+			{
+				RestrictInfo *ri = lfirst_node(RestrictInfo, lc);
+
+				scan_clauses = lappend(scan_clauses, ri->clause);
+			}
+		}
+
 	/*
-	 * TODO: Following is main thread's foreign plan. If all FDW use where
-	 * clauses, scan_clauses is OK. But FileFDW, SqliteFDW and some FDW can
-	 * not use where clauses. If it is not NIL, then can not get record from
-	 * there.
-	 *
-	 * Following is resolution plan. 1. change NIL 2. Add filter for can not
-	 * use where clauses FDW.
-	 *
-	 * 1. is redundancy operation for where clauses avaiable FDW. 2. is change
-	 * iterate foreign scan and check to remote expars. Modify cost is so big,
-	 * currently solution is 1.
+		 * We collect local conditions each fdw did not push down to make
+		 * postgresql core execute that filter
 	 */
-	scan_clauses = extract_actual_clauses(scan_clauses, false);
+		for (i = 0; i < fdw_private->node_num; i++)
+		{
+			if (!childinfo[i].plan)
+				continue;
+
+			foreach(lc, childinfo[i].plan->qual)
+			{
+				Expr	   *expr = (Expr *) lfirst(lc);
+
+				scan_clauses = list_append_unique_ptr(scan_clauses, expr);
+			}
+		}
+	}
 
 	/* for debug */
 	if (log_min_messages <= DEBUG1)
 		print_mapping_tlist(fdw_private->mapping_tlist, DEBUG1);
 
-
-	
-    temp=make_foreignscan(tlist,
+	return make_foreignscan(tlist,
 						  scan_clauses,	/* scan_clauses, */
 						  /* NULL, */
 						  scan_relid,
 						  NIL,
 						  list_make2(makeInteger((unsigned long long) fdw_private >> 32),makeInteger((unsigned long long) fdw_private)),
-						  fdw_scan_tlist,
-						  NIL,
+							fdw_scan_tlist,
+							NIL,
 						  outer_plan);
-	MemoryContextSwitchTo(oldcontext);
-	return temp;
 }
 
 static void
@@ -3185,21 +3296,17 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		node->ss.ps.state->es_progressState->ps_aggQuery = true;
 	else
 		node->ss.ps.state->es_progressState->ps_aggQuery = false;
-#endif
-	node->ss.ps.state->agg_query = 0;
-#ifdef GETPROGRESS_ENABLED
 	if (getResultFlag)
 		return;
-#endif
-	/* Get all the foreign nodes from conf file */
-	fssThrdInfo = (ForeignScanThreadInfo *) palloc0(sizeof(ForeignScanThreadInfo) * fdw_private->node_num);
-	node->spd_fsstate = fssThrdInfo;
 	/* Supporting for Progress */
-
-#ifdef GETPROGRESS_ENABLED
 	node->ss.ps.state->es_progressState->ps_totalRows = 0;
 	node->ss.ps.state->es_progressState->ps_fetchedRows = 0;
 #endif
+
+	node->ss.ps.state->agg_query = 0;
+	/* Get all the foreign nodes from conf file */
+	fssThrdInfo = (ForeignScanThreadInfo *) palloc0(sizeof(ForeignScanThreadInfo) * fdw_private->node_num);
+	node->spd_fsstate = fssThrdInfo;
 
 	node_incr = 0;
 	childinfo = fdw_private->childinfo;
@@ -3259,7 +3366,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt = copyObject(node->ss.ps.state->es_plannedstmt);
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt->planTree = copyObject(fssThrdInfo[node_incr].fsstate->ss.ps.plan);
-
 		/* Allocate top memory context for each thread to avoid race condtion */
 		if (thread_top_contexts[node_incr] == NULL)
 		{
@@ -3270,8 +3376,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 																   ALLOCSET_DEFAULT_MAXSIZE);
 		}
 		fssThrdInfo[node_incr].threadTopMemoryContext = thread_top_contexts[node_incr];
-		sprintf(contextname,"thread top memory context%d",node_incr);
-		MemoryContextSetIdentifier(fssThrdInfo[node_incr].threadTopMemoryContext, contextname);
 
 		/*
 		 * memory context tree: paraent es_query_cxt -> threadMemoryContext ->
@@ -3283,8 +3387,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 								  ALLOCSET_DEFAULT_MINSIZE,
 								  ALLOCSET_DEFAULT_INITSIZE,
 								  ALLOCSET_DEFAULT_MAXSIZE);
-		sprintf(contextname,"thread memory context%d",node_incr);
-		MemoryContextSetIdentifier(fssThrdInfo[node_incr].threadMemoryContext, contextname);
 
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_query_cxt =
 			AllocSetContextCreate(fssThrdInfo[node_incr].threadMemoryContext,
@@ -3292,8 +3394,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 								  ALLOCSET_DEFAULT_MINSIZE,
 								  ALLOCSET_DEFAULT_INITSIZE,
 								  ALLOCSET_DEFAULT_MAXSIZE);
-		sprintf(contextname,"thread es_query context%d",node_incr);
-		MemoryContextSetIdentifier(fssThrdInfo[node_incr].fsstate->ss.ps.state->es_query_cxt, contextname);
 
 		ExecAssignExprContext((EState *) fssThrdInfo[node_incr].fsstate->ss.ps.state, &fssThrdInfo[node_incr].fsstate->ss.ps);
 		fssThrdInfo[node_incr].eflags = eflags;
@@ -3304,6 +3404,18 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		 */
 		if (fdw_private->agg_query)
 		{
+			if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
+			{
+				/*
+				 * Create tuple slot based on *child* ForeignScan plan target
+				 * list
+				 */
+				fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
+					MakeSingleTupleTableSlot(ExecTypeFromTL(fssThrdInfo[node_incr].fsstate->ss.ps.plan->targetlist, true));
+				natts = fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor->natts;
+			}
+			else
+			{
 			int			parent_attr = 0,	/* attribute number of parent */
 						child_attr = 0; /* attribute number of child */
 			ListCell   *lc;
@@ -3335,8 +3447,13 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 				MakeSingleTupleTableSlot(CreateTupleDescCopy(tupledesc));
 			natts = list_length(fdw_private->child_comp_tlist);
 		}
+		}
 		else
 		{
+			/*
+			 * Create tuple slot based on *parent* ForeignScan tuple
+			 * descriptor
+			 */
 			fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
 				MakeSingleTupleTableSlot(CreateTupleDescCopy(node->ss.ss_ScanTupleSlot->tts_tupleDescriptor));
 			natts = node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->natts;
@@ -3365,6 +3482,13 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 		fssThrdInfo[node_incr].serverId = server_oid;
 		fssThrdInfo[node_incr].fdwroutine = GetFdwRoutineByServerId(server_oid);
+
+		/*
+		 * GetForeignServer and GetForeignDataWrapper are slow. So we will
+		 * cache here
+		 */
+		fssThrdInfo[node_incr].foreignServer = GetForeignServer(server_oid);
+		fssThrdInfo[node_incr].fdw = GetForeignDataWrapper(fssThrdInfo[node_incr].foreignServer->fdwid);
 
 		fssThrdInfo[node_incr].thrd_ResourceOwner =
 			ResourceOwnerCreate(CurrentResourceOwner, "thread resource owner");
@@ -3436,8 +3560,6 @@ static void
 spd_spi_ddl_table(char *query)
 {
 	int			ret;
-	
-	//elog(INFO,"%s",query);
 	PG_TRY();
 	{
 		pthread_mutex_lock(&scan_mutex);
@@ -3459,6 +3581,37 @@ spd_spi_ddl_table(char *query)
 		PG_RE_THROW();
 	}
 	PG_END_TRY();
+}
+
+/**
+ * child_tlist_type
+ *
+ * Return type of nth column of child descriptor */
+static Oid
+child_tlist_type(SpdFdwPrivate * fdw_private, ForeignScanThreadInfo * fssThrdInfo, int nth)
+{
+
+	/*
+	 * Use childinfo element corresponding to fssThrdInfo[0] because
+	 * fdw_private->childinfo[0].pAgg may not be initialized if that node is
+	 * dead
+	 */
+	Agg		   *agg = fdw_private->childinfo[fssThrdInfo[0].childInfoIndex].pAgg;
+
+	if (agg)
+	{
+		/*
+		 * For the foreign server which do not push down aggregate,
+		 * fsstate->ss.ss_ScanTupleSlot is not expected tupleslot because it's
+		 * slot of foreign scan plan, instead of aggregate plan we expect. So
+		 * use aggplan target list for deciding column type of temp table
+		 */
+		return exprType((Node *) ((TargetEntry *) list_nth(agg->plan.targetlist, nth))->expr);
+	}
+	else{
+		Form_pg_attribute attr = TupleDescAttr(fssThrdInfo[0].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor, nth);
+		return attr->atttypid;
+	}
 }
 
 /**
@@ -3504,7 +3657,6 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 			for (i = 0; i < MAXDIVNUM; i++)
 			{
 				Form_pg_attribute sattr = TupleDescAttr(slot->tts_tupleDescriptor, colid);
-				Form_pg_attribute ssattr = TupleDescAttr(fssThrdInfo[0].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor, colid);
 
 				if (colid != mapcels->mapping_tlist.mapping[i])
 					continue;
@@ -3522,9 +3674,16 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 				}
 				getTypeOutputInfo(sattr->atttypid,&typoutput, &typisvarlena);
 				value = OidOutputFunctionCall(typoutput, attr);
-				child_typid = ssattr->atttypid;
+				child_typid = child_tlist_type(fdw_private, fssThrdInfo, colid);
 				if (value != NULL)
 				{
+					if (child_typid == BOOLOID)
+					{
+						if (strcmp(value, "t") == 0)
+							value = "true";
+						else
+							value = "false";
+					}
 					if (child_typid == DATEOID || child_typid == TEXTOID || child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID)
 						appendStringInfo(sql, "'");
 					appendStringInfo(sql, "%s", value);
@@ -3535,7 +3694,6 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 			}
 		}
 		appendStringInfo(sql, ")");
-		//elog(INFO, "insert  = %s", sql->data);
 		ret = SPI_exec(sql->data, 1);
 		if (ret != SPI_OK_INSERT)
 			elog(ERROR, "execute spi INSERT TEMP TABLE failed ");
@@ -3575,7 +3733,6 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 	ListCell   *lc;
 
 	oldcontext = CurrentMemoryContext;
-	pthread_mutex_lock(&scan_mutex);
 	ret = SPI_connect();
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
@@ -3586,7 +3743,6 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 	if (SPI_processed == 0)
 	{
 		SPI_finish();
-		pthread_mutex_unlock(&scan_mutex);
 		return;
 	}
 
@@ -3911,7 +4067,8 @@ spd_select_return_aggslot(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPr
 
 static void
 spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
-					ForeignScanThreadInfo * fssThrdInfo, char *temp_table)
+					ForeignScanThreadInfo * fssThrdInfo, char *temp_table,
+					SpdFdwPrivate * fdw_private)
 {
 	ListCell   *lc;
 	int			colid = 0;
@@ -3928,12 +4085,11 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 			/* append aggregate string */
 			if (colid == cells->mapping_tlist.mapping[i])
 			{
-				Form_pg_attribute attr = TupleDescAttr(fssThrdInfo[0].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor, colid);
 				if (colid != 0)
 					appendStringInfo(create_sql, ",");
 				appendStringInfo(create_sql, "col%d ", colid);
-				typeid = attr->atttypid;
-				/* append column name and column type */
+				typeid = child_tlist_type(fdw_private, fssThrdInfo, colid);
+			    /* append column name and column type */
 				if (typeid == NUMERICOID)
 					appendStringInfo(create_sql, " numeric");
 				else if (typeid == TEXTOID)
@@ -3956,6 +4112,8 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 					appendStringInfo(create_sql, " timestamp");
 				else if (typeid == TIMESTAMPTZOID)
 					appendStringInfo(create_sql, " timestamp with time zone");
+				else if (typeid == BOOLOID)
+					appendStringInfo(create_sql, " boolean");
 				else
 					appendStringInfo(create_sql, " numeric");
 				colid++;
@@ -3971,49 +4129,50 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
  * Adding node name column.
  * If child node is pgspider, then concatinate node name.
  *
- * @param[in] fssThrdInfo
- * @param[in] node
  */
 static TupleTableSlot *
-spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *child_slot,
-				  int count, TupleTableSlot *node_slot)
+spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
+				  int count, TupleTableSlot *node_slot, SpdFdwPrivate * fdw_private)
 {
 	Datum	   *values;
 	bool	   *nulls;
 	bool	   *replaces;
 	ForeignServer *fs;
 	ForeignDataWrapper *fdw;
-	TupleTableSlot *slot = NULL;
-	Datum		value_datum = 0;
-	Datum		valueDatum = 0;
-	HeapTuple	temp_tuple;
-	regproc		typeinput;
 	int			i;
-	int			typemod;
 	int			tnum = 0;
 	HeapTuple	newtuple;
 
 
-	fs = GetForeignServer(fssThrdInfo[count].serverId);
-	fdw = GetForeignDataWrapper(fs->fdwid);
+	/*
+	 * Currently parent and child slot is the same length even if __spd_url is
+	 * specified. Should change in the future?
+	 */
+	Assert(parent_slot->tts_tupleDescriptor->natts ==
+		   node_slot->tts_tupleDescriptor->natts);
+
+	fs = fssThrdInfo[count].foreignServer;
+	fdw = fssThrdInfo[count].fdw;
 
 	/* Initialize new tuple buffer */
 	values = palloc0(sizeof(Datum) * node_slot->tts_tupleDescriptor->natts);
 	nulls = palloc0(sizeof(bool) * node_slot->tts_tupleDescriptor->natts);
 	replaces = palloc0(sizeof(bool) * node_slot->tts_tupleDescriptor->natts);
-
-	slot = child_slot;
-	tnum = 0;
 	slot_getallattrs(node_slot);
+	tnum = -1;
 	for (i = 0; i < node_slot->tts_tupleDescriptor->natts; i++)
 	{
 		char	   *value;
 		Form_pg_attribute attr = TupleDescAttr(node_slot->tts_tupleDescriptor, i);
+
 		/*
-		 * Check column include __column_name attribute is exist or not. If it
-		 * is include, then create column name attribute.
+		 * Check if i th attribute is __spd_url or not. If so, fill __spd_url
+		 * slot. In target list push down case,
+		 * tts_tupleDescriptor->attrs[i]->attname.data is NULL in some cases
+		 * such as UNION. So we will use idx_url instead.
 		 */
-		if (strcmp(attr->attname.data, SPDURL) == 0)
+		if ((fdw_private->is_pushdown_tlist && i == fdw_private->idx_url_tlist) ||
+			strcmp(attr->attname.data, SPDURL) == 0)
 		{
 			bool		isnull;
 			/* Check child node is pgspider or not */
@@ -4023,9 +4182,8 @@ spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *child_slo
 				char	   *s;
 
 				if (isnull)
-				{
 					elog(ERROR, "PGSpider column name error. Child node Name is nothing.");
-				}
+
 				s = TextDatumGetCString(col);
 
 				/*
@@ -4041,24 +4199,18 @@ spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *child_slo
 				 */
 				value = psprintf("/%s/", fs->servername);
 			}
-			/* Check tuple's column type */
-			temp_tuple = SearchSysCache1(TYPEOID, ObjectIdGetDatum(attr->atttypid));
-			if (!HeapTupleIsValid(temp_tuple))
-				elog(ERROR, "cache lookup failed for type%u", attr->atttypid);
-			typeinput = ((Form_pg_type) GETSTRUCT(temp_tuple))->typinput;
-			typemod = ((Form_pg_type) GETSTRUCT(temp_tuple))->typtypmod;
-			ReleaseSysCache(temp_tuple);
 
-			valueDatum = CStringGetDatum((char *) value);
-			value_datum = OidFunctionCall3(typeinput,
-										   valueDatum, ObjectIdGetDatum(InvalidOid),
-										   Int32GetDatum(typemod));
+			if (attr->atttypid != TEXTOID)
+				elog(ERROR, "__spd_url column is not text type");
 			replaces[i] = true;
 			nulls[i] = false;
-			values[i] = value_datum;
+			values[i] = CStringGetTextDatum(value);
 			tnum = i;
 		}
 	}
+
+	if (tnum != -1)
+	{
 	if (node_slot->tts_tuple != NULL)
 	{
 		/* tuple mode is HEAP */
@@ -4075,8 +4227,15 @@ spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *child_slo
 		node_slot->tts_isempty = true;
 		ExecStoreVirtualTuple(node_slot);
 	}
-	ExecCopySlot(slot, node_slot);
-	return slot;
+	}
+
+	/*
+	 * We need copy here because node_slot is shorter memory life than
+	 * parent_slot
+	 */
+	ExecCopySlot(parent_slot, node_slot);
+
+	return parent_slot;
 }
 
 /*
@@ -4084,7 +4243,7 @@ spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *child_slo
   Return NULL if all threads are finished.
  */
 static TupleTableSlot *
-nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId, ChildInfo* childinfo)
+nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId)
 {
 	int			count = 0;
 	bool		all_thread_finished = true;
@@ -4112,9 +4271,6 @@ nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId, C
 		{
 			/* no tuple yet, but the thread is running */
 			all_thread_finished = false;
-		}
-		else if(!fssThrdInfo[count].iFlag && fssThrdInfo[count].state == SPD_FS_STATE_ERROR){
-			    childinfo[count].child_node_status = ServerStatusDead;
 		}
 	}
 	Assert(false);
@@ -4154,7 +4310,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 		return NULL;
 
 	mapping_tlist = fdw_private->mapping_tlist;
-	MemoryContextStats(CurrentMemoryContext);
+
 	/* CREATE TEMP TABLE SQL */
 	if (fdw_private->agg_query)
 	{
@@ -4169,7 +4325,8 @@ spd_IterateForeignScan(ForeignScanState *node)
 			 */
 			fdw_private->temp_table_name = psprintf(AGGTEMPTABLE "_" INT64_FORMAT,
 													temp_table_id++);
-			spd_createtable_sql(create_sql, mapping_tlist, fssThrdInfo, fdw_private->temp_table_name);
+			spd_createtable_sql(create_sql, mapping_tlist, fssThrdInfo,
+								fdw_private->temp_table_name, fdw_private);
 			spd_spi_ddl_table(create_sql->data);
 			fdw_private->is_drop_temp_table = false;
 
@@ -4179,7 +4336,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 			 */
 			for (;;)
 			{
-				slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count,fdw_private->childinfo);
+				slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count);
 				if (slot != NULL)
 					spd_spi_insert_table(slot, node, fdw_private);
 				else
@@ -4226,9 +4383,10 @@ spd_IterateForeignScan(ForeignScanState *node)
 	else
 	{
 
-		slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count, fdw_private->childinfo);
+		slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count);
 		if (slot != NULL)
-			slot = spd_AddNodeColumn(fssThrdInfo, node->ss.ss_ScanTupleSlot, count, slot);
+			slot = spd_AddNodeColumn(fssThrdInfo, node->ss.ss_ScanTupleSlot,
+									 count, slot, fdw_private);
 
 		/*
 		 * We should clear after use because child thread delete tuple if it
@@ -4459,7 +4617,7 @@ spd_AddForeignUpdateTargets(Query *parsetree,
  * spd_PlanForeignModify
  * Add column(s) needed for update/delete on a foreign table,
  * we are using first column as row identification column, so we are adding that into target
- * list.
+s * list.
  * Checking IN clause. In currently, must use IN.
  *
  * @param[in] root
