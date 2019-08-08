@@ -1521,7 +1521,6 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
 		{
 			Var		   *var = (Var *) varnode;
 
-			rte = planner_rt_fetch(var->varno, root);
 			if (var->varno != OUTER_VAR)
 			{
 				rte = planner_rt_fetch(var->varno, root);
@@ -2317,10 +2316,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				copy_pathtarget(spd_root->upper_targets[UPPERREL_FINAL]);
 			oldcontext = MemoryContextSwitchTo(MessageContext);
 
-			/*
-			 * Remove __spd_url from target lists if a child is not
-			 * pgspider_fdw
-			 */
 			fs = GetForeignServer(oid_server);
 			fdw = GetForeignDataWrapper(fs->fdwid);
 
@@ -2331,6 +2326,10 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			/* remove duplicate attribute in mapping list */
 			remove_duplicate_mapping_tlist(childinfo[i].child_mapping_tlist);
 
+			/*
+			 * Remove __spd_url from target lists if a child is not
+			 * pgspider_fdw
+			 */
 			if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0 && groupby_has_spdurl(root))
 			{
 				/* Remove __spd_url from group clause */
