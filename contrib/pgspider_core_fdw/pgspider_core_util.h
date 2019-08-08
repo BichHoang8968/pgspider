@@ -15,7 +15,7 @@ typedef struct SlotListCell
 {
 	struct SlotListCell *next;
 	int			colid;
-	char		val[FLEXIBLE_ARRAY_MEMBER];	/* variable length string */
+	char		val[FLEXIBLE_ARRAY_MEMBER]; /* variable length string */
 }			SlotListCell;
 
 typedef struct SlotList
@@ -24,8 +24,8 @@ typedef struct SlotList
 	SlotListCell *tail;
 }			SlotList;
 
-void slot_list_append(SlotList * list, const char *val, int colid);
-char* slot_list_nth(SlotList * list, int colid);
-void remove_duplicate_item(int *arr, int *size);
+void		slot_list_append(SlotList * list, const char *val, int colid);
+char	   *slot_list_nth(SlotList * list, int colid);
+void		remove_duplicate_item(int *arr, int *size);
 
-#endif	 /*PG_UTIL_H*/
+#endif							/* PG_UTIL_H */

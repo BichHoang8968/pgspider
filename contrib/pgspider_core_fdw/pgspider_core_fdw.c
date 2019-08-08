@@ -266,7 +266,7 @@ typedef struct ChildInfo
 	bool		in_flag;		/* using IN clause or NOT */
 	List	   *url_list;
 	int			index_threadinfo;	/* index for ForeignScanThreadInfo array */
-	List	   *child_tlist;		/* child target list */
+	List	   *child_tlist;	/* child target list */
 	List	   *child_mapping_tlist;	/* child mapping list. */
 }			ChildInfo;
 
@@ -1522,9 +1522,12 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
 			Var		   *var = (Var *) varnode;
 
 			rte = planner_rt_fetch(var->varno, root);
-			if (var->varno != OUTER_VAR){
+			if (var->varno != OUTER_VAR)
+			{
 				rte = planner_rt_fetch(var->varno, root);
-			}else{
+			}
+			else
+			{
 				rte = planner_rt_fetch(var->varnoold, root);
 			}
 			colname = get_relid_attribute_name(rte->relid, var->varattno);
@@ -1550,8 +1553,9 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
 
 /* Remove __spd_url from group clause lists */
 static List *
-remove_spdurl_from_group_clause_list(List *tlist, List *groupClauseList, PlannerInfo *root){
-	ListCell *lc;
+remove_spdurl_from_group_clause_list(List *tlist, List *groupClauseList, PlannerInfo *root)
+{
+	ListCell   *lc;
 
 	if (groupClauseList == NULL)
 		return NULL;
@@ -1560,6 +1564,7 @@ remove_spdurl_from_group_clause_list(List *tlist, List *groupClauseList, Planner
 	{
 		SortGroupClause *sgc = (SortGroupClause *) lfirst(lc);
 		TargetEntry *tle = get_sortgroupclause_tle(sgc, tlist);
+
 		if (IsA(tle->expr, Var))
 		{
 			Var		   *var = (Var *) tle->expr;
@@ -1568,7 +1573,8 @@ remove_spdurl_from_group_clause_list(List *tlist, List *groupClauseList, Planner
 
 			rte = planner_rt_fetch(var->varno, root);
 			colname = get_relid_attribute_name(rte->relid, var->varattno);
-			if (strcmp(colname, SPDURL) ==0){
+			if (strcmp(colname, SPDURL) == 0)
+			{
 				lc = lnext(lc);
 				groupClauseList = list_delete_ptr(groupClauseList, sgc);
 				continue;
@@ -1595,34 +1601,39 @@ remove_spdurl_from_group_clause_list(List *tlist, List *groupClauseList, Planner
  */
 
 static void
-move_spdurl_to_end_target_list(PlannerInfo *root, List **child_tlist, List** child_mapping_tlist)
+move_spdurl_to_end_target_list(PlannerInfo *root, List **child_tlist, List **child_mapping_tlist)
 {
-	ListCell *lc;
-	int child_attr = 0;
-	char *colname = NULL;
+	ListCell   *lc;
+	int			child_attr = 0;
+	char	   *colname = NULL;
 	RangeTblEntry *rte;
 
-	ListCell *prev = NULL;
-	int size = list_length(*child_tlist);
+	ListCell   *prev = NULL;
+	int			size = list_length(*child_tlist);
 
 	/* Move spdurl to the end of child target list */
 	foreach(lc, *child_tlist)
 	{
 		TargetEntry *ent = (TargetEntry *) lfirst(lc);
-		ListCell *map_lc;
-		int 	i = 0;
+		ListCell   *map_lc;
+		int			i = 0;
 
-		if (IsA(ent->expr, Var)){
-			Var	   *var = (Var *) ent->expr;
+		if (IsA(ent->expr, Var))
+		{
+			Var		   *var = (Var *) ent->expr;
+
 			rte = planner_rt_fetch(var->varno, root);
 			colname = get_relid_attribute_name(rte->relid, var->varattno);
-			if (strcmp (colname, SPDURL) == 0) {
+			if (strcmp(colname, SPDURL) == 0)
+			{
 				*child_tlist = list_delete_cell(*child_tlist, lc, prev);
 				*child_tlist = lappend(*child_tlist, ent);
 
-				/* Move spdurl column to the end of child_mapping_list*/
-				foreach (map_lc, *child_mapping_tlist){
+				/* Move spdurl column to the end of child_mapping_list */
+				foreach(map_lc, *child_mapping_tlist)
+				{
 					Mappingcells *mapcels = (Mappingcells *) lfirst(map_lc);
+
 					for (i = 0; i < MAXDIVNUM; i++)
 					{
 						if (child_attr != mapcels->mapping_tlist.mapping[i])
@@ -1635,22 +1646,32 @@ move_spdurl_to_end_target_list(PlannerInfo *root, List **child_tlist, List** chi
 		}
 		prev = lc;
 		child_attr++;
-		if (child_attr > size) break;
+		if (child_attr > size)
+			break;
 	}
 }
 
 /*Remove duplicate item in mapping list*/
 static void
-remove_duplicate_mapping_tlist(List *mapping_tlist){
-	ListCell *map_cell1, *map_cell2, *prev;
+remove_duplicate_mapping_tlist(List *mapping_tlist)
+{
+	ListCell   *map_cell1,
+			   *map_cell2,
+			   *prev;
+
 	map_cell1 = list_head(mapping_tlist);
-	while (map_cell1 != NULL){
+	while (map_cell1 != NULL)
+	{
 		Mappingcells *mapcels1 = (Mappingcells *) lfirst(map_cell1);
+
 		map_cell2 = map_cell1;
 		prev = map_cell1;
-		while (map_cell2->next != NULL){
+		while (map_cell2->next != NULL)
+		{
 			Mappingcells *mapcels2 = (Mappingcells *) lfirst(map_cell2->next);
-			if (mapcels2->original_attnum == mapcels1->original_attnum){
+
+			if (mapcels2->original_attnum == mapcels1->original_attnum)
+			{
 				mapping_tlist = list_delete_cell(mapping_tlist, map_cell2->next, prev);
 			}
 			else
@@ -1665,9 +1686,12 @@ remove_duplicate_mapping_tlist(List *mapping_tlist){
 static bool
 tupledesc_has_spdurl(TupleDesc tupledesc)
 {
-	int i = 0;
-	for (i = 0; i < tupledesc->natts; i++){
-		if (strcmp(tupledesc->attrs[i]->attname.data, SPDURL) == 0){
+	int			i = 0;
+
+	for (i = 0; i < tupledesc->natts; i++)
+	{
+		if (strcmp(tupledesc->attrs[i]->attname.data, SPDURL) == 0)
+		{
 			return true;
 		}
 	}
@@ -1685,20 +1709,24 @@ tupledesc_has_spdurl(TupleDesc tupledesc)
 static bool
 groupby_has_spdurl(PlannerInfo *root)
 {
-	List 		*target_list = root->parse->targetList;
-	List		*group_clause = root->parse->groupClause;
-	ListCell 	*lc;
-	char	    *colname;
-	RangeTblEntry	*rte;
+	List	   *target_list = root->parse->targetList;
+	List	   *group_clause = root->parse->groupClause;
+	ListCell   *lc;
+	char	   *colname;
+	RangeTblEntry *rte;
 
-	foreach (lc, group_clause){
-		SortGroupClause *sgc = (SortGroupClause*) lfirst(lc);
+	foreach(lc, group_clause)
+	{
+		SortGroupClause *sgc = (SortGroupClause *) lfirst(lc);
 		TargetEntry *te = get_sortgroupclause_tle(sgc, target_list);
+
 		if (te == NULL)
 			return false;
-		/* Check SPDURL in the target entry*/
-		if (IsA(te->expr, Var)){
-			Var *var = (Var*) te->expr;
+		/* Check SPDURL in the target entry */
+		if (IsA(te->expr, Var))
+		{
+			Var		   *var = (Var *) te->expr;
+
 			rte = planner_rt_fetch(var->varno, root);
 			colname = get_relid_attribute_name(rte->relid, var->varattno);
 
@@ -2289,7 +2317,10 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				copy_pathtarget(spd_root->upper_targets[UPPERREL_FINAL]);
 			oldcontext = MemoryContextSwitchTo(MessageContext);
 
-			/* Remove __spd_url from target lists if a child is not pgspider_fdw */
+			/*
+			 * Remove __spd_url from target lists if a child is not
+			 * pgspider_fdw
+			 */
 			fs = GetForeignServer(oid_server);
 			fdw = GetForeignDataWrapper(fs->fdwid);
 
@@ -2297,15 +2328,16 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			childinfo[i].child_tlist = list_copy(fdw_private->child_comp_tlist);
 			childinfo[i].child_mapping_tlist = list_copy(fdw_private->mapping_tlist);
 
-			/*remove duplicate attribute in mapping list*/
+			/* remove duplicate attribute in mapping list */
 			remove_duplicate_mapping_tlist(childinfo[i].child_mapping_tlist);
 
 			if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0 && groupby_has_spdurl(root))
 			{
 				/* Remove __spd_url from group clause */
-				int temp_idx_url;
-				List *dummy_root_tlist;
-				List *tlist = fdw_private->child_comp_tlist;
+				int			temp_idx_url;
+				List	   *dummy_root_tlist;
+				List	   *tlist = fdw_private->child_comp_tlist;
+
 				dummy_root->parse->groupClause = remove_spdurl_from_group_clause_list(tlist, dummy_root->parse->groupClause, root);
 
 				/* Remove __spd_url from target list and update resortgroupref */
@@ -2315,10 +2347,14 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				dummy_root->upper_targets[UPPERREL_GROUP_AGG] = make_pathtarget_from_tlist(dummy_root_tlist);
 
 				/*
-				 * Move spdurl to the end of target list. This is because we will add data of spdurl back to tuple after fetching data.
-				 * Example, we have the query SELECT __spd_url, i FROM t1 GROUP BY i, __spd_url. Remote query will be SELECT i FROM t1 GROUP BY i,
-				 * We need to move spdurl to the end of target list because if we don't move, data of i will override to the place of spdurl.
-				 * And also because if we don't move, tuple descriptor is created from target list.
+				 * Move spdurl to the end of target list. This is because we
+				 * will add data of spdurl back to tuple after fetching data.
+				 * Example, we have the query SELECT __spd_url, i FROM t1
+				 * GROUP BY i, __spd_url. Remote query will be SELECT i FROM
+				 * t1 GROUP BY i, We need to move spdurl to the end of target
+				 * list because if we don't move, data of i will override to
+				 * the place of spdurl. And also because if we don't move,
+				 * tuple descriptor is created from target list.
 				 */
 				move_spdurl_to_end_target_list(root, &childinfo[i].child_tlist, &childinfo[i].child_mapping_tlist);
 			}
@@ -2349,7 +2385,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				Query	   *query = root->parse;
 				AggClauseCosts dummy_aggcosts;
 
-				/* We don't push down spdurl in GROUP BY*/
+				/* We don't push down spdurl in GROUP BY */
 				if (groupby_has_spdurl(root))
 					return;
 
@@ -3179,6 +3215,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
 				if (!IS_SIMPLE_REL(baserel) && root->parse->groupClause != NULL)
 					apply_pathtarget_labeling_to_tlist(temptlist, ((Path *) best_path)->pathtarget);
+
 				/*
 				 * Remove __spd_url from target lists if a child is not
 				 * pgspider_fdw
@@ -3234,9 +3271,11 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
 		{
 			List	   *child_tlist;
+
 			child_tlist = spd_createPushDownPlan(fdw_private->child_comp_tlist,
 												 list_member_oid(fdw_private->pPseudoAggList, server_oid),
 												 fdw_private);
+
 			/*
 			 * Create aggregation plan with foreign table scan.
 			 * extract_grouping_cols() requires targetlist of subplan.
@@ -3531,13 +3570,14 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 							child_attr = 0; /* attribute number of child */
 				ListCell   *lc;
 				TupleDesc	tupledesc = CreateTemplateTupleDesc(list_length(childinfo[i].child_tlist), false);
+
 				Assert(list_length(fdw_private->mapping_tlist) == node->ss.ps.plan->targetlist->length);
 
 				foreach(lc, fdw_private->mapping_tlist)
 				{
 					Mappingcells *mapcels = (Mappingcells *) lfirst(lc);
 					int			j;
-					char 		*colname = NULL;
+					char	   *colname = NULL;
 					RangeTblEntry *rte;
 
 					for (j = 0; j < MAXDIVNUM; j++)
@@ -3547,10 +3587,12 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 						if (child_attr != mapcels->mapping_tlist.mapping[j])
 							continue;
 
-						ent = (TargetEntry*)list_nth(childinfo[i].child_tlist, child_attr);
+						ent = (TargetEntry *) list_nth(childinfo[i].child_tlist, child_attr);
 						/* Get colname from estate */
-						if (IsA(ent->expr, Var)){
-							Var	   *var = (Var *) ent->expr;
+						if (IsA(ent->expr, Var))
+						{
+							Var		   *var = (Var *) ent->expr;
+
 							rte = rt_fetch(var->varno, estate->es_range_table);
 							colname = get_relid_attribute_name(rte->relid, var->varattno);
 						}
@@ -3746,17 +3788,18 @@ static void
 spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, int count, SpdFdwPrivate * fdw_private)
 {
 	int			ret;
-	int			i, j;
-	int 		nsize = 0;
+	int			i,
+				j;
+	int			nsize = 0;
 	int			colid = -1;
 	bool		isfirst = TRUE;
 	StringInfo	sql = makeStringInfo();
-	List		*mapping_tlist;
-	List		*child_tlist;
-	List		*child_mapping_tlist;
+	List	   *mapping_tlist;
+	List	   *child_tlist;
+	List	   *child_mapping_tlist;
 	ForeignScanThreadInfo *fssThrdInfo = node->spd_fsstate;
 
-	ListCell   	*lc;
+	ListCell   *lc;
 	int			mapping_oricolid[QUERY_LENGTH];
 	SlotList	sql_data;
 
@@ -3774,14 +3817,16 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, int count, Sp
 		if (ret < 0)
 			elog(ERROR, "SPI connect failure - returned %d", ret);
 		appendStringInfo(sql, "INSERT INTO %s VALUES( ", fdw_private->temp_table_name);
-		/* Get child target list*/
+		/* Get child target list */
 		child_tlist = list_copy(fdw_private->childinfo[fssThrdInfo[count].childInfoIndex].child_tlist);
 		child_mapping_tlist = list_copy(fdw_private->childinfo[fssThrdInfo[count].childInfoIndex].child_mapping_tlist);
 
 		/* Save the original colid to array */
 		j = 0;
-		foreach(lc, child_mapping_tlist){
+		foreach(lc, child_mapping_tlist)
+		{
 			Mappingcells *mapcels = (Mappingcells *) lfirst(lc);
+
 			for (i = 0; i < MAXDIVNUM; i++)
 			{
 				colid = mapcels->mapping_tlist.mapping[i];
@@ -3797,13 +3842,14 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, int count, Sp
 
 		/* Number of col must match size of target list */
 		Assert(nsize == list_length(child_tlist));
-		/* End save original colid to array*/
+		/* End save original colid to array */
 
 		/* Store data from slot to temporary array at index is original colid */
 		sql_data.head = NULL;
 		sql_data.tail = NULL;
-		for (i = 0; i < list_length(child_tlist); i++ ){
-			attr = slot_getattr(slot, i+1 , &isnull);
+		for (i = 0; i < list_length(child_tlist); i++)
+		{
+			attr = slot_getattr(slot, i + 1, &isnull);
 			if (isnull)
 			{
 				slot_list_append(&sql_data, "NULL", mapping_oricolid[i]);
@@ -3817,14 +3863,16 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, int count, Sp
 			{
 				if (child_typid == BOOLOID)
 				{
-					if (strcmp(value, "t") == 0){
+					if (strcmp(value, "t") == 0)
+					{
 						value = "true";
 					}
 					else
 						value = "false";
 				}
 				slot_list_append(&sql_data, value, mapping_oricolid[i]);
-			}else
+			}
+			else
 				slot_list_append(&sql_data, "NULL", mapping_oricolid[i]);
 		}
 
@@ -3852,11 +3900,14 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, int count, Sp
 						break;
 				child_typid = child_tlist_type(fdw_private, fssThrdInfo, j);
 
-				if (child_typid == DATEOID || child_typid == TEXTOID || child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID){
+				if (child_typid == DATEOID || child_typid == TEXTOID || child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID)
+				{
 					appendStringInfo(sql, "'");
 					appendStringInfo(sql, "%s", slot_list_nth(&sql_data, colid + 1));
 					appendStringInfo(sql, "'");
-				}else{
+				}
+				else
+				{
 					appendStringInfo(sql, "%s", slot_list_nth(&sql_data, colid + 1));
 				}
 				colid++;
@@ -4254,10 +4305,11 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 		for (j = 0; j < MAXDIVNUM; j++)
 		{
 			TargetEntry *ent;
+
 			if (colid != mapcels->mapping_tlist.mapping[j])
 				continue;
 
-			ent = (TargetEntry*)list_nth(fdw_private->child_comp_tlist, colid);
+			ent = (TargetEntry *) list_nth(fdw_private->child_comp_tlist, colid);
 
 			TupleDescInitEntry(tuple_desc, colid + 1, NULL, exprType((Node *) ent->expr), -1, 0);
 			colid++;
@@ -4533,7 +4585,8 @@ spd_IterateForeignScan(ForeignScanState *node)
 			for (;;)
 			{
 				slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count);
-				if (slot != NULL){
+				if (slot != NULL)
+				{
 					if (tupledesc_has_spdurl(slot->tts_tupleDescriptor))
 						slot = spd_AddNodeColumn(fssThrdInfo, slot, count, slot, fdw_private);
 

@@ -15,10 +15,12 @@
  * Append a value to the list.
  *
  */
-void slot_list_append(SlotList * list, const char *val, int colid)
+void
+slot_list_append(SlotList * list, const char *val, int colid)
 {
 	SlotListCell *cell;
-	cell = (SlotListCell *)palloc0(offsetof(SlotListCell, val) + strlen(val) + 1);
+
+	cell = (SlotListCell *) palloc0(offsetof(SlotListCell, val) + strlen(val) + 1);
 
 	cell->next = NULL;
 	cell->colid = colid;
@@ -37,7 +39,8 @@ void slot_list_append(SlotList * list, const char *val, int colid)
  * Get value in the list at nth position
  *
  */
-char *slot_list_nth(SlotList * list, int colid)
+char *
+slot_list_nth(SlotList * list, int colid)
 {
 	SlotListCell *cell;
 
@@ -52,21 +55,24 @@ char *slot_list_nth(SlotList * list, int colid)
 }
 
 /* Remove duplicate item from an array */
-void remove_duplicate_item(int *arr, int *size){
-    int i, j, k;
+void
+remove_duplicate_item(int *arr, int *size)
+{
+	int			i,
+				j,
+				k;
 
-	for(i = 0; i < *size; i++)
-    {
-        for(j = i+1; j < *size; j++)
-        {
-            if(arr[i] == arr[j])
-            {
-                for(k = j; k < *size; k++)
-                    arr[k] = arr[k + 1];
-                *size = *size - 1;
-                j--;
-            }
-        }
-    }
+	for (i = 0; i < *size; i++)
+	{
+		for (j = i + 1; j < *size; j++)
+		{
+			if (arr[i] == arr[j])
+			{
+				for (k = j; k < *size; k++)
+					arr[k] = arr[k + 1];
+				*size = *size - 1;
+				j--;
+			}
+		}
+	}
 }
-
