@@ -2193,6 +2193,8 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			/* Construct TupleDesc, and assign a local typmod. */
 			tupledesc = BlessTupleDesc(tupledesc);
 			fdw_private->child_comp_tupdesc = CreateTupleDescCopy(tupledesc);
+			/* Init temporary slot for adding spdurl */
+			fdw_private->child_comp_slot = MakeSingleTupleTableSlot(CreateTupleDescCopy(fdw_private->child_comp_tupdesc));
 		}
 
 		/* Create path for each child node */
@@ -4197,36 +4199,67 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 		values = (Datum *) palloc0(sizeof(Datum) * natts);
 		nulls = (bool *) palloc0(sizeof(bool) * natts);
 
-		/* Extract data to values/isnulls */
-		heap_deform_tuple(node_slot->tts_tuple, node_slot->tts_tupleDescriptor, values, nulls);
-
-		/* Insert spdurl to the array */
-		spdurl = psprintf("/%s/", fs->servername);
-		for (i = natts - 2; i >= fdw_private->idx_url_tlist; i--)
+		if (node_slot->tts_tuple != NULL)
 		{
-			values[i + 1] = values[i];
-			nulls[i + 1] = nulls[i];
+			/* Extract data to values/isnulls */
+			heap_deform_tuple(node_slot->tts_tuple, node_slot->tts_tupleDescriptor, values, nulls);
+
+			/* Insert spdurl to the array */
+			spdurl = psprintf("/%s/", fs->servername);
+			for (i = natts - 2; i >= fdw_private->idx_url_tlist; i--)
+			{
+				values[i + 1] = values[i];
+				nulls[i + 1] = nulls[i];
+			}
+			values[fdw_private->idx_url_tlist] = CStringGetTextDatum(spdurl);
+			nulls[fdw_private->idx_url_tlist] = false;
+
+			/* Form new tuple with new values */
+			newtuple = heap_form_tuple(parent_slot->tts_tupleDescriptor,
+									   values,
+									   nulls);
+
+			/*
+			 * copy the identification info of the old tuple: t_ctid, t_self,
+			 * and OID (if any)
+			 */
+			newtuple->t_data->t_ctid = node_slot->tts_tuple->t_data->t_ctid;
+			newtuple->t_self = node_slot->tts_tuple->t_self;
+			newtuple->t_tableOid = node_slot->tts_tuple->t_tableOid;
+
+			parent_slot->tts_tuple = newtuple;
+
+			pfree(values);
+			pfree(nulls);
 		}
-		values[fdw_private->idx_url_tlist] = CStringGetTextDatum(spdurl);
-		nulls[fdw_private->idx_url_tlist] = false;
-
-		/* Form new tuple with new values */
-		newtuple = heap_form_tuple(parent_slot->tts_tupleDescriptor,
-								   values,
-								   nulls);
-
-		/*
-		 * copy the identification info of the old tuple: t_ctid, t_self, and
-		 * OID (if any)
-		 */
-		newtuple->t_data->t_ctid = node_slot->tts_tuple->t_data->t_ctid;
-		newtuple->t_self = node_slot->tts_tuple->t_self;
-		newtuple->t_tableOid = node_slot->tts_tuple->t_tableOid;
-
-		parent_slot->tts_tuple = newtuple;
-
-		pfree(values);
-		pfree(nulls);
+		else
+		{
+			/* tuple mode is VIRTUAL */
+			for (i = 0; i < natts; i++)
+			{
+				if (i == fdw_private->idx_url_tlist)
+				{
+					spdurl = psprintf("/%s/", fs->servername);
+					values[i] = CStringGetTextDatum(spdurl);
+					nulls[i] = false;
+				}
+				else if (i < fdw_private->idx_url_tlist)
+				{
+					values[i] = node_slot->tts_values[i];
+					nulls[i] = node_slot->tts_isnull[i];
+				}
+				else
+				{
+					values[i] = node_slot->tts_values[i - 1];
+					nulls[i] = node_slot->tts_isnull[i - 1];
+				}
+			}
+			parent_slot->tts_values = values;
+			parent_slot->tts_isnull = nulls;
+			/* to avoid assert failure in ExecStoreVirtualTuple */
+			parent_slot->tts_isempty = true;
+			ExecStoreVirtualTuple(parent_slot);
+		}
 	}
 	else
 	{
@@ -4423,8 +4456,9 @@ spd_IterateForeignScan(ForeignScanState *node)
 					 */
 					if (list_length(fdw_private->child_tlist) < list_length(fdw_private->child_comp_tlist))
 					{
-						/* Init temporary slot for adding spdurl */
-						fdw_private->child_comp_slot = MakeSingleTupleTableSlot(CreateTupleDescCopy(fdw_private->child_comp_tupdesc));
+						/* Clear tuple slot */
+						ExecClearTuple(fdw_private->child_comp_slot);
+						/* Add spdurl */
 						slot = spd_AddSpdUrl(fssThrdInfo, fdw_private->child_comp_slot, count, slot, fdw_private);
 					}
 					spd_spi_insert_table(slot, node, fdw_private);
