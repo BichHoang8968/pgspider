@@ -570,8 +570,8 @@ SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
    i   |  __spd_url   
 -------+--------------
      1 | /tiny_svr/
-     1 | /mysql_svr/
      1 | /sqlite_svr/
+     1 | /mysql_svr/
    777 | /mysql_svr/
   1111 | /post_svr/
  22222 | /sqlite_svr/
@@ -589,25 +589,25 @@ SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i;
 (6 rows)
 
 SELECT avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
-          avg           |  __spd_url   
-------------------------+--------------
- 1.00000000000000000000 | /tiny_svr/
- 1.00000000000000000000 | /mysql_svr/
- 1.00000000000000000000 | /sqlite_svr/
-   777.0000000000000000 | /mysql_svr/
-  1111.0000000000000000 | /post_svr/
-     22222.000000000000 | /sqlite_svr/
+  avg  |  __spd_url   
+-------+--------------
+     1 | /tiny_svr/
+     1 | /mysql_svr/
+     1 | /sqlite_svr/
+   777 | /mysql_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
 (6 rows)
 
 SELECT __spd_url, avg(i) FROM test1 GROUP BY i, __spd_url ORDER BY i;
-  __spd_url   |          avg           
---------------+------------------------
- /tiny_svr/   | 1.00000000000000000000
- /mysql_svr/  | 1.00000000000000000000
- /sqlite_svr/ | 1.00000000000000000000
- /mysql_svr/  |   777.0000000000000000
- /post_svr/   |  1111.0000000000000000
- /sqlite_svr/ |     22222.000000000000
+  __spd_url   |  avg  
+--------------+-------
+ /tiny_svr/   |     1
+ /mysql_svr/  |     1
+ /sqlite_svr/ |     1
+ /mysql_svr/  |   777
+ /post_svr/   |  1111
+ /sqlite_svr/ | 22222
 (6 rows)
 
 SELECT __spd_url, sum(i) FROM test1 GROUP BY i, __spd_url ORDER BY i;
@@ -622,14 +622,14 @@ SELECT __spd_url, sum(i) FROM test1 GROUP BY i, __spd_url ORDER BY i;
 (6 rows)
 
 SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
-  __spd_url   |          avg           |  __spd_url   
---------------+------------------------+--------------
- /tiny_svr/   | 1.00000000000000000000 | /tiny_svr/
- /mysql_svr/  | 1.00000000000000000000 | /mysql_svr/
- /sqlite_svr/ | 1.00000000000000000000 | /sqlite_svr/
- /mysql_svr/  |   777.0000000000000000 | /mysql_svr/
- /post_svr/   |  1111.0000000000000000 | /post_svr/
- /sqlite_svr/ |     22222.000000000000 | /sqlite_svr/
+  __spd_url   |  avg  |  __spd_url   
+--------------+-------+--------------
+ /tiny_svr/   |     1 | /tiny_svr/
+ /mysql_svr/  |     1 | /mysql_svr/
+ /sqlite_svr/ |     1 | /sqlite_svr/
+ /mysql_svr/  |   777 | /mysql_svr/
+ /post_svr/   |  1111 | /post_svr/
+ /sqlite_svr/ | 22222 | /sqlite_svr/
 (6 rows)
 
 SELECT sum(i) FROM test1;

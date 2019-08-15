@@ -2242,11 +2242,10 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0 && groupby_has_spdurl(root))
 			{
 				List	   *dummy_root_tlist;
-				List	   *tlist = fdw_private->child_comp_tlist;
 				int			temp_idx_url;
 
 				/* Remove __spd_url from group clause */
-				dummy_root->parse->groupClause = remove_spdurl_from_group_clause(tlist, dummy_root->parse->groupClause, root);
+				dummy_root->parse->groupClause = remove_spdurl_from_group_clause(fdw_private->child_comp_tlist, dummy_root->parse->groupClause, root);
 				/* Remove __spd_url from target list and update resortgroupref */
 				dummy_root_tlist = make_tlist_from_pathtarget(dummy_root->upper_targets[UPPERREL_GROUP_AGG]);
 				dummy_root_tlist = remove_spdurl_from_targets(dummy_root_tlist, root, true, &temp_idx_url);
@@ -2275,16 +2274,26 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			else
 			{
 				/* Not Push Down case */
+				ListCell   *lc;
+				int			idx = 0;
 				struct Path *tmp_path;
 				Query	   *query = root->parse;
 				AggClauseCosts dummy_aggcosts;
 
-				/* We don't push down spdurl in GROUP BY */
-				if (groupby_has_spdurl(root))
-					return;
-
 				MemSet(&dummy_aggcosts, 0, sizeof(AggClauseCosts));
 				tmp_path = entry->pathlist->head->data.ptr_value;
+
+				/*
+				 * Before creating aggregation plan, re-indexing item by resno
+				 * for child target list
+				 */
+				foreach(lc, fdw_private->child_tlist)
+				{
+					TargetEntry *ent = (TargetEntry *) lfirst(lc);
+
+					idx++;
+					ent->resno = idx;
+				}
 
 				/*
 				 * Pass dummy_aggcosts because create_agg_path requires
@@ -2294,9 +2303,10 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 																   dummy_output_rel,
 																   tmp_path,
 																   dummy_root->upper_targets[UPPERREL_GROUP_AGG],
-																   query->groupClause ? AGG_HASHED : AGG_PLAIN, AGGSPLIT_SIMPLE,
-																   query->groupClause, NULL, &dummy_aggcosts,
+																   dummy_root->parse->groupClause ? AGG_HASHED : AGG_PLAIN, AGGSPLIT_SIMPLE,
+																   dummy_root->parse->groupClause, NULL, &dummy_aggcosts,
 																   1);
+
 				fdw_private->pPseudoAggList = lappend_oid(fdw_private->pPseudoAggList, oid_server);
 
 			}
@@ -3108,7 +3118,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				temptlist = (List *) build_physical_tlist(childinfo[i].root, childinfo[i].baserel);
 
 				if (!IS_SIMPLE_REL(baserel) && root->parse->groupClause != NULL)
-					apply_pathtarget_labeling_to_tlist(temptlist, ((Path *) best_path)->pathtarget);
+					apply_pathtarget_labeling_to_tlist(temptlist, childinfo[i].root->upper_targets[UPPERREL_GROUP_AGG]);
 
 				/*
 				 * Remove __spd_url from target lists if a child is not
@@ -3166,7 +3176,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		{
 			List	   *child_tlist;
 
-			child_tlist = spd_createPushDownPlan(fdw_private->child_comp_tlist,
+			child_tlist = spd_createPushDownPlan(fdw_private->child_tlist,
 												 list_member_oid(fdw_private->pPseudoAggList, server_oid),
 												 fdw_private);
 
@@ -3632,13 +3642,26 @@ child_tlist_type(SpdFdwPrivate * fdw_private, ForeignScanThreadInfo * fssThrdInf
 
 	if (agg)
 	{
-		/*
-		 * For the foreign server which do not push down aggregate,
-		 * fsstate->ss.ss_ScanTupleSlot is not expected tupleslot because it's
-		 * slot of foreign scan plan, instead of aggregate plan we expect. So
-		 * use aggplan target list for deciding column type of temp table
-		 */
-		return exprType((Node *) ((TargetEntry *) list_nth(agg->plan.targetlist, nth))->expr);
+
+		if (list_length(fdw_private->child_tlist) < list_length(fdw_private->child_comp_tlist) && (fdw_private->idx_url_tlist != -1))
+		{
+			/*
+			 * if spdurl is removed, we have to use child_comp_tlist to get
+			 * typeid
+			 */
+			return exprType((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, nth))->expr);
+		}
+		else
+		{
+			/*
+			 * For the foreign server which do not push down aggregate,
+			 * fsstate->ss.ss_ScanTupleSlot is not expected tupleslot because
+			 * it's slot of foreign scan plan, instead of aggregate plan we
+			 * expect. So use aggplan target list for deciding column type of
+			 * temp table
+			 */
+			return exprType((Node *) ((TargetEntry *) list_nth(agg->plan.targetlist, nth))->expr);
+		}
 	}
 	else if (fdw_private->idx_url_tlist == -1)
 	{
@@ -4190,6 +4213,7 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 	fs = fssThrdInfo[count].foreignServer;
 	fdw = fssThrdInfo[count].fdw;
 
+	/* Insert spdurl column to slot */
 	if ((parent_slot->tts_tupleDescriptor->natts > node_slot->tts_tupleDescriptor->natts) && (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0))
 	{
 		char	   *spdurl;
@@ -4261,7 +4285,7 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 			ExecStoreVirtualTuple(parent_slot);
 		}
 	}
-	else
+	else						/* Modify spdurl column */
 	{
 		/* Initialize new tuple buffer */
 		values = palloc0(sizeof(Datum) * node_slot->tts_tupleDescriptor->natts);
