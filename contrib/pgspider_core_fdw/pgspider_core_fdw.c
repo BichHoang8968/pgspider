@@ -3636,54 +3636,6 @@ spd_spi_ddl_table(char *query)
 }
 
 /**
- * child_tlist_type
- *
- * Return type of nth column of child descriptor */
-static Oid
-child_tlist_type(SpdFdwPrivate * fdw_private, ForeignScanThreadInfo * fssThrdInfo, int nth)
-{
-
-	/*
-	 * Use childinfo element corresponding to fssThrdInfo[0] because
-	 * fdw_private->childinfo[0].pAgg may not be initialized if that node is
-	 * dead
-	 */
-	Agg		   *agg = fdw_private->childinfo[fssThrdInfo[0].childInfoIndex].pAgg;
-
-	if (agg)
-	{
-
-		if (fdw_private->groupby_has_spdurl)
-		{
-			/*
-			 * if spdurl is removed, we have to use child_comp_tlist to get
-			 * typeid
-			 */
-			return exprType((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, nth))->expr);
-		}
-		else
-		{
-			/*
-			 * For the foreign server which do not push down aggregate,
-			 * fsstate->ss.ss_ScanTupleSlot is not expected tupleslot because
-			 * it's slot of foreign scan plan, instead of aggregate plan we
-			 * expect. So use aggplan target list for deciding column type of
-			 * temp table
-			 */
-			return exprType((Node *) ((TargetEntry *) list_nth(agg->plan.targetlist, nth))->expr);
-		}
-	}
-	else if (!fdw_private->groupby_has_spdurl)
-	{
-		return fssThrdInfo[0].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor->attrs[nth]->atttypid;
-	}
-	else
-	{
-		return exprType((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, nth))->expr);
-	}
-}
-
-/**
  * spd_spi_insert_table
  *
  * This is called by Push-down case. Insert child node data into temp table.
@@ -3701,7 +3653,6 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 	bool		isfirst = TRUE;
 	StringInfo	sql = makeStringInfo();
 	List	   *mapping_tlist;
-	ForeignScanThreadInfo *fssThrdInfo = node->spd_fsstate;
 	ListCell   *lc;
 
 	PG_TRY();
@@ -3742,7 +3693,7 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 				getTypeOutputInfo(slot->tts_tupleDescriptor->attrs[colid]->atttypid,
 								  &typoutput, &typisvarlena);
 				value = OidOutputFunctionCall(typoutput, attr);
-				child_typid = child_tlist_type(fdw_private, fssThrdInfo, colid);
+				child_typid = exprType((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, colid))->expr);
 
 				if (value != NULL)
 				{
