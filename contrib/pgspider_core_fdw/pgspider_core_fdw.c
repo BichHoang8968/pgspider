@@ -2245,8 +2245,8 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			fdw = GetForeignDataWrapper(fs->fdwid);
 
 			/*
-			 * Remove __spd_url from target lists and group clause if a child is not
-			 * pgspider_fdw
+			 * Remove __spd_url from target lists and group clause if a child
+			 * is not pgspider_fdw
 			 */
 			if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0 && fdw_private->groupby_has_spdurl)
 			{
@@ -4174,7 +4174,13 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 	fs = fssThrdInfo[count].foreignServer;
 	fdw = fssThrdInfo[count].fdw;
 
-	/* Insert spdurl column to slot */
+	/*
+	 * Insert spdurl column to slot. heap_modify_tuple will replace the
+	 * existing column. To insert new column and its data, we also follow the
+	 * similar steps like heap_modify_tuple. First, deform tuple to get data
+	 * values, Second, modify data values (insert new columm). Then, form
+	 * tuple with new data values. Finally, copy identification info (if any)
+	 */
 	if (fdw_private->groupby_has_spdurl && (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0))
 	{
 		char	   *spdurl;
