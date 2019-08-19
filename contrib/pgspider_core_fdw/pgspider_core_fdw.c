@@ -2044,11 +2044,15 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	 * perform any post-join operations on the foreign server.
 	 */
 	if (!input_rel->fdw_private ||
-		!((SpdFdwPrivate *) input_rel->fdw_private)->rinfo.pushdown_safe)
+		!((SpdFdwPrivate *) input_rel->fdw_private)->rinfo.pushdown_safe){
+		MemoryContextSwitchTo(oldcontext);
 		return;
+	}
 	/* Ignore stages we don't support; and skip any duplicate calls. */
-	if (stage != UPPERREL_GROUP_AGG || output_rel->fdw_private)
+	if (stage != UPPERREL_GROUP_AGG || output_rel->fdw_private){
+		MemoryContextSwitchTo(oldcontext);
 		return;
+	}
 	in_fdw_private = (SpdFdwPrivate *) input_rel->fdw_private;
 
 	/*
@@ -3071,6 +3075,11 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				 * Remove __spd_url from target lists if a child is not
 				 * pgspider_fdw
 				 */
+				/*
+				if(tlist == NULL){
+					tlist = PG_build_path_tlist((PlannerInfo *) root, best_path);
+				}
+				*/
 				if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0 && IS_SIMPLE_REL(baserel))
 					temptlist = remove_spdurl_from_targets(list_copy(tlist), root,
 														   true, &fdw_private->idx_url_tlist);
@@ -3091,7 +3100,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				 * caluses.
 				 */
 				spd_checkurl_clauses(scan_clauses, root, fdw_private->baserestrictinfo, &push_scan_clauses);
-
 				fsplan = fdwroutine->GetForeignPlan((PlannerInfo *) childinfo[i].root,
 													(RelOptInfo *) childinfo[i].baserel,
 													oid[i],
@@ -3208,20 +3216,19 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			}
 		}
 	}
-
 	/* for debug */
 	if (log_min_messages <= DEBUG1)
 		print_mapping_tlist(fdw_private->mapping_tlist, DEBUG1);
 
 	return make_foreignscan(tlist,
-						  scan_clauses,	/* scan_clauses, */
-						  /* NULL, */
-						  scan_relid,
-						  NIL,
-						  list_make2(makeInteger((unsigned long long) fdw_private >> 32),makeInteger((unsigned long long) fdw_private)),
+							scan_clauses,	/* scan_clauses, */
+							/* NULL, */
+							scan_relid,
+							NIL,
+							list_make2(makeInteger((unsigned long long) fdw_private >> 32),makeInteger((unsigned long long) fdw_private)),
 							fdw_scan_tlist,
 							NIL,
-						  outer_plan);
+							outer_plan);
 }
 
 static void

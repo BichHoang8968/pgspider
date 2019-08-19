@@ -6905,8 +6905,17 @@ apply_scanjoin_target_to_paths(PlannerInfo *root,
 		{
 			Path	   *newpath;
 
-			newpath = (Path *) create_projection_path(root, rel, subpath,
-													  scanjoin_target);
+			newpath = apply_projection_to_path(root, rel, subpath,
+											   scanjoin_target);
+			/* If we had to add a Result, newpath is different from subpath */
+			if (newpath != subpath)
+			{
+				lfirst(lc) = newpath;
+				if (subpath == rel->cheapest_startup_path)
+					rel->cheapest_startup_path = newpath;
+				if (subpath == rel->cheapest_total_path)
+					rel->cheapest_total_path = newpath;
+			}
 			lfirst(lc) = newpath;
 		}
 	}

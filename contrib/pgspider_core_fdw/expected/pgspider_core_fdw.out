@@ -930,17 +930,17 @@ SELECT abs(-i*2), i+1, i, i FROM t3;
 -- can't push down abs(A.i) in join case
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT abs(A.i) FROM t3 A, t3 B LIMIT 3;
-                              QUERY PLAN                               
------------------------------------------------------------------------
+                            QUERY PLAN                             
+-------------------------------------------------------------------
  Limit
    Output: (abs(a.i))
    ->  Nested Loop
          Output: abs(a.i)
          ->  Foreign Scan on public.t3 a
-               Output: a.t, a.t2, a.i, a.__spd_url
+               Output: a.i
                 * Node: mysql_svr / Status: Alive
                Local server startup cost: 10
-               Remote query: SELECT `t`, `t2`, `i` FROM `test`.`test3`
+               Remote query: SELECT `i` FROM `test`.`test3`
          ->  Materialize
                ->  Foreign Scan on public.t3 b
                       * Node: mysql_svr / Status: Alive

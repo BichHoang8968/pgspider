@@ -566,7 +566,7 @@ create_scan_plan(PlannerInfo *root, Path *best_path, int flags)
 	 * bother generating one at all.  We use an exact equality test here, so
 	 * that this only applies when CP_IGNORE_TLIST is the only flag set.
 	 */
-	if (flags == CP_IGNORE_TLIST)
+	if (flags == CP_IGNORE_TLIST && best_path->pathtype != T_ForeignScan)
 	{
 		tlist = NULL;
 	}
@@ -818,6 +818,9 @@ use_physical_tlist(PlannerInfo *root, Path *path, int flags)
 	 * pathtarget that way.)
 	 */
 	if (IsA(path, CustomPath))
+		return false;
+
+	if (IsA(path, ForeignPath))
 		return false;
 
 	/*
