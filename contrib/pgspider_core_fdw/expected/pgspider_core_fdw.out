@@ -671,6 +671,15 @@ SELECT avg(i), count(i) FROM test1 group by i;
   1111 |     1
 (4 rows)
 
+SELECT SUM(i) as aa, avg(i) FROM test1 GROUP BY i;
+  aa   |  avg  
+-------+-------
+ 22222 | 22222
+  3108 |   777
+     3 |     1
+  1111 |  1111
+(4 rows)
+
 CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS(table_name 't1');
 SELECT * FROM t1;
@@ -862,6 +871,15 @@ SELECT * FROM (SELECT sum(i) FROM t1) A,(SELECT count(i) FROM t1) B;
 -----+-------
   10 |     4
 (1 row)
+
+SELECT SUM(i) as aa, avg(i) FROM t1 GROUP BY i;
+ aa | avg 
+----+-----
+  3 |   3
+  4 |   4
+  2 |   2
+  1 |   1
+(4 rows)
 
 PREPARE stmt AS SELECT * FROM t1;
 -- First time is OK

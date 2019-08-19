@@ -48,7 +48,7 @@ static SpdFdwOption * spd_fdw_options;
  * Valid options for libpq.
  * Allocated and filled in InitSpdFdwOptions.
  */
-static PQconninfoOption * libpq_options;
+static PQconninfoOption *libpq_options;
 
 /*
  * Helper functions
@@ -314,7 +314,7 @@ is_libpq_option(const char *keyword)
  * allocated large-enough arrays.  Returns number of options found.
  */
 int
-ExtractConnectionOptions(List * defelems, const char **keywords,
+ExtractConnectionOptions(List *defelems, const char **keywords,
 						 const char **values)
 {
 	ListCell   *lc;

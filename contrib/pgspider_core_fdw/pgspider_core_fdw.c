@@ -1551,20 +1551,24 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
 static bool
 groupby_has_spdurl(PlannerInfo *root)
 {
-	List 		*target_list = root->parse->targetList;
-	List		*group_clause = root->parse->groupClause;
-	ListCell 	*lc;
-	char	    *colname;
-	RangeTblEntry	*rte;
+	List	   *target_list = root->parse->targetList;
+	List	   *group_clause = root->parse->groupClause;
+	ListCell   *lc;
+	char	   *colname;
+	RangeTblEntry *rte;
 
-	foreach (lc, group_clause){
-		SortGroupClause *sgc = (SortGroupClause*) lfirst(lc);
+	foreach(lc, group_clause)
+	{
+		SortGroupClause *sgc = (SortGroupClause *) lfirst(lc);
 		TargetEntry *te = get_sortgroupclause_tle(sgc, target_list);
+
 		if (te == NULL)
 			return false;
-		/* Check SPDURL in the target entry*/
-		if (IsA(te->expr, Var)){
-			Var *var = (Var*) te->expr;
+		/* Check SPDURL in the target entry */
+		if (IsA(te->expr, Var))
+		{
+			Var		   *var = (Var *) te->expr;
+
 			rte = planner_rt_fetch(var->varno, root);
 			colname = get_relid_attribute_name(rte->relid, var->varattno);
 
@@ -3931,6 +3935,7 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 		Mappingcells *cells = (Mappingcells *) lfirst(lc);
 		char	   *agg_command = target->resname;
 		Mappingcell clist = cells->mapping_tlist;
+		int			agg_type = cells->aggtype;
 
 		for (i = 0; i < MAXDIVNUM; i++)
 		{
@@ -3950,17 +3955,27 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 					continue;
 				}
 
-				if (!strcmpi(agg_command, "SUM") || !strcmpi(agg_command, "COUNT") || !strcmpi(agg_command, "AVG") || !strcmpi(agg_command, "VARIANCE") || !strcmpi(agg_command, "STDDEV"))
-					appendStringInfo(sql, "SUM(col%d)", max_col);
-				else if (!strcmpi(agg_command, "MAX") || !strcmpi(agg_command, "MIN") || !strcmpi(agg_command, "BIT_OR") || !strcmpi(agg_command, "BIT_AND") || !strcmpi(agg_command, "BOOL_AND") || !strcmpi(agg_command, "BOOL_OR") || !strcmpi(agg_command, "EVERY") || !strcmpi(agg_command, "STRING_AGG"))
-					appendStringInfo(sql, "%s(col%d)", agg_command, max_col);
+				if (agg_type != NONAGGFLAG)
+				{
+					if (!strcmpi(agg_command, "SUM") || !strcmpi(agg_command, "COUNT") || !strcmpi(agg_command, "AVG") || !strcmpi(agg_command, "VARIANCE") || !strcmpi(agg_command, "STDDEV"))
+						appendStringInfo(sql, "SUM(col%d)", max_col);
+					else if (!strcmpi(agg_command, "MAX") || !strcmpi(agg_command, "MIN") || !strcmpi(agg_command, "BIT_OR") || !strcmpi(agg_command, "BIT_AND") || !strcmpi(agg_command, "BOOL_AND") || !strcmpi(agg_command, "BOOL_OR") || !strcmpi(agg_command, "EVERY") || !strcmpi(agg_command, "STRING_AGG"))
+						appendStringInfo(sql, "%s(col%d)", agg_command, max_col);
 
-				/*
-				 * This is for influx db functions. MAX has not effect to
-				 * result. We have to consider multi-tenant.
-				 */
-				else if (!strcmpi(agg_command, "INFLUX_TIME") || !strcmpi(agg_command, "LAST"))
-					appendStringInfo(sql, "MAX(col%d)", max_col);
+					/*
+					 * This is for influx db functions. MAX has not effect to
+					 * result. We have to consider multi-tenant.
+					 */
+					else if (!strcmpi(agg_command, "INFLUX_TIME") || !strcmpi(agg_command, "LAST"))
+						appendStringInfo(sql, "MAX(col%d)", max_col);
+
+					/*
+					 * This is for Aggregate function alias, for example,
+					 * SELECT SUM(i) as aa
+					 */
+					else
+						appendStringInfo(sql, "SUM(col%d)", max_col);
+				}
 				else
 					appendStringInfo(sql, "col%d", max_col);
 				max_col++;
