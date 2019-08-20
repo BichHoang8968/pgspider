@@ -12,7 +12,7 @@ SHLIB_LINK = $(libpq)
 EXTENSION = pgspider_core_fdw
 DATA = pgspider_core_fdw--1.0.sql
 
-REGRESS = pgspider_core_fdw_multi 
+REGRESS = pgspider_core_fdw
 
 ifdef USE_PGXS
 PG_CONFIG = pg_config
@@ -33,6 +33,7 @@ OUTFILES=$(FILES:%=$(DSTDIR)/%)
 
 check: temp-install
 
+#temp-install: EXTRA_INSTALL=contrib/postgres_fdw contrib/pgspider_core_fdw contrib/file_fdw contrib/tinybrace_fdw contrib/sqlite_fdw contrib/mysql_fdw contrib/pgspider_keepalive
 checkprep: EXTRA_INSTALL+=contrib/postgres_fdw contrib/pgspider_core_fdw contrib/file_fdw contrib/tinybrace_fdw contrib/sqlite_fdw contrib/mysql_fdw contrib/pgspider_keepalive contrib/pgspider_fdw
 
 #check: copyfdw
