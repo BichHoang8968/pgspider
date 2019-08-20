@@ -4024,6 +4024,12 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 				else
 					appendStringInfo(sql, ",");
 
+				/*
+				 * For those columns listed in the grouping target but not
+				 * listed in the target list. For example, SELECT avg(i) FROM
+				 * t1 GROUP BY i,t. column name i and column name t not listed
+				 * in the target list, so agg_command is NULL.
+				 */
 				if (agg_command == NULL)
 				{
 					appendStringInfo(sql, "col%d", max_col);
@@ -4031,8 +4037,34 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 					continue;
 				}
 
+				/*
+				 * For aggregate function, non split aggregate, aggregate
+				 * alias, non aggregate alias non aggregate not existed in
+				 * grouping target, and non aggregate existed in both target
+				 * list and grouping target, agg_command is always not NULL.
+				 * For example, SELECT SUM(i) as aa, avg(i), i/2, SUM(i)/2 as
+				 * bb, i FROM t1 GROUP BY i,t. aa is alias, avg is aggregate,
+				 * i/2 is non aggregate not existed in grouping target,
+				 * SUM(i)/2 is non aggregate alias, i is non aggregate existed
+				 * in both target list and grouping target. For non aggregate
+				 * without alias (i/2), column name will be "?column?".
+				 */
+
+				/* For non aggregate without alias */
+				if (strcmp(agg_command, "?column?") == 0)
+				{
+					appendStringInfo(sql, "SUM(col%d)", max_col);
+					max_col++;
+					continue;
+				}
+
+				/* For other agg_command is not NULL, we consider agg_type */
 				if (agg_type != NONAGGFLAG)
 				{
+					/*
+					 * This is for aggregate and non split aggregate functions
+					 *
+					 */
 					if (!strcmpi(agg_command, "SUM") || !strcmpi(agg_command, "COUNT") || !strcmpi(agg_command, "AVG") || !strcmpi(agg_command, "VARIANCE") || !strcmpi(agg_command, "STDDEV"))
 						appendStringInfo(sql, "SUM(col%d)", max_col);
 					else if (!strcmpi(agg_command, "MAX") || !strcmpi(agg_command, "MIN") || !strcmpi(agg_command, "BIT_OR") || !strcmpi(agg_command, "BIT_AND") || !strcmpi(agg_command, "BOOL_AND") || !strcmpi(agg_command, "BOOL_OR") || !strcmpi(agg_command, "EVERY") || !strcmpi(agg_command, "STRING_AGG"))
@@ -4046,14 +4078,26 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 						appendStringInfo(sql, "MAX(col%d)", max_col);
 
 					/*
-					 * This is for Aggregate function alias, for example,
+					 * This is for aggregate function alias, for example,
 					 * SELECT SUM(i) as aa
 					 */
 					else
 						appendStringInfo(sql, "SUM(col%d)", max_col);
 				}
 				else
-					appendStringInfo(sql, "col%d", max_col);
+				{
+					/*
+					 * For non aggregate with alias not existed in grouping
+					 * target
+					 */
+					if (!list_member_int(fdw_private->groupby_target, max_col))
+					{
+						appendStringInfo(sql, "SUM(col%d)", max_col);
+					}
+					else		/* For non aggregate existing in both target
+								 * list and grouping target */
+						appendStringInfo(sql, "col%d", max_col);
+				}
 				max_col++;
 			}
 		}
