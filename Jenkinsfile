@@ -43,6 +43,7 @@ def install_pgspider(String install_dir, int port) {
     sh install_dir + "/bin/pg_ctl -D " + install_dir + "/databases stop || true"
     sh "rm -rf " + install_dir + " || true"
     sh "mkdir " + install_dir + " || true"
+    sh "make distclean"
     sh "./configure --prefix=" + install_dir
     sh '''
         make install
