@@ -266,6 +266,8 @@ typedef struct ChildInfo
 	bool		in_flag;		/* using IN clause or NOT */
 	List	   *url_list;
 	int			index_threadinfo;	/* index for ForeignScanThreadInfo array */
+	List	   *child_tlist;	/* child target list */
+	List	   *child_mapping_tlist;	/* child mapping list. */
 }			ChildInfo;
 
 /*
@@ -297,6 +299,10 @@ typedef struct SpdFdwPrivate
 	int			agg_num;		/* agg_values cursor */
 	Oid		   *agg_value_type; /* aggregation parameters */
 	List	   *child_comp_tlist;	/* child complite target list */
+	TupleTableSlot *child_comp_slot;	/* temporary slot */
+	TupleDesc	child_comp_tupdesc; /* temporary tuple desc */
+	List	   *child_tlist;	/* child target list without spdurl */
+	bool		groupby_has_spdurl; /* groupby has spdurl flag */
 	List	   *mapping_tlist;	/* mapping list orig and pgspider */
 	List	   *groupby_target; /* group target tlist number */
 	PlannerInfo *spd_root;		/* Copyt of root planner info. This is used by
@@ -958,7 +964,6 @@ spd_ForeignScan_thread(void *arg)
 	error_context_stack = &errcallback;
 
 	/* Begin Foreign Scan */
-	MemoryContextSwitchTo(fssthrdInfo->threadMemoryContext);
 	fssthrdInfo->state = SPD_FS_STATE_BEGIN;
 	PG_TRY();
 	{
@@ -990,7 +995,6 @@ spd_ForeignScan_thread(void *arg)
 		goto THREAD_EXIT;
 	}
 RESCAN:
-	MemoryContextStats(fssthrdInfo->threadMemoryContext);
 
 	/*
 	 * Do rescan after return .. If Rescan is queried before iteration, just
@@ -1542,6 +1546,40 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
 	return exprs;
 }
 
+/* Remove __spd_url from group clause lists */
+static List *
+remove_spdurl_from_group_clause(List *tlist, List *groupClause, PlannerInfo *root)
+{
+	ListCell   *lc;
+
+	if (groupClause == NULL)
+		return NULL;
+
+	for ((lc) = list_head(groupClause); (lc) != NULL;)
+	{
+		SortGroupClause *sgc = (SortGroupClause *) lfirst(lc);
+		TargetEntry *tle = get_sortgroupclause_tle(sgc, tlist);
+
+		if (IsA(tle->expr, Var))
+		{
+			Var		   *var = (Var *) tle->expr;
+			RangeTblEntry *rte;
+			char	   *colname;
+
+			rte = planner_rt_fetch(var->varno, root);
+			colname = get_attname(rte->relid, var->varattno,false);
+			if (strcmp(colname, SPDURL) == 0)
+			{
+				lc = lnext(lc);
+				groupClause = list_delete_ptr(groupClause, sgc);
+				continue;
+			}
+		}
+		lc = lnext(lc);
+	}
+	return groupClause;
+}
+
 /**
  * groupby_has_spdurl
  *
@@ -2036,6 +2074,8 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	RelOptInfo *dummy_output_rel;
 	Path	   *path;
 	bool		pushdown = false;
+	ForeignServer *fs;
+	ForeignDataWrapper *fdw;
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 
@@ -2044,15 +2084,11 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	 * perform any post-join operations on the foreign server.
 	 */
 	if (!input_rel->fdw_private ||
-		!((SpdFdwPrivate *) input_rel->fdw_private)->rinfo.pushdown_safe){
-		MemoryContextSwitchTo(oldcontext);
+		!((SpdFdwPrivate *) input_rel->fdw_private)->rinfo.pushdown_safe)
 		return;
-	}
 	/* Ignore stages we don't support; and skip any duplicate calls. */
-	if (stage != UPPERREL_GROUP_AGG || output_rel->fdw_private){
-		MemoryContextSwitchTo(oldcontext);
+	if (stage != UPPERREL_GROUP_AGG || output_rel->fdw_private)
 		return;
-	}
 	in_fdw_private = (SpdFdwPrivate *) input_rel->fdw_private;
 
 	/*
@@ -2110,7 +2146,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	output_rel->fdw_private = fdw_private;
 	output_rel->relid = input_rel->relid;
 
-	/* Add parent agg path and create mapping_tlist */
+	/* Get parent agg path and create mapping_tlist */
 	path = get_foreign_grouping_paths(root, input_rel, output_rel);
 	if (path == NULL)
 		return;
@@ -2123,7 +2159,47 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 		FdwRoutine *fdwroutine;
 		int			i = 0;
 		ChildInfo  *childinfo = in_fdw_private->childinfo;
+		/* set flag if group by has spdurl */
+		fdw_private->groupby_has_spdurl = groupby_has_spdurl(root);
 
+		/* child_tlist will be used instead of child_comp_tlist */
+		fdw_private->child_tlist = list_copy(fdw_private->child_comp_tlist);
+
+		/* Remove spdurl from target list if groupby has spdurl */
+		if (fdw_private->groupby_has_spdurl)
+		{
+			TupleDesc	tupledesc;
+
+			/*
+			 * Modify child tlist and save index of spdurl column. We use
+			 * child tlist for fetching data from child node. And use index of
+			 * spdurl to add data of spdurl back to parent node
+			 */
+			fdw_private->child_tlist = remove_spdurl_from_targets(fdw_private->child_tlist, root, true, &fdw_private->idx_url_tlist);
+
+			/*
+			 * When we add spdurl back to parent node, we need to create tuple
+			 * descriptor for parent slot according to child comp tlist. We
+			 * save to fdw_private->child_comp_tupdesc for later use.
+			 */
+			tupledesc = CreateTemplateTupleDesc(list_length(fdw_private->child_comp_tlist), false);
+			foreach(lc, fdw_private->child_comp_tlist)
+			{
+				TargetEntry *ent = (TargetEntry *) lfirst(lc);
+
+				TupleDescInitEntry(tupledesc, i + 1, NULL, exprType((Node *) ent->expr), -1, 0);
+				i++;
+
+			}
+			/* Construct TupleDesc, and assign a local typmod. */
+			tupledesc = BlessTupleDesc(tupledesc);
+			fdw_private->child_comp_tupdesc = CreateTupleDescCopy(tupledesc);
+
+			/* Init temporary slot for adding spdurl back */
+			fdw_private->child_comp_slot = MakeSingleTupleTableSlot(CreateTupleDescCopy(fdw_private->child_comp_tupdesc));
+		}
+
+		/* Create path for each child node */
 		for (i = 0; i < fdw_private->node_num; i++)
 		{
 			Oid			rel_oid = childinfo[i].oid;
@@ -2131,7 +2207,10 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			PlannerInfo *dummy_root_child = childinfo[i].root;
 			RelOptInfo *dummy_output_rel;
 			Index	   *sortgrouprefs;
-			int			listn = 0;
+
+			if (childinfo[i].child_node_status != ServerStatusAlive)
+				continue;
+			dummy_root_child->parse->groupClause = list_copy(root->parse->groupClause);
 			oid_server = spd_spi_exec_datasource_oid(rel_oid);
 			fdwroutine = GetFdwRoutineByServerId(oid_server);
 			if (fdwroutine->GetForeignUpperPaths != NULL)
@@ -2148,6 +2227,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				dummy_output_rel = makeNode(RelOptInfo);
 				dummy_output_rel->reloptkind = RELOPT_UPPER_REL;
 				dummy_output_rel->relids = bms_copy(entry->relids);
+				//dummy_output_rel->reltarget = create_empty_pathtarget();
 				dummy_output_rel->reltarget = copy_pathtarget(output_rel->reltarget);
 				dummy_output_rel->reltarget->exprs = list_copy(fdw_private->upper_targets);
 
@@ -2155,16 +2235,27 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 					lappend(dummy_root_child->upper_rels[UPPERREL_GROUP_AGG],
 							dummy_output_rel);
 
-	            /* make pathtarget */
-				dummy_root_child->upper_targets[UPPERREL_GROUP_AGG] =
-				    create_empty_pathtarget();
-				dummy_root_child->upper_targets[UPPERREL_GROUP_AGG]->exprs =
-					list_copy(fdw_private->upper_targets);
+    			dummy_root_child->upper_targets[UPPERREL_GROUP_AGG] =
+	    			make_pathtarget_from_tlist(fdw_private->child_comp_tlist);
 				dummy_root_child->upper_targets[UPPERREL_WINDOW] =
 					copy_pathtarget(spd_root->upper_targets[UPPERREL_WINDOW]);
 			    dummy_root_child->upper_targets[UPPERREL_FINAL] =
 					copy_pathtarget(spd_root->upper_targets[UPPERREL_FINAL]);
+				fs = GetForeignServer(oid_server);
+				fdw = GetForeignDataWrapper(fs->fdwid);
 
+				/*
+				 * Remove __spd_url from target lists and group clause if a child
+				 * is not pgspider_fdw
+				 */
+				if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0 && fdw_private->groupby_has_spdurl)
+				{
+					/* Remove __spd_url from group clause */
+					dummy_root_child->parse->groupClause = remove_spdurl_from_group_clause(fdw_private->child_comp_tlist, dummy_root_child->parse->groupClause, root);
+
+					/* Update path target from new target list without __spd_url */
+					dummy_root_child->upper_targets[UPPERREL_GROUP_AGG] = make_pathtarget_from_tlist(fdw_private->child_tlist);
+				}
 				/* Fill sortgrouprefs for child using child target entry list */
 				sortgrouprefs = palloc(sizeof(Index) * list_length(fdw_private->child_comp_tlist));
 				listn = 0;
@@ -2198,13 +2289,24 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 					lappend(dummy_root_child->upper_rels[UPPERREL_GROUP_AGG],
 							dummy_output_rel);
 				/* make pathtarget */
-
 				dummy_root_child->upper_targets[UPPERREL_GROUP_AGG] =
 					make_pathtarget_from_tlist(fdw_private->child_comp_tlist);
 				dummy_root_child->upper_targets[UPPERREL_WINDOW] =
 					copy_pathtarget(spd_root->upper_targets[UPPERREL_WINDOW]);
 				dummy_root_child->upper_targets[UPPERREL_FINAL] =
 					copy_pathtarget(spd_root->upper_targets[UPPERREL_FINAL]);
+				fs = GetForeignServer(oid_server);
+				fdw = GetForeignDataWrapper(fs->fdwid);
+
+				if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0 && fdw_private->groupby_has_spdurl)
+				{
+					/* Remove __spd_url from group clause */
+					dummy_root_child->parse->groupClause = remove_spdurl_from_group_clause(fdw_private->child_comp_tlist, dummy_root_child->parse->groupClause, root);
+
+					/* Update path target from new target list without __spd_url */
+					dummy_root_child->upper_targets[UPPERREL_GROUP_AGG] = make_pathtarget_from_tlist(fdw_private->child_tlist);
+				}
+				dummy_output_rel->reltarget->sortgrouprefs = sortgrouprefs;
 			}
 			if (dummy_output_rel->pathlist != NULL)
 			{
@@ -2227,8 +2329,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 
 				MemSet(&dummy_aggcosts, 0, sizeof(AggClauseCosts));
 				tmp_path = entry->pathlist->head->data.ptr_value;
-			    dummy_root_child->upper_targets[UPPERREL_GROUP_AGG] =
-					make_pathtarget_from_tlist(fdw_private->child_comp_tlist);
 
 				/*
 				 * Pass dummy_aggcosts because create_agg_path requires
@@ -2239,7 +2339,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 																   tmp_path,
 																   dummy_root_child->upper_targets[UPPERREL_GROUP_AGG],
 																   query->groupClause ? AGG_HASHED : AGG_PLAIN, AGGSPLIT_SIMPLE,
-																   query->groupClause, NULL, &dummy_aggcosts,
+																   dummy_root_child->parse->groupClause, NULL, &dummy_aggcosts,
 																   1);
 				fdw_private->pPseudoAggList = lappend_oid(fdw_private->pPseudoAggList, oid_server);
 			}
@@ -2252,10 +2352,10 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 }
 
 /**
- * add_foreign_grouping_paths
- *		Add foreign path for grouping and/or aggregation.
+ * get_foreign_grouping_paths
+ *		Get foreign path for grouping and/or aggregation.
  *
- * Given input_rel represents the underlying scan.  The paths are added to the
+ * Given input_rel represents the inlying scan.  The paths are added to the
  * given grouped_rel.
  *
  * @param[in] root - base planner information
@@ -2320,8 +2420,6 @@ get_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 										NULL,	/* no required_outer */
 										NULL,
 										NIL);	/* no fdw_private */
-
-	/* Add generated path into grouped_rel by add_path(). */
     return (Path *) grouppath;
 }
 
@@ -3021,7 +3119,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	/* Create Foreign Plans using base_rel_list to each child. */
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
-		ForeignScan *fsplan;
+		ForeignScan *fsplan = NULL;
 		List	   *temptlist;
 
 		/* skip to can not access child table at spd_GetForeignRelSize. */
@@ -3069,7 +3167,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				/* Add all columns of the table */
 				temptlist = (List *) build_physical_tlist(childinfo[i].root, childinfo[i].baserel);
 				if (!IS_SIMPLE_REL(baserel) && root->parse->groupClause != NULL)
-					apply_pathtarget_labeling_to_tlist(temptlist, ((Path *) best_path)->pathtarget);
+					apply_pathtarget_labeling_to_tlist(temptlist, childinfo[i].root->upper_targets[UPPERREL_GROUP_AGG]);
 
 				/*
 				 * Remove __spd_url from target lists if a child is not
@@ -3131,8 +3229,27 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
 		{
 			List	   *child_tlist;
+			ListCell   *lc;
+			int			idx = 0;
 
-			child_tlist = spd_createPushDownPlan(fdw_private->child_comp_tlist,
+			/*
+			 * If groupby has spdurl, spdurl will be removed from the target
+			 * list. Before creating aggregation plan, re-indexing item by
+			 * resno for child target list. This helps SPI_execAgg puts data
+			 * to right position after calculation.
+			 */
+			if (fdw_private->groupby_has_spdurl)
+			{
+				foreach(lc, fdw_private->child_tlist)
+				{
+					TargetEntry *ent = (TargetEntry *) lfirst(lc);
+
+					idx++;
+					ent->resno = idx;
+				}
+			}
+
+			child_tlist = spd_createPushDownPlan(fdw_private->child_tlist,
 												 list_member_oid(fdw_private->pPseudoAggList, server_oid),
 												 fdw_private);
 
@@ -3277,7 +3394,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 				k;
 	Query	   *query;
 	RangeTblEntry *rte;
-	char contextname[64];
+
 	/*
 	 * Register callback to query memory context to reset normalize id hash
 	 * table at the end of the query
@@ -3423,36 +3540,22 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			}
 			else
 			{
-			int			parent_attr = 0,	/* attribute number of parent */
-						child_attr = 0; /* attribute number of child */
+				int			child_attr = 0; /* attribute number of child */
 			ListCell   *lc;
-			TupleDesc	tupledesc = CreateTemplateTupleDesc(list_length(fdw_private->child_comp_tlist), false);
+				TupleDesc	tupledesc = CreateTemplateTupleDesc(list_length(fdw_private->child_tlist), false);
 
-			Assert(list_length(fdw_private->mapping_tlist) == node->ss.ps.plan->targetlist->length);
-
-			foreach(lc, fdw_private->mapping_tlist)
-			{
-				Mappingcells *mapcels = (Mappingcells *) lfirst(lc);
-				int			j;
-				for (j = 0; j < MAXDIVNUM; j++)
+				foreach(lc, fdw_private->child_tlist)
 				{
-					TargetEntry *ent;
+					TargetEntry *ent = (TargetEntry *) lfirst(lc);
 
-					if (child_attr != mapcels->mapping_tlist.mapping[j])
-						continue;
-
-					ent = list_nth(fdw_private->child_comp_tlist, child_attr);
 					TupleDescInitEntry(tupledesc, child_attr + 1, NULL, exprType((Node *) ent->expr), -1, 0);
 					child_attr++;
 				}
-				parent_attr++;
-			}
-			Assert(child_attr == list_length(fdw_private->child_comp_tlist));
 			/* Construct TupleDesc, and assign a local typmod. */
 			tupledesc = BlessTupleDesc(tupledesc);
 			fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
 				MakeSingleTupleTableSlot(CreateTupleDescCopy(tupledesc));
-			natts = list_length(fdw_private->child_comp_tlist);
+				natts = list_length(fdw_private->child_tlist);
 		}
 		}
 		else
@@ -3591,37 +3694,6 @@ spd_spi_ddl_table(char *query)
 }
 
 /**
- * child_tlist_type
- *
- * Return type of nth column of child descriptor */
-static Oid
-child_tlist_type(SpdFdwPrivate * fdw_private, ForeignScanThreadInfo * fssThrdInfo, int nth)
-{
-
-	/*
-	 * Use childinfo element corresponding to fssThrdInfo[0] because
-	 * fdw_private->childinfo[0].pAgg may not be initialized if that node is
-	 * dead
-	 */
-	Agg		   *agg = fdw_private->childinfo[fssThrdInfo[0].childInfoIndex].pAgg;
-
-	if (agg)
-	{
-		/*
-		 * For the foreign server which do not push down aggregate,
-		 * fsstate->ss.ss_ScanTupleSlot is not expected tupleslot because it's
-		 * slot of foreign scan plan, instead of aggregate plan we expect. So
-		 * use aggplan target list for deciding column type of temp table
-		 */
-		return exprType((Node *) ((TargetEntry *) list_nth(agg->plan.targetlist, nth))->expr);
-	}
-	else{
-		Form_pg_attribute attr = TupleDescAttr(fssThrdInfo[0].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor, nth);
-		return attr->atttypid;
-	}
-}
-
-/**
  * spd_spi_insert_table
  *
  * This is called by Push-down case. Insert child node data into temp table.
@@ -3681,7 +3753,8 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 				}
 				getTypeOutputInfo(sattr->atttypid,&typoutput, &typisvarlena);
 				value = OidOutputFunctionCall(typoutput, attr);
-				child_typid = child_tlist_type(fdw_private, fssThrdInfo, colid);
+				child_typid = exprType((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, colid))->expr);
+
 				if (value != NULL)
 				{
 					if (child_typid == BOOLOID)
@@ -4082,6 +4155,7 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 	int			i;
 	int			typeid;
 
+	colid = 0;
 	appendStringInfo(create_sql, "CREATE TEMP TABLE %s(", temp_table);
 	foreach(lc, mapping_tlist)
 	{
@@ -4095,7 +4169,8 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 				if (colid != 0)
 					appendStringInfo(create_sql, ",");
 				appendStringInfo(create_sql, "col%d ", colid);
-				typeid = child_tlist_type(fdw_private, fssThrdInfo, colid);
+				typeid = exprType((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, colid))->expr);
+
 			    /* append column name and column type */
 				if (typeid == NUMERICOID)
 					appendStringInfo(create_sql, " numeric");
@@ -4138,7 +4213,7 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
  *
  */
 static TupleTableSlot *
-spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
+spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 				  int count, TupleTableSlot *node_slot, SpdFdwPrivate * fdw_private)
 {
 	Datum	   *values;
@@ -4152,15 +4227,95 @@ spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_sl
 
 
 	/*
-	 * Currently parent and child slot is the same length even if __spd_url is
-	 * specified. Should change in the future?
+	 * Length of parent should be greater than or equal to length of child
+	 * slot If spdurl is not specified, length is same
 	 */
-	Assert(parent_slot->tts_tupleDescriptor->natts ==
+	Assert(parent_slot->tts_tupleDescriptor->natts >=
 		   node_slot->tts_tupleDescriptor->natts);
 
 	fs = fssThrdInfo[count].foreignServer;
 	fdw = fssThrdInfo[count].fdw;
 
+	/*
+	 * Insert spdurl column to slot. heap_modify_tuple will replace the
+	 * existing column. To insert new column and its data, we also follow the
+	 * similar steps like heap_modify_tuple. First, deform tuple to get data
+	 * values, Second, modify data values (insert new columm). Then, form
+	 * tuple with new data values. Finally, copy identification info (if any)
+	 */
+	if (fdw_private->groupby_has_spdurl && (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0))
+	{
+		char	   *spdurl;
+		int			natts = parent_slot->tts_tupleDescriptor->natts;
+
+		/* Initialize new tuple buffer */
+		values = (Datum *) palloc0(sizeof(Datum) * natts);
+		nulls = (bool *) palloc0(sizeof(bool) * natts);
+
+		if (node_slot->tts_tuple != NULL)
+		{
+			/* Extract data to values/isnulls */
+			heap_deform_tuple(node_slot->tts_tuple, node_slot->tts_tupleDescriptor, values, nulls);
+
+			/* Insert spdurl to the array */
+			spdurl = psprintf("/%s/", fs->servername);
+			for (i = natts - 2; i >= fdw_private->idx_url_tlist; i--)
+			{
+				values[i + 1] = values[i];
+				nulls[i + 1] = nulls[i];
+			}
+			values[fdw_private->idx_url_tlist] = CStringGetTextDatum(spdurl);
+			nulls[fdw_private->idx_url_tlist] = false;
+
+			/* Form new tuple with new values */
+			newtuple = heap_form_tuple(parent_slot->tts_tupleDescriptor,
+									   values,
+									   nulls);
+
+			/*
+			 * copy the identification info of the old tuple: t_ctid, t_self,
+			 * and OID (if any)
+			 */
+			newtuple->t_data->t_ctid = node_slot->tts_tuple->t_data->t_ctid;
+			newtuple->t_self = node_slot->tts_tuple->t_self;
+			newtuple->t_tableOid = node_slot->tts_tuple->t_tableOid;
+
+			parent_slot->tts_tuple = newtuple;
+
+			pfree(values);
+			pfree(nulls);
+		}
+		else
+		{
+			/* tuple mode is VIRTUAL */
+			for (i = 0; i < natts; i++)
+			{
+				if (i == fdw_private->idx_url_tlist)
+				{
+					spdurl = psprintf("/%s/", fs->servername);
+					values[i] = CStringGetTextDatum(spdurl);
+					nulls[i] = false;
+				}
+				else if (i < fdw_private->idx_url_tlist)
+				{
+					values[i] = node_slot->tts_values[i];
+					nulls[i] = node_slot->tts_isnull[i];
+				}
+				else
+				{
+					values[i] = node_slot->tts_values[i - 1];
+					nulls[i] = node_slot->tts_isnull[i - 1];
+				}
+			}
+			parent_slot->tts_values = values;
+			parent_slot->tts_isnull = nulls;
+			/* to avoid assert failure in ExecStoreVirtualTuple */
+			parent_slot->tts_isempty = true;
+			ExecStoreVirtualTuple(parent_slot);
+		}
+	}
+	else						/* Modify spdurl column */
+	{
 	/* Initialize new tuple buffer */
 	values = palloc0(sizeof(Datum) * node_slot->tts_tupleDescriptor->natts);
 	nulls = palloc0(sizeof(bool) * node_slot->tts_tupleDescriptor->natts);
@@ -4241,7 +4396,7 @@ spd_AddNodeColumn(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_sl
 	 * parent_slot
 	 */
 	ExecCopySlot(parent_slot, node_slot);
-
+	}
 	return parent_slot;
 }
 
@@ -4345,7 +4500,20 @@ spd_IterateForeignScan(ForeignScanState *node)
 			{
 				slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count);
 				if (slot != NULL)
+				{
+					/*
+					 * If groupby has spdurl, we need to add spdurl back after
+					 * removing from target list
+					 */
+					if (fdw_private->groupby_has_spdurl)
+					{
+						/* Clear tuple slot */
+						ExecClearTuple(fdw_private->child_comp_slot);
+						/* Add spdurl */
+						slot = spd_AddSpdUrl(fssThrdInfo, fdw_private->child_comp_slot, count, slot, fdw_private);
+					}
 					spd_spi_insert_table(slot, node, fdw_private);
+				}
 				else
 					break;
 
@@ -4392,7 +4560,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 
 		slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count);
 		if (slot != NULL)
-			slot = spd_AddNodeColumn(fssThrdInfo, node->ss.ss_ScanTupleSlot,
+			slot = spd_AddSpdUrl(fssThrdInfo, node->ss.ss_ScanTupleSlot,
 									 count, slot, fdw_private);
 
 		/*
@@ -4624,7 +4792,7 @@ spd_AddForeignUpdateTargets(Query *parsetree,
  * spd_PlanForeignModify
  * Add column(s) needed for update/delete on a foreign table,
  * we are using first column as row identification column, so we are adding that into target
-s * list.
+ * list.
  * Checking IN clause. In currently, must use IN.
  *
  * @param[in] root

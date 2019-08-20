@@ -127,18 +127,18 @@ SELECT sum(i),sum(i) FROM t1;
 SELECT avg(i),t FROM t1 group by t;
 SELECT avg(i) FROM t1 group by i;
 
-SELECT avg(i), count(i) FROM t1 GROUP BY i;
-SELECT t, avg(i), t FROM t1 GROUP BY i, t;
+SELECT avg(i), count(i) FROM t1 GROUP BY i ORDER BY i;
+SELECT t, avg(i), t FROM t1 GROUP BY i, t ORDER BY i;
 
-SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t;
-SELECT i, __spd_url FROM t1 GROUP BY __spd_url, i;
-SELECT __spd_url, i FROM t1 GROUP BY __spd_url, i;
-SELECT avg(i), __spd_url FROM t1 GROUP BY __spd_url, i;
-SELECT __spd_url, avg(i) FROM t1 GROUP BY __spd_url, i;
-SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i;
-SELECT __spd_url, sum(i) FROM t1 GROUP BY __spd_url, i;
-SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i;
-SELECT __spd_url, avg(i), sum(i), __spd_url FROM t1 GROUP BY __spd_url, i;
+SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t ORDER BY t;
+SELECT i, __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, i FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, avg(i) FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, sum(i) FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, avg(i), sum(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
 
 SELECT * FROM (SELECT sum(i) FROM t1) A,(SELECT count(i) FROM t1) B;
 
