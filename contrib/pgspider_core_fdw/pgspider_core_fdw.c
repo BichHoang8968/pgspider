@@ -298,6 +298,7 @@ typedef struct SpdFdwPrivate
 								 * table */
 	int			agg_num;		/* agg_values cursor */
 	Oid		   *agg_value_type; /* aggregation parameters */
+
 	List	   *child_comp_tlist;	/* child complite target list */
 	TupleTableSlot *child_comp_slot;	/* temporary slot */
 	TupleDesc	child_comp_tupdesc; /* temporary tuple desc */
@@ -1218,7 +1219,7 @@ spd_ParseUrl(List *spd_url_list, SpdFdwPrivate * fdw_private)
 		throw_tp = strtok_r(NULL, "/", &next);
 		if (throw_tp != NULL)
 		{
-		    original_len = strlen(tp) + 1;
+			original_len = strlen(tp) + 1;
 			throwing_url = pstrdup(&url_str[original_len]); /* Throwing URL */
 			if (strlen(throwing_url) != 1)
 				url_parse_list = lappend(url_parse_list, throwing_url);
@@ -1519,7 +1520,6 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
 			Assert(!IsA(node, TargetEntry));
 			varnode = node;
 		}
-
 		if (IsA(varnode, Var))
 		{
 			Var		   *var = (Var *) varnode;
@@ -1607,7 +1607,6 @@ groupby_has_spdurl(PlannerInfo *root)
 			Var *var = (Var*) te->expr;
 			rte = planner_rt_fetch(var->varno, root);
 			colname = get_attname(rte->relid, var->varattno,false);
-
 			if (strcmp(colname, SPDURL) == 0)
 				return true;
 		}
@@ -2341,7 +2340,9 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 																   query->groupClause ? AGG_HASHED : AGG_PLAIN, AGGSPLIT_SIMPLE,
 																   dummy_root_child->parse->groupClause, NULL, &dummy_aggcosts,
 																   1);
+
 				fdw_private->pPseudoAggList = lappend_oid(fdw_private->pPseudoAggList, oid_server);
+
 			}
 		}
 	}
@@ -3137,6 +3138,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
 		PG_TRY();
 		{
+
 			/* create plan */
 			if (childinfo[i].grouped_rel_local != NULL)
 			{
@@ -3173,11 +3175,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				 * Remove __spd_url from target lists if a child is not
 				 * pgspider_fdw
 				 */
-				/*
-				if(tlist == NULL){
-					tlist = PG_build_path_tlist((PlannerInfo *) root, best_path);
-				}
-				*/
 				if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0 && IS_SIMPLE_REL(baserel))
 					temptlist = remove_spdurl_from_targets(list_copy(tlist), root,
 														   true, &fdw_private->idx_url_tlist);
@@ -3231,7 +3228,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			List	   *child_tlist;
 			ListCell   *lc;
 			int			idx = 0;
-
 			/*
 			 * If groupby has spdurl, spdurl will be removed from the target
 			 * list. Before creating aggregation plan, re-indexing item by
@@ -3243,7 +3239,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				foreach(lc, fdw_private->child_tlist)
 				{
 					TargetEntry *ent = (TargetEntry *) lfirst(lc);
-
 					idx++;
 					ent->resno = idx;
 				}
@@ -3316,10 +3311,10 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			}
 		}
 
-	/*
+		/*
 		 * We collect local conditions each fdw did not push down to make
 		 * postgresql core execute that filter
-	 */
+		 */
 		for (i = 0; i < fdw_private->node_num; i++)
 		{
 			if (!childinfo[i].plan)
@@ -3328,7 +3323,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			foreach(lc, childinfo[i].plan->qual)
 			{
 				Expr	   *expr = (Expr *) lfirst(lc);
-
 				scan_clauses = list_append_unique_ptr(scan_clauses, expr);
 			}
 		}
@@ -3550,13 +3544,14 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 					TupleDescInitEntry(tupledesc, child_attr + 1, NULL, exprType((Node *) ent->expr), -1, 0);
 					child_attr++;
+
 				}
 			/* Construct TupleDesc, and assign a local typmod. */
 			tupledesc = BlessTupleDesc(tupledesc);
 			fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
 				MakeSingleTupleTableSlot(CreateTupleDescCopy(tupledesc));
 				natts = list_length(fdw_private->child_tlist);
-		}
+			}
 		}
 		else
 		{
@@ -3711,7 +3706,6 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 	bool		isfirst = true;
 	StringInfo	sql = makeStringInfo();
 	List	   *mapping_tlist;
-	ForeignScanThreadInfo *fssThrdInfo = node->spd_fsstate;
 	ListCell   *lc;
 
 	PG_TRY();
@@ -4000,7 +3994,7 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 										   fdw_private->agg_values[rowid][vardev_mapping]);
 
 					right = sum2;
-					left = pow(sum, 2) /cnt;
+					left = pow(sum, 2) / cnt;
 					result = (float8) (right - left) / (float8) (cnt - 1);
 					if (mapcells->aggtype == DEVFLAG)
 					{
@@ -4171,7 +4165,7 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 				appendStringInfo(create_sql, "col%d ", colid);
 				typeid = exprType((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, colid))->expr);
 
-			    /* append column name and column type */
+				/* append column name and column type */
 				if (typeid == NUMERICOID)
 					appendStringInfo(create_sql, " numeric");
 				else if (typeid == TEXTOID)
@@ -4225,14 +4219,12 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 	int			tnum = 0;
 	HeapTuple	newtuple;
 
-
 	/*
 	 * Length of parent should be greater than or equal to length of child
 	 * slot If spdurl is not specified, length is same
 	 */
 	Assert(parent_slot->tts_tupleDescriptor->natts >=
 		   node_slot->tts_tupleDescriptor->natts);
-
 	fs = fssThrdInfo[count].foreignServer;
 	fdw = fssThrdInfo[count].fdw;
 
@@ -4340,57 +4332,59 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 			/* Check child node is pgspider or not */
 			if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) == 0 && node_slot->tts_isnull[i] == false)
 			{
-				Datum		col = slot_getattr(node_slot, i + 1, &isnull);
-				char	   *s;
 
-				if (isnull)
-					elog(ERROR, "PGSpider column name error. Child node Name is nothing.");
+					Datum		col = slot_getattr(node_slot, i + 1, &isnull);
+					char	   *s;
 
-				s = TextDatumGetCString(col);
+					if (isnull)
+						elog(ERROR, "PGSpider column name error. Child node Name is nothing.");
 
-				/*
-				 * if child node is pgspider, concatinate child node name and
-				 * child child node name
-				 */
-				value = psprintf("/%s%s", fs->servername, s);
+					s = TextDatumGetCString(col);
+
+					/*
+					 * if child node is pgspider, concatinate child node name
+					 * and child child node name
+					 */
+					value = psprintf("/%s%s", fs->servername, s);
+				}
+				else
+				{
+					/*
+					 * child node is NOT pgspider, create column name
+					 * attribute
+					 */
+					value = psprintf("/%s/", fs->servername);
+				}
+
+			if (attr->atttypid != TEXTOID)
+					elog(ERROR, "__spd_url column is not text type");
+				replaces[i] = true;
+				nulls[i] = false;
+				values[i] = CStringGetTextDatum(value);
+				tnum = i;
+			}
+		}
+
+		if (tnum != -1)
+		{
+			if (node_slot->tts_tuple != NULL)
+			{
+				/* tuple mode is HEAP */
+				newtuple = heap_modify_tuple(node_slot->tts_tuple, node_slot->tts_tupleDescriptor,
+											 values, nulls, replaces);
+				node_slot->tts_tuple = newtuple;
 			}
 			else
 			{
-				/*
-				 * child node is NOT pgspider, create column name attribute
-				 */
-				value = psprintf("/%s/", fs->servername);
+				/* tuple mode is VIRTUAL */
+				node_slot->tts_values[tnum] = values[tnum];
+				node_slot->tts_isnull[tnum] = false;
+				/* to avoid assert failure in ExecStoreVirtualTuple */
+				node_slot->tts_isempty = true;
+				ExecStoreVirtualTuple(node_slot);
 			}
-
-			if (attr->atttypid != TEXTOID)
-				elog(ERROR, "__spd_url column is not text type");
-			replaces[i] = true;
-			nulls[i] = false;
-			values[i] = CStringGetTextDatum(value);
-			tnum = i;
-		}
 	}
-
-	if (tnum != -1)
-	{
-	if (node_slot->tts_tuple != NULL)
-	{
-		/* tuple mode is HEAP */
-		newtuple = heap_modify_tuple(node_slot->tts_tuple, node_slot->tts_tupleDescriptor,
-									 values, nulls, replaces);
-		node_slot->tts_tuple = newtuple;
-	}
-	else
-	{
-		/* tuple mode is VIRTUAL */
-		node_slot->tts_values[tnum] = values[tnum];
-		node_slot->tts_isnull[tnum] = false;
-		/* to avoid assert failure in ExecStoreVirtualTuple */
-		node_slot->tts_isempty = true;
-		ExecStoreVirtualTuple(node_slot);
-	}
-	}
-
+	
 	/*
 	 * We need copy here because node_slot is shorter memory life than
 	 * parent_slot
@@ -4478,7 +4472,6 @@ spd_IterateForeignScan(ForeignScanState *node)
 	{
 		if (fdw_private->isFirst)
 		{
-
 			StringInfo	create_sql = makeStringInfo();
 
 			/*
@@ -4557,7 +4550,6 @@ spd_IterateForeignScan(ForeignScanState *node)
 	}
 	else
 	{
-
 		slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count);
 		if (slot != NULL)
 			slot = spd_AddSpdUrl(fssThrdInfo, node->ss.ss_ScanTupleSlot,
@@ -4715,7 +4707,6 @@ spd_EndForeignScan(ForeignScanState *node)
 static void
 spd_check_url_update(SpdFdwPrivate * fdw_private, RangeTblEntry *target_rte)
 {
-	char	   *new_inurl = NULL;
 
 	spd_ParseUrl(target_rte->spd_url_list, fdw_private);
 	if (fdw_private->url_parse_list == NIL ||
@@ -4727,19 +4718,6 @@ spd_check_url_update(SpdFdwPrivate * fdw_private, RangeTblEntry *target_rte)
 	else
 	{
 		char	   *srvname = palloc0(sizeof(char) * (MAX_URL_LENGTH));
-
-		/*
-		 * entry is first parsing word(/foo/bar/, then entry is
-		 * "foo",target_url is "bar")
-		 */
-		char	   *target_url = NULL;
-		char	   *throwing_url = NULL;
-
-		if (fdw_private->url_parse_list->length > 1)
-		{
-			target_url = (char *) list_nth(fdw_private->url_parse_list, 0);
-			throwing_url = (char *) list_nth(fdw_private->url_parse_list, 1);
-		}
 
 		fdw_private->in_flag = true;
 		pfree(srvname);
@@ -4819,7 +4797,7 @@ spd_PlanForeignModify(PlannerInfo *root,
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	fdw_private = spd_AllocatePrivate();
 
-    if (rte->spd_url != NULL)
+	if (rte->spd_url != NULL)
 		spd_check_url_update(fdw_private, rte);
 	else
 		elog(ERROR, "no URL is specified, INSERT/UPDATE/DELETE need to set URL");

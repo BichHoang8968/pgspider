@@ -1668,7 +1668,7 @@ typedef struct ForeignScanState
 	/* use struct pointer to avoid including fdwapi.h here */
 	struct FdwRoutine *fdwroutine;
 	void	   *fdw_state;		/* foreign-data wrapper can keep state here */
-	void	   *spd_fsstate;
+	void	   *spd_fsstate;    /* Store ForeignScanThreadInfo */
 	void	   *conn;			/* cast to PGconn. To refer ForeignServer
 								 * Connection, To use in PGcancel */
 } ForeignScanState;
