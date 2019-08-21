@@ -2025,11 +2025,11 @@ postgresBeginForeignInsert(ModifyTableState *mtstate,
 	bool		doNothing = false;
 
 	/*
-	 * If the foreign table we are about to insert routed rows into is also
-	 * an UPDATE subplan result rel that will be updated later, proceeding
-	 * with the INSERT will result in the later UPDATE incorrectly modifying
-	 * those routed rows, so prevent the INSERT --- it would be nice if we
-	 * could handle this case; but for now, throw an error for safety.
+	 * If the foreign table we are about to insert routed rows into is also an
+	 * UPDATE subplan result rel that will be updated later, proceeding with
+	 * the INSERT will result in the later UPDATE incorrectly modifying those
+	 * routed rows, so prevent the INSERT --- it would be nice if we could
+	 * handle this case; but for now, throw an error for safety.
 	 */
 	if (plan && plan->operation == CMD_UPDATE &&
 		(resultRelInfo->ri_usesFdwDirectModify ||
