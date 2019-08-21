@@ -4111,29 +4111,20 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 					max_col++;
 					continue;
 				}
-
-				/*
-				 * For (1) split aggregate function, (2) non split aggregate
-				 * function, (3) split aggregate function alias,(4) non split
-				 * aggregate function alias, (5) non aggregate (with or
-				 * without alias) not existed in group clause (6) non
-				 * aggregate existed in both target list and group clause,
-				 * agg_command is always not NULL. For example, we have
-				 * "SELECT avg(i), sum(i), avg(i) as aa, sum(i) as bb,
-				 * sum(i)/2, i/2, i FROM t1 GROUP BY i,t". In which, (1) is
-				 * avg(i); (2) is sum(i); (3) is aa; (4) is bb; (5) is either
-				 * sum(i)/2, or i/2; (6) is i.
-				 */
 				else if (agg_type != NONAGGFLAG)
 				{
 					/*
-					 * This is for (1) split aggregate functions and (2) non split
-					 * aggregate functions.
+					 * This is for aggregate functions
 					 */
-					if (!strcmpi(agg_command, "SUM") || !strcmpi(agg_command, "COUNT") || !strcmpi(agg_command, "AVG") || !strcmpi(agg_command, "VARIANCE") || !strcmpi(agg_command, "STDDEV"))
+					if (!strcmpi(agg_command, "SUM") || !strcmpi(agg_command, "COUNT") ||
+						!strcmpi(agg_command, "AVG") || !strcmpi(agg_command, "VARIANCE") ||
+						!strcmpi(agg_command, "STDDEV"))
 						appendStringInfo(sql, "SUM(col%d)", max_col);
 
-					else if (!strcmpi(agg_command, "MAX") || !strcmpi(agg_command, "MIN") || !strcmpi(agg_command, "BIT_OR") || !strcmpi(agg_command, "BIT_AND") || !strcmpi(agg_command, "BOOL_AND") || !strcmpi(agg_command, "BOOL_OR") || !strcmpi(agg_command, "EVERY") || !strcmpi(agg_command, "STRING_AGG"))
+					else if (!strcmpi(agg_command, "MAX") || !strcmpi(agg_command, "MIN") ||
+							 !strcmpi(agg_command, "BIT_OR") || !strcmpi(agg_command, "BIT_AND") ||
+							 !strcmpi(agg_command, "BOOL_AND") || !strcmpi(agg_command, "BOOL_OR") ||
+							 !strcmpi(agg_command, "EVERY") || !strcmpi(agg_command, "STRING_AGG"))
 						appendStringInfo(sql, "%s(col%d)", agg_command, max_col);
 
 					/*
@@ -4144,39 +4135,47 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 						appendStringInfo(sql, "MAX(col%d)", max_col);
 
 					/*
-					 * This is for (3) split aggregate function alias, and (4) non
-					 * split aggregate function alias, for example, SELECT
-					 * AVG(i) as bb, SUM(i) as aa.
+					 * This is for aggregate function alias, for example,
+					 * SELECT AVG(i) as bb, SUM(i) as aa.
+					 *
+					 * TODO: Maybe another cases are not supported now, we
+					 * will continue to maintain later.
 					 */
 					else
 						appendStringInfo(sql, "SUM(col%d)", max_col);
 				}
-
-				/*
-				 * For (5) non aggregate without alias, the default column
-				 * name always be "?column?"
-				 */
-				else if (strcmp(agg_command, "?column?") == 0)
+				else			/* non agg */
 				{
-					appendStringInfo(sql, "SUM(col%d)", max_col);
-				}
+					/*
+					 * This is for non aggregate without alias, the default
+					 * column name always be "?column?".
+					 */
+					if (strcmp(agg_command, "?column?") == 0)
+					{
+						appendStringInfo(sql, "SUM(col%d)", max_col);
+					}
 
-				/*
-				 * For (5) non aggregate with alias not existed in groupby
-				 * target
-				 */
-				else if (!list_member_int(fdw_private->groupby_target, max_col))
-				{
-					appendStringInfo(sql, "SUM(col%d)", max_col);
-				}
+					/*
+					 * This is for non aggregate with alias not existed in
+					 * groupby target
+					 *
+					 */
+					else if (!list_member_int(fdw_private->groupby_target, max_col))
+					{
+						appendStringInfo(sql, "SUM(col%d)", max_col);
+					}
 
-				/*
-				 * For (6) non aggregate existing in both target list and
-				 * groupby target
-				 */
-				else
-				{
-					appendStringInfo(sql, "col%d", max_col);
+					/*
+					 * This is for non aggregate existing in both target list
+					 * and groupby target.
+					 *
+					 * TODO: Maybe another cases are not supported now, we
+					 * will continue to maintain later.
+					 */
+					else
+					{
+						appendStringInfo(sql, "col%d", max_col);
+					}
 				}
 				max_col++;
 			}
