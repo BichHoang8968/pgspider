@@ -16,7 +16,7 @@
  * writing is the INET type, where IPv6 values cannot be merged with IPv4
  * values.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -79,12 +79,12 @@ typedef struct InclusionOpaque
 	bool		extra_proc_missing[INCLUSION_MAX_PROCNUMS];
 	Oid			cached_subtype;
 	FmgrInfo	strategy_procinfos[RTMaxStrategyNumber];
-}			InclusionOpaque;
+} InclusionOpaque;
 
-static FmgrInfo * inclusion_get_procinfo(BrinDesc * bdesc, uint16 attno,
-										 uint16 procnum);
-static FmgrInfo * inclusion_get_strategy_procinfo(BrinDesc * bdesc, uint16 attno,
-												  Oid subtype, uint16 strategynum);
+static FmgrInfo *inclusion_get_procinfo(BrinDesc *bdesc, uint16 attno,
+					   uint16 procnum);
+static FmgrInfo *inclusion_get_strategy_procinfo(BrinDesc *bdesc, uint16 attno,
+								Oid subtype, uint16 strategynum);
 
 
 /*
@@ -161,7 +161,7 @@ brin_inclusion_add_value(PG_FUNCTION_ARGS)
 	}
 
 	attno = column->bv_attno;
-	attr = bdesc->bd_tupdesc->attrs[attno - 1];
+	attr = TupleDescAttr(bdesc->bd_tupdesc, attno - 1);
 
 	/*
 	 * If the recorded value is null, copy the new value (which we know to be
@@ -520,7 +520,7 @@ brin_inclusion_union(PG_FUNCTION_ARGS)
 		PG_RETURN_VOID();
 
 	attno = col_a->bv_attno;
-	attr = bdesc->bd_tupdesc->attrs[attno - 1];
+	attr = TupleDescAttr(bdesc->bd_tupdesc, attno - 1);
 
 	/*
 	 * Adjust "allnulls".  If A doesn't have values, just copy the values from
@@ -588,7 +588,7 @@ brin_inclusion_union(PG_FUNCTION_ARGS)
  * or null if it is not exists.
  */
 static FmgrInfo *
-inclusion_get_procinfo(BrinDesc * bdesc, uint16 attno, uint16 procnum)
+inclusion_get_procinfo(BrinDesc *bdesc, uint16 attno, uint16 procnum)
 {
 	InclusionOpaque *opaque;
 	uint16		basenum = procnum - PROCNUM_BASE;
@@ -646,7 +646,7 @@ inclusion_get_procinfo(BrinDesc * bdesc, uint16 attno, uint16 procnum)
  * made here, see that function too.
  */
 static FmgrInfo *
-inclusion_get_strategy_procinfo(BrinDesc * bdesc, uint16 attno, Oid subtype,
+inclusion_get_strategy_procinfo(BrinDesc *bdesc, uint16 attno, Oid subtype,
 								uint16 strategynum)
 {
 	InclusionOpaque *opaque;
@@ -679,7 +679,7 @@ inclusion_get_strategy_procinfo(BrinDesc * bdesc, uint16 attno, Oid subtype,
 		bool		isNull;
 
 		opfamily = bdesc->bd_index->rd_opfamily[attno - 1];
-		attr = bdesc->bd_tupdesc->attrs[attno - 1];
+		attr = TupleDescAttr(bdesc->bd_tupdesc, attno - 1);
 		tuple = SearchSysCache4(AMOPSTRATEGY, ObjectIdGetDatum(opfamily),
 								ObjectIdGetDatum(attr->atttypid),
 								ObjectIdGetDatum(subtype),

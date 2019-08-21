@@ -3,7 +3,7 @@
  * indexam.c
  *	  general index access method routines
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -73,7 +73,6 @@
 #include "access/relscan.h"
 #include "access/transam.h"
 #include "access/xlog.h"
-#include "catalog/catalog.h"
 #include "catalog/index.h"
 #include "pgstat.h"
 #include "storage/bufmgr.h"
@@ -124,8 +123,8 @@ do { \
 } while(0)
 
 static IndexScanDesc index_beginscan_internal(Relation indexRelation,
-											  int nkeys, int norderbys, Snapshot snapshot,
-											  ParallelIndexScanDesc pscan, bool temp_snap);
+						 int nkeys, int norderbys, Snapshot snapshot,
+						 ParallelIndexScanDesc pscan, bool temp_snap);
 
 
 /* ----------------------------------------------------------------
@@ -154,7 +153,8 @@ index_open(Oid relationId, LOCKMODE lockmode)
 
 	r = relation_open(relationId, lockmode);
 
-	if (r->rd_rel->relkind != RELKIND_INDEX)
+	if (r->rd_rel->relkind != RELKIND_INDEX &&
+		r->rd_rel->relkind != RELKIND_PARTITIONED_INDEX)
 		ereport(ERROR,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 				 errmsg("\"%s\" is not an index",
@@ -192,12 +192,12 @@ index_close(Relation relation, LOCKMODE lockmode)
  */
 bool
 index_insert(Relation indexRelation,
-			 Datum * values,
+			 Datum *values,
 			 bool *isnull,
 			 ItemPointer heap_t_ctid,
 			 Relation heapRelation,
 			 IndexUniqueCheck checkUnique,
-			 IndexInfo * indexInfo)
+			 IndexInfo *indexInfo)
 {
 	RELATION_CHECKS;
 	CHECK_REL_PROCEDURE(aminsert);
@@ -710,7 +710,7 @@ index_getnext(IndexScanDesc scan, ScanDirection direction)
  * ----------------
  */
 int64
-index_getbitmap(IndexScanDesc scan, TIDBitmap * bitmap)
+index_getbitmap(IndexScanDesc scan, TIDBitmap *bitmap)
 {
 	int64		ntids;
 
@@ -740,8 +740,8 @@ index_getbitmap(IndexScanDesc scan, TIDBitmap * bitmap)
  * ----------------
  */
 IndexBulkDeleteResult *
-index_bulk_delete(IndexVacuumInfo * info,
-				  IndexBulkDeleteResult * stats,
+index_bulk_delete(IndexVacuumInfo *info,
+				  IndexBulkDeleteResult *stats,
 				  IndexBulkDeleteCallback callback,
 				  void *callback_state)
 {
@@ -761,8 +761,8 @@ index_bulk_delete(IndexVacuumInfo * info,
  * ----------------
  */
 IndexBulkDeleteResult *
-index_vacuum_cleanup(IndexVacuumInfo * info,
-					 IndexBulkDeleteResult * stats)
+index_vacuum_cleanup(IndexVacuumInfo *info,
+					 IndexBulkDeleteResult *stats)
 {
 	Relation	indexRelation = info->index;
 
@@ -784,7 +784,7 @@ index_can_return(Relation indexRelation, int attno)
 {
 	RELATION_CHECKS;
 
-	/* amcanreturn is optional; assume FALSE if not provided by AM */
+	/* amcanreturn is optional; assume false if not provided by AM */
 	if (indexRelation->rd_amroutine->amcanreturn == NULL)
 		return false;
 

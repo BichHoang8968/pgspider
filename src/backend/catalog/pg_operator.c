@@ -3,7 +3,7 @@
  * pg_operator.c
  *	  routines to support manipulation of the pg_operator relation
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -26,7 +26,6 @@
 #include "catalog/objectaccess.h"
 #include "catalog/pg_namespace.h"
 #include "catalog/pg_operator.h"
-#include "catalog/pg_operator_fn.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
 #include "miscadmin.h"
@@ -39,26 +38,26 @@
 
 
 static Oid OperatorGet(const char *operatorName,
-					   Oid operatorNamespace,
-					   Oid leftObjectId,
-					   Oid rightObjectId,
-					   bool *defined);
+			Oid operatorNamespace,
+			Oid leftObjectId,
+			Oid rightObjectId,
+			bool *defined);
 
-static Oid OperatorLookup(List * operatorName,
-						  Oid leftObjectId,
-						  Oid rightObjectId,
-						  bool *defined);
+static Oid OperatorLookup(List *operatorName,
+			   Oid leftObjectId,
+			   Oid rightObjectId,
+			   bool *defined);
 
 static Oid OperatorShellMake(const char *operatorName,
-							 Oid operatorNamespace,
-							 Oid leftTypeId,
-							 Oid rightTypeId);
+				  Oid operatorNamespace,
+				  Oid leftTypeId,
+				  Oid rightTypeId);
 
-static Oid get_other_operator(List * otherOp,
-							  Oid otherLeftTypeId, Oid otherRightTypeId,
-							  const char *operatorName, Oid operatorNamespace,
-							  Oid leftTypeId, Oid rightTypeId,
-							  bool isCommutator);
+static Oid get_other_operator(List *otherOp,
+				   Oid otherLeftTypeId, Oid otherRightTypeId,
+				   const char *operatorName, Oid operatorNamespace,
+				   Oid leftTypeId, Oid rightTypeId,
+				   bool isCommutator);
 
 
 /*
@@ -124,7 +123,7 @@ validOperatorName(const char *name)
  *		finds an operator given an exact specification (name, namespace,
  *		left and right type IDs).
  *
- *		*defined is set TRUE if defined (not a shell)
+ *		*defined is set true if defined (not a shell)
  */
 static Oid
 OperatorGet(const char *operatorName,
@@ -164,10 +163,10 @@ OperatorGet(const char *operatorName,
  *		looks up an operator given a possibly-qualified name and
  *		left and right type IDs.
  *
- *		*defined is set TRUE if defined (not a shell)
+ *		*defined is set true if defined (not a shell)
  */
 static Oid
-OperatorLookup(List * operatorName,
+OperatorLookup(List *operatorName,
 			   Oid leftObjectId,
 			   Oid rightObjectId,
 			   bool *defined)
@@ -326,8 +325,8 @@ OperatorCreate(const char *operatorName,
 			   Oid leftTypeId,
 			   Oid rightTypeId,
 			   Oid procedureId,
-			   List * commutatorName,
-			   List * negatorName,
+			   List *commutatorName,
+			   List *negatorName,
 			   Oid restrictionId,
 			   Oid joinId,
 			   bool canMerge,
@@ -425,7 +424,7 @@ OperatorCreate(const char *operatorName,
 	 */
 	if (OidIsValid(operatorObjectId) &&
 		!pg_oper_ownercheck(operatorObjectId, GetUserId()))
-		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_OPER,
+		aclcheck_error(ACLCHECK_NOT_OWNER, OBJECT_OPERATOR,
 					   operatorName);
 
 	/*
@@ -445,7 +444,7 @@ OperatorCreate(const char *operatorName,
 		/* Permission check: must own other operator */
 		if (OidIsValid(commutatorId) &&
 			!pg_oper_ownercheck(commutatorId, GetUserId()))
-			aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_OPER,
+			aclcheck_error(ACLCHECK_NOT_OWNER, OBJECT_OPERATOR,
 						   NameListToString(commutatorName));
 
 		/*
@@ -470,7 +469,7 @@ OperatorCreate(const char *operatorName,
 		/* Permission check: must own other operator */
 		if (OidIsValid(negatorId) &&
 			!pg_oper_ownercheck(negatorId, GetUserId()))
-			aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_OPER,
+			aclcheck_error(ACLCHECK_NOT_OWNER, OBJECT_OPERATOR,
 						   NameListToString(negatorName));
 	}
 	else
@@ -573,7 +572,7 @@ OperatorCreate(const char *operatorName,
  * the same operator, create a shell operator.
  */
 static Oid
-get_other_operator(List * otherOp, Oid otherLeftTypeId, Oid otherRightTypeId,
+get_other_operator(List *otherOp, Oid otherLeftTypeId, Oid otherRightTypeId,
 				   const char *operatorName, Oid operatorNamespace,
 				   Oid leftTypeId, Oid rightTypeId, bool isCommutator)
 {
@@ -618,7 +617,7 @@ get_other_operator(List * otherOp, Oid otherLeftTypeId, Oid otherRightTypeId,
 	aclresult = pg_namespace_aclcheck(otherNamespace, GetUserId(),
 									  ACL_CREATE);
 	if (aclresult != ACLCHECK_OK)
-		aclcheck_error(aclresult, ACL_KIND_NAMESPACE,
+		aclcheck_error(aclresult, OBJECT_SCHEMA,
 					   get_namespace_name(otherNamespace));
 
 	other_oid = OperatorShellMake(otherName,

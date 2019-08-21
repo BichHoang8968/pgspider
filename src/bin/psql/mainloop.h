@@ -1,7 +1,7 @@
 /*
  * psql - the PostgreSQL interactive terminal
  *
- * Copyright (c) 2000-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2018, PostgreSQL Global Development Group
  *
  * src/bin/psql/mainloop.h
  */
@@ -12,6 +12,6 @@
 
 extern const PsqlScanCallbacks psqlscan_callbacks;
 
-extern int	MainLoop(FILE * source);
+extern int	MainLoop(FILE *source);
 
 #endif							/* MAINLOOP_H */

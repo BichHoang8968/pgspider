@@ -7,7 +7,7 @@
  * This gives R-tree behavior, with Guttman's poly-time split algorithm.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -26,9 +26,9 @@
 #include "utils/geo_decls.h"
 
 
-static bool gist_box_leaf_consistent(BOX * key, BOX * query,
+static bool gist_box_leaf_consistent(BOX *key, BOX *query,
 						 StrategyNumber strategy);
-static bool rtree_internal_consistent(BOX * key, BOX * query,
+static bool rtree_internal_consistent(BOX *key, BOX *query,
 						  StrategyNumber strategy);
 
 /* Minimum accepted ratio of split */
@@ -52,7 +52,7 @@ static bool rtree_internal_consistent(BOX * key, BOX * query,
  * Calculates union of two boxes, a and b. The result is stored in *n.
  */
 static void
-rt_box_union(BOX * n, const BOX * a, const BOX * b)
+rt_box_union(BOX *n, const BOX *a, const BOX *b)
 {
 	n->high.x = FLOAT8_MAX(a->high.x, b->high.x);
 	n->high.y = FLOAT8_MAX(a->high.y, b->high.y);
@@ -65,7 +65,7 @@ rt_box_union(BOX * n, const BOX * a, const BOX * b)
  * The result can be +Infinity, but not NaN.
  */
 static double
-size_box(const BOX * box)
+size_box(const BOX *box)
 {
 	/*
 	 * Check for zero-width cases.  Note that we define the size of a zero-
@@ -93,7 +93,7 @@ size_box(const BOX * box)
  * the original BOX's area.  The result can be +Infinity, but not NaN.
  */
 static double
-box_penalty(const BOX * original, const BOX * new)
+box_penalty(const BOX *original, const BOX *new)
 {
 	BOX			unionbox;
 
@@ -105,7 +105,7 @@ box_penalty(const BOX * original, const BOX * new)
  * The GiST Consistent method for boxes
  *
  * Should return false if for all data items x below entry,
- * the predicate x op query must be FALSE, where op is the oper
+ * the predicate x op query must be false, where op is the oper
  * corresponding to strategy in the pg_amop table.
  */
 Datum
@@ -122,7 +122,7 @@ gist_box_consistent(PG_FUNCTION_ARGS)
 	*recheck = false;
 
 	if (DatumGetBoxP(entry->key) == NULL || query == NULL)
-		PG_RETURN_BOOL(FALSE);
+		PG_RETURN_BOOL(false);
 
 	/*
 	 * if entry is not leaf, use rtree_internal_consistent, else use
@@ -142,7 +142,7 @@ gist_box_consistent(PG_FUNCTION_ARGS)
  * Increase BOX b to include addon.
  */
 static void
-adjustBox(BOX * b, const BOX * addon)
+adjustBox(BOX *b, const BOX *addon)
 {
 	if (FLOAT8_LT(b->high.x, addon->high.x))
 		b->high.x = addon->high.x;
@@ -185,37 +185,9 @@ gist_box_union(PG_FUNCTION_ARGS)
 }
 
 /*
- * GiST Compress methods for boxes
- *
- * do not do anything.
+ * We store boxes as boxes in GiST indexes, so we do not need
+ * compress, decompress, or fetch functions.
  */
-Datum
-gist_box_compress(PG_FUNCTION_ARGS)
-{
-	PG_RETURN_POINTER(PG_GETARG_POINTER(0));
-}
-
-/*
- * GiST DeCompress method for boxes (also used for points, polygons
- * and circles)
- *
- * do not do anything --- we just use the stored box as is.
- */
-Datum
-gist_box_decompress(PG_FUNCTION_ARGS)
-{
-	PG_RETURN_POINTER(PG_GETARG_POINTER(0));
-}
-
-/*
- * GiST Fetch method for boxes
- * do not do anything --- we just return the stored box as is.
- */
-Datum
-gist_box_fetch(PG_FUNCTION_ARGS)
-{
-	PG_RETURN_POINTER(PG_GETARG_POINTER(0));
-}
 
 /*
  * The GiST Penalty method for boxes (also used for points)
@@ -240,7 +212,7 @@ gist_box_penalty(PG_FUNCTION_ARGS)
  * and another half - to another
  */
 static void
-fallbackSplit(GistEntryVector * entryvec, GIST_SPLITVEC * v)
+fallbackSplit(GistEntryVector *entryvec, GIST_SPLITVEC *v)
 {
 	OffsetNumber i,
 				maxoff;
@@ -301,7 +273,7 @@ typedef struct
 	int			index;
 	/* Delta between penalties of entry insertion into different groups */
 	double		delta;
-}			CommonEntry;
+} CommonEntry;
 
 /*
  * Context for g_box_consider_split. Contains information about currently
@@ -324,7 +296,7 @@ typedef struct
 	int			dim;			/* axis of this split */
 	double		range;			/* width of general MBR projection to the
 								 * selected axis */
-}			ConsiderSplitContext;
+} ConsiderSplitContext;
 
 /*
  * Interval represents projection of box to axis.
@@ -333,7 +305,7 @@ typedef struct
 {
 	double		lower,
 				upper;
-}			SplitInterval;
+} SplitInterval;
 
 /*
  * Interval comparison function by lower bound of the interval;
@@ -375,7 +347,7 @@ non_negative(float val)
  * Consider replacement of currently selected split with the better one.
  */
 static inline void
-g_box_consider_split(ConsiderSplitContext * context, int dimNum,
+g_box_consider_split(ConsiderSplitContext *context, int dimNum,
 					 double rightLower, int minLeftCount,
 					 double leftUpper, int maxLeftCount)
 {
@@ -901,7 +873,7 @@ gist_box_same(PG_FUNCTION_ARGS)
  * Leaf-level consistency for boxes: just apply the query operator
  */
 static bool
-gist_box_leaf_consistent(BOX * key, BOX * query, StrategyNumber strategy)
+gist_box_leaf_consistent(BOX *key, BOX *query, StrategyNumber strategy)
 {
 	bool		retval;
 
@@ -988,7 +960,7 @@ gist_box_leaf_consistent(BOX * key, BOX * query, StrategyNumber strategy)
  * internal-page representation.
  */
 static bool
-rtree_internal_consistent(BOX * key, BOX * query, StrategyNumber strategy)
+rtree_internal_consistent(BOX *key, BOX *query, StrategyNumber strategy)
 {
 	bool		retval;
 
@@ -1084,7 +1056,7 @@ gist_poly_compress(PG_FUNCTION_ARGS)
 		retval = (GISTENTRY *) palloc(sizeof(GISTENTRY));
 		gistentryinit(*retval, PointerGetDatum(r),
 					  entry->rel, entry->page,
-					  entry->offset, FALSE);
+					  entry->offset, false);
 	}
 	else
 		retval = entry;
@@ -1109,7 +1081,7 @@ gist_poly_consistent(PG_FUNCTION_ARGS)
 	*recheck = true;
 
 	if (DatumGetBoxP(entry->key) == NULL || query == NULL)
-		PG_RETURN_BOOL(FALSE);
+		PG_RETURN_BOOL(false);
 
 	/*
 	 * Since the operators require recheck anyway, we can just use
@@ -1152,7 +1124,7 @@ gist_circle_compress(PG_FUNCTION_ARGS)
 		retval = (GISTENTRY *) palloc(sizeof(GISTENTRY));
 		gistentryinit(*retval, PointerGetDatum(r),
 					  entry->rel, entry->page,
-					  entry->offset, FALSE);
+					  entry->offset, false);
 	}
 	else
 		retval = entry;
@@ -1178,7 +1150,7 @@ gist_circle_consistent(PG_FUNCTION_ARGS)
 	*recheck = true;
 
 	if (DatumGetBoxP(entry->key) == NULL || query == NULL)
-		PG_RETURN_BOOL(FALSE);
+		PG_RETURN_BOOL(false);
 
 	/*
 	 * Since the operators require recheck anyway, we can just use
@@ -1214,7 +1186,7 @@ gist_point_compress(PG_FUNCTION_ARGS)
 		box->high = box->low = *point;
 
 		gistentryinit(*retval, BoxPGetDatum(box),
-					  entry->rel, entry->page, entry->offset, FALSE);
+					  entry->rel, entry->page, entry->offset, false);
 
 		PG_RETURN_POINTER(retval);
 	}
@@ -1243,7 +1215,7 @@ gist_point_fetch(PG_FUNCTION_ARGS)
 	r->y = in->high.y;
 	gistentryinit(*retval, PointerGetDatum(r),
 				  entry->rel, entry->page,
-				  entry->offset, FALSE);
+				  entry->offset, false);
 
 	PG_RETURN_POINTER(retval);
 }
@@ -1254,7 +1226,7 @@ gist_point_fetch(PG_FUNCTION_ARGS)
 									   PointPGetDatum(p1), PointPGetDatum(p2)))
 
 static double
-computeDistance(bool isLeaf, BOX * box, Point * point)
+computeDistance(bool isLeaf, BOX *box, Point *point)
 {
 	double		result = 0.0;
 
@@ -1321,7 +1293,7 @@ computeDistance(bool isLeaf, BOX * box, Point * point)
 
 static bool
 gist_point_consistent_internal(StrategyNumber strategy,
-							   bool isLeaf, BOX * key, Point * query)
+							   bool isLeaf, BOX *key, Point *query)
 {
 	bool		result = false;
 
@@ -1516,7 +1488,7 @@ gist_point_distance(PG_FUNCTION_ARGS)
  * type.
  */
 static double
-gist_bbox_distance(GISTENTRY * entry, Datum query,
+gist_bbox_distance(GISTENTRY *entry, Datum query,
 				   StrategyNumber strategy, bool *recheck)
 {
 	double		distance;

@@ -24,7 +24,7 @@
  * is used for.)
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -222,7 +222,7 @@ shimTriConsistentFn(GinScanKey key)
  * Set up the implementation of the consistent functions for a scan key.
  */
 void
-ginInitConsistentFunction(GinState * ginstate, GinScanKey key)
+ginInitConsistentFunction(GinState *ginstate, GinScanKey key)
 {
 	if (key->searchMode == GIN_SEARCH_MODE_EVERYTHING)
 	{

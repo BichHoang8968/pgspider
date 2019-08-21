@@ -3,7 +3,7 @@
  * execUtils.c
  *	  miscellaneous executor utility routines
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -22,7 +22,6 @@
  *		ReScanExprContext
  *
  *		ExecAssignExprContext	Common code for plan node init routines.
- *		ExecAssignResultType
  *		etc
  *
  *		ExecOpenScanRelation	Common code for scan node init routines.
@@ -46,6 +45,7 @@
 #include "access/relscan.h"
 #include "access/transam.h"
 #include "executor/executor.h"
+#include "jit/jit.h"
 #include "mb/pg_wchar.h"
 #include "nodes/nodeFuncs.h"
 #include "parser/parsetree.h"
@@ -55,10 +55,10 @@
 #include "utils/rel.h"
 #include "utils/typcache.h"
 
+/* #define GETPROGRESS_ENABLED */
 
-//#define GETPROGRESS_ENABLED
-
-static void ShutdownExprContext(ExprContext * econtext, bool isCommit);
+static bool tlist_matches_tupdesc(PlanState *ps, List *tlist, Index varno, TupleDesc tupdesc);
+static void ShutdownExprContext(ExprContext *econtext, bool isCommit);
 
 #ifdef GETPROGRESS_ENABLED
 extern ProgressState * gl_progressPtr;	/* Global Progress state */
@@ -123,7 +123,7 @@ CreateExecutorState(void)
 	estate->es_root_result_relations = NULL;
 	estate->es_num_root_result_relations = 0;
 
-	estate->es_leaf_result_relations = NIL;
+	estate->es_tuple_routing_result_relations = NIL;
 
 	estate->es_trig_target_relations = NIL;
 	estate->es_trig_tuple_slot = NULL;
@@ -166,6 +166,9 @@ CreateExecutorState(void)
 #endif
 	estate->es_use_parallel_mode = false;
 
+	estate->es_jit_flags = 0;
+	estate->es_jit = NULL;
+
 	/*
 	 * Return the executor state structure
 	 */
@@ -179,18 +182,18 @@ CreateExecutorState(void)
  *
  *		Release an EState along with all remaining working storage.
  *
- * Note: this is not responsible for releasing non-memory resources,
- * such as open relations or buffer pins.  But it will shut down any
- * still-active ExprContexts within the EState.  That is sufficient
- * cleanup for situations where the EState has only been used for expression
- * evaluation, and not to run a complete Plan.
+ * Note: this is not responsible for releasing non-memory resources, such as
+ * open relations or buffer pins.  But it will shut down any still-active
+ * ExprContexts within the EState and deallocate associated JITed expressions.
+ * That is sufficient cleanup for situations where the EState has only been
+ * used for expression evaluation, and not to run a complete Plan.
  *
  * This can be called in any memory context ... so long as it's not one
  * of the ones to be freed.
  * ----------------
  */
 void
-FreeExecutorState(EState * estate)
+FreeExecutorState(EState *estate)
 {
 	/*
 	 * Shut down and free any remaining ExprContexts.  We do this explicitly
@@ -207,6 +210,13 @@ FreeExecutorState(EState * estate)
 		FreeExprContext((ExprContext *) linitial(estate->es_exprcontexts),
 						true);
 		/* FreeExprContext removed the list link for us */
+	}
+
+	/* release JIT context, if allocated */
+	if (estate->es_jit)
+	{
+		jit_release_context(estate->es_jit);
+		estate->es_jit = NULL;
 	}
 
 	/*
@@ -230,7 +240,7 @@ FreeExecutorState(EState * estate)
  * ----------------
  */
 ExprContext *
-CreateExprContext(EState * estate)
+CreateExprContext(EState *estate)
 {
 	ExprContext *econtext;
 	MemoryContext oldcontext;
@@ -361,7 +371,7 @@ CreateStandaloneExprContext(void)
  * ----------------
  */
 void
-FreeExprContext(ExprContext * econtext, bool isCommit)
+FreeExprContext(ExprContext *econtext, bool isCommit)
 {
 	EState	   *estate;
 
@@ -388,7 +398,7 @@ FreeExprContext(ExprContext * econtext, bool isCommit)
  * Note we make no assumption about the caller's memory context.
  */
 void
-ReScanExprContext(ExprContext * econtext)
+ReScanExprContext(ExprContext *econtext)
 {
 	/* Call any registered callbacks */
 	ShutdownExprContext(econtext, true);
@@ -403,7 +413,7 @@ ReScanExprContext(ExprContext * econtext)
  * not directly.
  */
 ExprContext *
-MakePerTupleExprContext(EState * estate)
+MakePerTupleExprContext(EState *estate)
 {
 	if (estate->es_per_tuple_exprcontext == NULL)
 		estate->es_per_tuple_exprcontext = CreateExprContext(estate);
@@ -430,50 +440,9 @@ MakePerTupleExprContext(EState * estate)
  * ----------------
  */
 void
-ExecAssignExprContext(EState * estate, PlanState * planstate)
+ExecAssignExprContext(EState *estate, PlanState *planstate)
 {
 	planstate->ps_ExprContext = CreateExprContext(estate);
-}
-
-/* ----------------
- *		ExecAssignResultType
- * ----------------
- */
-void
-ExecAssignResultType(PlanState * planstate, TupleDesc tupDesc)
-{
-	TupleTableSlot *slot = planstate->ps_ResultTupleSlot;
-
-	ExecSetSlotDescriptor(slot, tupDesc);
-}
-
-/* ----------------
- *		ExecAssignResultTypeFromTL
- * ----------------
- */
-void
-ExecAssignResultTypeFromTL(PlanState * planstate)
-{
-	bool		hasoid;
-	TupleDesc	tupDesc;
-
-	if (ExecContextForcesOids(planstate, &hasoid))
-	{
-		/* context forces OID choice; hasoid is now set correctly */
-	}
-	else
-	{
-		/* given free choice, don't leave space for OIDs in result tuples */
-		hasoid = false;
-	}
-
-	/*
-	 * ExecTypeFromTL needs the parse-time representation of the tlist, not a
-	 * list of ExprStates.  This is good because some plan nodes don't bother
-	 * to set up planstate->targetlist ...
-	 */
-	tupDesc = ExecTypeFromTL(planstate->plan->targetlist, hasoid);
-	ExecAssignResultType(planstate, tupDesc);
 }
 
 /* ----------------
@@ -481,7 +450,7 @@ ExecAssignResultTypeFromTL(PlanState * planstate)
  * ----------------
  */
 TupleDesc
-ExecGetResultType(PlanState * planstate)
+ExecGetResultType(PlanState *planstate)
 {
 	TupleTableSlot *slot = planstate->ps_ResultTupleSlot;
 
@@ -499,7 +468,7 @@ ExecGetResultType(PlanState * planstate)
  * ----------------
  */
 void
-ExecAssignProjectionInfo(PlanState * planstate,
+ExecAssignProjectionInfo(PlanState *planstate,
 						 TupleDesc inputDesc)
 {
 	planstate->ps_ProjInfo =
@@ -510,6 +479,87 @@ ExecAssignProjectionInfo(PlanState * planstate,
 								inputDesc);
 }
 
+
+/* ----------------
+ *		ExecConditionalAssignProjectionInfo
+ *
+ * as ExecAssignProjectionInfo, but store NULL rather than building projection
+ * info if no projection is required
+ * ----------------
+ */
+void
+ExecConditionalAssignProjectionInfo(PlanState *planstate, TupleDesc inputDesc,
+									Index varno)
+{
+	if (tlist_matches_tupdesc(planstate,
+							  planstate->plan->targetlist,
+							  varno,
+							  inputDesc))
+		planstate->ps_ProjInfo = NULL;
+	else
+		ExecAssignProjectionInfo(planstate, inputDesc);
+}
+
+static bool
+tlist_matches_tupdesc(PlanState *ps, List *tlist, Index varno, TupleDesc tupdesc)
+{
+	int			numattrs = tupdesc->natts;
+	int			attrno;
+	bool		hasoid;
+	ListCell   *tlist_item = list_head(tlist);
+
+	/* Check the tlist attributes */
+	for (attrno = 1; attrno <= numattrs; attrno++)
+	{
+		Form_pg_attribute att_tup = TupleDescAttr(tupdesc, attrno - 1);
+		Var		   *var;
+
+		if (tlist_item == NULL)
+			return false;		/* tlist too short */
+		var = (Var *) ((TargetEntry *) lfirst(tlist_item))->expr;
+		if (!var || !IsA(var, Var))
+			return false;		/* tlist item not a Var */
+		/* if these Asserts fail, planner messed up */
+		Assert(var->varno == varno);
+		Assert(var->varlevelsup == 0);
+		if (var->varattno != attrno)
+			return false;		/* out of order */
+		if (att_tup->attisdropped)
+			return false;		/* table contains dropped columns */
+		if (att_tup->atthasmissing)
+			return false;		/* table contains cols with missing values */
+
+		/*
+		 * Note: usually the Var's type should match the tupdesc exactly, but
+		 * in situations involving unions of columns that have different
+		 * typmods, the Var may have come from above the union and hence have
+		 * typmod -1.  This is a legitimate situation since the Var still
+		 * describes the column, just not as exactly as the tupdesc does. We
+		 * could change the planner to prevent it, but it'd then insert
+		 * projection steps just to convert from specific typmod to typmod -1,
+		 * which is pretty silly.
+		 */
+		if (var->vartype != att_tup->atttypid ||
+			(var->vartypmod != att_tup->atttypmod &&
+			 var->vartypmod != -1))
+			return false;		/* type mismatch */
+
+		tlist_item = lnext(tlist_item);
+	}
+
+	if (tlist_item)
+		return false;			/* tlist too long */
+
+	/*
+	 * If the plan context requires a particular hasoid setting, then that has
+	 * to match, too.
+	 */
+	if (ExecContextForcesOids(ps, &hasoid) &&
+		hasoid != tupdesc->tdhasoid)
+		return false;
+
+	return true;
+}
 
 /* ----------------
  *		ExecFreeExprContext
@@ -528,7 +578,7 @@ ExecAssignProjectionInfo(PlanState * planstate,
  * ----------------
  */
 void
-ExecFreeExprContext(PlanState * planstate)
+ExecFreeExprContext(PlanState *planstate)
 {
 	/*
 	 * Per above discussion, don't actually delete the ExprContext. We do
@@ -537,13 +587,9 @@ ExecFreeExprContext(PlanState * planstate)
 	planstate->ps_ExprContext = NULL;
 }
 
+
 /* ----------------------------------------------------------------
- *		the following scan type support functions are for
- *		those nodes which are stubborn and return tuples in
- *		their Scan tuple slot instead of their Result tuple
- *		slot..  luck fur us, these nodes do not do projections
- *		so we don't have to worry about getting the ProjectionInfo
- *		right for them...  -cim 6/3/91
+ *				  Scan node support
  * ----------------------------------------------------------------
  */
 
@@ -552,7 +598,7 @@ ExecFreeExprContext(PlanState * planstate)
  * ----------------
  */
 void
-ExecAssignScanType(ScanState * scanstate, TupleDesc tupDesc)
+ExecAssignScanType(ScanState *scanstate, TupleDesc tupDesc)
 {
 	TupleTableSlot *slot = scanstate->ss_ScanTupleSlot;
 
@@ -560,11 +606,11 @@ ExecAssignScanType(ScanState * scanstate, TupleDesc tupDesc)
 }
 
 /* ----------------
- *		ExecAssignScanTypeFromOuterPlan
+ *		ExecCreateSlotFromOuterPlan
  * ----------------
  */
 void
-ExecAssignScanTypeFromOuterPlan(ScanState * scanstate)
+ExecCreateScanSlotFromOuterPlan(EState *estate, ScanState *scanstate)
 {
 	PlanState  *outerPlan;
 	TupleDesc	tupDesc;
@@ -572,14 +618,8 @@ ExecAssignScanTypeFromOuterPlan(ScanState * scanstate)
 	outerPlan = outerPlanState(scanstate);
 	tupDesc = ExecGetResultType(outerPlan);
 
-	ExecAssignScanType(scanstate, tupDesc);
+	ExecInitScanTupleSlot(estate, scanstate, tupDesc);
 }
-
-
-/* ----------------------------------------------------------------
- *				  Scan node support
- * ----------------------------------------------------------------
- */
 
 /* ----------------------------------------------------------------
  *		ExecRelationIsTargetRelation
@@ -589,7 +629,7 @@ ExecAssignScanTypeFromOuterPlan(ScanState * scanstate)
  * ----------------------------------------------------------------
  */
 bool
-ExecRelationIsTargetRelation(EState * estate, Index scanrelid)
+ExecRelationIsTargetRelation(EState *estate, Index scanrelid)
 {
 	ResultRelInfo *resultRelInfos;
 	int			i;
@@ -615,7 +655,7 @@ ExecRelationIsTargetRelation(EState * estate, Index scanrelid)
  * ----------------------------------------------------------------
  */
 Relation
-ExecOpenScanRelation(EState * estate, Index scanrelid, int eflags)
+ExecOpenScanRelation(EState *estate, Index scanrelid, int eflags)
 {
 	Relation	rel;
 	Oid			reloid;
@@ -683,7 +723,7 @@ ExecCloseScanRelation(Relation scanrel)
  *		Add changed parameters to a plan node's chgParam set
  */
 void
-UpdateChangedParamSet(PlanState * node, Bitmapset * newchg)
+UpdateChangedParamSet(PlanState *node, Bitmapset *newchg)
 {
 	Bitmapset  *parmset;
 
@@ -717,7 +757,7 @@ UpdateChangedParamSet(PlanState * node, Bitmapset * newchg)
  * expensive than storing token offsets.)
  */
 int
-executor_errposition(EState * estate, int location)
+executor_errposition(EState *estate, int location)
 {
 	int			pos;
 
@@ -744,7 +784,7 @@ executor_errposition(EState * estate, int location)
  * by an error.
  */
 void
-RegisterExprContextCallback(ExprContext * econtext,
+RegisterExprContextCallback(ExprContext *econtext,
 							ExprContextCallbackFunction function,
 							Datum arg)
 {
@@ -770,7 +810,7 @@ RegisterExprContextCallback(ExprContext * econtext,
  * This can be used if it's no longer necessary to call the callback.
  */
 void
-UnregisterExprContextCallback(ExprContext * econtext,
+UnregisterExprContextCallback(ExprContext *econtext,
 							  ExprContextCallbackFunction function,
 							  Datum arg)
 {
@@ -801,7 +841,7 @@ UnregisterExprContextCallback(ExprContext * econtext,
  * (See comment for FreeExprContext.)
  */
 static void
-ShutdownExprContext(ExprContext * econtext, bool isCommit)
+ShutdownExprContext(ExprContext *econtext, bool isCommit)
 {
 	ExprContext_CB *ecxt_callback;
 	MemoryContext oldcontext;
@@ -823,7 +863,7 @@ ShutdownExprContext(ExprContext * econtext, bool isCommit)
 	{
 		econtext->ecxt_callbacks = ecxt_callback->next;
 		if (isCommit)
-			(*ecxt_callback->function) (ecxt_callback->arg);
+			ecxt_callback->function(ecxt_callback->arg);
 		pfree(ecxt_callback);
 	}
 
@@ -838,7 +878,7 @@ ShutdownExprContext(ExprContext * econtext, bool isCommit)
  * tree controlled by a given Append or MergeAppend node.
  */
 void
-ExecLockNonLeafAppendTables(List * partitioned_rels, EState * estate)
+ExecLockNonLeafAppendTables(List *partitioned_rels, EState *estate)
 {
 	PlannedStmt *stmt = estate->es_plannedstmt;
 	ListCell   *lc;
@@ -927,9 +967,11 @@ GetAttributeByName(HeapTupleHeader tuple, const char *attname, bool *isNull)
 	attrno = InvalidAttrNumber;
 	for (i = 0; i < tupDesc->natts; i++)
 	{
-		if (namestrcmp(&(tupDesc->attrs[i]->attname), attname) == 0)
+		Form_pg_attribute att = TupleDescAttr(tupDesc, i);
+
+		if (namestrcmp(&(att->attname), attname) == 0)
 		{
-			attrno = tupDesc->attrs[i]->attnum;
+			attrno = att->attnum;
 			break;
 		}
 	}
@@ -1009,7 +1051,7 @@ GetAttributeByNum(HeapTupleHeader tuple,
  * Number of items in a tlist (including any resjunk items!)
  */
 int
-ExecTargetListLength(List * targetlist)
+ExecTargetListLength(List *targetlist)
 {
 	/* This used to be more complex, but fjoins are dead */
 	return list_length(targetlist);
@@ -1019,7 +1061,7 @@ ExecTargetListLength(List * targetlist)
  * Number of items in a tlist, not including any resjunk items
  */
 int
-ExecCleanTargetListLength(List * targetlist)
+ExecCleanTargetListLength(List *targetlist)
 {
 	int			len = 0;
 	ListCell   *tl;

@@ -3,7 +3,7 @@
  * parse_node.c
  *	  various routines that make nodes for querytrees
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -41,7 +41,7 @@ static void pcb_error_callback(void *arg);
  * Caller should eventually release the ParseState via free_parsestate().
  */
 ParseState *
-make_parsestate(ParseState * parentParseState)
+make_parsestate(ParseState *parentParseState)
 {
 	ParseState *pstate;
 
@@ -74,7 +74,7 @@ make_parsestate(ParseState * parentParseState)
  *		Release a ParseState and any subsidiary resources.
  */
 void
-free_parsestate(ParseState * pstate)
+free_parsestate(ParseState *pstate)
 {
 	/*
 	 * Check that we did not produce too many resnos; at the very least we
@@ -108,7 +108,7 @@ free_parsestate(ParseState * pstate)
  * expensive than storing token offsets.)
  */
 int
-parser_errposition(ParseState * pstate, int location)
+parser_errposition(ParseState *pstate, int location)
 {
 	int			pos;
 
@@ -142,8 +142,8 @@ parser_errposition(ParseState * pstate, int location)
  *		cancel_parser_errposition_callback(&pcbstate);
  */
 void
-setup_parser_errposition_callback(ParseCallbackState * pcbstate,
-								  ParseState * pstate, int location)
+setup_parser_errposition_callback(ParseCallbackState *pcbstate,
+								  ParseState *pstate, int location)
 {
 	/* Setup error traceback support for ereport() */
 	pcbstate->pstate = pstate;
@@ -158,7 +158,7 @@ setup_parser_errposition_callback(ParseCallbackState * pcbstate,
  * Cancel a previously-set-up errposition callback.
  */
 void
-cancel_parser_errposition_callback(ParseCallbackState * pcbstate)
+cancel_parser_errposition_callback(ParseCallbackState *pcbstate)
 {
 	/* Pop the error context stack */
 	error_context_stack = pcbstate->errcallback.previous;
@@ -186,7 +186,7 @@ pcb_error_callback(void *arg)
  *		Build a Var node for an attribute identified by RTE and attrno
  */
 Var *
-make_var(ParseState * pstate, RangeTblEntry * rte, int attrno, int location)
+make_var(ParseState *pstate, RangeTblEntry *rte, int attrno, int location)
 {
 	Var		   *result;
 	int			vnum,
@@ -213,7 +213,7 @@ make_var(ParseState * pstate, RangeTblEntry * rte, int attrno, int location)
  * an array type.
  */
 Oid
-transformArrayType(Oid * arrayType, int32 * arrayTypmod)
+transformArrayType(Oid *arrayType, int32 *arrayTypmod)
 {
 	Oid			origArrayType = *arrayType;
 	Oid			elementType;
@@ -291,13 +291,13 @@ transformArrayType(Oid * arrayType, int32 * arrayTypmod)
  * assignFrom	NULL for array fetch, else transformed expression for source.
  */
 ArrayRef *
-transformArraySubscripts(ParseState * pstate,
-						 Node * arrayBase,
+transformArraySubscripts(ParseState *pstate,
+						 Node *arrayBase,
 						 Oid arrayType,
 						 Oid elementType,
 						 int32 arrayTypMod,
-						 List * indirection,
-						 Node * assignFrom)
+						 List *indirection,
+						 Node *assignFrom)
 {
 	bool		isSlice = false;
 	List	   *upperIndexpr = NIL;
@@ -467,7 +467,7 @@ transformArraySubscripts(ParseState * pstate,
  *	too many examples that fail if we try.
  */
 Const *
-make_const(ParseState * pstate, Value * value, int location)
+make_const(ParseState *pstate, Value *value, int location)
 {
 	Const	   *con;
 	Datum		val;

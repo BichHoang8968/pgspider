@@ -3,7 +3,7 @@
  * copy_fetch.c
  *	  Functions for using a data directory as the source.
  *
- * Portions Copyright (c) 2013-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2013-2018, PostgreSQL Global Development Group
  *
  *-------------------------------------------------------------------------
  */
@@ -21,12 +21,10 @@
 #include "logging.h"
 #include "pg_rewind.h"
 
-#include "catalog/catalog.h"
-
 static void recurse_dir(const char *datadir, const char *path,
 			process_file_callback_t callback);
 
-static void execute_pagemap(datapagemap_t * pagemap, const char *path);
+static void execute_pagemap(datapagemap_t *pagemap, const char *path);
 
 /*
  * Traverse through all files in a data directory, calling 'callback'
@@ -158,7 +156,7 @@ recurse_dir(const char *datadir, const char *parentpath,
 static void
 rewind_copy_file_range(const char *path, off_t begin, off_t end, bool trunc)
 {
-	char		buf[BLCKSZ];
+	PGAlignedBlock buf;
 	char		srcpath[MAXPGPATH];
 	int			srcfd;
 
@@ -184,7 +182,7 @@ rewind_copy_file_range(const char *path, off_t begin, off_t end, bool trunc)
 		else
 			len = end - begin;
 
-		readlen = read(srcfd, buf, len);
+		readlen = read(srcfd, buf.data, len);
 
 		if (readlen < 0)
 			pg_fatal("could not read file \"%s\": %s\n",
@@ -192,7 +190,7 @@ rewind_copy_file_range(const char *path, off_t begin, off_t end, bool trunc)
 		else if (readlen == 0)
 			pg_fatal("unexpected EOF while reading file \"%s\"\n", srcpath);
 
-		write_target_range(buf, begin, readlen);
+		write_target_range(buf.data, begin, readlen);
 		begin += readlen;
 	}
 
@@ -205,7 +203,7 @@ rewind_copy_file_range(const char *path, off_t begin, off_t end, bool trunc)
  * are marked in the given data page map.
  */
 void
-copy_executeFileMap(filemap_t * map)
+copy_executeFileMap(filemap_t *map)
 {
 	file_entry_t *entry;
 	int			i;
@@ -248,7 +246,7 @@ copy_executeFileMap(filemap_t * map)
 }
 
 static void
-execute_pagemap(datapagemap_t * pagemap, const char *path)
+execute_pagemap(datapagemap_t *pagemap, const char *path)
 {
 	datapagemap_iterator_t *iter;
 	BlockNumber blkno;

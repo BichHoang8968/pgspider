@@ -12,7 +12,7 @@
  * other data structure within the segment and only put the pointer to
  * the data structure itself in the table of contents.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/shm_toc.h
@@ -27,12 +27,12 @@
 /* shm_toc is an opaque type known only within shm_toc.c */
 typedef struct shm_toc shm_toc;
 
-extern shm_toc * shm_toc_create(uint64 magic, void *address, Size nbytes);
-extern shm_toc * shm_toc_attach(uint64 magic, void *address);
-extern void *shm_toc_allocate(shm_toc * toc, Size nbytes);
-extern Size shm_toc_freespace(shm_toc * toc);
-extern void shm_toc_insert(shm_toc * toc, uint64 key, void *address);
-extern void *shm_toc_lookup(shm_toc * toc, uint64 key, bool noError);
+extern shm_toc *shm_toc_create(uint64 magic, void *address, Size nbytes);
+extern shm_toc *shm_toc_attach(uint64 magic, void *address);
+extern void *shm_toc_allocate(shm_toc *toc, Size nbytes);
+extern Size shm_toc_freespace(shm_toc *toc);
+extern void shm_toc_insert(shm_toc *toc, uint64 key, void *address);
+extern void *shm_toc_lookup(shm_toc *toc, uint64 key, bool noError);
 
 /*
  * Tools for estimating how large a chunk of shared memory will be needed
@@ -44,7 +44,7 @@ typedef struct
 {
 	Size		space_for_chunks;
 	Size		number_of_keys;
-}			shm_toc_estimator;
+} shm_toc_estimator;
 
 #define shm_toc_initialize_estimator(e) \
 	((e)->space_for_chunks = 0, (e)->number_of_keys = 0)
@@ -53,6 +53,6 @@ typedef struct
 #define shm_toc_estimate_keys(e, cnt) \
 	((e)->number_of_keys = add_size((e)->number_of_keys, cnt))
 
-extern Size shm_toc_estimate(shm_toc_estimator * e);
+extern Size shm_toc_estimate(shm_toc_estimator *e);
 
 #endif							/* SHM_TOC_H */

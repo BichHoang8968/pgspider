@@ -4,7 +4,7 @@
  *
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/executor/nodeTableFuncscan.h
@@ -16,8 +16,8 @@
 
 #include "nodes/execnodes.h"
 
-extern TableFuncScanState * ExecInitTableFuncScan(TableFuncScan * node, EState * estate, int eflags);
-extern void ExecEndTableFuncScan(TableFuncScanState * node);
-extern void ExecReScanTableFuncScan(TableFuncScanState * node);
+extern TableFuncScanState *ExecInitTableFuncScan(TableFuncScan *node, EState *estate, int eflags);
+extern void ExecEndTableFuncScan(TableFuncScanState *node);
+extern void ExecReScanTableFuncScan(TableFuncScanState *node);
 
 #endif							/* NODETABLEFUNCSCAN_H */

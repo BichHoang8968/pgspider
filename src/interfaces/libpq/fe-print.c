@@ -3,7 +3,7 @@
  * fe-print.c
  *	  functions for pretty-printing query results
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * These functions were formerly part of fe-exec.c, but they
@@ -37,19 +37,19 @@
 #include "libpq-int.h"
 
 
-static void do_field(const PQprintOpt * po, const PGresult * res,
+static void do_field(const PQprintOpt *po, const PGresult *res,
 		 const int i, const int j, const int fs_len,
 		 char **fields,
 		 const int nFields, const char **fieldNames,
 		 unsigned char *fieldNotNum, int *fieldMax,
-		 const int fieldMaxLen, FILE * fout);
-static char *do_header(FILE * fout, const PQprintOpt * po, const int nFields,
+		 const int fieldMaxLen, FILE *fout);
+static char *do_header(FILE *fout, const PQprintOpt *po, const int nFields,
 		  int *fieldMax, const char **fieldNames, unsigned char *fieldNotNum,
-		  const int fs_len, const PGresult * res);
-static void output_row(FILE * fout, const PQprintOpt * po, const int nFields, char **fields,
+		  const int fs_len, const PGresult *res);
+static void output_row(FILE *fout, const PQprintOpt *po, const int nFields, char **fields,
 		   unsigned char *fieldNotNum, int *fieldMax, char *border,
 		   const int row_index);
-static void fill(int length, int max, char filler, FILE * fp);
+static void fill(int length, int max, char filler, FILE *fp);
 
 /*
  * PQprint()
@@ -65,7 +65,7 @@ static void fill(int length, int max, char filler, FILE * fp);
  * by external clients, however.
  */
 void
-PQprint(FILE * fout, const PGresult * res, const PQprintOpt * po)
+PQprint(FILE *fout, const PGresult *res, const PQprintOpt *po)
 {
 	int			nFields;
 
@@ -165,6 +165,13 @@ PQprint(FILE * fout, const PGresult * res, const PQprintOpt * po)
 			screen_size.ws_row = 24;
 			screen_size.ws_col = 80;
 #endif
+
+			/*
+			 * Since this function is no longer used by psql, we don't examine
+			 * PSQL_PAGER.  It's possible that the hypothetical external users
+			 * of the function would like that to happen, but in the name of
+			 * backwards compatibility, we'll stick to just examining PAGER.
+			 */
 			pagerenv = getenv("PAGER");
 			/* if PAGER is unset, empty or all-white-space, don't use pager */
 			if (pagerenv != NULL &&
@@ -323,12 +330,12 @@ PQprint(FILE * fout, const PGresult * res, const PQprintOpt * po)
 
 
 static void
-do_field(const PQprintOpt * po, const PGresult * res,
+do_field(const PQprintOpt *po, const PGresult *res,
 		 const int i, const int j, const int fs_len,
 		 char **fields,
 		 const int nFields, char const **fieldNames,
 		 unsigned char *fieldNotNum, int *fieldMax,
-		 const int fieldMaxLen, FILE * fout)
+		 const int fieldMaxLen, FILE *fout)
 {
 	const char *pval,
 			   *p;
@@ -437,9 +444,9 @@ do_field(const PQprintOpt * po, const PGresult * res,
 
 
 static char *
-do_header(FILE * fout, const PQprintOpt * po, const int nFields, int *fieldMax,
+do_header(FILE *fout, const PQprintOpt *po, const int nFields, int *fieldMax,
 		  const char **fieldNames, unsigned char *fieldNotNum,
-		  const int fs_len, const PGresult * res)
+		  const int fs_len, const PGresult *res)
 {
 	int			j;				/* for loop index */
 	char	   *border = NULL;
@@ -523,7 +530,7 @@ do_header(FILE * fout, const PQprintOpt * po, const int nFields, int *fieldMax,
 
 
 static void
-output_row(FILE * fout, const PQprintOpt * po, const int nFields, char **fields,
+output_row(FILE *fout, const PQprintOpt *po, const int nFields, char **fields,
 		   unsigned char *fieldNotNum, int *fieldMax, char *border,
 		   const int row_index)
 {
@@ -568,8 +575,8 @@ output_row(FILE * fout, const PQprintOpt * po, const int nFields, char **fields,
  */
 
 void
-PQdisplayTuples(const PGresult * res,
-				FILE * fp,		/* where to send the output */
+PQdisplayTuples(const PGresult *res,
+				FILE *fp,		/* where to send the output */
 				int fillAlign,	/* pad the fields with spaces */
 				const char *fieldSep,	/* field separator */
 				int printHeader,	/* display headers? */
@@ -666,8 +673,8 @@ PQdisplayTuples(const PGresult * res,
 
 
 void
-PQprintTuples(const PGresult * res,
-			  FILE * fout,		/* output stream */
+PQprintTuples(const PGresult *res,
+			  FILE *fout,		/* output stream */
 			  int PrintAttNames,	/* print attribute names or not */
 			  int TerseOutput,	/* delimiter bars or not? */
 			  int colWidth		/* width of column, if 0, use variable width */
@@ -751,7 +758,7 @@ PQprintTuples(const PGresult * res,
 /* simply send out max-length number of filler characters to fp */
 
 static void
-fill(int length, int max, char filler, FILE * fp)
+fill(int length, int max, char filler, FILE *fp)
 {
 	int			count;
 

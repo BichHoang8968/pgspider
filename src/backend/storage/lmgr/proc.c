@@ -3,7 +3,7 @@
  * proc.c
  *	  routines to manage per-process shared memory data structure
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -82,7 +82,7 @@ NON_EXEC_STATIC PGPROC *AuxiliaryProcs = NULL;
 PGPROC	   *PreparedXactProcs = NULL;
 
 /* If we are waiting for a lock, this points to the associated LOCALLOCK */
-static LOCALLOCK * lockAwaited = NULL;
+static LOCALLOCK *lockAwaited = NULL;
 
 static DeadLockState deadlock_state = DS_NOT_YET_CHECKED;
 
@@ -186,6 +186,7 @@ InitProcGlobal(void)
 	ProcGlobal->walwriterLatch = NULL;
 	ProcGlobal->checkpointerLatch = NULL;
 	pg_atomic_init_u32(&ProcGlobal->procArrayGroupFirst, INVALID_PGPROCNO);
+	pg_atomic_init_u32(&ProcGlobal->clogGroupFirst, INVALID_PGPROCNO);
 
 	/*
 	 * Create and initialize all the PGPROC structures we'll need.  There are
@@ -266,6 +267,13 @@ InitProcGlobal(void)
 
 		/* Initialize lockGroupMembers list. */
 		dlist_init(&procs[i].lockGroupMembers);
+
+		/*
+		 * Initialize the atomic variables, otherwise, it won't be safe to
+		 * access them for backends that aren't currently in use.
+		 */
+		pg_atomic_init_u32(&(procs[i].procArrayGroupNext), INVALID_PGPROCNO);
+		pg_atomic_init_u32(&(procs[i].clogGroupNext), INVALID_PGPROCNO);
 	}
 
 	/*
@@ -370,6 +378,7 @@ InitProcess(void)
 	MyProc->backendId = InvalidBackendId;
 	MyProc->databaseId = InvalidOid;
 	MyProc->roleId = InvalidOid;
+	MyProc->tempNamespaceId = InvalidOid;
 	MyProc->isBackgroundWorker = IsBackgroundWorker;
 	MyPgXact->delayChkpt = false;
 	MyPgXact->vacuumFlags = 0;
@@ -399,7 +408,7 @@ InitProcess(void)
 	/* Initialize fields for group XID clearing. */
 	MyProc->procArrayGroupMember = false;
 	MyProc->procArrayGroupMemberXid = InvalidTransactionId;
-	pg_atomic_init_u32(&MyProc->procArrayGroupNext, INVALID_PGPROCNO);
+	Assert(pg_atomic_read_u32(&MyProc->procArrayGroupNext) == INVALID_PGPROCNO);
 
 	/* Check that group locking fields are in a proper initial state. */
 	Assert(MyProc->lockGroupLeader == NULL);
@@ -407,6 +416,14 @@ InitProcess(void)
 
 	/* Initialize wait event information. */
 	MyProc->wait_event_info = 0;
+
+	/* Initialize fields for group transaction status update. */
+	MyProc->clogGroupMember = false;
+	MyProc->clogGroupMemberXid = InvalidTransactionId;
+	MyProc->clogGroupMemberXidStatus = TRANSACTION_STATUS_IN_PROGRESS;
+	MyProc->clogGroupMemberPage = -1;
+	MyProc->clogGroupMemberLsn = InvalidXLogRecPtr;
+	Assert(pg_atomic_read_u32(&MyProc->clogGroupNext) == INVALID_PGPROCNO);
 
 	/*
 	 * Acquire ownership of the PGPROC's latch, so that we can use WaitLatch
@@ -543,6 +560,7 @@ InitAuxiliaryProcess(void)
 	MyProc->backendId = InvalidBackendId;
 	MyProc->databaseId = InvalidOid;
 	MyProc->roleId = InvalidOid;
+	MyProc->tempNamespaceId = InvalidOid;
 	MyProc->isBackgroundWorker = IsBackgroundWorker;
 	MyPgXact->delayChkpt = false;
 	MyPgXact->vacuumFlags = 0;
@@ -611,7 +629,7 @@ void
 SetStartupBufferPinWaitBufId(int bufid)
 {
 	/* use volatile pointer to prevent code rearrangement */
-	volatile	PROC_HDR *procglobal = ProcGlobal;
+	volatile PROC_HDR *procglobal = ProcGlobal;
 
 	procglobal->startupBufferPinWaitBufId = bufid;
 }
@@ -623,7 +641,7 @@ int
 GetStartupBufferPinWaitBufId(void)
 {
 	/* use volatile pointer to prevent code rearrangement */
-	volatile	PROC_HDR *procglobal = ProcGlobal;
+	volatile PROC_HDR *procglobal = ProcGlobal;
 
 	return procglobal->startupBufferPinWaitBufId;
 }
@@ -838,7 +856,7 @@ ProcKill(int code, Datum arg)
 
 				/* Leader exited first; return its PGPROC. */
 				SpinLockAcquire(ProcStructLock);
-				leader->links.next = (SHM_QUEUE *) * procgloballist;
+				leader->links.next = (SHM_QUEUE *) *procgloballist;
 				*procgloballist = leader;
 				SpinLockRelease(ProcStructLock);
 			}
@@ -873,7 +891,7 @@ ProcKill(int code, Datum arg)
 		Assert(dlist_is_empty(&proc->lockGroupMembers));
 
 		/* Return PGPROC structure (and semaphore) to appropriate freelist */
-		proc->links.next = (SHM_QUEUE *) * procgloballist;
+		proc->links.next = (SHM_QUEUE *) *procgloballist;
 		*procgloballist = proc;
 	}
 
@@ -1001,7 +1019,7 @@ ProcQueueAlloc(const char *name)
  * ProcQueueInit -- initialize a shared memory process queue
  */
 void
-ProcQueueInit(PROC_QUEUE * queue)
+ProcQueueInit(PROC_QUEUE *queue)
 {
 	SHMQueueInit(&(queue->links));
 	queue->size = 0;
@@ -1025,7 +1043,7 @@ ProcQueueInit(PROC_QUEUE * queue)
  * NOTES: The process queue is now a priority queue for locking.
  */
 int
-ProcSleep(LOCALLOCK * locallock, LockMethod lockMethodTable)
+ProcSleep(LOCALLOCK *locallock, LockMethod lockMethodTable)
 {
 	LOCKMODE	lockmode = locallock->tag.mode;
 	LOCK	   *lock = locallock->lock;
@@ -1141,7 +1159,7 @@ ProcSleep(LOCALLOCK * locallock, LockMethod lockMethodTable)
 	else
 	{
 		/* I hold no locks, so I can't push in front of anyone. */
-		proc = (PGPROC *) & (waitQueue->links);
+		proc = (PGPROC *) &(waitQueue->links);
 	}
 
 	/*
@@ -1556,7 +1574,7 @@ ProcSleep(LOCALLOCK * locallock, LockMethod lockMethodTable)
  * Hence, in practice the waitStatus parameter must be STATUS_OK.
  */
 PGPROC *
-ProcWakeup(PGPROC * proc, int waitStatus)
+ProcWakeup(PGPROC *proc, int waitStatus)
 {
 	PGPROC	   *retProc;
 
@@ -1592,7 +1610,7 @@ ProcWakeup(PGPROC * proc, int waitStatus)
  * The appropriate lock partition lock must be held by caller.
  */
 void
-ProcLockWakeup(LockMethod lockMethodTable, LOCK * lock)
+ProcLockWakeup(LockMethod lockMethodTable, LOCK *lock)
 {
 	PROC_QUEUE *waitQueue = &(lock->waitProcs);
 	int			queue_size = waitQueue->size;
@@ -1842,7 +1860,7 @@ BecomeLockGroupLeader(void)
  * group, and false if not.
  */
 bool
-BecomeLockGroupMember(PGPROC * leader, int pid)
+BecomeLockGroupMember(PGPROC *leader, int pid)
 {
 	LWLock	   *leader_lwlock;
 	bool		ok = false;

@@ -4,7 +4,7 @@
  *	  POSTGRES lock manager definitions.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/lmgr.h
@@ -32,14 +32,14 @@ typedef enum XLTW_Oper
 	XLTW_InsertIndexUnique,
 	XLTW_FetchUpdated,
 	XLTW_RecheckExclusionConstr
-}			XLTW_Oper;
+} XLTW_Oper;
 
 extern void RelationInitLockInfo(Relation relation);
 
 /* Lock a relation */
 extern void LockRelationOid(Oid relid, LOCKMODE lockmode);
 extern bool ConditionalLockRelationOid(Oid relid, LOCKMODE lockmode);
-extern void UnlockRelationId(LockRelId * relid, LOCKMODE lockmode);
+extern void UnlockRelationId(LockRelId *relid, LOCKMODE lockmode);
 extern void UnlockRelationOid(Oid relid, LOCKMODE lockmode);
 
 extern void LockRelation(Relation relation, LOCKMODE lockmode);
@@ -47,8 +47,8 @@ extern bool ConditionalLockRelation(Relation relation, LOCKMODE lockmode);
 extern void UnlockRelation(Relation relation, LOCKMODE lockmode);
 extern bool LockHasWaitersRelation(Relation relation, LOCKMODE lockmode);
 
-extern void LockRelationIdForSession(LockRelId * relid, LOCKMODE lockmode);
-extern void UnlockRelationIdForSession(LockRelId * relid, LOCKMODE lockmode);
+extern void LockRelationIdForSession(LockRelId *relid, LOCKMODE lockmode);
+extern void UnlockRelationIdForSession(LockRelId *relid, LOCKMODE lockmode);
 
 /* Lock a relation for extension */
 extern void LockRelationForExtension(Relation relation, LOCKMODE lockmode);
@@ -77,7 +77,7 @@ extern bool ConditionalXactLockTableWait(TransactionId xid);
 
 /* Lock VXIDs, specified by conflicting locktags */
 extern void WaitForLockers(LOCKTAG heaplocktag, LOCKMODE lockmode);
-extern void WaitForLockersMultiple(List * locktags, LOCKMODE lockmode);
+extern void WaitForLockersMultiple(List *locktags, LOCKMODE lockmode);
 
 /* Lock an XID for tuple insertion (used to wait for an insertion to finish) */
 extern uint32 SpeculativeInsertionLockAcquire(TransactionId xid);
@@ -102,7 +102,7 @@ extern void UnlockSharedObjectForSession(Oid classid, Oid objid, uint16 objsubid
 							 LOCKMODE lockmode);
 
 /* Describe a locktag for error messages */
-extern void DescribeLockTag(StringInfo buf, const LOCKTAG * tag);
+extern void DescribeLockTag(StringInfo buf, const LOCKTAG *tag);
 
 extern const char *GetLockNameFromTagType(uint16 locktag_type);
 

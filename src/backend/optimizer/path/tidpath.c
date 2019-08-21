@@ -25,7 +25,7 @@
  * for that.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -46,10 +46,10 @@
 #include "optimizer/restrictinfo.h"
 
 
-static bool IsTidEqualClause(OpExpr * node, int varno);
-static bool IsTidEqualAnyClause(ScalarArrayOpExpr * node, int varno);
-static List * TidQualFromExpr(Node * expr, int varno);
-static List * TidQualFromBaseRestrictinfo(RelOptInfo * rel);
+static bool IsTidEqualClause(OpExpr *node, int varno);
+static bool IsTidEqualAnyClause(ScalarArrayOpExpr *node, int varno);
+static List *TidQualFromExpr(Node *expr, int varno);
+static List *TidQualFromBaseRestrictinfo(RelOptInfo *rel);
 
 
 /*
@@ -63,7 +63,7 @@ static List * TidQualFromBaseRestrictinfo(RelOptInfo * rel);
  * let's be safe.
  */
 static bool
-IsTidEqualClause(OpExpr * node, int varno)
+IsTidEqualClause(OpExpr *node, int varno)
 {
 	Node	   *arg1,
 			   *arg2,
@@ -115,7 +115,7 @@ IsTidEqualClause(OpExpr * node, int varno)
  *		CTID = ANY (pseudoconstant_array)
  */
 static bool
-IsTidEqualAnyClause(ScalarArrayOpExpr * node, int varno)
+IsTidEqualAnyClause(ScalarArrayOpExpr *node, int varno)
 {
 	Node	   *arg1,
 			   *arg2;
@@ -164,7 +164,7 @@ IsTidEqualAnyClause(ScalarArrayOpExpr * node, int varno)
  *	just exit as soon as we find the first candidate.
  */
 static List *
-TidQualFromExpr(Node * expr, int varno)
+TidQualFromExpr(Node *expr, int varno)
 {
 	List	   *rlst = NIL;
 	ListCell   *l;
@@ -220,7 +220,7 @@ TidQualFromExpr(Node * expr, int varno)
  *	Extract a set of CTID conditions from the rel's baserestrictinfo list
  */
 static List *
-TidQualFromBaseRestrictinfo(RelOptInfo * rel)
+TidQualFromBaseRestrictinfo(RelOptInfo *rel)
 {
 	List	   *rlst = NIL;
 	ListCell   *l;
@@ -250,7 +250,7 @@ TidQualFromBaseRestrictinfo(RelOptInfo * rel)
  *	  Candidate paths are added to the rel's pathlist (using add_path).
  */
 void
-create_tidscan_paths(PlannerInfo * root, RelOptInfo * rel)
+create_tidscan_paths(PlannerInfo *root, RelOptInfo *rel)
 {
 	Relids		required_outer;
 	List	   *tidquals;

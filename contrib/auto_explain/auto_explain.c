@@ -3,7 +3,7 @@
  * auto_explain.c
  *
  *
- * Copyright (c) 2008-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2008-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  contrib/auto_explain/auto_explain.c
@@ -16,6 +16,7 @@
 
 #include "commands/explain.h"
 #include "executor/instrument.h"
+#include "jit/jit.h"
 #include "utils/guc.h"
 
 PG_MODULE_MAGIC;
@@ -58,12 +59,12 @@ static bool current_query_sampled = true;
 void		_PG_init(void);
 void		_PG_fini(void);
 
-static void explain_ExecutorStart(QueryDesc * queryDesc, int eflags);
-static void explain_ExecutorRun(QueryDesc * queryDesc,
+static void explain_ExecutorStart(QueryDesc *queryDesc, int eflags);
+static void explain_ExecutorRun(QueryDesc *queryDesc,
 					ScanDirection direction,
 					uint64 count, bool execute_once);
-static void explain_ExecutorFinish(QueryDesc * queryDesc);
-static void explain_ExecutorEnd(QueryDesc * queryDesc);
+static void explain_ExecutorFinish(QueryDesc *queryDesc);
+static void explain_ExecutorEnd(QueryDesc *queryDesc);
 
 
 /*
@@ -78,7 +79,7 @@ _PG_init(void)
 							"Zero prints all plans. -1 turns this feature off.",
 							&auto_explain_log_min_duration,
 							-1,
-							-1, INT_MAX / 1000,
+							-1, INT_MAX,
 							PGC_SUSET,
 							GUC_UNIT_MS,
 							NULL,
@@ -206,7 +207,7 @@ _PG_fini(void)
  * ExecutorStart hook: start up logging if needed
  */
 static void
-explain_ExecutorStart(QueryDesc * queryDesc, int eflags)
+explain_ExecutorStart(QueryDesc *queryDesc, int eflags)
 {
 	/*
 	 * For rate sampling, randomly choose top-level statement. Either all
@@ -257,7 +258,7 @@ explain_ExecutorStart(QueryDesc * queryDesc, int eflags)
  * ExecutorRun hook: all we need do is track nesting depth
  */
 static void
-explain_ExecutorRun(QueryDesc * queryDesc, ScanDirection direction,
+explain_ExecutorRun(QueryDesc *queryDesc, ScanDirection direction,
 					uint64 count, bool execute_once)
 {
 	nesting_level++;
@@ -281,7 +282,7 @@ explain_ExecutorRun(QueryDesc * queryDesc, ScanDirection direction,
  * ExecutorFinish hook: all we need do is track nesting depth
  */
 static void
-explain_ExecutorFinish(QueryDesc * queryDesc)
+explain_ExecutorFinish(QueryDesc *queryDesc)
 {
 	nesting_level++;
 	PG_TRY();
@@ -304,7 +305,7 @@ explain_ExecutorFinish(QueryDesc * queryDesc)
  * ExecutorEnd hook: log results if needed
  */
 static void
-explain_ExecutorEnd(QueryDesc * queryDesc)
+explain_ExecutorEnd(QueryDesc *queryDesc)
 {
 	if (queryDesc->totaltime && auto_explain_enabled() && current_query_sampled)
 	{
@@ -334,6 +335,8 @@ explain_ExecutorEnd(QueryDesc * queryDesc)
 			ExplainPrintPlan(es, queryDesc);
 			if (es->analyze && auto_explain_log_triggers)
 				ExplainPrintTriggers(es, queryDesc);
+			if (es->costs)
+				ExplainPrintJITSummary(es, queryDesc);
 			ExplainEndOutput(es);
 
 			/* Remove last line break */

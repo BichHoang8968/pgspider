@@ -3,13 +3,13 @@
  *
  *	server checks and output routines
  *
- *	Copyright (c) 2010-2017, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2018, PostgreSQL Global Development Group
  *	src/bin/pg_upgrade/check.c
  */
 
 #include "postgres_fe.h"
 
-#include "catalog/pg_authid.h"
+#include "catalog/pg_authid_d.h"
 #include "fe_utils/string_utils.h"
 #include "mb/pg_wchar.h"
 #include "pg_upgrade.h"
@@ -17,15 +17,15 @@
 
 static void check_new_cluster_is_empty(void);
 static void check_databases_are_compatible(void);
-static void check_locale_and_encoding(DbInfo * olddb, DbInfo * newdb);
+static void check_locale_and_encoding(DbInfo *olddb, DbInfo *newdb);
 static bool equivalent_locale(int category, const char *loca, const char *locb);
-static void check_is_install_user(ClusterInfo * cluster);
-static void check_proper_datallowconn(ClusterInfo * cluster);
-static void check_for_prepared_transactions(ClusterInfo * cluster);
-static void check_for_isn_and_int8_passing_mismatch(ClusterInfo * cluster);
-static void check_for_reg_data_type_usage(ClusterInfo * cluster);
-static void check_for_jsonb_9_4_usage(ClusterInfo * cluster);
-static void check_for_pg_role_prefix(ClusterInfo * cluster);
+static void check_is_install_user(ClusterInfo *cluster);
+static void check_proper_datallowconn(ClusterInfo *cluster);
+static void check_for_prepared_transactions(ClusterInfo *cluster);
+static void check_for_isn_and_int8_passing_mismatch(ClusterInfo *cluster);
+static void check_for_reg_data_type_usage(ClusterInfo *cluster);
+static void check_for_jsonb_9_4_usage(ClusterInfo *cluster);
+static void check_for_pg_role_prefix(ClusterInfo *cluster);
 static char *get_canonical_locale_name(int category, const char *locale);
 
 
@@ -298,7 +298,7 @@ check_cluster_compatibility(bool live_check)
  * are compatible.
  */
 static void
-check_locale_and_encoding(DbInfo * olddb, DbInfo * newdb)
+check_locale_and_encoding(DbInfo *olddb, DbInfo *newdb)
 {
 	if (olddb->db_encoding != newdb->db_encoding)
 		pg_fatal("encodings for database \"%s\" do not match:  old \"%s\", new \"%s\"\n",
@@ -642,7 +642,7 @@ create_script_for_old_cluster_deletion(char **deletion_script_file_name)
  *	has no other users.
  */
 static void
-check_is_install_user(ClusterInfo * cluster)
+check_is_install_user(ClusterInfo *cluster)
 {
 	PGresult   *res;
 	PGconn	   *conn = connectToServer(cluster, "template1");
@@ -693,7 +693,7 @@ check_is_install_user(ClusterInfo * cluster)
 
 
 static void
-check_proper_datallowconn(ClusterInfo * cluster)
+check_proper_datallowconn(ClusterInfo *cluster)
 {
 	int			dbnum;
 	PGconn	   *conn_template1;
@@ -754,7 +754,7 @@ check_proper_datallowconn(ClusterInfo * cluster)
  *	might have changed.
  */
 static void
-check_for_prepared_transactions(ClusterInfo * cluster)
+check_for_prepared_transactions(ClusterInfo *cluster)
 {
 	PGresult   *res;
 	PGconn	   *conn = connectToServer(cluster, "template1");
@@ -789,7 +789,7 @@ check_for_prepared_transactions(ClusterInfo * cluster)
  *	it must match for the old and new servers.
  */
 static void
-check_for_isn_and_int8_passing_mismatch(ClusterInfo * cluster)
+check_for_isn_and_int8_passing_mismatch(ClusterInfo *cluster)
 {
 	int			dbnum;
 	FILE	   *script = NULL;
@@ -883,7 +883,7 @@ check_for_isn_and_int8_passing_mismatch(ClusterInfo * cluster)
  *	tables upgraded by pg_upgrade.
  */
 static void
-check_for_reg_data_type_usage(ClusterInfo * cluster)
+check_for_reg_data_type_usage(ClusterInfo *cluster)
 {
 	int			dbnum;
 	FILE	   *script = NULL;
@@ -915,18 +915,26 @@ check_for_reg_data_type_usage(ClusterInfo * cluster)
 								"SELECT n.nspname, c.relname, a.attname "
 								"FROM	pg_catalog.pg_class c, "
 								"		pg_catalog.pg_namespace n, "
-								"		pg_catalog.pg_attribute a "
+								"		pg_catalog.pg_attribute a, "
+								"		pg_catalog.pg_type t "
 								"WHERE	c.oid = a.attrelid AND "
 								"		NOT a.attisdropped AND "
-								"		a.atttypid IN ( "
-								"			'pg_catalog.regproc'::pg_catalog.regtype, "
-								"			'pg_catalog.regprocedure'::pg_catalog.regtype, "
-								"			'pg_catalog.regoper'::pg_catalog.regtype, "
-								"			'pg_catalog.regoperator'::pg_catalog.regtype, "
+								"       a.atttypid = t.oid AND "
+								"       t.typnamespace = "
+								"           (SELECT oid FROM pg_namespace "
+								"            WHERE nspname = 'pg_catalog') AND"
+								"		t.typname IN ( "
 		/* regclass.oid is preserved, so 'regclass' is OK */
+								"           'regconfig', "
+								"           'regdictionary', "
+								"           'regnamespace', "
+								"           'regoper', "
+								"           'regoperator', "
+								"           'regproc', "
+								"           'regprocedure' "
+		/* regrole.oid is preserved, so 'regrole' is OK */
 		/* regtype.oid is preserved, so 'regtype' is OK */
-								"			'pg_catalog.regconfig'::pg_catalog.regtype, "
-								"			'pg_catalog.regdictionary'::pg_catalog.regtype) AND "
+								"			) AND "
 								"		c.relnamespace = n.oid AND "
 								"		n.nspname NOT IN ('pg_catalog', 'information_schema')");
 
@@ -980,7 +988,7 @@ check_for_reg_data_type_usage(ClusterInfo * cluster)
  *	JSONB changed its storage format during 9.4 beta, so check for it.
  */
 static void
-check_for_jsonb_9_4_usage(ClusterInfo * cluster)
+check_for_jsonb_9_4_usage(ClusterInfo *cluster)
 {
 	int			dbnum;
 	FILE	   *script = NULL;
@@ -1069,7 +1077,7 @@ check_for_jsonb_9_4_usage(ClusterInfo * cluster)
  *	Versions older than 9.6 should not have any pg_* roles
  */
 static void
-check_for_pg_role_prefix(ClusterInfo * cluster)
+check_for_pg_role_prefix(ClusterInfo *cluster)
 {
 	PGresult   *res;
 	PGconn	   *conn = connectToServer(cluster, "template1");

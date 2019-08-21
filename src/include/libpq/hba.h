@@ -40,7 +40,7 @@ typedef enum UserAuth
 	uaRADIUS,
 	uaPeer
 #define USER_AUTH_LAST uaPeer	/* Must be last value of this enum */
-}			UserAuth;
+} UserAuth;
 
 typedef enum IPCompareMethod
 {
@@ -48,7 +48,7 @@ typedef enum IPCompareMethod
 	ipCmpSameHost,
 	ipCmpSameNet,
 	ipCmpAll
-}			IPCompareMethod;
+} IPCompareMethod;
 
 typedef enum ConnType
 {
@@ -56,7 +56,7 @@ typedef enum ConnType
 	ctHost,
 	ctHostSSL,
 	ctHostNoSSL
-}			ConnType;
+} ConnType;
 
 typedef struct HbaLine
 {
@@ -75,11 +75,13 @@ typedef struct HbaLine
 	char	   *pamservice;
 	bool		pam_use_hostname;
 	bool		ldaptls;
+	char	   *ldapscheme;
 	char	   *ldapserver;
 	int			ldapport;
 	char	   *ldapbinddn;
 	char	   *ldapbindpasswd;
 	char	   *ldapsearchattribute;
+	char	   *ldapsearchfilter;
 	char	   *ldapbasedn;
 	int			ldapscope;
 	char	   *ldapprefix;
@@ -97,7 +99,7 @@ typedef struct HbaLine
 	char	   *radiusidentifiers_s;
 	List	   *radiusports;
 	char	   *radiusports_s;
-}			HbaLine;
+} HbaLine;
 
 typedef struct IdentLine
 {
@@ -107,14 +109,14 @@ typedef struct IdentLine
 	char	   *ident_user;
 	char	   *pg_role;
 	regex_t		re;
-}			IdentLine;
+} IdentLine;
 
 /* kluge to avoid including libpq/libpq-be.h here */
 typedef struct Port hbaPort;
 
 extern bool load_hba(void);
 extern bool load_ident(void);
-extern void hba_getauthmethod(hbaPort * port);
+extern void hba_getauthmethod(hbaPort *port);
 extern int check_usermap(const char *usermap_name,
 			  const char *pg_role, const char *auth_user,
 			  bool case_sensitive);

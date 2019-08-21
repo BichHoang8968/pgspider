@@ -5,13 +5,14 @@
 
 #include "btree_gist.h"
 #include "btree_utils_num.h"
+#include "common/int.h"
 #include "utils/cash.h"
 
 typedef struct
 {
 	Cash		lower;
 	Cash		upper;
-}			cashKEY;
+} cashKEY;
 
 /*
 ** Cash ops
@@ -26,33 +27,33 @@ PG_FUNCTION_INFO_V1(gbt_cash_penalty);
 PG_FUNCTION_INFO_V1(gbt_cash_same);
 
 static bool
-gbt_cashgt(const void *a, const void *b, FmgrInfo * flinfo)
+gbt_cashgt(const void *a, const void *b, FmgrInfo *flinfo)
 {
 	return (*((const Cash *) a) > *((const Cash *) b));
 }
 static bool
-gbt_cashge(const void *a, const void *b, FmgrInfo * flinfo)
+gbt_cashge(const void *a, const void *b, FmgrInfo *flinfo)
 {
 	return (*((const Cash *) a) >= *((const Cash *) b));
 }
 static bool
-gbt_casheq(const void *a, const void *b, FmgrInfo * flinfo)
+gbt_casheq(const void *a, const void *b, FmgrInfo *flinfo)
 {
 	return (*((const Cash *) a) == *((const Cash *) b));
 }
 static bool
-gbt_cashle(const void *a, const void *b, FmgrInfo * flinfo)
+gbt_cashle(const void *a, const void *b, FmgrInfo *flinfo)
 {
 	return (*((const Cash *) a) <= *((const Cash *) b));
 }
 static bool
-gbt_cashlt(const void *a, const void *b, FmgrInfo * flinfo)
+gbt_cashlt(const void *a, const void *b, FmgrInfo *flinfo)
 {
 	return (*((const Cash *) a) < *((const Cash *) b));
 }
 
 static int
-gbt_cashkey_cmp(const void *a, const void *b, FmgrInfo * flinfo)
+gbt_cashkey_cmp(const void *a, const void *b, FmgrInfo *flinfo)
 {
 	cashKEY    *ia = (cashKEY *) (((const Nsrt *) a)->t);
 	cashKEY    *ib = (cashKEY *) (((const Nsrt *) b)->t);
@@ -69,7 +70,7 @@ gbt_cashkey_cmp(const void *a, const void *b, FmgrInfo * flinfo)
 }
 
 static float8
-gbt_cash_dist(const void *a, const void *b, FmgrInfo * flinfo)
+gbt_cash_dist(const void *a, const void *b, FmgrInfo *flinfo)
 {
 	return GET_FLOAT_DISTANCE(Cash, a, b);
 }
@@ -99,14 +100,13 @@ cash_dist(PG_FUNCTION_ARGS)
 	Cash		r;
 	Cash		ra;
 
-	r = a - b;
-	ra = Abs(r);
-
-	/* Overflow check. */
-	if (ra < 0 || (!SAMESIGN(a, b) && !SAMESIGN(r, a)))
+	if (pg_sub_s64_overflow(a, b, &r) ||
+		r == PG_INT64_MIN)
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("money out of range")));
+
+	ra = Abs(r);
 
 	PG_RETURN_CASH(ra);
 }
@@ -147,8 +147,8 @@ gbt_cash_consistent(PG_FUNCTION_ARGS)
 	/* All cases served by this function are exact */
 	*recheck = false;
 
-	key.lower = (GBT_NUMKEY *) & kkk->lower;
-	key.upper = (GBT_NUMKEY *) & kkk->upper;
+	key.lower = (GBT_NUMKEY *) &kkk->lower;
+	key.upper = (GBT_NUMKEY *) &kkk->upper;
 
 	PG_RETURN_BOOL(
 				   gbt_num_consistent(&key, (void *) &query, &strategy, GIST_LEAF(entry), &tinfo, fcinfo->flinfo)
@@ -166,8 +166,8 @@ gbt_cash_distance(PG_FUNCTION_ARGS)
 	cashKEY    *kkk = (cashKEY *) DatumGetPointer(entry->key);
 	GBT_NUMKEY_R key;
 
-	key.lower = (GBT_NUMKEY *) & kkk->lower;
-	key.upper = (GBT_NUMKEY *) & kkk->upper;
+	key.lower = (GBT_NUMKEY *) &kkk->lower;
+	key.upper = (GBT_NUMKEY *) &kkk->upper;
 
 	PG_RETURN_FLOAT8(
 					 gbt_num_distance(&key, (void *) &query, GIST_LEAF(entry), &tinfo, fcinfo->flinfo)

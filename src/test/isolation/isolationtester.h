@@ -3,7 +3,7 @@
  * isolationtester.h
  *	  include file for isolation tests
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -38,7 +38,7 @@ typedef struct
 {
 	int			nsteps;
 	char	  **stepnames;
-}			Permutation;
+} Permutation;
 
 typedef struct
 {
@@ -51,7 +51,7 @@ typedef struct
 	int			npermutations;
 	Step	  **allsteps;
 	int			nallsteps;
-}			TestSpec;
+} TestSpec;
 
 extern TestSpec parseresult;
 

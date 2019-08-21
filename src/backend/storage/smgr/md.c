@@ -10,7 +10,7 @@
  * It doesn't matter whether the bits are on spinning rust or some other
  * storage technology.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -28,7 +28,6 @@
 #include "miscadmin.h"
 #include "access/xlogutils.h"
 #include "access/xlog.h"
-#include "catalog/catalog.h"
 #include "pgstat.h"
 #include "portability/instr_time.h"
 #include "postmaster/bgwriter.h"
@@ -111,7 +110,7 @@ typedef struct _MdfdVec
 {
 	File		mdfd_vfd;		/* fd number in fd.c's pool */
 	BlockNumber mdfd_segno;		/* segment number, from 0 */
-}			MdfdVec;
+} MdfdVec;
 
 static MemoryContext MdCxt;		/* context for all MdfdVec objects */
 
@@ -145,16 +144,16 @@ typedef struct
 	Bitmapset  *requests[MAX_FORKNUM + 1];
 	/* canceled[f] is true if we canceled fsyncs for fork "recently" */
 	bool		canceled[MAX_FORKNUM + 1];
-}			PendingOperationEntry;
+} PendingOperationEntry;
 
 typedef struct
 {
 	RelFileNode rnode;			/* the dead relation to delete */
 	CycleCtr	cycle_ctr;		/* mdckpt_cycle_ctr when request was made */
-}			PendingUnlinkEntry;
+} PendingUnlinkEntry;
 
-static HTAB * pendingOpsTable = NULL;
-static List * pendingUnlinks = NIL;
+static HTAB *pendingOpsTable = NULL;
+static List *pendingUnlinks = NIL;
 static MemoryContext pendingOpsCxt; /* context for the above  */
 
 static CycleCtr mdsync_cycle_ctr = 0;
@@ -183,21 +182,21 @@ static CycleCtr mdckpt_cycle_ctr = 0;
 /* local routines */
 static void mdunlinkfork(RelFileNodeBackend rnode, ForkNumber forkNum,
 			 bool isRedo);
-static MdfdVec * mdopen(SMgrRelation reln, ForkNumber forknum, int behavior);
+static MdfdVec *mdopen(SMgrRelation reln, ForkNumber forknum, int behavior);
 static void register_dirty_segment(SMgrRelation reln, ForkNumber forknum,
-					   MdfdVec * seg);
+					   MdfdVec *seg);
 static void register_unlink(RelFileNodeBackend rnode);
 static void _fdvec_resize(SMgrRelation reln,
 			  ForkNumber forknum,
 			  int nseg);
 static char *_mdfd_segpath(SMgrRelation reln, ForkNumber forknum,
 			  BlockNumber segno);
-static MdfdVec * _mdfd_openseg(SMgrRelation reln, ForkNumber forkno,
-							   BlockNumber segno, int oflags);
-static MdfdVec * _mdfd_getseg(SMgrRelation reln, ForkNumber forkno,
-							  BlockNumber blkno, bool skipFsync, int behavior);
+static MdfdVec *_mdfd_openseg(SMgrRelation reln, ForkNumber forkno,
+			  BlockNumber segno, int oflags);
+static MdfdVec *_mdfd_getseg(SMgrRelation reln, ForkNumber forkno,
+			 BlockNumber blkno, bool skipFsync, int behavior);
 static BlockNumber _mdnblocks(SMgrRelation reln, ForkNumber forknum,
-							  MdfdVec * seg);
+		   MdfdVec *seg);
 
 
 /*
@@ -305,7 +304,7 @@ mdcreate(SMgrRelation reln, ForkNumber forkNum, bool isRedo)
 
 	path = relpath(reln->smgr_rnode, forkNum);
 
-	fd = PathNameOpenFile(path, O_RDWR | O_CREAT | O_EXCL | PG_BINARY, 0600);
+	fd = PathNameOpenFile(path, O_RDWR | O_CREAT | O_EXCL | PG_BINARY);
 
 	if (fd < 0)
 	{
@@ -318,7 +317,7 @@ mdcreate(SMgrRelation reln, ForkNumber forkNum, bool isRedo)
 		 * already, even if isRedo is not set.  (See also mdopen)
 		 */
 		if (isRedo || IsBootstrapProcessingMode())
-			fd = PathNameOpenFile(path, O_RDWR | PG_BINARY, 0600);
+			fd = PathNameOpenFile(path, O_RDWR | PG_BINARY);
 		if (fd < 0)
 		{
 			/* be sure to report the error reported by create, not open */
@@ -431,7 +430,7 @@ mdunlinkfork(RelFileNodeBackend rnode, ForkNumber forkNum, bool isRedo)
 		/* truncate(2) would be easier here, but Windows hasn't got it */
 		int			fd;
 
-		fd = OpenTransientFile(path, O_RDWR | PG_BINARY, 0);
+		fd = OpenTransientFile(path, O_RDWR | PG_BINARY);
 		if (fd >= 0)
 		{
 			int			save_errno;
@@ -584,7 +583,7 @@ mdopen(SMgrRelation reln, ForkNumber forknum, int behavior)
 
 	path = relpath(reln->smgr_rnode, forknum);
 
-	fd = PathNameOpenFile(path, O_RDWR | PG_BINARY, 0600);
+	fd = PathNameOpenFile(path, O_RDWR | PG_BINARY);
 
 	if (fd < 0)
 	{
@@ -595,7 +594,7 @@ mdopen(SMgrRelation reln, ForkNumber forknum, int behavior)
 		 * substitute for mdcreate() in bootstrap mode only. (See mdcreate)
 		 */
 		if (IsBootstrapProcessingMode())
-			fd = PathNameOpenFile(path, O_RDWR | O_CREAT | O_EXCL | PG_BINARY, 0600);
+			fd = PathNameOpenFile(path, O_RDWR | O_CREAT | O_EXCL | PG_BINARY);
 		if (fd < 0)
 		{
 			if ((behavior & EXTENSION_RETURN_NULL) &&
@@ -1040,7 +1039,7 @@ mdimmedsync(SMgrRelation reln, ForkNumber forknum)
 		MdfdVec    *v = &reln->md_seg_fds[forknum][segno - 1];
 
 		if (FileSync(v->mdfd_vfd, WAIT_EVENT_DATA_FILE_IMMEDIATE_SYNC) < 0)
-			ereport(ERROR,
+			ereport(data_sync_elevel(ERROR),
 					(errcode_for_file_access(),
 					 errmsg("could not fsync file \"%s\": %m",
 							FilePathName(v->mdfd_vfd))));
@@ -1151,10 +1150,8 @@ mdsync(void)
 		 * The bitmap manipulations are slightly tricky, because we can call
 		 * AbsorbFsyncRequests() inside the loop and that could result in
 		 * bms_add_member() modifying and even re-palloc'ing the bitmapsets.
-		 * This is okay because we unlink each bitmapset from the hashtable
-		 * entry before scanning it.  That means that any incoming fsync
-		 * requests will be processed now if they reach the table before we
-		 * begin to scan their fork.
+		 * So we detach it, but if we fail we'll merge it with any new
+		 * requests that have arrived in the meantime.
 		 */
 		for (forknum = 0; forknum <= MAX_FORKNUM; forknum++)
 		{
@@ -1164,7 +1161,8 @@ mdsync(void)
 			entry->requests[forknum] = NULL;
 			entry->canceled[forknum] = false;
 
-			while ((segno = bms_first_member(requests)) >= 0)
+			segno = -1;
+			while ((segno = bms_next_member(requests, segno)) >= 0)
 			{
 				int			failures;
 
@@ -1245,6 +1243,7 @@ mdsync(void)
 							longest = elapsed;
 						total_elapsed += elapsed;
 						processed++;
+						requests = bms_del_member(requests, segno);
 						if (log_checkpoints)
 							elog(DEBUG1, "checkpoint sync: number=%d file=%s time=%.3f msec",
 								 processed,
@@ -1273,10 +1272,23 @@ mdsync(void)
 					 */
 					if (!FILE_POSSIBLY_DELETED(errno) ||
 						failures > 0)
-						ereport(ERROR,
+					{
+						Bitmapset  *new_requests;
+
+						/*
+						 * We need to merge these unsatisfied requests with
+						 * any others that have arrived since we started.
+						 */
+						new_requests = entry->requests[forknum];
+						entry->requests[forknum] =
+							bms_join(new_requests, requests);
+
+						errno = save_errno;
+						ereport(data_sync_elevel(ERROR),
 								(errcode_for_file_access(),
 								 errmsg("could not fsync file \"%s\": %m",
 										path)));
+					}
 					else
 						ereport(DEBUG1,
 								(errcode_for_file_access(),
@@ -1427,7 +1439,7 @@ mdpostckpt(void)
  * to be a performance problem).
  */
 static void
-register_dirty_segment(SMgrRelation reln, ForkNumber forknum, MdfdVec * seg)
+register_dirty_segment(SMgrRelation reln, ForkNumber forknum, MdfdVec *seg)
 {
 	/* Temp relations should never be fsync'd */
 	Assert(!SmgrIsTemp(reln));
@@ -1446,7 +1458,7 @@ register_dirty_segment(SMgrRelation reln, ForkNumber forknum, MdfdVec * seg)
 				(errmsg("could not forward fsync request because request queue is full")));
 
 		if (FileSync(seg->mdfd_vfd, WAIT_EVENT_DATA_FILE_SYNC) < 0)
-			ereport(ERROR,
+			ereport(data_sync_elevel(ERROR),
 					(errcode_for_file_access(),
 					 errmsg("could not fsync file \"%s\": %m",
 							FilePathName(seg->mdfd_vfd))));
@@ -1709,7 +1721,7 @@ ForgetDatabaseFsyncRequests(Oid dbid)
  * DropRelationFiles -- drop files of all given relations
  */
 void
-DropRelationFiles(RelFileNode * delrels, int ndelrels, bool isRedo)
+DropRelationFiles(RelFileNode *delrels, int ndelrels, bool isRedo)
 {
 	SMgrRelation *srels;
 	int			i;
@@ -1731,12 +1743,7 @@ DropRelationFiles(RelFileNode * delrels, int ndelrels, bool isRedo)
 
 	smgrdounlinkall(srels, ndelrels, isRedo);
 
-	/*
-	 * Call smgrclose() in reverse order as when smgropen() is called. This
-	 * trick enables remove_from_unowned_list() in smgrclose() to search the
-	 * SMgrRelation from the unowned list, with O(1) performance.
-	 */
-	for (i = ndelrels - 1; i >= 0; i--)
+	for (i = 0; i < ndelrels; i++)
 		smgrclose(srels[i]);
 	pfree(srels);
 }
@@ -1817,7 +1824,7 @@ _mdfd_openseg(SMgrRelation reln, ForkNumber forknum, BlockNumber segno,
 	fullpath = _mdfd_segpath(reln, forknum, segno);
 
 	/* open the file */
-	fd = PathNameOpenFile(fullpath, O_RDWR | PG_BINARY | oflags, 0600);
+	fd = PathNameOpenFile(fullpath, O_RDWR | PG_BINARY | oflags);
 
 	pfree(fullpath);
 
@@ -1975,7 +1982,7 @@ _mdfd_getseg(SMgrRelation reln, ForkNumber forknum, BlockNumber blkno,
  * Get number of blocks present in a single disk file
  */
 static BlockNumber
-_mdnblocks(SMgrRelation reln, ForkNumber forknum, MdfdVec * seg)
+_mdnblocks(SMgrRelation reln, ForkNumber forknum, MdfdVec *seg)
 {
 	off_t		len;
 

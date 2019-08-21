@@ -37,11 +37,11 @@
 
 #if defined(ERX)
 
-static int	gimme_edge(PlannerInfo * root, Gene gene1, Gene gene2, Edge * edge_table);
-static void remove_gene(PlannerInfo * root, Gene gene, Edge edge, Edge * edge_table);
-static Gene gimme_gene(PlannerInfo * root, Edge edge, Edge * edge_table);
+static int	gimme_edge(PlannerInfo *root, Gene gene1, Gene gene2, Edge *edge_table);
+static void remove_gene(PlannerInfo *root, Gene gene, Edge edge, Edge *edge_table);
+static Gene gimme_gene(PlannerInfo *root, Edge edge, Edge *edge_table);
 
-static Gene edge_failure(PlannerInfo * root, Gene * gene, int index, Edge * edge_table, int num_gene);
+static Gene edge_failure(PlannerInfo *root, Gene *gene, int index, Edge *edge_table, int num_gene);
 
 
 /* alloc_edge_table
@@ -51,7 +51,7 @@ static Gene edge_failure(PlannerInfo * root, Gene * gene, int index, Edge * edge
  */
 
 Edge *
-alloc_edge_table(PlannerInfo * root, int num_gene)
+alloc_edge_table(PlannerInfo *root, int num_gene)
 {
 	Edge	   *edge_table;
 
@@ -71,7 +71,7 @@ alloc_edge_table(PlannerInfo * root, int num_gene)
  *
  */
 void
-free_edge_table(PlannerInfo * root, Edge * edge_table)
+free_edge_table(PlannerInfo *root, Edge *edge_table)
 {
 	pfree(edge_table);
 }
@@ -90,8 +90,8 @@ free_edge_table(PlannerInfo * root, Edge * edge_table)
  *
  */
 float
-gimme_edge_table(PlannerInfo * root, Gene * tour1, Gene * tour2,
-				 int num_gene, Edge * edge_table)
+gimme_edge_table(PlannerInfo *root, Gene *tour1, Gene *tour2,
+				 int num_gene, Edge *edge_table)
 {
 	int			i,
 				index1,
@@ -149,7 +149,7 @@ gimme_edge_table(PlannerInfo * root, Gene * tour1, Gene * tour2,
  *			  0 if edge was already registered and edge_table is unchanged
  */
 static int
-gimme_edge(PlannerInfo * root, Gene gene1, Gene gene2, Edge * edge_table)
+gimme_edge(PlannerInfo *root, Gene gene1, Gene gene2, Edge *edge_table)
 {
 	int			i;
 	int			edges;
@@ -191,7 +191,7 @@ gimme_edge(PlannerInfo * root, Gene gene1, Gene gene2, Edge * edge_table)
  *
  */
 int
-gimme_tour(PlannerInfo * root, Edge * edge_table, Gene * new_gene, int num_gene)
+gimme_tour(PlannerInfo *root, Edge *edge_table, Gene *new_gene, int num_gene)
 {
 	int			i;
 	int			edge_failures = 0;
@@ -237,7 +237,7 @@ gimme_tour(PlannerInfo * root, Edge * edge_table, Gene * new_gene, int num_gene)
  *
  */
 static void
-remove_gene(PlannerInfo * root, Gene gene, Edge edge, Edge * edge_table)
+remove_gene(PlannerInfo *root, Gene gene, Edge edge, Edge *edge_table)
 {
 	int			i,
 				j;
@@ -279,7 +279,7 @@ remove_gene(PlannerInfo * root, Gene gene, Edge edge, Edge * edge_table)
  *
  */
 static Gene
-gimme_gene(PlannerInfo * root, Edge edge, Edge * edge_table)
+gimme_gene(PlannerInfo *root, Edge edge, Edge *edge_table)
 {
 	int			i;
 	Gene		friend;
@@ -370,7 +370,7 @@ gimme_gene(PlannerInfo * root, Edge edge, Edge * edge_table)
  *
  */
 static Gene
-edge_failure(PlannerInfo * root, Gene * gene, int index, Edge * edge_table, int num_gene)
+edge_failure(PlannerInfo *root, Gene *gene, int index, Edge *edge_table, int num_gene)
 {
 	int			i;
 	Gene		fail_gene = gene[index];

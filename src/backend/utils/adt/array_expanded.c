@@ -3,7 +3,7 @@
  * array_expanded.c
  *	  Basic functions for manipulating expanded arrays.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -21,8 +21,8 @@
 
 
 /* "Methods" required for an expanded object */
-static Size EA_get_flat_size(ExpandedObjectHeader * eohptr);
-static void EA_flatten_into(ExpandedObjectHeader * eohptr,
+static Size EA_get_flat_size(ExpandedObjectHeader *eohptr);
+static void EA_flatten_into(ExpandedObjectHeader *eohptr,
 				void *result, Size allocated_size);
 
 static const ExpandedObjectMethods EA_methods =
@@ -32,8 +32,8 @@ static const ExpandedObjectMethods EA_methods =
 };
 
 /* Other local functions */
-static void copy_byval_expanded_array(ExpandedArrayHeader * eah,
-						  ExpandedArrayHeader * oldeah);
+static void copy_byval_expanded_array(ExpandedArrayHeader *eah,
+						  ExpandedArrayHeader *oldeah);
 
 
 /*
@@ -48,7 +48,7 @@ static void copy_byval_expanded_array(ExpandedArrayHeader * eah,
  */
 Datum
 expand_array(Datum arraydatum, MemoryContext parentcontext,
-			 ArrayMetaState * metacache)
+			 ArrayMetaState *metacache)
 {
 	ArrayType  *array;
 	ExpandedArrayHeader *eah;
@@ -182,8 +182,8 @@ expand_array(Datum arraydatum, MemoryContext parentcontext,
  * helper for expand_array(): copy pass-by-value Datum-array representation
  */
 static void
-copy_byval_expanded_array(ExpandedArrayHeader * eah,
-						  ExpandedArrayHeader * oldeah)
+copy_byval_expanded_array(ExpandedArrayHeader *eah,
+						  ExpandedArrayHeader *oldeah)
 {
 	MemoryContext objcxt = eah->hdr.eoh_context;
 	int			ndims = oldeah->ndims;
@@ -230,7 +230,7 @@ copy_byval_expanded_array(ExpandedArrayHeader * eah,
  * get_flat_size method for expanded arrays
  */
 static Size
-EA_get_flat_size(ExpandedObjectHeader * eohptr)
+EA_get_flat_size(ExpandedObjectHeader *eohptr)
 {
 	ExpandedArrayHeader *eah = (ExpandedArrayHeader *) eohptr;
 	int			nelems;
@@ -290,7 +290,7 @@ EA_get_flat_size(ExpandedObjectHeader * eohptr)
  * flatten_into method for expanded arrays
  */
 static void
-EA_flatten_into(ExpandedObjectHeader * eohptr,
+EA_flatten_into(ExpandedObjectHeader *eohptr,
 				void *result, Size allocated_size)
 {
 	ExpandedArrayHeader *eah = (ExpandedArrayHeader *) eohptr;
@@ -369,7 +369,7 @@ DatumGetExpandedArray(Datum d)
  * As above, when caller has the ability to cache element type info
  */
 ExpandedArrayHeader *
-DatumGetExpandedArrayX(Datum d, ArrayMetaState * metacache)
+DatumGetExpandedArrayX(Datum d, ArrayMetaState *metacache)
 {
 	/* If it's a writable expanded array already, just return it */
 	if (VARATT_IS_EXTERNAL_EXPANDED_RW(DatumGetPointer(d)))
@@ -394,11 +394,11 @@ DatumGetExpandedArrayX(Datum d, ArrayMetaState * metacache)
 }
 
 /*
- * DatumGetAnyArray: return either an expanded array or a detoasted varlena
+ * DatumGetAnyArrayP: return either an expanded array or a detoasted varlena
  * array.  The result must not be modified in-place.
  */
 AnyArrayType *
-DatumGetAnyArray(Datum d)
+DatumGetAnyArrayP(Datum d)
 {
 	ExpandedArrayHeader *eah;
 
@@ -421,7 +421,7 @@ DatumGetAnyArray(Datum d)
  * if we didn't do so previously
  */
 void
-deconstruct_expanded_array(ExpandedArrayHeader * eah)
+deconstruct_expanded_array(ExpandedArrayHeader *eah)
 {
 	if (eah->dvalues == NULL)
 	{

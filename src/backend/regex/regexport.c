@@ -15,7 +15,7 @@
  * allows the caller to decide how big is too big to bother with.
  *
  *
- * Portions Copyright (c) 2013-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2013-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1998, 1999 Henry Spencer
  *
  * IDENTIFICATION
@@ -33,7 +33,7 @@
  * Get total number of NFA states.
  */
 int
-pg_reg_getnumstates(const regex_t * regex)
+pg_reg_getnumstates(const regex_t *regex)
 {
 	struct cnfa *cnfa;
 
@@ -47,7 +47,7 @@ pg_reg_getnumstates(const regex_t * regex)
  * Get initial state of NFA.
  */
 int
-pg_reg_getinitialstate(const regex_t * regex)
+pg_reg_getinitialstate(const regex_t *regex)
 {
 	struct cnfa *cnfa;
 
@@ -61,7 +61,7 @@ pg_reg_getinitialstate(const regex_t * regex)
  * Get final state of NFA.
  */
 int
-pg_reg_getfinalstate(const regex_t * regex)
+pg_reg_getfinalstate(const regex_t *regex)
 {
 	struct cnfa *cnfa;
 
@@ -92,7 +92,7 @@ pg_reg_getfinalstate(const regex_t * regex)
 static void
 traverse_lacons(struct cnfa *cnfa, int st,
 				int *arcs_count,
-				regex_arc_t * arcs, int arcs_len)
+				regex_arc_t *arcs, int arcs_len)
 {
 	struct carc *ca;
 
@@ -131,7 +131,7 @@ traverse_lacons(struct cnfa *cnfa, int st,
  * Get number of outgoing NFA arcs of state number "st".
  */
 int
-pg_reg_getnumoutarcs(const regex_t * regex, int st)
+pg_reg_getnumoutarcs(const regex_t *regex, int st)
 {
 	struct cnfa *cnfa;
 	int			arcs_count;
@@ -152,8 +152,8 @@ pg_reg_getnumoutarcs(const regex_t * regex, int st)
  * pg_reg_getnumoutarcs(), else not all arcs will be returned.
  */
 void
-pg_reg_getoutarcs(const regex_t * regex, int st,
-				  regex_arc_t * arcs, int arcs_len)
+pg_reg_getoutarcs(const regex_t *regex, int st,
+				  regex_arc_t *arcs, int arcs_len)
 {
 	struct cnfa *cnfa;
 	int			arcs_count;
@@ -171,7 +171,7 @@ pg_reg_getoutarcs(const regex_t * regex, int st,
  * Get total number of colors.
  */
 int
-pg_reg_getnumcolors(const regex_t * regex)
+pg_reg_getnumcolors(const regex_t *regex)
 {
 	struct colormap *cm;
 
@@ -188,7 +188,7 @@ pg_reg_getnumcolors(const regex_t * regex)
  * but this will do for now.)
  */
 int
-pg_reg_colorisbegin(const regex_t * regex, int co)
+pg_reg_colorisbegin(const regex_t *regex, int co)
 {
 	struct cnfa *cnfa;
 
@@ -205,7 +205,7 @@ pg_reg_colorisbegin(const regex_t * regex, int co)
  * Check if color is end of line/string.
  */
 int
-pg_reg_colorisend(const regex_t * regex, int co)
+pg_reg_colorisend(const regex_t *regex, int co)
 {
 	struct cnfa *cnfa;
 
@@ -226,7 +226,7 @@ pg_reg_colorisend(const regex_t * regex, int co)
  * Callers should not try to extract the members if -1 is returned.
  */
 int
-pg_reg_getnumcharacters(const regex_t * regex, int co)
+pg_reg_getnumcharacters(const regex_t *regex, int co)
 {
 	struct colormap *cm;
 
@@ -262,8 +262,8 @@ pg_reg_getnumcharacters(const regex_t * regex, int co)
  * Caution: this is a relatively expensive operation.
  */
 void
-pg_reg_getcharacters(const regex_t * regex, int co,
-					 pg_wchar * chars, int chars_len)
+pg_reg_getcharacters(const regex_t *regex, int co,
+					 pg_wchar *chars, int chars_len)
 {
 	struct colormap *cm;
 	chr			c;

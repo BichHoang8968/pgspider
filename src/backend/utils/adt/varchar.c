@@ -3,7 +3,7 @@
  * varchar.c
  *	  Functions for the built-in types char(n) and varchar(n).
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -28,7 +28,7 @@
 
 /* common code for bpchartypmodin and varchartypmodin */
 static int32
-anychar_typmodin(ArrayType * ta, const char *typename)
+anychar_typmodin(ArrayType *ta, const char *typename)
 {
 	int32		typmod;
 	int32	   *tl;
@@ -562,7 +562,7 @@ varchar_transform(PG_FUNCTION_ARGS)
 
 	typmod = (Node *) lsecond(expr->args);
 
-	if (IsA(typmod, Const) && !((Const *) typmod)->constisnull)
+	if (IsA(typmod, Const) &&!((Const *) typmod)->constisnull)
 	{
 		Node	   *source = (Node *) linitial(expr->args);
 		int32		old_typmod = exprTypmod(source);
@@ -651,7 +651,7 @@ varchartypmodout(PG_FUNCTION_ARGS)
 
 /* "True" length (not counting trailing blanks) of a BpChar */
 static inline int
-bcTruelen(BpChar * arg)
+bcTruelen(BpChar *arg)
 {
 	return bpchartruelen(VARDATA_ANY(arg), VARSIZE_ANY_EXHDR(arg));
 }
@@ -947,6 +947,24 @@ hashbpchar(PG_FUNCTION_ARGS)
 	return result;
 }
 
+Datum
+hashbpcharextended(PG_FUNCTION_ARGS)
+{
+	BpChar	   *key = PG_GETARG_BPCHAR_PP(0);
+	char	   *keydata;
+	int			keylen;
+	Datum		result;
+
+	keydata = VARDATA_ANY(key);
+	keylen = bcTruelen(key);
+
+	result = hash_any_extended((unsigned char *) keydata, keylen,
+							   PG_GETARG_INT64(1));
+
+	PG_FREE_IF_COPY(key, 0);
+
+	return result;
+}
 
 /*
  * The following operators support character-by-character comparison
@@ -957,7 +975,7 @@ hashbpchar(PG_FUNCTION_ARGS)
  */
 
 static int
-internal_bpchar_pattern_compare(BpChar * arg1, BpChar * arg2)
+internal_bpchar_pattern_compare(BpChar *arg1, BpChar *arg2)
 {
 	int			result;
 	int			len1,

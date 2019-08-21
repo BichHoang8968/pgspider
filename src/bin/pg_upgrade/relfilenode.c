@@ -3,7 +3,7 @@
  *
  *	relfilenode functions
  *
- *	Copyright (c) 2010-2017, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2018, PostgreSQL Global Development Group
  *	src/bin/pg_upgrade/relfilenode.c
  */
 
@@ -12,12 +12,12 @@
 #include "pg_upgrade.h"
 
 #include <sys/stat.h>
-#include "catalog/pg_class.h"
+#include "catalog/pg_class_d.h"
 #include "access/transam.h"
 
 
-static void transfer_single_new_db(FileNameMap * maps, int size, char *old_tablespace);
-static void transfer_relfile(FileNameMap * map, const char *suffix, bool vm_must_add_frozenbit);
+static void transfer_single_new_db(FileNameMap *maps, int size, char *old_tablespace);
+static void transfer_relfile(FileNameMap *map, const char *suffix, bool vm_must_add_frozenbit);
 
 
 /*
@@ -27,7 +27,7 @@ static void transfer_relfile(FileNameMap * map, const char *suffix, bool vm_must
  * physically link the databases.
  */
 void
-transfer_all_new_tablespaces(DbInfoArr * old_db_arr, DbInfoArr * new_db_arr,
+transfer_all_new_tablespaces(DbInfoArr *old_db_arr, DbInfoArr *new_db_arr,
 							 char *old_pgdata, char *new_pgdata)
 {
 	if (user_opts.transfer_mode == TRANSFER_MODE_LINK)
@@ -78,7 +78,7 @@ transfer_all_new_tablespaces(DbInfoArr * old_db_arr, DbInfoArr * new_db_arr,
  * physically link the databases.
  */
 void
-transfer_all_new_dbs(DbInfoArr * old_db_arr, DbInfoArr * new_db_arr,
+transfer_all_new_dbs(DbInfoArr *old_db_arr, DbInfoArr *new_db_arr,
 					 char *old_pgdata, char *new_pgdata, char *old_tablespace)
 {
 	int			old_dbnum,
@@ -131,7 +131,7 @@ transfer_all_new_dbs(DbInfoArr * old_db_arr, DbInfoArr * new_db_arr,
  * create links for mappings stored in "maps" array.
  */
 static void
-transfer_single_new_db(FileNameMap * maps, int size, char *old_tablespace)
+transfer_single_new_db(FileNameMap *maps, int size, char *old_tablespace)
 {
 	int			mapnum;
 	bool		vm_crashsafe_match = true;
@@ -183,7 +183,7 @@ transfer_single_new_db(FileNameMap * maps, int size, char *old_tablespace)
  * mode.
  */
 static void
-transfer_relfile(FileNameMap * map, const char *type_suffix, bool vm_must_add_frozenbit)
+transfer_relfile(FileNameMap *map, const char *type_suffix, bool vm_must_add_frozenbit)
 {
 	char		old_file[MAXPGPATH];
 	char		new_file[MAXPGPATH];
@@ -194,7 +194,7 @@ transfer_relfile(FileNameMap * map, const char *type_suffix, bool vm_must_add_fr
 	/*
 	 * Now copy/link any related segments as well. Remember, PG breaks large
 	 * files into 1GB segments, the first segment has no extension, subsequent
-	 * segments are named relfilenode.1, relfilenode.2, relfilenode.3. copied.
+	 * segments are named relfilenode.1, relfilenode.2, relfilenode.3.
 	 */
 	for (segno = 0;; segno++)
 	{

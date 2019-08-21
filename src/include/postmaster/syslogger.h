@@ -3,7 +3,7 @@
  * syslogger.h
  *	  Exports from postmaster/syslogger.c.
  *
- * Copyright (c) 2004-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2004-2018, PostgreSQL Global Development Group
  *
  * src/include/postmaster/syslogger.h
  *
@@ -49,13 +49,13 @@ typedef struct
 	char		is_last;		/* last chunk of message? 't' or 'f' ('T' or
 								 * 'F' for CSV case) */
 	char		data[FLEXIBLE_ARRAY_MEMBER];	/* data payload starts here */
-}			PipeProtoHeader;
+} PipeProtoHeader;
 
 typedef union
 {
 	PipeProtoHeader proto;
 	char		filler[PIPE_CHUNK_SIZE];
-}			PipeProtoChunk;
+} PipeProtoChunk;
 
 #define PIPE_HEADER_SIZE  offsetof(PipeProtoHeader, data)
 #define PIPE_MAX_PAYLOAD  ((int) (PIPE_CHUNK_SIZE - PIPE_HEADER_SIZE))

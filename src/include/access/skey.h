@@ -4,7 +4,7 @@
  *	  POSTGRES scan key definitions.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/skey.h
@@ -70,9 +70,9 @@ typedef struct ScanKeyData
 	Oid			sk_collation;	/* collation to use, if needed */
 	FmgrInfo	sk_func;		/* lookup info for function to call */
 	Datum		sk_argument;	/* data to compare */
-}			ScanKeyData;
+} ScanKeyData;
 
-typedef ScanKeyData * ScanKey;
+typedef ScanKeyData *ScanKey;
 
 /*
  * About row comparisons:
@@ -145,7 +145,7 @@ extern void ScanKeyEntryInitializeWithInfo(ScanKey entry,
 							   StrategyNumber strategy,
 							   Oid subtype,
 							   Oid collation,
-							   FmgrInfo * finfo,
+							   FmgrInfo *finfo,
 							   Datum argument);
 
 #endif							/* SKEY_H */

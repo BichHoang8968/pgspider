@@ -4,7 +4,7 @@
  *	  support for foreign-data wrappers, servers and user mappings.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  * src/include/foreign/foreign.h
  *
@@ -42,7 +42,7 @@ typedef struct ForeignDataWrapper
 	Oid			fdwhandler;		/* Oid of handler function, or 0 */
 	Oid			fdwvalidator;	/* Oid of validator function, or 0 */
 	List	   *options;		/* fdwoptions as DefElem list */
-}			ForeignDataWrapper;
+} ForeignDataWrapper;
 
 typedef struct ForeignServer
 {
@@ -53,7 +53,7 @@ typedef struct ForeignServer
 	char	   *servertype;		/* server type, optional */
 	char	   *serverversion;	/* server version, optional */
 	List	   *options;		/* srvoptions as DefElem list */
-}			ForeignServer;
+} ForeignServer;
 
 typedef struct UserMapping
 {
@@ -61,14 +61,14 @@ typedef struct UserMapping
 	Oid			userid;			/* local user Oid */
 	Oid			serverid;		/* server Oid */
 	List	   *options;		/* useoptions as DefElem list */
-}			UserMapping;
+} UserMapping;
 
 typedef struct ForeignTable
 {
 	Oid			relid;			/* relation Oid */
 	Oid			serverid;		/* server Oid */
 	List	   *options;		/* ftoptions as DefElem list */
-}			ForeignTable;
+} ForeignTable;
 
 typedef enum
 {
@@ -106,17 +106,17 @@ typedef struct ForeignScanThreadInfo
 
 
 
-extern ForeignServer * GetForeignServer(Oid serverid);
-extern ForeignServer * GetForeignServerByName(const char *name, bool missing_ok);
-extern UserMapping * GetUserMapping(Oid userid, Oid serverid);
-extern ForeignDataWrapper * GetForeignDataWrapper(Oid fdwid);
-extern ForeignDataWrapper * GetForeignDataWrapperByName(const char *name,
-														bool missing_ok);
-extern ForeignTable * GetForeignTable(Oid relid);
+extern ForeignServer *GetForeignServer(Oid serverid);
+extern ForeignServer *GetForeignServerByName(const char *name, bool missing_ok);
+extern UserMapping *GetUserMapping(Oid userid, Oid serverid);
+extern ForeignDataWrapper *GetForeignDataWrapper(Oid fdwid);
+extern ForeignDataWrapper *GetForeignDataWrapperByName(const char *name,
+							bool missing_ok);
+extern ForeignTable *GetForeignTable(Oid relid);
 
-extern List * GetForeignColumnOptions(Oid relid, AttrNumber attnum);
+extern List *GetForeignColumnOptions(Oid relid, AttrNumber attnum);
 
-extern Oid get_foreign_data_wrapper_oid(const char *fdwname, bool missing_ok);
-extern Oid get_foreign_server_oid(const char *servername, bool missing_ok);
+extern Oid	get_foreign_data_wrapper_oid(const char *fdwname, bool missing_ok);
+extern Oid	get_foreign_server_oid(const char *servername, bool missing_ok);
 
 #endif							/* FOREIGN_H */

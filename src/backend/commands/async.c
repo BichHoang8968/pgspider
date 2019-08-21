@@ -3,7 +3,7 @@
  * async.c
  *	  Asynchronous notification: NOTIFY, LISTEN, UNLISTEN
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -171,7 +171,7 @@ typedef struct AsyncQueueEntry
 	TransactionId xid;			/* sender's XID */
 	int32		srcPid;			/* sender's PID */
 	char		data[NAMEDATALEN + NOTIFY_PAYLOAD_MAX_LENGTH];
-}			AsyncQueueEntry;
+} AsyncQueueEntry;
 
 /* Currently, no field of AsyncQueueEntry requires more than int alignment */
 #define QUEUEALIGN(len)		INTALIGN(len)
@@ -185,7 +185,7 @@ typedef struct QueuePosition
 {
 	int			page;			/* SLRU page number */
 	int			offset;			/* byte offset within page */
-}			QueuePosition;
+} QueuePosition;
 
 #define QUEUE_POS_PAGE(x)		((x).page)
 #define QUEUE_POS_OFFSET(x)		((x).offset)
@@ -219,7 +219,7 @@ typedef struct QueueBackendStatus
 	int32		pid;			/* either a PID or InvalidPid */
 	Oid			dboid;			/* backend's database OID, or InvalidOid */
 	QueuePosition pos;			/* backend has read queue up to here */
-}			QueueBackendStatus;
+} QueueBackendStatus;
 
 /*
  * Shared memory state for LISTEN/NOTIFY (excluding its SLRU stuff)
@@ -250,9 +250,9 @@ typedef struct AsyncQueueControl
 	TimestampTz lastQueueFillWarn;	/* time of last queue-full msg */
 	QueueBackendStatus backend[FLEXIBLE_ARRAY_MEMBER];
 	/* backend[0] is not used; used entries are from [1] to [MaxBackends] */
-}			AsyncQueueControl;
+} AsyncQueueControl;
 
-static AsyncQueueControl * asyncQueueControl;
+static AsyncQueueControl *asyncQueueControl;
 
 #define QUEUE_HEAD					(asyncQueueControl->head)
 #define QUEUE_TAIL					(asyncQueueControl->tail)
@@ -293,7 +293,7 @@ static SlruCtlData AsyncCtlData;
  * (ie, have committed a LISTEN on).  It is a simple list of channel names,
  * allocated in TopMemoryContext.
  */
-static List * listenChannels = NIL; /* list of C strings */
+static List *listenChannels = NIL;	/* list of C strings */
 
 /*
  * State for pending LISTEN/UNLISTEN actions consists of an ordered list of
@@ -310,17 +310,17 @@ typedef enum
 	LISTEN_LISTEN,
 	LISTEN_UNLISTEN,
 	LISTEN_UNLISTEN_ALL
-}			ListenActionKind;
+} ListenActionKind;
 
 typedef struct
 {
 	ListenActionKind action;
 	char		channel[FLEXIBLE_ARRAY_MEMBER]; /* nul-terminated string */
-}			ListenAction;
+} ListenAction;
 
-static List * pendingActions = NIL; /* list of ListenAction */
+static List *pendingActions = NIL;	/* list of ListenAction */
 
-static List * upperPendingActions = NIL;	/* list of upper-xact lists */
+static List *upperPendingActions = NIL; /* list of upper-xact lists */
 
 /*
  * State for outbound notifies consists of a list of all channels+payloads
@@ -342,11 +342,11 @@ typedef struct Notification
 {
 	char	   *channel;		/* channel name */
 	char	   *payload;		/* payload string (can be empty) */
-}			Notification;
+} Notification;
 
-static List * pendingNotifies = NIL;	/* list of Notifications */
+static List *pendingNotifies = NIL; /* list of Notifications */
 
-static List * upperPendingNotifies = NIL;	/* list of upper-xact lists */
+static List *upperPendingNotifies = NIL;	/* list of upper-xact lists */
 
 /*
  * Inbound notifications are initially processed by HandleNotifyInterrupt(),
@@ -355,7 +355,7 @@ static List * upperPendingNotifies = NIL;	/* list of upper-xact lists */
  * latch. ProcessNotifyInterrupt() will then be called whenever it's safe to
  * actually deal with the interrupt.
  */
-volatile	sig_atomic_t notifyInterruptPending = false;
+volatile sig_atomic_t notifyInterruptPending = false;
 
 /* True if we've registered an on_shmem_exit cleanup */
 static bool unlistenExitRegistered = false;
@@ -380,14 +380,14 @@ static void Exec_UnlistenAllCommit(void);
 static bool IsListeningOn(const char *channel);
 static void asyncQueueUnregister(void);
 static bool asyncQueueIsFull(void);
-static bool asyncQueueAdvance(volatile QueuePosition * position, int entryLength);
-static void asyncQueueNotificationToEntry(Notification * n, AsyncQueueEntry * qe);
-static ListCell * asyncQueueAddEntries(ListCell * nextNotify);
+static bool asyncQueueAdvance(volatile QueuePosition *position, int entryLength);
+static void asyncQueueNotificationToEntry(Notification *n, AsyncQueueEntry *qe);
+static ListCell *asyncQueueAddEntries(ListCell *nextNotify);
 static double asyncQueueUsage(void);
 static void asyncQueueFillWarning(void);
 static bool SignalBackends(void);
 static void asyncQueueReadAllNotifications(void);
-static bool asyncQueueProcessPageEntries(volatile QueuePosition * current,
+static bool asyncQueueProcessPageEntries(volatile QueuePosition *current,
 							 QueuePosition stop,
 							 char *page_buffer,
 							 Snapshot snapshot);
@@ -704,7 +704,7 @@ pg_listening_channels(PG_FUNCTION_ARGS)
 		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
 
 		/* allocate memory for user context */
-		lcp = (ListCell * *) palloc(sizeof(ListCell *));
+		lcp = (ListCell **) palloc(sizeof(ListCell *));
 		*lcp = list_head(listenChannels);
 		funcctx->user_fctx = (void *) lcp;
 
@@ -713,7 +713,7 @@ pg_listening_channels(PG_FUNCTION_ARGS)
 
 	/* stuff done on every call of the function */
 	funcctx = SRF_PERCALL_SETUP();
-	lcp = (ListCell * *) funcctx->user_fctx;
+	lcp = (ListCell **) funcctx->user_fctx;
 
 	while (*lcp != NULL)
 	{
@@ -1248,7 +1248,7 @@ asyncQueueIsFull(void)
  * returns true, else false.
  */
 static bool
-asyncQueueAdvance(volatile QueuePosition * position, int entryLength)
+asyncQueueAdvance(volatile QueuePosition *position, int entryLength)
 {
 	int			pageno = QUEUE_POS_PAGE(*position);
 	int			offset = QUEUE_POS_OFFSET(*position);
@@ -1283,7 +1283,7 @@ asyncQueueAdvance(volatile QueuePosition * position, int entryLength)
  * Fill the AsyncQueueEntry at *qe with an outbound notification message.
  */
 static void
-asyncQueueNotificationToEntry(Notification * n, AsyncQueueEntry * qe)
+asyncQueueNotificationToEntry(Notification *n, AsyncQueueEntry *qe)
 {
 	size_t		channellen = strlen(n->channel);
 	size_t		payloadlen = strlen(n->payload);
@@ -1320,7 +1320,7 @@ asyncQueueNotificationToEntry(Notification * n, AsyncQueueEntry * qe)
  * locally in this function.
  */
 static ListCell *
-asyncQueueAddEntries(ListCell * nextNotify)
+asyncQueueAddEntries(ListCell *nextNotify)
 {
 	AsyncQueueEntry qe;
 	QueuePosition queue_head;
@@ -1746,7 +1746,7 @@ ProcessNotifyInterrupt(void)
 static void
 asyncQueueReadAllNotifications(void)
 {
-	volatile	QueuePosition pos;
+	volatile QueuePosition pos;
 	QueuePosition oldpos;
 	QueuePosition head;
 	Snapshot	snapshot;
@@ -1914,7 +1914,7 @@ asyncQueueReadAllNotifications(void)
  * The QueuePosition *current is advanced past all processed messages.
  */
 static bool
-asyncQueueProcessPageEntries(volatile QueuePosition * current,
+asyncQueueProcessPageEntries(volatile QueuePosition *current,
 							 QueuePosition stop,
 							 char *page_buffer,
 							 Snapshot snapshot)
@@ -2100,7 +2100,7 @@ NotifyMyFrontEnd(const char *channel, const char *payload, int32 srcPid)
 		StringInfoData buf;
 
 		pq_beginmessage(&buf, 'A');
-		pq_sendint(&buf, srcPid, sizeof(int32));
+		pq_sendint32(&buf, srcPid);
 		pq_sendstring(&buf, channel);
 		if (PG_PROTOCOL_MAJOR(FrontendProtocol) >= 3)
 			pq_sendstring(&buf, payload);

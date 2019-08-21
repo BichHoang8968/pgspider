@@ -52,7 +52,7 @@
 /***************************** COPYRIGHT NOTICES ***********************
 
 Most of this code is directly from the Text::DoubleMetaphone perl module
-version 0.05 available from http://www.cpan.org.
+version 0.05 available from https://www.cpan.org/.
 It bears this copyright notice:
 
 
@@ -223,7 +223,7 @@ typedef struct
 	int			free_string_on_destroy;
 }
 
-			metastring;
+metastring;
 
 /*
  * remaining perl module funcs unchanged except for declaring them static
@@ -232,7 +232,7 @@ typedef struct
  */
 
 static metastring *
-NewMetaString(char *init_str)
+NewMetaString(const char *init_str)
 {
 	metastring *s;
 	char		empty_string[] = "";
@@ -257,7 +257,7 @@ NewMetaString(char *init_str)
 
 
 static void
-DestroyMetaString(metastring * s)
+DestroyMetaString(metastring *s)
 {
 	if (s == NULL)
 		return;
@@ -270,7 +270,7 @@ DestroyMetaString(metastring * s)
 
 
 static void
-IncreaseBuffer(metastring * s, int chars_needed)
+IncreaseBuffer(metastring *s, int chars_needed)
 {
 	META_REALLOC(s->str, (s->bufsize + chars_needed + 10), char);
 	assert(s->str != NULL);
@@ -279,7 +279,7 @@ IncreaseBuffer(metastring * s, int chars_needed)
 
 
 static void
-MakeUpper(metastring * s)
+MakeUpper(metastring *s)
 {
 	char	   *i;
 
@@ -289,7 +289,7 @@ MakeUpper(metastring * s)
 
 
 static int
-IsVowel(metastring * s, int pos)
+IsVowel(metastring *s, int pos)
 {
 	char		c;
 
@@ -306,7 +306,7 @@ IsVowel(metastring * s, int pos)
 
 
 static int
-SlavoGermanic(metastring * s)
+SlavoGermanic(metastring *s)
 {
 	if ((char *) strstr(s->str, "W"))
 		return 1;
@@ -322,7 +322,7 @@ SlavoGermanic(metastring * s)
 
 
 static char
-GetAt(metastring * s, int pos)
+GetAt(metastring *s, int pos)
 {
 	if ((pos < 0) || (pos >= s->length))
 		return '\0';
@@ -332,7 +332,7 @@ GetAt(metastring * s, int pos)
 
 
 static void
-SetAt(metastring * s, int pos, char c)
+SetAt(metastring *s, int pos, char c)
 {
 	if ((pos < 0) || (pos >= s->length))
 		return;
@@ -345,7 +345,7 @@ SetAt(metastring * s, int pos, char c)
    Caveats: the START value is 0 based
 */
 static int
-StringAt(metastring * s, int start, int length,...)
+StringAt(metastring *s, int start, int length,...)
 {
 	char	   *test;
 	char	   *pos;
@@ -375,7 +375,7 @@ StringAt(metastring * s, int start, int length,...)
 
 
 static void
-MetaphAdd(metastring * s, char *new_str)
+MetaphAdd(metastring *s, const char *new_str)
 {
 	int			add_length;
 

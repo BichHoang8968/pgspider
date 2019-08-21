@@ -512,6 +512,13 @@ LINE 1: EXECUTE foo ('bad');
 DETAIL:  line 1: Start tag expected, '<' not found
 bad
 ^
+SELECT xml '<!DOCTYPE a><a/><b/>';
+ERROR:  invalid XML document
+LINE 1: SELECT xml '<!DOCTYPE a><a/><b/>';
+                   ^
+DETAIL:  line 1: Extra content at the end of the document
+<!DOCTYPE a><a/><b/>
+                ^
 SET XML OPTION CONTENT;
 EXECUTE foo ('<bar/>');
   xmlconcat   
@@ -525,6 +532,45 @@ EXECUTE foo ('good');
  <foo/>good
 (1 row)
 
+SELECT xml '<!-- in SQL:2006+ a doc is content too--> <?y z?> <!DOCTYPE a><a/>';
+                                xml                                 
+--------------------------------------------------------------------
+ <!-- in SQL:2006+ a doc is content too--> <?y z?> <!DOCTYPE a><a/>
+(1 row)
+
+SELECT xml '<?xml version="1.0"?> <!-- hi--> <!DOCTYPE a><a/>';
+             xml              
+------------------------------
+  <!-- hi--> <!DOCTYPE a><a/>
+(1 row)
+
+SELECT xml '<!DOCTYPE a><a/>';
+       xml        
+------------------
+ <!DOCTYPE a><a/>
+(1 row)
+
+SELECT xml '<!-- hi--> oops <!DOCTYPE a><a/>';
+ERROR:  invalid XML content
+LINE 1: SELECT xml '<!-- hi--> oops <!DOCTYPE a><a/>';
+                   ^
+DETAIL:  line 1: StartTag: invalid element name
+<!-- hi--> oops <!DOCTYPE a><a/>
+                 ^
+SELECT xml '<!-- hi--> <oops/> <!DOCTYPE a><a/>';
+ERROR:  invalid XML content
+LINE 1: SELECT xml '<!-- hi--> <oops/> <!DOCTYPE a><a/>';
+                   ^
+DETAIL:  line 1: StartTag: invalid element name
+<!-- hi--> <oops/> <!DOCTYPE a><a/>
+                    ^
+SELECT xml '<!DOCTYPE a><a/><b/>';
+ERROR:  invalid XML content
+LINE 1: SELECT xml '<!DOCTYPE a><a/><b/>';
+                   ^
+DETAIL:  line 1: Extra content at the end of the document
+<!DOCTYPE a><a/><b/>
+                ^
 -- Test backwards parsing
 CREATE VIEW xmlview1 AS SELECT xmlcomment('test');
 CREATE VIEW xmlview2 AS SELECT xmlconcat('hello', 'you');
@@ -648,6 +694,12 @@ SELECT xpath('/nosuchtag', '<root/>');
  xpath 
 -------
  {}
+(1 row)
+
+SELECT xpath('root', '<root/>');
+   xpath   
+-----------
+ {<root/>}
 (1 row)
 
 -- Round-trip non-ASCII data through xpath().
@@ -1192,7 +1244,7 @@ SELECT * FROM xmltable('/root' passing '<root><element>a1a<!-- aaaa -->a2a<?aaaa
 SELECT * FROM xmltable('/root' passing '<root><element>a1a<!-- aaaa -->a2a<?aaaaa?> <!--z-->  bbbb<x>xxx</x>cccc</element></root>' COLUMNS element text PATH 'element/text()'); -- should fail
 ERROR:  more than one value returned by column XPath expression
 -- CDATA test
-select * from xmltable('r' passing '<d><r><c><![CDATA[<hello> &"<>!<a>foo</a>]]></c></r><r><c>2</c></r></d>' columns c text);
+select * from xmltable('d/r' passing '<d><r><c><![CDATA[<hello> &"<>!<a>foo</a>]]></c></r><r><c>2</c></r></d>' columns c text);
             c            
 -------------------------
  <hello> &"<>!<a>foo</a>

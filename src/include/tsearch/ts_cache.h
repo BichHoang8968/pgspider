@@ -3,7 +3,7 @@
  * ts_cache.h
  *	  Tsearch related object caches.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/tsearch/ts_cache.h
@@ -24,7 +24,7 @@ typedef struct TSAnyCacheEntry
 {
 	Oid			objId;
 	bool		isvalid;
-}			TSAnyCacheEntry;
+} TSAnyCacheEntry;
 
 
 typedef struct TSParserCacheEntry
@@ -46,7 +46,7 @@ typedef struct TSParserCacheEntry
 	FmgrInfo	prstoken;
 	FmgrInfo	prsend;
 	FmgrInfo	prsheadline;
-}			TSParserCacheEntry;
+} TSParserCacheEntry;
 
 typedef struct TSDictionaryCacheEntry
 {
@@ -60,13 +60,13 @@ typedef struct TSDictionaryCacheEntry
 
 	MemoryContext dictCtx;		/* memory context to store private data */
 	void	   *dictData;
-}			TSDictionaryCacheEntry;
+} TSDictionaryCacheEntry;
 
 typedef struct
 {
 	int			len;
 	Oid		   *dictIds;
-}			ListDictionary;
+} ListDictionary;
 
 typedef struct
 {
@@ -78,7 +78,7 @@ typedef struct
 
 	int			lenmap;
 	ListDictionary *map;
-}			TSConfigCacheEntry;
+} TSConfigCacheEntry;
 
 
 /*
@@ -87,11 +87,11 @@ typedef struct
 extern char *TSCurrentConfig;
 
 
-extern TSParserCacheEntry * lookup_ts_parser_cache(Oid prsId);
-extern TSDictionaryCacheEntry * lookup_ts_dictionary_cache(Oid dictId);
-extern TSConfigCacheEntry * lookup_ts_config_cache(Oid cfgId);
+extern TSParserCacheEntry *lookup_ts_parser_cache(Oid prsId);
+extern TSDictionaryCacheEntry *lookup_ts_dictionary_cache(Oid dictId);
+extern TSConfigCacheEntry *lookup_ts_config_cache(Oid cfgId);
 
-extern Oid getTSCurrentConfig(bool emitError);
+extern Oid	getTSCurrentConfig(bool emitError);
 extern bool check_TSCurrentConfig(char **newval, void **extra, GucSource source);
 extern void assign_TSCurrentConfig(const char *newval, void *extra);
 

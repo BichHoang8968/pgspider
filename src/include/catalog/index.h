@@ -4,7 +4,7 @@
  *	  prototypes for catalog/index.c.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/catalog/index.h
@@ -23,7 +23,7 @@
 /* Typedef for callback function for IndexBuildHeapScan */
 typedef void (*IndexBuildCallback) (Relation index,
 									HeapTuple htup,
-									Datum * values,
+									Datum *values,
 									bool *isnull,
 									bool tupleIsAlive,
 									void *state);
@@ -35,81 +35,99 @@ typedef enum
 	INDEX_CREATE_SET_VALID,
 	INDEX_DROP_CLEAR_VALID,
 	INDEX_DROP_SET_DEAD
-}			IndexStateFlagsAction;
+} IndexStateFlagsAction;
 
 
 extern void index_check_primary_key(Relation heapRel,
-						IndexInfo * indexInfo,
-						bool is_alter_table);
+						IndexInfo *indexInfo,
+						bool is_alter_table,
+						IndexStmt *stmt);
+
+#define	INDEX_CREATE_IS_PRIMARY				(1 << 0)
+#define	INDEX_CREATE_ADD_CONSTRAINT			(1 << 1)
+#define	INDEX_CREATE_SKIP_BUILD				(1 << 2)
+#define	INDEX_CREATE_CONCURRENT				(1 << 3)
+#define	INDEX_CREATE_IF_NOT_EXISTS			(1 << 4)
+#define	INDEX_CREATE_PARTITIONED			(1 << 5)
+#define INDEX_CREATE_INVALID				(1 << 6)
 
 extern Oid index_create(Relation heapRelation,
-						const char *indexRelationName,
-						Oid indexRelationId,
-						Oid relFileNode,
-						IndexInfo * indexInfo,
-						List * indexColNames,
-						Oid accessMethodObjectId,
-						Oid tableSpaceId,
-						Oid * collationObjectId,
-						Oid * classObjectId,
-						int16 * coloptions,
-						Datum reloptions,
-						bool isprimary,
-						bool isconstraint,
-						bool deferrable,
-						bool initdeferred,
-						bool allow_system_table_mods,
-						bool skip_build,
-						bool concurrent,
-						bool is_internal,
-						bool if_not_exists);
+			 const char *indexRelationName,
+			 Oid indexRelationId,
+			 Oid parentIndexRelid,
+			 Oid parentConstraintId,
+			 Oid relFileNode,
+			 IndexInfo *indexInfo,
+			 List *indexColNames,
+			 Oid accessMethodObjectId,
+			 Oid tableSpaceId,
+			 Oid *collationObjectId,
+			 Oid *classObjectId,
+			 int16 *coloptions,
+			 Datum reloptions,
+			 bits16 flags,
+			 bits16 constr_flags,
+			 bool allow_system_table_mods,
+			 bool is_internal,
+			 Oid *constraintId);
+
+#define	INDEX_CONSTR_CREATE_MARK_AS_PRIMARY	(1 << 0)
+#define	INDEX_CONSTR_CREATE_DEFERRABLE		(1 << 1)
+#define	INDEX_CONSTR_CREATE_INIT_DEFERRED	(1 << 2)
+#define	INDEX_CONSTR_CREATE_UPDATE_INDEX	(1 << 3)
+#define	INDEX_CONSTR_CREATE_REMOVE_OLD_DEPS	(1 << 4)
 
 extern ObjectAddress index_constraint_create(Relation heapRelation,
-											 Oid indexRelationId,
-											 IndexInfo * indexInfo,
-											 const char *constraintName,
-											 char constraintType,
-											 bool deferrable,
-											 bool initdeferred,
-											 bool mark_as_primary,
-											 bool update_pgindex,
-											 bool remove_old_dependencies,
-											 bool allow_system_table_mods,
-											 bool is_internal);
+						Oid indexRelationId,
+						Oid parentConstraintId,
+						IndexInfo *indexInfo,
+						const char *constraintName,
+						char constraintType,
+						bits16 constr_flags,
+						bool allow_system_table_mods,
+						bool is_internal);
 
 extern void index_drop(Oid indexId, bool concurrent);
 
-extern IndexInfo * BuildIndexInfo(Relation index);
+extern IndexInfo *BuildIndexInfo(Relation index);
 
-extern void BuildSpeculativeIndexInfo(Relation index, IndexInfo * ii);
+extern bool CompareIndexInfo(IndexInfo *info1, IndexInfo *info2,
+				 Oid *collations1, Oid *collations2,
+				 Oid *opfamilies1, Oid *opfamilies2,
+				 AttrNumber *attmap, int maplen);
 
-extern void FormIndexDatum(IndexInfo * indexInfo,
-			   TupleTableSlot * slot,
-			   EState * estate,
-			   Datum * values,
+extern void BuildSpeculativeIndexInfo(Relation index, IndexInfo *ii);
+
+extern void FormIndexDatum(IndexInfo *indexInfo,
+			   TupleTableSlot *slot,
+			   EState *estate,
+			   Datum *values,
 			   bool *isnull);
 
 extern void index_build(Relation heapRelation,
 			Relation indexRelation,
-			IndexInfo * indexInfo,
+			IndexInfo *indexInfo,
 			bool isprimary,
-			bool isreindex);
+			bool isreindex,
+			bool parallel);
 
 extern double IndexBuildHeapScan(Relation heapRelation,
 				   Relation indexRelation,
-				   IndexInfo * indexInfo,
+				   IndexInfo *indexInfo,
 				   bool allow_sync,
 				   IndexBuildCallback callback,
-				   void *callback_state);
+				   void *callback_state,
+				   HeapScanDesc scan);
 extern double IndexBuildHeapRangeScan(Relation heapRelation,
 						Relation indexRelation,
-						IndexInfo * indexInfo,
+						IndexInfo *indexInfo,
 						bool allow_sync,
 						bool anyvisible,
 						BlockNumber start_blockno,
 						BlockNumber end_blockno,
 						IndexBuildCallback callback,
-						void *callback_state);
+						void *callback_state,
+						HeapScanDesc scan);
 
 extern void validate_index(Oid heapId, Oid indexId, Snapshot snapshot);
 
@@ -129,6 +147,12 @@ extern bool reindex_relation(Oid relid, int flags, int options);
 
 extern bool ReindexIsProcessingHeap(Oid heapOid);
 extern bool ReindexIsProcessingIndex(Oid indexOid);
-extern Oid IndexGetRelation(Oid indexId, bool missing_ok);
+extern Oid	IndexGetRelation(Oid indexId, bool missing_ok);
+
+extern Size EstimateReindexStateSpace(void);
+extern void SerializeReindexState(Size maxsize, char *start_address);
+extern void RestoreReindexState(void *reindexstate);
+
+extern void IndexSetParentIndex(Relation idx, Oid parentOid);
 
 #endif							/* INDEX_H */

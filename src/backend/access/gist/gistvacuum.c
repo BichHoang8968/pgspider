@@ -4,7 +4,7 @@
  *	  vacuuming routines for the postgres GiST index access method.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -26,7 +26,7 @@
  * VACUUM cleanup: update FSM
  */
 IndexBulkDeleteResult *
-gistvacuumcleanup(IndexVacuumInfo * info, IndexBulkDeleteResult * stats)
+gistvacuumcleanup(IndexVacuumInfo *info, IndexBulkDeleteResult *stats)
 {
 	Relation	rel = info->index;
 	BlockNumber npages,
@@ -103,10 +103,10 @@ typedef struct GistBDItem
 	GistNSN		parentlsn;
 	BlockNumber blkno;
 	struct GistBDItem *next;
-}			GistBDItem;
+} GistBDItem;
 
 static void
-pushStackIfSplited(Page page, GistBDItem * stack)
+pushStackIfSplited(Page page, GistBDItem *stack)
 {
 	GISTPageOpaque opaque = GistPageGetOpaque(page);
 
@@ -135,7 +135,7 @@ pushStackIfSplited(Page page, GistBDItem * stack)
  * Result: a palloc'd struct containing statistical info for VACUUM displays.
  */
 IndexBulkDeleteResult *
-gistbulkdelete(IndexVacuumInfo * info, IndexBulkDeleteResult * stats,
+gistbulkdelete(IndexVacuumInfo *info, IndexBulkDeleteResult *stats,
 			   IndexBulkDeleteCallback callback, void *callback_state)
 {
 	Relation	rel = info->index;
@@ -224,7 +224,8 @@ gistbulkdelete(IndexVacuumInfo * info, IndexBulkDeleteResult * stats,
 
 					recptr = gistXLogUpdate(buffer,
 											todelete, ntodelete,
-											NULL, 0, InvalidBuffer);
+											NULL, 0, InvalidBuffer,
+											NULL);
 					PageSetLSN(page, recptr);
 				}
 				else

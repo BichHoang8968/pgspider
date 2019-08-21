@@ -3,7 +3,7 @@
  * getpeereid.c
  *		get peer userid for UNIX-domain socket connection
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -32,7 +32,7 @@
  * BSD-style getpeereid() for platforms that lack it.
  */
 int
-getpeereid(int sock, uid_t * uid, gid_t * gid)
+getpeereid(int sock, uid_t *uid, gid_t *gid)
 {
 #if defined(SO_PEERCRED)
 	/* Linux: use getsockopt(SO_PEERCRED) */

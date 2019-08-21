@@ -3,7 +3,7 @@
  * slru.h
  *		Simple LRU buffering for transaction status logfiles
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/slru.h
@@ -37,7 +37,7 @@
 
 /*
  * Page status codes.  Note that these do not include the "dirty" bit.
- * page_dirty can be TRUE only in the VALID or WRITE_IN_PROGRESS states;
+ * page_dirty can be true only in the VALID or WRITE_IN_PROGRESS states;
  * in the latter case it implies that the page has been re-dirtied since
  * the write started.
  */
@@ -47,7 +47,7 @@ typedef enum
 	SLRU_PAGE_READ_IN_PROGRESS, /* page is being read in */
 	SLRU_PAGE_VALID,			/* page is valid and not being written */
 	SLRU_PAGE_WRITE_IN_PROGRESS /* page is being written out */
-}			SlruPageStatus;
+} SlruPageStatus;
 
 /*
  * Shared-memory state
@@ -102,9 +102,9 @@ typedef struct SlruSharedData
 	int			lwlock_tranche_id;
 	char		lwlock_tranche_name[SLRU_MAX_NAME_LENGTH];
 	LWLockPadded *buffer_locks;
-}			SlruSharedData;
+} SlruSharedData;
 
-typedef SlruSharedData * SlruShared;
+typedef SlruSharedData *SlruShared;
 
 /*
  * SlruCtlData is an unshared structure that points to the active information
@@ -132,14 +132,14 @@ typedef struct SlruCtlData
 	 * it's always the same, it doesn't need to be in shared memory.
 	 */
 	char		Dir[64];
-}			SlruCtlData;
+} SlruCtlData;
 
-typedef SlruCtlData * SlruCtl;
+typedef SlruCtlData *SlruCtl;
 
 
 extern Size SimpleLruShmemSize(int nslots, int nlsns);
 extern void SimpleLruInit(SlruCtl ctl, const char *name, int nslots, int nlsns,
-			  LWLock * ctllock, const char *subdir, int tranche_id);
+			  LWLock *ctllock, const char *subdir, int tranche_id);
 extern int	SimpleLruZeroPage(SlruCtl ctl, int pageno);
 extern int SimpleLruReadPage(SlruCtl ctl, int pageno, bool write_ok,
 				  TransactionId xid);

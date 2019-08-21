@@ -6,7 +6,7 @@
  * Generic code supporting statistics objects created via CREATE STATISTICS.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -45,15 +45,15 @@ typedef struct StatExtEntry
 	char	   *name;			/* statistics object's name */
 	Bitmapset  *columns;		/* attribute numbers covered by the object */
 	List	   *types;			/* 'char' list of enabled statistic kinds */
-}			StatExtEntry;
+} StatExtEntry;
 
 
-static List * fetch_statentries_for_relation(Relation pg_statext, Oid relid);
-static VacAttrStats * *lookup_var_attr_stats(Relation rel, Bitmapset * attrs,
-											 int nvacatts, VacAttrStats * *vacatts);
+static List *fetch_statentries_for_relation(Relation pg_statext, Oid relid);
+static VacAttrStats **lookup_var_attr_stats(Relation rel, Bitmapset *attrs,
+					  int nvacatts, VacAttrStats **vacatts);
 static void statext_store(Relation pg_stext, Oid relid,
-			  MVNDistinct * ndistinct, MVDependencies * dependencies,
-			  VacAttrStats * *stats);
+			  MVNDistinct *ndistinct, MVDependencies *dependencies,
+			  VacAttrStats **stats);
 
 
 /*
@@ -65,8 +65,8 @@ static void statext_store(Relation pg_stext, Oid relid,
  */
 void
 BuildRelationExtStatistics(Relation onerel, double totalrows,
-						   int numrows, HeapTuple * rows,
-						   int natts, VacAttrStats * *vacattrstats)
+						   int numrows, HeapTuple *rows,
+						   int natts, VacAttrStats **vacattrstats)
 {
 	Relation	pg_stext;
 	ListCell   *lc;
@@ -74,7 +74,8 @@ BuildRelationExtStatistics(Relation onerel, double totalrows,
 	MemoryContext cxt;
 	MemoryContext oldcxt;
 
-	cxt = AllocSetContextCreate(CurrentMemoryContext, "stats ext",
+	cxt = AllocSetContextCreate(CurrentMemoryContext,
+								"BuildRelationExtStatistics",
 								ALLOCSET_DEFAULT_SIZES);
 	oldcxt = MemoryContextSwitchTo(cxt);
 
@@ -158,7 +159,7 @@ statext_is_kind_built(HeapTuple htup, char type)
 			elog(ERROR, "unexpected statistics type requested: %d", type);
 	}
 
-	return !heap_attisnull(htup, attnum);
+	return !heap_attisnull(htup, attnum, NULL);
 }
 
 /*
@@ -237,14 +238,15 @@ fetch_statentries_for_relation(Relation pg_statext, Oid relid)
  * stats available to compute the extended stats, then we return NULL to indicate
  * to the caller that the stats should not be built.
  */
-static VacAttrStats * *lookup_var_attr_stats(Relation rel, Bitmapset * attrs,
-											 int nvacatts, VacAttrStats * *vacatts)
+static VacAttrStats **
+lookup_var_attr_stats(Relation rel, Bitmapset *attrs,
+					  int nvacatts, VacAttrStats **vacatts)
 {
 	int			i = 0;
 	int			x = -1;
 	VacAttrStats **stats;
 
-	stats = (VacAttrStats * *)
+	stats = (VacAttrStats **)
 		palloc(bms_num_members(attrs) * sizeof(VacAttrStats *));
 
 	/* lookup VacAttrStats info for the requested columns (same attnum) */
@@ -291,8 +293,8 @@ static VacAttrStats * *lookup_var_attr_stats(Relation rel, Bitmapset * attrs,
  */
 static void
 statext_store(Relation pg_stext, Oid statOid,
-			  MVNDistinct * ndistinct, MVDependencies * dependencies,
-			  VacAttrStats * *stats)
+			  MVNDistinct *ndistinct, MVDependencies *dependencies,
+			  VacAttrStats **stats)
 {
 	HeapTuple	stup,
 				oldtup;
@@ -404,7 +406,7 @@ multi_sort_compare(const void *a, const void *b, void *arg)
 
 /* compare selected dimension */
 int
-multi_sort_compare_dim(int dim, const SortItem * a, const SortItem * b,
+multi_sort_compare_dim(int dim, const SortItem *a, const SortItem *b,
 					   MultiSortSupport mss)
 {
 	return ApplySortComparator(a->values[dim], a->isnull[dim],
@@ -414,7 +416,7 @@ multi_sort_compare_dim(int dim, const SortItem * a, const SortItem * b,
 
 int
 multi_sort_compare_dims(int start, int end,
-						const SortItem * a, const SortItem * b,
+						const SortItem *a, const SortItem *b,
 						MultiSortSupport mss)
 {
 	int			dim;
@@ -437,7 +439,7 @@ multi_sort_compare_dims(int start, int end,
  *		Check whether the list contains statistic of a given kind
  */
 bool
-has_stats_of_kind(List * stats, char requiredkind)
+has_stats_of_kind(List *stats, char requiredkind)
 {
 	ListCell   *l;
 
@@ -467,7 +469,7 @@ has_stats_of_kind(List * stats, char requiredkind)
  * further tiebreakers are needed.
  */
 StatisticExtInfo *
-choose_best_statistics(List * stats, Bitmapset * attnums, char requiredkind)
+choose_best_statistics(List *stats, Bitmapset *attnums, char requiredkind)
 {
 	ListCell   *lc;
 	StatisticExtInfo *best_match = NULL;

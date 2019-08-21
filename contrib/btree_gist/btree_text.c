@@ -23,7 +23,7 @@ PG_FUNCTION_INFO_V1(gbt_text_same);
 /* define for comparison */
 
 static bool
-gbt_textgt(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
+gbt_textgt(const void *a, const void *b, Oid collation, FmgrInfo *flinfo)
 {
 	return DatumGetBool(DirectFunctionCall2Coll(text_gt,
 												collation,
@@ -32,7 +32,7 @@ gbt_textgt(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
 }
 
 static bool
-gbt_textge(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
+gbt_textge(const void *a, const void *b, Oid collation, FmgrInfo *flinfo)
 {
 	return DatumGetBool(DirectFunctionCall2Coll(text_ge,
 												collation,
@@ -41,7 +41,7 @@ gbt_textge(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
 }
 
 static bool
-gbt_texteq(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
+gbt_texteq(const void *a, const void *b, Oid collation, FmgrInfo *flinfo)
 {
 	return DatumGetBool(DirectFunctionCall2Coll(texteq,
 												collation,
@@ -50,7 +50,7 @@ gbt_texteq(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
 }
 
 static bool
-gbt_textle(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
+gbt_textle(const void *a, const void *b, Oid collation, FmgrInfo *flinfo)
 {
 	return DatumGetBool(DirectFunctionCall2Coll(text_le,
 												collation,
@@ -59,7 +59,7 @@ gbt_textle(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
 }
 
 static bool
-gbt_textlt(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
+gbt_textlt(const void *a, const void *b, Oid collation, FmgrInfo *flinfo)
 {
 	return DatumGetBool(DirectFunctionCall2Coll(text_lt,
 												collation,
@@ -68,7 +68,7 @@ gbt_textlt(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
 }
 
 static int32
-gbt_textcmp(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
+gbt_textcmp(const void *a, const void *b, Oid collation, FmgrInfo *flinfo)
 {
 	return DatumGetInt32(DirectFunctionCall2Coll(bttextcmp,
 												 collation,
@@ -79,15 +79,15 @@ gbt_textcmp(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
 static gbtree_vinfo tinfo =
 {
 	gbt_t_text,
-		0,
-		FALSE,
-		gbt_textgt,
-		gbt_textge,
-		gbt_texteq,
-		gbt_textle,
-		gbt_textlt,
-		gbt_textcmp,
-		NULL
+	0,
+	false,
+	gbt_textgt,
+	gbt_textge,
+	gbt_texteq,
+	gbt_textle,
+	gbt_textlt,
+	gbt_textcmp,
+	NULL
 };
 
 
@@ -128,7 +128,7 @@ gbt_bpchar_compress(PG_FUNCTION_ARGS)
 
 		gistentryinit(trim, d,
 					  entry->rel, entry->page,
-					  entry->offset, TRUE);
+					  entry->offset, true);
 		retval = gbt_var_compress(&trim, &tinfo);
 	}
 	else
@@ -171,7 +171,7 @@ Datum
 gbt_bpchar_consistent(PG_FUNCTION_ARGS)
 {
 	GISTENTRY  *entry = (GISTENTRY *) PG_GETARG_POINTER(0);
-	void	   *query = (void *) DatumGetPointer(PG_DETOAST_DATUM(PG_GETARG_DATUM(1)));
+	void	   *query = (void *) DatumGetTextP(PG_GETARG_DATUM(1));
 	StrategyNumber strategy = (StrategyNumber) PG_GETARG_UINT16(2);
 
 	/* Oid		subtype = PG_GETARG_OID(3); */

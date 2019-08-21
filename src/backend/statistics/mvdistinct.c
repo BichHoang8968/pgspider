@@ -13,7 +13,7 @@
  * estimates are already available in pg_statistic.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -37,7 +37,7 @@
 
 
 static double ndistinct_for_combination(double totalrows, int numrows,
-						  HeapTuple * rows, VacAttrStats * *stats,
+						  HeapTuple *rows, VacAttrStats **stats,
 						  int k, int *combination);
 static double estimate_ndistinct(double totalrows, int numrows, int d, int f1);
 static int	n_choose_k(int n, int k);
@@ -53,12 +53,12 @@ typedef struct CombinationGenerator
 	int			current;		/* index of the next combination to return */
 	int			ncombinations;	/* number of combinations (size of array) */
 	int		   *combinations;	/* array of pre-built combinations */
-}			CombinationGenerator;
+} CombinationGenerator;
 
-static CombinationGenerator * generator_init(int n, int k);
-static void generator_free(CombinationGenerator * state);
-static int *generator_next(CombinationGenerator * state);
-static void generate_combinations(CombinationGenerator * state);
+static CombinationGenerator *generator_init(int n, int k);
+static void generator_free(CombinationGenerator *state);
+static int *generator_next(CombinationGenerator *state);
+static void generate_combinations(CombinationGenerator *state);
 
 
 /*
@@ -69,8 +69,8 @@ static void generate_combinations(CombinationGenerator * state);
  * in analyze.c and then computes the coefficient.
  */
 MVNDistinct *
-statext_ndistinct_build(double totalrows, int numrows, HeapTuple * rows,
-						Bitmapset * attrs, VacAttrStats * *stats)
+statext_ndistinct_build(double totalrows, int numrows, HeapTuple *rows,
+						Bitmapset *attrs, VacAttrStats **stats)
 {
 	MVNDistinct *result;
 	int			k;
@@ -154,7 +154,7 @@ statext_ndistinct_load(Oid mvoid)
  *		serialize ndistinct to the on-disk bytea format
  */
 bytea *
-statext_ndistinct_serialize(MVNDistinct * ndistinct)
+statext_ndistinct_serialize(MVNDistinct *ndistinct)
 {
 	int			i;
 	bytea	   *output;
@@ -229,7 +229,7 @@ statext_ndistinct_serialize(MVNDistinct * ndistinct)
  *		Read an on-disk bytea format MVNDistinct to in-memory format
  */
 MVNDistinct *
-statext_ndistinct_deserialize(bytea * data)
+statext_ndistinct_deserialize(bytea *data)
 {
 	int			i;
 	Size		minimum_size;
@@ -420,8 +420,8 @@ pg_ndistinct_send(PG_FUNCTION_ARGS)
  * combination of multiple columns.
  */
 static double
-ndistinct_for_combination(double totalrows, int numrows, HeapTuple * rows,
-						  VacAttrStats * *stats, int k, int *combination)
+ndistinct_for_combination(double totalrows, int numrows, HeapTuple *rows,
+						  VacAttrStats **stats, int k, int *combination)
 {
 	int			i,
 				j;
@@ -624,7 +624,7 @@ generator_init(int n, int k)
  * generator_init), or NULL when there are no more combination.
  */
 static int *
-generator_next(CombinationGenerator * state)
+generator_next(CombinationGenerator *state)
 {
 	if (state->current == state->ncombinations)
 		return NULL;
@@ -639,7 +639,7 @@ generator_next(CombinationGenerator * state)
  * Releases the generator internal state (pre-built combinations).
  */
 static void
-generator_free(CombinationGenerator * state)
+generator_free(CombinationGenerator *state)
 {
 	pfree(state->combinations);
 	pfree(state);
@@ -654,7 +654,7 @@ generator_free(CombinationGenerator * state)
  * which eliminates permutations of the same combination.
  */
 static void
-generate_combinations_recurse(CombinationGenerator * state,
+generate_combinations_recurse(CombinationGenerator *state,
 							  int index, int start, int *current)
 {
 	/* If we haven't filled all the elements, simply recurse. */
@@ -689,7 +689,7 @@ generate_combinations_recurse(CombinationGenerator * state,
  *		generate all k-combinations of N elements
  */
 static void
-generate_combinations(CombinationGenerator * state)
+generate_combinations(CombinationGenerator *state)
 {
 	int		   *current = (int *) palloc0(sizeof(int) * state->k);
 

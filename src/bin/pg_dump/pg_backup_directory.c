@@ -17,7 +17,7 @@
  *	sync.
  *
  *
- *	Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ *	Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *	Portions Copyright (c) 1994, Regents of the University of California
  *	Portions Copyright (c) 2000, Philip Warner
  *
@@ -54,46 +54,46 @@ typedef struct
 
 	cfp		   *blobsTocFH;		/* file handle for blobs.toc */
 	ParallelState *pstate;		/* for parallel backup / restore */
-}			lclContext;
+} lclContext;
 
 typedef struct
 {
 	char	   *filename;		/* filename excluding the directory (basename) */
-}			lclTocEntry;
+} lclTocEntry;
 
 /* translator: this is a module name */
 static const char *modulename = gettext_noop("directory archiver");
 
 /* prototypes for private functions */
-static void _ArchiveEntry(ArchiveHandle * AH, TocEntry * te);
-static void _StartData(ArchiveHandle * AH, TocEntry * te);
-static void _EndData(ArchiveHandle * AH, TocEntry * te);
-static void _WriteData(ArchiveHandle * AH, const void *data, size_t dLen);
-static int	_WriteByte(ArchiveHandle * AH, const int i);
+static void _ArchiveEntry(ArchiveHandle *AH, TocEntry *te);
+static void _StartData(ArchiveHandle *AH, TocEntry *te);
+static void _EndData(ArchiveHandle *AH, TocEntry *te);
+static void _WriteData(ArchiveHandle *AH, const void *data, size_t dLen);
+static int	_WriteByte(ArchiveHandle *AH, const int i);
 static int	_ReadByte(ArchiveHandle *);
-static void _WriteBuf(ArchiveHandle * AH, const void *buf, size_t len);
-static void _ReadBuf(ArchiveHandle * AH, void *buf, size_t len);
-static void _CloseArchive(ArchiveHandle * AH);
-static void _ReopenArchive(ArchiveHandle * AH);
-static void _PrintTocData(ArchiveHandle * AH, TocEntry * te);
+static void _WriteBuf(ArchiveHandle *AH, const void *buf, size_t len);
+static void _ReadBuf(ArchiveHandle *AH, void *buf, size_t len);
+static void _CloseArchive(ArchiveHandle *AH);
+static void _ReopenArchive(ArchiveHandle *AH);
+static void _PrintTocData(ArchiveHandle *AH, TocEntry *te);
 
-static void _WriteExtraToc(ArchiveHandle * AH, TocEntry * te);
-static void _ReadExtraToc(ArchiveHandle * AH, TocEntry * te);
-static void _PrintExtraToc(ArchiveHandle * AH, TocEntry * te);
+static void _WriteExtraToc(ArchiveHandle *AH, TocEntry *te);
+static void _ReadExtraToc(ArchiveHandle *AH, TocEntry *te);
+static void _PrintExtraToc(ArchiveHandle *AH, TocEntry *te);
 
-static void _StartBlobs(ArchiveHandle * AH, TocEntry * te);
-static void _StartBlob(ArchiveHandle * AH, TocEntry * te, Oid oid);
-static void _EndBlob(ArchiveHandle * AH, TocEntry * te, Oid oid);
-static void _EndBlobs(ArchiveHandle * AH, TocEntry * te);
-static void _LoadBlobs(ArchiveHandle * AH);
+static void _StartBlobs(ArchiveHandle *AH, TocEntry *te);
+static void _StartBlob(ArchiveHandle *AH, TocEntry *te, Oid oid);
+static void _EndBlob(ArchiveHandle *AH, TocEntry *te, Oid oid);
+static void _EndBlobs(ArchiveHandle *AH, TocEntry *te);
+static void _LoadBlobs(ArchiveHandle *AH);
 
-static void _Clone(ArchiveHandle * AH);
-static void _DeClone(ArchiveHandle * AH);
+static void _Clone(ArchiveHandle *AH);
+static void _DeClone(ArchiveHandle *AH);
 
-static int	_WorkerJobRestoreDirectory(ArchiveHandle * AH, TocEntry * te);
-static int	_WorkerJobDumpDirectory(ArchiveHandle * AH, TocEntry * te);
+static int	_WorkerJobRestoreDirectory(ArchiveHandle *AH, TocEntry *te);
+static int	_WorkerJobDumpDirectory(ArchiveHandle *AH, TocEntry *te);
 
-static void setFilePath(ArchiveHandle * AH, char *buf,
+static void setFilePath(ArchiveHandle *AH, char *buf,
 			const char *relativeFilename);
 
 /*
@@ -107,7 +107,7 @@ static void setFilePath(ArchiveHandle * AH, char *buf,
  *	and in the case of a read mode connection, it should load the Header & TOC.
  */
 void
-InitArchiveFmt_Directory(ArchiveHandle * AH)
+InitArchiveFmt_Directory(ArchiveHandle *AH)
 {
 	lclContext *ctx;
 
@@ -234,7 +234,7 @@ InitArchiveFmt_Directory(ArchiveHandle * AH)
  * We determine the filename for this entry.
 */
 static void
-_ArchiveEntry(ArchiveHandle * AH, TocEntry * te)
+_ArchiveEntry(ArchiveHandle *AH, TocEntry *te)
 {
 	lclTocEntry *tctx;
 	char		fn[MAXPGPATH];
@@ -261,7 +261,7 @@ _ArchiveEntry(ArchiveHandle * AH, TocEntry * te)
  * maintain other important file information.
  */
 static void
-_WriteExtraToc(ArchiveHandle * AH, TocEntry * te)
+_WriteExtraToc(ArchiveHandle *AH, TocEntry *te)
 {
 	lclTocEntry *tctx = (lclTocEntry *) te->formatData;
 
@@ -282,7 +282,7 @@ _WriteExtraToc(ArchiveHandle * AH, TocEntry * te)
  * use the Archiver input routines.
  */
 static void
-_ReadExtraToc(ArchiveHandle * AH, TocEntry * te)
+_ReadExtraToc(ArchiveHandle *AH, TocEntry *te)
 {
 	lclTocEntry *tctx = (lclTocEntry *) te->formatData;
 
@@ -305,7 +305,7 @@ _ReadExtraToc(ArchiveHandle * AH, TocEntry * te)
  * that includes useful information about the TOC entry.
  */
 static void
-_PrintExtraToc(ArchiveHandle * AH, TocEntry * te)
+_PrintExtraToc(ArchiveHandle *AH, TocEntry *te)
 {
 	lclTocEntry *tctx = (lclTocEntry *) te->formatData;
 
@@ -323,7 +323,7 @@ _PrintExtraToc(ArchiveHandle * AH, TocEntry * te)
  * We create the data file for writing.
  */
 static void
-_StartData(ArchiveHandle * AH, TocEntry * te)
+_StartData(ArchiveHandle *AH, TocEntry *te)
 {
 	lclTocEntry *tctx = (lclTocEntry *) te->formatData;
 	lclContext *ctx = (lclContext *) AH->formatData;
@@ -347,7 +347,7 @@ _StartData(ArchiveHandle * AH, TocEntry * te)
  * We write the data to the open data file.
  */
 static void
-_WriteData(ArchiveHandle * AH, const void *data, size_t dLen)
+_WriteData(ArchiveHandle *AH, const void *data, size_t dLen)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
@@ -366,7 +366,7 @@ _WriteData(ArchiveHandle * AH, const void *data, size_t dLen)
  * We close the data file.
  */
 static void
-_EndData(ArchiveHandle * AH, TocEntry * te)
+_EndData(ArchiveHandle *AH, TocEntry *te)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
@@ -380,7 +380,7 @@ _EndData(ArchiveHandle * AH, TocEntry * te)
  * Print data for a given file (can be a BLOB as well)
  */
 static void
-_PrintFileData(ArchiveHandle * AH, char *filename)
+_PrintFileData(ArchiveHandle *AH, char *filename)
 {
 	size_t		cnt;
 	char	   *buf;
@@ -405,7 +405,7 @@ _PrintFileData(ArchiveHandle * AH, char *filename)
 	}
 
 	free(buf);
-	if (cfclose(cfp) != 0)
+	if (cfclose(cfp) !=0)
 		exit_horribly(modulename, "could not close data file: %s\n",
 					  strerror(errno));
 }
@@ -414,7 +414,7 @@ _PrintFileData(ArchiveHandle * AH, char *filename)
  * Print data for a given TOC entry
 */
 static void
-_PrintTocData(ArchiveHandle * AH, TocEntry * te)
+_PrintTocData(ArchiveHandle *AH, TocEntry *te)
 {
 	lclTocEntry *tctx = (lclTocEntry *) te->formatData;
 
@@ -433,7 +433,7 @@ _PrintTocData(ArchiveHandle * AH, TocEntry * te)
 }
 
 static void
-_LoadBlobs(ArchiveHandle * AH)
+_LoadBlobs(ArchiveHandle *AH)
 {
 	Oid			oid;
 	lclContext *ctx = (lclContext *) AH->formatData;
@@ -486,7 +486,7 @@ _LoadBlobs(ArchiveHandle * AH)
  * These routines are only used to read & write the headers & TOC.
  */
 static int
-_WriteByte(ArchiveHandle * AH, const int i)
+_WriteByte(ArchiveHandle *AH, const int i)
 {
 	unsigned char c = (unsigned char) i;
 	lclContext *ctx = (lclContext *) AH->formatData;
@@ -505,7 +505,7 @@ _WriteByte(ArchiveHandle * AH, const int i)
  * EOF should be treated as a fatal error.
  */
 static int
-_ReadByte(ArchiveHandle * AH)
+_ReadByte(ArchiveHandle *AH)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
@@ -517,7 +517,7 @@ _ReadByte(ArchiveHandle * AH)
  * Called by the archiver to write a block of bytes to the TOC or a data file.
  */
 static void
-_WriteBuf(ArchiveHandle * AH, const void *buf, size_t len)
+_WriteBuf(ArchiveHandle *AH, const void *buf, size_t len)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
@@ -534,7 +534,7 @@ _WriteBuf(ArchiveHandle * AH, const void *buf, size_t len)
  * Called by the archiver to read a block of bytes from the archive
  */
 static void
-_ReadBuf(ArchiveHandle * AH, void *buf, size_t len)
+_ReadBuf(ArchiveHandle *AH, void *buf, size_t len)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
@@ -562,7 +562,7 @@ _ReadBuf(ArchiveHandle * AH, void *buf, size_t len)
  *		WriteDataChunks		to save all DATA & BLOBs.
  */
 static void
-_CloseArchive(ArchiveHandle * AH)
+_CloseArchive(ArchiveHandle *AH)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
@@ -613,7 +613,7 @@ _CloseArchive(ArchiveHandle * AH)
  * Reopen the archive's file handle.
  */
 static void
-_ReopenArchive(ArchiveHandle * AH)
+_ReopenArchive(ArchiveHandle *AH)
 {
 	/*
 	 * Our TOC is in memory, our data files are opened by each child anyway as
@@ -634,7 +634,7 @@ _ReopenArchive(ArchiveHandle * AH)
  * it for each blob.
  */
 static void
-_StartBlobs(ArchiveHandle * AH, TocEntry * te)
+_StartBlobs(ArchiveHandle *AH, TocEntry *te)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	char		fname[MAXPGPATH];
@@ -654,7 +654,7 @@ _StartBlobs(ArchiveHandle * AH, TocEntry * te)
  * We create a file to write the blob to.
  */
 static void
-_StartBlob(ArchiveHandle * AH, TocEntry * te, Oid oid)
+_StartBlob(ArchiveHandle *AH, TocEntry *te, Oid oid)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	char		fname[MAXPGPATH];
@@ -674,7 +674,7 @@ _StartBlob(ArchiveHandle * AH, TocEntry * te, Oid oid)
  * We close the blob file and write an entry to the blob TOC file for it.
  */
 static void
-_EndBlob(ArchiveHandle * AH, TocEntry * te, Oid oid)
+_EndBlob(ArchiveHandle *AH, TocEntry *te, Oid oid)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	char		buf[50];
@@ -696,7 +696,7 @@ _EndBlob(ArchiveHandle * AH, TocEntry * te, Oid oid)
  * We close the blobs TOC file.
  */
 static void
-_EndBlobs(ArchiveHandle * AH, TocEntry * te)
+_EndBlobs(ArchiveHandle *AH, TocEntry *te)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
@@ -711,7 +711,7 @@ _EndBlobs(ArchiveHandle * AH, TocEntry * te)
  * multithreaded on Windows.
  */
 static void
-setFilePath(ArchiveHandle * AH, char *buf, const char *relativeFilename)
+setFilePath(ArchiveHandle *AH, char *buf, const char *relativeFilename)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	char	   *dname;
@@ -730,7 +730,7 @@ setFilePath(ArchiveHandle * AH, char *buf, const char *relativeFilename)
  * Clone format-specific fields during parallel restoration.
  */
 static void
-_Clone(ArchiveHandle * AH)
+_Clone(ArchiveHandle *AH)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
@@ -752,7 +752,7 @@ _Clone(ArchiveHandle * AH)
 }
 
 static void
-_DeClone(ArchiveHandle * AH)
+_DeClone(ArchiveHandle *AH)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
@@ -764,7 +764,7 @@ _DeClone(ArchiveHandle * AH)
  * directory-format archive and dumps the actual data for one TOC entry.
  */
 static int
-_WorkerJobDumpDirectory(ArchiveHandle * AH, TocEntry * te)
+_WorkerJobDumpDirectory(ArchiveHandle *AH, TocEntry *te)
 {
 	/*
 	 * This function returns void. We either fail and die horribly or
@@ -781,7 +781,7 @@ _WorkerJobDumpDirectory(ArchiveHandle * AH, TocEntry * te)
  * directory-format archive and restores the actual data for one TOC entry.
  */
 static int
-_WorkerJobRestoreDirectory(ArchiveHandle * AH, TocEntry * te)
+_WorkerJobRestoreDirectory(ArchiveHandle *AH, TocEntry *te)
 {
 	return parallel_restore(AH, te);
 }

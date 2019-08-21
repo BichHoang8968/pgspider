@@ -4,7 +4,7 @@
  *	  implementation of quad tree over points for SP-GiST
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -51,7 +51,7 @@ spg_quad_config(PG_FUNCTION_ARGS)
  * adjacent quadrant.
  */
 static int16
-getQuadrant(Point * centroid, Point * tst)
+getQuadrant(Point *centroid, Point *tst)
 {
 	if ((SPTEST(point_above, tst, centroid) ||
 		 SPTEST(point_horiz, tst, centroid)) &&
@@ -112,8 +112,8 @@ spg_quad_choose(PG_FUNCTION_ARGS)
 static int
 x_cmp(const void *a, const void *b, void *arg)
 {
-	Point	   *pa = *(Point * *) a;
-	Point	   *pb = *(Point * *) b;
+	Point	   *pa = *(Point **) a;
+	Point	   *pb = *(Point **) b;
 
 	if (pa->x == pb->x)
 		return 0;
@@ -123,8 +123,8 @@ x_cmp(const void *a, const void *b, void *arg)
 static int
 y_cmp(const void *a, const void *b, void *arg)
 {
-	Point	   *pa = *(Point * *) a;
-	Point	   *pb = *(Point * *) b;
+	Point	   *pa = *(Point **) a;
+	Point	   *pb = *(Point **) b;
 
 	if (pa->y == pb->y)
 		return 0;

@@ -10,7 +10,7 @@
  * backslash commands.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/fe_utils/psqlscan.h
@@ -33,7 +33,7 @@ typedef enum
 	PSCAN_BACKSLASH,			/* found backslash command */
 	PSCAN_INCOMPLETE,			/* end of line, SQL statement incomplete */
 	PSCAN_EOL					/* end of line, SQL possibly complete */
-}			PsqlScanResult;
+} PsqlScanResult;
 
 /* Prompt type returned by psql_scan() */
 typedef enum _promptStatus
@@ -46,7 +46,7 @@ typedef enum _promptStatus
 	PROMPT_DOLLARQUOTE,
 	PROMPT_PAREN,
 	PROMPT_COPY
-}			promptStatus_t;
+} promptStatus_t;
 
 /* Quoting request types for get_variable() callback */
 typedef enum
@@ -55,7 +55,7 @@ typedef enum
 	PQUOTE_SQL_LITERAL,			/* add quotes to make a valid SQL literal */
 	PQUOTE_SQL_IDENT,			/* quote if needed to make a SQL identifier */
 	PQUOTE_SHELL_ARG			/* quote if needed to be safe in a shell cmd */
-}			PsqlScanQuoteType;
+} PsqlScanQuoteType;
 
 /* Callback functions to be used by the lexer */
 typedef struct PsqlScanCallbacks
@@ -71,10 +71,10 @@ typedef struct PsqlScanCallbacks
 #else
 	void		(*write_error) (const char *fmt,...) pg_attribute_printf(1, 2);
 #endif
-}			PsqlScanCallbacks;
+} PsqlScanCallbacks;
 
 
-extern PsqlScanState psql_scan_create(const PsqlScanCallbacks * callbacks);
+extern PsqlScanState psql_scan_create(const PsqlScanCallbacks *callbacks);
 extern void psql_scan_destroy(PsqlScanState state);
 
 extern void psql_scan_set_passthrough(PsqlScanState state, void *passthrough);
@@ -85,8 +85,8 @@ extern void psql_scan_setup(PsqlScanState state,
 extern void psql_scan_finish(PsqlScanState state);
 
 extern PsqlScanResult psql_scan(PsqlScanState state,
-								PQExpBuffer query_buf,
-								promptStatus_t * prompt);
+		  PQExpBuffer query_buf,
+		  promptStatus_t *prompt);
 
 extern void psql_scan_reset(PsqlScanState state);
 

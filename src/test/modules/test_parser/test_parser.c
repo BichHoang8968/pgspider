@@ -3,7 +3,7 @@
  * test_parser.c
  *	  Simple example of a text search parser
  *
- * Copyright (c) 2007-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/test/modules/test_parser/test_parser.c
@@ -26,14 +26,14 @@ typedef struct
 	char	   *buffer;			/* text to parse */
 	int			len;			/* length of the text in buffer */
 	int			pos;			/* position of the parser */
-}			ParserState;
+} ParserState;
 
 typedef struct
 {
 	int			lexid;
 	char	   *alias;
 	char	   *descr;
-}			LexDescr;
+} LexDescr;
 
 /*
  * functions

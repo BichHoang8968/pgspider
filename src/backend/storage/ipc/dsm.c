@@ -14,7 +14,7 @@
  * hard postmaster crash, remaining segments will be removed, if they
  * still exist, at the next postmaster startup.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -61,7 +61,7 @@ typedef struct dsm_segment_detach_callback
 	on_dsm_detach_callback function;
 	Datum		arg;
 	slist_node	node;
-}			dsm_segment_detach_callback;
+} dsm_segment_detach_callback;
 
 /* Backend-local state for a dynamic shared memory segment. */
 struct dsm_segment
@@ -83,7 +83,7 @@ typedef struct dsm_control_item
 	uint32		refcnt;			/* 2+ = active, 1 = moribund, 0 = gone */
 	void	   *impl_private_pm_handle; /* only needed on Windows */
 	bool		pinned;
-}			dsm_control_item;
+} dsm_control_item;
 
 /* Layout of the dynamic shared memory control segment. */
 typedef struct dsm_control_header
@@ -92,12 +92,12 @@ typedef struct dsm_control_header
 	uint32		nitems;
 	uint32		maxitems;
 	dsm_control_item item[FLEXIBLE_ARRAY_MEMBER];
-}			dsm_control_header;
+} dsm_control_header;
 
 static void dsm_cleanup_for_mmap(void);
 static void dsm_postmaster_shutdown(int code, Datum arg);
-static dsm_segment * dsm_create_descriptor(void);
-static bool dsm_control_segment_sane(dsm_control_header * control,
+static dsm_segment *dsm_create_descriptor(void);
+static bool dsm_control_segment_sane(dsm_control_header *control,
 						 Size mapped_size);
 static uint64 dsm_control_bytes_needed(uint32 nitems);
 
@@ -131,7 +131,7 @@ static dlist_head dsm_segment_list = DLIST_STATIC_INIT(dsm_segment_list);
  * life cycle.  For simplicity, it doesn't have a dsm_segment object either.
  */
 static dsm_handle dsm_control_handle;
-static dsm_control_header * dsm_control;
+static dsm_control_header *dsm_control;
 static Size dsm_control_mapped_size = 0;
 static void *dsm_control_impl_private = NULL;
 
@@ -142,7 +142,7 @@ static void *dsm_control_impl_private = NULL;
  * startup time.
  */
 void
-dsm_postmaster_startup(PGShmemHeader * shim)
+dsm_postmaster_startup(PGShmemHeader *shim)
 {
 	void	   *dsm_control_address = NULL;
 	uint32		maxitems;
@@ -294,14 +294,9 @@ dsm_cleanup_for_mmap(void)
 	DIR		   *dir;
 	struct dirent *dent;
 
-	/* Open the directory; can't use AllocateDir in postmaster. */
-	if ((dir = AllocateDir(PG_DYNSHMEM_DIR)) == NULL)
-		ereport(ERROR,
-				(errcode_for_file_access(),
-				 errmsg("could not open directory \"%s\": %m",
-						PG_DYNSHMEM_DIR)));
+	/* Scan the directory for something with a name of the correct format. */
+	dir = AllocateDir(PG_DYNSHMEM_DIR);
 
-	/* Scan for something with a name of the correct format. */
 	while ((dent = ReadDir(dir, PG_DYNSHMEM_DIR)) != NULL)
 	{
 		if (strncmp(dent->d_name, PG_DYNSHMEM_MMAP_FILE_PREFIX,
@@ -315,17 +310,9 @@ dsm_cleanup_for_mmap(void)
 
 			/* We found a matching file; so remove it. */
 			if (unlink(buf) != 0)
-			{
-				int			save_errno;
-
-				save_errno = errno;
-				closedir(dir);
-				errno = save_errno;
-
 				ereport(ERROR,
 						(errcode_for_file_access(),
 						 errmsg("could not remove file \"%s\": %m", buf)));
-			}
 		}
 	}
 
@@ -597,21 +584,19 @@ dsm_attach(dsm_handle h)
 	nitems = dsm_control->nitems;
 	for (i = 0; i < nitems; ++i)
 	{
-		/* If the reference count is 0, the slot is actually unused. */
-		if (dsm_control->item[i].refcnt == 0)
+		/*
+		 * If the reference count is 0, the slot is actually unused.  If the
+		 * reference count is 1, the slot is still in use, but the segment is
+		 * in the process of going away; even if the handle matches, another
+		 * slot may already have started using the same handle value by
+		 * coincidence so we have to keep searching.
+		 */
+		if (dsm_control->item[i].refcnt <= 1)
 			continue;
 
 		/* If the handle doesn't match, it's not the slot we want. */
 		if (dsm_control->item[i].handle != seg->handle)
 			continue;
-
-		/*
-		 * If the reference count is 1, the slot is still in use, but the
-		 * segment is in the process of going away.  Treat that as if we
-		 * didn't find a match.
-		 */
-		if (dsm_control->item[i].refcnt == 1)
-			break;
 
 		/* Otherwise we've found a match. */
 		dsm_control->item[i].refcnt++;
@@ -688,7 +673,7 @@ dsm_detach_all(void)
  * address.  For the caller's convenience, we return the mapped address.
  */
 void *
-dsm_resize(dsm_segment * seg, Size size)
+dsm_resize(dsm_segment *seg, Size size)
 {
 	Assert(seg->control_slot != INVALID_CONTROL_SLOT);
 	dsm_impl_op(DSM_OP_RESIZE, seg->handle, size, &seg->impl_private,
@@ -705,7 +690,7 @@ dsm_resize(dsm_segment * seg, Size size)
  * segment is mapped, we return the new mapped address.
  */
 void *
-dsm_remap(dsm_segment * seg)
+dsm_remap(dsm_segment *seg)
 {
 	dsm_impl_op(DSM_OP_ATTACH, seg->handle, 0, &seg->impl_private,
 				&seg->mapped_address, &seg->mapped_size, ERROR);
@@ -723,7 +708,7 @@ dsm_remap(dsm_segment * seg)
  * resource leak, but that doesn't necessarily preclude further operations.
  */
 void
-dsm_detach(dsm_segment * seg)
+dsm_detach(dsm_segment *seg)
 {
 	/*
 	 * Invoke registered callbacks.  Just in case one of those callbacks
@@ -824,7 +809,7 @@ dsm_detach(dsm_segment * seg)
  * only.
  */
 void
-dsm_pin_mapping(dsm_segment * seg)
+dsm_pin_mapping(dsm_segment *seg)
 {
 	if (seg->resowner != NULL)
 	{
@@ -843,7 +828,7 @@ dsm_pin_mapping(dsm_segment * seg)
  * for future use by this backend.
  */
 void
-dsm_unpin_mapping(dsm_segment * seg)
+dsm_unpin_mapping(dsm_segment *seg)
 {
 	Assert(seg->resowner == NULL);
 	ResourceOwnerEnlargeDSMs(CurrentResourceOwner);
@@ -864,7 +849,7 @@ dsm_unpin_mapping(dsm_segment * seg)
  * retain the mapping.
  */
 void
-dsm_pin_segment(dsm_segment * seg)
+dsm_pin_segment(dsm_segment *seg)
 {
 	void	   *handle;
 
@@ -906,8 +891,8 @@ dsm_unpin_segment(dsm_handle handle)
 	LWLockAcquire(DynamicSharedMemoryControlLock, LW_EXCLUSIVE);
 	for (i = 0; i < dsm_control->nitems; ++i)
 	{
-		/* Skip unused slots. */
-		if (dsm_control->item[i].refcnt == 0)
+		/* Skip unused slots and segments that are concurrently going away. */
+		if (dsm_control->item[i].refcnt <= 1)
 			continue;
 
 		/* If we've found our handle, we can stop searching. */
@@ -997,7 +982,7 @@ dsm_find_mapping(dsm_handle h)
  * Get the address at which a dynamic shared memory segment is mapped.
  */
 void *
-dsm_segment_address(dsm_segment * seg)
+dsm_segment_address(dsm_segment *seg)
 {
 	Assert(seg->mapped_address != NULL);
 	return seg->mapped_address;
@@ -1007,7 +992,7 @@ dsm_segment_address(dsm_segment * seg)
  * Get the size of a mapping.
  */
 Size
-dsm_segment_map_length(dsm_segment * seg)
+dsm_segment_map_length(dsm_segment *seg)
 {
 	Assert(seg->mapped_address != NULL);
 	return seg->mapped_size;
@@ -1025,7 +1010,7 @@ dsm_segment_map_length(dsm_segment * seg)
  * handle, should call dsm_attach().
  */
 dsm_handle
-dsm_segment_handle(dsm_segment * seg)
+dsm_segment_handle(dsm_segment *seg)
 {
 	return seg->handle;
 }
@@ -1034,7 +1019,7 @@ dsm_segment_handle(dsm_segment * seg)
  * Register an on-detach callback for a dynamic shared memory segment.
  */
 void
-on_dsm_detach(dsm_segment * seg, on_dsm_detach_callback function, Datum arg)
+on_dsm_detach(dsm_segment *seg, on_dsm_detach_callback function, Datum arg)
 {
 	dsm_segment_detach_callback *cb;
 
@@ -1049,7 +1034,7 @@ on_dsm_detach(dsm_segment * seg, on_dsm_detach_callback function, Datum arg)
  * Unregister an on-detach callback for a dynamic shared memory segment.
  */
 void
-cancel_on_dsm_detach(dsm_segment * seg, on_dsm_detach_callback function,
+cancel_on_dsm_detach(dsm_segment *seg, on_dsm_detach_callback function,
 					 Datum arg)
 {
 	slist_mutable_iter iter;
@@ -1139,7 +1124,7 @@ dsm_create_descriptor(void)
  * our segments at all.
  */
 static bool
-dsm_control_segment_sane(dsm_control_header * control, Size mapped_size)
+dsm_control_segment_sane(dsm_control_header *control, Size mapped_size)
 {
 	if (mapped_size < offsetof(dsm_control_header, item))
 		return false;			/* Mapped size too short to read header. */

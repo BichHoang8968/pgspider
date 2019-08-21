@@ -2,7 +2,7 @@
  * ginfuncs.c
  *		Functions to investigate the content of GIN indexes
  *
- * Copyright (c) 2014-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2014-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		contrib/pageinspect/ginfuncs.c
@@ -158,7 +158,7 @@ typedef struct gin_leafpage_items_state
 	TupleDesc	tupd;
 	GinPostingList *seg;
 	GinPostingList *lastseg;
-}			gin_leafpage_items_state;
+} gin_leafpage_items_state;
 
 Datum
 gin_leafpage_items(PG_FUNCTION_ARGS)

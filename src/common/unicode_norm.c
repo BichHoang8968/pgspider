@@ -5,7 +5,7 @@
  * This implements Unicode normalization, per the documentation at
  * http://www.unicode.org/reports/tr15/.
  *
- * Portions Copyright (c) 2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2017-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/common/unicode_norm.c
@@ -73,7 +73,7 @@ get_code_entry(pg_wchar code)
  * is only valid until next call to this function!
  */
 static const pg_wchar *
-get_code_decomposition(pg_unicode_decomposition * entry, int *dec_size)
+get_code_decomposition(pg_unicode_decomposition *entry, int *dec_size)
 {
 	static pg_wchar x;
 
@@ -103,7 +103,7 @@ get_decomposed_size(pg_wchar code)
 	pg_unicode_decomposition *entry;
 	int			size = 0;
 	int			i;
-	const		uint32 *decomp;
+	const uint32 *decomp;
 	int			dec_size;
 
 	/*
@@ -156,7 +156,7 @@ get_decomposed_size(pg_wchar code)
  * false otherwise.
  */
 static bool
-recompose_code(uint32 start, uint32 code, uint32 * result)
+recompose_code(uint32 start, uint32 code, uint32 *result)
 {
 	/*
 	 * Handle Hangul characters algorithmically, per the Unicode spec.
@@ -196,7 +196,7 @@ recompose_code(uint32 start, uint32 code, uint32 * result)
 		 */
 		for (i = 0; i < lengthof(UnicodeDecompMain); i++)
 		{
-			const		pg_unicode_decomposition *entry = &UnicodeDecompMain[i];
+			const pg_unicode_decomposition *entry = &UnicodeDecompMain[i];
 
 			if (DECOMPOSITION_SIZE(entry) != 2)
 				continue;
@@ -224,11 +224,11 @@ recompose_code(uint32 start, uint32 code, uint32 * result)
  * in the array result.
  */
 static void
-decompose_code(pg_wchar code, pg_wchar * *result, int *current)
+decompose_code(pg_wchar code, pg_wchar **result, int *current)
 {
 	pg_unicode_decomposition *entry;
 	int			i;
-	const		uint32 *decomp;
+	const uint32 *decomp;
 	int			dec_size;
 
 	/*
@@ -304,14 +304,14 @@ decompose_code(pg_wchar code, pg_wchar * *result, int *current)
  * string is palloc'd instead, and OOM is reported with ereport().
  */
 pg_wchar *
-unicode_normalize_kc(const pg_wchar * input)
+unicode_normalize_kc(const pg_wchar *input)
 {
 	pg_wchar   *decomp_chars;
 	pg_wchar   *recomp_chars;
 	int			decomp_size,
 				current_size;
 	int			count;
-	const		pg_wchar *p;
+	const pg_wchar *p;
 
 	/* variables for recomposition */
 	int			last_class;

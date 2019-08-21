@@ -9,7 +9,7 @@
  * of XLogRecData structs by a call to XLogRecordAssemble(). See
  * access/transam/README for details.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/backend/access/transam/xloginsert.c
@@ -58,9 +58,9 @@ typedef struct
 
 	/* buffer to store a compressed version of backup block image */
 	char		compressed_page[PGLZ_MAX_BLCKSZ];
-}			registered_buffer;
+} registered_buffer;
 
-static registered_buffer * registered_buffers;
+static registered_buffer *registered_buffers;
 static int	max_registered_buffers; /* allocated size */
 static int	max_registered_block_id = 0;	/* highest block_id + 1 currently
 											 * registered */
@@ -69,8 +69,8 @@ static int	max_registered_block_id = 0;	/* highest block_id + 1 currently
  * A chain of XLogRecDatas to hold the "main data" of a WAL record, registered
  * with XLogRegisterData(...).
  */
-static XLogRecData * mainrdata_head;
-static XLogRecData * mainrdata_last = (XLogRecData *) & mainrdata_head;
+static XLogRecData *mainrdata_head;
+static XLogRecData *mainrdata_last = (XLogRecData *) &mainrdata_head;
 static uint32 mainrdata_len;	/* total # of bytes in chain */
 
 /* flags for the in-progress insertion */
@@ -97,7 +97,7 @@ static char *hdr_scratch = NULL;
 /*
  * An array of XLogRecData structs, to hold registered data.
  */
-static XLogRecData * rdatas;
+static XLogRecData *rdatas;
 static int	num_rdatas;			/* entries currently used */
 static int	max_rdatas;			/* allocated size */
 
@@ -106,11 +106,11 @@ static bool begininsert_called = false;
 /* Memory context to hold the registered buffer and data references. */
 static MemoryContext xloginsert_cxt;
 
-static XLogRecData * XLogRecordAssemble(RmgrId rmid, uint8 info,
-										XLogRecPtr RedoRecPtr, bool doPageWrites,
-										XLogRecPtr * fpw_lsn);
+static XLogRecData *XLogRecordAssemble(RmgrId rmid, uint8 info,
+				   XLogRecPtr RedoRecPtr, bool doPageWrites,
+				   XLogRecPtr *fpw_lsn);
 static bool XLogCompressBackupBlock(char *page, uint16 hole_offset,
-						uint16 hole_length, char *dest, uint16 * dlen);
+						uint16 hole_length, char *dest, uint16 *dlen);
 
 /*
  * Begin constructing a WAL record. This must be called before the
@@ -120,7 +120,7 @@ void
 XLogBeginInsert(void)
 {
 	Assert(max_registered_block_id == 0);
-	Assert(mainrdata_last == (XLogRecData *) & mainrdata_head);
+	Assert(mainrdata_last == (XLogRecData *) &mainrdata_head);
 	Assert(mainrdata_len == 0);
 
 	/* cross-check on whether we should be here or not */
@@ -200,7 +200,7 @@ XLogResetInsertion(void)
 	num_rdatas = 0;
 	max_registered_block_id = 0;
 	mainrdata_len = 0;
-	mainrdata_last = (XLogRecData *) & mainrdata_head;
+	mainrdata_last = (XLogRecData *) &mainrdata_head;
 	curinsert_flags = 0;
 	begininsert_called = false;
 }
@@ -230,7 +230,7 @@ XLogRegisterBuffer(uint8 block_id, Buffer buffer, uint8 flags)
 	BufferGetTag(buffer, &regbuf->rnode, &regbuf->forkno, &regbuf->block);
 	regbuf->page = BufferGetPage(buffer);
 	regbuf->flags = flags;
-	regbuf->rdata_tail = (XLogRecData *) & regbuf->rdata_head;
+	regbuf->rdata_tail = (XLogRecData *) &regbuf->rdata_head;
 	regbuf->rdata_len = 0;
 
 	/*
@@ -263,7 +263,7 @@ XLogRegisterBuffer(uint8 block_id, Buffer buffer, uint8 flags)
  * shared buffer pool (i.e. when you don't have a Buffer for it).
  */
 void
-XLogRegisterBlock(uint8 block_id, RelFileNode * rnode, ForkNumber forknum,
+XLogRegisterBlock(uint8 block_id, RelFileNode *rnode, ForkNumber forknum,
 				  BlockNumber blknum, Page page, uint8 flags)
 {
 	registered_buffer *regbuf;
@@ -285,7 +285,7 @@ XLogRegisterBlock(uint8 block_id, RelFileNode * rnode, ForkNumber forknum,
 	regbuf->block = blknum;
 	regbuf->page = page;
 	regbuf->flags = flags;
-	regbuf->rdata_tail = (XLogRecData *) & regbuf->rdata_head;
+	regbuf->rdata_tail = (XLogRecData *) &regbuf->rdata_head;
 	regbuf->rdata_len = 0;
 
 	/*
@@ -482,7 +482,7 @@ XLogInsert(RmgrId rmid, uint8 info)
 static XLogRecData *
 XLogRecordAssemble(RmgrId rmid, uint8 info,
 				   XLogRecPtr RedoRecPtr, bool doPageWrites,
-				   XLogRecPtr * fpw_lsn)
+				   XLogRecPtr *fpw_lsn)
 {
 	XLogRecData *rdt;
 	uint32		total_len = 0;
@@ -584,7 +584,7 @@ XLogRecordAssemble(RmgrId rmid, uint8 info,
 		if (include_image)
 		{
 			Page		page = regbuf->page;
-			uint16		compressed_len;
+			uint16		compressed_len = 0;
 
 			/*
 			 * The page needs to be backed up, so calculate its hole length
@@ -797,24 +797,24 @@ XLogRecordAssemble(RmgrId rmid, uint8 info,
 /*
  * Create a compressed version of a backup block image.
  *
- * Returns FALSE if compression fails (i.e., compressed result is actually
- * bigger than original). Otherwise, returns TRUE and sets 'dlen' to
+ * Returns false if compression fails (i.e., compressed result is actually
+ * bigger than original). Otherwise, returns true and sets 'dlen' to
  * the length of compressed block image.
  */
 static bool
 XLogCompressBackupBlock(char *page, uint16 hole_offset, uint16 hole_length,
-						char *dest, uint16 * dlen)
+						char *dest, uint16 *dlen)
 {
 	int32		orig_len = BLCKSZ - hole_length;
 	int32		len;
 	int32		extra_bytes = 0;
 	char	   *source;
-	char		tmp[BLCKSZ];
+	PGAlignedBlock tmp;
 
 	if (hole_length != 0)
 	{
 		/* must skip the hole */
-		source = tmp;
+		source = tmp.data;
 		memcpy(source, page, hole_offset);
 		memcpy(source + hole_offset,
 			   page + (hole_offset + hole_length),
@@ -917,7 +917,7 @@ XLogSaveBufferForHint(Buffer buffer, bool buffer_std)
 	if (lsn <= RedoRecPtr)
 	{
 		int			flags;
-		char		copied_buffer[BLCKSZ];
+		PGAlignedBlock copied_buffer;
 		char	   *origdata = (char *) BufferGetBlock(buffer);
 		RelFileNode rnode;
 		ForkNumber	forkno;
@@ -935,11 +935,11 @@ XLogSaveBufferForHint(Buffer buffer, bool buffer_std)
 			uint16		lower = ((PageHeader) page)->pd_lower;
 			uint16		upper = ((PageHeader) page)->pd_upper;
 
-			memcpy(copied_buffer, origdata, lower);
-			memcpy(copied_buffer + upper, origdata + upper, BLCKSZ - upper);
+			memcpy(copied_buffer.data, origdata, lower);
+			memcpy(copied_buffer.data + upper, origdata + upper, BLCKSZ - upper);
 		}
 		else
-			memcpy(copied_buffer, origdata, BLCKSZ);
+			memcpy(copied_buffer.data, origdata, BLCKSZ);
 
 		XLogBeginInsert();
 
@@ -948,7 +948,7 @@ XLogSaveBufferForHint(Buffer buffer, bool buffer_std)
 			flags |= REGBUF_STANDARD;
 
 		BufferGetTag(buffer, &rnode, &forkno, &blkno);
-		XLogRegisterBlock(0, &rnode, forkno, blkno, copied_buffer, flags);
+		XLogRegisterBlock(0, &rnode, forkno, blkno, copied_buffer.data, flags);
 
 		recptr = XLogInsert(RM_XLOG_ID, XLOG_FPI_FOR_HINT);
 	}
@@ -965,11 +965,11 @@ XLogSaveBufferForHint(Buffer buffer, bool buffer_std)
  * log_newpage_buffer instead.
  *
  * If the page follows the standard page layout, with a PageHeader and unused
- * space between pd_lower and pd_upper, set 'page_std' to TRUE. That allows
+ * space between pd_lower and pd_upper, set 'page_std' to true. That allows
  * the unused space to be left out from the WAL record, making it smaller.
  */
 XLogRecPtr
-log_newpage(RelFileNode * rnode, ForkNumber forkNum, BlockNumber blkno,
+log_newpage(RelFileNode *rnode, ForkNumber forkNum, BlockNumber blkno,
 			Page page, bool page_std)
 {
 	int			flags;
@@ -1002,7 +1002,7 @@ log_newpage(RelFileNode * rnode, ForkNumber forkNum, BlockNumber blkno,
  * function.  This function will set the page LSN.
  *
  * If the page follows the standard page layout, with a PageHeader and unused
- * space between pd_lower and pd_upper, set 'page_std' to TRUE. That allows
+ * space between pd_lower and pd_upper, set 'page_std' to true. That allows
  * the unused space to be left out from the WAL record, making it smaller.
  */
 XLogRecPtr

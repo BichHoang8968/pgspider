@@ -24,7 +24,7 @@ typedef struct
 	int			sign;			/* NUMERIC_POS, NUMERIC_NEG, or NUMERIC_NAN */
 	NumericDigit *buf;			/* start of alloc'd space for digits[] */
 	NumericDigit *digits;		/* decimal digits */
-}			numeric;
+} numeric;
 
 typedef struct
 {
@@ -34,14 +34,14 @@ typedef struct
 	int			dscale;			/* display scale */
 	int			sign;			/* NUMERIC_POS, NUMERIC_NEG, or NUMERIC_NAN */
 	NumericDigit digits[DECSIZE];	/* decimal digits */
-}			decimal;
+} decimal;
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-numeric * PGTYPESnumeric_new(void);
+numeric    *PGTYPESnumeric_new(void);
 decimal    *PGTYPESdecimal_new(void);
 void		PGTYPESnumeric_free(numeric *);
 void		PGTYPESdecimal_free(decimal *);

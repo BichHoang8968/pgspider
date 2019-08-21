@@ -3,7 +3,7 @@
  * origin.c
  *	  Logical replication progress tracking support.
  *
- * Copyright (c) 2013-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2013-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/replication/logical/origin.c
@@ -60,7 +60,7 @@
  *	 all our platforms, but it also simplifies memory ordering concerns
  *	 between the remote and local lsn. We use a lwlock instead of a spinlock
  *	 so it's less harmful to hold the lock over a WAL write
- *	 (c.f. AdvanceReplicationProgress).
+ *	 (cf. AdvanceReplicationProgress).
  *
  * ---------------------------------------------------------------------------
  */
@@ -133,7 +133,7 @@ typedef struct ReplicationState
 	 * Lock protecting remote_lsn and local_lsn.
 	 */
 	LWLock		lock;
-}			ReplicationState;
+} ReplicationState;
 
 /*
  * On disk version of ReplicationState.
@@ -142,14 +142,14 @@ typedef struct ReplicationStateOnDisk
 {
 	RepOriginId roident;
 	XLogRecPtr	remote_lsn;
-}			ReplicationStateOnDisk;
+} ReplicationStateOnDisk;
 
 
 typedef struct ReplicationStateCtl
 {
 	int			tranche_id;
 	ReplicationState states[FLEXIBLE_ARRAY_MEMBER];
-}			ReplicationStateCtl;
+} ReplicationStateCtl;
 
 /* external variables */
 RepOriginId replorigin_session_origin = InvalidRepOriginId; /* assumed identity */
@@ -163,15 +163,15 @@ TimestampTz replorigin_session_origin_timestamp = 0;
  * XXX: Should we use a separate variable to size this rather than
  * max_replication_slots?
  */
-static ReplicationState * replication_states;
-static ReplicationStateCtl * replication_states_ctl;
+static ReplicationState *replication_states;
+static ReplicationStateCtl *replication_states_ctl;
 
 /*
  * Backend-local, cached element from ReplicationState for use in a backend
  * replaying remote commits, so we don't have to search ReplicationState for
  * the backends current RepOriginId.
  */
-static ReplicationState * session_replication_state = NULL;
+static ReplicationState *session_replication_state = NULL;
 
 /* Magic for on disk files. */
 #define REPLICATION_STATE_MAGIC ((uint32) 0x1257DADE)
@@ -341,7 +341,7 @@ replorigin_drop(RepOriginId roident, bool nowait)
 
 	/*
 	 * To interlock against concurrent drops, we hold ExclusiveLock on
-	 * pg_replication_origin throughout this funcion.
+	 * pg_replication_origin throughout this function.
 	 */
 	rel = heap_open(ReplicationOriginRelationId, ExclusiveLock);
 
@@ -567,9 +567,8 @@ CheckPointReplicationOrigin(void)
 	 * no other backend can perform this at the same time, we're protected by
 	 * CheckpointLock.
 	 */
-	tmpfd = OpenTransientFile((char *) tmppath,
-							  O_CREAT | O_EXCL | O_WRONLY | PG_BINARY,
-							  S_IRUSR | S_IWUSR);
+	tmpfd = OpenTransientFile(tmppath,
+							  O_CREAT | O_EXCL | O_WRONLY | PG_BINARY);
 	if (tmpfd < 0)
 		ereport(PANIC,
 				(errcode_for_file_access(),
@@ -699,7 +698,7 @@ StartupReplicationOrigin(void)
 
 	elog(DEBUG2, "starting up replication origin progress state");
 
-	fd = OpenTransientFile((char *) path, O_RDONLY | PG_BINARY, 0);
+	fd = OpenTransientFile(path, O_RDONLY | PG_BINARY);
 
 	/*
 	 * might have had max_replication_slots == 0 last run, or we just brought
@@ -739,7 +738,7 @@ StartupReplicationOrigin(void)
 		if (readBytes == sizeof(crc))
 		{
 			/* not pretty, but simple ... */
-			file_crc = *(pg_crc32c *) & disk_state;
+			file_crc = *(pg_crc32c *) &disk_state;
 			break;
 		}
 
@@ -789,7 +788,7 @@ StartupReplicationOrigin(void)
 }
 
 void
-replorigin_redo(XLogReaderState * record)
+replorigin_redo(XLogReaderState *record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 

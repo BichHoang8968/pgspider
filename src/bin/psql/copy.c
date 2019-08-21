@@ -1,7 +1,7 @@
 /*
  * psql - the PostgreSQL interactive terminal
  *
- * Copyright (c) 2000-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2018, PostgreSQL Global Development Group
  *
  * src/bin/psql/copy.c
  */
@@ -425,14 +425,17 @@ do_copy(const char *args)
  *
  * conn should be a database connection that you just issued COPY TO on
  * and got back a PGRES_COPY_OUT result.
+ *
  * copystream is the file stream for the data to go to.
+ * copystream can be NULL to eat the data without writing it anywhere.
+ *
  * The final status for the COPY is returned into *res (but note
  * we already reported the error, if it's not a success result).
  *
  * result is true if successful, false if not.
  */
 bool
-handleCopyOut(PGconn * conn, FILE * copystream, PGresult * *res)
+handleCopyOut(PGconn *conn, FILE *copystream, PGresult **res)
 {
 	bool		OK = true;
 	char	   *buf;
@@ -447,7 +450,7 @@ handleCopyOut(PGconn * conn, FILE * copystream, PGresult * *res)
 
 		if (buf)
 		{
-			if (OK && fwrite(buf, 1, ret, copystream) != ret)
+			if (OK && copystream && fwrite(buf, 1, ret, copystream) != ret)
 			{
 				psql_error("could not write COPY data: %s\n",
 						   strerror(errno));
@@ -458,7 +461,7 @@ handleCopyOut(PGconn * conn, FILE * copystream, PGresult * *res)
 		}
 	}
 
-	if (OK && fflush(copystream))
+	if (OK && copystream && fflush(copystream))
 	{
 		psql_error("could not write COPY data: %s\n",
 				   strerror(errno));
@@ -511,7 +514,7 @@ handleCopyOut(PGconn * conn, FILE * copystream, PGresult * *res)
 #define COPYBUFSIZ 8192
 
 bool
-handleCopyIn(PGconn * conn, FILE * copystream, bool isbinary, PGresult * *res)
+handleCopyIn(PGconn *conn, FILE *copystream, bool isbinary, PGresult **res)
 {
 	bool		OK;
 	char		buf[COPYBUFSIZ];

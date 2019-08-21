@@ -3,6 +3,8 @@
  */
 #include "postgres.h"
 
+#include <limits.h>
+
 #include "catalog/pg_type.h"
 
 #include "_int.h"
@@ -10,7 +12,7 @@
 
 /* arguments are assumed sorted & unique-ified */
 bool
-inner_int_contains(ArrayType * a, ArrayType * b)
+inner_int_contains(ArrayType *a, ArrayType *b)
 {
 	int			na,
 				nb;
@@ -40,12 +42,12 @@ inner_int_contains(ArrayType * a, ArrayType * b)
 			break;				/* db[j] is not in da */
 	}
 
-	return (n == nb) ? TRUE : FALSE;
+	return (n == nb) ? true : false;
 }
 
 /* arguments are assumed sorted */
 bool
-inner_int_overlap(ArrayType * a, ArrayType * b)
+inner_int_overlap(ArrayType *a, ArrayType *b)
 {
 	int			na,
 				nb;
@@ -65,16 +67,16 @@ inner_int_overlap(ArrayType * a, ArrayType * b)
 		if (da[i] < db[j])
 			i++;
 		else if (da[i] == db[j])
-			return TRUE;
+			return true;
 		else
 			j++;
 	}
 
-	return FALSE;
+	return false;
 }
 
 ArrayType *
-inner_int_union(ArrayType * a, ArrayType * b)
+inner_int_union(ArrayType *a, ArrayType *b)
 {
 	ArrayType  *r = NULL;
 
@@ -131,7 +133,7 @@ inner_int_union(ArrayType * a, ArrayType * b)
 }
 
 ArrayType *
-inner_int_inter(ArrayType * a, ArrayType * b)
+inner_int_inter(ArrayType *a, ArrayType *b)
 {
 	ArrayType  *r;
 	int			na,
@@ -179,7 +181,7 @@ inner_int_inter(ArrayType * a, ArrayType * b)
 }
 
 void
-rt__int_size(ArrayType * a, float *size)
+rt__int_size(ArrayType *a, float *size)
 {
 	*size = (float) ARRNELEMS(a);
 }
@@ -207,7 +209,7 @@ isort_cmp(const void *a, const void *b, void *arg)
 
 /* Sort the given data (len >= 2).  Return true if any duplicates found */
 bool
-isort(int32 * a, int len)
+isort(int32 *a, int len)
 {
 	bool		r = false;
 
@@ -220,7 +222,17 @@ ArrayType *
 new_intArrayType(int num)
 {
 	ArrayType  *r;
-	int			nbytes = ARR_OVERHEAD_NONULLS(1) + sizeof(int) * num;
+	int			nbytes;
+
+	/* if no elements, return a zero-dimensional array */
+	if (num <= 0)
+	{
+		Assert(num == 0);
+		r = construct_empty_array(INT4OID);
+		return r;
+	}
+
+	nbytes = ARR_OVERHEAD_NONULLS(1) + sizeof(int) * num;
 
 	r = (ArrayType *) palloc0(nbytes);
 
@@ -235,20 +247,23 @@ new_intArrayType(int num)
 }
 
 ArrayType *
-resize_intArrayType(ArrayType * a, int num)
+resize_intArrayType(ArrayType *a, int num)
 {
-	int			nbytes = ARR_DATA_OFFSET(a) + sizeof(int) * num;
+	int			nbytes;
 	int			i;
 
 	/* if no elements, return a zero-dimensional array */
-	if (num == 0)
+	if (num <= 0)
 	{
+		Assert(num == 0);
 		ARR_NDIM(a) = 0;
 		return a;
 	}
 
 	if (num == ARRNELEMS(a))
 		return a;
+
+	nbytes = ARR_DATA_OFFSET(a) + sizeof(int) * num;
 
 	a = (ArrayType *) repalloc(a, nbytes);
 
@@ -263,7 +278,7 @@ resize_intArrayType(ArrayType * a, int num)
 }
 
 ArrayType *
-copy_intArrayType(ArrayType * a)
+copy_intArrayType(ArrayType *a)
 {
 	ArrayType  *r;
 	int			n = ARRNELEMS(a);
@@ -277,21 +292,23 @@ copy_intArrayType(ArrayType * a)
 int
 internal_size(int *a, int len)
 {
-	int			i,
-				size = 0;
+	int			i;
+	int64		size = 0;
 
 	for (i = 0; i < len; i += 2)
 	{
 		if (!i || a[i] != a[i - 1]) /* do not count repeated range */
-			size += a[i + 1] - a[i] + 1;
+			size += (int64)(a[i + 1]) - (int64)(a[i]) + 1;
 	}
 
-	return size;
+	if (size > (int64)INT_MAX || size < (int64)INT_MIN)
+		return -1;				/* overflow */
+	return (int) size;
 }
 
 /* unique-ify elements of r in-place ... r must be sorted already */
 ArrayType *
-_int_unique(ArrayType * r)
+_int_unique(ArrayType *r)
 {
 	int		   *tmp,
 			   *dr,
@@ -326,7 +343,7 @@ gensign(BITVEC sign, int *a, int len)
 }
 
 int32
-intarray_match_first(ArrayType * a, int32 elem)
+intarray_match_first(ArrayType *a, int32 elem)
 {
 	int32	   *aa,
 				c,
@@ -342,7 +359,7 @@ intarray_match_first(ArrayType * a, int32 elem)
 }
 
 ArrayType *
-intarray_add_elem(ArrayType * a, int32 elem)
+intarray_add_elem(ArrayType *a, int32 elem)
 {
 	ArrayType  *result;
 	int32	   *r;
@@ -359,7 +376,7 @@ intarray_add_elem(ArrayType * a, int32 elem)
 }
 
 ArrayType *
-intarray_concat_arrays(ArrayType * a, ArrayType * b)
+intarray_concat_arrays(ArrayType *a, ArrayType *b)
 {
 	ArrayType  *result;
 	int32		ac = ARRNELEMS(a);

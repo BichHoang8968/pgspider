@@ -3,7 +3,7 @@
  * dsm_impl.h
  *	  low-level dynamic shared memory primitives
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/dsm_impl.h
@@ -62,11 +62,11 @@ typedef enum
 	DSM_OP_DETACH,
 	DSM_OP_RESIZE,
 	DSM_OP_DESTROY
-}			dsm_op;
+} dsm_op;
 
 /* Create, attach to, detach from, resize, or destroy a segment. */
 extern bool dsm_impl_op(dsm_op op, dsm_handle handle, Size request_size,
-			void **impl_private, void **mapped_address, Size * mapped_size,
+			void **impl_private, void **mapped_address, Size *mapped_size,
 			int elevel);
 
 /* Some implementations cannot resize segments.  Can this one? */

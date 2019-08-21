@@ -3,7 +3,7 @@
  *
  *	execution functions
  *
- *	Copyright (c) 2010-2017, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2018, PostgreSQL Global Development Group
  *	src/bin/pg_upgrade/exec.c
  */
 
@@ -13,9 +13,9 @@
 
 #include "pg_upgrade.h"
 
-static void check_data_dir(ClusterInfo * cluster);
-static void check_bin_dir(ClusterInfo * cluster);
-static void get_bin_version(ClusterInfo * cluster);
+static void check_data_dir(ClusterInfo *cluster);
+static void check_bin_dir(ClusterInfo *cluster);
+static void get_bin_version(ClusterInfo *cluster);
 static void validate_exec(const char *dir, const char *cmdName);
 
 #ifdef WIN32
@@ -29,7 +29,7 @@ static int	win32_check_directory_write_permissions(void);
  *	Fetch major version of binaries for cluster.
  */
 static void
-get_bin_version(ClusterInfo * cluster)
+get_bin_version(ClusterInfo *cluster)
 {
 	char		cmd[MAXPGPATH],
 				cmd_output[MAX_STRING];
@@ -325,7 +325,7 @@ check_single_dir(const char *pg_data, const char *subdir)
  *
  */
 static void
-check_data_dir(ClusterInfo * cluster)
+check_data_dir(ClusterInfo *cluster)
 {
 	const char *pg_data = cluster->pgdata;
 
@@ -363,7 +363,7 @@ check_data_dir(ClusterInfo * cluster)
  *	exit().
  */
 static void
-check_bin_dir(ClusterInfo * cluster)
+check_bin_dir(ClusterInfo *cluster)
 {
 	struct stat statBuf;
 

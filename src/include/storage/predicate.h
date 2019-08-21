@@ -4,7 +4,7 @@
  *	  POSTGRES public predicate locking definitions.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/predicate.h
@@ -47,7 +47,7 @@ extern bool PageIsPredicateLocked(Relation relation, BlockNumber blkno);
 /* predicate lock maintenance */
 extern Snapshot GetSerializableTransactionSnapshot(Snapshot snapshot);
 extern void SetSerializableTransactionSnapshot(Snapshot snapshot,
-								   VirtualTransactionId * sourcevxid,
+								   VirtualTransactionId *sourcevxid,
 								   int sourcepid);
 extern void RegisterPredicateLockingXid(TransactionId xid);
 extern void PredicateLockRelation(Relation relation, Snapshot snapshot);

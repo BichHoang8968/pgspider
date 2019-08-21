@@ -8,7 +8,7 @@
  * be a measurable performance gain from doing this, but that might change
  * in the future as we add more options.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -32,13 +32,13 @@
 
 
 /* Hash table for information about each tablespace */
-static HTAB * TableSpaceCacheHash = NULL;
+static HTAB *TableSpaceCacheHash = NULL;
 
 typedef struct
 {
 	Oid			oid;			/* lookup key - must be first */
 	TableSpaceOpts *opts;		/* options, or NULL if none */
-}			TableSpaceCacheEntry;
+} TableSpaceCacheEntry;
 
 
 /*

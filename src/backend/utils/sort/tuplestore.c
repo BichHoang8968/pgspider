@@ -43,7 +43,7 @@
  * before switching to the other state or activating a different read pointer.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -74,7 +74,7 @@ typedef enum
 	TSS_INMEM,					/* Tuples still fit in memory */
 	TSS_WRITEFILE,				/* Writing to temp file */
 	TSS_READFILE				/* Reading from temp file */
-}			TupStoreStatus;
+} TupStoreStatus;
 
 /*
  * State for a single read pointer.  If we are in state INMEM then all the
@@ -95,7 +95,7 @@ typedef struct
 	int			current;		/* next array index to read */
 	int			file;			/* temp file# */
 	off_t		offset;			/* byte offset in file */
-}			TSReadPointer;
+} TSReadPointer;
 
 /*
  * Private state of a Tuplestore operation.
@@ -128,7 +128,7 @@ struct Tuplestorestate
 	 * the representation must be "flat" in one palloc chunk.) state->availMem
 	 * must be decreased by the amount of space used.
 	 */
-	void	   *(*copytup) (Tuplestorestate * state, void *tup);
+	void	   *(*copytup) (Tuplestorestate *state, void *tup);
 
 	/*
 	 * Function to write a stored tuple onto tape.  The representation of the
@@ -137,7 +137,7 @@ struct Tuplestorestate
 	 * pfree() it, and increase state->availMem by the amount of memory space
 	 * thereby released.
 	 */
-	void		(*writetup) (Tuplestorestate * state, void *tup);
+	void		(*writetup) (Tuplestorestate *state, void *tup);
 
 	/*
 	 * Function to read a stored tuple from tape back into memory. 'len' is
@@ -145,7 +145,7 @@ struct Tuplestorestate
 	 * palloc'd copy, and decrease state->availMem by the amount of memory
 	 * space consumed.
 	 */
-	void	   *(*readtup) (Tuplestorestate * state, unsigned int len);
+	void	   *(*readtup) (Tuplestorestate *state, unsigned int len);
 
 	/*
 	 * This array holds pointers to tuples in memory if we are in state INMEM.
@@ -233,15 +233,15 @@ struct Tuplestorestate
  */
 
 
-static Tuplestorestate * tuplestore_begin_common(int eflags,
-												 bool interXact,
-												 int maxKBytes);
-static void tuplestore_puttuple_common(Tuplestorestate * state, void *tuple);
-static void dumptuples(Tuplestorestate * state);
-static unsigned int getlen(Tuplestorestate * state, bool eofOK);
-static void *copytup_heap(Tuplestorestate * state, void *tup);
-static void writetup_heap(Tuplestorestate * state, void *tup);
-static void *readtup_heap(Tuplestorestate * state, unsigned int len);
+static Tuplestorestate *tuplestore_begin_common(int eflags,
+						bool interXact,
+						int maxKBytes);
+static void tuplestore_puttuple_common(Tuplestorestate *state, void *tuple);
+static void dumptuples(Tuplestorestate *state);
+static unsigned int getlen(Tuplestorestate *state, bool eofOK);
+static void *copytup_heap(Tuplestorestate *state, void *tup);
+static void writetup_heap(Tuplestorestate *state, void *tup);
+static void *readtup_heap(Tuplestorestate *state, unsigned int len);
 
 
 /*
@@ -356,7 +356,7 @@ tuplestore_begin_heap(bool randomAccess, bool interXact, int maxKBytes)
  * position at the time of the last tuplestore_trim call).
  */
 void
-tuplestore_set_eflags(Tuplestorestate * state, int eflags)
+tuplestore_set_eflags(Tuplestorestate *state, int eflags)
 {
 	int			i;
 
@@ -380,7 +380,7 @@ tuplestore_set_eflags(Tuplestorestate * state, int eflags)
  * requirements.
  */
 int
-tuplestore_alloc_read_pointer(Tuplestorestate * state, int eflags)
+tuplestore_alloc_read_pointer(Tuplestorestate *state, int eflags)
 {
 	/* Check for possible increase of requirements */
 	if (state->status != TSS_INMEM || state->memtupcount != 0)
@@ -415,7 +415,7 @@ tuplestore_alloc_read_pointer(Tuplestorestate * state, int eflags)
  *	to the start.
  */
 void
-tuplestore_clear(Tuplestorestate * state)
+tuplestore_clear(Tuplestorestate *state)
 {
 	int			i;
 	TSReadPointer *readptr;
@@ -450,7 +450,7 @@ tuplestore_clear(Tuplestorestate * state)
  *	Release resources and clean up.
  */
 void
-tuplestore_end(Tuplestorestate * state)
+tuplestore_end(Tuplestorestate *state)
 {
 	int			i;
 
@@ -470,7 +470,7 @@ tuplestore_end(Tuplestorestate * state)
  * tuplestore_select_read_pointer - make the specified read pointer active
  */
 void
-tuplestore_select_read_pointer(Tuplestorestate * state, int ptr)
+tuplestore_select_read_pointer(Tuplestorestate *state, int ptr)
 {
 	TSReadPointer *readptr;
 	TSReadPointer *oldptr;
@@ -543,7 +543,7 @@ tuplestore_select_read_pointer(Tuplestorestate * state, int ptr)
  * tuplestore_clear().
  */
 int64
-tuplestore_tuple_count(Tuplestorestate * state)
+tuplestore_tuple_count(Tuplestorestate *state)
 {
 	return state->tuples;
 }
@@ -554,7 +554,7 @@ tuplestore_tuple_count(Tuplestorestate * state)
  * Returns the active read pointer's eof_reached state.
  */
 bool
-tuplestore_ateof(Tuplestorestate * state)
+tuplestore_ateof(Tuplestorestate *state)
 {
 	return state->readptrs[state->activeptr].eof_reached;
 }
@@ -562,7 +562,7 @@ tuplestore_ateof(Tuplestorestate * state)
 /*
  * Grow the memtuples[] array, if possible within our memory constraint.  We
  * must not exceed INT_MAX tuples in memory or the caller-provided memory
- * limit.  Return TRUE if we were able to enlarge the array, FALSE if not.
+ * limit.  Return true if we were able to enlarge the array, false if not.
  *
  * Normally, at each increment we double the size of the array.  When doing
  * that would exceed a limit, we attempt one last, smaller increase (and then
@@ -575,7 +575,7 @@ tuplestore_ateof(Tuplestorestate * state)
  * recalculations in this function.
  */
 static bool
-grow_memtuples(Tuplestorestate * state)
+grow_memtuples(Tuplestorestate *state)
 {
 	int			newmemtupsize;
 	int			memtupsize = state->memtupsize;
@@ -705,8 +705,8 @@ noalloc:
  * a TupleTableSlot without an extra copy operation.
  */
 void
-tuplestore_puttupleslot(Tuplestorestate * state,
-						TupleTableSlot * slot)
+tuplestore_puttupleslot(Tuplestorestate *state,
+						TupleTableSlot *slot)
 {
 	MinimalTuple tuple;
 	MemoryContext oldcxt = MemoryContextSwitchTo(state->context);
@@ -727,7 +727,7 @@ tuplestore_puttupleslot(Tuplestorestate * state,
  * deprecated, but not worth getting rid of in view of the number of callers.
  */
 void
-tuplestore_puttuple(Tuplestorestate * state, HeapTuple tuple)
+tuplestore_puttuple(Tuplestorestate *state, HeapTuple tuple)
 {
 	MemoryContext oldcxt = MemoryContextSwitchTo(state->context);
 
@@ -747,8 +747,8 @@ tuplestore_puttuple(Tuplestorestate * state, HeapTuple tuple)
  * This avoids an extra tuple-construction operation.
  */
 void
-tuplestore_putvalues(Tuplestorestate * state, TupleDesc tdesc,
-					 Datum * values, bool *isnull)
+tuplestore_putvalues(Tuplestorestate *state, TupleDesc tdesc,
+					 Datum *values, bool *isnull)
 {
 	MinimalTuple tuple;
 	MemoryContext oldcxt = MemoryContextSwitchTo(state->context);
@@ -762,7 +762,7 @@ tuplestore_putvalues(Tuplestorestate * state, TupleDesc tdesc,
 }
 
 static void
-tuplestore_puttuple_common(Tuplestorestate * state, void *tuple)
+tuplestore_puttuple_common(Tuplestorestate *state, void *tuple)
 {
 	TSReadPointer *readptr;
 	int			i;
@@ -900,7 +900,7 @@ tuplestore_puttuple_common(Tuplestorestate * state, void *tuple)
  * EXEC_FLAG_BACKWARD was specified to tuplestore_set_eflags().
  */
 static void *
-tuplestore_gettuple(Tuplestorestate * state, bool forward,
+tuplestore_gettuple(Tuplestorestate *state, bool forward,
 					bool *should_free)
 {
 	TSReadPointer *readptr = &state->readptrs[state->activeptr];
@@ -972,7 +972,7 @@ tuplestore_gettuple(Tuplestorestate * state, bool forward,
 							(errcode_for_file_access(),
 							 errmsg("could not seek in tuplestore temporary file: %m")));
 			state->status = TSS_READFILE;
-			/* FALL THRU into READFILE case */
+			/* FALLTHROUGH */
 
 		case TSS_READFILE:
 			*should_free = true;
@@ -1064,19 +1064,19 @@ tuplestore_gettuple(Tuplestorestate * state, bool forward,
 /*
  * tuplestore_gettupleslot - exported function to fetch a MinimalTuple
  *
- * If successful, put tuple in slot and return TRUE; else, clear the slot
- * and return FALSE.
+ * If successful, put tuple in slot and return true; else, clear the slot
+ * and return false.
  *
- * If copy is TRUE, the slot receives a copied tuple (allocated in current
+ * If copy is true, the slot receives a copied tuple (allocated in current
  * memory context) that will stay valid regardless of future manipulations of
- * the tuplestore's state.  If copy is FALSE, the slot may just receive a
+ * the tuplestore's state.  If copy is false, the slot may just receive a
  * pointer to a tuple held within the tuplestore.  The latter is more
  * efficient but the slot contents may be corrupted if additional writes to
  * the tuplestore occur.  (If using tuplestore_trim, see comments therein.)
  */
 bool
-tuplestore_gettupleslot(Tuplestorestate * state, bool forward,
-						bool copy, TupleTableSlot * slot)
+tuplestore_gettupleslot(Tuplestorestate *state, bool forward,
+						bool copy, TupleTableSlot *slot)
 {
 	MinimalTuple tuple;
 	bool		should_free;
@@ -1107,7 +1107,7 @@ tuplestore_gettupleslot(Tuplestorestate * state, bool forward,
  * moment it doesn't seem worthwhile.
  */
 bool
-tuplestore_advance(Tuplestorestate * state, bool forward)
+tuplestore_advance(Tuplestorestate *state, bool forward)
 {
 	void	   *tuple;
 	bool		should_free;
@@ -1129,10 +1129,10 @@ tuplestore_advance(Tuplestorestate * state, bool forward)
 /*
  * Advance over N tuples in either forward or back direction,
  * without returning any data.  N<=0 is a no-op.
- * Returns TRUE if successful, FALSE if ran out of tuples.
+ * Returns true if successful, false if ran out of tuples.
  */
 bool
-tuplestore_skiptuples(Tuplestorestate * state, int64 ntuples, bool forward)
+tuplestore_skiptuples(Tuplestorestate *state, int64 ntuples, bool forward)
 {
 	TSReadPointer *readptr = &state->readptrs[state->activeptr];
 
@@ -1203,7 +1203,7 @@ tuplestore_skiptuples(Tuplestorestate * state, int64 ntuples, bool forward)
  * need to change state.
  */
 static void
-dumptuples(Tuplestorestate * state)
+dumptuples(Tuplestorestate *state)
 {
 	int			i;
 
@@ -1230,7 +1230,7 @@ dumptuples(Tuplestorestate * state)
  * tuplestore_rescan		- rewind the active read pointer to start
  */
 void
-tuplestore_rescan(Tuplestorestate * state)
+tuplestore_rescan(Tuplestorestate *state)
 {
 	TSReadPointer *readptr = &state->readptrs[state->activeptr];
 
@@ -1265,7 +1265,7 @@ tuplestore_rescan(Tuplestorestate * state)
  * tuplestore_copy_read_pointer - copy a read pointer's state to another
  */
 void
-tuplestore_copy_read_pointer(Tuplestorestate * state,
+tuplestore_copy_read_pointer(Tuplestorestate *state,
 							 int srcptr, int destptr)
 {
 	TSReadPointer *sptr = &state->readptrs[srcptr];
@@ -1357,7 +1357,7 @@ tuplestore_copy_read_pointer(Tuplestorestate * state,
  * pointer.
  */
 void
-tuplestore_trim(Tuplestorestate * state)
+tuplestore_trim(Tuplestorestate *state)
 {
 	int			oldest;
 	int			nremove;
@@ -1452,7 +1452,7 @@ tuplestore_trim(Tuplestorestate * state)
  * XXX exposing this is a violation of modularity ... should get rid of it.
  */
 bool
-tuplestore_in_memory(Tuplestorestate * state)
+tuplestore_in_memory(Tuplestorestate *state)
 {
 	return (state->status == TSS_INMEM);
 }
@@ -1463,7 +1463,7 @@ tuplestore_in_memory(Tuplestorestate * state)
  */
 
 static unsigned int
-getlen(Tuplestorestate * state, bool eofOK)
+getlen(Tuplestorestate *state, bool eofOK)
 {
 	unsigned int len;
 	size_t		nbytes;
@@ -1490,7 +1490,7 @@ getlen(Tuplestorestate * state, bool eofOK)
  */
 
 static void *
-copytup_heap(Tuplestorestate * state, void *tup)
+copytup_heap(Tuplestorestate *state, void *tup)
 {
 	MinimalTuple tuple;
 
@@ -1500,7 +1500,7 @@ copytup_heap(Tuplestorestate * state, void *tup)
 }
 
 static void
-writetup_heap(Tuplestorestate * state, void *tup)
+writetup_heap(Tuplestorestate *state, void *tup)
 {
 	MinimalTuple tuple = (MinimalTuple) tup;
 
@@ -1533,7 +1533,7 @@ writetup_heap(Tuplestorestate * state, void *tup)
 }
 
 static void *
-readtup_heap(Tuplestorestate * state, unsigned int len)
+readtup_heap(Tuplestorestate *state, unsigned int len)
 {
 	unsigned int tupbodylen = len - sizeof(int);
 	unsigned int tuplen = tupbodylen + MINIMAL_TUPLE_DATA_OFFSET;

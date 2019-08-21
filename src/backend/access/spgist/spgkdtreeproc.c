@@ -4,7 +4,7 @@
  *	  implementation of k-d tree over points for SP-GiST
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -36,7 +36,7 @@ spg_kd_config(PG_FUNCTION_ARGS)
 }
 
 static int
-getSide(double coord, bool isX, Point * tst)
+getSide(double coord, bool isX, Point *tst)
 {
 	double		tstcoord = (isX) ? tst->x : tst->y;
 
@@ -77,7 +77,7 @@ typedef struct SortedPoint
 {
 	Point	   *p;
 	int			i;
-}			SortedPoint;
+} SortedPoint;
 
 static int
 x_cmp(const void *a, const void *b)

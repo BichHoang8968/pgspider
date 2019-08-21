@@ -4,7 +4,7 @@
  *	  Definitions for the "new" abstime code.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/nabstime.h
@@ -40,9 +40,9 @@ typedef struct
 {
 	int32		status;
 	AbsoluteTime data[2];
-}			TimeIntervalData;
+} TimeIntervalData;
 
-typedef TimeIntervalData * TimeInterval;
+typedef TimeIntervalData *TimeInterval;
 
 /*
  * Macros for fmgr-callable functions.

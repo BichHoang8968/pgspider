@@ -9,7 +9,7 @@
  * See utils/resowner/README for more info.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -21,6 +21,7 @@
 #include "postgres.h"
 
 #include "access/hash.h"
+#include "jit/jit.h"
 #include "storage/predicate.h"
 #include "storage/proc.h"
 #include "utils/memutils.h"
@@ -65,7 +66,7 @@ typedef struct ResourceArray
 	uint32		nitems;			/* how many items are stored in items array */
 	uint32		maxitems;		/* current limit on nitems before enlarging */
 	uint32		lastidx;		/* index of last item returned by GetAny */
-}			ResourceArray;
+} ResourceArray;
 
 /*
  * Initially allocated size of a ResourceArray.  Must be power of two since
@@ -124,6 +125,7 @@ typedef struct ResourceOwnerData
 	ResourceArray snapshotarr;	/* snapshot references */
 	ResourceArray filearr;		/* open temporary files */
 	ResourceArray dsmarr;		/* dynamic shmem segments */
+	ResourceArray jitarr;		/* JIT contexts */
 
 	/* We can remember up to MAX_RESOWNER_LOCKS references to local locks. */
 	int			nlocks;			/* number of owned locks */
@@ -135,7 +137,7 @@ typedef struct ResourceOwnerData
  *	  GLOBAL MEMORY															 *
  *****************************************************************************/
 
-__thread	ResourceOwner CurrentResourceOwner = NULL;
+__thread ResourceOwner CurrentResourceOwner = NULL;
 ResourceOwner CurTransactionResourceOwner = NULL;
 ResourceOwner TopTransactionResourceOwner = NULL;
 
@@ -147,28 +149,28 @@ typedef struct ResourceReleaseCallbackItem
 	struct ResourceReleaseCallbackItem *next;
 	ResourceReleaseCallback callback;
 	void	   *arg;
-}			ResourceReleaseCallbackItem;
+} ResourceReleaseCallbackItem;
 
-static ResourceReleaseCallbackItem * ResourceRelease_callbacks = NULL;
+static ResourceReleaseCallbackItem *ResourceRelease_callbacks = NULL;
 
 
 /* Internal routines */
-static void ResourceArrayInit(ResourceArray * resarr, Datum invalidval);
-static void ResourceArrayEnlarge(ResourceArray * resarr);
-static void ResourceArrayAdd(ResourceArray * resarr, Datum value);
-static bool ResourceArrayRemove(ResourceArray * resarr, Datum value);
-static bool ResourceArrayGetAny(ResourceArray * resarr, Datum * value);
-static void ResourceArrayFree(ResourceArray * resarr);
+static void ResourceArrayInit(ResourceArray *resarr, Datum invalidval);
+static void ResourceArrayEnlarge(ResourceArray *resarr);
+static void ResourceArrayAdd(ResourceArray *resarr, Datum value);
+static bool ResourceArrayRemove(ResourceArray *resarr, Datum value);
+static bool ResourceArrayGetAny(ResourceArray *resarr, Datum *value);
+static void ResourceArrayFree(ResourceArray *resarr);
 static void ResourceOwnerReleaseInternal(ResourceOwner owner,
 							 ResourceReleasePhase phase,
 							 bool isCommit,
 							 bool isTopLevel);
 static void PrintRelCacheLeakWarning(Relation rel);
-static void PrintPlanCacheLeakWarning(CachedPlan * plan);
+static void PrintPlanCacheLeakWarning(CachedPlan *plan);
 static void PrintTupleDescLeakWarning(TupleDesc tupdesc);
 static void PrintSnapshotLeakWarning(Snapshot snapshot);
 static void PrintFileLeakWarning(File file);
-static void PrintDSMLeakWarning(dsm_segment * seg);
+static void PrintDSMLeakWarning(dsm_segment *seg);
 
 
 /*****************************************************************************
@@ -180,7 +182,7 @@ static void PrintDSMLeakWarning(dsm_segment * seg);
  * Initialize a ResourceArray
  */
 static void
-ResourceArrayInit(ResourceArray * resarr, Datum invalidval)
+ResourceArrayInit(ResourceArray *resarr, Datum invalidval)
 {
 	/* Assert it's empty */
 	Assert(resarr->itemsarr == NULL);
@@ -199,7 +201,7 @@ ResourceArrayInit(ResourceArray * resarr, Datum invalidval)
  * of memory, it's critical to do so *before* acquiring the resource.
  */
 static void
-ResourceArrayEnlarge(ResourceArray * resarr)
+ResourceArrayEnlarge(ResourceArray *resarr)
 {
 	uint32		i,
 				oldcap,
@@ -254,7 +256,7 @@ ResourceArrayEnlarge(ResourceArray * resarr)
  * Caller must have previously done ResourceArrayEnlarge()
  */
 static void
-ResourceArrayAdd(ResourceArray * resarr, Datum value)
+ResourceArrayAdd(ResourceArray *resarr, Datum value)
 {
 	uint32		idx;
 
@@ -292,7 +294,7 @@ ResourceArrayAdd(ResourceArray * resarr, Datum value)
  * Note: if same resource ID appears more than once, one instance is removed.
  */
 static bool
-ResourceArrayRemove(ResourceArray * resarr, Datum value)
+ResourceArrayRemove(ResourceArray *resarr, Datum value)
 {
 	uint32		i,
 				idx,
@@ -361,7 +363,7 @@ ResourceArrayRemove(ResourceArray * resarr, Datum value)
  * Returns true if we found an element, or false if the array is empty.
  */
 static bool
-ResourceArrayGetAny(ResourceArray * resarr, Datum * value)
+ResourceArrayGetAny(ResourceArray *resarr, Datum *value)
 {
 	if (resarr->nitems == 0)
 		return false;
@@ -393,7 +395,7 @@ ResourceArrayGetAny(ResourceArray * resarr, Datum * value)
  * Trash a ResourceArray (we don't care about its state after this)
  */
 static void
-ResourceArrayFree(ResourceArray * resarr)
+ResourceArrayFree(ResourceArray *resarr)
 {
 	if (resarr->itemsarr)
 		pfree(resarr->itemsarr);
@@ -437,6 +439,7 @@ ResourceOwnerCreate(ResourceOwner parent, const char *name)
 	ResourceArrayInit(&(owner->snapshotarr), PointerGetDatum(NULL));
 	ResourceArrayInit(&(owner->filearr), FileGetDatum(-1));
 	ResourceArrayInit(&(owner->dsmarr), PointerGetDatum(NULL));
+	ResourceArrayInit(&(owner->jitarr), PointerGetDatum(NULL));
 
 	return owner;
 }
@@ -473,21 +476,8 @@ ResourceOwnerRelease(ResourceOwner owner,
 					 bool isCommit,
 					 bool isTopLevel)
 {
-	/* Rather than PG_TRY at every level of recursion, set it up once */
-	ResourceOwner save;
-
-	save = CurrentResourceOwner;
-	PG_TRY();
-	{
-		ResourceOwnerReleaseInternal(owner, phase, isCommit, isTopLevel);
-	}
-	PG_CATCH();
-	{
-		CurrentResourceOwner = save;
-		PG_RE_THROW();
-	}
-	PG_END_TRY();
-	CurrentResourceOwner = save;
+	/* There's not currently any setup needed before recursing */
+	ResourceOwnerReleaseInternal(owner, phase, isCommit, isTopLevel);
 }
 
 static void
@@ -507,8 +497,7 @@ ResourceOwnerReleaseInternal(ResourceOwner owner,
 
 	/*
 	 * Make CurrentResourceOwner point to me, so that ReleaseBuffer etc don't
-	 * get confused.  We needn't PG_TRY here because the outermost level will
-	 * fix it on error abort.
+	 * get confused.
 	 */
 	save = CurrentResourceOwner;
 	CurrentResourceOwner = owner;
@@ -551,6 +540,14 @@ ResourceOwnerReleaseInternal(ResourceOwner owner,
 			if (isCommit)
 				PrintDSMLeakWarning(res);
 			dsm_detach(res);
+		}
+
+		/* Ditto for JIT contexts */
+		while (ResourceArrayGetAny(&(owner->jitarr), &foundres))
+		{
+			JitContext *context = (JitContext *) PointerGetDatum(foundres);
+
+			jit_release_context(context);
 		}
 	}
 	else if (phase == RESOURCE_RELEASE_LOCKS)
@@ -672,7 +669,7 @@ ResourceOwnerReleaseInternal(ResourceOwner owner,
 
 	/* Let add-on modules get a chance too */
 	for (item = ResourceRelease_callbacks; item; item = item->next)
-		(*item->callback) (phase, isCommit, isTopLevel, item->arg);
+		item->callback(phase, isCommit, isTopLevel, item->arg);
 
 	CurrentResourceOwner = save;
 }
@@ -699,6 +696,7 @@ ResourceOwnerDelete(ResourceOwner owner)
 	Assert(owner->snapshotarr.nitems == 0);
 	Assert(owner->filearr.nitems == 0);
 	Assert(owner->dsmarr.nitems == 0);
+	Assert(owner->jitarr.nitems == 0);
 	Assert(owner->nlocks == 0 || owner->nlocks == MAX_RESOWNER_LOCKS + 1);
 
 	/*
@@ -725,6 +723,7 @@ ResourceOwnerDelete(ResourceOwner owner)
 	ResourceArrayFree(&(owner->snapshotarr));
 	ResourceArrayFree(&(owner->filearr));
 	ResourceArrayFree(&(owner->dsmarr));
+	ResourceArrayFree(&(owner->jitarr));
 
 	pfree(owner);
 }
@@ -886,7 +885,7 @@ ResourceOwnerForgetBuffer(ResourceOwner owner, Buffer buffer)
  * the entry.
  */
 void
-ResourceOwnerRememberLock(ResourceOwner owner, LOCALLOCK * locallock)
+ResourceOwnerRememberLock(ResourceOwner owner, LOCALLOCK *locallock)
 {
 	Assert(locallock != NULL);
 
@@ -906,7 +905,7 @@ ResourceOwnerRememberLock(ResourceOwner owner, LOCALLOCK * locallock)
  * Forget that a Local Lock is owned by a ResourceOwner
  */
 void
-ResourceOwnerForgetLock(ResourceOwner owner, LOCALLOCK * locallock)
+ResourceOwnerForgetLock(ResourceOwner owner, LOCALLOCK *locallock)
 {
 	int			i;
 
@@ -981,7 +980,7 @@ ResourceOwnerEnlargeCatCacheListRefs(ResourceOwner owner)
  * Caller must have previously done ResourceOwnerEnlargeCatCacheListRefs()
  */
 void
-ResourceOwnerRememberCatCacheListRef(ResourceOwner owner, CatCList * list)
+ResourceOwnerRememberCatCacheListRef(ResourceOwner owner, CatCList *list)
 {
 	ResourceArrayAdd(&(owner->catlistrefarr), PointerGetDatum(list));
 }
@@ -990,7 +989,7 @@ ResourceOwnerRememberCatCacheListRef(ResourceOwner owner, CatCList * list)
  * Forget that a catcache-list reference is owned by a ResourceOwner
  */
 void
-ResourceOwnerForgetCatCacheListRef(ResourceOwner owner, CatCList * list)
+ResourceOwnerForgetCatCacheListRef(ResourceOwner owner, CatCList *list)
 {
 	if (!ResourceArrayRemove(&(owner->catlistrefarr), PointerGetDatum(list)))
 		elog(ERROR, "catcache list reference %p is not owned by resource owner %s",
@@ -1061,7 +1060,7 @@ ResourceOwnerEnlargePlanCacheRefs(ResourceOwner owner)
  * Caller must have previously done ResourceOwnerEnlargePlanCacheRefs()
  */
 void
-ResourceOwnerRememberPlanCacheRef(ResourceOwner owner, CachedPlan * plan)
+ResourceOwnerRememberPlanCacheRef(ResourceOwner owner, CachedPlan *plan)
 {
 	ResourceArrayAdd(&(owner->planrefarr), PointerGetDatum(plan));
 }
@@ -1070,7 +1069,7 @@ ResourceOwnerRememberPlanCacheRef(ResourceOwner owner, CachedPlan * plan)
  * Forget that a plancache reference is owned by a ResourceOwner
  */
 void
-ResourceOwnerForgetPlanCacheRef(ResourceOwner owner, CachedPlan * plan)
+ResourceOwnerForgetPlanCacheRef(ResourceOwner owner, CachedPlan *plan)
 {
 	if (!ResourceArrayRemove(&(owner->planrefarr), PointerGetDatum(plan)))
 		elog(ERROR, "plancache reference %p is not owned by resource owner %s",
@@ -1081,7 +1080,7 @@ ResourceOwnerForgetPlanCacheRef(ResourceOwner owner, CachedPlan * plan)
  * Debugging subroutine
  */
 static void
-PrintPlanCacheLeakWarning(CachedPlan * plan)
+PrintPlanCacheLeakWarning(CachedPlan *plan)
 {
 	elog(WARNING, "plancache reference leak: plan %p not closed", plan);
 }
@@ -1242,7 +1241,7 @@ ResourceOwnerEnlargeDSMs(ResourceOwner owner)
  * Caller must have previously done ResourceOwnerEnlargeDSMs()
  */
 void
-ResourceOwnerRememberDSM(ResourceOwner owner, dsm_segment * seg)
+ResourceOwnerRememberDSM(ResourceOwner owner, dsm_segment *seg)
 {
 	ResourceArrayAdd(&(owner->dsmarr), PointerGetDatum(seg));
 }
@@ -1251,7 +1250,7 @@ ResourceOwnerRememberDSM(ResourceOwner owner, dsm_segment * seg)
  * Forget that a dynamic shmem segment is owned by a ResourceOwner
  */
 void
-ResourceOwnerForgetDSM(ResourceOwner owner, dsm_segment * seg)
+ResourceOwnerForgetDSM(ResourceOwner owner, dsm_segment *seg)
 {
 	if (!ResourceArrayRemove(&(owner->dsmarr), PointerGetDatum(seg)))
 		elog(ERROR, "dynamic shared memory segment %u is not owned by resource owner %s",
@@ -1262,8 +1261,43 @@ ResourceOwnerForgetDSM(ResourceOwner owner, dsm_segment * seg)
  * Debugging subroutine
  */
 static void
-PrintDSMLeakWarning(dsm_segment * seg)
+PrintDSMLeakWarning(dsm_segment *seg)
 {
 	elog(WARNING, "dynamic shared memory leak: segment %u still referenced",
 		 dsm_segment_handle(seg));
+}
+
+/*
+ * Make sure there is room for at least one more entry in a ResourceOwner's
+ * JIT context reference array.
+ *
+ * This is separate from actually inserting an entry because if we run out of
+ * memory, it's critical to do so *before* acquiring the resource.
+ */
+void
+ResourceOwnerEnlargeJIT(ResourceOwner owner)
+{
+	ResourceArrayEnlarge(&(owner->jitarr));
+}
+
+/*
+ * Remember that a JIT context is owned by a ResourceOwner
+ *
+ * Caller must have previously done ResourceOwnerEnlargeJIT()
+ */
+void
+ResourceOwnerRememberJIT(ResourceOwner owner, Datum handle)
+{
+	ResourceArrayAdd(&(owner->jitarr), handle);
+}
+
+/*
+ * Forget that a JIT context is owned by a ResourceOwner
+ */
+void
+ResourceOwnerForgetJIT(ResourceOwner owner, Datum handle)
+{
+	if (!ResourceArrayRemove(&(owner->jitarr), handle))
+		elog(ERROR, "JIT context %p is not owned by resource owner %s",
+			 DatumGetPointer(handle), owner->name);
 }

@@ -32,7 +32,7 @@ typedef enum trivalue
 	TRI_DEFAULT,
 	TRI_NO,
 	TRI_YES
-}			trivalue;
+} trivalue;
 
 typedef enum _archiveFormat
 {
@@ -48,7 +48,7 @@ typedef enum _archiveMode
 	archModeAppend,
 	archModeWrite,
 	archModeRead
-}			ArchiveMode;
+} ArchiveMode;
 
 typedef enum _teSection
 {
@@ -56,7 +56,7 @@ typedef enum _teSection
 	SECTION_PRE_DATA,			/* stuff to be processed before data */
 	SECTION_DATA,				/* TABLE DATA, BLOBS, BLOB COMMENTS */
 	SECTION_POST_DATA			/* stuff to be processed after data */
-}			teSection;
+} teSection;
 
 typedef struct _restoreOptions
 {
@@ -74,6 +74,7 @@ typedef struct _restoreOptions
 	int			dump_inserts;
 	int			column_inserts;
 	int			if_exists;
+	int			no_comments;	/* Skip comments */
 	int			no_publications;	/* Skip publication entries */
 	int			no_security_labels; /* Skip security label entries */
 	int			no_subscriptions;	/* Skip subscription entries */
@@ -122,7 +123,7 @@ typedef struct _restoreOptions
 	int			enable_row_security;
 	int			sequence_data;	/* dump sequence data even in schema-only mode */
 	int			binary_upgrade;
-}			RestoreOptions;
+} RestoreOptions;
 
 typedef struct _dumpOptions
 {
@@ -146,6 +147,7 @@ typedef struct _dumpOptions
 	int			dump_inserts;
 	int			column_inserts;
 	int			if_exists;
+	int			no_comments;
 	int			no_security_labels;
 	int			no_publications;
 	int			no_subscriptions;
@@ -157,6 +159,7 @@ typedef struct _dumpOptions
 	int			outputNoTablespaces;
 	int			use_setsessauth;
 	int			enable_row_security;
+	int			load_via_partition_root;
 
 	/* default, if no "inclusion" switches appear, is to dump everything */
 	bool		include_everything;
@@ -169,7 +172,7 @@ typedef struct _dumpOptions
 	char	   *outputSuperuser;
 
 	int			sequence_data;	/* dump sequence data even in schema-only mode */
-}			DumpOptions;
+} DumpOptions;
 
 /*
  *	We may want to have some more user-readable data, but in the mean
@@ -204,7 +207,7 @@ typedef struct Archive
 	int			n_errors;		/* number of errors (if no die) */
 
 	/* The rest is private */
-}			Archive;
+} Archive;
 
 
 /*
@@ -227,29 +230,29 @@ typedef struct
 {
 	Oid			tableoid;
 	Oid			oid;
-}			CatalogId;
+} CatalogId;
 
 typedef int DumpId;
 
-typedef int (*DataDumperPtr) (Archive * AH, void *userArg);
+typedef int (*DataDumperPtr) (Archive *AH, void *userArg);
 
-typedef void (*SetupWorkerPtrType) (Archive * AH);
+typedef void (*SetupWorkerPtrType) (Archive *AH);
 
 /*
  * Main archiver interface.
  */
 
-extern void ConnectDatabase(Archive * AH,
+extern void ConnectDatabase(Archive *AH,
 				const char *dbname,
 				const char *pghost,
 				const char *pgport,
 				const char *username,
 				trivalue prompt_password);
-extern void DisconnectDatabase(Archive * AHX);
-extern PGconn * GetConnection(Archive * AHX);
+extern void DisconnectDatabase(Archive *AHX);
+extern PGconn *GetConnection(Archive *AHX);
 
 /* Called to add a TOC entry */
-extern void ArchiveEntry(Archive * AHX,
+extern void ArchiveEntry(Archive *AHX,
 			 CatalogId catalogId, DumpId dumpId,
 			 const char *tag,
 			 const char *namespace, const char *tablespace,
@@ -257,46 +260,46 @@ extern void ArchiveEntry(Archive * AHX,
 			 const char *desc, teSection section,
 			 const char *defn,
 			 const char *dropStmt, const char *copyStmt,
-			 const DumpId * deps, int nDeps,
+			 const DumpId *deps, int nDeps,
 			 DataDumperPtr dumpFn, void *dumpArg);
 
 /* Called to write *data* to the archive */
-extern void WriteData(Archive * AH, const void *data, size_t dLen);
+extern void WriteData(Archive *AH, const void *data, size_t dLen);
 
-extern int	StartBlob(Archive * AH, Oid oid);
-extern int	EndBlob(Archive * AH, Oid oid);
+extern int	StartBlob(Archive *AH, Oid oid);
+extern int	EndBlob(Archive *AH, Oid oid);
 
-extern void CloseArchive(Archive * AH);
+extern void CloseArchive(Archive *AH);
 
-extern void SetArchiveOptions(Archive * AH, DumpOptions * dopt, RestoreOptions * ropt);
+extern void SetArchiveOptions(Archive *AH, DumpOptions *dopt, RestoreOptions *ropt);
 
-extern void ProcessArchiveRestoreOptions(Archive * AH);
+extern void ProcessArchiveRestoreOptions(Archive *AH);
 
-extern void RestoreArchive(Archive * AH);
+extern void RestoreArchive(Archive *AH);
 
 /* Open an existing archive */
-extern Archive * OpenArchive(const char *FileSpec, const ArchiveFormat fmt);
+extern Archive *OpenArchive(const char *FileSpec, const ArchiveFormat fmt);
 
 /* Create a new archive */
-extern Archive * CreateArchive(const char *FileSpec, const ArchiveFormat fmt,
-							   const int compression, bool dosync, ArchiveMode mode,
-							   SetupWorkerPtrType setupDumpWorker);
+extern Archive *CreateArchive(const char *FileSpec, const ArchiveFormat fmt,
+			  const int compression, bool dosync, ArchiveMode mode,
+			  SetupWorkerPtrType setupDumpWorker);
 
 /* The --list option */
-extern void PrintTOCSummary(Archive * AH);
+extern void PrintTOCSummary(Archive *AH);
 
-extern RestoreOptions * NewRestoreOptions(void);
+extern RestoreOptions *NewRestoreOptions(void);
 
-extern DumpOptions * NewDumpOptions(void);
-extern void InitDumpOptions(DumpOptions * opts);
-extern DumpOptions * dumpOptionsFromRestoreOptions(RestoreOptions * ropt);
+extern DumpOptions *NewDumpOptions(void);
+extern void InitDumpOptions(DumpOptions *opts);
+extern DumpOptions *dumpOptionsFromRestoreOptions(RestoreOptions *ropt);
 
 /* Rearrange and filter TOC entries */
-extern void SortTocFromFile(Archive * AHX);
+extern void SortTocFromFile(Archive *AHX);
 
 /* Convenience functions used only when writing DATA */
-extern void archputs(const char *s, Archive * AH);
-extern int	archprintf(Archive * AH, const char *fmt,...) pg_attribute_printf(2, 3);
+extern void archputs(const char *s, Archive *AH);
+extern int	archprintf(Archive *AH, const char *fmt,...) pg_attribute_printf(2, 3);
 
 #define appendStringLiteralAH(buf,str,AH) \
 	appendStringLiteral(buf, str, (AH)->encoding, (AH)->std_strings)

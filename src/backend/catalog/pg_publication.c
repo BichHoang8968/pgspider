@@ -3,7 +3,7 @@
  * pg_publication.c
  *		publication C API manipulation
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -130,7 +130,7 @@ pg_relation_is_publishable(PG_FUNCTION_ARGS)
 	bool		result;
 
 	tuple = SearchSysCache1(RELOID, ObjectIdGetDatum(relid));
-	if (!tuple)
+	if (!HeapTupleIsValid(tuple))
 		PG_RETURN_NULL();
 	result = is_publishable_class(relid, (Form_pg_class) GETSTRUCT(tuple));
 	ReleaseSysCache(tuple);
@@ -376,6 +376,7 @@ GetPublication(Oid pubid)
 	pub->pubactions.pubinsert = pubform->pubinsert;
 	pub->pubactions.pubupdate = pubform->pubupdate;
 	pub->pubactions.pubdelete = pubform->pubdelete;
+	pub->pubactions.pubtruncate = pubform->pubtruncate;
 
 	ReleaseSysCache(tup);
 
@@ -475,7 +476,7 @@ pg_get_publication_tables(PG_FUNCTION_ARGS)
 			tables = GetAllTablesPublicationRelations();
 		else
 			tables = GetPublicationRelations(publication->oid);
-		lcp = (ListCell * *) palloc(sizeof(ListCell *));
+		lcp = (ListCell **) palloc(sizeof(ListCell *));
 		*lcp = list_head(tables);
 		funcctx->user_fctx = (void *) lcp;
 
@@ -484,7 +485,7 @@ pg_get_publication_tables(PG_FUNCTION_ARGS)
 
 	/* stuff done on every call of the function */
 	funcctx = SRF_PERCALL_SETUP();
-	lcp = (ListCell * *) funcctx->user_fctx;
+	lcp = (ListCell **) funcctx->user_fctx;
 
 	while (*lcp != NULL)
 	{

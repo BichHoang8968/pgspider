@@ -3,7 +3,7 @@
  * collationcmds.c
  *	  collation-related commands support code
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -22,7 +22,6 @@
 #include "catalog/namespace.h"
 #include "catalog/objectaccess.h"
 #include "catalog/pg_collation.h"
-#include "catalog/pg_collation_fn.h"
 #include "commands/alter.h"
 #include "commands/collationcmds.h"
 #include "commands/comment.h"
@@ -42,14 +41,14 @@ typedef struct
 	char	   *localename;		/* name of locale, as per "locale -a" */
 	char	   *alias;			/* shortened alias for same */
 	int			enc;			/* encoding */
-}			CollAliasData;
+} CollAliasData;
 
 
 /*
  * CREATE COLLATION
  */
 ObjectAddress
-DefineCollation(ParseState * pstate, List * names, List * parameters, bool if_not_exists)
+DefineCollation(ParseState *pstate, List *names, List *parameters, bool if_not_exists)
 {
 	char	   *collName;
 	Oid			collNamespace;
@@ -74,7 +73,7 @@ DefineCollation(ParseState * pstate, List * names, List * parameters, bool if_no
 
 	aclresult = pg_namespace_aclcheck(collNamespace, GetUserId(), ACL_CREATE);
 	if (aclresult != ACLCHECK_OK)
-		aclcheck_error(aclresult, ACL_KIND_NAMESPACE,
+		aclcheck_error(aclresult, OBJECT_SCHEMA,
 					   get_namespace_name(collNamespace));
 
 	foreach(pl, parameters)
@@ -82,17 +81,17 @@ DefineCollation(ParseState * pstate, List * names, List * parameters, bool if_no
 		DefElem    *defel = lfirst_node(DefElem, pl);
 		DefElem   **defelp;
 
-		if (pg_strcasecmp(defel->defname, "from") == 0)
+		if (strcmp(defel->defname, "from") == 0)
 			defelp = &fromEl;
-		else if (pg_strcasecmp(defel->defname, "locale") == 0)
+		else if (strcmp(defel->defname, "locale") == 0)
 			defelp = &localeEl;
-		else if (pg_strcasecmp(defel->defname, "lc_collate") == 0)
+		else if (strcmp(defel->defname, "lc_collate") == 0)
 			defelp = &lccollateEl;
-		else if (pg_strcasecmp(defel->defname, "lc_ctype") == 0)
+		else if (strcmp(defel->defname, "lc_ctype") == 0)
 			defelp = &lcctypeEl;
-		else if (pg_strcasecmp(defel->defname, "provider") == 0)
+		else if (strcmp(defel->defname, "provider") == 0)
 			defelp = &providerEl;
-		else if (pg_strcasecmp(defel->defname, "version") == 0)
+		else if (strcmp(defel->defname, "version") == 0)
 			defelp = &versionEl;
 		else
 		{
@@ -262,7 +261,7 @@ IsThereCollationInNamespace(const char *collname, Oid nspOid)
  * ALTER COLLATION
  */
 ObjectAddress
-AlterCollation(AlterCollationStmt * stmt)
+AlterCollation(AlterCollationStmt *stmt)
 {
 	Relation	rel;
 	Oid			collOid;
@@ -278,7 +277,7 @@ AlterCollation(AlterCollationStmt * stmt)
 	collOid = get_collation_oid(stmt->collname, false);
 
 	if (!pg_collation_ownercheck(collOid, GetUserId()))
-		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_COLLATION,
+		aclcheck_error(ACLCHECK_NOT_OWNER, OBJECT_COLLATION,
 					   NameListToString(stmt->collname));
 
 	tup = SearchSysCacheCopy1(COLLOID, ObjectIdGetDatum(collOid));
@@ -424,8 +423,8 @@ normalize_libc_locale_name(char *new, const char *old)
 static int
 cmpaliases(const void *a, const void *b)
 {
-	const		CollAliasData *ca = (const CollAliasData *) a;
-	const		CollAliasData *cb = (const CollAliasData *) b;
+	const CollAliasData *ca = (const CollAliasData *) a;
+	const CollAliasData *cb = (const CollAliasData *) b;
 
 	/* comparing localename is enough because other fields are derived */
 	return strcmp(ca->localename, cb->localename);

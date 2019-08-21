@@ -3,7 +3,7 @@
  * nodeGatherMerge.c
  *		Scan a plan in multiple workers, and do order-preserving merge.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -23,6 +23,7 @@
 #include "executor/tqueue.h"
 #include "lib/binaryheap.h"
 #include "miscadmin.h"
+#include "optimizer/planmain.h"
 #include "utils/memutils.h"
 #include "utils/rel.h"
 
@@ -48,31 +49,30 @@ typedef struct GMReaderTupleBuffer
 	int			nTuples;		/* number of tuples currently stored */
 	int			readCounter;	/* index of next tuple to extract */
 	bool		done;			/* true if reader is known exhausted */
-}			GMReaderTupleBuffer;
+} GMReaderTupleBuffer;
 
-static TupleTableSlot * ExecGatherMerge(PlanState * pstate);
+static TupleTableSlot *ExecGatherMerge(PlanState *pstate);
 static int32 heap_compare_slots(Datum a, Datum b, void *arg);
-static TupleTableSlot * gather_merge_getnext(GatherMergeState * gm_state);
-static HeapTuple gm_readnext_tuple(GatherMergeState * gm_state, int nreader,
-								   bool nowait, bool *done);
-static void ExecShutdownGatherMergeWorkers(GatherMergeState * node);
-static void gather_merge_setup(GatherMergeState * gm_state);
-static void gather_merge_init(GatherMergeState * gm_state);
-static void gather_merge_clear_tuples(GatherMergeState * gm_state);
-static bool gather_merge_readnext(GatherMergeState * gm_state, int reader,
+static TupleTableSlot *gather_merge_getnext(GatherMergeState *gm_state);
+static HeapTuple gm_readnext_tuple(GatherMergeState *gm_state, int nreader,
+				  bool nowait, bool *done);
+static void ExecShutdownGatherMergeWorkers(GatherMergeState *node);
+static void gather_merge_setup(GatherMergeState *gm_state);
+static void gather_merge_init(GatherMergeState *gm_state);
+static void gather_merge_clear_tuples(GatherMergeState *gm_state);
+static bool gather_merge_readnext(GatherMergeState *gm_state, int reader,
 					  bool nowait);
-static void load_tuple_array(GatherMergeState * gm_state, int reader);
+static void load_tuple_array(GatherMergeState *gm_state, int reader);
 
 /* ----------------------------------------------------------------
  *		ExecInitGather
  * ----------------------------------------------------------------
  */
 GatherMergeState *
-ExecInitGatherMerge(GatherMerge * node, EState * estate, int eflags)
+ExecInitGatherMerge(GatherMerge *node, EState *estate, int eflags)
 {
 	GatherMergeState *gm_state;
 	Plan	   *outerNode;
-	bool		hasoid;
 	TupleDesc	tupDesc;
 
 	/* Gather merge node doesn't have innerPlan node. */
@@ -88,6 +88,7 @@ ExecInitGatherMerge(GatherMerge * node, EState * estate, int eflags)
 
 	gm_state->initialized = false;
 	gm_state->gm_initialized = false;
+	gm_state->tuples_needed = -1;
 
 	/*
 	 * Miscellaneous initialization
@@ -103,21 +104,23 @@ ExecInitGatherMerge(GatherMerge * node, EState * estate, int eflags)
 	Assert(!node->plan.qual);
 
 	/*
-	 * tuple table initialization
-	 */
-	ExecInitResultTupleSlot(estate, &gm_state->ps);
-
-	/*
 	 * now initialize outer plan
 	 */
 	outerNode = outerPlan(node);
 	outerPlanState(gm_state) = ExecInitNode(outerNode, estate, eflags);
 
 	/*
-	 * Initialize result tuple type and projection info.
+	 * Store the tuple descriptor into gather merge state, so we can use it
+	 * while initializing the gather merge slots.
 	 */
-	ExecAssignResultTypeFromTL(&gm_state->ps);
-	ExecAssignProjectionInfo(&gm_state->ps, NULL);
+	tupDesc = ExecGetResultType(outerPlanState(gm_state));
+	gm_state->tupDesc = tupDesc;
+
+	/*
+	 * Initialize result slot, type and projection.
+	 */
+	ExecInitResultTupleSlotTL(estate, &gm_state->ps);
+	ExecConditionalAssignProjectionInfo(&gm_state->ps, tupDesc, OUTER_VAR);
 
 	/*
 	 * initialize sort-key information
@@ -149,15 +152,6 @@ ExecInitGatherMerge(GatherMerge * node, EState * estate, int eflags)
 		}
 	}
 
-	/*
-	 * Store the tuple descriptor into gather merge state, so we can use it
-	 * while initializing the gather merge slots.
-	 */
-	if (!ExecContextForcesOids(&gm_state->ps, &hasoid))
-		hasoid = false;
-	tupDesc = ExecTypeFromTL(outerNode->targetlist, hasoid);
-	gm_state->tupDesc = tupDesc;
-
 	/* Now allocate the workspace for gather merge */
 	gather_merge_setup(gm_state);
 
@@ -172,7 +166,7 @@ ExecInitGatherMerge(GatherMerge * node, EState * estate, int eflags)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecGatherMerge(PlanState * pstate)
+ExecGatherMerge(PlanState *pstate)
 {
 	GatherMergeState *node = castNode(GatherMergeState, pstate);
 	TupleTableSlot *slot;
@@ -201,10 +195,13 @@ ExecGatherMerge(PlanState * pstate)
 			if (!node->pei)
 				node->pei = ExecInitParallelPlan(node->ps.lefttree,
 												 estate,
-												 gm->num_workers);
+												 gm->initParam,
+												 gm->num_workers,
+												 node->tuples_needed);
 			else
 				ExecParallelReinitialize(node->ps.lefttree,
-										 node->pei);
+										 node->pei,
+										 gm->initParam);
 
 			/* Try to launch workers. */
 			pcxt = node->pei->pcxt;
@@ -215,10 +212,10 @@ ExecGatherMerge(PlanState * pstate)
 			/* Set up tuple queue readers to read the results. */
 			if (pcxt->nworkers_launched > 0)
 			{
-				ExecParallelCreateReaders(node->pei, node->tupDesc);
+				ExecParallelCreateReaders(node->pei);
 				/* Make a working array showing the active readers */
 				node->nreaders = pcxt->nworkers_launched;
-				node->reader = (TupleQueueReader * *)
+				node->reader = (TupleQueueReader **)
 					palloc(node->nreaders * sizeof(TupleQueueReader *));
 				memcpy(node->reader, node->pei->reader,
 					   node->nreaders * sizeof(TupleQueueReader *));
@@ -231,8 +228,9 @@ ExecGatherMerge(PlanState * pstate)
 			}
 		}
 
-		/* always allow leader to participate */
-		node->need_to_scan_locally = true;
+		/* allow leader to participate if enabled or no choice */
+		if (parallel_leader_participation || node->nreaders == 0)
+			node->need_to_scan_locally = true;
 		node->initialized = true;
 	}
 
@@ -251,6 +249,10 @@ ExecGatherMerge(PlanState * pstate)
 	if (TupIsNull(slot))
 		return NULL;
 
+	/* If no projection is required, we're done. */
+	if (node->ps.ps_ProjInfo == NULL)
+		return slot;
+
 	/*
 	 * Form the result tuple using ExecProject(), and return it.
 	 */
@@ -265,7 +267,7 @@ ExecGatherMerge(PlanState * pstate)
  * ----------------------------------------------------------------
  */
 void
-ExecEndGatherMerge(GatherMergeState * node)
+ExecEndGatherMerge(GatherMergeState *node)
 {
 	ExecEndNode(outerPlanState(node));	/* let children clean up first */
 	ExecShutdownGatherMerge(node);
@@ -280,7 +282,7 @@ ExecEndGatherMerge(GatherMergeState * node)
  * ----------------------------------------------------------------
  */
 void
-ExecShutdownGatherMerge(GatherMergeState * node)
+ExecShutdownGatherMerge(GatherMergeState *node)
 {
 	ExecShutdownGatherMergeWorkers(node);
 
@@ -299,7 +301,7 @@ ExecShutdownGatherMerge(GatherMergeState * node)
  * ----------------------------------------------------------------
  */
 static void
-ExecShutdownGatherMergeWorkers(GatherMergeState * node)
+ExecShutdownGatherMergeWorkers(GatherMergeState *node)
 {
 	if (node->pei != NULL)
 		ExecParallelFinish(node->pei);
@@ -317,7 +319,7 @@ ExecShutdownGatherMergeWorkers(GatherMergeState * node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanGatherMerge(GatherMergeState * node)
+ExecReScanGatherMerge(GatherMergeState *node)
 {
 	GatherMerge *gm = (GatherMerge *) node->ps.plan;
 	PlanState  *outerPlan = outerPlanState(node);
@@ -371,7 +373,7 @@ ExecReScanGatherMerge(GatherMergeState * node)
  * 0 to n-1; it has no entry for the leader.
  */
 static void
-gather_merge_setup(GatherMergeState * gm_state)
+gather_merge_setup(GatherMergeState *gm_state)
 {
 	GatherMerge *gm = castNode(GatherMerge, gm_state->ps.plan);
 	int			nreaders = gm->num_workers;
@@ -386,7 +388,7 @@ gather_merge_setup(GatherMergeState * gm_state)
 	 * scan, we might have fewer than num_workers available workers, in which
 	 * case the extra array entries go unused.
 	 */
-	gm_state->gm_slots = (TupleTableSlot * *)
+	gm_state->gm_slots = (TupleTableSlot **)
 		palloc0((nreaders + 1) * sizeof(TupleTableSlot *));
 
 	/* Allocate the tuple slot and tuple array for each worker */
@@ -400,9 +402,8 @@ gather_merge_setup(GatherMergeState * gm_state)
 			(HeapTuple *) palloc0(sizeof(HeapTuple) * MAX_TUPLE_STORE);
 
 		/* Initialize tuple slot for worker */
-		gm_state->gm_slots[i + 1] = ExecInitExtraTupleSlot(gm_state->ps.state);
-		ExecSetSlotDescriptor(gm_state->gm_slots[i + 1],
-							  gm_state->tupDesc);
+		gm_state->gm_slots[i + 1] =
+			ExecInitExtraTupleSlot(gm_state->ps.state, gm_state->tupDesc);
 	}
 
 	/* Allocate the resources for the merge */
@@ -419,7 +420,7 @@ gather_merge_setup(GatherMergeState * gm_state)
  * the heap.
  */
 static void
-gather_merge_init(GatherMergeState * gm_state)
+gather_merge_init(GatherMergeState *gm_state)
 {
 	int			nreaders = gm_state->nreaders;
 	bool		nowait = true;
@@ -502,7 +503,7 @@ reread:
  * for each gather merge input.
  */
 static void
-gather_merge_clear_tuples(GatherMergeState * gm_state)
+gather_merge_clear_tuples(GatherMergeState *gm_state)
 {
 	int			i;
 
@@ -523,7 +524,7 @@ gather_merge_clear_tuples(GatherMergeState * gm_state)
  * Fetch the sorted tuple out of the heap.
  */
 static TupleTableSlot *
-gather_merge_getnext(GatherMergeState * gm_state)
+gather_merge_getnext(GatherMergeState *gm_state)
 {
 	int			i;
 
@@ -573,7 +574,7 @@ gather_merge_getnext(GatherMergeState * gm_state)
  * array, until we have MAX_TUPLE_STORE of them or would have to block.
  */
 static void
-load_tuple_array(GatherMergeState * gm_state, int reader)
+load_tuple_array(GatherMergeState *gm_state, int reader)
 {
 	GMReaderTupleBuffer *tuple_buffer;
 	int			i;
@@ -599,7 +600,7 @@ load_tuple_array(GatherMergeState * gm_state, int reader)
 								  &tuple_buffer->done);
 		if (!HeapTupleIsValid(tuple))
 			break;
-		tuple_buffer->tuple[i] = heap_copytuple(tuple);
+		tuple_buffer->tuple[i] = tuple;
 		tuple_buffer->nTuples++;
 	}
 }
@@ -612,7 +613,7 @@ load_tuple_array(GatherMergeState * gm_state, int reader)
  * is found to be exhausted.
  */
 static bool
-gather_merge_readnext(GatherMergeState * gm_state, int reader, bool nowait)
+gather_merge_readnext(GatherMergeState *gm_state, int reader, bool nowait)
 {
 	GMReaderTupleBuffer *tuple_buffer;
 	HeapTuple	tup;
@@ -667,7 +668,6 @@ gather_merge_readnext(GatherMergeState * gm_state, int reader, bool nowait)
 								&tuple_buffer->done);
 		if (!HeapTupleIsValid(tup))
 			return false;
-		tup = heap_copytuple(tup);
 
 		/*
 		 * Attempt to read more tuples in nowait mode and store them in the
@@ -692,25 +692,25 @@ gather_merge_readnext(GatherMergeState * gm_state, int reader, bool nowait)
  * Attempt to read a tuple from given worker.
  */
 static HeapTuple
-gm_readnext_tuple(GatherMergeState * gm_state, int nreader, bool nowait,
+gm_readnext_tuple(GatherMergeState *gm_state, int nreader, bool nowait,
 				  bool *done)
 {
 	TupleQueueReader *reader;
 	HeapTuple	tup;
-	MemoryContext oldContext;
-	MemoryContext tupleContext;
 
 	/* Check for async events, particularly messages from workers. */
 	CHECK_FOR_INTERRUPTS();
 
-	/* Attempt to read a tuple. */
+	/*
+	 * Attempt to read a tuple.
+	 *
+	 * Note that TupleQueueReaderNext will just return NULL for a worker which
+	 * fails to initialize.  We'll treat that worker as having produced no
+	 * tuples; WaitForParallelWorkersToFinish will error out when we get
+	 * there.
+	 */
 	reader = gm_state->reader[nreader - 1];
-
-	/* Run TupleQueueReaders in per-tuple context */
-	tupleContext = gm_state->ps.ps_ExprContext->ecxt_per_tuple_memory;
-	oldContext = MemoryContextSwitchTo(tupleContext);
 	tup = TupleQueueReaderNext(reader, nowait, done);
-	MemoryContextSwitchTo(oldContext);
 
 	return tup;
 }
@@ -756,7 +756,10 @@ heap_compare_slots(Datum a, Datum b, void *arg)
 									  datum2, isNull2,
 									  sortKey);
 		if (compare != 0)
-			return -compare;
+		{
+			INVERT_COMPARE_RESULT(compare);
+			return compare;
+		}
 	}
 	return 0;
 }

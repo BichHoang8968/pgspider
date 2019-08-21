@@ -4,7 +4,7 @@
  *
  * This module also contains some logic associated with fork names.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -18,8 +18,7 @@
 #include "postgres_fe.h"
 #endif
 
-#include "catalog/catalog.h"
-#include "catalog/pg_tablespace.h"
+#include "catalog/pg_tablespace_d.h"
 #include "common/relpath.h"
 #include "storage/backendid.h"
 
@@ -76,7 +75,7 @@ forkname_to_number(const char *forkName)
  * are prefixes of other fork names.
  */
 int
-forkname_chars(const char *str, ForkNumber * fork)
+forkname_chars(const char *str, ForkNumber *fork)
 {
 	ForkNumber	forkNum;
 

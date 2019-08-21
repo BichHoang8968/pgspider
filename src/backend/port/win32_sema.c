@@ -3,7 +3,7 @@
  * win32_sema.c
  *	  Microsoft Windows Win32 Semaphores Emulation
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/port/win32_sema.c
@@ -17,7 +17,7 @@
 #include "storage/ipc.h"
 #include "storage/pg_sema.h"
 
-static HANDLE * mySemSet;		/* IDs of sema sets acquired so far */
+static HANDLE *mySemSet;		/* IDs of sema sets acquired so far */
 static int	numSems;			/* number of sema sets acquired so far */
 static int	maxSems;			/* allocated size of mySemaSet array */
 

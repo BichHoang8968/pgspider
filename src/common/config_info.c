@@ -4,7 +4,7 @@
  *		Common code for pg_config output
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -30,7 +30,7 @@
  * for pfreeing the result.
  */
 ConfigData *
-get_configdata(const char *my_exec_path, size_t * configdata_len)
+get_configdata(const char *my_exec_path, size_t *configdata_len)
 {
 	ConfigData *configdata;
 	char		path[MAXPGPATH];

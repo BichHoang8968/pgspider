@@ -26,8 +26,8 @@ CREATE VIEW rw_view15 AS SELECT a, upper(b) FROM base_tbl; -- Expression/functio
 CREATE VIEW rw_view16 AS SELECT a, b, a AS aa FROM base_tbl; -- Repeated column may be part of an updatable view
 CREATE VIEW ro_view17 AS SELECT * FROM ro_view1; -- Base relation not updatable
 CREATE VIEW ro_view18 AS SELECT * FROM (VALUES(1)) AS tmp(a); -- VALUES in rangetable
-CREATE SEQUENCE seq;
-CREATE VIEW ro_view19 AS SELECT * FROM seq; -- View based on a sequence
+CREATE SEQUENCE uv_seq;
+CREATE VIEW ro_view19 AS SELECT * FROM uv_seq; -- View based on a sequence
 CREATE VIEW ro_view20 AS SELECT a, b, generate_series(1, a) g FROM base_tbl; -- SRF in targetlist not supported
 
 SELECT table_name, is_insertable_into
@@ -100,7 +100,7 @@ UPDATE ro_view20 SET b=upper(b);
 
 DROP TABLE base_tbl CASCADE;
 DROP VIEW ro_view10, ro_view12, ro_view18;
-DROP SEQUENCE seq CASCADE;
+DROP SEQUENCE uv_seq CASCADE;
 
 -- simple updatable view
 
@@ -455,6 +455,82 @@ DELETE FROM base_tbl WHERE a=3; -- not allowed
 DELETE FROM rw_view1 WHERE aa=3; -- ok
 DELETE FROM rw_view2 WHERE aa=4; -- not allowed
 SELECT * FROM base_tbl;
+RESET SESSION AUTHORIZATION;
+
+DROP TABLE base_tbl CASCADE;
+
+-- nested-view permissions
+
+CREATE TABLE base_tbl(a int, b text, c float);
+INSERT INTO base_tbl VALUES (1, 'Row 1', 1.0);
+
+SET SESSION AUTHORIZATION regress_view_user1;
+CREATE VIEW rw_view1 AS SELECT * FROM base_tbl;
+SELECT * FROM rw_view1;  -- not allowed
+SELECT * FROM rw_view1 FOR UPDATE;  -- not allowed
+UPDATE rw_view1 SET b = 'foo' WHERE a = 1;  -- not allowed
+
+SET SESSION AUTHORIZATION regress_view_user2;
+CREATE VIEW rw_view2 AS SELECT * FROM rw_view1;
+SELECT * FROM rw_view2;  -- not allowed
+SELECT * FROM rw_view2 FOR UPDATE;  -- not allowed
+UPDATE rw_view2 SET b = 'bar' WHERE a = 1;  -- not allowed
+
+RESET SESSION AUTHORIZATION;
+GRANT SELECT ON base_tbl TO regress_view_user1;
+
+SET SESSION AUTHORIZATION regress_view_user1;
+SELECT * FROM rw_view1;
+SELECT * FROM rw_view1 FOR UPDATE;  -- not allowed
+UPDATE rw_view1 SET b = 'foo' WHERE a = 1;  -- not allowed
+
+SET SESSION AUTHORIZATION regress_view_user2;
+SELECT * FROM rw_view2;  -- not allowed
+SELECT * FROM rw_view2 FOR UPDATE;  -- not allowed
+UPDATE rw_view2 SET b = 'bar' WHERE a = 1;  -- not allowed
+
+SET SESSION AUTHORIZATION regress_view_user1;
+GRANT SELECT ON rw_view1 TO regress_view_user2;
+
+SET SESSION AUTHORIZATION regress_view_user2;
+SELECT * FROM rw_view2;
+SELECT * FROM rw_view2 FOR UPDATE;  -- not allowed
+UPDATE rw_view2 SET b = 'bar' WHERE a = 1;  -- not allowed
+
+RESET SESSION AUTHORIZATION;
+GRANT UPDATE ON base_tbl TO regress_view_user1;
+
+SET SESSION AUTHORIZATION regress_view_user1;
+SELECT * FROM rw_view1;
+SELECT * FROM rw_view1 FOR UPDATE;
+UPDATE rw_view1 SET b = 'foo' WHERE a = 1;
+
+SET SESSION AUTHORIZATION regress_view_user2;
+SELECT * FROM rw_view2;
+SELECT * FROM rw_view2 FOR UPDATE;  -- not allowed
+UPDATE rw_view2 SET b = 'bar' WHERE a = 1;  -- not allowed
+
+SET SESSION AUTHORIZATION regress_view_user1;
+GRANT UPDATE ON rw_view1 TO regress_view_user2;
+
+SET SESSION AUTHORIZATION regress_view_user2;
+SELECT * FROM rw_view2;
+SELECT * FROM rw_view2 FOR UPDATE;
+UPDATE rw_view2 SET b = 'bar' WHERE a = 1;
+
+RESET SESSION AUTHORIZATION;
+REVOKE UPDATE ON base_tbl FROM regress_view_user1;
+
+SET SESSION AUTHORIZATION regress_view_user1;
+SELECT * FROM rw_view1;
+SELECT * FROM rw_view1 FOR UPDATE;  -- not allowed
+UPDATE rw_view1 SET b = 'foo' WHERE a = 1;  -- not allowed
+
+SET SESSION AUTHORIZATION regress_view_user2;
+SELECT * FROM rw_view2;
+SELECT * FROM rw_view2 FOR UPDATE;  -- not allowed
+UPDATE rw_view2 SET b = 'bar' WHERE a = 1;  -- not allowed
+
 RESET SESSION AUTHORIZATION;
 
 DROP TABLE base_tbl CASCADE;
@@ -1114,33 +1190,33 @@ DROP VIEW v1;
 DROP TABLE t1;
 
 -- check that an auto-updatable view on a partitioned table works correctly
-create table pt (a int, b int, v varchar) partition by range (a, b);
-create table pt1 (b int not null, v varchar, a int not null) partition by range (b);
-create table pt11 (like pt1);
-alter table pt11 drop a;
-alter table pt11 add a int;
-alter table pt11 drop a;
-alter table pt11 add a int not null;
-alter table pt1 attach partition pt11 for values from (2) to (5);
-alter table pt attach partition pt1 for values from (1, 2) to (1, 10);
+create table uv_pt (a int, b int, v varchar) partition by range (a, b);
+create table uv_pt1 (b int not null, v varchar, a int not null) partition by range (b);
+create table uv_pt11 (like uv_pt1);
+alter table uv_pt11 drop a;
+alter table uv_pt11 add a int;
+alter table uv_pt11 drop a;
+alter table uv_pt11 add a int not null;
+alter table uv_pt1 attach partition uv_pt11 for values from (2) to (5);
+alter table uv_pt attach partition uv_pt1 for values from (1, 2) to (1, 10);
 
-create view ptv as select * from pt;
+create view uv_ptv as select * from uv_pt;
 select events & 4 != 0 AS upd,
        events & 8 != 0 AS ins,
        events & 16 != 0 AS del
-  from pg_catalog.pg_relation_is_updatable('pt'::regclass, false) t(events);
-select pg_catalog.pg_column_is_updatable('pt'::regclass, 1::smallint, false);
-select pg_catalog.pg_column_is_updatable('pt'::regclass, 2::smallint, false);
+  from pg_catalog.pg_relation_is_updatable('uv_pt'::regclass, false) t(events);
+select pg_catalog.pg_column_is_updatable('uv_pt'::regclass, 1::smallint, false);
+select pg_catalog.pg_column_is_updatable('uv_pt'::regclass, 2::smallint, false);
 select table_name, is_updatable, is_insertable_into
-  from information_schema.views where table_name = 'ptv';
+  from information_schema.views where table_name = 'uv_ptv';
 select table_name, column_name, is_updatable
-  from information_schema.columns where table_name = 'ptv' order by column_name;
-insert into ptv values (1, 2);
-select tableoid::regclass, * from pt;
-create view ptv_wco as select * from pt where a = 0 with check option;
-insert into ptv_wco values (1, 2);
-drop view ptv, ptv_wco;
-drop table pt, pt1, pt11;
+  from information_schema.columns where table_name = 'uv_ptv' order by column_name;
+insert into uv_ptv values (1, 2);
+select tableoid::regclass, * from uv_pt;
+create view uv_ptv_wco as select * from uv_pt where a = 0 with check option;
+insert into uv_ptv_wco values (1, 2);
+drop view uv_ptv, uv_ptv_wco;
+drop table uv_pt, uv_pt1, uv_pt11;
 
 -- check that wholerow vars appearing in WITH CHECK OPTION constraint expressions
 -- work fine with partitioned tables
@@ -1303,3 +1379,105 @@ drop view rw_view1;
 drop table base_tbl;
 drop user regress_view_user1;
 drop user regress_view_user2;
+
+-- Test single- and multi-row inserts with table and view defaults.
+-- Table defaults should be used, unless overridden by view defaults.
+create table base_tab_def (a int, b text default 'Table default',
+                           c text default 'Table default', d text, e text);
+create view base_tab_def_view as select * from base_tab_def;
+alter view base_tab_def_view alter b set default 'View default';
+alter view base_tab_def_view alter d set default 'View default';
+insert into base_tab_def values (1);
+insert into base_tab_def values (2), (3);
+insert into base_tab_def values (4, default, default, default, default);
+insert into base_tab_def values (5, default, default, default, default),
+                                (6, default, default, default, default);
+insert into base_tab_def_view values (11);
+insert into base_tab_def_view values (12), (13);
+insert into base_tab_def_view values (14, default, default, default, default);
+insert into base_tab_def_view values (15, default, default, default, default),
+                                     (16, default, default, default, default);
+insert into base_tab_def_view values (17), (default);
+select * from base_tab_def order by a;
+
+-- Adding an INSTEAD OF trigger should cause NULLs to be inserted instead of
+-- table defaults, where there are no view defaults.
+create function base_tab_def_view_instrig_func() returns trigger
+as
+$$
+begin
+  insert into base_tab_def values (new.a, new.b, new.c, new.d, new.e);
+  return new;
+end;
+$$
+language plpgsql;
+create trigger base_tab_def_view_instrig instead of insert on base_tab_def_view
+  for each row execute function base_tab_def_view_instrig_func();
+truncate base_tab_def;
+insert into base_tab_def values (1);
+insert into base_tab_def values (2), (3);
+insert into base_tab_def values (4, default, default, default, default);
+insert into base_tab_def values (5, default, default, default, default),
+                                (6, default, default, default, default);
+insert into base_tab_def_view values (11);
+insert into base_tab_def_view values (12), (13);
+insert into base_tab_def_view values (14, default, default, default, default);
+insert into base_tab_def_view values (15, default, default, default, default),
+                                     (16, default, default, default, default);
+insert into base_tab_def_view values (17), (default);
+select * from base_tab_def order by a;
+
+-- Using an unconditional DO INSTEAD rule should also cause NULLs to be
+-- inserted where there are no view defaults.
+drop trigger base_tab_def_view_instrig on base_tab_def_view;
+drop function base_tab_def_view_instrig_func;
+create rule base_tab_def_view_ins_rule as on insert to base_tab_def_view
+  do instead insert into base_tab_def values (new.a, new.b, new.c, new.d, new.e);
+truncate base_tab_def;
+insert into base_tab_def values (1);
+insert into base_tab_def values (2), (3);
+insert into base_tab_def values (4, default, default, default, default);
+insert into base_tab_def values (5, default, default, default, default),
+                                (6, default, default, default, default);
+insert into base_tab_def_view values (11);
+insert into base_tab_def_view values (12), (13);
+insert into base_tab_def_view values (14, default, default, default, default);
+insert into base_tab_def_view values (15, default, default, default, default),
+                                     (16, default, default, default, default);
+insert into base_tab_def_view values (17), (default);
+select * from base_tab_def order by a;
+
+-- A DO ALSO rule should cause each row to be inserted twice. The first
+-- insert should behave the same as an auto-updatable view (using table
+-- defaults, unless overridden by view defaults). The second insert should
+-- behave the same as a rule-updatable view (inserting NULLs where there are
+-- no view defaults).
+drop rule base_tab_def_view_ins_rule on base_tab_def_view;
+create rule base_tab_def_view_ins_rule as on insert to base_tab_def_view
+  do also insert into base_tab_def values (new.a, new.b, new.c, new.d, new.e);
+truncate base_tab_def;
+insert into base_tab_def values (1);
+insert into base_tab_def values (2), (3);
+insert into base_tab_def values (4, default, default, default, default);
+insert into base_tab_def values (5, default, default, default, default),
+                                (6, default, default, default, default);
+insert into base_tab_def_view values (11);
+insert into base_tab_def_view values (12), (13);
+insert into base_tab_def_view values (14, default, default, default, default);
+insert into base_tab_def_view values (15, default, default, default, default),
+                                     (16, default, default, default, default);
+insert into base_tab_def_view values (17), (default);
+select * from base_tab_def order by a, c NULLS LAST;
+
+drop view base_tab_def_view;
+drop table base_tab_def;
+
+-- Test defaults with array assignments
+create table base_tab (a serial, b int[], c text, d text default 'Table default');
+create view base_tab_view as select c, a, b from base_tab;
+alter view base_tab_view alter column c set default 'View default';
+insert into base_tab_view (b[1], b[2], c, b[5], b[4], a, b[3])
+values (1, 2, default, 5, 4, default, 3), (10, 11, 'C value', 14, 13, 100, 12);
+select * from base_tab order by a;
+drop view base_tab_view;
+drop table base_tab;

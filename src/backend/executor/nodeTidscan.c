@@ -3,7 +3,7 @@
  * nodeTidscan.c
  *	  Routines to support direct tid scans of relations
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -45,12 +45,12 @@ typedef struct TidExpr
 	ExprState  *exprstate;		/* ExprState for a TID-yielding subexpr */
 	bool		isarray;		/* if true, it yields tid[] not just tid */
 	CurrentOfExpr *cexpr;		/* alternatively, we can have CURRENT OF */
-}			TidExpr;
+} TidExpr;
 
-static void TidExprListCreate(TidScanState * tidstate);
-static void TidListEval(TidScanState * tidstate);
+static void TidExprListCreate(TidScanState *tidstate);
+static void TidListEval(TidScanState *tidstate);
 static int	itemptr_comparator(const void *a, const void *b);
-static TupleTableSlot * TidNext(TidScanState * node);
+static TupleTableSlot *TidNext(TidScanState *node);
 
 
 /*
@@ -61,7 +61,7 @@ static TupleTableSlot * TidNext(TidScanState * node);
  * just drop it into the TidExpr list as-is.
  */
 static void
-TidExprListCreate(TidScanState * tidstate)
+TidExprListCreate(TidScanState *tidstate)
 {
 	TidScan    *node = (TidScan *) tidstate->ss.ps.plan;
 	ListCell   *l;
@@ -125,7 +125,7 @@ TidExprListCreate(TidScanState * tidstate)
  * (The result is actually an array, not a list.)
  */
 static void
-TidListEval(TidScanState * tidstate)
+TidListEval(TidScanState *tidstate)
 {
 	ExprContext *econtext = tidstate->ss.ps.ps_ExprContext;
 	BlockNumber nblocks;
@@ -273,8 +273,8 @@ TidListEval(TidScanState * tidstate)
 static int
 itemptr_comparator(const void *a, const void *b)
 {
-	const		ItemPointerData *ipa = (const ItemPointerData *) a;
-	const		ItemPointerData *ipb = (const ItemPointerData *) b;
+	const ItemPointerData *ipa = (const ItemPointerData *) a;
+	const ItemPointerData *ipb = (const ItemPointerData *) b;
 	BlockNumber ba = ItemPointerGetBlockNumber(ipa);
 	BlockNumber bb = ItemPointerGetBlockNumber(ipb);
 	OffsetNumber oa = ItemPointerGetOffsetNumber(ipa);
@@ -300,7 +300,7 @@ itemptr_comparator(const void *a, const void *b)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-TidNext(TidScanState * node)
+TidNext(TidScanState *node)
 {
 	EState	   *estate;
 	ScanDirection direction;
@@ -416,7 +416,7 @@ TidNext(TidScanState * node)
  * TidRecheck -- access method routine to recheck a tuple in EvalPlanQual
  */
 static bool
-TidRecheck(TidScanState * node, TupleTableSlot * slot)
+TidRecheck(TidScanState *node, TupleTableSlot *slot)
 {
 	/*
 	 * XXX shouldn't we check here to make sure tuple matches TID list? In
@@ -446,7 +446,7 @@ TidRecheck(TidScanState * node, TupleTableSlot * slot)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecTidScan(PlanState * pstate)
+ExecTidScan(PlanState *pstate)
 {
 	TidScanState *node = castNode(TidScanState, pstate);
 
@@ -460,7 +460,7 @@ ExecTidScan(PlanState * pstate)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanTidScan(TidScanState * node)
+ExecReScanTidScan(TidScanState *node)
 {
 	if (node->tss_TidList)
 		pfree(node->tss_TidList);
@@ -479,7 +479,7 @@ ExecReScanTidScan(TidScanState * node)
  * ----------------------------------------------------------------
  */
 void
-ExecEndTidScan(TidScanState * node)
+ExecEndTidScan(TidScanState *node)
 {
 	/*
 	 * Free the exprcontext
@@ -510,7 +510,7 @@ ExecEndTidScan(TidScanState * node)
  * ----------------------------------------------------------------
  */
 TidScanState *
-ExecInitTidScan(TidScan * node, EState * estate, int eflags)
+ExecInitTidScan(TidScan *node, EState *estate, int eflags)
 {
 	TidScanState *tidstate;
 	Relation	currentRelation;
@@ -531,20 +531,6 @@ ExecInitTidScan(TidScan * node, EState * estate, int eflags)
 	ExecAssignExprContext(estate, &tidstate->ss.ps);
 
 	/*
-	 * initialize child expressions
-	 */
-	tidstate->ss.ps.qual =
-		ExecInitQual(node->scan.plan.qual, (PlanState *) tidstate);
-
-	TidExprListCreate(tidstate);
-
-	/*
-	 * tuple table initialization
-	 */
-	ExecInitResultTupleSlot(estate, &tidstate->ss.ps);
-	ExecInitScanTupleSlot(estate, &tidstate->ss);
-
-	/*
 	 * mark tid list as not computed yet
 	 */
 	tidstate->tss_TidList = NULL;
@@ -562,13 +548,22 @@ ExecInitTidScan(TidScan * node, EState * estate, int eflags)
 	/*
 	 * get the scan type from the relation descriptor.
 	 */
-	ExecAssignScanType(&tidstate->ss, RelationGetDescr(currentRelation));
+	ExecInitScanTupleSlot(estate, &tidstate->ss,
+						  RelationGetDescr(currentRelation));
 
 	/*
-	 * Initialize result tuple type and projection info.
+	 * Initialize result slot, type and projection.
 	 */
-	ExecAssignResultTypeFromTL(&tidstate->ss.ps);
+	ExecInitResultTupleSlotTL(estate, &tidstate->ss.ps);
 	ExecAssignScanProjectionInfo(&tidstate->ss);
+
+	/*
+	 * initialize child expressions
+	 */
+	tidstate->ss.ps.qual =
+		ExecInitQual(node->scan.plan.qual, (PlanState *) tidstate);
+
+	TidExprListCreate(tidstate);
 
 	/*
 	 * all done.

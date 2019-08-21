@@ -3,7 +3,7 @@
  * pg_wchar.h
  *	  multibyte-character support
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/mb/pg_wchar.h
@@ -284,7 +284,7 @@ typedef enum pg_enc
 	PG_SHIFT_JIS_2004,			/* Shift-JIS-2004 */
 	_PG_LAST_ENCODING_			/* mark only */
 
-}			pg_enc;
+} pg_enc;
 
 #define PG_ENCODING_BE_LAST PG_KOI8U
 
@@ -305,6 +305,17 @@ typedef enum pg_enc
 #define PG_VALID_FE_ENCODING(_enc)	PG_VALID_ENCODING(_enc)
 
 /*
+ * When converting strings between different encodings, we assume that space
+ * for converted result is 4-to-1 growth in the worst case. The rate for
+ * currently supported encoding pairs are within 3 (SJIS JIS X0201 half width
+ * kanna -> UTF8 is the worst case).  So "4" should be enough for the moment.
+ *
+ * Note that this is not the same as the maximum character width in any
+ * particular encoding.
+ */
+#define MAX_CONVERSION_GROWTH  4
+
+/*
  * Table for mapping an encoding number to official encoding name and
  * possibly other subsidiary data.  Be careful to check encoding number
  * before accessing a table entry!
@@ -319,7 +330,7 @@ typedef struct pg_enc2name
 #ifdef WIN32
 	unsigned	codepage;		/* codepage for WIN32 */
 #endif
-}			pg_enc2name;
+} pg_enc2name;
 
 extern const pg_enc2name pg_enc2name_tbl[];
 
@@ -330,7 +341,7 @@ typedef struct pg_enc2gettext
 {
 	pg_enc		encoding;
 	const char *name;
-}			pg_enc2gettext;
+} pg_enc2gettext;
 
 extern const pg_enc2gettext pg_enc2gettext_tbl[];
 
@@ -344,10 +355,10 @@ extern const char *get_encoding_name_for_icu(int encoding);
  * pg_wchar stuff
  */
 typedef int (*mb2wchar_with_len_converter) (const unsigned char *from,
-											pg_wchar * to,
+											pg_wchar *to,
 											int len);
 
-typedef int (*wchar2mb_with_len_converter) (const pg_wchar * from,
+typedef int (*wchar2mb_with_len_converter) (const pg_wchar *from,
 											unsigned char *to,
 											int len);
 
@@ -369,7 +380,7 @@ typedef struct
 	mbdisplaylen_converter dsplen;	/* get display width of a char */
 	mbverifier	mbverify;		/* verify multibyte sequence */
 	int			maxmblen;		/* max bytes for a char in this encoding */
-}			pg_wchar_tbl;
+} pg_wchar_tbl;
 
 extern const pg_wchar_tbl pg_wchar_table[];
 
@@ -399,7 +410,7 @@ extern const pg_wchar_tbl pg_wchar_table[];
  * points to a lookup table for the second byte. And so on.
  *
  * Physically, all the trees are stored in one big array, in 'chars16' or
- * 'chars32', depending on the maximum value that needs to be reprented. For
+ * 'chars32', depending on the maximum value that needs to be represented. For
  * each level in each tree, we also store lower and upper bound of allowed
  * values - values outside those bounds are considered invalid, and are left
  * out of the tables.
@@ -419,8 +430,8 @@ typedef struct
 	 * Array containing all the values. Only one of chars16 or chars32 is
 	 * used, depending on how wide the values we need to represent are.
 	 */
-	const		uint16 *chars16;
-	const		uint32 *chars32;
+	const uint16 *chars16;
+	const uint32 *chars32;
 
 	/* Radix tree for 1-byte inputs */
 	uint32		b1root;			/* offset of table in the chars[16|32] array */
@@ -454,7 +465,7 @@ typedef struct
 	uint8		b4_4_lower;		/* min/max allowed value for 4th input byte */
 	uint8		b4_4_upper;
 
-}			pg_mb_radix_tree;
+} pg_mb_radix_tree;
 
 /*
  * UTF-8 to local code conversion map (for combined characters)
@@ -464,7 +475,7 @@ typedef struct
 	uint32		utf1;			/* UTF-8 code 1 */
 	uint32		utf2;			/* UTF-8 code 2 */
 	uint32		code;			/* local code */
-}			pg_utf_to_local_combined;
+} pg_utf_to_local_combined;
 
 /*
  * local code to UTF-8 conversion map (for combined characters)
@@ -474,14 +485,14 @@ typedef struct
 	uint32		code;			/* local code */
 	uint32		utf1;			/* UTF-8 code 1 */
 	uint32		utf2;			/* UTF-8 code 2 */
-}			pg_local_to_utf_combined;
+} pg_local_to_utf_combined;
 
 /*
  * callback function for algorithmic encoding conversions (in either direction)
  *
  * if function returns zero, it does not know how to convert the code
  */
-typedef uint32(*utf_local_conversion_func) (uint32 code);
+typedef uint32 (*utf_local_conversion_func) (uint32 code);
 
 /*
  * Support macro for encoding conversion functions to validate their
@@ -509,18 +520,18 @@ extern int	pg_valid_server_encoding_id(int encoding);
  * Remaining functions are not considered part of libpq's API, though many
  * of them do exist inside libpq.
  */
-extern int	pg_mb2wchar(const char *from, pg_wchar * to);
-extern int	pg_mb2wchar_with_len(const char *from, pg_wchar * to, int len);
+extern int	pg_mb2wchar(const char *from, pg_wchar *to);
+extern int	pg_mb2wchar_with_len(const char *from, pg_wchar *to, int len);
 extern int pg_encoding_mb2wchar_with_len(int encoding,
-							  const char *from, pg_wchar * to, int len);
-extern int	pg_wchar2mb(const pg_wchar * from, char *to);
-extern int	pg_wchar2mb_with_len(const pg_wchar * from, char *to, int len);
+							  const char *from, pg_wchar *to, int len);
+extern int	pg_wchar2mb(const pg_wchar *from, char *to);
+extern int	pg_wchar2mb_with_len(const pg_wchar *from, char *to, int len);
 extern int pg_encoding_wchar2mb_with_len(int encoding,
-							  const pg_wchar * from, char *to, int len);
-extern int	pg_char_and_wchar_strcmp(const char *s1, const pg_wchar * s2);
-extern int	pg_wchar_strncmp(const pg_wchar * s1, const pg_wchar * s2, size_t n);
-extern int	pg_char_and_wchar_strncmp(const char *s1, const pg_wchar * s2, size_t n);
-extern size_t pg_wchar_strlen(const pg_wchar * wstr);
+							  const pg_wchar *from, char *to, int len);
+extern int	pg_char_and_wchar_strcmp(const char *s1, const pg_wchar *s2);
+extern int	pg_wchar_strncmp(const pg_wchar *s1, const pg_wchar *s2, size_t n);
+extern int	pg_char_and_wchar_strncmp(const char *s1, const pg_wchar *s2, size_t n);
+extern size_t pg_wchar_strlen(const pg_wchar *wstr);
 extern int	pg_mblen(const char *mbstr);
 extern int	pg_dsplen(const char *mbstr);
 extern int	pg_encoding_mblen(int encoding, const char *mbstr);
@@ -574,14 +585,14 @@ extern unsigned short CNStoBIG5(unsigned short cns, unsigned char lc);
 
 extern void UtfToLocal(const unsigned char *utf, int len,
 		   unsigned char *iso,
-		   const pg_mb_radix_tree * map,
-		   const pg_utf_to_local_combined * cmap, int cmapsize,
+		   const pg_mb_radix_tree *map,
+		   const pg_utf_to_local_combined *cmap, int cmapsize,
 		   utf_local_conversion_func conv_func,
 		   int encoding);
 extern void LocalToUtf(const unsigned char *iso, int len,
 		   unsigned char *utf,
-		   const pg_mb_radix_tree * map,
-		   const pg_local_to_utf_combined * cmap, int cmapsize,
+		   const pg_mb_radix_tree *map,
+		   const pg_local_to_utf_combined *cmap, int cmapsize,
 		   utf_local_conversion_func conv_func,
 		   int encoding);
 
@@ -619,7 +630,7 @@ extern void mic2latin_with_table(const unsigned char *mic, unsigned char *p,
 extern bool pg_utf8_islegal(const unsigned char *source, int length);
 
 #ifdef WIN32
-extern WCHAR * pgwin32_message_to_UTF16(const char *str, int len, int *utf16len);
+extern WCHAR *pgwin32_message_to_UTF16(const char *str, int len, int *utf16len);
 #endif
 
 #endif							/* PG_WCHAR_H */

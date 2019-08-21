@@ -45,7 +45,7 @@ mp_new()
 }
 
 static void
-mp_clear_free(mpz_t * a)
+mp_clear_free(mpz_t *a)
 {
 	if (!a)
 		return;
@@ -55,7 +55,7 @@ mp_clear_free(mpz_t * a)
 
 
 static int
-mp_px_rand(uint32 bits, mpz_t * res)
+mp_px_rand(uint32 bits, mpz_t *res)
 {
 #ifdef HAVE_STRONG_RANDOM
 	unsigned	bytes = (bits + 7) / 8;
@@ -89,7 +89,7 @@ mp_px_rand(uint32 bits, mpz_t * res)
 }
 
 static void
-mp_modmul(mpz_t * a, mpz_t * b, mpz_t * p, mpz_t * res)
+mp_modmul(mpz_t *a, mpz_t *b, mpz_t *p, mpz_t *res)
 {
 	mpz_t	   *tmp = mp_new();
 
@@ -99,7 +99,7 @@ mp_modmul(mpz_t * a, mpz_t * b, mpz_t * p, mpz_t * res)
 }
 
 static mpz_t *
-mpi_to_bn(PGP_MPI * n)
+mpi_to_bn(PGP_MPI *n)
 {
 	mpz_t	   *bn = mp_new();
 
@@ -118,7 +118,7 @@ mpi_to_bn(PGP_MPI * n)
 }
 
 static PGP_MPI *
-bn_to_mpi(mpz_t * bn)
+bn_to_mpi(mpz_t *bn)
 {
 	int			res;
 	PGP_MPI    *n;
@@ -165,8 +165,8 @@ decide_k_bits(int p_bits)
 }
 
 int
-pgp_elgamal_encrypt(PGP_PubKey * pk, PGP_MPI * _m,
-					PGP_MPI * *c1_p, PGP_MPI * *c2_p)
+pgp_elgamal_encrypt(PGP_PubKey *pk, PGP_MPI *_m,
+					PGP_MPI **c1_p, PGP_MPI **c2_p)
 {
 	int			res = PXE_PGP_MATH_FAILED;
 	int			k_bits;
@@ -215,8 +215,8 @@ err:
 }
 
 int
-pgp_elgamal_decrypt(PGP_PubKey * pk, PGP_MPI * _c1, PGP_MPI * _c2,
-					PGP_MPI * *msg_p)
+pgp_elgamal_decrypt(PGP_PubKey *pk, PGP_MPI *_c1, PGP_MPI *_c2,
+					PGP_MPI **msg_p)
 {
 	int			res = PXE_PGP_MATH_FAILED;
 	mpz_t	   *c1 = mpi_to_bn(_c1);
@@ -253,7 +253,7 @@ err:
 }
 
 int
-pgp_rsa_encrypt(PGP_PubKey * pk, PGP_MPI * _m, PGP_MPI * *c_p)
+pgp_rsa_encrypt(PGP_PubKey *pk, PGP_MPI *_m, PGP_MPI **c_p)
 {
 	int			res = PXE_PGP_MATH_FAILED;
 	mpz_t	   *m = mpi_to_bn(_m);
@@ -281,7 +281,7 @@ err:
 }
 
 int
-pgp_rsa_decrypt(PGP_PubKey * pk, PGP_MPI * _c, PGP_MPI * *m_p)
+pgp_rsa_decrypt(PGP_PubKey *pk, PGP_MPI *_c, PGP_MPI **m_p)
 {
 	int			res = PXE_PGP_MATH_FAILED;
 	mpz_t	   *c = mpi_to_bn(_c);

@@ -68,7 +68,7 @@ z_free(void *priv, void *addr)
 }
 
 static int
-compress_init(PushFilter * next, void *init_arg, void **priv_p)
+compress_init(PushFilter *next, void *init_arg, void **priv_p)
 {
 	int			res;
 	struct ZipStat *st;
@@ -106,7 +106,7 @@ compress_init(PushFilter * next, void *init_arg, void **priv_p)
 
 /* can handle zero-len incoming data, but shouldn't */
 static int
-compress_process(PushFilter * next, void *priv, const uint8 * data, int len)
+compress_process(PushFilter *next, void *priv, const uint8 *data, int len)
 {
 	int			res,
 				n_out;
@@ -139,7 +139,7 @@ compress_process(PushFilter * next, void *priv, const uint8 * data, int len)
 }
 
 static int
-compress_flush(PushFilter * next, void *priv)
+compress_flush(PushFilter *next, void *priv)
 {
 	int			res,
 				zres,
@@ -184,7 +184,7 @@ static const PushFilterOps
 };
 
 int
-pgp_compress_filter(PushFilter * *res, PGP_Context * ctx, PushFilter * dst)
+pgp_compress_filter(PushFilter **res, PGP_Context *ctx, PushFilter *dst)
 {
 	return pushf_create(res, &compress_filter, ctx, dst);
 }
@@ -203,7 +203,7 @@ struct DecomprData
 };
 
 static int
-decompress_init(void **priv_p, void *arg, PullFilter * src)
+decompress_init(void **priv_p, void *arg, PullFilter *src)
 {
 	PGP_Context *ctx = arg;
 	struct DecomprData *dec;
@@ -236,8 +236,8 @@ decompress_init(void **priv_p, void *arg, PullFilter * src)
 }
 
 static int
-decompress_read(void *priv, PullFilter * src, int len,
-				uint8 * *data_p, uint8 * buf, int buflen)
+decompress_read(void *priv, PullFilter *src, int len,
+				uint8 **data_p, uint8 *buf, int buflen)
 {
 	int			res;
 	int			flush;
@@ -307,20 +307,20 @@ static const PullFilterOps
 };
 
 int
-pgp_decompress_filter(PullFilter * *res, PGP_Context * ctx, PullFilter * src)
+pgp_decompress_filter(PullFilter **res, PGP_Context *ctx, PullFilter *src)
 {
 	return pullf_create(res, &decompress_filter, ctx, src);
 }
 #else							/* !HAVE_ZLIB */
 
 int
-pgp_compress_filter(PushFilter * *res, PGP_Context * ctx, PushFilter * dst)
+pgp_compress_filter(PushFilter **res, PGP_Context *ctx, PushFilter *dst)
 {
 	return PXE_PGP_UNSUPPORTED_COMPR;
 }
 
 int
-pgp_decompress_filter(PullFilter * *res, PGP_Context * ctx, PullFilter * src)
+pgp_decompress_filter(PullFilter **res, PGP_Context *ctx, PullFilter *src)
 {
 	return PXE_PGP_UNSUPPORTED_COMPR;
 }

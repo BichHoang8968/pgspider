@@ -3,7 +3,7 @@
  * clausesel.c
  *	  Routines to compute clause selectivities
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -37,12 +37,12 @@ typedef struct RangeQueryClause
 	bool		have_hibound;	/* found a high-bound clause yet? */
 	Selectivity lobound;		/* Selectivity of a var > something clause */
 	Selectivity hibound;		/* Selectivity of a var < something clause */
-}			RangeQueryClause;
+} RangeQueryClause;
 
-static void addRangeClause(RangeQueryClause * *rqlist, Node * clause,
+static void addRangeClause(RangeQueryClause **rqlist, Node *clause,
 			   bool varonleft, bool isLTsel, Selectivity s2);
-static RelOptInfo * find_single_rel_for_clauses(PlannerInfo * root,
-												List * clauses);
+static RelOptInfo *find_single_rel_for_clauses(PlannerInfo *root,
+							List *clauses);
 
 /****************************************************************************
  *		ROUTINES TO COMPUTE SELECTIVITIES
@@ -71,7 +71,7 @@ static RelOptInfo * find_single_rel_for_clauses(PlannerInfo * root,
  *
  * We also recognize "range queries", such as "x > 34 AND x < 42".  Clauses
  * are recognized as possible range query components if they are restriction
- * opclauses whose operators have scalarltsel() or scalargtsel() as their
+ * opclauses whose operators have scalarltsel or a related function as their
  * restriction selectivity estimator.  We pair up clauses of this form that
  * refer to the same variable.  An unpairable clause of this kind is simply
  * multiplied into the selectivity product in the normal way.  But when we
@@ -92,15 +92,15 @@ static RelOptInfo * find_single_rel_for_clauses(PlannerInfo * root,
  * A free side-effect is that we can recognize redundant inequalities such
  * as "x < 4 AND x < 5"; only the tighter constraint will be counted.
  *
- * Of course this is all very dependent on the behavior of
- * scalarltsel/scalargtsel; perhaps some day we can generalize the approach.
+ * Of course this is all very dependent on the behavior of the inequality
+ * selectivity functions; perhaps some day we can generalize the approach.
  */
 Selectivity
-clauselist_selectivity(PlannerInfo * root,
-					   List * clauses,
+clauselist_selectivity(PlannerInfo *root,
+					   List *clauses,
 					   int varRelid,
 					   JoinType jointype,
-					   SpecialJoinInfo * sjinfo)
+					   SpecialJoinInfo *sjinfo)
 {
 	Selectivity s1 = 1.0;
 	RelOptInfo *rel;
@@ -218,17 +218,19 @@ clauselist_selectivity(PlannerInfo * root,
 			if (ok)
 			{
 				/*
-				 * If it's not a "<" or ">" operator, just merge the
+				 * If it's not a "<"/"<="/">"/">=" operator, just merge the
 				 * selectivity in generically.  But if it's the right oprrest,
 				 * add the clause to rqlist for later processing.
 				 */
 				switch (get_oprrest(expr->opno))
 				{
 					case F_SCALARLTSEL:
+					case F_SCALARLESEL:
 						addRangeClause(&rqlist, clause,
 									   varonleft, true, s2);
 						break;
 					case F_SCALARGTSEL:
+					case F_SCALARGESEL:
 						addRangeClause(&rqlist, clause,
 									   varonleft, false, s2);
 						break;
@@ -329,7 +331,7 @@ clauselist_selectivity(PlannerInfo * root,
  * Here is where we try to match up pairs of range-query clauses
  */
 static void
-addRangeClause(RangeQueryClause * *rqlist, Node * clause,
+addRangeClause(RangeQueryClause **rqlist, Node *clause,
 			   bool varonleft, bool isLTsel, Selectivity s2)
 {
 	RangeQueryClause *rqelem;
@@ -368,7 +370,7 @@ addRangeClause(RangeQueryClause * *rqlist, Node * clause,
 
 				/*------
 				 * We have found two similar clauses, such as
-				 * x < y AND x < z.
+				 * x < y AND x <= z.
 				 * Keep only the more restrictive one.
 				 *------
 				 */
@@ -388,7 +390,7 @@ addRangeClause(RangeQueryClause * *rqlist, Node * clause,
 
 				/*------
 				 * We have found two similar clauses, such as
-				 * x > y AND x > z.
+				 * x > y AND x >= z.
 				 * Keep only the more restrictive one.
 				 *------
 				 */
@@ -425,7 +427,7 @@ addRangeClause(RangeQueryClause * *rqlist, Node * clause,
  *		otherwise return NULL.
  */
 static RelOptInfo *
-find_single_rel_for_clauses(PlannerInfo * root, List * clauses)
+find_single_rel_for_clauses(PlannerInfo *root, List *clauses)
 {
 	int			lastrelid = 0;
 	ListCell   *l;
@@ -470,7 +472,7 @@ find_single_rel_for_clauses(PlannerInfo * root, List * clauses)
  * Is this of use anywhere else?  If so move to bitmapset.c ...
  */
 static bool
-bms_is_subset_singleton(const Bitmapset * s, int x)
+bms_is_subset_singleton(const Bitmapset *s, int x)
 {
 	switch (bms_membership(s))
 	{
@@ -491,8 +493,8 @@ bms_is_subset_singleton(const Bitmapset * s, int x)
  *	  restriction or join estimator.  Subroutine for clause_selectivity().
  */
 static inline bool
-treat_as_join_clause(Node * clause, RestrictInfo * rinfo,
-					 int varRelid, SpecialJoinInfo * sjinfo)
+treat_as_join_clause(Node *clause, RestrictInfo *rinfo,
+					 int varRelid, SpecialJoinInfo *sjinfo)
 {
 	if (varRelid != 0)
 	{
@@ -569,11 +571,11 @@ treat_as_join_clause(Node * clause, RestrictInfo * rinfo,
  * join clause; because we aren't treating it as a join clause.
  */
 Selectivity
-clause_selectivity(PlannerInfo * root,
-				   Node * clause,
+clause_selectivity(PlannerInfo *root,
+				   Node *clause,
 				   int varRelid,
 				   JoinType jointype,
-				   SpecialJoinInfo * sjinfo)
+				   SpecialJoinInfo *sjinfo)
 {
 	Selectivity s1 = 0.5;		/* default for any unhandled clause type */
 	RestrictInfo *rinfo = NULL;

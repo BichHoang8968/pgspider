@@ -3,7 +3,7 @@
  * sinvaladt.c
  *	  POSTGRES shared cache invalidation data manager.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -162,7 +162,7 @@ typedef struct ProcState
 	 * meaningless in an active ProcState entry.
 	 */
 	LocalTransactionId nextLXID;
-}			ProcState;
+} ProcState;
 
 /* Shared cache invalidation memory segment */
 typedef struct SISeg
@@ -187,9 +187,9 @@ typedef struct SISeg
 	 * Per-backend invalidation state info (has MaxBackends entries).
 	 */
 	ProcState	procState[FLEXIBLE_ARRAY_MEMBER];
-}			SISeg;
+} SISeg;
 
-static SISeg * shmInvalBuffer;	/* pointer to the shared inval buffer */
+static SISeg *shmInvalBuffer;	/* pointer to the shared inval buffer */
 
 
 static LocalTransactionId nextLocalTransactionId;
@@ -401,7 +401,7 @@ BackendIdGetProc(int backendID)
  *		information is used.
  */
 void
-BackendIdGetTransactionIds(int backendID, TransactionId * xid, TransactionId * xmin)
+BackendIdGetTransactionIds(int backendID, TransactionId *xid, TransactionId *xmin)
 {
 	SISeg	   *segP = shmInvalBuffer;
 
@@ -433,7 +433,7 @@ BackendIdGetTransactionIds(int backendID, TransactionId * xid, TransactionId * x
  *		Add new invalidation message(s) to the buffer.
  */
 void
-SIInsertDataEntries(const SharedInvalidationMessage * data, int n)
+SIInsertDataEntries(const SharedInvalidationMessage *data, int n)
 {
 	SISeg	   *segP = shmInvalBuffer;
 
@@ -536,7 +536,7 @@ SIInsertDataEntries(const SharedInvalidationMessage * data, int n)
  * to break our hold on SInvalReadLock into segments.
  */
 int
-SIGetDataEntries(SharedInvalidationMessage * data, int datasize)
+SIGetDataEntries(SharedInvalidationMessage *data, int datasize)
 {
 	SISeg	   *segP;
 	ProcState  *stateP;
@@ -627,7 +627,7 @@ SIGetDataEntries(SharedInvalidationMessage * data, int datasize)
  * SICleanupQueue
  *		Remove messages that have been consumed by all active backends
  *
- * callerHasWriteLock is TRUE if caller is holding SInvalWriteLock.
+ * callerHasWriteLock is true if caller is holding SInvalWriteLock.
  * minFree is the minimum number of message slots to make free.
  *
  * Possible side effects of this routine include marking one or more

@@ -2,7 +2,7 @@
  * launcher.c
  *	   PostgreSQL logical replication worker launcher process
  *
- * Copyright (c) 2016-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2016-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/replication/logical/launcher.c
@@ -69,7 +69,7 @@ typedef struct LogicalRepCtxStruct
 
 	/* Background workers. */
 	LogicalRepWorker workers[FLEXIBLE_ARRAY_MEMBER];
-}			LogicalRepCtxStruct;
+} LogicalRepCtxStruct;
 
 LogicalRepCtxStruct *LogicalRepCtx;
 
@@ -77,7 +77,7 @@ typedef struct LogicalRepWorkerId
 {
 	Oid			subid;
 	Oid			relid;
-}			LogicalRepWorkerId;
+} LogicalRepWorkerId;
 
 typedef struct StopWorkersData
 {
@@ -85,19 +85,19 @@ typedef struct StopWorkersData
 	List	   *workers;		/* List of LogicalRepWorkerId */
 	struct StopWorkersData *parent; /* This need not be an immediate
 									 * subtransaction parent */
-}			StopWorkersData;
+} StopWorkersData;
 
 /*
  * Stack of StopWorkersData elements. Each stack element contains the workers
  * to be stopped for that subtransaction.
  */
-static StopWorkersData * on_commit_stop_workers = NULL;
+static StopWorkersData *on_commit_stop_workers = NULL;
 
 static void ApplyLauncherWakeup(void);
 static void logicalrep_launcher_onexit(int code, Datum arg);
 static void logicalrep_worker_onexit(int code, Datum arg);
 static void logicalrep_worker_detach(void);
-static void logicalrep_worker_cleanup(LogicalRepWorker * worker);
+static void logicalrep_worker_cleanup(LogicalRepWorker *worker);
 
 /* Flags set by signal handlers */
 static volatile sig_atomic_t got_SIGHUP = false;
@@ -179,9 +179,9 @@ get_subscription_list(void)
  * fails to attach.
  */
 static void
-WaitForReplicationWorkerAttach(LogicalRepWorker * worker,
+WaitForReplicationWorkerAttach(LogicalRepWorker *worker,
 							   uint16 generation,
-							   BackgroundWorkerHandle * handle)
+							   BackgroundWorkerHandle *handle)
 {
 	BgwHandleStatus status;
 	int			rc;
@@ -434,6 +434,7 @@ retry:
 	else
 		snprintf(bgw.bgw_name, BGW_MAXLEN,
 				 "logical replication worker for subscription %u", subid);
+	snprintf(bgw.bgw_type, BGW_MAXLEN, "logical replication worker");
 
 	bgw.bgw_restart_time = BGW_NEVER_RESTART;
 	bgw.bgw_notify_pid = MyProcPid;
@@ -633,7 +634,7 @@ logicalrep_worker_wakeup(Oid subid, Oid relid)
  * Caller must hold lock, else worker->proc could change under us.
  */
 void
-logicalrep_worker_wakeup_ptr(LogicalRepWorker * worker)
+logicalrep_worker_wakeup_ptr(LogicalRepWorker *worker)
 {
 	Assert(LWLockHeldByMe(LogicalRepWorkerLock));
 
@@ -694,7 +695,7 @@ logicalrep_worker_detach(void)
  * Clean up worker info.
  */
 static void
-logicalrep_worker_cleanup(LogicalRepWorker * worker)
+logicalrep_worker_cleanup(LogicalRepWorker *worker)
 {
 	Assert(LWLockHeldByMeInMode(LogicalRepWorkerLock, LW_EXCLUSIVE));
 
@@ -810,6 +811,8 @@ ApplyLauncherRegister(void)
 	snprintf(bgw.bgw_library_name, BGW_MAXLEN, "postgres");
 	snprintf(bgw.bgw_function_name, BGW_MAXLEN, "ApplyLauncherMain");
 	snprintf(bgw.bgw_name, BGW_MAXLEN,
+			 "logical replication launcher");
+	snprintf(bgw.bgw_type, BGW_MAXLEN,
 			 "logical replication launcher");
 	bgw.bgw_restart_time = 5;
 	bgw.bgw_notify_pid = 0;
@@ -998,7 +1001,7 @@ ApplyLauncherMain(Datum main_arg)
 	 * Establish connection to nailed catalogs (we only ever access
 	 * pg_subscription).
 	 */
-	BackgroundWorkerInitializeConnection(NULL, NULL);
+	BackgroundWorkerInitializeConnection(NULL, NULL, 0);
 
 	/* Enter main loop */
 	for (;;)
@@ -1022,9 +1025,7 @@ ApplyLauncherMain(Datum main_arg)
 			/* Use temporary context for the database list and worker info. */
 			subctx = AllocSetContextCreate(TopMemoryContext,
 										   "Logical Replication Launcher sublist",
-										   ALLOCSET_DEFAULT_MINSIZE,
-										   ALLOCSET_DEFAULT_INITSIZE,
-										   ALLOCSET_DEFAULT_MAXSIZE);
+										   ALLOCSET_DEFAULT_SIZES);
 			oldctx = MemoryContextSwitchTo(subctx);
 
 			/* search for subscriptions to start or stop. */

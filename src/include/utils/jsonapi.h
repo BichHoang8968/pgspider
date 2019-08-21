@@ -3,7 +3,7 @@
  * jsonapi.h
  *	  Declarations for JSON API support.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/jsonapi.h
@@ -32,7 +32,7 @@ typedef enum
 	JSON_TOKEN_FALSE,
 	JSON_TOKEN_NULL,
 	JSON_TOKEN_END
-}			JsonTokenType;
+} JsonTokenType;
 
 
 /*
@@ -60,7 +60,7 @@ typedef struct JsonLexContext
 	int			line_number;
 	char	   *line_start;
 	StringInfo	strval;
-}			JsonLexContext;
+} JsonLexContext;
 
 typedef void (*json_struct_action) (void *state);
 typedef void (*json_ofield_action) (void *state, char *fname, bool isnull);
@@ -91,7 +91,7 @@ typedef struct JsonSemAction
 	json_aelem_action array_element_start;
 	json_aelem_action array_element_end;
 	json_scalar_action scalar;
-}			JsonSemAction;
+} JsonSemAction;
 
 /*
  * parse_json will parse the string in the lex calling the
@@ -102,14 +102,14 @@ typedef struct JsonSemAction
  * points to. If the action pointers are NULL the parser
  * does nothing and just continues.
  */
-extern void pg_parse_json(JsonLexContext * lex, JsonSemAction * sem);
+extern void pg_parse_json(JsonLexContext *lex, JsonSemAction *sem);
 
 /*
  * json_count_array_elements performs a fast secondary parse to determine the
  * number of elements in passed array lex context. It should be called from an
  * array_start action.
  */
-extern int	json_count_array_elements(JsonLexContext * lex);
+extern int	json_count_array_elements(JsonLexContext *lex);
 
 /*
  * constructors for JsonLexContext, with or without strval element.
@@ -120,10 +120,10 @@ extern int	json_count_array_elements(JsonLexContext * lex);
  * If you already have the json as a text* value, use the first of these
  * functions, otherwise use  makeJsonLexContextCstringLen().
  */
-extern JsonLexContext * makeJsonLexContext(text * json, bool need_escapes);
-extern JsonLexContext * makeJsonLexContextCstringLen(char *json,
-													 int len,
-													 bool need_escapes);
+extern JsonLexContext *makeJsonLexContext(text *json, bool need_escapes);
+extern JsonLexContext *makeJsonLexContextCstringLen(char *json,
+							 int len,
+							 bool need_escapes);
 
 /*
  * Utility function to check if a string is a valid JSON number.
@@ -132,19 +132,35 @@ extern JsonLexContext * makeJsonLexContextCstringLen(char *json,
  */
 extern bool IsValidJsonNumber(const char *str, int len);
 
-/* an action that will be applied to each value in iterate_json(b)_string_vaues functions */
+/*
+ * Flag types for iterate_json(b)_values to specify what elements from a
+ * json(b) document we want to iterate.
+ */
+typedef enum JsonToIndex
+{
+	jtiKey = 0x01,
+	jtiString = 0x02,
+	jtiNumeric = 0x04,
+	jtiBool = 0x08,
+	jtiAll = jtiKey | jtiString | jtiNumeric | jtiBool
+} JsonToIndex;
+
+/* an action that will be applied to each value in iterate_json(b)_vaues functions */
 typedef void (*JsonIterateStringValuesAction) (void *state, char *elem_value, int elem_len);
 
-/* an action that will be applied to each value in transform_json(b)_string_values functions */
-typedef text * (*JsonTransformStringValuesAction) (void *state, char *elem_value, int elem_len);
+/* an action that will be applied to each value in transform_json(b)_values functions */
+typedef text *(*JsonTransformStringValuesAction) (void *state, char *elem_value, int elem_len);
 
-extern void iterate_jsonb_string_values(Jsonb * jb, void *state,
-							JsonIterateStringValuesAction action);
-extern void iterate_json_string_values(text * json, void *action_state,
-						   JsonIterateStringValuesAction action);
-extern Jsonb * transform_jsonb_string_values(Jsonb * jsonb, void *action_state,
-											 JsonTransformStringValuesAction transform_action);
-extern text * transform_json_string_values(text * json, void *action_state,
-										   JsonTransformStringValuesAction transform_action);
+extern uint32 parse_jsonb_index_flags(Jsonb *jb);
+extern void iterate_jsonb_values(Jsonb *jb, uint32 flags, void *state,
+					 JsonIterateStringValuesAction action);
+extern void iterate_json_values(text *json, uint32 flags, void *action_state,
+					JsonIterateStringValuesAction action);
+extern Jsonb *transform_jsonb_string_values(Jsonb *jsonb, void *action_state,
+							  JsonTransformStringValuesAction transform_action);
+extern text *transform_json_string_values(text *json, void *action_state,
+							 JsonTransformStringValuesAction transform_action);
+
+extern char *JsonEncodeDateTime(char *buf, Datum value, Oid typid);
 
 #endif							/* JSONAPI_H */

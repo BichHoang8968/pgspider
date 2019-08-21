@@ -23,7 +23,7 @@
  * the result is validly encoded according to the destination encoding.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -42,17 +42,6 @@
 #include "utils/syscache.h"
 
 /*
- * When converting strings between different encodings, we assume that space
- * for converted result is 4-to-1 growth in the worst case. The rate for
- * currently supported encoding pairs are within 3 (SJIS JIS X0201 half width
- * kanna -> UTF8 is the worst case).  So "4" should be enough for the moment.
- *
- * Note that this is not the same as the maximum character width in any
- * particular encoding.
- */
-#define MAX_CONVERSION_GROWTH  4
-
-/*
  * We maintain a simple linked list caching the fmgr lookup info for the
  * currently selected conversion functions, as well as any that have been
  * selected previously in the current session.  (We remember previous
@@ -67,16 +56,16 @@ typedef struct ConvProcInfo
 	int			c_encoding;
 	FmgrInfo	to_server_info; /* lookup info for conversion procs */
 	FmgrInfo	to_client_info;
-}			ConvProcInfo;
+} ConvProcInfo;
 
-static List * ConvProcList = NIL;	/* List of ConvProcInfo */
+static List *ConvProcList = NIL;	/* List of ConvProcInfo */
 
 /*
  * These variables point to the currently active conversion functions,
  * or are NULL when no conversion is needed.
  */
-static FmgrInfo * ToServerConvProc = NULL;
-static FmgrInfo * ToClientConvProc = NULL;
+static FmgrInfo *ToServerConvProc = NULL;
+static FmgrInfo *ToClientConvProc = NULL;
 
 /*
  * These variables track the currently-selected encodings.
@@ -724,60 +713,60 @@ perform_default_encoding_conversion(const char *src, int len,
 
 /* convert a multibyte string to a wchar */
 int
-pg_mb2wchar(const char *from, pg_wchar * to)
+pg_mb2wchar(const char *from, pg_wchar *to)
 {
-	return (*pg_wchar_table[DatabaseEncoding->encoding].mb2wchar_with_len) ((const unsigned char *) from, to, strlen(from));
+	return pg_wchar_table[DatabaseEncoding->encoding].mb2wchar_with_len((const unsigned char *) from, to, strlen(from));
 }
 
 /* convert a multibyte string to a wchar with a limited length */
 int
-pg_mb2wchar_with_len(const char *from, pg_wchar * to, int len)
+pg_mb2wchar_with_len(const char *from, pg_wchar *to, int len)
 {
-	return (*pg_wchar_table[DatabaseEncoding->encoding].mb2wchar_with_len) ((const unsigned char *) from, to, len);
+	return pg_wchar_table[DatabaseEncoding->encoding].mb2wchar_with_len((const unsigned char *) from, to, len);
 }
 
 /* same, with any encoding */
 int
 pg_encoding_mb2wchar_with_len(int encoding,
-							  const char *from, pg_wchar * to, int len)
+							  const char *from, pg_wchar *to, int len)
 {
-	return (*pg_wchar_table[encoding].mb2wchar_with_len) ((const unsigned char *) from, to, len);
+	return pg_wchar_table[encoding].mb2wchar_with_len((const unsigned char *) from, to, len);
 }
 
 /* convert a wchar string to a multibyte */
 int
-pg_wchar2mb(const pg_wchar * from, char *to)
+pg_wchar2mb(const pg_wchar *from, char *to)
 {
-	return (*pg_wchar_table[DatabaseEncoding->encoding].wchar2mb_with_len) (from, (unsigned char *) to, pg_wchar_strlen(from));
+	return pg_wchar_table[DatabaseEncoding->encoding].wchar2mb_with_len(from, (unsigned char *) to, pg_wchar_strlen(from));
 }
 
 /* convert a wchar string to a multibyte with a limited length */
 int
-pg_wchar2mb_with_len(const pg_wchar * from, char *to, int len)
+pg_wchar2mb_with_len(const pg_wchar *from, char *to, int len)
 {
-	return (*pg_wchar_table[DatabaseEncoding->encoding].wchar2mb_with_len) (from, (unsigned char *) to, len);
+	return pg_wchar_table[DatabaseEncoding->encoding].wchar2mb_with_len(from, (unsigned char *) to, len);
 }
 
 /* same, with any encoding */
 int
 pg_encoding_wchar2mb_with_len(int encoding,
-							  const pg_wchar * from, char *to, int len)
+							  const pg_wchar *from, char *to, int len)
 {
-	return (*pg_wchar_table[encoding].wchar2mb_with_len) (from, (unsigned char *) to, len);
+	return pg_wchar_table[encoding].wchar2mb_with_len(from, (unsigned char *) to, len);
 }
 
 /* returns the byte length of a multibyte character */
 int
 pg_mblen(const char *mbstr)
 {
-	return ((*pg_wchar_table[DatabaseEncoding->encoding].mblen) ((const unsigned char *) mbstr));
+	return pg_wchar_table[DatabaseEncoding->encoding].mblen((const unsigned char *) mbstr);
 }
 
 /* returns the display length of a multibyte character */
 int
 pg_dsplen(const char *mbstr)
 {
-	return ((*pg_wchar_table[DatabaseEncoding->encoding].dsplen) ((const unsigned char *) mbstr));
+	return pg_wchar_table[DatabaseEncoding->encoding].dsplen((const unsigned char *) mbstr);
 }
 
 /* returns the length (counted in wchars) of a multibyte string */

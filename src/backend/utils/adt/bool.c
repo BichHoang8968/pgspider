@@ -3,7 +3,7 @@
  * bool.c
  *	  Functions for the built-in type "bool".
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -312,7 +312,7 @@ typedef struct BoolAggState
 {
 	int64		aggcount;		/* number of non-null values aggregated */
 	int64		aggtrue;		/* number of values aggregated that are true */
-}			BoolAggState;
+} BoolAggState;
 
 static BoolAggState *
 makeBoolAggState(FunctionCallInfo fcinfo)

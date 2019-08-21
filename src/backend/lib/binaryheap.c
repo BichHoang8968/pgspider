@@ -3,7 +3,7 @@
  * binaryheap.c
  *	  A simple binary heap implementation
  *
- * Portions Copyright (c) 2012-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2012-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/lib/binaryheap.c
@@ -17,9 +17,9 @@
 
 #include "lib/binaryheap.h"
 
-static void sift_down(binaryheap * heap, int node_off);
-static void sift_up(binaryheap * heap, int node_off);
-static inline void swap_nodes(binaryheap * heap, int a, int b);
+static void sift_down(binaryheap *heap, int node_off);
+static void sift_up(binaryheap *heap, int node_off);
+static inline void swap_nodes(binaryheap *heap, int a, int b);
 
 /*
  * binaryheap_allocate
@@ -54,7 +54,7 @@ binaryheap_allocate(int capacity, binaryheap_comparator compare, void *arg)
  * parameters passed at allocation.
  */
 void
-binaryheap_reset(binaryheap * heap)
+binaryheap_reset(binaryheap *heap)
 {
 	heap->bh_size = 0;
 	heap->bh_has_heap_property = true;
@@ -66,7 +66,7 @@ binaryheap_reset(binaryheap * heap)
  * Releases memory used by the given binaryheap.
  */
 void
-binaryheap_free(binaryheap * heap)
+binaryheap_free(binaryheap *heap)
 {
 	pfree(heap);
 }
@@ -107,7 +107,7 @@ parent_offset(int i)
  * afterwards.
  */
 void
-binaryheap_add_unordered(binaryheap * heap, Datum d)
+binaryheap_add_unordered(binaryheap *heap, Datum d)
 {
 	if (heap->bh_size >= heap->bh_space)
 		elog(ERROR, "out of binary heap slots");
@@ -123,7 +123,7 @@ binaryheap_add_unordered(binaryheap * heap, Datum d)
  * binaryheap_add_unordered(). Not needed otherwise.
  */
 void
-binaryheap_build(binaryheap * heap)
+binaryheap_build(binaryheap *heap)
 {
 	int			i;
 
@@ -139,7 +139,7 @@ binaryheap_build(binaryheap * heap)
  * the heap property.
  */
 void
-binaryheap_add(binaryheap * heap, Datum d)
+binaryheap_add(binaryheap *heap, Datum d)
 {
 	if (heap->bh_size >= heap->bh_space)
 		elog(ERROR, "out of binary heap slots");
@@ -156,7 +156,7 @@ binaryheap_add(binaryheap * heap, Datum d)
  * routine is not used on an empty heap. Always O(1).
  */
 Datum
-binaryheap_first(binaryheap * heap)
+binaryheap_first(binaryheap *heap)
 {
 	Assert(!binaryheap_empty(heap) && heap->bh_has_heap_property);
 	return heap->bh_nodes[0];
@@ -171,7 +171,7 @@ binaryheap_first(binaryheap * heap)
  * case.
  */
 Datum
-binaryheap_remove_first(binaryheap * heap)
+binaryheap_remove_first(binaryheap *heap)
 {
 	Assert(!binaryheap_empty(heap) && heap->bh_has_heap_property);
 
@@ -201,7 +201,7 @@ binaryheap_remove_first(binaryheap * heap)
  * sifting the new node down.
  */
 void
-binaryheap_replace_first(binaryheap * heap, Datum d)
+binaryheap_replace_first(binaryheap *heap, Datum d)
 {
 	Assert(!binaryheap_empty(heap) && heap->bh_has_heap_property);
 
@@ -215,7 +215,7 @@ binaryheap_replace_first(binaryheap * heap, Datum d)
  * Swap the contents of two nodes.
  */
 static inline void
-swap_nodes(binaryheap * heap, int a, int b)
+swap_nodes(binaryheap *heap, int a, int b)
 {
 	Datum		swap;
 
@@ -229,7 +229,7 @@ swap_nodes(binaryheap * heap, int a, int b)
  * comparator.
  */
 static void
-sift_up(binaryheap * heap, int node_off)
+sift_up(binaryheap *heap, int node_off)
 {
 	while (node_off != 0)
 	{
@@ -261,7 +261,7 @@ sift_up(binaryheap * heap, int node_off)
  * property.
  */
 static void
-sift_down(binaryheap * heap, int node_off)
+sift_down(binaryheap *heap, int node_off)
 {
 	while (true)
 	{

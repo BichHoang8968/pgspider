@@ -5,7 +5,7 @@
  *
  * Note: this file must be includable in both frontend and backend contexts.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/datatype/timestamp.h
@@ -46,7 +46,7 @@ typedef struct
 								 * years */
 	int32		day;			/* days, after time for alignment */
 	int32		month;			/* months and years, after time for alignment */
-}			Interval;
+} Interval;
 
 
 /* Limits on the "precision" option (typmod) for these data types */

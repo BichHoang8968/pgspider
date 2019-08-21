@@ -4,34 +4,12 @@
  *	  functions for OpenSSL support in the backend.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
  *	  src/backend/libpq/be-secure-openssl.c
- *
- *	  Since the server static private key ($DataDir/server.key)
- *	  will normally be stored unencrypted so that the database
- *	  backend can restart automatically, it is important that
- *	  we select an algorithm that continues to provide confidentiality
- *	  even if the attacker has the server's private key.  Ephemeral
- *	  DH (EDH) keys provide this and more (Perfect Forward Secrecy
- *	  aka PFS).
- *
- *	  N.B., the static private key should still be protected to
- *	  the largest extent possible, to minimize the risk of
- *	  impersonations.
- *
- *	  Another benefit of EDH is that it allows the backend and
- *	  clients to use DSA keys.  DSA keys can only provide digital
- *	  signatures, not encryption, and are often acceptable in
- *	  jurisdictions where RSA keys are unacceptable.
- *
- *	  The downside to EDH is that it makes it impossible to
- *	  use ssldump(1) if there's a problem establishing an SSL
- *	  session.  In this case you'll need to temporarily disable
- *	  EDH by commenting out the callback.
  *
  *-------------------------------------------------------------------------
  */
@@ -67,78 +45,38 @@
 #include "utils/memutils.h"
 
 
-static int	my_sock_read(BIO * h, char *buf, int size);
-static int	my_sock_write(BIO * h, const char *buf, int size);
-static BIO_METHOD * my_BIO_s_socket(void);
-static int	my_SSL_set_fd(Port * port, int fd);
+static int	my_sock_read(BIO *h, char *buf, int size);
+static int	my_sock_write(BIO *h, const char *buf, int size);
+static BIO_METHOD *my_BIO_s_socket(void);
+static int	my_SSL_set_fd(Port *port, int fd);
 
-static DH * load_dh_file(char *filename, bool isServerStart);
-static DH * load_dh_buffer(const char *, size_t);
-static int	ssl_passwd_cb(char *buf, int size, int rwflag, void *userdata);
+static DH  *load_dh_file(char *filename, bool isServerStart);
+static DH  *load_dh_buffer(const char *, size_t);
+static int	ssl_external_passwd_cb(char *buf, int size, int rwflag, void *userdata);
+static int	dummy_ssl_passwd_cb(char *buf, int size, int rwflag, void *userdata);
 static int	verify_cb(int, X509_STORE_CTX *);
-static void info_cb(const SSL * ssl, int type, int args);
-static bool initialize_dh(SSL_CTX * context, bool isServerStart);
-static bool initialize_ecdh(SSL_CTX * context, bool isServerStart);
+static void info_cb(const SSL *ssl, int type, int args);
+static bool initialize_dh(SSL_CTX *context, bool isServerStart);
+static bool initialize_ecdh(SSL_CTX *context, bool isServerStart);
 static const char *SSLerrmessage(unsigned long ecode);
 
-static char *X509_NAME_to_cstring(X509_NAME * name);
+static char *X509_NAME_to_cstring(X509_NAME *name);
 
-static SSL_CTX * SSL_context = NULL;
+static SSL_CTX *SSL_context = NULL;
 static bool SSL_initialized = false;
-static bool ssl_passwd_cb_called = false;
-
-/* ------------------------------------------------------------ */
-/*						 Hardcoded values						*/
-/* ------------------------------------------------------------ */
-
-/*
- *	Hardcoded DH parameters, used in ephemeral DH keying.
- *	As discussed above, EDH protects the confidentiality of
- *	sessions even if the static private key is compromised,
- *	so we are *highly* motivated to ensure that we can use
- *	EDH even if the DBA has not provided custom DH parameters.
- *
- *	We could refuse SSL connections unless a good DH parameter
- *	file exists, but some clients may quietly renegotiate an
- *	unsecured connection without fully informing the user.
- *	Very uncool. Alternatively, the system could refuse to start
- *	if a DH parameters is not specified, but this would tend to
- *	piss off DBAs.
- *
- *	If you want to create your own hardcoded DH parameters
- *	for fun and profit, review "Assigned Number for SKIP
- *	Protocols" (http://www.skip-vpn.org/spec/numbers.html)
- *	for suggestions.
- */
-
-static const char file_dh2048[] =
-"-----BEGIN DH PARAMETERS-----\n\
-MIIBCAKCAQEA9kJXtwh/CBdyorrWqULzBej5UxE5T7bxbrlLOCDaAadWoxTpj0BV\n\
-89AHxstDqZSt90xkhkn4DIO9ZekX1KHTUPj1WV/cdlJPPT2N286Z4VeSWc39uK50\n\
-T8X8dryDxUcwYc58yWb/Ffm7/ZFexwGq01uejaClcjrUGvC/RgBYK+X0iP1YTknb\n\
-zSC0neSRBzZrM2w4DUUdD3yIsxx8Wy2O9vPJI8BD8KVbGI2Ou1WMuF040zT9fBdX\n\
-Q6MdGGzeMyEstSr/POGxKUAYEY18hKcKctaGxAMZyAcpesqVDNmWn6vQClCbAkbT\n\
-CD1mpF1Bn5x8vYlLIhkmuquiXsNV6TILOwIBAg==\n\
------END DH PARAMETERS-----\n";
+static bool dummy_ssl_passwd_cb_called = false;
+static bool ssl_is_server_start;
 
 
 /* ------------------------------------------------------------ */
 /*						 Public interface						*/
 /* ------------------------------------------------------------ */
 
-/*
- *	Initialize global SSL context.
- *
- * If isServerStart is true, report any errors as FATAL (so we don't return).
- * Otherwise, log errors at LOG level and return -1 to indicate trouble,
- * preserving the old SSL state if any.  Returns 0 if OK.
- */
 int
 be_tls_init(bool isServerStart)
 {
-	STACK_OF(X509_NAME) * root_cert_list = NULL;
+	STACK_OF(X509_NAME) *root_cert_list = NULL;
 	SSL_CTX    *context;
-	struct stat buf;
 
 	/* This stuff need be done only once. */
 	if (!SSL_initialized)
@@ -175,14 +113,29 @@ be_tls_init(bool isServerStart)
 	SSL_CTX_set_mode(context, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
 
 	/*
-	 * If reloading, override OpenSSL's default handling of
-	 * passphrase-protected files, because we don't want to prompt for a
-	 * passphrase in an already-running server.  (Not that the default
-	 * handling is very desirable during server start either, but some people
-	 * insist we need to keep it.)
+	 * Set password callback
 	 */
-	if (!isServerStart)
-		SSL_CTX_set_default_passwd_cb(context, ssl_passwd_cb);
+	if (isServerStart)
+	{
+		if (ssl_passphrase_command[0])
+			SSL_CTX_set_default_passwd_cb(context, ssl_external_passwd_cb);
+	}
+	else
+	{
+		if (ssl_passphrase_command[0] && ssl_passphrase_command_supports_reload)
+			SSL_CTX_set_default_passwd_cb(context, ssl_external_passwd_cb);
+		else
+
+			/*
+			 * If reloading and no external command is configured, override
+			 * OpenSSL's default handling of passphrase-protected files,
+			 * because we don't want to prompt for a passphrase in an
+			 * already-running server.
+			 */
+			SSL_CTX_set_default_passwd_cb(context, dummy_ssl_passwd_cb);
+	}
+	/* used by the callback */
+	ssl_is_server_start = isServerStart;
 
 	/*
 	 * Load and verify server's certificate and private key
@@ -196,74 +149,19 @@ be_tls_init(bool isServerStart)
 		goto error;
 	}
 
-	if (stat(ssl_key_file, &buf) != 0)
-	{
-		ereport(isServerStart ? FATAL : LOG,
-				(errcode_for_file_access(),
-				 errmsg("could not access private key file \"%s\": %m",
-						ssl_key_file)));
+	if (!check_ssl_key_file_permissions(ssl_key_file, isServerStart))
 		goto error;
-	}
-
-	if (!S_ISREG(buf.st_mode))
-	{
-		ereport(isServerStart ? FATAL : LOG,
-				(errcode(ERRCODE_CONFIG_FILE_ERROR),
-				 errmsg("private key file \"%s\" is not a regular file",
-						ssl_key_file)));
-		goto error;
-	}
-
-	/*
-	 * Refuse to load key files owned by users other than us or root.
-	 *
-	 * XXX surely we can check this on Windows somehow, too.
-	 */
-#if !defined(WIN32) && !defined(__CYGWIN__)
-	if (buf.st_uid != geteuid() && buf.st_uid != 0)
-	{
-		ereport(isServerStart ? FATAL : LOG,
-				(errcode(ERRCODE_CONFIG_FILE_ERROR),
-				 errmsg("private key file \"%s\" must be owned by the database user or root",
-						ssl_key_file)));
-		goto error;
-	}
-#endif
-
-	/*
-	 * Require no public access to key file. If the file is owned by us,
-	 * require mode 0600 or less. If owned by root, require 0640 or less to
-	 * allow read access through our gid, or a supplementary gid that allows
-	 * to read system-wide certificates.
-	 *
-	 * XXX temporarily suppress check when on Windows, because there may not
-	 * be proper support for Unix-y file permissions.  Need to think of a
-	 * reasonable check to apply on Windows.  (See also the data directory
-	 * permission check in postmaster.c)
-	 */
-#if !defined(WIN32) && !defined(__CYGWIN__)
-	if ((buf.st_uid == geteuid() && buf.st_mode & (S_IRWXG | S_IRWXO)) ||
-		(buf.st_uid == 0 && buf.st_mode & (S_IWGRP | S_IXGRP | S_IRWXO)))
-	{
-		ereport(isServerStart ? FATAL : LOG,
-				(errcode(ERRCODE_CONFIG_FILE_ERROR),
-				 errmsg("private key file \"%s\" has group or world access",
-						ssl_key_file),
-				 errdetail("File must have permissions u=rw (0600) or less if owned by the database user, or permissions u=rw,g=r (0640) or less if owned by root.")));
-		goto error;
-	}
-#endif
 
 	/*
 	 * OK, try to load the private key file.
 	 */
-	ssl_passwd_cb_called = false;
+	dummy_ssl_passwd_cb_called = false;
 
 	if (SSL_CTX_use_PrivateKey_file(context,
 									ssl_key_file,
 									SSL_FILETYPE_PEM) != 1)
 	{
-		if (ssl_passwd_cb_called)
+		if (dummy_ssl_passwd_cb_called)
 			ereport(isServerStart ? FATAL : LOG,
 					(errcode(ERRCODE_CONFIG_FILE_ERROR),
 					 errmsg("private key file \"%s\" cannot be reloaded because it requires a passphrase",
@@ -289,7 +187,7 @@ be_tls_init(bool isServerStart)
 	SSL_CTX_set_options(context, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3);
 
 	/* disallow SSL session tickets */
-#ifdef SSL_OP_NO_TICKET			/* added in openssl 0.9.8f */
+#ifdef SSL_OP_NO_TICKET			/* added in OpenSSL 0.9.8f */
 	SSL_CTX_set_options(context, SSL_OP_NO_TICKET);
 #endif
 
@@ -412,9 +310,6 @@ error:
 	return -1;
 }
 
-/*
- *	Destroy global SSL context, if any.
- */
 void
 be_tls_destroy(void)
 {
@@ -424,11 +319,8 @@ be_tls_destroy(void)
 	ssl_loaded_verify_locations = false;
 }
 
-/*
- *	Attempt to negotiate SSL connection.
- */
 int
-be_tls_open_server(Port * port)
+be_tls_open_server(Port *port)
 {
 	int			r;
 	int			err;
@@ -585,21 +477,14 @@ aloop:
 		port->peer_cert_valid = true;
 	}
 
-	ereport(DEBUG2,
-			(errmsg("SSL connection from \"%s\"",
-					port->peer_cn ? port->peer_cn : "(anonymous)")));
-
 	/* set up debugging/info callback */
 	SSL_CTX_set_info_callback(SSL_context, info_cb);
 
 	return 0;
 }
 
-/*
- *	Close SSL connection.
- */
 void
-be_tls_close(Port * port)
+be_tls_close(Port *port)
 {
 	if (port->ssl)
 	{
@@ -622,11 +507,8 @@ be_tls_close(Port * port)
 	}
 }
 
-/*
- *	Read data from a secure connection.
- */
 ssize_t
-be_tls_read(Port * port, void *ptr, size_t len, int *waitfor)
+be_tls_read(Port *port, void *ptr, size_t len, int *waitfor)
 {
 	ssize_t		n;
 	int			err;
@@ -684,11 +566,8 @@ be_tls_read(Port * port, void *ptr, size_t len, int *waitfor)
 	return n;
 }
 
-/*
- *	Write data to a secure connection.
- */
 ssize_t
-be_tls_write(Port * port, void *ptr, size_t len, int *waitfor)
+be_tls_write(Port *port, void *ptr, size_t len, int *waitfor)
 {
 	ssize_t		n;
 	int			err;
@@ -732,7 +611,7 @@ be_tls_write(Port * port, void *ptr, size_t len, int *waitfor)
 		case SSL_ERROR_ZERO_RETURN:
 
 			/*
-			 * the SSL connnection was closed, leave it to the caller to
+			 * the SSL connection was closed, leave it to the caller to
 			 * ereport it
 			 */
 			errno = ECONNRESET;
@@ -759,7 +638,7 @@ be_tls_write(Port * port, void *ptr, size_t len, int *waitfor)
  * Private substitute BIO: this does the sending and receiving using send() and
  * recv() instead. This is so that we can enable and disable interrupts
  * just while calling recv(). We cannot have interrupts occurring while
- * the bulk of openssl runs, because it uses malloc() and possibly other
+ * the bulk of OpenSSL runs, because it uses malloc() and possibly other
  * non-reentrant libc facilities. We also need to call send() and recv()
  * directly so it gets passed through the socket/signals layer on Win32.
  *
@@ -774,10 +653,10 @@ be_tls_write(Port * port, void *ptr, size_t len, int *waitfor)
 #define BIO_set_data(bio, data) (bio->ptr = data)
 #endif
 
-static BIO_METHOD * my_bio_methods = NULL;
+static BIO_METHOD *my_bio_methods = NULL;
 
 static int
-my_sock_read(BIO * h, char *buf, int size)
+my_sock_read(BIO *h, char *buf, int size)
 {
 	int			res = 0;
 
@@ -799,7 +678,7 @@ my_sock_read(BIO * h, char *buf, int size)
 }
 
 static int
-my_sock_write(BIO * h, const char *buf, int size)
+my_sock_write(BIO *h, const char *buf, int size)
 {
 	int			res = 0;
 
@@ -857,9 +736,9 @@ my_BIO_s_socket(void)
 	return my_bio_methods;
 }
 
-/* This should exactly match openssl's SSL_set_fd except for using my BIO */
+/* This should exactly match OpenSSL's SSL_set_fd except for using my BIO */
 static int
-my_SSL_set_fd(Port * port, int fd)
+my_SSL_set_fd(Port *port, int fd)
 {
 	int			ret = 0;
 	BIO		   *bio;
@@ -894,7 +773,7 @@ err:
  *	to verify that the DBA-generated DH parameters file contains
  *	what we expect it to contain.
  */
-static DH *
+static DH  *
 load_dh_file(char *filename, bool isServerStart)
 {
 	FILE	   *fp;
@@ -957,7 +836,7 @@ load_dh_file(char *filename, bool isServerStart)
  *	To prevent problems if the DH parameters files don't even
  *	exist, we can load DH parameters hardcoded into this file.
  */
-static DH *
+static DH  *
 load_dh_buffer(const char *buffer, size_t len)
 {
 	BIO		   *bio;
@@ -977,7 +856,21 @@ load_dh_buffer(const char *buffer, size_t len)
 }
 
 /*
- *	Passphrase collection callback
+ *	Passphrase collection callback using ssl_passphrase_command
+ */
+static int
+ssl_external_passwd_cb(char *buf, int size, int rwflag, void *userdata)
+{
+	/* same prompt as OpenSSL uses internally */
+	const char *prompt = "Enter PEM pass phrase:";
+
+	Assert(rwflag == 0);
+
+	return run_ssl_passphrase_command(prompt, ssl_is_server_start, buf, size);
+}
+
+/*
+ * Dummy passphrase callback
  *
  * If OpenSSL is told to use a passphrase-protected server key, by default
  * it will issue a prompt on /dev/tty and try to read a key from there.
@@ -986,10 +879,10 @@ load_dh_buffer(const char *buffer, size_t len)
  * function that just returns an empty passphrase, guaranteeing failure.
  */
 static int
-ssl_passwd_cb(char *buf, int size, int rwflag, void *userdata)
+dummy_ssl_passwd_cb(char *buf, int size, int rwflag, void *userdata)
 {
 	/* Set flag to change the error message we'll report */
-	ssl_passwd_cb_called = true;
+	dummy_ssl_passwd_cb_called = true;
 	/* And return empty string */
 	Assert(size > 0);
 	buf[0] = '\0';
@@ -1008,7 +901,7 @@ ssl_passwd_cb(char *buf, int size, int rwflag, void *userdata)
  *	for now we accept the default checks.
  */
 static int
-verify_cb(int ok, X509_STORE_CTX * ctx)
+verify_cb(int ok, X509_STORE_CTX *ctx)
 {
 	return ok;
 }
@@ -1018,7 +911,7 @@ verify_cb(int ok, X509_STORE_CTX * ctx)
  *	into the PostgreSQL log.
  */
 static void
-info_cb(const SSL * ssl, int type, int args)
+info_cb(const SSL *ssl, int type, int args)
 {
 	switch (type)
 	{
@@ -1071,7 +964,7 @@ info_cb(const SSL * ssl, int type, int args)
  * information provided.
  */
 static bool
-initialize_dh(SSL_CTX * context, bool isServerStart)
+initialize_dh(SSL_CTX *context, bool isServerStart)
 {
 	DH		   *dh = NULL;
 
@@ -1080,7 +973,7 @@ initialize_dh(SSL_CTX * context, bool isServerStart)
 	if (ssl_dh_params_file[0])
 		dh = load_dh_file(ssl_dh_params_file, isServerStart);
 	if (!dh)
-		dh = load_dh_buffer(file_dh2048, sizeof file_dh2048);
+		dh = load_dh_buffer(FILE_DH2048, sizeof(FILE_DH2048));
 	if (!dh)
 	{
 		ereport(isServerStart ? FATAL : LOG,
@@ -1106,7 +999,7 @@ initialize_dh(SSL_CTX * context, bool isServerStart)
  * need to provide the name of the curve to OpenSSL.
  */
 static bool
-initialize_ecdh(SSL_CTX * context, bool isServerStart)
+initialize_ecdh(SSL_CTX *context, bool isServerStart)
 {
 #ifndef OPENSSL_NO_ECDH
 	EC_KEY	   *ecdh;
@@ -1151,7 +1044,7 @@ static const char *
 SSLerrmessage(unsigned long ecode)
 {
 	const char *errreason;
-	static char errbuf[32];
+	static char errbuf[36];
 
 	if (ecode == 0)
 		return _("no SSL error reported");
@@ -1162,11 +1055,8 @@ SSLerrmessage(unsigned long ecode)
 	return errbuf;
 }
 
-/*
- * Return information about the SSL connection
- */
 int
-be_tls_get_cipher_bits(Port * port)
+be_tls_get_cipher_bits(Port *port)
 {
 	int			bits;
 
@@ -1180,7 +1070,7 @@ be_tls_get_cipher_bits(Port * port)
 }
 
 bool
-be_tls_get_compression(Port * port)
+be_tls_get_compression(Port *port)
 {
 	if (port->ssl)
 		return (SSL_get_current_compression(port->ssl) != NULL);
@@ -1188,26 +1078,26 @@ be_tls_get_compression(Port * port)
 		return false;
 }
 
-void
-be_tls_get_version(Port * port, char *ptr, size_t len)
+const char *
+be_tls_get_version(Port *port)
 {
 	if (port->ssl)
-		strlcpy(ptr, SSL_get_version(port->ssl), len);
+		return SSL_get_version(port->ssl);
 	else
-		ptr[0] = '\0';
+		return NULL;
+}
+
+const char *
+be_tls_get_cipher(Port *port)
+{
+	if (port->ssl)
+		return SSL_get_cipher(port->ssl);
+	else
+		return NULL;
 }
 
 void
-be_tls_get_cipher(Port * port, char *ptr, size_t len)
-{
-	if (port->ssl)
-		strlcpy(ptr, SSL_get_cipher(port->ssl), len);
-	else
-		ptr[0] = '\0';
-}
-
-void
-be_tls_get_peerdn_name(Port * port, char *ptr, size_t len)
+be_tls_get_peerdn_name(Port *port, char *ptr, size_t len)
 {
 	if (port->peer)
 		strlcpy(ptr, X509_NAME_to_cstring(X509_get_subject_name(port->peer)), len);
@@ -1215,12 +1105,68 @@ be_tls_get_peerdn_name(Port * port, char *ptr, size_t len)
 		ptr[0] = '\0';
 }
 
+#ifdef HAVE_X509_GET_SIGNATURE_NID
+char *
+be_tls_get_certificate_hash(Port *port, size_t *len)
+{
+	X509	   *server_cert;
+	char	   *cert_hash;
+	const EVP_MD *algo_type = NULL;
+	unsigned char hash[EVP_MAX_MD_SIZE];	/* size for SHA-512 */
+	unsigned int hash_size;
+	int			algo_nid;
+
+	*len = 0;
+	server_cert = SSL_get_certificate(port->ssl);
+	if (server_cert == NULL)
+		return NULL;
+
+	/*
+	 * Get the signature algorithm of the certificate to determine the hash
+	 * algorithm to use for the result.
+	 */
+	if (!OBJ_find_sigid_algs(X509_get_signature_nid(server_cert),
+							 &algo_nid, NULL))
+		elog(ERROR, "could not determine server certificate signature algorithm");
+
+	/*
+	 * The TLS server's certificate bytes need to be hashed with SHA-256 if
+	 * its signature algorithm is MD5 or SHA-1 as per RFC 5929
+	 * (https://tools.ietf.org/html/rfc5929#section-4.1).  If something else
+	 * is used, the same hash as the signature algorithm is used.
+	 */
+	switch (algo_nid)
+	{
+		case NID_md5:
+		case NID_sha1:
+			algo_type = EVP_sha256();
+			break;
+		default:
+			algo_type = EVP_get_digestbynid(algo_nid);
+			if (algo_type == NULL)
+				elog(ERROR, "could not find digest for NID %s",
+					 OBJ_nid2sn(algo_nid));
+			break;
+	}
+
+	/* generate and save the certificate hash */
+	if (!X509_digest(server_cert, algo_type, hash, &hash_size))
+		elog(ERROR, "could not generate server certificate hash");
+
+	cert_hash = palloc(hash_size);
+	memcpy(cert_hash, hash, hash_size);
+	*len = hash_size;
+
+	return cert_hash;
+}
+#endif
+
 /*
  * Convert an X509 subject name to a cstring.
  *
  */
 static char *
-X509_NAME_to_cstring(X509_NAME * name)
+X509_NAME_to_cstring(X509_NAME *name)
 {
 	BIO		   *membuf = BIO_new(BIO_s_mem());
 	int			i,

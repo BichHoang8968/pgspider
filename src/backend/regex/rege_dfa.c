@@ -41,8 +41,8 @@
 static chr *
 longest(struct vars *v,
 		struct dfa *d,
-		chr * start,			/* where the match should start */
-		chr * stop,				/* match must end at or before here */
+		chr *start,				/* where the match should start */
+		chr *stop,				/* match must end at or before here */
 		int *hitstopp)			/* record whether hit v->stop, if non-NULL */
 {
 	chr		   *cp;
@@ -167,10 +167,10 @@ longest(struct vars *v,
 static chr *
 shortest(struct vars *v,
 		 struct dfa *d,
-		 chr * start,			/* where the match should start */
-		 chr * min,				/* match must end at or after here */
-		 chr * max,				/* match must end at or before here */
-		 chr * *coldp,			/* store coldstart pointer here, if non-NULL */
+		 chr *start,			/* where the match should start */
+		 chr *min,				/* match must end at or after here */
+		 chr *max,				/* match must end at or before here */
+		 chr **coldp,			/* store coldstart pointer here, if non-NULL */
 		 int *hitstopp)			/* record whether hit v->stop, if non-NULL */
 {
 	chr		   *cp;
@@ -302,9 +302,9 @@ shortest(struct vars *v,
 static int
 matchuntil(struct vars *v,
 		   struct dfa *d,
-		   chr * probe,			/* we want to know if a match ends here */
+		   chr *probe,			/* we want to know if a match ends here */
 		   struct sset **lastcss,	/* state storage across calls */
-		   chr * *lastcp)		/* state storage across calls */
+		   chr **lastcp)		/* state storage across calls */
 {
 	chr		   *cp = *lastcp;
 	color		co;
@@ -556,7 +556,7 @@ hash(unsigned *uv,
 static struct sset *
 initialize(struct vars *v,
 		   struct dfa *d,
-		   chr * start)
+		   chr *start)
 {
 	struct sset *ss;
 	int			i;
@@ -604,8 +604,8 @@ miss(struct vars *v,
 	 struct dfa *d,
 	 struct sset *css,
 	 color co,
-	 chr * cp,					/* next chr */
-	 chr * start)				/* where the attempt got started */
+	 chr *cp,					/* next chr */
+	 chr *start)				/* where the attempt got started */
 {
 	struct cnfa *cnfa = d->cnfa;
 	int			i;
@@ -742,7 +742,7 @@ miss(struct vars *v,
 static int						/* predicate:  constraint satisfied? */
 lacon(struct vars *v,
 	  struct cnfa *pcnfa,		/* parent cnfa */
-	  chr * cp,
+	  chr *cp,
 	  color co)					/* "color" of the lookaround constraint */
 {
 	int			n;
@@ -769,7 +769,7 @@ lacon(struct vars *v,
 	{
 		/* used to use longest() here, but shortest() could be much cheaper */
 		end = shortest(v, d, cp, cp, v->stop,
-					   (chr * *) NULL, (int *) NULL);
+					   (chr **) NULL, (int *) NULL);
 		satisfied = LATYPE_IS_POS(sub->subno) ? (end != NULL) : (end == NULL);
 	}
 	else
@@ -799,8 +799,8 @@ lacon(struct vars *v,
 static struct sset *
 getvacant(struct vars *v,
 		  struct dfa *d,
-		  chr * cp,
-		  chr * start)
+		  chr *cp,
+		  chr *start)
 {
 	int			i;
 	struct sset *ss;
@@ -870,8 +870,8 @@ getvacant(struct vars *v,
 static struct sset *
 pickss(struct vars *v,
 	   struct dfa *d,
-	   chr * cp,
-	   chr * start)
+	   chr *cp,
+	   chr *start)
 {
 	int			i;
 	struct sset *ss;

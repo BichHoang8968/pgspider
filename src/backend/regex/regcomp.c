@@ -84,11 +84,11 @@ static void lexnest(struct vars *, const chr *, const chr *);
 static void lexword(struct vars *);
 static int	next(struct vars *);
 static int	lexescape(struct vars *);
-static chr lexdigits(struct vars *, int, int, int);
+static chr	lexdigits(struct vars *, int, int, int);
 static int	brenext(struct vars *, chr);
 static void skip(struct vars *);
-static chr newline(void);
-static chr chrnamed(struct vars *, const chr *, const chr *, chr);
+static chr	newline(void);
+static chr	chrnamed(struct vars *, const chr *, const chr *, chr);
 
 /* === regc_color.c === */
 static void initcm(struct vars *, struct colormap *);
@@ -209,7 +209,7 @@ static pg_wchar pg_wc_toupper(pg_wchar c);
 static pg_wchar pg_wc_tolower(pg_wchar c);
 
 /* === regc_locale.c === */
-static chr element(struct vars *, const chr *, const chr *);
+static chr	element(struct vars *, const chr *, const chr *);
 static struct cvec *range(struct vars *, chr, chr, int);
 static int	before(chr, chr);
 static struct cvec *eclass(struct vars *, chr, int);
@@ -224,10 +224,10 @@ static int	casecmp(const chr *, const chr *, size_t);
 struct vars
 {
 	regex_t    *re;
-	const		chr *now;		/* scan pointer into string */
-	const		chr *stop;		/* end of string */
-	const		chr *savenow;	/* saved now and stop for "subroutine call" */
-	const		chr *savestop;
+	const chr  *now;			/* scan pointer into string */
+	const chr  *stop;			/* end of string */
+	const chr  *savenow;		/* saved now and stop for "subroutine call" */
+	const chr  *savestop;
 	int			err;			/* error code (0 if none) */
 	int			cflags;			/* copy of compile flags */
 	int			lasttype;		/* type of previous token */
@@ -311,8 +311,8 @@ static const struct fns functions = {
  * need not be applied to re.
  */
 int
-pg_regcomp(regex_t * re,
-		   const chr * string,
+pg_regcomp(regex_t *re,
+		   const chr *string,
 		   size_t len,
 		   int flags,
 		   Oid collation)
@@ -909,7 +909,8 @@ parseqatom(struct vars *v,
 			}
 			/* legal in EREs due to specification botch */
 			NOTE(REG_UPBOTCH);
-			/* fallthrough into case PLAIN */
+			/* fall through into case PLAIN */
+			/* FALLTHROUGH */
 		case PLAIN:
 			onechr(v, v->nextvalue, lp, rp);
 			okcolors(v->nfa, v->cm);
@@ -1427,8 +1428,8 @@ brackpart(struct vars *v,
 	chr			startc;
 	chr			endc;
 	struct cvec *cv;
-	const		chr *startp;
-	const		chr *endp;
+	const chr  *startp;
+	const chr  *endp;
 	chr			c[1];
 
 	/* parse something, get rid of special cases, take shortcuts */
@@ -1535,7 +1536,7 @@ brackpart(struct vars *v,
 static const chr *				/* just after end of sequence */
 scanplain(struct vars *v)
 {
-	const		chr *endp;
+	const chr  *endp;
 
 	assert(SEE(COLLEL) || SEE(ECLASS) || SEE(CCLASS));
 	NEXT();
@@ -1863,7 +1864,7 @@ cleanst(struct vars *v)
 static long						/* optimize results from top node */
 nfatree(struct vars *v,
 		struct subre *t,
-		FILE * f)				/* for debug output */
+		FILE *f)				/* for debug output */
 {
 	assert(t != NULL && t->begin != NULL);
 
@@ -1884,7 +1885,7 @@ static long						/* optimize results */
 nfanode(struct vars *v,
 		struct subre *t,
 		int converttosearch,
-		FILE * f)				/* for debug output */
+		FILE *f)				/* for debug output */
 {
 	struct nfa *nfa;
 	long		ret = 0;
@@ -1976,7 +1977,7 @@ freelacons(struct subre *subs,
  * rfree - free a whole RE (insides of regfree)
  */
 static void
-rfree(regex_t * re)
+rfree(regex_t *re)
 {
 	struct guts *g;
 
@@ -2039,8 +2040,8 @@ rstacktoodeep(void)
  * dump - dump an RE in human-readable form
  */
 static void
-dump(regex_t * re,
-	 FILE * f)
+dump(regex_t *re,
+	 FILE *f)
 {
 	struct guts *g;
 	int			i;
@@ -2103,7 +2104,7 @@ dump(regex_t * re,
  */
 static void
 dumpst(struct subre *t,
-	   FILE * f,
+	   FILE *f,
 	   int nfapresent)			/* is the original NFA still around? */
 {
 	if (t == NULL)
@@ -2118,7 +2119,7 @@ dumpst(struct subre *t,
  */
 static void
 stdump(struct subre *t,
-	   FILE * f,
+	   FILE *f,
 	   int nfapresent)			/* is the original NFA still around? */
 {
 	char		idbuf[50];

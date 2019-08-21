@@ -201,7 +201,7 @@ typedef struct colormaprange
 	chr			cmin;			/* range represents cmin..cmax inclusive */
 	chr			cmax;
 	int			rownum;			/* row index in hicolormap array (>= 1) */
-}			colormaprange;
+} colormaprange;
 
 struct colormap
 {

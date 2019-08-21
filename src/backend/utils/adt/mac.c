@@ -3,7 +3,7 @@
  * mac.c
  *	  PostgreSQL type definitions for 6 byte, EUI-48, MAC addresses.
  *
- * Portions Copyright (c) 1998-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1998-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  src/backend/utils/adt/mac.c
@@ -40,9 +40,9 @@ typedef struct
 	bool		estimating;		/* true if estimating cardinality */
 
 	hyperLogLogState abbr_card; /* cardinality estimator */
-}			macaddr_sortsupport_state;
+} macaddr_sortsupport_state;
 
-static int	macaddr_cmp_internal(macaddr * a1, macaddr * a2);
+static int	macaddr_cmp_internal(macaddr *a1, macaddr *a2);
 static int	macaddr_fast_cmp(Datum x, Datum y, SortSupport ssup);
 static int	macaddr_cmp_abbrev(Datum x, Datum y, SortSupport ssup);
 static bool macaddr_abbrev_abort(int memtupcount, SortSupport ssup);
@@ -179,7 +179,7 @@ macaddr_send(PG_FUNCTION_ARGS)
  */
 
 static int
-macaddr_cmp_internal(macaddr * a1, macaddr * a2)
+macaddr_cmp_internal(macaddr *a1, macaddr *a2)
 {
 	if (hibits(a1) < hibits(a2))
 		return -1;
@@ -269,6 +269,15 @@ hashmacaddr(PG_FUNCTION_ARGS)
 	macaddr    *key = PG_GETARG_MACADDR_P(0);
 
 	return hash_any((unsigned char *) key, sizeof(macaddr));
+}
+
+Datum
+hashmacaddrextended(PG_FUNCTION_ARGS)
+{
+	macaddr    *key = PG_GETARG_MACADDR_P(0);
+
+	return hash_any_extended((unsigned char *) key, sizeof(macaddr),
+							 PG_GETARG_INT64(1));
 }
 
 /*

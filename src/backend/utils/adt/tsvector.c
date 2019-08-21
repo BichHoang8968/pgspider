@@ -3,7 +3,7 @@
  * tsvector.c
  *	  I/O functions for tsvector
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -25,7 +25,7 @@ typedef struct
 	WordEntry	entry;			/* must be first! */
 	WordEntryPos *pos;
 	int			poslen;			/* number of elements in pos */
-}			WordEntryIN;
+} WordEntryIN;
 
 
 /* Compare two WordEntryPos values for qsort */
@@ -47,7 +47,7 @@ compareWordEntryPos(const void *a, const void *b)
  * Returns new length.
  */
 static int
-uniquePos(WordEntryPos * a, int l)
+uniquePos(WordEntryPos *a, int l)
 {
 	WordEntryPos *ptr,
 			   *res;
@@ -81,8 +81,8 @@ uniquePos(WordEntryPos * a, int l)
 static int
 compareentry(const void *va, const void *vb, void *arg)
 {
-	const		WordEntryIN *a = (const WordEntryIN *) va;
-	const		WordEntryIN *b = (const WordEntryIN *) vb;
+	const WordEntryIN *a = (const WordEntryIN *) va;
+	const WordEntryIN *b = (const WordEntryIN *) vb;
 	char	   *BufferStr = (char *) arg;
 
 	return tsCompareString(&BufferStr[a->entry.pos], a->entry.len,
@@ -95,7 +95,7 @@ compareentry(const void *va, const void *vb, void *arg)
  * *outbuflen receives the amount of space needed for strings and positions.
  */
 static int
-uniqueentry(WordEntryIN * a, int l, char *buf, int *outbuflen)
+uniqueentry(WordEntryIN *a, int l, char *buf, int *outbuflen)
 {
 	int			buflen;
 	WordEntryIN *ptr,
@@ -167,7 +167,7 @@ uniqueentry(WordEntryIN * a, int l, char *buf, int *outbuflen)
 }
 
 static int
-WordEntryCMP(WordEntry * a, WordEntry * b, char *buf)
+WordEntryCMP(WordEntry *a, WordEntry *b, char *buf)
 {
 	return compareentry(a, b, buf);
 }
@@ -200,7 +200,7 @@ tsvectorin(PG_FUNCTION_ARGS)
 	char	   *cur;
 	int			buflen = 256;	/* allocated size of tmpbuf */
 
-	state = init_tsvector_parser(buf, false, false);
+	state = init_tsvector_parser(buf, 0);
 
 	arrlen = 64;
 	arr = (WordEntryIN *) palloc(sizeof(WordEntryIN) * arrlen);
@@ -410,7 +410,7 @@ tsvectorsend(PG_FUNCTION_ARGS)
 
 	pq_begintypsend(&buf);
 
-	pq_sendint(&buf, vec->size, sizeof(int32));
+	pq_sendint32(&buf, vec->size);
 	for (i = 0; i < vec->size; i++)
 	{
 		uint16		npos;
@@ -423,14 +423,14 @@ tsvectorsend(PG_FUNCTION_ARGS)
 		pq_sendbyte(&buf, '\0');
 
 		npos = POSDATALEN(vec, weptr);
-		pq_sendint(&buf, npos, sizeof(uint16));
+		pq_sendint16(&buf, npos);
 
 		if (npos > 0)
 		{
 			WordEntryPos *wepptr = POSDATAPTR(vec, weptr);
 
 			for (j = 0; j < npos; j++)
-				pq_sendint(&buf, wepptr[j], sizeof(WordEntryPos));
+				pq_sendint16(&buf, wepptr[j]);
 		}
 		weptr++;
 	}

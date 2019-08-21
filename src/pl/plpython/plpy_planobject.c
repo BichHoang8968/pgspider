@@ -16,65 +16,55 @@
 #include "utils/memutils.h"
 
 
-static void PLy_plan_dealloc(PyObject * arg);
-static PyObject * PLy_plan_cursor(PyObject * self, PyObject * args);
-static PyObject * PLy_plan_execute(PyObject * self, PyObject * args);
-static PyObject * PLy_plan_status(PyObject * self, PyObject * args);
+static void PLy_plan_dealloc(PyObject *arg);
+static PyObject *PLy_plan_cursor(PyObject *self, PyObject *args);
+static PyObject *PLy_plan_execute(PyObject *self, PyObject *args);
+static PyObject *PLy_plan_status(PyObject *self, PyObject *args);
 
 static char PLy_plan_doc[] = {
 	"Store a PostgreSQL plan"
 };
 
-static PyMethodDef PLy_plan_methods[] =
-{
-	{
-		"cursor", PLy_plan_cursor, METH_VARARGS, NULL
-	},
-	{
-		"execute", PLy_plan_execute, METH_VARARGS, NULL
-	},
-	{
-		"status", PLy_plan_status, METH_VARARGS, NULL
-	},
-	{
-		NULL, NULL, 0, NULL
-	}
+static PyMethodDef PLy_plan_methods[] = {
+	{"cursor", PLy_plan_cursor, METH_VARARGS, NULL},
+	{"execute", PLy_plan_execute, METH_VARARGS, NULL},
+	{"status", PLy_plan_status, METH_VARARGS, NULL},
+	{NULL, NULL, 0, NULL}
 };
 
-static PyTypeObject PLy_PlanType =
-{
+static PyTypeObject PLy_PlanType = {
 	PyVarObject_HEAD_INIT(NULL, 0)
-		"PLyPlan",				/* tp_name */
-		sizeof(PLyPlanObject),	/* tp_size */
-		0,						/* tp_itemsize */
+	"PLyPlan",					/* tp_name */
+	sizeof(PLyPlanObject),		/* tp_size */
+	0,							/* tp_itemsize */
 
 	/*
 	 * methods
 	 */
-		PLy_plan_dealloc,		/* tp_dealloc */
-		0,						/* tp_print */
-		0,						/* tp_getattr */
-		0,						/* tp_setattr */
-		0,						/* tp_compare */
-		0,						/* tp_repr */
-		0,						/* tp_as_number */
-		0,						/* tp_as_sequence */
-		0,						/* tp_as_mapping */
-		0,						/* tp_hash */
-		0,						/* tp_call */
-		0,						/* tp_str */
-		0,						/* tp_getattro */
-		0,						/* tp_setattro */
-		0,						/* tp_as_buffer */
-		Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,	/* tp_flags */
-		PLy_plan_doc,			/* tp_doc */
-		0,						/* tp_traverse */
-		0,						/* tp_clear */
-		0,						/* tp_richcompare */
-		0,						/* tp_weaklistoffset */
-		0,						/* tp_iter */
-		0,						/* tp_iternext */
-		PLy_plan_methods,		/* tp_tpmethods */
+	PLy_plan_dealloc,			/* tp_dealloc */
+	0,							/* tp_print */
+	0,							/* tp_getattr */
+	0,							/* tp_setattr */
+	0,							/* tp_compare */
+	0,							/* tp_repr */
+	0,							/* tp_as_number */
+	0,							/* tp_as_sequence */
+	0,							/* tp_as_mapping */
+	0,							/* tp_hash */
+	0,							/* tp_call */
+	0,							/* tp_str */
+	0,							/* tp_getattro */
+	0,							/* tp_setattro */
+	0,							/* tp_as_buffer */
+	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,	/* tp_flags */
+	PLy_plan_doc,				/* tp_doc */
+	0,							/* tp_traverse */
+	0,							/* tp_clear */
+	0,							/* tp_richcompare */
+	0,							/* tp_weaklistoffset */
+	0,							/* tp_iter */
+	0,							/* tp_iternext */
+	PLy_plan_methods,			/* tp_tpmethods */
 };
 
 void
@@ -103,13 +93,13 @@ PLy_plan_new(void)
 }
 
 bool
-is_PLyPlanObject(PyObject * ob)
+is_PLyPlanObject(PyObject *ob)
 {
 	return ob->ob_type == &PLy_PlanType;
 }
 
 static void
-PLy_plan_dealloc(PyObject * arg)
+PLy_plan_dealloc(PyObject *arg)
 {
 	PLyPlanObject *ob = (PLyPlanObject *) arg;
 
@@ -128,7 +118,7 @@ PLy_plan_dealloc(PyObject * arg)
 
 
 static PyObject *
-PLy_plan_cursor(PyObject * self, PyObject * args)
+PLy_plan_cursor(PyObject *self, PyObject *args)
 {
 	PyObject   *planargs = NULL;
 
@@ -140,7 +130,7 @@ PLy_plan_cursor(PyObject * self, PyObject * args)
 
 
 static PyObject *
-PLy_plan_execute(PyObject * self, PyObject * args)
+PLy_plan_execute(PyObject *self, PyObject *args)
 {
 	PyObject   *list = NULL;
 	long		limit = 0;
@@ -153,7 +143,7 @@ PLy_plan_execute(PyObject * self, PyObject * args)
 
 
 static PyObject *
-PLy_plan_status(PyObject * self, PyObject * args)
+PLy_plan_status(PyObject *self, PyObject *args)
 {
 	if (PyArg_ParseTuple(args, ":status"))
 	{

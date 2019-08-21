@@ -24,7 +24,7 @@ PG_FUNCTION_INFO_V1(gbt_bit_same);
 /* define for comparison */
 
 static bool
-gbt_bitgt(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
+gbt_bitgt(const void *a, const void *b, Oid collation, FmgrInfo *flinfo)
 {
 	return DatumGetBool(DirectFunctionCall2(bitgt,
 											PointerGetDatum(a),
@@ -32,7 +32,7 @@ gbt_bitgt(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
 }
 
 static bool
-gbt_bitge(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
+gbt_bitge(const void *a, const void *b, Oid collation, FmgrInfo *flinfo)
 {
 	return DatumGetBool(DirectFunctionCall2(bitge,
 											PointerGetDatum(a),
@@ -40,7 +40,7 @@ gbt_bitge(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
 }
 
 static bool
-gbt_biteq(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
+gbt_biteq(const void *a, const void *b, Oid collation, FmgrInfo *flinfo)
 {
 	return DatumGetBool(DirectFunctionCall2(biteq,
 											PointerGetDatum(a),
@@ -48,7 +48,7 @@ gbt_biteq(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
 }
 
 static bool
-gbt_bitle(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
+gbt_bitle(const void *a, const void *b, Oid collation, FmgrInfo *flinfo)
 {
 	return DatumGetBool(DirectFunctionCall2(bitle,
 											PointerGetDatum(a),
@@ -56,7 +56,7 @@ gbt_bitle(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
 }
 
 static bool
-gbt_bitlt(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
+gbt_bitlt(const void *a, const void *b, Oid collation, FmgrInfo *flinfo)
 {
 	return DatumGetBool(DirectFunctionCall2(bitlt,
 											PointerGetDatum(a),
@@ -64,7 +64,7 @@ gbt_bitlt(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
 }
 
 static int32
-gbt_bitcmp(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
+gbt_bitcmp(const void *a, const void *b, Oid collation, FmgrInfo *flinfo)
 {
 	return DatumGetInt32(DirectFunctionCall2(byteacmp,
 											 PointerGetDatum(a),
@@ -73,7 +73,7 @@ gbt_bitcmp(const void *a, const void *b, Oid collation, FmgrInfo * flinfo)
 
 
 static bytea *
-gbt_bit_xfrm(bytea * leaf)
+gbt_bit_xfrm(bytea *leaf)
 {
 	bytea	   *out = leaf;
 	int			sz = VARBITBYTES(leaf) + VARHDRSZ;
@@ -92,7 +92,7 @@ gbt_bit_xfrm(bytea * leaf)
 
 
 static GBT_VARKEY *
-gbt_bit_l2n(GBT_VARKEY * leaf, FmgrInfo * flinfo)
+gbt_bit_l2n(GBT_VARKEY *leaf, FmgrInfo *flinfo)
 {
 	GBT_VARKEY *out = leaf;
 	GBT_VARKEY_R r = gbt_var_key_readable(leaf);
@@ -111,7 +111,7 @@ static const gbtree_vinfo tinfo =
 {
 	gbt_t_bit,
 	0,
-	TRUE,
+	true,
 	gbt_bitgt,
 	gbt_bitge,
 	gbt_biteq,
@@ -152,13 +152,13 @@ gbt_bit_consistent(PG_FUNCTION_ARGS)
 
 	if (GIST_LEAF(entry))
 		retval = gbt_var_consistent(&r, query, strategy, PG_GET_COLLATION(),
-									TRUE, &tinfo, fcinfo->flinfo);
+									true, &tinfo, fcinfo->flinfo);
 	else
 	{
 		bytea	   *q = gbt_bit_xfrm((bytea *) query);
 
 		retval = gbt_var_consistent(&r, q, strategy, PG_GET_COLLATION(),
-									FALSE, &tinfo, fcinfo->flinfo);
+									false, &tinfo, fcinfo->flinfo);
 	}
 	PG_RETURN_BOOL(retval);
 }

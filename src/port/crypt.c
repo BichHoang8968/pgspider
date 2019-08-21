@@ -236,7 +236,7 @@ typedef union
 #if defined(B64)
 	B64			b64;
 #endif
-}			C_block;
+} C_block;
 
 /*
  * Convert twenty-four-bit long in host-order
@@ -974,7 +974,7 @@ init_des()
  */
 STATIC
 init_perm(perm, p, chars_in, chars_out)
-C_block perm[64 / CHUNKBITS][1 << CHUNKBITS];
+C_block		perm[64 / CHUNKBITS][1 << CHUNKBITS];
 unsigned char p[64];
 int			chars_in,
 			chars_out;

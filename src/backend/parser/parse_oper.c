@@ -3,7 +3,7 @@
  * parse_oper.c
  *		handle operator things for parser
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -54,7 +54,7 @@ typedef struct OprCacheKey
 	Oid			left_arg;		/* Left input OID, or 0 if prefix op */
 	Oid			right_arg;		/* Right input OID, or 0 if postfix op */
 	Oid			search_path[MAX_CACHED_PATH_LEN];
-}			OprCacheKey;
+} OprCacheKey;
 
 typedef struct OprCacheEntry
 {
@@ -62,24 +62,24 @@ typedef struct OprCacheEntry
 	OprCacheKey key;
 
 	Oid			opr_oid;		/* OID of the resolved operator */
-}			OprCacheEntry;
+} OprCacheEntry;
 
 
-static Oid binary_oper_exact(List * opname, Oid arg1, Oid arg2);
+static Oid	binary_oper_exact(List *opname, Oid arg1, Oid arg2);
 static FuncDetailCode oper_select_candidate(int nargs,
-											Oid * input_typeids,
-											FuncCandidateList candidates,
-											Oid * operOid);
-static const char *op_signature_string(List * op, char oprkind,
+					  Oid *input_typeids,
+					  FuncCandidateList candidates,
+					  Oid *operOid);
+static const char *op_signature_string(List *op, char oprkind,
 					Oid arg1, Oid arg2);
-static void op_error(ParseState * pstate, List * op, char oprkind,
+static void op_error(ParseState *pstate, List *op, char oprkind,
 		 Oid arg1, Oid arg2,
 		 FuncDetailCode fdresult, int location);
-static bool make_oper_cache_key(ParseState * pstate, OprCacheKey * key,
-					List * opname, Oid ltypeId, Oid rtypeId,
+static bool make_oper_cache_key(ParseState *pstate, OprCacheKey *key,
+					List *opname, Oid ltypeId, Oid rtypeId,
 					int location);
-static Oid find_oper_cache_entry(OprCacheKey * key);
-static void make_oper_cache_entry(OprCacheKey * key, Oid opr_oid);
+static Oid	find_oper_cache_entry(OprCacheKey *key);
+static void make_oper_cache_entry(OprCacheKey *key, Oid opr_oid);
 static void InvalidateOprCacheCallBack(Datum arg, int cacheid, uint32 hashvalue);
 
 
@@ -99,7 +99,7 @@ static void InvalidateOprCacheCallBack(Datum arg, int cacheid, uint32 hashvalue)
  * error position; pass NULL/-1 if not available.
  */
 Oid
-LookupOperName(ParseState * pstate, List * opername, Oid oprleft, Oid oprright,
+LookupOperName(ParseState *pstate, List *opername, Oid oprleft, Oid oprright,
 			   bool noError, int location)
 {
 	Oid			result;
@@ -137,7 +137,7 @@ LookupOperName(ParseState * pstate, List * opername, Oid oprleft, Oid oprright,
  *		a ObjectWithArg node.
  */
 Oid
-LookupOperWithArgs(ObjectWithArgs * oper, bool noError)
+LookupOperWithArgs(ObjectWithArgs *oper, bool noError)
 {
 	TypeName   *oprleft,
 			   *oprright;
@@ -186,7 +186,7 @@ LookupOperWithArgs(ObjectWithArgs * oper, bool noError)
 void
 get_sort_group_operators(Oid argtype,
 						 bool needLT, bool needEQ, bool needGT,
-						 Oid * ltOpr, Oid * eqOpr, Oid * gtOpr,
+						 Oid *ltOpr, Oid *eqOpr, Oid *gtOpr,
 						 bool *isHashable)
 {
 	TypeCacheEntry *typentry;
@@ -266,7 +266,7 @@ oprfuncid(Operator op)
  * be reduced to its base type to find an "exact" match.
  */
 static Oid
-binary_oper_exact(List * opname, Oid arg1, Oid arg2)
+binary_oper_exact(List *opname, Oid arg1, Oid arg2)
 {
 	Oid			result;
 	bool		was_unknown = false;
@@ -317,9 +317,9 @@ binary_oper_exact(List * opname, Oid arg1, Oid arg2)
  */
 static FuncDetailCode
 oper_select_candidate(int nargs,
-					  Oid * input_typeids,
+					  Oid *input_typeids,
 					  FuncCandidateList candidates,
-					  Oid * operOid)	/* output argument */
+					  Oid *operOid) /* output argument */
 {
 	int			ncandidates;
 
@@ -374,7 +374,7 @@ oper_select_candidate(int nargs,
  * must ReleaseSysCache() the entry when done with it.
  */
 Operator
-oper(ParseState * pstate, List * opname, Oid ltypeId, Oid rtypeId,
+oper(ParseState *pstate, List *opname, Oid ltypeId, Oid rtypeId,
 	 bool noError, int location)
 {
 	Oid			operOid;
@@ -454,7 +454,7 @@ oper(ParseState * pstate, List * opname, Oid ltypeId, Oid rtypeId,
  *	are accepted).  Otherwise, the semantics are the same.
  */
 Operator
-compatible_oper(ParseState * pstate, List * op, Oid arg1, Oid arg2,
+compatible_oper(ParseState *pstate, List *op, Oid arg1, Oid arg2,
 				bool noError, int location)
 {
 	Operator	optup;
@@ -491,7 +491,7 @@ compatible_oper(ParseState * pstate, List * op, Oid arg1, Oid arg2,
  * lookup fails and noError is true.
  */
 Oid
-compatible_oper_opid(List * op, Oid arg1, Oid arg2, bool noError)
+compatible_oper_opid(List *op, Oid arg1, Oid arg2, bool noError)
 {
 	Operator	optup;
 	Oid			result;
@@ -522,7 +522,7 @@ compatible_oper_opid(List * op, Oid arg1, Oid arg2, bool noError)
  * must ReleaseSysCache() the entry when done with it.
  */
 Operator
-right_oper(ParseState * pstate, List * op, Oid arg, bool noError, int location)
+right_oper(ParseState *pstate, List *op, Oid arg, bool noError, int location)
 {
 	Oid			operOid;
 	OprCacheKey key;
@@ -601,7 +601,7 @@ right_oper(ParseState * pstate, List * op, Oid arg, bool noError, int location)
  * must ReleaseSysCache() the entry when done with it.
  */
 Operator
-left_oper(ParseState * pstate, List * op, Oid arg, bool noError, int location)
+left_oper(ParseState *pstate, List *op, Oid arg, bool noError, int location)
 {
 	Oid			operOid;
 	OprCacheKey key;
@@ -685,7 +685,7 @@ left_oper(ParseState * pstate, List * op, Oid arg, bool noError, int location)
  * messages.
  */
 static const char *
-op_signature_string(List * op, char oprkind, Oid arg1, Oid arg2)
+op_signature_string(List *op, char oprkind, Oid arg1, Oid arg2)
 {
 	StringInfoData argbuf;
 
@@ -706,7 +706,7 @@ op_signature_string(List * op, char oprkind, Oid arg1, Oid arg2)
  * op_error - utility routine to complain about an unresolvable operator
  */
 static void
-op_error(ParseState * pstate, List * op, char oprkind,
+op_error(ParseState *pstate, List *op, char oprkind,
 		 Oid arg1, Oid arg2,
 		 FuncDetailCode fdresult, int location)
 {
@@ -723,7 +723,10 @@ op_error(ParseState * pstate, List * op, char oprkind,
 				(errcode(ERRCODE_UNDEFINED_FUNCTION),
 				 errmsg("operator does not exist: %s",
 						op_signature_string(op, oprkind, arg1, arg2)),
-				 errhint("No operator matches the given name and argument type(s). "
+				 (!arg1 || !arg2) ?
+				 errhint("No operator matches the given name and argument type. "
+						 "You might need to add an explicit type cast.") :
+				 errhint("No operator matches the given name and argument types. "
 						 "You might need to add explicit type casts."),
 				 parser_errposition(pstate, location)));
 }
@@ -741,8 +744,8 @@ op_error(ParseState * pstate, List * op, char oprkind,
  * expression, it's okay to cheat and just pass pstate->p_last_srf.
  */
 Expr *
-make_op(ParseState * pstate, List * opname, Node * ltree, Node * rtree,
-		Node * last_srf, int location)
+make_op(ParseState *pstate, List *opname, Node *ltree, Node *rtree,
+		Node *last_srf, int location)
 {
 	Oid			ltypeId,
 				rtypeId;
@@ -861,9 +864,9 @@ make_op(ParseState * pstate, List * opname, Node * ltree, Node * rtree,
  *		Build expression tree for "scalar op ANY/ALL (array)" construct.
  */
 Expr *
-make_scalar_array_op(ParseState * pstate, List * opname,
+make_scalar_array_op(ParseState *pstate, List *opname,
 					 bool useOr,
-					 Node * ltree, Node * rtree,
+					 Node *ltree, Node *rtree,
 					 int location)
 {
 	Oid			ltypeId,
@@ -1013,21 +1016,21 @@ make_scalar_array_op(ParseState * pstate, List * opname,
  */
 
 /* The operator cache hashtable */
-static HTAB * OprCacheHash = NULL;
+static HTAB *OprCacheHash = NULL;
 
 
 /*
  * make_oper_cache_key
  *		Fill the lookup key struct given operator name and arg types.
  *
- * Returns TRUE if successful, FALSE if the search_path overflowed
+ * Returns true if successful, false if the search_path overflowed
  * (hence no caching is possible).
  *
  * pstate/location are used only to report the error position; pass NULL/-1
  * if not available.
  */
 static bool
-make_oper_cache_key(ParseState * pstate, OprCacheKey * key, List * opname,
+make_oper_cache_key(ParseState *pstate, OprCacheKey *key, List *opname,
 					Oid ltypeId, Oid rtypeId, int location)
 {
 	char	   *schemaname;
@@ -1071,7 +1074,7 @@ make_oper_cache_key(ParseState * pstate, OprCacheKey * key, List * opname,
  * contained operator OID, else return InvalidOid.
  */
 static Oid
-find_oper_cache_entry(OprCacheKey * key)
+find_oper_cache_entry(OprCacheKey *key)
 {
 	OprCacheEntry *oprentry;
 
@@ -1111,7 +1114,7 @@ find_oper_cache_entry(OprCacheKey * key)
  * Insert a cache entry for the given key.
  */
 static void
-make_oper_cache_entry(OprCacheKey * key, Oid opr_oid)
+make_oper_cache_entry(OprCacheKey *key, Oid opr_oid)
 {
 	OprCacheEntry *oprentry;
 

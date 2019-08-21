@@ -3,7 +3,7 @@
  * evtcache.c
  *	  Special-purpose cache for event trigger data.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -36,15 +36,15 @@ typedef enum
 	ETCS_NEEDS_REBUILD,
 	ETCS_REBUILD_STARTED,
 	ETCS_VALID
-}			EventTriggerCacheStateType;
+} EventTriggerCacheStateType;
 
 typedef struct
 {
 	EventTriggerEvent event;
 	List	   *triggerlist;
-}			EventTriggerCacheEntry;
+} EventTriggerCacheEntry;
 
-static HTAB * EventTriggerCache;
+static HTAB *EventTriggerCache;
 static MemoryContext EventTriggerCacheContext;
 static EventTriggerCacheStateType EventTriggerCacheState = ETCS_NEEDS_REBUILD;
 

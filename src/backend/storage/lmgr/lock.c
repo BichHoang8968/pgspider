@@ -3,7 +3,7 @@
  * lock.c
  *	  POSTGRES primary lock mechanism
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -159,7 +159,7 @@ typedef struct TwoPhaseLockRecord
 {
 	LOCKTAG		locktag;
 	LOCKMODE	lockmode;
-}			TwoPhaseLockRecord;
+} TwoPhaseLockRecord;
 
 
 /*
@@ -211,8 +211,8 @@ static int	FastPathLocalUseCount = 0;
 static bool FastPathGrantRelationLock(Oid relid, LOCKMODE lockmode);
 static bool FastPathUnGrantRelationLock(Oid relid, LOCKMODE lockmode);
 static bool FastPathTransferRelationLocks(LockMethod lockMethodTable,
-							  const LOCKTAG * locktag, uint32 hashcode);
-static PROCLOCK * FastPathGetRelationLockEntry(LOCALLOCK * locallock);
+							  const LOCKTAG *locktag, uint32 hashcode);
+static PROCLOCK *FastPathGetRelationLockEntry(LOCALLOCK *locallock);
 
 /*
  * To make the fast-path lock mechanism work, we must have some way of
@@ -239,7 +239,7 @@ typedef struct
 {
 	slock_t		mutex;
 	uint32		count[FAST_PATH_STRONG_LOCK_HASH_PARTITIONS];
-}			FastPathStrongRelationLockData;
+} FastPathStrongRelationLockData;
 
 static volatile FastPathStrongRelationLockData *FastPathStrongRelationLocks;
 
@@ -250,14 +250,14 @@ static volatile FastPathStrongRelationLockData *FastPathStrongRelationLocks;
  * The LockMethodLockHash and LockMethodProcLockHash hash tables are in
  * shared memory; LockMethodLocalHash is local to each backend.
  */
-static HTAB * LockMethodLockHash;
-static HTAB * LockMethodProcLockHash;
-static HTAB * LockMethodLocalHash;
+static HTAB *LockMethodLockHash;
+static HTAB *LockMethodProcLockHash;
+static HTAB *LockMethodLocalHash;
 
 
 /* private state for error cleanup */
-static LOCALLOCK * StrongLockInProgress;
-static LOCALLOCK * awaitedLock;
+static LOCALLOCK *StrongLockInProgress;
+static LOCALLOCK *awaitedLock;
 static ResourceOwner awaitedOwner;
 
 
@@ -288,7 +288,7 @@ bool		Debug_deadlocks = false;
 
 
 inline static bool
-LOCK_DEBUG_ENABLED(const LOCKTAG * tag)
+LOCK_DEBUG_ENABLED(const LOCKTAG *tag)
 {
 	return
 		(*(LockMethods[tag->locktag_lockmethodid]->trace_flag) &&
@@ -299,7 +299,7 @@ LOCK_DEBUG_ENABLED(const LOCKTAG * tag)
 
 
 inline static void
-LOCK_PRINT(const char *where, const LOCK * lock, LOCKMODE type)
+LOCK_PRINT(const char *where, const LOCK *lock, LOCKMODE type)
 {
 	if (LOCK_DEBUG_ENABLED(&lock->tag))
 		elog(LOG,
@@ -323,7 +323,7 @@ LOCK_PRINT(const char *where, const LOCK * lock, LOCKMODE type)
 
 
 inline static void
-PROCLOCK_PRINT(const char *where, const PROCLOCK * proclockP)
+PROCLOCK_PRINT(const char *where, const PROCLOCK *proclockP)
 {
 	if (LOCK_DEBUG_ENABLED(&proclockP->tag.myLock->tag))
 		elog(LOG,
@@ -340,25 +340,25 @@ PROCLOCK_PRINT(const char *where, const PROCLOCK * proclockP)
 
 
 static uint32 proclock_hash(const void *key, Size keysize);
-static void RemoveLocalLock(LOCALLOCK * locallock);
-static PROCLOCK * SetupLockInTable(LockMethod lockMethodTable, PGPROC * proc,
-								   const LOCKTAG * locktag, uint32 hashcode, LOCKMODE lockmode);
-static void GrantLockLocal(LOCALLOCK * locallock, ResourceOwner owner);
-static void BeginStrongLockAcquire(LOCALLOCK * locallock, uint32 fasthashcode);
+static void RemoveLocalLock(LOCALLOCK *locallock);
+static PROCLOCK *SetupLockInTable(LockMethod lockMethodTable, PGPROC *proc,
+				 const LOCKTAG *locktag, uint32 hashcode, LOCKMODE lockmode);
+static void GrantLockLocal(LOCALLOCK *locallock, ResourceOwner owner);
+static void BeginStrongLockAcquire(LOCALLOCK *locallock, uint32 fasthashcode);
 static void FinishStrongLockAcquire(void);
-static void WaitOnLock(LOCALLOCK * locallock, ResourceOwner owner);
-static void ReleaseLockIfHeld(LOCALLOCK * locallock, bool sessionLock);
-static void LockReassignOwner(LOCALLOCK * locallock, ResourceOwner parent);
-static bool UnGrantLock(LOCK * lock, LOCKMODE lockmode,
-			PROCLOCK * proclock, LockMethod lockMethodTable);
-static void CleanUpLock(LOCK * lock, PROCLOCK * proclock,
+static void WaitOnLock(LOCALLOCK *locallock, ResourceOwner owner);
+static void ReleaseLockIfHeld(LOCALLOCK *locallock, bool sessionLock);
+static void LockReassignOwner(LOCALLOCK *locallock, ResourceOwner parent);
+static bool UnGrantLock(LOCK *lock, LOCKMODE lockmode,
+			PROCLOCK *proclock, LockMethod lockMethodTable);
+static void CleanUpLock(LOCK *lock, PROCLOCK *proclock,
 			LockMethod lockMethodTable, uint32 hashcode,
 			bool wakeupNeeded);
-static void LockRefindAndRelease(LockMethod lockMethodTable, PGPROC * proc,
-					 LOCKTAG * locktag, LOCKMODE lockmode,
+static void LockRefindAndRelease(LockMethod lockMethodTable, PGPROC *proc,
+					 LOCKTAG *locktag, LOCKMODE lockmode,
 					 bool decrement_strong_lock_count);
-static void GetSingleProcBlockerStatusData(PGPROC * blocked_proc,
-							   BlockedProcsData * data);
+static void GetSingleProcBlockerStatusData(PGPROC *blocked_proc,
+							   BlockedProcsData *data);
 
 
 /*
@@ -457,7 +457,7 @@ InitLocks(void)
  * Fetch the lock method table associated with a given lock
  */
 LockMethod
-GetLocksMethodTable(const LOCK * lock)
+GetLocksMethodTable(const LOCK *lock)
 {
 	LOCKMETHODID lockmethodid = LOCK_LOCKMETHOD(*lock);
 
@@ -469,7 +469,7 @@ GetLocksMethodTable(const LOCK * lock)
  * Fetch the lock method table associated with a given locktag
  */
 LockMethod
-GetLockTagsMethodTable(const LOCKTAG * locktag)
+GetLockTagsMethodTable(const LOCKTAG *locktag)
 {
 	LOCKMETHODID lockmethodid = (LOCKMETHODID) locktag->locktag_lockmethodid;
 
@@ -487,7 +487,7 @@ GetLockTagsMethodTable(const LOCKTAG * locktag)
  * the lock partition number from the hashcode.
  */
 uint32
-LockTagHashCode(const LOCKTAG * locktag)
+LockTagHashCode(const LOCKTAG *locktag)
 {
 	return get_hash_value(LockMethodLockHash, (const void *) locktag);
 }
@@ -506,7 +506,7 @@ LockTagHashCode(const LOCKTAG * locktag)
 static uint32
 proclock_hash(const void *key, Size keysize)
 {
-	const		PROCLOCKTAG *proclocktag = (const PROCLOCKTAG *) key;
+	const PROCLOCKTAG *proclocktag = (const PROCLOCKTAG *) key;
 	uint32		lockhash;
 	Datum		procptr;
 
@@ -535,7 +535,7 @@ proclock_hash(const void *key, Size keysize)
  * We use this just to avoid redundant calls of LockTagHashCode().
  */
 static inline uint32
-ProcLockHashCode(const PROCLOCKTAG * proclocktag, uint32 hashcode)
+ProcLockHashCode(const PROCLOCKTAG *proclocktag, uint32 hashcode)
 {
 	uint32		lockhash = hashcode;
 	Datum		procptr;
@@ -568,7 +568,7 @@ DoLockModesConflict(LOCKMODE mode1, LOCKMODE mode2)
  *		lock would wake up other processes waiting for it.
  */
 bool
-LockHasWaiters(const LOCKTAG * locktag, LOCKMODE lockmode, bool sessionLock)
+LockHasWaiters(const LOCKTAG *locktag, LOCKMODE lockmode, bool sessionLock)
 {
 	LOCKMETHODID lockmethodid = locktag->locktag_lockmethodid;
 	LockMethod	lockMethodTable;
@@ -669,6 +669,7 @@ LockHasWaiters(const LOCKTAG * locktag, LOCKMODE lockmode, bool sessionLock)
  *		LOCKACQUIRE_NOT_AVAIL		lock not available, and dontWait=true
  *		LOCKACQUIRE_OK				lock successfully acquired
  *		LOCKACQUIRE_ALREADY_HELD	incremented count for lock already held
+ *		LOCKACQUIRE_ALREADY_CLEAR	incremented count for lock already clear
  *
  * In the normal case where dontWait=false and the caller doesn't need to
  * distinguish a freshly acquired lock from one already taken earlier in
@@ -680,29 +681,36 @@ LockHasWaiters(const LOCKTAG * locktag, LOCKMODE lockmode, bool sessionLock)
  * short of aborting the transaction.
  */
 LockAcquireResult
-LockAcquire(const LOCKTAG * locktag,
+LockAcquire(const LOCKTAG *locktag,
 			LOCKMODE lockmode,
 			bool sessionLock,
 			bool dontWait)
 {
-	return LockAcquireExtended(locktag, lockmode, sessionLock, dontWait, true);
+	return LockAcquireExtended(locktag, lockmode, sessionLock, dontWait,
+							   true, NULL);
 }
 
 /*
  * LockAcquireExtended - allows us to specify additional options
  *
- * reportMemoryError specifies whether a lock request that fills the
- * lock table should generate an ERROR or not. This allows a priority
- * caller to note that the lock table is full and then begin taking
- * extreme action to reduce the number of other lock holders before
- * retrying the action.
+ * reportMemoryError specifies whether a lock request that fills the lock
+ * table should generate an ERROR or not.  Passing "false" allows the caller
+ * to attempt to recover from lock-table-full situations, perhaps by forcibly
+ * cancelling other lock holders and then retrying.  Note, however, that the
+ * return code for that is LOCKACQUIRE_NOT_AVAIL, so that it's unsafe to use
+ * in combination with dontWait = true, as the cause of failure couldn't be
+ * distinguished.
+ *
+ * If locallockp isn't NULL, *locallockp receives a pointer to the LOCALLOCK
+ * table entry if a lock is successfully acquired, or NULL if not.
  */
 LockAcquireResult
-LockAcquireExtended(const LOCKTAG * locktag,
+LockAcquireExtended(const LOCKTAG *locktag,
 					LOCKMODE lockmode,
 					bool sessionLock,
 					bool dontWait,
-					bool reportMemoryError)
+					bool reportMemoryError,
+					LOCALLOCK **locallockp)
 {
 	LOCKMETHODID lockmethodid = locktag->locktag_lockmethodid;
 	LockMethod	lockMethodTable;
@@ -766,9 +774,10 @@ LockAcquireExtended(const LOCKTAG * locktag,
 		locallock->proclock = NULL;
 		locallock->hashcode = LockTagHashCode(&(localtag.lock));
 		locallock->nLocks = 0;
+		locallock->holdsStrongLockCount = false;
+		locallock->lockCleared = false;
 		locallock->numLockOwners = 0;
 		locallock->maxLockOwners = 8;
-		locallock->holdsStrongLockCount = FALSE;
 		locallock->lockOwners = NULL;	/* in case next line fails */
 		locallock->lockOwners = (LOCALLOCKOWNER *)
 			MemoryContextAlloc(TopMemoryContext,
@@ -789,13 +798,22 @@ LockAcquireExtended(const LOCKTAG * locktag,
 	}
 	hashcode = locallock->hashcode;
 
+	if (locallockp)
+		*locallockp = locallock;
+
 	/*
 	 * If we already hold the lock, we can just increase the count locally.
+	 *
+	 * If lockCleared is already set, caller need not worry about absorbing
+	 * sinval messages related to the lock's object.
 	 */
 	if (locallock->nLocks > 0)
 	{
 		GrantLockLocal(locallock, owner);
-		return LOCKACQUIRE_ALREADY_HELD;
+		if (locallock->lockCleared)
+			return LOCKACQUIRE_ALREADY_CLEAR;
+		else
+			return LOCKACQUIRE_ALREADY_HELD;
 	}
 
 	/*
@@ -877,6 +895,10 @@ LockAcquireExtended(const LOCKTAG * locktag,
 										   hashcode))
 		{
 			AbortStrongLockAcquire();
+			if (locallock->nLocks == 0)
+				RemoveLocalLock(locallock);
+			if (locallockp)
+				*locallockp = NULL;
 			if (reportMemoryError)
 				ereport(ERROR,
 						(errcode(ERRCODE_OUT_OF_MEMORY),
@@ -911,6 +933,10 @@ LockAcquireExtended(const LOCKTAG * locktag,
 	{
 		AbortStrongLockAcquire();
 		LWLockRelease(partitionLock);
+		if (locallock->nLocks == 0)
+			RemoveLocalLock(locallock);
+		if (locallockp)
+			*locallockp = NULL;
 		if (reportMemoryError)
 			ereport(ERROR,
 					(errcode(ERRCODE_OUT_OF_MEMORY),
@@ -976,6 +1002,8 @@ LockAcquireExtended(const LOCKTAG * locktag,
 			LWLockRelease(partitionLock);
 			if (locallock->nLocks == 0)
 				RemoveLocalLock(locallock);
+			if (locallockp)
+				*locallockp = NULL;
 			return LOCKACQUIRE_NOT_AVAIL;
 		}
 
@@ -1064,8 +1092,8 @@ LockAcquireExtended(const LOCKTAG * locktag,
  * held at exit.
  */
 static PROCLOCK *
-SetupLockInTable(LockMethod lockMethodTable, PGPROC * proc,
-				 const LOCKTAG * locktag, uint32 hashcode, LOCKMODE lockmode)
+SetupLockInTable(LockMethod lockMethodTable, PGPROC *proc,
+				 const LOCKTAG *locktag, uint32 hashcode, LOCKMODE lockmode)
 {
 	LOCK	   *lock;
 	PROCLOCK   *proclock;
@@ -1241,7 +1269,7 @@ SetupLockInTable(LockMethod lockMethodTable, PGPROC * proc,
  * Subroutine to free a locallock entry
  */
 static void
-RemoveLocalLock(LOCALLOCK * locallock)
+RemoveLocalLock(LOCALLOCK *locallock)
 {
 	int			i;
 
@@ -1264,7 +1292,7 @@ RemoveLocalLock(LOCALLOCK * locallock)
 		SpinLockAcquire(&FastPathStrongRelationLocks->mutex);
 		Assert(FastPathStrongRelationLocks->count[fasthashcode] > 0);
 		FastPathStrongRelationLocks->count[fasthashcode]--;
-		locallock->holdsStrongLockCount = FALSE;
+		locallock->holdsStrongLockCount = false;
 		SpinLockRelease(&FastPathStrongRelationLocks->mutex);
 	}
 
@@ -1291,8 +1319,8 @@ RemoveLocalLock(LOCALLOCK * locallock)
 int
 LockCheckConflicts(LockMethod lockMethodTable,
 				   LOCKMODE lockmode,
-				   LOCK * lock,
-				   PROCLOCK * proclock)
+				   LOCK *lock,
+				   PROCLOCK *proclock)
 {
 	int			numLockModes = lockMethodTable->numLockModes;
 	LOCKMASK	myLocks;
@@ -1412,7 +1440,7 @@ LockCheckConflicts(LockMethod lockMethodTable,
  * that here; it's done by GrantLockLocal, instead.
  */
 void
-GrantLock(LOCK * lock, PROCLOCK * proclock, LOCKMODE lockmode)
+GrantLock(LOCK *lock, PROCLOCK *proclock, LOCKMODE lockmode)
 {
 	lock->nGranted++;
 	lock->granted[lockmode]++;
@@ -1435,8 +1463,8 @@ GrantLock(LOCK * lock, PROCLOCK * proclock, LOCKMODE lockmode)
  * should now be woken up with ProcLockWakeup.
  */
 static bool
-UnGrantLock(LOCK * lock, LOCKMODE lockmode,
-			PROCLOCK * proclock, LockMethod lockMethodTable)
+UnGrantLock(LOCK *lock, LOCKMODE lockmode,
+			PROCLOCK *proclock, LockMethod lockMethodTable)
 {
 	bool		wakeupNeeded = false;
 
@@ -1492,7 +1520,7 @@ UnGrantLock(LOCK * lock, LOCKMODE lockmode,
  * held at exit.
  */
 static void
-CleanUpLock(LOCK * lock, PROCLOCK * proclock,
+CleanUpLock(LOCK *lock, PROCLOCK *proclock,
 			LockMethod lockMethodTable, uint32 hashcode,
 			bool wakeupNeeded)
 {
@@ -1546,7 +1574,7 @@ CleanUpLock(LOCK * lock, PROCLOCK * proclock,
  * ResourceOwner entry.
  */
 static void
-GrantLockLocal(LOCALLOCK * locallock, ResourceOwner owner)
+GrantLockLocal(LOCALLOCK *locallock, ResourceOwner owner)
 {
 	LOCALLOCKOWNER *lockOwners = locallock->lockOwners;
 	int			i;
@@ -1575,10 +1603,10 @@ GrantLockLocal(LOCALLOCK * locallock, ResourceOwner owner)
  * and arrange for error cleanup if it fails
  */
 static void
-BeginStrongLockAcquire(LOCALLOCK * locallock, uint32 fasthashcode)
+BeginStrongLockAcquire(LOCALLOCK *locallock, uint32 fasthashcode)
 {
 	Assert(StrongLockInProgress == NULL);
-	Assert(locallock->holdsStrongLockCount == FALSE);
+	Assert(locallock->holdsStrongLockCount == false);
 
 	/*
 	 * Adding to a memory location is not atomic, so we take a spinlock to
@@ -1591,7 +1619,7 @@ BeginStrongLockAcquire(LOCALLOCK * locallock, uint32 fasthashcode)
 
 	SpinLockAcquire(&FastPathStrongRelationLocks->mutex);
 	FastPathStrongRelationLocks->count[fasthashcode]++;
-	locallock->holdsStrongLockCount = TRUE;
+	locallock->holdsStrongLockCount = true;
 	StrongLockInProgress = locallock;
 	SpinLockRelease(&FastPathStrongRelationLocks->mutex);
 }
@@ -1620,11 +1648,11 @@ AbortStrongLockAcquire(void)
 		return;
 
 	fasthashcode = FastPathStrongLockHashPartition(locallock->hashcode);
-	Assert(locallock->holdsStrongLockCount == TRUE);
+	Assert(locallock->holdsStrongLockCount == true);
 	SpinLockAcquire(&FastPathStrongRelationLocks->mutex);
 	Assert(FastPathStrongRelationLocks->count[fasthashcode] > 0);
 	FastPathStrongRelationLocks->count[fasthashcode]--;
-	locallock->holdsStrongLockCount = FALSE;
+	locallock->holdsStrongLockCount = false;
 	StrongLockInProgress = NULL;
 	SpinLockRelease(&FastPathStrongRelationLocks->mutex);
 }
@@ -1646,6 +1674,20 @@ GrantAwaitedLock(void)
 }
 
 /*
+ * MarkLockClear -- mark an acquired lock as "clear"
+ *
+ * This means that we know we have absorbed all sinval messages that other
+ * sessions generated before we acquired this lock, and so we can confidently
+ * assume we know about any catalog changes protected by this lock.
+ */
+void
+MarkLockClear(LOCALLOCK *locallock)
+{
+	Assert(locallock->nLocks > 0);
+	locallock->lockCleared = true;
+}
+
+/*
  * WaitOnLock -- wait to acquire a lock
  *
  * Caller must have set MyProc->heldLocks to reflect locks already held
@@ -1654,7 +1696,7 @@ GrantAwaitedLock(void)
  * The appropriate partition lock must be held at entry.
  */
 static void
-WaitOnLock(LOCALLOCK * locallock, ResourceOwner owner)
+WaitOnLock(LOCALLOCK *locallock, ResourceOwner owner)
 {
 	LOCKMETHODID lockmethodid = LOCALLOCK_LOCKMETHOD(*locallock);
 	LockMethod	lockMethodTable = LockMethods[lockmethodid];
@@ -1758,7 +1800,7 @@ WaitOnLock(LOCALLOCK * locallock, ResourceOwner owner)
  * NB: this does not clean up any locallock object that may exist for the lock.
  */
 void
-RemoveFromWaitQueue(PGPROC * proc, uint32 hashcode)
+RemoveFromWaitQueue(PGPROC *proc, uint32 hashcode)
 {
 	LOCK	   *waitLock = proc->waitLock;
 	PROCLOCK   *proclock = proc->waitProcLock;
@@ -1815,7 +1857,7 @@ RemoveFromWaitQueue(PGPROC * proc, uint32 hashcode)
  *		come along and request the lock.)
  */
 bool
-LockRelease(const LOCKTAG * locktag, LOCKMODE lockmode, bool sessionLock)
+LockRelease(const LOCKTAG *locktag, LOCKMODE lockmode, bool sessionLock)
 {
 	LOCKMETHODID lockmethodid = locktag->locktag_lockmethodid;
 	LockMethod	lockMethodTable;
@@ -1857,7 +1899,7 @@ LockRelease(const LOCKTAG * locktag, LOCKMODE lockmode, bool sessionLock)
 	{
 		elog(WARNING, "you don't own a lock of type %s",
 			 lockMethodTable->lockModeNames[lockmode]);
-		return FALSE;
+		return false;
 	}
 
 	/*
@@ -1896,7 +1938,7 @@ LockRelease(const LOCKTAG * locktag, LOCKMODE lockmode, bool sessionLock)
 			/* don't release a lock belonging to another owner */
 			elog(WARNING, "you don't own a lock of type %s",
 				 lockMethodTable->lockModeNames[lockmode]);
-			return FALSE;
+			return false;
 		}
 	}
 
@@ -1907,7 +1949,16 @@ LockRelease(const LOCKTAG * locktag, LOCKMODE lockmode, bool sessionLock)
 	locallock->nLocks--;
 
 	if (locallock->nLocks > 0)
-		return TRUE;
+		return true;
+
+	/*
+	 * At this point we can no longer suppose we are clear of invalidation
+	 * messages related to this lock.  Although we'll delete the LOCALLOCK
+	 * object before any intentional return from this routine, it seems worth
+	 * the trouble to explicitly reset lockCleared right now, just in case
+	 * some error prevents us from deleting the LOCALLOCK.
+	 */
+	locallock->lockCleared = false;
 
 	/* Attempt fast release of any lock eligible for the fast path. */
 	if (EligibleForRelationFastPath(locktag, lockmode) &&
@@ -1926,7 +1977,7 @@ LockRelease(const LOCKTAG * locktag, LOCKMODE lockmode, bool sessionLock)
 		if (released)
 		{
 			RemoveLocalLock(locallock);
-			return TRUE;
+			return true;
 		}
 	}
 
@@ -1984,7 +2035,7 @@ LockRelease(const LOCKTAG * locktag, LOCKMODE lockmode, bool sessionLock)
 		elog(WARNING, "you don't own a lock of type %s",
 			 lockMethodTable->lockModeNames[lockmode]);
 		RemoveLocalLock(locallock);
-		return FALSE;
+		return false;
 	}
 
 	/*
@@ -1999,7 +2050,7 @@ LockRelease(const LOCKTAG * locktag, LOCKMODE lockmode, bool sessionLock)
 	LWLockRelease(partitionLock);
 
 	RemoveLocalLock(locallock);
-	return TRUE;
+	return true;
 }
 
 /*
@@ -2315,7 +2366,7 @@ LockReleaseSession(LOCKMETHODID lockmethodid)
  * table to find them.
  */
 void
-LockReleaseCurrentOwner(LOCALLOCK * *locallocks, int nlocks)
+LockReleaseCurrentOwner(LOCALLOCK **locallocks, int nlocks)
 {
 	if (locallocks == NULL)
 	{
@@ -2350,7 +2401,7 @@ LockReleaseCurrentOwner(LOCALLOCK * *locallocks, int nlocks)
  * convenience.
  */
 static void
-ReleaseLockIfHeld(LOCALLOCK * locallock, bool sessionLock)
+ReleaseLockIfHeld(LOCALLOCK *locallock, bool sessionLock)
 {
 	ResourceOwner owner;
 	LOCALLOCKOWNER *lockOwners;
@@ -2410,7 +2461,7 @@ ReleaseLockIfHeld(LOCALLOCK * locallock, bool sessionLock)
  * and we'll traverse through our hash table to find them.
  */
 void
-LockReassignCurrentOwner(LOCALLOCK * *locallocks, int nlocks)
+LockReassignCurrentOwner(LOCALLOCK **locallocks, int nlocks)
 {
 	ResourceOwner parent = ResourceOwnerGetParent(CurrentResourceOwner);
 
@@ -2440,7 +2491,7 @@ LockReassignCurrentOwner(LOCALLOCK * *locallocks, int nlocks)
  * CurrentResourceOwner to its parent.
  */
 static void
-LockReassignOwner(LOCALLOCK * locallock, ResourceOwner parent)
+LockReassignOwner(LOCALLOCK *locallock, ResourceOwner parent)
 {
 	LOCALLOCKOWNER *lockOwners;
 	int			i;
@@ -2553,7 +2604,7 @@ FastPathUnGrantRelationLock(Oid relid, LOCKMODE lockmode)
  * Returns true if successful, false if ran out of shared memory.
  */
 static bool
-FastPathTransferRelationLocks(LockMethod lockMethodTable, const LOCKTAG * locktag,
+FastPathTransferRelationLocks(LockMethod lockMethodTable, const LOCKTAG *locktag,
 							  uint32 hashcode)
 {
 	LWLock	   *partitionLock = LockHashPartitionLock(hashcode);
@@ -2641,7 +2692,7 @@ FastPathTransferRelationLocks(LockMethod lockMethodTable, const LOCKTAG * lockta
  * Note: caller takes care of updating the locallock object.
  */
 static PROCLOCK *
-FastPathGetRelationLockEntry(LOCALLOCK * locallock)
+FastPathGetRelationLockEntry(LOCALLOCK *locallock)
 {
 	LockMethod	lockMethodTable = LockMethods[DEFAULT_LOCKMETHOD];
 	LOCKTAG    *locktag = &locallock->tag.lock;
@@ -2742,9 +2793,9 @@ FastPathGetRelationLockEntry(LOCALLOCK * locallock)
  * uses of the result.
  */
 VirtualTransactionId *
-GetLockConflicts(const LOCKTAG * locktag, LOCKMODE lockmode)
+GetLockConflicts(const LOCKTAG *locktag, LOCKMODE lockmode)
 {
-	static VirtualTransactionId * vxids;
+	static VirtualTransactionId *vxids;
 	LOCKMETHODID lockmethodid = locktag->locktag_lockmethodid;
 	LockMethod	lockMethodTable;
 	LOCK	   *lock;
@@ -2959,8 +3010,8 @@ GetLockConflicts(const LOCKTAG * locktag, LOCKMODE lockmode)
  * table, and then released (see LockReleaseAll).
  */
 static void
-LockRefindAndRelease(LockMethod lockMethodTable, PGPROC * proc,
-					 LOCKTAG * locktag, LOCKMODE lockmode,
+LockRefindAndRelease(LockMethod lockMethodTable, PGPROC *proc,
+					 LOCKTAG *locktag, LOCKMODE lockmode,
 					 bool decrement_strong_lock_count)
 {
 	LOCK	   *lock;
@@ -3137,7 +3188,7 @@ AtPrepare_Locks(void)
 		 * entry.  We must retain the count until the prepared transaction is
 		 * committed or rolled back.
 		 */
-		locallock->holdsStrongLockCount = FALSE;
+		locallock->holdsStrongLockCount = false;
 
 		/*
 		 * Create a 2PC record.
@@ -3659,7 +3710,7 @@ GetBlockerStatusData(int blocked_pid)
 
 /* Accumulate data about one possibly-blocked proc for GetBlockerStatusData */
 static void
-GetSingleProcBlockerStatusData(PGPROC * blocked_proc, BlockedProcsData * data)
+GetSingleProcBlockerStatusData(PGPROC *blocked_proc, BlockedProcsData *data)
 {
 	LOCK	   *theLock = blocked_proc->waitLock;
 	BlockedProcData *bproc;
@@ -3856,7 +3907,7 @@ GetLockmodeName(LOCKMETHODID lockmethodid, LOCKMODE mode)
  * Caller is responsible for having acquired appropriate LWLocks.
  */
 void
-DumpLocks(PGPROC * proc)
+DumpLocks(PGPROC *proc)
 {
 	SHM_QUEUE  *procLocks;
 	PROCLOCK   *proclock;
@@ -4384,7 +4435,7 @@ VirtualXactLock(VirtualTransactionId vxid, bool wait)
  * Find the number of lock requester on this locktag
  */
 int
-LockWaiterCount(const LOCKTAG * locktag)
+LockWaiterCount(const LOCKTAG *locktag)
 {
 	LOCKMETHODID lockmethodid = locktag->locktag_lockmethodid;
 	LOCK	   *lock;

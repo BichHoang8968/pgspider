@@ -3,7 +3,7 @@
  * print.c
  *	  various print routines (used mostly for debugging)
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -250,9 +250,9 @@ pretty_format_node_dump(const char *dump)
  *	  print contents of range table
  */
 void
-print_rt(const List * rtable)
+print_rt(const List *rtable)
 {
-	const		ListCell *l;
+	const ListCell *l;
 	int			i = 1;
 
 	printf("resno\trefname  \trelid\tinFromCl\n");
@@ -313,7 +313,7 @@ print_rt(const List * rtable)
  *	  print an expression
  */
 void
-print_expr(const Node * expr, const List * rtable)
+print_expr(const Node *expr, const List *rtable)
 {
 	if (expr == NULL)
 	{
@@ -323,7 +323,7 @@ print_expr(const Node * expr, const List * rtable)
 
 	if (IsA(expr, Var))
 	{
-		const		Var *var = (const Var *) expr;
+		const Var  *var = (const Var *) expr;
 		char	   *relname,
 				   *attname;
 
@@ -357,7 +357,7 @@ print_expr(const Node * expr, const List * rtable)
 	}
 	else if (IsA(expr, Const))
 	{
-		const		Const *c = (const Const *) expr;
+		const Const *c = (const Const *) expr;
 		Oid			typoutput;
 		bool		typIsVarlena;
 		char	   *outputstr;
@@ -377,7 +377,7 @@ print_expr(const Node * expr, const List * rtable)
 	}
 	else if (IsA(expr, OpExpr))
 	{
-		const		OpExpr *e = (const OpExpr *) expr;
+		const OpExpr *e = (const OpExpr *) expr;
 		char	   *opname;
 
 		opname = get_opname(e->opno);
@@ -396,7 +396,7 @@ print_expr(const Node * expr, const List * rtable)
 	}
 	else if (IsA(expr, FuncExpr))
 	{
-		const		FuncExpr *e = (const FuncExpr *) expr;
+		const FuncExpr *e = (const FuncExpr *) expr;
 		char	   *funcname;
 		ListCell   *l;
 
@@ -419,9 +419,9 @@ print_expr(const Node * expr, const List * rtable)
  *	  pathkeys list of PathKeys
  */
 void
-print_pathkeys(const List * pathkeys, const List * rtable)
+print_pathkeys(const List *pathkeys, const List *rtable)
 {
-	const		ListCell *i;
+	const ListCell *i;
 
 	printf("(");
 	foreach(i, pathkeys)
@@ -459,9 +459,9 @@ print_pathkeys(const List * pathkeys, const List * rtable)
  *	  print targetlist in a more legible way.
  */
 void
-print_tl(const List * tlist, const List * rtable)
+print_tl(const List *tlist, const List *rtable)
 {
-	const		ListCell *tl;
+	const ListCell *tl;
 
 	printf("(\n");
 	foreach(tl, tlist)
@@ -485,7 +485,7 @@ print_tl(const List * tlist, const List * rtable)
  *	  print out the tuple with the given TupleTableSlot
  */
 void
-print_slot(TupleTableSlot * slot)
+print_slot(TupleTableSlot *slot)
 {
 	if (TupIsNull(slot))
 	{

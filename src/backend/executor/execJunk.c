@@ -3,7 +3,7 @@
  * execJunk.c
  *	  Junk attribute support stuff....
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -58,7 +58,7 @@
  * An optional resultSlot can be passed as well.
  */
 JunkFilter *
-ExecInitJunkFilter(List * targetList, bool hasoid, TupleTableSlot * slot)
+ExecInitJunkFilter(List *targetList, bool hasoid, TupleTableSlot *slot)
 {
 	JunkFilter *junkfilter;
 	TupleDesc	cleanTupType;
@@ -133,9 +133,9 @@ ExecInitJunkFilter(List * targetList, bool hasoid, TupleTableSlot * slot)
  * non-deleted columns match up with the non-junk columns of the targetlist.
  */
 JunkFilter *
-ExecInitJunkFilterConversion(List * targetList,
+ExecInitJunkFilterConversion(List *targetList,
 							 TupleDesc cleanTupType,
-							 TupleTableSlot * slot)
+							 TupleTableSlot *slot)
 {
 	JunkFilter *junkfilter;
 	int			cleanLength;
@@ -168,7 +168,7 @@ ExecInitJunkFilterConversion(List * targetList,
 		t = list_head(targetList);
 		for (i = 0; i < cleanLength; i++)
 		{
-			if (cleanTupType->attrs[i]->attisdropped)
+			if (TupleDescAttr(cleanTupType, i)->attisdropped)
 				continue;		/* map entry is already zero */
 			for (;;)
 			{
@@ -206,7 +206,7 @@ ExecInitJunkFilterConversion(List * targetList,
  * and return its resno.  Returns InvalidAttrNumber if not found.
  */
 AttrNumber
-ExecFindJunkAttribute(JunkFilter * junkfilter, const char *attrName)
+ExecFindJunkAttribute(JunkFilter *junkfilter, const char *attrName)
 {
 	return ExecFindJunkAttributeInTlist(junkfilter->jf_targetList, attrName);
 }
@@ -218,7 +218,7 @@ ExecFindJunkAttribute(JunkFilter * junkfilter, const char *attrName)
  * part of a JunkFilter).
  */
 AttrNumber
-ExecFindJunkAttributeInTlist(List * targetlist, const char *attrName)
+ExecFindJunkAttributeInTlist(List *targetlist, const char *attrName)
 {
 	ListCell   *t;
 
@@ -245,7 +245,7 @@ ExecFindJunkAttributeInTlist(List * targetlist, const char *attrName)
  * isNull flag of the attribute.
  */
 Datum
-ExecGetJunkAttribute(TupleTableSlot * slot, AttrNumber attno,
+ExecGetJunkAttribute(TupleTableSlot *slot, AttrNumber attno,
 					 bool *isNull)
 {
 	Assert(attno > 0);
@@ -259,7 +259,7 @@ ExecGetJunkAttribute(TupleTableSlot * slot, AttrNumber attno,
  * Construct and return a slot with all the junk attributes removed.
  */
 TupleTableSlot *
-ExecFilterJunk(JunkFilter * junkfilter, TupleTableSlot * slot)
+ExecFilterJunk(JunkFilter *junkfilter, TupleTableSlot *slot)
 {
 	TupleTableSlot *resultSlot;
 	AttrNumber *cleanMap;

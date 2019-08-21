@@ -3,7 +3,7 @@
  * pg_dump.h
  *	  Common header file for the pg_dump utility
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/bin/pg_dump/pg_dump.h
@@ -56,6 +56,7 @@ typedef enum
 	DO_TABLE,
 	DO_ATTRDEF,
 	DO_INDEX,
+	DO_INDEX_ATTACH,
 	DO_STATSEXT,
 	DO_RULE,
 	DO_TRIGGER,
@@ -84,7 +85,7 @@ typedef enum
 	DO_PUBLICATION,
 	DO_PUBLICATION_REL,
 	DO_SUBSCRIPTION
-}			DumpableObjectType;
+} DumpableObjectType;
 
 /* component types of an object which can be selected for dumping */
 typedef uint32 DumpComponents;	/* a bitmask of dump object components */
@@ -138,7 +139,7 @@ typedef struct _dumpableObject
 	DumpId	   *dependencies;	/* dumpIds of objects this one depends on */
 	int			nDeps;			/* number of valid dependencies */
 	int			allocDeps;		/* allocated size of dependencies[] */
-}			DumpableObject;
+} DumpableObject;
 
 typedef struct _namespaceInfo
 {
@@ -148,7 +149,7 @@ typedef struct _namespaceInfo
 	char	   *rnspacl;
 	char	   *initnspacl;
 	char	   *initrnspacl;
-}			NamespaceInfo;
+} NamespaceInfo;
 
 typedef struct _extensionInfo
 {
@@ -158,7 +159,7 @@ typedef struct _extensionInfo
 	char	   *extversion;
 	char	   *extconfig;		/* info about configuration tables */
 	char	   *extcondition;
-}			ExtensionInfo;
+} ExtensionInfo;
 
 typedef struct _typeInfo
 {
@@ -184,14 +185,14 @@ typedef struct _typeInfo
 	/* If it's a domain, we store links to its constraints here: */
 	int			nDomChecks;
 	struct _constraintInfo *domChecks;
-}			TypeInfo;
+} TypeInfo;
 
 typedef struct _shellTypeInfo
 {
 	DumpableObject dobj;
 
 	TypeInfo   *baseType;		/* back link to associated base type */
-}			ShellTypeInfo;
+} ShellTypeInfo;
 
 typedef struct _funcInfo
 {
@@ -205,14 +206,14 @@ typedef struct _funcInfo
 	char	   *rproacl;
 	char	   *initproacl;
 	char	   *initrproacl;
-}			FuncInfo;
+} FuncInfo;
 
 /* AggInfo is a superset of FuncInfo */
 typedef struct _aggInfo
 {
 	FuncInfo	aggfn;
 	/* we don't require any other fields at the moment */
-}			AggInfo;
+} AggInfo;
 
 typedef struct _oprInfo
 {
@@ -220,38 +221,38 @@ typedef struct _oprInfo
 	char	   *rolname;
 	char		oprkind;
 	Oid			oprcode;
-}			OprInfo;
+} OprInfo;
 
 typedef struct _accessMethodInfo
 {
 	DumpableObject dobj;
 	char		amtype;
 	char	   *amhandler;
-}			AccessMethodInfo;
+} AccessMethodInfo;
 
 typedef struct _opclassInfo
 {
 	DumpableObject dobj;
 	char	   *rolname;
-}			OpclassInfo;
+} OpclassInfo;
 
 typedef struct _opfamilyInfo
 {
 	DumpableObject dobj;
 	char	   *rolname;
-}			OpfamilyInfo;
+} OpfamilyInfo;
 
 typedef struct _collInfo
 {
 	DumpableObject dobj;
 	char	   *rolname;
-}			CollInfo;
+} CollInfo;
 
 typedef struct _convInfo
 {
 	DumpableObject dobj;
 	char	   *rolname;
-}			ConvInfo;
+} ConvInfo;
 
 typedef struct _tableInfo
 {
@@ -315,6 +316,7 @@ typedef struct _tableInfo
 	char	  **attoptions;		/* per-attribute options */
 	Oid		   *attcollation;	/* per-attribute collation selection */
 	char	  **attfdwoptions;	/* per-attribute fdw options */
+	char	  **attmissingval;	/* per attribute missing value */
 	bool	   *notnull;		/* NOT NULL constraints on attributes */
 	bool	   *inhNotNull;		/* true if NOT NULL is inherited */
 	struct _attrDefInfo **attrdefs; /* DEFAULT expressions */
@@ -328,10 +330,12 @@ typedef struct _tableInfo
 	 */
 	int			numParents;		/* number of (immediate) parent tables */
 	struct _tableInfo **parents;	/* TableInfos of immediate parents */
+	int			numIndexes;		/* number of indexes */
+	struct _indxInfo *indexes;	/* indexes */
 	struct _tableDataInfo *dataObj; /* TableDataInfo, if dumping its data */
 	int			numTriggers;	/* number of triggers for table */
 	struct _triggerInfo *triggers;	/* array of TriggerInfo structs */
-}			TableInfo;
+} TableInfo;
 
 typedef struct _attrDefInfo
 {
@@ -339,8 +343,8 @@ typedef struct _attrDefInfo
 	TableInfo  *adtable;		/* link to table of attribute */
 	int			adnum;
 	char	   *adef_expr;		/* decompiled DEFAULT expression */
-	bool		separate;		/* TRUE if must dump as separate item */
-}			AttrDefInfo;
+	bool		separate;		/* true if must dump as separate item */
+} AttrDefInfo;
 
 typedef struct _tableDataInfo
 {
@@ -348,7 +352,7 @@ typedef struct _tableDataInfo
 	TableInfo  *tdtable;		/* link to table to dump */
 	bool		oids;			/* include OIDs in data? */
 	char	   *filtercond;		/* WHERE condition to limit rows dumped */
-}			TableDataInfo;
+} TableDataInfo;
 
 typedef struct _indxInfo
 {
@@ -357,20 +361,32 @@ typedef struct _indxInfo
 	char	   *indexdef;
 	char	   *tablespace;		/* tablespace in which index is stored */
 	char	   *indreloptions;	/* options specified by WITH (...) */
-	int			indnkeys;
-	Oid		   *indkeys;
+	char	   *indstatcols;	/* column numbers with statistics */
+	char	   *indstatvals;	/* statistic values for columns */
+	int			indnkeyattrs;	/* number of index key attributes */
+	int			indnattrs;		/* total number of index attributes */
+	Oid		   *indkeys;		/* In spite of the name 'indkeys' this field
+								 * contains both key and nonkey attributes */
 	bool		indisclustered;
 	bool		indisreplident;
+	Oid			parentidx;		/* if partitioned, parent index OID */
 	/* if there is an associated constraint object, its dumpId: */
 	DumpId		indexconstraint;
 	int			relpages;		/* relpages of the underlying table */
-}			IndxInfo;
+} IndxInfo;
+
+typedef struct _indexAttachInfo
+{
+	DumpableObject dobj;
+	IndxInfo   *parentIdx;		/* link to index on partitioned table */
+	IndxInfo   *partitionIdx;	/* link to index on partition */
+} IndexAttachInfo;
 
 typedef struct _statsExtInfo
 {
 	DumpableObject dobj;
 	char	   *rolname;		/* name of owner, or empty string */
-}			StatsExtInfo;
+} StatsExtInfo;
 
 typedef struct _ruleInfo
 {
@@ -379,9 +395,9 @@ typedef struct _ruleInfo
 	char		ev_type;
 	bool		is_instead;
 	char		ev_enabled;
-	bool		separate;		/* TRUE if must dump as separate item */
+	bool		separate;		/* true if must dump as separate item */
 	/* separate is always true for non-ON SELECT rules */
-}			RuleInfo;
+} RuleInfo;
 
 typedef struct _triggerInfo
 {
@@ -399,7 +415,7 @@ typedef struct _triggerInfo
 	bool		tgdeferrable;
 	bool		tginitdeferred;
 	char	   *tgdef;
-}			TriggerInfo;
+} TriggerInfo;
 
 typedef struct _evttriggerInfo
 {
@@ -410,7 +426,7 @@ typedef struct _evttriggerInfo
 	char	   *evttags;
 	char	   *evtfname;
 	char		evtenabled;
-}			EventTriggerInfo;
+} EventTriggerInfo;
 
 /*
  * struct ConstraintInfo is used for all constraint types.  However we
@@ -429,11 +445,11 @@ typedef struct _constraintInfo
 	char	   *condef;			/* definition, if CHECK or FOREIGN KEY */
 	Oid			confrelid;		/* referenced table, if FOREIGN KEY */
 	DumpId		conindex;		/* identifies associated index if any */
-	bool		condeferrable;	/* TRUE if constraint is DEFERRABLE */
-	bool		condeferred;	/* TRUE if constraint is INITIALLY DEFERRED */
-	bool		conislocal;		/* TRUE if constraint has local definition */
-	bool		separate;		/* TRUE if must dump as separate item */
-}			ConstraintInfo;
+	bool		condeferrable;	/* true if constraint is DEFERRABLE */
+	bool		condeferred;	/* true if constraint is INITIALLY DEFERRED */
+	bool		conislocal;		/* true if constraint has local definition */
+	bool		separate;		/* true if must dump as separate item */
+} ConstraintInfo;
 
 typedef struct _procLangInfo
 {
@@ -447,7 +463,7 @@ typedef struct _procLangInfo
 	char	   *initlanacl;
 	char	   *initrlanacl;
 	char	   *lanowner;		/* name of owner, or empty string */
-}			ProcLangInfo;
+} ProcLangInfo;
 
 typedef struct _castInfo
 {
@@ -457,7 +473,7 @@ typedef struct _castInfo
 	Oid			castfunc;
 	char		castcontext;
 	char		castmethod;
-}			CastInfo;
+} CastInfo;
 
 typedef struct _transformInfo
 {
@@ -466,14 +482,14 @@ typedef struct _transformInfo
 	Oid			trflang;
 	Oid			trffromsql;
 	Oid			trftosql;
-}			TransformInfo;
+} TransformInfo;
 
 /* InhInfo isn't a DumpableObject, just temporary state */
 typedef struct _inhInfo
 {
 	Oid			inhrelid;		/* OID of a child table */
 	Oid			inhparent;		/* OID of its parent */
-}			InhInfo;
+} InhInfo;
 
 typedef struct _prsInfo
 {
@@ -483,7 +499,7 @@ typedef struct _prsInfo
 	Oid			prsend;
 	Oid			prsheadline;
 	Oid			prslextype;
-}			TSParserInfo;
+} TSParserInfo;
 
 typedef struct _dictInfo
 {
@@ -491,21 +507,21 @@ typedef struct _dictInfo
 	char	   *rolname;
 	Oid			dicttemplate;
 	char	   *dictinitoption;
-}			TSDictInfo;
+} TSDictInfo;
 
 typedef struct _tmplInfo
 {
 	DumpableObject dobj;
 	Oid			tmplinit;
 	Oid			tmpllexize;
-}			TSTemplateInfo;
+} TSTemplateInfo;
 
 typedef struct _cfgInfo
 {
 	DumpableObject dobj;
 	char	   *rolname;
 	Oid			cfgparser;
-}			TSConfigInfo;
+} TSConfigInfo;
 
 typedef struct _fdwInfo
 {
@@ -518,7 +534,7 @@ typedef struct _fdwInfo
 	char	   *rfdwacl;
 	char	   *initfdwacl;
 	char	   *initrfdwacl;
-}			FdwInfo;
+} FdwInfo;
 
 typedef struct _foreignServerInfo
 {
@@ -532,7 +548,7 @@ typedef struct _foreignServerInfo
 	char	   *initsrvacl;
 	char	   *initrsrvacl;
 	char	   *srvoptions;
-}			ForeignServerInfo;
+} ForeignServerInfo;
 
 typedef struct _defaultACLInfo
 {
@@ -543,7 +559,7 @@ typedef struct _defaultACLInfo
 	char	   *rdefaclacl;
 	char	   *initdefaclacl;
 	char	   *initrdefaclacl;
-}			DefaultACLInfo;
+} DefaultACLInfo;
 
 typedef struct _blobInfo
 {
@@ -553,7 +569,7 @@ typedef struct _blobInfo
 	char	   *rblobacl;
 	char	   *initblobacl;
 	char	   *initrblobacl;
-}			BlobInfo;
+} BlobInfo;
 
 /*
  * The PolicyInfo struct is used to represent policies on a table and
@@ -571,7 +587,7 @@ typedef struct _policyInfo
 	char	   *polroles;
 	char	   *polqual;
 	char	   *polwithcheck;
-}			PolicyInfo;
+} PolicyInfo;
 
 /*
  * The PublicationInfo struct is used to represent publications.
@@ -584,7 +600,8 @@ typedef struct _PublicationInfo
 	bool		pubinsert;
 	bool		pubupdate;
 	bool		pubdelete;
-}			PublicationInfo;
+	bool		pubtruncate;
+} PublicationInfo;
 
 /*
  * The PublicationRelInfo struct is used to represent publication table
@@ -595,7 +612,7 @@ typedef struct _PublicationRelInfo
 	DumpableObject dobj;
 	TableInfo  *pubtable;
 	char	   *pubname;
-}			PublicationRelInfo;
+} PublicationRelInfo;
 
 /*
  * The SubscriptionInfo struct is used to represent subscription.
@@ -608,7 +625,7 @@ typedef struct _SubscriptionInfo
 	char	   *subslotname;
 	char	   *subsynccommit;
 	char	   *subpublications;
-}			SubscriptionInfo;
+} SubscriptionInfo;
 
 /*
  * We build an array of these with an entry for each object that is an
@@ -618,7 +635,7 @@ typedef struct _extensionMemberId
 {
 	CatalogId	catId;			/* tableoid+oid of some member object */
 	ExtensionInfo *ext;			/* owning extension */
-}			ExtensionMemberId;
+} ExtensionMemberId;
 
 /* global decls */
 extern bool force_quotes;		/* double-quotes for identifiers flag */
@@ -634,81 +651,81 @@ extern char g_opaque_type[10];	/* name for the opaque type */
  *	common utility functions
  */
 
-extern TableInfo * getSchemaData(Archive * fout, int *numTablesPtr);
+extern TableInfo *getSchemaData(Archive *fout, int *numTablesPtr);
 
-extern void AssignDumpId(DumpableObject * dobj);
+extern void AssignDumpId(DumpableObject *dobj);
 extern DumpId createDumpId(void);
 extern DumpId getMaxDumpId(void);
-extern DumpableObject * findObjectByDumpId(DumpId dumpId);
-extern DumpableObject * findObjectByCatalogId(CatalogId catalogId);
-extern void getDumpableObjects(DumpableObject * **objs, int *numObjs);
+extern DumpableObject *findObjectByDumpId(DumpId dumpId);
+extern DumpableObject *findObjectByCatalogId(CatalogId catalogId);
+extern void getDumpableObjects(DumpableObject ***objs, int *numObjs);
 
-extern void addObjectDependency(DumpableObject * dobj, DumpId refId);
-extern void removeObjectDependency(DumpableObject * dobj, DumpId refId);
+extern void addObjectDependency(DumpableObject *dobj, DumpId refId);
+extern void removeObjectDependency(DumpableObject *dobj, DumpId refId);
 
-extern TableInfo * findTableByOid(Oid oid);
-extern TypeInfo * findTypeByOid(Oid oid);
-extern FuncInfo * findFuncByOid(Oid oid);
-extern OprInfo * findOprByOid(Oid oid);
-extern CollInfo * findCollationByOid(Oid oid);
-extern NamespaceInfo * findNamespaceByOid(Oid oid);
-extern ExtensionInfo * findExtensionByOid(Oid oid);
+extern TableInfo *findTableByOid(Oid oid);
+extern TypeInfo *findTypeByOid(Oid oid);
+extern FuncInfo *findFuncByOid(Oid oid);
+extern OprInfo *findOprByOid(Oid oid);
+extern CollInfo *findCollationByOid(Oid oid);
+extern NamespaceInfo *findNamespaceByOid(Oid oid);
+extern ExtensionInfo *findExtensionByOid(Oid oid);
 
-extern void setExtensionMembership(ExtensionMemberId * extmems, int nextmems);
-extern ExtensionInfo * findOwningExtension(CatalogId catalogId);
+extern void setExtensionMembership(ExtensionMemberId *extmems, int nextmems);
+extern ExtensionInfo *findOwningExtension(CatalogId catalogId);
 
-extern void parseOidArray(const char *str, Oid * array, int arraysize);
+extern void parseOidArray(const char *str, Oid *array, int arraysize);
 
-extern void sortDumpableObjects(DumpableObject * *objs, int numObjs,
+extern void sortDumpableObjects(DumpableObject **objs, int numObjs,
 					DumpId preBoundaryId, DumpId postBoundaryId);
-extern void sortDumpableObjectsByTypeName(DumpableObject * *objs, int numObjs);
-extern void sortDataAndIndexObjectsBySize(DumpableObject * *objs, int numObjs);
+extern void sortDumpableObjectsByTypeName(DumpableObject **objs, int numObjs);
+extern void sortDataAndIndexObjectsBySize(DumpableObject **objs, int numObjs);
 
 /*
  * version specific routines
  */
-extern NamespaceInfo * getNamespaces(Archive * fout, int *numNamespaces);
-extern ExtensionInfo * getExtensions(Archive * fout, int *numExtensions);
-extern TypeInfo * getTypes(Archive * fout, int *numTypes);
-extern FuncInfo * getFuncs(Archive * fout, int *numFuncs);
-extern AggInfo * getAggregates(Archive * fout, int *numAggregates);
-extern OprInfo * getOperators(Archive * fout, int *numOperators);
-extern AccessMethodInfo * getAccessMethods(Archive * fout, int *numAccessMethods);
-extern OpclassInfo * getOpclasses(Archive * fout, int *numOpclasses);
-extern OpfamilyInfo * getOpfamilies(Archive * fout, int *numOpfamilies);
-extern CollInfo * getCollations(Archive * fout, int *numCollations);
-extern ConvInfo * getConversions(Archive * fout, int *numConversions);
-extern TableInfo * getTables(Archive * fout, int *numTables);
-extern void getOwnedSeqs(Archive * fout, TableInfo tblinfo[], int numTables);
-extern InhInfo * getInherits(Archive * fout, int *numInherits);
-extern void getIndexes(Archive * fout, TableInfo tblinfo[], int numTables);
-extern void getExtendedStatistics(Archive * fout);
-extern void getConstraints(Archive * fout, TableInfo tblinfo[], int numTables);
-extern RuleInfo * getRules(Archive * fout, int *numRules);
-extern void getTriggers(Archive * fout, TableInfo tblinfo[], int numTables);
-extern ProcLangInfo * getProcLangs(Archive * fout, int *numProcLangs);
-extern CastInfo * getCasts(Archive * fout, int *numCasts);
-extern TransformInfo * getTransforms(Archive * fout, int *numTransforms);
-extern void getTableAttrs(Archive * fout, TableInfo * tbinfo, int numTables);
-extern bool shouldPrintColumn(DumpOptions * dopt, TableInfo * tbinfo, int colno);
-extern TSParserInfo * getTSParsers(Archive * fout, int *numTSParsers);
-extern TSDictInfo * getTSDictionaries(Archive * fout, int *numTSDicts);
-extern TSTemplateInfo * getTSTemplates(Archive * fout, int *numTSTemplates);
-extern TSConfigInfo * getTSConfigurations(Archive * fout, int *numTSConfigs);
-extern FdwInfo * getForeignDataWrappers(Archive * fout,
-										int *numForeignDataWrappers);
-extern ForeignServerInfo * getForeignServers(Archive * fout,
-											 int *numForeignServers);
-extern DefaultACLInfo * getDefaultACLs(Archive * fout, int *numDefaultACLs);
-extern void getExtensionMembership(Archive * fout, ExtensionInfo extinfo[],
+extern NamespaceInfo *getNamespaces(Archive *fout, int *numNamespaces);
+extern ExtensionInfo *getExtensions(Archive *fout, int *numExtensions);
+extern TypeInfo *getTypes(Archive *fout, int *numTypes);
+extern FuncInfo *getFuncs(Archive *fout, int *numFuncs);
+extern AggInfo *getAggregates(Archive *fout, int *numAggregates);
+extern OprInfo *getOperators(Archive *fout, int *numOperators);
+extern AccessMethodInfo *getAccessMethods(Archive *fout, int *numAccessMethods);
+extern OpclassInfo *getOpclasses(Archive *fout, int *numOpclasses);
+extern OpfamilyInfo *getOpfamilies(Archive *fout, int *numOpfamilies);
+extern CollInfo *getCollations(Archive *fout, int *numCollations);
+extern ConvInfo *getConversions(Archive *fout, int *numConversions);
+extern TableInfo *getTables(Archive *fout, int *numTables);
+extern void getOwnedSeqs(Archive *fout, TableInfo tblinfo[], int numTables);
+extern InhInfo *getInherits(Archive *fout, int *numInherits);
+extern void getIndexes(Archive *fout, TableInfo tblinfo[], int numTables);
+extern void getExtendedStatistics(Archive *fout);
+extern void getConstraints(Archive *fout, TableInfo tblinfo[], int numTables);
+extern RuleInfo *getRules(Archive *fout, int *numRules);
+extern void getTriggers(Archive *fout, TableInfo tblinfo[], int numTables);
+extern ProcLangInfo *getProcLangs(Archive *fout, int *numProcLangs);
+extern CastInfo *getCasts(Archive *fout, int *numCasts);
+extern TransformInfo *getTransforms(Archive *fout, int *numTransforms);
+extern void getTableAttrs(Archive *fout, TableInfo *tbinfo, int numTables);
+extern bool shouldPrintColumn(DumpOptions *dopt, TableInfo *tbinfo, int colno);
+extern TSParserInfo *getTSParsers(Archive *fout, int *numTSParsers);
+extern TSDictInfo *getTSDictionaries(Archive *fout, int *numTSDicts);
+extern TSTemplateInfo *getTSTemplates(Archive *fout, int *numTSTemplates);
+extern TSConfigInfo *getTSConfigurations(Archive *fout, int *numTSConfigs);
+extern FdwInfo *getForeignDataWrappers(Archive *fout,
+					   int *numForeignDataWrappers);
+extern ForeignServerInfo *getForeignServers(Archive *fout,
+				  int *numForeignServers);
+extern DefaultACLInfo *getDefaultACLs(Archive *fout, int *numDefaultACLs);
+extern void getExtensionMembership(Archive *fout, ExtensionInfo extinfo[],
 					   int numExtensions);
-extern void processExtensionTables(Archive * fout, ExtensionInfo extinfo[],
+extern void processExtensionTables(Archive *fout, ExtensionInfo extinfo[],
 					   int numExtensions);
-extern EventTriggerInfo * getEventTriggers(Archive * fout, int *numEventTriggers);
-extern void getPolicies(Archive * fout, TableInfo tblinfo[], int numTables);
-extern void getPublications(Archive * fout);
-extern void getPublicationTables(Archive * fout, TableInfo tblinfo[],
+extern EventTriggerInfo *getEventTriggers(Archive *fout, int *numEventTriggers);
+extern void getPolicies(Archive *fout, TableInfo tblinfo[], int numTables);
+extern void getPublications(Archive *fout);
+extern void getPublicationTables(Archive *fout, TableInfo tblinfo[],
 					 int numTables);
-extern void getSubscriptions(Archive * fout);
+extern void getSubscriptions(Archive *fout);
 
 #endif							/* PG_DUMP_H */

@@ -2,7 +2,7 @@
  * brin_page.h
  *		Prototypes and definitions for BRIN page layouts
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -29,7 +29,7 @@
 typedef struct BrinSpecialSpace
 {
 	uint16		vector[MAXALIGN(1) / sizeof(uint16)];
-}			BrinSpecialSpace;
+} BrinSpecialSpace;
 
 /*
  * Make the page type be the last half-word in the page, for consumption by
@@ -67,7 +67,7 @@ typedef struct BrinMetaPageData
 	uint32		brinVersion;
 	BlockNumber pagesPerRange;
 	BlockNumber lastRevmapPage;
-}			BrinMetaPageData;
+} BrinMetaPageData;
 
 #define BRIN_CURRENT_VERSION		1
 #define BRIN_META_MAGIC			0xA8109CFA
@@ -83,7 +83,7 @@ typedef struct RevmapContents
 	 * in an otherwise-empty struct.
 	 */
 	ItemPointerData rm_tids[1];
-}			RevmapContents;
+} RevmapContents;
 
 #define REVMAP_CONTENT_SIZE \
 	(BLCKSZ - MAXALIGN(SizeOfPageHeaderData) - \

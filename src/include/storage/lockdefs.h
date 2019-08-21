@@ -7,7 +7,7 @@
  * contains definition that have to (indirectly) be available when included by
  * FRONTEND code.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/lockdefs.h
@@ -50,6 +50,6 @@ typedef struct xl_standby_lock
 	TransactionId xid;			/* xid of holder of AccessExclusiveLock */
 	Oid			dbOid;
 	Oid			relOid;
-}			xl_standby_lock;
+} xl_standby_lock;
 
 #endif							/* LOCKDEF_H_ */
