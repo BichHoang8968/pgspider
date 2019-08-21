@@ -8,7 +8,7 @@
  *
  * See src/tools/testint128.c for a simple test harness for this file.
  *
- * Copyright (c) 2017, PostgreSQL Global Development Group
+ * Copyright (c) 2017-2018, PostgreSQL Global Development Group
  *
  * src/include/common/int128.h
  *
@@ -38,7 +38,7 @@ typedef int128 INT128;
  * Add an unsigned int64 value into an INT128 variable.
  */
 static inline void
-int128_add_uint64(INT128 * i128, uint64 v)
+int128_add_uint64(INT128 *i128, uint64 v)
 {
 	*i128 += v;
 }
@@ -47,7 +47,7 @@ int128_add_uint64(INT128 * i128, uint64 v)
  * Add a signed int64 value into an INT128 variable.
  */
 static inline void
-int128_add_int64(INT128 * i128, int64 v)
+int128_add_int64(INT128 *i128, int64 v)
 {
 	*i128 += v;
 }
@@ -59,7 +59,7 @@ int128_add_int64(INT128 * i128, int64 v)
  * the other implementation; maybe we should do it by hand always?
  */
 static inline void
-int128_add_int64_mul_int64(INT128 * i128, int64 x, int64 y)
+int128_add_int64_mul_int64(INT128 *i128, int64 x, int64 y)
 {
 	*i128 += (int128) x * (int128) y;
 }
@@ -113,13 +113,13 @@ typedef struct
 	uint64		lo;				/* least significant 64 bits, without sign */
 	int64		hi;				/* most significant 64 bits, including sign */
 #endif
-}			INT128;
+} INT128;
 
 /*
  * Add an unsigned int64 value into an INT128 variable.
  */
 static inline void
-int128_add_uint64(INT128 * i128, uint64 v)
+int128_add_uint64(INT128 *i128, uint64 v)
 {
 	/*
 	 * First add the value to the .lo part, then check to see if a carry needs
@@ -140,7 +140,7 @@ int128_add_uint64(INT128 * i128, uint64 v)
  * Add a signed int64 value into an INT128 variable.
  */
 static inline void
-int128_add_int64(INT128 * i128, int64 v)
+int128_add_int64(INT128 *i128, int64 v)
 {
 	/*
 	 * This is much like the above except that the carry logic differs for
@@ -174,10 +174,10 @@ int128_add_int64(INT128 * i128, int64 v)
  * Add the 128-bit product of two int64 values into an INT128 variable.
  */
 static inline void
-int128_add_int64_mul_int64(INT128 * i128, int64 x, int64 y)
+int128_add_int64_mul_int64(INT128 *i128, int64 x, int64 y)
 {
 	/* INT64_AU32 must use arithmetic right shift */
-	StaticAssertStmt(((int64) - 1 >> 1) == (int64) - 1,
+	StaticAssertStmt(((int64) -1 >> 1) == (int64) -1,
 					 "arithmetic right shift is needed");
 
 	/*----------

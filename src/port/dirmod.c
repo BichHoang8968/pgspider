@@ -3,7 +3,7 @@
  * dirmod.c
  *	  directory handling functions
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *	This includes replacement versions of functions that work on
@@ -144,7 +144,7 @@ typedef struct
 	WORD		PrintNameOffset;
 	WORD		PrintNameLength;
 	WCHAR		PathBuffer[FLEXIBLE_ARRAY_MEMBER];
-}			REPARSE_JUNCTION_DATA_BUFFER;
+} REPARSE_JUNCTION_DATA_BUFFER;
 
 #define REPARSE_JUNCTION_DATA_BUFFER_HEADER_SIZE   \
 		FIELD_OFFSET(REPARSE_JUNCTION_DATA_BUFFER, SubstituteNameOffset)
@@ -211,7 +211,7 @@ pgsymlink(const char *oldpath, const char *newpath)
 					  FORMAT_MESSAGE_FROM_SYSTEM,
 					  NULL, GetLastError(),
 					  MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT),
-					  (LPSTR) & msg, 0, NULL);
+					  (LPSTR) &msg, 0, NULL);
 #ifndef FRONTEND
 		ereport(ERROR,
 				(errcode_for_file_access(),
@@ -288,7 +288,7 @@ pgreadlink(const char *path, char *buf, size_t size)
 					  FORMAT_MESSAGE_FROM_SYSTEM,
 					  NULL, GetLastError(),
 					  MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT),
-					  (LPSTR) & msg, 0, NULL);
+					  (LPSTR) &msg, 0, NULL);
 #ifndef FRONTEND
 		ereport(ERROR,
 				(errcode_for_file_access(),

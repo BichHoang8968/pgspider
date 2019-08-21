@@ -3,7 +3,7 @@
  * tsquery_util.c
  *	  Utilities for tsquery datatype
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -21,7 +21,7 @@
  * Build QTNode tree for a tsquery given in QueryItem array format.
  */
 QTNode *
-QT2QTN(QueryItem * in, char *operand)
+QT2QTN(QueryItem *in, char *operand)
 {
 	QTNode	   *node = (QTNode *) palloc0(sizeof(QTNode));
 
@@ -32,7 +32,7 @@ QT2QTN(QueryItem * in, char *operand)
 
 	if (in->type == QI_OPR)
 	{
-		node->child = (QTNode * *) palloc0(sizeof(QTNode *) * 2);
+		node->child = (QTNode **) palloc0(sizeof(QTNode *) * 2);
 		node->child[0] = QT2QTN(in + 1, operand);
 		node->sign = node->child[0]->sign;
 		if (in->qoperator.oper == OP_NOT)
@@ -60,7 +60,7 @@ QT2QTN(QueryItem * in, char *operand)
  * by flags.
  */
 void
-QTNFree(QTNode * in)
+QTNFree(QTNode *in)
 {
 	if (!in)
 		return;
@@ -93,7 +93,7 @@ QTNFree(QTNode * in)
  * The sort order is somewhat arbitrary.
  */
 int
-QTNodeCompare(QTNode * an, QTNode * bn)
+QTNodeCompare(QTNode *an, QTNode *bn)
 {
 	/* since this function recurses, it could be driven to stack overflow. */
 	check_stack_depth();
@@ -151,7 +151,7 @@ QTNodeCompare(QTNode * an, QTNode * bn)
 static int
 cmpQTN(const void *a, const void *b)
 {
-	return QTNodeCompare(*(QTNode * const *) a, *(QTNode * const *) b);
+	return QTNodeCompare(*(QTNode *const *) a, *(QTNode *const *) b);
 }
 
 /*
@@ -159,7 +159,7 @@ cmpQTN(const void *a, const void *b)
  * into an arbitrary but well-defined order.
  */
 void
-QTNSort(QTNode * in)
+QTNSort(QTNode *in)
 {
 	int			i;
 
@@ -179,7 +179,7 @@ QTNSort(QTNode * in)
  * Are two QTNode trees equal according to QTNodeCompare?
  */
 bool
-QTNEq(QTNode * a, QTNode * b)
+QTNEq(QTNode *a, QTNode *b)
 {
 	uint32		sign = a->sign & b->sign;
 
@@ -197,7 +197,7 @@ QTNEq(QTNode * a, QTNode * b)
  *	 b	c
  */
 void
-QTNTernary(QTNode * in)
+QTNTernary(QTNode *in)
 {
 	int			i;
 
@@ -225,7 +225,7 @@ QTNTernary(QTNode * in)
 			int			oldnchild = in->nchild;
 
 			in->nchild += cc->nchild - 1;
-			in->child = (QTNode * *) repalloc(in->child, in->nchild * sizeof(QTNode *));
+			in->child = (QTNode **) repalloc(in->child, in->nchild * sizeof(QTNode *));
 
 			if (i + 1 != oldnchild)
 				memmove(in->child + i + cc->nchild, in->child + i + 1,
@@ -246,7 +246,7 @@ QTNTernary(QTNode * in)
  * (Opposite of QTNTernary)
  */
 void
-QTNBinary(QTNode * in)
+QTNBinary(QTNode *in)
 {
 	int			i;
 
@@ -264,7 +264,7 @@ QTNBinary(QTNode * in)
 		QTNode	   *nn = (QTNode *) palloc0(sizeof(QTNode));
 
 		nn->valnode = (QueryItem *) palloc0(sizeof(QueryItem));
-		nn->child = (QTNode * *) palloc0(sizeof(QTNode *) * 2);
+		nn->child = (QTNode **) palloc0(sizeof(QTNode *) * 2);
 
 		nn->nchild = 2;
 		nn->flags = QTN_NEEDFREE;
@@ -288,7 +288,7 @@ QTNBinary(QTNode * in)
  * Caller must initialize *sumlen and *nnode to zeroes.
  */
 static void
-cntsize(QTNode * in, int *sumlen, int *nnode)
+cntsize(QTNode *in, int *sumlen, int *nnode)
 {
 	/* since this function recurses, it could be driven to stack overflow. */
 	check_stack_depth();
@@ -312,14 +312,14 @@ typedef struct
 	QueryItem  *curitem;
 	char	   *operand;
 	char	   *curoperand;
-}			QTN2QTState;
+} QTN2QTState;
 
 /*
  * Recursively convert a QTNode tree into flat tsquery format.
  * Caller must have allocated arrays of the correct size.
  */
 static void
-fillQT(QTN2QTState * state, QTNode * in)
+fillQT(QTN2QTState *state, QTNode *in)
 {
 	/* since this function recurses, it could be driven to stack overflow. */
 	check_stack_depth();
@@ -359,7 +359,7 @@ fillQT(QTN2QTState * state, QTNode * in)
  * Build flat tsquery from a QTNode tree.
  */
 TSQuery
-QTN2QT(QTNode * in)
+QTN2QT(QTNode *in)
 {
 	TSQuery		out;
 	int			len;
@@ -392,7 +392,7 @@ QTN2QT(QTNode * in)
  * Modifiable copies of the words and valnodes are made, too.
  */
 QTNode *
-QTNCopy(QTNode * in)
+QTNCopy(QTNode *in)
 {
 	QTNode	   *out;
 
@@ -417,7 +417,7 @@ QTNCopy(QTNode * in)
 	{
 		int			i;
 
-		out->child = (QTNode * *) palloc(sizeof(QTNode *) * in->nchild);
+		out->child = (QTNode **) palloc(sizeof(QTNode *) * in->nchild);
 
 		for (i = 0; i < in->nchild; i++)
 			out->child[i] = QTNCopy(in->child[i]);
@@ -430,7 +430,7 @@ QTNCopy(QTNode * in)
  * Clear the specified flag bit(s) in all nodes of a QTNode tree.
  */
 void
-QTNClearFlags(QTNode * in, uint32 flags)
+QTNClearFlags(QTNode *in, uint32 flags)
 {
 	/* since this function recurses, it could be driven to stack overflow. */
 	check_stack_depth();

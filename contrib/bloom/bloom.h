@@ -3,7 +3,7 @@
  * bloom.h
  *	  Header for bloom index.
  *
- * Copyright (c) 2016-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2016-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  contrib/bloom/bloom.h
@@ -37,9 +37,9 @@ typedef struct BloomPageOpaqueData
 								 * BloomPageOpaqueData and to place
 								 * bloom_page_id exactly at the end of page */
 	uint16		bloom_page_id;	/* for identification of BLOOM indexes */
-}			BloomPageOpaqueData;
+} BloomPageOpaqueData;
 
-typedef BloomPageOpaqueData * BloomPageOpaque;
+typedef BloomPageOpaqueData *BloomPageOpaque;
 
 /* Bloom page flags */
 #define BLOOM_META		(1<<0)
@@ -103,7 +103,7 @@ typedef struct BloomOptions
 	int			bloomLength;	/* length of signature in words (not bits!) */
 	int			bitSize[INDEX_MAX_KEYS];	/* # of bits generated for each
 											 * index key */
-}			BloomOptions;
+} BloomOptions;
 
 /*
  * FreeBlockNumberArray - array of block numbers sized so that metadata fill
@@ -124,7 +124,7 @@ typedef struct BloomMetaPageData
 	uint16		nEnd;
 	BloomOptions opts;
 	FreeBlockNumberArray notFullPage;
-}			BloomMetaPageData;
+} BloomMetaPageData;
 
 /* Magic number to distinguish bloom pages among anothers */
 #define BLOOM_MAGICK_NUMBER (0xDBAC0DED)
@@ -145,7 +145,7 @@ typedef struct BloomState
 	 * precompute it
 	 */
 	Size		sizeOfBloomTuple;
-}			BloomState;
+} BloomState;
 
 #define BloomPageGetFreeSpace(state, page) \
 	(BLCKSZ - MAXALIGN(SizeOfPageHeaderData) \
@@ -159,7 +159,7 @@ typedef struct BloomTuple
 {
 	ItemPointerData heapPtr;
 	BloomSignatureWord sign[FLEXIBLE_ARRAY_MEMBER];
-}			BloomTuple;
+} BloomTuple;
 
 #define BLOOMTUPLEHDRSZ offsetof(BloomTuple, sign)
 
@@ -168,46 +168,46 @@ typedef struct BloomScanOpaqueData
 {
 	BloomSignatureWord *sign;	/* Scan signature */
 	BloomState	state;
-}			BloomScanOpaqueData;
+} BloomScanOpaqueData;
 
-typedef BloomScanOpaqueData * BloomScanOpaque;
+typedef BloomScanOpaqueData *BloomScanOpaque;
 
 /* blutils.c */
 extern void _PG_init(void);
-extern void initBloomState(BloomState * state, Relation index);
+extern void initBloomState(BloomState *state, Relation index);
 extern void BloomFillMetapage(Relation index, Page metaPage);
 extern void BloomInitMetapage(Relation index);
 extern void BloomInitPage(Page page, uint16 flags);
 extern Buffer BloomNewBuffer(Relation index);
-extern void signValue(BloomState * state, BloomSignatureWord * sign, Datum value, int attno);
-extern BloomTuple * BloomFormTuple(BloomState * state, ItemPointer iptr, Datum * values, bool *isnull);
-extern bool BloomPageAddItem(BloomState * state, Page page, BloomTuple * tuple);
+extern void signValue(BloomState *state, BloomSignatureWord *sign, Datum value, int attno);
+extern BloomTuple *BloomFormTuple(BloomState *state, ItemPointer iptr, Datum *values, bool *isnull);
+extern bool BloomPageAddItem(BloomState *state, Page page, BloomTuple *tuple);
 
 /* blvalidate.c */
 extern bool blvalidate(Oid opclassoid);
 
 /* index access method interface functions */
-extern bool blinsert(Relation index, Datum * values, bool *isnull,
+extern bool blinsert(Relation index, Datum *values, bool *isnull,
 		 ItemPointer ht_ctid, Relation heapRel,
 		 IndexUniqueCheck checkUnique,
 		 struct IndexInfo *indexInfo);
 extern IndexScanDesc blbeginscan(Relation r, int nkeys, int norderbys);
-extern int64 blgetbitmap(IndexScanDesc scan, TIDBitmap * tbm);
+extern int64 blgetbitmap(IndexScanDesc scan, TIDBitmap *tbm);
 extern void blrescan(IndexScanDesc scan, ScanKey scankey, int nscankeys,
 		 ScanKey orderbys, int norderbys);
 extern void blendscan(IndexScanDesc scan);
-extern IndexBuildResult * blbuild(Relation heap, Relation index,
-								  struct IndexInfo *indexInfo);
+extern IndexBuildResult *blbuild(Relation heap, Relation index,
+		struct IndexInfo *indexInfo);
 extern void blbuildempty(Relation index);
-extern IndexBulkDeleteResult * blbulkdelete(IndexVacuumInfo * info,
-											IndexBulkDeleteResult * stats, IndexBulkDeleteCallback callback,
-											void *callback_state);
-extern IndexBulkDeleteResult * blvacuumcleanup(IndexVacuumInfo * info,
-											   IndexBulkDeleteResult * stats);
-extern bytea * bloptions(Datum reloptions, bool validate);
-extern void blcostestimate(PlannerInfo * root, IndexPath * path,
-			   double loop_count, Cost * indexStartupCost,
-			   Cost * indexTotalCost, Selectivity * indexSelectivity,
+extern IndexBulkDeleteResult *blbulkdelete(IndexVacuumInfo *info,
+			 IndexBulkDeleteResult *stats, IndexBulkDeleteCallback callback,
+			 void *callback_state);
+extern IndexBulkDeleteResult *blvacuumcleanup(IndexVacuumInfo *info,
+				IndexBulkDeleteResult *stats);
+extern bytea *bloptions(Datum reloptions, bool validate);
+extern void blcostestimate(PlannerInfo *root, IndexPath *path,
+			   double loop_count, Cost *indexStartupCost,
+			   Cost *indexTotalCost, Selectivity *indexSelectivity,
 			   double *indexCorrelation, double *indexPages);
 
 #endif

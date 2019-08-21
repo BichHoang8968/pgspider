@@ -38,7 +38,7 @@
  * be infrequent enough that more-detailed tracking is not worth the effort.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -85,23 +85,23 @@
  * We thread the structs manually instead of using List cells so that we can
  * guarantee to save a CachedPlanSource without error.
  */
-static CachedPlanSource * first_saved_plan = NULL;
+static CachedPlanSource *first_saved_plan = NULL;
 
-static void ReleaseGenericPlan(CachedPlanSource * plansource);
-static List * RevalidateCachedQuery(CachedPlanSource * plansource,
-									QueryEnvironment * queryEnv);
-static bool CheckCachedPlan(CachedPlanSource * plansource);
-static CachedPlan * BuildCachedPlan(CachedPlanSource * plansource, List * qlist,
-									ParamListInfo boundParams, QueryEnvironment * queryEnv);
-static bool choose_custom_plan(CachedPlanSource * plansource,
+static void ReleaseGenericPlan(CachedPlanSource *plansource);
+static List *RevalidateCachedQuery(CachedPlanSource *plansource,
+					  QueryEnvironment *queryEnv);
+static bool CheckCachedPlan(CachedPlanSource *plansource);
+static CachedPlan *BuildCachedPlan(CachedPlanSource *plansource, List *qlist,
+				ParamListInfo boundParams, QueryEnvironment *queryEnv);
+static bool choose_custom_plan(CachedPlanSource *plansource,
 				   ParamListInfo boundParams);
-static double cached_plan_cost(CachedPlan * plan, bool include_planner);
-static Query * QueryListGetPrimaryStmt(List * stmts);
-static void AcquireExecutorLocks(List * stmt_list, bool acquire);
-static void AcquirePlannerLocks(List * stmt_list, bool acquire);
-static void ScanQueryForLocks(Query * parsetree, bool acquire);
-static bool ScanQueryWalker(Node * node, bool *acquire);
-static TupleDesc PlanCacheComputeResultDesc(List * stmt_list);
+static double cached_plan_cost(CachedPlan *plan, bool include_planner);
+static Query *QueryListGetPrimaryStmt(List *stmts);
+static void AcquireExecutorLocks(List *stmt_list, bool acquire);
+static void AcquirePlannerLocks(List *stmt_list, bool acquire);
+static void ScanQueryForLocks(Query *parsetree, bool acquire);
+static bool ScanQueryWalker(Node *node, bool *acquire);
+static TupleDesc PlanCacheComputeResultDesc(List *stmt_list);
 static void PlanCacheRelCallback(Datum arg, Oid relid);
 static void PlanCacheFuncCallback(Datum arg, int cacheid, uint32 hashvalue);
 static void PlanCacheSysCallback(Datum arg, int cacheid, uint32 hashvalue);
@@ -149,7 +149,7 @@ InitPlanCache(void)
  * commandTag: compile-time-constant tag for query, or NULL if empty query
  */
 CachedPlanSource *
-CreateCachedPlan(RawStmt * raw_parse_tree,
+CreateCachedPlan(RawStmt *raw_parse_tree,
 				 const char *query_string,
 				 const char *commandTag)
 {
@@ -180,6 +180,7 @@ CreateCachedPlan(RawStmt * raw_parse_tree,
 	plansource->magic = CACHEDPLANSOURCE_MAGIC;
 	plansource->raw_parse_tree = copyObject(raw_parse_tree);
 	plansource->query_string = pstrdup(query_string);
+	MemoryContextSetIdentifier(source_context, plansource->query_string);
 	plansource->commandTag = commandTag;
 	plansource->param_types = NULL;
 	plansource->num_params = 0;
@@ -232,7 +233,7 @@ CreateCachedPlan(RawStmt * raw_parse_tree,
  * commandTag: compile-time-constant tag for query, or NULL if empty query
  */
 CachedPlanSource *
-CreateOneShotCachedPlan(RawStmt * raw_parse_tree,
+CreateOneShotCachedPlan(RawStmt *raw_parse_tree,
 						const char *query_string,
 						const char *commandTag)
 {
@@ -319,13 +320,13 @@ CreateOneShotCachedPlan(RawStmt * raw_parse_tree,
  * parserSetup: alternate method for handling query parameters
  * parserSetupArg: data to pass to parserSetup
  * cursor_options: options bitmask to pass to planner
- * fixed_result: TRUE to disallow future changes in query's result tupdesc
+ * fixed_result: true to disallow future changes in query's result tupdesc
  */
 void
-CompleteCachedPlan(CachedPlanSource * plansource,
-				   List * querytree_list,
+CompleteCachedPlan(CachedPlanSource *plansource,
+				   List *querytree_list,
 				   MemoryContext querytree_context,
-				   Oid * param_types,
+				   Oid *param_types,
 				   int num_params,
 				   ParserSetupHook parserSetup,
 				   void *parserSetupArg,
@@ -438,7 +439,7 @@ CompleteCachedPlan(CachedPlanSource * plansource,
  * automatically on transaction abort.
  */
 void
-SaveCachedPlan(CachedPlanSource * plansource)
+SaveCachedPlan(CachedPlanSource *plansource)
 {
 	/* Assert caller is doing things in a sane order */
 	Assert(plansource->magic == CACHEDPLANSOURCE_MAGIC);
@@ -483,7 +484,7 @@ SaveCachedPlan(CachedPlanSource * plansource)
  * still in use.
  */
 void
-DropCachedPlan(CachedPlanSource * plansource)
+DropCachedPlan(CachedPlanSource *plansource)
 {
 	Assert(plansource->magic == CACHEDPLANSOURCE_MAGIC);
 
@@ -526,7 +527,7 @@ DropCachedPlan(CachedPlanSource * plansource)
  * ReleaseGenericPlan: release a CachedPlanSource's generic plan, if any.
  */
 static void
-ReleaseGenericPlan(CachedPlanSource * plansource)
+ReleaseGenericPlan(CachedPlanSource *plansource)
 {
 	/* Be paranoid about the possibility that ReleaseCachedPlan fails */
 	if (plansource->gplan)
@@ -554,8 +555,8 @@ ReleaseGenericPlan(CachedPlanSource * plansource)
  * a tree copying step in a subsequent BuildCachedPlan call.)
  */
 static List *
-RevalidateCachedQuery(CachedPlanSource * plansource,
-					  QueryEnvironment * queryEnv)
+RevalidateCachedQuery(CachedPlanSource *plansource,
+					  QueryEnvironment *queryEnv)
 {
 	bool		snapshot_set;
 	RawStmt    *rawtree;
@@ -794,7 +795,7 @@ RevalidateCachedQuery(CachedPlanSource * plansource,
  * (We must do this for the "true" result to be race-condition-free.)
  */
 static bool
-CheckCachedPlan(CachedPlanSource * plansource)
+CheckCachedPlan(CachedPlanSource *plansource)
 {
 	CachedPlan *plan = plansource->gplan;
 
@@ -878,8 +879,8 @@ CheckCachedPlan(CachedPlanSource * plansource)
  * (unless this is a one-shot plan, in which case we don't copy the plan).
  */
 static CachedPlan *
-BuildCachedPlan(CachedPlanSource * plansource, List * qlist,
-				ParamListInfo boundParams, QueryEnvironment * queryEnv)
+BuildCachedPlan(CachedPlanSource *plansource, List *qlist,
+				ParamListInfo boundParams, QueryEnvironment *queryEnv)
 {
 	CachedPlan *plan;
 	List	   *plist;
@@ -951,6 +952,7 @@ BuildCachedPlan(CachedPlanSource * plansource, List * qlist,
 		plan_context = AllocSetContextCreate(CurrentMemoryContext,
 											 "CachedPlan",
 											 ALLOCSET_START_SMALL_SIZES);
+		MemoryContextCopyAndSetIdentifier(plan_context, plansource->query_string);
 
 		/*
 		 * Copy plan into the new context.
@@ -1016,7 +1018,7 @@ BuildCachedPlan(CachedPlanSource * plansource, List * qlist,
  * This defines the policy followed by GetCachedPlan.
  */
 static bool
-choose_custom_plan(CachedPlanSource * plansource, ParamListInfo boundParams)
+choose_custom_plan(CachedPlanSource *plansource, ParamListInfo boundParams)
 {
 	double		avg_custom_cost;
 
@@ -1067,7 +1069,7 @@ choose_custom_plan(CachedPlanSource * plansource, ParamListInfo boundParams)
  * we don't count it for a generic plan.)
  */
 static double
-cached_plan_cost(CachedPlan * plan, bool include_planner)
+cached_plan_cost(CachedPlan *plan, bool include_planner)
 {
 	double		result = 0;
 	ListCell   *lc;
@@ -1132,8 +1134,8 @@ cached_plan_cost(CachedPlan * plan, bool include_planner)
  * is used for that work.
  */
 CachedPlan *
-GetCachedPlan(CachedPlanSource * plansource, ParamListInfo boundParams,
-			  bool useResOwner, QueryEnvironment * queryEnv)
+GetCachedPlan(CachedPlanSource *plansource, ParamListInfo boundParams,
+			  bool useResOwner, QueryEnvironment *queryEnv)
 {
 	CachedPlan *plan = NULL;
 	List	   *qlist;
@@ -1253,7 +1255,7 @@ GetCachedPlan(CachedPlanSource * plansource, ParamListInfo boundParams,
  * Portal.  Transient references should be protected by a resource owner.
  */
 void
-ReleaseCachedPlan(CachedPlan * plan, bool useResOwner)
+ReleaseCachedPlan(CachedPlan *plan, bool useResOwner)
 {
 	Assert(plan->magic == CACHEDPLAN_MAGIC);
 	if (useResOwner)
@@ -1281,7 +1283,7 @@ ReleaseCachedPlan(CachedPlan * plan, bool useResOwner)
  * lives underneath CacheMemoryContext.
  */
 void
-CachedPlanSetParentContext(CachedPlanSource * plansource,
+CachedPlanSetParentContext(CachedPlanSource *plansource,
 						   MemoryContext newcontext)
 {
 	/* Assert caller is doing things in a sane order */
@@ -1319,7 +1321,7 @@ CachedPlanSetParentContext(CachedPlanSource * plansource,
  * The result will be currently valid, or not, the same as the source.
  */
 CachedPlanSource *
-CopyCachedPlan(CachedPlanSource * plansource)
+CopyCachedPlan(CachedPlanSource *plansource)
 {
 	CachedPlanSource *newsource;
 	MemoryContext source_context;
@@ -1346,6 +1348,7 @@ CopyCachedPlan(CachedPlanSource * plansource)
 	newsource->magic = CACHEDPLANSOURCE_MAGIC;
 	newsource->raw_parse_tree = copyObject(plansource->raw_parse_tree);
 	newsource->query_string = pstrdup(plansource->query_string);
+	MemoryContextSetIdentifier(source_context, newsource->query_string);
 	newsource->commandTag = plansource->commandTag;
 	if (plansource->num_params > 0)
 	{
@@ -1409,7 +1412,7 @@ CopyCachedPlan(CachedPlanSource * plansource)
  * the caller has acquired locks on all the relations used in the plan.
  */
 bool
-CachedPlanIsValid(CachedPlanSource * plansource)
+CachedPlanIsValid(CachedPlanSource *plansource)
 {
 	Assert(plansource->magic == CACHEDPLANSOURCE_MAGIC);
 	return plansource->is_valid;
@@ -1422,8 +1425,8 @@ CachedPlanIsValid(CachedPlanSource * plansource)
  * within the cached plan, and may disappear next time the plan is updated.
  */
 List *
-CachedPlanGetTargetList(CachedPlanSource * plansource,
-						QueryEnvironment * queryEnv)
+CachedPlanGetTargetList(CachedPlanSource *plansource,
+						QueryEnvironment *queryEnv)
 {
 	Query	   *pstmt;
 
@@ -1456,7 +1459,7 @@ CachedPlanGetTargetList(CachedPlanSource * plansource,
  * occur in present usages of this function.
  */
 static Query *
-QueryListGetPrimaryStmt(List * stmts)
+QueryListGetPrimaryStmt(List *stmts)
 {
 	ListCell   *lc;
 
@@ -1475,7 +1478,7 @@ QueryListGetPrimaryStmt(List * stmts)
  * or release them if acquire is false.
  */
 static void
-AcquireExecutorLocks(List * stmt_list, bool acquire)
+AcquireExecutorLocks(List *stmt_list, bool acquire)
 {
 	ListCell   *lc1;
 
@@ -1545,7 +1548,7 @@ AcquireExecutorLocks(List * stmt_list, bool acquire)
  * a non-conflicting lock.
  */
 static void
-AcquirePlannerLocks(List * stmt_list, bool acquire)
+AcquirePlannerLocks(List *stmt_list, bool acquire)
 {
 	ListCell   *lc;
 
@@ -1570,7 +1573,7 @@ AcquirePlannerLocks(List * stmt_list, bool acquire)
  * ScanQueryForLocks: recursively scan one Query for AcquirePlannerLocks.
  */
 static void
-ScanQueryForLocks(Query * parsetree, bool acquire)
+ScanQueryForLocks(Query *parsetree, bool acquire)
 {
 	ListCell   *lc;
 	int			rt_index;
@@ -1639,7 +1642,7 @@ ScanQueryForLocks(Query * parsetree, bool acquire)
  * Walker to find sublink subqueries for ScanQueryForLocks
  */
 static bool
-ScanQueryWalker(Node * node, bool *acquire)
+ScanQueryWalker(Node *node, bool *acquire)
 {
 	if (node == NULL)
 		return false;
@@ -1668,7 +1671,7 @@ ScanQueryWalker(Node * node, bool *acquire)
  * Note: the result is created or copied into current memory context.
  */
 static TupleDesc
-PlanCacheComputeResultDesc(List * stmt_list)
+PlanCacheComputeResultDesc(List *stmt_list)
 {
 	Query	   *query;
 

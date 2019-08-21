@@ -5,7 +5,7 @@
  *
  * Access-method specific inspection functions are in separate files.
  *
- * Copyright (c) 2007-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  contrib/pageinspect/rawpage.c
@@ -18,7 +18,6 @@
 #include "pageinspect.h"
 
 #include "access/htup_details.h"
-#include "catalog/catalog.h"
 #include "catalog/namespace.h"
 #include "catalog/pg_type.h"
 #include "funcapi.h"
@@ -32,8 +31,8 @@
 
 PG_MODULE_MAGIC;
 
-static bytea * get_raw_page_internal(text * relname, ForkNumber forknum,
-									 BlockNumber blkno);
+static bytea *get_raw_page_internal(text *relname, ForkNumber forknum,
+					  BlockNumber blkno);
 
 
 /*
@@ -92,7 +91,7 @@ get_raw_page_fork(PG_FUNCTION_ARGS)
  * workhorse
  */
 static bytea *
-get_raw_page_internal(text * relname, ForkNumber forknum, BlockNumber blkno)
+get_raw_page_internal(text *relname, ForkNumber forknum, BlockNumber blkno)
 {
 	bytea	   *raw_page;
 	RangeVar   *relrv;
@@ -128,6 +127,11 @@ get_raw_page_internal(text * relname, ForkNumber forknum, BlockNumber blkno)
 		ereport(ERROR,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 				 errmsg("cannot get raw page from partitioned table \"%s\"",
+						RelationGetRelationName(rel))));
+	if (rel->rd_rel->relkind == RELKIND_PARTITIONED_INDEX)
+		ereport(ERROR,
+				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+				 errmsg("cannot get raw page from partitioned index \"%s\"",
 						RelationGetRelationName(rel))));
 
 	/*
@@ -180,7 +184,7 @@ get_raw_page_internal(text * relname, ForkNumber forknum, BlockNumber blkno)
  * use this function for safety.
  */
 Page
-get_page_from_raw(bytea * raw_page)
+get_page_from_raw(bytea *raw_page)
 {
 	Page		page;
 	int			raw_page_size;
@@ -253,7 +257,7 @@ page_header(PG_FUNCTION_ARGS)
 	lsn = PageGetLSN(page);
 
 	/* pageinspect >= 1.2 uses pg_lsn instead of text for the LSN field. */
-	if (tupdesc->attrs[0]->atttypid == TEXTOID)
+	if (TupleDescAttr(tupdesc, 0)->atttypid == TEXTOID)
 	{
 		char		lsnchar[64];
 

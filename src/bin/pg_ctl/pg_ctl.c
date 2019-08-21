@@ -2,20 +2,12 @@
  *
  * pg_ctl --- start/stops/restarts the PostgreSQL server
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  * src/bin/pg_ctl/pg_ctl.c
  *
  *-------------------------------------------------------------------------
  */
-
-#ifdef WIN32
-/*
- * Need this to get defines for restricted tokens and jobs. And it
- * has to be set before any header from the Win32 API is loaded.
- */
-#define _WIN32_WINNT 0x0501
-#endif
 
 #include "postgres_fe.h"
 
@@ -33,6 +25,7 @@
 
 #include "catalog/pg_control.h"
 #include "common/controldata_utils.h"
+#include "common/file_perm.h"
 #include "getopt_long.h"
 #include "utils/pidfile.h"
 
@@ -49,14 +42,14 @@ typedef enum
 	SMART_MODE,
 	FAST_MODE,
 	IMMEDIATE_MODE
-}			ShutdownMode;
+} ShutdownMode;
 
 typedef enum
 {
 	POSTMASTER_READY,
 	POSTMASTER_STILL_STARTING,
 	POSTMASTER_FAILED
-}			WaitPMResult;
+} WaitPMResult;
 
 typedef enum
 {
@@ -72,7 +65,7 @@ typedef enum
 	REGISTER_COMMAND,
 	UNREGISTER_COMMAND,
 	RUN_AS_SERVICE_COMMAND
-}			CtlCommand;
+} CtlCommand;
 
 #define DEFAULT_WAIT	60
 
@@ -151,7 +144,8 @@ static void pgwin32_SetServiceStatus(DWORD);
 static void WINAPI pgwin32_ServiceHandler(DWORD);
 static void WINAPI pgwin32_ServiceMain(DWORD, LPTSTR *);
 static void pgwin32_doRunAsService(void);
-static int	CreateRestrictedProcess(char *cmd, PROCESS_INFORMATION * processInfo, bool as_service);
+static int	CreateRestrictedProcess(char *cmd, PROCESS_INFORMATION *processInfo, bool as_service);
+static PTOKEN_PRIVILEGES GetPrivilegesToDelete(HANDLE hToken);
 #endif
 
 static pgpid_t get_pgpid(bool is_status_request);
@@ -637,7 +631,7 @@ wait_for_postmaster(pgpid_t pm_pid, bool do_checkpoint)
 				 */
 				status.dwWaitHint += 6000;
 				status.dwCheckPoint++;
-				SetServiceStatus(hStatus, (LPSERVICE_STATUS) & status);
+				SetServiceStatus(hStatus, (LPSERVICE_STATUS) &status);
 			}
 			else
 #endif
@@ -965,7 +959,7 @@ do_restart(void)
 		write_stderr(_("%s: PID file \"%s\" does not exist\n"),
 					 progname, pid_file);
 		write_stderr(_("Is server running?\n"));
-		write_stderr(_("starting server anyway\n"));
+		write_stderr(_("trying to start server anyway\n"));
 		do_start();
 		return;
 	}
@@ -1474,7 +1468,7 @@ static void
 pgwin32_SetServiceStatus(DWORD currentState)
 {
 	status.dwCurrentState = currentState;
-	SetServiceStatus(hStatus, (LPSERVICE_STATUS) & status);
+	SetServiceStatus(hStatus, (LPSERVICE_STATUS) &status);
 }
 
 static void WINAPI
@@ -1510,7 +1504,7 @@ pgwin32_ServiceHandler(DWORD request)
 }
 
 static void WINAPI
-pgwin32_ServiceMain(DWORD argc, LPTSTR * argv)
+pgwin32_ServiceMain(DWORD argc, LPTSTR *argv)
 {
 	PROCESS_INFORMATION pi;
 	DWORD		ret;
@@ -1583,7 +1577,7 @@ pgwin32_ServiceMain(DWORD argc, LPTSTR * argv)
 				while (WaitForSingleObject(postmasterProcess, 5000) == WAIT_TIMEOUT && status.dwCheckPoint < maxShutdownCheckPoint)
 				{
 					status.dwCheckPoint++;
-					SetServiceStatus(hStatus, (LPSERVICE_STATUS) & status);
+					SetServiceStatus(hStatus, (LPSERVICE_STATUS) &status);
 				}
 				break;
 			}
@@ -1624,17 +1618,12 @@ pgwin32_doRunAsService(void)
  * also load the couple of functions that *do* exist in minwg headers but not
  * on NT4. That way, we don't break on NT4.
  */
-typedef BOOL(WINAPI * __CreateRestrictedToken) (HANDLE, DWORD, DWORD, PSID_AND_ATTRIBUTES, DWORD, PLUID_AND_ATTRIBUTES, DWORD, PSID_AND_ATTRIBUTES, PHANDLE);
-typedef BOOL(WINAPI * __IsProcessInJob) (HANDLE, HANDLE, PBOOL);
-typedef HANDLE(WINAPI * __CreateJobObject) (LPSECURITY_ATTRIBUTES, LPCTSTR);
-typedef BOOL(WINAPI * __SetInformationJobObject) (HANDLE, JOBOBJECTINFOCLASS, LPVOID, DWORD);
-typedef BOOL(WINAPI * __AssignProcessToJobObject) (HANDLE, HANDLE);
-typedef BOOL(WINAPI * __QueryInformationJobObject) (HANDLE, JOBOBJECTINFOCLASS, LPVOID, DWORD, LPDWORD);
-
-/* Windows API define missing from some versions of MingW headers */
-#ifndef  DISABLE_MAX_PRIVILEGE
-#define DISABLE_MAX_PRIVILEGE	0x1
-#endif
+typedef BOOL (WINAPI * __CreateRestrictedToken) (HANDLE, DWORD, DWORD, PSID_AND_ATTRIBUTES, DWORD, PLUID_AND_ATTRIBUTES, DWORD, PSID_AND_ATTRIBUTES, PHANDLE);
+typedef BOOL (WINAPI * __IsProcessInJob) (HANDLE, HANDLE, PBOOL);
+typedef HANDLE (WINAPI * __CreateJobObject) (LPSECURITY_ATTRIBUTES, LPCTSTR);
+typedef BOOL (WINAPI * __SetInformationJobObject) (HANDLE, JOBOBJECTINFOCLASS, LPVOID, DWORD);
+typedef BOOL (WINAPI * __AssignProcessToJobObject) (HANDLE, HANDLE);
+typedef BOOL (WINAPI * __QueryInformationJobObject) (HANDLE, JOBOBJECTINFOCLASS, LPVOID, DWORD, LPDWORD);
 
 /*
  * Create a restricted token, a job object sandbox, and execute the specified
@@ -1649,7 +1638,7 @@ typedef BOOL(WINAPI * __QueryInformationJobObject) (HANDLE, JOBOBJECTINFOCLASS, 
  * automatically destroyed when pg_ctl exits.
  */
 static int
-CreateRestrictedProcess(char *cmd, PROCESS_INFORMATION * processInfo, bool as_service)
+CreateRestrictedProcess(char *cmd, PROCESS_INFORMATION *processInfo, bool as_service)
 {
 	int			r;
 	BOOL		b;
@@ -1658,6 +1647,7 @@ CreateRestrictedProcess(char *cmd, PROCESS_INFORMATION * processInfo, bool as_se
 	HANDLE		restrictedToken;
 	SID_IDENTIFIER_AUTHORITY NtAuthority = {SECURITY_NT_AUTHORITY};
 	SID_AND_ATTRIBUTES dropSids[2];
+	PTOKEN_PRIVILEGES delPrivs;
 
 	/* Functions loaded dynamically */
 	__CreateRestrictedToken _CreateRestrictedToken = NULL;
@@ -1716,14 +1706,21 @@ CreateRestrictedProcess(char *cmd, PROCESS_INFORMATION * processInfo, bool as_se
 		return 0;
 	}
 
+	/* Get list of privileges to remove */
+	delPrivs = GetPrivilegesToDelete(origToken);
+	if (delPrivs == NULL)
+		/* Error message already printed */
+		return 0;
+
 	b = _CreateRestrictedToken(origToken,
-							   DISABLE_MAX_PRIVILEGE,
+							   0,
 							   sizeof(dropSids) / sizeof(dropSids[0]),
 							   dropSids,
-							   0, NULL,
+							   delPrivs->PrivilegeCount, delPrivs->Privileges,
 							   0, NULL,
 							   &restrictedToken);
 
+	free(delPrivs);
 	FreeSid(dropSids[1].Sid);
 	FreeSid(dropSids[0].Sid);
 	CloseHandle(origToken);
@@ -1840,6 +1837,66 @@ CreateRestrictedProcess(char *cmd, PROCESS_INFORMATION * processInfo, bool as_se
 	 */
 	return r;
 }
+
+/*
+ * Get a list of privileges to delete from the access token. We delete all privileges
+ * except SeLockMemoryPrivilege which is needed to use large pages, and
+ * SeChangeNotifyPrivilege which is enabled by default in DISABLE_MAX_PRIVILEGE.
+ */
+static PTOKEN_PRIVILEGES
+GetPrivilegesToDelete(HANDLE hToken)
+{
+	int			i,
+				j;
+	DWORD		length;
+	PTOKEN_PRIVILEGES tokenPrivs;
+	LUID		luidLockPages;
+	LUID		luidChangeNotify;
+
+	if (!LookupPrivilegeValue(NULL, SE_LOCK_MEMORY_NAME, &luidLockPages) ||
+		!LookupPrivilegeValue(NULL, SE_CHANGE_NOTIFY_NAME, &luidChangeNotify))
+	{
+		write_stderr(_("%s: could not get LUIDs for privileges: error code %lu\n"),
+					 progname, (unsigned long) GetLastError());
+		return NULL;
+	}
+
+	if (!GetTokenInformation(hToken, TokenPrivileges, NULL, 0, &length) &&
+		GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+	{
+		write_stderr(_("%s: could not get token information: error code %lu\n"),
+					 progname, (unsigned long) GetLastError());
+		return NULL;
+	}
+
+	tokenPrivs = (PTOKEN_PRIVILEGES) malloc(length);
+	if (tokenPrivs == NULL)
+	{
+		write_stderr(_("%s: out of memory\n"), progname);
+		return NULL;
+	}
+
+	if (!GetTokenInformation(hToken, TokenPrivileges, tokenPrivs, length, &length))
+	{
+		write_stderr(_("%s: could not get token information: error code %lu\n"),
+					 progname, (unsigned long) GetLastError());
+		free(tokenPrivs);
+		return NULL;
+	}
+
+	for (i = 0; i < tokenPrivs->PrivilegeCount; i++)
+	{
+		if (memcmp(&tokenPrivs->Privileges[i].Luid, &luidLockPages, sizeof(LUID)) == 0 ||
+			memcmp(&tokenPrivs->Privileges[i].Luid, &luidChangeNotify, sizeof(LUID)) == 0)
+		{
+			for (j = i; j < tokenPrivs->PrivilegeCount - 1; j++)
+				tokenPrivs->Privileges[j] = tokenPrivs->Privileges[j + 1];
+			tokenPrivs->PrivilegeCount--;
+		}
+	}
+
+	return tokenPrivs;
+}
 #endif							/* WIN32 */
 
 static void
@@ -1903,7 +1960,7 @@ do_help(void)
 	printf(_("  immediate   quit without complete shutdown; will lead to recovery on restart\n"));
 
 	printf(_("\nAllowed signal names for kill:\n"));
-	printf("  ABRT HUP INT QUIT TERM USR1 USR2\n");
+	printf("  ABRT HUP INT KILL QUIT TERM USR1 USR2\n");
 
 #ifdef WIN32
 	printf(_("\nOptions for register and unregister:\n"));
@@ -1961,11 +2018,8 @@ set_sig(char *signame)
 		sig = SIGQUIT;
 	else if (strcmp(signame, "ABRT") == 0)
 		sig = SIGABRT;
-#if 0
-	/* probably should NOT provide SIGKILL */
 	else if (strcmp(signame, "KILL") == 0)
 		sig = SIGKILL;
-#endif
 	else if (strcmp(signame, "TERM") == 0)
 		sig = SIGTERM;
 	else if (strcmp(signame, "USR1") == 0)
@@ -2118,7 +2172,8 @@ main(int argc, char **argv)
 	 */
 	argv0 = argv[0];
 
-	umask(S_IRWXG | S_IRWXO);
+	/* Set restrictive mode mask until PGDATA permissions are checked */
+	umask(PG_MODE_MASK_OWNER);
 
 	/* support --help and --version even if invoked as root */
 	if (argc > 1)
@@ -2353,6 +2408,16 @@ main(int argc, char **argv)
 		snprintf(version_file, MAXPGPATH, "%s/PG_VERSION", pg_data);
 		snprintf(pid_file, MAXPGPATH, "%s/postmaster.pid", pg_data);
 		snprintf(backup_file, MAXPGPATH, "%s/backup_label", pg_data);
+
+		/*
+		 * Set mask based on PGDATA permissions,
+		 *
+		 * Don't error here if the data directory cannot be stat'd. This is
+		 * handled differently based on the command and we don't want to
+		 * interfere with that logic.
+		 */
+		if (GetDataDirectoryCreatePerm(pg_data))
+			umask(pg_mode_mask);
 	}
 
 	switch (ctl_command)

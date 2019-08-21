@@ -4,7 +4,7 @@
  *	  internal functions for free space map
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/fsm_internals.h
@@ -40,9 +40,9 @@ typedef struct
 	 * LeafNodesPerPage elements are leaf nodes. Unused nodes are zero.
 	 */
 	uint8		fp_nodes[FLEXIBLE_ARRAY_MEMBER];
-}			FSMPageData;
+} FSMPageData;
 
-typedef FSMPageData * FSMPage;
+typedef FSMPageData *FSMPage;
 
 /*
  * Number of non-leaf and leaf nodes, and nodes in total, on an FSM page.

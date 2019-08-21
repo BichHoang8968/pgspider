@@ -31,7 +31,7 @@
  * ----------
  */
 static int
-apply_typmod(numeric * var, long typmod)
+apply_typmod(numeric *var, long typmod)
 {
 	int			precision;
 	int			scale;
@@ -40,7 +40,7 @@ apply_typmod(numeric * var, long typmod)
 
 	/* Do nothing if we have a default typmod (-1) */
 	if (typmod < (long) (VARHDRSZ))
-		return (0);
+		return 0;
 
 	typmod -= VARHDRSZ;
 	precision = (typmod >> 16) & 0xffff;
@@ -100,7 +100,7 @@ apply_typmod(numeric * var, long typmod)
 
 	var->rscale = scale;
 	var->dscale = scale;
-	return (0);
+	return 0;
 }
 #endif
 
@@ -111,7 +111,7 @@ apply_typmod(numeric * var, long typmod)
  * ----------
  */
 static int
-alloc_var(numeric * var, int ndigits)
+alloc_var(numeric *var, int ndigits)
 {
 	digitbuf_free(var->buf);
 	var->buf = digitbuf_alloc(ndigits + 1);
@@ -160,9 +160,9 @@ PGTYPESdecimal_new(void)
  * ----------
  */
 static int
-set_var_from_str(char *str, char **ptr, numeric * dest)
+set_var_from_str(char *str, char **ptr, numeric *dest)
 {
-	bool		have_dp = FALSE;
+	bool		have_dp = false;
 	int			i = 0;
 
 	errno = 0;
@@ -214,7 +214,7 @@ set_var_from_str(char *str, char **ptr, numeric * dest)
 
 	if (*(*ptr) == '.')
 	{
-		have_dp = TRUE;
+		have_dp = true;
 		(*ptr)++;
 	}
 
@@ -241,7 +241,7 @@ set_var_from_str(char *str, char **ptr, numeric * dest)
 				errno = PGTYPES_NUM_BAD_NUMERIC;
 				return -1;
 			}
-			have_dp = TRUE;
+			have_dp = true;
 			(*ptr)++;
 		}
 		else
@@ -296,7 +296,7 @@ set_var_from_str(char *str, char **ptr, numeric * dest)
 		dest->weight = 0;
 
 	dest->rscale = dest->dscale;
-	return (0);
+	return 0;
 }
 
 
@@ -308,7 +308,7 @@ set_var_from_str(char *str, char **ptr, numeric * dest)
  * ----------
  */
 static char *
-get_str_from_var(numeric * var, int dscale)
+get_str_from_var(numeric *var, int dscale)
 {
 	char	   *str;
 	char	   *cp;
@@ -412,20 +412,20 @@ PGTYPESnumeric_from_asc(char *str, char **endptr)
 	char	  **ptr = (endptr != NULL) ? endptr : &realptr;
 
 	if (!value)
-		return (NULL);
+		return NULL;
 
 	ret = set_var_from_str(str, ptr, value);
 	if (ret)
 	{
 		PGTYPESnumeric_free(value);
-		return (NULL);
+		return NULL;
 	}
 
-	return (value);
+	return value;
 }
 
 char *
-PGTYPESnumeric_to_asc(numeric * num, int dscale)
+PGTYPESnumeric_to_asc(numeric *num, int dscale)
 {
 	numeric    *numcopy = PGTYPESnumeric_new();
 	char	   *s;
@@ -445,7 +445,7 @@ PGTYPESnumeric_to_asc(numeric * num, int dscale)
 	/* get_str_from_var may change its argument */
 	s = get_str_from_var(numcopy, dscale);
 	PGTYPESnumeric_free(numcopy);
-	return (s);
+	return s;
 }
 
 /* ----------
@@ -456,7 +456,7 @@ PGTYPESnumeric_to_asc(numeric * num, int dscale)
  * ----------
  */
 static void
-zero_var(numeric * var)
+zero_var(numeric *var)
 {
 	digitbuf_free(var->buf);
 	var->buf = NULL;
@@ -467,14 +467,14 @@ zero_var(numeric * var)
 }
 
 void
-PGTYPESnumeric_free(numeric * var)
+PGTYPESnumeric_free(numeric *var)
 {
 	digitbuf_free(var->buf);
 	free(var);
 }
 
 void
-PGTYPESdecimal_free(decimal * var)
+PGTYPESdecimal_free(decimal *var)
 {
 	free(var);
 }
@@ -489,7 +489,7 @@ PGTYPESdecimal_free(decimal * var)
  * ----------
  */
 static int
-cmp_abs(numeric * var1, numeric * var2)
+cmp_abs(numeric *var1, numeric *var2)
 {
 	int			i1 = 0;
 	int			i2 = 0;
@@ -547,7 +547,7 @@ cmp_abs(numeric * var1, numeric * var2)
  * ----------
  */
 static int
-add_abs(numeric * var1, numeric * var2, numeric * result)
+add_abs(numeric *var1, numeric *var2, numeric *result)
 {
 	NumericDigit *res_buf;
 	NumericDigit *res_digits;
@@ -635,7 +635,7 @@ add_abs(numeric * var1, numeric * var2, numeric * result)
  * ----------
  */
 static int
-sub_abs(numeric * var1, numeric * var2, numeric * result)
+sub_abs(numeric *var1, numeric *var2, numeric *result)
 {
 	NumericDigit *res_buf;
 	NumericDigit *res_digits;
@@ -719,7 +719,7 @@ sub_abs(numeric * var1, numeric * var2, numeric * result)
  * ----------
  */
 int
-PGTYPESnumeric_add(numeric * var1, numeric * var2, numeric * result)
+PGTYPESnumeric_add(numeric *var1, numeric *var2, numeric *result)
 {
 	/*
 	 * Decide on the signs of the two variables what to do
@@ -847,7 +847,7 @@ PGTYPESnumeric_add(numeric * var1, numeric * var2, numeric * result)
  * ----------
  */
 int
-PGTYPESnumeric_sub(numeric * var1, numeric * var2, numeric * result)
+PGTYPESnumeric_sub(numeric *var1, numeric *var2, numeric *result)
 {
 	/*
 	 * Decide on the signs of the two variables what to do
@@ -978,7 +978,7 @@ PGTYPESnumeric_sub(numeric * var1, numeric * var2, numeric * result)
  * ----------
  */
 int
-PGTYPESnumeric_mul(numeric * var1, numeric * var2, numeric * result)
+PGTYPESnumeric_mul(numeric *var1, numeric *var2, numeric *result)
 {
 	NumericDigit *res_buf;
 	NumericDigit *res_digits;
@@ -1069,7 +1069,7 @@ PGTYPESnumeric_mul(numeric * var1, numeric * var2, numeric * result)
  * Note that this must be called before div_var.
  */
 static int
-select_div_scale(numeric * var1, numeric * var2, int *rscale)
+select_div_scale(numeric *var1, numeric *var2, int *rscale)
 {
 	int			weight1,
 				weight2,
@@ -1135,7 +1135,7 @@ select_div_scale(numeric * var1, numeric * var2, int *rscale)
 }
 
 int
-PGTYPESnumeric_div(numeric * var1, numeric * var2, numeric * result)
+PGTYPESnumeric_div(numeric *var1, numeric *var2, numeric *result)
 {
 	NumericDigit *res_digits;
 	int			res_ndigits;
@@ -1364,7 +1364,7 @@ done:
 
 
 int
-PGTYPESnumeric_cmp(numeric * var1, numeric * var2)
+PGTYPESnumeric_cmp(numeric *var1, numeric *var2)
 {
 	/* use cmp_abs function to calculate the result */
 
@@ -1393,7 +1393,7 @@ PGTYPESnumeric_cmp(numeric * var1, numeric * var2)
 }
 
 int
-PGTYPESnumeric_from_int(signed int int_val, numeric * var)
+PGTYPESnumeric_from_int(signed int int_val, numeric *var)
 {
 	/* implicit conversion */
 	signed long int long_int = int_val;
@@ -1402,7 +1402,7 @@ PGTYPESnumeric_from_int(signed int int_val, numeric * var)
 }
 
 int
-PGTYPESnumeric_from_long(signed long int long_val, numeric * var)
+PGTYPESnumeric_from_long(signed long int long_val, numeric *var)
 {
 	/* calculate the size of the long int number */
 	/* a number n needs log_10 n digits */
@@ -1472,7 +1472,7 @@ PGTYPESnumeric_from_long(signed long int long_val, numeric * var)
 }
 
 int
-PGTYPESnumeric_copy(numeric * src, numeric * dst)
+PGTYPESnumeric_copy(numeric *src, numeric *dst)
 {
 	int			i;
 
@@ -1495,7 +1495,7 @@ PGTYPESnumeric_copy(numeric * src, numeric * dst)
 }
 
 int
-PGTYPESnumeric_from_double(double d, numeric * dst)
+PGTYPESnumeric_from_double(double d, numeric *dst)
 {
 	char		buffer[DBL_DIG + 100];
 	numeric    *tmp;
@@ -1516,7 +1516,7 @@ PGTYPESnumeric_from_double(double d, numeric * dst)
 }
 
 static int
-numericvar_to_double(numeric * var, double *dp)
+numericvar_to_double(numeric *var, double *dp)
 {
 	char	   *tmp;
 	double		val;
@@ -1567,7 +1567,7 @@ numericvar_to_double(numeric * var, double *dp)
 }
 
 int
-PGTYPESnumeric_to_double(numeric * nv, double *dp)
+PGTYPESnumeric_to_double(numeric *nv, double *dp)
 {
 	double		tmp;
 
@@ -1578,7 +1578,7 @@ PGTYPESnumeric_to_double(numeric * nv, double *dp)
 }
 
 int
-PGTYPESnumeric_to_int(numeric * nv, int *ip)
+PGTYPESnumeric_to_int(numeric *nv, int *ip)
 {
 	long		l;
 	int			i;
@@ -1597,7 +1597,7 @@ PGTYPESnumeric_to_int(numeric * nv, int *ip)
 }
 
 int
-PGTYPESnumeric_to_long(numeric * nv, long *lp)
+PGTYPESnumeric_to_long(numeric *nv, long *lp)
 {
 	char	   *s = PGTYPESnumeric_to_asc(nv, 0);
 	char	   *endptr;
@@ -1626,7 +1626,7 @@ PGTYPESnumeric_to_long(numeric * nv, long *lp)
 }
 
 int
-PGTYPESnumeric_to_decimal(numeric * src, decimal * dst)
+PGTYPESnumeric_to_decimal(numeric *src, decimal *dst)
 {
 	int			i;
 
@@ -1649,7 +1649,7 @@ PGTYPESnumeric_to_decimal(numeric * src, decimal * dst)
 }
 
 int
-PGTYPESnumeric_from_decimal(decimal * src, numeric * dst)
+PGTYPESnumeric_from_decimal(decimal *src, numeric *dst)
 {
 	int			i;
 

@@ -13,7 +13,7 @@
  * we must return a tuples-processed count in the completionTag.  (We no
  * longer do that for CTAS ... WITH NO DATA, however.)
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -60,17 +60,17 @@ typedef struct
 	CommandId	output_cid;		/* cmin to insert in output tuples */
 	int			hi_options;		/* heap_insert performance options */
 	BulkInsertState bistate;	/* bulk insert state */
-}			DR_intorel;
+} DR_intorel;
 
 /* utility functions for CTAS definition creation */
-static ObjectAddress create_ctas_internal(List * attrList, IntoClause * into);
-static ObjectAddress create_ctas_nodata(List * tlist, IntoClause * into);
+static ObjectAddress create_ctas_internal(List *attrList, IntoClause *into);
+static ObjectAddress create_ctas_nodata(List *tlist, IntoClause *into);
 
 /* DestReceiver routines for collecting data */
-static void intorel_startup(DestReceiver * self, int operation, TupleDesc typeinfo);
-static bool intorel_receive(TupleTableSlot * slot, DestReceiver * self);
-static void intorel_shutdown(DestReceiver * self);
-static void intorel_destroy(DestReceiver * self);
+static void intorel_startup(DestReceiver *self, int operation, TupleDesc typeinfo);
+static bool intorel_receive(TupleTableSlot *slot, DestReceiver *self);
+static void intorel_shutdown(DestReceiver *self);
+static void intorel_destroy(DestReceiver *self);
 
 
 /*
@@ -81,7 +81,7 @@ static void intorel_destroy(DestReceiver * self);
  * provide a list of attributes (ColumnDef nodes).
  */
 static ObjectAddress
-create_ctas_internal(List * attrList, IntoClause * into)
+create_ctas_internal(List *attrList, IntoClause *into)
 {
 	CreateStmt *create = makeNode(CreateStmt);
 	bool		is_matview;
@@ -153,7 +153,7 @@ create_ctas_internal(List * attrList, IntoClause * into)
  * the targetlist of the SELECT or view definition.
  */
 static ObjectAddress
-create_ctas_nodata(List * tlist, IntoClause * into)
+create_ctas_nodata(List *tlist, IntoClause *into)
 {
 	List	   *attrList;
 	ListCell   *t,
@@ -221,8 +221,8 @@ create_ctas_nodata(List * tlist, IntoClause * into)
  * ExecCreateTableAs -- execute a CREATE TABLE AS command
  */
 ObjectAddress
-ExecCreateTableAs(CreateTableAsStmt * stmt, const char *queryString,
-				  ParamListInfo params, QueryEnvironment * queryEnv,
+ExecCreateTableAs(CreateTableAsStmt *stmt, const char *queryString,
+				  ParamListInfo params, QueryEnvironment *queryEnv,
 				  char *completionTag)
 {
 	Query	   *query = castNode(Query, stmt->query);
@@ -326,8 +326,8 @@ ExecCreateTableAs(CreateTableAsStmt * stmt, const char *queryString,
 		query = linitial_node(Query, rewritten);
 		Assert(query->commandType == CMD_SELECT);
 
-		/* plan the query --- note we disallow parallelism */
-		plan = pg_plan_query(query, 0, params);
+		/* plan the query */
+		plan = pg_plan_query(query, CURSOR_OPT_PARALLEL_OK, params);
 
 		/*
 		 * Use a snapshot with an updated command ID to ensure this query sees
@@ -389,7 +389,7 @@ ExecCreateTableAs(CreateTableAsStmt * stmt, const char *queryString,
  * trying to encapsulate that part.)
  */
 int
-GetIntoRelEFlags(IntoClause * intoClause)
+GetIntoRelEFlags(IntoClause *intoClause)
 {
 	int			flags;
 
@@ -420,7 +420,7 @@ GetIntoRelEFlags(IntoClause * intoClause)
  * self->into to be filled in immediately for other callers.
  */
 DestReceiver *
-CreateIntoRelDestReceiver(IntoClause * intoClause)
+CreateIntoRelDestReceiver(IntoClause *intoClause)
 {
 	DR_intorel *self = (DR_intorel *) palloc0(sizeof(DR_intorel));
 
@@ -439,7 +439,7 @@ CreateIntoRelDestReceiver(IntoClause * intoClause)
  * intorel_startup --- executor startup
  */
 static void
-intorel_startup(DestReceiver * self, int operation, TupleDesc typeinfo)
+intorel_startup(DestReceiver *self, int operation, TupleDesc typeinfo)
 {
 	DR_intorel *myState = (DR_intorel *) self;
 	IntoClause *into = myState->into;
@@ -468,7 +468,7 @@ intorel_startup(DestReceiver * self, int operation, TupleDesc typeinfo)
 	lc = list_head(into->colNames);
 	for (attnum = 0; attnum < typeinfo->natts; attnum++)
 	{
-		Form_pg_attribute attribute = typeinfo->attrs[attnum];
+		Form_pg_attribute attribute = TupleDescAttr(typeinfo, attnum);
 		ColumnDef  *col;
 		char	   *colname;
 
@@ -579,7 +579,7 @@ intorel_startup(DestReceiver * self, int operation, TupleDesc typeinfo)
  * intorel_receive --- receive one tuple
  */
 static bool
-intorel_receive(TupleTableSlot * slot, DestReceiver * self)
+intorel_receive(TupleTableSlot *slot, DestReceiver *self)
 {
 	DR_intorel *myState = (DR_intorel *) self;
 	HeapTuple	tuple;
@@ -611,7 +611,7 @@ intorel_receive(TupleTableSlot * slot, DestReceiver * self)
  * intorel_shutdown --- executor end
  */
 static void
-intorel_shutdown(DestReceiver * self)
+intorel_shutdown(DestReceiver *self)
 {
 	DR_intorel *myState = (DR_intorel *) self;
 
@@ -630,7 +630,7 @@ intorel_shutdown(DestReceiver * self)
  * intorel_destroy --- release DestReceiver object
  */
 static void
-intorel_destroy(DestReceiver * self)
+intorel_destroy(DestReceiver *self)
 {
 	pfree(self);
 }

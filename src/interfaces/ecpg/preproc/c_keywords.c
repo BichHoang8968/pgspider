@@ -60,15 +60,15 @@ static const ScanKeyword ScanCKeywords[] = {
  * Do a binary search using plain strcmp() comparison.  This is much like
  * ScanKeywordLookup(), except we want case-sensitive matching.
  */
-const		ScanKeyword *
+const ScanKeyword *
 ScanCKeywordLookup(const char *text)
 {
-	const		ScanKeyword *low = &ScanCKeywords[0];
-	const		ScanKeyword *high = &ScanCKeywords[lengthof(ScanCKeywords) - 1];
+	const ScanKeyword *low = &ScanCKeywords[0];
+	const ScanKeyword *high = &ScanCKeywords[lengthof(ScanCKeywords) - 1];
 
 	while (low <= high)
 	{
-		const		ScanKeyword *middle;
+		const ScanKeyword *middle;
 		int			difference;
 
 		middle = low + (high - low) / 2;

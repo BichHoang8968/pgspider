@@ -3,7 +3,7 @@
  * be-fsstubs.c
  *	  Builtin functions for open/close/read/write operations on large objects
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -51,11 +51,6 @@
 #include "utils/builtins.h"
 #include "utils/memutils.h"
 
-/*
- * compatibility flag for permission checks
- */
-bool		lo_compat_privileges;
-
 /* define this to enable debug logging */
 /* #define FSDB 1 */
 /* chunk size for lo_import/lo_export transfers */
@@ -69,7 +64,7 @@ bool		lo_compat_privileges;
  * dynamically allocated in that context.  Its current allocated size is
  * cookies_len entries, of which any unused entries will be NULL.
  */
-static LargeObjectDesc * *cookies = NULL;
+static LargeObjectDesc **cookies = NULL;
 static int	cookies_size = 0;
 
 static MemoryContext fscxt = NULL;
@@ -83,9 +78,9 @@ static MemoryContext fscxt = NULL;
 	} while (0)
 
 
-static int	newLOfd(LargeObjectDesc * lobjCookie);
+static int	newLOfd(LargeObjectDesc *lobjCookie);
 static void deleteLOfd(int fd);
-static Oid lo_import_internal(text * filename, Oid lobjOid);
+static Oid	lo_import_internal(text *filename, Oid lobjOid);
 
 
 /*****************************************************************************
@@ -107,14 +102,6 @@ be_lo_open(PG_FUNCTION_ARGS)
 	CreateFSContext();
 
 	lobjDesc = inv_open(lobjId, mode, fscxt);
-
-	if (lobjDesc == NULL)
-	{							/* lookup failed */
-#if FSDB
-		elog(DEBUG4, "could not open large object %u", lobjId);
-#endif
-		PG_RETURN_INT32(-1);
-	}
 
 	fd = newLOfd(lobjDesc);
 
@@ -163,22 +150,16 @@ lo_read(int fd, char *buf, int len)
 				 errmsg("invalid large-object descriptor: %d", fd)));
 	lobj = cookies[fd];
 
-	/* We don't bother to check IFS_RDLOCK, since it's always set */
-
-	/* Permission checks --- first time through only */
-	if ((lobj->flags & IFS_RD_PERM_OK) == 0)
-	{
-		if (!lo_compat_privileges &&
-			pg_largeobject_aclcheck_snapshot(lobj->id,
-											 GetUserId(),
-											 ACL_SELECT,
-											 lobj->snapshot) != ACLCHECK_OK)
-			ereport(ERROR,
-					(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-					 errmsg("permission denied for large object %u",
-							lobj->id)));
-		lobj->flags |= IFS_RD_PERM_OK;
-	}
+	/*
+	 * Check state.  inv_read() would throw an error anyway, but we want the
+	 * error to be about the FD's state not the underlying privilege; it might
+	 * be that the privilege exists but user forgot to ask for read mode.
+	 */
+	if ((lobj->flags & IFS_RDLOCK) == 0)
+		ereport(ERROR,
+				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+				 errmsg("large object descriptor %d was not opened for reading",
+						fd)));
 
 	status = inv_read(lobj, buf, len);
 
@@ -197,26 +178,12 @@ lo_write(int fd, const char *buf, int len)
 				 errmsg("invalid large-object descriptor: %d", fd)));
 	lobj = cookies[fd];
 
+	/* see comment in lo_read() */
 	if ((lobj->flags & IFS_WRLOCK) == 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 				 errmsg("large object descriptor %d was not opened for writing",
 						fd)));
-
-	/* Permission checks --- first time through only */
-	if ((lobj->flags & IFS_WR_PERM_OK) == 0)
-	{
-		if (!lo_compat_privileges &&
-			pg_largeobject_aclcheck_snapshot(lobj->id,
-											 GetUserId(),
-											 ACL_UPDATE,
-											 lobj->snapshot) != ACLCHECK_OK)
-			ereport(ERROR,
-					(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-					 errmsg("permission denied for large object %u",
-							lobj->id)));
-		lobj->flags |= IFS_WR_PERM_OK;
-	}
 
 	status = inv_write(lobj, buf, len);
 
@@ -342,7 +309,11 @@ be_lo_unlink(PG_FUNCTION_ARGS)
 {
 	Oid			lobjId = PG_GETARG_OID(0);
 
-	/* Must be owner of the largeobject */
+	/*
+	 * Must be owner of the large object.  It would be cleaner to check this
+	 * in inv_drop(), but we want to throw the error before not after closing
+	 * relevant FDs.
+	 */
 	if (!lo_compat_privileges &&
 		!pg_largeobject_ownercheck(lobjId, GetUserId()))
 		ereport(ERROR,
@@ -438,7 +409,7 @@ be_lo_import_with_oid(PG_FUNCTION_ARGS)
 }
 
 static Oid
-lo_import_internal(text * filename, Oid lobjOid)
+lo_import_internal(text *filename, Oid lobjOid)
 {
 	int			fd;
 	int			nbytes,
@@ -448,21 +419,13 @@ lo_import_internal(text * filename, Oid lobjOid)
 	LargeObjectDesc *lobj;
 	Oid			oid;
 
-#ifndef ALLOW_DANGEROUS_LO_FUNCTIONS
-	if (!superuser())
-		ereport(ERROR,
-				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-				 errmsg("must be superuser to use server-side lo_import()"),
-				 errhint("Anyone can use the client-side lo_import() provided by libpq.")));
-#endif
-
 	CreateFSContext();
 
 	/*
 	 * open the file to be read in
 	 */
 	text_to_cstring_buffer(filename, fnamebuf, sizeof(fnamebuf));
-	fd = OpenTransientFile(fnamebuf, O_RDONLY | PG_BINARY, S_IRWXU);
+	fd = OpenTransientFile(fnamebuf, O_RDONLY | PG_BINARY);
 	if (fd < 0)
 		ereport(ERROR,
 				(errcode_for_file_access(),
@@ -514,14 +477,6 @@ be_lo_export(PG_FUNCTION_ARGS)
 	LargeObjectDesc *lobj;
 	mode_t		oumask;
 
-#ifndef ALLOW_DANGEROUS_LO_FUNCTIONS
-	if (!superuser())
-		ereport(ERROR,
-				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-				 errmsg("must be superuser to use server-side lo_export()"),
-				 errhint("Anyone can use the client-side lo_export() provided by libpq.")));
-#endif
-
 	CreateFSContext();
 
 	/*
@@ -540,8 +495,8 @@ be_lo_export(PG_FUNCTION_ARGS)
 	oumask = umask(S_IWGRP | S_IWOTH);
 	PG_TRY();
 	{
-		fd = OpenTransientFile(fnamebuf, O_CREAT | O_WRONLY | O_TRUNC | PG_BINARY,
-							   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+		fd = OpenTransientFilePerm(fnamebuf, O_CREAT | O_WRONLY | O_TRUNC | PG_BINARY,
+								   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 	}
 	PG_CATCH();
 	{
@@ -590,26 +545,12 @@ lo_truncate_internal(int32 fd, int64 len)
 				 errmsg("invalid large-object descriptor: %d", fd)));
 	lobj = cookies[fd];
 
+	/* see comment in lo_read() */
 	if ((lobj->flags & IFS_WRLOCK) == 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 				 errmsg("large object descriptor %d was not opened for writing",
 						fd)));
-
-	/* Permission checks --- first time through only */
-	if ((lobj->flags & IFS_WR_PERM_OK) == 0)
-	{
-		if (!lo_compat_privileges &&
-			pg_largeobject_aclcheck_snapshot(lobj->id,
-											 GetUserId(),
-											 ACL_UPDATE,
-											 lobj->snapshot) != ACLCHECK_OK)
-			ereport(ERROR,
-					(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-					 errmsg("permission denied for large object %u",
-							lobj->id)));
-		lobj->flags |= IFS_WR_PERM_OK;
-	}
 
 	inv_truncate(lobj, len);
 }
@@ -714,7 +655,7 @@ AtEOSubXact_LargeObject(bool isCommit, SubTransactionId mySubid,
  *****************************************************************************/
 
 static int
-newLOfd(LargeObjectDesc * lobjCookie)
+newLOfd(LargeObjectDesc *lobjCookie)
 {
 	int			i,
 				newsize;
@@ -735,7 +676,7 @@ newLOfd(LargeObjectDesc * lobjCookie)
 		/* First time through, arbitrarily make 64-element array */
 		i = 0;
 		newsize = 64;
-		cookies = (LargeObjectDesc * *)
+		cookies = (LargeObjectDesc **)
 			MemoryContextAllocZero(fscxt, newsize * sizeof(LargeObjectDesc *));
 		cookies_size = newsize;
 	}
@@ -744,7 +685,7 @@ newLOfd(LargeObjectDesc * lobjCookie)
 		/* Double size of array */
 		i = cookies_size;
 		newsize = cookies_size * 2;
-		cookies = (LargeObjectDesc * *)
+		cookies = (LargeObjectDesc **)
 			repalloc(cookies, newsize * sizeof(LargeObjectDesc *));
 		MemSet(cookies + cookies_size, 0,
 			   (newsize - cookies_size) * sizeof(LargeObjectDesc *));
@@ -785,17 +726,6 @@ lo_get_fragment_internal(Oid loOid, int64 offset, int32 nbytes)
 	CreateFSContext();
 
 	loDesc = inv_open(loOid, INV_READ, fscxt);
-
-	/* Permission check */
-	if (!lo_compat_privileges &&
-		pg_largeobject_aclcheck_snapshot(loDesc->id,
-										 GetUserId(),
-										 ACL_SELECT,
-										 loDesc->snapshot) != ACLCHECK_OK)
-		ereport(ERROR,
-				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-				 errmsg("permission denied for large object %u",
-						loDesc->id)));
 
 	/*
 	 * Compute number of bytes we'll actually read, accommodating nbytes == -1

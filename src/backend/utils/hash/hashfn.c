@@ -4,7 +4,7 @@
  *		Hash functions for use in dynahash.c hashtables
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -76,7 +76,7 @@ uint32
 bitmap_hash(const void *key, Size keysize)
 {
 	Assert(keysize == sizeof(Bitmapset *));
-	return bms_hash_value(*((const Bitmapset * const *) key));
+	return bms_hash_value(*((const Bitmapset *const *) key));
 }
 
 /*
@@ -86,6 +86,6 @@ int
 bitmap_match(const void *key1, const void *key2, Size keysize)
 {
 	Assert(keysize == sizeof(Bitmapset *));
-	return !bms_equal(*((const Bitmapset * const *) key1),
-					  *((const Bitmapset * const *) key2));
+	return !bms_equal(*((const Bitmapset *const *) key1),
+					  *((const Bitmapset *const *) key2));
 }

@@ -4,7 +4,7 @@
  *	  various support functions for SP-GiST
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -50,6 +50,7 @@ spghandler(PG_FUNCTION_ARGS)
 	amroutine->amclusterable = false;
 	amroutine->ampredlocks = false;
 	amroutine->amcanparallel = false;
+	amroutine->amcaninclude = false;
 	amroutine->amkeytype = InvalidOid;
 
 	amroutine->ambuild = spgbuild;
@@ -78,7 +79,7 @@ spghandler(PG_FUNCTION_ARGS)
 
 /* Fill in a SpGistTypeDesc struct with info about the specified data type */
 static void
-fillTypeDesc(SpGistTypeDesc * desc, Oid type)
+fillTypeDesc(SpGistTypeDesc *desc, Oid type)
 {
 	desc->type = type;
 	get_typlenbyval(type, &desc->attlen, &desc->attbyval);
@@ -112,7 +113,7 @@ spgGetCache(Relation index)
 		 * tupdesc.  We pass this to the opclass config function so that
 		 * polymorphic opclasses are possible.
 		 */
-		atttype = index->rd_att->attrs[0]->atttypid;
+		atttype = TupleDescAttr(index->rd_att, 0)->atttypid;
 
 		/* Call the config function to get config info for the opclass */
 		in.attType = atttype;
@@ -125,6 +126,22 @@ spgGetCache(Relation index)
 
 		/* Get the information we need about each relevant datatype */
 		fillTypeDesc(&cache->attType, atttype);
+
+		if (OidIsValid(cache->config.leafType) &&
+			cache->config.leafType != atttype)
+		{
+			if (!OidIsValid(index_getprocid(index, 1, SPGIST_COMPRESS_PROC)))
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+						 errmsg("compress method must be defined when leaf type is different from input type")));
+
+			fillTypeDesc(&cache->attLeafType, cache->config.leafType);
+		}
+		else
+		{
+			cache->attLeafType = cache->attType;
+		}
+
 		fillTypeDesc(&cache->attPrefixType, cache->config.prefixType);
 		fillTypeDesc(&cache->attLabelType, cache->config.labelType);
 
@@ -155,7 +172,7 @@ spgGetCache(Relation index)
 
 /* Initialize SpGistState for working with the given index */
 void
-initSpGistState(SpGistState * state, Relation index)
+initSpGistState(SpGistState *state, Relation index)
 {
 	SpGistCache *cache;
 
@@ -164,6 +181,7 @@ initSpGistState(SpGistState * state, Relation index)
 
 	state->config = cache->config;
 	state->attType = cache->attType;
+	state->attLeafType = cache->attLeafType;
 	state->attPrefixType = cache->attPrefixType;
 	state->attLabelType = cache->attLabelType;
 
@@ -256,14 +274,26 @@ SpGistUpdateMetaPage(Relation index)
 	if (cache != NULL)
 	{
 		Buffer		metabuffer;
-		SpGistMetaPageData *metadata;
 
 		metabuffer = ReadBuffer(index, SPGIST_METAPAGE_BLKNO);
 
 		if (ConditionalLockBuffer(metabuffer))
 		{
-			metadata = SpGistPageGetMeta(BufferGetPage(metabuffer));
+			Page		metapage = BufferGetPage(metabuffer);
+			SpGistMetaPageData *metadata = SpGistPageGetMeta(metapage);
+
 			metadata->lastUsedPages = cache->lastUsedPages;
+
+			/*
+			 * Set pd_lower just past the end of the metadata.  This is
+			 * essential, because without doing so, metadata will be lost if
+			 * xlog.c compresses the page.  (We must do this here because
+			 * pre-v11 versions of PG did not set the metapage's pd_lower
+			 * correctly, so a pg_upgraded index might contain the wrong
+			 * value.)
+			 */
+			((PageHeader) metapage)->pd_lower =
+				((char *) metadata + sizeof(SpGistMetaPageData)) - (char *) metapage;
 
 			MarkBufferDirty(metabuffer);
 			UnlockReleaseBuffer(metabuffer);
@@ -534,6 +564,14 @@ SpGistInitMetapage(Page page)
 	/* initialize last-used-page cache to empty */
 	for (i = 0; i < SPGIST_CACHED_PAGES; i++)
 		metadata->lastUsedPages.cachedPage[i].blkno = InvalidBlockNumber;
+
+	/*
+	 * Set pd_lower just past the end of the metadata.  This is essential,
+	 * because without doing so, metadata will be lost if xlog.c compresses
+	 * the page.
+	 */
+	((PageHeader) page)->pd_lower =
+		((char *) metadata + sizeof(SpGistMetaPageData)) - (char *) page;
 }
 
 /*
@@ -552,7 +590,7 @@ spgoptions(Datum reloptions, bool validate)
  * just stored in their Datum representation (compare memcpyDatum).
  */
 unsigned int
-SpGistGetTypeSize(SpGistTypeDesc * att, Datum datum)
+SpGistGetTypeSize(SpGistTypeDesc *att, Datum datum)
 {
 	unsigned int size;
 
@@ -570,7 +608,7 @@ SpGistGetTypeSize(SpGistTypeDesc * att, Datum datum)
  * Copy the given non-null datum to *target
  */
 static void
-memcpyDatum(void *target, SpGistTypeDesc * att, Datum datum)
+memcpyDatum(void *target, SpGistTypeDesc *att, Datum datum)
 {
 	unsigned int size;
 
@@ -589,7 +627,7 @@ memcpyDatum(void *target, SpGistTypeDesc * att, Datum datum)
  * Construct a leaf tuple containing the given heap TID and datum value
  */
 SpGistLeafTuple
-spgFormLeafTuple(SpGistState * state, ItemPointer heapPtr,
+spgFormLeafTuple(SpGistState *state, ItemPointer heapPtr,
 				 Datum datum, bool isnull)
 {
 	SpGistLeafTuple tup;
@@ -598,7 +636,7 @@ spgFormLeafTuple(SpGistState * state, ItemPointer heapPtr,
 	/* compute space needed (note result is already maxaligned) */
 	size = SGLTHDRSZ;
 	if (!isnull)
-		size += SpGistGetTypeSize(&state->attType, datum);
+		size += SpGistGetTypeSize(&state->attLeafType, datum);
 
 	/*
 	 * Ensure that we can replace the tuple with a dead tuple later.  This
@@ -614,7 +652,7 @@ spgFormLeafTuple(SpGistState * state, ItemPointer heapPtr,
 	tup->nextOffset = InvalidOffsetNumber;
 	tup->heapPtr = *heapPtr;
 	if (!isnull)
-		memcpyDatum(SGLTDATAPTR(tup), &state->attType, datum);
+		memcpyDatum(SGLTDATAPTR(tup), &state->attLeafType, datum);
 
 	return tup;
 }
@@ -626,7 +664,7 @@ spgFormLeafTuple(SpGistState * state, ItemPointer heapPtr,
  * it in later.
  */
 SpGistNodeTuple
-spgFormNodeTuple(SpGistState * state, Datum label, bool isnull)
+spgFormNodeTuple(SpGistState *state, Datum label, bool isnull)
 {
 	SpGistNodeTuple tup;
 	unsigned int size;
@@ -668,8 +706,8 @@ spgFormNodeTuple(SpGistState * state, Datum label, bool isnull)
  * Construct an inner tuple containing the given prefix and node array
  */
 SpGistInnerTuple
-spgFormInnerTuple(SpGistState * state, bool hasPrefix, Datum prefix,
-				  int nNodes, SpGistNodeTuple * nodes)
+spgFormInnerTuple(SpGistState *state, bool hasPrefix, Datum prefix,
+				  int nNodes, SpGistNodeTuple *nodes)
 {
 	SpGistInnerTuple tup;
 	unsigned int size;
@@ -751,7 +789,7 @@ spgFormInnerTuple(SpGistState * state, bool hasPrefix, Datum prefix,
  * call with different parameters can occur.
  */
 SpGistDeadTuple
-spgFormDeadTuple(SpGistState * state, int tupstate,
+spgFormDeadTuple(SpGistState *state, int tupstate,
 				 BlockNumber blkno, OffsetNumber offnum)
 {
 	SpGistDeadTuple tuple = (SpGistDeadTuple) state->deadTupleStorage;
@@ -781,7 +819,7 @@ spgFormDeadTuple(SpGistState * state, int tupstate,
  * Returns NULL if label datums are NULLs
  */
 Datum *
-spgExtractNodeLabels(SpGistState * state, SpGistInnerTuple innerTuple)
+spgExtractNodeLabels(SpGistState *state, SpGistInnerTuple innerTuple)
 {
 	Datum	   *nodeLabels;
 	int			i;
@@ -824,8 +862,8 @@ spgExtractNodeLabels(SpGistState * state, SpGistInnerTuple innerTuple)
  * rather than returning InvalidOffsetNumber.
  */
 OffsetNumber
-SpGistPageAddNewItem(SpGistState * state, Page page, Item item, Size size,
-					 OffsetNumber * startOffset, bool errorOK)
+SpGistPageAddNewItem(SpGistState *state, Page page, Item item, Size size,
+					 OffsetNumber *startOffset, bool errorOK)
 {
 	SpGistPageOpaque opaque = SpGistPageGetOpaque(page);
 	OffsetNumber i,

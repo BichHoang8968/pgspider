@@ -3,7 +3,7 @@
  * walsender.h
  *	  Exports from replication/walsender.c.
  *
- * Portions Copyright (c) 2010-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2010-2018, PostgreSQL Global Development Group
  *
  * src/include/replication/walsender.h
  *
@@ -24,7 +24,7 @@ typedef enum
 	CRS_EXPORT_SNAPSHOT,
 	CRS_NOEXPORT_SNAPSHOT,
 	CRS_USE_SNAPSHOT
-}			CRSSnapshotAction;
+} CRSSnapshotAction;
 
 /* global state */
 extern bool am_walsender;

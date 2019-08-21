@@ -3,7 +3,7 @@
  * ts_utils.h
  *	  helper utilities for tsearch
  *
- * Copyright (c) 1998-2017, PostgreSQL Global Development Group
+ * Copyright (c) 1998-2018, PostgreSQL Global Development Group
  *
  * src/include/tsearch/ts_utils.h
  *
@@ -25,15 +25,27 @@
 struct TSVectorParseStateData;	/* opaque struct in tsvector_parser.c */
 typedef struct TSVectorParseStateData *TSVectorParseState;
 
-extern TSVectorParseState init_tsvector_parser(char *input,
-											   bool oprisdelim,
-											   bool is_tsquery);
+#define P_TSV_OPR_IS_DELIM	(1 << 0)
+#define P_TSV_IS_TSQUERY	(1 << 1)
+#define P_TSV_IS_WEB		(1 << 2)
+
+extern TSVectorParseState init_tsvector_parser(char *input, int flags);
 extern void reset_tsvector_parser(TSVectorParseState state, char *input);
 extern bool gettoken_tsvector(TSVectorParseState state,
 				  char **token, int *len,
-				  WordEntryPos * *pos, int *poslen,
+				  WordEntryPos **pos, int *poslen,
 				  char **endptr);
 extern void close_tsvector_parser(TSVectorParseState state);
+
+/* phrase operator begins with '<' */
+#define ISOPERATOR(x) \
+	( pg_mblen(x) == 1 && ( *(x) == '!' ||	\
+							*(x) == '&' ||	\
+							*(x) == '|' ||	\
+							*(x) == '(' ||	\
+							*(x) == ')' ||	\
+							*(x) == '<'		\
+						  ) )
 
 /* parse_tsquery */
 
@@ -46,9 +58,13 @@ typedef void (*PushFunction) (Datum opaque, TSQueryParserState state,
 													 * QueryOperand struct */
 							  bool prefix);
 
+#define P_TSQ_PLAIN		(1 << 0)
+#define P_TSQ_WEB		(1 << 1)
+
 extern TSQuery parse_tsquery(char *buf,
-							 PushFunction pushval,
-							 Datum opaque, bool isplain);
+			  PushFunction pushval,
+			  Datum opaque,
+			  int flags);
 
 /* Functions for use by PushFunction implementations */
 extern void pushValue(TSQueryParserState state,
@@ -77,7 +93,7 @@ typedef struct
 	uint16		flags;			/* currently, only TSL_PREFIX */
 	char	   *word;
 	uint32		alen;
-}			ParsedWord;
+} ParsedWord;
 
 typedef struct
 {
@@ -85,9 +101,9 @@ typedef struct
 	int32		lenwords;
 	int32		curwords;
 	int32		pos;
-}			ParsedText;
+} ParsedText;
 
-extern void parsetext(Oid cfgId, ParsedText * prs, char *buf, int32 buflen);
+extern void parsetext(Oid cfgId, ParsedText *prs, char *buf, int32 buflen);
 
 /*
  * headline framework, flow in common to generate:
@@ -96,9 +112,9 @@ extern void parsetext(Oid cfgId, ParsedText * prs, char *buf, int32 buflen);
  *	3 generateHeadline to generate result text
  */
 
-extern void hlparsetext(Oid cfgId, HeadlineParsedText * prs, TSQuery query,
+extern void hlparsetext(Oid cfgId, HeadlineParsedText *prs, TSQuery query,
 			char *buf, int32 buflen);
-extern text * generateHeadline(HeadlineParsedText * prs);
+extern text *generateHeadline(HeadlineParsedText *prs);
 
 /*
  * TSQuery execution support
@@ -137,7 +153,7 @@ typedef struct ExecPhraseData
 	bool		negate;			/* positions are where query is NOT matched */
 	WordEntryPos *pos;			/* ordered, non-duplicate lexeme positions */
 	int			width;			/* width of match in lexemes, less 1 */
-}			ExecPhraseData;
+} ExecPhraseData;
 
 /*
  * Signature for TSQuery lexeme check functions
@@ -146,12 +162,12 @@ typedef struct ExecPhraseData
  * val: lexeme to test for presence of
  * data: to be filled with lexeme positions; NULL if position data not needed
  *
- * Return TRUE if lexeme is present in data, else FALSE.  If data is not
+ * Return true if lexeme is present in data, else false.  If data is not
  * NULL, it should be filled with lexeme positions, but function can leave
  * it as zeroes if position data is not available.
  */
-typedef bool (*TSExecuteCallback) (void *arg, QueryOperand * val,
-								   ExecPhraseData * data);
+typedef bool (*TSExecuteCallback) (void *arg, QueryOperand *val,
+								   ExecPhraseData *data);
 
 /*
  * Flag bits for TS_execute
@@ -167,20 +183,20 @@ typedef bool (*TSExecuteCallback) (void *arg, QueryOperand * val,
 #define TS_EXEC_CALC_NOT		(0x01)
 /*
  * If TS_EXEC_PHRASE_NO_POS is set, allow OP_PHRASE to be executed lossily
- * in the absence of position information: a TRUE result indicates that the
+ * in the absence of position information: a true result indicates that the
  * phrase might be present.  Without this flag, OP_PHRASE always returns
  * false if lexeme position information is not available.
  */
 #define TS_EXEC_PHRASE_NO_POS	(0x02)
 
-extern bool TS_execute(QueryItem * curitem, void *arg, uint32 flags,
+extern bool TS_execute(QueryItem *curitem, void *arg, uint32 flags,
 		   TSExecuteCallback chkcond);
-extern bool tsquery_requires_match(QueryItem * curitem);
+extern bool tsquery_requires_match(QueryItem *curitem);
 
 /*
  * to_ts* - text transformation to tsvector, tsquery
  */
-extern TSVector make_tsvector(ParsedText * prs);
+extern TSVector make_tsvector(ParsedText *prs);
 extern int32 tsCompareString(char *a, int lena, char *b, int lenb, bool prefix);
 
 /*
@@ -194,7 +210,7 @@ extern int32 tsCompareString(char *a, int lena, char *b, int lenb, bool prefix);
 /*
  * TSQuery Utilities
  */
-extern QueryItem * clean_NOT(QueryItem * ptr, int32 * len);
+extern QueryItem *clean_NOT(QueryItem *ptr, int32 *len);
 extern TSQuery cleanup_tsquery_stopwords(TSQuery in);
 
 typedef struct QTNode
@@ -205,7 +221,7 @@ typedef struct QTNode
 	char	   *word;
 	uint32		sign;
 	struct QTNode **child;
-}			QTNode;
+} QTNode;
 
 /* bits in QTNode.flags */
 #define QTN_NEEDFREE	0x01
@@ -222,18 +238,18 @@ typedef uint64 TSQuerySign;
 #define PG_GETARG_TSQUERYSIGN(n)	DatumGetTSQuerySign(PG_GETARG_DATUM(n))
 
 
-extern QTNode * QT2QTN(QueryItem * in, char *operand);
-extern TSQuery QTN2QT(QTNode * in);
-extern void QTNFree(QTNode * in);
-extern void QTNSort(QTNode * in);
-extern void QTNTernary(QTNode * in);
-extern void QTNBinary(QTNode * in);
-extern int	QTNodeCompare(QTNode * an, QTNode * bn);
-extern QTNode * QTNCopy(QTNode * in);
-extern void QTNClearFlags(QTNode * in, uint32 flags);
-extern bool QTNEq(QTNode * a, QTNode * b);
+extern QTNode *QT2QTN(QueryItem *in, char *operand);
+extern TSQuery QTN2QT(QTNode *in);
+extern void QTNFree(QTNode *in);
+extern void QTNSort(QTNode *in);
+extern void QTNTernary(QTNode *in);
+extern void QTNBinary(QTNode *in);
+extern int	QTNodeCompare(QTNode *an, QTNode *bn);
+extern QTNode *QTNCopy(QTNode *in);
+extern void QTNClearFlags(QTNode *in, uint32 flags);
+extern bool QTNEq(QTNode *a, QTNode *b);
 extern TSQuerySign makeTSQuerySign(TSQuery a);
-extern QTNode * findsubquery(QTNode * root, QTNode * ex, QTNode * subs,
-							 bool *isfind);
+extern QTNode *findsubquery(QTNode *root, QTNode *ex, QTNode *subs,
+			 bool *isfind);
 
 #endif							/* _PG_TS_UTILS_H_ */

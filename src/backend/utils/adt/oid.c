@@ -3,7 +3,7 @@
  * oid.c
  *	  Functions for the built-in type Oid ... also oidvector.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -154,7 +154,7 @@ oidsend(PG_FUNCTION_ARGS)
 	StringInfoData buf;
 
 	pq_begintypsend(&buf);
-	pq_sendint(&buf, arg1, sizeof(Oid));
+	pq_sendint32(&buf, arg1);
 	PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
 }
 
@@ -164,7 +164,7 @@ oidsend(PG_FUNCTION_ARGS)
  * If oids is NULL then caller must fill values[] afterward
  */
 oidvector *
-buildoidvector(const Oid * oids, int n)
+buildoidvector(const Oid *oids, int n)
 {
 	oidvector  *result;
 
@@ -311,7 +311,7 @@ oidvectorsend(PG_FUNCTION_ARGS)
  *		oidparse				- get OID from IConst/FConst node
  */
 Oid
-oidparse(Node * node)
+oidparse(Node *node)
 {
 	switch (nodeTag(node))
 	{

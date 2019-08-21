@@ -3,7 +3,7 @@
  *
  *	controldata functions
  *
- *	Copyright (c) 2010-2017, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2018, PostgreSQL Global Development Group
  *	src/bin/pg_upgrade/controldata.c
  */
 
@@ -31,7 +31,7 @@
  * return valid xid data for a running server.
  */
 void
-get_control_data(ClusterInfo * cluster, bool live_check)
+get_control_data(ClusterInfo *cluster, bool live_check)
 {
 	char		cmd[MAXPGPATH];
 	char		bufin[MAX_STRING];
@@ -138,20 +138,26 @@ get_control_data(ClusterInfo * cluster, bool live_check)
 				if (p == NULL || strlen(p) <= 1)
 					pg_fatal("%d: database cluster state problem\n", __LINE__);
 
-				p++;			/* remove ':' char */
+				p++;				/* remove ':' char */
 
 				/*
-				 * We checked earlier for a postmaster lock file, and if we
-				 * found one, we tried to start/stop the server to replay the
-				 * WAL.  However, pg_ctl -m immediate doesn't leave a lock
-				 * file, but does require WAL replay, so we check here that
-				 * the server was shut down cleanly, from the controldata
-				 * perspective.
+				 * We checked earlier for a postmaster lock file, and if we found
+				 * one, we tried to start/stop the server to replay the WAL.  However,
+				 * pg_ctl -m immediate doesn't leave a lock file, but does require
+				 * WAL replay, so we check here that the server was shut down cleanly,
+				 * from the controldata perspective.
 				 */
 				/* remove leading spaces */
 				while (*p == ' ')
 					p++;
-				if (strcmp(p, "shut down\n") != 0)
+				if (strcmp(p, "shut down in recovery\n") == 0)
+				{
+					if (cluster == &old_cluster)
+						pg_fatal("The source cluster was shut down while in recovery mode.  To upgrade, use \"rsync\" as documented or shut it down as a primary.\n");
+					else
+						pg_fatal("The target cluster was shut down while in recovery mode.  To upgrade, use \"rsync\" as documented or shut it down as a primary.\n");
+				}
+				else if (strcmp(p, "shut down\n") != 0)
 				{
 					if (cluster == &old_cluster)
 						pg_fatal("The source cluster was not shut down cleanly.\n");
@@ -610,8 +616,8 @@ get_control_data(ClusterInfo * cluster, bool live_check)
  * check to make sure the control data settings are compatible
  */
 void
-check_control_data(ControlData * oldctrl,
-				   ControlData * newctrl)
+check_control_data(ControlData *oldctrl,
+				   ControlData *newctrl)
 {
 	if (oldctrl->align == 0 || oldctrl->align != newctrl->align)
 		pg_fatal("old and new pg_controldata alignments are invalid or do not match\n"

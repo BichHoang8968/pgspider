@@ -5,7 +5,7 @@
 #define __PTHREAD_H
 
 typedef ULONG pthread_key_t;
-typedef CRITICAL_SECTION * pthread_mutex_t;
+typedef CRITICAL_SECTION *pthread_mutex_t;
 typedef int pthread_once_t;
 
 DWORD		pthread_self(void);

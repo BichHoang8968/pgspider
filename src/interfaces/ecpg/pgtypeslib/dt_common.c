@@ -16,1197 +16,483 @@ int			day_tab[2][13] = {
 
 typedef long AbsoluteTime;
 
-static datetkn datetktbl[] =
-{
+static datetkn datetktbl[] = {
 /*	text, token, lexval */
-	{
-		EARLY, RESERV, DTK_EARLY
-	},							/* "-infinity" reserved for "early time" */
-	{
-		"acsst", DTZ, 37800
-	},							/* Cent. Australia */
-	{
-		"acst", DTZ, -14400
-	},							/* Atlantic/Porto Acre */
-	{
-		"act", TZ, -18000
-	},							/* Atlantic/Porto Acre */
-	{
-		DA_D, ADBC, AD
-	},							/* "ad" for years >= 0 */
-	{
-		"adt", DTZ, -10800
-	},							/* Atlantic Daylight Time */
-	{
-		"aesst", DTZ, 39600
-	},							/* E. Australia */
-	{
-		"aest", TZ, 36000
-	},							/* Australia Eastern Std Time */
-	{
-		"aft", TZ, 16200
-	},							/* Kabul */
-	{
-		"ahst", TZ, -36000
-	},							/* Alaska-Hawaii Std Time */
-	{
-		"akdt", DTZ, -28800
-	},							/* Alaska Daylight Time */
-	{
-		"akst", DTZ, -32400
-	},							/* Alaska Standard Time */
-	{
-		"allballs", RESERV, DTK_ZULU
-	},							/* 00:00:00 */
-	{
-		"almst", TZ, 25200
-	},							/* Almaty Savings Time */
-	{
-		"almt", TZ, 21600
-	},							/* Almaty Time */
-	{
-		"am", AMPM, AM
-	},
-	{
-		"amst", DTZ, 18000
-	},							/* Armenia Summer Time (Yerevan) */
+	{EARLY, RESERV, DTK_EARLY}, /* "-infinity" reserved for "early time" */
+	{"acsst", DTZ, 37800},		/* Cent. Australia */
+	{"acst", DTZ, -14400},		/* Atlantic/Porto Acre */
+	{"act", TZ, -18000},		/* Atlantic/Porto Acre */
+	{DA_D, ADBC, AD},			/* "ad" for years >= 0 */
+	{"adt", DTZ, -10800},		/* Atlantic Daylight Time */
+	{"aesst", DTZ, 39600},		/* E. Australia */
+	{"aest", TZ, 36000},		/* Australia Eastern Std Time */
+	{"aft", TZ, 16200},			/* Kabul */
+	{"ahst", TZ, -36000},		/* Alaska-Hawaii Std Time */
+	{"akdt", DTZ, -28800},		/* Alaska Daylight Time */
+	{"akst", DTZ, -32400},		/* Alaska Standard Time */
+	{"allballs", RESERV, DTK_ZULU}, /* 00:00:00 */
+	{"almst", TZ, 25200},		/* Almaty Savings Time */
+	{"almt", TZ, 21600},		/* Almaty Time */
+	{"am", AMPM, AM},
+	{"amst", DTZ, 18000},		/* Armenia Summer Time (Yerevan) */
 #if 0
-	{
-		"amst", DTZ, -10800
-	},							/* Porto Velho */
+	{"amst", DTZ, -10800},		/* Porto Velho */
 #endif
-	{
-		"amt", TZ, 14400
-	},							/* Armenia Time (Yerevan) */
-	{
-		"anast", DTZ, 46800
-	},							/* Anadyr Summer Time (Russia) */
-	{
-		"anat", TZ, 43200
-	},							/* Anadyr Time (Russia) */
-	{
-		"apr", MONTH, 4
-	},
-	{
-		"april", MONTH, 4
-	},
+	{"amt", TZ, 14400},			/* Armenia Time (Yerevan) */
+	{"anast", DTZ, 46800},		/* Anadyr Summer Time (Russia) */
+	{"anat", TZ, 43200},		/* Anadyr Time (Russia) */
+	{"apr", MONTH, 4},
+	{"april", MONTH, 4},
 #if 0
-		aqtst
-		aqtt
-		arst
+	aqtst
+	aqtt
+	arst
 #endif
-	{
-		"art", TZ, -10800
-	},							/* Argentina Time */
+	{"art", TZ, -10800},		/* Argentina Time */
 #if 0
-		ashst
-		ast						/* Atlantic Standard Time, Arabia Standard
+	ashst
+	ast							/* Atlantic Standard Time, Arabia Standard
 								 * Time, Acre Standard Time */
 #endif
-	{
-		"ast", TZ, -14400
-	},							/* Atlantic Std Time (Canada) */
-	{
-		"at", IGNORE_DTF, 0
-	},							/* "at" (throwaway) */
-	{
-		"aug", MONTH, 8
-	},
-	{
-		"august", MONTH, 8
-	},
-	{
-		"awsst", DTZ, 32400
-	},							/* W. Australia */
-	{
-		"awst", TZ, 28800
-	},							/* W. Australia */
-	{
-		"awt", DTZ, -10800
-	},
-	{
-		"azost", DTZ, 0
-	},							/* Azores Summer Time */
-	{
-		"azot", TZ, -3600
-	},							/* Azores Time */
-	{
-		"azst", DTZ, 18000
-	},							/* Azerbaijan Summer Time */
-	{
-		"azt", TZ, 14400
-	},							/* Azerbaijan Time */
-	{
-		DB_C, ADBC, BC
-	},							/* "bc" for years < 0 */
-	{
-		"bdst", TZ, 7200
-	},							/* British Double Summer Time */
-	{
-		"bdt", TZ, 21600
-	},							/* Dacca */
-	{
-		"bnt", TZ, 28800
-	},							/* Brunei Darussalam Time */
-	{
-		"bort", TZ, 28800
-	},							/* Borneo Time (Indonesia) */
+	{"ast", TZ, -14400},		/* Atlantic Std Time (Canada) */
+	{"at", IGNORE_DTF, 0},		/* "at" (throwaway) */
+	{"aug", MONTH, 8},
+	{"august", MONTH, 8},
+	{"awsst", DTZ, 32400},		/* W. Australia */
+	{"awst", TZ, 28800},		/* W. Australia */
+	{"awt", DTZ, -10800},
+	{"azost", DTZ, 0},			/* Azores Summer Time */
+	{"azot", TZ, -3600},		/* Azores Time */
+	{"azst", DTZ, 18000},		/* Azerbaijan Summer Time */
+	{"azt", TZ, 14400},			/* Azerbaijan Time */
+	{DB_C, ADBC, BC},			/* "bc" for years < 0 */
+	{"bdst", TZ, 7200},			/* British Double Summer Time */
+	{"bdt", TZ, 21600},			/* Dacca */
+	{"bnt", TZ, 28800},			/* Brunei Darussalam Time */
+	{"bort", TZ, 28800},		/* Borneo Time (Indonesia) */
 #if 0
-		bortst
-		bost
+	bortst
+	bost
 #endif
-	{
-		"bot", TZ, -14400
-	},							/* Bolivia Time */
-	{
-		"bra", TZ, -10800
-	},							/* Brazil Time */
+	{"bot", TZ, -14400},		/* Bolivia Time */
+	{"bra", TZ, -10800},		/* Brazil Time */
 #if 0
-		brst
-		brt
+	brst
+	brt
 #endif
-	{
-		"bst", DTZ, 3600
-	},							/* British Summer Time */
+	{"bst", DTZ, 3600},			/* British Summer Time */
 #if 0
-	{
-		"bst", TZ, -10800
-	},							/* Brazil Standard Time */
-	{
-		"bst", DTZ, -39600
-	},							/* Bering Summer Time */
+	{"bst", TZ, -10800},		/* Brazil Standard Time */
+	{"bst", DTZ, -39600},		/* Bering Summer Time */
 #endif
-	{
-		"bt", TZ, 10800
-	},							/* Baghdad Time */
-	{
-		"btt", TZ, 21600
-	},							/* Bhutan Time */
-	{
-		"cadt", DTZ, 37800
-	},							/* Central Australian DST */
-	{
-		"cast", TZ, 34200
-	},							/* Central Australian ST */
-	{
-		"cat", TZ, -36000
-	},							/* Central Alaska Time */
-	{
-		"cct", TZ, 28800
-	},							/* China Coast Time */
+	{"bt", TZ, 10800},			/* Baghdad Time */
+	{"btt", TZ, 21600},			/* Bhutan Time */
+	{"cadt", DTZ, 37800},		/* Central Australian DST */
+	{"cast", TZ, 34200},		/* Central Australian ST */
+	{"cat", TZ, -36000},		/* Central Alaska Time */
+	{"cct", TZ, 28800},			/* China Coast Time */
 #if 0
-	{
-		"cct", TZ, 23400
-	},							/* Indian Cocos (Island) Time */
+	{"cct", TZ, 23400},			/* Indian Cocos (Island) Time */
 #endif
-	{
-		"cdt", DTZ, -18000
-	},							/* Central Daylight Time */
-	{
-		"cest", DTZ, 7200
-	},							/* Central European Dayl.Time */
-	{
-		"cet", TZ, 3600
-	},							/* Central European Time */
-	{
-		"cetdst", DTZ, 7200
-	},							/* Central European Dayl.Time */
-	{
-		"chadt", DTZ, 49500
-	},							/* Chatham Island Daylight Time (13:45) */
-	{
-		"chast", TZ, 45900
-	},							/* Chatham Island Time (12:45) */
+	{"cdt", DTZ, -18000},		/* Central Daylight Time */
+	{"cest", DTZ, 7200},		/* Central European Dayl.Time */
+	{"cet", TZ, 3600},			/* Central European Time */
+	{"cetdst", DTZ, 7200},		/* Central European Dayl.Time */
+	{"chadt", DTZ, 49500},		/* Chatham Island Daylight Time (13:45) */
+	{"chast", TZ, 45900},		/* Chatham Island Time (12:45) */
 #if 0
-		ckhst
+	ckhst
 #endif
-	{
-		"ckt", TZ, 43200
-	},							/* Cook Islands Time */
-	{
-		"clst", DTZ, -10800
-	},							/* Chile Summer Time */
-	{
-		"clt", TZ, -14400
-	},							/* Chile Time */
+	{"ckt", TZ, 43200},			/* Cook Islands Time */
+	{"clst", DTZ, -10800},		/* Chile Summer Time */
+	{"clt", TZ, -14400},		/* Chile Time */
 #if 0
-		cost
+	cost
 #endif
-	{
-		"cot", TZ, -18000
-	},							/* Columbia Time */
-	{
-		"cst", TZ, -21600
-	},							/* Central Standard Time */
-	{
-		DCURRENT, RESERV, DTK_CURRENT
-	},							/* "current" is always now */
+	{"cot", TZ, -18000},		/* Columbia Time */
+	{"cst", TZ, -21600},		/* Central Standard Time */
+	{DCURRENT, RESERV, DTK_CURRENT},	/* "current" is always now */
 #if 0
-		cvst
+	cvst
 #endif
-	{
-		"cvt", TZ, 25200
-	},							/* Christmas Island Time (Indian Ocean) */
-	{
-		"cxt", TZ, 25200
-	},							/* Christmas Island Time (Indian Ocean) */
-	{
-		"d", UNITS, DTK_DAY
-	},							/* "day of month" for ISO input */
-	{
-		"davt", TZ, 25200
-	},							/* Davis Time (Antarctica) */
-	{
-		"ddut", TZ, 36000
-	},							/* Dumont-d'Urville Time (Antarctica) */
-	{
-		"dec", MONTH, 12
-	},
-	{
-		"december", MONTH, 12
-	},
-	{
-		"dnt", TZ, 3600
-	},							/* Dansk Normal Tid */
-	{
-		"dow", UNITS, DTK_DOW
-	},							/* day of week */
-	{
-		"doy", UNITS, DTK_DOY
-	},							/* day of year */
-	{
-		"dst", DTZMOD, SECS_PER_HOUR
-	},
+	{"cvt", TZ, 25200},			/* Christmas Island Time (Indian Ocean) */
+	{"cxt", TZ, 25200},			/* Christmas Island Time (Indian Ocean) */
+	{"d", UNITS, DTK_DAY},		/* "day of month" for ISO input */
+	{"davt", TZ, 25200},		/* Davis Time (Antarctica) */
+	{"ddut", TZ, 36000},		/* Dumont-d'Urville Time (Antarctica) */
+	{"dec", MONTH, 12},
+	{"december", MONTH, 12},
+	{"dnt", TZ, 3600},			/* Dansk Normal Tid */
+	{"dow", UNITS, DTK_DOW},	/* day of week */
+	{"doy", UNITS, DTK_DOY},	/* day of year */
+	{"dst", DTZMOD, SECS_PER_HOUR},
 #if 0
-	{
-		"dusst", DTZ, 21600
-	},							/* Dushanbe Summer Time */
+	{"dusst", DTZ, 21600},		/* Dushanbe Summer Time */
 #endif
-	{
-		"easst", DTZ, -18000
-	},							/* Easter Island Summer Time */
-	{
-		"east", TZ, -21600
-	},							/* Easter Island Time */
-	{
-		"eat", TZ, 10800
-	},							/* East Africa Time */
+	{"easst", DTZ, -18000},		/* Easter Island Summer Time */
+	{"east", TZ, -21600},		/* Easter Island Time */
+	{"eat", TZ, 10800},			/* East Africa Time */
 #if 0
-	{
-		"east", DTZ, 14400
-	},							/* Indian Antananarivo Savings Time */
-	{
-		"eat", TZ, 10800
-	},							/* Indian Antananarivo Time */
-	{
-		"ect", TZ, -14400
-	},							/* Eastern Caribbean Time */
-	{
-		"ect", TZ, -18000
-	},							/* Ecuador Time */
+	{"east", DTZ, 14400},		/* Indian Antananarivo Savings Time */
+	{"eat", TZ, 10800},			/* Indian Antananarivo Time */
+	{"ect", TZ, -14400},		/* Eastern Caribbean Time */
+	{"ect", TZ, -18000},		/* Ecuador Time */
 #endif
-	{
-		"edt", DTZ, -14400
-	},							/* Eastern Daylight Time */
-	{
-		"eest", DTZ, 10800
-	},							/* Eastern Europe Summer Time */
-	{
-		"eet", TZ, 7200
-	},							/* East. Europe, USSR Zone 1 */
-	{
-		"eetdst", DTZ, 10800
-	},							/* Eastern Europe Daylight Time */
-	{
-		"egst", DTZ, 0
-	},							/* East Greenland Summer Time */
-	{
-		"egt", TZ, -3600
-	},							/* East Greenland Time */
+	{"edt", DTZ, -14400},		/* Eastern Daylight Time */
+	{"eest", DTZ, 10800},		/* Eastern Europe Summer Time */
+	{"eet", TZ, 7200},			/* East. Europe, USSR Zone 1 */
+	{"eetdst", DTZ, 10800},		/* Eastern Europe Daylight Time */
+	{"egst", DTZ, 0},			/* East Greenland Summer Time */
+	{"egt", TZ, -3600},			/* East Greenland Time */
 #if 0
-		ehdt
+	ehdt
 #endif
-	{
-		EPOCH, RESERV, DTK_EPOCH
-	},							/* "epoch" reserved for system epoch time */
-	{
-		"est", TZ, -18000
-	},							/* Eastern Standard Time */
-	{
-		"feb", MONTH, 2
-	},
-	{
-		"february", MONTH, 2
-	},
-	{
-		"fjst", DTZ, -46800
-	},							/* Fiji Summer Time (13 hour offset!) */
-	{
-		"fjt", TZ, -43200
-	},							/* Fiji Time */
-	{
-		"fkst", DTZ, -10800
-	},							/* Falkland Islands Summer Time */
-	{
-		"fkt", TZ, -7200
-	},							/* Falkland Islands Time */
+	{EPOCH, RESERV, DTK_EPOCH}, /* "epoch" reserved for system epoch time */
+	{"est", TZ, -18000},		/* Eastern Standard Time */
+	{"feb", MONTH, 2},
+	{"february", MONTH, 2},
+	{"fjst", DTZ, -46800},		/* Fiji Summer Time (13 hour offset!) */
+	{"fjt", TZ, -43200},		/* Fiji Time */
+	{"fkst", DTZ, -10800},		/* Falkland Islands Summer Time */
+	{"fkt", TZ, -7200},			/* Falkland Islands Time */
 #if 0
-		fnst
-		fnt
+	fnst
+	fnt
 #endif
-	{
-		"fri", DOW, 5
-	},
-	{
-		"friday", DOW, 5
-	},
-	{
-		"fst", TZ, 3600
-	},							/* French Summer Time */
-	{
-		"fwt", DTZ, 7200
-	},							/* French Winter Time  */
-	{
-		"galt", TZ, -21600
-	},							/* Galapagos Time */
-	{
-		"gamt", TZ, -32400
-	},							/* Gambier Time */
-	{
-		"gest", DTZ, 18000
-	},							/* Georgia Summer Time */
-	{
-		"get", TZ, 14400
-	},							/* Georgia Time */
-	{
-		"gft", TZ, -10800
-	},							/* French Guiana Time */
+	{"fri", DOW, 5},
+	{"friday", DOW, 5},
+	{"fst", TZ, 3600},			/* French Summer Time */
+	{"fwt", DTZ, 7200},			/* French Winter Time  */
+	{"galt", TZ, -21600},		/* Galapagos Time */
+	{"gamt", TZ, -32400},		/* Gambier Time */
+	{"gest", DTZ, 18000},		/* Georgia Summer Time */
+	{"get", TZ, 14400},			/* Georgia Time */
+	{"gft", TZ, -10800},		/* French Guiana Time */
 #if 0
-		ghst
+	ghst
 #endif
-	{
-		"gilt", TZ, 43200
-	},							/* Gilbert Islands Time */
-	{
-		"gmt", TZ, 0
-	},							/* Greenwish Mean Time */
-	{
-		"gst", TZ, 36000
-	},							/* Guam Std Time, USSR Zone 9 */
-	{
-		"gyt", TZ, -14400
-	},							/* Guyana Time */
-	{
-		"h", UNITS, DTK_HOUR
-	},							/* "hour" */
+	{"gilt", TZ, 43200},		/* Gilbert Islands Time */
+	{"gmt", TZ, 0},				/* Greenwish Mean Time */
+	{"gst", TZ, 36000},			/* Guam Std Time, USSR Zone 9 */
+	{"gyt", TZ, -14400},		/* Guyana Time */
+	{"h", UNITS, DTK_HOUR},		/* "hour" */
 #if 0
-		hadt
-		hast
+	hadt
+	hast
 #endif
-	{
-		"hdt", DTZ, -32400
-	},							/* Hawaii/Alaska Daylight Time */
+	{"hdt", DTZ, -32400},		/* Hawaii/Alaska Daylight Time */
 #if 0
-		hkst
+	hkst
 #endif
-	{
-		"hkt", TZ, 28800
-	},							/* Hong Kong Time */
+	{"hkt", TZ, 28800},			/* Hong Kong Time */
 #if 0
-	{
-		"hmt", TZ, 10800
-	},							/* Hellas ? ? */
-		hovst
-		hovt
+	{"hmt", TZ, 10800},			/* Hellas ? ? */
+	hovst
+	hovt
 #endif
-	{
-		"hst", TZ, -36000
-	},							/* Hawaii Std Time */
+	{"hst", TZ, -36000},		/* Hawaii Std Time */
 #if 0
-		hwt
+	hwt
 #endif
-	{
-		"ict", TZ, 25200
-	},							/* Indochina Time */
-	{
-		"idle", TZ, 43200
-	},							/* Intl. Date Line, East */
-	{
-		"idlw", TZ, -43200
-	},							/* Intl. Date Line, West */
+	{"ict", TZ, 25200},			/* Indochina Time */
+	{"idle", TZ, 43200},		/* Intl. Date Line, East */
+	{"idlw", TZ, -43200},		/* Intl. Date Line, West */
 #if 0
-		idt						/* Israeli, Iran, Indian Daylight Time */
+	idt							/* Israeli, Iran, Indian Daylight Time */
 #endif
-	{
-		LATE, RESERV, DTK_LATE
-	},							/* "infinity" reserved for "late time" */
-	{
-		INVALID, RESERV, DTK_INVALID
-	},							/* "invalid" reserved for bad time */
-	{
-		"iot", TZ, 18000
-	},							/* Indian Chagos Time */
-	{
-		"irkst", DTZ, 32400
-	},							/* Irkutsk Summer Time */
-	{
-		"irkt", TZ, 28800
-	},							/* Irkutsk Time */
-	{
-		"irt", TZ, 12600
-	},							/* Iran Time */
-	{
-		"isodow", UNITS, DTK_ISODOW
-	},							/* ISO day of week, Sunday == 7 */
+	{LATE, RESERV, DTK_LATE},	/* "infinity" reserved for "late time" */
+	{INVALID, RESERV, DTK_INVALID}, /* "invalid" reserved for bad time */
+	{"iot", TZ, 18000},			/* Indian Chagos Time */
+	{"irkst", DTZ, 32400},		/* Irkutsk Summer Time */
+	{"irkt", TZ, 28800},		/* Irkutsk Time */
+	{"irt", TZ, 12600},			/* Iran Time */
+	{"isodow", UNITS, DTK_ISODOW},	/* ISO day of week, Sunday == 7 */
 #if 0
-		isst
+	isst
 #endif
-	{
-		"ist", TZ, 7200
-	},							/* Israel */
-	{
-		"it", TZ, 12600
-	},							/* Iran Time */
-	{
-		"j", UNITS, DTK_JULIAN
-	},
-	{
-		"jan", MONTH, 1
-	},
-	{
-		"january", MONTH, 1
-	},
-	{
-		"javt", TZ, 25200
-	},							/* Java Time (07:00? see JT) */
-	{
-		"jayt", TZ, 32400
-	},							/* Jayapura Time (Indonesia) */
-	{
-		"jd", UNITS, DTK_JULIAN
-	},
-	{
-		"jst", TZ, 32400
-	},							/* Japan Std Time,USSR Zone 8 */
-	{
-		"jt", TZ, 27000
-	},							/* Java Time (07:30? see JAVT) */
-	{
-		"jul", MONTH, 7
-	},
-	{
-		"julian", UNITS, DTK_JULIAN
-	},
-	{
-		"july", MONTH, 7
-	},
-	{
-		"jun", MONTH, 6
-	},
-	{
-		"june", MONTH, 6
-	},
-	{
-		"kdt", DTZ, 36000
-	},							/* Korea Daylight Time */
-	{
-		"kgst", DTZ, 21600
-	},							/* Kyrgyzstan Summer Time */
-	{
-		"kgt", TZ, 18000
-	},							/* Kyrgyzstan Time */
-	{
-		"kost", TZ, 43200
-	},							/* Kosrae Time */
-	{
-		"krast", DTZ, 25200
-	},							/* Krasnoyarsk Summer Time */
-	{
-		"krat", TZ, 28800
-	},							/* Krasnoyarsk Standard Time */
-	{
-		"kst", TZ, 32400
-	},							/* Korea Standard Time */
-	{
-		"lhdt", DTZ, 39600
-	},							/* Lord Howe Daylight Time, Australia */
-	{
-		"lhst", TZ, 37800
-	},							/* Lord Howe Standard Time, Australia */
-	{
-		"ligt", TZ, 36000
-	},							/* From Melbourne, Australia */
-	{
-		"lint", TZ, 50400
-	},							/* Line Islands Time (Kiribati; +14 hours!) */
-	{
-		"lkt", TZ, 21600
-	},							/* Lanka Time */
-	{
-		"m", UNITS, DTK_MONTH
-	},							/* "month" for ISO input */
-	{
-		"magst", DTZ, 43200
-	},							/* Magadan Summer Time */
-	{
-		"magt", TZ, 39600
-	},							/* Magadan Time */
-	{
-		"mar", MONTH, 3
-	},
-	{
-		"march", MONTH, 3
-	},
-	{
-		"mart", TZ, -34200
-	},							/* Marquesas Time */
-	{
-		"mawt", TZ, 21600
-	},							/* Mawson, Antarctica */
-	{
-		"may", MONTH, 5
-	},
-	{
-		"mdt", DTZ, -21600
-	},							/* Mountain Daylight Time */
-	{
-		"mest", DTZ, 7200
-	},							/* Middle Europe Summer Time */
-	{
-		"met", TZ, 3600
-	},							/* Middle Europe Time */
-	{
-		"metdst", DTZ, 7200
-	},							/* Middle Europe Daylight Time */
-	{
-		"mewt", TZ, 3600
-	},							/* Middle Europe Winter Time */
-	{
-		"mez", TZ, 3600
-	},							/* Middle Europe Zone */
-	{
-		"mht", TZ, 43200
-	},							/* Kwajalein */
-	{
-		"mm", UNITS, DTK_MINUTE
-	},							/* "minute" for ISO input */
-	{
-		"mmt", TZ, 23400
-	},							/* Myannar Time */
-	{
-		"mon", DOW, 1
-	},
-	{
-		"monday", DOW, 1
-	},
+	{"ist", TZ, 7200},			/* Israel */
+	{"it", TZ, 12600},			/* Iran Time */
+	{"j", UNITS, DTK_JULIAN},
+	{"jan", MONTH, 1},
+	{"january", MONTH, 1},
+	{"javt", TZ, 25200},		/* Java Time (07:00? see JT) */
+	{"jayt", TZ, 32400},		/* Jayapura Time (Indonesia) */
+	{"jd", UNITS, DTK_JULIAN},
+	{"jst", TZ, 32400},			/* Japan Std Time,USSR Zone 8 */
+	{"jt", TZ, 27000},			/* Java Time (07:30? see JAVT) */
+	{"jul", MONTH, 7},
+	{"julian", UNITS, DTK_JULIAN},
+	{"july", MONTH, 7},
+	{"jun", MONTH, 6},
+	{"june", MONTH, 6},
+	{"kdt", DTZ, 36000},		/* Korea Daylight Time */
+	{"kgst", DTZ, 21600},		/* Kyrgyzstan Summer Time */
+	{"kgt", TZ, 18000},			/* Kyrgyzstan Time */
+	{"kost", TZ, 43200},		/* Kosrae Time */
+	{"krast", DTZ, 25200},		/* Krasnoyarsk Summer Time */
+	{"krat", TZ, 28800},		/* Krasnoyarsk Standard Time */
+	{"kst", TZ, 32400},			/* Korea Standard Time */
+	{"lhdt", DTZ, 39600},		/* Lord Howe Daylight Time, Australia */
+	{"lhst", TZ, 37800},		/* Lord Howe Standard Time, Australia */
+	{"ligt", TZ, 36000},		/* From Melbourne, Australia */
+	{"lint", TZ, 50400},		/* Line Islands Time (Kiribati; +14 hours!) */
+	{"lkt", TZ, 21600},			/* Lanka Time */
+	{"m", UNITS, DTK_MONTH},	/* "month" for ISO input */
+	{"magst", DTZ, 43200},		/* Magadan Summer Time */
+	{"magt", TZ, 39600},		/* Magadan Time */
+	{"mar", MONTH, 3},
+	{"march", MONTH, 3},
+	{"mart", TZ, -34200},		/* Marquesas Time */
+	{"mawt", TZ, 21600},		/* Mawson, Antarctica */
+	{"may", MONTH, 5},
+	{"mdt", DTZ, -21600},		/* Mountain Daylight Time */
+	{"mest", DTZ, 7200},		/* Middle Europe Summer Time */
+	{"met", TZ, 3600},			/* Middle Europe Time */
+	{"metdst", DTZ, 7200},		/* Middle Europe Daylight Time */
+	{"mewt", TZ, 3600},			/* Middle Europe Winter Time */
+	{"mez", TZ, 3600},			/* Middle Europe Zone */
+	{"mht", TZ, 43200},			/* Kwajalein */
+	{"mm", UNITS, DTK_MINUTE},	/* "minute" for ISO input */
+	{"mmt", TZ, 23400},			/* Myannar Time */
+	{"mon", DOW, 1},
+	{"monday", DOW, 1},
 #if 0
-		most
+	most
 #endif
-	{
-		"mpt", TZ, 36000
-	},							/* North Mariana Islands Time */
-	{
-		"msd", DTZ, 14400
-	},							/* Moscow Summer Time */
-	{
-		"msk", TZ, 10800
-	},							/* Moscow Time */
-	{
-		"mst", TZ, -25200
-	},							/* Mountain Standard Time */
-	{
-		"mt", TZ, 30600
-	},							/* Moluccas Time */
-	{
-		"mut", TZ, 14400
-	},							/* Mauritius Island Time */
-	{
-		"mvt", TZ, 18000
-	},							/* Maldives Island Time */
-	{
-		"myt", TZ, 28800
-	},							/* Malaysia Time */
+	{"mpt", TZ, 36000},			/* North Mariana Islands Time */
+	{"msd", DTZ, 14400},		/* Moscow Summer Time */
+	{"msk", TZ, 10800},			/* Moscow Time */
+	{"mst", TZ, -25200},		/* Mountain Standard Time */
+	{"mt", TZ, 30600},			/* Moluccas Time */
+	{"mut", TZ, 14400},			/* Mauritius Island Time */
+	{"mvt", TZ, 18000},			/* Maldives Island Time */
+	{"myt", TZ, 28800},			/* Malaysia Time */
 #if 0
-		ncst
+	ncst
 #endif
-	{
-		"nct", TZ, 39600
-	},							/* New Caledonia Time */
-	{
-		"ndt", DTZ, -9000
-	},							/* Nfld. Daylight Time */
-	{
-		"nft", TZ, -12600
-	},							/* Newfoundland Standard Time */
-	{
-		"nor", TZ, 3600
-	},							/* Norway Standard Time */
-	{
-		"nov", MONTH, 11
-	},
-	{
-		"november", MONTH, 11
-	},
-	{
-		"novst", DTZ, 25200
-	},							/* Novosibirsk Summer Time */
-	{
-		"novt", TZ, 21600
-	},							/* Novosibirsk Standard Time */
-	{
-		NOW, RESERV, DTK_NOW
-	},							/* current transaction time */
-	{
-		"npt", TZ, 20700
-	},							/* Nepal Standard Time (GMT-5:45) */
-	{
-		"nst", TZ, -12600
-	},							/* Nfld. Standard Time */
-	{
-		"nt", TZ, -39600
-	},							/* Nome Time */
-	{
-		"nut", TZ, -39600
-	},							/* Niue Time */
-	{
-		"nzdt", DTZ, 46800
-	},							/* New Zealand Daylight Time */
-	{
-		"nzst", TZ, 43200
-	},							/* New Zealand Standard Time */
-	{
-		"nzt", TZ, 43200
-	},							/* New Zealand Time */
-	{
-		"oct", MONTH, 10
-	},
-	{
-		"october", MONTH, 10
-	},
-	{
-		"omsst", DTZ, 25200
-	},							/* Omsk Summer Time */
-	{
-		"omst", TZ, 21600
-	},							/* Omsk Time */
-	{
-		"on", IGNORE_DTF, 0
-	},							/* "on" (throwaway) */
-	{
-		"pdt", DTZ, -25200
-	},							/* Pacific Daylight Time */
+	{"nct", TZ, 39600},			/* New Caledonia Time */
+	{"ndt", DTZ, -9000},		/* Nfld. Daylight Time */
+	{"nft", TZ, -12600},		/* Newfoundland Standard Time */
+	{"nor", TZ, 3600},			/* Norway Standard Time */
+	{"nov", MONTH, 11},
+	{"november", MONTH, 11},
+	{"novst", DTZ, 25200},		/* Novosibirsk Summer Time */
+	{"novt", TZ, 21600},		/* Novosibirsk Standard Time */
+	{NOW, RESERV, DTK_NOW},		/* current transaction time */
+	{"npt", TZ, 20700},			/* Nepal Standard Time (GMT-5:45) */
+	{"nst", TZ, -12600},		/* Nfld. Standard Time */
+	{"nt", TZ, -39600},			/* Nome Time */
+	{"nut", TZ, -39600},		/* Niue Time */
+	{"nzdt", DTZ, 46800},		/* New Zealand Daylight Time */
+	{"nzst", TZ, 43200},		/* New Zealand Standard Time */
+	{"nzt", TZ, 43200},			/* New Zealand Time */
+	{"oct", MONTH, 10},
+	{"october", MONTH, 10},
+	{"omsst", DTZ, 25200},		/* Omsk Summer Time */
+	{"omst", TZ, 21600},		/* Omsk Time */
+	{"on", IGNORE_DTF, 0},		/* "on" (throwaway) */
+	{"pdt", DTZ, -25200},		/* Pacific Daylight Time */
 #if 0
-		pest
+	pest
 #endif
-	{
-		"pet", TZ, -18000
-	},							/* Peru Time */
-	{
-		"petst", DTZ, 46800
-	},							/* Petropavlovsk-Kamchatski Summer Time */
-	{
-		"pett", TZ, 43200
-	},							/* Petropavlovsk-Kamchatski Time */
-	{
-		"pgt", TZ, 36000
-	},							/* Papua New Guinea Time */
-	{
-		"phot", TZ, 46800
-	},							/* Phoenix Islands (Kiribati) Time */
+	{"pet", TZ, -18000},		/* Peru Time */
+	{"petst", DTZ, 46800},		/* Petropavlovsk-Kamchatski Summer Time */
+	{"pett", TZ, 43200},		/* Petropavlovsk-Kamchatski Time */
+	{"pgt", TZ, 36000},			/* Papua New Guinea Time */
+	{"phot", TZ, 46800},		/* Phoenix Islands (Kiribati) Time */
 #if 0
-		phst
+	phst
 #endif
-	{
-		"pht", TZ, 28800
-	},							/* Philippine Time */
-	{
-		"pkt", TZ, 18000
-	},							/* Pakistan Time */
-	{
-		"pm", AMPM, PM
-	},
-	{
-		"pmdt", DTZ, -7200
-	},							/* Pierre & Miquelon Daylight Time */
+	{"pht", TZ, 28800},			/* Philippine Time */
+	{"pkt", TZ, 18000},			/* Pakistan Time */
+	{"pm", AMPM, PM},
+	{"pmdt", DTZ, -7200},		/* Pierre & Miquelon Daylight Time */
 #if 0
-		pmst
+	pmst
 #endif
-	{
-		"pont", TZ, 39600
-	},							/* Ponape Time (Micronesia) */
-	{
-		"pst", TZ, -28800
-	},							/* Pacific Standard Time */
-	{
-		"pwt", TZ, 32400
-	},							/* Palau Time */
-	{
-		"pyst", DTZ, -10800
-	},							/* Paraguay Summer Time */
-	{
-		"pyt", TZ, -14400
-	},							/* Paraguay Time */
-	{
-		"ret", DTZ, 14400
-	},							/* Reunion Island Time */
-	{
-		"s", UNITS, DTK_SECOND
-	},							/* "seconds" for ISO input */
-	{
-		"sadt", DTZ, 37800
-	},							/* S. Australian Dayl. Time */
+	{"pont", TZ, 39600},		/* Ponape Time (Micronesia) */
+	{"pst", TZ, -28800},		/* Pacific Standard Time */
+	{"pwt", TZ, 32400},			/* Palau Time */
+	{"pyst", DTZ, -10800},		/* Paraguay Summer Time */
+	{"pyt", TZ, -14400},		/* Paraguay Time */
+	{"ret", DTZ, 14400},		/* Reunion Island Time */
+	{"s", UNITS, DTK_SECOND},	/* "seconds" for ISO input */
+	{"sadt", DTZ, 37800},		/* S. Australian Dayl. Time */
 #if 0
-		samst
-		samt
+	samst
+	samt
 #endif
-	{
-		"sast", TZ, 34200
-	},							/* South Australian Std Time */
-	{
-		"sat", DOW, 6
-	},
-	{
-		"saturday", DOW, 6
-	},
+	{"sast", TZ, 34200},		/* South Australian Std Time */
+	{"sat", DOW, 6},
+	{"saturday", DOW, 6},
 #if 0
-		sbt
+	sbt
 #endif
-	{
-		"sct", DTZ, 14400
-	},							/* Mahe Island Time */
-	{
-		"sep", MONTH, 9
-	},
-	{
-		"sept", MONTH, 9
-	},
-	{
-		"september", MONTH, 9
-	},
-	{
-		"set", TZ, -3600
-	},							/* Seychelles Time ?? */
+	{"sct", DTZ, 14400},		/* Mahe Island Time */
+	{"sep", MONTH, 9},
+	{"sept", MONTH, 9},
+	{"september", MONTH, 9},
+	{"set", TZ, -3600},			/* Seychelles Time ?? */
 #if 0
-		sgt
+	sgt
 #endif
-	{
-		"sst", DTZ, 7200
-	},							/* Swedish Summer Time */
-	{
-		"sun", DOW, 0
-	},
-	{
-		"sunday", DOW, 0
-	},
-	{
-		"swt", TZ, 3600
-	},							/* Swedish Winter Time */
+	{"sst", DTZ, 7200},			/* Swedish Summer Time */
+	{"sun", DOW, 0},
+	{"sunday", DOW, 0},
+	{"swt", TZ, 3600},			/* Swedish Winter Time */
 #if 0
-		syot
+	syot
 #endif
-	{
-		"t", ISOTIME, DTK_TIME
-	},							/* Filler for ISO time fields */
-	{
-		"tft", TZ, 18000
-	},							/* Kerguelen Time */
-	{
-		"that", TZ, -36000
-	},							/* Tahiti Time */
-	{
-		"thu", DOW, 4
-	},
-	{
-		"thur", DOW, 4
-	},
-	{
-		"thurs", DOW, 4
-	},
-	{
-		"thursday", DOW, 4
-	},
-	{
-		"tjt", TZ, 18000
-	},							/* Tajikistan Time */
-	{
-		"tkt", TZ, -36000
-	},							/* Tokelau Time */
-	{
-		"tmt", TZ, 18000
-	},							/* Turkmenistan Time */
-	{
-		TODAY, RESERV, DTK_TODAY
-	},							/* midnight */
-	{
-		TOMORROW, RESERV, DTK_TOMORROW
-	},							/* tomorrow midnight */
+	{"t", ISOTIME, DTK_TIME},	/* Filler for ISO time fields */
+	{"tft", TZ, 18000},			/* Kerguelen Time */
+	{"that", TZ, -36000},		/* Tahiti Time */
+	{"thu", DOW, 4},
+	{"thur", DOW, 4},
+	{"thurs", DOW, 4},
+	{"thursday", DOW, 4},
+	{"tjt", TZ, 18000},			/* Tajikistan Time */
+	{"tkt", TZ, -36000},		/* Tokelau Time */
+	{"tmt", TZ, 18000},			/* Turkmenistan Time */
+	{TODAY, RESERV, DTK_TODAY}, /* midnight */
+	{TOMORROW, RESERV, DTK_TOMORROW},	/* tomorrow midnight */
 #if 0
-		tost
+	tost
 #endif
-	{
-		"tot", TZ, 46800
-	},							/* Tonga Time */
+	{"tot", TZ, 46800},			/* Tonga Time */
 #if 0
-		tpt
+	tpt
 #endif
-	{
-		"truk", TZ, 36000
-	},							/* Truk Time */
-	{
-		"tue", DOW, 2
-	},
-	{
-		"tues", DOW, 2
-	},
-	{
-		"tuesday", DOW, 2
-	},
-	{
-		"tvt", TZ, 43200
-	},							/* Tuvalu Time */
+	{"truk", TZ, 36000},		/* Truk Time */
+	{"tue", DOW, 2},
+	{"tues", DOW, 2},
+	{"tuesday", DOW, 2},
+	{"tvt", TZ, 43200},			/* Tuvalu Time */
 #if 0
-		uct
+	uct
 #endif
-	{
-		"ulast", DTZ, 32400
-	},							/* Ulan Bator Summer Time */
-	{
-		"ulat", TZ, 28800
-	},							/* Ulan Bator Time */
-	{
-		"undefined", RESERV, DTK_INVALID
-	},							/* pre-v6.1 invalid time */
-	{
-		"ut", TZ, 0
-	},
-	{
-		"utc", TZ, 0
-	},
-	{
-		"uyst", DTZ, -7200
-	},							/* Uruguay Summer Time */
-	{
-		"uyt", TZ, -10800
-	},							/* Uruguay Time */
-	{
-		"uzst", DTZ, 21600
-	},							/* Uzbekistan Summer Time */
-	{
-		"uzt", TZ, 18000
-	},							/* Uzbekistan Time */
-	{
-		"vet", TZ, -14400
-	},							/* Venezuela Time */
-	{
-		"vlast", DTZ, 39600
-	},							/* Vladivostok Summer Time */
-	{
-		"vlat", TZ, 36000
-	},							/* Vladivostok Time */
+	{"ulast", DTZ, 32400},		/* Ulan Bator Summer Time */
+	{"ulat", TZ, 28800},		/* Ulan Bator Time */
+	{"undefined", RESERV, DTK_INVALID}, /* pre-v6.1 invalid time */
+	{"ut", TZ, 0},
+	{"utc", TZ, 0},
+	{"uyst", DTZ, -7200},		/* Uruguay Summer Time */
+	{"uyt", TZ, -10800},		/* Uruguay Time */
+	{"uzst", DTZ, 21600},		/* Uzbekistan Summer Time */
+	{"uzt", TZ, 18000},			/* Uzbekistan Time */
+	{"vet", TZ, -14400},		/* Venezuela Time */
+	{"vlast", DTZ, 39600},		/* Vladivostok Summer Time */
+	{"vlat", TZ, 36000},		/* Vladivostok Time */
 #if 0
-		vust
+	vust
 #endif
-	{
-		"vut", TZ, 39600
-	},							/* Vanuata Time */
-	{
-		"wadt", DTZ, 28800
-	},							/* West Australian DST */
-	{
-		"wakt", TZ, 43200
-	},							/* Wake Time */
+	{"vut", TZ, 39600},			/* Vanuata Time */
+	{"wadt", DTZ, 28800},		/* West Australian DST */
+	{"wakt", TZ, 43200},		/* Wake Time */
 #if 0
-		warst
+	warst
 #endif
-	{
-		"wast", TZ, 25200
-	},							/* West Australian Std Time */
-	{
-		"wat", TZ, -3600
-	},							/* West Africa Time */
-	{
-		"wdt", DTZ, 32400
-	},							/* West Australian DST */
-	{
-		"wed", DOW, 3
-	},
-	{
-		"wednesday", DOW, 3
-	},
-	{
-		"weds", DOW, 3
-	},
-	{
-		"west", DTZ, 3600
-	},							/* Western Europe Summer Time */
-	{
-		"wet", TZ, 0
-	},							/* Western Europe */
-	{
-		"wetdst", DTZ, 3600
-	},							/* Western Europe Daylight Savings Time */
-	{
-		"wft", TZ, 43200
-	},							/* Wallis and Futuna Time */
-	{
-		"wgst", DTZ, -7200
-	},							/* West Greenland Summer Time */
-	{
-		"wgt", TZ, -10800
-	},							/* West Greenland Time */
-	{
-		"wst", TZ, 28800
-	},							/* West Australian Standard Time */
-	{
-		"y", UNITS, DTK_YEAR
-	},							/* "year" for ISO input */
-	{
-		"yakst", DTZ, 36000
-	},							/* Yakutsk Summer Time */
-	{
-		"yakt", TZ, 32400
-	},							/* Yakutsk Time */
-	{
-		"yapt", TZ, 36000
-	},							/* Yap Time (Micronesia) */
-	{
-		"ydt", DTZ, -28800
-	},							/* Yukon Daylight Time */
-	{
-		"yekst", DTZ, 21600
-	},							/* Yekaterinburg Summer Time */
-	{
-		"yekt", TZ, 18000
-	},							/* Yekaterinburg Time */
-	{
-		YESTERDAY, RESERV, DTK_YESTERDAY
-	},							/* yesterday midnight */
-	{
-		"yst", TZ, -32400
-	},							/* Yukon Standard Time */
-	{
-		"z", TZ, 0
-	},							/* time zone tag per ISO-8601 */
-	{
-		"zp4", TZ, -14400
-	},							/* UTC +4  hours. */
-	{
-		"zp5", TZ, -18000
-	},							/* UTC +5  hours. */
-	{
-		"zp6", TZ, -21600
-	},							/* UTC +6  hours. */
-	{
-		ZULU, TZ, 0
-	},							/* UTC */
+	{"wast", TZ, 25200},		/* West Australian Std Time */
+	{"wat", TZ, -3600},			/* West Africa Time */
+	{"wdt", DTZ, 32400},		/* West Australian DST */
+	{"wed", DOW, 3},
+	{"wednesday", DOW, 3},
+	{"weds", DOW, 3},
+	{"west", DTZ, 3600},		/* Western Europe Summer Time */
+	{"wet", TZ, 0},				/* Western Europe */
+	{"wetdst", DTZ, 3600},		/* Western Europe Daylight Savings Time */
+	{"wft", TZ, 43200},			/* Wallis and Futuna Time */
+	{"wgst", DTZ, -7200},		/* West Greenland Summer Time */
+	{"wgt", TZ, -10800},		/* West Greenland Time */
+	{"wst", TZ, 28800},			/* West Australian Standard Time */
+	{"y", UNITS, DTK_YEAR},		/* "year" for ISO input */
+	{"yakst", DTZ, 36000},		/* Yakutsk Summer Time */
+	{"yakt", TZ, 32400},		/* Yakutsk Time */
+	{"yapt", TZ, 36000},		/* Yap Time (Micronesia) */
+	{"ydt", DTZ, -28800},		/* Yukon Daylight Time */
+	{"yekst", DTZ, 21600},		/* Yekaterinburg Summer Time */
+	{"yekt", TZ, 18000},		/* Yekaterinburg Time */
+	{YESTERDAY, RESERV, DTK_YESTERDAY}, /* yesterday midnight */
+	{"yst", TZ, -32400},		/* Yukon Standard Time */
+	{"z", TZ, 0},				/* time zone tag per ISO-8601 */
+	{"zp4", TZ, -14400},		/* UTC +4  hours. */
+	{"zp5", TZ, -18000},		/* UTC +5  hours. */
+	{"zp6", TZ, -21600},		/* UTC +6  hours. */
+	{ZULU, TZ, 0},				/* UTC */
 };
 
-static datetkn deltatktbl[] =
-{
+static datetkn deltatktbl[] = {
 	/* text, token, lexval */
-	{
-		"@", IGNORE_DTF, 0
-	},							/* postgres relative prefix */
-	{
-		DAGO, AGO, 0
-	},							/* "ago" indicates negative time offset */
-	{
-		"c", UNITS, DTK_CENTURY
-	},							/* "century" relative */
-	{
-		"cent", UNITS, DTK_CENTURY
-	},							/* "century" relative */
-	{
-		"centuries", UNITS, DTK_CENTURY
-	},							/* "centuries" relative */
-	{
-		DCENTURY, UNITS, DTK_CENTURY
-	},							/* "century" relative */
-	{
-		"d", UNITS, DTK_DAY
-	},							/* "day" relative */
-	{
-		DDAY, UNITS, DTK_DAY
-	},							/* "day" relative */
-	{
-		"days", UNITS, DTK_DAY
-	},							/* "days" relative */
-	{
-		"dec", UNITS, DTK_DECADE
-	},							/* "decade" relative */
-	{
-		DDECADE, UNITS, DTK_DECADE
-	},							/* "decade" relative */
-	{
-		"decades", UNITS, DTK_DECADE
-	},							/* "decades" relative */
-	{
-		"decs", UNITS, DTK_DECADE
-	},							/* "decades" relative */
-	{
-		"h", UNITS, DTK_HOUR
-	},							/* "hour" relative */
-	{
-		DHOUR, UNITS, DTK_HOUR
-	},							/* "hour" relative */
-	{
-		"hours", UNITS, DTK_HOUR
-	},							/* "hours" relative */
-	{
-		"hr", UNITS, DTK_HOUR
-	},							/* "hour" relative */
-	{
-		"hrs", UNITS, DTK_HOUR
-	},							/* "hours" relative */
-	{
-		INVALID, RESERV, DTK_INVALID
-	},							/* reserved for invalid time */
-	{
-		"m", UNITS, DTK_MINUTE
-	},							/* "minute" relative */
-	{
-		"microsecon", UNITS, DTK_MICROSEC
-	},							/* "microsecond" relative */
-	{
-		"mil", UNITS, DTK_MILLENNIUM
-	},							/* "millennium" relative */
-	{
-		"millennia", UNITS, DTK_MILLENNIUM
-	},							/* "millennia" relative */
-	{
-		DMILLENNIUM, UNITS, DTK_MILLENNIUM
-	},							/* "millennium" relative */
-	{
-		"millisecon", UNITS, DTK_MILLISEC
-	},							/* relative */
-	{
-		"mils", UNITS, DTK_MILLENNIUM
-	},							/* "millennia" relative */
-	{
-		"min", UNITS, DTK_MINUTE
-	},							/* "minute" relative */
-	{
-		"mins", UNITS, DTK_MINUTE
-	},							/* "minutes" relative */
-	{
-		DMINUTE, UNITS, DTK_MINUTE
-	},							/* "minute" relative */
-	{
-		"minutes", UNITS, DTK_MINUTE
-	},							/* "minutes" relative */
-	{
-		"mon", UNITS, DTK_MONTH
-	},							/* "months" relative */
-	{
-		"mons", UNITS, DTK_MONTH
-	},							/* "months" relative */
-	{
-		DMONTH, UNITS, DTK_MONTH
-	},							/* "month" relative */
-	{
-		"months", UNITS, DTK_MONTH
-	},
-	{
-		"ms", UNITS, DTK_MILLISEC
-	},
-	{
-		"msec", UNITS, DTK_MILLISEC
-	},
-	{
-		DMILLISEC, UNITS, DTK_MILLISEC
-	},
-	{
-		"mseconds", UNITS, DTK_MILLISEC
-	},
-	{
-		"msecs", UNITS, DTK_MILLISEC
-	},
-	{
-		"qtr", UNITS, DTK_QUARTER
-	},							/* "quarter" relative */
-	{
-		DQUARTER, UNITS, DTK_QUARTER
-	},							/* "quarter" relative */
-	{
-		"s", UNITS, DTK_SECOND
-	},
-	{
-		"sec", UNITS, DTK_SECOND
-	},
-	{
-		DSECOND, UNITS, DTK_SECOND
-	},
-	{
-		"seconds", UNITS, DTK_SECOND
-	},
-	{
-		"secs", UNITS, DTK_SECOND
-	},
-	{
-		DTIMEZONE, UNITS, DTK_TZ
-	},							/* "timezone" time offset */
-	{
-		"timezone_h", UNITS, DTK_TZ_HOUR
-	},							/* timezone hour units */
-	{
-		"timezone_m", UNITS, DTK_TZ_MINUTE
-	},							/* timezone minutes units */
-	{
-		"undefined", RESERV, DTK_INVALID
-	},							/* pre-v6.1 invalid time */
-	{
-		"us", UNITS, DTK_MICROSEC
-	},							/* "microsecond" relative */
-	{
-		"usec", UNITS, DTK_MICROSEC
-	},							/* "microsecond" relative */
-	{
-		DMICROSEC, UNITS, DTK_MICROSEC
-	},							/* "microsecond" relative */
-	{
-		"useconds", UNITS, DTK_MICROSEC
-	},							/* "microseconds" relative */
-	{
-		"usecs", UNITS, DTK_MICROSEC
-	},							/* "microseconds" relative */
-	{
-		"w", UNITS, DTK_WEEK
-	},							/* "week" relative */
-	{
-		DWEEK, UNITS, DTK_WEEK
-	},							/* "week" relative */
-	{
-		"weeks", UNITS, DTK_WEEK
-	},							/* "weeks" relative */
-	{
-		"y", UNITS, DTK_YEAR
-	},							/* "year" relative */
-	{
-		DYEAR, UNITS, DTK_YEAR
-	},							/* "year" relative */
-	{
-		"years", UNITS, DTK_YEAR
-	},							/* "years" relative */
-	{
-		"yr", UNITS, DTK_YEAR
-	},							/* "year" relative */
-	{
-		"yrs", UNITS, DTK_YEAR
-	},							/* "years" relative */
+	{"@", IGNORE_DTF, 0},		/* postgres relative prefix */
+	{DAGO, AGO, 0},				/* "ago" indicates negative time offset */
+	{"c", UNITS, DTK_CENTURY},	/* "century" relative */
+	{"cent", UNITS, DTK_CENTURY},	/* "century" relative */
+	{"centuries", UNITS, DTK_CENTURY},	/* "centuries" relative */
+	{DCENTURY, UNITS, DTK_CENTURY}, /* "century" relative */
+	{"d", UNITS, DTK_DAY},		/* "day" relative */
+	{DDAY, UNITS, DTK_DAY},		/* "day" relative */
+	{"days", UNITS, DTK_DAY},	/* "days" relative */
+	{"dec", UNITS, DTK_DECADE}, /* "decade" relative */
+	{DDECADE, UNITS, DTK_DECADE},	/* "decade" relative */
+	{"decades", UNITS, DTK_DECADE}, /* "decades" relative */
+	{"decs", UNITS, DTK_DECADE},	/* "decades" relative */
+	{"h", UNITS, DTK_HOUR},		/* "hour" relative */
+	{DHOUR, UNITS, DTK_HOUR},	/* "hour" relative */
+	{"hours", UNITS, DTK_HOUR}, /* "hours" relative */
+	{"hr", UNITS, DTK_HOUR},	/* "hour" relative */
+	{"hrs", UNITS, DTK_HOUR},	/* "hours" relative */
+	{INVALID, RESERV, DTK_INVALID}, /* reserved for invalid time */
+	{"m", UNITS, DTK_MINUTE},	/* "minute" relative */
+	{"microsecon", UNITS, DTK_MICROSEC},	/* "microsecond" relative */
+	{"mil", UNITS, DTK_MILLENNIUM}, /* "millennium" relative */
+	{"millennia", UNITS, DTK_MILLENNIUM},	/* "millennia" relative */
+	{DMILLENNIUM, UNITS, DTK_MILLENNIUM},	/* "millennium" relative */
+	{"millisecon", UNITS, DTK_MILLISEC},	/* relative */
+	{"mils", UNITS, DTK_MILLENNIUM},	/* "millennia" relative */
+	{"min", UNITS, DTK_MINUTE}, /* "minute" relative */
+	{"mins", UNITS, DTK_MINUTE},	/* "minutes" relative */
+	{DMINUTE, UNITS, DTK_MINUTE},	/* "minute" relative */
+	{"minutes", UNITS, DTK_MINUTE}, /* "minutes" relative */
+	{"mon", UNITS, DTK_MONTH},	/* "months" relative */
+	{"mons", UNITS, DTK_MONTH}, /* "months" relative */
+	{DMONTH, UNITS, DTK_MONTH}, /* "month" relative */
+	{"months", UNITS, DTK_MONTH},
+	{"ms", UNITS, DTK_MILLISEC},
+	{"msec", UNITS, DTK_MILLISEC},
+	{DMILLISEC, UNITS, DTK_MILLISEC},
+	{"mseconds", UNITS, DTK_MILLISEC},
+	{"msecs", UNITS, DTK_MILLISEC},
+	{"qtr", UNITS, DTK_QUARTER},	/* "quarter" relative */
+	{DQUARTER, UNITS, DTK_QUARTER}, /* "quarter" relative */
+	{"s", UNITS, DTK_SECOND},
+	{"sec", UNITS, DTK_SECOND},
+	{DSECOND, UNITS, DTK_SECOND},
+	{"seconds", UNITS, DTK_SECOND},
+	{"secs", UNITS, DTK_SECOND},
+	{DTIMEZONE, UNITS, DTK_TZ}, /* "timezone" time offset */
+	{"timezone_h", UNITS, DTK_TZ_HOUR}, /* timezone hour units */
+	{"timezone_m", UNITS, DTK_TZ_MINUTE},	/* timezone minutes units */
+	{"undefined", RESERV, DTK_INVALID}, /* pre-v6.1 invalid time */
+	{"us", UNITS, DTK_MICROSEC},	/* "microsecond" relative */
+	{"usec", UNITS, DTK_MICROSEC},	/* "microsecond" relative */
+	{DMICROSEC, UNITS, DTK_MICROSEC},	/* "microsecond" relative */
+	{"useconds", UNITS, DTK_MICROSEC},	/* "microseconds" relative */
+	{"usecs", UNITS, DTK_MICROSEC}, /* "microseconds" relative */
+	{"w", UNITS, DTK_WEEK},		/* "week" relative */
+	{DWEEK, UNITS, DTK_WEEK},	/* "week" relative */
+	{"weeks", UNITS, DTK_WEEK}, /* "weeks" relative */
+	{"y", UNITS, DTK_YEAR},		/* "year" relative */
+	{DYEAR, UNITS, DTK_YEAR},	/* "year" relative */
+	{"years", UNITS, DTK_YEAR}, /* "years" relative */
+	{"yr", UNITS, DTK_YEAR},	/* "year" relative */
+	{"yrs", UNITS, DTK_YEAR},	/* "years" relative */
 };
 
 static const unsigned int szdatetktbl = lengthof(datetktbl);
 static const unsigned int szdeltatktbl = lengthof(deltatktbl);
 
-static datetkn * datecache[MAXDATEFIELDS] =
-{
-	NULL
-};
+static datetkn *datecache[MAXDATEFIELDS] = {NULL};
 
-static datetkn * deltacache[MAXDATEFIELDS] =
-{
-	NULL
-};
+static datetkn *deltacache[MAXDATEFIELDS] = {NULL};
 
 char	   *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", NULL};
 
@@ -1217,7 +503,7 @@ char	   *pgtypes_date_weekdays_short[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fr
 char	   *pgtypes_date_months[] = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December", NULL};
 
 static datetkn *
-datebsearch(char *key, datetkn * base, unsigned int nel)
+datebsearch(char *key, datetkn *base, unsigned int nel)
 {
 	if (nel > 0)
 	{
@@ -1385,11 +671,10 @@ DecodeSpecial(int field, char *lowtoken, int *val)
 /* EncodeDateOnly()
  * Encode date as local time.
  */
-int
+void
 EncodeDateOnly(struct tm *tm, int style, char *str, bool EuroDates)
 {
-	if (tm->tm_mon < 1 || tm->tm_mon > MONTHS_PER_YEAR)
-		return -1;
+	Assert(tm->tm_mon >= 1 && tm->tm_mon <= MONTHS_PER_YEAR);
 
 	switch (style)
 	{
@@ -1437,9 +722,7 @@ EncodeDateOnly(struct tm *tm, int style, char *str, bool EuroDates)
 				sprintf(str + 5, "-%04d %s", -(tm->tm_year - 1), "BC");
 			break;
 	}
-
-	return TRUE;
-}								/* EncodeDateOnly() */
+}
 
 void
 TrimTrailingZeros(char *str)
@@ -1472,7 +755,7 @@ TrimTrailingZeros(char *str)
  *	US - mm/dd/yyyy
  *	European - dd/mm/yyyy
  */
-int
+void
 EncodeDateTime(struct tm *tm, fsec_t fsec, bool print_tz, int tz, const char *tzn, int style, char *str, bool EuroDates)
 {
 	int			day,
@@ -1665,9 +948,7 @@ EncodeDateTime(struct tm *tm, fsec_t fsec, bool print_tz, int tz, const char *tz
 			}
 			break;
 	}
-
-	return TRUE;
-}								/* EncodeDateTime() */
+}
 
 int
 GetEpochTime(struct tm *tm)
@@ -1700,9 +981,9 @@ abstime2tm(AbsoluteTime _time, int *tzp, struct tm *tm, char **tzn)
 
 	errno = 0;
 	if (tzp != NULL)
-		tx = localtime((time_t *) & time);
+		tx = localtime((time_t *) &time);
 	else
-		tx = gmtime((time_t *) & time);
+		tx = gmtime((time_t *) &time);
 
 	if (!tx)
 	{
@@ -1786,7 +1067,7 @@ GetCurrentDateTime(struct tm *tm)
 }
 
 void
-dt2time(double jd, int *hour, int *min, int *sec, fsec_t * fsec)
+dt2time(double jd, int *hour, int *min, int *sec, fsec_t *fsec)
 {
 	int64		time;
 
@@ -1808,7 +1089,7 @@ dt2time(double jd, int *hour, int *min, int *sec, fsec_t * fsec)
  */
 static int
 DecodeNumberField(int len, char *str, int fmask,
-				  int *tmask, struct tm *tm, fsec_t * fsec, int *is2digits)
+				  int *tmask, struct tm *tm, fsec_t *fsec, bool *is2digits)
 {
 	char	   *cp;
 
@@ -1863,7 +1144,7 @@ DecodeNumberField(int len, char *str, int fmask,
 			tm->tm_mon = atoi(str + 2);
 			*(str + 2) = '\0';
 			tm->tm_year = atoi(str + 0);
-			*is2digits = TRUE;
+			*is2digits = true;
 
 			return DTK_DATE;
 		}
@@ -1875,7 +1156,7 @@ DecodeNumberField(int len, char *str, int fmask,
 			*(str + 2) = '\0';
 			tm->tm_mon = 1;
 			tm->tm_year = atoi(str + 0);
-			*is2digits = TRUE;
+			*is2digits = true;
 
 			return DTK_DATE;
 		}
@@ -1918,7 +1199,7 @@ DecodeNumberField(int len, char *str, int fmask,
  */
 static int
 DecodeNumber(int flen, char *str, int fmask,
-			 int *tmask, struct tm *tm, fsec_t * fsec, int *is2digits, bool EuroDates)
+			 int *tmask, struct tm *tm, fsec_t *fsec, bool *is2digits, bool EuroDates)
 {
 	int			val;
 	char	   *cp;
@@ -2033,8 +1314,8 @@ DecodeDate(char *str, int fmask, int *tmask, struct tm *tm, bool EuroDates)
 	int			nf = 0;
 	int			i,
 				len;
-	int			bc = FALSE;
-	int			is2digits = FALSE;
+	bool		bc = false;
+	bool		is2digits = false;
 	int			type,
 				val,
 				dmask = 0;
@@ -2155,7 +1436,7 @@ DecodeDate(char *str, int fmask, int *tmask, struct tm *tm, bool EuroDates)
  *	can be used to represent time spans.
  */
 int
-DecodeTime(char *str, int *tmask, struct tm *tm, fsec_t * fsec)
+DecodeTime(char *str, int *tmask, struct tm *tm, fsec_t *fsec)
 {
 	char	   *cp;
 
@@ -2502,7 +1783,7 @@ ParseDateTime(char *timestr, char *lowstr,
  */
 int
 DecodeDateTime(char **field, int *ftype, int nf,
-			   int *dtype, struct tm *tm, fsec_t * fsec, bool EuroDates)
+			   int *dtype, struct tm *tm, fsec_t *fsec, bool EuroDates)
 {
 	int			fmask = 0,
 				tmask,
@@ -2511,9 +1792,9 @@ DecodeDateTime(char **field, int *ftype, int nf,
 	int			i;
 	int			val;
 	int			mer = HR24;
-	int			haveTextMonth = FALSE;
-	int			is2digits = FALSE;
-	int			bc = FALSE;
+	bool		haveTextMonth = false;
+	bool		is2digits = false;
+	bool		bc = false;
 	int			t = 0;
 	int		   *tzp = &t;
 
@@ -2919,7 +2200,7 @@ DecodeDateTime(char **field, int *ftype, int nf,
 							tm->tm_mday = tm->tm_mon;
 							tmask = DTK_M(DAY);
 						}
-						haveTextMonth = TRUE;
+						haveTextMonth = true;
 						tm->tm_mon = val;
 						break;
 

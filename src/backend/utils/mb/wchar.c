@@ -37,7 +37,7 @@
  * SQL/ASCII
  */
 static int
-pg_ascii2wchar_with_len(const unsigned char *from, pg_wchar * to, int len)
+pg_ascii2wchar_with_len(const unsigned char *from, pg_wchar *to, int len)
 {
 	int			cnt = 0;
 
@@ -72,7 +72,7 @@ pg_ascii_dsplen(const unsigned char *s)
  * EUC
  */
 static int
-pg_euc2wchar_with_len(const unsigned char *from, pg_wchar * to, int len)
+pg_euc2wchar_with_len(const unsigned char *from, pg_wchar *to, int len)
 {
 	int			cnt = 0;
 
@@ -146,7 +146,7 @@ pg_euc_dsplen(const unsigned char *s)
  * EUC_JP
  */
 static int
-pg_eucjp2wchar_with_len(const unsigned char *from, pg_wchar * to, int len)
+pg_eucjp2wchar_with_len(const unsigned char *from, pg_wchar *to, int len)
 {
 	return pg_euc2wchar_with_len(from, to, len);
 }
@@ -177,7 +177,7 @@ pg_eucjp_dsplen(const unsigned char *s)
  * EUC_KR
  */
 static int
-pg_euckr2wchar_with_len(const unsigned char *from, pg_wchar * to, int len)
+pg_euckr2wchar_with_len(const unsigned char *from, pg_wchar *to, int len)
 {
 	return pg_euc2wchar_with_len(from, to, len);
 }
@@ -199,7 +199,7 @@ pg_euckr_dsplen(const unsigned char *s)
  *
  */
 static int
-pg_euccn2wchar_with_len(const unsigned char *from, pg_wchar * to, int len)
+pg_euccn2wchar_with_len(const unsigned char *from, pg_wchar *to, int len)
 {
 	int			cnt = 0;
 
@@ -266,7 +266,7 @@ pg_euccn_dsplen(const unsigned char *s)
  *
  */
 static int
-pg_euctw2wchar_with_len(const unsigned char *from, pg_wchar * to, int len)
+pg_euctw2wchar_with_len(const unsigned char *from, pg_wchar *to, int len)
 {
 	int			cnt = 0;
 
@@ -344,7 +344,7 @@ pg_euctw_dsplen(const unsigned char *s)
  * "from" not necessarily null terminated.
  */
 static int
-pg_wchar2euc_with_len(const pg_wchar * from, unsigned char *to, int len)
+pg_wchar2euc_with_len(const pg_wchar *from, unsigned char *to, int len)
 {
 	int			cnt = 0;
 
@@ -408,7 +408,7 @@ pg_johab_dsplen(const unsigned char *s)
  * "from" not necessarily null terminated.
  */
 static int
-pg_utf2wchar_with_len(const unsigned char *from, pg_wchar * to, int len)
+pg_utf2wchar_with_len(const unsigned char *from, pg_wchar *to, int len)
 {
 	int			cnt = 0;
 	uint32		c1,
@@ -507,7 +507,7 @@ unicode_to_utf8(pg_wchar c, unsigned char *utf8string)
  * "from" not necessarily null terminated.
  */
 static int
-pg_wchar2utf_with_len(const pg_wchar * from, unsigned char *to, int len)
+pg_wchar2utf_with_len(const pg_wchar *from, unsigned char *to, int len)
 {
 	int			cnt = 0;
 
@@ -745,7 +745,7 @@ pg_utf_dsplen(const unsigned char *s)
  * "from" not necessarily null terminated.
  */
 static int
-pg_mule2wchar_with_len(const unsigned char *from, pg_wchar * to, int len)
+pg_mule2wchar_with_len(const unsigned char *from, pg_wchar *to, int len)
 {
 	int			cnt = 0;
 
@@ -798,7 +798,7 @@ pg_mule2wchar_with_len(const unsigned char *from, pg_wchar * to, int len)
  * "from" not necessarily null terminated.
  */
 static int
-pg_wchar2mule_with_len(const pg_wchar * from, unsigned char *to, int len)
+pg_wchar2mule_with_len(const pg_wchar *from, unsigned char *to, int len)
 {
 	int			cnt = 0;
 
@@ -909,7 +909,7 @@ pg_mule_dsplen(const unsigned char *s)
  * ISO8859-1
  */
 static int
-pg_latin12wchar_with_len(const unsigned char *from, pg_wchar * to, int len)
+pg_latin12wchar_with_len(const unsigned char *from, pg_wchar *to, int len)
 {
 	int			cnt = 0;
 
@@ -931,7 +931,7 @@ pg_latin12wchar_with_len(const unsigned char *from, pg_wchar * to, int len)
  * "from" not necessarily null terminated.
  */
 static int
-pg_wchar2single_with_len(const pg_wchar * from, unsigned char *to, int len)
+pg_wchar2single_with_len(const pg_wchar *from, unsigned char *to, int len)
 {
 	int			cnt = 0;
 
@@ -1726,7 +1726,7 @@ pg_eucjp_increment(unsigned char *charptr, int length)
  * XXX must be sorted by the same order as enum pg_enc (in mb/pg_wchar.h)
  *-------------------------------------------------------------------
  */
-const		pg_wchar_tbl pg_wchar_table[] = {
+const pg_wchar_tbl pg_wchar_table[] = {
 	{pg_ascii2wchar_with_len, pg_wchar2single_with_len, pg_ascii_mblen, pg_ascii_dsplen, pg_ascii_verifier, 1}, /* PG_SQL_ASCII */
 	{pg_eucjp2wchar_with_len, pg_wchar2euc_with_len, pg_eucjp_mblen, pg_eucjp_dsplen, pg_eucjp_verifier, 3},	/* PG_EUC_JP */
 	{pg_euccn2wchar_with_len, pg_wchar2euc_with_len, pg_euccn_mblen, pg_euccn_dsplen, pg_euccn_verifier, 2},	/* PG_EUC_CN */
@@ -1785,8 +1785,8 @@ int
 pg_encoding_mblen(int encoding, const char *mbstr)
 {
 	return (PG_VALID_ENCODING(encoding) ?
-			((*pg_wchar_table[encoding].mblen) ((const unsigned char *) mbstr)) :
-			((*pg_wchar_table[PG_SQL_ASCII].mblen) ((const unsigned char *) mbstr)));
+			pg_wchar_table[encoding].mblen((const unsigned char *) mbstr) :
+			pg_wchar_table[PG_SQL_ASCII].mblen((const unsigned char *) mbstr));
 }
 
 /*
@@ -1796,8 +1796,8 @@ int
 pg_encoding_dsplen(int encoding, const char *mbstr)
 {
 	return (PG_VALID_ENCODING(encoding) ?
-			((*pg_wchar_table[encoding].dsplen) ((const unsigned char *) mbstr)) :
-			((*pg_wchar_table[PG_SQL_ASCII].dsplen) ((const unsigned char *) mbstr)));
+			pg_wchar_table[encoding].dsplen((const unsigned char *) mbstr) :
+			pg_wchar_table[PG_SQL_ASCII].dsplen((const unsigned char *) mbstr));
 }
 
 /*
@@ -1809,8 +1809,8 @@ int
 pg_encoding_verifymb(int encoding, const char *mbstr, int len)
 {
 	return (PG_VALID_ENCODING(encoding) ?
-			((*pg_wchar_table[encoding].mbverify) ((const unsigned char *) mbstr, len)) :
-			((*pg_wchar_table[PG_SQL_ASCII].mbverify) ((const unsigned char *) mbstr, len)));
+			pg_wchar_table[encoding].mbverify((const unsigned char *) mbstr, len) :
+			pg_wchar_table[PG_SQL_ASCII].mbverify((const unsigned char *) mbstr, len));
 }
 
 /*

@@ -5,7 +5,7 @@
  *	  wherein you authenticate a user by seeing what IP address the system
  *	  says he comes from and choosing authentication method based on it).
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -62,7 +62,7 @@ typedef struct check_network_data
 	IPCompareMethod method;		/* test method */
 	SockAddr   *raddr;			/* client's actual address */
 	bool		result;			/* set to true if match */
-}			check_network_data;
+} check_network_data;
 
 
 #define token_is_keyword(t, k)	(!t->quoted && strcmp(t->string, k) == 0)
@@ -76,7 +76,7 @@ typedef struct HbaToken
 {
 	char	   *string;
 	bool		quoted;
-}			HbaToken;
+} HbaToken;
 
 /*
  * TokenizedLine represents one line lexed from a config file.
@@ -92,13 +92,13 @@ typedef struct TokenizedLine
 	int			line_num;		/* Line number */
 	char	   *raw_line;		/* Raw line text */
 	char	   *err_msg;		/* Error message if any */
-}			TokenizedLine;
+} TokenizedLine;
 
 /*
  * pre-parsed content of HBA config file: list of HbaLine structs.
  * parsed_hba_context is the memory context where it lives.
  */
-static List * parsed_hba_lines = NIL;
+static List *parsed_hba_lines = NIL;
 static MemoryContext parsed_hba_context = NULL;
 
 /*
@@ -109,7 +109,7 @@ static MemoryContext parsed_hba_context = NULL;
  * that live outside the memory context. Before destroying or resetting the
  * memory context, they need to be explicitly free'd.
  */
-static List * parsed_ident_lines = NIL;
+static List *parsed_ident_lines = NIL;
 static MemoryContext parsed_ident_context = NULL;
 
 /*
@@ -138,18 +138,18 @@ static const char *const UserAuthName[] =
 };
 
 
-static MemoryContext tokenize_file(const char *filename, FILE * file,
-								   List * *tok_lines, int elevel);
-static List * tokenize_inc_file(List * tokens, const char *outer_filename,
-								const char *inc_filename, int elevel, char **err_msg);
-static bool parse_hba_auth_opt(char *name, char *val, HbaLine * hbaline,
+static MemoryContext tokenize_file(const char *filename, FILE *file,
+			  List **tok_lines, int elevel);
+static List *tokenize_inc_file(List *tokens, const char *outer_filename,
+				  const char *inc_filename, int elevel, char **err_msg);
+static bool parse_hba_auth_opt(char *name, char *val, HbaLine *hbaline,
 				   int elevel, char **err_msg);
-static bool verify_option_list_length(List * options, char *optionname,
-						  List * masters, char *mastername, int line_num);
-static ArrayType * gethba_options(HbaLine * hba);
-static void fill_hba_line(Tuplestorestate * tuple_store, TupleDesc tupdesc,
-			  int lineno, HbaLine * hba, const char *err_msg);
-static void fill_hba_view(Tuplestorestate * tuple_store, TupleDesc tupdesc);
+static bool verify_option_list_length(List *options, const char *optionname,
+						  List *masters, const char *mastername, int line_num);
+static ArrayType *gethba_options(HbaLine *hba);
+static void fill_hba_line(Tuplestorestate *tuple_store, TupleDesc tupdesc,
+			  int lineno, HbaLine *hba, const char *err_msg);
+static void fill_hba_view(Tuplestorestate *tuple_store, TupleDesc tupdesc);
 
 
 /*
@@ -187,9 +187,9 @@ pg_isblank(const char c)
  * set *err_msg to a string describing the error.  Currently the only
  * possible error is token too long for buf.
  *
- * If successful: store null-terminated token at *buf and return TRUE.
- * If no more tokens on line: set *buf = '\0' and return FALSE.
- * If error: fill buf with truncated or misformatted token and return FALSE.
+ * If successful: store null-terminated token at *buf and return true.
+ * If no more tokens on line: set *buf = '\0' and return false.
+ * If error: fill buf with truncated or misformatted token and return false.
  */
 static bool
 next_token(char **lineptr, char *buf, int bufsz,
@@ -304,7 +304,7 @@ make_hba_token(const char *token, bool quoted)
  * Copy a HbaToken struct into freshly palloc'd memory.
  */
 static HbaToken *
-copy_hba_token(HbaToken * in)
+copy_hba_token(HbaToken *in)
 {
 	HbaToken   *out = make_hba_token(in->string, in->quoted);
 
@@ -369,7 +369,7 @@ next_field_expand(const char *filename, char **lineptr,
  * there was an error.
  */
 static List *
-tokenize_inc_file(List * tokens,
+tokenize_inc_file(List *tokens,
 				  const char *outer_filename,
 				  const char *inc_filename,
 				  int elevel,
@@ -467,7 +467,7 @@ tokenize_inc_file(List * tokens,
  * this function (it's a child of caller's context).
  */
 static MemoryContext
-tokenize_file(const char *filename, FILE * file, List * *tok_lines, int elevel)
+tokenize_file(const char *filename, FILE *file, List **tok_lines, int elevel)
 {
 	int			line_number = 1;
 	MemoryContext linecxt;
@@ -583,7 +583,7 @@ is_member(Oid userid, const char *role)
  * Check HbaToken list for a match to role, allowing group names.
  */
 static bool
-check_role(const char *role, Oid roleid, List * tokens)
+check_role(const char *role, Oid roleid, List *tokens)
 {
 	ListCell   *cell;
 	HbaToken   *tok;
@@ -607,7 +607,7 @@ check_role(const char *role, Oid roleid, List * tokens)
  * Check to see if db/role combination matches HbaToken list.
  */
 static bool
-check_db(const char *dbname, const char *role, Oid roleid, List * tokens)
+check_db(const char *dbname, const char *role, Oid roleid, List *tokens)
 {
 	ListCell   *cell;
 	HbaToken   *tok;
@@ -690,7 +690,7 @@ hostname_match(const char *pattern, const char *actual_hostname)
  * Check to see if a connecting IP matches a given host name.
  */
 static bool
-check_hostname(hbaPort * port, const char *hostname)
+check_hostname(hbaPort *port, const char *hostname)
 {
 	struct addrinfo *gai_result,
 			   *gai;
@@ -783,7 +783,7 @@ check_hostname(hbaPort * port, const char *hostname)
  * Check to see if a connecting IP matches the given address and netmask.
  */
 static bool
-check_ip(SockAddr * raddr, struct sockaddr *addr, struct sockaddr *mask)
+check_ip(SockAddr *raddr, struct sockaddr *addr, struct sockaddr *mask)
 {
 	if (raddr->addr.ss_family == addr->sa_family &&
 		pg_range_sockaddr(&raddr->addr,
@@ -824,7 +824,7 @@ check_network_callback(struct sockaddr *addr, struct sockaddr *netmask,
  * Use pg_foreach_ifaddr to check a samehost or samenet match
  */
 static bool
-check_same_host_or_net(SockAddr * raddr, IPCompareMethod method)
+check_same_host_or_net(SockAddr *raddr, IPCompareMethod method)
 {
 	check_network_data cn;
 
@@ -942,7 +942,7 @@ do { \
  * NULL.
  */
 static HbaLine *
-parse_hba_line(TokenizedLine * tok_line, int elevel)
+parse_hba_line(TokenizedLine *tok_line, int elevel)
 {
 	int			line_num = tok_line->line_num;
 	char	  **err_msg = &tok_line->err_msg;
@@ -1505,22 +1505,24 @@ parse_hba_line(TokenizedLine * tok_line, int elevel)
 		/*
 		 * LDAP can operate in two modes: either with a direct bind, using
 		 * ldapprefix and ldapsuffix, or using a search+bind, using
-		 * ldapbasedn, ldapbinddn, ldapbindpasswd and ldapsearchattribute.
-		 * Disallow mixing these parameters.
+		 * ldapbasedn, ldapbinddn, ldapbindpasswd and one of
+		 * ldapsearchattribute or ldapsearchfilter.  Disallow mixing these
+		 * parameters.
 		 */
 		if (parsedline->ldapprefix || parsedline->ldapsuffix)
 		{
 			if (parsedline->ldapbasedn ||
 				parsedline->ldapbinddn ||
 				parsedline->ldapbindpasswd ||
-				parsedline->ldapsearchattribute)
+				parsedline->ldapsearchattribute ||
+				parsedline->ldapsearchfilter)
 			{
 				ereport(elevel,
 						(errcode(ERRCODE_CONFIG_FILE_ERROR),
-						 errmsg("cannot use ldapbasedn, ldapbinddn, ldapbindpasswd, ldapsearchattribute, or ldapurl together with ldapprefix"),
+						 errmsg("cannot use ldapbasedn, ldapbinddn, ldapbindpasswd, ldapsearchattribute, ldapsearchfilter, or ldapurl together with ldapprefix"),
 						 errcontext("line %d of configuration file \"%s\"",
 									line_num, HbaFileName)));
-				*err_msg = "cannot use ldapbasedn, ldapbinddn, ldapbindpasswd, ldapsearchattribute, or ldapurl together with ldapprefix";
+				*err_msg = "cannot use ldapbasedn, ldapbinddn, ldapbindpasswd, ldapsearchattribute, ldapsearchfilter, or ldapurl together with ldapprefix";
 				return NULL;
 			}
 		}
@@ -1532,6 +1534,22 @@ parse_hba_line(TokenizedLine * tok_line, int elevel)
 					 errcontext("line %d of configuration file \"%s\"",
 								line_num, HbaFileName)));
 			*err_msg = "authentication method \"ldap\" requires argument \"ldapbasedn\", \"ldapprefix\", or \"ldapsuffix\" to be set";
+			return NULL;
+		}
+
+		/*
+		 * When using search+bind, you can either use a simple attribute
+		 * (defaulting to "uid") or a fully custom search filter.  You can't
+		 * do both.
+		 */
+		if (parsedline->ldapsearchattribute && parsedline->ldapsearchfilter)
+		{
+			ereport(elevel,
+					(errcode(ERRCODE_CONFIG_FILE_ERROR),
+					 errmsg("cannot use ldapsearchattribute together with ldapsearchfilter"),
+					 errcontext("line %d of configuration file \"%s\"",
+								line_num, HbaFileName)));
+			*err_msg = "cannot use ldapsearchattribute together with ldapsearchfilter";
 			return NULL;
 		}
 	}
@@ -1599,7 +1617,7 @@ parse_hba_line(TokenizedLine * tok_line, int elevel)
 
 
 static bool
-verify_option_list_length(List * options, char *optionname, List * masters, char *mastername, int line_num)
+verify_option_list_length(List *options, const char *optionname, List *masters, const char *mastername, int line_num)
 {
 	if (list_length(options) == 0 ||
 		list_length(options) == 1 ||
@@ -1626,7 +1644,7 @@ verify_option_list_length(List * options, char *optionname, List * masters, char
  * ereport level elevel, and store a message string into *err_msg.
  */
 static bool
-parse_hba_auth_opt(char *name, char *val, HbaLine * hbaline,
+parse_hba_auth_opt(char *name, char *val, HbaLine *hbaline,
 				   int elevel, char **err_msg)
 {
 	int			line_num = hbaline->linenumber;
@@ -1710,7 +1728,8 @@ parse_hba_auth_opt(char *name, char *val, HbaLine * hbaline,
 			return false;
 		}
 
-		if (strcmp(urldata->lud_scheme, "ldap") != 0)
+		if (strcmp(urldata->lud_scheme, "ldap") != 0 &&
+			strcmp(urldata->lud_scheme, "ldaps") != 0)
 		{
 			ereport(elevel,
 					(errcode(ERRCODE_CONFIG_FILE_ERROR),
@@ -1721,6 +1740,8 @@ parse_hba_auth_opt(char *name, char *val, HbaLine * hbaline,
 			return false;
 		}
 
+		if (urldata->lud_scheme)
+			hbaline->ldapscheme = pstrdup(urldata->lud_scheme);
 		if (urldata->lud_host)
 			hbaline->ldapserver = pstrdup(urldata->lud_host);
 		hbaline->ldapport = urldata->lud_port;
@@ -1731,14 +1752,7 @@ parse_hba_auth_opt(char *name, char *val, HbaLine * hbaline,
 			hbaline->ldapsearchattribute = pstrdup(urldata->lud_attrs[0]);	/* only use first one */
 		hbaline->ldapscope = urldata->lud_scope;
 		if (urldata->lud_filter)
-		{
-			ereport(elevel,
-					(errcode(ERRCODE_CONFIG_FILE_ERROR),
-					 errmsg("filters not supported in LDAP URLs")));
-			*err_msg = "filters not supported in LDAP URLs";
-			ldap_free_urldesc(urldata);
-			return false;
-		}
+			hbaline->ldapsearchfilter = pstrdup(urldata->lud_filter);
 		ldap_free_urldesc(urldata);
 #else							/* not OpenLDAP */
 		ereport(elevel,
@@ -1754,6 +1768,17 @@ parse_hba_auth_opt(char *name, char *val, HbaLine * hbaline,
 			hbaline->ldaptls = true;
 		else
 			hbaline->ldaptls = false;
+	}
+	else if (strcmp(name, "ldapscheme") == 0)
+	{
+		REQUIRE_AUTH_OPTION(uaLDAP, "ldapscheme", "ldap");
+		if (strcmp(val, "ldap") != 0 && strcmp(val, "ldaps") != 0)
+			ereport(elevel,
+					(errcode(ERRCODE_CONFIG_FILE_ERROR),
+					 errmsg("invalid ldapscheme value: \"%s\"", val),
+					 errcontext("line %d of configuration file \"%s\"",
+								line_num, HbaFileName)));
+		hbaline->ldapscheme = pstrdup(val);
 	}
 	else if (strcmp(name, "ldapserver") == 0)
 	{
@@ -1789,6 +1814,11 @@ parse_hba_auth_opt(char *name, char *val, HbaLine * hbaline,
 	{
 		REQUIRE_AUTH_OPTION(uaLDAP, "ldapsearchattribute", "ldap");
 		hbaline->ldapsearchattribute = pstrdup(val);
+	}
+	else if (strcmp(name, "ldapsearchfilter") == 0)
+	{
+		REQUIRE_AUTH_OPTION(uaLDAP, "ldapsearchfilter", "ldap");
+		hbaline->ldapsearchfilter = pstrdup(val);
 	}
 	else if (strcmp(name, "ldapbasedn") == 0)
 	{
@@ -1992,7 +2022,7 @@ parse_hba_auth_opt(char *name, char *val, HbaLine * hbaline,
  *	request.
  */
 static void
-check_hba(hbaPort * port)
+check_hba(hbaPort *port)
 {
 	Oid			roleid;
 	ListCell   *line;
@@ -2188,17 +2218,19 @@ load_hba(void)
 /*
  * This macro specifies the maximum number of authentication options
  * that are possible with any given authentication method that is supported.
- * Currently LDAP supports 10, so the macro value is well above the most any
- * method needs.
+ * Currently LDAP supports 11, and there are 3 that are not dependent on
+ * the auth method here.  It may not actually be possible to set all of them
+ * at the same time, but we'll set the macro value high enough to be
+ * conservative and avoid warnings from static analysis tools.
  */
-#define MAX_HBA_OPTIONS 12
+#define MAX_HBA_OPTIONS 14
 
 /*
  * Create a text array listing the options specified in the HBA line.
  * Return NULL if no options are specified.
  */
 static ArrayType *
-gethba_options(HbaLine * hba)
+gethba_options(HbaLine *hba)
 {
 	int			noptions;
 	Datum		options[MAX_HBA_OPTIONS];
@@ -2268,6 +2300,11 @@ gethba_options(HbaLine * hba)
 				CStringGetTextDatum(psprintf("ldapsearchattribute=%s",
 											 hba->ldapsearchattribute));
 
+		if (hba->ldapsearchfilter)
+			options[noptions++] =
+				CStringGetTextDatum(psprintf("ldapsearchfilter=%s",
+											 hba->ldapsearchfilter));
+
 		if (hba->ldapscope)
 			options[noptions++] =
 				CStringGetTextDatum(psprintf("ldapscope=%d", hba->ldapscope));
@@ -2292,6 +2329,7 @@ gethba_options(HbaLine * hba)
 				CStringGetTextDatum(psprintf("radiusports=%s", hba->radiusports_s));
 	}
 
+	/* If you add more options, consider increasing MAX_HBA_OPTIONS. */
 	Assert(noptions <= MAX_HBA_OPTIONS);
 
 	if (noptions > 0)
@@ -2316,8 +2354,8 @@ gethba_options(HbaLine * hba)
  * memory context.
  */
 static void
-fill_hba_line(Tuplestorestate * tuple_store, TupleDesc tupdesc,
-			  int lineno, HbaLine * hba, const char *err_msg)
+fill_hba_line(Tuplestorestate *tuple_store, TupleDesc tupdesc,
+			  int lineno, HbaLine *hba, const char *err_msg)
 {
 	Datum		values[NUM_PG_HBA_FILE_RULES_ATTS];
 	bool		nulls[NUM_PG_HBA_FILE_RULES_ATTS];
@@ -2490,7 +2528,7 @@ fill_hba_line(Tuplestorestate * tuple_store, TupleDesc tupdesc,
  * Read the pg_hba.conf file and fill the tuplestore with view records.
  */
 static void
-fill_hba_view(Tuplestorestate * tuple_store, TupleDesc tupdesc)
+fill_hba_view(Tuplestorestate *tuple_store, TupleDesc tupdesc)
 {
 	FILE	   *file;
 	List	   *hba_lines = NIL;
@@ -2607,7 +2645,7 @@ pg_hba_file_rules(PG_FUNCTION_ARGS)
  * NULL.
  */
 static IdentLine *
-parse_ident_line(TokenizedLine * tok_line)
+parse_ident_line(TokenizedLine *tok_line)
 {
 	int			line_num = tok_line->line_num;
 	ListCell   *field;
@@ -2684,7 +2722,7 @@ parse_ident_line(TokenizedLine * tok_line)
  *	*found_p and *error_p are set according to our results.
  */
 static void
-check_ident_usermap(IdentLine * identLine, const char *usermap_name,
+check_ident_usermap(IdentLine *identLine, const char *usermap_name,
 					const char *pg_role, const char *ident_user,
 					bool case_insensitive, bool *found_p, bool *error_p)
 {
@@ -2986,7 +3024,7 @@ load_ident(void)
  *	method = uaImplicitReject.
  */
 void
-hba_getauthmethod(hbaPort * port)
+hba_getauthmethod(hbaPort *port)
 {
 	check_hba(port);
 }

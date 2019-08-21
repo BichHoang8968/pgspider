@@ -3,7 +3,7 @@
  *
  *	server-side function support
  *
- *	Copyright (c) 2010-2017, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2018, PostgreSQL Global Development Group
  *	src/bin/pg_upgrade/function.c
  */
 
@@ -12,7 +12,7 @@
 #include "pg_upgrade.h"
 
 #include "access/transam.h"
-#include "catalog/pg_language.h"
+#include "catalog/pg_language_d.h"
 
 
 /*
@@ -53,7 +53,7 @@ get_loadable_libraries(void)
 	int			dbnum;
 	bool		found_public_plpython_handler = false;
 
-	ress = (PGresult * *) pg_malloc(old_cluster.dbarr.ndbs * sizeof(PGresult *));
+	ress = (PGresult **) pg_malloc(old_cluster.dbarr.ndbs * sizeof(PGresult *));
 	totaltups = 0;
 
 	/* Fetch all library names, removing duplicates within each DB */

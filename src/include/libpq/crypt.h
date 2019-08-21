@@ -3,7 +3,7 @@
  * crypt.h
  *	  Interface to libpq/crypt.c
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/libpq/crypt.h
@@ -29,7 +29,7 @@ typedef enum PasswordType
 	PASSWORD_TYPE_PLAINTEXT = 0,
 	PASSWORD_TYPE_MD5,
 	PASSWORD_TYPE_SCRAM_SHA_256
-}			PasswordType;
+} PasswordType;
 
 extern PasswordType get_password_type(const char *shadow_pass);
 extern char *encrypt_password(PasswordType target_type, const char *role,

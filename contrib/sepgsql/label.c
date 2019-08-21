@@ -4,21 +4,13 @@
  *
  * Routines to support SELinux labels (security context)
  *
- * Copyright (c) 2010-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2010-2018, PostgreSQL Global Development Group
  *
  * -------------------------------------------------------------------------
  */
 #include "postgres.h"
 
 #include <selinux/label.h>
-
-/*
- * <selinux/label.h> includes <stdbool.h>, which creates an incompatible
- * #define for bool.  Get rid of that so we can use our own typedef.
- * (We don't care if <stdbool.h> redefines "true"/"false"; those are close
- * enough.)
- */
-#undef bool
 
 #include "access/heapam.h"
 #include "access/htup_details.h"
@@ -68,7 +60,7 @@ static fmgr_hook_type next_fmgr_hook = NULL;
  * labels were set during the (sub-)transactions.
  */
 static char *client_label_peer = NULL;	/* set by getpeercon(3) */
-static List * client_label_pending = NIL;	/* pending list being set by
+static List *client_label_pending = NIL;	/* pending list being set by
 											 * sepgsql_setcon() */
 static char *client_label_committed = NULL; /* set by sepgsql_setcon(), and
 											 * already committed */
@@ -245,7 +237,7 @@ sepgsql_subxact_callback(SubXactEvent event, SubTransactionId mySubid,
  * performing mode according to the GUC setting.
  */
 static void
-sepgsql_client_auth(Port * port, int status)
+sepgsql_client_auth(Port *port, int status)
 {
 	if (next_client_auth_hook)
 		(*next_client_auth_hook) (port, status);
@@ -327,7 +319,7 @@ sepgsql_needs_fmgr_hook(Oid functionId)
  */
 static void
 sepgsql_fmgr_hook(FmgrHookEventType event,
-				  FmgrInfo * flinfo, Datum * private)
+				  FmgrInfo *flinfo, Datum *private)
 {
 	struct
 	{
@@ -500,7 +492,7 @@ sepgsql_get_label(Oid classId, Oid objectId, int32 subId)
  * An entrypoint of SECURITY LABEL statement
  */
 void
-sepgsql_object_relabel(const ObjectAddress * object, const char *seclabel)
+sepgsql_object_relabel(const ObjectAddress *object, const char *seclabel)
 {
 	/*
 	 * validate format of the supplied security label, if it is security

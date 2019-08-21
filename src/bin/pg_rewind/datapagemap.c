@@ -5,7 +5,7 @@
  *
  * This is a fairly simple bitmap.
  *
- * Copyright (c) 2013-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2013-2018, PostgreSQL Global Development Group
  *
  *-------------------------------------------------------------------------
  */
@@ -29,7 +29,7 @@ struct datapagemap_iterator
  * Add a block to the bitmap.
  */
 void
-datapagemap_add(datapagemap_t * map, BlockNumber blkno)
+datapagemap_add(datapagemap_t *map, BlockNumber blkno)
 {
 	int			offset;
 	int			bitno;
@@ -72,7 +72,7 @@ datapagemap_add(datapagemap_t * map, BlockNumber blkno)
  * iterator.
  */
 datapagemap_iterator_t *
-datapagemap_iterate(datapagemap_t * map)
+datapagemap_iterate(datapagemap_t *map)
 {
 	datapagemap_iterator_t *iter;
 
@@ -84,7 +84,7 @@ datapagemap_iterate(datapagemap_t * map)
 }
 
 bool
-datapagemap_next(datapagemap_iterator_t * iter, BlockNumber * blkno)
+datapagemap_next(datapagemap_iterator_t *iter, BlockNumber *blkno)
 {
 	datapagemap_t *map = iter->map;
 
@@ -114,7 +114,7 @@ datapagemap_next(datapagemap_iterator_t * iter, BlockNumber * blkno)
  * A debugging aid. Prints out the contents of the page map.
  */
 void
-datapagemap_print(datapagemap_t * map)
+datapagemap_print(datapagemap_t *map)
 {
 	datapagemap_iterator_t *iter;
 	BlockNumber blocknum;

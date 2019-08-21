@@ -2,7 +2,7 @@
  * brin_xlog.c
  *		XLog replay routines for BRIN indexes
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -21,7 +21,7 @@
  * xlog replay routines
  */
 static void
-brin_xlog_createidx(XLogReaderState * record)
+brin_xlog_createidx(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_brin_createidx *xlrec = (xl_brin_createidx *) XLogRecGetData(record);
@@ -43,8 +43,8 @@ brin_xlog_createidx(XLogReaderState * record)
  * revmap.
  */
 static void
-brin_xlog_insert_update(XLogReaderState * record,
-						xl_brin_insert * xlrec)
+brin_xlog_insert_update(XLogReaderState *record,
+						xl_brin_insert *xlrec)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	Buffer		buffer;
@@ -121,7 +121,7 @@ brin_xlog_insert_update(XLogReaderState * record,
  * replay a BRIN index insertion
  */
 static void
-brin_xlog_insert(XLogReaderState * record)
+brin_xlog_insert(XLogReaderState *record)
 {
 	xl_brin_insert *xlrec = (xl_brin_insert *) XLogRecGetData(record);
 
@@ -132,7 +132,7 @@ brin_xlog_insert(XLogReaderState * record)
  * replay a BRIN index update
  */
 static void
-brin_xlog_update(XLogReaderState * record)
+brin_xlog_update(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_brin_update *xlrec = (xl_brin_update *) XLogRecGetData(record);
@@ -167,7 +167,7 @@ brin_xlog_update(XLogReaderState * record)
  * Update a tuple on a single page.
  */
 static void
-brin_xlog_samepage_update(XLogReaderState * record)
+brin_xlog_samepage_update(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_brin_samepage_update *xlrec;
@@ -205,7 +205,7 @@ brin_xlog_samepage_update(XLogReaderState * record)
  * Replay a revmap page extension
  */
 static void
-brin_xlog_revmap_extend(XLogReaderState * record)
+brin_xlog_revmap_extend(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_brin_revmap_extend *xlrec;
@@ -234,6 +234,17 @@ brin_xlog_revmap_extend(XLogReaderState * record)
 		metadata->lastRevmapPage = xlrec->targetBlk;
 
 		PageSetLSN(metapg, lsn);
+
+		/*
+		 * Set pd_lower just past the end of the metadata.  This is essential,
+		 * because without doing so, metadata will be lost if xlog.c
+		 * compresses the page.  (We must do this here because pre-v11
+		 * versions of PG did not set the metapage's pd_lower correctly, so a
+		 * pg_upgraded index might contain the wrong value.)
+		 */
+		((PageHeader) metapg)->pd_lower =
+			((char *) metadata + sizeof(BrinMetaPageData)) - (char *) metapg;
+
 		MarkBufferDirty(metabuf);
 	}
 
@@ -255,7 +266,7 @@ brin_xlog_revmap_extend(XLogReaderState * record)
 }
 
 static void
-brin_xlog_desummarize_page(XLogReaderState * record)
+brin_xlog_desummarize_page(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_brin_desummarize *xlrec;
@@ -295,7 +306,7 @@ brin_xlog_desummarize_page(XLogReaderState * record)
 }
 
 void
-brin_redo(XLogReaderState * record)
+brin_redo(XLogReaderState *record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 
@@ -331,14 +342,20 @@ void
 brin_mask(char *pagedata, BlockNumber blkno)
 {
 	Page		page = (Page) pagedata;
+	PageHeader	pagehdr = (PageHeader) page;
 
 	mask_page_lsn_and_checksum(page);
 
 	mask_page_hint_bits(page);
 
-	if (BRIN_IS_REGULAR_PAGE(page))
+	/*
+	 * Regular brin pages contain unused space which needs to be masked.
+	 * Similarly for meta pages, but mask it only if pd_lower appears to have
+	 * been set correctly.
+	 */
+	if (BRIN_IS_REGULAR_PAGE(page) ||
+		(BRIN_IS_META_PAGE(page) && pagehdr->pd_lower > SizeOfPageHeaderData))
 	{
-		/* Regular brin pages contain unused space which needs to be masked. */
 		mask_unused_space(page);
 	}
 }

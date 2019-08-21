@@ -1,7 +1,7 @@
 /*
  *	pg_upgrade.h
  *
- *	Copyright (c) 2010-2017, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2018, PostgreSQL Global Development Group
  *	src/bin/pg_upgrade/pg_upgrade.h
  */
 
@@ -147,13 +147,13 @@ typedef struct
 	char	   *tablespace;		/* tablespace path; "" for cluster default */
 	bool		nsp_alloc;		/* should nspname be freed? */
 	bool		tblsp_alloc;	/* should tablespace be freed? */
-}			RelInfo;
+} RelInfo;
 
 typedef struct
 {
 	RelInfo    *rels;
 	int			nrels;
-}			RelInfoArr;
+} RelInfoArr;
 
 /*
  * The following structure represents a relation mapping.
@@ -176,7 +176,7 @@ typedef struct
 	/* the rest are used only for logging and error reporting */
 	char	   *nspname;		/* namespaces */
 	char	   *relname;
-}			FileNameMap;
+} FileNameMap;
 
 /*
  * Structure to store database information
@@ -191,13 +191,13 @@ typedef struct
 	char	   *db_ctype;
 	int			db_encoding;
 	RelInfoArr	rel_arr;		/* array of all user relinfos */
-}			DbInfo;
+} DbInfo;
 
 typedef struct
 {
 	DbInfo	   *dbs;			/* array of db infos */
 	int			ndbs;			/* number of db infos */
-}			DbInfoArr;
+} DbInfoArr;
 
 /*
  * The following structure is used to hold pg_control information.
@@ -227,7 +227,7 @@ typedef struct
 	bool		date_is_int;
 	bool		float8_pass_by_value;
 	bool		data_checksum_version;
-}			ControlData;
+} ControlData;
 
 /*
  * Enumeration to denote link modes
@@ -236,7 +236,7 @@ typedef enum
 {
 	TRANSFER_MODE_COPY,
 	TRANSFER_MODE_LINK
-}			transferMode;
+} transferMode;
 
 /*
  * Enumeration to denote pg_log modes
@@ -248,7 +248,7 @@ typedef enum
 	PG_REPORT,
 	PG_WARNING,
 	PG_FATAL
-}			eLogType;
+} eLogType;
 
 
 typedef long pgpid_t;
@@ -275,7 +275,7 @@ typedef struct
 	char		major_version_str[64];	/* string PG_VERSION of cluster */
 	uint32		bin_version;	/* version returned from pg_ctl */
 	const char *tablespace_suffix;	/* directory specification */
-}			ClusterInfo;
+} ClusterInfo;
 
 
 /*
@@ -284,9 +284,9 @@ typedef struct
 typedef struct
 {
 	FILE	   *internal;		/* internal log FILE */
-	bool		verbose;		/* TRUE -> be verbose in messages */
+	bool		verbose;		/* true -> be verbose in messages */
 	bool		retain;			/* retain log files on success */
-}			LogOpts;
+} LogOpts;
 
 
 /*
@@ -294,11 +294,11 @@ typedef struct
 */
 typedef struct
 {
-	bool		check;			/* TRUE -> ask user for permission to make
+	bool		check;			/* true -> ask user for permission to make
 								 * changes */
 	transferMode transfer_mode; /* copy files or link them? */
 	int			jobs;
-}			UserOpts;
+} UserOpts;
 
 
 /*
@@ -315,7 +315,7 @@ typedef struct
 	char	  **libraries;		/* loadable libraries */
 	int			num_libraries;
 	ClusterInfo *running_cluster;
-}			OSInfo;
+} OSInfo;
 
 
 /*
@@ -324,7 +324,7 @@ typedef struct
 extern LogOpts log_opts;
 extern UserOpts user_opts;
 extern ClusterInfo old_cluster,
-new_cluster;
+			new_cluster;
 extern OSInfo os_info;
 
 
@@ -345,8 +345,8 @@ void		create_script_for_cluster_analyze(char **analyze_script_file_name);
 
 /* controldata.c */
 
-void		get_control_data(ClusterInfo * cluster, bool live_check);
-void		check_control_data(ControlData * oldctrl, ControlData * newctrl);
+void		get_control_data(ClusterInfo *cluster, bool live_check);
+void		check_control_data(ControlData *oldctrl, ControlData *newctrl);
 void		disable_old_cluster(void);
 
 
@@ -385,25 +385,25 @@ void		check_loadable_libraries(void);
 
 /* info.c */
 
-FileNameMap *gen_db_file_maps(DbInfo * old_db,
-				 DbInfo * new_db, int *nmaps, const char *old_pgdata,
+FileNameMap *gen_db_file_maps(DbInfo *old_db,
+				 DbInfo *new_db, int *nmaps, const char *old_pgdata,
 				 const char *new_pgdata);
-void		get_db_and_rel_infos(ClusterInfo * cluster);
-void print_maps(FileNameMap * maps, int n,
+void		get_db_and_rel_infos(ClusterInfo *cluster);
+void print_maps(FileNameMap *maps, int n,
 		   const char *db_name);
 
 /* option.c */
 
 void		parseCommandLine(int argc, char *argv[]);
-void		adjust_data_dir(ClusterInfo * cluster);
-void		get_sock_dir(ClusterInfo * cluster, bool live_check);
+void		adjust_data_dir(ClusterInfo *cluster);
+void		get_sock_dir(ClusterInfo *cluster, bool live_check);
 
 /* relfilenode.c */
 
-void transfer_all_new_tablespaces(DbInfoArr * old_db_arr,
-							 DbInfoArr * new_db_arr, char *old_pgdata, char *new_pgdata);
-void transfer_all_new_dbs(DbInfoArr * old_db_arr,
-					 DbInfoArr * new_db_arr, char *old_pgdata, char *new_pgdata,
+void transfer_all_new_tablespaces(DbInfoArr *old_db_arr,
+							 DbInfoArr *new_db_arr, char *old_pgdata, char *new_pgdata);
+void transfer_all_new_dbs(DbInfoArr *old_db_arr,
+					 DbInfoArr *new_db_arr, char *old_pgdata, char *new_pgdata,
 					 char *old_tablespace);
 
 /* tablespace.c */
@@ -413,14 +413,14 @@ void		init_tablespaces(void);
 
 /* server.c */
 
-PGconn	   *connectToServer(ClusterInfo * cluster, const char *db_name);
-PGresult   *executeQueryOrDie(PGconn * conn, const char *fmt,...) pg_attribute_printf(2, 3);
+PGconn	   *connectToServer(ClusterInfo *cluster, const char *db_name);
+PGresult   *executeQueryOrDie(PGconn *conn, const char *fmt,...) pg_attribute_printf(2, 3);
 
-char	   *cluster_conn_opts(ClusterInfo * cluster);
+char	   *cluster_conn_opts(ClusterInfo *cluster);
 
-bool		start_postmaster(ClusterInfo * cluster, bool report_and_exit_on_error);
+bool		start_postmaster(ClusterInfo *cluster, bool report_and_exit_on_error);
 void		stop_postmaster(bool in_atexit);
-uint32		get_major_server_version(ClusterInfo * cluster);
+uint32		get_major_server_version(ClusterInfo *cluster);
 void		check_pghost_envvar(void);
 
 
@@ -441,17 +441,17 @@ void		pg_putenv(const char *var, const char *val);
 
 /* version.c */
 
-void new_9_0_populate_pg_largeobject_metadata(ClusterInfo * cluster,
+void new_9_0_populate_pg_largeobject_metadata(ClusterInfo *cluster,
 										 bool check_mode);
-void		old_9_3_check_for_line_data_type_usage(ClusterInfo * cluster);
-void		old_9_6_check_for_unknown_data_type_usage(ClusterInfo * cluster);
-void old_9_6_invalidate_hash_indexes(ClusterInfo * cluster,
+void		old_9_3_check_for_line_data_type_usage(ClusterInfo *cluster);
+void		old_9_6_check_for_unknown_data_type_usage(ClusterInfo *cluster);
+void old_9_6_invalidate_hash_indexes(ClusterInfo *cluster,
 								bool check_mode);
 
 /* parallel.c */
 void parallel_exec_prog(const char *log_file, const char *opt_log_file,
 				   const char *fmt,...) pg_attribute_printf(3, 4);
-void parallel_transfer_all_new_dbs(DbInfoArr * old_db_arr, DbInfoArr * new_db_arr,
+void parallel_transfer_all_new_dbs(DbInfoArr *old_db_arr, DbInfoArr *new_db_arr,
 							  char *old_pgdata, char *new_pgdata,
 							  char *old_tablespace);
 bool		reap_child(bool wait_for_child);

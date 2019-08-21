@@ -57,7 +57,7 @@
  * calls in portal and cursor manipulations.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/tcop/dest.h
@@ -97,7 +97,7 @@ typedef enum
 	DestSQLFunction,			/* results sent to SQL-language func mgr */
 	DestTransientRel,			/* results sent to transient relation */
 	DestTupleQueue				/* results sent to tuple queue */
-}			CommandDest;
+} CommandDest;
 
 /* ----------------
  *		DestReceiver is a base type for destination-specific local state.
@@ -115,27 +115,27 @@ typedef struct _DestReceiver DestReceiver;
 struct _DestReceiver
 {
 	/* Called for each tuple to be output: */
-	bool		(*receiveSlot) (TupleTableSlot * slot,
-								DestReceiver * self);
+	bool		(*receiveSlot) (TupleTableSlot *slot,
+								DestReceiver *self);
 	/* Per-executor-run initialization and shutdown: */
-	void		(*rStartup) (DestReceiver * self,
+	void		(*rStartup) (DestReceiver *self,
 							 int operation,
 							 TupleDesc typeinfo);
-	void		(*rShutdown) (DestReceiver * self);
+	void		(*rShutdown) (DestReceiver *self);
 	/* Destroy the receiver object itself (if dynamically allocated) */
-	void		(*rDestroy) (DestReceiver * self);
+	void		(*rDestroy) (DestReceiver *self);
 	/* CommandDest code for this receiver */
 	CommandDest mydest;
 	/* Private fields might appear beyond this point... */
 };
 
-extern PGDLLIMPORT DestReceiver * None_Receiver;	/* permanent receiver for
-													 * DestNone */
+extern PGDLLIMPORT DestReceiver *None_Receiver; /* permanent receiver for
+												 * DestNone */
 
 /* The primary destination management functions */
 
 extern void BeginCommand(const char *commandTag, CommandDest dest);
-extern DestReceiver * CreateDestReceiver(CommandDest dest);
+extern DestReceiver *CreateDestReceiver(CommandDest dest);
 extern void EndCommand(const char *commandTag, CommandDest dest);
 
 /* Additional functions that go with destination management, more or less. */

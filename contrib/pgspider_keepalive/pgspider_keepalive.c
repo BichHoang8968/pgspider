@@ -122,8 +122,8 @@ static void *
 pgspider_check_childnnode(void *arg)
 {
 	/* initialize */
-	bool		latest_isAlive = TRUE;
-	bool		current_isAlive = TRUE;
+	bool		latest_isAlive = true;
+	bool		current_isAlive = true;
 	NODEINFO   *nodeInfo = (NODEINFO *) arg;
 	char		cmd[CMDLEN];
 	int			ret;
@@ -143,9 +143,9 @@ pgspider_check_childnnode(void *arg)
 		/* Check child nodes using ping */
 		ret = system(cmd);
 		if (ret != 0)
-			current_isAlive = FALSE;
+			current_isAlive = false;
 		else
-			current_isAlive = TRUE;
+			current_isAlive = true;
 		/* Update hash if necessary */
 		if (current_isAlive != latest_isAlive)
 		{
@@ -166,7 +166,7 @@ pgspider_check_childnnode(void *arg)
 		{
 			sleep(1);
 			/* Check finishing flag */
-			if (join_flag == TRUE)
+			if (join_flag == true)
 				return 0;
 		}
 	}
@@ -300,7 +300,7 @@ create_child_info(NODEINFO * nodeInfo, pthread_t **threads, int svrnum)
 		strcpy(key.nodeName, nodeInfo[i].tag.nodeName);
 		strcpy(key.ip, nodeInfo[i].tag.ip);
 		entry = hash_search(keepshNodeHash, &key, HASH_ENTER, &found);
-		entry->isAlive = TRUE;
+		entry->isAlive = true;
 	}
 }
 
@@ -350,9 +350,9 @@ check_hashtable_with_nodeinfotable(char *serverName, char *ip, bool *ret)
 	if (found)
 	{
 		*ret = entry->isAlive;
-		return TRUE;
+		return true;
 	}
-	return FALSE;
+	return false;
 }
 
 
@@ -366,7 +366,7 @@ check_server_ipname(char *serverName, char *ip)
 	HASHCTL		info;
 	long		init_table_size,
 				max_table_size;
-	bool		ret = TRUE;
+	bool		ret = true;
 
 	max_table_size = max_child_nodes;
 	init_table_size = max_table_size / 2;
@@ -387,11 +387,11 @@ check_server_ipname(char *serverName, char *ip)
 									   HASH_ELEM | HASH_BLOBS | HASH_PARTITION);
 	}
 	if (ip == NULL)
-		return TRUE;
+		return true;
 	/* check node info table */
 	if (check_hashtable_with_nodeinfotable(serverName, ip, &ret))
 		return ret;
-	return TRUE;
+	return true;
 }
 
 /*
@@ -418,7 +418,7 @@ join_childs(int numThreads, pthread_t *threads)
 {
 	int			i;
 
-	join_flag = TRUE;
+	join_flag = true;
 	for (i = 0; i < numThreads; i++)
 	{
 		pthread_join(threads[i], NULL);
@@ -433,7 +433,8 @@ freenodeInfos(int curSvrNum, char **curFdwName, NODEINFO * curNodeInfo)
 	if(curFdwName != NULL){
 		for (i = 0; i < curSvrNum; i++)
 		{
-			pfree(curFdwName[i]);
+		        if(curFdwName[i] != NULL)
+			        pfree(curFdwName[i]);
 		}
 		if (curFdwName != NULL)
 			pfree(curFdwName);
@@ -516,7 +517,7 @@ worker_pgspider_keepalive(Datum main_arg)
 	BackgroundWorkerUnblockSignals();
 
 	/* Connect to our database */
-	BackgroundWorkerInitializeConnection("postgres", NULL);
+	BackgroundWorkerInitializeConnection("postgres", NULL, 0);
 
 	pthread_mutex_init(&hash_mutex, NULL);
 
@@ -526,7 +527,7 @@ worker_pgspider_keepalive(Datum main_arg)
 
 	while (!got_sigterm)
 	{
-		join_flag = FALSE;
+		join_flag = false;
 
 		CHECK_FOR_INTERRUPTS();
 

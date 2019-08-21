@@ -42,8 +42,8 @@ extern char *base_yytext,
 extern int	base_yydebug;
 #endif
 extern int	base_yylineno;
-extern FILE * base_yyin,
-*base_yyout;
+extern FILE *base_yyin,
+		   *base_yyout;
 extern char *output_filename;
 
 extern struct _include_path *include_paths;
@@ -122,10 +122,12 @@ extern int	filtered_base_yylex(void);
 
 enum COMPAT_MODE
 {
-	ECPG_COMPAT_PGSQL = 0, ECPG_COMPAT_INFORMIX, ECPG_COMPAT_INFORMIX_SE
+	ECPG_COMPAT_PGSQL = 0, ECPG_COMPAT_INFORMIX, ECPG_COMPAT_INFORMIX_SE, ECPG_COMPAT_ORACLE
 };
 extern enum COMPAT_MODE compat;
 
 #define INFORMIX_MODE	(compat == ECPG_COMPAT_INFORMIX || compat == ECPG_COMPAT_INFORMIX_SE)
+#define ORACLE_MODE (compat == ECPG_COMPAT_ORACLE)
+
 
 #endif							/* _ECPG_PREPROC_EXTERN_H */

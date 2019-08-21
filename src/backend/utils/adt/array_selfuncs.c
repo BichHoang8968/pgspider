@@ -3,7 +3,7 @@
  * array_selfuncs.c
  *	  Functions for selectivity estimation of array operators
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -39,28 +39,28 @@
 	((operator) == OID_ARRAY_OVERLAP_OP ? \
 		DEFAULT_OVERLAP_SEL : DEFAULT_CONTAIN_SEL)
 
-static Selectivity calc_arraycontsel(VariableStatData * vardata, Datum constval,
-									 Oid elemtype, Oid operator);
-static Selectivity mcelem_array_selec(ArrayType * array,
-									  TypeCacheEntry * typentry,
-									  Datum * mcelem, int nmcelem,
-									  float4 * numbers, int nnumbers,
-									  float4 * hist, int nhist,
-									  Oid operator, FmgrInfo * cmpfunc);
-static Selectivity mcelem_array_contain_overlap_selec(Datum * mcelem, int nmcelem,
-													  float4 * numbers, int nnumbers,
-													  Datum * array_data, int nitems,
-													  Oid operator, FmgrInfo * cmpfunc);
-static Selectivity mcelem_array_contained_selec(Datum * mcelem, int nmcelem,
-												float4 * numbers, int nnumbers,
-												Datum * array_data, int nitems,
-												float4 * hist, int nhist,
-												Oid operator, FmgrInfo * cmpfunc);
-static float *calc_hist(const float4 * hist, int nhist, int n);
+static Selectivity calc_arraycontsel(VariableStatData *vardata, Datum constval,
+				  Oid elemtype, Oid operator);
+static Selectivity mcelem_array_selec(ArrayType *array,
+				   TypeCacheEntry *typentry,
+				   Datum *mcelem, int nmcelem,
+				   float4 *numbers, int nnumbers,
+				   float4 *hist, int nhist,
+				   Oid operator, FmgrInfo *cmpfunc);
+static Selectivity mcelem_array_contain_overlap_selec(Datum *mcelem, int nmcelem,
+								   float4 *numbers, int nnumbers,
+								   Datum *array_data, int nitems,
+								   Oid operator, FmgrInfo *cmpfunc);
+static Selectivity mcelem_array_contained_selec(Datum *mcelem, int nmcelem,
+							 float4 *numbers, int nnumbers,
+							 Datum *array_data, int nitems,
+							 float4 *hist, int nhist,
+							 Oid operator, FmgrInfo *cmpfunc);
+static float *calc_hist(const float4 *hist, int nhist, int n);
 static float *calc_distr(const float *p, int n, int m, float rest);
 static int	floor_log2(uint32 n);
-static bool find_next_mcelem(Datum * mcelem, int nmcelem, Datum value,
-				 int *index, FmgrInfo * cmpfunc);
+static bool find_next_mcelem(Datum *mcelem, int nmcelem, Datum value,
+				 int *index, FmgrInfo *cmpfunc);
 static int	element_compare(const void *key1, const void *key2, void *arg);
 static int	float_compare_desc(const void *key1, const void *key2);
 
@@ -80,8 +80,8 @@ static int	float_compare_desc(const void *key1, const void *key2);
  * Returns selectivity (0..1), or -1 if we fail to estimate selectivity.
  */
 Selectivity
-scalararraysel_containment(PlannerInfo * root,
-						   Node * leftop, Node * rightop,
+scalararraysel_containment(PlannerInfo *root,
+						   Node *leftop, Node *rightop,
 						   Oid elemtype, bool isEquality, bool useOr,
 						   int varRelid)
 {
@@ -336,7 +336,7 @@ arraycontjoinsel(PG_FUNCTION_ARGS)
  * to be used; we then pass the problem on to mcelem_array_selec().
  */
 static Selectivity
-calc_arraycontsel(VariableStatData * vardata, Datum constval,
+calc_arraycontsel(VariableStatData *vardata, Datum constval,
 				  Oid elemtype, Oid operator)
 {
 	Selectivity selec;
@@ -427,11 +427,11 @@ calc_arraycontsel(VariableStatData * vardata, Datum constval,
  * mcelem_array_contained_selec depending on the operator.
  */
 static Selectivity
-mcelem_array_selec(ArrayType * array, TypeCacheEntry * typentry,
-				   Datum * mcelem, int nmcelem,
-				   float4 * numbers, int nnumbers,
-				   float4 * hist, int nhist,
-				   Oid operator, FmgrInfo * cmpfunc)
+mcelem_array_selec(ArrayType *array, TypeCacheEntry *typentry,
+				   Datum *mcelem, int nmcelem,
+				   float4 *numbers, int nnumbers,
+				   float4 *hist, int nhist,
+				   Oid operator, FmgrInfo *cmpfunc)
 {
 	Selectivity selec;
 	int			num_elems;
@@ -520,10 +520,10 @@ mcelem_array_selec(ArrayType * array, TypeCacheEntry * typentry,
  * fraction of nonempty arrays in the column.
  */
 static Selectivity
-mcelem_array_contain_overlap_selec(Datum * mcelem, int nmcelem,
-								   float4 * numbers, int nnumbers,
-								   Datum * array_data, int nitems,
-								   Oid operator, FmgrInfo * cmpfunc)
+mcelem_array_contain_overlap_selec(Datum *mcelem, int nmcelem,
+								   float4 *numbers, int nnumbers,
+								   Datum *array_data, int nitems,
+								   Oid operator, FmgrInfo *cmpfunc)
 {
 	Selectivity selec,
 				elem_selec;
@@ -695,11 +695,11 @@ mcelem_array_contain_overlap_selec(Datum * mcelem, int nmcelem,
  * ... * fn^on * (1 - fn)^(1 - on), o1, o2, ..., on) | o1 + o2 + .. on = m
  */
 static Selectivity
-mcelem_array_contained_selec(Datum * mcelem, int nmcelem,
-							 float4 * numbers, int nnumbers,
-							 Datum * array_data, int nitems,
-							 float4 * hist, int nhist,
-							 Oid operator, FmgrInfo * cmpfunc)
+mcelem_array_contained_selec(Datum *mcelem, int nmcelem,
+							 float4 *numbers, int nnumbers,
+							 Datum *array_data, int nitems,
+							 float4 *hist, int nhist,
+							 Oid operator, FmgrInfo *cmpfunc)
 {
 	int			mcelem_index,
 				i,
@@ -920,7 +920,7 @@ mcelem_array_contained_selec(Datum * mcelem, int nmcelem,
  * that to a and b themselves.
  */
 static float *
-calc_hist(const float4 * hist, int nhist, int n)
+calc_hist(const float4 *hist, int nhist, int n)
 {
 	float	   *hist_part;
 	int			k,
@@ -1129,8 +1129,8 @@ floor_log2(uint32 n)
  * exact match.)
  */
 static bool
-find_next_mcelem(Datum * mcelem, int nmcelem, Datum value, int *index,
-				 FmgrInfo * cmpfunc)
+find_next_mcelem(Datum *mcelem, int nmcelem, Datum value, int *index,
+				 FmgrInfo *cmpfunc)
 {
 	int			l = *index,
 				r = nmcelem - 1,

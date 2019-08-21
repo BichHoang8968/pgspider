@@ -4,7 +4,7 @@
  *	  Definitions for hot standby mode.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/standby.h
@@ -48,9 +48,9 @@ extern void StandbyLockTimeoutHandler(void);
  */
 extern void StandbyAcquireAccessExclusiveLock(TransactionId xid, Oid dbOid, Oid relOid);
 extern void StandbyReleaseLockTree(TransactionId xid,
-					   int nsubxids, TransactionId * subxids);
+					   int nsubxids, TransactionId *subxids);
 extern void StandbyReleaseAllLocks(void);
-extern void StandbyReleaseOldLocks(int nxids, TransactionId * xids);
+extern void StandbyReleaseOldLocks(TransactionId oldxid);
 
 #define MinSizeOfXactRunningXacts offsetof(xl_running_xacts, xids)
 
@@ -77,15 +77,15 @@ typedef struct RunningTransactionsData
 	TransactionId latestCompletedXid;	/* so we can set xmax */
 
 	TransactionId *xids;		/* array of (sub)xids still running */
-}			RunningTransactionsData;
+} RunningTransactionsData;
 
-typedef RunningTransactionsData * RunningTransactions;
+typedef RunningTransactionsData *RunningTransactions;
 
 extern void LogAccessExclusiveLock(Oid dbOid, Oid relOid);
 extern void LogAccessExclusiveLockPrepare(void);
 
 extern XLogRecPtr LogStandbySnapshot(void);
-extern void LogStandbyInvalidations(int nmsgs, SharedInvalidationMessage * msgs,
+extern void LogStandbyInvalidations(int nmsgs, SharedInvalidationMessage *msgs,
 						bool relcacheInitFileInval);
 
 #endif							/* STANDBY_H */

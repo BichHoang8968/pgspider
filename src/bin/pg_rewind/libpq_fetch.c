@@ -3,7 +3,7 @@
  * libpq_fetch.c
  *	  Functions for fetching files from a remote server.
  *
- * Copyright (c) 2013-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2013-2018, PostgreSQL Global Development Group
  *
  *-------------------------------------------------------------------------
  */
@@ -14,10 +14,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-/* for ntohl/htonl */
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
 #include "pg_rewind.h"
 #include "datapagemap.h"
 #include "fetch.h"
@@ -26,11 +22,11 @@
 #include "logging.h"
 
 #include "libpq-fe.h"
-#include "catalog/catalog.h"
-#include "catalog/pg_type.h"
+#include "catalog/pg_type_d.h"
 #include "fe_utils/connect.h"
+#include "port/pg_bswap.h"
 
-static PGconn * conn = NULL;
+static PGconn *conn = NULL;
 
 /*
  * Files are fetched max CHUNKSIZE bytes at a time.
@@ -42,7 +38,7 @@ static PGconn * conn = NULL;
 #define CHUNKSIZE 1000000
 
 static void receiveFileChunks(const char *sql);
-static void execute_pagemap(datapagemap_t * pagemap, const char *path);
+static void execute_pagemap(datapagemap_t *pagemap, const char *path);
 static char *run_simple_query(const char *sql);
 
 void
@@ -227,28 +223,6 @@ libpqProcessFileList(void)
 	PQclear(res);
 }
 
-/*
- * Converts an int64 from network byte order to native format.
- */
-static int64
-pg_recvint64(int64 value)
-{
-	union
-	{
-		int64		i64;
-		uint32		i32[2];
-	}			swap;
-	int64		result;
-
-	swap.i64 = value;
-
-	result = (uint32) ntohl(swap.i32[0]);
-	result <<= 32;
-	result |= (uint32) ntohl(swap.i32[1]);
-
-	return result;
-}
-
 /*----
  * Runs a query, which returns pieces of files from the remote source data
  * directory, and overwrites the corresponding parts of target files with
@@ -325,7 +299,7 @@ receiveFileChunks(const char *sql)
 
 		/* Read result set to local variables */
 		memcpy(&chunkoff, PQgetvalue(res, 0, 1), sizeof(int64));
-		chunkoff = pg_recvint64(chunkoff);
+		chunkoff = pg_ntoh64(chunkoff);
 		chunksize = PQgetlength(res, 0, 2);
 
 		filenamelen = PQgetlength(res, 0, 0);
@@ -376,7 +350,7 @@ receiveFileChunks(const char *sql)
  * Receive a single file as a malloc'd buffer.
  */
 char *
-libpqGetFile(const char *filename, size_t * filesize)
+libpqGetFile(const char *filename, size_t *filesize)
 {
 	PGresult   *res;
 	char	   *result;
@@ -448,7 +422,7 @@ fetch_file_range(const char *path, uint64 begin, uint64 end)
  * Fetch all changed blocks from remote source data directory.
  */
 void
-libpq_executeFileMap(filemap_t * map)
+libpq_executeFileMap(filemap_t *map)
 {
 	file_entry_t *entry;
 	const char *sql;
@@ -537,7 +511,7 @@ libpq_executeFileMap(filemap_t * map)
 }
 
 static void
-execute_pagemap(datapagemap_t * pagemap, const char *path)
+execute_pagemap(datapagemap_t *pagemap, const char *path)
 {
 	datapagemap_iterator_t *iter;
 	BlockNumber blkno;

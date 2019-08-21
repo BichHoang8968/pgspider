@@ -2,7 +2,7 @@
  * ginxlog.h
  *	  header file for postgres inverted index xlog implementation.
  *
- *	Copyright (c) 2006-2017, PostgreSQL Global Development Group
+ *	Copyright (c) 2006-2018, PostgreSQL Global Development Group
  *
  *	src/include/access/ginxlog.h
  *--------------------------------------------------------------------------
@@ -24,7 +24,7 @@ typedef struct ginxlogCreatePostingTree
 {
 	uint32		size;
 	/* A compressed posting list follows */
-}			ginxlogCreatePostingTree;
+} ginxlogCreatePostingTree;
 
 /*
  * The format of the insertion record varies depending on the page type.
@@ -54,14 +54,14 @@ typedef struct
 	 * ginxlogInsert struct! Beware of adding fields to them that require
 	 * stricter alignment.
 	 */
-}			ginxlogInsert;
+} ginxlogInsert;
 
 typedef struct
 {
 	OffsetNumber offset;
 	bool		isDelete;
 	IndexTupleData tuple;		/* variable length */
-}			ginxlogInsertEntry;
+} ginxlogInsertEntry;
 
 
 typedef struct
@@ -69,7 +69,7 @@ typedef struct
 	uint16		nactions;
 
 	/* Variable number of 'actions' follow */
-}			ginxlogRecompressDataLeaf;
+} ginxlogRecompressDataLeaf;
 
 /*
  * Note: this struct is currently not used in code, and only acts as
@@ -100,7 +100,7 @@ typedef struct
 {
 	OffsetNumber offset;
 	PostingItem newitem;
-}			ginxlogInsertDataInternal;
+} ginxlogInsertDataInternal;
 
 /*
  * Backup Blk 0: new left page (= original page, if not root split)
@@ -118,7 +118,7 @@ typedef struct ginxlogSplit
 	BlockNumber leftChildBlkno; /* valid on a non-leaf split */
 	BlockNumber rightChildBlkno;
 	uint16		flags;			/* see below */
-}			ginxlogSplit;
+} ginxlogSplit;
 
 /*
  * Flags used in ginxlogInsert and ginxlogSplit records
@@ -145,7 +145,7 @@ typedef struct ginxlogSplit
 typedef struct ginxlogVacuumDataLeafPage
 {
 	ginxlogRecompressDataLeaf data;
-}			ginxlogVacuumDataLeafPage;
+} ginxlogVacuumDataLeafPage;
 
 /*
  * Backup Blk 0: deleted page
@@ -158,7 +158,18 @@ typedef struct ginxlogDeletePage
 {
 	OffsetNumber parentOffset;
 	BlockNumber rightLink;
-}			ginxlogDeletePage;
+	TransactionId deleteXid;	/* last Xid which could see this page in scan */
+} ginxlogDeletePage;
+
+/*
+ * Previous version of ginxlogDeletePage struct, which didn't have deleteXid
+ * field.  Used for size comparison (see ginRedoDeletePage()).
+ */
+typedef struct ginxlogDeletePageOld
+{
+	OffsetNumber parentOffset;
+	BlockNumber rightLink;
+} ginxlogDeletePageOld;
 
 #define XLOG_GIN_UPDATE_META_PAGE 0x60
 
@@ -176,7 +187,7 @@ typedef struct ginxlogUpdateMeta
 								 * updated with that many tuples; else new sub
 								 * list was inserted */
 	/* array of inserted tuples follows */
-}			ginxlogUpdateMeta;
+} ginxlogUpdateMeta;
 
 #define XLOG_GIN_INSERT_LISTPAGE  0x70
 
@@ -185,7 +196,7 @@ typedef struct ginxlogInsertListPage
 	BlockNumber rightlink;
 	int32		ntuples;
 	/* array of inserted tuples follows */
-}			ginxlogInsertListPage;
+} ginxlogInsertListPage;
 
 /*
  * Backup Blk 0: metapage
@@ -205,10 +216,10 @@ typedef struct ginxlogDeleteListPages
 {
 	GinMetaPageData metadata;
 	int32		ndeleted;
-}			ginxlogDeleteListPages;
+} ginxlogDeleteListPages;
 
-extern void gin_redo(XLogReaderState * record);
-extern void gin_desc(StringInfo buf, XLogReaderState * record);
+extern void gin_redo(XLogReaderState *record);
+extern void gin_desc(StringInfo buf, XLogReaderState *record);
 extern const char *gin_identify(uint8 info);
 extern void gin_xlog_startup(void);
 extern void gin_xlog_cleanup(void);

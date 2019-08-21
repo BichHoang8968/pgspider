@@ -3,7 +3,7 @@
  * nodeMergeAppend.c
  *	  routines to handle MergeAppend nodes.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -50,7 +50,7 @@
  */
 typedef int32 SlotNumber;
 
-static TupleTableSlot * ExecMergeAppend(PlanState * pstate);
+static TupleTableSlot *ExecMergeAppend(PlanState *pstate);
 static int	heap_compare_slots(Datum a, Datum b, void *arg);
 
 
@@ -61,7 +61,7 @@ static int	heap_compare_slots(Datum a, Datum b, void *arg);
  * ----------------------------------------------------------------
  */
 MergeAppendState *
-ExecInitMergeAppend(MergeAppend * node, EState * estate, int eflags)
+ExecInitMergeAppend(MergeAppend *node, EState *estate, int eflags)
 {
 	MergeAppendState *mergestate = makeNode(MergeAppendState);
 	PlanState **mergeplanstates;
@@ -83,7 +83,7 @@ ExecInitMergeAppend(MergeAppend * node, EState * estate, int eflags)
 	 */
 	nplans = list_length(node->mergeplans);
 
-	mergeplanstates = (PlanState * *) palloc0(nplans * sizeof(PlanState *));
+	mergeplanstates = (PlanState **) palloc0(nplans * sizeof(PlanState *));
 
 	/*
 	 * create new MergeAppendState for our node
@@ -94,7 +94,7 @@ ExecInitMergeAppend(MergeAppend * node, EState * estate, int eflags)
 	mergestate->mergeplans = mergeplanstates;
 	mergestate->ms_nplans = nplans;
 
-	mergestate->ms_slots = (TupleTableSlot * *) palloc0(sizeof(TupleTableSlot *) * nplans);
+	mergestate->ms_slots = (TupleTableSlot **) palloc0(sizeof(TupleTableSlot *) * nplans);
 	mergestate->ms_heap = binaryheap_allocate(nplans, heap_compare_slots,
 											  mergestate);
 
@@ -109,7 +109,7 @@ ExecInitMergeAppend(MergeAppend * node, EState * estate, int eflags)
 	 * MergeAppend nodes do have Result slots, which hold pointers to tuples,
 	 * so we have to initialize them.
 	 */
-	ExecInitResultTupleSlot(estate, &mergestate->ps);
+	ExecInitResultTupleSlotTL(estate, &mergestate->ps);
 
 	/*
 	 * call ExecInitNode on each of the plans to be executed and save the
@@ -124,10 +124,6 @@ ExecInitMergeAppend(MergeAppend * node, EState * estate, int eflags)
 		i++;
 	}
 
-	/*
-	 * initialize output tuple type
-	 */
-	ExecAssignResultTypeFromTL(&mergestate->ps);
 	mergestate->ps.ps_ProjInfo = NULL;
 
 	/*
@@ -172,7 +168,7 @@ ExecInitMergeAppend(MergeAppend * node, EState * estate, int eflags)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecMergeAppend(PlanState * pstate)
+ExecMergeAppend(PlanState *pstate)
 {
 	MergeAppendState *node = castNode(MergeAppendState, pstate);
 	TupleTableSlot *result;
@@ -261,7 +257,10 @@ heap_compare_slots(Datum a, Datum b, void *arg)
 									  datum2, isNull2,
 									  sortKey);
 		if (compare != 0)
-			return -compare;
+		{
+			INVERT_COMPARE_RESULT(compare);
+			return compare;
+		}
 	}
 	return 0;
 }
@@ -275,7 +274,7 @@ heap_compare_slots(Datum a, Datum b, void *arg)
  * ----------------------------------------------------------------
  */
 void
-ExecEndMergeAppend(MergeAppendState * node)
+ExecEndMergeAppend(MergeAppendState *node)
 {
 	PlanState **mergeplans;
 	int			nplans;
@@ -295,7 +294,7 @@ ExecEndMergeAppend(MergeAppendState * node)
 }
 
 void
-ExecReScanMergeAppend(MergeAppendState * node)
+ExecReScanMergeAppend(MergeAppendState *node)
 {
 	int			i;
 

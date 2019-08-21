@@ -3,7 +3,7 @@
  * fmgr.c
  *	  The Postgres function manager.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -46,20 +46,22 @@ typedef struct
 	TransactionId fn_xmin;		/* for checking up-to-dateness */
 	ItemPointerData fn_tid;
 	PGFunction	user_fn;		/* the function's address */
-	const		Pg_finfo_record *inforec;	/* address of its info record */
-}			CFuncHashTabEntry;
+	const Pg_finfo_record *inforec; /* address of its info record */
+} CFuncHashTabEntry;
 
-static HTAB * CFuncHash = NULL;
+static HTAB *CFuncHash = NULL;
 
 
-static void fmgr_info_cxt_security(Oid functionId, FmgrInfo * finfo, MemoryContext mcxt,
+static void fmgr_info_cxt_security(Oid functionId, FmgrInfo *finfo, MemoryContext mcxt,
 					   bool ignore_security);
-static void fmgr_info_C_lang(Oid functionId, FmgrInfo * finfo, HeapTuple procedureTuple);
-static void fmgr_info_other_lang(Oid functionId, FmgrInfo * finfo, HeapTuple procedureTuple);
-static CFuncHashTabEntry * lookup_C_func(HeapTuple procedureTuple);
+static void fmgr_info_C_lang(Oid functionId, FmgrInfo *finfo, HeapTuple procedureTuple);
+static void fmgr_info_other_lang(Oid functionId, FmgrInfo *finfo, HeapTuple procedureTuple);
+static CFuncHashTabEntry *lookup_C_func(HeapTuple procedureTuple);
 static void record_C_func(HeapTuple procedureTuple,
-			  PGFunction user_fn, const Pg_finfo_record * inforec);
-static Datum fmgr_security_definer(PG_FUNCTION_ARGS);
+			  PGFunction user_fn, const Pg_finfo_record *inforec);
+
+/* extern so it's callable via JIT */
+extern Datum fmgr_security_definer(PG_FUNCTION_ARGS);
 
 
 /*
@@ -70,26 +72,21 @@ static Datum fmgr_security_definer(PG_FUNCTION_ARGS);
 static const FmgrBuiltin *
 fmgr_isbuiltin(Oid id)
 {
-	int			low = 0;
-	int			high = fmgr_nbuiltins - 1;
+	uint16		index;
+
+	/* fast lookup only possible if original oid still assigned */
+	if (id >= FirstBootstrapObjectId)
+		return NULL;
 
 	/*
-	 * Loop invariant: low is the first index that could contain target entry,
-	 * and high is the last index that could contain it.
+	 * Lookup function data. If there's a miss in that range it's likely a
+	 * nonexistant function, returning NULL here will trigger an ERROR later.
 	 */
-	while (low <= high)
-	{
-		int			i = (high + low) / 2;
-		const		FmgrBuiltin *ptr = &fmgr_builtins[i];
+	index = fmgr_builtin_oid_index[id];
+	if (index == InvalidOidBuiltinMapping)
+		return NULL;
 
-		if (id == ptr->foid)
-			return ptr;
-		else if (id > ptr->foid)
-			low = i + 1;
-		else
-			high = i - 1;
-	}
-	return NULL;
+	return &fmgr_builtins[index];
 }
 
 /*
@@ -124,7 +121,7 @@ fmgr_lookupByName(const char *name)
  * struct in a long-lived table, it's better to use fmgr_info_cxt.
  */
 void
-fmgr_info(Oid functionId, FmgrInfo * finfo)
+fmgr_info(Oid functionId, FmgrInfo *finfo)
 {
 	fmgr_info_cxt_security(functionId, finfo, CurrentMemoryContext, false);
 }
@@ -134,7 +131,7 @@ fmgr_info(Oid functionId, FmgrInfo * finfo)
  * subsidiary data should go.
  */
 void
-fmgr_info_cxt(Oid functionId, FmgrInfo * finfo, MemoryContext mcxt)
+fmgr_info_cxt(Oid functionId, FmgrInfo *finfo, MemoryContext mcxt)
 {
 	fmgr_info_cxt_security(functionId, finfo, mcxt, false);
 }
@@ -144,10 +141,10 @@ fmgr_info_cxt(Oid functionId, FmgrInfo * finfo, MemoryContext mcxt)
  * but is set to true when we need to avoid recursion.
  */
 static void
-fmgr_info_cxt_security(Oid functionId, FmgrInfo * finfo, MemoryContext mcxt,
+fmgr_info_cxt_security(Oid functionId, FmgrInfo *finfo, MemoryContext mcxt,
 					   bool ignore_security)
 {
-	const		FmgrBuiltin *fbp;
+	const FmgrBuiltin *fbp;
 	HeapTuple	procedureTuple;
 	Form_pg_proc procedureStruct;
 	Datum		prosrcdatum;
@@ -204,7 +201,7 @@ fmgr_info_cxt_security(Oid functionId, FmgrInfo * finfo, MemoryContext mcxt,
 	 */
 	if (!ignore_security &&
 		(procedureStruct->prosecdef ||
-		 !heap_attisnull(procedureTuple, Anum_pg_proc_proconfig) ||
+		 !heap_attisnull(procedureTuple, Anum_pg_proc_proconfig, NULL) ||
 		 FmgrHookIsNeeded(functionId)))
 	{
 		finfo->fn_addr = fmgr_security_definer;
@@ -266,15 +263,104 @@ fmgr_info_cxt_security(Oid functionId, FmgrInfo * finfo, MemoryContext mcxt,
 }
 
 /*
+ * Return module and C function name providing implementation of functionId.
+ *
+ * If *mod == NULL and *fn == NULL, no C symbol is known to implement
+ * function.
+ *
+ * If *mod == NULL and *fn != NULL, the function is implemented by a symbol in
+ * the main binary.
+ *
+ * If *mod != NULL and *fn !=NULL the function is implemented in an extension
+ * shared object.
+ *
+ * The returned module and function names are pstrdup'ed into the current
+ * memory context.
+ */
+void
+fmgr_symbol(Oid functionId, char **mod, char **fn)
+{
+	HeapTuple	procedureTuple;
+	Form_pg_proc procedureStruct;
+	bool		isnull;
+	Datum		prosrcattr;
+	Datum		probinattr;
+
+	/* Otherwise we need the pg_proc entry */
+	procedureTuple = SearchSysCache1(PROCOID, ObjectIdGetDatum(functionId));
+	if (!HeapTupleIsValid(procedureTuple))
+		elog(ERROR, "cache lookup failed for function %u", functionId);
+	procedureStruct = (Form_pg_proc) GETSTRUCT(procedureTuple);
+
+	/*
+	 */
+	if (procedureStruct->prosecdef ||
+		!heap_attisnull(procedureTuple, Anum_pg_proc_proconfig, NULL) ||
+		FmgrHookIsNeeded(functionId))
+	{
+		*mod = NULL;			/* core binary */
+		*fn = pstrdup("fmgr_security_definer");
+		ReleaseSysCache(procedureTuple);
+		return;
+	}
+
+	/* see fmgr_info_cxt_security for the individual cases */
+	switch (procedureStruct->prolang)
+	{
+		case INTERNALlanguageId:
+			prosrcattr = SysCacheGetAttr(PROCOID, procedureTuple,
+										 Anum_pg_proc_prosrc, &isnull);
+			if (isnull)
+				elog(ERROR, "null prosrc");
+
+			*mod = NULL;		/* core binary */
+			*fn = TextDatumGetCString(prosrcattr);
+			break;
+
+		case ClanguageId:
+			prosrcattr = SysCacheGetAttr(PROCOID, procedureTuple,
+										 Anum_pg_proc_prosrc, &isnull);
+			if (isnull)
+				elog(ERROR, "null prosrc for C function %u", functionId);
+
+			probinattr = SysCacheGetAttr(PROCOID, procedureTuple,
+										 Anum_pg_proc_probin, &isnull);
+			if (isnull)
+				elog(ERROR, "null probin for C function %u", functionId);
+
+			/*
+			 * No need to check symbol presence / API version here, already
+			 * checked in fmgr_info_cxt_security.
+			 */
+			*mod = TextDatumGetCString(probinattr);
+			*fn = TextDatumGetCString(prosrcattr);
+			break;
+
+		case SQLlanguageId:
+			*mod = NULL;		/* core binary */
+			*fn = pstrdup("fmgr_sql");
+			break;
+
+		default:
+			*mod = NULL;
+			*fn = NULL;			/* unknown, pass pointer */
+			break;
+	}
+
+	ReleaseSysCache(procedureTuple);
+}
+
+
+/*
  * Special fmgr_info processing for C-language functions.  Note that
  * finfo->fn_oid is not valid yet.
  */
 static void
-fmgr_info_C_lang(Oid functionId, FmgrInfo * finfo, HeapTuple procedureTuple)
+fmgr_info_C_lang(Oid functionId, FmgrInfo *finfo, HeapTuple procedureTuple)
 {
 	CFuncHashTabEntry *hashentry;
 	PGFunction	user_fn;
-	const		Pg_finfo_record *inforec;
+	const Pg_finfo_record *inforec;
 	bool		isnull;
 
 	/*
@@ -344,7 +430,7 @@ fmgr_info_C_lang(Oid functionId, FmgrInfo * finfo, HeapTuple procedureTuple)
  * that finfo->fn_oid is not valid yet.
  */
 static void
-fmgr_info_other_lang(Oid functionId, FmgrInfo * finfo, HeapTuple procedureTuple)
+fmgr_info_other_lang(Oid functionId, FmgrInfo *finfo, HeapTuple procedureTuple)
 {
 	Form_pg_proc procedureStruct = (Form_pg_proc) GETSTRUCT(procedureTuple);
 	Oid			language = procedureStruct->prolang;
@@ -380,12 +466,12 @@ fmgr_info_other_lang(Oid functionId, FmgrInfo * finfo, HeapTuple procedureTuple)
  * can validate the information record for a function not yet entered into
  * pg_proc.
  */
-const		Pg_finfo_record *
+const Pg_finfo_record *
 fetch_finfo_record(void *filehandle, const char *funcname)
 {
 	char	   *infofuncname;
 	PGFInfoFunction infofunc;
-	const		Pg_finfo_record *inforec;
+	const Pg_finfo_record *inforec;
 
 	infofuncname = psprintf("pg_finfo_%s", funcname);
 
@@ -466,7 +552,7 @@ lookup_C_func(HeapTuple procedureTuple)
  */
 static void
 record_C_func(HeapTuple procedureTuple,
-			  PGFunction user_fn, const Pg_finfo_record * inforec)
+			  PGFunction user_fn, const Pg_finfo_record *inforec)
 {
 	Oid			fn_oid = HeapTupleGetOid(procedureTuple);
 	CFuncHashTabEntry *entry;
@@ -521,7 +607,7 @@ clear_external_function_hash(void *filehandle)
  * instead, meaning that subsidiary info will have to be recomputed.
  */
 void
-fmgr_info_copy(FmgrInfo * dstinfo, FmgrInfo * srcinfo,
+fmgr_info_copy(FmgrInfo *dstinfo, FmgrInfo *srcinfo,
 			   MemoryContext destcxt)
 {
 	memcpy(dstinfo, srcinfo, sizeof(FmgrInfo));
@@ -538,7 +624,7 @@ fmgr_info_copy(FmgrInfo * dstinfo, FmgrInfo * srcinfo,
 Oid
 fmgr_internal_function(const char *proname)
 {
-	const		FmgrBuiltin *fbp = fmgr_lookupByName(proname);
+	const FmgrBuiltin *fbp = fmgr_lookupByName(proname);
 
 	if (fbp == NULL)
 		return InvalidOid;
@@ -570,7 +656,7 @@ struct fmgr_security_definer_cache
  * the actual arguments, etc.) intact.  This is not re-entrant, but then
  * the fcinfo itself can't be used reentrantly anyway.
  */
-static Datum
+extern Datum
 fmgr_security_definer(PG_FUNCTION_ARGS)
 {
 	Datum		result;
@@ -977,7 +1063,7 @@ DirectFunctionCall9Coll(PGFunction func, Oid collation, Datum arg1, Datum arg2,
  */
 
 Datum
-CallerFInfoFunctionCall1(PGFunction func, FmgrInfo * flinfo, Oid collation, Datum arg1)
+CallerFInfoFunctionCall1(PGFunction func, FmgrInfo *flinfo, Oid collation, Datum arg1)
 {
 	FunctionCallInfoData fcinfo;
 	Datum		result;
@@ -997,7 +1083,7 @@ CallerFInfoFunctionCall1(PGFunction func, FmgrInfo * flinfo, Oid collation, Datu
 }
 
 Datum
-CallerFInfoFunctionCall2(PGFunction func, FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2)
+CallerFInfoFunctionCall2(PGFunction func, FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2)
 {
 	FunctionCallInfoData fcinfo;
 	Datum		result;
@@ -1024,7 +1110,7 @@ CallerFInfoFunctionCall2(PGFunction func, FmgrInfo * flinfo, Oid collation, Datu
  * are allowed to be NULL.
  */
 Datum
-FunctionCall1Coll(FmgrInfo * flinfo, Oid collation, Datum arg1)
+FunctionCall1Coll(FmgrInfo *flinfo, Oid collation, Datum arg1)
 {
 	FunctionCallInfoData fcinfo;
 	Datum		result;
@@ -1044,7 +1130,7 @@ FunctionCall1Coll(FmgrInfo * flinfo, Oid collation, Datum arg1)
 }
 
 Datum
-FunctionCall2Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2)
+FunctionCall2Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2)
 {
 	FunctionCallInfoData fcinfo;
 	Datum		result;
@@ -1066,7 +1152,7 @@ FunctionCall2Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2)
 }
 
 Datum
-FunctionCall3Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2,
+FunctionCall3Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
 				  Datum arg3)
 {
 	FunctionCallInfoData fcinfo;
@@ -1091,7 +1177,7 @@ FunctionCall3Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2,
 }
 
 Datum
-FunctionCall4Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2,
+FunctionCall4Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
 				  Datum arg3, Datum arg4)
 {
 	FunctionCallInfoData fcinfo;
@@ -1118,7 +1204,7 @@ FunctionCall4Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2,
 }
 
 Datum
-FunctionCall5Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2,
+FunctionCall5Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
 				  Datum arg3, Datum arg4, Datum arg5)
 {
 	FunctionCallInfoData fcinfo;
@@ -1147,7 +1233,7 @@ FunctionCall5Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2,
 }
 
 Datum
-FunctionCall6Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2,
+FunctionCall6Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
 				  Datum arg3, Datum arg4, Datum arg5,
 				  Datum arg6)
 {
@@ -1179,7 +1265,7 @@ FunctionCall6Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2,
 }
 
 Datum
-FunctionCall7Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2,
+FunctionCall7Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
 				  Datum arg3, Datum arg4, Datum arg5,
 				  Datum arg6, Datum arg7)
 {
@@ -1213,7 +1299,7 @@ FunctionCall7Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2,
 }
 
 Datum
-FunctionCall8Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2,
+FunctionCall8Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
 				  Datum arg3, Datum arg4, Datum arg5,
 				  Datum arg6, Datum arg7, Datum arg8)
 {
@@ -1249,7 +1335,7 @@ FunctionCall8Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2,
 }
 
 Datum
-FunctionCall9Coll(FmgrInfo * flinfo, Oid collation, Datum arg1, Datum arg2,
+FunctionCall9Coll(FmgrInfo *flinfo, Oid collation, Datum arg1, Datum arg2,
 				  Datum arg3, Datum arg4, Datum arg5,
 				  Datum arg6, Datum arg7, Datum arg8,
 				  Datum arg9)
@@ -1620,7 +1706,7 @@ OidFunctionCall9Coll(Oid functionId, Oid collation, Datum arg1, Datum arg2,
  * the same as FunctionCall3.
  */
 Datum
-InputFunctionCall(FmgrInfo * flinfo, char *str, Oid typioparam, int32 typmod)
+InputFunctionCall(FmgrInfo *flinfo, char *str, Oid typioparam, int32 typmod)
 {
 	FunctionCallInfoData fcinfo;
 	Datum		result;
@@ -1664,7 +1750,7 @@ InputFunctionCall(FmgrInfo * flinfo, char *str, Oid typioparam, int32 typmod)
  * This is currently little more than window dressing for FunctionCall1.
  */
 char *
-OutputFunctionCall(FmgrInfo * flinfo, Datum val)
+OutputFunctionCall(FmgrInfo *flinfo, Datum val)
 {
 	return DatumGetCString(FunctionCall1(flinfo, val));
 }
@@ -1678,7 +1764,7 @@ OutputFunctionCall(FmgrInfo * flinfo, Datum val)
  * the same as FunctionCall3.
  */
 Datum
-ReceiveFunctionCall(FmgrInfo * flinfo, StringInfo buf,
+ReceiveFunctionCall(FmgrInfo *flinfo, StringInfo buf,
 					Oid typioparam, int32 typmod)
 {
 	FunctionCallInfoData fcinfo;
@@ -1725,7 +1811,7 @@ ReceiveFunctionCall(FmgrInfo * flinfo, StringInfo buf,
  * function doesn't.
  */
 bytea *
-SendFunctionCall(FmgrInfo * flinfo, Datum val)
+SendFunctionCall(FmgrInfo *flinfo, Datum val)
 {
 	return DatumGetByteaP(FunctionCall1(flinfo, val));
 }
@@ -1884,7 +1970,7 @@ pg_detoast_datum_packed(struct varlena *datum)
  * Returns InvalidOid if information is not available
  */
 Oid
-get_fn_expr_rettype(FmgrInfo * flinfo)
+get_fn_expr_rettype(FmgrInfo *flinfo)
 {
 	Node	   *expr;
 
@@ -1906,7 +1992,7 @@ get_fn_expr_rettype(FmgrInfo * flinfo)
  * Returns InvalidOid if information is not available
  */
 Oid
-get_fn_expr_argtype(FmgrInfo * flinfo, int argnum)
+get_fn_expr_argtype(FmgrInfo *flinfo, int argnum)
 {
 	/*
 	 * can't return anything useful if we have no FmgrInfo or if its fn_expr
@@ -1925,7 +2011,7 @@ get_fn_expr_argtype(FmgrInfo * flinfo, int argnum)
  * Returns InvalidOid if information is not available
  */
 Oid
-get_call_expr_argtype(Node * expr, int argnum)
+get_call_expr_argtype(Node *expr, int argnum)
 {
 	List	   *args;
 	Oid			argtype;
@@ -1941,8 +2027,6 @@ get_call_expr_argtype(Node * expr, int argnum)
 		args = ((DistinctExpr *) expr)->args;
 	else if (IsA(expr, ScalarArrayOpExpr))
 		args = ((ScalarArrayOpExpr *) expr)->args;
-	else if (IsA(expr, ArrayCoerceExpr))
-		args = list_make1(((ArrayCoerceExpr *) expr)->arg);
 	else if (IsA(expr, NullIfExpr))
 		args = ((NullIfExpr *) expr)->args;
 	else if (IsA(expr, WindowFunc))
@@ -1956,15 +2040,11 @@ get_call_expr_argtype(Node * expr, int argnum)
 	argtype = exprType((Node *) list_nth(args, argnum));
 
 	/*
-	 * special hack for ScalarArrayOpExpr and ArrayCoerceExpr: what the
-	 * underlying function will actually get passed is the element type of the
-	 * array.
+	 * special hack for ScalarArrayOpExpr: what the underlying function will
+	 * actually get passed is the element type of the array.
 	 */
 	if (IsA(expr, ScalarArrayOpExpr) &&
 		argnum == 1)
-		argtype = get_base_element_type(argtype);
-	else if (IsA(expr, ArrayCoerceExpr) &&
-			 argnum == 0)
 		argtype = get_base_element_type(argtype);
 
 	return argtype;
@@ -1977,7 +2057,7 @@ get_call_expr_argtype(Node * expr, int argnum)
  * Returns false if information is not available
  */
 bool
-get_fn_expr_arg_stable(FmgrInfo * flinfo, int argnum)
+get_fn_expr_arg_stable(FmgrInfo *flinfo, int argnum)
 {
 	/*
 	 * can't return anything useful if we have no FmgrInfo or if its fn_expr
@@ -1996,7 +2076,7 @@ get_fn_expr_arg_stable(FmgrInfo * flinfo, int argnum)
  * Returns false if information is not available
  */
 bool
-get_call_expr_arg_stable(Node * expr, int argnum)
+get_call_expr_arg_stable(Node *expr, int argnum)
 {
 	List	   *args;
 	Node	   *arg;
@@ -2012,8 +2092,6 @@ get_call_expr_arg_stable(Node * expr, int argnum)
 		args = ((DistinctExpr *) expr)->args;
 	else if (IsA(expr, ScalarArrayOpExpr))
 		args = ((ScalarArrayOpExpr *) expr)->args;
-	else if (IsA(expr, ArrayCoerceExpr))
-		args = list_make1(((ArrayCoerceExpr *) expr)->arg);
 	else if (IsA(expr, NullIfExpr))
 		args = ((NullIfExpr *) expr)->args;
 	else if (IsA(expr, WindowFunc))
@@ -2048,7 +2126,7 @@ get_call_expr_arg_stable(Node * expr, int argnum)
  * Note this is generally only of interest to VARIADIC ANY functions
  */
 bool
-get_fn_expr_variadic(FmgrInfo * flinfo)
+get_fn_expr_variadic(FmgrInfo *flinfo)
 {
 	Node	   *expr;
 
@@ -2137,7 +2215,7 @@ CheckFunctionValidatorAccess(Oid validatorOid, Oid functionOid)
 	aclresult = pg_language_aclcheck(procStruct->prolang, GetUserId(),
 									 ACL_USAGE);
 	if (aclresult != ACLCHECK_OK)
-		aclcheck_error(aclresult, ACL_KIND_LANGUAGE,
+		aclcheck_error(aclresult, OBJECT_LANGUAGE,
 					   NameStr(langStruct->lanname));
 
 	/*
@@ -2147,7 +2225,7 @@ CheckFunctionValidatorAccess(Oid validatorOid, Oid functionOid)
 	 */
 	aclresult = pg_proc_aclcheck(functionOid, GetUserId(), ACL_EXECUTE);
 	if (aclresult != ACLCHECK_OK)
-		aclcheck_error(aclresult, ACL_KIND_PROC, NameStr(procStruct->proname));
+		aclcheck_error(aclresult, OBJECT_FUNCTION, NameStr(procStruct->proname));
 
 	ReleaseSysCache(procTup);
 	ReleaseSysCache(langTup);

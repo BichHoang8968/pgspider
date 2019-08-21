@@ -18,7 +18,7 @@
  * everything that should be freed.  See utils/mmgr/README for more info.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/palloc.h
@@ -49,7 +49,7 @@ typedef struct MemoryContextCallback
 	MemoryContextCallbackFunction func; /* function to call */
 	void	   *arg;			/* argument to pass it */
 	struct MemoryContextCallback *next; /* next in list of callbacks */
-}			MemoryContextCallback;
+} MemoryContextCallback;
 
 /*
  * CurrentMemoryContext is the default allocation context for palloc().
@@ -57,6 +57,7 @@ typedef struct MemoryContextCallback
  * to change the setting.
  */
 extern __thread PGDLLIMPORT MemoryContext CurrentMemoryContext;
+
 /*
  * Flags for MemoryContextAllocExtended.
  */
@@ -116,7 +117,7 @@ MemoryContextSwitchTo(MemoryContext context)
 
 /* Registration of memory context reset/delete callbacks */
 extern void MemoryContextRegisterResetCallback(MemoryContext context,
-								   MemoryContextCallback * cb);
+								   MemoryContextCallback *cb);
 
 /*
  * These are like standard strdup() except the copied string is

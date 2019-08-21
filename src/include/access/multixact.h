@@ -3,7 +3,7 @@
  *
  * PostgreSQL multi-transaction-log manager
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/multixact.h
@@ -60,7 +60,7 @@ typedef struct MultiXactMember
 {
 	TransactionId xid;
 	MultiXactStatus status;
-}			MultiXactMember;
+} MultiXactMember;
 
 
 /* ----------------
@@ -79,7 +79,7 @@ typedef struct xl_multixact_create
 	MultiXactOffset moff;		/* its starting offset in members file */
 	int32		nmembers;		/* number of member XIDs */
 	MultiXactMember members[FLEXIBLE_ARRAY_MEMBER];
-}			xl_multixact_create;
+} xl_multixact_create;
 
 #define SizeOfMultiXactCreate (offsetof(xl_multixact_create, members))
 
@@ -94,23 +94,23 @@ typedef struct xl_multixact_truncate
 	/* to-be-truncated range of multixact members */
 	MultiXactOffset startTruncMemb;
 	MultiXactOffset endTruncMemb;
-}			xl_multixact_truncate;
+} xl_multixact_truncate;
 
 #define SizeOfMultiXactTruncate (sizeof(xl_multixact_truncate))
 
 
 extern MultiXactId MultiXactIdCreate(TransactionId xid1,
-									 MultiXactStatus status1, TransactionId xid2,
-									 MultiXactStatus status2);
+				  MultiXactStatus status1, TransactionId xid2,
+				  MultiXactStatus status2);
 extern MultiXactId MultiXactIdExpand(MultiXactId multi, TransactionId xid,
-									 MultiXactStatus status);
+				  MultiXactStatus status);
 extern MultiXactId MultiXactIdCreateFromMembers(int nmembers,
-												MultiXactMember * members);
+							 MultiXactMember *members);
 
 extern MultiXactId ReadNextMultiXactId(void);
 extern bool MultiXactIdIsRunning(MultiXactId multi, bool isLockOnly);
 extern void MultiXactIdSetOldestMember(void);
-extern int GetMultiXactIdMembers(MultiXactId multi, MultiXactMember * *xids,
+extern int GetMultiXactIdMembers(MultiXactId multi, MultiXactMember **xids,
 					  bool allow_old, bool isLockOnly);
 extern bool MultiXactIdPrecedes(MultiXactId multi1, MultiXactId multi2);
 extern bool MultiXactIdPrecedesOrEquals(MultiXactId multi1,
@@ -130,10 +130,10 @@ extern void SetMultiXactIdLimit(MultiXactId oldest_datminmxid,
 					Oid oldest_datoid,
 					bool is_startup);
 extern void MultiXactGetCheckptMulti(bool is_shutdown,
-						 MultiXactId * nextMulti,
-						 MultiXactOffset * nextMultiOffset,
-						 MultiXactId * oldestMulti,
-						 Oid * oldestMultiDB);
+						 MultiXactId *nextMulti,
+						 MultiXactOffset *nextMultiOffset,
+						 MultiXactId *oldestMulti,
+						 Oid *oldestMultiDB);
 extern void CheckPointMultiXact(void);
 extern MultiXactId GetOldestMultiXactId(void);
 extern void TruncateMultiXact(MultiXactId oldestMulti, Oid oldestMultiDB);
@@ -151,10 +151,10 @@ extern void multixact_twophase_postcommit(TransactionId xid, uint16 info,
 extern void multixact_twophase_postabort(TransactionId xid, uint16 info,
 							 void *recdata, uint32 len);
 
-extern void multixact_redo(XLogReaderState * record);
-extern void multixact_desc(StringInfo buf, XLogReaderState * record);
+extern void multixact_redo(XLogReaderState *record);
+extern void multixact_desc(StringInfo buf, XLogReaderState *record);
 extern const char *multixact_identify(uint8 info);
 extern char *mxid_to_string(MultiXactId multi, int nmembers,
-			   MultiXactMember * members);
+			   MultiXactMember *members);
 
 #endif							/* MULTIXACT_H */

@@ -5,7 +5,7 @@
  *	  strategy.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/buf_internals.h
@@ -93,7 +93,7 @@ typedef struct buftag
 	RelFileNode rnode;			/* physical relation identifier */
 	ForkNumber	forkNum;
 	BlockNumber blockNum;		/* blknum relative to begin of reln */
-}			BufferTag;
+} BufferTag;
 
 #define CLEAR_BUFFERTAG(a) \
 ( \
@@ -187,7 +187,7 @@ typedef struct BufferDesc
 	int			freeNext;		/* link in freelist chain */
 
 	LWLock		content_lock;	/* to lock access to buffer contents */
-}			BufferDesc;
+} BufferDesc;
 
 /*
  * Concurrent access to buffer headers has proven to be more efficient if
@@ -215,7 +215,7 @@ typedef union BufferDescPadded
 {
 	BufferDesc	bufferdesc;
 	char		pad[BUFFERDESC_PAD_TO_SIZE];
-}			BufferDescPadded;
+} BufferDescPadded;
 
 #define GetBufferDescriptor(id) (&BufferDescriptors[(id)].bufferdesc)
 #define GetLocalBufferDescriptor(id) (&LocalBufferDescriptors[(id)])
@@ -227,7 +227,7 @@ typedef union BufferDescPadded
 #define BufferDescriptorGetContentLock(bdesc) \
 	((LWLock*) (&(bdesc)->content_lock))
 
-extern PGDLLIMPORT LWLockMinimallyPadded * BufferIOLWLockArray;
+extern PGDLLIMPORT LWLockMinimallyPadded *BufferIOLWLockArray;
 
 /*
  * The freeNext field is either the index of the next freelist entry,
@@ -240,7 +240,7 @@ extern PGDLLIMPORT LWLockMinimallyPadded * BufferIOLWLockArray;
  * Functions for acquiring/releasing a shared buffer header's spinlock.  Do
  * not apply these to local buffers!
  */
-extern uint32 LockBufHdr(BufferDesc * desc);
+extern uint32 LockBufHdr(BufferDesc *desc);
 #define UnlockBufHdr(desc, s)	\
 	do {	\
 		pg_write_barrier(); \
@@ -256,7 +256,7 @@ typedef struct PendingWriteback
 {
 	/* could store different types of pending flushes here */
 	BufferTag	tag;
-}			PendingWriteback;
+} PendingWriteback;
 
 /* struct forward declared in bufmgr.h */
 typedef struct WritebackContext
@@ -269,14 +269,14 @@ typedef struct WritebackContext
 
 	/* pending requests */
 	PendingWriteback pending_writebacks[WRITEBACK_MAX_PENDING_FLUSHES];
-}			WritebackContext;
+} WritebackContext;
 
 /* in buf_init.c */
-extern PGDLLIMPORT BufferDescPadded * BufferDescriptors;
+extern PGDLLIMPORT BufferDescPadded *BufferDescriptors;
 extern PGDLLIMPORT WritebackContext BackendWritebackContext;
 
 /* in localbuf.c */
-extern BufferDesc * LocalBufferDescriptors;
+extern BufferDesc *LocalBufferDescriptors;
 
 /* in bufmgr.c */
 
@@ -293,44 +293,45 @@ typedef struct CkptSortItem
 	ForkNumber	forkNum;
 	BlockNumber blockNum;
 	int			buf_id;
-}			CkptSortItem;
+} CkptSortItem;
 
-extern CkptSortItem * CkptBufferIds;
+extern CkptSortItem *CkptBufferIds;
 
 /*
  * Internal buffer management routines
  */
 /* bufmgr.c */
-extern void WritebackContextInit(WritebackContext * context, int *max_pending);
-extern void IssuePendingWritebacks(WritebackContext * context);
-extern void ScheduleBufferTagForWriteback(WritebackContext * context, BufferTag * tag);
+extern void WritebackContextInit(WritebackContext *context, int *max_pending);
+extern void IssuePendingWritebacks(WritebackContext *context);
+extern void ScheduleBufferTagForWriteback(WritebackContext *context, BufferTag *tag);
 
 /* freelist.c */
-extern BufferDesc * StrategyGetBuffer(BufferAccessStrategy strategy,
-									  uint32 * buf_state);
-extern void StrategyFreeBuffer(BufferDesc * buf);
+extern BufferDesc *StrategyGetBuffer(BufferAccessStrategy strategy,
+				  uint32 *buf_state);
+extern void StrategyFreeBuffer(BufferDesc *buf);
 extern bool StrategyRejectBuffer(BufferAccessStrategy strategy,
-					 BufferDesc * buf);
+					 BufferDesc *buf);
 
-extern int	StrategySyncStart(uint32 * complete_passes, uint32 * num_buf_alloc);
+extern int	StrategySyncStart(uint32 *complete_passes, uint32 *num_buf_alloc);
 extern void StrategyNotifyBgWriter(int bgwprocno);
 
 extern Size StrategyShmemSize(void);
 extern void StrategyInitialize(bool init);
+extern bool have_free_buffer(void);
 
 /* buf_table.c */
 extern Size BufTableShmemSize(int size);
 extern void InitBufTable(int size);
-extern uint32 BufTableHashCode(BufferTag * tagPtr);
-extern int	BufTableLookup(BufferTag * tagPtr, uint32 hashcode);
-extern int	BufTableInsert(BufferTag * tagPtr, uint32 hashcode, int buf_id);
-extern void BufTableDelete(BufferTag * tagPtr, uint32 hashcode);
+extern uint32 BufTableHashCode(BufferTag *tagPtr);
+extern int	BufTableLookup(BufferTag *tagPtr, uint32 hashcode);
+extern int	BufTableInsert(BufferTag *tagPtr, uint32 hashcode, int buf_id);
+extern void BufTableDelete(BufferTag *tagPtr, uint32 hashcode);
 
 /* localbuf.c */
 extern void LocalPrefetchBuffer(SMgrRelation smgr, ForkNumber forkNum,
 					BlockNumber blockNum);
-extern BufferDesc * LocalBufferAlloc(SMgrRelation smgr, ForkNumber forkNum,
-									 BlockNumber blockNum, bool *foundPtr);
+extern BufferDesc *LocalBufferAlloc(SMgrRelation smgr, ForkNumber forkNum,
+				 BlockNumber blockNum, bool *foundPtr);
 extern void MarkLocalBufferDirty(Buffer buffer);
 extern void DropRelFileNodeLocalBuffers(RelFileNode rnode, ForkNumber forkNum,
 							BlockNumber firstDelBlock);

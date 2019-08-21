@@ -45,7 +45,7 @@ static struct sqlca_t sqlca_init =
 	}
 };
 static int
-deccall2(decimal * arg1, decimal * arg2, int (*ptr) (numeric *, numeric *))
+deccall2(decimal *arg1, decimal *arg2, int (*ptr) (numeric *, numeric *))
 {
 	numeric    *a1,
 			   *a2;
@@ -79,11 +79,11 @@ deccall2(decimal * arg1, decimal * arg2, int (*ptr) (numeric *, numeric *))
 	PGTYPESnumeric_free(a1);
 	PGTYPESnumeric_free(a2);
 
-	return (i);
+	return i;
 }
 
 static int
-deccall3(decimal * arg1, decimal * arg2, decimal * result, int (*ptr) (numeric *, numeric *, numeric *))
+deccall3(decimal *arg1, decimal *arg2, decimal *result, int (*ptr) (numeric *, numeric *, numeric *))
 {
 	numeric    *a1,
 			   *a2,
@@ -143,12 +143,12 @@ deccall3(decimal * arg1, decimal * arg2, decimal * result, int (*ptr) (numeric *
 	PGTYPESnumeric_free(a1);
 	PGTYPESnumeric_free(a2);
 
-	return (i);
+	return i;
 }
 
 /* we start with the numeric functions */
 int
-decadd(decimal * arg1, decimal * arg2, decimal * sum)
+decadd(decimal *arg1, decimal *arg2, decimal *sum)
 {
 	errno = 0;
 	deccall3(arg1, arg2, sum, PGTYPESnumeric_add);
@@ -164,13 +164,13 @@ decadd(decimal * arg1, decimal * arg2, decimal * sum)
 }
 
 int
-deccmp(decimal * arg1, decimal * arg2)
+deccmp(decimal *arg1, decimal *arg2)
 {
-	return (deccall2(arg1, arg2, PGTYPESnumeric_cmp));
+	return deccall2(arg1, arg2, PGTYPESnumeric_cmp);
 }
 
 void
-deccopy(decimal * src, decimal * target)
+deccopy(decimal *src, decimal *target)
 {
 	memcpy(target, src, sizeof(decimal));
 }
@@ -195,7 +195,7 @@ ecpg_strndup(const char *str, size_t len)
 }
 
 int
-deccvasc(char *cp, int len, decimal * np)
+deccvasc(const char *cp, int len, decimal *np)
 {
 	char	   *str;
 	int			ret = 0;
@@ -243,7 +243,7 @@ deccvasc(char *cp, int len, decimal * np)
 }
 
 int
-deccvdbl(double dbl, decimal * np)
+deccvdbl(double dbl, decimal *np)
 {
 	numeric    *nres;
 	int			result = 1;
@@ -261,11 +261,11 @@ deccvdbl(double dbl, decimal * np)
 		result = PGTYPESnumeric_to_decimal(nres, np);
 
 	PGTYPESnumeric_free(nres);
-	return (result);
+	return result;
 }
 
 int
-deccvint(int in, decimal * np)
+deccvint(int in, decimal *np)
 {
 	numeric    *nres;
 	int			result = 1;
@@ -283,11 +283,11 @@ deccvint(int in, decimal * np)
 		result = PGTYPESnumeric_to_decimal(nres, np);
 
 	PGTYPESnumeric_free(nres);
-	return (result);
+	return result;
 }
 
 int
-deccvlong(long lng, decimal * np)
+deccvlong(long lng, decimal *np)
 {
 	numeric    *nres;
 	int			result = 1;
@@ -305,11 +305,11 @@ deccvlong(long lng, decimal * np)
 		result = PGTYPESnumeric_to_decimal(nres, np);
 
 	PGTYPESnumeric_free(nres);
-	return (result);
+	return result;
 }
 
 int
-decdiv(decimal * n1, decimal * n2, decimal * result)
+decdiv(decimal *n1, decimal *n2, decimal *result)
 {
 	int			i;
 
@@ -334,7 +334,7 @@ decdiv(decimal * n1, decimal * n2, decimal * result)
 }
 
 int
-decmul(decimal * n1, decimal * n2, decimal * result)
+decmul(decimal *n1, decimal *n2, decimal *result)
 {
 	int			i;
 
@@ -356,7 +356,7 @@ decmul(decimal * n1, decimal * n2, decimal * result)
 }
 
 int
-decsub(decimal * n1, decimal * n2, decimal * result)
+decsub(decimal *n1, decimal *n2, decimal *result)
 {
 	int			i;
 
@@ -378,7 +378,7 @@ decsub(decimal * n1, decimal * n2, decimal * result)
 }
 
 int
-dectoasc(decimal * np, char *cp, int len, int right)
+dectoasc(decimal *np, char *cp, int len, int right)
 {
 	char	   *str;
 	numeric    *nres;
@@ -429,7 +429,7 @@ dectoasc(decimal * np, char *cp, int len, int right)
 }
 
 int
-dectodbl(decimal * np, double *dblp)
+dectodbl(decimal *np, double *dblp)
 {
 	int			i;
 	numeric    *nres = PGTYPESnumeric_new();
@@ -450,7 +450,7 @@ dectodbl(decimal * np, double *dblp)
 }
 
 int
-dectoint(decimal * np, int *ip)
+dectoint(decimal *np, int *ip)
 {
 	int			ret;
 	numeric    *nres = PGTYPESnumeric_new();
@@ -474,7 +474,7 @@ dectoint(decimal * np, int *ip)
 }
 
 int
-dectolong(decimal * np, long *lngp)
+dectolong(decimal *np, long *lngp)
 {
 	int			ret;
 	numeric    *nres = PGTYPESnumeric_new();
@@ -520,7 +520,7 @@ rdatestr(date d, char *str)
 *
 */
 int
-rstrdate(char *str, date * d)
+rstrdate(const char *str, date * d)
 {
 	return rdefmtdate(d, "mm/dd/yyyy", str);
 }
@@ -545,7 +545,7 @@ rjulmdy(date d, short mdy[3])
 }
 
 int
-rdefmtdate(date * d, char *fmt, char *str)
+rdefmtdate(date * d, const char *fmt, const char *str)
 {
 	/* TODO: take care of DBCENTURY environment variable */
 	/* PGSQL functions allow all centuries */
@@ -571,7 +571,7 @@ rdefmtdate(date * d, char *fmt, char *str)
 }
 
 int
-rfmtdate(date d, char *fmt, char *str)
+rfmtdate(date d, const char *fmt, char *str)
 {
 	errno = 0;
 	if (PGTYPESdate_fmt_asc(d, fmt, str) == 0)
@@ -598,7 +598,7 @@ rmdyjul(short mdy[3], date * d)
 int
 rdayofweek(date d)
 {
-	return (PGTYPESdate_dayofweek(d));
+	return PGTYPESdate_dayofweek(d);
 }
 
 /* And the datetime stuff */
@@ -747,7 +747,7 @@ initValue(long lng_val)
 
 /* return the position oft the right-most dot in some string */
 static int
-getRightMostDot(char *str)
+getRightMostDot(const char *str)
 {
 	size_t		len = strlen(str);
 	int			i,
@@ -765,7 +765,7 @@ getRightMostDot(char *str)
 
 /* And finally some misc functions */
 int
-rfmtlong(long lng_val, char *fmt, char *outbuf)
+rfmtlong(long lng_val, const char *fmt, char *outbuf)
 {
 	size_t		fmt_len = strlen(fmt);
 	size_t		temp_len;
@@ -1047,7 +1047,7 @@ rsetnull(int t, char *ptr)
 }
 
 int
-risnull(int t, char *ptr)
+risnull(int t, const char *ptr)
 {
-	return (ECPGis_noind_null(t, ptr));
+	return ECPGis_noind_null(t, ptr);
 }

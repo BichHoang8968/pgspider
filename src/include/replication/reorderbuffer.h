@@ -2,7 +2,7 @@
  * reorderbuffer.h
  *	  PostgreSQL logical replay/reorder buffer management.
  *
- * Copyright (c) 2012-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2012-2018, PostgreSQL Global Development Group
  *
  * src/include/replication/reorderbuffer.h
  */
@@ -30,7 +30,7 @@ typedef struct ReorderBufferTupleBuf
 	Size		alloc_tuple_size;
 
 	/* actual tuple data follows */
-}			ReorderBufferTupleBuf;
+} ReorderBufferTupleBuf;
 
 /* pointer to the data stored in a TupleBuf */
 #define ReorderBufferTupleBufData(p) \
@@ -59,7 +59,8 @@ enum ReorderBufferChangeType
 	REORDER_BUFFER_CHANGE_INTERNAL_COMMAND_ID,
 	REORDER_BUFFER_CHANGE_INTERNAL_TUPLECID,
 	REORDER_BUFFER_CHANGE_INTERNAL_SPEC_INSERT,
-	REORDER_BUFFER_CHANGE_INTERNAL_SPEC_CONFIRM
+	REORDER_BUFFER_CHANGE_INTERNAL_SPEC_CONFIRM,
+	REORDER_BUFFER_CHANGE_TRUNCATE
 };
 
 /*
@@ -99,6 +100,18 @@ typedef struct ReorderBufferChange
 			ReorderBufferTupleBuf *newtuple;
 		}			tp;
 
+		/*
+		 * Truncate data for REORDER_BUFFER_CHANGE_TRUNCATE representing one
+		 * set of relations to be truncated.
+		 */
+		struct
+		{
+			Size		nrelids;
+			bool		cascade;
+			bool		restart_seqs;
+			Oid		   *relids;
+		}			truncate;
+
 		/* Message with arbitrary data. */
 		struct
 		{
@@ -135,7 +148,7 @@ typedef struct ReorderBufferChange
 	 * otherwise it's the preallocated list.
 	 */
 	dlist_node	node;
-}			ReorderBufferChange;
+} ReorderBufferChange;
 
 typedef struct ReorderBufferTXN
 {
@@ -273,33 +286,41 @@ typedef struct ReorderBufferTXN
 	 */
 	dlist_node	node;
 
-}			ReorderBufferTXN;
+} ReorderBufferTXN;
 
 /* so we can define the callbacks used inside struct ReorderBuffer itself */
 typedef struct ReorderBuffer ReorderBuffer;
 
 /* change callback signature */
 typedef void (*ReorderBufferApplyChangeCB) (
-											ReorderBuffer * rb,
-											ReorderBufferTXN * txn,
+											ReorderBuffer *rb,
+											ReorderBufferTXN *txn,
 											Relation relation,
-											ReorderBufferChange * change);
+											ReorderBufferChange *change);
+
+/* truncate callback signature */
+typedef void (*ReorderBufferApplyTruncateCB) (
+											  ReorderBuffer *rb,
+											  ReorderBufferTXN *txn,
+											  int nrelations,
+											  Relation relations[],
+											  ReorderBufferChange *change);
 
 /* begin callback signature */
 typedef void (*ReorderBufferBeginCB) (
-									  ReorderBuffer * rb,
-									  ReorderBufferTXN * txn);
+									  ReorderBuffer *rb,
+									  ReorderBufferTXN *txn);
 
 /* commit callback signature */
 typedef void (*ReorderBufferCommitCB) (
-									   ReorderBuffer * rb,
-									   ReorderBufferTXN * txn,
+									   ReorderBuffer *rb,
+									   ReorderBufferTXN *txn,
 									   XLogRecPtr commit_lsn);
 
 /* message callback signature */
 typedef void (*ReorderBufferMessageCB) (
-										ReorderBuffer * rb,
-										ReorderBufferTXN * txn,
+										ReorderBuffer *rb,
+										ReorderBufferTXN *txn,
 										XLogRecPtr message_lsn,
 										bool transactional,
 										const char *prefix, Size sz,
@@ -339,6 +360,7 @@ struct ReorderBuffer
 	 */
 	ReorderBufferBeginCB begin;
 	ReorderBufferApplyChangeCB apply_change;
+	ReorderBufferApplyTruncateCB apply_truncate;
 	ReorderBufferCommitCB commit;
 	ReorderBufferMessageCB message;
 
@@ -346,6 +368,11 @@ struct ReorderBuffer
 	 * Pointer that will be passed untouched to the callbacks.
 	 */
 	void	   *private_data;
+
+	/*
+	 * Saved output plugin option
+	 */
+	bool		output_rewrites;
 
 	/*
 	 * Private memory context.
@@ -357,20 +384,7 @@ struct ReorderBuffer
 	 */
 	MemoryContext change_context;
 	MemoryContext txn_context;
-
-	/*
-	 * Data structure slab cache.
-	 *
-	 * We allocate/deallocate some structures very frequently, to avoid bigger
-	 * overhead we cache some unused ones here.
-	 *
-	 * The maximum number of cached entries is controlled by const variables
-	 * on top of reorderbuffer.c
-	 */
-
-	/* cached ReorderBufferTupleBufs */
-	slist_head	cached_tuplebufs;
-	Size		nr_cached_tuplebufs;
+	MemoryContext tup_context;
 
 	XLogRecPtr	current_restart_decoding_lsn;
 
@@ -384,9 +398,12 @@ ReorderBuffer *ReorderBufferAllocate(void);
 void		ReorderBufferFree(ReorderBuffer *);
 
 ReorderBufferTupleBuf *ReorderBufferGetTupleBuf(ReorderBuffer *, Size tuple_len);
-void		ReorderBufferReturnTupleBuf(ReorderBuffer *, ReorderBufferTupleBuf * tuple);
+void		ReorderBufferReturnTupleBuf(ReorderBuffer *, ReorderBufferTupleBuf *tuple);
 ReorderBufferChange *ReorderBufferGetChange(ReorderBuffer *);
 void		ReorderBufferReturnChange(ReorderBuffer *, ReorderBufferChange *);
+
+Oid * ReorderBufferGetRelids(ReorderBuffer *, int nrelids);
+void ReorderBufferReturnRelids(ReorderBuffer *, Oid *relids);
 
 void		ReorderBufferQueueChange(ReorderBuffer *, TransactionId, XLogRecPtr lsn, ReorderBufferChange *);
 void ReorderBufferQueueMessage(ReorderBuffer *, TransactionId, Snapshot snapshot, XLogRecPtr lsn,
@@ -410,16 +427,16 @@ void ReorderBufferAddNewTupleCids(ReorderBuffer *, TransactionId, XLogRecPtr lsn
 							 RelFileNode node, ItemPointerData pt,
 							 CommandId cmin, CommandId cmax, CommandId combocid);
 void ReorderBufferAddInvalidations(ReorderBuffer *, TransactionId, XLogRecPtr lsn,
-							  Size nmsgs, SharedInvalidationMessage * msgs);
+							  Size nmsgs, SharedInvalidationMessage *msgs);
 void ReorderBufferImmediateInvalidation(ReorderBuffer *, uint32 ninvalidations,
-								   SharedInvalidationMessage * invalidations);
+								   SharedInvalidationMessage *invalidations);
 void		ReorderBufferProcessXid(ReorderBuffer *, TransactionId xid, XLogRecPtr lsn);
 void		ReorderBufferXidSetCatalogChanges(ReorderBuffer *, TransactionId xid, XLogRecPtr lsn);
 bool		ReorderBufferXidHasCatalogChanges(ReorderBuffer *, TransactionId xid);
 bool		ReorderBufferXidHasBaseSnapshot(ReorderBuffer *, TransactionId xid);
 
 ReorderBufferTXN *ReorderBufferGetOldestTXN(ReorderBuffer *);
-TransactionId ReorderBufferGetOldestXmin(ReorderBuffer * rb);
+TransactionId ReorderBufferGetOldestXmin(ReorderBuffer *rb);
 
 void		ReorderBufferSetRestartPoint(ReorderBuffer *, XLogRecPtr ptr);
 

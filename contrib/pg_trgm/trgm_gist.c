@@ -23,7 +23,7 @@ typedef struct
 	 * The "query" and "trigrams" are stored in the same palloc block as this
 	 * cache struct, at MAXALIGN'ed offsets.  The graph however isn't.
 	 */
-}			gtrgm_consistent_cache;
+} gtrgm_consistent_cache;
 
 #define GETENTRY(vec,pos) ((TRGM *) DatumGetPointer((vec)->vector[(pos)].key))
 
@@ -75,7 +75,7 @@ gtrgm_out(PG_FUNCTION_ARGS)
 }
 
 static void
-makesign(BITVECP sign, TRGM * a)
+makesign(BITVECP sign, TRGM *a)
 {
 	int32		k,
 				len = ARRNELEM(a);
@@ -106,7 +106,7 @@ gtrgm_compress(PG_FUNCTION_ARGS)
 		retval = (GISTENTRY *) palloc(sizeof(GISTENTRY));
 		gistentryinit(*retval, PointerGetDatum(res),
 					  entry->rel, entry->page,
-					  entry->offset, FALSE);
+					  entry->offset, false);
 	}
 	else if (ISSIGNKEY(DatumGetPointer(entry->key)) &&
 			 !ISALLTRUE(DatumGetPointer(entry->key)))
@@ -130,7 +130,7 @@ gtrgm_compress(PG_FUNCTION_ARGS)
 		retval = (GISTENTRY *) palloc(sizeof(GISTENTRY));
 		gistentryinit(*retval, PointerGetDatum(res),
 					  entry->rel, entry->page,
-					  entry->offset, FALSE);
+					  entry->offset, false);
 	}
 	PG_RETURN_POINTER(retval);
 }
@@ -160,7 +160,7 @@ gtrgm_decompress(PG_FUNCTION_ARGS)
 }
 
 static int32
-cnt_sml_sign_common(TRGM * qtrg, BITVECP sign)
+cnt_sml_sign_common(TRGM *qtrg, BITVECP sign)
 {
 	int32		count = 0;
 	int32		k,
@@ -221,6 +221,7 @@ gtrgm_consistent(PG_FUNCTION_ARGS)
 		{
 			case SimilarityStrategyNumber:
 			case WordSimilarityStrategyNumber:
+			case StrictWordSimilarityStrategyNumber:
 				qtrg = generate_trgm(VARDATA(query),
 									 querysize - VARHDRSZ);
 				break;
@@ -290,10 +291,15 @@ gtrgm_consistent(PG_FUNCTION_ARGS)
 	{
 		case SimilarityStrategyNumber:
 		case WordSimilarityStrategyNumber:
-			/* Similarity search is exact. Word similarity search is inexact */
-			*recheck = (strategy == WordSimilarityStrategyNumber);
-			nlimit = (strategy == SimilarityStrategyNumber) ?
-				similarity_threshold : word_similarity_threshold;
+		case StrictWordSimilarityStrategyNumber:
+
+			/*
+			 * Similarity search is exact. (Strict) word similarity search is
+			 * inexact
+			 */
+			*recheck = (strategy != SimilarityStrategyNumber);
+
+			nlimit = index_strategy_get_limit(strategy);
 
 			if (GIST_LEAF(entry))
 			{					/* all leafs contains orig trgm */
@@ -468,7 +474,9 @@ gtrgm_distance(PG_FUNCTION_ARGS)
 	{
 		case DistanceStrategyNumber:
 		case WordDistanceStrategyNumber:
-			*recheck = strategy == WordDistanceStrategyNumber;
+		case StrictWordDistanceStrategyNumber:
+			/* Only plain trigram distance is exact */
+			*recheck = (strategy != DistanceStrategyNumber);
 			if (GIST_LEAF(entry))
 			{					/* all leafs contains orig trgm */
 
@@ -503,7 +511,7 @@ gtrgm_distance(PG_FUNCTION_ARGS)
 }
 
 static int32
-unionkey(BITVECP sbase, TRGM * add)
+unionkey(BITVECP sbase, TRGM *add)
 {
 	int32		i;
 
@@ -650,7 +658,7 @@ hemdistsign(BITVECP a, BITVECP b)
 }
 
 static int
-hemdist(TRGM * a, TRGM * b)
+hemdist(TRGM *a, TRGM *b)
 {
 	if (ISALLTRUE(a))
 	{
@@ -724,10 +732,10 @@ typedef struct
 {
 	bool		allistrue;
 	BITVEC		sign;
-}			CACHESIGN;
+} CACHESIGN;
 
 static void
-fillcache(CACHESIGN * item, TRGM * key)
+fillcache(CACHESIGN *item, TRGM *key)
 {
 	item->allistrue = false;
 	if (ISARRKEY(key))
@@ -743,7 +751,7 @@ typedef struct
 {
 	OffsetNumber pos;
 	int32		cost;
-}			SPLITCOST;
+} SPLITCOST;
 
 static int
 comparecost(const void *a, const void *b)
@@ -756,7 +764,7 @@ comparecost(const void *a, const void *b)
 
 
 static int
-hemdistcache(CACHESIGN * a, CACHESIGN * b)
+hemdistcache(CACHESIGN *a, CACHESIGN *b)
 {
 	if (a->allistrue)
 	{

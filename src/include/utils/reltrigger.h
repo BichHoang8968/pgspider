@@ -4,7 +4,7 @@
  *	  POSTGRES relation trigger definitions.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/reltrigger.h
@@ -41,7 +41,7 @@ typedef struct Trigger
 	char	   *tgqual;
 	char	   *tgoldtable;
 	char	   *tgnewtable;
-}			Trigger;
+} Trigger;
 
 typedef struct TriggerDesc
 {
@@ -75,6 +75,6 @@ typedef struct TriggerDesc
 	bool		trig_update_old_table;
 	bool		trig_update_new_table;
 	bool		trig_delete_old_table;
-}			TriggerDesc;
+} TriggerDesc;
 
 #endif							/* RELTRIGGER_H */

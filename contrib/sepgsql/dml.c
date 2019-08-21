@@ -4,7 +4,7 @@
  *
  * Routines to handle DML permission checks
  *
- * Copyright (c) 2010-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2010-2018, PostgreSQL Global Development Group
  *
  * -------------------------------------------------------------------------
  */
@@ -18,7 +18,7 @@
 #include "catalog/dependency.h"
 #include "catalog/pg_attribute.h"
 #include "catalog/pg_class.h"
-#include "catalog/pg_inherits_fn.h"
+#include "catalog/pg_inherits.h"
 #include "commands/seclabel.h"
 #include "commands/tablecmds.h"
 #include "executor/executor.h"
@@ -36,7 +36,7 @@
  * given bitmapset, if it contains a whole of the row reference.
  */
 static Bitmapset *
-fixup_whole_row_references(Oid relOid, Bitmapset * columns)
+fixup_whole_row_references(Oid relOid, Bitmapset *columns)
 {
 	Bitmapset  *result;
 	HeapTuple	tuple;
@@ -91,7 +91,7 @@ fixup_whole_row_references(Oid relOid, Bitmapset * columns)
  * table based on the given bitmapset of the parent.
  */
 static Bitmapset *
-fixup_inherited_columns(Oid parentId, Oid childId, Bitmapset * columns)
+fixup_inherited_columns(Oid parentId, Oid childId, Bitmapset *columns)
 {
 	Bitmapset  *result = NULL;
 	int			index;
@@ -118,10 +118,7 @@ fixup_inherited_columns(Oid parentId, Oid childId, Bitmapset * columns)
 			continue;
 		}
 
-		attname = get_attname(parentId, attno);
-		if (!attname)
-			elog(ERROR, "cache lookup failed for attribute %d of relation %u",
-				 attno, parentId);
+		attname = get_attname(parentId, attno, false);
 		attno = get_attnum(childId, attname);
 		if (attno == InvalidAttrNumber)
 			elog(ERROR, "cache lookup failed for attribute %s of relation %u",
@@ -144,9 +141,9 @@ fixup_inherited_columns(Oid parentId, Oid childId, Bitmapset * columns)
  */
 static bool
 check_relation_privileges(Oid relOid,
-						  Bitmapset * selected,
-						  Bitmapset * inserted,
-						  Bitmapset * updated,
+						  Bitmapset *selected,
+						  Bitmapset *inserted,
+						  Bitmapset *updated,
 						  uint32 required,
 						  bool abort_on_violation)
 {
@@ -284,7 +281,7 @@ check_relation_privileges(Oid relOid,
  * Entrypoint of the DML permission checks
  */
 bool
-sepgsql_dml_privileges(List * rangeTabls, bool abort_on_violation)
+sepgsql_dml_privileges(List *rangeTabls, bool abort_on_violation)
 {
 	ListCell   *lr;
 

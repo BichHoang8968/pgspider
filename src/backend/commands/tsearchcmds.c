@@ -4,7 +4,7 @@
  *
  *	  Routines for tsearch manipulation commands
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -48,9 +48,9 @@
 #include "utils/tqual.h"
 
 
-static void MakeConfigurationMapping(AlterTSConfigurationStmt * stmt,
+static void MakeConfigurationMapping(AlterTSConfigurationStmt *stmt,
 						 HeapTuple tup, Relation relMap);
-static void DropConfigurationMapping(AlterTSConfigurationStmt * stmt,
+static void DropConfigurationMapping(AlterTSConfigurationStmt *stmt,
 						 HeapTuple tup, Relation relMap);
 
 
@@ -62,7 +62,7 @@ static void DropConfigurationMapping(AlterTSConfigurationStmt * stmt,
  * attnum is the pg_ts_parser column the function will go into
  */
 static Datum
-get_ts_parser_func(DefElem * defel, int attnum)
+get_ts_parser_func(DefElem *defel, int attnum)
 {
 	List	   *funcName = defGetQualifiedName(defel);
 	Oid			typeId[3];
@@ -173,7 +173,7 @@ makeParserDependencies(HeapTuple tuple)
  * CREATE TEXT SEARCH PARSER
  */
 ObjectAddress
-DefineTSParser(List * names, List * parameters)
+DefineTSParser(List *names, List *parameters)
 {
 	char	   *prsname;
 	ListCell   *pl;
@@ -209,27 +209,27 @@ DefineTSParser(List * names, List * parameters)
 	{
 		DefElem    *defel = (DefElem *) lfirst(pl);
 
-		if (pg_strcasecmp(defel->defname, "start") == 0)
+		if (strcmp(defel->defname, "start") == 0)
 		{
 			values[Anum_pg_ts_parser_prsstart - 1] =
 				get_ts_parser_func(defel, Anum_pg_ts_parser_prsstart);
 		}
-		else if (pg_strcasecmp(defel->defname, "gettoken") == 0)
+		else if (strcmp(defel->defname, "gettoken") == 0)
 		{
 			values[Anum_pg_ts_parser_prstoken - 1] =
 				get_ts_parser_func(defel, Anum_pg_ts_parser_prstoken);
 		}
-		else if (pg_strcasecmp(defel->defname, "end") == 0)
+		else if (strcmp(defel->defname, "end") == 0)
 		{
 			values[Anum_pg_ts_parser_prsend - 1] =
 				get_ts_parser_func(defel, Anum_pg_ts_parser_prsend);
 		}
-		else if (pg_strcasecmp(defel->defname, "headline") == 0)
+		else if (strcmp(defel->defname, "headline") == 0)
 		{
 			values[Anum_pg_ts_parser_prsheadline - 1] =
 				get_ts_parser_func(defel, Anum_pg_ts_parser_prsheadline);
 		}
-		else if (pg_strcasecmp(defel->defname, "lextypes") == 0)
+		else if (strcmp(defel->defname, "lextypes") == 0)
 		{
 			values[Anum_pg_ts_parser_prslextype - 1] =
 				get_ts_parser_func(defel, Anum_pg_ts_parser_prslextype);
@@ -351,7 +351,7 @@ makeDictionaryDependencies(HeapTuple tuple)
  * verify that a template's init method accepts a proposed option list
  */
 static void
-verify_dictoptions(Oid tmplId, List * dictoptions)
+verify_dictoptions(Oid tmplId, List *dictoptions)
 {
 	HeapTuple	tup;
 	Form_pg_ts_template tform;
@@ -406,7 +406,7 @@ verify_dictoptions(Oid tmplId, List * dictoptions)
  * CREATE TEXT SEARCH DICTIONARY
  */
 ObjectAddress
-DefineTSDictionary(List * names, List * parameters)
+DefineTSDictionary(List *names, List *parameters)
 {
 	ListCell   *pl;
 	Relation	dictRel;
@@ -428,7 +428,7 @@ DefineTSDictionary(List * names, List * parameters)
 	/* Check we have creation rights in target namespace */
 	aclresult = pg_namespace_aclcheck(namespaceoid, GetUserId(), ACL_CREATE);
 	if (aclresult != ACLCHECK_OK)
-		aclcheck_error(aclresult, ACL_KIND_NAMESPACE,
+		aclcheck_error(aclresult, OBJECT_SCHEMA,
 					   get_namespace_name(namespaceoid));
 
 	/*
@@ -438,7 +438,7 @@ DefineTSDictionary(List * names, List * parameters)
 	{
 		DefElem    *defel = (DefElem *) lfirst(pl);
 
-		if (pg_strcasecmp(defel->defname, "template") == 0)
+		if (strcmp(defel->defname, "template") == 0)
 		{
 			templId = get_ts_template_oid(defGetQualifiedName(defel), false);
 		}
@@ -522,7 +522,7 @@ RemoveTSDictionaryById(Oid dictId)
  * ALTER TEXT SEARCH DICTIONARY
  */
 ObjectAddress
-AlterTSDictionary(AlterTSDictionaryStmt * stmt)
+AlterTSDictionary(AlterTSDictionaryStmt *stmt)
 {
 	HeapTuple	tup,
 				newtup;
@@ -549,7 +549,7 @@ AlterTSDictionary(AlterTSDictionaryStmt * stmt)
 
 	/* must be owner */
 	if (!pg_ts_dict_ownercheck(dictId, GetUserId()))
-		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_TSDICTIONARY,
+		aclcheck_error(ACLCHECK_NOT_OWNER, OBJECT_TSDICTIONARY,
 					   NameListToString(stmt->dictname));
 
 	/* deserialize the existing set of options */
@@ -580,7 +580,7 @@ AlterTSDictionary(AlterTSDictionaryStmt * stmt)
 			DefElem    *oldel = (DefElem *) lfirst(cell);
 
 			next = lnext(cell);
-			if (pg_strcasecmp(oldel->defname, defel->defname) == 0)
+			if (strcmp(oldel->defname, defel->defname) == 0)
 				dictoptions = list_delete_cell(dictoptions, cell, prev);
 			else
 				prev = cell;
@@ -644,7 +644,7 @@ AlterTSDictionary(AlterTSDictionaryStmt * stmt)
  * attnum is the pg_ts_template column the function will go into
  */
 static Datum
-get_ts_template_func(DefElem * defel, int attnum)
+get_ts_template_func(DefElem *defel, int attnum)
 {
 	List	   *funcName = defGetQualifiedName(defel);
 	Oid			typeId[4];
@@ -726,7 +726,7 @@ makeTSTemplateDependencies(HeapTuple tuple)
  * CREATE TEXT SEARCH TEMPLATE
  */
 ObjectAddress
-DefineTSTemplate(List * names, List * parameters)
+DefineTSTemplate(List *names, List *parameters)
 {
 	ListCell   *pl;
 	Relation	tmplRel;
@@ -765,13 +765,13 @@ DefineTSTemplate(List * names, List * parameters)
 	{
 		DefElem    *defel = (DefElem *) lfirst(pl);
 
-		if (pg_strcasecmp(defel->defname, "init") == 0)
+		if (strcmp(defel->defname, "init") == 0)
 		{
 			values[Anum_pg_ts_template_tmplinit - 1] =
 				get_ts_template_func(defel, Anum_pg_ts_template_tmplinit);
 			nulls[Anum_pg_ts_template_tmplinit - 1] = false;
 		}
-		else if (pg_strcasecmp(defel->defname, "lexize") == 0)
+		else if (strcmp(defel->defname, "lexize") == 0)
 		{
 			values[Anum_pg_ts_template_tmpllexize - 1] =
 				get_ts_template_func(defel, Anum_pg_ts_template_tmpllexize);
@@ -845,7 +845,7 @@ RemoveTSTemplateById(Oid tmplId)
  * Returns NULL if no such cfg.
  */
 static HeapTuple
-GetTSConfigTuple(List * names)
+GetTSConfigTuple(List *names)
 {
 	HeapTuple	tup;
 	Oid			cfgId;
@@ -957,7 +957,7 @@ makeConfigurationDependencies(HeapTuple tuple, bool removeOld,
  * CREATE TEXT SEARCH CONFIGURATION
  */
 ObjectAddress
-DefineTSConfiguration(List * names, List * parameters, ObjectAddress * copied)
+DefineTSConfiguration(List *names, List *parameters, ObjectAddress *copied)
 {
 	Relation	cfgRel;
 	Relation	mapRel = NULL;
@@ -980,7 +980,7 @@ DefineTSConfiguration(List * names, List * parameters, ObjectAddress * copied)
 	/* Check we have creation rights in target namespace */
 	aclresult = pg_namespace_aclcheck(namespaceoid, GetUserId(), ACL_CREATE);
 	if (aclresult != ACLCHECK_OK)
-		aclcheck_error(aclresult, ACL_KIND_NAMESPACE,
+		aclcheck_error(aclresult, OBJECT_SCHEMA,
 					   get_namespace_name(namespaceoid));
 
 	/*
@@ -990,9 +990,9 @@ DefineTSConfiguration(List * names, List * parameters, ObjectAddress * copied)
 	{
 		DefElem    *defel = (DefElem *) lfirst(pl);
 
-		if (pg_strcasecmp(defel->defname, "parser") == 0)
+		if (strcmp(defel->defname, "parser") == 0)
 			prsOid = get_ts_parser_oid(defGetQualifiedName(defel), false);
-		else if (pg_strcasecmp(defel->defname, "copy") == 0)
+		else if (strcmp(defel->defname, "copy") == 0)
 			sourceOid = get_ts_config_oid(defGetQualifiedName(defel), false);
 		else
 			ereport(ERROR,
@@ -1170,7 +1170,7 @@ RemoveTSConfigurationById(Oid cfgId)
  * ALTER TEXT SEARCH CONFIGURATION - main entry point
  */
 ObjectAddress
-AlterTSConfiguration(AlterTSConfigurationStmt * stmt)
+AlterTSConfiguration(AlterTSConfigurationStmt *stmt)
 {
 	HeapTuple	tup;
 	Oid			cfgId;
@@ -1189,7 +1189,7 @@ AlterTSConfiguration(AlterTSConfigurationStmt * stmt)
 
 	/* must be owner */
 	if (!pg_ts_config_ownercheck(HeapTupleGetOid(tup), GetUserId()))
-		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_TSCONFIGURATION,
+		aclcheck_error(ACLCHECK_NOT_OWNER, OBJECT_TSCONFIGURATION,
 					   NameListToString(stmt->cfgname));
 
 	relMap = heap_open(TSConfigMapRelationId, RowExclusiveLock);
@@ -1219,7 +1219,7 @@ AlterTSConfiguration(AlterTSConfigurationStmt * stmt)
  * Translate a list of token type names to an array of token type numbers
  */
 static int *
-getTokenTypes(Oid prsId, List * tokennames)
+getTokenTypes(Oid prsId, List *tokennames)
 {
 	TSParserCacheEntry *prs = lookup_ts_parser_cache(prsId);
 	LexDescr   *list;
@@ -1251,7 +1251,6 @@ getTokenTypes(Oid prsId, List * tokennames)
 		j = 0;
 		while (list && list[j].lexid)
 		{
-			/* XXX should we use pg_strcasecmp here? */
 			if (strcmp(strVal(val), list[j].alias) == 0)
 			{
 				res[i] = list[j].lexid;
@@ -1275,7 +1274,7 @@ getTokenTypes(Oid prsId, List * tokennames)
  * ALTER TEXT SEARCH CONFIGURATION ADD/ALTER MAPPING
  */
 static void
-MakeConfigurationMapping(AlterTSConfigurationStmt * stmt,
+MakeConfigurationMapping(AlterTSConfigurationStmt *stmt,
 						 HeapTuple tup, Relation relMap)
 {
 	Oid			cfgId = HeapTupleGetOid(tup);
@@ -1436,7 +1435,7 @@ MakeConfigurationMapping(AlterTSConfigurationStmt * stmt,
  * ALTER TEXT SEARCH CONFIGURATION DROP MAPPING
  */
 static void
-DropConfigurationMapping(AlterTSConfigurationStmt * stmt,
+DropConfigurationMapping(AlterTSConfigurationStmt *stmt,
 						 HeapTuple tup, Relation relMap)
 {
 	Oid			cfgId = HeapTupleGetOid(tup);
@@ -1514,7 +1513,7 @@ DropConfigurationMapping(AlterTSConfigurationStmt * stmt,
  * value is interesting --- hence, non-string DefElems get forced to strings.
  */
 text *
-serialize_deflist(List * deflist)
+serialize_deflist(List *deflist)
 {
 	text	   *result;
 	StringInfoData buf;
@@ -1579,7 +1578,7 @@ deserialize_deflist(Datum txt)
 		CS_INSQVALUE,
 		CS_INDQVALUE,
 		CS_INWVALUE
-	}			ds_state;
+	} ds_state;
 	ds_state	state = CS_WAITKEY;
 
 	workspace = (char *) palloc(len + 1);	/* certainly enough room */

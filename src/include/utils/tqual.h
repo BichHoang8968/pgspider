@@ -5,7 +5,7 @@
  *
  *	  Should be moved/renamed...    - vadim 07/28/98
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/tqual.h
@@ -53,7 +53,7 @@ typedef enum
 	HEAPTUPLE_RECENTLY_DEAD,	/* tuple is dead, but not deletable yet */
 	HEAPTUPLE_INSERT_IN_PROGRESS,	/* inserting xact is still in progress */
 	HEAPTUPLE_DELETE_IN_PROGRESS	/* deleting xact is still in progress */
-}			HTSV_Result;
+} HTSV_Result;
 
 /* These are the "satisfies" test routines for the various snapshot types */
 extern bool HeapTupleSatisfiesMVCC(HeapTuple htup,
@@ -66,14 +66,16 @@ extern bool HeapTupleSatisfiesToast(HeapTuple htup,
 						Snapshot snapshot, Buffer buffer);
 extern bool HeapTupleSatisfiesDirty(HeapTuple htup,
 						Snapshot snapshot, Buffer buffer);
+extern bool HeapTupleSatisfiesNonVacuumable(HeapTuple htup,
+								Snapshot snapshot, Buffer buffer);
 extern bool HeapTupleSatisfiesHistoricMVCC(HeapTuple htup,
 							   Snapshot snapshot, Buffer buffer);
 
 /* Special "satisfies" routines with different APIs */
 extern HTSU_Result HeapTupleSatisfiesUpdate(HeapTuple htup,
-											CommandId curcid, Buffer buffer);
+						 CommandId curcid, Buffer buffer);
 extern HTSV_Result HeapTupleSatisfiesVacuum(HeapTuple htup,
-											TransactionId OldestXmin, Buffer buffer);
+						 TransactionId OldestXmin, Buffer buffer);
 extern bool HeapTupleIsSurelyDead(HeapTuple htup,
 					  TransactionId OldestXmin);
 extern bool XidInMVCCSnapshot(TransactionId xid, Snapshot snapshot);
@@ -91,7 +93,7 @@ extern bool ResolveCminCmaxDuringDecoding(struct HTAB *tuplecid_data,
 							  Snapshot snapshot,
 							  HeapTuple htup,
 							  Buffer buffer,
-							  CommandId * cmin, CommandId * cmax);
+							  CommandId *cmin, CommandId *cmax);
 
 /*
  * We don't provide a static SnapshotDirty variable because it would be
@@ -100,6 +102,14 @@ extern bool ResolveCminCmaxDuringDecoding(struct HTAB *tuplecid_data,
  */
 #define InitDirtySnapshot(snapshotdata)  \
 	((snapshotdata).satisfies = HeapTupleSatisfiesDirty)
+
+/*
+ * Similarly, some initialization is required for a NonVacuumable snapshot.
+ * The caller must supply the xmin horizon to use (e.g., RecentGlobalXmin).
+ */
+#define InitNonVacuumableSnapshot(snapshotdata, xmin_horizon)  \
+	((snapshotdata).satisfies = HeapTupleSatisfiesNonVacuumable, \
+	 (snapshotdata).xmin = (xmin_horizon))
 
 /*
  * Similarly, some initialization is required for SnapshotToast.  We need

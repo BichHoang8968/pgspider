@@ -3,7 +3,7 @@
  * fe-auth.c
  *	   The front-end (client) authorization routines
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -39,8 +39,8 @@
 #endif
 
 #include "common/md5.h"
+#include "common/scram-common.h"
 #include "libpq-fe.h"
-#include "libpq/scram.h"
 #include "fe-auth.h"
 
 
@@ -84,7 +84,7 @@ pg_GSS_error_int(PQExpBuffer str, const char *mprefix,
  * GSSAPI errors contain two parts; put both into conn->errorMessage.
  */
 static void
-pg_GSS_error(const char *mprefix, PGconn * conn,
+pg_GSS_error(const char *mprefix, PGconn *conn,
 			 OM_uint32 maj_stat, OM_uint32 min_stat)
 {
 	resetPQExpBuffer(&conn->errorMessage);
@@ -100,7 +100,7 @@ pg_GSS_error(const char *mprefix, PGconn * conn,
  * Continue GSS authentication with next token as needed.
  */
 static int
-pg_GSS_continue(PGconn * conn, int payloadlen)
+pg_GSS_continue(PGconn *conn, int payloadlen)
 {
 	OM_uint32	maj_stat,
 				min_stat,
@@ -193,7 +193,7 @@ pg_GSS_continue(PGconn * conn, int payloadlen)
  * Send initial GSS authentication token
  */
 static int
-pg_GSS_startup(PGconn * conn, int payloadlen)
+pg_GSS_startup(PGconn *conn, int payloadlen)
 {
 	OM_uint32	maj_stat,
 				min_stat;
@@ -260,7 +260,7 @@ pg_GSS_startup(PGconn * conn, int payloadlen)
  */
 
 static void
-pg_SSPI_error(PGconn * conn, const char *mprefix, SECURITY_STATUS r)
+pg_SSPI_error(PGconn *conn, const char *mprefix, SECURITY_STATUS r)
 {
 	char		sysmsg[256];
 
@@ -279,7 +279,7 @@ pg_SSPI_error(PGconn * conn, const char *mprefix, SECURITY_STATUS r)
  * Continue SSPI authentication with next token as needed.
  */
 static int
-pg_SSPI_continue(PGconn * conn, int payloadlen)
+pg_SSPI_continue(PGconn *conn, int payloadlen)
 {
 	SECURITY_STATUS r;
 	CtxtHandle	newContext;
@@ -410,7 +410,7 @@ pg_SSPI_continue(PGconn * conn, int payloadlen)
  * which supports both kerberos and NTLM, but is not compatible with Unix.
  */
 static int
-pg_SSPI_startup(PGconn * conn, int use_negotiate, int payloadlen)
+pg_SSPI_startup(PGconn *conn, int use_negotiate, int payloadlen)
 {
 	SECURITY_STATUS r;
 	TimeStamp	expire;
@@ -483,7 +483,7 @@ pg_SSPI_startup(PGconn * conn, int use_negotiate, int payloadlen)
  * Initialize SASL authentication exchange.
  */
 static int
-pg_SASL_init(PGconn * conn, int payloadlen)
+pg_SASL_init(PGconn *conn, int payloadlen)
 {
 	char	   *initialresponse = NULL;
 	int			initialresponselen;
@@ -491,6 +491,7 @@ pg_SASL_init(PGconn * conn, int payloadlen)
 	bool		success;
 	const char *selected_mechanism;
 	PQExpBufferData mechanism_buf;
+	char	   *password;
 
 	initPQExpBuffer(&mechanism_buf);
 
@@ -504,7 +505,8 @@ pg_SASL_init(PGconn * conn, int payloadlen)
 	/*
 	 * Parse the list of SASL authentication mechanisms in the
 	 * AuthenticationSASL message, and select the best mechanism that we
-	 * support.  (Only SCRAM-SHA-256 is supported at the moment.)
+	 * support.  SCRAM-SHA-256-PLUS and SCRAM-SHA-256 are the only ones
+	 * supported at the moment, listed by order of decreasing importance.
 	 */
 	selected_mechanism = NULL;
 	for (;;)
@@ -523,35 +525,44 @@ pg_SASL_init(PGconn * conn, int payloadlen)
 			break;
 
 		/*
-		 * If we have already selected a mechanism, just skip through the rest
-		 * of the list.
+		 * Select the mechanism to use.  Pick SCRAM-SHA-256-PLUS over anything
+		 * else if a channel binding type is set and if the client supports
+		 * it. Pick SCRAM-SHA-256 if nothing else has already been picked.  If
+		 * we add more mechanisms, a more refined priority mechanism might
+		 * become necessary.
 		 */
-		if (selected_mechanism)
-			continue;
-
-		/*
-		 * Do we support this mechanism?
-		 */
-		if (strcmp(mechanism_buf.data, SCRAM_SHA_256_NAME) == 0)
+		if (strcmp(mechanism_buf.data, SCRAM_SHA_256_PLUS_NAME) == 0)
 		{
-			char	   *password;
-
-			conn->password_needed = true;
-			password = conn->connhost[conn->whichhost].password;
-			if (password == NULL)
-				password = conn->pgpass;
-			if (password == NULL || password[0] == '\0')
+			if (conn->ssl_in_use)
 			{
+				/*
+				 * The server has offered SCRAM-SHA-256-PLUS, which is only
+				 * supported by the client if a hash of the peer certificate
+				 * can be created.
+				 */
+#ifdef HAVE_PGTLS_GET_PEER_CERTIFICATE_HASH
+				selected_mechanism = SCRAM_SHA_256_PLUS_NAME;
+#endif
+			}
+			else
+			{
+				/*
+				 * The server offered SCRAM-SHA-256-PLUS, but the connection
+				 * is not SSL-encrypted. That's not sane. Perhaps SSL was
+				 * stripped by a proxy? There's no point in continuing,
+				 * because the server will reject the connection anyway if we
+				 * try authenticate without channel binding even though both
+				 * the client and server supported it. The SCRAM exchange
+				 * checks for that, to prevent downgrade attacks.
+				 */
 				printfPQExpBuffer(&conn->errorMessage,
-								  PQnoPasswordSupplied);
+								  libpq_gettext("server offered SCRAM-SHA-256-PLUS authentication over a non-SSL connection\n"));
 				goto error;
 			}
-
-			conn->sasl_state = pg_fe_scram_init(conn->pguser, password);
-			if (!conn->sasl_state)
-				goto oom_error;
-			selected_mechanism = SCRAM_SHA_256_NAME;
 		}
+		else if (strcmp(mechanism_buf.data, SCRAM_SHA_256_NAME) == 0 &&
+				 !selected_mechanism)
+			selected_mechanism = SCRAM_SHA_256_NAME;
 	}
 
 	if (!selected_mechanism)
@@ -561,11 +572,44 @@ pg_SASL_init(PGconn * conn, int payloadlen)
 		goto error;
 	}
 
+	/*
+	 * Now that the SASL mechanism has been chosen for the exchange,
+	 * initialize its state information.
+	 */
+
+	/*
+	 * First, select the password to use for the exchange, complaining if
+	 * there isn't one.  Currently, all supported SASL mechanisms require a
+	 * password, so we can just go ahead here without further distinction.
+	 */
+	conn->password_needed = true;
+	password = conn->connhost[conn->whichhost].password;
+	if (password == NULL)
+		password = conn->pgpass;
+	if (password == NULL || password[0] == '\0')
+	{
+		printfPQExpBuffer(&conn->errorMessage,
+						  PQnoPasswordSupplied);
+		goto error;
+	}
+
+	/*
+	 * Initialize the SASL state information with all the information gathered
+	 * during the initial exchange.
+	 *
+	 * Note: Only tls-unique is supported for the moment.
+	 */
+	conn->sasl_state = pg_fe_scram_init(conn,
+										password,
+										selected_mechanism);
+	if (!conn->sasl_state)
+		goto oom_error;
+
 	/* Get the mechanism-specific Initial Client Response, if any */
 	pg_fe_scram_exchange(conn->sasl_state,
 						 NULL, -1,
 						 &initialresponse, &initialresponselen,
-						 &done, &success, &conn->errorMessage);
+						 &done, &success);
 
 	if (done && !success)
 		goto error;
@@ -616,7 +660,7 @@ oom_error:
  * the protocol.
  */
 static int
-pg_SASL_continue(PGconn * conn, int payloadlen, bool final)
+pg_SASL_continue(PGconn *conn, int payloadlen, bool final)
 {
 	char	   *output;
 	int			outputlen;
@@ -646,7 +690,7 @@ pg_SASL_continue(PGconn * conn, int payloadlen, bool final)
 	pg_fe_scram_exchange(conn->sasl_state,
 						 challenge, payloadlen,
 						 &output, &outputlen,
-						 &done, &success, &conn->errorMessage);
+						 &done, &success);
 	free(challenge);			/* don't need the input anymore */
 
 	if (final && !done)
@@ -686,7 +730,7 @@ pg_SASL_continue(PGconn * conn, int payloadlen, bool final)
  * getpeereid() function isn't provided by libc).
  */
 static int
-pg_local_sendauth(PGconn * conn)
+pg_local_sendauth(PGconn *conn)
 {
 #ifdef HAVE_STRUCT_CMSGCRED
 	char		buf;
@@ -738,7 +782,7 @@ pg_local_sendauth(PGconn * conn)
 }
 
 static int
-pg_password_sendauth(PGconn * conn, const char *password, AuthRequest areq)
+pg_password_sendauth(PGconn *conn, const char *password, AuthRequest areq)
 {
 	int			ret;
 	char	   *crypt_pwd = NULL;
@@ -814,7 +858,7 @@ pg_password_sendauth(PGconn * conn, const char *password, AuthRequest areq)
  * the message.
  */
 int
-pg_fe_sendauth(AuthRequest areq, int payloadlen, PGconn * conn)
+pg_fe_sendauth(AuthRequest areq, int payloadlen, PGconn *conn)
 {
 	switch (areq)
 	{
@@ -1137,7 +1181,7 @@ PQencryptPassword(const char *passwd, const char *user)
  * returns NULL.
  */
 char *
-PQencryptPasswordConn(PGconn * conn, const char *passwd, const char *user,
+PQencryptPasswordConn(PGconn *conn, const char *passwd, const char *user,
 					  const char *algorithm)
 {
 #define MAX_ALGORITHM_NAME_LEN 50

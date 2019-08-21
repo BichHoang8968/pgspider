@@ -3,7 +3,7 @@
  * snapmgr.h
  *	  POSTGRES snapshot manager
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/snapmgr.h
@@ -92,7 +92,7 @@ extern bool XactHasExportedSnapshots(void);
 extern void DeleteAllExportedSnapshotFiles(void);
 extern bool ThereAreNoPriorRegisteredSnapshots(void);
 extern TransactionId TransactionIdLimitedForOldSnapshots(TransactionId recentXmin,
-														 Relation relation);
+									Relation relation);
 extern void MaintainOldSnapshotTimeMapping(TimestampTz whenTaken,
 							   TransactionId xmin);
 

@@ -5,7 +5,7 @@
  *
  * All the actual insertion logic is in spgdoinsert.c.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -34,12 +34,12 @@ typedef struct
 	SpGistState spgstate;		/* SPGiST's working state */
 	int64		indtuples;		/* total number of tuples indexed */
 	MemoryContext tmpCtx;		/* per-tuple temporary context */
-}			SpGistBuildState;
+} SpGistBuildState;
 
 
 /* Callback to process one heap tuple during IndexBuildHeapScan */
 static void
-spgistBuildCallback(Relation index, HeapTuple htup, Datum * values,
+spgistBuildCallback(Relation index, HeapTuple htup, Datum *values,
 					bool *isnull, bool tupleIsAlive, void *state)
 {
 	SpGistBuildState *buildstate = (SpGistBuildState *) state;
@@ -71,7 +71,7 @@ spgistBuildCallback(Relation index, HeapTuple htup, Datum * values,
  * Build an SP-GiST index.
  */
 IndexBuildResult *
-spgbuild(Relation heap, Relation index, IndexInfo * indexInfo)
+spgbuild(Relation heap, Relation index, IndexInfo *indexInfo)
 {
 	IndexBuildResult *result;
 	double		reltuples;
@@ -114,7 +114,7 @@ spgbuild(Relation heap, Relation index, IndexInfo * indexInfo)
 		 * Replay will re-initialize the pages, so don't take full pages
 		 * images.  No other data to log.
 		 */
-		XLogRegisterBuffer(0, metabuffer, REGBUF_WILL_INIT);
+		XLogRegisterBuffer(0, metabuffer, REGBUF_WILL_INIT | REGBUF_STANDARD);
 		XLogRegisterBuffer(1, rootbuffer, REGBUF_WILL_INIT | REGBUF_STANDARD);
 		XLogRegisterBuffer(2, nullbuffer, REGBUF_WILL_INIT | REGBUF_STANDARD);
 
@@ -143,7 +143,8 @@ spgbuild(Relation heap, Relation index, IndexInfo * indexInfo)
 											  ALLOCSET_DEFAULT_SIZES);
 
 	reltuples = IndexBuildHeapScan(heap, index, indexInfo, true,
-								   spgistBuildCallback, (void *) &buildstate);
+								   spgistBuildCallback, (void *) &buildstate,
+								   NULL);
 
 	MemoryContextDelete(buildstate.tmpCtx);
 
@@ -179,7 +180,7 @@ spgbuildempty(Relation index)
 	smgrwrite(index->rd_smgr, INIT_FORKNUM, SPGIST_METAPAGE_BLKNO,
 			  (char *) page, true);
 	log_newpage(&index->rd_smgr->smgr_rnode.node, INIT_FORKNUM,
-				SPGIST_METAPAGE_BLKNO, page, false);
+				SPGIST_METAPAGE_BLKNO, page, true);
 
 	/* Likewise for the root page. */
 	SpGistInitPage(page, SPGIST_LEAF);
@@ -211,10 +212,10 @@ spgbuildempty(Relation index)
  * Insert one new tuple into an SPGiST index.
  */
 bool
-spginsert(Relation index, Datum * values, bool *isnull,
+spginsert(Relation index, Datum *values, bool *isnull,
 		  ItemPointer ht_ctid, Relation heapRel,
 		  IndexUniqueCheck checkUnique,
-		  IndexInfo * indexInfo)
+		  IndexInfo *indexInfo)
 {
 	SpGistState spgstate;
 	MemoryContext oldCtx;

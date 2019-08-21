@@ -3,7 +3,7 @@
  * parse_relation.c
  *	  parser support routines dealing with relations
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -37,25 +37,25 @@
 
 #define MAX_FUZZY_DISTANCE				3
 
-static RangeTblEntry * scanNameSpaceForRefname(ParseState * pstate,
-											   const char *refname, int location);
-static RangeTblEntry * scanNameSpaceForRelid(ParseState * pstate, Oid relid,
-											 int location);
-static void check_lateral_ref_ok(ParseState * pstate, ParseNamespaceItem * nsitem,
+static RangeTblEntry *scanNameSpaceForRefname(ParseState *pstate,
+						const char *refname, int location);
+static RangeTblEntry *scanNameSpaceForRelid(ParseState *pstate, Oid relid,
+					  int location);
+static void check_lateral_ref_ok(ParseState *pstate, ParseNamespaceItem *nsitem,
 					 int location);
-static void markRTEForSelectPriv(ParseState * pstate, RangeTblEntry * rte,
+static void markRTEForSelectPriv(ParseState *pstate, RangeTblEntry *rte,
 					 int rtindex, AttrNumber col);
-static void expandRelation(Oid relid, Alias * eref,
+static void expandRelation(Oid relid, Alias *eref,
 			   int rtindex, int sublevels_up,
 			   int location, bool include_dropped,
-			   List * *colnames, List * *colvars);
-static void expandTupleDesc(TupleDesc tupdesc, Alias * eref,
+			   List **colnames, List **colvars);
+static void expandTupleDesc(TupleDesc tupdesc, Alias *eref,
 				int count, int offset,
 				int rtindex, int sublevels_up,
 				int location, bool include_dropped,
-				List * *colnames, List * *colvars);
+				List **colnames, List **colvars);
 static int	specialAttNum(const char *attname);
-static bool isQueryUsingTempRelation_walker(Node * node, void *context);
+static bool isQueryUsingTempRelation_walker(Node *node, void *context);
 
 
 /*
@@ -80,7 +80,7 @@ static bool isQueryUsingTempRelation_walker(Node * node, void *context);
  * peculiar, but it's what SQL says to do.
  */
 RangeTblEntry *
-refnameRangeTblEntry(ParseState * pstate,
+refnameRangeTblEntry(ParseState *pstate,
 					 const char *schemaname,
 					 const char *refname,
 					 int location,
@@ -151,7 +151,7 @@ refnameRangeTblEntry(ParseState * pstate,
  * reference to "x".
  */
 static RangeTblEntry *
-scanNameSpaceForRefname(ParseState * pstate, const char *refname, int location)
+scanNameSpaceForRefname(ParseState *pstate, const char *refname, int location)
 {
 	RangeTblEntry *result = NULL;
 	ListCell   *l;
@@ -192,7 +192,7 @@ scanNameSpaceForRefname(ParseState * pstate, const char *refname, int location)
  * acts the way it does.
  */
 static RangeTblEntry *
-scanNameSpaceForRelid(ParseState * pstate, Oid relid, int location)
+scanNameSpaceForRelid(ParseState *pstate, Oid relid, int location)
 {
 	RangeTblEntry *result = NULL;
 	ListCell   *l;
@@ -234,8 +234,8 @@ scanNameSpaceForRelid(ParseState * pstate, Oid relid, int location)
  * rejects WITH lists containing duplicate CTE names.
  */
 CommonTableExpr *
-scanNameSpaceForCTE(ParseState * pstate, const char *refname,
-					Index * ctelevelsup)
+scanNameSpaceForCTE(ParseState *pstate, const char *refname,
+					Index *ctelevelsup)
 {
 	Index		levelsup;
 
@@ -265,7 +265,7 @@ scanNameSpaceForCTE(ParseState * pstate, const char *refname,
  * SQL semantics, but it's important for error reporting purposes.
  */
 static bool
-isFutureCTE(ParseState * pstate, const char *refname)
+isFutureCTE(ParseState *pstate, const char *refname)
 {
 	for (; pstate != NULL; pstate = pstate->parentParseState)
 	{
@@ -287,7 +287,7 @@ isFutureCTE(ParseState * pstate, const char *refname)
  * matching the given unqualified refname.
  */
 bool
-scanNameSpaceForENR(ParseState * pstate, const char *refname)
+scanNameSpaceForENR(ParseState *pstate, const char *refname)
 {
 	return name_matches_visible_ENR(pstate, refname);
 }
@@ -308,7 +308,7 @@ scanNameSpaceForENR(ParseState * pstate, const char *refname)
  * and matches on alias.
  */
 static RangeTblEntry *
-searchRangeTableForRel(ParseState * pstate, RangeVar * relation)
+searchRangeTableForRel(ParseState *pstate, RangeVar *relation)
 {
 	const char *refname = relation->relname;
 	Oid			relId = InvalidOid;
@@ -386,8 +386,8 @@ searchRangeTableForRel(ParseState * pstate, RangeVar * relation)
  * columns-only items should be ignored.
  */
 void
-checkNameSpaceConflicts(ParseState * pstate, List * namespace1,
-						List * namespace2)
+checkNameSpaceConflicts(ParseState *pstate, List *namespace1,
+						List *namespace2)
 {
 	ListCell   *l1;
 
@@ -432,7 +432,7 @@ checkNameSpaceConflicts(ParseState * pstate, List * namespace1,
  * Convenience subroutine to avoid multiple copies of a rather ugly ereport.
  */
 static void
-check_lateral_ref_ok(ParseState * pstate, ParseNamespaceItem * nsitem,
+check_lateral_ref_ok(ParseState *pstate, ParseNamespaceItem *nsitem,
 					 int location)
 {
 	if (nsitem->p_lateral_only && !nsitem->p_lateral_ok)
@@ -460,7 +460,7 @@ check_lateral_ref_ok(ParseState * pstate, ParseNamespaceItem * nsitem,
  * Raises error if RTE not found.
  */
 int
-RTERangeTablePosn(ParseState * pstate, RangeTblEntry * rte, int *sublevels_up)
+RTERangeTablePosn(ParseState *pstate, RangeTblEntry *rte, int *sublevels_up)
 {
 	int			index;
 	ListCell   *l;
@@ -493,7 +493,7 @@ RTERangeTablePosn(ParseState * pstate, RangeTblEntry * rte, int *sublevels_up)
  * This is the inverse of RTERangeTablePosn.
  */
 RangeTblEntry *
-GetRTEByRangeTablePosn(ParseState * pstate,
+GetRTEByRangeTablePosn(ParseState *pstate,
 					   int varno,
 					   int sublevels_up)
 {
@@ -514,7 +514,7 @@ GetRTEByRangeTablePosn(ParseState * pstate,
  * may pass -1 instead.
  */
 CommonTableExpr *
-GetCTEForRTE(ParseState * pstate, RangeTblEntry * rte, int rtelevelsup)
+GetCTEForRTE(ParseState *pstate, RangeTblEntry *rte, int rtelevelsup)
 {
 	Index		levelsup;
 	ListCell   *lc;
@@ -549,7 +549,7 @@ GetCTEForRTE(ParseState * pstate, RangeTblEntry * rte, int rtelevelsup)
  */
 static void
 updateFuzzyAttrMatchState(int fuzzy_rte_penalty,
-						  FuzzyAttrMatchState * fuzzystate, RangeTblEntry * rte,
+						  FuzzyAttrMatchState *fuzzystate, RangeTblEntry *rte,
 						  const char *actual, const char *match, int attnum)
 {
 	int			columndistance;
@@ -652,9 +652,9 @@ updateFuzzyAttrMatchState(int fuzzy_rte_penalty,
  * for an approximate match and update fuzzystate accordingly.
  */
 Node *
-scanRTEForColumn(ParseState * pstate, RangeTblEntry * rte, char *colname,
+scanRTEForColumn(ParseState *pstate, RangeTblEntry *rte, const char *colname,
 				 int location, int fuzzy_rte_penalty,
-				 FuzzyAttrMatchState * fuzzystate)
+				 FuzzyAttrMatchState *fuzzystate)
 {
 	Node	   *result = NULL;
 	int			attnum = 0;
@@ -754,7 +754,7 @@ scanRTEForColumn(ParseState * pstate, RangeTblEntry * rte, char *colname,
  *	  If localonly is true, only names in the innermost query are considered.
  */
 Node *
-colNameToVar(ParseState * pstate, char *colname, bool localonly,
+colNameToVar(ParseState *pstate, const char *colname, bool localonly,
 			 int location)
 {
 	Node	   *result = NULL;
@@ -828,7 +828,7 @@ colNameToVar(ParseState * pstate, char *colname, bool localonly,
  * and 'second' will contain the attribute number for the second match.
  */
 static FuzzyAttrMatchState *
-searchRangeTableForCol(ParseState * pstate, const char *alias, char *colname,
+searchRangeTableForCol(ParseState *pstate, const char *alias, const char *colname,
 					   int location)
 {
 	ParseState *orig_pstate = pstate;
@@ -906,7 +906,7 @@ searchRangeTableForCol(ParseState * pstate, const char *alias, char *colname,
  * worthwhile because nearly all external callers have the RTE at hand.)
  */
 static void
-markRTEForSelectPriv(ParseState * pstate, RangeTblEntry * rte,
+markRTEForSelectPriv(ParseState *pstate, RangeTblEntry *rte,
 					 int rtindex, AttrNumber col)
 {
 	if (rte == NULL)
@@ -1000,7 +1000,7 @@ markRTEForSelectPriv(ParseState * pstate, RangeTblEntry * rte,
  * (nearly all do); otherwise pass NULL.
  */
 void
-markVarForSelectPriv(ParseState * pstate, Var * var, RangeTblEntry * rte)
+markVarForSelectPriv(ParseState *pstate, Var *var, RangeTblEntry *rte)
 {
 	Index		lv;
 
@@ -1027,7 +1027,7 @@ markVarForSelectPriv(ParseState * pstate, Var * var, RangeTblEntry * rte)
  * It is an error for there to be more aliases present than required.
  */
 static void
-buildRelationAliases(TupleDesc tupdesc, Alias * alias, Alias * eref)
+buildRelationAliases(TupleDesc tupdesc, Alias *alias, Alias *eref)
 {
 	int			maxattrs = tupdesc->natts;
 	ListCell   *aliaslc;
@@ -1052,7 +1052,7 @@ buildRelationAliases(TupleDesc tupdesc, Alias * alias, Alias * eref)
 
 	for (varattno = 0; varattno < maxattrs; varattno++)
 	{
-		Form_pg_attribute attr = tupdesc->attrs[varattno];
+		Form_pg_attribute attr = TupleDescAttr(tupdesc, varattno);
 		Value	   *attrname;
 
 		if (attr->attisdropped)
@@ -1101,8 +1101,8 @@ buildRelationAliases(TupleDesc tupdesc, Alias * alias, Alias * eref)
  * alias includes column alias names.  That's of no concern here.
  */
 static char *
-chooseScalarFunctionAlias(Node * funcexpr, char *funcname,
-						  Alias * alias, int nfuncs)
+chooseScalarFunctionAlias(Node *funcexpr, char *funcname,
+						  Alias *alias, int nfuncs)
 {
 	char	   *pname;
 
@@ -1143,7 +1143,7 @@ chooseScalarFunctionAlias(Node * funcexpr, char *funcname,
  * LOCKMODE is typedef'd as int anyway, that seems like overkill.
  */
 Relation
-parserOpenTable(ParseState * pstate, const RangeVar * relation, int lockmode)
+parserOpenTable(ParseState *pstate, const RangeVar *relation, int lockmode)
 {
 	Relation	rel;
 	ParseCallbackState pcbstate;
@@ -1191,9 +1191,9 @@ parserOpenTable(ParseState * pstate, const RangeVar * relation, int lockmode)
  * Caller is responsible for checking for conflicts in the appropriate scope.
  */
 RangeTblEntry *
-addRangeTableEntry(ParseState * pstate,
-				   RangeVar * relation,
-				   Alias * alias,
+addRangeTableEntry(ParseState *pstate,
+				   RangeVar *relation,
+				   Alias *alias,
 				   bool inh,
 				   bool inFromCl)
 {
@@ -1264,9 +1264,9 @@ addRangeTableEntry(ParseState * pstate,
  * given an already-open relation instead of a RangeVar reference.
  */
 RangeTblEntry *
-addRangeTableEntryForRelation(ParseState * pstate,
+addRangeTableEntryForRelation(ParseState *pstate,
 							  Relation rel,
-							  Alias * alias,
+							  Alias *alias,
 							  bool inh,
 							  bool inFromCl)
 {
@@ -1319,9 +1319,9 @@ addRangeTableEntryForRelation(ParseState * pstate,
  * Note that an alias clause *must* be supplied.
  */
 RangeTblEntry *
-addRangeTableEntryForSubquery(ParseState * pstate,
-							  Query * subquery,
-							  Alias * alias,
+addRangeTableEntryForSubquery(ParseState *pstate,
+							  Query *subquery,
+							  Alias *alias,
 							  bool lateral,
 							  bool inFromCl)
 {
@@ -1399,11 +1399,11 @@ addRangeTableEntryForSubquery(ParseState * pstate,
  * This is just like addRangeTableEntry() except that it makes a function RTE.
  */
 RangeTblEntry *
-addRangeTableEntryForFunction(ParseState * pstate,
-							  List * funcnames,
-							  List * funcexprs,
-							  List * coldeflists,
-							  RangeFunction * rangefunc,
+addRangeTableEntryForFunction(ParseState *pstate,
+							  List *funcnames,
+							  List *funcexprs,
+							  List *coldeflists,
+							  RangeFunction *rangefunc,
 							  bool lateral,
 							  bool inFromCl)
 {
@@ -1496,7 +1496,8 @@ addRangeTableEntryForFunction(ParseState * pstate,
 						 parser_errposition(pstate, exprLocation(funcexpr))));
 		}
 
-		if (functypclass == TYPEFUNC_COMPOSITE)
+		if (functypclass == TYPEFUNC_COMPOSITE ||
+			functypclass == TYPEFUNC_COMPOSITE_DOMAIN)
 		{
 			/* Composite data type, e.g. a table's row type */
 			Assert(tupdesc);
@@ -1606,7 +1607,7 @@ addRangeTableEntryForFunction(ParseState * pstate,
 		/* Add the ordinality column if needed */
 		if (rangefunc->ordinality)
 			TupleDescInitEntry(tupdesc,
-							   (AttrNumber)++ natts,
+							   (AttrNumber) ++natts,
 							   "ordinality",
 							   INT8OID,
 							   -1,
@@ -1654,9 +1655,9 @@ addRangeTableEntryForFunction(ParseState * pstate,
  * This is much like addRangeTableEntry() except that it makes a tablefunc RTE.
  */
 RangeTblEntry *
-addRangeTableEntryForTableFunc(ParseState * pstate,
-							   TableFunc * tf,
-							   Alias * alias,
+addRangeTableEntryForTableFunc(ParseState *pstate,
+							   TableFunc *tf,
+							   Alias *alias,
 							   bool lateral,
 							   bool inFromCl)
 {
@@ -1717,12 +1718,12 @@ addRangeTableEntryForTableFunc(ParseState * pstate,
  * This is much like addRangeTableEntry() except that it makes a values RTE.
  */
 RangeTblEntry *
-addRangeTableEntryForValues(ParseState * pstate,
-							List * exprs,
-							List * coltypes,
-							List * coltypmods,
-							List * colcollations,
-							Alias * alias,
+addRangeTableEntryForValues(ParseState *pstate,
+							List *exprs,
+							List *coltypes,
+							List *coltypmods,
+							List *colcollations,
+							Alias *alias,
 							bool lateral,
 							bool inFromCl)
 {
@@ -1795,11 +1796,11 @@ addRangeTableEntryForValues(ParseState * pstate,
  * This is much like addRangeTableEntry() except that it makes a join RTE.
  */
 RangeTblEntry *
-addRangeTableEntryForJoin(ParseState * pstate,
-						  List * colnames,
+addRangeTableEntryForJoin(ParseState *pstate,
+						  List *colnames,
 						  JoinType jointype,
-						  List * aliasvars,
-						  Alias * alias,
+						  List *aliasvars,
+						  Alias *alias,
 						  bool inFromCl)
 {
 	RangeTblEntry *rte = makeNode(RangeTblEntry);
@@ -1865,10 +1866,10 @@ addRangeTableEntryForJoin(ParseState * pstate,
  * This is much like addRangeTableEntry() except that it makes a CTE RTE.
  */
 RangeTblEntry *
-addRangeTableEntryForCTE(ParseState * pstate,
-						 CommonTableExpr * cte,
+addRangeTableEntryForCTE(ParseState *pstate,
+						 CommonTableExpr *cte,
 						 Index levelsup,
-						 RangeVar * rv,
+						 RangeVar *rv,
 						 bool inFromCl)
 {
 	RangeTblEntry *rte = makeNode(RangeTblEntry);
@@ -1974,8 +1975,8 @@ addRangeTableEntryForCTE(ParseState * pstate,
  * ephemeral named relation.
  */
 RangeTblEntry *
-addRangeTableEntryForENR(ParseState * pstate,
-						 RangeVar * rv,
+addRangeTableEntryForENR(ParseState *pstate,
+						 RangeVar *rv,
 						 bool inFromCl)
 {
 	RangeTblEntry *rte = makeNode(RangeTblEntry);
@@ -2077,7 +2078,7 @@ addRangeTableEntryForENR(ParseState * pstate,
  * since the table-level lock is the same either way.
  */
 bool
-isLockedRefname(ParseState * pstate, const char *refname)
+isLockedRefname(ParseState *pstate, const char *refname)
 {
 	ListCell   *l;
 
@@ -2125,7 +2126,7 @@ isLockedRefname(ParseState * pstate, const char *refname)
  * worth complicating this function's signature for.
  */
 void
-addRTEtoQuery(ParseState * pstate, RangeTblEntry * rte,
+addRTEtoQuery(ParseState *pstate, RangeTblEntry *rte,
 			  bool addToJoinList,
 			  bool addToRelNameSpace, bool addToVarNameSpace)
 {
@@ -2156,8 +2157,8 @@ addRTEtoQuery(ParseState * pstate, RangeTblEntry * rte,
  *
  * This creates lists of an RTE's column names (aliases if provided, else
  * real names) and Vars for each column.  Only user columns are considered.
- * If include_dropped is FALSE then dropped columns are omitted from the
- * results.  If include_dropped is TRUE then empty strings and NULL constants
+ * If include_dropped is false then dropped columns are omitted from the
+ * results.  If include_dropped is true then empty strings and NULL constants
  * (not Vars!) are returned for dropped columns.
  *
  * rtindex, sublevels_up, and location are the varno, varlevelsup, and location
@@ -2169,9 +2170,9 @@ addRTEtoQuery(ParseState * pstate, RangeTblEntry * rte,
  * output pointer for the unwanted one.
  */
 void
-expandRTE(RangeTblEntry * rte, int rtindex, int sublevels_up,
+expandRTE(RangeTblEntry *rte, int rtindex, int sublevels_up,
 		  int location, bool include_dropped,
-		  List * *colnames, List * *colvars)
+		  List **colnames, List **colvars)
 {
 	int			varattno;
 
@@ -2256,7 +2257,8 @@ expandRTE(RangeTblEntry * rte, int rtindex, int sublevels_up,
 					functypclass = get_expr_result_type(rtfunc->funcexpr,
 														&funcrettype,
 														&tupdesc);
-					if (functypclass == TYPEFUNC_COMPOSITE)
+					if (functypclass == TYPEFUNC_COMPOSITE ||
+						functypclass == TYPEFUNC_COMPOSITE_DOMAIN)
 					{
 						/* Composite data type, e.g. a table's row type */
 						Assert(tupdesc);
@@ -2501,9 +2503,9 @@ expandRTE(RangeTblEntry * rte, int rtindex, int sublevels_up,
  * expandRelation -- expandRTE subroutine
  */
 static void
-expandRelation(Oid relid, Alias * eref, int rtindex, int sublevels_up,
+expandRelation(Oid relid, Alias *eref, int rtindex, int sublevels_up,
 			   int location, bool include_dropped,
-			   List * *colnames, List * *colvars)
+			   List **colnames, List **colvars)
 {
 	Relation	rel;
 
@@ -2526,10 +2528,10 @@ expandRelation(Oid relid, Alias * eref, int rtindex, int sublevels_up,
  * an individual composite-returning function in an RTE_FUNCTION RTE.)
  */
 static void
-expandTupleDesc(TupleDesc tupdesc, Alias * eref, int count, int offset,
+expandTupleDesc(TupleDesc tupdesc, Alias *eref, int count, int offset,
 				int rtindex, int sublevels_up,
 				int location, bool include_dropped,
-				List * *colnames, List * *colvars)
+				List **colnames, List **colvars)
 {
 	ListCell   *aliascell = list_head(eref->colnames);
 	int			varattno;
@@ -2548,7 +2550,7 @@ expandTupleDesc(TupleDesc tupdesc, Alias * eref, int count, int offset,
 	Assert(count <= tupdesc->natts);
 	for (varattno = 0; varattno < count; varattno++)
 	{
-		Form_pg_attribute attr = tupdesc->attrs[varattno];
+		Form_pg_attribute attr = TupleDescAttr(tupdesc, varattno);
 
 		if (attr->attisdropped)
 		{
@@ -2614,7 +2616,7 @@ expandTupleDesc(TupleDesc tupdesc, Alias * eref, int count, int offset,
  * The referenced columns are marked as requiring SELECT access.
  */
 List *
-expandRelAttrs(ParseState * pstate, RangeTblEntry * rte,
+expandRelAttrs(ParseState *pstate, RangeTblEntry *rte,
 			   int rtindex, int sublevels_up, int location)
 {
 	List	   *names,
@@ -2666,7 +2668,7 @@ expandRelAttrs(ParseState * pstate, RangeTblEntry * rte,
  * occurs when a Var represents a whole tuple of a relation.
  */
 char *
-get_rte_attribute_name(RangeTblEntry * rte, AttrNumber attnum)
+get_rte_attribute_name(RangeTblEntry *rte, AttrNumber attnum)
 {
 	if (attnum == InvalidAttrNumber)
 		return "*";
@@ -2685,7 +2687,7 @@ get_rte_attribute_name(RangeTblEntry * rte, AttrNumber attnum)
 	 * built (which can easily happen for rules).
 	 */
 	if (rte->rtekind == RTE_RELATION)
-		return get_relid_attribute_name(rte->relid, attnum);
+		return get_attname(rte->relid, attnum, false);
 
 	/*
 	 * Otherwise use the column name from eref.  There should always be one.
@@ -2704,8 +2706,8 @@ get_rte_attribute_name(RangeTblEntry * rte, AttrNumber attnum)
  *		Get attribute type/typmod/collation information from a RangeTblEntry
  */
 void
-get_rte_attribute_type(RangeTblEntry * rte, AttrNumber attnum,
-					   Oid * vartype, int32 * vartypmod, Oid * varcollid)
+get_rte_attribute_type(RangeTblEntry *rte, AttrNumber attnum,
+					   Oid *vartype, int32 *vartypmod, Oid *varcollid)
 {
 	switch (rte->rtekind)
 	{
@@ -2776,14 +2778,15 @@ get_rte_attribute_type(RangeTblEntry * rte, AttrNumber attnum,
 															&funcrettype,
 															&tupdesc);
 
-						if (functypclass == TYPEFUNC_COMPOSITE)
+						if (functypclass == TYPEFUNC_COMPOSITE ||
+							functypclass == TYPEFUNC_COMPOSITE_DOMAIN)
 						{
 							/* Composite data type, e.g. a table's row type */
 							Form_pg_attribute att_tup;
 
 							Assert(tupdesc);
 							Assert(attnum <= tupdesc->natts);
-							att_tup = tupdesc->attrs[attnum - 1];
+							att_tup = TupleDescAttr(tupdesc, attnum - 1);
 
 							/*
 							 * If dropped column, pretend it ain't there.  See
@@ -2893,7 +2896,7 @@ get_rte_attribute_type(RangeTblEntry * rte, AttrNumber attnum,
  *		Check whether attempted attribute ref is to a dropped column
  */
 bool
-get_rte_attribute_is_dropped(RangeTblEntry * rte, AttrNumber attnum)
+get_rte_attribute_is_dropped(RangeTblEntry *rte, AttrNumber attnum)
 {
 	bool		result;
 
@@ -2977,21 +2980,19 @@ get_rte_attribute_is_dropped(RangeTblEntry * rte, AttrNumber attnum)
 					if (attnum > atts_done &&
 						attnum <= atts_done + rtfunc->funccolcount)
 					{
-						TypeFuncClass functypclass;
-						Oid			funcrettype;
 						TupleDesc	tupdesc;
 
-						functypclass = get_expr_result_type(rtfunc->funcexpr,
-															&funcrettype,
-															&tupdesc);
-						if (functypclass == TYPEFUNC_COMPOSITE)
+						tupdesc = get_expr_result_tupdesc(rtfunc->funcexpr,
+														  true);
+						if (tupdesc)
 						{
 							/* Composite data type, e.g. a table's row type */
 							Form_pg_attribute att_tup;
 
 							Assert(tupdesc);
 							Assert(attnum - atts_done <= tupdesc->natts);
-							att_tup = tupdesc->attrs[attnum - atts_done - 1];
+							att_tup = TupleDescAttr(tupdesc,
+													attnum - atts_done - 1);
 							return att_tup->attisdropped;
 						}
 						/* Otherwise, it can't have any dropped columns */
@@ -3030,7 +3031,7 @@ get_rte_attribute_is_dropped(RangeTblEntry * rte, AttrNumber attnum)
  * because not all tlists are sorted by resno.
  */
 TargetEntry *
-get_tle_by_resno(List * tlist, AttrNumber resno)
+get_tle_by_resno(List *tlist, AttrNumber resno)
 {
 	ListCell   *l;
 
@@ -3050,7 +3051,7 @@ get_tle_by_resno(List * tlist, AttrNumber resno)
  * Returns NULL if relation is not selected FOR UPDATE/SHARE
  */
 RowMarkClause *
-get_parse_rowmark(Query * qry, Index rtindex)
+get_parse_rowmark(Query *qry, Index rtindex)
 {
 	ListCell   *l;
 
@@ -3078,9 +3079,9 @@ attnameAttNum(Relation rd, const char *attname, bool sysColOK)
 {
 	int			i;
 
-	for (i = 0; i < rd->rd_rel->relnatts; i++)
+	for (i = 0; i < RelationGetNumberOfAttributes(rd); i++)
 	{
-		Form_pg_attribute att = rd->rd_att->attrs[i];
+		Form_pg_attribute att = TupleDescAttr(rd->rd_att, i);
 
 		if (namestrcmp(&(att->attname), attname) == 0 && !att->attisdropped)
 			return i + 1;
@@ -3140,7 +3141,7 @@ attnumAttName(Relation rd, int attid)
 	}
 	if (attid > rd->rd_att->natts)
 		elog(ERROR, "invalid attribute number %d", attid);
-	return &rd->rd_att->attrs[attid - 1]->attname;
+	return &TupleDescAttr(rd->rd_att, attid - 1)->attname;
 }
 
 /*
@@ -3162,7 +3163,7 @@ attnumTypeId(Relation rd, int attid)
 	}
 	if (attid > rd->rd_att->natts)
 		elog(ERROR, "invalid attribute number %d", attid);
-	return rd->rd_att->attrs[attid - 1]->atttypid;
+	return TupleDescAttr(rd->rd_att, attid - 1)->atttypid;
 }
 
 /*
@@ -3180,7 +3181,7 @@ attnumCollationId(Relation rd, int attid)
 	}
 	if (attid > rd->rd_att->natts)
 		elog(ERROR, "invalid attribute number %d", attid);
-	return rd->rd_att->attrs[attid - 1]->attcollation;
+	return TupleDescAttr(rd->rd_att, attid - 1)->attcollation;
 }
 
 /*
@@ -3190,7 +3191,7 @@ attnumCollationId(Relation rd, int attid)
  * produce a helpful message.
  */
 void
-errorMissingRTE(ParseState * pstate, RangeVar * relation)
+errorMissingRTE(ParseState *pstate, RangeVar *relation)
 {
 	RangeTblEntry *rte;
 	int			sublevels_up;
@@ -3246,8 +3247,8 @@ errorMissingRTE(ParseState * pstate, RangeVar * relation)
  * produce a helpful message.
  */
 void
-errorMissingColumn(ParseState * pstate,
-				   char *relname, char *colname, int location)
+errorMissingColumn(ParseState *pstate,
+				   const char *relname, const char *colname, int location)
 {
 	FuzzyAttrMatchState *state;
 	char	   *closestfirst = NULL;
@@ -3314,17 +3315,17 @@ errorMissingColumn(ParseState * pstate,
 
 
 /*
- * Examine a fully-parsed query, and return TRUE iff any relation underlying
+ * Examine a fully-parsed query, and return true iff any relation underlying
  * the query is a temporary relation (table, view, or materialized view).
  */
 bool
-isQueryUsingTempRelation(Query * query)
+isQueryUsingTempRelation(Query *query)
 {
 	return isQueryUsingTempRelation_walker((Node *) query, NULL);
 }
 
 static bool
-isQueryUsingTempRelation_walker(Node * node, void *context)
+isQueryUsingTempRelation_walker(Node *node, void *context)
 {
 	if (node == NULL)
 		return false;

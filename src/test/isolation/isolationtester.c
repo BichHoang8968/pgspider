@@ -25,28 +25,29 @@
  * conns[0] is the global setup, teardown, and watchdog connection.  Additional
  * connections represent spec-defined sessions.
  */
-static PGconn * *conns = NULL;
+static PGconn **conns = NULL;
 static const char **backend_pids = NULL;
 static int	nconns = 0;
 
 /* In dry run only output permutations to be run by the tester. */
 static int	dry_run = false;
 
-static void run_testspec(TestSpec * testspec);
-static void run_all_permutations(TestSpec * testspec);
-static void run_all_permutations_recurse(TestSpec * testspec, int nsteps,
-							 Step * *steps);
-static void run_named_permutations(TestSpec * testspec);
-static void run_permutation(TestSpec * testspec, int nsteps, Step * *steps);
+static void exit_nicely(void) pg_attribute_noreturn();
+static void run_testspec(TestSpec *testspec);
+static void run_all_permutations(TestSpec *testspec);
+static void run_all_permutations_recurse(TestSpec *testspec, int nsteps,
+							 Step **steps);
+static void run_named_permutations(TestSpec *testspec);
+static void run_permutation(TestSpec *testspec, int nsteps, Step **steps);
 
 #define STEP_NONBLOCK	0x1		/* return 0 as soon as cmd waits for a lock */
 #define STEP_RETRY		0x2		/* this is a retry of a previously-waiting cmd */
-static bool try_complete_step(Step * step, int flags);
+static bool try_complete_step(Step *step, int flags);
 
 static int	step_qsort_cmp(const void *a, const void *b);
 static int	step_bsearch_cmp(const void *a, const void *b);
 
-static void printResultSet(PGresult * res);
+static void printResultSet(PGresult *res);
 
 /* close all connections and exit */
 static void
@@ -260,7 +261,7 @@ static int *piles;
  * explicitly specified.
  */
 static void
-run_testspec(TestSpec * testspec)
+run_testspec(TestSpec *testspec)
 {
 	if (testspec->permutations)
 		run_named_permutations(testspec);
@@ -272,7 +273,7 @@ run_testspec(TestSpec * testspec)
  * Run all permutations of the steps and sessions.
  */
 static void
-run_all_permutations(TestSpec * testspec)
+run_all_permutations(TestSpec *testspec)
 {
 	int			nsteps;
 	int			i;
@@ -302,7 +303,7 @@ run_all_permutations(TestSpec * testspec)
 }
 
 static void
-run_all_permutations_recurse(TestSpec * testspec, int nsteps, Step * *steps)
+run_all_permutations_recurse(TestSpec *testspec, int nsteps, Step **steps)
 {
 	int			i;
 	int			found = 0;
@@ -332,7 +333,7 @@ run_all_permutations_recurse(TestSpec * testspec, int nsteps, Step * *steps)
  * Run permutations given in the test spec
  */
 static void
-run_named_permutations(TestSpec * testspec)
+run_named_permutations(TestSpec *testspec)
 {
 	int			i,
 				j;
@@ -347,11 +348,11 @@ run_named_permutations(TestSpec * testspec)
 		/* Find all the named steps using the lookup table */
 		for (j = 0; j < p->nsteps; j++)
 		{
-			Step	  **this = (Step * *) bsearch(p->stepnames[j],
-												  testspec->allsteps,
-												  testspec->nallsteps,
-												  sizeof(Step *),
-												  &step_bsearch_cmp);
+			Step	  **this = (Step **) bsearch(p->stepnames[j],
+												 testspec->allsteps,
+												 testspec->nallsteps,
+												 sizeof(Step *),
+												 &step_bsearch_cmp);
 
 			if (this == NULL)
 			{
@@ -372,8 +373,8 @@ run_named_permutations(TestSpec * testspec)
 static int
 step_qsort_cmp(const void *a, const void *b)
 {
-	Step	   *stepa = *((Step * *) a);
-	Step	   *stepb = *((Step * *) b);
+	Step	   *stepa = *((Step **) a);
+	Step	   *stepb = *((Step **) b);
 
 	return strcmp(stepa->name, stepb->name);
 }
@@ -382,7 +383,7 @@ static int
 step_bsearch_cmp(const void *a, const void *b)
 {
 	char	   *stepname = (char *) a;
-	Step	   *step = *((Step * *) b);
+	Step	   *step = *((Step **) b);
 
 	return strcmp(stepname, step->name);
 }
@@ -391,7 +392,7 @@ step_bsearch_cmp(const void *a, const void *b)
  * If a step caused an error to be reported, print it out and clear it.
  */
 static void
-report_error_message(Step * step)
+report_error_message(Step *step)
 {
 	if (step->errormsg)
 	{
@@ -408,7 +409,7 @@ report_error_message(Step * step)
  * one fails due to a timeout such as deadlock timeout.
  */
 static void
-report_multiple_error_messages(Step * step, int nextra, Step * *extrastep)
+report_multiple_error_messages(Step *step, int nextra, Step **extrastep)
 {
 	PQExpBufferData buffer;
 	int			n;
@@ -450,7 +451,7 @@ report_multiple_error_messages(Step * step, int nextra, Step * *extrastep)
  * Run one permutation
  */
 static void
-run_permutation(TestSpec * testspec, int nsteps, Step * *steps)
+run_permutation(TestSpec *testspec, int nsteps, Step **steps)
 {
 	PGresult   *res;
 	int			i;
@@ -593,7 +594,7 @@ run_permutation(TestSpec * testspec, int nsteps, Step * *steps)
 		if (!PQsendQuery(conn, step->sql))
 		{
 			fprintf(stdout, "failed to send query for step %s: %s\n",
-					step->name, PQerrorMessage(conns[1 + step->session]));
+					step->name, PQerrorMessage(conn));
 			exit_nicely();
 		}
 
@@ -691,7 +692,7 @@ run_permutation(TestSpec * testspec, int nsteps, Step * *steps)
  * a lock, returns true.  Otherwise, returns false.
  */
 static bool
-try_complete_step(Step * step, int flags)
+try_complete_step(Step *step, int flags)
 {
 	PGconn	   *conn = conns[1 + step->session];
 	fd_set		read_set;
@@ -742,7 +743,7 @@ try_complete_step(Step * step, int flags)
 					PQntuples(res) != 1)
 				{
 					fprintf(stderr, "lock wait query failed: %s",
-							PQerrorMessage(conn));
+							PQerrorMessage(conns[0]));
 					exit_nicely();
 				}
 				waiting = ((PQgetvalue(res, 0, 0))[0] == 't');
@@ -765,15 +766,15 @@ try_complete_step(Step * step, int flags)
 			td += (int64) current_time.tv_usec - (int64) start_time.tv_usec;
 
 			/*
-			 * After 60 seconds, try to cancel the query.
+			 * After 180 seconds, try to cancel the query.
 			 *
 			 * If the user tries to test an invalid permutation, we don't want
 			 * to hang forever, especially when this is running in the
-			 * buildfarm.  So try to cancel it after a minute.  This will
-			 * presumably lead to this permutation failing, but remaining
-			 * permutations and tests should still be OK.
+			 * buildfarm.  This will presumably lead to this permutation
+			 * failing, but remaining permutations and tests should still be
+			 * OK.
 			 */
-			if (td > 60 * USECS_PER_SEC && !canceled)
+			if (td > 180 * USECS_PER_SEC && !canceled)
 			{
 				PGcancel   *cancel = PQgetCancel(conn);
 
@@ -790,15 +791,15 @@ try_complete_step(Step * step, int flags)
 			}
 
 			/*
-			 * After 75 seconds, just give up and die.
+			 * After 200 seconds, just give up and die.
 			 *
 			 * Since cleanup steps won't be run in this case, this may cause
 			 * later tests to fail.  That stinks, but it's better than waiting
 			 * forever for the server to respond to the cancel.
 			 */
-			if (td > 75 * USECS_PER_SEC)
+			if (td > 200 * USECS_PER_SEC)
 			{
-				fprintf(stderr, "step %s timed out after 75 seconds\n",
+				fprintf(stderr, "step %s timed out after 200 seconds\n",
 						step->name);
 				exit_nicely();
 			}
@@ -860,7 +861,7 @@ try_complete_step(Step * step, int flags)
 }
 
 static void
-printResultSet(PGresult * res)
+printResultSet(PGresult *res)
 {
 	int			nFields;
 	int			i,

@@ -3,7 +3,7 @@
  * statscmds.c
  *	  Commands for creating and altering extended statistics objects
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -20,6 +20,7 @@
 #include "catalog/namespace.h"
 #include "catalog/pg_namespace.h"
 #include "catalog/pg_statistic_ext.h"
+#include "commands/comment.h"
 #include "commands/defrem.h"
 #include "miscadmin.h"
 #include "statistics/statistics.h"
@@ -33,7 +34,7 @@
 
 static char *ChooseExtendedStatisticName(const char *name1, const char *name2,
 							const char *label, Oid namespaceid);
-static char *ChooseExtendedStatisticNameAddition(List * exprs);
+static char *ChooseExtendedStatisticNameAddition(List *exprs);
 
 
 /* qsort comparator for the attnums in CreateStatistics */
@@ -51,7 +52,7 @@ compare_int16(const void *a, const void *b)
  *		CREATE STATISTICS
  */
 ObjectAddress
-CreateStatistics(CreateStatsStmt * stmt)
+CreateStatistics(CreateStatsStmt *stmt)
 {
 	int16		attnums[STATS_MAX_DIMENSIONS];
 	int			numcols = 0;
@@ -121,7 +122,7 @@ CreateStatistics(CreateStatsStmt * stmt)
 
 		/* You must own the relation to create stats on it */
 		if (!pg_class_ownercheck(RelationGetRelid(rel), stxowner))
-			aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_CLASS,
+			aclcheck_error(ACLCHECK_NOT_OWNER, get_relkind_objtype(rel->rd_rel->relkind),
 						   RelationGetRelationName(rel));
 	}
 
@@ -362,6 +363,11 @@ CreateStatistics(CreateStatsStmt * stmt)
 	 * STATISTICS, which is more work than it seems worth.
 	 */
 
+	/* Add any requested comment */
+	if (stmt->stxcomment != NULL)
+		CreateComments(statoid, StatisticExtRelationId, 0,
+					   stmt->stxcomment);
+
 	/* Return stats object's address */
 	return myself;
 }
@@ -486,7 +492,7 @@ ChooseExtendedStatisticName(const char *name1, const char *name2,
  * XXX see also ChooseIndexNameAddition.
  */
 static char *
-ChooseExtendedStatisticNameAddition(List * exprs)
+ChooseExtendedStatisticNameAddition(List *exprs)
 {
 	char		buf[NAMEDATALEN * 2];
 	int			buflen = 0;

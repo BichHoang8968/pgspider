@@ -4,7 +4,7 @@
  *		Functions for handling locale-related info
  *
  *
- * Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -235,7 +235,7 @@ win32_langinfo(const char *ctype)
 
 	if (GetLocaleInfoEx(wctype,
 						LOCALE_IDEFAULTANSICODEPAGE | LOCALE_RETURN_NUMBER,
-						(LPWSTR) & cp, sizeof(cp) / sizeof(WCHAR)) > 0)
+						(LPWSTR) &cp, sizeof(cp) / sizeof(WCHAR)) > 0)
 	{
 		r = malloc(16);			/* excess */
 		if (r != NULL)

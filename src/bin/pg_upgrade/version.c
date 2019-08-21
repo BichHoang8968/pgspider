@@ -3,7 +3,7 @@
  *
  *	Postgres-version-specific routines
  *
- *	Copyright (c) 2010-2017, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2018, PostgreSQL Global Development Group
  *	src/bin/pg_upgrade/version.c
  */
 
@@ -11,7 +11,7 @@
 
 #include "pg_upgrade.h"
 
-#include "catalog/pg_class.h"
+#include "catalog/pg_class_d.h"
 #include "fe_utils/string_utils.h"
 
 
@@ -22,7 +22,7 @@
  *	9.0 has a new pg_largeobject permission table
  */
 void
-new_9_0_populate_pg_largeobject_metadata(ClusterInfo * cluster, bool check_mode)
+new_9_0_populate_pg_largeobject_metadata(ClusterInfo *cluster, bool check_mode)
 {
 	int			dbnum;
 	FILE	   *script = NULL;
@@ -108,7 +108,7 @@ new_9_0_populate_pg_largeobject_metadata(ClusterInfo * cluster, bool check_mode)
  *	representation formats;  checks tables and indexes.
  */
 void
-old_9_3_check_for_line_data_type_usage(ClusterInfo * cluster)
+old_9_3_check_for_line_data_type_usage(ClusterInfo *cluster)
 {
 	int			dbnum;
 	FILE	   *script = NULL;
@@ -205,7 +205,7 @@ old_9_3_check_for_line_data_type_usage(ClusterInfo * cluster)
  *	We needn't check indexes, because "unknown" has no opclasses.
  */
 void
-old_9_6_check_for_unknown_data_type_usage(ClusterInfo * cluster)
+old_9_6_check_for_unknown_data_type_usage(ClusterInfo *cluster)
 {
 	int			dbnum;
 	FILE	   *script = NULL;
@@ -294,7 +294,7 @@ old_9_6_check_for_unknown_data_type_usage(ClusterInfo * cluster)
  *	Hash index binary format has changed from 9.6->10.0
  */
 void
-old_9_6_invalidate_hash_indexes(ClusterInfo * cluster, bool check_mode)
+old_9_6_invalidate_hash_indexes(ClusterInfo *cluster, bool check_mode)
 {
 	int			dbnum;
 	FILE	   *script = NULL;

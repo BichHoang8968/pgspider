@@ -96,7 +96,7 @@
  * }
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -142,7 +142,7 @@ typedef struct dlist_head
 	 * it's a circular empty list; or to NULL if empty and not circular.
 	 */
 	dlist_node	head;
-}			dlist_head;
+} dlist_head;
 
 
 /*
@@ -160,7 +160,7 @@ typedef struct dlist_iter
 {
 	dlist_node *cur;			/* current element */
 	dlist_node *end;			/* last node we'll iterate to */
-}			dlist_iter;
+} dlist_iter;
 
 /*
  * Doubly linked list iterator allowing some modifications while iterating.
@@ -180,7 +180,7 @@ typedef struct dlist_mutable_iter
 	dlist_node *cur;			/* current element */
 	dlist_node *next;			/* next node we'll iterate to */
 	dlist_node *end;			/* last node we'll iterate to */
-}			dlist_mutable_iter;
+} dlist_mutable_iter;
 
 /*
  * Node of a singly linked list.
@@ -203,7 +203,7 @@ struct slist_node
 typedef struct slist_head
 {
 	slist_node	head;
-}			slist_head;
+} slist_head;
 
 /*
  * Singly linked list iterator.
@@ -224,7 +224,7 @@ typedef struct slist_head
 typedef struct slist_iter
 {
 	slist_node *cur;
-}			slist_iter;
+} slist_iter;
 
 /*
  * Singly linked list iterator allowing some modifications while iterating.
@@ -241,7 +241,7 @@ typedef struct slist_mutable_iter
 	slist_node *cur;			/* current element */
 	slist_node *next;			/* next node we'll iterate to */
 	slist_node *prev;			/* prev node, for deletions */
-}			slist_mutable_iter;
+} slist_mutable_iter;
 
 
 /* Static initializers */
@@ -252,11 +252,11 @@ typedef struct slist_mutable_iter
 /* Prototypes for functions too big to be inline */
 
 /* Caution: this is O(n); consider using slist_delete_current() instead */
-extern void slist_delete(slist_head * head, slist_node * node);
+extern void slist_delete(slist_head *head, slist_node *node);
 
 #ifdef ILIST_DEBUG
-extern void dlist_check(dlist_head * head);
-extern void slist_check(slist_head * head);
+extern void dlist_check(dlist_head *head);
+extern void slist_check(slist_head *head);
 #else
 /*
  * These seemingly useless casts to void are here to keep the compiler quiet
@@ -275,7 +275,7 @@ extern void slist_check(slist_head * head);
  * Previous state will be thrown away without any cleanup.
  */
 static inline void
-dlist_init(dlist_head * head)
+dlist_init(dlist_head *head)
 {
 	head->head.next = head->head.prev = &head->head;
 }
@@ -286,7 +286,7 @@ dlist_init(dlist_head * head)
  * An empty list has either its first 'next' pointer set to NULL, or to itself.
  */
 static inline bool
-dlist_is_empty(dlist_head * head)
+dlist_is_empty(dlist_head *head)
 {
 	dlist_check(head);
 
@@ -297,7 +297,7 @@ dlist_is_empty(dlist_head * head)
  * Insert a node at the beginning of the list.
  */
 static inline void
-dlist_push_head(dlist_head * head, dlist_node * node)
+dlist_push_head(dlist_head *head, dlist_node *node)
 {
 	if (head->head.next == NULL)	/* convert NULL header to circular */
 		dlist_init(head);
@@ -314,7 +314,7 @@ dlist_push_head(dlist_head * head, dlist_node * node)
  * Insert a node at the end of the list.
  */
 static inline void
-dlist_push_tail(dlist_head * head, dlist_node * node)
+dlist_push_tail(dlist_head *head, dlist_node *node)
 {
 	if (head->head.next == NULL)	/* convert NULL header to circular */
 		dlist_init(head);
@@ -331,7 +331,7 @@ dlist_push_tail(dlist_head * head, dlist_node * node)
  * Insert a node after another *in the same list*
  */
 static inline void
-dlist_insert_after(dlist_node * after, dlist_node * node)
+dlist_insert_after(dlist_node *after, dlist_node *node)
 {
 	node->prev = after;
 	node->next = after->next;
@@ -343,7 +343,7 @@ dlist_insert_after(dlist_node * after, dlist_node * node)
  * Insert a node before another *in the same list*
  */
 static inline void
-dlist_insert_before(dlist_node * before, dlist_node * node)
+dlist_insert_before(dlist_node *before, dlist_node *node)
 {
 	node->prev = before->prev;
 	node->next = before;
@@ -355,7 +355,7 @@ dlist_insert_before(dlist_node * before, dlist_node * node)
  * Delete 'node' from its list (it must be in one).
  */
 static inline void
-dlist_delete(dlist_node * node)
+dlist_delete(dlist_node *node)
 {
 	node->prev->next = node->next;
 	node->next->prev = node->prev;
@@ -365,7 +365,7 @@ dlist_delete(dlist_node * node)
  * Remove and return the first node from a list (there must be one).
  */
 static inline dlist_node *
-dlist_pop_head_node(dlist_head * head)
+dlist_pop_head_node(dlist_head *head)
 {
 	dlist_node *node;
 
@@ -382,7 +382,7 @@ dlist_pop_head_node(dlist_head * head)
  * Undefined behaviour if 'node' is not already part of the list.
  */
 static inline void
-dlist_move_head(dlist_head * head, dlist_node * node)
+dlist_move_head(dlist_head *head, dlist_node *node)
 {
 	/* fast path if it's already at the head */
 	if (head->head.next == node)
@@ -399,7 +399,7 @@ dlist_move_head(dlist_head * head, dlist_node * node)
  * Caution: unreliable if 'node' is not in the list.
  */
 static inline bool
-dlist_has_next(dlist_head * head, dlist_node * node)
+dlist_has_next(dlist_head *head, dlist_node *node)
 {
 	return node->next != &head->head;
 }
@@ -409,7 +409,7 @@ dlist_has_next(dlist_head * head, dlist_node * node)
  * Caution: unreliable if 'node' is not in the list.
  */
 static inline bool
-dlist_has_prev(dlist_head * head, dlist_node * node)
+dlist_has_prev(dlist_head *head, dlist_node *node)
 {
 	return node->prev != &head->head;
 }
@@ -418,7 +418,7 @@ dlist_has_prev(dlist_head * head, dlist_node * node)
  * Return the next node in the list (there must be one).
  */
 static inline dlist_node *
-dlist_next_node(dlist_head * head, dlist_node * node)
+dlist_next_node(dlist_head *head, dlist_node *node)
 {
 	Assert(dlist_has_next(head, node));
 	return node->next;
@@ -428,7 +428,7 @@ dlist_next_node(dlist_head * head, dlist_node * node)
  * Return previous node in the list (there must be one).
  */
 static inline dlist_node *
-dlist_prev_node(dlist_head * head, dlist_node * node)
+dlist_prev_node(dlist_head *head, dlist_node *node)
 {
 	Assert(dlist_has_prev(head, node));
 	return node->prev;
@@ -436,7 +436,7 @@ dlist_prev_node(dlist_head * head, dlist_node * node)
 
 /* internal support function to get address of head element's struct */
 static inline void *
-dlist_head_element_off(dlist_head * head, size_t off)
+dlist_head_element_off(dlist_head *head, size_t off)
 {
 	Assert(!dlist_is_empty(head));
 	return (char *) head->head.next - off;
@@ -446,14 +446,14 @@ dlist_head_element_off(dlist_head * head, size_t off)
  * Return the first node in the list (there must be one).
  */
 static inline dlist_node *
-dlist_head_node(dlist_head * head)
+dlist_head_node(dlist_head *head)
 {
 	return (dlist_node *) dlist_head_element_off(head, 0);
 }
 
 /* internal support function to get address of tail element's struct */
 static inline void *
-dlist_tail_element_off(dlist_head * head, size_t off)
+dlist_tail_element_off(dlist_head *head, size_t off)
 {
 	Assert(!dlist_is_empty(head));
 	return (char *) head->head.prev - off;
@@ -463,7 +463,7 @@ dlist_tail_element_off(dlist_head * head, size_t off)
  * Return the last node in the list (there must be one).
  */
 static inline dlist_node *
-dlist_tail_node(dlist_head * head)
+dlist_tail_node(dlist_head *head)
 {
 	return (dlist_node *) dlist_tail_element_off(head, 0);
 }
@@ -551,7 +551,7 @@ dlist_tail_node(dlist_head * head)
  * Previous state will be thrown away without any cleanup.
  */
 static inline void
-slist_init(slist_head * head)
+slist_init(slist_head *head)
 {
 	head->head.next = NULL;
 }
@@ -560,7 +560,7 @@ slist_init(slist_head * head)
  * Is the list empty?
  */
 static inline bool
-slist_is_empty(slist_head * head)
+slist_is_empty(slist_head *head)
 {
 	slist_check(head);
 
@@ -571,7 +571,7 @@ slist_is_empty(slist_head * head)
  * Insert a node at the beginning of the list.
  */
 static inline void
-slist_push_head(slist_head * head, slist_node * node)
+slist_push_head(slist_head *head, slist_node *node)
 {
 	node->next = head->head.next;
 	head->head.next = node;
@@ -583,7 +583,7 @@ slist_push_head(slist_head * head, slist_node * node)
  * Insert a node after another *in the same list*
  */
 static inline void
-slist_insert_after(slist_node * after, slist_node * node)
+slist_insert_after(slist_node *after, slist_node *node)
 {
 	node->next = after->next;
 	after->next = node;
@@ -593,7 +593,7 @@ slist_insert_after(slist_node * after, slist_node * node)
  * Remove and return the first node from a list (there must be one).
  */
 static inline slist_node *
-slist_pop_head_node(slist_head * head)
+slist_pop_head_node(slist_head *head)
 {
 	slist_node *node;
 
@@ -608,7 +608,7 @@ slist_pop_head_node(slist_head * head)
  * Check whether 'node' has a following node.
  */
 static inline bool
-slist_has_next(slist_head * head, slist_node * node)
+slist_has_next(slist_head *head, slist_node *node)
 {
 	slist_check(head);
 
@@ -619,7 +619,7 @@ slist_has_next(slist_head * head, slist_node * node)
  * Return the next node in the list (there must be one).
  */
 static inline slist_node *
-slist_next_node(slist_head * head, slist_node * node)
+slist_next_node(slist_head *head, slist_node *node)
 {
 	Assert(slist_has_next(head, node));
 	return node->next;
@@ -627,7 +627,7 @@ slist_next_node(slist_head * head, slist_node * node)
 
 /* internal support function to get address of head element's struct */
 static inline void *
-slist_head_element_off(slist_head * head, size_t off)
+slist_head_element_off(slist_head *head, size_t off)
 {
 	Assert(!slist_is_empty(head));
 	return (char *) head->head.next - off;
@@ -637,7 +637,7 @@ slist_head_element_off(slist_head * head, size_t off)
  * Return the first node in the list (there must be one).
  */
 static inline slist_node *
-slist_head_node(slist_head * head)
+slist_head_node(slist_head *head)
 {
 	return (slist_node *) slist_head_element_off(head, 0);
 }
@@ -649,7 +649,7 @@ slist_head_node(slist_head * head)
  * loop iteration.
  */
 static inline void
-slist_delete_current(slist_mutable_iter * iter)
+slist_delete_current(slist_mutable_iter *iter)
 {
 	/*
 	 * Update previous element's forward link.  If the iteration is at the

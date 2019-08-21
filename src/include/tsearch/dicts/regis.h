@@ -4,7 +4,7 @@
  *
  * Declarations for fast regex subset, used by ISpell
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  * src/include/tsearch/dicts/regis.h
  *
@@ -17,12 +17,12 @@
 typedef struct RegisNode
 {
 	uint32
-	type:2,
-	len:16,
-	unused:14;
+				type:2,
+				len:16,
+				unused:14;
 	struct RegisNode *next;
 	unsigned char data[FLEXIBLE_ARRAY_MEMBER];
-}			RegisNode;
+} RegisNode;
 
 #define  RNHDRSZ	(offsetof(RegisNode,data))
 
@@ -32,18 +32,18 @@ typedef struct RegisNode
 typedef struct Regis
 {
 	RegisNode  *node;
-				uint32
+	uint32
 				issuffix:1,
 				nchar:16,
 				unused:15;
-}			Regis;
+} Regis;
 
 bool		RS_isRegis(const char *str);
 
-void		RS_compile(Regis * r, bool issuffix, const char *str);
-void		RS_free(Regis * r);
+void		RS_compile(Regis *r, bool issuffix, const char *str);
+void		RS_free(Regis *r);
 
 /*returns true if matches */
-bool		RS_execute(Regis * r, char *str);
+bool		RS_execute(Regis *r, char *str);
 
 #endif

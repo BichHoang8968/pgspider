@@ -43,7 +43,7 @@
  * overflow.)
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -85,9 +85,9 @@
 
 
 /* Global variables */
-__thread	ErrorContextCallback *error_context_stack = NULL;
+__thread ErrorContextCallback *error_context_stack = NULL;
 
-__thread	sigjmp_buf *PG_exception_stack = NULL;
+__thread sigjmp_buf *PG_exception_stack = NULL;
 
 extern bool redirection_done;
 
@@ -166,17 +166,17 @@ static char formatted_log_time[FORMATTED_TS_LEN];
 
 
 static const char *err_gettext(const char *str) pg_attribute_format_arg(1);
-static void set_errdata_field(MemoryContextData * cxt, char **ptr, const char *str);
+static void set_errdata_field(MemoryContextData *cxt, char **ptr, const char *str);
 static void write_console(const char *line, int len);
 static void setup_formatted_log_time(void);
 static void setup_formatted_start_time(void);
 static const char *process_log_prefix_padding(const char *p, int *padding);
-static void log_line_prefix(StringInfo buf, ErrorData * edata);
-static void write_csvlog(ErrorData * edata);
-static void send_message_to_server_log(ErrorData * edata);
+static void log_line_prefix(StringInfo buf, ErrorData *edata);
+static void write_csvlog(ErrorData *edata);
+static void send_message_to_server_log(ErrorData *edata);
 static void write_pipe_chunks(char *data, int len, int dest);
-static void send_message_to_frontend(ErrorData * edata);
-static char *expand_fmt_string(const char *fmt, ErrorData * edata);
+static void send_message_to_frontend(ErrorData *edata);
+static char *expand_fmt_string(const char *fmt, ErrorData *edata);
 static const char *useful_strerror(int errnum);
 static const char *get_errno_symbol(int errnum);
 static const char *error_severity(int elevel);
@@ -225,7 +225,7 @@ err_gettext(const char *str)
  * the stack entry.  Finally, errfinish() will be called to actually process
  * the error report.
  *
- * Returns TRUE in normal case.  Returns FALSE to short-circuit the error
+ * Returns true in normal case.  Returns false to short-circuit the error
  * report (if it's a warning or lower and not to be reported anywhere).
  */
 bool
@@ -284,7 +284,7 @@ errstart(int elevel, const char *filename, int lineno,
 
 	/*
 	 * Now decide whether we need to process this report at all; if it's
-	 * warning or less and not enabled for logging, just return FALSE without
+	 * warning or less and not enabled for logging, just return false without
 	 * starting up any error logging machinery.
 	 */
 
@@ -434,7 +434,7 @@ errfinish(int dummy,...)
 	for (econtext = error_context_stack;
 		 econtext != NULL;
 		 econtext = econtext->previous)
-		(*econtext->callback) (econtext->arg);
+		econtext->callback(econtext->arg);
 
 	/*
 	 * If ERROR (not more nor less) we pass it off to the current handler.
@@ -471,9 +471,7 @@ errfinish(int dummy,...)
 	 * progress, so that we can report the message before dying.  (Without
 	 * this, pq_putmessage will refuse to send the message at all, which is
 	 * what we want for NOTICE messages, but not for fatal exits.) This hack
-	 * is necessary because of poor design of old-style copy protocol.  Note
-	 * we must do this even if client is fool enough to have set
-	 * client_min_messages above FATAL, so don't look at output_to_client.
+	 * is necessary because of poor design of old-style copy protocol.
 	 */
 	if (elevel >= FATAL && whereToSendOutput == DestRemote)
 		pq_endcopyout(true);
@@ -1223,7 +1221,7 @@ err_generic_string(int field, const char *str)
  * set_errdata_field --- set an ErrorData string field
  */
 static void
-set_errdata_field(MemoryContextData * cxt, char **ptr, const char *str)
+set_errdata_field(MemoryContextData *cxt, char **ptr, const char *str)
 {
 	Assert(*ptr == NULL);
 	*ptr = MemoryContextStrdup(cxt, str);
@@ -1547,7 +1545,7 @@ CopyErrorData(void)
  * the separately-allocated fields.
  */
 void
-FreeErrorData(ErrorData * edata)
+FreeErrorData(ErrorData *edata)
 {
 	if (edata->message)
 		pfree(edata->message);
@@ -1608,7 +1606,7 @@ FlushErrorState(void)
  * modification) to the backend responsible for them.
  */
 void
-ThrowErrorData(ErrorData * edata)
+ThrowErrorData(ErrorData *edata)
 {
 	ErrorData  *newedata;
 	MemoryContext oldcontext;
@@ -1666,7 +1664,7 @@ ThrowErrorData(ErrorData * edata)
  * be used if the "some processing" is likely to incur another error.
  */
 void
-ReThrowError(ErrorData * edata)
+ReThrowError(ErrorData *edata)
 {
 	ErrorData  *newedata;
 
@@ -1757,12 +1755,7 @@ pg_re_throw(void)
 		else
 			edata->output_to_server = (FATAL >= log_min_messages);
 		if (whereToSendOutput == DestRemote)
-		{
-			if (ClientAuthInProgress)
-				edata->output_to_client = true;
-			else
-				edata->output_to_client = (FATAL >= client_min_messages);
-		}
+			edata->output_to_client = true;
 
 		/*
 		 * We can use errfinish() for the rest, but we don't want it to call
@@ -1836,7 +1829,7 @@ GetErrorContextStack(void)
 	for (econtext = error_context_stack;
 		 econtext != NULL;
 		 econtext = econtext->previous)
-		(*econtext->callback) (econtext->arg);
+		econtext->callback(econtext->arg);
 
 	/*
 	 * Clean ourselves off the stack, any allocations done should have been
@@ -2137,7 +2130,7 @@ write_eventlog(int level, const char *line, int len)
 						 NULL,
 						 1,
 						 0,
-						 (LPCWSTR *) & utf16,
+						 (LPCWSTR *) &utf16,
 						 NULL);
 			/* XXX Try ReportEventA() when ReportEventW() fails? */
 
@@ -2314,7 +2307,7 @@ process_log_prefix_padding(const char *p, int *ppadding)
  * Format tag info for log lines; append to the provided buffer.
  */
 static void
-log_line_prefix(StringInfo buf, ErrorData * edata)
+log_line_prefix(StringInfo buf, ErrorData *edata)
 {
 	/* static counter for line numbers */
 	static long log_line_number = 0;
@@ -2648,7 +2641,7 @@ appendCSVLiteral(StringInfo buf, const char *data)
  * format which is described in doc/src/sgml/config.sgml.
  */
 static void
-write_csvlog(ErrorData * edata)
+write_csvlog(ErrorData *edata)
 {
 	StringInfoData buf;
 	bool		print_stmt = false;
@@ -2865,7 +2858,7 @@ unpack_sql_state(int sql_state)
  * Write error report to server's log
  */
 static void
-send_message_to_server_log(ErrorData * edata)
+send_message_to_server_log(ErrorData *edata)
 {
 	StringInfoData buf;
 
@@ -3148,7 +3141,7 @@ err_sendstring(StringInfo buf, const char *str)
  * Write error report to client
  */
 static void
-send_message_to_frontend(ErrorData * edata)
+send_message_to_frontend(ErrorData *edata)
 {
 	StringInfoData msgbuf;
 
@@ -3338,7 +3331,7 @@ send_message_to_frontend(ErrorData * edata)
  * The result is a palloc'd string.
  */
 static char *
-expand_fmt_string(const char *fmt, ErrorData * edata)
+expand_fmt_string(const char *fmt, ErrorData *edata)
 {
 	StringInfoData buf;
 	const char *cp;

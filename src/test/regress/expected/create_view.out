@@ -20,6 +20,16 @@ COMMENT ON VIEW noview IS 'no view';
 ERROR:  relation "noview" does not exist
 COMMENT ON VIEW toyemp IS 'is a view';
 COMMENT ON VIEW toyemp IS NULL;
+-- These views are left around mainly to exercise special cases in pg_dump.
+CREATE TABLE view_base_table (key int PRIMARY KEY, data varchar(20));
+CREATE VIEW key_dependent_view AS
+   SELECT * FROM view_base_table GROUP BY key;
+ALTER TABLE view_base_table DROP CONSTRAINT view_base_table_pkey;  -- fails
+ERROR:  cannot drop constraint view_base_table_pkey on table view_base_table because other objects depend on it
+DETAIL:  view key_dependent_view depends on constraint view_base_table_pkey on table view_base_table
+HINT:  Use DROP ... CASCADE to drop the dependent objects too.
+CREATE VIEW key_dependent_view_no_cols AS
+   SELECT FROM view_base_table GROUP BY key HAVING length(data) > 0;
 --
 -- CREATE OR REPLACE VIEW
 --
@@ -83,7 +93,7 @@ CREATE VIEW temp_view_test.v3_temp AS SELECT * FROM temp_table;
 NOTICE:  view "v3_temp" will be a temporary view
 ERROR:  cannot create temporary relation in non-temporary schema
 -- should fail
-CREATE SCHEMA test_schema
+CREATE SCHEMA test_view_schema
     CREATE TEMP VIEW testview AS SELECT 1;
 ERROR:  cannot create temporary relation in non-temporary schema
 -- joins: if any of the join relations are temporary, the view
@@ -1605,7 +1615,7 @@ select 'foo'::text = any((select array['abc','def','foo']::text[]));  -- fail
 ERROR:  operator does not exist: text = text[]
 LINE 1: select 'foo'::text = any((select array['abc','def','foo']::t...
                            ^
-HINT:  No operator matches the given name and argument type(s). You might need to add explicit type casts.
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 select 'foo'::text = any((select array['abc','def','foo']::text[])::text[]);
  ?column? 
 ----------

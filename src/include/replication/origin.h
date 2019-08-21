@@ -2,7 +2,7 @@
  * origin.h
  *	   Exports from replication/logical/origin.c
  *
- * Copyright (c) 2013-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2013-2018, PostgreSQL Global Development Group
  *
  * src/include/replication/origin.h
  *-------------------------------------------------------------------------
@@ -21,12 +21,12 @@ typedef struct xl_replorigin_set
 	XLogRecPtr	remote_lsn;
 	RepOriginId node_id;
 	bool		force;
-}			xl_replorigin_set;
+} xl_replorigin_set;
 
 typedef struct xl_replorigin_drop
 {
 	RepOriginId node_id;
-}			xl_replorigin_drop;
+} xl_replorigin_drop;
 
 #define XLOG_REPLORIGIN_SET		0x00
 #define XLOG_REPLORIGIN_DROP		0x10
@@ -63,8 +63,8 @@ extern void CheckPointReplicationOrigin(void);
 extern void StartupReplicationOrigin(void);
 
 /* WAL logging */
-void		replorigin_redo(XLogReaderState * record);
-void		replorigin_desc(StringInfo buf, XLogReaderState * record);
+void		replorigin_redo(XLogReaderState *record);
+void		replorigin_desc(StringInfo buf, XLogReaderState *record);
 const char *replorigin_identify(uint8 info);
 
 /* shared memory allocation */

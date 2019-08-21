@@ -28,7 +28,7 @@
  * be added, though at the cost of a greater chance of the crash dump failing.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/port/win32/crashdump.c
@@ -70,10 +70,10 @@
  * http://www.debuginfo.com/articles/effminidumps.html
  */
 
-typedef BOOL(WINAPI * MINIDUMPWRITEDUMP) (HANDLE hProcess, DWORD dwPid, HANDLE hFile, MINIDUMP_TYPE DumpType,
-										  CONST PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
-										  CONST PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
-										  CONST PMINIDUMP_CALLBACK_INFORMATION CallbackParam
+typedef BOOL (WINAPI * MINIDUMPWRITEDUMP) (HANDLE hProcess, DWORD dwPid, HANDLE hFile, MINIDUMP_TYPE DumpType,
+										   CONST PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
+										   CONST PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
+										   CONST PMINIDUMP_CALLBACK_INFORMATION CallbackParam
 );
 
 

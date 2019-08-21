@@ -3,7 +3,7 @@
  * acl.c
  *	  Basic access control list data structures manipulation routines.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -16,6 +16,7 @@
 
 #include <ctype.h>
 
+#include "access/hash.h"
 #include "access/htup_details.h"
 #include "catalog/catalog.h"
 #include "catalog/namespace.h"
@@ -43,7 +44,7 @@ typedef struct
 {
 	const char *name;
 	AclMode		value;
-}			priv_map;
+} priv_map;
 
 /*
  * We frequently need to test whether a given role is a member of some other
@@ -71,50 +72,50 @@ typedef struct
  *		is a member of (always including itself).
  * The cache is valid if cached_member_role is not InvalidOid.
  */
-static Oid cached_privs_role = InvalidOid;
-static List * cached_privs_roles = NIL;
-static Oid cached_member_role = InvalidOid;
-static List * cached_membership_roles = NIL;
+static Oid	cached_privs_role = InvalidOid;
+static List *cached_privs_roles = NIL;
+static Oid	cached_member_role = InvalidOid;
+static List *cached_membership_roles = NIL;
 
 
 static const char *getid(const char *s, char *n);
 static void putid(char *p, const char *s);
-static Acl * allocacl(int n);
-static void check_acl(const Acl * acl);
-static const char *aclparse(const char *s, AclItem * aip);
-static bool aclitem_match(const AclItem * a1, const AclItem * a2);
+static Acl *allocacl(int n);
+static void check_acl(const Acl *acl);
+static const char *aclparse(const char *s, AclItem *aip);
+static bool aclitem_match(const AclItem *a1, const AclItem *a2);
 static int	aclitemComparator(const void *arg1, const void *arg2);
-static void check_circularity(const Acl * old_acl, const AclItem * mod_aip,
+static void check_circularity(const Acl *old_acl, const AclItem *mod_aip,
 				  Oid ownerId);
-static Acl * recursive_revoke(Acl * acl, Oid grantee, AclMode revoke_privs,
-							  Oid ownerId, DropBehavior behavior);
+static Acl *recursive_revoke(Acl *acl, Oid grantee, AclMode revoke_privs,
+				 Oid ownerId, DropBehavior behavior);
 
-static AclMode convert_priv_string(text * priv_type_text);
-static AclMode convert_any_priv_string(text * priv_type_text,
-									   const priv_map * privileges);
+static AclMode convert_priv_string(text *priv_type_text);
+static AclMode convert_any_priv_string(text *priv_type_text,
+						const priv_map *privileges);
 
-static Oid convert_table_name(text * tablename);
-static AclMode convert_table_priv_string(text * priv_type_text);
-static AclMode convert_sequence_priv_string(text * priv_type_text);
-static AttrNumber convert_column_name(Oid tableoid, text * column);
-static AclMode convert_column_priv_string(text * priv_type_text);
-static Oid convert_database_name(text * databasename);
-static AclMode convert_database_priv_string(text * priv_type_text);
-static Oid convert_foreign_data_wrapper_name(text * fdwname);
-static AclMode convert_foreign_data_wrapper_priv_string(text * priv_type_text);
-static Oid convert_function_name(text * functionname);
-static AclMode convert_function_priv_string(text * priv_type_text);
-static Oid convert_language_name(text * languagename);
-static AclMode convert_language_priv_string(text * priv_type_text);
-static Oid convert_schema_name(text * schemaname);
-static AclMode convert_schema_priv_string(text * priv_type_text);
-static Oid convert_server_name(text * servername);
-static AclMode convert_server_priv_string(text * priv_type_text);
-static Oid convert_tablespace_name(text * tablespacename);
-static AclMode convert_tablespace_priv_string(text * priv_type_text);
-static Oid convert_type_name(text * typename);
-static AclMode convert_type_priv_string(text * priv_type_text);
-static AclMode convert_role_priv_string(text * priv_type_text);
+static Oid	convert_table_name(text *tablename);
+static AclMode convert_table_priv_string(text *priv_type_text);
+static AclMode convert_sequence_priv_string(text *priv_type_text);
+static AttrNumber convert_column_name(Oid tableoid, text *column);
+static AclMode convert_column_priv_string(text *priv_type_text);
+static Oid	convert_database_name(text *databasename);
+static AclMode convert_database_priv_string(text *priv_type_text);
+static Oid	convert_foreign_data_wrapper_name(text *fdwname);
+static AclMode convert_foreign_data_wrapper_priv_string(text *priv_type_text);
+static Oid	convert_function_name(text *functionname);
+static AclMode convert_function_priv_string(text *priv_type_text);
+static Oid	convert_language_name(text *languagename);
+static AclMode convert_language_priv_string(text *priv_type_text);
+static Oid	convert_schema_name(text *schemaname);
+static AclMode convert_schema_priv_string(text *priv_type_text);
+static Oid	convert_server_name(text *servername);
+static AclMode convert_server_priv_string(text *priv_type_text);
+static Oid	convert_tablespace_name(text *tablespacename);
+static AclMode convert_tablespace_priv_string(text *priv_type_text);
+static Oid	convert_type_name(text *typename);
+static AclMode convert_type_priv_string(text *priv_type_text);
+static AclMode convert_role_priv_string(text *priv_type_text);
 static AclResult pg_role_aclcheck(Oid role_oid, Oid roleid, AclMode mode);
 
 static void RoleMembershipCacheCallback(Datum arg, int cacheid, uint32 hashvalue);
@@ -234,7 +235,7 @@ putid(char *p, const char *s)
  *		  UID/GID, id type identifier and mode type values.
  */
 static const char *
-aclparse(const char *s, AclItem * aip)
+aclparse(const char *s, AclItem *aip)
 {
 	AclMode		privs,
 				goption,
@@ -403,7 +404,7 @@ make_empty_acl(void)
  * Copy an ACL
  */
 Acl *
-aclcopy(const Acl * orig_acl)
+aclcopy(const Acl *orig_acl)
 {
 	Acl		   *result_acl;
 
@@ -423,7 +424,7 @@ aclcopy(const Acl * orig_acl)
  * Be careful what the result is used for!
  */
 Acl *
-aclconcat(const Acl * left_acl, const Acl * right_acl)
+aclconcat(const Acl *left_acl, const Acl *right_acl)
 {
 	Acl		   *result_acl;
 
@@ -447,7 +448,7 @@ aclconcat(const Acl * left_acl, const Acl * right_acl)
  * Returns NULL on NULL input.
  */
 Acl *
-aclmerge(const Acl * left_acl, const Acl * right_acl, Oid ownerId)
+aclmerge(const Acl *left_acl, const Acl *right_acl, Oid ownerId)
 {
 	Acl		   *result_acl;
 	AclItem    *aip;
@@ -491,7 +492,7 @@ aclmerge(const Acl * left_acl, const Acl * right_acl, Oid ownerId)
  * Sort the items in an ACL (into an arbitrary but consistent order)
  */
 void
-aclitemsort(Acl * acl)
+aclitemsort(Acl *acl)
 {
 	if (acl != NULL && ACL_NUM(acl) > 1)
 		qsort(ACL_DAT(acl), ACL_NUM(acl), sizeof(AclItem), aclitemComparator);
@@ -505,7 +506,7 @@ aclitemsort(Acl * acl)
  * using aclitemsort().
  */
 bool
-aclequal(const Acl * left_acl, const Acl * right_acl)
+aclequal(const Acl *left_acl, const Acl *right_acl)
 {
 	/* Check for cases where one or both are empty/null */
 	if (left_acl == NULL || ACL_NUM(left_acl) == 0)
@@ -536,7 +537,7 @@ aclequal(const Acl * left_acl, const Acl * right_acl)
  * Verify that an ACL array is acceptable (one-dimensional and has no nulls)
  */
 static void
-check_acl(const Acl * acl)
+check_acl(const Acl *acl)
 {
 	if (ARR_ELEMTYPE(acl) != ACLITEMOID)
 		ereport(ERROR,
@@ -654,7 +655,7 @@ aclitemout(PG_FUNCTION_ARGS)
  *		grantee and grantor; the privileges are ignored.
  */
 static bool
-aclitem_match(const AclItem * a1, const AclItem * a2)
+aclitem_match(const AclItem *a1, const AclItem *a2)
 {
 	return a1->ai_grantee == a2->ai_grantee &&
 		a1->ai_grantor == a2->ai_grantor;
@@ -667,8 +668,8 @@ aclitem_match(const AclItem * a1, const AclItem * a2)
 static int
 aclitemComparator(const void *arg1, const void *arg2)
 {
-	const		AclItem *a1 = (const AclItem *) arg1;
-	const		AclItem *a2 = (const AclItem *) arg2;
+	const AclItem *a1 = (const AclItem *) arg1;
+	const AclItem *a2 = (const AclItem *) arg2;
 
 	if (a1->ai_grantee > a2->ai_grantee)
 		return 1;
@@ -717,6 +718,20 @@ hash_aclitem(PG_FUNCTION_ARGS)
 	PG_RETURN_UINT32((uint32) (a->ai_privs + a->ai_grantee + a->ai_grantor));
 }
 
+/*
+ * 64-bit hash function for aclitem.
+ *
+ * Similar to hash_aclitem, but accepts a seed and returns a uint64 value.
+ */
+Datum
+hash_aclitem_extended(PG_FUNCTION_ARGS)
+{
+	AclItem    *a = PG_GETARG_ACLITEM_P(0);
+	uint64		seed = PG_GETARG_INT64(1);
+	uint32		sum = (uint32) (a->ai_privs + a->ai_grantee + a->ai_grantor);
+
+	return (seed == 0) ? UInt64GetDatum(sum) : hash_uint32_extended(sum, seed);
+}
 
 /*
  * acldefault()  --- create an ACL describing default access permissions
@@ -730,7 +745,7 @@ hash_aclitem(PG_FUNCTION_ARGS)
  * absence of any pg_default_acl entry.
  */
 Acl *
-acldefault(GrantObjectType objtype, Oid ownerId)
+acldefault(ObjectType objtype, Oid ownerId)
 {
 	AclMode		world_default;
 	AclMode		owner_default;
@@ -740,56 +755,56 @@ acldefault(GrantObjectType objtype, Oid ownerId)
 
 	switch (objtype)
 	{
-		case ACL_OBJECT_COLUMN:
+		case OBJECT_COLUMN:
 			/* by default, columns have no extra privileges */
 			world_default = ACL_NO_RIGHTS;
 			owner_default = ACL_NO_RIGHTS;
 			break;
-		case ACL_OBJECT_RELATION:
+		case OBJECT_TABLE:
 			world_default = ACL_NO_RIGHTS;
 			owner_default = ACL_ALL_RIGHTS_RELATION;
 			break;
-		case ACL_OBJECT_SEQUENCE:
+		case OBJECT_SEQUENCE:
 			world_default = ACL_NO_RIGHTS;
 			owner_default = ACL_ALL_RIGHTS_SEQUENCE;
 			break;
-		case ACL_OBJECT_DATABASE:
+		case OBJECT_DATABASE:
 			/* for backwards compatibility, grant some rights by default */
 			world_default = ACL_CREATE_TEMP | ACL_CONNECT;
 			owner_default = ACL_ALL_RIGHTS_DATABASE;
 			break;
-		case ACL_OBJECT_FUNCTION:
+		case OBJECT_FUNCTION:
 			/* Grant EXECUTE by default, for now */
 			world_default = ACL_EXECUTE;
 			owner_default = ACL_ALL_RIGHTS_FUNCTION;
 			break;
-		case ACL_OBJECT_LANGUAGE:
+		case OBJECT_LANGUAGE:
 			/* Grant USAGE by default, for now */
 			world_default = ACL_USAGE;
 			owner_default = ACL_ALL_RIGHTS_LANGUAGE;
 			break;
-		case ACL_OBJECT_LARGEOBJECT:
+		case OBJECT_LARGEOBJECT:
 			world_default = ACL_NO_RIGHTS;
 			owner_default = ACL_ALL_RIGHTS_LARGEOBJECT;
 			break;
-		case ACL_OBJECT_NAMESPACE:
+		case OBJECT_SCHEMA:
 			world_default = ACL_NO_RIGHTS;
-			owner_default = ACL_ALL_RIGHTS_NAMESPACE;
+			owner_default = ACL_ALL_RIGHTS_SCHEMA;
 			break;
-		case ACL_OBJECT_TABLESPACE:
+		case OBJECT_TABLESPACE:
 			world_default = ACL_NO_RIGHTS;
 			owner_default = ACL_ALL_RIGHTS_TABLESPACE;
 			break;
-		case ACL_OBJECT_FDW:
+		case OBJECT_FDW:
 			world_default = ACL_NO_RIGHTS;
 			owner_default = ACL_ALL_RIGHTS_FDW;
 			break;
-		case ACL_OBJECT_FOREIGN_SERVER:
+		case OBJECT_FOREIGN_SERVER:
 			world_default = ACL_NO_RIGHTS;
 			owner_default = ACL_ALL_RIGHTS_FOREIGN_SERVER;
 			break;
-		case ACL_OBJECT_DOMAIN:
-		case ACL_OBJECT_TYPE:
+		case OBJECT_DOMAIN:
+		case OBJECT_TYPE:
 			world_default = ACL_USAGE;
 			owner_default = ACL_ALL_RIGHTS_TYPE;
 			break;
@@ -840,7 +855,7 @@ acldefault(GrantObjectType objtype, Oid ownerId)
 
 /*
  * SQL-accessible version of acldefault().  Hackish mapping from "char" type to
- * ACL_OBJECT_* values, but it's only used in the information schema, not
+ * OBJECT_* values, but it's only used in the information schema, not
  * documented for general use.
  */
 Datum
@@ -848,45 +863,45 @@ acldefault_sql(PG_FUNCTION_ARGS)
 {
 	char		objtypec = PG_GETARG_CHAR(0);
 	Oid			owner = PG_GETARG_OID(1);
-	GrantObjectType objtype = 0;
+	ObjectType	objtype = 0;
 
 	switch (objtypec)
 	{
 		case 'c':
-			objtype = ACL_OBJECT_COLUMN;
+			objtype = OBJECT_COLUMN;
 			break;
 		case 'r':
-			objtype = ACL_OBJECT_RELATION;
+			objtype = OBJECT_TABLE;
 			break;
 		case 's':
-			objtype = ACL_OBJECT_SEQUENCE;
+			objtype = OBJECT_SEQUENCE;
 			break;
 		case 'd':
-			objtype = ACL_OBJECT_DATABASE;
+			objtype = OBJECT_DATABASE;
 			break;
 		case 'f':
-			objtype = ACL_OBJECT_FUNCTION;
+			objtype = OBJECT_FUNCTION;
 			break;
 		case 'l':
-			objtype = ACL_OBJECT_LANGUAGE;
+			objtype = OBJECT_LANGUAGE;
 			break;
 		case 'L':
-			objtype = ACL_OBJECT_LARGEOBJECT;
+			objtype = OBJECT_LARGEOBJECT;
 			break;
 		case 'n':
-			objtype = ACL_OBJECT_NAMESPACE;
+			objtype = OBJECT_SCHEMA;
 			break;
 		case 't':
-			objtype = ACL_OBJECT_TABLESPACE;
+			objtype = OBJECT_TABLESPACE;
 			break;
 		case 'F':
-			objtype = ACL_OBJECT_FDW;
+			objtype = OBJECT_FDW;
 			break;
 		case 'S':
-			objtype = ACL_OBJECT_FOREIGN_SERVER;
+			objtype = OBJECT_FOREIGN_SERVER;
 			break;
 		case 'T':
-			objtype = ACL_OBJECT_TYPE;
+			objtype = OBJECT_TYPE;
 			break;
 		default:
 			elog(ERROR, "unrecognized objtype abbreviation: %c", objtypec);
@@ -913,7 +928,7 @@ acldefault_sql(PG_FUNCTION_ARGS)
  * NB: caller is responsible for having detoasted the input ACL, if needed.
  */
 Acl *
-aclupdate(const Acl * old_acl, const AclItem * mod_aip,
+aclupdate(const Acl *old_acl, const AclItem *mod_aip,
 		  int modechg, Oid ownerId, DropBehavior behavior)
 {
 	Acl		   *new_acl = NULL;
@@ -1034,7 +1049,7 @@ aclupdate(const Acl * old_acl, const AclItem * mod_aip,
  * NB: caller is responsible for having detoasted the input ACL, if needed.
  */
 Acl *
-aclnewowner(const Acl * old_acl, Oid oldOwnerId, Oid newOwnerId)
+aclnewowner(const Acl *old_acl, Oid oldOwnerId, Oid newOwnerId)
 {
 	Acl		   *new_acl;
 	AclItem    *new_aip;
@@ -1137,7 +1152,7 @@ aclnewowner(const Acl * old_acl, Oid oldOwnerId, Oid newOwnerId)
  * grant option or not.
  */
 static void
-check_circularity(const Acl * old_acl, const AclItem * mod_aip,
+check_circularity(const Acl *old_acl, const AclItem *mod_aip,
 				  Oid ownerId)
 {
 	Acl		   *acl;
@@ -1217,7 +1232,7 @@ cc_restart:
  * The input Acl object is pfree'd if replaced.
  */
 static Acl *
-recursive_revoke(Acl * acl,
+recursive_revoke(Acl *acl,
 				 Oid grantee,
 				 AclMode revoke_privs,
 				 Oid ownerId,
@@ -1303,7 +1318,7 @@ restart:
  *		heldprivs = aclmask(acl, roleid, ownerId, privs, ACLMASK_ALL);
  */
 AclMode
-aclmask(const Acl * acl, Oid roleid, Oid ownerId,
+aclmask(const Acl *acl, Oid roleid, Oid ownerId,
 		AclMode mask, AclMaskHow how)
 {
 	AclMode		result;
@@ -1392,7 +1407,7 @@ aclmask(const Acl * acl, Oid roleid, Oid ownerId,
  * held *directly* by roleid, not those inherited via role membership.
  */
 static AclMode
-aclmask_direct(const Acl * acl, Oid roleid, Oid ownerId,
+aclmask_direct(const Acl *acl, Oid roleid, Oid ownerId,
 			   AclMode mask, AclMaskHow how)
 {
 	AclMode		result;
@@ -1455,10 +1470,10 @@ aclmask_direct(const Acl * acl, Oid roleid, Oid ownerId,
  * in sorted order.  The length of the array is the function result.
  */
 int
-aclmembers(const Acl * acl, Oid * *roleids)
+aclmembers(const Acl *acl, Oid **roleids)
 {
 	Oid		   *list;
-	const		AclItem *acldat;
+	const AclItem *acldat;
 	int			i,
 				j,
 				k;
@@ -1481,7 +1496,7 @@ aclmembers(const Acl * acl, Oid * *roleids)
 	j = 0;
 	for (i = 0; i < ACL_NUM(acl); i++)
 	{
-		const		AclItem *ai = &acldat[i];
+		const AclItem *ai = &acldat[i];
 
 		if (ai->ai_grantee != ACL_ID_PUBLIC)
 			list[j++] = ai->ai_grantee;
@@ -1580,7 +1595,7 @@ makeaclitem(PG_FUNCTION_ARGS)
 }
 
 static AclMode
-convert_priv_string(text * priv_type_text)
+convert_priv_string(text *priv_type_text)
 {
 	char	   *priv_type = text_to_cstring(priv_type_text);
 
@@ -1630,8 +1645,8 @@ convert_priv_string(text * priv_type_text)
  * terminated by one with a NULL name pointer.
  */
 static AclMode
-convert_any_priv_string(text * priv_type_text,
-						const priv_map * privileges)
+convert_any_priv_string(text *priv_type_text,
+						const priv_map *privileges)
 {
 	AclMode		result = 0;
 	char	   *priv_type = text_to_cstring(priv_type_text);
@@ -1642,7 +1657,7 @@ convert_any_priv_string(text * priv_type_text,
 	for (chunk = priv_type; chunk; chunk = next_chunk)
 	{
 		int			chunk_len;
-		const		priv_map *this_priv;
+		const priv_map *this_priv;
 
 		/* Split string at commas */
 		next_chunk = strchr(chunk, ',');
@@ -1985,7 +2000,7 @@ has_table_privilege_id_id(PG_FUNCTION_ARGS)
  * Given a table name expressed as a string, look it up and return Oid
  */
 static Oid
-convert_table_name(text * tablename)
+convert_table_name(text *tablename)
 {
 	RangeVar   *relrv;
 
@@ -2000,7 +2015,7 @@ convert_table_name(text * tablename)
  *		Convert text string to AclMode value.
  */
 static AclMode
-convert_table_priv_string(text * priv_type_text)
+convert_table_priv_string(text *priv_type_text)
 {
 	static const priv_map table_priv_map[] = {
 		{"SELECT", ACL_SELECT},
@@ -2223,7 +2238,7 @@ has_sequence_privilege_id_id(PG_FUNCTION_ARGS)
  *		Convert text string to AclMode value.
  */
 static AclMode
-convert_sequence_priv_string(text * priv_type_text)
+convert_sequence_priv_string(text *priv_type_text)
 {
 	static const priv_map sequence_priv_map[] = {
 		{"USAGE", ACL_USAGE},
@@ -2433,8 +2448,12 @@ has_any_column_privilege_id_id(PG_FUNCTION_ARGS)
  *
  *		The result is a boolean value: true if user has the indicated
  *		privilege, false if not.  The variants that take a relation OID
- *		and an integer attnum return NULL (rather than throwing an error)
- *		if the column doesn't exist or is dropped.
+ *		return NULL (rather than throwing an error) if that relation OID
+ *		doesn't exist.  Likewise, the variants that take an integer attnum
+ *		return NULL (rather than throwing an error) if there is no such
+ *		pg_attribute entry.  All variants return NULL if an attisdropped
+ *		column is selected.  These rules are meant to avoid unnecessary
+ *		failures in queries that scan pg_attribute.
  */
 
 /*
@@ -2450,6 +2469,12 @@ column_privilege_check(Oid tableoid, AttrNumber attnum,
 	AclResult	aclresult;
 	HeapTuple	attTuple;
 	Form_pg_attribute attributeForm;
+
+	/*
+	 * If convert_column_name failed, we can just return -1 immediately.
+	 */
+	if (attnum == InvalidAttrNumber)
+		return -1;
 
 	/*
 	 * First check if we have the privilege at the table level.  We check
@@ -2812,21 +2837,59 @@ has_column_privilege_id_attnum(PG_FUNCTION_ARGS)
 
 /*
  * Given a table OID and a column name expressed as a string, look it up
- * and return the column number
+ * and return the column number.  Returns InvalidAttrNumber in cases
+ * where caller should return NULL instead of failing.
  */
 static AttrNumber
-convert_column_name(Oid tableoid, text * column)
+convert_column_name(Oid tableoid, text *column)
 {
-	AttrNumber	attnum;
 	char	   *colname;
+	HeapTuple	attTuple;
+	AttrNumber	attnum;
 
 	colname = text_to_cstring(column);
-	attnum = get_attnum(tableoid, colname);
-	if (attnum == InvalidAttrNumber)
-		ereport(ERROR,
-				(errcode(ERRCODE_UNDEFINED_COLUMN),
-				 errmsg("column \"%s\" of relation \"%s\" does not exist",
-						colname, get_rel_name(tableoid))));
+
+	/*
+	 * We don't use get_attnum() here because it will report that dropped
+	 * columns don't exist.  We need to treat dropped columns differently from
+	 * nonexistent columns.
+	 */
+	attTuple = SearchSysCache2(ATTNAME,
+							   ObjectIdGetDatum(tableoid),
+							   CStringGetDatum(colname));
+	if (HeapTupleIsValid(attTuple))
+	{
+		Form_pg_attribute attributeForm;
+
+		attributeForm = (Form_pg_attribute) GETSTRUCT(attTuple);
+		/* We want to return NULL for dropped columns */
+		if (attributeForm->attisdropped)
+			attnum = InvalidAttrNumber;
+		else
+			attnum = attributeForm->attnum;
+		ReleaseSysCache(attTuple);
+	}
+	else
+	{
+		char	   *tablename = get_rel_name(tableoid);
+
+		/*
+		 * If the table OID is bogus, or it's just been dropped, we'll get
+		 * NULL back.  In such cases we want has_column_privilege to return
+		 * NULL too, so just return InvalidAttrNumber.
+		 */
+		if (tablename != NULL)
+		{
+			/* tableoid exists, colname does not, so throw error */
+			ereport(ERROR,
+					(errcode(ERRCODE_UNDEFINED_COLUMN),
+					 errmsg("column \"%s\" of relation \"%s\" does not exist",
+							colname, tablename)));
+		}
+		/* tableoid doesn't exist, so act like attisdropped case */
+		attnum = InvalidAttrNumber;
+	}
+
 	pfree(colname);
 	return attnum;
 }
@@ -2836,7 +2899,7 @@ convert_column_name(Oid tableoid, text * column)
  *		Convert text string to AclMode value.
  */
 static AclMode
-convert_column_priv_string(text * priv_type_text)
+convert_column_priv_string(text *priv_type_text)
 {
 	static const priv_map column_priv_map[] = {
 		{"SELECT", ACL_SELECT},
@@ -3021,7 +3084,7 @@ has_database_privilege_id_id(PG_FUNCTION_ARGS)
  * Given a database name expressed as a string, look it up and return Oid
  */
 static Oid
-convert_database_name(text * databasename)
+convert_database_name(text *databasename)
 {
 	char	   *dbname = text_to_cstring(databasename);
 
@@ -3033,7 +3096,7 @@ convert_database_name(text * databasename)
  *		Convert text string to AclMode value.
  */
 static AclMode
-convert_database_priv_string(text * priv_type_text)
+convert_database_priv_string(text *priv_type_text)
 {
 	static const priv_map database_priv_map[] = {
 		{"CREATE", ACL_CREATE},
@@ -3130,6 +3193,9 @@ has_foreign_data_wrapper_privilege_name_id(PG_FUNCTION_ARGS)
 	roleid = get_role_oid_or_public(NameStr(*username));
 	mode = convert_foreign_data_wrapper_priv_string(priv_type_text);
 
+	if (!SearchSysCacheExists1(FOREIGNDATAWRAPPEROID, ObjectIdGetDatum(fdwid)))
+		PG_RETURN_NULL();
+
 	aclresult = pg_foreign_data_wrapper_aclcheck(fdwid, roleid, mode);
 
 	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
@@ -3152,6 +3218,9 @@ has_foreign_data_wrapper_privilege_id(PG_FUNCTION_ARGS)
 
 	roleid = GetUserId();
 	mode = convert_foreign_data_wrapper_priv_string(priv_type_text);
+
+	if (!SearchSysCacheExists1(FOREIGNDATAWRAPPEROID, ObjectIdGetDatum(fdwid)))
+		PG_RETURN_NULL();
 
 	aclresult = pg_foreign_data_wrapper_aclcheck(fdwid, roleid, mode);
 
@@ -3197,6 +3266,9 @@ has_foreign_data_wrapper_privilege_id_id(PG_FUNCTION_ARGS)
 
 	mode = convert_foreign_data_wrapper_priv_string(priv_type_text);
 
+	if (!SearchSysCacheExists1(FOREIGNDATAWRAPPEROID, ObjectIdGetDatum(fdwid)))
+		PG_RETURN_NULL();
+
 	aclresult = pg_foreign_data_wrapper_aclcheck(fdwid, roleid, mode);
 
 	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
@@ -3210,7 +3282,7 @@ has_foreign_data_wrapper_privilege_id_id(PG_FUNCTION_ARGS)
  * Given a FDW name expressed as a string, look it up and return Oid
  */
 static Oid
-convert_foreign_data_wrapper_name(text * fdwname)
+convert_foreign_data_wrapper_name(text *fdwname)
 {
 	char	   *fdwstr = text_to_cstring(fdwname);
 
@@ -3222,7 +3294,7 @@ convert_foreign_data_wrapper_name(text * fdwname)
  *		Convert text string to AclMode value.
  */
 static AclMode
-convert_foreign_data_wrapper_priv_string(text * priv_type_text)
+convert_foreign_data_wrapper_priv_string(text *priv_type_text)
 {
 	static const priv_map foreign_data_wrapper_priv_map[] = {
 		{"USAGE", ACL_USAGE},
@@ -3401,7 +3473,7 @@ has_function_privilege_id_id(PG_FUNCTION_ARGS)
  * Given a function name expressed as a string, look it up and return Oid
  */
 static Oid
-convert_function_name(text * functionname)
+convert_function_name(text *functionname)
 {
 	char	   *funcname = text_to_cstring(functionname);
 	Oid			oid;
@@ -3422,7 +3494,7 @@ convert_function_name(text * functionname)
  *		Convert text string to AclMode value.
  */
 static AclMode
-convert_function_priv_string(text * priv_type_text)
+convert_function_priv_string(text *priv_type_text)
 {
 	static const priv_map function_priv_map[] = {
 		{"EXECUTE", ACL_EXECUTE},
@@ -3601,7 +3673,7 @@ has_language_privilege_id_id(PG_FUNCTION_ARGS)
  * Given a language name expressed as a string, look it up and return Oid
  */
 static Oid
-convert_language_name(text * languagename)
+convert_language_name(text *languagename)
 {
 	char	   *langname = text_to_cstring(languagename);
 
@@ -3613,7 +3685,7 @@ convert_language_name(text * languagename)
  *		Convert text string to AclMode value.
  */
 static AclMode
-convert_language_priv_string(text * priv_type_text)
+convert_language_priv_string(text *priv_type_text)
 {
 	static const priv_map language_priv_map[] = {
 		{"USAGE", ACL_USAGE},
@@ -3792,7 +3864,7 @@ has_schema_privilege_id_id(PG_FUNCTION_ARGS)
  * Given a schema name expressed as a string, look it up and return Oid
  */
 static Oid
-convert_schema_name(text * schemaname)
+convert_schema_name(text *schemaname)
 {
 	char	   *nspname = text_to_cstring(schemaname);
 
@@ -3804,7 +3876,7 @@ convert_schema_name(text * schemaname)
  *		Convert text string to AclMode value.
  */
 static AclMode
-convert_schema_priv_string(text * priv_type_text)
+convert_schema_priv_string(text *priv_type_text)
 {
 	static const priv_map schema_priv_map[] = {
 		{"CREATE", ACL_CREATE},
@@ -3896,6 +3968,9 @@ has_server_privilege_name_id(PG_FUNCTION_ARGS)
 	roleid = get_role_oid_or_public(NameStr(*username));
 	mode = convert_server_priv_string(priv_type_text);
 
+	if (!SearchSysCacheExists1(FOREIGNSERVEROID, ObjectIdGetDatum(serverid)))
+		PG_RETURN_NULL();
+
 	aclresult = pg_foreign_server_aclcheck(serverid, roleid, mode);
 
 	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
@@ -3918,6 +3993,9 @@ has_server_privilege_id(PG_FUNCTION_ARGS)
 
 	roleid = GetUserId();
 	mode = convert_server_priv_string(priv_type_text);
+
+	if (!SearchSysCacheExists1(FOREIGNSERVEROID, ObjectIdGetDatum(serverid)))
+		PG_RETURN_NULL();
 
 	aclresult = pg_foreign_server_aclcheck(serverid, roleid, mode);
 
@@ -3963,6 +4041,9 @@ has_server_privilege_id_id(PG_FUNCTION_ARGS)
 
 	mode = convert_server_priv_string(priv_type_text);
 
+	if (!SearchSysCacheExists1(FOREIGNSERVEROID, ObjectIdGetDatum(serverid)))
+		PG_RETURN_NULL();
+
 	aclresult = pg_foreign_server_aclcheck(serverid, roleid, mode);
 
 	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
@@ -3976,7 +4057,7 @@ has_server_privilege_id_id(PG_FUNCTION_ARGS)
  * Given a server name expressed as a string, look it up and return Oid
  */
 static Oid
-convert_server_name(text * servername)
+convert_server_name(text *servername)
 {
 	char	   *serverstr = text_to_cstring(servername);
 
@@ -3988,7 +4069,7 @@ convert_server_name(text * servername)
  *		Convert text string to AclMode value.
  */
 static AclMode
-convert_server_priv_string(text * priv_type_text)
+convert_server_priv_string(text *priv_type_text)
 {
 	static const priv_map server_priv_map[] = {
 		{"USAGE", ACL_USAGE},
@@ -4078,6 +4159,9 @@ has_tablespace_privilege_name_id(PG_FUNCTION_ARGS)
 	roleid = get_role_oid_or_public(NameStr(*username));
 	mode = convert_tablespace_priv_string(priv_type_text);
 
+	if (!SearchSysCacheExists1(TABLESPACEOID, ObjectIdGetDatum(tablespaceoid)))
+		PG_RETURN_NULL();
+
 	aclresult = pg_tablespace_aclcheck(tablespaceoid, roleid, mode);
 
 	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
@@ -4100,6 +4184,9 @@ has_tablespace_privilege_id(PG_FUNCTION_ARGS)
 
 	roleid = GetUserId();
 	mode = convert_tablespace_priv_string(priv_type_text);
+
+	if (!SearchSysCacheExists1(TABLESPACEOID, ObjectIdGetDatum(tablespaceoid)))
+		PG_RETURN_NULL();
 
 	aclresult = pg_tablespace_aclcheck(tablespaceoid, roleid, mode);
 
@@ -4145,6 +4232,9 @@ has_tablespace_privilege_id_id(PG_FUNCTION_ARGS)
 
 	mode = convert_tablespace_priv_string(priv_type_text);
 
+	if (!SearchSysCacheExists1(TABLESPACEOID, ObjectIdGetDatum(tablespaceoid)))
+		PG_RETURN_NULL();
+
 	aclresult = pg_tablespace_aclcheck(tablespaceoid, roleid, mode);
 
 	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
@@ -4158,7 +4248,7 @@ has_tablespace_privilege_id_id(PG_FUNCTION_ARGS)
  * Given a tablespace name expressed as a string, look it up and return Oid
  */
 static Oid
-convert_tablespace_name(text * tablespacename)
+convert_tablespace_name(text *tablespacename)
 {
 	char	   *spcname = text_to_cstring(tablespacename);
 
@@ -4170,7 +4260,7 @@ convert_tablespace_name(text * tablespacename)
  *		Convert text string to AclMode value.
  */
 static AclMode
-convert_tablespace_priv_string(text * priv_type_text)
+convert_tablespace_priv_string(text *priv_type_text)
 {
 	static const priv_map tablespace_priv_map[] = {
 		{"CREATE", ACL_CREATE},
@@ -4348,7 +4438,7 @@ has_type_privilege_id_id(PG_FUNCTION_ARGS)
  * Given a type name expressed as a string, look it up and return Oid
  */
 static Oid
-convert_type_name(text * typename)
+convert_type_name(text *typename)
 {
 	char	   *typname = text_to_cstring(typename);
 	Oid			oid;
@@ -4369,7 +4459,7 @@ convert_type_name(text * typename)
  *		Convert text string to AclMode value.
  */
 static AclMode
-convert_type_priv_string(text * priv_type_text)
+convert_type_priv_string(text *priv_type_text)
 {
 	static const priv_map type_priv_map[] = {
 		{"USAGE", ACL_USAGE},
@@ -4546,7 +4636,7 @@ pg_has_role_id_id(PG_FUNCTION_ARGS)
  * is shared only with pg_role_aclcheck, below.
  */
 static AclMode
-convert_role_priv_string(text * priv_type_text)
+convert_role_priv_string(text *priv_type_text)
 {
 	static const priv_map role_priv_map[] = {
 		{"USAGE", ACL_USAGE},
@@ -5024,8 +5114,8 @@ count_one_bits(AclMode mask)
  */
 void
 select_best_grantor(Oid roleId, AclMode privileges,
-					const Acl * acl, Oid ownerId,
-					Oid * grantorId, AclMode * grantOptions)
+					const Acl *acl, Oid ownerId,
+					Oid *grantorId, AclMode *grantOptions)
 {
 	AclMode		needed_goptions = ACL_GRANT_OPTION_FOR(privileges);
 	List	   *roles_list;
@@ -5131,7 +5221,7 @@ get_role_oid_or_public(const char *rolname)
  * case must check the case separately.
  */
 Oid
-get_rolespec_oid(const RoleSpec * role, bool missing_ok)
+get_rolespec_oid(const RoleSpec *role, bool missing_ok)
 {
 	Oid			oid;
 
@@ -5169,7 +5259,7 @@ get_rolespec_oid(const RoleSpec * role, bool missing_ok)
  * Caller must ReleaseSysCache when done with the result tuple.
  */
 HeapTuple
-get_rolespec_tuple(const RoleSpec * role)
+get_rolespec_tuple(const RoleSpec *role)
 {
 	HeapTuple	tuple;
 
@@ -5201,6 +5291,7 @@ get_rolespec_tuple(const RoleSpec * role)
 					(errcode(ERRCODE_UNDEFINED_OBJECT),
 					 errmsg("role \"%s\" does not exist", "public")));
 			tuple = NULL;		/* make compiler happy */
+			break;
 
 		default:
 			elog(ERROR, "unexpected role type %d", role->roletype);
@@ -5213,7 +5304,7 @@ get_rolespec_tuple(const RoleSpec * role)
  * Given a RoleSpec, returns a palloc'ed copy of the corresponding role's name.
  */
 char *
-get_rolespec_name(const RoleSpec * role)
+get_rolespec_name(const RoleSpec *role)
 {
 	HeapTuple	tp;
 	Form_pg_authid authForm;
@@ -5235,7 +5326,7 @@ get_rolespec_name(const RoleSpec * role)
  * message is provided.
  */
 void
-check_rolespec_name(const RoleSpec * role, const char *detail_msg)
+check_rolespec_name(const RoleSpec *role, const char *detail_msg)
 {
 	if (!role)
 		return;

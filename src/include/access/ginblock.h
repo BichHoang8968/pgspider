@@ -2,7 +2,7 @@
  * ginblock.h
  *	  details of structures stored in GIN index blocks
  *
- *	Copyright (c) 2006-2017, PostgreSQL Global Development Group
+ *	Copyright (c) 2006-2018, PostgreSQL Global Development Group
  *
  *	src/include/access/ginblock.h
  *--------------------------------------------------------------------------
@@ -10,6 +10,7 @@
 #ifndef GINBLOCK_H
 #define GINBLOCK_H
 
+#include "access/transam.h"
 #include "storage/block.h"
 #include "storage/itemptr.h"
 #include "storage/off.h"
@@ -32,9 +33,9 @@ typedef struct GinPageOpaqueData
 								 * ~GIN_LEAF page. On GIN_LIST page, number of
 								 * heap tuples. */
 	uint16		flags;			/* see bit definitions below */
-}			GinPageOpaqueData;
+} GinPageOpaqueData;
 
-typedef GinPageOpaqueData * GinPageOpaque;
+typedef GinPageOpaqueData *GinPageOpaque;
 
 #define GIN_DATA		  (1 << 0)
 #define GIN_LEAF		  (1 << 1)
@@ -96,7 +97,7 @@ typedef struct GinMetaPageData
 	 * Reject full-index-scan attempts on such indexes.
 	 */
 	int32		ginVersion;
-}			GinMetaPageData;
+} GinMetaPageData;
 
 #define GIN_CURRENT_VERSION		2
 
@@ -126,6 +127,15 @@ typedef struct GinMetaPageData
 #define GinPageIsIncompleteSplit(page) ( (GinPageGetOpaque(page)->flags & GIN_INCOMPLETE_SPLIT) != 0 )
 
 #define GinPageRightMost(page) ( GinPageGetOpaque(page)->rightlink == InvalidBlockNumber)
+
+/*
+ * We should reclaim deleted page only once every transaction started before
+ * its deletion is over.
+ */
+#define GinPageGetDeleteXid(page) ( ((PageHeader) (page))->pd_prune_xid )
+#define GinPageSetDeleteXid(page, xid) ( ((PageHeader) (page))->pd_prune_xid = xid)
+#define GinPageIsRecyclable(page) ( PageIsNew(page) || (GinPageIsDeleted(page) \
+	&& TransactionIdPrecedes(GinPageGetDeleteXid(page), RecentGlobalXmin)))
 
 /*
  * We use our own ItemPointerGet(BlockNumber|OffsetNumber)
@@ -178,7 +188,7 @@ typedef struct
 	/* We use BlockIdData not BlockNumber to avoid padding space wastage */
 	BlockIdData child_blkno;
 	ItemPointerData key;
-}			PostingItem;
+} PostingItem;
 
 #define PostingItemGetBlockNumber(pointer) \
 	BlockIdGetBlockNumber(&(pointer)->child_blkno)
@@ -188,8 +198,11 @@ typedef struct
 
 /*
  * Category codes to distinguish placeholder nulls from ordinary NULL keys.
- * Note that the datatype size and the first two code values are chosen to be
- * compatible with the usual usage of bool isNull flags.
+ *
+ * The first two code values were chosen to be compatible with the usual usage
+ * of bool isNull flags.  However, casting between bool and GinNullCategory is
+ * risky because of the possibility of different bit patterns and type sizes,
+ * so it is no longer done.
  *
  * GIN_CAT_EMPTY_QUERY is never stored in the index; and notice that it is
  * chosen to sort before not after regular key values.
@@ -328,7 +341,7 @@ typedef struct
 	ItemPointerData first;		/* first item in this posting list (unpacked) */
 	uint16		nbytes;			/* number of bytes that follow */
 	unsigned char bytes[FLEXIBLE_ARRAY_MEMBER]; /* varbyte encoded items */
-}			GinPostingList;
+} GinPostingList;
 
 #define SizeOfGinPostingList(plist) (offsetof(GinPostingList, bytes) + SHORTALIGN((plist)->nbytes) )
 #define GinNextPostingListSegment(cur) ((GinPostingList *) (((char *) (cur)) + SizeOfGinPostingList((cur))))

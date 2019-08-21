@@ -4,7 +4,7 @@
  *	  WAL replay logic for SP-GiST
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -34,7 +34,7 @@ static MemoryContext opCtx;		/* working memory for operations */
  * plus the isBuild flag.
  */
 static void
-fillFakeState(SpGistState * state, spgxlogState stateSrc)
+fillFakeState(SpGistState *state, spgxlogState stateSrc)
 {
 	memset(state, 0, sizeof(*state));
 
@@ -73,7 +73,7 @@ addOrReplaceTuple(Page page, Item tuple, int size, OffsetNumber offset)
 }
 
 static void
-spgRedoCreateIndex(XLogReaderState * record)
+spgRedoCreateIndex(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	Buffer		buffer;
@@ -105,7 +105,7 @@ spgRedoCreateIndex(XLogReaderState * record)
 }
 
 static void
-spgRedoAddLeaf(XLogReaderState * record)
+spgRedoAddLeaf(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	char	   *ptr = XLogRecGetData(record);
@@ -202,7 +202,7 @@ spgRedoAddLeaf(XLogReaderState * record)
 }
 
 static void
-spgRedoMoveLeafs(XLogReaderState * record)
+spgRedoMoveLeafs(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	char	   *ptr = XLogRecGetData(record);
@@ -315,7 +315,7 @@ spgRedoMoveLeafs(XLogReaderState * record)
 }
 
 static void
-spgRedoAddNode(XLogReaderState * record)
+spgRedoAddNode(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	char	   *ptr = XLogRecGetData(record);
@@ -482,7 +482,7 @@ spgRedoAddNode(XLogReaderState * record)
 }
 
 static void
-spgRedoSplitTuple(XLogReaderState * record)
+spgRedoSplitTuple(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	char	   *ptr = XLogRecGetData(record);
@@ -560,7 +560,7 @@ spgRedoSplitTuple(XLogReaderState * record)
 }
 
 static void
-spgRedoPickSplit(XLogReaderState * record)
+spgRedoPickSplit(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	char	   *ptr = XLogRecGetData(record);
@@ -782,7 +782,7 @@ spgRedoPickSplit(XLogReaderState * record)
 }
 
 static void
-spgRedoVacuumLeaf(XLogReaderState * record)
+spgRedoVacuumLeaf(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	char	   *ptr = XLogRecGetData(record);
@@ -865,7 +865,7 @@ spgRedoVacuumLeaf(XLogReaderState * record)
 }
 
 static void
-spgRedoVacuumRoot(XLogReaderState * record)
+spgRedoVacuumRoot(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	char	   *ptr = XLogRecGetData(record);
@@ -891,7 +891,7 @@ spgRedoVacuumRoot(XLogReaderState * record)
 }
 
 static void
-spgRedoVacuumRedirect(XLogReaderState * record)
+spgRedoVacuumRedirect(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	char	   *ptr = XLogRecGetData(record);
@@ -968,7 +968,7 @@ spgRedoVacuumRedirect(XLogReaderState * record)
 }
 
 void
-spg_redo(XLogReaderState * record)
+spg_redo(XLogReaderState *record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 	MemoryContext oldCxt;
@@ -1033,15 +1033,16 @@ void
 spg_mask(char *pagedata, BlockNumber blkno)
 {
 	Page		page = (Page) pagedata;
+	PageHeader	pagehdr = (PageHeader) page;
 
 	mask_page_lsn_and_checksum(page);
 
 	mask_page_hint_bits(page);
 
 	/*
-	 * Any SpGist page other than meta contains unused space which needs to be
-	 * masked.
+	 * Mask the unused space, but only if the page's pd_lower appears to have
+	 * been set correctly.
 	 */
-	if (!SpGistPageIsMeta(page))
+	if (pagehdr->pd_lower > SizeOfPageHeaderData)
 		mask_unused_space(page);
 }

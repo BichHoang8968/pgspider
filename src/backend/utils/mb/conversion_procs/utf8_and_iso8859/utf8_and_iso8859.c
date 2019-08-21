@@ -2,7 +2,7 @@
  *
  *	  ISO 8859 2-16 <--> UTF8
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -60,9 +60,9 @@ PG_FUNCTION_INFO_V1(utf8_to_iso8859);
 typedef struct
 {
 	pg_enc		encoding;
-	const		pg_mb_radix_tree *map1; /* to UTF8 map name */
-	const		pg_mb_radix_tree *map2; /* from UTF8 map name */
-}			pg_conv_map;
+	const pg_mb_radix_tree *map1;	/* to UTF8 map name */
+	const pg_mb_radix_tree *map2;	/* from UTF8 map name */
+} pg_conv_map;
 
 static const pg_conv_map maps[] = {
 	{PG_LATIN2, &iso8859_2_to_unicode_tree,

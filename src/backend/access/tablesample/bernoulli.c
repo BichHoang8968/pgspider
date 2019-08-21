@@ -13,7 +13,7 @@
  * cutoff value computed from the selection probability by BeginSampleScan.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -43,23 +43,23 @@ typedef struct
 	uint64		cutoff;			/* select tuples with hash less than this */
 	uint32		seed;			/* random seed */
 	OffsetNumber lt;			/* last tuple returned from current block */
-}			BernoulliSamplerData;
+} BernoulliSamplerData;
 
 
-static void bernoulli_samplescangetsamplesize(PlannerInfo * root,
-								  RelOptInfo * baserel,
-								  List * paramexprs,
-								  BlockNumber * pages,
+static void bernoulli_samplescangetsamplesize(PlannerInfo *root,
+								  RelOptInfo *baserel,
+								  List *paramexprs,
+								  BlockNumber *pages,
 								  double *tuples);
-static void bernoulli_initsamplescan(SampleScanState * node,
+static void bernoulli_initsamplescan(SampleScanState *node,
 						 int eflags);
-static void bernoulli_beginsamplescan(SampleScanState * node,
-						  Datum * params,
+static void bernoulli_beginsamplescan(SampleScanState *node,
+						  Datum *params,
 						  int nparams,
 						  uint32 seed);
-static OffsetNumber bernoulli_nextsampletuple(SampleScanState * node,
-											  BlockNumber blockno,
-											  OffsetNumber maxoffset);
+static OffsetNumber bernoulli_nextsampletuple(SampleScanState *node,
+						  BlockNumber blockno,
+						  OffsetNumber maxoffset);
 
 
 /*
@@ -87,10 +87,10 @@ tsm_bernoulli_handler(PG_FUNCTION_ARGS)
  * Sample size estimation.
  */
 static void
-bernoulli_samplescangetsamplesize(PlannerInfo * root,
-								  RelOptInfo * baserel,
-								  List * paramexprs,
-								  BlockNumber * pages,
+bernoulli_samplescangetsamplesize(PlannerInfo *root,
+								  RelOptInfo *baserel,
+								  List *paramexprs,
+								  BlockNumber *pages,
 								  double *tuples)
 {
 	Node	   *pctnode;
@@ -128,7 +128,7 @@ bernoulli_samplescangetsamplesize(PlannerInfo * root,
  * Initialize during executor setup.
  */
 static void
-bernoulli_initsamplescan(SampleScanState * node, int eflags)
+bernoulli_initsamplescan(SampleScanState *node, int eflags)
 {
 	node->tsm_state = palloc0(sizeof(BernoulliSamplerData));
 }
@@ -137,8 +137,8 @@ bernoulli_initsamplescan(SampleScanState * node, int eflags)
  * Examine parameters and prepare for a sample scan.
  */
 static void
-bernoulli_beginsamplescan(SampleScanState * node,
-						  Datum * params,
+bernoulli_beginsamplescan(SampleScanState *node,
+						  Datum *params,
 						  int nparams,
 						  uint32 seed)
 {
@@ -182,7 +182,7 @@ bernoulli_beginsamplescan(SampleScanState * node,
  * SampleScan to go to next block.
  */
 static OffsetNumber
-bernoulli_nextsampletuple(SampleScanState * node,
+bernoulli_nextsampletuple(SampleScanState *node,
 						  BlockNumber blockno,
 						  OffsetNumber maxoffset)
 {

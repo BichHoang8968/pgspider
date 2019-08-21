@@ -4,7 +4,7 @@
  *	 Routines for archivers to write an uncompressed or compressed data
  *	 stream.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * This file includes two APIs for dealing with compressed data. The first
@@ -77,23 +77,23 @@ struct CompressorState
 /* translator: this is a module name */
 static const char *modulename = gettext_noop("compress_io");
 
-static void ParseCompressionOption(int compression, CompressionAlgorithm * alg,
+static void ParseCompressionOption(int compression, CompressionAlgorithm *alg,
 					   int *level);
 
 /* Routines that support zlib compressed data I/O */
 #ifdef HAVE_LIBZ
-static void InitCompressorZlib(CompressorState * cs, int level);
-static void DeflateCompressorZlib(ArchiveHandle * AH, CompressorState * cs,
+static void InitCompressorZlib(CompressorState *cs, int level);
+static void DeflateCompressorZlib(ArchiveHandle *AH, CompressorState *cs,
 					  bool flush);
-static void ReadDataFromArchiveZlib(ArchiveHandle * AH, ReadFunc readF);
-static void WriteDataToArchiveZlib(ArchiveHandle * AH, CompressorState * cs,
+static void ReadDataFromArchiveZlib(ArchiveHandle *AH, ReadFunc readF);
+static void WriteDataToArchiveZlib(ArchiveHandle *AH, CompressorState *cs,
 					   const char *data, size_t dLen);
-static void EndCompressorZlib(ArchiveHandle * AH, CompressorState * cs);
+static void EndCompressorZlib(ArchiveHandle *AH, CompressorState *cs);
 #endif
 
 /* Routines that support uncompressed data I/O */
-static void ReadDataFromArchiveNone(ArchiveHandle * AH, ReadFunc readF);
-static void WriteDataToArchiveNone(ArchiveHandle * AH, CompressorState * cs,
+static void ReadDataFromArchiveNone(ArchiveHandle *AH, ReadFunc readF);
+static void WriteDataToArchiveNone(ArchiveHandle *AH, CompressorState *cs,
 					   const char *data, size_t dLen);
 
 /*
@@ -102,7 +102,7 @@ static void WriteDataToArchiveNone(ArchiveHandle * AH, CompressorState * cs,
  * zlib compression level in *level.
  */
 static void
-ParseCompressionOption(int compression, CompressionAlgorithm * alg, int *level)
+ParseCompressionOption(int compression, CompressionAlgorithm *alg, int *level)
 {
 	if (compression == Z_DEFAULT_COMPRESSION ||
 		(compression > 0 && compression <= 9))
@@ -158,7 +158,7 @@ AllocateCompressor(int compression, WriteFunc writeF)
  * out with ahwrite().
  */
 void
-ReadDataFromArchive(ArchiveHandle * AH, int compression, ReadFunc readF)
+ReadDataFromArchive(ArchiveHandle *AH, int compression, ReadFunc readF)
 {
 	CompressionAlgorithm alg;
 
@@ -180,7 +180,7 @@ ReadDataFromArchive(ArchiveHandle * AH, int compression, ReadFunc readF)
  * Compress and write data to the output stream (via writeF).
  */
 void
-WriteDataToArchive(ArchiveHandle * AH, CompressorState * cs,
+WriteDataToArchive(ArchiveHandle *AH, CompressorState *cs,
 				   const void *data, size_t dLen)
 {
 	switch (cs->comprAlg)
@@ -203,7 +203,7 @@ WriteDataToArchive(ArchiveHandle * AH, CompressorState * cs,
  * Terminate compression library context and flush its buffers.
  */
 void
-EndCompressor(ArchiveHandle * AH, CompressorState * cs)
+EndCompressor(ArchiveHandle *AH, CompressorState *cs)
 {
 #ifdef HAVE_LIBZ
 	if (cs->comprAlg == COMPR_ALG_LIBZ)
@@ -220,7 +220,7 @@ EndCompressor(ArchiveHandle * AH, CompressorState * cs)
  */
 
 static void
-InitCompressorZlib(CompressorState * cs, int level)
+InitCompressorZlib(CompressorState *cs, int level)
 {
 	z_streamp	zp;
 
@@ -248,7 +248,7 @@ InitCompressorZlib(CompressorState * cs, int level)
 }
 
 static void
-EndCompressorZlib(ArchiveHandle * AH, CompressorState * cs)
+EndCompressorZlib(ArchiveHandle *AH, CompressorState *cs)
 {
 	z_streamp	zp = cs->zp;
 
@@ -267,7 +267,7 @@ EndCompressorZlib(ArchiveHandle * AH, CompressorState * cs)
 }
 
 static void
-DeflateCompressorZlib(ArchiveHandle * AH, CompressorState * cs, bool flush)
+DeflateCompressorZlib(ArchiveHandle *AH, CompressorState *cs, bool flush)
 {
 	z_streamp	zp = cs->zp;
 	char	   *out = cs->zlibOut;
@@ -309,7 +309,7 @@ DeflateCompressorZlib(ArchiveHandle * AH, CompressorState * cs, bool flush)
 }
 
 static void
-WriteDataToArchiveZlib(ArchiveHandle * AH, CompressorState * cs,
+WriteDataToArchiveZlib(ArchiveHandle *AH, CompressorState *cs,
 					   const char *data, size_t dLen)
 {
 	cs->zp->next_in = (void *) data;
@@ -320,7 +320,7 @@ WriteDataToArchiveZlib(ArchiveHandle * AH, CompressorState * cs,
 }
 
 static void
-ReadDataFromArchiveZlib(ArchiveHandle * AH, ReadFunc readF)
+ReadDataFromArchiveZlib(ArchiveHandle *AH, ReadFunc readF)
 {
 	z_streamp	zp;
 	char	   *out;
@@ -396,7 +396,7 @@ ReadDataFromArchiveZlib(ArchiveHandle * AH, ReadFunc readF)
  */
 
 static void
-ReadDataFromArchiveNone(ArchiveHandle * AH, ReadFunc readF)
+ReadDataFromArchiveNone(ArchiveHandle *AH, ReadFunc readF)
 {
 	size_t		cnt;
 	char	   *buf;
@@ -414,7 +414,7 @@ ReadDataFromArchiveNone(ArchiveHandle * AH, ReadFunc readF)
 }
 
 static void
-WriteDataToArchiveNone(ArchiveHandle * AH, CompressorState * cs,
+WriteDataToArchiveNone(ArchiveHandle *AH, CompressorState *cs,
 					   const char *data, size_t dLen)
 {
 	cs->writeF(AH, data, dLen);
@@ -580,7 +580,7 @@ cfopen(const char *path, const char *mode, int compression)
 
 
 int
-cfread(void *ptr, int size, cfp * fp)
+cfread(void *ptr, int size, cfp *fp)
 {
 	int			ret;
 
@@ -612,7 +612,7 @@ cfread(void *ptr, int size, cfp * fp)
 }
 
 int
-cfwrite(const void *ptr, int size, cfp * fp)
+cfwrite(const void *ptr, int size, cfp *fp)
 {
 #ifdef HAVE_LIBZ
 	if (fp->compressedfp)
@@ -623,7 +623,7 @@ cfwrite(const void *ptr, int size, cfp * fp)
 }
 
 int
-cfgetc(cfp * fp)
+cfgetc(cfp *fp)
 {
 	int			ret;
 
@@ -653,7 +653,7 @@ cfgetc(cfp * fp)
 }
 
 char *
-cfgets(cfp * fp, char *buf, int len)
+cfgets(cfp *fp, char *buf, int len)
 {
 #ifdef HAVE_LIBZ
 	if (fp->compressedfp)
@@ -664,7 +664,7 @@ cfgets(cfp * fp, char *buf, int len)
 }
 
 int
-cfclose(cfp * fp)
+cfclose(cfp *fp)
 {
 	int			result;
 
@@ -691,7 +691,7 @@ cfclose(cfp * fp)
 }
 
 int
-cfeof(cfp * fp)
+cfeof(cfp *fp)
 {
 #ifdef HAVE_LIBZ
 	if (fp->compressedfp)
@@ -702,7 +702,7 @@ cfeof(cfp * fp)
 }
 
 const char *
-get_cfp_error(cfp * fp)
+get_cfp_error(cfp *fp)
 {
 #ifdef HAVE_LIBZ
 	if (fp->compressedfp)

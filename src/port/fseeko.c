@@ -3,7 +3,7 @@
  * fseeko.c
  *	  64-bit versions of fseeko/ftello()
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -31,7 +31,7 @@
  */
 
 int
-fseeko(FILE * stream, off_t offset, int whence)
+fseeko(FILE *stream, off_t offset, int whence)
 {
 	off_t		floc;
 	struct stat filestat;
@@ -72,7 +72,7 @@ failure:
 
 
 off_t
-ftello(FILE * stream)
+ftello(FILE *stream)
 {
 	off_t		floc;
 

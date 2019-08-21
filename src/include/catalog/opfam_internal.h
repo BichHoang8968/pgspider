@@ -2,7 +2,7 @@
  *
  * opfam_internal.h
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/catalog/opfam_internal.h
@@ -23,6 +23,6 @@ typedef struct
 	Oid			lefttype;		/* lefttype */
 	Oid			righttype;		/* righttype */
 	Oid			sortfamily;		/* ordering operator's sort opfamily, or 0 */
-}			OpFamilyMember;
+} OpFamilyMember;
 
 #endif							/* OPFAM_INTERNAL_H */

@@ -4,7 +4,7 @@
  *		External interface to query rewriter.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/rewrite/rewriteHandler.h
@@ -17,20 +17,20 @@
 #include "utils/relcache.h"
 #include "nodes/parsenodes.h"
 
-extern List * QueryRewrite(Query * parsetree);
-extern void AcquireRewriteLocks(Query * parsetree,
+extern List *QueryRewrite(Query *parsetree);
+extern void AcquireRewriteLocks(Query *parsetree,
 					bool forExecute,
 					bool forUpdatePushedDown);
 
-extern Node * build_column_default(Relation rel, int attrno);
-extern void rewriteTargetListUD(Query * parsetree, RangeTblEntry * target_rte,
+extern Node *build_column_default(Relation rel, int attrno);
+extern void rewriteTargetListUD(Query *parsetree, RangeTblEntry *target_rte,
 					Relation target_relation);
 
-extern Query * get_view_query(Relation view);
-extern const char *view_query_is_auto_updatable(Query * viewquery,
+extern Query *get_view_query(Relation view);
+extern const char *view_query_is_auto_updatable(Query *viewquery,
 							 bool check_cols);
 extern int relation_is_updatable(Oid reloid,
 					  bool include_triggers,
-					  Bitmapset * include_cols);
+					  Bitmapset *include_cols);
 
 #endif							/* REWRITEHANDLER_H */

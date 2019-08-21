@@ -3,7 +3,7 @@
  * user.c
  *	  Commands for manipulating roles (formerly called users).
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/backend/commands/user.c
@@ -50,10 +50,10 @@ int			Password_encryption = PASSWORD_TYPE_MD5;
 check_password_hook_type check_password_hook = NULL;
 
 static void AddRoleMems(const char *rolename, Oid roleid,
-			List * memberSpecs, List * memberIds,
+			List *memberSpecs, List *memberIds,
 			Oid grantorId, bool admin_opt);
 static void DelRoleMems(const char *rolename, Oid roleid,
-			List * memberSpecs, List * memberIds,
+			List *memberSpecs, List *memberIds,
 			bool admin_opt);
 
 
@@ -69,7 +69,7 @@ have_createrole_privilege(void)
  * CREATE ROLE
  */
 Oid
-CreateRole(ParseState * pstate, CreateRoleStmt * stmt)
+CreateRole(ParseState *pstate, CreateRoleStmt *stmt)
 {
 	Relation	pg_authid_rel;
 	TupleDesc	pg_authid_dsc;
@@ -501,7 +501,7 @@ CreateRole(ParseState * pstate, CreateRoleStmt * stmt)
  * "ALTER ROLE role ROLE rolenames", we don't document it.
  */
 Oid
-AlterRole(AlterRoleStmt * stmt)
+AlterRole(AlterRoleStmt *stmt)
 {
 	Datum		new_record[Natts_pg_authid];
 	bool		new_record_nulls[Natts_pg_authid];
@@ -883,7 +883,7 @@ AlterRole(AlterRoleStmt * stmt)
  * ALTER ROLE ... SET
  */
 Oid
-AlterRoleSet(AlterRoleSetStmt * stmt)
+AlterRoleSet(AlterRoleSetStmt *stmt)
 {
 	HeapTuple	roletuple;
 	Oid			databaseid = InvalidOid;
@@ -939,7 +939,7 @@ AlterRoleSet(AlterRoleSetStmt * stmt)
 			 * ALTER DATABASE ... SET, so use the same permission check.
 			 */
 			if (!pg_database_ownercheck(databaseid, GetUserId()))
-				aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_DATABASE,
+				aclcheck_error(ACLCHECK_NOT_OWNER, OBJECT_DATABASE,
 							   stmt->database);
 		}
 	}
@@ -963,7 +963,7 @@ AlterRoleSet(AlterRoleSetStmt * stmt)
  * DROP ROLE
  */
 void
-DropRole(DropRoleStmt * stmt)
+DropRole(DropRoleStmt *stmt)
 {
 	Relation	pg_authid_rel,
 				pg_auth_members_rel;
@@ -1271,7 +1271,7 @@ RenameRole(const char *oldname, const char *newname)
  * Grant/Revoke roles to/from roles
  */
 void
-GrantRole(GrantRoleStmt * stmt)
+GrantRole(GrantRoleStmt *stmt)
 {
 	Relation	pg_authid_rel;
 	Oid			grantor;
@@ -1330,7 +1330,7 @@ GrantRole(GrantRoleStmt * stmt)
  * Drop the objects owned by a given list of roles.
  */
 void
-DropOwnedObjects(DropOwnedStmt * stmt)
+DropOwnedObjects(DropOwnedStmt *stmt)
 {
 	List	   *role_ids = roleSpecsToIds(stmt->roles);
 	ListCell   *cell;
@@ -1356,7 +1356,7 @@ DropOwnedObjects(DropOwnedStmt * stmt)
  * Give the objects owned by a given list of roles away to another user.
  */
 void
-ReassignOwnedObjects(ReassignOwnedStmt * stmt)
+ReassignOwnedObjects(ReassignOwnedStmt *stmt)
 {
 	List	   *role_ids = roleSpecsToIds(stmt->roles);
 	ListCell   *cell;
@@ -1393,7 +1393,7 @@ ReassignOwnedObjects(ReassignOwnedStmt * stmt)
  * ROLESPEC_PUBLIC is not allowed.
  */
 List *
-roleSpecsToIds(List * memberNames)
+roleSpecsToIds(List *memberNames)
 {
 	List	   *result = NIL;
 	ListCell   *l;
@@ -1423,7 +1423,7 @@ roleSpecsToIds(List * memberNames)
  */
 static void
 AddRoleMems(const char *rolename, Oid roleid,
-			List * memberSpecs, List * memberIds,
+			List *memberSpecs, List *memberIds,
 			Oid grantorId, bool admin_opt)
 {
 	Relation	pg_authmem_rel;
@@ -1567,7 +1567,7 @@ AddRoleMems(const char *rolename, Oid roleid,
  */
 static void
 DelRoleMems(const char *rolename, Oid roleid,
-			List * memberSpecs, List * memberIds,
+			List *memberSpecs, List *memberIds,
 			bool admin_opt)
 {
 	Relation	pg_authmem_rel;

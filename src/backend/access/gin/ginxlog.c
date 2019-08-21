@@ -4,7 +4,7 @@
  *	  WAL replay logic for inverted index.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -22,7 +22,7 @@
 static MemoryContext opCtx;		/* working memory for operations */
 
 static void
-ginRedoClearIncompleteSplit(XLogReaderState * record, uint8 block_id)
+ginRedoClearIncompleteSplit(XLogReaderState *record, uint8 block_id)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	Buffer		buffer;
@@ -41,7 +41,7 @@ ginRedoClearIncompleteSplit(XLogReaderState * record, uint8 block_id)
 }
 
 static void
-ginRedoCreateIndex(XLogReaderState * record)
+ginRedoCreateIndex(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	Buffer		RootBuffer,
@@ -71,7 +71,7 @@ ginRedoCreateIndex(XLogReaderState * record)
 }
 
 static void
-ginRedoCreatePTree(XLogReaderState * record)
+ginRedoCreatePTree(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	ginxlogCreatePostingTree *data = (ginxlogCreatePostingTree *) XLogRecGetData(record);
@@ -135,8 +135,16 @@ ginRedoInsertEntry(Buffer buffer, bool isLeaf, BlockNumber rightblkno, void *rda
 	}
 }
 
+/*
+ * Redo recompression of posting list.  Doing all the changes in-place is not
+ * always possible, because it might require more space than we've on the page.
+ * Instead, once modification is required we copy unprocessed tail of the page
+ * into separately allocated chunk of memory for further reading original
+ * versions of segments.  Thanks to that we don't bother about moving page data
+ * in-place.
+ */
 static void
-ginRedoRecompress(Page page, ginxlogRecompressDataLeaf * data)
+ginRedoRecompress(Page page, ginxlogRecompressDataLeaf *data)
 {
 	int			actionno;
 	int			segno;
@@ -144,6 +152,9 @@ ginRedoRecompress(Page page, ginxlogRecompressDataLeaf * data)
 	Pointer		segmentend;
 	char	   *walbuf;
 	int			totalsize;
+	Pointer		tailCopy = NULL;
+	Pointer		writePtr;
+	Pointer		segptr;
 
 	/*
 	 * If the page is in pre-9.4 format, convert to new format first.
@@ -183,6 +194,7 @@ ginRedoRecompress(Page page, ginxlogRecompressDataLeaf * data)
 	}
 
 	oldseg = GinDataLeafPageGetPostingList(page);
+	writePtr = (Pointer) oldseg;
 	segmentend = (Pointer) oldseg + GinDataLeafPageGetPostingListSize(page);
 	segno = 0;
 
@@ -200,8 +212,6 @@ ginRedoRecompress(Page page, ginxlogRecompressDataLeaf * data)
 		ItemPointerData *newitems;
 		int			nnewitems;
 		int			segsize;
-		Pointer		segptr;
-		int			szleft;
 
 		/* Extract all the information we need from the WAL record */
 		if (a_action == GIN_SEGMENT_INSERT ||
@@ -224,6 +234,17 @@ ginRedoRecompress(Page page, ginxlogRecompressDataLeaf * data)
 		Assert(segno <= a_segno);
 		while (segno < a_segno)
 		{
+			/*
+			 * Once modification is started and page tail is copied, we've
+			 * to copy unmodified segments.
+			 */
+			segsize = SizeOfGinPostingList(oldseg);
+			if (tailCopy)
+			{
+				Assert(writePtr + segsize < PageGetSpecialPointer(page));
+				memcpy(writePtr, (Pointer) oldseg, segsize);
+			}
+			writePtr += segsize;
 			oldseg = GinNextPostingListSegment(oldseg);
 			segno++;
 		}
@@ -264,36 +285,42 @@ ginRedoRecompress(Page page, ginxlogRecompressDataLeaf * data)
 			Assert(a_action == GIN_SEGMENT_INSERT);
 			segsize = 0;
 		}
-		szleft = segmentend - segptr;
+
+		/*
+		 * We're about to start modification of the page.  So, copy tail of the
+		 * page if it's not done already.
+		 */
+		if (!tailCopy && segptr != segmentend)
+		{
+			int tailSize = segmentend - segptr;
+
+			tailCopy = (Pointer) palloc(tailSize);
+			memcpy(tailCopy, segptr, tailSize);
+			segptr = tailCopy;
+			oldseg = (GinPostingList *) segptr;
+			segmentend = segptr + tailSize;
+		}
 
 		switch (a_action)
 		{
 			case GIN_SEGMENT_DELETE:
-				memmove(segptr, segptr + segsize, szleft - segsize);
-				segmentend -= segsize;
-
+				segptr += segsize;
 				segno++;
 				break;
 
 			case GIN_SEGMENT_INSERT:
-				/* make room for the new segment */
-				memmove(segptr + newsegsize, segptr, szleft);
 				/* copy the new segment in place */
-				memcpy(segptr, newseg, newsegsize);
-				segmentend += newsegsize;
-				segptr += newsegsize;
+				Assert(writePtr + newsegsize <= PageGetSpecialPointer(page));
+				memcpy(writePtr, newseg, newsegsize);
+				writePtr += newsegsize;
 				break;
 
 			case GIN_SEGMENT_REPLACE:
-				/* shift the segments that follow */
-				memmove(segptr + newsegsize,
-						segptr + segsize,
-						szleft - segsize);
-				/* copy the replacement segment in place */
-				memcpy(segptr, newseg, newsegsize);
-				segmentend -= segsize;
-				segmentend += newsegsize;
-				segptr += newsegsize;
+				/* copy the new version of segment in place */
+				Assert(writePtr + newsegsize <= PageGetSpecialPointer(page));
+				memcpy(writePtr, newseg, newsegsize);
+				writePtr += newsegsize;
+				segptr += segsize;
 				segno++;
 				break;
 
@@ -303,7 +330,18 @@ ginRedoRecompress(Page page, ginxlogRecompressDataLeaf * data)
 		oldseg = (GinPostingList *) segptr;
 	}
 
-	totalsize = segmentend - (Pointer) GinDataLeafPageGetPostingList(page);
+	/* Copy the rest of unmodified segments if any. */
+	segptr = (Pointer) oldseg;
+	if (segptr != segmentend && tailCopy)
+	{
+		int restSize = segmentend - segptr;
+
+		Assert(writePtr + restSize <= PageGetSpecialPointer(page));
+		memcpy(writePtr, segptr, restSize);
+		writePtr += restSize;
+	}
+
+	totalsize = writePtr - (Pointer) GinDataLeafPageGetPostingList(page);
 	GinDataPageSetDataSize(page, totalsize);
 }
 
@@ -336,7 +374,7 @@ ginRedoInsertData(Buffer buffer, bool isLeaf, BlockNumber rightblkno, void *rdat
 }
 
 static void
-ginRedoInsert(XLogReaderState * record)
+ginRedoInsert(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	ginxlogInsert *data = (ginxlogInsert *) XLogRecGetData(record);
@@ -391,7 +429,7 @@ ginRedoInsert(XLogReaderState * record)
 }
 
 static void
-ginRedoSplit(XLogReaderState * record)
+ginRedoSplit(XLogReaderState *record)
 {
 	ginxlogSplit *data = (ginxlogSplit *) XLogRecGetData(record);
 	Buffer		lbuffer,
@@ -429,7 +467,7 @@ ginRedoSplit(XLogReaderState * record)
  * an XLOG_FPI record.
  */
 static void
-ginRedoVacuumPage(XLogReaderState * record)
+ginRedoVacuumPage(XLogReaderState *record)
 {
 	Buffer		buffer;
 
@@ -441,7 +479,7 @@ ginRedoVacuumPage(XLogReaderState * record)
 }
 
 static void
-ginRedoVacuumDataLeafPage(XLogReaderState * record)
+ginRedoVacuumDataLeafPage(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	Buffer		buffer;
@@ -466,7 +504,7 @@ ginRedoVacuumDataLeafPage(XLogReaderState * record)
 }
 
 static void
-ginRedoDeletePage(XLogReaderState * record)
+ginRedoDeletePage(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	ginxlogDeletePage *data = (ginxlogDeletePage *) XLogRecGetData(record);
@@ -475,11 +513,42 @@ ginRedoDeletePage(XLogReaderState * record)
 	Buffer		lbuffer;
 	Page		page;
 
+	/*
+	 * Lock left page first in order to prevent possible deadlock with
+	 * ginStepRight().
+	 */
+	if (XLogReadBufferForRedo(record, 2, &lbuffer) == BLK_NEEDS_REDO)
+	{
+		page = BufferGetPage(lbuffer);
+		Assert(GinPageIsData(page));
+		GinPageGetOpaque(page)->rightlink = data->rightLink;
+		PageSetLSN(page, lsn);
+		MarkBufferDirty(lbuffer);
+	}
+
 	if (XLogReadBufferForRedo(record, 0, &dbuffer) == BLK_NEEDS_REDO)
 	{
 		page = BufferGetPage(dbuffer);
 		Assert(GinPageIsData(page));
 		GinPageGetOpaque(page)->flags = GIN_DELETED;
+
+		/*
+		 * deleteXid field of ginxlogDeletePage was added during backpatching.
+		 * But, non-backpatched instances will continue generate WAL without
+		 * this field.  We should be able to correctly apply that.  We can
+		 * distinguish new WAL records by size their data, because
+		 * ginxlogDeletePage changes its size on both 32-bit and 64-bit
+		 * platforms.
+		 */
+		StaticAssertStmt(sizeof(ginxlogDeletePage) !=
+						 sizeof(ginxlogDeletePageOld),
+						 "ginxlogDeletePage size should be changed "
+						 "with addition of deleteXid field");
+		Assert(XLogRecGetDataLen(record) == sizeof(ginxlogDeletePage) ||
+			   XLogRecGetDataLen(record) == sizeof(ginxlogDeletePageOld));
+		if (XLogRecGetDataLen(record) == sizeof(ginxlogDeletePage))
+			GinPageSetDeleteXid(page, data->deleteXid);
+
 		PageSetLSN(page, lsn);
 		MarkBufferDirty(dbuffer);
 	}
@@ -494,15 +563,6 @@ ginRedoDeletePage(XLogReaderState * record)
 		MarkBufferDirty(pbuffer);
 	}
 
-	if (XLogReadBufferForRedo(record, 2, &lbuffer) == BLK_NEEDS_REDO)
-	{
-		page = BufferGetPage(lbuffer);
-		Assert(GinPageIsData(page));
-		GinPageGetOpaque(page)->rightlink = data->rightLink;
-		PageSetLSN(page, lsn);
-		MarkBufferDirty(lbuffer);
-	}
-
 	if (BufferIsValid(lbuffer))
 		UnlockReleaseBuffer(lbuffer);
 	if (BufferIsValid(pbuffer))
@@ -512,7 +572,7 @@ ginRedoDeletePage(XLogReaderState * record)
 }
 
 static void
-ginRedoUpdateMetapage(XLogReaderState * record)
+ginRedoUpdateMetapage(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	ginxlogUpdateMeta *data = (ginxlogUpdateMeta *) XLogRecGetData(record);
@@ -529,7 +589,7 @@ ginRedoUpdateMetapage(XLogReaderState * record)
 	Assert(BufferGetBlockNumber(metabuffer) == GIN_METAPAGE_BLKNO);
 	metapage = BufferGetPage(metabuffer);
 
-	GinInitPage(metapage, GIN_META, BufferGetPageSize(metabuffer));
+	GinInitMetabuffer(metabuffer);
 	memcpy(GinPageGetMeta(metapage), &data->metadata, sizeof(GinMetaPageData));
 	PageSetLSN(metapage, lsn);
 	MarkBufferDirty(metabuffer);
@@ -604,7 +664,7 @@ ginRedoUpdateMetapage(XLogReaderState * record)
 }
 
 static void
-ginRedoInsertListPage(XLogReaderState * record)
+ginRedoInsertListPage(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	ginxlogInsertListPage *data = (ginxlogInsertListPage *) XLogRecGetData(record);
@@ -659,7 +719,7 @@ ginRedoInsertListPage(XLogReaderState * record)
 }
 
 static void
-ginRedoDeleteListPages(XLogReaderState * record)
+ginRedoDeleteListPages(XLogReaderState *record)
 {
 	XLogRecPtr	lsn = record->EndRecPtr;
 	ginxlogDeleteListPages *data = (ginxlogDeleteListPages *) XLogRecGetData(record);
@@ -671,7 +731,7 @@ ginRedoDeleteListPages(XLogReaderState * record)
 	Assert(BufferGetBlockNumber(metabuffer) == GIN_METAPAGE_BLKNO);
 	metapage = BufferGetPage(metabuffer);
 
-	GinInitPage(metapage, GIN_META, BufferGetPageSize(metabuffer));
+	GinInitMetabuffer(metabuffer);
 
 	memcpy(GinPageGetMeta(metapage), &data->metadata, sizeof(GinMetaPageData));
 	PageSetLSN(metapage, lsn);
@@ -710,7 +770,7 @@ ginRedoDeleteListPages(XLogReaderState * record)
 }
 
 void
-gin_redo(XLogReaderState * record)
+gin_redo(XLogReaderState *record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 	MemoryContext oldCtx;
@@ -783,6 +843,7 @@ void
 gin_mask(char *pagedata, BlockNumber blkno)
 {
 	Page		page = (Page) pagedata;
+	PageHeader	pagehdr = (PageHeader) page;
 	GinPageOpaque opaque;
 
 	mask_page_lsn_and_checksum(page);
@@ -791,18 +852,12 @@ gin_mask(char *pagedata, BlockNumber blkno)
 	mask_page_hint_bits(page);
 
 	/*
-	 * GIN metapage doesn't use pd_lower/pd_upper. Other page types do. Hence,
-	 * we need to apply masking for those pages.
+	 * For a GIN_DELETED page, the page is initialized to empty.  Hence, mask
+	 * the whole page content.  For other pages, mask the hole if pd_lower
+	 * appears to have been set correctly.
 	 */
-	if (opaque->flags != GIN_META)
-	{
-		/*
-		 * For GIN_DELETED page, the page is initialized to empty. Hence, mask
-		 * the page content.
-		 */
-		if (opaque->flags & GIN_DELETED)
-			mask_page_content(page);
-		else
-			mask_unused_space(page);
-	}
+	if (opaque->flags & GIN_DELETED)
+		mask_page_content(page);
+	else if (pagehdr->pd_lower > SizeOfPageHeaderData)
+		mask_unused_space(page);
 }

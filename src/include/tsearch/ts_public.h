@@ -4,7 +4,7 @@
  *	  Public interface to various tsearch modules, such as
  *	  parsers and dictionaries.
  *
- * Copyright (c) 1998-2017, PostgreSQL Global Development Group
+ * Copyright (c) 1998-2018, PostgreSQL Global Development Group
  *
  * src/include/tsearch/ts_public.h
  *
@@ -27,7 +27,7 @@ typedef struct
 	int			lexid;
 	char	   *alias;
 	char	   *descr;
-}			LexDescr;
+} LexDescr;
 
 /*
  * Interface to headline generator
@@ -45,7 +45,7 @@ typedef struct
 	WordEntryPos pos;
 	char	   *word;
 	QueryOperand *item;
-}			HeadlineWordEntry;
+} HeadlineWordEntry;
 
 typedef struct
 {
@@ -59,7 +59,7 @@ typedef struct
 	int16		startsellen;
 	int16		stopsellen;
 	int16		fragdelimlen;
-}			HeadlineParsedText;
+} HeadlineParsedText;
 
 /*
  * Common useful things for tsearch subsystem
@@ -74,11 +74,11 @@ typedef struct
 {
 	int			len;
 	char	  **stop;
-}			StopList;
+} StopList;
 
-extern void readstoplist(const char *fname, StopList * s,
+extern void readstoplist(const char *fname, StopList *s,
 			 char *(*wordop) (const char *));
-extern bool searchstoplist(StopList * s, char *key);
+extern bool searchstoplist(StopList *s, char *key);
 
 /*
  * Interface with dictionaries
@@ -109,7 +109,7 @@ typedef struct
 	uint16		flags;			/* See flag bits below */
 
 	char	   *lexeme;			/* C string */
-}			TSLexeme;
+} TSLexeme;
 
 /* Flag bits that can appear in TSLexeme.flags */
 #define TSL_ADDPOS		0x01
@@ -127,6 +127,6 @@ typedef struct
 	bool		getnext;		/* out: dict wants next lexeme */
 	void	   *private_state;	/* internal dict state between calls with
 								 * getnext == true */
-}			DictSubState;
+} DictSubState;
 
 #endif							/* _PG_TS_PUBLIC_H_ */

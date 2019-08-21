@@ -4,7 +4,7 @@
  *	  Physical access information for relations.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/relfilenode.h
@@ -59,7 +59,7 @@ typedef struct RelFileNode
 	Oid			spcNode;		/* tablespace */
 	Oid			dbNode;			/* database */
 	Oid			relNode;		/* relation */
-}			RelFileNode;
+} RelFileNode;
 
 /*
  * Augmenting a relfilenode with the backend ID provides all the information
@@ -73,7 +73,7 @@ typedef struct RelFileNodeBackend
 {
 	RelFileNode node;
 	BackendId	backend;
-}			RelFileNodeBackend;
+} RelFileNodeBackend;
 
 #define RelFileNodeBackendIsTemp(rnode) \
 	((rnode).backend != InvalidBackendId)

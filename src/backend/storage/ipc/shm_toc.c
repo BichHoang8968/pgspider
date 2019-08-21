@@ -3,7 +3,7 @@
  * shm_toc.c
  *	  shared memory segment table of contents
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/backend/storage/ipc/shm_toc.c
@@ -21,7 +21,7 @@ typedef struct shm_toc_entry
 {
 	uint64		key;			/* Arbitrary identifier */
 	Size		offset;			/* Offset, in bytes, from TOC start */
-}			shm_toc_entry;
+} shm_toc_entry;
 
 struct shm_toc
 {
@@ -44,7 +44,12 @@ shm_toc_create(uint64 magic, void *address, Size nbytes)
 	Assert(nbytes > offsetof(shm_toc, toc_entry));
 	toc->toc_magic = magic;
 	SpinLockInit(&toc->toc_mutex);
-	toc->toc_total_bytes = nbytes;
+
+	/*
+	 * The alignment code in shm_toc_allocate() assumes that the starting
+	 * value is buffer-aligned.
+	 */
+	toc->toc_total_bytes = BUFFERALIGN_DOWN(nbytes);
 	toc->toc_allocated_bytes = 0;
 	toc->toc_nentry = 0;
 
@@ -55,7 +60,7 @@ shm_toc_create(uint64 magic, void *address, Size nbytes)
  * Attach to an existing table of contents.  If the magic number found at
  * the target address doesn't match our expectations, return NULL.
  */
-extern shm_toc *
+shm_toc *
 shm_toc_attach(uint64 magic, void *address)
 {
 	shm_toc    *toc = (shm_toc *) address;
@@ -79,16 +84,21 @@ shm_toc_attach(uint64 magic, void *address)
  * We allocate backwards from the end of the segment, so that the TOC entries
  * can grow forward from the start of the segment.
  */
-extern void *
-shm_toc_allocate(shm_toc * toc, Size nbytes)
+void *
+shm_toc_allocate(shm_toc *toc, Size nbytes)
 {
-	volatile	shm_toc *vtoc = toc;
+	volatile shm_toc *vtoc = toc;
 	Size		total_bytes;
 	Size		allocated_bytes;
 	Size		nentry;
 	Size		toc_bytes;
 
-	/* Make sure request is well-aligned. */
+	/*
+	 * Make sure request is well-aligned.  XXX: MAXALIGN is not enough,
+	 * because atomic ops might need a wider alignment.  We don't have a
+	 * proper definition for the minimum to make atomic ops safe, but
+	 * BUFFERALIGN ought to be enough.
+	 */
 	nbytes = BUFFERALIGN(nbytes);
 
 	SpinLockAcquire(&toc->toc_mutex);
@@ -117,10 +127,10 @@ shm_toc_allocate(shm_toc * toc, Size nbytes)
 /*
  * Return the number of bytes that can still be allocated.
  */
-extern Size
-shm_toc_freespace(shm_toc * toc)
+Size
+shm_toc_freespace(shm_toc *toc)
 {
-	volatile	shm_toc *vtoc = toc;
+	volatile shm_toc *vtoc = toc;
 	Size		total_bytes;
 	Size		allocated_bytes;
 	Size		nentry;
@@ -158,9 +168,9 @@ shm_toc_freespace(shm_toc * toc)
  * the TOC, you're doing it wrong.
  */
 void
-shm_toc_insert(shm_toc * toc, uint64 key, void *address)
+shm_toc_insert(shm_toc *toc, uint64 key, void *address)
 {
-	volatile	shm_toc *vtoc = toc;
+	volatile shm_toc *vtoc = toc;
 	Size		total_bytes;
 	Size		allocated_bytes;
 	Size		nentry;
@@ -219,7 +229,7 @@ shm_toc_insert(shm_toc * toc, uint64 key, void *address)
  * right around the same time, there seems to be some value in avoiding it.
  */
 void *
-shm_toc_lookup(shm_toc * toc, uint64 key, bool noError)
+shm_toc_lookup(shm_toc *toc, uint64 key, bool noError)
 {
 	uint32		nentry;
 	uint32		i;
@@ -250,9 +260,13 @@ shm_toc_lookup(shm_toc * toc, uint64 key, bool noError)
  * dependent data structures.
  */
 Size
-shm_toc_estimate(shm_toc_estimator * e)
+shm_toc_estimate(shm_toc_estimator *e)
 {
-	return add_size(offsetof(shm_toc, toc_entry),
-					add_size(mul_size(e->number_of_keys, sizeof(shm_toc_entry)),
-							 e->space_for_chunks));
+	Size		sz;
+
+	sz = offsetof(shm_toc, toc_entry);
+	sz += add_size(sz, mul_size(e->number_of_keys, sizeof(shm_toc_entry)));
+	sz += add_size(sz, e->space_for_chunks);
+
+	return BUFFERALIGN(sz);
 }

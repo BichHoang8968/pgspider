@@ -3,7 +3,7 @@
  * ts_utils.c
  *		various support functions
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -65,7 +65,7 @@ get_tsearch_config_filename(const char *basename,
  * or palloc a new version.
  */
 void
-readstoplist(const char *fname, StopList * s, char *(*wordop) (const char *))
+readstoplist(const char *fname, StopList *s, char *(*wordop) (const char *))
 {
 	char	  **stop = NULL;
 
@@ -138,7 +138,7 @@ readstoplist(const char *fname, StopList * s, char *(*wordop) (const char *))
 }
 
 bool
-searchstoplist(StopList * s, char *key)
+searchstoplist(StopList *s, char *key)
 {
 	return (s->stop && s->len > 0 &&
 			bsearch(&key, s->stop, s->len,

@@ -3,7 +3,7 @@
  *
  * A Pairing Heap implementation
  *
- * Portions Copyright (c) 2012-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2012-2018, PostgreSQL Global Development Group
  *
  * src/include/lib/pairingheap.h
  */
@@ -32,7 +32,7 @@ typedef struct pairingheap_node
 	struct pairingheap_node *first_child;
 	struct pairingheap_node *next_sibling;
 	struct pairingheap_node *prev_or_parent;
-}			pairingheap_node;
+} pairingheap_node;
 
 /*
  * Return the containing struct of 'type' where 'membername' is the
@@ -57,8 +57,8 @@ typedef struct pairingheap_node
  * For a max-heap, the comparator must return <0 iff a < b, 0 iff a == b,
  * and >0 iff a > b.  For a min-heap, the conditions are reversed.
  */
-typedef int (*pairingheap_comparator) (const pairingheap_node * a,
-									   const pairingheap_node * b,
+typedef int (*pairingheap_comparator) (const pairingheap_node *a,
+									   const pairingheap_node *b,
 									   void *arg);
 
 /*
@@ -73,19 +73,19 @@ typedef struct pairingheap
 	pairingheap_comparator ph_compare;	/* comparison function */
 	void	   *ph_arg;			/* opaque argument to ph_compare */
 	pairingheap_node *ph_root;	/* current root of the heap */
-}			pairingheap;
+} pairingheap;
 
-extern pairingheap * pairingheap_allocate(pairingheap_comparator compare,
-										  void *arg);
-extern void pairingheap_free(pairingheap * heap);
-extern void pairingheap_add(pairingheap * heap, pairingheap_node * node);
-extern pairingheap_node * pairingheap_first(pairingheap * heap);
-extern pairingheap_node * pairingheap_remove_first(pairingheap * heap);
-extern void pairingheap_remove(pairingheap * heap, pairingheap_node * node);
+extern pairingheap *pairingheap_allocate(pairingheap_comparator compare,
+					 void *arg);
+extern void pairingheap_free(pairingheap *heap);
+extern void pairingheap_add(pairingheap *heap, pairingheap_node *node);
+extern pairingheap_node *pairingheap_first(pairingheap *heap);
+extern pairingheap_node *pairingheap_remove_first(pairingheap *heap);
+extern void pairingheap_remove(pairingheap *heap, pairingheap_node *node);
 
 #ifdef PAIRINGHEAP_DEBUG
-extern char *pairingheap_dump(pairingheap * heap,
-				 void (*dumpfunc) (pairingheap_node * node, StringInfo buf, void *opaque),
+extern char *pairingheap_dump(pairingheap *heap,
+				 void (*dumpfunc) (pairingheap_node *node, StringInfo buf, void *opaque),
 				 void *opaque);
 #endif
 

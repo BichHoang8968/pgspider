@@ -4,7 +4,7 @@
  *
  *	Implements the custom output format.
  *
- *	The comments with the routined in this code are a good place to
+ *	The comments with the routines in this code are a good place to
  *	understand how to write a new format.
  *
  *	See the headers to pg_restore for more details.
@@ -35,34 +35,34 @@
  *--------
  */
 
-static void _ArchiveEntry(ArchiveHandle * AH, TocEntry * te);
-static void _StartData(ArchiveHandle * AH, TocEntry * te);
-static void _WriteData(ArchiveHandle * AH, const void *data, size_t dLen);
-static void _EndData(ArchiveHandle * AH, TocEntry * te);
-static int	_WriteByte(ArchiveHandle * AH, const int i);
+static void _ArchiveEntry(ArchiveHandle *AH, TocEntry *te);
+static void _StartData(ArchiveHandle *AH, TocEntry *te);
+static void _WriteData(ArchiveHandle *AH, const void *data, size_t dLen);
+static void _EndData(ArchiveHandle *AH, TocEntry *te);
+static int	_WriteByte(ArchiveHandle *AH, const int i);
 static int	_ReadByte(ArchiveHandle *);
-static void _WriteBuf(ArchiveHandle * AH, const void *buf, size_t len);
-static void _ReadBuf(ArchiveHandle * AH, void *buf, size_t len);
-static void _CloseArchive(ArchiveHandle * AH);
-static void _ReopenArchive(ArchiveHandle * AH);
-static void _PrintTocData(ArchiveHandle * AH, TocEntry * te);
-static void _WriteExtraToc(ArchiveHandle * AH, TocEntry * te);
-static void _ReadExtraToc(ArchiveHandle * AH, TocEntry * te);
-static void _PrintExtraToc(ArchiveHandle * AH, TocEntry * te);
+static void _WriteBuf(ArchiveHandle *AH, const void *buf, size_t len);
+static void _ReadBuf(ArchiveHandle *AH, void *buf, size_t len);
+static void _CloseArchive(ArchiveHandle *AH);
+static void _ReopenArchive(ArchiveHandle *AH);
+static void _PrintTocData(ArchiveHandle *AH, TocEntry *te);
+static void _WriteExtraToc(ArchiveHandle *AH, TocEntry *te);
+static void _ReadExtraToc(ArchiveHandle *AH, TocEntry *te);
+static void _PrintExtraToc(ArchiveHandle *AH, TocEntry *te);
 
-static void _PrintData(ArchiveHandle * AH);
-static void _skipData(ArchiveHandle * AH);
-static void _skipBlobs(ArchiveHandle * AH);
+static void _PrintData(ArchiveHandle *AH);
+static void _skipData(ArchiveHandle *AH);
+static void _skipBlobs(ArchiveHandle *AH);
 
-static void _StartBlobs(ArchiveHandle * AH, TocEntry * te);
-static void _StartBlob(ArchiveHandle * AH, TocEntry * te, Oid oid);
-static void _EndBlob(ArchiveHandle * AH, TocEntry * te, Oid oid);
-static void _EndBlobs(ArchiveHandle * AH, TocEntry * te);
-static void _LoadBlobs(ArchiveHandle * AH, bool drop);
-static void _Clone(ArchiveHandle * AH);
-static void _DeClone(ArchiveHandle * AH);
+static void _StartBlobs(ArchiveHandle *AH, TocEntry *te);
+static void _StartBlob(ArchiveHandle *AH, TocEntry *te, Oid oid);
+static void _EndBlob(ArchiveHandle *AH, TocEntry *te, Oid oid);
+static void _EndBlobs(ArchiveHandle *AH, TocEntry *te);
+static void _LoadBlobs(ArchiveHandle *AH, bool drop);
+static void _Clone(ArchiveHandle *AH);
+static void _DeClone(ArchiveHandle *AH);
 
-static int	_WorkerJobRestoreCustom(ArchiveHandle * AH, TocEntry * te);
+static int	_WorkerJobRestoreCustom(ArchiveHandle *AH, TocEntry *te);
 
 typedef struct
 {
@@ -70,24 +70,24 @@ typedef struct
 	int			hasSeek;
 	pgoff_t		filePos;
 	pgoff_t		dataStart;
-}			lclContext;
+} lclContext;
 
 typedef struct
 {
 	int			dataState;
 	pgoff_t		dataPos;
-}			lclTocEntry;
+} lclTocEntry;
 
 
 /*------
  * Static declarations
  *------
  */
-static void _readBlockHeader(ArchiveHandle * AH, int *type, int *id);
-static pgoff_t _getFilePos(ArchiveHandle * AH, lclContext * ctx);
+static void _readBlockHeader(ArchiveHandle *AH, int *type, int *id);
+static pgoff_t _getFilePos(ArchiveHandle *AH, lclContext *ctx);
 
-static void _CustomWriteFunc(ArchiveHandle * AH, const char *buf, size_t len);
-static size_t _CustomReadFunc(ArchiveHandle * AH, char **buf, size_t * buflen);
+static void _CustomWriteFunc(ArchiveHandle *AH, const char *buf, size_t len);
+static size_t _CustomReadFunc(ArchiveHandle *AH, char **buf, size_t *buflen);
 
 /* translator: this is a module name */
 static const char *modulename = gettext_noop("custom archiver");
@@ -105,7 +105,7 @@ static const char *modulename = gettext_noop("custom archiver");
  *	and in the case of a read mode connection, it should load the Header & TOC.
  */
 void
-InitArchiveFmt_Custom(ArchiveHandle * AH)
+InitArchiveFmt_Custom(ArchiveHandle *AH)
 {
 	lclContext *ctx;
 
@@ -202,7 +202,7 @@ InitArchiveFmt_Custom(ArchiveHandle * AH)
  * Set up extract format-related TOC data.
 */
 static void
-_ArchiveEntry(ArchiveHandle * AH, TocEntry * te)
+_ArchiveEntry(ArchiveHandle *AH, TocEntry *te)
 {
 	lclTocEntry *ctx;
 
@@ -225,7 +225,7 @@ _ArchiveEntry(ArchiveHandle * AH, TocEntry * te)
  * maintain other important file information.
  */
 static void
-_WriteExtraToc(ArchiveHandle * AH, TocEntry * te)
+_WriteExtraToc(ArchiveHandle *AH, TocEntry *te)
 {
 	lclTocEntry *ctx = (lclTocEntry *) te->formatData;
 
@@ -241,7 +241,7 @@ _WriteExtraToc(ArchiveHandle * AH, TocEntry * te)
  * use the Archiver input routines.
  */
 static void
-_ReadExtraToc(ArchiveHandle * AH, TocEntry * te)
+_ReadExtraToc(ArchiveHandle *AH, TocEntry *te)
 {
 	lclTocEntry *ctx = (lclTocEntry *) te->formatData;
 
@@ -269,7 +269,7 @@ _ReadExtraToc(ArchiveHandle * AH, TocEntry * te)
  *
  */
 static void
-_PrintExtraToc(ArchiveHandle * AH, TocEntry * te)
+_PrintExtraToc(ArchiveHandle *AH, TocEntry *te)
 {
 	lclTocEntry *ctx = (lclTocEntry *) te->formatData;
 
@@ -289,7 +289,7 @@ _PrintExtraToc(ArchiveHandle * AH, TocEntry * te)
  *
  */
 static void
-_StartData(ArchiveHandle * AH, TocEntry * te)
+_StartData(ArchiveHandle *AH, TocEntry *te)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	lclTocEntry *tctx = (lclTocEntry *) te->formatData;
@@ -313,7 +313,7 @@ _StartData(ArchiveHandle * AH, TocEntry * te)
  * Mandatory.
  */
 static void
-_WriteData(ArchiveHandle * AH, const void *data, size_t dLen)
+_WriteData(ArchiveHandle *AH, const void *data, size_t dLen)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	CompressorState *cs = ctx->cs;
@@ -333,7 +333,7 @@ _WriteData(ArchiveHandle * AH, const void *data, size_t dLen)
  *
  */
 static void
-_EndData(ArchiveHandle * AH, TocEntry * te)
+_EndData(ArchiveHandle *AH, TocEntry *te)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
@@ -352,7 +352,7 @@ _EndData(ArchiveHandle * AH, TocEntry * te)
  * Optional, but strongly recommended.
  */
 static void
-_StartBlobs(ArchiveHandle * AH, TocEntry * te)
+_StartBlobs(ArchiveHandle *AH, TocEntry *te)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	lclTocEntry *tctx = (lclTocEntry *) te->formatData;
@@ -372,7 +372,7 @@ _StartBlobs(ArchiveHandle * AH, TocEntry * te)
  * Must save the passed OID for retrieval at restore-time.
  */
 static void
-_StartBlob(ArchiveHandle * AH, TocEntry * te, Oid oid)
+_StartBlob(ArchiveHandle *AH, TocEntry *te, Oid oid)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
@@ -390,7 +390,7 @@ _StartBlob(ArchiveHandle * AH, TocEntry * te, Oid oid)
  * Optional.
  */
 static void
-_EndBlob(ArchiveHandle * AH, TocEntry * te, Oid oid)
+_EndBlob(ArchiveHandle *AH, TocEntry *te, Oid oid)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
@@ -405,7 +405,7 @@ _EndBlob(ArchiveHandle * AH, TocEntry * te, Oid oid)
  * Optional.
  */
 static void
-_EndBlobs(ArchiveHandle * AH, TocEntry * te)
+_EndBlobs(ArchiveHandle *AH, TocEntry *te)
 {
 	/* Write out a fake zero OID to mark end-of-blobs. */
 	WriteInt(AH, 0);
@@ -415,7 +415,7 @@ _EndBlobs(ArchiveHandle * AH, TocEntry * te)
  * Print data for a given TOC entry
  */
 static void
-_PrintTocData(ArchiveHandle * AH, TocEntry * te)
+_PrintTocData(ArchiveHandle *AH, TocEntry *te)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	lclTocEntry *tctx = (lclTocEntry *) te->formatData;
@@ -510,13 +510,13 @@ _PrintTocData(ArchiveHandle * AH, TocEntry * te)
  * Print data from current file position.
 */
 static void
-_PrintData(ArchiveHandle * AH)
+_PrintData(ArchiveHandle *AH)
 {
 	ReadDataFromArchive(AH, AH->compression, _CustomReadFunc);
 }
 
 static void
-_LoadBlobs(ArchiveHandle * AH, bool drop)
+_LoadBlobs(ArchiveHandle *AH, bool drop)
 {
 	Oid			oid;
 
@@ -541,7 +541,7 @@ _LoadBlobs(ArchiveHandle * AH, bool drop)
  * A zero OID indicated the end of the BLOBS
  */
 static void
-_skipBlobs(ArchiveHandle * AH)
+_skipBlobs(ArchiveHandle *AH)
 {
 	Oid			oid;
 
@@ -559,7 +559,7 @@ _skipBlobs(ArchiveHandle * AH)
  * A zero length denoted the end of the block.
 */
 static void
-_skipData(ArchiveHandle * AH)
+_skipData(ArchiveHandle *AH)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	size_t		blkLen;
@@ -604,7 +604,7 @@ _skipData(ArchiveHandle * AH)
  * Called by the archiver to do integer & byte output to the archive.
  */
 static int
-_WriteByte(ArchiveHandle * AH, const int i)
+_WriteByte(ArchiveHandle *AH, const int i)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	int			res;
@@ -625,7 +625,7 @@ _WriteByte(ArchiveHandle * AH, const int i)
  * EOF should be treated as a fatal error.
  */
 static int
-_ReadByte(ArchiveHandle * AH)
+_ReadByte(ArchiveHandle *AH)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	int			res;
@@ -645,7 +645,7 @@ _ReadByte(ArchiveHandle * AH)
  * Called by the archiver to write a block of bytes to the archive.
  */
 static void
-_WriteBuf(ArchiveHandle * AH, const void *buf, size_t len)
+_WriteBuf(ArchiveHandle *AH, const void *buf, size_t len)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
@@ -664,7 +664,7 @@ _WriteBuf(ArchiveHandle * AH, const void *buf, size_t len)
  * Called by the archiver to read a block of bytes from the archive
  */
 static void
-_ReadBuf(ArchiveHandle * AH, void *buf, size_t len)
+_ReadBuf(ArchiveHandle *AH, void *buf, size_t len)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
@@ -691,7 +691,7 @@ _ReadBuf(ArchiveHandle * AH, void *buf, size_t len)
  *
  */
 static void
-_CloseArchive(ArchiveHandle * AH)
+_CloseArchive(ArchiveHandle *AH)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	pgoff_t		tpos;
@@ -737,7 +737,7 @@ _CloseArchive(ArchiveHandle * AH)
  * and we don't want a thread closing the parent file handle.)
  */
 static void
-_ReopenArchive(ArchiveHandle * AH)
+_ReopenArchive(ArchiveHandle *AH)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	pgoff_t		tpos;
@@ -779,7 +779,7 @@ _ReopenArchive(ArchiveHandle * AH)
  * Clone format-specific fields during parallel restoration.
  */
 static void
-_Clone(ArchiveHandle * AH)
+_Clone(ArchiveHandle *AH)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
@@ -800,7 +800,7 @@ _Clone(ArchiveHandle * AH)
 }
 
 static void
-_DeClone(ArchiveHandle * AH)
+_DeClone(ArchiveHandle *AH)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
@@ -812,7 +812,7 @@ _DeClone(ArchiveHandle * AH)
  * custom-format archive and restores the actual data for one TOC entry.
  */
 static int
-_WorkerJobRestoreCustom(ArchiveHandle * AH, TocEntry * te)
+_WorkerJobRestoreCustom(ArchiveHandle *AH, TocEntry *te)
 {
 	return parallel_restore(AH, te);
 }
@@ -826,7 +826,7 @@ _WorkerJobRestoreCustom(ArchiveHandle * AH, TocEntry * te)
  * Get the current position in the archive file.
  */
 static pgoff_t
-_getFilePos(ArchiveHandle * AH, lclContext * ctx)
+_getFilePos(ArchiveHandle *AH, lclContext *ctx)
 {
 	pgoff_t		pos;
 
@@ -858,7 +858,7 @@ _getFilePos(ArchiveHandle * AH, lclContext * ctx)
  * if at EOF.
  */
 static void
-_readBlockHeader(ArchiveHandle * AH, int *type, int *id)
+_readBlockHeader(ArchiveHandle *AH, int *type, int *id)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 	int			byt;
@@ -892,7 +892,7 @@ _readBlockHeader(ArchiveHandle * AH, int *type, int *id)
  * data to the archive.
  */
 static void
-_CustomWriteFunc(ArchiveHandle * AH, const char *buf, size_t len)
+_CustomWriteFunc(ArchiveHandle *AH, const char *buf, size_t len)
 {
 	/* never write 0-byte blocks (this should not happen) */
 	if (len > 0)
@@ -908,7 +908,7 @@ _CustomWriteFunc(ArchiveHandle * AH, const char *buf, size_t len)
  * always read one compressed block at a time.
  */
 static size_t
-_CustomReadFunc(ArchiveHandle * AH, char **buf, size_t * buflen)
+_CustomReadFunc(ArchiveHandle *AH, char **buf, size_t *buflen)
 {
 	size_t		blkLen;
 

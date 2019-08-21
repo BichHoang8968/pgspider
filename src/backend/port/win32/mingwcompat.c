@@ -3,7 +3,7 @@
  * mingwcompat.c
  *	  MinGW compatibility functions
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/port/win32/mingwcompat.c
@@ -52,8 +52,8 @@ LoadKernel32()
  * kernel32.dll
  */
 typedef
-BOOL(WINAPI * __RegisterWaitForSingleObject)
-(PHANDLE, HANDLE, WAITORTIMERCALLBACK, PVOID, ULONG, ULONG);
+BOOL		(WINAPI * __RegisterWaitForSingleObject)
+			(PHANDLE, HANDLE, WAITORTIMERCALLBACK, PVOID, ULONG, ULONG);
 static __RegisterWaitForSingleObject _RegisterWaitForSingleObject = NULL;
 
 BOOL		WINAPI

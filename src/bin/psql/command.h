@@ -1,7 +1,7 @@
 /*
  * psql - the PostgreSQL interactive terminal
  *
- * Copyright (c) 2000-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2018, PostgreSQL Global Development Group
  *
  * src/bin/psql/command.h
  */
@@ -10,7 +10,7 @@
 
 #include "fe_utils/print.h"
 #include "fe_utils/psqlscan.h"
-#include "conditional.h"
+#include "fe_utils/conditional.h"
 
 
 typedef enum _backslashResult
@@ -22,19 +22,19 @@ typedef enum _backslashResult
 	PSQL_CMD_NEWEDIT,			/* query buffer was changed (e.g., via \e) */
 	PSQL_CMD_ERROR				/* the execution of the backslash command
 								 * resulted in an error */
-}			backslashResult;
+} backslashResult;
 
 
 extern backslashResult HandleSlashCmds(PsqlScanState scan_state,
-									   ConditionalStack cstack,
-									   PQExpBuffer query_buf,
-									   PQExpBuffer previous_buf);
+				ConditionalStack cstack,
+				PQExpBuffer query_buf,
+				PQExpBuffer previous_buf);
 
 extern int	process_file(char *filename, bool use_relative_path);
 
 extern bool do_pset(const char *param,
 		const char *value,
-		printQueryOpt * popt,
+		printQueryOpt *popt,
 		bool quiet);
 
 extern void connection_warnings(bool in_startup);

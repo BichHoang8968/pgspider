@@ -5,22 +5,22 @@
 #include "fmgr.h"
 #include "plperl.h"
 #include "plperl_helpers.h"
-#include "hstore.h"
+#include "hstore/hstore.h"
 
 PG_MODULE_MAGIC;
 
 extern void _PG_init(void);
 
 /* Linkage to functions in hstore module */
-typedef HStore * (*hstoreUpgrade_t) (Datum orig);
+typedef HStore *(*hstoreUpgrade_t) (Datum orig);
 static hstoreUpgrade_t hstoreUpgrade_p;
-typedef int (*hstoreUniquePairs_t) (Pairs * a, int32 l, int32 * buflen);
+typedef int (*hstoreUniquePairs_t) (Pairs *a, int32 l, int32 *buflen);
 static hstoreUniquePairs_t hstoreUniquePairs_p;
-typedef HStore * (*hstorePairs_t) (Pairs * pairs, int32 pcount, int32 buflen);
+typedef HStore *(*hstorePairs_t) (Pairs *pairs, int32 pcount, int32 buflen);
 static hstorePairs_t hstorePairs_p;
-typedef size_t(*hstoreCheckKeyLen_t) (size_t len);
+typedef size_t (*hstoreCheckKeyLen_t) (size_t len);
 static hstoreCheckKeyLen_t hstoreCheckKeyLen_p;
-typedef size_t(*hstoreCheckValLen_t) (size_t len);
+typedef size_t (*hstoreCheckValLen_t) (size_t len);
 static hstoreCheckValLen_t hstoreCheckValLen_p;
 
 
@@ -68,7 +68,7 @@ Datum
 hstore_to_plperl(PG_FUNCTION_ARGS)
 {
 	dTHX;
-	HStore	   *in = PG_GETARG_HS(0);
+	HStore	   *in = PG_GETARG_HSTORE_P(0);
 	int			i;
 	int			count = HS_COUNT(in);
 	char	   *base = STRPTR(in);
@@ -101,13 +101,25 @@ Datum
 plperl_to_hstore(PG_FUNCTION_ARGS)
 {
 	dTHX;
-	HV		   *hv = (HV *) SvRV((SV *) PG_GETARG_POINTER(0));
+	SV		   *in = (SV *) PG_GETARG_POINTER(0);
+	HV		   *hv;
 	HE		   *he;
 	int32		buflen;
 	int32		i;
 	int32		pcount;
 	HStore	   *out;
 	Pairs	   *pairs;
+
+	/* Dereference references recursively. */
+	while (SvROK(in))
+		in = SvRV(in);
+
+	/* Now we must have a hash. */
+	if (SvTYPE(in) != SVt_PVHV)
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 (errmsg("cannot transform non-hash Perl value to hstore"))));
+	hv = (HV *) in;
 
 	pcount = hv_iterinit(hv);
 

@@ -17,7 +17,7 @@ PG_FUNCTION_INFO_V1(ltxtq_rexec);
  * check for boolean condition
  */
 bool
-ltree_execute(ITEM * curitem, void *checkval, bool calcnot, bool (*chkcond) (void *checkval, ITEM * val))
+ltree_execute(ITEM *curitem, void *checkval, bool calcnot, bool (*chkcond) (void *checkval, ITEM *val))
 {
 	/* since this function recurses, it could be driven to stack overflow */
 	check_stack_depth();
@@ -26,7 +26,7 @@ ltree_execute(ITEM * curitem, void *checkval, bool calcnot, bool (*chkcond) (voi
 		return (*chkcond) (checkval, curitem);
 	else if (curitem->val == (int32) '!')
 	{
-		return (calcnot) ?
+		return calcnot ?
 			((ltree_execute(curitem + 1, checkval, calcnot, chkcond)) ? false : true)
 			: true;
 	}
@@ -50,10 +50,10 @@ typedef struct
 {
 	ltree	   *node;
 	char	   *operand;
-}			CHKVAL;
+} CHKVAL;
 
 static bool
-checkcondition_str(void *checkval, ITEM * val)
+checkcondition_str(void *checkval, ITEM *val)
 {
 	ltree_level *level = LTREE_FIRST(((CHKVAL *) checkval)->node);
 	int			tlen = ((CHKVAL *) checkval)->node->numlevel;
@@ -86,8 +86,8 @@ checkcondition_str(void *checkval, ITEM * val)
 Datum
 ltxtq_exec(PG_FUNCTION_ARGS)
 {
-	ltree	   *val = PG_GETARG_LTREE(0);
-	ltxtquery  *query = PG_GETARG_LTXTQUERY(1);
+	ltree	   *val = PG_GETARG_LTREE_P(0);
+	ltxtquery  *query = PG_GETARG_LTXTQUERY_P(1);
 	CHKVAL		chkval;
 	bool		result;
 

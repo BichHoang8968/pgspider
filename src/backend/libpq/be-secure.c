@@ -6,7 +6,7 @@
  *	  message integrity and endpoint authentication.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -18,12 +18,10 @@
 
 #include "postgres.h"
 
-#include <sys/stat.h>
 #include <signal.h>
 #include <fcntl.h>
 #include <ctype.h>
 #include <sys/socket.h>
-#include <unistd.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #ifdef HAVE_NETINET_TCP_H
@@ -45,6 +43,8 @@ char	   *ssl_key_file;
 char	   *ssl_ca_file;
 char	   *ssl_crl_file;
 char	   *ssl_dh_params_file;
+char	   *ssl_passphrase_command;
+bool		ssl_passphrase_command_supports_reload;
 
 #ifdef USE_SSL
 bool		ssl_loaded_verify_locations = false;
@@ -108,12 +108,16 @@ secure_loaded_verify_locations(void)
  *	Attempt to negotiate secure session.
  */
 int
-secure_open_server(Port * port)
+secure_open_server(Port *port)
 {
 	int			r = 0;
 
 #ifdef USE_SSL
 	r = be_tls_open_server(port);
+
+	ereport(DEBUG2,
+			(errmsg("SSL connection from \"%s\"",
+					port->peer_cn ? port->peer_cn : "(anonymous)")));
 #endif
 
 	return r;
@@ -123,7 +127,7 @@ secure_open_server(Port * port)
  *	Close secure session.
  */
 void
-secure_close(Port * port)
+secure_close(Port *port)
 {
 #ifdef USE_SSL
 	if (port->ssl_in_use)
@@ -135,10 +139,13 @@ secure_close(Port * port)
  *	Read data from a secure connection.
  */
 ssize_t
-secure_read(Port * port, void *ptr, size_t len)
+secure_read(Port *port, void *ptr, size_t len)
 {
 	ssize_t		n;
 	int			waitfor;
+
+	/* Deal with any already-pending interrupt condition. */
+	ProcessClientReadInterrupt(false);
 
 retry:
 #ifdef USE_SSL
@@ -204,9 +211,8 @@ retry:
 	}
 
 	/*
-	 * Process interrupts that happened while (or before) receiving. Note that
-	 * we signal that we're not blocking, which will prevent some types of
-	 * interrupts from being processed.
+	 * Process interrupts that happened during a successful (or non-blocking,
+	 * or hard-failed) read.
 	 */
 	ProcessClientReadInterrupt(false);
 
@@ -214,7 +220,7 @@ retry:
 }
 
 ssize_t
-secure_raw_read(Port * port, void *ptr, size_t len)
+secure_raw_read(Port *port, void *ptr, size_t len)
 {
 	ssize_t		n;
 
@@ -238,10 +244,13 @@ secure_raw_read(Port * port, void *ptr, size_t len)
  *	Write data to a secure connection.
  */
 ssize_t
-secure_write(Port * port, void *ptr, size_t len)
+secure_write(Port *port, void *ptr, size_t len)
 {
 	ssize_t		n;
 	int			waitfor;
+
+	/* Deal with any already-pending interrupt condition. */
+	ProcessClientWriteInterrupt(false);
 
 retry:
 	waitfor = 0;
@@ -282,17 +291,16 @@ retry:
 
 			/*
 			 * We'll retry the write. Most likely it will return immediately
-			 * because there's still no data available, and we'll wait for the
-			 * socket to become ready again.
+			 * because there's still no buffer space available, and we'll wait
+			 * for the socket to become ready again.
 			 */
 		}
 		goto retry;
 	}
 
 	/*
-	 * Process interrupts that happened while (or before) sending. Note that
-	 * we signal that we're not blocking, which will prevent some types of
-	 * interrupts from being processed.
+	 * Process interrupts that happened during a successful (or non-blocking,
+	 * or hard-failed) write.
 	 */
 	ProcessClientWriteInterrupt(false);
 
@@ -300,7 +308,7 @@ retry:
 }
 
 ssize_t
-secure_raw_write(Port * port, const void *ptr, size_t len)
+secure_raw_write(Port *port, const void *ptr, size_t len)
 {
 	ssize_t		n;
 

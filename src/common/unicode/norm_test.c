@@ -2,7 +2,7 @@
  * norm_test.c
  *		Program to test Unicode normalization functions.
  *
- * Portions Copyright (c) 2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2017-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/common/unicode_norm.c
@@ -20,7 +20,7 @@
 #include "norm_test_table.h"
 
 static char *
-print_wchar_str(const pg_wchar * s)
+print_wchar_str(const pg_wchar *s)
 {
 #define BUF_DIGITS 50
 	static char buf[BUF_DIGITS * 2 + 1];
@@ -38,7 +38,7 @@ print_wchar_str(const pg_wchar * s)
 }
 
 static int
-pg_wcscmp(const pg_wchar * s1, const pg_wchar * s2)
+pg_wcscmp(const pg_wchar *s1, const pg_wchar *s2)
 {
 	for (;;)
 	{

@@ -4,7 +4,7 @@
  *		Functions for finding and validating executable files
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -44,7 +44,7 @@ static int	resolve_symlinks(char *path);
 static char *pipe_read_line(char *cmd, char *line, int maxsize);
 
 #ifdef WIN32
-static BOOL GetTokenUser(HANDLE hToken, PTOKEN_USER * ppTokenUser);
+static BOOL GetTokenUser(HANDLE hToken, PTOKEN_USER *ppTokenUser);
 #endif
 
 /*
@@ -507,7 +507,7 @@ pipe_read_line(char *cmd, char *line, int maxsize)
  * pclose() plus useful error reporting
  */
 int
-pclose_check(FILE * stream)
+pclose_check(FILE *stream)
 {
 	int			exitstatus;
 	char	   *reason;
@@ -669,7 +669,7 @@ AddUserToTokenDacl(HANDLE hToken)
 	}
 
 	/* Get the ACL info */
-	if (!GetAclInformation(ptdd->DefaultDacl, (LPVOID) & asi,
+	if (!GetAclInformation(ptdd->DefaultDacl, (LPVOID) &asi,
 						   (DWORD) sizeof(ACL_SIZE_INFORMATION),
 						   AclSizeInformation))
 	{
@@ -702,7 +702,7 @@ AddUserToTokenDacl(HANDLE hToken)
 	/* Loop through the existing ACEs, and build the new ACL */
 	for (i = 0; i < (int) asi.AceCount; i++)
 	{
-		if (!GetAce(ptdd->DefaultDacl, i, (LPVOID *) & pace))
+		if (!GetAce(ptdd->DefaultDacl, i, (LPVOID *) &pace))
 		{
 			log_error("could not get ACE: error code %lu", GetLastError());
 			goto cleanup;
@@ -725,7 +725,7 @@ AddUserToTokenDacl(HANDLE hToken)
 	/* Set the new DACL in the token */
 	tddNew.DefaultDacl = pacl;
 
-	if (!SetTokenInformation(hToken, tic, (LPVOID) & tddNew, dwNewAclSize))
+	if (!SetTokenInformation(hToken, tic, (LPVOID) &tddNew, dwNewAclSize))
 	{
 		log_error("could not set token information: error code %lu", GetLastError());
 		goto cleanup;
@@ -755,7 +755,7 @@ cleanup:
  * returned TOKEN_USER memory.
  */
 static BOOL
-GetTokenUser(HANDLE hToken, PTOKEN_USER * ppTokenUser)
+GetTokenUser(HANDLE hToken, PTOKEN_USER *ppTokenUser)
 {
 	DWORD		dwLength;
 
