@@ -449,6 +449,101 @@ spd_tlist_member(Expr *node, List *targetlist, int *target_num)
 	return NULL;
 }
 
+/*
+ * spd_tlist_member_match_var
+ *	  This is modification of tlist_member_match_var
+ *	  Same as spd_tlist_member, except that we match the provided Var on the basis
+ *	  of varno/varattno/varlevelsup/vartype only, rather than full equal().
+ *
+ * This is needed in some cases where we can't be sure of an exact typmod
+ * match.  For safety, though, we insist on vartype match.
+ */
+static TargetEntry *
+spd_tlist_member_match_var(Var *var, List *targetlist)
+{
+	ListCell   *temp;
+
+	foreach(temp, targetlist)
+	{
+		TargetEntry *tlentry = (TargetEntry *) lfirst(temp);
+		Var		   *tlvar = (Var *) tlentry->expr;
+
+		if (!tlvar || !IsA(tlvar, Var))
+			continue;
+		if (var->varno == tlvar->varno &&
+			var->varattno == tlvar->varattno &&
+			var->varlevelsup == tlvar->varlevelsup &&
+			var->vartype == tlvar->vartype)
+			return tlentry;
+	}
+	return NULL;
+}
+
+
+/*
+ * spd_apply_pathtarget_labeling_to_tlist_noerr
+ *		This is modication of apply_pathtarget_labeling_to_tlist.
+ *		Apply any sortgrouprefs in the PathTarget to matching tlist entries
+ *
+ *		Modification point: There is no error even not find any Var item of PathTarget in tlist.
+ * 		Here, we do not assume that the tlist entries are one-for-one with the
+ * 		PathTarget.  The intended use of this function is to deal with cases
+ * 		where createplan.c has decided to use some other tlist and we have
+ * 		to identify what matches exist.
+ */
+static void
+spd_apply_pathtarget_labeling_to_tlist_noerr(List *tlist, PathTarget *target)
+{
+	int			i;
+	int			temp_target_num = 0;	/* no used */
+	ListCell   *lc;
+
+
+	/* Nothing to do if PathTarget has no sortgrouprefs data */
+	if (target->sortgrouprefs == NULL)
+		return;
+
+	i = 0;
+	foreach(lc, target->exprs)
+	{
+		Expr	   *expr = (Expr *) lfirst(lc);
+		TargetEntry *tle;
+
+		if (target->sortgrouprefs[i])
+		{
+			/*
+			 * For Vars, use tlist_member_match_var's weakened matching rule;
+			 * this allows us to deal with some cases where a set-returning
+			 * function has been inlined, so that we now have more knowledge
+			 * about what it returns than we did when the original Var was
+			 * created.  Otherwise, use regular equal() to find the matching
+			 * TLE.  (In current usage, only the Var case is actually needed;
+			 * but it seems best to have sane behavior here for non-Vars too.)
+			 */
+			if (expr && IsA(expr, Var))
+				tle = spd_tlist_member_match_var((Var *) expr, tlist);
+			else
+				tle = spd_tlist_member(expr, tlist, &temp_target_num);
+
+			/*
+			 * Don't find any tle, go to next item.
+			 */
+			if (!tle)
+			{
+				i++;
+				continue;
+			}
+
+			if (tle->ressortgroupref != 0 &&
+				tle->ressortgroupref != target->sortgrouprefs[i])
+				elog(ERROR, "targetlist item has multiple sortgroupref labels");
+
+			tle->ressortgroupref = target->sortgrouprefs[i];
+		}
+		i++;
+	}
+}
+
 
 /**
  * spd_add_to_flat_tlist
@@ -3184,16 +3279,22 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
 				/* Add all columns of the table */
 				temptlist = (List *) build_physical_tlist(childinfo[i].root, childinfo[i].baserel);
+
+				/* Fill sortgrouprefs to temptlist */
 				if (!IS_SIMPLE_REL(baserel) && root->parse->groupClause != NULL)
-					apply_pathtarget_labeling_to_tlist(temptlist, childinfo[i].root->upper_targets[UPPERREL_GROUP_AGG]);
+				{
+					spd_apply_pathtarget_labeling_to_tlist_noerr(temptlist, childinfo[i].root->upper_targets[UPPERREL_GROUP_AGG]);
+				}
 
 				/*
 				 * Remove __spd_url from target lists if a child is not
 				 * pgspider_fdw
 				 */
 				if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0 && IS_SIMPLE_REL(baserel))
+				{
 					temptlist = remove_spdurl_from_targets(list_copy(tlist), root,
 														   true, &fdw_private->idx_url_tlist);
+				}
 
 				/* mysql-fdw decide push down tlist or not based on this */
 				childinfo[i].baserel->is_tlist_pushdown = pushdown_all_tlist;
