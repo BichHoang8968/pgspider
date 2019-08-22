@@ -4086,6 +4086,7 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 		Mappingcells *cells = (Mappingcells *) lfirst(lc);
 		char	   *agg_command = target->resname;
 		Mappingcell clist = cells->mapping_tlist;
+		int			agg_type = cells->aggtype;
 
 		for (i = 0; i < MAXDIVNUM; i++)
 		{
@@ -4098,26 +4099,84 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 				else
 					appendStringInfo(sql, ",");
 
+				/*
+				 * For those columns listed in the grouping target but not
+				 * listed in the target list. For example, SELECT avg(i) FROM
+				 * t1 GROUP BY i,t. column name i and column name t not listed
+				 * in the target list, so agg_command is NULL.
+				 */
 				if (agg_command == NULL)
 				{
 					appendStringInfo(sql, "col%d", max_col);
 					max_col++;
 					continue;
 				}
+				else if (agg_type != NONAGGFLAG)
+				{
+					/*
+					 * This is for aggregate functions
+					 */
+					if (!strcmpi(agg_command, "SUM") || !strcmpi(agg_command, "COUNT") ||
+						!strcmpi(agg_command, "AVG") || !strcmpi(agg_command, "VARIANCE") ||
+						!strcmpi(agg_command, "STDDEV"))
+						appendStringInfo(sql, "SUM(col%d)", max_col);
 
-				if (!strcmpi(agg_command, "SUM") || !strcmpi(agg_command, "COUNT") || !strcmpi(agg_command, "AVG") || !strcmpi(agg_command, "VARIANCE") || !strcmpi(agg_command, "STDDEV"))
-					appendStringInfo(sql, "SUM(col%d)", max_col);
-				else if (!strcmpi(agg_command, "MAX") || !strcmpi(agg_command, "MIN") || !strcmpi(agg_command, "BIT_OR") || !strcmpi(agg_command, "BIT_AND") || !strcmpi(agg_command, "BOOL_AND") || !strcmpi(agg_command, "BOOL_OR") || !strcmpi(agg_command, "EVERY") || !strcmpi(agg_command, "STRING_AGG"))
-					appendStringInfo(sql, "%s(col%d)", agg_command, max_col);
+					else if (!strcmpi(agg_command, "MAX") || !strcmpi(agg_command, "MIN") ||
+							 !strcmpi(agg_command, "BIT_OR") || !strcmpi(agg_command, "BIT_AND") ||
+							 !strcmpi(agg_command, "BOOL_AND") || !strcmpi(agg_command, "BOOL_OR") ||
+							 !strcmpi(agg_command, "EVERY") || !strcmpi(agg_command, "STRING_AGG"))
+						appendStringInfo(sql, "%s(col%d)", agg_command, max_col);
 
-				/*
-				 * This is for influx db functions. MAX has not effect to
-				 * result. We have to consider multi-tenant.
-				 */
-				else if (!strcmpi(agg_command, "INFLUX_TIME") || !strcmpi(agg_command, "LAST"))
-					appendStringInfo(sql, "MAX(col%d)", max_col);
-				else
-					appendStringInfo(sql, "col%d", max_col);
+					/*
+					 * This is for influx db functions. MAX has not effect to
+					 * result. We have to consider multi-tenant.
+					 */
+					else if (!strcmpi(agg_command, "INFLUX_TIME") || !strcmpi(agg_command, "LAST"))
+						appendStringInfo(sql, "MAX(col%d)", max_col);
+
+					/*
+					 * This is for aggregate function alias, for example,
+					 * SELECT AVG(i) as bb, SUM(i) as aa.
+					 *
+					 * TODO: Maybe another cases are not supported now, we
+					 * will continue to maintain later.
+					 */
+					else
+						appendStringInfo(sql, "SUM(col%d)", max_col);
+				}
+				else			/* non agg */
+				{
+					/*
+					 * This is for non aggregate without alias, the default
+					 * column name always be "?column?".
+					 */
+					if (strcmp(agg_command, "?column?") == 0)
+					{
+						appendStringInfo(sql, "SUM(col%d)", max_col);
+					}
+
+					/*
+					 * This is for non aggregate with alias not existed in
+					 * groupby target
+					 *
+					 */
+					else if (!list_member_int(fdw_private->groupby_target, max_col))
+					{
+						appendStringInfo(sql, "SUM(col%d)", max_col);
+					}
+
+					/*
+					 * This is for non aggregate existing in both target list
+					 * and groupby target.
+					 *
+					 * TODO: Maybe another cases are not supported now, we
+					 * will continue to maintain later.
+					 */
+					else
+					{
+						appendStringInfo(sql, "col%d", max_col);
+					}
+				}
 				max_col++;
 			}
 		}
@@ -4184,7 +4243,6 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 					appendStringInfo(create_sql, ",");
 				appendStringInfo(create_sql, "col%d ", colid);
 				typeid = exprType((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, colid))->expr);
-
 				/* append column name and column type */
 				if (typeid == NUMERICOID)
 					appendStringInfo(create_sql, " numeric");
