@@ -108,7 +108,7 @@ pipeline {
                     mkdir install || true
                     INSTALL_DIR="$(pwd)/install"
                     ./configure --prefix=$INSTALL_DIR --enable-cassert --enable-debug CFLAGS="-ggdb -Og -g3 -fno-omit-frame-pointer"
-                    make clean && make && make install
+                    make clean && make -j 4 && make install
                 '''
                 // Build fdw
                 dir("contrib/") {
