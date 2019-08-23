@@ -450,37 +450,6 @@ spd_tlist_member(Expr *node, List *targetlist, int *target_num)
 }
 
 /*
- * spd_tlist_member_match_var
- *	  This is modification of tlist_member_match_var
- *	  Same as spd_tlist_member, except that we match the provided Var on the basis
- *	  of varno/varattno/varlevelsup/vartype only, rather than full equal().
- *
- * This is needed in some cases where we can't be sure of an exact typmod
- * match.  For safety, though, we insist on vartype match.
- */
-static TargetEntry *
-spd_tlist_member_match_var(Var *var, List *targetlist)
-{
-	ListCell   *temp;
-
-	foreach(temp, targetlist)
-	{
-		TargetEntry *tlentry = (TargetEntry *) lfirst(temp);
-		Var		   *tlvar = (Var *) tlentry->expr;
-
-		if (!tlvar || !IsA(tlvar, Var))
-			continue;
-		if (var->varno == tlvar->varno &&
-			var->varattno == tlvar->varattno &&
-			var->varlevelsup == tlvar->varlevelsup &&
-			var->vartype == tlvar->vartype)
-			return tlentry;
-	}
-	return NULL;
-}
-
-
-/*
  * spd_apply_pathtarget_labeling_to_tlist_noerr
  *		This is modication of apply_pathtarget_labeling_to_tlist.
  *		Apply any sortgrouprefs in the PathTarget to matching tlist entries
@@ -521,10 +490,10 @@ spd_apply_pathtarget_labeling_to_tlist_noerr(List *tlist, PathTarget *target)
 			 * but it seems best to have sane behavior here for non-Vars too.)
 			 */
 			if (expr && IsA(expr, Var))
-				tle = spd_tlist_member_match_var((Var *) expr, tlist);
+				tle = PG_tlist_member_match_var((Var *) expr, tlist);
 			else
-				tle = spd_tlist_member(expr, tlist, &temp_target_num);
 
+				tle = spd_tlist_member(expr, tlist, &temp_target_num);
 			/*
 			 * Don't find any tle, go to next item.
 			 */
@@ -3282,9 +3251,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
 				/* Fill sortgrouprefs to temptlist */
 				if (!IS_SIMPLE_REL(baserel) && root->parse->groupClause != NULL)
-				{
 					spd_apply_pathtarget_labeling_to_tlist_noerr(temptlist, childinfo[i].root->upper_targets[UPPERREL_GROUP_AGG]);
-				}
 
 				/*
 				 * Remove __spd_url from target lists if a child is not

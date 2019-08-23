@@ -141,6 +141,17 @@ tlist_member_match_var(Var *var, List *targetlist)
 }
 
 /*
+ * PG_tlist_member_match_var
+ *	  Wrapper of tlist_member_match_var
+ */
+TargetEntry *
+PG_tlist_member_match_var(Var *var, List *targetlist)
+{
+	return tlist_member_match_var(var, targetlist);
+}
+
+
+/*
  * add_to_flat_tlist
  *		Add more items to a flattened tlist (if they're not already in it)
  *
