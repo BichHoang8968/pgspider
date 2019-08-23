@@ -46,7 +46,7 @@
 #include "c.h"
 #include "utils/elog.h"
 #include "utils/palloc.h"
-
+#include <pthread.h>
 /* ----------------------------------------------------------------
  *				Section 1:	variable-length datatypes (TOAST support)
  * ----------------------------------------------------------------
@@ -772,5 +772,27 @@ extern Datum Float8GetDatum(float8 X);
 #else
 #define Float4GetDatumFast(X) PointerGetDatum(&(X))
 #endif
+
+
+/* Macro for ensuring mutex is unlocked when error occurs */
+
+#define SPD_LOCK_TRY(mutex) pthread_mutex_lock(mutex); PG_TRY(); {
+#define SPD_UNLOCK_CATCH(mutex) } PG_CATCH();\
+	{ \
+		pthread_mutex_unlock(mutex); \
+		PG_RE_THROW();\
+	} PG_END_TRY();\
+	pthread_mutex_unlock(mutex);
+
+
+#define SPD_READ_LOCK_TRY(mutex) pthread_rwlock_rdlock(mutex);  PG_TRY(); {
+#define SPD_WRITE_LOCK_TRY(mutex) pthread_rwlock_wrlock(mutex);  PG_TRY(); {
+
+#define SPD_RWUNLOCK_CATCH(mutex) } PG_CATCH();\
+	{ \
+	    pthread_rwlock_unlock(mutex);\
+		PG_RE_THROW();\
+	} PG_END_TRY();\
+  	    pthread_rwlock_unlock(mutex);
 
 #endif							/* POSTGRES_H */
