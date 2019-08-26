@@ -1394,6 +1394,65 @@ DROP FOREIGN TABLE t3__mysql_svr2__0;
 --    5 | b
 --    4 | c
 -- (3 rows)
+-- stress test for finding multithread error
+DO $$
+BEGIN
+   FOR counter IN 1..50 LOOP
+   PERFORM sum(i) FROM test1;
+   END LOOP;
+END; $$;
+CREATE FOREIGN TABLE mysqlt (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
+CREATE FOREIGN TABLE mysqlt__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+CREATE FOREIGN TABLE mysqlt__mysql_svr__1 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+CREATE FOREIGN TABLE mysqlt__mysql_svqr__2 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+DO $$
+BEGIN
+   FOR counter IN 1..50 LOOP
+   PERFORM sum(i) FROM mysqlt;
+   END LOOP;
+END; $$;
+CREATE FOREIGN TABLE post_large (i int, t text,__spd_url text) SERVER pgspider_svr;
+CREATE FOREIGN TABLE post_large__post_svr__1 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
+CREATE FOREIGN TABLE post_large__post_svr__2 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
+CREATE FOREIGN TABLE post_large__post_svr__3 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
+SELECT i,t FROM post_large WHERE i < 3 ORDER BY i,t;
+ i |  t  
+---+-----
+ 1 | aa1
+ 1 | aa1
+ 1 | aa1
+ 2 | aa2
+ 2 | aa2
+ 2 | aa2
+(6 rows)
+
+DO $$
+BEGIN
+   FOR counter IN 1..10 LOOP
+   PERFORM i,t FROM post_large WHERE i < 3 ORDER BY i,t;
+   END LOOP;
+END; $$;
+SELECT count(*) FROM post_large;
+ count 
+-------
+ 30000
+(1 row)
+
+DO $$
+BEGIN
+   FOR counter IN 1..10 LOOP
+   PERFORM sum(i) FROM post_large;
+   END LOOP;
+END; $$;
+DO $$
+BEGIN
+   FOR counter IN 1..2 LOOP
+   PERFORM i FROM test1 UNION ALL SELECT sum(i) FROM test1  
+   UNION ALL SELECT A.i FROM test1 A, test1 B
+   UNION ALL SELECT i FROM mysqlt
+   UNION ALL SELECT i FROM post_large;
+   END LOOP;
+END; $$;
 CREATE FOREIGN TABLE t2 (i int, t text, a text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t2__post_svr__0 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 SELECT i,t,a FROM t2 ORDER BY i,__spd_url;
@@ -1615,7 +1674,9 @@ DROP FOREIGN TABLE test1;
 DROP FOREIGN TABLE t1;
 DROP FOREIGN TABLE t2;
 DROP SERVER pgspider_svr CASCADE;
-NOTICE:  drop cascades to 2 other objects
+NOTICE:  drop cascades to 4 other objects
 DETAIL:  drop cascades to user mapping for public on server pgspider_svr
 drop cascades to foreign table test1_1
+drop cascades to foreign table mysqlt
+drop cascades to foreign table post_large
 DROP EXTENSION pgspider_core_fdw CASCADE;

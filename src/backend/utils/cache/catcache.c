@@ -55,6 +55,9 @@
  *		variables, macros and other stuff
  */
 
+/* Use recursive mutex because relation catcache function is called recursively */
+static pthread_mutex_t catcache_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+
 #ifdef CACHEDEBUG
 #define CACHE1_elog(a,b)				elog(a,b)
 #define CACHE2_elog(a,b,c)				elog(a,b,c)
@@ -78,7 +81,10 @@ static inline HeapTuple SearchCatCacheInternal(CatCache *cache,
 					   int nkeys,
 					   Datum v1, Datum v2,
 					   Datum v3, Datum v4);
-
+static inline HeapTuple SearchCatCacheInternalOrig(CatCache *cache,
+					   int nkeys,
+					   Datum v1, Datum v2,
+					   Datum v3, Datum v4);
 static pg_noinline HeapTuple SearchCatCacheMiss(CatCache *cache,
 				   int nkeys,
 				   uint32 hashValue,
@@ -1213,7 +1219,7 @@ SearchCatCache4(CatCache *cache,
  * Work-horse for SearchCatCache/SearchCatCacheN.
  */
 static inline HeapTuple
-SearchCatCacheInternal(CatCache *cache,
+SearchCatCacheInternalOrig(CatCache *cache,
 					   int nkeys,
 					   Datum v1,
 					   Datum v2,
@@ -1315,6 +1321,22 @@ SearchCatCacheInternal(CatCache *cache,
 	}
 
 	return SearchCatCacheMiss(cache, nkeys, hashValue, hashIndex, v1, v2, v3, v4);
+}
+
+static inline HeapTuple
+SearchCatCacheInternal(CatCache *cache,
+					   int nkeys,
+					   Datum v1,
+					   Datum v2,
+					   Datum v3,
+					   Datum v4)
+{
+	HeapTuple tuple;
+	SPD_LOCK_TRY(&catcache_mutex);
+	tuple = SearchCatCacheInternalOrig(cache, nkeys, v1, v2, v3, v4);
+	SPD_UNLOCK_CATCH(&catcache_mutex);
+
+	return tuple;
 }
 
 /*
@@ -1460,6 +1482,7 @@ ReleaseCatCache(HeapTuple tuple)
 	CatCTup    *ct = (CatCTup *) (((char *) tuple) -
 								  offsetof(CatCTup, tuple));
 
+	SPD_LOCK_TRY(&catcache_mutex);
 	/* Safety checks to ensure we were handed a cache entry */
 	Assert(ct->ct_magic == CT_MAGIC);
 	Assert(ct->refcount > 0);
@@ -1474,6 +1497,8 @@ ReleaseCatCache(HeapTuple tuple)
 		ct->refcount == 0 &&
 		(ct->c_list == NULL || ct->c_list->refcount == 0))
 		CatCacheRemoveCTup(ct->my_cache, ct);
+
+	SPD_UNLOCK_CATCH(&catcache_mutex);
 }
 
 

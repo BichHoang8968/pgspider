@@ -154,6 +154,7 @@ SELECT SUM(i) as aa, avg(i) FROM t1 GROUP BY t;
 SELECT SUM(i) as aa, avg(i), i/2, SUM(i)/2 FROM t1 GROUP BY i, t;
 SELECT SUM(i) as aa, avg(i) FROM t1 GROUP BY i ORDER BY aa;
 
+
 PREPARE stmt AS SELECT * FROM t1;
 -- First time is OK
 EXECUTE stmt;
@@ -237,6 +238,7 @@ SELECT count(t) FROM t3;
 SELECT count(t) FROM t3;
 
 
+
 DROP FOREIGN TABLE t3;
 DROP FOREIGN TABLE t3__mysql_svr__0;
 DROP FOREIGN TABLE t3__mysql_svr2__0;
@@ -248,6 +250,62 @@ DROP FOREIGN TABLE t3__mysql_svr2__0;
 --    5 | b
 --    4 | c
 -- (3 rows)
+
+-- stress test for finding multithread error
+DO $$
+BEGIN
+   FOR counter IN 1..50 LOOP
+   PERFORM sum(i) FROM test1;
+   END LOOP;
+END; $$;
+
+CREATE FOREIGN TABLE mysqlt (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
+CREATE FOREIGN TABLE mysqlt__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+CREATE FOREIGN TABLE mysqlt__mysql_svr__1 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+CREATE FOREIGN TABLE mysqlt__mysql_svqr__2 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+
+DO $$
+BEGIN
+   FOR counter IN 1..50 LOOP
+   PERFORM sum(i) FROM mysqlt;
+   END LOOP;
+END; $$;
+
+CREATE FOREIGN TABLE post_large (i int, t text,__spd_url text) SERVER pgspider_svr;
+CREATE FOREIGN TABLE post_large__post_svr__1 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
+CREATE FOREIGN TABLE post_large__post_svr__2 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
+CREATE FOREIGN TABLE post_large__post_svr__3 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
+
+SELECT i,t FROM post_large WHERE i < 3 ORDER BY i,t;
+DO $$
+BEGIN
+   FOR counter IN 1..10 LOOP
+   PERFORM i,t FROM post_large WHERE i < 3 ORDER BY i,t;
+   END LOOP;
+END; $$;
+
+SELECT count(*) FROM post_large;
+
+DO $$
+BEGIN
+   FOR counter IN 1..10 LOOP
+   PERFORM sum(i) FROM post_large;
+   END LOOP;
+END; $$;
+
+
+DO $$
+BEGIN
+   FOR counter IN 1..2 LOOP
+   PERFORM i FROM test1 UNION ALL SELECT sum(i) FROM test1  
+   UNION ALL SELECT A.i FROM test1 A, test1 B
+   UNION ALL SELECT i FROM mysqlt
+   UNION ALL SELECT i FROM post_large;
+   END LOOP;
+END; $$;
+
+
+
 CREATE FOREIGN TABLE t2 (i int, t text, a text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t2__post_svr__0 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 SELECT i,t,a FROM t2 ORDER BY i,__spd_url;
