@@ -110,14 +110,6 @@ PG_MODULE_MAGIC;
 /* Return true if avg, var, stddev */
 #define IS_SPLIT_AGG(aggfnoid) ((aggfnoid >= AVG_MIN_OID && aggfnoid <= AVG_MAX_OID) ||(aggfnoid >= VAR_MIN_OID && aggfnoid <= VAR_MAX_OID) ||(aggfnoid >= STD_MIN_OID && aggfnoid <= STD_MAX_OID))
 
-/* Macro for ensuring mutex is unlocked when error occurs */
-#define SPD_LOCK_TRY(mutex) pthread_mutex_lock(mutex); PG_TRY(); {
-#define SPD_UNLOCK_CATCH(mutex) } PG_CATCH();\
-	{ \
-		pthread_mutex_unlock(mutex); \
-		PG_RE_THROW();\
-	} PG_END_TRY();\
-	pthread_mutex_unlock(mutex);
 
 /* local function forward declarations */
 bool		spd_is_builtin(Oid objectId);
@@ -331,7 +323,8 @@ typedef struct SpdFdwModifyState
 	Oid			modify_server_oid;
 }			SpdFdwModifyState;
 
-pthread_mutex_t scan_mutex = PTHREAD_MUTEX_INITIALIZER;
+/* We write lock SPI function and read lock child fdw routines */
+pthread_rwlock_t scan_mutex = PTHREAD_RWLOCK_INITIALIZER;
 pthread_mutex_t error_mutex = PTHREAD_MUTEX_INITIALIZER;
 static MemoryContext thread_top_contexts[NODES_MAX] = {NULL};
 static int64 temp_table_id = 0;
@@ -967,7 +960,7 @@ spd_ForeignScan_thread(void *arg)
 	fssthrdInfo->state = SPD_FS_STATE_BEGIN;
 	PG_TRY();
 	{
-		SPD_LOCK_TRY(&scan_mutex);
+		SPD_READ_LOCK_TRY(&scan_mutex);
 
 		/*
 		 * If Aggregation does not push down, then BeginForeignScan execute in
@@ -978,7 +971,7 @@ spd_ForeignScan_thread(void *arg)
 			fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
 													  fssthrdInfo->eflags);
 		}
-		SPD_UNLOCK_CATCH(&scan_mutex);
+		SPD_RWUNLOCK_CATCH(&scan_mutex);
 
 #ifdef MEASURE_TIME
 		gettimeofday(&e, NULL);
@@ -1009,9 +1002,9 @@ RESCAN:
 	if (fssthrdInfo->queryRescan &&
 		fssthrdInfo->state != SPD_FS_STATE_BEGIN)
 	{
-		SPD_LOCK_TRY(&scan_mutex);
+		SPD_READ_LOCK_TRY(&scan_mutex);
 		fssthrdInfo->fdwroutine->ReScanForeignScan(fssthrdInfo->fsstate);
-		SPD_UNLOCK_CATCH(&scan_mutex);
+		SPD_RWUNLOCK_CATCH(&scan_mutex);
 
 		fssthrdInfo->iFlag = true;
 		fssthrdInfo->tuple = NULL;
@@ -1021,9 +1014,9 @@ RESCAN:
 
 	if (list_member_oid(fdw_private->pPseudoAggList, fssthrdInfo->serverId))
 	{
-		SPD_LOCK_TRY(&scan_mutex);
+		SPD_WRITE_LOCK_TRY(&scan_mutex);
 		result = ExecInitNode((Plan *) fdw_private->childinfo[fssthrdInfo->childInfoIndex].pAgg, fssthrdInfo->fsstate->ss.ps.state, 0);
-		SPD_UNLOCK_CATCH(&scan_mutex);
+		SPD_RWUNLOCK_CATCH(&scan_mutex);
 	}
 	PG_TRY();
 	{
@@ -1049,15 +1042,15 @@ RESCAN:
 					 * Retreives aggregated value tuple from inlying non
 					 * pushdown source
 					 */
-					SPD_LOCK_TRY(&scan_mutex);
+					SPD_READ_LOCK_TRY(&scan_mutex);
 					slot = SPI_execAgg((AggState *) result);
-					SPD_UNLOCK_CATCH(&scan_mutex);
+					SPD_RWUNLOCK_CATCH(&scan_mutex);
 				}
 				else
 				{
-					SPD_LOCK_TRY(&scan_mutex);
+					SPD_READ_LOCK_TRY(&scan_mutex);
 					slot = fssthrdInfo->fdwroutine->IterateForeignScan(fssthrdInfo->fsstate);
-					SPD_UNLOCK_CATCH(&scan_mutex);
+					SPD_RWUNLOCK_CATCH(&scan_mutex);
 				}
 
 				if (slot == NULL || slot->tts_isempty)
@@ -1132,11 +1125,11 @@ RESCAN:
 		{
 			if (fssthrdInfo->EndFlag || errflag)
 			{
-				SPD_LOCK_TRY(&scan_mutex);
+				SPD_READ_LOCK_TRY(&scan_mutex);
 				if (!list_member_oid(fdw_private->pPseudoAggList,
 									 fssthrdInfo->serverId))
 					fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
-				SPD_UNLOCK_CATCH(&scan_mutex);
+				SPD_RWUNLOCK_CATCH(&scan_mutex);
 				fssthrdInfo->EndFlag = false;
 				break;
 			}
@@ -2812,7 +2805,7 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 	}
 	baserel->rows = rows;
 	MemoryContextSwitchTo(oldcontext);
-	/* elog(WARNING,"totalcost = %f %f %f",startup_cost,rows,total_cost); */
+
 	add_path(baserel, (Path *) create_foreignscan_path(root, baserel, NULL, baserel->rows,
 													   startup_cost, total_cost, NIL,
 													   NULL, NULL, NIL));
@@ -3691,27 +3684,18 @@ spd_spi_ddl_table(char *query)
 {
 	int			ret;
 
-	PG_TRY();
+	SPD_WRITE_LOCK_TRY(&scan_mutex);
+	ret = SPI_connect();
+	if (ret < 0)
+		elog(ERROR, "SPI connect failure - returned %d", ret);
+	ret = SPI_exec(query, 1);
+	elog(DEBUG1, "execute temp table DDL %s", query);
+	if (ret != SPI_OK_UTILITY)
 	{
-		pthread_mutex_lock(&scan_mutex);
-		ret = SPI_connect();
-		if (ret < 0)
-			elog(ERROR, "SPI connect failure - returned %d", ret);
-		ret = SPI_exec(query, 1);
-		elog(DEBUG1, "execute temp table DDL %s", query);
-		if (ret != SPI_OK_UTILITY)
-		{
-			elog(ERROR, "execute spi CREATE TEMP TABLE failed %d", ret);
-		}
-		SPI_finish();
-		pthread_mutex_unlock(&scan_mutex);
+		elog(ERROR, "execute spi CREATE TEMP TABLE failed %d", ret);
 	}
-	PG_CATCH();
-	{
-		pthread_mutex_unlock(&scan_mutex);
-		PG_RE_THROW();
-	}
-	PG_END_TRY();
+	SPI_finish();
+	SPD_RWUNLOCK_CATCH(&scan_mutex);
 }
 
 /**
@@ -3734,78 +3718,71 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 	List	   *mapping_tlist;
 	ListCell   *lc;
 
-	PG_TRY();
+	SPD_WRITE_LOCK_TRY(&scan_mutex);
+	ret = SPI_connect();
+	if (ret < 0)
+		elog(ERROR, "SPI connect failure - returned %d", ret);
+	appendStringInfo(sql, "INSERT INTO %s VALUES( ", fdw_private->temp_table_name);
+	colid = 0;
+	mapping_tlist = fdw_private->mapping_tlist;
+	foreach(lc, mapping_tlist)
 	{
-		pthread_mutex_lock(&scan_mutex);
-		ret = SPI_connect();
-		if (ret < 0)
-			elog(ERROR, "SPI connect failure - returned %d", ret);
-		appendStringInfo(sql, "INSERT INTO %s VALUES( ", fdw_private->temp_table_name);
-		colid = 0;
-		mapping_tlist = fdw_private->mapping_tlist;
-		foreach(lc, mapping_tlist)
+		Mappingcells *mapcels = (Mappingcells *) lfirst(lc);
+		Datum		attr;
+		char	   *value;
+		bool		isnull;
+		Oid			typoutput;
+		bool		typisvarlena;
+		int			child_typid;
+
+		for (i = 0; i < MAXDIVNUM; i++)
 		{
-			Mappingcells *mapcels = (Mappingcells *) lfirst(lc);
-			Datum		attr;
-			char	   *value;
-			bool		isnull;
-			Oid			typoutput;
-			bool		typisvarlena;
-			int			child_typid;
+			Form_pg_attribute sattr = TupleDescAttr(slot->tts_tupleDescriptor, colid);
 
-			for (i = 0; i < MAXDIVNUM; i++)
+			if (colid != mapcels->mapping_tlist.mapping[i])
+				continue;
+
+			if (isfirst)
+				isfirst = false;
+			else
+				appendStringInfo(sql, ",");
+			attr = slot_getattr(slot, mapcels->mapping_tlist.mapping[i] + 1, &isnull);
+			if (isnull)
 			{
-				Form_pg_attribute sattr = TupleDescAttr(slot->tts_tupleDescriptor, colid);
-
-				if (colid != mapcels->mapping_tlist.mapping[i])
-					continue;
-
-				if (isfirst)
-					isfirst = false;
-				else
-					appendStringInfo(sql, ",");
-				attr = slot_getattr(slot, mapcels->mapping_tlist.mapping[i] + 1, &isnull);
-				if (isnull)
-				{
-					appendStringInfo(sql, "NULL");
-					colid++;
-					continue;
-				}
-				getTypeOutputInfo(sattr->atttypid, &typoutput, &typisvarlena);
-				value = OidOutputFunctionCall(typoutput, attr);
-				child_typid = exprType((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, colid))->expr);
-
-				if (value != NULL)
-				{
-					if (child_typid == BOOLOID)
-					{
-						if (strcmp(value, "t") == 0)
-							value = "true";
-						else
-							value = "false";
-					}
-					if (child_typid == DATEOID || child_typid == TEXTOID || child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID)
-						appendStringInfo(sql, "'");
-					appendStringInfo(sql, "%s", value);
-					if (child_typid == DATEOID || child_typid == TEXTOID || child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID)
-						appendStringInfo(sql, "'");
-				}
+				appendStringInfo(sql, "NULL");
 				colid++;
+				continue;
 			}
+			getTypeOutputInfo(sattr->atttypid, &typoutput, &typisvarlena);
+			value = OidOutputFunctionCall(typoutput, attr);
+			child_typid = exprType((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, colid))->expr);
+
+			if (value != NULL)
+			{
+				if (child_typid == BOOLOID)
+				{
+					if (strcmp(value, "t") == 0)
+						value = "true";
+					else
+						value = "false";
+				}
+				if (child_typid == DATEOID || child_typid == TEXTOID || child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID)
+					appendStringInfo(sql, "'");
+				appendStringInfo(sql, "%s", value);
+				if (child_typid == DATEOID || child_typid == TEXTOID || child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID)
+					appendStringInfo(sql, "'");
+			}
+			colid++;
 		}
-		appendStringInfo(sql, ")");
-		ret = SPI_exec(sql->data, 1);
-		if (ret != SPI_OK_INSERT)
-			elog(ERROR, "execute spi INSERT TEMP TABLE failed ");
-		SPI_finish();
-		pthread_mutex_unlock(&scan_mutex);
 	}
-	PG_CATCH();
-	{
-		pthread_mutex_unlock(&scan_mutex);
-		PG_RE_THROW();
-	}
-	PG_END_TRY();
+	appendStringInfo(sql, ")");
+	ret = SPI_exec(sql->data, 1);
+	if (ret != SPI_OK_INSERT)
+		elog(ERROR, "execute spi INSERT TEMP TABLE failed ");
+	SPI_finish();
+
+	SPD_RWUNLOCK_CATCH(&scan_mutex);
+
 }
 
 /**
@@ -3833,6 +3810,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 	ListCell   *lc;
 
 	oldcontext = CurrentMemoryContext;
+	SPD_WRITE_LOCK_TRY(&scan_mutex);
 	ret = SPI_connect();
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
@@ -3843,7 +3821,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 	if (SPI_processed == 0)
 	{
 		SPI_finish();
-		return;
+		goto end;
 	}
 
 	MemoryContextSwitchTo(oldcontext);
@@ -3906,7 +3884,8 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 	}
 	Assert(colid == fdw_private->temp_num_cols);
 	SPI_finish();
-	pthread_mutex_unlock(&scan_mutex);
+end:;
+	SPD_RWUNLOCK_CATCH(&scan_mutex);
 }
 
 static float8
