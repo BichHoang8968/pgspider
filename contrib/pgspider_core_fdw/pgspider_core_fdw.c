@@ -449,71 +449,6 @@ spd_tlist_member(Expr *node, List *targetlist, int *target_num)
 	return NULL;
 }
 
-/*
- * spd_apply_pathtarget_labeling_to_tlist_noerr
- *		This is modication of apply_pathtarget_labeling_to_tlist.
- *		Apply any sortgrouprefs in the PathTarget to matching tlist entries
- *
- *		Modification point: There is no error even not find any Var item of PathTarget in tlist.
- * 		Here, we do not assume that the tlist entries are one-for-one with the
- * 		PathTarget.  The intended use of this function is to deal with cases
- * 		where createplan.c has decided to use some other tlist and we have
- * 		to identify what matches exist.
- */
-static void
-spd_apply_pathtarget_labeling_to_tlist_noerr(List *tlist, PathTarget *target)
-{
-	int			i;
-	int			temp_target_num = 0;	/* no used */
-	ListCell   *lc;
-
-
-	/* Nothing to do if PathTarget has no sortgrouprefs data */
-	if (target->sortgrouprefs == NULL)
-		return;
-
-	i = 0;
-	foreach(lc, target->exprs)
-	{
-		Expr	   *expr = (Expr *) lfirst(lc);
-		TargetEntry *tle;
-
-		if (target->sortgrouprefs[i])
-		{
-			/*
-			 * For Vars, use tlist_member_match_var's weakened matching rule;
-			 * this allows us to deal with some cases where a set-returning
-			 * function has been inlined, so that we now have more knowledge
-			 * about what it returns than we did when the original Var was
-			 * created.  Otherwise, use regular equal() to find the matching
-			 * TLE.  (In current usage, only the Var case is actually needed;
-			 * but it seems best to have sane behavior here for non-Vars too.)
-			 */
-			if (expr && IsA(expr, Var))
-				tle = PG_tlist_member_match_var((Var *) expr, tlist);
-			else
-
-				tle = spd_tlist_member(expr, tlist, &temp_target_num);
-			/*
-			 * Don't find any tle, go to next item.
-			 */
-			if (!tle)
-			{
-				i++;
-				continue;
-			}
-
-			if (tle->ressortgroupref != 0 &&
-				tle->ressortgroupref != target->sortgrouprefs[i])
-				elog(ERROR, "targetlist item has multiple sortgroupref labels");
-
-			tle->ressortgroupref = target->sortgrouprefs[i];
-		}
-		i++;
-	}
-}
-
-
 /**
  * spd_add_to_flat_tlist
  *	Add more items to a flattened tlist (if they're not already in it) and
@@ -3249,9 +3184,12 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				/* Add all columns of the table */
 				temptlist = (List *) build_physical_tlist(childinfo[i].root, childinfo[i].baserel);
 
-				/* Fill sortgrouprefs to temptlist */
+				/*
+				 * Fill sortgrouprefs to temptlist. temptlist is non aggref
+				 * target list, we should use non aggref pathtarget to apply.
+				 */
 				if (!IS_SIMPLE_REL(baserel) && root->parse->groupClause != NULL)
-					spd_apply_pathtarget_labeling_to_tlist_noerr(temptlist, childinfo[i].root->upper_targets[UPPERREL_GROUP_AGG]);
+					apply_pathtarget_labeling_to_tlist(temptlist, fdw_private->rinfo.outerrel->reltarget);
 
 				/*
 				 * Remove __spd_url from target lists if a child is not
