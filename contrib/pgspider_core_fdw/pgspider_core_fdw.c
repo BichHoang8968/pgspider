@@ -442,7 +442,6 @@ spd_tlist_member(Expr *node, List *targetlist, int *target_num)
 	return NULL;
 }
 
-
 /**
  * spd_add_to_flat_tlist
  *	Add more items to a flattened tlist (if they're not already in it) and
@@ -3177,16 +3176,23 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
 				/* Add all columns of the table */
 				temptlist = (List *) build_physical_tlist(childinfo[i].root, childinfo[i].baserel);
+
+				/*
+				 * Fill sortgrouprefs to temptlist. temptlist is non aggref
+				 * target list, we should use non aggref pathtarget to apply.
+				 */
 				if (!IS_SIMPLE_REL(baserel) && root->parse->groupClause != NULL)
-					apply_pathtarget_labeling_to_tlist(temptlist, childinfo[i].root->upper_targets[UPPERREL_GROUP_AGG]);
+					apply_pathtarget_labeling_to_tlist(temptlist, fdw_private->rinfo.outerrel->reltarget);
 
 				/*
 				 * Remove __spd_url from target lists if a child is not
 				 * pgspider_fdw
 				 */
 				if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0 && IS_SIMPLE_REL(baserel))
+				{
 					temptlist = remove_spdurl_from_targets(list_copy(tlist), root,
 														   true, &fdw_private->idx_url_tlist);
+				}
 
 				/* mysql-fdw decide push down tlist or not based on this */
 				childinfo[i].baserel->is_tlist_pushdown = pushdown_all_tlist;

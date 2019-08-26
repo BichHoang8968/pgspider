@@ -113,6 +113,10 @@ SELECT avg(i), count(i) FROM test1 group by i;
 
 SELECT SUM(i) as aa, avg(i) FROM test1 GROUP BY i;
 SELECT SUM(i) as aa, avg(i), i/2, SUM(i)/2 FROM test1 GROUP BY i;
+SELECT SUM(i) as aa, avg(i) FROM test1 GROUP BY i ORDER BY aa;
+SELECT sum(i), avg(i) FROM test1 GROUP BY i ORDER BY 1;
+SELECT i, avg(i) FROM test1 GROUP BY i ORDER BY 1;
+
 
 CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS(table_name 't1');
@@ -148,6 +152,7 @@ SELECT * FROM (SELECT sum(i) FROM t1) A,(SELECT count(i) FROM t1) B;
 SELECT SUM(i) as aa, avg(i) FROM t1 GROUP BY i;
 SELECT SUM(i) as aa, avg(i) FROM t1 GROUP BY t;
 SELECT SUM(i) as aa, avg(i), i/2, SUM(i)/2 FROM t1 GROUP BY i, t;
+SELECT SUM(i) as aa, avg(i) FROM t1 GROUP BY i ORDER BY aa;
 
 
 PREPARE stmt AS SELECT * FROM t1;
