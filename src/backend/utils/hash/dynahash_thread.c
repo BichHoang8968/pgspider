@@ -22,7 +22,7 @@ typedef int64 normalized_id_t;
 #define ADJUST_KEY_OFFSET(keyptr) (keyptr += NORMALIZED_ID_SIZE)
 /* True if appending thread id to key is OK for option and hashfunc */
 #define SUPPORT_MULTITHREAD(option, hashfunc)  ((option & HASH_BLOBS || (option & HASH_FUNCTION && hashfunc==tag_hash)) && \
-						!(option & HASH_SHARED_MEM) && (option & HASH_ELEM))
+						!(option & HASH_SHARED_MEM) && (option & HASH_ELEM) && !(option & HASH_COMPARE))
 
 /* A list of hash table names PostgreSQL(including contrib module) uses, but hash table names FDWs use are excluded.
    We skip code for using fdw in multithread if a table name matches below names.
