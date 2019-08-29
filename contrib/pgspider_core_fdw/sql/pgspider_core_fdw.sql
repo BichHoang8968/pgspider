@@ -154,12 +154,9 @@ SELECT SUM(i) as aa, avg(i) FROM t1 GROUP BY t;
 SELECT SUM(i) as aa, avg(i), i/2, SUM(i)/2 FROM t1 GROUP BY i, t;
 SELECT SUM(i) as aa, avg(i) FROM t1 GROUP BY i ORDER BY aa;
 
-
 PREPARE stmt AS SELECT * FROM t1;
--- First time is OK
 EXECUTE stmt;
--- second time is crash :invalid memory alloc
--- EXECUTE stmt;
+EXECUTE stmt;
 
 CREATE FOREIGN TABLE t3 (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t3__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');

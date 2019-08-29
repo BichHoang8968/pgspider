@@ -179,18 +179,6 @@ static TargetEntry *spd_tlist_member(Expr *node, List *targetlist, int *target_n
 static List *spd_add_to_flat_tlist(List *tlist, Expr *exprs, List **mapping_tlist, List **compress_tlist, Index sgref, List **upper_targets);
 static void spd_spi_exec_child_ip(char *serverName, char *ip);
 
-enum SpdFdwScanPrivateIndex
-{
-	/* SQL statement to execute remotely (as a String node) */
-	FdwScanPrivateSelectSql_f,
-	FdwScanPrivateSelectSql_e,
-	/* List of restriction clauses that can be executed remotely */
-	FdwScanPrivateRemoteConds,
-	/* Integer list of attribute numbers retrieved by the SELECT */
-	FdwScanPrivateRetrievedAttrs,
-	/* Integer representing UPDATE/DELETE target */
-	FdwScanPrivateForUpdate,
-};
 enum SpdFdwModifyPrivateIndex
 {
 	/* SQL statement to execute remotely (as a String node) */
@@ -239,27 +227,27 @@ typedef struct Mappingcells
 	int			original_attnum;	/* original attribute */
 }			Mappingcells;
 
-
-
 typedef struct ChildInfo
 {
-	PlannerInfo *root;
+	/* Planning */
 	RelOptInfo *baserel;
+	PlannerInfo *grouped_root_local;
+	RelOptInfo *grouped_rel_local;
+	int			scan_relid;
+	bool		in_flag;		/* using IN clause or NOT */
+	List	   *url_list;
+
+	/* Using in both Planning and Execution */
+	PlannerInfo *root;
 	Plan	   *plan;
 	enum SpdServerstatus child_node_status;
 	Oid			server_oid;		/* child table's server oid */
 	Oid			oid;			/* child table's table oid */
-	int			scan_relid;
-	AggPath    *aggpath;
-	PlannerInfo *grouped_root_local;
-	RelOptInfo *grouped_rel_local;
 	Agg		   *pAgg;			/* "Aggref" for Disable of aggregation push
 								 * down servers */
-	bool		in_flag;		/* using IN clause or NOT */
-	List	   *url_list;
+	AggPath    *aggpath;
+	/* Use in Execution */
 	int			index_threadinfo;	/* index for ForeignScanThreadInfo array */
-	List	   *child_tlist;	/* child target list */
-	List	   *child_mapping_tlist;	/* child mapping list. */
 }			ChildInfo;
 
 /*
@@ -268,50 +256,66 @@ typedef struct ChildInfo
  * SpdFdwPrivate is created at spd_GetForeignSize() using spd_AllocatePrivate().
  * SpdFdwPrivate is free at spd_EndForeignScan() using spd_ReleasePrivate().
  *
+ * We classify SpdFdwPrivate member into the following categories
+ *  a) necessary only in planning routines(before getForeignPlan)
+ *  b) necessary only in execution routines(after beginForeignScan)
+ *  c) necessary both in planning and execution routines.
+ * We should pass only c) members from getForeignPlan to beginForeignScan for speedup.
+ * We use serialization and de-serialization method for passing c) members.
  */
 typedef struct SpdFdwPrivate
 {
-	int			node_num;		/* number of child tables */
-	bool		in_flag;		/* using IN clause or NOT */
-	ChildInfo  *childinfo;		/* ChildInfo List */
+	/* USE ONLY IN PLANNING */
+	List	   *baserestrictinfo;	/* root node base strict info */
+	List	   *upper_targets;
 	List	   *url_list;		/* lieteral of parse IN clause */
 	List	   *url_parse_list; /* lieteral of parse IN clause */
-	pthread_t	foreign_scan_threads[NODES_MAX];	/* child node thread  */
-	PgFdwRelationInfo rinfo;	/* pgspider reration info */
-	List	   *pPseudoAggList; /* Disable of aggregation push down server
-								 * list */
-	List	   *pPseudoAggTypeList; /* Push down type list */
+
+	PlannerInfo *spd_root;		/* Copy of root planner info. This is used by
+								 * aggregation pushdown. */
+	PgFdwRelationInfo rinfo;	/* pgspider relation info */
+	TupleDesc	child_comp_tupdesc; /* temporary tuple desc */
+
+	/* USE IN BOTH PLANNING AND EXECUTION */
+	int			node_num;		/* number of child tables */
+	int			nThreads;		/* Number of alive threads */
+	int			idx_url_tlist;	/* index of __spd_url in tlist. -1 if not used */
+
+	bool		in_flag;		/* using IN clause or NOT */
 	bool		agg_query;		/* aggregation flag */
 	bool		isFirst;		/* First time of iteration foreign scan with
 								 * aggregation query */
+	bool		groupby_has_spdurl; /* groupby has spdurl flag */
+	bool		is_pushdown_tlist;	/* pushed down target list or not. For
+									 * aggregation, always false */
+
+	List	   *pPseudoAggList; /* Disable of aggregation push down server
+								 * list */
+	List	   *child_comp_tlist;	/* child complite target list */
+	List	   *child_tlist;	/* child target list without spdurl */
+	List	   *mapping_tlist;	/* mapping list orig and pgspider */
+
+	List	   *groupby_target; /* group target tlist number */
+
+	TupleTableSlot *child_comp_slot;	/* temporary slot */
+	StringInfo	groupby_string; /* GROUP BY string for aggregation temp table */
+
+	ChildInfo  *childinfo;		/* ChildInfo List */
+
+	/* USE ONLY IN EXECUTION */
+	pthread_t	foreign_scan_threads[NODES_MAX];	/* child node thread  */
 	Datum	  **agg_values;		/* aggregation temp table result set */
 	bool	  **agg_nulls;		/* aggregation temp table result set */
 	int			agg_tuples;		/* Number of aggregation tuples from temp
 								 * table */
 	int			agg_num;		/* agg_values cursor */
 	Oid		   *agg_value_type; /* aggregation parameters */
-
-	List	   *child_comp_tlist;	/* child complite target list */
-	TupleTableSlot *child_comp_slot;	/* temporary slot */
-	TupleDesc	child_comp_tupdesc; /* temporary tuple desc */
-	List	   *child_tlist;	/* child target list without spdurl */
-	bool		groupby_has_spdurl; /* groupby has spdurl flag */
-	List	   *mapping_tlist;	/* mapping list orig and pgspider */
-	List	   *groupby_target; /* group target tlist number */
-	PlannerInfo *spd_root;		/* Copyt of root planner info. This is used by
-								 * aggregation pushdown. */
-	StringInfo	groupby_string; /* GROUP BY string for aggregation temp table */
-	int			nThreads;		/* Number of alive threads */
-	List	   *baserestrictinfo;	/* root node base strict info */
 	Datum	   *ret_agg_values; /* result for groupby */
 	bool		is_drop_temp_table; /* drop temp table flag in aggregation */
 	int			temp_num_cols;	/* number of columns of temp table */
 	char	   *temp_table_name;	/* name of temp table */
-	List	   *upper_targets;
 	bool		is_explain;		/* explain or not */
-	int			idx_url_tlist;	/* index of __spd_url in tlist. -1 if not used */
-	bool		is_pushdown_tlist;	/* pushed down target list or not. For
-									 * aggregation, always false */
+
 }			SpdFdwPrivate;
 
 /* postgresql.conf paramater */
@@ -440,6 +444,194 @@ spd_tlist_member(Expr *node, List *targetlist, int *target_num)
 		*target_num += 1;
 	}
 	return NULL;
+}
+
+/* Serialize fdw_private as a list */
+static List *
+spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private)
+{
+	ListCell   *lc;
+	List	   *lfdw_private = NIL;
+	int			i = 0;
+
+	lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->node_num));
+	lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->nThreads));
+	lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->idx_url_tlist));
+	lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->agg_query));
+	lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->isFirst));
+	lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->groupby_has_spdurl));
+	lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->is_pushdown_tlist));
+
+	if (fdw_private->agg_query)
+	{
+		lfdw_private = lappend(lfdw_private, fdw_private->groupby_target);
+		lfdw_private = lappend(lfdw_private, fdw_private->pPseudoAggList);
+		lfdw_private = lappend(lfdw_private, fdw_private->child_comp_tlist);
+		lfdw_private = lappend(lfdw_private, fdw_private->child_tlist);
+
+		/* Save length of mapping tlist */
+		lfdw_private = lappend(lfdw_private, makeInteger(list_length(fdw_private->mapping_tlist)));
+
+		foreach(lc, fdw_private->mapping_tlist)
+		{
+			Mappingcells *cells = lfirst(lc);
+			Mappingcell clist = cells->mapping_tlist;
+
+			lfdw_private = lappend(lfdw_private, makeInteger(clist.mapping[0]));
+			lfdw_private = lappend(lfdw_private, makeInteger(clist.mapping[1]));
+			lfdw_private = lappend(lfdw_private, makeInteger(clist.mapping[2]));
+			lfdw_private = lappend(lfdw_private, makeInteger(cells->aggtype));
+			lfdw_private = lappend(lfdw_private, makeInteger(cells->original_attnum));
+		}
+
+		lfdw_private = lappend(lfdw_private, copyObject(fdw_private->child_comp_slot));
+		lfdw_private = lappend(lfdw_private, makeString(fdw_private->groupby_string ? fdw_private->groupby_string->data : ""));
+	}
+
+	for (i = 0; i < fdw_private->node_num; i++)
+	{
+		lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->childinfo[i].child_node_status));
+		lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->childinfo[i].server_oid));
+		lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->childinfo[i].oid));
+
+		/* Plan */
+		lfdw_private = lappend(lfdw_private, copyObject(fdw_private->childinfo[i].plan));
+
+		/* Agg */
+		if (list_member_oid(fdw_private->pPseudoAggList, fdw_private->childinfo[i].server_oid))
+		{
+			lfdw_private = lappend(lfdw_private, copyObject(fdw_private->childinfo[i].pAgg));
+
+			/* Agg Path */
+			lfdw_private = lappend(lfdw_private, fdw_private->childinfo[i].aggpath->groupClause);
+			lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->childinfo[i].aggpath->aggsplit));
+			lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->childinfo[i].aggpath->aggstrategy));
+			lfdw_private = lappend(lfdw_private, makeInteger(floor(fdw_private->childinfo[i].aggpath->numGroups)));
+		}
+
+		/* Root */
+		lfdw_private = lappend(lfdw_private, copyObject(fdw_private->childinfo[i].root->parse));
+
+	}
+
+	return lfdw_private;
+}
+
+/* De-serialize a list to as fdw_private */
+static SpdFdwPrivate *
+spd_DeserializeSpdFdwPrivate(List *lfdw_private)
+{
+	int			i = 0;
+	int			mapping_tlist_len = 0;
+	ListCell   *lc = list_head(lfdw_private);
+	SpdFdwPrivate *fdw_private = palloc0(sizeof(SpdFdwPrivate));
+
+	fdw_private->node_num = intVal(lfirst(lc));
+	lc = lnext(lc);
+
+	fdw_private->nThreads = intVal(lfirst(lc));
+	lc = lnext(lc);
+
+	fdw_private->idx_url_tlist = intVal(lfirst(lc));
+	lc = lnext(lc);
+
+	fdw_private->agg_query = intVal(lfirst(lc)) ? true : false;
+	lc = lnext(lc);
+
+	fdw_private->isFirst = intVal(lfirst(lc)) ? true : false;
+	lc = lnext(lc);
+
+	fdw_private->groupby_has_spdurl = intVal(lfirst(lc)) ? true : false;
+	lc = lnext(lc);
+
+	fdw_private->is_pushdown_tlist = intVal(lfirst(lc)) ? true : false;
+	lc = lnext(lc);
+
+	if (fdw_private->agg_query)
+	{
+		fdw_private->groupby_target = (List *) lfirst(lc);
+		lc = lnext(lc);
+
+		fdw_private->pPseudoAggList = (List *) lfirst(lc);
+		lc = lnext(lc);
+
+		fdw_private->child_comp_tlist = (List *) lfirst(lc);
+		lc = lnext(lc);
+
+		fdw_private->child_tlist = (List *) lfirst(lc);
+		lc = lnext(lc);
+
+		/* Get length of mapping_tlist */
+		mapping_tlist_len = intVal(lfirst(lc));
+		lc = lnext(lc);
+
+		fdw_private->mapping_tlist = NIL;
+		for (i = 0; i < mapping_tlist_len; i++)
+		{
+			Mappingcells *cells = (Mappingcells *) palloc0(sizeof(Mappingcells));
+
+			cells->mapping_tlist.mapping[0] = intVal(lfirst(lc));
+			lc = lnext(lc);
+			cells->mapping_tlist.mapping[1] = intVal(lfirst(lc));
+			lc = lnext(lc);
+			cells->mapping_tlist.mapping[2] = intVal(lfirst(lc));
+			lc = lnext(lc);
+			cells->aggtype = intVal(lfirst(lc));
+			lc = lnext(lc);
+			cells->original_attnum = intVal(lfirst(lc));
+			lc = lnext(lc);
+			fdw_private->mapping_tlist = lappend(fdw_private->mapping_tlist, cells);
+		}
+
+		fdw_private->child_comp_slot = (TupleTableSlot *) (lfirst(lc));
+		lc = lnext(lc);
+
+		fdw_private->groupby_string = makeStringInfo();
+		appendStringInfoString(fdw_private->groupby_string, strVal(lfirst(lc)));
+		lc = lnext(lc);
+	}
+
+	fdw_private->childinfo = (ChildInfo *) palloc0(sizeof(ChildInfo) * fdw_private->node_num);
+	for (i = 0; i < fdw_private->node_num; i++)
+	{
+		fdw_private->childinfo[i].child_node_status = intVal(lfirst(lc));
+		lc = lnext(lc);
+
+		fdw_private->childinfo[i].server_oid = intVal(lfirst(lc));
+		lc = lnext(lc);
+
+		fdw_private->childinfo[i].oid = intVal(lfirst(lc));
+		lc = lnext(lc);
+
+		/* Plan */
+		fdw_private->childinfo[i].plan = (Plan *) lfirst(lc);
+		lc = lnext(lc);
+
+		/* Agg */
+		if (list_member_oid(fdw_private->pPseudoAggList, fdw_private->childinfo[i].server_oid))
+		{
+			fdw_private->childinfo[i].pAgg = (Agg *) lfirst(lc);
+			lc = lnext(lc);
+
+			/* Agg Path */
+			fdw_private->childinfo[i].aggpath = (AggPath *) palloc0(sizeof(AggPath));
+			fdw_private->childinfo[i].aggpath->groupClause = (List *) lfirst(lc);
+			lc = lnext(lc);
+			fdw_private->childinfo[i].aggpath->aggsplit = intVal(lfirst(lc));
+			lc = lnext(lc);
+			fdw_private->childinfo[i].aggpath->aggstrategy = intVal(lfirst(lc));
+			lc = lnext(lc);
+			fdw_private->childinfo[i].aggpath->numGroups = intVal(lfirst(lc));
+			lc = lnext(lc);
+		}
+
+		/* Root */
+		fdw_private->childinfo[i].root = (PlannerInfo *) palloc0(sizeof(PlannerInfo));
+		fdw_private->childinfo[i].root->parse = (Query *) lfirst(lc);
+		lc = lnext(lc);
+	}
+
+	return fdw_private;
 }
 
 /**
@@ -2641,20 +2833,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 	return true;
 }
 
-static SpdFdwPrivate * spd_GetFdwPrivate(ForeignScan *fsplan)
-{
-	unsigned int temp = 0;
-	unsigned long long add = 0;
 
-	temp =
-		((Value *) list_nth(fsplan->fdw_private, FdwScanPrivateSelectSql_f))->val.ival;
-	add = temp;
-	add = add << 32;
-	temp =
-		((Value *) list_nth(fsplan->fdw_private, FdwScanPrivateSelectSql_e))->val.ival;
-	add += (unsigned long long) temp;
-	return (SpdFdwPrivate *) add;
-}
 
 static void
 spd_ExplainForeignScan(ForeignScanState *node,
@@ -2664,10 +2843,11 @@ spd_ExplainForeignScan(ForeignScanState *node,
 	FdwRoutine *fdwroutine;
 	int			i;
 	ChildInfo  *childinfo;
-	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
 	SpdFdwPrivate *fdw_private;
+	ForeignScanThreadInfo *fssThrdinfo = node->spd_fsstate;
 
-	fdw_private = spd_GetFdwPrivate(fsplan);
+	fdw_private = (SpdFdwPrivate *) fssThrdinfo->private;
+
 	if (fdw_private == NULL)
 		elog(ERROR, "fdw_private is NULL");
 
@@ -3074,6 +3254,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	ForeignServer *fs;
 	bool		pushdown_all_tlist;
 	ForeignDataWrapper *fdw;
+	List	   *lfdw_private = NIL;
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	if (fdw_private == NULL)
@@ -3349,12 +3530,25 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	if (log_min_messages <= DEBUG1)
 		print_mapping_tlist(fdw_private->mapping_tlist, DEBUG1);
 
+	/*
+	 * Serialize fdw_private's members to a list. The list to be placed in the
+	 * ForeignScan plan node, where they will be available to be deserialized
+	 * at execution time The list must be represented in a form that
+	 * copyObject knows how to copy.
+	 */
+	lfdw_private = spd_SerializeSpdFdwPrivate(fdw_private);
+
 	return make_foreignscan(tlist,
 							scan_clauses,	/* scan_clauses, */
 	/* NULL, */
 							scan_relid,
 							NIL,
-							list_make2(makeInteger((unsigned long long) fdw_private >> 32), makeInteger((unsigned long long) fdw_private)),
+							lfdw_private,
+
+	/*
+	 * list_make2(makeInteger((unsigned long long) fdw_private >> 32),
+	 * makeInteger((unsigned long long) fdw_private)),
+	 */
 							fdw_scan_tlist,
 							NIL,
 							outer_plan);
@@ -3375,6 +3569,8 @@ spd_PrintError(int childnums, ChildInfo * childinfo)
 		}
 	}
 }
+
+
 
 /**
  * spd_BeginForeignScan
@@ -3416,7 +3612,8 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	node->spd_fsstate = NULL;
 
-	fdw_private = spd_GetFdwPrivate(fsplan);
+	/* Deserialize fdw_private list to SpdFdwPrivate object */
+	fdw_private = spd_DeserializeSpdFdwPrivate(fsplan->fdw_private);
 
 	/*
 	 * Not return from this function unlike usual fdw BeginForeignScan
@@ -3483,12 +3680,14 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		}
 		fsplan = (ForeignScan *) fssThrdInfo[node_incr].fsstate->ss.ps.plan;
 		fsplan->fdw_private = ((ForeignScan *) childinfo[i].plan)->fdw_private;
+
 		/* Create and initialize EState */
 		fssThrdInfo[node_incr].fsstate->ss.ps.state = CreateExecutorState();
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_top_eflags = eflags;
 
 		/* This should be a new RTE list. coming from dummy rtable */
 		query = ((PlannerInfo *) childinfo[i].root)->parse;
+
 		rte = lfirst_node(RangeTblEntry, query->rtable->head);
 
 		if (query->rtable->length != estate->es_range_table->length)
@@ -3499,7 +3698,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			}
 		}
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_range_table = ((PlannerInfo *) childinfo[i].root)->parse->rtable;
-
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt = copyObject(node->ss.ps.state->es_plannedstmt);
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt->planTree = copyObject(fssThrdInfo[node_incr].fsstate->ss.ps.plan);
 		/* Allocate top memory context for each thread to avoid race condtion */
@@ -4506,10 +4704,9 @@ nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId)
 static TupleTableSlot *
 spd_IterateForeignScan(ForeignScanState *node)
 {
-
+	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
 	int			count = 0;
 	ForeignScanThreadInfo *fssThrdInfo = node->spd_fsstate;
-	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
 	TupleTableSlot *slot = NULL,
 			   *tempSlot = NULL;
 	SpdFdwPrivate *fdw_private;
@@ -4517,10 +4714,12 @@ spd_IterateForeignScan(ForeignScanState *node)
 	MemoryContext oldcontext;
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
-	fdw_private = spd_GetFdwPrivate(fsplan);
+
+	fdw_private = (SpdFdwPrivate *) fssThrdInfo->private;
 
 	if (fdw_private == NULL)
-		elog(ERROR, "can't find node in iterateforeignscan");
+		fdw_private = spd_DeserializeSpdFdwPrivate(fsplan->fdw_private);
+
 	fdw_private->is_drop_temp_table = true;
 #ifdef GETPROGRESS_ENABLED
 	if (getResultFlag)
@@ -4646,7 +4845,7 @@ spd_ReScanForeignScan(ForeignScanState *node)
 	ForeignScanThreadInfo *fssThrdInfo;
 
 	fssThrdInfo = node->spd_fsstate;
-	fdw_private = fssThrdInfo->private;
+	fdw_private = (SpdFdwPrivate *) fssThrdInfo->private;
 
 	if (fdw_private == NULL)
 		return;
@@ -4700,7 +4899,7 @@ spd_EndForeignScan(ForeignScanState *node)
 	if (!fssThrdInfo)
 		return;
 
-	fdw_private = fssThrdInfo->private;
+	fdw_private = (SpdFdwPrivate *) fssThrdInfo->private;
 	if (!fdw_private)
 		return;
 
