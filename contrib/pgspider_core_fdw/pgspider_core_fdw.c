@@ -1135,7 +1135,7 @@ spd_ForeignScan_thread(void *arg)
 				e1;
 #endif
 	ErrorContextCallback errcallback;
-	SpdFdwPrivate *fdw_private = fssthrdInfo->private;
+	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *) fssthrdInfo[0].private;
 	PlanState  *result = NULL;
 
 	CurrentResourceOwner = fssthrdInfo->thrd_ResourceOwner;
@@ -2839,7 +2839,7 @@ spd_ExplainForeignScan(ForeignScanState *node,
 	SpdFdwPrivate *fdw_private;
 	ForeignScanThreadInfo *fssThrdinfo = node->spd_fsstate;
 
-	fdw_private = (SpdFdwPrivate *) fssThrdinfo->private;
+	fdw_private = (SpdFdwPrivate *) fssThrdinfo[0].private;
 
 	if (fdw_private == NULL)
 		elog(ERROR, "fdw_private is NULL");
@@ -4698,7 +4698,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 
-	fdw_private = (SpdFdwPrivate *) fssThrdInfo->private;
+	fdw_private = (SpdFdwPrivate *) fssThrdInfo[0].private;
 
 	if (fdw_private == NULL)
 		fdw_private = spd_DeserializeSpdFdwPrivate(fsplan->fdw_private);
@@ -4828,7 +4828,7 @@ spd_ReScanForeignScan(ForeignScanState *node)
 	ForeignScanThreadInfo *fssThrdInfo;
 
 	fssThrdInfo = node->spd_fsstate;
-	fdw_private = (SpdFdwPrivate *) fssThrdInfo->private;
+	fdw_private = (SpdFdwPrivate *) fssThrdInfo[0].private;
 
 	if (fdw_private == NULL)
 		return;
@@ -4882,7 +4882,7 @@ spd_EndForeignScan(ForeignScanState *node)
 	if (!fssThrdInfo)
 		return;
 
-	fdw_private = (SpdFdwPrivate *) fssThrdInfo->private;
+	fdw_private = (SpdFdwPrivate *) fssThrdInfo[0].private;
 	if (!fdw_private)
 		return;
 
