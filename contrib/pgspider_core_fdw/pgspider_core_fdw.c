@@ -236,6 +236,7 @@ typedef struct ChildInfo
 	int			scan_relid;
 	bool		in_flag;		/* using IN clause or NOT */
 	List	   *url_list;
+	AggPath    *aggpath;
 
 	/* Using in both Planning and Execution */
 	PlannerInfo *root;
@@ -245,7 +246,7 @@ typedef struct ChildInfo
 	Oid			oid;			/* child table's table oid */
 	Agg		   *pAgg;			/* "Aggref" for Disable of aggregation push
 								 * down servers */
-	AggPath    *aggpath;
+	bool		can_pushdown_agg;	/* support agg pushdown */
 	/* Use in Execution */
 	int			index_threadinfo;	/* index for ForeignScanThreadInfo array */
 }			ChildInfo;
@@ -490,6 +491,9 @@ spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private)
 
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
+		fdw_private->childinfo[i].can_pushdown_agg = fdw_private->childinfo[i].aggpath? false: true;
+		lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->childinfo[i].can_pushdown_agg));
+
 		lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->childinfo[i].child_node_status));
 		lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->childinfo[i].server_oid));
 		lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->childinfo[i].oid));
@@ -499,16 +503,7 @@ spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private)
 
 		/* Agg plan */
 		if (list_member_oid(fdw_private->pPseudoAggList, fdw_private->childinfo[i].server_oid))
-		{
-			/* Agg */
 			lfdw_private = lappend(lfdw_private, copyObject(fdw_private->childinfo[i].pAgg));
-
-			/* Agg Path */
-			lfdw_private = lappend(lfdw_private, fdw_private->childinfo[i].aggpath->groupClause);
-			lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->childinfo[i].aggpath->aggsplit));
-			lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->childinfo[i].aggpath->aggstrategy));
-			lfdw_private = lappend(lfdw_private, makeInteger(floor(fdw_private->childinfo[i].aggpath->numGroups)));
-		}
 
 		/* Root */
 		lfdw_private = lappend(lfdw_private, copyObject(fdw_private->childinfo[i].root->parse));
@@ -595,6 +590,9 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
 	fdw_private->childinfo = (ChildInfo *) palloc0(sizeof(ChildInfo) * fdw_private->node_num);
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
+		fdw_private->childinfo[i].can_pushdown_agg = intVal(lfirst(lc));
+		lc = lnext(lc);
+
 		fdw_private->childinfo[i].child_node_status = intVal(lfirst(lc));
 		lc = lnext(lc);
 
@@ -611,19 +609,7 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
 		/* Agg plan */
 		if (list_member_oid(fdw_private->pPseudoAggList, fdw_private->childinfo[i].server_oid))
 		{
-			/* Agg */
 			fdw_private->childinfo[i].pAgg = (Agg *) lfirst(lc);
-			lc = lnext(lc);
-
-			/* Agg Path */
-			fdw_private->childinfo[i].aggpath = (AggPath *) palloc0(sizeof(AggPath));
-			fdw_private->childinfo[i].aggpath->groupClause = (List *) lfirst(lc);
-			lc = lnext(lc);
-			fdw_private->childinfo[i].aggpath->aggsplit = intVal(lfirst(lc));
-			lc = lnext(lc);
-			fdw_private->childinfo[i].aggpath->aggstrategy = intVal(lfirst(lc));
-			lc = lnext(lc);
-			fdw_private->childinfo[i].aggpath->numGroups = intVal(lfirst(lc));
 			lc = lnext(lc);
 		}
 
@@ -2872,7 +2858,7 @@ spd_ExplainForeignScan(ForeignScanState *node,
 
 				if (fdw_private->agg_query)
 				{
-					ExplainPropertyText("Agg push-down", childinfo[i].aggpath ? "no" : "yes", es);
+					ExplainPropertyText("Agg push-down", !childinfo[i].can_pushdown_agg ? "no" : "yes", es);
 				}
 			}
 			idx = childinfo[i].index_threadinfo;
