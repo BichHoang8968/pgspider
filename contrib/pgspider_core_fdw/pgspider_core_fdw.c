@@ -2060,7 +2060,6 @@ spd_CopyRoot(PlannerInfo *root, RelOptInfo *baserel, SpdFdwPrivate * fdw_private
 static void
 spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 {
-	MemoryContext oldcontext;
 	SpdFdwPrivate *fdw_private;
 	Oid		   *oid = NULL;
 	int			nums;
@@ -2256,7 +2255,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			   *in_fdw_private;
 	List	   *newList = NIL;
 	ListCell   *lc;
-	MemoryContext oldcontext;
 	PlannerInfo *spd_root;
 	int			listn = 0;
 	RelOptInfo *dummy_output_rel;
@@ -2835,7 +2833,6 @@ static void
 spd_ExplainForeignScan(ForeignScanState *node,
 					   ExplainState *es)
 {
-	MemoryContext oldcontext;
 	FdwRoutine *fdwroutine;
 	int			i;
 	ChildInfo  *childinfo;
@@ -2912,7 +2909,6 @@ spd_ExplainForeignScan(ForeignScanState *node,
 static void
 spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 {
-	MemoryContext oldcontext;
 	FdwRoutine *fdwroutine;
 	Oid			server_oid;
 	int			i;
@@ -3235,7 +3231,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	int			i;
 	Oid		   *oid = NULL;
 	Oid			server_oid;
-	MemoryContext oldcontext;
 	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *) baserel->fdw_private;
 	Index		scan_relid;
 	List	   *fdw_scan_tlist = NIL;	/* Need dummy tlist for pushdown case. */
