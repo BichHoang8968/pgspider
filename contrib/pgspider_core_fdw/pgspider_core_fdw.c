@@ -497,9 +497,10 @@ spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private)
 		/* Plan */
 		lfdw_private = lappend(lfdw_private, copyObject(fdw_private->childinfo[i].plan));
 
-		/* Agg */
+		/* Agg plan */
 		if (list_member_oid(fdw_private->pPseudoAggList, fdw_private->childinfo[i].server_oid))
 		{
+			/* Agg */
 			lfdw_private = lappend(lfdw_private, copyObject(fdw_private->childinfo[i].pAgg));
 
 			/* Agg Path */
@@ -607,9 +608,10 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
 		fdw_private->childinfo[i].plan = (Plan *) lfirst(lc);
 		lc = lnext(lc);
 
-		/* Agg */
+		/* Agg plan */
 		if (list_member_oid(fdw_private->pPseudoAggList, fdw_private->childinfo[i].server_oid))
 		{
+			/* Agg */
 			fdw_private->childinfo[i].pAgg = (Agg *) lfirst(lc);
 			lc = lnext(lc);
 
@@ -2074,7 +2076,6 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	fdw_private->rinfo.pushdown_safe = true;
 	baserel->fdw_private = (void *) fdw_private;
 
-	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	/* get child datasouce oid and nums */
 	spd_spi_exec_datasouce_num(foreigntableid, &nums, &oid);
 	if (nums == 0)
@@ -2106,8 +2107,6 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 
 	/* Create base plan for each child tables and exec GetForeignRelSize */
 	spd_CreateDummyRoot(root, baserel, oid, nums, r_entry, new_inurl, fdw_private);
-
-	MemoryContextSwitchTo(oldcontext);
 
 	/*
 	 * Set the name of relation in fpinfo, while we are constructing it here.
@@ -2265,8 +2264,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	bool		pushdown = false;
 	ForeignServer *fs;
 	ForeignDataWrapper *fdw;
-
-	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 
 	/*
 	 * If input rel is not safe to pushdown, then simply return as we cannot
@@ -2547,7 +2544,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	/* Add generated path into grouped_rel by add_path(). */
 	if (pushdown)
 		add_path(output_rel, path);
-	MemoryContextSwitchTo(oldcontext);
 }
 
 /**
@@ -2851,8 +2847,6 @@ spd_ExplainForeignScan(ForeignScanState *node,
 	if (fdw_private == NULL)
 		elog(ERROR, "fdw_private is NULL");
 
-	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
-
 	/* Create Foreign paths using base_rel_list to each child node. */
 	childinfo = fdw_private->childinfo;
 	for (i = 0; i < fdw_private->node_num; i++)
@@ -2900,7 +2894,6 @@ spd_ExplainForeignScan(ForeignScanState *node,
 		}
 		PG_END_TRY();
 	}
-	MemoryContextSwitchTo(oldcontext);
 }
 
 /**
@@ -2933,7 +2926,6 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 	{
 		elog(ERROR, "fdw_private is NULL");
 	}
-	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 
 	/* Create Foreign paths using base_rel_list to each child node. */
 	childinfo = fdw_private->childinfo;
@@ -2984,7 +2976,6 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 		PG_END_TRY();
 	}
 	baserel->rows = rows;
-	MemoryContextSwitchTo(oldcontext);
 
 	add_path(baserel, (Path *) create_foreignscan_path(root, baserel, NULL, baserel->rows,
 													   startup_cost, total_cost, NIL,
@@ -3256,7 +3247,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	ForeignDataWrapper *fdw;
 	List	   *lfdw_private = NIL;
 
-	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	if (fdw_private == NULL)
 		elog(ERROR, "fdw_private is NULL");
 
@@ -3488,8 +3478,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		/* Aggregate push down */
 		scan_relid = 0;
 	}
-	MemoryContextSwitchTo(oldcontext);
-
 
 	/* For simple rel, calculate which condition should be filtered in core */
 	if (IS_SIMPLE_REL(baserel))
