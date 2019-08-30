@@ -943,7 +943,9 @@ SELECT SUM(i) as aa, avg(i) FROM t1 GROUP BY i ORDER BY aa;
   4 |   4
 (4 rows)
 
+-- allocate statement
 PREPARE stmt AS SELECT * FROM t1;
+-- execute first time
 EXECUTE stmt;
  i | t | __spd_url  
 ---+---+------------
@@ -953,15 +955,15 @@ EXECUTE stmt;
  4 | c | /post_svr/
 (4 rows)
 
-EXECUTE stmt;
- i | t | __spd_url  
----+---+------------
- 1 | a | /post_svr/
- 2 | b | /post_svr/
- 3 | b | /post_svr/
- 4 | c | /post_svr/
-(4 rows)
-
+-- performance test prepared statement
+DO $$
+BEGIN
+   FOR counter IN 1..50 LOOP
+   EXECUTE 'EXECUTE stmt;';
+   END LOOP;
+END; $$;
+-- dellocate statement
+DEALLOCATE stmt;
 CREATE FOREIGN TABLE t3 (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t3__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
 SELECT count(t) FROM t3;

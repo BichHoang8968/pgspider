@@ -154,9 +154,19 @@ SELECT SUM(i) as aa, avg(i) FROM t1 GROUP BY t;
 SELECT SUM(i) as aa, avg(i), i/2, SUM(i)/2 FROM t1 GROUP BY i, t;
 SELECT SUM(i) as aa, avg(i) FROM t1 GROUP BY i ORDER BY aa;
 
+-- allocate statement
 PREPARE stmt AS SELECT * FROM t1;
+-- execute first time
 EXECUTE stmt;
-EXECUTE stmt;
+-- performance test prepared statement
+DO $$
+BEGIN
+   FOR counter IN 1..50 LOOP
+   EXECUTE 'EXECUTE stmt;';
+   END LOOP;
+END; $$;
+-- dellocate statement
+DEALLOCATE stmt;
 
 CREATE FOREIGN TABLE t3 (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t3__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
