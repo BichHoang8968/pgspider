@@ -117,6 +117,19 @@ SELECT SUM(i) as aa, avg(i) FROM test1 GROUP BY i ORDER BY aa;
 SELECT sum(i), avg(i) FROM test1 GROUP BY i ORDER BY 1;
 SELECT i, avg(i) FROM test1 GROUP BY i ORDER BY 1;
 
+-- allocate statement
+PREPARE stmt AS SELECT sum(i),count(i),i FROM test1 group by i order by i;
+-- execute first time
+EXECUTE stmt;
+-- performance test prepared statement
+DO $$
+BEGIN
+   FOR counter IN 1..50 LOOP
+   EXECUTE 'EXECUTE stmt;';
+   END LOOP;
+END; $$;
+-- deallocate statement
+DEALLOCATE stmt;
 
 CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS(table_name 't1');
@@ -154,12 +167,19 @@ SELECT SUM(i) as aa, avg(i) FROM t1 GROUP BY t;
 SELECT SUM(i) as aa, avg(i), i/2, SUM(i)/2 FROM t1 GROUP BY i, t;
 SELECT SUM(i) as aa, avg(i) FROM t1 GROUP BY i ORDER BY aa;
 
-
+-- allocate statement
 PREPARE stmt AS SELECT * FROM t1;
--- First time is OK
+-- execute first time
 EXECUTE stmt;
--- second time is crash :invalid memory alloc
--- EXECUTE stmt;
+-- performance test prepared statement
+DO $$
+BEGIN
+   FOR counter IN 1..50 LOOP
+   EXECUTE 'EXECUTE stmt;';
+   END LOOP;
+END; $$;
+-- deallocate statement
+DEALLOCATE stmt;
 
 CREATE FOREIGN TABLE t3 (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t3__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
