@@ -985,7 +985,6 @@ BEGIN
 END; $$;
 -- deallocate statement
 DEALLOCATE stmt;
-
 EXPLAIN (VERBOSE, COSTS OFF) SELECT STDDEV(i) FROM t1;
                       QUERY PLAN                      
 ------------------------------------------------------
