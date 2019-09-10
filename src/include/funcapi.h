@@ -8,7 +8,7 @@
  * or call FUNCAPI-callable functions or macros.
  *
  *
- * Copyright (c) 2002-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2002-2018, PostgreSQL Global Development Group
  *
  * src/include/funcapi.h
  *
@@ -46,7 +46,7 @@ typedef struct AttInMetadata
 
 	/* array of attribute typmod */
 	int32	   *atttypmods;
-}			AttInMetadata;
+} AttInMetadata;
 
 /*-------------------------------------------------------------------------
  *		Support struct to ease writing Set Returning Functions (SRFs)
@@ -120,7 +120,7 @@ typedef struct FuncCallContext
 	 */
 	TupleDesc	tuple_desc;
 
-}			FuncCallContext;
+} FuncCallContext;
 
 /*----------
  *	Support to ease writing functions returning composite types
@@ -144,6 +144,10 @@ typedef struct FuncCallContext
  *		get_call_result_type.  Note: the cases in which rowtypes cannot be
  *		determined are different from the cases for get_call_result_type.
  *		Do *not* use this if you can use one of the others.
+ *
+ * See also get_expr_result_tupdesc(), which is a convenient wrapper around
+ * get_expr_result_type() for use when the caller only cares about
+ * determinable-rowtype cases.
  *----------
  */
 
@@ -152,37 +156,41 @@ typedef enum TypeFuncClass
 {
 	TYPEFUNC_SCALAR,			/* scalar result type */
 	TYPEFUNC_COMPOSITE,			/* determinable rowtype result */
+	TYPEFUNC_COMPOSITE_DOMAIN,	/* domain over determinable rowtype result */
 	TYPEFUNC_RECORD,			/* indeterminate rowtype result */
 	TYPEFUNC_OTHER				/* bogus type, eg pseudotype */
-}			TypeFuncClass;
+} TypeFuncClass;
 
 extern TypeFuncClass get_call_result_type(FunctionCallInfo fcinfo,
-										  Oid * resultTypeId,
-										  TupleDesc * resultTupleDesc);
-extern TypeFuncClass get_expr_result_type(Node * expr,
-										  Oid * resultTypeId,
-										  TupleDesc * resultTupleDesc);
+					 Oid *resultTypeId,
+					 TupleDesc *resultTupleDesc);
+extern TypeFuncClass get_expr_result_type(Node *expr,
+					 Oid *resultTypeId,
+					 TupleDesc *resultTupleDesc);
 extern TypeFuncClass get_func_result_type(Oid functionId,
-										  Oid * resultTypeId,
-										  TupleDesc * resultTupleDesc);
+					 Oid *resultTypeId,
+					 TupleDesc *resultTupleDesc);
 
-extern bool resolve_polymorphic_argtypes(int numargs, Oid * argtypes,
+extern TupleDesc get_expr_result_tupdesc(Node *expr, bool noError);
+
+extern bool resolve_polymorphic_argtypes(int numargs, Oid *argtypes,
 							 char *argmodes,
-							 Node * call_expr);
+							 Node *call_expr);
 
 extern int get_func_arg_info(HeapTuple procTup,
-				  Oid * *p_argtypes, char ***p_argnames,
+				  Oid **p_argtypes, char ***p_argnames,
 				  char **p_argmodes);
 
 extern int get_func_input_arg_names(Datum proargnames, Datum proargmodes,
 						 char ***arg_names);
 
-extern int	get_func_trftypes(HeapTuple procTup, Oid * *p_trftypes);
+extern int	get_func_trftypes(HeapTuple procTup, Oid **p_trftypes);
 extern char *get_func_result_name(Oid functionId);
 
-extern TupleDesc build_function_result_tupdesc_d(Datum proallargtypes,
-												 Datum proargmodes,
-												 Datum proargnames);
+extern TupleDesc build_function_result_tupdesc_d(char prokind,
+								Datum proallargtypes,
+								Datum proargmodes,
+								Datum proargnames);
 extern TupleDesc build_function_result_tupdesc_t(HeapTuple procTuple);
 
 
@@ -225,14 +233,14 @@ extern TupleDesc build_function_result_tupdesc_t(HeapTuple procTuple);
 #define TupleGetDatum(_slot, _tuple)	HeapTupleGetDatum(_tuple)
 
 extern TupleDesc RelationNameGetTupleDesc(const char *relname);
-extern TupleDesc TypeGetTupleDesc(Oid typeoid, List * colaliases);
+extern TupleDesc TypeGetTupleDesc(Oid typeoid, List *colaliases);
 
 /* from execTuples.c */
 extern TupleDesc BlessTupleDesc(TupleDesc tupdesc);
-extern AttInMetadata * TupleDescGetAttInMetadata(TupleDesc tupdesc);
-extern HeapTuple BuildTupleFromCStrings(AttInMetadata * attinmeta, char **values);
+extern AttInMetadata *TupleDescGetAttInMetadata(TupleDesc tupdesc);
+extern HeapTuple BuildTupleFromCStrings(AttInMetadata *attinmeta, char **values);
 extern Datum HeapTupleHeaderGetDatum(HeapTupleHeader tuple);
-extern TupleTableSlot * TupleDescGetSlot(TupleDesc tupdesc);
+extern TupleTableSlot *TupleDescGetSlot(TupleDesc tupdesc);
 
 
 /*----------
@@ -279,9 +287,9 @@ extern TupleTableSlot * TupleDescGetSlot(TupleDesc tupdesc);
  */
 
 /* from funcapi.c */
-extern FuncCallContext * init_MultiFuncCall(PG_FUNCTION_ARGS);
-extern FuncCallContext * per_MultiFuncCall(PG_FUNCTION_ARGS);
-extern void end_MultiFuncCall(PG_FUNCTION_ARGS, FuncCallContext * funcctx);
+extern FuncCallContext *init_MultiFuncCall(PG_FUNCTION_ARGS);
+extern FuncCallContext *per_MultiFuncCall(PG_FUNCTION_ARGS);
+extern void end_MultiFuncCall(PG_FUNCTION_ARGS, FuncCallContext *funcctx);
 
 #define SRF_IS_FIRSTCALL() (fcinfo->flinfo->fn_extra == NULL)
 
@@ -335,7 +343,7 @@ extern void end_MultiFuncCall(PG_FUNCTION_ARGS, FuncCallContext * funcctx);
  * "VARIADIC NULL".
  */
 extern int extract_variadic_args(FunctionCallInfo fcinfo, int variadic_start,
-					  bool convert_unknown, Datum * *values,
-					  Oid * *types, bool **nulls);
+					  bool convert_unknown, Datum **values,
+					  Oid **types, bool **nulls);
 
 #endif							/* FUNCAPI_H */

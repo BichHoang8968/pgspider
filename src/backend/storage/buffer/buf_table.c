@@ -10,7 +10,7 @@
  * before the lock is released (see notes in README).
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -30,9 +30,9 @@ typedef struct
 {
 	BufferTag	key;			/* Tag of a disk page */
 	int			id;				/* Associated buffer ID */
-}			BufferLookupEnt;
+} BufferLookupEnt;
 
-static HTAB * SharedBufHash;
+static HTAB *SharedBufHash;
 
 
 /*
@@ -77,7 +77,7 @@ InitBufTable(int size)
  * to do the hash computation twice (hash_any is a bit slow).
  */
 uint32
-BufTableHashCode(BufferTag * tagPtr)
+BufTableHashCode(BufferTag *tagPtr)
 {
 	return get_hash_value(SharedBufHash, (void *) tagPtr);
 }
@@ -89,7 +89,7 @@ BufTableHashCode(BufferTag * tagPtr)
  * Caller must hold at least share lock on BufMappingLock for tag's partition
  */
 int
-BufTableLookup(BufferTag * tagPtr, uint32 hashcode)
+BufTableLookup(BufferTag *tagPtr, uint32 hashcode)
 {
 	BufferLookupEnt *result;
 
@@ -117,7 +117,7 @@ BufTableLookup(BufferTag * tagPtr, uint32 hashcode)
  * Caller must hold exclusive lock on BufMappingLock for tag's partition
  */
 int
-BufTableInsert(BufferTag * tagPtr, uint32 hashcode, int buf_id)
+BufTableInsert(BufferTag *tagPtr, uint32 hashcode, int buf_id)
 {
 	BufferLookupEnt *result;
 	bool		found;
@@ -147,7 +147,7 @@ BufTableInsert(BufferTag * tagPtr, uint32 hashcode, int buf_id)
  * Caller must hold exclusive lock on BufMappingLock for tag's partition
  */
 void
-BufTableDelete(BufferTag * tagPtr, uint32 hashcode)
+BufTableDelete(BufferTag *tagPtr, uint32 hashcode)
 {
 	BufferLookupEnt *result;
 

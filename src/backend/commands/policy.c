@@ -3,7 +3,7 @@
  * policy.c
  *	  Commands for manipulating policies.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/backend/commands/policy.c
@@ -46,10 +46,10 @@
 #include "utils/rel.h"
 #include "utils/syscache.h"
 
-static void RangeVarCallbackForPolicy(const RangeVar * rv,
+static void RangeVarCallbackForPolicy(const RangeVar *rv,
 						  Oid relid, Oid oldrelid, void *arg);
 static char parse_policy_command(const char *cmd_name);
-static Datum * policy_role_list_to_array(List * roles, int *num_roles);
+static Datum *policy_role_list_to_array(List *roles, int *num_roles);
 
 /*
  * Callback to RangeVarGetRelidExtended().
@@ -62,7 +62,7 @@ static Datum * policy_role_list_to_array(List * roles, int *num_roles);
  * If any of these checks fails then an error is raised.
  */
 static void
-RangeVarCallbackForPolicy(const RangeVar * rv, Oid relid, Oid oldrelid,
+RangeVarCallbackForPolicy(const RangeVar *rv, Oid relid, Oid oldrelid,
 						  void *arg)
 {
 	HeapTuple	tuple;
@@ -78,7 +78,7 @@ RangeVarCallbackForPolicy(const RangeVar * rv, Oid relid, Oid oldrelid,
 
 	/* Must own relation. */
 	if (!pg_class_ownercheck(relid, GetUserId()))
-		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_CLASS, rv->relname);
+		aclcheck_error(ACLCHECK_NOT_OWNER, get_relkind_objtype(get_rel_relkind(relid)), rv->relname);
 
 	/* No system table modifications unless explicitly allowed. */
 	if (!allowSystemTableMods && IsSystemClass(relid, classform))
@@ -135,7 +135,7 @@ parse_policy_command(const char *cmd_name)
  *	 role id Datums.
  */
 static Datum *
-policy_role_list_to_array(List * roles, int *num_roles)
+policy_role_list_to_array(List *roles, int *num_roles)
 {
 	Datum	   *role_oids;
 	ListCell   *cell;
@@ -213,6 +213,9 @@ RelationBuildRowSecurity(Relation relation)
 		ScanKeyData skey;
 		SysScanDesc sscan;
 		HeapTuple	tuple;
+
+		MemoryContextCopyAndSetIdentifier(rscxt,
+										  RelationGetRelationName(relation));
 
 		rsdesc = MemoryContextAllocZero(rscxt, sizeof(RowSecurityDesc));
 		rsdesc->rscxt = rscxt;
@@ -680,7 +683,7 @@ RemoveRoleFromObjectPolicy(Oid roleid, Oid classid, Oid policy_id)
  * stmt - the CreatePolicyStmt that describes the policy to create.
  */
 ObjectAddress
-CreatePolicy(CreatePolicyStmt * stmt)
+CreatePolicy(CreatePolicyStmt *stmt)
 {
 	Relation	pg_policy_rel;
 	Oid			policy_id;
@@ -740,7 +743,7 @@ CreatePolicy(CreatePolicyStmt * stmt)
 
 	/* Get id of table.  Also handles permissions checks. */
 	table_id = RangeVarGetRelidExtended(stmt->table, AccessExclusiveLock,
-										false, false,
+										0,
 										RangeVarCallbackForPolicy,
 										(void *) stmt);
 
@@ -875,7 +878,7 @@ CreatePolicy(CreatePolicyStmt * stmt)
  * stmt - the AlterPolicyStmt that describes the policy and how to alter it.
  */
 ObjectAddress
-AlterPolicy(AlterPolicyStmt * stmt)
+AlterPolicy(AlterPolicyStmt *stmt)
 {
 	Relation	pg_policy_rel;
 	Oid			policy_id;
@@ -912,7 +915,7 @@ AlterPolicy(AlterPolicyStmt * stmt)
 
 	/* Get id of table.  Also handles permissions checks. */
 	table_id = RangeVarGetRelidExtended(stmt->table, AccessExclusiveLock,
-										false, false,
+										0,
 										RangeVarCallbackForPolicy,
 										(void *) stmt);
 
@@ -1199,7 +1202,7 @@ AlterPolicy(AlterPolicyStmt * stmt)
  *	 change the name of a policy on a relation
  */
 ObjectAddress
-rename_policy(RenameStmt * stmt)
+rename_policy(RenameStmt *stmt)
 {
 	Relation	pg_policy_rel;
 	Relation	target_table;
@@ -1212,7 +1215,7 @@ rename_policy(RenameStmt * stmt)
 
 	/* Get id of table.  Also handles permissions checks. */
 	table_id = RangeVarGetRelidExtended(stmt->relation, AccessExclusiveLock,
-										false, false,
+										0,
 										RangeVarCallbackForPolicy,
 										(void *) stmt);
 

@@ -3,7 +3,7 @@
  * nodeMaterial.c
  *	  Routines to handle materialization nodes.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -36,7 +36,7 @@
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *			/* result tuple from subplan */
-ExecMaterial(PlanState * pstate)
+ExecMaterial(PlanState *pstate)
 {
 	MaterialState *node = castNode(MaterialState, pstate);
 	EState	   *estate;
@@ -163,7 +163,7 @@ ExecMaterial(PlanState * pstate)
  * ----------------------------------------------------------------
  */
 MaterialState *
-ExecInitMaterial(Material * node, EState * estate, int eflags)
+ExecInitMaterial(Material *node, EState *estate, int eflags)
 {
 	MaterialState *matstate;
 	Plan	   *outerPlan;
@@ -207,14 +207,6 @@ ExecInitMaterial(Material * node, EState * estate, int eflags)
 	 */
 
 	/*
-	 * tuple table initialization
-	 *
-	 * material nodes only return tuples from their materialized relation.
-	 */
-	ExecInitResultTupleSlot(estate, &matstate->ss.ps);
-	ExecInitScanTupleSlot(estate, &matstate->ss);
-
-	/*
 	 * initialize child nodes
 	 *
 	 * We shield the child node from the need to support REWIND, BACKWARD, or
@@ -226,12 +218,18 @@ ExecInitMaterial(Material * node, EState * estate, int eflags)
 	outerPlanState(matstate) = ExecInitNode(outerPlan, estate, eflags);
 
 	/*
-	 * initialize tuple type.  no need to initialize projection info because
-	 * this node doesn't do projections.
+	 * Initialize result type and slot. No need to initialize projection info
+	 * because this node doesn't do projections.
+	 *
+	 * material nodes only return tuples from their materialized relation.
 	 */
-	ExecAssignResultTypeFromTL(&matstate->ss.ps);
-	ExecAssignScanTypeFromOuterPlan(&matstate->ss);
+	ExecInitResultTupleSlotTL(estate, &matstate->ss.ps);
 	matstate->ss.ps.ps_ProjInfo = NULL;
+
+	/*
+	 * initialize tuple type.
+	 */
+	ExecCreateScanSlotFromOuterPlan(estate, &matstate->ss);
 
 	return matstate;
 }
@@ -241,7 +239,7 @@ ExecInitMaterial(Material * node, EState * estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndMaterial(MaterialState * node)
+ExecEndMaterial(MaterialState *node)
 {
 	/*
 	 * clean out the tuple table
@@ -268,7 +266,7 @@ ExecEndMaterial(MaterialState * node)
  * ----------------------------------------------------------------
  */
 void
-ExecMaterialMarkPos(MaterialState * node)
+ExecMaterialMarkPos(MaterialState *node)
 {
 	Assert(node->eflags & EXEC_FLAG_MARK);
 
@@ -296,7 +294,7 @@ ExecMaterialMarkPos(MaterialState * node)
  * ----------------------------------------------------------------
  */
 void
-ExecMaterialRestrPos(MaterialState * node)
+ExecMaterialRestrPos(MaterialState *node)
 {
 	Assert(node->eflags & EXEC_FLAG_MARK);
 
@@ -319,7 +317,7 @@ ExecMaterialRestrPos(MaterialState * node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanMaterial(MaterialState * node)
+ExecReScanMaterial(MaterialState *node)
 {
 	PlanState  *outerPlan = outerPlanState(node);
 

@@ -216,7 +216,7 @@ ecpg_raise(int line, int code, const char *sqlstate, const char *str)
 }
 
 void
-ecpg_raise_backend(int line, PGresult * result, PGconn * conn, int compat)
+ecpg_raise_backend(int line, PGresult *result, PGconn *conn, int compat)
 {
 	struct sqlca_t *sqlca = ECPGget_sqlca();
 	char	   *sqlstate;
@@ -280,29 +280,29 @@ ecpg_raise_backend(int line, PGresult * result, PGconn * conn, int compat)
 
 /* filter out all error codes */
 bool
-ecpg_check_PQresult(PGresult * results, int lineno, PGconn * connection, enum COMPAT_MODE compat)
+ecpg_check_PQresult(PGresult *results, int lineno, PGconn *connection, enum COMPAT_MODE compat)
 {
 	if (results == NULL)
 	{
 		ecpg_log("ecpg_check_PQresult on line %d: no result - %s", lineno, PQerrorMessage(connection));
 		ecpg_raise_backend(lineno, NULL, connection, compat);
-		return (false);
+		return false;
 	}
 
 	switch (PQresultStatus(results))
 	{
 
 		case PGRES_TUPLES_OK:
-			return (true);
+			return true;
 			break;
 		case PGRES_EMPTY_QUERY:
 			/* do nothing */
 			ecpg_raise(lineno, ECPG_EMPTY, ECPG_SQLSTATE_ECPG_INTERNAL_ERROR, NULL);
 			PQclear(results);
-			return (false);
+			return false;
 			break;
 		case PGRES_COMMAND_OK:
-			return (true);
+			return true;
 			break;
 		case PGRES_NONFATAL_ERROR:
 		case PGRES_FATAL_ERROR:
@@ -310,23 +310,23 @@ ecpg_check_PQresult(PGresult * results, int lineno, PGconn * connection, enum CO
 			ecpg_log("ecpg_check_PQresult on line %d: bad response - %s", lineno, PQresultErrorMessage(results));
 			ecpg_raise_backend(lineno, results, connection, compat);
 			PQclear(results);
-			return (false);
+			return false;
 			break;
 		case PGRES_COPY_OUT:
-			return (true);
+			return true;
 			break;
 		case PGRES_COPY_IN:
 			ecpg_log("ecpg_check_PQresult on line %d: COPY IN data transfer in progress\n", lineno);
 			PQendcopy(connection);
 			PQclear(results);
-			return (false);
+			return false;
 			break;
 		default:
 			ecpg_log("ecpg_check_PQresult on line %d: unknown execution status type\n",
 					 lineno);
 			ecpg_raise_backend(lineno, results, connection, compat);
 			PQclear(results);
-			return (false);
+			return false;
 			break;
 	}
 }

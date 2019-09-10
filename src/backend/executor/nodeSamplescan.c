@@ -3,7 +3,7 @@
  * nodeSamplescan.c
  *	  Support routines for sample scans of relations (table sampling).
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -26,10 +26,9 @@
 #include "utils/rel.h"
 #include "utils/tqual.h"
 
-static void InitScanRelation(SampleScanState * node, EState * estate, int eflags);
-static TupleTableSlot * SampleNext(SampleScanState * node);
-static void tablesample_init(SampleScanState * scanstate);
-static HeapTuple tablesample_getnext(SampleScanState * scanstate);
+static TupleTableSlot *SampleNext(SampleScanState *node);
+static void tablesample_init(SampleScanState *scanstate);
+static HeapTuple tablesample_getnext(SampleScanState *scanstate);
 static bool SampleTupleVisible(HeapTuple tuple, OffsetNumber tupoffset,
 				   HeapScanDesc scan);
 
@@ -45,7 +44,7 @@ static bool SampleTupleVisible(HeapTuple tuple, OffsetNumber tupoffset,
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-SampleNext(SampleScanState * node)
+SampleNext(SampleScanState *node)
 {
 	HeapTuple	tuple;
 	TupleTableSlot *slot;
@@ -78,7 +77,7 @@ SampleNext(SampleScanState * node)
  * SampleRecheck -- access method routine to recheck a tuple in EvalPlanQual
  */
 static bool
-SampleRecheck(SampleScanState * node, TupleTableSlot * slot)
+SampleRecheck(SampleScanState *node, TupleTableSlot *slot)
 {
 	/*
 	 * No need to recheck for SampleScan, since like SeqScan we don't pass any
@@ -97,7 +96,7 @@ SampleRecheck(SampleScanState * node, TupleTableSlot * slot)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecSampleScan(PlanState * pstate)
+ExecSampleScan(PlanState *pstate)
 {
 	SampleScanState *node = castNode(SampleScanState, pstate);
 
@@ -107,40 +106,11 @@ ExecSampleScan(PlanState * pstate)
 }
 
 /* ----------------------------------------------------------------
- *		InitScanRelation
- *
- *		Set up to access the scan relation.
- * ----------------------------------------------------------------
- */
-static void
-InitScanRelation(SampleScanState * node, EState * estate, int eflags)
-{
-	Relation	currentRelation;
-
-	/*
-	 * get the relation object id from the relid'th entry in the range table,
-	 * open that relation and acquire appropriate lock on it.
-	 */
-	currentRelation = ExecOpenScanRelation(estate,
-										   ((SampleScan *) node->ss.ps.plan)->scan.scanrelid,
-										   eflags);
-
-	node->ss.ss_currentRelation = currentRelation;
-
-	/* we won't set up the HeapScanDesc till later */
-	node->ss.ss_currentScanDesc = NULL;
-
-	/* and report the scan tuple slot's rowtype */
-	ExecAssignScanType(&node->ss, RelationGetDescr(currentRelation));
-}
-
-
-/* ----------------------------------------------------------------
  *		ExecInitSampleScan
  * ----------------------------------------------------------------
  */
 SampleScanState *
-ExecInitSampleScan(SampleScan * node, EState * estate, int eflags)
+ExecInitSampleScan(SampleScan *node, EState *estate, int eflags)
 {
 	SampleScanState *scanstate;
 	TableSampleClause *tsc = node->tablesample;
@@ -165,6 +135,31 @@ ExecInitSampleScan(SampleScan * node, EState * estate, int eflags)
 	ExecAssignExprContext(estate, &scanstate->ss.ps);
 
 	/*
+	 * Initialize scan relation.
+	 *
+	 * Get the relation object id from the relid'th entry in the range table,
+	 * open that relation and acquire appropriate lock on it.
+	 */
+	scanstate->ss.ss_currentRelation =
+		ExecOpenScanRelation(estate,
+							 node->scan.scanrelid,
+							 eflags);
+
+	/* we won't set up the HeapScanDesc till later */
+	scanstate->ss.ss_currentScanDesc = NULL;
+
+	/* and create slot with appropriate rowtype */
+	ExecInitScanTupleSlot(estate, &scanstate->ss,
+						  RelationGetDescr(scanstate->ss.ss_currentRelation));
+
+	/*
+	 * Initialize result slot, type and projection. tuple table and result
+	 * tuple initialization
+	 */
+	ExecInitResultTupleSlotTL(estate, &scanstate->ss.ps);
+	ExecAssignScanProjectionInfo(&scanstate->ss);
+
+	/*
 	 * initialize child expressions
 	 */
 	scanstate->ss.ps.qual =
@@ -173,23 +168,6 @@ ExecInitSampleScan(SampleScan * node, EState * estate, int eflags)
 	scanstate->args = ExecInitExprList(tsc->args, (PlanState *) scanstate);
 	scanstate->repeatable =
 		ExecInitExpr(tsc->repeatable, (PlanState *) scanstate);
-
-	/*
-	 * tuple table initialization
-	 */
-	ExecInitResultTupleSlot(estate, &scanstate->ss.ps);
-	ExecInitScanTupleSlot(estate, &scanstate->ss);
-
-	/*
-	 * initialize scan relation
-	 */
-	InitScanRelation(scanstate, estate, eflags);
-
-	/*
-	 * Initialize result tuple type and projection info.
-	 */
-	ExecAssignResultTypeFromTL(&scanstate->ss.ps);
-	ExecAssignScanProjectionInfo(&scanstate->ss);
 
 	/*
 	 * If we don't have a REPEATABLE clause, select a random seed.  We want to
@@ -221,7 +199,7 @@ ExecInitSampleScan(SampleScan * node, EState * estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndSampleScan(SampleScanState * node)
+ExecEndSampleScan(SampleScanState *node)
 {
 	/*
 	 * Tell sampling function that we finished the scan.
@@ -260,7 +238,7 @@ ExecEndSampleScan(SampleScanState * node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanSampleScan(SampleScanState * node)
+ExecReScanSampleScan(SampleScanState *node)
 {
 	/* Remember we need to do BeginSampleScan again (if we did it at all) */
 	node->begun = false;
@@ -273,7 +251,7 @@ ExecReScanSampleScan(SampleScanState * node)
  * Initialize the TABLESAMPLE method: evaluate params and call BeginSampleScan.
  */
 static void
-tablesample_init(SampleScanState * scanstate)
+tablesample_init(SampleScanState *scanstate)
 {
 	TsmRoutine *tsm = scanstate->tsmroutine;
 	ExprContext *econtext = scanstate->ss.ps.ps_ExprContext;
@@ -377,7 +355,7 @@ tablesample_init(SampleScanState * scanstate)
  * perhaps be better to refactor to share more code.
  */
 static HeapTuple
-tablesample_getnext(SampleScanState * scanstate)
+tablesample_getnext(SampleScanState *scanstate)
 {
 	TsmRoutine *tsm = scanstate->tsmroutine;
 	HeapScanDesc scan = scanstate->ss.ss_currentScanDesc;

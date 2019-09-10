@@ -6,7 +6,7 @@
  * assorted contexts.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/fe_utils/string_utils.h
@@ -21,12 +21,11 @@
 
 /* Global variables controlling behavior of fmtId() and fmtQualifiedId() */
 extern int	quote_all_identifiers;
-extern PQExpBuffer(*getLocalPQExpBuffer) (void);
+extern PQExpBuffer (*getLocalPQExpBuffer) (void);
 
 /* Functions */
 extern const char *fmtId(const char *identifier);
-extern const char *fmtQualifiedId(int remoteVersion,
-			   const char *schema, const char *id);
+extern const char *fmtQualifiedId(const char *schema, const char *id);
 
 extern char *formatPGVersionNumber(int version_number, bool include_minor,
 					  char *buf, size_t buflen);
@@ -34,7 +33,7 @@ extern char *formatPGVersionNumber(int version_number, bool include_minor,
 extern void appendStringLiteral(PQExpBuffer buf, const char *str,
 					int encoding, bool std_strings);
 extern void appendStringLiteralConn(PQExpBuffer buf, const char *str,
-						PGconn * conn);
+						PGconn *conn);
 extern void appendStringLiteralDQ(PQExpBuffer buf, const char *str,
 					  const char *dqprefix);
 extern void appendByteaLiteral(PQExpBuffer buf,
@@ -51,7 +50,7 @@ extern bool parsePGArray(const char *atext, char ***itemarray, int *nitems);
 extern bool appendReloptionsArray(PQExpBuffer buffer, const char *reloptions,
 					  const char *prefix, int encoding, bool std_strings);
 
-extern bool processSQLNamePattern(PGconn * conn, PQExpBuffer buf,
+extern bool processSQLNamePattern(PGconn *conn, PQExpBuffer buf,
 					  const char *pattern,
 					  bool have_where, bool force_escape,
 					  const char *schemavar, const char *namevar,

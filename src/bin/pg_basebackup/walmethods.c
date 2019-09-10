@@ -5,7 +5,7 @@
  * NOTE! The caller must ensure that only one method is instantiated in
  *		 any given program, and that it's only instantiated once!
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  src/bin/pg_basebackup/walmethods.c
@@ -22,6 +22,7 @@
 #endif
 
 #include "pgtar.h"
+#include "common/file_perm.h"
 #include "common/file_utils.h"
 
 #include "receivelog.h"
@@ -43,8 +44,8 @@ typedef struct DirectoryMethodData
 	char	   *basedir;
 	int			compression;
 	bool		sync;
-}			DirectoryMethodData;
-static DirectoryMethodData * dir_data = NULL;
+} DirectoryMethodData;
+static DirectoryMethodData *dir_data = NULL;
 
 /*
  * Local file handle
@@ -59,7 +60,7 @@ typedef struct DirectoryMethodFile
 #ifdef HAVE_LIBZ
 	gzFile		gzfp;
 #endif
-}			DirectoryMethodFile;
+} DirectoryMethodFile;
 
 static const char *
 dir_getlasterror(void)
@@ -89,7 +90,7 @@ dir_open_for_write(const char *pathname, const char *temp_suffix, size_t pad_to_
 	 * does not do any system calls to fsync() to make changes permanent on
 	 * disk.
 	 */
-	fd = open(tmppath, O_WRONLY | O_CREAT | PG_BINARY, S_IRUSR | S_IWUSR);
+	fd = open(tmppath, O_WRONLY | O_CREAT | PG_BINARY, pg_file_create_mode);
 	if (fd < 0)
 		return NULL;
 
@@ -115,18 +116,17 @@ dir_open_for_write(const char *pathname, const char *temp_suffix, size_t pad_to_
 	/* Do pre-padding on non-compressed files */
 	if (pad_to_size && dir_data->compression == 0)
 	{
-		char	   *zerobuf;
+		PGAlignedXLogBlock zerobuf;
 		int			bytes;
 
-		zerobuf = pg_malloc0(XLOG_BLCKSZ);
+		memset(zerobuf.data, 0, XLOG_BLCKSZ);
 		for (bytes = 0; bytes < pad_to_size; bytes += XLOG_BLCKSZ)
 		{
 			errno = 0;
-			if (write(fd, zerobuf, XLOG_BLCKSZ) != XLOG_BLCKSZ)
+			if (write(fd, zerobuf.data, XLOG_BLCKSZ) != XLOG_BLCKSZ)
 			{
 				int			save_errno = errno;
 
-				pg_free(zerobuf);
 				close(fd);
 
 				/*
@@ -136,7 +136,6 @@ dir_open_for_write(const char *pathname, const char *temp_suffix, size_t pad_to_
 				return NULL;
 			}
 		}
-		pg_free(zerobuf);
 
 		if (lseek(fd, 0, SEEK_SET) != 0)
 		{
@@ -391,7 +390,7 @@ typedef struct TarMethodFile
 	char		header[512];
 	char	   *pathname;
 	size_t		pad_to_size;
-}			TarMethodFile;
+} TarMethodFile;
 
 typedef struct TarMethodData
 {
@@ -405,8 +404,8 @@ typedef struct TarMethodData
 	z_streamp	zp;
 	void	   *zlibOut;
 #endif
-}			TarMethodData;
-static TarMethodData * tar_data = NULL;
+} TarMethodData;
+static TarMethodData *tar_data = NULL;
 
 #define tar_clear_error() tar_data->lasterror[0] = '\0'
 #define tar_set_error(msg) strlcpy(tar_data->lasterror, _(msg), sizeof(tar_data->lasterror))
@@ -510,26 +509,22 @@ tar_write(Walfile f, const void *buf, size_t count)
 }
 
 static bool
-tar_write_padding_data(TarMethodFile * f, size_t bytes)
+tar_write_padding_data(TarMethodFile *f, size_t bytes)
 {
-	char	   *zerobuf = pg_malloc0(XLOG_BLCKSZ);
+	PGAlignedXLogBlock zerobuf;
 	size_t		bytesleft = bytes;
 
+	memset(zerobuf.data, 0, XLOG_BLCKSZ);
 	while (bytesleft)
 	{
-		size_t		bytestowrite = bytesleft > XLOG_BLCKSZ ? XLOG_BLCKSZ : bytesleft;
-
-		ssize_t		r = tar_write(f, zerobuf, bytestowrite);
+		size_t		bytestowrite = Min(bytesleft, XLOG_BLCKSZ);
+		ssize_t		r = tar_write(f, zerobuf.data, bytestowrite);
 
 		if (r < 0)
-		{
-			pg_free(zerobuf);
 			return false;
-		}
 		bytesleft -= r;
 	}
 
-	pg_free(zerobuf);
 	return true;
 }
 
@@ -547,7 +542,8 @@ tar_open_for_write(const char *pathname, const char *temp_suffix, size_t pad_to_
 		 * We open the tar file only when we first try to write to it.
 		 */
 		tar_data->fd = open(tar_data->tarfilename,
-							O_WRONLY | O_CREAT | PG_BINARY, S_IRUSR | S_IWUSR);
+							O_WRONLY | O_CREAT | PG_BINARY,
+							pg_file_create_mode);
 		if (tar_data->fd < 0)
 			return NULL;
 

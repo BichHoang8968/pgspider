@@ -58,8 +58,8 @@ typedef struct _z_stream
 	void	   *next_out;
 	size_t		avail_in;
 	size_t		avail_out;
-}			z_stream;
-typedef z_stream * z_streamp;
+} z_stream;
+typedef z_stream *z_streamp;
 #endif
 
 /* Data block types */
@@ -143,52 +143,52 @@ typedef enum T_Action
 {
 	ACT_DUMP,
 	ACT_RESTORE
-}			T_Action;
+} T_Action;
 
-typedef void (*ClosePtrType) (ArchiveHandle * AH);
-typedef void (*ReopenPtrType) (ArchiveHandle * AH);
-typedef void (*ArchiveEntryPtrType) (ArchiveHandle * AH, TocEntry * te);
+typedef void (*ClosePtrType) (ArchiveHandle *AH);
+typedef void (*ReopenPtrType) (ArchiveHandle *AH);
+typedef void (*ArchiveEntryPtrType) (ArchiveHandle *AH, TocEntry *te);
 
-typedef void (*StartDataPtrType) (ArchiveHandle * AH, TocEntry * te);
-typedef void (*WriteDataPtrType) (ArchiveHandle * AH, const void *data, size_t dLen);
-typedef void (*EndDataPtrType) (ArchiveHandle * AH, TocEntry * te);
+typedef void (*StartDataPtrType) (ArchiveHandle *AH, TocEntry *te);
+typedef void (*WriteDataPtrType) (ArchiveHandle *AH, const void *data, size_t dLen);
+typedef void (*EndDataPtrType) (ArchiveHandle *AH, TocEntry *te);
 
-typedef void (*StartBlobsPtrType) (ArchiveHandle * AH, TocEntry * te);
-typedef void (*StartBlobPtrType) (ArchiveHandle * AH, TocEntry * te, Oid oid);
-typedef void (*EndBlobPtrType) (ArchiveHandle * AH, TocEntry * te, Oid oid);
-typedef void (*EndBlobsPtrType) (ArchiveHandle * AH, TocEntry * te);
+typedef void (*StartBlobsPtrType) (ArchiveHandle *AH, TocEntry *te);
+typedef void (*StartBlobPtrType) (ArchiveHandle *AH, TocEntry *te, Oid oid);
+typedef void (*EndBlobPtrType) (ArchiveHandle *AH, TocEntry *te, Oid oid);
+typedef void (*EndBlobsPtrType) (ArchiveHandle *AH, TocEntry *te);
 
-typedef int (*WriteBytePtrType) (ArchiveHandle * AH, const int i);
-typedef int (*ReadBytePtrType) (ArchiveHandle * AH);
-typedef void (*WriteBufPtrType) (ArchiveHandle * AH, const void *c, size_t len);
-typedef void (*ReadBufPtrType) (ArchiveHandle * AH, void *buf, size_t len);
-typedef void (*SaveArchivePtrType) (ArchiveHandle * AH);
-typedef void (*WriteExtraTocPtrType) (ArchiveHandle * AH, TocEntry * te);
-typedef void (*ReadExtraTocPtrType) (ArchiveHandle * AH, TocEntry * te);
-typedef void (*PrintExtraTocPtrType) (ArchiveHandle * AH, TocEntry * te);
-typedef void (*PrintTocDataPtrType) (ArchiveHandle * AH, TocEntry * te);
+typedef int (*WriteBytePtrType) (ArchiveHandle *AH, const int i);
+typedef int (*ReadBytePtrType) (ArchiveHandle *AH);
+typedef void (*WriteBufPtrType) (ArchiveHandle *AH, const void *c, size_t len);
+typedef void (*ReadBufPtrType) (ArchiveHandle *AH, void *buf, size_t len);
+typedef void (*SaveArchivePtrType) (ArchiveHandle *AH);
+typedef void (*WriteExtraTocPtrType) (ArchiveHandle *AH, TocEntry *te);
+typedef void (*ReadExtraTocPtrType) (ArchiveHandle *AH, TocEntry *te);
+typedef void (*PrintExtraTocPtrType) (ArchiveHandle *AH, TocEntry *te);
+typedef void (*PrintTocDataPtrType) (ArchiveHandle *AH, TocEntry *te);
 
-typedef void (*ClonePtrType) (ArchiveHandle * AH);
-typedef void (*DeClonePtrType) (ArchiveHandle * AH);
+typedef void (*ClonePtrType) (ArchiveHandle *AH);
+typedef void (*DeClonePtrType) (ArchiveHandle *AH);
 
-typedef int (*WorkerJobDumpPtrType) (ArchiveHandle * AH, TocEntry * te);
-typedef int (*WorkerJobRestorePtrType) (ArchiveHandle * AH, TocEntry * te);
+typedef int (*WorkerJobDumpPtrType) (ArchiveHandle *AH, TocEntry *te);
+typedef int (*WorkerJobRestorePtrType) (ArchiveHandle *AH, TocEntry *te);
 
-typedef size_t(*CustomOutPtrType) (ArchiveHandle * AH, const void *buf, size_t len);
+typedef size_t (*CustomOutPtrType) (ArchiveHandle *AH, const void *buf, size_t len);
 
 typedef enum
 {
 	SQL_SCAN = 0,				/* normal */
 	SQL_IN_SINGLE_QUOTE,		/* '...' literal */
 	SQL_IN_DOUBLE_QUOTE			/* "..." identifier */
-}			sqlparseState;
+} sqlparseState;
 
 typedef struct
 {
 	sqlparseState state;		/* see above */
 	bool		backSlash;		/* next char is backslash quoted? */
 	PQExpBuffer curCmd;			/* incomplete line (NULL if not created) */
-}			sqlparseInfo;
+} sqlparseInfo;
 
 typedef enum
 {
@@ -196,14 +196,14 @@ typedef enum
 	STAGE_INITIALIZING,
 	STAGE_PROCESSING,
 	STAGE_FINALIZING
-}			ArchiverStage;
+} ArchiverStage;
 
 typedef enum
 {
 	OUTPUT_SQLCMDS = 0,			/* emitting general SQL commands */
 	OUTPUT_COPYDATA,			/* writing COPY data */
 	OUTPUT_OTHERDATA			/* writing data as INSERT commands */
-}			ArchiverOutput;
+} ArchiverOutput;
 
 /*
  * For historical reasons, ACL items are interspersed with everything else in
@@ -227,7 +227,7 @@ typedef enum
 	RESTORE_PASS_REFRESH		/* Matview REFRESH items */
 
 #define RESTORE_PASS_LAST RESTORE_PASS_REFRESH
-}			RestorePass;
+} RestorePass;
 
 typedef enum
 {
@@ -346,7 +346,8 @@ struct _archiveHandle
 	char	   *currUser;		/* current username, or NULL if unknown */
 	char	   *currSchema;		/* current schema, or NULL */
 	char	   *currTablespace; /* current tablespace, or NULL */
-	bool		currWithOids;	/* current default_with_oids setting */
+	char		currWithOids;	/* current default_with_oids setting: true,
+								 * false, or -1 for unknown, forcing a SET */
 
 	void	   *lo_buf;
 	size_t		lo_buf_used;
@@ -400,25 +401,25 @@ struct _tocEntry
 	int			nLockDeps;		/* number of such dependencies */
 };
 
-extern int	parallel_restore(ArchiveHandle * AH, TocEntry * te);
-extern void on_exit_close_archive(Archive * AHX);
+extern int	parallel_restore(ArchiveHandle *AH, TocEntry *te);
+extern void on_exit_close_archive(Archive *AHX);
 
-extern void warn_or_exit_horribly(ArchiveHandle * AH, const char *modulename, const char *fmt,...) pg_attribute_printf(3, 4);
+extern void warn_or_exit_horribly(ArchiveHandle *AH, const char *modulename, const char *fmt,...) pg_attribute_printf(3, 4);
 
-extern void WriteTOC(ArchiveHandle * AH);
-extern void ReadTOC(ArchiveHandle * AH);
-extern void WriteHead(ArchiveHandle * AH);
-extern void ReadHead(ArchiveHandle * AH);
-extern void WriteToc(ArchiveHandle * AH);
-extern void ReadToc(ArchiveHandle * AH);
-extern void WriteDataChunks(ArchiveHandle * AH, struct ParallelState *pstate);
-extern void WriteDataChunksForTocEntry(ArchiveHandle * AH, TocEntry * te);
-extern ArchiveHandle * CloneArchive(ArchiveHandle * AH);
-extern void DeCloneArchive(ArchiveHandle * AH);
+extern void WriteTOC(ArchiveHandle *AH);
+extern void ReadTOC(ArchiveHandle *AH);
+extern void WriteHead(ArchiveHandle *AH);
+extern void ReadHead(ArchiveHandle *AH);
+extern void WriteToc(ArchiveHandle *AH);
+extern void ReadToc(ArchiveHandle *AH);
+extern void WriteDataChunks(ArchiveHandle *AH, struct ParallelState *pstate);
+extern void WriteDataChunksForTocEntry(ArchiveHandle *AH, TocEntry *te);
+extern ArchiveHandle *CloneArchive(ArchiveHandle *AH);
+extern void DeCloneArchive(ArchiveHandle *AH);
 
-extern teReqs TocIDRequired(ArchiveHandle * AH, DumpId id);
-TocEntry   *getTocEntryByDumpId(ArchiveHandle * AH, DumpId id);
-extern bool checkSeek(FILE * fp);
+extern teReqs TocIDRequired(ArchiveHandle *AH, DumpId id);
+TocEntry   *getTocEntryByDumpId(ArchiveHandle *AH, DumpId id);
+extern bool checkSeek(FILE *fp);
 
 #define appendStringLiteralAHX(buf,str,AH) \
 	appendStringLiteral(buf, str, (AH)->public.encoding, (AH)->public.std_strings)
@@ -430,32 +431,32 @@ extern bool checkSeek(FILE * fp);
  * Mandatory routines for each supported format
  */
 
-extern size_t WriteInt(ArchiveHandle * AH, int i);
-extern int	ReadInt(ArchiveHandle * AH);
-extern char *ReadStr(ArchiveHandle * AH);
-extern size_t WriteStr(ArchiveHandle * AH, const char *s);
+extern size_t WriteInt(ArchiveHandle *AH, int i);
+extern int	ReadInt(ArchiveHandle *AH);
+extern char *ReadStr(ArchiveHandle *AH);
+extern size_t WriteStr(ArchiveHandle *AH, const char *s);
 
 int			ReadOffset(ArchiveHandle *, pgoff_t *);
 size_t		WriteOffset(ArchiveHandle *, pgoff_t, int);
 
-extern void StartRestoreBlobs(ArchiveHandle * AH);
-extern void StartRestoreBlob(ArchiveHandle * AH, Oid oid, bool drop);
-extern void EndRestoreBlob(ArchiveHandle * AH, Oid oid);
-extern void EndRestoreBlobs(ArchiveHandle * AH);
+extern void StartRestoreBlobs(ArchiveHandle *AH);
+extern void StartRestoreBlob(ArchiveHandle *AH, Oid oid, bool drop);
+extern void EndRestoreBlob(ArchiveHandle *AH, Oid oid);
+extern void EndRestoreBlobs(ArchiveHandle *AH);
 
-extern void InitArchiveFmt_Custom(ArchiveHandle * AH);
-extern void InitArchiveFmt_Null(ArchiveHandle * AH);
-extern void InitArchiveFmt_Directory(ArchiveHandle * AH);
-extern void InitArchiveFmt_Tar(ArchiveHandle * AH);
+extern void InitArchiveFmt_Custom(ArchiveHandle *AH);
+extern void InitArchiveFmt_Null(ArchiveHandle *AH);
+extern void InitArchiveFmt_Directory(ArchiveHandle *AH);
+extern void InitArchiveFmt_Tar(ArchiveHandle *AH);
 
 extern bool isValidTarHeader(char *header);
 
-extern int	ReconnectToServer(ArchiveHandle * AH, const char *dbname, const char *newUser);
-extern void DropBlobIfExists(ArchiveHandle * AH, Oid oid);
+extern void ReconnectToServer(ArchiveHandle *AH, const char *dbname, const char *newUser);
+extern void DropBlobIfExists(ArchiveHandle *AH, Oid oid);
 
-void		ahwrite(const void *ptr, size_t size, size_t nmemb, ArchiveHandle * AH);
-int			ahprintf(ArchiveHandle * AH, const char *fmt,...) pg_attribute_printf(2, 3);
+void		ahwrite(const void *ptr, size_t size, size_t nmemb, ArchiveHandle *AH);
+int			ahprintf(ArchiveHandle *AH, const char *fmt,...) pg_attribute_printf(2, 3);
 
-void		ahlog(ArchiveHandle * AH, int level, const char *fmt,...) pg_attribute_printf(3, 4);
+void		ahlog(ArchiveHandle *AH, int level, const char *fmt,...) pg_attribute_printf(3, 4);
 
 #endif

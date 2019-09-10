@@ -3,7 +3,7 @@
  * hashovfl.c
  *	  Overflow page management code for the Postgres hash access method
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -487,8 +487,8 @@ _hash_firstfreebit(uint32 map)
  */
 BlockNumber
 _hash_freeovflpage(Relation rel, Buffer bucketbuf, Buffer ovflbuf,
-				   Buffer wbuf, IndexTuple * itups, OffsetNumber * itup_offsets,
-				   Size * tups_size, uint16 nitups,
+				   Buffer wbuf, IndexTuple *itups, OffsetNumber *itup_offsets,
+				   Size *tups_size, uint16 nitups,
 				   BufferAccessStrategy bstrategy)
 {
 	HashMetaPage metap;
@@ -891,7 +891,7 @@ readpage:
 
 			itup = (IndexTuple) PageGetItem(rpage,
 											PageGetItemId(rpage, roffnum));
-			itemsz = IndexTupleDSize(*itup);
+			itemsz = IndexTupleSize(itup);
 			itemsz = MAXALIGN(itemsz);
 
 			/*

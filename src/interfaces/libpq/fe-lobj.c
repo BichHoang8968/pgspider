@@ -3,7 +3,7 @@
  * fe-lobj.c
  *	  Front-end large object interface
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -33,17 +33,16 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <sys/stat.h>
-#include <netinet/in.h>			/* for ntohl/htonl */
-#include <arpa/inet.h>
 
 #include "libpq-fe.h"
 #include "libpq-int.h"
 #include "libpq/libpq-fs.h"		/* must come after sys/stat.h */
+#include "port/pg_bswap.h"
 
 #define LO_BUFSIZE		  8192
 
-static int	lo_initialize(PGconn * conn);
-static Oid lo_import_internal(PGconn * conn, const char *filename, Oid oid);
+static int	lo_initialize(PGconn *conn);
+static Oid	lo_import_internal(PGconn *conn, const char *filename, Oid oid);
 static pg_int64 lo_hton64(pg_int64 host64);
 static pg_int64 lo_ntoh64(pg_int64 net64);
 
@@ -55,7 +54,7 @@ static pg_int64 lo_ntoh64(pg_int64 net64);
  * return -1 upon failure.
  */
 int
-lo_open(PGconn * conn, Oid lobjId, int mode)
+lo_open(PGconn *conn, Oid lobjId, int mode)
 {
 	int			fd;
 	int			result_len;
@@ -97,7 +96,7 @@ lo_open(PGconn * conn, Oid lobjId, int mode)
  * returns -1 upon failure.
  */
 int
-lo_close(PGconn * conn, int fd)
+lo_close(PGconn *conn, int fd)
 {
 	PQArgBlock	argv[1];
 	PGresult   *res;
@@ -135,7 +134,7 @@ lo_close(PGconn * conn, int fd)
  * returns -1 upon failure
  */
 int
-lo_truncate(PGconn * conn, int fd, size_t len)
+lo_truncate(PGconn *conn, int fd, size_t len)
 {
 	PQArgBlock	argv[2];
 	PGresult   *res;
@@ -203,7 +202,7 @@ lo_truncate(PGconn * conn, int fd, size_t len)
  * returns -1 upon failure
  */
 int
-lo_truncate64(PGconn * conn, int fd, pg_int64 len)
+lo_truncate64(PGconn *conn, int fd, pg_int64 len)
 {
 	PQArgBlock	argv[2];
 	PGresult   *res;
@@ -256,7 +255,7 @@ lo_truncate64(PGconn * conn, int fd, pg_int64 len)
  */
 
 int
-lo_read(PGconn * conn, int fd, char *buf, size_t len)
+lo_read(PGconn *conn, int fd, char *buf, size_t len)
 {
 	PQArgBlock	argv[2];
 	PGresult   *res;
@@ -310,7 +309,7 @@ lo_read(PGconn * conn, int fd, char *buf, size_t len)
  * returns the number of bytes written, or -1 on failure.
  */
 int
-lo_write(PGconn * conn, int fd, const char *buf, size_t len)
+lo_write(PGconn *conn, int fd, const char *buf, size_t len)
 {
 	PQArgBlock	argv[2];
 	PGresult   *res;
@@ -363,7 +362,7 @@ lo_write(PGconn * conn, int fd, const char *buf, size_t len)
  *	  change the current read or write location on a large object
  */
 int
-lo_lseek(PGconn * conn, int fd, int offset, int whence)
+lo_lseek(PGconn *conn, int fd, int offset, int whence)
 {
 	PQArgBlock	argv[3];
 	PGresult   *res;
@@ -407,7 +406,7 @@ lo_lseek(PGconn * conn, int fd, int offset, int whence)
  *	  change the current read or write location on a large object
  */
 pg_int64
-lo_lseek64(PGconn * conn, int fd, pg_int64 offset, int whence)
+lo_lseek64(PGconn *conn, int fd, pg_int64 offset, int whence)
 {
 	PQArgBlock	argv[3];
 	PGresult   *res;
@@ -463,7 +462,7 @@ lo_lseek64(PGconn * conn, int fd, pg_int64 offset, int whence)
  * InvalidOid upon failure
  */
 Oid
-lo_creat(PGconn * conn, int mode)
+lo_creat(PGconn *conn, int mode)
 {
 	PQArgBlock	argv[1];
 	PGresult   *res;
@@ -502,7 +501,7 @@ lo_creat(PGconn * conn, int mode)
  * InvalidOid upon failure
  */
 Oid
-lo_create(PGconn * conn, Oid lobjId)
+lo_create(PGconn *conn, Oid lobjId)
 {
 	PQArgBlock	argv[1];
 	PGresult   *res;
@@ -546,7 +545,7 @@ lo_create(PGconn * conn, Oid lobjId)
  *	  returns the current seek location of the large object
  */
 int
-lo_tell(PGconn * conn, int fd)
+lo_tell(PGconn *conn, int fd)
 {
 	int			retval;
 	PQArgBlock	argv[1];
@@ -582,7 +581,7 @@ lo_tell(PGconn * conn, int fd)
  *	  returns the current seek location of the large object
  */
 pg_int64
-lo_tell64(PGconn * conn, int fd)
+lo_tell64(PGconn *conn, int fd)
 {
 	pg_int64	retval;
 	PQArgBlock	argv[1];
@@ -626,7 +625,7 @@ lo_tell64(PGconn * conn, int fd)
  */
 
 int
-lo_unlink(PGconn * conn, Oid lobjId)
+lo_unlink(PGconn *conn, Oid lobjId)
 {
 	PQArgBlock	argv[1];
 	PGresult   *res;
@@ -666,7 +665,7 @@ lo_unlink(PGconn * conn, Oid lobjId)
  */
 
 Oid
-lo_import(PGconn * conn, const char *filename)
+lo_import(PGconn *conn, const char *filename)
 {
 	return lo_import_internal(conn, filename, InvalidOid);
 }
@@ -681,13 +680,13 @@ lo_import(PGconn * conn, const char *filename)
  */
 
 Oid
-lo_import_with_oid(PGconn * conn, const char *filename, Oid lobjId)
+lo_import_with_oid(PGconn *conn, const char *filename, Oid lobjId)
 {
 	return lo_import_internal(conn, filename, lobjId);
 }
 
 static Oid
-lo_import_internal(PGconn * conn, const char *filename, Oid oid)
+lo_import_internal(PGconn *conn, const char *filename, Oid oid)
 {
 	int			fd;
 	int			nbytes,
@@ -782,7 +781,7 @@ lo_import_internal(PGconn * conn, const char *filename, Oid oid)
  * returns -1 upon failure, 1 if OK
  */
 int
-lo_export(PGconn * conn, Oid lobjId, const char *filename)
+lo_export(PGconn *conn, Oid lobjId, const char *filename)
 {
 	int			result = 1;
 	int			fd;
@@ -874,7 +873,7 @@ lo_export(PGconn * conn, Oid lobjId, const char *filename)
  * functions that are required for large object operations.
  */
 static int
-lo_initialize(PGconn * conn)
+lo_initialize(PGconn *conn)
 {
 	PGresult   *res;
 	PGlobjfuncs *lobjfuncs;
@@ -1070,11 +1069,11 @@ lo_hton64(pg_int64 host64)
 
 	/* High order half first, since we're doing MSB-first */
 	t = (uint32) (host64 >> 32);
-	swap.i32[0] = htonl(t);
+	swap.i32[0] = pg_hton32(t);
 
 	/* Now the low order half */
 	t = (uint32) host64;
-	swap.i32[1] = htonl(t);
+	swap.i32[1] = pg_hton32(t);
 
 	return swap.i64;
 }
@@ -1095,9 +1094,9 @@ lo_ntoh64(pg_int64 net64)
 
 	swap.i64 = net64;
 
-	result = (uint32) ntohl(swap.i32[0]);
+	result = (uint32) pg_ntoh32(swap.i32[0]);
 	result <<= 32;
-	result |= (uint32) ntohl(swap.i32[1]);
+	result |= (uint32) pg_ntoh32(swap.i32[1]);
 
 	return result;
 }

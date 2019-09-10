@@ -4,7 +4,7 @@
  *	  Utility and convenience functions for fmgr functions that return
  *	  sets and/or composite types, or deal with VARIADIC inputs.
  *
- * Copyright (c) 2002-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2002-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/utils/fmgr/funcapi.c
@@ -32,14 +32,14 @@
 
 static void shutdown_MultiFuncCall(Datum arg);
 static TypeFuncClass internal_get_result_type(Oid funcid,
-											  Node * call_expr,
-											  ReturnSetInfo * rsinfo,
-											  Oid * resultTypeId,
-											  TupleDesc * resultTupleDesc);
+						 Node *call_expr,
+						 ReturnSetInfo *rsinfo,
+						 Oid *resultTypeId,
+						 TupleDesc *resultTupleDesc);
 static bool resolve_polymorphic_tupdesc(TupleDesc tupdesc,
-							oidvector * declared_args,
-							Node * call_expr);
-static TypeFuncClass get_type_func_class(Oid typid);
+							oidvector *declared_args,
+							Node *call_expr);
+static TypeFuncClass get_type_func_class(Oid typid, Oid *base_typeid);
 
 
 /*
@@ -152,7 +152,7 @@ per_MultiFuncCall(PG_FUNCTION_ARGS)
  * Clean up after init_MultiFuncCall
  */
 void
-end_MultiFuncCall(PG_FUNCTION_ARGS, FuncCallContext * funcctx)
+end_MultiFuncCall(PG_FUNCTION_ARGS, FuncCallContext *funcctx)
 {
 	ReturnSetInfo *rsi = (ReturnSetInfo *) fcinfo->resultinfo;
 
@@ -209,8 +209,8 @@ shutdown_MultiFuncCall(Datum arg)
  */
 TypeFuncClass
 get_call_result_type(FunctionCallInfo fcinfo,
-					 Oid * resultTypeId,
-					 TupleDesc * resultTupleDesc)
+					 Oid *resultTypeId,
+					 TupleDesc *resultTupleDesc)
 {
 	return internal_get_result_type(fcinfo->flinfo->fn_oid,
 									fcinfo->flinfo->fn_expr,
@@ -224,9 +224,9 @@ get_call_result_type(FunctionCallInfo fcinfo,
  *		As above, but work from a calling expression node tree
  */
 TypeFuncClass
-get_expr_result_type(Node * expr,
-					 Oid * resultTypeId,
-					 TupleDesc * resultTupleDesc)
+get_expr_result_type(Node *expr,
+					 Oid *resultTypeId,
+					 TupleDesc *resultTupleDesc)
 {
 	TypeFuncClass result;
 
@@ -246,14 +246,17 @@ get_expr_result_type(Node * expr,
 	{
 		/* handle as a generic expression; no chance to resolve RECORD */
 		Oid			typid = exprType(expr);
+		Oid			base_typid;
 
 		if (resultTypeId)
 			*resultTypeId = typid;
 		if (resultTupleDesc)
 			*resultTupleDesc = NULL;
-		result = get_type_func_class(typid);
-		if (result == TYPEFUNC_COMPOSITE && resultTupleDesc)
-			*resultTupleDesc = lookup_rowtype_tupdesc_copy(typid, -1);
+		result = get_type_func_class(typid, &base_typid);
+		if ((result == TYPEFUNC_COMPOSITE ||
+			 result == TYPEFUNC_COMPOSITE_DOMAIN) &&
+			resultTupleDesc)
+			*resultTupleDesc = lookup_rowtype_tupdesc_copy(base_typid, -1);
 	}
 
 	return result;
@@ -267,8 +270,8 @@ get_expr_result_type(Node * expr,
  */
 TypeFuncClass
 get_func_result_type(Oid functionId,
-					 Oid * resultTypeId,
-					 TupleDesc * resultTupleDesc)
+					 Oid *resultTypeId,
+					 TupleDesc *resultTupleDesc)
 {
 	return internal_get_result_type(functionId,
 									NULL,
@@ -287,15 +290,16 @@ get_func_result_type(Oid functionId,
  */
 static TypeFuncClass
 internal_get_result_type(Oid funcid,
-						 Node * call_expr,
-						 ReturnSetInfo * rsinfo,
-						 Oid * resultTypeId,
-						 TupleDesc * resultTupleDesc)
+						 Node *call_expr,
+						 ReturnSetInfo *rsinfo,
+						 Oid *resultTypeId,
+						 TupleDesc *resultTupleDesc)
 {
 	TypeFuncClass result;
 	HeapTuple	tp;
 	Form_pg_proc procform;
 	Oid			rettype;
+	Oid			base_rettype;
 	TupleDesc	tupdesc;
 
 	/* First fetch the function's pg_proc row to inspect its rettype */
@@ -363,12 +367,13 @@ internal_get_result_type(Oid funcid,
 		*resultTupleDesc = NULL;	/* default result */
 
 	/* Classify the result type */
-	result = get_type_func_class(rettype);
+	result = get_type_func_class(rettype, &base_rettype);
 	switch (result)
 	{
 		case TYPEFUNC_COMPOSITE:
+		case TYPEFUNC_COMPOSITE_DOMAIN:
 			if (resultTupleDesc)
-				*resultTupleDesc = lookup_rowtype_tupdesc_copy(rettype, -1);
+				*resultTupleDesc = lookup_rowtype_tupdesc_copy(base_rettype, -1);
 			/* Named composite types can't have any polymorphic columns */
 			break;
 		case TYPEFUNC_SCALAR:
@@ -394,14 +399,54 @@ internal_get_result_type(Oid funcid,
 }
 
 /*
+ * get_expr_result_tupdesc
+ *		Get a tupdesc describing the result of a composite-valued expression
+ *
+ * If expression is not composite or rowtype can't be determined, returns NULL
+ * if noError is true, else throws error.
+ *
+ * This is a simpler version of get_expr_result_type() for use when the caller
+ * is only interested in determinate rowtype results.
+ */
+TupleDesc
+get_expr_result_tupdesc(Node *expr, bool noError)
+{
+	TupleDesc	tupleDesc;
+	TypeFuncClass functypclass;
+
+	functypclass = get_expr_result_type(expr, NULL, &tupleDesc);
+
+	if (functypclass == TYPEFUNC_COMPOSITE ||
+		functypclass == TYPEFUNC_COMPOSITE_DOMAIN)
+		return tupleDesc;
+
+	if (!noError)
+	{
+		Oid			exprTypeId = exprType(expr);
+
+		if (exprTypeId != RECORDOID)
+			ereport(ERROR,
+					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+					 errmsg("type %s is not composite",
+							format_type_be(exprTypeId))));
+		else
+			ereport(ERROR,
+					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+					 errmsg("record type has not been registered")));
+	}
+
+	return NULL;
+}
+
+/*
  * Given the result tuple descriptor for a function with OUT parameters,
  * replace any polymorphic columns (ANYELEMENT etc) with correct data types
- * deduced from the input arguments. Returns TRUE if able to deduce all types,
- * FALSE if not.
+ * deduced from the input arguments. Returns true if able to deduce all types,
+ * false if not.
  */
 static bool
-resolve_polymorphic_tupdesc(TupleDesc tupdesc, oidvector * declared_args,
-							Node * call_expr)
+resolve_polymorphic_tupdesc(TupleDesc tupdesc, oidvector *declared_args,
+							Node *call_expr)
 {
 	int			natts = tupdesc->natts;
 	int			nargs = declared_args->dim1;
@@ -419,7 +464,7 @@ resolve_polymorphic_tupdesc(TupleDesc tupdesc, oidvector * declared_args,
 	/* See if there are any polymorphic outputs; quick out if not */
 	for (i = 0; i < natts; i++)
 	{
-		switch (tupdesc->attrs[i]->atttypid)
+		switch (TupleDescAttr(tupdesc, i)->atttypid)
 		{
 			case ANYELEMENTOID:
 				have_anyelement_result = true;
@@ -548,13 +593,15 @@ resolve_polymorphic_tupdesc(TupleDesc tupdesc, oidvector * declared_args,
 	/* And finally replace the tuple column types as needed */
 	for (i = 0; i < natts; i++)
 	{
-		switch (tupdesc->attrs[i]->atttypid)
+		Form_pg_attribute att = TupleDescAttr(tupdesc, i);
+
+		switch (att->atttypid)
 		{
 			case ANYELEMENTOID:
 			case ANYNONARRAYOID:
 			case ANYENUMOID:
 				TupleDescInitEntry(tupdesc, i + 1,
-								   NameStr(tupdesc->attrs[i]->attname),
+								   NameStr(att->attname),
 								   anyelement_type,
 								   -1,
 								   0);
@@ -562,7 +609,7 @@ resolve_polymorphic_tupdesc(TupleDesc tupdesc, oidvector * declared_args,
 				break;
 			case ANYARRAYOID:
 				TupleDescInitEntry(tupdesc, i + 1,
-								   NameStr(tupdesc->attrs[i]->attname),
+								   NameStr(att->attname),
 								   anyarray_type,
 								   -1,
 								   0);
@@ -570,7 +617,7 @@ resolve_polymorphic_tupdesc(TupleDesc tupdesc, oidvector * declared_args,
 				break;
 			case ANYRANGEOID:
 				TupleDescInitEntry(tupdesc, i + 1,
-								   NameStr(tupdesc->attrs[i]->attname),
+								   NameStr(att->attname),
 								   anyrange_type,
 								   -1,
 								   0);
@@ -587,15 +634,15 @@ resolve_polymorphic_tupdesc(TupleDesc tupdesc, oidvector * declared_args,
 /*
  * Given the declared argument types and modes for a function, replace any
  * polymorphic types (ANYELEMENT etc) with correct data types deduced from the
- * input arguments.  Returns TRUE if able to deduce all types, FALSE if not.
+ * input arguments.  Returns true if able to deduce all types, false if not.
  * This is the same logic as resolve_polymorphic_tupdesc, but with a different
  * argument representation.
  *
  * argmodes may be NULL, in which case all arguments are assumed to be IN mode.
  */
 bool
-resolve_polymorphic_argtypes(int numargs, Oid * argtypes, char *argmodes,
-							 Node * call_expr)
+resolve_polymorphic_argtypes(int numargs, Oid *argtypes, char *argmodes,
+							 Node *call_expr)
 {
 	bool		have_anyelement_result = false;
 	bool		have_anyarray_result = false;
@@ -739,23 +786,31 @@ resolve_polymorphic_argtypes(int numargs, Oid * argtypes, char *argmodes,
 /*
  * get_type_func_class
  *		Given the type OID, obtain its TYPEFUNC classification.
+ *		Also, if it's a domain, return the base type OID.
  *
  * This is intended to centralize a bunch of formerly ad-hoc code for
  * classifying types.  The categories used here are useful for deciding
  * how to handle functions returning the datatype.
  */
 static TypeFuncClass
-get_type_func_class(Oid typid)
+get_type_func_class(Oid typid, Oid *base_typeid)
 {
+	*base_typeid = typid;
+
 	switch (get_typtype(typid))
 	{
 		case TYPTYPE_COMPOSITE:
 			return TYPEFUNC_COMPOSITE;
 		case TYPTYPE_BASE:
-		case TYPTYPE_DOMAIN:
 		case TYPTYPE_ENUM:
 		case TYPTYPE_RANGE:
 			return TYPEFUNC_SCALAR;
+		case TYPTYPE_DOMAIN:
+			*base_typeid = typid = getBaseType(typid);
+			if (get_typtype(typid) == TYPTYPE_COMPOSITE)
+				return TYPEFUNC_COMPOSITE_DOMAIN;
+			else				/* domain base type can't be a pseudotype */
+				return TYPEFUNC_SCALAR;
 		case TYPTYPE_PSEUDO:
 			if (typid == RECORDOID)
 				return TYPEFUNC_RECORD;
@@ -789,7 +844,7 @@ get_type_func_class(Oid typid)
  */
 int
 get_func_arg_info(HeapTuple procTup,
-				  Oid * *p_argtypes, char ***p_argnames, char **p_argmodes)
+				  Oid **p_argtypes, char ***p_argnames, char **p_argmodes)
 {
 	Form_pg_proc procStruct = (Form_pg_proc) GETSTRUCT(procTup);
 	Datum		proallargtypes;
@@ -883,7 +938,7 @@ get_func_arg_info(HeapTuple procTup,
  */
 int
 get_func_trftypes(HeapTuple procTup,
-				  Oid * *p_trftypes)
+				  Oid **p_trftypes)
 {
 	Datum		protrftypes;
 	ArrayType  *arr;
@@ -1036,8 +1091,8 @@ get_func_result_name(Oid functionId)
 		elog(ERROR, "cache lookup failed for function %u", functionId);
 
 	/* If there are no named OUT parameters, return NULL */
-	if (heap_attisnull(procTuple, Anum_pg_proc_proargmodes) ||
-		heap_attisnull(procTuple, Anum_pg_proc_proargnames))
+	if (heap_attisnull(procTuple, Anum_pg_proc_proargmodes, NULL) ||
+		heap_attisnull(procTuple, Anum_pg_proc_proargnames, NULL))
 		result = NULL;
 	else
 	{
@@ -1131,8 +1186,8 @@ build_function_result_tupdesc_t(HeapTuple procTuple)
 		return NULL;
 
 	/* If there are no OUT parameters, return NULL */
-	if (heap_attisnull(procTuple, Anum_pg_proc_proallargtypes) ||
-		heap_attisnull(procTuple, Anum_pg_proc_proargmodes))
+	if (heap_attisnull(procTuple, Anum_pg_proc_proallargtypes, NULL) ||
+		heap_attisnull(procTuple, Anum_pg_proc_proargmodes, NULL))
 		return NULL;
 
 	/* Get the data out of the tuple */
@@ -1150,7 +1205,8 @@ build_function_result_tupdesc_t(HeapTuple procTuple)
 	if (isnull)
 		proargnames = PointerGetDatum(NULL);	/* just to be sure */
 
-	return build_function_result_tupdesc_d(proallargtypes,
+	return build_function_result_tupdesc_d(procform->prokind,
+										   proallargtypes,
 										   proargmodes,
 										   proargnames);
 }
@@ -1163,10 +1219,12 @@ build_function_result_tupdesc_t(HeapTuple procTuple)
  * convenience of ProcedureCreate, which needs to be able to compute the
  * tupledesc before actually creating the function.
  *
- * Returns NULL if there are not at least two OUT or INOUT arguments.
+ * For functions (but not for procedures), returns NULL if there are not at
+ * least two OUT or INOUT arguments.
  */
 TupleDesc
-build_function_result_tupdesc_d(Datum proallargtypes,
+build_function_result_tupdesc_d(char prokind,
+								Datum proallargtypes,
 								Datum proargmodes,
 								Datum proargnames)
 {
@@ -1256,7 +1314,7 @@ build_function_result_tupdesc_d(Datum proallargtypes,
 	 * If there is no output argument, or only one, the function does not
 	 * return tuples.
 	 */
-	if (numoutargs < 2)
+	if (numoutargs < 2 && prokind != PROKIND_PROCEDURE)
 		return NULL;
 
 	desc = CreateTemplateTupleDesc(numoutargs, false);
@@ -1316,18 +1374,22 @@ RelationNameGetTupleDesc(const char *relname)
  * If the type is a base type, a single item alias List is required.
  */
 TupleDesc
-TypeGetTupleDesc(Oid typeoid, List * colaliases)
+TypeGetTupleDesc(Oid typeoid, List *colaliases)
 {
-	TypeFuncClass functypclass = get_type_func_class(typeoid);
+	Oid			base_typeoid;
+	TypeFuncClass functypclass = get_type_func_class(typeoid, &base_typeoid);
 	TupleDesc	tupdesc = NULL;
 
 	/*
-	 * Build a suitable tupledesc representing the output rows
+	 * Build a suitable tupledesc representing the output rows.  We
+	 * intentionally do not support TYPEFUNC_COMPOSITE_DOMAIN here, as it's
+	 * unlikely that legacy callers of this obsolete function would be
+	 * prepared to apply domain constraints.
 	 */
 	if (functypclass == TYPEFUNC_COMPOSITE)
 	{
 		/* Composite data type, e.g. a table's row type */
-		tupdesc = lookup_rowtype_tupdesc_copy(typeoid, -1);
+		tupdesc = lookup_rowtype_tupdesc_copy(base_typeoid, -1);
 
 		if (colaliases != NIL)
 		{
@@ -1344,9 +1406,10 @@ TypeGetTupleDesc(Oid typeoid, List * colaliases)
 			for (varattno = 0; varattno < natts; varattno++)
 			{
 				char	   *label = strVal(list_nth(colaliases, varattno));
+				Form_pg_attribute attr = TupleDescAttr(tupdesc, varattno);
 
 				if (label != NULL)
-					namestrcpy(&(tupdesc->attrs[varattno]->attname), label);
+					namestrcpy(&(attr->attname), label);
 			}
 
 			/* The tuple type is now an anonymous record type */
@@ -1414,7 +1477,7 @@ TypeGetTupleDesc(Oid typeoid, List * colaliases)
  */
 int
 extract_variadic_args(FunctionCallInfo fcinfo, int variadic_start,
-					  bool convert_unknown, Datum * *args, Oid * *types,
+					  bool convert_unknown, Datum **args, Oid **types,
 					  bool **nulls)
 {
 	bool		variadic = get_fn_expr_variadic(fcinfo->flinfo);
@@ -1471,7 +1534,7 @@ extract_variadic_args(FunctionCallInfo fcinfo, int variadic_start,
 
 			/*
 			 * Turn a constant (more or less literal) value that's of unknown
-			 * type into text if required . Unknowns come in as a cstring
+			 * type into text if required. Unknowns come in as a cstring
 			 * pointer. Note: for functions declared as taking type "any", the
 			 * parser will not do any type conversion on unknown-type literals
 			 * (that is, undecorated strings or NULLs).

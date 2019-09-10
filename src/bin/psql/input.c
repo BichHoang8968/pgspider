@@ -1,7 +1,7 @@
 /*
  * psql - the PostgreSQL interactive terminal
  *
- * Copyright (c) 2000-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2018, PostgreSQL Global Development Group
  *
  * src/bin/psql/input.c
  */
@@ -184,7 +184,7 @@ pg_send_history(PQExpBuffer history_buf)
  * leaking memory if interrupted by SIGINT.
  */
 char *
-gets_fromFile(FILE * source)
+gets_fromFile(FILE *source)
 {
 	static PQExpBuffer buffer = NULL;
 

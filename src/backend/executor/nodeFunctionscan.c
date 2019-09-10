@@ -3,7 +3,7 @@
  * nodeFunctionscan.c
  *	  Support routines for scanning RangeFunctions (functions in rangetable).
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -41,9 +41,9 @@ typedef struct FunctionScanPerFuncState
 	Tuplestorestate *tstore;	/* holds the function result set */
 	int64		rowcount;		/* # of rows in result set, -1 if not known */
 	TupleTableSlot *func_slot;	/* function result slot (or NULL) */
-}			FunctionScanPerFuncState;
+} FunctionScanPerFuncState;
 
-static TupleTableSlot * FunctionNext(FunctionScanState * node);
+static TupleTableSlot *FunctionNext(FunctionScanState *node);
 
 
 /* ----------------------------------------------------------------
@@ -57,7 +57,7 @@ static TupleTableSlot * FunctionNext(FunctionScanState * node);
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-FunctionNext(FunctionScanState * node)
+FunctionNext(FunctionScanState *node)
 {
 	EState	   *estate;
 	ScanDirection direction;
@@ -247,7 +247,7 @@ FunctionNext(FunctionScanState * node)
  * FunctionRecheck -- access method routine to recheck a tuple in EvalPlanQual
  */
 static bool
-FunctionRecheck(FunctionScanState * node, TupleTableSlot * slot)
+FunctionRecheck(FunctionScanState *node, TupleTableSlot *slot)
 {
 	/* nothing to check */
 	return true;
@@ -263,7 +263,7 @@ FunctionRecheck(FunctionScanState * node, TupleTableSlot * slot)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecFunctionScan(PlanState * pstate)
+ExecFunctionScan(PlanState *pstate)
 {
 	FunctionScanState *node = castNode(FunctionScanState, pstate);
 
@@ -277,7 +277,7 @@ ExecFunctionScan(PlanState * pstate)
  * ----------------------------------------------------------------
  */
 FunctionScanState *
-ExecInitFunctionScan(FunctionScan * node, EState * estate, int eflags)
+ExecInitFunctionScan(FunctionScan *node, EState *estate, int eflags)
 {
 	FunctionScanState *scanstate;
 	int			nfuncs = list_length(node->functions);
@@ -334,18 +334,6 @@ ExecInitFunctionScan(FunctionScan * node, EState * estate, int eflags)
 	 */
 	ExecAssignExprContext(estate, &scanstate->ss.ps);
 
-	/*
-	 * tuple table initialization
-	 */
-	ExecInitResultTupleSlot(estate, &scanstate->ss.ps);
-	ExecInitScanTupleSlot(estate, &scanstate->ss);
-
-	/*
-	 * initialize child expressions
-	 */
-	scanstate->ss.ps.qual =
-		ExecInitQual(node->scan.plan.qual, (PlanState *) scanstate);
-
 	scanstate->funcstates = palloc(nfuncs * sizeof(FunctionScanPerFuncState));
 
 	natts = 0;
@@ -383,7 +371,8 @@ ExecInitFunctionScan(FunctionScan * node, EState * estate, int eflags)
 											&funcrettype,
 											&tupdesc);
 
-		if (functypclass == TYPEFUNC_COMPOSITE)
+		if (functypclass == TYPEFUNC_COMPOSITE ||
+			functypclass == TYPEFUNC_COMPOSITE_DOMAIN)
 		{
 			/* Composite data type, e.g. a table's row type */
 			Assert(tupdesc);
@@ -435,8 +424,7 @@ ExecInitFunctionScan(FunctionScan * node, EState * estate, int eflags)
 		 */
 		if (!scanstate->simple)
 		{
-			fs->func_slot = ExecInitExtraTupleSlot(estate);
-			ExecSetSlotDescriptor(fs->func_slot, fs->tupdesc);
+			fs->func_slot = ExecInitExtraTupleSlot(estate, fs->tupdesc);
 		}
 		else
 			fs->func_slot = NULL;
@@ -491,13 +479,22 @@ ExecInitFunctionScan(FunctionScan * node, EState * estate, int eflags)
 		Assert(attno == natts);
 	}
 
-	ExecAssignScanType(&scanstate->ss, scan_tupdesc);
+	/*
+	 * Initialize scan slot and type.
+	 */
+	ExecInitScanTupleSlot(estate, &scanstate->ss, scan_tupdesc);
 
 	/*
-	 * Initialize result tuple type and projection info.
+	 * Initialize result slot, type and projection.
 	 */
-	ExecAssignResultTypeFromTL(&scanstate->ss.ps);
+	ExecInitResultTupleSlotTL(estate, &scanstate->ss.ps);
 	ExecAssignScanProjectionInfo(&scanstate->ss);
+
+	/*
+	 * initialize child expressions
+	 */
+	scanstate->ss.ps.qual =
+		ExecInitQual(node->scan.plan.qual, (PlanState *) scanstate);
 
 	/*
 	 * Create a memory context that ExecMakeTableFunctionResult can use to
@@ -520,7 +517,7 @@ ExecInitFunctionScan(FunctionScan * node, EState * estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndFunctionScan(FunctionScanState * node)
+ExecEndFunctionScan(FunctionScanState *node)
 {
 	int			i;
 
@@ -560,7 +557,7 @@ ExecEndFunctionScan(FunctionScanState * node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanFunctionScan(FunctionScanState * node)
+ExecReScanFunctionScan(FunctionScanState *node)
 {
 	FunctionScan *scan = (FunctionScan *) node->ss.ps.plan;
 	int			i;

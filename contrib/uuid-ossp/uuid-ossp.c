@@ -2,7 +2,7 @@
  *
  * UUID generation functions using the BSD, E2FS or OSSP UUID library
  *
- * Copyright (c) 2007-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2018, PostgreSQL Global Development Group
  *
  * Portions Copyright (c) 2009 Andrew Gierth
  *
@@ -14,12 +14,9 @@
 #include "postgres.h"
 
 #include "fmgr.h"
+#include "port/pg_bswap.h"
 #include "utils/builtins.h"
 #include "utils/uuid.h"
-
-/* for ntohl/htonl */
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
 /*
  * It's possible that there's more than one uuid.h header file present.
@@ -80,7 +77,7 @@ typedef struct
 	uint8_t		clock_seq_hi_and_reserved;
 	uint8_t		clock_seq_low;
 	uint8_t		node[6];
-}			dce_uuid_t;
+} dce_uuid_t;
 #else
 #define dce_uuid_t uuid_t
 #endif
@@ -90,16 +87,16 @@ typedef struct
 
 #define UUID_TO_NETWORK(uu) \
 do { \
-	uu.time_low = htonl(uu.time_low); \
-	uu.time_mid = htons(uu.time_mid); \
-	uu.time_hi_and_version = htons(uu.time_hi_and_version); \
+	uu.time_low = pg_hton32(uu.time_low); \
+	uu.time_mid = pg_hton16(uu.time_mid); \
+	uu.time_hi_and_version = pg_hton16(uu.time_hi_and_version); \
 } while (0)
 
 #define UUID_TO_LOCAL(uu) \
 do { \
-	uu.time_low = ntohl(uu.time_low); \
-	uu.time_mid = ntohs(uu.time_mid); \
-	uu.time_hi_and_version = ntohs(uu.time_hi_and_version); \
+	uu.time_low = pg_ntoh32(uu.time_low); \
+	uu.time_mid = pg_ntoh16(uu.time_mid); \
+	uu.time_hi_and_version = pg_ntoh16(uu.time_hi_and_version); \
 } while (0)
 
 #define UUID_V3_OR_V5(uu, v) \
@@ -163,10 +160,7 @@ pguuid_complain(uuid_rc_t rc)
 static uuid_t *
 get_cached_uuid_t(int which)
 {
-	static uuid_t * cached_uuid[2] =
-	{
-		NULL, NULL
-	};
+	static uuid_t *cached_uuid[2] = {NULL, NULL};
 
 	if (cached_uuid[which] == NULL)
 	{
@@ -183,7 +177,7 @@ get_cached_uuid_t(int which)
 }
 
 static char *
-uuid_to_string(const uuid_t * uuid)
+uuid_to_string(const uuid_t *uuid)
 {
 	char	   *buf = palloc(UUID_LEN_STR + 1);
 	void	   *ptr = buf;
@@ -199,7 +193,7 @@ uuid_to_string(const uuid_t * uuid)
 
 
 static void
-string_to_uuid(const char *str, uuid_t * uuid)
+string_to_uuid(const char *str, uuid_t *uuid)
 {
 	uuid_rc_t	rc;
 
@@ -226,7 +220,7 @@ special_uuid_value(const char *name)
 
 /* len is unused with OSSP, but we want to have the same number of args */
 static Datum
-uuid_generate_internal(int mode, const uuid_t * ns, const char *name, int len)
+uuid_generate_internal(int mode, const uuid_t *ns, const char *name, int len)
 {
 	uuid_t	   *uuid = get_cached_uuid_t(0);
 	char	   *str;
@@ -242,7 +236,7 @@ uuid_generate_internal(int mode, const uuid_t * ns, const char *name, int len)
 
 
 static Datum
-uuid_generate_v35_internal(int mode, pg_uuid_t * ns, text * name)
+uuid_generate_v35_internal(int mode, pg_uuid_t *ns, text *name)
 {
 	uuid_t	   *ns_uuid = get_cached_uuid_t(1);
 
@@ -259,7 +253,7 @@ uuid_generate_v35_internal(int mode, pg_uuid_t * ns, text * name)
 #else							/* !HAVE_UUID_OSSP */
 
 static Datum
-uuid_generate_internal(int v, unsigned char *ns, char *ptr, int len)
+uuid_generate_internal(int v, unsigned char *ns, const char *ptr, int len)
 {
 	char		strbuf[40];
 
@@ -484,7 +478,7 @@ uuid_generate_v1mc(PG_FUNCTION_ARGS)
 	uuid_generate_random(uu);
 
 	/* set IEEE802 multicast and local-admin bits */
-	((dce_uuid_t *) & uu)->node[0] |= 0x03;
+	((dce_uuid_t *) &uu)->node[0] |= 0x03;
 
 	uuid_unparse(uu, strbuf);
 	buf = strbuf + 24;

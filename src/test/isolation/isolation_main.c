@@ -2,7 +2,7 @@
  *
  * isolation_main --- pg_regress test launcher for isolation tests
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/test/isolation/isolation_main.c
@@ -26,9 +26,9 @@ bool		looked_up_isolation_exec = false;
  */
 static PID_TYPE
 isolation_start_test(const char *testname,
-					 _stringlist * *resultfiles,
-					 _stringlist * *expectfiles,
-					 _stringlist * *tags)
+					 _stringlist **resultfiles,
+					 _stringlist **expectfiles,
+					 _stringlist **tags)
 {
 	PID_TYPE	pid;
 	char		infile[MAXPGPATH];
@@ -75,15 +75,27 @@ isolation_start_test(const char *testname,
 	add_stringlist_item(expectfiles, expectfile);
 
 	if (launcher)
+	{
 		offset += snprintf(psql_cmd + offset, sizeof(psql_cmd) - offset,
 						   "%s ", launcher);
+		if (offset >= sizeof(psql_cmd))
+		{
+			fprintf(stderr, _("command too long\n"));
+			exit(2);
+		}
+	}
 
-	snprintf(psql_cmd + offset, sizeof(psql_cmd) - offset,
-			 "\"%s\" \"dbname=%s\" < \"%s\" > \"%s\" 2>&1",
-			 isolation_exec,
-			 dblist->str,
-			 infile,
-			 outfile);
+	offset += snprintf(psql_cmd + offset, sizeof(psql_cmd) - offset,
+					   "\"%s\" \"dbname=%s\" < \"%s\" > \"%s\" 2>&1",
+					   isolation_exec,
+					   dblist->str,
+					   infile,
+					   outfile);
+	if (offset >= sizeof(psql_cmd))
+	{
+		fprintf(stderr, _("command too long\n"));
+		exit(2);
+	}
 
 	pid = spawn_process(psql_cmd);
 

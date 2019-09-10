@@ -13,7 +13,7 @@ typedef struct inetkey
 {
 	double		lower;
 	double		upper;
-}			inetKEY;
+} inetKEY;
 
 /*
 ** inet ops
@@ -27,33 +27,33 @@ PG_FUNCTION_INFO_V1(gbt_inet_same);
 
 
 static bool
-gbt_inetgt(const void *a, const void *b, FmgrInfo * flinfo)
+gbt_inetgt(const void *a, const void *b, FmgrInfo *flinfo)
 {
 	return (*((const double *) a) > *((const double *) b));
 }
 static bool
-gbt_inetge(const void *a, const void *b, FmgrInfo * flinfo)
+gbt_inetge(const void *a, const void *b, FmgrInfo *flinfo)
 {
 	return (*((const double *) a) >= *((const double *) b));
 }
 static bool
-gbt_ineteq(const void *a, const void *b, FmgrInfo * flinfo)
+gbt_ineteq(const void *a, const void *b, FmgrInfo *flinfo)
 {
 	return (*((const double *) a) == *((const double *) b));
 }
 static bool
-gbt_inetle(const void *a, const void *b, FmgrInfo * flinfo)
+gbt_inetle(const void *a, const void *b, FmgrInfo *flinfo)
 {
 	return (*((const double *) a) <= *((const double *) b));
 }
 static bool
-gbt_inetlt(const void *a, const void *b, FmgrInfo * flinfo)
+gbt_inetlt(const void *a, const void *b, FmgrInfo *flinfo)
 {
 	return (*((const double *) a) < *((const double *) b));
 }
 
 static int
-gbt_inetkey_cmp(const void *a, const void *b, FmgrInfo * flinfo)
+gbt_inetkey_cmp(const void *a, const void *b, FmgrInfo *flinfo)
 {
 	inetKEY    *ia = (inetKEY *) (((const Nsrt *) a)->t);
 	inetKEY    *ib = (inetKEY *) (((const Nsrt *) b)->t);
@@ -99,13 +99,15 @@ gbt_inet_compress(PG_FUNCTION_ARGS)
 	if (entry->leafkey)
 	{
 		inetKEY    *r = (inetKEY *) palloc(sizeof(inetKEY));
+		bool		failure = false;
 
 		retval = palloc(sizeof(GISTENTRY));
-		r->lower = convert_network_to_scalar(entry->key, INETOID);
+		r->lower = convert_network_to_scalar(entry->key, INETOID, &failure);
+		Assert(!failure);
 		r->upper = r->lower;
 		gistentryinit(*retval, PointerGetDatum(r),
 					  entry->rel, entry->page,
-					  entry->offset, FALSE);
+					  entry->offset, false);
 	}
 	else
 		retval = entry;
@@ -118,19 +120,24 @@ Datum
 gbt_inet_consistent(PG_FUNCTION_ARGS)
 {
 	GISTENTRY  *entry = (GISTENTRY *) PG_GETARG_POINTER(0);
-	double		query = convert_network_to_scalar(PG_GETARG_DATUM(1), INETOID);
+	Datum		dquery = PG_GETARG_DATUM(1);
 	StrategyNumber strategy = (StrategyNumber) PG_GETARG_UINT16(2);
 
 	/* Oid		subtype = PG_GETARG_OID(3); */
 	bool	   *recheck = (bool *) PG_GETARG_POINTER(4);
 	inetKEY    *kkk = (inetKEY *) DatumGetPointer(entry->key);
 	GBT_NUMKEY_R key;
+	double		query;
+	bool		failure = false;
+
+	query = convert_network_to_scalar(dquery, INETOID, &failure);
+	Assert(!failure);
 
 	/* All cases served by this function are inexact */
 	*recheck = true;
 
-	key.lower = (GBT_NUMKEY *) & kkk->lower;
-	key.upper = (GBT_NUMKEY *) & kkk->upper;
+	key.lower = (GBT_NUMKEY *) &kkk->lower;
+	key.upper = (GBT_NUMKEY *) &kkk->upper;
 
 	PG_RETURN_BOOL(gbt_num_consistent(&key, (void *) &query,
 									  &strategy, GIST_LEAF(entry), &tinfo, fcinfo->flinfo));

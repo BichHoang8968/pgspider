@@ -149,10 +149,17 @@ PREPARE foo (xml) AS SELECT xmlconcat('<foo/>', $1);
 SET XML OPTION DOCUMENT;
 EXECUTE foo ('<bar/>');
 EXECUTE foo ('bad');
+SELECT xml '<!DOCTYPE a><a/><b/>';
 
 SET XML OPTION CONTENT;
 EXECUTE foo ('<bar/>');
 EXECUTE foo ('good');
+SELECT xml '<!-- in SQL:2006+ a doc is content too--> <?y z?> <!DOCTYPE a><a/>';
+SELECT xml '<?xml version="1.0"?> <!-- hi--> <!DOCTYPE a><a/>';
+SELECT xml '<!DOCTYPE a><a/>';
+SELECT xml '<!-- hi--> oops <!DOCTYPE a><a/>';
+SELECT xml '<!-- hi--> <oops/> <!DOCTYPE a><a/>';
+SELECT xml '<!DOCTYPE a><a/><b/>';
 
 
 -- Test backwards parsing
@@ -188,6 +195,7 @@ SELECT xpath('count(//*)=0', '<root><sub/><sub/></root>');
 SELECT xpath('count(//*)=3', '<root><sub/><sub/></root>');
 SELECT xpath('name(/*)', '<root><sub/><sub/></root>');
 SELECT xpath('/nosuchtag', '<root/>');
+SELECT xpath('root', '<root/>');
 
 -- Round-trip non-ASCII data through xpath().
 DO $$
@@ -423,7 +431,7 @@ SELECT * FROM xmltable('/root' passing '<root><element>a1a<!-- aaaa -->a2a<?aaaa
 SELECT * FROM xmltable('/root' passing '<root><element>a1a<!-- aaaa -->a2a<?aaaaa?> <!--z-->  bbbb<x>xxx</x>cccc</element></root>' COLUMNS element text PATH 'element/text()'); -- should fail
 
 -- CDATA test
-select * from xmltable('r' passing '<d><r><c><![CDATA[<hello> &"<>!<a>foo</a>]]></c></r><r><c>2</c></r></d>' columns c text);
+select * from xmltable('d/r' passing '<d><r><c><![CDATA[<hello> &"<>!<a>foo</a>]]></c></r><r><c>2</c></r></d>' columns c text);
 
 -- XML builtin entities
 SELECT * FROM xmltable('/x/a' PASSING '<x><a><ent>&apos;</ent></a><a><ent>&quot;</ent></a><a><ent>&amp;</ent></a><a><ent>&lt;</ent></a><a><ent>&gt;</ent></a></x>' COLUMNS ent text);

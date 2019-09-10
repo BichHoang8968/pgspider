@@ -11,16 +11,16 @@
 #include "pg_backup.h"
 
 
-extern int	ExecuteSqlCommandBuf(Archive * AHX, const char *buf, size_t bufLen);
+extern int	ExecuteSqlCommandBuf(Archive *AHX, const char *buf, size_t bufLen);
 
-extern void ExecuteSqlStatement(Archive * AHX, const char *query);
-extern PGresult * ExecuteSqlQuery(Archive * AHX, const char *query,
-								  ExecStatusType status);
-extern PGresult * ExecuteSqlQueryForSingleRow(Archive * fout, char *query);
+extern void ExecuteSqlStatement(Archive *AHX, const char *query);
+extern PGresult *ExecuteSqlQuery(Archive *AHX, const char *query,
+				ExecStatusType status);
+extern PGresult *ExecuteSqlQueryForSingleRow(Archive *fout, const char *query);
 
-extern void EndDBCopyMode(Archive * AHX, const char *tocEntryTag);
+extern void EndDBCopyMode(Archive *AHX, const char *tocEntryTag);
 
-extern void StartTransaction(Archive * AHX);
-extern void CommitTransaction(Archive * AHX);
+extern void StartTransaction(Archive *AHX);
+extern void CommitTransaction(Archive *AHX);
 
 #endif

@@ -3,7 +3,7 @@
  * ilist.c
  *	  support for integrated/inline doubly- and singly- linked lists
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -28,7 +28,7 @@
  * Caution: this is O(n); consider using slist_delete_current() instead.
  */
 void
-slist_delete(slist_head * head, slist_node * node)
+slist_delete(slist_head *head, slist_node *node)
 {
 	slist_node *last = &head->head;
 	slist_node *cur;
@@ -56,7 +56,7 @@ slist_delete(slist_head * head, slist_node * node)
  * Verify integrity of a doubly linked list
  */
 void
-dlist_check(dlist_head * head)
+dlist_check(dlist_head *head)
 {
 	dlist_node *cur;
 
@@ -93,7 +93,7 @@ dlist_check(dlist_head * head)
  * Verify integrity of a singly linked list
  */
 void
-slist_check(slist_head * head)
+slist_check(slist_head *head)
 {
 	slist_node *cur;
 

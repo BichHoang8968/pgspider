@@ -2,7 +2,7 @@
  * pg_db_role_setting.c
  *		Routines to support manipulation of the pg_db_role_setting relation
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -21,7 +21,7 @@
 #include "utils/tqual.h"
 
 void
-AlterSetting(Oid databaseid, Oid roleid, VariableSetStmt * setstmt)
+AlterSetting(Oid databaseid, Oid roleid, VariableSetStmt *setstmt)
 {
 	char	   *valuestr;
 	HeapTuple	tuple;

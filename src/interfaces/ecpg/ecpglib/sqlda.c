@@ -8,7 +8,8 @@
 
 #define POSTGRES_ECPG_INTERNAL
 #include "postgres_fe.h"
-#include "pg_type.h"
+
+#include "catalog/pg_type_d.h"
 
 #include "ecpg-pthread-win32.h"
 #include "decimal.h"
@@ -42,7 +43,7 @@ ecpg_sqlda_align_add_size(long offset, int alignment, int size, long *current, l
 }
 
 static long
-sqlda_compat_empty_size(const PGresult * res)
+sqlda_compat_empty_size(const PGresult *res)
 {
 	long		offset;
 	int			i;
@@ -62,7 +63,7 @@ sqlda_compat_empty_size(const PGresult * res)
 }
 
 static long
-sqlda_common_total_size(const PGresult * res, int row, enum COMPAT_MODE compat, long offset)
+sqlda_common_total_size(const PGresult *res, int row, enum COMPAT_MODE compat, long offset)
 {
 	int			sqld = PQnfields(res);
 	int			i;
@@ -106,9 +107,12 @@ sqlda_common_total_size(const PGresult * res, int row, enum COMPAT_MODE compat, 
 			case ECPGt_numeric:
 
 				/*
-				 * Let's align both the numeric struct and the digits array to
-				 * int Unfortunately we need to do double work here to compute
-				 * the size of the space needed for the numeric structure.
+				 * We align the numeric struct to allow it to store a pointer,
+				 * while the digits array is aligned to int (which seems like
+				 * overkill, but let's keep compatibility here).
+				 *
+				 * Unfortunately we need to deconstruct the value twice to
+				 * find out the digits array's size and then later fill it.
 				 */
 				ecpg_sqlda_align_add_size(offset, sizeof(NumericDigit *), sizeof(numeric), &offset, &next_offset);
 				if (!PQgetisnull(res, row, i))
@@ -119,8 +123,8 @@ sqlda_common_total_size(const PGresult * res, int row, enum COMPAT_MODE compat, 
 					num = PGTYPESnumeric_from_asc(val, NULL);
 					if (!num)
 						break;
-					if (num->ndigits)
-						ecpg_sqlda_align_add_size(next_offset, sizeof(int), num->ndigits + 1, &offset, &next_offset);
+					if (num->buf)
+						ecpg_sqlda_align_add_size(next_offset, sizeof(int), num->digits - num->buf + num->ndigits, &offset, &next_offset);
 					PGTYPESnumeric_free(num);
 				}
 				break;
@@ -151,7 +155,7 @@ sqlda_common_total_size(const PGresult * res, int row, enum COMPAT_MODE compat, 
 
 
 static long
-sqlda_compat_total_size(const PGresult * res, int row, enum COMPAT_MODE compat)
+sqlda_compat_total_size(const PGresult *res, int row, enum COMPAT_MODE compat)
 {
 	long		offset;
 
@@ -165,7 +169,7 @@ sqlda_compat_total_size(const PGresult * res, int row, enum COMPAT_MODE compat)
 }
 
 static long
-sqlda_native_empty_size(const PGresult * res)
+sqlda_native_empty_size(const PGresult *res)
 {
 	long		offset;
 	int			sqld = PQnfields(res);
@@ -180,7 +184,7 @@ sqlda_native_empty_size(const PGresult * res)
 }
 
 static long
-sqlda_native_total_size(const PGresult * res, int row, enum COMPAT_MODE compat)
+sqlda_native_total_size(const PGresult *res, int row, enum COMPAT_MODE compat)
 {
 	long		offset;
 
@@ -199,7 +203,7 @@ sqlda_native_total_size(const PGresult * res, int row, enum COMPAT_MODE compat)
  * the given row number
  */
 struct sqlda_compat *
-ecpg_build_compat_sqlda(int line, PGresult * res, int row, enum COMPAT_MODE compat)
+ecpg_build_compat_sqlda(int line, PGresult *res, int row, enum COMPAT_MODE compat)
 {
 	struct sqlda_compat *sqlda;
 	struct sqlvar_compat *sqlvar;
@@ -249,7 +253,7 @@ static int16 value_is_null = -1;
 static int16 value_is_not_null = 0;
 
 void
-ecpg_set_compat_sqlda(int lineno, struct sqlda_compat **_sqlda, const PGresult * res, int row, enum COMPAT_MODE compat)
+ecpg_set_compat_sqlda(int lineno, struct sqlda_compat **_sqlda, const PGresult *res, int row, enum COMPAT_MODE compat)
 {
 	struct sqlda_compat *sqlda = (*_sqlda);
 	int			i;
@@ -344,10 +348,10 @@ ecpg_set_compat_sqlda(int lineno, struct sqlda_compat **_sqlda, const PGresult *
 
 					memcpy(sqlda->sqlvar[i].sqldata, num, sizeof(numeric));
 
-					if (num->ndigits)
+					if (num->buf)
 					{
-						ecpg_sqlda_align_add_size(next_offset, sizeof(int), num->ndigits + 1, &offset, &next_offset);
-						memcpy((char *) sqlda + offset, num->buf, num->ndigits + 1);
+						ecpg_sqlda_align_add_size(next_offset, sizeof(int), num->digits - num->buf + num->ndigits, &offset, &next_offset);
+						memcpy((char *) sqlda + offset, num->buf, num->digits - num->buf + num->ndigits);
 
 						((numeric *) sqlda->sqlvar[i].sqldata)->buf = (NumericDigit *) sqlda + offset;
 						((numeric *) sqlda->sqlvar[i].sqldata)->digits = (NumericDigit *) sqlda + offset + (num->digits - num->buf);
@@ -406,7 +410,7 @@ ecpg_set_compat_sqlda(int lineno, struct sqlda_compat **_sqlda, const PGresult *
 }
 
 struct sqlda_struct *
-ecpg_build_native_sqlda(int line, PGresult * res, int row, enum COMPAT_MODE compat)
+ecpg_build_native_sqlda(int line, PGresult *res, int row, enum COMPAT_MODE compat)
 {
 	struct sqlda_struct *sqlda;
 	long		size;
@@ -438,7 +442,7 @@ ecpg_build_native_sqlda(int line, PGresult * res, int row, enum COMPAT_MODE comp
 }
 
 void
-ecpg_set_native_sqlda(int lineno, struct sqlda_struct **_sqlda, const PGresult * res, int row, enum COMPAT_MODE compat)
+ecpg_set_native_sqlda(int lineno, struct sqlda_struct **_sqlda, const PGresult *res, int row, enum COMPAT_MODE compat)
 {
 	struct sqlda_struct *sqlda = (*_sqlda);
 	int			i;
@@ -533,10 +537,10 @@ ecpg_set_native_sqlda(int lineno, struct sqlda_struct **_sqlda, const PGresult *
 
 					memcpy(sqlda->sqlvar[i].sqldata, num, sizeof(numeric));
 
-					if (num->ndigits)
+					if (num->buf)
 					{
-						ecpg_sqlda_align_add_size(next_offset, sizeof(int), num->ndigits + 1, &offset, &next_offset);
-						memcpy((char *) sqlda + offset, num->buf, num->ndigits + 1);
+						ecpg_sqlda_align_add_size(next_offset, sizeof(int), num->digits - num->buf + num->ndigits, &offset, &next_offset);
+						memcpy((char *) sqlda + offset, num->buf, num->digits - num->buf + num->ndigits);
 
 						((numeric *) sqlda->sqlvar[i].sqldata)->buf = (NumericDigit *) sqlda + offset;
 						((numeric *) sqlda->sqlvar[i].sqldata)->digits = (NumericDigit *) sqlda + offset + (num->digits - num->buf);

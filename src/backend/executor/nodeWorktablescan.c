@@ -3,7 +3,7 @@
  * nodeWorktablescan.c
  *	  routines to handle WorkTableScan nodes.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -18,7 +18,7 @@
 #include "executor/execdebug.h"
 #include "executor/nodeWorktablescan.h"
 
-static TupleTableSlot * WorkTableScanNext(WorkTableScanState * node);
+static TupleTableSlot *WorkTableScanNext(WorkTableScanState *node);
 
 /* ----------------------------------------------------------------
  *		WorkTableScanNext
@@ -27,7 +27,7 @@ static TupleTableSlot * WorkTableScanNext(WorkTableScanState * node);
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-WorkTableScanNext(WorkTableScanState * node)
+WorkTableScanNext(WorkTableScanState *node)
 {
 	TupleTableSlot *slot;
 	Tuplestorestate *tuplestorestate;
@@ -63,7 +63,7 @@ WorkTableScanNext(WorkTableScanState * node)
  * WorkTableScanRecheck -- access method routine to recheck a tuple in EvalPlanQual
  */
 static bool
-WorkTableScanRecheck(WorkTableScanState * node, TupleTableSlot * slot)
+WorkTableScanRecheck(WorkTableScanState *node, TupleTableSlot *slot)
 {
 	/* nothing to check */
 	return true;
@@ -78,7 +78,7 @@ WorkTableScanRecheck(WorkTableScanState * node, TupleTableSlot * slot)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecWorkTableScan(PlanState * pstate)
+ExecWorkTableScan(PlanState *pstate)
 {
 	WorkTableScanState *node = castNode(WorkTableScanState, pstate);
 
@@ -127,7 +127,7 @@ ExecWorkTableScan(PlanState * pstate)
  * ----------------------------------------------------------------
  */
 WorkTableScanState *
-ExecInitWorkTableScan(WorkTableScan * node, EState * estate, int eflags)
+ExecInitWorkTableScan(WorkTableScan *node, EState *estate, int eflags)
 {
 	WorkTableScanState *scanstate;
 
@@ -157,21 +157,21 @@ ExecInitWorkTableScan(WorkTableScan * node, EState * estate, int eflags)
 	ExecAssignExprContext(estate, &scanstate->ss.ps);
 
 	/*
+	 * tuple table initialization
+	 */
+	ExecInitResultTupleSlotTL(estate, &scanstate->ss.ps);
+	ExecInitScanTupleSlot(estate, &scanstate->ss, NULL);
+
+	/*
 	 * initialize child expressions
 	 */
 	scanstate->ss.ps.qual =
 		ExecInitQual(node->scan.plan.qual, (PlanState *) scanstate);
 
 	/*
-	 * tuple table initialization
+	 * Do not yet initialize projection info, see ExecWorkTableScan() for
+	 * details.
 	 */
-	ExecInitResultTupleSlot(estate, &scanstate->ss.ps);
-	ExecInitScanTupleSlot(estate, &scanstate->ss);
-
-	/*
-	 * Initialize result tuple type, but not yet projection info.
-	 */
-	ExecAssignResultTypeFromTL(&scanstate->ss.ps);
 
 	return scanstate;
 }
@@ -183,7 +183,7 @@ ExecInitWorkTableScan(WorkTableScan * node, EState * estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndWorkTableScan(WorkTableScanState * node)
+ExecEndWorkTableScan(WorkTableScanState *node)
 {
 	/*
 	 * Free exprcontext
@@ -204,7 +204,7 @@ ExecEndWorkTableScan(WorkTableScanState * node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanWorkTableScan(WorkTableScanState * node)
+ExecReScanWorkTableScan(WorkTableScanState *node)
 {
 	ExecClearTuple(node->ss.ps.ps_ResultTupleSlot);
 

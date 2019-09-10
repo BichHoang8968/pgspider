@@ -7,7 +7,7 @@
  * we need two sets of code.  Ought to look at trying to unify the cases.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -30,7 +30,7 @@
 #include "executor/execdebug.h"
 #include "executor/nodeSubqueryscan.h"
 
-static TupleTableSlot * SubqueryNext(SubqueryScanState * node);
+static TupleTableSlot *SubqueryNext(SubqueryScanState *node);
 
 /* ----------------------------------------------------------------
  *						Scan Support
@@ -43,7 +43,7 @@ static TupleTableSlot * SubqueryNext(SubqueryScanState * node);
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-SubqueryNext(SubqueryScanState * node)
+SubqueryNext(SubqueryScanState *node)
 {
 	TupleTableSlot *slot;
 
@@ -64,7 +64,7 @@ SubqueryNext(SubqueryScanState * node)
  * SubqueryRecheck -- access method routine to recheck a tuple in EvalPlanQual
  */
 static bool
-SubqueryRecheck(SubqueryScanState * node, TupleTableSlot * slot)
+SubqueryRecheck(SubqueryScanState *node, TupleTableSlot *slot)
 {
 	/* nothing to check */
 	return true;
@@ -80,7 +80,7 @@ SubqueryRecheck(SubqueryScanState * node, TupleTableSlot * slot)
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecSubqueryScan(PlanState * pstate)
+ExecSubqueryScan(PlanState *pstate)
 {
 	SubqueryScanState *node = castNode(SubqueryScanState, pstate);
 
@@ -94,7 +94,7 @@ ExecSubqueryScan(PlanState * pstate)
  * ----------------------------------------------------------------
  */
 SubqueryScanState *
-ExecInitSubqueryScan(SubqueryScan * node, EState * estate, int eflags)
+ExecInitSubqueryScan(SubqueryScan *node, EState *estate, int eflags)
 {
 	SubqueryScanState *subquerystate;
 
@@ -121,33 +121,27 @@ ExecInitSubqueryScan(SubqueryScan * node, EState * estate, int eflags)
 	ExecAssignExprContext(estate, &subquerystate->ss.ps);
 
 	/*
-	 * initialize child expressions
-	 */
-	subquerystate->ss.ps.qual =
-		ExecInitQual(node->scan.plan.qual, (PlanState *) subquerystate);
-
-	/*
-	 * tuple table initialization
-	 */
-	ExecInitResultTupleSlot(estate, &subquerystate->ss.ps);
-	ExecInitScanTupleSlot(estate, &subquerystate->ss);
-
-	/*
 	 * initialize subquery
 	 */
 	subquerystate->subplan = ExecInitNode(node->subplan, estate, eflags);
 
 	/*
-	 * Initialize scan tuple type (needed by ExecAssignScanProjectionInfo)
+	 * Initialize scan slot and type (needed by ExecInitResultTupleSlotTL)
 	 */
-	ExecAssignScanType(&subquerystate->ss,
-					   ExecGetResultType(subquerystate->subplan));
+	ExecInitScanTupleSlot(estate, &subquerystate->ss,
+						  ExecGetResultType(subquerystate->subplan));
 
 	/*
-	 * Initialize result tuple type and projection info.
+	 * Initialize result slot, type and projection.
 	 */
-	ExecAssignResultTypeFromTL(&subquerystate->ss.ps);
+	ExecInitResultTupleSlotTL(estate, &subquerystate->ss.ps);
 	ExecAssignScanProjectionInfo(&subquerystate->ss);
+
+	/*
+	 * initialize child expressions
+	 */
+	subquerystate->ss.ps.qual =
+		ExecInitQual(node->scan.plan.qual, (PlanState *) subquerystate);
 
 	return subquerystate;
 }
@@ -159,7 +153,7 @@ ExecInitSubqueryScan(SubqueryScan * node, EState * estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-ExecEndSubqueryScan(SubqueryScanState * node)
+ExecEndSubqueryScan(SubqueryScanState *node)
 {
 	/*
 	 * Free the exprcontext
@@ -185,7 +179,7 @@ ExecEndSubqueryScan(SubqueryScanState * node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanSubqueryScan(SubqueryScanState * node)
+ExecReScanSubqueryScan(SubqueryScanState *node)
 {
 	ExecScanReScan(&node->ss);
 

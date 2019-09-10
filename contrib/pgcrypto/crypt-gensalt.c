@@ -121,7 +121,7 @@ static unsigned char BF_itoa64[64 + 1] =
 "./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
 static void
-BF_encode(char *dst, const BF_word * src, int size)
+BF_encode(char *dst, const BF_word *src, int size)
 {
 	const unsigned char *sptr = (const unsigned char *) src;
 	const unsigned char *end = sptr + size;

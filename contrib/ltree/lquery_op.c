@@ -27,7 +27,7 @@ typedef struct
 	int			nt;
 	int			posq;
 	int			post;
-}			FieldNot;
+} FieldNot;
 
 static char *
 getlexeme(char *start, char *end, int *len)
@@ -50,7 +50,7 @@ getlexeme(char *start, char *end, int *len)
 }
 
 bool
-			compare_subnode(ltree_level * t, char *qn, int len, int (*cmpptr) (const char *, const char *, size_t), bool anyend)
+			compare_subnode(ltree_level *t, char *qn, int len, int (*cmpptr) (const char *, const char *, size_t), bool anyend)
 {
 	char	   *endt = t->name + t->len;
 	char	   *endq = qn + len;
@@ -103,7 +103,7 @@ ltree_strncasecmp(const char *a, const char *b, size_t s)
 }
 
 static bool
-checkLevel(lquery_level * curq, ltree_level * curt)
+checkLevel(lquery_level *curq, ltree_level *curt)
 {
 	int			(*cmpptr) (const char *, const char *, size_t);
 	lquery_variant *curvar = LQL_FIRST(curq);
@@ -154,7 +154,7 @@ static struct
 };
 
 static bool
-checkCond(lquery_level * curq, int query_numlevel, ltree_level * curt, int tree_numlevel, FieldNot * ptr)
+checkCond(lquery_level *curq, int query_numlevel, ltree_level *curt, int tree_numlevel, FieldNot *ptr)
 {
 	uint32		low_pos = 0,
 				high_pos = 0,
@@ -302,8 +302,8 @@ checkCond(lquery_level * curq, int query_numlevel, ltree_level * curt, int tree_
 Datum
 ltq_regex(PG_FUNCTION_ARGS)
 {
-	ltree	   *tree = PG_GETARG_LTREE(0);
-	lquery	   *query = PG_GETARG_LQUERY(1);
+	ltree	   *tree = PG_GETARG_LTREE_P(0);
+	lquery	   *query = PG_GETARG_LQUERY_P(1);
 	bool		res = false;
 
 	if (query->flag & LQUERY_HASNOT)
@@ -338,7 +338,7 @@ ltq_rregex(PG_FUNCTION_ARGS)
 Datum
 lt_q_regex(PG_FUNCTION_ARGS)
 {
-	ltree	   *tree = PG_GETARG_LTREE(0);
+	ltree	   *tree = PG_GETARG_LTREE_P(0);
 	ArrayType  *_query = PG_GETARG_ARRAYTYPE_P(1);
 	lquery	   *query = (lquery *) ARR_DATA_PTR(_query);
 	bool		res = false;

@@ -4,7 +4,7 @@
  *
  * Definitions corresponding to SE-PostgreSQL
  *
- * Copyright (c) 2010-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2010-2018, PostgreSQL Global Development Group
  *
  * -------------------------------------------------------------------------
  */
@@ -258,7 +258,7 @@ extern bool sepgsql_avc_check_perms_label(const char *tcontext,
 							  uint32 required,
 							  const char *audit_name,
 							  bool abort_on_violation);
-extern bool sepgsql_avc_check_perms(const ObjectAddress * tobject,
+extern bool sepgsql_avc_check_perms(const ObjectAddress *tobject,
 						uint16 tclass,
 						uint32 required,
 						const char *audit_name,
@@ -273,13 +273,13 @@ extern char *sepgsql_get_client_label(void);
 extern void sepgsql_init_client_label(void);
 extern char *sepgsql_get_label(Oid relOid, Oid objOid, int32 subId);
 
-extern void sepgsql_object_relabel(const ObjectAddress * object,
+extern void sepgsql_object_relabel(const ObjectAddress *object,
 					   const char *seclabel);
 
 /*
  * dml.c
  */
-extern bool sepgsql_dml_privileges(List * rangeTabls, bool abort_on_violation);
+extern bool sepgsql_dml_privileges(List *rangeTabls, bool abort_on_violation);
 
 /*
  * database.c

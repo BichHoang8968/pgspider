@@ -3,7 +3,7 @@
  *
  * A simple HyperLogLog cardinality estimator implementation
  *
- * Portions Copyright (c) 2014-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2014-2018, PostgreSQL Global Development Group
  *
  * Based on Hideaki Ohno's C++ implementation.  The copyright terms of Ohno's
  * original version (the MIT license) follow.
@@ -57,12 +57,12 @@ typedef struct hyperLogLogState
 	double		alphaMM;
 	uint8	   *hashesArr;
 	Size		arrSize;
-}			hyperLogLogState;
+} hyperLogLogState;
 
-extern void initHyperLogLog(hyperLogLogState * cState, uint8 bwidth);
-extern void initHyperLogLogError(hyperLogLogState * cState, double error);
-extern void addHyperLogLog(hyperLogLogState * cState, uint32 hash);
-extern double estimateHyperLogLog(hyperLogLogState * cState);
-extern void freeHyperLogLog(hyperLogLogState * cState);
+extern void initHyperLogLog(hyperLogLogState *cState, uint8 bwidth);
+extern void initHyperLogLogError(hyperLogLogState *cState, double error);
+extern void addHyperLogLog(hyperLogLogState *cState, uint32 hash);
+extern double estimateHyperLogLog(hyperLogLogState *cState);
+extern void freeHyperLogLog(hyperLogLogState *cState);
 
 #endif							/* HYPERLOGLOG_H */

@@ -2,7 +2,7 @@
  * tablesync.c
  *	  PostgreSQL logical replication
  *
- * Copyright (c) 2012-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2012-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/replication/logical/tablesync.c
@@ -298,11 +298,10 @@ process_syncing_tables_for_sync(XLogRecPtr current_lsn)
 
 		SpinLockRelease(&MyLogicalRepWorker->relmutex);
 
-		SetSubscriptionRelState(MyLogicalRepWorker->subid,
-								MyLogicalRepWorker->relid,
-								MyLogicalRepWorker->relstate,
-								MyLogicalRepWorker->relstate_lsn,
-								true);
+		UpdateSubscriptionRelState(MyLogicalRepWorker->subid,
+								   MyLogicalRepWorker->relid,
+								   MyLogicalRepWorker->relstate,
+								   MyLogicalRepWorker->relstate_lsn);
 
 		walrcv_endstreaming(wrconn, &tli);
 		finish_sync_worker();
@@ -340,8 +339,8 @@ process_syncing_tables_for_apply(XLogRecPtr current_lsn)
 		Oid			relid;
 		TimestampTz last_start_time;
 	};
-	static List * table_states = NIL;
-	static HTAB * last_start_times = NULL;
+	static List *table_states = NIL;
+	static HTAB *last_start_times = NULL;
 	ListCell   *lc;
 	bool		started_tx = false;
 
@@ -427,9 +426,10 @@ process_syncing_tables_for_apply(XLogRecPtr current_lsn)
 					StartTransactionCommand();
 					started_tx = true;
 				}
-				SetSubscriptionRelState(MyLogicalRepWorker->subid,
-										rstate->relid, rstate->state,
-										rstate->lsn, true);
+
+				UpdateSubscriptionRelState(MyLogicalRepWorker->subid,
+										   rstate->relid, rstate->state,
+										   rstate->lsn);
 			}
 		}
 		else
@@ -553,7 +553,7 @@ process_syncing_tables(XLogRecPtr current_lsn)
  * Create list of columns for COPY based on logical relation mapping.
  */
 static List *
-make_copy_attnamelist(LogicalRepRelMapEntry * rel)
+make_copy_attnamelist(LogicalRepRelMapEntry *rel)
 {
 	List	   *attnamelist = NIL;
 	int			i;
@@ -654,7 +654,7 @@ copy_read_data(void *outbuf, int minread, int maxread)
  */
 static void
 fetch_remote_table_info(char *nspname, char *relname,
-						LogicalRepRelation * lrel)
+						LogicalRepRelation *lrel)
 {
 	WalRcvExecResult *res;
 	StringInfoData cmd;
@@ -812,7 +812,7 @@ copy_table(Relation rel)
  * The returned slot name is palloc'ed in current memory context.
  */
 char *
-LogicalRepSyncTableStart(XLogRecPtr * origin_startpos)
+LogicalRepSyncTableStart(XLogRecPtr *origin_startpos)
 {
 	char	   *slotname;
 	char	   *err;
@@ -870,11 +870,10 @@ LogicalRepSyncTableStart(XLogRecPtr * origin_startpos)
 
 				/* Update the state and make it visible to others. */
 				StartTransactionCommand();
-				SetSubscriptionRelState(MyLogicalRepWorker->subid,
-										MyLogicalRepWorker->relid,
-										MyLogicalRepWorker->relstate,
-										MyLogicalRepWorker->relstate_lsn,
-										true);
+				UpdateSubscriptionRelState(MyLogicalRepWorker->subid,
+										   MyLogicalRepWorker->relid,
+										   MyLogicalRepWorker->relstate,
+										   MyLogicalRepWorker->relstate_lsn);
 				CommitTransactionCommand();
 				pgstat_report_stat(false);
 
@@ -961,11 +960,10 @@ LogicalRepSyncTableStart(XLogRecPtr * origin_startpos)
 					 * Update the new state in catalog.  No need to bother
 					 * with the shmem state as we are exiting for good.
 					 */
-					SetSubscriptionRelState(MyLogicalRepWorker->subid,
-											MyLogicalRepWorker->relid,
-											SUBREL_STATE_SYNCDONE,
-											*origin_startpos,
-											true);
+					UpdateSubscriptionRelState(MyLogicalRepWorker->subid,
+											   MyLogicalRepWorker->relid,
+											   SUBREL_STATE_SYNCDONE,
+											   *origin_startpos);
 					finish_sync_worker();
 				}
 				break;

@@ -3,7 +3,7 @@
  * blscan.c
  *		Bloom index scan functions.
  *
- * Copyright (c) 2016-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2016-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  contrib/bloom/blscan.c
@@ -76,10 +76,10 @@ blendscan(IndexScanDesc scan)
 }
 
 /*
- * Insert all matching tuples into to a bitmap.
+ * Insert all matching tuples into a bitmap.
  */
 int64
-blgetbitmap(IndexScanDesc scan, TIDBitmap * tbm)
+blgetbitmap(IndexScanDesc scan, TIDBitmap *tbm)
 {
 	int64		ntids = 0;
 	BlockNumber blkno = BLOOM_HEAD_BLKNO,

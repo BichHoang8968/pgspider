@@ -28,7 +28,7 @@
  * all these files commit in a single map file update rather than being tied
  * to transaction commit.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -80,7 +80,7 @@ typedef struct RelMapping
 {
 	Oid			mapoid;			/* OID of a catalog */
 	Oid			mapfilenode;	/* its filenode number */
-}			RelMapping;
+} RelMapping;
 
 typedef struct RelMapFile
 {
@@ -89,7 +89,7 @@ typedef struct RelMapFile
 	RelMapping	mappings[MAX_MAPPINGS];
 	pg_crc32c	crc;			/* CRC of all above */
 	int32		pad;			/* to make the struct size be 512 exactly */
-}			RelMapFile;
+} RelMapFile;
 
 /*
  * The currently known contents of the shared map file and our database's
@@ -119,15 +119,15 @@ static RelMapFile pending_local_updates;
 
 
 /* non-export function prototypes */
-static void apply_map_update(RelMapFile * map, Oid relationId, Oid fileNode,
+static void apply_map_update(RelMapFile *map, Oid relationId, Oid fileNode,
 				 bool add_okay);
-static void merge_map_updates(RelMapFile * map, const RelMapFile * updates,
+static void merge_map_updates(RelMapFile *map, const RelMapFile *updates,
 				  bool add_okay);
 static void load_relmap_file(bool shared);
-static void write_relmap_file(bool shared, RelMapFile * newmap,
+static void write_relmap_file(bool shared, RelMapFile *newmap,
 				  bool write_wal, bool send_sinval, bool preserve_files,
 				  Oid dbid, Oid tsid, const char *dbpath);
-static void perform_relmap_update(bool shared, const RelMapFile * updates);
+static void perform_relmap_update(bool shared, const RelMapFile *updates);
 
 
 /*
@@ -145,7 +145,7 @@ static void perform_relmap_update(bool shared, const RelMapFile * updates);
 Oid
 RelationMapOidToFilenode(Oid relationId, bool shared)
 {
-	const		RelMapFile *map;
+	const RelMapFile *map;
 	int32		i;
 
 	/* If there are active updates, believe those over the main maps */
@@ -198,7 +198,7 @@ RelationMapOidToFilenode(Oid relationId, bool shared)
 Oid
 RelationMapFilenodeToOid(Oid filenode, bool shared)
 {
-	const		RelMapFile *map;
+	const RelMapFile *map;
 	int32		i;
 
 	/* If there are active updates, believe those over the main maps */
@@ -263,12 +263,16 @@ RelationMapUpdateMap(Oid relationId, Oid fileNode, bool shared,
 	else
 	{
 		/*
-		 * We don't currently support map changes within subtransactions. This
-		 * could be done with more bookkeeping infrastructure, but it doesn't
-		 * presently seem worth it.
+		 * We don't currently support map changes within subtransactions, and
+		 * parallel workers must avoid relying on mapping state, since it
+		 * isn't propagated from the leader.  This could be done with more
+		 * bookkeeping infrastructure, but it doesn't presently seem worth it.
 		 */
 		if (GetCurrentTransactionNestLevel() > 1)
 			elog(ERROR, "cannot change relation mapping within subtransaction");
+
+		if (IsInParallelMode())
+			elog(ERROR, "cannot change relation mapping in parallel mode");
 
 		if (immediate)
 		{
@@ -300,7 +304,7 @@ RelationMapUpdateMap(Oid relationId, Oid fileNode, bool shared,
  * add_okay = false to draw an error if not.
  */
 static void
-apply_map_update(RelMapFile * map, Oid relationId, Oid fileNode, bool add_okay)
+apply_map_update(RelMapFile *map, Oid relationId, Oid fileNode, bool add_okay)
 {
 	int32		i;
 
@@ -332,7 +336,7 @@ apply_map_update(RelMapFile * map, Oid relationId, Oid fileNode, bool add_okay)
  * This is just a bulk form of apply_map_update.
  */
 static void
-merge_map_updates(RelMapFile * map, const RelMapFile * updates, bool add_okay)
+merge_map_updates(RelMapFile *map, const RelMapFile *updates, bool add_okay)
 {
 	int32		i;
 
@@ -644,8 +648,7 @@ load_relmap_file(bool shared)
 	}
 
 	/* Read data ... */
-	fd = OpenTransientFile(mapfilename,
-						   O_RDONLY | PG_BINARY, S_IRUSR | S_IWUSR);
+	fd = OpenTransientFile(mapfilename, O_RDONLY | PG_BINARY);
 	if (fd < 0)
 		ereport(FATAL,
 				(errcode_for_file_access(),
@@ -694,13 +697,13 @@ load_relmap_file(bool shared)
  * The magic number and CRC are automatically updated in *newmap.  On
  * success, we copy the data to the appropriate permanent static variable.
  *
- * If write_wal is TRUE then an appropriate WAL message is emitted.
+ * If write_wal is true then an appropriate WAL message is emitted.
  * (It will be false for bootstrap and WAL replay cases.)
  *
- * If send_sinval is TRUE then a SI invalidation message is sent.
+ * If send_sinval is true then a SI invalidation message is sent.
  * (This should be true except in bootstrap case.)
  *
- * If preserve_files is TRUE then the storage manager is warned not to
+ * If preserve_files is true then the storage manager is warned not to
  * delete the files listed in the map.
  *
  * Because this may be called during WAL replay when MyDatabaseId,
@@ -709,7 +712,7 @@ load_relmap_file(bool shared)
  * map update could be happening.
  */
 static void
-write_relmap_file(bool shared, RelMapFile * newmap,
+write_relmap_file(bool shared, RelMapFile *newmap,
 				  bool write_wal, bool send_sinval, bool preserve_files,
 				  Oid dbid, Oid tsid, const char *dbpath)
 {
@@ -745,9 +748,7 @@ write_relmap_file(bool shared, RelMapFile * newmap,
 		realmap = &local_map;
 	}
 
-	fd = OpenTransientFile(mapfilename,
-						   O_WRONLY | O_CREAT | PG_BINARY,
-						   S_IRUSR | S_IWUSR);
+	fd = OpenTransientFile(mapfilename, O_WRONLY | O_CREAT | PG_BINARY);
 	if (fd < 0)
 		ereport(ERROR,
 				(errcode_for_file_access(),
@@ -798,7 +799,7 @@ write_relmap_file(bool shared, RelMapFile * newmap,
 	 */
 	pgstat_report_wait_start(WAIT_EVENT_RELATION_MAP_SYNC);
 	if (pg_fsync(fd) != 0)
-		ereport(ERROR,
+		ereport(data_sync_elevel(ERROR),
 				(errcode_for_file_access(),
 				 errmsg("could not fsync relation mapping file \"%s\": %m",
 						mapfilename)));
@@ -860,7 +861,7 @@ write_relmap_file(bool shared, RelMapFile * newmap,
  * updates during normal multiuser operation.
  */
 static void
-perform_relmap_update(bool shared, const RelMapFile * updates)
+perform_relmap_update(bool shared, const RelMapFile *updates)
 {
 	RelMapFile	newmap;
 
@@ -908,7 +909,7 @@ perform_relmap_update(bool shared, const RelMapFile * updates)
  * RELMAP resource manager's routines
  */
 void
-relmap_redo(XLogReaderState * record)
+relmap_redo(XLogReaderState *record)
 {
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 

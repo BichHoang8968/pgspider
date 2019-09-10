@@ -46,7 +46,7 @@ degtorad(double degrees)
  ******************************************************/
 
 static double
-geo_distance_internal(Point * pt1, Point * pt2)
+geo_distance_internal(Point *pt1, Point *pt2)
 {
 	double		long1,
 				lat1,

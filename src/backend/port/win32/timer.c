@@ -8,7 +8,7 @@
  *	  - Does not support interval timer (value->it_interval)
  *	  - Only supports ITIMER_REAL
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/port/win32/timer.c
@@ -25,7 +25,7 @@ typedef struct timerCA
 	struct itimerval value;
 	HANDLE		event;
 	CRITICAL_SECTION crit_sec;
-}			timerCA;
+} timerCA;
 
 static timerCA timerCommArea;
 static HANDLE timerThreadHandle = INVALID_HANDLE_VALUE;

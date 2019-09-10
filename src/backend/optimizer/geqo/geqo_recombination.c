@@ -31,7 +31,7 @@
  *	 (i.e. where each point is visited only once.)
  */
 void
-init_tour(PlannerInfo * root, Gene * tour, int num_gene)
+init_tour(PlannerInfo *root, Gene *tour, int num_gene)
 {
 	int			i,
 				j;
@@ -66,7 +66,7 @@ init_tour(PlannerInfo * root, Gene * tour, int num_gene)
  *	 allocate memory for city table
  */
 City *
-alloc_city_table(PlannerInfo * root, int num_gene)
+alloc_city_table(PlannerInfo *root, int num_gene)
 {
 	City	   *city_table;
 
@@ -84,7 +84,7 @@ alloc_city_table(PlannerInfo * root, int num_gene)
  *	  deallocate memory of city table
  */
 void
-free_city_table(PlannerInfo * root, City * city_table)
+free_city_table(PlannerInfo *root, City * city_table)
 {
 	pfree(city_table);
 }

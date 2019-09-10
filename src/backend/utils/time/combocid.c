@@ -30,7 +30,7 @@
  * destroyed at the end of each transaction.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -51,24 +51,24 @@
 
 
 /* Hash table to lookup combo cids by cmin and cmax */
-static HTAB * comboHash = NULL;
+static HTAB *comboHash = NULL;
 
 /* Key and entry structures for the hash table */
 typedef struct
 {
 	CommandId	cmin;
 	CommandId	cmax;
-}			ComboCidKeyData;
+} ComboCidKeyData;
 
-typedef ComboCidKeyData * ComboCidKey;
+typedef ComboCidKeyData *ComboCidKey;
 
 typedef struct
 {
 	ComboCidKeyData key;
 	CommandId	combocid;
-}			ComboCidEntryData;
+} ComboCidEntryData;
 
-typedef ComboCidEntryData * ComboCidEntry;
+typedef ComboCidEntryData *ComboCidEntry;
 
 /* Initial size of the hash table */
 #define CCID_HASH_SIZE			100
@@ -142,8 +142,8 @@ HeapTupleHeaderGetCmax(HeapTupleHeader tup)
  * into its t_cid field.
  *
  * If we don't need a combo CID, *cmax is unchanged and *iscombo is set to
- * FALSE.  If we do need one, *cmax is replaced by a combo CID and *iscombo
- * is set to TRUE.
+ * false.  If we do need one, *cmax is replaced by a combo CID and *iscombo
+ * is set to true.
  *
  * The reason this is separate from the actual HeapTupleHeaderSetCmax()
  * operation is that this could fail due to out-of-memory conditions.  Hence
@@ -152,7 +152,7 @@ HeapTupleHeaderGetCmax(HeapTupleHeader tup)
  */
 void
 HeapTupleHeaderAdjustCmax(HeapTupleHeader tup,
-						  CommandId * cmax,
+						  CommandId *cmax,
 						  bool *iscombo)
 {
 	/*

@@ -4,7 +4,7 @@
  *	  Routines for interprocess signalling
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -51,7 +51,7 @@ typedef struct
 {
 	pid_t		pss_pid;
 	sig_atomic_t pss_signalFlags[NUM_PROCSIGNALS];
-}			ProcSignalSlot;
+} ProcSignalSlot;
 
 /*
  * We reserve a slot for each possible BackendId, plus one for each
@@ -60,7 +60,7 @@ typedef struct
  */
 #define NumProcSignalSlots	(MaxBackends + NUM_AUXPROCTYPES)
 
-static ProcSignalSlot * ProcSignalSlots = NULL;
+static ProcSignalSlot *ProcSignalSlots = NULL;
 static volatile ProcSignalSlot *MyProcSignalSlot = NULL;
 
 static bool CheckProcSignal(ProcSignalReason reason);
@@ -104,7 +104,7 @@ ProcSignalShmemInit(void)
 void
 ProcSignalInit(int pss_idx)
 {
-	volatile	ProcSignalSlot *slot;
+	volatile ProcSignalSlot *slot;
 
 	Assert(pss_idx >= 1 && pss_idx <= NumProcSignalSlots);
 
@@ -138,7 +138,7 @@ static void
 CleanupProcSignalState(int status, Datum arg)
 {
 	int			pss_idx = DatumGetInt32(arg);
-	volatile	ProcSignalSlot *slot;
+	volatile ProcSignalSlot *slot;
 
 	slot = &ProcSignalSlots[pss_idx - 1];
 	Assert(slot == MyProcSignalSlot);
@@ -179,7 +179,7 @@ CleanupProcSignalState(int status, Datum arg)
 int
 SendProcSignal(pid_t pid, ProcSignalReason reason, BackendId backendId)
 {
-	volatile	ProcSignalSlot *slot;
+	volatile ProcSignalSlot *slot;
 
 	if (backendId != InvalidBackendId)
 	{
@@ -239,7 +239,7 @@ SendProcSignal(pid_t pid, ProcSignalReason reason, BackendId backendId)
 static bool
 CheckProcSignal(ProcSignalReason reason)
 {
-	volatile	ProcSignalSlot *slot = MyProcSignalSlot;
+	volatile ProcSignalSlot *slot = MyProcSignalSlot;
 
 	if (slot != NULL)
 	{

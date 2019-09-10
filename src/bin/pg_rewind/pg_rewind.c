@@ -3,7 +3,7 @@
  * pg_rewind.c
  *	  Synchronizes a PostgreSQL data directory to a new timeline
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  *-------------------------------------------------------------------------
  */
@@ -24,6 +24,7 @@
 #include "access/xlog_internal.h"
 #include "catalog/catversion.h"
 #include "catalog/pg_control.h"
+#include "common/file_perm.h"
 #include "common/restricted_token.h"
 #include "getopt_long.h"
 #include "storage/bufpage.h"
@@ -33,17 +34,18 @@ static void usage(const char *progname);
 static void createBackupLabel(XLogRecPtr startpoint, TimeLineID starttli,
 				  XLogRecPtr checkpointloc);
 
-static void digestControlFile(ControlFileData * ControlFile, char *source,
+static void digestControlFile(ControlFileData *ControlFile, char *source,
 				  size_t size);
-static void updateControlFile(ControlFileData * ControlFile);
+static void updateControlFile(ControlFileData *ControlFile);
 static void syncTargetDirectory(const char *argv0);
 static void sanityChecks(void);
-static void findCommonAncestorTimeline(XLogRecPtr * recptr, int *tliIndex);
+static void findCommonAncestorTimeline(XLogRecPtr *recptr, int *tliIndex);
 
 static ControlFileData ControlFile_target;
 static ControlFileData ControlFile_source;
 
 const char *progname;
+int			WalSegSz;
 
 /* Configuration options */
 char	   *datadir_target = NULL;
@@ -196,10 +198,21 @@ main(int argc, char **argv)
 		fprintf(stderr, _("cannot be executed by \"root\"\n"));
 		fprintf(stderr, _("You must run %s as the PostgreSQL superuser.\n"),
 				progname);
+		exit(1);
 	}
 #endif
 
 	get_restricted_token(progname);
+
+	/* Set mask based on PGDATA permissions */
+	if (!GetDataDirectoryCreatePerm(datadir_target))
+	{
+		fprintf(stderr, _("%s: could not read permissions of directory \"%s\": %s\n"),
+				progname, datadir_target, strerror(errno));
+		exit(1);
+	}
+
+	umask(pg_mode_mask);
 
 	/* Connect to remote server */
 	if (connstr_source)
@@ -435,7 +448,7 @@ MinXLogRecPtr(XLogRecPtr a, XLogRecPtr b)
  * either source or target.
  */
 static TimeLineHistoryEntry *
-getTimelineHistory(ControlFileData * controlFile, int *nentries)
+getTimelineHistory(ControlFileData *controlFile, int *nentries)
 {
 	TimeLineHistoryEntry *history;
 	TimeLineID	tli;
@@ -466,7 +479,7 @@ getTimelineHistory(ControlFileData * controlFile, int *nentries)
 		else if (controlFile == &ControlFile_target)
 			histfile = slurpFile(datadir_target, path, NULL);
 		else
-			pg_fatal("invalid control file");
+			pg_fatal("invalid control file\n");
 
 		history = rewind_parseTimeLineHistory(histfile, tli, nentries);
 		pg_free(histfile);
@@ -514,7 +527,7 @@ getTimelineHistory(ControlFileData * controlFile, int *nentries)
  * before calling this routine.
  */
 static void
-findCommonAncestorTimeline(XLogRecPtr * recptr, int *tliIndex)
+findCommonAncestorTimeline(XLogRecPtr *recptr, int *tliIndex)
 {
 	TimeLineHistoryEntry *sourceHistory;
 	int			sourceNentries;
@@ -572,8 +585,8 @@ createBackupLabel(XLogRecPtr startpoint, TimeLineID starttli, XLogRecPtr checkpo
 	char		buf[1000];
 	int			len;
 
-	XLByteToSeg(startpoint, startsegno);
-	XLogFileName(xlogfilename, starttli, startsegno);
+	XLByteToSeg(startpoint, startsegno, WalSegSz);
+	XLogFileName(xlogfilename, starttli, startsegno, WalSegSz);
 
 	/*
 	 * Construct backup label file
@@ -605,7 +618,7 @@ createBackupLabel(XLogRecPtr startpoint, TimeLineID starttli, XLogRecPtr checkpo
  * Check CRC of control file
  */
 static void
-checkControlFile(ControlFileData * ControlFile)
+checkControlFile(ControlFileData *ControlFile)
 {
 	pg_crc32c	crc;
 
@@ -623,13 +636,22 @@ checkControlFile(ControlFileData * ControlFile)
  * Verify control file contents in the buffer src, and copy it to *ControlFile.
  */
 static void
-digestControlFile(ControlFileData * ControlFile, char *src, size_t size)
+digestControlFile(ControlFileData *ControlFile, char *src, size_t size)
 {
 	if (size != PG_CONTROL_FILE_SIZE)
 		pg_fatal("unexpected control file size %d, expected %d\n",
 				 (int) size, PG_CONTROL_FILE_SIZE);
 
 	memcpy(ControlFile, src, sizeof(ControlFileData));
+
+	/* set and validate WalSegSz */
+	WalSegSz = ControlFile->xlog_seg_size;
+
+	if (!IsValidWalSegSize(WalSegSz))
+		pg_fatal(ngettext("WAL segment size must be a power of two between 1 MB and 1 GB, but the control file specifies %d byte\n",
+						  "WAL segment size must be a power of two between 1 MB and 1 GB, but the control file specifies %d bytes\n",
+						  WalSegSz),
+				 WalSegSz);
 
 	/* Additional checks on control file */
 	checkControlFile(ControlFile);
@@ -639,7 +661,7 @@ digestControlFile(ControlFileData * ControlFile, char *src, size_t size)
  * Update the target's control file.
  */
 static void
-updateControlFile(ControlFileData * ControlFile)
+updateControlFile(ControlFileData *ControlFile)
 {
 	char		buffer[PG_CONTROL_FILE_SIZE];
 

@@ -12,15 +12,19 @@
 #ifndef CHAR_BIT
 #include <limits.h>
 #endif
+#ifdef LOCALE_T_IN_XLOCALE
+#include <xlocale.h>
+#endif
 
 enum COMPAT_MODE
 {
-	ECPG_COMPAT_PGSQL = 0, ECPG_COMPAT_INFORMIX, ECPG_COMPAT_INFORMIX_SE
+	ECPG_COMPAT_PGSQL = 0, ECPG_COMPAT_INFORMIX, ECPG_COMPAT_INFORMIX_SE, ECPG_COMPAT_ORACLE
 };
 
 extern bool ecpg_internal_regression_mode;
 
 #define INFORMIX_MODE(X) ((X) == ECPG_COMPAT_INFORMIX || (X) == ECPG_COMPAT_INFORMIX_SE)
+#define ORACLE_MODE(X) ((X) == ECPG_COMPAT_ORACLE)
 
 enum ARRAY_TYPE
 {
@@ -60,7 +64,15 @@ struct statement
 	bool		questionmarks;
 	struct variable *inlist;
 	struct variable *outlist;
+#ifdef HAVE_USELOCALE
+	locale_t	clocale;
+	locale_t	oldlocale;
+#else
 	char	   *oldlocale;
+#ifdef HAVE__CONFIGTHREADLOCALE
+	int			oldthreadlocale;
+#endif
+#endif
 	int			nparams;
 	char	  **paramvalues;
 	PGresult   *results;
@@ -165,7 +177,7 @@ struct descriptor *ecpg_find_desc(int line, const char *name);
 struct prepared_statement *ecpg_find_prepared_statement(const char *,
 							 struct connection *, struct prepared_statement **);
 
-bool ecpg_store_result(const PGresult * results, int act_field,
+bool ecpg_store_result(const PGresult *results, int act_field,
 				  const struct statement *stmt, struct variable *var);
 bool		ecpg_store_input(const int, const bool, const struct variable *, char **, bool);
 void		ecpg_free_params(struct statement *stmt, bool print);
@@ -182,7 +194,7 @@ bool ecpg_do(const int, const int, const int, const char *, const bool,
 
 bool		ecpg_check_PQresult(PGresult *, int, PGconn *, enum COMPAT_MODE);
 void		ecpg_raise(int line, int code, const char *sqlstate, const char *str);
-void		ecpg_raise_backend(int line, PGresult * result, PGconn * conn, int compat);
+void		ecpg_raise_backend(int line, PGresult *result, PGconn *conn, int compat);
 char	   *ecpg_prepared(const char *, struct connection *);
 bool		ecpg_deallocate_all_conn(int lineno, enum COMPAT_MODE c, struct connection *conn);
 void		ecpg_log(const char *format,...) pg_attribute_printf(1, 2);

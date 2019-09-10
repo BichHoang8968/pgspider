@@ -378,8 +378,8 @@ enum classes
  */
 static chr
 element(struct vars *v,			/* context */
-		const chr * startp,		/* points to start of name */
-		const chr * endp)		/* points just past end of name */
+		const chr *startp,		/* points to start of name */
+		const chr *endp)		/* points just past end of name */
 {
 	const struct cname *cn;
 	size_t		len;
@@ -546,8 +546,8 @@ eclass(struct vars *v,			/* context */
  */
 static struct cvec *
 cclass(struct vars *v,			/* context */
-	   const chr * startp,		/* where the name starts */
-	   const chr * endp,		/* just past the end of the name */
+	   const chr *startp,		/* where the name starts */
+	   const chr *endp,			/* just past the end of the name */
 	   int cases)				/* case-independent? */
 {
 	size_t		len;
@@ -739,7 +739,7 @@ allcases(struct vars *v,		/* context */
  * stop at embedded NULs!
  */
 static int						/* 0 for equal, nonzero for unequal */
-cmp(const chr * x, const chr * y,	/* strings to compare */
+cmp(const chr *x, const chr *y, /* strings to compare */
 	size_t len)					/* exact length of comparison */
 {
 	return memcmp(VS(x), VS(y), len * sizeof(chr));
@@ -754,7 +754,7 @@ cmp(const chr * x, const chr * y,	/* strings to compare */
  * stop at embedded NULs!
  */
 static int						/* 0 for equal, nonzero for unequal */
-casecmp(const chr * x, const chr * y,	/* strings to compare */
+casecmp(const chr *x, const chr *y, /* strings to compare */
 		size_t len)				/* exact length of comparison */
 {
 	for (; len > 0; len--, x++, y++)

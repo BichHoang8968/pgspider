@@ -3,7 +3,7 @@
  * replorigindesc.c
  *	  rmgr descriptor routines for replication/logical/origin.c
  *
- * Portions Copyright (c) 2015-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2015-2018, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -16,7 +16,7 @@
 #include "replication/origin.h"
 
 void
-replorigin_desc(StringInfo buf, XLogReaderState * record)
+replorigin_desc(StringInfo buf, XLogReaderState *record)
 {
 	char	   *rec = XLogRecGetData(record);
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;

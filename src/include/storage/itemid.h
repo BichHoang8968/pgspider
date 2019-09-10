@@ -4,7 +4,7 @@
  *	  Standard POSTGRES buffer page item identifier definitions.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/itemid.h
@@ -26,9 +26,9 @@ typedef struct ItemIdData
 	unsigned	lp_off:15,		/* offset to tuple (from start of page) */
 				lp_flags:2,		/* state of item pointer, see below */
 				lp_len:15;		/* byte length of tuple */
-}			ItemIdData;
+} ItemIdData;
 
-typedef ItemIdData * ItemId;
+typedef ItemIdData *ItemId;
 
 /*
  * lp_flags has these possible states.  An UNUSED line pointer is available

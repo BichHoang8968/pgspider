@@ -7,7 +7,7 @@
  * A PAINLESS GUIDE TO CRC ERROR DETECTION ALGORITHMS, available from
  * http://www.ross.net/crc/download/crc_v3.txt or several other net sites.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -29,7 +29,7 @@
  * (This is the same polynomial used in Ethernet checksums, for instance.)
  * Using Williams' terms, this is the "normal", not "reflected" version.
  */
-const		uint32 pg_crc32_table[256] = {
+const uint32 pg_crc32_table[256] = {
 	0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA,
 	0x076DC419, 0x706AF48F, 0xE963A535, 0x9E6495A3,
 	0x0EDB8832, 0x79DCB8A4, 0xE0D5E91E, 0x97D2D988,

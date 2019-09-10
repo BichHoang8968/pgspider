@@ -6,7 +6,7 @@
  *	  changes should be made with care.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/gist.h
@@ -61,9 +61,9 @@ typedef struct GISTPageOpaqueData
 	BlockNumber rightlink;		/* next page if any */
 	uint16		flags;			/* see bit definitions above */
 	uint16		gist_page_id;	/* for identification of GiST indexes */
-}			GISTPageOpaqueData;
+} GISTPageOpaqueData;
 
-typedef GISTPageOpaqueData * GISTPageOpaque;
+typedef GISTPageOpaqueData *GISTPageOpaque;
 
 /*
  * The page ID is for the convenience of pg_filedump and similar utilities,
@@ -111,7 +111,7 @@ typedef struct GIST_SPLITVEC
 	int			spl_nright;		/* size of the array */
 	Datum		spl_rdatum;		/* Union of keys in spl_right */
 	bool		spl_rdatum_exists;	/* true, if spl_rdatum already exists. */
-}			GIST_SPLITVEC;
+} GIST_SPLITVEC;
 
 /*
  * An entry on a GiST node.  Contains the key, as well as its own
@@ -125,7 +125,7 @@ typedef struct GISTENTRY
 	Page		page;
 	OffsetNumber offset;
 	bool		leafkey;
-}			GISTENTRY;
+} GISTENTRY;
 
 #define GistPageGetOpaque(page) ( (GISTPageOpaque) PageGetSpecialPointer(page) )
 
@@ -159,7 +159,7 @@ typedef struct
 {
 	int32		n;				/* number of elements */
 	GISTENTRY	vector[FLEXIBLE_ARRAY_MEMBER];
-}			GistEntryVector;
+} GistEntryVector;
 
 #define GEVHDRSZ	(offsetof(GistEntryVector, vector))
 

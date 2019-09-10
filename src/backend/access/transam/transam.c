@@ -3,7 +3,7 @@
  * transam.c
  *	  postgres transaction (commit) log interface routines
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -257,7 +257,7 @@ TransactionIdIsKnownCompleted(TransactionId transactionId)
  * are correctly marked subcommit first.
  */
 void
-TransactionIdCommitTree(TransactionId xid, int nxids, TransactionId * xids)
+TransactionIdCommitTree(TransactionId xid, int nxids, TransactionId *xids)
 {
 	TransactionIdSetTreeStatus(xid, nxids, xids,
 							   TRANSACTION_STATUS_COMMITTED,
@@ -269,7 +269,7 @@ TransactionIdCommitTree(TransactionId xid, int nxids, TransactionId * xids)
  *		Same as above, but for async commits.  The commit record LSN is needed.
  */
 void
-TransactionIdAsyncCommitTree(TransactionId xid, int nxids, TransactionId * xids,
+TransactionIdAsyncCommitTree(TransactionId xid, int nxids, TransactionId *xids,
 							 XLogRecPtr lsn)
 {
 	TransactionIdSetTreeStatus(xid, nxids, xids,
@@ -287,7 +287,7 @@ TransactionIdAsyncCommitTree(TransactionId xid, int nxids, TransactionId * xids,
  * will consider all the xacts as not-yet-committed anyway.
  */
 void
-TransactionIdAbortTree(TransactionId xid, int nxids, TransactionId * xids)
+TransactionIdAbortTree(TransactionId xid, int nxids, TransactionId *xids)
 {
 	TransactionIdSetTreeStatus(xid, nxids, xids,
 							   TRANSACTION_STATUS_ABORTED, InvalidXLogRecPtr);
@@ -363,7 +363,7 @@ TransactionIdFollowsOrEquals(TransactionId id1, TransactionId id2)
  */
 TransactionId
 TransactionIdLatest(TransactionId mainxid,
-					int nxids, const TransactionId * xids)
+					int nxids, const TransactionId *xids)
 {
 	TransactionId result;
 

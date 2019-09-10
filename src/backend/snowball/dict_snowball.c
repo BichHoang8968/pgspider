@@ -3,7 +3,7 @@
  * dict_snowball.c
  *		Snowball dictionary
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/snowball/dict_snowball.c
@@ -72,7 +72,7 @@ typedef struct stemmer_module
 	struct SN_env *(*create) (void);
 	void		(*close) (struct SN_env *);
 	int			(*stem) (struct SN_env *);
-}			stemmer_module;
+} stemmer_module;
 
 static const stemmer_module stemmer_modules[] =
 {
@@ -134,13 +134,13 @@ typedef struct DictSnowball
 	 * context, so we just remember CurrentMemoryContext
 	 */
 	MemoryContext dictCtx;
-}			DictSnowball;
+} DictSnowball;
 
 
 static void
-locate_stem_module(DictSnowball * d, char *lang)
+locate_stem_module(DictSnowball *d, const char *lang)
 {
-	const		stemmer_module *m;
+	const stemmer_module *m;
 
 	/*
 	 * First, try to find exact match of stemmer module. Stemmer with
@@ -192,7 +192,7 @@ dsnowball_init(PG_FUNCTION_ARGS)
 	{
 		DefElem    *defel = (DefElem *) lfirst(l);
 
-		if (pg_strcasecmp("StopWords", defel->defname) == 0)
+		if (strcmp(defel->defname, "stopwords") == 0)
 		{
 			if (stoploaded)
 				ereport(ERROR,
@@ -201,7 +201,7 @@ dsnowball_init(PG_FUNCTION_ARGS)
 			readstoplist(defGetString(defel), &d->stoplist, lowerstr);
 			stoploaded = true;
 		}
-		else if (pg_strcasecmp("Language", defel->defname) == 0)
+		else if (strcmp(defel->defname, "language") == 0)
 		{
 			if (d->stem)
 				ereport(ERROR,

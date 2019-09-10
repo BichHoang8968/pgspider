@@ -29,7 +29,7 @@
  * at runtime.  If we knew exactly which functions require collation
  * information, we could throw those errors at parse time instead.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -59,7 +59,7 @@ typedef enum
 	COLLATE_IMPLICIT,			/* collation was derived implicitly */
 	COLLATE_CONFLICT,			/* we had a conflict of implicit collations */
 	COLLATE_EXPLICIT			/* collation was derived explicitly */
-}			CollateStrength;
+} CollateStrength;
 
 typedef struct
 {
@@ -70,23 +70,23 @@ typedef struct
 	/* Remaining fields are only valid when strength == COLLATE_CONFLICT */
 	Oid			collation2;		/* OID of conflicting collation */
 	int			location2;		/* location of expr that set collation2 */
-}			assign_collations_context;
+} assign_collations_context;
 
-static bool assign_query_collations_walker(Node * node, ParseState * pstate);
-static bool assign_collations_walker(Node * node,
-						 assign_collations_context * context);
+static bool assign_query_collations_walker(Node *node, ParseState *pstate);
+static bool assign_collations_walker(Node *node,
+						 assign_collations_context *context);
 static void merge_collation_state(Oid collation,
 					  CollateStrength strength,
 					  int location,
 					  Oid collation2,
 					  int location2,
-					  assign_collations_context * context);
-static void assign_aggregate_collations(Aggref * aggref,
-							assign_collations_context * loccontext);
-static void assign_ordered_set_collations(Aggref * aggref,
-							  assign_collations_context * loccontext);
-static void assign_hypothetical_collations(Aggref * aggref,
-							   assign_collations_context * loccontext);
+					  assign_collations_context *context);
+static void assign_aggregate_collations(Aggref *aggref,
+							assign_collations_context *loccontext);
+static void assign_ordered_set_collations(Aggref *aggref,
+							  assign_collations_context *loccontext);
+static void assign_hypothetical_collations(Aggref *aggref,
+							   assign_collations_context *loccontext);
 
 
 /*
@@ -98,7 +98,7 @@ static void assign_hypothetical_collations(Aggref * aggref,
  * those should have been processed when built.
  */
 void
-assign_query_collations(ParseState * pstate, Query * query)
+assign_query_collations(ParseState *pstate, Query *query)
 {
 	/*
 	 * We just use query_tree_walker() to visit all the contained expressions.
@@ -123,7 +123,7 @@ assign_query_collations(ParseState * pstate, Query * query)
  * have different collations.
  */
 static bool
-assign_query_collations_walker(Node * node, ParseState * pstate)
+assign_query_collations_walker(Node *node, ParseState *pstate)
 {
 	/* Need do nothing for empty subexpressions */
 	if (node == NULL)
@@ -152,7 +152,7 @@ assign_query_collations_walker(Node * node, ParseState * pstate)
  * to share a common collation.
  */
 void
-assign_list_collations(ParseState * pstate, List * exprs)
+assign_list_collations(ParseState *pstate, List *exprs)
 {
 	ListCell   *lc;
 
@@ -174,7 +174,7 @@ assign_list_collations(ParseState * pstate, List * exprs)
  * coerce_to_boolean().
  */
 void
-assign_expr_collations(ParseState * pstate, Node * expr)
+assign_expr_collations(ParseState *pstate, Node *expr)
 {
 	assign_collations_context context;
 
@@ -205,7 +205,7 @@ assign_expr_collations(ParseState * pstate, Node * expr)
  * operations").
  */
 Oid
-select_common_collation(ParseState * pstate, List * exprs, bool none_ok)
+select_common_collation(ParseState *pstate, List *exprs, bool none_ok)
 {
 	assign_collations_context context;
 
@@ -252,7 +252,7 @@ select_common_collation(ParseState * pstate, List * exprs, bool none_ok)
  * error if there are conflicting explicit collations for different members.
  */
 static bool
-assign_collations_walker(Node * node, assign_collations_context * context)
+assign_collations_walker(Node *node, assign_collations_context *context)
 {
 	assign_collations_context loccontext;
 	Oid			collation;
@@ -758,7 +758,7 @@ merge_collation_state(Oid collation,
 					  int location,
 					  Oid collation2,
 					  int location2,
-					  assign_collations_context * context)
+					  assign_collations_context *context)
 {
 	/*
 	 * If the collation strength for this node is different from what's
@@ -854,8 +854,8 @@ merge_collation_state(Oid collation,
  * contain only SortGroupClause nodes which we need not process.
  */
 static void
-assign_aggregate_collations(Aggref * aggref,
-							assign_collations_context * loccontext)
+assign_aggregate_collations(Aggref *aggref,
+							assign_collations_context *loccontext)
 {
 	ListCell   *lc;
 
@@ -892,8 +892,8 @@ assign_aggregate_collations(Aggref * aggref,
  * Otherwise this is much like the plain-aggregate case.
  */
 static void
-assign_ordered_set_collations(Aggref * aggref,
-							  assign_collations_context * loccontext)
+assign_ordered_set_collations(Aggref *aggref,
+							  assign_collations_context *loccontext)
 {
 	bool		merge_sort_collations;
 	ListCell   *lc;
@@ -928,8 +928,8 @@ assign_ordered_set_collations(Aggref * aggref,
  * only when their partner aggregated arguments do.
  */
 static void
-assign_hypothetical_collations(Aggref * aggref,
-							   assign_collations_context * loccontext)
+assign_hypothetical_collations(Aggref *aggref,
+							   assign_collations_context *loccontext)
 {
 	ListCell   *h_cell = list_head(aggref->aggdirectargs);
 	ListCell   *s_cell = list_head(aggref->args);

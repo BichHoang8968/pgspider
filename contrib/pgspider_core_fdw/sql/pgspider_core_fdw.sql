@@ -96,15 +96,45 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM test1 IN ('/post_svr/');
 -- only __spd_url target list is OK
 SELECT __spd_url FROM test1 ORDER BY __spd_url;
 
+SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT __spd_url, avg(i) FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT __spd_url, sum(i) FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+
 SELECT sum(i) FROM test1;
 
 SELECT avg(i) FROM test1;
 SELECT avg(i),i FROM test1 group by i order by i;
 SELECT sum(i),count(i),i FROM test1 group by i order by i;
 
+SELECT avg(i), count(i) FROM test1 group by i;
+
+SELECT SUM(i) as aa, avg(i) FROM test1 GROUP BY i;
+SELECT SUM(i) as aa, avg(i), i/2, SUM(i)/2 FROM test1 GROUP BY i;
+SELECT SUM(i) as aa, avg(i) FROM test1 GROUP BY i ORDER BY aa;
+SELECT sum(i), avg(i) FROM test1 GROUP BY i ORDER BY 1;
+SELECT i, avg(i) FROM test1 GROUP BY i ORDER BY 1;
+
+-- allocate statement
+PREPARE stmt AS SELECT sum(i),count(i),i FROM test1 group by i order by i;
+-- execute first time
+EXECUTE stmt;
+-- performance test prepared statement
+DO $$
+BEGIN
+   FOR counter IN 1..50 LOOP
+   EXECUTE 'EXECUTE stmt;';
+   END LOOP;
+END; $$;
+-- deallocate statement
+DEALLOCATE stmt;
+
 CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS(table_name 't1');
 SELECT * FROM t1;
+SELECT * FROM t1 WHERE __spd_url='/post_svr/' and i = 1 and t = 'a';
 SELECT sum(i),t FROM t1 group by t;
 SELECT sum(i),t,count(i) FROM t1 group by t;
 
@@ -117,13 +147,39 @@ SELECT sum(i),sum(i) FROM t1;
 SELECT avg(i),t FROM t1 group by t;
 SELECT avg(i) FROM t1 group by i;
 
+SELECT avg(i), count(i) FROM t1 GROUP BY i ORDER BY i;
+SELECT t, avg(i), t FROM t1 GROUP BY i, t ORDER BY i;
+
+SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t ORDER BY t;
+SELECT i, __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, i FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, avg(i) FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, sum(i) FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, avg(i), sum(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+
 SELECT * FROM (SELECT sum(i) FROM t1) A,(SELECT count(i) FROM t1) B;
 
+SELECT SUM(i) as aa, avg(i) FROM t1 GROUP BY i;
+SELECT SUM(i) as aa, avg(i) FROM t1 GROUP BY t;
+SELECT SUM(i) as aa, avg(i), i/2, SUM(i)/2 FROM t1 GROUP BY i, t;
+SELECT SUM(i) as aa, avg(i) FROM t1 GROUP BY i ORDER BY aa;
+
+-- allocate statement
 PREPARE stmt AS SELECT * FROM t1;
--- First time is OK
+-- execute first time
 EXECUTE stmt;
--- second time is crash :invalid memory alloc
--- EXECUTE stmt;
+-- performance test prepared statement
+DO $$
+BEGIN
+   FOR counter IN 1..50 LOOP
+   EXECUTE 'EXECUTE stmt;';
+   END LOOP;
+END; $$;
+-- deallocate statement
+DEALLOCATE stmt;
 
 CREATE FOREIGN TABLE t3 (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t3__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
@@ -132,6 +188,37 @@ SELECT count(t) FROM t3;
 SELECT count(t2) FROM t3;
 SELECT count(i) FROM t3;
 
+SELECT * FROM t3;
+-- test target list push down for mysql fdw
+-- push down abs(-i*2) and i+1
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT abs(-i*2), i+1, i, i FROM t3;
+SELECT abs(-i*2), i+1, i, i FROM t3;
+
+-- can't push down abs(A.i) in join case
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT abs(A.i) FROM t3 A, t3 B LIMIT 3;
+SELECT abs(A.i) FROM t3 A, t3 B LIMIT 3;
+
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT abs(i) c1 FROM t3 UNION SELECT abs(i+1) FROM t3 ORDER BY c1;
+SELECT abs(i) c1 FROM t3 UNION SELECT abs(i+1) FROM t3 ORDER BY c1;
+
+SELECT i+1, __spd_url FROM t3;
+SELECT i, __spd_url FROM t3 ORDER BY i, __spd_url;
+SELECT i FROM t3 ORDER BY __spd_url;
+
+-- can't push down i+1 because test1 includes fdws other than mysql fdw
+EXPLAIN (VERBOSE, COSTS OFF) 
+SELECT i+1,__spd_url FROM test1 ORDER BY __spd_url, i;
+SELECT i+1,__spd_url FROM test1  ORDER BY __spd_url, i;
+SELECT __spd_url,i FROM test1 ORDER BY __spd_url, i;
+
+-- t is not included in target list, but is pushed down, it is OK
+select t from t3 where i  = 1;
+
+-- t is not included and cannot be pushed down, so it is error
+-- select i from t3 where t COLLATE "ja_JP.utf8" = 'aa';
 
 -- error stack test
 CREATE SERVER mysql_svr2 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
@@ -171,10 +258,10 @@ SELECT count(t) FROM t3;
 SELECT count(t) FROM t3;
 
 
+
 DROP FOREIGN TABLE t3;
 DROP FOREIGN TABLE t3__mysql_svr__0;
 DROP FOREIGN TABLE t3__mysql_svr2__0;
-
 -- wrong result:
 -- SELECT sum(i),t  FROM t1 group by t having sum(i) > 2;
 --  sum | t 
@@ -184,12 +271,60 @@ DROP FOREIGN TABLE t3__mysql_svr2__0;
 --    4 | c
 -- (3 rows)
 
--- wrong result and warning:
--- SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t;
--- WARNING:  dummy plan list failed
---   t | __spd_url 
---  ---+-----------
---  (0 rows)
+-- stress test for finding multithread error
+DO $$
+BEGIN
+   FOR counter IN 1..50 LOOP
+   PERFORM sum(i) FROM test1;
+   END LOOP;
+END; $$;
+
+CREATE FOREIGN TABLE mysqlt (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
+CREATE FOREIGN TABLE mysqlt__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+CREATE FOREIGN TABLE mysqlt__mysql_svr__1 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+CREATE FOREIGN TABLE mysqlt__mysql_svqr__2 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+
+DO $$
+BEGIN
+   FOR counter IN 1..50 LOOP
+   PERFORM sum(i) FROM mysqlt;
+   END LOOP;
+END; $$;
+
+CREATE FOREIGN TABLE post_large (i int, t text,__spd_url text) SERVER pgspider_svr;
+CREATE FOREIGN TABLE post_large__post_svr__1 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
+CREATE FOREIGN TABLE post_large__post_svr__2 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
+CREATE FOREIGN TABLE post_large__post_svr__3 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
+
+SELECT i,t FROM post_large WHERE i < 3 ORDER BY i,t;
+DO $$
+BEGIN
+   FOR counter IN 1..10 LOOP
+   PERFORM i,t FROM post_large WHERE i < 3 ORDER BY i,t;
+   END LOOP;
+END; $$;
+
+SELECT count(*) FROM post_large;
+
+DO $$
+BEGIN
+   FOR counter IN 1..10 LOOP
+   PERFORM sum(i) FROM post_large;
+   END LOOP;
+END; $$;
+
+
+DO $$
+BEGIN
+   FOR counter IN 1..2 LOOP
+   PERFORM i FROM test1 UNION ALL SELECT sum(i) FROM test1  
+   UNION ALL SELECT A.i FROM test1 A, test1 B
+   UNION ALL SELECT i FROM mysqlt
+   UNION ALL SELECT i FROM post_large;
+   END LOOP;
+END; $$;
+
+
 
 CREATE FOREIGN TABLE t2 (i int, t text, a text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t2__post_svr__0 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
@@ -197,6 +332,12 @@ SELECT i,t,a FROM t2 ORDER BY i,__spd_url;
 CREATE FOREIGN TABLE t2__post_svr__1 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 CREATE FOREIGN TABLE t2__post_svr__2 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 CREATE FOREIGN TABLE t2__post_svr__3 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+
+-- random cannot be pushed down and i=2 is pushed down
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM t2 WHERE i=2 AND random() < 2.0;
+SELECT * FROM t2 WHERE i=2 AND random() < 2.0;
+
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 SELECT a,i, __spd_url, t FROM t2 ORDER BY i,t,a,__spd_url;
 

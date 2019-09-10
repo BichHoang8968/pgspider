@@ -5,7 +5,7 @@ OBJS = pgspider_fdw.o option.o deparse.o connection.o shippable.o $(WIN32RES)
 PGFILEDESC = "pgspider_fdw - foreign data wrapper for PgspiderQL"
 
 PG_CPPFLAGS = -I$(libpq_srcdir)
-SHLIB_LINK = $(libpq)
+SHLIB_LINK_INTERNAL = $(libpq)
 
 EXTENSION = pgspider_fdw
 DATA = pgspider_fdw--1.0.sql

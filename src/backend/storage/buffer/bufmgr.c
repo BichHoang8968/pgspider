@@ -3,7 +3,7 @@
  * bufmgr.c
  *	  buffer manager interface routines
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -71,7 +71,7 @@ typedef struct PrivateRefCountEntry
 {
 	Buffer		buffer;
 	int32		refcount;
-}			PrivateRefCountEntry;
+} PrivateRefCountEntry;
 
 /* 64 bytes, about the size of a cache line on common systems */
 #define REFCOUNT_ARRAY_ENTRIES 8
@@ -102,7 +102,7 @@ typedef struct CkptTsStatus
 
 	/* current offset in CkptBufferIds for this tablespace */
 	int			index;
-}			CkptTsStatus;
+} CkptTsStatus;
 
 /* GUC variables */
 bool		zero_damaged_pages = false;
@@ -129,11 +129,11 @@ int			backend_flush_after = 0;
 int			target_prefetch_pages = 0;
 
 /* local state for StartBufferIO and related functions */
-static BufferDesc * InProgressBuf = NULL;
+static BufferDesc *InProgressBuf = NULL;
 static bool IsForInput;
 
 /* local state for LockBufferForCleanup */
-static BufferDesc * PinCountWaitBuf = NULL;
+static BufferDesc *PinCountWaitBuf = NULL;
 
 /*
  * Backend-Private refcount management:
@@ -166,16 +166,16 @@ static BufferDesc * PinCountWaitBuf = NULL;
  * because in some scenarios it's called with a spinlock held...
  */
 static struct PrivateRefCountEntry PrivateRefCountArray[REFCOUNT_ARRAY_ENTRIES];
-static HTAB * PrivateRefCountHash = NULL;
+static HTAB *PrivateRefCountHash = NULL;
 static int32 PrivateRefCountOverflowed = 0;
 static uint32 PrivateRefCountClock = 0;
-static PrivateRefCountEntry * ReservedRefCountEntry = NULL;
+static PrivateRefCountEntry *ReservedRefCountEntry = NULL;
 
 static void ReservePrivateRefCountEntry(void);
-static PrivateRefCountEntry * NewPrivateRefCountEntry(Buffer buffer);
-static PrivateRefCountEntry * GetPrivateRefCountEntry(Buffer buffer, bool do_move);
+static PrivateRefCountEntry *NewPrivateRefCountEntry(Buffer buffer);
+static PrivateRefCountEntry *GetPrivateRefCountEntry(Buffer buffer, bool do_move);
 static inline int32 GetPrivateRefCount(Buffer buffer);
-static void ForgetPrivateRefCountEntry(PrivateRefCountEntry * ref);
+static void ForgetPrivateRefCountEntry(PrivateRefCountEntry *ref);
 
 /*
  * Ensure that the PrivateRefCountArray has sufficient space to store one more
@@ -378,7 +378,7 @@ GetPrivateRefCount(Buffer buffer)
  * longer have pinned and don't want to pin again immediately.
  */
 static void
-ForgetPrivateRefCountEntry(PrivateRefCountEntry * ref)
+ForgetPrivateRefCountEntry(PrivateRefCountEntry *ref)
 {
 	Assert(ref->refcount == 0);
 
@@ -429,28 +429,28 @@ ForgetPrivateRefCountEntry(PrivateRefCountEntry * ref)
 
 
 static Buffer ReadBuffer_common(SMgrRelation reln, char relpersistence,
-								ForkNumber forkNum, BlockNumber blockNum,
-								ReadBufferMode mode, BufferAccessStrategy strategy,
-								bool *hit);
-static bool PinBuffer(BufferDesc * buf, BufferAccessStrategy strategy);
-static void PinBuffer_Locked(BufferDesc * buf);
-static void UnpinBuffer(BufferDesc * buf, bool fixOwner);
+				  ForkNumber forkNum, BlockNumber blockNum,
+				  ReadBufferMode mode, BufferAccessStrategy strategy,
+				  bool *hit);
+static bool PinBuffer(BufferDesc *buf, BufferAccessStrategy strategy);
+static void PinBuffer_Locked(BufferDesc *buf);
+static void UnpinBuffer(BufferDesc *buf, bool fixOwner);
 static void BufferSync(int flags);
-static uint32 WaitBufHdrUnlocked(BufferDesc * buf);
-static int	SyncOneBuffer(int buf_id, bool skip_recently_used, WritebackContext * flush_context);
-static void WaitIO(BufferDesc * buf);
-static bool StartBufferIO(BufferDesc * buf, bool forInput);
-static void TerminateBufferIO(BufferDesc * buf, bool clear_dirty,
+static uint32 WaitBufHdrUnlocked(BufferDesc *buf);
+static int	SyncOneBuffer(int buf_id, bool skip_recently_used, WritebackContext *flush_context);
+static void WaitIO(BufferDesc *buf);
+static bool StartBufferIO(BufferDesc *buf, bool forInput);
+static void TerminateBufferIO(BufferDesc *buf, bool clear_dirty,
 				  uint32 set_flag_bits);
 static void shared_buffer_write_error_callback(void *arg);
 static void local_buffer_write_error_callback(void *arg);
-static BufferDesc * BufferAlloc(SMgrRelation smgr,
-								char relpersistence,
-								ForkNumber forkNum,
-								BlockNumber blockNum,
-								BufferAccessStrategy strategy,
-								bool *foundPtr);
-static void FlushBuffer(BufferDesc * buf, SMgrRelation reln);
+static BufferDesc *BufferAlloc(SMgrRelation smgr,
+			char relpersistence,
+			ForkNumber forkNum,
+			BlockNumber blockNum,
+			BufferAccessStrategy strategy,
+			bool *foundPtr);
+static void FlushBuffer(BufferDesc *buf, SMgrRelation reln);
 static void AtProcExit_Buffers(int code, Datum arg);
 static void CheckForBufferLeaks(void);
 static int	rnode_comparator(const void *p1, const void *p2);
@@ -975,7 +975,7 @@ ReadBuffer_common(SMgrRelation smgr, char relpersistence, ForkNumber forkNum,
  *
  * The returned buffer is pinned and is already marked as holding the
  * desired page.  If it already did have the desired page, *foundPtr is
- * set TRUE.  Otherwise, *foundPtr is set FALSE and the buffer is marked
+ * set true.  Otherwise, *foundPtr is set false and the buffer is marked
  * as IO_IN_PROGRESS; ReadBuffer will now need to do I/O to fill it.
  *
  * *foundPtr is actually redundant with the buffer's BM_VALID flag, but
@@ -1025,7 +1025,7 @@ BufferAlloc(SMgrRelation smgr, char relpersistence, ForkNumber forkNum,
 		/* Can release the mapping lock as soon as we've pinned it */
 		LWLockRelease(newPartitionLock);
 
-		*foundPtr = TRUE;
+		*foundPtr = true;
 
 		if (!valid)
 		{
@@ -1042,7 +1042,7 @@ BufferAlloc(SMgrRelation smgr, char relpersistence, ForkNumber forkNum,
 				 * If we get here, previous attempts to read the buffer must
 				 * have failed ... but we shall bravely try again.
 				 */
-				*foundPtr = FALSE;
+				*foundPtr = false;
 			}
 		}
 
@@ -1237,7 +1237,7 @@ BufferAlloc(SMgrRelation smgr, char relpersistence, ForkNumber forkNum,
 			/* Can release the mapping lock as soon as we've pinned it */
 			LWLockRelease(newPartitionLock);
 
-			*foundPtr = TRUE;
+			*foundPtr = true;
 
 			if (!valid)
 			{
@@ -1254,7 +1254,7 @@ BufferAlloc(SMgrRelation smgr, char relpersistence, ForkNumber forkNum,
 					 * If we get here, previous attempts to read the buffer
 					 * must have failed ... but we shall bravely try again.
 					 */
-					*foundPtr = FALSE;
+					*foundPtr = false;
 				}
 			}
 
@@ -1324,9 +1324,9 @@ BufferAlloc(SMgrRelation smgr, char relpersistence, ForkNumber forkNum,
 	 * read it before we did, so there's nothing left for BufferAlloc() to do.
 	 */
 	if (StartBufferIO(buf, true))
-		*foundPtr = FALSE;
+		*foundPtr = false;
 	else
-		*foundPtr = TRUE;
+		*foundPtr = true;
 
 	return buf;
 }
@@ -1349,7 +1349,7 @@ BufferAlloc(SMgrRelation smgr, char relpersistence, ForkNumber forkNum,
  * to acquire the necessary locks; if so, don't mess it up.
  */
 static void
-InvalidateBuffer(BufferDesc * buf)
+InvalidateBuffer(BufferDesc *buf)
 {
 	BufferTag	oldTag;
 	uint32		oldHash;		/* hash value for oldTag */
@@ -1564,11 +1564,11 @@ ReleaseAndReadBuffer(Buffer buffer,
  *
  * Note that ResourceOwnerEnlargeBuffers must have been done already.
  *
- * Returns TRUE if buffer is BM_VALID, else FALSE.  This provision allows
+ * Returns true if buffer is BM_VALID, else false.  This provision allows
  * some callers to avoid an extra spinlock cycle.
  */
 static bool
-PinBuffer(BufferDesc * buf, BufferAccessStrategy strategy)
+PinBuffer(BufferDesc *buf, BufferAccessStrategy strategy)
 {
 	Buffer		b = BufferDescriptorGetBuffer(buf);
 	bool		result;
@@ -1653,7 +1653,7 @@ PinBuffer(BufferDesc * buf, BufferAccessStrategy strategy)
  * its state can change under us.
  */
 static void
-PinBuffer_Locked(BufferDesc * buf)
+PinBuffer_Locked(BufferDesc *buf)
 {
 	Buffer		b;
 	PrivateRefCountEntry *ref;
@@ -1688,10 +1688,10 @@ PinBuffer_Locked(BufferDesc * buf)
  * This should be applied only to shared buffers, never local ones.
  *
  * Most but not all callers want CurrentResourceOwner to be adjusted.
- * Those that don't should pass fixOwner = FALSE.
+ * Those that don't should pass fixOwner = false.
  */
 static void
-UnpinBuffer(BufferDesc * buf, bool fixOwner)
+UnpinBuffer(BufferDesc *buf, bool fixOwner)
 {
 	PrivateRefCountEntry *ref;
 	Buffer		b = BufferDescriptorGetBuffer(buf);
@@ -2042,7 +2042,7 @@ BufferSync(int flags)
  * bgwriter_lru_maxpages to 0.)
  */
 bool
-BgBufferSync(WritebackContext * wb_context)
+BgBufferSync(WritebackContext *wb_context)
 {
 	/* info obtained from freelist.c */
 	int			strategy_buf_id;
@@ -2345,7 +2345,7 @@ BgBufferSync(WritebackContext * wb_context)
  * Note: caller must have done ResourceOwnerEnlargeBuffers.
  */
 static int
-SyncOneBuffer(int buf_id, bool skip_recently_used, WritebackContext * wb_context)
+SyncOneBuffer(int buf_id, bool skip_recently_used, WritebackContext *wb_context)
 {
 	BufferDesc *bufHdr = GetBufferDescriptor(buf_id);
 	int			result = 0;
@@ -2623,8 +2623,8 @@ BufferGetBlockNumber(Buffer buffer)
  *		a buffer.
  */
 void
-BufferGetTag(Buffer buffer, RelFileNode * rnode, ForkNumber * forknum,
-			 BlockNumber * blknum)
+BufferGetTag(Buffer buffer, RelFileNode *rnode, ForkNumber *forknum,
+			 BlockNumber *blknum)
 {
 	BufferDesc *bufHdr;
 
@@ -2662,7 +2662,7 @@ BufferGetTag(Buffer buffer, RelFileNode * rnode, ForkNumber * forknum,
  * as the second parameter.  If not, pass NULL.
  */
 static void
-FlushBuffer(BufferDesc * buf, SMgrRelation reln)
+FlushBuffer(BufferDesc *buf, SMgrRelation reln)
 {
 	XLogRecPtr	recptr;
 	ErrorContextCallback errcallback;
@@ -2937,7 +2937,7 @@ DropRelFileNodeBuffers(RelFileNodeBackend rnode, ForkNumber forkNum,
  * --------------------------------------------------------------------
  */
 void
-DropRelFileNodesAllBuffers(RelFileNodeBackend * rnodes, int nnodes)
+DropRelFileNodesAllBuffers(RelFileNodeBackend *rnodes, int nnodes)
 {
 	int			i,
 				n = 0;
@@ -3712,7 +3712,7 @@ HoldingBufferPinThatDelaysRecovery(void)
  * ConditionalLockBufferForCleanup - as above, but don't wait to get the lock
  *
  * We won't loop, but just check once to see if the pin count is OK.  If
- * not, return FALSE with no lock held.
+ * not, return false with no lock held.
  */
 bool
 ConditionalLockBufferForCleanup(Buffer buffer)
@@ -3825,7 +3825,7 @@ IsBufferCleanupOK(Buffer buffer)
  * WaitIO -- Block until the IO_IN_PROGRESS flag on 'buf' is cleared.
  */
 static void
-WaitIO(BufferDesc * buf)
+WaitIO(BufferDesc *buf)
 {
 	/*
 	 * Changed to wait until there's no IO - Inoue 01/13/2000
@@ -3868,11 +3868,11 @@ WaitIO(BufferDesc * buf)
  * and output operations only on buffers that are BM_VALID and BM_DIRTY,
  * so we can always tell if the work is already done.
  *
- * Returns TRUE if we successfully marked the buffer as I/O busy,
- * FALSE if someone else already did the work.
+ * Returns true if we successfully marked the buffer as I/O busy,
+ * false if someone else already did the work.
  */
 static bool
-StartBufferIO(BufferDesc * buf, bool forInput)
+StartBufferIO(BufferDesc *buf, bool forInput)
 {
 	uint32		buf_state;
 
@@ -3929,7 +3929,7 @@ StartBufferIO(BufferDesc * buf, bool forInput)
  *	We hold the buffer's io_in_progress lock
  *	The buffer is Pinned
  *
- * If clear_dirty is TRUE and BM_JUST_DIRTIED is not set, we clear the
+ * If clear_dirty is true and BM_JUST_DIRTIED is not set, we clear the
  * buffer's BM_DIRTY flag.  This is appropriate when terminating a
  * successful write.  The check on BM_JUST_DIRTIED is necessary to avoid
  * marking the buffer clean if it was re-dirtied while we were writing.
@@ -3939,7 +3939,7 @@ StartBufferIO(BufferDesc * buf, bool forInput)
  * be 0, or BM_VALID if we just finished reading in the page.
  */
 static void
-TerminateBufferIO(BufferDesc * buf, bool clear_dirty, uint32 set_flag_bits)
+TerminateBufferIO(BufferDesc *buf, bool clear_dirty, uint32 set_flag_bits)
 {
 	uint32		buf_state;
 
@@ -4089,7 +4089,7 @@ rnode_comparator(const void *p1, const void *p2)
  * Lock buffer header - set BM_LOCKED in buffer state.
  */
 uint32
-LockBufHdr(BufferDesc * desc)
+LockBufHdr(BufferDesc *desc)
 {
 	SpinDelayStatus delayStatus;
 	uint32		old_buf_state;
@@ -4117,7 +4117,7 @@ LockBufHdr(BufferDesc * desc)
  * this is primarily useful in CAS style loops.
  */
 static uint32
-WaitBufHdrUnlocked(BufferDesc * buf)
+WaitBufHdrUnlocked(BufferDesc *buf)
 {
 	SpinDelayStatus delayStatus;
 	uint32		buf_state;
@@ -4143,8 +4143,8 @@ WaitBufHdrUnlocked(BufferDesc * buf)
 static int
 buffertag_comparator(const void *a, const void *b)
 {
-	const		BufferTag *ba = (const BufferTag *) a;
-	const		BufferTag *bb = (const BufferTag *) b;
+	const BufferTag *ba = (const BufferTag *) a;
+	const BufferTag *bb = (const BufferTag *) b;
 	int			ret;
 
 	ret = rnode_comparator(&ba->rnode, &bb->rnode);
@@ -4174,8 +4174,8 @@ buffertag_comparator(const void *a, const void *b)
 static int
 ckpt_buforder_comparator(const void *pa, const void *pb)
 {
-	const		CkptSortItem *a = (const CkptSortItem *) pa;
-	const		CkptSortItem *b = (const CkptSortItem *) pb;
+	const CkptSortItem *a = (const CkptSortItem *) pa;
+	const CkptSortItem *b = (const CkptSortItem *) pb;
 
 	/* compare tablespace */
 	if (a->tsId < b->tsId)
@@ -4229,7 +4229,7 @@ ts_ckpt_progress_comparator(Datum a, Datum b, void *arg)
  * writeback control will be performed.
  */
 void
-WritebackContextInit(WritebackContext * context, int *max_pending)
+WritebackContextInit(WritebackContext *context, int *max_pending)
 {
 	Assert(*max_pending <= WRITEBACK_MAX_PENDING_FLUSHES);
 
@@ -4241,7 +4241,7 @@ WritebackContextInit(WritebackContext * context, int *max_pending)
  * Add buffer to list of pending writeback requests.
  */
 void
-ScheduleBufferTagForWriteback(WritebackContext * context, BufferTag * tag)
+ScheduleBufferTagForWriteback(WritebackContext *context, BufferTag *tag)
 {
 	PendingWriteback *pending;
 
@@ -4275,7 +4275,7 @@ ScheduleBufferTagForWriteback(WritebackContext * context, BufferTag * tag)
  * error out - it's just a hint.
  */
 void
-IssuePendingWritebacks(WritebackContext * context)
+IssuePendingWritebacks(WritebackContext *context)
 {
 	int			i;
 

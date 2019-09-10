@@ -18,6 +18,7 @@ PG_MODULE_MAGIC;
 /* GUC variables */
 double		similarity_threshold = 0.3f;
 double		word_similarity_threshold = 0.6f;
+double		strict_word_similarity_threshold = 0.5f;
 
 void		_PG_init(void);
 
@@ -26,19 +27,35 @@ PG_FUNCTION_INFO_V1(show_limit);
 PG_FUNCTION_INFO_V1(show_trgm);
 PG_FUNCTION_INFO_V1(similarity);
 PG_FUNCTION_INFO_V1(word_similarity);
+PG_FUNCTION_INFO_V1(strict_word_similarity);
 PG_FUNCTION_INFO_V1(similarity_dist);
 PG_FUNCTION_INFO_V1(similarity_op);
 PG_FUNCTION_INFO_V1(word_similarity_op);
 PG_FUNCTION_INFO_V1(word_similarity_commutator_op);
 PG_FUNCTION_INFO_V1(word_similarity_dist_op);
 PG_FUNCTION_INFO_V1(word_similarity_dist_commutator_op);
+PG_FUNCTION_INFO_V1(strict_word_similarity_op);
+PG_FUNCTION_INFO_V1(strict_word_similarity_commutator_op);
+PG_FUNCTION_INFO_V1(strict_word_similarity_dist_op);
+PG_FUNCTION_INFO_V1(strict_word_similarity_dist_commutator_op);
 
 /* Trigram with position */
 typedef struct
 {
 	trgm		trg;
 	int			index;
-}			pos_trgm;
+} pos_trgm;
+
+/* Trigram bound type */
+typedef uint8 TrgmBound;
+#define TRGM_BOUND_LEFT				0x01	/* trigram is left bound of word */
+#define TRGM_BOUND_RIGHT			0x02	/* trigram is right bound of word */
+
+/* Word similarity flags */
+#define WORD_SIMILARITY_CHECK_ONLY	0x01	/* only check existence of similar
+											 * search pattern in text */
+#define WORD_SIMILARITY_STRICT		0x02	/* force bounds of extent to match
+											 * word bounds */
 
 /*
  * Module load callback
@@ -71,6 +88,18 @@ _PG_init(void)
 							 NULL,
 							 NULL,
 							 NULL);
+	DefineCustomRealVariable("pg_trgm.strict_word_similarity_threshold",
+							 "Sets the threshold used by the <<%% operator.",
+							 "Valid range is 0.0 .. 1.0.",
+							 &strict_word_similarity_threshold,
+							 0.5,
+							 0.0,
+							 1.0,
+							 PGC_USERSET,
+							 0,
+							 NULL,
+							 NULL,
+							 NULL);
 }
 
 /*
@@ -95,6 +124,29 @@ set_limit(PG_FUNCTION_ARGS)
 	PG_RETURN_FLOAT4(similarity_threshold);
 }
 
+
+/*
+ * Get similarity threshold for given index scan strategy number.
+ */
+double
+index_strategy_get_limit(StrategyNumber strategy)
+{
+	switch (strategy)
+	{
+		case SimilarityStrategyNumber:
+			return similarity_threshold;
+		case WordSimilarityStrategyNumber:
+			return word_similarity_threshold;
+		case StrictWordSimilarityStrategyNumber:
+			return strict_word_similarity_threshold;
+		default:
+			elog(ERROR, "unrecognized strategy number: %d", strategy);
+			break;
+	}
+
+	return 0.0;					/* keep compiler quiet */
+}
+
 /*
  * Deprecated function.
  * Use "pg_trgm.similarity_threshold" GUC variable instead of this function.
@@ -112,7 +164,7 @@ comp_trgm(const void *a, const void *b)
 }
 
 static int
-unique_array(trgm * a, int len)
+unique_array(trgm *a, int len)
 {
 	trgm	   *curend,
 			   *tmp;
@@ -163,7 +215,7 @@ find_word(char *str, int lenstr, char **endword, int *charlen)
  * characters, we just use them as-is; otherwise we form a hash value.
  */
 void
-compact_trigram(trgm * tptr, char *str, int bytelen)
+compact_trigram(trgm *tptr, char *str, int bytelen)
 {
 	if (bytelen == 3)
 	{
@@ -188,7 +240,7 @@ compact_trigram(trgm * tptr, char *str, int bytelen)
  * Adds trigrams from words (already padded).
  */
 static trgm *
-make_trigrams(trgm * tptr, char *str, int bytelen, int charlen)
+make_trigrams(trgm *tptr, char *str, int bytelen, int charlen)
 {
 	char	   *ptr = str;
 
@@ -235,11 +287,12 @@ make_trigrams(trgm * tptr, char *str, int bytelen, int charlen)
  *
  * trg: where to return the array of trigrams.
  * str: source string, of length slen bytes.
+ * bounds: where to return bounds of trigrams (if needed).
  *
  * Returns length of the generated array.
  */
 static int
-generate_trgm_only(trgm * trg, char *str, int slen)
+generate_trgm_only(trgm *trg, char *str, int slen, TrgmBound *bounds)
 {
 	trgm	   *tptr;
 	char	   *buf;
@@ -282,11 +335,13 @@ generate_trgm_only(trgm * trg, char *str, int slen)
 		buf[LPADDING + bytelen] = ' ';
 		buf[LPADDING + bytelen + 1] = ' ';
 
-		/*
-		 * count trigrams
-		 */
+		/* Calculate trigrams marking their bounds if needed */
+		if (bounds)
+			bounds[tptr - trg] |= TRGM_BOUND_LEFT;
 		tptr = make_trigrams(tptr, buf, bytelen + LPADDING + RPADDING,
 							 charlen + LPADDING + RPADDING);
+		if (bounds)
+			bounds[tptr - trg - 1] |= TRGM_BOUND_RIGHT;
 	}
 
 	pfree(buf);
@@ -328,7 +383,7 @@ generate_trgm(char *str, int slen)
 	trg = (TRGM *) palloc(TRGMHDRSIZE + sizeof(trgm) * (slen / 2 + 1) * 3);
 	trg->flag = ARRKEY;
 
-	len = generate_trgm_only(GETARR(trg), str, slen);
+	len = generate_trgm_only(GETARR(trg), str, slen, NULL);
 	SET_VARSIZE(trg, CALCGTSIZE(ARRKEY, len));
 
 	if (len == 0)
@@ -359,7 +414,7 @@ generate_trgm(char *str, int slen)
  * Returns concatenated trigram array.
  */
 static pos_trgm *
-make_positional_trgm(trgm * trg1, int len1, trgm * trg2, int len2)
+make_positional_trgm(trgm *trg1, int len1, trgm *trg2, int len2)
 {
 	pos_trgm   *result;
 	int			i,
@@ -388,8 +443,8 @@ make_positional_trgm(trgm * trg1, int len1, trgm * trg2, int len2)
 static int
 comp_ptrgm(const void *v1, const void *v2)
 {
-	const		pos_trgm *p1 = (const pos_trgm *) v1;
-	const		pos_trgm *p2 = (const pos_trgm *) v2;
+	const pos_trgm *p1 = (const pos_trgm *) v1;
+	const pos_trgm *p2 = (const pos_trgm *) v2;
 	int			cmp;
 
 	cmp = CMPTRGM(p1->trg, p2->trg);
@@ -413,8 +468,8 @@ comp_ptrgm(const void *v1, const void *v2)
  * ulen1: count of unique trigrams of array "trg1".
  * len2: length of array "trg2" and array "trg2indexes".
  * len: length of the array "found".
- * check_only: if true then only check existence of similar search pattern in
- *			   text.
+ * lags: set of boolean flags parametrizing similarity calculation.
+ * bounds: whether each trigram is left/right bound of word.
  *
  * Returns word similarity.
  */
@@ -424,16 +479,32 @@ iterate_word_similarity(int *trg2indexes,
 						int ulen1,
 						int len2,
 						int len,
-						bool check_only)
+						uint8 flags,
+						TrgmBound *bounds)
 {
 	int		   *lastpos,
 				i,
 				ulen2 = 0,
 				count = 0,
 				upper = -1,
-				lower = -1;
+				lower;
 	float4		smlr_cur,
 				smlr_max = 0.0f;
+	double		threshold;
+
+	Assert(bounds || !(flags & WORD_SIMILARITY_STRICT));
+
+	/* Select appropriate threshold */
+	threshold = (flags & WORD_SIMILARITY_STRICT) ?
+		strict_word_similarity_threshold :
+		word_similarity_threshold;
+
+	/*
+	 * Consider first trigram as initial lower bount for strict word
+	 * similarity, or initialize it later with first trigram present for plain
+	 * word similarity.
+	 */
+	lower = (flags & WORD_SIMILARITY_STRICT) ? 0 : -1;
 
 	/* Memorise last position of each trigram */
 	lastpos = (int *) palloc(sizeof(int) * len);
@@ -456,8 +527,13 @@ iterate_word_similarity(int *trg2indexes,
 			lastpos[trgindex] = i;
 		}
 
-		/* Adjust lower bound if this trigram is present in required substring */
-		if (found[trgindex])
+		/*
+		 * Adjust upper bound if trigram is upper bound of word for strict
+		 * word similarity, or if trigram is present in required substring for
+		 * plain word similarity
+		 */
+		if ((flags & WORD_SIMILARITY_STRICT) ? (bounds[i] & TRGM_BOUND_RIGHT)
+			: found[trgindex])
 		{
 			int			prev_lower,
 						tmp_ulen2,
@@ -473,30 +549,41 @@ iterate_word_similarity(int *trg2indexes,
 
 			smlr_cur = CALCSML(count, ulen1, ulen2);
 
-			/* Also try to adjust upper bound for greater similarity */
+			/* Also try to adjust lower bound for greater similarity */
 			tmp_count = count;
 			tmp_ulen2 = ulen2;
 			prev_lower = lower;
 			for (tmp_lower = lower; tmp_lower <= upper; tmp_lower++)
 			{
-				float		smlr_tmp = CALCSML(tmp_count, ulen1, tmp_ulen2);
+				float		smlr_tmp;
 				int			tmp_trgindex;
 
-				if (smlr_tmp > smlr_cur)
-				{
-					smlr_cur = smlr_tmp;
-					ulen2 = tmp_ulen2;
-					lower = tmp_lower;
-					count = tmp_count;
-				}
-
 				/*
-				 * if we only check that word similarity is greater than
-				 * pg_trgm.word_similarity_threshold we do not need to
-				 * calculate a maximum similarity.
+				 * Adjust lower bound only if trigram is lower bound of word
+				 * for strict word similarity, or consider every trigram as
+				 * lower bound for plain word similarity.
 				 */
-				if (check_only && smlr_cur >= word_similarity_threshold)
-					break;
+				if (!(flags & WORD_SIMILARITY_STRICT)
+					|| (bounds[tmp_lower] & TRGM_BOUND_LEFT))
+				{
+					smlr_tmp = CALCSML(tmp_count, ulen1, tmp_ulen2);
+					if (smlr_tmp > smlr_cur)
+					{
+						smlr_cur = smlr_tmp;
+						ulen2 = tmp_ulen2;
+						lower = tmp_lower;
+						count = tmp_count;
+					}
+
+					/*
+					 * If we only check that word similarity is greater than
+					 * threshold we do not need to calculate a maximum
+					 * similarity.
+					 */
+					if ((flags & WORD_SIMILARITY_CHECK_ONLY)
+						&& smlr_cur >= threshold)
+						break;
+				}
 
 				tmp_trgindex = trg2indexes[tmp_lower];
 				if (lastpos[tmp_trgindex] == tmp_lower)
@@ -510,11 +597,10 @@ iterate_word_similarity(int *trg2indexes,
 			smlr_max = Max(smlr_max, smlr_cur);
 
 			/*
-			 * if we only check that word similarity is greater than
-			 * pg_trgm.word_similarity_threshold we do not need to calculate a
-			 * maximum similarity
+			 * if we only check that word similarity is greater than threshold
+			 * we do not need to calculate a maximum similarity.
 			 */
-			if (check_only && smlr_max >= word_similarity_threshold)
+			if ((flags & WORD_SIMILARITY_CHECK_ONLY) && smlr_max >= threshold)
 				break;
 
 			for (tmp_lower = prev_lower; tmp_lower < lower; tmp_lower++)
@@ -547,14 +633,13 @@ iterate_word_similarity(int *trg2indexes,
  *
  * str1: search pattern string, of length slen1 bytes.
  * str2: text in which we are looking for a word, of length slen2 bytes.
- * check_only: if true then only check existence of similar search pattern in
- *			   text.
+ * flags: set of boolean flags parametrizing similarity calculation.
  *
  * Returns word similarity.
  */
 static float4
 calc_word_similarity(char *str1, int slen1, char *str2, int slen2,
-					 bool check_only)
+					 uint8 flags)
 {
 	bool	   *found;
 	pos_trgm   *ptrg;
@@ -568,15 +653,20 @@ calc_word_similarity(char *str1, int slen1, char *str2, int slen2,
 				ulen1;
 	int		   *trg2indexes;
 	float4		result;
+	TrgmBound  *bounds;
 
 	protect_out_of_mem(slen1 + slen2);
 
 	/* Make positional trigrams */
 	trg1 = (trgm *) palloc(sizeof(trgm) * (slen1 / 2 + 1) * 3);
 	trg2 = (trgm *) palloc(sizeof(trgm) * (slen2 / 2 + 1) * 3);
+	if (flags & WORD_SIMILARITY_STRICT)
+		bounds = (TrgmBound *) palloc0(sizeof(TrgmBound) * (slen2 / 2 + 1) * 3);
+	else
+		bounds = NULL;
 
-	len1 = generate_trgm_only(trg1, str1, slen1);
-	len2 = generate_trgm_only(trg2, str2, slen2);
+	len1 = generate_trgm_only(trg1, str1, slen1, NULL);
+	len2 = generate_trgm_only(trg2, str2, slen2, bounds);
 
 	ptrg = make_positional_trgm(trg1, len1, trg2, len2);
 	len = len1 + len2;
@@ -622,7 +712,7 @@ calc_word_similarity(char *str1, int slen1, char *str2, int slen2,
 
 	/* Run iterative procedure to find maximum similarity with word */
 	result = iterate_word_similarity(trg2indexes, found, ulen1, len2, len,
-									 check_only);
+									 flags, bounds);
 
 	pfree(trg2indexes);
 	pfree(found);
@@ -862,7 +952,7 @@ generate_wildcard_trgm(const char *str, int slen)
 }
 
 uint32
-trgm2int(trgm * ptr)
+trgm2int(trgm *ptr)
 {
 	uint32		val = 0;
 
@@ -925,7 +1015,7 @@ show_trgm(PG_FUNCTION_ARGS)
 }
 
 float4
-cnt_sml(TRGM * trg1, TRGM * trg2, bool inexact)
+cnt_sml(TRGM *trg1, TRGM *trg2, bool inexact)
 {
 	trgm	   *ptr1,
 			   *ptr2;
@@ -973,7 +1063,7 @@ cnt_sml(TRGM * trg1, TRGM * trg2, bool inexact)
  * This relies on the trigram arrays being sorted.
  */
 bool
-trgm_contained_by(TRGM * trg1, TRGM * trg2)
+trgm_contained_by(TRGM *trg1, TRGM *trg2)
 {
 	trgm	   *ptr1,
 			   *ptr2;
@@ -1012,7 +1102,7 @@ trgm_contained_by(TRGM * trg1, TRGM * trg2)
  * This relies on the "key" array being sorted, but "query" need not be.
  */
 bool *
-trgm_presence_map(TRGM * query, TRGM * key)
+trgm_presence_map(TRGM *query, TRGM *key)
 {
 	bool	   *result;
 	trgm	   *ptrq = GETARR(query),
@@ -1081,7 +1171,23 @@ word_similarity(PG_FUNCTION_ARGS)
 
 	res = calc_word_similarity(VARDATA_ANY(in1), VARSIZE_ANY_EXHDR(in1),
 							   VARDATA_ANY(in2), VARSIZE_ANY_EXHDR(in2),
-							   false);
+							   0);
+
+	PG_FREE_IF_COPY(in1, 0);
+	PG_FREE_IF_COPY(in2, 1);
+	PG_RETURN_FLOAT4(res);
+}
+
+Datum
+strict_word_similarity(PG_FUNCTION_ARGS)
+{
+	text	   *in1 = PG_GETARG_TEXT_PP(0);
+	text	   *in2 = PG_GETARG_TEXT_PP(1);
+	float4		res;
+
+	res = calc_word_similarity(VARDATA_ANY(in1), VARSIZE_ANY_EXHDR(in1),
+							   VARDATA_ANY(in2), VARSIZE_ANY_EXHDR(in2),
+							   WORD_SIMILARITY_STRICT);
 
 	PG_FREE_IF_COPY(in1, 0);
 	PG_FREE_IF_COPY(in2, 1);
@@ -1117,7 +1223,7 @@ word_similarity_op(PG_FUNCTION_ARGS)
 
 	res = calc_word_similarity(VARDATA_ANY(in1), VARSIZE_ANY_EXHDR(in1),
 							   VARDATA_ANY(in2), VARSIZE_ANY_EXHDR(in2),
-							   true);
+							   WORD_SIMILARITY_CHECK_ONLY);
 
 	PG_FREE_IF_COPY(in1, 0);
 	PG_FREE_IF_COPY(in2, 1);
@@ -1133,7 +1239,7 @@ word_similarity_commutator_op(PG_FUNCTION_ARGS)
 
 	res = calc_word_similarity(VARDATA_ANY(in2), VARSIZE_ANY_EXHDR(in2),
 							   VARDATA_ANY(in1), VARSIZE_ANY_EXHDR(in1),
-							   true);
+							   WORD_SIMILARITY_CHECK_ONLY);
 
 	PG_FREE_IF_COPY(in1, 0);
 	PG_FREE_IF_COPY(in2, 1);
@@ -1149,7 +1255,7 @@ word_similarity_dist_op(PG_FUNCTION_ARGS)
 
 	res = calc_word_similarity(VARDATA_ANY(in1), VARSIZE_ANY_EXHDR(in1),
 							   VARDATA_ANY(in2), VARSIZE_ANY_EXHDR(in2),
-							   false);
+							   0);
 
 	PG_FREE_IF_COPY(in1, 0);
 	PG_FREE_IF_COPY(in2, 1);
@@ -1165,7 +1271,71 @@ word_similarity_dist_commutator_op(PG_FUNCTION_ARGS)
 
 	res = calc_word_similarity(VARDATA_ANY(in2), VARSIZE_ANY_EXHDR(in2),
 							   VARDATA_ANY(in1), VARSIZE_ANY_EXHDR(in1),
-							   false);
+							   0);
+
+	PG_FREE_IF_COPY(in1, 0);
+	PG_FREE_IF_COPY(in2, 1);
+	PG_RETURN_FLOAT4(1.0 - res);
+}
+
+Datum
+strict_word_similarity_op(PG_FUNCTION_ARGS)
+{
+	text	   *in1 = PG_GETARG_TEXT_PP(0);
+	text	   *in2 = PG_GETARG_TEXT_PP(1);
+	float4		res;
+
+	res = calc_word_similarity(VARDATA_ANY(in1), VARSIZE_ANY_EXHDR(in1),
+							   VARDATA_ANY(in2), VARSIZE_ANY_EXHDR(in2),
+							   WORD_SIMILARITY_CHECK_ONLY | WORD_SIMILARITY_STRICT);
+
+	PG_FREE_IF_COPY(in1, 0);
+	PG_FREE_IF_COPY(in2, 1);
+	PG_RETURN_BOOL(res >= strict_word_similarity_threshold);
+}
+
+Datum
+strict_word_similarity_commutator_op(PG_FUNCTION_ARGS)
+{
+	text	   *in1 = PG_GETARG_TEXT_PP(0);
+	text	   *in2 = PG_GETARG_TEXT_PP(1);
+	float4		res;
+
+	res = calc_word_similarity(VARDATA_ANY(in2), VARSIZE_ANY_EXHDR(in2),
+							   VARDATA_ANY(in1), VARSIZE_ANY_EXHDR(in1),
+							   WORD_SIMILARITY_CHECK_ONLY | WORD_SIMILARITY_STRICT);
+
+	PG_FREE_IF_COPY(in1, 0);
+	PG_FREE_IF_COPY(in2, 1);
+	PG_RETURN_BOOL(res >= strict_word_similarity_threshold);
+}
+
+Datum
+strict_word_similarity_dist_op(PG_FUNCTION_ARGS)
+{
+	text	   *in1 = PG_GETARG_TEXT_PP(0);
+	text	   *in2 = PG_GETARG_TEXT_PP(1);
+	float4		res;
+
+	res = calc_word_similarity(VARDATA_ANY(in1), VARSIZE_ANY_EXHDR(in1),
+							   VARDATA_ANY(in2), VARSIZE_ANY_EXHDR(in2),
+							   WORD_SIMILARITY_STRICT);
+
+	PG_FREE_IF_COPY(in1, 0);
+	PG_FREE_IF_COPY(in2, 1);
+	PG_RETURN_FLOAT4(1.0 - res);
+}
+
+Datum
+strict_word_similarity_dist_commutator_op(PG_FUNCTION_ARGS)
+{
+	text	   *in1 = PG_GETARG_TEXT_PP(0);
+	text	   *in2 = PG_GETARG_TEXT_PP(1);
+	float4		res;
+
+	res = calc_word_similarity(VARDATA_ANY(in2), VARSIZE_ANY_EXHDR(in2),
+							   VARDATA_ANY(in1), VARSIZE_ANY_EXHDR(in1),
+							   WORD_SIMILARITY_STRICT);
 
 	PG_FREE_IF_COPY(in1, 0);
 	PG_FREE_IF_COPY(in2, 1);

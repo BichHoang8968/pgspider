@@ -54,6 +54,7 @@
  *	Also, whenever we see an operation on a pg_class, pg_attribute, or
  *	pg_index tuple, we register a relcache flush operation for the relation
  *	described by that tuple (as specified in CacheInvalidateHeapTuple()).
+ *	Likewise for pg_constraint tuples for foreign keys on relations.
  *
  *	We keep the relcache flush requests in lists separate from the catcache
  *	tuple flush requests.  This allows us to issue all the pending catcache
@@ -85,7 +86,7 @@
  *	problems can be overcome cheaply.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -100,6 +101,7 @@
 #include "access/htup_details.h"
 #include "access/xact.h"
 #include "catalog/catalog.h"
+#include "catalog/pg_constraint.h"
 #include "miscadmin.h"
 #include "storage/sinval.h"
 #include "storage/smgr.h"
@@ -125,13 +127,13 @@ typedef struct InvalidationChunk
 	int			nitems;			/* # items currently stored in chunk */
 	int			maxitems;		/* size of allocated array in this chunk */
 	SharedInvalidationMessage msgs[FLEXIBLE_ARRAY_MEMBER];
-}			InvalidationChunk;
+} InvalidationChunk;
 
 typedef struct InvalidationListHeader
 {
 	InvalidationChunk *cclist;	/* list of chunks holding catcache msgs */
 	InvalidationChunk *rclist;	/* list of chunks holding relcache msgs */
-}			InvalidationListHeader;
+} InvalidationListHeader;
 
 /*----------------
  * Invalidation info is divided into two lists:
@@ -166,11 +168,11 @@ typedef struct TransInvalidationInfo
 
 	/* init file must be invalidated? */
 	bool		RelcacheInitFileInval;
-}			TransInvalidationInfo;
+} TransInvalidationInfo;
 
-static TransInvalidationInfo * transInvalInfo = NULL;
+static TransInvalidationInfo *transInvalInfo = NULL;
 
-static SharedInvalidationMessage * SharedInvalidMessagesArray;
+static SharedInvalidationMessage *SharedInvalidMessagesArray;
 static int	numSharedInvalidMessagesArray;
 static int	maxSharedInvalidMessagesArray;
 
@@ -224,8 +226,8 @@ static int	relcache_callback_count = 0;
  * ordering of the messages.
  */
 static void
-AddInvalidationMessage(InvalidationChunk * *listHdr,
-					   SharedInvalidationMessage * msg)
+AddInvalidationMessage(InvalidationChunk **listHdr,
+					   SharedInvalidationMessage *msg)
 {
 	InvalidationChunk *chunk = *listHdr;
 
@@ -266,8 +268,8 @@ AddInvalidationMessage(InvalidationChunk * *listHdr,
  * the source chunk-list pointer to NULL.
  */
 static void
-AppendInvalidationMessageList(InvalidationChunk * *destHdr,
-							  InvalidationChunk * *srcHdr)
+AppendInvalidationMessageList(InvalidationChunk **destHdr,
+							  InvalidationChunk **srcHdr)
 {
 	InvalidationChunk *chunk = *srcHdr;
 
@@ -334,7 +336,7 @@ AppendInvalidationMessageList(InvalidationChunk * *destHdr,
  * Add a catcache inval entry
  */
 static void
-AddCatcacheInvalidationMessage(InvalidationListHeader * hdr,
+AddCatcacheInvalidationMessage(InvalidationListHeader *hdr,
 							   int id, uint32 hashValue, Oid dbId)
 {
 	SharedInvalidationMessage msg;
@@ -362,7 +364,7 @@ AddCatcacheInvalidationMessage(InvalidationListHeader * hdr,
  * Add a whole-catalog inval entry
  */
 static void
-AddCatalogInvalidationMessage(InvalidationListHeader * hdr,
+AddCatalogInvalidationMessage(InvalidationListHeader *hdr,
 							  Oid dbId, Oid catId)
 {
 	SharedInvalidationMessage msg;
@@ -380,7 +382,7 @@ AddCatalogInvalidationMessage(InvalidationListHeader * hdr,
  * Add a relcache inval entry
  */
 static void
-AddRelcacheInvalidationMessage(InvalidationListHeader * hdr,
+AddRelcacheInvalidationMessage(InvalidationListHeader *hdr,
 							   Oid dbId, Oid relId)
 {
 	SharedInvalidationMessage msg;
@@ -410,7 +412,7 @@ AddRelcacheInvalidationMessage(InvalidationListHeader * hdr,
  * Add a snapshot inval entry
  */
 static void
-AddSnapshotInvalidationMessage(InvalidationListHeader * hdr,
+AddSnapshotInvalidationMessage(InvalidationListHeader *hdr,
 							   Oid dbId, Oid relId)
 {
 	SharedInvalidationMessage msg;
@@ -437,8 +439,8 @@ AddSnapshotInvalidationMessage(InvalidationListHeader * hdr,
  * the source list to empty.
  */
 static void
-AppendInvalidationMessages(InvalidationListHeader * dest,
-						   InvalidationListHeader * src)
+AppendInvalidationMessages(InvalidationListHeader *dest,
+						   InvalidationListHeader *src)
 {
 	AppendInvalidationMessageList(&dest->cclist, &src->cclist);
 	AppendInvalidationMessageList(&dest->rclist, &src->rclist);
@@ -451,8 +453,8 @@ AppendInvalidationMessages(InvalidationListHeader * dest,
  * catcache entries are processed first, for reasons mentioned above.
  */
 static void
-ProcessInvalidationMessages(InvalidationListHeader * hdr,
-							void (*func) (SharedInvalidationMessage * msg))
+ProcessInvalidationMessages(InvalidationListHeader *hdr,
+							void (*func) (SharedInvalidationMessage *msg))
 {
 	ProcessMessageList(hdr->cclist, func(msg));
 	ProcessMessageList(hdr->rclist, func(msg));
@@ -463,8 +465,8 @@ ProcessInvalidationMessages(InvalidationListHeader * hdr,
  * rather than just one at a time.
  */
 static void
-ProcessInvalidationMessagesMulti(InvalidationListHeader * hdr,
-								 void (*func) (const SharedInvalidationMessage * msgs, int n))
+ProcessInvalidationMessagesMulti(InvalidationListHeader *hdr,
+								 void (*func) (const SharedInvalidationMessage *msgs, int n))
 {
 	ProcessMessageListMulti(hdr->cclist, func(msgs, n));
 	ProcessMessageListMulti(hdr->rclist, func(msgs, n));
@@ -551,7 +553,7 @@ RegisterSnapshotInvalidation(Oid dbId, Oid relId)
  * to other backends.
  */
 void
-LocalExecuteInvalidationMessage(SharedInvalidationMessage * msg)
+LocalExecuteInvalidationMessage(SharedInvalidationMessage *msg)
 {
 	if (msg->id >= 0)
 	{
@@ -590,7 +592,7 @@ LocalExecuteInvalidationMessage(SharedInvalidationMessage * msg)
 			{
 				struct RELCACHECALLBACK *ccitem = relcache_callback_list + i;
 
-				(*ccitem->function) (ccitem->arg, msg->rc.relId);
+				ccitem->function(ccitem->arg, msg->rc.relId);
 			}
 		}
 	}
@@ -650,14 +652,14 @@ InvalidateSystemCaches(void)
 	{
 		struct SYSCACHECALLBACK *ccitem = syscache_callback_list + i;
 
-		(*ccitem->function) (ccitem->arg, ccitem->id, 0);
+		ccitem->function(ccitem->arg, ccitem->id, 0);
 	}
 
 	for (i = 0; i < relcache_callback_count; i++)
 	{
 		struct RELCACHECALLBACK *ccitem = relcache_callback_list + i;
 
-		(*ccitem->function) (ccitem->arg, InvalidOid);
+		ccitem->function(ccitem->arg, InvalidOid);
 	}
 }
 
@@ -708,7 +710,17 @@ AcceptInvalidationMessages(void)
 		}
 	}
 #elif defined(CLOBBER_CACHE_RECURSIVELY)
-	InvalidateSystemCaches();
+	{
+		static int	recursion_depth = 0;
+
+		/* Maximum depth is arbitrary depending on your threshold of pain */
+		if (recursion_depth < 3)
+		{
+			recursion_depth++;
+			InvalidateSystemCaches();
+			recursion_depth--;
+		}
+	}
 #endif
 }
 
@@ -763,7 +775,7 @@ PostPrepare_Inval(void)
  * Collect invalidation messages into SharedInvalidMessagesArray array.
  */
 static void
-MakeSharedInvalidMessagesArray(const SharedInvalidationMessage * msgs, int n)
+MakeSharedInvalidMessagesArray(const SharedInvalidationMessage *msgs, int n)
 {
 	/*
 	 * Initialise array first time through in each commit
@@ -813,7 +825,7 @@ MakeSharedInvalidMessagesArray(const SharedInvalidationMessage * msgs, int n)
  * see also xact_redo_commit() and xact_desc_commit()
  */
 int
-xactGetCommittedInvalidationMessages(SharedInvalidationMessage * *msgs,
+xactGetCommittedInvalidationMessages(SharedInvalidationMessage **msgs,
 									 bool *RelcacheInitFileInval)
 {
 	MemoryContext oldcontext;
@@ -869,7 +881,7 @@ xactGetCommittedInvalidationMessages(SharedInvalidationMessage * *msgs,
  * before and after we send the SI messages. See AtEOXact_Inval()
  */
 void
-ProcessCommittedInvalidationMessages(SharedInvalidationMessage * msgs,
+ProcessCommittedInvalidationMessages(SharedInvalidationMessage *msgs,
 									 int nmsgs, bool RelcacheInitFileInval,
 									 Oid dbid, Oid tsid)
 {
@@ -1193,6 +1205,23 @@ CacheInvalidateHeapTuple(Relation relation,
 		relationId = indextup->indexrelid;
 		databaseId = MyDatabaseId;
 	}
+	else if (tupleRelId == ConstraintRelationId)
+	{
+		Form_pg_constraint constrtup = (Form_pg_constraint) GETSTRUCT(tuple);
+
+		/*
+		 * Foreign keys are part of relcache entries, too, so send out an
+		 * inval for the table that the FK applies to.
+		 */
+		if (constrtup->contype == CONSTRAINT_FOREIGN &&
+			OidIsValid(constrtup->conrelid))
+		{
+			relationId = constrtup->conrelid;
+			databaseId = MyDatabaseId;
+		}
+		else
+			return;
+	}
 	else
 		return;
 
@@ -1468,7 +1497,7 @@ CallSyscacheCallbacks(int cacheid, uint32 hashvalue)
 		struct SYSCACHECALLBACK *ccitem = syscache_callback_list + i;
 
 		Assert(ccitem->id == cacheid);
-		(*ccitem->function) (ccitem->arg, cacheid, hashvalue);
+		ccitem->function(ccitem->arg, cacheid, hashvalue);
 		i = ccitem->link - 1;
 	}
 }

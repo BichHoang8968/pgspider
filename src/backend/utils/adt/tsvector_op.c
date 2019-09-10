@@ -3,7 +3,7 @@
  * tsvector_op.c
  *	  operations over tsvector
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -37,7 +37,7 @@ typedef struct
 	WordEntry  *arre;
 	char	   *values;
 	char	   *operand;
-}			CHKVAL;
+} CHKVAL;
 
 
 typedef struct StatEntry
@@ -49,7 +49,7 @@ typedef struct StatEntry
 	struct StatEntry *right;
 	uint32		lenlexeme;
 	char		lexeme[FLEXIBLE_ARRAY_MEMBER];
-}			StatEntry;
+} StatEntry;
 
 #define STATENTRYHDRSZ	(offsetof(StatEntry, lexeme))
 
@@ -63,7 +63,7 @@ typedef struct
 	uint32		stackpos;
 
 	StatEntry  *root;
-}			TSVectorStat;
+} TSVectorStat;
 
 #define STATHDRSIZE (offsetof(TSVectorStat, data))
 
@@ -354,8 +354,8 @@ tsvector_setweight_by_filter(PG_FUNCTION_ARGS)
  * Return the number added (might be less than expected due to overflow)
  */
 static int32
-add_pos(TSVector src, WordEntry * srcptr,
-		TSVector dest, WordEntry * destptr,
+add_pos(TSVector src, WordEntry *srcptr,
+		TSVector dest, WordEntry *destptr,
 		int32 maxpos)
 {
 	uint16	   *clen = &_POSVECPTR(dest, destptr)->npos;
@@ -1194,8 +1194,8 @@ tsCompareString(char *a, int lena, char *b, int lenb, bool prefix)
  * Check weight info or/and fill 'data' with the required positions
  */
 static bool
-checkclass_str(CHKVAL * chkval, WordEntry * entry, QueryOperand * val,
-			   ExecPhraseData * data)
+checkclass_str(CHKVAL *chkval, WordEntry *entry, QueryOperand *val,
+			   ExecPhraseData *data)
 {
 	bool		result = false;
 
@@ -1278,7 +1278,7 @@ checkclass_str(CHKVAL * chkval, WordEntry * entry, QueryOperand * val,
  * Returns new length.
  */
 static int
-uniqueLongPos(WordEntryPos * pos, int npos)
+uniqueLongPos(WordEntryPos *pos, int npos)
 {
 	WordEntryPos *pos_iter,
 			   *result;
@@ -1308,7 +1308,7 @@ uniqueLongPos(WordEntryPos * pos, int npos)
  * is there value 'val' in array or not ?
  */
 static bool
-checkcondition_str(void *checkval, QueryOperand * val, ExecPhraseData * data)
+checkcondition_str(void *checkval, QueryOperand *val, ExecPhraseData *data)
 {
 	CHKVAL	   *chkval = (CHKVAL *) checkval;
 	WordEntry  *StopLow = chkval->arrb;
@@ -1431,9 +1431,9 @@ checkcondition_str(void *checkval, QueryOperand * val, ExecPhraseData * data)
 #define TSPO_BOTH		0x04	/* emit positions appearing in both L&R */
 
 static bool
-TS_phrase_output(ExecPhraseData * data,
-				 ExecPhraseData * Ldata,
-				 ExecPhraseData * Rdata,
+TS_phrase_output(ExecPhraseData *data,
+				 ExecPhraseData *Ldata,
+				 ExecPhraseData *Rdata,
 				 int emit,
 				 int Loffset,
 				 int Roffset,
@@ -1569,9 +1569,9 @@ TS_phrase_output(ExecPhraseData * data,
  * "width" output in such cases is undefined.
  */
 static bool
-TS_phrase_execute(QueryItem * curitem, void *arg, uint32 flags,
+TS_phrase_execute(QueryItem *curitem, void *arg, uint32 flags,
 				  TSExecuteCallback chkcond,
-				  ExecPhraseData * data)
+				  ExecPhraseData *data)
 {
 	ExecPhraseData Ldata,
 				Rdata;
@@ -1812,7 +1812,7 @@ TS_phrase_execute(QueryItem * curitem, void *arg, uint32 flags,
  * OP_PHRASE operator, we pass it off to TS_phrase_execute which does worry.
  */
 bool
-TS_execute(QueryItem * curitem, void *arg, uint32 flags,
+TS_execute(QueryItem *curitem, void *arg, uint32 flags,
 		   TSExecuteCallback chkcond)
 {
 	/* since this function recurses, it could be driven to stack overflow */
@@ -1862,7 +1862,7 @@ TS_execute(QueryItem * curitem, void *arg, uint32 flags,
  * entries for x; but 'x | !y' could match rows containing neither x nor y.
  */
 bool
-tsquery_requires_match(QueryItem * curitem)
+tsquery_requires_match(QueryItem *curitem)
 {
 	/* since this function recurses, it could be driven to stack overflow */
 	check_stack_depth();
@@ -2001,7 +2001,7 @@ ts_match_tq(PG_FUNCTION_ARGS)
  * that have a weight equal to one of the weights in 'weight' bitmask.
  */
 static int
-check_weight(TSVector txt, WordEntry * wptr, int8 weight)
+check_weight(TSVector txt, WordEntry *wptr, int8 weight)
 {
 	int			len = POSDATALEN(txt, wptr);
 	int			num = 0;
@@ -2022,7 +2022,7 @@ check_weight(TSVector txt, WordEntry * wptr, int8 weight)
 					false)
 
 static void
-insertStatEntry(MemoryContext persistentContext, TSVectorStat * stat, TSVector txt, uint32 off)
+insertStatEntry(MemoryContext persistentContext, TSVectorStat *stat, TSVector txt, uint32 off)
 {
 	WordEntry  *we = ARRPTR(txt) + off;
 	StatEntry  *node = stat->root,
@@ -2088,7 +2088,7 @@ insertStatEntry(MemoryContext persistentContext, TSVectorStat * stat, TSVector t
 }
 
 static void
-chooseNextStatEntry(MemoryContext persistentContext, TSVectorStat * stat, TSVector txt,
+chooseNextStatEntry(MemoryContext persistentContext, TSVectorStat *stat, TSVector txt,
 					uint32 low, uint32 high, uint32 offset)
 {
 	uint32		pos;
@@ -2120,7 +2120,7 @@ chooseNextStatEntry(MemoryContext persistentContext, TSVectorStat * stat, TSVect
  */
 
 static TSVectorStat *
-ts_accum(MemoryContext persistentContext, TSVectorStat * stat, Datum data)
+ts_accum(MemoryContext persistentContext, TSVectorStat *stat, Datum data)
 {
 	TSVector	txt = DatumGetTSVector(data);
 	uint32		i,
@@ -2155,8 +2155,8 @@ ts_accum(MemoryContext persistentContext, TSVectorStat * stat, Datum data)
 }
 
 static void
-ts_setup_firstcall(FunctionCallInfo fcinfo, FuncCallContext * funcctx,
-				   TSVectorStat * stat)
+ts_setup_firstcall(FunctionCallInfo fcinfo, FuncCallContext *funcctx,
+				   TSVectorStat *stat)
 {
 	TupleDesc	tupdesc;
 	MemoryContext oldcontext;
@@ -2201,7 +2201,7 @@ ts_setup_firstcall(FunctionCallInfo fcinfo, FuncCallContext * funcctx,
 }
 
 static StatEntry *
-walkStatEntryTree(TSVectorStat * stat)
+walkStatEntryTree(TSVectorStat *stat)
 {
 	StatEntry  *node = stat->stack[stat->stackpos];
 
@@ -2247,7 +2247,7 @@ walkStatEntryTree(TSVectorStat * stat)
 }
 
 static Datum
-ts_process_call(FuncCallContext * funcctx)
+ts_process_call(FuncCallContext *funcctx)
 {
 	TSVectorStat *st;
 	StatEntry  *entry;
@@ -2287,7 +2287,7 @@ ts_process_call(FuncCallContext * funcctx)
 }
 
 static TSVectorStat *
-ts_stat_sql(MemoryContext persistentContext, text * txt, text * ws)
+ts_stat_sql(MemoryContext persistentContext, text *txt, text *ws)
 {
 	char	   *query = text_to_cstring(txt);
 	TSVectorStat *stat;

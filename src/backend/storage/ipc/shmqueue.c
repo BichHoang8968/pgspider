@@ -3,7 +3,7 @@
  * shmqueue.c
  *	  shared memory linked lists
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -33,18 +33,18 @@
  *		to itself
  */
 void
-SHMQueueInit(SHM_QUEUE * queue)
+SHMQueueInit(SHM_QUEUE *queue)
 {
 	Assert(ShmemAddrIsValid(queue));
 	queue->prev = queue->next = queue;
 }
 
 /*
- * SHMQueueIsDetached -- TRUE if element is not currently
+ * SHMQueueIsDetached -- true if element is not currently
  *		in a queue.
  */
 bool
-SHMQueueIsDetached(const SHM_QUEUE * queue)
+SHMQueueIsDetached(const SHM_QUEUE *queue)
 {
 	Assert(ShmemAddrIsValid(queue));
 	return (queue->prev == NULL);
@@ -54,7 +54,7 @@ SHMQueueIsDetached(const SHM_QUEUE * queue)
  * SHMQueueElemInit -- clear an element's links
  */
 void
-SHMQueueElemInit(SHM_QUEUE * queue)
+SHMQueueElemInit(SHM_QUEUE *queue)
 {
 	Assert(ShmemAddrIsValid(queue));
 	queue->prev = queue->next = NULL;
@@ -65,7 +65,7 @@ SHMQueueElemInit(SHM_QUEUE * queue)
  *		close the links
  */
 void
-SHMQueueDelete(SHM_QUEUE * queue)
+SHMQueueDelete(SHM_QUEUE *queue)
 {
 	SHM_QUEUE  *nextElem = queue->next;
 	SHM_QUEUE  *prevElem = queue->prev;
@@ -86,7 +86,7 @@ SHMQueueDelete(SHM_QUEUE * queue)
  *		at the tail of the queue.
  */
 void
-SHMQueueInsertBefore(SHM_QUEUE * queue, SHM_QUEUE * elem)
+SHMQueueInsertBefore(SHM_QUEUE *queue, SHM_QUEUE *elem)
 {
 	SHM_QUEUE  *prevPtr = queue->prev;
 
@@ -105,7 +105,7 @@ SHMQueueInsertBefore(SHM_QUEUE * queue, SHM_QUEUE * elem)
  *		at the head of the queue.
  */
 void
-SHMQueueInsertAfter(SHM_QUEUE * queue, SHM_QUEUE * elem)
+SHMQueueInsertAfter(SHM_QUEUE *queue, SHM_QUEUE *elem)
 {
 	SHM_QUEUE  *nextPtr = queue->next;
 
@@ -142,7 +142,7 @@ SHMQueueInsertAfter(SHM_QUEUE * queue, SHM_QUEUE * elem)
  *--------------------
  */
 Pointer
-SHMQueueNext(const SHM_QUEUE * queue, const SHM_QUEUE * curElem, Size linkOffset)
+SHMQueueNext(const SHM_QUEUE *queue, const SHM_QUEUE *curElem, Size linkOffset)
 {
 	SHM_QUEUE  *elemPtr = curElem->next;
 
@@ -161,7 +161,7 @@ SHMQueueNext(const SHM_QUEUE * queue, const SHM_QUEUE * curElem, Size linkOffset
  * All other comments and usage applies.
  */
 Pointer
-SHMQueuePrev(const SHM_QUEUE * queue, const SHM_QUEUE * curElem, Size linkOffset)
+SHMQueuePrev(const SHM_QUEUE *queue, const SHM_QUEUE *curElem, Size linkOffset)
 {
 	SHM_QUEUE  *elemPtr = curElem->prev;
 
@@ -174,17 +174,17 @@ SHMQueuePrev(const SHM_QUEUE * queue, const SHM_QUEUE * curElem, Size linkOffset
 }
 
 /*
- * SHMQueueEmpty -- TRUE if queue head is only element, FALSE otherwise
+ * SHMQueueEmpty -- true if queue head is only element, false otherwise
  */
 bool
-SHMQueueEmpty(const SHM_QUEUE * queue)
+SHMQueueEmpty(const SHM_QUEUE *queue)
 {
 	Assert(ShmemAddrIsValid(queue));
 
 	if (queue->prev == queue)
 	{
 		Assert(queue->next == queue);
-		return TRUE;
+		return true;
 	}
-	return FALSE;
+	return false;
 }

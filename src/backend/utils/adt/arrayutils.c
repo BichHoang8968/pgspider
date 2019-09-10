@@ -3,7 +3,7 @@
  * arrayutils.c
  *	  This file contains some support routines required for array functions.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -197,7 +197,7 @@ mda_next_tuple(int n, int *curr, const int *span)
  * and places the length at *n.
  */
 int32 *
-ArrayGetIntegerTypmods(ArrayType * arr, int *n)
+ArrayGetIntegerTypmods(ArrayType *arr, int *n)
 {
 	int32	   *result;
 	Datum	   *elem_values;

@@ -4,7 +4,7 @@
  *	  POSTGRES buffer manager definitions.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/bufmgr.h
@@ -32,7 +32,7 @@ typedef enum BufferAccessStrategyType
 								 * ok) */
 	BAS_BULKWRITE,				/* Large multi-block write (e.g. COPY IN) */
 	BAS_VACUUM					/* VACUUM */
-}			BufferAccessStrategyType;
+} BufferAccessStrategyType;
 
 /* Possible modes for ReadBufferExtended() */
 typedef enum
@@ -45,7 +45,7 @@ typedef enum
 	RBM_ZERO_ON_ERROR,			/* Read, but return an all-zeros page on error */
 	RBM_NORMAL_NO_LOG			/* Don't log page as invalid during WAL
 								 * replay; otherwise same as RBM_NORMAL */
-}			ReadBufferMode;
+} ReadBufferMode;
 
 /* forward declared, to avoid having to expose buf_internals.h here */
 struct WritebackContext;
@@ -72,8 +72,8 @@ extern int	effective_io_concurrency;
 
 /* in localbuf.c */
 extern PGDLLIMPORT int NLocBuffer;
-extern PGDLLIMPORT Block * LocalBufferBlockPointers;
-extern PGDLLIMPORT int32 * LocalRefCount;
+extern PGDLLIMPORT Block *LocalBufferBlockPointers;
+extern PGDLLIMPORT int32 *LocalRefCount;
 
 /* upper limit for effective_io_concurrency */
 #define MAX_IO_CONCURRENCY 1000
@@ -167,17 +167,17 @@ extern void PrefetchBuffer(Relation reln, ForkNumber forkNum,
 			   BlockNumber blockNum);
 extern Buffer ReadBuffer(Relation reln, BlockNumber blockNum);
 extern Buffer ReadBufferExtended(Relation reln, ForkNumber forkNum,
-								 BlockNumber blockNum, ReadBufferMode mode,
-								 BufferAccessStrategy strategy);
+				   BlockNumber blockNum, ReadBufferMode mode,
+				   BufferAccessStrategy strategy);
 extern Buffer ReadBufferWithoutRelcache(RelFileNode rnode,
-										ForkNumber forkNum, BlockNumber blockNum,
-										ReadBufferMode mode, BufferAccessStrategy strategy);
+						  ForkNumber forkNum, BlockNumber blockNum,
+						  ReadBufferMode mode, BufferAccessStrategy strategy);
 extern void ReleaseBuffer(Buffer buffer);
 extern void UnlockReleaseBuffer(Buffer buffer);
 extern void MarkBufferDirty(Buffer buffer);
 extern void IncrBufferRefCount(Buffer buffer);
 extern Buffer ReleaseAndReadBuffer(Buffer buffer, Relation relation,
-								   BlockNumber blockNum);
+					 BlockNumber blockNum);
 
 extern void InitBufferPool(void);
 extern void InitBufferPoolAccess(void);
@@ -187,13 +187,13 @@ extern void PrintBufferLeakWarning(Buffer buffer);
 extern void CheckPointBuffers(int flags);
 extern BlockNumber BufferGetBlockNumber(Buffer buffer);
 extern BlockNumber RelationGetNumberOfBlocksInFork(Relation relation,
-												   ForkNumber forkNum);
+								ForkNumber forkNum);
 extern void FlushOneBuffer(Buffer buffer);
 extern void FlushRelationBuffers(Relation rel);
 extern void FlushDatabaseBuffers(Oid dbid);
 extern void DropRelFileNodeBuffers(RelFileNodeBackend rnode,
 					   ForkNumber forkNum, BlockNumber firstDelBlock);
-extern void DropRelFileNodesAllBuffers(RelFileNodeBackend * rnodes, int nnodes);
+extern void DropRelFileNodesAllBuffers(RelFileNodeBackend *rnodes, int nnodes);
 extern void DropDatabaseBuffers(Oid dbid);
 
 #define RelationGetNumberOfBlocks(reln) \
@@ -206,8 +206,8 @@ extern XLogRecPtr BufferGetLSNAtomic(Buffer buffer);
 extern void PrintPinnedBufs(void);
 #endif
 extern Size BufferShmemSize(void);
-extern void BufferGetTag(Buffer buffer, RelFileNode * rnode,
-			 ForkNumber * forknum, BlockNumber * blknum);
+extern void BufferGetTag(Buffer buffer, RelFileNode *rnode,
+			 ForkNumber *forknum, BlockNumber *blknum);
 
 extern void MarkBufferDirtyHint(Buffer buffer, bool buffer_std);
 

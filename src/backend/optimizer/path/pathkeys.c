@@ -7,7 +7,7 @@
  * the nature and use of path keys.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -28,8 +28,8 @@
 #include "utils/lsyscache.h"
 
 
-static bool pathkey_is_redundant(PathKey * new_pathkey, List * pathkeys);
-static bool right_merge_direction(PlannerInfo * root, PathKey * pathkey);
+static bool pathkey_is_redundant(PathKey *new_pathkey, List *pathkeys);
+static bool right_merge_direction(PlannerInfo *root, PathKey *pathkey);
 
 
 /****************************************************************************
@@ -48,8 +48,8 @@ static bool right_merge_direction(PlannerInfo * root, PathKey * pathkey);
  * has become nonempty.)
  */
 PathKey *
-make_canonical_pathkey(PlannerInfo * root,
-					   EquivalenceClass * eclass, Oid opfamily,
+make_canonical_pathkey(PlannerInfo *root,
+					   EquivalenceClass *eclass, Oid opfamily,
 					   int strategy, bool nulls_first)
 {
 	PathKey    *pk;
@@ -125,7 +125,7 @@ make_canonical_pathkey(PlannerInfo * root,
  * pointer comparison is enough to decide whether canonical ECs are the same.
  */
 static bool
-pathkey_is_redundant(PathKey * new_pathkey, List * pathkeys)
+pathkey_is_redundant(PathKey *new_pathkey, List *pathkeys)
 {
 	EquivalenceClass *new_ec = new_pathkey->pk_eclass;
 	ListCell   *lc;
@@ -162,13 +162,13 @@ pathkey_is_redundant(PathKey * new_pathkey, List * pathkeys)
  * considered.  Otherwise child members are ignored.  (See the comments for
  * get_eclass_for_sort_expr.)
  *
- * create_it is TRUE if we should create any missing EquivalenceClass
- * needed to represent the sort key.  If it's FALSE, we return NULL if the
+ * create_it is true if we should create any missing EquivalenceClass
+ * needed to represent the sort key.  If it's false, we return NULL if the
  * sort key isn't already present in any EquivalenceClass.
  */
 static PathKey *
-make_pathkey_from_sortinfo(PlannerInfo * root,
-						   Expr * expr,
+make_pathkey_from_sortinfo(PlannerInfo *root,
+						   Expr *expr,
 						   Relids nullable_relids,
 						   Oid opfamily,
 						   Oid opcintype,
@@ -226,8 +226,8 @@ make_pathkey_from_sortinfo(PlannerInfo * root,
  * first.
  */
 static PathKey *
-make_pathkey_from_sortop(PlannerInfo * root,
-						 Expr * expr,
+make_pathkey_from_sortop(PlannerInfo *root,
+						 Expr *expr,
 						 Relids nullable_relids,
 						 Oid ordering_op,
 						 bool nulls_first,
@@ -275,7 +275,7 @@ make_pathkey_from_sortop(PlannerInfo * root,
  *	  equality by simple pointer comparison.
  */
 PathKeysComparison
-compare_pathkeys(List * keys1, List * keys2)
+compare_pathkeys(List *keys1, List *keys2)
 {
 	ListCell   *key1,
 			   *key2;
@@ -314,7 +314,7 @@ compare_pathkeys(List * keys1, List * keys2)
  *	  if keys2 are at least as well sorted as keys1.
  */
 bool
-pathkeys_contained_in(List * keys1, List * keys2)
+pathkeys_contained_in(List *keys1, List *keys2)
 {
 	switch (compare_pathkeys(keys1, keys2))
 	{
@@ -340,7 +340,7 @@ pathkeys_contained_in(List * keys1, List * keys2)
  * 'require_parallel_safe' causes us to consider only parallel-safe paths
  */
 Path *
-get_cheapest_path_for_pathkeys(List * paths, List * pathkeys,
+get_cheapest_path_for_pathkeys(List *paths, List *pathkeys,
 							   Relids required_outer,
 							   CostSelector cost_criterion,
 							   bool require_parallel_safe)
@@ -385,8 +385,8 @@ get_cheapest_path_for_pathkeys(List * paths, List * pathkeys,
  * 'fraction' is the fraction of the total tuples expected to be retrieved
  */
 Path *
-get_cheapest_fractional_path_for_pathkeys(List * paths,
-										  List * pathkeys,
+get_cheapest_fractional_path_for_pathkeys(List *paths,
+										  List *pathkeys,
 										  Relids required_outer,
 										  double fraction)
 {
@@ -418,7 +418,7 @@ get_cheapest_fractional_path_for_pathkeys(List * paths,
  *	  Find the unparameterized parallel-safe path with the least total cost.
  */
 Path *
-get_cheapest_parallel_safe_total_inner(List * paths)
+get_cheapest_parallel_safe_total_inner(List *paths)
 {
 	ListCell   *l;
 
@@ -447,8 +447,10 @@ get_cheapest_parallel_safe_total_inner(List * paths)
  * If 'scandir' is BackwardScanDirection, build pathkeys representing a
  * backwards scan of the index.
  *
- * The result is canonical, meaning that redundant pathkeys are removed;
- * it may therefore have fewer entries than there are index columns.
+ * We iterate only key columns of covering indexes, since non-key columns
+ * don't influence index ordering.  The result is canonical, meaning that
+ * redundant pathkeys are removed; it may therefore have fewer entries than
+ * there are key columns in the index.
  *
  * Another reason for stopping early is that we may be able to tell that
  * an index column's sort order is uninteresting for this query.  However,
@@ -457,8 +459,8 @@ get_cheapest_parallel_safe_total_inner(List * paths)
  * truncate_useless_pathkeys() to possibly remove more pathkeys.
  */
 List *
-build_index_pathkeys(PlannerInfo * root,
-					 IndexOptInfo * index,
+build_index_pathkeys(PlannerInfo *root,
+					 IndexOptInfo *index,
 					 ScanDirection scandir)
 {
 	List	   *retval = NIL;
@@ -476,6 +478,13 @@ build_index_pathkeys(PlannerInfo * root,
 		bool		reverse_sort;
 		bool		nulls_first;
 		PathKey    *cpathkey;
+
+		/*
+		 * INCLUDE columns are stored in index unordered, so they don't
+		 * support ordered index scan.
+		 */
+		if (i >= index->nkeycolumns)
+			break;
 
 		/* We assume we don't need to make a copy of the tlist item */
 		indexkey = indextle->expr;
@@ -550,8 +559,8 @@ build_index_pathkeys(PlannerInfo * root,
  * is false and the expression isn't already in some EquivalenceClass.
  */
 List *
-build_expression_pathkey(PlannerInfo * root,
-						 Expr * expr,
+build_expression_pathkey(PlannerInfo *root,
+						 Expr *expr,
 						 Relids nullable_relids,
 						 Oid opno,
 						 Relids rel,
@@ -604,9 +613,9 @@ build_expression_pathkey(PlannerInfo * root,
  * account.
  */
 List *
-convert_subquery_pathkeys(PlannerInfo * root, RelOptInfo * rel,
-						  List * subquery_pathkeys,
-						  List * subquery_tlist)
+convert_subquery_pathkeys(PlannerInfo *root, RelOptInfo *rel,
+						  List *subquery_pathkeys,
+						  List *subquery_tlist)
 {
 	List	   *retval = NIL;
 	int			retvallen = 0;
@@ -819,10 +828,10 @@ convert_subquery_pathkeys(PlannerInfo * root, RelOptInfo * rel,
  * Returns the list of new path keys.
  */
 List *
-build_join_pathkeys(PlannerInfo * root,
-					RelOptInfo * joinrel,
+build_join_pathkeys(PlannerInfo *root,
+					RelOptInfo *joinrel,
 					JoinType jointype,
-					List * outer_pathkeys)
+					List *outer_pathkeys)
 {
 	if (jointype == JOIN_FULL || jointype == JOIN_RIGHT)
 		return NIL;
@@ -862,9 +871,9 @@ build_join_pathkeys(PlannerInfo * root,
  * 'tlist' is the targetlist to find the referenced tlist entries in
  */
 List *
-make_pathkeys_for_sortclauses(PlannerInfo * root,
-							  List * sortclauses,
-							  List * tlist)
+make_pathkeys_for_sortclauses(PlannerInfo *root,
+							  List *sortclauses,
+							  List *tlist)
 {
 	List	   *pathkeys = NIL;
 	ListCell   *l;
@@ -916,7 +925,7 @@ make_pathkeys_for_sortclauses(PlannerInfo * root,
  * they've been updated to point to canonical ECs.
  */
 void
-initialize_mergeclause_eclasses(PlannerInfo * root, RestrictInfo * restrictinfo)
+initialize_mergeclause_eclasses(PlannerInfo *root, RestrictInfo *restrictinfo)
 {
 	Expr	   *clause = restrictinfo->clause;
 	Oid			lefttype,
@@ -965,7 +974,7 @@ initialize_mergeclause_eclasses(PlannerInfo * root, RestrictInfo * restrictinfo)
  * merged parent if so.
  */
 void
-update_mergeclause_eclasses(PlannerInfo * root, RestrictInfo * restrictinfo)
+update_mergeclause_eclasses(PlannerInfo *root, RestrictInfo *restrictinfo)
 {
 	/* Should be a merge clause ... */
 	Assert(restrictinfo->mergeopfamilies != NIL);
@@ -999,9 +1008,9 @@ update_mergeclause_eclasses(PlannerInfo * root, RestrictInfo * restrictinfo)
  * The list is ordered to match the pathkeys, as required for execution.
  */
 List *
-find_mergeclauses_for_outer_pathkeys(PlannerInfo * root,
-									 List * pathkeys,
-									 List * restrictinfos)
+find_mergeclauses_for_outer_pathkeys(PlannerInfo *root,
+									 List *pathkeys,
+									 List *restrictinfos)
 {
 	List	   *mergeclauses = NIL;
 	ListCell   *i;
@@ -1112,9 +1121,9 @@ find_mergeclauses_for_outer_pathkeys(PlannerInfo * root,
  * higher-level mergejoins as possible.
  */
 List *
-select_outer_pathkeys_for_merge(PlannerInfo * root,
-								List * mergeclauses,
-								RelOptInfo * joinrel)
+select_outer_pathkeys_for_merge(PlannerInfo *root,
+								List *mergeclauses,
+								RelOptInfo *joinrel)
 {
 	List	   *pathkeys = NIL;
 	int			nClauses = list_length(mergeclauses);
@@ -1132,7 +1141,7 @@ select_outer_pathkeys_for_merge(PlannerInfo * root,
 	 * Make arrays of the ECs used by the mergeclauses (dropping any
 	 * duplicates) and their "popularity" scores.
 	 */
-	ecs = (EquivalenceClass * *) palloc(nClauses * sizeof(EquivalenceClass *));
+	ecs = (EquivalenceClass **) palloc(nClauses * sizeof(EquivalenceClass *));
 	scores = (int *) palloc(nClauses * sizeof(int));
 	necs = 0;
 
@@ -1284,9 +1293,9 @@ select_outer_pathkeys_for_merge(PlannerInfo * root,
  * just make the keys, eh?
  */
 List *
-make_inner_pathkeys_for_merge(PlannerInfo * root,
-							  List * mergeclauses,
-							  List * outer_pathkeys)
+make_inner_pathkeys_for_merge(PlannerInfo *root,
+							  List *mergeclauses,
+							  List *outer_pathkeys)
 {
 	List	   *pathkeys = NIL;
 	EquivalenceClass *lastoeclass;
@@ -1387,9 +1396,9 @@ make_inner_pathkeys_for_merge(PlannerInfo * root,
  * select_mergejoin_clauses())
  */
 List *
-trim_mergeclauses_for_inner_pathkeys(PlannerInfo * root,
-									 List * mergeclauses,
-									 List * pathkeys)
+trim_mergeclauses_for_inner_pathkeys(PlannerInfo *root,
+									 List *mergeclauses,
+									 List *pathkeys)
 {
 	List	   *new_mergeclauses = NIL;
 	PathKey    *pathkey;
@@ -1482,7 +1491,7 @@ trim_mergeclauses_for_inner_pathkeys(PlannerInfo * root,
  * right_merge_direction() implements this heuristic.
  */
 static int
-pathkeys_useful_for_merging(PlannerInfo * root, RelOptInfo * rel, List * pathkeys)
+pathkeys_useful_for_merging(PlannerInfo *root, RelOptInfo *rel, List *pathkeys)
 {
 	int			useful = 0;
 	ListCell   *i;
@@ -1549,7 +1558,7 @@ pathkeys_useful_for_merging(PlannerInfo * root, RelOptInfo * rel, List * pathkey
  *		for merging its target column.
  */
 static bool
-right_merge_direction(PlannerInfo * root, PathKey * pathkey)
+right_merge_direction(PlannerInfo *root, PathKey *pathkey)
 {
 	ListCell   *l;
 
@@ -1585,7 +1594,7 @@ right_merge_direction(PlannerInfo * root, PathKey * pathkey)
  * So the result is always either 0 or list_length(root->query_pathkeys).
  */
 static int
-pathkeys_useful_for_ordering(PlannerInfo * root, List * pathkeys)
+pathkeys_useful_for_ordering(PlannerInfo *root, List *pathkeys)
 {
 	if (root->query_pathkeys == NIL)
 		return 0;				/* no special ordering requested */
@@ -1607,9 +1616,9 @@ pathkeys_useful_for_ordering(PlannerInfo * root, List * pathkeys)
  *		Shorten the given pathkey list to just the useful pathkeys.
  */
 List *
-truncate_useless_pathkeys(PlannerInfo * root,
-						  RelOptInfo * rel,
-						  List * pathkeys)
+truncate_useless_pathkeys(PlannerInfo *root,
+						  RelOptInfo *rel,
+						  List *pathkeys)
 {
 	int			nuseful;
 	int			nuseful2;
@@ -1647,7 +1656,7 @@ truncate_useless_pathkeys(PlannerInfo * root,
  * a sort are reasonably common, though, so this much work seems worthwhile.
  */
 bool
-has_useful_pathkeys(PlannerInfo * root, RelOptInfo * rel)
+has_useful_pathkeys(PlannerInfo *root, RelOptInfo *rel)
 {
 	if (rel->joininfo != NIL || rel->has_eclass_joins)
 		return true;			/* might be able to use pathkeys for merging */

@@ -3,7 +3,7 @@
  * nodeBitmapIndexscan.c
  *	  Routines to support bitmapped index scans of relations
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -35,7 +35,7 @@
  * ----------------------------------------------------------------
  */
 static TupleTableSlot *
-ExecBitmapIndexScan(PlanState * pstate)
+ExecBitmapIndexScan(PlanState *pstate)
 {
 	elog(ERROR, "BitmapIndexScan node does not support ExecProcNode call convention");
 	return NULL;
@@ -46,7 +46,7 @@ ExecBitmapIndexScan(PlanState * pstate)
  * ----------------------------------------------------------------
  */
 Node *
-MultiExecBitmapIndexScan(BitmapIndexScanState * node)
+MultiExecBitmapIndexScan(BitmapIndexScanState *node)
 {
 	TIDBitmap  *tbm;
 	IndexScanDesc scandesc;
@@ -128,7 +128,7 @@ MultiExecBitmapIndexScan(BitmapIndexScanState * node)
  * ----------------------------------------------------------------
  */
 void
-ExecReScanBitmapIndexScan(BitmapIndexScanState * node)
+ExecReScanBitmapIndexScan(BitmapIndexScanState *node)
 {
 	ExprContext *econtext = node->biss_RuntimeContext;
 
@@ -172,7 +172,7 @@ ExecReScanBitmapIndexScan(BitmapIndexScanState * node)
  * ----------------------------------------------------------------
  */
 void
-ExecEndBitmapIndexScan(BitmapIndexScanState * node)
+ExecEndBitmapIndexScan(BitmapIndexScanState *node)
 {
 	Relation	indexRelationDesc;
 	IndexScanDesc indexScanDesc;
@@ -207,7 +207,7 @@ ExecEndBitmapIndexScan(BitmapIndexScanState * node)
  * ----------------------------------------------------------------
  */
 BitmapIndexScanState *
-ExecInitBitmapIndexScan(BitmapIndexScan * node, EState * estate, int eflags)
+ExecInitBitmapIndexScan(BitmapIndexScan *node, EState *estate, int eflags)
 {
 	BitmapIndexScanState *indexstate;
 	bool		relistarget;
@@ -227,6 +227,15 @@ ExecInitBitmapIndexScan(BitmapIndexScan * node, EState * estate, int eflags)
 	indexstate->biss_result = NULL;
 
 	/*
+	 * We do not open or lock the base relation here.  We assume that an
+	 * ancestor BitmapHeapScan node is holding AccessShareLock (or better) on
+	 * the heap relation throughout the execution of the plan tree.
+	 */
+
+	indexstate->ss.ss_currentRelation = NULL;
+	indexstate->ss.ss_currentScanDesc = NULL;
+
+	/*
 	 * Miscellaneous initialization
 	 *
 	 * We do not need a standard exprcontext for this node, though we may
@@ -241,15 +250,6 @@ ExecInitBitmapIndexScan(BitmapIndexScan * node, EState * estate, int eflags)
 	 * Note: we don't initialize all of the indexqual expression, only the
 	 * sub-parts corresponding to runtime keys (see below).
 	 */
-
-	/*
-	 * We do not open or lock the base relation here.  We assume that an
-	 * ancestor BitmapHeapScan node is holding AccessShareLock (or better) on
-	 * the heap relation throughout the execution of the plan tree.
-	 */
-
-	indexstate->ss.ss_currentRelation = NULL;
-	indexstate->ss.ss_currentScanDesc = NULL;
 
 	/*
 	 * If we are just doing EXPLAIN (ie, aren't going to run the plan), stop

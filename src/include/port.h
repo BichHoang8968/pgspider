@@ -3,7 +3,7 @@
  * port.h
  *	  Header for src/port/ compatibility functions.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/port.h
@@ -16,6 +16,15 @@
 #include <ctype.h>
 #include <netdb.h>
 #include <pwd.h>
+
+/*
+ * Windows has enough specialized port stuff that we push most of it off
+ * into another file.
+ * Note: Some CYGWIN includes might #define WIN32.
+ */
+#if defined(WIN32) && !defined(__CYGWIN__)
+#include "port/win32_port.h"
+#endif
 
 /* socket has a different definition on WIN32 */
 #ifndef WIN32
@@ -101,11 +110,6 @@ extern int find_other_exec(const char *argv0, const char *target,
 /* Doesn't belong here, but this is used with find_other_exec(), so... */
 #define PG_BACKEND_VERSIONSTR "postgres (PostgreSQL) " PG_VERSION "\n"
 
-/* Windows security token manipulation (in exec.c) */
-#ifdef WIN32
-extern BOOL AddUserToTokenDacl(HANDLE hToken);
-#endif
-
 
 #if defined(WIN32) || defined(__CYGWIN__)
 #define EXE ".exe"
@@ -159,8 +163,8 @@ extern unsigned char pg_ascii_tolower(unsigned char ch);
 extern int	pg_vsnprintf(char *str, size_t count, const char *fmt, va_list args);
 extern int	pg_snprintf(char *str, size_t count, const char *fmt,...) pg_attribute_printf(3, 4);
 extern int	pg_sprintf(char *str, const char *fmt,...) pg_attribute_printf(2, 3);
-extern int	pg_vfprintf(FILE * stream, const char *fmt, va_list args);
-extern int	pg_fprintf(FILE * stream, const char *fmt,...) pg_attribute_printf(2, 3);
+extern int	pg_vfprintf(FILE *stream, const char *fmt, va_list args);
+extern int	pg_fprintf(FILE *stream, const char *fmt,...) pg_attribute_printf(2, 3);
 extern int	pg_printf(const char *fmt,...) pg_attribute_printf(1, 2);
 
 /*
@@ -185,37 +189,11 @@ extern int	pg_printf(const char *fmt,...) pg_attribute_printf(1, 2);
 #endif
 #endif							/* USE_REPL_SNPRINTF */
 
-#if defined(WIN32)
-/*
- * Versions of libintl >= 0.18? try to replace setlocale() with a macro
- * to their own versions.  Remove the macro, if it exists, because it
- * ends up calling the wrong version when the backend and libintl use
- * different versions of msvcrt.
- */
-#if defined(setlocale)
-#undef setlocale
-#endif
-
-/*
- * Define our own wrapper macro around setlocale() to work around bugs in
- * Windows' native setlocale() function.
- */
-extern char *pgwin32_setlocale(int category, const char *locale);
-
-#define setlocale(a,b) pgwin32_setlocale(a,b)
-#endif							/* WIN32 */
-
 /* Portable prompt handling */
 extern void simple_prompt(const char *prompt, char *destination, size_t destlen,
 			  bool echo);
 
-#ifdef WIN32
-#define PG_SIGNAL_COUNT 32
-#define kill(pid,sig)	pgkill(pid,sig)
-extern int	pgkill(int pid, int sig);
-#endif
-
-extern int	pclose_check(FILE * stream);
+extern int	pclose_check(FILE *stream);
 
 /* Global variable holding time zone information. */
 #if defined(WIN32) || defined(__CYGWIN__)
@@ -262,23 +240,6 @@ extern bool pgwin32_is_junction(const char *path);
 
 extern bool rmtree(const char *path, bool rmtopdir);
 
-/*
- * stat() is not guaranteed to set the st_size field on win32, so we
- * redefine it to our own implementation that is.
- *
- * We must pull in sys/stat.h here so the system header definition
- * goes in first, and we redefine that, and not the other way around.
- *
- * Some frontends don't need the size from stat, so if UNSAFE_STAT_OK
- * is defined we don't bother with this.
- */
-#if defined(WIN32) && !defined(__CYGWIN__) && !defined(UNSAFE_STAT_OK)
-#include <sys/stat.h>
-extern int	pgwin32_safestat(const char *path, struct stat *buf);
-
-#define stat(a,b) pgwin32_safestat(a,b)
-#endif
-
 #if defined(WIN32) && !defined(__CYGWIN__)
 
 /*
@@ -287,7 +248,7 @@ extern int	pgwin32_safestat(const char *path, struct stat *buf);
  */
 #define		O_DIRECT	0x80000000
 extern int	pgwin32_open(const char *, int,...);
-extern FILE * pgwin32_fopen(const char *, const char *);
+extern FILE *pgwin32_fopen(const char *, const char *);
 
 #ifndef FRONTEND
 #define		open(a,b,c) pgwin32_open(a,b,c)
@@ -311,7 +272,7 @@ extern FILE * pgwin32_fopen(const char *, const char *);
  * pair of quotes.
  */
 extern int	pgwin32_system(const char *command);
-extern FILE * pgwin32_popen(const char *command, const char *type);
+extern FILE *pgwin32_popen(const char *command, const char *type);
 
 #define system(a) pgwin32_system(a)
 #define popen(a,b) pgwin32_popen(a,b)
@@ -353,12 +314,12 @@ extern int	gettimeofday(struct timeval *tp, struct timezone *tzp);
 extern char *crypt(const char *key, const char *setting);
 #endif
 
-/* WIN32 handled in port/win32.h */
+/* WIN32 handled in port/win32_port.h */
 #ifndef WIN32
 #define pgoff_t off_t
 #ifdef __NetBSD__
-extern int	fseeko(FILE * stream, off_t offset, int whence);
-extern off_t ftello(FILE * stream);
+extern int	fseeko(FILE *stream, off_t offset, int whence);
+extern off_t ftello(FILE *stream);
 #endif
 #endif
 
@@ -377,12 +338,28 @@ extern int	fls(int mask);
 #endif
 
 #if !defined(HAVE_GETPEEREID) && !defined(WIN32)
-extern int	getpeereid(int sock, uid_t * uid, gid_t * gid);
+extern int	getpeereid(int sock, uid_t *uid, gid_t *gid);
 #endif
 
 #ifndef HAVE_ISINF
 extern int	isinf(double x);
-#endif
+#else
+/*
+ * Glibc doesn't use the builtin for clang due to a *gcc* bug in a version
+ * newer than the gcc compatibility clang claims to have. This would cause a
+ * *lot* of superfluous function calls, therefore revert when using clang. In
+ * C++ there's issues with libc++ (not libstdc++), so disable as well.
+ */
+#if defined(__clang__) && !defined(__cplusplus)
+/* needs to be separate to not confuse other compilers */
+#if __has_builtin(__builtin_isinf)
+/* need to include before, to avoid getting overwritten */
+#include <math.h>
+#undef isinf
+#define isinf __builtin_isinf
+#endif							/* __has_builtin(isinf) */
+#endif							/* __clang__ && !__cplusplus*/
+#endif							/* !HAVE_ISINF */
 
 #ifndef HAVE_MKDTEMP
 extern char *mkdtemp(char *path);
@@ -404,6 +381,10 @@ extern size_t strlcat(char *dst, const char *src, size_t siz);
 
 #if !HAVE_DECL_STRLCPY
 extern size_t strlcpy(char *dst, const char *src, size_t siz);
+#endif
+
+#if !HAVE_DECL_STRNLEN
+extern size_t strnlen(const char *str, size_t maxlen);
 #endif
 
 #if !defined(HAVE_RANDOM)
@@ -481,7 +462,9 @@ extern pqsigfunc pqsignal_no_restart(int signo, pqsigfunc func);
 /* port/quotes.c */
 extern char *escape_single_quotes_ascii(const char *src);
 
-/* port/wait_error.c */
+/* common/wait_error.c */
 extern char *wait_result_to_str(int exit_status);
+extern bool wait_result_is_signal(int exit_status, int signum);
+extern bool wait_result_is_any_signal(int exit_status, bool include_command_not_found);
 
 #endif							/* PG_PORT_H */

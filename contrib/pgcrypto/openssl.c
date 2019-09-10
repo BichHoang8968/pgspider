@@ -57,19 +57,19 @@
  */
 typedef struct OSSLDigest
 {
-	const		EVP_MD *algo;
+	const EVP_MD *algo;
 	EVP_MD_CTX *ctx;
 
 	ResourceOwner owner;
 	struct OSSLDigest *next;
 	struct OSSLDigest *prev;
-}			OSSLDigest;
+} OSSLDigest;
 
-static OSSLDigest * open_digests = NULL;
+static OSSLDigest *open_digests = NULL;
 static bool digest_resowner_callback_registered = false;
 
 static void
-free_openssl_digest(OSSLDigest * digest)
+free_openssl_digest(OSSLDigest *digest)
 {
 	EVP_MD_CTX_destroy(digest->ctx);
 	if (digest->prev)
@@ -112,7 +112,7 @@ digest_free_callback(ResourceReleasePhase phase,
 }
 
 static unsigned
-digest_result_size(PX_MD * h)
+digest_result_size(PX_MD *h)
 {
 	OSSLDigest *digest = (OSSLDigest *) h->p.ptr;
 
@@ -120,7 +120,7 @@ digest_result_size(PX_MD * h)
 }
 
 static unsigned
-digest_block_size(PX_MD * h)
+digest_block_size(PX_MD *h)
 {
 	OSSLDigest *digest = (OSSLDigest *) h->p.ptr;
 
@@ -128,7 +128,7 @@ digest_block_size(PX_MD * h)
 }
 
 static void
-digest_reset(PX_MD * h)
+digest_reset(PX_MD *h)
 {
 	OSSLDigest *digest = (OSSLDigest *) h->p.ptr;
 
@@ -136,7 +136,7 @@ digest_reset(PX_MD * h)
 }
 
 static void
-digest_update(PX_MD * h, const uint8 * data, unsigned dlen)
+digest_update(PX_MD *h, const uint8 *data, unsigned dlen)
 {
 	OSSLDigest *digest = (OSSLDigest *) h->p.ptr;
 
@@ -144,7 +144,7 @@ digest_update(PX_MD * h, const uint8 * data, unsigned dlen)
 }
 
 static void
-digest_finish(PX_MD * h, uint8 * dst)
+digest_finish(PX_MD *h, uint8 *dst)
 {
 	OSSLDigest *digest = (OSSLDigest *) h->p.ptr;
 
@@ -152,7 +152,7 @@ digest_finish(PX_MD * h, uint8 * dst)
 }
 
 static void
-digest_free(PX_MD * h)
+digest_free(PX_MD *h)
 {
 	OSSLDigest *digest = (OSSLDigest *) h->p.ptr;
 
@@ -165,9 +165,9 @@ static int	px_openssl_initialized = 0;
 /* PUBLIC functions */
 
 int
-px_find_digest(const char *name, PX_MD * *res)
+px_find_digest(const char *name, PX_MD **res)
 {
-	const		EVP_MD *md;
+	const EVP_MD *md;
 	EVP_MD_CTX *ctx;
 	PX_MD	   *h;
 	OSSLDigest *digest;
@@ -245,7 +245,7 @@ typedef const EVP_CIPHER *(*ossl_EVP_cipher_func) (void);
  */
 struct ossl_cipher
 {
-	int			(*init) (PX_Cipher * c, const uint8 * key, unsigned klen, const uint8 * iv);
+	int			(*init) (PX_Cipher *c, const uint8 *key, unsigned klen, const uint8 *iv);
 	ossl_EVP_cipher_func cipher_func;
 	int			block_size;
 	int			max_key_size;
@@ -262,7 +262,7 @@ struct ossl_cipher
 typedef struct OSSLCipher
 {
 	EVP_CIPHER_CTX *evp_ctx;
-	const		EVP_CIPHER *evp_ciph;
+	const EVP_CIPHER *evp_ciph;
 	uint8		key[MAX_KEY];
 	uint8		iv[MAX_IV];
 	unsigned	klen;
@@ -272,13 +272,13 @@ typedef struct OSSLCipher
 	ResourceOwner owner;
 	struct OSSLCipher *next;
 	struct OSSLCipher *prev;
-}			OSSLCipher;
+} OSSLCipher;
 
-static OSSLCipher * open_ciphers = NULL;
+static OSSLCipher *open_ciphers = NULL;
 static bool cipher_resowner_callback_registered = false;
 
 static void
-free_openssl_cipher(OSSLCipher * od)
+free_openssl_cipher(OSSLCipher *od)
 {
 	EVP_CIPHER_CTX_free(od->evp_ctx);
 	if (od->prev)
@@ -323,7 +323,7 @@ cipher_free_callback(ResourceReleasePhase phase,
 /* Common routines for all algorithms */
 
 static unsigned
-gen_ossl_block_size(PX_Cipher * c)
+gen_ossl_block_size(PX_Cipher *c)
 {
 	OSSLCipher *od = (OSSLCipher *) c->ptr;
 
@@ -331,7 +331,7 @@ gen_ossl_block_size(PX_Cipher * c)
 }
 
 static unsigned
-gen_ossl_key_size(PX_Cipher * c)
+gen_ossl_key_size(PX_Cipher *c)
 {
 	OSSLCipher *od = (OSSLCipher *) c->ptr;
 
@@ -339,7 +339,7 @@ gen_ossl_key_size(PX_Cipher * c)
 }
 
 static unsigned
-gen_ossl_iv_size(PX_Cipher * c)
+gen_ossl_iv_size(PX_Cipher *c)
 {
 	unsigned	ivlen;
 	OSSLCipher *od = (OSSLCipher *) c->ptr;
@@ -349,7 +349,7 @@ gen_ossl_iv_size(PX_Cipher * c)
 }
 
 static void
-gen_ossl_free(PX_Cipher * c)
+gen_ossl_free(PX_Cipher *c)
 {
 	OSSLCipher *od = (OSSLCipher *) c->ptr;
 
@@ -358,8 +358,8 @@ gen_ossl_free(PX_Cipher * c)
 }
 
 static int
-gen_ossl_decrypt(PX_Cipher * c, const uint8 * data, unsigned dlen,
-				 uint8 * res)
+gen_ossl_decrypt(PX_Cipher *c, const uint8 *data, unsigned dlen,
+				 uint8 *res)
 {
 	OSSLCipher *od = c->ptr;
 	int			outlen;
@@ -382,8 +382,8 @@ gen_ossl_decrypt(PX_Cipher * c, const uint8 * data, unsigned dlen,
 }
 
 static int
-gen_ossl_encrypt(PX_Cipher * c, const uint8 * data, unsigned dlen,
-				 uint8 * res)
+gen_ossl_encrypt(PX_Cipher *c, const uint8 *data, unsigned dlen,
+				 uint8 *res)
 {
 	OSSLCipher *od = c->ptr;
 	int			outlen;
@@ -408,7 +408,7 @@ gen_ossl_encrypt(PX_Cipher * c, const uint8 * data, unsigned dlen,
 /* Blowfish */
 
 /*
- * Check if strong crypto is supported. Some openssl installations
+ * Check if strong crypto is supported. Some OpenSSL installations
  * support only short keys and unfortunately BF_set_key does not return any
  * error value. This function tests if is possible to use strong key.
  */
@@ -456,7 +456,7 @@ leave:
 }
 
 static int
-bf_init(PX_Cipher * c, const uint8 * key, unsigned klen, const uint8 * iv)
+bf_init(PX_Cipher *c, const uint8 *key, unsigned klen, const uint8 *iv)
 {
 	OSSLCipher *od = c->ptr;
 	unsigned	bs = gen_ossl_block_size(c);
@@ -488,7 +488,7 @@ bf_init(PX_Cipher * c, const uint8 * key, unsigned klen, const uint8 * iv)
 /* DES */
 
 static int
-ossl_des_init(PX_Cipher * c, const uint8 * key, unsigned klen, const uint8 * iv)
+ossl_des_init(PX_Cipher *c, const uint8 *key, unsigned klen, const uint8 *iv)
 {
 	OSSLCipher *od = c->ptr;
 	unsigned	bs = gen_ossl_block_size(c);
@@ -507,7 +507,7 @@ ossl_des_init(PX_Cipher * c, const uint8 * key, unsigned klen, const uint8 * iv)
 /* DES3 */
 
 static int
-ossl_des3_init(PX_Cipher * c, const uint8 * key, unsigned klen, const uint8 * iv)
+ossl_des3_init(PX_Cipher *c, const uint8 *key, unsigned klen, const uint8 *iv)
 {
 	OSSLCipher *od = c->ptr;
 	unsigned	bs = gen_ossl_block_size(c);
@@ -526,7 +526,7 @@ ossl_des3_init(PX_Cipher * c, const uint8 * key, unsigned klen, const uint8 * iv
 /* CAST5 */
 
 static int
-ossl_cast_init(PX_Cipher * c, const uint8 * key, unsigned klen, const uint8 * iv)
+ossl_cast_init(PX_Cipher *c, const uint8 *key, unsigned klen, const uint8 *iv)
 {
 	OSSLCipher *od = c->ptr;
 	unsigned	bs = gen_ossl_block_size(c);
@@ -544,7 +544,7 @@ ossl_cast_init(PX_Cipher * c, const uint8 * key, unsigned klen, const uint8 * iv
 /* AES */
 
 static int
-ossl_aes_init(PX_Cipher * c, const uint8 * key, unsigned klen, const uint8 * iv)
+ossl_aes_init(PX_Cipher *c, const uint8 *key, unsigned klen, const uint8 *iv)
 {
 	OSSLCipher *od = c->ptr;
 	unsigned	bs = gen_ossl_block_size(c);
@@ -569,7 +569,7 @@ ossl_aes_init(PX_Cipher * c, const uint8 * key, unsigned klen, const uint8 * iv)
 }
 
 static int
-ossl_aes_ecb_init(PX_Cipher * c, const uint8 * key, unsigned klen, const uint8 * iv)
+ossl_aes_ecb_init(PX_Cipher *c, const uint8 *key, unsigned klen, const uint8 *iv)
 {
 	OSSLCipher *od = c->ptr;
 	int			err;
@@ -599,7 +599,7 @@ ossl_aes_ecb_init(PX_Cipher * c, const uint8 * key, unsigned klen, const uint8 *
 }
 
 static int
-ossl_aes_cbc_init(PX_Cipher * c, const uint8 * key, unsigned klen, const uint8 * iv)
+ossl_aes_cbc_init(PX_Cipher *c, const uint8 *key, unsigned klen, const uint8 *iv)
 {
 	OSSLCipher *od = c->ptr;
 	int			err;
@@ -632,53 +632,22 @@ ossl_aes_cbc_init(PX_Cipher * c, const uint8 * key, unsigned klen, const uint8 *
  * aliases
  */
 
-static PX_Alias ossl_aliases[] =
-{
-	{
-		"bf", "bf-cbc"
-	},
-	{
-		"blowfish", "bf-cbc"
-	},
-	{
-		"blowfish-cbc", "bf-cbc"
-	},
-	{
-		"blowfish-ecb", "bf-ecb"
-	},
-	{
-		"blowfish-cfb", "bf-cfb"
-	},
-	{
-		"des", "des-cbc"
-	},
-	{
-		"3des", "des3-cbc"
-	},
-	{
-		"3des-ecb", "des3-ecb"
-	},
-	{
-		"3des-cbc", "des3-cbc"
-	},
-	{
-		"cast5", "cast5-cbc"
-	},
-	{
-		"aes", "aes-cbc"
-	},
-	{
-		"rijndael", "aes-cbc"
-	},
-	{
-		"rijndael-cbc", "aes-cbc"
-	},
-	{
-		"rijndael-ecb", "aes-ecb"
-	},
-	{
-		NULL
-	}
+static PX_Alias ossl_aliases[] = {
+	{"bf", "bf-cbc"},
+	{"blowfish", "bf-cbc"},
+	{"blowfish-cbc", "bf-cbc"},
+	{"blowfish-ecb", "bf-ecb"},
+	{"blowfish-cfb", "bf-cfb"},
+	{"des", "des-cbc"},
+	{"3des", "des3-cbc"},
+	{"3des-ecb", "des3-ecb"},
+	{"3des-cbc", "des3-cbc"},
+	{"cast5", "cast5-cbc"},
+	{"aes", "aes-cbc"},
+	{"rijndael", "aes-cbc"},
+	{"rijndael-cbc", "aes-cbc"},
+	{"rijndael-ecb", "aes-ecb"},
+	{NULL}
 };
 
 static const struct ossl_cipher ossl_bf_cbc = {
@@ -776,7 +745,7 @@ static const struct ossl_cipher_lookup ossl_cipher_types[] = {
 /* PUBLIC functions */
 
 int
-px_find_cipher(const char *name, PX_Cipher * *res)
+px_find_cipher(const char *name, PX_Cipher **res)
 {
 	const struct ossl_cipher_lookup *i;
 	PX_Cipher  *c = NULL;

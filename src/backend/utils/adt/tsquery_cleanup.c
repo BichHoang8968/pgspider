@@ -4,7 +4,7 @@
  *	 Cleanup query from NOT values and/or stopword
  *	 Utility functions to correct work.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -23,13 +23,13 @@ typedef struct NODE
 	struct NODE *left;
 	struct NODE *right;
 	QueryItem  *valnode;
-}			NODE;
+} NODE;
 
 /*
  * make query tree from plain view of query
  */
 static NODE *
-maketree(QueryItem * in)
+maketree(QueryItem *in)
 {
 	NODE	   *node = (NODE *) palloc(sizeof(NODE));
 
@@ -55,10 +55,10 @@ typedef struct
 	QueryItem  *ptr;
 	int			len;			/* allocated size of ptr */
 	int			cur;			/* number of elements in ptr */
-}			PLAINTREE;
+} PLAINTREE;
 
 static void
-plainnode(PLAINTREE * state, NODE * node)
+plainnode(PLAINTREE *state, NODE *node)
 {
 	/* since this function recurses, it could be driven to stack overflow. */
 	check_stack_depth();
@@ -93,7 +93,7 @@ plainnode(PLAINTREE * state, NODE * node)
  * make plain view of tree from a NODE-tree representation
  */
 static QueryItem *
-plaintree(NODE * root, int *len)
+plaintree(NODE *root, int *len)
 {
 	PLAINTREE	pl;
 
@@ -111,7 +111,7 @@ plaintree(NODE * root, int *len)
 }
 
 static void
-freetree(NODE * node)
+freetree(NODE *node)
 {
 	/* since this function recurses, it could be driven to stack overflow. */
 	check_stack_depth();
@@ -132,7 +132,7 @@ freetree(NODE * node)
  * Operator ! always return TRUE
  */
 static NODE *
-clean_NOT_intree(NODE * node)
+clean_NOT_intree(NODE *node)
 {
 	/* since this function recurses, it could be driven to stack overflow. */
 	check_stack_depth();
@@ -186,7 +186,7 @@ clean_NOT_intree(NODE * node)
 }
 
 QueryItem *
-clean_NOT(QueryItem * ptr, int *len)
+clean_NOT(QueryItem *ptr, int *len)
 {
 	NODE	   *root = maketree(ptr);
 
@@ -234,7 +234,7 @@ clean_NOT(QueryItem * ptr, int *len)
  * '((x <-> a) | a) <-> y' will become 'x <2> y'.
  */
 static NODE *
-clean_stopword_intree(NODE * node, int *ladd, int *radd)
+clean_stopword_intree(NODE *node, int *ladd, int *radd)
 {
 	/* since this function recurses, it could be driven to stack overflow. */
 	check_stack_depth();
@@ -359,7 +359,7 @@ clean_stopword_intree(NODE * node, int *ladd, int *radd)
  * Number of elements in query tree
  */
 static int32
-calcstrlen(NODE * node)
+calcstrlen(NODE *node)
 {
 	int32		size = 0;
 
@@ -429,7 +429,7 @@ cleanup_tsquery_stopwords(TSQuery in)
 	operands = GETOPERAND(out);
 	for (i = 0; i < out->size; i++)
 	{
-		QueryOperand *op = (QueryOperand *) & items[i];
+		QueryOperand *op = (QueryOperand *) &items[i];
 
 		if (op->type != QI_VAL)
 			continue;

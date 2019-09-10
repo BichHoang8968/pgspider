@@ -3,7 +3,7 @@
  * pgoutput.c
  *		Logical Replication output plugin
  *
- * Copyright (c) 2012-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2012-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  src/backend/replication/pgoutput/pgoutput.c
@@ -21,31 +21,33 @@
 
 #include "utils/inval.h"
 #include "utils/int8.h"
-#include "utils/lsyscache.h"
 #include "utils/memutils.h"
 #include "utils/syscache.h"
 #include "utils/varlena.h"
 
 PG_MODULE_MAGIC;
 
-extern void _PG_output_plugin_init(OutputPluginCallbacks * cb);
+extern void _PG_output_plugin_init(OutputPluginCallbacks *cb);
 
-static void pgoutput_startup(LogicalDecodingContext * ctx,
-				 OutputPluginOptions * opt, bool is_init);
-static void pgoutput_shutdown(LogicalDecodingContext * ctx);
-static void pgoutput_begin_txn(LogicalDecodingContext * ctx,
-				   ReorderBufferTXN * txn);
-static void pgoutput_commit_txn(LogicalDecodingContext * ctx,
-					ReorderBufferTXN * txn, XLogRecPtr commit_lsn);
-static void pgoutput_change(LogicalDecodingContext * ctx,
-				ReorderBufferTXN * txn, Relation rel,
-				ReorderBufferChange * change);
-static bool pgoutput_origin_filter(LogicalDecodingContext * ctx,
+static void pgoutput_startup(LogicalDecodingContext *ctx,
+				 OutputPluginOptions *opt, bool is_init);
+static void pgoutput_shutdown(LogicalDecodingContext *ctx);
+static void pgoutput_begin_txn(LogicalDecodingContext *ctx,
+				   ReorderBufferTXN *txn);
+static void pgoutput_commit_txn(LogicalDecodingContext *ctx,
+					ReorderBufferTXN *txn, XLogRecPtr commit_lsn);
+static void pgoutput_change(LogicalDecodingContext *ctx,
+				ReorderBufferTXN *txn, Relation rel,
+				ReorderBufferChange *change);
+static void pgoutput_truncate(LogicalDecodingContext *ctx,
+				  ReorderBufferTXN *txn, int nrelations, Relation relations[],
+				  ReorderBufferChange *change);
+static bool pgoutput_origin_filter(LogicalDecodingContext *ctx,
 					   RepOriginId origin_id);
 
 static bool publications_valid;
 
-static List * LoadPublications(List * pubnames);
+static List *LoadPublications(List *pubnames);
 static void publication_invalidation_cb(Datum arg, int cacheid,
 							uint32 hashvalue);
 
@@ -56,13 +58,13 @@ typedef struct RelationSyncEntry
 	bool		schema_sent;	/* did we send the schema? */
 	bool		replicate_valid;
 	PublicationActions pubactions;
-}			RelationSyncEntry;
+} RelationSyncEntry;
 
 /* Map used to remember which relation schemas we sent. */
-static HTAB * RelationSyncCache = NULL;
+static HTAB *RelationSyncCache = NULL;
 
 static void init_rel_sync_cache(MemoryContext decoding_context);
-static RelationSyncEntry * get_rel_sync_entry(PGOutputData * data, Oid relid);
+static RelationSyncEntry *get_rel_sync_entry(PGOutputData *data, Oid relid);
 static void rel_sync_cache_relation_cb(Datum arg, Oid relid);
 static void rel_sync_cache_publication_cb(Datum arg, int cacheid,
 							  uint32 hashvalue);
@@ -71,21 +73,22 @@ static void rel_sync_cache_publication_cb(Datum arg, int cacheid,
  * Specify output plugin callbacks
  */
 void
-_PG_output_plugin_init(OutputPluginCallbacks * cb)
+_PG_output_plugin_init(OutputPluginCallbacks *cb)
 {
 	AssertVariableIsOfType(&_PG_output_plugin_init, LogicalOutputPluginInit);
 
 	cb->startup_cb = pgoutput_startup;
 	cb->begin_cb = pgoutput_begin_txn;
 	cb->change_cb = pgoutput_change;
+	cb->truncate_cb = pgoutput_truncate;
 	cb->commit_cb = pgoutput_commit_txn;
 	cb->filter_by_origin_cb = pgoutput_origin_filter;
 	cb->shutdown_cb = pgoutput_shutdown;
 }
 
 static void
-parse_output_parameters(List * options, uint32 * protocol_version,
-						List * *publication_names)
+parse_output_parameters(List *options, uint32 *protocol_version,
+						List **publication_names)
 {
 	ListCell   *lc;
 	bool		protocol_version_given = false;
@@ -144,7 +147,7 @@ parse_output_parameters(List * options, uint32 * protocol_version,
  * Initialize this plugin
  */
 static void
-pgoutput_startup(LogicalDecodingContext * ctx, OutputPluginOptions * opt,
+pgoutput_startup(LogicalDecodingContext *ctx, OutputPluginOptions *opt,
 				 bool is_init)
 {
 	PGOutputData *data = palloc0(sizeof(PGOutputData));
@@ -152,9 +155,7 @@ pgoutput_startup(LogicalDecodingContext * ctx, OutputPluginOptions * opt,
 	/* Create our memory context for private allocations. */
 	data->context = AllocSetContextCreate(ctx->context,
 										  "logical replication output context",
-										  ALLOCSET_DEFAULT_MINSIZE,
-										  ALLOCSET_DEFAULT_INITSIZE,
-										  ALLOCSET_DEFAULT_MAXSIZE);
+										  ALLOCSET_DEFAULT_SIZES);
 
 	ctx->output_plugin_private = data;
 
@@ -207,7 +208,7 @@ pgoutput_startup(LogicalDecodingContext * ctx, OutputPluginOptions * opt,
  * BEGIN callback
  */
 static void
-pgoutput_begin_txn(LogicalDecodingContext * ctx, ReorderBufferTXN * txn)
+pgoutput_begin_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn)
 {
 	bool		send_replication_origin = txn->origin_id != InvalidRepOriginId;
 
@@ -243,7 +244,7 @@ pgoutput_begin_txn(LogicalDecodingContext * ctx, ReorderBufferTXN * txn)
  * COMMIT callback
  */
 static void
-pgoutput_commit_txn(LogicalDecodingContext * ctx, ReorderBufferTXN * txn,
+pgoutput_commit_txn(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
 					XLogRecPtr commit_lsn)
 {
 	OutputPluginUpdateProgress(ctx);
@@ -254,11 +255,51 @@ pgoutput_commit_txn(LogicalDecodingContext * ctx, ReorderBufferTXN * txn,
 }
 
 /*
+ * Write the relation schema if the current schema hasn't been sent yet.
+ */
+static void
+maybe_send_schema(LogicalDecodingContext *ctx,
+				  Relation relation, RelationSyncEntry *relentry)
+{
+	if (!relentry->schema_sent)
+	{
+		TupleDesc	desc;
+		int			i;
+
+		desc = RelationGetDescr(relation);
+
+		/*
+		 * Write out type info if needed. We do that only for user created
+		 * types.
+		 */
+		for (i = 0; i < desc->natts; i++)
+		{
+			Form_pg_attribute att = TupleDescAttr(desc, i);
+
+			if (att->attisdropped)
+				continue;
+
+			if (att->atttypid < FirstNormalObjectId)
+				continue;
+
+			OutputPluginPrepareWrite(ctx, false);
+			logicalrep_write_typ(ctx->out, att->atttypid);
+			OutputPluginWrite(ctx, false);
+		}
+
+		OutputPluginPrepareWrite(ctx, false);
+		logicalrep_write_rel(ctx->out, relation);
+		OutputPluginWrite(ctx, false);
+		relentry->schema_sent = true;
+	}
+}
+
+/*
  * Sends the decoded DML over wire.
  */
 static void
-pgoutput_change(LogicalDecodingContext * ctx, ReorderBufferTXN * txn,
-				Relation relation, ReorderBufferChange * change)
+pgoutput_change(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
+				Relation relation, ReorderBufferChange *change)
 {
 	PGOutputData *data = (PGOutputData *) ctx->output_plugin_private;
 	MemoryContext old;
@@ -291,40 +332,7 @@ pgoutput_change(LogicalDecodingContext * ctx, ReorderBufferTXN * txn,
 	/* Avoid leaking memory by using and resetting our own context */
 	old = MemoryContextSwitchTo(data->context);
 
-	/*
-	 * Write the relation schema if the current schema haven't been sent yet.
-	 */
-	if (!relentry->schema_sent)
-	{
-		TupleDesc	desc;
-		int			i;
-
-		desc = RelationGetDescr(relation);
-
-		/*
-		 * Write out type info if needed. We do that only for user created
-		 * types.
-		 */
-		for (i = 0; i < desc->natts; i++)
-		{
-			Form_pg_attribute att = desc->attrs[i];
-
-			if (att->attisdropped)
-				continue;
-
-			if (att->atttypid < FirstNormalObjectId)
-				continue;
-
-			OutputPluginPrepareWrite(ctx, false);
-			logicalrep_write_typ(ctx->out, att->atttypid);
-			OutputPluginWrite(ctx, false);
-		}
-
-		OutputPluginPrepareWrite(ctx, false);
-		logicalrep_write_rel(ctx->out, relation);
-		OutputPluginWrite(ctx, false);
-		relentry->schema_sent = true;
-	}
+	maybe_send_schema(ctx, relation, relentry);
 
 	/* Send the data */
 	switch (change->action)
@@ -366,11 +374,59 @@ pgoutput_change(LogicalDecodingContext * ctx, ReorderBufferTXN * txn,
 	MemoryContextReset(data->context);
 }
 
+static void
+pgoutput_truncate(LogicalDecodingContext *ctx, ReorderBufferTXN *txn,
+				  int nrelations, Relation relations[], ReorderBufferChange *change)
+{
+	PGOutputData *data = (PGOutputData *) ctx->output_plugin_private;
+	MemoryContext old;
+	RelationSyncEntry *relentry;
+	int			i;
+	int			nrelids;
+	Oid		   *relids;
+
+	old = MemoryContextSwitchTo(data->context);
+
+	relids = palloc0(nrelations * sizeof(Oid));
+	nrelids = 0;
+
+	for (i = 0; i < nrelations; i++)
+	{
+		Relation	relation = relations[i];
+		Oid			relid = RelationGetRelid(relation);
+
+		if (!is_publishable_relation(relation))
+			continue;
+
+		relentry = get_rel_sync_entry(data, relid);
+
+		if (!relentry->pubactions.pubtruncate)
+			continue;
+
+		relids[nrelids++] = relid;
+		maybe_send_schema(ctx, relation, relentry);
+	}
+
+	if (nrelids > 0)
+	{
+		OutputPluginPrepareWrite(ctx, true);
+		logicalrep_write_truncate(ctx->out,
+								  nrelids,
+								  relids,
+								  change->data.truncate.cascade,
+								  change->data.truncate.restart_seqs);
+		OutputPluginWrite(ctx, true);
+	}
+
+	MemoryContextSwitchTo(old);
+	MemoryContextReset(data->context);
+}
+
 /*
  * Currently we always forward.
  */
 static bool
-pgoutput_origin_filter(LogicalDecodingContext * ctx,
+pgoutput_origin_filter(LogicalDecodingContext *ctx,
 					   RepOriginId origin_id)
 {
 	return false;
@@ -383,7 +439,7 @@ pgoutput_origin_filter(LogicalDecodingContext * ctx,
  * of the ctx->context so it will be cleaned up by logical decoding machinery.
  */
 static void
-pgoutput_shutdown(LogicalDecodingContext * ctx)
+pgoutput_shutdown(LogicalDecodingContext *ctx)
 {
 	if (RelationSyncCache)
 	{
@@ -396,7 +452,7 @@ pgoutput_shutdown(LogicalDecodingContext * ctx)
  * Load publications from the list of publication names.
  */
 static List *
-LoadPublications(List * pubnames)
+LoadPublications(List *pubnames)
 {
 	List	   *result = NIL;
 	ListCell   *lc;
@@ -467,7 +523,7 @@ init_rel_sync_cache(MemoryContext cachectx)
  * Find or create entry in the relation schema cache.
  */
 static RelationSyncEntry *
-get_rel_sync_entry(PGOutputData * data, Oid relid)
+get_rel_sync_entry(PGOutputData *data, Oid relid)
 {
 	RelationSyncEntry *entry;
 	bool		found;
@@ -507,46 +563,22 @@ get_rel_sync_entry(PGOutputData * data, Oid relid)
 		 * we only need to consider ones that the subscriber requested.
 		 */
 		entry->pubactions.pubinsert = entry->pubactions.pubupdate =
-			entry->pubactions.pubdelete = false;
+			entry->pubactions.pubdelete = entry->pubactions.pubtruncate = false;
 
 		foreach(lc, data->publications)
 		{
 			Publication *pub = lfirst(lc);
-
-			/*
-			 * Skip tables that look like they are from a heap rewrite (see
-			 * make_new_heap()).  We need to skip them because the subscriber
-			 * won't have a table by that name to receive the data.  That
-			 * means we won't ship the new data in, say, an added column with
-			 * a DEFAULT, but if the user applies the same DDL manually on the
-			 * subscriber, then this will work out for them.
-			 *
-			 * We only need to consider the alltables case, because such a
-			 * transient heap won't be an explicit member of a publication.
-			 */
-			if (pub->alltables)
-			{
-				char	   *relname = get_rel_name(relid);
-				unsigned int u;
-				int			n;
-
-				if (sscanf(relname, "pg_temp_%u%n", &u, &n) == 1 &&
-					relname[n] == '\0')
-				{
-					if (get_rel_relkind(u) == RELKIND_RELATION)
-						break;
-				}
-			}
 
 			if (pub->alltables || list_member_oid(pubids, pub->oid))
 			{
 				entry->pubactions.pubinsert |= pub->pubactions.pubinsert;
 				entry->pubactions.pubupdate |= pub->pubactions.pubupdate;
 				entry->pubactions.pubdelete |= pub->pubactions.pubdelete;
+				entry->pubactions.pubtruncate |= pub->pubactions.pubtruncate;
 			}
 
 			if (entry->pubactions.pubinsert && entry->pubactions.pubupdate &&
-				entry->pubactions.pubdelete)
+				entry->pubactions.pubdelete && entry->pubactions.pubtruncate)
 				break;
 		}
 

@@ -7,7 +7,7 @@
  * perspective, but allows regression testing independent of platform-specific
  * features like SELinux.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  */
 #include "postgres.h"
@@ -24,7 +24,7 @@ void		_PG_init(void);
 PG_FUNCTION_INFO_V1(dummy_seclabel_dummy);
 
 static void
-dummy_object_relabel(const ObjectAddress * object, const char *seclabel)
+dummy_object_relabel(const ObjectAddress *object, const char *seclabel)
 {
 	if (seclabel == NULL ||
 		strcmp(seclabel, "unclassified") == 0 ||

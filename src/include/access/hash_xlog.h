@@ -4,7 +4,7 @@
  *	  header file for Postgres hash AM implementation
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/hash_xlog.h
@@ -75,7 +75,7 @@ typedef struct xl_hash_createidx
 typedef struct xl_hash_insert
 {
 	OffsetNumber offnum;
-}			xl_hash_insert;
+} xl_hash_insert;
 
 #define SizeOfHashInsert	(offsetof(xl_hash_insert, offnum) + sizeof(OffsetNumber))
 
@@ -94,7 +94,7 @@ typedef struct xl_hash_add_ovfl_page
 {
 	uint16		bmsize;
 	bool		bmpage_found;
-}			xl_hash_add_ovfl_page;
+} xl_hash_add_ovfl_page;
 
 #define SizeOfHashAddOvflPage	\
 	(offsetof(xl_hash_add_ovfl_page, bmpage_found) + sizeof(bool))
@@ -114,7 +114,7 @@ typedef struct xl_hash_split_allocate_page
 	uint16		old_bucket_flag;
 	uint16		new_bucket_flag;
 	uint8		flags;
-}			xl_hash_split_allocate_page;
+} xl_hash_split_allocate_page;
 
 #define SizeOfHashSplitAllocPage	\
 	(offsetof(xl_hash_split_allocate_page, flags) + sizeof(uint8))
@@ -131,7 +131,7 @@ typedef struct xl_hash_split_complete
 {
 	uint16		old_bucket_flag;
 	uint16		new_bucket_flag;
-}			xl_hash_split_complete;
+} xl_hash_split_complete;
 
 #define SizeOfHashSplitComplete \
 	(offsetof(xl_hash_split_complete, new_bucket_flag) + sizeof(uint16))
@@ -149,10 +149,10 @@ typedef struct xl_hash_split_complete
 typedef struct xl_hash_move_page_contents
 {
 	uint16		ntups;
-	bool		is_prim_bucket_same_wrt;	/* TRUE if the page to which
+	bool		is_prim_bucket_same_wrt;	/* true if the page to which
 											 * tuples are moved is same as
 											 * primary bucket page */
-}			xl_hash_move_page_contents;
+} xl_hash_move_page_contents;
 
 #define SizeOfHashMovePageContents	\
 	(offsetof(xl_hash_move_page_contents, is_prim_bucket_same_wrt) + sizeof(bool))
@@ -174,14 +174,14 @@ typedef struct xl_hash_squeeze_page
 	BlockNumber prevblkno;
 	BlockNumber nextblkno;
 	uint16		ntups;
-	bool		is_prim_bucket_same_wrt;	/* TRUE if the page to which
+	bool		is_prim_bucket_same_wrt;	/* true if the page to which
 											 * tuples are moved is same as
 											 * primary bucket page */
-	bool		is_prev_bucket_same_wrt;	/* TRUE if the page to which
+	bool		is_prev_bucket_same_wrt;	/* true if the page to which
 											 * tuples are moved is the page
 											 * previous to the freed overflow
 											 * page */
-}			xl_hash_squeeze_page;
+} xl_hash_squeeze_page;
 
 #define SizeOfHashSqueezePage	\
 	(offsetof(xl_hash_squeeze_page, is_prev_bucket_same_wrt) + sizeof(bool))
@@ -196,11 +196,11 @@ typedef struct xl_hash_squeeze_page
  */
 typedef struct xl_hash_delete
 {
-	bool		clear_dead_marking; /* TRUE if this operation clears
+	bool		clear_dead_marking; /* true if this operation clears
 									 * LH_PAGE_HAS_DEAD_TUPLES flag */
-	bool		is_primary_bucket_page; /* TRUE if the operation is for
+	bool		is_primary_bucket_page; /* true if the operation is for
 										 * primary bucket page */
-}			xl_hash_delete;
+} xl_hash_delete;
 
 #define SizeOfHashDelete	(offsetof(xl_hash_delete, is_primary_bucket_page) + sizeof(bool))
 
@@ -214,7 +214,7 @@ typedef struct xl_hash_delete
 typedef struct xl_hash_update_meta_page
 {
 	double		ntuples;
-}			xl_hash_update_meta_page;
+} xl_hash_update_meta_page;
 
 #define SizeOfHashUpdateMetaPage	\
 	(offsetof(xl_hash_update_meta_page, ntuples) + sizeof(double))
@@ -231,7 +231,7 @@ typedef struct xl_hash_init_meta_page
 	double		num_tuples;
 	RegProcedure procid;
 	uint16		ffactor;
-}			xl_hash_init_meta_page;
+} xl_hash_init_meta_page;
 
 #define SizeOfHashInitMetaPage		\
 	(offsetof(xl_hash_init_meta_page, ffactor) + sizeof(uint16))
@@ -247,7 +247,7 @@ typedef struct xl_hash_init_meta_page
 typedef struct xl_hash_init_bitmap_page
 {
 	uint16		bmsize;
-}			xl_hash_init_bitmap_page;
+} xl_hash_init_bitmap_page;
 
 #define SizeOfHashInitBitmapPage	\
 	(offsetof(xl_hash_init_bitmap_page, bmsize) + sizeof(uint16))
@@ -267,13 +267,13 @@ typedef struct xl_hash_vacuum_one_page
 	int			ntuples;
 
 	/* TARGET OFFSET NUMBERS FOLLOW AT THE END */
-}			xl_hash_vacuum_one_page;
+} xl_hash_vacuum_one_page;
 
 #define SizeOfHashVacuumOnePage \
 	(offsetof(xl_hash_vacuum_one_page, ntuples) + sizeof(int))
 
-extern void hash_redo(XLogReaderState * record);
-extern void hash_desc(StringInfo buf, XLogReaderState * record);
+extern void hash_redo(XLogReaderState *record);
+extern void hash_desc(StringInfo buf, XLogReaderState *record);
 extern const char *hash_identify(uint8 info);
 extern void hash_mask(char *pagedata, BlockNumber blkno);
 

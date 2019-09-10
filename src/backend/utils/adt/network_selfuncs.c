@@ -7,7 +7,7 @@
  * operators.  Estimates are based on null fraction, most common values,
  * and histogram of inet/cidr columns.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -44,32 +44,32 @@
 #define MAX_CONSIDERED_ELEMS 1024
 
 static Selectivity networkjoinsel_inner(Oid operator,
-										VariableStatData * vardata1, VariableStatData * vardata2);
+					 VariableStatData *vardata1, VariableStatData *vardata2);
 static Selectivity networkjoinsel_semi(Oid operator,
-									   VariableStatData * vardata1, VariableStatData * vardata2);
-static Selectivity mcv_population(float4 * mcv_numbers, int mcv_nvalues);
-static Selectivity inet_hist_value_sel(Datum * values, int nvalues,
-									   Datum constvalue, int opr_codenum);
-static Selectivity inet_mcv_join_sel(Datum * mcv1_values,
-									 float4 * mcv1_numbers, int mcv1_nvalues, Datum * mcv2_values,
-									 float4 * mcv2_numbers, int mcv2_nvalues, Oid operator);
-static Selectivity inet_mcv_hist_sel(Datum * mcv_values, float4 * mcv_numbers,
-									 int mcv_nvalues, Datum * hist_values, int hist_nvalues,
-									 int opr_codenum);
-static Selectivity inet_hist_inclusion_join_sel(Datum * hist1_values,
-												int hist1_nvalues,
-												Datum * hist2_values, int hist2_nvalues,
-												int opr_codenum);
+					VariableStatData *vardata1, VariableStatData *vardata2);
+static Selectivity mcv_population(float4 *mcv_numbers, int mcv_nvalues);
+static Selectivity inet_hist_value_sel(Datum *values, int nvalues,
+					Datum constvalue, int opr_codenum);
+static Selectivity inet_mcv_join_sel(Datum *mcv1_values,
+				  float4 *mcv1_numbers, int mcv1_nvalues, Datum *mcv2_values,
+				  float4 *mcv2_numbers, int mcv2_nvalues, Oid operator);
+static Selectivity inet_mcv_hist_sel(Datum *mcv_values, float4 *mcv_numbers,
+				  int mcv_nvalues, Datum *hist_values, int hist_nvalues,
+				  int opr_codenum);
+static Selectivity inet_hist_inclusion_join_sel(Datum *hist1_values,
+							 int hist1_nvalues,
+							 Datum *hist2_values, int hist2_nvalues,
+							 int opr_codenum);
 static Selectivity inet_semi_join_sel(Datum lhs_value,
-									  bool mcv_exists, Datum * mcv_values, int mcv_nvalues,
-									  bool hist_exists, Datum * hist_values, int hist_nvalues,
-									  double hist_weight,
-									  FmgrInfo * proc, int opr_codenum);
+				   bool mcv_exists, Datum *mcv_values, int mcv_nvalues,
+				   bool hist_exists, Datum *hist_values, int hist_nvalues,
+				   double hist_weight,
+				   FmgrInfo *proc, int opr_codenum);
 static int	inet_opr_codenum(Oid operator);
-static int	inet_inclusion_cmp(inet * left, inet * right, int opr_codenum);
-static int inet_masklen_inclusion_cmp(inet * left, inet * right,
+static int	inet_inclusion_cmp(inet *left, inet *right, int opr_codenum);
+static int inet_masklen_inclusion_cmp(inet *left, inet *right,
 						   int opr_codenum);
-static int inet_hist_match_divider(inet * boundary, inet * query,
+static int inet_hist_match_divider(inet *boundary, inet *query,
 						int opr_codenum);
 
 /*
@@ -260,7 +260,7 @@ networkjoinsel(PG_FUNCTION_ARGS)
  */
 static Selectivity
 networkjoinsel_inner(Oid operator,
-					 VariableStatData * vardata1, VariableStatData * vardata2)
+					 VariableStatData *vardata1, VariableStatData *vardata2)
 {
 	Form_pg_statistic stats;
 	double		nullfrac1 = 0.0,
@@ -387,7 +387,7 @@ networkjoinsel_inner(Oid operator,
  */
 static Selectivity
 networkjoinsel_semi(Oid operator,
-					VariableStatData * vardata1, VariableStatData * vardata2)
+					VariableStatData *vardata1, VariableStatData *vardata2)
 {
 	Form_pg_statistic stats;
 	Selectivity selec = 0.0,
@@ -535,7 +535,7 @@ networkjoinsel_semi(Oid operator,
  * by the MCV list.
  */
 static Selectivity
-mcv_population(float4 * mcv_numbers, int mcv_nvalues)
+mcv_population(float4 *mcv_numbers, int mcv_nvalues)
 {
 	Selectivity sumcommon = 0.0;
 	int			i;
@@ -600,7 +600,7 @@ mcv_population(float4 * mcv_numbers, int mcv_nvalues)
  * better option than not considering these buckets at all.
  */
 static Selectivity
-inet_hist_value_sel(Datum * values, int nvalues, Datum constvalue,
+inet_hist_value_sel(Datum *values, int nvalues, Datum constvalue,
 					int opr_codenum)
 {
 	Selectivity match = 0.0;
@@ -669,8 +669,8 @@ inet_hist_value_sel(Datum * values, int nvalues, Datum constvalue,
  * The result is exact and does not need to be scaled further.
  */
 static Selectivity
-inet_mcv_join_sel(Datum * mcv1_values, float4 * mcv1_numbers, int mcv1_nvalues,
-				  Datum * mcv2_values, float4 * mcv2_numbers, int mcv2_nvalues,
+inet_mcv_join_sel(Datum *mcv1_values, float4 *mcv1_numbers, int mcv1_nvalues,
+				  Datum *mcv2_values, float4 *mcv2_numbers, int mcv2_nvalues,
 				  Oid operator)
 {
 	Selectivity selec = 0.0;
@@ -701,8 +701,8 @@ inet_mcv_join_sel(Datum * mcv1_values, float4 * mcv1_numbers, int mcv1_nvalues,
  * the histogram.
  */
 static Selectivity
-inet_mcv_hist_sel(Datum * mcv_values, float4 * mcv_numbers, int mcv_nvalues,
-				  Datum * hist_values, int hist_nvalues,
+inet_mcv_hist_sel(Datum *mcv_values, float4 *mcv_numbers, int mcv_nvalues,
+				  Datum *hist_values, int hist_nvalues,
 				  int opr_codenum)
 {
 	Selectivity selec = 0.0;
@@ -738,8 +738,8 @@ inet_mcv_hist_sel(Datum * mcv_values, float4 * mcv_numbers, int mcv_nvalues,
  * average?  That would at least avoid non-commutative estimation results.
  */
 static Selectivity
-inet_hist_inclusion_join_sel(Datum * hist1_values, int hist1_nvalues,
-							 Datum * hist2_values, int hist2_nvalues,
+inet_hist_inclusion_join_sel(Datum *hist1_values, int hist1_nvalues,
+							 Datum *hist2_values, int hist2_nvalues,
 							 int opr_codenum)
 {
 	double		match = 0.0;
@@ -790,10 +790,10 @@ inet_hist_inclusion_join_sel(Datum * hist1_values, int hist1_nvalues,
  */
 static Selectivity
 inet_semi_join_sel(Datum lhs_value,
-				   bool mcv_exists, Datum * mcv_values, int mcv_nvalues,
-				   bool hist_exists, Datum * hist_values, int hist_nvalues,
+				   bool mcv_exists, Datum *mcv_values, int mcv_nvalues,
+				   bool hist_exists, Datum *hist_values, int hist_nvalues,
 				   double hist_weight,
-				   FmgrInfo * proc, int opr_codenum)
+				   FmgrInfo *proc, int opr_codenum)
 {
 	if (mcv_exists)
 	{
@@ -875,7 +875,7 @@ inet_opr_codenum(Oid operator)
  * See the inet_masklen_inclusion_cmp() function below.
  */
 static int
-inet_inclusion_cmp(inet * left, inet * right, int opr_codenum)
+inet_inclusion_cmp(inet *left, inet *right, int opr_codenum)
 {
 	if (ip_family(left) == ip_family(right))
 	{
@@ -901,7 +901,7 @@ inet_inclusion_cmp(inet * left, inet * right, int opr_codenum)
  * appropriate for the operator.
  */
 static int
-inet_masklen_inclusion_cmp(inet * left, inet * right, int opr_codenum)
+inet_masklen_inclusion_cmp(inet *left, inet *right, int opr_codenum)
 {
 	int			order;
 
@@ -935,7 +935,7 @@ inet_masklen_inclusion_cmp(inet * left, inet * right, int opr_codenum)
  * See commentary for inet_hist_value_sel() for some rationale for this.
  */
 static int
-inet_hist_match_divider(inet * boundary, inet * query, int opr_codenum)
+inet_hist_match_divider(inet *boundary, inet *query, int opr_codenum)
 {
 	if (ip_family(boundary) == ip_family(query) &&
 		inet_masklen_inclusion_cmp(boundary, query, opr_codenum) == 0)

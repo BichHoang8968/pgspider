@@ -2,7 +2,7 @@
  *
  * walmethods.h
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  src/bin/pg_basebackup/walmethods.h
@@ -17,7 +17,7 @@ typedef enum
 	CLOSE_NORMAL,
 	CLOSE_UNLINK,
 	CLOSE_NO_RENAME
-}			WalCloseMethod;
+} WalCloseMethod;
 
 /*
  * A WalWriteMethod structure represents the different methods used
@@ -38,7 +38,7 @@ struct WalWriteMethod
 	 * automatically renamed in close(). If pad_to_size is specified, the file
 	 * will be padded with NUL up to that size, if supported by the Walmethod.
 	 */
-	Walfile(*open_for_write) (const char *pathname, const char *temp_suffix, size_t pad_to_size);
+	Walfile		(*open_for_write) (const char *pathname, const char *temp_suffix, size_t pad_to_size);
 
 	/*
 	 * Close an open Walfile, using one or more methods for handling automatic
@@ -50,16 +50,16 @@ struct WalWriteMethod
 	bool		(*existsfile) (const char *pathname);
 
 	/* Return the size of a file, or -1 on failure. */
-				ssize_t(*get_file_size) (const char *pathname);
+	ssize_t		(*get_file_size) (const char *pathname);
 
 	/*
 	 * Write count number of bytes to the file, and return the number of bytes
 	 * actually written or -1 for error.
 	 */
-				ssize_t(*write) (Walfile f, const void *buf, size_t count);
+	ssize_t		(*write) (Walfile f, const void *buf, size_t count);
 
 	/* Return the current position in a file or -1 on error */
-				off_t(*get_current_pos) (Walfile f);
+	off_t		(*get_current_pos) (Walfile f);
 
 	/*
 	 * fsync the contents of the specified file. Returns 0 on success.

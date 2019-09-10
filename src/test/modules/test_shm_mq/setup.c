@@ -5,7 +5,7 @@
  *		number of background workers for shared memory message queue
  *		testing.
  *
- * Copyright (c) 2013-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2013-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		src/test/modules/test_shm_mq/setup.c
@@ -28,26 +28,26 @@ typedef struct
 {
 	int			nworkers;
 	BackgroundWorkerHandle *handle[FLEXIBLE_ARRAY_MEMBER];
-}			worker_state;
+} worker_state;
 
 static void setup_dynamic_shared_memory(int64 queue_size, int nworkers,
-							dsm_segment * *segp,
-							test_shm_mq_header * *hdrp,
-							shm_mq * *outp, shm_mq * *inp);
-static worker_state * setup_background_workers(int nworkers,
-											   dsm_segment * seg);
-static void cleanup_background_workers(dsm_segment * seg, Datum arg);
-static void wait_for_workers_to_become_ready(worker_state * wstate,
-								 volatile test_shm_mq_header * hdr);
-static bool check_worker_status(worker_state * wstate);
+							dsm_segment **segp,
+							test_shm_mq_header **hdrp,
+							shm_mq **outp, shm_mq **inp);
+static worker_state *setup_background_workers(int nworkers,
+						 dsm_segment *seg);
+static void cleanup_background_workers(dsm_segment *seg, Datum arg);
+static void wait_for_workers_to_become_ready(worker_state *wstate,
+								 volatile test_shm_mq_header *hdr);
+static bool check_worker_status(worker_state *wstate);
 
 /*
  * Set up a dynamic shared memory segment and zero or more background workers
  * for a test run.
  */
 void
-test_shm_mq_setup(int64 queue_size, int32 nworkers, dsm_segment * *segp,
-				  shm_mq_handle * *output, shm_mq_handle * *input)
+test_shm_mq_setup(int64 queue_size, int32 nworkers, dsm_segment **segp,
+				  shm_mq_handle **output, shm_mq_handle **input)
 {
 	dsm_segment *seg;
 	test_shm_mq_header *hdr;
@@ -88,8 +88,8 @@ test_shm_mq_setup(int64 queue_size, int32 nworkers, dsm_segment * *segp,
  */
 static void
 setup_dynamic_shared_memory(int64 queue_size, int nworkers,
-							dsm_segment * *segp, test_shm_mq_header * *hdrp,
-							shm_mq * *outp, shm_mq * *inp)
+							dsm_segment **segp, test_shm_mq_header **hdrp,
+							shm_mq **outp, shm_mq **inp)
 {
 	shm_toc_estimator e;
 	int			i;
@@ -170,7 +170,7 @@ setup_dynamic_shared_memory(int64 queue_size, int nworkers,
  * Register background workers.
  */
 static worker_state *
-setup_background_workers(int nworkers, dsm_segment * seg)
+setup_background_workers(int nworkers, dsm_segment *seg)
 {
 	MemoryContext oldcontext;
 	BackgroundWorker worker;
@@ -219,7 +219,7 @@ setup_background_workers(int nworkers, dsm_segment * seg)
 	worker.bgw_restart_time = BGW_NEVER_RESTART;
 	sprintf(worker.bgw_library_name, "test_shm_mq");
 	sprintf(worker.bgw_function_name, "test_shm_mq_main");
-	snprintf(worker.bgw_name, BGW_MAXLEN, "test_shm_mq");
+	snprintf(worker.bgw_type, BGW_MAXLEN, "test_shm_mq");
 	worker.bgw_main_arg = UInt32GetDatum(dsm_segment_handle(seg));
 	/* set bgw_notify_pid, so we can detect if the worker stops */
 	worker.bgw_notify_pid = MyProcPid;
@@ -241,7 +241,7 @@ setup_background_workers(int nworkers, dsm_segment * seg)
 }
 
 static void
-cleanup_background_workers(dsm_segment * seg, Datum arg)
+cleanup_background_workers(dsm_segment *seg, Datum arg)
 {
 	worker_state *wstate = (worker_state *) DatumGetPointer(arg);
 
@@ -253,8 +253,8 @@ cleanup_background_workers(dsm_segment * seg, Datum arg)
 }
 
 static void
-wait_for_workers_to_become_ready(worker_state * wstate,
-								 volatile test_shm_mq_header * hdr)
+wait_for_workers_to_become_ready(worker_state *wstate,
+								 volatile test_shm_mq_header *hdr)
 {
 	bool		result = false;
 
@@ -296,7 +296,7 @@ wait_for_workers_to_become_ready(worker_state * wstate,
 }
 
 static bool
-check_worker_status(worker_state * wstate)
+check_worker_status(worker_state *wstate)
 {
 	int			n;
 

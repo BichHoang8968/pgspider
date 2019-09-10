@@ -41,7 +41,7 @@
  * function must be supplied; comparison defaults to memcmp() and key copying
  * to memcpy() when a user-defined hashing function is selected.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -360,7 +360,7 @@ hash_create_orig(const char *tabname, long nelem, HASHCTL *info, int flags)
 		else
 			CurrentDynaHashCxt = TopMemoryContext;
 		CurrentDynaHashCxt = AllocSetContextCreate(CurrentDynaHashCxt,
-												   tabname,
+												   "dynahash",
 												   ALLOCSET_DEFAULT_SIZES);
 	}
 
@@ -370,6 +370,10 @@ hash_create_orig(const char *tabname, long nelem, HASHCTL *info, int flags)
 
 	hashp->tabname = (char *) (hashp + 1);
 	strcpy(hashp->tabname, tabname);
+
+	/* If we have a private context, label it with hashtable's name */
+	if (!(flags & HASH_SHARED_MEM))
+		MemoryContextSetIdentifier(CurrentDynaHashCxt, tabname);
 
 	/*
 	 * Select the appropriate hash function (see comments at head of file).
@@ -919,23 +923,23 @@ calc_bucket(HASHHDR *hctl, uint32 hash_val)
  */
 void *
 hash_search_orig(HTAB *hashp,
-				 const void *keyPtr,
-				 HASHACTION action,
-				 bool *foundPtr)
+			const void *keyPtr,
+			HASHACTION action,
+			bool *foundPtr)
 {
 	return hash_search_with_hash_value_orig(hashp,
-											keyPtr,
-											hashp->hash(keyPtr, hashp->keysize),
-											action,
-											foundPtr);
+									   keyPtr,
+									   hashp->hash(keyPtr, hashp->keysize),
+									   action,
+									   foundPtr);
 }
 
 void *
 hash_search_with_hash_value_orig(HTAB *hashp,
-								 const void *keyPtr,
-								 uint32 hashvalue,
-								 HASHACTION action,
-								 bool *foundPtr)
+							const void *keyPtr,
+							uint32 hashvalue,
+							HASHACTION action,
+							bool *foundPtr)
 {
 	HASHHDR    *hctl = hashp->hctl;
 	int			freelist_idx = FREELIST_IDX(hctl, hashvalue);
@@ -1128,8 +1132,8 @@ hash_search_with_hash_value_orig(HTAB *hashp,
  */
 bool
 hash_update_hash_key_orig(HTAB *hashp,
-						  void *existingEntry,
-						  const void *newKeyPtr)
+					 void *existingEntry,
+					 const void *newKeyPtr)
 {
 	HASHELEMENT *existingElement = ELEMENT_FROM_KEY(existingEntry);
 	HASHHDR    *hctl = hashp->hctl;

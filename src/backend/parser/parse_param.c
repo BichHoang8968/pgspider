@@ -12,7 +12,7 @@
  * Note that other approaches to parameters are possible using the parser
  * hooks defined in ParseState.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -37,7 +37,7 @@ typedef struct FixedParamState
 {
 	Oid		   *paramTypes;		/* array of parameter type OIDs */
 	int			numParams;		/* number of array entries */
-}			FixedParamState;
+} FixedParamState;
 
 /*
  * In the varparams case, the caller-supplied OID array (if any) can be
@@ -49,23 +49,23 @@ typedef struct VarParamState
 {
 	Oid		  **paramTypes;		/* array of parameter type OIDs */
 	int		   *numParams;		/* number of array entries */
-}			VarParamState;
+} VarParamState;
 
-static Node * fixed_paramref_hook(ParseState * pstate, ParamRef * pref);
-static Node * variable_paramref_hook(ParseState * pstate, ParamRef * pref);
-static Node * variable_coerce_param_hook(ParseState * pstate, Param * param,
-										 Oid targetTypeId, int32 targetTypeMod,
-										 int location);
-static bool check_parameter_resolution_walker(Node * node, ParseState * pstate);
-static bool query_contains_extern_params_walker(Node * node, void *context);
+static Node *fixed_paramref_hook(ParseState *pstate, ParamRef *pref);
+static Node *variable_paramref_hook(ParseState *pstate, ParamRef *pref);
+static Node *variable_coerce_param_hook(ParseState *pstate, Param *param,
+						   Oid targetTypeId, int32 targetTypeMod,
+						   int location);
+static bool check_parameter_resolution_walker(Node *node, ParseState *pstate);
+static bool query_contains_extern_params_walker(Node *node, void *context);
 
 
 /*
  * Set up to process a query containing references to fixed parameters.
  */
 void
-parse_fixed_parameters(ParseState * pstate,
-					   Oid * paramTypes, int numParams)
+parse_fixed_parameters(ParseState *pstate,
+					   Oid *paramTypes, int numParams)
 {
 	FixedParamState *parstate = palloc(sizeof(FixedParamState));
 
@@ -80,8 +80,8 @@ parse_fixed_parameters(ParseState * pstate,
  * Set up to process a query containing references to variable parameters.
  */
 void
-parse_variable_parameters(ParseState * pstate,
-						  Oid * *paramTypes, int *numParams)
+parse_variable_parameters(ParseState *pstate,
+						  Oid **paramTypes, int *numParams)
 {
 	VarParamState *parstate = palloc(sizeof(VarParamState));
 
@@ -96,7 +96,7 @@ parse_variable_parameters(ParseState * pstate,
  * Transform a ParamRef using fixed parameter types.
  */
 static Node *
-fixed_paramref_hook(ParseState * pstate, ParamRef * pref)
+fixed_paramref_hook(ParseState *pstate, ParamRef *pref)
 {
 	FixedParamState *parstate = (FixedParamState *) pstate->p_ref_hook_state;
 	int			paramno = pref->number;
@@ -128,7 +128,7 @@ fixed_paramref_hook(ParseState * pstate, ParamRef * pref)
  * as needed.
  */
 static Node *
-variable_paramref_hook(ParseState * pstate, ParamRef * pref)
+variable_paramref_hook(ParseState *pstate, ParamRef *pref)
 {
 	VarParamState *parstate = (VarParamState *) pstate->p_ref_hook_state;
 	int			paramno = pref->number;
@@ -178,7 +178,7 @@ variable_paramref_hook(ParseState * pstate, ParamRef * pref)
  * Coerce a Param to a query-requested datatype, in the varparams case.
  */
 static Node *
-variable_coerce_param_hook(ParseState * pstate, Param * param,
+variable_coerce_param_hook(ParseState *pstate, Param *param,
 						   Oid targetTypeId, int32 targetTypeMod,
 						   int location)
 {
@@ -260,7 +260,7 @@ variable_coerce_param_hook(ParseState * pstate, Param * param,
  * should enforce that if it's important.
  */
 void
-check_variable_parameters(ParseState * pstate, Query * query)
+check_variable_parameters(ParseState *pstate, Query *query)
 {
 	VarParamState *parstate = (VarParamState *) pstate->p_ref_hook_state;
 
@@ -278,7 +278,7 @@ check_variable_parameters(ParseState * pstate, Query * query)
  * and yet other instances seen later might have gotten coerced.
  */
 static bool
-check_parameter_resolution_walker(Node * node, ParseState * pstate)
+check_parameter_resolution_walker(Node *node, ParseState *pstate)
 {
 	if (node == NULL)
 		return false;
@@ -322,7 +322,7 @@ check_parameter_resolution_walker(Node * node, ParseState * pstate)
  * Check to see if a fully-parsed query tree contains any PARAM_EXTERN Params.
  */
 bool
-query_contains_extern_params(Query * query)
+query_contains_extern_params(Query *query)
 {
 	return query_tree_walker(query,
 							 query_contains_extern_params_walker,
@@ -330,7 +330,7 @@ query_contains_extern_params(Query * query)
 }
 
 static bool
-query_contains_extern_params_walker(Node * node, void *context)
+query_contains_extern_params_walker(Node *node, void *context)
 {
 	if (node == NULL)
 		return false;

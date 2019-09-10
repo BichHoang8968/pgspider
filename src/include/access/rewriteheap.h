@@ -3,7 +3,7 @@
  * rewriteheap.h
  *	  Declarations for heap rewrite support functions
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994-5, Regents of the University of California
  *
  * src/include/access/rewriteheap.h
@@ -22,8 +22,8 @@
 typedef struct RewriteStateData *RewriteState;
 
 extern RewriteState begin_heap_rewrite(Relation OldHeap, Relation NewHeap,
-									   TransactionId OldestXmin, TransactionId FreezeXid,
-									   MultiXactId MultiXactCutoff, bool use_wal);
+				   TransactionId OldestXmin, TransactionId FreezeXid,
+				   MultiXactId MultiXactCutoff, bool use_wal);
 extern void end_heap_rewrite(RewriteState state);
 extern void rewrite_heap_tuple(RewriteState state, HeapTuple oldTuple,
 				   HeapTuple newTuple);
@@ -38,7 +38,7 @@ typedef struct LogicalRewriteMappingData
 	RelFileNode new_node;
 	ItemPointerData old_tid;
 	ItemPointerData new_tid;
-}			LogicalRewriteMappingData;
+} LogicalRewriteMappingData;
 
 /* ---
  * The filename consists of the following, dash separated,

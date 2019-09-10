@@ -46,7 +46,7 @@
  * Ignoring invocation with NULL is a convenience.
  */
 void
-pg_regfree(regex_t * re)
+pg_regfree(regex_t *re)
 {
 	if (re == NULL)
 		return;

@@ -4,7 +4,7 @@
  *	  definitions for run-time statistics collection
  *
  *
- * Copyright (c) 2001-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2001-2018, PostgreSQL Global Development Group
  *
  * src/include/executor/instrument.h
  *
@@ -30,7 +30,7 @@ typedef struct BufferUsage
 	long		temp_blks_written;	/* # of temp blocks written */
 	instr_time	blk_read_time;	/* time spent reading */
 	instr_time	blk_write_time; /* time spent writing */
-}			BufferUsage;
+} BufferUsage;
 
 /* Flag bits included in InstrAlloc's instrument_options bitmask */
 typedef enum InstrumentOption
@@ -44,10 +44,10 @@ typedef enum InstrumentOption
 typedef struct Instrumentation
 {
 	/* Parameters set at node creation: */
-	bool		need_timer;		/* TRUE if we need timer data */
-	bool		need_bufusage;	/* TRUE if we need buffer usage data */
+	bool		need_timer;		/* true if we need timer data */
+	bool		need_bufusage;	/* true if we need buffer usage data */
 	/* Info about current plan cycle: */
-	bool		running;		/* TRUE if we've completed first tuple */
+	bool		running;		/* true if we've completed first tuple */
 	instr_time	starttime;		/* Start time of current iteration of node */
 	instr_time	counter;		/* Accumulated runtime for this node */
 	double		firsttuple;		/* Time for first tuple of this cycle */
@@ -57,28 +57,29 @@ typedef struct Instrumentation
 	double		startup;		/* Total startup time (in seconds) */
 	double		total;			/* Total total time (in seconds) */
 	double		ntuples;		/* Total tuples produced */
+	double		ntuples2;		/* Secondary node-specific tuple counter */
 	double		nloops;			/* # of run cycles for this node */
 	double		nfiltered1;		/* # tuples removed by scanqual or joinqual */
 	double		nfiltered2;		/* # tuples removed by "other" quals */
 	BufferUsage bufusage;		/* Total buffer usage */
-}			Instrumentation;
+} Instrumentation;
 
 typedef struct WorkerInstrumentation
 {
 	int			num_workers;	/* # of structures that follow */
 	Instrumentation instrument[FLEXIBLE_ARRAY_MEMBER];
-}			WorkerInstrumentation;
+} WorkerInstrumentation;
 
 extern PGDLLIMPORT BufferUsage pgBufferUsage;
 
-extern Instrumentation * InstrAlloc(int n, int instrument_options);
-extern void InstrInit(Instrumentation * instr, int instrument_options);
-extern void InstrStartNode(Instrumentation * instr);
-extern void InstrStopNode(Instrumentation * instr, double nTuples);
-extern void InstrEndLoop(Instrumentation * instr);
-extern void InstrAggNode(Instrumentation * dst, Instrumentation * add);
+extern Instrumentation *InstrAlloc(int n, int instrument_options);
+extern void InstrInit(Instrumentation *instr, int instrument_options);
+extern void InstrStartNode(Instrumentation *instr);
+extern void InstrStopNode(Instrumentation *instr, double nTuples);
+extern void InstrEndLoop(Instrumentation *instr);
+extern void InstrAggNode(Instrumentation *dst, Instrumentation *add);
 extern void InstrStartParallelQuery(void);
-extern void InstrEndParallelQuery(BufferUsage * result);
-extern void InstrAccumParallelQuery(BufferUsage * result);
+extern void InstrEndParallelQuery(BufferUsage *result);
+extern void InstrAccumParallelQuery(BufferUsage *result);
 
 #endif							/* INSTRUMENT_H */

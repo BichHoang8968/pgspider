@@ -4,7 +4,7 @@
  *	  Declarations for operations on built-in types.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/builtins.h
@@ -34,7 +34,7 @@ extern unsigned hex_encode(const char *src, unsigned len, char *dst);
 extern unsigned hex_decode(const char *src, unsigned len, char *dst);
 
 /* int.c */
-extern int2vector * buildint2vector(const int16 * int2s, int n);
+extern int2vector *buildint2vector(const int16 *int2s, int n);
 
 /* name.c */
 extern int	namecpy(Name n1, Name n2);
@@ -65,12 +65,12 @@ extern int	float4_cmp_internal(float4 a, float4 b);
 extern int	float8_cmp_internal(float8 a, float8 b);
 
 /* oid.c */
-extern oidvector * buildoidvector(const Oid * oids, int n);
-extern Oid oidparse(Node * node);
+extern oidvector *buildoidvector(const Oid *oids, int n);
+extern Oid	oidparse(Node *node);
 extern int	oid_cmp(const void *p1, const void *p2);
 
 /* regexp.c */
-extern char *regexp_fixed_prefix(text * text_re, bool case_insensitive,
+extern char *regexp_fixed_prefix(text *text_re, bool case_insensitive,
 					Oid collation, bool *exact);
 
 /* ruleutils.c */
@@ -87,10 +87,10 @@ extern void generate_operator_clause(fmStringInfo buf,
 extern int	bpchartruelen(char *s, int len);
 
 /* popular functions from varlena.c */
-extern text * cstring_to_text(const char *s);
-extern text * cstring_to_text_with_len(const char *s, int len);
-extern char *text_to_cstring(const text * t);
-extern void text_to_cstring_buffer(const text * src, char *dst, size_t dst_len);
+extern text *cstring_to_text(const char *s);
+extern text *cstring_to_text_with_len(const char *s, int len);
+extern char *text_to_cstring(const text *t);
+extern void text_to_cstring_buffer(const text *src, char *dst, size_t dst_len);
 
 #define CStringGetTextDatum(s) PointerGetDatum(cstring_to_text(s))
 #define TextDatumGetCString(d) text_to_cstring((text *) DatumGetPointer(d))
@@ -116,10 +116,17 @@ extern void clean_ipv6_addr(int addr_family, char *addr);
 extern Datum numeric_float8_no_overflow(PG_FUNCTION_ARGS);
 
 /* format_type.c */
+
+/* Control flags for format_type_extended */
+#define FORMAT_TYPE_TYPEMOD_GIVEN	0x01	/* typemod defined by caller */
+#define FORMAT_TYPE_ALLOW_INVALID	0x02	/* allow invalid types */
+#define FORMAT_TYPE_FORCE_QUALIFY	0x04	/* force qualification of type */
+extern char *format_type_extended(Oid type_oid, int32 typemod, bits16 flags);
+
 extern char *format_type_be(Oid type_oid);
 extern char *format_type_be_qualified(Oid type_oid);
 extern char *format_type_with_typemod(Oid type_oid, int32 typemod);
-extern char *format_type_with_typemod_qualified(Oid type_oid, int32 typemod);
+
 extern int32 type_maximum_size(Oid type_oid, int32 typemod);
 
 /* quote.c */

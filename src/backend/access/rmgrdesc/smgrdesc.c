@@ -3,7 +3,7 @@
  * smgrdesc.c
  *	  rmgr descriptor routines for catalog/storage.c
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -14,12 +14,11 @@
  */
 #include "postgres.h"
 
-#include "catalog/catalog.h"
 #include "catalog/storage_xlog.h"
 
 
 void
-smgr_desc(StringInfo buf, XLogReaderState * record)
+smgr_desc(StringInfo buf, XLogReaderState *record)
 {
 	char	   *rec = XLogRecGetData(record);
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;

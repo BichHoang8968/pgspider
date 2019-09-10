@@ -3,7 +3,7 @@
  * basebackup.h
  *	  Exports from replication/basebackup.c.
  *
- * Portions Copyright (c) 2010-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2010-2018, PostgreSQL Global Development Group
  *
  * src/include/replication/basebackup.h
  *
@@ -27,9 +27,9 @@ typedef struct
 	char	   *path;
 	char	   *rpath;			/* relative path within PGDATA, or NULL */
 	int64		size;
-}			tablespaceinfo;
+} tablespaceinfo;
 
-extern void SendBaseBackup(BaseBackupCmd * cmd);
+extern void SendBaseBackup(BaseBackupCmd *cmd);
 
 extern int64 sendTablespace(char *path, bool sizeonly);
 

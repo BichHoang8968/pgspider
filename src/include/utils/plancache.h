@@ -5,7 +5,7 @@
  *
  * See plancache.c for comments.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/plancache.h
@@ -115,7 +115,7 @@ typedef struct CachedPlanSource
 	double		generic_cost;	/* cost of generic plan, or -1 if not known */
 	double		total_custom_cost;	/* total cost of custom plans so far */
 	int			num_custom_plans;	/* number of plans included in total */
-}			CachedPlanSource;
+} CachedPlanSource;
 
 /*
  * CachedPlan represents an execution plan derived from a CachedPlanSource.
@@ -141,45 +141,45 @@ typedef struct CachedPlan
 	int			generation;		/* parent's generation number for this plan */
 	int			refcount;		/* count of live references to this struct */
 	MemoryContext context;		/* context containing this CachedPlan */
-}			CachedPlan;
+} CachedPlan;
 
 
 extern void InitPlanCache(void);
 extern void ResetPlanCache(void);
 
-extern CachedPlanSource * CreateCachedPlan(struct RawStmt *raw_parse_tree,
-										   const char *query_string,
-										   const char *commandTag);
-extern CachedPlanSource * CreateOneShotCachedPlan(struct RawStmt *raw_parse_tree,
-												  const char *query_string,
-												  const char *commandTag);
-extern void CompleteCachedPlan(CachedPlanSource * plansource,
-				   List * querytree_list,
+extern CachedPlanSource *CreateCachedPlan(struct RawStmt *raw_parse_tree,
+				 const char *query_string,
+				 const char *commandTag);
+extern CachedPlanSource *CreateOneShotCachedPlan(struct RawStmt *raw_parse_tree,
+						const char *query_string,
+						const char *commandTag);
+extern void CompleteCachedPlan(CachedPlanSource *plansource,
+				   List *querytree_list,
 				   MemoryContext querytree_context,
-				   Oid * param_types,
+				   Oid *param_types,
 				   int num_params,
 				   ParserSetupHook parserSetup,
 				   void *parserSetupArg,
 				   int cursor_options,
 				   bool fixed_result);
 
-extern void SaveCachedPlan(CachedPlanSource * plansource);
-extern void DropCachedPlan(CachedPlanSource * plansource);
+extern void SaveCachedPlan(CachedPlanSource *plansource);
+extern void DropCachedPlan(CachedPlanSource *plansource);
 
-extern void CachedPlanSetParentContext(CachedPlanSource * plansource,
+extern void CachedPlanSetParentContext(CachedPlanSource *plansource,
 						   MemoryContext newcontext);
 
-extern CachedPlanSource * CopyCachedPlan(CachedPlanSource * plansource);
+extern CachedPlanSource *CopyCachedPlan(CachedPlanSource *plansource);
 
-extern bool CachedPlanIsValid(CachedPlanSource * plansource);
+extern bool CachedPlanIsValid(CachedPlanSource *plansource);
 
-extern List * CachedPlanGetTargetList(CachedPlanSource * plansource,
-									  QueryEnvironment * queryEnv);
+extern List *CachedPlanGetTargetList(CachedPlanSource *plansource,
+						QueryEnvironment *queryEnv);
 
-extern CachedPlan * GetCachedPlan(CachedPlanSource * plansource,
-								  ParamListInfo boundParams,
-								  bool useResOwner,
-								  QueryEnvironment * queryEnv);
-extern void ReleaseCachedPlan(CachedPlan * plan, bool useResOwner);
+extern CachedPlan *GetCachedPlan(CachedPlanSource *plansource,
+			  ParamListInfo boundParams,
+			  bool useResOwner,
+			  QueryEnvironment *queryEnv);
+extern void ReleaseCachedPlan(CachedPlan *plan, bool useResOwner);
 
 #endif							/* PLANCACHE_H */

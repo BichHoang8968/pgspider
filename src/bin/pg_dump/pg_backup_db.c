@@ -29,12 +29,12 @@
 /* translator: this is a module name */
 static const char *modulename = gettext_noop("archiver (db)");
 
-static void _check_database_version(ArchiveHandle * AH);
-static PGconn * _connectDB(ArchiveHandle * AH, const char *newdbname, const char *newUser);
+static void _check_database_version(ArchiveHandle *AH);
+static PGconn *_connectDB(ArchiveHandle *AH, const char *newdbname, const char *newUser);
 static void notice_processor(void *arg, const char *message);
 
 static void
-_check_database_version(ArchiveHandle * AH)
+_check_database_version(ArchiveHandle *AH)
 {
 	const char *remoteversion_str;
 	int			remoteversion;
@@ -77,14 +77,10 @@ _check_database_version(ArchiveHandle * AH)
 /*
  * Reconnect to the server.  If dbname is not NULL, use that database,
  * else the one associated with the archive handle.  If username is
- * not NULL, use that user name, else the one from the handle.  If
- * both the database and the user match the existing connection already,
- * nothing will be done.
- *
- * Returns 1 in any case.
+ * not NULL, use that user name, else the one from the handle.
  */
-int
-ReconnectToServer(ArchiveHandle * AH, const char *dbname, const char *username)
+void
+ReconnectToServer(ArchiveHandle *AH, const char *dbname, const char *username)
 {
 	PGconn	   *newConn;
 	const char *newdbname;
@@ -100,11 +96,6 @@ ReconnectToServer(ArchiveHandle * AH, const char *dbname, const char *username)
 	else
 		newusername = username;
 
-	/* Let's see if the request is already satisfied */
-	if (strcmp(newdbname, PQdb(AH->connection)) == 0 &&
-		strcmp(newusername, PQuser(AH->connection)) == 0)
-		return 1;
-
 	newConn = _connectDB(AH, newdbname, newusername);
 
 	/* Update ArchiveHandle's connCancel before closing old connection */
@@ -116,8 +107,6 @@ ReconnectToServer(ArchiveHandle * AH, const char *dbname, const char *username)
 	/* Start strict; later phases may override this. */
 	PQclear(ExecuteSqlQueryForSingleRow((Archive *) AH,
 										ALWAYS_SECURE_SEARCH_PATH_SQL));
-
-	return 1;
 }
 
 /*
@@ -130,7 +119,7 @@ ReconnectToServer(ArchiveHandle * AH, const char *dbname, const char *username)
  * start of the run.
  */
 static PGconn *
-_connectDB(ArchiveHandle * AH, const char *reqdb, const char *requser)
+_connectDB(ArchiveHandle *AH, const char *reqdb, const char *requser)
 {
 	PQExpBufferData connstr;
 	PGconn	   *newConn;
@@ -248,7 +237,7 @@ _connectDB(ArchiveHandle * AH, const char *reqdb, const char *requser)
  * username never does change, so one savedPassword is sufficient.
  */
 void
-ConnectDatabase(Archive * AHX,
+ConnectDatabase(Archive *AHX,
 				const char *dbname,
 				const char *pghost,
 				const char *pgport,
@@ -349,7 +338,7 @@ ConnectDatabase(Archive * AHX,
  * have one running.
  */
 void
-DisconnectDatabase(Archive * AHX)
+DisconnectDatabase(Archive *AHX)
 {
 	ArchiveHandle *AH = (ArchiveHandle *) AHX;
 	char		errbuf[1];
@@ -378,7 +367,7 @@ DisconnectDatabase(Archive * AHX)
 }
 
 PGconn *
-GetConnection(Archive * AHX)
+GetConnection(Archive *AHX)
 {
 	ArchiveHandle *AH = (ArchiveHandle *) AHX;
 
@@ -393,7 +382,7 @@ notice_processor(void *arg, const char *message)
 
 /* Like exit_horribly(), but with a complaint about a particular query. */
 static void
-die_on_query_failure(ArchiveHandle * AH, const char *modulename, const char *query)
+die_on_query_failure(ArchiveHandle *AH, const char *modulename, const char *query)
 {
 	write_msg(modulename, "query failed: %s",
 			  PQerrorMessage(AH->connection));
@@ -401,7 +390,7 @@ die_on_query_failure(ArchiveHandle * AH, const char *modulename, const char *que
 }
 
 void
-ExecuteSqlStatement(Archive * AHX, const char *query)
+ExecuteSqlStatement(Archive *AHX, const char *query)
 {
 	ArchiveHandle *AH = (ArchiveHandle *) AHX;
 	PGresult   *res;
@@ -413,7 +402,7 @@ ExecuteSqlStatement(Archive * AHX, const char *query)
 }
 
 PGresult *
-ExecuteSqlQuery(Archive * AHX, const char *query, ExecStatusType status)
+ExecuteSqlQuery(Archive *AHX, const char *query, ExecStatusType status)
 {
 	ArchiveHandle *AH = (ArchiveHandle *) AHX;
 	PGresult   *res;
@@ -428,7 +417,7 @@ ExecuteSqlQuery(Archive * AHX, const char *query, ExecStatusType status)
  * Execute an SQL query and verify that we got exactly one row back.
  */
 PGresult *
-ExecuteSqlQueryForSingleRow(Archive * fout, char *query)
+ExecuteSqlQueryForSingleRow(Archive *fout, const char *query)
 {
 	PGresult   *res;
 	int			ntups;
@@ -452,7 +441,7 @@ ExecuteSqlQueryForSingleRow(Archive * fout, char *query)
  * Monitors result to detect COPY statements
  */
 static void
-ExecuteSqlCommand(ArchiveHandle * AH, const char *qry, const char *desc)
+ExecuteSqlCommand(ArchiveHandle *AH, const char *qry, const char *desc)
 {
 	PGconn	   *conn = AH->connection;
 	PGresult   *res;
@@ -504,7 +493,7 @@ ExecuteSqlCommand(ArchiveHandle * AH, const char *qry, const char *desc)
  * that data won't contain anything complicated to lex either.
  */
 static void
-ExecuteSimpleCommands(ArchiveHandle * AH, const char *buf, size_t bufLen)
+ExecuteSimpleCommands(ArchiveHandle *AH, const char *buf, size_t bufLen)
 {
 	const char *qry = buf;
 	const char *eos = buf + bufLen;
@@ -569,7 +558,7 @@ ExecuteSimpleCommands(ArchiveHandle * AH, const char *buf, size_t bufLen)
  * Implement ahwrite() for direct-to-DB restore
  */
 int
-ExecuteSqlCommandBuf(Archive * AHX, const char *buf, size_t bufLen)
+ExecuteSqlCommandBuf(Archive *AHX, const char *buf, size_t bufLen)
 {
 	ArchiveHandle *AH = (ArchiveHandle *) AHX;
 
@@ -624,7 +613,7 @@ ExecuteSqlCommandBuf(Archive * AHX, const char *buf, size_t bufLen)
  * Terminate a COPY operation during direct-to-DB restore
  */
 void
-EndDBCopyMode(Archive * AHX, const char *tocEntryTag)
+EndDBCopyMode(Archive *AHX, const char *tocEntryTag)
 {
 	ArchiveHandle *AH = (ArchiveHandle *) AHX;
 
@@ -653,7 +642,7 @@ EndDBCopyMode(Archive * AHX, const char *tocEntryTag)
 }
 
 void
-StartTransaction(Archive * AHX)
+StartTransaction(Archive *AHX)
 {
 	ArchiveHandle *AH = (ArchiveHandle *) AHX;
 
@@ -661,7 +650,7 @@ StartTransaction(Archive * AHX)
 }
 
 void
-CommitTransaction(Archive * AHX)
+CommitTransaction(Archive *AHX)
 {
 	ArchiveHandle *AH = (ArchiveHandle *) AHX;
 
@@ -669,7 +658,7 @@ CommitTransaction(Archive * AHX)
 }
 
 void
-DropBlobIfExists(ArchiveHandle * AH, Oid oid)
+DropBlobIfExists(ArchiveHandle *AH, Oid oid)
 {
 	/*
 	 * If we are not restoring to a direct database connection, we have to

@@ -36,7 +36,7 @@
  * the probability of unintended failure) than to fix the total time
  * spent.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -89,7 +89,7 @@ s_lock_stuck(const char *file, int line, const char *func)
  * s_lock(lock) - platform-independent portion of waiting for a spinlock.
  */
 int
-s_lock(volatile slock_t * lock, const char *file, int line, const char *func)
+s_lock(volatile slock_t *lock, const char *file, int line, const char *func)
 {
 	SpinDelayStatus delayStatus;
 
@@ -107,7 +107,7 @@ s_lock(volatile slock_t * lock, const char *file, int line, const char *func)
 
 #ifdef USE_DEFAULT_S_UNLOCK
 void
-s_unlock(volatile slock_t * lock)
+s_unlock(volatile slock_t *lock)
 {
 #ifdef TAS_ACTIVE_WORD
 	/* HP's PA-RISC */
@@ -122,7 +122,7 @@ s_unlock(volatile slock_t * lock)
  * Wait while spinning on a contended spinlock.
  */
 void
-perform_spin_delay(SpinDelayStatus * status)
+perform_spin_delay(SpinDelayStatus *status)
 {
 	/* CPU-specific delay each time through the loop */
 	SPIN_DELAY();
@@ -172,7 +172,7 @@ perform_spin_delay(SpinDelayStatus * status)
  * is handled by the two routines below.
  */
 void
-finish_spin_delay(SpinDelayStatus * status)
+finish_spin_delay(SpinDelayStatus *status)
 {
 	if (status->cur_delay == 0)
 	{

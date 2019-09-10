@@ -3,7 +3,7 @@
  * amapi.h
  *	  API for Postgres index access methods.
  *
- * Copyright (c) 2015-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2015-2018, PostgreSQL Global Development Group
  *
  * src/include/access/amapi.h
  *
@@ -50,8 +50,9 @@ typedef enum IndexAMProperty
 	AMPROP_CAN_ORDER,			/* AM properties */
 	AMPROP_CAN_UNIQUE,
 	AMPROP_CAN_MULTI_COL,
-	AMPROP_CAN_EXCLUDE
-}			IndexAMProperty;
+	AMPROP_CAN_EXCLUDE,
+	AMPROP_CAN_INCLUDE
+} IndexAMProperty;
 
 
 /*
@@ -59,16 +60,16 @@ typedef enum IndexAMProperty
  */
 
 /* build new index */
-typedef IndexBuildResult * (*ambuild_function) (Relation heapRelation,
-												Relation indexRelation,
-												struct IndexInfo *indexInfo);
+typedef IndexBuildResult *(*ambuild_function) (Relation heapRelation,
+											   Relation indexRelation,
+											   struct IndexInfo *indexInfo);
 
 /* build empty index */
 typedef void (*ambuildempty_function) (Relation indexRelation);
 
 /* insert this tuple */
 typedef bool (*aminsert_function) (Relation indexRelation,
-								   Datum * values,
+								   Datum *values,
 								   bool *isnull,
 								   ItemPointer heap_tid,
 								   Relation heapRelation,
@@ -76,14 +77,14 @@ typedef bool (*aminsert_function) (Relation indexRelation,
 								   struct IndexInfo *indexInfo);
 
 /* bulk delete */
-typedef IndexBulkDeleteResult * (*ambulkdelete_function) (IndexVacuumInfo * info,
-														  IndexBulkDeleteResult * stats,
-														  IndexBulkDeleteCallback callback,
-														  void *callback_state);
+typedef IndexBulkDeleteResult *(*ambulkdelete_function) (IndexVacuumInfo *info,
+														 IndexBulkDeleteResult *stats,
+														 IndexBulkDeleteCallback callback,
+														 void *callback_state);
 
 /* post-VACUUM cleanup */
-typedef IndexBulkDeleteResult * (*amvacuumcleanup_function) (IndexVacuumInfo * info,
-															 IndexBulkDeleteResult * stats);
+typedef IndexBulkDeleteResult *(*amvacuumcleanup_function) (IndexVacuumInfo *info,
+															IndexBulkDeleteResult *stats);
 
 /* can indexscan return IndexTuples? */
 typedef bool (*amcanreturn_function) (Relation indexRelation, int attno);
@@ -92,15 +93,15 @@ typedef bool (*amcanreturn_function) (Relation indexRelation, int attno);
 typedef void (*amcostestimate_function) (struct PlannerInfo *root,
 										 struct IndexPath *path,
 										 double loop_count,
-										 Cost * indexStartupCost,
-										 Cost * indexTotalCost,
-										 Selectivity * indexSelectivity,
+										 Cost *indexStartupCost,
+										 Cost *indexTotalCost,
+										 Selectivity *indexSelectivity,
 										 double *indexCorrelation,
 										 double *indexPages);
 
 /* parse index reloptions */
-typedef bytea * (*amoptions_function) (Datum reloptions,
-									   bool validate);
+typedef bytea *(*amoptions_function) (Datum reloptions,
+									  bool validate);
 
 /* report AM, index, or index column property */
 typedef bool (*amproperty_function) (Oid index_oid, int attno,
@@ -111,9 +112,9 @@ typedef bool (*amproperty_function) (Oid index_oid, int attno,
 typedef bool (*amvalidate_function) (Oid opclassoid);
 
 /* prepare for index scan */
-typedef IndexScanDesc(*ambeginscan_function) (Relation indexRelation,
-											  int nkeys,
-											  int norderbys);
+typedef IndexScanDesc (*ambeginscan_function) (Relation indexRelation,
+											   int nkeys,
+											   int norderbys);
 
 /* (re)start index scan */
 typedef void (*amrescan_function) (IndexScanDesc scan,
@@ -127,8 +128,8 @@ typedef bool (*amgettuple_function) (IndexScanDesc scan,
 									 ScanDirection direction);
 
 /* fetch all valid tuples */
-typedef int64(*amgetbitmap_function) (IndexScanDesc scan,
-									  TIDBitmap * tbm);
+typedef int64 (*amgetbitmap_function) (IndexScanDesc scan,
+									   TIDBitmap *tbm);
 
 /* end index scan */
 typedef void (*amendscan_function) (IndexScanDesc scan);
@@ -144,7 +145,7 @@ typedef void (*amrestrpos_function) (IndexScanDesc scan);
  */
 
 /* estimate size of parallel scan descriptor */
-typedef Size(*amestimateparallelscan_function) (void);
+typedef Size (*amestimateparallelscan_function) (void);
 
 /* prepare for parallel index scan */
 typedef void (*aminitparallelscan_function) (void *target);
@@ -191,8 +192,16 @@ typedef struct IndexAmRoutine
 	bool		ampredlocks;
 	/* does AM support parallel scan? */
 	bool		amcanparallel;
+	/* does AM support columns included with clause INCLUDE? */
+	bool		amcaninclude;
 	/* type of data stored in index, or InvalidOid if variable */
 	Oid			amkeytype;
+
+	/*
+	 * If you add new properties to either the above or the below lists, then
+	 * they should also (usually) be exposed via the property API (see
+	 * IndexAMProperty at the top of the file, and utils/adt/amutils.c).
+	 */
 
 	/* interface functions */
 	ambuild_function ambuild;
@@ -217,11 +226,11 @@ typedef struct IndexAmRoutine
 	amestimateparallelscan_function amestimateparallelscan; /* can be NULL */
 	aminitparallelscan_function aminitparallelscan; /* can be NULL */
 	amparallelrescan_function amparallelrescan; /* can be NULL */
-}			IndexAmRoutine;
+} IndexAmRoutine;
 
 
 /* Functions in access/index/amapi.c */
-extern IndexAmRoutine * GetIndexAmRoutine(Oid amhandler);
-extern IndexAmRoutine * GetIndexAmRoutineByAmId(Oid amoid, bool noerror);
+extern IndexAmRoutine *GetIndexAmRoutine(Oid amhandler);
+extern IndexAmRoutine *GetIndexAmRoutineByAmId(Oid amoid, bool noerror);
 
 #endif							/* AMAPI_H */

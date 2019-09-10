@@ -95,7 +95,7 @@
  * with the higher XID backs out.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -120,20 +120,20 @@ typedef enum
 	CEOUC_WAIT,
 	CEOUC_NOWAIT,
 	CEOUC_LIVELOCK_PREVENTING_WAIT
-}			CEOUC_WAIT_MODE;
+} CEOUC_WAIT_MODE;
 
 static bool check_exclusion_or_unique_constraint(Relation heap, Relation index,
-									 IndexInfo * indexInfo,
+									 IndexInfo *indexInfo,
 									 ItemPointer tupleid,
-									 Datum * values, bool *isnull,
-									 EState * estate, bool newIndex,
+									 Datum *values, bool *isnull,
+									 EState *estate, bool newIndex,
 									 CEOUC_WAIT_MODE waitMode,
 									 bool errorOK,
 									 ItemPointer conflictTid);
 
-static bool index_recheck_constraint(Relation index, Oid * constr_procs,
-						 Datum * existing_values, bool *existing_isnull,
-						 Datum * new_values);
+static bool index_recheck_constraint(Relation index, Oid *constr_procs,
+						 Datum *existing_values, bool *existing_isnull,
+						 Datum *new_values);
 
 /* ----------------------------------------------------------------
  *		ExecOpenIndices
@@ -146,7 +146,7 @@ static bool index_recheck_constraint(Relation index, Oid * constr_procs,
  * ----------------------------------------------------------------
  */
 void
-ExecOpenIndices(ResultRelInfo * resultRelInfo, bool speculative)
+ExecOpenIndices(ResultRelInfo *resultRelInfo, bool speculative)
 {
 	Relation	resultRelation = resultRelInfo->ri_RelationDesc;
 	List	   *indexoidlist;
@@ -174,7 +174,7 @@ ExecOpenIndices(ResultRelInfo * resultRelInfo, bool speculative)
 	 * allocate space for result arrays
 	 */
 	relationDescs = (RelationPtr) palloc(len * sizeof(Relation));
-	indexInfoArray = (IndexInfo * *) palloc(len * sizeof(IndexInfo *));
+	indexInfoArray = (IndexInfo **) palloc(len * sizeof(IndexInfo *));
 
 	resultRelInfo->ri_NumIndices = len;
 	resultRelInfo->ri_IndexRelationDescs = relationDescs;
@@ -221,7 +221,7 @@ ExecOpenIndices(ResultRelInfo * resultRelInfo, bool speculative)
  * ----------------------------------------------------------------
  */
 void
-ExecCloseIndices(ResultRelInfo * resultRelInfo)
+ExecCloseIndices(ResultRelInfo *resultRelInfo)
 {
 	int			i;
 	int			numIndices;
@@ -268,12 +268,12 @@ ExecCloseIndices(ResultRelInfo * resultRelInfo)
  * ----------------------------------------------------------------
  */
 List *
-ExecInsertIndexTuples(TupleTableSlot * slot,
+ExecInsertIndexTuples(TupleTableSlot *slot,
 					  ItemPointer tupleid,
-					  EState * estate,
+					  EState *estate,
 					  bool noDupErr,
 					  bool *specConflict,
-					  List * arbiterIndexes)
+					  List *arbiterIndexes)
 {
 	List	   *result = NIL;
 	ResultRelInfo *resultRelInfo;
@@ -472,9 +472,9 @@ ExecInsertIndexTuples(TupleTableSlot * slot,
  * ----------------------------------------------------------------
  */
 bool
-ExecCheckIndexConstraints(TupleTableSlot * slot,
-						  EState * estate, ItemPointer conflictTid,
-						  List * arbiterIndexes)
+ExecCheckIndexConstraints(TupleTableSlot *slot,
+						  EState *estate, ItemPointer conflictTid,
+						  List *arbiterIndexes)
 {
 	ResultRelInfo *resultRelInfo;
 	int			i;
@@ -637,10 +637,10 @@ ExecCheckIndexConstraints(TupleTableSlot * slot,
  */
 static bool
 check_exclusion_or_unique_constraint(Relation heap, Relation index,
-									 IndexInfo * indexInfo,
+									 IndexInfo *indexInfo,
 									 ItemPointer tupleid,
-									 Datum * values, bool *isnull,
-									 EState * estate, bool newIndex,
+									 Datum *values, bool *isnull,
+									 EState *estate, bool newIndex,
 									 CEOUC_WAIT_MODE waitMode,
 									 bool violationOK,
 									 ItemPointer conflictTid)
@@ -648,7 +648,7 @@ check_exclusion_or_unique_constraint(Relation heap, Relation index,
 	Oid		   *constr_procs;
 	uint16	   *constr_strats;
 	Oid		   *index_collations = index->rd_indcollation;
-	int			index_natts = index->rd_index->indnatts;
+	int			indnkeyatts = IndexRelationGetNumberOfKeyAttributes(index);
 	IndexScanDesc index_scan;
 	HeapTuple	tup;
 	ScanKeyData scankeys[INDEX_MAX_KEYS];
@@ -675,7 +675,7 @@ check_exclusion_or_unique_constraint(Relation heap, Relation index,
 	 * If any of the input values are NULL, the constraint check is assumed to
 	 * pass (i.e., we assume the operators are strict).
 	 */
-	for (i = 0; i < index_natts; i++)
+	for (i = 0; i < indnkeyatts; i++)
 	{
 		if (isnull[i])
 			return true;
@@ -687,7 +687,7 @@ check_exclusion_or_unique_constraint(Relation heap, Relation index,
 	 */
 	InitDirtySnapshot(DirtySnapshot);
 
-	for (i = 0; i < index_natts; i++)
+	for (i = 0; i < indnkeyatts; i++)
 	{
 		ScanKeyEntryInitialize(&scankeys[i],
 							   0,
@@ -719,8 +719,8 @@ check_exclusion_or_unique_constraint(Relation heap, Relation index,
 retry:
 	conflict = false;
 	found_self = false;
-	index_scan = index_beginscan(heap, index, &DirtySnapshot, index_natts, 0);
-	index_rescan(index_scan, scankeys, index_natts, NULL, 0);
+	index_scan = index_beginscan(heap, index, &DirtySnapshot, indnkeyatts, 0);
+	index_rescan(index_scan, scankeys, indnkeyatts, NULL, 0);
 
 	while ((tup = index_getnext(index_scan,
 								ForwardScanDirection)) != NULL)
@@ -861,10 +861,10 @@ retry:
  */
 void
 check_exclusion_constraint(Relation heap, Relation index,
-						   IndexInfo * indexInfo,
+						   IndexInfo *indexInfo,
 						   ItemPointer tupleid,
-						   Datum * values, bool *isnull,
-						   EState * estate, bool newIndex)
+						   Datum *values, bool *isnull,
+						   EState *estate, bool newIndex)
 {
 	(void) check_exclusion_or_unique_constraint(heap, index, indexInfo, tupleid,
 												values, isnull,
@@ -877,14 +877,14 @@ check_exclusion_constraint(Relation heap, Relation index,
  * exclusion condition against the new_values.  Returns true if conflict.
  */
 static bool
-index_recheck_constraint(Relation index, Oid * constr_procs,
-						 Datum * existing_values, bool *existing_isnull,
-						 Datum * new_values)
+index_recheck_constraint(Relation index, Oid *constr_procs,
+						 Datum *existing_values, bool *existing_isnull,
+						 Datum *new_values)
 {
-	int			index_natts = index->rd_index->indnatts;
+	int			indnkeyatts = IndexRelationGetNumberOfKeyAttributes(index);
 	int			i;
 
-	for (i = 0; i < index_natts; i++)
+	for (i = 0; i < indnkeyatts; i++)
 	{
 		/* Assume the exclusion operators are strict */
 		if (existing_isnull[i])

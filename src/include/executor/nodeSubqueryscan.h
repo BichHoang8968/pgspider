@@ -4,7 +4,7 @@
  *
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/executor/nodeSubqueryscan.h
@@ -16,8 +16,8 @@
 
 #include "nodes/execnodes.h"
 
-extern SubqueryScanState * ExecInitSubqueryScan(SubqueryScan * node, EState * estate, int eflags);
-extern void ExecEndSubqueryScan(SubqueryScanState * node);
-extern void ExecReScanSubqueryScan(SubqueryScanState * node);
+extern SubqueryScanState *ExecInitSubqueryScan(SubqueryScan *node, EState *estate, int eflags);
+extern void ExecEndSubqueryScan(SubqueryScanState *node);
+extern void ExecReScanSubqueryScan(SubqueryScanState *node);
 
 #endif							/* NODESUBQUERYSCAN_H */

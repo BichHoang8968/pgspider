@@ -1,7 +1,7 @@
 /*
  * AM-callable functions for BRIN indexes
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -23,7 +23,7 @@ typedef struct BrinOptions
 	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	BlockNumber pagesPerRange;
 	bool		autosummarize;
-}			BrinOptions;
+} BrinOptions;
 
 
 /*
@@ -33,7 +33,7 @@ typedef struct BrinStatsData
 {
 	BlockNumber pagesPerRange;
 	BlockNumber revmapNumPages;
-}			BrinStatsData;
+} BrinStatsData;
 
 
 #define BRIN_DEFAULT_PAGES_PER_RANGE	128
@@ -47,6 +47,6 @@ typedef struct BrinStatsData
 	  false)
 
 
-extern void brinGetStats(Relation index, BrinStatsData * stats);
+extern void brinGetStats(Relation index, BrinStatsData *stats);
 
 #endif							/* BRIN_H */

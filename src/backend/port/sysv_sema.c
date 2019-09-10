@@ -4,7 +4,7 @@
  *	  Implement PGSemaphores using SysV semaphore facilities
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -34,7 +34,7 @@ typedef struct PGSemaphoreData
 {
 	int			semId;			/* semaphore set identifier */
 	int			semNum;			/* semaphore number within set */
-}			PGSemaphoreData;
+} PGSemaphoreData;
 
 #ifndef HAVE_UNION_SEMUN
 union semun
@@ -64,7 +64,7 @@ typedef int IpcSemaphoreId;		/* semaphore ID returned by semget(2) */
 static PGSemaphore sharedSemas; /* array of PGSemaphoreData in shared memory */
 static int	numSharedSemas;		/* number of PGSemaphoreDatas used so far */
 static int	maxSharedSemas;		/* allocated size of PGSemaphoreData array */
-static IpcSemaphoreId * mySemaSets; /* IDs of sema sets acquired so far */
+static IpcSemaphoreId *mySemaSets;	/* IDs of sema sets acquired so far */
 static int	numSemaSets;		/* number of sema sets acquired so far */
 static int	maxSemaSets;		/* allocated size of mySemaSets array */
 static IpcSemaphoreKey nextSemaKey; /* next key to try using */
@@ -72,7 +72,7 @@ static int	nextSemaNumber;		/* next free sem num in last sema set */
 
 
 static IpcSemaphoreId InternalIpcSemaphoreCreate(IpcSemaphoreKey semKey,
-												 int numSems);
+						   int numSems);
 static void IpcSemaphoreInitialize(IpcSemaphoreId semId, int semNum,
 					   int value);
 static void IpcSemaphoreKill(IpcSemaphoreId semId);

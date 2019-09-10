@@ -4,7 +4,7 @@
  *
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/executor/nodeMergejoin.h
@@ -16,8 +16,8 @@
 
 #include "nodes/execnodes.h"
 
-extern MergeJoinState * ExecInitMergeJoin(MergeJoin * node, EState * estate, int eflags);
-extern void ExecEndMergeJoin(MergeJoinState * node);
-extern void ExecReScanMergeJoin(MergeJoinState * node);
+extern MergeJoinState *ExecInitMergeJoin(MergeJoin *node, EState *estate, int eflags);
+extern void ExecEndMergeJoin(MergeJoinState *node);
+extern void ExecReScanMergeJoin(MergeJoinState *node);
 
 #endif							/* NODEMERGEJOIN_H */

@@ -42,7 +42,7 @@ typedef struct
 	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	int32		flag;
 	char		data[FLEXIBLE_ARRAY_MEMBER];
-}			GISTTYPE;
+} GISTTYPE;
 
 #define ALLISTRUE		0x04
 
@@ -144,7 +144,7 @@ ghstore_compress(PG_FUNCTION_ARGS)
 		gistentryinit(*retval, PointerGetDatum(res),
 					  entry->rel, entry->page,
 					  entry->offset,
-					  FALSE);
+					  false);
 	}
 	else if (!ISALLTRUE(DatumGetPointer(entry->key)))
 	{
@@ -166,7 +166,7 @@ ghstore_compress(PG_FUNCTION_ARGS)
 		gistentryinit(*retval, PointerGetDatum(res),
 					  entry->rel, entry->page,
 					  entry->offset,
-					  FALSE);
+					  false);
 	}
 
 	PG_RETURN_POINTER(retval);
@@ -243,7 +243,7 @@ hemdistsign(BITVECP a, BITVECP b)
 }
 
 static int
-hemdist(GISTTYPE * a, GISTTYPE * b)
+hemdist(GISTTYPE *a, GISTTYPE *b)
 {
 	if (ISALLTRUE(a))
 	{
@@ -259,7 +259,7 @@ hemdist(GISTTYPE * a, GISTTYPE * b)
 }
 
 static int32
-unionkey(BITVECP sbase, GISTTYPE * add)
+unionkey(BITVECP sbase, GISTTYPE *add)
 {
 	int32		i;
 	BITVECP		sadd = GETSIGN(add);
@@ -322,7 +322,7 @@ typedef struct
 {
 	OffsetNumber pos;
 	int32		cost;
-}			SPLITCOST;
+} SPLITCOST;
 
 static int
 comparecost(const void *a, const void *b)
@@ -518,7 +518,7 @@ ghstore_consistent(PG_FUNCTION_ARGS)
 	if (strategy == HStoreContainsStrategyNumber ||
 		strategy == HStoreOldContainsStrategyNumber)
 	{
-		HStore	   *query = PG_GETARG_HS(1);
+		HStore	   *query = PG_GETARG_HSTORE_P(1);
 		HEntry	   *qe = ARRPTR(query);
 		char	   *qv = STRPTR(query);
 		int			count = HS_COUNT(query);
@@ -570,7 +570,7 @@ ghstore_consistent(PG_FUNCTION_ARGS)
 				continue;
 			crc = crc32_sz(VARDATA(key_datums[i]), VARSIZE(key_datums[i]) - VARHDRSZ);
 			if (!(GETBIT(sign, HASHVAL(crc))))
-				res = FALSE;
+				res = false;
 		}
 	}
 	else if (strategy == HStoreExistsAnyStrategyNumber)
@@ -585,7 +585,7 @@ ghstore_consistent(PG_FUNCTION_ARGS)
 						  TEXTOID, -1, false, 'i',
 						  &key_datums, &key_nulls, &key_count);
 
-		res = FALSE;
+		res = false;
 
 		for (i = 0; !res && i < key_count; ++i)
 		{
@@ -595,7 +595,7 @@ ghstore_consistent(PG_FUNCTION_ARGS)
 				continue;
 			crc = crc32_sz(VARDATA(key_datums[i]), VARSIZE(key_datums[i]) - VARHDRSZ);
 			if (GETBIT(sign, HASHVAL(crc)))
-				res = TRUE;
+				res = true;
 		}
 	}
 	else

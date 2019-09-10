@@ -34,7 +34,7 @@
 #include "pgp.h"
 
 int
-pgp_mpi_alloc(int bits, PGP_MPI * *mpi)
+pgp_mpi_alloc(int bits, PGP_MPI **mpi)
 {
 	PGP_MPI    *n;
 	int			len = (bits + 7) / 8;
@@ -53,7 +53,7 @@ pgp_mpi_alloc(int bits, PGP_MPI * *mpi)
 }
 
 int
-pgp_mpi_create(uint8 * data, int bits, PGP_MPI * *mpi)
+pgp_mpi_create(uint8 *data, int bits, PGP_MPI **mpi)
 {
 	int			res;
 	PGP_MPI    *n;
@@ -67,7 +67,7 @@ pgp_mpi_create(uint8 * data, int bits, PGP_MPI * *mpi)
 }
 
 int
-pgp_mpi_free(PGP_MPI * mpi)
+pgp_mpi_free(PGP_MPI *mpi)
 {
 	if (mpi == NULL)
 		return 0;
@@ -77,7 +77,7 @@ pgp_mpi_free(PGP_MPI * mpi)
 }
 
 int
-pgp_mpi_read(PullFilter * src, PGP_MPI * *mpi)
+pgp_mpi_read(PullFilter *src, PGP_MPI **mpi)
 {
 	int			res;
 	uint8		hdr[2];
@@ -102,7 +102,7 @@ pgp_mpi_read(PullFilter * src, PGP_MPI * *mpi)
 }
 
 int
-pgp_mpi_write(PushFilter * dst, PGP_MPI * n)
+pgp_mpi_write(PushFilter *dst, PGP_MPI *n)
 {
 	int			res;
 	uint8		buf[2];
@@ -116,7 +116,7 @@ pgp_mpi_write(PushFilter * dst, PGP_MPI * n)
 }
 
 int
-pgp_mpi_hash(PX_MD * md, PGP_MPI * n)
+pgp_mpi_hash(PX_MD *md, PGP_MPI *n)
 {
 	uint8		buf[2];
 
@@ -129,7 +129,7 @@ pgp_mpi_hash(PX_MD * md, PGP_MPI * n)
 }
 
 unsigned
-pgp_mpi_cksum(unsigned cksum, PGP_MPI * n)
+pgp_mpi_cksum(unsigned cksum, PGP_MPI *n)
 {
 	int			i;
 

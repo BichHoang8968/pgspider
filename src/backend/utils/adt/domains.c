@@ -19,7 +19,7 @@
  *		to evaluate them in.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -58,7 +58,7 @@ typedef struct DomainIOData
 	ExprContext *econtext;
 	/* Memory context this cache is in */
 	MemoryContext mcxt;
-}			DomainIOData;
+} DomainIOData;
 
 
 /*
@@ -82,9 +82,10 @@ domain_state_setup(Oid domainType, bool binary, MemoryContext mcxt)
 	 * Verify that domainType represents a valid domain type.  We need to be
 	 * careful here because domain_in and domain_recv can be called from SQL,
 	 * possibly with incorrect arguments.  We use lookup_type_cache mainly
-	 * because it will throw a clean user-facing error for a bad OID.
+	 * because it will throw a clean user-facing error for a bad OID; but also
+	 * it can cache the underlying base type info.
 	 */
-	typentry = lookup_type_cache(domainType, 0);
+	typentry = lookup_type_cache(domainType, TYPECACHE_DOMAIN_BASE_INFO);
 	if (typentry->typtype != TYPTYPE_DOMAIN)
 		ereport(ERROR,
 				(errcode(ERRCODE_DATATYPE_MISMATCH),
@@ -92,8 +93,8 @@ domain_state_setup(Oid domainType, bool binary, MemoryContext mcxt)
 						format_type_be(domainType))));
 
 	/* Find out the base type */
-	my_extra->typtypmod = -1;
-	baseType = getBaseTypeAndTypmod(domainType, &my_extra->typtypmod);
+	baseType = typentry->domainBaseType;
+	my_extra->typtypmod = typentry->domainBaseTypmod;
 
 	/* Look up underlying I/O function */
 	if (binary)
@@ -127,7 +128,7 @@ domain_state_setup(Oid domainType, bool binary, MemoryContext mcxt)
  * compiling them in-line within a larger expression.
  */
 static void
-domain_check_input(Datum value, bool isnull, DomainIOData * my_extra)
+domain_check_input(Datum value, bool isnull, DomainIOData *my_extra)
 {
 	ExprContext *econtext = my_extra->econtext;
 	ListCell   *l;
@@ -337,7 +338,7 @@ domain_check(Datum value, bool isnull, Oid domainType,
 	 * shouldn't happen, but cope if it does).
 	 */
 	if (extra)
-		my_extra = (DomainIOData *) * extra;
+		my_extra = (DomainIOData *) *extra;
 	if (my_extra == NULL || my_extra->domain_type != domainType)
 	{
 		my_extra = domain_state_setup(domainType, true, mcxt);

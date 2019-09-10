@@ -4,7 +4,7 @@
  *	  Common header for some locking-related declarations.
  *
  *
- * Copyright (c) 2014-2017, PostgreSQL Global Development Group
+ * Copyright (c) 2014-2018, PostgreSQL Global Development Group
  *
  * src/include/nodes/lockoptions.h
  *
@@ -25,7 +25,7 @@ typedef enum LockClauseStrength
 	LCS_FORSHARE,				/* FOR SHARE */
 	LCS_FORNOKEYUPDATE,			/* FOR NO KEY UPDATE */
 	LCS_FORUPDATE				/* FOR UPDATE */
-}			LockClauseStrength;
+} LockClauseStrength;
 
 /*
  * This enum controls how to deal with rows being locked by FOR UPDATE/SHARE
@@ -41,6 +41,6 @@ typedef enum LockWaitPolicy
 	LockWaitSkip,
 	/* Raise an error if a row cannot be locked (NOWAIT) */
 	LockWaitError
-}			LockWaitPolicy;
+} LockWaitPolicy;
 
 #endif							/* LOCKOPTIONS_H */

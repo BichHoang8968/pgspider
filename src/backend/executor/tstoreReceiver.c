@@ -9,7 +9,7 @@
  * data even if the underlying table is dropped.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -34,22 +34,21 @@ typedef struct
 	/* workspace: */
 	Datum	   *outvalues;		/* values array for result tuple */
 	Datum	   *tofree;			/* temp values to be pfree'd */
-}			TStoreState;
+} TStoreState;
 
 
-static bool tstoreReceiveSlot_notoast(TupleTableSlot * slot, DestReceiver * self);
-static bool tstoreReceiveSlot_detoast(TupleTableSlot * slot, DestReceiver * self);
+static bool tstoreReceiveSlot_notoast(TupleTableSlot *slot, DestReceiver *self);
+static bool tstoreReceiveSlot_detoast(TupleTableSlot *slot, DestReceiver *self);
 
 
 /*
  * Prepare to receive tuples from executor.
  */
 static void
-tstoreStartupReceiver(DestReceiver * self, int operation, TupleDesc typeinfo)
+tstoreStartupReceiver(DestReceiver *self, int operation, TupleDesc typeinfo)
 {
 	TStoreState *myState = (TStoreState *) self;
 	bool		needtoast = false;
-	Form_pg_attribute *attrs = typeinfo->attrs;
 	int			natts = typeinfo->natts;
 	int			i;
 
@@ -58,9 +57,11 @@ tstoreStartupReceiver(DestReceiver * self, int operation, TupleDesc typeinfo)
 	{
 		for (i = 0; i < natts; i++)
 		{
-			if (attrs[i]->attisdropped)
+			Form_pg_attribute attr = TupleDescAttr(typeinfo, i);
+
+			if (attr->attisdropped)
 				continue;
-			if (attrs[i]->attlen == -1)
+			if (attr->attlen == -1)
 			{
 				needtoast = true;
 				break;
@@ -91,7 +92,7 @@ tstoreStartupReceiver(DestReceiver * self, int operation, TupleDesc typeinfo)
  * This is for the easy case where we don't have to detoast.
  */
 static bool
-tstoreReceiveSlot_notoast(TupleTableSlot * slot, DestReceiver * self)
+tstoreReceiveSlot_notoast(TupleTableSlot *slot, DestReceiver *self)
 {
 	TStoreState *myState = (TStoreState *) self;
 
@@ -105,11 +106,10 @@ tstoreReceiveSlot_notoast(TupleTableSlot * slot, DestReceiver * self)
  * This is for the case where we have to detoast any toasted values.
  */
 static bool
-tstoreReceiveSlot_detoast(TupleTableSlot * slot, DestReceiver * self)
+tstoreReceiveSlot_detoast(TupleTableSlot *slot, DestReceiver *self)
 {
 	TStoreState *myState = (TStoreState *) self;
 	TupleDesc	typeinfo = slot->tts_tupleDescriptor;
-	Form_pg_attribute *attrs = typeinfo->attrs;
 	int			natts = typeinfo->natts;
 	int			nfree;
 	int			i;
@@ -127,10 +127,9 @@ tstoreReceiveSlot_detoast(TupleTableSlot * slot, DestReceiver * self)
 	for (i = 0; i < natts; i++)
 	{
 		Datum		val = slot->tts_values[i];
+		Form_pg_attribute attr = TupleDescAttr(typeinfo, i);
 
-		if (!attrs[i]->attisdropped &&
-			attrs[i]->attlen == -1 &&
-			!slot->tts_isnull[i])
+		if (!attr->attisdropped && attr->attlen == -1 && !slot->tts_isnull[i])
 		{
 			if (VARATT_IS_EXTERNAL(DatumGetPointer(val)))
 			{
@@ -162,7 +161,7 @@ tstoreReceiveSlot_detoast(TupleTableSlot * slot, DestReceiver * self)
  * Clean up at end of an executor run
  */
 static void
-tstoreShutdownReceiver(DestReceiver * self)
+tstoreShutdownReceiver(DestReceiver *self)
 {
 	TStoreState *myState = (TStoreState *) self;
 
@@ -179,7 +178,7 @@ tstoreShutdownReceiver(DestReceiver * self)
  * Destroy receiver when done with it
  */
 static void
-tstoreDestroyReceiver(DestReceiver * self)
+tstoreDestroyReceiver(DestReceiver *self)
 {
 	pfree(self);
 }
@@ -207,8 +206,8 @@ CreateTuplestoreDestReceiver(void)
  * Set parameters for a TuplestoreDestReceiver
  */
 void
-SetTuplestoreDestReceiverParams(DestReceiver * self,
-								Tuplestorestate * tStore,
+SetTuplestoreDestReceiverParams(DestReceiver *self,
+								Tuplestorestate *tStore,
 								MemoryContext tContext,
 								bool detoast)
 {

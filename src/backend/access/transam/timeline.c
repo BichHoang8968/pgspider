@@ -21,7 +21,7 @@
  * The fields are separated by tabs. Lines beginning with # are comments, and
  * are ignored. Empty lines are also ignored.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/backend/access/transam/timeline.c
@@ -307,8 +307,7 @@ writeTimeLineHistory(TimeLineID newTLI, TimeLineID parentTLI,
 	unlink(tmppath);
 
 	/* do not use get_sync_bit() here --- want to fsync only at end of fill */
-	fd = OpenTransientFile(tmppath, O_RDWR | O_CREAT | O_EXCL,
-						   S_IRUSR | S_IWUSR);
+	fd = OpenTransientFile(tmppath, O_RDWR | O_CREAT | O_EXCL);
 	if (fd < 0)
 		ereport(ERROR,
 				(errcode_for_file_access(),
@@ -325,7 +324,7 @@ writeTimeLineHistory(TimeLineID newTLI, TimeLineID parentTLI,
 	else
 		TLHistoryFilePath(path, parentTLI);
 
-	srcfd = OpenTransientFile(path, O_RDONLY, 0);
+	srcfd = OpenTransientFile(path, O_RDONLY);
 	if (srcfd < 0)
 	{
 		if (errno != ENOENT)
@@ -407,7 +406,7 @@ writeTimeLineHistory(TimeLineID newTLI, TimeLineID parentTLI,
 
 	pgstat_report_wait_start(WAIT_EVENT_TIMELINE_HISTORY_SYNC);
 	if (pg_fsync(fd) != 0)
-		ereport(ERROR,
+		ereport(data_sync_elevel(ERROR),
 				(errcode_for_file_access(),
 				 errmsg("could not fsync file \"%s\": %m", tmppath)));
 	pgstat_report_wait_end();
@@ -459,8 +458,7 @@ writeTimeLineHistoryFile(TimeLineID tli, char *content, int size)
 	unlink(tmppath);
 
 	/* do not use get_sync_bit() here --- want to fsync only at end of fill */
-	fd = OpenTransientFile(tmppath, O_RDWR | O_CREAT | O_EXCL,
-						   S_IRUSR | S_IWUSR);
+	fd = OpenTransientFile(tmppath, O_RDWR | O_CREAT | O_EXCL);
 	if (fd < 0)
 		ereport(ERROR,
 				(errcode_for_file_access(),
@@ -487,7 +485,7 @@ writeTimeLineHistoryFile(TimeLineID tli, char *content, int size)
 
 	pgstat_report_wait_start(WAIT_EVENT_TIMELINE_HISTORY_FILE_SYNC);
 	if (pg_fsync(fd) != 0)
-		ereport(ERROR,
+		ereport(data_sync_elevel(ERROR),
 				(errcode_for_file_access(),
 				 errmsg("could not fsync file \"%s\": %m", tmppath)));
 	pgstat_report_wait_end();
@@ -514,7 +512,7 @@ writeTimeLineHistoryFile(TimeLineID tli, char *content, int size)
  * Returns true if 'expectedTLEs' contains a timeline with id 'tli'
  */
 bool
-tliInHistory(TimeLineID tli, List * expectedTLEs)
+tliInHistory(TimeLineID tli, List *expectedTLEs)
 {
 	ListCell   *cell;
 
@@ -532,7 +530,7 @@ tliInHistory(TimeLineID tli, List * expectedTLEs)
  * the given timeline history.
  */
 TimeLineID
-tliOfPointInHistory(XLogRecPtr ptr, List * history)
+tliOfPointInHistory(XLogRecPtr ptr, List *history)
 {
 	ListCell   *cell;
 
@@ -560,7 +558,7 @@ tliOfPointInHistory(XLogRecPtr ptr, List * history)
  * an error if the timeline is not part of this server's history.
  */
 XLogRecPtr
-tliSwitchPoint(TimeLineID tli, List * history, TimeLineID * nextTLI)
+tliSwitchPoint(TimeLineID tli, List *history, TimeLineID *nextTLI)
 {
 	ListCell   *cell;
 

@@ -4,7 +4,7 @@
  *	  utilities routines for the postgres GiST index access method.
  *
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -30,7 +30,7 @@
  * Write itup vector to page, has no control of free space.
  */
 void
-gistfillbuffer(Page page, IndexTuple * itup, int len, OffsetNumber off)
+gistfillbuffer(Page page, IndexTuple *itup, int len, OffsetNumber off)
 {
 	OffsetNumber l = InvalidOffsetNumber;
 	int			i;
@@ -55,7 +55,7 @@ gistfillbuffer(Page page, IndexTuple * itup, int len, OffsetNumber off)
  * Check space for itup vector on page
  */
 bool
-gistnospace(Page page, IndexTuple * itvec, int len, OffsetNumber todelete, Size freespace)
+gistnospace(Page page, IndexTuple *itvec, int len, OffsetNumber todelete, Size freespace)
 {
 	unsigned int size = freespace,
 				deleted = 0;
@@ -75,7 +75,7 @@ gistnospace(Page page, IndexTuple * itvec, int len, OffsetNumber todelete, Size 
 }
 
 bool
-gistfitpage(IndexTuple * itvec, int len)
+gistfitpage(IndexTuple *itvec, int len)
 {
 	int			i;
 	Size		size = 0;
@@ -110,7 +110,7 @@ gistextractpage(Page page, int *len /* out */ )
  * join two vectors into one
  */
 IndexTuple *
-gistjoinvector(IndexTuple * itvec, int *len, IndexTuple * additvec, int addlen)
+gistjoinvector(IndexTuple *itvec, int *len, IndexTuple *additvec, int addlen)
 {
 	itvec = (IndexTuple *) repalloc((void *) itvec, sizeof(IndexTuple) * ((*len) + addlen));
 	memmove(&itvec[*len], additvec, sizeof(IndexTuple) * addlen);
@@ -123,7 +123,7 @@ gistjoinvector(IndexTuple * itvec, int *len, IndexTuple * additvec, int addlen)
  */
 
 IndexTupleData *
-gistfillitupvec(IndexTuple * vec, int veclen, int *memlen)
+gistfillitupvec(IndexTuple *vec, int veclen, int *memlen)
 {
 	char	   *ptr,
 			   *ret;
@@ -151,8 +151,8 @@ gistfillitupvec(IndexTuple * vec, int veclen, int *memlen)
  * Resulting Datums aren't compressed.
  */
 void
-gistMakeUnionItVec(GISTSTATE * giststate, IndexTuple * itvec, int len,
-				   Datum * attr, bool *isnull)
+gistMakeUnionItVec(GISTSTATE *giststate, IndexTuple *itvec, int len,
+				   Datum *attr, bool *isnull)
 {
 	int			i;
 	GistEntryVector *evec;
@@ -179,7 +179,7 @@ gistMakeUnionItVec(GISTSTATE * giststate, IndexTuple * itvec, int len,
 						   evec->vector + evec->n,
 						   datum,
 						   NULL, NULL, (OffsetNumber) 0,
-						   FALSE, IsNull);
+						   false, IsNull);
 			evec->n++;
 		}
 
@@ -187,7 +187,7 @@ gistMakeUnionItVec(GISTSTATE * giststate, IndexTuple * itvec, int len,
 		if (evec->n == 0)
 		{
 			attr[i] = (Datum) 0;
-			isnull[i] = TRUE;
+			isnull[i] = true;
 		}
 		else
 		{
@@ -204,7 +204,7 @@ gistMakeUnionItVec(GISTSTATE * giststate, IndexTuple * itvec, int len,
 										PointerGetDatum(evec),
 										PointerGetDatum(&attrsize));
 
-			isnull[i] = FALSE;
+			isnull[i] = false;
 		}
 	}
 }
@@ -214,7 +214,7 @@ gistMakeUnionItVec(GISTSTATE * giststate, IndexTuple * itvec, int len,
  * method to the specified IndexTuple vector.
  */
 IndexTuple
-gistunion(Relation r, IndexTuple * itvec, int len, GISTSTATE * giststate)
+gistunion(Relation r, IndexTuple *itvec, int len, GISTSTATE *giststate)
 {
 	Datum		attr[INDEX_MAX_KEYS];
 	bool		isnull[INDEX_MAX_KEYS];
@@ -228,10 +228,10 @@ gistunion(Relation r, IndexTuple * itvec, int len, GISTSTATE * giststate)
  * makes union of two key
  */
 void
-gistMakeUnionKey(GISTSTATE * giststate, int attno,
-				 GISTENTRY * entry1, bool isnull1,
-				 GISTENTRY * entry2, bool isnull2,
-				 Datum * dst, bool *dstisnull)
+gistMakeUnionKey(GISTSTATE *giststate, int attno,
+				 GISTENTRY *entry1, bool isnull1,
+				 GISTENTRY *entry2, bool isnull2,
+				 Datum *dst, bool *dstisnull)
 {
 	/* we need a GistEntryVector with room for exactly 2 elements */
 	union
@@ -246,17 +246,17 @@ gistMakeUnionKey(GISTSTATE * giststate, int attno,
 
 	if (isnull1 && isnull2)
 	{
-		*dstisnull = TRUE;
+		*dstisnull = true;
 		*dst = (Datum) 0;
 	}
 	else
 	{
-		if (isnull1 == FALSE && isnull2 == FALSE)
+		if (isnull1 == false && isnull2 == false)
 		{
 			evec->vector[0] = *entry1;
 			evec->vector[1] = *entry2;
 		}
-		else if (isnull1 == FALSE)
+		else if (isnull1 == false)
 		{
 			evec->vector[0] = *entry1;
 			evec->vector[1] = *entry1;
@@ -267,7 +267,7 @@ gistMakeUnionKey(GISTSTATE * giststate, int attno,
 			evec->vector[1] = *entry2;
 		}
 
-		*dstisnull = FALSE;
+		*dstisnull = false;
 		*dst = FunctionCall2Coll(&giststate->unionFn[attno],
 								 giststate->supportCollation[attno],
 								 PointerGetDatum(evec),
@@ -276,7 +276,7 @@ gistMakeUnionKey(GISTSTATE * giststate, int attno,
 }
 
 bool
-gistKeyIsEQ(GISTSTATE * giststate, int attno, Datum a, Datum b)
+gistKeyIsEQ(GISTSTATE *giststate, int attno, Datum a, Datum b)
 {
 	bool		result;
 
@@ -291,8 +291,8 @@ gistKeyIsEQ(GISTSTATE * giststate, int attno, Datum a, Datum b)
  * Decompress all keys in tuple
  */
 void
-gistDeCompressAtt(GISTSTATE * giststate, Relation r, IndexTuple tuple, Page p,
-				  OffsetNumber o, GISTENTRY * attdata, bool *isnull)
+gistDeCompressAtt(GISTSTATE *giststate, Relation r, IndexTuple tuple, Page p,
+				  OffsetNumber o, GISTENTRY *attdata, bool *isnull)
 {
 	int			i;
 
@@ -303,7 +303,7 @@ gistDeCompressAtt(GISTSTATE * giststate, Relation r, IndexTuple tuple, Page p,
 		datum = index_getattr(tuple, i + 1, giststate->tupdesc, &isnull[i]);
 		gistdentryinit(giststate, i, &attdata[i],
 					   datum, r, p, o,
-					   FALSE, isnull[i]);
+					   false, isnull[i]);
 	}
 }
 
@@ -311,9 +311,9 @@ gistDeCompressAtt(GISTSTATE * giststate, Relation r, IndexTuple tuple, Page p,
  * Forms union of oldtup and addtup, if union == oldtup then return NULL
  */
 IndexTuple
-gistgetadjusted(Relation r, IndexTuple oldtup, IndexTuple addtup, GISTSTATE * giststate)
+gistgetadjusted(Relation r, IndexTuple oldtup, IndexTuple addtup, GISTSTATE *giststate)
 {
-	bool		neednew = FALSE;
+	bool		neednew = false;
 	GISTENTRY	oldentries[INDEX_MAX_KEYS],
 				addentries[INDEX_MAX_KEYS];
 	bool		oldisnull[INDEX_MAX_KEYS],
@@ -369,8 +369,8 @@ gistgetadjusted(Relation r, IndexTuple oldtup, IndexTuple addtup, GISTSTATE * gi
  * Returns the index of the page entry to insert into.
  */
 OffsetNumber
-gistchoose(Relation r, Page p, IndexTuple it,		/* it has compressed entry */
-		   GISTSTATE * giststate)
+gistchoose(Relation r, Page p, IndexTuple it,	/* it has compressed entry */
+		   GISTSTATE *giststate)
 {
 	OffsetNumber result;
 	OffsetNumber maxoff;
@@ -451,7 +451,7 @@ gistchoose(Relation r, Page p, IndexTuple it,		/* it has compressed entry */
 			/* Compute penalty for this column. */
 			datum = index_getattr(itup, j + 1, giststate->tupdesc, &IsNull);
 			gistdentryinit(giststate, j, &entry, datum, r, p, i,
-						   FALSE, IsNull);
+						   false, IsNull);
 			usize = gistpenalty(giststate, j, &entry, IsNull,
 								&identry[j], isnull[j]);
 			if (usize > 0)
@@ -541,7 +541,7 @@ gistchoose(Relation r, Page p, IndexTuple it,		/* it has compressed entry */
  * initialize a GiST entry with a decompressed version of key
  */
 void
-gistdentryinit(GISTSTATE * giststate, int nkey, GISTENTRY * e,
+gistdentryinit(GISTSTATE *giststate, int nkey, GISTENTRY *e,
 			   Datum k, Relation r, Page pg, OffsetNumber o,
 			   bool l, bool isNull)
 {
@@ -550,6 +550,11 @@ gistdentryinit(GISTSTATE * giststate, int nkey, GISTENTRY * e,
 		GISTENTRY  *dep;
 
 		gistentryinit(*e, k, r, pg, o, l);
+
+		/* there may not be a decompress function in opclass */
+		if (!OidIsValid(giststate->decompressFn[nkey].fn_oid))
+			return;
+
 		dep = (GISTENTRY *)
 			DatumGetPointer(FunctionCall1Coll(&giststate->decompressFn[nkey],
 											  giststate->supportCollation[nkey],
@@ -564,7 +569,7 @@ gistdentryinit(GISTSTATE * giststate, int nkey, GISTENTRY * e,
 }
 
 IndexTuple
-gistFormTuple(GISTSTATE * giststate, Relation r,
+gistFormTuple(GISTSTATE *giststate, Relation r,
 			  Datum attdata[], bool isnull[], bool isleaf)
 {
 	Datum		compatt[INDEX_MAX_KEYS];
@@ -585,10 +590,14 @@ gistFormTuple(GISTSTATE * giststate, Relation r,
 
 			gistentryinit(centry, attdata[i], r, NULL, (OffsetNumber) 0,
 						  isleaf);
-			cep = (GISTENTRY *)
-				DatumGetPointer(FunctionCall1Coll(&giststate->compressFn[i],
-												  giststate->supportCollation[i],
-												  PointerGetDatum(&centry)));
+			/* there may not be a compress function in opclass */
+			if (OidIsValid(giststate->compressFn[i].fn_oid))
+				cep = (GISTENTRY *)
+					DatumGetPointer(FunctionCall1Coll(&giststate->compressFn[i],
+													  giststate->supportCollation[i],
+													  PointerGetDatum(&centry)));
+			else
+				cep = &centry;
 			compatt[i] = cep->key;
 		}
 	}
@@ -607,7 +616,7 @@ gistFormTuple(GISTSTATE * giststate, Relation r,
  * initialize a GiST entry with fetched value in key field
  */
 static Datum
-gistFetchAtt(GISTSTATE * giststate, int nkey, Datum k, Relation r)
+gistFetchAtt(GISTSTATE *giststate, int nkey, Datum k, Relation r)
 {
 	GISTENTRY	fentry;
 	GISTENTRY  *fep;
@@ -628,7 +637,7 @@ gistFetchAtt(GISTSTATE * giststate, int nkey, Datum k, Relation r)
  * Returns a new HeapTuple containing the originally-indexed data.
  */
 HeapTuple
-gistFetchTuple(GISTSTATE * giststate, Relation r, IndexTuple tuple)
+gistFetchTuple(GISTSTATE *giststate, Relation r, IndexTuple tuple)
 {
 	MemoryContext oldcxt = MemoryContextSwitchTo(giststate->tempCxt);
 	Datum		fetchatt[INDEX_MAX_KEYS];
@@ -645,6 +654,17 @@ gistFetchTuple(GISTSTATE * giststate, Relation r, IndexTuple tuple)
 		{
 			if (!isnull[i])
 				fetchatt[i] = gistFetchAtt(giststate, i, datum, r);
+			else
+				fetchatt[i] = (Datum) 0;
+		}
+		else if (giststate->compressFn[i].fn_oid == InvalidOid)
+		{
+			/*
+			 * If opclass does not provide compress method that could change
+			 * original value, att is necessarily stored in original form.
+			 */
+			if (!isnull[i])
+				fetchatt[i] = datum;
 			else
 				fetchatt[i] = (Datum) 0;
 		}
@@ -665,14 +685,14 @@ gistFetchTuple(GISTSTATE * giststate, Relation r, IndexTuple tuple)
 }
 
 float
-gistpenalty(GISTSTATE * giststate, int attno,
-			GISTENTRY * orig, bool isNullOrig,
-			GISTENTRY * add, bool isNullAdd)
+gistpenalty(GISTSTATE *giststate, int attno,
+			GISTENTRY *orig, bool isNullOrig,
+			GISTENTRY *add, bool isNullAdd)
 {
 	float		penalty = 0.0;
 
-	if (giststate->penaltyFn[attno].fn_strict == FALSE ||
-		(isNullOrig == FALSE && isNullAdd == FALSE))
+	if (giststate->penaltyFn[attno].fn_strict == false ||
+		(isNullOrig == false && isNullAdd == false))
 	{
 		FunctionCall3Coll(&giststate->penaltyFn[attno],
 						  giststate->supportCollation[attno],
@@ -934,6 +954,20 @@ gistproperty(Oid index_oid, int attno,
 								 ObjectIdGetDatum(opcintype),
 								 ObjectIdGetDatum(opcintype),
 								 Int16GetDatum(procno));
+
+	/*
+	 * Special case: even without a fetch function, AMPROP_RETURNABLE is true
+	 * if the opclass has no compress function.
+	 */
+	if (prop == AMPROP_RETURNABLE && !*res)
+	{
+		*res = !SearchSysCacheExists4(AMPROCNUM,
+									  ObjectIdGetDatum(opfamily),
+									  ObjectIdGetDatum(opcintype),
+									  ObjectIdGetDatum(opcintype),
+									  Int16GetDatum(GIST_COMPRESS_PROC));
+	}
+
 	return true;
 }
 

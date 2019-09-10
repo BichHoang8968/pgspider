@@ -25,16 +25,16 @@ extern int	spd_set_transmission_modes(void);
 extern void spd_reset_transmission_modes(int nestlevel);
 
 /* in connection.c */
-extern PGconn * GetConnection(ForeignServer * server, UserMapping * user,
-							  bool will_prep_stmt);
-extern void ReleaseConnection(PGconn * conn);
-extern unsigned int GetCursorNumber(PGconn * conn);
-extern unsigned int GetPrepStmtNumber(PGconn * conn);
-extern void pgfdw_report_error(int elevel, PGresult * res, PGconn * conn,
+extern PGconn *GetConnection(ForeignServer *server, UserMapping *user,
+			  bool will_prep_stmt);
+extern void ReleaseConnection(PGconn *conn);
+extern unsigned int GetCursorNumber(PGconn *conn);
+extern unsigned int GetPrepStmtNumber(PGconn *conn);
+extern void pgfdw_report_error(int elevel, PGresult *res, PGconn *conn,
 				   bool clear, const char *sql);
 
 /* in option.c */
-extern int ExtractConnectionOptions(List * defelems,
+extern int ExtractConnectionOptions(List *defelems,
 						 const char **keywords,
 						 const char **values);
 

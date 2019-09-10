@@ -3,7 +3,7 @@
  * walsender_private.h
  *	  Private definitions from replication/walsender.c.
  *
- * Portions Copyright (c) 2010-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2010-2018, PostgreSQL Global Development Group
  *
  * src/include/replication/walsender_private.h
  *
@@ -26,7 +26,7 @@ typedef enum WalSndState
 	WALSNDSTATE_CATCHUP,
 	WALSNDSTATE_STREAMING,
 	WALSNDSTATE_STOPPING
-}			WalSndState;
+} WalSndState;
 
 /*
  * Each walsender has a WalSnd struct in shared memory.
@@ -75,9 +75,9 @@ typedef struct WalSnd
 	 * SyncRepLock.
 	 */
 	int			sync_standby_priority;
-}			WalSnd;
+} WalSnd;
 
-extern WalSnd * MyWalSnd;
+extern WalSnd *MyWalSnd;
 
 /* There is one WalSndCtl struct for the whole database cluster */
 typedef struct
@@ -102,9 +102,9 @@ typedef struct
 	bool		sync_standbys_defined;
 
 	WalSnd		walsnds[FLEXIBLE_ARRAY_MEMBER];
-}			WalSndCtlData;
+} WalSndCtlData;
 
-extern WalSndCtlData * WalSndCtl;
+extern WalSndCtlData *WalSndCtl;
 
 
 extern void WalSndSetState(WalSndState state);
@@ -119,6 +119,6 @@ extern void replication_yyerror(const char *str) pg_attribute_noreturn();
 extern void replication_scanner_init(const char *query_string);
 extern void replication_scanner_finish(void);
 
-extern Node * replication_parse_result;
+extern Node *replication_parse_result;
 
 #endif							/* _WALSENDER_PRIVATE_H */

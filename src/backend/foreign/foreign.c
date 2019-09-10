@@ -3,7 +3,7 @@
  * foreign.c
  *		  support for foreign-data wrappers, servers and user mappings.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  src/backend/foreign/foreign.c
@@ -428,12 +428,12 @@ GetFdwRoutineForRelation(Relation relation, bool makecopy)
 /*
  * IsImportableForeignTable - filter table names for IMPORT FOREIGN SCHEMA
  *
- * Returns TRUE if given table name should be imported according to the
+ * Returns true if given table name should be imported according to the
  * statement's import filter options.
  */
 bool
 IsImportableForeignTable(const char *tablename,
-						 ImportForeignSchemaStmt * stmt)
+						 ImportForeignSchemaStmt *stmt)
 {
 	ListCell   *lc;
 
@@ -471,7 +471,7 @@ IsImportableForeignTable(const char *tablename,
  * tuplestore usable in SRF.
  */
 static void
-deflist_to_tuplestore(ReturnSetInfo * rsinfo, List * options)
+deflist_to_tuplestore(ReturnSetInfo *rsinfo, List *options)
 {
 	ListCell   *cell;
 	TupleDesc	tupdesc;
@@ -712,8 +712,8 @@ get_foreign_server_oid(const char *servername, bool missing_ok)
  * path list in RelOptInfo is anyway sorted by total cost we are likely to
  * choose the most efficient path, which is all for the best.
  */
-extern Path *
-GetExistingLocalJoinPath(RelOptInfo * joinrel)
+Path *
+GetExistingLocalJoinPath(RelOptInfo *joinrel)
 {
 	ListCell   *lc;
 

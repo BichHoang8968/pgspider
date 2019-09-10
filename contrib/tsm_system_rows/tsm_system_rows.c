@@ -17,7 +17,7 @@
  * won't visit blocks added after the first scan, but that is fine since
  * such blocks shouldn't contain any visible tuples anyway.
  *
- * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -54,23 +54,23 @@ typedef struct
 	BlockNumber nblocks;		/* number of blocks in relation */
 	BlockNumber firstblock;		/* first block to sample from */
 	BlockNumber step;			/* step size, or 0 if not set yet */
-}			SystemRowsSamplerData;
+} SystemRowsSamplerData;
 
-static void system_rows_samplescangetsamplesize(PlannerInfo * root,
-									RelOptInfo * baserel,
-									List * paramexprs,
-									BlockNumber * pages,
+static void system_rows_samplescangetsamplesize(PlannerInfo *root,
+									RelOptInfo *baserel,
+									List *paramexprs,
+									BlockNumber *pages,
 									double *tuples);
-static void system_rows_initsamplescan(SampleScanState * node,
+static void system_rows_initsamplescan(SampleScanState *node,
 						   int eflags);
-static void system_rows_beginsamplescan(SampleScanState * node,
-							Datum * params,
+static void system_rows_beginsamplescan(SampleScanState *node,
+							Datum *params,
 							int nparams,
 							uint32 seed);
-static BlockNumber system_rows_nextsampleblock(SampleScanState * node);
-static OffsetNumber system_rows_nextsampletuple(SampleScanState * node,
-												BlockNumber blockno,
-												OffsetNumber maxoffset);
+static BlockNumber system_rows_nextsampleblock(SampleScanState *node);
+static OffsetNumber system_rows_nextsampletuple(SampleScanState *node,
+							BlockNumber blockno,
+							OffsetNumber maxoffset);
 static bool SampleOffsetVisible(OffsetNumber tupoffset, HeapScanDesc scan);
 static uint32 random_relative_prime(uint32 n, SamplerRandomState randstate);
 
@@ -103,10 +103,10 @@ tsm_system_rows_handler(PG_FUNCTION_ARGS)
  * Sample size estimation.
  */
 static void
-system_rows_samplescangetsamplesize(PlannerInfo * root,
-									RelOptInfo * baserel,
-									List * paramexprs,
-									BlockNumber * pages,
+system_rows_samplescangetsamplesize(PlannerInfo *root,
+									RelOptInfo *baserel,
+									List *paramexprs,
+									BlockNumber *pages,
 									double *tuples)
 {
 	Node	   *limitnode;
@@ -162,7 +162,7 @@ system_rows_samplescangetsamplesize(PlannerInfo * root,
  * Initialize during executor setup.
  */
 static void
-system_rows_initsamplescan(SampleScanState * node, int eflags)
+system_rows_initsamplescan(SampleScanState *node, int eflags)
 {
 	node->tsm_state = palloc0(sizeof(SystemRowsSamplerData));
 	/* Note the above leaves tsm_state->step equal to zero */
@@ -172,8 +172,8 @@ system_rows_initsamplescan(SampleScanState * node, int eflags)
  * Examine parameters and prepare for a sample scan.
  */
 static void
-system_rows_beginsamplescan(SampleScanState * node,
-							Datum * params,
+system_rows_beginsamplescan(SampleScanState *node,
+							Datum *params,
 							int nparams,
 							uint32 seed)
 {
@@ -206,7 +206,7 @@ system_rows_beginsamplescan(SampleScanState * node,
  * Uses linear probing algorithm for picking next block.
  */
 static BlockNumber
-system_rows_nextsampleblock(SampleScanState * node)
+system_rows_nextsampleblock(SampleScanState *node)
 {
 	SystemRowsSamplerData *sampler = (SystemRowsSamplerData *) node->tsm_state;
 	HeapScanDesc scan = node->ss.ss_currentScanDesc;
@@ -273,7 +273,7 @@ system_rows_nextsampleblock(SampleScanState * node)
  * SampleScan to go to next block.
  */
 static OffsetNumber
-system_rows_nextsampletuple(SampleScanState * node,
+system_rows_nextsampletuple(SampleScanState *node,
 							BlockNumber blockno,
 							OffsetNumber maxoffset)
 {
