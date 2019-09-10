@@ -181,6 +181,10 @@ END; $$;
 -- deallocate statement
 DEALLOCATE stmt;
 
+
+EXPLAIN (VERBOSE, COSTS OFF) SELECT STDDEV(i) FROM t1;
+
+
 CREATE FOREIGN TABLE t3 (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t3__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
 
