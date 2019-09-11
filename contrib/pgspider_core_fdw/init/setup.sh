@@ -1,23 +1,54 @@
 TINYBRACE_HOME=/usr/local/tinybrace
-# stop tbserver
-if pgrep -x "tbserver" > /dev/null
+POSTGRES_HOME=/home/jenkins/Postgres/pgsql
+CURR_PATH=$(pwd)
+
+if [[ "--start" == $1 ]]
 then
-  echo "Stop TinyBrace Server"
-  pkill -9 tbserver
-  sleep 2
+  # Start PostgreSQL
+  cd ${POSTGRES_HOME}/bin/
+  if ! [ -d "../databases" ];
+  then
+    ./initdb ../databases
+    sed -i 's/#port = 5432.*/port = 15432/' ../databases/postgresql.conf
+    ./pg_ctl -D ../databases start
+    sleep 2
+    ./createdb -p 15432 postgres
+  fi
+  if ! pgrep -x "postgres" > /dev/null
+  then
+    echo "Start PostgreSQL"
+    ./pg_ctl -D ../databases start
+    sleep 2
+  fi
+  cd $CURR_PATH
+  # Start MySQL
+  if ! [[ $(systemctl status mysqld.service) == *"active (running)"* ]]
+  then
+    echo "Start MySQL Server"
+    systemctl start mysqld.service
+    sleep 2
+  fi
+  # Stop TinyBrace Server
+  if pgrep -x "tbserver" > /dev/null
+  then
+    echo "Stop TinyBrace Server"
+    pkill -9 tbserver
+    sleep 2
+  fi
+  # Initialize data for TinyBrace Server
+  $TINYBRACE_HOME/bin/tbeshell $TINYBRACE_HOME/databases/test.db < tiny.dat
+  # Start TinyBrace Server
+  echo "Start TinyBrace Server"
+  cd $TINYBRACE_HOME
+  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TINYBRACE_HOME/lib
+  bin/tbserver &
+  sleep 3
+else
+  # Initialize data for TinyBrace Server
+  $TINYBRACE_HOME/bin/tbcshell -id=user -pwd=testuser -server=127.0.0.1 -port=5100 -db=test.db < tiny.dat
 fi
 
-# /usr/local/tinybrace/bin/tbcshell -id=user -pwd=testuser -server=127.0.0.1 -port=5100 -db=test.db < tiny.dat
-$TINYBRACE_HOME/bin/tbeshell $TINYBRACE_HOME/databases/test.db < tiny.dat
-
-# start tbserver
-echo "Start TinyBrace Server"
-CURR_PATH=$(pwd)
-cd $TINYBRACE_HOME
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TINYBRACE_HOME/lib
-bin/tbserver &
 cd $CURR_PATH
-sleep 3
 
 cp pgtest.csv /tmp/
 

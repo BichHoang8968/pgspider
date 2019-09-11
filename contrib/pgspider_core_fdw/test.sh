@@ -1,7 +1,7 @@
 #!/bin/sh
 # run setup script
 cd init
-./setup.sh
+./setup.sh --start
 cd ..
 make clean
 make

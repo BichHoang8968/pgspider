@@ -12,6 +12,7 @@ def PGSPIDER_1_DIR = '/home/jenkins/PGSpider/PGS1'
 def PGSPIDER_1_PORT = 5433
 def PGSPIDER_2_DIR = '/home/jenkins/PGSpider/PGS2'
 def PGSPIDER_2_PORT = 5434
+def PGSPIDER_INSTALL_DIR= '$(pwd)/install'
 
 // Get result of previous build on current branch
 def prevResult = 'SUCCESS'
@@ -78,7 +79,10 @@ pipeline {
         node {
             label NODE_NAME
         }
-    } 
+    }
+    parameters {
+        string(name: 'BUILD_OPTIONS', defaultValue: '--enable-cassert --enable-debug CFLAGS="-ggdb -Og -g3 -fno-omit-frame-pointer"', description: '')
+    }
     options {
         gitLabConnection('GitLabConnection')
     }
@@ -103,13 +107,12 @@ pipeline {
                     }
                 }
                 // Build PGSpider
-                sh '''
+                sh """
                     rm -rf install || true
                     mkdir install || true
-                    INSTALL_DIR="$(pwd)/install"
-                    ./configure --prefix=$INSTALL_DIR --enable-cassert --enable-debug CFLAGS="-ggdb -Og -g3 -fno-omit-frame-pointer"
+                    ./configure --prefix=${PGSPIDER_INSTALL_DIR} ${params.BUILD_OPTIONS}
                     make clean && make -j 4 && make install
-                '''
+                """
                 // Build fdw
                 dir("contrib/") {
                     // Build mysql_fdw
@@ -154,7 +157,7 @@ pipeline {
             post {
                 failure {
                     echo '** BUILD FAILED !!! NEXT STAGE WILL BE SKIPPED **'
-                    emailext subject: '[CI PGSpider] BUILD PGSpider FAILED ' + BRANCH_NAME, body: BUILD_INFO + '{BUILD_LOG, maxLines=200, escapeHtml=false}', to: "${MAIL_TO}", attachLog: false
+                    emailext subject: '[CI PGSpider] BUILD PGSpider FAILED ' + BRANCH_NAME, body: BUILD_INFO + '${BUILD_LOG, maxLines=200, escapeHtml=false}', to: "${MAIL_TO}", attachLog: false
                     updateGitlabCommitStatus name: 'Build', state: 'failed'
                 }
                 success {
@@ -208,6 +211,10 @@ pipeline {
                             // Send email
                             emailext subject: '[CI PGSpider] pgspider_core_fdw Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
                             sh 'cat regression.diffs || true'
+                            sh '''
+                                rm -rf results_core_fdw || true
+                                cp -R results results_core_fdw || true
+                            '''
                             updateGitlabCommitStatus name: 'pgspider_core_fdw', state: 'failed'
                         } else {
                             updateGitlabCommitStatus name: 'pgspider_core_fdw', state: 'success'
@@ -233,6 +240,10 @@ pipeline {
                             unstable(message: "Set UNSTABLE result")
                             emailext subject: '[CI PGSpider] pgspider_core_fdw_multi Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
                             sh 'cat regression.diffs || true'
+                            sh '''
+                                rm -rf results_core_multi || true
+                                cp -R results results_core_multi || true
+                            '''
                             updateGitlabCommitStatus name: 'pgspider_core_fdw_multi', state: 'failed'
                         } else {
                             updateGitlabCommitStatus name: 'pgspider_core_fdw_multi', state: 'success'
