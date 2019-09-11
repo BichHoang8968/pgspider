@@ -6,53 +6,89 @@ DB_NAME=postgres
 TINYBRACE_HOME=/usr/local/tinybrace
 GRIDDB_CLIENT=/home/jenkins/GridDB/c_client_4.1.0/griddb
 GRIDDB_HOME=/home/jenkins/GridDB/griddb_nosql-4.1.0/
+POSTGRES_HOME=/home/jenkins/Postgres/pgsql
+CURR_PATH=$(pwd)
 
-## Setup GridDB
-if [[ ! -d "${GRIDDB_HOME}" ]]; then
-  echo "GRIDDB_HOME environment variable not set"
-  exit 1
-fi
-
-# Start GridDB server
-export GS_HOME=${GRIDDB_HOME}
-export GS_LOG=${GRIDDB_HOME}/log
-export no_proxy=127.0.0.1
-if pgrep -x "gsserver" > /dev/null
+if [[ "--start" == $1 ]]
 then
-  ${GRIDDB_HOME}/bin/gs_leavecluster -w -f -u admin/testadmin
-  ${GRIDDB_HOME}/bin/gs_stopnode -w -u admin/testadmin
-  sleep 1
+  # Start PostgreSQL
+  cd ${POSTGRES_HOME}/bin/
+  if ! [ -d "../databases" ];
+  then
+    ./initdb ../databases
+    sed -i 's/#port = 5432.*/port = 15432/' ../databases/postgresql.conf
+    ./pg_ctl -D ../databases start
+    sleep 2
+    ./createdb -p 15432 postgres
+  fi
+  if ! pgrep -x "postgres" > /dev/null
+  then
+    echo "Start PostgreSQL"
+    ./pg_ctl -D ../databases start
+    sleep 2
+  fi
+  cd $CURR_PATH
+  # Start MySQL
+  if ! [[ $(systemctl status mysqld.service) == *"active (running)"* ]]
+  then
+    echo "Start MySQL Server"
+    systemctl start mysqld.service
+    sleep 2
+  fi
+  # Start InfluxDB server
+  if ! [[ $(systemctl status influxdb) == *"active (running)"* ]]
+  then
+    echo "Start InfluxDB Server"
+    systemctl start influxdb
+    sleep 2
+  fi
+  # Start GridDB server
+  if [[ ! -d "${GRIDDB_HOME}" ]];
+  then
+    echo "GRIDDB_HOME environment variable not set"
+    exit 1
+  fi
+  export GS_HOME=${GRIDDB_HOME}
+  export GS_LOG=${GRIDDB_HOME}/log
+  export no_proxy=127.0.0.1
+  if pgrep -x "gsserver" > /dev/null
+  then
+    ${GRIDDB_HOME}/bin/gs_leavecluster -w -f -u admin/testadmin
+    ${GRIDDB_HOME}/bin/gs_stopnode -w -u admin/testadmin
+    sleep 1
+  fi
+  rm -rf ${GS_HOME}/data/* ${GS_LOG}/*
+  sed -i 's/\"clusterName\":.*/\"clusterName\":\"griddbfdwTestCluster\",/' ${GRIDDB_HOME}/conf/gs_cluster.json
+  echo "Starting GridDB server..."
+  ${GRIDDB_HOME}/bin/gs_startnode -w -u admin/testadmin
+  ${GRIDDB_HOME}/bin/gs_joincluster -w -c griddbfdwTestCluster -u admin/testadmin
+  # Stop TinyBrace Server
+  if pgrep -x "tbserver" > /dev/null
+  then
+    echo "Stop TinyBrace Server"
+    pkill -9 tbserver
+    sleep 2
+  fi
+  # Initialize data for TinyBrace Server
+  $TINYBRACE_HOME/bin/tbeshell $TINYBRACE_HOME/databases/test.db < tiny.dat
+  # Start TinyBrace Server
+  echo "Start TinyBrace Server"
+  cd $TINYBRACE_HOME
+  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TINYBRACE_HOME/lib
+  bin/tbserver &
+  sleep 3
+else
+  # Initialize data for TinyBrace Server
+  $TINYBRACE_HOME/bin/tbcshell -id=user -pwd=testuser -server=127.0.0.1 -port=5100 -db=test.db < tiny.dat
 fi
-rm -rf ${GS_HOME}/data/* ${GS_LOG}/*
-sed -i 's/\"clusterName\":.*/\"clusterName\":\"griddbfdwTestCluster\",/' ${GRIDDB_HOME}/conf/gs_cluster.json
-echo "Starting GridDB server..."
-${GRIDDB_HOME}/bin/gs_startnode -w -u admin/testadmin
-${GRIDDB_HOME}/bin/gs_joincluster -w -c griddbfdwTestCluster -u admin/testadmin
+
+cd $CURR_PATH
 
 # Initialize data for GridDB
 cp -a griddb*.data /tmp/
 cp -a $GRIDDB_CLIENT ./
 gcc griddb_init.c -o griddb_init -Igriddb/client/c/include -Lgriddb/bin -lgridstore
 ./griddb_init 239.0.0.1 31999 griddbfdwTestCluster admin testadmin
-
-## Setup TinyBrace
-# stop tbserver
-if pgrep -x "tbserver" > /dev/null
-then
-  echo "Stop TinyBrace Server"
-  pkill -9 tbserver
-  sleep 2
-fi
-# /usr/local/tinybrace/bin/tbcshell -id=user -pwd=testuser -server=127.0.0.1 -port=5100 -db=test.db < tiny.dat
-$TINYBRACE_HOME/bin/tbeshell $TINYBRACE_HOME/databases/test.db < tiny.dat
-# start tbserver
-echo "Start TinyBrace Server"
-CURR_PATH=$(pwd)
-cd $TINYBRACE_HOME
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TINYBRACE_HOME/lib
-bin/tbserver &
-cd $CURR_PATH
-sleep 3
 
 ## Setup CSV
 rm -rf /tmp/pgtest.csv

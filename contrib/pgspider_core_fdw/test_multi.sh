@@ -5,7 +5,7 @@ sed -i 's/temp-install:.*/temp-install: EXTRA_INSTALL=contrib\/pgspider_core_fdw
 
 # run setup script
 cd init
-./setup_multi.sh
+./setup_multi.sh --start
 cd ..
 make clean
 make
