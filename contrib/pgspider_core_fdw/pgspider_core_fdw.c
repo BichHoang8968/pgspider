@@ -491,7 +491,7 @@ spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private)
 
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
-		fdw_private->childinfo[i].can_pushdown_agg = fdw_private->childinfo[i].aggpath? false: true;
+		fdw_private->childinfo[i].can_pushdown_agg = fdw_private->childinfo[i].aggpath ? false : true;
 		lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->childinfo[i].can_pushdown_agg));
 
 		lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->childinfo[i].child_node_status));
@@ -3227,6 +3227,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	bool		pushdown_all_tlist;
 	ForeignDataWrapper *fdw;
 	List	   *lfdw_private = NIL;
+	ForeignPath *child_path;
 
 	if (fdw_private == NULL)
 		elog(ERROR, "fdw_private is NULL");
@@ -3302,15 +3303,16 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			/* create plan */
 			if (childinfo[i].grouped_rel_local != NULL)
 			{
-				/* In this case, child fdw generated agg push down path */
-				struct Path *child_path;
+				/* agg push down path */
+
 
 				Assert(childinfo[i].grouped_rel_local->pathlist);
 				/* FDWs expect NULL scan clauses for UPPER REL */
 				push_scan_clauses = NULL;
 				/* Pick any agg path */
+
 				child_path = lfirst(list_head(childinfo[i].grouped_rel_local->pathlist));
-				temptlist = PG_build_path_tlist((PlannerInfo *) childinfo[i].root, child_path);
+				temptlist = PG_build_path_tlist((PlannerInfo *) childinfo[i].root, (Path *) child_path);
 				fsplan = fdwroutine->GetForeignPlan(childinfo[i].grouped_root_local,
 													childinfo[i].grouped_rel_local,
 													oid[i],
@@ -3355,6 +3357,15 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				 */
 				if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
 					push_scan_clauses = fdw_private->baserestrictinfo;
+
+				/*
+				 * We pass "best_path" to child GetForeignPlan. This is the
+				 * path for parent fdw and not for child fdws We should pass
+				 * correct child path, but now we pass at least fdw_private of
+				 * child path.
+				 */
+				child_path = lfirst(list_head(childinfo[i].baserel->pathlist));
+				best_path->fdw_private = child_path->fdw_private;
 
 				/*
 				 * check scan_clauses include "__spd_url" If include

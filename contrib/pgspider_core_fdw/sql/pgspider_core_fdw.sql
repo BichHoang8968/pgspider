@@ -315,19 +315,6 @@ BEGIN
    END LOOP;
 END; $$;
 
-
-DO $$
-BEGIN
-   FOR counter IN 1..2 LOOP
-   PERFORM i FROM test1 UNION ALL SELECT sum(i) FROM test1  
-   UNION ALL SELECT A.i FROM test1 A, test1 B
-   UNION ALL SELECT i FROM mysqlt
-   UNION ALL SELECT i FROM post_large;
-   END LOOP;
-END; $$;
-
-
-
 CREATE FOREIGN TABLE t2 (i int, t text, a text,__spd_url text) SERVER pgspider_svr;
 CREATE FOREIGN TABLE t2__post_svr__0 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 SELECT i,t,a FROM t2 ORDER BY i,__spd_url;
