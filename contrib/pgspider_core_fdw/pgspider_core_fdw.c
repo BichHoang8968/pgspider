@@ -316,7 +316,7 @@ typedef struct SpdFdwPrivate
 	int			temp_num_cols;	/* number of columns of temp table */
 	char	   *temp_table_name;	/* name of temp table */
 	bool		is_explain;		/* explain or not */
-
+	MemoryContext	tmp_cxt;	/* temporary context */
 }			SpdFdwPrivate;
 
 /* postgresql.conf paramater */
@@ -3574,7 +3574,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	int			thread_create_err;
 	Oid			server_oid;
 	SpdFdwPrivate *fdw_private;
-	MemoryContext oldcontext;
 	int			node_incr;		/* node_incr is variable of number of
 								 * fssThrdInfo. */
 	ChildInfo  *childinfo;
@@ -3587,14 +3586,16 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	 * Register callback to query memory context to reset normalize id hash
 	 * table at the end of the query
 	 */
-	hash_register_reset_callback(node->ss.ps.state->es_query_cxt);
-
-	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
+	hash_register_reset_callback(estate->es_query_cxt);
 	node->spd_fsstate = NULL;
 
 	/* Deserialize fdw_private list to SpdFdwPrivate object */
 	fdw_private = spd_DeserializeSpdFdwPrivate(fsplan->fdw_private);
 
+	/* Create temporary context */
+	fdw_private->tmp_cxt = AllocSetContextCreate(estate->es_query_cxt,
+												 "temporary data",
+												 ALLOCSET_SMALL_SIZES);
 	/*
 	 * Not return from this function unlike usual fdw BeginForeignScan
 	 * implementation because we need to create ForeignScanState for child
@@ -3813,7 +3814,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	/* Skip thread creation in explain case */
 	if (eflags & EXEC_FLAG_EXPLAIN_ONLY)
 	{
-		MemoryContextSwitchTo(oldcontext);
 		return;
 	}
 
@@ -3843,7 +3843,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		}
 	}
 	fdw_private->isFirst = true;
-	MemoryContextSwitchTo(oldcontext);
 	return;
 }
 
@@ -3987,7 +3986,6 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 	Mappingcells *mapcells;
 	ListCell   *lc;
 
-	oldcontext = CurrentMemoryContext;
 	SPD_WRITE_LOCK_TRY(&scan_mutex);
 	ret = SPI_connect();
 	if (ret < 0)
@@ -4002,7 +4000,12 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 		goto end;
 	}
 
-	MemoryContextSwitchTo(oldcontext);
+	/*
+	 * Store memory of new agg tuple. It will be used in
+	 * next iterate foreign scan in spd_select_return_aggslot.
+	 */
+	oldcontext = MemoryContextSwitchTo(fdw_private->tmp_cxt);
+
 	fdw_private->agg_values = (Datum **) palloc0(SPI_processed * sizeof(Datum *));
 	fdw_private->agg_nulls = (bool **) palloc0(SPI_processed * sizeof(bool *));
 
@@ -4061,6 +4064,8 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql, TupleTableSlot 
 		}
 	}
 	Assert(colid == fdw_private->temp_num_cols);
+
+	MemoryContextSwitchTo(oldcontext);
 	SPI_finish();
 end:;
 	SPD_RWUNLOCK_CATCH(&scan_mutex);
@@ -4693,8 +4698,6 @@ spd_IterateForeignScan(ForeignScanState *node)
 	List	   *mapping_tlist;
 	MemoryContext oldcontext;
 
-	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
-
 	fdw_private = (SpdFdwPrivate *) fssThrdInfo[0].private;
 
 	if (fdw_private == NULL)
@@ -4718,11 +4721,20 @@ spd_IterateForeignScan(ForeignScanState *node)
 			StringInfo	create_sql = makeStringInfo();
 
 			/*
+			 * Store temp table name, it will be used to drop table
+			 * in next iterate foreign scan
+			 */
+			oldcontext = MemoryContextSwitchTo(fdw_private->tmp_cxt);
+
+			/*
 			 * Use temp table name like __spd__temptable_(NUMBER) to avoid
 			 * using the same table in different foreign scan
 			 */
 			fdw_private->temp_table_name = psprintf(AGGTEMPTABLE "_" INT64_FORMAT,
 													temp_table_id++);
+			/* Switch to CurrentMemoryContext */
+			MemoryContextSwitchTo(oldcontext);
+
 			spd_createtable_sql(create_sql, mapping_tlist, fssThrdInfo,
 								fdw_private->temp_table_name, fdw_private);
 			spd_spi_ddl_table(create_sql->data);
@@ -4783,7 +4795,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 		else
 		{
 			/*
-			 * If all tupple getting is finished, then return NULL and drop
+			 * If all tuple getting is finished, then return NULL and drop
 			 * table
 			 */
 			spd_spi_ddl_table(psprintf("DROP TABLE %s", fdw_private->temp_table_name));
@@ -4805,7 +4817,6 @@ spd_IterateForeignScan(ForeignScanState *node)
 		fssThrdInfo[count].tuple = NULL;
 
 	}
-	MemoryContextSwitchTo(oldcontext);
 	return slot;
 }
 
