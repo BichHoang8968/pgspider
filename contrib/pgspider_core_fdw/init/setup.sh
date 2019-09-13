@@ -14,7 +14,7 @@ then
     sleep 2
     ./createdb -p 15432 postgres
   fi
-  if ! pgrep -x "postgres" > /dev/null
+  if ! ./pg_isready -p 15432
   then
     echo "Start PostgreSQL"
     ./pg_ctl -D ../databases start
