@@ -80,6 +80,14 @@ typedef enum
 	SPD_FS_STATE_ERROR,
 }			SpdForeignScanThreadState;
 
+#define SPD_TUPLE_QUEUE_LEN 5000
+typedef struct TupleQueue {
+	struct TupleTableSlot *tuples[SPD_TUPLE_QUEUE_LEN];
+	int start;		/* index of the first element */
+	int len;		/* number of the elements */
+	int last_get;	/* index of the last element returned by spd_queue_get */
+} SpdTupleQueue;
+
 typedef struct ForeignScanThreadInfo
 {
 	struct FdwRoutine *fdwroutine;	/* Foreign Data wrapper  routine */
@@ -89,11 +97,12 @@ typedef struct ForeignScanThreadInfo
 	Oid			serverId;		/* use it for server id */
 	ForeignServer		*foreignServer;	/* cache this for performance */
 	ForeignDataWrapper	*fdw;	/* cache this for performance */
-	bool		iFlag;			/* use it for iteration scan */
-	bool		EndFlag;		/* use it for end scan */
-	bool		queryRescan;
+	bool		underIteration;		/* true if iteration continues */
+	bool		requestEndScan;		/* main thread request endForeingScan to child thread */
+	bool		requestRescan;		/* main thread request rescan to child thread */
 	struct TupleTableSlot *tuple;	/* use it for storing tuple, which is
 									 * retrieved from the DS */
+	SpdTupleQueue tupleQueue;
 	int			childInfoIndex;		/* index of child info array */
 	MemoryContext threadMemoryContext;
 	MemoryContext threadTopMemoryContext;
@@ -102,6 +111,7 @@ typedef struct ForeignScanThreadInfo
 	pthread_t	me;
 	ResourceOwner thrd_ResourceOwner;
 	void	   *private;
+
 }			ForeignScanThreadInfo;
 
 
