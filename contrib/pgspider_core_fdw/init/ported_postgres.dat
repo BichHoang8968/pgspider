@@ -308,6 +308,9 @@ ALTER TABLE fprt1_p1 SET (autovacuum_enabled = 'false');
 
 ALTER TABLE fprt1_p2 SET (autovacuum_enabled = 'false');
 
+INSERT INTO fprt1_p1 SELECT i, i, to_char(i/50, 'FM0000') FROM generate_series(0, 249, 2) i;
+
+INSERT INTO fprt1_p2 SELECT i, i, to_char(i/50, 'FM0000') FROM generate_series(250, 499, 2) i;
 
 
 CREATE TABLE fprt2 (a int, b int, c varchar) PARTITION BY RANGE(b);
@@ -320,6 +323,9 @@ ALTER TABLE fprt2_p1 SET (autovacuum_enabled = 'false');
 
 ALTER TABLE fprt2_p2 SET (autovacuum_enabled = 'false');
 
+INSERT INTO fprt2_p1 SELECT i, i, to_char(i/50, 'FM0000') FROM generate_series(0, 249, 3) i;
+
+INSERT INTO fprt2_p2 SELECT i, i, to_char(i/50, 'FM0000') FROM generate_series(250, 499, 3) i;
 
 
 -- ===================================================================
