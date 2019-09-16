@@ -69,7 +69,7 @@ CREATE FOREIGN TABLE ft1__postgres_srv__0 (
 	c6 varchar(10),
 	c7 char(10) default 'ft1',
 	c8 user_enum
-) SERVER postgres_srv;
+) SERVER postgres_srv OPTIONS (schema_name 'S 1', table_name 'T 1');;
 ALTER FOREIGN TABLE ft1 DROP COLUMN c0;
 ALTER FOREIGN TABLE ft1__postgres_srv__0 DROP COLUMN c0;
 
@@ -95,7 +95,7 @@ CREATE FOREIGN TABLE ft2__postgres_srv__0 (
 	c6 varchar(10),
 	c7 char(10) default 'ft2',
 	c8 user_enum
-) SERVER postgres_srv;
+) SERVER postgres_srv OPTIONS (schema_name 'S 1', table_name 'T 1');
 ALTER FOREIGN TABLE ft2 DROP COLUMN cx;
 ALTER FOREIGN TABLE ft2__postgres_srv__0 DROP COLUMN cx;
 
@@ -194,8 +194,6 @@ ALTER TABLE ft_pg_type__postgres_srv__0 SET WITH OIDS;
 ALTER USER MAPPING FOR public SERVER pgspider_srv
 	OPTIONS (DROP user, DROP password);
 
-ALTER FOREIGN TABLE ft1__postgres_srv__0 OPTIONS (schema_name 'S 1', table_name 'T 1');
-ALTER FOREIGN TABLE ft2__postgres_srv__0 OPTIONS (schema_name 'S 1', table_name 'T 1');
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c1 OPTIONS (column_name 'C 1');
 ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c1 OPTIONS (column_name 'C 1');
 ALTER FOREIGN TABLE ft2 ALTER COLUMN c1 OPTIONS (column_name 'C 1');
@@ -270,7 +268,7 @@ SET enable_hashjoin TO false;
 SET enable_nestloop TO false;
 -- inner join; expressions in the clauses appear in the equivalence class list
 -- EXPLAIN (VERBOSE, COSTS OFF)
--- 	SELECT t1.c1, t2."C 1" FROM ft2 t1 JOIN "S 1"."T 1" t2 ON (t1.c1 = t2."C 1") OFFSET 100 LIMIT 10;
+	-- SELECT t1.c1, t2."C 1" FROM ft2 t1 JOIN "S 1"."T 1" t2 ON (t1.c1 = t2."C 1") OFFSET 100 LIMIT 10;
 SELECT t1.c1, t2."C 1" FROM ft2 t1 JOIN "S 1"."T 1" t2 ON (t1.c1 = t2."C 1") OFFSET 100 LIMIT 10;
 -- outer join; expressions in the clauses do not appear in equivalence class
 -- list but no output change as compared to the previous query
@@ -1126,7 +1124,7 @@ COMMIT;
 -- ===================================================================
 -- test handling of collations
 -- ===================================================================
-create foreign table ft3 (f1 text collate "C", f2 text, f3 varchar(10))
+create foreign table ft3 (f1 text collate "C", f2 text, f3 varchar(10), __spd_url text)
   server pgspider_srv;
 create foreign table ft3__postgres_srv__0 (f1 text collate "C", f2 text, f3 varchar(10))
   server postgres_srv options (table_name 'loct3_1', use_remote_estimate 'true');
@@ -1341,7 +1339,7 @@ ALTER FOREIGN TABLE ft1 DROP CONSTRAINT ft1_c2negative;
 -- test WITH CHECK OPTION constraints
 -- ===================================================================
 
-CREATE FOREIGN TABLE foreign_tbl (a int, b int)
+CREATE FOREIGN TABLE foreign_tbl (a int, b int, __spd_url text)
   SERVER pgspider_srv;
 CREATE FOREIGN TABLE foreign_tbl__postgres_srv__0 (a int, b int)
   SERVER postgres_srv OPTIONS(table_name 'base_tbl');
@@ -1365,7 +1363,7 @@ DROP FOREIGN TABLE foreign_tbl__postgres_srv__0 CASCADE;
 -- ===================================================================
 -- test serial columns (ie, sequence-based defaults)
 -- ===================================================================
-create foreign table rem1 (f1 serial, f2 text)
+create foreign table rem1 (f1 serial, f2 text, __spd_url text)
   server pgspider_srv;
 create foreign table rem1__postgres_srv__0 (f1 serial, f2 text)
   server postgres_srv options(table_name 'loc1_1');
@@ -1679,7 +1677,7 @@ DROP TRIGGER trig_row_after_delete ON rem1;
 
 CREATE TABLE a (aa TEXT);
 ALTER TABLE a SET (autovacuum_enabled = 'false');
-CREATE FOREIGN TABLE b (bb TEXT)
+CREATE FOREIGN TABLE b (bb TEXT, __spd_url text)
   SERVER pgspider_srv;
 CREATE FOREIGN TABLE b__postgres_srv__0 (bb TEXT) INHERITS (a)
   SERVER postgres_srv OPTIONS (table_name 'loct_1');
@@ -1730,12 +1728,12 @@ DROP TABLE a CASCADE;
 -- Check SELECT FOR UPDATE/SHARE with an inherited source table
 
 create table foo (f1 int, f2 int);
-create foreign table foo2 (f3 int)
+create foreign table foo2 (f3 int, __spd_url text)
   server pgspider_srv;
 create foreign table foo2__postgres_srv__0 (f3 int) inherits (foo)
   server postgres_srv options (table_name 'loct1_1');
 create table bar (f1 int, f2 int);
-create foreign table bar2 (f3 int)
+create foreign table bar2 (f3 int, __spd_url text)
   server pgspider_srv;
 create foreign table bar2__postgres_srv__0 (f3 int) inherits (bar)
   server postgres_srv options (table_name 'loct2_1');
@@ -1847,11 +1845,11 @@ drop table bar cascade;
 
 -- Test pushing down UPDATE/DELETE joins to the remote server
 create table parent (a int, b text);
-create foreign table remt1 (a int, b text)
+create foreign table remt1 (a int, b text, __spd_url text)
   server pgspider_srv;
 create foreign table remt1__postgres_srv__0 (a int, b text)
   server postgres_srv options (table_name 'loct1_2');
-create foreign table remt2 (a int, b text)
+create foreign table remt2 (a int, b text, __spd_url text)
   server pgspider_srv;
 create foreign table remt2__postgres_srv__0 (a int, b text)
   server postgres_srv options (table_name 'loct2_2');
@@ -1880,9 +1878,9 @@ drop table parent;
 -- ===================================================================
 
 -- Test insert tuple routing
-create table itrtest (a int, b text) partition by list (a);
-create foreign table remp1 (a int check (a in (1)), b text) server pgspider_srv;
-create foreign table remp2 (b text, a int check (a in (2))) server pgspider_srv;
+create table itrtest (a int, b text, __spd_url text) partition by list (a);
+create foreign table remp1 (a int check (a in (1)), b text, __spd_url text) server pgspider_srv;
+create foreign table remp2 (b text, a int check (a in (2)), __spd_url text) server pgspider_srv;
 create foreign table remp1__postgres_srv__0 (a int check (a in (1)), b text) server postgres_srv options (table_name 'loct1_3');
 create foreign table remp2__postgres_srv__0 (b text, a int check (a in (2))) server postgres_srv options (table_name 'loct2_3');
 alter table itrtest attach partition remp1 for values in (1);
@@ -1941,10 +1939,10 @@ drop foreign table remp2__postgres_srv__0;
 drop table itrtest;
 
 -- Test update tuple routing
-create table utrtest (a int, b text) partition by list (a);
-create foreign table remp (a int check (a in (1)), b text) server pgspider_srv;
+create table utrtest (a int, b text, __spd_url text) partition by list (a);
+create foreign table remp (a int check (a in (1)), b text, __spd_url text) server pgspider_srv;
 create foreign table remp__postgres_srv__0 (a int check (a in (1)), b text) server postgres_srv options (table_name 'loct_2');
-create table locp (a int check (a in (2)), b text);
+create table locp (a int check (a in (2)), b text, __spd_url text);
 alter table utrtest attach partition remp for values in (1);
 alter table utrtest attach partition locp for values in (2);
 
@@ -2042,9 +2040,9 @@ drop foreign table remp;
 drop table utrtest;
 
 -- Test copy tuple routing
-create table ctrtest (a int, b text) partition by list (a);
-create foreign table remp1 (a int check (a in (1)), b text) server pgspider_srv;
-create foreign table remp2 (b text, a int check (a in (2))) server pgspider_srv;
+create table ctrtest (a int, b text, __spd_url text) partition by list (a);
+create foreign table remp1 (a int check (a in (1)), b text, __spd_url text) server pgspider_srv;
+create foreign table remp2 (b text, a int check (a in (2)), __spd_url text) server pgspider_srv;
 
 create foreign table remp1__postgres_srv__0 (a int check (a in (1)), b text) server postgres_srv options (table_name 'loct1_4');
 create foreign table remp2__postgres_srv__0 (b text, a int check (a in (2))) server postgres_srv options (table_name 'loct2_4');
@@ -2076,7 +2074,7 @@ drop table ctrtest;
 -- ===================================================================
 -- test COPY FROM
 -- ===================================================================
-create foreign table rem2 (f1 int, f2 text) server pgspider_srv;
+create foreign table rem2 (f1 int, f2 text, __spd_url text) server pgspider_srv;
 create foreign table rem2__postgres_srv__0 (f1 int, f2 text) server postgres_srv options(table_name 'loc2_1');
 
 -- Test basic functionality
@@ -2207,7 +2205,7 @@ delete from rem2__postgres_srv__0;
 
 -- test COPY FROM with foreign table created in the same transaction
 begin;
-create foreign table rem3 (f1 int, f2 text)
+create foreign table rem3 (f1 int, f2 text, __spd_url text)
 	server pgspider_srv;
 create foreign table rem3__postgres_srv__0 (f1 int, f2 text)
 	server postgres_srv options(table_name 'loc3_1');
@@ -2294,7 +2292,7 @@ FROM pg_foreign_server
 WHERE srvname = 'fetch101'
 AND srvoptions @> array['fetch_size=202'];
 
-CREATE FOREIGN TABLE table30000 ( x int ) SERVER pgspider_srv;
+CREATE FOREIGN TABLE table30000 ( x int , __spd_url text) SERVER pgspider_srv;
 CREATE FOREIGN TABLE table30000__fetch101__0 ( x int ) SERVER fetch101 OPTIONS ( fetch_size '30000' );
 
 -- SELECT COUNT(*)
@@ -2323,9 +2321,9 @@ SET enable_partitionwise_join=on;
 
 CREATE TABLE fprt1 (a int, b int, c varchar) PARTITION BY RANGE(a);
 
-CREATE FOREIGN TABLE ftprt1_p1 (a int, b int, c varchar)
+CREATE FOREIGN TABLE ftprt1_p1 (a int, b int, c varchar, __spd_url text)
 	SERVER pgspider_srv;
-CREATE FOREIGN TABLE ftprt1_p2 (a int, b int, c varchar)
+CREATE FOREIGN TABLE ftprt1_p2 (a int, b int, c varchar, __spd_url text)
 	SERVER pgspider_srv;
 
 CREATE FOREIGN TABLE ftprt1_p1__postgres_srv__0 PARTITION OF fprt1 FOR VALUES FROM (0) TO (250)
@@ -2338,12 +2336,12 @@ ANALYZE ftprt1_p1;
 ANALYZE ftprt1_p2;
 
 CREATE TABLE fprt2 (a int, b int, c varchar) PARTITION BY RANGE(b);
-CREATE FOREIGN TABLE ftprt2_p1 (b int, c varchar, a int)
+CREATE FOREIGN TABLE ftprt2_p1 (b int, c varchar, a int, __spd_url text)
 	SERVER pgspider_srv;
 CREATE FOREIGN TABLE ftprt2_p1__postgres_srv__0 (b int, c varchar, a int)
 	SERVER postgres_srv OPTIONS (table_name 'fprt2_p1', use_remote_estimate 'true');
 ALTER TABLE fprt2 ATTACH PARTITION ftprt2_p1__postgres_srv__0 FOR VALUES FROM (0) TO (250);
-CREATE FOREIGN TABLE ftprt2_p2 (b int, c varchar, a int)
+CREATE FOREIGN TABLE ftprt2_p2 (b int, c varchar, a int, __spd_url text)
 	SERVER pgspider_srv;
 CREATE FOREIGN TABLE ftprt2_p2__postgres_srv__0 PARTITION OF fprt2 FOR VALUES FROM (250) TO (500)
 	SERVER postgres_srv OPTIONS (table_name 'fprt2_p2', use_remote_estimate 'true');
@@ -2392,9 +2390,9 @@ RESET enable_partitionwise_join;
 CREATE TABLE pagg_tab (a int, b int, c text) PARTITION BY RANGE(a);
 
 -- Create foreign partitions
-CREATE FOREIGN TABLE fpagg_tab_p1 (a int, b int, c text) SERVER pgspider_srv;
-CREATE FOREIGN TABLE fpagg_tab_p2 (a int, b int, c text) SERVER pgspider_srv;
-CREATE FOREIGN TABLE fpagg_tab_p3 (a int, b int, c text) SERVER pgspider_srv;
+CREATE FOREIGN TABLE fpagg_tab_p1 (a int, b int, c text, __spd_url text) SERVER pgspider_srv;
+CREATE FOREIGN TABLE fpagg_tab_p2 (a int, b int, c text, __spd_url text) SERVER pgspider_srv;
+CREATE FOREIGN TABLE fpagg_tab_p3 (a int, b int, c text, __spd_url text) SERVER pgspider_srv;
 
 CREATE FOREIGN TABLE fpagg_tab_p1__postgres_srv__0 PARTITION OF pagg_tab FOR VALUES FROM (0) TO (10) SERVER postgres_srv OPTIONS (table_name 'pagg_tab_p1');
 CREATE FOREIGN TABLE fpagg_tab_p2__postgres_srv__0 PARTITION OF pagg_tab FOR VALUES FROM (10) TO (20) SERVER postgres_srv OPTIONS (table_name 'pagg_tab_p2');;
