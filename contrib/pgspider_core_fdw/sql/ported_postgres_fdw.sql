@@ -16,11 +16,20 @@ DO $d$
                      port '15432',
                      dbname 'postdb'
             )$$;
+        EXECUTE $$CREATE SERVER postgres_srv2 FOREIGN DATA WRAPPER postgres_fdw
+            OPTIONS (host '127.0.0.1',
+                     port '15432',
+                     dbname 'postdb'
+            )$$;    
     END;
 $d$;
 
+CREATE USER MAPPING FOR public SERVER pgspider_srv
+	OPTIONS (user 'postgres', password 'postgres');
 CREATE USER MAPPING FOR public SERVER postgres_srv
-	OPTIONS (user 'tinybrace7', password '1');
+	OPTIONS (user 'postgres', password 'postgres');
+CREATE USER MAPPING FOR public SERVER postgres_srv2
+	OPTIONS (user 'postgres', password 'postgres');
 
 -- ===================================================================
 -- create objects used through PostgreSQL FDW server
@@ -30,33 +39,10 @@ CREATE SCHEMA "S 1";
 
 IMPORT FOREIGN SCHEMA "S 1" FROM SERVER postgres_srv INTO "S 1";
 
-INSERT INTO "S 1"."T 1"
-	SELECT id,
-	       id % 10,
-	       to_char(id, 'FM00000'),
-	       '1970-01-01'::timestamptz + ((id % 100) || ' days')::interval,
-	       '1970-01-01'::timestamp + ((id % 100) || ' days')::interval,
-	       id % 10,
-	       id % 10,
-	       'foo'::user_enum
-	FROM generate_series(1, 1000) id;
-INSERT INTO "S 1"."T 2"
-	SELECT id,
-	       'AAA' || to_char(id, 'FM000')
-	FROM generate_series(1, 100) id;
-INSERT INTO "S 1"."T 3"
-	SELECT id,
-	       id + 1,
-	       'AAA' || to_char(id, 'FM000')
-	FROM generate_series(1, 100) id;
-DELETE FROM "S 1"."T 3" WHERE c1 % 2 != 0;	-- delete for outer join tests
-INSERT INTO "S 1"."T 4"
-	SELECT id,
-	       id + 1,
-	       'AAA' || to_char(id, 'FM000')
-	FROM generate_series(1, 100) id;
-DELETE FROM "S 1"."T 4" WHERE c1 % 3 != 0;	-- delete for outer join tests
-
+ANALYZE "S 1"."T 1";
+ANALYZE "S 1"."T 2";
+ANALYZE "S 1"."T 3";
+ANALYZE "S 1"."T 4";
 
 -- ===================================================================
 -- create foreign tables
@@ -143,11 +129,11 @@ CREATE FOREIGN TABLE ft6 (
 	c3 text,
 	__spd_url text
 ) SERVER pgspider_srv;
-CREATE FOREIGN TABLE ft6__postgres_srv__0 (
+CREATE FOREIGN TABLE ft6__postgres_srv2__0 (
 	c1 int NOT NULL,
 	c2 int NOT NULL,
 	c3 text
-) SERVER postgres_srv OPTIONS (schema_name 'S 1', table_name 'T 4');
+) SERVER postgres_srv2 OPTIONS (schema_name 'S 1', table_name 'T 4');
 
 -- A table with oids. CREATE FOREIGN TABLE doesn't support the
 -- WITH OIDS option, but ALTER does.
@@ -156,11 +142,11 @@ CREATE FOREIGN TABLE ft_pg_type (
 	typlen smallint,
 	__spd_url text
 ) SERVER pgspider_srv;
-ALTER TABLE ft_pg_type SET WITH OIDS;
 CREATE FOREIGN TABLE ft_pg_type__postgres_srv__0 (
 	typname name,
 	typlen smallint
 ) SERVER postgres_srv OPTIONS (schema_name 'pg_catalog', table_name 'pg_type');
+ALTER TABLE ft_pg_type SET WITH OIDS;
 ALTER TABLE ft_pg_type__postgres_srv__0 SET WITH OIDS;
 
 -- ===================================================================
@@ -205,6 +191,9 @@ ALTER TABLE ft_pg_type__postgres_srv__0 SET WITH OIDS;
 --ALTER SERVER pgspider_srv OPTIONS (ADD extensions 'foo, bar');
 --ALTER SERVER pgspider_srv OPTIONS (DROP extensions);
 
+ALTER USER MAPPING FOR public SERVER pgspider_srv
+	OPTIONS (DROP user, DROP password);
+
 ALTER FOREIGN TABLE ft1__postgres_srv__0 OPTIONS (schema_name 'S 1', table_name 'T 1');
 ALTER FOREIGN TABLE ft2__postgres_srv__0 OPTIONS (schema_name 'S 1', table_name 'T 1');
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c1 OPTIONS (column_name 'C 1');
@@ -238,8 +227,10 @@ SELECT c3, c4 FROM ft1 ORDER BY c3, c1 LIMIT 1;  -- should work again
 -- SELECT c3, c4 FROM ft1 ORDER BY c3, c1 LIMIT 1;  -- should work again
 \set VERBOSITY default
 
+-- Now we should be able to run ANALYZE.
 -- To exercise multiple code paths, we use local stats on ft1
 -- and remote-estimate mode on ft2.
+ANALYZE ft1;
 ALTER FOREIGN TABLE ft2 OPTIONS (use_remote_estimate 'true');
 
 -- ===================================================================
@@ -387,6 +378,10 @@ EXPLAIN (VERBOSE, COSTS OFF)
 -- ===================================================================
 -- JOIN queries
 -- ===================================================================
+-- Analyze ft4 and ft5 so that we have better statistics. These tables do not
+-- have use_remote_estimate set.
+ANALYZE ft4;
+ANALYZE ft5;
 
 -- join two tables
 -- EXPLAIN (VERBOSE, COSTS OFF)
@@ -1294,6 +1289,7 @@ ALTER TABLE "S 1"."T 1" ADD CONSTRAINT c2positive CHECK (c2 >= 0);
 -- select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
 -- select c2, count(*) from "S 1"."T 1" where c2 < 500 group by 1 order by 1;
 
+VACUUM ANALYZE "S 1"."T 1";
 
 -- Above DMLs add data with c6 as NULL in ft1, so test ORDER BY NULLS LAST and NULLs
 -- FIRST behavior here.
@@ -1374,10 +1370,7 @@ create foreign table rem1 (f1 serial, f2 text)
 create foreign table rem1__postgres_srv__0 (f1 serial, f2 text)
   server postgres_srv options(table_name 'loc1_1');
 select pg_catalog.setval('rem1_f1_seq', 10, false);
-insert into rem1__postgres_srv__0(f2) values('hi');
-insert into rem1__postgres_srv__0(f2) values('hi remote');
-insert into rem1__postgres_srv__0(f2) values('bye');
-insert into rem1__postgres_srv__0(f2) values('bye remote');
+
 -- select * from rem1;
 
 -- ===================================================================
@@ -1800,7 +1793,8 @@ SET enable_hashjoin to false;
 SET enable_nestloop to false;
 alter foreign table foo2 options (use_remote_estimate 'true');
 create index i_foo_f1 on foo(f1);
-
+analyze foo;
+analyze foo2;
 -- inner join; expressions in the clauses appear in the equivalence class list
 -- explain (verbose, costs off)
 -- 	select foo.f1, foo2.f1 from foo join foo2 on (foo.f1 = foo2.f1) order by foo.f2 offset 10 limit 10;
@@ -1863,10 +1857,8 @@ create foreign table remt2__postgres_srv__0 (a int, b text)
   server postgres_srv options (table_name 'loct2_2');
 alter foreign table remt1__postgres_srv__0 inherit parent;
 
-insert into remt1__postgres_srv__0 values (1, 'foo');
-insert into remt1__postgres_srv__0 values (2, 'bar');
-insert into remt2__postgres_srv__0 values (1, 'foo');
-insert into remt2__postgres_srv__0 values (2, 'bar');
+analyze remt1;
+analyze remt2;
 
 -- explain (verbose, costs off)
 -- update parent set b = parent.b || remt2.b from remt2 where parent.a = remt2.a returning *;
@@ -2341,6 +2333,10 @@ CREATE FOREIGN TABLE ftprt1_p1__postgres_srv__0 PARTITION OF fprt1 FOR VALUES FR
 CREATE FOREIGN TABLE ftprt1_p2__postgres_srv__0 PARTITION OF fprt1 FOR VALUES FROM (250) TO (500)
 	SERVER postgres_srv OPTIONS (TABLE_NAME 'fprt1_p2');
 
+ANALYZE fprt1;
+ANALYZE ftprt1_p1;
+ANALYZE ftprt1_p2;
+
 CREATE TABLE fprt2 (a int, b int, c varchar) PARTITION BY RANGE(b);
 CREATE FOREIGN TABLE ftprt2_p1 (b int, c varchar, a int)
 	SERVER pgspider_srv;
@@ -2351,6 +2347,10 @@ CREATE FOREIGN TABLE ftprt2_p2 (b int, c varchar, a int)
 	SERVER pgspider_srv;
 CREATE FOREIGN TABLE ftprt2_p2__postgres_srv__0 PARTITION OF fprt2 FOR VALUES FROM (250) TO (500)
 	SERVER postgres_srv OPTIONS (table_name 'fprt2_p2', use_remote_estimate 'true');
+
+ANALYZE fprt2;
+ANALYZE ftprt2_p1;
+ANALYZE ftprt2_p2;
 
 -- inner join three tables
 -- EXPLAIN (COSTS OFF)
@@ -2400,6 +2400,10 @@ CREATE FOREIGN TABLE fpagg_tab_p1__postgres_srv__0 PARTITION OF pagg_tab FOR VAL
 CREATE FOREIGN TABLE fpagg_tab_p2__postgres_srv__0 PARTITION OF pagg_tab FOR VALUES FROM (10) TO (20) SERVER postgres_srv OPTIONS (table_name 'pagg_tab_p2');;
 CREATE FOREIGN TABLE fpagg_tab_p3__postgres_srv__0 PARTITION OF pagg_tab FOR VALUES FROM (20) TO (30) SERVER postgres_srv OPTIONS (table_name 'pagg_tab_p3');;
 
+ANALYZE pagg_tab;
+ANALYZE fpagg_tab_p1;
+ANALYZE fpagg_tab_p2;
+ANALYZE fpagg_tab_p3;
 
 -- When GROUP BY clause matches with PARTITION KEY.
 -- Plan with partitionwise aggregates is disabled
