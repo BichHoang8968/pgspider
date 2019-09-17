@@ -3114,9 +3114,9 @@ spd_ExplainForeignScan(ForeignScanState *node,
 		PG_TRY();
 		{
 			int			idx;
-
-			ExplainPropertyText(psprintf(" * Node: %s / Status", fs->servername),
+			ExplainPropertyText(psprintf("Node: %s / Status", fs->servername),
 								SpdServerstatusStr[childinfo[i].child_node_status], es);
+			es->indent++;
 
 			if (childinfo[i].child_node_status != ServerStatusAlive)
 				continue;
@@ -3131,6 +3131,7 @@ spd_ExplainForeignScan(ForeignScanState *node,
 			}
 			idx = childinfo[i].index_threadinfo;
 			fdwroutine->ExplainForeignScan(((ForeignScanThreadInfo *) node->spd_fsstate)[idx].fsstate, es);
+			es->indent--;
 
 		}
 		PG_CATCH();
