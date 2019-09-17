@@ -2856,15 +2856,134 @@ explain (verbose, costs off) select * from ft3 where f2 = 'foo' COLLATE "C";
 -- EXPLAIN (verbose, costs off)
 -- INSERT INTO ft2 (c1,c2,c3) SELECT c1+1000,c2+100, c3 || c3 FROM ft2 LIMIT 20;
 -- INSERT INTO ft2 (c1,c2,c3) SELECT c1+1000,c2+100, c3 || c3 FROM ft2 LIMIT 20;
+INSERT INTO ft2__postgres_srv__0 (c1,c2,c3) SELECT c1+1000,c2+100, c3 || c3 FROM ft2 LIMIT 20;
 -- INSERT INTO ft2 (c1,c2,c3)
 --   VALUES (1101,201,'aaa'), (1102,202,'bbb'), (1103,203,'ccc') RETURNING *;
+INSERT INTO ft2__postgres_srv__0 (c1,c2,c3)
+  VALUES (1101,201,'aaa'), (1102,202,'bbb'), (1103,203,'ccc') RETURNING *;
+  c1  | c2  | c3  | c4 | c5 | c6 |     c7     | c8 
+------+-----+-----+----+----+----+------------+----
+ 1101 | 201 | aaa |    |    |    | ft2        | 
+ 1102 | 202 | bbb |    |    |    | ft2        | 
+ 1103 | 203 | ccc |    |    |    | ft2        | 
+(3 rows)
+
 -- INSERT INTO ft2 (c1,c2,c3) VALUES (1104,204,'ddd'), (1105,205,'eee');
+INSERT INTO ft2__postgres_srv__0 (c1,c2,c3) VALUES (1104,204,'ddd'), (1105,205,'eee');
 -- EXPLAIN (verbose, costs off)
 -- UPDATE ft2 SET c2 = c2 + 300, c3 = c3 || '_update3' WHERE c1 % 10 = 3;              -- can be pushed down
 -- UPDATE ft2 SET c2 = c2 + 300, c3 = c3 || '_update3' WHERE c1 % 10 = 3;
+UPDATE ft2__postgres_srv__0 SET c2 = c2 + 300, c3 = c3 || '_update3' WHERE c1 % 10 = 3;
 -- EXPLAIN (verbose, costs off)
 -- UPDATE ft2 SET c2 = c2 + 400, c3 = c3 || '_update7' WHERE c1 % 10 = 7 RETURNING *;  -- can be pushed down
 -- UPDATE ft2 SET c2 = c2 + 400, c3 = c3 || '_update7' WHERE c1 % 10 = 7 RETURNING *;
+UPDATE ft2__postgres_srv__0 SET c2 = c2 + 400, c3 = c3 || '_update7' WHERE c1 % 10 = 7 RETURNING *;
+  c1  | c2  |         c3         |              c4              |            c5            | c6 |     c7     | c8  
+------+-----+--------------------+------------------------------+--------------------------+----+------------+-----
+    7 | 407 | 00007_update7      | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
+   17 | 407 | 00017_update7      | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
+   27 | 407 | 00027_update7      | Tue Jan 27 08:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
+   37 | 407 | 00037_update7      | Fri Feb 06 08:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
+   47 | 407 | 00047_update7      | Mon Feb 16 08:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
+   57 | 407 | 00057_update7      | Thu Feb 26 08:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
+   67 | 407 | 00067_update7      | Sun Mar 08 08:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
+   77 | 407 | 00077_update7      | Wed Mar 18 08:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
+   87 | 407 | 00087_update7      | Sat Mar 28 08:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
+   97 | 407 | 00097_update7      | Tue Apr 07 08:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
+  107 | 407 | 00107_update7      | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
+  117 | 407 | 00117_update7      | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
+  127 | 407 | 00127_update7      | Tue Jan 27 08:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
+  137 | 407 | 00137_update7      | Fri Feb 06 08:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
+  147 | 407 | 00147_update7      | Mon Feb 16 08:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
+  157 | 407 | 00157_update7      | Thu Feb 26 08:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
+  167 | 407 | 00167_update7      | Sun Mar 08 08:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
+  177 | 407 | 00177_update7      | Wed Mar 18 08:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
+  187 | 407 | 00187_update7      | Sat Mar 28 08:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
+  197 | 407 | 00197_update7      | Tue Apr 07 08:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
+  207 | 407 | 00207_update7      | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
+  217 | 407 | 00217_update7      | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
+  227 | 407 | 00227_update7      | Tue Jan 27 08:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
+  237 | 407 | 00237_update7      | Fri Feb 06 08:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
+  247 | 407 | 00247_update7      | Mon Feb 16 08:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
+  257 | 407 | 00257_update7      | Thu Feb 26 08:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
+  267 | 407 | 00267_update7      | Sun Mar 08 08:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
+  277 | 407 | 00277_update7      | Wed Mar 18 08:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
+  287 | 407 | 00287_update7      | Sat Mar 28 08:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
+  297 | 407 | 00297_update7      | Tue Apr 07 08:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
+  307 | 407 | 00307_update7      | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
+  317 | 407 | 00317_update7      | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
+  327 | 407 | 00327_update7      | Tue Jan 27 08:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
+  337 | 407 | 00337_update7      | Fri Feb 06 08:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
+  347 | 407 | 00347_update7      | Mon Feb 16 08:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
+  357 | 407 | 00357_update7      | Thu Feb 26 08:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
+  367 | 407 | 00367_update7      | Sun Mar 08 08:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
+  377 | 407 | 00377_update7      | Wed Mar 18 08:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
+  387 | 407 | 00387_update7      | Sat Mar 28 08:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
+  397 | 407 | 00397_update7      | Tue Apr 07 08:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
+  407 | 407 | 00407_update7      | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
+  417 | 407 | 00417_update7      | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
+  427 | 407 | 00427_update7      | Tue Jan 27 08:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
+  437 | 407 | 00437_update7      | Fri Feb 06 08:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
+  447 | 407 | 00447_update7      | Mon Feb 16 08:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
+  457 | 407 | 00457_update7      | Thu Feb 26 08:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
+  467 | 407 | 00467_update7      | Sun Mar 08 08:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
+  477 | 407 | 00477_update7      | Wed Mar 18 08:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
+  487 | 407 | 00487_update7      | Sat Mar 28 08:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
+  497 | 407 | 00497_update7      | Tue Apr 07 08:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
+  507 | 407 | 00507_update7      | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
+  517 | 407 | 00517_update7      | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
+  527 | 407 | 00527_update7      | Tue Jan 27 08:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
+  537 | 407 | 00537_update7      | Fri Feb 06 08:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
+  547 | 407 | 00547_update7      | Mon Feb 16 08:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
+  557 | 407 | 00557_update7      | Thu Feb 26 08:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
+  567 | 407 | 00567_update7      | Sun Mar 08 08:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
+  577 | 407 | 00577_update7      | Wed Mar 18 08:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
+  587 | 407 | 00587_update7      | Sat Mar 28 08:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
+  597 | 407 | 00597_update7      | Tue Apr 07 08:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
+  607 | 407 | 00607_update7      | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
+  617 | 407 | 00617_update7      | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
+  627 | 407 | 00627_update7      | Tue Jan 27 08:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
+  637 | 407 | 00637_update7      | Fri Feb 06 08:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
+  647 | 407 | 00647_update7      | Mon Feb 16 08:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
+  657 | 407 | 00657_update7      | Thu Feb 26 08:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
+  667 | 407 | 00667_update7      | Sun Mar 08 08:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
+  677 | 407 | 00677_update7      | Wed Mar 18 08:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
+  687 | 407 | 00687_update7      | Sat Mar 28 08:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
+  697 | 407 | 00697_update7      | Tue Apr 07 08:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
+  707 | 407 | 00707_update7      | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
+  717 | 407 | 00717_update7      | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
+  727 | 407 | 00727_update7      | Tue Jan 27 08:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
+  737 | 407 | 00737_update7      | Fri Feb 06 08:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
+  747 | 407 | 00747_update7      | Mon Feb 16 08:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
+  757 | 407 | 00757_update7      | Thu Feb 26 08:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
+  767 | 407 | 00767_update7      | Sun Mar 08 08:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
+  777 | 407 | 00777_update7      | Wed Mar 18 08:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
+  787 | 407 | 00787_update7      | Sat Mar 28 08:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
+  797 | 407 | 00797_update7      | Tue Apr 07 08:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
+  807 | 407 | 00807_update7      | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
+  817 | 407 | 00817_update7      | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
+  827 | 407 | 00827_update7      | Tue Jan 27 08:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
+  837 | 407 | 00837_update7      | Fri Feb 06 08:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
+  847 | 407 | 00847_update7      | Mon Feb 16 08:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
+  857 | 407 | 00857_update7      | Thu Feb 26 08:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
+  867 | 407 | 00867_update7      | Sun Mar 08 08:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
+  877 | 407 | 00877_update7      | Wed Mar 18 08:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
+  887 | 407 | 00887_update7      | Sat Mar 28 08:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
+  897 | 407 | 00897_update7      | Tue Apr 07 08:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
+  907 | 407 | 00907_update7      | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
+  917 | 407 | 00917_update7      | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
+  927 | 407 | 00927_update7      | Tue Jan 27 08:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
+  937 | 407 | 00937_update7      | Fri Feb 06 08:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
+  947 | 407 | 00947_update7      | Mon Feb 16 08:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
+  957 | 407 | 00957_update7      | Thu Feb 26 08:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
+  967 | 407 | 00967_update7      | Sun Mar 08 08:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
+  977 | 407 | 00977_update7      | Wed Mar 18 08:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
+  987 | 407 | 00987_update7      | Sat Mar 28 08:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
+  997 | 407 | 00997_update7      | Tue Apr 07 08:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
+ 1007 | 507 | 0000700007_update7 |                              |                          |    | ft2        | 
+ 1017 | 507 | 0001700017_update7 |                              |                          |    | ft2        | 
+(102 rows)
+
 -- EXPLAIN (verbose, costs off)
 -- UPDATE ft2 SET c2 = ft2.c2 + 500, c3 = ft2.c3 || '_update9', c7 = DEFAULT
 --   FROM ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 9;                               -- can be pushed down
@@ -2873,6 +2992,114 @@ explain (verbose, costs off) select * from ft3 where f2 = 'foo' COLLATE "C";
 -- EXPLAIN (verbose, costs off)
 --   DELETE FROM ft2 WHERE c1 % 10 = 5 RETURNING c1, c4;                               -- can be pushed down
 -- DELETE FROM ft2 WHERE c1 % 10 = 5 RETURNING c1, c4;
+DELETE FROM ft2__postgres_srv__0 WHERE c1 % 10 = 5 RETURNING c1, c4;
+  c1  |              c4              
+------+------------------------------
+    5 | Mon Jan 05 08:00:00 1970 PST
+   15 | Thu Jan 15 08:00:00 1970 PST
+   25 | Sun Jan 25 08:00:00 1970 PST
+   35 | Wed Feb 04 08:00:00 1970 PST
+   45 | Sat Feb 14 08:00:00 1970 PST
+   55 | Tue Feb 24 08:00:00 1970 PST
+   65 | Fri Mar 06 08:00:00 1970 PST
+   75 | Mon Mar 16 08:00:00 1970 PST
+   85 | Thu Mar 26 08:00:00 1970 PST
+   95 | Sun Apr 05 08:00:00 1970 PST
+  105 | Mon Jan 05 08:00:00 1970 PST
+  115 | Thu Jan 15 08:00:00 1970 PST
+  125 | Sun Jan 25 08:00:00 1970 PST
+  135 | Wed Feb 04 08:00:00 1970 PST
+  145 | Sat Feb 14 08:00:00 1970 PST
+  155 | Tue Feb 24 08:00:00 1970 PST
+  165 | Fri Mar 06 08:00:00 1970 PST
+  175 | Mon Mar 16 08:00:00 1970 PST
+  185 | Thu Mar 26 08:00:00 1970 PST
+  195 | Sun Apr 05 08:00:00 1970 PST
+  205 | Mon Jan 05 08:00:00 1970 PST
+  215 | Thu Jan 15 08:00:00 1970 PST
+  225 | Sun Jan 25 08:00:00 1970 PST
+  235 | Wed Feb 04 08:00:00 1970 PST
+  245 | Sat Feb 14 08:00:00 1970 PST
+  255 | Tue Feb 24 08:00:00 1970 PST
+  265 | Fri Mar 06 08:00:00 1970 PST
+  275 | Mon Mar 16 08:00:00 1970 PST
+  285 | Thu Mar 26 08:00:00 1970 PST
+  295 | Sun Apr 05 08:00:00 1970 PST
+  305 | Mon Jan 05 08:00:00 1970 PST
+  315 | Thu Jan 15 08:00:00 1970 PST
+  325 | Sun Jan 25 08:00:00 1970 PST
+  335 | Wed Feb 04 08:00:00 1970 PST
+  345 | Sat Feb 14 08:00:00 1970 PST
+  355 | Tue Feb 24 08:00:00 1970 PST
+  365 | Fri Mar 06 08:00:00 1970 PST
+  375 | Mon Mar 16 08:00:00 1970 PST
+  385 | Thu Mar 26 08:00:00 1970 PST
+  395 | Sun Apr 05 08:00:00 1970 PST
+  405 | Mon Jan 05 08:00:00 1970 PST
+  415 | Thu Jan 15 08:00:00 1970 PST
+  425 | Sun Jan 25 08:00:00 1970 PST
+  435 | Wed Feb 04 08:00:00 1970 PST
+  445 | Sat Feb 14 08:00:00 1970 PST
+  455 | Tue Feb 24 08:00:00 1970 PST
+  465 | Fri Mar 06 08:00:00 1970 PST
+  475 | Mon Mar 16 08:00:00 1970 PST
+  485 | Thu Mar 26 08:00:00 1970 PST
+  495 | Sun Apr 05 08:00:00 1970 PST
+  505 | Mon Jan 05 08:00:00 1970 PST
+  515 | Thu Jan 15 08:00:00 1970 PST
+  525 | Sun Jan 25 08:00:00 1970 PST
+  535 | Wed Feb 04 08:00:00 1970 PST
+  545 | Sat Feb 14 08:00:00 1970 PST
+  555 | Tue Feb 24 08:00:00 1970 PST
+  565 | Fri Mar 06 08:00:00 1970 PST
+  575 | Mon Mar 16 08:00:00 1970 PST
+  585 | Thu Mar 26 08:00:00 1970 PST
+  595 | Sun Apr 05 08:00:00 1970 PST
+  605 | Mon Jan 05 08:00:00 1970 PST
+  615 | Thu Jan 15 08:00:00 1970 PST
+  625 | Sun Jan 25 08:00:00 1970 PST
+  635 | Wed Feb 04 08:00:00 1970 PST
+  645 | Sat Feb 14 08:00:00 1970 PST
+  655 | Tue Feb 24 08:00:00 1970 PST
+  665 | Fri Mar 06 08:00:00 1970 PST
+  675 | Mon Mar 16 08:00:00 1970 PST
+  685 | Thu Mar 26 08:00:00 1970 PST
+  695 | Sun Apr 05 08:00:00 1970 PST
+  705 | Mon Jan 05 08:00:00 1970 PST
+  715 | Thu Jan 15 08:00:00 1970 PST
+  725 | Sun Jan 25 08:00:00 1970 PST
+  735 | Wed Feb 04 08:00:00 1970 PST
+  745 | Sat Feb 14 08:00:00 1970 PST
+  755 | Tue Feb 24 08:00:00 1970 PST
+  765 | Fri Mar 06 08:00:00 1970 PST
+  775 | Mon Mar 16 08:00:00 1970 PST
+  785 | Thu Mar 26 08:00:00 1970 PST
+  795 | Sun Apr 05 08:00:00 1970 PST
+  805 | Mon Jan 05 08:00:00 1970 PST
+  815 | Thu Jan 15 08:00:00 1970 PST
+  825 | Sun Jan 25 08:00:00 1970 PST
+  835 | Wed Feb 04 08:00:00 1970 PST
+  845 | Sat Feb 14 08:00:00 1970 PST
+  855 | Tue Feb 24 08:00:00 1970 PST
+  865 | Fri Mar 06 08:00:00 1970 PST
+  875 | Mon Mar 16 08:00:00 1970 PST
+  885 | Thu Mar 26 08:00:00 1970 PST
+  895 | Sun Apr 05 08:00:00 1970 PST
+  905 | Mon Jan 05 08:00:00 1970 PST
+  915 | Thu Jan 15 08:00:00 1970 PST
+  925 | Sun Jan 25 08:00:00 1970 PST
+  935 | Wed Feb 04 08:00:00 1970 PST
+  945 | Sat Feb 14 08:00:00 1970 PST
+  955 | Tue Feb 24 08:00:00 1970 PST
+  965 | Fri Mar 06 08:00:00 1970 PST
+  975 | Mon Mar 16 08:00:00 1970 PST
+  985 | Thu Mar 26 08:00:00 1970 PST
+  995 | Sun Apr 05 08:00:00 1970 PST
+ 1005 | 
+ 1015 | 
+ 1105 | 
+(103 rows)
+
 -- EXPLAIN (verbose, costs off)
 -- DELETE FROM ft2 USING ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 2;                -- can be pushed down
 -- DELETE FROM ft2 USING ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 2;
@@ -2880,15 +3107,35 @@ explain (verbose, costs off) select * from ft3 where f2 = 'foo' COLLATE "C";
 -- EXPLAIN (verbose, costs off)
 -- INSERT INTO ft2 (c1,c2,c3) VALUES (1200,999,'foo') RETURNING tableoid::regclass;
 -- INSERT INTO ft2 (c1,c2,c3) VALUES (1200,999,'foo') RETURNING tableoid::regclass;
+INSERT INTO ft2__postgres_srv__0 (c1,c2,c3) VALUES (1200,999,'foo') RETURNING tableoid::regclass;
+       tableoid       
+----------------------
+ ft2__postgres_srv__0
+(1 row)
+
 -- EXPLAIN (verbose, costs off)
 -- UPDATE ft2 SET c3 = 'bar' WHERE c1 = 1200 RETURNING tableoid::regclass;             -- can be pushed down
 -- UPDATE ft2 SET c3 = 'bar' WHERE c1 = 1200 RETURNING tableoid::regclass;
+UPDATE ft2__postgres_srv__0 SET c3 = 'bar' WHERE c1 = 1200 RETURNING tableoid::regclass;
+       tableoid       
+----------------------
+ ft2__postgres_srv__0
+(1 row)
+
 -- EXPLAIN (verbose, costs off)
 -- DELETE FROM ft2 WHERE c1 = 1200 RETURNING tableoid::regclass;                       -- can be pushed down
 -- DELETE FROM ft2 WHERE c1 = 1200 RETURNING tableoid::regclass;
+DELETE FROM ft2__postgres_srv__0 WHERE c1 = 1200 RETURNING tableoid::regclass;
+       tableoid       
+----------------------
+ ft2__postgres_srv__0
+(1 row)
+
 -- Test UPDATE/DELETE with RETURNING on a three-table join
 -- INSERT INTO ft2 (c1,c2,c3)
 --   SELECT id, id - 1200, to_char(id, 'FM00000') FROM generate_series(1201, 1300) id;
+INSERT INTO ft2__postgres_srv__0 (c1,c2,c3)
+  SELECT id, id - 1200, to_char(id, 'FM00000') FROM generate_series(1201, 1300) id;
 -- EXPLAIN (verbose, costs off)
 -- UPDATE ft2 SET c3 = 'foo'
 --   FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
@@ -2908,14 +3155,32 @@ explain (verbose, costs off) select * from ft3 where f2 = 'foo' COLLATE "C";
 --   WHERE ft2.c1 > 1200 AND ft2.c1 % 10 = 0 AND ft2.c2 = ft4.c1
 --   RETURNING 100;
 -- DELETE FROM ft2 WHERE ft2.c1 > 1200;
+DELETE FROM ft2__postgres_srv__0 WHERE ft2__postgres_srv__0.c1 > 1200;
 -- Test UPDATE/DELETE with WHERE or JOIN/ON conditions containing
 -- user-defined operators/functions
 ALTER SERVER postgres_srv OPTIONS (DROP extensions);
 -- INSERT INTO ft2 (c1,c2,c3)
 --   SELECT id, id % 10, to_char(id, 'FM00000') FROM generate_series(2001, 2010) id;
+INSERT INTO ft2__postgres_srv__0 (c1,c2,c3)
+  SELECT id, id % 10, to_char(id, 'FM00000') FROM generate_series(2001, 2010) id;
 -- EXPLAIN (verbose, costs off)
 -- UPDATE ft2 SET c3 = 'bar' WHERE postgres_fdw_abs(c1) > 2000 RETURNING *;            -- can't be pushed down
 -- UPDATE ft2 SET c3 = 'bar' WHERE postgres_fdw_abs(c1) > 2000 RETURNING *;
+UPDATE ft2__postgres_srv__0 SET c3 = 'bar' WHERE postgres_fdw_abs(c1) > 2000 RETURNING *;
+  c1  | c2 | c3  | c4 | c5 | c6 |     c7     | c8 
+------+----+-----+----+----+----+------------+----
+ 2001 |  1 | bar |    |    |    | ft2        | 
+ 2002 |  2 | bar |    |    |    | ft2        | 
+ 2003 |  3 | bar |    |    |    | ft2        | 
+ 2004 |  4 | bar |    |    |    | ft2        | 
+ 2005 |  5 | bar |    |    |    | ft2        | 
+ 2006 |  6 | bar |    |    |    | ft2        | 
+ 2007 |  7 | bar |    |    |    | ft2        | 
+ 2008 |  8 | bar |    |    |    | ft2        | 
+ 2009 |  9 | bar |    |    |    | ft2        | 
+ 2010 |  0 | bar |    |    |    | ft2        | 
+(10 rows)
+
 -- EXPLAIN (verbose, costs off)
 -- UPDATE ft2 SET c3 = 'baz'
 --   FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
@@ -2935,6 +3200,7 @@ ALTER SERVER postgres_srv OPTIONS (DROP extensions);
 --   WHERE ft2.c1 > 2000 AND ft2.c2 = ft4.c1
 --   RETURNING ft2.c1, ft2.c2, ft2.c3;
 -- DELETE FROM ft2 WHERE ft2.c1 > 2000;
+DELETE FROM ft2__postgres_srv__0 WHERE ft2__postgres_srv__0.c1 > 2000;
 ALTER SERVER postgres_srv OPTIONS (ADD extensions 'postgres_fdw');
 -- Test that trigger on remote table works as expected
 CREATE OR REPLACE FUNCTION "S 1".F_BRTRIG() RETURNS trigger AS $$
@@ -2956,7 +3222,7 @@ ALTER TABLE "S 1"."T 1" ADD CONSTRAINT c2positive CHECK (c2 >= 0);
 -- INSERT INTO ft1(c1, c2) VALUES(11, 12) ON CONFLICT (c1, c2) DO UPDATE SET c3 = 'ffg'; -- unsupported
 -- INSERT INTO ft1(c1, c2) VALUES(1111, -2);  -- c2positive
 -- UPDATE ft1 SET c2 = -c2 WHERE c1 = 1;  -- c2positive
--- -- Test savepoint/rollback behavior
+-- Test savepoint/rollback behavior
 -- select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
 -- select c2, count(*) from "S 1"."T 1" where c2 < 500 group by 1 order by 1;
 -- begin;
@@ -2980,7 +3246,7 @@ ALTER TABLE "S 1"."T 1" ADD CONSTRAINT c2positive CHECK (c2 >= 0);
 -- select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
 -- release savepoint s3;
 -- select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
--- -- none of the above is committed yet remotely
+-- none of the above is committed yet remotely
 -- select c2, count(*) from "S 1"."T 1" where c2 < 500 group by 1 order by 1;
 -- commit;
 -- select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
@@ -3240,7 +3506,7 @@ CREATE TRIGGER trig_row_before_insupd
 BEFORE INSERT OR UPDATE ON rem1
 FOR EACH ROW EXECUTE PROCEDURE trig_row_before_insupdate();
 -- The new values should have 'triggered' appended
-INSERT INTO rem1__postgres_srv__0 values(1, 'insert');
+-- INSERT INTO rem1__postgres_srv__0 values(1, 'insert');
 -- SELECT * from rem1;
 -- INSERT INTO rem1__postgres_srv__0 values(2, 'insert') RETURNING f2;
 -- SELECT * from rem1;
@@ -3248,24 +3514,24 @@ INSERT INTO rem1__postgres_srv__0 values(1, 'insert');
 -- SELECT * from rem1;
 -- UPDATE rem1__postgres_srv__0 set f2 = 'skidoo' RETURNING f2;
 -- SELECT * from rem1;
-DELETE FROM rem1__postgres_srv__0;
+-- DELETE FROM rem1__postgres_srv__0;
 -- Add a second trigger, to check that the changes are propagated correctly
 -- from trigger to trigger
 CREATE TRIGGER trig_row_before_insupd2
 BEFORE INSERT OR UPDATE ON rem1
 FOR EACH ROW EXECUTE PROCEDURE trig_row_before_insupdate();
-INSERT INTO rem1__postgres_srv__0 values(1, 'insert');
+-- INSERT INTO rem1__postgres_srv__0 values(1, 'insert');
 -- SELECT * from rem1;
 -- INSERT INTO rem1__postgres_srv__0 values(2, 'insert') RETURNING f2;
 -- SELECT * from rem1;
-UPDATE rem1__postgres_srv__0 set f2 = '';
+-- UPDATE rem1__postgres_srv__0 set f2 = '';
 -- SELECT * from rem1;
 -- UPDATE rem1__postgres_srv__0 set f2 = 'skidoo' RETURNING f2;
 -- SELECT * from rem1;
 DROP TRIGGER trig_row_before_insupd ON rem1;
 DROP TRIGGER trig_row_before_insupd2 ON rem1;
-DELETE from rem1__postgres_srv__0;
-INSERT INTO rem1__postgres_srv__0 VALUES (1, 'test');
+-- DELETE from rem1__postgres_srv__0;
+-- INSERT INTO rem1__postgres_srv__0 VALUES (1, 'test');
 -- Test with a trigger returning NULL
 CREATE FUNCTION trig_null() RETURNS TRIGGER AS $$
   BEGIN
@@ -3306,91 +3572,35 @@ DROP TRIGGER trig_local_before ON rem1;
 CREATE TRIGGER trig_stmt_before
 	BEFORE DELETE OR INSERT OR UPDATE ON rem1
 	FOR EACH STATEMENT EXECUTE PROCEDURE trigger_func();
-EXPLAIN (verbose, costs off)
-UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
-                         QUERY PLAN                         
-------------------------------------------------------------
- Update on public.rem1__postgres_srv__0
-   ->  Foreign Update on public.rem1__postgres_srv__0
-         Remote SQL: UPDATE public.loc1_1 SET f2 = ''::text
-(3 rows)
-
-EXPLAIN (verbose, costs off)
-DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
-                      QUERY PLAN                      
-------------------------------------------------------
- Delete on public.rem1__postgres_srv__0
-   ->  Foreign Delete on public.rem1__postgres_srv__0
-         Remote SQL: DELETE FROM public.loc1_1
-(3 rows)
-
+-- EXPLAIN (verbose, costs off)
+-- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+-- EXPLAIN (verbose, costs off)
+-- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
 DROP TRIGGER trig_stmt_before ON rem1;
 CREATE TRIGGER trig_stmt_after
 	AFTER DELETE OR INSERT OR UPDATE ON rem1
 	FOR EACH STATEMENT EXECUTE PROCEDURE trigger_func();
-EXPLAIN (verbose, costs off)
-UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
-                         QUERY PLAN                         
-------------------------------------------------------------
- Update on public.rem1__postgres_srv__0
-   ->  Foreign Update on public.rem1__postgres_srv__0
-         Remote SQL: UPDATE public.loc1_1 SET f2 = ''::text
-(3 rows)
-
-EXPLAIN (verbose, costs off)
-DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
-                      QUERY PLAN                      
-------------------------------------------------------
- Delete on public.rem1__postgres_srv__0
-   ->  Foreign Delete on public.rem1__postgres_srv__0
-         Remote SQL: DELETE FROM public.loc1_1
-(3 rows)
-
+-- EXPLAIN (verbose, costs off)
+-- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+-- EXPLAIN (verbose, costs off)
+-- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
 DROP TRIGGER trig_stmt_after ON rem1;
 -- Test with row-level ON INSERT triggers
 CREATE TRIGGER trig_row_before_insert
 BEFORE INSERT ON rem1
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
-EXPLAIN (verbose, costs off)
-UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
-                         QUERY PLAN                         
-------------------------------------------------------------
- Update on public.rem1__postgres_srv__0
-   ->  Foreign Update on public.rem1__postgres_srv__0
-         Remote SQL: UPDATE public.loc1_1 SET f2 = ''::text
-(3 rows)
-
-EXPLAIN (verbose, costs off)
-DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
-                      QUERY PLAN                      
-------------------------------------------------------
- Delete on public.rem1__postgres_srv__0
-   ->  Foreign Delete on public.rem1__postgres_srv__0
-         Remote SQL: DELETE FROM public.loc1_1
-(3 rows)
-
+-- EXPLAIN (verbose, costs off)
+-- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+-- EXPLAIN (verbose, costs off)
+-- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
 DROP TRIGGER trig_row_before_insert ON rem1;
 CREATE TRIGGER trig_row_after_insert
 AFTER INSERT ON rem1
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
-EXPLAIN (verbose, costs off)
-UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
-                         QUERY PLAN                         
-------------------------------------------------------------
- Update on public.rem1__postgres_srv__0
-   ->  Foreign Update on public.rem1__postgres_srv__0
-         Remote SQL: UPDATE public.loc1_1 SET f2 = ''::text
-(3 rows)
-
-EXPLAIN (verbose, costs off)
-DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
-                      QUERY PLAN                      
-------------------------------------------------------
- Delete on public.rem1__postgres_srv__0
-   ->  Foreign Delete on public.rem1__postgres_srv__0
-         Remote SQL: DELETE FROM public.loc1_1
-(3 rows)
-
+-- EXPLAIN (verbose, costs off)
+-- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+-- EXPLAIN (verbose, costs off)
+-- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
 DROP TRIGGER trig_row_after_insert ON rem1;
 -- Test with row-level ON UPDATE triggers
 CREATE TRIGGER trig_row_before_update
@@ -3398,59 +3608,31 @@ BEFORE UPDATE ON rem1
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
 -- EXPLAIN (verbose, costs off)
 -- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can't be pushed down
-EXPLAIN (verbose, costs off)
-DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
-                      QUERY PLAN                      
-------------------------------------------------------
- Delete on public.rem1__postgres_srv__0
-   ->  Foreign Delete on public.rem1__postgres_srv__0
-         Remote SQL: DELETE FROM public.loc1_1
-(3 rows)
-
+-- EXPLAIN (verbose, costs off)
+-- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
 DROP TRIGGER trig_row_before_update ON rem1;
 CREATE TRIGGER trig_row_after_update
 AFTER UPDATE ON rem1
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
 -- EXPLAIN (verbose, costs off)
 -- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can't be pushed down
-EXPLAIN (verbose, costs off)
-DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
-                      QUERY PLAN                      
-------------------------------------------------------
- Delete on public.rem1__postgres_srv__0
-   ->  Foreign Delete on public.rem1__postgres_srv__0
-         Remote SQL: DELETE FROM public.loc1_1
-(3 rows)
-
+-- EXPLAIN (verbose, costs off)
+-- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
 DROP TRIGGER trig_row_after_update ON rem1;
 -- Test with row-level ON DELETE triggers
 CREATE TRIGGER trig_row_before_delete
 BEFORE DELETE ON rem1
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
-EXPLAIN (verbose, costs off)
-UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
-                         QUERY PLAN                         
-------------------------------------------------------------
- Update on public.rem1__postgres_srv__0
-   ->  Foreign Update on public.rem1__postgres_srv__0
-         Remote SQL: UPDATE public.loc1_1 SET f2 = ''::text
-(3 rows)
-
+-- EXPLAIN (verbose, costs off)
+-- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
 -- EXPLAIN (verbose, costs off)
 -- DELETE FROM rem1__postgres_srv__0;                 -- can't be pushed down
 DROP TRIGGER trig_row_before_delete ON rem1;
 CREATE TRIGGER trig_row_after_delete
 AFTER DELETE ON rem1
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
-EXPLAIN (verbose, costs off)
-UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
-                         QUERY PLAN                         
-------------------------------------------------------------
- Update on public.rem1__postgres_srv__0
-   ->  Foreign Update on public.rem1__postgres_srv__0
-         Remote SQL: UPDATE public.loc1_1 SET f2 = ''::text
-(3 rows)
-
+-- EXPLAIN (verbose, costs off)
+-- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
 -- EXPLAIN (verbose, costs off)
 -- DELETE FROM rem1__postgres_srv__0;                 -- can't be pushed down
 DROP TRIGGER trig_row_after_delete ON rem1;
@@ -3513,11 +3695,7 @@ SELECT tableoid::regclass, * FROM ONLY a;
 (3 rows)
 
 DELETE FROM a;
-SELECT tableoid::regclass, * FROM a;
- tableoid | aa 
-----------+----
-(0 rows)
-
+-- SELECT tableoid::regclass, * FROM a;
 -- SELECT tableoid::regclass, * FROM b;
 SELECT tableoid::regclass, * FROM ONLY a;
  tableoid | aa 

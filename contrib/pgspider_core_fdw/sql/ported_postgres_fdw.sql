@@ -1150,40 +1150,55 @@ explain (verbose, costs off) select * from ft3 where f2 = 'foo' COLLATE "C";
 -- EXPLAIN (verbose, costs off)
 -- INSERT INTO ft2 (c1,c2,c3) SELECT c1+1000,c2+100, c3 || c3 FROM ft2 LIMIT 20;
 -- INSERT INTO ft2 (c1,c2,c3) SELECT c1+1000,c2+100, c3 || c3 FROM ft2 LIMIT 20;
+INSERT INTO ft2__postgres_srv__0 (c1,c2,c3) SELECT c1+1000,c2+100, c3 || c3 FROM ft2 LIMIT 20;
 -- INSERT INTO ft2 (c1,c2,c3)
 --   VALUES (1101,201,'aaa'), (1102,202,'bbb'), (1103,203,'ccc') RETURNING *;
+INSERT INTO ft2__postgres_srv__0 (c1,c2,c3)
+  VALUES (1101,201,'aaa'), (1102,202,'bbb'), (1103,203,'ccc') RETURNING *;
 -- INSERT INTO ft2 (c1,c2,c3) VALUES (1104,204,'ddd'), (1105,205,'eee');
+INSERT INTO ft2__postgres_srv__0 (c1,c2,c3) VALUES (1104,204,'ddd'), (1105,205,'eee');
 -- EXPLAIN (verbose, costs off)
 -- UPDATE ft2 SET c2 = c2 + 300, c3 = c3 || '_update3' WHERE c1 % 10 = 3;              -- can be pushed down
 -- UPDATE ft2 SET c2 = c2 + 300, c3 = c3 || '_update3' WHERE c1 % 10 = 3;
+UPDATE ft2__postgres_srv__0 SET c2 = c2 + 300, c3 = c3 || '_update3' WHERE c1 % 10 = 3;
 -- EXPLAIN (verbose, costs off)
 -- UPDATE ft2 SET c2 = c2 + 400, c3 = c3 || '_update7' WHERE c1 % 10 = 7 RETURNING *;  -- can be pushed down
 -- UPDATE ft2 SET c2 = c2 + 400, c3 = c3 || '_update7' WHERE c1 % 10 = 7 RETURNING *;
+UPDATE ft2__postgres_srv__0 SET c2 = c2 + 400, c3 = c3 || '_update7' WHERE c1 % 10 = 7 RETURNING *;
 -- EXPLAIN (verbose, costs off)
 -- UPDATE ft2 SET c2 = ft2.c2 + 500, c3 = ft2.c3 || '_update9', c7 = DEFAULT
 --   FROM ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 9;                               -- can be pushed down
 -- UPDATE ft2 SET c2 = ft2.c2 + 500, c3 = ft2.c3 || '_update9', c7 = DEFAULT
 --   FROM ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 9;
+UPDATE ft2__postgres_srv__0 SET c2 = ft2__postgres_srv__0.c2 + 500, c3 = ft2__postgres_srv__0.c3 || '_update9', c7 = DEFAULT
+  FROM ft1 WHERE ft1.c1 = ft2__postgres_srv__0.c2 AND ft1.c1 % 10 = 9;
 -- EXPLAIN (verbose, costs off)
 --   DELETE FROM ft2 WHERE c1 % 10 = 5 RETURNING c1, c4;                               -- can be pushed down
 -- DELETE FROM ft2 WHERE c1 % 10 = 5 RETURNING c1, c4;
+DELETE FROM ft2__postgres_srv__0 WHERE c1 % 10 = 5 RETURNING c1, c4;
 -- EXPLAIN (verbose, costs off)
 -- DELETE FROM ft2 USING ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 2;                -- can be pushed down
 -- DELETE FROM ft2 USING ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 2;
+DELETE FROM ft2__postgres_srv__0 USING ft1 WHERE ft1.c1 = ft2__postgres_srv__0.c2 AND ft1.c1 % 10 = 2;
 -- SELECT c1,c2,c3,c4 FROM ft2 ORDER BY c1;
 -- EXPLAIN (verbose, costs off)
 -- INSERT INTO ft2 (c1,c2,c3) VALUES (1200,999,'foo') RETURNING tableoid::regclass;
 -- INSERT INTO ft2 (c1,c2,c3) VALUES (1200,999,'foo') RETURNING tableoid::regclass;
+INSERT INTO ft2__postgres_srv__0 (c1,c2,c3) VALUES (1200,999,'foo') RETURNING tableoid::regclass;
 -- EXPLAIN (verbose, costs off)
 -- UPDATE ft2 SET c3 = 'bar' WHERE c1 = 1200 RETURNING tableoid::regclass;             -- can be pushed down
 -- UPDATE ft2 SET c3 = 'bar' WHERE c1 = 1200 RETURNING tableoid::regclass;
+UPDATE ft2__postgres_srv__0 SET c3 = 'bar' WHERE c1 = 1200 RETURNING tableoid::regclass;
 -- EXPLAIN (verbose, costs off)
 -- DELETE FROM ft2 WHERE c1 = 1200 RETURNING tableoid::regclass;                       -- can be pushed down
 -- DELETE FROM ft2 WHERE c1 = 1200 RETURNING tableoid::regclass;
+DELETE FROM ft2__postgres_srv__0 WHERE c1 = 1200 RETURNING tableoid::regclass;
 
 -- Test UPDATE/DELETE with RETURNING on a three-table join
 -- INSERT INTO ft2 (c1,c2,c3)
 --   SELECT id, id - 1200, to_char(id, 'FM00000') FROM generate_series(1201, 1300) id;
+INSERT INTO ft2__postgres_srv__0 (c1,c2,c3)
+  SELECT id, id - 1200, to_char(id, 'FM00000') FROM generate_series(1201, 1300) id;
 -- EXPLAIN (verbose, costs off)
 -- UPDATE ft2 SET c3 = 'foo'
 --   FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
@@ -1193,6 +1208,10 @@ explain (verbose, costs off) select * from ft3 where f2 = 'foo' COLLATE "C";
 --   FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
 --   WHERE ft2.c1 > 1200 AND ft2.c2 = ft4.c1
 --   RETURNING ft2, ft2.*, ft4, ft4.*;
+UPDATE ft2__postgres_srv__0 SET c3 = 'foo'
+  FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
+  WHERE ft2__postgres_srv__0.c1 > 1200 AND ft2__postgres_srv__0.c2 = ft4.c1
+  RETURNING ft2__postgres_srv__0, ft2__postgres_srv__0.*, ft4, ft4.*;
 -- EXPLAIN (verbose, costs off)
 -- DELETE FROM ft2
 --   USING ft4 LEFT JOIN ft5 ON (ft4.c1 = ft5.c1)
@@ -1202,16 +1221,24 @@ explain (verbose, costs off) select * from ft3 where f2 = 'foo' COLLATE "C";
 --   USING ft4 LEFT JOIN ft5 ON (ft4.c1 = ft5.c1)
 --   WHERE ft2.c1 > 1200 AND ft2.c1 % 10 = 0 AND ft2.c2 = ft4.c1
 --   RETURNING 100;
+DELETE FROM ft2__postgres_srv__0
+  USING ft4 LEFT JOIN ft5 ON (ft4.c1 = ft5.c1)
+  WHERE ft2__postgres_srv__0.c1 > 1200 AND ft2__postgres_srv__0.c1 % 10 = 0 AND ft2__postgres_srv__0.c2 = ft4.c1
+  RETURNING 100;
 -- DELETE FROM ft2 WHERE ft2.c1 > 1200;
+DELETE FROM ft2__postgres_srv__0 WHERE ft2__postgres_srv__0.c1 > 1200;
 
 -- Test UPDATE/DELETE with WHERE or JOIN/ON conditions containing
 -- user-defined operators/functions
 ALTER SERVER postgres_srv OPTIONS (DROP extensions);
 -- INSERT INTO ft2 (c1,c2,c3)
 --   SELECT id, id % 10, to_char(id, 'FM00000') FROM generate_series(2001, 2010) id;
+INSERT INTO ft2__postgres_srv__0 (c1,c2,c3)
+  SELECT id, id % 10, to_char(id, 'FM00000') FROM generate_series(2001, 2010) id;
 -- EXPLAIN (verbose, costs off)
 -- UPDATE ft2 SET c3 = 'bar' WHERE postgres_fdw_abs(c1) > 2000 RETURNING *;            -- can't be pushed down
 -- UPDATE ft2 SET c3 = 'bar' WHERE postgres_fdw_abs(c1) > 2000 RETURNING *;
+UPDATE ft2__postgres_srv__0 SET c3 = 'bar' WHERE postgres_fdw_abs(c1) > 2000 RETURNING *;
 -- EXPLAIN (verbose, costs off)
 -- UPDATE ft2 SET c3 = 'baz'
 --   FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
@@ -1221,6 +1248,10 @@ ALTER SERVER postgres_srv OPTIONS (DROP extensions);
 --   FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
 --   WHERE ft2.c1 > 2000 AND ft2.c2 === ft4.c1
 --   RETURNING ft2.*, ft4.*, ft5.*;
+UPDATE ft2__postgres_srv__0 SET c3 = 'baz'
+  FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
+  WHERE ft2__postgres_srv__0.c1 > 2000 AND ft2__postgres_srv__0.c2 === ft4.c1
+  RETURNING ft2__postgres_srv__0.*, ft4.*, ft5.*;
 -- EXPLAIN (verbose, costs off)
 -- DELETE FROM ft2
 --   USING ft4 INNER JOIN ft5 ON (ft4.c1 === ft5.c1)
@@ -1230,7 +1261,12 @@ ALTER SERVER postgres_srv OPTIONS (DROP extensions);
 --   USING ft4 INNER JOIN ft5 ON (ft4.c1 === ft5.c1)
 --   WHERE ft2.c1 > 2000 AND ft2.c2 = ft4.c1
 --   RETURNING ft2.c1, ft2.c2, ft2.c3;
+DELETE FROM ft2__postgres_srv__0
+  USING ft4 INNER JOIN ft5 ON (ft4.c1 === ft5.c1)
+  WHERE ft2__postgres_srv__0.c1 > 2000 AND ft2__postgres_srv__0.c2 = ft4.c1
+  RETURNING ft2__postgres_srv__0.c1, ft2__postgres_srv__0.c2, ft2__postgres_srv__0.c3;
 -- DELETE FROM ft2 WHERE ft2.c1 > 2000;
+DELETE FROM ft2__postgres_srv__0 WHERE ft2__postgres_srv__0.c1 > 2000;
 ALTER SERVER postgres_srv OPTIONS (ADD extensions 'postgres_fdw');
 
 -- Test that trigger on remote table works as expected
@@ -1257,7 +1293,8 @@ ALTER TABLE "S 1"."T 1" ADD CONSTRAINT c2positive CHECK (c2 >= 0);
 -- INSERT INTO ft1(c1, c2) VALUES(1111, -2);  -- c2positive
 -- UPDATE ft1 SET c2 = -c2 WHERE c1 = 1;  -- c2positive
 
--- -- Test savepoint/rollback behavior
+
+-- Test savepoint/rollback behavior
 -- select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
 -- select c2, count(*) from "S 1"."T 1" where c2 < 500 group by 1 order by 1;
 -- begin;
@@ -1281,7 +1318,7 @@ ALTER TABLE "S 1"."T 1" ADD CONSTRAINT c2positive CHECK (c2 >= 0);
 -- select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
 -- release savepoint s3;
 -- select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
--- -- none of the above is committed yet remotely
+-- none of the above is committed yet remotely
 -- select c2, count(*) from "S 1"."T 1" where c2 < 500 group by 1 order by 1;
 -- commit;
 -- select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
@@ -1508,7 +1545,7 @@ BEFORE INSERT OR UPDATE ON rem1
 FOR EACH ROW EXECUTE PROCEDURE trig_row_before_insupdate();
 
 -- The new values should have 'triggered' appended
-INSERT INTO rem1__postgres_srv__0 values(1, 'insert');
+-- INSERT INTO rem1__postgres_srv__0 values(1, 'insert');
 -- SELECT * from rem1;
 -- INSERT INTO rem1__postgres_srv__0 values(2, 'insert') RETURNING f2;
 -- SELECT * from rem1;
@@ -1517,7 +1554,7 @@ INSERT INTO rem1__postgres_srv__0 values(1, 'insert');
 -- UPDATE rem1__postgres_srv__0 set f2 = 'skidoo' RETURNING f2;
 -- SELECT * from rem1;
 
-DELETE FROM rem1__postgres_srv__0;
+-- DELETE FROM rem1__postgres_srv__0;
 
 -- Add a second trigger, to check that the changes are propagated correctly
 -- from trigger to trigger
@@ -1525,11 +1562,11 @@ CREATE TRIGGER trig_row_before_insupd2
 BEFORE INSERT OR UPDATE ON rem1
 FOR EACH ROW EXECUTE PROCEDURE trig_row_before_insupdate();
 
-INSERT INTO rem1__postgres_srv__0 values(1, 'insert');
+-- INSERT INTO rem1__postgres_srv__0 values(1, 'insert');
 -- SELECT * from rem1;
 -- INSERT INTO rem1__postgres_srv__0 values(2, 'insert') RETURNING f2;
 -- SELECT * from rem1;
-UPDATE rem1__postgres_srv__0 set f2 = '';
+-- UPDATE rem1__postgres_srv__0 set f2 = '';
 -- SELECT * from rem1;
 -- UPDATE rem1__postgres_srv__0 set f2 = 'skidoo' RETURNING f2;
 -- SELECT * from rem1;
@@ -1537,9 +1574,9 @@ UPDATE rem1__postgres_srv__0 set f2 = '';
 DROP TRIGGER trig_row_before_insupd ON rem1;
 DROP TRIGGER trig_row_before_insupd2 ON rem1;
 
-DELETE from rem1__postgres_srv__0;
+-- DELETE from rem1__postgres_srv__0;
 
-INSERT INTO rem1__postgres_srv__0 VALUES (1, 'test');
+-- INSERT INTO rem1__postgres_srv__0 VALUES (1, 'test');
 
 -- Test with a trigger returning NULL
 CREATE FUNCTION trig_null() RETURNS TRIGGER AS $$
@@ -1599,38 +1636,38 @@ DROP TRIGGER trig_local_before ON rem1;
 CREATE TRIGGER trig_stmt_before
 	BEFORE DELETE OR INSERT OR UPDATE ON rem1
 	FOR EACH STATEMENT EXECUTE PROCEDURE trigger_func();
-EXPLAIN (verbose, costs off)
-UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
-EXPLAIN (verbose, costs off)
-DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
+-- EXPLAIN (verbose, costs off)
+-- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+-- EXPLAIN (verbose, costs off)
+-- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
 DROP TRIGGER trig_stmt_before ON rem1;
 
 CREATE TRIGGER trig_stmt_after
 	AFTER DELETE OR INSERT OR UPDATE ON rem1
 	FOR EACH STATEMENT EXECUTE PROCEDURE trigger_func();
-EXPLAIN (verbose, costs off)
-UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
-EXPLAIN (verbose, costs off)
-DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
+-- EXPLAIN (verbose, costs off)
+-- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+-- EXPLAIN (verbose, costs off)
+-- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
 DROP TRIGGER trig_stmt_after ON rem1;
 
 -- Test with row-level ON INSERT triggers
 CREATE TRIGGER trig_row_before_insert
 BEFORE INSERT ON rem1
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
-EXPLAIN (verbose, costs off)
-UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
-EXPLAIN (verbose, costs off)
-DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
+-- EXPLAIN (verbose, costs off)
+-- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+-- EXPLAIN (verbose, costs off)
+-- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
 DROP TRIGGER trig_row_before_insert ON rem1;
 
 CREATE TRIGGER trig_row_after_insert
 AFTER INSERT ON rem1
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
-EXPLAIN (verbose, costs off)
-UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
-EXPLAIN (verbose, costs off)
-DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
+-- EXPLAIN (verbose, costs off)
+-- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+-- EXPLAIN (verbose, costs off)
+-- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
 DROP TRIGGER trig_row_after_insert ON rem1;
 
 -- Test with row-level ON UPDATE triggers
@@ -1639,8 +1676,8 @@ BEFORE UPDATE ON rem1
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
 -- EXPLAIN (verbose, costs off)
 -- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can't be pushed down
-EXPLAIN (verbose, costs off)
-DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
+-- EXPLAIN (verbose, costs off)
+-- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
 DROP TRIGGER trig_row_before_update ON rem1;
 
 CREATE TRIGGER trig_row_after_update
@@ -1648,16 +1685,16 @@ AFTER UPDATE ON rem1
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
 -- EXPLAIN (verbose, costs off)
 -- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can't be pushed down
-EXPLAIN (verbose, costs off)
-DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
+-- EXPLAIN (verbose, costs off)
+-- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
 DROP TRIGGER trig_row_after_update ON rem1;
 
 -- Test with row-level ON DELETE triggers
 CREATE TRIGGER trig_row_before_delete
 BEFORE DELETE ON rem1
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
-EXPLAIN (verbose, costs off)
-UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+-- EXPLAIN (verbose, costs off)
+-- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
 -- EXPLAIN (verbose, costs off)
 -- DELETE FROM rem1__postgres_srv__0;                 -- can't be pushed down
 DROP TRIGGER trig_row_before_delete ON rem1;
@@ -1665,8 +1702,8 @@ DROP TRIGGER trig_row_before_delete ON rem1;
 CREATE TRIGGER trig_row_after_delete
 AFTER DELETE ON rem1
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
-EXPLAIN (verbose, costs off)
-UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+-- EXPLAIN (verbose, costs off)
+-- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
 -- EXPLAIN (verbose, costs off)
 -- DELETE FROM rem1__postgres_srv__0;                 -- can't be pushed down
 DROP TRIGGER trig_row_after_delete ON rem1;
@@ -1689,6 +1726,7 @@ INSERT INTO a(aa) VALUES('aaaaa');
 -- INSERT INTO b(aa) VALUES('bbb');
 -- INSERT INTO b(aa) VALUES('bbbb');
 -- INSERT INTO b(aa) VALUES('bbbbb');
+
 
 -- SELECT tableoid::regclass, * FROM a;
 -- SELECT tableoid::regclass, * FROM b;
@@ -1718,7 +1756,7 @@ SELECT tableoid::regclass, * FROM ONLY a;
 
 DELETE FROM a;
 
-SELECT tableoid::regclass, * FROM a;
+-- SELECT tableoid::regclass, * FROM a;
 -- SELECT tableoid::regclass, * FROM b;
 
 SELECT tableoid::regclass, * FROM ONLY a;
