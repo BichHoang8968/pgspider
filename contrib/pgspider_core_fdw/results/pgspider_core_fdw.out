@@ -1,0 +1,1713 @@
+DELETE FROM pg_spd_node_info;
+--SELECT pg_sleep(15);
+CREATE EXTENSION pgspider_core_fdw;
+CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1',port '50849');
+CREATE USER mapping for public server pgspider_svr OPTIONS(user 'postgres',password 'postgres');
+CREATE FOREIGN TABLE test1 (i int,__spd_url text) SERVER pgspider_svr;
+CREATE EXTENSION postgres_fdw;
+CREATE EXTENSION file_fdw;
+CREATE EXTENSION sqlite_fdw;
+CREATE EXTENSION tinybrace_fdw;
+CREATE EXTENSION mysql_fdw;
+/*
+CREATE SERVER file_svr FOREIGN DATA WRAPPER file_fdw;
+CREATE SERVER filesvr2 FOREIGN DATA WRAPPER file_fdw;
+CREATE FOREIGN TABLE test1__file_svr__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
+SELECT * FROM test1;
+CREATE FOREIGN TABLE test1__filesvr2__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
+SELECT * FROM test1 order by i,__spd_url;
+SELECT * FROM test1 IN ('/file_svr/') ORDER BY i,__spd_url;
+SELECT * FROM test1 IN ('/file_svr/') where i = 1;
+*/
+CREATE SERVER tiny_svr FOREIGN DATA WRAPPER tinybrace_fdw OPTIONS (host '127.0.0.1',port '5100', dbname 'test.db');
+CREATE USER mapping for public server tiny_svr OPTIONS(username 'user',password 'testuser');
+CREATE FOREIGN TABLE test1__tiny_svr__0 (i int) SERVER tiny_svr OPTIONS(table_name 'test1');
+SELECT * FROM test1__tiny_svr__0 ORDER BY i;
+ i 
+---
+ 1
+(1 row)
+
+SELECT * FROM test1 ORDER BY i,__spd_url;
+ i | __spd_url  
+---+------------
+ 1 | /tiny_svr/
+(1 row)
+
+SELECT * FROM test1 IN ('/tiny_svr/');
+ i | __spd_url  
+---+------------
+ 1 | /tiny_svr/
+(1 row)
+
+SELECT * FROM test1 IN ('/tiny_svr/') where i = 1;
+ i | __spd_url  
+---+------------
+ 1 | /tiny_svr/
+(1 row)
+
+CREATE SERVER post_svr FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1',port '15432');
+CREATE USER mapping for public server post_svr OPTIONS(user 'postgres',password 'postgres');
+CREATE FOREIGN TABLE test1__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test1');
+SELECT * FROM test1__post_svr__0 ORDER BY i;
+  i   
+------
+ 1111
+(1 row)
+
+SELECT * FROM test1 ORDER BY i,__spd_url;
+  i   | __spd_url  
+------+------------
+    1 | /tiny_svr/
+ 1111 | /post_svr/
+(2 rows)
+
+SELECT * FROM test1 IN ('/post_svr/') ORDER BY i,__spd_url;
+  i   | __spd_url  
+------+------------
+ 1111 | /post_svr/
+(1 row)
+
+SELECT * FROM test1 IN ('/post_svr/') where i = 1 ORDER BY i,__spd_url;
+ i | __spd_url 
+---+-----------
+(0 rows)
+
+CREATE SERVER sqlite_svr FOREIGN DATA WRAPPER sqlite_fdw OPTIONS (database '/tmp/pgtest.db');
+CREATE FOREIGN TABLE test1__sqlite_svr__0 (i int) SERVER sqlite_svr OPTIONS(table 'test1');
+SELECT * FROM test1 ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /sqlite_svr/
+     1 | /tiny_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
+(4 rows)
+
+SELECT * FROM test1 IN ('/sqlite_svr/') ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /sqlite_svr/
+ 22222 | /sqlite_svr/
+(2 rows)
+
+SELECT * FROM test1 IN ('/sqlite_svr/') where i = 4 ORDER BY i,__spd_url;
+ i | __spd_url 
+---+-----------
+(0 rows)
+
+CREATE SERVER mysql_svr FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
+CREATE USER mapping for public server mysql_svr OPTIONS(username 'root',password 'Mysql_1234');
+CREATE FOREIGN TABLE test1__mysql_svr__0 (i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test1');
+SELECT * FROM test1 ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /mysql_svr/
+     1 | /sqlite_svr/
+     1 | /tiny_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
+(9 rows)
+
+SELECT * FROM test1 IN ('/mysql_svr/') ORDER BY i,__spd_url;
+  i  |  __spd_url  
+-----+-------------
+   1 | /mysql_svr/
+ 777 | /mysql_svr/
+ 777 | /mysql_svr/
+ 777 | /mysql_svr/
+ 777 | /mysql_svr/
+(5 rows)
+
+SELECT * FROM test1 where i = 1 ORDER BY i,__spd_url;
+ i |  __spd_url   
+---+--------------
+ 1 | /mysql_svr/
+ 1 | /sqlite_svr/
+ 1 | /tiny_svr/
+(3 rows)
+
+SELECT * FROM test1 IN ('/mysql_svr/') where i = 5 ORDER BY i,__spd_url;
+ i | __spd_url 
+---+-----------
+(0 rows)
+
+SELECT * FROM test1 ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /mysql_svr/
+     1 | /sqlite_svr/
+     1 | /tiny_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
+(9 rows)
+
+SELECT * FROM test1 IN ('/test2/') ORDER BY i,__spd_url;
+ i | __spd_url 
+---+-----------
+(0 rows)
+
+SELECT * FROM test1 order by i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /mysql_svr/
+     1 | /sqlite_svr/
+     1 | /tiny_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
+(9 rows)
+
+SELECT * FROM test1 IN ('/file_svr/') ORDER BY i,__spd_url;
+ i | __spd_url 
+---+-----------
+(0 rows)
+
+SELECT * FROM test1 IN ('/file_svr/') where i = 1 ORDER BY i,__spd_url;
+ i | __spd_url 
+---+-----------
+(0 rows)
+
+SELECT * FROM test1__tiny_svr__0 order by i;
+ i 
+---
+ 1
+(1 row)
+
+SELECT * FROM test1 ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /mysql_svr/
+     1 | /sqlite_svr/
+     1 | /tiny_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
+(9 rows)
+
+SELECT * FROM test1 IN ('/tiny_svr/');
+ i | __spd_url  
+---+------------
+ 1 | /tiny_svr/
+(1 row)
+
+SELECT * FROM test1 IN ('/tiny_svr/') where i = 1;
+ i | __spd_url  
+---+------------
+ 1 | /tiny_svr/
+(1 row)
+
+SELECT * FROM test1__post_svr__0 order by i;
+  i   
+------
+ 1111
+(1 row)
+
+SELECT * FROM test1 ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /mysql_svr/
+     1 | /sqlite_svr/
+     1 | /tiny_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
+(9 rows)
+
+SELECT * FROM test1 IN ('/post_svr/') ORDER BY i,__spd_url;
+  i   | __spd_url  
+------+------------
+ 1111 | /post_svr/
+(1 row)
+
+SELECT * FROM test1 IN ('/post_svr/') where i = 1 ORDER BY i,__spd_url;
+ i | __spd_url 
+---+-----------
+(0 rows)
+
+SELECT * FROM test1 ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /mysql_svr/
+     1 | /sqlite_svr/
+     1 | /tiny_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
+(9 rows)
+
+SELECT * FROM test1 IN ('/sqlite_svr/') ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /sqlite_svr/
+ 22222 | /sqlite_svr/
+(2 rows)
+
+SELECT * FROM test1 IN ('/sqlite_svr/') where i = 4 ORDER BY i,__spd_url;
+ i | __spd_url 
+---+-----------
+(0 rows)
+
+SELECT * FROM test1 ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /mysql_svr/
+     1 | /sqlite_svr/
+     1 | /tiny_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
+(9 rows)
+
+SELECT * FROM test1 IN ('/mysql_svr/') ORDER BY i,__spd_url;
+  i  |  __spd_url  
+-----+-------------
+   1 | /mysql_svr/
+ 777 | /mysql_svr/
+ 777 | /mysql_svr/
+ 777 | /mysql_svr/
+ 777 | /mysql_svr/
+(5 rows)
+
+SELECT * FROM test1 where i = 1 ORDER BY i,__spd_url;
+ i |  __spd_url   
+---+--------------
+ 1 | /mysql_svr/
+ 1 | /sqlite_svr/
+ 1 | /tiny_svr/
+(3 rows)
+
+SELECT * FROM test1 IN ('/mysql_svr/') where i = 5 ORDER BY i,__spd_url;
+ i | __spd_url 
+---+-----------
+(0 rows)
+
+SELECT * FROM test1 IN ('/mysql_svr/', '/sqlite_svr/') ORDER BY  i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /mysql_svr/
+     1 | /sqlite_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+ 22222 | /sqlite_svr/
+(7 rows)
+
+SELECT * FROM test1 UNION ALL SELECT * FROM test1 ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /mysql_svr/
+     1 | /mysql_svr/
+     1 | /sqlite_svr/
+     1 | /sqlite_svr/
+     1 | /tiny_svr/
+     1 | /tiny_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+  1111 | /post_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
+ 22222 | /sqlite_svr/
+(18 rows)
+
+SELECT * FROM test1 IN ('/mysql_svr/') UNION ALL SELECT * FROM test1 IN ('/mysql_svr/') ORDER BY i,__spd_url;
+  i  |  __spd_url  
+-----+-------------
+   1 | /mysql_svr/
+   1 | /mysql_svr/
+ 777 | /mysql_svr/
+ 777 | /mysql_svr/
+ 777 | /mysql_svr/
+ 777 | /mysql_svr/
+ 777 | /mysql_svr/
+ 777 | /mysql_svr/
+ 777 | /mysql_svr/
+ 777 | /mysql_svr/
+(10 rows)
+
+SELECT * FROM test1 IN ('/mysql_svr/') UNION ALL SELECT * FROM test1 IN ('/sqlite_svr/') ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /mysql_svr/
+     1 | /sqlite_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+ 22222 | /sqlite_svr/
+(7 rows)
+
+SELECT * FROM test1 IN ('/mysql_svr/', '/sqlite_svr/') UNION ALL SELECT * FROM test1 IN ('/mysql_svr/', '/sqlite_svr/') ORDER BY i,__spd_url;
+   i   |  __spd_url   
+-------+--------------
+     1 | /mysql_svr/
+     1 | /mysql_svr/
+     1 | /sqlite_svr/
+     1 | /sqlite_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+   777 | /mysql_svr/
+ 22222 | /sqlite_svr/
+ 22222 | /sqlite_svr/
+(14 rows)
+
+CREATE FOREIGN TABLE test1_1 (i int,__spd_url text) SERVER pgspider_svr;
+CREATE FOREIGN TABLE test1_1__tiny_svr__0 (i int) SERVER tiny_svr OPTIONS(table_name 'test1');
+CREATE FOREIGN TABLE test1_1__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test1');
+CREATE FOREIGN TABLE test1_1__sqlite_svr__0 (i int) SERVER sqlite_svr OPTIONS(table 'test1');
+CREATE FOREIGN TABLE test1_1__mysql_svr__0 (i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test1');
+SELECT * FROM test1 IN ('/mysql_svr/'), test1_1 IN ('/sqlite_svr/') ORDER BY test1.i,test1.__spd_url,test1_1.i,test1_1.__spd_url;
+  i  |  __spd_url  |   i   |  __spd_url   
+-----+-------------+-------+--------------
+   1 | /mysql_svr/ |     1 | /sqlite_svr/
+   1 | /mysql_svr/ | 22222 | /sqlite_svr/
+ 777 | /mysql_svr/ |     1 | /sqlite_svr/
+ 777 | /mysql_svr/ |     1 | /sqlite_svr/
+ 777 | /mysql_svr/ |     1 | /sqlite_svr/
+ 777 | /mysql_svr/ |     1 | /sqlite_svr/
+ 777 | /mysql_svr/ | 22222 | /sqlite_svr/
+ 777 | /mysql_svr/ | 22222 | /sqlite_svr/
+ 777 | /mysql_svr/ | 22222 | /sqlite_svr/
+ 777 | /mysql_svr/ | 22222 | /sqlite_svr/
+(10 rows)
+
+SELECT * FROM test1 IN ('/sqlite_svr/','/mysql_svr/'), test1_1 IN ('/mysql_svr/','/sqlite_svr/') ORDER BY test1.i,test1.__spd_url,test1_1.i,test1_1.__spd_url;
+   i   |  __spd_url   |   i   |  __spd_url   
+-------+--------------+-------+--------------
+     1 | /mysql_svr/  |     1 | /mysql_svr/
+     1 | /mysql_svr/  |     1 | /sqlite_svr/
+     1 | /mysql_svr/  |   777 | /mysql_svr/
+     1 | /mysql_svr/  |   777 | /mysql_svr/
+     1 | /mysql_svr/  |   777 | /mysql_svr/
+     1 | /mysql_svr/  |   777 | /mysql_svr/
+     1 | /mysql_svr/  | 22222 | /sqlite_svr/
+     1 | /sqlite_svr/ |     1 | /mysql_svr/
+     1 | /sqlite_svr/ |     1 | /sqlite_svr/
+     1 | /sqlite_svr/ |   777 | /mysql_svr/
+     1 | /sqlite_svr/ |   777 | /mysql_svr/
+     1 | /sqlite_svr/ |   777 | /mysql_svr/
+     1 | /sqlite_svr/ |   777 | /mysql_svr/
+     1 | /sqlite_svr/ | 22222 | /sqlite_svr/
+   777 | /mysql_svr/  |     1 | /mysql_svr/
+   777 | /mysql_svr/  |     1 | /mysql_svr/
+   777 | /mysql_svr/  |     1 | /mysql_svr/
+   777 | /mysql_svr/  |     1 | /mysql_svr/
+   777 | /mysql_svr/  |     1 | /sqlite_svr/
+   777 | /mysql_svr/  |     1 | /sqlite_svr/
+   777 | /mysql_svr/  |     1 | /sqlite_svr/
+   777 | /mysql_svr/  |     1 | /sqlite_svr/
+   777 | /mysql_svr/  |   777 | /mysql_svr/
+   777 | /mysql_svr/  |   777 | /mysql_svr/
+   777 | /mysql_svr/  |   777 | /mysql_svr/
+   777 | /mysql_svr/  |   777 | /mysql_svr/
+   777 | /mysql_svr/  |   777 | /mysql_svr/
+   777 | /mysql_svr/  |   777 | /mysql_svr/
+   777 | /mysql_svr/  |   777 | /mysql_svr/
+   777 | /mysql_svr/  |   777 | /mysql_svr/
+   777 | /mysql_svr/  |   777 | /mysql_svr/
+   777 | /mysql_svr/  |   777 | /mysql_svr/
+   777 | /mysql_svr/  |   777 | /mysql_svr/
+   777 | /mysql_svr/  |   777 | /mysql_svr/
+   777 | /mysql_svr/  |   777 | /mysql_svr/
+   777 | /mysql_svr/  |   777 | /mysql_svr/
+   777 | /mysql_svr/  |   777 | /mysql_svr/
+   777 | /mysql_svr/  |   777 | /mysql_svr/
+   777 | /mysql_svr/  | 22222 | /sqlite_svr/
+   777 | /mysql_svr/  | 22222 | /sqlite_svr/
+   777 | /mysql_svr/  | 22222 | /sqlite_svr/
+   777 | /mysql_svr/  | 22222 | /sqlite_svr/
+ 22222 | /sqlite_svr/ |     1 | /mysql_svr/
+ 22222 | /sqlite_svr/ |     1 | /sqlite_svr/
+ 22222 | /sqlite_svr/ |   777 | /mysql_svr/
+ 22222 | /sqlite_svr/ |   777 | /mysql_svr/
+ 22222 | /sqlite_svr/ |   777 | /mysql_svr/
+ 22222 | /sqlite_svr/ |   777 | /mysql_svr/
+ 22222 | /sqlite_svr/ | 22222 | /sqlite_svr/
+(49 rows)
+
+-- nothing case
+SELECT * FROM test1 IN ('/sqlite_svr/','/mysql_svrrrrrr/');
+   i   |  __spd_url   
+-------+--------------
+     1 | /sqlite_svr/
+ 22222 | /sqlite_svr/
+(2 rows)
+
+SELECT * FROM test1 IN ('/mysql_svr/'), test1_1 IN ('/mysql_svr2/') ORDER BY test1.i,test1.__spd_url,test1_1.i,test1_1.__spd_url;
+ i | __spd_url | i | __spd_url 
+---+-----------+---+-----------
+(0 rows)
+
+SELECT * FROM test1 IN ('/mysql_svr2/'), test1_1 IN ('/mysql_svr/') ORDER BY test1.i,test1.__spd_url,test1_1.i,test1_1.__spd_url;
+ i | __spd_url | i | __spd_url 
+---+-----------+---+-----------
+(0 rows)
+
+SELECT * FROM test1 IN ('/mysql_svr2/'), test1_1 IN ('/mysql_svr2/') ORDER BY test1.i,test1.__spd_url,test1_1.i,test1_1.__spd_url;
+ i | __spd_url | i | __spd_url 
+---+-----------+---+-----------
+(0 rows)
+
+SELECT * FROM test1 IN ('/sqlite_svr/','/mysql_svr2/'), test1_1 IN ('/sqlite_svr2/','/mysql_svr/') ORDER BY test1.i,test1.__spd_url,test1_1.i,test1_1.__spd_url;
+   i   |  __spd_url   |  i  |  __spd_url  
+-------+--------------+-----+-------------
+     1 | /sqlite_svr/ |   1 | /mysql_svr/
+     1 | /sqlite_svr/ | 777 | /mysql_svr/
+     1 | /sqlite_svr/ | 777 | /mysql_svr/
+     1 | /sqlite_svr/ | 777 | /mysql_svr/
+     1 | /sqlite_svr/ | 777 | /mysql_svr/
+ 22222 | /sqlite_svr/ |   1 | /mysql_svr/
+ 22222 | /sqlite_svr/ | 777 | /mysql_svr/
+ 22222 | /sqlite_svr/ | 777 | /mysql_svr/
+ 22222 | /sqlite_svr/ | 777 | /mysql_svr/
+ 22222 | /sqlite_svr/ | 777 | /mysql_svr/
+(10 rows)
+
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM test1;
+                      QUERY PLAN                      
+------------------------------------------------------
+ Foreign Scan on public.test1
+   Output: i, __spd_url
+   Node: mysql_svr / Status: Alive
+     Local server startup cost: 10
+     Remote query: SELECT `i` FROM `test`.`test1`
+   Node: post_svr / Status: Alive
+     Remote SQL: SELECT i FROM public.test1
+   Node: sqlite_svr / Status: Alive
+     SQLite query: SELECT `i` FROM main."test1"
+   Node: tiny_svr / Status: Alive
+     TinyBrace query: SELECT `i` FROM "test1"
+     TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
+(12 rows)
+
+-- some fdw push down and some fdw not 
+EXPLAIN (VERBOSE, COSTS OFF) SELECT sum(i), avg(i) FROM test1;
+                           QUERY PLAN                            
+-----------------------------------------------------------------
+ Foreign Scan
+   Output: (sum(i)), (avg(i))
+   Node: mysql_svr / Status: Alive
+     Agg push-down: no
+     Local server startup cost: 10
+     Remote query: SELECT `i` FROM `test`.`test1`
+   Node: post_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.test1__post_svr__0)
+     Remote SQL: SELECT sum(i), count(i) FROM public.test1
+   Node: sqlite_svr / Status: Alive
+     Agg push-down: yes
+     SQLite query: SELECT sum(`i`), count(`i`) FROM main."test1"
+   Node: tiny_svr / Status: Alive
+     Agg push-down: yes
+     TinyBrace query: SELECT sum(`i`), count(`i`) FROM "test1"
+     TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
+(17 rows)
+
+-- only post_svr is alive
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM test1 IN ('/post_svr/');
+                     QUERY PLAN                     
+----------------------------------------------------
+ Foreign Scan on public.test1
+   Output: i, __spd_url
+   Node: mysql_svr / Status: Not specified by IN
+     Node: post_svr / Status: Alive
+       Remote SQL: SELECT i FROM public.test1
+     Node: sqlite_svr / Status: Not specified by IN
+       Node: tiny_svr / Status: Not specified by IN
+(7 rows)
+
+-- only __spd_url target list is OK
+SELECT __spd_url FROM test1 ORDER BY __spd_url;
+  __spd_url   
+--------------
+ /mysql_svr/
+ /mysql_svr/
+ /mysql_svr/
+ /mysql_svr/
+ /mysql_svr/
+ /post_svr/
+ /sqlite_svr/
+ /sqlite_svr/
+ /tiny_svr/
+(9 rows)
+
+SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+   i   |  __spd_url   
+-------+--------------
+     1 | /tiny_svr/
+     1 | /mysql_svr/
+     1 | /sqlite_svr/
+   777 | /mysql_svr/
+  1111 | /post_svr/
+ 22222 | /sqlite_svr/
+(6 rows)
+
+SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i;
+  __spd_url   |   i   
+--------------+-------
+ /tiny_svr/   |     1
+ /mysql_svr/  |     1
+ /sqlite_svr/ |     1
+ /mysql_svr/  |   777
+ /post_svr/   |  1111
+ /sqlite_svr/ | 22222
+(6 rows)
+
+SELECT avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+          avg           |  __spd_url   
+------------------------+--------------
+ 1.00000000000000000000 | /tiny_svr/
+ 1.00000000000000000000 | /mysql_svr/
+ 1.00000000000000000000 | /sqlite_svr/
+   777.0000000000000000 | /mysql_svr/
+  1111.0000000000000000 | /post_svr/
+     22222.000000000000 | /sqlite_svr/
+(6 rows)
+
+SELECT __spd_url, avg(i) FROM test1 GROUP BY i, __spd_url ORDER BY i;
+  __spd_url   |          avg           
+--------------+------------------------
+ /tiny_svr/   | 1.00000000000000000000
+ /mysql_svr/  | 1.00000000000000000000
+ /sqlite_svr/ | 1.00000000000000000000
+ /mysql_svr/  |   777.0000000000000000
+ /post_svr/   |  1111.0000000000000000
+ /sqlite_svr/ |     22222.000000000000
+(6 rows)
+
+SELECT __spd_url, sum(i) FROM test1 GROUP BY i, __spd_url ORDER BY i;
+  __spd_url   |  sum  
+--------------+-------
+ /tiny_svr/   |     1
+ /mysql_svr/  |     1
+ /sqlite_svr/ |     1
+ /mysql_svr/  |  3108
+ /post_svr/   |  1111
+ /sqlite_svr/ | 22222
+(6 rows)
+
+SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+  __spd_url   |          avg           |  __spd_url   
+--------------+------------------------+--------------
+ /tiny_svr/   | 1.00000000000000000000 | /tiny_svr/
+ /mysql_svr/  | 1.00000000000000000000 | /mysql_svr/
+ /sqlite_svr/ | 1.00000000000000000000 | /sqlite_svr/
+ /mysql_svr/  |   777.0000000000000000 | /mysql_svr/
+ /post_svr/   |  1111.0000000000000000 | /post_svr/
+ /sqlite_svr/ |     22222.000000000000 | /sqlite_svr/
+(6 rows)
+
+SELECT sum(i) FROM test1;
+  sum  
+-------
+ 26444
+(1 row)
+
+SELECT avg(i) FROM test1;
+       avg        
+------------------
+ 2938.22222222222
+(1 row)
+
+SELECT avg(i),i FROM test1 group by i order by i;
+  avg  |   i   
+-------+-------
+     1 |     1
+   777 |   777
+  1111 |  1111
+ 22222 | 22222
+(4 rows)
+
+SELECT sum(i),count(i),i FROM test1 group by i order by i;
+  sum  | count |   i   
+-------+-------+-------
+     3 |     3 |     1
+  3108 |     4 |   777
+  1111 |     1 |  1111
+ 22222 |     1 | 22222
+(4 rows)
+
+SELECT avg(i), count(i) FROM test1 group by i;
+  avg  | count 
+-------+-------
+ 22222 |     1
+   777 |     4
+     1 |     3
+  1111 |     1
+(4 rows)
+
+SELECT SUM(i) as aa, avg(i) FROM test1 GROUP BY i;
+  aa   |  avg  
+-------+-------
+ 22222 | 22222
+  3108 |   777
+     3 |     1
+  1111 |  1111
+(4 rows)
+
+SELECT SUM(i) as aa, avg(i), i/2, SUM(i)/2 FROM test1 GROUP BY i;
+  aa   |  avg  | ?column? | ?column? 
+-------+-------+----------+----------
+ 22222 | 22222 |    11111 |    11111
+  3108 |   777 |      388 |     1554
+     3 |     1 |        0 |        0
+  1111 |  1111 |      555 |      555
+(4 rows)
+
+SELECT SUM(i) as aa, avg(i) FROM test1 GROUP BY i ORDER BY aa;
+  aa   |  avg  
+-------+-------
+     3 |     1
+  1111 |  1111
+  3108 |   777
+ 22222 | 22222
+(4 rows)
+
+SELECT sum(i), avg(i) FROM test1 GROUP BY i ORDER BY 1;
+  sum  |  avg  
+-------+-------
+     3 |     1
+  1111 |  1111
+  3108 |   777
+ 22222 | 22222
+(4 rows)
+
+SELECT i, avg(i) FROM test1 GROUP BY i ORDER BY 1;
+   i   |  avg  
+-------+-------
+     1 |     1
+   777 |   777
+  1111 |  1111
+ 22222 | 22222
+(4 rows)
+
+-- allocate statement
+PREPARE stmt AS SELECT sum(i),count(i),i FROM test1 group by i order by i;
+-- execute first time
+EXECUTE stmt;
+  sum  | count |   i   
+-------+-------+-------
+     3 |     3 |     1
+  3108 |     4 |   777
+  1111 |     1 |  1111
+ 22222 |     1 | 22222
+(4 rows)
+
+-- performance test prepared statement
+DO $$
+BEGIN
+   FOR counter IN 1..50 LOOP
+   EXECUTE 'EXECUTE stmt;';
+   END LOOP;
+END; $$;
+-- deallocate statement
+DEALLOCATE stmt;
+CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
+CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS(table_name 't1');
+SELECT * FROM t1;
+ i | t | __spd_url  
+---+---+------------
+ 1 | a | /post_svr/
+ 2 | b | /post_svr/
+ 3 | b | /post_svr/
+ 4 | c | /post_svr/
+(4 rows)
+
+SELECT * FROM t1 WHERE __spd_url='/post_svr/' and i = 1 and t = 'a';
+ i | t | __spd_url  
+---+---+------------
+ 1 | a | /post_svr/
+(1 row)
+
+SELECT sum(i),t FROM t1 group by t;
+ sum | t 
+-----+---
+   1 | a
+   5 | b
+   4 | c
+(3 rows)
+
+SELECT sum(i),t,count(i) FROM t1 group by t;
+ sum | t | count 
+-----+---+-------
+   1 | a |     1
+   5 | b |     2
+   4 | c |     1
+(3 rows)
+
+SELECT * FROM t1 WHERE i = 1;
+ i | t | __spd_url  
+---+---+------------
+ 1 | a | /post_svr/
+(1 row)
+
+SELECT sum(i),t FROM t1 group by t;
+ sum | t 
+-----+---
+   1 | a
+   5 | b
+   4 | c
+(3 rows)
+
+SELECT avg(i) FROM t1;
+ avg 
+-----
+ 2.5
+(1 row)
+
+SELECT sum(i),t FROM t1 WHERE i = 1 group by t;
+ sum | t 
+-----+---
+   1 | a
+(1 row)
+
+SELECT avg(i),sum(i) FROM t1;
+ avg | sum 
+-----+-----
+ 2.5 |  10
+(1 row)
+
+SELECT sum(i),sum(i) FROM t1;
+ sum | sum 
+-----+-----
+  10 |  10
+(1 row)
+
+SELECT avg(i),t FROM t1 group by t;
+ avg | t 
+-----+---
+   1 | a
+ 2.5 | b
+   4 | c
+(3 rows)
+
+SELECT avg(i) FROM t1 group by i;
+ avg 
+-----
+   3
+   4
+   2
+   1
+(4 rows)
+
+SELECT avg(i), count(i) FROM t1 GROUP BY i ORDER BY i;
+ avg | count 
+-----+-------
+   1 |     1
+   2 |     1
+   3 |     1
+   4 |     1
+(4 rows)
+
+SELECT t, avg(i), t FROM t1 GROUP BY i, t ORDER BY i;
+ t | avg | t 
+---+-----+---
+ a |   1 | a
+ b |   2 | b
+ b |   3 | b
+ c |   4 | c
+(4 rows)
+
+SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t ORDER BY t;
+ t | __spd_url  
+---+------------
+ a | /post_svr/
+ b | /post_svr/
+ c | /post_svr/
+(3 rows)
+
+SELECT i, __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+ i | __spd_url  
+---+------------
+ 1 | /post_svr/
+ 2 | /post_svr/
+ 3 | /post_svr/
+ 4 | /post_svr/
+(4 rows)
+
+SELECT __spd_url, i FROM t1 GROUP BY __spd_url, i ORDER BY i;
+ __spd_url  | i 
+------------+---
+ /post_svr/ | 1
+ /post_svr/ | 2
+ /post_svr/ | 3
+ /post_svr/ | 4
+(4 rows)
+
+SELECT avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+          avg           | __spd_url  
+------------------------+------------
+ 1.00000000000000000000 | /post_svr/
+     2.0000000000000000 | /post_svr/
+     3.0000000000000000 | /post_svr/
+     4.0000000000000000 | /post_svr/
+(4 rows)
+
+SELECT __spd_url, avg(i) FROM t1 GROUP BY __spd_url, i ORDER BY i;
+ __spd_url  |          avg           
+------------+------------------------
+ /post_svr/ | 1.00000000000000000000
+ /post_svr/ |     2.0000000000000000
+ /post_svr/ |     3.0000000000000000
+ /post_svr/ |     4.0000000000000000
+(4 rows)
+
+SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+ __spd_url  |          avg           | __spd_url  
+------------+------------------------+------------
+ /post_svr/ | 1.00000000000000000000 | /post_svr/
+ /post_svr/ |     2.0000000000000000 | /post_svr/
+ /post_svr/ |     3.0000000000000000 | /post_svr/
+ /post_svr/ |     4.0000000000000000 | /post_svr/
+(4 rows)
+
+SELECT __spd_url, sum(i) FROM t1 GROUP BY __spd_url, i ORDER BY i;
+ __spd_url  | sum 
+------------+-----
+ /post_svr/ |   1
+ /post_svr/ |   2
+ /post_svr/ |   3
+ /post_svr/ |   4
+(4 rows)
+
+SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+ __spd_url  |          avg           | __spd_url  
+------------+------------------------+------------
+ /post_svr/ | 1.00000000000000000000 | /post_svr/
+ /post_svr/ |     2.0000000000000000 | /post_svr/
+ /post_svr/ |     3.0000000000000000 | /post_svr/
+ /post_svr/ |     4.0000000000000000 | /post_svr/
+(4 rows)
+
+SELECT __spd_url, avg(i), sum(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+ __spd_url  |          avg           | sum | __spd_url  
+------------+------------------------+-----+------------
+ /post_svr/ | 1.00000000000000000000 |   1 | /post_svr/
+ /post_svr/ |     2.0000000000000000 |   2 | /post_svr/
+ /post_svr/ |     3.0000000000000000 |   3 | /post_svr/
+ /post_svr/ |     4.0000000000000000 |   4 | /post_svr/
+(4 rows)
+
+SELECT * FROM (SELECT sum(i) FROM t1) A,(SELECT count(i) FROM t1) B;
+ sum | count 
+-----+-------
+  10 |     4
+(1 row)
+
+SELECT SUM(i) as aa, avg(i) FROM t1 GROUP BY i;
+ aa | avg 
+----+-----
+  3 |   3
+  4 |   4
+  2 |   2
+  1 |   1
+(4 rows)
+
+SELECT SUM(i) as aa, avg(i) FROM t1 GROUP BY t;
+ aa | avg 
+----+-----
+  1 |   1
+  5 | 2.5
+  4 |   4
+(3 rows)
+
+SELECT SUM(i) as aa, avg(i), i/2, SUM(i)/2 FROM t1 GROUP BY i, t;
+ aa | avg | ?column? | ?column? 
+----+-----+----------+----------
+  1 |   1 |        0 |        0
+  4 |   4 |        2 |        2
+  3 |   3 |        1 |        1
+  2 |   2 |        1 |        1
+(4 rows)
+
+SELECT SUM(i) as aa, avg(i) FROM t1 GROUP BY i ORDER BY aa;
+ aa | avg 
+----+-----
+  1 |   1
+  2 |   2
+  3 |   3
+  4 |   4
+(4 rows)
+
+-- allocate statement
+PREPARE stmt AS SELECT * FROM t1;
+-- execute first time
+EXECUTE stmt;
+ i | t | __spd_url  
+---+---+------------
+ 1 | a | /post_svr/
+ 2 | b | /post_svr/
+ 3 | b | /post_svr/
+ 4 | c | /post_svr/
+(4 rows)
+
+-- performance test prepared statement
+DO $$
+BEGIN
+   FOR counter IN 1..50 LOOP
+   EXECUTE 'EXECUTE stmt;';
+   END LOOP;
+END; $$;
+-- deallocate statement
+DEALLOCATE stmt;
+EXPLAIN (VERBOSE, COSTS OFF) SELECT STDDEV(i) FROM t1;
+                       QUERY PLAN                       
+--------------------------------------------------------
+ Foreign Scan
+   Output: (stddev(i))
+   Node: post_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.t1__post_svr__0)
+     Remote SQL: SELECT count(i), sum(i) FROM public.t1
+(6 rows)
+
+CREATE FOREIGN TABLE t3 (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
+CREATE FOREIGN TABLE t3__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+SELECT count(t) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t2) FROM t3;
+ count 
+-------
+     3
+(1 row)
+
+SELECT count(i) FROM t3;
+ count 
+-------
+     4
+(1 row)
+
+SELECT * FROM t3;
+  t  | t2  | i |  __spd_url  
+-----+-----+---+-------------
+ aaa | bbb | 1 | /mysql_svr/
+ aaa | bbb | 1 | /mysql_svr/
+ aaa |     | 1 | /mysql_svr/
+ aaa | bbb | 1 | /mysql_svr/
+(4 rows)
+
+-- test target list push down for mysql fdw
+-- push down abs(-i*2) and i+1
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT abs(-i*2), i+1, i, i FROM t3;
+                                      QUERY PLAN                                      
+--------------------------------------------------------------------------------------
+ Foreign Scan on public.t3
+   Output: (abs(((- i) * 2))), ((i + 1)), i, i
+   Node: mysql_svr / Status: Alive
+     Local server startup cost: 10
+     Remote query: SELECT abs(((- `i`) * 2)), (`i` + 1), `i`, `i` FROM `test`.`test3`
+(5 rows)
+
+SELECT abs(-i*2), i+1, i, i FROM t3;
+ abs | ?column? | i | i 
+-----+----------+---+---
+   2 |        2 | 1 | 1
+   2 |        2 | 1 | 1
+   2 |        2 | 1 | 1
+   2 |        2 | 1 | 1
+(4 rows)
+
+-- can't push down abs(A.i) in join case
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT abs(A.i) FROM t3 A, t3 B LIMIT 3;
+                             QUERY PLAN                              
+---------------------------------------------------------------------
+ Limit
+   Output: (abs(a.i))
+   ->  Nested Loop
+         Output: abs(a.i)
+         ->  Foreign Scan on public.t3 a
+               Output: a.i
+               Node: mysql_svr / Status: Alive
+                 Local server startup cost: 10
+                 Remote query: SELECT `i` FROM `test`.`test3`
+         ->  Materialize
+               ->  Foreign Scan on public.t3 b
+                     Node: mysql_svr / Status: Alive
+                       Local server startup cost: 10
+                       Remote query: SELECT NULL FROM `test`.`test3`
+(14 rows)
+
+SELECT abs(A.i) FROM t3 A, t3 B LIMIT 3;
+ abs 
+-----
+   1
+   1
+   1
+(3 rows)
+
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT abs(i) c1 FROM t3 UNION SELECT abs(i+1) FROM t3 ORDER BY c1;
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Sort
+   Output: (abs(t3.i))
+   Sort Key: (abs(t3.i))
+   ->  HashAggregate
+         Output: (abs(t3.i))
+         Group Key: (abs(t3.i))
+         ->  Append
+               ->  Foreign Scan on public.t3
+                     Output: (abs(t3.i))
+                     Node: mysql_svr / Status: Alive
+                       Local server startup cost: 10
+                       Remote query: SELECT abs(`i`) FROM `test`.`test3`
+               ->  Foreign Scan on public.t3 t3_1
+                     Output: (abs((t3_1.i + 1)))
+                     Node: mysql_svr / Status: Alive
+                       Local server startup cost: 10
+                       Remote query: SELECT abs((`i` + 1)) FROM `test`.`test3`
+(17 rows)
+
+SELECT abs(i) c1 FROM t3 UNION SELECT abs(i+1) FROM t3 ORDER BY c1;
+ c1 
+----
+  1
+  2
+(2 rows)
+
+SELECT i+1, __spd_url FROM t3;
+ ?column? |  __spd_url  
+----------+-------------
+        2 | /mysql_svr/
+        2 | /mysql_svr/
+        2 | /mysql_svr/
+        2 | /mysql_svr/
+(4 rows)
+
+SELECT i, __spd_url FROM t3 ORDER BY i, __spd_url;
+ i |  __spd_url  
+---+-------------
+ 1 | /mysql_svr/
+ 1 | /mysql_svr/
+ 1 | /mysql_svr/
+ 1 | /mysql_svr/
+(4 rows)
+
+SELECT i FROM t3 ORDER BY __spd_url;
+ i 
+---
+ 1
+ 1
+ 1
+ 1
+(4 rows)
+
+-- can't push down i+1 because test1 includes fdws other than mysql fdw
+EXPLAIN (VERBOSE, COSTS OFF) 
+SELECT i+1,__spd_url FROM test1 ORDER BY __spd_url, i;
+                         QUERY PLAN                         
+------------------------------------------------------------
+ Sort
+   Output: ((i + 1)), __spd_url, i
+   Sort Key: test1.__spd_url, test1.i
+   ->  Foreign Scan on public.test1
+         Output: (i + 1), __spd_url, i
+         Node: mysql_svr / Status: Alive
+           Local server startup cost: 10
+           Remote query: SELECT `i` FROM `test`.`test1`
+         Node: post_svr / Status: Alive
+           Remote SQL: SELECT i FROM public.test1
+         Node: sqlite_svr / Status: Alive
+           SQLite query: SELECT `i` FROM main."test1"
+         Node: tiny_svr / Status: Alive
+           TinyBrace query: SELECT `i` FROM "test1"
+           TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
+(15 rows)
+
+SELECT i+1,__spd_url FROM test1  ORDER BY __spd_url, i;
+ ?column? |  __spd_url   
+----------+--------------
+        2 | /mysql_svr/
+      778 | /mysql_svr/
+      778 | /mysql_svr/
+      778 | /mysql_svr/
+      778 | /mysql_svr/
+     1112 | /post_svr/
+        2 | /sqlite_svr/
+    22223 | /sqlite_svr/
+        2 | /tiny_svr/
+(9 rows)
+
+SELECT __spd_url,i FROM test1 ORDER BY __spd_url, i;
+  __spd_url   |   i   
+--------------+-------
+ /mysql_svr/  |     1
+ /mysql_svr/  |   777
+ /mysql_svr/  |   777
+ /mysql_svr/  |   777
+ /mysql_svr/  |   777
+ /post_svr/   |  1111
+ /sqlite_svr/ |     1
+ /sqlite_svr/ | 22222
+ /tiny_svr/   |     1
+(9 rows)
+
+-- t is not included in target list, but is pushed down, it is OK
+select t from t3 where i  = 1;
+  t  
+-----
+ aaa
+ aaa
+ aaa
+ aaa
+(4 rows)
+
+-- t is not included and cannot be pushed down, so it is error
+-- select i from t3 where t COLLATE "ja_JP.utf8" = 'aa';
+-- error stack test
+CREATE SERVER mysql_svr2 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
+CREATE USER mapping for public server mysql_svr2 OPTIONS(username 'root',password 'wrongpass');
+CREATE FOREIGN TABLE t3__mysql_svr2__0 (t text,t2 text,i int) SERVER mysql_svr2 OPTIONS(dbname 'test',table_name 'test3');
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+SELECT count(t) FROM t3;
+WARNING:  GetForeignRelSize failed
+ count 
+-------
+     4
+(1 row)
+
+DROP FOREIGN TABLE t3;
+DROP FOREIGN TABLE t3__mysql_svr__0;
+DROP FOREIGN TABLE t3__mysql_svr2__0;
+-- wrong result:
+-- SELECT sum(i),t  FROM t1 group by t having sum(i) > 2;
+--  sum | t 
+-- -----+---
+--    1 | a
+--    5 | b
+--    4 | c
+-- (3 rows)
+-- stress test for finding multithread error
+DO $$
+BEGIN
+   FOR counter IN 1..50 LOOP
+   PERFORM sum(i) FROM test1;
+   END LOOP;
+END; $$;
+CREATE FOREIGN TABLE mysqlt (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
+CREATE FOREIGN TABLE mysqlt__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+CREATE FOREIGN TABLE mysqlt__mysql_svr__1 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+CREATE FOREIGN TABLE mysqlt__mysql_svqr__2 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+DO $$
+BEGIN
+   FOR counter IN 1..50 LOOP
+   PERFORM sum(i) FROM mysqlt;
+   END LOOP;
+END; $$;
+CREATE FOREIGN TABLE post_large (i int, t text,__spd_url text) SERVER pgspider_svr;
+CREATE FOREIGN TABLE post_large__post_svr__1 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
+CREATE FOREIGN TABLE post_large__post_svr__2 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
+CREATE FOREIGN TABLE post_large__post_svr__3 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
+SELECT i,t FROM post_large WHERE i < 3 ORDER BY i,t;
+ i |  t  
+---+-----
+ 1 | aa1
+ 1 | aa1
+ 1 | aa1
+ 2 | aa2
+ 2 | aa2
+ 2 | aa2
+(6 rows)
+
+DO $$
+BEGIN
+   FOR counter IN 1..10 LOOP
+   PERFORM i,t FROM post_large WHERE i < 3 ORDER BY i,t;
+   END LOOP;
+END; $$;
+SELECT count(*) FROM post_large;
+ count 
+-------
+ 30000
+(1 row)
+
+DO $$
+BEGIN
+   FOR counter IN 1..10 LOOP
+   PERFORM sum(i) FROM post_large;
+   END LOOP;
+END; $$;
+CREATE FOREIGN TABLE t2 (i int, t text, a text,__spd_url text) SERVER pgspider_svr;
+CREATE FOREIGN TABLE t2__post_svr__0 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+SELECT i,t,a FROM t2 ORDER BY i,__spd_url;
+ i | t | a 
+---+---+---
+ 1 | a | 
+ 2 |   | a
+   | a | a
+   |   | 
+(4 rows)
+
+CREATE FOREIGN TABLE t2__post_svr__1 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+CREATE FOREIGN TABLE t2__post_svr__2 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+CREATE FOREIGN TABLE t2__post_svr__3 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+-- random cannot be pushed down and i=2 is pushed down
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM t2 WHERE i=2 AND random() < 2.0;
+                          QUERY PLAN                           
+---------------------------------------------------------------
+ Foreign Scan on public.t2
+   Output: i, t, a, __spd_url
+   Filter: (random() < '2'::double precision)
+   Node: post_svr / Status: Alive
+     Remote SQL: SELECT i, t, a FROM public.t2 WHERE ((i = 2))
+   Node: post_svr / Status: Alive
+     Remote SQL: SELECT i, t, a FROM public.t2 WHERE ((i = 2))
+   Node: post_svr / Status: Alive
+     Remote SQL: SELECT i, t, a FROM public.t2 WHERE ((i = 2))
+   Node: post_svr / Status: Alive
+     Remote SQL: SELECT i, t, a FROM public.t2 WHERE ((i = 2))
+(11 rows)
+
+SELECT * FROM t2 WHERE i=2 AND random() < 2.0;
+ i | t | a | __spd_url  
+---+---+---+------------
+ 2 |   | a | /post_svr/
+ 2 |   | a | /post_svr/
+ 2 |   | a | /post_svr/
+ 2 |   | a | /post_svr/
+(4 rows)
+
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
+ i | t | a 
+---+---+---
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+   | a | a
+   | a | a
+   | a | a
+   | a | a
+   |   | 
+   |   | 
+   |   | 
+   |   | 
+(16 rows)
+
+SELECT a,i, __spd_url, t FROM t2 ORDER BY i,t,a,__spd_url;
+ a | i | __spd_url  | t 
+---+---+------------+---
+   | 1 | /post_svr/ | a
+   | 1 | /post_svr/ | a
+   | 1 | /post_svr/ | a
+   | 1 | /post_svr/ | a
+ a | 2 | /post_svr/ | 
+ a | 2 | /post_svr/ | 
+ a | 2 | /post_svr/ | 
+ a | 2 | /post_svr/ | 
+ a |   | /post_svr/ | a
+ a |   | /post_svr/ | a
+ a |   | /post_svr/ | a
+ a |   | /post_svr/ | a
+   |   | /post_svr/ | 
+   |   | /post_svr/ | 
+   |   | /post_svr/ | 
+   |   | /post_svr/ | 
+(16 rows)
+
+SELECT __spd_url,i FROM t2 WHERE __spd_url='/post_svr/' ORDER BY i LIMIT 1;
+ __spd_url  | i 
+------------+---
+ /post_svr/ | 1
+(1 row)
+
+-- Keep alive test
+CREATE SERVER post_svr2 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1',port '49503');
+CREATE USER mapping for public server post_svr2 OPTIONS(user 'postgres',password 'postgres');
+CREATE FOREIGN TABLE t2__post_svr2__0 (i int, t text,a text) SERVER post_svr2 OPTIONS(table_name 't2');
+INSERT INTO pg_spd_node_info VALUES(0,'post_svr','postgres_fdw','127.0.0.1');
+INSERT INTO pg_spd_node_info VALUES(0,'post_svr2','postgres_fdw','127.0.0.1');
+SELECT pg_sleep(2);
+ pg_sleep 
+----------
+ 
+(1 row)
+
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+ i | t | a 
+---+---+---
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+   | a | a
+   | a | a
+   | a | a
+   | a | a
+   |   | 
+   |   | 
+   |   | 
+   |   | 
+(16 rows)
+
+SET pgspider_core_fdw.throw_error_ifdead to true;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+ERROR:  PGSpider can not get data from child node : post_svr2
+SET pgspider_core_fdw.throw_error_ifdead to false;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+ i | t | a 
+---+---+---
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+   | a | a
+   | a | a
+   | a | a
+   | a | a
+   |   | 
+   |   | 
+   |   | 
+   |   | 
+(16 rows)
+
+SET pgspider_core_fdw.print_error_nodes to true;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+WARNING:  Can not get data from post_svr2
+ i | t | a 
+---+---+---
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+   | a | a
+   | a | a
+   | a | a
+   | a | a
+   |   | 
+   |   | 
+   |   | 
+   |   | 
+(16 rows)
+
+SET pgspider_core_fdw.print_error_nodes to false;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+ i | t | a 
+---+---+---
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 1 | a | 
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+ 2 |   | a
+   | a | a
+   | a | a
+   | a | a
+   | a | a
+   |   | 
+   |   | 
+   |   | 
+   |   | 
+(16 rows)
+
+CREATE SERVER post_svr3 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '192.168.11.12',port '15432');
+CREATE USER mapping for public server post_svr3 OPTIONS(user 'postgres',password 'postgres');
+CREATE FOREIGN TABLE t2__post_svr3__0 (i int, t text,a text) SERVER post_svr3 OPTIONS(table_name 't2');
+INSERT INTO pg_spd_node_info VALUES(0,'post_svr3','postgres_fdw','192.168.11.12');
+SELECT pg_sleep(2);
+ pg_sleep 
+----------
+ 
+(1 row)
+
+/*
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
+SET pgspider_core_fdw.throw_error_ifdead to true;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
+SET pgspider_core_fdw.throw_error_ifdead to false;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
+SET pgspider_core_fdw.print_error_nodes to true;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
+SET pgspider_core_fdw.print_error_nodes to false;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
+DROP FOREIGN TABLE t2__post_svr3__0;
+DELETE FROM pg_spd_node_info WHERE servername = 't2__post_svr3__0';
+SELECT pg_sleep(2);
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
+*/
+DROP FOREIGN TABLE test1;
+DROP FOREIGN TABLE t1;
+DROP FOREIGN TABLE t2;
+DROP SERVER pgspider_svr CASCADE;
+NOTICE:  drop cascades to 4 other objects
+DETAIL:  drop cascades to user mapping for public on server pgspider_svr
+drop cascades to foreign table test1_1
+drop cascades to foreign table mysqlt
+drop cascades to foreign table post_large
+DROP EXTENSION pgspider_core_fdw CASCADE;
