@@ -85,7 +85,8 @@ typedef struct TupleQueue {
 	struct TupleTableSlot *tuples[SPD_TUPLE_QUEUE_LEN];
 	int start;		/* index of the first element */
 	int len;		/* number of the elements */
-	int last_get;	/* index of the last element returned by spd_queue_get */
+	int lastGet;	/* index of the last element returned by spd_queue_get */
+	int isFinished;	/* True if scan is finished */
 } SpdTupleQueue;
 
 typedef struct ForeignScanThreadInfo
@@ -97,11 +98,8 @@ typedef struct ForeignScanThreadInfo
 	Oid			serverId;		/* use it for server id */
 	ForeignServer		*foreignServer;	/* cache this for performance */
 	ForeignDataWrapper	*fdw;	/* cache this for performance */
-	bool		underIteration;		/* true if iteration continues */
 	bool		requestEndScan;		/* main thread request endForeingScan to child thread */
 	bool		requestRescan;		/* main thread request rescan to child thread */
-	struct TupleTableSlot *tuple;	/* use it for storing tuple, which is
-									 * retrieved from the DS */
 	SpdTupleQueue tupleQueue;
 	int			childInfoIndex;		/* index of child info array */
 	MemoryContext threadMemoryContext;
