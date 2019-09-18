@@ -499,56 +499,56 @@ SELECT * FROM test1 IN ('/sqlite_svr/','/mysql_svr2/'), test1_1 IN ('/sqlite_svr
 (10 rows)
 
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM test1;
-                     QUERY PLAN                     
-----------------------------------------------------
+                      QUERY PLAN                      
+------------------------------------------------------
  Foreign Scan on public.test1
    Output: i, __spd_url
-    * Node: mysql_svr / Status: Alive
-   Local server startup cost: 10
-   Remote query: SELECT `i` FROM `test`.`test1`
-    * Node: post_svr / Status: Alive
-   Remote SQL: SELECT i FROM public.test1
-    * Node: sqlite_svr / Status: Alive
-   SQLite query: SELECT `i` FROM main."test1"
-    * Node: tiny_svr / Status: Alive
-   TinyBrace query: SELECT `i` FROM "test1"
-   TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
+   Node: mysql_svr / Status: Alive
+     Local server startup cost: 10
+     Remote query: SELECT `i` FROM `test`.`test1`
+   Node: post_svr / Status: Alive
+     Remote SQL: SELECT i FROM public.test1
+   Node: sqlite_svr / Status: Alive
+     SQLite query: SELECT `i` FROM main."test1"
+   Node: tiny_svr / Status: Alive
+     TinyBrace query: SELECT `i` FROM "test1"
+     TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
 (12 rows)
 
 -- some fdw push down and some fdw not 
 EXPLAIN (VERBOSE, COSTS OFF) SELECT sum(i), avg(i) FROM test1;
-                          QUERY PLAN                           
----------------------------------------------------------------
+                           QUERY PLAN                            
+-----------------------------------------------------------------
  Foreign Scan
    Output: (sum(i)), (avg(i))
-    * Node: mysql_svr / Status: Alive
-   Agg push-down: no
-   Local server startup cost: 10
-   Remote query: SELECT `i` FROM `test`.`test1`
-    * Node: post_svr / Status: Alive
-   Agg push-down: yes
-   Relations: Aggregate on (public.test1__post_svr__0)
-   Remote SQL: SELECT sum(i), count(i) FROM public.test1
-    * Node: sqlite_svr / Status: Alive
-   Agg push-down: yes
-   SQLite query: SELECT sum(`i`), count(`i`) FROM main."test1"
-    * Node: tiny_svr / Status: Alive
-   Agg push-down: yes
-   TinyBrace query: SELECT sum(`i`), count(`i`) FROM "test1"
-   TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
+   Node: mysql_svr / Status: Alive
+     Agg push-down: no
+     Local server startup cost: 10
+     Remote query: SELECT `i` FROM `test`.`test1`
+   Node: post_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.test1__post_svr__0)
+     Remote SQL: SELECT sum(i), count(i) FROM public.test1
+   Node: sqlite_svr / Status: Alive
+     Agg push-down: yes
+     SQLite query: SELECT sum(`i`), count(`i`) FROM main."test1"
+   Node: tiny_svr / Status: Alive
+     Agg push-down: yes
+     TinyBrace query: SELECT sum(`i`), count(`i`) FROM "test1"
+     TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
 (17 rows)
 
 -- only post_svr is alive
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM test1 IN ('/post_svr/');
-                     QUERY PLAN                      
------------------------------------------------------
+                     QUERY PLAN                     
+----------------------------------------------------
  Foreign Scan on public.test1
    Output: i, __spd_url
-    * Node: mysql_svr / Status: Not specified by IN
-    * Node: post_svr / Status: Alive
-   Remote SQL: SELECT i FROM public.test1
-    * Node: sqlite_svr / Status: Not specified by IN
-    * Node: tiny_svr / Status: Not specified by IN
+   Node: mysql_svr / Status: Not specified by IN
+     Node: post_svr / Status: Alive
+       Remote SQL: SELECT i FROM public.test1
+     Node: sqlite_svr / Status: Not specified by IN
+       Node: tiny_svr / Status: Not specified by IN
 (7 rows)
 
 -- only __spd_url target list is OK
@@ -986,14 +986,14 @@ END; $$;
 -- deallocate statement
 DEALLOCATE stmt;
 EXPLAIN (VERBOSE, COSTS OFF) SELECT STDDEV(i) FROM t1;
-                      QUERY PLAN                      
-------------------------------------------------------
+                       QUERY PLAN                       
+--------------------------------------------------------
  Foreign Scan
    Output: (stddev(i))
-    * Node: post_svr / Status: Alive
-   Agg push-down: yes
-   Relations: Aggregate on (public.t1__post_svr__0)
-   Remote SQL: SELECT count(i), sum(i) FROM public.t1
+   Node: post_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.t1__post_svr__0)
+     Remote SQL: SELECT count(i), sum(i) FROM public.t1
 (6 rows)
 
 CREATE FOREIGN TABLE t3 (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
@@ -1029,13 +1029,13 @@ SELECT * FROM t3;
 -- push down abs(-i*2) and i+1
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT abs(-i*2), i+1, i, i FROM t3;
-                                     QUERY PLAN                                     
-------------------------------------------------------------------------------------
+                                      QUERY PLAN                                      
+--------------------------------------------------------------------------------------
  Foreign Scan on public.t3
    Output: (abs(((- i) * 2))), ((i + 1)), i, i
-    * Node: mysql_svr / Status: Alive
-   Local server startup cost: 10
-   Remote query: SELECT abs(((- `i`) * 2)), (`i` + 1), `i`, `i` FROM `test`.`test3`
+   Node: mysql_svr / Status: Alive
+     Local server startup cost: 10
+     Remote query: SELECT abs(((- `i`) * 2)), (`i` + 1), `i`, `i` FROM `test`.`test3`
 (5 rows)
 
 SELECT abs(-i*2), i+1, i, i FROM t3;
@@ -1050,22 +1050,22 @@ SELECT abs(-i*2), i+1, i, i FROM t3;
 -- can't push down abs(A.i) in join case
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT abs(A.i) FROM t3 A, t3 B LIMIT 3;
-                            QUERY PLAN                             
--------------------------------------------------------------------
+                             QUERY PLAN                              
+---------------------------------------------------------------------
  Limit
    Output: (abs(a.i))
    ->  Nested Loop
          Output: abs(a.i)
          ->  Foreign Scan on public.t3 a
                Output: a.i
-                * Node: mysql_svr / Status: Alive
-               Local server startup cost: 10
-               Remote query: SELECT `i` FROM `test`.`test3`
+               Node: mysql_svr / Status: Alive
+                 Local server startup cost: 10
+                 Remote query: SELECT `i` FROM `test`.`test3`
          ->  Materialize
                ->  Foreign Scan on public.t3 b
-                      * Node: mysql_svr / Status: Alive
-                     Local server startup cost: 10
-                     Remote query: SELECT NULL FROM `test`.`test3`
+                     Node: mysql_svr / Status: Alive
+                       Local server startup cost: 10
+                       Remote query: SELECT NULL FROM `test`.`test3`
 (14 rows)
 
 SELECT abs(A.i) FROM t3 A, t3 B LIMIT 3;
@@ -1078,8 +1078,8 @@ SELECT abs(A.i) FROM t3 A, t3 B LIMIT 3;
 
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT abs(i) c1 FROM t3 UNION SELECT abs(i+1) FROM t3 ORDER BY c1;
-                                 QUERY PLAN                                  
------------------------------------------------------------------------------
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
  Sort
    Output: (abs(t3.i))
    Sort Key: (abs(t3.i))
@@ -1089,14 +1089,14 @@ SELECT abs(i) c1 FROM t3 UNION SELECT abs(i+1) FROM t3 ORDER BY c1;
          ->  Append
                ->  Foreign Scan on public.t3
                      Output: (abs(t3.i))
-                      * Node: mysql_svr / Status: Alive
-                     Local server startup cost: 10
-                     Remote query: SELECT abs(`i`) FROM `test`.`test3`
+                     Node: mysql_svr / Status: Alive
+                       Local server startup cost: 10
+                       Remote query: SELECT abs(`i`) FROM `test`.`test3`
                ->  Foreign Scan on public.t3 t3_1
                      Output: (abs((t3_1.i + 1)))
-                      * Node: mysql_svr / Status: Alive
-                     Local server startup cost: 10
-                     Remote query: SELECT abs((`i` + 1)) FROM `test`.`test3`
+                     Node: mysql_svr / Status: Alive
+                       Local server startup cost: 10
+                       Remote query: SELECT abs((`i` + 1)) FROM `test`.`test3`
 (17 rows)
 
 SELECT abs(i) c1 FROM t3 UNION SELECT abs(i+1) FROM t3 ORDER BY c1;
@@ -1136,23 +1136,23 @@ SELECT i FROM t3 ORDER BY __spd_url;
 -- can't push down i+1 because test1 includes fdws other than mysql fdw
 EXPLAIN (VERBOSE, COSTS OFF) 
 SELECT i+1,__spd_url FROM test1 ORDER BY __spd_url, i;
-                        QUERY PLAN                        
-----------------------------------------------------------
+                         QUERY PLAN                         
+------------------------------------------------------------
  Sort
    Output: ((i + 1)), __spd_url, i
    Sort Key: test1.__spd_url, test1.i
    ->  Foreign Scan on public.test1
          Output: (i + 1), __spd_url, i
-          * Node: mysql_svr / Status: Alive
-         Local server startup cost: 10
-         Remote query: SELECT `i` FROM `test`.`test1`
-          * Node: post_svr / Status: Alive
-         Remote SQL: SELECT i FROM public.test1
-          * Node: sqlite_svr / Status: Alive
-         SQLite query: SELECT `i` FROM main."test1"
-          * Node: tiny_svr / Status: Alive
-         TinyBrace query: SELECT `i` FROM "test1"
-         TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
+         Node: mysql_svr / Status: Alive
+           Local server startup cost: 10
+           Remote query: SELECT `i` FROM `test`.`test1`
+         Node: post_svr / Status: Alive
+           Remote SQL: SELECT i FROM public.test1
+         Node: sqlite_svr / Status: Alive
+           SQLite query: SELECT `i` FROM main."test1"
+         Node: tiny_svr / Status: Alive
+           TinyBrace query: SELECT `i` FROM "test1"
+           TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
 (15 rows)
 
 SELECT i+1,__spd_url FROM test1  ORDER BY __spd_url, i;
@@ -1501,19 +1501,19 @@ CREATE FOREIGN TABLE t2__post_svr__3 (i int, t text,a text) SERVER post_svr OPTI
 -- random cannot be pushed down and i=2 is pushed down
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT * FROM t2 WHERE i=2 AND random() < 2.0;
-                         QUERY PLAN                          
--------------------------------------------------------------
+                          QUERY PLAN                           
+---------------------------------------------------------------
  Foreign Scan on public.t2
    Output: i, t, a, __spd_url
    Filter: (random() < '2'::double precision)
-    * Node: post_svr / Status: Alive
-   Remote SQL: SELECT i, t, a FROM public.t2 WHERE ((i = 2))
-    * Node: post_svr / Status: Alive
-   Remote SQL: SELECT i, t, a FROM public.t2 WHERE ((i = 2))
-    * Node: post_svr / Status: Alive
-   Remote SQL: SELECT i, t, a FROM public.t2 WHERE ((i = 2))
-    * Node: post_svr / Status: Alive
-   Remote SQL: SELECT i, t, a FROM public.t2 WHERE ((i = 2))
+   Node: post_svr / Status: Alive
+     Remote SQL: SELECT i, t, a FROM public.t2 WHERE ((i = 2))
+   Node: post_svr / Status: Alive
+     Remote SQL: SELECT i, t, a FROM public.t2 WHERE ((i = 2))
+   Node: post_svr / Status: Alive
+     Remote SQL: SELECT i, t, a FROM public.t2 WHERE ((i = 2))
+   Node: post_svr / Status: Alive
+     Remote SQL: SELECT i, t, a FROM public.t2 WHERE ((i = 2))
 (11 rows)
 
 SELECT * FROM t2 WHERE i=2 AND random() < 2.0;
