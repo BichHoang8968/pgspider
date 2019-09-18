@@ -1473,7 +1473,7 @@ RESCAN:
 
 				/*
 				 * need deep copy when adding slot to queue because tuples
-				 * SPI_execAgg returns is not allocated by tuplectx[ctx_idx]
+				 * SPI_execAgg returns are not allocated by tuplectx[ctx_idx]
 				 */
 				deepcopy = true;
 			}
@@ -1483,10 +1483,16 @@ RESCAN:
 				slot = fssthrdInfo->fdwroutine->IterateForeignScan(fssthrdInfo->fsstate);
 				SPD_RWUNLOCK_CATCH(&scan_mutex);
 
+				deepcopy = true;
 				/*
-				 * tuplectx[ctx_idx] has long life time
+				 * Deep copy can be skipped if that fdw allocate tuples in
+				 * CurrentMemoryContext. postgres_fdw needs deep copy because
+				 * it creates contexts and allocate tuples on it, which may be
+				 * shorter life than above tuplectx[ctx_idx].
 				 */
-				deepcopy = false;
+				if (strcmp(fssthrdInfo->fdw->fdwname, "avro_fdw") == 0)
+					deepcopy = false;
+
 
 			}
 
@@ -1497,6 +1503,7 @@ RESCAN:
 			}
 			while (1)
 			{
+
 				success = spd_queue_add(&fssthrdInfo->tupleQueue, slot, deepcopy);
 				if (success)
 					break;
@@ -3114,6 +3121,7 @@ spd_ExplainForeignScan(ForeignScanState *node,
 		PG_TRY();
 		{
 			int			idx;
+
 			ExplainPropertyText(psprintf("Node: %s / Status", fs->servername),
 								SpdServerstatusStr[childinfo[i].child_node_status], es);
 			es->indent++;
