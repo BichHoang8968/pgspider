@@ -241,13 +241,13 @@ ALTER FOREIGN TABLE ft2 OPTIONS (use_remote_estimate 'true');
 -- ===================================================================
 -- single table without alias
 EXPLAIN (COSTS OFF) SELECT * FROM ft1 ORDER BY c3, c1 OFFSET 100 LIMIT 10;
-                     QUERY PLAN                      
------------------------------------------------------
+                    QUERY PLAN                    
+--------------------------------------------------
  Limit
    ->  Sort
          Sort Key: c3, c1
          ->  Foreign Scan on ft1
-                * Node: postgres_srv / Status: Alive
+               Node: postgres_srv / Status: Alive
 (5 rows)
 
 SELECT * FROM ft1 ORDER BY c3, c1 OFFSET 100 LIMIT 10;
@@ -267,8 +267,8 @@ SELECT * FROM ft1 ORDER BY c3, c1 OFFSET 100 LIMIT 10;
 
 -- single table with alias - also test that tableoid sort is not pushed to remote side
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 ORDER BY t1.c3, t1.c1, t1.tableoid OFFSET 100 LIMIT 10;
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
  Limit
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url, tableoid
    ->  Sort
@@ -276,8 +276,8 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 ORDER BY t1.c3, t1.c1, t1.tabl
          Sort Key: t1.c3, t1.c1, t1.tableoid
          ->  Foreign Scan on public.ft1 t1
                Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url, tableoid
-                * Node: postgres_srv / Status: Alive
-               Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
 (9 rows)
 
 SELECT * FROM ft1 t1 ORDER BY t1.c3, t1.c1, t1.tableoid OFFSET 100 LIMIT 10;
@@ -306,12 +306,12 @@ SELECT * FROM ft1 WHERE false;
 
 -- with WHERE clause
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE t1.c1 = 101 AND t1.c6 = '1' AND t1.c7 >= '1';
-                                                                   QUERY PLAN                                                                   
-------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                    QUERY PLAN                                                                    
+--------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE ((c7 >= '1'::bpchar)) AND (("C 1" = 101)) AND ((c6 = '1'::text))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE ((c7 >= '1'::bpchar)) AND (("C 1" = 101)) AND ((c6 = '1'::text))
 (4 rows)
 
 SELECT * FROM ft1 t1 WHERE t1.c1 = 101 AND t1.c6 = '1' AND t1.c7 >= '1';
@@ -476,112 +476,112 @@ RESET enable_nestloop;
 -- WHERE with remotely-executable conditions
 -- ===================================================================
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE t1.c1 = 1;         -- Var, OpExpr(b), Const
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
 (4 rows)
 
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE t1.c1 = 100 AND t1.c2 = 0; -- BoolExpr
-                                                  QUERY PLAN                                                  
---------------------------------------------------------------------------------------------------------------
+                                                   QUERY PLAN                                                   
+----------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 100)) AND ((c2 = 0))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 100)) AND ((c2 = 0))
 (4 rows)
 
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c1 IS NULL;        -- NullTest
-                                           QUERY PLAN                                            
--------------------------------------------------------------------------------------------------
+                                            QUERY PLAN                                             
+---------------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" IS NULL))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" IS NULL))
 (4 rows)
 
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c1 IS NOT NULL;    -- NullTest
-                                             QUERY PLAN                                              
------------------------------------------------------------------------------------------------------
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" IS NOT NULL))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" IS NOT NULL))
 (4 rows)
 
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE round(abs(c1), 0) = 1; -- FuncExpr
-                                                     QUERY PLAN                                                      
----------------------------------------------------------------------------------------------------------------------
+                                                      QUERY PLAN                                                       
+-----------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE ((round(abs("C 1"), 0) = 1::numeric))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE ((round(abs("C 1"), 0) = 1::numeric))
 (4 rows)
 
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c1 = -c1;          -- OpExpr(l)
-                                             QUERY PLAN                                              
------------------------------------------------------------------------------------------------------
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = (- "C 1")))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = (- "C 1")))
 (4 rows)
 
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE 1 = c1!;           -- OpExpr(r)
-                                                QUERY PLAN                                                
-----------------------------------------------------------------------------------------------------------
+                                                 QUERY PLAN                                                 
+------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE ((1::numeric = ("C 1" !)))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE ((1::numeric = ("C 1" !)))
 (4 rows)
 
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE (c1 IS NOT NULL) IS DISTINCT FROM (c1 IS NOT NULL); -- DistinctExpr
-                                                                 QUERY PLAN                                                                 
---------------------------------------------------------------------------------------------------------------------------------------------
+                                                                  QUERY PLAN                                                                  
+----------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE ((("C 1" IS NOT NULL) IS DISTINCT FROM ("C 1" IS NOT NULL)))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE ((("C 1" IS NOT NULL) IS DISTINCT FROM ("C 1" IS NOT NULL)))
 (4 rows)
 
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c1 = ANY(ARRAY[c2, 1, c1 + 0]); -- ScalarArrayOpExpr
-                                                        QUERY PLAN                                                         
----------------------------------------------------------------------------------------------------------------------------
+                                                         QUERY PLAN                                                          
+-----------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = ANY (ARRAY[c2, 1, ("C 1" + 0)])))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = ANY (ARRAY[c2, 1, ("C 1" + 0)])))
 (4 rows)
 
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c1 = (ARRAY[c1,c2,3])[1]; -- ArrayRef
-                                                      QUERY PLAN                                                      
-----------------------------------------------------------------------------------------------------------------------
+                                                       QUERY PLAN                                                       
+------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = ((ARRAY["C 1", c2, 3])[1])))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = ((ARRAY["C 1", c2, 3])[1])))
 (4 rows)
 
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c6 = E'foo''s\\bar';  -- check special chars
-                                                 QUERY PLAN                                                  
--------------------------------------------------------------------------------------------------------------
+                                                  QUERY PLAN                                                   
+---------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE ((c6 = E'foo''s\\bar'::text))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE ((c6 = E'foo''s\\bar'::text))
 (4 rows)
 
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c8 = 'foo';  -- can't be sent to remote
-                               QUERY PLAN                                
--------------------------------------------------------------------------
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
    Filter: (t1.c8 = 'foo'::user_enum)
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
 (5 rows)
 
 -- parameterized remote path for foreign table
@@ -710,28 +710,28 @@ WHERE a.c2 = 6 AND b.c1 = a.c1 AND a.c8 = 'foo' AND b.c7 = upper(a.c7);
 -- collations
 EXPLAIN (VERBOSE, COSTS OFF)
 	SELECT * FROM ft2 ORDER BY ft2.c1, random();
-                                  QUERY PLAN                                   
--------------------------------------------------------------------------------
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
  Sort
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url, (random())
    Sort Key: ft2.c1, (random())
    ->  Foreign Scan on public.ft2
          Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url, random()
-          * Node: postgres_srv / Status: Alive
-         Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+         Node: postgres_srv / Status: Alive
+           Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
 (7 rows)
 
 EXPLAIN (VERBOSE, COSTS OFF)
 	SELECT * FROM ft2 ORDER BY ft2.c1, ft2.c3 collate "C";
-                                  QUERY PLAN                                   
--------------------------------------------------------------------------------
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
  Sort
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url, ((c3)::text)
    Sort Key: ft2.c1, ft2.c3 COLLATE "C"
    ->  Foreign Scan on public.ft2
          Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url, c3
-          * Node: postgres_srv / Status: Alive
-         Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+         Node: postgres_srv / Status: Alive
+           Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
 (7 rows)
 
 -- user-defined operator/function
@@ -749,14 +749,14 @@ CREATE OPERATOR === (
 -- built-in operators and functions can be shipped for remote execution
 EXPLAIN (VERBOSE, COSTS OFF)
   SELECT count(c3) FROM ft1 t1 WHERE t1.c1 = abs(t1.c2);
-                                QUERY PLAN                                 
----------------------------------------------------------------------------
+                                 QUERY PLAN                                  
+-----------------------------------------------------------------------------
  Foreign Scan
    Output: (count(c3))
-    * Node: postgres_srv / Status: Alive
-   Agg push-down: yes
-   Relations: Aggregate on (public.ft1__postgres_srv__0)
-   Remote SQL: SELECT count(c3) FROM "S 1"."T 1" WHERE (("C 1" = abs(c2)))
+   Node: postgres_srv / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.ft1__postgres_srv__0)
+     Remote SQL: SELECT count(c3) FROM "S 1"."T 1" WHERE (("C 1" = abs(c2)))
 (6 rows)
 
 SELECT count(c3) FROM ft1 t1 WHERE t1.c1 = abs(t1.c2);
@@ -767,14 +767,14 @@ SELECT count(c3) FROM ft1 t1 WHERE t1.c1 = abs(t1.c2);
 
 EXPLAIN (VERBOSE, COSTS OFF)
   SELECT count(c3) FROM ft1 t1 WHERE t1.c1 = t1.c2;
-                              QUERY PLAN                              
-----------------------------------------------------------------------
+                               QUERY PLAN                               
+------------------------------------------------------------------------
  Foreign Scan
    Output: (count(c3))
-    * Node: postgres_srv / Status: Alive
-   Agg push-down: yes
-   Relations: Aggregate on (public.ft1__postgres_srv__0)
-   Remote SQL: SELECT count(c3) FROM "S 1"."T 1" WHERE (("C 1" = c2))
+   Node: postgres_srv / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.ft1__postgres_srv__0)
+     Remote SQL: SELECT count(c3) FROM "S 1"."T 1" WHERE (("C 1" = c2))
 (6 rows)
 
 SELECT count(c3) FROM ft1 t1 WHERE t1.c1 = t1.c2;
@@ -786,29 +786,29 @@ SELECT count(c3) FROM ft1 t1 WHERE t1.c1 = t1.c2;
 -- by default, user-defined ones cannot
 EXPLAIN (VERBOSE, COSTS OFF)
   SELECT count(c3) FROM ft1 t1 WHERE t1.c1 = postgres_fdw_abs(t1.c2);
-                        QUERY PLAN                         
------------------------------------------------------------
+                         QUERY PLAN                          
+-------------------------------------------------------------
  Aggregate
    Output: count(c3)
    ->  Foreign Scan on public.ft1 t1
          Output: c3
          Filter: (t1.c1 = postgres_fdw_abs(t1.c2))
-          * Node: postgres_srv / Status: Alive
-         Remote SQL: SELECT "C 1", c2, c3 FROM "S 1"."T 1"
+         Node: postgres_srv / Status: Alive
+           Remote SQL: SELECT "C 1", c2, c3 FROM "S 1"."T 1"
 (7 rows)
 
 -- SELECT count(c3) FROM ft1 t1 WHERE t1.c1 = postgres_fdw_abs(t1.c2);
 EXPLAIN (VERBOSE, COSTS OFF)
   SELECT count(c3) FROM ft1 t1 WHERE t1.c1 === t1.c2;
-                        QUERY PLAN                         
------------------------------------------------------------
+                         QUERY PLAN                          
+-------------------------------------------------------------
  Aggregate
    Output: count(c3)
    ->  Foreign Scan on public.ft1 t1
          Output: c3
          Filter: (t1.c1 === t1.c2)
-          * Node: postgres_srv / Status: Alive
-         Remote SQL: SELECT "C 1", c2, c3 FROM "S 1"."T 1"
+         Node: postgres_srv / Status: Alive
+           Remote SQL: SELECT "C 1", c2, c3 FROM "S 1"."T 1"
 (7 rows)
 
 -- SELECT count(c3) FROM ft1 t1 WHERE t1.c1 === t1.c2;
@@ -819,27 +819,27 @@ ALTER SERVER postgres_srv OPTIONS (ADD extensions 'postgres_fdw');
 -- ... now they can be shipped
 EXPLAIN (VERBOSE, COSTS OFF)
   SELECT count(c3) FROM ft1 t1 WHERE t1.c1 = postgres_fdw_abs(t1.c2);
-                                          QUERY PLAN                                           
------------------------------------------------------------------------------------------------
+                                           QUERY PLAN                                            
+-------------------------------------------------------------------------------------------------
  Foreign Scan
    Output: (count(c3))
-    * Node: postgres_srv / Status: Alive
-   Agg push-down: yes
-   Relations: Aggregate on (public.ft1__postgres_srv__0)
-   Remote SQL: SELECT count(c3) FROM "S 1"."T 1" WHERE (("C 1" = public.postgres_fdw_abs(c2)))
+   Node: postgres_srv / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.ft1__postgres_srv__0)
+     Remote SQL: SELECT count(c3) FROM "S 1"."T 1" WHERE (("C 1" = public.postgres_fdw_abs(c2)))
 (6 rows)
 
 -- SELECT count(c3) FROM ft1 t1 WHERE t1.c1 = postgres_fdw_abs(t1.c2);
 EXPLAIN (VERBOSE, COSTS OFF)
   SELECT count(c3) FROM ft1 t1 WHERE t1.c1 === t1.c2;
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
+                                        QUERY PLAN                                         
+-------------------------------------------------------------------------------------------
  Foreign Scan
    Output: (count(c3))
-    * Node: postgres_srv / Status: Alive
-   Agg push-down: yes
-   Relations: Aggregate on (public.ft1__postgres_srv__0)
-   Remote SQL: SELECT count(c3) FROM "S 1"."T 1" WHERE (("C 1" OPERATOR(public.===) c2))
+   Node: postgres_srv / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.ft1__postgres_srv__0)
+     Remote SQL: SELECT count(c3) FROM "S 1"."T 1" WHERE (("C 1" OPERATOR(public.===) c2))
 (6 rows)
 
 -- SELECT count(c3) FROM ft1 t1 WHERE t1.c1 === t1.c2;
@@ -929,8 +929,8 @@ SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 LEFT JOIN ft2 t2 ON (t1.c1 = t2.c1) LEFT 
 -- non-nullable side is pushed into non-nullable side
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t1.c2, t2.c1, t2.c2 FROM ft4 t1 LEFT JOIN (SELECT * FROM ft5 WHERE c1 < 10) t2 ON (t1.c1 = t2.c1) WHERE t1.c1 < 10;
-                                 QUERY PLAN                                 
-----------------------------------------------------------------------------
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
  Merge Left Join
    Output: t1.c1, t1.c2, ft5.c1, ft5.c2
    Merge Cond: (t1.c1 = ft5.c1)
@@ -939,15 +939,15 @@ SELECT t1.c1, t1.c2, t2.c1, t2.c2 FROM ft4 t1 LEFT JOIN (SELECT * FROM ft5 WHERE
          Sort Key: t1.c1
          ->  Foreign Scan on public.ft4 t1
                Output: t1.c1, t1.c2
-                * Node: postgres_srv / Status: Alive
-               Remote SQL: SELECT c1, c2 FROM "S 1"."T 3" WHERE ((c1 < 10))
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT c1, c2 FROM "S 1"."T 3" WHERE ((c1 < 10))
    ->  Sort
          Output: ft5.c1, ft5.c2
          Sort Key: ft5.c1
          ->  Foreign Scan on public.ft5
                Output: ft5.c1, ft5.c2
-                * Node: postgres_srv / Status: Alive
-               Remote SQL: SELECT c1, c2 FROM "S 1"."T 4" WHERE ((c1 < 10))
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT c1, c2 FROM "S 1"."T 4" WHERE ((c1 < 10))
 (17 rows)
 
 SELECT t1.c1, t1.c2, t2.c1, t2.c2 FROM ft4 t1 LEFT JOIN (SELECT * FROM ft5 WHERE c1 < 10) t2 ON (t1.c1 = t2.c1) WHERE t1.c1 < 10;
@@ -1342,8 +1342,8 @@ SELECT t1.c1 FROM ft1 t1 WHERE NOT EXISTS (SELECT 1 FROM ft2 t2 WHERE t1.c1 = t2
 -- CROSS JOIN, not pushed down
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c1 FROM ft1 t1 CROSS JOIN ft2 t2 ORDER BY t1.c1, t2.c1 OFFSET 100 LIMIT 10;
-                             QUERY PLAN                              
----------------------------------------------------------------------
+                              QUERY PLAN                               
+-----------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c1
    ->  Sort
@@ -1353,14 +1353,14 @@ SELECT t1.c1, t2.c1 FROM ft1 t1 CROSS JOIN ft2 t2 ORDER BY t1.c1, t2.c1 OFFSET 1
                Output: t1.c1, t2.c1
                ->  Foreign Scan on public.ft1 t1
                      Output: t1.c1
-                      * Node: postgres_srv / Status: Alive
-                     Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
+                     Node: postgres_srv / Status: Alive
+                       Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
                ->  Materialize
                      Output: t2.c1
                      ->  Foreign Scan on public.ft2 t2
                            Output: t2.c1
-                            * Node: postgres_srv / Status: Alive
-                           Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
+                           Node: postgres_srv / Status: Alive
+                             Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
 (17 rows)
 
 SELECT t1.c1, t2.c1 FROM ft1 t1 CROSS JOIN ft2 t2 ORDER BY t1.c1, t2.c1 OFFSET 100 LIMIT 10;
@@ -1394,8 +1394,8 @@ SELECT t1.c1, t2.c1 FROM ft5 t1 JOIN ft6 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t
 -- unsafe conditions on one side (c8 has a UDT), not pushed down.
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c1 FROM ft1 t1 LEFT JOIN ft2 t2 ON (t1.c1 = t2.c1) WHERE t1.c8 = 'foo' ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
-                                 QUERY PLAN                                  
------------------------------------------------------------------------------
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c1, t1.c3
    ->  Sort
@@ -1406,15 +1406,15 @@ SELECT t1.c1, t2.c1 FROM ft1 t1 LEFT JOIN ft2 t2 ON (t1.c1 = t2.c1) WHERE t1.c8 
                Hash Cond: (t2.c1 = t1.c1)
                ->  Foreign Scan on public.ft2 t2
                      Output: t2.c1
-                      * Node: postgres_srv / Status: Alive
-                     Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
+                     Node: postgres_srv / Status: Alive
+                       Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
                ->  Hash
                      Output: t1.c1, t1.c3
                      ->  Foreign Scan on public.ft1 t1
                            Output: t1.c1, t1.c3
                            Filter: (t1.c8 = 'foo'::user_enum)
-                            * Node: postgres_srv / Status: Alive
-                           Remote SQL: SELECT "C 1", c3, c8 FROM "S 1"."T 1"
+                           Node: postgres_srv / Status: Alive
+                             Remote SQL: SELECT "C 1", c3, c8 FROM "S 1"."T 1"
 (19 rows)
 
 SELECT t1.c1, t2.c1 FROM ft1 t1 LEFT JOIN ft2 t2 ON (t1.c1 = t2.c1) WHERE t1.c8 = 'foo' ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
@@ -1608,17 +1608,17 @@ select count(*), sum(t1.c1), avg(t2.c1) from ft1 t1 inner join ft1 t2 on (t1.c2 
 -- GROUP BY clause having expressions
 explain (verbose, costs off)
 select c2/2, sum(c2) * (c2/2) from ft1 group by c2/2 order by c2/2;
-                                      QUERY PLAN                                       
----------------------------------------------------------------------------------------
+                                       QUERY PLAN                                        
+-----------------------------------------------------------------------------------------
  Sort
    Output: ((c2 / 2)), ((sum(c2) * (c2 / 2)))
    Sort Key: ((ft1.c2 / 2))
    ->  Foreign Scan
          Output: ((c2 / 2)), ((sum(c2) * (c2 / 2)))
-          * Node: postgres_srv / Status: Alive
-         Agg push-down: yes
-         Relations: Aggregate on (public.ft1__postgres_srv__0)
-         Remote SQL: SELECT (c2 / 2), (sum(c2) * (c2 / 2)) FROM "S 1"."T 1" GROUP BY 1
+         Node: postgres_srv / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.ft1__postgres_srv__0)
+           Remote SQL: SELECT (c2 / 2), (sum(c2) * (c2 / 2)) FROM "S 1"."T 1" GROUP BY 1
 (9 rows)
 
 select c2/2, sum(c2) * (c2/2) from ft1 group by c2/2 order by c2/2;
@@ -1634,8 +1634,8 @@ select c2/2, sum(c2) * (c2/2) from ft1 group by c2/2 order by c2/2;
 -- Aggregates in subquery are pushed down.
 explain (verbose, costs off)
 select count(x.a), sum(x.a) from (select c2 a, sum(c1) b from ft1 group by c2, sqrt(c1) order by 1, 2) x;
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
  Aggregate
    Output: count(ft1.c2), sum(ft1.c2)
    ->  Sort
@@ -1643,10 +1643,10 @@ select count(x.a), sum(x.a) from (select c2 a, sum(c1) b from ft1 group by c2, s
          Sort Key: ft1.c2, (sum(ft1.c1))
          ->  Foreign Scan
                Output: ft1.c2, (sum(ft1.c1)), (sqrt((ft1.c1)::double precision))
-                * Node: postgres_srv / Status: Alive
-               Agg push-down: yes
-               Relations: Aggregate on (public.ft1__postgres_srv__0)
-               Remote SQL: SELECT c2, sum("C 1"), sqrt("C 1") FROM "S 1"."T 1" GROUP BY 1, 3
+               Node: postgres_srv / Status: Alive
+                 Agg push-down: yes
+                 Relations: Aggregate on (public.ft1__postgres_srv__0)
+                 Remote SQL: SELECT c2, sum("C 1"), sqrt("C 1") FROM "S 1"."T 1" GROUP BY 1, 3
 (11 rows)
 
 select count(x.a), sum(x.a) from (select c2 a, sum(c1) b from ft1 group by c2, sqrt(c1) order by 1, 2) x;
@@ -1665,10 +1665,10 @@ select c2 * (random() <= 1)::int as sum1, sum(c1) * c2 as sum2 from ft1 group by
    Sort Key: ((ft1.c2 * ((random() <= '1'::double precision))::integer)), ((sum(ft1.c1) * ft1.c2))
    ->  Foreign Scan
          Output: ((c2 * ((random() <= '1'::double precision))::integer)), ((sum(c1) * c2)), c2
-          * Node: postgres_srv / Status: Alive
-         Agg push-down: yes
-         Relations: Aggregate on (public.ft1__postgres_srv__0)
-         Remote SQL: SELECT (sum("C 1") * c2), c2 FROM "S 1"."T 1" GROUP BY 2
+         Node: postgres_srv / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.ft1__postgres_srv__0)
+           Remote SQL: SELECT (sum("C 1") * c2), c2 FROM "S 1"."T 1" GROUP BY 2
 (9 rows)
 
 -- select c2 * (random() <= 1)::int as sum1, sum(c1) * c2 as sum2 from ft1 group by c2 order by 1, 2;
@@ -1685,24 +1685,24 @@ select c2 * (random() <= 1)::int as c2 from ft2 group by c2 * (random() <= 1)::i
          Group Key: (ft2.c2 * ((random() <= '1'::double precision))::integer)
          ->  Foreign Scan on public.ft2
                Output: (c2 * ((random() <= '1'::double precision))::integer)
-                * Node: postgres_srv / Status: Alive
-               Remote SQL: SELECT c2 FROM "S 1"."T 1"
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT c2 FROM "S 1"."T 1"
 (10 rows)
 
 -- GROUP BY clause in various forms, cardinal, alias and constant expression
 explain (verbose, costs off)
 select count(c2) w, c2 x, 5 y, 7.0 z from ft1 group by 2, y, 9.0::int order by 2;
-                                      QUERY PLAN                                       
----------------------------------------------------------------------------------------
+                                       QUERY PLAN                                        
+-----------------------------------------------------------------------------------------
  Sort
    Output: (count(c2)), c2, 5, 7.0, 9
    Sort Key: ft1.c2
    ->  Foreign Scan
          Output: (count(c2)), c2, 5, 7.0, 9
-          * Node: postgres_srv / Status: Alive
-         Agg push-down: yes
-         Relations: Aggregate on (public.ft1__postgres_srv__0)
-         Remote SQL: SELECT count(c2), c2, 5, 7.0, 9 FROM "S 1"."T 1" GROUP BY 2, 3, 5
+         Node: postgres_srv / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.ft1__postgres_srv__0)
+           Remote SQL: SELECT count(c2), c2, 5, 7.0, 9 FROM "S 1"."T 1" GROUP BY 2, 3, 5
 (9 rows)
 
 -- select count(c2) w, c2 x, 5 y, 7.0 z from ft1 group by 2, y, 9.0::int order by 2;
@@ -1714,17 +1714,17 @@ select count(c2) w, c2 x, 5 y, 7.0 z from ft1 group by 2, y, 9.0::int order by 2
 -- Testing HAVING clause shippability
 explain (verbose, costs off)
 select c2, sum(c1) from ft2 group by c2 having avg(c1) < 500 and sum(c1) < 49800 order by c2;
-                                                              QUERY PLAN                                                               
----------------------------------------------------------------------------------------------------------------------------------------
+                                                               QUERY PLAN                                                                
+-----------------------------------------------------------------------------------------------------------------------------------------
  Sort
    Output: c2, (sum(c1))
    Sort Key: ft2.c2
    ->  Foreign Scan
          Output: c2, (sum(c1))
-          * Node: postgres_srv / Status: Alive
-         Agg push-down: yes
-         Relations: Aggregate on (public.ft2__postgres_srv__0)
-         Remote SQL: SELECT c2, sum("C 1") FROM "S 1"."T 1" GROUP BY 1 HAVING ((avg("C 1") < 500::numeric)) AND ((sum("C 1") < 49800))
+         Node: postgres_srv / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.ft2__postgres_srv__0)
+           Remote SQL: SELECT c2, sum("C 1") FROM "S 1"."T 1" GROUP BY 1 HAVING ((avg("C 1") < 500::numeric)) AND ((sum("C 1") < 49800))
 (9 rows)
 
 select c2, sum(c1) from ft2 group by c2 having avg(c1) < 500 and sum(c1) < 49800 order by c2;
@@ -1737,16 +1737,16 @@ select c2, sum(c1) from ft2 group by c2 having avg(c1) < 500 and sum(c1) < 49800
 -- Unshippable HAVING clause will be evaluated locally, and other qual in HAVING clause is pushed down
 explain (verbose, costs off)
 select count(*) from (select c5, count(c1) from ft1 group by c5, sqrt(c2) having (avg(c1) / avg(c1)) * random() <= 1 and avg(c1) < 500) x;
-                                                              QUERY PLAN                                                               
----------------------------------------------------------------------------------------------------------------------------------------
+                                                               QUERY PLAN                                                                
+-----------------------------------------------------------------------------------------------------------------------------------------
  Aggregate
    Output: count(*)
    ->  Foreign Scan
          Output: ft1.c5, NULL::bigint, (sqrt((ft1.c2)::double precision))
-          * Node: postgres_srv / Status: Alive
-         Agg push-down: yes
-         Relations: Aggregate on (public.ft1__postgres_srv__0)
-         Remote SQL: SELECT c5, NULL::bigint, sqrt(c2), avg("C 1") FROM "S 1"."T 1" GROUP BY 1, 3 HAVING ((avg("C 1") < 500::numeric))
+         Node: postgres_srv / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.ft1__postgres_srv__0)
+           Remote SQL: SELECT c5, NULL::bigint, sqrt(c2), avg("C 1") FROM "S 1"."T 1" GROUP BY 1, 3 HAVING ((avg("C 1") < 500::numeric))
 (8 rows)
 
 -- select count(*) from (select c5, count(c1) from ft1 group by c5, sqrt(c2) having (avg(c1) / avg(c1)) * random() <= 1 and avg(c1) < 500) x;
@@ -1757,14 +1757,14 @@ select count(*) from (select c5, count(c1) from ft1 group by c5, sqrt(c2) having
 -- of an initplan) can be trouble, per bug #15781
 explain (verbose, costs off)
 select exists(select 1 from pg_enum), sum(c1) from ft1;
-                       QUERY PLAN                        
----------------------------------------------------------
+                        QUERY PLAN                         
+-----------------------------------------------------------
  Foreign Scan
    Output: ($0), (sum(ft1.c1))
-    * Node: postgres_srv / Status: Alive
-   Agg push-down: yes
-   Relations: Aggregate on (public.ft1__postgres_srv__0)
-   Remote SQL: SELECT sum("C 1") FROM "S 1"."T 1"
+   Node: postgres_srv / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.ft1__postgres_srv__0)
+     Remote SQL: SELECT sum("C 1") FROM "S 1"."T 1"
    InitPlan 1 (returns $0)
      ->  Seq Scan on pg_catalog.pg_enum
 (8 rows)
@@ -1772,8 +1772,8 @@ select exists(select 1 from pg_enum), sum(c1) from ft1;
 -- select exists(select 1 from pg_enum), sum(c1) from ft1;
 explain (verbose, costs off)
 select exists(select 1 from pg_enum), sum(c1) from ft1 group by 1;
-                    QUERY PLAN                     
----------------------------------------------------
+                     QUERY PLAN                      
+-----------------------------------------------------
  GroupAggregate
    Output: ($0), sum(ft1.c1)
    Group Key: $0
@@ -1781,8 +1781,8 @@ select exists(select 1 from pg_enum), sum(c1) from ft1 group by 1;
      ->  Seq Scan on pg_catalog.pg_enum
    ->  Foreign Scan on public.ft1
          Output: $0, ft1.c1
-          * Node: postgres_srv / Status: Alive
-         Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
+         Node: postgres_srv / Status: Alive
+           Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
 (9 rows)
 
 select exists(select 1 from pg_enum), sum(c1) from ft1 group by 1;
@@ -1795,31 +1795,31 @@ select exists(select 1 from pg_enum), sum(c1) from ft1 group by 1;
 -- ORDER BY within aggregate, same column used to order
 explain (verbose, costs off)
 select array_agg(c1 order by c1) from ft1 where c1 < 100 group by c2 order by 1;
-                                                           QUERY PLAN                                                            
----------------------------------------------------------------------------------------------------------------------------------
+                                                            QUERY PLAN                                                             
+-----------------------------------------------------------------------------------------------------------------------------------
  Sort
    Output: (array_agg(c1 ORDER BY c1)), c2
    Sort Key: (array_agg(ft1.c1 ORDER BY ft1.c1))
    ->  Foreign Scan
          Output: (array_agg(c1 ORDER BY c1)), c2
-          * Node: postgres_srv / Status: Alive
-         Agg push-down: yes
-         Relations: Aggregate on (public.ft1__postgres_srv__0)
-         Remote SQL: SELECT array_agg("C 1" ORDER BY "C 1" ASC NULLS LAST), c2 FROM "S 1"."T 1" WHERE (("C 1" < 100)) GROUP BY 2
+         Node: postgres_srv / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.ft1__postgres_srv__0)
+           Remote SQL: SELECT array_agg("C 1" ORDER BY "C 1" ASC NULLS LAST), c2 FROM "S 1"."T 1" WHERE (("C 1" < 100)) GROUP BY 2
 (9 rows)
 
 -- select array_agg(c1 order by c1) from ft1 where c1 < 100 group by c2 order by 1;
 -- ORDER BY within aggregate, different column used to order also using DESC
 explain (verbose, costs off)
 select array_agg(c5 order by c1 desc) from ft2 where c2 = 6 and c1 < 50;
-                                                       QUERY PLAN                                                        
--------------------------------------------------------------------------------------------------------------------------
+                                                        QUERY PLAN                                                         
+---------------------------------------------------------------------------------------------------------------------------
  Foreign Scan
    Output: (array_agg(c5 ORDER BY c1 DESC))
-    * Node: postgres_srv / Status: Alive
-   Agg push-down: yes
-   Relations: Aggregate on (public.ft2__postgres_srv__0)
-   Remote SQL: SELECT array_agg(c5 ORDER BY "C 1" DESC NULLS FIRST) FROM "S 1"."T 1" WHERE (("C 1" < 50)) AND ((c2 = 6))
+   Node: postgres_srv / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.ft2__postgres_srv__0)
+     Remote SQL: SELECT array_agg(c5 ORDER BY "C 1" DESC NULLS FIRST) FROM "S 1"."T 1" WHERE (("C 1" < 50)) AND ((c2 = 6))
 (6 rows)
 
 -- select array_agg(c5 order by c1 desc) from ft2 where c2 = 6 and c1 < 50;
@@ -1855,17 +1855,17 @@ select array_agg(distinct (t1.c1)%5 order by (t1.c1)%5 desc nulls last) from ft4
 -- FILTER within aggregate
 explain (verbose, costs off)
 select sum(c1) filter (where c1 < 100 and c2 > 5) from ft1 group by c2 order by 1 nulls last;
-                                                    QUERY PLAN                                                     
--------------------------------------------------------------------------------------------------------------------
+                                                     QUERY PLAN                                                      
+---------------------------------------------------------------------------------------------------------------------
  Sort
    Output: (sum(c1) FILTER (WHERE ((c1 < 100) AND (c2 > 5)))), c2
    Sort Key: (sum(ft1.c1) FILTER (WHERE ((ft1.c1 < 100) AND (ft1.c2 > 5))))
    ->  Foreign Scan
          Output: (sum(c1) FILTER (WHERE ((c1 < 100) AND (c2 > 5)))), c2
-          * Node: postgres_srv / Status: Alive
-         Agg push-down: yes
-         Relations: Aggregate on (public.ft1__postgres_srv__0)
-         Remote SQL: SELECT sum("C 1") FILTER (WHERE (("C 1" < 100) AND (c2 > 5))), c2 FROM "S 1"."T 1" GROUP BY 2
+         Node: postgres_srv / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.ft1__postgres_srv__0)
+           Remote SQL: SELECT sum("C 1") FILTER (WHERE (("C 1" < 100) AND (c2 > 5))), c2 FROM "S 1"."T 1" GROUP BY 2
 (9 rows)
 
 select sum(c1) filter (where c1 < 100 and c2 > 5) from ft1 group by c2 order by 1 nulls last;
@@ -1886,14 +1886,14 @@ select sum(c1) filter (where c1 < 100 and c2 > 5) from ft1 group by c2 order by 
 -- DISTINCT, ORDER BY and FILTER within aggregate
 explain (verbose, costs off)
 select sum(c1%3), sum(distinct c1%3 order by c1%3) filter (where c1%3 < 2), c2 from ft1 where c2 = 6 group by c2;
-                                                                                        QUERY PLAN                                                                                        
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                         QUERY PLAN                                                                                         
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan
    Output: (sum((c1 % 3))), (sum(DISTINCT (c1 % 3) ORDER BY (c1 % 3)) FILTER (WHERE ((c1 % 3) < 2))), c2
-    * Node: postgres_srv / Status: Alive
-   Agg push-down: yes
-   Relations: Aggregate on (public.ft1__postgres_srv__0)
-   Remote SQL: SELECT sum(("C 1" % 3)), sum(DISTINCT ("C 1" % 3) ORDER BY (("C 1" % 3)) ASC NULLS LAST) FILTER (WHERE (("C 1" % 3) < 2)), c2 FROM "S 1"."T 1" WHERE ((c2 = 6)) GROUP BY 3
+   Node: postgres_srv / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.ft1__postgres_srv__0)
+     Remote SQL: SELECT sum(("C 1" % 3)), sum(DISTINCT ("C 1" % 3) ORDER BY (("C 1" % 3)) ASC NULLS LAST) FILTER (WHERE (("C 1" % 3) < 2)), c2 FROM "S 1"."T 1" WHERE ((c2 = 6)) GROUP BY 3
 (6 rows)
 
 select sum(c1%3), sum(distinct c1%3 order by c1%3) filter (where c1%3 < 2), c2 from ft1 where c2 = 6 group by c2;
@@ -1909,8 +1909,8 @@ select sum(c1%3), sum(distinct c1%3 order by c1%3) filter (where c1%3 < 2), c2 f
 -- Inner query is aggregation query
 explain (verbose, costs off)
 select distinct (select count(t1.c1) filter (where t2.c2 = 6 and t2.c1 < 10) from ft1 t1 where t1.c1 = 6) from ft2 t2 where t2.c2 % 6 = 0 order by 1;
-                                                                      QUERY PLAN                                                                      
-------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                       QUERY PLAN                                                                       
+--------------------------------------------------------------------------------------------------------------------------------------------------------
  Unique
    Output: ((SubPlan 1))
    ->  Sort
@@ -1918,15 +1918,15 @@ select distinct (select count(t1.c1) filter (where t2.c2 = 6 and t2.c1 < 10) fro
          Sort Key: ((SubPlan 1))
          ->  Foreign Scan on public.ft2 t2
                Output: (SubPlan 1)
-                * Node: postgres_srv / Status: Alive
-               Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1" WHERE (((c2 % 6) = 0))
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1" WHERE (((c2 % 6) = 0))
                SubPlan 1
                  ->  Foreign Scan
                        Output: (count(t1.c1) FILTER (WHERE ((t2.c2 = 6) AND (t2.c1 < 10))))
-                        * Node: postgres_srv / Status: Alive
-                       Agg push-down: yes
-                       Relations: Aggregate on (public.ft1__postgres_srv__0)
-                       Remote SQL: SELECT count("C 1") FILTER (WHERE (($1::integer = 6) AND ($2::integer < 10))) FROM "S 1"."T 1" WHERE (("C 1" = 6))
+                       Node: postgres_srv / Status: Alive
+                         Agg push-down: yes
+                         Relations: Aggregate on (public.ft1__postgres_srv__0)
+                         Remote SQL: SELECT count("C 1") FILTER (WHERE (($1::integer = 6) AND ($2::integer < 10))) FROM "S 1"."T 1" WHERE (("C 1" = 6))
 (16 rows)
 
 -- select distinct (select count(t1.c1) filter (where t2.c2 = 6 and t2.c1 < 10) from ft1 t1 where t1.c1 = 6) from ft2 t2 where t2.c2 % 6 = 0 order by 1;
@@ -1935,49 +1935,49 @@ select distinct (select count(t1.c1) filter (where t2.c2 = 6 and t2.c1 < 10) fro
 -- select sum(c1) filter (where (c1 / c1) * random() <= 1) from ft1 group by c2 order by 1;
 explain (verbose, costs off)
 select sum(c2) filter (where c2 in (select c2 from ft1 where c2 < 5)) from ft1;
-                            QUERY PLAN                             
--------------------------------------------------------------------
+                             QUERY PLAN                              
+---------------------------------------------------------------------
  Aggregate
    Output: sum(ft1.c2) FILTER (WHERE (hashed SubPlan 1))
    ->  Foreign Scan on public.ft1
          Output: ft1.c2
-          * Node: postgres_srv / Status: Alive
-         Remote SQL: SELECT c2 FROM "S 1"."T 1"
+         Node: postgres_srv / Status: Alive
+           Remote SQL: SELECT c2 FROM "S 1"."T 1"
    SubPlan 1
      ->  Foreign Scan on public.ft1 ft1_1
            Output: ft1_1.c2
-            * Node: postgres_srv / Status: Alive
-           Remote SQL: SELECT c2 FROM "S 1"."T 1" WHERE ((c2 < 5))
+           Node: postgres_srv / Status: Alive
+             Remote SQL: SELECT c2 FROM "S 1"."T 1" WHERE ((c2 < 5))
 (11 rows)
 
 -- Ordered-sets within aggregate
 explain (verbose, costs off)
 select c2, rank('10'::varchar) within group (order by c6), percentile_cont(c2/10::numeric) within group (order by c1) from ft1 where c2 < 10 group by c2 having percentile_cont(c2/10::numeric) within group (order by c1) < 500 order by c2;
-                                                                                                                                                                           QUERY PLAN                                                                                                                                                                           
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                                                                            QUERY PLAN                                                                                                                                                                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Sort
    Output: c2, (rank('10'::character varying) WITHIN GROUP (ORDER BY c6)), (percentile_cont((((c2)::numeric / '10'::numeric))::double precision) WITHIN GROUP (ORDER BY ((c1)::double precision)))
    Sort Key: ft1.c2
    ->  Foreign Scan
          Output: c2, (rank('10'::character varying) WITHIN GROUP (ORDER BY c6)), (percentile_cont((((c2)::numeric / '10'::numeric))::double precision) WITHIN GROUP (ORDER BY ((c1)::double precision)))
-          * Node: postgres_srv / Status: Alive
-         Agg push-down: yes
-         Relations: Aggregate on (public.ft1__postgres_srv__0)
-         Remote SQL: SELECT c2, rank('10'::character varying) WITHIN GROUP (ORDER BY c6 ASC NULLS LAST), percentile_cont((c2 / 10::numeric)) WITHIN GROUP (ORDER BY ("C 1") ASC NULLS LAST) FROM "S 1"."T 1" WHERE ((c2 < 10)) GROUP BY 1 HAVING ((percentile_cont((c2 / 10::numeric)) WITHIN GROUP (ORDER BY ("C 1") ASC NULLS LAST) < 500::double precision))
+         Node: postgres_srv / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.ft1__postgres_srv__0)
+           Remote SQL: SELECT c2, rank('10'::character varying) WITHIN GROUP (ORDER BY c6 ASC NULLS LAST), percentile_cont((c2 / 10::numeric)) WITHIN GROUP (ORDER BY ("C 1") ASC NULLS LAST) FROM "S 1"."T 1" WHERE ((c2 < 10)) GROUP BY 1 HAVING ((percentile_cont((c2 / 10::numeric)) WITHIN GROUP (ORDER BY ("C 1") ASC NULLS LAST) < 500::double precision))
 (9 rows)
 
 -- select c2, rank('10'::varchar) within group (order by c6), percentile_cont(c2/10::numeric) within group (order by c1) from ft1 where c2 < 10 group by c2 having percentile_cont(c2/10::numeric) within group (order by c1) < 500 order by c2;
 -- Using multiple arguments within aggregates
 explain (verbose, costs off)
 select c1, rank(c1, c2) within group (order by c1, c2) from ft1 group by c1, c2 having c1 = 6 order by 1;
-                                                                             QUERY PLAN                                                                             
---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                              QUERY PLAN                                                                              
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan
    Output: c1, (rank(c1, c2) WITHIN GROUP (ORDER BY c1, c2)), c2
-    * Node: postgres_srv / Status: Alive
-   Agg push-down: yes
-   Relations: Aggregate on (public.ft1__postgres_srv__0)
-   Remote SQL: SELECT "C 1", rank("C 1", c2) WITHIN GROUP (ORDER BY "C 1" ASC NULLS LAST, c2 ASC NULLS LAST), c2 FROM "S 1"."T 1" WHERE (("C 1" = 6)) GROUP BY 1, 3
+   Node: postgres_srv / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.ft1__postgres_srv__0)
+     Remote SQL: SELECT "C 1", rank("C 1", c2) WITHIN GROUP (ORDER BY "C 1" ASC NULLS LAST, c2 ASC NULLS LAST), c2 FROM "S 1"."T 1" WHERE (("C 1" = 6)) GROUP BY 1, 3
 (6 rows)
 
 select c1, rank(c1, c2) within group (order by c1, c2) from ft1 group by c1, c2 having c1 = 6 order by 1;
@@ -2005,17 +2005,17 @@ alter server postgres_srv options (set extensions 'postgres_fdw');
 -- Now aggregate will be pushed.  Aggregate will display VARIADIC argument.
 explain (verbose, costs off)
 select c2, least_agg(c1) from ft1 where c2 < 100 group by c2 order by c2;
-                                                      QUERY PLAN                                                       
------------------------------------------------------------------------------------------------------------------------
+                                                       QUERY PLAN                                                        
+-------------------------------------------------------------------------------------------------------------------------
  Sort
    Output: c2, (least_agg(VARIADIC ARRAY[c1]))
    Sort Key: ft1.c2
    ->  Foreign Scan
          Output: c2, (least_agg(VARIADIC ARRAY[c1]))
-          * Node: postgres_srv / Status: Alive
-         Agg push-down: yes
-         Relations: Aggregate on (public.ft1__postgres_srv__0)
-         Remote SQL: SELECT c2, public.least_agg(VARIADIC ARRAY["C 1"]) FROM "S 1"."T 1" WHERE ((c2 < 100)) GROUP BY 1
+         Node: postgres_srv / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.ft1__postgres_srv__0)
+           Remote SQL: SELECT c2, public.least_agg(VARIADIC ARRAY["C 1"]) FROM "S 1"."T 1" WHERE ((c2 < 100)) GROUP BY 1
 (9 rows)
 
 -- select c2, least_agg(c1) from ft1 where c2 < 100 group by c2 order by c2;
@@ -2105,14 +2105,14 @@ select count(t1.c3) from ft2 t1 left join ft2 t2 on (t1.c1 = random() * t2.c2);
          Join Filter: ((t1.c1)::double precision = (random() * (t2.c2)::double precision))
          ->  Foreign Scan on public.ft2 t1
                Output: t1.c3, t1.c1
-                * Node: postgres_srv / Status: Alive
-               Remote SQL: SELECT "C 1", c3 FROM "S 1"."T 1"
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT "C 1", c3 FROM "S 1"."T 1"
          ->  Materialize
                Output: t2.c2
                ->  Foreign Scan on public.ft2 t2
                      Output: t2.c2
-                      * Node: postgres_srv / Status: Alive
-                     Remote SQL: SELECT c2 FROM "S 1"."T 1"
+                     Node: postgres_srv / Status: Alive
+                       Remote SQL: SELECT c2 FROM "S 1"."T 1"
 (15 rows)
 
 -- Subquery in FROM clause having aggregate
@@ -2165,10 +2165,10 @@ select sum(c2) * (random() <= 1)::int as sum from ft1 order by 1;
    Sort Key: ((sum(ft1.c2) * ((random() <= '1'::double precision))::integer))
    ->  Foreign Scan
          Output: ((sum(c2) * ((random() <= '1'::double precision))::integer))
-          * Node: postgres_srv / Status: Alive
-         Agg push-down: yes
-         Relations: Aggregate on (public.ft1__postgres_srv__0)
-         Remote SQL: SELECT sum(c2) FROM "S 1"."T 1"
+         Node: postgres_srv / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.ft1__postgres_srv__0)
+           Remote SQL: SELECT sum(c2) FROM "S 1"."T 1"
 (9 rows)
 
 select sum(c2) * (random() <= 1)::int as sum from ft1 order by 1;
@@ -2220,8 +2220,8 @@ select sum(q.a), count(q.b) from ft4 left join (select 13, avg(ft1.c1), sum(ft2.
 -- Grouping sets
 explain (verbose, costs off)
 select c2, sum(c1) from ft1 where c2 < 3 group by rollup(c2) order by 1 nulls last;
-                                  QUERY PLAN                                  
-------------------------------------------------------------------------------
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
  Sort
    Output: c2, (sum(c1))
    Sort Key: ft1.c2
@@ -2231,8 +2231,8 @@ select c2, sum(c1) from ft1 where c2 < 3 group by rollup(c2) order by 1 nulls la
          Group Key: ()
          ->  Foreign Scan on public.ft1
                Output: c2, c1
-                * Node: postgres_srv / Status: Alive
-               Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1" WHERE ((c2 < 3))
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1" WHERE ((c2 < 3))
 (11 rows)
 
 select c2, sum(c1) from ft1 where c2 < 3 group by rollup(c2) order by 1 nulls last;
@@ -2246,8 +2246,8 @@ select c2, sum(c1) from ft1 where c2 < 3 group by rollup(c2) order by 1 nulls la
 
 explain (verbose, costs off)
 select c2, sum(c1) from ft1 where c2 < 3 group by cube(c2) order by 1 nulls last;
-                                  QUERY PLAN                                  
-------------------------------------------------------------------------------
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
  Sort
    Output: c2, (sum(c1))
    Sort Key: ft1.c2
@@ -2257,8 +2257,8 @@ select c2, sum(c1) from ft1 where c2 < 3 group by cube(c2) order by 1 nulls last
          Group Key: ()
          ->  Foreign Scan on public.ft1
                Output: c2, c1
-                * Node: postgres_srv / Status: Alive
-               Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1" WHERE ((c2 < 3))
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1" WHERE ((c2 < 3))
 (11 rows)
 
 select c2, sum(c1) from ft1 where c2 < 3 group by cube(c2) order by 1 nulls last;
@@ -2272,8 +2272,8 @@ select c2, sum(c1) from ft1 where c2 < 3 group by cube(c2) order by 1 nulls last
 
 explain (verbose, costs off)
 select c2, c6, sum(c1) from ft1 where c2 < 3 group by grouping sets(c2, c6) order by 1 nulls last, 2 nulls last;
-                                    QUERY PLAN                                    
-----------------------------------------------------------------------------------
+                                     QUERY PLAN                                     
+------------------------------------------------------------------------------------
  Sort
    Output: c2, c6, (sum(c1))
    Sort Key: ft1.c2, ft1.c6
@@ -2283,8 +2283,8 @@ select c2, c6, sum(c1) from ft1 where c2 < 3 group by grouping sets(c2, c6) orde
          Hash Key: ft1.c6
          ->  Foreign Scan on public.ft1
                Output: c2, c6, c1
-                * Node: postgres_srv / Status: Alive
-               Remote SQL: SELECT "C 1", c2, c6 FROM "S 1"."T 1" WHERE ((c2 < 3))
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT "C 1", c2, c6 FROM "S 1"."T 1" WHERE ((c2 < 3))
 (11 rows)
 
 select c2, c6, sum(c1) from ft1 where c2 < 3 group by grouping sets(c2, c6) order by 1 nulls last, 2 nulls last;
@@ -2300,8 +2300,8 @@ select c2, c6, sum(c1) from ft1 where c2 < 3 group by grouping sets(c2, c6) orde
 
 explain (verbose, costs off)
 select c2, sum(c1), grouping(c2) from ft1 where c2 < 3 group by c2 order by 1 nulls last;
-                                  QUERY PLAN                                  
-------------------------------------------------------------------------------
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
  Sort
    Output: c2, (sum(c1)), (GROUPING(c2))
    Sort Key: ft1.c2
@@ -2310,8 +2310,8 @@ select c2, sum(c1), grouping(c2) from ft1 where c2 < 3 group by c2 order by 1 nu
          Group Key: ft1.c2
          ->  Foreign Scan on public.ft1
                Output: c2, c1
-                * Node: postgres_srv / Status: Alive
-               Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1" WHERE ((c2 < 3))
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1" WHERE ((c2 < 3))
 (10 rows)
 
 select c2, sum(c1), grouping(c2) from ft1 where c2 < 3 group by c2 order by 1 nulls last;
@@ -2329,8 +2329,8 @@ select c2, sum(c1), grouping(c2) from ft1 where c2 < 3 group by c2 order by 1 nu
 -- WindowAgg
 explain (verbose, costs off)
 select c2, sum(c2), count(c2) over (partition by c2%2) from ft2 where c2 < 10 group by c2 order by 1;
-                                                 QUERY PLAN                                                 
-------------------------------------------------------------------------------------------------------------
+                                                  QUERY PLAN                                                  
+--------------------------------------------------------------------------------------------------------------
  Sort
    Output: c2, (sum(c2)), (count(c2) OVER (?)), ((c2 % 2))
    Sort Key: ft2.c2
@@ -2341,17 +2341,17 @@ select c2, sum(c2), count(c2) over (partition by c2%2) from ft2 where c2 < 10 gr
                Sort Key: ((ft2.c2 % 2))
                ->  Foreign Scan
                      Output: c2, ((c2 % 2)), (sum(c2))
-                      * Node: postgres_srv / Status: Alive
-                     Agg push-down: yes
-                     Relations: Aggregate on (public.ft2__postgres_srv__0)
-                     Remote SQL: SELECT c2, (c2 % 2), sum(c2) FROM "S 1"."T 1" WHERE ((c2 < 10)) GROUP BY 1
+                     Node: postgres_srv / Status: Alive
+                       Agg push-down: yes
+                       Relations: Aggregate on (public.ft2__postgres_srv__0)
+                       Remote SQL: SELECT c2, (c2 % 2), sum(c2) FROM "S 1"."T 1" WHERE ((c2 < 10)) GROUP BY 1
 (14 rows)
 
 -- select c2, sum(c2), count(c2) over (partition by c2%2) from ft2 where c2 < 10 group by c2 order by 1;
 explain (verbose, costs off)
 select c2, array_agg(c2) over (partition by c2%2 order by c2 desc) from ft1 where c2 < 10 group by c2 order by 1;
-                                            QUERY PLAN                                             
----------------------------------------------------------------------------------------------------
+                                             QUERY PLAN                                              
+-----------------------------------------------------------------------------------------------------
  Sort
    Output: c2, (array_agg(c2) OVER (?)), ((c2 % 2))
    Sort Key: ft1.c2
@@ -2362,17 +2362,17 @@ select c2, array_agg(c2) over (partition by c2%2 order by c2 desc) from ft1 wher
                Sort Key: ((ft1.c2 % 2)), ft1.c2 DESC
                ->  Foreign Scan
                      Output: c2, ((c2 % 2))
-                      * Node: postgres_srv / Status: Alive
-                     Agg push-down: yes
-                     Relations: Aggregate on (public.ft1__postgres_srv__0)
-                     Remote SQL: SELECT c2, (c2 % 2) FROM "S 1"."T 1" WHERE ((c2 < 10)) GROUP BY 1
+                     Node: postgres_srv / Status: Alive
+                       Agg push-down: yes
+                       Relations: Aggregate on (public.ft1__postgres_srv__0)
+                       Remote SQL: SELECT c2, (c2 % 2) FROM "S 1"."T 1" WHERE ((c2 < 10)) GROUP BY 1
 (14 rows)
 
 -- select c2, array_agg(c2) over (partition by c2%2 order by c2 desc) from ft1 where c2 < 10 group by c2 order by 1;
 explain (verbose, costs off)
 select c2, array_agg(c2) over (partition by c2%2 order by c2 range between current row and unbounded following) from ft1 where c2 < 10 group by c2 order by 1;
-                                            QUERY PLAN                                             
----------------------------------------------------------------------------------------------------
+                                             QUERY PLAN                                              
+-----------------------------------------------------------------------------------------------------
  Sort
    Output: c2, (array_agg(c2) OVER (?)), ((c2 % 2))
    Sort Key: ft1.c2
@@ -2383,10 +2383,10 @@ select c2, array_agg(c2) over (partition by c2%2 order by c2 range between curre
                Sort Key: ((ft1.c2 % 2)), ft1.c2
                ->  Foreign Scan
                      Output: c2, ((c2 % 2))
-                      * Node: postgres_srv / Status: Alive
-                     Agg push-down: yes
-                     Relations: Aggregate on (public.ft1__postgres_srv__0)
-                     Remote SQL: SELECT c2, (c2 % 2) FROM "S 1"."T 1" WHERE ((c2 < 10)) GROUP BY 1
+                     Node: postgres_srv / Status: Alive
+                       Agg push-down: yes
+                       Relations: Aggregate on (public.ft1__postgres_srv__0)
+                       Remote SQL: SELECT c2, (c2 % 2) FROM "S 1"."T 1" WHERE ((c2 < 10)) GROUP BY 1
 (14 rows)
 
 -- select c2, array_agg(c2) over (partition by c2%2 order by c2 range between current row and unbounded following) from ft1 where c2 < 10 group by c2 order by 1;
@@ -2441,123 +2441,123 @@ EXECUTE st3(20, 30);
 PREPARE st4(int) AS SELECT * FROM ft1 t1 WHERE t1.c1 = $1;
 -- EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st4(1);
 EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st4(1);
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
 (4 rows)
 
 EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st4(1);
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
 (4 rows)
 
 EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st4(1);
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
 (4 rows)
 
 EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st4(1);
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
 (4 rows)
 
 -- once we try it enough times, should switch to generic plan
 EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st4(1);
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
 (4 rows)
 
 -- value of $1 should not be sent to remote
 PREPARE st5(user_enum,int) AS SELECT * FROM ft1 t1 WHERE c8 = $1 and c1 = $2;
 EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st5('foo', 1);
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
    Filter: (t1.c8 = 'foo'::user_enum)
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
 (5 rows)
 
 EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st5('foo', 1);
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
    Filter: (t1.c8 = 'foo'::user_enum)
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
 (5 rows)
 
 EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st5('foo', 1);
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
    Filter: (t1.c8 = 'foo'::user_enum)
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
 (5 rows)
 
 EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st5('foo', 1);
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
    Filter: (t1.c8 = 'foo'::user_enum)
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
 (5 rows)
 
 EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st5('foo', 1);
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
    Filter: (t1.c8 = 'foo'::user_enum)
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 1))
 (5 rows)
 
 EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st5('foo', 1);
-                                              QUERY PLAN                                               
--------------------------------------------------------------------------------------------------------
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
    Filter: (t1.c8 = $1)
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = $1::integer))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = $1::integer))
 (5 rows)
 
 -- EXECUTE st5('foo', 1);
 -- altering FDW options requires replanning
 PREPARE st6 AS SELECT * FROM ft1 t1 WHERE t1.c1 = t1.c2;
 EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st6;
-                                          QUERY PLAN                                          
-----------------------------------------------------------------------------------------------
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = c2))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = c2))
 (4 rows)
 
 PREPARE st7 AS INSERT INTO ft1 (c1,c2,c3) VALUES (1001,101,'foo');
@@ -2571,27 +2571,27 @@ ALTER TABLE "S 1"."T 0" RENAME TO "T 1";
 ALTER FOREIGN TABLE ft1__postgres_srv__0 OPTIONS (SET table_name 'T 1');
 PREPARE st8 AS SELECT count(c3) FROM ft1 t1 WHERE t1.c1 === t1.c2;
 EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st8;
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
+                                        QUERY PLAN                                         
+-------------------------------------------------------------------------------------------
  Foreign Scan
    Output: (count(c3))
-    * Node: postgres_srv / Status: Alive
-   Agg push-down: yes
-   Relations: Aggregate on (public.ft1__postgres_srv__0)
-   Remote SQL: SELECT count(c3) FROM "S 1"."T 1" WHERE (("C 1" OPERATOR(public.===) c2))
+   Node: postgres_srv / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.ft1__postgres_srv__0)
+     Remote SQL: SELECT count(c3) FROM "S 1"."T 1" WHERE (("C 1" OPERATOR(public.===) c2))
 (6 rows)
 
 ALTER SERVER postgres_srv OPTIONS (DROP extensions);
 EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st8;
-                        QUERY PLAN                         
------------------------------------------------------------
+                         QUERY PLAN                          
+-------------------------------------------------------------
  Aggregate
    Output: count(c3)
    ->  Foreign Scan on public.ft1 t1
          Output: c3
          Filter: (t1.c1 === t1.c2)
-          * Node: postgres_srv / Status: Alive
-         Remote SQL: SELECT "C 1", c2, c3 FROM "S 1"."T 1"
+         Node: postgres_srv / Status: Alive
+           Remote SQL: SELECT "C 1", c2, c3 FROM "S 1"."T 1"
 (7 rows)
 
 -- EXECUTE st8;
@@ -2608,15 +2608,15 @@ DEALLOCATE st8;
 -- System columns, except ctid and oid, should not be sent to remote
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT * FROM ft1 t1 WHERE t1.tableoid = 'pg_class'::regclass LIMIT 1;
-                                  QUERY PLAN                                   
--------------------------------------------------------------------------------
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
  Limit
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
    ->  Foreign Scan on public.ft1 t1
          Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
          Filter: (t1.tableoid = '1259'::oid)
-          * Node: postgres_srv / Status: Alive
-         Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+         Node: postgres_srv / Status: Alive
+           Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
 (7 rows)
 
 SELECT * FROM ft1 t1 WHERE t1.tableoid = 'ft1'::regclass LIMIT 1;
@@ -2633,8 +2633,8 @@ SELECT tableoid::regclass, * FROM ft1 t1 LIMIT 1;
    Output: ((tableoid)::regclass), c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
    ->  Foreign Scan on public.ft1 t1
          Output: (tableoid)::regclass, c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-          * Node: postgres_srv / Status: Alive
-         Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+         Node: postgres_srv / Status: Alive
+           Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
 (6 rows)
 
 SELECT tableoid::regclass, * FROM ft1 t1 LIMIT 1;
@@ -2645,12 +2645,12 @@ SELECT tableoid::regclass, * FROM ft1 t1 LIMIT 1;
 
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT * FROM ft1 t1 WHERE t1.ctid = '(0,2)';
-                                                 QUERY PLAN                                                  
--------------------------------------------------------------------------------------------------------------
+                                                  QUERY PLAN                                                   
+---------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8, ctid FROM "S 1"."T 1" WHERE ((ctid = '(0,2)'::tid))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8, ctid FROM "S 1"."T 1" WHERE ((ctid = '(0,2)'::tid))
 (4 rows)
 
 SELECT * FROM ft1 t1 WHERE t1.ctid = '(0,2)';
@@ -2661,14 +2661,14 @@ SELECT * FROM ft1 t1 WHERE t1.ctid = '(0,2)';
 
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT ctid, * FROM ft1 t1 LIMIT 1;
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
  Limit
    Output: ctid, c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
    ->  Foreign Scan on public.ft1 t1
          Output: ctid, c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-          * Node: postgres_srv / Status: Alive
-         Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8, ctid FROM "S 1"."T 1"
+         Node: postgres_srv / Status: Alive
+           Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8, ctid FROM "S 1"."T 1"
 (6 rows)
 
 SELECT ctid, * FROM ft1 t1 LIMIT 1;
@@ -2679,12 +2679,12 @@ SELECT ctid, * FROM ft1 t1 LIMIT 1;
 
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT oid, * FROM ft_pg_type WHERE typname = 'int4';
-                                             QUERY PLAN                                             
-----------------------------------------------------------------------------------------------------
+                                              QUERY PLAN                                              
+------------------------------------------------------------------------------------------------------
  Foreign Scan on public.ft_pg_type
    Output: oid, typname, typlen, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT typname, typlen, oid FROM pg_catalog.pg_type WHERE ((typname = 'int4'::name))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT typname, typlen, oid FROM pg_catalog.pg_type WHERE ((typname = 'int4'::name))
 (4 rows)
 
 SELECT oid, * FROM ft_pg_type WHERE typname = 'int4';
@@ -2770,82 +2770,82 @@ create foreign table ft3__postgres_srv__0 (f1 text collate "C", f2 text, f3 varc
   server postgres_srv options (table_name 'loct3_1', use_remote_estimate 'true');
 -- can be sent to remote
 explain (verbose, costs off) select * from ft3 where f1 = 'foo';
-                                   QUERY PLAN                                   
---------------------------------------------------------------------------------
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
  Foreign Scan on public.ft3
    Output: f1, f2, f3, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT f1, f2, f3 FROM public.loct3_1 WHERE ((f1 = 'foo'::text))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT f1, f2, f3 FROM public.loct3_1 WHERE ((f1 = 'foo'::text))
 (4 rows)
 
 explain (verbose, costs off) select * from ft3 where f1 COLLATE "C" = 'foo';
-                                   QUERY PLAN                                   
---------------------------------------------------------------------------------
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
  Foreign Scan on public.ft3
    Output: f1, f2, f3, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT f1, f2, f3 FROM public.loct3_1 WHERE ((f1 = 'foo'::text))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT f1, f2, f3 FROM public.loct3_1 WHERE ((f1 = 'foo'::text))
 (4 rows)
 
 explain (verbose, costs off) select * from ft3 where f2 = 'foo';
-                                   QUERY PLAN                                   
---------------------------------------------------------------------------------
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
  Foreign Scan on public.ft3
    Output: f1, f2, f3, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT f1, f2, f3 FROM public.loct3_1 WHERE ((f2 = 'foo'::text))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT f1, f2, f3 FROM public.loct3_1 WHERE ((f2 = 'foo'::text))
 (4 rows)
 
 explain (verbose, costs off) select * from ft3 where f3 = 'foo';
-                                   QUERY PLAN                                   
---------------------------------------------------------------------------------
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
  Foreign Scan on public.ft3
    Output: f1, f2, f3, __spd_url
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT f1, f2, f3 FROM public.loct3_1 WHERE ((f3 = 'foo'::text))
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT f1, f2, f3 FROM public.loct3_1 WHERE ((f3 = 'foo'::text))
 (4 rows)
 
 -- explain (verbose, costs off) select * from ft3 f, ft3 l
 --   where f.f3 = l.f3 and l.f1 = 'foo';
 -- can't be sent to remote
 explain (verbose, costs off) select * from ft3 where f1 COLLATE "POSIX" = 'foo';
-                     QUERY PLAN                      
------------------------------------------------------
+                      QUERY PLAN                       
+-------------------------------------------------------
  Foreign Scan on public.ft3
    Output: f1, f2, f3, __spd_url
    Filter: ((ft3.f1)::text = 'foo'::text)
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT f1, f2, f3 FROM public.loct3_1
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT f1, f2, f3 FROM public.loct3_1
 (5 rows)
 
 explain (verbose, costs off) select * from ft3 where f1 = 'foo' COLLATE "C";
-                     QUERY PLAN                      
------------------------------------------------------
+                      QUERY PLAN                       
+-------------------------------------------------------
  Foreign Scan on public.ft3
    Output: f1, f2, f3, __spd_url
    Filter: (ft3.f1 = 'foo'::text COLLATE "C")
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT f1, f2, f3 FROM public.loct3_1
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT f1, f2, f3 FROM public.loct3_1
 (5 rows)
 
 explain (verbose, costs off) select * from ft3 where f2 COLLATE "C" = 'foo';
-                     QUERY PLAN                      
------------------------------------------------------
+                      QUERY PLAN                       
+-------------------------------------------------------
  Foreign Scan on public.ft3
    Output: f1, f2, f3, __spd_url
    Filter: ((ft3.f2)::text = 'foo'::text)
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT f1, f2, f3 FROM public.loct3_1
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT f1, f2, f3 FROM public.loct3_1
 (5 rows)
 
 explain (verbose, costs off) select * from ft3 where f2 = 'foo' COLLATE "C";
-                     QUERY PLAN                      
------------------------------------------------------
+                      QUERY PLAN                       
+-------------------------------------------------------
  Foreign Scan on public.ft3
    Output: f1, f2, f3, __spd_url
    Filter: (ft3.f2 = 'foo'::text COLLATE "C")
-    * Node: postgres_srv / Status: Alive
-   Remote SQL: SELECT f1, f2, f3 FROM public.loct3_1
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT f1, f2, f3 FROM public.loct3_1
 (5 rows)
 
 -- explain (verbose, costs off) select * from ft3 f, ft3 l
@@ -2989,6 +2989,8 @@ UPDATE ft2__postgres_srv__0 SET c2 = c2 + 400, c3 = c3 || '_update7' WHERE c1 % 
 --   FROM ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 9;                               -- can be pushed down
 -- UPDATE ft2 SET c2 = ft2.c2 + 500, c3 = ft2.c3 || '_update9', c7 = DEFAULT
 --   FROM ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 9;
+-- UPDATE ft2__postgres_srv__0 SET c2 = ft2__postgres_srv__0.c2 + 500, c3 = ft2__postgres_srv__0.c3 || '_update9', c7 = DEFAULT
+--   FROM ft1 WHERE ft1.c1 = ft2__postgres_srv__0.c2 AND ft1.c1 % 10 = 9;
 -- EXPLAIN (verbose, costs off)
 --   DELETE FROM ft2 WHERE c1 % 10 = 5 RETURNING c1, c4;                               -- can be pushed down
 -- DELETE FROM ft2 WHERE c1 % 10 = 5 RETURNING c1, c4;
@@ -3103,6 +3105,7 @@ DELETE FROM ft2__postgres_srv__0 WHERE c1 % 10 = 5 RETURNING c1, c4;
 -- EXPLAIN (verbose, costs off)
 -- DELETE FROM ft2 USING ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 2;                -- can be pushed down
 -- DELETE FROM ft2 USING ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 2;
+-- DELETE FROM ft2__postgres_srv__0 USING ft1 WHERE ft1.c1 = ft2__postgres_srv__0.c2 AND ft1.c1 % 10 = 2;
 -- SELECT c1,c2,c3,c4 FROM ft2 ORDER BY c1;
 -- EXPLAIN (verbose, costs off)
 -- INSERT INTO ft2 (c1,c2,c3) VALUES (1200,999,'foo') RETURNING tableoid::regclass;
@@ -3145,6 +3148,10 @@ INSERT INTO ft2__postgres_srv__0 (c1,c2,c3)
 --   FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
 --   WHERE ft2.c1 > 1200 AND ft2.c2 = ft4.c1
 --   RETURNING ft2, ft2.*, ft4, ft4.*;
+-- UPDATE ft2__postgres_srv__0 SET c3 = 'foo'
+--   FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
+--   WHERE ft2__postgres_srv__0.c1 > 1200 AND ft2__postgres_srv__0.c2 = ft4.c1
+--   RETURNING ft2__postgres_srv__0, ft2__postgres_srv__0.*, ft4, ft4.*;
 -- EXPLAIN (verbose, costs off)
 -- DELETE FROM ft2
 --   USING ft4 LEFT JOIN ft5 ON (ft4.c1 = ft5.c1)
@@ -3153,6 +3160,10 @@ INSERT INTO ft2__postgres_srv__0 (c1,c2,c3)
 -- DELETE FROM ft2
 --   USING ft4 LEFT JOIN ft5 ON (ft4.c1 = ft5.c1)
 --   WHERE ft2.c1 > 1200 AND ft2.c1 % 10 = 0 AND ft2.c2 = ft4.c1
+--   RETURNING 100;
+-- DELETE FROM ft2__postgres_srv__0
+--   USING ft4 LEFT JOIN ft5 ON (ft4.c1 = ft5.c1)
+--   WHERE ft2__postgres_srv__0.c1 > 1200 AND ft2__postgres_srv__0.c1 % 10 = 0 AND ft2__postgres_srv__0.c2 = ft4.c1
 --   RETURNING 100;
 -- DELETE FROM ft2 WHERE ft2.c1 > 1200;
 DELETE FROM ft2__postgres_srv__0 WHERE ft2__postgres_srv__0.c1 > 1200;
@@ -3190,6 +3201,10 @@ UPDATE ft2__postgres_srv__0 SET c3 = 'bar' WHERE postgres_fdw_abs(c1) > 2000 RET
 --   FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
 --   WHERE ft2.c1 > 2000 AND ft2.c2 === ft4.c1
 --   RETURNING ft2.*, ft4.*, ft5.*;
+-- UPDATE ft2__postgres_srv__0 SET c3 = 'baz'
+--   FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
+--   WHERE ft2__postgres_srv__0.c1 > 2000 AND ft2__postgres_srv__0.c2 === ft4.c1
+--   RETURNING ft2__postgres_srv__0.*, ft4.*, ft5.*;
 -- EXPLAIN (verbose, costs off)
 -- DELETE FROM ft2
 --   USING ft4 INNER JOIN ft5 ON (ft4.c1 === ft5.c1)
@@ -3199,6 +3214,10 @@ UPDATE ft2__postgres_srv__0 SET c3 = 'bar' WHERE postgres_fdw_abs(c1) > 2000 RET
 --   USING ft4 INNER JOIN ft5 ON (ft4.c1 === ft5.c1)
 --   WHERE ft2.c1 > 2000 AND ft2.c2 = ft4.c1
 --   RETURNING ft2.c1, ft2.c2, ft2.c3;
+-- DELETE FROM ft2__postgres_srv__0
+--   USING ft4 INNER JOIN ft5 ON (ft4.c1 === ft5.c1)
+--   WHERE ft2__postgres_srv__0.c1 > 2000 AND ft2__postgres_srv__0.c2 = ft4.c1
+--   RETURNING ft2__postgres_srv__0.c1, ft2__postgres_srv__0.c2, ft2__postgres_srv__0.c3;
 -- DELETE FROM ft2 WHERE ft2.c1 > 2000;
 DELETE FROM ft2__postgres_srv__0 WHERE ft2__postgres_srv__0.c1 > 2000;
 ALTER SERVER postgres_srv OPTIONS (ADD extensions 'postgres_fdw');
@@ -3270,14 +3289,14 @@ WARNING:  skipping "T 1" --- cannot vacuum non-tables or special system tables
 -- Consistent check constraints provide consistent results
 ALTER FOREIGN TABLE ft1 ADD CONSTRAINT ft1_c2positive CHECK (c2 >= 0);
 EXPLAIN (VERBOSE, COSTS OFF) SELECT count(*) FROM ft1 WHERE c2 < 0;
-                           QUERY PLAN                            
------------------------------------------------------------------
+                            QUERY PLAN                             
+-------------------------------------------------------------------
  Foreign Scan
    Output: (count(*))
-    * Node: postgres_srv / Status: Alive
-   Agg push-down: yes
-   Relations: Aggregate on (public.ft1__postgres_srv__0)
-   Remote SQL: SELECT count(*) FROM "S 1"."T 1" WHERE ((c2 < 0))
+   Node: postgres_srv / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.ft1__postgres_srv__0)
+     Remote SQL: SELECT count(*) FROM "S 1"."T 1" WHERE ((c2 < 0))
 (6 rows)
 
 SELECT count(*) FROM ft1 WHERE c2 < 0;
@@ -3310,14 +3329,14 @@ ALTER FOREIGN TABLE ft1 DROP CONSTRAINT ft1_c2positive;
 -- But inconsistent check constraints provide inconsistent results
 ALTER FOREIGN TABLE ft1 ADD CONSTRAINT ft1_c2negative CHECK (c2 < 0);
 EXPLAIN (VERBOSE, COSTS OFF) SELECT count(*) FROM ft1 WHERE c2 >= 0;
-                            QUERY PLAN                            
-------------------------------------------------------------------
+                             QUERY PLAN                             
+--------------------------------------------------------------------
  Foreign Scan
    Output: (count(*))
-    * Node: postgres_srv / Status: Alive
-   Agg push-down: yes
-   Relations: Aggregate on (public.ft1__postgres_srv__0)
-   Remote SQL: SELECT count(*) FROM "S 1"."T 1" WHERE ((c2 >= 0))
+   Node: postgres_srv / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.ft1__postgres_srv__0)
+     Remote SQL: SELECT count(*) FROM "S 1"."T 1" WHERE ((c2 >= 0))
 (6 rows)
 
 -- SELECT count(*) FROM ft1 WHERE c2 >= 0;
