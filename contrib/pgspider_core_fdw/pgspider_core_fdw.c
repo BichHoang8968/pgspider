@@ -224,6 +224,7 @@ typedef struct Mappingcells
 {
 	Mappingcell mapping_tlist;	/* pgspider target list */
 	enum Aggtype aggtype;
+    StringInfo agg_command;
 	int			original_attnum;	/* original attribute */
 }			Mappingcells;
 
@@ -447,6 +448,37 @@ spd_tlist_member(Expr *node, List *targetlist, int *target_num)
 	return NULL;
 }
 
+static void
+spd_spi_exec_proname(Oid aggoid,StringInfo aggname)
+{
+	char		query[QUERY_LENGTH];
+	char	   *temp;
+	int			ret;
+
+	ret = SPI_connect();
+	if (ret < 0)
+		elog(ERROR, "SPI connect failure - returned %d", ret);
+
+	/* get child server name from child's foreign table id */
+	sprintf(query, "select proname from pg_proc where oid=%d;", (int) aggoid);
+
+
+	ret = SPI_execute(query, true, 0);
+	if (ret != SPI_OK_SELECT)
+		elog(ERROR, "error %d", ret);
+	if (SPI_processed != 1)
+	{
+		SPI_finish();
+		elog(ERROR, "error SPIexecute can not find datasource");
+	}
+	temp = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
+
+	
+	appendStringInfoString(aggname, temp);
+	SPI_finish();
+	return;
+}
+
 /* Serialize fdw_private as a list */
 static List *
 spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private)
@@ -482,6 +514,7 @@ spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private)
 			lfdw_private = lappend(lfdw_private, makeInteger(clist.mapping[1]));
 			lfdw_private = lappend(lfdw_private, makeInteger(clist.mapping[2]));
 			lfdw_private = lappend(lfdw_private, makeInteger(cells->aggtype));
+			lfdw_private = lappend(lfdw_private, makeString(cells->agg_command ? cells->agg_command->data : ""));
 			lfdw_private = lappend(lfdw_private, makeInteger(cells->original_attnum));
 		}
 
@@ -574,6 +607,9 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
 			lc = lnext(lc);
 			cells->aggtype = intVal(lfirst(lc));
 			lc = lnext(lc);
+			cells->agg_command = makeStringInfo();
+			appendStringInfoString(cells->agg_command, strVal(lfirst(lc)));
+			lc = lnext(lc);
 			cells->original_attnum = intVal(lfirst(lc));
 			lc = lnext(lc);
 			fdw_private->mapping_tlist = lappend(fdw_private->mapping_tlist, cells);
@@ -656,6 +692,7 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 		/* these store 0-index, so initialize with -1 */
 		mapcells->mapping_tlist.mapping[i] = -1;
 		mapcells->original_attnum = -1;
+		mapcells->agg_command = makeStringInfo();
 	}
 	aggref = (Aggref *) expr;
 	if (IsA(expr, Aggref) &&IS_SPLIT_AGG(aggref->aggfnoid))
@@ -706,6 +743,8 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 			mapcells->aggtype = VARFLAG;
 		else if (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID)
 			mapcells->aggtype = DEVFLAG;
+
+		spd_spi_exec_proname(aggref->aggfnoid, mapcells->agg_command);
 
 		/* count */
 		if (!spd_tlist_member((Expr *) tempCount, *compress_tlist, &target_num))
@@ -810,8 +849,10 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 			tlist = lappend(tlist, tle);
 		}
 		/* append original target list */
-		if (IsA(expr, Aggref))
+		if (IsA(expr, Aggref)){
 			mapcells->aggtype = NON_SPLIT_AGGFLAG;
+			spd_spi_exec_proname(aggref->aggfnoid, mapcells->agg_command);
+		}
 		else
 			mapcells->aggtype = NONAGGFLAG;
 
@@ -4253,7 +4294,7 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 	{
 		TargetEntry *target = (TargetEntry *) list_nth(node->ss.ps.plan->targetlist, j);
 		Mappingcells *cells = (Mappingcells *) lfirst(lc);
-		char	   *agg_command = target->resname;
+		char	   *agg_command = cells->agg_command->data;
 		Mappingcell clist = cells->mapping_tlist;
 		int			agg_type = cells->aggtype;
 
