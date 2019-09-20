@@ -9,8 +9,19 @@ CREATE EXTENSION file_fdw;
 CREATE EXTENSION sqlite_fdw;
 CREATE EXTENSION tinybrace_fdw;
 CREATE EXTENSION mysql_fdw;
-/*
 CREATE SERVER file_svr FOREIGN DATA WRAPPER file_fdw;
+CREATE FOREIGN TABLE filetbl__file_svr__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
+CREATE FOREIGN TABLE filetbl (i int,__spd_url text) SERVER pgspider_svr;
+SELECT * FROM filetbl;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+/*
 CREATE SERVER filesvr2 FOREIGN DATA WRAPPER file_fdw;
 CREATE FOREIGN TABLE test1__file_svr__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
 SELECT * FROM test1;
@@ -1705,8 +1716,9 @@ DROP FOREIGN TABLE test1;
 DROP FOREIGN TABLE t1;
 DROP FOREIGN TABLE t2;
 DROP SERVER pgspider_svr CASCADE;
-NOTICE:  drop cascades to 4 other objects
+NOTICE:  drop cascades to 5 other objects
 DETAIL:  drop cascades to user mapping for public on server pgspider_svr
+drop cascades to foreign table filetbl
 drop cascades to foreign table test1_1
 drop cascades to foreign table mysqlt
 drop cascades to foreign table post_large

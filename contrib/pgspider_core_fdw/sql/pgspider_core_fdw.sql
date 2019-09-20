@@ -9,8 +9,13 @@ CREATE EXTENSION file_fdw;
 CREATE EXTENSION sqlite_fdw;
 CREATE EXTENSION tinybrace_fdw;
 CREATE EXTENSION mysql_fdw;
-/*
+
 CREATE SERVER file_svr FOREIGN DATA WRAPPER file_fdw;
+CREATE FOREIGN TABLE filetbl__file_svr__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
+CREATE FOREIGN TABLE filetbl (i int,__spd_url text) SERVER pgspider_svr;
+SELECT * FROM filetbl;
+
+/*
 CREATE SERVER filesvr2 FOREIGN DATA WRAPPER file_fdw;
 CREATE FOREIGN TABLE test1__file_svr__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
 SELECT * FROM test1;

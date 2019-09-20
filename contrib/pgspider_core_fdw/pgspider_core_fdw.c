@@ -184,7 +184,8 @@ static void spd_spi_exec_child_ip(char *serverName, char *ip);
 static bool spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy);
 static TupleTableSlot *spd_queue_get(SpdTupleQueue * que, bool *is_finished);
 static void spd_queue_reset(SpdTupleQueue * que);
-static void spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc);
+static void spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, bool skip_last);
+
 static void spd_queue_notify_finish(SpdTupleQueue * que);
 enum SpdFdwModifyPrivateIndex
 {
@@ -452,6 +453,10 @@ spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy)
 	natts = que->tuples[idx]->tts_tupleDescriptor->natts;
 	memcpy(que->tuples[idx]->tts_isnull, slot->tts_isnull, natts * sizeof(bool));
 
+	/* Skip copy of spdurl */
+	if (que->skip_last)
+		natts--;
+
 	/*
 	 * Deep copy tts_values[i] if necessary
 	 */
@@ -461,9 +466,10 @@ spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy)
 
 		for (i = 0; i < natts; i++)
 		{
-			if (!slot->tts_isnull[i])
-				que->tuples[idx]->tts_values[i] = datumCopy(slot->tts_values[i],
-															attrs[i].attbyval, attrs[i].attlen);
+			if (slot->tts_isnull[i])
+				continue;
+			que->tuples[idx]->tts_values[i] = datumCopy(slot->tts_values[i],
+														attrs[i].attbyval, attrs[i].attlen);
 		}
 	}
 	else
@@ -531,10 +537,11 @@ spd_queue_reset(SpdTupleQueue * que)
  * Init queue.
  */
 static void
-spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc)
+spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, bool skip_last)
 {
 	int			j;
 
+	que->skip_last = skip_last;
 	/* Create tuple descriptor for queue */
 	for (j = 0; j < SPD_TUPLE_QUEUE_LEN; j++)
 	{
@@ -561,75 +568,6 @@ print_mapping_tlist(List *mapping_tlist, int loglevel)
 			 clist.mapping[0], clist.mapping[1], clist.mapping[2],
 			 cells->original_attnum, AggtypeStr[cells->aggtype]);
 	}
-}
-
-/*
- * use_spdurl
- *
- * Collect used attribute from reltarget->exprs and baserestrictinfo
- */
-static int
-get_spdurl_idx(RelOptInfo *baserel,
-			   Oid foreigntableid)
-{
-	/* ForeignTable *table; */
-	ListCell   *lc;
-	Relation	rel;
-	TupleDesc	tupleDesc;
-	AttrNumber	attnum;
-	Bitmapset  *attrs_used = NULL;
-	int			spd_idx = -1;
-
-	/* Collect all the attributes needed for joins or final output. */
-	pull_varattnos((Node *) baserel->reltarget->exprs, baserel->relid,
-				   &attrs_used);
-	/* Add all the attributes used by restriction clauses. */
-	foreach(lc, baserel->baserestrictinfo)
-	{
-		RestrictInfo *rinfo = (RestrictInfo *) lfirst(lc);
-
-		pull_varattnos((Node *) rinfo->clause, baserel->relid,
-					   &attrs_used);
-	}
-
-	/* Convert attribute numbers to column names. */
-	rel = heap_open(foreigntableid, AccessShareLock);
-	tupleDesc = RelationGetDescr(rel);
-
-	while ((attnum = bms_first_member(attrs_used)) >= 0)
-	{
-		/* Adjust for system attributes. */
-		attnum += FirstLowInvalidHeapAttributeNumber;
-
-		if (attnum == 0)
-		{
-			/* whole row */
-			spd_idx = INT_MAX;
-			break;
-		}
-
-		/* Ignore system attributes. */
-		if (attnum < 0)
-			continue;
-
-		/* Get user attributes. */
-		if (attnum > 0)
-		{
-			Form_pg_attribute attr = TupleDescAttr(tupleDesc, attnum - 1);
-
-			/* Skip dropped attributes (probably shouldn't see any here). */
-			if (attr->attisdropped)
-				continue;
-			if (strcmp(attr->attname.data, SPDURL) == 0)
-			{
-				spd_idx = attnum - 1;
-				break;
-			}
-		}
-	}
-	heap_close(rel, AccessShareLock);
-
-	return spd_idx;
 }
 
 static int
@@ -3226,7 +3164,6 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 	{
 		elog(ERROR, "fdw_private is NULL");
 	}
-	fdw_private->idx_url_tlist = get_spdurl_idx(baserel, foreigntableid);
 	/* Create Foreign paths using base_rel_list to each child node. */
 	childinfo = fdw_private->childinfo;
 	for (i = 0; i < fdw_private->node_num; i++)
@@ -3665,7 +3602,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 					temptlist = remove_spdurl_from_targets(list_copy(tlist), root,
 														   true, &fdw_private->idx_url_tlist);
 				}
-
 				/* mysql-fdw decide push down tlist or not based on this */
 				childinfo[i].baserel->is_tlist_pushdown = pushdown_all_tlist;
 
@@ -3949,6 +3885,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		Relation	rd;
 		int			natts;
 		TupleDesc	tupledesc;
+		bool		skiplast;
 
 		/*
 		 * check child table node is dead or alive. Execute(Create child
@@ -4033,66 +3970,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		ExecAssignExprContext((EState *) fssThrdInfo[node_incr].fsstate->ss.ps.state, &fssThrdInfo[node_incr].fsstate->ss.ps);
 		fssThrdInfo[node_incr].eflags = eflags;
 
-
-		if (fdw_private->agg_query)
-		{
-			/*
-			 * Create child descriptor using child_tlist
-			 */
-			int			child_attr = 0; /* attribute number of child */
-			ListCell   *lc;
-
-			tupledesc = CreateTemplateTupleDesc(list_length(fdw_private->child_tlist), false);
-
-			foreach(lc, fdw_private->child_tlist)
-			{
-				TargetEntry *ent = (TargetEntry *) lfirst(lc);
-
-				TupleDescInitEntry(tupledesc, child_attr + 1, NULL, exprType((Node *) ent->expr), -1, 0);
-				child_attr++;
-			}
-			/* Construct TupleDesc, and assign a local typmod. */
-			tupledesc = BlessTupleDesc(tupledesc);
-			if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
-			{
-				/*
-				 * Create tuple slot based on *child* ForeignScan plan target
-				 * list. So this tuple is for ExecAgg and different from one
-				 * used in queue.
-				 */
-				fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
-					MakeSingleTupleTableSlot(ExecTypeFromTL(fssThrdInfo[node_incr].fsstate->ss.ps.plan->targetlist, true));
-			}
-			else
-			{
-				fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
-					MakeSingleTupleTableSlot(CreateTupleDescCopy(tupledesc));
-			}
-
-		}
-		else
-		{
-			/*
-			 * Create tuple slot based on *parent* ForeignScan tuple
-			 * descriptor
-			 */
-
-			tupledesc = CreateTupleDescCopy(node->ss.ss_ScanTupleSlot->tts_tupleDescriptor);
-
-			fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
-				MakeSingleTupleTableSlot(tupledesc);
-		}
-
-		spd_queue_init(&fssThrdInfo[node_incr].tupleQueue, tupledesc);
-
-		natts = fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor->natts;
-
-		fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_mcxt = node->ss.ss_ScanTupleSlot->tts_mcxt;
-		fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_values = (Datum *)
-			MemoryContextAlloc(node->ss.ss_ScanTupleSlot->tts_mcxt, natts * sizeof(Datum));
-		fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_isnull = (bool *)
-			MemoryContextAlloc(node->ss.ss_ScanTupleSlot->tts_mcxt, natts * sizeof(bool));
-
 		/*
 		 * current relation ID gets from current server oid, it means
 		 * childinfo[i].oid
@@ -4118,8 +3995,79 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 		fssThrdInfo[node_incr].thrd_ResourceOwner =
 			ResourceOwnerCreate(CurrentResourceOwner, "thread resource owner");
-
 		fssThrdInfo[node_incr].private = fdw_private;
+
+		if (fdw_private->agg_query)
+		{
+			/*
+			 * Create child descriptor using child_tlist
+			 */
+			int			child_attr = 0; /* attribute number of child */
+			ListCell   *lc;
+
+			tupledesc = CreateTemplateTupleDesc(list_length(fdw_private->child_tlist), false);
+
+			foreach(lc, fdw_private->child_tlist)
+			{
+				TargetEntry *ent = (TargetEntry *) lfirst(lc);
+
+				TupleDescInitEntry(tupledesc, child_attr + 1, NULL, exprType((Node *) ent->expr), -1, 0);
+				child_attr++;
+			}
+			/* Construct TupleDesc, and assign a local typmod. */
+			tupledesc = BlessTupleDesc(tupledesc);
+			if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
+			{
+				/*
+				 * Create tuple slot based on *child* ForeignScan plan target
+				 * list. This tuple is for ExecAgg and different from one used
+				 * in queue.
+				 */
+				fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
+					MakeSingleTupleTableSlot(ExecTypeFromTL(fssThrdInfo[node_incr].fsstate->ss.ps.plan->targetlist, true));
+			}
+			else
+			{
+				fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
+					MakeSingleTupleTableSlot(CreateTupleDescCopy(tupledesc));
+			}
+
+		}
+		else
+		{
+			/*
+			 * Create tuple slot based on *parent* ForeignScan tuple
+			 * descriptor
+			 */
+
+			tupledesc = CreateTupleDescCopy(node->ss.ss_ScanTupleSlot->tts_tupleDescriptor);
+
+			fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
+				MakeSingleTupleTableSlot(tupledesc);
+		}
+
+		/* Skip copying spdurl at the last of tuple to queue if it's invalid */
+		skiplast = false;
+		if (!fdw_private->agg_query &&
+			!fdw_private->is_pushdown_tlist &&
+			(fdw_private->idx_url_tlist == -1 ||
+			 strcmp(fssThrdInfo[node_incr].fdw->fdwname, PGSPIDER_FDW_NAME) != 0))
+			skiplast = true;
+
+		spd_queue_init(&fssThrdInfo[node_incr].tupleQueue, tupledesc, skiplast);
+
+		natts = fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor->natts;
+
+		fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_mcxt = node->ss.ss_ScanTupleSlot->tts_mcxt;
+		fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_values = (Datum *)
+			MemoryContextAlloc(node->ss.ss_ScanTupleSlot->tts_mcxt, natts * sizeof(Datum));
+		fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_isnull = (bool *)
+			MemoryContextAlloc(node->ss.ss_ScanTupleSlot->tts_mcxt, natts * sizeof(bool));
+
+
+
+
+
 
 		/*
 		 * For explain case, call BeginForeignScan because some
