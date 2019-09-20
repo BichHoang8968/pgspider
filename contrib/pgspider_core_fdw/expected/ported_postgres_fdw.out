@@ -297,8 +297,6 @@ SELECT * FROM ft1 t1 ORDER BY t1.c3, t1.c1, t1.tableoid OFFSET 100 LIMIT 10;
 
 -- whole-row reference
 EXPLAIN (VERBOSE, COSTS OFF) SELECT t1 FROM ft1 t1 ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft1"
                                       QUERY PLAN                                       
 ---------------------------------------------------------------------------------------
  Limit
@@ -313,8 +311,6 @@ WARNING:  whole-row reference to foreign table "ft1"
 (9 rows)
 
 SELECT t1 FROM ft1 t1 ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft1"
                                                     t1                                                     
 -----------------------------------------------------------------------------------------------------------
  (101,1,00101,"Thu Jan 01 08:00:00 1970 PST","Fri Jan 02 00:00:00 1970",1,"1         ",foo,/postgres_srv/)
@@ -353,17 +349,39 @@ SELECT * FROM ft1 t1 WHERE t1.c1 = 101 AND t1.c6 = '1' AND t1.c7 >= '1';
 
 -- with FOR UPDATE/SHARE
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c1 = 101 FOR UPDATE;
-WARNING:  whole-row reference to foreign table "ft1"
-ERROR:  Using __spd_url multiple times is not allowed
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
+ LockRows
+   Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url, t1.*
+   ->  Foreign Scan on public.ft1 t1
+         Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url, t1.*
+         Node: postgres_srv / Status: Alive
+           Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 101))
+(6 rows)
+
 SELECT * FROM ft1 t1 WHERE c1 = 101 FOR UPDATE;
-WARNING:  whole-row reference to foreign table "ft1"
-ERROR:  Using __spd_url multiple times is not allowed
+ c1  | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
+-----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
+ 101 |  1 | 00101 | Thu Jan 01 08:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
+(1 row)
+
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c1 = 102 FOR SHARE;
-WARNING:  whole-row reference to foreign table "ft1"
-ERROR:  Using __spd_url multiple times is not allowed
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
+ LockRows
+   Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url, t1.*
+   ->  Foreign Scan on public.ft1 t1
+         Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url, t1.*
+         Node: postgres_srv / Status: Alive
+           Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 102))
+(6 rows)
+
 SELECT * FROM ft1 t1 WHERE c1 = 102 FOR SHARE;
-WARNING:  whole-row reference to foreign table "ft1"
-ERROR:  Using __spd_url multiple times is not allowed
+ c1  | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
+-----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
+ 102 |  2 | 00102 | Fri Jan 02 08:00:00 1970 PST | Sat Jan 03 00:00:00 1970 | 2  | 2          | foo | /postgres_srv/
+(1 row)
+
 -- aggregate
 SELECT COUNT(*) FROM ft1 t1;
  count 
@@ -1135,10 +1153,6 @@ SELECT t1.c1, ss.a, ss.b FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t1
 -- d. test deparsing rowmarked relations as subqueries
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, ss.a, ss.b FROM (SELECT c1 FROM "S 1"."T 3" WHERE c1 = 50) t1 INNER JOIN (SELECT t2.c1, t3.c1 FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t2 FULL JOIN (SELECT c1 FROM ft5 WHERE c1 between 50 and 60) t3 ON (t2.c1 = t3.c1) WHERE t2.c1 IS NULL OR t2.c1 IS NOT NULL) ss(a, b) ON (TRUE) ORDER BY t1.c1, ss.a, ss.b FOR UPDATE OF t1;
-WARNING:  whole-row reference to foreign table "ft4"
-WARNING:  whole-row reference to foreign table "ft5"
-WARNING:  whole-row reference to foreign table "ft4"
-WARNING:  whole-row reference to foreign table "ft5"
                                                       QUERY PLAN                                                      
 ----------------------------------------------------------------------------------------------------------------------
  LockRows
@@ -1168,10 +1182,6 @@ WARNING:  whole-row reference to foreign table "ft5"
 (24 rows)
 
 SELECT t1.c1, ss.a, ss.b FROM (SELECT c1 FROM "S 1"."T 3" WHERE c1 = 50) t1 INNER JOIN (SELECT t2.c1, t3.c1 FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t2 FULL JOIN (SELECT c1 FROM ft5 WHERE c1 between 50 and 60) t3 ON (t2.c1 = t3.c1) WHERE t2.c1 IS NULL OR t2.c1 IS NOT NULL) ss(a, b) ON (TRUE) ORDER BY t1.c1, ss.a, ss.b FOR UPDATE OF t1;
-WARNING:  whole-row reference to foreign table "ft4"
-WARNING:  whole-row reference to foreign table "ft5"
-WARNING:  whole-row reference to foreign table "ft4"
-WARNING:  whole-row reference to foreign table "ft5"
  c1 | a  | b  
 ----+----+----
  50 | 50 |   
@@ -1358,10 +1368,6 @@ ALTER SERVER postgres_srv OPTIONS (ADD extensions 'postgres_fdw');
 -- tests whole-row reference for row marks
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR UPDATE OF t1;
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft2"
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft2"
                                                QUERY PLAN                                                
 ---------------------------------------------------------------------------------------------------------
  Limit
@@ -1391,10 +1397,6 @@ WARNING:  whole-row reference to foreign table "ft2"
 (24 rows)
 
 SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR UPDATE OF t1;
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft2"
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft2"
  c1  | c1  
 -----+-----
  101 | 101
@@ -1411,10 +1413,6 @@ WARNING:  whole-row reference to foreign table "ft2"
 
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR UPDATE;
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft2"
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft2"
                                                QUERY PLAN                                                
 ---------------------------------------------------------------------------------------------------------
  Limit
@@ -1444,10 +1442,6 @@ WARNING:  whole-row reference to foreign table "ft2"
 (24 rows)
 
 SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR UPDATE;
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft2"
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft2"
  c1  | c1  
 -----+-----
  101 | 101
@@ -1465,10 +1459,6 @@ WARNING:  whole-row reference to foreign table "ft2"
 -- join two tables with FOR SHARE clause
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR SHARE OF t1;
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft2"
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft2"
                                                QUERY PLAN                                                
 ---------------------------------------------------------------------------------------------------------
  Limit
@@ -1498,10 +1488,6 @@ WARNING:  whole-row reference to foreign table "ft2"
 (24 rows)
 
 SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR SHARE OF t1;
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft2"
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft2"
  c1  | c1  
 -----+-----
  101 | 101
@@ -1518,10 +1504,6 @@ WARNING:  whole-row reference to foreign table "ft2"
 
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR SHARE;
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft2"
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft2"
                                                QUERY PLAN                                                
 ---------------------------------------------------------------------------------------------------------
  Limit
@@ -1551,10 +1533,6 @@ WARNING:  whole-row reference to foreign table "ft2"
 (24 rows)
 
 SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR SHARE;
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft2"
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft2"
  c1  | c1  
 -----+-----
  101 | 101
@@ -1590,10 +1568,6 @@ WITH t (c1_1, c1_3, c2_1) AS (SELECT t1.c1, t1.c3, t2.c1 FROM ft1 t1 JOIN ft2 t2
 -- ctid with whole-row reference
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.ctid, t1, t2, t1.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft2"
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft2"
                                                QUERY PLAN                                                
 ---------------------------------------------------------------------------------------------------------
  Limit
@@ -1806,8 +1780,6 @@ SELECT t1c1, avg(t1c1 + t2c1) FROM (SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 
 -- UPDATE ft5 SET c3 = null where c1 % 9 = 0;
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT ft5, ft5.c1, ft5.c2, ft5.c3, ft4.c1, ft4.c2 FROM ft5 left join ft4 on ft5.c1 = ft4.c1 WHERE ft4.c1 BETWEEN 10 and 30 ORDER BY ft5.c1, ft4.c1;
-WARNING:  whole-row reference to foreign table "ft5"
-WARNING:  whole-row reference to foreign table "ft5"
                                               QUERY PLAN                                              
 ------------------------------------------------------------------------------------------------------
  Sort
@@ -1829,8 +1801,6 @@ WARNING:  whole-row reference to foreign table "ft5"
 (16 rows)
 
 SELECT ft5, ft5.c1, ft5.c2, ft5.c3, ft4.c1, ft4.c2 FROM ft5 left join ft4 on ft5.c1 = ft4.c1 WHERE ft4.c1 BETWEEN 10 and 30 ORDER BY ft5.c1, ft4.c1;
-WARNING:  whole-row reference to foreign table "ft5"
-WARNING:  whole-row reference to foreign table "ft5"
               ft5              | c1 | c2 |   c3   | c1 | c2 
 -------------------------------+----+----+--------+----+----
  (12,13,AAA012,/postgres_srv/) | 12 | 13 | AAA012 | 12 | 13
@@ -1846,12 +1816,70 @@ SET enable_hashjoin TO false;
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT * FROM ft1, ft2, ft4, ft5 WHERE ft1.c1 = ft2.c1 AND ft1.c2 = ft4.c1
     AND ft1.c2 = ft5.c1 AND ft1.c1 < 100 AND ft2.c1 < 100 FOR UPDATE;
-WARNING:  whole-row reference to foreign table "ft1"
-ERROR:  Using __spd_url multiple times is not allowed
+                                                                                                                                       QUERY PLAN                                                                                                                                       
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ LockRows
+   Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft1.*, ft2.*, ft4.*, ft5.*
+   ->  Merge Join
+         Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft1.*, ft2.*, ft4.*, ft5.*
+         Merge Cond: (ft1.c2 = ft4.c1)
+         ->  Sort
+               Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*
+               Sort Key: ft1.c2
+               ->  Merge Join
+                     Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*
+                     Merge Cond: (ft1.c1 = ft2.c1)
+                     ->  Sort
+                           Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*
+                           Sort Key: ft1.c1
+                           ->  Foreign Scan on public.ft1
+                                 Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" < 100))
+                     ->  Sort
+                           Output: ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*
+                           Sort Key: ft2.c1
+                           ->  Foreign Scan on public.ft2
+                                 Output: ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" < 100))
+         ->  Materialize
+               Output: ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft4.*, ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft5.*
+               ->  Merge Join
+                     Output: ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft4.*, ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft5.*
+                     Merge Cond: (ft4.c1 = ft5.c1)
+                     ->  Sort
+                           Output: ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft4.*
+                           Sort Key: ft4.c1
+                           ->  Foreign Scan on public.ft4
+                                 Output: ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft4.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT c1, c2, c3 FROM "S 1"."T 3"
+                     ->  Sort
+                           Output: ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft5.*
+                           Sort Key: ft5.c1
+                           ->  Foreign Scan on public.ft5
+                                 Output: ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft5.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT c1, c2, c3 FROM "S 1"."T 4"
+(44 rows)
+
 SELECT * FROM ft1, ft2, ft4, ft5 WHERE ft1.c1 = ft2.c1 AND ft1.c2 = ft4.c1
     AND ft1.c2 = ft5.c1 AND ft1.c1 < 100 AND ft2.c1 < 100 FOR UPDATE;
-WARNING:  whole-row reference to foreign table "ft1"
-ERROR:  Using __spd_url multiple times is not allowed
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    | c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    | c1 | c2 |   c3   |   __spd_url    | c1 | c2 |   c3   |   __spd_url    
+----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------+----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------+----+----+--------+----------------+----+----+--------+----------------
+ 96 |  6 | 00096 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 96 |  6 | 00096 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 46 |  6 | 00046 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 46 |  6 | 00046 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 26 |  6 | 00026 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 26 |  6 | 00026 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 56 |  6 | 00056 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 56 |  6 | 00056 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 66 |  6 | 00066 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 66 |  6 | 00066 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 16 |  6 | 00016 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 16 |  6 | 00016 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 76 |  6 | 00076 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 76 |  6 | 00076 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 86 |  6 | 00086 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 86 |  6 | 00086 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+  6 |  6 | 00006 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  6 | 00006 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 36 |  6 | 00036 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 36 |  6 | 00036 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+(10 rows)
+
 RESET enable_nestloop;
 RESET enable_hashjoin;
 -- check join pushdown in situations where multiple userids are involved
@@ -3344,8 +3372,6 @@ UPDATE ft2__postgres_srv__0 SET c2 = c2 + 400, c3 = c3 || '_update7' WHERE c1 % 
 --   FROM ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 9;
 UPDATE ft2__postgres_srv__0 SET c2 = ft2__postgres_srv__0.c2 + 500, c3 = ft2__postgres_srv__0.c3 || '_update9', c7 = DEFAULT
   FROM ft1 WHERE ft1.c1 = ft2__postgres_srv__0.c2 AND ft1.c1 % 10 = 9;
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft1"
 -- EXPLAIN (verbose, costs off)
 --   DELETE FROM ft2 WHERE c1 % 10 = 5 RETURNING c1, c4;                               -- can be pushed down
 -- DELETE FROM ft2 WHERE c1 % 10 = 5 RETURNING c1, c4;
@@ -3461,8 +3487,6 @@ DELETE FROM ft2__postgres_srv__0 WHERE c1 % 10 = 5 RETURNING c1, c4;
 -- DELETE FROM ft2 USING ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 2;                -- can be pushed down
 -- DELETE FROM ft2 USING ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 2;
 DELETE FROM ft2__postgres_srv__0 USING ft1 WHERE ft1.c1 = ft2__postgres_srv__0.c2 AND ft1.c1 % 10 = 2;
-WARNING:  whole-row reference to foreign table "ft1"
-WARNING:  whole-row reference to foreign table "ft1"
 -- SELECT c1,c2,c3,c4 FROM ft2 ORDER BY c1;
 -- EXPLAIN (verbose, costs off)
 -- INSERT INTO ft2 (c1,c2,c3) VALUES (1200,999,'foo') RETURNING tableoid::regclass;
@@ -3509,10 +3533,6 @@ UPDATE ft2__postgres_srv__0 SET c3 = 'foo'
   FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
   WHERE ft2__postgres_srv__0.c1 > 1200 AND ft2__postgres_srv__0.c2 = ft4.c1
   RETURNING ft2__postgres_srv__0, ft2__postgres_srv__0.*, ft4, ft4.*;
-WARNING:  whole-row reference to foreign table "ft4"
-WARNING:  whole-row reference to foreign table "ft5"
-WARNING:  whole-row reference to foreign table "ft4"
-WARNING:  whole-row reference to foreign table "ft5"
       ft2__postgres_srv__0      |  c1  | c2 | c3  | c4 | c5 | c6 |     c7     | c8 |              ft4              | c1 | c2 |   c3   |   __spd_url    
 --------------------------------+------+----+-----+----+----+----+------------+----+-------------------------------+----+----+--------+----------------
  (1206,6,foo,,,,"ft2       ",)  | 1206 |  6 | foo |    |    |    | ft2        |    | (6,7,AAA006,/postgres_srv/)   |  6 |  7 | AAA006 | /postgres_srv/
@@ -3546,10 +3566,6 @@ DELETE FROM ft2__postgres_srv__0
   USING ft4 LEFT JOIN ft5 ON (ft4.c1 = ft5.c1)
   WHERE ft2__postgres_srv__0.c1 > 1200 AND ft2__postgres_srv__0.c1 % 10 = 0 AND ft2__postgres_srv__0.c2 = ft4.c1
   RETURNING 100;
-WARNING:  whole-row reference to foreign table "ft4"
-WARNING:  whole-row reference to foreign table "ft5"
-WARNING:  whole-row reference to foreign table "ft5"
-WARNING:  whole-row reference to foreign table "ft4"
  ?column? 
 ----------
       100
@@ -3604,10 +3620,6 @@ UPDATE ft2__postgres_srv__0 SET c3 = 'baz'
   FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
   WHERE ft2__postgres_srv__0.c1 > 2000 AND ft2__postgres_srv__0.c2 === ft4.c1
   RETURNING ft2__postgres_srv__0.*, ft4.*, ft5.*;
-WARNING:  whole-row reference to foreign table "ft4"
-WARNING:  whole-row reference to foreign table "ft5"
-WARNING:  whole-row reference to foreign table "ft4"
-WARNING:  whole-row reference to foreign table "ft5"
   c1  | c2 | c3  | c4 | c5 | c6 |     c7     | c8 | c1 | c2 |   c3   |   __spd_url    | c1 | c2 |   c3   |   __spd_url    
 ------+----+-----+----+----+----+------------+----+----+----+--------+----------------+----+----+--------+----------------
  2006 |  6 | baz |    |    |    | ft2        |    |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
@@ -3626,10 +3638,6 @@ DELETE FROM ft2__postgres_srv__0
   USING ft4 INNER JOIN ft5 ON (ft4.c1 === ft5.c1)
   WHERE ft2__postgres_srv__0.c1 > 2000 AND ft2__postgres_srv__0.c2 = ft4.c1
   RETURNING ft2__postgres_srv__0.c1, ft2__postgres_srv__0.c2, ft2__postgres_srv__0.c3;
-WARNING:  whole-row reference to foreign table "ft4"
-WARNING:  whole-row reference to foreign table "ft5"
-WARNING:  whole-row reference to foreign table "ft4"
-WARNING:  whole-row reference to foreign table "ft5"
   c1  | c2 | c3  
 ------+----+-----
  2006 |  6 | baz
@@ -4421,10 +4429,6 @@ analyze remt2;
 WARNING:  skipping "remt2" --- cannot analyze this foreign table
 explain (verbose, costs off)
 update parent set b = parent.b || remt2.b from remt2 where parent.a = remt2.a returning *;
-WARNING:  whole-row reference to foreign table "remt2"
-WARNING:  whole-row reference to foreign table "remt2"
-WARNING:  whole-row reference to foreign table "remt2"
-WARNING:  whole-row reference to foreign table "remt2"
                                                                         QUERY PLAN                                                                        
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
  Update on public.parent
@@ -4462,10 +4466,6 @@ WARNING:  whole-row reference to foreign table "remt2"
 (32 rows)
 
 update parent set b = parent.b || remt2.b from remt2 where parent.a = remt2.a returning *;
-WARNING:  whole-row reference to foreign table "remt2"
-WARNING:  whole-row reference to foreign table "remt2"
-WARNING:  whole-row reference to foreign table "remt2"
-WARNING:  whole-row reference to foreign table "remt2"
  a |   b    | a |  b  |   __spd_url    
 ---+--------+---+-----+----------------
  1 | foofoo | 1 | foo | /postgres_srv/
@@ -4474,10 +4474,6 @@ WARNING:  whole-row reference to foreign table "remt2"
 
 explain (verbose, costs off)
 delete from parent using remt2 where parent.a = remt2.a returning parent;
-WARNING:  whole-row reference to foreign table "remt2"
-WARNING:  whole-row reference to foreign table "remt2"
-WARNING:  whole-row reference to foreign table "remt2"
-WARNING:  whole-row reference to foreign table "remt2"
                                     QUERY PLAN                                     
 -----------------------------------------------------------------------------------
  Delete on public.parent
@@ -4515,10 +4511,6 @@ WARNING:  whole-row reference to foreign table "remt2"
 (32 rows)
 
 delete from parent using remt2 where parent.a = remt2.a returning parent;
-WARNING:  whole-row reference to foreign table "remt2"
-WARNING:  whole-row reference to foreign table "remt2"
-WARNING:  whole-row reference to foreign table "remt2"
-WARNING:  whole-row reference to foreign table "remt2"
    parent   
 ------------
  (1,foofoo)

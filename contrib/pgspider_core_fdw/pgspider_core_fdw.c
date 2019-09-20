@@ -1714,7 +1714,6 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
 {
 	ListCell   *lc;
 	int			i = 0;
-	const char *relname = NULL;
 
 	*url_idx = -1;
 	/* Cannot use foreach because we modify exprs in the loop */
@@ -1742,10 +1741,10 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
 			rte = planner_rt_fetch(var->varno, root);
 			
 			/* check whole row reference */
-			relname = get_rel_name(rte->relid);
 			if (var->varattno == 0)
 			{
-				elog(WARNING, "whole-row reference to foreign table \"%s\"", relname);
+				lc = lnext(lc);
+				continue;
 			}
 			else
 				colname = get_attname(rte->relid, var->varattno, false);
