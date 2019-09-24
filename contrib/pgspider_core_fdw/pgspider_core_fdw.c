@@ -1737,9 +1737,18 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
 		if (IsA(varnode, Var))
 		{
 			Var		   *var = (Var *) varnode;
-
-			rte = planner_rt_fetch(var->varno, root);
-			colname = get_attname(rte->relid, var->varattno, false);
+			
+			/* check whole row reference */
+			if (var->varattno == 0)
+			{
+				lc = lnext(lc);
+				continue;
+			}
+			else
+			{
+				rte = planner_rt_fetch(var->varno, root);
+				colname = get_attname(rte->relid, var->varattno, false);
+			}
 
 			if (strcmp(colname, SPDURL) == 0)
 			{

@@ -296,8 +296,35 @@ SELECT * FROM ft1 t1 ORDER BY t1.c3, t1.c1, t1.tableoid OFFSET 100 LIMIT 10;
 (10 rows)
 
 -- whole-row reference
--- EXPLAIN (VERBOSE, COSTS OFF) SELECT t1 FROM ft1 t1 ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
--- SELECT t1 FROM ft1 t1 ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
+EXPLAIN (VERBOSE, COSTS OFF) SELECT t1 FROM ft1 t1 ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
+ Limit
+   Output: t1.*, c3, c1
+   ->  Sort
+         Output: t1.*, c3, c1
+         Sort Key: t1.c3, t1.c1
+         ->  Foreign Scan on public.ft1 t1
+               Output: t1.*, c3, c1
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+(9 rows)
+
+SELECT t1 FROM ft1 t1 ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
+                                                    t1                                                     
+-----------------------------------------------------------------------------------------------------------
+ (101,1,00101,"Thu Jan 01 08:00:00 1970 PST","Fri Jan 02 00:00:00 1970",1,"1         ",foo,/postgres_srv/)
+ (102,2,00102,"Fri Jan 02 08:00:00 1970 PST","Sat Jan 03 00:00:00 1970",2,"2         ",foo,/postgres_srv/)
+ (103,3,00103,"Sat Jan 03 08:00:00 1970 PST","Sun Jan 04 00:00:00 1970",3,"3         ",foo,/postgres_srv/)
+ (104,4,00104,"Sun Jan 04 08:00:00 1970 PST","Mon Jan 05 00:00:00 1970",4,"4         ",foo,/postgres_srv/)
+ (105,5,00105,"Mon Jan 05 08:00:00 1970 PST","Tue Jan 06 00:00:00 1970",5,"5         ",foo,/postgres_srv/)
+ (106,6,00106,"Tue Jan 06 08:00:00 1970 PST","Wed Jan 07 00:00:00 1970",6,"6         ",foo,/postgres_srv/)
+ (107,7,00107,"Wed Jan 07 08:00:00 1970 PST","Thu Jan 08 00:00:00 1970",7,"7         ",foo,/postgres_srv/)
+ (108,8,00108,"Thu Jan 08 08:00:00 1970 PST","Fri Jan 09 00:00:00 1970",8,"8         ",foo,/postgres_srv/)
+ (109,9,00109,"Fri Jan 09 08:00:00 1970 PST","Sat Jan 10 00:00:00 1970",9,"9         ",foo,/postgres_srv/)
+ (110,0,00110,"Sat Jan 10 08:00:00 1970 PST","Sun Jan 11 00:00:00 1970",0,"0         ",foo,/postgres_srv/)
+(10 rows)
+
 -- empty result
 SELECT * FROM ft1 WHERE false;
  c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 | __spd_url 
@@ -321,10 +348,40 @@ SELECT * FROM ft1 t1 WHERE t1.c1 = 101 AND t1.c6 = '1' AND t1.c7 >= '1';
 (1 row)
 
 -- with FOR UPDATE/SHARE
--- EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c1 = 101 FOR UPDATE;
--- SELECT * FROM ft1 t1 WHERE c1 = 101 FOR UPDATE;
--- EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c1 = 102 FOR SHARE;
--- SELECT * FROM ft1 t1 WHERE c1 = 102 FOR SHARE;
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c1 = 101 FOR UPDATE;
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
+ LockRows
+   Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url, t1.*
+   ->  Foreign Scan on public.ft1 t1
+         Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url, t1.*
+         Node: postgres_srv / Status: Alive
+           Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 101))
+(6 rows)
+
+SELECT * FROM ft1 t1 WHERE c1 = 101 FOR UPDATE;
+ c1  | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
+-----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
+ 101 |  1 | 00101 | Thu Jan 01 08:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
+(1 row)
+
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c1 = 102 FOR SHARE;
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
+ LockRows
+   Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url, t1.*
+   ->  Foreign Scan on public.ft1 t1
+         Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url, t1.*
+         Node: postgres_srv / Status: Alive
+           Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 102))
+(6 rows)
+
+SELECT * FROM ft1 t1 WHERE c1 = 102 FOR SHARE;
+ c1  | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
+-----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
+ 102 |  2 | 00102 | Fri Jan 02 08:00:00 1970 PST | Sat Jan 03 00:00:00 1970 | 2  | 2          | foo | /postgres_srv/
+(1 row)
+
 -- aggregate
 SELECT COUNT(*) FROM ft1 t1;
  count 
@@ -1094,9 +1151,49 @@ SELECT t1.c1, ss.a, ss.b FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t1
 (8 rows)
 
 -- d. test deparsing rowmarked relations as subqueries
--- EXPLAIN (VERBOSE, COSTS OFF)
--- SELECT t1.c1, ss.a, ss.b FROM (SELECT c1 FROM "S 1"."T 3" WHERE c1 = 50) t1 INNER JOIN (SELECT t2.c1, t3.c1 FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t2 FULL JOIN (SELECT c1 FROM ft5 WHERE c1 between 50 and 60) t3 ON (t2.c1 = t3.c1) WHERE t2.c1 IS NULL OR t2.c1 IS NOT NULL) ss(a, b) ON (TRUE) ORDER BY t1.c1, ss.a, ss.b FOR UPDATE OF t1;
--- SELECT t1.c1, ss.a, ss.b FROM (SELECT c1 FROM "S 1"."T 3" WHERE c1 = 50) t1 INNER JOIN (SELECT t2.c1, t3.c1 FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t2 FULL JOIN (SELECT c1 FROM ft5 WHERE c1 between 50 and 60) t3 ON (t2.c1 = t3.c1) WHERE t2.c1 IS NULL OR t2.c1 IS NOT NULL) ss(a, b) ON (TRUE) ORDER BY t1.c1, ss.a, ss.b FOR UPDATE OF t1;
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT t1.c1, ss.a, ss.b FROM (SELECT c1 FROM "S 1"."T 3" WHERE c1 = 50) t1 INNER JOIN (SELECT t2.c1, t3.c1 FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t2 FULL JOIN (SELECT c1 FROM ft5 WHERE c1 between 50 and 60) t3 ON (t2.c1 = t3.c1) WHERE t2.c1 IS NULL OR t2.c1 IS NOT NULL) ss(a, b) ON (TRUE) ORDER BY t1.c1, ss.a, ss.b FOR UPDATE OF t1;
+                                                      QUERY PLAN                                                      
+----------------------------------------------------------------------------------------------------------------------
+ LockRows
+   Output: "T 3".c1, ft4.c1, ft5.c1, "T 3".*, ft4.*, ft5.*
+   ->  Sort
+         Output: "T 3".c1, ft4.c1, ft5.c1, "T 3".*, ft4.*, ft5.*
+         Sort Key: ft4.c1, ft5.c1
+         ->  Nested Loop
+               Output: "T 3".c1, ft4.c1, ft5.c1, "T 3".*, ft4.*, ft5.*
+               ->  Foreign Scan on "S 1"."T 3"
+                     Output: "T 3".c1, "T 3".*
+                     Remote SQL: SELECT c1, c2, c3 FROM "S 1"."T 3" WHERE ((c1 = 50)) FOR UPDATE
+               ->  Hash Full Join
+                     Output: ft4.c1, ft4.*, ft5.c1, ft5.*
+                     Hash Cond: (ft4.c1 = ft5.c1)
+                     Filter: ((ft4.c1 IS NULL) OR (ft4.c1 IS NOT NULL))
+                     ->  Foreign Scan on public.ft4
+                           Output: ft4.c1, ft4.*
+                           Node: postgres_srv / Status: Alive
+                             Remote SQL: SELECT c1, c2, c3 FROM "S 1"."T 3" WHERE ((c1 >= 50)) AND ((c1 <= 60))
+                     ->  Hash
+                           Output: ft5.c1, ft5.*
+                           ->  Foreign Scan on public.ft5
+                                 Output: ft5.c1, ft5.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT c1, c2, c3 FROM "S 1"."T 4" WHERE ((c1 >= 50)) AND ((c1 <= 60))
+(24 rows)
+
+SELECT t1.c1, ss.a, ss.b FROM (SELECT c1 FROM "S 1"."T 3" WHERE c1 = 50) t1 INNER JOIN (SELECT t2.c1, t3.c1 FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t2 FULL JOIN (SELECT c1 FROM ft5 WHERE c1 between 50 and 60) t3 ON (t2.c1 = t3.c1) WHERE t2.c1 IS NULL OR t2.c1 IS NOT NULL) ss(a, b) ON (TRUE) ORDER BY t1.c1, ss.a, ss.b FOR UPDATE OF t1;
+ c1 | a  | b  
+----+----+----
+ 50 | 50 |   
+ 50 | 52 |   
+ 50 | 54 | 54
+ 50 | 56 |   
+ 50 | 58 |   
+ 50 | 60 | 60
+ 50 |    | 51
+ 50 |    | 57
+(8 rows)
+
 -- full outer join + inner join
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- SELECT t1.c1, t2.c1, t3.c1 FROM ft4 t1 INNER JOIN ft5 t2 ON (t1.c1 = t2.c1 + 1 and t1.c1 between 50 and 60) FULL JOIN ft4 t3 ON (t2.c1 = t3.c1) ORDER BY t1.c1, t2.c1, t3.c1 LIMIT 10;
@@ -1269,19 +1366,187 @@ ALTER SERVER postgres_srv OPTIONS (DROP extensions);
 ALTER SERVER postgres_srv OPTIONS (ADD extensions 'postgres_fdw');
 -- join two tables with FOR UPDATE clause
 -- tests whole-row reference for row marks
--- EXPLAIN (VERBOSE, COSTS OFF)
--- SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR UPDATE OF t1;
--- SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR UPDATE OF t1;
--- EXPLAIN (VERBOSE, COSTS OFF)
--- SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR UPDATE;
--- SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR UPDATE;
--- -- join two tables with FOR SHARE clause
--- EXPLAIN (VERBOSE, COSTS OFF)
--- SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR SHARE OF t1;
--- SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR SHARE OF t1;
--- EXPLAIN (VERBOSE, COSTS OFF)
--- SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR SHARE;
--- SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR SHARE;
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR UPDATE OF t1;
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Limit
+   Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+   ->  LockRows
+         Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+         ->  Sort
+               Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+               Sort Key: t1.c3, t1.c1
+               ->  Merge Join
+                     Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+                     Merge Cond: (t1.c1 = t2.c1)
+                     ->  Sort
+                           Output: t1.c1, t1.c3, t1.*
+                           Sort Key: t1.c1
+                           ->  Foreign Scan on public.ft1 t1
+                                 Output: t1.c1, t1.c3, t1.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+                     ->  Sort
+                           Output: t2.c1, t2.*
+                           Sort Key: t2.c1
+                           ->  Foreign Scan on public.ft2 t2
+                                 Output: t2.c1, t2.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+(24 rows)
+
+SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR UPDATE OF t1;
+ c1  | c1  
+-----+-----
+ 101 | 101
+ 102 | 102
+ 103 | 103
+ 104 | 104
+ 105 | 105
+ 106 | 106
+ 107 | 107
+ 108 | 108
+ 109 | 109
+ 110 | 110
+(10 rows)
+
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR UPDATE;
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Limit
+   Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+   ->  LockRows
+         Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+         ->  Sort
+               Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+               Sort Key: t1.c3, t1.c1
+               ->  Merge Join
+                     Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+                     Merge Cond: (t1.c1 = t2.c1)
+                     ->  Sort
+                           Output: t1.c1, t1.c3, t1.*
+                           Sort Key: t1.c1
+                           ->  Foreign Scan on public.ft1 t1
+                                 Output: t1.c1, t1.c3, t1.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+                     ->  Sort
+                           Output: t2.c1, t2.*
+                           Sort Key: t2.c1
+                           ->  Foreign Scan on public.ft2 t2
+                                 Output: t2.c1, t2.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+(24 rows)
+
+SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR UPDATE;
+ c1  | c1  
+-----+-----
+ 101 | 101
+ 102 | 102
+ 103 | 103
+ 104 | 104
+ 105 | 105
+ 106 | 106
+ 107 | 107
+ 108 | 108
+ 109 | 109
+ 110 | 110
+(10 rows)
+
+-- join two tables with FOR SHARE clause
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR SHARE OF t1;
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Limit
+   Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+   ->  LockRows
+         Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+         ->  Sort
+               Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+               Sort Key: t1.c3, t1.c1
+               ->  Merge Join
+                     Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+                     Merge Cond: (t1.c1 = t2.c1)
+                     ->  Sort
+                           Output: t1.c1, t1.c3, t1.*
+                           Sort Key: t1.c1
+                           ->  Foreign Scan on public.ft1 t1
+                                 Output: t1.c1, t1.c3, t1.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+                     ->  Sort
+                           Output: t2.c1, t2.*
+                           Sort Key: t2.c1
+                           ->  Foreign Scan on public.ft2 t2
+                                 Output: t2.c1, t2.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+(24 rows)
+
+SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR SHARE OF t1;
+ c1  | c1  
+-----+-----
+ 101 | 101
+ 102 | 102
+ 103 | 103
+ 104 | 104
+ 105 | 105
+ 106 | 106
+ 107 | 107
+ 108 | 108
+ 109 | 109
+ 110 | 110
+(10 rows)
+
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR SHARE;
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Limit
+   Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+   ->  LockRows
+         Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+         ->  Sort
+               Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+               Sort Key: t1.c3, t1.c1
+               ->  Merge Join
+                     Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+                     Merge Cond: (t1.c1 = t2.c1)
+                     ->  Sort
+                           Output: t1.c1, t1.c3, t1.*
+                           Sort Key: t1.c1
+                           ->  Foreign Scan on public.ft1 t1
+                                 Output: t1.c1, t1.c3, t1.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+                     ->  Sort
+                           Output: t2.c1, t2.*
+                           Sort Key: t2.c1
+                           ->  Foreign Scan on public.ft2 t2
+                                 Output: t2.c1, t2.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+(24 rows)
+
+SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR SHARE;
+ c1  | c1  
+-----+-----
+ 101 | 101
+ 102 | 102
+ 103 | 103
+ 104 | 104
+ 105 | 105
+ 106 | 106
+ 107 | 107
+ 108 | 108
+ 109 | 109
+ 110 | 110
+(10 rows)
+
 -- join in CTE
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- WITH t (c1_1, c1_3, c2_1) AS (SELECT t1.c1, t1.c3, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1)) SELECT c1_1, c2_1 FROM t ORDER BY c1_3, c1_1 OFFSET 100 LIMIT 10;
@@ -1301,8 +1566,34 @@ WITH t (c1_1, c1_3, c2_1) AS (SELECT t1.c1, t1.c3, t2.c1 FROM ft1 t1 JOIN ft2 t2
 (10 rows)
 
 -- ctid with whole-row reference
--- EXPLAIN (VERBOSE, COSTS OFF)
--- SELECT t1.ctid, t1, t2, t1.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT t1.ctid, t1, t2, t1.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Limit
+   Output: t1.ctid, t1.*, t2.*, t1.c1, t1.c3
+   ->  Sort
+         Output: t1.ctid, t1.*, t2.*, t1.c1, t1.c3
+         Sort Key: t1.c3, t1.c1
+         ->  Merge Join
+               Output: t1.ctid, t1.*, t2.*, t1.c1, t1.c3
+               Merge Cond: (t1.c1 = t2.c1)
+               ->  Sort
+                     Output: t1.ctid, t1.*, t1.c1, t1.c3
+                     Sort Key: t1.c1
+                     ->  Foreign Scan on public.ft1 t1
+                           Output: t1.ctid, t1.*, t1.c1, t1.c3
+                           Node: postgres_srv / Status: Alive
+                             Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8, ctid FROM "S 1"."T 1"
+               ->  Sort
+                     Output: t2.*, t2.c1
+                     Sort Key: t2.c1
+                     ->  Foreign Scan on public.ft2 t2
+                           Output: t2.*, t2.c1
+                           Node: postgres_srv / Status: Alive
+                             Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+(22 rows)
+
 -- SEMI JOIN, not pushed down
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- SELECT t1.c1 FROM ft1 t1 WHERE EXISTS (SELECT 1 FROM ft2 t2 WHERE t1.c1 = t2.c1) ORDER BY t1.c1 OFFSET 100 LIMIT 10;
@@ -1487,18 +1778,108 @@ SELECT t1c1, avg(t1c1 + t2c1) FROM (SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 
 -- SELECT ft4.c1, q.* FROM ft4 LEFT JOIN (SELECT 13, ft1.c1, ft2.c1 FROM ft1 RIGHT JOIN ft2 ON (ft1.c1 = ft2.c1) WHERE ft1.c1 = 12) q(a, b, c) ON (ft4.c1 = q.b) WHERE ft4.c1 BETWEEN 10 AND 15;
 -- join with nullable side with some columns with null values
 -- UPDATE ft5 SET c3 = null where c1 % 9 = 0;
--- EXPLAIN (VERBOSE, COSTS OFF)
--- SELECT ft5, ft5.c1, ft5.c2, ft5.c3, ft4.c1, ft4.c2 FROM ft5 left join ft4 on ft5.c1 = ft4.c1 WHERE ft4.c1 BETWEEN 10 and 30 ORDER BY ft5.c1, ft4.c1;
--- SELECT ft5, ft5.c1, ft5.c2, ft5.c3, ft4.c1, ft4.c2 FROM ft5 left join ft4 on ft5.c1 = ft4.c1 WHERE ft4.c1 BETWEEN 10 and 30 ORDER BY ft5.c1, ft4.c1;
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT ft5, ft5.c1, ft5.c2, ft5.c3, ft4.c1, ft4.c2 FROM ft5 left join ft4 on ft5.c1 = ft4.c1 WHERE ft4.c1 BETWEEN 10 and 30 ORDER BY ft5.c1, ft4.c1;
+                                              QUERY PLAN                                              
+------------------------------------------------------------------------------------------------------
+ Sort
+   Output: ft5.*, ft5.c1, ft5.c2, ft5.c3, ft4.c1, ft4.c2
+   Sort Key: ft5.c1
+   ->  Hash Join
+         Output: ft5.*, ft5.c1, ft5.c2, ft5.c3, ft4.c1, ft4.c2
+         Hash Cond: (ft5.c1 = ft4.c1)
+         ->  Foreign Scan on public.ft5
+               Output: ft5.*, ft5.c1, ft5.c2, ft5.c3
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT c1, c2, c3 FROM "S 1"."T 4"
+         ->  Hash
+               Output: ft4.c1, ft4.c2
+               ->  Foreign Scan on public.ft4
+                     Output: ft4.c1, ft4.c2
+                     Node: postgres_srv / Status: Alive
+                       Remote SQL: SELECT c1, c2 FROM "S 1"."T 3" WHERE ((c1 >= 10)) AND ((c1 <= 30))
+(16 rows)
+
+SELECT ft5, ft5.c1, ft5.c2, ft5.c3, ft4.c1, ft4.c2 FROM ft5 left join ft4 on ft5.c1 = ft4.c1 WHERE ft4.c1 BETWEEN 10 and 30 ORDER BY ft5.c1, ft4.c1;
+              ft5              | c1 | c2 |   c3   | c1 | c2 
+-------------------------------+----+----+--------+----+----
+ (12,13,AAA012,/postgres_srv/) | 12 | 13 | AAA012 | 12 | 13
+ (18,19,AAA018,/postgres_srv/) | 18 | 19 | AAA018 | 18 | 19
+ (24,25,AAA024,/postgres_srv/) | 24 | 25 | AAA024 | 24 | 25
+ (30,31,AAA030,/postgres_srv/) | 30 | 31 | AAA030 | 30 | 31
+(4 rows)
+
 -- multi-way join involving multiple merge joins
 -- (this case used to have EPQ-related planning problems)
 SET enable_nestloop TO false;
 SET enable_hashjoin TO false;
--- EXPLAIN (VERBOSE, COSTS OFF)
--- SELECT * FROM ft1, ft2, ft4, ft5 WHERE ft1.c1 = ft2.c1 AND ft1.c2 = ft4.c1
---     AND ft1.c2 = ft5.c1 AND ft1.c1 < 100 AND ft2.c1 < 100 FOR UPDATE;
--- SELECT * FROM ft1, ft2, ft4, ft5 WHERE ft1.c1 = ft2.c1 AND ft1.c2 = ft4.c1
---     AND ft1.c2 = ft5.c1 AND ft1.c1 < 100 AND ft2.c1 < 100 FOR UPDATE;
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM ft1, ft2, ft4, ft5 WHERE ft1.c1 = ft2.c1 AND ft1.c2 = ft4.c1
+    AND ft1.c2 = ft5.c1 AND ft1.c1 < 100 AND ft2.c1 < 100 FOR UPDATE;
+                                                                                                                                       QUERY PLAN                                                                                                                                       
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ LockRows
+   Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft1.*, ft2.*, ft4.*, ft5.*
+   ->  Merge Join
+         Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft1.*, ft2.*, ft4.*, ft5.*
+         Merge Cond: (ft1.c2 = ft4.c1)
+         ->  Sort
+               Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*
+               Sort Key: ft1.c2
+               ->  Merge Join
+                     Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*
+                     Merge Cond: (ft1.c1 = ft2.c1)
+                     ->  Sort
+                           Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*
+                           Sort Key: ft1.c1
+                           ->  Foreign Scan on public.ft1
+                                 Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" < 100))
+                     ->  Sort
+                           Output: ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*
+                           Sort Key: ft2.c1
+                           ->  Foreign Scan on public.ft2
+                                 Output: ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" < 100))
+         ->  Materialize
+               Output: ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft4.*, ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft5.*
+               ->  Merge Join
+                     Output: ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft4.*, ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft5.*
+                     Merge Cond: (ft4.c1 = ft5.c1)
+                     ->  Sort
+                           Output: ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft4.*
+                           Sort Key: ft4.c1
+                           ->  Foreign Scan on public.ft4
+                                 Output: ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft4.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT c1, c2, c3 FROM "S 1"."T 3"
+                     ->  Sort
+                           Output: ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft5.*
+                           Sort Key: ft5.c1
+                           ->  Foreign Scan on public.ft5
+                                 Output: ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft5.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT c1, c2, c3 FROM "S 1"."T 4"
+(44 rows)
+
+SELECT * FROM ft1, ft2, ft4, ft5 WHERE ft1.c1 = ft2.c1 AND ft1.c2 = ft4.c1
+    AND ft1.c2 = ft5.c1 AND ft1.c1 < 100 AND ft2.c1 < 100 FOR UPDATE;
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    | c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    | c1 | c2 |   c3   |   __spd_url    | c1 | c2 |   c3   |   __spd_url    
+----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------+----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------+----+----+--------+----------------+----+----+--------+----------------
+ 96 |  6 | 00096 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 96 |  6 | 00096 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 46 |  6 | 00046 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 46 |  6 | 00046 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 26 |  6 | 00026 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 26 |  6 | 00026 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 56 |  6 | 00056 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 56 |  6 | 00056 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 66 |  6 | 00066 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 66 |  6 | 00066 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 16 |  6 | 00016 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 16 |  6 | 00016 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 76 |  6 | 00076 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 76 |  6 | 00076 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 86 |  6 | 00086 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 86 |  6 | 00086 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+  6 |  6 | 00006 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  6 | 00006 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 36 |  6 | 00036 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 36 |  6 | 00036 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+(10 rows)
+
 RESET enable_nestloop;
 RESET enable_hashjoin;
 -- check join pushdown in situations where multiple userids are involved
@@ -2989,8 +3370,8 @@ UPDATE ft2__postgres_srv__0 SET c2 = c2 + 400, c3 = c3 || '_update7' WHERE c1 % 
 --   FROM ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 9;                               -- can be pushed down
 -- UPDATE ft2 SET c2 = ft2.c2 + 500, c3 = ft2.c3 || '_update9', c7 = DEFAULT
 --   FROM ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 9;
--- UPDATE ft2__postgres_srv__0 SET c2 = ft2__postgres_srv__0.c2 + 500, c3 = ft2__postgres_srv__0.c3 || '_update9', c7 = DEFAULT
---   FROM ft1 WHERE ft1.c1 = ft2__postgres_srv__0.c2 AND ft1.c1 % 10 = 9;
+UPDATE ft2__postgres_srv__0 SET c2 = ft2__postgres_srv__0.c2 + 500, c3 = ft2__postgres_srv__0.c3 || '_update9', c7 = DEFAULT
+  FROM ft1 WHERE ft1.c1 = ft2__postgres_srv__0.c2 AND ft1.c1 % 10 = 9;
 -- EXPLAIN (verbose, costs off)
 --   DELETE FROM ft2 WHERE c1 % 10 = 5 RETURNING c1, c4;                               -- can be pushed down
 -- DELETE FROM ft2 WHERE c1 % 10 = 5 RETURNING c1, c4;
@@ -3105,7 +3486,7 @@ DELETE FROM ft2__postgres_srv__0 WHERE c1 % 10 = 5 RETURNING c1, c4;
 -- EXPLAIN (verbose, costs off)
 -- DELETE FROM ft2 USING ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 2;                -- can be pushed down
 -- DELETE FROM ft2 USING ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 2;
--- DELETE FROM ft2__postgres_srv__0 USING ft1 WHERE ft1.c1 = ft2__postgres_srv__0.c2 AND ft1.c1 % 10 = 2;
+DELETE FROM ft2__postgres_srv__0 USING ft1 WHERE ft1.c1 = ft2__postgres_srv__0.c2 AND ft1.c1 % 10 = 2;
 -- SELECT c1,c2,c3,c4 FROM ft2 ORDER BY c1;
 -- EXPLAIN (verbose, costs off)
 -- INSERT INTO ft2 (c1,c2,c3) VALUES (1200,999,'foo') RETURNING tableoid::regclass;
@@ -3148,10 +3529,30 @@ INSERT INTO ft2__postgres_srv__0 (c1,c2,c3)
 --   FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
 --   WHERE ft2.c1 > 1200 AND ft2.c2 = ft4.c1
 --   RETURNING ft2, ft2.*, ft4, ft4.*;
--- UPDATE ft2__postgres_srv__0 SET c3 = 'foo'
---   FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
---   WHERE ft2__postgres_srv__0.c1 > 1200 AND ft2__postgres_srv__0.c2 = ft4.c1
---   RETURNING ft2__postgres_srv__0, ft2__postgres_srv__0.*, ft4, ft4.*;
+UPDATE ft2__postgres_srv__0 SET c3 = 'foo'
+  FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
+  WHERE ft2__postgres_srv__0.c1 > 1200 AND ft2__postgres_srv__0.c2 = ft4.c1
+  RETURNING ft2__postgres_srv__0, ft2__postgres_srv__0.*, ft4, ft4.*;
+      ft2__postgres_srv__0      |  c1  | c2 | c3  | c4 | c5 | c6 |     c7     | c8 |              ft4              | c1 | c2 |   c3   |   __spd_url    
+--------------------------------+------+----+-----+----+----+----+------------+----+-------------------------------+----+----+--------+----------------
+ (1206,6,foo,,,,"ft2       ",)  | 1206 |  6 | foo |    |    |    | ft2        |    | (6,7,AAA006,/postgres_srv/)   |  6 |  7 | AAA006 | /postgres_srv/
+ (1212,12,foo,,,,"ft2       ",) | 1212 | 12 | foo |    |    |    | ft2        |    | (12,13,AAA012,/postgres_srv/) | 12 | 13 | AAA012 | /postgres_srv/
+ (1218,18,foo,,,,"ft2       ",) | 1218 | 18 | foo |    |    |    | ft2        |    | (18,19,AAA018,/postgres_srv/) | 18 | 19 | AAA018 | /postgres_srv/
+ (1224,24,foo,,,,"ft2       ",) | 1224 | 24 | foo |    |    |    | ft2        |    | (24,25,AAA024,/postgres_srv/) | 24 | 25 | AAA024 | /postgres_srv/
+ (1230,30,foo,,,,"ft2       ",) | 1230 | 30 | foo |    |    |    | ft2        |    | (30,31,AAA030,/postgres_srv/) | 30 | 31 | AAA030 | /postgres_srv/
+ (1236,36,foo,,,,"ft2       ",) | 1236 | 36 | foo |    |    |    | ft2        |    | (36,37,AAA036,/postgres_srv/) | 36 | 37 | AAA036 | /postgres_srv/
+ (1242,42,foo,,,,"ft2       ",) | 1242 | 42 | foo |    |    |    | ft2        |    | (42,43,AAA042,/postgres_srv/) | 42 | 43 | AAA042 | /postgres_srv/
+ (1248,48,foo,,,,"ft2       ",) | 1248 | 48 | foo |    |    |    | ft2        |    | (48,49,AAA048,/postgres_srv/) | 48 | 49 | AAA048 | /postgres_srv/
+ (1254,54,foo,,,,"ft2       ",) | 1254 | 54 | foo |    |    |    | ft2        |    | (54,55,AAA054,/postgres_srv/) | 54 | 55 | AAA054 | /postgres_srv/
+ (1260,60,foo,,,,"ft2       ",) | 1260 | 60 | foo |    |    |    | ft2        |    | (60,61,AAA060,/postgres_srv/) | 60 | 61 | AAA060 | /postgres_srv/
+ (1266,66,foo,,,,"ft2       ",) | 1266 | 66 | foo |    |    |    | ft2        |    | (66,67,AAA066,/postgres_srv/) | 66 | 67 | AAA066 | /postgres_srv/
+ (1272,72,foo,,,,"ft2       ",) | 1272 | 72 | foo |    |    |    | ft2        |    | (72,73,AAA072,/postgres_srv/) | 72 | 73 | AAA072 | /postgres_srv/
+ (1278,78,foo,,,,"ft2       ",) | 1278 | 78 | foo |    |    |    | ft2        |    | (78,79,AAA078,/postgres_srv/) | 78 | 79 | AAA078 | /postgres_srv/
+ (1284,84,foo,,,,"ft2       ",) | 1284 | 84 | foo |    |    |    | ft2        |    | (84,85,AAA084,/postgres_srv/) | 84 | 85 | AAA084 | /postgres_srv/
+ (1290,90,foo,,,,"ft2       ",) | 1290 | 90 | foo |    |    |    | ft2        |    | (90,91,AAA090,/postgres_srv/) | 90 | 91 | AAA090 | /postgres_srv/
+ (1296,96,foo,,,,"ft2       ",) | 1296 | 96 | foo |    |    |    | ft2        |    | (96,97,AAA096,/postgres_srv/) | 96 | 97 | AAA096 | /postgres_srv/
+(16 rows)
+
 -- EXPLAIN (verbose, costs off)
 -- DELETE FROM ft2
 --   USING ft4 LEFT JOIN ft5 ON (ft4.c1 = ft5.c1)
@@ -3161,10 +3562,24 @@ INSERT INTO ft2__postgres_srv__0 (c1,c2,c3)
 --   USING ft4 LEFT JOIN ft5 ON (ft4.c1 = ft5.c1)
 --   WHERE ft2.c1 > 1200 AND ft2.c1 % 10 = 0 AND ft2.c2 = ft4.c1
 --   RETURNING 100;
--- DELETE FROM ft2__postgres_srv__0
---   USING ft4 LEFT JOIN ft5 ON (ft4.c1 = ft5.c1)
---   WHERE ft2__postgres_srv__0.c1 > 1200 AND ft2__postgres_srv__0.c1 % 10 = 0 AND ft2__postgres_srv__0.c2 = ft4.c1
---   RETURNING 100;
+DELETE FROM ft2__postgres_srv__0
+  USING ft4 LEFT JOIN ft5 ON (ft4.c1 = ft5.c1)
+  WHERE ft2__postgres_srv__0.c1 > 1200 AND ft2__postgres_srv__0.c1 % 10 = 0 AND ft2__postgres_srv__0.c2 = ft4.c1
+  RETURNING 100;
+ ?column? 
+----------
+      100
+      100
+      100
+      100
+      100
+      100
+      100
+      100
+      100
+      100
+(10 rows)
+
 -- DELETE FROM ft2 WHERE ft2.c1 > 1200;
 DELETE FROM ft2__postgres_srv__0 WHERE ft2__postgres_srv__0.c1 > 1200;
 -- Test UPDATE/DELETE with WHERE or JOIN/ON conditions containing
@@ -3201,10 +3616,15 @@ UPDATE ft2__postgres_srv__0 SET c3 = 'bar' WHERE postgres_fdw_abs(c1) > 2000 RET
 --   FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
 --   WHERE ft2.c1 > 2000 AND ft2.c2 === ft4.c1
 --   RETURNING ft2.*, ft4.*, ft5.*;
--- UPDATE ft2__postgres_srv__0 SET c3 = 'baz'
---   FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
---   WHERE ft2__postgres_srv__0.c1 > 2000 AND ft2__postgres_srv__0.c2 === ft4.c1
---   RETURNING ft2__postgres_srv__0.*, ft4.*, ft5.*;
+UPDATE ft2__postgres_srv__0 SET c3 = 'baz'
+  FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
+  WHERE ft2__postgres_srv__0.c1 > 2000 AND ft2__postgres_srv__0.c2 === ft4.c1
+  RETURNING ft2__postgres_srv__0.*, ft4.*, ft5.*;
+  c1  | c2 | c3  | c4 | c5 | c6 |     c7     | c8 | c1 | c2 |   c3   |   __spd_url    | c1 | c2 |   c3   |   __spd_url    
+------+----+-----+----+----+----+------------+----+----+----+--------+----------------+----+----+--------+----------------
+ 2006 |  6 | baz |    |    |    | ft2        |    |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+(1 row)
+
 -- EXPLAIN (verbose, costs off)
 -- DELETE FROM ft2
 --   USING ft4 INNER JOIN ft5 ON (ft4.c1 === ft5.c1)
@@ -3214,10 +3634,15 @@ UPDATE ft2__postgres_srv__0 SET c3 = 'bar' WHERE postgres_fdw_abs(c1) > 2000 RET
 --   USING ft4 INNER JOIN ft5 ON (ft4.c1 === ft5.c1)
 --   WHERE ft2.c1 > 2000 AND ft2.c2 = ft4.c1
 --   RETURNING ft2.c1, ft2.c2, ft2.c3;
--- DELETE FROM ft2__postgres_srv__0
---   USING ft4 INNER JOIN ft5 ON (ft4.c1 === ft5.c1)
---   WHERE ft2__postgres_srv__0.c1 > 2000 AND ft2__postgres_srv__0.c2 = ft4.c1
---   RETURNING ft2__postgres_srv__0.c1, ft2__postgres_srv__0.c2, ft2__postgres_srv__0.c3;
+DELETE FROM ft2__postgres_srv__0
+  USING ft4 INNER JOIN ft5 ON (ft4.c1 === ft5.c1)
+  WHERE ft2__postgres_srv__0.c1 > 2000 AND ft2__postgres_srv__0.c2 = ft4.c1
+  RETURNING ft2__postgres_srv__0.c1, ft2__postgres_srv__0.c2, ft2__postgres_srv__0.c3;
+  c1  | c2 | c3  
+------+----+-----
+ 2006 |  6 | baz
+(1 row)
+
 -- DELETE FROM ft2 WHERE ft2.c1 > 2000;
 DELETE FROM ft2__postgres_srv__0 WHERE ft2__postgres_srv__0.c1 > 2000;
 ALTER SERVER postgres_srv OPTIONS (ADD extensions 'postgres_fdw');
@@ -4002,12 +4427,96 @@ analyze remt1;
 WARNING:  skipping "remt1" --- cannot analyze this foreign table
 analyze remt2;
 WARNING:  skipping "remt2" --- cannot analyze this foreign table
--- explain (verbose, costs off)
--- update parent set b = parent.b || remt2.b from remt2 where parent.a = remt2.a returning *;
--- update parent set b = parent.b || remt2.b from remt2 where parent.a = remt2.a returning *;
--- explain (verbose, costs off)
--- delete from parent using remt2 where parent.a = remt2.a returning parent;
--- delete from parent using remt2 where parent.a = remt2.a returning parent;
+explain (verbose, costs off)
+update parent set b = parent.b || remt2.b from remt2 where parent.a = remt2.a returning *;
+                                                                        QUERY PLAN                                                                        
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+ Update on public.parent
+   Output: parent.a, parent.b, remt2.a, remt2.b, remt2.__spd_url
+   Update on public.parent
+   Foreign Update on public.remt1__postgres_srv__0
+     Remote SQL: UPDATE public.loct1_2 SET b = $2 WHERE ctid = $1 RETURNING a, b
+   ->  Hash Join
+         Output: parent.a, (parent.b || remt2.b), parent.ctid, remt2.*, remt2.a, remt2.b, remt2.__spd_url
+         Hash Cond: (remt2.a = parent.a)
+         ->  Foreign Scan on public.remt2
+               Output: remt2.b, remt2.*, remt2.a, remt2.__spd_url
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT a, b FROM public.loct2_2
+         ->  Hash
+               Output: parent.a, parent.b, parent.ctid
+               ->  Seq Scan on public.parent
+                     Output: parent.a, parent.b, parent.ctid
+   ->  Merge Join
+         Output: remt1__postgres_srv__0.a, (remt1__postgres_srv__0.b || remt2.b), remt1__postgres_srv__0.ctid, remt2.*, remt2.a, remt2.b, remt2.__spd_url
+         Merge Cond: (remt1__postgres_srv__0.a = remt2.a)
+         ->  Sort
+               Output: remt1__postgres_srv__0.a, remt1__postgres_srv__0.b, remt1__postgres_srv__0.ctid
+               Sort Key: remt1__postgres_srv__0.a
+               ->  Foreign Scan on public.remt1__postgres_srv__0
+                     Output: remt1__postgres_srv__0.a, remt1__postgres_srv__0.b, remt1__postgres_srv__0.ctid
+                     Remote SQL: SELECT a, b, ctid FROM public.loct1_2 FOR UPDATE
+         ->  Sort
+               Output: remt2.b, remt2.*, remt2.a, remt2.__spd_url
+               Sort Key: remt2.a
+               ->  Foreign Scan on public.remt2
+                     Output: remt2.b, remt2.*, remt2.a, remt2.__spd_url
+                     Node: postgres_srv / Status: Alive
+                       Remote SQL: SELECT a, b FROM public.loct2_2
+(32 rows)
+
+update parent set b = parent.b || remt2.b from remt2 where parent.a = remt2.a returning *;
+ a |   b    | a |  b  |   __spd_url    
+---+--------+---+-----+----------------
+ 1 | foofoo | 1 | foo | /postgres_srv/
+ 2 | barbar | 2 | bar | /postgres_srv/
+(2 rows)
+
+explain (verbose, costs off)
+delete from parent using remt2 where parent.a = remt2.a returning parent;
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ Delete on public.parent
+   Output: parent.*
+   Delete on public.parent
+   Foreign Delete on public.remt1__postgres_srv__0
+     Remote SQL: DELETE FROM public.loct1_2 WHERE ctid = $1 RETURNING a, b
+   ->  Hash Join
+         Output: parent.ctid, remt2.*
+         Hash Cond: (remt2.a = parent.a)
+         ->  Foreign Scan on public.remt2
+               Output: remt2.*, remt2.a
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT a, b FROM public.loct2_2
+         ->  Hash
+               Output: parent.ctid, parent.a
+               ->  Seq Scan on public.parent
+                     Output: parent.ctid, parent.a
+   ->  Merge Join
+         Output: remt1__postgres_srv__0.ctid, remt2.*
+         Merge Cond: (remt1__postgres_srv__0.a = remt2.a)
+         ->  Sort
+               Output: remt1__postgres_srv__0.ctid, remt1__postgres_srv__0.a
+               Sort Key: remt1__postgres_srv__0.a
+               ->  Foreign Scan on public.remt1__postgres_srv__0
+                     Output: remt1__postgres_srv__0.ctid, remt1__postgres_srv__0.a
+                     Remote SQL: SELECT a, ctid FROM public.loct1_2 FOR UPDATE
+         ->  Sort
+               Output: remt2.*, remt2.a
+               Sort Key: remt2.a
+               ->  Foreign Scan on public.remt2
+                     Output: remt2.*, remt2.a
+                     Node: postgres_srv / Status: Alive
+                       Remote SQL: SELECT a, b FROM public.loct2_2
+(32 rows)
+
+delete from parent using remt2 where parent.a = remt2.a returning parent;
+   parent   
+------------
+ (1,foofoo)
+ (2,barbar)
+(2 rows)
+
 -- cleanup
 drop foreign table remt1;
 drop foreign table remt2;
