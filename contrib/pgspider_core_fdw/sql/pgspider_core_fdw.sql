@@ -223,6 +223,7 @@ select t from t3 where i  = 1;
 -- select i from t3 where t COLLATE "ja_JP.utf8" = 'aa';
 
 -- error stack test
+Set pgspider_core_fdw.throw_error_ifdead to false;
 CREATE SERVER mysql_svr2 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
 CREATE USER mapping for public server mysql_svr2 OPTIONS(username 'root',password 'wrongpass');
 CREATE FOREIGN TABLE t3__mysql_svr2__0 (t text,t2 text,i int) SERVER mysql_svr2 OPTIONS(dbname 'test',table_name 'test3');
@@ -259,7 +260,7 @@ SELECT count(t) FROM t3;
 SELECT count(t) FROM t3;
 SELECT count(t) FROM t3;
 
-
+Set pgspider_core_fdw.throw_error_ifdead to true;
 
 DROP FOREIGN TABLE t3;
 DROP FOREIGN TABLE t3__mysql_svr__0;
@@ -339,6 +340,7 @@ CREATE FOREIGN TABLE t2__post_svr2__0 (i int, t text,a text) SERVER post_svr2 OP
 INSERT INTO pg_spd_node_info VALUES(0,'post_svr','postgres_fdw','127.0.0.1');
 INSERT INTO pg_spd_node_info VALUES(0,'post_svr2','postgres_fdw','127.0.0.1');
 SELECT pg_sleep(2);
+Set pgspider_core_fdw.throw_error_ifdead to false;
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
 SET pgspider_core_fdw.throw_error_ifdead to true;
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
