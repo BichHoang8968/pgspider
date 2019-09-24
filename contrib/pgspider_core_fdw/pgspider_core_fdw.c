@@ -1131,6 +1131,8 @@ spd_aliveError(ForeignServer *fs)
 static void
 spd_ErrorCb(void *arg)
 {
+	if (throwErrorIfDead)
+		EmitErrorReport();
 }
 
 /**
@@ -5251,7 +5253,7 @@ _PG_init(void)
 							 "set alive error",
 							 NULL,
 							 &throwErrorIfDead,
-							 false,
+							 true,
 							 PGC_USERSET,
 							 0,
 							 NULL,
