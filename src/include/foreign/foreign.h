@@ -87,7 +87,7 @@ typedef struct TupleQueue {
 	int len;		/* number of the elements */
 	int lastGet;	/* index of the last element returned by spd_queue_get */
 	int isFinished;	/* True if scan is finished */
-	bool skip_last; /* True if skip last value copy */
+	bool skipLast; /* True if skip last value copy */
 } SpdTupleQueue;
 
 typedef struct ForeignScanThreadInfo

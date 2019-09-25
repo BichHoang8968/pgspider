@@ -184,7 +184,7 @@ static void spd_spi_exec_child_ip(char *serverName, char *ip);
 static bool spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy);
 static TupleTableSlot *spd_queue_get(SpdTupleQueue * que, bool *is_finished);
 static void spd_queue_reset(SpdTupleQueue * que);
-static void spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, bool skip_last);
+static void spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, bool skipLast);
 
 static void spd_queue_notify_finish(SpdTupleQueue * que);
 enum SpdFdwModifyPrivateIndex
@@ -232,7 +232,7 @@ typedef struct Mappingcells
 {
 	Mappingcell mapping_tlist;	/* pgspider target list */
 	enum Aggtype aggtype;
-    StringInfo agg_command;
+	StringInfo	agg_command;
 	int			original_attnum;	/* original attribute */
 }			Mappingcells;
 
@@ -454,7 +454,7 @@ spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy)
 	memcpy(que->tuples[idx]->tts_isnull, slot->tts_isnull, natts * sizeof(bool));
 
 	/* Skip copy of spdurl */
-	if (que->skip_last)
+	if (que->skipLast)
 		natts--;
 
 	/*
@@ -541,7 +541,7 @@ spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, bool skip_last)
 {
 	int			j;
 
-	que->skip_last = skip_last;
+	que->skipLast = skip_last;
 	/* Create tuple descriptor for queue */
 	for (j = 0; j < SPD_TUPLE_QUEUE_LEN; j++)
 	{
@@ -609,7 +609,7 @@ spd_tlist_member(Expr *node, List *targetlist, int *target_num)
 }
 
 static void
-spd_spi_exec_proname(Oid aggoid,StringInfo aggname)
+spd_spi_exec_proname(Oid aggoid, StringInfo aggname)
 {
 	char		query[QUERY_LENGTH];
 	char	   *temp;
@@ -633,7 +633,7 @@ spd_spi_exec_proname(Oid aggoid,StringInfo aggname)
 	}
 	temp = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
 
-	
+
 	appendStringInfoString(aggname, temp);
 	SPI_finish();
 	return;
@@ -1009,7 +1009,8 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 			tlist = lappend(tlist, tle);
 		}
 		/* append original target list */
-		if (IsA(expr, Aggref)){
+		if (IsA(expr, Aggref))
+		{
 			mapcells->aggtype = NON_SPLIT_AGGFLAG;
 			spd_spi_exec_proname(aggref->aggfnoid, mapcells->agg_command);
 		}
@@ -1463,6 +1464,7 @@ RESCAN:
 				SPD_RWUNLOCK_CATCH(&scan_mutex);
 
 				deepcopy = true;
+
 				/*
 				 * Deep copy can be skipped if that fdw allocate tuples in
 				 * CurrentMemoryContext. postgres_fdw needs deep copy because
@@ -4720,9 +4722,10 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 
 /**
  * spd_AddSpdUrl
+ *
  * Adding SpdURL column.
  * If child node is pgspider, then concatinate node name.
- * Convert to virtual tuple regardless of child tuple slot type
+ * node_slot should be virtual tuple.
  */
 static TupleTableSlot *
 spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
@@ -4730,11 +4733,9 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 {
 	Datum	   *values;
 	bool	   *nulls;
-	bool	   *replaces;
 	ForeignServer *fs;
 	ForeignDataWrapper *fdw;
 	int			i;
-	int			tnum = 0;
 	int			natts = parent_slot->tts_tupleDescriptor->natts;
 
 	/*
@@ -4743,13 +4744,11 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 	 */
 	Assert(parent_slot->tts_tupleDescriptor->natts >=
 		   node_slot->tts_tupleDescriptor->natts);
+
 	fs = fssThrdInfo[count].foreignServer;
 	fdw = fssThrdInfo[count].fdw;
 
 
-	/* Initialize new tuple buffer */
-	values = (Datum *) palloc0(sizeof(Datum) * natts);
-	nulls = (bool *) palloc0(sizeof(bool) * natts);
 
 	/*
 	 * Insert spdurl column to slot. heap_modify_tuple will replace the
@@ -4758,10 +4757,13 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 	 * values, Second, modify data values (insert new columm). Then, form
 	 * tuple with new data values. Finally, copy identification info (if any)
 	 */
-	if (fdw_private->groupby_has_spdurl && (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0))
+	if (fdw_private->groupby_has_spdurl &&
+		(strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0))
 	{
 		char	   *spdurl;
 
+		values = node_slot->tts_values;
+		nulls = node_slot->tts_isnull;
 		for (i = 0; i < natts; i++)
 		{
 			if (i == fdw_private->idx_url_tlist)
@@ -4781,27 +4783,11 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 				nulls[i] = node_slot->tts_isnull[i - 1];
 			}
 		}
-		parent_slot->tts_values = values;
-		parent_slot->tts_isnull = nulls;
-		/* to avoid assert failure in ExecStoreVirtualTuple */
-		parent_slot->tts_isempty = true;
-		ExecStoreVirtualTuple(parent_slot);
+
 	}
 	else						/* Modify spdurl column */
 	{
-		/* Initialize new tuple buffer */
-		replaces = palloc0(sizeof(bool) * natts);
-		if (fdw_private->idx_url_tlist == -1)
-			return node_slot;
 
-		/*
-		 * Delay initialization until spdurl is found for skipping it when
-		 * spdurl does not exist
-		 */
-
-		replaces = palloc0(sizeof(bool) * node_slot->tts_tupleDescriptor->natts);
-		slot_getallattrs(node_slot);
-		tnum = -1;
 		for (i = 0; i < node_slot->tts_tupleDescriptor->natts; i++)
 		{
 			char	   *value;
@@ -4817,8 +4803,6 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 				strcmp(attr->attname.data, SPDURL) == 0)
 			{
 				bool		isnull;
-
-
 
 				/* Check child node is pgspider or not */
 				if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) == 0 && node_slot->tts_isnull[i] == false)
@@ -4849,35 +4833,16 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 
 				if (attr->atttypid != TEXTOID)
 					elog(ERROR, "__spd_url column is not text type");
-				replaces[i] = true;
-				nulls[i] = false;
-				values[i] = CStringGetTextDatum(value);
-				tnum = i;
+				node_slot->tts_isnull[i] = false;
+				node_slot->tts_values[i] = CStringGetTextDatum(value);
 			}
+
 		}
-
-		if (tnum != -1)
-		{
-			/* tuple mode is VIRTUAL */
-			node_slot->tts_values[tnum] = values[tnum];
-			node_slot->tts_isnull[tnum] = false;
-			/* to avoid assert failure in ExecStoreVirtualTuple */
-			node_slot->tts_isempty = true;
-			/* Convert to virtual tuple type */
-			node_slot->tts_tuple = NULL;
-			ExecStoreVirtualTuple(node_slot);
-		}
-
-		/*
-		 * We need copy here because node_slot is shorter memory life than
-		 * parent_slot
-		 */
-		ExecCopySlot(parent_slot, node_slot);
-
 
 
 	}
-	return parent_slot;
+	/* We just replace spdurl, so don't call ExecStoreVirtualTuple */
+	return node_slot;
 }
 
 /*
