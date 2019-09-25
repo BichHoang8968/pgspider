@@ -39,6 +39,34 @@ CREATE SCHEMA "S 1";
 
 IMPORT FOREIGN SCHEMA "S 1" FROM SERVER postgres_srv INTO "S 1";
 
+INSERT INTO "S 1"."T 1"
+	SELECT id,
+	       id % 10,
+	       to_char(id, 'FM00000'),
+	       '1970-01-01'::timestamptz + ((id % 100) || ' days')::interval,
+	       '1970-01-01'::timestamp + ((id % 100) || ' days')::interval,
+	       id % 10,
+	       id % 10,
+	       'foo'::user_enum
+	FROM generate_series(1, 1000) id;
+
+INSERT INTO "S 1"."T 2"
+	SELECT id,
+	       'AAA' || to_char(id, 'FM000')
+	FROM generate_series(1, 100) id;
+INSERT INTO "S 1"."T 3"
+	SELECT id,
+	       id + 1,
+	       'AAA' || to_char(id, 'FM000')
+	FROM generate_series(1, 100) id;
+DELETE FROM "S 1"."T 3" WHERE c1 % 2 != 0;	-- delete for outer join tests
+INSERT INTO "S 1"."T 4"
+	SELECT id,
+	       id + 1,
+	       'AAA' || to_char(id, 'FM000')
+	FROM generate_series(1, 100) id;
+DELETE FROM "S 1"."T 4" WHERE c1 % 3 != 0;	-- delete for outer join tests
+
 ANALYZE "S 1"."T 1";
 ANALYZE "S 1"."T 2";
 ANALYZE "S 1"."T 3";
