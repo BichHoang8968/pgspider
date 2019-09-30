@@ -223,6 +223,39 @@ pipeline {
                 }
             }
         }
+        stage('ported_postgres_fdw.sql') {
+            steps {
+                dir("contrib/pgspider_core_fdw/") {
+                    catchError() {
+                        sh '''
+                            cd init
+                            chmod +x ./*.sh
+                            ./ported_postgres_setup.sh --start
+                            cd ..
+                            rm -rf make_check.out || true
+                            sed -i 's/REGRESS =.*/REGRESS = ported_postgres_fdw /' Makefile
+                            make clean && make && make check | tee make_check.out
+                        '''
+                    }
+                    script {
+                        status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'make_check.out'")
+                        if (status != 0) {
+                            unstable(message: "Set UNSTABLE result")
+                            // Send email
+                            emailext subject: '[CI PGSpider] ported_postgres_fdw Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
+                            sh 'cat regression.diffs || true'
+                            sh '''
+                                rm -rf results_ported_postgres_fdw || true
+                                cp -R results results_ported_postgres_fdw || true
+                            '''
+                            updateGitlabCommitStatus name: 'ported_postgres_fdw', state: 'failed'
+                        } else {
+                            updateGitlabCommitStatus name: 'ported_postgres_fdw', state: 'success'
+                        }
+                    }
+                }
+            }
+        }
         stage('pgspider_core_fdw_multi.sql') {
             steps {
                 install_pgspider(PGSPIDER_1_DIR, PGSPIDER_1_PORT)
