@@ -453,7 +453,10 @@ spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy)
 	natts = que->tuples[idx]->tts_tupleDescriptor->natts;
 	memcpy(que->tuples[idx]->tts_isnull, slot->tts_isnull, natts * sizeof(bool));
 
-	/* Skip copy of spdurl */
+	/*
+	 * Skip copy of spdurl at the last of tuple descriptor because it's
+	 * invalid
+	 */
 	if (que->skipLast)
 		natts--;
 
@@ -1427,12 +1430,17 @@ RESCAN:
 			TupleTableSlot *slot;
 
 			/*
-			 * Call iterateForeignScan using two contexts.We change contexts
-			 * every SPD_TUPLE_QUEUE_LEN + 1. Tuples allocated by these
-			 * contexts are guaranteed to live until parent thread finish
-			 * processing
+			 * Call iterateForeignScan using two contexts. We switch contexts
+			 * and reset old one every SPD_TUPLE_QUEUE_LEN + 2 tuples to
+			 * minimize memory usage. This number guarantee Tuples allocated
+			 * by these contexts are guaranteed to live until parent thread
+			 * finish processing and we can skip deepcopy when passign to
+			 * parent thread. Ex: If a queue length is 3, when child thread
+			 * added 4th tuple, first tuple is already removed from the queue
+			 * by parent. This does not mean parent finish using that tuple.
+			 * When 5th tuple is added, parent finishes using first tuple.
 			 */
-			int			len = SPD_TUPLE_QUEUE_LEN + 1;
+			int			len = SPD_TUPLE_QUEUE_LEN + 2;
 			int			ctx_idx = (tuple_cnt / len) % 2;
 
 			if (tuple_cnt % len == 0)
@@ -4048,12 +4056,19 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 				MakeSingleTupleTableSlot(tupledesc);
 		}
 
-		/* Skip copying spdurl at the last of tuple to queue if it's invalid */
+		/*
+		 * For non-aggregate query, tupledesc has __spd_url column at the last
+		 * because it has all table columns. This is inconsistent with the
+		 * tuple child fdw generates and cause problems when copying to a
+		 * queue. To avoid it, we will skip copy of the last element.
+		 * Execeptions are target list pushdown case where as aggregate query
+		 * case, tuple descriptor corresponds to target list from which
+		 * spd_url is removed.
+		 */
 		skiplast = false;
 		if (!fdw_private->agg_query &&
 			!fdw_private->is_pushdown_tlist &&
-			(fdw_private->idx_url_tlist == -1 ||
-			 strcmp(fssThrdInfo[node_incr].fdw->fdwname, PGSPIDER_FDW_NAME) != 0))
+			strcmp(fssThrdInfo[node_incr].fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
 			skiplast = true;
 
 		spd_queue_init(&fssThrdInfo[node_incr].tupleQueue, tupledesc, skiplast);
@@ -4065,10 +4080,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			MemoryContextAlloc(node->ss.ss_ScanTupleSlot->tts_mcxt, natts * sizeof(Datum));
 		fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_isnull = (bool *)
 			MemoryContextAlloc(node->ss.ss_ScanTupleSlot->tts_mcxt, natts * sizeof(bool));
-
-
-
-
 
 
 		/*
