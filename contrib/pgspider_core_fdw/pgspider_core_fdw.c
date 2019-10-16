@@ -407,7 +407,7 @@ static pthread_mutex_t qmutex = PTHREAD_MUTEX_INITIALIZER;
 /*
  * spd_queue_notify_finish
  *
- * Notify parent that child fdw scan is finished
+ * Notify parent thread that child fdw scan is finished
  */
 static void
 spd_queue_notify_finish(SpdTupleQueue * que)
@@ -420,7 +420,9 @@ spd_queue_notify_finish(SpdTupleQueue * que)
 /*
  * spd_queue_add
  *
- * Return immediately if queue is full
+ * Add 'slot' to queue.
+ * Return immediately if queue is full.
+ * Deepcopy each column value of slot If 'deepcopy' is true.
  */
 static bool
 spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy)
@@ -492,7 +494,7 @@ spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy)
 /*
  * spd_queue_get
  *
- * Return NULL if queue is empty.
+ * Return NULL immediately if queue is empty.
  * is_finished is true if queue is empty and child foreign scan is finished.
  */
 static TupleTableSlot *
@@ -1432,9 +1434,9 @@ RESCAN:
 			/*
 			 * Call iterateForeignScan using two contexts. We switch contexts
 			 * and reset old one every SPD_TUPLE_QUEUE_LEN + 2 tuples to
-			 * minimize memory usage. This number guarantee Tuples allocated
+			 * minimize memory usage. This number makes sure tuples allocated
 			 * by these contexts are guaranteed to live until parent thread
-			 * finish processing and we can skip deepcopy when passign to
+			 * finishes processing and we can skip deepcopy when passing to
 			 * parent thread. Ex: If a queue length is 3, when child thread
 			 * added 4th tuple, first tuple is already removed from the queue
 			 * by parent. This does not mean parent finish using that tuple.
@@ -1476,8 +1478,8 @@ RESCAN:
 				/*
 				 * Deep copy can be skipped if that fdw allocate tuples in
 				 * CurrentMemoryContext. postgres_fdw needs deep copy because
-				 * it creates contexts and allocate tuples on it, which may be
-				 * shorter life than above tuplectx[ctx_idx].
+				 * it creates new contexts and allocate tuples on it, which
+				 * may be shorter life than above tuplectx[ctx_idx].
 				 */
 				if (strcmp(fssthrdInfo->fdw->fdwname, "avro_fdw") == 0)
 					deepcopy = false;
@@ -4057,13 +4059,13 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		}
 
 		/*
-		 * For non-aggregate query, tupledesc has __spd_url column at the last
-		 * because it has all table columns. This is inconsistent with the
-		 * tuple child fdw generates and cause problems when copying to a
-		 * queue. To avoid it, we will skip copy of the last element.
-		 * Execeptions are target list pushdown case where as aggregate query
-		 * case, tuple descriptor corresponds to target list from which
-		 * spd_url is removed.
+		 * For non-aggregate query, tupledesc we use for a queue has __spd_url
+		 * column at the last because it has all table columns. This is
+		 * inconsistent with the child tuple except for pgspider_fdw and cause
+		 * problems when copying to a queue. To avoid it, we will skip copy of
+		 * the last element of tuple. Execeptions are target list pushdown
+		 * case where as in aggregate query case, tuple descriptor corresponds
+		 * to a target list from which spd_url is removed.
 		 */
 		skiplast = false;
 		if (!fdw_private->agg_query &&

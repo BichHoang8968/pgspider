@@ -81,13 +81,17 @@ typedef enum
 }			SpdForeignScanThreadState;
 
 #define SPD_TUPLE_QUEUE_LEN 5000
+
+/* Allocate TupleQueue for each thread and child thread use this queue 
+ * to pass tuples to parent  
+ */
 typedef struct TupleQueue {
 	struct TupleTableSlot *tuples[SPD_TUPLE_QUEUE_LEN];
 	int start;		/* index of the first element */
 	int len;		/* number of the elements */
 	int lastGet;	/* index of the last element returned by spd_queue_get */
-	int isFinished;	/* True if scan is finished */
-	bool skipLast; /* True if skip last value copy */
+	int isFinished;	/* true if scan is finished */
+	bool skipLast; /* true if skip last value copy */
 } SpdTupleQueue;
 
 typedef struct ForeignScanThreadInfo
@@ -101,7 +105,7 @@ typedef struct ForeignScanThreadInfo
 	ForeignDataWrapper	*fdw;	/* cache this for performance */
 	bool		requestEndScan;		/* main thread request endForeingScan to child thread */
 	bool		requestRescan;		/* main thread request rescan to child thread */
-	SpdTupleQueue tupleQueue;
+	SpdTupleQueue tupleQueue;		/* queue for passing tuples from child to parent */
 	int			childInfoIndex;		/* index of child info array */
 	MemoryContext threadMemoryContext;
 	MemoryContext threadTopMemoryContext;
