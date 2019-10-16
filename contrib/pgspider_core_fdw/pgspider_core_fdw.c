@@ -3560,7 +3560,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		}
 	}
 	/* for debug */
-	if (log_min_messages <= DEBUG1)
+	if (log_min_messages <= DEBUG1 || client_min_messages <= DEBUG1)
 		print_mapping_tlist(fdw_private->mapping_tlist, DEBUG1);
 
 	/*
