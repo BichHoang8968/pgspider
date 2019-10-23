@@ -1375,6 +1375,8 @@ spd_aliveError(ForeignServer *fs)
 static void
 spd_ErrorCb(void *arg)
 {
+	if (throwErrorIfDead)
+		EmitErrorReport();
 }
 
 /**
@@ -2072,9 +2074,18 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
 		if (IsA(varnode, Var))
 		{
 			Var		   *var = (Var *) varnode;
-
-			rte = planner_rt_fetch(var->varno, root);
-			colname = get_attname(rte->relid, var->varattno, false);
+			
+			/* check whole row reference */
+			if (var->varattno == 0)
+			{
+				lc = lnext(lc);
+				continue;
+			}
+			else
+			{
+				rte = planner_rt_fetch(var->varno, root);
+				colname = get_attname(rte->relid, var->varattno, false);
+			}
 
 			if (strcmp(colname, SPDURL) == 0)
 			{
@@ -3884,7 +3895,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		}
 	}
 	/* for debug */
-	if (log_min_messages <= DEBUG1)
+	if (log_min_messages <= DEBUG1 || client_min_messages <= DEBUG1)
 		print_mapping_tlist(fdw_private->mapping_tlist, DEBUG1);
 
 	/*
@@ -5524,7 +5535,7 @@ _PG_init(void)
 							 "set alive error",
 							 NULL,
 							 &throwErrorIfDead,
-							 false,
+							 true,
 							 PGC_USERSET,
 							 0,
 							 NULL,

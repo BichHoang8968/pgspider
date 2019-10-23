@@ -33,6 +33,32 @@ CREATE USER MAPPING FOR public SERVER postgres_srv2
 CREATE TYPE user_enum AS ENUM ('foo', 'bar', 'buz');
 CREATE SCHEMA "S 1";
 IMPORT FOREIGN SCHEMA "S 1" FROM SERVER postgres_srv INTO "S 1";
+INSERT INTO "S 1"."T 1"
+	SELECT id,
+	       id % 10,
+	       to_char(id, 'FM00000'),
+	       '1970-01-01'::timestamptz + ((id % 100) || ' days')::interval,
+	       '1970-01-01'::timestamp + ((id % 100) || ' days')::interval,
+	       id % 10,
+	       id % 10,
+	       'foo'::user_enum
+	FROM generate_series(1, 1000) id;
+INSERT INTO "S 1"."T 2"
+	SELECT id,
+	       'AAA' || to_char(id, 'FM000')
+	FROM generate_series(1, 100) id;
+INSERT INTO "S 1"."T 3"
+	SELECT id,
+	       id + 1,
+	       'AAA' || to_char(id, 'FM000')
+	FROM generate_series(1, 100) id;
+DELETE FROM "S 1"."T 3" WHERE c1 % 2 != 0;	-- delete for outer join tests
+INSERT INTO "S 1"."T 4"
+	SELECT id,
+	       id + 1,
+	       'AAA' || to_char(id, 'FM000')
+	FROM generate_series(1, 100) id;
+DELETE FROM "S 1"."T 4" WHERE c1 % 3 != 0;	-- delete for outer join tests
 ANALYZE "S 1"."T 1";
 ANALYZE "S 1"."T 2";
 ANALYZE "S 1"."T 3";
@@ -205,7 +231,7 @@ ALTER FOREIGN TABLE ft2__postgres_srv__0 ALTER COLUMN c1 OPTIONS (column_name 'C
 SELECT c3, c4 FROM ft1 ORDER BY c3, c1 LIMIT 1;  -- should work
   c3   |              c4              
 -------+------------------------------
- 00001 | Thu Jan 01 08:00:00 1970 PST
+ 00001 | Fri Jan 02 00:00:00 1970 PST
 (1 row)
 
 ALTER SERVER postgres_srv OPTIONS (SET dbname 'no such database');
@@ -219,7 +245,7 @@ $d$;
 SELECT c3, c4 FROM ft1 ORDER BY c3, c1 LIMIT 1;  -- should work again
   c3   |              c4              
 -------+------------------------------
- 00001 | Thu Jan 01 08:00:00 1970 PST
+ 00001 | Fri Jan 02 00:00:00 1970 PST
 (1 row)
 
 -- Test that alteration of user mapping options causes reconnection
@@ -253,16 +279,16 @@ EXPLAIN (COSTS OFF) SELECT * FROM ft1 ORDER BY c3, c1 OFFSET 100 LIMIT 10;
 SELECT * FROM ft1 ORDER BY c3, c1 OFFSET 100 LIMIT 10;
  c1  | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
 -----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
- 101 |  1 | 00101 | Thu Jan 01 08:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
- 102 |  2 | 00102 | Fri Jan 02 08:00:00 1970 PST | Sat Jan 03 00:00:00 1970 | 2  | 2          | foo | /postgres_srv/
- 103 |  3 | 00103 | Sat Jan 03 08:00:00 1970 PST | Sun Jan 04 00:00:00 1970 | 3  | 3          | foo | /postgres_srv/
- 104 |  4 | 00104 | Sun Jan 04 08:00:00 1970 PST | Mon Jan 05 00:00:00 1970 | 4  | 4          | foo | /postgres_srv/
- 105 |  5 | 00105 | Mon Jan 05 08:00:00 1970 PST | Tue Jan 06 00:00:00 1970 | 5  | 5          | foo | /postgres_srv/
- 106 |  6 | 00106 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 107 |  7 | 00107 | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo | /postgres_srv/
- 108 |  8 | 00108 | Thu Jan 08 08:00:00 1970 PST | Fri Jan 09 00:00:00 1970 | 8  | 8          | foo | /postgres_srv/
- 109 |  9 | 00109 | Fri Jan 09 08:00:00 1970 PST | Sat Jan 10 00:00:00 1970 | 9  | 9          | foo | /postgres_srv/
- 110 |  0 | 00110 | Sat Jan 10 08:00:00 1970 PST | Sun Jan 11 00:00:00 1970 | 0  | 0          | foo | /postgres_srv/
+ 101 |  1 | 00101 | Fri Jan 02 00:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
+ 102 |  2 | 00102 | Sat Jan 03 00:00:00 1970 PST | Sat Jan 03 00:00:00 1970 | 2  | 2          | foo | /postgres_srv/
+ 103 |  3 | 00103 | Sun Jan 04 00:00:00 1970 PST | Sun Jan 04 00:00:00 1970 | 3  | 3          | foo | /postgres_srv/
+ 104 |  4 | 00104 | Mon Jan 05 00:00:00 1970 PST | Mon Jan 05 00:00:00 1970 | 4  | 4          | foo | /postgres_srv/
+ 105 |  5 | 00105 | Tue Jan 06 00:00:00 1970 PST | Tue Jan 06 00:00:00 1970 | 5  | 5          | foo | /postgres_srv/
+ 106 |  6 | 00106 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 107 |  7 | 00107 | Thu Jan 08 00:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo | /postgres_srv/
+ 108 |  8 | 00108 | Fri Jan 09 00:00:00 1970 PST | Fri Jan 09 00:00:00 1970 | 8  | 8          | foo | /postgres_srv/
+ 109 |  9 | 00109 | Sat Jan 10 00:00:00 1970 PST | Sat Jan 10 00:00:00 1970 | 9  | 9          | foo | /postgres_srv/
+ 110 |  0 | 00110 | Sun Jan 11 00:00:00 1970 PST | Sun Jan 11 00:00:00 1970 | 0  | 0          | foo | /postgres_srv/
 (10 rows)
 
 -- single table with alias - also test that tableoid sort is not pushed to remote side
@@ -283,21 +309,48 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 ORDER BY t1.c3, t1.c1, t1.tabl
 SELECT * FROM ft1 t1 ORDER BY t1.c3, t1.c1, t1.tableoid OFFSET 100 LIMIT 10;
  c1  | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
 -----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
- 101 |  1 | 00101 | Thu Jan 01 08:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
- 102 |  2 | 00102 | Fri Jan 02 08:00:00 1970 PST | Sat Jan 03 00:00:00 1970 | 2  | 2          | foo | /postgres_srv/
- 103 |  3 | 00103 | Sat Jan 03 08:00:00 1970 PST | Sun Jan 04 00:00:00 1970 | 3  | 3          | foo | /postgres_srv/
- 104 |  4 | 00104 | Sun Jan 04 08:00:00 1970 PST | Mon Jan 05 00:00:00 1970 | 4  | 4          | foo | /postgres_srv/
- 105 |  5 | 00105 | Mon Jan 05 08:00:00 1970 PST | Tue Jan 06 00:00:00 1970 | 5  | 5          | foo | /postgres_srv/
- 106 |  6 | 00106 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 107 |  7 | 00107 | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo | /postgres_srv/
- 108 |  8 | 00108 | Thu Jan 08 08:00:00 1970 PST | Fri Jan 09 00:00:00 1970 | 8  | 8          | foo | /postgres_srv/
- 109 |  9 | 00109 | Fri Jan 09 08:00:00 1970 PST | Sat Jan 10 00:00:00 1970 | 9  | 9          | foo | /postgres_srv/
- 110 |  0 | 00110 | Sat Jan 10 08:00:00 1970 PST | Sun Jan 11 00:00:00 1970 | 0  | 0          | foo | /postgres_srv/
+ 101 |  1 | 00101 | Fri Jan 02 00:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
+ 102 |  2 | 00102 | Sat Jan 03 00:00:00 1970 PST | Sat Jan 03 00:00:00 1970 | 2  | 2          | foo | /postgres_srv/
+ 103 |  3 | 00103 | Sun Jan 04 00:00:00 1970 PST | Sun Jan 04 00:00:00 1970 | 3  | 3          | foo | /postgres_srv/
+ 104 |  4 | 00104 | Mon Jan 05 00:00:00 1970 PST | Mon Jan 05 00:00:00 1970 | 4  | 4          | foo | /postgres_srv/
+ 105 |  5 | 00105 | Tue Jan 06 00:00:00 1970 PST | Tue Jan 06 00:00:00 1970 | 5  | 5          | foo | /postgres_srv/
+ 106 |  6 | 00106 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 107 |  7 | 00107 | Thu Jan 08 00:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo | /postgres_srv/
+ 108 |  8 | 00108 | Fri Jan 09 00:00:00 1970 PST | Fri Jan 09 00:00:00 1970 | 8  | 8          | foo | /postgres_srv/
+ 109 |  9 | 00109 | Sat Jan 10 00:00:00 1970 PST | Sat Jan 10 00:00:00 1970 | 9  | 9          | foo | /postgres_srv/
+ 110 |  0 | 00110 | Sun Jan 11 00:00:00 1970 PST | Sun Jan 11 00:00:00 1970 | 0  | 0          | foo | /postgres_srv/
 (10 rows)
 
 -- whole-row reference
--- EXPLAIN (VERBOSE, COSTS OFF) SELECT t1 FROM ft1 t1 ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
--- SELECT t1 FROM ft1 t1 ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
+EXPLAIN (VERBOSE, COSTS OFF) SELECT t1 FROM ft1 t1 ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
+ Limit
+   Output: t1.*, c3, c1
+   ->  Sort
+         Output: t1.*, c3, c1
+         Sort Key: t1.c3, t1.c1
+         ->  Foreign Scan on public.ft1 t1
+               Output: t1.*, c3, c1
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+(9 rows)
+
+SELECT t1 FROM ft1 t1 ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
+                                                    t1                                                     
+-----------------------------------------------------------------------------------------------------------
+ (101,1,00101,"Fri Jan 02 00:00:00 1970 PST","Fri Jan 02 00:00:00 1970",1,"1         ",foo,/postgres_srv/)
+ (102,2,00102,"Sat Jan 03 00:00:00 1970 PST","Sat Jan 03 00:00:00 1970",2,"2         ",foo,/postgres_srv/)
+ (103,3,00103,"Sun Jan 04 00:00:00 1970 PST","Sun Jan 04 00:00:00 1970",3,"3         ",foo,/postgres_srv/)
+ (104,4,00104,"Mon Jan 05 00:00:00 1970 PST","Mon Jan 05 00:00:00 1970",4,"4         ",foo,/postgres_srv/)
+ (105,5,00105,"Tue Jan 06 00:00:00 1970 PST","Tue Jan 06 00:00:00 1970",5,"5         ",foo,/postgres_srv/)
+ (106,6,00106,"Wed Jan 07 00:00:00 1970 PST","Wed Jan 07 00:00:00 1970",6,"6         ",foo,/postgres_srv/)
+ (107,7,00107,"Thu Jan 08 00:00:00 1970 PST","Thu Jan 08 00:00:00 1970",7,"7         ",foo,/postgres_srv/)
+ (108,8,00108,"Fri Jan 09 00:00:00 1970 PST","Fri Jan 09 00:00:00 1970",8,"8         ",foo,/postgres_srv/)
+ (109,9,00109,"Sat Jan 10 00:00:00 1970 PST","Sat Jan 10 00:00:00 1970",9,"9         ",foo,/postgres_srv/)
+ (110,0,00110,"Sun Jan 11 00:00:00 1970 PST","Sun Jan 11 00:00:00 1970",0,"0         ",foo,/postgres_srv/)
+(10 rows)
+
 -- empty result
 SELECT * FROM ft1 WHERE false;
  c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 | __spd_url 
@@ -317,14 +370,44 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE t1.c1 = 101 AND t1.c6 = 
 SELECT * FROM ft1 t1 WHERE t1.c1 = 101 AND t1.c6 = '1' AND t1.c7 >= '1';
  c1  | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
 -----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
- 101 |  1 | 00101 | Thu Jan 01 08:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
+ 101 |  1 | 00101 | Fri Jan 02 00:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
 (1 row)
 
 -- with FOR UPDATE/SHARE
--- EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c1 = 101 FOR UPDATE;
--- SELECT * FROM ft1 t1 WHERE c1 = 101 FOR UPDATE;
--- EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c1 = 102 FOR SHARE;
--- SELECT * FROM ft1 t1 WHERE c1 = 102 FOR SHARE;
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c1 = 101 FOR UPDATE;
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
+ LockRows
+   Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url, t1.*
+   ->  Foreign Scan on public.ft1 t1
+         Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url, t1.*
+         Node: postgres_srv / Status: Alive
+           Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 101))
+(6 rows)
+
+SELECT * FROM ft1 t1 WHERE c1 = 101 FOR UPDATE;
+ c1  | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
+-----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
+ 101 |  1 | 00101 | Fri Jan 02 00:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
+(1 row)
+
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c1 = 102 FOR SHARE;
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
+ LockRows
+   Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url, t1.*
+   ->  Foreign Scan on public.ft1 t1
+         Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url, t1.*
+         Node: postgres_srv / Status: Alive
+           Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = 102))
+(6 rows)
+
+SELECT * FROM ft1 t1 WHERE c1 = 102 FOR SHARE;
+ c1  | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
+-----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
+ 102 |  2 | 00102 | Sat Jan 03 00:00:00 1970 PST | Sat Jan 03 00:00:00 1970 | 2  | 2          | foo | /postgres_srv/
+(1 row)
+
 -- aggregate
 SELECT COUNT(*) FROM ft1 t1;
  count 
@@ -336,16 +419,16 @@ SELECT COUNT(*) FROM ft1 t1;
 SELECT * FROM ft1 t1 WHERE t1.c3 IN (SELECT c3 FROM ft2 t2 WHERE c1 <= 10) ORDER BY c1;
  c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
 ----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
-  1 |  1 | 00001 | Thu Jan 01 08:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
-  2 |  2 | 00002 | Fri Jan 02 08:00:00 1970 PST | Sat Jan 03 00:00:00 1970 | 2  | 2          | foo | /postgres_srv/
-  3 |  3 | 00003 | Sat Jan 03 08:00:00 1970 PST | Sun Jan 04 00:00:00 1970 | 3  | 3          | foo | /postgres_srv/
-  4 |  4 | 00004 | Sun Jan 04 08:00:00 1970 PST | Mon Jan 05 00:00:00 1970 | 4  | 4          | foo | /postgres_srv/
-  5 |  5 | 00005 | Mon Jan 05 08:00:00 1970 PST | Tue Jan 06 00:00:00 1970 | 5  | 5          | foo | /postgres_srv/
-  6 |  6 | 00006 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
-  7 |  7 | 00007 | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo | /postgres_srv/
-  8 |  8 | 00008 | Thu Jan 08 08:00:00 1970 PST | Fri Jan 09 00:00:00 1970 | 8  | 8          | foo | /postgres_srv/
-  9 |  9 | 00009 | Fri Jan 09 08:00:00 1970 PST | Sat Jan 10 00:00:00 1970 | 9  | 9          | foo | /postgres_srv/
- 10 |  0 | 00010 | Sat Jan 10 08:00:00 1970 PST | Sun Jan 11 00:00:00 1970 | 0  | 0          | foo | /postgres_srv/
+  1 |  1 | 00001 | Fri Jan 02 00:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
+  2 |  2 | 00002 | Sat Jan 03 00:00:00 1970 PST | Sat Jan 03 00:00:00 1970 | 2  | 2          | foo | /postgres_srv/
+  3 |  3 | 00003 | Sun Jan 04 00:00:00 1970 PST | Sun Jan 04 00:00:00 1970 | 3  | 3          | foo | /postgres_srv/
+  4 |  4 | 00004 | Mon Jan 05 00:00:00 1970 PST | Mon Jan 05 00:00:00 1970 | 4  | 4          | foo | /postgres_srv/
+  5 |  5 | 00005 | Tue Jan 06 00:00:00 1970 PST | Tue Jan 06 00:00:00 1970 | 5  | 5          | foo | /postgres_srv/
+  6 |  6 | 00006 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+  7 |  7 | 00007 | Thu Jan 08 00:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo | /postgres_srv/
+  8 |  8 | 00008 | Fri Jan 09 00:00:00 1970 PST | Fri Jan 09 00:00:00 1970 | 8  | 8          | foo | /postgres_srv/
+  9 |  9 | 00009 | Sat Jan 10 00:00:00 1970 PST | Sat Jan 10 00:00:00 1970 | 9  | 9          | foo | /postgres_srv/
+ 10 |  0 | 00010 | Sun Jan 11 00:00:00 1970 PST | Sun Jan 11 00:00:00 1970 | 0  | 0          | foo | /postgres_srv/
 (10 rows)
 
 -- subquery+MAX
@@ -354,16 +437,16 @@ SELECT * FROM ft1 t1 WHERE t1.c3 IN (SELECT c3 FROM ft2 t2 WHERE c1 <= 10) ORDER
 WITH t1 AS (SELECT * FROM ft1 WHERE c1 <= 10) SELECT t2.c1, t2.c2, t2.c3, t2.c4 FROM t1, ft2 t2 WHERE t1.c1 = t2.c1 ORDER BY t1.c1;
  c1 | c2 |  c3   |              c4              
 ----+----+-------+------------------------------
-  1 |  1 | 00001 | Thu Jan 01 08:00:00 1970 PST
-  2 |  2 | 00002 | Fri Jan 02 08:00:00 1970 PST
-  3 |  3 | 00003 | Sat Jan 03 08:00:00 1970 PST
-  4 |  4 | 00004 | Sun Jan 04 08:00:00 1970 PST
-  5 |  5 | 00005 | Mon Jan 05 08:00:00 1970 PST
-  6 |  6 | 00006 | Tue Jan 06 08:00:00 1970 PST
-  7 |  7 | 00007 | Wed Jan 07 08:00:00 1970 PST
-  8 |  8 | 00008 | Thu Jan 08 08:00:00 1970 PST
-  9 |  9 | 00009 | Fri Jan 09 08:00:00 1970 PST
- 10 |  0 | 00010 | Sat Jan 10 08:00:00 1970 PST
+  1 |  1 | 00001 | Fri Jan 02 00:00:00 1970 PST
+  2 |  2 | 00002 | Sat Jan 03 00:00:00 1970 PST
+  3 |  3 | 00003 | Sun Jan 04 00:00:00 1970 PST
+  4 |  4 | 00004 | Mon Jan 05 00:00:00 1970 PST
+  5 |  5 | 00005 | Tue Jan 06 00:00:00 1970 PST
+  6 |  6 | 00006 | Wed Jan 07 00:00:00 1970 PST
+  7 |  7 | 00007 | Thu Jan 08 00:00:00 1970 PST
+  8 |  8 | 00008 | Fri Jan 09 00:00:00 1970 PST
+  9 |  9 | 00009 | Sat Jan 10 00:00:00 1970 PST
+ 10 |  0 | 00010 | Sun Jan 11 00:00:00 1970 PST
 (10 rows)
 
 -- fixed values
@@ -590,7 +673,7 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c8 = 'foo';  -- can't be
 SELECT * FROM ft2 a, ft2 b WHERE a.c1 = 47 AND b.c1 = a.c2;
  c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    | c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
 ----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------+----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
- 47 |  7 | 00047 | Mon Feb 16 08:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo | /postgres_srv/ |  7 |  7 | 00007 | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo | /postgres_srv/
+ 47 |  7 | 00047 | Tue Feb 17 00:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo | /postgres_srv/ |  7 |  7 | 00007 | Thu Jan 08 00:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo | /postgres_srv/
 (1 row)
 
 -- check both safe and unsafe join conditions
@@ -601,106 +684,106 @@ SELECT * FROM ft2 a, ft2 b
 WHERE a.c2 = 6 AND b.c1 = a.c1 AND a.c8 = 'foo' AND b.c7 = upper(a.c7);
  c1  | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    | c1  | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
 -----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------+-----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
-   6 |  6 | 00006 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |   6 |  6 | 00006 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
-  16 |  6 | 00016 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  16 |  6 | 00016 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
-  26 |  6 | 00026 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  26 |  6 | 00026 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
-  36 |  6 | 00036 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  36 |  6 | 00036 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
-  46 |  6 | 00046 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  46 |  6 | 00046 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
-  56 |  6 | 00056 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  56 |  6 | 00056 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
-  66 |  6 | 00066 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  66 |  6 | 00066 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
-  76 |  6 | 00076 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  76 |  6 | 00076 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
-  86 |  6 | 00086 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  86 |  6 | 00086 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
-  96 |  6 | 00096 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  96 |  6 | 00096 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 106 |  6 | 00106 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 106 |  6 | 00106 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 116 |  6 | 00116 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 116 |  6 | 00116 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 126 |  6 | 00126 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 126 |  6 | 00126 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 136 |  6 | 00136 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 136 |  6 | 00136 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 146 |  6 | 00146 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 146 |  6 | 00146 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 156 |  6 | 00156 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 156 |  6 | 00156 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 166 |  6 | 00166 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 166 |  6 | 00166 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 176 |  6 | 00176 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 176 |  6 | 00176 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 186 |  6 | 00186 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 186 |  6 | 00186 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 196 |  6 | 00196 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 196 |  6 | 00196 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 206 |  6 | 00206 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 206 |  6 | 00206 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 216 |  6 | 00216 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 216 |  6 | 00216 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 226 |  6 | 00226 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 226 |  6 | 00226 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 236 |  6 | 00236 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 236 |  6 | 00236 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 246 |  6 | 00246 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 246 |  6 | 00246 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 256 |  6 | 00256 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 256 |  6 | 00256 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 266 |  6 | 00266 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 266 |  6 | 00266 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 276 |  6 | 00276 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 276 |  6 | 00276 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 286 |  6 | 00286 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 286 |  6 | 00286 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 296 |  6 | 00296 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 296 |  6 | 00296 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 306 |  6 | 00306 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 306 |  6 | 00306 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 316 |  6 | 00316 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 316 |  6 | 00316 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 326 |  6 | 00326 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 326 |  6 | 00326 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 336 |  6 | 00336 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 336 |  6 | 00336 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 346 |  6 | 00346 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 346 |  6 | 00346 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 356 |  6 | 00356 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 356 |  6 | 00356 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 366 |  6 | 00366 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 366 |  6 | 00366 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 376 |  6 | 00376 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 376 |  6 | 00376 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 386 |  6 | 00386 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 386 |  6 | 00386 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 396 |  6 | 00396 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 396 |  6 | 00396 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 406 |  6 | 00406 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 406 |  6 | 00406 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 416 |  6 | 00416 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 416 |  6 | 00416 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 426 |  6 | 00426 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 426 |  6 | 00426 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 436 |  6 | 00436 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 436 |  6 | 00436 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 446 |  6 | 00446 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 446 |  6 | 00446 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 456 |  6 | 00456 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 456 |  6 | 00456 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 466 |  6 | 00466 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 466 |  6 | 00466 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 476 |  6 | 00476 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 476 |  6 | 00476 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 486 |  6 | 00486 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 486 |  6 | 00486 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 496 |  6 | 00496 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 496 |  6 | 00496 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 506 |  6 | 00506 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 506 |  6 | 00506 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 516 |  6 | 00516 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 516 |  6 | 00516 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 526 |  6 | 00526 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 526 |  6 | 00526 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 536 |  6 | 00536 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 536 |  6 | 00536 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 546 |  6 | 00546 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 546 |  6 | 00546 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 556 |  6 | 00556 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 556 |  6 | 00556 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 566 |  6 | 00566 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 566 |  6 | 00566 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 576 |  6 | 00576 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 576 |  6 | 00576 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 586 |  6 | 00586 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 586 |  6 | 00586 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 596 |  6 | 00596 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 596 |  6 | 00596 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 606 |  6 | 00606 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 606 |  6 | 00606 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 616 |  6 | 00616 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 616 |  6 | 00616 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 626 |  6 | 00626 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 626 |  6 | 00626 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 636 |  6 | 00636 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 636 |  6 | 00636 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 646 |  6 | 00646 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 646 |  6 | 00646 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 656 |  6 | 00656 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 656 |  6 | 00656 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 666 |  6 | 00666 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 666 |  6 | 00666 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 676 |  6 | 00676 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 676 |  6 | 00676 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 686 |  6 | 00686 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 686 |  6 | 00686 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 696 |  6 | 00696 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 696 |  6 | 00696 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 706 |  6 | 00706 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 706 |  6 | 00706 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 716 |  6 | 00716 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 716 |  6 | 00716 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 726 |  6 | 00726 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 726 |  6 | 00726 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 736 |  6 | 00736 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 736 |  6 | 00736 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 746 |  6 | 00746 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 746 |  6 | 00746 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 756 |  6 | 00756 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 756 |  6 | 00756 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 766 |  6 | 00766 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 766 |  6 | 00766 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 776 |  6 | 00776 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 776 |  6 | 00776 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 786 |  6 | 00786 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 786 |  6 | 00786 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 796 |  6 | 00796 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 796 |  6 | 00796 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 806 |  6 | 00806 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 806 |  6 | 00806 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 816 |  6 | 00816 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 816 |  6 | 00816 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 826 |  6 | 00826 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 826 |  6 | 00826 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 836 |  6 | 00836 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 836 |  6 | 00836 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 846 |  6 | 00846 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 846 |  6 | 00846 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 856 |  6 | 00856 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 856 |  6 | 00856 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 866 |  6 | 00866 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 866 |  6 | 00866 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 876 |  6 | 00876 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 876 |  6 | 00876 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 886 |  6 | 00886 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 886 |  6 | 00886 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 896 |  6 | 00896 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 896 |  6 | 00896 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 906 |  6 | 00906 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 906 |  6 | 00906 | Tue Jan 06 08:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 916 |  6 | 00916 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 916 |  6 | 00916 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 926 |  6 | 00926 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 926 |  6 | 00926 | Mon Jan 26 08:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 936 |  6 | 00936 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 936 |  6 | 00936 | Thu Feb 05 08:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 946 |  6 | 00946 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 946 |  6 | 00946 | Sun Feb 15 08:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 956 |  6 | 00956 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 956 |  6 | 00956 | Wed Feb 25 08:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 966 |  6 | 00966 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 966 |  6 | 00966 | Sat Mar 07 08:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 976 |  6 | 00976 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 976 |  6 | 00976 | Tue Mar 17 08:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 986 |  6 | 00986 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 986 |  6 | 00986 | Fri Mar 27 08:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
- 996 |  6 | 00996 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 996 |  6 | 00996 | Mon Apr 06 08:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+   6 |  6 | 00006 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |   6 |  6 | 00006 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+  16 |  6 | 00016 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  16 |  6 | 00016 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+  26 |  6 | 00026 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  26 |  6 | 00026 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+  36 |  6 | 00036 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  36 |  6 | 00036 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+  46 |  6 | 00046 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  46 |  6 | 00046 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+  56 |  6 | 00056 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  56 |  6 | 00056 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+  66 |  6 | 00066 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  66 |  6 | 00066 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+  76 |  6 | 00076 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  76 |  6 | 00076 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+  86 |  6 | 00086 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  86 |  6 | 00086 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+  96 |  6 | 00096 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  96 |  6 | 00096 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 106 |  6 | 00106 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 106 |  6 | 00106 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 116 |  6 | 00116 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 116 |  6 | 00116 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 126 |  6 | 00126 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 126 |  6 | 00126 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 136 |  6 | 00136 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 136 |  6 | 00136 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 146 |  6 | 00146 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 146 |  6 | 00146 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 156 |  6 | 00156 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 156 |  6 | 00156 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 166 |  6 | 00166 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 166 |  6 | 00166 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 176 |  6 | 00176 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 176 |  6 | 00176 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 186 |  6 | 00186 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 186 |  6 | 00186 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 196 |  6 | 00196 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 196 |  6 | 00196 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 206 |  6 | 00206 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 206 |  6 | 00206 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 216 |  6 | 00216 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 216 |  6 | 00216 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 226 |  6 | 00226 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 226 |  6 | 00226 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 236 |  6 | 00236 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 236 |  6 | 00236 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 246 |  6 | 00246 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 246 |  6 | 00246 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 256 |  6 | 00256 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 256 |  6 | 00256 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 266 |  6 | 00266 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 266 |  6 | 00266 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 276 |  6 | 00276 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 276 |  6 | 00276 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 286 |  6 | 00286 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 286 |  6 | 00286 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 296 |  6 | 00296 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 296 |  6 | 00296 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 306 |  6 | 00306 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 306 |  6 | 00306 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 316 |  6 | 00316 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 316 |  6 | 00316 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 326 |  6 | 00326 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 326 |  6 | 00326 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 336 |  6 | 00336 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 336 |  6 | 00336 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 346 |  6 | 00346 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 346 |  6 | 00346 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 356 |  6 | 00356 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 356 |  6 | 00356 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 366 |  6 | 00366 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 366 |  6 | 00366 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 376 |  6 | 00376 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 376 |  6 | 00376 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 386 |  6 | 00386 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 386 |  6 | 00386 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 396 |  6 | 00396 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 396 |  6 | 00396 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 406 |  6 | 00406 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 406 |  6 | 00406 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 416 |  6 | 00416 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 416 |  6 | 00416 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 426 |  6 | 00426 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 426 |  6 | 00426 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 436 |  6 | 00436 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 436 |  6 | 00436 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 446 |  6 | 00446 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 446 |  6 | 00446 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 456 |  6 | 00456 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 456 |  6 | 00456 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 466 |  6 | 00466 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 466 |  6 | 00466 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 476 |  6 | 00476 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 476 |  6 | 00476 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 486 |  6 | 00486 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 486 |  6 | 00486 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 496 |  6 | 00496 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 496 |  6 | 00496 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 506 |  6 | 00506 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 506 |  6 | 00506 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 516 |  6 | 00516 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 516 |  6 | 00516 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 526 |  6 | 00526 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 526 |  6 | 00526 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 536 |  6 | 00536 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 536 |  6 | 00536 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 546 |  6 | 00546 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 546 |  6 | 00546 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 556 |  6 | 00556 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 556 |  6 | 00556 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 566 |  6 | 00566 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 566 |  6 | 00566 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 576 |  6 | 00576 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 576 |  6 | 00576 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 586 |  6 | 00586 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 586 |  6 | 00586 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 596 |  6 | 00596 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 596 |  6 | 00596 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 606 |  6 | 00606 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 606 |  6 | 00606 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 616 |  6 | 00616 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 616 |  6 | 00616 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 626 |  6 | 00626 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 626 |  6 | 00626 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 636 |  6 | 00636 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 636 |  6 | 00636 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 646 |  6 | 00646 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 646 |  6 | 00646 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 656 |  6 | 00656 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 656 |  6 | 00656 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 666 |  6 | 00666 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 666 |  6 | 00666 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 676 |  6 | 00676 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 676 |  6 | 00676 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 686 |  6 | 00686 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 686 |  6 | 00686 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 696 |  6 | 00696 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 696 |  6 | 00696 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 706 |  6 | 00706 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 706 |  6 | 00706 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 716 |  6 | 00716 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 716 |  6 | 00716 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 726 |  6 | 00726 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 726 |  6 | 00726 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 736 |  6 | 00736 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 736 |  6 | 00736 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 746 |  6 | 00746 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 746 |  6 | 00746 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 756 |  6 | 00756 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 756 |  6 | 00756 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 766 |  6 | 00766 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 766 |  6 | 00766 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 776 |  6 | 00776 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 776 |  6 | 00776 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 786 |  6 | 00786 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 786 |  6 | 00786 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 796 |  6 | 00796 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 796 |  6 | 00796 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 806 |  6 | 00806 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 806 |  6 | 00806 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 816 |  6 | 00816 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 816 |  6 | 00816 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 826 |  6 | 00826 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 826 |  6 | 00826 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 836 |  6 | 00836 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 836 |  6 | 00836 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 846 |  6 | 00846 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 846 |  6 | 00846 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 856 |  6 | 00856 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 856 |  6 | 00856 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 866 |  6 | 00866 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 866 |  6 | 00866 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 876 |  6 | 00876 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 876 |  6 | 00876 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 886 |  6 | 00886 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 886 |  6 | 00886 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 896 |  6 | 00896 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 896 |  6 | 00896 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 906 |  6 | 00906 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 906 |  6 | 00906 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 916 |  6 | 00916 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 916 |  6 | 00916 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 926 |  6 | 00926 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 926 |  6 | 00926 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 936 |  6 | 00936 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 936 |  6 | 00936 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 946 |  6 | 00946 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 946 |  6 | 00946 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 956 |  6 | 00956 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 956 |  6 | 00956 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 966 |  6 | 00966 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 966 |  6 | 00966 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 976 |  6 | 00976 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 976 |  6 | 00976 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 986 |  6 | 00986 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 986 |  6 | 00986 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 996 |  6 | 00996 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 996 |  6 | 00996 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
 (100 rows)
 
 -- bug before 9.3.5 due to sloppy handling of remote-estimate parameters
@@ -1094,9 +1177,49 @@ SELECT t1.c1, ss.a, ss.b FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t1
 (8 rows)
 
 -- d. test deparsing rowmarked relations as subqueries
--- EXPLAIN (VERBOSE, COSTS OFF)
--- SELECT t1.c1, ss.a, ss.b FROM (SELECT c1 FROM "S 1"."T 3" WHERE c1 = 50) t1 INNER JOIN (SELECT t2.c1, t3.c1 FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t2 FULL JOIN (SELECT c1 FROM ft5 WHERE c1 between 50 and 60) t3 ON (t2.c1 = t3.c1) WHERE t2.c1 IS NULL OR t2.c1 IS NOT NULL) ss(a, b) ON (TRUE) ORDER BY t1.c1, ss.a, ss.b FOR UPDATE OF t1;
--- SELECT t1.c1, ss.a, ss.b FROM (SELECT c1 FROM "S 1"."T 3" WHERE c1 = 50) t1 INNER JOIN (SELECT t2.c1, t3.c1 FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t2 FULL JOIN (SELECT c1 FROM ft5 WHERE c1 between 50 and 60) t3 ON (t2.c1 = t3.c1) WHERE t2.c1 IS NULL OR t2.c1 IS NOT NULL) ss(a, b) ON (TRUE) ORDER BY t1.c1, ss.a, ss.b FOR UPDATE OF t1;
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT t1.c1, ss.a, ss.b FROM (SELECT c1 FROM "S 1"."T 3" WHERE c1 = 50) t1 INNER JOIN (SELECT t2.c1, t3.c1 FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t2 FULL JOIN (SELECT c1 FROM ft5 WHERE c1 between 50 and 60) t3 ON (t2.c1 = t3.c1) WHERE t2.c1 IS NULL OR t2.c1 IS NOT NULL) ss(a, b) ON (TRUE) ORDER BY t1.c1, ss.a, ss.b FOR UPDATE OF t1;
+                                                      QUERY PLAN                                                      
+----------------------------------------------------------------------------------------------------------------------
+ LockRows
+   Output: "T 3".c1, ft4.c1, ft5.c1, "T 3".*, ft4.*, ft5.*
+   ->  Sort
+         Output: "T 3".c1, ft4.c1, ft5.c1, "T 3".*, ft4.*, ft5.*
+         Sort Key: ft4.c1, ft5.c1
+         ->  Nested Loop
+               Output: "T 3".c1, ft4.c1, ft5.c1, "T 3".*, ft4.*, ft5.*
+               ->  Foreign Scan on "S 1"."T 3"
+                     Output: "T 3".c1, "T 3".*
+                     Remote SQL: SELECT c1, c2, c3 FROM "S 1"."T 3" WHERE ((c1 = 50)) FOR UPDATE
+               ->  Hash Full Join
+                     Output: ft4.c1, ft4.*, ft5.c1, ft5.*
+                     Hash Cond: (ft4.c1 = ft5.c1)
+                     Filter: ((ft4.c1 IS NULL) OR (ft4.c1 IS NOT NULL))
+                     ->  Foreign Scan on public.ft4
+                           Output: ft4.c1, ft4.*
+                           Node: postgres_srv / Status: Alive
+                             Remote SQL: SELECT c1, c2, c3 FROM "S 1"."T 3" WHERE ((c1 >= 50)) AND ((c1 <= 60))
+                     ->  Hash
+                           Output: ft5.c1, ft5.*
+                           ->  Foreign Scan on public.ft5
+                                 Output: ft5.c1, ft5.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT c1, c2, c3 FROM "S 1"."T 4" WHERE ((c1 >= 50)) AND ((c1 <= 60))
+(24 rows)
+
+SELECT t1.c1, ss.a, ss.b FROM (SELECT c1 FROM "S 1"."T 3" WHERE c1 = 50) t1 INNER JOIN (SELECT t2.c1, t3.c1 FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t2 FULL JOIN (SELECT c1 FROM ft5 WHERE c1 between 50 and 60) t3 ON (t2.c1 = t3.c1) WHERE t2.c1 IS NULL OR t2.c1 IS NOT NULL) ss(a, b) ON (TRUE) ORDER BY t1.c1, ss.a, ss.b FOR UPDATE OF t1;
+ c1 | a  | b  
+----+----+----
+ 50 | 50 |   
+ 50 | 52 |   
+ 50 | 54 | 54
+ 50 | 56 |   
+ 50 | 58 |   
+ 50 | 60 | 60
+ 50 |    | 51
+ 50 |    | 57
+(8 rows)
+
 -- full outer join + inner join
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- SELECT t1.c1, t2.c1, t3.c1 FROM ft4 t1 INNER JOIN ft5 t2 ON (t1.c1 = t2.c1 + 1 and t1.c1 between 50 and 60) FULL JOIN ft4 t3 ON (t2.c1 = t3.c1) ORDER BY t1.c1, t2.c1, t3.c1 LIMIT 10;
@@ -1269,19 +1392,187 @@ ALTER SERVER postgres_srv OPTIONS (DROP extensions);
 ALTER SERVER postgres_srv OPTIONS (ADD extensions 'postgres_fdw');
 -- join two tables with FOR UPDATE clause
 -- tests whole-row reference for row marks
--- EXPLAIN (VERBOSE, COSTS OFF)
--- SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR UPDATE OF t1;
--- SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR UPDATE OF t1;
--- EXPLAIN (VERBOSE, COSTS OFF)
--- SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR UPDATE;
--- SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR UPDATE;
--- -- join two tables with FOR SHARE clause
--- EXPLAIN (VERBOSE, COSTS OFF)
--- SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR SHARE OF t1;
--- SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR SHARE OF t1;
--- EXPLAIN (VERBOSE, COSTS OFF)
--- SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR SHARE;
--- SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR SHARE;
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR UPDATE OF t1;
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Limit
+   Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+   ->  LockRows
+         Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+         ->  Sort
+               Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+               Sort Key: t1.c3, t1.c1
+               ->  Merge Join
+                     Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+                     Merge Cond: (t1.c1 = t2.c1)
+                     ->  Sort
+                           Output: t1.c1, t1.c3, t1.*
+                           Sort Key: t1.c1
+                           ->  Foreign Scan on public.ft1 t1
+                                 Output: t1.c1, t1.c3, t1.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+                     ->  Sort
+                           Output: t2.c1, t2.*
+                           Sort Key: t2.c1
+                           ->  Foreign Scan on public.ft2 t2
+                                 Output: t2.c1, t2.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+(24 rows)
+
+SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR UPDATE OF t1;
+ c1  | c1  
+-----+-----
+ 101 | 101
+ 102 | 102
+ 103 | 103
+ 104 | 104
+ 105 | 105
+ 106 | 106
+ 107 | 107
+ 108 | 108
+ 109 | 109
+ 110 | 110
+(10 rows)
+
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR UPDATE;
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Limit
+   Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+   ->  LockRows
+         Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+         ->  Sort
+               Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+               Sort Key: t1.c3, t1.c1
+               ->  Merge Join
+                     Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+                     Merge Cond: (t1.c1 = t2.c1)
+                     ->  Sort
+                           Output: t1.c1, t1.c3, t1.*
+                           Sort Key: t1.c1
+                           ->  Foreign Scan on public.ft1 t1
+                                 Output: t1.c1, t1.c3, t1.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+                     ->  Sort
+                           Output: t2.c1, t2.*
+                           Sort Key: t2.c1
+                           ->  Foreign Scan on public.ft2 t2
+                                 Output: t2.c1, t2.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+(24 rows)
+
+SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR UPDATE;
+ c1  | c1  
+-----+-----
+ 101 | 101
+ 102 | 102
+ 103 | 103
+ 104 | 104
+ 105 | 105
+ 106 | 106
+ 107 | 107
+ 108 | 108
+ 109 | 109
+ 110 | 110
+(10 rows)
+
+-- join two tables with FOR SHARE clause
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR SHARE OF t1;
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Limit
+   Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+   ->  LockRows
+         Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+         ->  Sort
+               Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+               Sort Key: t1.c3, t1.c1
+               ->  Merge Join
+                     Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+                     Merge Cond: (t1.c1 = t2.c1)
+                     ->  Sort
+                           Output: t1.c1, t1.c3, t1.*
+                           Sort Key: t1.c1
+                           ->  Foreign Scan on public.ft1 t1
+                                 Output: t1.c1, t1.c3, t1.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+                     ->  Sort
+                           Output: t2.c1, t2.*
+                           Sort Key: t2.c1
+                           ->  Foreign Scan on public.ft2 t2
+                                 Output: t2.c1, t2.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+(24 rows)
+
+SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR SHARE OF t1;
+ c1  | c1  
+-----+-----
+ 101 | 101
+ 102 | 102
+ 103 | 103
+ 104 | 104
+ 105 | 105
+ 106 | 106
+ 107 | 107
+ 108 | 108
+ 109 | 109
+ 110 | 110
+(10 rows)
+
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR SHARE;
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Limit
+   Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+   ->  LockRows
+         Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+         ->  Sort
+               Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+               Sort Key: t1.c3, t1.c1
+               ->  Merge Join
+                     Output: t1.c1, t2.c1, t1.c3, t1.*, t2.*
+                     Merge Cond: (t1.c1 = t2.c1)
+                     ->  Sort
+                           Output: t1.c1, t1.c3, t1.*
+                           Sort Key: t1.c1
+                           ->  Foreign Scan on public.ft1 t1
+                                 Output: t1.c1, t1.c3, t1.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+                     ->  Sort
+                           Output: t2.c1, t2.*
+                           Sort Key: t2.c1
+                           ->  Foreign Scan on public.ft2 t2
+                                 Output: t2.c1, t2.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+(24 rows)
+
+SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR SHARE;
+ c1  | c1  
+-----+-----
+ 101 | 101
+ 102 | 102
+ 103 | 103
+ 104 | 104
+ 105 | 105
+ 106 | 106
+ 107 | 107
+ 108 | 108
+ 109 | 109
+ 110 | 110
+(10 rows)
+
 -- join in CTE
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- WITH t (c1_1, c1_3, c2_1) AS (SELECT t1.c1, t1.c3, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1)) SELECT c1_1, c2_1 FROM t ORDER BY c1_3, c1_1 OFFSET 100 LIMIT 10;
@@ -1301,8 +1592,34 @@ WITH t (c1_1, c1_3, c2_1) AS (SELECT t1.c1, t1.c3, t2.c1 FROM ft1 t1 JOIN ft2 t2
 (10 rows)
 
 -- ctid with whole-row reference
--- EXPLAIN (VERBOSE, COSTS OFF)
--- SELECT t1.ctid, t1, t2, t1.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT t1.ctid, t1, t2, t1.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Limit
+   Output: t1.ctid, t1.*, t2.*, t1.c1, t1.c3
+   ->  Sort
+         Output: t1.ctid, t1.*, t2.*, t1.c1, t1.c3
+         Sort Key: t1.c3, t1.c1
+         ->  Merge Join
+               Output: t1.ctid, t1.*, t2.*, t1.c1, t1.c3
+               Merge Cond: (t1.c1 = t2.c1)
+               ->  Sort
+                     Output: t1.ctid, t1.*, t1.c1, t1.c3
+                     Sort Key: t1.c1
+                     ->  Foreign Scan on public.ft1 t1
+                           Output: t1.ctid, t1.*, t1.c1, t1.c3
+                           Node: postgres_srv / Status: Alive
+                             Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8, ctid FROM "S 1"."T 1"
+               ->  Sort
+                     Output: t2.*, t2.c1
+                     Sort Key: t2.c1
+                     ->  Foreign Scan on public.ft2 t2
+                           Output: t2.*, t2.c1
+                           Node: postgres_srv / Status: Alive
+                             Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+(22 rows)
+
 -- SEMI JOIN, not pushed down
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- SELECT t1.c1 FROM ft1 t1 WHERE EXISTS (SELECT 1 FROM ft2 t2 WHERE t1.c1 = t2.c1) ORDER BY t1.c1 OFFSET 100 LIMIT 10;
@@ -1487,18 +1804,108 @@ SELECT t1c1, avg(t1c1 + t2c1) FROM (SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 
 -- SELECT ft4.c1, q.* FROM ft4 LEFT JOIN (SELECT 13, ft1.c1, ft2.c1 FROM ft1 RIGHT JOIN ft2 ON (ft1.c1 = ft2.c1) WHERE ft1.c1 = 12) q(a, b, c) ON (ft4.c1 = q.b) WHERE ft4.c1 BETWEEN 10 AND 15;
 -- join with nullable side with some columns with null values
 -- UPDATE ft5 SET c3 = null where c1 % 9 = 0;
--- EXPLAIN (VERBOSE, COSTS OFF)
--- SELECT ft5, ft5.c1, ft5.c2, ft5.c3, ft4.c1, ft4.c2 FROM ft5 left join ft4 on ft5.c1 = ft4.c1 WHERE ft4.c1 BETWEEN 10 and 30 ORDER BY ft5.c1, ft4.c1;
--- SELECT ft5, ft5.c1, ft5.c2, ft5.c3, ft4.c1, ft4.c2 FROM ft5 left join ft4 on ft5.c1 = ft4.c1 WHERE ft4.c1 BETWEEN 10 and 30 ORDER BY ft5.c1, ft4.c1;
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT ft5, ft5.c1, ft5.c2, ft5.c3, ft4.c1, ft4.c2 FROM ft5 left join ft4 on ft5.c1 = ft4.c1 WHERE ft4.c1 BETWEEN 10 and 30 ORDER BY ft5.c1, ft4.c1;
+                                              QUERY PLAN                                              
+------------------------------------------------------------------------------------------------------
+ Sort
+   Output: ft5.*, ft5.c1, ft5.c2, ft5.c3, ft4.c1, ft4.c2
+   Sort Key: ft5.c1
+   ->  Hash Join
+         Output: ft5.*, ft5.c1, ft5.c2, ft5.c3, ft4.c1, ft4.c2
+         Hash Cond: (ft5.c1 = ft4.c1)
+         ->  Foreign Scan on public.ft5
+               Output: ft5.*, ft5.c1, ft5.c2, ft5.c3
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT c1, c2, c3 FROM "S 1"."T 4"
+         ->  Hash
+               Output: ft4.c1, ft4.c2
+               ->  Foreign Scan on public.ft4
+                     Output: ft4.c1, ft4.c2
+                     Node: postgres_srv / Status: Alive
+                       Remote SQL: SELECT c1, c2 FROM "S 1"."T 3" WHERE ((c1 >= 10)) AND ((c1 <= 30))
+(16 rows)
+
+SELECT ft5, ft5.c1, ft5.c2, ft5.c3, ft4.c1, ft4.c2 FROM ft5 left join ft4 on ft5.c1 = ft4.c1 WHERE ft4.c1 BETWEEN 10 and 30 ORDER BY ft5.c1, ft4.c1;
+              ft5              | c1 | c2 |   c3   | c1 | c2 
+-------------------------------+----+----+--------+----+----
+ (12,13,AAA012,/postgres_srv/) | 12 | 13 | AAA012 | 12 | 13
+ (18,19,AAA018,/postgres_srv/) | 18 | 19 | AAA018 | 18 | 19
+ (24,25,AAA024,/postgres_srv/) | 24 | 25 | AAA024 | 24 | 25
+ (30,31,AAA030,/postgres_srv/) | 30 | 31 | AAA030 | 30 | 31
+(4 rows)
+
 -- multi-way join involving multiple merge joins
 -- (this case used to have EPQ-related planning problems)
 SET enable_nestloop TO false;
 SET enable_hashjoin TO false;
--- EXPLAIN (VERBOSE, COSTS OFF)
--- SELECT * FROM ft1, ft2, ft4, ft5 WHERE ft1.c1 = ft2.c1 AND ft1.c2 = ft4.c1
---     AND ft1.c2 = ft5.c1 AND ft1.c1 < 100 AND ft2.c1 < 100 FOR UPDATE;
--- SELECT * FROM ft1, ft2, ft4, ft5 WHERE ft1.c1 = ft2.c1 AND ft1.c2 = ft4.c1
---     AND ft1.c2 = ft5.c1 AND ft1.c1 < 100 AND ft2.c1 < 100 FOR UPDATE;
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM ft1, ft2, ft4, ft5 WHERE ft1.c1 = ft2.c1 AND ft1.c2 = ft4.c1
+    AND ft1.c2 = ft5.c1 AND ft1.c1 < 100 AND ft2.c1 < 100 FOR UPDATE;
+                                                                                                                                       QUERY PLAN                                                                                                                                       
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ LockRows
+   Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft1.*, ft2.*, ft4.*, ft5.*
+   ->  Merge Join
+         Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft1.*, ft2.*, ft4.*, ft5.*
+         Merge Cond: (ft1.c2 = ft4.c1)
+         ->  Sort
+               Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*
+               Sort Key: ft1.c2
+               ->  Merge Join
+                     Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*
+                     Merge Cond: (ft1.c1 = ft2.c1)
+                     ->  Sort
+                           Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*
+                           Sort Key: ft1.c1
+                           ->  Foreign Scan on public.ft1
+                                 Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" < 100))
+                     ->  Sort
+                           Output: ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*
+                           Sort Key: ft2.c1
+                           ->  Foreign Scan on public.ft2
+                                 Output: ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" < 100))
+         ->  Materialize
+               Output: ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft4.*, ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft5.*
+               ->  Merge Join
+                     Output: ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft4.*, ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft5.*
+                     Merge Cond: (ft4.c1 = ft5.c1)
+                     ->  Sort
+                           Output: ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft4.*
+                           Sort Key: ft4.c1
+                           ->  Foreign Scan on public.ft4
+                                 Output: ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft4.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT c1, c2, c3 FROM "S 1"."T 3"
+                     ->  Sort
+                           Output: ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft5.*
+                           Sort Key: ft5.c1
+                           ->  Foreign Scan on public.ft5
+                                 Output: ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft5.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT c1, c2, c3 FROM "S 1"."T 4"
+(44 rows)
+
+SELECT * FROM ft1, ft2, ft4, ft5 WHERE ft1.c1 = ft2.c1 AND ft1.c2 = ft4.c1
+    AND ft1.c2 = ft5.c1 AND ft1.c1 < 100 AND ft2.c1 < 100 FOR UPDATE;
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    | c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    | c1 | c2 |   c3   |   __spd_url    | c1 | c2 |   c3   |   __spd_url    
+----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------+----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------+----+----+--------+----------------+----+----+--------+----------------
+ 96 |  6 | 00096 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 96 |  6 | 00096 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 46 |  6 | 00046 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 46 |  6 | 00046 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 26 |  6 | 00026 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 26 |  6 | 00026 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 56 |  6 | 00056 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 56 |  6 | 00056 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 66 |  6 | 00066 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 66 |  6 | 00066 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 16 |  6 | 00016 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 16 |  6 | 00016 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 76 |  6 | 00076 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 76 |  6 | 00076 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 86 |  6 | 00086 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 86 |  6 | 00086 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+  6 |  6 | 00006 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  6 | 00006 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+ 36 |  6 | 00036 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 36 |  6 | 00036 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+(10 rows)
+
 RESET enable_nestloop;
 RESET enable_hashjoin;
 -- check join pushdown in situations where multiple userids are involved
@@ -2414,13 +2821,13 @@ PREPARE st2(int) AS SELECT * FROM ft1 t1 WHERE t1.c1 < $2 AND t1.c3 IN (SELECT c
 EXECUTE st2(10, 20);
  c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
 ----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
- 17 |  7 | 00017 | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo | /postgres_srv/
+ 16 |  6 | 00016 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
 (1 row)
 
 EXECUTE st2(101, 121);
  c1  | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
 -----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
- 117 |  7 | 00117 | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo | /postgres_srv/
+ 116 |  6 | 00116 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
 (1 row)
 
 -- subquery using immutable function (can be sent to remote)
@@ -2429,7 +2836,7 @@ PREPARE st3(int) AS SELECT * FROM ft1 t1 WHERE t1.c1 < $2 AND t1.c3 IN (SELECT c
 EXECUTE st3(10, 20);
  c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
 ----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
- 16 |  6 | 00016 | Fri Jan 16 08:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
+ 16 |  6 | 00016 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/
 (1 row)
 
 EXECUTE st3(20, 30);
@@ -2622,7 +3029,7 @@ SELECT * FROM ft1 t1 WHERE t1.tableoid = 'pg_class'::regclass LIMIT 1;
 SELECT * FROM ft1 t1 WHERE t1.tableoid = 'ft1'::regclass LIMIT 1;
  c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
 ----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
-  1 |  1 | 00001 | Thu Jan 01 08:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
+  1 |  1 | 00001 | Fri Jan 02 00:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
 (1 row)
 
 EXPLAIN (VERBOSE, COSTS OFF)
@@ -2640,7 +3047,7 @@ SELECT tableoid::regclass, * FROM ft1 t1 LIMIT 1;
 SELECT tableoid::regclass, * FROM ft1 t1 LIMIT 1;
  tableoid | c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
 ----------+----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
- ft1      |  1 |  1 | 00001 | Thu Jan 01 08:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
+ ft1      |  1 |  1 | 00001 | Fri Jan 02 00:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
 (1 row)
 
 EXPLAIN (VERBOSE, COSTS OFF)
@@ -2656,7 +3063,7 @@ SELECT * FROM ft1 t1 WHERE t1.ctid = '(0,2)';
 SELECT * FROM ft1 t1 WHERE t1.ctid = '(0,2)';
  c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
 ----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
-  2 |  2 | 00002 | Fri Jan 02 08:00:00 1970 PST | Sat Jan 03 00:00:00 1970 | 2  | 2          | foo | /postgres_srv/
+  2 |  2 | 00002 | Sat Jan 03 00:00:00 1970 PST | Sat Jan 03 00:00:00 1970 | 2  | 2          | foo | /postgres_srv/
 (1 row)
 
 EXPLAIN (VERBOSE, COSTS OFF)
@@ -2674,7 +3081,7 @@ SELECT ctid, * FROM ft1 t1 LIMIT 1;
 SELECT ctid, * FROM ft1 t1 LIMIT 1;
  ctid  | c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
 -------+----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
- (0,1) |  1 |  1 | 00001 | Thu Jan 01 08:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
+ (0,1) |  1 |  1 | 00001 | Fri Jan 02 00:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
 (1 row)
 
 EXPLAIN (VERBOSE, COSTS OFF)
@@ -2730,7 +3137,7 @@ DECLARE c CURSOR FOR SELECT * FROM ft1 ORDER BY c1;
 FETCH c;
  c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
 ----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
-  1 |  1 | 00001 | Thu Jan 01 08:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
+  1 |  1 | 00001 | Fri Jan 02 00:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
 (1 row)
 
 SAVEPOINT s;
@@ -2742,7 +3149,7 @@ ROLLBACK TO s;
 FETCH c;
  c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
 ----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
-  2 |  2 | 00002 | Fri Jan 02 08:00:00 1970 PST | Sat Jan 03 00:00:00 1970 | 2  | 2          | foo | /postgres_srv/
+  2 |  2 | 00002 | Sat Jan 03 00:00:00 1970 PST | Sat Jan 03 00:00:00 1970 | 2  | 2          | foo | /postgres_srv/
 (1 row)
 
 SAVEPOINT s;
@@ -2751,13 +3158,13 @@ ROLLBACK TO s;
 FETCH c;
  c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
 ----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
-  3 |  3 | 00003 | Sat Jan 03 08:00:00 1970 PST | Sun Jan 04 00:00:00 1970 | 3  | 3          | foo | /postgres_srv/
+  3 |  3 | 00003 | Sun Jan 04 00:00:00 1970 PST | Sun Jan 04 00:00:00 1970 | 3  | 3          | foo | /postgres_srv/
 (1 row)
 
 SELECT * FROM ft1 ORDER BY c1 LIMIT 1;
  c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
 ----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
-  1 |  1 | 00001 | Thu Jan 01 08:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
+  1 |  1 | 00001 | Fri Jan 02 00:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
 (1 row)
 
 COMMIT;
@@ -2880,106 +3287,106 @@ UPDATE ft2__postgres_srv__0 SET c2 = c2 + 300, c3 = c3 || '_update3' WHERE c1 % 
 UPDATE ft2__postgres_srv__0 SET c2 = c2 + 400, c3 = c3 || '_update7' WHERE c1 % 10 = 7 RETURNING *;
   c1  | c2  |         c3         |              c4              |            c5            | c6 |     c7     | c8  
 ------+-----+--------------------+------------------------------+--------------------------+----+------------+-----
-    7 | 407 | 00007_update7      | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
-   17 | 407 | 00017_update7      | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
-   27 | 407 | 00027_update7      | Tue Jan 27 08:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
-   37 | 407 | 00037_update7      | Fri Feb 06 08:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
-   47 | 407 | 00047_update7      | Mon Feb 16 08:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
-   57 | 407 | 00057_update7      | Thu Feb 26 08:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
-   67 | 407 | 00067_update7      | Sun Mar 08 08:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
-   77 | 407 | 00077_update7      | Wed Mar 18 08:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
-   87 | 407 | 00087_update7      | Sat Mar 28 08:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
-   97 | 407 | 00097_update7      | Tue Apr 07 08:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
-  107 | 407 | 00107_update7      | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
-  117 | 407 | 00117_update7      | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
-  127 | 407 | 00127_update7      | Tue Jan 27 08:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
-  137 | 407 | 00137_update7      | Fri Feb 06 08:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
-  147 | 407 | 00147_update7      | Mon Feb 16 08:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
-  157 | 407 | 00157_update7      | Thu Feb 26 08:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
-  167 | 407 | 00167_update7      | Sun Mar 08 08:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
-  177 | 407 | 00177_update7      | Wed Mar 18 08:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
-  187 | 407 | 00187_update7      | Sat Mar 28 08:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
-  197 | 407 | 00197_update7      | Tue Apr 07 08:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
-  207 | 407 | 00207_update7      | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
-  217 | 407 | 00217_update7      | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
-  227 | 407 | 00227_update7      | Tue Jan 27 08:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
-  237 | 407 | 00237_update7      | Fri Feb 06 08:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
-  247 | 407 | 00247_update7      | Mon Feb 16 08:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
-  257 | 407 | 00257_update7      | Thu Feb 26 08:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
-  267 | 407 | 00267_update7      | Sun Mar 08 08:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
-  277 | 407 | 00277_update7      | Wed Mar 18 08:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
-  287 | 407 | 00287_update7      | Sat Mar 28 08:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
-  297 | 407 | 00297_update7      | Tue Apr 07 08:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
-  307 | 407 | 00307_update7      | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
-  317 | 407 | 00317_update7      | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
-  327 | 407 | 00327_update7      | Tue Jan 27 08:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
-  337 | 407 | 00337_update7      | Fri Feb 06 08:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
-  347 | 407 | 00347_update7      | Mon Feb 16 08:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
-  357 | 407 | 00357_update7      | Thu Feb 26 08:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
-  367 | 407 | 00367_update7      | Sun Mar 08 08:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
-  377 | 407 | 00377_update7      | Wed Mar 18 08:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
-  387 | 407 | 00387_update7      | Sat Mar 28 08:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
-  397 | 407 | 00397_update7      | Tue Apr 07 08:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
-  407 | 407 | 00407_update7      | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
-  417 | 407 | 00417_update7      | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
-  427 | 407 | 00427_update7      | Tue Jan 27 08:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
-  437 | 407 | 00437_update7      | Fri Feb 06 08:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
-  447 | 407 | 00447_update7      | Mon Feb 16 08:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
-  457 | 407 | 00457_update7      | Thu Feb 26 08:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
-  467 | 407 | 00467_update7      | Sun Mar 08 08:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
-  477 | 407 | 00477_update7      | Wed Mar 18 08:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
-  487 | 407 | 00487_update7      | Sat Mar 28 08:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
-  497 | 407 | 00497_update7      | Tue Apr 07 08:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
-  507 | 407 | 00507_update7      | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
-  517 | 407 | 00517_update7      | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
-  527 | 407 | 00527_update7      | Tue Jan 27 08:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
-  537 | 407 | 00537_update7      | Fri Feb 06 08:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
-  547 | 407 | 00547_update7      | Mon Feb 16 08:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
-  557 | 407 | 00557_update7      | Thu Feb 26 08:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
-  567 | 407 | 00567_update7      | Sun Mar 08 08:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
-  577 | 407 | 00577_update7      | Wed Mar 18 08:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
-  587 | 407 | 00587_update7      | Sat Mar 28 08:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
-  597 | 407 | 00597_update7      | Tue Apr 07 08:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
-  607 | 407 | 00607_update7      | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
-  617 | 407 | 00617_update7      | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
-  627 | 407 | 00627_update7      | Tue Jan 27 08:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
-  637 | 407 | 00637_update7      | Fri Feb 06 08:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
-  647 | 407 | 00647_update7      | Mon Feb 16 08:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
-  657 | 407 | 00657_update7      | Thu Feb 26 08:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
-  667 | 407 | 00667_update7      | Sun Mar 08 08:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
-  677 | 407 | 00677_update7      | Wed Mar 18 08:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
-  687 | 407 | 00687_update7      | Sat Mar 28 08:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
-  697 | 407 | 00697_update7      | Tue Apr 07 08:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
-  707 | 407 | 00707_update7      | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
-  717 | 407 | 00717_update7      | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
-  727 | 407 | 00727_update7      | Tue Jan 27 08:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
-  737 | 407 | 00737_update7      | Fri Feb 06 08:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
-  747 | 407 | 00747_update7      | Mon Feb 16 08:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
-  757 | 407 | 00757_update7      | Thu Feb 26 08:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
-  767 | 407 | 00767_update7      | Sun Mar 08 08:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
-  777 | 407 | 00777_update7      | Wed Mar 18 08:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
-  787 | 407 | 00787_update7      | Sat Mar 28 08:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
-  797 | 407 | 00797_update7      | Tue Apr 07 08:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
-  807 | 407 | 00807_update7      | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
-  817 | 407 | 00817_update7      | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
-  827 | 407 | 00827_update7      | Tue Jan 27 08:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
-  837 | 407 | 00837_update7      | Fri Feb 06 08:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
-  847 | 407 | 00847_update7      | Mon Feb 16 08:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
-  857 | 407 | 00857_update7      | Thu Feb 26 08:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
-  867 | 407 | 00867_update7      | Sun Mar 08 08:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
-  877 | 407 | 00877_update7      | Wed Mar 18 08:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
-  887 | 407 | 00887_update7      | Sat Mar 28 08:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
-  897 | 407 | 00897_update7      | Tue Apr 07 08:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
-  907 | 407 | 00907_update7      | Wed Jan 07 08:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
-  917 | 407 | 00917_update7      | Sat Jan 17 08:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
-  927 | 407 | 00927_update7      | Tue Jan 27 08:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
-  937 | 407 | 00937_update7      | Fri Feb 06 08:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
-  947 | 407 | 00947_update7      | Mon Feb 16 08:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
-  957 | 407 | 00957_update7      | Thu Feb 26 08:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
-  967 | 407 | 00967_update7      | Sun Mar 08 08:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
-  977 | 407 | 00977_update7      | Wed Mar 18 08:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
-  987 | 407 | 00987_update7      | Sat Mar 28 08:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
-  997 | 407 | 00997_update7      | Tue Apr 07 08:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
+    7 | 407 | 00007_update7      | Thu Jan 08 00:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
+   17 | 407 | 00017_update7      | Sun Jan 18 00:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
+   27 | 407 | 00027_update7      | Wed Jan 28 00:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
+   37 | 407 | 00037_update7      | Sat Feb 07 00:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
+   47 | 407 | 00047_update7      | Tue Feb 17 00:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
+   57 | 407 | 00057_update7      | Fri Feb 27 00:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
+   67 | 407 | 00067_update7      | Mon Mar 09 00:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
+   77 | 407 | 00077_update7      | Thu Mar 19 00:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
+   87 | 407 | 00087_update7      | Sun Mar 29 00:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
+   97 | 407 | 00097_update7      | Wed Apr 08 00:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
+  107 | 407 | 00107_update7      | Thu Jan 08 00:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
+  117 | 407 | 00117_update7      | Sun Jan 18 00:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
+  127 | 407 | 00127_update7      | Wed Jan 28 00:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
+  137 | 407 | 00137_update7      | Sat Feb 07 00:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
+  147 | 407 | 00147_update7      | Tue Feb 17 00:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
+  157 | 407 | 00157_update7      | Fri Feb 27 00:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
+  167 | 407 | 00167_update7      | Mon Mar 09 00:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
+  177 | 407 | 00177_update7      | Thu Mar 19 00:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
+  187 | 407 | 00187_update7      | Sun Mar 29 00:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
+  197 | 407 | 00197_update7      | Wed Apr 08 00:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
+  207 | 407 | 00207_update7      | Thu Jan 08 00:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
+  217 | 407 | 00217_update7      | Sun Jan 18 00:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
+  227 | 407 | 00227_update7      | Wed Jan 28 00:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
+  237 | 407 | 00237_update7      | Sat Feb 07 00:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
+  247 | 407 | 00247_update7      | Tue Feb 17 00:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
+  257 | 407 | 00257_update7      | Fri Feb 27 00:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
+  267 | 407 | 00267_update7      | Mon Mar 09 00:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
+  277 | 407 | 00277_update7      | Thu Mar 19 00:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
+  287 | 407 | 00287_update7      | Sun Mar 29 00:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
+  297 | 407 | 00297_update7      | Wed Apr 08 00:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
+  307 | 407 | 00307_update7      | Thu Jan 08 00:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
+  317 | 407 | 00317_update7      | Sun Jan 18 00:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
+  327 | 407 | 00327_update7      | Wed Jan 28 00:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
+  337 | 407 | 00337_update7      | Sat Feb 07 00:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
+  347 | 407 | 00347_update7      | Tue Feb 17 00:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
+  357 | 407 | 00357_update7      | Fri Feb 27 00:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
+  367 | 407 | 00367_update7      | Mon Mar 09 00:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
+  377 | 407 | 00377_update7      | Thu Mar 19 00:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
+  387 | 407 | 00387_update7      | Sun Mar 29 00:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
+  397 | 407 | 00397_update7      | Wed Apr 08 00:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
+  407 | 407 | 00407_update7      | Thu Jan 08 00:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
+  417 | 407 | 00417_update7      | Sun Jan 18 00:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
+  427 | 407 | 00427_update7      | Wed Jan 28 00:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
+  437 | 407 | 00437_update7      | Sat Feb 07 00:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
+  447 | 407 | 00447_update7      | Tue Feb 17 00:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
+  457 | 407 | 00457_update7      | Fri Feb 27 00:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
+  467 | 407 | 00467_update7      | Mon Mar 09 00:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
+  477 | 407 | 00477_update7      | Thu Mar 19 00:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
+  487 | 407 | 00487_update7      | Sun Mar 29 00:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
+  497 | 407 | 00497_update7      | Wed Apr 08 00:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
+  507 | 407 | 00507_update7      | Thu Jan 08 00:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
+  517 | 407 | 00517_update7      | Sun Jan 18 00:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
+  527 | 407 | 00527_update7      | Wed Jan 28 00:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
+  537 | 407 | 00537_update7      | Sat Feb 07 00:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
+  547 | 407 | 00547_update7      | Tue Feb 17 00:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
+  557 | 407 | 00557_update7      | Fri Feb 27 00:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
+  567 | 407 | 00567_update7      | Mon Mar 09 00:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
+  577 | 407 | 00577_update7      | Thu Mar 19 00:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
+  587 | 407 | 00587_update7      | Sun Mar 29 00:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
+  597 | 407 | 00597_update7      | Wed Apr 08 00:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
+  607 | 407 | 00607_update7      | Thu Jan 08 00:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
+  617 | 407 | 00617_update7      | Sun Jan 18 00:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
+  627 | 407 | 00627_update7      | Wed Jan 28 00:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
+  637 | 407 | 00637_update7      | Sat Feb 07 00:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
+  647 | 407 | 00647_update7      | Tue Feb 17 00:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
+  657 | 407 | 00657_update7      | Fri Feb 27 00:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
+  667 | 407 | 00667_update7      | Mon Mar 09 00:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
+  677 | 407 | 00677_update7      | Thu Mar 19 00:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
+  687 | 407 | 00687_update7      | Sun Mar 29 00:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
+  697 | 407 | 00697_update7      | Wed Apr 08 00:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
+  707 | 407 | 00707_update7      | Thu Jan 08 00:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
+  717 | 407 | 00717_update7      | Sun Jan 18 00:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
+  727 | 407 | 00727_update7      | Wed Jan 28 00:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
+  737 | 407 | 00737_update7      | Sat Feb 07 00:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
+  747 | 407 | 00747_update7      | Tue Feb 17 00:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
+  757 | 407 | 00757_update7      | Fri Feb 27 00:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
+  767 | 407 | 00767_update7      | Mon Mar 09 00:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
+  777 | 407 | 00777_update7      | Thu Mar 19 00:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
+  787 | 407 | 00787_update7      | Sun Mar 29 00:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
+  797 | 407 | 00797_update7      | Wed Apr 08 00:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
+  807 | 407 | 00807_update7      | Thu Jan 08 00:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
+  817 | 407 | 00817_update7      | Sun Jan 18 00:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
+  827 | 407 | 00827_update7      | Wed Jan 28 00:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
+  837 | 407 | 00837_update7      | Sat Feb 07 00:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
+  847 | 407 | 00847_update7      | Tue Feb 17 00:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
+  857 | 407 | 00857_update7      | Fri Feb 27 00:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
+  867 | 407 | 00867_update7      | Mon Mar 09 00:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
+  877 | 407 | 00877_update7      | Thu Mar 19 00:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
+  887 | 407 | 00887_update7      | Sun Mar 29 00:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
+  897 | 407 | 00897_update7      | Wed Apr 08 00:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
+  907 | 407 | 00907_update7      | Thu Jan 08 00:00:00 1970 PST | Thu Jan 08 00:00:00 1970 | 7  | 7          | foo
+  917 | 407 | 00917_update7      | Sun Jan 18 00:00:00 1970 PST | Sun Jan 18 00:00:00 1970 | 7  | 7          | foo
+  927 | 407 | 00927_update7      | Wed Jan 28 00:00:00 1970 PST | Wed Jan 28 00:00:00 1970 | 7  | 7          | foo
+  937 | 407 | 00937_update7      | Sat Feb 07 00:00:00 1970 PST | Sat Feb 07 00:00:00 1970 | 7  | 7          | foo
+  947 | 407 | 00947_update7      | Tue Feb 17 00:00:00 1970 PST | Tue Feb 17 00:00:00 1970 | 7  | 7          | foo
+  957 | 407 | 00957_update7      | Fri Feb 27 00:00:00 1970 PST | Fri Feb 27 00:00:00 1970 | 7  | 7          | foo
+  967 | 407 | 00967_update7      | Mon Mar 09 00:00:00 1970 PST | Mon Mar 09 00:00:00 1970 | 7  | 7          | foo
+  977 | 407 | 00977_update7      | Thu Mar 19 00:00:00 1970 PST | Thu Mar 19 00:00:00 1970 | 7  | 7          | foo
+  987 | 407 | 00987_update7      | Sun Mar 29 00:00:00 1970 PST | Sun Mar 29 00:00:00 1970 | 7  | 7          | foo
+  997 | 407 | 00997_update7      | Wed Apr 08 00:00:00 1970 PST | Wed Apr 08 00:00:00 1970 | 7  | 7          | foo
  1007 | 507 | 0000700007_update7 |                              |                          |    | ft2        | 
  1017 | 507 | 0001700017_update7 |                              |                          |    | ft2        | 
 (102 rows)
@@ -2989,114 +3396,114 @@ UPDATE ft2__postgres_srv__0 SET c2 = c2 + 400, c3 = c3 || '_update7' WHERE c1 % 
 --   FROM ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 9;                               -- can be pushed down
 -- UPDATE ft2 SET c2 = ft2.c2 + 500, c3 = ft2.c3 || '_update9', c7 = DEFAULT
 --   FROM ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 9;
--- UPDATE ft2__postgres_srv__0 SET c2 = ft2__postgres_srv__0.c2 + 500, c3 = ft2__postgres_srv__0.c3 || '_update9', c7 = DEFAULT
---   FROM ft1 WHERE ft1.c1 = ft2__postgres_srv__0.c2 AND ft1.c1 % 10 = 9;
+UPDATE ft2__postgres_srv__0 SET c2 = ft2__postgres_srv__0.c2 + 500, c3 = ft2__postgres_srv__0.c3 || '_update9', c7 = DEFAULT
+  FROM ft1 WHERE ft1.c1 = ft2__postgres_srv__0.c2 AND ft1.c1 % 10 = 9;
 -- EXPLAIN (verbose, costs off)
 --   DELETE FROM ft2 WHERE c1 % 10 = 5 RETURNING c1, c4;                               -- can be pushed down
 -- DELETE FROM ft2 WHERE c1 % 10 = 5 RETURNING c1, c4;
 DELETE FROM ft2__postgres_srv__0 WHERE c1 % 10 = 5 RETURNING c1, c4;
   c1  |              c4              
 ------+------------------------------
-    5 | Mon Jan 05 08:00:00 1970 PST
-   15 | Thu Jan 15 08:00:00 1970 PST
-   25 | Sun Jan 25 08:00:00 1970 PST
-   35 | Wed Feb 04 08:00:00 1970 PST
-   45 | Sat Feb 14 08:00:00 1970 PST
-   55 | Tue Feb 24 08:00:00 1970 PST
-   65 | Fri Mar 06 08:00:00 1970 PST
-   75 | Mon Mar 16 08:00:00 1970 PST
-   85 | Thu Mar 26 08:00:00 1970 PST
-   95 | Sun Apr 05 08:00:00 1970 PST
-  105 | Mon Jan 05 08:00:00 1970 PST
-  115 | Thu Jan 15 08:00:00 1970 PST
-  125 | Sun Jan 25 08:00:00 1970 PST
-  135 | Wed Feb 04 08:00:00 1970 PST
-  145 | Sat Feb 14 08:00:00 1970 PST
-  155 | Tue Feb 24 08:00:00 1970 PST
-  165 | Fri Mar 06 08:00:00 1970 PST
-  175 | Mon Mar 16 08:00:00 1970 PST
-  185 | Thu Mar 26 08:00:00 1970 PST
-  195 | Sun Apr 05 08:00:00 1970 PST
-  205 | Mon Jan 05 08:00:00 1970 PST
-  215 | Thu Jan 15 08:00:00 1970 PST
-  225 | Sun Jan 25 08:00:00 1970 PST
-  235 | Wed Feb 04 08:00:00 1970 PST
-  245 | Sat Feb 14 08:00:00 1970 PST
-  255 | Tue Feb 24 08:00:00 1970 PST
-  265 | Fri Mar 06 08:00:00 1970 PST
-  275 | Mon Mar 16 08:00:00 1970 PST
-  285 | Thu Mar 26 08:00:00 1970 PST
-  295 | Sun Apr 05 08:00:00 1970 PST
-  305 | Mon Jan 05 08:00:00 1970 PST
-  315 | Thu Jan 15 08:00:00 1970 PST
-  325 | Sun Jan 25 08:00:00 1970 PST
-  335 | Wed Feb 04 08:00:00 1970 PST
-  345 | Sat Feb 14 08:00:00 1970 PST
-  355 | Tue Feb 24 08:00:00 1970 PST
-  365 | Fri Mar 06 08:00:00 1970 PST
-  375 | Mon Mar 16 08:00:00 1970 PST
-  385 | Thu Mar 26 08:00:00 1970 PST
-  395 | Sun Apr 05 08:00:00 1970 PST
-  405 | Mon Jan 05 08:00:00 1970 PST
-  415 | Thu Jan 15 08:00:00 1970 PST
-  425 | Sun Jan 25 08:00:00 1970 PST
-  435 | Wed Feb 04 08:00:00 1970 PST
-  445 | Sat Feb 14 08:00:00 1970 PST
-  455 | Tue Feb 24 08:00:00 1970 PST
-  465 | Fri Mar 06 08:00:00 1970 PST
-  475 | Mon Mar 16 08:00:00 1970 PST
-  485 | Thu Mar 26 08:00:00 1970 PST
-  495 | Sun Apr 05 08:00:00 1970 PST
-  505 | Mon Jan 05 08:00:00 1970 PST
-  515 | Thu Jan 15 08:00:00 1970 PST
-  525 | Sun Jan 25 08:00:00 1970 PST
-  535 | Wed Feb 04 08:00:00 1970 PST
-  545 | Sat Feb 14 08:00:00 1970 PST
-  555 | Tue Feb 24 08:00:00 1970 PST
-  565 | Fri Mar 06 08:00:00 1970 PST
-  575 | Mon Mar 16 08:00:00 1970 PST
-  585 | Thu Mar 26 08:00:00 1970 PST
-  595 | Sun Apr 05 08:00:00 1970 PST
-  605 | Mon Jan 05 08:00:00 1970 PST
-  615 | Thu Jan 15 08:00:00 1970 PST
-  625 | Sun Jan 25 08:00:00 1970 PST
-  635 | Wed Feb 04 08:00:00 1970 PST
-  645 | Sat Feb 14 08:00:00 1970 PST
-  655 | Tue Feb 24 08:00:00 1970 PST
-  665 | Fri Mar 06 08:00:00 1970 PST
-  675 | Mon Mar 16 08:00:00 1970 PST
-  685 | Thu Mar 26 08:00:00 1970 PST
-  695 | Sun Apr 05 08:00:00 1970 PST
-  705 | Mon Jan 05 08:00:00 1970 PST
-  715 | Thu Jan 15 08:00:00 1970 PST
-  725 | Sun Jan 25 08:00:00 1970 PST
-  735 | Wed Feb 04 08:00:00 1970 PST
-  745 | Sat Feb 14 08:00:00 1970 PST
-  755 | Tue Feb 24 08:00:00 1970 PST
-  765 | Fri Mar 06 08:00:00 1970 PST
-  775 | Mon Mar 16 08:00:00 1970 PST
-  785 | Thu Mar 26 08:00:00 1970 PST
-  795 | Sun Apr 05 08:00:00 1970 PST
-  805 | Mon Jan 05 08:00:00 1970 PST
-  815 | Thu Jan 15 08:00:00 1970 PST
-  825 | Sun Jan 25 08:00:00 1970 PST
-  835 | Wed Feb 04 08:00:00 1970 PST
-  845 | Sat Feb 14 08:00:00 1970 PST
-  855 | Tue Feb 24 08:00:00 1970 PST
-  865 | Fri Mar 06 08:00:00 1970 PST
-  875 | Mon Mar 16 08:00:00 1970 PST
-  885 | Thu Mar 26 08:00:00 1970 PST
-  895 | Sun Apr 05 08:00:00 1970 PST
-  905 | Mon Jan 05 08:00:00 1970 PST
-  915 | Thu Jan 15 08:00:00 1970 PST
-  925 | Sun Jan 25 08:00:00 1970 PST
-  935 | Wed Feb 04 08:00:00 1970 PST
-  945 | Sat Feb 14 08:00:00 1970 PST
-  955 | Tue Feb 24 08:00:00 1970 PST
-  965 | Fri Mar 06 08:00:00 1970 PST
-  975 | Mon Mar 16 08:00:00 1970 PST
-  985 | Thu Mar 26 08:00:00 1970 PST
-  995 | Sun Apr 05 08:00:00 1970 PST
+    5 | Tue Jan 06 00:00:00 1970 PST
+   15 | Fri Jan 16 00:00:00 1970 PST
+   25 | Mon Jan 26 00:00:00 1970 PST
+   35 | Thu Feb 05 00:00:00 1970 PST
+   45 | Sun Feb 15 00:00:00 1970 PST
+   55 | Wed Feb 25 00:00:00 1970 PST
+   65 | Sat Mar 07 00:00:00 1970 PST
+   75 | Tue Mar 17 00:00:00 1970 PST
+   85 | Fri Mar 27 00:00:00 1970 PST
+   95 | Mon Apr 06 00:00:00 1970 PST
+  105 | Tue Jan 06 00:00:00 1970 PST
+  115 | Fri Jan 16 00:00:00 1970 PST
+  125 | Mon Jan 26 00:00:00 1970 PST
+  135 | Thu Feb 05 00:00:00 1970 PST
+  145 | Sun Feb 15 00:00:00 1970 PST
+  155 | Wed Feb 25 00:00:00 1970 PST
+  165 | Sat Mar 07 00:00:00 1970 PST
+  175 | Tue Mar 17 00:00:00 1970 PST
+  185 | Fri Mar 27 00:00:00 1970 PST
+  195 | Mon Apr 06 00:00:00 1970 PST
+  205 | Tue Jan 06 00:00:00 1970 PST
+  215 | Fri Jan 16 00:00:00 1970 PST
+  225 | Mon Jan 26 00:00:00 1970 PST
+  235 | Thu Feb 05 00:00:00 1970 PST
+  245 | Sun Feb 15 00:00:00 1970 PST
+  255 | Wed Feb 25 00:00:00 1970 PST
+  265 | Sat Mar 07 00:00:00 1970 PST
+  275 | Tue Mar 17 00:00:00 1970 PST
+  285 | Fri Mar 27 00:00:00 1970 PST
+  295 | Mon Apr 06 00:00:00 1970 PST
+  305 | Tue Jan 06 00:00:00 1970 PST
+  315 | Fri Jan 16 00:00:00 1970 PST
+  325 | Mon Jan 26 00:00:00 1970 PST
+  335 | Thu Feb 05 00:00:00 1970 PST
+  345 | Sun Feb 15 00:00:00 1970 PST
+  355 | Wed Feb 25 00:00:00 1970 PST
+  365 | Sat Mar 07 00:00:00 1970 PST
+  375 | Tue Mar 17 00:00:00 1970 PST
+  385 | Fri Mar 27 00:00:00 1970 PST
+  395 | Mon Apr 06 00:00:00 1970 PST
+  405 | Tue Jan 06 00:00:00 1970 PST
+  415 | Fri Jan 16 00:00:00 1970 PST
+  425 | Mon Jan 26 00:00:00 1970 PST
+  435 | Thu Feb 05 00:00:00 1970 PST
+  445 | Sun Feb 15 00:00:00 1970 PST
+  455 | Wed Feb 25 00:00:00 1970 PST
+  465 | Sat Mar 07 00:00:00 1970 PST
+  475 | Tue Mar 17 00:00:00 1970 PST
+  485 | Fri Mar 27 00:00:00 1970 PST
+  495 | Mon Apr 06 00:00:00 1970 PST
+  505 | Tue Jan 06 00:00:00 1970 PST
+  515 | Fri Jan 16 00:00:00 1970 PST
+  525 | Mon Jan 26 00:00:00 1970 PST
+  535 | Thu Feb 05 00:00:00 1970 PST
+  545 | Sun Feb 15 00:00:00 1970 PST
+  555 | Wed Feb 25 00:00:00 1970 PST
+  565 | Sat Mar 07 00:00:00 1970 PST
+  575 | Tue Mar 17 00:00:00 1970 PST
+  585 | Fri Mar 27 00:00:00 1970 PST
+  595 | Mon Apr 06 00:00:00 1970 PST
+  605 | Tue Jan 06 00:00:00 1970 PST
+  615 | Fri Jan 16 00:00:00 1970 PST
+  625 | Mon Jan 26 00:00:00 1970 PST
+  635 | Thu Feb 05 00:00:00 1970 PST
+  645 | Sun Feb 15 00:00:00 1970 PST
+  655 | Wed Feb 25 00:00:00 1970 PST
+  665 | Sat Mar 07 00:00:00 1970 PST
+  675 | Tue Mar 17 00:00:00 1970 PST
+  685 | Fri Mar 27 00:00:00 1970 PST
+  695 | Mon Apr 06 00:00:00 1970 PST
+  705 | Tue Jan 06 00:00:00 1970 PST
+  715 | Fri Jan 16 00:00:00 1970 PST
+  725 | Mon Jan 26 00:00:00 1970 PST
+  735 | Thu Feb 05 00:00:00 1970 PST
+  745 | Sun Feb 15 00:00:00 1970 PST
+  755 | Wed Feb 25 00:00:00 1970 PST
+  765 | Sat Mar 07 00:00:00 1970 PST
+  775 | Tue Mar 17 00:00:00 1970 PST
+  785 | Fri Mar 27 00:00:00 1970 PST
+  795 | Mon Apr 06 00:00:00 1970 PST
+  805 | Tue Jan 06 00:00:00 1970 PST
+  815 | Fri Jan 16 00:00:00 1970 PST
+  825 | Mon Jan 26 00:00:00 1970 PST
+  835 | Thu Feb 05 00:00:00 1970 PST
+  845 | Sun Feb 15 00:00:00 1970 PST
+  855 | Wed Feb 25 00:00:00 1970 PST
+  865 | Sat Mar 07 00:00:00 1970 PST
+  875 | Tue Mar 17 00:00:00 1970 PST
+  885 | Fri Mar 27 00:00:00 1970 PST
+  895 | Mon Apr 06 00:00:00 1970 PST
+  905 | Tue Jan 06 00:00:00 1970 PST
+  915 | Fri Jan 16 00:00:00 1970 PST
+  925 | Mon Jan 26 00:00:00 1970 PST
+  935 | Thu Feb 05 00:00:00 1970 PST
+  945 | Sun Feb 15 00:00:00 1970 PST
+  955 | Wed Feb 25 00:00:00 1970 PST
+  965 | Sat Mar 07 00:00:00 1970 PST
+  975 | Tue Mar 17 00:00:00 1970 PST
+  985 | Fri Mar 27 00:00:00 1970 PST
+  995 | Mon Apr 06 00:00:00 1970 PST
  1005 | 
  1015 | 
  1105 | 
@@ -3105,7 +3512,7 @@ DELETE FROM ft2__postgres_srv__0 WHERE c1 % 10 = 5 RETURNING c1, c4;
 -- EXPLAIN (verbose, costs off)
 -- DELETE FROM ft2 USING ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 2;                -- can be pushed down
 -- DELETE FROM ft2 USING ft1 WHERE ft1.c1 = ft2.c2 AND ft1.c1 % 10 = 2;
--- DELETE FROM ft2__postgres_srv__0 USING ft1 WHERE ft1.c1 = ft2__postgres_srv__0.c2 AND ft1.c1 % 10 = 2;
+DELETE FROM ft2__postgres_srv__0 USING ft1 WHERE ft1.c1 = ft2__postgres_srv__0.c2 AND ft1.c1 % 10 = 2;
 -- SELECT c1,c2,c3,c4 FROM ft2 ORDER BY c1;
 -- EXPLAIN (verbose, costs off)
 -- INSERT INTO ft2 (c1,c2,c3) VALUES (1200,999,'foo') RETURNING tableoid::regclass;
@@ -3148,10 +3555,30 @@ INSERT INTO ft2__postgres_srv__0 (c1,c2,c3)
 --   FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
 --   WHERE ft2.c1 > 1200 AND ft2.c2 = ft4.c1
 --   RETURNING ft2, ft2.*, ft4, ft4.*;
--- UPDATE ft2__postgres_srv__0 SET c3 = 'foo'
---   FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
---   WHERE ft2__postgres_srv__0.c1 > 1200 AND ft2__postgres_srv__0.c2 = ft4.c1
---   RETURNING ft2__postgres_srv__0, ft2__postgres_srv__0.*, ft4, ft4.*;
+UPDATE ft2__postgres_srv__0 SET c3 = 'foo'
+  FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
+  WHERE ft2__postgres_srv__0.c1 > 1200 AND ft2__postgres_srv__0.c2 = ft4.c1
+  RETURNING ft2__postgres_srv__0, ft2__postgres_srv__0.*, ft4, ft4.*;
+      ft2__postgres_srv__0      |  c1  | c2 | c3  | c4 | c5 | c6 |     c7     | c8 |              ft4              | c1 | c2 |   c3   |   __spd_url    
+--------------------------------+------+----+-----+----+----+----+------------+----+-------------------------------+----+----+--------+----------------
+ (1206,6,foo,,,,"ft2       ",)  | 1206 |  6 | foo |    |    |    | ft2        |    | (6,7,AAA006,/postgres_srv/)   |  6 |  7 | AAA006 | /postgres_srv/
+ (1212,12,foo,,,,"ft2       ",) | 1212 | 12 | foo |    |    |    | ft2        |    | (12,13,AAA012,/postgres_srv/) | 12 | 13 | AAA012 | /postgres_srv/
+ (1218,18,foo,,,,"ft2       ",) | 1218 | 18 | foo |    |    |    | ft2        |    | (18,19,AAA018,/postgres_srv/) | 18 | 19 | AAA018 | /postgres_srv/
+ (1224,24,foo,,,,"ft2       ",) | 1224 | 24 | foo |    |    |    | ft2        |    | (24,25,AAA024,/postgres_srv/) | 24 | 25 | AAA024 | /postgres_srv/
+ (1230,30,foo,,,,"ft2       ",) | 1230 | 30 | foo |    |    |    | ft2        |    | (30,31,AAA030,/postgres_srv/) | 30 | 31 | AAA030 | /postgres_srv/
+ (1236,36,foo,,,,"ft2       ",) | 1236 | 36 | foo |    |    |    | ft2        |    | (36,37,AAA036,/postgres_srv/) | 36 | 37 | AAA036 | /postgres_srv/
+ (1242,42,foo,,,,"ft2       ",) | 1242 | 42 | foo |    |    |    | ft2        |    | (42,43,AAA042,/postgres_srv/) | 42 | 43 | AAA042 | /postgres_srv/
+ (1248,48,foo,,,,"ft2       ",) | 1248 | 48 | foo |    |    |    | ft2        |    | (48,49,AAA048,/postgres_srv/) | 48 | 49 | AAA048 | /postgres_srv/
+ (1254,54,foo,,,,"ft2       ",) | 1254 | 54 | foo |    |    |    | ft2        |    | (54,55,AAA054,/postgres_srv/) | 54 | 55 | AAA054 | /postgres_srv/
+ (1260,60,foo,,,,"ft2       ",) | 1260 | 60 | foo |    |    |    | ft2        |    | (60,61,AAA060,/postgres_srv/) | 60 | 61 | AAA060 | /postgres_srv/
+ (1266,66,foo,,,,"ft2       ",) | 1266 | 66 | foo |    |    |    | ft2        |    | (66,67,AAA066,/postgres_srv/) | 66 | 67 | AAA066 | /postgres_srv/
+ (1272,72,foo,,,,"ft2       ",) | 1272 | 72 | foo |    |    |    | ft2        |    | (72,73,AAA072,/postgres_srv/) | 72 | 73 | AAA072 | /postgres_srv/
+ (1278,78,foo,,,,"ft2       ",) | 1278 | 78 | foo |    |    |    | ft2        |    | (78,79,AAA078,/postgres_srv/) | 78 | 79 | AAA078 | /postgres_srv/
+ (1284,84,foo,,,,"ft2       ",) | 1284 | 84 | foo |    |    |    | ft2        |    | (84,85,AAA084,/postgres_srv/) | 84 | 85 | AAA084 | /postgres_srv/
+ (1290,90,foo,,,,"ft2       ",) | 1290 | 90 | foo |    |    |    | ft2        |    | (90,91,AAA090,/postgres_srv/) | 90 | 91 | AAA090 | /postgres_srv/
+ (1296,96,foo,,,,"ft2       ",) | 1296 | 96 | foo |    |    |    | ft2        |    | (96,97,AAA096,/postgres_srv/) | 96 | 97 | AAA096 | /postgres_srv/
+(16 rows)
+
 -- EXPLAIN (verbose, costs off)
 -- DELETE FROM ft2
 --   USING ft4 LEFT JOIN ft5 ON (ft4.c1 = ft5.c1)
@@ -3161,10 +3588,24 @@ INSERT INTO ft2__postgres_srv__0 (c1,c2,c3)
 --   USING ft4 LEFT JOIN ft5 ON (ft4.c1 = ft5.c1)
 --   WHERE ft2.c1 > 1200 AND ft2.c1 % 10 = 0 AND ft2.c2 = ft4.c1
 --   RETURNING 100;
--- DELETE FROM ft2__postgres_srv__0
---   USING ft4 LEFT JOIN ft5 ON (ft4.c1 = ft5.c1)
---   WHERE ft2__postgres_srv__0.c1 > 1200 AND ft2__postgres_srv__0.c1 % 10 = 0 AND ft2__postgres_srv__0.c2 = ft4.c1
---   RETURNING 100;
+DELETE FROM ft2__postgres_srv__0
+  USING ft4 LEFT JOIN ft5 ON (ft4.c1 = ft5.c1)
+  WHERE ft2__postgres_srv__0.c1 > 1200 AND ft2__postgres_srv__0.c1 % 10 = 0 AND ft2__postgres_srv__0.c2 = ft4.c1
+  RETURNING 100;
+ ?column? 
+----------
+      100
+      100
+      100
+      100
+      100
+      100
+      100
+      100
+      100
+      100
+(10 rows)
+
 -- DELETE FROM ft2 WHERE ft2.c1 > 1200;
 DELETE FROM ft2__postgres_srv__0 WHERE ft2__postgres_srv__0.c1 > 1200;
 -- Test UPDATE/DELETE with WHERE or JOIN/ON conditions containing
@@ -3201,10 +3642,15 @@ UPDATE ft2__postgres_srv__0 SET c3 = 'bar' WHERE postgres_fdw_abs(c1) > 2000 RET
 --   FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
 --   WHERE ft2.c1 > 2000 AND ft2.c2 === ft4.c1
 --   RETURNING ft2.*, ft4.*, ft5.*;
--- UPDATE ft2__postgres_srv__0 SET c3 = 'baz'
---   FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
---   WHERE ft2__postgres_srv__0.c1 > 2000 AND ft2__postgres_srv__0.c2 === ft4.c1
---   RETURNING ft2__postgres_srv__0.*, ft4.*, ft5.*;
+UPDATE ft2__postgres_srv__0 SET c3 = 'baz'
+  FROM ft4 INNER JOIN ft5 ON (ft4.c1 = ft5.c1)
+  WHERE ft2__postgres_srv__0.c1 > 2000 AND ft2__postgres_srv__0.c2 === ft4.c1
+  RETURNING ft2__postgres_srv__0.*, ft4.*, ft5.*;
+  c1  | c2 | c3  | c4 | c5 | c6 |     c7     | c8 | c1 | c2 |   c3   |   __spd_url    | c1 | c2 |   c3   |   __spd_url    
+------+----+-----+----+----+----+------------+----+----+----+--------+----------------+----+----+--------+----------------
+ 2006 |  6 | baz |    |    |    | ft2        |    |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/
+(1 row)
+
 -- EXPLAIN (verbose, costs off)
 -- DELETE FROM ft2
 --   USING ft4 INNER JOIN ft5 ON (ft4.c1 === ft5.c1)
@@ -3214,10 +3660,15 @@ UPDATE ft2__postgres_srv__0 SET c3 = 'bar' WHERE postgres_fdw_abs(c1) > 2000 RET
 --   USING ft4 INNER JOIN ft5 ON (ft4.c1 === ft5.c1)
 --   WHERE ft2.c1 > 2000 AND ft2.c2 = ft4.c1
 --   RETURNING ft2.c1, ft2.c2, ft2.c3;
--- DELETE FROM ft2__postgres_srv__0
---   USING ft4 INNER JOIN ft5 ON (ft4.c1 === ft5.c1)
---   WHERE ft2__postgres_srv__0.c1 > 2000 AND ft2__postgres_srv__0.c2 = ft4.c1
---   RETURNING ft2__postgres_srv__0.c1, ft2__postgres_srv__0.c2, ft2__postgres_srv__0.c3;
+DELETE FROM ft2__postgres_srv__0
+  USING ft4 INNER JOIN ft5 ON (ft4.c1 === ft5.c1)
+  WHERE ft2__postgres_srv__0.c1 > 2000 AND ft2__postgres_srv__0.c2 = ft4.c1
+  RETURNING ft2__postgres_srv__0.c1, ft2__postgres_srv__0.c2, ft2__postgres_srv__0.c3;
+  c1  | c2 | c3  
+------+----+-----
+ 2006 |  6 | baz
+(1 row)
+
 -- DELETE FROM ft2 WHERE ft2.c1 > 2000;
 DELETE FROM ft2__postgres_srv__0 WHERE ft2__postgres_srv__0.c1 > 2000;
 ALTER SERVER postgres_srv OPTIONS (ADD extensions 'postgres_fdw');
@@ -4002,12 +4453,96 @@ analyze remt1;
 WARNING:  skipping "remt1" --- cannot analyze this foreign table
 analyze remt2;
 WARNING:  skipping "remt2" --- cannot analyze this foreign table
--- explain (verbose, costs off)
--- update parent set b = parent.b || remt2.b from remt2 where parent.a = remt2.a returning *;
--- update parent set b = parent.b || remt2.b from remt2 where parent.a = remt2.a returning *;
--- explain (verbose, costs off)
--- delete from parent using remt2 where parent.a = remt2.a returning parent;
--- delete from parent using remt2 where parent.a = remt2.a returning parent;
+explain (verbose, costs off)
+update parent set b = parent.b || remt2.b from remt2 where parent.a = remt2.a returning *;
+                                                                        QUERY PLAN                                                                        
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+ Update on public.parent
+   Output: parent.a, parent.b, remt2.a, remt2.b, remt2.__spd_url
+   Update on public.parent
+   Foreign Update on public.remt1__postgres_srv__0
+     Remote SQL: UPDATE public.loct1_2 SET b = $2 WHERE ctid = $1 RETURNING a, b
+   ->  Hash Join
+         Output: parent.a, (parent.b || remt2.b), parent.ctid, remt2.*, remt2.a, remt2.b, remt2.__spd_url
+         Hash Cond: (remt2.a = parent.a)
+         ->  Foreign Scan on public.remt2
+               Output: remt2.b, remt2.*, remt2.a, remt2.__spd_url
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT a, b FROM public.loct2_2
+         ->  Hash
+               Output: parent.a, parent.b, parent.ctid
+               ->  Seq Scan on public.parent
+                     Output: parent.a, parent.b, parent.ctid
+   ->  Merge Join
+         Output: remt1__postgres_srv__0.a, (remt1__postgres_srv__0.b || remt2.b), remt1__postgres_srv__0.ctid, remt2.*, remt2.a, remt2.b, remt2.__spd_url
+         Merge Cond: (remt1__postgres_srv__0.a = remt2.a)
+         ->  Sort
+               Output: remt1__postgres_srv__0.a, remt1__postgres_srv__0.b, remt1__postgres_srv__0.ctid
+               Sort Key: remt1__postgres_srv__0.a
+               ->  Foreign Scan on public.remt1__postgres_srv__0
+                     Output: remt1__postgres_srv__0.a, remt1__postgres_srv__0.b, remt1__postgres_srv__0.ctid
+                     Remote SQL: SELECT a, b, ctid FROM public.loct1_2 FOR UPDATE
+         ->  Sort
+               Output: remt2.b, remt2.*, remt2.a, remt2.__spd_url
+               Sort Key: remt2.a
+               ->  Foreign Scan on public.remt2
+                     Output: remt2.b, remt2.*, remt2.a, remt2.__spd_url
+                     Node: postgres_srv / Status: Alive
+                       Remote SQL: SELECT a, b FROM public.loct2_2
+(32 rows)
+
+update parent set b = parent.b || remt2.b from remt2 where parent.a = remt2.a returning *;
+ a |   b    | a |  b  |   __spd_url    
+---+--------+---+-----+----------------
+ 1 | foofoo | 1 | foo | /postgres_srv/
+ 2 | barbar | 2 | bar | /postgres_srv/
+(2 rows)
+
+explain (verbose, costs off)
+delete from parent using remt2 where parent.a = remt2.a returning parent;
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ Delete on public.parent
+   Output: parent.*
+   Delete on public.parent
+   Foreign Delete on public.remt1__postgres_srv__0
+     Remote SQL: DELETE FROM public.loct1_2 WHERE ctid = $1 RETURNING a, b
+   ->  Hash Join
+         Output: parent.ctid, remt2.*
+         Hash Cond: (remt2.a = parent.a)
+         ->  Foreign Scan on public.remt2
+               Output: remt2.*, remt2.a
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT a, b FROM public.loct2_2
+         ->  Hash
+               Output: parent.ctid, parent.a
+               ->  Seq Scan on public.parent
+                     Output: parent.ctid, parent.a
+   ->  Merge Join
+         Output: remt1__postgres_srv__0.ctid, remt2.*
+         Merge Cond: (remt1__postgres_srv__0.a = remt2.a)
+         ->  Sort
+               Output: remt1__postgres_srv__0.ctid, remt1__postgres_srv__0.a
+               Sort Key: remt1__postgres_srv__0.a
+               ->  Foreign Scan on public.remt1__postgres_srv__0
+                     Output: remt1__postgres_srv__0.ctid, remt1__postgres_srv__0.a
+                     Remote SQL: SELECT a, ctid FROM public.loct1_2 FOR UPDATE
+         ->  Sort
+               Output: remt2.*, remt2.a
+               Sort Key: remt2.a
+               ->  Foreign Scan on public.remt2
+                     Output: remt2.*, remt2.a
+                     Node: postgres_srv / Status: Alive
+                       Remote SQL: SELECT a, b FROM public.loct2_2
+(32 rows)
+
+delete from parent using remt2 where parent.a = remt2.a returning parent;
+   parent   
+------------
+ (1,foofoo)
+ (2,barbar)
+(2 rows)
+
 -- cleanup
 drop foreign table remt1;
 drop foreign table remt2;
