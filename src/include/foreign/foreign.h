@@ -70,55 +70,6 @@ typedef struct ForeignTable
 	List	   *options;		/* ftoptions as DefElem list */
 } ForeignTable;
 
-typedef enum
-{
-	SPD_FS_STATE_INIT,
-	SPD_FS_STATE_BEGIN,
-	SPD_FS_STATE_ITERATE,
-	SPD_FS_STATE_END,
-	SPD_FS_STATE_FINISH,
-	SPD_FS_STATE_ERROR,
-}			SpdForeignScanThreadState;
-
-#define SPD_TUPLE_QUEUE_LEN 5000
-
-/* Allocate TupleQueue for each thread and child thread use this queue 
- * to pass tuples to parent  
- */
-typedef struct TupleQueue {
-	struct TupleTableSlot *tuples[SPD_TUPLE_QUEUE_LEN];
-	int start;		/* index of the first element */
-	int len;		/* number of the elements */
-	int lastGet;	/* index of the last element returned by spd_queue_get */
-	int isFinished;	/* true if scan is finished */
-	bool skipLast; /* true if skip last value copy */
-} SpdTupleQueue;
-
-typedef struct ForeignScanThreadInfo
-{
-	struct FdwRoutine *fdwroutine;	/* Foreign Data wrapper  routine */
-	struct ForeignScanState *fsstate;	/* ForeignScan state data */
-	int			eflags;			/* it used to set on Plan nodes(bitwise OR of
-								 * the flag bits ) */
-	Oid			serverId;		/* use it for server id */
-	ForeignServer		*foreignServer;	/* cache this for performance */
-	ForeignDataWrapper	*fdw;	/* cache this for performance */
-	bool		requestEndScan;		/* main thread request endForeingScan to child thread */
-	bool		requestRescan;		/* main thread request rescan to child thread */
-	SpdTupleQueue tupleQueue;		/* queue for passing tuples from child to parent */
-	int			childInfoIndex;		/* index of child info array */
-	MemoryContext threadMemoryContext;
-	MemoryContext threadTopMemoryContext;
-	pthread_mutex_t nodeMutex;	/* Use for ReScan call */
-	SpdForeignScanThreadState state;
-	pthread_t	me;
-	ResourceOwner thrd_ResourceOwner;
-	void	   *private;
-
-}			ForeignScanThreadInfo;
-
-
-
 extern ForeignServer *GetForeignServer(Oid serverid);
 extern ForeignServer *GetForeignServerByName(const char *name, bool missing_ok);
 extern UserMapping *GetUserMapping(Oid userid, Oid serverid);
