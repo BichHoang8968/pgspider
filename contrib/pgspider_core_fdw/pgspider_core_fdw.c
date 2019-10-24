@@ -510,9 +510,6 @@ spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy)
 	int			idx;
 	int			i;
 
-	/* Make tts_values and tts_nulls valid */
-	slot_getallattrs(slot);
-
 	pthread_mutex_lock(&que->qmutex);
 
 	if (que->len >= SPD_TUPLE_QUEUE_LEN)
@@ -531,39 +528,61 @@ spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy)
 		return false;
 	}
 
-	natts = que->tuples[idx]->tts_tupleDescriptor->natts;
-	memcpy(que->tuples[idx]->tts_isnull, slot->tts_isnull, natts * sizeof(bool));
+	ExecClearTuple(que->tuples[idx]);
 
-	/*
-	 * Skip copy of spdurl at the last of tuple descriptor because it's
-	 * invalid
-	 */
-	if (que->skipLast)
-		natts--;
+	/* Not minimal tuple */
+	Assert(!slot->tts_mintuple);
 
-	/*
-	 * Deep copy tts_values[i] if necessary
-	 */
-	if (deepcopy)
+	if (TTS_HAS_PHYSICAL_TUPLE(slot))
 	{
-		FormData_pg_attribute *attrs = slot->tts_tupleDescriptor->attrs;
-
-		for (i = 0; i < natts; i++)
-		{
-			if (slot->tts_isnull[i])
-				continue;
-			que->tuples[idx]->tts_values[i] = datumCopy(slot->tts_values[i],
-														attrs[i].attbyval, attrs[i].attlen);
-		}
+		/*
+		 * TODO: we can probably skip heap_copytuple as in virtual tuple case
+		 * for some fdws
+		 */
+		ExecStoreTuple(heap_copytuple(slot->tts_tuple),
+					   que->tuples[idx],
+					   InvalidBuffer,
+					   false);
 	}
 	else
+	{
+		/* Virtual tuple */
+
+		natts = que->tuples[idx]->tts_tupleDescriptor->natts;
+		memcpy(que->tuples[idx]->tts_isnull, slot->tts_isnull, natts * sizeof(bool));
 
 		/*
-		 * Even if deep copy is not necessary, tts_values array cannot be
-		 * reused because it is overwritten by child fdw
+		 * Skip copy of spdurl at the last of tuple descriptor because it's
+		 * invalid
 		 */
-		memcpy(que->tuples[idx]->tts_values, slot->tts_values, (natts * sizeof(Datum)));
+		if (que->skipLast)
+			natts--;
 
+		/*
+		 * Deep copy tts_values[i] if necessary
+		 */
+		if (deepcopy)
+		{
+			FormData_pg_attribute *attrs = slot->tts_tupleDescriptor->attrs;
+
+			for (i = 0; i < natts; i++)
+			{
+				if (slot->tts_isnull[i])
+					continue;
+				que->tuples[idx]->tts_values[i] = datumCopy(slot->tts_values[i],
+															attrs[i].attbyval, attrs[i].attlen);
+			}
+		}
+		else
+
+			/*
+			 * Even if deep copy is not necessary, tts_values array cannot be
+			 * reused because it is overwritten by child fdw
+			 */
+			memcpy(que->tuples[idx]->tts_values, slot->tts_values, (natts * sizeof(Datum)));
+
+		ExecStoreVirtualTuple(que->tuples[idx]);
+	}
 
 	que->len++;
 	pthread_mutex_unlock(&que->qmutex);
@@ -595,8 +614,8 @@ spd_queue_get(SpdTupleQueue * que, bool *is_finished)
 	que->len--;
 
 	pthread_mutex_unlock(&que->qmutex);
-	temp->tts_isempty = false;
-	temp->tts_nvalid = temp->tts_tupleDescriptor->natts;
+
+
 	return temp;
 }
 
@@ -1539,7 +1558,7 @@ RESCAN:
 		     */
 
 			/*
-			 * Above tables represents cases where queue length is 3. Tuple
+			 * Above tables represent cases where queue length is 3. Tuple
 			 * 0,1,2 (tuples generated when tuple_cnt is 0,1,2) are allocated
 			 * by tuplectx[0]. Tuple 3,4,5 are allocated by tuplectx[1] and so
 			 * on. When child thread succeeded in adding tuple 5, which use
@@ -2074,7 +2093,7 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
 		if (IsA(varnode, Var))
 		{
 			Var		   *var = (Var *) varnode;
-			
+
 			/* check whole row reference */
 			if (var->varattno == 0)
 			{
@@ -4858,9 +4877,11 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 /**
  * spd_AddSpdUrl
  *
- * Adding SpdURL column.
+ * Add __spd_url column.
  * If child node is pgspider, then concatinate node name.
- * node_slot should be virtual tuple.
+ * We don't convert heap tuple to virtual tuple because for update
+ * using postgres_fdw and pgspider_fdw, ctid which virtual tuples
+ * don't have is necessary.
  */
 static TupleTableSlot *
 spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
@@ -4868,10 +4889,12 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 {
 	Datum	   *values;
 	bool	   *nulls;
+	bool	   *replaces;
 	ForeignServer *fs;
 	ForeignDataWrapper *fdw;
 	int			i;
-	int			natts = parent_slot->tts_tupleDescriptor->natts;
+	int			tnum = 0;
+	HeapTuple	newtuple;
 
 	/*
 	 * Length of parent should be greater than or equal to length of child
@@ -4879,11 +4902,8 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 	 */
 	Assert(parent_slot->tts_tupleDescriptor->natts >=
 		   node_slot->tts_tupleDescriptor->natts);
-
 	fs = fssThrdInfo[count].foreignServer;
 	fdw = fssThrdInfo[count].fdw;
-
-
 
 	/*
 	 * Insert spdurl column to slot. heap_modify_tuple will replace the
@@ -4892,36 +4912,84 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 	 * values, Second, modify data values (insert new columm). Then, form
 	 * tuple with new data values. Finally, copy identification info (if any)
 	 */
-	if (fdw_private->groupby_has_spdurl &&
-		(strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0))
+	if (fdw_private->groupby_has_spdurl && (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0))
 	{
 		char	   *spdurl;
+		int			natts = parent_slot->tts_tupleDescriptor->natts;
 
-		values = node_slot->tts_values;
-		nulls = node_slot->tts_isnull;
-		for (i = 0; i < natts; i++)
+		/* Initialize new tuple buffer */
+		values = (Datum *) palloc0(sizeof(Datum) * natts);
+		nulls = (bool *) palloc0(sizeof(bool) * natts);
+
+		if (node_slot->tts_tuple != NULL)
 		{
-			if (i == fdw_private->idx_url_tlist)
-			{
-				spdurl = psprintf("/%s/", fs->servername);
-				values[i] = CStringGetTextDatum(spdurl);
-				nulls[i] = false;
-			}
-			else if (i < fdw_private->idx_url_tlist)
-			{
-				values[i] = node_slot->tts_values[i];
-				nulls[i] = node_slot->tts_isnull[i];
-			}
-			else
-			{
-				values[i] = node_slot->tts_values[i - 1];
-				nulls[i] = node_slot->tts_isnull[i - 1];
-			}
-		}
+			/* Extract data to values/isnulls */
+			heap_deform_tuple(node_slot->tts_tuple, node_slot->tts_tupleDescriptor, values, nulls);
 
+			/* Insert spdurl to the array */
+			spdurl = psprintf("/%s/", fs->servername);
+			for (i = natts - 2; i >= fdw_private->idx_url_tlist; i--)
+			{
+				values[i + 1] = values[i];
+				nulls[i + 1] = nulls[i];
+			}
+			values[fdw_private->idx_url_tlist] = CStringGetTextDatum(spdurl);
+			nulls[fdw_private->idx_url_tlist] = false;
+
+			/* Form new tuple with new values */
+			newtuple = heap_form_tuple(parent_slot->tts_tupleDescriptor,
+									   values,
+									   nulls);
+
+			/*
+			 * copy the identification info of the old tuple: t_ctid, t_self,
+			 * and OID (if any)
+			 */
+			newtuple->t_data->t_ctid = node_slot->tts_tuple->t_data->t_ctid;
+			newtuple->t_self = node_slot->tts_tuple->t_self;
+			newtuple->t_tableOid = node_slot->tts_tuple->t_tableOid;
+
+			parent_slot->tts_tuple = newtuple;
+
+			pfree(values);
+			pfree(nulls);
+		}
+		else
+		{
+			/* tuple mode is VIRTUAL */
+			for (i = 0; i < natts; i++)
+			{
+				if (i == fdw_private->idx_url_tlist)
+				{
+					spdurl = psprintf("/%s/", fs->servername);
+					values[i] = CStringGetTextDatum(spdurl);
+					nulls[i] = false;
+				}
+				else if (i < fdw_private->idx_url_tlist)
+				{
+					values[i] = node_slot->tts_values[i];
+					nulls[i] = node_slot->tts_isnull[i];
+				}
+				else
+				{
+					values[i] = node_slot->tts_values[i - 1];
+					nulls[i] = node_slot->tts_isnull[i - 1];
+				}
+			}
+			parent_slot->tts_values = values;
+			parent_slot->tts_isnull = nulls;
+			/* to avoid assert failure in ExecStoreVirtualTuple */
+			parent_slot->tts_isempty = true;
+			ExecStoreVirtualTuple(parent_slot);
+		}
 	}
 	else						/* Modify spdurl column */
 	{
+		/* Initialize new tuple buffer */
+		values = palloc0(sizeof(Datum) * node_slot->tts_tupleDescriptor->natts);
+		nulls = palloc0(sizeof(bool) * node_slot->tts_tupleDescriptor->natts);
+		replaces = palloc0(sizeof(bool) * node_slot->tts_tupleDescriptor->natts);
+		tnum = -1;
 
 		for (i = 0; i < node_slot->tts_tupleDescriptor->natts; i++)
 		{
@@ -4968,16 +5036,42 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 
 				if (attr->atttypid != TEXTOID)
 					elog(ERROR, "__spd_url column is not text type");
-				node_slot->tts_isnull[i] = false;
-				node_slot->tts_values[i] = CStringGetTextDatum(value);
+				replaces[i] = true;
+				nulls[i] = false;
+				values[i] = CStringGetTextDatum(value);
+				tnum = i;
 			}
-
 		}
 
+		if (tnum != -1)
+		{
+			if (node_slot->tts_tuple != NULL)
+			{
+				/* tuple mode is HEAP */
+				newtuple = heap_modify_tuple(node_slot->tts_tuple, node_slot->tts_tupleDescriptor,
+											 values, nulls, replaces);
+				node_slot->tts_tuple = newtuple;
+			}
+			else
+			{
+				/* tuple mode is VIRTUAL */
+				node_slot->tts_values[tnum] = values[tnum];
+				node_slot->tts_isnull[tnum] = false;
+				/* to avoid assert failure in ExecStoreVirtualTuple */
+				node_slot->tts_isempty = true;
+				ExecStoreVirtualTuple(node_slot);
+			}
+		}
 
+		/*
+		 * We need copy here because node_slot is shorter memory life than
+		 * parent_slot
+		 */
+		ExecCopySlot(parent_slot, node_slot);
 	}
-	/* We just replace spdurl, so don't call ExecStoreVirtualTuple */
-	return node_slot;
+	return parent_slot;
+
+
 }
 
 /*
