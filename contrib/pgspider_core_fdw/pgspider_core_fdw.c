@@ -4905,6 +4905,9 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 	fs = fssThrdInfo[count].foreignServer;
 	fdw = fssThrdInfo[count].fdw;
 
+	/* Make tts_values and tts_nulls valid */
+	slot_getallattrs(node_slot);
+
 	/*
 	 * Insert spdurl column to slot. heap_modify_tuple will replace the
 	 * existing column. To insert new column and its data, we also follow the
