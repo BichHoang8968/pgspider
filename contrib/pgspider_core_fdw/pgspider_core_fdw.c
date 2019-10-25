@@ -24,6 +24,7 @@ PG_MODULE_MAGIC;
 #include <math.h>
 #include "access/htup_details.h"
 #include "access/transam.h"
+#include "access/sysattr.h"
 #include "catalog/pg_type.h"
 #include "commands/explain.h"
 #include "catalog/pg_proc.h"
@@ -105,80 +106,68 @@ PG_MODULE_MAGIC;
 								 * so currentrly MAX is 3 */
 
 #define PGSPIDER_FDW_NAME "pgspider_fdw"
+#define MYSQL_FDW_NAME "mysql_fdw"
+#define AVRO_FDW_NAME "avro_fdw"
+
 #define SPDURL "__spd_url"
 #define AGGTEMPTABLE "__spd__temptable"
 
 /* Return true if avg, var, stddev */
 #define IS_SPLIT_AGG(aggfnoid) ((aggfnoid >= AVG_MIN_OID && aggfnoid <= AVG_MAX_OID) ||(aggfnoid >= VAR_MIN_OID && aggfnoid <= VAR_MAX_OID) ||(aggfnoid >= STD_MIN_OID && aggfnoid <= STD_MAX_OID))
+/* Affect memory and BeginForeignScan time */
+#define SPD_TUPLE_QUEUE_LEN 5000
+/* Index of the last element removed */
+#define SPD_LAST_GET_IDX(QUEUE) ((QUEUE)->start - 1)
+
+typedef enum
+{
+	SPD_FS_STATE_INIT,
+	SPD_FS_STATE_BEGIN,
+	SPD_FS_STATE_ITERATE,
+	SPD_FS_STATE_END,
+	SPD_FS_STATE_FINISH,
+	SPD_FS_STATE_ERROR,
+}			SpdForeignScanThreadState;
 
 
-/* local function forward declarations */
-bool		spd_is_builtin(Oid objectId);
-void		_PG_init(void);
-static void spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel,
-					  Oid foreigntableid);
-static void spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel,
-					Oid foreigntableid);
-static ForeignScan *spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel,
-				   Oid foreigntableid, ForeignPath *best_path,
-				   List *tlist, List *scan_clauses,
-				   Plan *outer_plan);
-static void spd_BeginForeignScan(ForeignScanState *node, int eflags);
-static TupleTableSlot *spd_IterateForeignScan(ForeignScanState *node);
-static void spd_ReScanForeignScan(ForeignScanState *node);
-static void spd_EndForeignScan(ForeignScanState *node);
-static void spd_GetForeignUpperPaths(PlannerInfo *root,
-						 UpperRelationKind stage,
-						 RelOptInfo *input_rel,
-						 RelOptInfo *output_rel, void *extra);
-
-/*
- * Helper functions
+/* Allocate TupleQueue for each thread and child thread use this queue
+ * to pass tuples to parent
  */
-static bool foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel);
-static Path *get_foreign_grouping_paths(PlannerInfo *root,
-						   RelOptInfo *input_rel,
-						   RelOptInfo *grouped_rel);
+typedef struct SpdTupleQueue
+{
+	struct TupleTableSlot *tuples[SPD_TUPLE_QUEUE_LEN];
+	int			start;			/* index of the first element */
+	int			len;			/* number of the elements */
+	int			isFinished;		/* true if scan is finished */
+	bool		skipLast;		/* true if skip last value copy */
+	pthread_mutex_t qmutex;		/* mutex */
+}			SpdTupleQueue;
 
-static void spd_AddForeignUpdateTargets(Query *parsetree,
-							RangeTblEntry *target_rte,
-							Relation target_relation);
 
-static List *spd_PlanForeignModify(PlannerInfo *root,
-					  ModifyTable *plan,
-					  Index resultRelation,
-					  int subplan_index);
+typedef struct ForeignScanThreadInfo
+{
+	struct FdwRoutine *fdwroutine;	/* Foreign Data wrapper  routine */
+	struct ForeignScanState *fsstate;	/* ForeignScan state data */
+	int			eflags;			/* it used to set on Plan nodes(bitwise OR of
+								 * the flag bits ) */
+	Oid			serverId;		/* use it for server id */
+	ForeignServer *foreignServer;	/* cache this for performance */
+	ForeignDataWrapper *fdw;	/* cache this for performance */
+	bool		requestEndScan; /* main thread request endForeingScan to child
+								 * thread */
+	bool		requestRescan;	/* main thread request rescan to child thread */
+	SpdTupleQueue tupleQueue;	/* queue for passing tuples from child to
+								 * parent */
+	int			childInfoIndex; /* index of child info array */
+	MemoryContext threadMemoryContext;
+	MemoryContext threadTopMemoryContext;
+	pthread_mutex_t nodeMutex;	/* Use for ReScan call */
+	SpdForeignScanThreadState state;
+	pthread_t	me;
+	ResourceOwner thrd_ResourceOwner;
+	void	   *private;
 
-static void spd_BeginForeignModify(ModifyTableState *mtstate,
-					   ResultRelInfo *rinfo,
-					   List *fdw_private,
-					   int subplan_index,
-					   int eflags);
-
-static void spd_ExplainForeignScan(ForeignScanState *node, ExplainState *es);
-
-static TupleTableSlot *spd_ExecForeignInsert(EState *estate,
-					  ResultRelInfo *rinfo,
-					  TupleTableSlot *slot,
-					  TupleTableSlot *planSlot);
-
-static TupleTableSlot *spd_ExecForeignUpdate(EState *estate,
-					  ResultRelInfo *rinfo,
-					  TupleTableSlot *slot,
-					  TupleTableSlot *planSlot);
-
-static TupleTableSlot *spd_ExecForeignDelete(EState *estate,
-					  ResultRelInfo *rinfo,
-					  TupleTableSlot *slot,
-					  TupleTableSlot *planSlot);
-
-static void spd_EndForeignModify(EState *estate,
-					 ResultRelInfo *rinfo);
-
-static TargetEntry *spd_tlist_member(Expr *node, List *targetlist, int *target_num);
-
-static List *spd_add_to_flat_tlist(List *tlist, Expr *exprs, List **mapping_tlist, List **compress_tlist, Index sgref, List **upper_targets);
-static void spd_spi_exec_child_ip(char *serverName, char *ip);
+}			ForeignScanThreadInfo;
 
 enum SpdFdwModifyPrivateIndex
 {
@@ -225,6 +214,7 @@ typedef struct Mappingcells
 	StringInfo	agg_command;
 	int			original_attnum;	/* original attribute */
 }			Mappingcells;
+
 
 typedef struct ChildInfo
 {
@@ -318,20 +308,99 @@ typedef struct SpdFdwPrivate
 	MemoryContext es_query_cxt; /* temporary context */
 }			SpdFdwPrivate;
 
-/* postgresql.conf paramater */
-static bool throwErrorIfDead;
-static bool isPrintError;
-
 typedef struct SpdFdwModifyState
 {
 	Oid			modify_server_oid;
 }			SpdFdwModifyState;
+
+/* local function forward declarations */
+bool		spd_is_builtin(Oid objectId);
+void		_PG_init(void);
+static void spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel,
+					  Oid foreigntableid);
+static void spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel,
+					Oid foreigntableid);
+static ForeignScan *spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel,
+				   Oid foreigntableid, ForeignPath *best_path,
+				   List *tlist, List *scan_clauses,
+				   Plan *outer_plan);
+static void spd_BeginForeignScan(ForeignScanState *node, int eflags);
+static TupleTableSlot *spd_IterateForeignScan(ForeignScanState *node);
+static void spd_ReScanForeignScan(ForeignScanState *node);
+static void spd_EndForeignScan(ForeignScanState *node);
+static void spd_GetForeignUpperPaths(PlannerInfo *root,
+						 UpperRelationKind stage,
+						 RelOptInfo *input_rel,
+						 RelOptInfo *output_rel, void *extra);
+
+/*
+ * Helper functions
+ */
+static bool foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel);
+static Path *get_foreign_grouping_paths(PlannerInfo *root,
+						   RelOptInfo *input_rel,
+						   RelOptInfo *grouped_rel);
+
+static void spd_AddForeignUpdateTargets(Query *parsetree,
+							RangeTblEntry *target_rte,
+							Relation target_relation);
+
+static List *spd_PlanForeignModify(PlannerInfo *root,
+					  ModifyTable *plan,
+					  Index resultRelation,
+					  int subplan_index);
+
+static void spd_BeginForeignModify(ModifyTableState *mtstate,
+					   ResultRelInfo *rinfo,
+					   List *fdw_private,
+					   int subplan_index,
+					   int eflags);
+
+static void spd_ExplainForeignScan(ForeignScanState *node, ExplainState *es);
+
+static TupleTableSlot *spd_ExecForeignInsert(EState *estate,
+					  ResultRelInfo *rinfo,
+					  TupleTableSlot *slot,
+					  TupleTableSlot *planSlot);
+
+static TupleTableSlot *spd_ExecForeignUpdate(EState *estate,
+					  ResultRelInfo *rinfo,
+					  TupleTableSlot *slot,
+					  TupleTableSlot *planSlot);
+
+static TupleTableSlot *spd_ExecForeignDelete(EState *estate,
+					  ResultRelInfo *rinfo,
+					  TupleTableSlot *slot,
+					  TupleTableSlot *planSlot);
+
+static void spd_EndForeignModify(EState *estate,
+					 ResultRelInfo *rinfo);
+
+static TargetEntry *spd_tlist_member(Expr *node, List *targetlist, int *target_num);
+
+static List *spd_add_to_flat_tlist(List *tlist, Expr *exprs, List **mapping_tlist, List **compress_tlist, Index sgref, List **upper_targets);
+static void spd_spi_exec_child_ip(char *serverName, char *ip);
+static bool spd_can_pushdown_tlist(char *fdwname);
+static bool spd_can_skip_deepcopy(char *fdwname);
+
+/* Queue functions */
+static bool spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy);
+static TupleTableSlot *spd_queue_get(SpdTupleQueue * que, bool *is_finished);
+static void spd_queue_reset(SpdTupleQueue * que);
+static void spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, bool skipLast);
+static void spd_queue_notify_finish(SpdTupleQueue * que);
+
+
+/* postgresql.conf paramater */
+static bool throwErrorIfDead;
+static bool isPrintError;
 
 /* We write lock SPI function and read lock child fdw routines */
 pthread_rwlock_t scan_mutex = PTHREAD_RWLOCK_INITIALIZER;
 pthread_mutex_t error_mutex = PTHREAD_MUTEX_INITIALIZER;
 static MemoryContext thread_top_contexts[NODES_MAX] = {NULL};
 static int64 temp_table_id = 0;
+
 static bool
 is_foreign_expr2(PlannerInfo *root, RelOptInfo *baserel, Expr *expr)
 {
@@ -390,6 +459,199 @@ pgspider_core_fdw_handler(PG_FUNCTION_ARGS)
 	fdwroutine->EndForeignModify = spd_EndForeignModify;
 
 	PG_RETURN_POINTER(fdwroutine);
+}
+
+/* Return true if this fdw can pushdown target list */
+static bool
+spd_can_pushdown_tlist(char *fdwname)
+{
+	if (strcmp(fdwname, MYSQL_FDW_NAME) == 0)
+		return true;
+	return false;
+}
+
+/* Return true if this fdw can skip deepcopy when adding tuple to a queue.
+ * Returning true means that fdw allocates tuples in CurrentMemoryContext.
+ */
+static bool
+spd_can_skip_deepcopy(char *fdwname)
+{
+	if (strcmp(fdwname, AVRO_FDW_NAME) == 0)
+		return true;
+	return false;
+}
+
+/*
+ * spd_queue_notify_finish
+ *
+ * Notify parent thread that child fdw scan is finished
+ */
+static void
+spd_queue_notify_finish(SpdTupleQueue * que)
+{
+	pthread_mutex_lock(&que->qmutex);
+	que->isFinished = true;
+	pthread_mutex_unlock(&que->qmutex);
+}
+
+/*
+ * spd_queue_add
+ *
+ * Add 'slot' to queue.
+ * Return immediately if queue is full.
+ * Deepcopy each column value of slot If 'deepcopy' is true.
+ */
+static bool
+spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy)
+{
+	int			natts;
+	int			idx;
+	int			i;
+
+	pthread_mutex_lock(&que->qmutex);
+
+	if (que->len >= SPD_TUPLE_QUEUE_LEN)
+	{
+		/* queue is full */
+		pthread_mutex_unlock(&que->qmutex);
+		return false;
+	}
+
+	idx = (que->start + que->len) % SPD_TUPLE_QUEUE_LEN;
+
+	if (idx == SPD_LAST_GET_IDX(que))
+	{
+		/* This tuple slot may be being used by core */
+		pthread_mutex_unlock(&que->qmutex);
+		return false;
+	}
+
+	ExecClearTuple(que->tuples[idx]);
+
+	/* Not minimal tuple */
+	Assert(!slot->tts_mintuple);
+
+	if (TTS_HAS_PHYSICAL_TUPLE(slot))
+	{
+		/*
+		 * TODO: we can probably skip heap_copytuple as in virtual tuple case
+		 * for some fdws
+		 */
+		ExecStoreTuple(heap_copytuple(slot->tts_tuple),
+					   que->tuples[idx],
+					   InvalidBuffer,
+					   false);
+	}
+	else
+	{
+		/* Virtual tuple */
+
+		natts = que->tuples[idx]->tts_tupleDescriptor->natts;
+		memcpy(que->tuples[idx]->tts_isnull, slot->tts_isnull, natts * sizeof(bool));
+
+		/*
+		 * Skip copy of spdurl at the last of tuple descriptor because it's
+		 * invalid
+		 */
+		if (que->skipLast)
+			natts--;
+
+		/*
+		 * Deep copy tts_values[i] if necessary
+		 */
+		if (deepcopy)
+		{
+			FormData_pg_attribute *attrs = slot->tts_tupleDescriptor->attrs;
+
+			for (i = 0; i < natts; i++)
+			{
+				if (slot->tts_isnull[i])
+					continue;
+				que->tuples[idx]->tts_values[i] = datumCopy(slot->tts_values[i],
+															attrs[i].attbyval, attrs[i].attlen);
+			}
+		}
+		else
+
+			/*
+			 * Even if deep copy is not necessary, tts_values array cannot be
+			 * reused because it is overwritten by child fdw
+			 */
+			memcpy(que->tuples[idx]->tts_values, slot->tts_values, (natts * sizeof(Datum)));
+
+		ExecStoreVirtualTuple(que->tuples[idx]);
+	}
+
+	que->len++;
+	pthread_mutex_unlock(&que->qmutex);
+	return true;
+}
+
+/*
+ * spd_queue_get
+ *
+ * Return NULL immediately if queue is empty.
+ * is_finished is true if queue is empty and child foreign scan is finished.
+ */
+static TupleTableSlot *
+spd_queue_get(SpdTupleQueue * que, bool *is_finished)
+{
+	TupleTableSlot *temp;
+
+	pthread_mutex_lock(&que->qmutex);
+	if (que->len == 0)
+	{
+		/* Update only when queue is empty */
+		*is_finished = que->isFinished;
+		pthread_mutex_unlock(&que->qmutex);
+		return NULL;
+	}
+
+	temp = que->tuples[que->start];
+	que->start = (que->start + 1) % SPD_TUPLE_QUEUE_LEN;
+	que->len--;
+
+	pthread_mutex_unlock(&que->qmutex);
+
+
+	return temp;
+}
+
+/*
+ * spd_queue_get
+ *
+ * Reset queue.
+ */
+static void
+spd_queue_reset(SpdTupleQueue * que)
+{
+	que->len = 0;
+	que->start = 0;
+	que->isFinished = false;
+}
+
+/*
+ * spd_queue_init
+ *
+ * Init queue.
+ */
+static void
+spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, bool skip_last)
+{
+	int			j;
+
+	que->skipLast = skip_last;
+	/* Create tuple descriptor for queue */
+	for (j = 0; j < SPD_TUPLE_QUEUE_LEN; j++)
+	{
+		TupleTableSlot *slot = MakeSingleTupleTableSlot(tupledesc);
+
+		que->tuples[j] = slot;
+		slot->tts_values = palloc(tupledesc->natts * sizeof(Datum));
+		slot->tts_isnull = palloc(tupledesc->natts * sizeof(bool));
+	}
+	spd_queue_reset(que);
+	pthread_mutex_init(&que->qmutex, NULL);
 }
 
 static void
@@ -1147,26 +1409,41 @@ static void *
 spd_ForeignScan_thread(void *arg)
 {
 	ForeignScanThreadInfo *fssthrdInfo = (ForeignScanThreadInfo *) arg;
-	MemoryContext oldcontext = MemoryContextSwitchTo(fssthrdInfo->threadMemoryContext);
-#ifdef GETPROGRESS_ENABLED
-	PGcancel   *cancel;
-	char		errbuf[BUFFERSIZE];
-#endif
-	int			errflag = 0;
-#ifdef MEASURE_TIME
-	struct timeval s,
-				e,
-				e1;
-#endif
+	MemoryContext tuplectx[2];
+	int			tuple_cnt = 0;
+
 	ErrorContextCallback errcallback;
 	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *) fssthrdInfo->private;
 	PlanState  *result = NULL;
 
-	CurrentResourceOwner = fssthrdInfo->thrd_ResourceOwner;
-	TopMemoryContext = fssthrdInfo->threadTopMemoryContext;
+#ifdef GETPROGRESS_ENABLED
+	PGcancel   *cancel;
+	char		errbuf[BUFFERSIZE];
+#endif
 #ifdef MEASURE_TIME
+	struct timeval s,
+				e,
+				e1;
+
 	gettimeofday(&s, NULL);
 #endif
+
+	CurrentResourceOwner = fssthrdInfo->thrd_ResourceOwner;
+	TopMemoryContext = fssthrdInfo->threadTopMemoryContext;
+
+	MemoryContextSwitchTo(fssthrdInfo->threadMemoryContext);
+
+	tuplectx[0] = AllocSetContextCreate(fssthrdInfo->threadMemoryContext,
+										"thread tuple contxt1",
+										ALLOCSET_DEFAULT_MINSIZE,
+										ALLOCSET_DEFAULT_INITSIZE,
+										ALLOCSET_DEFAULT_MAXSIZE);
+	tuplectx[1] = AllocSetContextCreate(fssthrdInfo->threadMemoryContext,
+										"thread tuple contxt2",
+										ALLOCSET_DEFAULT_MINSIZE,
+										ALLOCSET_DEFAULT_INITSIZE,
+										ALLOCSET_DEFAULT_MAXSIZE);
+
 	/* Declare ereport/elog jump is not available. */
 	PG_exception_stack = NULL;
 	errcallback.callback = spd_ErrorCb;
@@ -1198,11 +1475,10 @@ spd_ForeignScan_thread(void *arg)
 	}
 	PG_CATCH();
 	{
-		errflag = true;
 		fssthrdInfo->state = SPD_FS_STATE_ERROR;
 	}
 	PG_END_TRY();
-	if (errflag)
+	if (fssthrdInfo->state == SPD_FS_STATE_ERROR)
 	{
 		goto THREAD_EXIT;
 	}
@@ -1213,20 +1489,18 @@ RESCAN:
 	 * continue operation
 	 *
 	 * Rescan is executed about join, union and some operation. If Rescan need
-	 * to in operation, then fssthrdInfo->queryRescan flag is TRUE. But first
-	 * time rescan is not need.(fssthrdInfo->state = SPD_FS_STATE_BEGIN) Then
-	 * skip to rescan sequence.
+	 * to in operation, then fssthrdInfo->requestRescan flag is TRUE. But
+	 * first time rescan is not need.(fssthrdInfo->state = SPD_FS_STATE_BEGIN)
+	 * Then skip to rescan sequence.
 	 */
-	if (fssthrdInfo->queryRescan &&
+	if (fssthrdInfo->requestRescan &&
 		fssthrdInfo->state != SPD_FS_STATE_BEGIN)
 	{
 		SPD_READ_LOCK_TRY(&scan_mutex);
 		fssthrdInfo->fdwroutine->ReScanForeignScan(fssthrdInfo->fsstate);
 		SPD_RWUNLOCK_CATCH(&scan_mutex);
 
-		fssthrdInfo->iFlag = true;
-		fssthrdInfo->tuple = NULL;
-		fssthrdInfo->queryRescan = false;
+		fssthrdInfo->requestRescan = false;
 	}
 	fssthrdInfo->state = SPD_FS_STATE_ITERATE;
 
@@ -1240,75 +1514,144 @@ RESCAN:
 	{
 		while (1)
 		{
+			bool		success;
+			bool		deepcopy;
+			TupleTableSlot *slot;
+
 			/* when get result request recieved ,then break */
 #ifdef GETPROGRESS_ENABLED
 			if (getResultFlag)
 			{
-				fssthrdInfo->iFlag = false;
-				fssthrdInfo->tuple = NULL;
+				spd_queue_notify_finish(&fssthrdInfo->tupleQueue);
 				break;
 			}
 #endif
-			if (fssthrdInfo->iFlag && !fssthrdInfo->tuple)
+
+
+			/*
+			 * Call child fdw iterateForeignScan using two memory contexts
+			 * alternately. We switch contexts and reset old one every
+			 * SPD_TUPLE_QUEUE_LEN tuples to minimize memory usage. This
+			 * number guareantee tuples allocated by these contexts are alive
+			 * until parent thread finishes processing and we can skip
+			 * deepcopy when passing to parent thread. We could use query
+			 * memory context and make parent thread free tuples, but it's
+			 * slower than current code.
+			 */
+
+			/*----------
+    		 * Example:
+    		 * +----------------+-------+-------+-------+
+		     * | memory context | slot0 | slot1 | slot2 |
+		     * +----------------+-------+-------+-------+
+		     * | tuplectx[0]    |     0 |     1 |     2 |
+		     * | tuplectx[1]    |     3 |     4 |     5 |
+		     * | tuplectx[0]    |     6 |     7 |     8 |
+		     * | ...            |   ... |   ... |   ... |
+		     *----------
+		     */
+
+			/*
+			 * Above tables represent cases where queue length is 3. Tuple
+			 * 0,1,2 (tuples generated when tuple_cnt is 0,1,2) are allocated
+			 * by tuplectx[0]. Tuple 3,4,5 are allocated by tuplectx[1] and so
+			 * on. When child thread succeeded in adding tuple 5, which use
+			 * the same slot as tuple 2, parent thread finishes using tuple 2.
+			 * So it's safe to reset tuplectx[0] before adding tuple 6.
+			 */
+
+			int			len = SPD_TUPLE_QUEUE_LEN;
+			int			ctx_idx = (tuple_cnt / len) % 2;
+
+			if (tuple_cnt % len == 0)
 			{
-				TupleTableSlot *slot;
+				MemoryContextReset(tuplectx[ctx_idx]);
+				MemoryContextSwitchTo(tuplectx[ctx_idx]);
+			}
+			if (list_member_oid(fdw_private->pPseudoAggList,
+								fssthrdInfo->serverId))
+			{
+				/*
+				 * Retreives aggregated value tuple from inlying non pushdown
+				 * source
+				 */
+				SPD_READ_LOCK_TRY(&scan_mutex);
+				slot = SPI_execAgg((AggState *) result);
+				SPD_RWUNLOCK_CATCH(&scan_mutex);
 
-				if (list_member_oid(fdw_private->pPseudoAggList,
-									fssthrdInfo->serverId))
-				{
-					/*
-					 * Retreives aggregated value tuple from underlying non
-					 * pushdown source
-					 */
-					SPD_READ_LOCK_TRY(&scan_mutex);
-					slot = SPI_execAgg((AggState *) result);
-					SPD_RWUNLOCK_CATCH(&scan_mutex);
-				}
-				else
-				{
-					SPD_READ_LOCK_TRY(&scan_mutex);
-					slot = fssthrdInfo->fdwroutine->IterateForeignScan(fssthrdInfo->fsstate);
-					SPD_RWUNLOCK_CATCH(&scan_mutex);
-				}
-
-				if (slot == NULL || slot->tts_isempty)
-				{
-					fssthrdInfo->iFlag = false;
-					fssthrdInfo->tuple = NULL;
-					break;
-				}
-
-				/* when get result request recieved */
-#ifdef GETPROGRESS_ENABLED
-				if (!slot->tts_isempty && getResultFlag)
-				{
-					fssthrdInfo->iFlag = false;
-
-					cancel = PQgetCancel((PGconn *) fssthrdInfo->fsstate->conn);
-					if (!PQcancel(cancel, errbuf, BUFFERSIZE))
-						elog(WARNING, " Failed to PQgetCancel");
-					PQfreeCancel(cancel);
-					break;
-				}
-#endif
-				fssthrdInfo->tuple = slot;
+				/*
+				 * need deep copy when adding slot to queue because
+				 * CurrentMemoryContext do not affect SPI_execAgg, and hence
+				 * tuples are not allocated by tuplectx[ctx_idx]
+				 */
+				deepcopy = true;
 			}
 			else
 			{
-				usleep(1);
+				SPD_READ_LOCK_TRY(&scan_mutex);
+				slot = fssthrdInfo->fdwroutine->IterateForeignScan(fssthrdInfo->fsstate);
+				SPD_RWUNLOCK_CATCH(&scan_mutex);
+
+				deepcopy = true;
+
+				/*
+				 * Deep copy can be skipped if that fdw allocate tuples in
+				 * CurrentMemoryContext. postgres_fdw needs deep copy because
+				 * it creates new contexts and allocate tuples on it, which
+				 * may be shorter life than above tuplectx[ctx_idx].
+				 */
+				if (spd_can_skip_deepcopy(fssthrdInfo->fdw->fdwname))
+					deepcopy = false;
+
+
 			}
-			/* If Rescan is queried here, do rescan after break */
-			if (fssthrdInfo->queryRescan || fssthrdInfo->EndFlag)
+
+			if (slot == NULL || slot->tts_isempty)
 			{
+				spd_queue_notify_finish(&fssthrdInfo->tupleQueue);
 				break;
 			}
+			while (1)
+			{
+
+				success = spd_queue_add(&fssthrdInfo->tupleQueue, slot, deepcopy);
+				if (success)
+					break;
+				/* If rescan or endscan is requested, break immediately */
+				if (fssthrdInfo->requestRescan || fssthrdInfo->requestEndScan)
+					break;
+
+				/*
+				 * TODO: Now that queue is introduced, using usleep(1) or
+				 * condition variable may be better than pthread_yield for
+				 * reducing cpu usage
+				 */
+				pthread_yield();
+			}
+			tuple_cnt++;
+			if (fssthrdInfo->requestRescan || fssthrdInfo->requestEndScan)
+				break;
+
+			/* when get result request recieved */
+#ifdef GETPROGRESS_ENABLED
+			if (!slot->tts_isempty && getResultFlag)
+			{
+				spd_queue_notify_finish(&fssthrdInfo->tupleQueue);
+				cancel = PQgetCancel((PGconn *) fssthrdInfo->fsstate->conn);
+				if (!PQcancel(cancel, errbuf, BUFFERSIZE))
+					elog(WARNING, " Failed to PQgetCancel");
+				PQfreeCancel(cancel);
+				break;
+			}
+#endif
+
 		}
 	}
 	PG_CATCH();
 	{
-		errflag = 1;
 		fssthrdInfo->state = SPD_FS_STATE_ERROR;
-		fssthrdInfo->iFlag = false;
+
+
 #ifdef GETPROGRESS_ENABLED
 		if (fssthrdInfo->fsstate->conn)
 		{
@@ -1322,67 +1665,77 @@ RESCAN:
 			 __FILE__, __LINE__);
 	}
 	PG_END_TRY();
-	if (errflag)
-	{
-		goto THREAD_EXIT;
-	}
-	if (fssthrdInfo->queryRescan)
-	{
-		Assert(!fssthrdInfo->EndFlag);
-		goto RESCAN;
-	}
+
+
 #ifdef MEASURE_TIME
 	gettimeofday(&e1, NULL);
 	elog(DEBUG1, "thread%d end ite time = %lf", fssthrdInfo->serverId, (e1.tv_sec - e.tv_sec) + (e1.tv_usec - e.tv_usec) * 1.0E-6);
 #endif
-	/* End of the ForeignScan */
-	fssthrdInfo->state = SPD_FS_STATE_END;
+
+	if (fssthrdInfo->state == SPD_FS_STATE_ERROR)
+		goto THREAD_EXIT;
+
 	PG_TRY();
 	{
 		while (1)
 		{
-			if (fssthrdInfo->EndFlag || errflag)
+			if (fssthrdInfo->requestEndScan)
 			{
+				/* End of the ForeignScan */
+				fssthrdInfo->state = SPD_FS_STATE_END;
 				SPD_READ_LOCK_TRY(&scan_mutex);
 				if (!list_member_oid(fdw_private->pPseudoAggList,
 									 fssthrdInfo->serverId))
 					fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
 				SPD_RWUNLOCK_CATCH(&scan_mutex);
-				fssthrdInfo->EndFlag = false;
+				fssthrdInfo->requestEndScan = false;
 				break;
 			}
-			else
+			else if (fssthrdInfo->requestRescan)
 			{
-				usleep(1);
-				/* If Rescan is queried here, do rescan after break */
-				if (fssthrdInfo->queryRescan)
-				{
-					break;
-				}
+
+				/*
+				 * Initialize queue. In LIMIT query, queue may have remaining
+				 * tuples which should be discarded.
+				 */
+				spd_queue_reset(&fssthrdInfo->tupleQueue);
+
+				MemoryContextReset(tuplectx[0]);
+				MemoryContextReset(tuplectx[1]);
+				tuple_cnt = 0;
+
+				MemoryContextSwitchTo(fssthrdInfo->threadMemoryContext);
+
+				/* can't goto RESCAN directly due to PG_TRY  */
+				break;
 			}
+			/* Wait for a request from main thread */
+			usleep(1);
+
 		}
 	}
 	PG_CATCH();
 	{
+		fssthrdInfo->state = SPD_FS_STATE_ERROR;
 		elog(DEBUG1, "Thread error occurred during EndForeignScan(). %s:%d",
 			 __FILE__, __LINE__);
 	}
 	PG_END_TRY();
 
-	if (fssthrdInfo->queryRescan)
-	{
-		Assert(!fssthrdInfo->EndFlag);
+	if (fssthrdInfo->state == SPD_FS_STATE_ERROR)
+		goto THREAD_EXIT;
+	else if (fssthrdInfo->requestRescan)
 		goto RESCAN;
-	}
+
+
 	fssthrdInfo->state = SPD_FS_STATE_FINISH;
 THREAD_EXIT:
-	fssthrdInfo->iFlag = false;
-	fssthrdInfo->tuple = NULL;
+	spd_queue_notify_finish(&fssthrdInfo->tupleQueue);
+
 #ifdef MEASURE_TIME
 	gettimeofday(&e, NULL);
 	elog(DEBUG1, "thread%d all time = %lf", fssthrdInfo->serverId, (e.tv_sec - s.tv_sec) + (e.tv_usec - s.tv_usec) * 1.0E-6);
 #endif
-	MemoryContextSwitchTo(oldcontext);
 	pthread_exit(NULL);
 }
 
@@ -2957,7 +3310,6 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 	{
 		elog(ERROR, "fdw_private is NULL");
 	}
-
 	/* Create Foreign paths using base_rel_list to each child node. */
 	childinfo = fdw_private->childinfo;
 	for (i = 0; i < fdw_private->node_num; i++)
@@ -3198,8 +3550,8 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	childinfo = fdw_private->childinfo;
 
 	/*
-	 * We enable target list pushdown if all nodes are mysql_fdw. This is
-	 * temporary solution
+	 * We enable target list pushdown if all nodes are able to push down
+	 * tlist. This is temporary solution
 	 */
 	if (IS_SIMPLE_REL(baserel))
 	{
@@ -3210,7 +3562,8 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				continue;
 			fs = GetForeignServer(childinfo[i].server_oid);
 			fdw = GetForeignDataWrapper(fs->fdwid);
-			if (strcmp(fdw->fdwname, "mysql_fdw") != 0)
+
+			if (!spd_can_pushdown_tlist(fdw->fdwname))
 			{
 				pushdown_all_tlist = false;
 				break;
@@ -3293,7 +3646,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 					temptlist = remove_spdurl_from_targets(list_copy(tlist), root,
 														   true, &fdw_private->idx_url_tlist);
 				}
-
 				/* mysql-fdw decide push down tlist or not based on this */
 				childinfo[i].baserel->is_tlist_pushdown = pushdown_all_tlist;
 
@@ -3569,6 +3921,8 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	{
 		Relation	rd;
 		int			natts;
+		TupleDesc	tupledesc;
+		bool		skiplast;
 
 		/*
 		 * check child table node is dead or alive. Execute(Create child
@@ -3654,70 +4008,14 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		fssThrdInfo[node_incr].eflags = eflags;
 
 		/*
-		 * Create child descriptor using mapping_tlist and child
-		 * child_comp_tlist
-		 */
-		if (fdw_private->agg_query)
-		{
-			if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
-			{
-				/*
-				 * Create tuple slot based on *child* ForeignScan plan target
-				 * list
-				 */
-				fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
-					MakeSingleTupleTableSlot(ExecTypeFromTL(fssThrdInfo[node_incr].fsstate->ss.ps.plan->targetlist, true));
-				natts = fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor->natts;
-			}
-			else
-			{
-				int			child_attr = 0; /* attribute number of child */
-				ListCell   *lc;
-				TupleDesc	tupledesc = CreateTemplateTupleDesc(list_length(fdw_private->child_tlist), false);
-
-				foreach(lc, fdw_private->child_tlist)
-				{
-					TargetEntry *ent = (TargetEntry *) lfirst(lc);
-
-					TupleDescInitEntry(tupledesc, child_attr + 1, NULL, exprType((Node *) ent->expr), -1, 0);
-					child_attr++;
-
-				}
-				/* Construct TupleDesc, and assign a local typmod. */
-				tupledesc = BlessTupleDesc(tupledesc);
-				fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
-					MakeSingleTupleTableSlot(CreateTupleDescCopy(tupledesc));
-				natts = list_length(fdw_private->child_tlist);
-			}
-		}
-		else
-		{
-			/*
-			 * Create tuple slot based on *parent* ForeignScan tuple
-			 * descriptor
-			 */
-			fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
-				MakeSingleTupleTableSlot(CreateTupleDescCopy(node->ss.ss_ScanTupleSlot->tts_tupleDescriptor));
-			natts = node->ss.ss_ScanTupleSlot->tts_tupleDescriptor->natts;
-		}
-
-		fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_mcxt = node->ss.ss_ScanTupleSlot->tts_mcxt;
-		fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_values = (Datum *)
-			MemoryContextAlloc(node->ss.ss_ScanTupleSlot->tts_mcxt, natts * sizeof(Datum));
-		fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_isnull = (bool *)
-			MemoryContextAlloc(node->ss.ss_ScanTupleSlot->tts_mcxt, natts * sizeof(bool));
-
-		/*
 		 * current relation ID gets from current server oid, it means
 		 * childinfo[i].oid
 		 */
 		rd = RelationIdGetRelation(childinfo[i].oid);
 		fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation = rd;
 
-		fssThrdInfo[node_incr].iFlag = true;
-		fssThrdInfo[node_incr].EndFlag = false;
-		fssThrdInfo[node_incr].tuple = NULL;
-
+		fssThrdInfo[node_incr].requestEndScan = false;
+		fssThrdInfo[node_incr].requestRescan = false;
 		/* We save correspondence between fssThrdInfo and childinfo */
 		fssThrdInfo[node_incr].childInfoIndex = i;
 		childinfo[i].index_threadinfo = node_incr;
@@ -3734,8 +4032,82 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 		fssThrdInfo[node_incr].thrd_ResourceOwner =
 			ResourceOwnerCreate(CurrentResourceOwner, "thread resource owner");
-
 		fssThrdInfo[node_incr].private = fdw_private;
+
+		if (fdw_private->agg_query)
+		{
+			/*
+			 * Create child descriptor using child_tlist
+			 */
+			int			child_attr = 0; /* attribute number of child */
+			ListCell   *lc;
+
+			tupledesc = CreateTemplateTupleDesc(list_length(fdw_private->child_tlist), false);
+
+			foreach(lc, fdw_private->child_tlist)
+			{
+				TargetEntry *ent = (TargetEntry *) lfirst(lc);
+
+				TupleDescInitEntry(tupledesc, child_attr + 1, NULL, exprType((Node *) ent->expr), -1, 0);
+				child_attr++;
+			}
+			/* Construct TupleDesc, and assign a local typmod. */
+			tupledesc = BlessTupleDesc(tupledesc);
+			if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
+			{
+				/*
+				 * Create tuple slot based on *child* ForeignScan plan target
+				 * list. This tuple is for ExecAgg and different from one used
+				 * in queue.
+				 */
+				fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
+					MakeSingleTupleTableSlot(ExecTypeFromTL(fssThrdInfo[node_incr].fsstate->ss.ps.plan->targetlist, true));
+			}
+			else
+			{
+				fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
+					MakeSingleTupleTableSlot(CreateTupleDescCopy(tupledesc));
+			}
+
+		}
+		else
+		{
+			/*
+			 * Create tuple slot based on *parent* ForeignScan tuple
+			 * descriptor
+			 */
+
+			tupledesc = CreateTupleDescCopy(node->ss.ss_ScanTupleSlot->tts_tupleDescriptor);
+
+			fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
+				MakeSingleTupleTableSlot(tupledesc);
+		}
+
+		/*
+		 * For non-aggregate query, tupledesc we use for a queue has __spd_url
+		 * column at the last because it has all table columns. This is
+		 * inconsistent with the child tuple except for pgspider_fdw and cause
+		 * problems when copying to a queue. To avoid it, we will skip copy of
+		 * the last element of tuple. Execeptions are target list pushdown
+		 * case where as in aggregate query case, tuple descriptor corresponds
+		 * to a target list from which spd_url is removed.
+		 */
+		skiplast = false;
+		if (!fdw_private->agg_query &&
+			!fdw_private->is_pushdown_tlist &&
+			strcmp(fssThrdInfo[node_incr].fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
+			skiplast = true;
+
+		spd_queue_init(&fssThrdInfo[node_incr].tupleQueue, tupledesc, skiplast);
+
+		natts = fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor->natts;
+
+		fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_mcxt = node->ss.ss_ScanTupleSlot->tts_mcxt;
+		fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_values = (Datum *)
+			MemoryContextAlloc(node->ss.ss_ScanTupleSlot->tts_mcxt, natts * sizeof(Datum));
+		fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_isnull = (bool *)
+			MemoryContextAlloc(node->ss.ss_ScanTupleSlot->tts_mcxt, natts * sizeof(bool));
+
 
 		/*
 		 * For explain case, call BeginForeignScan because some
@@ -4257,8 +4629,8 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 					}
 
 					/*
-					 * This is GROUP BY target.
-					 * Ex: 't' in select sum(i),t from t1 group by t
+					 * This is GROUP BY target. Ex: 't' in select sum(i),t
+					 * from t1 group by t
 					 */
 					else
 					{
@@ -4367,10 +4739,13 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 }
 
 /**
- * spd_AddNodeColumn
- * Adding node name column.
- * If child node is pgspider, then concatinate node name.
+ * spd_AddSpdUrl
  *
+ * Add __spd_url column.
+ * If child node is pgspider, then concatinate node name.
+ * We don't convert heap tuple to virtual tuple because for update
+ * using postgres_fdw and pgspider_fdw, ctid which virtual tuples
+ * don't have is necessary.
  */
 static TupleTableSlot *
 spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
@@ -4393,6 +4768,9 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 		   node_slot->tts_tupleDescriptor->natts);
 	fs = fssThrdInfo[count].foreignServer;
 	fdw = fssThrdInfo[count].fdw;
+
+	/* Make tts_values and tts_nulls valid */
+	slot_getallattrs(node_slot);
 
 	/*
 	 * Insert spdurl column to slot. heap_modify_tuple will replace the
@@ -4478,8 +4856,8 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 		values = palloc0(sizeof(Datum) * node_slot->tts_tupleDescriptor->natts);
 		nulls = palloc0(sizeof(bool) * node_slot->tts_tupleDescriptor->natts);
 		replaces = palloc0(sizeof(bool) * node_slot->tts_tupleDescriptor->natts);
-		slot_getallattrs(node_slot);
 		tnum = -1;
+
 		for (i = 0; i < node_slot->tts_tupleDescriptor->natts; i++)
 		{
 			char	   *value;
@@ -4559,6 +4937,8 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 		ExecCopySlot(parent_slot, node_slot);
 	}
 	return parent_slot;
+
+
 }
 
 /*
@@ -4570,9 +4950,12 @@ nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId)
 {
 	int			count = 0;
 	bool		all_thread_finished = true;
+	TupleTableSlot *slot;
 
 	for (count = 0;; count++)
 	{
+		bool		is_finished;
+
 		if (count >= nThreads)
 		{
 			if (all_thread_finished)
@@ -4581,16 +4964,16 @@ nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId)
 			}
 			all_thread_finished = true;
 			count = 0;
-			usleep(1);
+			pthread_yield();
 		}
-
-		if (fssThrdInfo[count].tuple != NULL)
+		slot = spd_queue_get(&fssThrdInfo[count].tupleQueue, &is_finished);
+		if (slot)
 		{
 			/* tuple found */
 			*nodeId = count;
-			return fssThrdInfo[count].tuple;
+			return slot;
 		}
-		else if (fssThrdInfo[count].iFlag)
+		else if (!is_finished)
 		{
 			/* no tuple yet, but the thread is running */
 			all_thread_finished = false;
@@ -4631,8 +5014,8 @@ spd_IterateForeignScan(ForeignScanState *node)
 	if (fdw_private->nThreads == 0)
 		return NULL;
 
-	mapping_tlist = fdw_private->mapping_tlist;
 
+	mapping_tlist = fdw_private->mapping_tlist;
 	/* CREATE TEMP TABLE SQL */
 	if (fdw_private->agg_query)
 	{
@@ -4685,11 +5068,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 				else
 					break;
 
-				/*
-				 * We should clear after use because child thread delete tuple
-				 * if it is cleared
-				 */
-				fssThrdInfo[count].tuple = NULL;
+
 
 #ifdef GETPROGRESS_ENABLED
 				if (getResultFlag)
@@ -4707,6 +5086,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 			tempSlot = node->ss.ss_ScanTupleSlot;
 			tempSlot = spd_select_return_aggslot(tempSlot, node, fdw_private);
 		}
+
 		if (tempSlot != NULL)
 		{
 			slot = node->ss.ss_ScanTupleSlot;
@@ -4730,11 +5110,6 @@ spd_IterateForeignScan(ForeignScanState *node)
 			slot = spd_AddSpdUrl(fssThrdInfo, node->ss.ss_ScanTupleSlot,
 								 count, slot, fdw_private);
 
-		/*
-		 * We should clear after use because child thread delete tuple if it
-		 * is cleared
-		 */
-		fssThrdInfo[count].tuple = NULL;
 
 	}
 	return slot;
@@ -4771,10 +5146,10 @@ spd_ReScanForeignScan(ForeignScanState *node)
 			fssThrdInfo[node_incr].state != SPD_FS_STATE_FINISH &&
 			fssThrdInfo[node_incr].state != SPD_FS_STATE_ITERATE)
 		{
-			fssThrdInfo[node_incr].queryRescan = true;
+			fssThrdInfo[node_incr].requestRescan = true;
 		}
 	}
-	/* 10us sleep for thread switch */
+
 	pthread_yield();
 
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
@@ -4782,7 +5157,8 @@ spd_ReScanForeignScan(ForeignScanState *node)
 		if (fssThrdInfo[node_incr].state != SPD_FS_STATE_ERROR &&
 			fssThrdInfo[node_incr].state != SPD_FS_STATE_FINISH)
 		{
-			while (fssThrdInfo[node_incr].queryRescan)
+			/* Break this loop when child thread start scan again */
+			while (fssThrdInfo[node_incr].requestRescan)
 			{
 				pthread_yield();
 			}
@@ -4833,7 +5209,7 @@ spd_EndForeignScan(ForeignScanState *node)
 		}
 		for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 		{
-			fssThrdInfo[node_incr].EndFlag = true;
+			fssThrdInfo[node_incr].requestEndScan = true;
 			/* Cleanup the thread-local structures */
 			rtn = pthread_join(fdw_private->foreign_scan_threads[node_incr], NULL);
 			if (rtn != 0)
