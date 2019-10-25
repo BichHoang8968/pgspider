@@ -4239,42 +4239,26 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 						appendStringInfo(sql, "MAX(col%d)", max_col);
 
 					/*
-					 * This is for aggregate function alias, for example,
-					 * SELECT AVG(i) as bb, SUM(i) as aa.
-					 *
-					 * TODO: Maybe another cases are not supported now, we
-					 * will continue to maintain later.
+					 * Other aggregation not listed above. TODO: SUM may be
+					 * incorrect for multi-tenant table.
 					 */
 					else
 						appendStringInfo(sql, "SUM(col%d)", max_col);
 				}
 				else			/* non agg */
 				{
+
 					/*
-					 * This is for non aggregate without alias, the default
-					 * column name always be "?column?".
+					 * Ex: SUM(i)/2
 					 */
-					if (strcmp(agg_command, "?column?") == 0)
+					if (!list_member_int(fdw_private->groupby_target, max_col))
 					{
 						appendStringInfo(sql, "SUM(col%d)", max_col);
 					}
 
 					/*
-					 * This is for non aggregate with alias not existed in
-					 * groupby target
-					 *
-					 */
-					else if (!list_member_int(fdw_private->groupby_target, max_col))
-					{
-						appendStringInfo(sql, "SUM(col%d)", max_col);
-					}
-
-					/*
-					 * This is for non aggregate existing in both target list
-					 * and groupby target.
-					 *
-					 * TODO: Maybe another cases are not supported now, we
-					 * will continue to maintain later.
+					 * This is GROUP BY target.
+					 * Ex: 't' in select sum(i),t from t1 group by t
 					 */
 					else
 					{
