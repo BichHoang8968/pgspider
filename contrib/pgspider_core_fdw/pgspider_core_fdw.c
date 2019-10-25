@@ -3039,7 +3039,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 	ofpinfo = (SpdFdwPrivate *) fpinfo->rinfo.outerrel->fdw_private;
 
 	/*
-	 * If inneath input relation has any local conditions, those conditions
+	 * If underneath input relation has any local conditions, those conditions
 	 * are required to be applied before performing aggregation.  Hence the
 	 * aggregate cannot be pushed down.
 	 */
@@ -3375,7 +3375,7 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
  *
  */
 static bool
-outer_var_walker(Node *node, int *att)
+outer_var_walker(Node *node, void *param)
 {
 	if (node == NULL)
 		return false;
@@ -3385,18 +3385,9 @@ outer_var_walker(Node *node, int *att)
 		Var		   *expr = (Var *) node;
 
 		expr->varno = OUTER_VAR;
-		if (*att != 0)
-		{
-			expr->varattno = *att;
-			att++;
-		}
-		else
-		{
-			expr->varattno = expr->varoattno;
-		}
 		return true;
 	}
-	return expression_tree_walker(node, outer_var_walker, (void *) att);
+	return expression_tree_walker(node, outer_var_walker, (void *) param);
 }
 
 /**
@@ -3426,12 +3417,10 @@ spd_createPushDownPlan(List *tlist, bool isUnPushdown, SpdFdwPrivate * fdw_priva
 	dummy_tlist = copyObject(tlist);
 	foreach(lc, dummy_tlist)
 	{
-		int			att = 0;
-
 		tle = lfirst_node(TargetEntry, lc);
 		aggref = (Aggref *) tle->expr;
-		att = isUnPushdown ? 0 : 1;
-		outer_var_walker((Node *) aggref, &att);
+
+		outer_var_walker((Node *) aggref, NULL);
 	}
 	return dummy_tlist;
 }
@@ -3966,12 +3955,8 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		rte = lfirst_node(RangeTblEntry, query->rtable->head);
 
 		if (query->rtable->length != estate->es_range_table->length)
-		{
 			for (k = query->rtable->length; k < estate->es_range_table->length; k++)
-			{
 				query->rtable = lappend(query->rtable, rte);
-			}
-		}
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_range_table = ((PlannerInfo *) childinfo[i].root)->parse->rtable;
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt = copyObject(node->ss.ps.state->es_plannedstmt);
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt->planTree = copyObject(fssThrdInfo[node_incr].fsstate->ss.ps.plan);
@@ -4821,9 +4806,11 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 			pfree(values);
 			pfree(nulls);
 		}
-		else
+		else 
 		{
-			/* tuple mode is VIRTUAL */
+			/* tuple mode is VIRTUAL */				
+			int offset = 0;
+
 			for (i = 0; i < natts; i++)
 			{
 				if (i == fdw_private->idx_url_tlist)
@@ -4831,16 +4818,12 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 					spdurl = psprintf("/%s/", fs->servername);
 					values[i] = CStringGetTextDatum(spdurl);
 					nulls[i] = false;
+					offset = -1;
 				}
-				else if (i < fdw_private->idx_url_tlist)
+				else 
 				{
-					values[i] = node_slot->tts_values[i];
-					nulls[i] = node_slot->tts_isnull[i];
-				}
-				else
-				{
-					values[i] = node_slot->tts_values[i - 1];
-					nulls[i] = node_slot->tts_isnull[i - 1];
+					values[i] = node_slot->tts_values[i + offset];
+					nulls[i] = node_slot->tts_isnull[i + offset];
 				}
 			}
 			parent_slot->tts_values = values;
@@ -4867,7 +4850,7 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 			 * Check if i th attribute is __spd_url or not. If so, fill
 			 * __spd_url slot. In target list push down case,
 			 * tts_tupleDescriptor->attrs[i]->attname.data is NULL in some
-			 * cases such as UNION. So we will use idx_url instead.
+			 * cases such as UNION. So we will use idx_url_tlist instead.
 			 */
 			if ((fdw_private->is_pushdown_tlist && i == fdw_private->idx_url_tlist) ||
 				strcmp(attr->attname.data, SPDURL) == 0)
