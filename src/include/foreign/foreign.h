@@ -70,42 +70,6 @@ typedef struct ForeignTable
 	List	   *options;		/* ftoptions as DefElem list */
 } ForeignTable;
 
-typedef enum
-{
-	SPD_FS_STATE_INIT,
-	SPD_FS_STATE_BEGIN,
-	SPD_FS_STATE_ITERATE,
-	SPD_FS_STATE_END,
-	SPD_FS_STATE_FINISH,
-	SPD_FS_STATE_ERROR,
-}			SpdForeignScanThreadState;
-
-typedef struct ForeignScanThreadInfo
-{
-	struct FdwRoutine *fdwroutine;	/* Foreign Data wrapper  routine */
-	struct ForeignScanState *fsstate;	/* ForeignScan state data */
-	int			eflags;			/* it used to set on Plan nodes(bitwise OR of
-								 * the flag bits ) */
-	Oid			serverId;		/* use it for server id */
-	ForeignServer		*foreignServer;	/* cache this for performance */
-	ForeignDataWrapper	*fdw;	/* cache this for performance */
-	bool		iFlag;			/* use it for iteration scan */
-	bool		EndFlag;		/* use it for end scan */
-	bool		queryRescan;
-	struct TupleTableSlot *tuple;	/* use it for storing tuple, which is
-									 * retrieved from the DS */
-	int			childInfoIndex;		/* index of child info array */
-	MemoryContext threadMemoryContext;
-	MemoryContext threadTopMemoryContext;
-	pthread_mutex_t nodeMutex;	/* Use for ReScan call */
-	SpdForeignScanThreadState state;
-	pthread_t	me;
-	ResourceOwner thrd_ResourceOwner;
-	void	   *private;
-}			ForeignScanThreadInfo;
-
-
-
 extern ForeignServer *GetForeignServer(Oid serverid);
 extern ForeignServer *GetForeignServerByName(const char *name, bool missing_ok);
 extern UserMapping *GetUserMapping(Oid userid, Oid serverid);
