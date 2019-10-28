@@ -4806,10 +4806,10 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 			pfree(values);
 			pfree(nulls);
 		}
-		else 
+		else
 		{
-			/* tuple mode is VIRTUAL */				
-			int offset = 0;
+			/* tuple mode is VIRTUAL */
+			int			offset = 0;
 
 			for (i = 0; i < natts; i++)
 			{
@@ -4820,7 +4820,7 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 					nulls[i] = false;
 					offset = -1;
 				}
-				else 
+				else
 				{
 					values[i] = node_slot->tts_values[i + offset];
 					nulls[i] = node_slot->tts_isnull[i + offset];
