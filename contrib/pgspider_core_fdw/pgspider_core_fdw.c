@@ -1290,8 +1290,7 @@ spd_spi_exec_datasouce_num(Oid foreigntableid, int *nums, Oid **oid)
  *
  * @return Parent node's foreigntableid
  */
-
-static Datum
+static Oid
 spd_spi_exec_datasource_oid(Oid foreigntableid)
 {
 	char		query[QUERY_LENGTH];
