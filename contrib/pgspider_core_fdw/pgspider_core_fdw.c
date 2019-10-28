@@ -669,21 +669,6 @@ print_mapping_tlist(List *mapping_tlist, int loglevel)
 	}
 }
 
-static int
-strcmpi(char *s1, char *s2)
-{
-	int			i;
-
-	if (strlen(s1) != strlen(s2))
-		return -1;
-	for (i = 0; i < strlen(s1); i++)
-	{
-		if (toupper(s1[i]) != toupper(s2[i]))
-			return s1[i] - s2[i];
-	}
-	return 0;
-}
-
 
 /*
  * tlist_member
@@ -4577,22 +4562,22 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 					/*
 					 * This is for aggregate functions
 					 */
-					if (!strcmpi(agg_command, "SUM") || !strcmpi(agg_command, "COUNT") ||
-						!strcmpi(agg_command, "AVG") || !strcmpi(agg_command, "VARIANCE") ||
-						!strcmpi(agg_command, "STDDEV"))
+					if (!pg_strcasecmp(agg_command, "SUM") || !pg_strcasecmp(agg_command, "COUNT") ||
+						!pg_strcasecmp(agg_command, "AVG") || !pg_strcasecmp(agg_command, "VARIANCE") ||
+						!pg_strcasecmp(agg_command, "STDDEV"))
 						appendStringInfo(sql, "SUM(col%d)", max_col);
 
-					else if (!strcmpi(agg_command, "MAX") || !strcmpi(agg_command, "MIN") ||
-							 !strcmpi(agg_command, "BIT_OR") || !strcmpi(agg_command, "BIT_AND") ||
-							 !strcmpi(agg_command, "BOOL_AND") || !strcmpi(agg_command, "BOOL_OR") ||
-							 !strcmpi(agg_command, "EVERY") || !strcmpi(agg_command, "STRING_AGG"))
+					else if (!pg_strcasecmp(agg_command, "MAX") || !pg_strcasecmp(agg_command, "MIN") ||
+							 !pg_strcasecmp(agg_command, "BIT_OR") || !pg_strcasecmp(agg_command, "BIT_AND") ||
+							 !pg_strcasecmp(agg_command, "BOOL_AND") || !pg_strcasecmp(agg_command, "BOOL_OR") ||
+							 !pg_strcasecmp(agg_command, "EVERY") || !pg_strcasecmp(agg_command, "STRING_AGG"))
 						appendStringInfo(sql, "%s(col%d)", agg_command, max_col);
 
 					/*
 					 * This is for influx db functions. MAX has not effect to
 					 * result. We have to consider multi-tenant.
 					 */
-					else if (!strcmpi(agg_command, "INFLUX_TIME") || !strcmpi(agg_command, "LAST"))
+					else if (!pg_strcasecmp(agg_command, "INFLUX_TIME") || !pg_strcasecmp(agg_command, "LAST"))
 						appendStringInfo(sql, "MAX(col%d)", max_col);
 
 					/*
