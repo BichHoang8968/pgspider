@@ -1309,11 +1309,6 @@ spd_spi_exec_child_relname(char *parentTableName, SpdFdwPrivate * fdw_private, O
 	int			ret;
 	MemoryContext oldcontext = CurrentMemoryContext;
 
-	if (fdw_private->url_parse_list != NIL)
-	{
-		entry = (char *) list_nth(fdw_private->url_parse_list, 0);
-	}
-
 	/* get child server name from child's foreign table id */
 	if (fdw_private->in_flag == 0)
 	{
@@ -5403,8 +5398,8 @@ spd_check_url_update(SpdFdwPrivate * fdw_private, RangeTblEntry *target_rte)
 {
 
 	spd_ParseUrl(target_rte->spd_url_list, fdw_private);
-	if (fdw_private->url_parse_list == NIL ||
-		fdw_private->url_parse_list->length < 1)
+	if (fdw_private->url_list == NIL ||
+		fdw_private->url_list->length < 1)
 	{
 		/* DO NOTHING */
 		elog(ERROR, "no URL is specified, INSERT/UPDATE/DELETE need to set URL");
