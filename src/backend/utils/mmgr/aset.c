@@ -304,7 +304,7 @@ static const MemoryContextMethods AllocSetMethods = {
  */
 #define LT16(n) n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n
 
-static const __thread  unsigned char LogTable256[256] =
+static const __thread unsigned char LogTable256[256] =
 {
 	0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
 	LT16(5), LT16(6), LT16(6), LT16(7), LT16(7), LT16(7), LT16(7),
@@ -735,9 +735,10 @@ AllocSetDeleteChild(MemoryContext context)
 		while (freelist->first_free != NULL)
 		{
 			AllocSetContext *oldset = freelist->first_free;
+
 			freelist->first_free = (AllocSetContext *) oldset->header.nextchild;
 			freelist->num_free--;
-				/* All that remains is to free the header/initial block */
+			/* All that remains is to free the header/initial block */
 			free(oldset);
 		}
 		Assert(freelist->num_free == 0);
@@ -793,6 +794,7 @@ AllocSetAlloc(MemoryContext context, Size size)
 	Size		blksize;
 
 	AssertArg(AllocSetIsValid(set));
+
 	/*
 	 * If requested size exceeds maximum for chunks, allocate an entire block
 	 * for this request.

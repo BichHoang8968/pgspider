@@ -750,3 +750,10 @@
 # Add settings for extensions here
 shared_preload_libraries = 'pgspider_keepalive'
 
+#PGSpider keepalive process configs
+pgspider_keepalive.checknodes_interval 1  # Number of workers
+pgspider_keepalive.timeout_time 1         # ping wait time to child node
+pgspider_keepalive.keepalive_interval 1   # polling time to child node
+
+
+

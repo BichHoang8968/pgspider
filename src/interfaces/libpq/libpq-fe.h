@@ -20,11 +20,13 @@ extern "C"
 {
 #endif
 
+#ifdef GETPROGRESS_ENABLED 
 #include <stdio.h>
 #ifdef WIN32
 #include "win32.h"
 #else
 #include <unistd.h>
+#endif
 #endif
 /*
  * postgres_ext.h defines the backend's externally visible types,
@@ -41,7 +43,6 @@ extern "C"
 #define PG_COPYRES_NOTICEHOOKS	  0x08
 
 
-/* #define GETPROGRESS_ENABLED */
 /* Application-visible enum types */
 
 /*

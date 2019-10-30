@@ -263,8 +263,7 @@ typedef struct SpdFdwPrivate
 	/* USE ONLY IN PLANNING */
 	List	   *baserestrictinfo;	/* root node base strict info */
 	List	   *upper_targets;
-	List	   *url_list;		/* lieteral of parse IN clause */
-	List	   *url_parse_list; /* lieteral of parse IN clause */
+	List	   *url_list;		/* IN clause for SELECT */
 
 	PlannerInfo *spd_root;		/* Copy of root planner info. This is used by
 								 * aggregation pushdown. */
@@ -1817,7 +1816,7 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 	char	   *original_url = NULL;
 	char	   *throwing_url = NULL;
 	ListCell   *lc;
-
+	int i;
 	/*
 	 * entry is first parsing word(/foo/bar/, then entry is "foo",entry2 is
 	 * "bar")
@@ -1836,7 +1835,7 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 			throwing_url = (char *) list_nth(url_parse_list, 1);
 		}
 		/* If IN Clause is used, then store to parsing url */
-		for (int i = 0; i < childnums; i++)
+		for (i=0; i < childnums; i++)
 		{
 			char		srvname[NAMEDATALEN];
 			Oid			temp_oid = fdw_private->childinfo[i].oid;
@@ -2464,6 +2463,7 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	char	   *relname = NULL;
 	char	   *refname = NULL;
 	RangeTblEntry *rte;
+	int i;
 
 	baserel->rows = 1000;
 	fdw_private = spd_AllocatePrivate();
@@ -2478,10 +2478,10 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	fdw_private->node_num = nums;
 	fdw_private->childinfo = (ChildInfo *) palloc0(sizeof(ChildInfo) * nums);
 
-	for (int i = 0; i < nums; i++)
+	for (i = 0; i < nums; i++)
 		fdw_private->childinfo[i].oid = oid[i];
 	/* Initialize all servers */
-	for (int i = 0; i < nums; i++)
+	for (i = 0; i < nums; i++)
 		fdw_private->childinfo[i].child_node_status = ServerStatusDead;
 
 	Assert(IS_SIMPLE_REL(baserel));
@@ -2493,7 +2493,7 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 		spd_create_child_url(nums, r_entry, fdw_private);
 	else
 	{
-		for (int i = 0; i < nums; i++)
+		for (i = 0; i < nums; i++)
 		{
 			fdw_private->childinfo[i].child_node_status = ServerStatusAlive;
 		}
@@ -5443,7 +5443,7 @@ spd_AddForeignUpdateTargets(Query *parsetree,
 	fdw_private = spd_AllocatePrivate();
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	/* Checking IN clause. */
-	if (target_rte->spd_url != NULL)
+	if (target_rte->spd_url_list != NULL)
 		spd_check_url_update(fdw_private, target_rte);
 	else
 		elog(ERROR, "no URL is specified, INSERT/UPDATE/DELETE need to set URL");
@@ -5486,15 +5486,17 @@ spd_PlanForeignModify(PlannerInfo *root,
 	Oid		   *oid = NULL;
 	Oid			oid_server = 0;
 	List	   *child_list = NULL;
-
+	int			nums;
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	fdw_private = spd_AllocatePrivate();
 
-	if (rte->spd_url != NULL)
+	if (rte->spd_url_list != NULL)
 		spd_check_url_update(fdw_private, rte);
 	else
 		elog(ERROR, "no URL is specified, INSERT/UPDATE/DELETE need to set URL");
+
+	spd_create_child_url(nums, rte, fdw_private);
 	rel = heap_open(rte->relid, NoLock);
 
 	spd_spi_exec_child_relname(RelationGetRelationName(rel), fdw_private, &oid);

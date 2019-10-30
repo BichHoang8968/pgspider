@@ -7073,7 +7073,10 @@ apply_scanjoin_target_to_paths(PlannerInfo *root,
 		else
 		{
 			Path	   *newpath;
-
+			/*
+			 * PostgreSQL 11 does not set function information for FDWs.
+			 * We revert PostgreSQL 10 code. It set function information for FDWs.
+			 */
 			newpath = apply_projection_to_path(root, rel, subpath,
 													  scanjoin_target);
 			/* If we had to add a Result, newpath is different from subpath */

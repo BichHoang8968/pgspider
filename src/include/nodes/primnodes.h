@@ -71,8 +71,9 @@ typedef struct RangeVar
 	char		relpersistence; /* see RELPERSISTENCE_* in pg_class.h */
 	Alias	   *alias;			/* table alias & optional column aliases */
 	int			location;		/* token location, or -1 if unknown */
-	char	   *spd_url;		/* for UNDER Clause String, e.g. /foo/bar/ */
-    List	   *spd_url_list;	/* for UNDER Clause String, e.g. /foo/bar/ */
+
+	List	   *spd_url_list;	/* for UNDER Clause String, e.g. /foo/bar/ */
+
 } RangeVar;
 
 /*
@@ -417,6 +418,7 @@ typedef struct SubscriptingRef
 
 	Expr	   *refassgnexpr;	/* expression for the source value, or NULL if
 								 * fetch */
+
 } SubscriptingRef;
 
 /*

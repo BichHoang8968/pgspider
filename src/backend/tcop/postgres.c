@@ -4135,7 +4135,9 @@ PostgresMain(int argc, char *argv[],
 	 * frequently executed for ever single statement, we don't want to
 	 * allocate a separate buffer every time.
 	 */
-	row_description_context = AllocSetContextCreate(TopMemoryContext,"RowDescriptionContext",ALLOCSET_DEFAULT_SIZES);
+	row_description_context = AllocSetContextCreate(TopMemoryContext,
+													"RowDescriptionContext",
+													ALLOCSET_DEFAULT_SIZES);
 	MemoryContextSwitchTo(row_description_context);
 	initStringInfo(&row_description_buf);
 	MemoryContextSwitchTo(TopMemoryContext);
@@ -4419,7 +4421,7 @@ PostgresMain(int argc, char *argv[],
 				if (!gl_progressPtr)
 					pfree(gl_progressPtr);
 			}
-		firstchar = ReadCommand(&input_message);
+			firstchar = ReadCommand(&input_message);
 		}
 		pthread_mutex_unlock(&prgThread_mutex);
 #else

@@ -81,6 +81,7 @@ static List *get_gating_quals(PlannerInfo *root, List *quals);
 static Plan *create_gating_plan(PlannerInfo *root, Path *path, Plan *plan,
 								List *gating_quals);
 static Plan *create_join_plan(PlannerInfo *root, JoinPath *best_path);
+
 static Plan *create_append_plan(PlannerInfo *root, AppendPath *best_path,
 								int flags);
 static Plan *create_merge_append_plan(PlannerInfo *root, MergeAppendPath *best_path,
@@ -580,6 +581,11 @@ create_scan_plan(PlannerInfo *root, Path *best_path, int flags)
 	 * But if the caller is going to ignore our tlist anyway, then don't
 	 * bother generating one at all.  We use an exact equality test here, so
 	 * that this only applies when CP_IGNORE_TLIST is the only flag set.
+	 */
+
+	/*
+	 * PostgreSQL 11 does not set function information for FDWs.
+	 * We revert PostgreSQL 10 code. It set function information for FDWs.
 	 */
 	if (flags == CP_IGNORE_TLIST && best_path->pathtype != T_ForeignScan)
 	{

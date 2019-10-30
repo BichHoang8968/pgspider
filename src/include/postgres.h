@@ -116,11 +116,13 @@ typedef enum vartag_external
 	VARTAG_ONDISK = 18
 } vartag_external;
 
+#ifdef GETPROGRESS_ENABLED
 /* GetResult flag to get the current ResultSet */
 extern bool getResultFlag;
 
 /* GetResult flag to get Intermediate aggregation query ResultSet */
 extern bool getAggResultFlag;
+#endif
 
 /* this test relies on the specific tag values above */
 #define VARTAG_IS_EXPANDED(tag) \
