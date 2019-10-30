@@ -923,23 +923,23 @@ calc_bucket(HASHHDR *hctl, uint32 hash_val)
  */
 void *
 hash_search_orig(HTAB *hashp,
-			const void *keyPtr,
-			HASHACTION action,
-			bool *foundPtr)
+				 const void *keyPtr,
+				 HASHACTION action,
+				 bool *foundPtr)
 {
 	return hash_search_with_hash_value_orig(hashp,
-									   keyPtr,
-									   hashp->hash(keyPtr, hashp->keysize),
-									   action,
-									   foundPtr);
+											keyPtr,
+											hashp->hash(keyPtr, hashp->keysize),
+											action,
+											foundPtr);
 }
 
 void *
 hash_search_with_hash_value_orig(HTAB *hashp,
-							const void *keyPtr,
-							uint32 hashvalue,
-							HASHACTION action,
-							bool *foundPtr)
+								 const void *keyPtr,
+								 uint32 hashvalue,
+								 HASHACTION action,
+								 bool *foundPtr)
 {
 	HASHHDR    *hctl = hashp->hctl;
 	int			freelist_idx = FREELIST_IDX(hctl, hashvalue);
@@ -1119,12 +1119,12 @@ hash_search_with_hash_value_orig(HTAB *hashp,
  * Therefore this cannot suffer an out-of-memory failure, even if there are
  * other processes operating in other partitions of the hashtable.
  *
- * Returns TRUE if successful, FALSE if the requested new hash key is already
+ * Returns TRUE if successful, false if the requested new hash key is already
  * present.  Throws error if the specified entry pointer isn't actually a
  * table member.
  *
  * NB: currently, there is no special case for old and new hash keys being
- * identical, which means we'll report FALSE for that situation.  This is
+ * identical, which means we'll report false for that situation.  This is
  * preferable for existing uses.
  *
  * NB: for a partitioned hashtable, caller must hold lock on both relevant
@@ -1132,8 +1132,8 @@ hash_search_with_hash_value_orig(HTAB *hashp,
  */
 bool
 hash_update_hash_key_orig(HTAB *hashp,
-					 void *existingEntry,
-					 const void *newKeyPtr)
+						  void *existingEntry,
+						  const void *newKeyPtr)
 {
 	HASHELEMENT *existingElement = ELEMENT_FROM_KEY(existingEntry);
 	HASHHDR    *hctl = hashp->hctl;

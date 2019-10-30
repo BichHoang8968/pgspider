@@ -4,7 +4,7 @@ MODULE_big = pgspider_core_fdw
 OBJS = pgspider_core_fdw.o pgspider_core_option.o pgspider_core_util.o $(WIN32RES)
 PGFILEDESC = "pgspider_core_fdw - foreign data wrapper for PostgreSQL"
 
-PG_CPPFLAGS = -I$(libpq_srcdir) -I../  -lpostgres_fdw -lpthread -lpq -lm -z defs -std=c99
+PG_CPPFLAGS = -I$(libpq_srcdir) -I../  -lpostgres_fdw -lpthread -lpq -lm -z defs
 SHLIB_LINK = $(libpq) 
 
 #LIBS = -lpostgres_fdw

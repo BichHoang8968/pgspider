@@ -4051,14 +4051,16 @@ PostgresMain(int argc, char *argv[],
 	ProgressMemoryContext = AllocSetContextCreate((MemoryContext) NULL,
 												  "ProgressMemoryContext",
 #else
-						
+
 	/*
 	 * Create memory context and buffer used for RowDescription messages. As
 	 * SendRowDescriptionMessage(), via exec_describe_statement_message(), is
 	 * frequently executed for ever single statement, we don't want to
 	 * allocate a separate buffer every time.
 	 */
-	row_description_context = AllocSetContextCreate(TopMemoryContext,"RowDescriptionContext",ALLOCSET_DEFAULT_SIZES);
+	row_description_context = AllocSetContextCreate(TopMemoryContext,
+													"RowDescriptionContext",
+													ALLOCSET_DEFAULT_SIZES);
 	MemoryContextSwitchTo(row_description_context);
 	initStringInfo(&row_description_buf);
 	MemoryContextSwitchTo(TopMemoryContext);
@@ -4342,7 +4344,7 @@ PostgresMain(int argc, char *argv[],
 				if (!gl_progressPtr)
 					pfree(gl_progressPtr);
 			}
-		firstchar = ReadCommand(&input_message);
+			firstchar = ReadCommand(&input_message);
 		}
 		pthread_mutex_unlock(&prgThread_mutex);
 #else
