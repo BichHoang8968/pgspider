@@ -14,12 +14,6 @@ def PGSPIDER_2_DIR = '/home/jenkins/PGSpider/PGS2'
 def PGSPIDER_2_PORT = 5434
 def PGSPIDER_INSTALL_DIR= '$(pwd)/install'
 
-// Get result of previous build on current branch
-def prevResult = 'SUCCESS'
-if (currentBuild.previousBuild != null) {
-    prevResult = currentBuild.previousBuild.result
-}
-
 def retrySh(String shCmd) {
     def MAX_RETRY = 10
     script {
@@ -289,6 +283,11 @@ pipeline {
     post {
         success {
             script {
+                //Get result of previous build on current branch
+                prevResult = 'SUCCESS'
+                if (currentBuild.previousBuild != null) {
+                    prevResult = currentBuild.previousBuild.result.toString()
+                }
                 if (prevResult != 'SUCCESS') {
                     emailext subject: '[CI PGSpider] PGSpider_Test BACK TO NORMAL on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
                 }
