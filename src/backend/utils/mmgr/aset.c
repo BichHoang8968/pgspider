@@ -700,6 +700,15 @@ AllocSetDelete(MemoryContext context)
 	free(set);
 }
 
+/*
+ * AllocSetDeleteChild
+ *
+ * This function is used by PGSpider child threads.
+ * PGSpider child threads do not have Memory context free list.
+ * PGSpider child threads create and finish there context in every query.
+ * It is occurred memory leak for every query.
+ *
+ */
 static void
 AllocSetDeleteChild(MemoryContext context)
 {
@@ -729,8 +738,7 @@ AllocSetDeleteChild(MemoryContext context)
 			MemoryContextResetOnly(context);
 
 		/*
-		 * If the freelist is full, just discard what's already in it.  See
-		 * comments with context_freelists[].
+		 * Only this part is different from AllocSetDelete
 		 */
 		while (freelist->first_free != NULL)
 		{
