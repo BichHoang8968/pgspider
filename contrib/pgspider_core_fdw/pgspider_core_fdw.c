@@ -4866,15 +4866,15 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
  * using postgres_fdw and pgspider_fdw, ctid which virtual tuples
  * don't have is necessary.
  *
- * @param[in] fssThrdInfo
- * @param[in,out] parent_slot
- * @param[in] count
- * @param[in,out] node_slot
- * @param[in] fdw_private
+ * @param[in] fssThrdInfo - thread info
+ * @param[in,out] parent_slot - parent tuple table slot
+ * @param[in] node_id - id of node which return the slot
+ * @param[in,out] node_slot - child tuple table slot
+ * @param[in] fdw_private - private info
  */
 static TupleTableSlot *
 spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
-			  int count, TupleTableSlot *node_slot, SpdFdwPrivate * fdw_private)
+			  int node_id, TupleTableSlot *node_slot, SpdFdwPrivate * fdw_private)
 {
 	Datum	   *values;
 	bool	   *nulls;
@@ -4891,8 +4891,8 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 	 */
 	Assert(parent_slot->tts_tupleDescriptor->natts >=
 		   node_slot->tts_tupleDescriptor->natts);
-	fs = fssThrdInfo[count].foreignServer;
-	fdw = fssThrdInfo[count].fdw;
+	fs = fssThrdInfo[node_id].foreignServer;
+	fdw = fssThrdInfo[node_id].fdw;
 
 	/* Make tts_values and tts_nulls valid */
 	slot_getallattrs(node_slot);
@@ -4972,6 +4972,7 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 			parent_slot->tts_isempty = true;
 			ExecStoreVirtualTuple(parent_slot);
 		}
+		return parent_slot;
 	}
 	else						/* Modify spdurl column */
 	{
@@ -5040,27 +5041,22 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 				/* tuple mode is HEAP */
 				newtuple = heap_modify_tuple(node_slot->tts_tuple, node_slot->tts_tupleDescriptor,
 											 values, nulls, replaces);
-				node_slot->tts_tuple = newtuple;
+				node_slot = ExecStoreTuple(newtuple,
+										   node_slot,
+										   InvalidBuffer,
+										   false);
 			}
 			else
 			{
 				/* tuple mode is VIRTUAL */
 				node_slot->tts_values[tnum] = values[tnum];
 				node_slot->tts_isnull[tnum] = false;
-				/* to avoid assert failure in ExecStoreVirtualTuple */
-				node_slot->tts_isempty = true;
-				ExecStoreVirtualTuple(node_slot);
 			}
 		}
+		return node_slot;
 
-		/*
-		 * We need copy here because node_slot is shorter memory life than
-		 * parent_slot
-		 */
-		ExecCopySlot(parent_slot, node_slot);
 	}
-	return parent_slot;
-
+	Assert(false);
 
 }
 
