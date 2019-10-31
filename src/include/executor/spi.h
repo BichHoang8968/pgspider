@@ -17,6 +17,7 @@
 #include "lib/ilist.h"
 #include "nodes/parsenodes.h"
 #include "utils/portal.h"
+
 #ifdef PGSPIDER
 #include "nodes/execnodes.h"
 #include "executor/nodeAgg.h"
@@ -92,7 +93,7 @@ extern int SPI_execute_plan_with_paramlist(SPIPlanPtr plan,
 								ParamListInfo params,
 								bool read_only, long tcount);
 extern int	SPI_exec(const char *src, long tcount);
-#ifdef PGSPIDEER
+#ifdef PGSPIDER
 extern TupleTableSlot *SPI_execRetreiveDirect(AggState *aggState);
 extern TupleTableSlot *SPI_execAgg(AggState *aggState);
 extern AggState *SPI_execIntiAgg(Agg *node, EState *estate, int eflags);
