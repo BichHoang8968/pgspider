@@ -704,6 +704,7 @@ AllocSetDelete(MemoryContext context)
  * AllocSetDeleteChild
  *
  * This function is used by PGSpider child threads.
+ * Delete child free-list.
  * PGSpider child threads do not have Memory context free list.
  * PGSpider child threads create and finish there context in every query.
  * It is occurred memory leak for every query.
@@ -712,33 +713,16 @@ AllocSetDelete(MemoryContext context)
 static void
 AllocSetDeleteChild(MemoryContext context)
 {
-	AllocSet	set = (AllocSet) context;
-	AllocBlock	block = set->blocks;
-
-	AssertArg(AllocSetIsValid(set));
-
-#ifdef MEMORY_CONTEXT_CHECKING
-	/* Check for corruption and leaks before freeing */
-	AllocSetCheck(context);
-#endif
-
+	int freeListIndex=0;
 	/*
 	 * If the context is a candidate for a freelist, put it into that freelist
 	 * instead of destroying it.
 	 */
-	if (set->freeListIndex >= 0)
+	for (freeListIndex=0; freeListIndex<ALLOCSET_NUM_FREELISTS; freeListIndex++)
 	{
-		AllocSetFreeList *freelist = &context_freelists[set->freeListIndex];
-
+		AllocSetFreeList *freelist = &context_freelists[freeListIndex];
 		/*
-		 * Reset the context, if it needs it, so that we aren't hanging on to
-		 * more than the initial malloc chunk.
-		 */
-		if (!context->isReset)
-			MemoryContextResetOnly(context);
-
-		/*
-		 * Only this part is different from AllocSetDelete
+		 * Delete all free list
 		 */
 		while (freelist->first_free != NULL)
 		{
@@ -749,32 +733,8 @@ AllocSetDeleteChild(MemoryContext context)
 			/* All that remains is to free the header/initial block */
 			free(oldset);
 		}
-		Assert(freelist->num_free == 0);
-
-		/* Now add the just-deleted context to the freelist. */
-		set->header.nextchild = (MemoryContext) freelist->first_free;
-		freelist->first_free = set;
-		freelist->num_free++;
 		return;
 	}
-
-	/* Free all blocks, except the keeper which is part of context header */
-	while (block != NULL)
-	{
-		AllocBlock	next = block->next;
-
-#ifdef CLOBBER_FREED_MEMORY
-		wipe_mem(block, block->freeptr - ((char *) block));
-#endif
-
-		if (block != set->keeper)
-			free(block);
-
-		block = next;
-	}
-
-	/* Finally, free the context header, including the keeper block */
-	free(set);
 }
 
 
@@ -1154,7 +1114,6 @@ AllocSetRealloc(MemoryContext context, void *pointer, Size size)
 
 	/* Allow access to private part of chunk header. */
 	VALGRIND_MAKE_MEM_DEFINED(chunk, ALLOCCHUNK_PRIVATE_LEN);
-
 	oldsize = chunk->size;
 
 #ifdef MEMORY_CONTEXT_CHECKING
