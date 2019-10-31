@@ -2103,7 +2103,7 @@ spd_basestrictinfo_tree_walker(Node *node, PlannerInfo *root)
  *
  * Create base plan for each child tables and save into fdw_private.
  *
- * @param[in] fs - child table's server
+ * @param[in] root - planner info
  * @param[in] fdw - child table's fdw
  * @param[inout] entry_baserel - child table's base plan is saved
  */
@@ -2537,7 +2537,6 @@ spd_CopyRoot(PlannerInfo *root, RelOptInfo *baserel, SpdFdwPrivate * fdw_private
  * @param[in] root - base planner information
  * @param[in] baserel - base relation option
  * @param[in] foreigntableid - Parent foreing table id
- * @param[out] fdw_private - store to parsing URL
  */
 
 static void
@@ -3476,7 +3475,7 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
  * Change expr Var node type to OUTER VAR recursively.
  *
  * @param[in,out] node - plan tree node
- * @param[in,out] att  - attribute number
+ * @param[in,out] param  - attribute number
  *
  */
 static bool
@@ -4789,7 +4788,6 @@ spd_select_return_aggslot(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPr
  *
  * @param[out] create_sql
  * @param[in] mapping_tlist
- * @param[in] fssThrdInfo
  * @param[in] temp_table
  * @param[in] fdw_private
  */
