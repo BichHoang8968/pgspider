@@ -85,9 +85,17 @@
 
 
 /* Global variables */
+#ifdef PGSPIDER
 __thread ErrorContextCallback *error_context_stack = NULL;
+#else
+ErrorContextCallback *error_context_stack = NULL;
+#endif
 
+#ifdef PGSPIDER
 __thread sigjmp_buf *PG_exception_stack = NULL;
+#else
+sigjmp_buf *PG_exception_stack = NULL;
+#endif
 
 extern bool redirection_done;
 
@@ -137,11 +145,17 @@ static void write_eventlog(int level, const char *line, int len);
 /* We provide a small stack of ErrorData records for re-entrant cases */
 #define ERRORDATA_STACK_SIZE  40
 
+#ifdef PGSPIDER
 static ErrorData __thread errordata[ERRORDATA_STACK_SIZE];
 static int	__thread errordata_stack_depth = -1;	/* index of topmost active
 													 * frame */
 static int	__thread recursion_depth = 0;	/* to detect actual recursion */
+#else
+static ErrorData errordata[ERRORDATA_STACK_SIZE];
+static int	errordata_stack_depth = -1; /* index of topmost active frame */
 
+static int	recursion_depth = 0;	/* to detect actual recursion */
+#endif
 /*
  * Saved timeval and buffers for formatted timestamps that might be used by
  * both log_line_prefix and csv logs.

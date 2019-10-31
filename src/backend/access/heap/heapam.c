@@ -82,8 +82,10 @@
 /* GUC variable */
 bool		synchronize_seqscans = true;
 
+#ifdef PGSPIDER
 /* Use recursive mutex because relation open and close is called recursively */
 pthread_mutex_t relation_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+#endif
 
 static HeapScanDesc heap_beginscan_internal(Relation relation,
 						Snapshot snapshot,
@@ -1128,7 +1130,9 @@ relation_open(Oid relationId, LOCKMODE lockmode)
 	Relation	r;
 
 	Assert(lockmode >= NoLock && lockmode < MAX_LOCKMODES);
+#ifdef PGSPIDER
 	SPD_LOCK_TRY(&relation_mutex);
+#endif
 
 	/* Get the lock before trying to open the relcache entry */
 	if (lockmode != NoLock)
@@ -1145,7 +1149,9 @@ relation_open(Oid relationId, LOCKMODE lockmode)
 		MyXactFlags |= XACT_FLAGS_ACCESSEDTEMPREL;
 
 	pgstat_initstats(r);
+#ifdef PGSPIDER
 	SPD_UNLOCK_CATCH(&relation_mutex);
+#endif
 
 	return r;
 }
@@ -1276,13 +1282,17 @@ relation_close(Relation relation, LOCKMODE lockmode)
 	LockRelId	relid = relation->rd_lockInfo.lockRelId;
 
 	Assert(lockmode >= NoLock && lockmode < MAX_LOCKMODES);
+#ifdef PGSPIDER
 	SPD_LOCK_TRY(&relation_mutex);
+#endif
 	/* The relcache does the real work... */
 	RelationClose(relation);
 
 	if (lockmode != NoLock)
 		UnlockRelationId(&relid, lockmode);
+#ifdef PGSPIDER
 	SPD_UNLOCK_CATCH(&relation_mutex);
+#endif
 }
 
 

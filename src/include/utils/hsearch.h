@@ -141,8 +141,9 @@ extern long hash_select_dirsize(long num_entries);
 extern Size hash_get_shared_size(HASHCTL *info, int flags);
 extern void AtEOXact_HashTables(bool isCommit);
 extern void AtEOSubXact_HashTables(bool isCommit, int nestDepth);
-
+#ifdef PGSPIDER
 extern void hash_register_reset_callback(MemoryContext query_context);
+#endif
 
 /*
  * prototypes for functions in hashfn.c

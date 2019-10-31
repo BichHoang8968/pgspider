@@ -218,8 +218,8 @@ MemoryContextDeleteNodes(MemoryContext context)
 
 /*
  * MemoryContextDeleteChildrenNode
- *		Delete all the descendants of the named context and release all
- *		space allocated therein.  The named context itself is not touched.
+ *	    This function used by PGSpider threads.
+ *      Firstly delete all context , after that delete context free-list.
  */
 void
 MemoryContextDeleteChildrenNodes(MemoryContext context)

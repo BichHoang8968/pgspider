@@ -58,7 +58,9 @@ extern Plan *change_plan_targetlist(Plan *subplan, List *tlist,
 extern Plan *materialize_finished_plan(Plan *subplan);
 extern bool is_projection_capable_path(Path *path);
 extern bool is_projection_capable_plan(Plan *plan);
+#ifdef PGSPIDER
 extern List *PG_build_path_tlist(PlannerInfo *root, Path *path);
+#endif
 
 /* External use of these functions is deprecated: */
 extern Sort *make_sort_from_sortclauses(List *sortcls, Plan *lefttree);

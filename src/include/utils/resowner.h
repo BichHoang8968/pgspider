@@ -30,7 +30,11 @@ typedef struct ResourceOwnerData *ResourceOwner;
 /*
  * Globally known ResourceOwners
  */
+#ifdef PGSPIDER
 extern PGDLLIMPORT __thread ResourceOwner CurrentResourceOwner;
+#else
+extern PGDLLIMPORT ResourceOwner CurrentResourceOwner;
+#endif
 extern PGDLLIMPORT ResourceOwner CurTransactionResourceOwner;
 extern PGDLLIMPORT ResourceOwner TopTransactionResourceOwner;
 

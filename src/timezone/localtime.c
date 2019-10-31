@@ -105,7 +105,11 @@ static bool typesequiv(struct state const *, int, int);
  * Thanks to Paul Eggert for noting this.
  */
 
+#ifdef PGSPIDER
 static __thread struct pg_tm tm;
+#else
+static struct pg_tm tm;
+#endif
 
 /* Initialize *S to a value based on GMTOFF, ISDST, and ABBRIND.  */
 static void
