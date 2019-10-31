@@ -382,13 +382,13 @@ hash_create(const char *tabname, long nelem, HASHCTL *info, int flags)
 	strcpy(hashp->tabname, tabname);
 
 	/* If we have a private context, label it with hashtable's name */
-#ifdef PGSPIDER
 	if (!(flags & HASH_SHARED_MEM))
+#ifdef PGSPIDER
 		MemoryContextSetIdentifier(CurrentDynaHashCxt, tabname);
 #else
-	if (!(flags & HASH_SHARED_MEM))
-	    MemoryContextSetIdentifier(CurrentDynaHashCxt, hashp->tabname);
+		MemoryContextSetIdentifier(CurrentDynaHashCxt, hashp->tabname);
 #endif
+
 	/*
 	 * Select the appropriate hash function (see comments at head of file).
 	 */
@@ -955,18 +955,14 @@ hash_search(HTAB *hashp,
 {
 #ifdef PGSPIDER
 	return hash_search_with_hash_value_orig(hashp,
+#else
+	return hash_search_with_hash_value(hashp,
+#endif
 											keyPtr,
 											hashp->hash(keyPtr, hashp->keysize),
 											action,
 											foundPtr);
-#else
-	return hash_search_with_hash_value(hashp,
-									   keyPtr,
-									   hashp->hash(keyPtr, hashp->keysize),
-									   action,
-									   foundPtr);
-#endif
- }
+}
 
 void *
 #ifdef PGSPIDER

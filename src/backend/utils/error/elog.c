@@ -148,8 +148,8 @@ static int	__thread errordata_stack_depth = -1;	/* index of topmost active
 static int	__thread recursion_depth = 0;	/* to detect actual recursion */
 #else
 static ErrorData errordata[ERRORDATA_STACK_SIZE];
-static int	errordata_stack_depth = -1;	/* index of topmost active
-													 * frame */
+static int	errordata_stack_depth = -1; /* index of topmost active frame */
+
 static int	recursion_depth = 0;	/* to detect actual recursion */
 #endif
 

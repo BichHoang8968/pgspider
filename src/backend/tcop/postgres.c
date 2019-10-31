@@ -109,10 +109,7 @@ int			max_stack_depth = 100;
 int			PostAuthDelay = 0;
 
 
-#include <pthread.h>
-#include <sys/syscall.h>
 
-/* #define GETPROGRESS_ENABLED */
 /* ----------------
  *		private variables
  * ----------------
@@ -906,26 +903,6 @@ pg_rewrite_query(Query *query)
 	return querytree_list;
 }
 
-#ifdef GETPROGRESS_ENABLED
-MemoryContext ProgressMemoryContext = NULL;
-static pthread_t progressThread;
-static volatile bool progress_thread_in_read = false;
-volatile bool isForeignScan = false;
-
-ProgressState *gl_progressPtr = NULL;
-
-#define PROGRESS_STRING_LEN 10
-#define PROGRESS_VALUE_LEN	 8
-
-static volatile bool PG_thrd_read = false;
-struct Progress_thrd_info
-{
-	int			p_qtype;
-	StringInfoData progressBuf;
-};
-struct Progress_thrd_info *thrd_infodata;
-static pthread_mutex_t prgThread_mutex = PTHREAD_MUTEX_INITIALIZER;
-#endif
 
 /*
  * Generate a plan for a single already-rewritten query.
@@ -4785,141 +4762,7 @@ forbidden_in_wal_sender(char firstchar)
 					 errmsg("extended query protocol not supported in a replication connection")));
 	}
 }
-#ifdef GETPROGRESS_ENABLED
-/*
- * createProgressMessage
- *		 Calulates and converts progress value to string
- */
-static char *
-createProgressMessage()
-{
-	char	   *prgMsg;
-	double		prgValue = 0.00;
 
-	prgMsg = (char *) palloc0(sizeof(char) * PROGRESS_STRING_LEN);
-	if (gl_progressPtr->ps_fetchedRows > 0 && gl_progressPtr->ps_totalRows > 0)
-		prgValue = ((((double) gl_progressPtr->ps_fetchedRows) / gl_progressPtr->ps_totalRows) * 100);
-
-	snprintf(prgMsg, PROGRESS_VALUE_LEN, "%3.2lf", prgValue);
-
-	return prgMsg;
-}
-
-/*
- * ProgressMessageProcessor
- *		Thread function for receiving progress request from client and
- *		sends back the progress of the currently executing query.
- */
-static void *
-ProgressMessageProcessor(void *arg)
-{
-	int			firstchar;
-	StringInfoData input_message;
-	StringInfoData output_message;
-	char	   *prgState = NULL;
-	int			oldtype = 0;
-	int			oldstate = 0;
-
-	MemoryContext oldContext = MemoryContextSwitchTo(ProgressMemoryContext);
-
-	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldtype);
-	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &oldstate);
-
-	thrd_infodata = (struct Progress_thrd_info *) palloc0(sizeof(struct Progress_thrd_info));
-
-	for (;;)
-	{
-		initStringInfo(&input_message);
-		pthread_mutex_lock(&prgThread_mutex);
-		if (isForeignScan)
-		{
-			firstchar = ReadCommand(&input_message);
-
-			if (firstchar == 'G')
-			{
-				/* unlock the mutex */
-				pthread_mutex_unlock(&prgThread_mutex);
-				if (gl_progressPtr->ps_aggQuery)
-				{
-					getAggResultFlag = true;
-					while (getAggResultFlag == true)
-					{
-						/*
-						 * Wait until agg result are filled to ProgressState
-						 * during Iterate ForeignScan getAggResultFlag flag
-						 * will be set to false in spd_IterateForeignScan
-						 */
-						usleep(100);
-					}
-					if (gl_progressPtr->ps_aggResult != NULL)
-					{
-						DestReceiver *receiver = (DestReceiver *) gl_progressPtr->dest;
-
-						if (receiver != NULL)
-						{
-							/*
-							 * Send the Intermediate tuple using message 'D'
-							 * to destination receiver
-							 */
-							(*receiver->receiveSlot) (gl_progressPtr->ps_aggResult, receiver);
-						}
-					}
-				}
-				else
-				{
-					/* construct the 'P' progress message to be sent back */
-					pq_beginmessage(&output_message, 'P');
-
-					/* Caluculate progress value and get converted string */
-					prgState = createProgressMessage();
-
-					pq_sendbytes(&output_message, prgState, PROGRESS_VALUE_LEN);
-					pq_endmessage(&output_message);
-					pfree(prgState);
-				}
-				continue;
-			}
-			else if (firstchar == 'R')
-			{
-				/* unlock the mutex */
-				pthread_mutex_unlock(&prgThread_mutex);
-				getResultFlag = true;
-				continue;
-			}
-			else
-			{
-				thrd_infodata->p_qtype = firstchar;
-				thrd_infodata->progressBuf.len = input_message.len;
-				thrd_infodata->progressBuf.maxlen = input_message.len;
-				thrd_infodata->progressBuf.cursor = input_message.cursor;
-				/* The current context contains data */
-				thrd_infodata->progressBuf.data = input_message.data;
-
-				PG_thrd_read = true;
-				pthread_mutex_unlock(&prgThread_mutex);
-
-				/*
-				 * Recieved anything but progress, just halt till the main
-				 * thread reads and processes the recieved data, Main thread
-				 * will cancel the progress thread after the processing the
-				 * recieved data.
-				 */
-				for (;;)
-				{
-					pthread_yield();
-				}
-			}
-		}
-		else
-		{
-			pthread_mutex_unlock(&prgThread_mutex);
-			usleep(1000);
-		}
-	}
-	MemoryContextSwitchTo(oldContext);
-	return NULL;
-}
-#endif
 
 /*
  * Obtain platform stack depth limit (in bytes)

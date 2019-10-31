@@ -52,7 +52,11 @@
  * Only TopMemoryContext and ErrorContext are initialized by
  * MemoryContextInit() itself.
  */
+#ifdef PGSPIDER
 extern PGDLLIMPORT __thread MemoryContext TopMemoryContext;
+#else
+extern PGDLLIMPORT MemoryContext TopMemoryContext;
+#endif
 extern PGDLLIMPORT MemoryContext ErrorContext;
 extern PGDLLIMPORT MemoryContext PostmasterContext;
 extern PGDLLIMPORT MemoryContext CacheMemoryContext;
@@ -85,9 +89,12 @@ extern bool MemoryContextIsEmpty(MemoryContext context);
 extern void MemoryContextStats(MemoryContext context);
 extern void MemoryContextStatsDetail(MemoryContext context, int max_children);
 extern void MemoryContextAllowInCriticalSection(MemoryContext context,
-												bool allow);
+									bool allow);
+#ifdef PGSPIDER
 extern void MemoryContextDeleteNodes(MemoryContext context);
 extern void MemoryContextDeleteChildrenNodes(MemoryContext context);
+#endif
+
 #ifdef MEMORY_CONTEXT_CHECKING
 extern void MemoryContextCheck(MemoryContext context);
 #endif

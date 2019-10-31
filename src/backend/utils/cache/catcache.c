@@ -1204,6 +1204,7 @@ SearchCatCache4(CatCache *cache,
 /*
  * Work-horse for SearchCatCache/SearchCatCacheN.
  */
+
 static inline HeapTuple
 #ifdef PGSPIDER
 SearchCatCacheInternalOrig(CatCache *cache,
@@ -1329,7 +1330,6 @@ SearchCatCacheInternal(CatCache *cache,
 	return tuple;
 }
 #endif
-
 /*
  * Search the actual catalogs, rather than the cache.
  *
@@ -1472,7 +1472,6 @@ ReleaseCatCache(HeapTuple tuple)
 {
 	CatCTup    *ct = (CatCTup *) (((char *) tuple) -
 								  offsetof(CatCTup, tuple));
-
 #ifdef PGSPIDER
 	SPD_LOCK_TRY(&catcache_mutex);
 #endif

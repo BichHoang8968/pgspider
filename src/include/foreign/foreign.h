@@ -76,6 +76,7 @@ typedef struct ForeignTable
 /* Flags for GetForeignDataWrapperExtended */
 #define FDW_MISSING_OK	0x01
 
+
 extern ForeignServer *GetForeignServer(Oid serverid);
 extern ForeignServer *GetForeignServerExtended(Oid serverid,
 											   bits16 flags);

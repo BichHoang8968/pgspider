@@ -33,7 +33,6 @@ typedef int64 normalized_id_t;
 #define SUPPORT_MULTITHREAD(option, hashfunc)  ((option & HASH_BLOBS || (option & HASH_FUNCTION && hashfunc==tag_hash)) && \
 						!(option & HASH_SHARED_MEM) && (option & HASH_ELEM))
 #endif
-
  /*
   * A list of hash table names PostgreSQL(including contrib module) uses, but
   * hash table names FDWs use are excluded. We skip code for using fdw in
