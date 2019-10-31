@@ -4295,7 +4295,7 @@ spd_spi_ddl_table(char *query)
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
 	ret = SPI_exec(query, 1);
-	elog(DEBUG1, "execute temp table DDL %s", query);
+	elog(DEBUG1, "execute temp table DDL: %s", query);
 	if (ret != SPI_OK_UTILITY)
 	{
 		elog(ERROR, "execute spi CREATE TEMP TABLE failed %d", ret);
@@ -4382,6 +4382,7 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 		}
 	}
 	appendStringInfo(sql, ")");
+	elog(DEBUG1, "insert into temp table: %s", sql->data);
 	ret = SPI_exec(sql->data, 1);
 	if (ret != SPI_OK_INSERT)
 		elog(ERROR, "execute spi INSERT TEMP TABLE failed ");
@@ -4785,7 +4786,7 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 	/* group by clause */
 	if (fdw_private->groupby_string != 0)
 		appendStringInfo(sql, "%s", fdw_private->groupby_string->data);
-	elog(DEBUG1, "execute spi exec %s", sql->data);
+	elog(DEBUG1, "select from temp table: %s", sql->data);
 	/* Execute aggregate query to temp table */
 	spd_spi_exec_select(fdw_private, sql, slot);
 	/* calc and set agg values */
@@ -4872,7 +4873,7 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 		}
 	}
 	appendStringInfo(create_sql, ")");
-	elog(DEBUG1, "create table  = %s", create_sql->data);
+	elog(DEBUG1, "create temp table: %s", create_sql->data);
 }
 
 /**
