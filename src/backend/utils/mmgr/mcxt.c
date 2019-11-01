@@ -207,20 +207,10 @@ MemoryContextResetChildren(MemoryContext context)
  * but we have to recurse to handle the children.
  * We must also delink the context from its parent, if it has one.
  */
-#if 0
 void
 MemoryContextDeleteNodes(MemoryContext context)
 {
-	context->methods->delete_context_child(context);
-
-	VALGRIND_DESTROY_MEMPOOL(context);
-}
-#endif
-
-void
-MemoryContextDeleteNodes(MemoryContext context)
-{
-AssertArg(MemoryContextIsValid(context));
+	AssertArg(MemoryContextIsValid(context));
 	/* We had better not be deleting TopMemoryContext ... */
 	Assert(context != TopMemoryContext);
 	/* And not CurrentMemoryContext, either */
@@ -253,13 +243,15 @@ AssertArg(MemoryContextIsValid(context));
 	context->ident = NULL;
 
 	context->methods->delete_context_child(context);
+
 	VALGRIND_DESTROY_MEMPOOL(context);
 }
 
+
 /*
  * MemoryContextDeleteChildrenNode
- *	    This function used by PGSpider threads.
- *      Firstly delete all context , after that delete context free-list.
+ *		Delete all the descendants of the named context and release all
+ *		space allocated therein.  The named context itself is not touched.
  */
 void
 MemoryContextDeleteChildrenNodes(MemoryContext context)
@@ -271,10 +263,9 @@ MemoryContextDeleteChildrenNodes(MemoryContext context)
 	 * long as there is a child.
 	 */
 	while (context->firstchild != NULL)
-		MemoryContextDelete(context->firstchild);
-
-	MemoryContextDeleteNodes(context);
+		MemoryContextDeleteNodes(context->firstchild);
 }
+
 
 /*
  * MemoryContextDelete
