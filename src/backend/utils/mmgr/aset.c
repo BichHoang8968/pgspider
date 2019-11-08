@@ -733,6 +733,7 @@ AllocSetDeleteChild(MemoryContext context)
 			/* All that remains is to free the header/initial block */
 			free(oldset);
 		}
+		freelist->first_free=NULL;
 		return;
 	}
 }
