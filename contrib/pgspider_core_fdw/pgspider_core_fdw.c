@@ -2874,7 +2874,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			RelOptInfo *entry = childinfo[i].baserel;
 			PlannerInfo *dummy_root_child = childinfo[i].root;
 			RelOptInfo *dummy_output_rel;
-			Index	   *sortgrouprefs;
+			Index	   *sortgrouprefs=NULL;
 
 			if (childinfo[i].child_node_status != ServerStatusAlive)
 				continue;
@@ -4662,7 +4662,6 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 	i = 0;
 	foreach(lc, fdw_private->mapping_tlist)
 	{
-		TargetEntry *target = (TargetEntry *) list_nth(node->ss.ps.plan->targetlist, j);
 		Mappingcells *cells = (Mappingcells *) lfirst(lc);
 		char	   *agg_command = cells->agg_command->data;
 		int			agg_type = cells->aggtype;
@@ -5073,7 +5072,7 @@ nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId)
 
 	for (count = 0;; count++)
 	{
-		bool		is_finished;
+		bool		is_finished=false;
 
 		if (count >= nThreads)
 		{
@@ -5477,7 +5476,7 @@ spd_PlanForeignModify(PlannerInfo *root,
 	Oid		   *oid = NULL;
 	Oid			oid_server = 0;
 	List	   *child_list = NULL;
-	int			nums;
+	int			nums=0;
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	fdw_private = spd_AllocatePrivate();
