@@ -56,11 +56,7 @@ typedef struct MemoryContextCallback
  * Avoid accessing it directly!  Instead, use MemoryContextSwitchTo()
  * to change the setting.
  */
-#ifdef PGSPIDER
 extern __thread PGDLLIMPORT MemoryContext CurrentMemoryContext;
-#else
-extern PGDLLIMPORT MemoryContext CurrentMemoryContext;
-#endif
 
 /*
  * Flags for MemoryContextAllocExtended.

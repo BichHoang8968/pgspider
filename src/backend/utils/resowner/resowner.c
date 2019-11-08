@@ -136,11 +136,8 @@ typedef struct ResourceOwnerData
 /*****************************************************************************
  *	  GLOBAL MEMORY															 *
  *****************************************************************************/
-#ifdef PGSPIDER
+
 __thread ResourceOwner CurrentResourceOwner = NULL;
-#else
-ResourceOwner CurrentResourceOwner = NULL;
-#endif
 ResourceOwner CurTransactionResourceOwner = NULL;
 ResourceOwner TopTransactionResourceOwner = NULL;
 

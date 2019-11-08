@@ -6904,7 +6904,6 @@ apply_scanjoin_target_to_paths(PlannerInfo *root,
 		else
 		{
 			Path	   *newpath;
-#ifdef PGSPIDER
 			/*
 			 * PostgreSQL 11 does not set function information for FDWs.
 			 * We revert PostgreSQL 10 code. It set function information for FDWs.
@@ -6920,10 +6919,6 @@ apply_scanjoin_target_to_paths(PlannerInfo *root,
 				if (subpath == rel->cheapest_total_path)
 					rel->cheapest_total_path = newpath;
 			}
-#else
-			newpath = (Path *) create_projection_path(root, rel, subpath,
-													  scanjoin_target);
-#endif
 			lfirst(lc) = newpath;
 		}
 	}

@@ -304,7 +304,7 @@ static const MemoryContextMethods AllocSetMethods = {
  */
 #define LT16(n) n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n
 
-static const __thread  unsigned char LogTable256[256] =
+static const __thread unsigned char LogTable256[256] =
 {
 	0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
 	LT16(5), LT16(6), LT16(6), LT16(7), LT16(7), LT16(7), LT16(7),
@@ -700,6 +700,15 @@ AllocSetDelete(MemoryContext context)
 	free(set);
 }
 
+/*
+ * AllocSetDeleteChild
+ *
+ * This function is used by PGSpider child threads.
+ * PGSpider child threads do not have Memory context free list.
+ * PGSpider child threads create and finish there context in every query.
+ * It is occurred memory leak for every query.
+ *
+ */
 static void
 AllocSetDeleteChild(MemoryContext context)
 {
@@ -729,15 +738,15 @@ AllocSetDeleteChild(MemoryContext context)
 			MemoryContextResetOnly(context);
 
 		/*
-		 * If the freelist is full, just discard what's already in it.  See
-		 * comments with context_freelists[].
+		 * Only this part is different from AllocSetDelete
 		 */
 		while (freelist->first_free != NULL)
 		{
 			AllocSetContext *oldset = freelist->first_free;
+
 			freelist->first_free = (AllocSetContext *) oldset->header.nextchild;
 			freelist->num_free--;
-				/* All that remains is to free the header/initial block */
+			/* All that remains is to free the header/initial block */
 			free(oldset);
 		}
 		Assert(freelist->num_free == 0);
@@ -746,7 +755,6 @@ AllocSetDeleteChild(MemoryContext context)
 		set->header.nextchild = (MemoryContext) freelist->first_free;
 		freelist->first_free = set;
 		freelist->num_free++;
-		
 		return;
 	}
 

@@ -14,11 +14,9 @@
 #define FOREIGN_H
 
 #include "nodes/parsenodes.h"
-#ifdef PGSPIDER
 #include "lib/stringinfo.h"
 #include "utils/resowner.h"
 #include <pthread.h>
-#endif
 
 /* Helper for obtaining username for user mapping */
 #define MappingUserName(userid) \
