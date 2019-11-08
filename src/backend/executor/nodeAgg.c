@@ -3746,7 +3746,7 @@ aggregate_dummy(PG_FUNCTION_ARGS)
 	return (Datum) 0;			/* keep compiler quiet */
 }
 
-
+#ifdef PGSPIDER
 /**
  * Extern of agg_retrieve_direct
  *
@@ -3762,3 +3762,4 @@ ExecDirectAgg(AggState *node)
 {
 	return ExecAgg(node);
 }
+#endif

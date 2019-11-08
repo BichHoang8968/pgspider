@@ -69,9 +69,6 @@
 #include "utils/snapmgr.h"
 #include "utils/spccache.h"
 
-/* Use recursive mutex because relation open and close is called recursively */
-pthread_mutex_t relation_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-
 static HeapTuple heap_prepare_insert(Relation relation, HeapTuple tup,
 									 TransactionId xid, CommandId cid, int options);
 static XLogRecPtr log_heap_update(Relation reln, Buffer oldbuf,
@@ -1127,7 +1124,6 @@ fastgetattr(HeapTuple tup, int attnum, TupleDesc tupleDesc,
  *					 heap access method interface
  * ----------------------------------------------------------------
  */
-
 
 TableScanDesc
 heap_beginscan(Relation relation, Snapshot snapshot,

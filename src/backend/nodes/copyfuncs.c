@@ -2393,10 +2393,10 @@ _copyRangeTblEntry(const RangeTblEntry *from)
 	COPY_BITMAPSET_FIELD(updatedCols);
 	COPY_BITMAPSET_FIELD(extraUpdatedCols);
 	COPY_NODE_FIELD(securityQuals);
+#ifdef PGSPIDER
 	if (from->spd_url_list != NIL)
-	{
 		newnode->spd_url_list = list_copy(from->spd_url_list);
-	}
+#endif
 	return newnode;
 }
 

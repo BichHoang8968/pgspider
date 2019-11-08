@@ -526,12 +526,14 @@ SPI_exec(const char *src, long tcount)
 	return SPI_execute(src, false, tcount);
 }
 
+#ifdef PGSPIDER
 /* Obsolete version of SPI_execute */
 TupleTableSlot *
 SPI_execRetreiveDirect(AggState *aggState)
 {
 	return ExecRetreiveDirect(aggState);
 }
+#endif
 
 /* Obsolete version of SPI_execute */
 TupleTableSlot *

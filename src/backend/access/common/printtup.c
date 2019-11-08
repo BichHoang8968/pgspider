@@ -370,6 +370,7 @@ printtup_prepare_info(DR_printtup *myState, TupleDesc typeinfo, int numAttrs)
 	}
 }
 
+#ifdef PGSPIDER
 /*
  * Get the lookup info that printtup() needs
  */
@@ -439,7 +440,7 @@ FinalizeTup(TupleTableSlot *slot, DestReceiver *self, int attrNum)
 
 	return true;
 }
-
+#endif
 
 /* ----------------
  *		printtup --- print a tuple in protocol 3.0
