@@ -79,8 +79,10 @@
 #include "utils/timestamp.h"
 #include "mb/pg_wchar.h"
 
+#ifdef PGSPIDER
 #include <pthread.h>
 #include <sys/syscall.h>
+#endif
 
 /* #define GETPROGRESS_ENABLED */
 /* ----------------
@@ -93,8 +95,10 @@ const char *debug_query_string; /* client-supplied query string */
 CommandDest whereToSendOutput = DestDebug;
 
 /* flag for logging end of session */
+#ifdef PGSPIDER
 bool		Log_disconnections = false;
 bool		getResultFlag = false;
+#endif
 bool		getAggResultFlag = false;
 int			log_statement = LOGSTMT_NONE;
 
@@ -120,13 +124,21 @@ static long max_stack_depth_bytes = 100 * 1024L;
  * it directly. Newer versions use set_stack_base(), but we want to stay
  * binary-compatible for the time being.
  */
+#ifdef PGSPIDER
 __thread char *stack_base_ptr = NULL;
+#else
+char *stack_base_ptr = NULL;
+#endif
 
 /*
  * On IA64 we also have to remember the register stack base.
  */
 #if defined(__ia64__) || defined(__ia64)
+#ifdef PGSPIDER
 __thread char *register_stack_base_ptr = NULL;
+#else
+char *register_stack_base_ptr = NULL;
+#endif
 #endif
 
 /*
@@ -4051,14 +4063,16 @@ PostgresMain(int argc, char *argv[],
 	ProgressMemoryContext = AllocSetContextCreate((MemoryContext) NULL,
 												  "ProgressMemoryContext",
 #else
-						
+
 	/*
 	 * Create memory context and buffer used for RowDescription messages. As
 	 * SendRowDescriptionMessage(), via exec_describe_statement_message(), is
 	 * frequently executed for ever single statement, we don't want to
 	 * allocate a separate buffer every time.
 	 */
-	row_description_context = AllocSetContextCreate(TopMemoryContext,"RowDescriptionContext",ALLOCSET_DEFAULT_SIZES);
+	row_description_context = AllocSetContextCreate(TopMemoryContext,
+													"RowDescriptionContext",
+													ALLOCSET_DEFAULT_SIZES);
 	MemoryContextSwitchTo(row_description_context);
 	initStringInfo(&row_description_buf);
 	MemoryContextSwitchTo(TopMemoryContext);
@@ -4342,7 +4356,7 @@ PostgresMain(int argc, char *argv[],
 				if (!gl_progressPtr)
 					pfree(gl_progressPtr);
 			}
-		firstchar = ReadCommand(&input_message);
+			firstchar = ReadCommand(&input_message);
 		}
 		pthread_mutex_unlock(&prgThread_mutex);
 #else

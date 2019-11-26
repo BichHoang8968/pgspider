@@ -26,8 +26,13 @@ typedef int64 normalized_id_t;
   * cannot suport hashfunc and compare func users provide because we append
   * integer id to key
   */
+#ifdef PGSPIDER
 #define SUPPORT_MULTITHREAD(option, hashfunc)  ((option & HASH_BLOBS || (option & HASH_FUNCTION && hashfunc==tag_hash)) && \
 						!(option & HASH_SHARED_MEM) && (option & HASH_ELEM) && !(option & HASH_COMPARE))
+#else
+#define SUPPORT_MULTITHREAD(option, hashfunc)  ((option & HASH_BLOBS || (option & HASH_FUNCTION && hashfunc==tag_hash)) && \
+						!(option & HASH_SHARED_MEM) && (option & HASH_ELEM))
+#endif
 
  /*
   * A list of hash table names PostgreSQL(including contrib module) uses, but

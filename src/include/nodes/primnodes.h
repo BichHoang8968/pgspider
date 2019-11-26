@@ -71,9 +71,8 @@ typedef struct RangeVar
 	char		relpersistence; /* see RELPERSISTENCE_* in pg_class.h */
 	Alias	   *alias;			/* table alias & optional column aliases */
 	int			location;		/* token location, or -1 if unknown */
-	char	   *spd_url;		/* for UNDER Clause String, e.g. /foo/bar/ */
-    List	   *spd_url_list;	/* for UNDER Clause String, e.g. /foo/bar/ */
-}			RangeVar;
+	List	   *spd_url_list;	/* for UNDER Clause String, e.g. /foo/bar/ */
+} RangeVar;
 
 /*
  * TableFunc - node for a table function, such as XMLTABLE.
@@ -414,7 +413,7 @@ typedef struct ArrayRef
 								 * value */
 	Expr	   *refassgnexpr;	/* expression for the source value, or NULL if
 								 * fetch */
-} ArrayRef;
+}			ArrayRef;
 
 /*
  * CoercionContext - distinguishes the allowed set of type casts

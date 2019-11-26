@@ -566,7 +566,15 @@ create_scan_plan(PlannerInfo *root, Path *best_path, int flags)
 	 * bother generating one at all.  We use an exact equality test here, so
 	 * that this only applies when CP_IGNORE_TLIST is the only flag set.
 	 */
+	/*
+	 * PostgreSQL 11 does not set function information for FDWs.
+	 * We revert PostgreSQL 10 code. It set function information for FDWs.
+	 */
+#ifdef PGSPIDER
 	if (flags == CP_IGNORE_TLIST && best_path->pathtype != T_ForeignScan)
+#else
+	if (flags == CP_IGNORE_TLIST)
+#endif
 	{
 		tlist = NULL;
 	}
@@ -819,10 +827,10 @@ use_physical_tlist(PlannerInfo *root, Path *path, int flags)
 	 */
 	if (IsA(path, CustomPath))
 		return false;
-
+#ifdef PGSPIDER
 	if (IsA(path, ForeignPath))
 		return false;
-
+#endif
 	/*
 	 * If a bitmap scan's tlist is empty, keep it as-is.  This may allow the
 	 * executor to skip heap page fetches, and in any case, the benefit of
@@ -6565,8 +6573,10 @@ is_projection_capable_plan(Plan *plan)
 	}
 	return true;
 }
+#ifdef PGSPIDER
 List *
 PG_build_path_tlist(PlannerInfo *root, Path *path)
 {
 	return build_path_tlist(root, path);
 }
+#endif

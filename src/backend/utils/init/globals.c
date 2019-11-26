@@ -33,10 +33,13 @@ volatile bool ProcDiePending = false;
 volatile bool ClientConnectionLost = false;
 volatile bool IdleInTransactionSessionTimeoutPending = false;
 volatile sig_atomic_t ConfigReloadPending = false;
-__thread volatile uint32 CritSectionCount = 0;
 volatile uint32 InterruptHoldoffCount = 0;
 volatile uint32 QueryCancelHoldoffCount = 0;
-
+#ifdef PGSPIDER
+__thread volatile uint32 CritSectionCount = 0;
+#else
+volatile uint32 CritSectionCount = 0;
+#endif
 int			MyProcPid;
 pg_time_t	MyStartTime;
 struct Port *MyProcPort;
