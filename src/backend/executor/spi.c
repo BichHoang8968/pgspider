@@ -533,7 +533,6 @@ SPI_execRetreiveDirect(AggState *aggState)
 {
 	return ExecRetreiveDirect(aggState);
 }
-#endif
 
 /* Obsolete version of SPI_execute */
 TupleTableSlot *
@@ -547,6 +546,7 @@ SPI_execIntiAgg(Agg *node, EState *estate, int eflags)
 {
 	return ExecInitAgg(node, estate, eflags);
 }
+#endif
 
 /* Execute a previously prepared plan */
 int
