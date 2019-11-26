@@ -21,14 +21,18 @@ objfiles.txt
 *.gcda
 *.gcov
 *.gcov.out
+lcov*.info
 lcov.info
 coverage/
+coverage-html-stamp
 *.vcproj
 *.vcxproj
 win32ver.rc
 *.exe
 lib*dll.def
 lib*.pc
+*.orig
+*.rej
 
 # Local excludes in root directory
 /GNUmakefile
@@ -51,3 +55,13 @@ lib*.pc
 *.svn-base
 .svn/*
 *.BAK
+
+.autotools
+.cproject
+.project
+.settings/
+/bin/
+/contrib/blackhole_fdw/
+/contrib/mysql_fdw/
+/contrib/blackhole_fdw/
+/contrib/sqlite_fdw/

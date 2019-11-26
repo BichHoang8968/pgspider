@@ -3,7 +3,7 @@
  * postgres.c
  *	  POSTGRES C Backend Interface
  *
- * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -49,7 +49,7 @@
 #include "libpq/pqsignal.h"
 #include "miscadmin.h"
 #include "nodes/print.h"
-#include "optimizer/planner.h"
+#include "optimizer/optimizer.h"
 #include "pgstat.h"
 #include "pg_trace.h"
 #include "parser/analyze.h"
@@ -105,7 +105,10 @@ int			max_stack_depth = 100;
 int			PostAuthDelay = 0;
 
 
+#include <pthread.h>
+#include <sys/syscall.h>
 
+/* #define GETPROGRESS_ENABLED */
 /* ----------------
  *		private variables
  * ----------------
@@ -695,6 +698,12 @@ pg_parse_query(const char *query_string)
 	}
 #endif
 
+	/*
+	 * Currently, outfuncs/readfuncs support is missing for many raw parse
+	 * tree nodes, so we don't try to implement WRITE_READ_PARSE_PLAN_TREES
+	 * here.
+	 */
+
 	TRACE_POSTGRESQL_QUERY_PARSE_DONE(query_string);
 
 	return raw_parsetree_list;
@@ -825,7 +834,7 @@ pg_rewrite_query(Query *query)
 		ShowUsage("REWRITER STATISTICS");
 
 #ifdef COPY_PARSE_PLAN_TREES
-	/* Optional debugging check: pass querytree output through copyObject() */
+	/* Optional debugging check: pass querytree through copyObject() */
 	{
 		List	   *new_list;
 
@@ -838,6 +847,46 @@ pg_rewrite_query(Query *query)
 	}
 #endif
 
+#ifdef WRITE_READ_PARSE_PLAN_TREES
+	/* Optional debugging check: pass querytree through outfuncs/readfuncs */
+	{
+		List	   *new_list = NIL;
+		ListCell   *lc;
+
+		/*
+		 * We currently lack outfuncs/readfuncs support for most utility
+		 * statement types, so only attempt to write/read non-utility queries.
+		 */
+		foreach(lc, querytree_list)
+		{
+			Query	   *query = castNode(Query, lfirst(lc));
+
+			if (query->commandType != CMD_UTILITY)
+			{
+				char	   *str = nodeToString(query);
+				Query	   *new_query = stringToNodeWithLocations(str);
+
+				/*
+				 * queryId is not saved in stored rules, but we must preserve
+				 * it here to avoid breaking pg_stat_statements.
+				 */
+				new_query->queryId = query->queryId;
+
+				new_list = lappend(new_list, new_query);
+				pfree(str);
+			}
+			else
+				new_list = lappend(new_list, query);
+		}
+
+		/* This checks both outfuncs/readfuncs and the equal() routines... */
+		if (!equal(new_list, querytree_list))
+			elog(WARNING, "outfuncs/readfuncs failed to produce equal parse tree");
+		else
+			querytree_list = new_list;
+	}
+#endif
+
 	if (Debug_print_rewritten)
 		elog_node_display(LOG, "rewritten parse tree", querytree_list,
 						  Debug_pretty_print);
@@ -845,6 +894,26 @@ pg_rewrite_query(Query *query)
 	return querytree_list;
 }
 
+#ifdef GETPROGRESS_ENABLED
+MemoryContext ProgressMemoryContext = NULL;
+static pthread_t progressThread;
+static volatile bool progress_thread_in_read = false;
+volatile bool isForeignScan = false;
+
+ProgressState *gl_progressPtr = NULL;
+
+#define PROGRESS_STRING_LEN 10
+#define PROGRESS_VALUE_LEN	 8
+
+static volatile bool PG_thrd_read = false;
+struct Progress_thrd_info
+{
+	int			p_qtype;
+	StringInfoData progressBuf;
+};
+struct Progress_thrd_info *thrd_infodata;
+static pthread_mutex_t prgThread_mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 /*
  * Generate a plan for a single already-rewritten query.
@@ -874,7 +943,7 @@ pg_plan_query(Query *querytree, int cursorOptions, ParamListInfo boundParams)
 		ShowUsage("PLANNER STATISTICS");
 
 #ifdef COPY_PARSE_PLAN_TREES
-	/* Optional debugging check: pass plan output through copyObject() */
+	/* Optional debugging check: pass plan tree through copyObject() */
 	{
 		PlannedStmt *new_plan = copyObject(plan);
 
@@ -886,6 +955,30 @@ pg_plan_query(Query *querytree, int cursorOptions, ParamListInfo boundParams)
 		/* This checks both copyObject() and the equal() routines... */
 		if (!equal(new_plan, plan))
 			elog(WARNING, "copyObject() failed to produce an equal plan tree");
+		else
+#endif
+			plan = new_plan;
+	}
+#endif
+
+#ifdef WRITE_READ_PARSE_PLAN_TREES
+	/* Optional debugging check: pass plan tree through outfuncs/readfuncs */
+	{
+		char	   *str;
+		PlannedStmt *new_plan;
+
+		str = nodeToString(plan);
+		new_plan = stringToNodeWithLocations(str);
+		pfree(str);
+
+		/*
+		 * equal() currently does not have routines to compare Plan nodes, so
+		 * don't try to test equality here.  Perhaps fix someday?
+		 */
+#ifdef NOT_USED
+		/* This checks both outfuncs/readfuncs and the equal() routines... */
+		if (!equal(new_plan, plan))
+			elog(WARNING, "outfuncs/readfuncs failed to produce an equal plan tree");
 		else
 #endif
 			plan = new_plan;
@@ -1372,7 +1465,6 @@ exec_parse_message(const char *query_string,	/* string to execute */
 	{
 		Query	   *query;
 		bool		snapshot_set = false;
-		int			i;
 
 		raw_parse_tree = linitial_node(RawStmt, parsetree_list);
 
@@ -1428,7 +1520,7 @@ exec_parse_message(const char *query_string,	/* string to execute */
 		/*
 		 * Check all parameter types got determined.
 		 */
-		for (i = 0; i < numParams; i++)
+		for (int i = 0; i < numParams; i++)
 		{
 			Oid			ptype = paramTypes[i];
 
@@ -1617,10 +1709,8 @@ exec_bind_message(StringInfo input_message)
 	numPFormats = pq_getmsgint(input_message, 2);
 	if (numPFormats > 0)
 	{
-		int			i;
-
 		pformats = (int16 *) palloc(numPFormats * sizeof(int16));
-		for (i = 0; i < numPFormats; i++)
+		for (int i = 0; i < numPFormats; i++)
 			pformats[i] = pq_getmsgint(input_message, 2);
 	}
 
@@ -1703,20 +1793,9 @@ exec_bind_message(StringInfo input_message)
 	 */
 	if (numParams > 0)
 	{
-		int			paramno;
+		params = makeParamList(numParams);
 
-		params = (ParamListInfo) palloc(offsetof(ParamListInfoData, params) +
-										numParams * sizeof(ParamExternData));
-		/* we have static list of params, so no hooks needed */
-		params->paramFetch = NULL;
-		params->paramFetchArg = NULL;
-		params->paramCompile = NULL;
-		params->paramCompileArg = NULL;
-		params->parserSetup = NULL;
-		params->parserSetupArg = NULL;
-		params->numParams = numParams;
-
-		for (paramno = 0; paramno < numParams; paramno++)
+		for (int paramno = 0; paramno < numParams; paramno++)
 		{
 			Oid			ptype = psrc->param_types[paramno];
 			int32		plength;
@@ -1741,7 +1820,7 @@ exec_bind_message(StringInfo input_message)
 				 * trailing null.  This is grotty but is a big win when
 				 * dealing with very large parameter strings.
 				 */
-				pbuf.data = (char *) pvalue;
+				pbuf.data = unconstify(char *, pvalue);
 				pbuf.maxlen = plength + 1;
 				pbuf.len = plength;
 				pbuf.cursor = 0;
@@ -1844,10 +1923,8 @@ exec_bind_message(StringInfo input_message)
 	numRFormats = pq_getmsgint(input_message, 2);
 	if (numRFormats > 0)
 	{
-		int			i;
-
 		rformats = (int16 *) palloc(numRFormats * sizeof(int16));
-		for (i = 0; i < numRFormats; i++)
+		for (int i = 0; i < numRFormats; i++)
 			rformats[i] = pq_getmsgint(input_message, 2);
 	}
 
@@ -2178,6 +2255,8 @@ check_log_statement(List *stmt_list)
 /*
  * check_log_duration
  *		Determine whether current command's duration should be logged
+ *		We also check if this statement in this transaction must be logged
+ *		(regardless of its duration).
  *
  * Returns:
  *		0 if no logging is needed
@@ -2193,7 +2272,7 @@ check_log_statement(List *stmt_list)
 int
 check_log_duration(char *msec_str, bool was_logged)
 {
-	if (log_duration || log_min_duration_statement >= 0)
+	if (log_duration || log_min_duration_statement >= 0 || xact_is_sampled)
 	{
 		long		secs;
 		int			usecs;
@@ -2215,11 +2294,11 @@ check_log_duration(char *msec_str, bool was_logged)
 					 (secs > log_min_duration_statement / 1000 ||
 					  secs * 1000 + msecs >= log_min_duration_statement)));
 
-		if (exceeded || log_duration)
+		if (exceeded || log_duration || xact_is_sampled)
 		{
 			snprintf(msec_str, 32, "%ld.%03d",
 					 secs * 1000 + msecs, usecs % 1000);
-			if (exceeded && !was_logged)
+			if ((exceeded || xact_is_sampled) && !was_logged)
 				return 2;
 			else
 				return 1;
@@ -2274,7 +2353,6 @@ errdetail_params(ParamListInfo params)
 	{
 		StringInfoData param_str;
 		MemoryContext oldcontext;
-		int			paramno;
 
 		/* This code doesn't support dynamic param lists */
 		Assert(params->paramFetch == NULL);
@@ -2284,7 +2362,7 @@ errdetail_params(ParamListInfo params)
 
 		initStringInfo(&param_str);
 
-		for (paramno = 0; paramno < params->numParams; paramno++)
+		for (int paramno = 0; paramno < params->numParams; paramno++)
 		{
 			ParamExternData *prm = &params->params[paramno];
 			Oid			typoutput;
@@ -2387,7 +2465,6 @@ static void
 exec_describe_statement_message(const char *stmt_name)
 {
 	CachedPlanSource *psrc;
-	int			i;
 
 	/*
 	 * Start up a transaction command. (Note that this will normally change
@@ -2446,7 +2523,7 @@ exec_describe_statement_message(const char *stmt_name)
 														 * message type */
 	pq_sendint16(&row_description_buf, psrc->num_params);
 
-	for (i = 0; i < psrc->num_params; i++)
+	for (int i = 0; i < psrc->num_params; i++)
 	{
 		Oid			ptype = psrc->param_types[i];
 
@@ -4051,7 +4128,7 @@ PostgresMain(int argc, char *argv[],
 	ProgressMemoryContext = AllocSetContextCreate((MemoryContext) NULL,
 												  "ProgressMemoryContext",
 #else
-						
+
 	/*
 	 * Create memory context and buffer used for RowDescription messages. As
 	 * SendRowDescriptionMessage(), via exec_describe_statement_message(), is
@@ -4446,10 +4523,8 @@ PostgresMain(int argc, char *argv[],
 					numParams = pq_getmsgint(&input_message, 2);
 					if (numParams > 0)
 					{
-						int			i;
-
 						paramTypes = (Oid *) palloc(numParams * sizeof(Oid));
-						for (i = 0; i < numParams; i++)
+						for (int i = 0; i < numParams; i++)
 							paramTypes[i] = pq_getmsgint(&input_message, 4);
 					}
 					pq_getmsgend(&input_message);
@@ -4696,7 +4771,141 @@ forbidden_in_wal_sender(char firstchar)
 					 errmsg("extended query protocol not supported in a replication connection")));
 	}
 }
+#ifdef GETPROGRESS_ENABLED
+/*
+ * createProgressMessage
+ *		 Calulates and converts progress value to string
+ */
+static char *
+createProgressMessage()
+{
+	char	   *prgMsg;
+	double		prgValue = 0.00;
 
+	prgMsg = (char *) palloc0(sizeof(char) * PROGRESS_STRING_LEN);
+	if (gl_progressPtr->ps_fetchedRows > 0 && gl_progressPtr->ps_totalRows > 0)
+		prgValue = ((((double) gl_progressPtr->ps_fetchedRows) / gl_progressPtr->ps_totalRows) * 100);
+
+	snprintf(prgMsg, PROGRESS_VALUE_LEN, "%3.2lf", prgValue);
+
+	return prgMsg;
+}
+
+/*
+ * ProgressMessageProcessor
+ *		Thread function for receiving progress request from client and
+ *		sends back the progress of the currently executing query.
+ */
+static void *
+ProgressMessageProcessor(void *arg)
+{
+	int			firstchar;
+	StringInfoData input_message;
+	StringInfoData output_message;
+	char	   *prgState = NULL;
+	int			oldtype = 0;
+	int			oldstate = 0;
+
+	MemoryContext oldContext = MemoryContextSwitchTo(ProgressMemoryContext);
+
+	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldtype);
+	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &oldstate);
+
+	thrd_infodata = (struct Progress_thrd_info *) palloc0(sizeof(struct Progress_thrd_info));
+
+	for (;;)
+	{
+		initStringInfo(&input_message);
+		pthread_mutex_lock(&prgThread_mutex);
+		if (isForeignScan)
+		{
+			firstchar = ReadCommand(&input_message);
+
+			if (firstchar == 'G')
+			{
+				/* unlock the mutex */
+				pthread_mutex_unlock(&prgThread_mutex);
+				if (gl_progressPtr->ps_aggQuery)
+				{
+					getAggResultFlag = true;
+					while (getAggResultFlag == true)
+					{
+						/*
+						 * Wait until agg result are filled to ProgressState
+						 * during Iterate ForeignScan getAggResultFlag flag
+						 * will be set to false in spd_IterateForeignScan
+						 */
+						usleep(100);
+					}
+					if (gl_progressPtr->ps_aggResult != NULL)
+					{
+						DestReceiver *receiver = (DestReceiver *) gl_progressPtr->dest;
+
+						if (receiver != NULL)
+						{
+							/*
+							 * Send the Intermediate tuple using message 'D'
+							 * to destination receiver
+							 */
+							(*receiver->receiveSlot) (gl_progressPtr->ps_aggResult, receiver);
+						}
+					}
+				}
+				else
+				{
+					/* construct the 'P' progress message to be sent back */
+					pq_beginmessage(&output_message, 'P');
+
+					/* Caluculate progress value and get converted string */
+					prgState = createProgressMessage();
+
+					pq_sendbytes(&output_message, prgState, PROGRESS_VALUE_LEN);
+					pq_endmessage(&output_message);
+					pfree(prgState);
+				}
+				continue;
+			}
+			else if (firstchar == 'R')
+			{
+				/* unlock the mutex */
+				pthread_mutex_unlock(&prgThread_mutex);
+				getResultFlag = true;
+				continue;
+			}
+			else
+			{
+				thrd_infodata->p_qtype = firstchar;
+				thrd_infodata->progressBuf.len = input_message.len;
+				thrd_infodata->progressBuf.maxlen = input_message.len;
+				thrd_infodata->progressBuf.cursor = input_message.cursor;
+				/* The current context contains data */
+				thrd_infodata->progressBuf.data = input_message.data;
+
+				PG_thrd_read = true;
+				pthread_mutex_unlock(&prgThread_mutex);
+
+				/*
+				 * Recieved anything but progress, just halt till the main
+				 * thread reads and processes the recieved data, Main thread
+				 * will cancel the progress thread after the processing the
+				 * recieved data.
+				 */
+				for (;;)
+				{
+					pthread_yield();
+				}
+			}
+		}
+		else
+		{
+			pthread_mutex_unlock(&prgThread_mutex);
+			usleep(1000);
+		}
+	}
+	MemoryContextSwitchTo(oldContext);
+	return NULL;
+}
+#endif
 
 /*
  * Obtain platform stack depth limit (in bytes)
@@ -4859,7 +5068,7 @@ log_disconnections(int code, Datum arg)
 				minutes,
 				seconds;
 
-	TimestampDifference(port->SessionStartTime,
+	TimestampDifference(MyStartTimestamp,
 						GetCurrentTimestamp(),
 						&secs, &usecs);
 	msecs = usecs / 1000;

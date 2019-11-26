@@ -1,0 +1,54 @@
+diff -U3 /home/hankh/work/pgspider_core_test/PGSpider/src/test/regress/expected/sanity_check.out /home/hankh/work/pgspider_core_test/PGSpider/src/test/regress/results/sanity_check.out
+--- /home/hankh/work/pgspider_core_test/PGSpider/src/test/regress/expected/sanity_check.out	2019-11-22 10:35:39.769494624 +0700
++++ /home/hankh/work/pgspider_core_test/PGSpider/src/test/regress/results/sanity_check.out	2019-11-25 18:25:32.345490000 +0700
+@@ -147,7 +147,6 @@
+ pg_shdepend|t
+ pg_shdescription|t
+ pg_shseclabel|t
+-pg_spd_node_info|f
+ pg_statistic|t
+ pg_statistic_ext|t
+ pg_statistic_ext_data|t
+diff -U3 /home/hankh/work/pgspider_core_test/PGSpider/src/test/regress/expected/subselect.out /home/hankh/work/pgspider_core_test/PGSpider/src/test/regress/results/subselect.out
+--- /home/hankh/work/pgspider_core_test/PGSpider/src/test/regress/expected/subselect.out	2019-11-22 10:34:19.192499801 +0700
++++ /home/hankh/work/pgspider_core_test/PGSpider/src/test/regress/results/subselect.out	2019-11-25 18:25:34.057489890 +0700
+@@ -1311,10 +1311,10 @@
+                                  QUERY PLAN                                 
+ ----------------------------------------------------------------------------
+  Result
+-   Output: subselect_tbl.f1, now(), subselect_tbl_1.f1, now()
++   Output: subselect_tbl.f1, (now()), subselect_tbl_1.f1, (now())
+    One-Time Filter: (now() = now())
+    ->  Nested Loop
+-         Output: subselect_tbl.f1, subselect_tbl_1.f1
++         Output: subselect_tbl.f1, now(), subselect_tbl_1.f1, now()
+          ->  Seq Scan on public.subselect_tbl
+                Output: subselect_tbl.f1, subselect_tbl.f2, subselect_tbl.f3
+          ->  Materialize
+diff -U3 /home/hankh/work/pgspider_core_test/PGSpider/src/test/regress/expected/update.out /home/hankh/work/pgspider_core_test/PGSpider/src/test/regress/results/update.out
+--- /home/hankh/work/pgspider_core_test/PGSpider/src/test/regress/expected/update.out	2019-11-22 10:35:39.769494624 +0700
++++ /home/hankh/work/pgspider_core_test/PGSpider/src/test/regress/results/update.out	2019-11-25 18:25:34.685489849 +0700
+@@ -172,7 +172,7 @@
+ UPDATE update_test t
+   SET (a, b) = (SELECT b, a FROM update_test s WHERE s.a = t.a)
+   WHERE CURRENT_USER = SESSION_USER;
+-                            QUERY PLAN                            
++                               QUERY PLAN                               
+ ------------------------------------------------------------------------
+  Update on public.update_test t
+    ->  Result
+@@ -180,10 +180,10 @@
+          One-Time Filter: (CURRENT_USER = SESSION_USER)
+          ->  Seq Scan on public.update_test t
+                Output: $1, $2, t.c, (SubPlan 1 (returns $1,$2)), t.ctid
+-         SubPlan 1 (returns $1,$2)
+-           ->  Seq Scan on public.update_test s
+-                 Output: s.b, s.a
+-                 Filter: (s.a = t.a)
++               SubPlan 1 (returns $1,$2)
++                 ->  Seq Scan on public.update_test s
++                       Output: s.b, s.a
++                       Filter: (s.a = t.a)
+ (10 rows)
+ 
+ UPDATE update_test t

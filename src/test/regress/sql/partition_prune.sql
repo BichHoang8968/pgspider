@@ -83,6 +83,7 @@ explain (costs off) select * from rlp where a = 1 or b = 'ab';
 explain (costs off) select * from rlp where a > 20 and a < 27;
 explain (costs off) select * from rlp where a = 29;
 explain (costs off) select * from rlp where a >= 29;
+explain (costs off) select * from rlp where a < 1 or (a > 20 and a < 25);
 
 -- redundant clauses are eliminated
 explain (costs off) select * from rlp where a > 1 and a = 10;	/* only default */
@@ -159,6 +160,15 @@ explain (costs off) select * from boolpart where a is not true and a is not fals
 explain (costs off) select * from boolpart where a is unknown;
 explain (costs off) select * from boolpart where a is not unknown;
 
+create table boolrangep (a bool, b bool, c int) partition by range (a,b,c);
+create table boolrangep_tf partition of boolrangep for values from ('true', 'false', 0) to ('true', 'false', 100);
+create table boolrangep_ft partition of boolrangep for values from ('false', 'true', 0) to ('false', 'true', 100);
+create table boolrangep_ff1 partition of boolrangep for values from ('false', 'false', 0) to ('false', 'false', 50);
+create table boolrangep_ff2 partition of boolrangep for values from ('false', 'false', 50) to ('false', 'false', 100);
+
+-- try a more complex case that's been known to trip up pruning in the past
+explain (costs off)  select * from boolrangep where not a and not b and c = 25;
+
 -- test scalar-to-array operators
 create table coercepart (a varchar) partition by list (a);
 create table coercepart_ab partition of coercepart for values in ('ab');
@@ -170,6 +180,13 @@ explain (costs off) select * from coercepart where a ~ any ('{ab}');
 explain (costs off) select * from coercepart where a !~ all ('{ab}');
 explain (costs off) select * from coercepart where a ~ any ('{ab,bc}');
 explain (costs off) select * from coercepart where a !~ all ('{ab,bc}');
+explain (costs off) select * from coercepart where a = any ('{ab,bc}');
+explain (costs off) select * from coercepart where a = any ('{ab,null}');
+explain (costs off) select * from coercepart where a = any (null::text[]);
+explain (costs off) select * from coercepart where a = all ('{ab}');
+explain (costs off) select * from coercepart where a = all ('{ab,bc}');
+explain (costs off) select * from coercepart where a = all ('{ab,null}');
+explain (costs off) select * from coercepart where a = all (null::text[]);
 
 drop table coercepart;
 
@@ -264,7 +281,7 @@ create table rparted_by_int2_maxvalue partition of rparted_by_int2 for values fr
 -- all partitions but rparted_by_int2_maxvalue pruned
 explain (costs off) select * from rparted_by_int2 where a > 100000000000000;
 
-drop table lp, coll_pruning, rlp, mc3p, mc2p, boolpart, rp, coll_pruning_multi, like_op_noprune, lparted_by_int2, rparted_by_int2;
+drop table lp, coll_pruning, rlp, mc3p, mc2p, boolpart, boolrangep, rp, coll_pruning_multi, like_op_noprune, lparted_by_int2, rparted_by_int2;
 
 --
 -- Test Partition pruning for HASH partitioning
@@ -430,9 +447,14 @@ drop table list_part;
 
 -- Parallel append
 
--- Suppress the number of loops each parallel node runs for.  This is because
--- more than one worker may run the same parallel node if timing conditions
--- are just right, which destabilizes the test.
+-- Parallel queries won't necessarily get as many workers as the planner
+-- asked for.  This affects not only the "Workers Launched:" field of EXPLAIN
+-- results, but also row counts and loop counts for parallel scans, Gathers,
+-- and everything in between.  This function filters out the values we can't
+-- rely on to be stable.
+-- This removes enough info that you might wonder why bother with EXPLAIN
+-- ANALYZE at all.  The answer is that we need to see '(never executed)'
+-- notations because that's the only way to verify runtime pruning.
 create function explain_parallel_append(text) returns setof text
 language plpgsql as
 $$
@@ -443,9 +465,8 @@ begin
         execute format('explain (analyze, costs off, summary off, timing off) %s',
             $1)
     loop
-        if ln like '%Parallel%' then
-            ln := regexp_replace(ln, 'loops=\d*',  'loops=N');
-        end if;
+        ln := regexp_replace(ln, 'Workers Launched: \d+', 'Workers Launched: N');
+        ln := regexp_replace(ln, 'actual rows=\d+ loops=\d+', 'actual rows=N loops=N');
         return next ln;
     end loop;
 end;
@@ -548,17 +569,52 @@ select * from (select * from ab where a = 1 union all select * from ab) ab where
 explain (analyze, costs off, summary off, timing off)
 select * from (select * from ab where a = 1 union all (values(10,5)) union all select * from ab) ab where b = (select 1);
 
+-- Another UNION ALL test, but containing a mix of exec init and exec run-time pruning.
+create table xy_1 (x int, y int);
+insert into xy_1 values(100,-10);
+
+set enable_bitmapscan = 0;
+set enable_indexscan = 0;
+set plan_cache_mode = 'force_generic_plan';
+
+prepare ab_q6 as
+select * from (
+	select tableoid::regclass,a,b from ab
+union all
+	select tableoid::regclass,x,y from xy_1
+union all
+	select tableoid::regclass,a,b from ab
+) ab where a = $1 and b = (select -10);
+
+-- Ensure the xy_1 subplan is not pruned.
+explain (analyze, costs off, summary off, timing off) execute ab_q6(1);
+
+-- Ensure we see just the xy_1 row.
+execute ab_q6(100);
+
+reset enable_bitmapscan;
+reset enable_indexscan;
+reset plan_cache_mode;
+
 deallocate ab_q1;
 deallocate ab_q2;
 deallocate ab_q3;
 deallocate ab_q4;
 deallocate ab_q5;
+deallocate ab_q6;
 
 -- UPDATE on a partition subtree has been seen to have problems.
 insert into ab values (1,2);
 explain (analyze, costs off, summary off, timing off)
 update ab_a1 set b = 3 from ab where ab.a = 1 and ab.a = ab_a1.a;
 table ab;
+
+-- Test UPDATE where source relation has run-time pruning enabled
+truncate ab;
+insert into ab values (1, 1), (1, 2), (1, 3), (2, 1);
+explain (analyze, costs off, summary off, timing off)
+update ab_a1 set b = 3 from ab_a2 where ab_a2.b = (select 1);
+select tableoid::regclass, * from ab;
 
 drop table ab, lprt_a;
 
@@ -719,6 +775,84 @@ select * from listp where a = (select null::int);
 
 drop table listp;
 
+--
+-- check that stable query clauses are only used in run-time pruning
+--
+create table stable_qual_pruning (a timestamp) partition by range (a);
+create table stable_qual_pruning1 partition of stable_qual_pruning
+  for values from ('2000-01-01') to ('2000-02-01');
+create table stable_qual_pruning2 partition of stable_qual_pruning
+  for values from ('2000-02-01') to ('2000-03-01');
+create table stable_qual_pruning3 partition of stable_qual_pruning
+  for values from ('3000-02-01') to ('3000-03-01');
+
+-- comparison against a stable value requires run-time pruning
+explain (analyze, costs off, summary off, timing off)
+select * from stable_qual_pruning where a < localtimestamp;
+
+-- timestamp < timestamptz comparison is only stable, not immutable
+explain (analyze, costs off, summary off, timing off)
+select * from stable_qual_pruning where a < '2000-02-01'::timestamptz;
+
+-- check ScalarArrayOp cases
+explain (analyze, costs off, summary off, timing off)
+select * from stable_qual_pruning
+  where a = any(array['2010-02-01', '2020-01-01']::timestamp[]);
+explain (analyze, costs off, summary off, timing off)
+select * from stable_qual_pruning
+  where a = any(array['2000-02-01', '2010-01-01']::timestamp[]);
+explain (analyze, costs off, summary off, timing off)
+select * from stable_qual_pruning
+  where a = any(array['2000-02-01', localtimestamp]::timestamp[]);
+explain (analyze, costs off, summary off, timing off)
+select * from stable_qual_pruning
+  where a = any(array['2010-02-01', '2020-01-01']::timestamptz[]);
+explain (analyze, costs off, summary off, timing off)
+select * from stable_qual_pruning
+  where a = any(array['2000-02-01', '2010-01-01']::timestamptz[]);
+explain (analyze, costs off, summary off, timing off)
+select * from stable_qual_pruning
+  where a = any(null::timestamptz[]);
+
+drop table stable_qual_pruning;
+
+--
+-- Check that pruning with composite range partitioning works correctly when
+-- it must ignore clauses for trailing keys once it has seen a clause with
+-- non-inclusive operator for an earlier key
+--
+create table mc3p (a int, b int, c int) partition by range (a, abs(b), c);
+create table mc3p0 partition of mc3p
+  for values from (0, 0, 0) to (0, maxvalue, maxvalue);
+create table mc3p1 partition of mc3p
+  for values from (1, 1, 1) to (2, minvalue, minvalue);
+create table mc3p2 partition of mc3p
+  for values from (2, minvalue, minvalue) to (3, maxvalue, maxvalue);
+insert into mc3p values (0, 1, 1), (1, 1, 1), (2, 1, 1);
+
+explain (analyze, costs off, summary off, timing off)
+select * from mc3p where a < 3 and abs(b) = 1;
+
+--
+-- Check that pruning with composite range partitioning works correctly when
+-- a combination of runtime parameters is specified, not all of whose values
+-- are available at the same time
+--
+set plan_cache_mode = force_generic_plan;
+prepare ps1 as
+  select * from mc3p where a = $1 and abs(b) < (select 3);
+explain (analyze, costs off, summary off, timing off)
+execute ps1(1);
+deallocate ps1;
+prepare ps2 as
+  select * from mc3p where a <= $1 and abs(b) < (select 3);
+explain (analyze, costs off, summary off, timing off)
+execute ps2(1);
+deallocate ps2;
+reset plan_cache_mode;
+
+drop table mc3p;
+
 -- Ensure runtime pruning works with initplans params with boolean types
 create table boolvalues (value bool not null);
 insert into boolvalues values('t'),('f');
@@ -734,6 +868,47 @@ explain (analyze, costs off, summary off, timing off)
 select * from boolp where a = (select value from boolvalues where not value);
 
 drop table boolp;
+
+--
+-- Test run-time pruning of MergeAppend subnodes
+--
+set enable_seqscan = off;
+set enable_sort = off;
+create table ma_test (a int, b int) partition by range (a);
+create table ma_test_p1 partition of ma_test for values from (0) to (10);
+create table ma_test_p2 partition of ma_test for values from (10) to (20);
+create table ma_test_p3 partition of ma_test for values from (20) to (30);
+insert into ma_test select x,x from generate_series(0,29) t(x);
+create index on ma_test (b);
+
+analyze ma_test;
+prepare mt_q1 (int) as select a from ma_test where a >= $1 and a % 10 = 5 order by b;
+
+-- Execute query 5 times to allow choose_custom_plan
+-- to start considering a generic plan.
+execute mt_q1(0);
+execute mt_q1(0);
+execute mt_q1(0);
+execute mt_q1(0);
+execute mt_q1(0);
+
+explain (analyze, costs off, summary off, timing off) execute mt_q1(15);
+execute mt_q1(15);
+explain (analyze, costs off, summary off, timing off) execute mt_q1(25);
+execute mt_q1(25);
+-- Ensure MergeAppend behaves correctly when no subplans match
+explain (analyze, costs off, summary off, timing off) execute mt_q1(35);
+execute mt_q1(35);
+
+deallocate mt_q1;
+
+-- ensure initplan params properly prune partitions
+explain (analyze, costs off, summary off, timing off) select * from ma_test where a >= (select min(b) from ma_test_p2) order by b;
+
+reset enable_seqscan;
+reset enable_sort;
+
+drop table ma_test;
 
 reset enable_indexonlyscan;
 
@@ -837,9 +1012,7 @@ explain (costs off) delete from inh_lp where a = 1;
 -- inheritance children
 explain (costs off) update inh_lp1 set value = 10 where a = 2;
 
-\set VERBOSITY terse	\\ -- suppress cascade details
 drop table inh_lp cascade;
-\set VERBOSITY default
 
 reset enable_partition_pruning;
 reset constraint_exclusion;
@@ -887,6 +1060,23 @@ from (
      ) s(a, b, c)
 where s.a = 1 and s.b = 1 and s.c = (select 1);
 
+prepare q (int, int) as
+select *
+from (
+      select * from p
+      union all
+      select * from q1
+      union all
+      select 1, 1, 1
+     ) s(a, b, c)
+where s.a = $1 and s.b = $2 and s.c = (select 1);
+
+set plan_cache_mode to force_generic_plan;
+
+explain (costs off) execute q (1, 1);
+execute q (1, 1);
+
+reset plan_cache_mode;
 drop table p, q;
 
 -- Ensure run-time pruning works correctly when we match a partitioned table

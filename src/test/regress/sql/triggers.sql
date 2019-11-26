@@ -117,6 +117,41 @@ select * from trigtest;
 delete from trigtest;
 select * from trigtest;
 
+-- Also check what happens when such a trigger runs before or after others
+create function f1_times_10() returns trigger as
+$$ begin new.f1 := new.f1 * 10; return new; end $$ language plpgsql;
+
+create trigger trigger_alpha
+	before insert or update on trigtest
+	for each row execute procedure f1_times_10();
+
+insert into trigtest values(1, 'foo');
+select * from trigtest;
+update trigtest set f2 = f2 || 'bar';
+select * from trigtest;
+delete from trigtest;
+select * from trigtest;
+
+create trigger trigger_zed
+	before insert or update on trigtest
+	for each row execute procedure f1_times_10();
+
+insert into trigtest values(1, 'foo');
+select * from trigtest;
+update trigtest set f2 = f2 || 'bar';
+select * from trigtest;
+delete from trigtest;
+select * from trigtest;
+
+drop trigger trigger_alpha on trigtest;
+
+insert into trigtest values(1, 'foo');
+select * from trigtest;
+update trigtest set f2 = f2 || 'bar';
+select * from trigtest;
+delete from trigtest;
+select * from trigtest;
+
 drop table trigtest;
 
 create sequence ttdummy_seq increment 10 start 0 minvalue 0;
@@ -284,12 +319,28 @@ SELECT * FROM main_table ORDER BY a, b;
 SELECT pg_get_triggerdef(oid, true) FROM pg_trigger WHERE tgrelid = 'main_table'::regclass AND tgname = 'modified_a';
 SELECT pg_get_triggerdef(oid, false) FROM pg_trigger WHERE tgrelid = 'main_table'::regclass AND tgname = 'modified_a';
 SELECT pg_get_triggerdef(oid, true) FROM pg_trigger WHERE tgrelid = 'main_table'::regclass AND tgname = 'modified_any';
-DROP TRIGGER modified_a ON main_table;
+
+-- Test RENAME TRIGGER
+ALTER TRIGGER modified_a ON main_table RENAME TO modified_modified_a;
+SELECT count(*) FROM pg_trigger WHERE tgrelid = 'main_table'::regclass AND tgname = 'modified_a';
+SELECT count(*) FROM pg_trigger WHERE tgrelid = 'main_table'::regclass AND tgname = 'modified_modified_a';
+
+DROP TRIGGER modified_modified_a ON main_table;
 DROP TRIGGER modified_any ON main_table;
 DROP TRIGGER insert_a ON main_table;
 DROP TRIGGER delete_a ON main_table;
 DROP TRIGGER insert_when ON main_table;
 DROP TRIGGER delete_when ON main_table;
+
+-- Test WHEN condition accessing system columns.
+create table table_with_oids(a int);
+insert into table_with_oids values (1);
+create trigger oid_unchanged_trig after update on table_with_oids
+	for each row
+	when (new.tableoid = old.tableoid AND new.tableoid <> 0)
+	execute procedure trigger_func('after_upd_oid_unchanged');
+update table_with_oids set a = a + 1;
+drop table table_with_oids;
 
 -- Test column-level triggers
 DROP TRIGGER after_upd_row_trig ON main_table;
@@ -572,21 +623,10 @@ CREATE TABLE min_updates_test (
 	f2 int,
 	f3 int);
 
-CREATE TABLE min_updates_test_oids (
-	f1	text,
-	f2 int,
-	f3 int) WITH OIDS;
-
 INSERT INTO min_updates_test VALUES ('a',1,2),('b','2',null);
-
-INSERT INTO min_updates_test_oids VALUES ('a',1,2),('b','2',null);
 
 CREATE TRIGGER z_min_update
 BEFORE UPDATE ON min_updates_test
-FOR EACH ROW EXECUTE PROCEDURE suppress_redundant_updates_trigger();
-
-CREATE TRIGGER z_min_update
-BEFORE UPDATE ON min_updates_test_oids
 FOR EACH ROW EXECUTE PROCEDURE suppress_redundant_updates_trigger();
 
 \set QUIET false
@@ -597,21 +637,11 @@ UPDATE min_updates_test SET f2 = f2 + 1;
 
 UPDATE min_updates_test SET f3 = 2 WHERE f3 is null;
 
-UPDATE min_updates_test_oids SET f1 = f1;
-
-UPDATE min_updates_test_oids SET f2 = f2 + 1;
-
-UPDATE min_updates_test_oids SET f3 = 2 WHERE f3 is null;
-
 \set QUIET true
 
 SELECT * FROM min_updates_test;
 
-SELECT * FROM min_updates_test_oids;
-
 DROP TABLE min_updates_test;
-
-DROP TABLE min_updates_test_oids;
 
 --
 -- Test triggers on views
@@ -1463,6 +1493,29 @@ create trigger aaa after insert on parted_trig_1 for each row execute procedure 
 create trigger bbb after insert on parted_trig for each row execute procedure trigger_notice();
 create trigger qqq after insert on parted_trig_1_1 for each row execute procedure trigger_notice();
 insert into parted_trig values (50), (1500);
+drop table parted_trig;
+
+-- Verify propagation of trigger arguments to partitions
+create table parted_trig (a int) partition by list (a);
+create table parted_trig1 partition of parted_trig for values in (1);
+create or replace function trigger_notice() returns trigger as $$
+  declare
+    arg1 text = TG_ARGV[0];
+    arg2 integer = TG_ARGV[1];
+  begin
+    raise notice 'trigger % on % % % for % args % %',
+		TG_NAME, TG_TABLE_NAME, TG_WHEN, TG_OP, TG_LEVEL, arg1, arg2;
+    return null;
+  end;
+  $$ language plpgsql;
+create trigger aaa after insert on parted_trig
+   for each row execute procedure trigger_notice('quirky', 1);
+
+-- Verify propagation of trigger arguments to partitions attached after creating trigger
+create table parted_trig2 partition of parted_trig for values in (2);
+create table parted_trig3 (like parted_trig);
+alter table parted_trig attach partition parted_trig3 for values in (3);
+insert into parted_trig values (1), (2), (3);
 drop table parted_trig;
 
 -- test irregular partitions (i.e., different column definitions),

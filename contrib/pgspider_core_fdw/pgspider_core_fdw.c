@@ -25,6 +25,7 @@ PG_MODULE_MAGIC;
 #include "access/htup_details.h"
 #include "access/transam.h"
 #include "access/sysattr.h"
+#include "access/table.h"	/* postgres 12*/
 #include "catalog/pg_type.h"
 #include "commands/explain.h"
 #include "foreign/fdwapi.h"
@@ -50,12 +51,14 @@ PG_MODULE_MAGIC;
 #include "optimizer/tlist.h"
 #include "optimizer/cost.h"
 #include "optimizer/clauses.h"
+#include "optimizer/optimizer.h"	/* postgres 12 */
 #include "parser/parsetree.h"
 #include "utils/guc.h"
 #include "utils/memutils.h"
 #include "utils/palloc.h"
 #include "utils/lsyscache.h"
 #include "utils/builtins.h"
+#include "utils/float.h"	/* postgres 12 */
 #include "utils/datum.h"
 #include "utils/rel.h"
 #include "utils/elog.h"
@@ -1943,7 +1946,7 @@ spd_basestrictinfo_tree_walker(Node *node, PlannerInfo *root)
 			break;
 		case T_GroupingFunc:
 		case T_WindowFunc:
-		case T_ArrayRef:
+		case T_SubscriptingRef:
 		case T_FuncExpr:
 		case T_NamedArgExpr:
 			break;
@@ -3441,7 +3444,7 @@ spd_expression_tree_walker(Node *node, int att)
 			break;
 		case T_GroupingFunc:
 		case T_WindowFunc:
-		case T_ArrayRef:
+		case T_SubscriptingRef:
 		case T_FuncExpr:
 		case T_NamedArgExpr:
 			break;
@@ -3847,6 +3850,9 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 										 extract_grouping_cols(childinfo[i].aggpath->groupClause,
 															   fsplan->scan.plan.targetlist),
 										 extract_grouping_ops(childinfo[i].aggpath->groupClause),
+										 /* fix port 12 - adding grouping collations */
+										 extract_grouping_collations(childinfo[i].aggpath->groupClause,
+												 fsplan->scan.plan.targetlist),
 										 root->parse->groupingSets,
 										 NIL,
 										 childinfo[i].aggpath->path.rows,
