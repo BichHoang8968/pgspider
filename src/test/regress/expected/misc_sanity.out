@@ -107,5 +107,8 @@ ORDER BY 1, 2;
  pg_index                | indpred       | pg_node_tree
  pg_largeobject          | data          | bytea
  pg_largeobject_metadata | lomacl        | aclitem[]
-(11 rows)
+ pg_spd_node_info        | fdwname       | text
+ pg_spd_node_info        | ip            | text
+ pg_spd_node_info        | servername    | text
+(14 rows)
 
