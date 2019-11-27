@@ -4072,7 +4072,7 @@ get_returning_data(ForeignScanState *node)
 												dmstate->rel,
 												dmstate->attinmeta,
 												dmstate->retrieved_attrs,
-												NULL,
+												node,
 												dmstate->temp_cxt);
 			ExecStoreHeapTuple(newtup, slot, false);
 		}
@@ -4795,7 +4795,7 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 							   "  AND n.nspname = ");
 		deparseStringLiteral(&buf, stmt->remote_schema);
 
-		/* Partitions are supported since Pgspider 10 */
+		/* Partitions are supported since Postgres 10 */
 		if (PQserverVersion(conn) >= 100000)
 			appendStringInfoString(&buf, " AND NOT c.relispartition ");
 
@@ -6450,7 +6450,7 @@ conversion_error_callback(void *arg)
 			RangeTblEntry *rte;
 			Var		   *var = (Var *) tle->expr;
 
-			rte = rt_fetch(var->varno, estate->es_range_table);
+			rte = exec_rt_fetch(var->varno, estate);
 
 			if (var->varattno == 0)
 				is_wholerow = true;

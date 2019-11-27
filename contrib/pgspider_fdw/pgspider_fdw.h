@@ -3,7 +3,7 @@
  * pgspider_fdw.h
  *		  Foreign-data wrapper for remote PgspiderQL servers
  *
- * Portions Copyright (c) 2012-2017, PgspiderQL Global Development Group
+ * Portions Copyright (c) 2012-2019, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  contrib/pgspider_fdw/pgspider_fdw.h
