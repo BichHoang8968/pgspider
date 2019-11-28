@@ -25,7 +25,7 @@ PG_MODULE_MAGIC;
 #include "access/htup_details.h"
 #include "access/transam.h"
 #include "access/sysattr.h"
-#include "access/table.h"	/* postgres 12*/
+#include "access/table.h"
 #include "catalog/pg_type.h"
 #include "commands/explain.h"
 #include "foreign/fdwapi.h"
@@ -41,24 +41,23 @@ PG_MODULE_MAGIC;
 #include "nodes/nodes.h"
 #include "nodes/pg_list.h"
 #include "nodes/plannodes.h"
-#include "nodes/relation.h"
+#include "nodes/pathnodes.h"
 #include "nodes/makefuncs.h"
 #include "optimizer/pathnode.h"
 #include "optimizer/planmain.h"
 #include "optimizer/plancat.h"
 #include "optimizer/restrictinfo.h"
-#include "optimizer/var.h"
+#include "optimizer/optimizer.h"
 #include "optimizer/tlist.h"
 #include "optimizer/cost.h"
 #include "optimizer/clauses.h"
-#include "optimizer/optimizer.h"	/* postgres 12 */
 #include "parser/parsetree.h"
 #include "utils/guc.h"
 #include "utils/memutils.h"
 #include "utils/palloc.h"
 #include "utils/lsyscache.h"
 #include "utils/builtins.h"
-#include "utils/float.h"	/* postgres 12 */
+#include "utils/float.h"
 #include "utils/datum.h"
 #include "utils/rel.h"
 #include "utils/elog.h"
@@ -530,20 +529,20 @@ spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy)
 		return false;
 	}
 
+	/* Clear slot before storing new data */
 	ExecClearTuple(que->tuples[idx]);
 
 	/* Not minimal tuple */
-	Assert(!slot->tts_mintuple);
+	Assert(!TTS_IS_MINIMALTUPLE(slot));
 
-	if (TTS_HAS_PHYSICAL_TUPLE(slot))
+	if (TTS_IS_HEAPTUPLE(slot))
 	{
 		/*
 		 * TODO: we can probably skip heap_copytuple as in virtual tuple case
 		 * for some fdws
 		 */
-		ExecStoreTuple(heap_copytuple(slot->tts_tuple),
+		ExecStoreHeapTuple(heap_copytuple(slot->tts_ops->get_heap_tuple(slot)),
 					   que->tuples[idx],
-					   InvalidBuffer,
 					   false);
 	}
 	else
@@ -648,7 +647,7 @@ spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, bool skip_last)
 	/* Create tuple descriptor for queue */
 	for (j = 0; j < SPD_TUPLE_QUEUE_LEN; j++)
 	{
-		TupleTableSlot *slot = MakeSingleTupleTableSlot(tupledesc);
+		TupleTableSlot *slot = MakeSingleTupleTableSlot(tupledesc, &TTSOpsHeapTuple);
 
 		que->tuples[j] = slot;
 		slot->tts_values = palloc(tupledesc->natts * sizeof(Datum));
@@ -1609,7 +1608,7 @@ RESCAN:
 
 			}
 
-			if (slot == NULL || slot->tts_isempty)
+			if TupIsNull(slot)
 			{
 				spd_queue_notify_finish(&fssthrdInfo->tupleQueue);
 				break;
@@ -2756,7 +2755,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			 * descriptor for parent slot according to child comp tlist. We
 			 * save to fdw_private->child_comp_tupdesc for later use.
 			 */
-			tupledesc = CreateTemplateTupleDesc(list_length(fdw_private->child_comp_tlist), false);
+			tupledesc = CreateTemplateTupleDesc(list_length(fdw_private->child_comp_tlist));
 			foreach(lc, fdw_private->child_comp_tlist)
 			{
 				TargetEntry *ent = (TargetEntry *) lfirst(lc);
@@ -2770,7 +2769,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			fdw_private->child_comp_tupdesc = CreateTupleDescCopy(tupledesc);
 
 			/* Init temporary slot for adding spdurl back */
-			fdw_private->child_comp_slot = MakeSingleTupleTableSlot(CreateTupleDescCopy(fdw_private->child_comp_tupdesc));
+			fdw_private->child_comp_slot = MakeSingleTupleTableSlot(CreateTupleDescCopy(fdw_private->child_comp_tupdesc), &TTSOpsHeapTuple);
 		}
 
 		/* Create path for each child node */
@@ -2952,7 +2951,6 @@ get_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	SpdFdwPrivate *ifpinfo = input_rel->fdw_private;
 	SpdFdwPrivate *fpinfo = grouped_rel->fdw_private;
 	ForeignPath *grouppath;
-	PathTarget *grouping_target;
 	double		rows;
 	int			width;
 	Cost		startup_cost;
@@ -2962,8 +2960,6 @@ get_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	if (!parse->groupClause && !parse->groupingSets && !parse->hasAggs &&
 		!root->hasHavingQual)
 		return NULL;
-
-	grouping_target = root->upper_targets[UPPERREL_GROUP_AGG];
 
 	/* save the input_rel as outerrel in fpinfo */
 	fpinfo->rinfo.outerrel = input_rel;
@@ -2992,15 +2988,14 @@ get_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	fpinfo->rinfo.total_cost = total_cost;
 
 	/* Create and add foreign path to the grouping relation. */
-	grouppath = create_foreignscan_path(root,
+	grouppath = create_foreign_upper_path(root,
 										grouped_rel,
-										grouping_target,
+										root->upper_targets[UPPERREL_GROUP_AGG],
 										rows,
 										startup_cost,
 										total_cost,
 										NIL,	/* no pathkeys */
-										NULL,	/* no required_outer */
-										NULL,
+										NULL,	/* no fdw_outerpath */
 										NIL);	/* no fdw_private */
 	return (Path *) grouppath;
 }
@@ -3363,9 +3358,15 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 	}
 	baserel->rows = rows;
 
-	add_path(baserel, (Path *) create_foreignscan_path(root, baserel, NULL, baserel->rows,
-													   startup_cost, total_cost, NIL,
-													   NULL, NULL, NIL));
+	add_path(baserel, (Path *) create_foreignscan_path(root, baserel,
+											NULL,
+											baserel->rows,
+											startup_cost,
+											total_cost,
+											NIL,	/* no pathkeys*/
+											baserel->lateral_relids,
+											NULL,	/* no outerpath*/
+											NULL));
 }
 
 
@@ -4158,7 +4159,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			int			child_attr = 0; /* attribute number of child */
 			ListCell   *lc;
 
-			tupledesc = CreateTemplateTupleDesc(list_length(fdw_private->child_tlist), false);
+			tupledesc = CreateTemplateTupleDesc(list_length(fdw_private->child_tlist));
 
 			foreach(lc, fdw_private->child_tlist)
 			{
@@ -4177,12 +4178,12 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 				 * in queue.
 				 */
 				fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
-					MakeSingleTupleTableSlot(ExecTypeFromTL(fssThrdInfo[node_incr].fsstate->ss.ps.plan->targetlist, true));
+					MakeSingleTupleTableSlot(ExecCleanTypeFromTL(fssThrdInfo[node_incr].fsstate->ss.ps.plan->targetlist), &TTSOpsHeapTuple);
 			}
 			else
 			{
 				fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
-					MakeSingleTupleTableSlot(CreateTupleDescCopy(tupledesc));
+					MakeSingleTupleTableSlot(CreateTupleDescCopy(tupledesc), &TTSOpsHeapTuple);
 			}
 
 		}
@@ -4196,7 +4197,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			tupledesc = CreateTupleDescCopy(node->ss.ss_ScanTupleSlot->tts_tupleDescriptor);
 
 			fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
-				MakeSingleTupleTableSlot(tupledesc);
+				MakeSingleTupleTableSlot(tupledesc, &TTSOpsHeapTuple);
 		}
 
 		/*
@@ -4641,7 +4642,7 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 	}
 	Assert(target_column == slot->tts_tupleDescriptor->natts);
 	tuple = heap_form_tuple(slot->tts_tupleDescriptor, ret_agg_values, nulls);
-	ExecStoreTuple(tuple, slot, InvalidBuffer, false);
+	ExecStoreHeapTuple(tuple, slot, false);
 	fdw_private->agg_num++;
 	return slot;
 }
@@ -4934,10 +4935,10 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 		values = (Datum *) palloc0(sizeof(Datum) * natts);
 		nulls = (bool *) palloc0(sizeof(bool) * natts);
 
-		if (node_slot->tts_tuple != NULL)
+		if (TTS_IS_HEAPTUPLE(node_slot))
 		{
 			/* Extract data to values/isnulls */
-			heap_deform_tuple(node_slot->tts_tuple, node_slot->tts_tupleDescriptor, values, nulls);
+			heap_deform_tuple(node_slot->tts_ops->get_heap_tuple(node_slot), node_slot->tts_tupleDescriptor, values, nulls);
 
 			/* Insert spdurl to the array */
 			spdurl = psprintf("/%s/", fs->servername);
@@ -4958,11 +4959,11 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 			 * copy the identification info of the old tuple: t_ctid, t_self,
 			 * and OID (if any)
 			 */
-			newtuple->t_data->t_ctid = node_slot->tts_tuple->t_data->t_ctid;
-			newtuple->t_self = node_slot->tts_tuple->t_self;
-			newtuple->t_tableOid = node_slot->tts_tuple->t_tableOid;
+			newtuple->t_data->t_ctid = node_slot->tts_ops->get_heap_tuple(node_slot)->t_data->t_ctid;
+			newtuple->t_self = node_slot->tts_ops->get_heap_tuple(node_slot)->t_self;
+			newtuple->t_tableOid = node_slot->tts_ops->get_heap_tuple(node_slot)->t_tableOid;
 
-			parent_slot->tts_tuple = newtuple;
+			ExecStoreHeapTuple(newtuple, parent_slot, false);
 
 			pfree(values);
 			pfree(nulls);
@@ -4991,8 +4992,8 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 			}
 			parent_slot->tts_values = values;
 			parent_slot->tts_isnull = nulls;
-			/* to avoid assert failure in ExecStoreVirtualTuple */
-			parent_slot->tts_isempty = true;
+			/* to avoid assert failure in ExecStoreVirtualTuple, set tts_flags empty */
+			parent_slot->tts_flags |= TTS_FLAG_EMPTY;
 			ExecStoreVirtualTuple(parent_slot);
 		}
 	}
@@ -5058,12 +5059,12 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 
 		if (tnum != -1)
 		{
-			if (node_slot->tts_tuple != NULL)
+			if (TTS_IS_HEAPTUPLE(node_slot))
 			{
 				/* tuple mode is HEAP */
-				newtuple = heap_modify_tuple(node_slot->tts_tuple, node_slot->tts_tupleDescriptor,
+				newtuple = heap_modify_tuple(node_slot->tts_ops->get_heap_tuple(node_slot), node_slot->tts_tupleDescriptor,
 											 values, nulls, replaces);
-				node_slot->tts_tuple = newtuple;
+				ExecStoreHeapTuple(newtuple, node_slot, false);
 			}
 			else
 			{
@@ -5071,7 +5072,7 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 				node_slot->tts_values[tnum] = values[tnum];
 				node_slot->tts_isnull[tnum] = false;
 				/* to avoid assert failure in ExecStoreVirtualTuple */
-				node_slot->tts_isempty = true;
+				node_slot->tts_flags |= TTS_FLAG_EMPTY;
 				ExecStoreVirtualTuple(node_slot);
 			}
 		}
@@ -5501,7 +5502,7 @@ spd_PlanForeignModify(PlannerInfo *root,
 		elog(ERROR, "no URL is specified, INSERT/UPDATE/DELETE need to set URL");
 
 	spd_create_child_url(nums, rte, fdw_private);
-	rel = heap_open(rte->relid, NoLock);
+	rel = table_open(rte->relid, NoLock);
 
 	spd_spi_exec_child_relname(RelationGetRelationName(rel), fdw_private, &oid);
 	if (fdw_private->node_num == 0)
@@ -5513,7 +5514,7 @@ spd_PlanForeignModify(PlannerInfo *root,
 		fdwroutine = GetFdwRoutineByServerId(oid_server);
 		child_list = fdwroutine->PlanForeignModify(root, plan, resultRelation, subplan_index);
 	}
-	heap_close(rel, NoLock);
+	table_close(rel, NoLock);
 	return list_make2(child_list, makeInteger(oid_server));
 }
 
