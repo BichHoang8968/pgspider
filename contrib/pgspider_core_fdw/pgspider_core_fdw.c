@@ -67,6 +67,7 @@ PG_MODULE_MAGIC;
 #include "utils/syscache.h"
 #include "utils/lsyscache.h"
 #include "utils/resowner.h"
+#include "storage/lmgr.h"
 #include "libpq-fe.h"
 #include "pgspider_core_fdw_defs.h"
 #include "funcapi.h"
@@ -2285,6 +2286,12 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Oid *oid, int oid_nu
 		}
 		/* Set up RTE/RelOptInfo arrays */
 		setup_simple_rel_arrays(dummy_root);
+
+		/*
+		 * Because in build_simple_rel() function, it assumes that a relation was already locked before open.
+		 * So, we need to lock relation by id in dummy root in advance.
+		 */
+		LockRelationOid(rte->relid, AccessShareLock);
 
 		/*
 		 * Build RelOptInfo Build simple relation and copy target list and
