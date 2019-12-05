@@ -4096,7 +4096,11 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 				query->rtable = lappend(query->rtable, rte);
 			}
 		}
-		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_range_table = ((PlannerInfo *) childinfo[i].root)->parse->rtable;
+
+		/*
+		 * Init range table, in which we use range table array for exec_rt_fetch() because it is faster than rt_fetch().
+		 */
+		ExecInitRangeTable(fssThrdInfo[node_incr].fsstate->ss.ps.state, query->rtable);
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt = copyObject(node->ss.ps.state->es_plannedstmt);
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt->planTree = copyObject(fssThrdInfo[node_incr].fsstate->ss.ps.plan);
 		/* Allocate top memory context for each thread to avoid race condtion */
