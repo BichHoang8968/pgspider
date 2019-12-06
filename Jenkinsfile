@@ -52,13 +52,13 @@ def install_pgspider(String install_dir, int port) {
         cd ../sqlite_fdw/
         make install
         cd ../mysql_fdw/
-        make install
-        cd ../tinybrace_fdw/
-        make install
-        cd ../influxdb_fdw/
-        make install
-        cd ../griddb_fdw/
-        make install
+#        make install
+#        cd ../tinybrace_fdw/
+#        make install
+#        cd ../influxdb_fdw/
+#        make install
+#        cd ../griddb_fdw/
+#        make install
     '''
     dir(install_dir + "/bin") {
         sh './initdb ../databases'
@@ -122,6 +122,8 @@ pipeline {
                         cd sqlite_fdw
                         make clean && make && make install
                     '''
+                    /*
+                    Skip tinybrace_fdw, influxdb_fdw, griddb_fdw
                     // Build tinybrace_fdw
                     sh 'rm -rf tinybrace_fdw || true'
                     retrySh('svn co ' + TINYBRACE_FDW_URL)
@@ -146,6 +148,7 @@ pipeline {
                         export LD_LIBRARY_PATH=LD_LIBRARY_PATH:$(pwd)/griddb/bin/
                         make clean && make && make install
                     '''
+                    */
                 }
             }
             post {
