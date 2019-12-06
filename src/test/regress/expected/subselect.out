@@ -1311,10 +1311,10 @@ select * from x, x x2 where x.n = x2.n;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
  Result
-   Output: subselect_tbl.f1, now(), subselect_tbl_1.f1, now()
+   Output: subselect_tbl.f1, (now()), subselect_tbl_1.f1, (now())
    One-Time Filter: (now() = now())
    ->  Nested Loop
-         Output: subselect_tbl.f1, subselect_tbl_1.f1
+         Output: subselect_tbl.f1, now(), subselect_tbl_1.f1, now()
          ->  Seq Scan on public.subselect_tbl
                Output: subselect_tbl.f1, subselect_tbl.f2, subselect_tbl.f3
          ->  Materialize
