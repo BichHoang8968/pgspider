@@ -391,7 +391,7 @@ static bool spd_can_skip_deepcopy(char *fdwname);
 static bool spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy);
 static TupleTableSlot *spd_queue_get(SpdTupleQueue * que, bool *is_finished);
 static void spd_queue_reset(SpdTupleQueue * que);
-static void spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, bool skipLast);
+static void spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, const TupleTableSlotOps *tts_ops, bool skipLast);
 static void spd_queue_notify_finish(SpdTupleQueue * que);
 
 
@@ -536,20 +536,23 @@ spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy)
 	/* Not minimal tuple */
 	Assert(!TTS_IS_MINIMALTUPLE(slot));
 
-	if (TTS_IS_HEAPTUPLE(slot))
+	/*
+	 * Note: In some fdws, for instance, file_fdw, we need to check whether the heap tuple is not null or not.
+	 * If it is NULL, we cannot use copy_heap_tuple() because spdurl column attribute is not valid;
+	 */
+	if (TTS_IS_HEAPTUPLE(slot) && ((HeapTupleTableSlot*) slot)->tuple)
 	{
 		/*
 		 * TODO: we can probably skip heap_copytuple as in virtual tuple case
 		 * for some fdws
 		 */
-		ExecStoreHeapTuple(heap_copytuple(slot->tts_ops->get_heap_tuple(slot)),
-					   que->tuples[idx],
-					   false);
+		ExecStoreHeapTuple(slot->tts_ops->copy_heap_tuple(slot),
+					que->tuples[idx],
+					false);
 	}
 	else
 	{
 		/* Virtual tuple */
-
 		natts = que->tuples[idx]->tts_tupleDescriptor->natts;
 		memcpy(que->tuples[idx]->tts_isnull, slot->tts_isnull, natts * sizeof(bool));
 
@@ -640,7 +643,7 @@ spd_queue_reset(SpdTupleQueue * que)
  * Init queue.
  */
 static void
-spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, bool skip_last)
+spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, const TupleTableSlotOps *tts_ops, bool skip_last)
 {
 	int			j;
 
@@ -648,7 +651,7 @@ spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, bool skip_last)
 	/* Create tuple descriptor for queue */
 	for (j = 0; j < SPD_TUPLE_QUEUE_LEN; j++)
 	{
-		TupleTableSlot *slot = MakeSingleTupleTableSlot(tupledesc, &TTSOpsHeapTuple);
+		TupleTableSlot *slot = MakeSingleTupleTableSlot(tupledesc, tts_ops);
 
 		que->tuples[j] = slot;
 		slot->tts_values = palloc(tupledesc->natts * sizeof(Datum));
@@ -4189,12 +4192,12 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 				 * in queue.
 				 */
 				fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
-					MakeSingleTupleTableSlot(ExecCleanTypeFromTL(fssThrdInfo[node_incr].fsstate->ss.ps.plan->targetlist), &TTSOpsHeapTuple);
+					MakeSingleTupleTableSlot(ExecCleanTypeFromTL(fssThrdInfo[node_incr].fsstate->ss.ps.plan->targetlist), node->ss.ss_ScanTupleSlot->tts_ops);
 			}
 			else
 			{
 				fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
-					MakeSingleTupleTableSlot(CreateTupleDescCopy(tupledesc), &TTSOpsHeapTuple);
+					MakeSingleTupleTableSlot(CreateTupleDescCopy(tupledesc), node->ss.ss_ScanTupleSlot->tts_ops);
 			}
 
 		}
@@ -4208,7 +4211,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			tupledesc = CreateTupleDescCopy(node->ss.ss_ScanTupleSlot->tts_tupleDescriptor);
 
 			fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
-				MakeSingleTupleTableSlot(tupledesc, &TTSOpsHeapTuple);
+				MakeSingleTupleTableSlot(tupledesc, node->ss.ss_ScanTupleSlot->tts_ops);
 		}
 
 		/*
@@ -4226,7 +4229,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			strcmp(fssThrdInfo[node_incr].fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
 			skiplast = true;
 
-		spd_queue_init(&fssThrdInfo[node_incr].tupleQueue, tupledesc, skiplast);
+		spd_queue_init(&fssThrdInfo[node_incr].tupleQueue, tupledesc, node->ss.ss_ScanTupleSlot->tts_ops, skiplast);
 
 		natts = fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor->natts;
 
@@ -5070,7 +5073,7 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 
 		if (tnum != -1)
 		{
-			if (TTS_IS_HEAPTUPLE(node_slot))
+			if (TTS_IS_HEAPTUPLE(node_slot) && ((HeapTupleTableSlot*) node_slot)->tuple)
 			{
 				/* tuple mode is HEAP */
 				newtuple = heap_modify_tuple(node_slot->tts_ops->get_heap_tuple(node_slot), node_slot->tts_tupleDescriptor,
