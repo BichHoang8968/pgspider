@@ -2269,6 +2269,7 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Oid *oid, int oid_nu
 		rte->inh = false;
 		rte->inFromCl = true;
 		rte->eref = makeAlias(pstrdup(""), NIL);
+		rte->rellockmode = AccessShareLock;	/* For SELECT query */
 
 		/*
 		 * if child node is spd and IN clause is used, then should set new IN
