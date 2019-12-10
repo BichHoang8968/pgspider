@@ -2295,7 +2295,7 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel, Oid *oid, int oid_nu
 		 * Because in build_simple_rel() function, it assumes that a relation was already locked before open.
 		 * So, we need to lock relation by id in dummy root in advance.
 		 */
-		LockRelationOid(rte->relid, AccessShareLock);
+		LockRelationOid(rte->relid, rte->rellockmode);
 
 		/*
 		 * Build RelOptInfo Build simple relation and copy target list and
@@ -4144,6 +4144,13 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		 * childinfo[i].oid
 		 */
 		rd = RelationIdGetRelation(childinfo[i].oid);
+
+		/*
+		 * For prepared statement, dummy root is not created at the next execution, so we need to lock relation again.
+		 * TODO: Investigate why relation does not hold any lock even we don't unlock relation in case of using prepared statement.
+		 */
+		LockRelationOid(childinfo[i].oid, AccessShareLock);
+
 		fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation = rd;
 
 		fssThrdInfo[node_incr].requestEndScan = false;
