@@ -4147,9 +4147,13 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 		/*
 		 * For prepared statement, dummy root is not created at the next execution, so we need to lock relation again.
-		 * TODO: Investigate why relation does not hold any lock even we don't unlock relation in case of using prepared statement.
+		 * We don't need unlock relation because lock will be released at transaction end.
+		 * https://www.postgresql.org/docs/12/sql-lock.html
 		 */
-		LockRelationOid(childinfo[i].oid, AccessShareLock);
+		if (!CheckRelationLockedByMe(rd, AccessShareLock, true))
+		{
+			LockRelationOid(childinfo[i].oid, AccessShareLock);
+		}
 
 		fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation = rd;
 
