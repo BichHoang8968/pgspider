@@ -52,7 +52,7 @@ def install_pgspider(String install_dir, int port) {
         cd ../sqlite_fdw/
         make install
         cd ../mysql_fdw/
-#        make install
+        make install
 #        cd ../tinybrace_fdw/
 #        make install
 #        cd ../influxdb_fdw/
