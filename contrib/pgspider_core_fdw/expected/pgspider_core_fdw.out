@@ -807,7 +807,6 @@ SELECT stddev(i) FROM t1;
  1.29099443334595
 (1 row)
 
-
 SELECT sum(i),t FROM t1 WHERE i = 1 group by t;
  sum | t 
 -----+---
@@ -1006,11 +1005,11 @@ DEALLOCATE stmt;
 EXPLAIN (VERBOSE, COSTS OFF) SELECT STDDEV(i) FROM t1;
                               QUERY PLAN                              
 ----------------------------------------------------------------------
-   Foreign Scan
-     Output: (stddev(i))
-     Node: post_svr / Status: Alive
-       Agg push-down: yes
-       Relations: Aggregate on (public.t1__post_svr__0)
+ Foreign Scan
+   Output: (stddev(i))
+   Node: post_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.t1__post_svr__0)
      Remote SQL: SELECT count(i), sum(i), sum((i * i)) FROM public.t1
 (6 rows)
 
