@@ -146,6 +146,7 @@ SELECT sum(i),t,count(i) FROM t1 group by t;
 SELECT * FROM t1 WHERE i = 1;
 SELECT sum(i),t FROM t1 group by t;
 SELECT avg(i) FROM t1;
+SELECT stddev(i) FROM t1;
 SELECT sum(i),t FROM t1 WHERE i = 1 group by t;
 SELECT avg(i),sum(i) FROM t1;
 SELECT sum(i),sum(i) FROM t1;

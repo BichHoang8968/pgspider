@@ -1150,7 +1150,7 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 										   NULL,
 										   false);
 				*compress_tlist_tle = lappend(*compress_tlist_tle, tle_temp);
-				*compress_tlist = lappend(*compress_tlist, tempSum);
+				*compress_tlist = lappend(*compress_tlist, tle_temp);
 			}
 			mapcells->mapping[2] = target_num;
 		}

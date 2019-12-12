@@ -801,6 +801,12 @@ SELECT avg(i) FROM t1;
  2.5
 (1 row)
 
+SELECT stddev(i) FROM t1;
+      stddev      
+------------------
+ 1.29099443334595
+(1 row)
+
 SELECT sum(i),t FROM t1 WHERE i = 1 group by t;
  sum | t 
 -----+---
@@ -997,14 +1003,14 @@ END; $$;
 -- deallocate statement
 DEALLOCATE stmt;
 EXPLAIN (VERBOSE, COSTS OFF) SELECT STDDEV(i) FROM t1;
-                       QUERY PLAN                       
---------------------------------------------------------
+                              QUERY PLAN                              
+----------------------------------------------------------------------
  Foreign Scan
    Output: (stddev(i))
    Node: post_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.t1__post_svr__0)
-     Remote SQL: SELECT count(i), sum(i) FROM public.t1
+     Remote SQL: SELECT count(i), sum(i), sum((i * i)) FROM public.t1
 (6 rows)
 
 CREATE FOREIGN TABLE t3 (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
