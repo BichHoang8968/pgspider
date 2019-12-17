@@ -94,10 +94,18 @@ create table loct3_1 (f1 text collate "C" unique, f2 text, f3 varchar(10) unique
 -- ===================================================================
 
 CREATE TABLE base_tbl (a int, b int);
-
 ALTER TABLE base_tbl SET (autovacuum_enabled = 'false');
 
+CREATE TABLE child_tbl (a int, b int);
+ALTER TABLE child_tbl SET (autovacuum_enabled = 'false');
 
+-- ===================================================================
+-- JOIN queries
+-- ===================================================================
+-- multi-way join involving multiple merge joins
+-- (this case used to have EPQ-related planning problems)
+CREATE TABLE local_tbl (c1 int NOT NULL, c2 int NOT NULL, c3 text, CONSTRAINT local_tbl_pkey PRIMARY KEY (c1));
+INSERT INTO local_tbl SELECT id, id % 10, to_char(id, 'FM0000') FROM generate_series(1, 1000) id;
 
 -- ===================================================================
 

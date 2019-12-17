@@ -49,7 +49,6 @@ INSERT INTO "S 1"."T 1"
 	       id % 10,
 	       'foo'::user_enum
 	FROM generate_series(1, 1000) id;
-
 INSERT INTO "S 1"."T 2"
 	SELECT id,
 	       'AAA' || to_char(id, 'FM000')
@@ -163,19 +162,6 @@ CREATE FOREIGN TABLE ft6__postgres_srv2__0 (
 	c3 text
 ) SERVER postgres_srv2 OPTIONS (schema_name 'S 1', table_name 'T 4');
 
--- A table with oids. CREATE FOREIGN TABLE doesn't support the
--- WITH OIDS option, but ALTER does.
-CREATE FOREIGN TABLE ft_pg_type (
-	typname name,
-	typlen smallint,
-	__spd_url text
-) SERVER pgspider_srv;
-CREATE FOREIGN TABLE ft_pg_type__postgres_srv__0 (
-	typname name,
-	typlen smallint
-) SERVER postgres_srv OPTIONS (schema_name 'pg_catalog', table_name 'pg_type');
-ALTER TABLE ft_pg_type SET WITH OIDS;
-ALTER TABLE ft_pg_type__postgres_srv__0 SET WITH OIDS;
 
 -- ===================================================================
 -- tests for validator
@@ -199,6 +185,7 @@ ALTER TABLE ft_pg_type__postgres_srv__0 SET WITH OIDS;
 -- 	keepalives 'value',
 -- 	keepalives_idle 'value',
 -- 	keepalives_interval 'value',
+--	tcp_user_timeout 'value',
 -- 	-- requiressl 'value',
 -- 	sslcompression 'value',
 -- 	sslmode 'value',
@@ -210,10 +197,9 @@ ALTER TABLE ft_pg_type__postgres_srv__0 SET WITH OIDS;
 -- 	-- krbsrvname 'value',
 -- 	-- gsslib 'value',
 -- 	--replication 'value'
--- );
-
+--);
 -- Error, invalid list syntax
---ALTER SERVER pgspider_srv OPTIONS (ADD extensions 'foo; bar');
+-- ALTER SERVER pgspider_srv OPTIONS (ADD extensions 'foo; bar');
 
 -- OK but gets a warning
 --ALTER SERVER pgspider_srv OPTIONS (ADD extensions 'foo, bar');
@@ -233,7 +219,7 @@ ALTER FOREIGN TABLE ft2__postgres_srv__0 ALTER COLUMN c1 OPTIONS (column_name 'C
 \set VERBOSITY terse
 SELECT c3, c4 FROM ft1 ORDER BY c3, c1 LIMIT 1;  -- should work
 ALTER SERVER postgres_srv OPTIONS (SET dbname 'no such database');
---SELECT c3, c4 FROM ft1 ORDER BY c3, c1 LIMIT 1;  -- should fail
+SELECT c3, c4 FROM ft1 ORDER BY c3, c1 LIMIT 1;  -- should fail
 
 DO $d$
     BEGIN
@@ -244,13 +230,12 @@ $d$;
 SELECT c3, c4 FROM ft1 ORDER BY c3, c1 LIMIT 1;  -- should work again
 
 -- Test that alteration of user mapping options causes reconnection
--- ALTER USER MAPPING FOR CURRENT_USER SERVER postgres_srv
+--ALTER USER MAPPING FOR CURRENT_USER SERVER postgres_srv
 --   OPTIONS (ADD user 'no such user');
--- SELECT c3, c4 FROM ft1 ORDER BY c3, c1 LIMIT 1;  -- should fail
--- ALTER USER MAPPING FOR CURRENT_USER SERVER postgres_srv
+--SELECT c3, c4 FROM ft1 ORDER BY c3, c1 LIMIT 1;  -- should fail
+--ALTER USER MAPPING FOR CURRENT_USER SERVER postgres_srv
 --   OPTIONS (DROP user);
-
--- SELECT c3, c4 FROM ft1 ORDER BY c3, c1 LIMIT 1;  -- should work again
+--SELECT c3, c4 FROM ft1 ORDER BY c3, c1 LIMIT 1;  -- should work again
 \set VERBOSITY default
 
 -- Now we should be able to run ANALYZE.
@@ -300,8 +285,8 @@ SET enable_nestloop TO false;
 SELECT t1.c1, t2."C 1" FROM ft2 t1 JOIN "S 1"."T 1" t2 ON (t1.c1 = t2."C 1") OFFSET 100 LIMIT 10;
 -- outer join; expressions in the clauses do not appear in equivalence class
 -- list but no output change as compared to the previous query
--- EXPLAIN (VERBOSE, COSTS OFF)
--- 	SELECT t1.c1, t2."C 1" FROM ft2 t1 LEFT JOIN "S 1"."T 1" t2 ON (t1.c1 = t2."C 1") OFFSET 100 LIMIT 10;
+EXPLAIN (VERBOSE, COSTS OFF)
+	SELECT t1.c1, t2."C 1" FROM ft2 t1 LEFT JOIN "S 1"."T 1" t2 ON (t1.c1 = t2."C 1") OFFSET 100 LIMIT 10;
 SELECT t1.c1, t2."C 1" FROM ft2 t1 LEFT JOIN "S 1"."T 1" t2 ON (t1.c1 = t2."C 1") OFFSET 100 LIMIT 10;
 -- A join between local table and foreign join. ORDER BY clause is added to the
 -- foreign join so that the local table can be joined using merge join strategy.
@@ -333,7 +318,7 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c1 = -c1;          -- Op
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE 1 = c1!;           -- OpExpr(r)
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE (c1 IS NOT NULL) IS DISTINCT FROM (c1 IS NOT NULL); -- DistinctExpr
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c1 = ANY(ARRAY[c2, 1, c1 + 0]); -- ScalarArrayOpExpr
-EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c1 = (ARRAY[c1,c2,3])[1]; -- ArrayRef
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c1 = (ARRAY[c1,c2,3])[1]; -- SubscriptingRef
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c6 = E'foo''s\\bar';  -- check special chars
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c8 = 'foo';  -- can't be sent to remote
 -- parameterized remote path for foreign table
@@ -350,7 +335,6 @@ WHERE a.c2 = 6 AND b.c1 = a.c1 AND a.c8 = 'foo' AND b.c7 = upper(a.c7);
 -- bug before 9.3.5 due to sloppy handling of remote-estimate parameters
 -- SELECT * FROM ft1 WHERE c1 = ANY (ARRAY(SELECT c1 FROM ft2 WHERE c1 < 5));
 -- SELECT * FROM ft2 WHERE c1 = ANY (ARRAY(SELECT c1 FROM ft1 WHERE c1 < 5));
-
 -- we should not push order by clause with volatile expressions or unsafe
 -- collations
 EXPLAIN (VERBOSE, COSTS OFF)
@@ -382,10 +366,15 @@ SELECT count(c3) FROM ft1 t1 WHERE t1.c1 = t1.c2;
 -- by default, user-defined ones cannot
 EXPLAIN (VERBOSE, COSTS OFF)
   SELECT count(c3) FROM ft1 t1 WHERE t1.c1 = postgres_fdw_abs(t1.c2);
--- SELECT count(c3) FROM ft1 t1 WHERE t1.c1 = postgres_fdw_abs(t1.c2);
+SELECT count(c3) FROM ft1 t1 WHERE t1.c1 = postgres_fdw_abs(t1.c2);
 EXPLAIN (VERBOSE, COSTS OFF)
   SELECT count(c3) FROM ft1 t1 WHERE t1.c1 === t1.c2;
--- SELECT count(c3) FROM ft1 t1 WHERE t1.c1 === t1.c2;
+SELECT count(c3) FROM ft1 t1 WHERE t1.c1 === t1.c2;
+
+-- ORDER BY can be shipped, though
+EXPLAIN (VERBOSE, COSTS OFF)
+  SELECT * FROM ft1 t1 WHERE t1.c1 === t1.c2 order by t1.c2 limit 1;
+SELECT * FROM ft1 t1 WHERE t1.c1 === t1.c2 order by t1.c2 limit 1;
 
 -- but let's put them in an extension ...
 ALTER EXTENSION postgres_fdw ADD FUNCTION postgres_fdw_abs(int);
@@ -395,11 +384,15 @@ ALTER SERVER postgres_srv OPTIONS (ADD extensions 'postgres_fdw');
 -- ... now they can be shipped
 EXPLAIN (VERBOSE, COSTS OFF)
   SELECT count(c3) FROM ft1 t1 WHERE t1.c1 = postgres_fdw_abs(t1.c2);
--- SELECT count(c3) FROM ft1 t1 WHERE t1.c1 = postgres_fdw_abs(t1.c2);
-
+--SELECT count(c3) FROM ft1 t1 WHERE t1.c1 = postgres_fdw_abs(t1.c2);
 EXPLAIN (VERBOSE, COSTS OFF)
   SELECT count(c3) FROM ft1 t1 WHERE t1.c1 === t1.c2;
--- SELECT count(c3) FROM ft1 t1 WHERE t1.c1 === t1.c2;
+--SELECT count(c3) FROM ft1 t1 WHERE t1.c1 === t1.c2;
+
+-- and both ORDER BY and LIMIT can be shipped
+EXPLAIN (VERBOSE, COSTS OFF)
+  SELECT * FROM ft1 t1 WHERE t1.c1 === t1.c2 order by t1.c2 limit 1;
+--SELECT * FROM ft1 t1 WHERE t1.c1 === t1.c2 order by t1.c2 limit 1;
 
 -- ===================================================================
 -- JOIN queries
@@ -412,17 +405,14 @@ ANALYZE ft5;
 -- join two tables
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
-
 SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
 -- join three tables
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- SELECT t1.c1, t2.c2, t3.c3 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) JOIN ft4 t3 ON (t3.c1 = t1.c1) ORDER BY t1.c3, t1.c1 OFFSET 10 LIMIT 10;
-
 SELECT t1.c1, t2.c2, t3.c3 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) JOIN ft4 t3 ON (t3.c1 = t1.c1) ORDER BY t1.c3, t1.c1 OFFSET 10 LIMIT 10;
 -- left outer join
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- SELECT t1.c1, t2.c1 FROM ft4 t1 LEFT JOIN ft5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t2.c1 OFFSET 10 LIMIT 10;
-
 SELECT t1.c1, t2.c1 FROM ft4 t1 LEFT JOIN ft5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t2.c1 OFFSET 10 LIMIT 10;
 -- left outer join three tables
 -- EXPLAIN (VERBOSE, COSTS OFF)
@@ -465,7 +455,6 @@ SELECT 1 FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t1 FULL JOIN (SELE
 -- relation
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- SELECT t1.c1, ss.a, ss.b FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t1 FULL JOIN (SELECT t2.c1, t3.c1 FROM ft4 t2 LEFT JOIN ft5 t3 ON (t2.c1 = t3.c1) WHERE (t2.c1 between 50 and 60)) ss(a, b) ON (t1.c1 = ss.a) ORDER BY t1.c1, ss.a, ss.b;
-
 SELECT t1.c1, ss.a, ss.b FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t1 FULL JOIN (SELECT t2.c1, t3.c1 FROM ft4 t2 LEFT JOIN ft5 t3 ON (t2.c1 = t3.c1) WHERE (t2.c1 between 50 and 60)) ss(a, b) ON (t1.c1 = ss.a) ORDER BY t1.c1, ss.a, ss.b;
 -- c. test deparsing the remote query as nested subqueries
 -- EXPLAIN (VERBOSE, COSTS OFF)
@@ -514,12 +503,10 @@ SELECT t1.c1, t2.c1 FROM ft4 t1 FULL JOIN ft5 t2 ON (t1.c1 = t2.c1) WHERE (t1.c1
 -- full outer join + WHERE clause with shippable extensions set
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- SELECT t1.c1, t2.c2, t1.c3 FROM ft1 t1 FULL JOIN ft2 t2 ON (t1.c1 = t2.c1) WHERE postgres_fdw_abs(t1.c1) > 0 OFFSET 10 LIMIT 10;
-
 ALTER SERVER postgres_srv OPTIONS (DROP extensions);
 -- full outer join + WHERE clause with shippable extensions not set
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- SELECT t1.c1, t2.c2, t1.c3 FROM ft1 t1 FULL JOIN ft2 t2 ON (t1.c1 = t2.c1) WHERE postgres_fdw_abs(t1.c1) > 0 OFFSET 10 LIMIT 10;
-
 ALTER SERVER postgres_srv OPTIONS (ADD extensions 'postgres_fdw');
 -- join two tables with FOR UPDATE clause
 -- tests whole-row reference for row marks
@@ -538,12 +525,11 @@ SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t
 SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10 FOR SHARE;
 -- join in CTE
 -- EXPLAIN (VERBOSE, COSTS OFF)
--- WITH t (c1_1, c1_3, c2_1) AS (SELECT t1.c1, t1.c3, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1)) SELECT c1_1, c2_1 FROM t ORDER BY c1_3, c1_1 OFFSET 100 LIMIT 10;
-WITH t (c1_1, c1_3, c2_1) AS (SELECT t1.c1, t1.c3, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1)) SELECT c1_1, c2_1 FROM t ORDER BY c1_3, c1_1 OFFSET 100 LIMIT 10;
+-- WITH t (c1_1, c1_3, c2_1) AS MATERIALIZED (SELECT t1.c1, t1.c3, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1)) SELECT c1_1, c2_1 FROM t ORDER BY c1_3, c1_1 OFFSET 100 LIMIT 10;
+WITH t (c1_1, c1_3, c2_1) AS MATERIALIZED (SELECT t1.c1, t1.c3, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1)) SELECT c1_1, c2_1 FROM t ORDER BY c1_3, c1_1 OFFSET 100 LIMIT 10;
 -- ctid with whole-row reference
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.ctid, t1, t2, t1.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
-
 -- SEMI JOIN, not pushed down
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- SELECT t1.c1 FROM ft1 t1 WHERE EXISTS (SELECT 1 FROM ft2 t2 WHERE t1.c1 = t2.c1) ORDER BY t1.c1 OFFSET 100 LIMIT 10;
@@ -552,21 +538,19 @@ SELECT t1.c1 FROM ft1 t1 WHERE EXISTS (SELECT 1 FROM ft2 t2 WHERE t1.c1 = t2.c1)
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- SELECT t1.c1 FROM ft1 t1 WHERE NOT EXISTS (SELECT 1 FROM ft2 t2 WHERE t1.c1 = t2.c2) ORDER BY t1.c1 OFFSET 100 LIMIT 10;
 SELECT t1.c1 FROM ft1 t1 WHERE NOT EXISTS (SELECT 1 FROM ft2 t2 WHERE t1.c1 = t2.c2) ORDER BY t1.c1 OFFSET 100 LIMIT 10;
--- CROSS JOIN, not pushed down
+-- CROSS JOIN can be pushed down
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c1 FROM ft1 t1 CROSS JOIN ft2 t2 ORDER BY t1.c1, t2.c1 OFFSET 100 LIMIT 10;
 SELECT t1.c1, t2.c1 FROM ft1 t1 CROSS JOIN ft2 t2 ORDER BY t1.c1, t2.c1 OFFSET 100 LIMIT 10;
 -- different server, not pushed down. No result expected.
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- SELECT t1.c1, t2.c1 FROM ft5 t1 JOIN ft6 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t2.c1 OFFSET 100 LIMIT 10;
-
 SELECT t1.c1, t2.c1 FROM ft5 t1 JOIN ft6 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t2.c1 OFFSET 100 LIMIT 10;
 -- unsafe join conditions (c8 has a UDT), not pushed down. Practically a CROSS
 -- JOIN since c8 in both tables has same value.
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- SELECT t1.c1, t2.c1 FROM ft1 t1 LEFT JOIN ft2 t2 ON (t1.c8 = t2.c8) ORDER BY t1.c1, t2.c1 OFFSET 100 LIMIT 10;
 -- SELECT t1.c1, t2.c1 FROM ft1 t1 LEFT JOIN ft2 t2 ON (t1.c8 = t2.c8) ORDER BY t1.c1, t2.c1 OFFSET 100 LIMIT 10;
-
 -- unsafe conditions on one side (c8 has a UDT), not pushed down.
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c1 FROM ft1 t1 LEFT JOIN ft2 t2 ON (t1.c1 = t2.c1) WHERE t1.c8 = 'foo' ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
@@ -577,17 +561,14 @@ SELECT t1.c1, t2.c1 FROM ft1 t1 LEFT JOIN ft2 t2 ON (t1.c1 = t2.c1) WHERE t1.c8 
 -- into one of the joining sides.
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) WHERE t1.c8 = t2.c8 ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
-
 SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) WHERE t1.c8 = t2.c8 ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
 -- Aggregate after UNION, for testing setrefs
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- SELECT t1c1, avg(t1c1 + t2c1) FROM (SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) UNION SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1)) AS t (t1c1, t2c1) GROUP BY t1c1 ORDER BY t1c1 OFFSET 100 LIMIT 10;
-
 SELECT t1c1, avg(t1c1 + t2c1) FROM (SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) UNION SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1)) AS t (t1c1, t2c1) GROUP BY t1c1 ORDER BY t1c1 OFFSET 100 LIMIT 10;
 -- join with lateral reference
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- SELECT t1."C 1" FROM "S 1"."T 1" t1, LATERAL (SELECT DISTINCT t2.c1, t3.c1 FROM ft1 t2, ft2 t3 WHERE t2.c1 = t3.c1 AND t2.c2 = t1.c2) q ORDER BY t1."C 1" OFFSET 10 LIMIT 10;
-
 -- SELECT t1."C 1" FROM "S 1"."T 1" t1, LATERAL (SELECT DISTINCT t2.c1, t3.c1 FROM ft1 t2, ft2 t3 WHERE t2.c1 = t3.c1 AND t2.c2 = t1.c2) q ORDER BY t1."C 1" OFFSET 10 LIMIT 10;
 
 -- non-Var items in targetlist of the nullable rel of a join preventing
@@ -610,16 +591,24 @@ SELECT ft5, ft5.c1, ft5.c2, ft5.c3, ft4.c1, ft4.c2 FROM ft5 left join ft4 on ft5
 
 -- multi-way join involving multiple merge joins
 -- (this case used to have EPQ-related planning problems)
+CREATE FOREIGN TABLE local_tbl (c1 int NOT NULL, c2 int NOT NULL, c3 text, __spd_url text)
+    SERVER pgspider_srv;
+CREATE FOREIGN TABLE local_tbl__postgres_srv__0 (c1 int NOT NULL, c2 int NOT NULL, c3 text)
+    SERVER postgres_srv OPTIONS(table_name 'local_tbl');
+--CREATE TABLE local_tbl (c1 int NOT NULL, c2 int NOT NULL, c3 text, CONSTRAINT local_tbl_pkey PRIMARY KEY (c1));
+--INSERT INTO local_tbl SELECT id, id % 10, to_char(id, 'FM0000') FROM generate_series(1, 1000) id;
+ANALYZE local_tbl;
 SET enable_nestloop TO false;
 SET enable_hashjoin TO false;
 EXPLAIN (VERBOSE, COSTS OFF)
-SELECT * FROM ft1, ft2, ft4, ft5 WHERE ft1.c1 = ft2.c1 AND ft1.c2 = ft4.c1
-    AND ft1.c2 = ft5.c1 AND ft1.c1 < 100 AND ft2.c1 < 100 FOR UPDATE;
-SELECT * FROM ft1, ft2, ft4, ft5 WHERE ft1.c1 = ft2.c1 AND ft1.c2 = ft4.c1
-    AND ft1.c2 = ft5.c1 AND ft1.c1 < 100 AND ft2.c1 < 100 FOR UPDATE;
-
+SELECT * FROM ft1, ft2, ft4, ft5, local_tbl WHERE ft1.c1 = ft2.c1 AND ft1.c2 = ft4.c1
+    AND ft1.c2 = ft5.c1 AND ft1.c2 = local_tbl.c1 AND ft1.c1 < 100 AND ft2.c1 < 100 FOR UPDATE;
+SELECT * FROM ft1, ft2, ft4, ft5, local_tbl WHERE ft1.c1 = ft2.c1 AND ft1.c2 = ft4.c1
+    AND ft1.c2 = ft5.c1 AND ft1.c2 = local_tbl.c1 AND ft1.c1 < 100 AND ft2.c1 < 100 FOR UPDATE;
 RESET enable_nestloop;
 RESET enable_hashjoin;
+DROP FOREIGN TABLE local_tbl;
+DROP FOREIGN TABLE local_tbl__postgres_srv__0;
 
 -- check join pushdown in situations where multiple userids are involved
 CREATE ROLE regress_view_owner SUPERUSER;
@@ -632,22 +621,18 @@ CREATE VIEW v5 AS SELECT * FROM ft5;
 ALTER VIEW v5 OWNER TO regress_view_owner;
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- SELECT t1.c1, t2.c2 FROM v4 t1 LEFT JOIN v5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t2.c1 OFFSET 10 LIMIT 10;  -- can't be pushed down, different view owners
-
 SELECT t1.c1, t2.c2 FROM v4 t1 LEFT JOIN v5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t2.c1 OFFSET 10 LIMIT 10;
 ALTER VIEW v4 OWNER TO regress_view_owner;
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- SELECT t1.c1, t2.c2 FROM v4 t1 LEFT JOIN v5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t2.c1 OFFSET 10 LIMIT 10;  -- can be pushed down
-
 SELECT t1.c1, t2.c2 FROM v4 t1 LEFT JOIN v5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t2.c1 OFFSET 10 LIMIT 10;
 
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- SELECT t1.c1, t2.c2 FROM v4 t1 LEFT JOIN ft5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t2.c1 OFFSET 10 LIMIT 10;  -- can't be pushed down, view owner not current user
-
 SELECT t1.c1, t2.c2 FROM v4 t1 LEFT JOIN ft5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t2.c1 OFFSET 10 LIMIT 10;
 ALTER VIEW v4 OWNER TO CURRENT_USER;
 -- EXPLAIN (VERBOSE, COSTS OFF)
 -- SELECT t1.c1, t2.c2 FROM v4 t1 LEFT JOIN ft5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t2.c1 OFFSET 10 LIMIT 10;  -- can be pushed down
-
 SELECT t1.c1, t2.c2 FROM v4 t1 LEFT JOIN ft5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t2.c1 OFFSET 10 LIMIT 10;
 ALTER VIEW v4 OWNER TO regress_view_owner;
 
@@ -664,6 +649,10 @@ DROP ROLE regress_view_owner;
 -- explain (verbose, costs off)
 -- select count(c6), sum(c1), avg(c1), min(c2), max(c1), stddev(c2), sum(c1) * (random() <= 1)::int as sum2 from ft1 where c2 < 5 group by c2 order by 1, 2;
 -- select count(c6), sum(c1), avg(c1), min(c2), max(c1), stddev(c2), sum(c1) * (random() <= 1)::int as sum2 from ft1 where c2 < 5 group by c2 order by 1, 2;
+
+explain (verbose, costs off)
+select count(c6), sum(c1), avg(c1), min(c2), max(c1), stddev(c2), sum(c1) * (random() <= 1)::int as sum2 from ft1 where c2 < 5 group by c2 order by 1, 2 limit 1;
+select count(c6), sum(c1), avg(c1), min(c2), max(c1), stddev(c2), sum(c1) * (random() <= 1)::int as sum2 from ft1 where c2 < 5 group by c2 order by 1, 2 limit 1;
 
 -- Aggregate is not pushed down as aggregation contains random()
 -- explain (verbose, costs off)
@@ -748,18 +737,15 @@ select array_agg(c5 order by c1 desc) from ft2 where c2 = 6 and c1 < 50;
 -- DISTINCT within aggregate
 -- explain (verbose, costs off)
 -- select array_agg(distinct (t1.c1)%5) from ft4 t1 full join ft5 t2 on (t1.c1 = t2.c1) where t1.c1 < 20 or (t1.c1 is null and t2.c1 < 5) group by (t2.c1)%3 order by 1;
-
 select array_agg(distinct (t1.c1)%5) from ft4 t1 full join ft5 t2 on (t1.c1 = t2.c1) where t1.c1 < 20 or (t1.c1 is null and t2.c1 < 5) group by (t2.c1)%3 order by 1;
 
 -- DISTINCT combined with ORDER BY within aggregate
 -- explain (verbose, costs off)
 -- select array_agg(distinct (t1.c1)%5 order by (t1.c1)%5) from ft4 t1 full join ft5 t2 on (t1.c1 = t2.c1) where t1.c1 < 20 or (t1.c1 is null and t2.c1 < 5) group by (t2.c1)%3 order by 1;
-
 select array_agg(distinct (t1.c1)%5 order by (t1.c1)%5) from ft4 t1 full join ft5 t2 on (t1.c1 = t2.c1) where t1.c1 < 20 or (t1.c1 is null and t2.c1 < 5) group by (t2.c1)%3 order by 1;
 
 -- explain (verbose, costs off)
 -- select array_agg(distinct (t1.c1)%5 order by (t1.c1)%5 desc nulls last) from ft4 t1 full join ft5 t2 on (t1.c1 = t2.c1) where t1.c1 < 20 or (t1.c1 is null and t2.c1 < 5) group by (t2.c1)%3 order by 1;
-
 select array_agg(distinct (t1.c1)%5 order by (t1.c1)%5 desc nulls last) from ft4 t1 full join ft5 t2 on (t1.c1 = t2.c1) where t1.c1 < 20 or (t1.c1 is null and t2.c1 < 5) group by (t2.c1)%3 order by 1;
 
 -- FILTER within aggregate
@@ -776,7 +762,6 @@ select sum(c1%3), sum(distinct c1%3 order by c1%3) filter (where c1%3 < 2), c2 f
 -- explain (verbose, costs off)
 -- select distinct (select count(*) filter (where t2.c2 = 6 and t2.c1 < 10) from ft1 t1 where t1.c1 = 6) from ft2 t2 where t2.c2 % 6 = 0 order by 1;
 -- select distinct (select count(*) filter (where t2.c2 = 6 and t2.c1 < 10) from ft1 t1 where t1.c1 = 6) from ft2 t2 where t2.c2 % 6 = 0 order by 1;
-
 -- Inner query is aggregation query
 explain (verbose, costs off)
 select distinct (select count(t1.c1) filter (where t2.c2 = 6 and t2.c1 < 10) from ft1 t1 where t1.c1 = 6) from ft2 t2 where t2.c2 % 6 = 0 order by 1;
@@ -785,7 +770,6 @@ select distinct (select count(t1.c1) filter (where t2.c2 = 6 and t2.c1 < 10) fro
 -- Aggregate not pushed down as FILTER condition is not pushable
 -- explain (verbose, costs off)
 -- select sum(c1) filter (where (c1 / c1) * random() <= 1) from ft1 group by c2 order by 1;
-
 explain (verbose, costs off)
 select sum(c2) filter (where c2 in (select c2 from ft1 where c2 < 5)) from ft1;
 
@@ -878,6 +862,9 @@ create operator class my_op_class for type int using btree family my_op_family a
 -- explain (verbose, costs off)
 -- select array_agg(c1 order by c1 using operator(public.<^)) from ft2 where c2 = 6 and c1 < 100 group by c2;
 
+-- Update local stats on ft2
+ANALYZE ft2;
+
 -- Add into extension
 alter extension postgres_fdw add operator class my_op_class using btree;
 alter extension postgres_fdw add function my_op_cmp(a int, b int);
@@ -921,20 +908,17 @@ select count(t1.c3) from ft2 t1 left join ft2 t2 on (t1.c1 = random() * t2.c2);
 -- Subquery in FROM clause having aggregate
 -- explain (verbose, costs off)
 -- select count(*), x.b from ft1, (select c2 a, sum(c1) b from ft1 group by c2) x where ft1.c2 = x.a group by x.b order by 1, 2;
-
 select count(*), x.b from ft1, (select c2 a, sum(c1) b from ft1 group by c2) x where ft1.c2 = x.a group by x.b order by 1, 2;
 
 -- FULL join with IS NULL check in HAVING
 -- explain (verbose, costs off)
 -- select avg(t1.c1), sum(t2.c1) from ft4 t1 full join ft5 t2 on (t1.c1 = t2.c1) group by t2.c1 having (avg(t1.c1) is null and sum(t2.c1) < 10) or sum(t2.c1) is null order by 1 nulls last, 2;
-
 select avg(t1.c1), sum(t2.c1) from ft4 t1 full join ft5 t2 on (t1.c1 = t2.c1) group by t2.c1 having (avg(t1.c1) is null and sum(t2.c1) < 10) or sum(t2.c1) is null order by 1 nulls last, 2;
 
 -- Aggregate over FULL join needing to deparse the joining relations as
 -- subqueries.
 -- explain (verbose, costs off)
 -- select count(*), sum(t1.c1), avg(t2.c1) from (select c1 from ft4 where c1 between 50 and 60) t1 full join (select c1 from ft5 where c1 between 50 and 60) t2 on (t1.c1 = t2.c1);
-
 select count(*), sum(t1.c1), avg(t2.c1) from (select c1 from ft4 where c1 between 50 and 60) t1 full join (select c1 from ft5 where c1 between 50 and 60) t2 on (t1.c1 = t2.c1);
 
 -- ORDER BY expression is part of the target list but not pushed down to
@@ -979,7 +963,6 @@ reset enable_hashagg;
 -- Check with placeHolderVars
 -- explain (verbose, costs off)
 -- select sum(q.a), count(q.b) from ft4 left join (select 13, avg(ft1.c1), sum(ft2.c1) from ft1 right join ft2 on (ft1.c1 = ft2.c1)) q(a, b, c) on (ft4.c1 <= q.b);
-
 select sum(q.a), count(q.b) from ft4 left join (select 13, avg(ft1.c1), sum(ft2.c1) from ft1 right join ft2 on (ft1.c1 = ft2.c1)) q(a, b, c) on (ft4.c1 <= q.b);
 
 
@@ -1007,14 +990,13 @@ select c2, sum(c1), grouping(c2) from ft1 where c2 < 3 group by c2 order by 1 nu
 explain (verbose, costs off)
 select c2, sum(c2), count(c2) over (partition by c2%2) from ft2 where c2 < 10 group by c2 order by 1;
 -- select c2, sum(c2), count(c2) over (partition by c2%2) from ft2 where c2 < 10 group by c2 order by 1;
-
 explain (verbose, costs off)
 select c2, array_agg(c2) over (partition by c2%2 order by c2 desc) from ft1 where c2 < 10 group by c2 order by 1;
 -- select c2, array_agg(c2) over (partition by c2%2 order by c2 desc) from ft1 where c2 < 10 group by c2 order by 1;
-
 explain (verbose, costs off)
 select c2, array_agg(c2) over (partition by c2%2 order by c2 range between current row and unbounded following) from ft1 where c2 < 10 group by c2 order by 1;
 -- select c2, array_agg(c2) over (partition by c2%2 order by c2 range between current row and unbounded following) from ft1 where c2 < 10 group by c2 order by 1;
+
 
 -- ===================================================================
 -- parameterized queries
@@ -1022,19 +1004,16 @@ select c2, array_agg(c2) over (partition by c2%2 order by c2 range between curre
 -- simple join
 PREPARE st1(int, int) AS SELECT t1.c3, t2.c3 FROM ft1 t1, ft2 t2 WHERE t1.c1 = $1 AND t2.c1 = $2;
 -- EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st1(1, 2);
-
 EXECUTE st1(1, 1);
 EXECUTE st1(101, 101);
 -- subquery using stable function (can't be sent to remote)
 PREPARE st2(int) AS SELECT * FROM ft1 t1 WHERE t1.c1 < $2 AND t1.c3 IN (SELECT c3 FROM ft2 t2 WHERE c1 > $1 AND date(c4) = '1970-01-17'::date) ORDER BY c1;
 -- EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st2(10, 20);
-
 EXECUTE st2(10, 20);
 EXECUTE st2(101, 121);
 -- subquery using immutable function (can be sent to remote)
 PREPARE st3(int) AS SELECT * FROM ft1 t1 WHERE t1.c1 < $2 AND t1.c3 IN (SELECT c3 FROM ft2 t2 WHERE c1 > $1 AND date(c5) = '1970-01-17'::date) ORDER BY c1;
 -- EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st3(10, 20);
-
 EXECUTE st3(10, 20);
 EXECUTE st3(20, 30);
 -- custom plan should be chosen initially
@@ -1070,11 +1049,9 @@ ALTER TABLE "S 1"."T 0" RENAME TO "T 1";
 ALTER FOREIGN TABLE ft1__postgres_srv__0 OPTIONS (SET table_name 'T 1');
 
 PREPARE st8 AS SELECT count(c3) FROM ft1 t1 WHERE t1.c1 === t1.c2;
-
 EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st8;
 ALTER SERVER postgres_srv OPTIONS (DROP extensions);
 EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st8;
-
 -- EXECUTE st8;
 ALTER SERVER postgres_srv OPTIONS (ADD extensions 'postgres_fdw');
 
@@ -1101,9 +1078,6 @@ SELECT * FROM ft1 t1 WHERE t1.ctid = '(0,2)';
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT ctid, * FROM ft1 t1 LIMIT 1;
 SELECT ctid, * FROM ft1 t1 LIMIT 1;
-EXPLAIN (VERBOSE, COSTS OFF)
-SELECT oid, * FROM ft_pg_type WHERE typname = 'int4';
-SELECT oid, * FROM ft_pg_type WHERE typname = 'int4';
 
 -- ===================================================================
 -- used in PL/pgSQL function
@@ -1142,8 +1116,7 @@ ERROR OUT;          -- ERROR
 ROLLBACK TO s;
 FETCH c;
 SAVEPOINT s;
--- SELECT * FROM ft1 WHERE 1 / (c1 - 1) > 0;  -- ERROR
-
+SELECT * FROM ft1 WHERE 1 / (c1 - 1) > 0;  -- ERROR
 ROLLBACK TO s;
 FETCH c;
 SELECT * FROM ft1 ORDER BY c1 LIMIT 1;
@@ -1152,6 +1125,7 @@ COMMIT;
 -- ===================================================================
 -- test handling of collations
 -- ===================================================================
+--create table loct3 (f1 text collate "C" unique, f2 text, f3 varchar(10) unique);
 create foreign table ft3 (f1 text collate "C", f2 text, f3 varchar(10), __spd_url text)
   server pgspider_srv;
 create foreign table ft3__postgres_srv__0 (f1 text collate "C", f2 text, f3 varchar(10))
@@ -1321,7 +1295,6 @@ ALTER TABLE "S 1"."T 1" ADD CONSTRAINT c2positive CHECK (c2 >= 0);
 -- INSERT INTO ft1(c1, c2) VALUES(1111, -2);  -- c2positive
 -- UPDATE ft1 SET c2 = -c2 WHERE c1 = 1;  -- c2positive
 
-
 -- Test savepoint/rollback behavior
 -- select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
 -- select c2, count(*) from "S 1"."T 1" where c2 < 500 group by 1 order by 1;
@@ -1366,7 +1339,6 @@ VACUUM ANALYZE "S 1"."T 1";
 -- EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 ORDER BY c6 ASC NULLS FIRST, c1 OFFSET 15 LIMIT 10;
 -- SELECT * FROM ft1 ORDER BY c6 ASC NULLS FIRST, c1 OFFSET 15 LIMIT 10;
 
-
 -- ===================================================================
 -- test check constraints
 -- ===================================================================
@@ -1382,14 +1354,12 @@ RESET constraint_exclusion;
 -- check constraint is enforced on the remote side, not locally
 -- INSERT INTO ft1(c1, c2) VALUES(1111, -2);  -- c2positive
 -- UPDATE ft1 SET c2 = -c2 WHERE c1 = 1;  -- c2positive
-
 ALTER FOREIGN TABLE ft1 DROP CONSTRAINT ft1_c2positive;
 
 -- But inconsistent check constraints provide inconsistent results
 ALTER FOREIGN TABLE ft1 ADD CONSTRAINT ft1_c2negative CHECK (c2 < 0);
 EXPLAIN (VERBOSE, COSTS OFF) SELECT count(*) FROM ft1 WHERE c2 >= 0;
 -- SELECT count(*) FROM ft1 WHERE c2 >= 0;
-
 SET constraint_exclusion = 'on';
 EXPLAIN (VERBOSE, COSTS OFF) SELECT count(*) FROM ft1 WHERE c2 >= 0;
 SELECT count(*) FROM ft1 WHERE c2 >= 0;
@@ -1399,42 +1369,101 @@ RESET constraint_exclusion;
 -- UPDATE ft1 SET c2 = c2 + 1 WHERE c1 = 1;
 ALTER FOREIGN TABLE ft1 DROP CONSTRAINT ft1_c2negative;
 
-
 -- ===================================================================
 -- test WITH CHECK OPTION constraints
 -- ===================================================================
 
+CREATE FUNCTION row_before_insupd_trigfunc() RETURNS trigger AS $$BEGIN NEW.a := NEW.a + 10; RETURN NEW; END$$ LANGUAGE plpgsql;
+
+--CREATE TABLE base_tbl (a int, b int);
+--ALTER TABLE base_tbl SET (autovacuum_enabled = 'false');
+--CREATE TRIGGER row_before_insupd_trigger BEFORE INSERT OR UPDATE ON base_tbl FOR EACH ROW EXECUTE PROCEDURE row_before_insupd_trigfunc();
 CREATE FOREIGN TABLE foreign_tbl (a int, b int, __spd_url text)
   SERVER pgspider_srv;
 CREATE FOREIGN TABLE foreign_tbl__postgres_srv__0 (a int, b int)
   SERVER postgres_srv OPTIONS(table_name 'base_tbl');
+CREATE TRIGGER row_before_insupd_trigger BEFORE INSERT OR UPDATE ON foreign_tbl FOR EACH ROW EXECUTE PROCEDURE row_before_insupd_trigfunc();
 CREATE VIEW rw_view AS SELECT * FROM foreign_tbl
   WHERE a < b WITH CHECK OPTION;
 \d+ rw_view
 
--- INSERT INTO rw_view VALUES (0, 10); -- ok
--- INSERT INTO rw_view VALUES (10, 0); -- should fail
--- EXPLAIN (VERBOSE, COSTS OFF)
--- UPDATE rw_view SET b = 20 WHERE a = 0; -- not pushed down
--- UPDATE rw_view SET b = 20 WHERE a = 0; -- ok
--- EXPLAIN (VERBOSE, COSTS OFF)
--- UPDATE rw_view SET b = -20 WHERE a = 0; -- not pushed down
--- UPDATE rw_view SET b = -20 WHERE a = 0; -- should fail
--- SELECT * FROM foreign_tbl;
+--EXPLAIN (VERBOSE, COSTS OFF)
+--INSERT INTO rw_view VALUES (0, 5);
+--INSERT INTO rw_view VALUES (0, 5); -- should fail
+--EXPLAIN (VERBOSE, COSTS OFF)
+--INSERT INTO rw_view VALUES (0, 15);
+--INSERT INTO rw_view VALUES (0, 15); -- ok
+--SELECT * FROM foreign_tbl;
+
+--EXPLAIN (VERBOSE, COSTS OFF)
+--UPDATE rw_view SET b = b + 5;
+--UPDATE rw_view SET b = b + 5; -- should fail
+--EXPLAIN (VERBOSE, COSTS OFF)
+--UPDATE rw_view SET b = b + 15;
+--UPDATE rw_view SET b = b + 15; -- ok
+--SELECT * FROM foreign_tbl;
 
 DROP FOREIGN TABLE foreign_tbl CASCADE;
 DROP FOREIGN TABLE foreign_tbl__postgres_srv__0 CASCADE;
+--DROP TRIGGER row_before_insupd_trigger ON base_tbl;
+--DROP TABLE base_tbl;
+
+-- test WCO for partitions
+
+--CREATE TABLE child_tbl (a int, b int);
+--ALTER TABLE child_tbl SET (autovacuum_enabled = 'false');
+--CREATE TRIGGER row_before_insupd_trigger BEFORE INSERT OR UPDATE ON child_tbl FOR EACH ROW EXECUTE PROCEDURE row_before_insupd_trigfunc();
+CREATE FOREIGN TABLE foreign_tbl (a int, b int, __spd_url text)
+  SERVER pgspider_srv;
+CREATE FOREIGN TABLE foreign_tbl__postgres_srv__0 (a int, b int)
+  SERVER postgres_srv OPTIONS(table_name 'child_tbl');
+CREATE TRIGGER row_before_insupd_trigger BEFORE INSERT OR UPDATE ON foreign_tbl FOR EACH ROW EXECUTE PROCEDURE row_before_insupd_trigfunc();
+CREATE TABLE parent_tbl (a int, b int, __spd_url text) PARTITION BY RANGE(a);
+ALTER TABLE parent_tbl ATTACH PARTITION foreign_tbl FOR VALUES FROM (0) TO (100);
+
+CREATE VIEW rw_view AS SELECT * FROM parent_tbl
+  WHERE a < b WITH CHECK OPTION;
+\d+ rw_view
+
+--EXPLAIN (VERBOSE, COSTS OFF)
+--INSERT INTO rw_view VALUES (0, 5);
+--INSERT INTO rw_view VALUES (0, 5); -- should fail
+--EXPLAIN (VERBOSE, COSTS OFF)
+--INSERT INTO rw_view VALUES (0, 15);
+--INSERT INTO rw_view VALUES (0, 15); -- ok
+--SELECT * FROM foreign_tbl;
+
+--EXPLAIN (VERBOSE, COSTS OFF)
+--UPDATE rw_view SET b = b + 5;
+--UPDATE rw_view SET b = b + 5; -- should fail
+--EXPLAIN (VERBOSE, COSTS OFF)
+--UPDATE rw_view SET b = b + 15;
+--UPDATE rw_view SET b = b + 15; -- ok
+--SELECT * FROM foreign_tbl;
+
+DROP FOREIGN TABLE foreign_tbl CASCADE;
+DROP FOREIGN TABLE foreign_tbl__postgres_srv__0 CASCADE;
+--DROP TRIGGER row_before_insupd_trigger ON child_tbl;
+--DROP TABLE parent_tbl CASCADE;
+
+DROP FUNCTION row_before_insupd_trigfunc;
 
 -- ===================================================================
 -- test serial columns (ie, sequence-based defaults)
 -- ===================================================================
+--create table loc1 (f1 serial, f2 text);
+--alter table loc1 set (autovacuum_enabled = 'false');
 create foreign table rem1 (f1 serial, f2 text, __spd_url text)
   server pgspider_srv;
 create foreign table rem1__postgres_srv__0 (f1 serial, f2 text)
   server postgres_srv options(table_name 'loc1_1');
 select pg_catalog.setval('rem1_f1_seq', 10, false);
-
--- select * from rem1;
+--insert into loc1(f2) values('hi');
+--insert into rem1(f2) values('hi remote');
+--insert into loc1(f2) values('bye');
+--insert into rem1(f2) values('bye remote');
+--select * from loc1;
+--select * from rem1;
 
 -- ===================================================================
 -- test local triggers
@@ -1505,6 +1534,7 @@ delete from rem1__postgres_srv__0;
 insert into rem1__postgres_srv__0 values(1,'insert');
 update rem1__postgres_srv__0 set f2  = 'update' where f1 = 1;
 update rem1__postgres_srv__0 set f2 = f2 || f2;
+
 
 -- cleanup
 DROP TRIGGER trig_row_before ON rem1;
@@ -1582,6 +1612,11 @@ FOR EACH ROW EXECUTE PROCEDURE trig_row_before_insupdate();
 -- UPDATE rem1__postgres_srv__0 set f2 = 'skidoo' RETURNING f2;
 -- SELECT * from rem1;
 
+-- EXPLAIN (verbose, costs off)
+-- UPDATE rem1__postgres_srv__0 set f1 = 10;          -- all columns should be transmitted
+-- UPDATE rem1__postgres_srv__0 set f1 = 10;
+-- SELECT * from rem1;
+
 -- DELETE FROM rem1__postgres_srv__0;
 
 -- Add a second trigger, to check that the changes are propagated correctly
@@ -1632,7 +1667,6 @@ DELETE from rem1__postgres_srv__0;
 
 DROP TRIGGER trig_null ON rem1;
 DELETE from rem1__postgres_srv__0;
-
 
 -- Test a combination of local and remote triggers
 CREATE TRIGGER trig_row_before
@@ -1741,7 +1775,9 @@ DROP TRIGGER trig_row_after_delete ON rem1;
 -- ===================================================================
 
 CREATE TABLE a (aa TEXT);
+--CREATE TABLE loct (aa TEXT, bb TEXT);
 ALTER TABLE a SET (autovacuum_enabled = 'false');
+--ALTER TABLE loct SET (autovacuum_enabled = 'false');
 CREATE FOREIGN TABLE b (bb TEXT, __spd_url text)
   SERVER pgspider_srv;
 CREATE FOREIGN TABLE b__postgres_srv__0 (bb TEXT) INHERITS (a)
@@ -1755,43 +1791,42 @@ INSERT INTO a(aa) VALUES('aaaaa');
 -- INSERT INTO b(aa) VALUES('bbbb');
 -- INSERT INTO b(aa) VALUES('bbbbb');
 
-
 -- SELECT tableoid::regclass, * FROM a;
 -- SELECT tableoid::regclass, * FROM b;
-
 SELECT tableoid::regclass, * FROM ONLY a;
 
 UPDATE a SET aa = 'zzzzzz' WHERE aa LIKE 'aaaa%';
 
 -- SELECT tableoid::regclass, * FROM a;
 -- SELECT tableoid::regclass, * FROM b;
-
 SELECT tableoid::regclass, * FROM ONLY a;
 
 -- UPDATE b SET aa = 'new';
 
 -- SELECT tableoid::regclass, * FROM a;
 -- SELECT tableoid::regclass, * FROM b;
-
 SELECT tableoid::regclass, * FROM ONLY a;
 
 UPDATE a SET aa = 'newtoo';
 
 -- SELECT tableoid::regclass, * FROM a;
 -- SELECT tableoid::regclass, * FROM b;
-
 SELECT tableoid::regclass, * FROM ONLY a;
 
 DELETE FROM a;
 
 -- SELECT tableoid::regclass, * FROM a;
 -- SELECT tableoid::regclass, * FROM b;
-
 SELECT tableoid::regclass, * FROM ONLY a;
 
 DROP TABLE a CASCADE;
 
 -- Check SELECT FOR UPDATE/SHARE with an inherited source table
+--create table loct1 (f1 int, f2 int, f3 int);
+--create table loct2 (f1 int, f2 int, f3 int);
+
+--alter table loct1 set (autovacuum_enabled = 'false');
+--alter table loct2 set (autovacuum_enabled = 'false');
 
 create table foo (f1 int, f2 int);
 create foreign table foo2 (f3 int, __spd_url text)
@@ -1851,24 +1886,24 @@ where bar.f1 = ss.f1;
 delete from foo2__postgres_srv__0;
 truncate table only foo;
 \set num_rows_foo 2000
+--insert into loct1 select generate_series(0, :num_rows_foo, 2), generate_series(0, :num_rows_foo, 2), generate_series(0, :num_rows_foo, 2);
 insert into foo2__postgres_srv__0 select generate_series(0, :num_rows_foo, 2), generate_series(0, :num_rows_foo, 2), generate_series(0, :num_rows_foo, 2);
 insert into foo select generate_series(1, :num_rows_foo, 2), generate_series(1, :num_rows_foo, 2);
 SET enable_hashjoin to false;
 SET enable_nestloop to false;
 alter foreign table foo2 options (use_remote_estimate 'true');
+--create index i_loct1_f1 on loct1(f1);
 create index i_foo_f1 on foo(f1);
 analyze foo;
 analyze foo2;
 -- inner join; expressions in the clauses appear in the equivalence class list
 -- explain (verbose, costs off)
 -- 	select foo.f1, foo2.f1 from foo join foo2 on (foo.f1 = foo2.f1) order by foo.f2 offset 10 limit 10;
-
 -- select foo.f1, foo2.f1 from foo join foo2 on (foo.f1 = foo2.f1) order by foo.f2 offset 10 limit 10;
 -- outer join; expressions in the clauses do not appear in equivalence class
 -- list but no output change as compared to the previous query
 -- explain (verbose, costs off)
 -- 	select foo.f1, foo2.f1 from foo left join foo2 on (foo.f1 = foo2.f1) order by foo.f2 offset 10 limit 10;
-
 -- select foo.f1, foo2.f1 from foo left join foo2 on (foo.f1 = foo2.f1) order by foo.f2 offset 10 limit 10;
 RESET enable_hashjoin;
 RESET enable_nestloop;
@@ -1882,7 +1917,6 @@ rollback;
 
 -- explain (verbose, costs off)
 -- delete from foo where f1 < 5 returning *;
-
 delete from foo where f1 < 5 returning *;
 explain (verbose, costs off)
 update bar set f2 = f2 + 100 returning *;
@@ -1908,9 +1942,13 @@ delete from bar where f2 < 400;
 -- cleanup
 drop table foo cascade;
 drop table bar cascade;
+--drop table loct1;
+--drop table loct2;
 
 -- Test pushing down UPDATE/DELETE joins to the remote server
 create table parent (a int, b text);
+--create table loct1 (a int, b text);
+--create table loct2 (a int, b text);
 create foreign table remt1 (a int, b text, __spd_url text)
   server pgspider_srv;
 create foreign table remt1__postgres_srv__0 (a int, b text)
@@ -1920,6 +1958,11 @@ create foreign table remt2 (a int, b text, __spd_url text)
 create foreign table remt2__postgres_srv__0 (a int, b text)
   server postgres_srv options (table_name 'loct2_2');
 alter foreign table remt1__postgres_srv__0 inherit parent;
+
+--insert into remt1 values (1, 'foo');
+--insert into remt1 values (2, 'bar');
+--insert into remt2 values (1, 'foo');
+--insert into remt2 values (2, 'bar');
 
 analyze remt1;
 analyze remt2;
@@ -1936,7 +1979,6 @@ drop foreign table remt1;
 drop foreign table remt2;
 drop foreign table remt1__postgres_srv__0;
 drop foreign table remt2__postgres_srv__0;
-
 drop table parent;
 
 -- ===================================================================
@@ -1945,9 +1987,11 @@ drop table parent;
 
 -- Test insert tuple routing
 create table itrtest (a int, b text, __spd_url text) partition by list (a);
+--create table loct1 (a int check (a in (1)), b text);
 create foreign table remp1 (a int check (a in (1)), b text, __spd_url text) server pgspider_srv;
-create foreign table remp2 (b text, a int check (a in (2)), __spd_url text) server pgspider_srv;
 create foreign table remp1__postgres_srv__0 (a int check (a in (1)), b text) server postgres_srv options (table_name 'loct1_3');
+--create table loct2 (a int check (a in (2)), b text);
+create foreign table remp2 (b text, a int check (a in (2)), __spd_url text) server pgspider_srv;
 create foreign table remp2__postgres_srv__0 (b text, a int check (a in (2))) server postgres_srv options (table_name 'loct2_3');
 alter table itrtest attach partition remp1 for values in (1);
 alter table itrtest attach partition remp2 for values in (2);
@@ -1962,7 +2006,9 @@ alter table itrtest attach partition remp2 for values in (2);
 -- select tableoid::regclass, * FROM remp1;
 -- select tableoid::regclass, * FROM remp2;
 
--- delete from itrtest;
+--delete from itrtest;
+
+--create unique index loct1_idx on loct1 (a);
 
 -- DO NOTHING without an inference specification is supported
 -- insert into itrtest values (1, 'foo') on conflict do nothing returning *;
@@ -1976,6 +2022,7 @@ alter table itrtest attach partition remp2 for values in (2);
 
 -- delete from itrtest;
 
+-- drop index loct1_idx;
 
 -- Test that remote triggers work with insert tuple routing
 create function br_insert_trigfunc() returns trigger as $$
@@ -2083,7 +2130,6 @@ drop trigger loct_br_insert_trigger on remp;
 -- delete from utrtest;
 alter table utrtest detach partition remp;
 drop foreign table remp;
-
 -- Comment out the constraint testing
 -- alter table loct drop constraint loct_a_check;
 -- alter table loct add check (a in (3));
@@ -2104,13 +2150,14 @@ drop foreign table remp;
 -- update utrtest set a = 3 from (values (2), (3)) s(x) where a = s.x returning *; -- ERROR
 
 drop table utrtest;
+--drop table loct;
 
 -- Test copy tuple routing
 create table ctrtest (a int, b text, __spd_url text) partition by list (a);
+--create table loct1 (a int check (a in (1)), b text);
 create foreign table remp1 (a int check (a in (1)), b text, __spd_url text) server pgspider_srv;
-create foreign table remp2 (b text, a int check (a in (2)), __spd_url text) server pgspider_srv;
-
 create foreign table remp1__postgres_srv__0 (a int check (a in (1)), b text) server postgres_srv options (table_name 'loct1_4');
+create foreign table remp2 (b text, a int check (a in (2)), __spd_url text) server pgspider_srv;
 create foreign table remp2__postgres_srv__0 (b text, a int check (a in (2))) server postgres_srv options (table_name 'loct2_4');
 alter table ctrtest attach partition remp1 for values in (1);
 alter table ctrtest attach partition remp2 for values in (2);
@@ -2137,9 +2184,13 @@ drop foreign table remp1__postgres_srv__0;
 drop foreign table remp2__postgres_srv__0;
 drop table ctrtest;
 
+
 -- ===================================================================
 -- test COPY FROM
 -- ===================================================================
+
+--create table loc2 (f1 int, f2 text);
+--alter table loc2 set (autovacuum_enabled = 'false');
 create foreign table rem2 (f1 int, f2 text, __spd_url text) server pgspider_srv;
 create foreign table rem2__postgres_srv__0 (f1 int, f2 text) server postgres_srv options(table_name 'loc2_1');
 
@@ -2153,6 +2204,7 @@ select * from rem2;
 delete from rem2__postgres_srv__0;
 
 -- Test check constraints
+--alter table loc2 add constraint loc2_f1positive check (f1 >= 0);
 alter foreign table rem2 add constraint rem2_f1positive check (f1 >= 0);
 
 -- check constraint is enforced on the remote side, not locally
@@ -2166,6 +2218,7 @@ alter foreign table rem2 add constraint rem2_f1positive check (f1 >= 0);
 -- select * from rem2;
 
 alter foreign table rem2 drop constraint rem2_f1positive;
+--alter table loc2 drop constraint loc2_f1positive;
 
 delete from rem2__postgres_srv__0;
 
@@ -2270,6 +2323,8 @@ drop trigger loc2_trig_row_before_insert on rem2;
 delete from rem2__postgres_srv__0;
 
 -- test COPY FROM with foreign table created in the same transaction
+/* Move this line to init database file */
+-- create table loc3 (f1 int, f2 text);
 begin;
 create foreign table rem3 (f1 int, f2 text, __spd_url text)
 	server pgspider_srv;
@@ -2281,8 +2336,6 @@ copy rem3__postgres_srv__0 from stdin;
 \.
 commit;
 select * from rem3;
-
-
 drop foreign table rem3;
 drop foreign table rem3__postgres_srv__0;
 
@@ -2290,9 +2343,20 @@ drop foreign table rem3__postgres_srv__0;
 -- test IMPORT FOREIGN SCHEMA
 -- ===================================================================
 
+/* Move these lines to init database file */
+--CREATE SCHEMA import_source;
+--CREATE TABLE import_source.t1 (c1 int, c2 varchar NOT NULL);
+--CREATE TABLE import_source.t2 (c1 int default 42, c2 varchar NULL, c3 text collate "POSIX");
+--CREATE TYPE typ1 AS (m1 int, m2 varchar);
+--CREATE TABLE import_source.t3 (c1 timestamptz default now(), c2 typ1);
+--CREATE TABLE import_source."x 4" (c1 float8, "C 2" text, c3 varchar(42));
+--CREATE TABLE import_source."x 5" (c1 float8);
+--ALTER TABLE import_source."x 5" DROP COLUMN c1;
+--CREATE TABLE import_source.t4 (c1 int) PARTITION BY RANGE (c1);
+--CREATE TABLE import_source.t4_part PARTITION OF import_source.t4
+--  FOR VALUES FROM (1) TO (100);
 CREATE TYPE typ1 AS (m1 int, m2 varchar);
 CREATE TYPE "Colors" AS ENUM ('red', 'green', 'blue');
-
 CREATE SCHEMA import_dest1;
 IMPORT FOREIGN SCHEMA import_source FROM SERVER postgres_srv INTO import_dest1;
 \det+ import_dest1.*
@@ -2327,6 +2391,9 @@ IMPORT FOREIGN SCHEMA nonesuch FROM SERVER nowhere INTO notthere;
 
 -- Check case of a type present only on the remote server.
 -- We can fake this by dropping the type locally in our transaction.
+/* Move these lines to init database files */
+-- CREATE TYPE "Colors" AS ENUM ('red', 'green', 'blue');
+-- CREATE TABLE import_source.t5 (c1 int, c2 text collate "C", "Col" "Colors");
 
 CREATE SCHEMA import_dest5;
 BEGIN;
@@ -2386,22 +2453,32 @@ ROLLBACK;
 SET enable_partitionwise_join=on;
 
 CREATE TABLE fprt1 (a int, b int, c varchar) PARTITION BY RANGE(a);
-
+/* Move these lines to init database file */
+--CREATE TABLE fprt1_p1 (LIKE fprt1);
+--CREATE TABLE fprt1_p2 (LIKE fprt1);
+--ALTER TABLE fprt1_p1 SET (autovacuum_enabled = 'false');
+--ALTER TABLE fprt1_p2 SET (autovacuum_enabled = 'false');
+--INSERT INTO fprt1_p1 SELECT i, i, to_char(i/50, 'FM0000') FROM generate_series(0, 249, 2) i;
+--INSERT INTO fprt1_p2 SELECT i, i, to_char(i/50, 'FM0000') FROM generate_series(250, 499, 2) i;
 CREATE FOREIGN TABLE ftprt1_p1 (a int, b int, c varchar, __spd_url text)
 	SERVER pgspider_srv;
-CREATE FOREIGN TABLE ftprt1_p2 (a int, b int, c varchar, __spd_url text)
-	SERVER pgspider_srv;
-
 CREATE FOREIGN TABLE ftprt1_p1__postgres_srv__0 PARTITION OF fprt1 FOR VALUES FROM (0) TO (250)
 	SERVER postgres_srv OPTIONS (table_name 'fprt1_p1', use_remote_estimate 'true');
+CREATE FOREIGN TABLE ftprt1_p2 (a int, b int, c varchar, __spd_url text)
+	SERVER pgspider_srv;
 CREATE FOREIGN TABLE ftprt1_p2__postgres_srv__0 PARTITION OF fprt1 FOR VALUES FROM (250) TO (500)
 	SERVER postgres_srv OPTIONS (TABLE_NAME 'fprt1_p2');
-
 ANALYZE fprt1;
 ANALYZE ftprt1_p1;
 ANALYZE ftprt1_p2;
 
 CREATE TABLE fprt2 (a int, b int, c varchar) PARTITION BY RANGE(b);
+--CREATE TABLE fprt2_p1 (LIKE fprt2);
+--CREATE TABLE fprt2_p2 (LIKE fprt2);
+--ALTER TABLE fprt2_p1 SET (autovacuum_enabled = 'false');
+--ALTER TABLE fprt2_p2 SET (autovacuum_enabled = 'false');
+--INSERT INTO fprt2_p1 SELECT i, i, to_char(i/50, 'FM0000') FROM generate_series(0, 249, 3) i;
+--INSERT INTO fprt2_p2 SELECT i, i, to_char(i/50, 'FM0000') FROM generate_series(250, 499, 3) i;
 CREATE FOREIGN TABLE ftprt2_p1 (b int, c varchar, a int, __spd_url text)
 	SERVER pgspider_srv;
 CREATE FOREIGN TABLE ftprt2_p1__postgres_srv__0 (b int, c varchar, a int)
@@ -2421,8 +2498,8 @@ EXPLAIN (COSTS OFF)
 SELECT t1.a,t2.b,t3.c FROM fprt1 t1 INNER JOIN fprt2 t2 ON (t1.a = t2.b) INNER JOIN fprt1 t3 ON (t2.b = t3.a) WHERE t1.a % 25 =0 ORDER BY 1,2,3;
 SELECT t1.a,t2.b,t3.c FROM fprt1 t1 INNER JOIN fprt2 t2 ON (t1.a = t2.b) INNER JOIN fprt1 t3 ON (t2.b = t3.a) WHERE t1.a % 25 =0 ORDER BY 1,2,3;
 
--- left outer join + nullable clasue
-EXPLAIN (COSTS OFF)
+-- left outer join + nullable clause
+EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.a,t2.b,t2.c FROM fprt1 t1 LEFT JOIN (SELECT * FROM fprt2 WHERE a < 10) t2 ON (t1.a = t2.b and t1.b = t2.a) WHERE t1.a < 10 ORDER BY 1,2,3;
 SELECT t1.a,t2.b,t2.c FROM fprt1 t1 LEFT JOIN (SELECT * FROM fprt2 WHERE a < 10) t2 ON (t1.a = t2.b and t1.b = t2.a) WHERE t1.a < 10 ORDER BY 1,2,3;
 
@@ -2455,11 +2532,21 @@ RESET enable_partitionwise_join;
 
 CREATE TABLE pagg_tab (a int, b int, c text) PARTITION BY RANGE(a);
 
--- Create foreign partitions
+/* Move these lines to init database file */
+-- CREATE TABLE pagg_tab_p1 (LIKE pagg_tab);
+-- CREATE TABLE pagg_tab_p2 (LIKE pagg_tab);
+-- CREATE TABLE pagg_tab_p3 (LIKE pagg_tab);
+
+-- INSERT INTO pagg_tab_p1 SELECT i % 30, i % 50, to_char(i/30, 'FM0000') FROM generate_series(1, 3000) i WHERE (i % 30) < 10;
+-- INSERT INTO pagg_tab_p2 SELECT i % 30, i % 50, to_char(i/30, 'FM0000') FROM generate_series(1, 3000) i WHERE (i % 30) < 20 and (i % 30) >= 10;
+-- INSERT INTO pagg_tab_p3 SELECT i % 30, i % 50, to_char(i/30, 'FM0000') FROM generate_series(1, 3000) i WHERE (i % 30) < 30 and (i % 30) >= 20;
+
+-- Create foreign table on pgspider node
 CREATE FOREIGN TABLE fpagg_tab_p1 (a int, b int, c text, __spd_url text) SERVER pgspider_srv;
 CREATE FOREIGN TABLE fpagg_tab_p2 (a int, b int, c text, __spd_url text) SERVER pgspider_srv;
 CREATE FOREIGN TABLE fpagg_tab_p3 (a int, b int, c text, __spd_url text) SERVER pgspider_srv;
 
+-- Create foreign partitions
 CREATE FOREIGN TABLE fpagg_tab_p1__postgres_srv__0 PARTITION OF pagg_tab FOR VALUES FROM (0) TO (10) SERVER postgres_srv OPTIONS (table_name 'pagg_tab_p1');
 CREATE FOREIGN TABLE fpagg_tab_p2__postgres_srv__0 PARTITION OF pagg_tab FOR VALUES FROM (10) TO (20) SERVER postgres_srv OPTIONS (table_name 'pagg_tab_p2');;
 CREATE FOREIGN TABLE fpagg_tab_p3__postgres_srv__0 PARTITION OF pagg_tab FOR VALUES FROM (20) TO (30) SERVER postgres_srv OPTIONS (table_name 'pagg_tab_p3');;
@@ -2490,6 +2577,7 @@ SELECT a, count(t1) FROM pagg_tab t1 GROUP BY a HAVING avg(b) < 22 ORDER BY 1;
 -- When GROUP BY clause does not match with PARTITION KEY.
 EXPLAIN (COSTS OFF)
 SELECT b, avg(a), max(a), count(*) FROM pagg_tab GROUP BY b HAVING sum(a) < 700 ORDER BY 1;
+
 
 -- Clean-up
 RESET enable_partitionwise_aggregate;
