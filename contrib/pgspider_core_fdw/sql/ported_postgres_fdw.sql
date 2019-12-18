@@ -1903,9 +1903,7 @@ select tableoid::regclass, * from bar order by 1,2;
 
 -- Test forcing the remote server to produce sorted data for a merge join,
 -- but the foreign table is an inheritance child.
-delete from bar2__postgres_srv__0;
 delete from foo2__postgres_srv__0;
-delete from bar__postgres_srv__0;
 delete from foo__postgres_srv__0;
 --truncate table loct1;
 --truncate table only foo;
@@ -1935,11 +1933,13 @@ RESET enable_hashjoin;
 RESET enable_nestloop;
 
 -- Test that WHERE CURRENT OF is not supported
---begin;
---declare c cursor for select * from bar where f1 = 7;
---fetch from c;
+begin;
+declare c cursor for select * from bar where f1 = 7;
+fetch from c;
 --update bar set f2 = null where current of c;
 --rollback;
+--use commit instead of rollback
+commit;
 
 -- explain (verbose, costs off)
 -- delete from foo where f1 < 5 returning *;

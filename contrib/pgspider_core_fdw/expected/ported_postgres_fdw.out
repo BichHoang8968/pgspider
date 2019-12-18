@@ -6060,9 +6060,7 @@ select tableoid::regclass, * from bar order by 1,2;
 -- select tableoid::regclass, * from bar order by 1,2;
 -- Test forcing the remote server to produce sorted data for a merge join,
 -- but the foreign table is an inheritance child.
-delete from bar2__postgres_srv__0;
 delete from foo2__postgres_srv__0;
-delete from bar__postgres_srv__0;
 delete from foo__postgres_srv__0;
 --truncate table loct1;
 --truncate table only foo;
@@ -6183,11 +6181,18 @@ select foo.f1, foo2.f1 from foo left join foo2 on (foo.f1 = foo2.f1) order by fo
 RESET enable_hashjoin;
 RESET enable_nestloop;
 -- Test that WHERE CURRENT OF is not supported
---begin;
---declare c cursor for select * from bar where f1 = 7;
---fetch from c;
+begin;
+declare c cursor for select * from bar where f1 = 7;
+fetch from c;
+ f1 | f2 
+----+----
+  7 | 77
+(1 row)
+
 --update bar set f2 = null where current of c;
 --rollback;
+--use commit instead of rollback
+commit;
 -- explain (verbose, costs off)
 -- delete from foo where f1 < 5 returning *;
 delete from foo__postgres_srv__0 where f1 < 5 returning *;
@@ -6203,9 +6208,15 @@ delete from foo__postgres_srv__0 where f1 < 5 returning *;
 -- explain (verbose, costs off)
 -- update bar set f2 = f2 + 100 returning *;
 update bar__postgres_srv__0 set f2 = f2 + 100 returning *;
- f1 | f2 
-----+----
-(0 rows)
+ f1 | f2  
+----+-----
+  1 | 111
+  2 | 122
+  6 | 166
+  3 | 133
+  4 | 144
+  7 | 177
+(6 rows)
 
 -- Test that UPDATE/DELETE with inherited target works with row-level triggers
 CREATE TRIGGER trig_row_before
