@@ -117,6 +117,12 @@ create table loc1_1 (f1 serial, f2 text);
 alter table loc1_1 set (autovacuum_enabled = 'false');
 
 -- ===================================================================
+-- test generated columns
+-- ===================================================================
+create table gloc1 (a int, b int);
+alter table gloc1 set (autovacuum_enabled = 'false');
+
+-- ===================================================================
 
 -- test inheritance features
 

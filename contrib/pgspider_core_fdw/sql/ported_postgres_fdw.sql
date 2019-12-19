@@ -1507,6 +1507,27 @@ select * from rem1;
 select * from rem1__postgres_srv__0;
 
 -- ===================================================================
+-- test generated columns
+-- ===================================================================
+---create table gloc1 (a int, b int);
+---alter table gloc1 set (autovacuum_enabled = 'false');
+create foreign table grem1 (
+  a int,
+  b int generated always as (a * 2) stored,
+  __spd_url text)
+  server pgspider_srv;
+create foreign table grem1__postgres_srv__0 (
+  a int,
+  b int generated always as (a * 2) stored)
+  server postgres_srv options(table_name 'gloc1');
+---insert into grem1 (a) values (1), (2);
+---update grem1 set a = 22 where a = 2;
+insert into grem1__postgres_srv__0 (a) values (1), (2);
+update grem1__postgres_srv__0 set a = 22 where a = 2;
+---select * from gloc1;
+select * from grem1;
+
+-- ===================================================================
 -- test local triggers
 -- ===================================================================
 
