@@ -2108,6 +2108,8 @@ create foreign table remp2 (b text, a int check (a in (2)), __spd_url text)
   server pgspider_srv;
 create foreign table remp2__postgres_srv__0 (b text, a int check (a in (2))) 
   server postgres_srv options (table_name 'loct2_3');
+
+-- Does not support attach partition on foreign table
 --alter table itrtest attach partition remp1 for values in (1);
 --alter table itrtest attach partition remp2 for values in (2);
 
@@ -2127,16 +2129,18 @@ delete from itrtest__postgres_srv__0;
 --create unique index loct1_idx on loct1 (a);
 
 -- DO NOTHING without an inference specification is supported
--- insert into itrtest values (1, 'foo') on conflict do nothing returning *;
--- insert into itrtest values (1, 'foo') on conflict do nothing returning *;
+insert into itrtest__postgres_srv__0 values (1, 'foo') on conflict do nothing returning *;
+--ignore test result with unique index. we may not test unique index at run time
+insert into itrtest__postgres_srv__0 values (1, 'foo') on conflict do nothing returning *;
 
 -- But other cases are not supported
--- insert into itrtest values (1, 'bar') on conflict (a) do nothing;
--- insert into itrtest values (1, 'bar') on conflict (a) do update set b = excluded.b;
+insert into itrtest__postgres_srv__0 values (1, 'bar') on conflict (a) do nothing;
+insert into itrtest__postgres_srv__0 values (1, 'bar') on conflict (a) do update set b = excluded.b;
 
--- select tableoid::regclass, * FROM itrtest;
+select tableoid::regclass, * FROM itrtest;
 
 -- delete from itrtest;
+delete from itrtest__postgres_srv__0;
 
 -- drop index loct1_idx;
 
@@ -2165,7 +2169,9 @@ drop foreign table remp1;
 drop foreign table remp2;
 drop foreign table remp1__postgres_srv__0;
 drop foreign table remp2__postgres_srv__0;
-drop table itrtest;
+drop foreign table itrtest;
+drop foreign table itrtest__postgres_srv__0;
+
 
 -- Test update tuple routing
 create table utrtest (a int, b text, __spd_url text) partition by list (a);
