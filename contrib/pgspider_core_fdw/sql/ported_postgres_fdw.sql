@@ -1961,12 +1961,12 @@ select tableoid::regclass, * from bar order by 1,2;
 --from
 --  ( select f1 from foo union all select f1+3 from foo ) ss
 --where bar.f1 = ss.f1;
---update bar__postgres_srv__0 set f2 = f2 + 100
---from
---  ( select f1 from foo union all select f1+3 from foo ) ss
---where bar.f1 = ss.f1;
+update bar__postgres_srv__0 set f2 = f2 + 100
+from
+  ( select f1 from foo union all select f1+3 from foo ) ss
+where bar__postgres_srv__0.f1 = ss.f1;
 
--- select tableoid::regclass, * from bar order by 1,2;
+select tableoid::regclass, * from bar order by 1,2;
 
 -- Test forcing the remote server to produce sorted data for a merge join,
 -- but the foreign table is an inheritance child.
