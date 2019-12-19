@@ -5894,8 +5894,9 @@ CREATE FOREIGN TABLE a (aa TEXT)
   SERVER pgspider_srv;
 CREATE FOREIGN TABLE a__postgres_srv__0 (aa TEXT)
   SERVER postgres_srv OPTIONS (table_name 'a');
-CREATE FOREIGN TABLE b (bb TEXT, __spd_url TEXT) INHERITS (a)
+CREATE FOREIGN TABLE b (bb TEXT) INHERITS (a)
   SERVER pgspider_srv;
+ALTER FOREIGN TABLE a ADD COLUMN __spd_url TEXT;
 CREATE FOREIGN TABLE b__postgres_srv__0 (bb TEXT) INHERITS (a__postgres_srv__0)
   SERVER postgres_srv OPTIONS (table_name 'loct_1');
 INSERT INTO a__postgres_srv__0(aa) VALUES('aaa');
@@ -5905,14 +5906,14 @@ INSERT INTO b__postgres_srv__0(aa) VALUES('bbb');
 INSERT INTO b__postgres_srv__0(aa) VALUES('bbbb');
 INSERT INTO b__postgres_srv__0(aa) VALUES('bbbbb');
 SELECT tableoid::regclass, * FROM a;
- tableoid |  aa   
-----------+-------
- a        | aaa
- a        | aaaa
- a        | aaaaa
- b        | bbb
- b        | bbbb
- b        | bbbbb
+ tableoid |  aa   |   __spd_url    
+----------+-------+----------------
+ a        | aaa   | /postgres_srv/
+ a        | aaaa  | /postgres_srv/
+ a        | aaaaa | /postgres_srv/
+ b        | bbb   | /postgres_srv/
+ b        | bbbb  | /postgres_srv/
+ b        | bbbbb | /postgres_srv/
 (6 rows)
 
 SELECT tableoid::regclass, * FROM b;
@@ -5924,23 +5925,23 @@ SELECT tableoid::regclass, * FROM b;
 (3 rows)
 
 SELECT tableoid::regclass, * FROM ONLY a;
- tableoid |  aa   
-----------+-------
- a        | aaa
- a        | aaaa
- a        | aaaaa
+ tableoid |  aa   |   __spd_url    
+----------+-------+----------------
+ a        | aaa   | /postgres_srv/
+ a        | aaaa  | /postgres_srv/
+ a        | aaaaa | /postgres_srv/
 (3 rows)
 
 UPDATE a__postgres_srv__0 SET aa = 'zzzzzz' WHERE aa LIKE 'aaaa%';
 SELECT tableoid::regclass, * FROM a;
- tableoid |   aa   
-----------+--------
- a        | aaa
- a        | zzzzzz
- a        | zzzzzz
- b        | bbb
- b        | bbbb
- b        | bbbbb
+ tableoid |   aa   |   __spd_url    
+----------+--------+----------------
+ a        | aaa    | /postgres_srv/
+ a        | zzzzzz | /postgres_srv/
+ a        | zzzzzz | /postgres_srv/
+ b        | bbb    | /postgres_srv/
+ b        | bbbb   | /postgres_srv/
+ b        | bbbbb  | /postgres_srv/
 (6 rows)
 
 SELECT tableoid::regclass, * FROM b;
@@ -5952,23 +5953,23 @@ SELECT tableoid::regclass, * FROM b;
 (3 rows)
 
 SELECT tableoid::regclass, * FROM ONLY a;
- tableoid |   aa   
-----------+--------
- a        | aaa
- a        | zzzzzz
- a        | zzzzzz
+ tableoid |   aa   |   __spd_url    
+----------+--------+----------------
+ a        | aaa    | /postgres_srv/
+ a        | zzzzzz | /postgres_srv/
+ a        | zzzzzz | /postgres_srv/
 (3 rows)
 
 UPDATE b__postgres_srv__0 SET aa = 'new';
 SELECT tableoid::regclass, * FROM a;
- tableoid |   aa   
-----------+--------
- a        | aaa
- a        | zzzzzz
- a        | zzzzzz
- b        | new
- b        | new
- b        | new
+ tableoid |   aa   |   __spd_url    
+----------+--------+----------------
+ a        | aaa    | /postgres_srv/
+ a        | zzzzzz | /postgres_srv/
+ a        | zzzzzz | /postgres_srv/
+ b        | new    | /postgres_srv/
+ b        | new    | /postgres_srv/
+ b        | new    | /postgres_srv/
 (6 rows)
 
 SELECT tableoid::regclass, * FROM b;
@@ -5980,23 +5981,23 @@ SELECT tableoid::regclass, * FROM b;
 (3 rows)
 
 SELECT tableoid::regclass, * FROM ONLY a;
- tableoid |   aa   
-----------+--------
- a        | aaa
- a        | zzzzzz
- a        | zzzzzz
+ tableoid |   aa   |   __spd_url    
+----------+--------+----------------
+ a        | aaa    | /postgres_srv/
+ a        | zzzzzz | /postgres_srv/
+ a        | zzzzzz | /postgres_srv/
 (3 rows)
 
 UPDATE a__postgres_srv__0 SET aa = 'newtoo';
 SELECT tableoid::regclass, * FROM a;
- tableoid |   aa   
-----------+--------
- a        | newtoo
- a        | newtoo
- a        | newtoo
- b        | newtoo
- b        | newtoo
- b        | newtoo
+ tableoid |   aa   |   __spd_url    
+----------+--------+----------------
+ a        | newtoo | /postgres_srv/
+ a        | newtoo | /postgres_srv/
+ a        | newtoo | /postgres_srv/
+ b        | newtoo | /postgres_srv/
+ b        | newtoo | /postgres_srv/
+ b        | newtoo | /postgres_srv/
 (6 rows)
 
 SELECT tableoid::regclass, * FROM b;
@@ -6008,17 +6009,17 @@ SELECT tableoid::regclass, * FROM b;
 (3 rows)
 
 SELECT tableoid::regclass, * FROM ONLY a;
- tableoid |   aa   
-----------+--------
- a        | newtoo
- a        | newtoo
- a        | newtoo
+ tableoid |   aa   |   __spd_url    
+----------+--------+----------------
+ a        | newtoo | /postgres_srv/
+ a        | newtoo | /postgres_srv/
+ a        | newtoo | /postgres_srv/
 (3 rows)
 
 DELETE FROM a__postgres_srv__0;
 SELECT tableoid::regclass, * FROM a;
- tableoid | aa 
-----------+----
+ tableoid | aa | __spd_url 
+----------+----+-----------
 (0 rows)
 
 SELECT tableoid::regclass, * FROM b;
@@ -6027,8 +6028,8 @@ SELECT tableoid::regclass, * FROM b;
 (0 rows)
 
 SELECT tableoid::regclass, * FROM ONLY a;
- tableoid | aa 
-----------+----
+ tableoid | aa | __spd_url 
+----------+----+-----------
 (0 rows)
 
 DROP FOREIGN TABLE a CASCADE;
@@ -6278,9 +6279,9 @@ RESET enable_nestloop;
 begin;
 declare c cursor for select * from bar where f1 = 7;
 fetch from c;
- f1 | f2 |   __spd_url    
-----+----+----------------
-  7 | 77 | /postgres_srv/
+ f1 | f2  |   __spd_url    
+----+-----+----------------
+  7 | 177 | /postgres_srv/
 (1 row)
 
 --update bar set f2 = null where current of c;
@@ -6304,12 +6305,12 @@ delete from foo__postgres_srv__0 where f1 < 5 returning *;
 update bar__postgres_srv__0 set f2 = f2 + 100 returning *;
  f1 | f2  
 ----+-----
-  1 | 111
-  2 | 122
-  6 | 166
-  3 | 133
-  4 | 144
-  7 | 177
+  1 | 211
+  2 | 222
+  6 | 266
+  3 | 233
+  4 | 244
+  7 | 277
 (6 rows)
 
 -- Test that UPDATE/DELETE with inherited target works with row-level triggers

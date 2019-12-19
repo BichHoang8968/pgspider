@@ -1844,8 +1844,9 @@ CREATE FOREIGN TABLE a (aa TEXT)
   SERVER pgspider_srv;
 CREATE FOREIGN TABLE a__postgres_srv__0 (aa TEXT)
   SERVER postgres_srv OPTIONS (table_name 'a');
-CREATE FOREIGN TABLE b (bb TEXT, __spd_url TEXT) INHERITS (a)
+CREATE FOREIGN TABLE b (bb TEXT) INHERITS (a)
   SERVER pgspider_srv;
+ALTER FOREIGN TABLE a ADD COLUMN __spd_url TEXT;
 CREATE FOREIGN TABLE b__postgres_srv__0 (bb TEXT) INHERITS (a__postgres_srv__0)
   SERVER postgres_srv OPTIONS (table_name 'loct_1');
 
