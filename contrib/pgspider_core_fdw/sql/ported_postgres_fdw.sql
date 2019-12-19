@@ -1896,22 +1896,27 @@ DROP FOREIGN TABLE b__postgres_srv__0;
 --alter table loct1 set (autovacuum_enabled = 'false');
 --alter table loct2 set (autovacuum_enabled = 'false');
 
--- create table foo (f1 int, f2 int);
+---create table foo (f1 int, f2 int);
 create foreign table foo (f1 int, f2 int)
   server pgspider_srv;
 create foreign table foo__postgres_srv__0 (f1 int, f2 int)
   server postgres_srv options (table_name 'foo');
-create foreign table foo2 (f3 int, __spd_url text) inherits (foo)
+create foreign table foo2 (f3 int) inherits (foo)
   server pgspider_srv;
+-- Add __spd_url for both foo and foo2
+alter foreign table foo add column __spd_url text;
 create foreign table foo2__postgres_srv__0 (f3 int) inherits (foo__postgres_srv__0)
   server postgres_srv options (table_name 'loct1_1');
--- create table bar (f1 int, f2 int);
+
+---create table bar (f1 int, f2 int);
 create foreign table bar (f1 int, f2 int)
-  server pgspider_srv;
-create foreign table bar2 (f3 int, __spd_url text) inherits (bar)
   server pgspider_srv;
 create foreign table bar__postgres_srv__0 (f1 int, f2 int)
   server postgres_srv options (table_name 'bar');
+create foreign table bar2 (f3 int) inherits (bar)
+  server pgspider_srv;
+-- Add __spd_url for both bat and bar2
+alter foreign table bar add column __spd_url text;
 create foreign table bar2__postgres_srv__0 (f3 int) inherits (bar__postgres_srv__0)
   server postgres_srv options (table_name 'loct2_1');
 
