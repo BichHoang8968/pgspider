@@ -170,10 +170,10 @@ create table parent (a int, b text);
 create table loct1_2 (a int, b text);
 create table loct2_2 (a int, b text);
 
-insert into loct1_2 values (1, 'foo');
-insert into loct1_2 values (2, 'bar');
-insert into loct2_2 values (1, 'foo');
-insert into loct2_2 values (2, 'bar');
+--insert into loct1_2 values (1, 'foo');
+--insert into loct1_2 values (2, 'bar');
+--insert into loct2_2 values (1, 'foo');
+--insert into loct2_2 values (2, 'bar');
 
 
 
