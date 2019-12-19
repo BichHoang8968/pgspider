@@ -187,13 +187,14 @@ create table loct2_2 (a int, b text);
 
 -- Test insert tuple routing
 
+create table itrtest (a int, b text) partition by list (a);
+
 create table loct1_3 (a int check (a in (1)), b text);
 
 create table loct2_3 (a int check (a in (2)), b text);
 
-create unique index loct1_idx on loct1_3 (a);
-
-
+alter table itrtest attach partition loct1_3 for values in (1);
+alter table itrtest attach partition loct2_3 for values in (2);
 
 -- Test update tuple routing
 

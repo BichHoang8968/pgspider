@@ -2093,27 +2093,36 @@ drop foreign table parent__postgres_srv__0;
 -- ===================================================================
 
 -- Test insert tuple routing
-create table itrtest (a int, b text, __spd_url text) partition by list (a);
---create table loct1 (a int check (a in (1)), b text);
-create foreign table remp1 (a int check (a in (1)), b text, __spd_url text) server pgspider_srv;
-create foreign table remp1__postgres_srv__0 (a int check (a in (1)), b text) server postgres_srv options (table_name 'loct1_3');
---create table loct2 (a int check (a in (2)), b text);
-create foreign table remp2 (b text, a int check (a in (2)), __spd_url text) server pgspider_srv;
-create foreign table remp2__postgres_srv__0 (b text, a int check (a in (2))) server postgres_srv options (table_name 'loct2_3');
-alter table itrtest attach partition remp1 for values in (1);
-alter table itrtest attach partition remp2 for values in (2);
+---create table itrtest (a int, b text) partition by list (a);
+create foreign table itrtest (a int, b text, __spd_url text)
+  server pgspider_srv;
+create foreign table itrtest__postgres_srv__0 (a int, b text)
+  server postgres_srv options (table_name 'itrtest');
+---create table loct1 (a int check (a in (1)), b text);
+create foreign table remp1 (a int check (a in (1)), b text, __spd_url text) 
+  server pgspider_srv;
+create foreign table remp1__postgres_srv__0 (a int check (a in (1)), b text) 
+  server postgres_srv options (table_name 'loct1_3');
+---create table loct2 (a int check (a in (2)), b text);
+create foreign table remp2 (b text, a int check (a in (2)), __spd_url text) 
+  server pgspider_srv;
+create foreign table remp2__postgres_srv__0 (b text, a int check (a in (2))) 
+  server postgres_srv options (table_name 'loct2_3');
+--alter table itrtest attach partition remp1 for values in (1);
+--alter table itrtest attach partition remp2 for values in (2);
 
--- insert into itrtest values (1, 'foo');
--- insert into itrtest values (1, 'bar') returning *;
--- insert into itrtest values (2, 'baz');
--- insert into itrtest values (2, 'qux') returning *;
--- insert into itrtest values (1, 'test1'), (2, 'test2') returning *;
+insert into itrtest__postgres_srv__0 values (1, 'foo');
+insert into itrtest__postgres_srv__0 values (1, 'bar') returning *;
+insert into itrtest__postgres_srv__0 values (2, 'baz');
+insert into itrtest__postgres_srv__0 values (2, 'qux') returning *;
+insert into itrtest__postgres_srv__0 values (1, 'test1'), (2, 'test2') returning *;
 
--- select tableoid::regclass, * FROM itrtest;
--- select tableoid::regclass, * FROM remp1;
--- select tableoid::regclass, * FROM remp2;
+select tableoid::regclass, * FROM itrtest;
+select tableoid::regclass, * FROM remp1;
+select tableoid::regclass, * FROM remp2;
 
 --delete from itrtest;
+delete from itrtest__postgres_srv__0;
 
 --create unique index loct1_idx on loct1 (a);
 
