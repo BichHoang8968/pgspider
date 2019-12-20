@@ -2375,13 +2375,13 @@ alter foreign table rem2 drop constraint rem2_f1positive;
 delete from rem2__postgres_srv__0;
 
 -- Test local triggers
-create trigger trig_stmt_before before insert on rem2
+create trigger trig_stmt_before before insert on rem2__postgres_srv__0
 	for each statement execute procedure trigger_func();
-create trigger trig_stmt_after after insert on rem2
+create trigger trig_stmt_after after insert on rem2__postgres_srv__0
 	for each statement execute procedure trigger_func();
-create trigger trig_row_before before insert on rem2
+create trigger trig_row_before before insert on rem2__postgres_srv__0
 	for each row execute procedure trigger_data(23,'skidoo');
-create trigger trig_row_after after insert on rem2
+create trigger trig_row_after after insert on rem2__postgres_srv__0
 	for each row execute procedure trigger_data(23,'skidoo');
 
 copy rem2__postgres_srv__0 from stdin;
@@ -2390,14 +2390,14 @@ copy rem2__postgres_srv__0 from stdin;
 \.
 select * from rem2;
 
-drop trigger trig_row_before on rem2;
-drop trigger trig_row_after on rem2;
-drop trigger trig_stmt_before on rem2;
-drop trigger trig_stmt_after on rem2;
+drop trigger trig_row_before on rem2__postgres_srv__0;
+drop trigger trig_row_after on rem2__postgres_srv__0;
+drop trigger trig_stmt_before on rem2__postgres_srv__0;
+drop trigger trig_stmt_after on rem2__postgres_srv__0;
 
 delete from rem2__postgres_srv__0;
 
-create trigger trig_row_before_insert before insert on rem2
+create trigger trig_row_before_insert before insert on rem2__postgres_srv__0
 	for each row execute procedure trig_row_before_insupdate();
 
 -- The new values are concatenated with ' triggered !'
@@ -2405,13 +2405,13 @@ copy rem2__postgres_srv__0 from stdin;
 1	foo
 2	bar
 \.
--- select * from rem2;
+select * from rem2;
 
-drop trigger trig_row_before_insert on rem2;
+drop trigger trig_row_before_insert on rem2__postgres_srv__0;
 
 delete from rem2__postgres_srv__0;
 
-create trigger trig_null before insert on rem2
+create trigger trig_null before insert on rem2__postgres_srv__0
 	for each row execute procedure trig_null();
 
 -- Nothing happens
@@ -2419,14 +2419,14 @@ copy rem2__postgres_srv__0 from stdin;
 1	foo
 2	bar
 \.
--- select * from rem2;
+select * from rem2;
 
-drop trigger trig_null on rem2;
+drop trigger trig_null on rem2__postgres_srv__0;
 
 delete from rem2__postgres_srv__0;
 
 -- Test remote triggers
-create trigger trig_row_before_insert before insert on rem2
+create trigger trig_row_before_insert before insert on rem2__postgres_srv__0
 	for each row execute procedure trig_row_before_insupdate();
 
 -- The new values are concatenated with ' triggered !'
@@ -2434,13 +2434,13 @@ copy rem2__postgres_srv__0 from stdin;
 1	foo
 2	bar
 \.
--- select * from rem2;
+select * from rem2;
 
-drop trigger trig_row_before_insert on rem2;
+drop trigger trig_row_before_insert on rem2__postgres_srv__0;
 
 delete from rem2__postgres_srv__0;
 
-create trigger trig_null before insert on rem2
+create trigger trig_null before insert on rem2__postgres_srv__0
 	for each row execute procedure trig_null();
 
 -- Nothing happens
@@ -2448,29 +2448,29 @@ copy rem2__postgres_srv__0 from stdin;
 1	foo
 2	bar
 \.
--- select * from rem2;
+select * from rem2;
 
-drop trigger trig_null on rem2;
+drop trigger trig_null on rem2__postgres_srv__0;
 
 delete from rem2__postgres_srv__0;
 
 -- Test a combination of local and remote triggers
-create trigger rem2_trig_row_before before insert on rem2
+create trigger rem2_trig_row_before before insert on rem2__postgres_srv__0
 	for each row execute procedure trigger_data(23,'skidoo');
-create trigger rem2_trig_row_after after insert on rem2
+create trigger rem2_trig_row_after after insert on rem2__postgres_srv__0
 	for each row execute procedure trigger_data(23,'skidoo');
-create trigger loc2_trig_row_before_insert before insert on rem2
+create trigger loc2_trig_row_before_insert before insert on rem2__postgres_srv__0
 	for each row execute procedure trig_row_before_insupdate();
 
 copy rem2__postgres_srv__0 from stdin;
 1	foo
 2	bar
 \.
--- select * from rem2;
+select * from rem2;
 
-drop trigger rem2_trig_row_before on rem2;
-drop trigger rem2_trig_row_after on rem2;
-drop trigger loc2_trig_row_before_insert on rem2;
+drop trigger rem2_trig_row_before on rem2__postgres_srv__0;
+drop trigger rem2_trig_row_after on rem2__postgres_srv__0;
+drop trigger loc2_trig_row_before_insert on rem2__postgres_srv__0;
 
 delete from rem2__postgres_srv__0;
 
