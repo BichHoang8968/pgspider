@@ -6719,29 +6719,57 @@ drop foreign table remp__postgres_srv__0;
 drop foreign table utrtest;
 --drop table loct;
 -- Test copy tuple routing
-create table ctrtest (a int, b text, __spd_url text) partition by list (a);
---create table loct1 (a int check (a in (1)), b text);
-create foreign table remp1 (a int check (a in (1)), b text, __spd_url text) server pgspider_srv;
-create foreign table remp1__postgres_srv__0 (a int check (a in (1)), b text) server postgres_srv options (table_name 'loct1_4');
-create foreign table remp2 (b text, a int check (a in (2)), __spd_url text) server pgspider_srv;
-create foreign table remp2__postgres_srv__0 (b text, a int check (a in (2))) server postgres_srv options (table_name 'loct2_4');
-alter table ctrtest attach partition remp1 for values in (1);
-alter table ctrtest attach partition remp2 for values in (2);
--- copy ctrtest from stdin;
--- 1	foo
--- 2	qux
--- \.
--- select tableoid::regclass, * FROM ctrtest;
--- select tableoid::regclass, * FROM remp1;
--- select tableoid::regclass, * FROM remp2;
+---create table ctrtest (a int, b text, __spd_url text) partition by list (a);
+---create table loct1 (a int check (a in (1)), b text);
+create foreign table ctrtest (a int, b text, __spd_url text)
+  server pgspider_srv;
+create foreign table ctrtest__postgres_srv__0 (a int, b text)
+  server postgres_srv options (table_name 'ctrtest');
+create foreign table remp1 (a int check (a in (1)), b text, __spd_url text)
+  server pgspider_srv;
+create foreign table remp1__postgres_srv__0 (a int check (a in (1)), b text)
+  server postgres_srv options (table_name 'loct1_4');
+create foreign table remp2 (b text, a int check (a in (2)), __spd_url text)
+  server pgspider_srv;
+create foreign table remp2__postgres_srv__0 (b text, a int check (a in (2)))
+  server postgres_srv options (table_name 'loct2_4');
+--alter table ctrtest attach partition remp1 for values in (1);
+--alter table ctrtest attach partition remp2 for values in (2);
+copy ctrtest__postgres_srv__0 from stdin;
+select tableoid::regclass, * FROM ctrtest;
+ tableoid | a |  b  |   __spd_url    
+----------+---+-----+----------------
+ ctrtest  | 1 | foo | /postgres_srv/
+ ctrtest  | 2 | qux | /postgres_srv/
+(2 rows)
+
+select tableoid::regclass, * FROM remp1;
+ tableoid | a |  b  |   __spd_url    
+----------+---+-----+----------------
+ remp1    | 1 | foo | /postgres_srv/
+(1 row)
+
+select tableoid::regclass, * FROM remp2;
+ tableoid |  b  | a |   __spd_url    
+----------+-----+---+----------------
+ remp2    | qux | 2 | /postgres_srv/
+(1 row)
+
 -- Copying into foreign partitions directly should work as well
 copy remp1__postgres_srv__0 from stdin;
--- select tableoid::regclass, * FROM remp1;
+select tableoid::regclass, * FROM remp1;
+ tableoid | a |  b  |   __spd_url    
+----------+---+-----+----------------
+ remp1    | 1 | foo | /postgres_srv/
+ remp1    | 1 | bar | /postgres_srv/
+(2 rows)
+
 drop foreign table remp1;
 drop foreign table remp2;
 drop foreign table remp1__postgres_srv__0;
 drop foreign table remp2__postgres_srv__0;
-drop table ctrtest;
+drop foreign table ctrtest;
+drop foreign table ctrtest__postgres_srv__0;
 -- ===================================================================
 -- test COPY FROM
 -- ===================================================================

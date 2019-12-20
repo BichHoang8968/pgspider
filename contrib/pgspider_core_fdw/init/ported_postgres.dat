@@ -209,10 +209,13 @@ alter table utrtest attach partition locp_2 for values in (2);
 
 -- Test copy tuple routing
 
+create table ctrtest (a int, b text) partition by list (a);
 create table loct1_4 (a int check (a in (1)), b text);
 
 create table loct2_4 (a int check (a in (2)), b text);
 
+alter table ctrtest attach partition loct1_4 for values in (1);
+alter table ctrtest attach partition loct2_4 for values in (2);
 
 
 -- ===================================================================
