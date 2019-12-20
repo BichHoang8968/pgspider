@@ -2177,94 +2177,110 @@ drop foreign table itrtest;
 drop foreign table itrtest__postgres_srv__0;
 
 -- Test update tuple routing
-create table utrtest (a int, b text, __spd_url text) partition by list (a);
-create foreign table remp (a int check (a in (1)), b text, __spd_url text) server pgspider_srv;
-create foreign table remp__postgres_srv__0 (a int check (a in (1)), b text) server postgres_srv options (table_name 'loct_2');
-create table locp (a int check (a in (2)), b text, __spd_url text);
-alter table utrtest attach partition remp for values in (1);
-alter table utrtest attach partition locp for values in (2);
+---create table utrtest (a int, b text) partition by list (a);
+create foreign table utrtest (a int, b text)
+  server pgspider_srv;
+create foreign table utrtest__postgres_srv__0 (a int, b text)
+  server postgres_srv options (table_name 'utrtest');
+---create table loct (a int check (a in (1)), b text);
+create foreign table remp (a int check (a in (1)), b text, __spd_url text)
+  server pgspider_srv;
+create foreign table remp__postgres_srv__0 (a int check (a in (1)), b text)
+  server postgres_srv options (table_name 'loct_2');
+---create table locp (a int check (a in (2)), b text);
+create foreign table locp (a int check (a in (2)), b text, __spd_url text)
+  server pgspider_srv;
+create foreign table locp__postgres_srv__0 (a int check (a in (2)), b text)
+  server postgres_srv options (table_name 'locp_2');
+-- Does not support attach partition on remote table. Ignore this test.
+--alter table utrtest attach partition remp for values in (1);
+--alter table utrtest attach partition locp for values in (2);
 
--- insert into utrtest values (1, 'foo');
--- insert into utrtest values (2, 'qux');
+insert into utrtest__postgres_srv__0 values (1, 'foo');
+insert into utrtest__postgres_srv__0 values (2, 'qux');
 
--- select tableoid::regclass, * FROM utrtest;
--- select tableoid::regclass, * FROM remp;
--- select tableoid::regclass, * FROM locp;
+select tableoid::regclass, * FROM utrtest;
+select tableoid::regclass, * FROM remp;
+select tableoid::regclass, * FROM locp;
 
 -- It's not allowed to move a row from a partition that is foreign to another
--- update utrtest set a = 2 where b = 'foo' returning *;
+-- Ignore this test, we cannot attach partition on remote table.
+update utrtest__postgres_srv__0 set a = 2 where b = 'foo' returning *;
 
 -- But the reverse is allowed
--- update utrtest set a = 1 where b = 'qux' returning *;
+update utrtest__postgres_srv__0 set a = 1 where b = 'qux' returning *;
 
--- select tableoid::regclass, * FROM utrtest;
--- select tableoid::regclass, * FROM remp;
--- select tableoid::regclass, * FROM locp;
+select tableoid::regclass, * FROM utrtest;
+select tableoid::regclass, * FROM remp;
+select tableoid::regclass, * FROM locp;
 
 -- The executor should not let unexercised FDWs shut down
--- update utrtest set a = 1 where b = 'foo';
+update utrtest__postgres_srv__0 set a = 1 where b = 'foo';
 
 -- Test that remote triggers work with update tuple routing
-create trigger loct_br_insert_trigger before insert on remp
+create trigger loct_br_insert_trigger before insert on utrtest__postgres_srv__0
 	for each row execute procedure br_insert_trigfunc();
 
--- delete from utrtest;
--- insert into utrtest values (2, 'qux');
+delete from utrtest__postgres_srv__0;
+insert into utrtest__postgres_srv__0 values (2, 'qux');
 
 -- Check case where the foreign partition is a subplan target rel
 -- explain (verbose, costs off)
 -- update utrtest set a = 1 where a = 1 or a = 2 returning *;
 -- The new values are concatenated with ' triggered !'
--- update utrtest set a = 1 where a = 1 or a = 2 returning *;
+update utrtest__postgres_srv__0 set a = 1 where a = 1 or a = 2 returning *;
 
--- delete from utrtest;
--- insert into utrtest values (2, 'qux');
+delete from utrtest__postgres_srv__0;
+insert into utrtest__postgres_srv__0 values (2, 'qux');
 
 -- Check case where the foreign partition isn't a subplan target rel
 -- explain (verbose, costs off)
 -- update utrtest set a = 1 where a = 2 returning *;
 -- The new values are concatenated with ' triggered !'
--- update utrtest set a = 1 where a = 2 returning *;
+update utrtest__postgres_srv__0 set a = 1 where a = 2 returning *;
 
-drop trigger loct_br_insert_trigger on remp;
+drop trigger loct_br_insert_trigger on utrtest__postgres_srv__0;
 
 -- We can move rows to a foreign partition that has been updated already,
 -- but can't move rows to a foreign partition that hasn't been updated yet
 
--- delete from utrtest;
--- insert into utrtest values (1, 'foo');
--- insert into utrtest values (2, 'qux');
+delete from utrtest__postgres_srv__0;
+insert into utrtest__postgres_srv__0 values (1, 'foo');
+insert into utrtest__postgres_srv__0 values (2, 'qux');
 
 -- Test the former case:
 -- with a direct modification plan
 -- explain (verbose, costs off)
 -- update utrtest set a = 1 returning *;
--- update utrtest set a = 1 returning *;
+update utrtest__postgres_srv__0 set a = 1 returning *;
 
--- delete from utrtest;
--- insert into utrtest values (1, 'foo');
--- insert into utrtest values (2, 'qux');
+delete from utrtest__postgres_srv__0;
+insert into utrtest__postgres_srv__0 values (1, 'foo');
+insert into utrtest__postgres_srv__0 values (2, 'qux');
 
 -- with a non-direct modification plan
 -- explain (verbose, costs off)
 -- update utrtest set a = 1 from (values (1), (2)) s(x) where a = s.x returning *;
--- update utrtest set a = 1 from (values (1), (2)) s(x) where a = s.x returning *;
+update utrtest__postgres_srv__0 set a = 1 from (values (1), (2)) s(x) where a = s.x returning *;
 
 -- Change the definition of utrtest so that the foreign partition get updated
 -- after the local partition
--- delete from utrtest;
-alter table utrtest detach partition remp;
+delete from utrtest__postgres_srv__0;
+-- alter table utrtest detach partition remp;
 drop foreign table remp;
+drop foreign table remp__postgres_srv__0;
+
 -- Comment out the constraint testing
 -- alter table loct drop constraint loct_a_check;
 -- alter table loct add check (a in (3));
--- create foreign table remp__postgres_srv__0 (a int check (a in (3)), b text) server postgres_srv options (table_name 'loct');
+-- create foreign table remp__postgres_srv__0 (a int check (a in (3)), b text) 
+--  server postgres_srv options (table_name 'loct');
 -- alter table utrtest attach partition remp__postgres_srv__0 for values in (3);
 -- insert into utrtest values (2, 'qux');
 -- insert into utrtest values (3, 'xyzzy');
 
--- -- Test the latter case:
--- -- with a direct modification plan
+-- Test the latter case:
+-- with a direct modification plan
 -- explain (verbose, costs off)
 -- update utrtest set a = 3 returning *;
 -- update utrtest set a = 3 returning *; -- ERROR
@@ -2274,7 +2290,7 @@ drop foreign table remp;
 -- update utrtest set a = 3 from (values (2), (3)) s(x) where a = s.x returning *;
 -- update utrtest set a = 3 from (values (2), (3)) s(x) where a = s.x returning *; -- ERROR
 
-drop table utrtest;
+drop foreign table utrtest;
 --drop table loct;
 
 -- Test copy tuple routing

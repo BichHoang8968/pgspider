@@ -198,11 +198,14 @@ alter table itrtest attach partition loct2_3 for values in (2);
 
 -- Test update tuple routing
 
+create table utrtest (a int, b text) partition by list (a);
+
 create table loct_2 (a int check (a in (1)), b text);
 
 create table locp_2 (a int check (a in (2)), b text);
 
-
+alter table utrtest attach partition loct_2 for values in (1);
+alter table utrtest attach partition locp_2 for values in (2);
 
 -- Test copy tuple routing
 
