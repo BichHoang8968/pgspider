@@ -4,6 +4,10 @@
 
 CREATE EXTENSION postgres_fdw;
 CREATE EXTENSION pgspider_core_fdw;
+CREATE EXTENSION dblink;
+
+select dblink_connect('dbname=postdb host=127.0.0.1 
+	port=15432 user=postgres password=postgres');
 
 CREATE SERVER pgspider_srv FOREIGN DATA WRAPPER pgspider_core_fdw;
 DO $d$
@@ -2151,23 +2155,18 @@ begin
 	return new;
 end
 $$ language plpgsql;
--- itrtest attached partition to loct1_3 and loct2_3 in init file. 
--- We only need to test remote triggers work with the remote table itrtest.
--- Because PGSpider now does not support INSERT, we use itrtest__postgres_srv__0.
-create trigger loct1_br_insert_trigger before insert on itrtest__postgres_srv__0
-	for each row execute procedure br_insert_trigfunc();
--- We don't need to port this test.
---create trigger loct2_br_insert_trigger before insert on loct2
---	for each row execute procedure br_insert_trigfunc();
-
+SELECT dblink_exec('create trigger loct1_br_insert_trigger before insert on loct1_3
+        for each row execute procedure br_insert_trigfunc();');
+SELECT dblink_exec('create trigger loct2_br_insert_trigger before insert on loct2_3
+	for each row execute procedure br_insert_trigfunc();');
 -- The new values are concatenated with ' triggered !'
 insert into itrtest__postgres_srv__0 values (1, 'foo') returning *;
 insert into itrtest__postgres_srv__0 values (2, 'qux') returning *;
 insert into itrtest__postgres_srv__0 values (1, 'test1'), (2, 'test2') returning *;
 with result as (insert into itrtest__postgres_srv__0 values (1, 'test1'), (2, 'test2') returning *) select * from result;
 
-drop trigger loct1_br_insert_trigger on itrtest__postgres_srv__0;
---drop trigger loct2_br_insert_trigger on remp2;
+SELECT dblink_exec('drop trigger loct1_br_insert_trigger on loct1_3;');
+SELECT dblink_exec('drop trigger loct2_br_insert_trigger on loct2_3;');
 
 drop foreign table remp1;
 drop foreign table remp2;
@@ -2732,4 +2731,5 @@ SELECT b, avg(a), max(a), count(*) FROM pagg_tab GROUP BY b HAVING sum(a) < 700 
 
 
 -- Clean-up
+SELECT dblink_disconnect();
 RESET enable_partitionwise_aggregate;

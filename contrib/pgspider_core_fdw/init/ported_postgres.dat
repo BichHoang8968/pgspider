@@ -196,6 +196,13 @@ create table loct2_3 (a int check (a in (2)), b text);
 alter table itrtest attach partition loct1_3 for values in (1);
 alter table itrtest attach partition loct2_3 for values in (2);
 
+create function br_insert_trigfunc() returns trigger as $$
+begin
+	new.b := new.b || ' triggered !';
+	return new;
+end
+$$ language plpgsql;
+
 -- Test update tuple routing
 
 create table utrtest (a int, b text) partition by list (a);
