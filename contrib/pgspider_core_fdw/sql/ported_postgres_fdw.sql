@@ -2339,10 +2339,12 @@ drop foreign table ctrtest__postgres_srv__0;
 -- test COPY FROM
 -- ===================================================================
 
---create table loc2 (f1 int, f2 text);
---alter table loc2 set (autovacuum_enabled = 'false');
-create foreign table rem2 (f1 int, f2 text, __spd_url text) server pgspider_srv;
-create foreign table rem2__postgres_srv__0 (f1 int, f2 text) server postgres_srv options(table_name 'loc2_1');
+---create table loc2 (f1 int, f2 text);
+---alter table loc2 set (autovacuum_enabled = 'false');
+create foreign table rem2 (f1 int, f2 text, __spd_url text)
+  server pgspider_srv;
+create foreign table rem2__postgres_srv__0 (f1 int, f2 text)
+  server postgres_srv options(table_name 'loc2_1');
 
 -- Test basic functionality
 copy rem2__postgres_srv__0 from stdin;
@@ -2354,18 +2356,18 @@ select * from rem2;
 delete from rem2__postgres_srv__0;
 
 -- Test check constraints
---alter table loc2 add constraint loc2_f1positive check (f1 >= 0);
+---alter table loc2 add constraint loc2_f1positive check (f1 >= 0);
 alter foreign table rem2 add constraint rem2_f1positive check (f1 >= 0);
 
 -- check constraint is enforced on the remote side, not locally
--- copy rem2__postgres_srv__0 from stdin;
--- 1	foo
--- 2	bar
--- \.
--- copy rem2__postgres_srv__0 from stdin; -- ERROR
--- -1	xyzzy
--- \.
--- select * from rem2;
+copy rem2__postgres_srv__0 from stdin;
+1	foo
+2	bar
+\.
+copy rem2__postgres_srv__0 from stdin; -- ERROR
+-1	xyzzy
+\.
+select * from rem2;
 
 alter foreign table rem2 drop constraint rem2_f1positive;
 --alter table loc2 drop constraint loc2_f1positive;

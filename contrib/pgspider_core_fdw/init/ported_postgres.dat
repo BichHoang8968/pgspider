@@ -230,7 +230,7 @@ create table loc2_1 (f1 int, f2 text);
 
 alter table loc2_1 set (autovacuum_enabled = 'false');
 
-
+alter table loc2_1 add constraint loc2_1_f1positive check (f1 >= 0);
 
 -- test COPY FROM with foreign table created in the same transaction
 
