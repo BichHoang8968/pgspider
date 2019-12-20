@@ -2151,19 +2151,23 @@ begin
 	return new;
 end
 $$ language plpgsql;
-create trigger loct1_br_insert_trigger before insert on remp1
+-- itrtest attached partition to loct1_3 and loct2_3 in init file. 
+-- We only need to test remote triggers work with the remote table itrtest.
+-- Because PGSpider now does not support INSERT, we use itrtest__postgres_srv__0.
+create trigger loct1_br_insert_trigger before insert on itrtest__postgres_srv__0
 	for each row execute procedure br_insert_trigfunc();
-create trigger loct2_br_insert_trigger before insert on remp2
-	for each row execute procedure br_insert_trigfunc();
+-- We don't need to port this test.
+--create trigger loct2_br_insert_trigger before insert on loct2
+--	for each row execute procedure br_insert_trigfunc();
 
 -- The new values are concatenated with ' triggered !'
--- insert into itrtest values (1, 'foo') returning *;
--- insert into itrtest values (2, 'qux') returning *;
--- insert into itrtest values (1, 'test1'), (2, 'test2') returning *;
--- with result as (insert into itrtest values (1, 'test1'), (2, 'test2') returning *) select * from result;
+insert into itrtest__postgres_srv__0 values (1, 'foo') returning *;
+insert into itrtest__postgres_srv__0 values (2, 'qux') returning *;
+insert into itrtest__postgres_srv__0 values (1, 'test1'), (2, 'test2') returning *;
+with result as (insert into itrtest__postgres_srv__0 values (1, 'test1'), (2, 'test2') returning *) select * from result;
 
-drop trigger loct1_br_insert_trigger on remp1;
-drop trigger loct2_br_insert_trigger on remp2;
+drop trigger loct1_br_insert_trigger on itrtest__postgres_srv__0;
+--drop trigger loct2_br_insert_trigger on remp2;
 
 drop foreign table remp1;
 drop foreign table remp2;
@@ -2171,7 +2175,6 @@ drop foreign table remp1__postgres_srv__0;
 drop foreign table remp2__postgres_srv__0;
 drop foreign table itrtest;
 drop foreign table itrtest__postgres_srv__0;
-
 
 -- Test update tuple routing
 create table utrtest (a int, b text, __spd_url text) partition by list (a);
