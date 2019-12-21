@@ -7429,13 +7429,17 @@ AND srvoptions @> array['fetch_size=202'];
      1
 (1 row)
 
-CREATE FOREIGN TABLE table30000 ( x int , __spd_url text) SERVER pgspider_srv;
-CREATE FOREIGN TABLE table30000__fetch101__0 ( x int ) SERVER fetch101 OPTIONS ( fetch_size '30000' );
--- SELECT COUNT(*)
--- FROM pg_foreign_table
--- WHERE ftrelid = 'table30000'::regclass
--- AND ftoptions @> array['fetch_size=30000'];
-ALTER FOREIGN TABLE table30000__fetch101__0 OPTIONS ( SET fetch_size '60000');
+CREATE FOREIGN TABLE table30000 ( x int ) SERVER fetch101 OPTIONS ( fetch_size '30000' );
+SELECT COUNT(*)
+FROM pg_foreign_table
+WHERE ftrelid = 'table30000'::regclass
+AND ftoptions @> array['fetch_size=30000'];
+ count 
+-------
+     1
+(1 row)
+
+ALTER FOREIGN TABLE table30000 OPTIONS ( SET fetch_size '60000');
 SELECT COUNT(*)
 FROM pg_foreign_table
 WHERE ftrelid = 'table30000'::regclass
@@ -7445,10 +7449,15 @@ AND ftoptions @> array['fetch_size=30000'];
      0
 (1 row)
 
--- SELECT COUNT(*)
--- FROM pg_foreign_table
--- WHERE ftrelid = 'table30000'::regclass
--- AND ftoptions @> array['fetch_size=60000'];
+SELECT COUNT(*)
+FROM pg_foreign_table
+WHERE ftrelid = 'table30000'::regclass
+AND ftoptions @> array['fetch_size=60000'];
+ count 
+-------
+     1
+(1 row)
+
 ROLLBACK;
 -- ===================================================================
 -- test partitionwise joins

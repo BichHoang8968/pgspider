@@ -2590,25 +2590,25 @@ FROM pg_foreign_server
 WHERE srvname = 'fetch101'
 AND srvoptions @> array['fetch_size=202'];
 
-CREATE FOREIGN TABLE table30000 ( x int , __spd_url text) SERVER pgspider_srv;
-CREATE FOREIGN TABLE table30000__fetch101__0 ( x int ) SERVER fetch101 OPTIONS ( fetch_size '30000' );
-
--- SELECT COUNT(*)
--- FROM pg_foreign_table
--- WHERE ftrelid = 'table30000'::regclass
--- AND ftoptions @> array['fetch_size=30000'];
-
-ALTER FOREIGN TABLE table30000__fetch101__0 OPTIONS ( SET fetch_size '60000');
+--CREATE FOREIGN TABLE table30000 ( x int , __spd_url text) SERVER pgspider_srv;
+CREATE FOREIGN TABLE table30000 ( x int ) SERVER fetch101 OPTIONS ( fetch_size '30000' );
 
 SELECT COUNT(*)
 FROM pg_foreign_table
 WHERE ftrelid = 'table30000'::regclass
 AND ftoptions @> array['fetch_size=30000'];
 
--- SELECT COUNT(*)
--- FROM pg_foreign_table
--- WHERE ftrelid = 'table30000'::regclass
--- AND ftoptions @> array['fetch_size=60000'];
+ALTER FOREIGN TABLE table30000 OPTIONS ( SET fetch_size '60000');
+
+SELECT COUNT(*)
+FROM pg_foreign_table
+WHERE ftrelid = 'table30000'::regclass
+AND ftoptions @> array['fetch_size=30000'];
+
+SELECT COUNT(*)
+FROM pg_foreign_table
+WHERE ftrelid = 'table30000'::regclass
+AND ftoptions @> array['fetch_size=60000'];
 
 ROLLBACK;
 
