@@ -1,3 +1,30 @@
+-- ==================================================================
+
+-- create triggers
+
+-- ==================================================================
+-- Test various RETURN statements in BEFORE triggers.
+CREATE FUNCTION trig_row_before_insupdate() RETURNS TRIGGER AS $$
+  BEGIN
+    NEW.f2 := NEW.f2 || ' triggered !';
+    RETURN NEW;
+  END
+$$ language plpgsql;
+
+-- Test insert tuple routing
+create function br_insert_trigfunc() returns trigger as $$
+begin
+        new.b := new.b || ' triggered !';
+        return new;
+end
+$$ language plpgsql;
+
+-- Test with a trigger returning NULL
+CREATE FUNCTION trig_null() RETURNS TRIGGER AS $$
+  BEGIN
+    RETURN NULL;
+  END
+$$ language plpgsql;
 -- ===================================================================
 
 -- create objects used through FDW loopback server
@@ -193,15 +220,6 @@ create table loct1_3 (a int check (a in (1)), b text);
 
 create table loct2_3 (a int check (a in (2)), b text);
 
-alter table itrtest attach partition loct1_3 for values in (1);
-alter table itrtest attach partition loct2_3 for values in (2);
-
-create function br_insert_trigfunc() returns trigger as $$
-begin
-	new.b := new.b || ' triggered !';
-	return new;
-end
-$$ language plpgsql;
 
 -- Test update tuple routing
 
@@ -211,8 +229,6 @@ create table loct_2 (a int check (a in (1)), b text);
 
 create table locp_2 (a int check (a in (2)), b text);
 
-alter table utrtest attach partition loct_2 for values in (1);
-alter table utrtest attach partition locp_2 for values in (2);
 
 -- Test copy tuple routing
 
@@ -243,7 +259,7 @@ alter table loc2_1 add constraint loc2_1_f1positive check (f1 >= 0);
 
 create table loc3_1 (f1 int, f2 text);
 
-
+-- test IMPORT FOREIGN SCHEMA
 
 CREATE SCHEMA import_source;
 

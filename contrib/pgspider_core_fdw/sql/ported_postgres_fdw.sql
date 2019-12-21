@@ -9,6 +9,15 @@ CREATE EXTENSION dblink;
 select dblink_connect('dbname=postdb host=127.0.0.1 
 	port=15432 user=postgres password=postgres');
 
+
+select dblink_exec('CREATE EXTENSION postgres_fdw;');
+select dblink_exec('CREATE SERVER postgres_srv FOREIGN DATA WRAPPER postgres_fdw
+            OPTIONS (host ''127.0.0.1'',
+                     port ''15432'',
+                     dbname ''postdb'');');
+select dblink_exec('CREATE USER MAPPING FOR public SERVER postgres_srv
+	OPTIONS (user ''postgres'', password ''postgres'');');
+
 CREATE SERVER pgspider_srv FOREIGN DATA WRAPPER pgspider_core_fdw;
 DO $d$
     BEGIN
@@ -2102,20 +2111,26 @@ create foreign table itrtest (a int, b text, __spd_url text)
   server pgspider_srv;
 create foreign table itrtest__postgres_srv__0 (a int, b text)
   server postgres_srv options (table_name 'itrtest');
+SELECT dblink_exec('create foreign table remp1 
+  (a int check (a in (1)), b text) server postgres_srv 
+  options (table_name ''loct1_3'');');
 ---create table loct1 (a int check (a in (1)), b text);
 create foreign table remp1 (a int check (a in (1)), b text, __spd_url text) 
   server pgspider_srv;
 create foreign table remp1__postgres_srv__0 (a int check (a in (1)), b text) 
-  server postgres_srv options (table_name 'loct1_3');
+  server postgres_srv options (table_name 'remp1');
+SELECT dblink_exec('create foreign table remp2 
+  (b text, a int check (a in (2))) server postgres_srv
+   options (table_name ''loct2_3'');');
 ---create table loct2 (a int check (a in (2)), b text);
 create foreign table remp2 (b text, a int check (a in (2)), __spd_url text) 
   server pgspider_srv;
 create foreign table remp2__postgres_srv__0 (b text, a int check (a in (2))) 
-  server postgres_srv options (table_name 'loct2_3');
+  server postgres_srv options (table_name 'remp2');
 
 -- Does not support attach partition on foreign table
---alter table itrtest attach partition remp1 for values in (1);
---alter table itrtest attach partition remp2 for values in (2);
+SELECT dblink_exec('alter table itrtest attach partition remp1 for values in (1);');
+SELECT dblink_exec('alter table itrtest attach partition remp2 for values in (2);');
 
 insert into itrtest__postgres_srv__0 values (1, 'foo');
 insert into itrtest__postgres_srv__0 values (1, 'bar') returning *;
@@ -2130,11 +2145,10 @@ select tableoid::regclass, * FROM remp2;
 --delete from itrtest;
 delete from itrtest__postgres_srv__0;
 
---create unique index loct1_idx on loct1 (a);
+SELECT dblink_exec('create unique index loct1_idx on loct1_3 (a);');
 
 -- DO NOTHING without an inference specification is supported
 insert into itrtest__postgres_srv__0 values (1, 'foo') on conflict do nothing returning *;
---ignore test result with unique index. we may not test unique index at run time
 insert into itrtest__postgres_srv__0 values (1, 'foo') on conflict do nothing returning *;
 
 -- But other cases are not supported
@@ -2146,7 +2160,7 @@ select tableoid::regclass, * FROM itrtest;
 -- delete from itrtest;
 delete from itrtest__postgres_srv__0;
 
--- drop index loct1_idx;
+SELECT dblink_exec('drop index loct1_idx;');
 
 -- Test that remote triggers work with insert tuple routing
 create function br_insert_trigfunc() returns trigger as $$
@@ -2181,19 +2195,21 @@ create foreign table utrtest (a int, b text)
   server pgspider_srv;
 create foreign table utrtest__postgres_srv__0 (a int, b text)
   server postgres_srv options (table_name 'utrtest');
+SELECT dblink_exec('create foreign table remp 
+  (a int check (a in (1)), b text) 
+  server postgres_srv options (table_name ''loct_2'');');
 ---create table loct (a int check (a in (1)), b text);
 create foreign table remp (a int check (a in (1)), b text, __spd_url text)
   server pgspider_srv;
 create foreign table remp__postgres_srv__0 (a int check (a in (1)), b text)
-  server postgres_srv options (table_name 'loct_2');
+  server postgres_srv options (table_name 'remp');
 ---create table locp (a int check (a in (2)), b text);
 create foreign table locp (a int check (a in (2)), b text, __spd_url text)
   server pgspider_srv;
 create foreign table locp__postgres_srv__0 (a int check (a in (2)), b text)
   server postgres_srv options (table_name 'locp_2');
--- Does not support attach partition on remote table. Ignore this test.
---alter table utrtest attach partition remp for values in (1);
---alter table utrtest attach partition locp for values in (2);
+SELECT dblink_exec('alter table utrtest attach partition remp for values in (1);');
+SELECT dblink_exec('alter table utrtest attach partition locp_2 for values in (2);');
 
 insert into utrtest__postgres_srv__0 values (1, 'foo');
 insert into utrtest__postgres_srv__0 values (2, 'qux');
@@ -2203,7 +2219,6 @@ select tableoid::regclass, * FROM remp;
 select tableoid::regclass, * FROM locp;
 
 -- It's not allowed to move a row from a partition that is foreign to another
--- Ignore this test, we cannot attach partition on remote table.
 update utrtest__postgres_srv__0 set a = 2 where b = 'foo' returning *;
 
 -- But the reverse is allowed
@@ -2217,8 +2232,8 @@ select tableoid::regclass, * FROM locp;
 update utrtest__postgres_srv__0 set a = 1 where b = 'foo';
 
 -- Test that remote triggers work with update tuple routing
-create trigger loct_br_insert_trigger before insert on utrtest__postgres_srv__0
-	for each row execute procedure br_insert_trigfunc();
+SELECT dblink_exec('create trigger loct_br_insert_trigger before insert on loct_2
+	for each row execute procedure br_insert_trigfunc();');
 
 delete from utrtest__postgres_srv__0;
 insert into utrtest__postgres_srv__0 values (2, 'qux');
@@ -2238,7 +2253,7 @@ insert into utrtest__postgres_srv__0 values (2, 'qux');
 -- The new values are concatenated with ' triggered !'
 update utrtest__postgres_srv__0 set a = 1 where a = 2 returning *;
 
-drop trigger loct_br_insert_trigger on utrtest__postgres_srv__0;
+SELECT dblink_exec('drop trigger loct_br_insert_trigger on loct_2;');
 
 -- We can move rows to a foreign partition that has been updated already,
 -- but can't move rows to a foreign partition that hasn't been updated yet
@@ -2265,31 +2280,32 @@ update utrtest__postgres_srv__0 set a = 1 from (values (1), (2)) s(x) where a = 
 -- Change the definition of utrtest so that the foreign partition get updated
 -- after the local partition
 delete from utrtest__postgres_srv__0;
--- alter table utrtest detach partition remp;
+SELECT dblink_exec('alter table utrtest detach partition remp;');
+SELECT dblink_exec('drop foreign table remp;');
 drop foreign table remp;
 drop foreign table remp__postgres_srv__0;
+SELECT dblink_exec('alter table loct_2 drop constraint loct_2_a_check;');
+SELECT dblink_exec('alter table loct_2 add check (a in (3));');
+SELECT dblink_exec('create foreign table remp (a int check (a in (3)), b text) 
+  server postgres_srv options (table_name ''loct_2'');');
+SELECT dblink_exec('alter table utrtest attach partition remp for values in (3);');
 
--- Comment out the constraint testing
--- alter table loct drop constraint loct_a_check;
--- alter table loct add check (a in (3));
--- create foreign table remp__postgres_srv__0 (a int check (a in (3)), b text) 
---  server postgres_srv options (table_name 'loct');
--- alter table utrtest attach partition remp__postgres_srv__0 for values in (3);
--- insert into utrtest values (2, 'qux');
--- insert into utrtest values (3, 'xyzzy');
+insert into utrtest__postgres_srv__0 values (2, 'qux');
+insert into utrtest__postgres_srv__0 values (3, 'xyzzy');
 
 -- Test the latter case:
 -- with a direct modification plan
 -- explain (verbose, costs off)
 -- update utrtest set a = 3 returning *;
--- update utrtest set a = 3 returning *; -- ERROR
+update utrtest__postgres_srv__0 set a = 3 returning *; -- ERROR
 
 -- -- with a non-direct modification plan
 -- explain (verbose, costs off)
 -- update utrtest set a = 3 from (values (2), (3)) s(x) where a = s.x returning *;
--- update utrtest set a = 3 from (values (2), (3)) s(x) where a = s.x returning *; -- ERROR
+update utrtest__postgres_srv__0 set a = 3 from (values (2), (3)) s(x) where a = s.x returning *; -- ERROR
 
 drop foreign table utrtest;
+drop foreign table utrtest__postgres_srv__0;
 --drop table loct;
 
 -- Test copy tuple routing
@@ -2425,8 +2441,8 @@ drop trigger trig_null on rem2__postgres_srv__0;
 delete from rem2__postgres_srv__0;
 
 -- Test remote triggers
-create trigger trig_row_before_insert before insert on rem2__postgres_srv__0
-	for each row execute procedure trig_row_before_insupdate();
+SELECT dblink_exec('create trigger trig_row_before_insert before insert on loc2_1
+	for each row execute procedure trig_row_before_insupdate();');
 
 -- The new values are concatenated with ' triggered !'
 copy rem2__postgres_srv__0 from stdin;
@@ -2435,12 +2451,12 @@ copy rem2__postgres_srv__0 from stdin;
 \.
 select * from rem2;
 
-drop trigger trig_row_before_insert on rem2__postgres_srv__0;
+SELECT dblink_exec('drop trigger trig_row_before_insert on loc2_1;');
 
 delete from rem2__postgres_srv__0;
 
-create trigger trig_null before insert on rem2__postgres_srv__0
-	for each row execute procedure trig_null();
+SELECT dblink_exec('create trigger trig_null before insert on loc2_1
+	for each row execute procedure trig_null();');
 
 -- Nothing happens
 copy rem2__postgres_srv__0 from stdin;
@@ -2449,7 +2465,7 @@ copy rem2__postgres_srv__0 from stdin;
 \.
 select * from rem2;
 
-drop trigger trig_null on rem2__postgres_srv__0;
+SELECT dblink_exec('drop trigger trig_null on loc2_1;');
 
 delete from rem2__postgres_srv__0;
 
@@ -2458,8 +2474,8 @@ create trigger rem2_trig_row_before before insert on rem2__postgres_srv__0
 	for each row execute procedure trigger_data(23,'skidoo');
 create trigger rem2_trig_row_after after insert on rem2__postgres_srv__0
 	for each row execute procedure trigger_data(23,'skidoo');
-create trigger loc2_trig_row_before_insert before insert on rem2__postgres_srv__0
-	for each row execute procedure trig_row_before_insupdate();
+SELECT dblink_exec('create trigger loc2_trig_row_before_insert before insert on loc2_1
+	for each row execute procedure trig_row_before_insupdate();');
 
 copy rem2__postgres_srv__0 from stdin;
 1	foo
@@ -2469,13 +2485,12 @@ select * from rem2;
 
 drop trigger rem2_trig_row_before on rem2__postgres_srv__0;
 drop trigger rem2_trig_row_after on rem2__postgres_srv__0;
-drop trigger loc2_trig_row_before_insert on rem2__postgres_srv__0;
+SELECT dblink_exec('drop trigger loc2_trig_row_before_insert on loc2_1;');
 
 delete from rem2__postgres_srv__0;
 
 -- test COPY FROM with foreign table created in the same transaction
-/* Move this line to init database file */
--- create table loc3 (f1 int, f2 text);
+--- create table loc3 (f1 int, f2 text);
 begin;
 create foreign table rem3 (f1 int, f2 text, __spd_url text)
 	server pgspider_srv;
@@ -2494,18 +2509,18 @@ drop foreign table rem3__postgres_srv__0;
 -- test IMPORT FOREIGN SCHEMA
 -- ===================================================================
 
-/* Move these lines to init database file */
---CREATE SCHEMA import_source;
---CREATE TABLE import_source.t1 (c1 int, c2 varchar NOT NULL);
---CREATE TABLE import_source.t2 (c1 int default 42, c2 varchar NULL, c3 text collate "POSIX");
---CREATE TYPE typ1 AS (m1 int, m2 varchar);
---CREATE TABLE import_source.t3 (c1 timestamptz default now(), c2 typ1);
---CREATE TABLE import_source."x 4" (c1 float8, "C 2" text, c3 varchar(42));
---CREATE TABLE import_source."x 5" (c1 float8);
---ALTER TABLE import_source."x 5" DROP COLUMN c1;
---CREATE TABLE import_source.t4 (c1 int) PARTITION BY RANGE (c1);
---CREATE TABLE import_source.t4_part PARTITION OF import_source.t4
---  FOR VALUES FROM (1) TO (100);
+---CREATE SCHEMA import_source;
+---CREATE TABLE import_source.t1 (c1 int, c2 varchar NOT NULL);
+---CREATE TABLE import_source.t2 (c1 int default 42, c2 varchar NULL, c3 text collate "POSIX");
+---CREATE TYPE typ1 AS (m1 int, m2 varchar);
+---CREATE TABLE import_source.t3 (c1 timestamptz default now(), c2 typ1);
+---CREATE TABLE import_source."x 4" (c1 float8, "C 2" text, c3 varchar(42));
+---CREATE TABLE import_source."x 5" (c1 float8);
+---ALTER TABLE import_source."x 5" DROP COLUMN c1;
+---CREATE TABLE import_source.t4 (c1 int) PARTITION BY RANGE (c1);
+---CREATE TABLE import_source.t4_part PARTITION OF import_source.t4
+---  FOR VALUES FROM (1) TO (100);
+
 CREATE TYPE typ1 AS (m1 int, m2 varchar);
 CREATE TYPE "Colors" AS ENUM ('red', 'green', 'blue');
 CREATE SCHEMA import_dest1;
@@ -2542,9 +2557,8 @@ IMPORT FOREIGN SCHEMA nonesuch FROM SERVER nowhere INTO notthere;
 
 -- Check case of a type present only on the remote server.
 -- We can fake this by dropping the type locally in our transaction.
-/* Move these lines to init database files */
--- CREATE TYPE "Colors" AS ENUM ('red', 'green', 'blue');
--- CREATE TABLE import_source.t5 (c1 int, c2 text collate "C", "Col" "Colors");
+---CREATE TYPE "Colors" AS ENUM ('red', 'green', 'blue');
+---CREATE TABLE import_source.t5 (c1 int, c2 text collate "C", "Col" "Colors");
 
 CREATE SCHEMA import_dest5;
 BEGIN;

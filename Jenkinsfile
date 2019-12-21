@@ -41,6 +41,8 @@ def install_pgspider(String install_dir, int port) {
     sh "./configure --prefix=" + install_dir
     sh '''
         make install
+        cd contrib/dblink/	
+	make install
         cd contrib/file_fdw/
         make install
         cd ../postgres_fdw/
@@ -53,8 +55,8 @@ def install_pgspider(String install_dir, int port) {
         make install
         cd ../mysql_fdw/
         make install
-#        cd ../tinybrace_fdw/
-#        make install
+        cd ../tinybrace_fdw/
+        make install
 #        cd ../influxdb_fdw/
 #        make install
 #        cd ../griddb_fdw/
@@ -109,6 +111,10 @@ pipeline {
                 """
                 // Build fdw
                 dir("contrib/") {
+                    // Build dblink
+                    dir("dblink") {
+                        sh 'make clean & make & make install'
+                    }
                     // Build mysql_fdw
                     sh 'rm -rf mysql_fdw || true && mkdir mysql_fdw'
                     dir("mysql_fdw") {
@@ -122,8 +128,7 @@ pipeline {
                         cd sqlite_fdw
                         make clean && make && make install
                     '''
-                    /*
-                    Skip tinybrace_fdw, influxdb_fdw, griddb_fdw
+                    
                     // Build tinybrace_fdw
                     sh 'rm -rf tinybrace_fdw || true'
                     retrySh('svn co ' + TINYBRACE_FDW_URL)
@@ -131,6 +136,7 @@ pipeline {
                         cd tinybrace_fdw
                         make clean && make && make install
                     '''
+                    /*
                     // Build influxdb_fdw
                     sh 'rm -rf influxdb_fdw || true'
                     retrySh('git clone ' + INFLUXDB_FDW_URL)
