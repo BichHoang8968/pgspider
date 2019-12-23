@@ -1,30 +1,3 @@
--- ==================================================================
-
--- create triggers
-
--- ==================================================================
--- Test various RETURN statements in BEFORE triggers.
-CREATE FUNCTION trig_row_before_insupdate() RETURNS TRIGGER AS $$
-  BEGIN
-    NEW.f2 := NEW.f2 || ' triggered !';
-    RETURN NEW;
-  END
-$$ language plpgsql;
-
--- Test insert tuple routing
-create function br_insert_trigfunc() returns trigger as $$
-begin
-        new.b := new.b || ' triggered !';
-        return new;
-end
-$$ language plpgsql;
-
--- Test with a trigger returning NULL
-CREATE FUNCTION trig_null() RETURNS TRIGGER AS $$
-  BEGIN
-    RETURN NULL;
-  END
-$$ language plpgsql;
 -- ===================================================================
 
 -- create objects used through FDW loopback server
@@ -103,6 +76,49 @@ ALTER TABLE "S 1"."T 3" SET (autovacuum_enabled = 'false');
 
 ALTER TABLE "S 1"."T 4" SET (autovacuum_enabled = 'false');
 
+
+-- ==================================================================
+
+-- create triggers
+
+-- ==================================================================
+-- Test various RETURN statements in BEFORE triggers.
+CREATE FUNCTION trig_row_before_insupdate() RETURNS TRIGGER AS $$
+  BEGIN
+    NEW.f2 := NEW.f2 || ' triggered !';
+    RETURN NEW;
+  END
+$$ language plpgsql;
+
+-- Test insert tuple routing
+create function br_insert_trigfunc() returns trigger as $$
+begin
+        new.b := new.b || ' triggered !';
+        return new;
+end
+$$ language plpgsql;
+
+-- Test with a trigger returning NULL
+CREATE FUNCTION trig_null() RETURNS TRIGGER AS $$
+  BEGIN
+    RETURN NULL;
+  END
+$$ language plpgsql;
+
+-- Test that trigger on remote table works as expected
+CREATE OR REPLACE FUNCTION "S 1".F_BRTRIG() RETURNS trigger AS $$
+BEGIN
+    NEW.c3 = NEW.c3 || '_trig_update';
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION row_before_insupd_trigfunc() RETURNS trigger AS $$
+BEGIN 
+    NEW.a := NEW.a + 10; 
+    RETURN NEW; 
+END
+$$ LANGUAGE plpgsql;
 
 -- ===================================================================
 
@@ -291,9 +307,6 @@ CREATE TABLE import_source.t4_part PARTITION OF import_source.t4
 
 CREATE TYPE "Colors" AS ENUM ('red', 'green', 'blue');
 
-CREATE TABLE import_source.t5 (c1 int, c2 text collate "C", "Col" "Colors");
-
-
 
 -- ===================================================================
 
@@ -302,8 +315,6 @@ CREATE TABLE import_source.t5 (c1 int, c2 text collate "C", "Col" "Colors");
 -- ===================================================================
 
 SET enable_partitionwise_join=on;
-
-
 
 CREATE TABLE fprt1 (a int, b int, c varchar) PARTITION BY RANGE(a);
 
@@ -339,18 +350,13 @@ INSERT INTO fprt2_p2 SELECT i, i, to_char(i/50, 'FM0000') FROM generate_series(2
 
 -- ===================================================================
 
-
-
 CREATE TABLE pagg_tab (a int, b int, c text) PARTITION BY RANGE(a);
-
-
 
 CREATE TABLE pagg_tab_p1 (LIKE pagg_tab);
 
 CREATE TABLE pagg_tab_p2 (LIKE pagg_tab);
 
 CREATE TABLE pagg_tab_p3 (LIKE pagg_tab);
-
 
 
 INSERT INTO pagg_tab_p1 SELECT i % 30, i % 50, to_char(i/30, 'FM0000') FROM generate_series(1, 3000) i WHERE (i % 30) < 10;

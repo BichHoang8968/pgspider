@@ -13,6 +13,8 @@ def PGSPIDER_1_PORT = 5433
 def PGSPIDER_2_DIR = '/home/jenkins/PGSpider/PGS2'
 def PGSPIDER_2_PORT = 5434
 def PGSPIDER_INSTALL_DIR= '$(pwd)/install'
+def POSTGRES_DIR = '/home/jenkins/Postgres/pgsql'
+def POSTGRES_PORT = 15432
 
 def retrySh(String shCmd) {
     def MAX_RETRY = 10
@@ -34,14 +36,30 @@ def retrySh(String shCmd) {
     }
 }
 
-def install_pgspider(String install_dir, int port) {
+def install_postgres(String install_dir, int port) {
     sh install_dir + "/bin/pg_ctl -D " + install_dir + "/databases stop || true"
     sh "rm -rf " + install_dir + " || true"
     sh "mkdir " + install_dir + " || true"
     sh "./configure --prefix=" + install_dir
     sh '''
         make install
-        cd contrib/dblink/	
+        cd contrib/postgres_fdw/
+        make install
+    '''
+    dir(install_dir + "/bin") {
+        sh './initdb ../databases'
+        sh "sed -i 's/#port = 5432.*/port = "+ port + "/' ../databases/postgresql.conf"
+        sh './pg_ctl -D ../databases -l logfile start'
+        sh './createdb -p ' + port
+    }
+}
+
+def install_pgspider(String install_dir, int port) {
+    sh install_dir + "/bin/pg_ctl -D " + install_dir + "/databases stop || true"
+    sh "rm -rf " + install_dir + " || true"
+    sh "mkdir " + install_dir + " || true"
+    sh "./configure --prefix=" + install_dir
+    sh '''
 	make install
         cd contrib/file_fdw/
         make install
@@ -55,8 +73,8 @@ def install_pgspider(String install_dir, int port) {
         make install
         cd ../mysql_fdw/
         make install
-        cd ../tinybrace_fdw/
-        make install
+#        cd ../tinybrace_fdw/
+#        make install
 #        cd ../influxdb_fdw/
 #        make install
 #        cd ../griddb_fdw/
@@ -111,10 +129,6 @@ pipeline {
                 """
                 // Build fdw
                 dir("contrib/") {
-                    // Build dblink
-                    dir("dblink") {
-                        sh 'make clean & make & make install'
-                    }
                     // Build mysql_fdw
                     sh 'rm -rf mysql_fdw || true && mkdir mysql_fdw'
                     dir("mysql_fdw") {
@@ -128,7 +142,7 @@ pipeline {
                         cd sqlite_fdw
                         make clean && make && make install
                     '''
-                    
+                    /* 
                     // Build tinybrace_fdw
                     sh 'rm -rf tinybrace_fdw || true'
                     retrySh('svn co ' + TINYBRACE_FDW_URL)
@@ -136,7 +150,6 @@ pipeline {
                         cd tinybrace_fdw
                         make clean && make && make install
                     '''
-                    /*
                     // Build influxdb_fdw
                     sh 'rm -rf influxdb_fdw || true'
                     retrySh('git clone ' + INFLUXDB_FDW_URL)
@@ -228,6 +241,7 @@ pipeline {
         }
         stage('ported_postgres_fdw.sql') {
             steps {
+                install_postges(POSTGRES_DIR, POSTGRES_PORT)
                 dir("contrib/pgspider_core_fdw/") {
                     catchError() {
                         sh '''
