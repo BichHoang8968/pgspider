@@ -9,13 +9,13 @@ CREATE EXTENSION dblink;
 select dblink_connect('dbname=postdb host=127.0.0.1 
 	port=15432 user=postgres password=postgres');
 
-select dblink_exec('CREATE EXTENSION postgres_fdw;');
-select dblink_exec('CREATE SERVER postgres_srv FOREIGN DATA WRAPPER postgres_fdw
-            OPTIONS (host ''127.0.0.1'',
-                     port ''15432'',
-                     dbname ''postdb'');');
-select dblink_exec('CREATE USER MAPPING FOR public SERVER postgres_srv
-	OPTIONS (user ''postgres'', password ''postgres'');');
+--select dblink_exec('CREATE EXTENSION postgres_fdw;');
+--select dblink_exec('CREATE SERVER postgres_srv FOREIGN DATA WRAPPER postgres_fdw
+--            OPTIONS (host ''127.0.0.1'',
+--                    port ''15432'',
+--                     dbname ''postdb'');');
+--select dblink_exec('CREATE USER MAPPING FOR public SERVER postgres_srv
+--	OPTIONS (user ''postgres'', password ''postgres'');');
 
 CREATE SERVER pgspider_srv FOREIGN DATA WRAPPER pgspider_core_fdw;
 DO $d$

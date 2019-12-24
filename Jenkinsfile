@@ -13,8 +13,6 @@ def PGSPIDER_1_PORT = 5433
 def PGSPIDER_2_DIR = '/home/jenkins/PGSpider/PGS2'
 def PGSPIDER_2_PORT = 5434
 def PGSPIDER_INSTALL_DIR= '$(pwd)/install'
-def POSTGRES_DIR = '/home/jenkins/Postgres/pgsql'
-def POSTGRES_PORT = 15432
 
 def retrySh(String shCmd) {
     def MAX_RETRY = 10
@@ -33,24 +31,6 @@ def retrySh(String shCmd) {
         if (status != 0) {
             sh(shCmd)
         }
-    }
-}
-
-def install_postgres(String install_dir, int port) {
-    sh install_dir + "/bin/pg_ctl -D " + install_dir + "/databases stop || true"
-    sh "rm -rf " + install_dir + " || true"
-    sh "mkdir " + install_dir + " || true"
-    sh "./configure --prefix=" + install_dir
-    sh '''
-        make install
-        cd contrib/postgres_fdw/
-        make install
-    '''
-    dir(install_dir + "/bin") {
-        sh './initdb ../databases'
-        sh "sed -i 's/#port = 5432.*/port = "+ port + "/' ../databases/postgresql.conf"
-        sh './pg_ctl -D ../databases -l logfile start'
-        sh './createdb -p ' + port
     }
 }
 
@@ -241,7 +221,6 @@ pipeline {
         }
         stage('ported_postgres_fdw.sql') {
             steps {
-                install_postges(POSTGRES_DIR, POSTGRES_PORT)
                 dir("contrib/pgspider_core_fdw/") {
                     catchError() {
                         sh '''

@@ -1,3 +1,11 @@
+CREATE EXTENSION postgres_fdw;
+CREATE SERVER postgres_srv FOREIGN DATA WRAPPER postgres_fdw
+            OPTIONS (host '127.0.0.1',
+                     port '15432',
+                     dbname 'postdb');
+CREATE USER MAPPING FOR public SERVER postgres_srv
+        OPTIONS (user 'postgres', password 'postgres');
+
 -- ===================================================================
 
 -- create objects used through FDW loopback server
