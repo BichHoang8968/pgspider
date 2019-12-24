@@ -465,7 +465,7 @@ SELECT * FROM ft1 t1 WHERE t1.c3 IN (SELECT c3 FROM ft2 t2 WHERE c1 <= 10) ORDER
 (10 rows)
 
 -- subquery+MAX
--- SELECT * FROM ft1 t1 WHERE t1.c3 = (SELECT MAX(c3) FROM ft2 t2) ORDER BY c1;
+--SELECT * FROM ft1 t1 WHERE t1.c3 = (SELECT MAX(c3) FROM ft2 t2) ORDER BY c1;
 -- used in CTE
 WITH t1 AS (SELECT * FROM ft1 WHERE c1 <= 10) SELECT t2.c1, t2.c2, t2.c3, t2.c4 FROM t1, ft2 t2 WHERE t1.c1 = t2.c1 ORDER BY t1.c1;
  c1 | c2 |  c3   |              c4              
@@ -3015,6 +3015,7 @@ CREATE FOREIGN TABLE local_tbl (c1 int NOT NULL, c2 int NOT NULL, c3 text, __spd
     SERVER pgspider_srv;
 CREATE FOREIGN TABLE local_tbl__postgres_srv__0 (c1 int NOT NULL, c2 int NOT NULL, c3 text)
     SERVER postgres_srv OPTIONS(table_name 'local_tbl');
+INSERT INTO local_tbl__postgres_srv__0 SELECT id, id % 10, to_char(id, 'FM0000') FROM generate_series(1, 1000) id;
 ANALYZE local_tbl;
 WARNING:  skipping "local_tbl" --- cannot analyze this foreign table
 SET enable_nestloop TO false;
@@ -3514,7 +3515,7 @@ select count(c2) w, c2 x, 5 y, 7.0 z from ft1 group by 2, y, 9.0::int order by 2
            Remote SQL: SELECT count(c2), c2, 5, 7.0, 9 FROM "S 1"."T 1" GROUP BY 2, 3, 5
 (9 rows)
 
--- select count(c2) w, c2 x, 5 y, 7.0 z from ft1 group by 2, y, 9.0::int order by 2;
+--select count(c2) w, c2 x, 5 y, 7.0 z from ft1 group by 2, y, 9.0::int order by 2;
 -- GROUP BY clause referring to same column multiple times
 -- Also, ORDER BY contains an aggregate function
 explain (verbose, costs off)
@@ -3560,7 +3561,7 @@ select count(*) from (select c5, count(c1) from ft1 group by c5, sqrt(c2) having
            Remote SQL: SELECT c5, NULL::bigint, sqrt(c2), avg("C 1") FROM "S 1"."T 1" GROUP BY 1, 3 HAVING ((avg("C 1") < 500::numeric))
 (8 rows)
 
--- select count(*) from (select c5, count(c1) from ft1 group by c5, sqrt(c2) having (avg(c1) / avg(c1)) * random() <= 1 and avg(c1) < 500) x;
+--select count(*) from (select c5, count(c1) from ft1 group by c5, sqrt(c2) having (avg(c1) / avg(c1)) * random() <= 1 and avg(c1) < 500) x;
 -- Aggregate in HAVING clause is not pushable, and thus aggregation is not pushed down
 explain (verbose, costs off)
 select sum(c1) from ft1 group by c2 having avg(c1 * (random() <= 1)::int) > 100 order by 1;
@@ -3641,7 +3642,7 @@ select array_agg(c1 order by c1) from ft1 where c1 < 100 group by c2 order by 1;
            Remote SQL: SELECT array_agg("C 1" ORDER BY "C 1" ASC NULLS LAST), c2 FROM "S 1"."T 1" WHERE (("C 1" < 100)) GROUP BY 2
 (9 rows)
 
--- select array_agg(c1 order by c1) from ft1 where c1 < 100 group by c2 order by 1;
+--select array_agg(c1 order by c1) from ft1 where c1 < 100 group by c2 order by 1;
 -- ORDER BY within aggregate, different column used to order also using DESC
 explain (verbose, costs off)
 select array_agg(c5 order by c1 desc) from ft2 where c2 = 6 and c1 < 50;
@@ -3655,7 +3656,7 @@ select array_agg(c5 order by c1 desc) from ft2 where c2 = 6 and c1 < 50;
      Remote SQL: SELECT array_agg(c5 ORDER BY "C 1" DESC NULLS FIRST) FROM "S 1"."T 1" WHERE (("C 1" < 50)) AND ((c2 = 6))
 (6 rows)
 
--- select array_agg(c5 order by c1 desc) from ft2 where c2 = 6 and c1 < 50;
+--select array_agg(c5 order by c1 desc) from ft2 where c2 = 6 and c1 < 50;
 -- DISTINCT within aggregate
 explain (verbose, costs off)
 select array_agg(distinct (t1.c1)%5) from ft4 t1 full join ft5 t2 on (t1.c1 = t2.c1) where t1.c1 < 20 or (t1.c1 is null and t2.c1 < 5) group by (t2.c1)%3 order by 1;
@@ -3829,9 +3830,9 @@ select sum(c1%3), sum(distinct c1%3 order by c1%3) filter (where c1%3 < 2), c2 f
 (1 row)
 
 -- Outer query is aggregation query
--- explain (verbose, costs off)
--- select distinct (select count(*) filter (where t2.c2 = 6 and t2.c1 < 10) from ft1 t1 where t1.c1 = 6) from ft2 t2 where t2.c2 % 6 = 0 order by 1;
--- select distinct (select count(*) filter (where t2.c2 = 6 and t2.c1 < 10) from ft1 t1 where t1.c1 = 6) from ft2 t2 where t2.c2 % 6 = 0 order by 1;
+--explain (verbose, costs off)
+--select distinct (select count(*) filter (where t2.c2 = 6 and t2.c1 < 10) from ft1 t1 where t1.c1 = 6) from ft2 t2 where t2.c2 % 6 = 0 order by 1;
+--select distinct (select count(*) filter (where t2.c2 = 6 and t2.c1 < 10) from ft1 t1 where t1.c1 = 6) from ft2 t2 where t2.c2 % 6 = 0 order by 1;
 -- Inner query is aggregation query
 explain (verbose, costs off)
 select distinct (select count(t1.c1) filter (where t2.c2 = 6 and t2.c1 < 10) from ft1 t1 where t1.c1 = 6) from ft2 t2 where t2.c2 % 6 = 0 order by 1;
@@ -3855,7 +3856,7 @@ select distinct (select count(t1.c1) filter (where t2.c2 = 6 and t2.c1 < 10) fro
                          Remote SQL: SELECT count("C 1") FILTER (WHERE (($1::integer = 6) AND ($2::integer < 10))) FROM "S 1"."T 1" WHERE (("C 1" = 6))
 (16 rows)
 
--- select distinct (select count(t1.c1) filter (where t2.c2 = 6 and t2.c1 < 10) from ft1 t1 where t1.c1 = 6) from ft2 t2 where t2.c2 % 6 = 0 order by 1;
+--select distinct (select count(t1.c1) filter (where t2.c2 = 6 and t2.c1 < 10) from ft1 t1 where t1.c1 = 6) from ft2 t2 where t2.c2 % 6 = 0 order by 1;
 -- Aggregate not pushed down as FILTER condition is not pushable
 explain (verbose, costs off)
 select sum(c1) filter (where (c1 / c1) * random() <= 1) from ft1 group by c2 order by 1;
@@ -4069,34 +4070,40 @@ select array_agg(c1 order by c1 using operator(public.<^)) from ft2 where c2 = 6
 ANALYZE ft2;
 WARNING:  skipping "ft2" --- cannot analyze this foreign table
 -- Add into extension
-alter extension postgres_fdw add operator class my_op_class using btree;
-alter extension postgres_fdw add function my_op_cmp(a int, b int);
-alter extension postgres_fdw add operator family my_op_family using btree;
-alter extension postgres_fdw add operator public.<^(int, int);
-alter extension postgres_fdw add operator public.=^(int, int);
-alter extension postgres_fdw add operator public.>^(int, int);
+alter extension pgspider_core_fdw add operator class my_op_class using btree;
+alter extension pgspider_core_fdw add function my_op_cmp(a int, b int);
+alter extension pgspider_core_fdw add operator family my_op_family using btree;
+alter extension pgspider_core_fdw add operator public.<^(int, int);
+alter extension pgspider_core_fdw add operator public.=^(int, int);
+alter extension pgspider_core_fdw add operator public.>^(int, int);
 alter server postgres_srv options (set extensions 'postgres_fdw');
 -- Now this will be pushed as sort operator is part of the extension.
 explain (verbose, costs off)
 select array_agg(c1 order by c1 using operator(public.<^)) from ft2 where c2 = 6 and c1 < 100 group by c2;
-                                                                            QUERY PLAN                                                                            
-------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan
-   Output: (array_agg(c1 ORDER BY c1 USING <^ NULLS LAST)), c2
-   Node: postgres_srv / Status: Alive
-     Agg push-down: yes
-     Relations: Aggregate on (public.ft2__postgres_srv__0)
-     Remote SQL: SELECT array_agg("C 1" ORDER BY "C 1" USING OPERATOR(public.<^) NULLS LAST), c2 FROM "S 1"."T 1" WHERE (("C 1" < 100)) AND ((c2 = 6)) GROUP BY 2
-(6 rows)
+                                          QUERY PLAN                                          
+----------------------------------------------------------------------------------------------
+ GroupAggregate
+   Output: array_agg(c1 ORDER BY c1 USING <^ NULLS LAST), c2
+   Group Key: ft2.c2
+   ->  Foreign Scan on public.ft2
+         Output: c2, c1
+         Node: postgres_srv / Status: Alive
+           Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1" WHERE (("C 1" < 100)) AND ((c2 = 6))
+(7 rows)
 
--- select array_agg(c1 order by c1 using operator(public.<^)) from ft2 where c2 = 6 and c1 < 100 group by c2;
+select array_agg(c1 order by c1 using operator(public.<^)) from ft2 where c2 = 6 and c1 < 100 group by c2;
+           array_agg            
+--------------------------------
+ {6,16,26,36,46,56,66,76,86,96}
+(1 row)
+
 -- Remove from extension
-alter extension postgres_fdw drop operator class my_op_class using btree;
-alter extension postgres_fdw drop function my_op_cmp(a int, b int);
-alter extension postgres_fdw drop operator family my_op_family using btree;
-alter extension postgres_fdw drop operator public.<^(int, int);
-alter extension postgres_fdw drop operator public.=^(int, int);
-alter extension postgres_fdw drop operator public.>^(int, int);
+alter extension pgspider_core_fdw drop operator class my_op_class using btree;
+alter extension pgspider_core_fdw drop function my_op_cmp(a int, b int);
+alter extension pgspider_core_fdw drop operator family my_op_family using btree;
+alter extension pgspider_core_fdw drop operator public.<^(int, int);
+alter extension pgspider_core_fdw drop operator public.=^(int, int);
+alter extension pgspider_core_fdw drop operator public.>^(int, int);
 alter server postgres_srv options (set extensions 'postgres_fdw');
 -- This will not be pushed as sort operator is now removed from the extension.
 explain (verbose, costs off)
@@ -4307,32 +4314,36 @@ select c2, sum from "S 1"."T 1" t1, lateral (select sum(t2.c1 + t1."C 1") sum fr
                        Remote SQL: SELECT sum(("C 1" + $1::integer)), "C 1" FROM "S 1"."T 1" GROUP BY 2
 (17 rows)
 
--- select c2, sum from "S 1"."T 1" t1, lateral (select sum(t2.c1 + t1."C 1") sum from ft2 t2 group by t2.c1) qry where t1.c2 * 2 = qry.sum and t1.c2 < 3 and t1."C 1" < 100 order by 1;
+--select c2, sum from "S 1"."T 1" t1, lateral (select sum(t2.c1 + t1."C 1") sum from ft2 t2 group by t2.c1) qry where t1.c2 * 2 = qry.sum and t1.c2 < 3 and t1."C 1" < 100 order by 1;
 reset enable_hashagg;
 -- bug #15613: bad plan for foreign table scan with lateral reference
--- EXPLAIN (VERBOSE, COSTS OFF)
--- SELECT ref_0.c2, subq_1.*
--- FROM
---     "S 1"."T 1" AS ref_0,
---     LATERAL (
---         SELECT ref_0."C 1" c1, subq_0.*
---         FROM (SELECT ref_0.c2, ref_1.c3
---               FROM ft1 AS ref_1) AS subq_0
---              RIGHT JOIN ft2 AS ref_3 ON (subq_0.c3 = ref_3.c3)
---     ) AS subq_1
--- WHERE ref_0."C 1" < 10 AND subq_1.c3 = '00001'
--- ORDER BY ref_0."C 1";
--- SELECT ref_0.c2, subq_1.*
--- FROM
---     "S 1"."T 1" AS ref_0,
---     LATERAL (
---         SELECT ref_0."C 1" c1, subq_0.*
---         FROM (SELECT ref_0.c2, ref_1.c3
---               FROM ft1 AS ref_1) AS subq_0
---              RIGHT JOIN ft2 AS ref_3 ON (subq_0.c3 = ref_3.c3)
---     ) AS subq_1
--- WHERE ref_0."C 1" < 10 AND subq_1.c3 = '00001'
--- ORDER BY ref_0."C 1";
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT ref_0.c2, subq_1.*
+FROM
+    "S 1"."T 1" AS ref_0,
+    LATERAL (
+        SELECT ref_0."C 1" c1, subq_0.*
+        FROM (SELECT ref_0.c2, ref_1.c3
+              FROM ft1 AS ref_1) AS subq_0
+             RIGHT JOIN ft2 AS ref_3 ON (subq_0.c3 = ref_3.c3)
+    ) AS subq_1
+WHERE ref_0."C 1" < 10 AND subq_1.c3 = '00001'
+ORDER BY ref_0."C 1";
+WARNING:  GetForeignRelSize failed
+ERROR:  PGSpider can not get data from child node : postgres_srv
+SELECT ref_0.c2, subq_1.*
+FROM
+    "S 1"."T 1" AS ref_0,
+    LATERAL (
+        SELECT ref_0."C 1" c1, subq_0.*
+        FROM (SELECT ref_0.c2, ref_1.c3
+              FROM ft1 AS ref_1) AS subq_0
+             RIGHT JOIN ft2 AS ref_3 ON (subq_0.c3 = ref_3.c3)
+    ) AS subq_1
+WHERE ref_0."C 1" < 10 AND subq_1.c3 = '00001'
+ORDER BY ref_0."C 1";
+WARNING:  GetForeignRelSize failed
+ERROR:  PGSpider can not get data from child node : postgres_srv
 -- Check with placeHolderVars
 explain (verbose, costs off)
 select sum(q.a), count(q.b) from ft4 left join (select 13, avg(ft1.c1), sum(ft2.c1) from ft1 right join ft2 on (ft1.c1 = ft2.c1)) q(a, b, c) on (ft4.c1 <= q.b);
@@ -4486,9 +4497,9 @@ select c2, sum(c1), grouping(c2) from ft1 where c2 < 3 group by c2 order by 1 nu
 (3 rows)
 
 -- DISTINCT itself is not pushed down, whereas underneath aggregate is pushed
--- explain (verbose, costs off)
+--explain (verbose, costs off)
 --select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
--- select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
+--select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
 -- WindowAgg
 explain (verbose, costs off)
 select c2, sum(c2), count(c2) over (partition by c2%2) from ft2 where c2 < 10 group by c2 order by 1;
@@ -4510,7 +4521,21 @@ select c2, sum(c2), count(c2) over (partition by c2%2) from ft2 where c2 < 10 gr
                        Remote SQL: SELECT c2, (c2 % 2), sum(c2) FROM "S 1"."T 1" WHERE ((c2 < 10)) GROUP BY 1
 (14 rows)
 
--- select c2, sum(c2), count(c2) over (partition by c2%2) from ft2 where c2 < 10 group by c2 order by 1;
+select c2, sum(c2), count(c2) over (partition by c2%2) from ft2 where c2 < 10 group by c2 order by 1;
+ c2 | sum | count 
+----+-----+-------
+  0 |   0 |     5
+  1 | 100 |     5
+  2 | 200 |     5
+  3 | 300 |     5
+  4 | 400 |     5
+  5 | 500 |     5
+  6 | 600 |     5
+  7 | 700 |     5
+  8 | 800 |     5
+  9 | 900 |     5
+(10 rows)
+
 explain (verbose, costs off)
 select c2, array_agg(c2) over (partition by c2%2 order by c2 desc) from ft1 where c2 < 10 group by c2 order by 1;
                                              QUERY PLAN                                              
@@ -4531,7 +4556,21 @@ select c2, array_agg(c2) over (partition by c2%2 order by c2 desc) from ft1 wher
                        Remote SQL: SELECT c2, (c2 % 2) FROM "S 1"."T 1" WHERE ((c2 < 10)) GROUP BY 1
 (14 rows)
 
--- select c2, array_agg(c2) over (partition by c2%2 order by c2 desc) from ft1 where c2 < 10 group by c2 order by 1;
+select c2, array_agg(c2) over (partition by c2%2 order by c2 desc) from ft1 where c2 < 10 group by c2 order by 1;
+ c2 |  array_agg  
+----+-------------
+  0 | {8,6,4,2,0}
+  1 | {9,7,5,3,1}
+  2 | {8,6,4,2}
+  3 | {9,7,5,3}
+  4 | {8,6,4}
+  5 | {9,7,5}
+  6 | {8,6}
+  7 | {9,7}
+  8 | {8}
+  9 | {9}
+(10 rows)
+
 explain (verbose, costs off)
 select c2, array_agg(c2) over (partition by c2%2 order by c2 range between current row and unbounded following) from ft1 where c2 < 10 group by c2 order by 1;
                                              QUERY PLAN                                              
@@ -4552,13 +4591,43 @@ select c2, array_agg(c2) over (partition by c2%2 order by c2 range between curre
                        Remote SQL: SELECT c2, (c2 % 2) FROM "S 1"."T 1" WHERE ((c2 < 10)) GROUP BY 1
 (14 rows)
 
--- select c2, array_agg(c2) over (partition by c2%2 order by c2 range between current row and unbounded following) from ft1 where c2 < 10 group by c2 order by 1;
+select c2, array_agg(c2) over (partition by c2%2 order by c2 range between current row and unbounded following) from ft1 where c2 < 10 group by c2 order by 1;
+ c2 |  array_agg  
+----+-------------
+  0 | {0,2,4,6,8}
+  1 | {1,3,5,7,9}
+  2 | {2,4,6,8}
+  3 | {3,5,7,9}
+  4 | {4,6,8}
+  5 | {5,7,9}
+  6 | {6,8}
+  7 | {7,9}
+  8 | {8}
+  9 | {9}
+(10 rows)
+
 -- ===================================================================
 -- parameterized queries
 -- ===================================================================
 -- simple join
 PREPARE st1(int, int) AS SELECT t1.c3, t2.c3 FROM ft1 t1, ft2 t2 WHERE t1.c1 = $1 AND t2.c1 = $2;
--- EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st1(1, 2);
+EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st1(1, 2);
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ Nested Loop
+   Output: t1.c3, t2.c3
+   ->  Foreign Scan on public.ft1 t1
+         Output: t1.c3
+         Node: postgres_srv / Status: Alive
+           Remote SQL: SELECT "C 1", c3 FROM "S 1"."T 1" WHERE (("C 1" = 1))
+   ->  Materialize
+         Output: t2.c3
+         ->  Foreign Scan on public.ft2 t2
+               Output: t2.c3
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT "C 1", c3 FROM "S 1"."T 1" WHERE (("C 1" = 2))
+(12 rows)
+
 EXECUTE st1(1, 1);
   c3   |  c3   
 -------+-------
@@ -4573,7 +4642,32 @@ EXECUTE st1(101, 101);
 
 -- subquery using stable function (can't be sent to remote)
 PREPARE st2(int) AS SELECT * FROM ft1 t1 WHERE t1.c1 < $2 AND t1.c3 IN (SELECT c3 FROM ft2 t2 WHERE c1 > $1 AND date(c4) = '1970-01-17'::date) ORDER BY c1;
--- EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st2(10, 20);
+EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st2(10, 20);
+                                                 QUERY PLAN                                                 
+------------------------------------------------------------------------------------------------------------
+ Sort
+   Output: t1.c1, t1.c2, t1.c3, t1.c4, t1.c5, t1.c6, t1.c7, t1.c8, t1.__spd_url
+   Sort Key: t1.c1
+   ->  Hash Join
+         Output: t1.c1, t1.c2, t1.c3, t1.c4, t1.c5, t1.c6, t1.c7, t1.c8, t1.__spd_url
+         Inner Unique: true
+         Hash Cond: (t1.c3 = t2.c3)
+         ->  Foreign Scan on public.ft1 t1
+               Output: t1.c1, t1.c2, t1.c3, t1.c4, t1.c5, t1.c6, t1.c7, t1.c8, t1.__spd_url
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" < 20))
+         ->  Hash
+               Output: t2.c3
+               ->  HashAggregate
+                     Output: t2.c3
+                     Group Key: t2.c3
+                     ->  Foreign Scan on public.ft2 t2
+                           Output: t2.c3
+                           Filter: (date(t2.c4) = '01-17-1970'::date)
+                           Node: postgres_srv / Status: Alive
+                             Remote SQL: SELECT "C 1", c3, c4 FROM "S 1"."T 1" WHERE (("C 1" > 10))
+(21 rows)
+
 EXECUTE st2(10, 20);
  c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
 ----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
@@ -4588,7 +4682,31 @@ EXECUTE st2(101, 121);
 
 -- subquery using immutable function (can be sent to remote)
 PREPARE st3(int) AS SELECT * FROM ft1 t1 WHERE t1.c1 < $2 AND t1.c3 IN (SELECT c3 FROM ft2 t2 WHERE c1 > $1 AND date(c5) = '1970-01-17'::date) ORDER BY c1;
--- EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st3(10, 20);
+EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st3(10, 20);
+                                                                QUERY PLAN                                                                
+------------------------------------------------------------------------------------------------------------------------------------------
+ Sort
+   Output: t1.c1, t1.c2, t1.c3, t1.c4, t1.c5, t1.c6, t1.c7, t1.c8, t1.__spd_url
+   Sort Key: t1.c1
+   ->  Hash Join
+         Output: t1.c1, t1.c2, t1.c3, t1.c4, t1.c5, t1.c6, t1.c7, t1.c8, t1.__spd_url
+         Inner Unique: true
+         Hash Cond: (t1.c3 = t2.c3)
+         ->  Foreign Scan on public.ft1 t1
+               Output: t1.c1, t1.c2, t1.c3, t1.c4, t1.c5, t1.c6, t1.c7, t1.c8, t1.__spd_url
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" < 20))
+         ->  Hash
+               Output: t2.c3
+               ->  HashAggregate
+                     Output: t2.c3
+                     Group Key: t2.c3
+                     ->  Foreign Scan on public.ft2 t2
+                           Output: t2.c3
+                           Node: postgres_srv / Status: Alive
+                             Remote SQL: SELECT "C 1", c3, c5 FROM "S 1"."T 1" WHERE (("C 1" > 10)) AND ((date(c5) = '1970-01-17'::date))
+(20 rows)
+
 EXECUTE st3(10, 20);
  c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
 ----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
@@ -4922,8 +5040,8 @@ DROP FUNCTION f_test(int);
 --SELECT  ft1.c1,  ft2.c2, ft1.c8 FROM ft1, ft2 WHERE ft1.c1 = ft2.c1 AND ft1.c1 = 1; -- ERROR
 --SELECT  ft1.c1,  ft2.c2, ft1 FROM ft1, ft2 WHERE ft1.c1 = ft2.c1 AND ft1.c1 = 1; -- ERROR
 --SELECT sum(c2), array_agg(c8) FROM ft1 GROUP BY c8; -- ERROR
---ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c8 TYPE user_enum;
 --ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE user_enum;
+--ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c8 TYPE user_enum;
 -- ===================================================================
 -- subtransaction
 --  + local/remote error doesn't break cursor
@@ -7745,42 +7863,6 @@ insert into bar__postgres_srv__0 values(6,66);
 insert into bar2__postgres_srv__0 values(3,33,33);
 insert into bar2__postgres_srv__0 values(4,44,44);
 insert into bar2__postgres_srv__0 values(7,77,77);
--- Add more test cases to check whether inheritance is correct or not
-select * from bar;
- f1 | f2 |   __spd_url    
-----+----+----------------
-  1 | 11 | /postgres_srv/
-  2 | 22 | /postgres_srv/
-  6 | 66 | /postgres_srv/
-  3 | 33 | /postgres_srv/
-  4 | 44 | /postgres_srv/
-  7 | 77 | /postgres_srv/
-(6 rows)
-
-select * from foo;
- f1 | f2 |   __spd_url    
-----+----+----------------
-  1 |  1 | /postgres_srv/
-  3 |  3 | /postgres_srv/
-  2 |  2 | /postgres_srv/
-  4 |  4 | /postgres_srv/
-(4 rows)
-
-select * from bar2;
- f1 | f2 | f3 |   __spd_url    
-----+----+----+----------------
-  3 | 33 | 33 | /postgres_srv/
-  4 | 44 | 44 | /postgres_srv/
-  7 | 77 | 77 | /postgres_srv/
-(3 rows)
-
-select * from foo2;
- f1 | f2 | f3 |   __spd_url    
-----+----+----+----------------
-  2 |  2 |  2 | /postgres_srv/
-  4 |  4 |  4 | /postgres_srv/
-(2 rows)
-
 --explain (verbose, costs off)
 --select * from bar where f1 in (select f1 from foo) for update;
 --select * from bar where f1 in (select f1 from foo) for update;
@@ -7790,16 +7872,21 @@ select * from foo2;
 -- Check UPDATE with inherited target and an inherited source table
 --explain (verbose, costs off)
 --update bar set f2 = f2 + 100 where f1 in (select f1 from foo);
---update bar set f2 = f2 + 100 where f1 in (select f1 from foo);
+select dblink_exec('update bar set f2 = f2 + 100 where f1 in (select f1 from foo);');
+ dblink_exec 
+-------------
+ UPDATE 1
+(1 row)
+
 select tableoid::regclass, * from bar order by 1,2;
- tableoid | f1 | f2 |   __spd_url    
-----------+----+----+----------------
- bar      |  1 | 11 | /postgres_srv/
- bar      |  2 | 22 | /postgres_srv/
- bar      |  6 | 66 | /postgres_srv/
- bar2     |  3 | 33 | /postgres_srv/
- bar2     |  4 | 44 | /postgres_srv/
- bar2     |  7 | 77 | /postgres_srv/
+ tableoid | f1 | f2  |   __spd_url    
+----------+----+-----+----------------
+ bar      |  1 | 111 | /postgres_srv/
+ bar      |  2 |  22 | /postgres_srv/
+ bar      |  6 |  66 | /postgres_srv/
+ bar2     |  3 |  33 | /postgres_srv/
+ bar2     |  4 |  44 | /postgres_srv/
+ bar2     |  7 |  77 | /postgres_srv/
 (6 rows)
 
 -- Check UPDATE with inherited target and an appendrel subquery
@@ -7815,7 +7902,7 @@ where bar__postgres_srv__0.f1 = ss.f1;
 select tableoid::regclass, * from bar order by 1,2;
  tableoid | f1 | f2  |   __spd_url    
 ----------+----+-----+----------------
- bar      |  1 | 111 | /postgres_srv/
+ bar      |  1 | 211 | /postgres_srv/
  bar      |  2 | 122 | /postgres_srv/
  bar      |  6 | 166 | /postgres_srv/
  bar2     |  3 | 133 | /postgres_srv/
@@ -7975,7 +8062,7 @@ delete from foo__postgres_srv__0 where f1 < 5 returning *;
 update bar__postgres_srv__0 set f2 = f2 + 100 returning *;
  f1 | f2  
 ----+-----
-  1 | 211
+  1 | 311
   2 | 222
   6 | 266
   3 | 233

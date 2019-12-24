@@ -156,7 +156,7 @@ ALTER TABLE child_tbl SET (autovacuum_enabled = 'false');
 -- multi-way join involving multiple merge joins
 -- (this case used to have EPQ-related planning problems)
 CREATE TABLE local_tbl (c1 int NOT NULL, c2 int NOT NULL, c3 text, CONSTRAINT local_tbl_pkey PRIMARY KEY (c1));
-INSERT INTO local_tbl SELECT id, id % 10, to_char(id, 'FM0000') FROM generate_series(1, 1000) id;
+--INSERT INTO local_tbl SELECT id, id % 10, to_char(id, 'FM0000') FROM generate_series(1, 1000) id;
 
 -- ===================================================================
 
