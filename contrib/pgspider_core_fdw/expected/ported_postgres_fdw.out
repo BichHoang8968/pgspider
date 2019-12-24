@@ -6497,29 +6497,8 @@ select c2, count(*) from "S 1"."T 1" where c2 < 500 group by 1 order by 1;
 
 begin;
 update ft2__postgres_srv__0 set c2 = 42 where c2 = 0;
---select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
---savepoint s1;
---update ft2__postgres_srv__0 set c2 = 44 where c2 = 4;
---select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
---release savepoint s1;
---select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
---savepoint s2;
---update ft2__postgres_srv__0 set c2 = 46 where c2 = 6;
---select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
---rollback to savepoint s2;
---select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
---release savepoint s2;
---select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
---savepoint s3;
---update ft2__postgres_srv__0 set c2 = -2 where c2 = 42 and c1 = 10; -- fail on remote side
---rollback to savepoint s3;
---select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
---release savepoint s3;
---select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
--- none of the above is committed yet remotely
---select c2, count(*) from "S 1"."T 1" where c2 < 500 group by 1 order by 1;
-commit;
-select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
+-- in transation, data is temporally stored in foreign table, not pushed to remote database
+select c2, count(*) from ft2__postgres_srv__0 where c2 < 500 group by 1 order by 1;
  c2  | count 
 -----+-------
    1 |   100
@@ -6537,13 +6516,197 @@ select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
  407 |   100
 (13 rows)
 
+savepoint s1;
+update ft2__postgres_srv__0 set c2 = 44 where c2 = 4;
+select c2, count(*) from ft2__postgres_srv__0 where c2 < 500 group by 1 order by 1;
+ c2  | count 
+-----+-------
+   1 |   100
+   6 |   100
+  42 |   100
+  44 |   100
+ 100 |     2
+ 101 |     2
+ 104 |     2
+ 106 |     2
+ 201 |     1
+ 204 |     1
+ 303 |   100
+ 403 |     2
+ 407 |   100
+(13 rows)
+
+release savepoint s1;
+select c2, count(*) from ft2__postgres_srv__0 where c2 < 500 group by 1 order by 1;
+ c2  | count 
+-----+-------
+   1 |   100
+   6 |   100
+  42 |   100
+  44 |   100
+ 100 |     2
+ 101 |     2
+ 104 |     2
+ 106 |     2
+ 201 |     1
+ 204 |     1
+ 303 |   100
+ 403 |     2
+ 407 |   100
+(13 rows)
+
+savepoint s2;
+update ft2__postgres_srv__0 set c2 = 46 where c2 = 6;
+select c2, count(*) from ft2__postgres_srv__0 where c2 < 500 group by 1 order by 1;
+ c2  | count 
+-----+-------
+   1 |   100
+  42 |   100
+  44 |   100
+  46 |   100
+ 100 |     2
+ 101 |     2
+ 104 |     2
+ 106 |     2
+ 201 |     1
+ 204 |     1
+ 303 |   100
+ 403 |     2
+ 407 |   100
+(13 rows)
+
+rollback to savepoint s2;
+select c2, count(*) from ft2__postgres_srv__0 where c2 < 500 group by 1 order by 1;
+ c2  | count 
+-----+-------
+   1 |   100
+   6 |   100
+  42 |   100
+  44 |   100
+ 100 |     2
+ 101 |     2
+ 104 |     2
+ 106 |     2
+ 201 |     1
+ 204 |     1
+ 303 |   100
+ 403 |     2
+ 407 |   100
+(13 rows)
+
+release savepoint s2;
+select c2, count(*) from ft2__postgres_srv__0 where c2 < 500 group by 1 order by 1;
+ c2  | count 
+-----+-------
+   1 |   100
+   6 |   100
+  42 |   100
+  44 |   100
+ 100 |     2
+ 101 |     2
+ 104 |     2
+ 106 |     2
+ 201 |     1
+ 204 |     1
+ 303 |   100
+ 403 |     2
+ 407 |   100
+(13 rows)
+
+savepoint s3;
+update ft2__postgres_srv__0 set c2 = -2 where c2 = 42 and c1 = 10; -- fail on remote side
+ERROR:  new row for relation "T 1" violates check constraint "c2positive"
+DETAIL:  Failing row contains (10, -2, 00010_trig_update_trig_update, 1970-01-11 08:00:00+00, 1970-01-11 00:00:00, 0, 0         , foo).
+CONTEXT:  remote SQL command: UPDATE "S 1"."T 1" SET c2 = (-2) WHERE ((c2 = 42)) AND (("C 1" = 10))
+rollback to savepoint s3;
+select c2, count(*) from ft2__postgres_srv__0 where c2 < 500 group by 1 order by 1;
+ c2  | count 
+-----+-------
+   1 |   100
+   6 |   100
+  42 |   100
+  44 |   100
+ 100 |     2
+ 101 |     2
+ 104 |     2
+ 106 |     2
+ 201 |     1
+ 204 |     1
+ 303 |   100
+ 403 |     2
+ 407 |   100
+(13 rows)
+
+release savepoint s3;
+select c2, count(*) from ft2__postgres_srv__0 where c2 < 500 group by 1 order by 1;
+ c2  | count 
+-----+-------
+   1 |   100
+   6 |   100
+  42 |   100
+  44 |   100
+ 100 |     2
+ 101 |     2
+ 104 |     2
+ 106 |     2
+ 201 |     1
+ 204 |     1
+ 303 |   100
+ 403 |     2
+ 407 |   100
+(13 rows)
+
+-- none of the above is committed yet remotely
+-- if PGSPider support update, we need to change to use "S 1"."T 1"
+-- in the original test data is stored temporally in ft2, so we can use
+-- "S 1"."T 1" (same as ft2__postgres_srv__0) to check data.
+select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
+ c2  | count 
+-----+-------
+   0 |   100
+   1 |   100
+   4 |   100
+   6 |   100
+ 100 |     2
+ 101 |     2
+ 104 |     2
+ 106 |     2
+ 201 |     1
+ 204 |     1
+ 303 |   100
+ 403 |     2
+ 407 |   100
+(13 rows)
+
+commit;
+-- After commit, obviously data will be pushed to remote database
+-- So, using ft2 or "S 1"."T 1" (ft2__postgres_srv__0) results in the 
+-- same result.
+select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
+ c2  | count 
+-----+-------
+   1 |   100
+   6 |   100
+  42 |   100
+  44 |   100
+ 100 |     2
+ 101 |     2
+ 104 |     2
+ 106 |     2
+ 201 |     1
+ 204 |     1
+ 303 |   100
+ 403 |     2
+ 407 |   100
+(13 rows)
+
 select c2, count(*) from "S 1"."T 1" where c2 < 500 group by 1 order by 1;
  c2  | count 
 -----+-------
    1 |   100
-   4 |   100
    6 |   100
   42 |   100
+  44 |   100
  100 |     2
  101 |     2
  104 |     2

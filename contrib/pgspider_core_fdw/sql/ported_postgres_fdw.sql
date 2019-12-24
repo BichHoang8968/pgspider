@@ -1321,28 +1321,35 @@ select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
 select c2, count(*) from "S 1"."T 1" where c2 < 500 group by 1 order by 1;
 begin;
 update ft2__postgres_srv__0 set c2 = 42 where c2 = 0;
---select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
---savepoint s1;
---update ft2__postgres_srv__0 set c2 = 44 where c2 = 4;
---select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
---release savepoint s1;
---select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
---savepoint s2;
---update ft2__postgres_srv__0 set c2 = 46 where c2 = 6;
---select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
---rollback to savepoint s2;
---select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
---release savepoint s2;
---select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
---savepoint s3;
---update ft2__postgres_srv__0 set c2 = -2 where c2 = 42 and c1 = 10; -- fail on remote side
---rollback to savepoint s3;
---select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
---release savepoint s3;
---select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
+-- in transation, data is temporally stored in foreign table, not pushed to remote database
+select c2, count(*) from ft2__postgres_srv__0 where c2 < 500 group by 1 order by 1;
+savepoint s1;
+update ft2__postgres_srv__0 set c2 = 44 where c2 = 4;
+select c2, count(*) from ft2__postgres_srv__0 where c2 < 500 group by 1 order by 1;
+release savepoint s1;
+select c2, count(*) from ft2__postgres_srv__0 where c2 < 500 group by 1 order by 1;
+savepoint s2;
+update ft2__postgres_srv__0 set c2 = 46 where c2 = 6;
+select c2, count(*) from ft2__postgres_srv__0 where c2 < 500 group by 1 order by 1;
+rollback to savepoint s2;
+select c2, count(*) from ft2__postgres_srv__0 where c2 < 500 group by 1 order by 1;
+release savepoint s2;
+select c2, count(*) from ft2__postgres_srv__0 where c2 < 500 group by 1 order by 1;
+savepoint s3;
+update ft2__postgres_srv__0 set c2 = -2 where c2 = 42 and c1 = 10; -- fail on remote side
+rollback to savepoint s3;
+select c2, count(*) from ft2__postgres_srv__0 where c2 < 500 group by 1 order by 1;
+release savepoint s3;
+select c2, count(*) from ft2__postgres_srv__0 where c2 < 500 group by 1 order by 1;
 -- none of the above is committed yet remotely
---select c2, count(*) from "S 1"."T 1" where c2 < 500 group by 1 order by 1;
+-- if PGSPider support update, we need to change to use "S 1"."T 1"
+-- in the original test data is stored temporally in ft2, so we can use
+-- "S 1"."T 1" (same as ft2__postgres_srv__0) to check data.
+select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
 commit;
+-- After commit, obviously data will be pushed to remote database
+-- So, using ft2 or "S 1"."T 1" (ft2__postgres_srv__0) results in the 
+-- same result.
 select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
 select c2, count(*) from "S 1"."T 1" where c2 < 500 group by 1 order by 1;
 
