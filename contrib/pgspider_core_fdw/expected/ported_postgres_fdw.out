@@ -7015,10 +7015,6 @@ DROP FUNCTION row_before_insupd_trigfunc;
 -- ===================================================================
 ---create table loc1 (f1 serial, f2 text);
 ---alter table loc1 set (autovacuum_enabled = 'false');
-create foreign table loc1 (f1 serial, f2 text, __spd_url text)
-  server pgspider_srv;
-create foreign table loc1__postgres_srv__0 (f1 serial, f2 text)
-  server postgres_srv options(table_name 'loc1_1');
 create foreign table rem1 (f1 serial, f2 text, __spd_url text)
   server pgspider_srv;
 create foreign table rem1__postgres_srv__0 (f1 serial, f2 text)
@@ -7029,21 +7025,20 @@ select pg_catalog.setval('rem1__postgres_srv__0_f1_seq', 10, false);
      10
 (1 row)
 
-insert into loc1__postgres_srv__0(f2) values('hi');
-insert into rem1__postgres_srv__0(f2) values('hi remote');
-insert into loc1__postgres_srv__0(f2) values('bye');
-insert into rem1__postgres_srv__0(f2) values('bye remote');
-select * from loc1;
-ERROR:  error SPIexecute can not find datasource
-select * from loc1__postgres_srv__0;
- f1 |     f2     
-----+------------
-  1 | hi
- 10 | hi remote
-  2 | bye
- 11 | bye remote
-(4 rows)
+select dblink_exec('insert into loc1_1(f2) values(''hi'');');
+ dblink_exec 
+-------------
+ INSERT 0 1
+(1 row)
 
+insert into rem1__postgres_srv__0(f2) values('hi remote');
+select dblink_exec('insert into loc1_1(f2) values(''bye'');');
+ dblink_exec 
+-------------
+ INSERT 0 1
+(1 row)
+
+insert into rem1__postgres_srv__0(f2) values('bye remote');
 select * from rem1;
 ERROR:  error SPIexecute can not find datasource
 select * from rem1__postgres_srv__0;
@@ -7091,9 +7086,9 @@ BEGIN
 		TG_ARGV[0], TG_OP, TG_WHEN, TG_LEVEL;
 	RETURN NULL;
 END;$$;
-CREATE TRIGGER trig_stmt_before BEFORE DELETE OR INSERT OR UPDATE ON rem1
+CREATE TRIGGER trig_stmt_before BEFORE DELETE OR INSERT OR UPDATE ON rem1__postgres_srv__0
 	FOR EACH STATEMENT EXECUTE PROCEDURE trigger_func();
-CREATE TRIGGER trig_stmt_after AFTER DELETE OR INSERT OR UPDATE ON rem1
+CREATE TRIGGER trig_stmt_after AFTER DELETE OR INSERT OR UPDATE ON rem1__postgres_srv__0
 	FOR EACH STATEMENT EXECUTE PROCEDURE trigger_func();
 CREATE OR REPLACE FUNCTION trigger_data()  RETURNS trigger
 LANGUAGE plpgsql AS $$
@@ -7135,29 +7130,65 @@ end;
 $$;
 -- Test basic functionality
 CREATE TRIGGER trig_row_before
-BEFORE INSERT OR UPDATE OR DELETE ON rem1
+BEFORE INSERT OR UPDATE OR DELETE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
 CREATE TRIGGER trig_row_after
-AFTER INSERT OR UPDATE OR DELETE ON rem1
+AFTER INSERT OR UPDATE OR DELETE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
 delete from rem1__postgres_srv__0;
+NOTICE:  trigger_func(<NULL>) called: action = DELETE, when = BEFORE, level = STATEMENT
+NOTICE:  trig_row_before(23, skidoo) BEFORE ROW DELETE ON rem1__postgres_srv__0
+NOTICE:  OLD: (1,hi)
+NOTICE:  trig_row_before(23, skidoo) BEFORE ROW DELETE ON rem1__postgres_srv__0
+NOTICE:  OLD: (10,"hi remote")
+NOTICE:  trig_row_before(23, skidoo) BEFORE ROW DELETE ON rem1__postgres_srv__0
+NOTICE:  OLD: (2,bye)
+NOTICE:  trig_row_before(23, skidoo) BEFORE ROW DELETE ON rem1__postgres_srv__0
+NOTICE:  OLD: (11,"bye remote")
+NOTICE:  trig_row_after(23, skidoo) AFTER ROW DELETE ON rem1__postgres_srv__0
+NOTICE:  OLD: (1,hi)
+NOTICE:  trig_row_after(23, skidoo) AFTER ROW DELETE ON rem1__postgres_srv__0
+NOTICE:  OLD: (10,"hi remote")
+NOTICE:  trig_row_after(23, skidoo) AFTER ROW DELETE ON rem1__postgres_srv__0
+NOTICE:  OLD: (2,bye)
+NOTICE:  trig_row_after(23, skidoo) AFTER ROW DELETE ON rem1__postgres_srv__0
+NOTICE:  OLD: (11,"bye remote")
+NOTICE:  trigger_func(<NULL>) called: action = DELETE, when = AFTER, level = STATEMENT
 insert into rem1__postgres_srv__0 values(1,'insert');
+NOTICE:  trigger_func(<NULL>) called: action = INSERT, when = BEFORE, level = STATEMENT
+NOTICE:  trig_row_before(23, skidoo) BEFORE ROW INSERT ON rem1__postgres_srv__0
+NOTICE:  NEW: (1,insert)
+NOTICE:  trig_row_after(23, skidoo) AFTER ROW INSERT ON rem1__postgres_srv__0
+NOTICE:  NEW: (1,insert)
+NOTICE:  trigger_func(<NULL>) called: action = INSERT, when = AFTER, level = STATEMENT
 update rem1__postgres_srv__0 set f2  = 'update' where f1 = 1;
+NOTICE:  trigger_func(<NULL>) called: action = UPDATE, when = BEFORE, level = STATEMENT
+NOTICE:  trig_row_before(23, skidoo) BEFORE ROW UPDATE ON rem1__postgres_srv__0
+NOTICE:  OLD: (1,insert),NEW: (1,update)
+NOTICE:  trig_row_after(23, skidoo) AFTER ROW UPDATE ON rem1__postgres_srv__0
+NOTICE:  OLD: (1,insert),NEW: (1,update)
+NOTICE:  trigger_func(<NULL>) called: action = UPDATE, when = AFTER, level = STATEMENT
 update rem1__postgres_srv__0 set f2 = f2 || f2;
+NOTICE:  trigger_func(<NULL>) called: action = UPDATE, when = BEFORE, level = STATEMENT
+NOTICE:  trig_row_before(23, skidoo) BEFORE ROW UPDATE ON rem1__postgres_srv__0
+NOTICE:  OLD: (1,update),NEW: (1,updateupdate)
+NOTICE:  trig_row_after(23, skidoo) AFTER ROW UPDATE ON rem1__postgres_srv__0
+NOTICE:  OLD: (1,update),NEW: (1,updateupdate)
+NOTICE:  trigger_func(<NULL>) called: action = UPDATE, when = AFTER, level = STATEMENT
 -- cleanup
-DROP TRIGGER trig_row_before ON rem1;
-DROP TRIGGER trig_row_after ON rem1;
-DROP TRIGGER trig_stmt_before ON rem1;
-DROP TRIGGER trig_stmt_after ON rem1;
+DROP TRIGGER trig_row_before ON rem1__postgres_srv__0;
+DROP TRIGGER trig_row_after ON rem1__postgres_srv__0;
+DROP TRIGGER trig_stmt_before ON rem1__postgres_srv__0;
+DROP TRIGGER trig_stmt_after ON rem1__postgres_srv__0;
 DELETE from rem1__postgres_srv__0;
 -- Test WHEN conditions
 CREATE TRIGGER trig_row_before_insupd
-BEFORE INSERT OR UPDATE ON rem1
+BEFORE INSERT OR UPDATE ON rem1__postgres_srv__0
 FOR EACH ROW
 WHEN (NEW.f2 like '%update%')
 EXECUTE PROCEDURE trigger_data(23,'skidoo');
 CREATE TRIGGER trig_row_after_insupd
-AFTER INSERT OR UPDATE ON rem1
+AFTER INSERT OR UPDATE ON rem1__postgres_srv__0
 FOR EACH ROW
 WHEN (NEW.f2 like '%update%')
 EXECUTE PROCEDURE trigger_data(23,'skidoo');
@@ -7166,24 +7197,36 @@ INSERT INTO rem1__postgres_srv__0 values(1, 'insert');
 UPDATE rem1__postgres_srv__0 set f2 = 'test';
 -- Insert or update matching: triggers are fired
 INSERT INTO rem1__postgres_srv__0 values(2, 'update');
+NOTICE:  trig_row_before_insupd(23, skidoo) BEFORE ROW INSERT ON rem1__postgres_srv__0
+NOTICE:  NEW: (2,update)
+NOTICE:  trig_row_after_insupd(23, skidoo) AFTER ROW INSERT ON rem1__postgres_srv__0
+NOTICE:  NEW: (2,update)
 UPDATE rem1__postgres_srv__0 set f2 = 'update update' where f1 = '2';
+NOTICE:  trig_row_before_insupd(23, skidoo) BEFORE ROW UPDATE ON rem1__postgres_srv__0
+NOTICE:  OLD: (2,update),NEW: (2,"update update")
+NOTICE:  trig_row_after_insupd(23, skidoo) AFTER ROW UPDATE ON rem1__postgres_srv__0
+NOTICE:  OLD: (2,update),NEW: (2,"update update")
 CREATE TRIGGER trig_row_before_delete
-BEFORE DELETE ON rem1
+BEFORE DELETE ON rem1__postgres_srv__0
 FOR EACH ROW
 WHEN (OLD.f2 like '%update%')
 EXECUTE PROCEDURE trigger_data(23,'skidoo');
 CREATE TRIGGER trig_row_after_delete
-AFTER DELETE ON rem1
+AFTER DELETE ON rem1__postgres_srv__0
 FOR EACH ROW
 WHEN (OLD.f2 like '%update%')
 EXECUTE PROCEDURE trigger_data(23,'skidoo');
 -- Trigger is fired for f1=2, not for f1=1
 DELETE FROM rem1__postgres_srv__0;
+NOTICE:  trig_row_before_delete(23, skidoo) BEFORE ROW DELETE ON rem1__postgres_srv__0
+NOTICE:  OLD: (2,"update update")
+NOTICE:  trig_row_after_delete(23, skidoo) AFTER ROW DELETE ON rem1__postgres_srv__0
+NOTICE:  OLD: (2,"update update")
 -- cleanup
-DROP TRIGGER trig_row_before_insupd ON rem1;
-DROP TRIGGER trig_row_after_insupd ON rem1;
-DROP TRIGGER trig_row_before_delete ON rem1;
-DROP TRIGGER trig_row_after_delete ON rem1;
+DROP TRIGGER trig_row_before_insupd ON rem1__postgres_srv__0;
+DROP TRIGGER trig_row_after_insupd ON rem1__postgres_srv__0;
+DROP TRIGGER trig_row_before_delete ON rem1__postgres_srv__0;
+DROP TRIGGER trig_row_after_delete ON rem1__postgres_srv__0;
 -- Test various RETURN statements in BEFORE triggers.
 CREATE FUNCTION trig_row_before_insupdate() RETURNS TRIGGER AS $$
   BEGIN
@@ -7192,39 +7235,79 @@ CREATE FUNCTION trig_row_before_insupdate() RETURNS TRIGGER AS $$
   END
 $$ language plpgsql;
 CREATE TRIGGER trig_row_before_insupd
-BEFORE INSERT OR UPDATE ON rem1
+BEFORE INSERT OR UPDATE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trig_row_before_insupdate();
 -- The new values should have 'triggered' appended
--- INSERT INTO rem1__postgres_srv__0 values(1, 'insert');
--- SELECT * from rem1;
--- INSERT INTO rem1__postgres_srv__0 values(2, 'insert') RETURNING f2;
--- SELECT * from rem1;
--- UPDATE rem1__postgres_srv__0 set f2 = '';
--- SELECT * from rem1;
--- UPDATE rem1__postgres_srv__0 set f2 = 'skidoo' RETURNING f2;
--- SELECT * from rem1;
--- EXPLAIN (verbose, costs off)
--- UPDATE rem1__postgres_srv__0 set f1 = 10;          -- all columns should be transmitted
--- UPDATE rem1__postgres_srv__0 set f1 = 10;
--- SELECT * from rem1;
--- DELETE FROM rem1__postgres_srv__0;
+INSERT INTO rem1__postgres_srv__0 values(1, 'insert');
+SELECT * from rem1;
+ERROR:  error SPIexecute can not find datasource
+INSERT INTO rem1__postgres_srv__0 values(2, 'insert') RETURNING f2;
+         f2         
+--------------------
+ insert triggered !
+(1 row)
+
+SELECT * from rem1;
+ERROR:  error SPIexecute can not find datasource
+UPDATE rem1__postgres_srv__0 set f2 = '';
+SELECT * from rem1;
+ERROR:  error SPIexecute can not find datasource
+UPDATE rem1__postgres_srv__0 set f2 = 'skidoo' RETURNING f2;
+         f2         
+--------------------
+ skidoo triggered !
+ skidoo triggered !
+(2 rows)
+
+SELECT * from rem1;
+ERROR:  error SPIexecute can not find datasource
+EXPLAIN (verbose, costs off)
+UPDATE rem1__postgres_srv__0 set f1 = 10;          -- all columns should be transmitted
+                               QUERY PLAN                                
+-------------------------------------------------------------------------
+ Update on public.rem1__postgres_srv__0
+   Remote SQL: UPDATE public.loc1_1 SET f1 = $2, f2 = $3 WHERE ctid = $1
+   ->  Foreign Scan on public.rem1__postgres_srv__0
+         Output: 10, f2, ctid, rem1__postgres_srv__0.*
+         Remote SQL: SELECT f1, f2, ctid FROM public.loc1_1 FOR UPDATE
+(5 rows)
+
+UPDATE rem1__postgres_srv__0 set f1 = 10;
+SELECT * from rem1;
+ERROR:  error SPIexecute can not find datasource
+DELETE FROM rem1__postgres_srv__0;
 -- Add a second trigger, to check that the changes are propagated correctly
 -- from trigger to trigger
 CREATE TRIGGER trig_row_before_insupd2
-BEFORE INSERT OR UPDATE ON rem1
+BEFORE INSERT OR UPDATE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trig_row_before_insupdate();
--- INSERT INTO rem1__postgres_srv__0 values(1, 'insert');
--- SELECT * from rem1;
--- INSERT INTO rem1__postgres_srv__0 values(2, 'insert') RETURNING f2;
--- SELECT * from rem1;
--- UPDATE rem1__postgres_srv__0 set f2 = '';
--- SELECT * from rem1;
--- UPDATE rem1__postgres_srv__0 set f2 = 'skidoo' RETURNING f2;
--- SELECT * from rem1;
-DROP TRIGGER trig_row_before_insupd ON rem1;
-DROP TRIGGER trig_row_before_insupd2 ON rem1;
--- DELETE from rem1__postgres_srv__0;
--- INSERT INTO rem1__postgres_srv__0 VALUES (1, 'test');
+INSERT INTO rem1__postgres_srv__0 values(1, 'insert');
+SELECT * from rem1;
+ERROR:  error SPIexecute can not find datasource
+INSERT INTO rem1__postgres_srv__0 values(2, 'insert') RETURNING f2;
+               f2               
+--------------------------------
+ insert triggered ! triggered !
+(1 row)
+
+SELECT * from rem1;
+ERROR:  error SPIexecute can not find datasource
+UPDATE rem1__postgres_srv__0 set f2 = '';
+SELECT * from rem1;
+ERROR:  error SPIexecute can not find datasource
+UPDATE rem1__postgres_srv__0 set f2 = 'skidoo' RETURNING f2;
+               f2               
+--------------------------------
+ skidoo triggered ! triggered !
+ skidoo triggered ! triggered !
+(2 rows)
+
+SELECT * from rem1;
+ERROR:  error SPIexecute can not find datasource
+DROP TRIGGER trig_row_before_insupd ON rem1__postgres_srv__0;
+DROP TRIGGER trig_row_before_insupd2 ON rem1__postgres_srv__0;
+DELETE from rem1__postgres_srv__0;
+INSERT INTO rem1__postgres_srv__0 VALUES (1, 'test');
 -- Test with a trigger returning NULL
 CREATE FUNCTION trig_null() RETURNS TRIGGER AS $$
   BEGIN
@@ -7232,103 +7315,244 @@ CREATE FUNCTION trig_null() RETURNS TRIGGER AS $$
   END
 $$ language plpgsql;
 CREATE TRIGGER trig_null
-BEFORE INSERT OR UPDATE OR DELETE ON rem1
+BEFORE INSERT OR UPDATE OR DELETE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trig_null();
 -- Nothing should have changed.
 INSERT INTO rem1__postgres_srv__0 VALUES (2, 'test2');
--- SELECT * from rem1;
+SELECT * from rem1;
+ERROR:  error SPIexecute can not find datasource
 UPDATE rem1__postgres_srv__0 SET f2 = 'test2';
--- SELECT * from rem1;
+SELECT * from rem1;
+ERROR:  error SPIexecute can not find datasource
 DELETE from rem1__postgres_srv__0;
--- SELECT * from rem1;
-DROP TRIGGER trig_null ON rem1;
+SELECT * from rem1;
+ERROR:  error SPIexecute can not find datasource
+DROP TRIGGER trig_null ON rem1__postgres_srv__0;
 DELETE from rem1__postgres_srv__0;
 -- Test a combination of local and remote triggers
 CREATE TRIGGER trig_row_before
-BEFORE INSERT OR UPDATE OR DELETE ON rem1
+BEFORE INSERT OR UPDATE OR DELETE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
 CREATE TRIGGER trig_row_after
-AFTER INSERT OR UPDATE OR DELETE ON rem1
+AFTER INSERT OR UPDATE OR DELETE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
 CREATE TRIGGER trig_local_before BEFORE INSERT OR UPDATE ON rem1
 FOR EACH ROW EXECUTE PROCEDURE trig_row_before_insupdate();
 INSERT INTO rem1__postgres_srv__0(f2) VALUES ('test');
+NOTICE:  trig_row_before(23, skidoo) BEFORE ROW INSERT ON rem1__postgres_srv__0
+NOTICE:  NEW: (12,test)
+NOTICE:  trig_row_after(23, skidoo) AFTER ROW INSERT ON rem1__postgres_srv__0
+NOTICE:  NEW: (12,test)
 UPDATE rem1__postgres_srv__0 SET f2 = 'testo';
+NOTICE:  trig_row_before(23, skidoo) BEFORE ROW UPDATE ON rem1__postgres_srv__0
+NOTICE:  OLD: (12,test),NEW: (12,testo)
+NOTICE:  trig_row_after(23, skidoo) AFTER ROW UPDATE ON rem1__postgres_srv__0
+NOTICE:  OLD: (12,test),NEW: (12,testo)
 -- Test returning a system attribute
--- INSERT INTO rem1__postgres_srv__0(f2) VALUES ('test') RETURNING ctid;
+INSERT INTO rem1__postgres_srv__0(f2) VALUES ('test') RETURNING ctid;
+NOTICE:  trig_row_before(23, skidoo) BEFORE ROW INSERT ON rem1__postgres_srv__0
+NOTICE:  NEW: (13,test)
+NOTICE:  trig_row_after(23, skidoo) AFTER ROW INSERT ON rem1__postgres_srv__0
+NOTICE:  NEW: (13,test)
+  ctid  
+--------
+ (0,29)
+(1 row)
+
 -- cleanup
-DROP TRIGGER trig_row_before ON rem1;
-DROP TRIGGER trig_row_after ON rem1;
-DROP TRIGGER trig_local_before ON rem1;
+DROP TRIGGER trig_row_before ON rem1__postgres_srv__0;
+DROP TRIGGER trig_row_after ON rem1__postgres_srv__0;
+DROP TRIGGER trig_local_before ON rem1__postgres_srv__0;
+ERROR:  trigger "trig_local_before" for table "rem1__postgres_srv__0" does not exist
 -- Test direct foreign table modification functionality
 -- Test with statement-level triggers
 CREATE TRIGGER trig_stmt_before
-	BEFORE DELETE OR INSERT OR UPDATE ON rem1
+	BEFORE DELETE OR INSERT OR UPDATE ON rem1__postgres_srv__0
 	FOR EACH STATEMENT EXECUTE PROCEDURE trigger_func();
--- EXPLAIN (verbose, costs off)
--- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
--- EXPLAIN (verbose, costs off)
--- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
-DROP TRIGGER trig_stmt_before ON rem1;
+EXPLAIN (verbose, costs off)
+UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+                         QUERY PLAN                         
+------------------------------------------------------------
+ Update on public.rem1__postgres_srv__0
+   ->  Foreign Update on public.rem1__postgres_srv__0
+         Remote SQL: UPDATE public.loc1_1 SET f2 = ''::text
+(3 rows)
+
+EXPLAIN (verbose, costs off)
+DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
+                      QUERY PLAN                      
+------------------------------------------------------
+ Delete on public.rem1__postgres_srv__0
+   ->  Foreign Delete on public.rem1__postgres_srv__0
+         Remote SQL: DELETE FROM public.loc1_1
+(3 rows)
+
+DROP TRIGGER trig_stmt_before ON rem1__postgres_srv__0;
 CREATE TRIGGER trig_stmt_after
-	AFTER DELETE OR INSERT OR UPDATE ON rem1
+	AFTER DELETE OR INSERT OR UPDATE ON rem1__postgres_srv__0
 	FOR EACH STATEMENT EXECUTE PROCEDURE trigger_func();
--- EXPLAIN (verbose, costs off)
--- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
--- EXPLAIN (verbose, costs off)
--- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
-DROP TRIGGER trig_stmt_after ON rem1;
+EXPLAIN (verbose, costs off)
+UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+                         QUERY PLAN                         
+------------------------------------------------------------
+ Update on public.rem1__postgres_srv__0
+   ->  Foreign Update on public.rem1__postgres_srv__0
+         Remote SQL: UPDATE public.loc1_1 SET f2 = ''::text
+(3 rows)
+
+EXPLAIN (verbose, costs off)
+DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
+                      QUERY PLAN                      
+------------------------------------------------------
+ Delete on public.rem1__postgres_srv__0
+   ->  Foreign Delete on public.rem1__postgres_srv__0
+         Remote SQL: DELETE FROM public.loc1_1
+(3 rows)
+
+DROP TRIGGER trig_stmt_after ON rem1__postgres_srv__0;
 -- Test with row-level ON INSERT triggers
 CREATE TRIGGER trig_row_before_insert
-BEFORE INSERT ON rem1
+BEFORE INSERT ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
--- EXPLAIN (verbose, costs off)
--- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
--- EXPLAIN (verbose, costs off)
--- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
-DROP TRIGGER trig_row_before_insert ON rem1;
+EXPLAIN (verbose, costs off)
+UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+                         QUERY PLAN                         
+------------------------------------------------------------
+ Update on public.rem1__postgres_srv__0
+   ->  Foreign Update on public.rem1__postgres_srv__0
+         Remote SQL: UPDATE public.loc1_1 SET f2 = ''::text
+(3 rows)
+
+EXPLAIN (verbose, costs off)
+DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
+                      QUERY PLAN                      
+------------------------------------------------------
+ Delete on public.rem1__postgres_srv__0
+   ->  Foreign Delete on public.rem1__postgres_srv__0
+         Remote SQL: DELETE FROM public.loc1_1
+(3 rows)
+
+DROP TRIGGER trig_row_before_insert ON rem1__postgres_srv__0;
 CREATE TRIGGER trig_row_after_insert
-AFTER INSERT ON rem1
+AFTER INSERT ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
--- EXPLAIN (verbose, costs off)
--- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
--- EXPLAIN (verbose, costs off)
--- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
-DROP TRIGGER trig_row_after_insert ON rem1;
+EXPLAIN (verbose, costs off)
+UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+                         QUERY PLAN                         
+------------------------------------------------------------
+ Update on public.rem1__postgres_srv__0
+   ->  Foreign Update on public.rem1__postgres_srv__0
+         Remote SQL: UPDATE public.loc1_1 SET f2 = ''::text
+(3 rows)
+
+EXPLAIN (verbose, costs off)
+DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
+                      QUERY PLAN                      
+------------------------------------------------------
+ Delete on public.rem1__postgres_srv__0
+   ->  Foreign Delete on public.rem1__postgres_srv__0
+         Remote SQL: DELETE FROM public.loc1_1
+(3 rows)
+
+DROP TRIGGER trig_row_after_insert ON rem1__postgres_srv__0;
 -- Test with row-level ON UPDATE triggers
 CREATE TRIGGER trig_row_before_update
-BEFORE UPDATE ON rem1
+BEFORE UPDATE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
--- EXPLAIN (verbose, costs off)
--- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can't be pushed down
--- EXPLAIN (verbose, costs off)
--- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
-DROP TRIGGER trig_row_before_update ON rem1;
+EXPLAIN (verbose, costs off)
+UPDATE rem1__postgres_srv__0 set f2 = '';          -- can't be pushed down
+                               QUERY PLAN                                
+-------------------------------------------------------------------------
+ Update on public.rem1__postgres_srv__0
+   Remote SQL: UPDATE public.loc1_1 SET f1 = $2, f2 = $3 WHERE ctid = $1
+   ->  Foreign Scan on public.rem1__postgres_srv__0
+         Output: f1, ''::text, ctid, rem1__postgres_srv__0.*
+         Remote SQL: SELECT f1, f2, ctid FROM public.loc1_1 FOR UPDATE
+(5 rows)
+
+EXPLAIN (verbose, costs off)
+DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
+                      QUERY PLAN                      
+------------------------------------------------------
+ Delete on public.rem1__postgres_srv__0
+   ->  Foreign Delete on public.rem1__postgres_srv__0
+         Remote SQL: DELETE FROM public.loc1_1
+(3 rows)
+
+DROP TRIGGER trig_row_before_update ON rem1__postgres_srv__0;
 CREATE TRIGGER trig_row_after_update
-AFTER UPDATE ON rem1
+AFTER UPDATE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
--- EXPLAIN (verbose, costs off)
--- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can't be pushed down
--- EXPLAIN (verbose, costs off)
--- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
-DROP TRIGGER trig_row_after_update ON rem1;
+EXPLAIN (verbose, costs off)
+UPDATE rem1__postgres_srv__0 set f2 = '';          -- can't be pushed down
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
+ Update on public.rem1__postgres_srv__0
+   Remote SQL: UPDATE public.loc1_1 SET f2 = $2 WHERE ctid = $1 RETURNING f1, f2
+   ->  Foreign Scan on public.rem1__postgres_srv__0
+         Output: f1, ''::text, ctid, rem1__postgres_srv__0.*
+         Remote SQL: SELECT f1, f2, ctid FROM public.loc1_1 FOR UPDATE
+(5 rows)
+
+EXPLAIN (verbose, costs off)
+DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
+                      QUERY PLAN                      
+------------------------------------------------------
+ Delete on public.rem1__postgres_srv__0
+   ->  Foreign Delete on public.rem1__postgres_srv__0
+         Remote SQL: DELETE FROM public.loc1_1
+(3 rows)
+
+DROP TRIGGER trig_row_after_update ON rem1__postgres_srv__0;
 -- Test with row-level ON DELETE triggers
 CREATE TRIGGER trig_row_before_delete
-BEFORE DELETE ON rem1
+BEFORE DELETE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
--- EXPLAIN (verbose, costs off)
--- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
--- EXPLAIN (verbose, costs off)
--- DELETE FROM rem1__postgres_srv__0;                 -- can't be pushed down
-DROP TRIGGER trig_row_before_delete ON rem1;
+EXPLAIN (verbose, costs off)
+UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+                         QUERY PLAN                         
+------------------------------------------------------------
+ Update on public.rem1__postgres_srv__0
+   ->  Foreign Update on public.rem1__postgres_srv__0
+         Remote SQL: UPDATE public.loc1_1 SET f2 = ''::text
+(3 rows)
+
+EXPLAIN (verbose, costs off)
+DELETE FROM rem1__postgres_srv__0;                 -- can't be pushed down
+                              QUERY PLAN                               
+-----------------------------------------------------------------------
+ Delete on public.rem1__postgres_srv__0
+   Remote SQL: DELETE FROM public.loc1_1 WHERE ctid = $1
+   ->  Foreign Scan on public.rem1__postgres_srv__0
+         Output: ctid, rem1__postgres_srv__0.*
+         Remote SQL: SELECT f1, f2, ctid FROM public.loc1_1 FOR UPDATE
+(5 rows)
+
+DROP TRIGGER trig_row_before_delete ON rem1__postgres_srv__0;
 CREATE TRIGGER trig_row_after_delete
-AFTER DELETE ON rem1
+AFTER DELETE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
--- EXPLAIN (verbose, costs off)
--- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
--- EXPLAIN (verbose, costs off)
--- DELETE FROM rem1__postgres_srv__0;                 -- can't be pushed down
-DROP TRIGGER trig_row_after_delete ON rem1;
+EXPLAIN (verbose, costs off)
+UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+                         QUERY PLAN                         
+------------------------------------------------------------
+ Update on public.rem1__postgres_srv__0
+   ->  Foreign Update on public.rem1__postgres_srv__0
+         Remote SQL: UPDATE public.loc1_1 SET f2 = ''::text
+(3 rows)
+
+EXPLAIN (verbose, costs off)
+DELETE FROM rem1__postgres_srv__0;                 -- can't be pushed down
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
+ Delete on public.rem1__postgres_srv__0
+   Remote SQL: DELETE FROM public.loc1_1 WHERE ctid = $1 RETURNING f1, f2
+   ->  Foreign Scan on public.rem1__postgres_srv__0
+         Output: ctid, rem1__postgres_srv__0.*
+         Remote SQL: SELECT f1, f2, ctid FROM public.loc1_1 FOR UPDATE
+(5 rows)
+
+DROP TRIGGER trig_row_after_delete ON rem1__postgres_srv__0;
 -- ===================================================================
 -- test inheritance features
 -- ===================================================================

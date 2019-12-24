@@ -1481,21 +1481,15 @@ DROP FUNCTION row_before_insupd_trigfunc;
 -- ===================================================================
 ---create table loc1 (f1 serial, f2 text);
 ---alter table loc1 set (autovacuum_enabled = 'false');
-create foreign table loc1 (f1 serial, f2 text, __spd_url text)
-  server pgspider_srv;
-create foreign table loc1__postgres_srv__0 (f1 serial, f2 text)
-  server postgres_srv options(table_name 'loc1_1');
 create foreign table rem1 (f1 serial, f2 text, __spd_url text)
   server pgspider_srv;
 create foreign table rem1__postgres_srv__0 (f1 serial, f2 text)
   server postgres_srv options(table_name 'loc1_1');
 select pg_catalog.setval('rem1__postgres_srv__0_f1_seq', 10, false);
-insert into loc1__postgres_srv__0(f2) values('hi');
+select dblink_exec('insert into loc1_1(f2) values(''hi'');');
 insert into rem1__postgres_srv__0(f2) values('hi remote');
-insert into loc1__postgres_srv__0(f2) values('bye');
+select dblink_exec('insert into loc1_1(f2) values(''bye'');');
 insert into rem1__postgres_srv__0(f2) values('bye remote');
-select * from loc1;
-select * from loc1__postgres_srv__0;
 select * from rem1;
 select * from rem1__postgres_srv__0;
 
@@ -1532,9 +1526,9 @@ BEGIN
 	RETURN NULL;
 END;$$;
 
-CREATE TRIGGER trig_stmt_before BEFORE DELETE OR INSERT OR UPDATE ON rem1
+CREATE TRIGGER trig_stmt_before BEFORE DELETE OR INSERT OR UPDATE ON rem1__postgres_srv__0
 	FOR EACH STATEMENT EXECUTE PROCEDURE trigger_func();
-CREATE TRIGGER trig_stmt_after AFTER DELETE OR INSERT OR UPDATE ON rem1
+CREATE TRIGGER trig_stmt_after AFTER DELETE OR INSERT OR UPDATE ON rem1__postgres_srv__0
 	FOR EACH STATEMENT EXECUTE PROCEDURE trigger_func();
 
 CREATE OR REPLACE FUNCTION trigger_data()  RETURNS trigger
@@ -1578,11 +1572,11 @@ $$;
 
 -- Test basic functionality
 CREATE TRIGGER trig_row_before
-BEFORE INSERT OR UPDATE OR DELETE ON rem1
+BEFORE INSERT OR UPDATE OR DELETE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
 
 CREATE TRIGGER trig_row_after
-AFTER INSERT OR UPDATE OR DELETE ON rem1
+AFTER INSERT OR UPDATE OR DELETE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
 
 delete from rem1__postgres_srv__0;
@@ -1592,10 +1586,10 @@ update rem1__postgres_srv__0 set f2 = f2 || f2;
 
 
 -- cleanup
-DROP TRIGGER trig_row_before ON rem1;
-DROP TRIGGER trig_row_after ON rem1;
-DROP TRIGGER trig_stmt_before ON rem1;
-DROP TRIGGER trig_stmt_after ON rem1;
+DROP TRIGGER trig_row_before ON rem1__postgres_srv__0;
+DROP TRIGGER trig_row_after ON rem1__postgres_srv__0;
+DROP TRIGGER trig_stmt_before ON rem1__postgres_srv__0;
+DROP TRIGGER trig_stmt_after ON rem1__postgres_srv__0;
 
 DELETE from rem1__postgres_srv__0;
 
@@ -1603,13 +1597,13 @@ DELETE from rem1__postgres_srv__0;
 -- Test WHEN conditions
 
 CREATE TRIGGER trig_row_before_insupd
-BEFORE INSERT OR UPDATE ON rem1
+BEFORE INSERT OR UPDATE ON rem1__postgres_srv__0
 FOR EACH ROW
 WHEN (NEW.f2 like '%update%')
 EXECUTE PROCEDURE trigger_data(23,'skidoo');
 
 CREATE TRIGGER trig_row_after_insupd
-AFTER INSERT OR UPDATE ON rem1
+AFTER INSERT OR UPDATE ON rem1__postgres_srv__0
 FOR EACH ROW
 WHEN (NEW.f2 like '%update%')
 EXECUTE PROCEDURE trigger_data(23,'skidoo');
@@ -1623,13 +1617,13 @@ INSERT INTO rem1__postgres_srv__0 values(2, 'update');
 UPDATE rem1__postgres_srv__0 set f2 = 'update update' where f1 = '2';
 
 CREATE TRIGGER trig_row_before_delete
-BEFORE DELETE ON rem1
+BEFORE DELETE ON rem1__postgres_srv__0
 FOR EACH ROW
 WHEN (OLD.f2 like '%update%')
 EXECUTE PROCEDURE trigger_data(23,'skidoo');
 
 CREATE TRIGGER trig_row_after_delete
-AFTER DELETE ON rem1
+AFTER DELETE ON rem1__postgres_srv__0
 FOR EACH ROW
 WHEN (OLD.f2 like '%update%')
 EXECUTE PROCEDURE trigger_data(23,'skidoo');
@@ -1638,10 +1632,10 @@ EXECUTE PROCEDURE trigger_data(23,'skidoo');
 DELETE FROM rem1__postgres_srv__0;
 
 -- cleanup
-DROP TRIGGER trig_row_before_insupd ON rem1;
-DROP TRIGGER trig_row_after_insupd ON rem1;
-DROP TRIGGER trig_row_before_delete ON rem1;
-DROP TRIGGER trig_row_after_delete ON rem1;
+DROP TRIGGER trig_row_before_insupd ON rem1__postgres_srv__0;
+DROP TRIGGER trig_row_after_insupd ON rem1__postgres_srv__0;
+DROP TRIGGER trig_row_before_delete ON rem1__postgres_srv__0;
+DROP TRIGGER trig_row_after_delete ON rem1__postgres_srv__0;
 
 
 -- Test various RETURN statements in BEFORE triggers.
@@ -1654,47 +1648,47 @@ CREATE FUNCTION trig_row_before_insupdate() RETURNS TRIGGER AS $$
 $$ language plpgsql;
 
 CREATE TRIGGER trig_row_before_insupd
-BEFORE INSERT OR UPDATE ON rem1
+BEFORE INSERT OR UPDATE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trig_row_before_insupdate();
 
 -- The new values should have 'triggered' appended
--- INSERT INTO rem1__postgres_srv__0 values(1, 'insert');
--- SELECT * from rem1;
--- INSERT INTO rem1__postgres_srv__0 values(2, 'insert') RETURNING f2;
--- SELECT * from rem1;
--- UPDATE rem1__postgres_srv__0 set f2 = '';
--- SELECT * from rem1;
--- UPDATE rem1__postgres_srv__0 set f2 = 'skidoo' RETURNING f2;
--- SELECT * from rem1;
+INSERT INTO rem1__postgres_srv__0 values(1, 'insert');
+SELECT * from rem1;
+INSERT INTO rem1__postgres_srv__0 values(2, 'insert') RETURNING f2;
+SELECT * from rem1;
+UPDATE rem1__postgres_srv__0 set f2 = '';
+SELECT * from rem1;
+UPDATE rem1__postgres_srv__0 set f2 = 'skidoo' RETURNING f2;
+SELECT * from rem1;
 
--- EXPLAIN (verbose, costs off)
--- UPDATE rem1__postgres_srv__0 set f1 = 10;          -- all columns should be transmitted
--- UPDATE rem1__postgres_srv__0 set f1 = 10;
--- SELECT * from rem1;
+EXPLAIN (verbose, costs off)
+UPDATE rem1__postgres_srv__0 set f1 = 10;          -- all columns should be transmitted
+UPDATE rem1__postgres_srv__0 set f1 = 10;
+SELECT * from rem1;
 
--- DELETE FROM rem1__postgres_srv__0;
+DELETE FROM rem1__postgres_srv__0;
 
 -- Add a second trigger, to check that the changes are propagated correctly
 -- from trigger to trigger
 CREATE TRIGGER trig_row_before_insupd2
-BEFORE INSERT OR UPDATE ON rem1
+BEFORE INSERT OR UPDATE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trig_row_before_insupdate();
 
--- INSERT INTO rem1__postgres_srv__0 values(1, 'insert');
--- SELECT * from rem1;
--- INSERT INTO rem1__postgres_srv__0 values(2, 'insert') RETURNING f2;
--- SELECT * from rem1;
--- UPDATE rem1__postgres_srv__0 set f2 = '';
--- SELECT * from rem1;
--- UPDATE rem1__postgres_srv__0 set f2 = 'skidoo' RETURNING f2;
--- SELECT * from rem1;
+INSERT INTO rem1__postgres_srv__0 values(1, 'insert');
+SELECT * from rem1;
+INSERT INTO rem1__postgres_srv__0 values(2, 'insert') RETURNING f2;
+SELECT * from rem1;
+UPDATE rem1__postgres_srv__0 set f2 = '';
+SELECT * from rem1;
+UPDATE rem1__postgres_srv__0 set f2 = 'skidoo' RETURNING f2;
+SELECT * from rem1;
 
-DROP TRIGGER trig_row_before_insupd ON rem1;
-DROP TRIGGER trig_row_before_insupd2 ON rem1;
+DROP TRIGGER trig_row_before_insupd ON rem1__postgres_srv__0;
+DROP TRIGGER trig_row_before_insupd2 ON rem1__postgres_srv__0;
 
--- DELETE from rem1__postgres_srv__0;
+DELETE from rem1__postgres_srv__0;
 
--- INSERT INTO rem1__postgres_srv__0 VALUES (1, 'test');
+INSERT INTO rem1__postgres_srv__0 VALUES (1, 'test');
 
 -- Test with a trigger returning NULL
 CREATE FUNCTION trig_null() RETURNS TRIGGER AS $$
@@ -1704,32 +1698,32 @@ CREATE FUNCTION trig_null() RETURNS TRIGGER AS $$
 $$ language plpgsql;
 
 CREATE TRIGGER trig_null
-BEFORE INSERT OR UPDATE OR DELETE ON rem1
+BEFORE INSERT OR UPDATE OR DELETE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trig_null();
 
 -- Nothing should have changed.
 INSERT INTO rem1__postgres_srv__0 VALUES (2, 'test2');
 
--- SELECT * from rem1;
+SELECT * from rem1;
 
 UPDATE rem1__postgres_srv__0 SET f2 = 'test2';
 
--- SELECT * from rem1;
+SELECT * from rem1;
 
 DELETE from rem1__postgres_srv__0;
 
--- SELECT * from rem1;
+SELECT * from rem1;
 
-DROP TRIGGER trig_null ON rem1;
+DROP TRIGGER trig_null ON rem1__postgres_srv__0;
 DELETE from rem1__postgres_srv__0;
 
 -- Test a combination of local and remote triggers
 CREATE TRIGGER trig_row_before
-BEFORE INSERT OR UPDATE OR DELETE ON rem1
+BEFORE INSERT OR UPDATE OR DELETE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
 
 CREATE TRIGGER trig_row_after
-AFTER INSERT OR UPDATE OR DELETE ON rem1
+AFTER INSERT OR UPDATE OR DELETE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
 
 CREATE TRIGGER trig_local_before BEFORE INSERT OR UPDATE ON rem1
@@ -1739,91 +1733,91 @@ INSERT INTO rem1__postgres_srv__0(f2) VALUES ('test');
 UPDATE rem1__postgres_srv__0 SET f2 = 'testo';
 
 -- Test returning a system attribute
--- INSERT INTO rem1__postgres_srv__0(f2) VALUES ('test') RETURNING ctid;
+INSERT INTO rem1__postgres_srv__0(f2) VALUES ('test') RETURNING ctid;
 
 -- cleanup
-DROP TRIGGER trig_row_before ON rem1;
-DROP TRIGGER trig_row_after ON rem1;
-DROP TRIGGER trig_local_before ON rem1;
+DROP TRIGGER trig_row_before ON rem1__postgres_srv__0;
+DROP TRIGGER trig_row_after ON rem1__postgres_srv__0;
+DROP TRIGGER trig_local_before ON rem1__postgres_srv__0;
 
 
 -- Test direct foreign table modification functionality
 
 -- Test with statement-level triggers
 CREATE TRIGGER trig_stmt_before
-	BEFORE DELETE OR INSERT OR UPDATE ON rem1
+	BEFORE DELETE OR INSERT OR UPDATE ON rem1__postgres_srv__0
 	FOR EACH STATEMENT EXECUTE PROCEDURE trigger_func();
--- EXPLAIN (verbose, costs off)
--- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
--- EXPLAIN (verbose, costs off)
--- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
-DROP TRIGGER trig_stmt_before ON rem1;
+EXPLAIN (verbose, costs off)
+UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+EXPLAIN (verbose, costs off)
+DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
+DROP TRIGGER trig_stmt_before ON rem1__postgres_srv__0;
 
 CREATE TRIGGER trig_stmt_after
-	AFTER DELETE OR INSERT OR UPDATE ON rem1
+	AFTER DELETE OR INSERT OR UPDATE ON rem1__postgres_srv__0
 	FOR EACH STATEMENT EXECUTE PROCEDURE trigger_func();
--- EXPLAIN (verbose, costs off)
--- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
--- EXPLAIN (verbose, costs off)
--- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
-DROP TRIGGER trig_stmt_after ON rem1;
+EXPLAIN (verbose, costs off)
+UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+EXPLAIN (verbose, costs off)
+DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
+DROP TRIGGER trig_stmt_after ON rem1__postgres_srv__0;
 
 -- Test with row-level ON INSERT triggers
 CREATE TRIGGER trig_row_before_insert
-BEFORE INSERT ON rem1
+BEFORE INSERT ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
--- EXPLAIN (verbose, costs off)
--- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
--- EXPLAIN (verbose, costs off)
--- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
-DROP TRIGGER trig_row_before_insert ON rem1;
+EXPLAIN (verbose, costs off)
+UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+EXPLAIN (verbose, costs off)
+DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
+DROP TRIGGER trig_row_before_insert ON rem1__postgres_srv__0;
 
 CREATE TRIGGER trig_row_after_insert
-AFTER INSERT ON rem1
+AFTER INSERT ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
--- EXPLAIN (verbose, costs off)
--- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
--- EXPLAIN (verbose, costs off)
--- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
-DROP TRIGGER trig_row_after_insert ON rem1;
+EXPLAIN (verbose, costs off)
+UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+EXPLAIN (verbose, costs off)
+DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
+DROP TRIGGER trig_row_after_insert ON rem1__postgres_srv__0;
 
 -- Test with row-level ON UPDATE triggers
 CREATE TRIGGER trig_row_before_update
-BEFORE UPDATE ON rem1
+BEFORE UPDATE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
--- EXPLAIN (verbose, costs off)
--- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can't be pushed down
--- EXPLAIN (verbose, costs off)
--- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
-DROP TRIGGER trig_row_before_update ON rem1;
+EXPLAIN (verbose, costs off)
+UPDATE rem1__postgres_srv__0 set f2 = '';          -- can't be pushed down
+EXPLAIN (verbose, costs off)
+DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
+DROP TRIGGER trig_row_before_update ON rem1__postgres_srv__0;
 
 CREATE TRIGGER trig_row_after_update
-AFTER UPDATE ON rem1
+AFTER UPDATE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
--- EXPLAIN (verbose, costs off)
--- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can't be pushed down
--- EXPLAIN (verbose, costs off)
--- DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
-DROP TRIGGER trig_row_after_update ON rem1;
+EXPLAIN (verbose, costs off)
+UPDATE rem1__postgres_srv__0 set f2 = '';          -- can't be pushed down
+EXPLAIN (verbose, costs off)
+DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
+DROP TRIGGER trig_row_after_update ON rem1__postgres_srv__0;
 
 -- Test with row-level ON DELETE triggers
 CREATE TRIGGER trig_row_before_delete
-BEFORE DELETE ON rem1
+BEFORE DELETE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
--- EXPLAIN (verbose, costs off)
--- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
--- EXPLAIN (verbose, costs off)
--- DELETE FROM rem1__postgres_srv__0;                 -- can't be pushed down
-DROP TRIGGER trig_row_before_delete ON rem1;
+EXPLAIN (verbose, costs off)
+UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+EXPLAIN (verbose, costs off)
+DELETE FROM rem1__postgres_srv__0;                 -- can't be pushed down
+DROP TRIGGER trig_row_before_delete ON rem1__postgres_srv__0;
 
 CREATE TRIGGER trig_row_after_delete
-AFTER DELETE ON rem1
+AFTER DELETE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
--- EXPLAIN (verbose, costs off)
--- UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
--- EXPLAIN (verbose, costs off)
--- DELETE FROM rem1__postgres_srv__0;                 -- can't be pushed down
-DROP TRIGGER trig_row_after_delete ON rem1;
+EXPLAIN (verbose, costs off)
+UPDATE rem1__postgres_srv__0 set f2 = '';          -- can be pushed down
+EXPLAIN (verbose, costs off)
+DELETE FROM rem1__postgres_srv__0;                 -- can't be pushed down
+DROP TRIGGER trig_row_after_delete ON rem1__postgres_srv__0;
 
 -- ===================================================================
 -- test inheritance features
