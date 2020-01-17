@@ -3085,7 +3085,15 @@ get_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	if (!foreign_grouping_ok(root, grouped_rel))
 		return NULL;
 
-	rows = 0;
+	/*
+	 * If no grouping, numGroups should be set 1.
+	 * When creating upper path, rows is passed to pathnode->path.rows.
+	 * When creating aggregation plan, somehow path.rows is passed to dNumGroups.
+	 */
+	if (!parse->groupClause)
+	    rows = 1;
+	else
+	    rows = 0;
 	width = 0;
 	startup_cost = 0;
 	total_cost = 0;
