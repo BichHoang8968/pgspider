@@ -2933,11 +2933,34 @@ ERROR:  PGSpider can not get data from child node : postgres_srv
 -- unable to push {ft1, ft2}
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT q.a, ft2.c1 FROM (SELECT 13 FROM ft1 WHERE c1 = 13) q(a) RIGHT JOIN ft2 ON (q.a = ft2.c1) WHERE ft2.c1 BETWEEN 10 AND 15;
-WARNING:  GetForeignRelSize failed
-ERROR:  PGSpider can not get data from child node : postgres_srv
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
+ Nested Loop Left Join
+   Output: (13), ft2.c1
+   Join Filter: (13 = ft2.c1)
+   ->  Foreign Scan on public.ft2
+         Output: ft2.c1
+         Node: postgres_srv / Status: Alive
+           Remote SQL: SELECT "C 1" FROM "S 1"."T 1" WHERE (("C 1" >= 10)) AND (("C 1" <= 15))
+   ->  Materialize
+         Output: (13)
+         ->  Foreign Scan on public.ft1
+               Output: 13
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT "C 1" FROM "S 1"."T 1" WHERE (("C 1" = 13))
+(13 rows)
+
 SELECT q.a, ft2.c1 FROM (SELECT 13 FROM ft1 WHERE c1 = 13) q(a) RIGHT JOIN ft2 ON (q.a = ft2.c1) WHERE ft2.c1 BETWEEN 10 AND 15;
-WARNING:  GetForeignRelSize failed
-ERROR:  PGSpider can not get data from child node : postgres_srv
+ a  | c1 
+----+----
+    | 10
+    | 11
+    | 12
+ 13 | 13
+    | 14
+    | 15
+(6 rows)
+
 -- ok to push {ft1, ft2} but not {ft1, ft2, ft4}
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT ft4.c1, q.* FROM ft4 LEFT JOIN (SELECT 13, ft1.c1, ft2.c1 FROM ft1 RIGHT JOIN ft2 ON (ft1.c1 = ft2.c1) WHERE ft1.c1 = 12) q(a, b, c) ON (ft4.c1 = q.b) WHERE ft4.c1 BETWEEN 10 AND 15;
@@ -4349,8 +4372,27 @@ FROM
     ) AS subq_1
 WHERE ref_0."C 1" < 10 AND subq_1.c3 = '00001'
 ORDER BY ref_0."C 1";
-WARNING:  GetForeignRelSize failed
-ERROR:  PGSpider can not get data from child node : postgres_srv
+                                                   QUERY PLAN                                                   
+----------------------------------------------------------------------------------------------------------------
+ Nested Loop
+   Output: ref_0.c2, ref_0."C 1", (ref_0.c2), ref_1.c3, ref_0."C 1"
+   ->  Nested Loop
+         Output: ref_0.c2, ref_0."C 1", ref_1.c3, (ref_0.c2)
+         ->  Foreign Scan on "S 1"."T 1" ref_0
+               Output: ref_0.c2, ref_0."C 1"
+               Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1" WHERE (("C 1" < 10)) ORDER BY "C 1" ASC NULLS LAST
+         ->  Foreign Scan on public.ft1 ref_1
+               Output: ref_1.c3, ref_0.c2
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT c3 FROM "S 1"."T 1" WHERE ((c3 = '00001'::text))
+   ->  Materialize
+         Output: ref_3.c3
+         ->  Foreign Scan on public.ft2 ref_3
+               Output: ref_3.c3
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT c3 FROM "S 1"."T 1" WHERE ((c3 = '00001'::text))
+(17 rows)
+
 SELECT ref_0.c2, subq_1.*
 FROM
     "S 1"."T 1" AS ref_0,
@@ -4362,8 +4404,11 @@ FROM
     ) AS subq_1
 WHERE ref_0."C 1" < 10 AND subq_1.c3 = '00001'
 ORDER BY ref_0."C 1";
-WARNING:  GetForeignRelSize failed
-ERROR:  PGSpider can not get data from child node : postgres_srv
+ c2 | c1 | c2 |  c3   
+----+----+----+-------
+  1 |  1 |  1 | 00001
+(1 row)
+
 -- Check with placeHolderVars
 explain (verbose, costs off)
 select sum(q.a), count(q.b) from ft4 left join (select 13, avg(ft1.c1), sum(ft2.c1) from ft1 right join ft2 on (ft1.c1 = ft2.c1)) q(a, b, c) on (ft4.c1 <= q.b);

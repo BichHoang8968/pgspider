@@ -2359,6 +2359,12 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel,
 		dummy_root->query_level = 1;
 		dummy_root->planner_cxt = CurrentMemoryContext;
 		dummy_root->wt_param_id = -1;
+		/*
+		 * Use placeholder list only for child node's GetForeignRelSize in this routine.
+		 * PlaceHolderVar in relation target list will be checked against PlaceHolder List
+		 * in root planner info.
+		 */
+		dummy_root->placeholder_list = copyObject(root->placeholder_list);
 
 		/* Build a minimal RTE for the rel */
 		rte = makeNode(RangeTblEntry);
