@@ -29,7 +29,7 @@ SUBDIRS = \
 	makefiles \
 	test/regress \
 	test/isolation \
-	test/perl
+	test/perl \
 	../contrib/pgspider_keepalive
 
 ifeq ($(with_llvm), yes)
