@@ -82,6 +82,10 @@
 /* GUC variable */
 bool		synchronize_seqscans = true;
 
+#ifdef PGSPIDER
+/* Use recursive mutex because relation open and close is called recursively */
+pthread_mutex_t relation_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+#endif
 
 static HeapScanDesc heap_beginscan_internal(Relation relation,
 						Snapshot snapshot,

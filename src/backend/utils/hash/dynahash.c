@@ -225,6 +225,11 @@ struct HTAB
 	Size		keysize;		/* hash key length in bytes */
 	long		ssize;			/* segment size --- must be power of 2 */
 	int			sshift;			/* segment shift = log2(ssize) */
+
+#ifdef PGSPIDER
+	bool		isfdw;			/* if true, this is used in fdw */
+	HTAB	   *nomralized_id_htab; /* normalized hash table */
+#endif
 };
 
 /*
@@ -268,11 +273,31 @@ static void register_seq_scan(HTAB *hashp);
 static void deregister_seq_scan(HTAB *hashp);
 static bool has_seq_scans(HTAB *hashp);
 
+#ifdef PGSPIDER
+static HTAB *hash_create_orig(const char *tabname, long nelem,
+				 HASHCTL *info, int flags);
+static void hash_destroy_orig(HTAB *hashp);
+
+static void *hash_search_orig(HTAB *hashp, const void *keyPtr, HASHACTION action,
+				 bool *foundPtr);
+static uint32 get_hash_value_orig(HTAB *hashp, const void *keyPtr);
+static void *hash_search_with_hash_value_orig(HTAB *hashp, const void *keyPtr,
+								 uint32 hashvalue, HASHACTION action,
+								 bool *foundPtr);
+static bool hash_update_hash_key_orig(HTAB *hashp, void *existingEntry,
+						  const void *newKeyPtr);
+static void hash_seq_init_orig(HASH_SEQ_STATUS *status, HTAB *hashp);
+static void *hash_seq_search_orig(HASH_SEQ_STATUS *status);
+#endif
 
 /*
  * memory allocation support
  */
 static MemoryContext CurrentDynaHashCxt = NULL;
+
+#ifdef PGSPIDER
+#include "dynahash_thread.c"
+#endif
 
 static void *
 DynaHashAlloc(Size size)
@@ -313,7 +338,11 @@ string_compare(const char *key1, const char *key2, Size keysize)
  * large nelem will penalize hash_seq_search speed without buying much.
  */
 HTAB *
+#ifdef PGSPIDER
+hash_create_orig(const char *tabname, long nelem, HASHCTL *info, int flags)
+#else
 hash_create(const char *tabname, long nelem, HASHCTL *info, int flags)
+#endif
 {
 	HTAB	   *hashp;
 	HASHHDR    *hctl;
@@ -353,9 +382,13 @@ hash_create(const char *tabname, long nelem, HASHCTL *info, int flags)
 	strcpy(hashp->tabname, tabname);
 
 	/* If we have a private context, label it with hashtable's name */
+#ifdef PGSPIDER
+	if (!(flags & HASH_SHARED_MEM))
+		MemoryContextSetIdentifier(CurrentDynaHashCxt, tabname);
+#else
 	if (!(flags & HASH_SHARED_MEM))
 		MemoryContextSetIdentifier(CurrentDynaHashCxt, hashp->tabname);
-
+#endif
 	/*
 	 * Select the appropriate hash function (see comments at head of file).
 	 */
@@ -811,7 +844,11 @@ hash_get_shared_size(HASHCTL *info, int flags)
 /********************** DESTROY ROUTINES ************************/
 
 void
+#ifdef PGSPIDER
+hash_destroy_orig(HTAB *hashp)
+#else
 hash_destroy(HTAB *hashp)
+#endif
 {
 	if (hashp != NULL)
 	{
@@ -857,7 +894,11 @@ hash_stats(const char *where, HTAB *hashp)
  * searching.
  */
 uint32
+#ifdef PGSPIDER
+get_hash_value_orig(HTAB *hashp, const void *keyPtr)
+#else
 get_hash_value(HTAB *hashp, const void *keyPtr)
+#endif
 {
 	return hashp->hash(keyPtr, hashp->keysize);
 }
@@ -903,20 +944,36 @@ calc_bucket(HASHHDR *hctl, uint32 hash_val)
  * calculated with get_hash_value().
  */
 void *
+#ifdef PGSPIDER
+hash_search_orig(HTAB *hashp,
+#else
 hash_search(HTAB *hashp,
+#endif
 			const void *keyPtr,
 			HASHACTION action,
 			bool *foundPtr)
 {
+#ifdef PGSPIDER
+	return hash_search_with_hash_value_orig(hashp,
+											keyPtr,
+											hashp->hash(keyPtr, hashp->keysize),
+											action,
+											foundPtr);
+#else
 	return hash_search_with_hash_value(hashp,
 									   keyPtr,
 									   hashp->hash(keyPtr, hashp->keysize),
 									   action,
 									   foundPtr);
+#endif
 }
 
 void *
+#ifdef PGSPIDER
+hash_search_with_hash_value_orig(HTAB *hashp,
+#else
 hash_search_with_hash_value(HTAB *hashp,
+#endif
 							const void *keyPtr,
 							uint32 hashvalue,
 							HASHACTION action,
@@ -1112,7 +1169,11 @@ hash_search_with_hash_value(HTAB *hashp,
  * partitions, if the new hash key would belong to a different partition.
  */
 bool
+#ifdef PGSPIDER
+hash_update_hash_key_orig(HTAB *hashp,
+#else
 hash_update_hash_key(HTAB *hashp,
+#endif
 					 void *existingEntry,
 					 const void *newKeyPtr)
 {
@@ -1376,7 +1437,11 @@ hash_get_num_entries(HTAB *hashp)
  * with concurrent insertions or deletions by another.
  */
 void
+#ifdef PGSPIDER
+hash_seq_init_orig(HASH_SEQ_STATUS *status, HTAB *hashp)
+#else
 hash_seq_init(HASH_SEQ_STATUS *status, HTAB *hashp)
+#endif
 {
 	status->hashp = hashp;
 	status->curBucket = 0;
@@ -1386,7 +1451,11 @@ hash_seq_init(HASH_SEQ_STATUS *status, HTAB *hashp)
 }
 
 void *
+#ifdef PGSPIDER
+hash_seq_search_orig(HASH_SEQ_STATUS *status)
+#else
 hash_seq_search(HASH_SEQ_STATUS *status)
+#endif
 {
 	HTAB	   *hashp;
 	HASHHDR    *hctl;

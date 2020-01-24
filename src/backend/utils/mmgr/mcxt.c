@@ -35,13 +35,13 @@
  * CurrentMemoryContext
  *		Default memory context for allocations.
  */
-MemoryContext CurrentMemoryContext = NULL;
+__thread MemoryContext CurrentMemoryContext = NULL;
 
 /*
  * Standard top-level contexts. For a description of the purpose of each
  * of these contexts, refer to src/backend/utils/mmgr/README
  */
-MemoryContext TopMemoryContext = NULL;
+__thread MemoryContext TopMemoryContext = NULL;
 MemoryContext ErrorContext = NULL;
 MemoryContext PostmasterContext = NULL;
 MemoryContext CacheMemoryContext = NULL;
@@ -196,6 +196,44 @@ MemoryContextResetChildren(MemoryContext context)
 		MemoryContextResetChildren(child);
 		MemoryContextResetOnly(child);
 	}
+}
+
+/*
+ * MemoryContextDeleteChildNode
+ *		Delete a context and its descendants, and release all space
+ *		allocated therein.
+ *
+ * The type-specific delete routine removes all storage for the context,
+ * but we have to recurse to handle the children.
+ * We must also delink the context from its parent, if it has one.
+ */
+void
+MemoryContextDeleteNodes(MemoryContext context)
+{
+	context->methods->delete_context_child(context);
+
+	VALGRIND_DESTROY_MEMPOOL(context);
+}
+
+
+/*
+ * MemoryContextDeleteChildrenNode
+ *		Delete all the descendants of the named context and release all
+ *		space allocated therein.  The named context itself is not touched.
+ */
+void
+MemoryContextDeleteChildrenNodes(MemoryContext context)
+{
+	AssertArg(MemoryContextIsValid(context));
+
+	/*
+	 * MemoryContextDelete will delink the child from me, so just iterate as
+	 * long as there is a child.
+	 */
+	while (context->firstchild != NULL)
+		MemoryContextDelete(context->firstchild);
+
+	MemoryContextDeleteNodes(context);
 }
 
 /*

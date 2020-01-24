@@ -252,7 +252,7 @@ typedef struct AllocSetFreeList
 } AllocSetFreeList;
 
 /* context_freelists[0] is for default params, [1] for small params */
-static AllocSetFreeList context_freelists[2] =
+static __thread AllocSetFreeList context_freelists[2] =
 {
 	{
 		0, NULL
@@ -270,6 +270,7 @@ static void AllocSetFree(MemoryContext context, void *pointer);
 static void *AllocSetRealloc(MemoryContext context, void *pointer, Size size);
 static void AllocSetReset(MemoryContext context);
 static void AllocSetDelete(MemoryContext context);
+static void AllocSetDeleteChild(MemoryContext context);
 static Size AllocSetGetChunkSpace(MemoryContext context, void *pointer);
 static bool AllocSetIsEmpty(MemoryContext context);
 static void AllocSetStats(MemoryContext context,
@@ -289,6 +290,7 @@ static const MemoryContextMethods AllocSetMethods = {
 	AllocSetRealloc,
 	AllocSetReset,
 	AllocSetDelete,
+	AllocSetDeleteChild,
 	AllocSetGetChunkSpace,
 	AllocSetIsEmpty,
 	AllocSetStats
@@ -302,7 +304,7 @@ static const MemoryContextMethods AllocSetMethods = {
  */
 #define LT16(n) n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n
 
-static const unsigned char LogTable256[256] =
+static const __thread unsigned char LogTable256[256] =
 {
 	0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
 	LT16(5), LT16(6), LT16(6), LT16(7), LT16(7), LT16(7), LT16(7),
@@ -324,6 +326,7 @@ static const unsigned char LogTable256[256] =
 #define AllocFreeInfo(_cxt, _chunk)
 #define AllocAllocInfo(_cxt, _chunk)
 #endif
+
 
 /* ----------
  * AllocSetFreeIndex -
@@ -696,6 +699,45 @@ AllocSetDelete(MemoryContext context)
 	/* Finally, free the context header, including the keeper block */
 	free(set);
 }
+
+/*
+ * AllocSetDeleteChild
+ *
+ * This function is used by PGSpider child threads.
+ * Delete child free-list.
+ * PGSpider child threads do not have Memory context free list.
+ * PGSpider child threads create and finish there context in every query.
+ * It is occurred memory leak for every query.
+ *
+ */
+static void
+AllocSetDeleteChild(MemoryContext context)
+{
+	int freeListIndex=0;
+	/*
+	 * If the context is a candidate for a freelist, put it into that freelist
+	 * instead of destroying it.
+	 */
+	for (freeListIndex=0; freeListIndex<ALLOCSET_NUM_FREELISTS; freeListIndex++)
+	{
+		AllocSetFreeList *freelist = &context_freelists[freeListIndex];
+		/*
+		 * Delete all free list
+		 */
+		while (freelist->first_free != NULL)
+		{
+			AllocSetContext *oldset = freelist->first_free;
+
+			freelist->first_free = (AllocSetContext *) oldset->header.nextchild;
+			freelist->num_free--;
+			/* All that remains is to free the header/initial block */
+			free(oldset);
+		}
+		freelist->first_free=NULL;
+		return;
+	}
+}
+
 
 /*
  * AllocSetAlloc

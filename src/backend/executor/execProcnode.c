@@ -116,6 +116,10 @@
 #include "nodes/nodeFuncs.h"
 #include "miscadmin.h"
 
+#ifdef GETPROGRESS_ENABLED
+/* Global isForeignScan flag to identify whether */
+extern bool isForeignScan;
+#endif
 
 static TupleTableSlot *ExecProcNodeFirst(PlanState *node);
 static TupleTableSlot *ExecProcNodeInstr(PlanState *node);
@@ -276,6 +280,9 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 		case T_ForeignScan:
 			result = (PlanState *) ExecInitForeignScan((ForeignScan *) node,
 													   estate, eflags);
+#ifdef GETPROGRESS_ENABLED
+			isForeignScan = true;
+#endif
 			break;
 
 		case T_CustomScan:
