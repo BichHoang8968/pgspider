@@ -119,7 +119,7 @@ select numrange(1.0, 2.0) * numrange(1.5, 3.0);
 select numrange(1.0, 2.0) * numrange(2.5, 3.0);
 
 create table numrange_test2(nr numrange);
-create index numrange_test2_hash_idx on numrange_test2 (nr);
+create index numrange_test2_hash_idx on numrange_test2 using hash (nr);
 
 INSERT INTO numrange_test2 VALUES('[, 5)');
 INSERT INTO numrange_test2 VALUES(numrange(1.1, 2.2));
@@ -165,6 +165,10 @@ select daterange('2000-01-10'::date, '2000-01-20'::date, '(]');
 select daterange('2000-01-10'::date, '2000-01-20'::date, '()');
 select daterange('2000-01-10'::date, '2000-01-11'::date, '()');
 select daterange('2000-01-10'::date, '2000-01-11'::date, '(]');
+select daterange('-infinity'::date, '2000-01-01'::date, '()');
+select daterange('-infinity'::date, '2000-01-01'::date, '[)');
+select daterange('2000-01-01'::date, 'infinity'::date, '[)');
+select daterange('2000-01-01'::date, 'infinity'::date, '[]');
 
 -- test GiST index that's been built incrementally
 create table test_range_gist(ir int4range);

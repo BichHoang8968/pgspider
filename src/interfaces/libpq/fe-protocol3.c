@@ -54,11 +54,7 @@ static void reportErrorPosition(PQExpBuffer msg, const char *query,
 					int loc, int encoding);
 static int build_startup_packet(const PGconn *conn, char *packet,
 					 const PQEnvironmentOption *options);
-#ifdef GETPROGRESS_ENABLED
-#define PROGRESS_STRING_LEN 9
-#define PROGRESS_VALUE_LEN	8
-#define DECIMAL 0
-#endif
+
 
 /*
  * parseInput: if appropriate, parse input data from backend
@@ -409,40 +405,6 @@ pqParseInput3(PGconn *conn)
 					 * the COPY command.
 					 */
 					break;
-#ifdef GETPROGRESS_ENABLED
-				case 'P':
-					{
-						conn->asyncStatus = PGASYNC_PROGRESS_OUT;
-						char	   *parse_progress = (char *) malloc(sizeof(char) * PROGRESS_STRING_LEN);
-
-						if (parse_progress == NULL)
-						{
-							printfPQExpBuffer(&conn->errorMessage,
-											  libpq_gettext("out of memory"));
-							pqSaveErrorResult(conn);
-							return;
-						}
-						memset(parse_progress, 0, sizeof(char) * PROGRESS_STRING_LEN);
-						if (conn->result == NULL)
-							conn->result = PQmakeEmptyPGresult(conn, PGRES_TUPLES_OK);
-
-						/*
-						 * Set the state so that the parseInput() function can
-						 * handle progress
-						 */
-
-						conn->asyncStatus = PGASYNC_PROGRESS_OUT;
-
-						/* Get the progress String */
-						if (pqGetnchar(parse_progress, PROGRESS_VALUE_LEN, conn) == 0)
-							conn->result->pq_progress = strtod(parse_progress, DECIMAL);
-						free(parse_progress);
-
-						/* Update the start pointer */
-						conn->inStart = conn->inCursor;
-					}
-					return;
-#endif
 				default:
 					printfPQExpBuffer(&conn->errorMessage,
 									  libpq_gettext(

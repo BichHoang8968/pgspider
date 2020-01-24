@@ -14,15 +14,13 @@
 #define FOREIGN_H
 
 #include "nodes/parsenodes.h"
-#include "lib/stringinfo.h"
-#include "utils/resowner.h"
-#include <pthread.h>
+
 
 /* Helper for obtaining username for user mapping */
 #define MappingUserName(userid) \
 	(OidIsValid(userid) ? GetUserNameFromId(userid, false) : "public")
 
-#define MAX_CHAR 1024
+
 /*
  * Generic option types for validation.
  * NB! These are treated as flags, so use only powers of two here.
@@ -69,6 +67,7 @@ typedef struct ForeignTable
 	Oid			serverid;		/* server Oid */
 	List	   *options;		/* ftoptions as DefElem list */
 } ForeignTable;
+
 
 extern ForeignServer *GetForeignServer(Oid serverid);
 extern ForeignServer *GetForeignServerByName(const char *name, bool missing_ok);

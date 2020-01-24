@@ -1203,6 +1203,8 @@ _copyPartitionedRelPruneInfo(const PartitionedRelPruneInfo *from)
 	COPY_SCALAR_FIELD(do_initial_prune);
 	COPY_SCALAR_FIELD(do_exec_prune);
 	COPY_BITMAPSET_FIELD(execparamids);
+	COPY_NODE_FIELD(initial_pruning_steps);
+	COPY_NODE_FIELD(exec_pruning_steps);
 
 	return newnode;
 }
@@ -2383,10 +2385,7 @@ _copyRangeTblEntry(const RangeTblEntry *from)
 	COPY_BITMAPSET_FIELD(insertedCols);
 	COPY_BITMAPSET_FIELD(updatedCols);
 	COPY_NODE_FIELD(securityQuals);
-#ifdef PGSPIDER
-	if (from->spd_url_list != NIL)
-		newnode->spd_url_list = list_copy(from->spd_url_list);
-#endif
+
 	return newnode;
 }
 

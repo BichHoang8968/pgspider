@@ -150,7 +150,6 @@ pg_sequence|t
 pg_shdepend|t
 pg_shdescription|t
 pg_shseclabel|t
-pg_spd_node_info|f
 pg_statistic|t
 pg_statistic_ext|t
 pg_subscription|t

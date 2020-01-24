@@ -79,12 +79,7 @@
 #include "utils/timestamp.h"
 #include "mb/pg_wchar.h"
 
-#ifdef PGSPIDER
-#include <pthread.h>
-#include <sys/syscall.h>
-#endif
 
-/* #define GETPROGRESS_ENABLED */
 /* ----------------
  *		global variables
  * ----------------
@@ -95,11 +90,8 @@ const char *debug_query_string; /* client-supplied query string */
 CommandDest whereToSendOutput = DestDebug;
 
 /* flag for logging end of session */
-#ifdef PGSPIDER
 bool		Log_disconnections = false;
-bool		getResultFlag = false;
-#endif
-bool		getAggResultFlag = false;
+
 int			log_statement = LOGSTMT_NONE;
 
 /* GUC variable for maximum stack depth (measured in kilobytes) */
@@ -124,21 +116,13 @@ static long max_stack_depth_bytes = 100 * 1024L;
  * it directly. Newer versions use set_stack_base(), but we want to stay
  * binary-compatible for the time being.
  */
-#ifdef PGSPIDER
-__thread char *stack_base_ptr = NULL;
-#else
-char *stack_base_ptr = NULL;
-#endif
+char	   *stack_base_ptr = NULL;
 
 /*
  * On IA64 we also have to remember the register stack base.
  */
 #if defined(__ia64__) || defined(__ia64)
-#ifdef PGSPIDER
-__thread char *register_stack_base_ptr = NULL;
-#else
-char *register_stack_base_ptr = NULL;
-#endif
+char	   *register_stack_base_ptr = NULL;
 #endif
 
 /*
@@ -212,26 +196,6 @@ static void log_disconnections(int code, Datum arg);
 static void enable_statement_timeout(void);
 static void disable_statement_timeout(void);
 
-#ifdef GETPROGRESS_ENABLED
-MemoryContext ProgressMemoryContext = NULL;
-static pthread_t progressThread;
-static volatile bool progress_thread_in_read = false;
-volatile bool isForeignScan = false;
-
-ProgressState *gl_progressPtr = NULL;
-
-#define PROGRESS_STRING_LEN 10
-#define PROGRESS_VALUE_LEN	 8
-
-static volatile bool PG_thrd_read = false;
-struct Progress_thrd_info
-{
-	int			p_qtype;
-	StringInfoData progressBuf;
-};
-struct Progress_thrd_info *thrd_infodata;
-static pthread_mutex_t prgThread_mutex = PTHREAD_MUTEX_INITIALIZER;
-#endif
 
 /* ----------------------------------------------------------------
  *		routines to obtain user input
@@ -503,22 +467,7 @@ SocketBackend(StringInfo inBuf)
 						(errcode(ERRCODE_PROTOCOL_VIOLATION),
 						 errmsg("invalid frontend message type %d", qtype)));
 			break;
-#ifdef GETPROGRESS_ENABLED
-		case 'G':				/* Get progress query type */
-			doing_extended_query_message = false;
-			if (PG_PROTOCOL_MAJOR(FrontendProtocol) < 3)
-				ereport(FATAL,
-						(errcode(ERRCODE_PROTOCOL_VIOLATION),
-						 errmsg("invalid frontend message type %d", qtype)));
-			break;
-		case 'R':				/* GetResult query type */
-			doing_extended_query_message = false;
-			if (PG_PROTOCOL_MAJOR(FrontendProtocol) < 3)
-				ereport(FATAL,
-						(errcode(ERRCODE_PROTOCOL_VIOLATION),
-						 errmsg("invalid frontend message type %d", qtype)));
-			break;
-#endif
+
 		default:
 
 			/*
@@ -3687,141 +3636,7 @@ process_postgres_switches(int argc, char *argv[], GucContext ctx,
 	optreset = 1;				/* some systems need this too */
 #endif
 }
-#ifdef GETPROGRESS_ENABLED
-/*
- * createProgressMessage
- *		 Calulates and converts progress value to string
- */
-static char *
-createProgressMessage()
-{
-	char	   *prgMsg;
-	double		prgValue = 0.00;
 
-	prgMsg = (char *) palloc0(sizeof(char) * PROGRESS_STRING_LEN);
-	if (gl_progressPtr->ps_fetchedRows > 0 && gl_progressPtr->ps_totalRows > 0)
-		prgValue = ((((double) gl_progressPtr->ps_fetchedRows) / gl_progressPtr->ps_totalRows) * 100);
-
-	snprintf(prgMsg, PROGRESS_VALUE_LEN, "%3.2lf", prgValue);
-
-	return prgMsg;
-}
-
-/*
- * ProgressMessageProcessor
- *		Thread function for receiving progress request from client and
- *		sends back the progress of the currently executing query.
- */
-static void *
-ProgressMessageProcessor(void *arg)
-{
-	int			firstchar;
-	StringInfoData input_message;
-	StringInfoData output_message;
-	char	   *prgState = NULL;
-	int			oldtype = 0;
-	int			oldstate = 0;
-
-	MemoryContext oldContext = MemoryContextSwitchTo(ProgressMemoryContext);
-
-	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldtype);
-	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &oldstate);
-
-	thrd_infodata = (struct Progress_thrd_info *) palloc0(sizeof(struct Progress_thrd_info));
-
-	for (;;)
-	{
-		initStringInfo(&input_message);
-		pthread_mutex_lock(&prgThread_mutex);
-		if (isForeignScan)
-		{
-			firstchar = ReadCommand(&input_message);
-
-			if (firstchar == 'G')
-			{
-				/* unlock the mutex */
-				pthread_mutex_unlock(&prgThread_mutex);
-				if (gl_progressPtr->ps_aggQuery)
-				{
-					getAggResultFlag = true;
-					while (getAggResultFlag == true)
-					{
-						/*
-						 * Wait until agg result are filled to ProgressState
-						 * during Iterate ForeignScan getAggResultFlag flag
-						 * will be set to false in spd_IterateForeignScan
-						 */
-						usleep(100);
-					}
-					if (gl_progressPtr->ps_aggResult != NULL)
-					{
-						DestReceiver *receiver = (DestReceiver *) gl_progressPtr->dest;
-
-						if (receiver != NULL)
-						{
-							/*
-							 * Send the Intermediate tuple using message 'D'
-							 * to destination receiver
-							 */
-							(*receiver->receiveSlot) (gl_progressPtr->ps_aggResult, receiver);
-						}
-					}
-				}
-				else
-				{
-					/* construct the 'P' progress message to be sent back */
-					pq_beginmessage(&output_message, 'P');
-
-					/* Caluculate progress value and get converted string */
-					prgState = createProgressMessage();
-
-					pq_sendbytes(&output_message, prgState, PROGRESS_VALUE_LEN);
-					pq_endmessage(&output_message);
-					pfree(prgState);
-				}
-				continue;
-			}
-			else if (firstchar == 'R')
-			{
-				/* unlock the mutex */
-				pthread_mutex_unlock(&prgThread_mutex);
-				getResultFlag = true;
-				continue;
-			}
-			else
-			{
-				thrd_infodata->p_qtype = firstchar;
-				thrd_infodata->progressBuf.len = input_message.len;
-				thrd_infodata->progressBuf.maxlen = input_message.len;
-				thrd_infodata->progressBuf.cursor = input_message.cursor;
-				/* The current context contains data */
-				thrd_infodata->progressBuf.data = input_message.data;
-
-				PG_thrd_read = true;
-				pthread_mutex_unlock(&prgThread_mutex);
-
-				/*
-				 * Recieved anything but progress, just halt till the main
-				 * thread reads and processes the recieved data, Main thread
-				 * will cancel the progress thread after the processing the
-				 * recieved data.
-				 */
-				for (;;)
-				{
-					pthread_yield();
-				}
-			}
-		}
-		else
-		{
-			pthread_mutex_unlock(&prgThread_mutex);
-			usleep(1000);
-		}
-	}
-	MemoryContextSwitchTo(oldContext);
-	return NULL;
-}
-#endif
 
 /* ----------------------------------------------------------------
  * PostgresMain
@@ -4059,10 +3874,6 @@ PostgresMain(int argc, char *argv[],
 	MessageContext = AllocSetContextCreate(TopMemoryContext,
 										   "MessageContext",
 										   ALLOCSET_DEFAULT_SIZES);
-#ifdef GETPROGRESS_ENABLED
-	ProgressMemoryContext = AllocSetContextCreate((MemoryContext) NULL,
-												  "ProgressMemoryContext",
-#else
 
 	/*
 	 * Create memory context and buffer used for RowDescription messages. As
@@ -4076,7 +3887,6 @@ PostgresMain(int argc, char *argv[],
 	MemoryContextSwitchTo(row_description_context);
 	initStringInfo(&row_description_buf);
 	MemoryContextSwitchTo(TopMemoryContext);
-#endif
 
 	/*
 	 * Remember stand-alone backend startup time
@@ -4230,10 +4040,6 @@ PostgresMain(int argc, char *argv[],
 		 * errors encountered in "idle" state don't provoke skip.
 		 */
 		doing_extended_query_message = false;
-		/* set the flag to false in the begining of the Query */
-#ifdef GETPROGRESS_ENABLED
-		getResultFlag = false;
-#endif
 
 		/*
 		 * Release storage left over from prior query cycle, and create a new
@@ -4315,53 +4121,7 @@ PostgresMain(int argc, char *argv[],
 		/*
 		 * (3) read a command (loop blocks here)
 		 */
-#ifdef GETPROGRESS_ENABLED
-
-		/*
-		 * Ensure all the progress related items are cleared and data read by
-		 * the progress is adjusted to the main thread
-		 */
-		pthread_mutex_lock(&prgThread_mutex);
-		if (PG_thrd_read)
-		{
-			/*
-			 * Get all the information meant for the thread but read by the
-			 * progress thread
-			 */
-			firstchar = thrd_infodata->p_qtype;
-
-			resetStringInfo(&input_message);
-			input_message.data = (char *) repalloc(input_message.data, thrd_infodata->progressBuf.maxlen);
-			memcpy(input_message.data, thrd_infodata->progressBuf.data, thrd_infodata->progressBuf.maxlen);
-			input_message.len = thrd_infodata->progressBuf.len;
-			input_message.cursor = thrd_infodata->progressBuf.cursor;
-			input_message.maxlen = thrd_infodata->progressBuf.maxlen;
-
-			pthread_cancel(progressThread);
-			pthread_join(progressThread, NULL);
-			progress_thread_in_read = false;
-			if (!gl_progressPtr)
-				pfree(gl_progressPtr);
-
-			pq_endmsgread();
-			PG_thrd_read = false;
-		}
-		else
-		{
-			if (progress_thread_in_read)
-			{
-				pthread_cancel(progressThread);
-				pthread_join(progressThread, NULL);
-				progress_thread_in_read = false;
-				if (!gl_progressPtr)
-					pfree(gl_progressPtr);
-			}
-			firstchar = ReadCommand(&input_message);
-		}
-		pthread_mutex_unlock(&prgThread_mutex);
-#else
 		firstchar = ReadCommand(&input_message);
-#endif
 
 		/*
 		 * (4) disable async signal conditions again.
@@ -4419,25 +4179,7 @@ PostgresMain(int argc, char *argv[],
 							exec_simple_query(query_string);
 					}
 					else
-					{
-#ifdef GETPROGRESS_ENABLED
-						gl_progressPtr = (ProgressState *) palloc0(sizeof(ProgressState));
-						if (IsUnderPostmaster)
-						{
-							isForeignScan = true;
-							progress_thread_in_read = true;
-
-							/*
-							 * Thread to handle request of Progress query from
-							 * client
-							 */
-							pthread_create(&progressThread, NULL, ProgressMessageProcessor, NULL);
-						}
-#endif
-
-						/* Execute the query */
 						exec_simple_query(query_string);
-					}
 
 					send_ready_for_query = true;
 				}
@@ -4659,22 +4401,7 @@ PostgresMain(int argc, char *argv[],
 				 * is still sending data.
 				 */
 				break;
-#ifdef GETPROGRESS_ENABLED
-			case 'G':
-				{
-					ereport(ERROR, (errcode(ERRCODE_PROTOCOL_VIOLATION),
-									errmsg("no query in execution %d", firstchar)));
-					send_ready_for_query = false;
-				}
-				break;
-			case 'R':
-				{
-					ereport(ERROR, (errcode(ERRCODE_PROTOCOL_VIOLATION),
-									errmsg("no query in execution %d", firstchar)));
-					send_ready_for_query = false;
-				}
-				break;
-#endif
+
 			default:
 				ereport(FATAL,
 						(errcode(ERRCODE_PROTOCOL_VIOLATION),
@@ -4682,10 +4409,6 @@ PostgresMain(int argc, char *argv[],
 								firstchar)));
 		}
 	}							/* end of input-reading loop */
-	/* Deleting Progress Context */
-#ifdef GETPROGRESS_ENABLED
-	MemoryContextDelete(ProgressMemoryContext);
-#endif
 }
 
 /*

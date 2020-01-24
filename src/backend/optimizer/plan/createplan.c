@@ -83,7 +83,8 @@ static Plan *create_gating_plan(PlannerInfo *root, Path *path, Plan *plan,
 				   List *gating_quals);
 static Plan *create_join_plan(PlannerInfo *root, JoinPath *best_path);
 static Plan *create_append_plan(PlannerInfo *root, AppendPath *best_path);
-static Plan *create_merge_append_plan(PlannerInfo *root, MergeAppendPath *best_path);
+static Plan *create_merge_append_plan(PlannerInfo *root, MergeAppendPath *best_path,
+						 int flags);
 static Result *create_result_plan(PlannerInfo *root, ResultPath *best_path);
 static ProjectSet *create_project_set_plan(PlannerInfo *root, ProjectSetPath *best_path);
 static Material *create_material_plan(PlannerInfo *root, MaterialPath *best_path,
@@ -391,7 +392,8 @@ create_plan_recurse(PlannerInfo *root, Path *best_path, int flags)
 			break;
 		case T_MergeAppend:
 			plan = create_merge_append_plan(root,
-											(MergeAppendPath *) best_path);
+											(MergeAppendPath *) best_path,
+											flags);
 			break;
 		case T_Result:
 			if (IsA(best_path, ProjectionPath))
@@ -566,15 +568,7 @@ create_scan_plan(PlannerInfo *root, Path *best_path, int flags)
 	 * bother generating one at all.  We use an exact equality test here, so
 	 * that this only applies when CP_IGNORE_TLIST is the only flag set.
 	 */
-	/*
-	 * PostgreSQL 11 does not set function information for FDWs.
-	 * We revert PostgreSQL 10 code. It set function information for FDWs.
-	 */
-#ifdef PGSPIDER
-	if (flags == CP_IGNORE_TLIST && best_path->pathtype != T_ForeignScan)
-#else
 	if (flags == CP_IGNORE_TLIST)
-#endif
 	{
 		tlist = NULL;
 	}
@@ -827,10 +821,7 @@ use_physical_tlist(PlannerInfo *root, Path *path, int flags)
 	 */
 	if (IsA(path, CustomPath))
 		return false;
-#ifdef PGSPIDER
-	if (IsA(path, ForeignPath))
-		return false;
-#endif
+
 	/*
 	 * If a bitmap scan's tlist is empty, keep it as-is.  This may allow the
 	 * executor to skip heap page fetches, and in any case, the benefit of
@@ -1141,11 +1132,14 @@ create_append_plan(PlannerInfo *root, AppendPath *best_path)
  *	  Returns a Plan node.
  */
 static Plan *
-create_merge_append_plan(PlannerInfo *root, MergeAppendPath *best_path)
+create_merge_append_plan(PlannerInfo *root, MergeAppendPath *best_path,
+						 int flags)
 {
 	MergeAppend *node = makeNode(MergeAppend);
 	Plan	   *plan = &node->plan;
 	List	   *tlist = build_path_tlist(root, &best_path->path);
+	int			orig_tlist_length = list_length(tlist);
+	bool		tlist_was_changed;
 	List	   *pathkeys = best_path->path.pathkeys;
 	List	   *subplans = NIL;
 	ListCell   *subpaths;
@@ -1162,7 +1156,12 @@ create_merge_append_plan(PlannerInfo *root, MergeAppendPath *best_path)
 	plan->lefttree = NULL;
 	plan->righttree = NULL;
 
-	/* Compute sort column info, and adjust MergeAppend's tlist as needed */
+	/*
+	 * Compute sort column info, and adjust MergeAppend's tlist as needed.
+	 * Because we pass adjust_tlist_in_place = true, we may ignore the
+	 * function result; it must be the same plan node.  However, we then need
+	 * to detect whether any tlist entries were added.
+	 */
 	(void) prepare_sort_from_pathkeys(plan, pathkeys,
 									  best_path->path.parent->relids,
 									  NULL,
@@ -1172,6 +1171,7 @@ create_merge_append_plan(PlannerInfo *root, MergeAppendPath *best_path)
 									  &node->sortOperators,
 									  &node->collations,
 									  &node->nullsFirst);
+	tlist_was_changed = (orig_tlist_length != list_length(plan->targetlist));
 
 	/*
 	 * Now prepare the child plans.  We must apply prepare_sort_from_pathkeys
@@ -1238,7 +1238,18 @@ create_merge_append_plan(PlannerInfo *root, MergeAppendPath *best_path)
 		flatten_partitioned_rels(best_path->partitioned_rels);
 	node->mergeplans = subplans;
 
-	return (Plan *) node;
+	/*
+	 * If prepare_sort_from_pathkeys added sort columns, but we were told to
+	 * produce either the exact tlist or a narrow tlist, we should get rid of
+	 * the sort columns again.  We must inject a projection node to do so.
+	 */
+	if (tlist_was_changed && (flags & (CP_EXACT_TLIST | CP_SMALL_TLIST)))
+	{
+		tlist = list_truncate(list_copy(plan->targetlist), orig_tlist_length);
+		return inject_projection_plan(plan, tlist, plan->parallel_safe);
+	}
+	else
+		return plan;
 }
 
 /*
@@ -2205,10 +2216,13 @@ create_windowagg_plan(PlannerInfo *root, WindowAggPath *best_path)
 	ListCell   *lc;
 
 	/*
-	 * WindowAgg can project, so no need to be terribly picky about child
-	 * tlist, but we do need grouping columns to be available
+	 * Choice of tlist here is motivated by the fact that WindowAgg will be
+	 * storing the input rows of window frames in a tuplestore; it therefore
+	 * behooves us to request a small tlist to avoid wasting space. We do of
+	 * course need grouping columns to be available.
 	 */
-	subplan = create_plan_recurse(root, best_path->subpath, CP_LABEL_TLIST);
+	subplan = create_plan_recurse(root, best_path->subpath,
+								  CP_LABEL_TLIST | CP_SMALL_TLIST);
 
 	tlist = build_path_tlist(root, &best_path->path);
 
@@ -6573,10 +6587,3 @@ is_projection_capable_plan(Plan *plan)
 	}
 	return true;
 }
-#ifdef PGSPIDER
-List *
-PG_build_path_tlist(PlannerInfo *root, Path *path)
-{
-	return build_path_tlist(root, path);
-}
-#endif

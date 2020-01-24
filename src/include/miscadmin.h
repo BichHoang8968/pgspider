@@ -88,7 +88,7 @@ extern volatile bool ClientConnectionLost;
 /* these are marked volatile because they are examined by signal handlers: */
 extern PGDLLIMPORT volatile uint32 InterruptHoldoffCount;
 extern PGDLLIMPORT volatile uint32 QueryCancelHoldoffCount;
-extern PGDLLIMPORT __thread volatile uint32 CritSectionCount;
+extern PGDLLIMPORT volatile uint32 CritSectionCount;
 
 /* in tcop/postgres.c */
 extern void ProcessInterrupts(void);

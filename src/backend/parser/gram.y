@@ -584,8 +584,6 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <node>		partbound_datum PartitionRangeDatum
 %type <list>		hash_partbound partbound_datum_list range_datum_list
 %type <defelt>		hash_partbound_elem
-%type <str>     url
-%type <list>    url_list
 
 /*
  * Non-keyword token types.  These are hard-wired into the "flex" lexer.
@@ -686,7 +684,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 	TREAT TRIGGER TRIM TRUE_P
 	TRUNCATE TRUSTED TYPE_P TYPES_P
 
-    UNBOUNDED UNCOMMITTED UNENCRYPTED UNION UNIQUE UNKNOWN UNLISTEN UNLOGGED
+	UNBOUNDED UNCOMMITTED UNENCRYPTED UNION UNIQUE UNKNOWN UNLISTEN UNLOGGED
 	UNTIL UPDATE USER USING
 
 	VACUUM VALID VALIDATE VALIDATOR VALUE_P VALUES VARCHAR VARIADIC VARYING
@@ -10874,12 +10872,6 @@ insert_target:
 					$1->alias = makeAlias($3, NIL);
 					$$ = $1;
 				}
-            | qualified_name IN_P  '(' url_list ')'
-				{
-					$1->spd_url_list = $4;
-					(void)$2;
-					$$ = $1;
-				}
 		;
 
 insert_rest:
@@ -11833,15 +11825,8 @@ from_list:
 table_ref:	relation_expr opt_alias_clause
 				{
 					$1->alias = $2;
-					$1->spd_url_list = NIL;
 					$$ = (Node *) $1;
 				}
-            | relation_expr IN_P '(' url_list ')' opt_alias_clause
-			{
-				$1->alias = $6;
-				$1->spd_url_list = $4;
-				$$ = (Node *) $1;
-			}
 			| relation_expr opt_alias_clause tablesample_clause
 				{
 					RangeTableSample *n = (RangeTableSample *) $3;
@@ -11949,14 +11934,6 @@ table_ref:	relation_expr opt_alias_clause
 				}
 		;
 
-url_list:
-		url					{ $$ = list_make1($1); }
-		| url_list ',' url	{ $$ = lappend($1, $3); }
-	;
-
-url:    IDENT				{$$ = $1;}
-	    | Sconst			{$$ = $1;}
-	;
 
 /*
  * It may seem silly to separate joined_table from table_ref, but there is
@@ -12192,12 +12169,6 @@ relation_expr_opt_alias: relation_expr					%prec UMINUS
 					Alias *alias = makeNode(Alias);
 					alias->aliasname = $3;
 					$1->alias = alias;
-					$$ = $1;
-				}
-            | relation_expr IN_P '(' url_list ')'
-				{
-					$1->spd_url_list = $4;
-					(void)$2;
 					$$ = $1;
 				}
 		;

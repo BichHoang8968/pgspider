@@ -442,9 +442,7 @@ typedef struct ResTarget
 	List	   *indirection;	/* subscripts, field names, and '*', or NIL */
 	Node	   *val;			/* the value expression to compute or assign */
 	int			location;		/* token location, or -1 if unknown */
-    char	   *spd_url;			/* For UNDER clause */
-    List	   *spd_url_list;			/* For UNDER clause */
-}			ResTarget;
+} ResTarget;
 
 /*
  * MultiAssignRef - element of a row source expression for UPDATE
@@ -1077,9 +1075,7 @@ typedef struct RangeTblEntry
 	Bitmapset  *insertedCols;	/* columns needing INSERT permission */
 	Bitmapset  *updatedCols;	/* columns needing UPDATE permission */
 	List	   *securityQuals;	/* security barrier quals to apply, if any */
-    char	   *spd_url;			/* For UNDER clause */
-    List	   *spd_url_list;			/* For UNDER clause */
-}			RangeTblEntry;
+} RangeTblEntry;
 
 /*
  * RangeTblFunction -
@@ -3275,7 +3271,7 @@ typedef struct ConstraintsSetStmt
  */
 
 /* Reindex options */
-#define REINDEXOPT_VERBOSE 1 << 0	/* print progress info */
+#define REINDEXOPT_VERBOSE (1 << 0)	/* print progress info */
 
 typedef enum ReindexObjectType
 {

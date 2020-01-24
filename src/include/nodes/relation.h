@@ -672,7 +672,7 @@ typedef struct RelOptInfo
 	/* use "struct FdwRoutine" to avoid including fdwapi.h here */
 	struct FdwRoutine *fdwroutine;
 	void	   *fdw_private;
-	bool		is_tlist_pushdown;	/* request to mysql-fdw to pushdown or not */
+
 	/* cache space for remembering if we have proven this relation unique */
 	List	   *unique_for_rels;	/* known unique for these other relid
 									 * set(s) */
@@ -1416,8 +1416,7 @@ typedef struct GatherPath
 
 /*
  * GatherMergePath runs several copies of a plan in parallel and collects
- * the results, preserving their common sort order.  For gather merge, the
- * parallel leader always executes the plan too, so we don't need single_copy.
+ * the results, preserving their common sort order.
  */
 typedef struct GatherMergePath
 {
