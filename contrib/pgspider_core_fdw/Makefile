@@ -5,7 +5,7 @@ OBJS = pgspider_core_fdw.o pgspider_core_option.o pgspider_core_util.o $(WIN32RE
 PGFILEDESC = "pgspider_core_fdw - foreign data wrapper for PostgreSQL"
 
 PG_CPPFLAGS = -I$(libpq_srcdir) -I../  -lpostgres_fdw -lpthread -lpq -lm -z defs
-SHLIB_LINK = $(libpq) 
+SHLIB_LINK = $(libpq)
 
 #LIBS = -lpostgres_fdw
 
@@ -33,7 +33,7 @@ OUTFILES=$(FILES:%=$(DSTDIR)/%)
 
 check: temp-install
 
-temp-install: EXTRA_INSTALL+=contrib/postgres_fdw contrib/pgspider_core_fdw contrib/file_fdw contrib/tinybrace_fdw contrib/sqlite_fdw contrib/mysql_fdw contrib/pgspider_keepalive contrib/pgspider_fdw
+#temp-install: EXTRA_INSTALL+=contrib/postgres_fdw contrib/pgspider_core_fdw contrib/file_fdw contrib/tinybrace_fdw contrib/sqlite_fdw contrib/mysql_fdw contrib/pgspider_keepalive contrib/pgspider_fdw
 checkprep: EXTRA_INSTALL+=contrib/postgres_fdw contrib/pgspider_core_fdw contrib/file_fdw contrib/tinybrace_fdw contrib/sqlite_fdw contrib/mysql_fdw contrib/pgspider_keepalive contrib/pgspider_fdw
 
 #check: copyfdw
