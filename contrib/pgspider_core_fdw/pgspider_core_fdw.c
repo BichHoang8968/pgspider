@@ -74,7 +74,10 @@ PG_MODULE_MAGIC;
 #include "pgspider_core_fdw_defs.h"
 #include "funcapi.h"
 #include "postgres_fdw/postgres_fdw.h"
+
+#ifndef WITHOUT_KEEPALIVE
 #include "pgspider_keepalive/pgspider_keepalive.h"
+#endif
 
 /* #define GETPROGRESS_ENABLED */
 #define BUFFERSIZE 1024
@@ -2467,8 +2470,10 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel,
 		childinfo[i].server_oid = oid_server;
 		spd_spi_exec_child_ip(fs->servername, ip);
 		/* Check server name and ip */
+#ifndef WITHOUT_KEEPALIVE
 		if (check_server_ipname(fs->servername, ip))
 		{
+#endif
 			/* Do child node's GetForeignRelSize */
 			PG_TRY();
 			{
@@ -2505,6 +2510,7 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel,
 				FlushErrorState();
 			}
 			PG_END_TRY();
+#ifndef WITHOUT_KEEPALIVE
 		}
 		else
 		{
@@ -2513,6 +2519,7 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel,
 			if (throwErrorIfDead)
 				spd_aliveError(fs);
 		}
+#endif
 		childinfo[i].baserel = entry_baserel;
 	}
 }
