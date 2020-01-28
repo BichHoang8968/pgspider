@@ -3,7 +3,7 @@ do the following:
 
 1. Edit the postgres-wrapper.sh script and adjust the file path
 variables at its start to reflect where you have installed Postgres,
-if that's not /usr/local/pgsql.
+if that's not /usr/local/pgspider.
 
 2. Copy the modified postgres-wrapper.sh script into some suitable
 installation directory.  It can be, but doesn't have to be, where

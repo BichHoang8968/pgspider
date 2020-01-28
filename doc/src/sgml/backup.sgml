@@ -350,7 +350,7 @@ pg_dump -j <replaceable class="parameter">num</replaceable> -F d -f <replaceable
    for doing file system backups; for example:
 
 <programlisting>
-tar -cf backup.tar /usr/local/pgsql/data
+tar -cf backup.tar /usr/local/pgspider/data
 </programlisting>
   </para>
 
@@ -1077,7 +1077,7 @@ SELECT pg_stop_backup();
 
    <para>
     Be certain that your backup includes all of the files under
-    the database cluster directory (e.g., <filename>/usr/local/pgsql/data</filename>).
+    the database cluster directory (e.g., <filename>/usr/local/pgspider/data</filename>).
     If you are using tablespaces that do not reside underneath this directory,
     be careful to include them as well (and be sure that your backup
     archives symbolic links as links, otherwise the restore will corrupt

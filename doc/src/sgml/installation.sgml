@@ -33,13 +33,13 @@ make
 su
 make install
 adduser postgres
-mkdir /usr/local/pgsql/data
-chown postgres /usr/local/pgsql/data
+mkdir /usr/local/pgspider/data
+chown postgres /usr/local/pgspider/data
 su - postgres
-/usr/local/pgsql/bin/initdb -D /usr/local/pgsql/data
-/usr/local/pgsql/bin/postgres -D /usr/local/pgsql/data &gt;logfile 2&gt;&amp;1 &amp;
-/usr/local/pgsql/bin/createdb test
-/usr/local/pgsql/bin/psql test
+/usr/local/pgspider/bin/initdb -D /usr/local/pgspider/data
+/usr/local/pgspider/bin/postgres -D /usr/local/pgspider/data &gt;logfile 2&gt;&amp;1 &amp;
+/usr/local/pgspider/bin/createdb test
+/usr/local/pgspider/bin/psql test
 </synopsis>
    The long version is the rest of this
    <phrase>chapter</phrase>.
@@ -403,7 +403,7 @@ su - postgres
     The default configuration will build the server and utilities, as
     well as all client applications and interfaces that require only a
     C compiler. All files will be installed under
-    <filename>/usr/local/pgsql</filename> by default.
+    <filename>/usr/local/pgspider</filename> by default.
    </para>
 
    <para>
@@ -417,7 +417,7 @@ su - postgres
        <listitem>
         <para>
          Install all files under the directory <replaceable>PREFIX</replaceable>
-         instead of <filename>/usr/local/pgsql</filename>. The actual
+         instead of <filename>/usr/local/pgspider</filename>. The actual
          files will be installed into various subdirectories; no files
          will ever be installed directly into the
          <replaceable>PREFIX</replaceable> directory.
@@ -463,7 +463,7 @@ su - postgres
         <para>
          Specifies the directory for executable programs. The default
          is <filename><replaceable>EXEC-PREFIX</replaceable>/bin</filename>, which
-         normally means <filename>/usr/local/pgsql/bin</filename>.
+         normally means <filename>/usr/local/pgspider/bin</filename>.
         </para>
        </listitem>
       </varlistentry>
@@ -1807,14 +1807,14 @@ build-postgresql:
     environment variable <envar>LD_LIBRARY_PATH</envar> like so: In Bourne
     shells (<command>sh</command>, <command>ksh</command>, <command>bash</command>, <command>zsh</command>):
 <programlisting>
-LD_LIBRARY_PATH=/usr/local/pgsql/lib
+LD_LIBRARY_PATH=/usr/local/pgspider/lib
 export LD_LIBRARY_PATH
 </programlisting>
     or in <command>csh</command> or <command>tcsh</command>:
 <programlisting>
-setenv LD_LIBRARY_PATH /usr/local/pgsql/lib
+setenv LD_LIBRARY_PATH /usr/local/pgspider/lib
 </programlisting>
-    Replace <literal>/usr/local/pgsql/lib</literal> with whatever you set
+    Replace <literal>/usr/local/pgspider/lib</literal> with whatever you set
     <option><literal>--libdir</literal></option> to in <xref linkend="configure"/>.
     You should put these commands into a shell start-up file such as
     <filename>/etc/profile</filename> or <filename>~/.bash_profile</filename>.  Some
@@ -1854,7 +1854,7 @@ libpq.so.2.1: cannot open shared object file: No such file or directory
     If you are on <systemitem class="osname">Linux</systemitem> and you have root
     access, you can run:
 <programlisting>
-/sbin/ldconfig /usr/local/pgsql/lib
+/sbin/ldconfig /usr/local/pgspider/lib
 </programlisting>
     (or equivalent directory) after installation to enable the
     run-time linker to find the shared libraries faster.  Refer to the
@@ -1863,7 +1863,7 @@ libpq.so.2.1: cannot open shared object file: No such file or directory
     class="osname">NetBSD</systemitem>, and <systemitem
     class="osname">OpenBSD</systemitem> the command is:
 <programlisting>
-/sbin/ldconfig -m /usr/local/pgsql/lib
+/sbin/ldconfig -m /usr/local/pgspider/lib
 </programlisting>
     instead.  Other systems are not known to have an equivalent
     command.
@@ -1878,9 +1878,9 @@ libpq.so.2.1: cannot open shared object file: No such file or directory
    </indexterm>
 
    <para>
-    If you installed into <filename>/usr/local/pgsql</filename> or some other
+    If you installed into <filename>/usr/local/pgspider</filename> or some other
     location that is not searched for programs by default, you should
-    add <filename>/usr/local/pgsql/bin</filename> (or whatever you set
+    add <filename>/usr/local/pgspider/bin</filename> (or whatever you set
     <option><literal>--bindir</literal></option> to in <xref linkend="configure"/>)
     into your <envar>PATH</envar>.  Strictly speaking, this is not
     necessary, but it will make the use of <productname>PostgreSQL</productname>
@@ -1892,12 +1892,12 @@ libpq.so.2.1: cannot open shared object file: No such file or directory
     <filename>~/.bash_profile</filename> (or <filename>/etc/profile</filename>, if you
     want it to affect all users):
 <programlisting>
-PATH=/usr/local/pgsql/bin:$PATH
+PATH=/usr/local/pgspider/bin:$PATH
 export PATH
 </programlisting>
     If you are using <command>csh</command> or <command>tcsh</command>, then use this command:
 <programlisting>
-set path = ( /usr/local/pgsql/bin $path )
+set path = ( /usr/local/pgspider/bin $path )
 </programlisting>
    </para>
 
@@ -1910,7 +1910,7 @@ set path = ( /usr/local/pgsql/bin $path )
     shell start-up file unless you installed into a location that is
     searched by default:
 <programlisting>
-MANPATH=/usr/local/pgsql/share/man:$MANPATH
+MANPATH=/usr/local/pgspider/share/man:$MANPATH
 export MANPATH
 </programlisting>
    </para>
@@ -2501,7 +2501,7 @@ PHSS_30849  s700_800 u2comp/be/plugin library Patch
 
    <para>
     The default install target location
-    is <filename>/usr/local/pgsql</filename>, which you might want to
+    is <filename>/usr/local/pgspider</filename>, which you might want to
     change to something under <filename>/opt</filename>.  If so, use
     the
     <option>--prefix</option> switch to <command>configure</command>.

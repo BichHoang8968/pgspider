@@ -8280,12 +8280,12 @@ foo.c:95: `PGRES_TUPLES_OK' undeclared (first use in this function)
       option.)  For instance, your compile command line could look
       like:
 <programlisting>
-cc -c -I/usr/local/pgsql/include testprog.c
+cc -c -I/usr/local/pgspider/include testprog.c
 </programlisting>
       If you are using makefiles then add the option to the
       <varname>CPPFLAGS</varname> variable:
 <programlisting>
-CPPFLAGS += -I/usr/local/pgsql/include
+CPPFLAGS += -I/usr/local/pgspider/include
 </programlisting>
      </para>
 
@@ -8335,7 +8335,7 @@ testlibpq.c:8:22: libpq-fe.h: No such file or directory
       portability, put the <option>-L</option> option before the
       <option>-lpq</option> option.  For example:
 <programlisting>
-cc -o testprog testprog1.o testprog2.o -L/usr/local/pgsql/lib -lpq
+cc -o testprog testprog1.o testprog2.o -L/usr/local/pgspider/lib -lpq
 </programlisting>
      </para>
 
@@ -8344,7 +8344,7 @@ cc -o testprog testprog1.o testprog2.o -L/usr/local/pgsql/lib -lpq
       <command>pg_config</command> as well:
 <screen>
 <prompt>$</prompt> pg_config --libdir
-<computeroutput>/usr/local/pgsql/lib</computeroutput>
+<computeroutput>/usr/local/pgspider/lib</computeroutput>
 </screen>
      </para>
 
@@ -8352,7 +8352,7 @@ cc -o testprog testprog1.o testprog2.o -L/usr/local/pgsql/lib -lpq
       Or again use <command>pkg-config</command>:
 <screen>
 <prompt>$</prompt> pkg-config --libs libpq
-<computeroutput>-L/usr/local/pgsql/lib -lpq</computeroutput>
+<computeroutput>-L/usr/local/pgspider/lib -lpq</computeroutput>
 </screen>
       Note again that this prints the full options, not only the path.
      </para>

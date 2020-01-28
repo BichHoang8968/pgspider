@@ -117,7 +117,7 @@ $ vi $PGDATA/postgresql.conf
     shared_preload_libraries = 'sepgsql'          # (change requires restart)
 $ for DBNAME in template0 template1 postgres; do
     postgres --single -F -c exit_on_error=true $DBNAME \
-      &lt;/usr/local/pgsql/share/contrib/sepgsql.sql &gt;/dev/null
+      &lt;/usr/local/pgspider/share/contrib/sepgsql.sql &gt;/dev/null
   done
 </screen>
 
