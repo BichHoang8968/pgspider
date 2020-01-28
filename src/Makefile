@@ -29,8 +29,8 @@ SUBDIRS = \
 	makefiles \
 	test/regress \
 	test/isolation \
-	test/perl \
-	../contrib/pgspider_keepalive
+	../contrib/pgspider_keepalive \
+	test/perl 
 
 ifeq ($(with_llvm), yes)
 SUBDIRS += backend/jit/llvm
