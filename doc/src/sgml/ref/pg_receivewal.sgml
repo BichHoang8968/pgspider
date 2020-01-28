@@ -455,9 +455,9 @@ PostgreSQL documentation
   <para>
    To stream the write-ahead log from the server at
    <literal>mydbserver</literal> and store it in the local directory
-   <filename>/usr/local/pgsql/archive</filename>:
+   <filename>/usr/local/pgspider/archive</filename>:
 <screen>
-<prompt>$</prompt> <userinput>pg_receivewal -h mydbserver -D /usr/local/pgsql/archive</userinput>
+<prompt>$</prompt> <userinput>pg_receivewal -h mydbserver -D /usr/local/pgspider/archive</userinput>
 </screen></para>
  </refsect1>
 

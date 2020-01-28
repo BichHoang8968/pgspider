@@ -55,10 +55,10 @@ in the stand-alone version.
      command. To run <command>initdb</command> you must be logged in to your
      <productname>PostgreSQL</productname> server account. It will not work as
      root.
-<screen>root# <userinput>mkdir /usr/local/pgsql/data</userinput>
-root# <userinput>chown postgres /usr/local/pgsql/data</userinput>
+<screen>root# <userinput>mkdir /usr/local/pgspider/data</userinput>
+root# <userinput>chown postgres /usr/local/pgspider/data</userinput>
 root# <userinput>su - postgres</userinput>
-postgres$ <userinput>/usr/local/pgsql/bin/initdb -D /usr/local/pgsql/data</userinput></screen>
+postgres$ <userinput>/usr/local/pgspider/bin/initdb -D /usr/local/pgspider/data</userinput></screen>
     </para>
 
     <para>
@@ -85,12 +85,16 @@ postgres$ <userinput>/usr/local/pgsql/bin/initdb -D /usr/local/pgsql/data</useri
      The previous <command>initdb</command> step should have told you how to
      start up the database server. Do so now. The command should look
      something like:
-<programlisting>/usr/local/pgsql/bin/pg_ctl -D /usr/local/pgsql/data start</programlisting>
+<programlisting>/usr/local/pgspider/bin/postgres -D /usr/local/pgspider/data</programlisting>
+     This will start the server in the foreground. To put the server
+     in the background use something like:
+<programlisting>nohup /usr/local/pgspider/bin/postgres -D /usr/local/pgspider/data \
+    &lt;/dev/null &gt;&gt;server.log 2&gt;&amp;1 &lt;/dev/null &amp;</programlisting>
     </para>
 
     <para>
      To stop a server running in the background you can type:
-<programlisting>/usr/local/pgsql/bin/pg_ctl -D /usr/local/pgsql/data stop</programlisting>
+<programlisting>kill `cat /usr/local/pgspider/data/postmaster.pid`</programlisting>
     </para>
    </step>
 
@@ -118,7 +122,7 @@ postgres$ <userinput>/usr/local/pgsql/bin/initdb -D /usr/local/pgsql/data</useri
       comprehensive documentation set, which you should read sometime.
       After installation, the documentation can be accessed by
       pointing your browser to
-      <filename>/usr/local/pgsql/doc/html/index.html</filename>, unless you
+      <filename>/usr/local/pgspider/doc/html/index.html</filename>, unless you
       changed the installation directories.
      </para>
 

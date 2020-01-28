@@ -20,13 +20,13 @@ Short Version
     su
     make install
     adduser postgres
-    mkdir /usr/local/pgsql/data
-    chown postgres /usr/local/pgsql/data
+    mkdir /usr/local/pgspider/data
+    chown postgres /usr/local/pgspider/data
     su - postgres
-    /usr/local/pgsql/bin/initdb -D /usr/local/pgsql/data
-    /usr/local/pgsql/bin/pg_ctl -D /usr/local/pgsql/data -l logfile start
-    /usr/local/pgsql/bin/createdb test
-    /usr/local/pgsql/bin/psql test
+    /usr/local/pgspider/bin/initdb -D /usr/local/pgspider/data
+    /usr/local/pgspider/bin/pg_ctl -D /usr/local/pgspider/data -l logfile start
+    /usr/local/pgspider/bin/createdb test
+    /usr/local/pgspider/bin/pgsql test
 
 The long version is the rest of this document.
 
@@ -55,7 +55,7 @@ The following software packages are required for building PostgreSQL:
 -   tar is required to unpack the source distribution, in addition to
     either gzip or bzip2.
 
--   The GNU Readline library is used by default. It allows psql (the
+-   The GNU Readline library is used by default. It allows pgsql (the
     PostgreSQL command line SQL interpreter) to remember each command
     you type, and allows you to use arrow keys to recall and edit
     previous commands. This is very helpful and is strongly recommended.
@@ -191,7 +191,7 @@ Installation Procedure
 
     The default configuration will build the server and utilities, as
     well as all client applications and interfaces that require only a
-    C compiler. All files will be installed under "/usr/local/pgsql"
+    C compiler. All files will be installed under "/usr/local/pgspider"
     by default.
 
     You can customize the build and installation process by supplying
@@ -200,7 +200,7 @@ Installation Procedure
     --prefix=PREFIX
 
         Install all files under the directory "PREFIX" instead
-        of "/usr/local/pgsql". The actual files will be installed into
+        of "/usr/local/pgspider". The actual files will be installed into
         various subdirectories; no files will ever be installed directly
         into the "PREFIX" directory.
 
@@ -226,7 +226,7 @@ Installation Procedure
     --bindir=DIRECTORY
 
         Specifies the directory for executable programs. The default is
-        "EXEC-PREFIX/bin", which normally means "/usr/local/pgsql/bin".
+        "EXEC-PREFIX/bin", which normally means "/usr/local/pgspider/bin".
 
     --sysconfdir=DIRECTORY
 
@@ -461,7 +461,7 @@ Installation Procedure
     --without-readline
 
         Prevents use of the Readline library (and libedit as well). This
-        option disables command-line editing and history in psql, so it
+        option disables command-line editing and history in pgsql, so it
         is not recommended.
 
     --with-libedit-preferred
@@ -977,14 +977,14 @@ platforms, but the most widely-used method is to set the environment
 variable LD_LIBRARY_PATH like so: In Bourne shells ("sh", "ksh", "bash",
 "zsh"):
 
-    LD_LIBRARY_PATH=/usr/local/pgsql/lib
+    LD_LIBRARY_PATH=/usr/local/pgspider/lib
     export LD_LIBRARY_PATH
 
 or in "csh" or "tcsh":
 
-    setenv LD_LIBRARY_PATH /usr/local/pgsql/lib
+    setenv LD_LIBRARY_PATH /usr/local/pgspider/lib
 
-Replace /usr/local/pgsql/lib with whatever you set "--libdir" to in Step
+Replace /usr/local/pgspider/lib with whatever you set "--libdir" to in Step
 1. You should put these commands into a shell start-up file such as
 "/etc/profile" or "~/.bash_profile". Some good information about the
 caveats associated with this method can be found at
@@ -999,21 +999,21 @@ files into the "bin" directory.
 If in doubt, refer to the manual pages of your system (perhaps "ld.so"
 or "rld"). If you later get a message like:
 
-    psql: error in loading shared libraries
+    pgsql: error in loading shared libraries
     libpq.so.2.1: cannot open shared object file: No such file or directory
 
 then this step was necessary. Simply take care of it then.
 
 If you are on Linux and you have root access, you can run:
 
-    /sbin/ldconfig /usr/local/pgsql/lib
+    /sbin/ldconfig /usr/local/pgspider/lib
 
 (or equivalent directory) after installation to enable the run-time
 linker to find the shared libraries faster. Refer to the manual page of
 "ldconfig" for more information. On FreeBSD, NetBSD, and OpenBSD the
 command is:
 
-    /sbin/ldconfig -m /usr/local/pgsql/lib
+    /sbin/ldconfig -m /usr/local/pgspider/lib
 
 instead. Other systems are not known to have an equivalent command.
 
@@ -1021,9 +1021,9 @@ instead. Other systems are not known to have an equivalent command.
 
 Environment Variables
 
-If you installed into "/usr/local/pgsql" or some other location that is
+If you installed into "/usr/local/pgspider" or some other location that is
 not searched for programs by default, you should add
-"/usr/local/pgsql/bin" (or whatever you set "--bindir" to in Step 1)
+"/usr/local/pgspider/bin" (or whatever you set "--bindir" to in Step 1)
 into your PATH. Strictly speaking, this is not necessary, but it will
 make the use of PostgreSQL much more convenient.
 
@@ -1031,18 +1031,18 @@ To do this, add the following to your shell start-up file, such as
 "~/.bash_profile" (or "/etc/profile", if you want it to affect all
 users):
 
-    PATH=/usr/local/pgsql/bin:$PATH
+    PATH=/usr/local/pgspider/bin:$PATH
     export PATH
 
 If you are using "csh" or "tcsh", then use this command:
 
-    set path = ( /usr/local/pgsql/bin $path )
+    set path = ( /usr/local/pgspider/bin $path )
 
 To enable your system to find the man documentation, you need to add
 lines like the following to a shell start-up file unless you installed
 into a location that is searched by default:
 
-    MANPATH=/usr/local/pgsql/share/man:$MANPATH
+    MANPATH=/usr/local/pgspider/share/man:$MANPATH
     export MANPATH
 
 The environment variables PGHOST and PGPORT specify to client
@@ -1073,10 +1073,10 @@ once installed. The main documentation contains more information.
     "initdb" you must be logged in to your PostgreSQL server account. It
     will not work as root.
 
-        root# mkdir /usr/local/pgsql/data
-        root# chown postgres /usr/local/pgsql/data
+        root# mkdir /usr/local/pgspider/data
+        root# chown postgres /usr/local/pgspider/data
         root# su - postgres
-        postgres$ /usr/local/pgsql/bin/initdb -D /usr/local/pgsql/data
+        postgres$ /usr/local/pgspider/bin/initdb -D /usr/local/pgspider/data
 
     The "-D" option specifies the location where the data will
     be stored. You can use any path you want, it does not have to be
@@ -1091,19 +1091,19 @@ once installed. The main documentation contains more information.
 4.  The previous "initdb" step should have told you how to start up the
     database server. Do so now. The command should look something like:
 
-        /usr/local/pgsql/bin/pg_ctl -D /usr/local/pgsql/data start
+        /usr/local/pgspider/bin/pg_ctl -D /usr/local/pgspider/data start
 
     To stop a server running in the background you can type:
 
-        /usr/local/pgsql/bin/pg_ctl -D /usr/local/pgsql/data stop
+        /usr/local/pgspider/bin/pg_ctl -D /usr/local/pgspider/data stop
 
 5.  Create a database:
 
-        /usr/local/pgsql/bin/createdb testdb
+        /usr/local/pgspider/bin/createdb testdb
 
     Then enter:
 
-        /usr/local/pgsql/bin/psql testdb
+        /usr/local/pgspider/bin/pgsql testdb
 
     to connect to that database. At the prompt you can enter SQL
     commands and start experimenting.
@@ -1116,7 +1116,7 @@ What Now?
 -   The PostgreSQL distribution contains a comprehensive documentation
     set, which you should read sometime. After installation, the
     documentation can be accessed by pointing your browser to
-    "/usr/local/pgsql/doc/html/index.html", unless you changed the
+    "/usr/local/pgspider/doc/html/index.html", unless you changed the
     installation directories.
 
     The first few chapters of the main documentation are the Tutorial,
@@ -1399,7 +1399,7 @@ To build 64 bit binaries using MinGW, install the 64 bit tool set from
 https://mingw-w64.org/, put its bin directory in the PATH, and run
 "configure" with the "--host=x86_64-w64-mingw32" option.
 
-After you have everything installed, it is suggested that you run psql
+After you have everything installed, it is suggested that you run pgsql
 under "CMD.EXE", as the MSYS console has buffering issues.
 
 ------------------------------------------------------------------------

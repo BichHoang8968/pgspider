@@ -374,7 +374,7 @@ msgid "input file \"%s\" does not belong to PostgreSQL %s"
 msgstr "indatafil \"%s\" tillhör inte PostgreSQL %s"
 
 # The expected string length of bki_file (for the first "%s")
-# with a standard directory "/usr/local/pgsql", is such that
+# with a standard directory "/usr/local/pgspider", is such that
 # the translated message string produces a reasonable output.
 #
 #: initdb.c:1396

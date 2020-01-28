@@ -2,7 +2,7 @@
 #define SPD_FDW_DEFS
 
 /*Following are global defs for SPD FDW -- factor to spd_defs.h */
-#define SPD_CONF_PATH "/usr/local/pgsql/share/extension/spd_server_nodes.conf"
+#define SPD_CONF_PATH "/usr/local/pgspider/share/extension/spd_server_nodes.conf"
 #define NODE_NAME_LEN (1024)
 #define NODES_MAX (100)
 #define SRVOPT_QRY "select srvoptions from information_schema._pg_foreign_servers where foreign_server_name = '%s'"

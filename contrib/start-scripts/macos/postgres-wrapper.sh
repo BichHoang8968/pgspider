@@ -5,9 +5,9 @@
 # edit these as needed:
 
 # directory containing postgres executable:
-PGBINDIR="/usr/local/pgsql/bin"
+PGBINDIR="/usr/local/pgspider/bin"
 # data directory:
-PGDATA="/usr/local/pgsql/data"
+PGDATA="/usr/local/pgspider/data"
 # file to receive postmaster's initial log messages:
 PGLOGFILE="${PGDATA}/pgstart.log"
 
