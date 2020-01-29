@@ -79,7 +79,6 @@ PG_MODULE_MAGIC;
 #include "pgspider_keepalive/pgspider_keepalive.h"
 #endif
 
-/* #define GETPROGRESS_ENABLED */
 #define BUFFERSIZE 1024
 #define QUERY_LENGTH 512
 #define MAX_URL_LENGTH	256
