@@ -127,7 +127,7 @@ static long max_stack_depth_bytes = 100 * 1024L;
 #ifdef PGSPIDER
 __thread char *stack_base_ptr = NULL;
 #else
-char *stack_base_ptr = NULL;
+char	   *stack_base_ptr = NULL;
 #endif
 
 /*
@@ -137,7 +137,7 @@ char *stack_base_ptr = NULL;
 #ifdef PGSPIDER
 __thread char *register_stack_base_ptr = NULL;
 #else
-char *register_stack_base_ptr = NULL;
+char	   *register_stack_base_ptr = NULL;
 #endif
 #endif
 
@@ -4356,7 +4356,7 @@ PostgresMain(int argc, char *argv[],
 				if (!gl_progressPtr)
 					pfree(gl_progressPtr);
 			}
-			firstchar = ReadCommand(&input_message);
+		firstchar = ReadCommand(&input_message);
 		}
 		pthread_mutex_unlock(&prgThread_mutex);
 #else

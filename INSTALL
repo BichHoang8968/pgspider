@@ -12,13 +12,13 @@ make
 su
 make install
 adduser postgres
-mkdir /usr/local/pgsql/data
-chown postgres /usr/local/pgsql/data
+mkdir /usr/local/pgspider/data
+chown postgres /usr/local/pgspider/data
 su - postgres
-/usr/local/pgsql/bin/initdb -D /usr/local/pgsql/data
-/usr/local/pgsql/bin/postgres -D /usr/local/pgsql/data >logfile 2>&1 &
-/usr/local/pgsql/bin/createdb test
-/usr/local/pgsql/bin/psql test
+/usr/local/pgspider/bin/initdb -D /usr/local/pgspider/data
+/usr/local/pgspider/bin/postgres -D /usr/local/pgspider/data >logfile 2>&1 &
+/usr/local/pgspider/bin/createdb test
+/usr/local/pgspider/bin/psql test
 
    The long version is the rest of this document.
      __________________________________________________________________
@@ -163,14 +163,14 @@ make
 
        The default configuration will build the server and utilities, as
        well as all client applications and interfaces that require only a
-       C compiler. All files will be installed under "/usr/local/pgsql" by
+       C compiler. All files will be installed under "/usr/local/pgspider" by
        default.
        You can customize the build and installation process by supplying
        one or more of the following command line options to "configure":
 
         --prefix=PREFIX
                 Install all files under the directory "PREFIX" instead of
-                "/usr/local/pgsql". The actual files will be installed
+                "/usr/local/pgspider". The actual files will be installed
                 into various subdirectories; no files will ever be
                 installed directly into the "PREFIX" directory.
 
@@ -199,7 +199,7 @@ make
         --bindir=DIRECTORY
                 Specifies the directory for executable programs. The
                 default is "EXEC-PREFIX/bin", which normally means
-                "/usr/local/pgsql/bin".
+                "/usr/local/pgspider/bin".
 
         --sysconfdir=DIRECTORY
                 Sets the directory for various configuration files,
@@ -886,13 +886,13 @@ Shared Libraries
    platforms, but the most widely-used method is to set the environment
    variable LD_LIBRARY_PATH like so: In Bourne shells ("sh", "ksh",
    "bash", "zsh"):
-LD_LIBRARY_PATH=/usr/local/pgsql/lib
+LD_LIBRARY_PATH=/usr/local/pgspider/lib
 export LD_LIBRARY_PATH
 
    or in "csh" or "tcsh":
-setenv LD_LIBRARY_PATH /usr/local/pgsql/lib
+setenv LD_LIBRARY_PATH /usr/local/pgspider/lib
 
-   Replace /usr/local/pgsql/lib with whatever you set "--libdir" to in
+   Replace /usr/local/pgspider/lib with whatever you set "--libdir" to in
    Step 1. You should put these commands into a shell start-up file such
    as "/etc/profile" or "~/.bash_profile". Some good information about the
    caveats associated with this method can be found at
@@ -912,38 +912,38 @@ libpq.so.2.1: cannot open shared object file: No such file or directory
    then this step was necessary. Simply take care of it then.
 
    If you are on Linux and you have root access, you can run:
-/sbin/ldconfig /usr/local/pgsql/lib
+/sbin/ldconfig /usr/local/pgspider/lib
 
    (or equivalent directory) after installation to enable the run-time
    linker to find the shared libraries faster. Refer to the manual page of
    "ldconfig" for more information. On FreeBSD, NetBSD, and OpenBSD the
    command is:
-/sbin/ldconfig -m /usr/local/pgsql/lib
+/sbin/ldconfig -m /usr/local/pgspider/lib
 
    instead. Other systems are not known to have an equivalent command.
      __________________________________________________________________
 
 Environment Variables
 
-   If you installed into "/usr/local/pgsql" or some other location that is
+   If you installed into "/usr/local/pgspider" or some other location that is
    not searched for programs by default, you should add
-   "/usr/local/pgsql/bin" (or whatever you set "--bindir" to in Step 1)
+   "/usr/local/pgspider/bin" (or whatever you set "--bindir" to in Step 1)
    into your PATH. Strictly speaking, this is not necessary, but it will
    make the use of PostgreSQL much more convenient.
 
    To do this, add the following to your shell start-up file, such as
    "~/.bash_profile" (or "/etc/profile", if you want it to affect all
    users):
-PATH=/usr/local/pgsql/bin:$PATH
+PATH=/usr/local/pgspider/bin:$PATH
 export PATH
 
    If you are using "csh" or "tcsh", then use this command:
-set path = ( /usr/local/pgsql/bin $path )
+set path = ( /usr/local/pgspider/bin $path )
 
    To enable your system to find the man documentation, you need to add
    lines like the following to a shell start-up file unless you installed
    into a location that is searched by default:
-MANPATH=/usr/local/pgsql/share/man:$MANPATH
+MANPATH=/usr/local/pgspider/share/man:$MANPATH
 export MANPATH
 
    The environment variables PGHOST and PGPORT specify to client
@@ -970,10 +970,10 @@ adduser postgres
     2. Create a database installation with the "initdb" command. To run
        "initdb" you must be logged in to your PostgreSQL server account.
        It will not work as root.
-root# mkdir /usr/local/pgsql/data
-root# chown postgres /usr/local/pgsql/data
+root# mkdir /usr/local/pgspider/data
+root# chown postgres /usr/local/pgspider/data
 root# su - postgres
-postgres$ /usr/local/pgsql/bin/initdb -D /usr/local/pgsql/data
+postgres$ /usr/local/pgspider/bin/initdb -D /usr/local/pgspider/data
        The "-D" option specifies the location where the data will be
        stored. You can use any path you want, it does not have to be under
        the installation directory. Just make sure that the server account
@@ -984,13 +984,13 @@ postgres$ /usr/local/pgsql/bin/initdb -D /usr/local/pgsql/data
        before you start it. The default is to trust all local users.
     4. The previous "initdb" step should have told you how to start up the
        database server. Do so now. The command should look something like:
-/usr/local/pgsql/bin/postgres -D /usr/local/pgsql/data
+/usr/local/pgspider/bin/postgres -D /usr/local/pgspider/data
        This will start the server in the foreground. To put the server in
        the background use something like:
-nohup /usr/local/pgsql/bin/postgres -D /usr/local/pgsql/data \
+nohup /usr/local/pgspider/bin/postgres -D /usr/local/pgspider/data \
     </dev/null >>server.log 2>&1 </dev/null &
        To stop a server running in the background you can type:
-kill `cat /usr/local/pgsql/data/postmaster.pid`
+kill `cat /usr/local/pgspider/data/postmaster.pid`
     5. Create a database:
 createdb testdb
        Then enter:
@@ -1004,7 +1004,7 @@ psql testdb
      * The PostgreSQL distribution contains a comprehensive documentation
        set, which you should read sometime. After installation, the
        documentation can be accessed by pointing your browser to
-       "/usr/local/pgsql/doc/html/index.html", unless you changed the
+       "/usr/local/pgspider/doc/html/index.html", unless you changed the
        installation directories.
        The first few chapters of the main documentation are the Tutorial,
        which should be your first reading if you are completely new to SQL
@@ -1359,7 +1359,7 @@ HP-UX
    for GCC. If you omit this setting, then configure will pick "gcc" if it
    has a choice.
 
-   The default install target location is "/usr/local/pgsql", which you
+   The default install target location is "/usr/local/pgspider", which you
    might want to change to something under "/opt". If so, use the
    "--prefix" switch to "configure".
 

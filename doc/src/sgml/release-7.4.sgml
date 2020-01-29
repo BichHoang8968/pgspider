@@ -2680,7 +2680,7 @@ inconveniences associated with the <literal>i/I</> problem.</para></listitem>
     <application>psql</application>, after installing the new release:
 <programlisting>
 DROP SCHEMA information_schema CASCADE;
-\i /usr/local/pgsql/share/information_schema.sql
+\i /usr/local/pgspider/share/information_schema.sql
 </programlisting>
     Substitute your installation path in the second command.
    </para>

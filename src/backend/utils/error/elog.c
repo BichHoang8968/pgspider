@@ -90,6 +90,7 @@ __thread ErrorContextCallback *error_context_stack = NULL;
 __thread sigjmp_buf *PG_exception_stack = NULL;
 #else
 ErrorContextCallback *error_context_stack = NULL;
+
 sigjmp_buf *PG_exception_stack = NULL;
 #endif
 

@@ -675,12 +675,13 @@
 #------------------------------------------------------------------------------
 
 # These options allow settings to be loaded from files other than the
-# default postgresql.conf.
+# default postgresql.conf.  Note that these are directives, not variable
+# assignments, so they can usefully be given more than once.
 
-#include_dir = ''			# include files ending in '.conf' from
+#include_dir = '...'			# include files ending in '.conf' from
 					# a directory, e.g., 'conf.d'
-#include_if_exists = ''			# include file only if it exists
-#include = ''				# include file
+#include_if_exists = '...'		# include file only if it exists
+#include = '...'			# include file
 
 
 #------------------------------------------------------------------------------
@@ -689,11 +690,3 @@
 
 # Add settings for extensions here
 shared_preload_libraries = 'pgspider_keepalive'
-
-#PGSpider keepalive process configs
-pgspider_keepalive.checknodes_interval 1  # Number of workers
-pgspider_keepalive.timeout_time 1         # ping wait time to child node
-pgspider_keepalive.keepalive_interval 1   # polling time to child node
-
-
-

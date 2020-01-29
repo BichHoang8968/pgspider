@@ -213,14 +213,14 @@
 
     <para>
      If your installation directory is not version-specific, e.g.
-     <filename>/usr/local/pgsql</filename>, it is necessary to move the current PostgreSQL install
+     <filename>/usr/local/pgspider</filename>, it is necessary to move the current PostgreSQL install
      directory so it does not interfere with the new <productname>PostgreSQL</productname> installation.
      Once the current <productname>PostgreSQL</productname> server is shut down, it is safe to rename the
      PostgreSQL installation directory; assuming the old directory is
-     <filename>/usr/local/pgsql</filename>, you can do:
+     <filename>/usr/local/pgspider</filename>, you can do:
 
 <programlisting>
-mv /usr/local/pgsql /usr/local/pgsql.old
+mv /usr/local/pgspider /usr/local/pgspider.old
 </programlisting>
      to rename the directory.
     </para>
@@ -249,7 +249,7 @@ mv /usr/local/pgsql /usr/local/pgsql.old
      location, use the <literal>prefix</literal> variable:
 
 <programlisting>
-make prefix=/usr/local/pgsql.new install
+make prefix=/usr/local/pgspider.new install
 </programlisting></para>
    </step>
 

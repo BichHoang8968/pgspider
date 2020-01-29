@@ -22,7 +22,8 @@ unset MAKELEVEL
 standard_initdb() {
 	# To increase coverage of non-standard segment size and group access
 	# without increasing test runtime, run these tests with a custom setting.
-	"$1" -N --wal-segsize 1 -g
+	# Also, specify "-A trust" explicitly to suppress initdb's warning.
+	"$1" -N --wal-segsize 1 -g -A trust
 	if [ -n "$TEMP_CONFIG" -a -r "$TEMP_CONFIG" ]
 	then
 		cat "$TEMP_CONFIG" >> "$PGDATA/postgresql.conf"
@@ -30,11 +31,13 @@ standard_initdb() {
 	../../test/regress/pg_regress --config-auth "$PGDATA"
 }
 
-# Establish how the server will listen for connections
-testhost=`uname -s`
+# What flavor of host are we on?
+# Treat MINGW* (msys1) and MSYS* (msys2) the same.
+testhost=`uname -s | sed 's/^MSYS/MINGW/'`
 
+# Establish how the server will listen for connections
 case $testhost in
-	MINGW*|MSYS*)
+	MINGW*)
 		LISTEN_ADDRESSES="localhost"
 		PGHOST=localhost
 		;;
@@ -68,6 +71,8 @@ export PGHOST
 
 # don't rely on $PWD here, as old shells don't set it
 temp_root=`pwd`/tmp_check
+rm -rf "$temp_root"
+mkdir "$temp_root"
 
 if [ "$1" = '--install' ]; then
 	temp_install=$temp_root/install
@@ -86,14 +91,6 @@ if [ "$1" = '--install' ]; then
 	SHLIB_PATH=$libdir:$SHLIB_PATH
 	export SHLIB_PATH
 	PATH=$libdir:$PATH
-
-	# We need to make it use psql from our temporary installation,
-	# because otherwise the installcheck run below would try to
-	# use psql from the proper installation directory, which might
-	# be outdated or missing. But don't override anything else that's
-	# already in EXTRA_REGRESS_OPTS.
-	EXTRA_REGRESS_OPTS="$EXTRA_REGRESS_OPTS --bindir='$bindir'"
-	export EXTRA_REGRESS_OPTS
 fi
 
 : ${oldbindir=$bindir}
@@ -102,13 +99,31 @@ fi
 oldsrc=`cd "$oldsrc" && pwd`
 newsrc=`cd ../../.. && pwd`
 
+# We need to make pg_regress use psql from the desired installation
+# (likely a temporary one), because otherwise the installcheck run
+# below would try to use psql from the proper installation directory
+# of the target version, which might be outdated or not exist. But
+# don't override anything else that's already in EXTRA_REGRESS_OPTS.
+EXTRA_REGRESS_OPTS="$EXTRA_REGRESS_OPTS --bindir='$oldbindir'"
+export EXTRA_REGRESS_OPTS
+
 PATH=$bindir:$PATH
 export PATH
 
 BASE_PGDATA="$temp_root/data"
 PGDATA="${BASE_PGDATA}.old"
 export PGDATA
-rm -rf "$BASE_PGDATA" "$PGDATA"
+
+# Send installcheck outputs to a private directory.  This avoids conflict when
+# check-world runs pg_upgrade check concurrently with src/test/regress check.
+# To retrieve interesting files after a run, use pattern tmp_check/*/*.diffs.
+outputdir="$temp_root/regress"
+EXTRA_REGRESS_OPTS="$EXTRA_REGRESS_OPTS --outputdir=$outputdir"
+export EXTRA_REGRESS_OPTS
+mkdir "$outputdir"
+mkdir "$outputdir"/sql
+mkdir "$outputdir"/expected
+mkdir "$outputdir"/testtablespace
 
 logdir=`pwd`/log
 rm -rf "$logdir"
@@ -149,9 +164,6 @@ done
 # buildfarm may try to override port via EXTRA_REGRESS_OPTS ...
 EXTRA_REGRESS_OPTS="$EXTRA_REGRESS_OPTS --port=$PGPORT"
 export EXTRA_REGRESS_OPTS
-
-# enable echo so the user can see what is being executed
-set -x
 
 standard_initdb "$oldbindir"/initdb
 "$oldbindir"/pg_ctl start -l "$logdir/postmaster1.log" -o "$POSTMASTER_OPTS" -w
@@ -248,17 +260,16 @@ esac
 
 pg_ctl start -l "$logdir/postmaster2.log" -o "$POSTMASTER_OPTS" -w
 
+# In the commands below we inhibit msys2 from converting the "/c" switch
+# in "cmd /c" to a file system path.
+
 case $testhost in
-	MINGW*)	cmd /c analyze_new_cluster.bat ;;
+	MINGW*)	MSYS2_ARG_CONV_EXCL=/c cmd /c analyze_new_cluster.bat ;;
 	*)		sh ./analyze_new_cluster.sh ;;
 esac
 
 pg_dumpall --no-sync -f "$temp_root"/dump2.sql || pg_dumpall2_status=$?
 pg_ctl -m fast stop
-
-# no need to echo commands anymore
-set +x
-echo
 
 if [ -n "$pg_dumpall2_status" ]; then
 	echo "pg_dumpall of post-upgrade database cluster failed"
@@ -266,7 +277,7 @@ if [ -n "$pg_dumpall2_status" ]; then
 fi
 
 case $testhost in
-	MINGW*)	cmd /c delete_old_cluster.bat ;;
+	MINGW*)	MSYS2_ARG_CONV_EXCL=/c cmd /c delete_old_cluster.bat ;;
 	*)	    sh ./delete_old_cluster.sh ;;
 esac
 

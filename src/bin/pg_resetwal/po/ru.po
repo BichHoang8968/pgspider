@@ -5,7 +5,7 @@
 # Oleg Bartunov <oleg@sai.msu.su>, 2004.
 # Sergey Burladyan <eshkinkot@gmail.com>, 2009.
 # Dmitriy Olshevskiy <olshevskiy87@bk.ru>, 2014.
-# Alexander Lakhin <exclusion@gmail.com>, 2012-2017, 2018.
+# Alexander Lakhin <exclusion@gmail.com>, 2012-2017, 2018, 2019.
 msgid ""
 msgstr ""
 "Project-Id-Version: pg_resetxlog (PostgreSQL current)\n"
@@ -170,8 +170,8 @@ msgid ""
 "If these values seem acceptable, use -f to force reset.\n"
 msgstr ""
 "\n"
-"Если эти значения приемлемы, выполните сброс принудительно, добавив ключ -f."
-"\n"
+"Если эти значения приемлемы, выполните сброс принудительно, добавив ключ -"
+"f.\n"
 
 #: pg_resetwal.c:507
 #, c-format

@@ -42,7 +42,6 @@ extern "C"
 #define PG_COPYRES_EVENTS		  0x04
 #define PG_COPYRES_NOTICEHOOKS	  0x08
 
-
 /* Application-visible enum types */
 
 /*

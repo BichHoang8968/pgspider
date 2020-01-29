@@ -33,6 +33,7 @@
 #include "lib/bloomfilter.h"
 #include "miscadmin.h"
 #include "storage/lmgr.h"
+#include "storage/smgr.h"
 #include "utils/memutils.h"
 #include "utils/snapmgr.h"
 
@@ -120,6 +121,7 @@ PG_FUNCTION_INFO_V1(bt_index_parent_check);
 static void bt_index_check_internal(Oid indrelid, bool parentcheck,
 						bool heapallindexed);
 static inline void btree_index_checkable(Relation rel);
+static inline bool btree_index_mainfork_expected(Relation rel);
 static void bt_check_every_level(Relation rel, Relation heaprel,
 					 bool readonly, bool heapallindexed);
 static BtreeLevel bt_check_level_from_leftmost(BtreeCheckState *state,
@@ -252,8 +254,18 @@ bt_index_check_internal(Oid indrelid, bool parentcheck, bool heapallindexed)
 	/* Relation suitable for checking as B-Tree? */
 	btree_index_checkable(indrel);
 
-	/* Check index, possibly against table it is an index on */
-	bt_check_every_level(indrel, heaprel, parentcheck, heapallindexed);
+	if (btree_index_mainfork_expected(indrel))
+	{
+		RelationOpenSmgr(indrel);
+		if (!smgrexists(indrel->rd_smgr, MAIN_FORKNUM))
+			ereport(ERROR,
+					(errcode(ERRCODE_INDEX_CORRUPTED),
+					 errmsg("index \"%s\" lacks a main relation fork",
+							RelationGetRelationName(indrel))));
+
+		/* Check index, possibly against table it is an index on */
+		bt_check_every_level(indrel, heaprel, parentcheck, heapallindexed);
+	}
 
 	/*
 	 * Release locks early. That's ok here because nothing in the called
@@ -297,6 +309,28 @@ btree_index_checkable(Relation rel)
 				 errmsg("cannot check index \"%s\"",
 						RelationGetRelationName(rel)),
 				 errdetail("Index is not valid")));
+}
+
+/*
+ * Check if B-Tree index relation should have a file for its main relation
+ * fork.  Verification uses this to skip unlogged indexes when in hot standby
+ * mode, where there is simply nothing to verify.
+ *
+ * NB: Caller should call btree_index_checkable() before calling here.
+ */
+static inline bool
+btree_index_mainfork_expected(Relation rel)
+{
+	if (rel->rd_rel->relpersistence != RELPERSISTENCE_UNLOGGED ||
+		!RecoveryInProgress())
+		return true;
+
+	ereport(NOTICE,
+			(errcode(ERRCODE_READ_ONLY_SQL_TRANSACTION),
+			 errmsg("cannot verify unlogged index \"%s\" during recovery, skipping",
+					RelationGetRelationName(rel))));
+
+	return false;
 }
 
 /*
@@ -350,11 +384,20 @@ bt_check_every_level(Relation rel, Relation heaprel, bool readonly,
 
 	if (state->heapallindexed)
 	{
+		int64		total_pages;
 		int64		total_elems;
 		uint64		seed;
 
-		/* Size Bloom filter based on estimated number of tuples in index */
-		total_elems = (int64) state->rel->rd_rel->reltuples;
+		/*
+		 * Size Bloom filter based on estimated number of tuples in index,
+		 * while conservatively assuming that each block must contain at least
+		 * MaxIndexTuplesPerPage / 5 non-pivot tuples.  (Non-leaf pages cannot
+		 * contain non-pivot tuples.  That's okay because they generally make
+		 * up no more than about 1% of all pages in the index.)
+		 */
+		total_pages = RelationGetNumberOfBlocks(rel);
+		total_elems = Max(total_pages * (MaxIndexTuplesPerPage / 5),
+						  (int64) state->rel->rd_rel->reltuples);
 		/* Random seed relies on backend srandom() call to avoid repetition */
 		seed = random();
 		/* Create Bloom filter to fingerprint index */
@@ -398,8 +441,6 @@ bt_check_every_level(Relation rel, Relation heaprel, bool readonly,
 		}
 		else
 		{
-			int64		total_pages;
-
 			/*
 			 * Extra readonly downlink check.
 			 *
@@ -410,7 +451,6 @@ bt_check_every_level(Relation rel, Relation heaprel, bool readonly,
 			 * splits and page deletions, though.  This is taken care of in
 			 * bt_downlink_missing_check().
 			 */
-			total_pages = (int64) state->rel->rd_rel->relpages;
 			state->downlinkfilter = bloom_create(total_pages, work_mem, seed);
 		}
 	}

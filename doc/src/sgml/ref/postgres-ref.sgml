@@ -759,7 +759,7 @@ PostgreSQL documentation
    <para>
     To start a single-user mode server, use a command like
 <screen>
-<userinput>postgres --single -D /usr/local/pgsql/data <replaceable>other-options</replaceable> my_database</userinput>
+<userinput>postgres --single -D /usr/local/pgspider/data <replaceable>other-options</replaceable> my_database</userinput>
 </screen>
     Provide the correct path to the database directory with <option>-D</option>, or
     make sure that the environment variable <envar>PGDATA</envar> is set.

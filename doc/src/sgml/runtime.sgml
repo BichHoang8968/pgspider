@@ -70,7 +70,7 @@
    directory</firstterm> or <firstterm>data area</firstterm>. It is
    completely up to you where you choose to store your data.  There is no
    default, although locations such as
-   <filename>/usr/local/pgsql/data</filename> or
+   <filename>/usr/local/pgspider/data</filename> or
    <filename>/var/lib/pgsql/data</filename> are popular. To initialize a
    database cluster, use the command <xref
    linkend="app-initdb"/>,<indexterm><primary>initdb</primary></indexterm> which is
@@ -78,7 +78,7 @@
    file system location of your database cluster is indicated by the
    <option>-D</option> option, for example:
 <screen>
-<prompt>$</prompt> <userinput>initdb -D /usr/local/pgsql/data</userinput>
+<prompt>$</prompt> <userinput>initdb -D /usr/local/pgspider/data</userinput>
 </screen>
    Note that you must execute this command while logged into the
    <productname>PostgreSQL</productname> user account, which is
@@ -98,7 +98,7 @@
    the <xref linkend="app-pg-ctl"/>
    program<indexterm><primary>pg_ctl</primary></indexterm> like so:
 <screen>
-<prompt>$</prompt> <userinput>pg_ctl -D /usr/local/pgsql/data initdb</userinput>
+<prompt>$</prompt> <userinput>pg_ctl -D /usr/local/pgspider/data initdb</userinput>
 </screen>
    This may be more intuitive if you are
    using <command>pg_ctl</command> for starting and stopping the
@@ -119,10 +119,10 @@
    grandparent directory isn't writable.  So the process might look
    like this:
 <screen>
-root# <userinput>mkdir /usr/local/pgsql</userinput>
-root# <userinput>chown postgres /usr/local/pgsql</userinput>
+root# <userinput>mkdir /usr/local/pgspider</userinput>
+root# <userinput>chown postgres /usr/local/pgspider</userinput>
 root# <userinput>su postgres</userinput>
-postgres$ <userinput>initdb -D /usr/local/pgsql/data</userinput>
+postgres$ <userinput>initdb -D /usr/local/pgspider/data</userinput>
 </screen>
   </para>
 
@@ -281,7 +281,7 @@ postgres$ <userinput>initdb -D /usr/local/pgsql/data</userinput>
    <option>-D</option> option. Thus, the simplest way to start the
    server is:
 <screen>
-$ <userinput>postgres -D /usr/local/pgsql/data</userinput>
+$ <userinput>postgres -D /usr/local/pgspider/data</userinput>
 </screen>
    which will leave the server running in the foreground. This must be
    done while logged into the <productname>PostgreSQL</productname> user
@@ -294,7 +294,7 @@ $ <userinput>postgres -D /usr/local/pgsql/data</userinput>
    Normally it is better to start <command>postgres</command> in the
    background.  For this, use the usual Unix shell syntax:
 <screen>
-$ <userinput>postgres -D /usr/local/pgsql/data &gt;logfile 2&gt;&amp;1 &amp;</userinput>
+$ <userinput>postgres -D /usr/local/pgspider/data &gt;logfile 2&gt;&amp;1 &amp;</userinput>
 </screen>
    It is important to store the server's <systemitem>stdout</systemitem> and
    <systemitem>stderr</systemitem> output somewhere, as shown above. It will help
@@ -348,7 +348,7 @@ pg_ctl start -l logfile
    probably should form your commands using
    <literal>su postgres -c '...'</literal>.  For example:
 <programlisting>
-su postgres -c 'pg_ctl start -D /usr/local/pgsql/data -l serverlog'
+su postgres -c 'pg_ctl start -D /usr/local/pgspider/data -l serverlog'
 </programlisting>
   </para>
 
@@ -373,8 +373,8 @@ su postgres -c 'pg_ctl start -D /usr/local/pgsql/data -l serverlog'
       to the file <filename>/etc/rc.local</filename>:
       <indexterm><primary>OpenBSD</primary><secondary>start script</secondary></indexterm>
 <programlisting>
-if [ -x /usr/local/pgsql/bin/pg_ctl -a -x /usr/local/pgsql/bin/postgres ]; then
-    su -l postgres -c '/usr/local/pgsql/bin/pg_ctl start -s -l /var/postgresql/log -D /usr/local/pgsql/data'
+if [ -x /usr/local/pgspider/bin/pg_ctl -a -x /usr/local/pgspider/bin/postgres ]; then
+    su -l postgres -c '/usr/local/pgspider/bin/pg_ctl start -s -l /var/postgresql/log -D /usr/local/pgspider/data'
     echo -n ' postgresql'
 fi
 </programlisting>
@@ -386,7 +386,7 @@ fi
       On <productname>Linux</productname> systems either add
       <indexterm><primary>Linux</primary><secondary>start script</secondary></indexterm>
 <programlisting>
-/usr/local/pgsql/bin/pg_ctl start -l logfile -D /usr/local/pgsql/data
+/usr/local/pgspider/bin/pg_ctl start -l logfile -D /usr/local/pgspider/data
 </programlisting>
       to <filename>/etc/rc.d/rc.local</filename>
       or <filename>/etc/rc.local</filename> or look at the file
@@ -406,7 +406,7 @@ Documentation=man:postgres(1)
 [Service]
 Type=notify
 User=postgres
-ExecStart=/usr/local/pgsql/bin/postgres -D /usr/local/pgsql/data
+ExecStart=/usr/local/pgspider/bin/postgres -D /usr/local/pgspider/data
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=mixed
 KillSignal=SIGINT
@@ -447,7 +447,7 @@ WantedBy=multi-user.target
       the following line:
       <indexterm><primary>Solaris</primary><secondary>start script</secondary></indexterm>
 <programlisting>
-su - postgres -c "/usr/local/pgsql/bin/pg_ctl start -l logfile -D /usr/local/pgsql/data"
+su - postgres -c "/usr/local/pgspider/bin/pg_ctl start -l logfile -D /usr/local/pgspider/data"
 </programlisting>
       Then, create a symbolic link to it in <filename>/etc/rc3.d</filename> as
       <filename>S99postgresql</filename>.
@@ -1641,7 +1641,7 @@ $ <userinput>grep Huge /proc/meminfo</userinput>
    <filename>postmaster.pid</filename> in the data directory. For
    example, to do a fast shutdown:
 <screen>
-$ <userinput>kill -INT `head -1 /usr/local/pgsql/data/postmaster.pid`</userinput>
+$ <userinput>kill -INT `head -1 /usr/local/pgspider/data/postmaster.pid`</userinput>
 </screen>
   </para>
 
@@ -1813,8 +1813,8 @@ $ <userinput>kill -INT `head -1 /usr/local/pgsql/data/postmaster.pid`</userinput
 
    <para>
     These instructions assume that your existing installation is under the
-    <filename>/usr/local/pgsql</filename> directory, and that the data area is in
-    <filename>/usr/local/pgsql/data</filename>.  Substitute your paths
+    <filename>/usr/local/pgspider</filename> directory, and that the data area is in
+    <filename>/usr/local/pgspider/data</filename>.  Substitute your paths
     appropriately.
    </para>
 
@@ -1824,7 +1824,7 @@ $ <userinput>kill -INT `head -1 /usr/local/pgsql/data/postmaster.pid`</userinput
       If making a backup, make sure that your database is not being updated.
       This does not affect the integrity of the backup, but the changed
       data would of course not be included. If necessary, edit the
-      permissions in the file <filename>/usr/local/pgsql/data/pg_hba.conf</filename>
+      permissions in the file <filename>/usr/local/pgspider/data/pg_hba.conf</filename>
       (or equivalent) to disallow access from everyone except you.
       See <xref linkend="client-authentication"/> for additional information on
       access control.
@@ -1885,7 +1885,7 @@ $ <userinput>kill -INT `head -1 /usr/local/pgsql/data/postmaster.pid`</userinput
       in mind the directory might consume significant disk space.  To rename
       the directory, use a command like this:
 <screen>
-<userinput>mv /usr/local/pgsql /usr/local/pgsql.old</userinput>
+<userinput>mv /usr/local/pgspider /usr/local/pgspider.old</userinput>
 </screen>
      (Be sure to move the directory as a single unit so relative paths
      remain unchanged.)
@@ -1905,7 +1905,7 @@ $ <userinput>kill -INT `head -1 /usr/local/pgsql/data/postmaster.pid`</userinput
       execute these commands while logged in to the special database user
       account (which you already have if you are upgrading).
 <programlisting>
-<userinput>/usr/local/pgsql/bin/initdb -D /usr/local/pgsql/data</userinput>
+<userinput>/usr/local/pgspider/bin/initdb -D /usr/local/pgspider/data</userinput>
 </programlisting>
      </para>
     </step>
@@ -1922,7 +1922,7 @@ $ <userinput>kill -INT `head -1 /usr/local/pgsql/data/postmaster.pid`</userinput
       Start the database server, again using the special database user
       account:
 <programlisting>
-<userinput>/usr/local/pgsql/bin/postgres -D /usr/local/pgsql/data</userinput>
+<userinput>/usr/local/pgspider/bin/postgres -D /usr/local/pgspider/data</userinput>
 </programlisting>
      </para>
     </step>
@@ -1931,7 +1931,7 @@ $ <userinput>kill -INT `head -1 /usr/local/pgsql/data/postmaster.pid`</userinput
      <para>
       Finally, restore your data from backup with:
 <screen>
-<userinput>/usr/local/pgsql/bin/psql -d postgres -f <replaceable>outputfile</replaceable></userinput>
+<userinput>/usr/local/pgspider/bin/psql -d postgres -f <replaceable>outputfile</replaceable></userinput>
 </screen>
       using the <emphasis>new</emphasis> <application>psql</application>.
      </para>
@@ -2246,8 +2246,9 @@ pg_dumpall -p 5432 | psql -d postgres -p 5433
    If the private key is protected with a passphrase, the
    server will prompt for the passphrase and will not start until it has
    been entered.
-   Using a passphrase also disables the ability to change the server's SSL
-   configuration without a server restart.
+   Using a passphrase by default disables the ability to change the server's
+   SSL configuration without a server restart, but see <xref
+   linkend="guc-ssl-passphrase-command-supports-reload"/>.
    Furthermore, passphrase-protected private keys cannot be used at all
    on Windows.
   </para>

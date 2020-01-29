@@ -39,10 +39,10 @@
 ################################################################################
 
 # Installation prefix
-prefix="/usr/local/pgsql"
+prefix="/usr/local/pgspider"
 
 # Data directory
-PGDATA="/usr/local/pgsql/data"
+PGDATA="/usr/local/pgspider/data"
 
 # Who to run the postmaster as, usually "postgres".  (NOT "root")
 PGUSER="postgres"

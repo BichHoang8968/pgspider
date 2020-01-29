@@ -413,7 +413,7 @@ typedef struct ArrayRef
 								 * value */
 	Expr	   *refassgnexpr;	/* expression for the source value, or NULL if
 								 * fetch */
-}			ArrayRef;
+} ArrayRef;
 
 /*
  * CoercionContext - distinguishes the allowed set of type casts

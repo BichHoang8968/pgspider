@@ -1620,12 +1620,19 @@ postgresPlanForeignModify(PlannerInfo *root,
 
 	/*
 	 * In an INSERT, we transmit all columns that are defined in the foreign
-	 * table.  In an UPDATE, we transmit only columns that were explicitly
-	 * targets of the UPDATE, so as to avoid unnecessary data transmission.
-	 * (We can't do that for INSERT since we would miss sending default values
-	 * for columns not listed in the source statement.)
+	 * table.  In an UPDATE, if there are BEFORE ROW UPDATE triggers on the
+	 * foreign table, we transmit all columns like INSERT; else we transmit
+	 * only columns that were explicitly targets of the UPDATE, so as to avoid
+	 * unnecessary data transmission.  (We can't do that for INSERT since we
+	 * would miss sending default values for columns not listed in the source
+	 * statement, and for UPDATE if there are BEFORE ROW UPDATE triggers since
+	 * those triggers might change values for non-target columns, in which
+	 * case we would miss sending changed values for those columns.)
 	 */
-	if (operation == CMD_INSERT)
+	if (operation == CMD_INSERT ||
+		(operation == CMD_UPDATE &&
+		 rel->trigdesc &&
+		 rel->trigdesc->trig_update_before_row))
 	{
 		TupleDesc	tupdesc = RelationGetDescr(rel);
 		int			attnum;
@@ -2025,11 +2032,11 @@ postgresBeginForeignInsert(ModifyTableState *mtstate,
 	bool		doNothing = false;
 
 	/*
-	 * If the foreign table we are about to insert routed rows into is also an
-	 * UPDATE subplan result rel that will be updated later, proceeding with
-	 * the INSERT will result in the later UPDATE incorrectly modifying those
-	 * routed rows, so prevent the INSERT --- it would be nice if we could
-	 * handle this case; but for now, throw an error for safety.
+	 * If the foreign table we are about to insert routed rows into is also
+	 * an UPDATE subplan result rel that will be updated later, proceeding
+	 * with the INSERT will result in the later UPDATE incorrectly modifying
+	 * those routed rows, so prevent the INSERT --- it would be nice if we
+	 * could handle this case; but for now, throw an error for safety.
 	 */
 	if (plan && plan->operation == CMD_UPDATE &&
 		(resultRelInfo->ri_usesFdwDirectModify ||
@@ -2689,7 +2696,7 @@ postgresExplainDirectModify(ForeignScanState *node, ExplainState *es)
  * param_join_conds are the parameterization clauses with outer relations.
  * pathkeys specify the expected sort order if any for given path being costed.
  *
- * The function returns the cost and size estimates in p_row, p_width,
+ * The function returns the cost and size estimates in p_rows, p_width,
  * p_startup_cost and p_total_cost variables.
  */
 static void
