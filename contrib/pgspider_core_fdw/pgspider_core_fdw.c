@@ -4446,10 +4446,12 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql)
 			{
 				Datum		datum;
 				Form_pg_attribute attr = TupleDescAttr(SPI_tuptable->tupdesc, colid);
+				int typeid;
 
 				mapping = mapcells->mapping[i];
 				if (colid != mapping)
 					continue;
+				typeid = exprType((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, colid))->expr);
 
 				fdw_private->agg_value_type[colid] = attr->atttypid;
 
@@ -4459,7 +4461,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql)
 									  &isnull);
 				if (isnull)
 					fdw_private->agg_nulls[k][colid] = true;
-				else if (fdw_private->agg_value_type[colid] == NUMERICOID)
+				else if (typeid != NUMERICOID)
 				{
 					/* Convert from numeric to int8 */
 					fdw_private->agg_values[k][colid] = DirectFunctionCall1(numeric_int8, datum);
