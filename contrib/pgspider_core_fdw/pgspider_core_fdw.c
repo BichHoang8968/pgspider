@@ -4671,8 +4671,18 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 		target_column++;
 	}
 	Assert(target_column == slot->tts_tupleDescriptor->natts);
-	tuple = heap_form_tuple(slot->tts_tupleDescriptor, ret_agg_values, nulls);
-	ExecStoreHeapTuple(tuple, slot, false);
+
+	if (TTS_IS_HEAPTUPLE(slot) && ((HeapTupleTableSlot*) slot)->tuple){
+		tuple = heap_form_tuple(slot->tts_tupleDescriptor, ret_agg_values, nulls);
+		ExecStoreHeapTuple(tuple, slot, false);
+	}else{
+		slot->tts_values = ret_agg_values;
+		slot->tts_isnull = nulls;
+		/* to avoid assert failure in ExecStoreVirtualTuple, set tts_flags empty */
+		slot->tts_flags |= TTS_FLAG_EMPTY;
+		ExecStoreVirtualTuple(slot);
+	}
+
 	fdw_private->agg_num++;
 }
 
@@ -5256,7 +5266,18 @@ spd_IterateForeignScan(ForeignScanState *node)
 		if (tempSlot != NULL)
 		{
 			slot = node->ss.ss_ScanTupleSlot;
-			ExecCopySlot(slot, tempSlot);
+			if (TTS_IS_HEAPTUPLE(slot) && ((HeapTupleTableSlot*) slot)->tuple)
+			{
+				ExecCopySlot(slot, tempSlot);
+			}else
+			{
+				slot->tts_values = tempSlot->tts_values;
+				slot->tts_isnull = tempSlot->tts_isnull;
+				/* to avoid assert failure in ExecStoreVirtualTuple, set tts_flags empty */
+				slot->tts_flags |= TTS_FLAG_EMPTY;
+				ExecStoreVirtualTuple(slot);
+			}
+
 		}
 		else
 		{

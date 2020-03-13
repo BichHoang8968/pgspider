@@ -3538,7 +3538,21 @@ select count(c2) w, c2 x, 5 y, 7.0 z from ft1 group by 2, y, 9.0::int order by 2
            Remote SQL: SELECT count(c2), c2, 5, 7.0, 9 FROM "S 1"."T 1" GROUP BY 2, 3, 5
 (9 rows)
 
---select count(c2) w, c2 x, 5 y, 7.0 z from ft1 group by 2, y, 9.0::int order by 2;
+select count(c2) w, c2 x, 5 y, 7.0 z from ft1 group by 2, y, 9.0::int order by 2;
+  w  | x | y |  z  
+-----+---+---+-----
+ 100 | 0 | 5 | 7.0
+ 100 | 1 | 5 | 7.0
+ 100 | 2 | 5 | 7.0
+ 100 | 3 | 5 | 7.0
+ 100 | 4 | 5 | 7.0
+ 100 | 5 | 5 | 7.0
+ 100 | 6 | 5 | 7.0
+ 100 | 7 | 5 | 7.0
+ 100 | 8 | 5 | 7.0
+ 100 | 9 | 5 | 7.0
+(10 rows)
+
 -- GROUP BY clause referring to same column multiple times
 -- Also, ORDER BY contains an aggregate function
 explain (verbose, costs off)
@@ -3623,10 +3637,10 @@ select exists(select 1 from pg_enum), sum(c1) from ft1;
 ERROR:  invalid input syntax for type boolean: "500500"
 CONTEXT:  processing expression at position 1 in select list
 ERROR:  function sum(boolean) does not exist
-LINE 1: SELECT SUM(col0),SUM(col1) FROM __spd__temptable_9 
+LINE 1: SELECT SUM(col0),SUM(col1) FROM __spd__temptable_10 
                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-QUERY:  SELECT SUM(col0),SUM(col1) FROM __spd__temptable_9 
+QUERY:  SELECT SUM(col0),SUM(col1) FROM __spd__temptable_10 
 explain (verbose, costs off)
 select exists(select 1 from pg_enum), sum(c1) from ft1 group by 1;
                      QUERY PLAN                      
