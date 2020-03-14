@@ -4407,12 +4407,12 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 				 */
 				if (child_typid == DATEOID || child_typid == TEXTOID ||
 					child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID ||
-					child_typid == INT4ARRAYOID)
+					child_typid == INT4ARRAYOID || child_typid == TIMESTAMPARRAYOID)
 					appendStringInfo(sql, "'");
 				appendStringInfo(sql, "%s", value);
 				if (child_typid == DATEOID || child_typid == TEXTOID ||
 					child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID ||
-					child_typid == INT4ARRAYOID)
+					child_typid == INT4ARRAYOID || child_typid == TIMESTAMPARRAYOID)
 					appendStringInfo(sql, "'");
 			}
 			colid++;
@@ -4907,6 +4907,8 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 					appendStringInfo(create_sql, " boolean");
 				else if (typeid == INT4ARRAYOID)
 					appendStringInfo(create_sql, " integer[]");
+				else if (typeid == TIMESTAMPARRAYOID)
+					appendStringInfo(create_sql, " text[]");
 				/* TODO: numeric may be incorrect for some typeid */
 				else
 					appendStringInfo(create_sql, " numeric");

@@ -780,7 +780,7 @@ select array_agg(c1 order by c1) from ft1 where c1 < 100 group by c2 order by 1;
 -- ORDER BY within aggregate, different column used to order also using DESC
 explain (verbose, costs off)
 select array_agg(c5 order by c1 desc) from ft2 where c2 = 6 and c1 < 50;
---select array_agg(c5 order by c1 desc) from ft2 where c2 = 6 and c1 < 50;
+select array_agg(c5 order by c1 desc) from ft2 where c2 = 6 and c1 < 50;
 
 -- DISTINCT within aggregate
 explain (verbose, costs off)

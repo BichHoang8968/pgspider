@@ -3707,7 +3707,12 @@ select array_agg(c5 order by c1 desc) from ft2 where c2 = 6 and c1 < 50;
      Remote SQL: SELECT array_agg(c5 ORDER BY "C 1" DESC NULLS FIRST) FROM "S 1"."T 1" WHERE (("C 1" < 50)) AND ((c2 = 6))
 (6 rows)
 
---select array_agg(c5 order by c1 desc) from ft2 where c2 = 6 and c1 < 50;
+select array_agg(c5 order by c1 desc) from ft2 where c2 = 6 and c1 < 50;
+                                                                 array_agg                                                                  
+--------------------------------------------------------------------------------------------------------------------------------------------
+ {{"Mon Feb 16 00:00:00 1970","Fri Feb 06 00:00:00 1970","Tue Jan 27 00:00:00 1970","Sat Jan 17 00:00:00 1970","Wed Jan 07 00:00:00 1970"}}
+(1 row)
+
 -- DISTINCT within aggregate
 explain (verbose, costs off)
 select array_agg(distinct (t1.c1)%5) from ft4 t1 full join ft5 t2 on (t1.c1 = t2.c1) where t1.c1 < 20 or (t1.c1 is null and t2.c1 < 5) group by (t2.c1)%3 order by 1;
