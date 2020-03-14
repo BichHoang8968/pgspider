@@ -775,7 +775,7 @@ select exists(select 1 from pg_enum), sum(c1) from ft1 group by 1;
 -- ORDER BY within aggregate, same column used to order
 explain (verbose, costs off)
 select array_agg(c1 order by c1) from ft1 where c1 < 100 group by c2 order by 1;
---select array_agg(c1 order by c1) from ft1 where c1 < 100 group by c2 order by 1;
+select array_agg(c1 order by c1) from ft1 where c1 < 100 group by c2 order by 1;
 
 -- ORDER BY within aggregate, different column used to order also using DESC
 explain (verbose, costs off)

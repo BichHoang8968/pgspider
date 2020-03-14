@@ -4401,10 +4401,18 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 					else
 						value = "false";
 				}
-				if (child_typid == DATEOID || child_typid == TEXTOID || child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID)
+				/*
+				 * TODO: the following maybe missing some child_typid cases,
+				 *       it need to be added later
+				 */
+				if (child_typid == DATEOID || child_typid == TEXTOID ||
+					child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID ||
+					child_typid == INT4ARRAYOID)
 					appendStringInfo(sql, "'");
 				appendStringInfo(sql, "%s", value);
-				if (child_typid == DATEOID || child_typid == TEXTOID || child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID)
+				if (child_typid == DATEOID || child_typid == TEXTOID ||
+					child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID ||
+					child_typid == INT4ARRAYOID)
 					appendStringInfo(sql, "'");
 			}
 			colid++;
@@ -4759,7 +4767,8 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 					else if (!pg_strcasecmp(agg_command, "MAX") || !pg_strcasecmp(agg_command, "MIN") ||
 							 !pg_strcasecmp(agg_command, "BIT_OR") || !pg_strcasecmp(agg_command, "BIT_AND") ||
 							 !pg_strcasecmp(agg_command, "BOOL_AND") || !pg_strcasecmp(agg_command, "BOOL_OR") ||
-							 !pg_strcasecmp(agg_command, "EVERY") || !pg_strcasecmp(agg_command, "STRING_AGG"))
+							 !pg_strcasecmp(agg_command, "EVERY") || !pg_strcasecmp(agg_command, "STRING_AGG") ||
+							 !pg_strcasecmp(agg_command, "ARRAY_AGG"))
 						appendStringInfo(sql, "%s(col%d)", agg_command, max_col);
 
 					/*
@@ -4896,6 +4905,9 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 					appendStringInfo(create_sql, " timestamp with time zone");
 				else if (typeid == BOOLOID)
 					appendStringInfo(create_sql, " boolean");
+				else if (typeid == INT4ARRAYOID)
+					appendStringInfo(create_sql, " integer[]");
+				/* TODO: numeric may be incorrect for some typeid */
 				else
 					appendStringInfo(create_sql, " numeric");
 				colid++;
