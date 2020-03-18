@@ -1249,7 +1249,7 @@ spd_spi_exec_datasouce_num(Oid foreigntableid, int *nums, Oid **oid)
 	 * Foreigntableid is parent table oid.
 	 */
 
-	sprintf(query, "SELECT oid,relname FROM pg_class WHERE relname LIKE (SELECT relname FROM pg_class WHERE oid = %d)||'\\_\\_%%' ORDER BY relname;", foreigntableid);
+	sprintf(query, "SELECT oid,relname FROM pg_class WHERE relname LIKE (SELECT relname FROM pg_class WHERE oid = %d)||'\\_\\_%%0' ORDER BY relname;", foreigntableid);
 
 	ret = SPI_execute(query, true, 0);
 	if (ret != SPI_OK_SELECT)
