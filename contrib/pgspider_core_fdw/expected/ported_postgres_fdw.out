@@ -7256,7 +7256,14 @@ select dblink_exec('insert into loc1_1(f2) values(''bye'');');
 
 insert into rem1__postgres_srv__0(f2) values('bye remote');
 select * from rem1;
-ERROR:  error SPIexecute can not find datasource
+ f1 |     f2     |   __spd_url    
+----+------------+----------------
+  1 | hi         | /postgres_srv/
+ 10 | hi remote  | /postgres_srv/
+  2 | bye        | /postgres_srv/
+ 11 | bye remote | /postgres_srv/
+(4 rows)
+
 select * from rem1__postgres_srv__0;
  f1 |     f2     
 ----+------------
@@ -7456,7 +7463,11 @@ FOR EACH ROW EXECUTE PROCEDURE trig_row_before_insupdate();
 -- The new values should have 'triggered' appended
 INSERT INTO rem1__postgres_srv__0 values(1, 'insert');
 SELECT * from rem1;
-ERROR:  error SPIexecute can not find datasource
+ f1 |         f2         |   __spd_url    
+----+--------------------+----------------
+  1 | insert triggered ! | /postgres_srv/
+(1 row)
+
 INSERT INTO rem1__postgres_srv__0 values(2, 'insert') RETURNING f2;
          f2         
 --------------------
@@ -7464,10 +7475,20 @@ INSERT INTO rem1__postgres_srv__0 values(2, 'insert') RETURNING f2;
 (1 row)
 
 SELECT * from rem1;
-ERROR:  error SPIexecute can not find datasource
+ f1 |         f2         |   __spd_url    
+----+--------------------+----------------
+  1 | insert triggered ! | /postgres_srv/
+  2 | insert triggered ! | /postgres_srv/
+(2 rows)
+
 UPDATE rem1__postgres_srv__0 set f2 = '';
 SELECT * from rem1;
-ERROR:  error SPIexecute can not find datasource
+ f1 |      f2      |   __spd_url    
+----+--------------+----------------
+  1 |  triggered ! | /postgres_srv/
+  2 |  triggered ! | /postgres_srv/
+(2 rows)
+
 UPDATE rem1__postgres_srv__0 set f2 = 'skidoo' RETURNING f2;
          f2         
 --------------------
@@ -7476,7 +7497,12 @@ UPDATE rem1__postgres_srv__0 set f2 = 'skidoo' RETURNING f2;
 (2 rows)
 
 SELECT * from rem1;
-ERROR:  error SPIexecute can not find datasource
+ f1 |         f2         |   __spd_url    
+----+--------------------+----------------
+  1 | skidoo triggered ! | /postgres_srv/
+  2 | skidoo triggered ! | /postgres_srv/
+(2 rows)
+
 EXPLAIN (verbose, costs off)
 UPDATE rem1__postgres_srv__0 set f1 = 10;          -- all columns should be transmitted
                                QUERY PLAN                                
@@ -7490,7 +7516,12 @@ UPDATE rem1__postgres_srv__0 set f1 = 10;          -- all columns should be tran
 
 UPDATE rem1__postgres_srv__0 set f1 = 10;
 SELECT * from rem1;
-ERROR:  error SPIexecute can not find datasource
+ f1 |               f2               |   __spd_url    
+----+--------------------------------+----------------
+ 10 | skidoo triggered ! triggered ! | /postgres_srv/
+ 10 | skidoo triggered ! triggered ! | /postgres_srv/
+(2 rows)
+
 DELETE FROM rem1__postgres_srv__0;
 -- Add a second trigger, to check that the changes are propagated correctly
 -- from trigger to trigger
@@ -7499,7 +7530,11 @@ BEFORE INSERT OR UPDATE ON rem1__postgres_srv__0
 FOR EACH ROW EXECUTE PROCEDURE trig_row_before_insupdate();
 INSERT INTO rem1__postgres_srv__0 values(1, 'insert');
 SELECT * from rem1;
-ERROR:  error SPIexecute can not find datasource
+ f1 |               f2               |   __spd_url    
+----+--------------------------------+----------------
+  1 | insert triggered ! triggered ! | /postgres_srv/
+(1 row)
+
 INSERT INTO rem1__postgres_srv__0 values(2, 'insert') RETURNING f2;
                f2               
 --------------------------------
@@ -7507,10 +7542,20 @@ INSERT INTO rem1__postgres_srv__0 values(2, 'insert') RETURNING f2;
 (1 row)
 
 SELECT * from rem1;
-ERROR:  error SPIexecute can not find datasource
+ f1 |               f2               |   __spd_url    
+----+--------------------------------+----------------
+  1 | insert triggered ! triggered ! | /postgres_srv/
+  2 | insert triggered ! triggered ! | /postgres_srv/
+(2 rows)
+
 UPDATE rem1__postgres_srv__0 set f2 = '';
 SELECT * from rem1;
-ERROR:  error SPIexecute can not find datasource
+ f1 |            f2            |   __spd_url    
+----+--------------------------+----------------
+  1 |  triggered ! triggered ! | /postgres_srv/
+  2 |  triggered ! triggered ! | /postgres_srv/
+(2 rows)
+
 UPDATE rem1__postgres_srv__0 set f2 = 'skidoo' RETURNING f2;
                f2               
 --------------------------------
@@ -7519,7 +7564,12 @@ UPDATE rem1__postgres_srv__0 set f2 = 'skidoo' RETURNING f2;
 (2 rows)
 
 SELECT * from rem1;
-ERROR:  error SPIexecute can not find datasource
+ f1 |               f2               |   __spd_url    
+----+--------------------------------+----------------
+  1 | skidoo triggered ! triggered ! | /postgres_srv/
+  2 | skidoo triggered ! triggered ! | /postgres_srv/
+(2 rows)
+
 DROP TRIGGER trig_row_before_insupd ON rem1__postgres_srv__0;
 DROP TRIGGER trig_row_before_insupd2 ON rem1__postgres_srv__0;
 DELETE from rem1__postgres_srv__0;
@@ -7536,13 +7586,25 @@ FOR EACH ROW EXECUTE PROCEDURE trig_null();
 -- Nothing should have changed.
 INSERT INTO rem1__postgres_srv__0 VALUES (2, 'test2');
 SELECT * from rem1;
-ERROR:  error SPIexecute can not find datasource
+ f1 |  f2  |   __spd_url    
+----+------+----------------
+  1 | test | /postgres_srv/
+(1 row)
+
 UPDATE rem1__postgres_srv__0 SET f2 = 'test2';
 SELECT * from rem1;
-ERROR:  error SPIexecute can not find datasource
+ f1 |  f2  |   __spd_url    
+----+------+----------------
+  1 | test | /postgres_srv/
+(1 row)
+
 DELETE from rem1__postgres_srv__0;
 SELECT * from rem1;
-ERROR:  error SPIexecute can not find datasource
+ f1 |  f2  |   __spd_url    
+----+------+----------------
+  1 | test | /postgres_srv/
+(1 row)
+
 DROP TRIGGER trig_null ON rem1__postgres_srv__0;
 DELETE from rem1__postgres_srv__0;
 -- Test a combination of local and remote triggers
