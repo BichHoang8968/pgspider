@@ -2925,9 +2925,20 @@ SELECT t1."C 1" FROM "S 1"."T 1" t1, LATERAL (SELECT DISTINCT t2.c1, t3.c1 FROM 
 (23 rows)
 
 SELECT t1."C 1" FROM "S 1"."T 1" t1, LATERAL (SELECT DISTINCT t2.c1, t3.c1 FROM ft1 t2, ft2 t3 WHERE t2.c1 = t3.c1 AND t2.c2 = t1.c2) q ORDER BY t1."C 1" OFFSET 10 LIMIT 10;
-ERROR:  bind message supplies 0 parameters, but prepared statement "" requires 1
-CONTEXT:  remote SQL command: SELECT "C 1", c2 FROM "S 1"."T 1" WHERE ((c2 = $1::integer))
-ERROR:  PGSpider can not get data from child node : postgres_srv
+ C 1 
+-----
+   1
+   1
+   1
+   1
+   1
+   1
+   1
+   1
+   1
+   1
+(10 rows)
+
 -- non-Var items in targetlist of the nullable rel of a join preventing
 -- push-down in some cases
 -- unable to push {ft1, ft2}
@@ -3932,7 +3943,13 @@ select distinct (select count(t1.c1) filter (where t2.c2 = 6 and t2.c1 < 10) fro
                          Remote SQL: SELECT count("C 1") FILTER (WHERE (($1::integer = 6) AND ($2::integer < 10))) FROM "S 1"."T 1" WHERE (("C 1" = 6))
 (16 rows)
 
---select distinct (select count(t1.c1) filter (where t2.c2 = 6 and t2.c1 < 10) from ft1 t1 where t1.c1 = 6) from ft2 t2 where t2.c2 % 6 = 0 order by 1;
+select distinct (select count(t1.c1) filter (where t2.c2 = 6 and t2.c1 < 10) from ft1 t1 where t1.c1 = 6) from ft2 t2 where t2.c2 % 6 = 0 order by 1;
+ count 
+-------
+     0
+      
+(2 rows)
+
 -- Aggregate not pushed down as FILTER condition is not pushable
 explain (verbose, costs off)
 select sum(c1) filter (where (c1 / c1) * random() <= 1) from ft1 group by c2 order by 1;
@@ -4390,7 +4407,12 @@ select c2, sum from "S 1"."T 1" t1, lateral (select sum(t2.c1 + t1."C 1") sum fr
                        Remote SQL: SELECT sum(("C 1" + $1::integer)), "C 1" FROM "S 1"."T 1" GROUP BY 2
 (17 rows)
 
---select c2, sum from "S 1"."T 1" t1, lateral (select sum(t2.c1 + t1."C 1") sum from ft2 t2 group by t2.c1) qry where t1.c2 * 2 = qry.sum and t1.c2 < 3 and t1."C 1" < 100 order by 1;
+select c2, sum from "S 1"."T 1" t1, lateral (select sum(t2.c1 + t1."C 1") sum from ft2 t2 group by t2.c1) qry where t1.c2 * 2 = qry.sum and t1.c2 < 3 and t1."C 1" < 100 order by 1;
+ c2 | sum 
+----+-----
+  1 |   2
+(1 row)
+
 reset enable_hashagg;
 -- bug #15613: bad plan for foreign table scan with lateral reference
 EXPLAIN (VERBOSE, COSTS OFF)
@@ -4936,9 +4958,11 @@ EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st5('foo', 1);
 (5 rows)
 
 EXECUTE st5('foo', 1);
-ERROR:  bind message supplies 0 parameters, but prepared statement "" requires 1
-CONTEXT:  remote SQL command: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" = $1::integer))
-ERROR:  PGSpider can not get data from child node : postgres_srv
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
+----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
+  1 |  1 | 00001 | Fri Jan 02 00:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
+(1 row)
+
 -- altering FDW options requires replanning
 PREPARE st6 AS SELECT * FROM ft1 t1 WHERE t1.c1 = t1.c2;
 EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st6;

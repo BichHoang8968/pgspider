@@ -36,6 +36,7 @@ PG_MODULE_MAGIC;
 #include "executor/executor.h"
 #include "executor/spi.h"
 #include "executor/nodeAgg.h"
+#include "executor/nodeSubplan.h"
 #include "miscadmin.h"
 #include "nodes/execnodes.h"
 #include "nodes/nodeFuncs.h"
@@ -317,6 +318,7 @@ typedef struct SpdFdwPrivate
 	char	   *temp_table_name;	/* name of temp table */
 	bool		is_explain;		/* explain or not */
 	MemoryContext es_query_cxt; /* temporary context */
+	pthread_rwlock_t scan_mutex;
 }			SpdFdwPrivate;
 
 typedef struct SpdFdwModifyState
@@ -1548,7 +1550,7 @@ spd_ForeignScan_thread(void *arg)
 	fssthrdInfo->state = SPD_FS_STATE_BEGIN;
 	PG_TRY();
 	{
-		SPD_READ_LOCK_TRY(&scan_mutex);
+		SPD_READ_LOCK_TRY(&fdw_private->scan_mutex);
 
 		/*
 		 * If Aggregation does not push down, then BeginForeignScan execute in
@@ -1559,7 +1561,7 @@ spd_ForeignScan_thread(void *arg)
 			fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
 													  fssthrdInfo->eflags);
 		}
-		SPD_RWUNLOCK_CATCH(&scan_mutex);
+		SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 
 #ifdef MEASURE_TIME
 		gettimeofday(&e, NULL);
@@ -1589,9 +1591,9 @@ RESCAN:
 	if (fssthrdInfo->requestRescan &&
 		fssthrdInfo->state != SPD_FS_STATE_BEGIN)
 	{
-		SPD_READ_LOCK_TRY(&scan_mutex);
+		SPD_READ_LOCK_TRY(&fdw_private->scan_mutex);
 		fssthrdInfo->fdwroutine->ReScanForeignScan(fssthrdInfo->fsstate);
-		SPD_RWUNLOCK_CATCH(&scan_mutex);
+		SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 
 		fssthrdInfo->requestRescan = false;
 	}
@@ -1599,9 +1601,9 @@ RESCAN:
 
 	if (list_member_oid(fdw_private->pPseudoAggList, fssthrdInfo->serverId))
 	{
-		SPD_WRITE_LOCK_TRY(&scan_mutex);
+		SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex);
 		result = ExecInitNode((Plan *) fdw_private->childinfo[fssthrdInfo->childInfoIndex].pAgg, fssthrdInfo->fsstate->ss.ps.state, 0);
-		SPD_RWUNLOCK_CATCH(&scan_mutex);
+		SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 	}
 	PG_TRY();
 	{
@@ -1668,9 +1670,9 @@ RESCAN:
 				 * Retreives aggregated value tuple from inlying non pushdown
 				 * source
 				 */
-				SPD_READ_LOCK_TRY(&scan_mutex);
+				SPD_READ_LOCK_TRY(&fdw_private->scan_mutex);
 				slot = SPI_execAgg((AggState *) result);
-				SPD_RWUNLOCK_CATCH(&scan_mutex);
+				SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 
 				/*
 				 * need deep copy when adding slot to queue because
@@ -1681,9 +1683,9 @@ RESCAN:
 			}
 			else
 			{
-				SPD_READ_LOCK_TRY(&scan_mutex);
+				SPD_READ_LOCK_TRY(&fdw_private->scan_mutex);
 				slot = fssthrdInfo->fdwroutine->IterateForeignScan(fssthrdInfo->fsstate);
-				SPD_RWUNLOCK_CATCH(&scan_mutex);
+				SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 
 				deepcopy = true;
 
@@ -1776,11 +1778,11 @@ RESCAN:
 			{
 				/* End of the ForeignScan */
 				fssthrdInfo->state = SPD_FS_STATE_END;
-				SPD_READ_LOCK_TRY(&scan_mutex);
+				SPD_READ_LOCK_TRY(&fdw_private->scan_mutex);
 				if (!list_member_oid(fdw_private->pPseudoAggList,
 									 fssthrdInfo->serverId))
 					fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
-				SPD_RWUNLOCK_CATCH(&scan_mutex);
+				SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 				fssthrdInfo->requestEndScan = false;
 				break;
 			}
@@ -2634,6 +2636,8 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	fdw_private->rinfo.lower_subquery_rels = NULL;
 	/* Set the relation index. */
 	fdw_private->rinfo.relation_index = baserel->relid;
+	/* Init mutex */
+	pthread_rwlock_init(&fdw_private->scan_mutex, 0);
 }
 
 /**
@@ -4059,6 +4063,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		int			natts;
 		TupleDesc	tupledesc;
 		bool		skiplast;
+		int			numParams;
 
 		/*
 		 * check child table node is dead or alive. Execute(Create child
@@ -4091,11 +4096,27 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		}
 		fsplan = (ForeignScan *) fssThrdInfo[node_incr].fsstate->ss.ps.plan;
 		fsplan->fdw_private = ((ForeignScan *) childinfo[i].plan)->fdw_private;
+		fsplan->fdw_exprs = ((ForeignScan *) childinfo[i].plan)->fdw_exprs;
 
 		/* Create and initialize EState */
 		fssThrdInfo[node_incr].fsstate->ss.ps.state = CreateExecutorState();
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_top_eflags = eflags;
 
+		/* Init external params */
+		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_param_list_info =
+				copyParamList(estate->es_param_list_info);
+
+		/*
+		 * For init internal params, allocate memory for exec vals.
+		 * It will be used to init exec plan of subquery
+		 * and store returned result of subquery
+		 */
+		if (estate->es_plannedstmt->paramExecTypes != NULL) {
+			numParams = list_length(estate->es_plannedstmt->paramExecTypes);
+			fssThrdInfo[node_incr].fsstate->ss.ps.state->es_param_exec_vals =
+					(ParamExecData *) palloc0(
+							numParams * sizeof(ParamExecData));
+		}
 		/* This should be a new RTE list. coming from dummy rtable */
 		query = ((PlannerInfo *) childinfo[i].root)->parse;
 
@@ -4314,11 +4335,11 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
  */
 
 static void
-spd_spi_ddl_table(char *query)
+spd_spi_ddl_table(char *query, SpdFdwPrivate *fdw_private)
 {
 	int			ret;
 
-	SPD_WRITE_LOCK_TRY(&scan_mutex);
+	SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex);
 	ret = SPI_connect();
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
@@ -4329,7 +4350,7 @@ spd_spi_ddl_table(char *query)
 		elog(ERROR, "execute spi CREATE TEMP TABLE failed %d", ret);
 	}
 	SPI_finish();
-	SPD_RWUNLOCK_CATCH(&scan_mutex);
+	SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 }
 
 /**
@@ -4352,7 +4373,7 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 	List	   *mapping_tlist;
 	ListCell   *lc;
 
-	SPD_WRITE_LOCK_TRY(&scan_mutex);
+	SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex);
 	ret = SPI_connect();
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
@@ -4425,7 +4446,7 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 		elog(ERROR, "execute spi INSERT TEMP TABLE failed ");
 	SPI_finish();
 
-	SPD_RWUNLOCK_CATCH(&scan_mutex);
+	SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 
 }
 
@@ -4451,7 +4472,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql)
 	Mappingcells *mapcells;
 	ListCell   *lc;
 
-	SPD_WRITE_LOCK_TRY(&scan_mutex);
+	SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex);
 	ret = SPI_connect();
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
@@ -4531,7 +4552,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql)
 	MemoryContextSwitchTo(oldcontext);
 	SPI_finish();
 end:;
-	SPD_RWUNLOCK_CATCH(&scan_mutex);
+	SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 }
 
 /**
@@ -5230,7 +5251,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 
 			spd_createtable_sql(create_sql, mapping_tlist,
 								fdw_private->temp_table_name, fdw_private);
-			spd_spi_ddl_table(create_sql->data);
+			spd_spi_ddl_table(create_sql->data, fdw_private);
 			fdw_private->is_drop_temp_table = false;
 
 			/*
@@ -5299,7 +5320,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 			 * If all tuple getting is finished, then return NULL and drop
 			 * table
 			 */
-			spd_spi_ddl_table(psprintf("DROP TABLE %s", fdw_private->temp_table_name));
+			spd_spi_ddl_table(psprintf("DROP TABLE %s", fdw_private->temp_table_name), fdw_private);
 			fdw_private->isFirst = true;
 			fdw_private->is_drop_temp_table = true;
 		}
@@ -5406,7 +5427,7 @@ spd_EndForeignScan(ForeignScanState *node)
 	{
 		if (fdw_private->is_drop_temp_table == false && fdw_private->temp_table_name != NULL)
 		{
-			spd_spi_ddl_table(psprintf("DROP TABLE IF EXISTS %s", fdw_private->temp_table_name));
+			spd_spi_ddl_table(psprintf("DROP TABLE IF EXISTS %s", fdw_private->temp_table_name), fdw_private);
 		}
 		for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 		{
