@@ -6,16 +6,9 @@ CREATE EXTENSION postgres_fdw;
 CREATE EXTENSION pgspider_core_fdw;
 CREATE EXTENSION dblink;
 
+-- we use dblink to support insert data during test is in progress in some test cases
 select dblink_connect('dbname=postdb host=127.0.0.1 
 	port=15432 user=postgres password=postgres');
-
---select dblink_exec('CREATE EXTENSION postgres_fdw;');
---select dblink_exec('CREATE SERVER postgres_srv FOREIGN DATA WRAPPER postgres_fdw
---            OPTIONS (host ''127.0.0.1'',
---                    port ''15432'',
---                     dbname ''postdb'');');
---select dblink_exec('CREATE USER MAPPING FOR public SERVER postgres_srv
---	OPTIONS (user ''postgres'', password ''postgres'');');
 
 CREATE SERVER pgspider_srv FOREIGN DATA WRAPPER pgspider_core_fdw;
 DO $d$
@@ -288,7 +281,7 @@ SELECT c3, c4 FROM ft1 ORDER BY c3, c1 LIMIT 1;  -- should work again
 -- Now we should be able to run ANALYZE.
 -- To exercise multiple code paths, we use local stats on ft1
 -- and remote-estimate mode on ft2.
-ANALYZE ft1;
+--ANALYZE ft1;
 ALTER FOREIGN TABLE ft2 OPTIONS (use_remote_estimate 'true');
 
 -- ===================================================================
@@ -638,13 +631,8 @@ SELECT ft5, ft5.c1, ft5.c2, ft5.c3, ft4.c1, ft4.c2 FROM ft5 left join ft4 on ft5
 
 -- multi-way join involving multiple merge joins
 -- (this case used to have EPQ-related planning problems)
----CREATE TABLE local_tbl (c1 int NOT NULL, c2 int NOT NULL, c3 text, CONSTRAINT local_tbl_pkey PRIMARY KEY (c1));
----INSERT INTO local_tbl SELECT id, id % 10, to_char(id, 'FM0000') FROM generate_series(1, 1000) id;
-CREATE FOREIGN TABLE local_tbl (c1 int NOT NULL, c2 int NOT NULL, c3 text, __spd_url text)
-    SERVER pgspider_srv;
-CREATE FOREIGN TABLE local_tbl__postgres_srv__0 (c1 int NOT NULL, c2 int NOT NULL, c3 text)
-    SERVER postgres_srv OPTIONS(table_name 'local_tbl');
-INSERT INTO local_tbl__postgres_srv__0 SELECT id, id % 10, to_char(id, 'FM0000') FROM generate_series(1, 1000) id;
+CREATE TABLE local_tbl (c1 int NOT NULL, c2 int NOT NULL, c3 text, CONSTRAINT local_tbl_pkey PRIMARY KEY (c1));
+INSERT INTO local_tbl SELECT id, id % 10, to_char(id, 'FM0000') FROM generate_series(1, 1000) id;
 ANALYZE local_tbl;
 SET enable_nestloop TO false;
 SET enable_hashjoin TO false;
@@ -655,8 +643,7 @@ SELECT * FROM ft1, ft2, ft4, ft5, local_tbl WHERE ft1.c1 = ft2.c1 AND ft1.c2 = f
     AND ft1.c2 = ft5.c1 AND ft1.c2 = local_tbl.c1 AND ft1.c1 < 100 AND ft2.c1 < 100 FOR UPDATE;
 RESET enable_nestloop;
 RESET enable_hashjoin;
-DROP FOREIGN TABLE local_tbl;
-DROP FOREIGN TABLE local_tbl__postgres_srv__0;
+DROP TABLE local_tbl;
 
 -- check join pushdown in situations where multiple userids are involved
 CREATE ROLE regress_view_owner SUPERUSER;
@@ -1175,7 +1162,6 @@ COMMIT;
 -- ===================================================================
 -- test handling of collations
 -- ===================================================================
----create table loct3 (f1 text collate "C" unique, f2 text, f3 varchar(10) unique);
 create foreign table ft3 (f1 text collate "C", f2 text, f3 varchar(10), __spd_url text)
   server pgspider_srv;
 create foreign table ft3__postgres_srv__0 (f1 text collate "C", f2 text, f3 varchar(10))
@@ -1404,8 +1390,6 @@ ALTER FOREIGN TABLE ft1 DROP CONSTRAINT ft1_c2negative;
 
 CREATE FUNCTION row_before_insupd_trigfunc() RETURNS trigger AS $$BEGIN NEW.a := NEW.a + 10; RETURN NEW; END$$ LANGUAGE plpgsql;
 
----CREATE TABLE base_tbl (a int, b int);
----ALTER TABLE base_tbl SET (autovacuum_enabled = 'false');
 SELECT dblink_exec('CREATE TRIGGER row_before_insupd_trigger BEFORE INSERT OR UPDATE ON base_tbl
   FOR EACH ROW EXECUTE PROCEDURE row_before_insupd_trigfunc();');
 CREATE FOREIGN TABLE foreign_tbl (a int, b int, __spd_url text)
@@ -1439,15 +1423,13 @@ SELECT dblink_exec('DROP TABLE base_tbl;');
 
 -- test WCO for partitions
 
---CREATE TABLE child_tbl (a int, b int);
---ALTER TABLE child_tbl SET (autovacuum_enabled = 'false');
---CREATE TRIGGER row_before_insupd_trigger BEFORE INSERT OR UPDATE ON child_tbl FOR EACH ROW EXECUTE PROCEDURE row_before_insupd_trigfunc();
+SELECT dblink_exec('CREATE TRIGGER row_before_insupd_trigger BEFORE INSERT OR UPDATE ON child_tbl FOR EACH ROW EXECUTE PROCEDURE row_before_insupd_trigfunc();');
 CREATE FOREIGN TABLE foreign_tbl (a int, b int, __spd_url text)
   SERVER pgspider_srv;
 CREATE FOREIGN TABLE foreign_tbl__postgres_srv__0 (a int, b int)
   SERVER postgres_srv OPTIONS(table_name 'child_tbl');
 
-CREATE TABLE parent_tbl (a int, b int, __spd_url text) PARTITION BY RANGE(a);
+CREATE TABLE parent_tbl (a int, b int) PARTITION BY RANGE(a);
 ALTER TABLE parent_tbl ATTACH PARTITION foreign_tbl FOR VALUES FROM (0) TO (100);
 
 CREATE VIEW rw_view AS SELECT * FROM parent_tbl
@@ -1472,16 +1454,14 @@ CREATE VIEW rw_view AS SELECT * FROM parent_tbl
 
 DROP FOREIGN TABLE foreign_tbl CASCADE;
 DROP FOREIGN TABLE foreign_tbl__postgres_srv__0 CASCADE;
---DROP TRIGGER row_before_insupd_trigger ON child_tbl;
---DROP TABLE parent_tbl CASCADE;
+SELECT dblink_exec('DROP TRIGGER row_before_insupd_trigger ON child_tbl;');
+DROP TABLE parent_tbl CASCADE;;
 
 DROP FUNCTION row_before_insupd_trigfunc;
 
 -- ===================================================================
 -- test serial columns (ie, sequence-based defaults)
 -- ===================================================================
----create table loc1 (f1 serial, f2 text);
----alter table loc1 set (autovacuum_enabled = 'false');
 create foreign table rem1 (f1 serial, f2 text, __spd_url text)
   server pgspider_srv;
 create foreign table rem1__postgres_srv__0 (f1 serial, f2 text)
@@ -1497,8 +1477,6 @@ select * from rem1__postgres_srv__0;
 -- ===================================================================
 -- test generated columns
 -- ===================================================================
----create table gloc1 (a int, b int);
----alter table gloc1 set (autovacuum_enabled = 'false');
 create foreign table grem1 (
   a int,
   b int generated always as (a * 2) stored,
@@ -1508,11 +1486,8 @@ create foreign table grem1__postgres_srv__0 (
   a int,
   b int generated always as (a * 2) stored)
   server postgres_srv options(table_name 'gloc1');
----insert into grem1 (a) values (1), (2);
----update grem1 set a = 22 where a = 2;
 insert into grem1__postgres_srv__0 (a) values (1), (2);
 update grem1__postgres_srv__0 set a = 22 where a = 2;
----select * from gloc1;
 select * from grem1;
 
 -- ===================================================================
@@ -1824,23 +1799,15 @@ DROP TRIGGER trig_row_after_delete ON rem1__postgres_srv__0;
 -- test inheritance features
 -- ===================================================================
 
--- CREATE TABLE a (aa TEXT);
--- CREATE TABLE loct (aa TEXT, bb TEXT);
--- ALTER TABLE a SET (autovacuum_enabled = 'false');
--- ALTER TABLE loct SET (autovacuum_enabled = 'false');
-CREATE FOREIGN TABLE a (aa TEXT)
+CREATE TABLE a (aa TEXT);
+CREATE FOREIGN TABLE b (aa TEXT, bb TEXT, __spd_url TEXT)
   SERVER pgspider_srv;
-CREATE FOREIGN TABLE a__postgres_srv__0 (aa TEXT)
-  SERVER postgres_srv OPTIONS (table_name 'a');
-CREATE FOREIGN TABLE b (bb TEXT) INHERITS (a)
-  SERVER pgspider_srv;
-ALTER FOREIGN TABLE a ADD COLUMN __spd_url TEXT;
-CREATE FOREIGN TABLE b__postgres_srv__0 (bb TEXT) INHERITS (a__postgres_srv__0)
+CREATE FOREIGN TABLE b__postgres_srv__0 (bb TEXT) INHERITS (a)
   SERVER postgres_srv OPTIONS (table_name 'loct_1');
 
-INSERT INTO a__postgres_srv__0(aa) VALUES('aaa');
-INSERT INTO a__postgres_srv__0(aa) VALUES('aaaa');
-INSERT INTO a__postgres_srv__0(aa) VALUES('aaaaa');
+INSERT INTO a(aa) VALUES('aaa');
+INSERT INTO a(aa) VALUES('aaaa');
+INSERT INTO a(aa) VALUES('aaaaa');
 
 INSERT INTO b__postgres_srv__0(aa) VALUES('bbb');
 INSERT INTO b__postgres_srv__0(aa) VALUES('bbbb');
@@ -1850,7 +1817,7 @@ SELECT tableoid::regclass, * FROM a;
 SELECT tableoid::regclass, * FROM b;
 SELECT tableoid::regclass, * FROM ONLY a;
 
-UPDATE a__postgres_srv__0 SET aa = 'zzzzzz' WHERE aa LIKE 'aaaa%';
+UPDATE a SET aa = 'zzzzzz' WHERE aa LIKE 'aaaa%';
 
 SELECT tableoid::regclass, * FROM a;
 SELECT tableoid::regclass, * FROM b;
@@ -1862,114 +1829,87 @@ SELECT tableoid::regclass, * FROM a;
 SELECT tableoid::regclass, * FROM b;
 SELECT tableoid::regclass, * FROM ONLY a;
 
-UPDATE a__postgres_srv__0 SET aa = 'newtoo';
+UPDATE a SET aa = 'newtoo';
 
 SELECT tableoid::regclass, * FROM a;
 SELECT tableoid::regclass, * FROM b;
 SELECT tableoid::regclass, * FROM ONLY a;
 
-DELETE FROM a__postgres_srv__0;
+DELETE FROM a;
 
 SELECT tableoid::regclass, * FROM a;
 SELECT tableoid::regclass, * FROM b;
 SELECT tableoid::regclass, * FROM ONLY a;
 
-DROP FOREIGN TABLE a CASCADE;
--- DROP TABLE loct;
-DROP FOREIGN TABLE b__postgres_srv__0;
+DROP TABLE a CASCADE;
+DROP FOREIGN TABLE b CASCADE;
 
 -- Check SELECT FOR UPDATE/SHARE with an inherited source table
---create table loct1 (f1 int, f2 int, f3 int);
---create table loct2 (f1 int, f2 int, f3 int);
-
---alter table loct1 set (autovacuum_enabled = 'false');
---alter table loct2 set (autovacuum_enabled = 'false');
-
----create table foo (f1 int, f2 int);
-create foreign table foo (f1 int, f2 int)
+create table foo (f1 int, f2 int);
+create foreign table foo2 (f1 int, f2 int, f3 int, __spd_url text)
   server pgspider_srv;
-create foreign table foo__postgres_srv__0 (f1 int, f2 int)
-  server postgres_srv options (table_name 'foo');
-create foreign table foo2 (f3 int) inherits (foo)
-  server pgspider_srv;
--- Add __spd_url for both foo and foo2
-alter foreign table foo add column __spd_url text;
-create foreign table foo2__postgres_srv__0 (f3 int) inherits (foo__postgres_srv__0)
+create foreign table foo2__postgres_srv__0 (f3 int) inherits (foo)
   server postgres_srv options (table_name 'loct1_1');
 
----create table bar (f1 int, f2 int);
-create foreign table bar (f1 int, f2 int)
+create table bar (f1 int, f2 int);
+create foreign table bar2 (f1 int, f2 int, f3 int, __spd_url text)
   server pgspider_srv;
-create foreign table bar__postgres_srv__0 (f1 int, f2 int)
-  server postgres_srv options (table_name 'bar');
-create foreign table bar2 (f3 int) inherits (bar)
-  server pgspider_srv;
--- Add __spd_url for both bat and bar2
-alter foreign table bar add column __spd_url text;
-create foreign table bar2__postgres_srv__0 (f3 int) inherits (bar__postgres_srv__0)
+create foreign table bar2__postgres_srv__0 (f3 int) inherits (bar)
   server postgres_srv options (table_name 'loct2_1');
 
---alter table foo set (autovacuum_enabled = 'false');
---alter table bar set (autovacuum_enabled = 'false');
+alter table foo set (autovacuum_enabled = 'false');
+alter table bar set (autovacuum_enabled = 'false');
 
-insert into foo__postgres_srv__0 values(1,1);
-insert into foo__postgres_srv__0 values(3,3);
+insert into foo values(1,1);
+insert into foo values(3,3);
 insert into foo2__postgres_srv__0 values(2,2,2);
 insert into foo2__postgres_srv__0 values(4,4,4);
-insert into bar__postgres_srv__0 values(1,11);
-insert into bar__postgres_srv__0 values(2,22);
-insert into bar__postgres_srv__0 values(6,66);
+insert into bar values(1,11);
+insert into bar values(2,22);
+insert into bar values(6,66);
 insert into bar2__postgres_srv__0 values(3,33,33);
 insert into bar2__postgres_srv__0 values(4,44,44);
 insert into bar2__postgres_srv__0 values(7,77,77);
 
---explain (verbose, costs off)
---select * from bar where f1 in (select f1 from foo) for update;
---select * from bar where f1 in (select f1 from foo) for update;
+explain (verbose, costs off)
+select * from bar where f1 in (select f1 from foo) for update;
+select * from bar where f1 in (select f1 from foo) for update;
 
---explain (verbose, costs off)
---select * from bar where f1 in (select f1 from foo) for share;
---select * from bar where f1 in (select f1 from foo) for share;
+explain (verbose, costs off)
+select * from bar where f1 in (select f1 from foo) for share;
+select * from bar where f1 in (select f1 from foo) for share;
 
 -- Check UPDATE with inherited target and an inherited source table
---explain (verbose, costs off)
---update bar set f2 = f2 + 100 where f1 in (select f1 from foo);
-select dblink_exec('update bar set f2 = f2 + 100 where f1 in (select f1 from foo);');
+explain (verbose, costs off)
+update bar set f2 = f2 + 100 where f1 in (select f1 from foo);
+update bar set f2 = f2 + 100 where f1 in (select f1 from foo);
 
 select tableoid::regclass, * from bar order by 1,2;
 
 -- Check UPDATE with inherited target and an appendrel subquery
---explain (verbose, costs off)
---update bar set f2 = f2 + 100
---from
---  ( select f1 from foo union all select f1+3 from foo ) ss
---where bar.f1 = ss.f1;
-update bar__postgres_srv__0 set f2 = f2 + 100
+explain (verbose, costs off)
+update bar set f2 = f2 + 100
 from
   ( select f1 from foo union all select f1+3 from foo ) ss
-where bar__postgres_srv__0.f1 = ss.f1;
+where bar.f1 = ss.f1;
+update bar set f2 = f2 + 100
+from
+  ( select f1 from foo union all select f1+3 from foo ) ss
+where bar.f1 = ss.f1;
 
 select tableoid::regclass, * from bar order by 1,2;
 
 -- Test forcing the remote server to produce sorted data for a merge join,
 -- but the foreign table is an inheritance child.
 delete from foo2__postgres_srv__0;
-delete from foo__postgres_srv__0;
---truncate table loct1;
---truncate table only foo;
+truncate table only foo;
 \set num_rows_foo 2000
---insert into loct1 select generate_series(0, :num_rows_foo, 2), generate_series(0, :num_rows_foo, 2), generate_series(0, :num_rows_foo, 2);
 insert into foo2__postgres_srv__0 select generate_series(0, :num_rows_foo, 2), generate_series(0, :num_rows_foo, 2), generate_series(0, :num_rows_foo, 2);
---insert into foo select generate_series(1, :num_rows_foo, 2), generate_series(1, :num_rows_foo, 2);
-insert into foo__postgres_srv__0 select generate_series(1, :num_rows_foo, 2), generate_series(1, :num_rows_foo, 2);
+insert into foo select generate_series(1, :num_rows_foo, 2), generate_series(1, :num_rows_foo, 2);
 SET enable_hashjoin to false;
 SET enable_nestloop to false;
 alter foreign table foo2 options (use_remote_estimate 'true');
---create index i_loct1_f1 on loct1(f1);
---create index i_foo_f1 on foo(f1);
 analyze foo;
---analyze loct1;
-analyze foo2;
 -- inner join; expressions in the clauses appear in the equivalence class list
 explain (verbose, costs off)
 	select foo.f1, foo2.f1 from foo join foo2 on (foo.f1 = foo2.f1) order by foo.f2 offset 10 limit 10;
@@ -1986,17 +1926,15 @@ RESET enable_nestloop;
 begin;
 declare c cursor for select * from bar where f1 = 7;
 fetch from c;
---update bar set f2 = null where current of c;
---rollback;
---use commit instead of rollback
-commit;
+update bar set f2 = null where current of c;
+rollback;
 
--- explain (verbose, costs off)
--- delete from foo where f1 < 5 returning *;
-delete from foo__postgres_srv__0 where f1 < 5 returning *;
--- explain (verbose, costs off)
--- update bar set f2 = f2 + 100 returning *;
-update bar__postgres_srv__0 set f2 = f2 + 100 returning *;
+explain (verbose, costs off)
+delete from foo where f1 < 5 returning *;
+delete from foo where f1 < 5 returning *;
+explain (verbose, costs off)
+update bar set f2 = f2 + 100 returning *;
+update bar set f2 = f2 + 100 returning *;
 
 -- Test that UPDATE/DELETE with inherited target works with row-level triggers
 CREATE TRIGGER trig_row_before
@@ -2007,30 +1945,20 @@ CREATE TRIGGER trig_row_after
 AFTER UPDATE OR DELETE ON bar2
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
 
--- explain (verbose, costs off)
--- update bar set f2 = f2 + 100;
-update bar__postgres_srv__0 set f2 = f2 + 100;
+explain (verbose, costs off)
+update bar set f2 = f2 + 100;
+update bar set f2 = f2 + 100;
 
--- explain (verbose, costs off)
--- delete from bar where f2 < 400;
-delete from bar__postgres_srv__0 where f2 < 400;
+explain (verbose, costs off)
+delete from bar where f2 < 400;
+delete from bar where f2 < 400;
 
 -- cleanup
-drop foreign table foo cascade;
-drop foreign table bar cascade;
---drop table foo cascade;
---drop table bar cascade;
---drop table loct1;
---drop table loct2;
+drop foreign table foo2 cascade;
+drop foreign table bar2 cascade;
 
 -- Test pushing down UPDATE/DELETE joins to the remote server
----create table parent (a int, b text);
----create table loct1 (a int, b text);
----create table loct2 (a int, b text);
-create foreign table parent (a int, b text, __spd_url text)
-  server pgspider_srv;
-create foreign table parent__postgres_srv__0 (a int, b text)
-  server postgres_srv options (table_name 'parent');
+create table parent (a int, b text);
 create foreign table remt1 (a int, b text, __spd_url text)
   server pgspider_srv;
 create foreign table remt1__postgres_srv__0 (a int, b text)
@@ -2039,43 +1967,36 @@ create foreign table remt2 (a int, b text, __spd_url text)
   server pgspider_srv;
 create foreign table remt2__postgres_srv__0 (a int, b text)
   server postgres_srv options (table_name 'loct2_2');
-alter foreign table remt1 inherit parent;
-alter foreign table remt1__postgres_srv__0 inherit parent__postgres_srv__0;
+alter foreign table remt1__postgres_srv__0 inherit parent;
+--alter foreign table remt1__postgres_srv__0 inherit parent__postgres_srv__0;
 
 insert into remt1__postgres_srv__0 values (1, 'foo');
 insert into remt1__postgres_srv__0 values (2, 'bar');
 insert into remt2__postgres_srv__0 values (1, 'foo');
 insert into remt2__postgres_srv__0 values (2, 'bar');
 
--- Add more test cases to see original data in advance
-select * from parent;
-select * from remt1;
-select * from remt2;
+--analyze remt1;
+--analyze remt2;
 
-analyze remt1;
-analyze remt2;
-
---explain (verbose, costs off)
---update parent set b = parent.b || remt2.b from remt2 where parent.a = remt2.a returning *;
-update parent__postgres_srv__0 set b = parent__postgres_srv__0.b || remt2.b from remt2 where parent__postgres_srv__0.a = remt2.a returning *;
---explain (verbose, costs off)
---delete from parent using remt2 where parent.a = remt2.a returning parent;
-delete from parent__postgres_srv__0 using remt2 where parent__postgres_srv__0.a = remt2.a returning parent__postgres_srv__0;
+explain (verbose, costs off)
+update parent set b = parent.b || remt2.b from remt2 where parent.a = remt2.a returning *;
+update parent set b = parent.b || remt2.b from remt2 where parent.a = remt2.a returning *;
+explain (verbose, costs off)
+delete from parent using remt2 where parent.a = remt2.a returning parent;
+delete from parent using remt2 where parent.a = remt2.a returning parent;
 
 -- cleanup
 drop foreign table remt1;
 drop foreign table remt2;
 drop foreign table remt1__postgres_srv__0;
 drop foreign table remt2__postgres_srv__0;
-drop foreign table parent;
-drop foreign table parent__postgres_srv__0;
+drop table parent;
 
 -- ===================================================================
 -- test tuple routing for foreign-table partitions
 -- ===================================================================
 
 -- Test insert tuple routing
----create table itrtest (a int, b text) partition by list (a);
 create foreign table itrtest (a int, b text, __spd_url text)
   server pgspider_srv;
 create foreign table itrtest__postgres_srv__0 (a int, b text)
@@ -2083,7 +2004,7 @@ create foreign table itrtest__postgres_srv__0 (a int, b text)
 SELECT dblink_exec('create foreign table remp1 
   (a int check (a in (1)), b text) server postgres_srv 
   options (table_name ''loct1_3'');');
----create table loct1 (a int check (a in (1)), b text);
+
 create foreign table remp1 (a int check (a in (1)), b text, __spd_url text) 
   server pgspider_srv;
 create foreign table remp1__postgres_srv__0 (a int check (a in (1)), b text) 
@@ -2091,7 +2012,7 @@ create foreign table remp1__postgres_srv__0 (a int check (a in (1)), b text)
 SELECT dblink_exec('create foreign table remp2 
   (b text, a int check (a in (2))) server postgres_srv
    options (table_name ''loct2_3'');');
----create table loct2 (a int check (a in (2)), b text);
+
 create foreign table remp2 (b text, a int check (a in (2)), __spd_url text) 
   server pgspider_srv;
 create foreign table remp2__postgres_srv__0 (b text, a int check (a in (2))) 
@@ -2111,7 +2032,6 @@ select tableoid::regclass, * FROM itrtest;
 select tableoid::regclass, * FROM remp1;
 select tableoid::regclass, * FROM remp2;
 
---delete from itrtest;
 delete from itrtest__postgres_srv__0;
 
 SELECT dblink_exec('create unique index loct1_idx on loct1_3 (a);');
@@ -2159,7 +2079,6 @@ drop foreign table itrtest;
 drop foreign table itrtest__postgres_srv__0;
 
 -- Test update tuple routing
----create table utrtest (a int, b text) partition by list (a);
 create foreign table utrtest (a int, b text)
   server pgspider_srv;
 create foreign table utrtest__postgres_srv__0 (a int, b text)
@@ -2167,12 +2086,12 @@ create foreign table utrtest__postgres_srv__0 (a int, b text)
 SELECT dblink_exec('create foreign table remp 
   (a int check (a in (1)), b text) 
   server postgres_srv options (table_name ''loct_2'');');
----create table loct (a int check (a in (1)), b text);
+
 create foreign table remp (a int check (a in (1)), b text, __spd_url text)
   server pgspider_srv;
 create foreign table remp__postgres_srv__0 (a int check (a in (1)), b text)
   server postgres_srv options (table_name 'remp');
----create table locp (a int check (a in (2)), b text);
+
 create foreign table locp (a int check (a in (2)), b text, __spd_url text)
   server pgspider_srv;
 create foreign table locp__postgres_srv__0 (a int check (a in (2)), b text)
@@ -2323,8 +2242,6 @@ drop foreign table ctrtest__postgres_srv__0;
 -- test COPY FROM
 -- ===================================================================
 
----create table loc2 (f1 int, f2 text);
----alter table loc2 set (autovacuum_enabled = 'false');
 create foreign table rem2 (f1 int, f2 text, __spd_url text)
   server pgspider_srv;
 create foreign table rem2__postgres_srv__0 (f1 int, f2 text)
@@ -2340,7 +2257,6 @@ select * from rem2;
 delete from rem2__postgres_srv__0;
 
 -- Test check constraints
----alter table loc2 add constraint loc2_f1positive check (f1 >= 0);
 alter foreign table rem2 add constraint rem2_f1positive check (f1 >= 0);
 
 -- check constraint is enforced on the remote side, not locally
@@ -2354,7 +2270,6 @@ copy rem2__postgres_srv__0 from stdin; -- ERROR
 select * from rem2;
 
 alter foreign table rem2 drop constraint rem2_f1positive;
---alter table loc2 drop constraint loc2_f1positive;
 
 delete from rem2__postgres_srv__0;
 
@@ -2459,7 +2374,6 @@ SELECT dblink_exec('drop trigger loc2_trig_row_before_insert on loc2_1;');
 delete from rem2__postgres_srv__0;
 
 -- test COPY FROM with foreign table created in the same transaction
---- create table loc3 (f1 int, f2 text);
 begin;
 create foreign table rem3 (f1 int, f2 text, __spd_url text)
 	server pgspider_srv;
@@ -2585,12 +2499,6 @@ ROLLBACK;
 SET enable_partitionwise_join=on;
 
 CREATE TABLE fprt1 (a int, b int, c varchar) PARTITION BY RANGE(a);
----CREATE TABLE fprt1_p1 (LIKE fprt1);
----CREATE TABLE fprt1_p2 (LIKE fprt1);
----ALTER TABLE fprt1_p1 SET (autovacuum_enabled = 'false');
----ALTER TABLE fprt1_p2 SET (autovacuum_enabled = 'false');
----INSERT INTO fprt1_p1 SELECT i, i, to_char(i/50, 'FM0000') FROM generate_series(0, 249, 2) i;
----INSERT INTO fprt1_p2 SELECT i, i, to_char(i/50, 'FM0000') FROM generate_series(250, 499, 2) i;
 CREATE FOREIGN TABLE ftprt1_p1(a int, b int, c varchar, __spd_url text)
 	SERVER pgspider_srv;
 CREATE FOREIGN TABLE ftprt1_p1__postgres_srv__0 PARTITION OF fprt1 FOR VALUES FROM (0) TO (250)
@@ -2604,12 +2512,6 @@ ANALYZE ftprt1_p1;
 ANALYZE ftprt1_p2;
 
 CREATE TABLE fprt2 (a int, b int, c varchar) PARTITION BY RANGE(b);
----CREATE TABLE fprt2_p1 (LIKE fprt2);
----CREATE TABLE fprt2_p2 (LIKE fprt2);
----ALTER TABLE fprt2_p1 SET (autovacuum_enabled = 'false');
----ALTER TABLE fprt2_p2 SET (autovacuum_enabled = 'false');
----INSERT INTO fprt2_p1 SELECT i, i, to_char(i/50, 'FM0000') FROM generate_series(0, 249, 3) i;
----INSERT INTO fprt2_p2 SELECT i, i, to_char(i/50, 'FM0000') FROM generate_series(250, 499, 3) i;
 CREATE FOREIGN TABLE ftprt2_p1 (b int, c varchar, a int, __spd_url text)
 	SERVER pgspider_srv;
 CREATE FOREIGN TABLE ftprt2_p1__postgres_srv__0 (b int, c varchar, a int)
@@ -2662,14 +2564,6 @@ RESET enable_partitionwise_join;
 -- ===================================================================
 
 CREATE TABLE pagg_tab (a int, b int, c text) PARTITION BY RANGE(a);
-
----CREATE TABLE pagg_tab_p1 (LIKE pagg_tab);
----CREATE TABLE pagg_tab_p2 (LIKE pagg_tab);
----CREATE TABLE pagg_tab_p3 (LIKE pagg_tab);
-
----INSERT INTO pagg_tab_p1 SELECT i % 30, i % 50, to_char(i/30, 'FM0000') FROM generate_series(1, 3000) i WHERE (i % 30) < 10;
----INSERT INTO pagg_tab_p2 SELECT i % 30, i % 50, to_char(i/30, 'FM0000') FROM generate_series(1, 3000) i WHERE (i % 30) < 20 and (i % 30) >= 10;
----INSERT INTO pagg_tab_p3 SELECT i % 30, i % 50, to_char(i/30, 'FM0000') FROM generate_series(1, 3000) i WHERE (i % 30) < 30 and (i % 30) >= 20;
 
 -- Create foreign table on pgspider node
 CREATE FOREIGN TABLE fpagg_tab_p1 (a int, b int, c text, __spd_url text) 

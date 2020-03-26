@@ -4,6 +4,7 @@
 CREATE EXTENSION postgres_fdw;
 CREATE EXTENSION pgspider_core_fdw;
 CREATE EXTENSION dblink;
+-- we use dblink to support insert data during test is in progress in some test cases
 select dblink_connect('dbname=postdb host=127.0.0.1 
 	port=15432 user=postgres password=postgres');
  dblink_connect 
@@ -11,13 +12,6 @@ select dblink_connect('dbname=postdb host=127.0.0.1
  OK
 (1 row)
 
---select dblink_exec('CREATE EXTENSION postgres_fdw;');
---select dblink_exec('CREATE SERVER postgres_srv FOREIGN DATA WRAPPER postgres_fdw
---            OPTIONS (host ''127.0.0.1'',
---                    port ''15432'',
---                     dbname ''postdb'');');
---select dblink_exec('CREATE USER MAPPING FOR public SERVER postgres_srv
---	OPTIONS (user ''postgres'', password ''postgres'');');
 CREATE SERVER pgspider_srv FOREIGN DATA WRAPPER pgspider_core_fdw;
 DO $d$
     BEGIN
@@ -292,8 +286,7 @@ SELECT c3, c4 FROM ft1 ORDER BY c3, c1 LIMIT 1;  -- should work again
 -- Now we should be able to run ANALYZE.
 -- To exercise multiple code paths, we use local stats on ft1
 -- and remote-estimate mode on ft2.
-ANALYZE ft1;
-WARNING:  skipping "ft1" --- cannot analyze this foreign table
+--ANALYZE ft1;
 ALTER FOREIGN TABLE ft2 OPTIONS (use_remote_estimate 'true');
 -- ===================================================================
 -- simple queries
@@ -3043,98 +3036,86 @@ SELECT ft5, ft5.c1, ft5.c2, ft5.c3, ft4.c1, ft4.c2 FROM ft5 left join ft4 on ft5
 
 -- multi-way join involving multiple merge joins
 -- (this case used to have EPQ-related planning problems)
----CREATE TABLE local_tbl (c1 int NOT NULL, c2 int NOT NULL, c3 text, CONSTRAINT local_tbl_pkey PRIMARY KEY (c1));
----INSERT INTO local_tbl SELECT id, id % 10, to_char(id, 'FM0000') FROM generate_series(1, 1000) id;
-CREATE FOREIGN TABLE local_tbl (c1 int NOT NULL, c2 int NOT NULL, c3 text, __spd_url text)
-    SERVER pgspider_srv;
-CREATE FOREIGN TABLE local_tbl__postgres_srv__0 (c1 int NOT NULL, c2 int NOT NULL, c3 text)
-    SERVER postgres_srv OPTIONS(table_name 'local_tbl');
-INSERT INTO local_tbl__postgres_srv__0 SELECT id, id % 10, to_char(id, 'FM0000') FROM generate_series(1, 1000) id;
+CREATE TABLE local_tbl (c1 int NOT NULL, c2 int NOT NULL, c3 text, CONSTRAINT local_tbl_pkey PRIMARY KEY (c1));
+INSERT INTO local_tbl SELECT id, id % 10, to_char(id, 'FM0000') FROM generate_series(1, 1000) id;
 ANALYZE local_tbl;
-WARNING:  skipping "local_tbl" --- cannot analyze this foreign table
 SET enable_nestloop TO false;
 SET enable_hashjoin TO false;
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT * FROM ft1, ft2, ft4, ft5, local_tbl WHERE ft1.c1 = ft2.c1 AND ft1.c2 = ft4.c1
     AND ft1.c2 = ft5.c1 AND ft1.c2 = local_tbl.c1 AND ft1.c1 < 100 AND ft2.c1 < 100 FOR UPDATE;
-                                                                                                                                                                             QUERY PLAN                                                                                                                                                                             
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                                                                    QUERY PLAN                                                                                                                                                                    
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  LockRows
-   Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, local_tbl.c1, local_tbl.c2, local_tbl.c3, local_tbl.__spd_url, ft1.*, ft2.*, ft4.*, ft5.*, local_tbl.*
+   Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, local_tbl.c1, local_tbl.c2, local_tbl.c3, ft1.*, ft2.*, ft4.*, ft5.*, local_tbl.ctid
    ->  Merge Join
-         Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, local_tbl.c1, local_tbl.c2, local_tbl.c3, local_tbl.__spd_url, ft1.*, ft2.*, ft4.*, ft5.*, local_tbl.*
-         Merge Cond: (ft4.c1 = ft1.c2)
-         ->  Merge Join
-               Output: ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft4.*, ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft5.*
-               Merge Cond: (ft4.c1 = ft5.c1)
-               ->  Sort
-                     Output: ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft4.*
-                     Sort Key: ft4.c1
-                     ->  Foreign Scan on public.ft4
-                           Output: ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft4.*
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT c1, c2, c3 FROM "S 1"."T 3"
-               ->  Sort
-                     Output: ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft5.*
-                     Sort Key: ft5.c1
-                     ->  Foreign Scan on public.ft5
-                           Output: ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft5.*
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT c1, c2, c3 FROM "S 1"."T 4"
-         ->  Materialize
-               Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*, local_tbl.c1, local_tbl.c2, local_tbl.c3, local_tbl.__spd_url, local_tbl.*
+         Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, local_tbl.c1, local_tbl.c2, local_tbl.c3, ft1.*, ft2.*, ft4.*, ft5.*, local_tbl.ctid
+         Merge Cond: (ft1.c2 = ft4.c1)
+         ->  Sort
+               Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*
+               Sort Key: ft1.c2
                ->  Merge Join
-                     Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*, local_tbl.c1, local_tbl.c2, local_tbl.c3, local_tbl.__spd_url, local_tbl.*
-                     Merge Cond: (ft1.c2 = local_tbl.c1)
+                     Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*
+                     Merge Cond: (ft1.c1 = ft2.c1)
                      ->  Sort
-                           Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*
-                           Sort Key: ft1.c2
-                           ->  Merge Join
-                                 Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*, ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*
-                                 Merge Cond: (ft1.c1 = ft2.c1)
-                                 ->  Sort
-                                       Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*
-                                       Sort Key: ft1.c1
-                                       ->  Foreign Scan on public.ft1
-                                             Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*
-                                             Node: postgres_srv / Status: Alive
-                                               Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" < 100))
-                                 ->  Sort
-                                       Output: ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*
-                                       Sort Key: ft2.c1
-                                       ->  Foreign Scan on public.ft2
-                                             Output: ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*
-                                             Node: postgres_srv / Status: Alive
-                                               Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" < 100))
-                     ->  Sort
-                           Output: local_tbl.c1, local_tbl.c2, local_tbl.c3, local_tbl.__spd_url, local_tbl.*
-                           Sort Key: local_tbl.c1
-                           ->  Foreign Scan on public.local_tbl
-                                 Output: local_tbl.c1, local_tbl.c2, local_tbl.c3, local_tbl.__spd_url, local_tbl.*
+                           Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*
+                           Sort Key: ft1.c1
+                           ->  Foreign Scan on public.ft1
+                                 Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*
                                  Node: postgres_srv / Status: Alive
-                                   Remote SQL: SELECT c1, c2, c3 FROM public.local_tbl
-(54 rows)
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" < 100))
+                     ->  Sort
+                           Output: ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*
+                           Sort Key: ft2.c1
+                           ->  Foreign Scan on public.ft2
+                                 Output: ft2.c1, ft2.c2, ft2.c3, ft2.c4, ft2.c5, ft2.c6, ft2.c7, ft2.c8, ft2.__spd_url, ft2.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" < 100))
+         ->  Materialize
+               Output: ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft4.*, ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft5.*, local_tbl.c1, local_tbl.c2, local_tbl.c3, local_tbl.ctid
+               ->  Merge Join
+                     Output: ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft4.*, ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft5.*, local_tbl.c1, local_tbl.c2, local_tbl.c3, local_tbl.ctid
+                     Merge Cond: (ft4.c1 = ft5.c1)
+                     ->  Merge Join
+                           Output: ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft4.*, local_tbl.c1, local_tbl.c2, local_tbl.c3, local_tbl.ctid
+                           Merge Cond: (local_tbl.c1 = ft4.c1)
+                           ->  Index Scan using local_tbl_pkey on public.local_tbl
+                                 Output: local_tbl.c1, local_tbl.c2, local_tbl.c3, local_tbl.ctid
+                           ->  Sort
+                                 Output: ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft4.*
+                                 Sort Key: ft4.c1
+                                 ->  Foreign Scan on public.ft4
+                                       Output: ft4.c1, ft4.c2, ft4.c3, ft4.__spd_url, ft4.*
+                                       Node: postgres_srv / Status: Alive
+                                         Remote SQL: SELECT c1, c2, c3 FROM "S 1"."T 3"
+                     ->  Sort
+                           Output: ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft5.*
+                           Sort Key: ft5.c1
+                           ->  Foreign Scan on public.ft5
+                                 Output: ft5.c1, ft5.c2, ft5.c3, ft5.__spd_url, ft5.*
+                                 Node: postgres_srv / Status: Alive
+                                   Remote SQL: SELECT c1, c2, c3 FROM "S 1"."T 4"
+(49 rows)
 
 SELECT * FROM ft1, ft2, ft4, ft5, local_tbl WHERE ft1.c1 = ft2.c1 AND ft1.c2 = ft4.c1
     AND ft1.c2 = ft5.c1 AND ft1.c2 = local_tbl.c1 AND ft1.c1 < 100 AND ft2.c1 < 100 FOR UPDATE;
- c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    | c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    | c1 | c2 |   c3   |   __spd_url    | c1 | c2 |   c3   |   __spd_url    | c1 | c2 |  c3  |   __spd_url    
-----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------+----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------+----+----+--------+----------------+----+----+--------+----------------+----+----+------+----------------
- 96 |  6 | 00096 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 96 |  6 | 00096 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  6 | 0006 | /postgres_srv/
- 46 |  6 | 00046 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 46 |  6 | 00046 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  6 | 0006 | /postgres_srv/
- 26 |  6 | 00026 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 26 |  6 | 00026 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  6 | 0006 | /postgres_srv/
- 56 |  6 | 00056 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 56 |  6 | 00056 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  6 | 0006 | /postgres_srv/
- 66 |  6 | 00066 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 66 |  6 | 00066 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  6 | 0006 | /postgres_srv/
- 16 |  6 | 00016 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 16 |  6 | 00016 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  6 | 0006 | /postgres_srv/
- 76 |  6 | 00076 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 76 |  6 | 00076 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  6 | 0006 | /postgres_srv/
- 86 |  6 | 00086 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 86 |  6 | 00086 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  6 | 0006 | /postgres_srv/
-  6 |  6 | 00006 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  6 | 00006 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  6 | 0006 | /postgres_srv/
- 36 |  6 | 00036 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 36 |  6 | 00036 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  6 | 0006 | /postgres_srv/
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    | c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    | c1 | c2 |   c3   |   __spd_url    | c1 | c2 |   c3   |   __spd_url    | c1 | c2 |  c3  
+----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------+----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------+----+----+--------+----------------+----+----+--------+----------------+----+----+------
+ 96 |  6 | 00096 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 96 |  6 | 00096 | Tue Apr 07 00:00:00 1970 PST | Tue Apr 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  6 | 0006
+ 46 |  6 | 00046 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 46 |  6 | 00046 | Mon Feb 16 00:00:00 1970 PST | Mon Feb 16 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  6 | 0006
+ 26 |  6 | 00026 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 26 |  6 | 00026 | Tue Jan 27 00:00:00 1970 PST | Tue Jan 27 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  6 | 0006
+ 56 |  6 | 00056 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 56 |  6 | 00056 | Thu Feb 26 00:00:00 1970 PST | Thu Feb 26 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  6 | 0006
+ 66 |  6 | 00066 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 66 |  6 | 00066 | Sun Mar 08 00:00:00 1970 PST | Sun Mar 08 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  6 | 0006
+ 16 |  6 | 00016 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 16 |  6 | 00016 | Sat Jan 17 00:00:00 1970 PST | Sat Jan 17 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  6 | 0006
+ 76 |  6 | 00076 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 76 |  6 | 00076 | Wed Mar 18 00:00:00 1970 PST | Wed Mar 18 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  6 | 0006
+ 86 |  6 | 00086 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 86 |  6 | 00086 | Sat Mar 28 00:00:00 1970 PST | Sat Mar 28 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  6 | 0006
+  6 |  6 | 00006 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  6 | 00006 | Wed Jan 07 00:00:00 1970 PST | Wed Jan 07 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  6 | 0006
+ 36 |  6 | 00036 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ | 36 |  6 | 00036 | Fri Feb 06 00:00:00 1970 PST | Fri Feb 06 00:00:00 1970 | 6  | 6          | foo | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  7 | AAA006 | /postgres_srv/ |  6 |  6 | 0006
 (10 rows)
 
 RESET enable_nestloop;
 RESET enable_hashjoin;
-DROP FOREIGN TABLE local_tbl;
-DROP FOREIGN TABLE local_tbl__postgres_srv__0;
+DROP TABLE local_tbl;
 -- check join pushdown in situations where multiple userids are involved
 CREATE ROLE regress_view_owner SUPERUSER;
 CREATE USER MAPPING FOR regress_view_owner SERVER postgres_srv;
@@ -5210,7 +5191,6 @@ COMMIT;
 -- ===================================================================
 -- test handling of collations
 -- ===================================================================
----create table loct3 (f1 text collate "C" unique, f2 text, f3 varchar(10) unique);
 create foreign table ft3 (f1 text collate "C", f2 text, f3 varchar(10), __spd_url text)
   server pgspider_srv;
 create foreign table ft3__postgres_srv__0 (f1 text collate "C", f2 text, f3 varchar(10))
@@ -7145,8 +7125,6 @@ ALTER FOREIGN TABLE ft1 DROP CONSTRAINT ft1_c2negative;
 -- test WITH CHECK OPTION constraints
 -- ===================================================================
 CREATE FUNCTION row_before_insupd_trigfunc() RETURNS trigger AS $$BEGIN NEW.a := NEW.a + 10; RETURN NEW; END$$ LANGUAGE plpgsql;
----CREATE TABLE base_tbl (a int, b int);
----ALTER TABLE base_tbl SET (autovacuum_enabled = 'false');
 SELECT dblink_exec('CREATE TRIGGER row_before_insupd_trigger BEFORE INSERT OR UPDATE ON base_tbl
   FOR EACH ROW EXECUTE PROCEDURE row_before_insupd_trigfunc();');
   dblink_exec   
@@ -7205,28 +7183,31 @@ SELECT dblink_exec('DROP TABLE base_tbl;');
 (1 row)
 
 -- test WCO for partitions
---CREATE TABLE child_tbl (a int, b int);
---ALTER TABLE child_tbl SET (autovacuum_enabled = 'false');
---CREATE TRIGGER row_before_insupd_trigger BEFORE INSERT OR UPDATE ON child_tbl FOR EACH ROW EXECUTE PROCEDURE row_before_insupd_trigfunc();
+SELECT dblink_exec('CREATE TRIGGER row_before_insupd_trigger BEFORE INSERT OR UPDATE ON child_tbl FOR EACH ROW EXECUTE PROCEDURE row_before_insupd_trigfunc();');
+  dblink_exec   
+----------------
+ CREATE TRIGGER
+(1 row)
+
 CREATE FOREIGN TABLE foreign_tbl (a int, b int, __spd_url text)
   SERVER pgspider_srv;
 CREATE FOREIGN TABLE foreign_tbl__postgres_srv__0 (a int, b int)
   SERVER postgres_srv OPTIONS(table_name 'child_tbl');
-CREATE TABLE parent_tbl (a int, b int, __spd_url text) PARTITION BY RANGE(a);
+CREATE TABLE parent_tbl (a int, b int) PARTITION BY RANGE(a);
 ALTER TABLE parent_tbl ATTACH PARTITION foreign_tbl FOR VALUES FROM (0) TO (100);
+ERROR:  table "foreign_tbl" contains column "__spd_url" not found in parent "parent_tbl"
+DETAIL:  The new partition may contain only the columns present in parent.
 CREATE VIEW rw_view AS SELECT * FROM parent_tbl
   WHERE a < b WITH CHECK OPTION;
 \d+ rw_view
-                             View "public.rw_view"
-  Column   |  Type   | Collation | Nullable | Default | Storage  | Description 
------------+---------+-----------+----------+---------+----------+-------------
- a         | integer |           |          |         | plain    | 
- b         | integer |           |          |         | plain    | 
- __spd_url | text    |           |          |         | extended | 
+                           View "public.rw_view"
+ Column |  Type   | Collation | Nullable | Default | Storage | Description 
+--------+---------+-----------+----------+---------+---------+-------------
+ a      | integer |           |          |         | plain   | 
+ b      | integer |           |          |         | plain   | 
 View definition:
  SELECT parent_tbl.a,
-    parent_tbl.b,
-    parent_tbl.__spd_url
+    parent_tbl.b
    FROM parent_tbl
   WHERE parent_tbl.a < parent_tbl.b;
 Options: check_option=cascaded
@@ -7247,14 +7228,18 @@ Options: check_option=cascaded
 --SELECT * FROM foreign_tbl;
 DROP FOREIGN TABLE foreign_tbl CASCADE;
 DROP FOREIGN TABLE foreign_tbl__postgres_srv__0 CASCADE;
---DROP TRIGGER row_before_insupd_trigger ON child_tbl;
---DROP TABLE parent_tbl CASCADE;
+SELECT dblink_exec('DROP TRIGGER row_before_insupd_trigger ON child_tbl;');
+ dblink_exec  
+--------------
+ DROP TRIGGER
+(1 row)
+
+DROP TABLE parent_tbl CASCADE;;
+NOTICE:  drop cascades to view rw_view
 DROP FUNCTION row_before_insupd_trigfunc;
 -- ===================================================================
 -- test serial columns (ie, sequence-based defaults)
 -- ===================================================================
----create table loc1 (f1 serial, f2 text);
----alter table loc1 set (autovacuum_enabled = 'false');
 create foreign table rem1 (f1 serial, f2 text, __spd_url text)
   server pgspider_srv;
 create foreign table rem1__postgres_srv__0 (f1 serial, f2 text)
@@ -7300,8 +7285,6 @@ select * from rem1__postgres_srv__0;
 -- ===================================================================
 -- test generated columns
 -- ===================================================================
----create table gloc1 (a int, b int);
----alter table gloc1 set (autovacuum_enabled = 'false');
 create foreign table grem1 (
   a int,
   b int generated always as (a * 2) stored,
@@ -7311,11 +7294,8 @@ create foreign table grem1__postgres_srv__0 (
   a int,
   b int generated always as (a * 2) stored)
   server postgres_srv options(table_name 'gloc1');
----insert into grem1 (a) values (1), (2);
----update grem1 set a = 22 where a = 2;
 insert into grem1__postgres_srv__0 (a) values (1), (2);
 update grem1__postgres_srv__0 set a = 22 where a = 2;
----select * from gloc1;
 select * from grem1;
  a  | b  |   __spd_url    
 ----+----+----------------
@@ -7858,34 +7838,26 @@ DROP TRIGGER trig_row_after_delete ON rem1__postgres_srv__0;
 -- ===================================================================
 -- test inheritance features
 -- ===================================================================
--- CREATE TABLE a (aa TEXT);
--- CREATE TABLE loct (aa TEXT, bb TEXT);
--- ALTER TABLE a SET (autovacuum_enabled = 'false');
--- ALTER TABLE loct SET (autovacuum_enabled = 'false');
-CREATE FOREIGN TABLE a (aa TEXT)
+CREATE TABLE a (aa TEXT);
+CREATE FOREIGN TABLE b (aa TEXT, bb TEXT, __spd_url TEXT)
   SERVER pgspider_srv;
-CREATE FOREIGN TABLE a__postgres_srv__0 (aa TEXT)
-  SERVER postgres_srv OPTIONS (table_name 'a');
-CREATE FOREIGN TABLE b (bb TEXT) INHERITS (a)
-  SERVER pgspider_srv;
-ALTER FOREIGN TABLE a ADD COLUMN __spd_url TEXT;
-CREATE FOREIGN TABLE b__postgres_srv__0 (bb TEXT) INHERITS (a__postgres_srv__0)
+CREATE FOREIGN TABLE b__postgres_srv__0 (bb TEXT) INHERITS (a)
   SERVER postgres_srv OPTIONS (table_name 'loct_1');
-INSERT INTO a__postgres_srv__0(aa) VALUES('aaa');
-INSERT INTO a__postgres_srv__0(aa) VALUES('aaaa');
-INSERT INTO a__postgres_srv__0(aa) VALUES('aaaaa');
+INSERT INTO a(aa) VALUES('aaa');
+INSERT INTO a(aa) VALUES('aaaa');
+INSERT INTO a(aa) VALUES('aaaaa');
 INSERT INTO b__postgres_srv__0(aa) VALUES('bbb');
 INSERT INTO b__postgres_srv__0(aa) VALUES('bbbb');
 INSERT INTO b__postgres_srv__0(aa) VALUES('bbbbb');
 SELECT tableoid::regclass, * FROM a;
- tableoid |  aa   |   __spd_url    
-----------+-------+----------------
- a        | aaa   | /postgres_srv/
- a        | aaaa  | /postgres_srv/
- a        | aaaaa | /postgres_srv/
- b        | bbb   | /postgres_srv/
- b        | bbbb  | /postgres_srv/
- b        | bbbbb | /postgres_srv/
+      tableoid      |  aa   
+--------------------+-------
+ a                  | aaa
+ a                  | aaaa
+ a                  | aaaaa
+ b__postgres_srv__0 | bbb
+ b__postgres_srv__0 | bbbb
+ b__postgres_srv__0 | bbbbb
 (6 rows)
 
 SELECT tableoid::regclass, * FROM b;
@@ -7897,23 +7869,23 @@ SELECT tableoid::regclass, * FROM b;
 (3 rows)
 
 SELECT tableoid::regclass, * FROM ONLY a;
- tableoid |  aa   |   __spd_url    
-----------+-------+----------------
- a        | aaa   | /postgres_srv/
- a        | aaaa  | /postgres_srv/
- a        | aaaaa | /postgres_srv/
+ tableoid |  aa   
+----------+-------
+ a        | aaa
+ a        | aaaa
+ a        | aaaaa
 (3 rows)
 
-UPDATE a__postgres_srv__0 SET aa = 'zzzzzz' WHERE aa LIKE 'aaaa%';
+UPDATE a SET aa = 'zzzzzz' WHERE aa LIKE 'aaaa%';
 SELECT tableoid::regclass, * FROM a;
- tableoid |   aa   |   __spd_url    
-----------+--------+----------------
- a        | aaa    | /postgres_srv/
- a        | zzzzzz | /postgres_srv/
- a        | zzzzzz | /postgres_srv/
- b        | bbb    | /postgres_srv/
- b        | bbbb   | /postgres_srv/
- b        | bbbbb  | /postgres_srv/
+      tableoid      |   aa   
+--------------------+--------
+ a                  | aaa
+ a                  | zzzzzz
+ a                  | zzzzzz
+ b__postgres_srv__0 | bbb
+ b__postgres_srv__0 | bbbb
+ b__postgres_srv__0 | bbbbb
 (6 rows)
 
 SELECT tableoid::regclass, * FROM b;
@@ -7925,23 +7897,23 @@ SELECT tableoid::regclass, * FROM b;
 (3 rows)
 
 SELECT tableoid::regclass, * FROM ONLY a;
- tableoid |   aa   |   __spd_url    
-----------+--------+----------------
- a        | aaa    | /postgres_srv/
- a        | zzzzzz | /postgres_srv/
- a        | zzzzzz | /postgres_srv/
+ tableoid |   aa   
+----------+--------
+ a        | aaa
+ a        | zzzzzz
+ a        | zzzzzz
 (3 rows)
 
 UPDATE b__postgres_srv__0 SET aa = 'new';
 SELECT tableoid::regclass, * FROM a;
- tableoid |   aa   |   __spd_url    
-----------+--------+----------------
- a        | aaa    | /postgres_srv/
- a        | zzzzzz | /postgres_srv/
- a        | zzzzzz | /postgres_srv/
- b        | new    | /postgres_srv/
- b        | new    | /postgres_srv/
- b        | new    | /postgres_srv/
+      tableoid      |   aa   
+--------------------+--------
+ a                  | aaa
+ a                  | zzzzzz
+ a                  | zzzzzz
+ b__postgres_srv__0 | new
+ b__postgres_srv__0 | new
+ b__postgres_srv__0 | new
 (6 rows)
 
 SELECT tableoid::regclass, * FROM b;
@@ -7953,23 +7925,23 @@ SELECT tableoid::regclass, * FROM b;
 (3 rows)
 
 SELECT tableoid::regclass, * FROM ONLY a;
- tableoid |   aa   |   __spd_url    
-----------+--------+----------------
- a        | aaa    | /postgres_srv/
- a        | zzzzzz | /postgres_srv/
- a        | zzzzzz | /postgres_srv/
+ tableoid |   aa   
+----------+--------
+ a        | aaa
+ a        | zzzzzz
+ a        | zzzzzz
 (3 rows)
 
-UPDATE a__postgres_srv__0 SET aa = 'newtoo';
+UPDATE a SET aa = 'newtoo';
 SELECT tableoid::regclass, * FROM a;
- tableoid |   aa   |   __spd_url    
-----------+--------+----------------
- a        | newtoo | /postgres_srv/
- a        | newtoo | /postgres_srv/
- a        | newtoo | /postgres_srv/
- b        | newtoo | /postgres_srv/
- b        | newtoo | /postgres_srv/
- b        | newtoo | /postgres_srv/
+      tableoid      |   aa   
+--------------------+--------
+ a                  | newtoo
+ a                  | newtoo
+ a                  | newtoo
+ b__postgres_srv__0 | newtoo
+ b__postgres_srv__0 | newtoo
+ b__postgres_srv__0 | newtoo
 (6 rows)
 
 SELECT tableoid::regclass, * FROM b;
@@ -7981,17 +7953,17 @@ SELECT tableoid::regclass, * FROM b;
 (3 rows)
 
 SELECT tableoid::regclass, * FROM ONLY a;
- tableoid |   aa   |   __spd_url    
-----------+--------+----------------
- a        | newtoo | /postgres_srv/
- a        | newtoo | /postgres_srv/
- a        | newtoo | /postgres_srv/
+ tableoid |   aa   
+----------+--------
+ a        | newtoo
+ a        | newtoo
+ a        | newtoo
 (3 rows)
 
-DELETE FROM a__postgres_srv__0;
+DELETE FROM a;
 SELECT tableoid::regclass, * FROM a;
- tableoid | aa | __spd_url 
-----------+----+-----------
+ tableoid | aa 
+----------+----
 (0 rows)
 
 SELECT tableoid::regclass, * FROM b;
@@ -8000,126 +7972,256 @@ SELECT tableoid::regclass, * FROM b;
 (0 rows)
 
 SELECT tableoid::regclass, * FROM ONLY a;
- tableoid | aa | __spd_url 
-----------+----+-----------
+ tableoid | aa 
+----------+----
 (0 rows)
 
-DROP FOREIGN TABLE a CASCADE;
-NOTICE:  drop cascades to foreign table b
--- DROP TABLE loct;
-DROP FOREIGN TABLE b__postgres_srv__0;
+DROP TABLE a CASCADE;
+NOTICE:  drop cascades to foreign table b__postgres_srv__0
+DROP FOREIGN TABLE b CASCADE;
 -- Check SELECT FOR UPDATE/SHARE with an inherited source table
---create table loct1 (f1 int, f2 int, f3 int);
---create table loct2 (f1 int, f2 int, f3 int);
---alter table loct1 set (autovacuum_enabled = 'false');
---alter table loct2 set (autovacuum_enabled = 'false');
----create table foo (f1 int, f2 int);
-create foreign table foo (f1 int, f2 int)
+create table foo (f1 int, f2 int);
+create foreign table foo2 (f1 int, f2 int, f3 int, __spd_url text)
   server pgspider_srv;
-create foreign table foo__postgres_srv__0 (f1 int, f2 int)
-  server postgres_srv options (table_name 'foo');
-create foreign table foo2 (f3 int) inherits (foo)
-  server pgspider_srv;
--- Add __spd_url for both foo and foo2
-alter foreign table foo add column __spd_url text;
-create foreign table foo2__postgres_srv__0 (f3 int) inherits (foo__postgres_srv__0)
+create foreign table foo2__postgres_srv__0 (f3 int) inherits (foo)
   server postgres_srv options (table_name 'loct1_1');
----create table bar (f1 int, f2 int);
-create foreign table bar (f1 int, f2 int)
+create table bar (f1 int, f2 int);
+create foreign table bar2 (f1 int, f2 int, f3 int, __spd_url text)
   server pgspider_srv;
-create foreign table bar__postgres_srv__0 (f1 int, f2 int)
-  server postgres_srv options (table_name 'bar');
-create foreign table bar2 (f3 int) inherits (bar)
-  server pgspider_srv;
--- Add __spd_url for both bat and bar2
-alter foreign table bar add column __spd_url text;
-create foreign table bar2__postgres_srv__0 (f3 int) inherits (bar__postgres_srv__0)
+create foreign table bar2__postgres_srv__0 (f3 int) inherits (bar)
   server postgres_srv options (table_name 'loct2_1');
---alter table foo set (autovacuum_enabled = 'false');
---alter table bar set (autovacuum_enabled = 'false');
-insert into foo__postgres_srv__0 values(1,1);
-insert into foo__postgres_srv__0 values(3,3);
+alter table foo set (autovacuum_enabled = 'false');
+alter table bar set (autovacuum_enabled = 'false');
+insert into foo values(1,1);
+insert into foo values(3,3);
 insert into foo2__postgres_srv__0 values(2,2,2);
 insert into foo2__postgres_srv__0 values(4,4,4);
-insert into bar__postgres_srv__0 values(1,11);
-insert into bar__postgres_srv__0 values(2,22);
-insert into bar__postgres_srv__0 values(6,66);
+insert into bar values(1,11);
+insert into bar values(2,22);
+insert into bar values(6,66);
 insert into bar2__postgres_srv__0 values(3,33,33);
 insert into bar2__postgres_srv__0 values(4,44,44);
 insert into bar2__postgres_srv__0 values(7,77,77);
---explain (verbose, costs off)
---select * from bar where f1 in (select f1 from foo) for update;
---select * from bar where f1 in (select f1 from foo) for update;
---explain (verbose, costs off)
---select * from bar where f1 in (select f1 from foo) for share;
---select * from bar where f1 in (select f1 from foo) for share;
--- Check UPDATE with inherited target and an inherited source table
---explain (verbose, costs off)
---update bar set f2 = f2 + 100 where f1 in (select f1 from foo);
-select dblink_exec('update bar set f2 = f2 + 100 where f1 in (select f1 from foo);');
- dblink_exec 
--------------
- UPDATE 1
-(1 row)
+explain (verbose, costs off)
+select * from bar where f1 in (select f1 from foo) for update;
+                                                                             QUERY PLAN                                                                              
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ LockRows
+   Output: bar.f1, bar.f2, bar.ctid, foo.ctid, bar.*, bar.tableoid, foo.*, foo.tableoid
+   ->  Hash Join
+         Output: bar.f1, bar.f2, bar.ctid, foo.ctid, bar.*, bar.tableoid, foo.*, foo.tableoid
+         Inner Unique: true
+         Hash Cond: (bar.f1 = foo.f1)
+         ->  Append
+               ->  Seq Scan on public.bar
+                     Output: bar.f1, bar.f2, bar.ctid, bar.*, bar.tableoid
+               ->  Foreign Scan on public.bar2__postgres_srv__0
+                     Output: bar2__postgres_srv__0.f1, bar2__postgres_srv__0.f2, bar2__postgres_srv__0.ctid, bar2__postgres_srv__0.*, bar2__postgres_srv__0.tableoid
+                     Remote SQL: SELECT f1, f2, f3, ctid FROM public.loct2_1 FOR UPDATE
+         ->  Hash
+               Output: foo.ctid, foo.f1, foo.*, foo.tableoid
+               ->  HashAggregate
+                     Output: foo.ctid, foo.f1, foo.*, foo.tableoid
+                     Group Key: foo.f1
+                     ->  Append
+                           ->  Seq Scan on public.foo
+                                 Output: foo.ctid, foo.f1, foo.*, foo.tableoid
+                           ->  Foreign Scan on public.foo2__postgres_srv__0
+                                 Output: foo2__postgres_srv__0.ctid, foo2__postgres_srv__0.f1, foo2__postgres_srv__0.*, foo2__postgres_srv__0.tableoid
+                                 Remote SQL: SELECT f1, f2, f3, ctid FROM public.loct1_1
+(23 rows)
 
+select * from bar where f1 in (select f1 from foo) for update;
+ f1 | f2 
+----+----
+  1 | 11
+  2 | 22
+  3 | 33
+  4 | 44
+(4 rows)
+
+explain (verbose, costs off)
+select * from bar where f1 in (select f1 from foo) for share;
+                                                                             QUERY PLAN                                                                              
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ LockRows
+   Output: bar.f1, bar.f2, bar.ctid, foo.ctid, bar.*, bar.tableoid, foo.*, foo.tableoid
+   ->  Hash Join
+         Output: bar.f1, bar.f2, bar.ctid, foo.ctid, bar.*, bar.tableoid, foo.*, foo.tableoid
+         Inner Unique: true
+         Hash Cond: (bar.f1 = foo.f1)
+         ->  Append
+               ->  Seq Scan on public.bar
+                     Output: bar.f1, bar.f2, bar.ctid, bar.*, bar.tableoid
+               ->  Foreign Scan on public.bar2__postgres_srv__0
+                     Output: bar2__postgres_srv__0.f1, bar2__postgres_srv__0.f2, bar2__postgres_srv__0.ctid, bar2__postgres_srv__0.*, bar2__postgres_srv__0.tableoid
+                     Remote SQL: SELECT f1, f2, f3, ctid FROM public.loct2_1 FOR SHARE
+         ->  Hash
+               Output: foo.ctid, foo.f1, foo.*, foo.tableoid
+               ->  HashAggregate
+                     Output: foo.ctid, foo.f1, foo.*, foo.tableoid
+                     Group Key: foo.f1
+                     ->  Append
+                           ->  Seq Scan on public.foo
+                                 Output: foo.ctid, foo.f1, foo.*, foo.tableoid
+                           ->  Foreign Scan on public.foo2__postgres_srv__0
+                                 Output: foo2__postgres_srv__0.ctid, foo2__postgres_srv__0.f1, foo2__postgres_srv__0.*, foo2__postgres_srv__0.tableoid
+                                 Remote SQL: SELECT f1, f2, f3, ctid FROM public.loct1_1
+(23 rows)
+
+select * from bar where f1 in (select f1 from foo) for share;
+ f1 | f2 
+----+----
+  1 | 11
+  2 | 22
+  3 | 33
+  4 | 44
+(4 rows)
+
+-- Check UPDATE with inherited target and an inherited source table
+explain (verbose, costs off)
+update bar set f2 = f2 + 100 where f1 in (select f1 from foo);
+                                                                           QUERY PLAN                                                                            
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Update on public.bar
+   Update on public.bar
+   Foreign Update on public.bar2__postgres_srv__0
+     Remote SQL: UPDATE public.loct2_1 SET f2 = $2 WHERE ctid = $1
+   ->  Hash Join
+         Output: bar.f1, (bar.f2 + 100), bar.ctid, foo.ctid, foo.*, foo.tableoid
+         Inner Unique: true
+         Hash Cond: (bar.f1 = foo.f1)
+         ->  Seq Scan on public.bar
+               Output: bar.f1, bar.f2, bar.ctid
+         ->  Hash
+               Output: foo.ctid, foo.f1, foo.*, foo.tableoid
+               ->  HashAggregate
+                     Output: foo.ctid, foo.f1, foo.*, foo.tableoid
+                     Group Key: foo.f1
+                     ->  Append
+                           ->  Seq Scan on public.foo
+                                 Output: foo.ctid, foo.f1, foo.*, foo.tableoid
+                           ->  Foreign Scan on public.foo2__postgres_srv__0
+                                 Output: foo2__postgres_srv__0.ctid, foo2__postgres_srv__0.f1, foo2__postgres_srv__0.*, foo2__postgres_srv__0.tableoid
+                                 Remote SQL: SELECT f1, f2, f3, ctid FROM public.loct1_1
+   ->  Hash Join
+         Output: bar2__postgres_srv__0.f1, (bar2__postgres_srv__0.f2 + 100), bar2__postgres_srv__0.f3, bar2__postgres_srv__0.ctid, foo.ctid, foo.*, foo.tableoid
+         Inner Unique: true
+         Hash Cond: (bar2__postgres_srv__0.f1 = foo.f1)
+         ->  Foreign Scan on public.bar2__postgres_srv__0
+               Output: bar2__postgres_srv__0.f1, bar2__postgres_srv__0.f2, bar2__postgres_srv__0.f3, bar2__postgres_srv__0.ctid
+               Remote SQL: SELECT f1, f2, f3, ctid FROM public.loct2_1 FOR UPDATE
+         ->  Hash
+               Output: foo.ctid, foo.f1, foo.*, foo.tableoid
+               ->  HashAggregate
+                     Output: foo.ctid, foo.f1, foo.*, foo.tableoid
+                     Group Key: foo.f1
+                     ->  Append
+                           ->  Seq Scan on public.foo
+                                 Output: foo.ctid, foo.f1, foo.*, foo.tableoid
+                           ->  Foreign Scan on public.foo2__postgres_srv__0
+                                 Output: foo2__postgres_srv__0.ctid, foo2__postgres_srv__0.f1, foo2__postgres_srv__0.*, foo2__postgres_srv__0.tableoid
+                                 Remote SQL: SELECT f1, f2, f3, ctid FROM public.loct1_1
+(39 rows)
+
+update bar set f2 = f2 + 100 where f1 in (select f1 from foo);
 select tableoid::regclass, * from bar order by 1,2;
- tableoid | f1 | f2  |   __spd_url    
-----------+----+-----+----------------
- bar      |  1 | 111 | /postgres_srv/
- bar      |  2 |  22 | /postgres_srv/
- bar      |  6 |  66 | /postgres_srv/
- bar2     |  3 |  33 | /postgres_srv/
- bar2     |  4 |  44 | /postgres_srv/
- bar2     |  7 |  77 | /postgres_srv/
+       tableoid        | f1 | f2  
+-----------------------+----+-----
+ bar                   |  1 | 111
+ bar                   |  2 | 122
+ bar                   |  6 |  66
+ bar2__postgres_srv__0 |  3 | 133
+ bar2__postgres_srv__0 |  4 | 144
+ bar2__postgres_srv__0 |  7 |  77
 (6 rows)
 
 -- Check UPDATE with inherited target and an appendrel subquery
---explain (verbose, costs off)
---update bar set f2 = f2 + 100
---from
---  ( select f1 from foo union all select f1+3 from foo ) ss
---where bar.f1 = ss.f1;
-update bar__postgres_srv__0 set f2 = f2 + 100
+explain (verbose, costs off)
+update bar set f2 = f2 + 100
 from
   ( select f1 from foo union all select f1+3 from foo ) ss
-where bar__postgres_srv__0.f1 = ss.f1;
+where bar.f1 = ss.f1;
+                                                                   QUERY PLAN                                                                    
+-------------------------------------------------------------------------------------------------------------------------------------------------
+ Update on public.bar
+   Update on public.bar
+   Foreign Update on public.bar2__postgres_srv__0
+     Remote SQL: UPDATE public.loct2_1 SET f2 = $2 WHERE ctid = $1
+   ->  Hash Join
+         Output: bar.f1, (bar.f2 + 100), bar.ctid, (ROW(foo.f1))
+         Hash Cond: (foo.f1 = bar.f1)
+         ->  Append
+               ->  Seq Scan on public.foo
+                     Output: ROW(foo.f1), foo.f1
+               ->  Foreign Scan on public.foo2__postgres_srv__0
+                     Output: ROW(foo2__postgres_srv__0.f1), foo2__postgres_srv__0.f1
+                     Remote SQL: SELECT f1 FROM public.loct1_1
+               ->  Seq Scan on public.foo foo_1
+                     Output: ROW((foo_1.f1 + 3)), (foo_1.f1 + 3)
+               ->  Foreign Scan on public.foo2__postgres_srv__0 foo2__postgres_srv__0_1
+                     Output: ROW((foo2__postgres_srv__0_1.f1 + 3)), (foo2__postgres_srv__0_1.f1 + 3)
+                     Remote SQL: SELECT f1 FROM public.loct1_1
+         ->  Hash
+               Output: bar.f1, bar.f2, bar.ctid
+               ->  Seq Scan on public.bar
+                     Output: bar.f1, bar.f2, bar.ctid
+   ->  Merge Join
+         Output: bar2__postgres_srv__0.f1, (bar2__postgres_srv__0.f2 + 100), bar2__postgres_srv__0.f3, bar2__postgres_srv__0.ctid, (ROW(foo.f1))
+         Merge Cond: (bar2__postgres_srv__0.f1 = foo.f1)
+         ->  Sort
+               Output: bar2__postgres_srv__0.f1, bar2__postgres_srv__0.f2, bar2__postgres_srv__0.f3, bar2__postgres_srv__0.ctid
+               Sort Key: bar2__postgres_srv__0.f1
+               ->  Foreign Scan on public.bar2__postgres_srv__0
+                     Output: bar2__postgres_srv__0.f1, bar2__postgres_srv__0.f2, bar2__postgres_srv__0.f3, bar2__postgres_srv__0.ctid
+                     Remote SQL: SELECT f1, f2, f3, ctid FROM public.loct2_1 FOR UPDATE
+         ->  Sort
+               Output: (ROW(foo.f1)), foo.f1
+               Sort Key: foo.f1
+               ->  Append
+                     ->  Seq Scan on public.foo
+                           Output: ROW(foo.f1), foo.f1
+                     ->  Foreign Scan on public.foo2__postgres_srv__0
+                           Output: ROW(foo2__postgres_srv__0.f1), foo2__postgres_srv__0.f1
+                           Remote SQL: SELECT f1 FROM public.loct1_1
+                     ->  Seq Scan on public.foo foo_1
+                           Output: ROW((foo_1.f1 + 3)), (foo_1.f1 + 3)
+                     ->  Foreign Scan on public.foo2__postgres_srv__0 foo2__postgres_srv__0_1
+                           Output: ROW((foo2__postgres_srv__0_1.f1 + 3)), (foo2__postgres_srv__0_1.f1 + 3)
+                           Remote SQL: SELECT f1 FROM public.loct1_1
+(45 rows)
+
+update bar set f2 = f2 + 100
+from
+  ( select f1 from foo union all select f1+3 from foo ) ss
+where bar.f1 = ss.f1;
 select tableoid::regclass, * from bar order by 1,2;
- tableoid | f1 | f2  |   __spd_url    
-----------+----+-----+----------------
- bar      |  1 | 211 | /postgres_srv/
- bar      |  2 | 122 | /postgres_srv/
- bar      |  6 | 166 | /postgres_srv/
- bar2     |  3 | 133 | /postgres_srv/
- bar2     |  4 | 144 | /postgres_srv/
- bar2     |  7 | 177 | /postgres_srv/
+       tableoid        | f1 | f2  
+-----------------------+----+-----
+ bar                   |  1 | 211
+ bar                   |  2 | 222
+ bar                   |  6 | 166
+ bar2__postgres_srv__0 |  3 | 233
+ bar2__postgres_srv__0 |  4 | 244
+ bar2__postgres_srv__0 |  7 | 177
 (6 rows)
 
 -- Test forcing the remote server to produce sorted data for a merge join,
 -- but the foreign table is an inheritance child.
 delete from foo2__postgres_srv__0;
-delete from foo__postgres_srv__0;
---truncate table loct1;
---truncate table only foo;
+truncate table only foo;
 \set num_rows_foo 2000
---insert into loct1 select generate_series(0, :num_rows_foo, 2), generate_series(0, :num_rows_foo, 2), generate_series(0, :num_rows_foo, 2);
 insert into foo2__postgres_srv__0 select generate_series(0, :num_rows_foo, 2), generate_series(0, :num_rows_foo, 2), generate_series(0, :num_rows_foo, 2);
---insert into foo select generate_series(1, :num_rows_foo, 2), generate_series(1, :num_rows_foo, 2);
-insert into foo__postgres_srv__0 select generate_series(1, :num_rows_foo, 2), generate_series(1, :num_rows_foo, 2);
+insert into foo select generate_series(1, :num_rows_foo, 2), generate_series(1, :num_rows_foo, 2);
 SET enable_hashjoin to false;
 SET enable_nestloop to false;
 alter foreign table foo2 options (use_remote_estimate 'true');
---create index i_loct1_f1 on loct1(f1);
---create index i_foo_f1 on foo(f1);
 analyze foo;
-WARNING:  skipping "foo" --- cannot analyze this foreign table
---analyze loct1;
-analyze foo2;
-WARNING:  skipping "foo2" --- cannot analyze this foreign table
 -- inner join; expressions in the clauses appear in the equivalence class list
 explain (verbose, costs off)
 	select foo.f1, foo2.f1 from foo join foo2 on (foo.f1 = foo2.f1) order by foo.f2 offset 10 limit 10;
-                                   QUERY PLAN                                    
----------------------------------------------------------------------------------
+                                         QUERY PLAN                                         
+--------------------------------------------------------------------------------------------
  Limit
    Output: foo.f1, foo2.f1, foo.f2
    ->  Sort
@@ -8127,7 +8229,16 @@ explain (verbose, costs off)
          Sort Key: foo.f2
          ->  Merge Join
                Output: foo.f1, foo2.f1, foo.f2
-               Merge Cond: (foo2.f1 = foo.f1)
+               Merge Cond: (foo.f1 = foo2.f1)
+               ->  Sort
+                     Output: foo.f1, foo.f2
+                     Sort Key: foo.f1
+                     ->  Append
+                           ->  Seq Scan on public.foo
+                                 Output: foo.f1, foo.f2
+                           ->  Foreign Scan on public.foo2__postgres_srv__0
+                                 Output: foo2__postgres_srv__0.f1, foo2__postgres_srv__0.f2
+                                 Remote SQL: SELECT f1, f2 FROM public.loct1_1
                ->  Sort
                      Output: foo2.f1
                      Sort Key: foo2.f1
@@ -8135,19 +8246,7 @@ explain (verbose, costs off)
                            Output: foo2.f1
                            Node: postgres_srv / Status: Alive
                              Remote SQL: SELECT f1 FROM public.loct1_1
-               ->  Sort
-                     Output: foo.f1, foo.f2
-                     Sort Key: foo.f1
-                     ->  Append
-                           ->  Foreign Scan on public.foo
-                                 Output: foo.f1, foo.f2
-                                 Node: postgres_srv / Status: Alive
-                                   Remote SQL: SELECT f1, f2 FROM public.foo
-                           ->  Foreign Scan on public.foo2 foo2_1
-                                 Output: foo2_1.f1, foo2_1.f2
-                                 Node: postgres_srv / Status: Alive
-                                   Remote SQL: SELECT f1, f2 FROM public.loct1_1
-(27 rows)
+(24 rows)
 
 select foo.f1, foo2.f1 from foo join foo2 on (foo.f1 = foo2.f1) order by foo.f2 offset 10 limit 10;
  f1 | f1 
@@ -8168,16 +8267,25 @@ select foo.f1, foo2.f1 from foo join foo2 on (foo.f1 = foo2.f1) order by foo.f2 
 -- list but no output change as compared to the previous query
 explain (verbose, costs off)
 	select foo.f1, foo2.f1 from foo left join foo2 on (foo.f1 = foo2.f1) order by foo.f2 offset 10 limit 10;
-                                   QUERY PLAN                                    
----------------------------------------------------------------------------------
+                                         QUERY PLAN                                         
+--------------------------------------------------------------------------------------------
  Limit
    Output: foo.f1, foo2.f1, foo.f2
    ->  Sort
          Output: foo.f1, foo2.f1, foo.f2
          Sort Key: foo.f2
-         ->  Merge Right Join
+         ->  Merge Left Join
                Output: foo.f1, foo2.f1, foo.f2
-               Merge Cond: (foo2.f1 = foo.f1)
+               Merge Cond: (foo.f1 = foo2.f1)
+               ->  Sort
+                     Output: foo.f1, foo.f2
+                     Sort Key: foo.f1
+                     ->  Append
+                           ->  Seq Scan on public.foo
+                                 Output: foo.f1, foo.f2
+                           ->  Foreign Scan on public.foo2__postgres_srv__0
+                                 Output: foo2__postgres_srv__0.f1, foo2__postgres_srv__0.f2
+                                 Remote SQL: SELECT f1, f2 FROM public.loct1_1
                ->  Sort
                      Output: foo2.f1
                      Sort Key: foo2.f1
@@ -8185,19 +8293,7 @@ explain (verbose, costs off)
                            Output: foo2.f1
                            Node: postgres_srv / Status: Alive
                              Remote SQL: SELECT f1 FROM public.loct1_1
-               ->  Sort
-                     Output: foo.f1, foo.f2
-                     Sort Key: foo.f1
-                     ->  Append
-                           ->  Foreign Scan on public.foo
-                                 Output: foo.f1, foo.f2
-                                 Node: postgres_srv / Status: Alive
-                                   Remote SQL: SELECT f1, f2 FROM public.foo
-                           ->  Foreign Scan on public.foo2 foo2_1
-                                 Output: foo2_1.f1, foo2_1.f2
-                                 Node: postgres_srv / Status: Alive
-                                   Remote SQL: SELECT f1, f2 FROM public.loct1_1
-(27 rows)
+(24 rows)
 
 select foo.f1, foo2.f1 from foo left join foo2 on (foo.f1 = foo2.f1) order by foo.f2 offset 10 limit 10;
  f1 | f1 
@@ -8220,18 +8316,30 @@ RESET enable_nestloop;
 begin;
 declare c cursor for select * from bar where f1 = 7;
 fetch from c;
- f1 | f2  |   __spd_url    
-----+-----+----------------
-  7 | 177 | /postgres_srv/
+ f1 | f2  
+----+-----
+  7 | 177
 (1 row)
 
---update bar set f2 = null where current of c;
---rollback;
---use commit instead of rollback
-commit;
--- explain (verbose, costs off)
--- delete from foo where f1 < 5 returning *;
-delete from foo__postgres_srv__0 where f1 < 5 returning *;
+update bar set f2 = null where current of c;
+ERROR:  WHERE CURRENT OF is not supported for this table type
+rollback;
+explain (verbose, costs off)
+delete from foo where f1 < 5 returning *;
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Delete on public.foo
+   Output: foo.f1, foo.f2
+   Delete on public.foo
+   Foreign Delete on public.foo2__postgres_srv__0
+   ->  Seq Scan on public.foo
+         Output: foo.ctid
+         Filter: (foo.f1 < 5)
+   ->  Foreign Delete on public.foo2__postgres_srv__0
+         Remote SQL: DELETE FROM public.loct1_1 WHERE ((f1 < 5)) RETURNING f1, f2
+(9 rows)
+
+delete from foo where f1 < 5 returning *;
  f1 | f2 
 ----+----
   1 |  1
@@ -8241,16 +8349,28 @@ delete from foo__postgres_srv__0 where f1 < 5 returning *;
   4 |  4
 (5 rows)
 
--- explain (verbose, costs off)
--- update bar set f2 = f2 + 100 returning *;
-update bar__postgres_srv__0 set f2 = f2 + 100 returning *;
+explain (verbose, costs off)
+update bar set f2 = f2 + 100 returning *;
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
+ Update on public.bar
+   Output: bar.f1, bar.f2
+   Update on public.bar
+   Foreign Update on public.bar2__postgres_srv__0
+   ->  Seq Scan on public.bar
+         Output: bar.f1, (bar.f2 + 100), bar.ctid
+   ->  Foreign Update on public.bar2__postgres_srv__0
+         Remote SQL: UPDATE public.loct2_1 SET f2 = (f2 + 100) RETURNING f1, f2
+(8 rows)
+
+update bar set f2 = f2 + 100 returning *;
  f1 | f2  
 ----+-----
   1 | 311
-  2 | 222
+  2 | 322
   6 | 266
-  3 | 233
-  4 | 244
+  3 | 333
+  4 | 344
   7 | 277
 (6 rows)
 
@@ -8261,29 +8381,40 @@ FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
 CREATE TRIGGER trig_row_after
 AFTER UPDATE OR DELETE ON bar2
 FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
--- explain (verbose, costs off)
--- update bar set f2 = f2 + 100;
-update bar__postgres_srv__0 set f2 = f2 + 100;
--- explain (verbose, costs off)
--- delete from bar where f2 < 400;
-delete from bar__postgres_srv__0 where f2 < 400;
+explain (verbose, costs off)
+update bar set f2 = f2 + 100;
+                          QUERY PLAN                           
+---------------------------------------------------------------
+ Update on public.bar
+   Update on public.bar
+   Foreign Update on public.bar2__postgres_srv__0
+   ->  Seq Scan on public.bar
+         Output: bar.f1, (bar.f2 + 100), bar.ctid
+   ->  Foreign Update on public.bar2__postgres_srv__0
+         Remote SQL: UPDATE public.loct2_1 SET f2 = (f2 + 100)
+(7 rows)
+
+update bar set f2 = f2 + 100;
+explain (verbose, costs off)
+delete from bar where f2 < 400;
+                            QUERY PLAN                             
+-------------------------------------------------------------------
+ Delete on public.bar
+   Delete on public.bar
+   Foreign Delete on public.bar2__postgres_srv__0
+   ->  Seq Scan on public.bar
+         Output: bar.ctid
+         Filter: (bar.f2 < 400)
+   ->  Foreign Delete on public.bar2__postgres_srv__0
+         Remote SQL: DELETE FROM public.loct2_1 WHERE ((f2 < 400))
+(8 rows)
+
+delete from bar where f2 < 400;
 -- cleanup
-drop foreign table foo cascade;
-NOTICE:  drop cascades to foreign table foo2
-drop foreign table bar cascade;
-NOTICE:  drop cascades to foreign table bar2
---drop table foo cascade;
---drop table bar cascade;
---drop table loct1;
---drop table loct2;
+drop foreign table foo2 cascade;
+drop foreign table bar2 cascade;
 -- Test pushing down UPDATE/DELETE joins to the remote server
----create table parent (a int, b text);
----create table loct1 (a int, b text);
----create table loct2 (a int, b text);
-create foreign table parent (a int, b text, __spd_url text)
-  server pgspider_srv;
-create foreign table parent__postgres_srv__0 (a int, b text)
-  server postgres_srv options (table_name 'parent');
+create table parent (a int, b text);
 create foreign table remt1 (a int, b text, __spd_url text)
   server pgspider_srv;
 create foreign table remt1__postgres_srv__0 (a int, b text)
@@ -8292,52 +8423,100 @@ create foreign table remt2 (a int, b text, __spd_url text)
   server pgspider_srv;
 create foreign table remt2__postgres_srv__0 (a int, b text)
   server postgres_srv options (table_name 'loct2_2');
-alter foreign table remt1 inherit parent;
-alter foreign table remt1__postgres_srv__0 inherit parent__postgres_srv__0;
+alter foreign table remt1__postgres_srv__0 inherit parent;
+--alter foreign table remt1__postgres_srv__0 inherit parent__postgres_srv__0;
 insert into remt1__postgres_srv__0 values (1, 'foo');
 insert into remt1__postgres_srv__0 values (2, 'bar');
 insert into remt2__postgres_srv__0 values (1, 'foo');
 insert into remt2__postgres_srv__0 values (2, 'bar');
--- Add more test cases to see original data in advance
-select * from parent;
- a |  b  |   __spd_url    
----+-----+----------------
- 1 | foo | /postgres_srv/
- 2 | bar | /postgres_srv/
-(2 rows)
+--analyze remt1;
+--analyze remt2;
+explain (verbose, costs off)
+update parent set b = parent.b || remt2.b from remt2 where parent.a = remt2.a returning *;
+                                                                        QUERY PLAN                                                                        
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+ Update on public.parent
+   Output: parent.a, parent.b, remt2.a, remt2.b, remt2.__spd_url
+   Update on public.parent
+   Foreign Update on public.remt1__postgres_srv__0
+     Remote SQL: UPDATE public.loct1_2 SET b = $2 WHERE ctid = $1 RETURNING a, b
+   ->  Hash Join
+         Output: parent.a, (parent.b || remt2.b), parent.ctid, remt2.*, remt2.a, remt2.b, remt2.__spd_url
+         Hash Cond: (remt2.a = parent.a)
+         ->  Foreign Scan on public.remt2
+               Output: remt2.b, remt2.*, remt2.a, remt2.__spd_url
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT a, b FROM public.loct2_2
+         ->  Hash
+               Output: parent.a, parent.b, parent.ctid
+               ->  Seq Scan on public.parent
+                     Output: parent.a, parent.b, parent.ctid
+   ->  Merge Join
+         Output: remt1__postgres_srv__0.a, (remt1__postgres_srv__0.b || remt2.b), remt1__postgres_srv__0.ctid, remt2.*, remt2.a, remt2.b, remt2.__spd_url
+         Merge Cond: (remt1__postgres_srv__0.a = remt2.a)
+         ->  Sort
+               Output: remt1__postgres_srv__0.a, remt1__postgres_srv__0.b, remt1__postgres_srv__0.ctid
+               Sort Key: remt1__postgres_srv__0.a
+               ->  Foreign Scan on public.remt1__postgres_srv__0
+                     Output: remt1__postgres_srv__0.a, remt1__postgres_srv__0.b, remt1__postgres_srv__0.ctid
+                     Remote SQL: SELECT a, b, ctid FROM public.loct1_2 FOR UPDATE
+         ->  Sort
+               Output: remt2.b, remt2.*, remt2.a, remt2.__spd_url
+               Sort Key: remt2.a
+               ->  Foreign Scan on public.remt2
+                     Output: remt2.b, remt2.*, remt2.a, remt2.__spd_url
+                     Node: postgres_srv / Status: Alive
+                       Remote SQL: SELECT a, b FROM public.loct2_2
+(32 rows)
 
-select * from remt1;
- a |  b  |   __spd_url    
----+-----+----------------
- 1 | foo | /postgres_srv/
- 2 | bar | /postgres_srv/
-(2 rows)
-
-select * from remt2;
- a |  b  |   __spd_url    
----+-----+----------------
- 1 | foo | /postgres_srv/
- 2 | bar | /postgres_srv/
-(2 rows)
-
-analyze remt1;
-WARNING:  skipping "remt1" --- cannot analyze this foreign table
-analyze remt2;
-WARNING:  skipping "remt2" --- cannot analyze this foreign table
---explain (verbose, costs off)
---update parent set b = parent.b || remt2.b from remt2 where parent.a = remt2.a returning *;
-update parent__postgres_srv__0 set b = parent__postgres_srv__0.b || remt2.b from remt2 where parent__postgres_srv__0.a = remt2.a returning *;
+update parent set b = parent.b || remt2.b from remt2 where parent.a = remt2.a returning *;
  a |   b    | a |  b  |   __spd_url    
 ---+--------+---+-----+----------------
  1 | foofoo | 1 | foo | /postgres_srv/
  2 | barbar | 2 | bar | /postgres_srv/
 (2 rows)
 
---explain (verbose, costs off)
---delete from parent using remt2 where parent.a = remt2.a returning parent;
-delete from parent__postgres_srv__0 using remt2 where parent__postgres_srv__0.a = remt2.a returning parent__postgres_srv__0;
- parent__postgres_srv__0 
--------------------------
+explain (verbose, costs off)
+delete from parent using remt2 where parent.a = remt2.a returning parent;
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ Delete on public.parent
+   Output: parent.*
+   Delete on public.parent
+   Foreign Delete on public.remt1__postgres_srv__0
+     Remote SQL: DELETE FROM public.loct1_2 WHERE ctid = $1 RETURNING a, b
+   ->  Hash Join
+         Output: parent.ctid, remt2.*
+         Hash Cond: (remt2.a = parent.a)
+         ->  Foreign Scan on public.remt2
+               Output: remt2.*, remt2.a
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT a, b FROM public.loct2_2
+         ->  Hash
+               Output: parent.ctid, parent.a
+               ->  Seq Scan on public.parent
+                     Output: parent.ctid, parent.a
+   ->  Merge Join
+         Output: remt1__postgres_srv__0.ctid, remt2.*
+         Merge Cond: (remt1__postgres_srv__0.a = remt2.a)
+         ->  Sort
+               Output: remt1__postgres_srv__0.ctid, remt1__postgres_srv__0.a
+               Sort Key: remt1__postgres_srv__0.a
+               ->  Foreign Scan on public.remt1__postgres_srv__0
+                     Output: remt1__postgres_srv__0.ctid, remt1__postgres_srv__0.a
+                     Remote SQL: SELECT a, ctid FROM public.loct1_2 FOR UPDATE
+         ->  Sort
+               Output: remt2.*, remt2.a
+               Sort Key: remt2.a
+               ->  Foreign Scan on public.remt2
+                     Output: remt2.*, remt2.a
+                     Node: postgres_srv / Status: Alive
+                       Remote SQL: SELECT a, b FROM public.loct2_2
+(32 rows)
+
+delete from parent using remt2 where parent.a = remt2.a returning parent;
+   parent   
+------------
  (1,foofoo)
  (2,barbar)
 (2 rows)
@@ -8347,13 +8526,11 @@ drop foreign table remt1;
 drop foreign table remt2;
 drop foreign table remt1__postgres_srv__0;
 drop foreign table remt2__postgres_srv__0;
-drop foreign table parent;
-drop foreign table parent__postgres_srv__0;
+drop table parent;
 -- ===================================================================
 -- test tuple routing for foreign-table partitions
 -- ===================================================================
 -- Test insert tuple routing
----create table itrtest (a int, b text) partition by list (a);
 create foreign table itrtest (a int, b text, __spd_url text)
   server pgspider_srv;
 create foreign table itrtest__postgres_srv__0 (a int, b text)
@@ -8366,7 +8543,6 @@ SELECT dblink_exec('create foreign table remp1
  CREATE FOREIGN TABLE
 (1 row)
 
----create table loct1 (a int check (a in (1)), b text);
 create foreign table remp1 (a int check (a in (1)), b text, __spd_url text) 
   server pgspider_srv;
 create foreign table remp1__postgres_srv__0 (a int check (a in (1)), b text) 
@@ -8379,7 +8555,6 @@ SELECT dblink_exec('create foreign table remp2
  CREATE FOREIGN TABLE
 (1 row)
 
----create table loct2 (a int check (a in (2)), b text);
 create foreign table remp2 (b text, a int check (a in (2)), __spd_url text) 
   server pgspider_srv;
 create foreign table remp2__postgres_srv__0 (b text, a int check (a in (2))) 
@@ -8445,7 +8620,6 @@ select tableoid::regclass, * FROM remp2;
  remp2    | test2 | 2 | /postgres_srv/
 (3 rows)
 
---delete from itrtest;
 delete from itrtest__postgres_srv__0;
 SELECT dblink_exec('create unique index loct1_idx on loct1_3 (a);');
  dblink_exec  
@@ -8551,7 +8725,6 @@ drop foreign table remp2__postgres_srv__0;
 drop foreign table itrtest;
 drop foreign table itrtest__postgres_srv__0;
 -- Test update tuple routing
----create table utrtest (a int, b text) partition by list (a);
 create foreign table utrtest (a int, b text)
   server pgspider_srv;
 create foreign table utrtest__postgres_srv__0 (a int, b text)
@@ -8564,12 +8737,10 @@ SELECT dblink_exec('create foreign table remp
  CREATE FOREIGN TABLE
 (1 row)
 
----create table loct (a int check (a in (1)), b text);
 create foreign table remp (a int check (a in (1)), b text, __spd_url text)
   server pgspider_srv;
 create foreign table remp__postgres_srv__0 (a int check (a in (1)), b text)
   server postgres_srv options (table_name 'remp');
----create table locp (a int check (a in (2)), b text);
 create foreign table locp (a int check (a in (2)), b text, __spd_url text)
   server pgspider_srv;
 create foreign table locp__postgres_srv__0 (a int check (a in (2)), b text)
@@ -8823,8 +8994,6 @@ drop foreign table ctrtest__postgres_srv__0;
 -- ===================================================================
 -- test COPY FROM
 -- ===================================================================
----create table loc2 (f1 int, f2 text);
----alter table loc2 set (autovacuum_enabled = 'false');
 create foreign table rem2 (f1 int, f2 text, __spd_url text)
   server pgspider_srv;
 create foreign table rem2__postgres_srv__0 (f1 int, f2 text)
@@ -8840,7 +9009,6 @@ select * from rem2;
 
 delete from rem2__postgres_srv__0;
 -- Test check constraints
----alter table loc2 add constraint loc2_f1positive check (f1 >= 0);
 alter foreign table rem2 add constraint rem2_f1positive check (f1 >= 0);
 -- check constraint is enforced on the remote side, not locally
 copy rem2__postgres_srv__0 from stdin;
@@ -8857,7 +9025,6 @@ select * from rem2;
 (2 rows)
 
 alter foreign table rem2 drop constraint rem2_f1positive;
---alter table loc2 drop constraint loc2_f1positive;
 delete from rem2__postgres_srv__0;
 -- Test local triggers
 create trigger trig_stmt_before before insert on rem2__postgres_srv__0
@@ -8998,7 +9165,6 @@ SELECT dblink_exec('drop trigger loc2_trig_row_before_insert on loc2_1;');
 
 delete from rem2__postgres_srv__0;
 -- test COPY FROM with foreign table created in the same transaction
---- create table loc3 (f1 int, f2 text);
 begin;
 create foreign table rem3 (f1 int, f2 text, __spd_url text)
 	server pgspider_srv;
@@ -9343,12 +9509,6 @@ ROLLBACK;
 -- ===================================================================
 SET enable_partitionwise_join=on;
 CREATE TABLE fprt1 (a int, b int, c varchar) PARTITION BY RANGE(a);
----CREATE TABLE fprt1_p1 (LIKE fprt1);
----CREATE TABLE fprt1_p2 (LIKE fprt1);
----ALTER TABLE fprt1_p1 SET (autovacuum_enabled = 'false');
----ALTER TABLE fprt1_p2 SET (autovacuum_enabled = 'false');
----INSERT INTO fprt1_p1 SELECT i, i, to_char(i/50, 'FM0000') FROM generate_series(0, 249, 2) i;
----INSERT INTO fprt1_p2 SELECT i, i, to_char(i/50, 'FM0000') FROM generate_series(250, 499, 2) i;
 CREATE FOREIGN TABLE ftprt1_p1(a int, b int, c varchar, __spd_url text)
 	SERVER pgspider_srv;
 CREATE FOREIGN TABLE ftprt1_p1__postgres_srv__0 PARTITION OF fprt1 FOR VALUES FROM (0) TO (250)
@@ -9363,12 +9523,6 @@ WARNING:  skipping "ftprt1_p1" --- cannot analyze this foreign table
 ANALYZE ftprt1_p2;
 WARNING:  skipping "ftprt1_p2" --- cannot analyze this foreign table
 CREATE TABLE fprt2 (a int, b int, c varchar) PARTITION BY RANGE(b);
----CREATE TABLE fprt2_p1 (LIKE fprt2);
----CREATE TABLE fprt2_p2 (LIKE fprt2);
----ALTER TABLE fprt2_p1 SET (autovacuum_enabled = 'false');
----ALTER TABLE fprt2_p2 SET (autovacuum_enabled = 'false');
----INSERT INTO fprt2_p1 SELECT i, i, to_char(i/50, 'FM0000') FROM generate_series(0, 249, 3) i;
----INSERT INTO fprt2_p2 SELECT i, i, to_char(i/50, 'FM0000') FROM generate_series(250, 499, 3) i;
 CREATE FOREIGN TABLE ftprt2_p1 (b int, c varchar, a int, __spd_url text)
 	SERVER pgspider_srv;
 CREATE FOREIGN TABLE ftprt2_p1__postgres_srv__0 (b int, c varchar, a int)
@@ -9558,12 +9712,6 @@ RESET enable_partitionwise_join;
 -- test partitionwise aggregates
 -- ===================================================================
 CREATE TABLE pagg_tab (a int, b int, c text) PARTITION BY RANGE(a);
----CREATE TABLE pagg_tab_p1 (LIKE pagg_tab);
----CREATE TABLE pagg_tab_p2 (LIKE pagg_tab);
----CREATE TABLE pagg_tab_p3 (LIKE pagg_tab);
----INSERT INTO pagg_tab_p1 SELECT i % 30, i % 50, to_char(i/30, 'FM0000') FROM generate_series(1, 3000) i WHERE (i % 30) < 10;
----INSERT INTO pagg_tab_p2 SELECT i % 30, i % 50, to_char(i/30, 'FM0000') FROM generate_series(1, 3000) i WHERE (i % 30) < 20 and (i % 30) >= 10;
----INSERT INTO pagg_tab_p3 SELECT i % 30, i % 50, to_char(i/30, 'FM0000') FROM generate_series(1, 3000) i WHERE (i % 30) < 30 and (i % 30) >= 20;
 -- Create foreign table on pgspider node
 CREATE FOREIGN TABLE fpagg_tab_p1 (a int, b int, c text, __spd_url text) 
   SERVER pgspider_srv;
