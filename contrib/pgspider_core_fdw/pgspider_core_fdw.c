@@ -160,6 +160,7 @@ typedef struct ForeignScanThreadInfo
 	bool		requestEndScan; /* main thread request endForeingScan to child
 								 * thread */
 	bool		requestRescan;	/* main thread request rescan to child thread */
+	bool		requestStartScan; /* main thread request startscan to child thread*/
 	SpdTupleQueue tupleQueue;	/* queue for passing tuples from child to
 								 * parent */
 	int			childInfoIndex; /* index of child info array */
@@ -1596,7 +1597,35 @@ RESCAN:
 		SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 
 		fssthrdInfo->requestRescan = false;
+		fssthrdInfo->state = SPD_FS_STATE_BEGIN;
 	}
+
+	/*
+	 * requestStartScan is used in case a main query has sub query.
+	 *
+	 * Main query and sub query is executed in two thread parallel.
+	 * For main query, it need to wait for sub-plan is initialized by the core engine.
+	 * After sub-plan is initialized, the core engine start Portal Run and call spd_IterateForeignScan.
+	 * requestStartScan will be enabled in this routine.
+	 *
+	 * During wait to start scan, if it receives request to re-scan, go back to RESCAN
+	 * If it receives request to end scan if error occurs, exit the transaction.
+	 */
+	while (!fssthrdInfo->requestStartScan && fssthrdInfo->state == SPD_FS_STATE_BEGIN) {
+		usleep(1);
+		if (fssthrdInfo->requestEndScan) {
+			fssthrdInfo->state = SPD_FS_STATE_ERROR;
+			goto THREAD_EXIT;
+		}
+		if (fssthrdInfo->requestRescan) {
+			fssthrdInfo->state = SPD_FS_STATE_ITERATE;
+			goto RESCAN;
+		}
+	}
+
+	/* In case re-scan, the main query needs to repeat waiting */
+	fssthrdInfo->requestStartScan = false;
+
 	fssthrdInfo->state = SPD_FS_STATE_ITERATE;
 
 	if (list_member_oid(fdw_private->pPseudoAggList, fssthrdInfo->serverId))
@@ -4106,17 +4135,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_param_list_info =
 				copyParamList(estate->es_param_list_info);
 
-		/*
-		 * For init internal params, allocate memory for exec vals.
-		 * It will be used to init exec plan of subquery
-		 * and store returned result of subquery
-		 */
-		if (estate->es_plannedstmt->paramExecTypes != NULL) {
-			numParams = list_length(estate->es_plannedstmt->paramExecTypes);
-			fssThrdInfo[node_incr].fsstate->ss.ps.state->es_param_exec_vals =
-					(ParamExecData *) palloc0(
-							numParams * sizeof(ParamExecData));
-		}
 		/* This should be a new RTE list. coming from dummy rtable */
 		query = ((PlannerInfo *) childinfo[i].root)->parse;
 
@@ -4184,6 +4202,12 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 		fssThrdInfo[node_incr].requestEndScan = false;
 		fssThrdInfo[node_incr].requestRescan = false;
+		/*
+		 * If query has no parameter, to improve performance, it can be executed immediately.
+		 * If query has parameter, sub-plan needs to be initialized, so it needs to wait the core engine
+		 * initializes the sub-plan.
+		 */
+		fssThrdInfo[node_incr].requestStartScan = (list_length(fsplan->fdw_exprs) == 0);
 		/* We save correspondence between fssThrdInfo and childinfo */
 		fssThrdInfo[node_incr].childInfoIndex = i;
 		childinfo[i].index_threadinfo = node_incr;
@@ -5225,8 +5249,28 @@ spd_IterateForeignScan(ForeignScanState *node)
 	if (fdw_private->nThreads == 0)
 		return NULL;
 
-
 	mapping_tlist = fdw_private->mapping_tlist;
+
+	/*
+	 * After the core engine initialize sub-plan, it jump to spd_IterateForeingScan,
+	 * in this routine, we need to initialize sub-plan data for the main-query for one time only.
+	 */
+	if (!fssThrdInfo->requestStartScan && fdw_private->isFirst) {
+		EState* estate = node->ss.ps.state;
+
+		fssThrdInfo->fsstate->ss.ps.state->es_subplanstates = list_copy(estate->es_subplanstates);
+		fssThrdInfo->fsstate->ss.ps.ps_ExprContext->ecxt_param_exec_vals = node->ss.ps.ps_ExprContext->ecxt_param_exec_vals;
+
+		/* request to continue the main query transaction */
+		fssThrdInfo->requestStartScan = true;
+
+		/* utilize isFirst to mark this processing is implemented one time only*/
+		if (!fdw_private->agg_query)
+		{
+			fdw_private->isFirst = false;
+		}
+	}
+
 	/* CREATE TEMP TABLE SQL */
 	if (fdw_private->agg_query)
 	{

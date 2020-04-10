@@ -458,7 +458,12 @@ SELECT * FROM ft1 t1 WHERE t1.c3 IN (SELECT c3 FROM ft2 t2 WHERE c1 <= 10) ORDER
 (10 rows)
 
 -- subquery+MAX
---SELECT * FROM ft1 t1 WHERE t1.c3 = (SELECT MAX(c3) FROM ft2 t2) ORDER BY c1;
+SELECT * FROM ft1 t1 WHERE t1.c3 = (SELECT MAX(c3) FROM ft2 t2) ORDER BY c1;
+  c1  | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
+------+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
+ 1000 |  0 | 01000 | Thu Jan 01 00:00:00 1970 PST | Thu Jan 01 00:00:00 1970 | 0  | 0          | foo | /postgres_srv/
+(1 row)
+
 -- used in CTE
 WITH t1 AS (SELECT * FROM ft1 WHERE c1 <= 10) SELECT t2.c1, t2.c2, t2.c3, t2.c4 FROM t1, ft2 t2 WHERE t1.c1 = t2.c1 ORDER BY t1.c1;
  c1 | c2 |  c3   |              c4              
@@ -3629,10 +3634,10 @@ select exists(select 1 from pg_enum), sum(c1) from ft1;
 ERROR:  invalid input syntax for type boolean: "500500"
 CONTEXT:  processing expression at position 1 in select list
 ERROR:  function sum(boolean) does not exist
-LINE 1: SELECT SUM(col0),SUM(col1) FROM __spd__temptable_10 
+LINE 1: SELECT SUM(col0),SUM(col1) FROM __spd__temptable_11 
                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-QUERY:  SELECT SUM(col0),SUM(col1) FROM __spd__temptable_10 
+QUERY:  SELECT SUM(col0),SUM(col1) FROM __spd__temptable_11 
 explain (verbose, costs off)
 select exists(select 1 from pg_enum), sum(c1) from ft1 group by 1;
                      QUERY PLAN                      
@@ -3927,7 +3932,7 @@ select distinct (select count(t1.c1) filter (where t2.c2 = 6 and t2.c1 < 10) fro
 select distinct (select count(t1.c1) filter (where t2.c2 = 6 and t2.c1 < 10) from ft1 t1 where t1.c1 = 6) from ft2 t2 where t2.c2 % 6 = 0 order by 1;
  count 
 -------
-     0
+     1
       
 (2 rows)
 
@@ -4392,7 +4397,16 @@ select c2, sum from "S 1"."T 1" t1, lateral (select sum(t2.c1 + t1."C 1") sum fr
  c2 | sum 
 ----+-----
   1 |   2
-(1 row)
+  1 |   2
+  1 |   2
+  1 |   2
+  1 |   2
+  1 |   2
+  1 |   2
+  1 |   2
+  1 |   2
+  1 |   2
+(10 rows)
 
 reset enable_hashagg;
 -- bug #15613: bad plan for foreign table scan with lateral reference
