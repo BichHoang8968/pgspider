@@ -61,7 +61,3 @@ lib*.pc
 .project
 .settings/
 /bin/
-/contrib/blackhole_fdw/
-/contrib/mysql_fdw/
-/contrib/blackhole_fdw/
-/contrib/sqlite_fdw/
