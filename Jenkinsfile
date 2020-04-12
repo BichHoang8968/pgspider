@@ -40,7 +40,7 @@ def install_pgspider(String install_dir, int port) {
     sh "mkdir " + install_dir + " || true"
     sh "./configure --prefix=" + install_dir
     sh '''
-	make install
+        make install
         cd contrib/file_fdw/
         make install
         cd ../postgres_fdw/
@@ -53,12 +53,12 @@ def install_pgspider(String install_dir, int port) {
         make install
         cd ../mysql_fdw/
         make install
-#        cd ../tinybrace_fdw/
-#        make install
-#        cd ../influxdb_fdw/
-#        make install
-#        cd ../griddb_fdw/
-#        make install
+        cd ../tinybrace_fdw/
+        make install
+        cd ../influxdb_fdw/
+        make install
+        cd ../griddb_fdw/
+        make install
     '''
     dir(install_dir + "/bin") {
         sh './initdb ../databases'
