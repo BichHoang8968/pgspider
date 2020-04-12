@@ -1250,9 +1250,13 @@ spd_spi_exec_datasouce_num(Oid foreigntableid, int *nums, Oid **oid)
 	 * child table name is "ParentTableName_NodeName_sequenceNum". This SQL
 	 * searches child tables whose name is like "ParentTableName_...".
 	 * Foreigntableid is parent table oid.
+	 *
+	 * Remove a name like "<tablename>_<columnname>_seq", because this is a variable name is generated as relname
+	 * if using function pg_catalog.setval, for example, pg_catalog.setval('<table>_<column>_seq', 10, false).
+	 * This is not table name even postgres display it as relname.
 	 */
-
-	sprintf(query, "SELECT oid,relname FROM pg_class WHERE relname LIKE (SELECT relname FROM pg_class WHERE oid = %d)||'\\_\\_%%0' ORDER BY relname;", foreigntableid);
+	sprintf(query, "SELECT oid,relname FROM pg_class WHERE (relname LIKE (SELECT relname FROM pg_class WHERE oid = %d)||"
+			"'\\_\\_%%') AND (relname NOT LIKE '%%\\_%%\\_seq') ORDER BY relname;", foreigntableid);
 
 	ret = SPI_execute(query, true, 0);
 	if (ret != SPI_OK_SELECT)
@@ -4092,7 +4096,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		int			natts;
 		TupleDesc	tupledesc;
 		bool		skiplast;
-		int			numParams;
 
 		/*
 		 * check child table node is dead or alive. Execute(Create child
