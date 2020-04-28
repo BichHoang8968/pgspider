@@ -83,6 +83,8 @@ PG_MODULE_MAGIC;
 #define QUERY_LENGTH 512
 #define MAX_URL_LENGTH	256
 
+#define SPD_RWLOCK_INIT_ERROR -1
+
 /* See pg_proc.h or pg_aggregate.h */
 #define COUNT_OID 2147
 #define SUM_OID 2108
@@ -412,7 +414,6 @@ static bool throwErrorIfDead;
 static bool isPrintError;
 
 /* We write lock SPI function and read lock child fdw routines */
-pthread_rwlock_t scan_mutex = PTHREAD_RWLOCK_INITIALIZER;
 pthread_mutex_t error_mutex = PTHREAD_MUTEX_INITIALIZER;
 static MemoryContext thread_top_contexts[NODES_MAX] = {NULL};
 static int64 temp_table_id = 0;
@@ -2612,6 +2613,7 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	char	   *refname = NULL;
 	RangeTblEntry *rte;
 	int i;
+	int rtn = 0;
 
 	baserel->rows = 1000;
 	fdw_private = spd_AllocatePrivate();
@@ -2674,8 +2676,10 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	fdw_private->rinfo.lower_subquery_rels = NULL;
 	/* Set the relation index. */
 	fdw_private->rinfo.relation_index = baserel->relid;
-	/* Init mutex */
-	pthread_rwlock_init(&fdw_private->scan_mutex, 0);
+	/* Init mutex.*/
+	SPD_RWLOCK_INIT(&fdw_private->scan_mutex, &rtn);
+	if (rtn == SPD_RWLOCK_INIT_ERROR)
+		elog(ERROR, "%s read-write lock object initialization error", __func__);
 }
 
 /**

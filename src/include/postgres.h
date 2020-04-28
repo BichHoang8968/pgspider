@@ -793,6 +793,19 @@ extern Datum Float8GetDatum(float8 X);
 
 /* Macro for ensuring mutex is unlocked when error occurs */
 
+/*
+* The pthread_rwlock_init() function creates a read or write lock, referenced by rwlock,
+* with attributes specified by attr. If attr is NULL, the default read or write lock attribute
+* (PTHREAD_PROCESS_PRIVATE) is used. Once initialized, the lock can be used any number of times
+* without being reinitialized. Upon successful initialization, the state of the read or write lock
+* becomes initialized and unlocked.
+*
+* Return value rtn.
+* If successful, pthread_rwlock_init() returns 0, and the state of the read or write lock becomes initialized and unlocked.
+* If unsuccessful, pthread_rwlock_init() returns -1 and sets errno to one of the following values:
+*/
+#define SPD_RWLOCK_INIT(mutex, rtn) *rtn = (int)pthread_rwlock_init(mutex, NULL);
+
 #define SPD_LOCK_TRY(mutex) pthread_mutex_lock(mutex); PG_TRY(); {
 #define SPD_UNLOCK_CATCH(mutex) } PG_CATCH();\
 	{ \
@@ -800,7 +813,6 @@ extern Datum Float8GetDatum(float8 X);
 		PG_RE_THROW();\
 	} PG_END_TRY();\
 	pthread_mutex_unlock(mutex);
-
 
 #define SPD_READ_LOCK_TRY(mutex) pthread_rwlock_rdlock(mutex);  PG_TRY(); {
 #define SPD_WRITE_LOCK_TRY(mutex) pthread_rwlock_wrlock(mutex);  PG_TRY(); {
