@@ -83,8 +83,6 @@ PG_MODULE_MAGIC;
 #define QUERY_LENGTH 512
 #define MAX_URL_LENGTH	256
 
-#define SPD_RWLOCK_INIT_ERROR -1
-
 /* See pg_proc.h or pg_aggregate.h */
 #define COUNT_OID 2147
 #define SUM_OID 2108
