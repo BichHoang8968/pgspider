@@ -15,7 +15,6 @@
 
 #include "foreign/foreign.h"
 #include "lib/stringinfo.h"
-//#include "nodes/relation.h"
 #include "nodes/pathnodes.h"
 #include "utils/relcache.h"
 
