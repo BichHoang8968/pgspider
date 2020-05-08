@@ -122,7 +122,6 @@ pipeline {
                         cd sqlite_fdw
                         make clean && make && make install
                     '''
-                    /* 
                     // Build tinybrace_fdw
                     sh 'rm -rf tinybrace_fdw || true'
                     retrySh('svn co ' + TINYBRACE_FDW_URL)
@@ -147,7 +146,6 @@ pipeline {
                         export LD_LIBRARY_PATH=LD_LIBRARY_PATH:$(pwd)/griddb/bin/
                         make clean && make && make install
                     '''
-                    */
                 }
             }
             post {
