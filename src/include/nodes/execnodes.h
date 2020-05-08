@@ -43,6 +43,7 @@ struct ExprEvalStep;			/* avoid including execExpr.h everywhere */
 struct CopyMultiInsertBuffer;
 
 
+/* #define GETPROGRESS_ENABLED */
 /* ----------------
  *		ExprState node
  *

@@ -84,6 +84,7 @@
 #include <sys/syscall.h>
 #endif
 
+/* #define GETPROGRESS_ENABLED */
 /* ----------------
  *		global variables
  * ----------------

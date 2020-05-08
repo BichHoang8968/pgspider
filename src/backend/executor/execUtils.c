@@ -62,6 +62,7 @@
 #include "utils/rel.h"
 #include "utils/typcache.h"
 
+/* #define GETPROGRESS_ENABLED */
 
 static bool tlist_matches_tupdesc(PlanState *ps, List *tlist, Index varno, TupleDesc tupdesc);
 static void ShutdownExprContext(ExprContext *econtext, bool isCommit);
