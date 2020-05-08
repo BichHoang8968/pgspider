@@ -102,6 +102,8 @@ static WindowClause *findWindowClause(List *wclist, const char *name);
 static Node *transformFrameOffset(ParseState *pstate, int frameOptions,
 								  Oid rangeopfamily, Oid rangeopcintype, Oid *inRangeFunc,
 								  Node *clause);
+
+
 /*
  * transformFromClause -
  *	  Process the FROM clause and add items to the query's range table,

@@ -84,7 +84,6 @@
 #include <sys/syscall.h>
 #endif
 
-/* #define GETPROGRESS_ENABLED */
 /* ----------------
  *		global variables
  * ----------------
@@ -99,6 +98,7 @@ CommandDest whereToSendOutput = DestDebug;
 bool		Log_disconnections = false;
 bool		getResultFlag = false;
 #endif
+
 bool		getAggResultFlag = false;
 int			log_statement = LOGSTMT_NONE;
 
@@ -125,9 +125,9 @@ static long max_stack_depth_bytes = 100 * 1024L;
  * binary-compatible for the time being.
  */
 #ifdef PGSPIDER
-__thread char *stack_base_ptr = NULL;
+__thread char	   *stack_base_ptr = NULL;
 #else
-char *stack_base_ptr = NULL;
+char	   *stack_base_ptr = NULL;
 #endif
 
 /*
@@ -135,9 +135,9 @@ char *stack_base_ptr = NULL;
  */
 #if defined(__ia64__) || defined(__ia64)
 #ifdef PGSPIDER
-__thread char *register_stack_base_ptr = NULL;
+__thread char	   *register_stack_base_ptr = NULL;
 #else
-char *register_stack_base_ptr = NULL;
+char	   *register_stack_base_ptr = NULL;
 #endif
 #endif
 
@@ -503,6 +503,7 @@ SocketBackend(StringInfo inBuf)
 						(errcode(ERRCODE_PROTOCOL_VIOLATION),
 						 errmsg("invalid frontend message type %d", qtype)));
 			break;
+
 #ifdef GETPROGRESS_ENABLED
 		case 'G':				/* Get progress query type */
 			doing_extended_query_message = false;
@@ -4711,6 +4712,7 @@ PostgresMain(int argc, char *argv[],
 				 * is still sending data.
 				 */
 				break;
+
 #ifdef GETPROGRESS_ENABLED
 			case 'G':
 				{

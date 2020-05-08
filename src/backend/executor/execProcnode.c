@@ -370,13 +370,15 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 			result = (PlanState *) ExecInitLimit((Limit *) node,
 												 estate, eflags);
 			break;
+
 		default:
 			elog(ERROR, "unrecognized node type: %d", (int) nodeTag(node));
 			result = NULL;		/* keep compiler quiet */
 			break;
 	}
+
 	ExecSetExecProcNode(result, result->ExecProcNode);
-	
+
 	/*
 	 * Initialize any initPlans present in this node.  The planner put them in
 	 * a separate list for us.

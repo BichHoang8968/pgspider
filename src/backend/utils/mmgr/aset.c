@@ -327,7 +327,6 @@ static const __thread unsigned char LogTable256[256] =
 #define AllocAllocInfo(_cxt, _chunk)
 #endif
 
-
 /* ----------
  * AllocSetFreeIndex -
  *
@@ -1115,6 +1114,7 @@ AllocSetRealloc(MemoryContext context, void *pointer, Size size)
 
 	/* Allow access to private part of chunk header. */
 	VALGRIND_MAKE_MEM_DEFINED(chunk, ALLOCCHUNK_PRIVATE_LEN);
+
 	oldsize = chunk->size;
 
 #ifdef MEMORY_CONTEXT_CHECKING

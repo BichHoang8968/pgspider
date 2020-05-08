@@ -949,19 +949,19 @@ hash_search_orig(HTAB *hashp,
 #else
 hash_search(HTAB *hashp,
 #endif
-				 const void *keyPtr,
-				 HASHACTION action,
-				 bool *foundPtr)
+			const void *keyPtr,
+			HASHACTION action,
+			bool *foundPtr)
 {
 #ifdef PGSPIDER
 	return hash_search_with_hash_value_orig(hashp,
 #else
 	return hash_search_with_hash_value(hashp,
 #endif
-											keyPtr,
-											hashp->hash(keyPtr, hashp->keysize),
-											action,
-											foundPtr);
+									   keyPtr,
+									   hashp->hash(keyPtr, hashp->keysize),
+									   action,
+									   foundPtr);
 }
 
 void *
@@ -970,10 +970,10 @@ hash_search_with_hash_value_orig(HTAB *hashp,
 #else
 hash_search_with_hash_value(HTAB *hashp,
 #endif
-								 const void *keyPtr,
-								 uint32 hashvalue,
-								 HASHACTION action,
-								 bool *foundPtr)
+							const void *keyPtr,
+							uint32 hashvalue,
+							HASHACTION action,
+							bool *foundPtr)
 {
 	HASHHDR    *hctl = hashp->hctl;
 	int			freelist_idx = FREELIST_IDX(hctl, hashvalue);
@@ -985,7 +985,7 @@ hash_search_with_hash_value(HTAB *hashp,
 	HASHBUCKET	currBucket;
 	HASHBUCKET *prevBucketPtr;
 	HashCompareFunc match;
-	
+
 #if HASH_STATISTICS
 	hash_accesses++;
 	hctl->accesses++;
@@ -1170,8 +1170,8 @@ hash_update_hash_key_orig(HTAB *hashp,
 #else
 hash_update_hash_key(HTAB *hashp,
 #endif
-						  void *existingEntry,
-						  const void *newKeyPtr)
+					 void *existingEntry,
+					 const void *newKeyPtr)
 {
 	HASHELEMENT *existingElement = ELEMENT_FROM_KEY(existingEntry);
 	HASHHDR    *hctl = hashp->hctl;

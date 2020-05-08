@@ -849,6 +849,7 @@ use_physical_tlist(PlannerInfo *root, Path *path, int flags)
 	 */
 	if (IsA(path, CustomPath))
 		return false;
+
 #ifdef PGSPIDER
 	if (IsA(path, ForeignPath))
 		return false;

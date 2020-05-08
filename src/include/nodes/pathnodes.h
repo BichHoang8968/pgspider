@@ -690,6 +690,7 @@ typedef struct RelOptInfo
 	struct FdwRoutine *fdwroutine;
 	void	   *fdw_private;
 	bool		is_tlist_pushdown;	/* request to mysql-fdw to pushdown or not */
+
 	/* cache space for remembering if we have proven this relation unique */
 	List	   *unique_for_rels;	/* known unique for these other relid
 									 * set(s) */

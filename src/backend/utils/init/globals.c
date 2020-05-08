@@ -40,6 +40,7 @@ __thread volatile uint32 CritSectionCount = 0;
 #else
 volatile uint32 CritSectionCount = 0;
 #endif
+
 int			MyProcPid;
 pg_time_t	MyStartTime;
 TimestampTz MyStartTimestamp;

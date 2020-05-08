@@ -43,7 +43,6 @@ struct ExprEvalStep;			/* avoid including execExpr.h everywhere */
 struct CopyMultiInsertBuffer;
 
 
-/* #define GETPROGRESS_ENABLED */
 /* ----------------
  *		ExprState node
  *
@@ -487,6 +486,7 @@ typedef struct ResultRelInfo
 	/* For use by copy.c when performing multi-inserts */
 	struct CopyMultiInsertBuffer *ri_CopyMultiInsertBuffer;
 } ResultRelInfo;
+
 #ifdef GETPROGRESS_ENABLED
 typedef struct ProgressState
 {
@@ -590,6 +590,7 @@ typedef struct EState
 	struct EPQState *es_epq_active;
 
 	bool		es_use_parallel_mode;	/* can we use parallel workers? */
+
 #ifdef GETPROGRESS_ENABLED
 	ProgressState *es_progressState;	/* Get progress operations */
 #endif

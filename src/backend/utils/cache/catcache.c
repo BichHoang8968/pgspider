@@ -69,9 +69,10 @@ static pthread_mutex_t catcache_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 static CatCacheHeader *CacheHdr = NULL;
 
 static inline HeapTuple SearchCatCacheInternal(CatCache *cache,
-					   int nkeys,
-					   Datum v1, Datum v2,
-					   Datum v3, Datum v4);
+											   int nkeys,
+											   Datum v1, Datum v2,
+											   Datum v3, Datum v4);
+
 #ifdef PGSPIDER
 static inline HeapTuple SearchCatCacheInternalOrig(CatCache *cache,
 					   int nkeys,
@@ -1204,7 +1205,6 @@ SearchCatCache4(CatCache *cache,
 /*
  * Work-horse for SearchCatCache/SearchCatCacheN.
  */
-
 static inline HeapTuple
 #ifdef PGSPIDER
 SearchCatCacheInternalOrig(CatCache *cache,
@@ -1472,6 +1472,7 @@ ReleaseCatCache(HeapTuple tuple)
 {
 	CatCTup    *ct = (CatCTup *) (((char *) tuple) -
 								  offsetof(CatCTup, tuple));
+
 #ifdef PGSPIDER
 	SPD_LOCK_TRY(&catcache_mutex);
 #endif

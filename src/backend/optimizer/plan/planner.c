@@ -7073,6 +7073,7 @@ apply_scanjoin_target_to_paths(PlannerInfo *root,
 		else
 		{
 			Path	   *newpath;
+
 #ifdef PGSPIDER
 			/*
 			 * PostgreSQL 11 does not set function information for FDWs.
@@ -7112,6 +7113,7 @@ apply_scanjoin_target_to_paths(PlannerInfo *root,
 		{
 			Path	   *newpath;
 
+#ifdef PGSPIDER
 			newpath = apply_projection_to_path(root, rel, subpath,
 													  scanjoin_target);
 			/* If we had to add a Result, newpath is different from subpath */
@@ -7123,6 +7125,10 @@ apply_scanjoin_target_to_paths(PlannerInfo *root,
 				if (subpath == rel->cheapest_total_path)
 					rel->cheapest_total_path = newpath;
 			}
+#else
+			newpath = (Path *) create_projection_path(root, rel, subpath,
+													  scanjoin_target);
+#endif
 			lfirst(lc) = newpath;
 		}
 	}

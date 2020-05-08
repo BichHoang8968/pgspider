@@ -69,6 +69,7 @@
 #include "utils/snapmgr.h"
 #include "utils/spccache.h"
 
+
 static HeapTuple heap_prepare_insert(Relation relation, HeapTuple tup,
 									 TransactionId xid, CommandId cid, int options);
 static XLogRecPtr log_heap_update(Relation reln, Buffer oldbuf,
@@ -103,6 +104,7 @@ static bool ConditionalMultiXactIdWait(MultiXactId multi, MultiXactStatus status
 static XLogRecPtr log_heap_new_cid(Relation relation, HeapTuple tup);
 static HeapTuple ExtractReplicaIdentity(Relation rel, HeapTuple tup, bool key_modified,
 										bool *copy);
+
 
 /*
  * Each tuple lock mode has a corresponding heavyweight lock, and one or two
@@ -1124,6 +1126,7 @@ fastgetattr(HeapTuple tup, int attnum, TupleDesc tupleDesc,
  *					 heap access method interface
  * ----------------------------------------------------------------
  */
+
 
 TableScanDesc
 heap_beginscan(Relation relation, Snapshot snapshot,

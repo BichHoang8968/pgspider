@@ -877,6 +877,7 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt)
 	qry->hasSubLinks = pstate->p_hasSubLinks;
 
 	assign_query_collations(pstate, qry);
+
 #ifdef PGSPIDER
 	if (stmt->relation->spd_url_list != NULL)
 		rte->spd_url_list = list_copy(stmt->relation->spd_url_list);
@@ -1559,6 +1560,7 @@ transformValuesClause(ParseState *pstate, SelectStmt *stmt)
 	qry->hasSubLinks = pstate->p_hasSubLinks;
 
 	assign_query_collations(pstate, qry);
+
 	return qry;
 }
 

@@ -30,7 +30,7 @@ SUBDIRS = \
 	test/regress \
 	test/isolation \
 	../contrib/pgspider_keepalive \
-	test/perl 
+	test/perl
 
 ifeq ($(with_llvm), yes)
 SUBDIRS += backend/jit/llvm
