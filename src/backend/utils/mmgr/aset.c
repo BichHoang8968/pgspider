@@ -7,7 +7,7 @@
  * type.
  *
  *
- * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -274,8 +274,8 @@ static void AllocSetDeleteChild(MemoryContext context);
 static Size AllocSetGetChunkSpace(MemoryContext context, void *pointer);
 static bool AllocSetIsEmpty(MemoryContext context);
 static void AllocSetStats(MemoryContext context,
-			  MemoryStatsPrintFunc printfunc, void *passthru,
-			  MemoryContextCounters *totals);
+						  MemoryStatsPrintFunc printfunc, void *passthru,
+						  MemoryContextCounters *totals);
 
 #ifdef MEMORY_CONTEXT_CHECKING
 static void AllocSetCheck(MemoryContext context);
@@ -327,7 +327,6 @@ static const __thread unsigned char LogTable256[256] =
 #define AllocAllocInfo(_cxt, _chunk)
 #endif
 
-
 /* ----------
  * AllocSetFreeIndex -
  *
@@ -374,7 +373,7 @@ AllocSetFreeIndex(Size size)
 
 
 /*
- * AllocSetContextCreateExtended
+ * AllocSetContextCreateInternal
  *		Create a new AllocSet context.
  *
  * parent: parent context, or NULL if top-level context
@@ -390,7 +389,7 @@ AllocSetFreeIndex(Size size)
  * AllocSetContextCreate.
  */
 MemoryContext
-AllocSetContextCreateExtended(MemoryContext parent,
+AllocSetContextCreateInternal(MemoryContext parent,
 							  const char *name,
 							  Size minContextSize,
 							  Size initBlockSize,
@@ -1126,108 +1125,12 @@ AllocSetRealloc(MemoryContext context, void *pointer, Size size)
 				 set->header.name, chunk);
 #endif
 
-	if (oldsize > set->allocChunkLimit)
-	{
-		/*
-		 * The chunk must have been allocated as a single-chunk block.  Use
-		 * realloc() to make the containing block bigger, or smaller, with
-		 * minimum space wastage.
-		 */
-		AllocBlock	block = (AllocBlock) (((char *) chunk) - ALLOC_BLOCKHDRSZ);
-		Size		chksize;
-		Size		blksize;
-
-		/*
-		 * Try to verify that we have a sane block pointer: it should
-		 * reference the correct aset, and freeptr and endptr should point
-		 * just past the chunk.
-		 */
-		if (block->aset != set ||
-			block->freeptr != block->endptr ||
-			block->freeptr != ((char *) block) +
-			(oldsize + ALLOC_BLOCKHDRSZ + ALLOC_CHUNKHDRSZ))
-			elog(ERROR, "could not find block containing chunk %p", chunk);
-
-		/*
-		 * Even if the new request is less than set->allocChunkLimit, we stick
-		 * with the single-chunk block approach.  Therefore we need
-		 * chunk->size to be bigger than set->allocChunkLimit, so we don't get
-		 * confused about the chunk's status in future calls.
-		 */
-		chksize = Max(size, set->allocChunkLimit + 1);
-		chksize = MAXALIGN(chksize);
-
-		/* Do the realloc */
-		blksize = chksize + ALLOC_BLOCKHDRSZ + ALLOC_CHUNKHDRSZ;
-		block = (AllocBlock) realloc(block, blksize);
-		if (block == NULL)
-		{
-			/* Disallow external access to private part of chunk header. */
-			VALGRIND_MAKE_MEM_NOACCESS(chunk, ALLOCCHUNK_PRIVATE_LEN);
-			return NULL;
-		}
-		block->freeptr = block->endptr = ((char *) block) + blksize;
-
-		/* Update pointers since block has likely been moved */
-		chunk = (AllocChunk) (((char *) block) + ALLOC_BLOCKHDRSZ);
-		pointer = AllocChunkGetPointer(chunk);
-		if (block->prev)
-			block->prev->next = block;
-		else
-			set->blocks = block;
-		if (block->next)
-			block->next->prev = block;
-		chunk->size = chksize;
-
-#ifdef MEMORY_CONTEXT_CHECKING
-#ifdef RANDOMIZE_ALLOCATED_MEMORY
-		/* We can only fill the extra space if we know the prior request */
-		if (size > chunk->requested_size)
-			randomize_mem((char *) pointer + chunk->requested_size,
-						  size - chunk->requested_size);
-#endif
-
-		/*
-		 * realloc() (or randomize_mem()) will have left any newly-allocated
-		 * part UNDEFINED, but we may need to adjust trailing bytes from the
-		 * old allocation.
-		 */
-#ifdef USE_VALGRIND
-		if (oldsize > chunk->requested_size)
-			VALGRIND_MAKE_MEM_UNDEFINED((char *) pointer + chunk->requested_size,
-										oldsize - chunk->requested_size);
-#endif
-
-		chunk->requested_size = size;
-
-		/* set mark to catch clobber of "unused" space */
-		if (size < chunk->size)
-			set_sentinel(pointer, size);
-#else							/* !MEMORY_CONTEXT_CHECKING */
-
-		/*
-		 * We don't know how much of the old chunk size was the actual
-		 * allocation; it could have been as small as one byte.  We have to be
-		 * conservative and just mark the entire old portion DEFINED.
-		 */
-		VALGRIND_MAKE_MEM_DEFINED(pointer, oldsize);
-#endif
-
-		/* Ensure any padding bytes are marked NOACCESS. */
-		VALGRIND_MAKE_MEM_NOACCESS((char *) pointer + size, chksize - size);
-
-		/* Disallow external access to private part of chunk header. */
-		VALGRIND_MAKE_MEM_NOACCESS(chunk, ALLOCCHUNK_PRIVATE_LEN);
-
-		return pointer;
-	}
-
 	/*
-	 * Chunk sizes are aligned to power of 2 in AllocSetAlloc().  Maybe the
-	 * allocated area already is >= the new size.  (In particular, we will
+	 * Chunk sizes are aligned to power of 2 in AllocSetAlloc(). Maybe the
+	 * allocated area already is >= the new size.  (In particular, we always
 	 * fall out here if the requested size is a decrease.)
 	 */
-	else if (oldsize >= size)
+	if (oldsize >= size)
 	{
 #ifdef MEMORY_CONTEXT_CHECKING
 		Size		oldrequest = chunk->requested_size;
@@ -1271,15 +1174,99 @@ AllocSetRealloc(MemoryContext context, void *pointer, Size size)
 
 		return pointer;
 	}
+
+	if (oldsize > set->allocChunkLimit)
+	{
+		/*
+		 * The chunk must have been allocated as a single-chunk block.  Use
+		 * realloc() to make the containing block bigger with minimum space
+		 * wastage.
+		 */
+		AllocBlock	block = (AllocBlock) (((char *) chunk) - ALLOC_BLOCKHDRSZ);
+		Size		chksize;
+		Size		blksize;
+
+		/*
+		 * Try to verify that we have a sane block pointer: it should
+		 * reference the correct aset, and freeptr and endptr should point
+		 * just past the chunk.
+		 */
+		if (block->aset != set ||
+			block->freeptr != block->endptr ||
+			block->freeptr != ((char *) block) +
+			(chunk->size + ALLOC_BLOCKHDRSZ + ALLOC_CHUNKHDRSZ))
+			elog(ERROR, "could not find block containing chunk %p", chunk);
+
+		/* Do the realloc */
+		chksize = MAXALIGN(size);
+		blksize = chksize + ALLOC_BLOCKHDRSZ + ALLOC_CHUNKHDRSZ;
+		block = (AllocBlock) realloc(block, blksize);
+		if (block == NULL)
+		{
+			/* Disallow external access to private part of chunk header. */
+			VALGRIND_MAKE_MEM_NOACCESS(chunk, ALLOCCHUNK_PRIVATE_LEN);
+			return NULL;
+		}
+		block->freeptr = block->endptr = ((char *) block) + blksize;
+
+		/* Update pointers since block has likely been moved */
+		chunk = (AllocChunk) (((char *) block) + ALLOC_BLOCKHDRSZ);
+		pointer = AllocChunkGetPointer(chunk);
+		if (block->prev)
+			block->prev->next = block;
+		else
+			set->blocks = block;
+		if (block->next)
+			block->next->prev = block;
+		chunk->size = chksize;
+
+#ifdef MEMORY_CONTEXT_CHECKING
+#ifdef RANDOMIZE_ALLOCATED_MEMORY
+		/* We can only fill the extra space if we know the prior request */
+		randomize_mem((char *) pointer + chunk->requested_size,
+					  size - chunk->requested_size);
+#endif
+
+		/*
+		 * realloc() (or randomize_mem()) will have left the newly-allocated
+		 * part UNDEFINED, but we may need to adjust trailing bytes from the
+		 * old allocation.
+		 */
+		VALGRIND_MAKE_MEM_UNDEFINED((char *) pointer + chunk->requested_size,
+									oldsize - chunk->requested_size);
+
+		chunk->requested_size = size;
+
+		/* set mark to catch clobber of "unused" space */
+		if (size < chunk->size)
+			set_sentinel(pointer, size);
+#else							/* !MEMORY_CONTEXT_CHECKING */
+
+		/*
+		 * We don't know how much of the old chunk size was the actual
+		 * allocation; it could have been as small as one byte.  We have to be
+		 * conservative and just mark the entire old portion DEFINED.
+		 */
+		VALGRIND_MAKE_MEM_DEFINED(pointer, oldsize);
+#endif
+
+		/* Ensure any padding bytes are marked NOACCESS. */
+		VALGRIND_MAKE_MEM_NOACCESS((char *) pointer + size, chksize - size);
+
+		/* Disallow external access to private part of chunk header. */
+		VALGRIND_MAKE_MEM_NOACCESS(chunk, ALLOCCHUNK_PRIVATE_LEN);
+
+		return pointer;
+	}
 	else
 	{
 		/*
-		 * Enlarge-a-small-chunk case.  We just do this by brute force, ie,
-		 * allocate a new chunk and copy the data.  Since we know the existing
-		 * data isn't huge, this won't involve any great memcpy expense, so
-		 * it's not worth being smarter.  (At one time we tried to avoid
-		 * memcpy when it was possible to enlarge the chunk in-place, but that
-		 * turns out to misbehave unpleasantly for repeated cycles of
+		 * Small-chunk case.  We just do this by brute force, ie, allocate a
+		 * new chunk and copy the data.  Since we know the existing data isn't
+		 * huge, this won't involve any great memcpy expense, so it's not
+		 * worth being smarter.  (At one time we tried to avoid memcpy when it
+		 * was possible to enlarge the chunk in-place, but that turns out to
+		 * misbehave unpleasantly for repeated cycles of
 		 * palloc/repalloc/pfree: the eventually freed chunks go into the
 		 * wrong freelist for the next initial palloc request, and so we leak
 		 * memory indefinitely.  See pgsql-hackers archives for 2007-08-11.)

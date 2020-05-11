@@ -7,6 +7,8 @@ endif
 
 DLSUFFIX = .so
 
+CFLAGS_SL = -fPIC -DPIC
+
 # extra stuff for $(with_temp_install)
 # we need this to get LD_LIBRARY_PATH searched ahead of the compiled-in
 # rpath, if no DT_RUNPATH is present in the executable. The conditions
@@ -19,7 +21,7 @@ endef
 # Rule for building a shared library from a single .o file
 %.so: %.o
 ifdef ELF_SYSTEM
-	$(CC) $(CFLAGS) $(LDFLAGS) $(LDFLAGS_SL) -shared -o $@ $<
+	$(CC) $(CFLAGS) $< $(LDFLAGS) $(LDFLAGS_SL) -shared -o $@
 else
 	$(LD) $(LDREL) $(LDOUT) $<.obj -x $<
 	@echo building shared object $@

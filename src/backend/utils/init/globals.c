@@ -3,7 +3,7 @@
  * globals.c
  *	  global variable declarations
  *
- * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -27,11 +27,11 @@
 
 ProtocolVersion FrontendProtocol;
 
-volatile bool InterruptPending = false;
-volatile bool QueryCancelPending = false;
-volatile bool ProcDiePending = false;
-volatile bool ClientConnectionLost = false;
-volatile bool IdleInTransactionSessionTimeoutPending = false;
+volatile sig_atomic_t InterruptPending = false;
+volatile sig_atomic_t QueryCancelPending = false;
+volatile sig_atomic_t ProcDiePending = false;
+volatile sig_atomic_t ClientConnectionLost = false;
+volatile sig_atomic_t IdleInTransactionSessionTimeoutPending = false;
 volatile sig_atomic_t ConfigReloadPending = false;
 volatile uint32 InterruptHoldoffCount = 0;
 volatile uint32 QueryCancelHoldoffCount = 0;
@@ -40,8 +40,10 @@ __thread volatile uint32 CritSectionCount = 0;
 #else
 volatile uint32 CritSectionCount = 0;
 #endif
+
 int			MyProcPid;
 pg_time_t	MyStartTime;
+TimestampTz MyStartTimestamp;
 struct Port *MyProcPort;
 int32		MyCancelKey;
 int			MyPMChildSlot;
@@ -140,7 +142,7 @@ int			VacuumCostPageHit = 1;	/* GUC parameters for vacuum */
 int			VacuumCostPageMiss = 10;
 int			VacuumCostPageDirty = 20;
 int			VacuumCostLimit = 200;
-int			VacuumCostDelay = 0;
+double		VacuumCostDelay = 0;
 
 int			VacuumPageHit = 0;
 int			VacuumPageMiss = 0;

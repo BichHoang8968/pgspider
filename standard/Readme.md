@@ -21,26 +21,26 @@ Usage of PGSpider is the same as PostgreSQL. You can use any  client application
 
 ## How to build PGSpider
 
-The current version can work with PostgreSQL 11.6. 
+The current version can work with PostgreSQL 12.0. 
 
 Download PostgreSQL source code.
 <pre>
-https://www.postgresql.org/ftp/source/v11.6/postgresql-11.6.tar.gz
+https://www.postgresql.org/ftp/source/v12.0/postgresql-12.0.tar.gz
 </pre>
 
 Decompress PostgreSQL source code. 
 <pre>
-tar xvf postgresql-11.6.tar.gz
+tar xvf postgresql-12.0.tar.gz
 </pre>
 
 Apply patch.
 <pre>
-patch -p1 -d postgresql-11.6 < pgspider.patch
+patch -p1 -d postgresql-12.0 < pgspider.patch
 </pre>
 
 Build and install PGSpider and extensions.
 <pre>
-cd postgresql-11.6
+cd postgresql-12.0
 ./configure
 make
 sudo make install

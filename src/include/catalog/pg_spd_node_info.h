@@ -20,7 +20,6 @@
 #define PG_SPD_NODE_INFO_H
 
 #include "catalog/genbki.h"
-#include "pg_subscription_d.h"
 
 /* ----------------
  *		pg_spd_node_info definition.  cpp turns this into
@@ -29,7 +28,7 @@
  */
 #define SharedPgspiderNodeInfoRelationId	7001
 
-CATALOG(pg_spd_node_info,7001,SharedPgspiderNodeInfoRelationId) BKI_SHARED_RELATION BKI_WITHOUT_OIDS
+CATALOG(pg_spd_node_info,7001,SharedPgspiderNodeInfoRelationId) BKI_SHARED_RELATION
 {
 	/*
 	 * Identification of the dependent (referencing) object.

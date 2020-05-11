@@ -7,7 +7,7 @@
  * Client-side code should include postgres_fe.h instead.
  *
  *
- * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
  * Portions Copyright (c) 1995, Regents of the University of California
  *
  * src/include/postgres.h
@@ -47,6 +47,7 @@
 #include "utils/elog.h"
 #include "utils/palloc.h"
 #include <pthread.h>
+
 /* ----------------------------------------------------------------
  *				Section 1:	variable-length datatypes (TOAST support)
  * ----------------------------------------------------------------
@@ -373,6 +374,21 @@ typedef struct
  */
 
 typedef uintptr_t Datum;
+
+/*
+ * A NullableDatum is used in places where both a Datum and its nullness needs
+ * to be stored. This can be more efficient than storing datums and nullness
+ * in separate arrays, due to better spatial locality, even if more space may
+ * be wasted due to padding.
+ */
+typedef struct NullableDatum
+{
+#define FIELDNO_NULLABLE_DATUM_DATUM 0
+	Datum		value;
+#define FIELDNO_NULLABLE_DATUM_ISNULL 1
+	bool		isnull;
+	/* due to alignment padding this could be used for flags for free */
+} NullableDatum;
 
 #define SIZEOF_DATUM SIZEOF_VOID_P
 
@@ -778,6 +794,9 @@ extern Datum Float8GetDatum(float8 X);
 
 /* Macro for ensuring mutex is unlocked when error occurs */
 
+#define SPD_RWLOCK_INIT_ERROR -1
+#define SPD_RWLOCK_INIT(mutex, rtn) *rtn = (int)pthread_rwlock_init(mutex, NULL);
+
 #define SPD_LOCK_TRY(mutex) pthread_mutex_lock(mutex); PG_TRY(); {
 #define SPD_UNLOCK_CATCH(mutex) } PG_CATCH();\
 	{ \
@@ -785,7 +804,6 @@ extern Datum Float8GetDatum(float8 X);
 		PG_RE_THROW();\
 	} PG_END_TRY();\
 	pthread_mutex_unlock(mutex);
-
 
 #define SPD_READ_LOCK_TRY(mutex) pthread_rwlock_rdlock(mutex);  PG_TRY(); {
 #define SPD_WRITE_LOCK_TRY(mutex) pthread_rwlock_wrlock(mutex);  PG_TRY(); {

@@ -3,7 +3,7 @@
  * spell.c
  *		Normalizing word with ISpell
  *
- * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
  *
  * Ispell dictionary
  * -----------------
@@ -457,8 +457,6 @@ IsAffixFlagInUse(IspellDict *Conf, int affix, const char *affixflag)
 
 	if (*affixflag == 0)
 		return true;
-
-	Assert(affix < Conf->nAffixData);
 
 	flagcur = Conf->AffixData[affix];
 
@@ -1162,18 +1160,15 @@ getAffixFlagSet(IspellDict *Conf, char *s)
 					(errcode(ERRCODE_CONFIG_FILE_ERROR),
 					 errmsg("invalid affix alias \"%s\"", s)));
 
-		if (curaffix > 0 && curaffix < Conf->nAffixData)
+		if (curaffix > 0 && curaffix <= Conf->nAffixData)
 
 			/*
 			 * Do not subtract 1 from curaffix because empty string was added
 			 * in NIImportOOAffixes
 			 */
 			return Conf->AffixData[curaffix];
-		else if (curaffix > Conf->nAffixData)
-			ereport(ERROR,
-					(errcode(ERRCODE_CONFIG_FILE_ERROR),
-					 errmsg("invalid affix alias \"%s\"", s)));
-		return VoidString;
+		else
+			return VoidString;
 	}
 	else
 		return s;
@@ -1566,8 +1561,6 @@ MergeAffix(IspellDict *Conf, int a1, int a2)
 {
 	char	  **ptr;
 
-	Assert(a1 < Conf->nAffixData && a2 < Conf->nAffixData);
-
 	/* Do not merge affix flags if one of affix flags is empty */
 	if (*Conf->AffixData[a1] == '\0')
 		return a2;
@@ -1610,10 +1603,9 @@ MergeAffix(IspellDict *Conf, int a1, int a2)
 static uint32
 makeCompoundFlags(IspellDict *Conf, int affix)
 {
-	Assert(affix < Conf->nAffixData);
+	char	   *str = Conf->AffixData[affix];
 
-	return (getCompoundAffixFlagValue(Conf, Conf->AffixData[affix]) &
-			FF_COMPOUNDFLAGMASK);
+	return (getCompoundAffixFlagValue(Conf, str) & FF_COMPOUNDFLAGMASK);
 }
 
 /*
@@ -1733,16 +1725,6 @@ NISortDictionary(IspellDict *Conf)
 							(errcode(ERRCODE_CONFIG_FILE_ERROR),
 							 errmsg("invalid affix alias \"%s\"",
 									Conf->Spell[i]->p.flag)));
-				if (curaffix < 0 || curaffix >= Conf->nAffixData)
-					ereport(ERROR,
-							(errcode(ERRCODE_CONFIG_FILE_ERROR),
-							 errmsg("invalid affix alias \"%s\"",
-									Conf->Spell[i]->p.flag)));
-				if (*end != '\0' && !t_isdigit(end) && !t_isspace(end))
-					ereport(ERROR,
-							(errcode(ERRCODE_CONFIG_FILE_ERROR),
-							 errmsg("invalid affix alias \"%s\"",
-									Conf->Spell[i]->p.flag)));
 			}
 			else
 			{
@@ -1767,8 +1749,8 @@ NISortDictionary(IspellDict *Conf)
 		naffix = 0;
 		for (i = 0; i < Conf->nspell; i++)
 		{
-			if (i == 0
-				|| strcmp(Conf->Spell[i]->p.flag, Conf->Spell[i - 1]->p.flag))
+			if (i == 0 ||
+				strcmp(Conf->Spell[i]->p.flag, Conf->Spell[i - 1]->p.flag) != 0)
 				naffix++;
 		}
 
@@ -1782,8 +1764,8 @@ NISortDictionary(IspellDict *Conf)
 		curaffix = -1;
 		for (i = 0; i < Conf->nspell; i++)
 		{
-			if (i == 0
-				|| strcmp(Conf->Spell[i]->p.flag, Conf->AffixData[curaffix]))
+			if (i == 0 ||
+				strcmp(Conf->Spell[i]->p.flag, Conf->AffixData[curaffix]) != 0)
 			{
 				curaffix++;
 				Assert(curaffix < naffix);

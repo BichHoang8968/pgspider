@@ -25,6 +25,7 @@ PG_MODULE_MAGIC;
 #include "access/htup_details.h"
 #include "access/transam.h"
 #include "access/sysattr.h"
+#include "access/table.h"
 #include "catalog/pg_type.h"
 #include "commands/explain.h"
 #include "catalog/pg_proc.h"
@@ -35,19 +36,20 @@ PG_MODULE_MAGIC;
 #include "executor/executor.h"
 #include "executor/spi.h"
 #include "executor/nodeAgg.h"
+#include "executor/nodeSubplan.h"
 #include "miscadmin.h"
 #include "nodes/execnodes.h"
 #include "nodes/nodeFuncs.h"
 #include "nodes/nodes.h"
 #include "nodes/pg_list.h"
 #include "nodes/plannodes.h"
-#include "nodes/relation.h"
+#include "nodes/pathnodes.h"
 #include "nodes/makefuncs.h"
 #include "optimizer/pathnode.h"
 #include "optimizer/planmain.h"
 #include "optimizer/plancat.h"
 #include "optimizer/restrictinfo.h"
-#include "optimizer/var.h"
+#include "optimizer/optimizer.h"
 #include "optimizer/tlist.h"
 #include "optimizer/cost.h"
 #include "optimizer/clauses.h"
@@ -57,6 +59,7 @@ PG_MODULE_MAGIC;
 #include "utils/palloc.h"
 #include "utils/lsyscache.h"
 #include "utils/builtins.h"
+#include "utils/float.h"
 #include "utils/datum.h"
 #include "utils/rel.h"
 #include "utils/elog.h"
@@ -66,6 +69,7 @@ PG_MODULE_MAGIC;
 #include "utils/syscache.h"
 #include "utils/lsyscache.h"
 #include "utils/resowner.h"
+#include "storage/lmgr.h"
 #include "libpq-fe.h"
 #include "pgspider_core_fdw_defs.h"
 #include "funcapi.h"
@@ -158,6 +162,7 @@ typedef struct ForeignScanThreadInfo
 	bool		requestEndScan; /* main thread request endForeingScan to child
 								 * thread */
 	bool		requestRescan;	/* main thread request rescan to child thread */
+	bool		requestStartScan; /* main thread request startscan to child thread*/
 	SpdTupleQueue tupleQueue;	/* queue for passing tuples from child to
 								 * parent */
 	int			childInfoIndex; /* index of child info array */
@@ -316,6 +321,7 @@ typedef struct SpdFdwPrivate
 	char	   *temp_table_name;	/* name of temp table */
 	bool		is_explain;		/* explain or not */
 	MemoryContext es_query_cxt; /* temporary context */
+	pthread_rwlock_t scan_mutex;
 }			SpdFdwPrivate;
 
 typedef struct SpdFdwModifyState
@@ -397,7 +403,7 @@ static bool spd_can_skip_deepcopy(char *fdwname);
 static bool spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy);
 static TupleTableSlot *spd_queue_get(SpdTupleQueue * que, bool *is_finished);
 static void spd_queue_reset(SpdTupleQueue * que);
-static void spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, bool skipLast);
+static void spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, const TupleTableSlotOps *tts_ops, bool skipLast);
 static void spd_queue_notify_finish(SpdTupleQueue * que);
 
 
@@ -406,7 +412,6 @@ static bool throwErrorIfDead;
 static bool isPrintError;
 
 /* We write lock SPI function and read lock child fdw routines */
-pthread_rwlock_t scan_mutex = PTHREAD_RWLOCK_INITIALIZER;
 pthread_mutex_t error_mutex = PTHREAD_MUTEX_INITIALIZER;
 static MemoryContext thread_top_contexts[NODES_MAX] = {NULL};
 static int64 temp_table_id = 0;
@@ -554,26 +559,29 @@ spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy)
 		return false;
 	}
 
+	/* Clear slot before storing new data */
 	ExecClearTuple(que->tuples[idx]);
 
 	/* Not minimal tuple */
-	Assert(!slot->tts_mintuple);
+	Assert(!TTS_IS_MINIMALTUPLE(slot));
 
-	if (TTS_HAS_PHYSICAL_TUPLE(slot))
+	/*
+	 * Note: In some fdws, for instance, file_fdw, we need to check whether the heap tuple is not null or not.
+	 * If it is NULL, we cannot use copy_heap_tuple() because spdurl column attribute is not valid;
+	 */
+	if (TTS_IS_HEAPTUPLE(slot) && ((HeapTupleTableSlot*) slot)->tuple)
 	{
 		/*
 		 * TODO: we can probably skip heap_copytuple as in virtual tuple case
 		 * for some fdws
 		 */
-		ExecStoreTuple(heap_copytuple(slot->tts_tuple),
-					   que->tuples[idx],
-					   InvalidBuffer,
-					   false);
+		ExecStoreHeapTuple(slot->tts_ops->copy_heap_tuple(slot),
+					que->tuples[idx],
+					false);
 	}
 	else
 	{
 		/* Virtual tuple */
-
 		natts = que->tuples[idx]->tts_tupleDescriptor->natts;
 		memcpy(que->tuples[idx]->tts_isnull, slot->tts_isnull, natts * sizeof(bool));
 
@@ -670,10 +678,11 @@ spd_queue_reset(SpdTupleQueue * que)
  *
  * @param[in,out] que
  * @param[in] tupledesc
+ * @param[in] tts_ops
  * @param[in] skip_last
  */
 static void
-spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, bool skip_last)
+spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, const TupleTableSlotOps *tts_ops, bool skip_last)
 {
 	int			j;
 
@@ -681,7 +690,7 @@ spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, bool skip_last)
 	/* Create tuple descriptor for queue */
 	for (j = 0; j < SPD_TUPLE_QUEUE_LEN; j++)
 	{
-		TupleTableSlot *slot = MakeSingleTupleTableSlot(tupledesc);
+		TupleTableSlot *slot = MakeSingleTupleTableSlot(tupledesc, tts_ops);
 
 		que->tuples[j] = slot;
 		slot->tts_values = palloc(tupledesc->natts * sizeof(Datum));
@@ -725,7 +734,6 @@ print_mapping_tlist(List *mapping_tlist, int loglevel)
  * @param[in] targetlist
  * @param[out] target_num
  */
-
 static TargetEntry *
 spd_tlist_member(Expr *node, List *targetlist, int *target_num)
 {
@@ -999,6 +1007,7 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
  * @param[in] sgref - sort group reference for target entry
  * @param[out] compress_tlist - compressed child tlist without target entry
  */
+
 static List *
 spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 					  List **compress_tlist_tle, Index sgref, List **compress_tlist)
@@ -1242,9 +1251,13 @@ spd_spi_exec_datasouce_num(Oid foreigntableid, int *nums, Oid **oid)
 	 * child table name is "ParentTableName_NodeName_sequenceNum". This SQL
 	 * searches child tables whose name is like "ParentTableName_...".
 	 * Foreigntableid is parent table oid.
+	 *
+	 * Remove a name like "<tablename>_<columnname>_seq", because this is a variable name is generated as relname
+	 * if using function pg_catalog.setval, for example, pg_catalog.setval('<table>_<column>_seq', 10, false).
+	 * This is not table name even postgres display it as relname.
 	 */
-
-	sprintf(query, "SELECT oid,relname FROM pg_class WHERE relname LIKE (SELECT relname FROM pg_class WHERE oid = %d)||'\\_\\_%%' ORDER BY relname;", foreigntableid);
+	sprintf(query, "SELECT oid,relname FROM pg_class WHERE (relname LIKE (SELECT relname FROM pg_class WHERE oid = %d)||"
+			"'\\_\\_%%') AND (relname NOT LIKE '%%\\_%%\\_seq') ORDER BY relname;", foreigntableid);
 
 	ret = SPI_execute(query, true, 0);
 	if (ret != SPI_OK_SELECT)
@@ -1542,7 +1555,7 @@ spd_ForeignScan_thread(void *arg)
 	fssthrdInfo->state = SPD_FS_STATE_BEGIN;
 	PG_TRY();
 	{
-		SPD_READ_LOCK_TRY(&scan_mutex);
+		SPD_READ_LOCK_TRY(&fdw_private->scan_mutex);
 
 		/*
 		 * If Aggregation does not push down, then BeginForeignScan execute in
@@ -1553,7 +1566,7 @@ spd_ForeignScan_thread(void *arg)
 			fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
 													  fssthrdInfo->eflags);
 		}
-		SPD_RWUNLOCK_CATCH(&scan_mutex);
+		SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 
 #ifdef MEASURE_TIME
 		gettimeofday(&e, NULL);
@@ -1583,19 +1596,47 @@ RESCAN:
 	if (fssthrdInfo->requestRescan &&
 		fssthrdInfo->state != SPD_FS_STATE_BEGIN)
 	{
-		SPD_READ_LOCK_TRY(&scan_mutex);
+		SPD_READ_LOCK_TRY(&fdw_private->scan_mutex);
 		fssthrdInfo->fdwroutine->ReScanForeignScan(fssthrdInfo->fsstate);
-		SPD_RWUNLOCK_CATCH(&scan_mutex);
+		SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 
 		fssthrdInfo->requestRescan = false;
+		fssthrdInfo->state = SPD_FS_STATE_BEGIN;
 	}
+
+	/*
+	 * requestStartScan is used in case a main query has sub query.
+	 *
+	 * Main query and sub query is executed in two thread parallel.
+	 * For main query, it need to wait for sub-plan is initialized by the core engine.
+	 * After sub-plan is initialized, the core engine start Portal Run and call spd_IterateForeignScan.
+	 * requestStartScan will be enabled in this routine.
+	 *
+	 * During wait to start scan, if it receives request to re-scan, go back to RESCAN
+	 * If it receives request to end scan if error occurs, exit the transaction.
+	 */
+	while (!fssthrdInfo->requestStartScan && fssthrdInfo->state == SPD_FS_STATE_BEGIN) {
+		usleep(1);
+		if (fssthrdInfo->requestEndScan) {
+			fssthrdInfo->state = SPD_FS_STATE_ERROR;
+			goto THREAD_EXIT;
+		}
+		if (fssthrdInfo->requestRescan) {
+			fssthrdInfo->state = SPD_FS_STATE_ITERATE;
+			goto RESCAN;
+		}
+	}
+
+	/* In case re-scan, the main query needs to repeat waiting */
+	fssthrdInfo->requestStartScan = false;
+
 	fssthrdInfo->state = SPD_FS_STATE_ITERATE;
 
 	if (list_member_oid(fdw_private->pPseudoAggList, fssthrdInfo->serverId))
 	{
-		SPD_WRITE_LOCK_TRY(&scan_mutex);
+		SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex);
 		result = ExecInitNode((Plan *) fdw_private->childinfo[fssthrdInfo->childInfoIndex].pAgg, fssthrdInfo->fsstate->ss.ps.state, 0);
-		SPD_RWUNLOCK_CATCH(&scan_mutex);
+		SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 	}
 	PG_TRY();
 	{
@@ -1662,9 +1703,9 @@ RESCAN:
 				 * Retreives aggregated value tuple from inlying non pushdown
 				 * source
 				 */
-				SPD_READ_LOCK_TRY(&scan_mutex);
+				SPD_READ_LOCK_TRY(&fdw_private->scan_mutex);
 				slot = SPI_execAgg((AggState *) result);
-				SPD_RWUNLOCK_CATCH(&scan_mutex);
+				SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 
 				/*
 				 * need deep copy when adding slot to queue because
@@ -1675,9 +1716,9 @@ RESCAN:
 			}
 			else
 			{
-				SPD_READ_LOCK_TRY(&scan_mutex);
+				SPD_READ_LOCK_TRY(&fdw_private->scan_mutex);
 				slot = fssthrdInfo->fdwroutine->IterateForeignScan(fssthrdInfo->fsstate);
-				SPD_RWUNLOCK_CATCH(&scan_mutex);
+				SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 
 				deepcopy = true;
 
@@ -1693,7 +1734,7 @@ RESCAN:
 
 			}
 
-			if (slot == NULL || slot->tts_isempty)
+			if TupIsNull(slot)
 			{
 				spd_queue_notify_finish(&fssthrdInfo->tupleQueue);
 				break;
@@ -1770,11 +1811,11 @@ RESCAN:
 			{
 				/* End of the ForeignScan */
 				fssthrdInfo->state = SPD_FS_STATE_END;
-				SPD_READ_LOCK_TRY(&scan_mutex);
+				SPD_READ_LOCK_TRY(&fdw_private->scan_mutex);
 				if (!list_member_oid(fdw_private->pPseudoAggList,
 									 fssthrdInfo->serverId))
 					fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
-				SPD_RWUNLOCK_CATCH(&scan_mutex);
+				SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 				fssthrdInfo->requestEndScan = false;
 				break;
 			}
@@ -2025,7 +2066,7 @@ spd_basestrictinfo_tree_walker(Node *node, PlannerInfo *root)
 			break;
 		case T_GroupingFunc:
 		case T_WindowFunc:
-		case T_ArrayRef:
+		case T_SubscriptingRef:
 		case T_FuncExpr:
 		case T_NamedArgExpr:
 			break;
@@ -2151,7 +2192,6 @@ check_basestrictinfo(PlannerInfo *root, ForeignDataWrapper *fdw, RelOptInfo *ent
  * @param[in] is_target_entry - true if each expr is wrapped with TargetEntry
  * @param[out] url_idx - index of spd_url found
  */
-
 static List *
 remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
 						   bool is_target_entry, int *url_idx)
@@ -2354,6 +2394,12 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel,
 		dummy_root->query_level = 1;
 		dummy_root->planner_cxt = CurrentMemoryContext;
 		dummy_root->wt_param_id = -1;
+		/*
+		 * Use placeholder list only for child node's GetForeignRelSize in this routine.
+		 * PlaceHolderVar in relation target list will be checked against PlaceHolder List
+		 * in root planner info.
+		 */
+		dummy_root->placeholder_list = copyObject(root->placeholder_list);
 
 		/* Build a minimal RTE for the rel */
 		rte = makeNode(RangeTblEntry);
@@ -2366,6 +2412,7 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel,
 		rte->inh = false;
 		rte->inFromCl = true;
 		rte->eref = makeAlias(pstrdup(""), NIL);
+		rte->rellockmode = AccessShareLock;	/* For SELECT query */
 
 		/*
 		 * if child node is spd and IN clause is used, then should set new IN
@@ -2386,6 +2433,12 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel,
 		}
 		/* Set up RTE/RelOptInfo arrays */
 		setup_simple_rel_arrays(dummy_root);
+
+		/*
+		 * Because in build_simple_rel() function, it assumes that a relation was already locked before open.
+		 * So, we need to lock relation by id in dummy root in advance.
+		 */
+		LockRelationOid(rte->relid, rte->rellockmode);
 
 		/*
 		 * Build RelOptInfo Build simple relation and copy target list and
@@ -2558,6 +2611,7 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	char	   *refname = NULL;
 	RangeTblEntry *rte;
 	int i;
+	int rtn = 0;
 
 	baserel->rows = 1000;
 	fdw_private = spd_AllocatePrivate();
@@ -2620,6 +2674,10 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	fdw_private->rinfo.lower_subquery_rels = NULL;
 	/* Set the relation index. */
 	fdw_private->rinfo.relation_index = baserel->relid;
+	/* Init mutex.*/
+	SPD_RWLOCK_INIT(&fdw_private->scan_mutex, &rtn);
+	if (rtn == SPD_RWLOCK_INIT_ERROR)
+		elog(ERROR, "%s read-write lock object initialization error", __func__);
 }
 
 /**
@@ -2856,7 +2914,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			 * descriptor for parent slot according to child comp tlist. We
 			 * save to fdw_private->child_comp_tupdesc for later use.
 			 */
-			tupledesc = CreateTemplateTupleDesc(list_length(fdw_private->child_comp_tlist), false);
+			tupledesc = CreateTemplateTupleDesc(list_length(fdw_private->child_comp_tlist));
 			foreach(lc, fdw_private->child_comp_tlist)
 			{
 				TargetEntry *ent = (TargetEntry *) lfirst(lc);
@@ -2870,7 +2928,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			fdw_private->child_comp_tupdesc = CreateTupleDescCopy(tupledesc);
 
 			/* Init temporary slot for adding spdurl back */
-			fdw_private->child_comp_slot = MakeSingleTupleTableSlot(CreateTupleDescCopy(fdw_private->child_comp_tupdesc));
+			fdw_private->child_comp_slot = MakeSingleTupleTableSlot(CreateTupleDescCopy(fdw_private->child_comp_tupdesc), &TTSOpsHeapTuple);
 		}
 
 		/* Create path for each child node */
@@ -3052,7 +3110,6 @@ get_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	SpdFdwPrivate *ifpinfo = input_rel->fdw_private;
 	SpdFdwPrivate *fpinfo = grouped_rel->fdw_private;
 	ForeignPath *grouppath;
-	PathTarget *grouping_target;
 	double		rows;
 	int			width;
 	Cost		startup_cost;
@@ -3062,8 +3119,6 @@ get_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	if (!parse->groupClause && !parse->groupingSets && !parse->hasAggs &&
 		!root->hasHavingQual)
 		return NULL;
-
-	grouping_target = root->upper_targets[UPPERREL_GROUP_AGG];
 
 	/* save the input_rel as outerrel in fpinfo */
 	fpinfo->rinfo.outerrel = input_rel;
@@ -3080,7 +3135,15 @@ get_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	if (!foreign_grouping_ok(root, grouped_rel))
 		return NULL;
 
-	rows = 0;
+	/*
+	 * If no grouping, numGroups should be set 1.
+	 * When creating upper path, rows is passed to pathnode->path.rows.
+	 * When creating aggregation plan, somehow path.rows is passed to dNumGroups.
+	 */
+	if (!parse->groupClause)
+	    rows = 1;
+	else
+	    rows = 0;
 	width = 0;
 	startup_cost = 0;
 	total_cost = 0;
@@ -3092,15 +3155,14 @@ get_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	fpinfo->rinfo.total_cost = total_cost;
 
 	/* Create and add foreign path to the grouping relation. */
-	grouppath = create_foreignscan_path(root,
+	grouppath = create_foreign_upper_path(root,
 										grouped_rel,
-										grouping_target,
+										root->upper_targets[UPPERREL_GROUP_AGG],
 										rows,
 										startup_cost,
 										total_cost,
 										NIL,	/* no pathkeys */
-										NULL,	/* no required_outer */
-										NULL,
+										NULL,	/* no fdw_outerpath */
 										NIL);	/* no fdw_private */
 	return (Path *) grouppath;
 }
@@ -3319,7 +3381,6 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 
 
 /**
-
  * Produce extra output for EXPLAIN of a ForeignScan on a foreign table
  *
  * @param[in] node
@@ -3470,10 +3531,17 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 	}
 	baserel->rows = rows;
 
-	add_path(baserel, (Path *) create_foreignscan_path(root, baserel, NULL, baserel->rows,
-													   startup_cost, total_cost, NIL,
-													   NULL, NULL, NIL));
+	add_path(baserel, (Path *) create_foreignscan_path(root, baserel,
+											NULL,
+											baserel->rows,
+											startup_cost,
+											total_cost,
+											NIL,	/* no pathkeys*/
+											baserel->lateral_relids,
+											NULL,	/* no outerpath*/
+											NULL));
 }
+
 
 /**
  * outer_var_walker
@@ -3564,7 +3632,6 @@ check_spdurl_walker(Node *node, PlannerInfo *root)
 	return expression_tree_walker(node, check_spdurl_walker, (void *) root);
 }
 
-
 /**
  * Search each clause of 'scan_clauses' for __spd_url to decide
  * whether it can be pushed down or not.
@@ -3597,6 +3664,7 @@ spd_checkurl_clauses(List *scan_clauses, PlannerInfo *root, List *baserestrictin
 }
 
 /**
+ * spd_GetForeignPlan
  *
  * Build foreign plan for each child tables using fdws.
  * saving each foreign plan into  base rel list
@@ -3846,6 +3914,8 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 										 extract_grouping_cols(childinfo[i].aggpath->groupClause,
 															   fsplan->scan.plan.targetlist),
 										 extract_grouping_ops(childinfo[i].aggpath->groupClause),
+										 extract_grouping_collations(childinfo[i].aggpath->groupClause,
+												 fsplan->scan.plan.targetlist),
 										 root->parse->groupingSets,
 										 NIL,
 										 childinfo[i].aggpath->path.rows,
@@ -4065,10 +4135,15 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		}
 		fsplan = (ForeignScan *) fssThrdInfo[node_incr].fsstate->ss.ps.plan;
 		fsplan->fdw_private = ((ForeignScan *) childinfo[i].plan)->fdw_private;
+		fsplan->fdw_exprs = ((ForeignScan *) childinfo[i].plan)->fdw_exprs;
 
 		/* Create and initialize EState */
 		fssThrdInfo[node_incr].fsstate->ss.ps.state = CreateExecutorState();
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_top_eflags = eflags;
+
+		/* Init external params */
+		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_param_list_info =
+				copyParamList(estate->es_param_list_info);
 
 		/* This should be a new RTE list. coming from dummy rtable */
 		query = ((PlannerInfo *) childinfo[i].root)->parse;
@@ -4078,7 +4153,11 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		if (query->rtable->length != estate->es_range_table->length)
 			for (k = query->rtable->length; k < estate->es_range_table->length; k++)
 				query->rtable = lappend(query->rtable, rte);
-		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_range_table = ((PlannerInfo *) childinfo[i].root)->parse->rtable;
+
+		/*
+		 * Init range table, in which we use range table array for exec_rt_fetch() because it is faster than rt_fetch().
+		 */
+		ExecInitRangeTable(fssThrdInfo[node_incr].fsstate->ss.ps.state, query->rtable);
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt = copyObject(node->ss.ps.state->es_plannedstmt);
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_plannedstmt->planTree = copyObject(fssThrdInfo[node_incr].fsstate->ss.ps.plan);
 		/* Allocate top memory context for each thread to avoid race condtion */
@@ -4118,10 +4197,27 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		 * childinfo[i].oid
 		 */
 		rd = RelationIdGetRelation(childinfo[i].oid);
+
+		/*
+		 * For prepared statement, dummy root is not created at the next execution, so we need to lock relation again.
+		 * We don't need unlock relation because lock will be released at transaction end.
+		 * https://www.postgresql.org/docs/12/sql-lock.html
+		 */
+		if (!CheckRelationLockedByMe(rd, AccessShareLock, true))
+		{
+			LockRelationOid(childinfo[i].oid, AccessShareLock);
+		}
+
 		fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation = rd;
 
 		fssThrdInfo[node_incr].requestEndScan = false;
 		fssThrdInfo[node_incr].requestRescan = false;
+		/*
+		 * If query has no parameter, to improve performance, it can be executed immediately.
+		 * If query has parameter, sub-plan needs to be initialized, so it needs to wait the core engine
+		 * initializes the sub-plan.
+		 */
+		fssThrdInfo[node_incr].requestStartScan = (list_length(fsplan->fdw_exprs) == 0);
 		/* We save correspondence between fssThrdInfo and childinfo */
 		fssThrdInfo[node_incr].childInfoIndex = i;
 		childinfo[i].index_threadinfo = node_incr;
@@ -4148,7 +4244,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			int			child_attr = 0; /* attribute number of child */
 			ListCell   *lc;
 
-			tupledesc = CreateTemplateTupleDesc(list_length(fdw_private->child_tlist), false);
+			tupledesc = CreateTemplateTupleDesc(list_length(fdw_private->child_tlist));
 
 			foreach(lc, fdw_private->child_tlist)
 			{
@@ -4167,12 +4263,12 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 				 * in queue.
 				 */
 				fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
-					MakeSingleTupleTableSlot(ExecTypeFromTL(fssThrdInfo[node_incr].fsstate->ss.ps.plan->targetlist, true));
+					MakeSingleTupleTableSlot(ExecCleanTypeFromTL(fssThrdInfo[node_incr].fsstate->ss.ps.plan->targetlist), node->ss.ss_ScanTupleSlot->tts_ops);
 			}
 			else
 			{
 				fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
-					MakeSingleTupleTableSlot(CreateTupleDescCopy(tupledesc));
+					MakeSingleTupleTableSlot(CreateTupleDescCopy(tupledesc), node->ss.ss_ScanTupleSlot->tts_ops);
 			}
 
 		}
@@ -4186,7 +4282,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			tupledesc = CreateTupleDescCopy(node->ss.ss_ScanTupleSlot->tts_tupleDescriptor);
 
 			fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
-				MakeSingleTupleTableSlot(tupledesc);
+				MakeSingleTupleTableSlot(tupledesc, node->ss.ss_ScanTupleSlot->tts_ops);
 		}
 
 		/*
@@ -4204,7 +4300,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			strcmp(fssThrdInfo[node_incr].fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
 			skiplast = true;
 
-		spd_queue_init(&fssThrdInfo[node_incr].tupleQueue, tupledesc, skiplast);
+		spd_queue_init(&fssThrdInfo[node_incr].tupleQueue, tupledesc, node->ss.ss_ScanTupleSlot->tts_ops, skiplast);
 
 		natts = fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor->natts;
 
@@ -4273,11 +4369,11 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
  */
 
 static void
-spd_spi_ddl_table(char *query)
+spd_spi_ddl_table(char *query, SpdFdwPrivate *fdw_private)
 {
 	int			ret;
 
-	SPD_WRITE_LOCK_TRY(&scan_mutex);
+	SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex);
 	ret = SPI_connect();
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
@@ -4288,7 +4384,7 @@ spd_spi_ddl_table(char *query)
 		elog(ERROR, "execute spi CREATE TEMP TABLE failed %d", ret);
 	}
 	SPI_finish();
-	SPD_RWUNLOCK_CATCH(&scan_mutex);
+	SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 }
 
 /**
@@ -4311,7 +4407,7 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 	List	   *mapping_tlist;
 	ListCell   *lc;
 
-	SPD_WRITE_LOCK_TRY(&scan_mutex);
+	SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex);
 	ret = SPI_connect();
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
@@ -4360,10 +4456,18 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 					else
 						value = "false";
 				}
-				if (child_typid == DATEOID || child_typid == TEXTOID || child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID)
+				/*
+				 * TODO: the following maybe missing some child_typid cases,
+				 *       it need to be added later
+				 */
+				if (child_typid == DATEOID || child_typid == TEXTOID ||
+					child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID ||
+					child_typid == INT4ARRAYOID || child_typid == TIMESTAMPARRAYOID)
 					appendStringInfo(sql, "'");
 				appendStringInfo(sql, "%s", value);
-				if (child_typid == DATEOID || child_typid == TEXTOID || child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID)
+				if (child_typid == DATEOID || child_typid == TEXTOID ||
+					child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID ||
+					child_typid == INT4ARRAYOID || child_typid == TIMESTAMPARRAYOID)
 					appendStringInfo(sql, "'");
 			}
 			colid++;
@@ -4376,7 +4480,7 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 		elog(ERROR, "execute spi INSERT TEMP TABLE failed ");
 	SPI_finish();
 
-	SPD_RWUNLOCK_CATCH(&scan_mutex);
+	SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 
 }
 
@@ -4402,7 +4506,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql)
 	Mappingcells *mapcells;
 	ListCell   *lc;
 
-	SPD_WRITE_LOCK_TRY(&scan_mutex);
+	SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex);
 	ret = SPI_connect();
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
@@ -4482,7 +4586,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql)
 	MemoryContextSwitchTo(oldcontext);
 	SPI_finish();
 end:;
-	SPD_RWUNLOCK_CATCH(&scan_mutex);
+	SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 }
 
 /**
@@ -4630,8 +4734,18 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 		target_column++;
 	}
 	Assert(target_column == slot->tts_tupleDescriptor->natts);
-	tuple = heap_form_tuple(slot->tts_tupleDescriptor, ret_agg_values, nulls);
-	ExecStoreTuple(tuple, slot, InvalidBuffer, false);
+
+	if (TTS_IS_HEAPTUPLE(slot) && ((HeapTupleTableSlot*) slot)->tuple){
+		tuple = heap_form_tuple(slot->tts_tupleDescriptor, ret_agg_values, nulls);
+		ExecStoreHeapTuple(tuple, slot, false);
+	}else{
+		slot->tts_values = ret_agg_values;
+		slot->tts_isnull = nulls;
+		/* to avoid assert failure in ExecStoreVirtualTuple, set tts_flags empty */
+		slot->tts_flags |= TTS_FLAG_EMPTY;
+		ExecStoreVirtualTuple(slot);
+	}
+
 	fdw_private->agg_num++;
 }
 
@@ -4708,7 +4822,8 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 					else if (!pg_strcasecmp(agg_command, "MAX") || !pg_strcasecmp(agg_command, "MIN") ||
 							 !pg_strcasecmp(agg_command, "BIT_OR") || !pg_strcasecmp(agg_command, "BIT_AND") ||
 							 !pg_strcasecmp(agg_command, "BOOL_AND") || !pg_strcasecmp(agg_command, "BOOL_OR") ||
-							 !pg_strcasecmp(agg_command, "EVERY") || !pg_strcasecmp(agg_command, "STRING_AGG"))
+							 !pg_strcasecmp(agg_command, "EVERY") || !pg_strcasecmp(agg_command, "STRING_AGG") ||
+							 !pg_strcasecmp(agg_command, "ARRAY_AGG"))
 						appendStringInfo(sql, "%s(col%d)", agg_command, max_col);
 
 					/*
@@ -4845,6 +4960,11 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 					appendStringInfo(create_sql, " timestamp with time zone");
 				else if (typeid == BOOLOID)
 					appendStringInfo(create_sql, " boolean");
+				else if (typeid == INT4ARRAYOID)
+					appendStringInfo(create_sql, " integer[]");
+				else if (typeid == TIMESTAMPARRAYOID)
+					appendStringInfo(create_sql, " text[]");
+				/* TODO: numeric may be incorrect for some typeid */
 				else
 					appendStringInfo(create_sql, " numeric");
 				colid++;
@@ -4911,10 +5031,10 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 		values = (Datum *) palloc0(sizeof(Datum) * natts);
 		nulls = (bool *) palloc0(sizeof(bool) * natts);
 
-		if (node_slot->tts_tuple != NULL)
+		if (TTS_IS_HEAPTUPLE(node_slot))
 		{
 			/* Extract data to values/isnulls */
-			heap_deform_tuple(node_slot->tts_tuple, node_slot->tts_tupleDescriptor, values, nulls);
+			heap_deform_tuple(node_slot->tts_ops->get_heap_tuple(node_slot), node_slot->tts_tupleDescriptor, values, nulls);
 
 			/* Insert spdurl to the array */
 			spdurl = psprintf("/%s/", fs->servername);
@@ -4935,11 +5055,11 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 			 * copy the identification info of the old tuple: t_ctid, t_self,
 			 * and OID (if any)
 			 */
-			newtuple->t_data->t_ctid = node_slot->tts_tuple->t_data->t_ctid;
-			newtuple->t_self = node_slot->tts_tuple->t_self;
-			newtuple->t_tableOid = node_slot->tts_tuple->t_tableOid;
+			newtuple->t_data->t_ctid = node_slot->tts_ops->get_heap_tuple(node_slot)->t_data->t_ctid;
+			newtuple->t_self = node_slot->tts_ops->get_heap_tuple(node_slot)->t_self;
+			newtuple->t_tableOid = node_slot->tts_ops->get_heap_tuple(node_slot)->t_tableOid;
 
-			parent_slot->tts_tuple = newtuple;
+			ExecStoreHeapTuple(newtuple, parent_slot, false);
 
 			pfree(values);
 			pfree(nulls);
@@ -4966,8 +5086,8 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 			}
 			parent_slot->tts_values = values;
 			parent_slot->tts_isnull = nulls;
-			/* to avoid assert failure in ExecStoreVirtualTuple */
-			parent_slot->tts_isempty = true;
+			/* to avoid assert failure in ExecStoreVirtualTuple, set tts_flags empty */
+			parent_slot->tts_flags |= TTS_FLAG_EMPTY;
 			ExecStoreVirtualTuple(parent_slot);
 		}
 		return parent_slot;
@@ -5034,21 +5154,21 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 
 		if (tnum != -1)
 		{
-			if (node_slot->tts_tuple != NULL)
+			if (TTS_IS_HEAPTUPLE(node_slot) && ((HeapTupleTableSlot*) node_slot)->tuple)
 			{
 				/* tuple mode is HEAP */
-				newtuple = heap_modify_tuple(node_slot->tts_tuple, node_slot->tts_tupleDescriptor,
+				newtuple = heap_modify_tuple(node_slot->tts_ops->get_heap_tuple(node_slot), node_slot->tts_tupleDescriptor,
 											 values, nulls, replaces);
-				node_slot = ExecStoreTuple(newtuple,
-										   node_slot,
-										   InvalidBuffer,
-										   false);
+				ExecStoreHeapTuple(newtuple, node_slot, false);
 			}
 			else
 			{
 				/* tuple mode is VIRTUAL */
 				node_slot->tts_values[tnum] = values[tnum];
 				node_slot->tts_isnull[tnum] = false;
+				/* to avoid assert failure in ExecStoreVirtualTuple */
+				node_slot->tts_flags |= TTS_FLAG_EMPTY;
+				ExecStoreVirtualTuple(node_slot);
 			}
 		}
 		return node_slot;
@@ -5139,8 +5259,28 @@ spd_IterateForeignScan(ForeignScanState *node)
 	if (fdw_private->nThreads == 0)
 		return NULL;
 
-
 	mapping_tlist = fdw_private->mapping_tlist;
+
+	/*
+	 * After the core engine initialize sub-plan, it jump to spd_IterateForeingScan,
+	 * in this routine, we need to initialize sub-plan data for the main-query for one time only.
+	 */
+	if (!fssThrdInfo->requestStartScan && fdw_private->isFirst) {
+		EState* estate = node->ss.ps.state;
+
+		fssThrdInfo->fsstate->ss.ps.state->es_subplanstates = list_copy(estate->es_subplanstates);
+		fssThrdInfo->fsstate->ss.ps.ps_ExprContext->ecxt_param_exec_vals = node->ss.ps.ps_ExprContext->ecxt_param_exec_vals;
+
+		/* request to continue the main query transaction */
+		fssThrdInfo->requestStartScan = true;
+
+		/* utilize isFirst to mark this processing is implemented one time only*/
+		if (!fdw_private->agg_query)
+		{
+			fdw_private->isFirst = false;
+		}
+	}
+
 	/* CREATE TEMP TABLE SQL */
 	if (fdw_private->agg_query)
 	{
@@ -5165,7 +5305,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 
 			spd_createtable_sql(create_sql, mapping_tlist,
 								fdw_private->temp_table_name, fdw_private);
-			spd_spi_ddl_table(create_sql->data);
+			spd_spi_ddl_table(create_sql->data, fdw_private);
 			fdw_private->is_drop_temp_table = false;
 
 			/*
@@ -5215,7 +5355,18 @@ spd_IterateForeignScan(ForeignScanState *node)
 		if (tempSlot != NULL)
 		{
 			slot = node->ss.ss_ScanTupleSlot;
-			ExecCopySlot(slot, tempSlot);
+			if (TTS_IS_HEAPTUPLE(slot) && ((HeapTupleTableSlot*) slot)->tuple)
+			{
+				ExecCopySlot(slot, tempSlot);
+			}else
+			{
+				slot->tts_values = tempSlot->tts_values;
+				slot->tts_isnull = tempSlot->tts_isnull;
+				/* to avoid assert failure in ExecStoreVirtualTuple, set tts_flags empty */
+				slot->tts_flags |= TTS_FLAG_EMPTY;
+				ExecStoreVirtualTuple(slot);
+			}
+
 		}
 		else
 		{
@@ -5223,7 +5374,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 			 * If all tuple getting is finished, then return NULL and drop
 			 * table
 			 */
-			spd_spi_ddl_table(psprintf("DROP TABLE %s", fdw_private->temp_table_name));
+			spd_spi_ddl_table(psprintf("DROP TABLE %s", fdw_private->temp_table_name), fdw_private);
 			fdw_private->isFirst = true;
 			fdw_private->is_drop_temp_table = true;
 		}
@@ -5330,7 +5481,7 @@ spd_EndForeignScan(ForeignScanState *node)
 	{
 		if (fdw_private->is_drop_temp_table == false && fdw_private->temp_table_name != NULL)
 		{
-			spd_spi_ddl_table(psprintf("DROP TABLE IF EXISTS %s", fdw_private->temp_table_name));
+			spd_spi_ddl_table(psprintf("DROP TABLE IF EXISTS %s", fdw_private->temp_table_name), fdw_private);
 		}
 		for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 		{
@@ -5493,7 +5644,7 @@ spd_PlanForeignModify(PlannerInfo *root,
 		elog(ERROR, "no URL is specified, INSERT/UPDATE/DELETE need to set URL");
 
 	spd_create_child_url(nums, rte, fdw_private);
-	rel = heap_open(rte->relid, NoLock);
+	rel = table_open(rte->relid, NoLock);
 
 	spd_spi_exec_child_relname(RelationGetRelationName(rel), fdw_private, &oid);
 	if (fdw_private->node_num == 0)
@@ -5505,7 +5656,7 @@ spd_PlanForeignModify(PlannerInfo *root,
 		fdwroutine = GetFdwRoutineByServerId(oid_server);
 		child_list = fdwroutine->PlanForeignModify(root, plan, resultRelation, subplan_index);
 	}
-	heap_close(rel, NoLock);
+	table_close(rel, NoLock);
 	return list_make2(child_list, makeInteger(oid_server));
 }
 

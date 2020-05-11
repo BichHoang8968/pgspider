@@ -23,7 +23,7 @@
  * the result is validly encoded according to the destination encoding.
  *
  *
- * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -86,7 +86,7 @@ static int	pending_client_encoding = PG_SQL_ASCII;
 
 /* Internal functions */
 static char *perform_default_encoding_conversion(const char *src,
-									int len, bool is_client_to_server);
+												 int len, bool is_client_to_server);
 static int	cliplen(const char *str, int len, int limit);
 
 
@@ -357,24 +357,16 @@ pg_do_encoding_conversion(unsigned char *src, int len,
 						pg_encoding_to_char(dest_encoding))));
 
 	/*
-	 * Allocate space for conversion result, being wary of integer overflow.
-	 *
-	 * len * MAX_CONVERSION_GROWTH is typically a vast overestimate of the
-	 * required space, so it might exceed MaxAllocSize even though the result
-	 * would actually fit.  We do not want to hand back a result string that
-	 * exceeds MaxAllocSize, because callers might not cope gracefully --- but
-	 * if we just allocate more than that, and don't use it, that's fine.
+	 * Allocate space for conversion result, being wary of integer overflow
 	 */
-	if ((Size) len >= (MaxAllocHugeSize / (Size) MAX_CONVERSION_GROWTH))
+	if ((Size) len >= (MaxAllocSize / (Size) MAX_CONVERSION_GROWTH))
 		ereport(ERROR,
 				(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
 				 errmsg("out of memory"),
 				 errdetail("String of %d bytes is too long for encoding conversion.",
 						   len)));
 
-	result = (unsigned char *)
-		MemoryContextAllocHuge(CurrentMemoryContext,
-							   (Size) len * MAX_CONVERSION_GROWTH + 1);
+	result = palloc(len * MAX_CONVERSION_GROWTH + 1);
 
 	OidFunctionCall5(proc,
 					 Int32GetDatum(src_encoding),
@@ -382,26 +374,6 @@ pg_do_encoding_conversion(unsigned char *src, int len,
 					 CStringGetDatum(src),
 					 CStringGetDatum(result),
 					 Int32GetDatum(len));
-
-	/*
-	 * If the result is large, it's worth repalloc'ing to release any extra
-	 * space we asked for.  The cutoff here is somewhat arbitrary, but we
-	 * *must* check when len * MAX_CONVERSION_GROWTH exceeds MaxAllocSize.
-	 */
-	if (len > 1000000)
-	{
-		Size		resultlen = strlen((char *) result);
-
-		if (resultlen >= MaxAllocSize)
-			ereport(ERROR,
-					(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-					 errmsg("out of memory"),
-					 errdetail("String of %d bytes is too long for encoding conversion.",
-							   len)));
-
-		result = (unsigned char *) repalloc(result, resultlen + 1);
-	}
-
 	return result;
 }
 
@@ -492,7 +464,7 @@ pg_convert(PG_FUNCTION_ARGS)
 	pg_verify_mbstr_len(src_encoding, src_str, len, false);
 
 	/* perform conversion */
-	dest_str = (char *) pg_do_encoding_conversion((unsigned char *) src_str,
+	dest_str = (char *) pg_do_encoding_conversion((unsigned char *) unconstify(char *, src_str),
 												  len,
 												  src_encoding,
 												  dest_encoding);
@@ -589,7 +561,7 @@ char *
 pg_any_to_server(const char *s, int len, int encoding)
 {
 	if (len <= 0)
-		return (char *) s;		/* empty string is always valid */
+		return unconstify(char *, s);	/* empty string is always valid */
 
 	if (encoding == DatabaseEncoding->encoding ||
 		encoding == PG_SQL_ASCII)
@@ -598,7 +570,7 @@ pg_any_to_server(const char *s, int len, int encoding)
 		 * No conversion is needed, but we must still validate the data.
 		 */
 		(void) pg_verify_mbstr(DatabaseEncoding->encoding, s, len, false);
-		return (char *) s;
+		return unconstify(char *, s);
 	}
 
 	if (DatabaseEncoding->encoding == PG_SQL_ASCII)
@@ -628,7 +600,7 @@ pg_any_to_server(const char *s, int len, int encoding)
 									(unsigned char) s[i])));
 			}
 		}
-		return (char *) s;
+		return unconstify(char *, s);
 	}
 
 	/* Fast path if we can use cached conversion function */
@@ -636,7 +608,7 @@ pg_any_to_server(const char *s, int len, int encoding)
 		return perform_default_encoding_conversion(s, len, true);
 
 	/* General case ... will not work outside transactions */
-	return (char *) pg_do_encoding_conversion((unsigned char *) s,
+	return (char *) pg_do_encoding_conversion((unsigned char *) unconstify(char *, s),
 											  len,
 											  encoding,
 											  DatabaseEncoding->encoding);
@@ -662,17 +634,17 @@ char *
 pg_server_to_any(const char *s, int len, int encoding)
 {
 	if (len <= 0)
-		return (char *) s;		/* empty string is always valid */
+		return unconstify(char *, s);	/* empty string is always valid */
 
 	if (encoding == DatabaseEncoding->encoding ||
 		encoding == PG_SQL_ASCII)
-		return (char *) s;		/* assume data is valid */
+		return unconstify(char *, s);	/* assume data is valid */
 
 	if (DatabaseEncoding->encoding == PG_SQL_ASCII)
 	{
 		/* No conversion is possible, but we must validate the result */
 		(void) pg_verify_mbstr(encoding, s, len, false);
-		return (char *) s;
+		return unconstify(char *, s);
 	}
 
 	/* Fast path if we can use cached conversion function */
@@ -680,7 +652,7 @@ pg_server_to_any(const char *s, int len, int encoding)
 		return perform_default_encoding_conversion(s, len, false);
 
 	/* General case ... will not work outside transactions */
-	return (char *) pg_do_encoding_conversion((unsigned char *) s,
+	return (char *) pg_do_encoding_conversion((unsigned char *) unconstify(char *, s),
 											  len,
 											  DatabaseEncoding->encoding,
 											  encoding);
@@ -715,22 +687,19 @@ perform_default_encoding_conversion(const char *src, int len,
 	}
 
 	if (flinfo == NULL)
-		return (char *) src;
+		return unconstify(char *, src);
 
 	/*
-	 * Allocate space for conversion result, being wary of integer overflow.
-	 * See comments in pg_do_encoding_conversion.
+	 * Allocate space for conversion result, being wary of integer overflow
 	 */
-	if ((Size) len >= (MaxAllocHugeSize / (Size) MAX_CONVERSION_GROWTH))
+	if ((Size) len >= (MaxAllocSize / (Size) MAX_CONVERSION_GROWTH))
 		ereport(ERROR,
 				(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
 				 errmsg("out of memory"),
 				 errdetail("String of %d bytes is too long for encoding conversion.",
 						   len)));
 
-	result = (char *)
-		MemoryContextAllocHuge(CurrentMemoryContext,
-							   (Size) len * MAX_CONVERSION_GROWTH + 1);
+	result = palloc(len * MAX_CONVERSION_GROWTH + 1);
 
 	FunctionCall5(flinfo,
 				  Int32GetDatum(src_encoding),
@@ -738,25 +707,6 @@ perform_default_encoding_conversion(const char *src, int len,
 				  CStringGetDatum(src),
 				  CStringGetDatum(result),
 				  Int32GetDatum(len));
-
-	/*
-	 * Release extra space if there might be a lot --- see comments in
-	 * pg_do_encoding_conversion.
-	 */
-	if (len > 1000000)
-	{
-		Size		resultlen = strlen(result);
-
-		if (resultlen >= MaxAllocSize)
-			ereport(ERROR,
-					(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-					 errmsg("out of memory"),
-					 errdetail("String of %d bytes is too long for encoding conversion.",
-							   len)));
-
-		result = (char *) repalloc(result, resultlen + 1);
-	}
-
 	return result;
 }
 

@@ -6,7 +6,7 @@
 # runs the regression tests (to put in some data), runs pg_dumpall,
 # runs pg_upgrade, runs pg_dumpall again, compares the dumps.
 #
-# Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
+# Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
 # Portions Copyright (c) 1994, Regents of the University of California
 
 set -e
@@ -74,25 +74,6 @@ temp_root=`pwd`/tmp_check
 rm -rf "$temp_root"
 mkdir "$temp_root"
 
-if [ "$1" = '--install' ]; then
-	temp_install=$temp_root/install
-	bindir=$temp_install/$bindir
-	libdir=$temp_install/$libdir
-
-	"$MAKE" -s -C ../.. install DESTDIR="$temp_install"
-
-	# platform-specific magic to find the shared libraries; see pg_regress.c
-	LD_LIBRARY_PATH=$libdir:$LD_LIBRARY_PATH
-	export LD_LIBRARY_PATH
-	DYLD_LIBRARY_PATH=$libdir:$DYLD_LIBRARY_PATH
-	export DYLD_LIBRARY_PATH
-	LIBPATH=$libdir:$LIBPATH
-	export LIBPATH
-	SHLIB_PATH=$libdir:$SHLIB_PATH
-	export SHLIB_PATH
-	PATH=$libdir:$PATH
-fi
-
 : ${oldbindir=$bindir}
 
 : ${oldsrc=../../..}
@@ -107,6 +88,9 @@ newsrc=`cd ../../.. && pwd`
 EXTRA_REGRESS_OPTS="$EXTRA_REGRESS_OPTS --bindir='$oldbindir'"
 export EXTRA_REGRESS_OPTS
 
+# While in normal cases this will already be set up, adding bindir to
+# path allows test.sh to be invoked with different versions as
+# described in ./TESTING
 PATH=$bindir:$PATH
 export PATH
 
@@ -177,11 +161,11 @@ dbname1=`awk 'BEGIN { for (i= 1; i < 46; i++)
 dbname1='\"\'$dbname1'\\"\\\'
 dbname2=`awk 'BEGIN { for (i = 46; i <  91; i++) printf "%c", i }' </dev/null`
 dbname3=`awk 'BEGIN { for (i = 91; i < 128; i++) printf "%c", i }' </dev/null`
-createdb "$dbname1" || createdb_status=$?
-createdb "$dbname2" || createdb_status=$?
-createdb "$dbname3" || createdb_status=$?
+createdb "regression$dbname1" || createdb_status=$?
+createdb "regression$dbname2" || createdb_status=$?
+createdb "regression$dbname3" || createdb_status=$?
 
-if "$MAKE" -C "$oldsrc" installcheck; then
+if "$MAKE" -C "$oldsrc" installcheck-parallel; then
 	oldpgversion=`psql -X -A -t -d regression -c "SHOW server_version_num"`
 
 	# before dumping, get rid of objects not existing in later versions

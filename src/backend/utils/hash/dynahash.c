@@ -41,7 +41,7 @@
  * function must be supplied; comparison defaults to memcmp() and key copying
  * to memcpy() when a user-defined hashing function is selected.
  *
- * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -382,13 +382,13 @@ hash_create(const char *tabname, long nelem, HASHCTL *info, int flags)
 	strcpy(hashp->tabname, tabname);
 
 	/* If we have a private context, label it with hashtable's name */
-#ifdef PGSPIDER
 	if (!(flags & HASH_SHARED_MEM))
+#ifdef PGSPIDER
 		MemoryContextSetIdentifier(CurrentDynaHashCxt, tabname);
 #else
-	if (!(flags & HASH_SHARED_MEM))
 		MemoryContextSetIdentifier(CurrentDynaHashCxt, hashp->tabname);
 #endif
+
 	/*
 	 * Select the appropriate hash function (see comments at head of file).
 	 */
@@ -854,7 +854,7 @@ hash_destroy(HTAB *hashp)
 	{
 		/* allocation method must be one we know how to free, too */
 		Assert(hashp->alloc == DynaHashAlloc);
-		/* so this hashtable must have it's own context */
+		/* so this hashtable must have its own context */
 		Assert(hashp->hcxt != NULL);
 
 		hash_stats("destroy", hashp);
@@ -955,17 +955,13 @@ hash_search(HTAB *hashp,
 {
 #ifdef PGSPIDER
 	return hash_search_with_hash_value_orig(hashp,
-											keyPtr,
-											hashp->hash(keyPtr, hashp->keysize),
-											action,
-											foundPtr);
 #else
 	return hash_search_with_hash_value(hashp,
+#endif
 									   keyPtr,
 									   hashp->hash(keyPtr, hashp->keysize),
 									   action,
 									   foundPtr);
-#endif
 }
 
 void *
