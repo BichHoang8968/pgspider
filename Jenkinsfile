@@ -293,5 +293,10 @@ pipeline {
                 }
             }
         }
+        always {
+            sh '''
+                rm -rf src install tmp_install || true
+            '''
+        }
     }
 }
