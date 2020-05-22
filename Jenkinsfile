@@ -4,9 +4,10 @@ def BRANCH_NAME = 'Branch [' + env.BRANCH_NAME + ']'
 def BUILD_INFO = 'Jenkins job: ' + env.BUILD_URL + '\n'
 def MYSQL_FDW_URL = 'https://tccloud2.toshiba.co.jp/swc/gitlab/g3033310/mysql-fdw.git'
 def SQLITE_FDW_URL = 'https://github.com/pgspider/sqlite_fdw.git'
-def TINYBRACE_FDW_URL = 'https://tccloud2.toshiba.co.jp/accio/svn/accio/branches/tinybrace_fdw'
+def TINYBRACE_FDW_URL = 'https://tccloud2.toshiba.co.jp/swc/gitlab/db/tinybrace_fdw.git'
 def INFLUXDB_FDW_URL = 'https://github.com/pgspider/influxdb_fdw.git'
 def GRIDDB_FDW_URL = 'https://github.com/pgspider/griddb_fdw.git'
+def GIT_CREDENTIAL_ID = 'dac43358-2ffd-4a4b-b9c4-879554f2e1be'
 def GRIDDB_CLIENT_DIR = '/home/jenkins/GridDB/c_client_4.1.0/griddb'
 def PGSPIDER_1_DIR = '/home/jenkins/PGSpider/PGS1'
 def PGSPIDER_1_PORT = 5433
@@ -112,7 +113,7 @@ pipeline {
                     // Build mysql_fdw
                     sh 'rm -rf mysql_fdw || true && mkdir mysql_fdw'
                     dir("mysql_fdw") {
-                        git credentialsId: 'dac43358-2ffd-4a4b-b9c4-879554f2e1be', url: MYSQL_FDW_URL
+                        git credentialsId: GIT_CREDENTIAL_ID, url: MYSQL_FDW_URL
                         sh 'make clean && make && make install'
                     }
                     // Build sqlite_fdw
@@ -123,12 +124,11 @@ pipeline {
                         make clean && make && make install
                     '''
                     // Build tinybrace_fdw
-                    sh 'rm -rf tinybrace_fdw || true'
-                    retrySh('svn co ' + TINYBRACE_FDW_URL)
-                    sh '''
-                        cd tinybrace_fdw
-                        make clean && make && make install
-                    '''
+                    sh 'rm -rf tinybrace_fdw || true && mkdir tinybrace_fdw'
+                    dir("tinybrace_fdw") {
+                        git credentialsId: GIT_CREDENTIAL_ID, url: TINYBRACE_FDW_URL
+                        sh 'make clean && make && make install'
+                    }
                     // Build influxdb_fdw
                     sh 'rm -rf influxdb_fdw || true'
                     retrySh('git clone ' + INFLUXDB_FDW_URL)
