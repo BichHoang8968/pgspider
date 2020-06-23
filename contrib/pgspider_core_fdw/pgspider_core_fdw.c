@@ -3486,7 +3486,7 @@ get_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 static bool
 foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 {
-	Query	   *query = root->parse;
+	Query	   *query = copyObject(root->parse);
 	PathTarget *grouping_target;
 	SpdFdwPrivate *fpinfo = (SpdFdwPrivate *) grouped_rel->fdw_private;
 	SpdFdwPrivate *ofpinfo;
@@ -3537,14 +3537,32 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 	 */
 	i = 0;
 	fpinfo->groupby_target = NULL;
-	foreach(lc, grouping_target->exprs)
+	/* Cannot use foreach because we modify exprs in the loop */
+	for ((lc) = list_head(grouping_target->exprs); (lc) != NULL;)
 	{
 		Expr	   *expr = (Expr *) lfirst(lc);
 		Index		sgref = get_pathtarget_sortgroupref(grouping_target, i);
 		ListCell   *l;
+		SortGroupClause *sgc = get_sortgroupref_clause_noerr(sgref, query->groupClause);
+
+		/* Check whether this expression is constant column */
+		if (IsA(expr, Const))
+		{
+			/* Not pushable Constant column */
+			lc = lnext(lc);
+			grouping_target->exprs = list_delete_ptr(grouping_target->exprs, expr);
+
+			if (sgref && sgc)
+			{
+				query->groupClause = list_delete_ptr(query->groupClause, sgc);
+			}
+
+			i++;
+			continue;
+		}
 
 		/* Check whether this expression is part of GROUP BY clause */
-		if (sgref && get_sortgroupref_clause_noerr(sgref, query->groupClause))
+		if (sgref && sgc)
 		{
 			int			before_listnum;
 			bool		allow_duplicate = true;
@@ -3628,7 +3646,12 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 			}
 		}
 		i++;
+		lc = lnext(lc);
 	}
+
+	/* mapping_tlist = NIL whether all target list is constant column, so not pushed down this query */
+	if (mapping_tlist == NIL)
+		return false;
 
 	/*
 	 * Classify the pushable and non-pushable having clauses and save them in
@@ -3662,6 +3685,9 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 				fpinfo->rinfo.local_conds = lappend(fpinfo->rinfo.local_conds, rinfo);
 		}
 	}
+
+	/* Set root->parse */
+	root->parse = query;
 
 	/* Store generated targetlist */
 	fpinfo->rinfo.grouped_tlist = tlist;

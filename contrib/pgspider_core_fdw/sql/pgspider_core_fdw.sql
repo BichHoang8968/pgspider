@@ -277,6 +277,9 @@ SELECT SUM(i) as aa, avg(i), i/2, SUM(i)/2 FROM t1 GROUP BY i, t;
 --Testcase 104:
 SELECT SUM(i) as aa, avg(i) FROM t1 GROUP BY i ORDER BY aa;
 
+-- query contains all constant
+SELECT 1, 2, 'asd$@' FROM t1 group by 1, 3, 2;
+
 -- allocate statement
 --Testcase 105:
 PREPARE stmt AS SELECT * FROM t1;
