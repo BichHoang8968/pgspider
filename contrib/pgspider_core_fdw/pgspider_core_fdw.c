@@ -162,7 +162,7 @@ typedef struct ForeignScanThreadInfo
 	bool		requestEndScan; /* main thread request endForeingScan to child
 								 * thread */
 	bool		requestRescan;	/* main thread request rescan to child thread */
-	bool		requestStartScan; /* main thread request startscan to child thread*/
+	bool		requestStartScan; /* main thread request startscan to child thread */
 	SpdTupleQueue tupleQueue;	/* queue for passing tuples from child to
 								 * parent */
 	int			childInfoIndex; /* index of child info array */
@@ -1640,7 +1640,7 @@ RESCAN:
 	}
 
 	/*
-	 * requestStartScan is used in case a main query has sub query.
+	 * requestStartScan is used in case a query has parameter.
 	 *
 	 * Main query and sub query is executed in two thread parallel.
 	 * For main query, it need to wait for sub-plan is initialized by the core engine.
@@ -1650,13 +1650,17 @@ RESCAN:
 	 * During wait to start scan, if it receives request to re-scan, go back to RESCAN
 	 * If it receives request to end scan if error occurs, exit the transaction.
 	 */
-	while (!fssthrdInfo->requestStartScan && fssthrdInfo->state == SPD_FS_STATE_BEGIN) {
+	while (!fssthrdInfo->requestStartScan &&
+			fssthrdInfo->state == SPD_FS_STATE_BEGIN)
+	{
 		usleep(1);
-		if (fssthrdInfo->requestEndScan) {
+		if (fssthrdInfo->requestEndScan)
+		{
 			fssthrdInfo->state = SPD_FS_STATE_ERROR;
 			goto THREAD_EXIT;
 		}
-		if (fssthrdInfo->requestRescan) {
+		if (fssthrdInfo->requestRescan)
+		{
 			fssthrdInfo->state = SPD_FS_STATE_ITERATE;
 			goto RESCAN;
 		}
@@ -4212,7 +4216,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 								  ALLOCSET_DEFAULT_INITSIZE,
 								  ALLOCSET_DEFAULT_MAXSIZE);
 
-		ExecAssignExprContext((EState *) fssThrdInfo[node_incr].fsstate->ss.ps.state, &fssThrdInfo[node_incr].fsstate->ss.ps);
 		fssThrdInfo[node_incr].eflags = eflags;
 
 		/*
@@ -4342,8 +4345,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		 */
 		if (eflags & EXEC_FLAG_EXPLAIN_ONLY)
 		{
-			fssThrdInfo[node_incr].fsstate->ss.ps.ps_ExprContext->ecxt_param_exec_vals =
-					node->ss.ps.ps_ExprContext->ecxt_param_exec_vals;
 			fssThrdInfo[node_incr].fdwroutine->BeginForeignScan(fssThrdInfo[node_incr].fsstate,
 																eflags);
 		}
@@ -4667,6 +4668,8 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql)
 		fdw_private->agg_values[i] = (Datum *) palloc0(fdw_private->temp_num_cols * sizeof(Datum));
 		fdw_private->agg_nulls[i] = (bool *) palloc0(fdw_private->temp_num_cols * sizeof(bool));
 	}
+	/* In case Rescan, we need to reinitial agg_num variable */
+	fdw_private->agg_num = 0;
 	fdw_private->agg_tuples = SPI_processed;
 	for (k = 0; k < SPI_processed; k++)
 	{
@@ -5423,6 +5426,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 	SpdFdwPrivate *fdw_private;
 	List	   *mapping_tlist;
 	MemoryContext oldcontext;
+	int node_incr;
 
 	fdw_private = (SpdFdwPrivate *) fssThrdInfo[0].private;
 
@@ -5440,22 +5444,15 @@ spd_IterateForeignScan(ForeignScanState *node)
 	mapping_tlist = fdw_private->mapping_tlist;
 
 	/*
-	 * After the core engine initialize sub-plan, it jump to spd_IterateForeingScan,
-	 * in this routine, we need to initialize sub-plan data for the main-query for one time only.
+	 * After the core engine initialize stuff for query, it jump to spd_IterateForeingScan,
+	 * in this routine, we need to send request for the each child node start scan.
 	 */
-	if (!fssThrdInfo->requestStartScan && fdw_private->isFirst) {
-		EState* estate = node->ss.ps.state;
-
-		fssThrdInfo->fsstate->ss.ps.state->es_subplanstates = list_copy(estate->es_subplanstates);
-		fssThrdInfo->fsstate->ss.ps.ps_ExprContext->ecxt_param_exec_vals = node->ss.ps.ps_ExprContext->ecxt_param_exec_vals;
-
-		/* request to continue the main query transaction */
-		fssThrdInfo->requestStartScan = true;
-
-		/* utilize isFirst to mark this processing is implemented one time only*/
-		if (!fdw_private->agg_query)
+	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
+	{
+		if (!fssThrdInfo[node_incr].requestStartScan && fdw_private->isFirst)
 		{
-			fdw_private->isFirst = false;
+			/* Request to continue the each query transaction */
+			fssThrdInfo[node_incr].requestStartScan = true;
 		}
 	}
 
@@ -5543,6 +5540,9 @@ spd_IterateForeignScan(ForeignScanState *node)
 	}
 	else
 	{
+		/* Utilize isFirst to mark this processing is implemented one time only */
+		fdw_private->isFirst = false;
+
 		slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count);
 		if (slot != NULL)
 			slot = spd_AddSpdUrl(fssThrdInfo, node->ss.ss_ScanTupleSlot,
@@ -5580,10 +5580,16 @@ spd_ReScanForeignScan(ForeignScanState *node)
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 	{
 		if (fssThrdInfo[node_incr].state != SPD_FS_STATE_ERROR &&
-			fssThrdInfo[node_incr].state != SPD_FS_STATE_FINISH &&
-			fssThrdInfo[node_incr].state != SPD_FS_STATE_ITERATE)
+			fssThrdInfo[node_incr].state != SPD_FS_STATE_FINISH )
 		{
+			/*
+			 * In case Rescan, need to update chgParam variable from
+			 * core engine. Postgres FDW need chgParam to determine
+			 * clear cursor or not.
+			 */
+			fssThrdInfo[node_incr].fsstate->ss.ps.chgParam = bms_copy(node->ss.ps.chgParam);
 			fssThrdInfo[node_incr].requestRescan = true;
+			fdw_private->isFirst = true;
 		}
 	}
 

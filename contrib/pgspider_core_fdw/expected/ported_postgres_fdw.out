@@ -4164,8 +4164,8 @@ select distinct (select count(t1.c1) filter (where t2.c2 = 6 and t2.c1 < 10) fro
 select distinct (select count(t1.c1) filter (where t2.c2 = 6 and t2.c1 < 10) from ft1 t1 where t1.c1 = 6) from ft2 t2 where t2.c2 % 6 = 0 order by 1;
  count 
 -------
+     0
      1
-      
 (2 rows)
 
 -- Aggregate not pushed down as FILTER condition is not pushable
@@ -4654,16 +4654,8 @@ select c2, sum from "S 1"."T 1" t1, lateral (select sum(t2.c1 + t1."C 1") sum fr
  c2 | sum 
 ----+-----
   1 |   2
-  1 |   2
-  1 |   2
-  1 |   2
-  1 |   2
-  1 |   2
-  1 |   2
-  1 |   2
-  1 |   2
-  1 |   2
-(10 rows)
+  2 |   4
+(2 rows)
 
 reset enable_hashagg;
 -- bug #15613: bad plan for foreign table scan with lateral reference
@@ -4716,7 +4708,15 @@ ORDER BY ref_0."C 1";
  c2 | c1 | c2 |  c3   
 ----+----+----+-------
   1 |  1 |  1 | 00001
-(1 row)
+  2 |  2 |  2 | 00001
+  3 |  3 |  3 | 00001
+  4 |  4 |  4 | 00001
+  5 |  5 |  5 | 00001
+  6 |  6 |  6 | 00001
+  7 |  7 |  7 | 00001
+  8 |  8 |  8 | 00001
+  9 |  9 |  9 | 00001
+(9 rows)
 
 -- Check with placeHolderVars
 --Testcase 239:
