@@ -7,6 +7,7 @@
 #include "parser/parsetree.h"
 #include "utils/lsyscache.h"
 #include "pgspider_core_fdw_defs.h"
+#include "catalog/pg_type.h"
 
 /*
  * Global context for foreign_expr_walker's search of an expression tree.
@@ -38,6 +39,22 @@ typedef struct foreign_loc_cxt
 } foreign_loc_cxt;
 
 bool is_foreign_expr2(PlannerInfo *, RelOptInfo *, Expr *);
+
+/*
+ * Prevent push down of T_Param(Subquery Expressions) which PGSpider cannot bind
+ */
+static bool
+is_valid_type(Oid type)
+{
+	switch (type)
+	{
+		case BOOLOID:
+			return false;
+		default:
+			elog(WARNING, "Found an unexpected case when check Param type. In default pushdown this case to PGSpider");
+			return true;
+	}
+}
 
 /*
  * Check if expression is safe to push down to remote fdw, and return true if so.
@@ -166,6 +183,14 @@ foreign_expr_walker(Node *node,
 				if (!foreign_expr_walker((Node *) lfirst(lc), glob_cxt, &inner_cxt))
 					return false;
 			}
+			break;
+		}
+		case T_Param:
+		{
+			Param	   *p = (Param *) node;
+			/* Check type of T_Param(Subquery Expressions) */
+			if (!is_valid_type(p->paramtype))
+				return false;
 			break;
 		}
 		default:

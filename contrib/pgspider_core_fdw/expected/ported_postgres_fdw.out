@@ -3829,7 +3829,7 @@ select exists(select 1 from pg_enum), sum(c1) from ft1;
                         QUERY PLAN                         
 -----------------------------------------------------------
  Foreign Scan
-   Output: ($0), (sum(ft1.c1))
+   Output: $0, (sum(ft1.c1))
    Node: postgres_srv / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.ft1__postgres_srv__0)
@@ -3840,13 +3840,11 @@ select exists(select 1 from pg_enum), sum(c1) from ft1;
 
 --Testcase 191:
 select exists(select 1 from pg_enum), sum(c1) from ft1;
-ERROR:  invalid input syntax for type boolean: "500500"
-CONTEXT:  processing expression at position 1 in select list
-ERROR:  function sum(boolean) does not exist
-LINE 1: SELECT SUM(col0),SUM(col1) FROM __spd__temptable_12 
-               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-QUERY:  SELECT SUM(col0),SUM(col1) FROM __spd__temptable_12 
+ exists |  sum   
+--------+--------
+ t      | 500500
+(1 row)
+
 --Testcase 192:
 explain (verbose, costs off)
 select exists(select 1 from pg_enum), sum(c1) from ft1 group by 1;
