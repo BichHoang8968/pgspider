@@ -1850,6 +1850,9 @@ RESCAN:
 				if (!list_member_oid(fdw_private->pPseudoAggList,
 									 fssthrdInfo->serverId))
 					fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
+				else
+					ExecEndNode(result);
+
 				SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 				fssthrdInfo->requestEndScan = false;
 				break;
