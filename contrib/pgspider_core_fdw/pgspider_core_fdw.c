@@ -4820,13 +4820,16 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 			float8		cnt = 0.0;
 
 			if (fdw_private->agg_nulls[rowid][count_mapping])
-				elog(ERROR, "COUNT() column is NULL.");
+			{
+				nulls[target_column] = true;
+				target_column++;
+				continue;
+			}
 
 			if (fdw_private->agg_nulls[rowid][sum_mapping])
 				nulls[target_column] = true;
 			else
 			{
-
 				sum = datum_to_float8(fdw_private->agg_value_type[sum_mapping],
 									  fdw_private->agg_values[rowid][sum_mapping]);
 
@@ -4835,7 +4838,11 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 				cnt = (float8) DatumGetInt64(fdw_private->agg_values[rowid][count_mapping]);
 
 				if (cnt == 0)
-					elog(ERROR, "Record count is 0. Divide by zero error encountered.");
+				{
+					nulls[target_column] = true;
+					target_column++;
+					continue;
+				}
 
 				if (mapcells->aggtype == AVG_FLAG)
 					result = sum / cnt;
@@ -4847,7 +4854,11 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 					float8		left = 0.0;
 
 					if (cnt == 1)
-						elog(ERROR, "Record count is 1. Divide by zero error encountered.");
+					{
+						nulls[target_column] = true;
+						target_column++;
+						continue;
+					}
 
 					sum2 = datum_to_float8(fdw_private->agg_value_type[vardev_mapping],
 										   fdw_private->agg_values[rowid][vardev_mapping]);
