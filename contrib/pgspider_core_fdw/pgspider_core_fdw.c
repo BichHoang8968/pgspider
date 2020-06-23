@@ -26,6 +26,7 @@ PG_MODULE_MAGIC;
 #include "access/transam.h"
 #include "access/sysattr.h"
 #include "access/table.h"
+#include "access/xact.h"
 #include "catalog/pg_type.h"
 #include "commands/explain.h"
 #include "catalog/pg_proc.h"
@@ -4016,6 +4017,37 @@ spd_PrintError(int childnums, ChildInfo * childinfo)
 }
 
 /**
+ * Callback function to be called before context reset/delete.
+ *
+ * @param[in] arg ForeignScanState
+ */
+static void
+spd_reset_callback(void *arg)
+{
+	AssertArg(arg);
+
+	if (IsA(arg, ForeignScanState)) {
+		spd_EndForeignScan((ForeignScanState *)arg);
+	}
+}
+
+/**
+ * Register a function to be called before context reset/delete.
+ *
+ * @param[in] query_context MemoryContext
+ * @param[in] arg ForeignScanState
+ */
+static void
+spd_register_reset_callback(MemoryContext query_context, void *arg)
+{
+	MemoryContextCallback *cb = MemoryContextAlloc(query_context, sizeof(MemoryContextCallback));
+
+	cb->arg = arg;
+	cb->func = spd_reset_callback;
+	MemoryContextRegisterPreResetCallback(query_context, cb);
+}
+
+/**
  *
  * Main thread setup ForeignScanState for child fdw, including
  * tuple descriptor.
@@ -4323,6 +4355,16 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	{
 		return;
 	}
+
+	/*
+	 * PGSpider need to notify all childs node thread to quit
+	 * before memory context of thread is release.
+	 * We register PreResetCallback for each thread context.
+	 * If MemoryContextDelete delete context of each thread
+	 * We will call PreResetCallback to quit all threads avoid
+	 * thread access to free memory zone.
+	 */
+	spd_register_reset_callback(estate->es_query_cxt, node);
 
 	for (i = 0; i < fdw_private->nThreads; i++)
 	{
@@ -5584,7 +5626,13 @@ spd_EndForeignScan(ForeignScanState *node)
 
 	if (!fdw_private->is_explain)
 	{
-		if (fdw_private->is_drop_temp_table == false && fdw_private->temp_table_name != NULL)
+		/*
+		 * In case AbortTransaction, the relation was closed by backend.
+		 * We do not need to call this code
+		 */
+		if (fdw_private->is_drop_temp_table == false &&
+			fdw_private->temp_table_name != NULL &&
+			IsTransactionState())
 		{
 			spd_spi_ddl_table(psprintf("DROP TABLE IF EXISTS %s", fdw_private->temp_table_name), fdw_private);
 		}
@@ -5601,7 +5649,8 @@ spd_EndForeignScan(ForeignScanState *node)
 	/* wait until all the remote connections get closed. */
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 	{
-		if (fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation)
+		/* In case AbortTransaction, the ss_currentRelation was closed by backend */
+		if (fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation && IsTransactionState())
 			RelationClose(fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation);
 
 		/* Free ResouceOwner before MemoryContextDelete */
@@ -5628,15 +5677,32 @@ spd_EndForeignScan(ForeignScanState *node)
 	{
 		pfree(fssThrdInfo[node_incr].fsstate);
 
-		if (throwErrorIfDead && fssThrdInfo[node_incr].state == SPD_FS_STATE_ERROR)
+		/*
+		 * In case AbortTransaction, no need to call spd_aliveError
+		 * because this function will call elog ERROR, it will raise
+		 * abort event again.
+		 */
+		if (throwErrorIfDead &&
+			fssThrdInfo[node_incr].state == SPD_FS_STATE_ERROR && IsTransactionState())
 		{
 			ForeignServer *fs;
 
 			fs = GetForeignServer(fdw_private->childinfo[node_incr].server_oid);
+
+			/*
+			 * If not free memory before calling spd_aliveError,
+			 * this function will raise abort event, and function
+			 * spd_EndForeignScan return immediately not reach to
+			 * end cause leak memory. We free memory before call
+			 * spd_aliveError to avoid memory leak.
+			 */
+			pfree(fssThrdInfo);
+			node->spd_fsstate = NULL;
 			spd_aliveError(fs);
 		}
 	}
 	pfree(fssThrdInfo);
+	node->spd_fsstate = NULL;
 }
 
 /**

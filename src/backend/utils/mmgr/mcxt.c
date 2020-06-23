@@ -53,6 +53,9 @@ MemoryContext CurTransactionContext = NULL;
 MemoryContext PortalContext = NULL;
 
 static void MemoryContextCallResetCallbacks(MemoryContext context);
+#ifdef PGSPIDER
+static void MemoryContextCallPreResetCallbacks(MemoryContext context);
+#endif
 static void MemoryContextStatsInternal(MemoryContext context, int level,
 									   bool print, int max_children,
 									   MemoryContextCounters *totals);
@@ -254,6 +257,18 @@ MemoryContextDelete(MemoryContext context)
 	/* And not CurrentMemoryContext, either */
 	Assert(context != CurrentMemoryContext);
 
+#ifdef PGSPIDER
+	/*
+	 * PGSpider need to notify all childs node thread to quit
+	 * before memory context of thread is release.
+	 * We register PreResetCallback for each thread context.
+	 * If MemoryContextDelete delete context of each thread
+	 * We will call PreResetCallback to quit all threads avoid
+	 * thread access to free memory zone.
+	 */
+	MemoryContextCallPreResetCallbacks(context);
+#endif
+
 	/* save a function call in common case where there are no children */
 	if (context->firstchild != NULL)
 		MemoryContextDeleteChildren(context);
@@ -353,6 +368,50 @@ MemoryContextCallResetCallbacks(MemoryContext context)
 	}
 }
 
+#ifdef PGSPIDER
+/*
+ * MemoryContextRegisterPreResetCallback
+ *		Register a function to be called before context reset/delete.
+ *		Such callbacks will be called in reverse order of registration.
+ *
+ * The implement of this function is same with MemoryContextRegisterResetCallback
+ * but access to pre_reset_cbs variable to save all call back which call before
+ * context reset/delete.
+ */
+void
+MemoryContextRegisterPreResetCallback(MemoryContext context,
+									  MemoryContextCallback *cb)
+{
+	AssertArg(MemoryContextIsValid(context));
+
+	/* Push onto head so this will be called before older registrants. */
+	cb->next = context->pre_reset_cbs;
+	context->pre_reset_cbs = cb;
+	/* Mark the context as non-reset (it probably is already). */
+	context->isReset = false;
+}
+
+/*
+ * MemoryContextCallPreResetCallbacks
+ *		Internal function to call all registered callbacks for context.
+ */
+static void
+MemoryContextCallPreResetCallbacks(MemoryContext context)
+{
+	MemoryContextCallback *cb;
+
+	/*
+	 * We pop each callback from the list before calling.  That way, if an
+	 * error occurs inside the callback, we won't try to call it a second time
+	 * in the likely event that we reset or delete the context later.
+	 */
+	while ((cb = context->pre_reset_cbs) != NULL)
+	{
+		context->pre_reset_cbs = cb->next;
+		cb->func(cb->arg);
+	}
+}
+#endif
 /*
  * MemoryContextSetIdentifier
  *		Set the identifier string for a memory context.
@@ -778,6 +837,9 @@ MemoryContextCreate(MemoryContext node,
 	node->name = name;
 	node->ident = NULL;
 	node->reset_cbs = NULL;
+#ifdef PGSPIDER
+	node->pre_reset_cbs = NULL;
+#endif
 
 	/* OK to link node into context tree */
 	if (parent)
