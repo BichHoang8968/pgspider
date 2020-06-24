@@ -2,6 +2,7 @@
 #define SPD_FDW_DEFS
 
 /*Following are global defs for SPD FDW -- factor to spd_defs.h */
+#define SPDURL "__spd_url"
 #define SPD_CONF_PATH "/usr/local/pgspider/share/extension/spd_server_nodes.conf"
 #define NODE_NAME_LEN (1024)
 #define NODES_MAX (100)

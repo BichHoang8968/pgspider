@@ -115,7 +115,6 @@ PG_MODULE_MAGIC;
 #define MYSQL_FDW_NAME "mysql_fdw"
 #define AVRO_FDW_NAME "avro_fdw"
 
-#define SPDURL "__spd_url"
 #define AGGTEMPTABLE "__spd__temptable"
 
 /* Return true if avg, var, stddev */
@@ -228,6 +227,7 @@ typedef struct Mappingcells
 	enum Aggtype aggtype;		/* agg type */
 	StringInfo	agg_command;	/* agg function name */
 	int			original_attnum;	/* original attribute */
+	StringInfo	agg_const;		/* constant argument of function */
 }			Mappingcells;
 
 
@@ -394,9 +394,8 @@ static void spd_EndForeignModify(EState *estate,
 
 static TargetEntry *spd_tlist_member(Expr *node, List *targetlist, int *target_num);
 
-static List *spd_add_to_flat_tlist(List *tlist, Expr *exprs, List **mapping_tlist, List **compress_tlist_tle, Index sgref, List **upper_targets);
+static List *spd_add_to_flat_tlist(List *tlist, Expr *exprs, List **mapping_tlist, List **compress_tlist_tle, Index sgref, List **upper_targets, bool allow_duplicate);
 static void spd_spi_exec_child_ip(char *serverName, char *ip);
-static bool spd_can_pushdown_tlist(char *fdwname);
 static bool spd_can_skip_deepcopy(char *fdwname);
 
 /* Queue functions */
@@ -416,12 +415,8 @@ pthread_mutex_t error_mutex = PTHREAD_MUTEX_INITIALIZER;
 static MemoryContext thread_top_contexts[NODES_MAX] = {NULL};
 static int64 temp_table_id = 0;
 
-static bool
-is_foreign_expr2(PlannerInfo *root, RelOptInfo *baserel, Expr *expr)
-{
-	return true;
-}
-
+extern void deparseStringLiteral(StringInfo buf, const char *val);
+extern bool is_foreign_expr2(PlannerInfo *root, RelOptInfo *baserel, Expr *expr);
 #define is_foreign_expr is_foreign_expr2
 
 static SpdFdwPrivate *
@@ -475,22 +470,6 @@ pgspider_core_fdw_handler(PG_FUNCTION_ARGS)
 
 	PG_RETURN_POINTER(fdwroutine);
 }
-
-/*
- * spd_can_pushdown_tlist
- *
- * Return true if this fdw can pushdown target list.
- *
- * @param[in] fdwname
- */
-static bool
-spd_can_pushdown_tlist(char *fdwname)
-{
-	if (strcmp(fdwname, MYSQL_FDW_NAME) == 0)
-		return true;
-	return false;
-}
-
 
 /*
  * spd_can_skip_deepcopy
@@ -823,6 +802,7 @@ spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private)
 			lfdw_private = lappend(lfdw_private, makeInteger(cells->mapping[2]));
 			lfdw_private = lappend(lfdw_private, makeInteger(cells->aggtype));
 			lfdw_private = lappend(lfdw_private, makeString(cells->agg_command ? cells->agg_command->data : ""));
+			lfdw_private = lappend(lfdw_private, makeString(cells->agg_const ? cells->agg_const->data : ""));
 			lfdw_private = lappend(lfdw_private, makeInteger(cells->original_attnum));
 		}
 
@@ -926,6 +906,9 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
 			cells->agg_command = makeStringInfo();
 			appendStringInfoString(cells->agg_command, strVal(lfirst(lc)));
 			lc = lnext(lc);
+			cells->agg_const = makeStringInfo();
+			appendStringInfoString(cells->agg_const, strVal(lfirst(lc)));
+			lc = lnext(lc);
 			cells->original_attnum = intVal(lfirst(lc));
 			lc = lnext(lc);
 			fdw_private->mapping_tlist = lappend(fdw_private->mapping_tlist, cells);
@@ -1006,11 +989,12 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
  * @param[out] compress_tlist_tle - compressed child tlist with target entry
  * @param[in] sgref - sort group reference for target entry
  * @param[out] compress_tlist - compressed child tlist without target entry
+ * @param[in] allow_duplicate - allow or not allow a target can be duplicated in grouping target list
  */
 
 static List *
 spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
-					  List **compress_tlist_tle, Index sgref, List **compress_tlist)
+					  List **compress_tlist_tle, Index sgref, List **compress_tlist, bool allow_duplicate)
 {
 	int			next_resno = list_length(tlist) + 1;
 	int			next_resno_temp = list_length(*compress_tlist_tle) + 1;
@@ -1027,6 +1011,7 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 		mapcells->mapping[i] = -1;
 		mapcells->original_attnum = -1;
 		mapcells->agg_command = makeStringInfo();
+		mapcells->agg_const = makeStringInfo();
 	}
 	aggref = (Aggref *) expr;
 	if (IsA(expr, Aggref) &&IS_SPLIT_AGG(aggref->aggfnoid))
@@ -1169,12 +1154,12 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 	else
 	{
 		/* Non-agg group by target or non-split agg such as sum or count */
-		TargetEntry *tle_temp;
-		TargetEntry *tle;
-
 		/* original */
-		if (!spd_tlist_member(expr, tlist, &target_num))
+		if (allow_duplicate || !spd_tlist_member(expr, tlist, &target_num))
 		{
+			if (allow_duplicate)
+				target_num = list_length(tlist);
+
 			tle = makeTargetEntry(copyObject(expr),
 								  next_resno++,
 								  NULL,
@@ -1187,13 +1172,52 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 		{
 			mapcells->aggtype = NON_SPLIT_AGG_FLAG;
 			spd_spi_exec_proname(aggref->aggfnoid, mapcells->agg_command);
+
+			/*
+			 * If aggregate functions is string_agg(expression, delimiter)
+			 * check the delimiter exist or not, if exist save the delimiter
+			 * to mapcells->agg_const.
+			 */
+			if (!pg_strcasecmp(mapcells->agg_command->data, "STRING_AGG"))
+			{
+				ListCell   *arg;
+				/* Check all the arguments */
+				foreach(arg, aggref->args)
+				{
+					TargetEntry *tle = (TargetEntry *) lfirst(arg);
+					Node	   *node = (Node *) tle->expr;
+
+					switch (nodeTag(node))
+					{
+						case T_Const:
+							{
+								Const *const_tmp = (Const *) node;
+								Oid			typoutput;
+								bool		typIsVarlena;
+								char	   *extval;
+
+								if (const_tmp->constisnull)
+								{
+									continue;
+								}
+
+								getTypeOutputInfo(const_tmp->consttype, &typoutput, &typIsVarlena);
+								extval = OidOutputFunctionCall(typoutput, const_tmp->constvalue);
+								deparseStringLiteral(mapcells->agg_const, extval);
+							}
+							break;
+						default:
+							break;
+					}
+				}
+			}
 		}
 		else
 			mapcells->aggtype = NON_AGG_FLAG;
 
 		mapcells->original_attnum = target_num;
 		/* div tlist */
-		if (!spd_tlist_member(expr, *compress_tlist_tle, &target_num))
+		if (allow_duplicate || !spd_tlist_member(expr, *compress_tlist_tle, &target_num))
 		{
 			tle_temp = makeTargetEntry(copyObject(expr),
 									   next_resno_temp++,
@@ -1203,7 +1227,17 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 			*compress_tlist_tle = lappend(*compress_tlist_tle, tle_temp);
 			*compress_tlist = lappend(*compress_tlist, expr);
 		}
-		mapcells->mapping[0] = target_num;
+
+		/* If allow duplicate, so need to change mapping to the last of compress_tlist */
+		if (allow_duplicate)
+		{
+			mapcells->mapping[0] = list_length(*compress_tlist) - 1;
+		}
+		else
+		{
+			mapcells->mapping[0] = target_num;
+		}
+		
 	}
 	*mapping_tlist = lappend(*mapping_tlist, mapcells);
 	return tlist;
@@ -1734,7 +1768,7 @@ RESCAN:
 
 			}
 
-			if TupIsNull(slot)
+			if (TupIsNull(slot))
 			{
 				spd_queue_notify_finish(&fssthrdInfo->tupleQueue);
 				break;
@@ -2155,6 +2189,7 @@ static void
 check_basestrictinfo(PlannerInfo *root, ForeignDataWrapper *fdw, RelOptInfo *entry_baserel)
 {
 	ListCell   *lc;
+	List *restrictinfo = NIL; /* new restrictinfo after remove __spd_url */
 
 	if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) == 0)
 	{
@@ -2176,8 +2211,11 @@ check_basestrictinfo(PlannerInfo *root, ForeignDataWrapper *fdw, RelOptInfo *ent
 		if (spd_basestrictinfo_tree_walker((Node *) expr, root) != true)
 		{
 			entry_baserel->reltarget->exprs = lappend(entry_baserel->reltarget->exprs, expr);
+			/* If not __spd_url, we append clause to new restrictinfo list */
+			restrictinfo = lappend(restrictinfo, clause);
 		}
 	}
+	entry_baserel->baserestrictinfo = restrictinfo;
 }
 
 
@@ -2459,8 +2497,8 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel,
 		}
 
 		/*
-		 * For File FDW. File FDW check column type and num with
-		 * basestrictinfo. Delete spd_url column info from child node
+		 * FDW use basestrictinfo to check column type and num.
+		 * Delete spd_url column info from child node
 		 * baserel's basestrictinfo. (PGSpider FDW use parent basestrictinfo)
 		 *
 		 */
@@ -2950,7 +2988,10 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 
 				if (childinfo[i].child_node_status != ServerStatusAlive)
 					continue;
-				dummy_root_child->parse->groupClause = root->parse->groupClause;
+				dummy_root_child->parse->groupClause = list_copy(root->parse->groupClause);
+				/* Copy information about HAVING clause from root to dummy_root */
+				dummy_root_child->parse->havingQual = copyObject(root->parse->havingQual);
+				dummy_root_child->hasHavingQual = root->hasHavingQual;
 				/* Currently dummy. @todo more better parsed object. */
 				dummy_root_child->parse->hasAggs = true;
 				/* Call below FDW to check it is OK to pushdown or not. */
@@ -3010,7 +3051,10 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 
 				if (childinfo[i].child_node_status != ServerStatusAlive)
 					continue;
-				dummy_root_child->parse->groupClause = root->parse->groupClause;
+				dummy_root_child->parse->groupClause = list_copy(root->parse->groupClause);
+				/* Copy information about HAVING clause from root to dummy_root */
+				dummy_root_child->parse->havingQual = copyObject(root->parse->havingQual);
+				dummy_root_child->hasHavingQual = root->hasHavingQual;
 				/* Currently dummy. @todo more better parsed object. */
 				dummy_root_child->parse->hasAggs = true;
 				/* Call below FDW to check it is OK to pushdown or not. */
@@ -3250,7 +3294,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 				return false;
 			/* Pushable, add to tlist */
 			before_listnum = list_length(compress_child_tlist);
-			tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, sgref, &upper_targets);
+			tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, sgref, &upper_targets, true);
 			groupby_cursor += list_length(compress_child_tlist) - before_listnum;
 			fpinfo->groupby_target = lappend_int(fpinfo->groupby_target, groupby_cursor - 1);
 		}
@@ -3262,19 +3306,11 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 				/* Pushable, add to tlist */
 				int			before_listnum = list_length(compress_child_tlist);
 
-				tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, sgref, &upper_targets);
+				tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, sgref, &upper_targets, false);
 				groupby_cursor += list_length(compress_child_tlist) - before_listnum;
 			}
 			else
 			{
-				/*
-				 * If we have sortgroupref set, then it means that we have an
-				 * ORDER BY entry pointing to this expression.  Since we are
-				 * not pushing ORDER BY with GROUP BY, clear it.
-				 */
-				if (sgref)
-					grouping_target->sortgrouprefs[i] = 0;
-
 				/* Not matched exactly, pull the var with aggregates then */
 				aggvars = pull_var_clause((Node *) expr,
 										  PVC_INCLUDE_AGGREGATES);
@@ -3301,7 +3337,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 					{
 						int			before_listnum = list_length(compress_child_tlist);
 
-						tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, sgref, &upper_targets);
+						tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, sgref, &upper_targets, false);
 						i += list_length(compress_child_tlist) - before_listnum;
 						groupby_cursor += list_length(compress_child_tlist) - before_listnum;
 					}
@@ -3343,13 +3379,6 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 				fpinfo->rinfo.local_conds = lappend(fpinfo->rinfo.local_conds, rinfo);
 		}
 	}
-
-	/*
-	 * If there are any local conditions, pull Vars and aggregates from it and
-	 * check whether they are safe to pushdown or not.
-	 */
-	/* Transfer any sortgroupref data to the replacement tlist */
-	apply_pathtarget_labeling_to_tlist(tlist, grouping_target);
 
 	/* Store generated targetlist */
 	fpinfo->rinfo.grouped_tlist = tlist;
@@ -3695,7 +3724,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	ListCell   *lc;
 	ChildInfo  *childinfo;
 	ForeignServer *fs;
-	bool		pushdown_all_tlist;
 	ForeignDataWrapper *fdw;
 	List	   *lfdw_private = NIL;
 	ForeignPath *child_path;
@@ -3726,32 +3754,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		}
 	}
 	childinfo = fdw_private->childinfo;
-
-	/*
-	 * We enable target list pushdown if all nodes are able to push down
-	 * tlist. This is temporary solution
-	 */
-	if (IS_SIMPLE_REL(baserel))
-	{
-		pushdown_all_tlist = true;
-		for (i = 0; i < fdw_private->node_num; i++)
-		{
-			if (childinfo[i].child_node_status != ServerStatusAlive)
-				continue;
-			fs = GetForeignServer(childinfo[i].server_oid);
-			fdw = GetForeignDataWrapper(fs->fdwid);
-
-			if (!spd_can_pushdown_tlist(fdw->fdwname))
-			{
-				pushdown_all_tlist = false;
-				break;
-			}
-		}
-	}
-	else
-	{
-		pushdown_all_tlist = false;
-	}
 
 	/* Create Foreign Plans using base_rel_list to each child. */
 	for (i = 0; i < fdw_private->node_num; i++)
@@ -3824,8 +3826,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 					temptlist = remove_spdurl_from_targets(list_copy(tlist), root,
 														   true, &fdw_private->idx_url_tlist);
 				}
-				/* mysql-fdw decide push down tlist or not based on this */
-				childinfo[i].baserel->is_tlist_pushdown = pushdown_all_tlist;
 
 				/*
 				 * For can not aggregation pushdown FDW's. push down quals
@@ -3925,20 +3925,8 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		childinfo[i].plan = (Plan *) fsplan;
 	}
 
-	fdw_private->is_pushdown_tlist = pushdown_all_tlist;
-
 	if (IS_SIMPLE_REL(baserel))
 	{
-		/*
-		 * Core expects fdw returns fdw_scan_tlist whch is parameter of
-		 * make_foreignscan. So we will assign tlist to fdw_scan_tlist for
-		 * target list pushdown. Also, core create tuple descriptor based on
-		 * fdw_scan_tlist
-		 */
-		if (pushdown_all_tlist)
-			fdw_scan_tlist = tlist;
-		else
-			fdw_scan_tlist = NIL;
 		scan_relid = baserel->relid;
 	}
 	else
@@ -4318,8 +4306,13 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		 * call BeginForeignScan
 		 */
 		if (eflags & EXEC_FLAG_EXPLAIN_ONLY)
+		{
+			fssThrdInfo[node_incr].fsstate->ss.ps.ps_ExprContext->ecxt_param_exec_vals =
+					node->ss.ps.ps_ExprContext->ecxt_param_exec_vals;
 			fssThrdInfo[node_incr].fdwroutine->BeginForeignScan(fssThrdInfo[node_incr].fsstate,
 																eflags);
+		}
+
 		node_incr++;
 	}
 
@@ -4406,6 +4399,13 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 	StringInfo	sql = makeStringInfo();
 	List	   *mapping_tlist;
 	ListCell   *lc;
+	StringInfo	debugValues = makeStringInfo();
+
+	/* For execute query */
+	int nargs = MAX_SPLIT_NUM * list_length(fdw_private->mapping_tlist);
+	Oid* argtypes = palloc0(nargs * sizeof(Oid));
+	Datum* values = palloc0(nargs * sizeof(Datum));
+	char* nulls = palloc0(nargs * sizeof(char));
 
 	SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex);
 	ret = SPI_connect();
@@ -4435,53 +4435,136 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 				isfirst = false;
 			else
 				appendStringInfo(sql, ",");
+			/* Append place holder */
+			appendStringInfo(sql, "$%d", colid + 1);
+
+			getTypeOutputInfo(sattr->atttypid, &typoutput, &typisvarlena);
+			child_typid = exprType((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, colid))->expr);
+
+			/* 
+			 * SPI_execute_with_args receives a nulls array.
+			 * If the value is not null, value of entry will be ' '.
+			 * If the value is null, value of entry will be 'n'.
+			 */
+			nulls[colid] = ' ';
+
+			/* Set data type */
+			argtypes[colid] = child_typid;
+
+			/* Set value */
 			attr = slot_getattr(slot, mapcels->mapping[i] + 1, &isnull);
 			if (isnull)
 			{
-				appendStringInfo(sql, "NULL");
+				nulls[colid] = 'n';
 				colid++;
 				continue;
 			}
-			getTypeOutputInfo(sattr->atttypid, &typoutput, &typisvarlena);
 			value = OidOutputFunctionCall(typoutput, attr);
-			child_typid = exprType((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, colid))->expr);
-
-			if (value != NULL)
+			appendStringInfo(debugValues, "%s, ", value != NULL?value:"");
+			/* Not null */
+			values[colid] = attr;
+			/* Set data for special data */
+			if (sattr->atttypid == UNKNOWNOID) 
 			{
-				if (child_typid == BOOLOID)
-				{
-					/* "t" is not valid boolean literal for PostgreSQL */
-					if (strcmp(value, "t") == 0)
-						value = "true";
-					else
-						value = "false";
+				argtypes[colid] = TEXTOID;
+				if (!isnull)
+					values[colid] = CStringGetTextDatum(DatumGetCString(values[colid]));
+			}
+			else if (!isnull) 
+			{
+				int16 typLen;
+				bool  typByVal;
+
+				/* Copy datum to current context */
+				get_typlenbyval(sattr->atttypid, &typLen, &typByVal);
+				if (!typByVal) {
+					if (typisvarlena) {
+						/* Need to copy data to */
+						values[colid] = PointerGetDatum(PG_DETOAST_DATUM_COPY(values[colid]));
+					} 
+					else 
+					{
+						values[colid] = datumCopy(values[colid], typByVal, typLen);
+					}
 				}
-				/*
-				 * TODO: the following maybe missing some child_typid cases,
-				 *       it need to be added later
-				 */
-				if (child_typid == DATEOID || child_typid == TEXTOID ||
-					child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID ||
-					child_typid == INT4ARRAYOID || child_typid == TIMESTAMPARRAYOID)
-					appendStringInfo(sql, "'");
-				appendStringInfo(sql, "%s", value);
-				if (child_typid == DATEOID || child_typid == TEXTOID ||
-					child_typid == TIMESTAMPOID || child_typid == TIMESTAMPTZOID ||
-					child_typid == INT4ARRAYOID || child_typid == TIMESTAMPARRAYOID)
-					appendStringInfo(sql, "'");
 			}
 			colid++;
 		}
 	}
 	appendStringInfo(sql, ")");
-	elog(DEBUG1, "insert into temp table: %s", sql->data);
-	ret = SPI_exec(sql->data, 1);
+	elog(DEBUG1, "insert into temp table: %s, values: %s", sql->data, debugValues->data);
+	ret = SPI_execute_with_args(sql->data, colid, argtypes, values, nulls, false, 1);
 	if (ret != SPI_OK_INSERT)
 		elog(ERROR, "execute spi INSERT TEMP TABLE failed ");
 	SPI_finish();
 
 	SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 
+}
+
+/**
+ * datum_is_converted
+ * 
+ * This function is used to convert datum value to expected data type (data type of column of temp table)
+ * when data type of column of temp table is different from returned data type of query.
+ * If this function cannot convert or no need to convert, return false.
+ * 
+ * @param[in] original_type
+ * @param[in] original_value
+ * @param[in] expected_type
+ * @param[in,out] expected_value
+ */
+static bool
+datum_is_converted(Oid original_type, Datum original_value, Oid expected_type, Datum *expected_value)
+{
+	Datum value;
+	PGFunction conversion_func = NULL;
+	bool unexpected = false;
+
+	switch (original_type)
+	{
+		case NUMERICOID:
+			if (expected_type == INT8OID)
+				conversion_func = numeric_int8;
+			else
+				unexpected = true;
+			break;
+		case FLOAT8OID:
+			if (expected_type == FLOAT4OID)
+				conversion_func = dtof;
+			else
+				unexpected = true;
+			break;
+		case INT8OID:
+			if (expected_type == INT4OID)
+				conversion_func = int84;
+			else
+				unexpected = true;
+			break;
+		case TEXTARRAYOID:
+			if (expected_type == TIMESTAMPARRAYOID)
+				break;	/* No need to convert */
+			else
+				unexpected = true;
+			break;
+		default:
+			unexpected = true;
+			break;
+	}
+
+	if (conversion_func != NULL)
+	{
+		value = DirectFunctionCall1(conversion_func, original_value);
+		*expected_value = value;
+		return true;
+	}
+	else
+	{
+		/* Display a warning message when there is unexpected case */
+		if (unexpected == true)
+			elog(WARNING, "Found an unexpected case when converting data to expected data of temp table. The value will copied without conversion.");
+		return false;
+	}
 }
 
 /**
@@ -4550,7 +4633,8 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql)
 			{
 				Datum		datum;
 				Form_pg_attribute attr = TupleDescAttr(SPI_tuptable->tupdesc, colid);
-
+				Oid temp_tbl_typid;
+				
 				mapping = mapcells->mapping[i];
 				if (colid != mapping)
 					continue;
@@ -4561,13 +4645,24 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql)
 									  SPI_tuptable->tupdesc,
 									  colid + 1,
 									  &isnull);
+				
+				temp_tbl_typid = exprType((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, colid))->expr);
 				if (isnull)
 					fdw_private->agg_nulls[k][colid] = true;
-				else if (fdw_private->agg_value_type[colid] == NUMERICOID)
+				else if (fdw_private->agg_value_type[colid] != temp_tbl_typid)	/* Only convert when data type of column of temp table is different from returned data */
 				{
-					/* Convert from numeric to int8 */
-					fdw_private->agg_values[k][colid] = DirectFunctionCall1(numeric_int8, datum);
-					fdw_private->agg_value_type[colid] = INT8OID;
+					if (datum_is_converted(fdw_private->agg_value_type[colid], datum, temp_tbl_typid, 
+												&fdw_private->agg_values[k][colid]))
+					{
+						fdw_private->agg_value_type[colid] = temp_tbl_typid;
+					}
+					else
+					{
+						/* Copy datum */
+						fdw_private->agg_values[k][colid] = datumCopy(datum,
+																  attr->attbyval,
+																  attr->attlen);
+					}
 				}
 				else
 				{
@@ -4648,6 +4743,14 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 	int			target_column;
 	ListCell   *lc;
 	Mappingcells *mapcells;
+
+	/* Clear Tuple if agg results is empty */
+	if (!fdw_private->agg_values)
+	{
+		ExecClearTuple(slot);
+		fdw_private->agg_num++;
+		return;
+	}
 
 	target_column = 0;
 	ret_agg_values = (Datum *) palloc0(slot->tts_tupleDescriptor->natts * sizeof(Datum));
@@ -4784,6 +4887,7 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 	{
 		Mappingcells *cells = (Mappingcells *) lfirst(lc);
 		char	   *agg_command = cells->agg_command->data;
+		char	   *agg_const = cells->agg_const->data;
 		int			agg_type = cells->aggtype;
 
 		for (i = 0; i < MAX_SPLIT_NUM; i++)
@@ -4822,10 +4926,15 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 					else if (!pg_strcasecmp(agg_command, "MAX") || !pg_strcasecmp(agg_command, "MIN") ||
 							 !pg_strcasecmp(agg_command, "BIT_OR") || !pg_strcasecmp(agg_command, "BIT_AND") ||
 							 !pg_strcasecmp(agg_command, "BOOL_AND") || !pg_strcasecmp(agg_command, "BOOL_OR") ||
-							 !pg_strcasecmp(agg_command, "EVERY") || !pg_strcasecmp(agg_command, "STRING_AGG") ||
-							 !pg_strcasecmp(agg_command, "ARRAY_AGG"))
+							 !pg_strcasecmp(agg_command, "EVERY") || !pg_strcasecmp(agg_command, "XMLAGG"))
 						appendStringInfo(sql, "%s(col%d)", agg_command, max_col);
-
+					/*
+					 * This is for string_agg function. This function require delimiter to work
+					 */
+					else if (!pg_strcasecmp(agg_command, "STRING_AGG"))
+					{
+						appendStringInfo(sql, "%s(col%d, %s)", agg_command, max_col, agg_const);
+					}
 					/*
 					 * This is for influx db functions. MAX has not effect to
 					 * result. We have to consider multi-tenant.
@@ -4964,9 +5073,22 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 					appendStringInfo(create_sql, " integer[]");
 				else if (typeid == TIMESTAMPARRAYOID)
 					appendStringInfo(create_sql, " text[]");
+				else if (typeid == CASHOID)
+					appendStringInfo(create_sql, " money");
+				else if (typeid == VARCHAROID)
+					appendStringInfo(create_sql, " text");
 				/* TODO: numeric may be incorrect for some typeid */
-				else
+				else if (cells->aggtype != NON_AGG_FLAG)
+				{
 					appendStringInfo(create_sql, " numeric");
+					elog(WARNING, "There is no corresponding type for this OID type. The data type of column will be set to numeric by default.");
+				}
+				else
+				{
+					appendStringInfo(create_sql, " text");
+					elog(WARNING, "There is no corresponding type for this OID type. The data type of column will be set to text by default.");
+				}
+					
 				colid++;
 			}
 		}
@@ -5333,8 +5455,6 @@ spd_IterateForeignScan(ForeignScanState *node)
 				else
 					break;
 
-
-
 #ifdef GETPROGRESS_ENABLED
 				if (getResultFlag)
 					break;
@@ -5352,23 +5472,8 @@ spd_IterateForeignScan(ForeignScanState *node)
 			tempSlot = spd_select_return_aggslot(tempSlot, node, fdw_private);
 		}
 
-		if (tempSlot != NULL)
-		{
-			slot = node->ss.ss_ScanTupleSlot;
-			if (TTS_IS_HEAPTUPLE(slot) && ((HeapTupleTableSlot*) slot)->tuple)
-			{
-				ExecCopySlot(slot, tempSlot);
-			}else
-			{
-				slot->tts_values = tempSlot->tts_values;
-				slot->tts_isnull = tempSlot->tts_isnull;
-				/* to avoid assert failure in ExecStoreVirtualTuple, set tts_flags empty */
-				slot->tts_flags |= TTS_FLAG_EMPTY;
-				ExecStoreVirtualTuple(slot);
-			}
-
-		}
-		else
+		/* Check tempSlot is empty or not */
+		if (TupIsNull(tempSlot))
 		{
 			/*
 			 * If all tuple getting is finished, then return NULL and drop
@@ -5378,6 +5483,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 			fdw_private->isFirst = true;
 			fdw_private->is_drop_temp_table = true;
 		}
+		return tempSlot;
 	}
 	else
 	{
@@ -5385,9 +5491,8 @@ spd_IterateForeignScan(ForeignScanState *node)
 		if (slot != NULL)
 			slot = spd_AddSpdUrl(fssThrdInfo, node->ss.ss_ScanTupleSlot,
 								 count, slot, fdw_private);
-
-
 	}
+
 	return slot;
 }
 
