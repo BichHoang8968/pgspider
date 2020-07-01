@@ -4593,6 +4593,12 @@ datum_is_converted(Oid original_type, Datum original_value, Oid expected_type, D
 			else
 				unexpected = true;
 			break;
+		case TEXTOID:
+			if (expected_type == VARCHAROID)
+				break;	/* No need to convert */
+			else
+				unexpected = true;
+			break;
 		default:
 			unexpected = true;
 			break;
