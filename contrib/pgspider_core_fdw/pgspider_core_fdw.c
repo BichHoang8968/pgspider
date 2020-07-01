@@ -114,6 +114,7 @@ PG_MODULE_MAGIC;
 
 #define PGSPIDER_FDW_NAME "pgspider_fdw"
 #define MYSQL_FDW_NAME "mysql_fdw"
+#define FILE_FDW_NAME "file_fdw"
 #define AVRO_FDW_NAME "avro_fdw"
 
 #define AGGTEMPTABLE "__spd__temptable"
@@ -422,6 +423,9 @@ static void spd_queue_notify_finish(SpdTupleQueue * que);
 /* postgresql.conf paramater */
 static bool throwErrorIfDead;
 static bool isPrintError;
+
+/* We need lock file_fdw when AllocateFile */
+pthread_mutex_t file_fdw_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* We write lock SPI function and read lock child fdw routines */
 pthread_mutex_t error_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -1852,8 +1856,19 @@ spd_ForeignScan_thread(void *arg)
 		 */
 		if (!list_member_oid(fdw_private->pPseudoAggList, fssthrdInfo->serverId))
 		{
-			fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
-													  fssthrdInfo->eflags);
+			if (strcmp(fssthrdInfo->fdw->fdwname, FILE_FDW_NAME) == 0)
+			{
+				/* File FDW need AllocateFile in succession, not in thread parallel */
+				SPD_LOCK_TRY(&file_fdw_mutex);
+				fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
+														  fssthrdInfo->eflags);
+				SPD_UNLOCK_CATCH(&file_fdw_mutex);
+			}
+			else
+			{
+				fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
+														  fssthrdInfo->eflags);
+			}
 		}
 		SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 
@@ -1886,7 +1901,17 @@ RESCAN:
 		fssthrdInfo->state != SPD_FS_STATE_BEGIN)
 	{
 		SPD_READ_LOCK_TRY(&fdw_private->scan_mutex);
-		fssthrdInfo->fdwroutine->ReScanForeignScan(fssthrdInfo->fsstate);
+		if (strcmp(fssthrdInfo->fdw->fdwname, FILE_FDW_NAME) == 0)
+		{
+			/* File FDW need AllocateFile in succession, not in thread parallel */
+			SPD_LOCK_TRY(&file_fdw_mutex);
+			fssthrdInfo->fdwroutine->ReScanForeignScan(fssthrdInfo->fsstate);
+			SPD_UNLOCK_CATCH(&file_fdw_mutex);
+		}
+		else
+		{
+			fssthrdInfo->fdwroutine->ReScanForeignScan(fssthrdInfo->fsstate);
+		}
 		SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 
 		fssthrdInfo->requestRescan = false;

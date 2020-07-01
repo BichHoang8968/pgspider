@@ -17,7 +17,6 @@ CREATE FOREIGN TABLE filetbl (i int,__spd_url text) SERVER pgspider_svr;
 --Testcase 2:
 SELECT * FROM filetbl;
 
-/*
 CREATE SERVER filesvr2 FOREIGN DATA WRAPPER file_fdw;
 CREATE FOREIGN TABLE test1__file_svr__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
 --Testcase 3:
@@ -29,7 +28,7 @@ SELECT * FROM test1 order by i,__spd_url;
 SELECT * FROM test1 IN ('/file_svr/') ORDER BY i,__spd_url;
 --Testcase 6:
 SELECT * FROM test1 IN ('/file_svr/') where i = 1;
-*/
+
 CREATE SERVER tiny_svr FOREIGN DATA WRAPPER tinybrace_fdw OPTIONS (host '127.0.0.1',port '5100', dbname 'test.db');
 CREATE USER mapping for public server tiny_svr OPTIONS(username 'user',password 'testuser');
 CREATE FOREIGN TABLE test1__tiny_svr__0 (i int) SERVER tiny_svr OPTIONS(table_name 'test1');
