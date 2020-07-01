@@ -1656,7 +1656,7 @@ RESCAN:
 		usleep(1);
 		if (fssthrdInfo->requestEndScan)
 		{
-			fssthrdInfo->state = SPD_FS_STATE_ERROR;
+			fssthrdInfo->state = SPD_FS_STATE_END;
 			goto THREAD_EXIT;
 		}
 		if (fssthrdInfo->requestRescan)
