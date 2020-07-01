@@ -5,6 +5,7 @@
 #include "utils/syscache.h"
 #include "catalog/pg_proc.h"
 #include "parser/parsetree.h"
+#include "catalog/pg_namespace.h"
 #include "utils/lsyscache.h"
 #include "pgspider_core_fdw_defs.h"
 #include "catalog/pg_type.h"
@@ -176,13 +177,34 @@ foreign_expr_walker(Node *node,
 			ListCell   *lc;
 
 			/*
-			* Recurse to component subexpressions.
-			*/
+			 * Recurse to component subexpressions.
+			 */
 			foreach(lc, l)
 			{
 				if (!foreign_expr_walker((Node *) lfirst(lc), glob_cxt, &inner_cxt))
 					return false;
 			}
+			break;
+		}
+		case T_FuncExpr:
+		{
+			FuncExpr		*fe = (FuncExpr *) node;
+			HeapTuple		proctup;
+			Form_pg_proc	procform;
+			const char		*proname;
+
+			/* Get function name */
+			proctup = SearchSysCache1(PROCOID, ObjectIdGetDatum(fe->funcid));
+			if (!HeapTupleIsValid(proctup))
+				elog(ERROR, "cache lookup failed for function %u", fe->funcid);
+			procform = (Form_pg_proc) GETSTRUCT(proctup);
+			proname = NameStr(procform->proname);
+			ReleaseSysCache(proctup);
+
+			/* Not push down pg_typeof function */
+			if (strcmp(proname, "pg_typeof") == 0)
+				return false;
+
 			break;
 		}
 		case T_Param:
