@@ -337,6 +337,8 @@ SELECT * FROM ft1 t1 WHERE t1.c3 IN (SELECT c3 FROM ft2 t2 WHERE c1 <= 10) ORDER
 -- subquery+MAX
 --Testcase 25:
 SELECT * FROM ft1 t1 WHERE t1.c3 = (SELECT MAX(c3) FROM ft2 t2) ORDER BY c1;
+-- subquery return more than one row
+SELECT * FROM ft1 t1 WHERE t1.c3 = (SELECT c3 FROM ft2 t2) ORDER BY c1;
 -- used in CTE
 --Testcase 26:
 WITH t1 AS (SELECT * FROM ft1 WHERE c1 <= 10) SELECT t2.c1, t2.c2, t2.c3, t2.c4 FROM t1, ft2 t2 WHERE t1.c1 = t2.c1 ORDER BY t1.c1;

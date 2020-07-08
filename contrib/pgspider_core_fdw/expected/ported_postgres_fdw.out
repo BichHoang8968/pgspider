@@ -489,6 +489,10 @@ SELECT * FROM ft1 t1 WHERE t1.c3 = (SELECT MAX(c3) FROM ft2 t2) ORDER BY c1;
  1000 |  0 | 01000 | Thu Jan 01 00:00:00 1970 PST | Thu Jan 01 00:00:00 1970 | 0  | 0          | foo | /postgres_srv/
 (1 row)
 
+-- subquery return more than one row
+SELECT * FROM ft1 t1 WHERE t1.c3 = (SELECT c3 FROM ft2 t2) ORDER BY c1;
+ERROR:  more than one row returned by a subquery used as an expression
+ERROR:  PGSpider can not get data from child node : postgres_srv
 -- used in CTE
 --Testcase 26:
 WITH t1 AS (SELECT * FROM ft1 WHERE c1 <= 10) SELECT t2.c1, t2.c2, t2.c3, t2.c4 FROM t1, ft2 t2 WHERE t1.c1 = t2.c1 ORDER BY t1.c1;
