@@ -2,11 +2,11 @@ def NODE_NAME = 'AWS_Instance_CentOS'
 def MAIL_TO = '$DEFAULT_RECIPIENTS'
 def BRANCH_NAME = 'Branch [' + env.BRANCH_NAME + ']'
 def BUILD_INFO = 'Jenkins job: ' + env.BUILD_URL + '\n'
-def MYSQL_FDW_URL = 'https://tccloud2.toshiba.co.jp/swc/gitlab/g3033310/mysql-fdw.git'
-def SQLITE_FDW_URL = 'https://github.com/pgspider/sqlite_fdw.git'
+def MYSQL_FDW_URL = 'https://tccloud2.toshiba.co.jp/swc/gitlab/db/mysql_fdw.git'
+def SQLITE_FDW_URL = 'https://tccloud2.toshiba.co.jp/swc/gitlab/db/sqlite_fdw.git'
 def TINYBRACE_FDW_URL = 'https://tccloud2.toshiba.co.jp/swc/gitlab/db/tinybrace_fdw.git'
-def INFLUXDB_FDW_URL = 'https://github.com/pgspider/influxdb_fdw.git'
-def GRIDDB_FDW_URL = 'https://github.com/pgspider/griddb_fdw.git'
+def INFLUXDB_FDW_URL = 'https://tccloud2.toshiba.co.jp/swc/gitlab/db/influxdb_fdw.git'
+def GRIDDB_FDW_URL = 'https://tccloud2.toshiba.co.jp/swc/gitlab/db/griddb_fdw.git'
 def GIT_CREDENTIAL_ID = 'dac43358-2ffd-4a4b-b9c4-879554f2e1be'
 def GRIDDB_CLIENT_DIR = '/home/jenkins/GridDB/c_client_4.1.0/griddb'
 def PGSPIDER_1_DIR = '/home/jenkins/PGSpider/PGS1'
@@ -113,39 +113,34 @@ pipeline {
                     // Build mysql_fdw
                     sh 'rm -rf mysql_fdw || true && mkdir mysql_fdw'
                     dir("mysql_fdw") {
-                        git credentialsId: GIT_CREDENTIAL_ID, url: MYSQL_FDW_URL
+                        git credentialsId: GIT_CREDENTIAL_ID, url: MYSQL_FDW_URL, branch: 'master'
                         sh 'make clean && make && make install'
                     }
                     // Build sqlite_fdw
-                    sh 'rm -rf sqlite_fdw || true'
-                    retrySh('git clone ' + SQLITE_FDW_URL)
-                    sh '''
-                        cd sqlite_fdw
-                        make clean && make && make install
-                    '''
+                    sh 'rm -rf sqlite_fdw || true && mkdir sqlite_fdw'
+                    dir("sqlite_fdw") {
+                        git credentialsId: GIT_CREDENTIAL_ID, url: SQLITE_FDW_URL, branch: 'master'
+                        sh 'make clean && make && make install'
+                    }
                     // Build tinybrace_fdw
                     sh 'rm -rf tinybrace_fdw || true && mkdir tinybrace_fdw'
                     dir("tinybrace_fdw") {
-                        git credentialsId: GIT_CREDENTIAL_ID, url: TINYBRACE_FDW_URL
+                        git credentialsId: GIT_CREDENTIAL_ID, url: TINYBRACE_FDW_URL, branch: 'master'
                         sh 'make clean && make && make install'
                     }
                     // Build influxdb_fdw
-                    sh 'rm -rf influxdb_fdw || true'
-                    retrySh('git clone ' + INFLUXDB_FDW_URL)
-                    sh '''
-                        cd influxdb_fdw
-                        make clean && make && make install
-                    '''
+                    sh 'rm -rf influxdb_fdw || true && mkdir influxdb_fdw'
+                    dir("influxdb_fdw") {
+                        git credentialsId: GIT_CREDENTIAL_ID, url: INFLUXDB_FDW_URL, branch: 'master'
+                        sh 'make clean && make && make install'
+                    }
                     // Build griddb_fdw
-                    sh 'rm -rf griddb_fdw || true'
-                    retrySh('git clone ' + GRIDDB_FDW_URL)
-                    sh 'cd griddb_fdw && cp -a ' + GRIDDB_CLIENT_DIR + ' ./'
-                    sh '''
-                        cd griddb_fdw
-                        export GRIDDB_HOME=/home/jenkins/GridDB/griddb_nosql-4.1.0/
-                        export LD_LIBRARY_PATH=LD_LIBRARY_PATH:$(pwd)/griddb/bin/
-                        make clean && make && make install
-                    '''
+                    sh 'rm -rf griddb_fdw || true && mkdir griddb_fdw'
+                    dir("griddb_fdw") {
+                        git credentialsId: GIT_CREDENTIAL_ID, url: GRIDDB_FDW_URL, branch: 'master'
+                        sh 'cp -a ' + GRIDDB_CLIENT_DIR + ' ./'
+                        sh 'make clean && make && make install'
+                    }
                 }
             }
             post {
