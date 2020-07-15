@@ -4893,9 +4893,30 @@ select c2, sum(c1), grouping(c2) from ft1 where c2 < 3 group by c2 order by 1 nu
 (3 rows)
 
 -- DISTINCT itself is not pushed down, whereas underneath aggregate is pushed
---explain (verbose, costs off)
---select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
---select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
+explain (verbose, costs off)
+select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Unique
+   Output: ((sum(c1) / 1000)), c2
+   ->  Sort
+         Output: ((sum(c1) / 1000)), c2
+         Sort Key: ((sum(ft2.c1) / 1000))
+         ->  Foreign Scan
+               Output: ((sum(c1) / 1000)), c2
+               Node: postgres_srv / Status: Alive
+                 Agg push-down: yes
+                 Relations: Aggregate on (public.ft2__postgres_srv__0)
+                 Remote SQL: SELECT (sum("C 1") / 1000), c2 FROM "S 1"."T 1" WHERE ((c2 < 6)) GROUP BY 2
+(11 rows)
+
+select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
+ s  
+----
+ 49
+ 50
+(2 rows)
+
 -- WindowAgg
 --Testcase 249:
 explain (verbose, costs off)

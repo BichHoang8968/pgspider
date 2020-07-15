@@ -3474,9 +3474,25 @@ get_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	 * When creating aggregation plan, somehow path.rows is passed to dNumGroups.
 	 */
 	if (!parse->groupClause)
-	    rows = 1;
+	{
+		/* Not grouping */
+		rows = 1;
+	}
+	else if (parse->groupingSets)
+	{
+		/* Empty grouping sets ... one result row for each one */
+		rows = list_length(parse->groupingSets);
+	}
+	else if (parse->hasAggs || root->hasHavingQual)
+	{
+		/* Plain aggregation, one result row */
+		rows = 1;
+	}
 	else
-	    rows = 0;
+	{
+		rows = 0;
+	}
+
 	width = 0;
 	startup_cost = 0;
 	total_cost = 0;

@@ -1267,9 +1267,9 @@ select c2, sum(c1), grouping(c2) from ft1 where c2 < 3 group by c2 order by 1 nu
 select c2, sum(c1), grouping(c2) from ft1 where c2 < 3 group by c2 order by 1 nulls last;
 
 -- DISTINCT itself is not pushed down, whereas underneath aggregate is pushed
---explain (verbose, costs off)
---select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
---select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
+explain (verbose, costs off)
+select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
+select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
 
 -- WindowAgg
 --Testcase 249:
