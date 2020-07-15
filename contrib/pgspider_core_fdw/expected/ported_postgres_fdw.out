@@ -3677,7 +3677,7 @@ select c2 * (random() <= 1)::int as sum1, sum(c1) * c2 as sum2 from ft1 group by
          Node: postgres_srv / Status: Alive
            Agg push-down: yes
            Relations: Aggregate on (public.ft1__postgres_srv__0)
-           Remote SQL: SELECT c2, sum("C 1") FROM "S 1"."T 1" GROUP BY 1
+           Remote SQL: SELECT sum("C 1"), c2 FROM "S 1"."T 1" GROUP BY 2
 (9 rows)
 
 --Testcase 180:
@@ -3700,18 +3700,19 @@ select c2 * (random() <= 1)::int as sum1, sum(c1) * c2 as sum2 from ft1 group by
 --Testcase 181:
 explain (verbose, costs off)
 select c2 * (random() <= 1)::int as c2 from ft2 group by c2 * (random() <= 1)::int order by 1;
-                               QUERY PLAN                                
--------------------------------------------------------------------------
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
  Sort
    Output: ((c2 * ((random() <= '1'::double precision))::integer))
    Sort Key: ((ft2.c2 * ((random() <= '1'::double precision))::integer))
-   ->  Foreign Scan
+   ->  HashAggregate
          Output: ((c2 * ((random() <= '1'::double precision))::integer))
-         Node: postgres_srv / Status: Alive
-           Agg push-down: yes
-           Relations: Aggregate on (public.ft2__postgres_srv__0)
-           Remote SQL: SELECT c2 FROM "S 1"."T 1" GROUP BY 1
-(9 rows)
+         Group Key: (ft2.c2 * ((random() <= '1'::double precision))::integer)
+         ->  Foreign Scan on public.ft2
+               Output: (c2 * ((random() <= '1'::double precision))::integer)
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT c2 FROM "S 1"."T 1"
+(10 rows)
 
 -- GROUP BY clause in various forms, cardinal, alias and constant expression
 --Testcase 182:
@@ -4905,8 +4906,8 @@ select c2, sum(c1), grouping(c2) from ft1 where c2 < 3 group by c2 order by 1 nu
 -- DISTINCT itself is not pushed down, whereas underneath aggregate is pushed
 explain (verbose, costs off)
 select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
-                                               QUERY PLAN                                                
----------------------------------------------------------------------------------------------------------
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
  Unique
    Output: ((sum(c1) / 1000)), c2
    ->  Sort
@@ -4917,7 +4918,7 @@ select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
                Node: postgres_srv / Status: Alive
                  Agg push-down: yes
                  Relations: Aggregate on (public.ft2__postgres_srv__0)
-                 Remote SQL: SELECT (sum("C 1") / 1000), c2 FROM "S 1"."T 1" WHERE ((c2 < 6)) GROUP BY 2
+                 Remote SQL: SELECT sum("C 1"), c2 FROM "S 1"."T 1" WHERE ((c2 < 6)) GROUP BY 2
 (11 rows)
 
 select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
