@@ -51,6 +51,19 @@ is_valid_type(Oid type)
 	{
 		case BOOLOID:
 			return false;
+		case INT2OID:
+		case INT4OID:
+		case INT8OID:
+		case OIDOID:
+		case FLOAT4OID:
+		case FLOAT8OID:
+		case NUMERICOID:
+		case VARCHAROID:
+		case TEXTOID:
+		case TIMEOID:
+		case TIMESTAMPOID:
+		case TIMESTAMPTZOID:
+			return true;
 		default:
 			elog(WARNING, "Found an unexpected case when check Param type. In default pushdown this case to PGSpider");
 			return true;
@@ -187,24 +200,17 @@ foreign_expr_walker(Node *node,
 			break;
 		}
 		case T_FuncExpr:
+			/* Not pushable Function Expression */
+			return false;
+		case T_OpExpr:
 		{
-			FuncExpr		*fe = (FuncExpr *) node;
-			HeapTuple		proctup;
-			Form_pg_proc	procform;
-			const char		*proname;
+			OpExpr	   *oe = (OpExpr *) node;
 
-			/* Get function name */
-			proctup = SearchSysCache1(PROCOID, ObjectIdGetDatum(fe->funcid));
-			if (!HeapTupleIsValid(proctup))
-				elog(ERROR, "cache lookup failed for function %u", fe->funcid);
-			procform = (Form_pg_proc) GETSTRUCT(proctup);
-			proname = NameStr(procform->proname);
-			ReleaseSysCache(proctup);
-
-			/* Not push down pg_typeof function */
-			if (strcmp(proname, "pg_typeof") == 0)
+			/*
+			 * Recurse to input subexpressions.
+			 */
+			if (!foreign_expr_walker((Node *) oe->args, glob_cxt, &inner_cxt))
 				return false;
-
 			break;
 		}
 		case T_Param:
