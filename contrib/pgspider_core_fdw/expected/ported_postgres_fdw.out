@@ -5485,14 +5485,26 @@ DROP FUNCTION f_test(int);
 -- ===================================================================
 -- conversion error
 -- ===================================================================
---ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE int;
---ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c8 TYPE int;
---SELECT * FROM ft1 WHERE c1 = 1;  -- ERROR
---SELECT  ft1.c1,  ft2.c2, ft1.c8 FROM ft1, ft2 WHERE ft1.c1 = ft2.c1 AND ft1.c1 = 1; -- ERROR
---SELECT  ft1.c1,  ft2.c2, ft1 FROM ft1, ft2 WHERE ft1.c1 = ft2.c1 AND ft1.c1 = 1; -- ERROR
---SELECT sum(c2), array_agg(c8) FROM ft1 GROUP BY c8; -- ERROR
---ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE user_enum;
---ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c8 TYPE user_enum;
+ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE int;
+ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c8 TYPE int;
+SELECT * FROM ft1 WHERE c1 = 1;  -- ERROR
+ERROR:  invalid input syntax for type integer: "foo"
+CONTEXT:  column "c8" of foreign table "ft1__postgres_srv__0"
+ERROR:  PGSpider can not get data from child node : postgres_srv
+SELECT  ft1.c1,  ft2.c2, ft1.c8 FROM ft1, ft2 WHERE ft1.c1 = ft2.c1 AND ft1.c1 = 1; -- ERROR
+ERROR:  invalid input syntax for type integer: "foo"
+CONTEXT:  column "c8" of foreign table "ft1__postgres_srv__0"
+ERROR:  PGSpider can not get data from child node : postgres_srv
+SELECT  ft1.c1,  ft2.c2, ft1 FROM ft1, ft2 WHERE ft1.c1 = ft2.c1 AND ft1.c1 = 1; -- ERROR
+ERROR:  invalid input syntax for type integer: "foo"
+CONTEXT:  column "c8" of foreign table "ft1__postgres_srv__0"
+ERROR:  PGSpider can not get data from child node : postgres_srv
+SELECT sum(c2), array_agg(c8) FROM ft1 GROUP BY c8; -- ERROR
+ERROR:  invalid input syntax for type integer: "foo"
+CONTEXT:  column "c8" of foreign table "ft1__postgres_srv__0"
+ERROR:  PGSpider can not get data from child node : postgres_srv
+ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE user_enum;
+ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c8 TYPE user_enum;
 -- ===================================================================
 -- subtransaction
 --  + local/remote error doesn't break cursor

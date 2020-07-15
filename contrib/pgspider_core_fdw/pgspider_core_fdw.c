@@ -418,6 +418,7 @@ static TupleTableSlot *spd_queue_get(SpdTupleQueue * que, bool *is_finished);
 static void spd_queue_reset(SpdTupleQueue * que);
 static void spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, const TupleTableSlotOps *tts_ops, bool skipLast);
 static void spd_queue_notify_finish(SpdTupleQueue * que);
+static void spd_spi_ddl_table(char *query, SpdFdwPrivate *fdw_private);
 
 
 /* postgresql.conf paramater */
@@ -431,6 +432,7 @@ pthread_mutex_t file_fdw_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t error_mutex = PTHREAD_MUTEX_INITIALIZER;
 static MemoryContext thread_top_contexts[NODES_MAX] = {NULL};
 static int64 temp_table_id = 0;
+static bool registered_reset_callback = false;
 
 extern void deparseStringLiteral(StringInfo buf, const char *val);
 extern bool is_foreign_expr2(PlannerInfo *root, RelOptInfo *baserel, Expr *expr);
@@ -4350,34 +4352,99 @@ spd_PrintError(int childnums, ChildInfo * childinfo)
 }
 
 /**
- * Callback function to be called before context reset/delete.
+ * End all child node thread.
  *
- * @param[in] arg ForeignScanState
+ * @param[in] node
  */
 static void
-spd_reset_callback(void *arg)
+spd_end_child_node_thread(ForeignScanState *node)
 {
-	AssertArg(arg);
+	int						node_incr;
+	int						rtn;
+	ForeignScanThreadInfo	*fssThrdInfo = node->spd_fsstate;
+	SpdFdwPrivate 			*fdw_private;
 
-	if (IsA(arg, ForeignScanState)) {
-		spd_EndForeignScan((ForeignScanState *)arg);
+	if (!fssThrdInfo)
+		return;
+
+	fdw_private = (SpdFdwPrivate *) fssThrdInfo[0].private;
+	if (!fdw_private)
+		return;
+
+	/* print error nodes */
+	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
+	{
+		if (fssThrdInfo[node_incr].state == SPD_FS_STATE_ERROR)
+		{
+			fdw_private->childinfo[fssThrdInfo[node_incr].childInfoIndex].child_node_status = ServerStatusDead;
+		}
+	}
+	if (isPrintError)
+		spd_PrintError(fdw_private->node_num, fdw_private->childinfo);
+
+	if (!fdw_private->is_explain)
+	{
+		if (fdw_private->is_drop_temp_table == false && fdw_private->temp_table_name != NULL)
+		{
+			spd_spi_ddl_table(psprintf("DROP TABLE IF EXISTS %s", fdw_private->temp_table_name), fdw_private);
+		}
+		for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
+		{
+			fssThrdInfo[node_incr].requestEndScan = true;
+			/* Cleanup the thread-local structures */
+			rtn = pthread_join(fdw_private->foreign_scan_threads[node_incr], NULL);
+			if (rtn != 0)
+				elog(WARNING, "error is occurred, pthread_join fail in EndForeignScan. ");
+		}
 	}
 }
 
 /**
- * Register a function to be called before context reset/delete.
+ * Callback function to be called before Abort Transaction.
  *
- * @param[in] query_context MemoryContext
  * @param[in] arg ForeignScanState
  */
 static void
-spd_register_reset_callback(MemoryContext query_context, void *arg)
+spd_abort_transaction_callback(void *arg)
 {
-	MemoryContextCallback *cb = MemoryContextAlloc(query_context, sizeof(MemoryContextCallback));
+	AssertArg(arg);
 
-	cb->arg = arg;
-	cb->func = spd_reset_callback;
-	MemoryContextRegisterPreResetCallback(query_context, cb);
+	if (IsA(arg, ForeignScanState))
+		spd_end_child_node_thread((ForeignScanState *)arg);
+}
+
+/**
+ * Callback function to be called when context reset/delete.
+ * Reset error context stack and re-enable register reset
+ * callback flag and unregister all abort callback.
+ *
+ * @param[in] arg
+ */
+static void
+spd_reset_callback(void *arg)
+{
+	registered_reset_callback = false;
+	AtFinishTransaction();
+}
+
+/**
+ * Register a function to be called when context reset/delete.
+ *
+ * @param[in] query_context MemoryContext
+ */
+static void
+spd_register_reset_callback(MemoryContext query_context)
+{
+	if (!registered_reset_callback)
+	{
+		MemoryContextCallback *cb = MemoryContextAlloc(query_context, sizeof(MemoryContextCallback));
+
+		registered_reset_callback = true;
+
+		cb->arg = NULL;
+		cb->func = spd_reset_callback;
+		MemoryContextRegisterResetCallback(query_context, cb);
+	}
 }
 
 /**
@@ -4688,13 +4755,20 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 	/*
 	 * PGSpider need to notify all childs node thread to quit
-	 * before memory context of thread is release.
-	 * We register PreResetCallback for each thread context.
-	 * If MemoryContextDelete delete context of each thread
-	 * We will call PreResetCallback to quit all threads avoid
-	 * thread access to free memory zone.
+	 * before memory context of thread is release and avoid child
+	 * node thread access to Transaction State. We register abort
+	 * transaction call back for each node. In case error, backend
+	 * call AbortTransaction, we will call abort transaction callback
+	 * to quit all threads avoid thread access to free memory zone
+	 * and Transaction State.
 	 */
-	spd_register_reset_callback(estate->es_query_cxt, node);
+	RegisterAbortTransactionCallback(spd_abort_transaction_callback, (void *)node);
+
+	/*
+	 * We register ResetCallback for es_query_cxt to unregister
+	 * abort transaction call back when finish transaction.
+	 */
+	spd_register_reset_callback(estate->es_query_cxt);
 
 	for (i = 0; i < fdw_private->nThreads; i++)
 	{
@@ -6208,7 +6282,6 @@ static void
 spd_EndForeignScan(ForeignScanState *node)
 {
 	int			node_incr;
-	int			rtn;
 	ForeignScanThreadInfo *fssThrdInfo = node->spd_fsstate;
 	SpdFdwPrivate *fdw_private;
 
@@ -6219,44 +6292,13 @@ spd_EndForeignScan(ForeignScanState *node)
 	if (!fdw_private)
 		return;
 
-	/* print error nodes */
-	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
-	{
-		if (fssThrdInfo[node_incr].state == SPD_FS_STATE_ERROR)
-		{
-			fdw_private->childinfo[fssThrdInfo[node_incr].childInfoIndex].child_node_status = ServerStatusDead;
-		}
-	}
-	if (isPrintError)
-		spd_PrintError(fdw_private->node_num, fdw_private->childinfo);
-
-	if (!fdw_private->is_explain)
-	{
-		/*
-		 * In case AbortTransaction, the relation was closed by backend.
-		 * We do not need to call this code
-		 */
-		if (fdw_private->is_drop_temp_table == false &&
-			fdw_private->temp_table_name != NULL &&
-			IsTransactionState())
-		{
-			spd_spi_ddl_table(psprintf("DROP TABLE IF EXISTS %s", fdw_private->temp_table_name), fdw_private);
-		}
-		for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
-		{
-			fssThrdInfo[node_incr].requestEndScan = true;
-			/* Cleanup the thread-local structures */
-			rtn = pthread_join(fdw_private->foreign_scan_threads[node_incr], NULL);
-			if (rtn != 0)
-				elog(WARNING, "error is occurred, pthread_join fail in EndForeignScan. ");
-		}
-	}
+	spd_end_child_node_thread((ForeignScanState *)node);
 
 	/* wait until all the remote connections get closed. */
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 	{
 		/* In case AbortTransaction, the ss_currentRelation was closed by backend */
-		if (fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation && IsTransactionState())
+		if (fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation)
 			RelationClose(fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation);
 
 		/* Free ResouceOwner before MemoryContextDelete */
@@ -6288,8 +6330,7 @@ spd_EndForeignScan(ForeignScanState *node)
 		 * because this function will call elog ERROR, it will raise
 		 * abort event again.
 		 */
-		if (throwErrorIfDead &&
-			fssThrdInfo[node_incr].state == SPD_FS_STATE_ERROR && IsTransactionState())
+		if (throwErrorIfDead && fssThrdInfo[node_incr].state == SPD_FS_STATE_ERROR)
 		{
 			ForeignServer *fs;
 
