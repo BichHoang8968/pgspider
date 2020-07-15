@@ -1967,7 +1967,7 @@ spd_ForeignScan_thread(void *arg)
 		{
 			if (strcmp(fssthrdInfo->fdw->fdwname, FILE_FDW_NAME) == 0)
 			{
-				/* File FDW need AllocateFile in succession, not in thread parallel */
+				/* File FDW need to allocate file in succession, not in thread parallel */
 				SPD_LOCK_TRY(&file_fdw_mutex);
 				fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
 														  fssthrdInfo->eflags);
@@ -2012,7 +2012,7 @@ RESCAN:
 		SPD_READ_LOCK_TRY(&fdw_private->scan_mutex);
 		if (strcmp(fssthrdInfo->fdw->fdwname, FILE_FDW_NAME) == 0)
 		{
-			/* File FDW need AllocateFile in succession, not in thread parallel */
+			/* File FDW need to allocate file in succession, not in thread parallel */
 			SPD_LOCK_TRY(&file_fdw_mutex);
 			fssthrdInfo->fdwroutine->ReScanForeignScan(fssthrdInfo->fsstate);
 			SPD_UNLOCK_CATCH(&file_fdw_mutex);
@@ -2241,9 +2241,30 @@ RESCAN:
 				SPD_READ_LOCK_TRY(&fdw_private->scan_mutex);
 				if (!list_member_oid(fdw_private->pPseudoAggList,
 									 fssthrdInfo->serverId))
-					fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
+				{
+					if (strcmp(fssthrdInfo->fdw->fdwname, FILE_FDW_NAME) == 0)
+					{
+						/* File FDW need to free file in succession, not in thread parallel */
+						SPD_LOCK_TRY(&file_fdw_mutex);
+						fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
+						SPD_UNLOCK_CATCH(&file_fdw_mutex);
+					}
+					else
+						fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
+				}
 				else
-					ExecEndNode(result);
+				{
+					if (strcmp(fssthrdInfo->fdw->fdwname, FILE_FDW_NAME) == 0)
+					{
+						/* File FDW need to free file in succession, not in thread parallel */
+						SPD_LOCK_TRY(&file_fdw_mutex);
+						ExecEndNode(result);
+						SPD_UNLOCK_CATCH(&file_fdw_mutex);
+					}
+					else
+						ExecEndNode(result);
+				}
+
 
 				SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 				fssthrdInfo->requestEndScan = false;
