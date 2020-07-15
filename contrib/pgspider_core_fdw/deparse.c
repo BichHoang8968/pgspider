@@ -9,6 +9,7 @@
 #include "utils/lsyscache.h"
 #include "pgspider_core_fdw_defs.h"
 #include "catalog/pg_type.h"
+#include "nodes/nodeFuncs.h"
 
 /*
  * Global context for foreign_expr_walker's search of an expression tree.
@@ -39,7 +40,12 @@ typedef struct foreign_loc_cxt
 	FDWCollateState state;		/* state of current collation choice */
 } foreign_loc_cxt;
 
+/* Local function forward declarations */
+static bool having_clause_tree_walker(Node *node, void *param);
+
+/* Global function forward declarations */
 bool is_foreign_expr2(PlannerInfo *, RelOptInfo *, Expr *);
+bool is_having_safe(Node *node);
 
 /*
  * Prevent push down of T_Param(Subquery Expressions) which PGSpider cannot bind
@@ -276,4 +282,82 @@ deparseStringLiteral(StringInfo buf, const char *val)
 		appendStringInfoChar(buf, ch);
 	}
 	appendStringInfoChar(buf, '\'');
+}
+
+/*
+ * having_clause_tree_walker
+ *
+ * Check if HAVING expression is safe to pass to child fdws.
+ */
+static bool having_clause_tree_walker(Node *node, void *param)
+{
+	/* Need do nothing for empty subexpression. */
+	if (node == NULL)
+		return false;
+
+	switch (nodeTag(node))
+	{
+		case T_Aggref:
+		{
+			Aggref		*agg = (Aggref *) node;
+			char		*opername = NULL;
+			HeapTuple	tuple;
+
+			/* Get function name */
+			tuple = SearchSysCache1(PROCOID, ObjectIdGetDatum(agg->aggfnoid));
+			if (!HeapTupleIsValid(tuple))
+			{
+				elog(ERROR, "cache lookup failed for function %u", agg->aggfnoid);
+			}
+			opername = pstrdup(((Form_pg_proc) GETSTRUCT(tuple))->proname.data);
+			ReleaseSysCache(tuple);
+
+			/* These functions can not be passed to child FDW. */
+			if (strcmp(opername, "avg") == 0
+				|| strcmp(opername, "stddev") == 0
+				|| strcmp(opername, "variance") == 0)
+			{
+				return true;
+			}
+			break;
+		}
+		case T_FuncExpr:
+		case T_OpExpr:
+		{
+			List		*args = NIL;
+			ListCell	*lc;
+
+			if (IsA(node, FuncExpr))
+				args = ((FuncExpr *) node)->args;
+			else
+				args = ((OpExpr *) node)->args;
+
+			foreach(lc, args)
+			{
+				Expr *arg = (Expr *)lfirst(lc);
+
+				if (!(IsA(arg, BoolExpr) || IsA(arg, FuncExpr) || IsA(arg, List)))
+				{
+					if (!(IsA(arg, Aggref) || IsA(arg, Var) || IsA(arg, Const)))
+						return true;
+				}
+			}
+			break;
+		}
+		default:
+			break;
+	}
+
+	return expression_tree_walker(node, having_clause_tree_walker, (void *) param);
+}
+
+/*
+ * is_having_safe
+ *
+ * Check every conditions whether expression
+ * is safe to pass to child FDW or not.
+ */
+bool is_having_safe(Node *node)
+{
+	return (!having_clause_tree_walker(node, NULL));
 }

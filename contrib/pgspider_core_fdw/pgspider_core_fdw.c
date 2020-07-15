@@ -250,6 +250,7 @@ typedef struct Extractcells
 								 * and for rebuilding query on temp table */
 	int			ext_num;		/* Number of extracted cells */
 	bool		is_truncated;	/* True if value needs to be truncated. */
+	bool		is_having_qual;	/* True if expression is a qualification applied to HAVING. */
 }			Extractcells;
 
 typedef struct ChildInfo
@@ -327,6 +328,9 @@ typedef struct SpdFdwPrivate
 	StringInfo	groupby_string; /* GROUP BY string for aggregation temp table */
 
 	ChildInfo  *childinfo;		/* ChildInfo List */
+
+	List	   *having_quals;	/* qualitifications for HAVING which are passed to childs */
+	bool		has_having_quals;	/* Root plan has qualification applied for HAVING */
 
 	/* USE ONLY IN EXECUTION */
 	pthread_t	foreign_scan_threads[NODES_MAX];	/* child node thread  */
@@ -415,7 +419,9 @@ static void spd_EndForeignModify(EState *estate,
 
 static TargetEntry *spd_tlist_member(Expr *node, List *targetlist, int *target_num);
 
-static List *spd_add_to_flat_tlist(List *tlist, Expr *exprs, List **mapping_tlist, List **compress_tlist_tle, Index sgref, List **upper_targets, bool allow_duplicate);
+static List *spd_add_to_flat_tlist(List *tlist, Expr *exprs,
+						List **mapping_tlist, List **compress_tlist_tle, Index sgref,
+						List **upper_targets, bool allow_duplicate, bool is_having_qual);
 static void spd_spi_exec_child_ip(char *serverName, char *ip);
 static bool spd_can_skip_deepcopy(char *fdwname);
 
@@ -444,6 +450,7 @@ static bool registered_reset_callback = false;
 extern void deparseStringLiteral(StringInfo buf, const char *val);
 extern bool is_foreign_expr2(PlannerInfo *root, RelOptInfo *baserel, Expr *expr);
 #define is_foreign_expr is_foreign_expr2
+extern bool is_having_safe(Node *node);
 
 static SpdFdwPrivate *
 spd_AllocatePrivate()
@@ -847,9 +854,11 @@ spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private)
 			lfdw_private = lappend(lfdw_private, extcells->expr);
 			lfdw_private = lappend(lfdw_private, makeInteger(extcells->ext_num));
 			lfdw_private = lappend(lfdw_private, makeInteger((extcells->is_truncated)?1:0));
+			lfdw_private = lappend(lfdw_private, makeInteger((extcells->is_having_qual)?1:0));
 		}
 		lfdw_private = lappend(lfdw_private, copyObject(fdw_private->child_comp_slot));
 		lfdw_private = lappend(lfdw_private, makeString(fdw_private->groupby_string ? fdw_private->groupby_string->data : ""));
+		lfdw_private = lappend(lfdw_private, makeInteger((fdw_private->has_having_quals)?1:0));
 	}
 
 	for (i = 0; i < fdw_private->node_num; i++)
@@ -970,6 +979,8 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
 			lc = lnext(lc);
 			extcells->is_truncated = (intVal(lfirst(lc))?true:false);
 			lc = lnext(lc);
+			extcells->is_having_qual = (intVal(lfirst(lc))?true:false);
+			lc = lnext(lc);
 			fdw_private->mapping_tlist = lappend(fdw_private->mapping_tlist, extcells);
 		}
 
@@ -978,6 +989,9 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
 
 		fdw_private->groupby_string = makeStringInfo();
 		appendStringInfoString(fdw_private->groupby_string, strVal(lfirst(lc)));
+		lc = lnext(lc);
+
+		fdw_private->has_having_quals =(intVal(lfirst(lc))?true:false);
 		lc = lnext(lc);
 	}
 
@@ -1260,11 +1274,23 @@ extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_
 	switch(nodeTag(node))
 	{
 		case T_OpExpr:
+		case T_BoolExpr:
 		{
-			OpExpr		*ope = (OpExpr *) node;
+			List		*args;
+			bool		is_extract_expr;
 
-			if (is_need_extract((Node *) ope))
-				extract_expr((Node *)ope->args, extcells, tlist, compress_tlist_tle, compress_tlist, sgref, is_agg_ope);
+			if (IsA(node, OpExpr))
+				args = ((OpExpr *)node)->args;
+			else
+				args = ((BoolExpr *)node)->args;
+
+			if ((*extcells)->is_having_qual)
+				is_extract_expr = true;
+			else
+				is_extract_expr = is_need_extract(node);
+
+			if (is_extract_expr)
+				extract_expr((Node *)args, extcells, tlist, compress_tlist_tle, compress_tlist, sgref, is_agg_ope);
 			else
 			{
 				/* When no need to extract, add the node to the compress_tlist and compress_tlist_tle directly */
@@ -1542,7 +1568,9 @@ extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_
 
 static List *
 spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
-					  List **compress_tlist_tle, Index sgref, List **compress_tlist, bool allow_duplicate)
+					  List **compress_tlist_tle, Index sgref,
+					  List **compress_tlist, bool allow_duplicate,
+					  bool is_having_qual)
 {
 	int			next_resno = list_length(tlist) + 1;
 	int			target_num = 0;
@@ -1552,10 +1580,11 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 	extcells->cells = NIL;
 	extcells->expr = copyObject(expr);
 	extcells->is_truncated = false;
-	if(IsA(expr, OpExpr))
+	extcells->is_having_qual = is_having_qual;
+	if(IsA(expr, OpExpr) || IsA(expr, BoolExpr))
 	{
 		/* add original mapping list */
-		if (!spd_tlist_member(expr, tlist, &target_num))
+		if (!spd_tlist_member(expr, tlist, &target_num) && !is_having_qual)
 		{
 			tle = makeTargetEntry(copyObject(expr),
 								  next_resno++,
@@ -3269,6 +3298,8 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = list_copy(newList);
 	fdw_private->childinfo = in_fdw_private->childinfo;
 	fdw_private->rinfo.pushdown_safe = false;
+	fdw_private->having_quals = NIL;
+	fdw_private->has_having_quals = false;
 	output_rel->fdw_private = fdw_private;
 	output_rel->relid = input_rel->relid;
 
@@ -3334,6 +3365,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			PlannerInfo *dummy_root_child = childinfo[i].root;
 			RelOptInfo *dummy_output_rel;
 			Index	   *sortgrouprefs=NULL;
+			Node	   *extra_having_quals = NULL;
 
 			if (childinfo[i].child_node_status != ServerStatusAlive)
 				continue;
@@ -3346,9 +3378,27 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				if (childinfo[i].child_node_status != ServerStatusAlive)
 					continue;
 				dummy_root_child->parse->groupClause = list_copy(root->parse->groupClause);
-				/* Copy information about HAVING clause from root to dummy_root */
-				dummy_root_child->parse->havingQual = copyObject(root->parse->havingQual);
-				dummy_root_child->hasHavingQual = root->hasHavingQual;
+
+				extra_having_quals = (Node *)copyObject(((GroupPathExtraData *)extra)->havingQual);
+
+				if (fdw_private->having_quals != NIL)
+				{
+					/*
+					 * Set information about HAVING clause from pgspider_core_fdw
+					 * to GroupPathExtraData and dummy_root.
+					 */
+					((GroupPathExtraData *)extra)->havingQual = (Node *)copyObject(fdw_private->having_quals);
+					dummy_root_child->parse->havingQual = (Node *)copyObject(fdw_private->having_quals);
+					dummy_root_child->hasHavingQual = true;
+				}
+				else
+				{
+					/* Does not let child node execute HAVING .*/
+					((GroupPathExtraData *)extra)->havingQual = NULL;
+					dummy_root_child->parse->havingQual = NULL;
+					dummy_root_child->hasHavingQual = false;
+				}
+
 				/* Currently dummy. @todo more better parsed object. */
 				dummy_root_child->parse->hasAggs = true;
 				/* Call below FDW to check it is OK to pushdown or not. */
@@ -3388,6 +3438,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 					 */
 					dummy_root_child->upper_targets[UPPERREL_GROUP_AGG] = make_pathtarget_from_tlist(fdw_private->child_tlist);
 				}
+
 				/* Fill sortgrouprefs for child using child target entry list */
 				sortgrouprefs = palloc(sizeof(Index) * list_length(fdw_private->child_comp_tlist));
 				listn = 0;
@@ -3402,6 +3453,10 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				fdwroutine->GetForeignUpperPaths(dummy_root_child,
 												 stage, entry,
 												 dummy_output_rel, extra);
+				/*
+				 * Give original HAVING qualifications for GroupPathExtra->havingQual.
+				 */
+				((GroupPathExtraData *)extra)->havingQual = extra_having_quals;
 			}
 			else
 			{
@@ -3409,9 +3464,23 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				if (childinfo[i].child_node_status != ServerStatusAlive)
 					continue;
 				dummy_root_child->parse->groupClause = list_copy(root->parse->groupClause);
-				/* Copy information about HAVING clause from root to dummy_root */
-				dummy_root_child->parse->havingQual = copyObject(root->parse->havingQual);
-				dummy_root_child->hasHavingQual = root->hasHavingQual;
+
+				if (fdw_private->having_quals != NIL)
+				{
+					/*
+					 * Set information about HAVING clause from pgspider_core_fdw
+					 * to dummy_root.
+					 */
+					dummy_root_child->parse->havingQual = (Node *)copyObject(fdw_private->having_quals);
+					dummy_root_child->hasHavingQual = true;
+				}
+				else
+				{
+					/* Does not let child node execute HAVING .*/
+					dummy_root_child->parse->havingQual = NULL;
+					dummy_root_child->hasHavingQual = false;
+				}
+
 				/* Currently dummy. @todo more better parsed object. */
 				dummy_root_child->parse->hasAggs = true;
 				/* Call below FDW to check it is OK to pushdown or not. */
@@ -3692,7 +3761,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 			 */
 			if (!spd_tlist_member(expr, mapping_tlist, &target_num) && spd_tlist_member(expr, compress_child_tlist, &target_num))
 				allow_duplicate = false;
-			tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, sgref, &upper_targets, allow_duplicate);
+			tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, sgref, &upper_targets, allow_duplicate, false);
 			groupby_cursor += list_length(compress_child_tlist) - before_listnum;
 			/*
 			 * When Operator expression contains group by column, the column will be added
@@ -3718,7 +3787,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 				/* Pushable, add to tlist */
 				int			before_listnum = list_length(compress_child_tlist);
 
-				tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, sgref, &upper_targets, false);
+				tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, sgref, &upper_targets, false, false);
 				groupby_cursor += list_length(compress_child_tlist) - before_listnum;
 			}
 			else
@@ -3749,7 +3818,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 					{
 						int			before_listnum = list_length(compress_child_tlist);
 
-						tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, sgref, &upper_targets, false);
+						tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, sgref, &upper_targets, false, false);
 						i += list_length(compress_child_tlist) - before_listnum;
 						groupby_cursor += list_length(compress_child_tlist) - before_listnum;
 					}
@@ -3772,6 +3841,9 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 	{
 		ListCell   *lc;
 
+		/* Mark root plan has qualification applied to HAVING */
+		fpinfo->has_having_quals = true;
+
 		foreach(lc, (List *) query->havingQual)
 		{
 			Expr	   *expr = (Expr *) lfirst(lc);
@@ -3791,9 +3863,24 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 									  NULL,
 									  NULL);
 			if (is_foreign_expr(root, grouped_rel, expr))
+			{
 				fpinfo->rinfo.remote_conds = lappend(fpinfo->rinfo.remote_conds, rinfo);
+
+				/* Check qualifications whether can be passed to child nodes. */
+				if(is_having_safe((Node *) rinfo->clause))
+					fpinfo->having_quals = lappend(fpinfo->having_quals, rinfo->clause);
+			}
 			else
 				fpinfo->rinfo.local_conds = lappend(fpinfo->rinfo.local_conds, rinfo);
+
+			/*
+			 * Filter operation for HAVING clause will be executed by SELECT query
+			 * for temptable with full root HAVING query.
+			 *
+			 * * Extract qualification to mapping list.
+			 */
+			tlist = spd_add_to_flat_tlist(tlist,  rinfo->clause, &mapping_tlist,
+											&compress_child_tlist, 0, &upper_targets, false, true);
 		}
 	}
 
@@ -4012,7 +4099,7 @@ outer_var_walker(Node *node, void *param)
 		Var		   *expr = (Var *) node;
 
 		expr->varno = OUTER_VAR;
-		return true;
+		return false;
 	}
 	return expression_tree_walker(node, outer_var_walker, (void *) param);
 }
@@ -4770,8 +4857,43 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			}
 			else
 			{
-				fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
-					MakeSingleTupleTableSlot(CreateTupleDescCopy(tupledesc), node->ss.ss_ScanTupleSlot->tts_ops);
+				/*
+				 * If child plan has local conditions that applied for HAVING clause,
+				 * then we need to create more child slots for aggreate targets that
+				 * extracted from these local conditions.
+				 */
+				if (childinfo[i].plan->qual)
+				{
+					List *child_tlist = list_copy(fdw_private->child_tlist);
+					List *aggvars = NIL;
+
+					foreach(lc, childinfo[i].plan->qual)
+					{
+						Expr *clause = (Expr *) lfirst(lc);
+
+						aggvars = list_concat(aggvars, pull_var_clause((Node *) clause, PVC_INCLUDE_AGGREGATES));
+					}
+					foreach(lc, aggvars)
+					{
+						Expr *expr = (Expr *) lfirst(lc);
+
+						/*
+						 * If aggregates within local conditions are not safe to push down by child FDW,
+						 * then we add aggregates to child target list.
+						 */
+						if (IsA(expr, Aggref))
+						{
+							child_tlist = add_to_flat_tlist(child_tlist, list_make1(expr));
+						}
+					}
+
+					/* Create child slots based on child target list. */
+					fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
+					MakeSingleTupleTableSlot(ExecCleanTypeFromTL(child_tlist), node->ss.ss_ScanTupleSlot->tts_ops);
+				}
+				else
+					fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
+						MakeSingleTupleTableSlot(CreateTupleDescCopy(tupledesc), node->ss.ss_ScanTupleSlot->tts_ops);
 			}
 
 		}
@@ -5230,6 +5352,9 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql)
 			Form_pg_attribute	attr = TupleDescAttr(SPI_tuptable->tupdesc, colid);
 			bool				isnull = false;
 			
+			if (extcells->is_having_qual)
+				continue;
+
 			fdw_private->agg_value_type[colid] = attr->atttypid;
 
 			datum = SPI_getbinval(SPI_tuptable->vals[k],
@@ -5383,6 +5508,7 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 			char				oprkind;
 			char				*opname;
 			ListCell			*arg;
+			bool				is_extract_expr;
 
 			/* Retrieve information about the operator from system catalog. */
 			tuple = SearchSysCache1(OPEROID, ObjectIdGetDatum(ope->opno));
@@ -5394,7 +5520,12 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 			/* Always parenthesize the expression. */
 			appendStringInfoChar(buf, '(');
 
-			if (!is_need_extract((Node *)ope))
+			if (extcells->is_having_qual)
+				is_extract_expr = true;
+			else
+				is_extract_expr = is_need_extract((Node *)ope);
+
+			if (!is_extract_expr)
 			{
 				ListCell *extlc;
 				int id = 0;
@@ -5632,6 +5763,41 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 			(*cellid)++;
 			break;
 		}
+		case T_BoolExpr:
+		{
+			BoolExpr	*b = (BoolExpr *) node;
+			const char	*op = NULL;		/* keep compiler quiet */
+			bool		first;
+			ListCell	*lc;
+
+			switch (b->boolop)
+			{
+				case AND_EXPR:
+					op = "AND";
+					break;
+				case OR_EXPR:
+					op = "OR";
+					break;
+				case NOT_EXPR:
+					appendStringInfoString(buf, "(NOT ");
+					rebuild_target_expr((Node*) linitial(b->args), buf, extcells, cellid, groupby_target, true);
+					appendStringInfoChar(buf, ')');
+					return;
+			}
+
+			appendStringInfoChar(buf, '(');
+			first = true;
+			foreach(lc, b->args)
+			{
+				if (!first)
+					appendStringInfo(buf, " %s ", op);
+				rebuild_target_expr((Node *) lfirst(lc), buf, extcells, cellid, groupby_target, true);
+				first = false;
+			}
+			appendStringInfoChar(buf, ')');
+
+			break;
+		}
 		default:
 			break;
 	}
@@ -5669,6 +5835,9 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 	{
 		Extractcells *extcells = (Extractcells *) lfirst(lc);
 		ListCell *extlc;
+
+		if (extcells->is_having_qual)
+			continue;
 
 		/* No extract case */
 		if (extcells->ext_num == 0)
@@ -5781,6 +5950,32 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 	/* group by clause */
 	if (fdw_private->groupby_string != 0)
 		appendStringInfo(sql, "%s", fdw_private->groupby_string->data);
+
+	/* Append HAVING clause */
+	if (fdw_private->has_having_quals)
+	{
+		Expr	*expr;
+		bool	is_first = true;
+		appendStringInfo(sql, " HAVING ");
+		foreach(lc, fdw_private->mapping_tlist)
+		{
+			Extractcells *extcells = (Extractcells *) lfirst(lc);
+			int		cellid = 0;
+
+			if (!extcells->is_having_qual)
+				continue;
+
+			/* Extract case */
+			expr = copyObject(extcells->expr);
+
+			if (!is_first)
+				appendStringInfoString(sql, " AND ");
+
+			rebuild_target_expr((Node *) expr, sql, extcells, &cellid, fdw_private->groupby_target, true);
+			is_first = false;
+		}
+	}
+
 	elog(DEBUG1, "select from temp table: %s", sql->data);
 	/* Execute aggregate query to temp table */
 	spd_spi_exec_select(fdw_private, sql);
