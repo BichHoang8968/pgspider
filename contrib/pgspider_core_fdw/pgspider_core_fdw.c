@@ -75,7 +75,7 @@ PG_MODULE_MAGIC;
 #include "pgspider_core_fdw_defs.h"
 #include "funcapi.h"
 #include "postgres_fdw/postgres_fdw.h"
-
+#include "catalog/pg_operator.h"
 #ifndef WITHOUT_KEEPALIVE
 #include "pgspider_keepalive/pgspider_keepalive.h"
 #endif
@@ -231,6 +231,18 @@ typedef struct Mappingcells
 	StringInfo	agg_const;		/* constant argument of function */
 }			Mappingcells;
 
+/* 
+ * This struct is used to store a list of mapping cells and the entire expression.
+ * It is added to support combination of aggregate functions and operators.
+ */
+typedef struct Extractcells
+{
+	List 		*cells;			/* List of mapping cells */
+	Expr		*expr;			/* Original expression. It is used for extraction (when create plan) 
+								 * and for rebuilding query on temp table */
+	int			ext_num;		/* Number of extracted cells */
+	bool		is_truncated;	/* True if value needs to be truncated. */
+}			Extractcells;
 
 typedef struct ChildInfo
 {
@@ -693,11 +705,16 @@ print_mapping_tlist(List *mapping_tlist, int loglevel)
 
 	foreach(lc, mapping_tlist)
 	{
-		Mappingcells *cells = lfirst(lc);
+		Extractcells	*extcells = lfirst(lc);
+		ListCell		*extlc;
+		foreach(extlc, extcells->cells)
+		{
+			Mappingcells *cells = lfirst(extlc);
 
-		elog(loglevel, "mapping_tlist (%d %d %d)/ original_attnum=%d  aggtype=\"%s\"",
-			 cells->mapping[0], cells->mapping[1], cells->mapping[2],
-			 cells->original_attnum, AggtypeStr[cells->aggtype]);
+			elog(loglevel, "mapping_tlist (%d %d %d)/ original_attnum=%d  aggtype=\"%s\"",
+				cells->mapping[0], cells->mapping[1], cells->mapping[2],
+				cells->original_attnum, AggtypeStr[cells->aggtype]);
+		}
 	}
 }
 
@@ -796,17 +813,28 @@ spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private)
 
 		foreach(lc, fdw_private->mapping_tlist)
 		{
-			Mappingcells *cells = lfirst(lc);
+			Extractcells	*extcells = (Extractcells *) lfirst(lc);
+			ListCell		*tmplc;
 
-			lfdw_private = lappend(lfdw_private, makeInteger(cells->mapping[0]));
-			lfdw_private = lappend(lfdw_private, makeInteger(cells->mapping[1]));
-			lfdw_private = lappend(lfdw_private, makeInteger(cells->mapping[2]));
-			lfdw_private = lappend(lfdw_private, makeInteger(cells->aggtype));
-			lfdw_private = lappend(lfdw_private, makeString(cells->agg_command ? cells->agg_command->data : ""));
-			lfdw_private = lappend(lfdw_private, makeString(cells->agg_const ? cells->agg_const->data : ""));
-			lfdw_private = lappend(lfdw_private, makeInteger(cells->original_attnum));
+			/* Save length of extracted list */
+			lfdw_private = lappend(lfdw_private, makeInteger(list_length(extcells->cells)));
+
+			foreach(tmplc, extcells->cells)
+			{
+				Mappingcells *cells = lfirst(tmplc);
+
+				lfdw_private = lappend(lfdw_private, makeInteger(cells->mapping[0]));
+				lfdw_private = lappend(lfdw_private, makeInteger(cells->mapping[1]));
+				lfdw_private = lappend(lfdw_private, makeInteger(cells->mapping[2]));
+				lfdw_private = lappend(lfdw_private, makeInteger(cells->aggtype));
+				lfdw_private = lappend(lfdw_private, makeString(cells->agg_command ? cells->agg_command->data : ""));
+				lfdw_private = lappend(lfdw_private, makeString(cells->agg_const ? cells->agg_const->data : ""));
+				lfdw_private = lappend(lfdw_private, makeInteger(cells->original_attnum));
+			}
+			lfdw_private = lappend(lfdw_private, extcells->expr);
+			lfdw_private = lappend(lfdw_private, makeInteger(extcells->ext_num));
+			lfdw_private = lappend(lfdw_private, makeInteger((extcells->is_truncated)?1:0));
 		}
-
 		lfdw_private = lappend(lfdw_private, copyObject(fdw_private->child_comp_slot));
 		lfdw_private = lappend(lfdw_private, makeString(fdw_private->groupby_string ? fdw_private->groupby_string->data : ""));
 	}
@@ -848,6 +876,7 @@ static SpdFdwPrivate *
 spd_DeserializeSpdFdwPrivate(List *lfdw_private)
 {
 	int			i = 0;
+	int			j = 0;
 	int			mapping_tlist_len = 0;
 	ListCell   *lc = list_head(lfdw_private);
 	SpdFdwPrivate *fdw_private = palloc0(sizeof(SpdFdwPrivate));
@@ -894,25 +923,41 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
 		fdw_private->mapping_tlist = NIL;
 		for (i = 0; i < mapping_tlist_len; i++)
 		{
-			Mappingcells *cells = (Mappingcells *) palloc0(sizeof(Mappingcells));
+			int 			ext_tlist_num = 0;
+			Extractcells	*extcells = (Extractcells *) palloc0(sizeof(Extractcells));
 
-			cells->mapping[0] = intVal(lfirst(lc));
+			ext_tlist_num = intVal(lfirst(lc));
 			lc = lnext(lc);
-			cells->mapping[1] = intVal(lfirst(lc));
+
+			for (j = 0; j < ext_tlist_num; j++)
+			{
+				Mappingcells *cells = (Mappingcells *) palloc0(sizeof(Mappingcells));
+
+				cells->mapping[0] = intVal(lfirst(lc));
+				lc = lnext(lc);
+				cells->mapping[1] = intVal(lfirst(lc));
+				lc = lnext(lc);
+				cells->mapping[2] = intVal(lfirst(lc));
+				lc = lnext(lc);
+				cells->aggtype = intVal(lfirst(lc));
+				lc = lnext(lc);
+				cells->agg_command = makeStringInfo();
+				appendStringInfoString(cells->agg_command, strVal(lfirst(lc)));
+				lc = lnext(lc);
+				cells->agg_const = makeStringInfo();
+				appendStringInfoString(cells->agg_const, strVal(lfirst(lc)));
+				lc = lnext(lc);
+				cells->original_attnum = intVal(lfirst(lc));
+				lc = lnext(lc);
+				extcells->cells = lappend(extcells->cells, cells);
+			}
+			extcells->expr = lfirst(lc);
 			lc = lnext(lc);
-			cells->mapping[2] = intVal(lfirst(lc));
+			extcells->ext_num = intVal(lfirst(lc));
 			lc = lnext(lc);
-			cells->aggtype = intVal(lfirst(lc));
+			extcells->is_truncated = (intVal(lfirst(lc))?true:false);
 			lc = lnext(lc);
-			cells->agg_command = makeStringInfo();
-			appendStringInfoString(cells->agg_command, strVal(lfirst(lc)));
-			lc = lnext(lc);
-			cells->agg_const = makeStringInfo();
-			appendStringInfoString(cells->agg_const, strVal(lfirst(lc)));
-			lc = lnext(lc);
-			cells->original_attnum = intVal(lfirst(lc));
-			lc = lnext(lc);
-			fdw_private->mapping_tlist = lappend(fdw_private->mapping_tlist, cells);
+			fdw_private->mapping_tlist = lappend(fdw_private->mapping_tlist, extcells);
 		}
 
 		fdw_private->child_comp_slot = (TupleTableSlot *) (lfirst(lc));
@@ -959,6 +1004,424 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
 }
 
 /**
+ * extract_expr_walker
+ * Use expression_tree_walker to alk through the expression,
+ * return true if detect any node which is not Var or Const.
+ *
+ * @param[in] node - the expression
+ * @param[in] param - context argument
+ */
+static bool
+extract_expr_walker(Node *node, void *param)
+{
+	if (node == NULL)
+		return false;
+
+	if (!(IsA(node, Var)) && !(IsA(node, Const)))
+		return true;
+
+	return expression_tree_walker(node, extract_expr_walker, (void *) param);
+}
+/**
+ * is_need_extract
+ * Check if it is necessary to extract the expression.
+ * When expression contains only const and var, no need to extract 
+ * 
+ * @param[in] node - the expression
+ */
+static bool
+is_need_extract(Node *node)
+{
+	return expression_tree_walker(node, extract_expr_walker, NULL);
+}
+
+/**
+ * init_mappingcell
+ *
+ * Initialize value for a mapping cell
+ * @param[in,out] mapcells - the mapping cells that needs to be initialized
+ */
+static void
+init_mappingcell(Mappingcells **mapcells)
+{
+	int i;
+
+	*mapcells = (struct Mappingcells *) palloc0(sizeof(struct Mappingcells));
+
+	/* Initialize mapcells */
+	for (i = 0; i < MAX_SPLIT_NUM; i++)
+	{
+		/* these store 0-index, so initialize with -1 */
+		(*mapcells)->mapping[i] = -1;
+	}
+	(*mapcells)->original_attnum = -1;
+	(*mapcells)->agg_command = makeStringInfo();
+	(*mapcells)->agg_const = makeStringInfo();
+}
+
+/**
+ * add_node_to_list
+ *
+ * This function is used to add node to tlist, compress_tlist_tle and compress_tlist.
+ * It also set data for mapcell.
+ *
+ * @param[in] expr - the expression
+ * @param[in,out] tlist - flattened tlist
+ * @param[in,out] mapcells - the mapping cell which is corresponding to the expr
+ * @param[in,out] compress_tlist_tle - compressed child tlist with target entry
+ * @param[in,out] compress_tlist - compressed child tlist without target entry
+ * @param[in] sgref - sort group reference for target entry
+ * @param[in] is_agg_ope - true if combination of aggregate function and operators
+ * @param[in] allow_duplicate - allow or not allow a target can be duplicated in grouping target list
+ */
+static void
+add_node_to_list(Expr *expr, List **tlist, Mappingcells **mapcells, List **compress_tlist_tle, List **compress_tlist, Index sgref, bool is_agg_ope, bool allow_duplicate)
+{
+	/* Non-agg group by target or non-split agg such as sum or count */
+	TargetEntry	*tle_temp;
+	TargetEntry	*tle;
+	int			target_num = 0;
+	int			next_resno = list_length(*tlist) + 1;
+	int			next_resno_temp = list_length(*compress_tlist_tle) + 1;
+
+	tle = spd_tlist_member(expr, *tlist, &target_num);
+	/* original */
+	if (allow_duplicate || !tle)
+	{
+		if (allow_duplicate)
+			target_num = list_length(*tlist);
+
+		/* When expression is a combination of operator and aggregate function,
+		 * no need to add to tlist because the whole expression has been added in spd_add_to_flat_tlist
+		 */
+		if (is_agg_ope == false)
+		{
+			tle = makeTargetEntry(copyObject(expr),
+								next_resno++,
+								NULL,
+								false);
+			tle->ressortgroupref = sgref;
+			*tlist = lappend(*tlist, tle);
+		}
+		else
+			target_num = list_length(*tlist) - 1;
+	}
+	else if (tle)
+	{
+		target_num = list_length(*tlist) - 1;
+	}
+	(*mapcells)->aggtype = NON_AGG_FLAG;
+	(*mapcells)->original_attnum = target_num;
+	/* div tlist */
+	tle_temp = spd_tlist_member(expr, *compress_tlist_tle, &target_num);
+	if (allow_duplicate || !tle_temp)
+	{
+		tle_temp = makeTargetEntry(copyObject(expr),
+									next_resno_temp++,
+									NULL,
+									false);
+		tle_temp->ressortgroupref = sgref;
+		*compress_tlist_tle = lappend(*compress_tlist_tle, tle_temp);
+		*compress_tlist = lappend(*compress_tlist, expr);
+	}
+	else if (tle_temp)
+	{
+		/*
+		 * if var was added inside extract_expr, ressortgroupref was not set.
+		 * we need to set it at this place
+		 */
+		if (sgref > 0)
+			tle_temp->ressortgroupref = sgref;
+	}
+	/* If allow duplicate, so need to change mapping to the last of compress_tlist */
+	if (allow_duplicate)
+	{
+		(*mapcells)->mapping[0] = list_length(*compress_tlist) - 1;
+	}
+	else
+	{
+		(*mapcells)->mapping[0] = target_num;
+	}
+}
+/**
+ * extract_expr
+ * Extract an expression.
+ * 
+ * @param[in] node - the expression
+ * @param[in,out] extcells - the target mapping list
+ * @param[in,out] tlist - flattened tlist
+ * @param[in,out] compress_tlist_tle - compressed child tlist with target entry
+ * @param[in,out] compress_tlist - compressed child tlist without target entry
+ * @param[in] sgref - sort group reference for target entry
+ * @param[in] is_agg_ope - true if combination of aggregate function and operators
+ * 
+ */
+static void
+extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_tlist_tle, List **compress_tlist, int sgref, bool is_agg_ope)
+{
+	if (node == NULL)
+		return;
+
+	switch(nodeTag(node))
+	{
+		case T_OpExpr:
+		{
+			OpExpr		*ope = (OpExpr *) node;
+
+			if (is_need_extract((Node *) ope))
+				extract_expr((Node *)ope->args, extcells, tlist, compress_tlist_tle, compress_tlist, sgref, is_agg_ope);
+			else
+			{
+				/* When no need to extract, add the node to the compress_tlist and compress_tlist_tle directly */
+				Mappingcells	*mapcells;
+				
+				init_mappingcell(&mapcells);
+				add_node_to_list((Expr *) node, tlist, &mapcells, compress_tlist_tle, compress_tlist, sgref, false, false);
+				(*extcells)->ext_num++;
+				(*extcells)->cells = lappend((*extcells)->cells, mapcells);
+			}
+			break;
+		}
+		case T_List:
+		{
+			List		*l = (List *) node;
+			ListCell	*lc;
+
+			foreach(lc, l)
+			{
+				extract_expr((Node *)lfirst(lc), extcells, tlist, compress_tlist_tle, compress_tlist, sgref, is_agg_ope);
+			}
+			break;
+		}
+		case T_FuncExpr:
+		{
+			FuncExpr	*func = (FuncExpr *) node;
+
+			if(func->args)
+				extract_expr((Node *)func->args, extcells, tlist, compress_tlist_tle, compress_tlist, sgref, is_agg_ope);
+			break;
+		}
+		case T_Aggref:
+		case T_Var:
+		{
+			Aggref 			*aggref = (Aggref*) node;
+			int 			target_num = 0;
+			TargetEntry 	*tle;
+			TargetEntry 	*tle_temp;
+			int				next_resno = list_length(*tlist) + 1;
+			int				next_resno_temp = list_length(*compress_tlist_tle) + 1;
+			Mappingcells 	*mapcells;
+
+			/* Initialize mapcells */
+			init_mappingcell(&mapcells);
+
+			/* When aggref is avg, variance or stddev, split it */
+			if (IsA(node, Aggref) && IS_SPLIT_AGG(aggref->aggfnoid))
+			{
+				/* Prepare COUNT Query */
+				Aggref	   *tempCount = copyObject(aggref);
+				Aggref	   *tempSum;
+				Aggref	   *tempVar;
+
+				tempVar = copyObject(aggref);
+				tempSum = copyObject(aggref);
+
+				if (aggref->aggtype == FLOAT4OID || aggref->aggtype == FLOAT8OID)
+				{
+					tempSum->aggfnoid = SUM_FLOAT8_OID;
+					tempSum->aggtype = FLOAT8OID;
+					tempSum->aggtranstype = FLOAT8OID;
+				}
+				else
+				{
+					tempSum->aggfnoid = SUM_INT4_OID;
+					tempSum->aggtype = INT8OID;
+					tempSum->aggtranstype = INT8OID;
+				}
+				tempCount->aggfnoid = COUNT_OID;
+				tempCount->aggtype = INT8OID;
+				tempCount->aggtranstype = INT8OID;
+
+				/* Prepare SUM Query */
+				tempVar->aggfnoid = VAR_OID;
+
+				/* add original mapping list to avg,var,stddev */
+				if (!spd_tlist_member((Expr*) aggref, *tlist, &target_num))
+				{
+					if (is_agg_ope == false)
+					{
+						tle = makeTargetEntry(copyObject((Expr*) aggref),
+											next_resno++,
+											NULL,
+											false);
+						*tlist = lappend(*tlist, tle);
+						mapcells->original_attnum = target_num;
+					}
+					else
+						mapcells->original_attnum = list_length(*tlist) - 1;
+				}
+				else
+					mapcells->original_attnum = list_length(*tlist) - 1;
+
+				/* set avg flag */
+				if (aggref->aggfnoid >= AVG_MIN_OID && aggref->aggfnoid <= AVG_MAX_OID)
+					mapcells->aggtype = AVG_FLAG;
+				else if (aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
+					mapcells->aggtype = VAR_FLAG;
+				else if (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID)
+					mapcells->aggtype = DEV_FLAG;
+
+				spd_spi_exec_proname(aggref->aggfnoid, mapcells->agg_command);
+
+				/* count */
+				if (!spd_tlist_member((Expr *) tempCount, *compress_tlist_tle, &target_num))
+				{
+					tle_temp = makeTargetEntry((Expr *) tempCount,
+											next_resno_temp++,
+											NULL,
+											false);
+					*compress_tlist_tle = lappend(*compress_tlist_tle, tle_temp);
+					*compress_tlist = lappend(*compress_tlist, tempCount);
+				}
+				mapcells->mapping[0] = target_num;
+				/* sum */
+				if (!spd_tlist_member((Expr *) tempSum, *compress_tlist_tle, &target_num))
+				{
+					tle_temp = makeTargetEntry((Expr *) tempSum,
+											next_resno_temp++,
+											NULL,
+											false);
+					*compress_tlist_tle = lappend(*compress_tlist_tle, tle_temp);
+					*compress_tlist = lappend(*compress_tlist, tempSum);
+				}
+				mapcells->mapping[1] = target_num;
+				(*extcells)->ext_num = (*extcells)->ext_num + 2;
+				/* variance(SUM(x*x)) */
+				if ((aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
+					|| (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
+				{
+					if (!spd_tlist_member((Expr *) tempVar, *compress_tlist_tle, &target_num))
+					{
+						TargetEntry *tarexpr;
+						TargetEntry *oparg = (TargetEntry *) tempVar->args->head->data.ptr_value;
+						Var		   *opvar = (Var *) oparg->expr;
+						OpExpr	   *opexpr = (OpExpr *) &oparg->xpr;
+						OpExpr	   *opexpr2 = copyObject(opexpr);
+
+						opexpr->xpr.type = T_OpExpr;
+						opexpr->opretset = false;
+						opexpr->opcollid = 0;
+						opexpr->inputcollid = 0;
+						opexpr->location = 0;
+						opexpr->args = NULL;
+
+						/* Create top targetentry */
+						if (tempVar->aggtype <= INT4OID || tempVar->aggtype == NUMERICOID)
+						{
+							tempVar->aggtype = INT8OID;
+							tempVar->aggtranstype = INT8OID;
+							tempVar->aggfnoid = SUM_OID;
+							opexpr->opno = OPEXPER_OID;
+							opexpr->opfuncid = OPEXPER_FUNCID;
+							opexpr->opresulttype = INT8OID;
+						}
+						else
+						{
+							tempVar->aggtype = FLOAT8OID;
+							tempVar->aggtranstype = FLOAT8OID;
+							tempVar->aggfnoid = SUM_FLOAT8_OID;
+							opexpr->opno = FLOAT8MUL_OID;
+							opexpr->opfuncid = FLOAT8MUL_FUNID;
+							opexpr->opresulttype = FLOAT8OID;
+						}
+						opexpr->args = lappend(opexpr->args, opvar);
+						opexpr->args = lappend(opexpr->args, opvar);
+						/* Create var targetentry */
+						tarexpr = makeTargetEntry((Expr *) opexpr,
+												next_resno_temp,
+												NULL,
+												false);
+						opexpr2 = (OpExpr *) tarexpr->expr;
+						opexpr2->opretset = false;
+						opexpr2->opcollid = 0;
+						opexpr2->inputcollid = 0;
+						opexpr2->location = 0;
+						tarexpr->resno = 1;
+						tempVar->args = lappend(tempVar->args, tarexpr);
+						tempVar->args = list_delete_first(tempVar->args);
+						tle_temp = makeTargetEntry((Expr *) tempVar,
+												next_resno_temp++,
+												NULL,
+												false);
+						*compress_tlist_tle = lappend(*compress_tlist_tle, tle_temp);
+						*compress_tlist = lappend(*compress_tlist, tle_temp);
+					}
+					mapcells->mapping[2] = target_num;
+					(*extcells)->ext_num++;
+				}
+			}
+			else
+			{
+				/* append original target list */
+				if (IsA(node, Aggref))
+				{
+					mapcells->aggtype = NON_SPLIT_AGG_FLAG;
+					spd_spi_exec_proname(aggref->aggfnoid, mapcells->agg_command);
+
+					/*
+					 * If aggregate functions is string_agg(expression, delimiter)
+					 * check the delimiter exist or not, if exist save the delimiter
+					 * to mapcells->agg_const.
+					 */
+					if (!pg_strcasecmp(mapcells->agg_command->data, "STRING_AGG"))
+					{
+						ListCell   *arg;
+						/* Check all the arguments */
+						foreach(arg, aggref->args)
+						{
+							TargetEntry *tle = (TargetEntry *) lfirst(arg);
+							Node	   *node = (Node *) tle->expr;
+
+							switch (nodeTag(node))
+							{
+								case T_Const:
+									{
+										Const *const_tmp = (Const *) node;
+										Oid			typoutput;
+										bool		typIsVarlena;
+										char	   *extval;
+
+										if (const_tmp->constisnull)
+										{
+											continue;
+										}
+
+										getTypeOutputInfo(const_tmp->consttype, &typoutput, &typIsVarlena);
+										extval = OidOutputFunctionCall(typoutput, const_tmp->constvalue);
+										deparseStringLiteral(mapcells->agg_const, extval);
+									}
+									break;
+								default:
+									break;
+							}
+						}
+					}
+				}
+				else
+					mapcells->aggtype = NON_AGG_FLAG;
+				
+				add_node_to_list((Expr *) node, tlist, &mapcells, compress_tlist_tle, compress_tlist, sgref, is_agg_ope, false);
+				(*extcells)->ext_num++;
+			}
+			(*extcells)->cells = lappend((*extcells)->cells, mapcells);
+			break;
+		}
+		default:
+			break;
+	}
+}
+
+/**
  * spd_add_to_flat_tlist
  *
  * Modified version of add_to_flat_tlist.
@@ -998,54 +1461,16 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 					  List **compress_tlist_tle, Index sgref, List **compress_tlist, bool allow_duplicate)
 {
 	int			next_resno = list_length(tlist) + 1;
-	int			next_resno_temp = list_length(*compress_tlist_tle) + 1;
 	int			target_num = 0;
-	TargetEntry *tle_temp;
 	TargetEntry *tle;
-	Aggref	   *aggref;
-	Mappingcells *mapcells = (struct Mappingcells *) palloc0(sizeof(struct Mappingcells));
-	int			i;
+	Extractcells* extcells = (struct Extractcells *) palloc0(sizeof(struct Extractcells)); 
 
-	for (i = 0; i < MAX_SPLIT_NUM; i++)
+	extcells->cells = NIL;
+	extcells->expr = copyObject(expr);
+	extcells->is_truncated = false;
+	if(IsA(expr, OpExpr))
 	{
-		/* these store 0-index, so initialize with -1 */
-		mapcells->mapping[i] = -1;
-		mapcells->original_attnum = -1;
-		mapcells->agg_command = makeStringInfo();
-		mapcells->agg_const = makeStringInfo();
-	}
-	aggref = (Aggref *) expr;
-	if (IsA(expr, Aggref) &&IS_SPLIT_AGG(aggref->aggfnoid))
-	{
-		/* Prepare COUNT Query */
-		Aggref	   *tempCount = copyObject(aggref);
-		Aggref	   *tempSum;
-		Aggref	   *tempVar;
-
-		tempVar = copyObject(aggref);
-		tempSum = copyObject(aggref);
-
-		if (aggref->aggtype == FLOAT4OID || aggref->aggtype == FLOAT8OID)
-		{
-			tempSum->aggfnoid = SUM_FLOAT8_OID;
-			tempSum->aggtype = FLOAT8OID;
-			tempSum->aggtranstype = FLOAT8OID;
-		}
-		else
-		{
-			tempSum->aggfnoid = SUM_INT4_OID;
-			tempSum->aggtype = INT8OID;
-			tempSum->aggtranstype = INT8OID;
-		}
-		tempCount->aggfnoid = COUNT_OID;
-		tempCount->aggtype = INT8OID;
-		tempCount->aggtranstype = INT8OID;
-
-		/* Prepare SUM Query */
-
-		tempVar->aggfnoid = VAR_OID;
-
-		/* add original mapping list to avg,var,stddev */
+		/* add original mapping list */
 		if (!spd_tlist_member(expr, tlist, &target_num))
 		{
 			tle = makeTargetEntry(copyObject(expr),
@@ -1055,195 +1480,24 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 			tlist = lappend(tlist, tle);
 
 		}
-		mapcells->original_attnum = target_num;
-		/* set avg flag */
-		if (aggref->aggfnoid >= AVG_MIN_OID && aggref->aggfnoid <= AVG_MAX_OID)
-			mapcells->aggtype = AVG_FLAG;
-		else if (aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
-			mapcells->aggtype = VAR_FLAG;
-		else if (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID)
-			mapcells->aggtype = DEV_FLAG;
-
-		spd_spi_exec_proname(aggref->aggfnoid, mapcells->agg_command);
-
-		/* count */
-		if (!spd_tlist_member((Expr *) tempCount, *compress_tlist_tle, &target_num))
-		{
-			tle_temp = makeTargetEntry((Expr *) tempCount,
-									   next_resno_temp++,
-									   NULL,
-									   false);
-			*compress_tlist_tle = lappend(*compress_tlist_tle, tle_temp);
-			*compress_tlist = lappend(*compress_tlist, tempCount);
-		}
-		mapcells->mapping[0] = target_num;
-		/* sum */
-		if (!spd_tlist_member((Expr *) tempSum, *compress_tlist_tle, &target_num))
-		{
-			tle_temp = makeTargetEntry((Expr *) tempSum,
-									   next_resno_temp++,
-									   NULL,
-									   false);
-			*compress_tlist_tle = lappend(*compress_tlist_tle, tle_temp);
-			*compress_tlist = lappend(*compress_tlist, tempSum);
-		}
-		mapcells->mapping[1] = target_num;
-		/* variance(SUM(x*x)) */
-		if ((aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
-			|| (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
-		{
-			if (!spd_tlist_member((Expr *) tempVar, *compress_tlist_tle, &target_num))
-			{
-				TargetEntry *tarexpr;
-				TargetEntry *oparg = (TargetEntry *) tempVar->args->head->data.ptr_value;
-				Var		   *opvar = (Var *) oparg->expr;
-				OpExpr	   *opexpr = (OpExpr *) &oparg->xpr;
-				OpExpr	   *opexpr2 = copyObject(opexpr);
-
-				opexpr->xpr.type = T_OpExpr;
-				opexpr->opretset = false;
-				opexpr->opcollid = 0;
-				opexpr->inputcollid = 0;
-				opexpr->location = 0;
-				opexpr->args = NULL;
-
-				/* Create top targetentry */
-				if (tempVar->aggtype <= INT4OID || tempVar->aggtype == NUMERICOID)
-				{
-					tempVar->aggtype = INT8OID;
-					tempVar->aggtranstype = INT8OID;
-					tempVar->aggfnoid = SUM_OID;
-					opexpr->opno = OPEXPER_OID;
-					opexpr->opfuncid = OPEXPER_FUNCID;
-					opexpr->opresulttype = INT8OID;
-				}
-				else
-				{
-					tempVar->aggtype = FLOAT8OID;
-					tempVar->aggtranstype = FLOAT8OID;
-					tempVar->aggfnoid = SUM_FLOAT8_OID;
-					opexpr->opresulttype = FLOAT8OID;
-					opexpr->opno = FLOAT8MUL_OID;
-					opexpr->opfuncid = FLOAT8MUL_FUNID;
-					opexpr->opresulttype = FLOAT8OID;
-				}
-				opexpr->args = lappend(opexpr->args, opvar);
-				opexpr->args = lappend(opexpr->args, opvar);
-				/* Create var targetentry */
-				tarexpr = makeTargetEntry((Expr *) opexpr,
-										  next_resno_temp,
-										  NULL,
-										  false);
-				opexpr2 = (OpExpr *) tarexpr->expr;
-				opexpr2->opretset = false;
-				opexpr2->opcollid = 0;
-				opexpr2->inputcollid = 0;
-				opexpr2->location = 0;
-				tarexpr->resno = 1;
-				tempVar->args = lappend(tempVar->args, tarexpr);
-				tempVar->args = list_delete_first(tempVar->args);
-				tle_temp = makeTargetEntry((Expr *) tempVar,
-										   next_resno_temp++,
-										   NULL,
-										   false);
-				*compress_tlist_tle = lappend(*compress_tlist_tle, tle_temp);
-				*compress_tlist = lappend(*compress_tlist, tle_temp);
-			}
-			mapcells->mapping[2] = target_num;
-		}
+		extract_expr((Node *) expr, &extcells, &tlist, compress_tlist_tle, compress_tlist, sgref, true);
+	}
+	else if (IsA(expr, Aggref))
+	{
+		extract_expr((Node *) expr, &extcells, &tlist, compress_tlist_tle, compress_tlist, sgref, false);
 	}
 	else
 	{
-		/* Non-agg group by target or non-split agg such as sum or count */
-		/* original */
-		if (allow_duplicate || !spd_tlist_member(expr, tlist, &target_num))
-		{
-			if (allow_duplicate)
-				target_num = list_length(tlist);
+		Mappingcells *mapcells;
 
-			tle = makeTargetEntry(copyObject(expr),
-								  next_resno++,
-								  NULL,
-								  false);
-			tle->ressortgroupref = sgref;
-			tlist = lappend(tlist, tle);
-		}
-		/* append original target list */
-		if (IsA(expr, Aggref))
-		{
-			mapcells->aggtype = NON_SPLIT_AGG_FLAG;
-			spd_spi_exec_proname(aggref->aggfnoid, mapcells->agg_command);
+		init_mappingcell(&mapcells);
+		add_node_to_list(expr, &tlist, &mapcells, compress_tlist_tle, compress_tlist, sgref, false, allow_duplicate);
 
-			/*
-			 * If aggregate functions is string_agg(expression, delimiter)
-			 * check the delimiter exist or not, if exist save the delimiter
-			 * to mapcells->agg_const.
-			 */
-			if (!pg_strcasecmp(mapcells->agg_command->data, "STRING_AGG"))
-			{
-				ListCell   *arg;
-				/* Check all the arguments */
-				foreach(arg, aggref->args)
-				{
-					TargetEntry *tle = (TargetEntry *) lfirst(arg);
-					Node	   *node = (Node *) tle->expr;
-
-					switch (nodeTag(node))
-					{
-						case T_Const:
-							{
-								Const *const_tmp = (Const *) node;
-								Oid			typoutput;
-								bool		typIsVarlena;
-								char	   *extval;
-
-								if (const_tmp->constisnull)
-								{
-									continue;
-								}
-
-								getTypeOutputInfo(const_tmp->consttype, &typoutput, &typIsVarlena);
-								extval = OidOutputFunctionCall(typoutput, const_tmp->constvalue);
-								deparseStringLiteral(mapcells->agg_const, extval);
-							}
-							break;
-						default:
-							break;
-					}
-				}
-			}
-		}
-		else
-			mapcells->aggtype = NON_AGG_FLAG;
-
-		mapcells->original_attnum = target_num;
-		/* div tlist */
-		if (allow_duplicate || !spd_tlist_member(expr, *compress_tlist_tle, &target_num))
-		{
-			tle_temp = makeTargetEntry(copyObject(expr),
-									   next_resno_temp++,
-									   NULL,
-									   false);
-			tle_temp->ressortgroupref = sgref;
-			*compress_tlist_tle = lappend(*compress_tlist_tle, tle_temp);
-			*compress_tlist = lappend(*compress_tlist, expr);
-		}
-
-		/* If allow duplicate, so need to change mapping to the last of compress_tlist */
-		if (allow_duplicate)
-		{
-			mapcells->mapping[0] = list_length(*compress_tlist) - 1;
-		}
-		else
-		{
-			mapcells->mapping[0] = target_num;
-		}
-		
+		extcells->cells = lappend(extcells->cells, mapcells);
 	}
-	*mapping_tlist = lappend(*mapping_tlist, mapcells);
+	*mapping_tlist = lappend(*mapping_tlist, extcells);
 	return tlist;
 }
-
 
 
 /*
@@ -3293,7 +3547,8 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 		if (sgref && get_sortgroupref_clause_noerr(sgref, query->groupClause))
 		{
 			int			before_listnum;
-
+			bool		allow_duplicate = true;
+			int			target_num = 0;
 			/*
 			 * If any of the GROUP BY expression is not shippable we can not
 			 * push down aggregation to the foreign server.
@@ -3302,9 +3557,29 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 				return false;
 			/* Pushable, add to tlist */
 			before_listnum = list_length(compress_child_tlist);
-			tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, sgref, &upper_targets, true);
+			/* 
+			 * When expr is already in compress_child_tlist, add as duplicated will cause 
+			 * wrong query when rebuilding query on temp table. No need to add as duplicated.
+			 */
+			if (!spd_tlist_member(expr, mapping_tlist, &target_num) && spd_tlist_member(expr, compress_child_tlist, &target_num))
+				allow_duplicate = false;
+			tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, sgref, &upper_targets, allow_duplicate);
 			groupby_cursor += list_length(compress_child_tlist) - before_listnum;
-			fpinfo->groupby_target = lappend_int(fpinfo->groupby_target, groupby_cursor - 1);
+			/*
+			 * When Operator expression contains group by column, the column will be added
+			 * into compress_child_tlist when extracting the expression. Because of that, 
+			 * the groupby_cursor will be equal to before_listnum. We need to find the index of 
+			 * column in compress_child_tlist to set groupby_target.
+			 */
+			if (groupby_cursor == before_listnum)	
+			{
+				int target_num;
+
+				if(spd_tlist_member(expr, compress_child_tlist, &target_num))
+					fpinfo->groupby_target = lappend_int(fpinfo->groupby_target, target_num);
+			}
+			else
+				fpinfo->groupby_target = lappend_int(fpinfo->groupby_target, groupby_cursor - 1);
 		}
 		else
 		{
@@ -4462,79 +4737,85 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 	mapping_tlist = fdw_private->mapping_tlist;
 	foreach(lc, mapping_tlist)
 	{
-		Mappingcells *mapcels = (Mappingcells *) lfirst(lc);
-		Datum		attr;
-		char	   *value;
-		bool		isnull;
-		Oid			typoutput;
-		bool		typisvarlena;
-		int			child_typid;
+		Extractcells *extcells = (Extractcells *) lfirst(lc);
+		ListCell	 *extlc;
 
-		for (i = 0; i < MAX_SPLIT_NUM; i++)
+		foreach(extlc, extcells->cells)
 		{
-			Form_pg_attribute sattr = TupleDescAttr(slot->tts_tupleDescriptor, colid);
+			Mappingcells *mapcels = (Mappingcells *) lfirst(extlc);
+			Datum		attr;
+			char		*value;
+			bool		isnull;
+			Oid			typoutput;
+			bool		typisvarlena;
+			int			child_typid;
 
-			if (colid != mapcels->mapping[i])
-				continue;
-
-			if (isfirst)
-				isfirst = false;
-			else
-				appendStringInfo(sql, ",");
-			/* Append place holder */
-			appendStringInfo(sql, "$%d", colid + 1);
-
-			getTypeOutputInfo(sattr->atttypid, &typoutput, &typisvarlena);
-			child_typid = exprType((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, colid))->expr);
-
-			/* 
-			 * SPI_execute_with_args receives a nulls array.
-			 * If the value is not null, value of entry will be ' '.
-			 * If the value is null, value of entry will be 'n'.
-			 */
-			nulls[colid] = ' ';
-
-			/* Set data type */
-			argtypes[colid] = child_typid;
-
-			/* Set value */
-			attr = slot_getattr(slot, mapcels->mapping[i] + 1, &isnull);
-			if (isnull)
+			for (i = 0; i < MAX_SPLIT_NUM; i++)
 			{
-				nulls[colid] = 'n';
-				colid++;
-				continue;
-			}
-			value = OidOutputFunctionCall(typoutput, attr);
-			appendStringInfo(debugValues, "%s, ", value != NULL?value:"");
-			/* Not null */
-			values[colid] = attr;
-			/* Set data for special data */
-			if (sattr->atttypid == UNKNOWNOID) 
-			{
-				argtypes[colid] = TEXTOID;
-				if (!isnull)
-					values[colid] = CStringGetTextDatum(DatumGetCString(values[colid]));
-			}
-			else if (!isnull) 
-			{
-				int16 typLen;
-				bool  typByVal;
+				Form_pg_attribute sattr = TupleDescAttr(slot->tts_tupleDescriptor, colid);
 
-				/* Copy datum to current context */
-				get_typlenbyval(sattr->atttypid, &typLen, &typByVal);
-				if (!typByVal) {
-					if (typisvarlena) {
-						/* Need to copy data to */
-						values[colid] = PointerGetDatum(PG_DETOAST_DATUM_COPY(values[colid]));
-					} 
-					else 
-					{
-						values[colid] = datumCopy(values[colid], typByVal, typLen);
+				if (colid != mapcels->mapping[i])
+					continue;
+
+				if (isfirst)
+					isfirst = false;
+				else
+					appendStringInfo(sql, ",");
+				/* Append place holder */
+				appendStringInfo(sql, "$%d", colid + 1);
+
+				getTypeOutputInfo(sattr->atttypid, &typoutput, &typisvarlena);
+				child_typid = exprType((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, colid))->expr);
+
+				/* 
+				* SPI_execute_with_args receives a nulls array.
+				* If the value is not null, value of entry will be ' '.
+				* If the value is null, value of entry will be 'n'.
+				*/
+				nulls[colid] = ' ';
+
+				/* Set data type */
+				argtypes[colid] = child_typid;
+
+				/* Set value */
+				attr = slot_getattr(slot, mapcels->mapping[i] + 1, &isnull);
+				if (isnull)
+				{
+					nulls[colid] = 'n';
+					colid++;
+					continue;
+				}
+				value = OidOutputFunctionCall(typoutput, attr);
+				appendStringInfo(debugValues, "%s, ", value != NULL?value:"");
+				/* Not null */
+				values[colid] = attr;
+				/* Set data for special data */
+				if (sattr->atttypid == UNKNOWNOID) 
+				{
+					argtypes[colid] = TEXTOID;
+					if (!isnull)
+						values[colid] = CStringGetTextDatum(DatumGetCString(values[colid]));
+				}
+				else if (!isnull) 
+				{
+					int16 typLen;
+					bool  typByVal;
+
+					/* Copy datum to current context */
+					get_typlenbyval(sattr->atttypid, &typLen, &typByVal);
+					if (!typByVal) {
+						if (typisvarlena) {
+							/* Need to copy data to */
+							values[colid] = PointerGetDatum(PG_DETOAST_DATUM_COPY(values[colid]));
+						} 
+						else 
+						{
+							values[colid] = datumCopy(values[colid], typByVal, typLen);
+						}
 					}
 				}
+				colid++;
 			}
-			colid++;
 		}
 	}
 	appendStringInfo(sql, ")");
@@ -4561,23 +4842,42 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
  * @param[in,out] expected_value
  */
 static bool
-datum_is_converted(Oid original_type, Datum original_value, Oid expected_type, Datum *expected_value)
+datum_is_converted(Oid original_type, Datum original_value, Oid expected_type, Datum *expected_value, bool is_truncated)
 {
 	Datum value;
 	PGFunction conversion_func = NULL;
 	bool unexpected = false;
+	bool rounded_up = false;
 
 	switch (original_type)
 	{
 		case NUMERICOID:
 			if (expected_type == INT8OID)
+			{
 				conversion_func = numeric_int8;
+
+				if (is_truncated)
+				{
+					/* Check if the value will be rounded up by numeric_int8 */
+					char *tmp;
+					double tmp_dbl_val;
+
+					tmp = DatumGetCString(DirectFunctionCall1(numeric_out, original_value));
+					tmp_dbl_val = strtod(tmp, NULL);
+					if ((tmp_dbl_val - trunc(tmp_dbl_val)) >= 0.5)
+					{
+						rounded_up = true;
+					}
+				}
+			}
 			else
 				unexpected = true;
 			break;
 		case FLOAT8OID:
 			if (expected_type == FLOAT4OID)
 				conversion_func = dtof;
+			else if (expected_type == NUMERICOID)
+				conversion_func = float8_numeric;
 			else
 				unexpected = true;
 			break;
@@ -4607,6 +4907,12 @@ datum_is_converted(Oid original_type, Datum original_value, Oid expected_type, D
 	if (conversion_func != NULL)
 	{
 		value = DirectFunctionCall1(conversion_func, original_value);
+		/* 
+		 * When need to truncated but value is rounded up by numeric_int8 function,
+		 * decrease value by 1 to get expected value
+		 */
+		if (is_truncated == true && rounded_up == true)
+			value--;
 		*expected_value = value;
 		return true;
 	}
@@ -4614,9 +4920,28 @@ datum_is_converted(Oid original_type, Datum original_value, Oid expected_type, D
 	{
 		/* Display a warning message when there is unexpected case */
 		if (unexpected == true)
-			elog(WARNING, "Found an unexpected case when converting data to expected data of temp table. The value will copied without conversion.");
+			elog(WARNING, "Found an unexpected case when converting data to expected data of temp table. The value will be copied without conversion.");
 		return false;
 	}
+}
+
+/**
+ * emit_context_error
+ *
+ * This callback function is used to display error message without context
+ */
+static void
+emit_context_error(void* context)
+{
+	ErrorData *err;
+	MemoryContext oldcontext;
+
+	oldcontext = MemoryContextSwitchTo(context);
+	err = CopyErrorData();
+	MemoryContextSwitchTo(oldcontext);
+
+	/* Display error without displaying context */
+	elog(ERROR, "%s", err->message);
 }
 
 /**
@@ -4635,18 +4960,23 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql)
 	int			i,
 				k;
 	int			colid = 0;
-	int			mapping;
-	bool		isnull = false;
 	MemoryContext oldcontext;
-	Mappingcells *mapcells;
 	ListCell   *lc;
+	ErrorContextCallback errcallback;
 
 	SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex);
 	ret = SPI_connect();
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
-	/* execute select */
+
+	/* Set up callback to display error without CONTEXT information */
+	errcallback.callback = emit_context_error;
+	errcallback.arg = fdw_private->es_query_cxt;
+	errcallback.previous = NULL;
+	error_context_stack = &errcallback;
+
 	ret = SPI_exec(sql->data, 0);
+
 	if (ret != SPI_OK_SELECT)
 		elog(ERROR, "execute spi SELECT TEMP TABLE failed ");
 	if (SPI_processed == 0)
@@ -4682,52 +5012,45 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql)
 		colid = 0;
 		foreach(lc, fdw_private->mapping_tlist)
 		{
-			mapcells = (Mappingcells *) lfirst(lc);
-			for (i = 0; i < MAX_SPLIT_NUM; i++)
+			Extractcells		*extcells = (Extractcells *) lfirst(lc);
+			Oid					expected_type = exprType((Node *) extcells->expr);
+			Datum				datum;
+			Form_pg_attribute	attr = TupleDescAttr(SPI_tuptable->tupdesc, colid);
+			bool				isnull = false;
+			
+			fdw_private->agg_value_type[colid] = attr->atttypid;
+
+			datum = SPI_getbinval(SPI_tuptable->vals[k],
+								SPI_tuptable->tupdesc,
+								colid + 1,
+								&isnull);
+			
+			if (isnull)
+				fdw_private->agg_nulls[k][colid] = true;
+			else if (fdw_private->agg_value_type[colid] != expected_type)	/* Only convert when data type of column of temp table is different from returned data */
 			{
-				Datum		datum;
-				Form_pg_attribute attr = TupleDescAttr(SPI_tuptable->tupdesc, colid);
-				Oid temp_tbl_typid;
-				
-				mapping = mapcells->mapping[i];
-				if (colid != mapping)
-					continue;
-
-				fdw_private->agg_value_type[colid] = attr->atttypid;
-
-				datum = SPI_getbinval(SPI_tuptable->vals[k],
-									  SPI_tuptable->tupdesc,
-									  colid + 1,
-									  &isnull);
-				
-				temp_tbl_typid = exprType((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, colid))->expr);
-				if (isnull)
-					fdw_private->agg_nulls[k][colid] = true;
-				else if (fdw_private->agg_value_type[colid] != temp_tbl_typid)	/* Only convert when data type of column of temp table is different from returned data */
+				if (datum_is_converted(fdw_private->agg_value_type[colid], datum, expected_type, 
+											&fdw_private->agg_values[k][colid], extcells->is_truncated))
 				{
-					if (datum_is_converted(fdw_private->agg_value_type[colid], datum, temp_tbl_typid, 
-												&fdw_private->agg_values[k][colid]))
-					{
-						fdw_private->agg_value_type[colid] = temp_tbl_typid;
-					}
-					else
-					{
-						/* Copy datum */
-						fdw_private->agg_values[k][colid] = datumCopy(datum,
-																  attr->attbyval,
-																  attr->attlen);
-					}
+					fdw_private->agg_value_type[colid] = expected_type;
 				}
 				else
 				{
-					/* We need to deep copy datum from SPI memory context */
+					/* Copy datum */
 					fdw_private->agg_values[k][colid] = datumCopy(datum,
-																  attr->attbyval,
-																  attr->attlen);
+															attr->attbyval,
+															attr->attlen);
 				}
-
-				colid++;
 			}
+			else
+			{
+				/* We need to deep copy datum from SPI memory context */
+				fdw_private->agg_values[k][colid] = datumCopy(datum,
+															attr->attbyval,
+															attr->attlen);
+			}
+
+			colid++;
 		}
 	}
 	Assert(colid == fdw_private->temp_num_cols);
@@ -4736,45 +5059,6 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql)
 	SPI_finish();
 end:;
 	SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
-}
-
-/**
- * Return float8 value converted from int or float value.
- *
- * @param[in] type
- * @param[in] value
- */
-static float8
-datum_to_float8(Oid type, Datum value)
-{
-	double		sum = 0;
-
-	switch (type)
-	{
-		case INT4OID:
-			sum = (float8) DatumGetInt32(value);
-			break;
-		case INT8OID:
-			sum = (float8) DatumGetInt64(value);
-			break;
-		case INT2OID:
-			sum = (float8) DatumGetInt16(value);
-			break;
-		case FLOAT4OID:
-			sum = (float8) DatumGetFloat4(value);
-			break;
-		case FLOAT8OID:
-			sum = (float8) DatumGetFloat8(value);
-			break;
-		case NUMERICOID:
-		case BOOLOID:
-		case TIMESTAMPOID:
-		case DATEOID:
-		default:
-			Assert(false);
-			break;
-	}
-	return sum;
 }
 
 /**
@@ -4791,12 +5075,13 @@ datum_to_float8(Oid type, Datum value)
 static void
 spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 {
-	Datum	   *ret_agg_values;
-	HeapTuple	tuple;
-	bool	   *nulls;
-	int			target_column;
-	ListCell   *lc;
-	Mappingcells *mapcells;
+	Datum	   		*ret_agg_values;
+	HeapTuple		tuple;
+	bool	   		*nulls;
+	int				target_column;	/* Number of target in slot */
+	int				map_column;		/* Number of target in query */
+	ListCell		*lc;
+	Mappingcells	*mapcells;
 
 	/* Clear Tuple if agg results is empty */
 	if (!fdw_private->agg_values)
@@ -4807,103 +5092,33 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 	}
 
 	target_column = 0;
+	map_column = 0;
 	ret_agg_values = (Datum *) palloc0(slot->tts_tupleDescriptor->natts * sizeof(Datum));
 	nulls = (bool *) palloc0(slot->tts_tupleDescriptor->natts * sizeof(bool));
 
 	foreach(lc, fdw_private->mapping_tlist)
 	{
-		int			mapping;
-
-		mapcells = (Mappingcells *) lfirst(lc);
-
-		mapping = mapcells->mapping[0];
+		Extractcells	*extcells = lfirst(lc);
+		ListCell		*extlc;
+		
+		extlc = list_head(extcells->cells);
+		mapcells = (Mappingcells *) lfirst(extlc);
+		
 		if (target_column != mapcells->original_attnum)
+		{
+			map_column++;
 			continue;
-		if (mapcells->aggtype != NON_SPLIT_AGG_FLAG &&
-			mapcells->aggtype != NON_AGG_FLAG)
-		{
-			int			count_mapping = mapcells->mapping[0];
-			int			sum_mapping = mapcells->mapping[1];
-			float8		result = 0.0;
-			float8		sum = 0.0;
-			float8		cnt = 0.0;
-
-			if (fdw_private->agg_nulls[rowid][count_mapping])
-			{
-				nulls[target_column] = true;
-				target_column++;
-				continue;
-			}
-
-			if (fdw_private->agg_nulls[rowid][sum_mapping])
-				nulls[target_column] = true;
-			else
-			{
-				sum = datum_to_float8(fdw_private->agg_value_type[sum_mapping],
-									  fdw_private->agg_values[rowid][sum_mapping]);
-
-				/* Result of count should be INT8OID */
-				Assert(fdw_private->agg_value_type[count_mapping] == INT8OID);
-				cnt = (float8) DatumGetInt64(fdw_private->agg_values[rowid][count_mapping]);
-
-				if (cnt == 0)
-				{
-					nulls[target_column] = true;
-					target_column++;
-					continue;
-				}
-
-				if (mapcells->aggtype == AVG_FLAG)
-					result = sum / cnt;
-				else
-				{
-					int			vardev_mapping = mapcells->mapping[2];
-					float8		sum2 = 0.0;
-					float8		right = 0.0;
-					float8		left = 0.0;
-
-					if (cnt == 1)
-					{
-						nulls[target_column] = true;
-						target_column++;
-						continue;
-					}
-
-					sum2 = datum_to_float8(fdw_private->agg_value_type[vardev_mapping],
-										   fdw_private->agg_values[rowid][vardev_mapping]);
-
-					right = sum2;
-					left = pow(sum, 2) / cnt;
-					result = (float8) (right - left) / (float8) (cnt - 1);
-					if (mapcells->aggtype == DEV_FLAG)
-					{
-						float		var = 0.0;
-
-						var = (float8) (right - left) / (float8) (cnt - 1);
-						result = sqrt(var);
-					}
-				}
-
-				if (fdw_private->agg_value_type[sum_mapping] == FLOAT8OID ||
-					fdw_private->agg_value_type[sum_mapping] == FLOAT4OID)
-					ret_agg_values[target_column] = Float8GetDatumFast(result);
-				else
-					ret_agg_values[target_column] = DirectFunctionCall1(float8_numeric, Float8GetDatumFast(result));
-			}
 		}
-		else
-		{
-			Assert(mapping < fdw_private->temp_num_cols);
-			if (fdw_private->agg_nulls[rowid][mapping])
-				nulls[target_column] = true;
-			ret_agg_values[target_column] = fdw_private->agg_values[rowid][mapping];
-
-		}
+		
+		if (fdw_private->agg_nulls[rowid][map_column])
+			nulls[target_column] = true;
+		ret_agg_values[target_column] = fdw_private->agg_values[rowid][map_column];
+		
 		target_column++;
+		map_column++;
 	}
-	Assert(target_column == slot->tts_tupleDescriptor->natts);
 
-	if (TTS_IS_HEAPTUPLE(slot) && ((HeapTupleTableSlot*) slot)->tuple){
+	if ((TTS_IS_HEAPTUPLE(slot) && ((HeapTupleTableSlot*) slot)->tuple)){
 		tuple = heap_form_tuple(slot->tts_tupleDescriptor, ret_agg_values, nulls);
 		ExecStoreHeapTuple(tuple, slot, false);
 	}else{
@@ -4915,6 +5130,299 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 	}
 
 	fdw_private->agg_num++;
+}
+
+/*
+ *	Convert type OID + typmod info into a type name
+ */
+static char *
+deparse_type_name(Oid type_oid, int32 typemod)
+{
+	bits16		flags = FORMAT_TYPE_TYPEMOD_GIVEN;
+
+	return format_type_extended(type_oid, typemod, flags);
+}
+
+/**
+ * rebuild_target_expr
+ * 
+ * This function rebuilds the target expression which will be used on temp table.
+ * It is based on the original expression and the mapping data.
+ * 
+ * @param[in] node - Original expression
+ * @param[in,out] buf - Target expression
+ * @param[in] extcells - Extracted cells which contains mapping data
+ * @param[in] cellid -  The cell id which will be mapped
+ * @param[in] isfirst - True if this expression is the first expression in query
+ */
+static void
+rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cellid, List *groupby_target, bool isfirst)
+{
+	if (node == NULL)
+		return;
+
+	switch(nodeTag(node))
+	{
+		case T_OpExpr:
+		{
+			OpExpr				*ope = (OpExpr *) node;
+			HeapTuple			tuple;
+			Form_pg_operator	form;
+			char				oprkind;
+			char				*opname;
+			ListCell			*arg;
+
+			/* Retrieve information about the operator from system catalog. */
+			tuple = SearchSysCache1(OPEROID, ObjectIdGetDatum(ope->opno));
+			if (!HeapTupleIsValid(tuple))
+				elog(ERROR, "cache lookup failed for operator %u", ope->opno);
+			form = (Form_pg_operator) GETSTRUCT(tuple);
+			oprkind = form->oprkind;
+
+			/* Always parenthesize the expression. */
+			appendStringInfoChar(buf, '(');
+
+			if (!is_need_extract((Node *)ope))
+			{
+				ListCell *extlc;
+				int id = 0;
+
+				foreach(extlc, extcells->cells)
+				{
+					/* Find the mapping cell */
+					Mappingcells *cell = (Mappingcells *) lfirst(extlc);
+					int mapping;
+					if (id != (*cellid))
+					{
+						id++;
+						continue;
+					}
+
+					mapping = cell->mapping[0];
+					/*
+					 * Ex: SUM(i)/2
+					 */
+					if (!list_member_int(groupby_target, mapping))
+					{
+						appendStringInfo(buf, "SUM(col%d)", mapping);
+					}
+
+					/*
+					 * This is GROUP BY target. Ex: 't' in select sum(i),t
+					 * from t1 group by t
+					 */
+					else
+					{
+						appendStringInfo(buf, "col%d", mapping);
+					}
+					break;
+				}
+				(*cellid)++;
+			}
+			else
+			{
+				/* Deparse left operand. */
+				if (oprkind == 'r' || oprkind == 'b')
+				{
+					arg = list_head(ope->args);
+					rebuild_target_expr(lfirst(arg), buf, extcells, cellid, groupby_target, isfirst);
+					appendStringInfoChar(buf, ' ');
+				}
+
+				/* Set operator name. */
+				opname = NameStr(form->oprname);
+				appendStringInfoString(buf, opname);
+
+				/* If operator is division, need to truncate. Set is_truncate to true */
+				if (strcmp(opname, "/") == 0)
+					extcells->is_truncated = true;
+
+				/* Deparse right operand. */
+				if (oprkind == 'l' || oprkind == 'b')
+				{
+					arg = list_tail(ope->args);
+					appendStringInfoChar(buf, ' ');
+					rebuild_target_expr(lfirst(arg), buf, extcells, cellid, groupby_target, isfirst);
+				}
+			}
+			appendStringInfoChar(buf, ')');
+
+			ReleaseSysCache(tuple);
+			break;
+		}
+		case T_Aggref:
+		{
+			ListCell *extlc;
+			int id = 0;
+
+			foreach(extlc, extcells->cells)
+			{
+				/* Find the mapping cell */
+				Mappingcells *cell = (Mappingcells *) lfirst(extlc);
+				int mapping;
+				if (id != (*cellid))
+				{
+					id++;
+					continue;
+				}
+
+				switch (cell->aggtype)
+				{
+					case AVG_FLAG:
+					{
+						/* Use CASE WHEN to avoid division by zero error */
+						appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 THEN NULL ELSE (SUM(col%d)/SUM(col%d))::float8 END)", cell->mapping[0], cell->mapping[1], cell->mapping[0]);
+						break;
+					}
+					case VAR_FLAG:
+					{
+						/* Use CASE WHEN to avoid division by zero error */
+						appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 OR SUM(col%d) = 1 THEN NULL ELSE ((SUM(col%d) - POWER(SUM(col%d), 2)/SUM(col%d))/(SUM(col%d) - 1))::float8 END)", 
+								cell->mapping[0], cell->mapping[0], cell->mapping[2], cell->mapping[1], cell->mapping[0], cell->mapping[0]);
+						break;
+					}
+					case DEV_FLAG:
+					{
+						/* Use CASE WHEN to avoid division by zero error */
+						appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 OR SUM(col%d) = 1 THEN NULL ELSE (sqrt((SUM(col%d) - POWER(SUM(col%d), 2)/SUM(col%d))/(SUM(col%d) - 1)))::float8 END)", 
+								cell->mapping[0], cell->mapping[0], cell->mapping[2], cell->mapping[1], cell->mapping[0], cell->mapping[0]);
+						break;
+					}
+					default:
+					{
+						char	   *agg_command = cell->agg_command->data;
+						char		*agg_const = cell->agg_const->data;		/* constant argument of function */
+						mapping = cell->mapping[0];
+
+						/* If original aggregate function is count, change to sum to count all data from multiple nodes */
+						if (!pg_strcasecmp(agg_command, "SUM") || !pg_strcasecmp(agg_command, "COUNT"))
+							appendStringInfo(buf, "SUM(col%d)", mapping);
+						else if (!pg_strcasecmp(agg_command, "MAX") || !pg_strcasecmp(agg_command, "MIN") ||
+								!pg_strcasecmp(agg_command, "BIT_OR") || !pg_strcasecmp(agg_command, "BIT_AND") ||
+								!pg_strcasecmp(agg_command, "BOOL_AND") || !pg_strcasecmp(agg_command, "BOOL_OR") ||
+								!pg_strcasecmp(agg_command, "EVERY") || !pg_strcasecmp(agg_command, "XMLAGG"))
+							appendStringInfo(buf, "%s(col%d)", agg_command, mapping);
+
+						/*
+						 * This is for string_agg function. This function require delimiter to work
+						 */
+						else if (!pg_strcasecmp(agg_command, "STRING_AGG"))
+						{
+							appendStringInfo(buf, "%s(col%d, %s)", agg_command, mapping, agg_const);
+						}
+						/*
+						 * This is for influx db functions. MAX has not effect to
+						 * result. We have to consider multi-tenant.
+						 */
+						else if (!pg_strcasecmp(agg_command, "INFLUX_TIME") || !pg_strcasecmp(agg_command, "LAST"))
+							appendStringInfo(buf, "MAX(col%d)", mapping);
+
+						/*
+						 * Other aggregation not listed above. TODO: SUM may be
+						 * incorrect for multi-tenant table.
+						 */
+						else
+							appendStringInfo(buf, "SUM(col%d)", mapping);
+
+						break;
+
+					}
+				}	
+				(*cellid)++;
+				break;
+			}
+			break;
+		}
+		case T_FuncExpr:
+		{
+			FuncExpr	*func = (FuncExpr *) node;
+			Oid			rettype = func->funcresulttype;
+			int32		coercedTypmod;
+
+			/* To handle case user cast data type using "::" */
+			if (func->funcformat == COERCE_EXPLICIT_CAST)
+				appendStringInfoChar(buf, '(');
+
+			if(func->args)
+				rebuild_target_expr((Node *)func->args, buf, extcells, cellid, groupby_target, isfirst);
+			else
+			{
+				/* When there is no arguments, only need to append function name and "()" */
+				HeapTuple		proctup;
+				Form_pg_proc	procform;
+
+				proctup = SearchSysCache1(PROCOID, ObjectIdGetDatum(func->funcid));
+				if (!HeapTupleIsValid(proctup))
+					elog(ERROR, "cache lookup failed for function %u", func->funcid);
+				procform = (Form_pg_proc) GETSTRUCT(proctup);
+
+				appendStringInfo(buf, "%s()", NameStr(procform->proname));
+				ReleaseSysCache(proctup);
+			}
+
+			/* To handle case user cast data type using "::" */
+			if (func->funcformat == COERCE_EXPLICIT_CAST)
+			{
+				/* Get the typmod if this is a length-coercion function */
+				(void) exprIsLengthCoercion((Node *) node, &coercedTypmod);
+
+				appendStringInfo(buf, ")::%s",
+						 deparse_type_name(rettype, coercedTypmod));
+			}
+
+			break;
+		}
+		case T_List:
+		{
+			List	   *l = (List *) node;
+			ListCell   *lc;
+
+			foreach(lc, l)
+			{
+				rebuild_target_expr((Node *)lfirst(lc), buf, extcells, cellid, groupby_target, isfirst);
+			}
+			break;
+		}
+		case T_Const:
+		{
+			Const		*const_tmp = (Const *) node;
+			Oid			typoutput;
+			bool		typIsVarlena;
+			char		*val;
+			getTypeOutputInfo(const_tmp->consttype, &typoutput, &typIsVarlena);
+			val = OidOutputFunctionCall(typoutput, const_tmp->constvalue);
+
+			/* Append const */
+			appendStringInfo(buf, "%s", val);
+			break;
+		}
+		case T_Var:
+		{
+			ListCell *extlc;
+			int id = 0;
+
+			foreach(extlc, extcells->cells)
+			{
+				/* Find the mapping cell */
+				Mappingcells *cell = (Mappingcells *) lfirst(extlc);
+				int mapping;
+				if (id != (*cellid))
+				{
+					id++;
+					continue;
+				}
+
+				mapping = cell->mapping[0];
+				/* Append var name */
+				appendStringInfo(buf, "col%d", mapping);
+				break;
+			}
+			(*cellid)++;
+			break;
+		}
+		default:
+			break;
+	}
 }
 
 /**
@@ -4938,109 +5446,125 @@ static TupleTableSlot *
 spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate * fdw_private)
 {
 	StringInfo	sql = makeStringInfo();
-	int			max_col = 0;
-	int			i;
-	ListCell   *lc;
+	ListCell	*lc;
 	int			j = 0;
 	bool		isfirst = true;
-
+	int			target_num = 0;		/* Number of target in query */
 	/* Create Select query */
 	appendStringInfo(sql, "SELECT ");
 
-	i = 0;
 	foreach(lc, fdw_private->mapping_tlist)
 	{
-		Mappingcells *cells = (Mappingcells *) lfirst(lc);
-		char	   *agg_command = cells->agg_command->data;
-		char	   *agg_const = cells->agg_const->data;
-		int			agg_type = cells->aggtype;
+		Extractcells *extcells = (Extractcells *) lfirst(lc);
+		ListCell *extlc;
 
-		for (i = 0; i < MAX_SPLIT_NUM; i++)
-		{
-			int			mapping = cells->mapping[i];
+		/* No extract case */
+		if (extcells->ext_num == 0)
+		{	
+			Mappingcells	*cells;
+			char			*agg_command;
+			int				agg_type;
+			char			*agg_const;
+			int				mapping;
 
-			if (max_col == mapping)
+			extlc = list_head(extcells->cells);
+			cells = (Mappingcells *) lfirst(extlc);
+			agg_command = cells->agg_command->data;
+			agg_type = cells->aggtype;
+			agg_const = cells->agg_const->data;
+
+			mapping = cells->mapping[0];
+
+			if (isfirst)
+				isfirst = false;
+			else
+				appendStringInfo(sql, ",");
+
+			/*
+			 * For those columns listed in the grouping target but not
+			 * listed in the target list. For example, SELECT avg(i) FROM
+			 * t1 GROUP BY i,t. column name i and column name t not listed
+			 * in the target list, so agg_command is NULL.
+			 */
+			if (agg_command == NULL)
 			{
-				if (isfirst)
-					isfirst = false;
-				else
-					appendStringInfo(sql, ",");
+				appendStringInfo(sql, "col%d", mapping);
+				continue;
+			}
+			else if (agg_type != NON_AGG_FLAG)
+			{
+				/*
+				 * This is for aggregate functions
+				 */
+				if (!pg_strcasecmp(agg_command, "SUM") || !pg_strcasecmp(agg_command, "COUNT") ||
+					!pg_strcasecmp(agg_command, "AVG") || !pg_strcasecmp(agg_command, "VARIANCE") ||
+					!pg_strcasecmp(agg_command, "STDDEV"))
+					appendStringInfo(sql, "SUM(col%d)", mapping);
+
+				else if (!pg_strcasecmp(agg_command, "MAX") || !pg_strcasecmp(agg_command, "MIN") ||
+						!pg_strcasecmp(agg_command, "BIT_OR") || !pg_strcasecmp(agg_command, "BIT_AND") ||
+						!pg_strcasecmp(agg_command, "BOOL_AND") || !pg_strcasecmp(agg_command, "BOOL_OR") ||
+						!pg_strcasecmp(agg_command, "EVERY") || !pg_strcasecmp(agg_command, "XMLAGG"))
+					appendStringInfo(sql, "%s(col%d)", agg_command, mapping);
+				/*
+				 * This is for string_agg function. This function require delimiter to work
+				 */
+				else if (!pg_strcasecmp(agg_command, "STRING_AGG"))
+				{
+					appendStringInfo(sql, "%s(col%d, %s)", agg_command, mapping, agg_const);
+				}
+				/*
+				 * This is for influx db functions. MAX has not effect to
+				 * result. We have to consider multi-tenant.
+				 */
+				else if (!pg_strcasecmp(agg_command, "INFLUX_TIME") || !pg_strcasecmp(agg_command, "LAST"))
+					appendStringInfo(sql, "MAX(col%d)", mapping);
 
 				/*
-				 * For those columns listed in the grouping target but not
-				 * listed in the target list. For example, SELECT avg(i) FROM
-				 * t1 GROUP BY i,t. column name i and column name t not listed
-				 * in the target list, so agg_command is NULL.
+				 * Other aggregation not listed above. TODO: SUM may be
+				 * incorrect for multi-tenant table.
 				 */
-				if (agg_command == NULL)
-				{
-					appendStringInfo(sql, "col%d", max_col);
-					max_col++;
-					continue;
-				}
-				else if (agg_type != NON_AGG_FLAG)
-				{
-					/*
-					 * This is for aggregate functions
-					 */
-					if (!pg_strcasecmp(agg_command, "SUM") || !pg_strcasecmp(agg_command, "COUNT") ||
-						!pg_strcasecmp(agg_command, "AVG") || !pg_strcasecmp(agg_command, "VARIANCE") ||
-						!pg_strcasecmp(agg_command, "STDDEV"))
-						appendStringInfo(sql, "SUM(col%d)", max_col);
-
-					else if (!pg_strcasecmp(agg_command, "MAX") || !pg_strcasecmp(agg_command, "MIN") ||
-							 !pg_strcasecmp(agg_command, "BIT_OR") || !pg_strcasecmp(agg_command, "BIT_AND") ||
-							 !pg_strcasecmp(agg_command, "BOOL_AND") || !pg_strcasecmp(agg_command, "BOOL_OR") ||
-							 !pg_strcasecmp(agg_command, "EVERY") || !pg_strcasecmp(agg_command, "XMLAGG"))
-						appendStringInfo(sql, "%s(col%d)", agg_command, max_col);
-					/*
-					 * This is for string_agg function. This function require delimiter to work
-					 */
-					else if (!pg_strcasecmp(agg_command, "STRING_AGG"))
-					{
-						appendStringInfo(sql, "%s(col%d, %s)", agg_command, max_col, agg_const);
-					}
-					/*
-					 * This is for influx db functions. MAX has not effect to
-					 * result. We have to consider multi-tenant.
-					 */
-					else if (!pg_strcasecmp(agg_command, "INFLUX_TIME") || !pg_strcasecmp(agg_command, "LAST"))
-						appendStringInfo(sql, "MAX(col%d)", max_col);
-
-					/*
-					 * Other aggregation not listed above. TODO: SUM may be
-					 * incorrect for multi-tenant table.
-					 */
-					else
-						appendStringInfo(sql, "SUM(col%d)", max_col);
-				}
-				else			/* non agg */
-				{
-
-					/*
-					 * Ex: SUM(i)/2
-					 */
-					if (!list_member_int(fdw_private->groupby_target, max_col))
-					{
-						appendStringInfo(sql, "SUM(col%d)", max_col);
-					}
-
-					/*
-					 * This is GROUP BY target. Ex: 't' in select sum(i),t
-					 * from t1 group by t
-					 */
-					else
-					{
-						appendStringInfo(sql, "col%d", max_col);
-					}
-				}
-				max_col++;
+				else
+					appendStringInfo(sql, "SUM(col%d)", mapping);
 			}
+			else			/* non agg */
+			{
+
+				/*
+				 * Ex: SUM(i)/2
+				 */
+				if (!list_member_int(fdw_private->groupby_target, mapping))
+				{
+					appendStringInfo(sql, "SUM(col%d)", mapping);
+				}
+
+				/*
+				 * This is GROUP BY target. Ex: 't' in select sum(i),t
+				 * from t1 group by t
+				 */
+				else
+				{
+					appendStringInfo(sql, "col%d", mapping);
+				}
+			}
+			target_num++;
+			j++;
 		}
-		j++;
+		/* Extract case */
+		else
+		{
+			Expr	*expr = copyObject(extcells->expr);
+			int		cellid = 0;
+			if (isfirst)
+				isfirst = false;
+			else
+				appendStringInfo(sql, ",");
+			rebuild_target_expr((Node *) expr, sql, extcells, &cellid, fdw_private->groupby_target, isfirst);
+			target_num++;
+		}
 	}
 
-	fdw_private->temp_num_cols = max_col;
+	fdw_private->temp_num_cols = target_num;
 	appendStringInfo(sql, " FROM %s ", fdw_private->temp_table_name);
 	/* group by clause */
 	if (fdw_private->groupby_string != 0)
@@ -5098,63 +5622,68 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 	appendStringInfo(create_sql, "CREATE TEMP TABLE %s(", temp_table);
 	foreach(lc, mapping_tlist)
 	{
-		Mappingcells *cells = lfirst(lc);
-
-		for (i = 0; i < MAX_SPLIT_NUM; i++)
+		Extractcells	*extcells = lfirst(lc);
+		ListCell		*extlc;
+		foreach(extlc, extcells->cells)
 		{
-			/* append aggregate string */
-			if (colid == cells->mapping[i])
+			Mappingcells *cells = lfirst(extlc);
+
+			for (i = 0; i < MAX_SPLIT_NUM; i++)
 			{
-				if (colid != 0)
-					appendStringInfo(create_sql, ",");
-				appendStringInfo(create_sql, "col%d ", colid);
-				typeid = exprType((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, colid))->expr);
-				/* append column name and column type */
-				if (typeid == NUMERICOID)
-					appendStringInfo(create_sql, " numeric");
-				else if (typeid == TEXTOID)
-					appendStringInfo(create_sql, " text");
-				else if (typeid == FLOAT4OID)
-					appendStringInfo(create_sql, " float");
-				else if (typeid == FLOAT8OID)
-					appendStringInfo(create_sql, " float8");
-				else if (typeid == INT2OID)
-					appendStringInfo(create_sql, " smallint");
-				else if (typeid == INT4OID)
-					appendStringInfo(create_sql, " int");
-				else if (typeid == INT8OID)
-					appendStringInfo(create_sql, " bigint");
-				else if (typeid == BITOID)
-					appendStringInfo(create_sql, " bit");
-				else if (typeid == DATEOID)
-					appendStringInfo(create_sql, " date");
-				else if (typeid == TIMESTAMPOID)
-					appendStringInfo(create_sql, " timestamp");
-				else if (typeid == TIMESTAMPTZOID)
-					appendStringInfo(create_sql, " timestamp with time zone");
-				else if (typeid == BOOLOID)
-					appendStringInfo(create_sql, " boolean");
-				else if (typeid == INT4ARRAYOID)
-					appendStringInfo(create_sql, " integer[]");
-				else if (typeid == TIMESTAMPARRAYOID)
-					appendStringInfo(create_sql, " text[]");
-				else if (typeid == CASHOID)
-					appendStringInfo(create_sql, " money");
-				else if (typeid == VARCHAROID)
-					appendStringInfo(create_sql, " text");
-				/* TODO: numeric may be incorrect for some typeid */
-				else if (cells->aggtype != NON_AGG_FLAG)
+				/* append aggregate string */
+				if (colid == cells->mapping[i])
 				{
-					appendStringInfo(create_sql, " numeric");
-					elog(WARNING, "There is no corresponding type for this OID type. The data type of column will be set to numeric by default.");
+					if (colid != 0)
+						appendStringInfo(create_sql, ",");
+					appendStringInfo(create_sql, "col%d ", colid);
+					typeid = exprType((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, colid))->expr);
+					/* append column name and column type */
+					if (typeid == NUMERICOID)
+						appendStringInfo(create_sql, " numeric");
+					else if (typeid == TEXTOID)
+						appendStringInfo(create_sql, " text");
+					else if (typeid == FLOAT4OID)
+						appendStringInfo(create_sql, " float");
+					else if (typeid == FLOAT8OID)
+						appendStringInfo(create_sql, " float8");
+					else if (typeid == INT2OID)
+						appendStringInfo(create_sql, " smallint");
+					else if (typeid == INT4OID)
+						appendStringInfo(create_sql, " int");
+					else if (typeid == INT8OID)
+						appendStringInfo(create_sql, " bigint");
+					else if (typeid == BITOID)
+						appendStringInfo(create_sql, " bit");
+					else if (typeid == DATEOID)
+						appendStringInfo(create_sql, " date");
+					else if (typeid == TIMESTAMPOID)
+						appendStringInfo(create_sql, " timestamp");
+					else if (typeid == TIMESTAMPTZOID)
+						appendStringInfo(create_sql, " timestamp with time zone");
+					else if (typeid == BOOLOID)
+						appendStringInfo(create_sql, " boolean");
+					else if (typeid == INT4ARRAYOID)
+						appendStringInfo(create_sql, " integer[]");
+					else if (typeid == TIMESTAMPARRAYOID)
+						appendStringInfo(create_sql, " text[]");
+					else if (typeid == CASHOID)
+						appendStringInfo(create_sql, " money");
+					else if (typeid == VARCHAROID)
+						appendStringInfo(create_sql, " text");
+					/* TODO: numeric may be incorrect for some typeid */
+					else if (cells->aggtype != NON_AGG_FLAG)
+					{
+						appendStringInfo(create_sql, " numeric");
+						elog(WARNING, "There is no corresponding type for this OID type. The data type of column will be set to numeric by default.");
+					}
+					else
+					{
+						appendStringInfo(create_sql, " text");
+						elog(WARNING, "There is no corresponding type for this OID type. The data type of column will be set to text by default.");
+					}
+						
+					colid++;
 				}
-				else
-				{
-					appendStringInfo(create_sql, " text");
-					elog(WARNING, "There is no corresponding type for this OID type. The data type of column will be set to text by default.");
-				}
-					
-				colid++;
 			}
 		}
 	}

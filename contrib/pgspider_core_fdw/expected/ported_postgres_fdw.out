@@ -3612,8 +3612,8 @@ select sum(t1.c1), count(t2.c1) from ft1 t1 inner join ft2 t2 on (t1.c1 = t2.c1)
 --Testcase 175:
 explain (verbose, costs off)
 select c2/2, sum(c2) * (c2/2) from ft1 group by c2/2 order by c2/2;
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
+                                 QUERY PLAN                                 
+----------------------------------------------------------------------------
  Sort
    Output: ((c2 / 2)), ((sum(c2) * (c2 / 2)))
    Sort Key: ((ft1.c2 / 2))
@@ -3622,7 +3622,7 @@ select c2/2, sum(c2) * (c2/2) from ft1 group by c2/2 order by c2/2;
          Node: postgres_srv / Status: Alive
            Agg push-down: yes
            Relations: Aggregate on (public.ft1__postgres_srv__0)
-           Remote SQL: SELECT (c2 / 2), (sum(c2) * (c2 / 2)) FROM "S 1"."T 1" GROUP BY 1
+           Remote SQL: SELECT (c2 / 2), sum(c2) FROM "S 1"."T 1" GROUP BY 1
 (9 rows)
 
 --Testcase 176:
@@ -3676,33 +3676,41 @@ select c2 * (random() <= 1)::int as sum1, sum(c1) * c2 as sum2 from ft1 group by
          Node: postgres_srv / Status: Alive
            Agg push-down: yes
            Relations: Aggregate on (public.ft1__postgres_srv__0)
-           Remote SQL: SELECT (sum("C 1") * c2), c2 FROM "S 1"."T 1" GROUP BY 2
+           Remote SQL: SELECT c2, sum("C 1") FROM "S 1"."T 1" GROUP BY 1
 (9 rows)
 
 --Testcase 180:
 select c2 * (random() <= 1)::int as sum1, sum(c1) * c2 as sum2 from ft1 group by c2 order by 1, 2;
-  sum1   | sum2 
----------+------
- 2256000 |   45
-(1 row)
+ sum1 |  sum2  
+------+--------
+    0 |      0
+    1 |  49600
+    2 |  99400
+    3 | 149400
+    4 | 199600
+    5 | 250000
+    6 | 300600
+    7 | 351400
+    8 | 402400
+    9 | 453600
+(10 rows)
 
 -- Aggregate with unshippable GROUP BY clause are not pushed
 --Testcase 181:
 explain (verbose, costs off)
 select c2 * (random() <= 1)::int as c2 from ft2 group by c2 * (random() <= 1)::int order by 1;
-                                  QUERY PLAN                                  
-------------------------------------------------------------------------------
+                               QUERY PLAN                                
+-------------------------------------------------------------------------
  Sort
    Output: ((c2 * ((random() <= '1'::double precision))::integer))
    Sort Key: ((ft2.c2 * ((random() <= '1'::double precision))::integer))
-   ->  HashAggregate
+   ->  Foreign Scan
          Output: ((c2 * ((random() <= '1'::double precision))::integer))
-         Group Key: (ft2.c2 * ((random() <= '1'::double precision))::integer)
-         ->  Foreign Scan on public.ft2
-               Output: (c2 * ((random() <= '1'::double precision))::integer)
-               Node: postgres_srv / Status: Alive
-                 Remote SQL: SELECT c2 FROM "S 1"."T 1"
-(10 rows)
+         Node: postgres_srv / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.ft2__postgres_srv__0)
+           Remote SQL: SELECT c2 FROM "S 1"."T 1" GROUP BY 1
+(9 rows)
 
 -- GROUP BY clause in various forms, cardinal, alias and constant expression
 --Testcase 182:
