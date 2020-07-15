@@ -76,6 +76,7 @@ PG_MODULE_MAGIC;
 #include "funcapi.h"
 #include "postgres_fdw/postgres_fdw.h"
 #include "catalog/pg_operator.h"
+#include "parser/parse_agg.h"
 #ifndef WITHOUT_KEEPALIVE
 #include "pgspider_keepalive/pgspider_keepalive.h"
 #endif
@@ -104,8 +105,14 @@ PG_MODULE_MAGIC;
 #define SUM_FLOAT8_OID 2111
 #define SUM_NUMERI_OID 2114
 
-#define OPEXPER_OID 514
-#define OPEXPER_FUNCID 141
+#define OPEXPER_INT4_OID 514
+#define OPEXPER_INT4_FUNCID 141
+#define OPEXPER_INT2_OID 526
+#define OPEXPER_INT2_FUNCID 152
+#define OPEXPER_INT8_OID 686
+#define OPEXPER_INT8_FUNCID 465
+#define OPEXPER_NUMERI_OID 1760
+#define OPEXPER_NUMERI_FUNCID 1726
 #define FLOAT8MUL_OID 594
 #define FLOAT8MUL_FUNID 216
 #define DOUBLE_LENGTH 8
@@ -1149,6 +1156,88 @@ add_node_to_list(Expr *expr, List **tlist, Mappingcells **mapcells, List **compr
 		(*mapcells)->mapping[0] = target_num;
 	}
 }
+
+/**
+ * set_split_agg_info
+ * Set aggfnoid, aggtype, aggtranstype
+ *
+ * @param[in,out] tempAgg - temporary aggregate
+ */
+static void
+set_split_agg_info(Aggref *tempAgg, Oid aggfnoid, Oid aggtype, Oid aggtranstype)
+{
+	tempAgg->aggfnoid = aggfnoid;
+	tempAgg->aggtype = aggtype;
+	tempAgg->aggtranstype = aggtranstype;
+}
+/**
+ * set_split_op_info
+ * Set aggfnoid, aggtype, aggtranstype
+ *
+ * @param[in,out] opexpr - temporary expression
+ */
+static void
+set_split_op_info(OpExpr *opexpr, Oid opno, Oid opfuncid, Oid opresulttype)
+{
+	opexpr->opno = opno;
+	opexpr->opfuncid = opfuncid;
+	opexpr->opresulttype = opresulttype;
+}
+/**
+ * set_split_numeric_info
+ * Set information for splitted SUM(x) and SUM(x*x) when aggtype is NUMERICOID
+ *
+ * @param[in,out] tempAgg - temporary aggregate
+ * @param[in,out] opexpr - temporary expression
+ */
+static void
+set_split_numeric_info(Aggref *tempAgg, OpExpr *opexpr)
+{
+	Oid argoid = tempAgg->aggargtypes->head->data.oid_value;
+
+	/*
+	 * SUM will return bigint (INT8) for smallint (INT2) or int (INT4) arguments,
+	 * numeric for bigint (INT8) arguments.
+	 * For numeric type and bigint, aggtranstype is INTERNALOID.
+	 * For int and smallint, aggtranstype is INT8OID.
+	 * For x*x, the multiply operator will return the same type as input.
+	 */
+	switch (argoid)
+	{
+		case NUMERICOID:
+		{
+			set_split_agg_info(tempAgg, SUM_NUMERI_OID, NUMERICOID, INTERNALOID);
+			if(opexpr)
+				set_split_op_info(opexpr, OPEXPER_NUMERI_OID, OPEXPER_NUMERI_FUNCID, NUMERICOID);
+			break;
+		}
+		case INT8OID:
+		{
+			set_split_agg_info(tempAgg, SUM_BIGINT_OID, NUMERICOID, INTERNALOID);
+			if(opexpr)
+				set_split_op_info(opexpr, OPEXPER_INT8_OID, OPEXPER_INT8_FUNCID, INT8OID);
+			break;
+		}
+		case INT4OID:
+		{
+			set_split_agg_info(tempAgg, SUM_INT4_OID, INT8OID, INT8OID);
+			if(opexpr)
+				set_split_op_info(opexpr, OPEXPER_INT4_OID, OPEXPER_INT4_FUNCID, INT4OID);
+			break;
+		}
+		case INT2OID:
+		{
+			set_split_agg_info(tempAgg, SUM_INT2_OID, INT8OID, INT8OID);
+			if(opexpr)
+				set_split_op_info(opexpr, OPEXPER_INT2_OID, OPEXPER_INT2_FUNCID, INT2OID);
+			break;
+		}
+		default:
+			Assert(false);
+			break;
+	}
+}
+
 /**
  * extract_expr
  * Extract an expression.
@@ -1234,19 +1323,17 @@ extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_
 
 				if (aggref->aggtype == FLOAT4OID || aggref->aggtype == FLOAT8OID)
 				{
-					tempSum->aggfnoid = SUM_FLOAT8_OID;
-					tempSum->aggtype = FLOAT8OID;
-					tempSum->aggtranstype = FLOAT8OID;
+					set_split_agg_info(tempSum, SUM_FLOAT8_OID, FLOAT8OID, FLOAT8OID);
+				}
+				else if (aggref->aggtype == NUMERICOID)
+				{
+					set_split_numeric_info(tempSum, NULL);
 				}
 				else
 				{
-					tempSum->aggfnoid = SUM_INT4_OID;
-					tempSum->aggtype = INT8OID;
-					tempSum->aggtranstype = INT8OID;
+					set_split_agg_info(tempSum, SUM_INT4_OID, INT8OID, INT8OID);
 				}
-				tempCount->aggfnoid = COUNT_OID;
-				tempCount->aggtype = INT8OID;
-				tempCount->aggtranstype = INT8OID;
+				set_split_agg_info(tempCount, COUNT_OID, INT8OID, INT8OID);
 
 				/* Prepare SUM Query */
 				tempVar->aggfnoid = VAR_OID;
@@ -1306,55 +1393,46 @@ extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_
 				if ((aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
 					|| (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
 				{
+					TargetEntry *tarexpr;
+					TargetEntry *oparg = (TargetEntry *) tempVar->args->head->data.ptr_value;
+					Var		   *opvar = (Var *) oparg->expr;
+					OpExpr	   *opexpr = (OpExpr *) &oparg->xpr;
+					OpExpr	   *opexpr2 = copyObject(opexpr);
+
+					opexpr->xpr.type = T_OpExpr;
+					opexpr->opretset = false;
+					opexpr->opcollid = 0;
+					opexpr->inputcollid = 0;
+					opexpr->location = 0;
+					opexpr->args = NULL;
+
+					/* Create top targetentry */
+					if (tempVar->aggtype == NUMERICOID)
+					{
+						set_split_numeric_info(tempVar, opexpr);
+					}
+					else
+					{
+						set_split_agg_info(tempVar, SUM_FLOAT8_OID, FLOAT8OID, FLOAT8OID);
+						set_split_op_info(opexpr, FLOAT8MUL_OID, FLOAT8MUL_FUNID, FLOAT8OID);
+					}
+					opexpr->args = lappend(opexpr->args, opvar);
+					opexpr->args = lappend(opexpr->args, opvar);
+					/* Create var targetentry */
+					tarexpr = makeTargetEntry((Expr *) opexpr,
+											next_resno_temp,
+											NULL,
+											false);
+					opexpr2 = (OpExpr *) tarexpr->expr;
+					opexpr2->opretset = false;
+					opexpr2->opcollid = 0;
+					opexpr2->inputcollid = 0;
+					opexpr2->location = 0;
+					tarexpr->resno = 1;
+					tempVar->args = lappend(tempVar->args, tarexpr);
+					tempVar->args = list_delete_first(tempVar->args);
 					if (!spd_tlist_member((Expr *) tempVar, *compress_tlist_tle, &target_num))
 					{
-						TargetEntry *tarexpr;
-						TargetEntry *oparg = (TargetEntry *) tempVar->args->head->data.ptr_value;
-						Var		   *opvar = (Var *) oparg->expr;
-						OpExpr	   *opexpr = (OpExpr *) &oparg->xpr;
-						OpExpr	   *opexpr2 = copyObject(opexpr);
-
-						opexpr->xpr.type = T_OpExpr;
-						opexpr->opretset = false;
-						opexpr->opcollid = 0;
-						opexpr->inputcollid = 0;
-						opexpr->location = 0;
-						opexpr->args = NULL;
-
-						/* Create top targetentry */
-						if (tempVar->aggtype <= INT4OID || tempVar->aggtype == NUMERICOID)
-						{
-							tempVar->aggtype = INT8OID;
-							tempVar->aggtranstype = INT8OID;
-							tempVar->aggfnoid = SUM_OID;
-							opexpr->opno = OPEXPER_OID;
-							opexpr->opfuncid = OPEXPER_FUNCID;
-							opexpr->opresulttype = INT8OID;
-						}
-						else
-						{
-							tempVar->aggtype = FLOAT8OID;
-							tempVar->aggtranstype = FLOAT8OID;
-							tempVar->aggfnoid = SUM_FLOAT8_OID;
-							opexpr->opno = FLOAT8MUL_OID;
-							opexpr->opfuncid = FLOAT8MUL_FUNID;
-							opexpr->opresulttype = FLOAT8OID;
-						}
-						opexpr->args = lappend(opexpr->args, opvar);
-						opexpr->args = lappend(opexpr->args, opvar);
-						/* Create var targetentry */
-						tarexpr = makeTargetEntry((Expr *) opexpr,
-												next_resno_temp,
-												NULL,
-												false);
-						opexpr2 = (OpExpr *) tarexpr->expr;
-						opexpr2->opretset = false;
-						opexpr2->opcollid = 0;
-						opexpr2->inputcollid = 0;
-						opexpr2->location = 0;
-						tarexpr->resno = 1;
-						tempVar->args = lappend(tempVar->args, tarexpr);
-						tempVar->args = list_delete_first(tempVar->args);
 						tle_temp = makeTargetEntry((Expr *) tempVar,
 												next_resno_temp++,
 												NULL,
@@ -3027,22 +3105,21 @@ spd_makedivtlist(Aggref *aggref, List *newList, SpdFdwPrivate * fdw_private)
 	int			listn = 0;
 	TargetEntry *tle_temp;
 
-	tempCount->aggfnoid = COUNT_OID;
 	tempSum = copyObject(tempCount);
-	tempSum->aggfnoid = SUM_OID;
-	if (tempSum->aggtype <= INT8OID || tempSum->aggtype == NUMERICOID)
+	if (tempSum->aggtype <= INT8OID)
 	{
-		tempSum->aggtype = INT8OID;
-		tempSum->aggtranstype = INT8OID;
+		set_split_agg_info(tempSum, SUM_OID, INT8OID, INT8OID);
+	}
+	else if (tempSum->aggtype == NUMERICOID)
+	{
+		set_split_numeric_info(tempSum, NULL);
 	}
 	else
 	{
-		tempSum->aggfnoid = SUM_FLOAT8_OID;
-		tempSum->aggtype = FLOAT8OID;
-		tempSum->aggtranstype = FLOAT8OID;
+		set_split_agg_info(tempSum, SUM_FLOAT8_OID, FLOAT8OID, FLOAT8OID);
 	}
-	tempCount->aggtype = INT8OID;
-	tempCount->aggtranstype = INT8OID;
+	set_split_agg_info(tempCount, COUNT_OID, INT8OID, INT8OID);
+
 	/* Prepare SUM Query */
 	tempVar = copyObject(tempCount);
 	tempVar->aggfnoid = VAR_OID;
@@ -3068,23 +3145,14 @@ spd_makedivtlist(Aggref *aggref, List *newList, SpdFdwPrivate * fdw_private)
 		/* Create top targetentry */
 		if (tempVar->aggtype <= FLOAT8OID || tempVar->aggtype >= FLOAT4OID)
 		{
-			tempVar->aggtype = FLOAT8OID;
-			tempVar->aggtranstype = FLOAT8OID;
-			tempVar->aggfnoid = SUM_FLOAT8_OID;
-			opexpr->opresulttype = FLOAT8OID;
-			opexpr->opno = FLOAT8MUL_OID;
-			opexpr->opfuncid = FLOAT8MUL_FUNID;
-			opexpr->opresulttype = FLOAT8OID;
+			set_split_agg_info(tempVar, SUM_FLOAT8_OID, FLOAT8OID, FLOAT8OID);
+			set_split_op_info(opexpr, FLOAT8MUL_OID, FLOAT8MUL_FUNID, FLOAT8OID);
 		}
-		else
+		else if (tempVar->aggtype == NUMERICOID)
 		{
-			tempVar->aggtype = INT8OID;
-			tempVar->aggtranstype = INT8OID;
-			tempVar->aggfnoid = SUM_OID;
-			opexpr->opno = OPEXPER_OID;
-			opexpr->opfuncid = OPEXPER_FUNCID;
-			opexpr->opresulttype = INT8OID;
+			set_split_numeric_info(tempVar, opexpr);
 		}
+
 		opexpr->args = lappend(opexpr->args, opvar);
 		opexpr->args = lappend(opexpr->args, opvar);
 		/* Create var targetentry */
@@ -5082,7 +5150,10 @@ emit_context_error(void* context)
 	MemoryContextSwitchTo(oldcontext);
 
 	/* Display error without displaying context */
-	elog(ERROR, "%s", err->message);
+	if (strcmp(err->message, "cannot take square root of a negative number") == 0)
+		elog(ERROR, "%s", "Can not return value because of rounding problem from child node");
+	else
+		elog(ERROR, "%s", err->message);
 }
 
 /**
