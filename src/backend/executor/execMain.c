@@ -198,6 +198,18 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 		nParamExec = list_length(queryDesc->plannedstmt->paramExecTypes);
 		estate->es_param_exec_vals = (ParamExecData *)
 			palloc0(nParamExec * sizeof(ParamExecData));
+#ifdef PGSPIDER
+		/*
+		 * Initial mutex for evaluate PARAM_EXEC.
+		 */
+		while (--nParamExec >= 0)
+		{
+			int rtn;
+			SPD_LOCK_INIT(&estate->es_param_exec_vals[nParamExec].execMutex, &rtn);
+			if (rtn != SPD_LOCK_INIT_OK)
+				elog(ERROR, "%s mutex lock object initialization error, error code %d", __func__, rtn);
+		}
+#endif
 	}
 
 	estate->es_sourceText = queryDesc->sourceText;
@@ -2878,6 +2890,15 @@ EvalPlanQualStart(EPQState *epqstate, Plan *planTree)
 				parentestate->es_param_exec_vals[i].value;
 			rcestate->es_param_exec_vals[i].isnull =
 				parentestate->es_param_exec_vals[i].isnull;
+#ifdef PGSPIDER
+			/*
+			 * Initial mutex for evaluate PARAM_EXEC.
+			 */
+			int rtn;
+			SPD_LOCK_INIT(&rcestate->es_param_exec_vals[i].execMutex, &rtn);
+			if (rtn != SPD_LOCK_INIT_OK)
+				elog(ERROR, "%s mutex lock object initialization error, error code %d", __func__, rtn);
+#endif
 		}
 	}
 

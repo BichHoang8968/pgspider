@@ -3081,8 +3081,8 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	fdw_private->rinfo.relation_index = baserel->relid;
 	/* Init mutex.*/
 	SPD_RWLOCK_INIT(&fdw_private->scan_mutex, &rtn);
-	if (rtn == SPD_RWLOCK_INIT_ERROR)
-		elog(ERROR, "%s read-write lock object initialization error", __func__);
+	if (rtn != SPD_RWLOCK_INIT_OK)
+		elog(ERROR, "%s read-write lock object initialization error, error code %d", __func__, rtn);
 }
 
 /**

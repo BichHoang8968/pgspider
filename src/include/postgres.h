@@ -793,10 +793,8 @@ extern Datum Float8GetDatum(float8 X);
 
 
 /* Macro for ensuring mutex is unlocked when error occurs */
-
-#define SPD_RWLOCK_INIT_ERROR -1
-#define SPD_RWLOCK_INIT(mutex, rtn) *rtn = (int)pthread_rwlock_init(mutex, NULL);
-
+#define SPD_LOCK_INIT_OK 0
+#define SPD_LOCK_INIT(mutex, rtn) *rtn = (int)pthread_mutex_init(mutex, NULL);
 #define SPD_LOCK_TRY(mutex) pthread_mutex_lock(mutex); PG_TRY(); {
 #define SPD_UNLOCK_CATCH(mutex) } PG_CATCH();\
 	{ \
@@ -805,6 +803,8 @@ extern Datum Float8GetDatum(float8 X);
 	} PG_END_TRY();\
 	pthread_mutex_unlock(mutex);
 
+#define SPD_RWLOCK_INIT_OK 0
+#define SPD_RWLOCK_INIT(mutex, rtn) *rtn = (int)pthread_rwlock_init(mutex, NULL);
 #define SPD_READ_LOCK_TRY(mutex) pthread_rwlock_rdlock(mutex);  PG_TRY(); {
 #define SPD_WRITE_LOCK_TRY(mutex) pthread_rwlock_wrlock(mutex);  PG_TRY(); {
 

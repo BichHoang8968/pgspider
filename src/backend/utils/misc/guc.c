@@ -133,6 +133,10 @@ extern bool optimize_bounded_sort;
 
 static int	GUC_check_errcode_value;
 
+#ifdef PGSPIDER
+static pthread_mutex_t guc_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+#endif
+
 /* global variables for check hook support */
 char	   *GUC_check_errmsg_string;
 char	   *GUC_check_errdetail_string;
@@ -4578,7 +4582,11 @@ static bool guc_dirty;			/* true if need to do commit/abort work */
 
 static bool reporting_enabled;	/* true to enable GUC_REPORT */
 
+#ifdef PGSPIDER
+static __thread int	GUCNestLevel = 0;
+#else
 static int	GUCNestLevel = 0;	/* 1 when in main transaction */
+#endif
 
 
 static int	guc_var_compare(const void *a, const void *b);
@@ -5748,6 +5756,14 @@ AtEOXact_GUC(bool isCommit, int nestLevel)
 	}
 
 	still_dirty = false;
+
+#ifdef PGSPIDER
+	/*
+	 * Each thread need to wait while other thread process and pop
+	 * each stack entry within the nest level.
+	 */
+	SPD_LOCK_TRY(&guc_mutex);
+#endif
 	for (i = 0; i < num_guc_variables; i++)
 	{
 		struct config_generic *gconf = guc_variables[i];
@@ -5994,6 +6010,9 @@ AtEOXact_GUC(bool isCommit, int nestLevel)
 		if (stack != NULL)
 			still_dirty = true;
 	}
+#ifdef PGSPIDER
+	SPD_UNLOCK_CATCH(&guc_mutex);
+#endif
 
 	/* If there are no remaining stack entries, we can reset guc_dirty */
 	guc_dirty = still_dirty;

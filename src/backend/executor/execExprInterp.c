@@ -2269,6 +2269,16 @@ ExecEvalParamExec(ExprState *state, ExprEvalStep *op, ExprContext *econtext)
 	ParamExecData *prm;
 
 	prm = &(econtext->ecxt_param_exec_vals[op->d.param.paramid]);
+#ifdef PGSPIDER
+	/*
+	 * Evaluate a PARAM_EXEC parameter one time.
+	 *
+	 * In PGSPider has mutiple threads which access the parameter
+	 * at the same time, so other thread need to wait to get parameter
+	 * before first thread evaluated the parameter.
+	 */
+	SPD_LOCK_TRY(&prm->execMutex);
+#endif
 	if (unlikely(prm->execPlan != NULL))
 	{
 		/* Parameter not evaluated yet, so go do it */
@@ -2276,6 +2286,9 @@ ExecEvalParamExec(ExprState *state, ExprEvalStep *op, ExprContext *econtext)
 		/* ExecSetParamPlan should have processed this param... */
 		Assert(prm->execPlan == NULL);
 	}
+#ifdef PGSPIDER
+	SPD_UNLOCK_CATCH(&prm->execMutex);
+#endif
 	*op->resvalue = prm->value;
 	*op->resnull = prm->isnull;
 }
