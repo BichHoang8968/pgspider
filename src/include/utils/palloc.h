@@ -118,6 +118,11 @@ MemoryContextSwitchTo(MemoryContext context)
 /* Registration of memory context reset/delete callbacks */
 extern void MemoryContextRegisterResetCallback(MemoryContext context,
 											   MemoryContextCallback *cb);
+#ifdef PGSPIDER
+/* Registration of memory context pre reset/delete callbacks */
+extern void MemoryContextRegisterPreResetCallback(MemoryContext context,
+											   MemoryContextCallback *cb);
+#endif
 
 /*
  * These are like standard strdup() except the copied string is

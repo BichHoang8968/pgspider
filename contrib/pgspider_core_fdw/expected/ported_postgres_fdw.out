@@ -489,6 +489,10 @@ SELECT * FROM ft1 t1 WHERE t1.c3 = (SELECT MAX(c3) FROM ft2 t2) ORDER BY c1;
  1000 |  0 | 01000 | Thu Jan 01 00:00:00 1970 PST | Thu Jan 01 00:00:00 1970 | 0  | 0          | foo | /postgres_srv/
 (1 row)
 
+-- subquery return more than one row
+SELECT * FROM ft1 t1 WHERE t1.c3 = (SELECT c3 FROM ft2 t2) ORDER BY c1;
+ERROR:  more than one row returned by a subquery used as an expression
+ERROR:  PGSpider can not get data from child node : postgres_srv
 -- used in CTE
 --Testcase 26:
 WITH t1 AS (SELECT * FROM ft1 WHERE c1 <= 10) SELECT t2.c1, t2.c2, t2.c3, t2.c4 FROM t1, ft2 t2 WHERE t1.c1 = t2.c1 ORDER BY t1.c1;
@@ -3608,8 +3612,8 @@ select sum(t1.c1), count(t2.c1) from ft1 t1 inner join ft2 t2 on (t1.c1 = t2.c1)
 --Testcase 175:
 explain (verbose, costs off)
 select c2/2, sum(c2) * (c2/2) from ft1 group by c2/2 order by c2/2;
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
+                                 QUERY PLAN                                 
+----------------------------------------------------------------------------
  Sort
    Output: ((c2 / 2)), ((sum(c2) * (c2 / 2)))
    Sort Key: ((ft1.c2 / 2))
@@ -3618,7 +3622,7 @@ select c2/2, sum(c2) * (c2/2) from ft1 group by c2/2 order by c2/2;
          Node: postgres_srv / Status: Alive
            Agg push-down: yes
            Relations: Aggregate on (public.ft1__postgres_srv__0)
-           Remote SQL: SELECT (c2 / 2), (sum(c2) * (c2 / 2)) FROM "S 1"."T 1" GROUP BY 1
+           Remote SQL: SELECT (c2 / 2), sum(c2) FROM "S 1"."T 1" GROUP BY 1
 (9 rows)
 
 --Testcase 176:
@@ -3672,33 +3676,41 @@ select c2 * (random() <= 1)::int as sum1, sum(c1) * c2 as sum2 from ft1 group by
          Node: postgres_srv / Status: Alive
            Agg push-down: yes
            Relations: Aggregate on (public.ft1__postgres_srv__0)
-           Remote SQL: SELECT (sum("C 1") * c2), c2 FROM "S 1"."T 1" GROUP BY 2
+           Remote SQL: SELECT c2, sum("C 1") FROM "S 1"."T 1" GROUP BY 1
 (9 rows)
 
 --Testcase 180:
 select c2 * (random() <= 1)::int as sum1, sum(c1) * c2 as sum2 from ft1 group by c2 order by 1, 2;
-  sum1   | sum2 
----------+------
- 2256000 |   45
-(1 row)
+ sum1 |  sum2  
+------+--------
+    0 |      0
+    1 |  49600
+    2 |  99400
+    3 | 149400
+    4 | 199600
+    5 | 250000
+    6 | 300600
+    7 | 351400
+    8 | 402400
+    9 | 453600
+(10 rows)
 
 -- Aggregate with unshippable GROUP BY clause are not pushed
 --Testcase 181:
 explain (verbose, costs off)
 select c2 * (random() <= 1)::int as c2 from ft2 group by c2 * (random() <= 1)::int order by 1;
-                                  QUERY PLAN                                  
-------------------------------------------------------------------------------
+                               QUERY PLAN                                
+-------------------------------------------------------------------------
  Sort
    Output: ((c2 * ((random() <= '1'::double precision))::integer))
    Sort Key: ((ft2.c2 * ((random() <= '1'::double precision))::integer))
-   ->  HashAggregate
+   ->  Foreign Scan
          Output: ((c2 * ((random() <= '1'::double precision))::integer))
-         Group Key: (ft2.c2 * ((random() <= '1'::double precision))::integer)
-         ->  Foreign Scan on public.ft2
-               Output: (c2 * ((random() <= '1'::double precision))::integer)
-               Node: postgres_srv / Status: Alive
-                 Remote SQL: SELECT c2 FROM "S 1"."T 1"
-(10 rows)
+         Node: postgres_srv / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.ft2__postgres_srv__0)
+           Remote SQL: SELECT c2 FROM "S 1"."T 1" GROUP BY 1
+(9 rows)
 
 -- GROUP BY clause in various forms, cardinal, alias and constant expression
 --Testcase 182:
@@ -3829,7 +3841,7 @@ select exists(select 1 from pg_enum), sum(c1) from ft1;
                         QUERY PLAN                         
 -----------------------------------------------------------
  Foreign Scan
-   Output: ($0), (sum(ft1.c1))
+   Output: $0, (sum(ft1.c1))
    Node: postgres_srv / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.ft1__postgres_srv__0)
@@ -3840,13 +3852,11 @@ select exists(select 1 from pg_enum), sum(c1) from ft1;
 
 --Testcase 191:
 select exists(select 1 from pg_enum), sum(c1) from ft1;
-ERROR:  invalid input syntax for type boolean: "500500"
-CONTEXT:  processing expression at position 1 in select list
-ERROR:  function sum(boolean) does not exist
-LINE 1: SELECT SUM(col0),SUM(col1) FROM __spd__temptable_12 
-               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-QUERY:  SELECT SUM(col0),SUM(col1) FROM __spd__temptable_12 
+ exists |  sum   
+--------+--------
+ t      | 500500
+(1 row)
+
 --Testcase 192:
 explain (verbose, costs off)
 select exists(select 1 from pg_enum), sum(c1) from ft1 group by 1;
@@ -4166,8 +4176,8 @@ select distinct (select count(t1.c1) filter (where t2.c2 = 6 and t2.c1 < 10) fro
 select distinct (select count(t1.c1) filter (where t2.c2 = 6 and t2.c1 < 10) from ft1 t1 where t1.c1 = 6) from ft2 t2 where t2.c2 % 6 = 0 order by 1;
  count 
 -------
+     0
      1
-      
 (2 rows)
 
 -- Aggregate not pushed down as FILTER condition is not pushable
@@ -4656,16 +4666,8 @@ select c2, sum from "S 1"."T 1" t1, lateral (select sum(t2.c1 + t1."C 1") sum fr
  c2 | sum 
 ----+-----
   1 |   2
-  1 |   2
-  1 |   2
-  1 |   2
-  1 |   2
-  1 |   2
-  1 |   2
-  1 |   2
-  1 |   2
-  1 |   2
-(10 rows)
+  2 |   4
+(2 rows)
 
 reset enable_hashagg;
 -- bug #15613: bad plan for foreign table scan with lateral reference
@@ -4718,7 +4720,15 @@ ORDER BY ref_0."C 1";
  c2 | c1 | c2 |  c3   
 ----+----+----+-------
   1 |  1 |  1 | 00001
-(1 row)
+  2 |  2 |  2 | 00001
+  3 |  3 |  3 | 00001
+  4 |  4 |  4 | 00001
+  5 |  5 |  5 | 00001
+  6 |  6 |  6 | 00001
+  7 |  7 |  7 | 00001
+  8 |  8 |  8 | 00001
+  9 |  9 |  9 | 00001
+(9 rows)
 
 -- Check with placeHolderVars
 --Testcase 239:
