@@ -10,6 +10,7 @@
 #include "pgspider_core_fdw_defs.h"
 #include "catalog/pg_type.h"
 #include "nodes/nodeFuncs.h"
+#include "utils/builtins.h"
 
 /*
  * Global context for foreign_expr_walker's search of an expression tree.
@@ -46,6 +47,8 @@ static bool having_clause_tree_walker(Node *node, void *param);
 /* Global function forward declarations */
 bool is_foreign_expr2(PlannerInfo *, RelOptInfo *, Expr *);
 bool is_having_safe(Node *node);
+char *spd_deparse_type_name(Oid type_oid, int32 typemod);
+void spd_deparse_const(Const *node, StringInfo buf, int showtype);
 
 /*
  * Prevent push down of T_Param(Subquery Expressions) which PGSpider cannot bind
@@ -360,4 +363,120 @@ static bool having_clause_tree_walker(Node *node, void *param)
 bool is_having_safe(Node *node)
 {
 	return (!having_clause_tree_walker(node, NULL));
+}
+
+
+/*
+ *	Convert type OID + typmod info into a type name
+ */
+char *spd_deparse_type_name(Oid type_oid, int32 typemod)
+{
+	bits16		flags = FORMAT_TYPE_TYPEMOD_GIVEN;
+
+	return format_type_extended(type_oid, typemod, flags);
+}
+
+
+/*
+ * Deparse given constant value into buf.
+ *
+ * This function has to be kept in sync with ruleutils.c's get_const_expr.
+ * As for that function, showtype can be -1 to never show "::typename" decoration,
+ * or +1 to always show it, or 0 to show it only if the constant wouldn't be assumed
+ * to be the right type by default.
+ */
+void spd_deparse_const(Const *node, StringInfo buf, int showtype)
+{
+	Oid			typoutput;
+	bool		typIsVarlena;
+	char		*extval;
+	bool		isfloat = false;
+	bool		needlabel;
+
+	if (node->constisnull)
+	{
+		appendStringInfoString(buf, "NULL");
+		if (showtype >= 0)
+			appendStringInfo(buf, "::%s",
+							 spd_deparse_type_name(node->consttype,
+											   node->consttypmod));
+		return;
+	}
+
+	getTypeOutputInfo(node->consttype,
+					  &typoutput, &typIsVarlena);
+	extval = OidOutputFunctionCall(typoutput, node->constvalue);
+
+	switch (node->consttype)
+	{
+		case INT2OID:
+		case INT4OID:
+		case INT8OID:
+		case OIDOID:
+		case FLOAT4OID:
+		case FLOAT8OID:
+		case NUMERICOID:
+			{
+				/*
+				 * No need to quote unless it's a special value such as 'NaN'.
+				 * See comments in get_const_expr().
+				 */
+				if (strspn(extval, "0123456789+-eE.") == strlen(extval))
+				{
+					if (extval[0] == '+' || extval[0] == '-')
+						appendStringInfo(buf, "(%s)", extval);
+					else
+						appendStringInfoString(buf, extval);
+					if (strcspn(extval, "eE.") != strlen(extval))
+						isfloat = true; /* it looks like a float */
+				}
+				else
+					appendStringInfo(buf, "'%s'", extval);
+			}
+			break;
+		case BITOID:
+		case VARBITOID:
+			appendStringInfo(buf, "B'%s'", extval);
+			break;
+		case BOOLOID:
+			if (strcmp(extval, "t") == 0)
+				appendStringInfoString(buf, "true");
+			else
+				appendStringInfoString(buf, "false");
+			break;
+		default:
+			deparseStringLiteral(buf, extval);
+			break;
+	}
+
+	pfree(extval);
+
+	if (showtype < 0)
+		return;
+
+	/*
+	 * For showtype == 0, append ::typename unless the constant will be
+	 * implicitly typed as the right type when it is read in.
+	 *
+	 * XXX this code has to be kept in sync with the behavior of the parser,
+	 * especially make_const.
+	 */
+	switch (node->consttype)
+	{
+		case BOOLOID:
+		case INT4OID:
+		case UNKNOWNOID:
+			needlabel = false;
+			break;
+		case NUMERICOID:
+			needlabel = !isfloat || (node->consttypmod >= 0);
+			break;
+		default:
+			needlabel = true;
+			break;
+	}
+	if (needlabel || showtype > 0)
+		appendStringInfo(buf, "::%s",
+						 spd_deparse_type_name(node->consttype,
+										   node->consttypmod));
 }

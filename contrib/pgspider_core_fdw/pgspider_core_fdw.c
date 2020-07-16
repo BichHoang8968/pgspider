@@ -451,6 +451,8 @@ extern void deparseStringLiteral(StringInfo buf, const char *val);
 extern bool is_foreign_expr2(PlannerInfo *root, RelOptInfo *baserel, Expr *expr);
 #define is_foreign_expr is_foreign_expr2
 extern bool is_having_safe(Node *node);
+extern void spd_deparse_const(Const *node, StringInfo buf, int showtype);
+extern char *spd_deparse_type_name(Oid type_oid, int32 typemod);
 
 static SpdFdwPrivate *
 spd_AllocatePrivate()
@@ -1497,18 +1499,13 @@ extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_
 								case T_Const:
 									{
 										Const *const_tmp = (Const *) node;
-										Oid			typoutput;
-										bool		typIsVarlena;
-										char	   *extval;
 
 										if (const_tmp->constisnull)
 										{
 											continue;
 										}
 
-										getTypeOutputInfo(const_tmp->consttype, &typoutput, &typIsVarlena);
-										extval = OidOutputFunctionCall(typoutput, const_tmp->constvalue);
-										deparseStringLiteral(mapcells->agg_const, extval);
+										spd_deparse_const(const_tmp, mapcells->agg_const, -1);
 									}
 									break;
 								default:
@@ -5492,17 +5489,6 @@ spd_calc_aggvalues(SpdFdwPrivate * fdw_private, int rowid, TupleTableSlot *slot)
 	fdw_private->agg_num++;
 }
 
-/*
- *	Convert type OID + typmod info into a type name
- */
-static char *
-deparse_type_name(Oid type_oid, int32 typemod)
-{
-	bits16		flags = FORMAT_TYPE_TYPEMOD_GIVEN;
-
-	return format_type_extended(type_oid, typemod, flags);
-}
-
 /**
  * rebuild_target_expr
  * 
@@ -5733,7 +5719,7 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 				(void) exprIsLengthCoercion((Node *) node, &coercedTypmod);
 
 				appendStringInfo(buf, ")::%s",
-						 deparse_type_name(rettype, coercedTypmod));
+						 spd_deparse_type_name(rettype, coercedTypmod));
 			}
 
 			break;
@@ -5751,15 +5737,7 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 		}
 		case T_Const:
 		{
-			Const		*const_tmp = (Const *) node;
-			Oid			typoutput;
-			bool		typIsVarlena;
-			char		*val;
-			getTypeOutputInfo(const_tmp->consttype, &typoutput, &typIsVarlena);
-			val = OidOutputFunctionCall(typoutput, const_tmp->constvalue);
-
-			/* Append const */
-			appendStringInfo(buf, "%s", val);
+			spd_deparse_const((Const *) node, buf, 0);
 			break;
 		}
 		case T_Var:
