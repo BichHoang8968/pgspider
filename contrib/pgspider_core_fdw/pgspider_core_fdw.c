@@ -1934,17 +1934,19 @@ spd_ForeignScan_thread(void *arg)
 	TopMemoryContext = fssthrdInfo->threadTopMemoryContext;
 
 	MemoryContextSwitchTo(fssthrdInfo->threadMemoryContext);
+	
+	/* Init ErrorContext for each child thread */
+	ErrorContext = AllocSetContextCreate(fssthrdInfo->threadMemoryContext,
+										"Thread ErrorContext",
+										ALLOCSET_DEFAULT_SIZES);
+	MemoryContextAllowInCriticalSection(ErrorContext, true);
 
 	tuplectx[0] = AllocSetContextCreate(fssthrdInfo->threadMemoryContext,
 										"thread tuple contxt1",
-										ALLOCSET_DEFAULT_MINSIZE,
-										ALLOCSET_DEFAULT_INITSIZE,
-										ALLOCSET_DEFAULT_MAXSIZE);
+										ALLOCSET_DEFAULT_SIZES);
 	tuplectx[1] = AllocSetContextCreate(fssthrdInfo->threadMemoryContext,
 										"thread tuple contxt2",
-										ALLOCSET_DEFAULT_MINSIZE,
-										ALLOCSET_DEFAULT_INITSIZE,
-										ALLOCSET_DEFAULT_MAXSIZE);
+										ALLOCSET_DEFAULT_SIZES);
 
 	/* Declare ereport/elog jump is not available. */
 	PG_exception_stack = NULL;

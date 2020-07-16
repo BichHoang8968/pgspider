@@ -42,7 +42,7 @@ __thread MemoryContext CurrentMemoryContext = NULL;
  * of these contexts, refer to src/backend/utils/mmgr/README
  */
 __thread MemoryContext TopMemoryContext = NULL;
-MemoryContext ErrorContext = NULL;
+__thread MemoryContext ErrorContext = NULL;
 MemoryContext PostmasterContext = NULL;
 MemoryContext CacheMemoryContext = NULL;
 MemoryContext MessageContext = NULL;
