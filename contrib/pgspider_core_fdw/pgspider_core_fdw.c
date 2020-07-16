@@ -2143,6 +2143,11 @@ RESCAN:
 			else
 			{
 				SPD_READ_LOCK_TRY(&fdw_private->scan_mutex);
+				/*
+				 * Make child node use per-tuple memory context created by pgspider_core_fdw
+				 * instead of using per-tuple memory context from core backend.
+				 */
+				fssthrdInfo->fsstate->ss.ps.ps_ExprContext->ecxt_per_tuple_memory = tuplectx[ctx_idx];
 				slot = fssthrdInfo->fdwroutine->IterateForeignScan(fssthrdInfo->fsstate);
 				SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 
@@ -4751,6 +4756,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		/* Create and initialize EState */
 		fssThrdInfo[node_incr].fsstate->ss.ps.state = CreateExecutorState();
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_top_eflags = eflags;
+		fssThrdInfo[node_incr].fsstate->ss.ps.ps_ExprContext = CreateExprContext(estate);
 
 		/* Init external params */
 		fssThrdInfo[node_incr].fsstate->ss.ps.state->es_param_list_info =
