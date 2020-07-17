@@ -4553,7 +4553,7 @@ spd_PrintError(int childnums, ChildInfo * childinfo)
  * @param[in] node
  */
 static void
-spd_end_child_node_thread(ForeignScanState *node)
+spd_end_child_node_thread(ForeignScanState *node, bool is_abort)
 {
 	int						node_incr;
 	int						rtn;
@@ -4580,7 +4580,8 @@ spd_end_child_node_thread(ForeignScanState *node)
 
 	if (!fdw_private->is_explain)
 	{
-		if (fdw_private->is_drop_temp_table == false && fdw_private->temp_table_name != NULL)
+		/* Incase abort transaction, we no need to drop temp table, it will control by spi module */
+		if (fdw_private->is_drop_temp_table == false && fdw_private->temp_table_name != NULL && !is_abort)
 		{
 			spd_spi_ddl_table(psprintf("DROP TABLE IF EXISTS %s", fdw_private->temp_table_name), fdw_private);
 		}
@@ -4606,7 +4607,7 @@ spd_abort_transaction_callback(void *arg)
 	AssertArg(arg);
 
 	if (IsA(arg, ForeignScanState))
-		spd_end_child_node_thread((ForeignScanState *)arg);
+		spd_end_child_node_thread((ForeignScanState *)arg, true);
 }
 
 /**
@@ -6581,7 +6582,7 @@ spd_EndForeignScan(ForeignScanState *node)
 	if (!fdw_private)
 		return;
 
-	spd_end_child_node_thread((ForeignScanState *)node);
+	spd_end_child_node_thread((ForeignScanState *)node, false);
 
 	/* wait until all the remote connections get closed. */
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
