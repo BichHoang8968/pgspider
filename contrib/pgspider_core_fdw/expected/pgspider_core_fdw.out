@@ -50,6 +50,7 @@ SELECT * FROM test1 order by i,__spd_url;
  4 | /file_svr/
 (8 rows)
 
+--Testcase 5:
 SELECT * FROM test1 IN ('/file_svr/') ORDER BY i,__spd_url;
  i | __spd_url  
 ---+------------
@@ -63,6 +64,7 @@ SELECT * FROM test1 IN ('/file_svr/') ORDER BY i,__spd_url;
  4 | /file_svr/
 (8 rows)
 
+--Testcase 6:
 SELECT * FROM test1 IN ('/file_svr/') where i = 1;
  i | __spd_url  
 ---+------------
