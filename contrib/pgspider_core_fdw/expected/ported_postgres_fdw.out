@@ -3673,11 +3673,11 @@ select c2 * (random() <= 1)::int as sum1, sum(c1) * c2 as sum2 from ft1 group by
    Output: ((c2 * ((random() <= '1'::double precision))::integer)), ((sum(c1) * c2)), c2
    Sort Key: ((ft1.c2 * ((random() <= '1'::double precision))::integer)), ((sum(ft1.c1) * ft1.c2))
    ->  Foreign Scan
-         Output: (c2 * ((random() <= '1'::double precision))::integer), ((sum(c1) * c2)), c2
+         Output: ((c2 * ((random() <= '1'::double precision))::integer)), ((sum(c1) * c2)), c2
          Node: postgres_srv / Status: Alive
            Agg push-down: yes
            Relations: Aggregate on (public.ft1__postgres_srv__0)
-           Remote SQL: SELECT sum("C 1"), c2 FROM "S 1"."T 1" GROUP BY 2
+           Remote SQL: SELECT c2, sum("C 1") FROM "S 1"."T 1" GROUP BY 1
 (9 rows)
 
 --Testcase 180:
@@ -3700,19 +3700,18 @@ select c2 * (random() <= 1)::int as sum1, sum(c1) * c2 as sum2 from ft1 group by
 --Testcase 181:
 explain (verbose, costs off)
 select c2 * (random() <= 1)::int as c2 from ft2 group by c2 * (random() <= 1)::int order by 1;
-                                  QUERY PLAN                                  
-------------------------------------------------------------------------------
+                               QUERY PLAN                                
+-------------------------------------------------------------------------
  Sort
    Output: ((c2 * ((random() <= '1'::double precision))::integer))
    Sort Key: ((ft2.c2 * ((random() <= '1'::double precision))::integer))
-   ->  HashAggregate
+   ->  Foreign Scan
          Output: ((c2 * ((random() <= '1'::double precision))::integer))
-         Group Key: (ft2.c2 * ((random() <= '1'::double precision))::integer)
-         ->  Foreign Scan on public.ft2
-               Output: (c2 * ((random() <= '1'::double precision))::integer)
-               Node: postgres_srv / Status: Alive
-                 Remote SQL: SELECT c2 FROM "S 1"."T 1"
-(10 rows)
+         Node: postgres_srv / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.ft2__postgres_srv__0)
+           Remote SQL: SELECT c2 FROM "S 1"."T 1" GROUP BY 1
+(9 rows)
 
 -- GROUP BY clause in various forms, cardinal, alias and constant expression
 --Testcase 182:
@@ -4229,20 +4228,18 @@ select sum(c2) filter (where c2 in (select c2 from ft1 where c2 < 5)) from ft1;
 --Testcase 214:
 explain (verbose, costs off)
 select c2, rank('10'::varchar) within group (order by c6), percentile_cont(c2/10::numeric) within group (order by c1) from ft1 where c2 < 10 group by c2 having percentile_cont(c2/10::numeric) within group (order by c1) < 500 order by c2;
-                                                                                          QUERY PLAN                                                                                           
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- GroupAggregate
-   Output: c2, rank('10'::character varying) WITHIN GROUP (ORDER BY c6), percentile_cont((((c2)::numeric / '10'::numeric))::double precision) WITHIN GROUP (ORDER BY ((c1)::double precision))
-   Group Key: ft1.c2
-   Filter: (percentile_cont((((ft1.c2)::numeric / '10'::numeric))::double precision) WITHIN GROUP (ORDER BY ((ft1.c1)::double precision)) < '500'::double precision)
-   ->  Sort
-         Output: c2, c6, c1
-         Sort Key: ft1.c2
-         ->  Foreign Scan on public.ft1
-               Output: c2, c6, c1
-               Node: postgres_srv / Status: Alive
-                 Remote SQL: SELECT "C 1", c2, c6 FROM "S 1"."T 1" WHERE ((c2 < 10))
-(11 rows)
+                                                                                                                 QUERY PLAN                                                                                                                 
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort
+   Output: c2, (rank('10'::character varying) WITHIN GROUP (ORDER BY c6)), (percentile_cont((((c2)::numeric / '10'::numeric))::double precision) WITHIN GROUP (ORDER BY ((c1)::double precision)))
+   Sort Key: ft1.c2
+   ->  Foreign Scan
+         Output: c2, (rank('10'::character varying) WITHIN GROUP (ORDER BY c6)), (percentile_cont((((c2)::numeric / '10'::numeric))::double precision) WITHIN GROUP (ORDER BY ((c1)::double precision)))
+         Node: postgres_srv / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.ft1__postgres_srv__0)
+           Remote SQL: SELECT c2, rank('10'::character varying) WITHIN GROUP (ORDER BY c6 ASC NULLS LAST), percentile_cont((c2 / 10::numeric)) WITHIN GROUP (ORDER BY ("C 1") ASC NULLS LAST) FROM "S 1"."T 1" WHERE ((c2 < 10)) GROUP BY 1
+(9 rows)
 
 --Testcase 215:
 select c2, rank('10'::varchar) within group (order by c6), percentile_cont(c2/10::numeric) within group (order by c1) from ft1 where c2 < 10 group by c2 having percentile_cont(c2/10::numeric) within group (order by c1) < 500 order by c2;
@@ -4626,13 +4623,13 @@ select count(*), sum(t1.c1), avg(t2.c1) from (select c1 from ft4 where c1 betwee
 --Testcase 233:
 explain (verbose, costs off)
 select sum(c2) * (random() <= 1)::int as sum from ft1 order by 1;
-                                   QUERY PLAN                                   
---------------------------------------------------------------------------------
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
  Sort
-   Output: (((sum(c2)) * ((random() <= '1'::double precision))::integer))
-   Sort Key: (((sum(ft1.c2)) * ((random() <= '1'::double precision))::integer))
+   Output: ((sum(c2) * ((random() <= '1'::double precision))::integer))
+   Sort Key: ((sum(ft1.c2) * ((random() <= '1'::double precision))::integer))
    ->  Foreign Scan
-         Output: ((sum(c2)) * ((random() <= '1'::double precision))::integer)
+         Output: ((sum(c2) * ((random() <= '1'::double precision))::integer))
          Node: postgres_srv / Status: Alive
            Agg push-down: yes
            Relations: Aggregate on (public.ft1__postgres_srv__0)

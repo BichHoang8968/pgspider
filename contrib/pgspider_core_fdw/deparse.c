@@ -209,8 +209,14 @@ foreign_expr_walker(Node *node,
 			break;
 		}
 		case T_FuncExpr:
-			/* Not pushable Function Expression */
-			return false;
+		{
+			FuncExpr	*func = (FuncExpr *) node;
+
+			/* Not pushable Function Expression when it is called directly */
+			if (func->funcformat == COERCE_EXPLICIT_CALL )
+				return false;
+			break;
+		}
 		case T_OpExpr:
 		{
 			OpExpr	   *oe = (OpExpr *) node;
