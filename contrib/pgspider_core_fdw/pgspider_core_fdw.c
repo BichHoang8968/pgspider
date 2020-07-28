@@ -6032,6 +6032,7 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 	int			colid = 0;
 	int			i;
 	int			typeid;
+	int			typmod;
 
 	colid = 0;
 	appendStringInfo(create_sql, "CREATE TEMP TABLE %s(", temp_table);
@@ -6039,6 +6040,7 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 	{
 		Extractcells	*extcells = lfirst(lc);
 		ListCell		*extlc;
+
 		foreach(extlc, extcells->cells)
 		{
 			Mappingcells *cells = lfirst(extlc);
@@ -6052,51 +6054,11 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 						appendStringInfo(create_sql, ",");
 					appendStringInfo(create_sql, "col%d ", colid);
 					typeid = exprType((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, colid))->expr);
+					typmod = exprTypmod((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, colid))->expr);
+
 					/* append column name and column type */
-					if (typeid == NUMERICOID)
-						appendStringInfo(create_sql, " numeric");
-					else if (typeid == TEXTOID)
-						appendStringInfo(create_sql, " text");
-					else if (typeid == FLOAT4OID)
-						appendStringInfo(create_sql, " float");
-					else if (typeid == FLOAT8OID)
-						appendStringInfo(create_sql, " float8");
-					else if (typeid == INT2OID)
-						appendStringInfo(create_sql, " smallint");
-					else if (typeid == INT4OID)
-						appendStringInfo(create_sql, " int");
-					else if (typeid == INT8OID)
-						appendStringInfo(create_sql, " bigint");
-					else if (typeid == BITOID)
-						appendStringInfo(create_sql, " bit");
-					else if (typeid == DATEOID)
-						appendStringInfo(create_sql, " date");
-					else if (typeid == TIMESTAMPOID)
-						appendStringInfo(create_sql, " timestamp");
-					else if (typeid == TIMESTAMPTZOID)
-						appendStringInfo(create_sql, " timestamp with time zone");
-					else if (typeid == BOOLOID)
-						appendStringInfo(create_sql, " boolean");
-					else if (typeid == INT4ARRAYOID)
-						appendStringInfo(create_sql, " integer[]");
-					else if (typeid == TIMESTAMPARRAYOID)
-						appendStringInfo(create_sql, " text[]");
-					else if (typeid == CASHOID)
-						appendStringInfo(create_sql, " money");
-					else if (typeid == VARCHAROID)
-						appendStringInfo(create_sql, " text");
-					/* TODO: numeric may be incorrect for some typeid */
-					else if (cells->aggtype != NON_AGG_FLAG)
-					{
-						appendStringInfo(create_sql, " numeric");
-						elog(WARNING, "There is no corresponding type for this OID type. The data type of column will be set to numeric by default.");
-					}
-					else
-					{
-						appendStringInfo(create_sql, " text");
-						elog(WARNING, "There is no corresponding type for this OID type. The data type of column will be set to text by default.");
-					}
-						
+					appendStringInfo(create_sql, " %s", spd_deparse_type_name(typeid, typmod));
+
 					colid++;
 				}
 			}
