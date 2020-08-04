@@ -147,6 +147,9 @@ typedef struct ParamExecData
 	void	   *execPlan;		/* should be "SubPlanState *" */
 	Datum		value;
 	bool		isnull;
+#ifdef PGSPIDER
+	pthread_mutex_t execMutex;	/* Mutex for evaluate PARAM_EXEC */
+#endif
 } ParamExecData;
 
 

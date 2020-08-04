@@ -130,6 +130,11 @@ pgspider_check_childnnode(void *arg)
 	int			i;
 	nodeinfotag key = {{0}};
 
+	ErrorContext = AllocSetContextCreate(TopMemoryContext,
+										"Pgspider keep alive ErrorContext",
+										ALLOCSET_DEFAULT_SIZES);
+	MemoryContextAllowInCriticalSection(ErrorContext, true);
+
 	strcpy(key.nodeName, nodeInfo->tag.nodeName);
 	strcpy(key.ip, nodeInfo->tag.ip);
 #ifndef WIN32
@@ -167,7 +172,10 @@ pgspider_check_childnnode(void *arg)
 			sleep(1);
 			/* Check finishing flag */
 			if (join_flag == true)
+			{
+				MemoryContextDelete(ErrorContext);
 				return 0;
+			}
 		}
 	}
 }
@@ -524,6 +532,12 @@ worker_pgspider_keepalive(Datum main_arg)
 	/*
 	 * Main loop: do this until the SIGTERM handler tells us to terminate
 	 */
+	
+	/* Init ErrorContext for each child thread */
+	ErrorContext = AllocSetContextCreate(TopMemoryContext,
+										"Pgspider keep alive ErrorContext",
+										ALLOCSET_DEFAULT_SIZES);
+	MemoryContextAllowInCriticalSection(ErrorContext, true);
 
 	while (!got_sigterm)
 	{
@@ -570,6 +584,7 @@ worker_pgspider_keepalive(Datum main_arg)
 		fdwName = NULL;
 		threads = NULL;
 	}
+	MemoryContextDelete(ErrorContext);
 	proc_exit(1);
 }
 

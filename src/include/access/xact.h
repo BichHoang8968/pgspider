@@ -130,6 +130,9 @@ typedef enum
 typedef void (*SubXactCallback) (SubXactEvent event, SubTransactionId mySubid,
 								 SubTransactionId parentSubid, void *arg);
 
+#ifdef PGSPIDER
+typedef void (*AbortTransactionCallback) (void *arg);
+#endif
 
 /* ----------------
  *		transaction-related XLOG entries
@@ -439,5 +442,12 @@ extern void ParseAbortRecord(uint8 info, xl_xact_abort *xlrec, xl_xact_parsed_ab
 extern void EnterParallelMode(void);
 extern void ExitParallelMode(void);
 extern bool IsInParallelMode(void);
+
+#ifdef PGSPIDER
+extern void AtAbortTransaction(void);
+extern void AtFinishTransaction(void);
+extern void RegisterAbortTransactionCallback(AbortTransactionCallback callback, void *arg);
+extern void UnregisterAbortTransactionCallback(AbortTransactionCallback callback, void *arg);
+#endif
 
 #endif							/* XACT_H */

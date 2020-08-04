@@ -3640,20 +3640,21 @@ select c2/2, sum(c2) * (c2/2) from ft1 group by c2/2 order by c2/2;
 --Testcase 177:
 explain (verbose, costs off)
 select count(x.a), sum(x.a) from (select c2 a, sum(c1) b from ft1 group by c2, sqrt(c1) order by 1, 2) x;
-                                          QUERY PLAN                                           
------------------------------------------------------------------------------------------------
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
  Aggregate
    Output: count(ft1.c2), sum(ft1.c2)
    ->  Sort
          Output: ft1.c2, (sum(ft1.c1)), (sqrt((ft1.c1)::double precision))
          Sort Key: ft1.c2, (sum(ft1.c1))
-         ->  Foreign Scan
-               Output: ft1.c2, (sum(ft1.c1)), (sqrt((ft1.c1)::double precision))
-               Node: postgres_srv / Status: Alive
-                 Agg push-down: yes
-                 Relations: Aggregate on (public.ft1__postgres_srv__0)
-                 Remote SQL: SELECT c2, sum("C 1"), sqrt("C 1") FROM "S 1"."T 1" GROUP BY 1, 3
-(11 rows)
+         ->  HashAggregate
+               Output: ft1.c2, sum(ft1.c1), (sqrt((ft1.c1)::double precision))
+               Group Key: ft1.c2, sqrt((ft1.c1)::double precision)
+               ->  Foreign Scan on public.ft1
+                     Output: ft1.c2, sqrt((ft1.c1)::double precision), ft1.c1
+                     Node: postgres_srv / Status: Alive
+                       Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1"
+(12 rows)
 
 --Testcase 178:
 select count(x.a), sum(x.a) from (select c2 a, sum(c1) b from ft1 group by c2, sqrt(c1) order by 1, 2) x;
@@ -3716,8 +3717,8 @@ select c2 * (random() <= 1)::int as c2 from ft2 group by c2 * (random() <= 1)::i
 --Testcase 182:
 explain (verbose, costs off)
 select count(c2) w, c2 x, 5 y, 7.0 z from ft1 group by 2, y, 9.0::int order by 2;
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
+                               QUERY PLAN                               
+------------------------------------------------------------------------
  Sort
    Output: (count(c2)), c2, 5, 7.0, 9
    Sort Key: ft1.c2
@@ -3726,7 +3727,7 @@ select count(c2) w, c2 x, 5 y, 7.0 z from ft1 group by 2, y, 9.0::int order by 2
          Node: postgres_srv / Status: Alive
            Agg push-down: yes
            Relations: Aggregate on (public.ft1__postgres_srv__0)
-           Remote SQL: SELECT count(c2), c2, 5, 7.0, 9 FROM "S 1"."T 1" GROUP BY 2, 3, 5
+           Remote SQL: SELECT count(c2), c2 FROM "S 1"."T 1" GROUP BY 2
 (9 rows)
 
 --Testcase 183:
@@ -3776,8 +3777,8 @@ select c2, c2 from ft1 where c2 > 6 group by 1, 2 order by sum(c1);
 --Testcase 186:
 explain (verbose, costs off)
 select c2, sum(c1) from ft2 group by c2 having avg(c1) < 500 and sum(c1) < 49800 order by c2;
-                                                               QUERY PLAN                                                                
------------------------------------------------------------------------------------------------------------------------------------------
+                                                     QUERY PLAN                                                      
+---------------------------------------------------------------------------------------------------------------------
  Sort
    Output: c2, (sum(c1))
    Sort Key: ft2.c2
@@ -3786,7 +3787,7 @@ select c2, sum(c1) from ft2 group by c2 having avg(c1) < 500 and sum(c1) < 49800
          Node: postgres_srv / Status: Alive
            Agg push-down: yes
            Relations: Aggregate on (public.ft2__postgres_srv__0)
-           Remote SQL: SELECT c2, sum("C 1") FROM "S 1"."T 1" GROUP BY 1 HAVING ((avg("C 1") < 500::numeric)) AND ((sum("C 1") < 49800))
+           Remote SQL: SELECT c2, sum("C 1"), count("C 1") FROM "S 1"."T 1" GROUP BY 1 HAVING ((sum("C 1") < 49800))
 (9 rows)
 
 --Testcase 187:
@@ -3801,19 +3802,26 @@ select c2, sum(c1) from ft2 group by c2 having avg(c1) < 500 and sum(c1) < 49800
 --Testcase 188:
 explain (verbose, costs off)
 select count(*) from (select c5, count(c1) from ft1 group by c5, sqrt(c2) having (avg(c1) / avg(c1)) * random() <= 1 and avg(c1) < 500) x;
-                                                               QUERY PLAN                                                                
------------------------------------------------------------------------------------------------------------------------------------------
+                                                                  QUERY PLAN                                                                  
+----------------------------------------------------------------------------------------------------------------------------------------------
  Aggregate
    Output: count(*)
-   ->  Foreign Scan
+   ->  HashAggregate
          Output: ft1.c5, NULL::bigint, (sqrt((ft1.c2)::double precision))
-         Node: postgres_srv / Status: Alive
-           Agg push-down: yes
-           Relations: Aggregate on (public.ft1__postgres_srv__0)
-           Remote SQL: SELECT c5, NULL::bigint, sqrt(c2), avg("C 1") FROM "S 1"."T 1" GROUP BY 1, 3 HAVING ((avg("C 1") < 500::numeric))
-(8 rows)
+         Group Key: ft1.c5, sqrt((ft1.c2)::double precision)
+         Filter: ((avg(ft1.c1) < '500'::numeric) AND ((((avg(ft1.c1) / avg(ft1.c1)))::double precision * random()) <= '1'::double precision))
+         ->  Foreign Scan on public.ft1
+               Output: ft1.c5, sqrt((ft1.c2)::double precision), ft1.c1
+               Node: postgres_srv / Status: Alive
+                 Remote SQL: SELECT "C 1", c2, c5 FROM "S 1"."T 1"
+(10 rows)
 
---select count(*) from (select c5, count(c1) from ft1 group by c5, sqrt(c2) having (avg(c1) / avg(c1)) * random() <= 1 and avg(c1) < 500) x;
+select count(*) from (select c5, count(c1) from ft1 group by c5, sqrt(c2) having (avg(c1) / avg(c1)) * random() <= 1 and avg(c1) < 500) x;
+ count 
+-------
+    49
+(1 row)
+
 -- Aggregate in HAVING clause is not pushable, and thus aggregation is not pushed down
 --Testcase 189:
 explain (verbose, costs off)
@@ -4220,8 +4228,8 @@ select sum(c2) filter (where c2 in (select c2 from ft1 where c2 < 5)) from ft1;
 --Testcase 214:
 explain (verbose, costs off)
 select c2, rank('10'::varchar) within group (order by c6), percentile_cont(c2/10::numeric) within group (order by c1) from ft1 where c2 < 10 group by c2 having percentile_cont(c2/10::numeric) within group (order by c1) < 500 order by c2;
-                                                                                                                                                                            QUERY PLAN                                                                                                                                                                            
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                 QUERY PLAN                                                                                                                 
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Sort
    Output: c2, (rank('10'::character varying) WITHIN GROUP (ORDER BY c6)), (percentile_cont((((c2)::numeric / '10'::numeric))::double precision) WITHIN GROUP (ORDER BY ((c1)::double precision)))
    Sort Key: ft1.c2
@@ -4230,7 +4238,7 @@ select c2, rank('10'::varchar) within group (order by c6), percentile_cont(c2/10
          Node: postgres_srv / Status: Alive
            Agg push-down: yes
            Relations: Aggregate on (public.ft1__postgres_srv__0)
-           Remote SQL: SELECT c2, rank('10'::character varying) WITHIN GROUP (ORDER BY c6 ASC NULLS LAST), percentile_cont((c2 / 10::numeric)) WITHIN GROUP (ORDER BY ("C 1") ASC NULLS LAST) FROM "S 1"."T 1" WHERE ((c2 < 10)) GROUP BY 1 HAVING ((percentile_cont((c2 / 10::numeric)) WITHIN GROUP (ORDER BY ("C 1") ASC NULLS LAST) < 500::double precision))
+           Remote SQL: SELECT c2, rank('10'::character varying) WITHIN GROUP (ORDER BY c6 ASC NULLS LAST), percentile_cont((c2 / 10::numeric)) WITHIN GROUP (ORDER BY ("C 1") ASC NULLS LAST) FROM "S 1"."T 1" WHERE ((c2 < 10)) GROUP BY 1
 (9 rows)
 
 --Testcase 215:
@@ -4893,9 +4901,30 @@ select c2, sum(c1), grouping(c2) from ft1 where c2 < 3 group by c2 order by 1 nu
 (3 rows)
 
 -- DISTINCT itself is not pushed down, whereas underneath aggregate is pushed
---explain (verbose, costs off)
---select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
---select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
+explain (verbose, costs off)
+select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Unique
+   Output: ((sum(c1) / 1000)), c2
+   ->  Sort
+         Output: ((sum(c1) / 1000)), c2
+         Sort Key: ((sum(ft2.c1) / 1000))
+         ->  Foreign Scan
+               Output: ((sum(c1) / 1000)), c2
+               Node: postgres_srv / Status: Alive
+                 Agg push-down: yes
+                 Relations: Aggregate on (public.ft2__postgres_srv__0)
+                 Remote SQL: SELECT sum("C 1"), c2 FROM "S 1"."T 1" WHERE ((c2 < 6)) GROUP BY 2
+(11 rows)
+
+select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
+ s  
+----
+ 49
+ 50
+(2 rows)
+
 -- WindowAgg
 --Testcase 249:
 explain (verbose, costs off)
@@ -5485,14 +5514,26 @@ DROP FUNCTION f_test(int);
 -- ===================================================================
 -- conversion error
 -- ===================================================================
---ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE int;
---ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c8 TYPE int;
---SELECT * FROM ft1 WHERE c1 = 1;  -- ERROR
---SELECT  ft1.c1,  ft2.c2, ft1.c8 FROM ft1, ft2 WHERE ft1.c1 = ft2.c1 AND ft1.c1 = 1; -- ERROR
---SELECT  ft1.c1,  ft2.c2, ft1 FROM ft1, ft2 WHERE ft1.c1 = ft2.c1 AND ft1.c1 = 1; -- ERROR
---SELECT sum(c2), array_agg(c8) FROM ft1 GROUP BY c8; -- ERROR
---ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE user_enum;
---ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c8 TYPE user_enum;
+ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE int;
+ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c8 TYPE int;
+SELECT * FROM ft1 WHERE c1 = 1;  -- ERROR
+ERROR:  invalid input syntax for type integer: "foo"
+CONTEXT:  column "c8" of foreign table "ft1__postgres_srv__0"
+ERROR:  PGSpider can not get data from child node : postgres_srv
+SELECT  ft1.c1,  ft2.c2, ft1.c8 FROM ft1, ft2 WHERE ft1.c1 = ft2.c1 AND ft1.c1 = 1; -- ERROR
+ERROR:  invalid input syntax for type integer: "foo"
+CONTEXT:  column "c8" of foreign table "ft1__postgres_srv__0"
+ERROR:  PGSpider can not get data from child node : postgres_srv
+SELECT  ft1.c1,  ft2.c2, ft1 FROM ft1, ft2 WHERE ft1.c1 = ft2.c1 AND ft1.c1 = 1; -- ERROR
+ERROR:  invalid input syntax for type integer: "foo"
+CONTEXT:  column "c8" of foreign table "ft1__postgres_srv__0"
+ERROR:  PGSpider can not get data from child node : postgres_srv
+SELECT sum(c2), array_agg(c8) FROM ft1 GROUP BY c8; -- ERROR
+ERROR:  invalid input syntax for type integer: "foo"
+CONTEXT:  column "c8" of foreign table "ft1__postgres_srv__0"
+ERROR:  PGSpider can not get data from child node : postgres_srv
+ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE user_enum;
+ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c8 TYPE user_enum;
 -- ===================================================================
 -- subtransaction
 --  + local/remote error doesn't break cursor

@@ -298,6 +298,20 @@ typedef struct SubXactCallbackItem
 
 static SubXactCallbackItem *SubXact_callbacks = NULL;
 
+#ifdef PGSPIDER
+/*
+ * List of add-on start- and end-of-abort transaction callbacks
+ */
+typedef struct AbortTransactionCallbackItem
+{
+	struct AbortTransactionCallbackItem *next;
+	AbortTransactionCallback callback;
+	void	   *arg;
+} AbortTransactionCallbackItem;
+
+static AbortTransactionCallbackItem *AbortTransaction_callbacks = NULL;
+#endif
+
 
 /* local function prototypes */
 static void AssignTransactionId(TransactionState s);
@@ -2566,6 +2580,19 @@ AbortTransaction(void)
 	TransactionState s = CurrentTransactionState;
 	TransactionId latestXid;
 	bool		is_parallel_worker;
+
+#ifdef PGSPIDER
+	/*
+	 * PGSpider need to notify all childs node thread to quit
+	 * before memory context of thread is release and avoid child
+	 * node thread access to Transaction State. We register abort
+	 * transaction call back for each node. In case error, backend
+	 * call AbortTransaction, we will call abort transaction callback
+	 * to quit all threads avoid thread access to free memory zone
+	 * and Transaction State.
+	 */
+	AtAbortTransaction();
+#endif
 
 	/* Prevent cancel/die interrupt while cleaning up */
 	HOLD_INTERRUPTS();
@@ -6001,3 +6028,86 @@ xact_redo(XLogReaderState *record)
 	else
 		elog(PANIC, "xact_redo: unknown op code %u", info);
 }
+
+#ifdef PGSPIDER
+/*
+ * RegisterAbortTransactionCallback
+ * Register a function to be called before AbortTransaction.
+ * Such callbacks will be called in reverse order of registration.
+ *
+ * The implement of this function is same with RegisterXactCallback
+ * but access to AbortTransaction_callbacks variable to save all call
+ * back which call before AbortTransaction.
+ */
+void
+RegisterAbortTransactionCallback(AbortTransactionCallback callback, void *arg)
+{
+	AbortTransactionCallbackItem *item;
+
+	item = (AbortTransactionCallbackItem *)
+		MemoryContextAlloc(TopMemoryContext, sizeof(AbortTransactionCallbackItem));
+	item->callback = callback;
+	item->arg = arg;
+	item->next = AbortTransaction_callbacks;
+	AbortTransaction_callbacks = item;
+}
+
+void
+UnregisterAbortTransactionCallback(AbortTransactionCallback callback, void *arg)
+{
+	AbortTransactionCallbackItem *item, *prev;
+
+	prev = NULL;
+	for (item = AbortTransaction_callbacks; item; prev = item, item = item->next)
+	{
+		if (item->callback == callback && item->arg == arg)
+		{
+			if (prev)
+				prev->next = item->next;
+			else
+				AbortTransaction_callbacks = item->next;
+			pfree(item);
+			break;
+		}
+	}
+}
+
+/*
+ * AtAbortTransaction
+ * In case AbortTransaction call all abort callback.
+ */
+void AtAbortTransaction(void)
+{
+	AbortTransactionCallbackItem *item;
+
+	/* In case sub transaction we do not need to call abort callback */
+	if (IsSubTransaction())
+		return;
+
+	item = AbortTransaction_callbacks;
+	while (item != NULL) {
+		AbortTransaction_callbacks = item->next;
+		UnregisterAbortTransactionCallback(item->callback, item->arg);
+		item->callback(item->arg);
+		pfree(item);
+		item = AbortTransaction_callbacks;
+	}
+}
+
+/*
+ * AtFinishTransaction
+ * When finish transaction, unregister all abort transaction callback.
+ */
+void AtFinishTransaction(void)
+{
+	AbortTransactionCallbackItem *item;
+
+	item = AbortTransaction_callbacks;
+	while (item != NULL) {
+		AbortTransaction_callbacks = item->next;
+		UnregisterAbortTransactionCallback(item->callback, item->arg);
+		pfree(item);
+		item = AbortTransaction_callbacks;
+	}
+}
+#endif

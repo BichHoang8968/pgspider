@@ -87,9 +87,14 @@ extern PGDLLIMPORT volatile sig_atomic_t ConfigReloadPending;
 extern PGDLLIMPORT volatile sig_atomic_t ClientConnectionLost;
 
 /* these are marked volatile because they are examined by signal handlers: */
-extern PGDLLIMPORT volatile uint32 InterruptHoldoffCount;
 extern PGDLLIMPORT volatile uint32 QueryCancelHoldoffCount;
+#ifdef PGSPIDER
+extern PGDLLIMPORT __thread volatile uint32 InterruptHoldoffCount;
 extern PGDLLIMPORT __thread volatile uint32 CritSectionCount;
+#else
+extern PGDLLIMPORT volatile uint32 InterruptHoldoffCount;
+extern PGDLLIMPORT volatile uint32 CritSectionCount;
+#endif
 
 /* in tcop/postgres.c */
 extern void ProcessInterrupts(void);

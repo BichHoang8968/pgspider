@@ -930,7 +930,7 @@ select c2, sum(c1) from ft2 group by c2 having avg(c1) < 500 and sum(c1) < 49800
 --Testcase 188:
 explain (verbose, costs off)
 select count(*) from (select c5, count(c1) from ft1 group by c5, sqrt(c2) having (avg(c1) / avg(c1)) * random() <= 1 and avg(c1) < 500) x;
---select count(*) from (select c5, count(c1) from ft1 group by c5, sqrt(c2) having (avg(c1) / avg(c1)) * random() <= 1 and avg(c1) < 500) x;
+select count(*) from (select c5, count(c1) from ft1 group by c5, sqrt(c2) having (avg(c1) / avg(c1)) * random() <= 1 and avg(c1) < 500) x;
 
 -- Aggregate in HAVING clause is not pushable, and thus aggregation is not pushed down
 --Testcase 189:
@@ -1267,9 +1267,9 @@ select c2, sum(c1), grouping(c2) from ft1 where c2 < 3 group by c2 order by 1 nu
 select c2, sum(c1), grouping(c2) from ft1 where c2 < 3 group by c2 order by 1 nulls last;
 
 -- DISTINCT itself is not pushed down, whereas underneath aggregate is pushed
---explain (verbose, costs off)
---select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
---select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
+explain (verbose, costs off)
+select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
+select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
 
 -- WindowAgg
 --Testcase 249:
@@ -1435,14 +1435,14 @@ DROP FUNCTION f_test(int);
 -- ===================================================================
 -- conversion error
 -- ===================================================================
---ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE int;
---ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c8 TYPE int;
---SELECT * FROM ft1 WHERE c1 = 1;  -- ERROR
---SELECT  ft1.c1,  ft2.c2, ft1.c8 FROM ft1, ft2 WHERE ft1.c1 = ft2.c1 AND ft1.c1 = 1; -- ERROR
---SELECT  ft1.c1,  ft2.c2, ft1 FROM ft1, ft2 WHERE ft1.c1 = ft2.c1 AND ft1.c1 = 1; -- ERROR
---SELECT sum(c2), array_agg(c8) FROM ft1 GROUP BY c8; -- ERROR
---ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE user_enum;
---ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c8 TYPE user_enum;
+ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE int;
+ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c8 TYPE int;
+SELECT * FROM ft1 WHERE c1 = 1;  -- ERROR
+SELECT  ft1.c1,  ft2.c2, ft1.c8 FROM ft1, ft2 WHERE ft1.c1 = ft2.c1 AND ft1.c1 = 1; -- ERROR
+SELECT  ft1.c1,  ft2.c2, ft1 FROM ft1, ft2 WHERE ft1.c1 = ft2.c1 AND ft1.c1 = 1; -- ERROR
+SELECT sum(c2), array_agg(c8) FROM ft1 GROUP BY c8; -- ERROR
+ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE user_enum;
+ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c8 TYPE user_enum;
 
 -- ===================================================================
 -- subtransaction

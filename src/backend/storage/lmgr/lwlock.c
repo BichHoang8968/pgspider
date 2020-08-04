@@ -139,6 +139,11 @@ typedef struct LWLockHandle
 	LWLockMode	mode;
 } LWLockHandle;
 
+#ifdef PGSPIDER
+/* Use mutex to avoid concurent access to num_held_lwlocks, held_lwlocks variables */
+pthread_mutex_t lwlock_mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
+
 static int	num_held_lwlocks = 0;
 static LWLockHandle held_lwlocks[MAX_SIMUL_LWLOCKS];
 
@@ -1270,9 +1275,15 @@ LWLockAcquire(LWLock *lock, LWLockMode mode)
 
 	TRACE_POSTGRESQL_LWLOCK_ACQUIRE(T_NAME(lock), mode);
 
+#ifdef PGSPIDER
+	SPD_LOCK_TRY(&lwlock_mutex);
+#endif
 	/* Add lock to list of locks held by this backend */
 	held_lwlocks[num_held_lwlocks].lock = lock;
 	held_lwlocks[num_held_lwlocks++].mode = mode;
+#ifdef PGSPIDER
+	SPD_UNLOCK_CATCH(&lwlock_mutex);
+#endif
 
 	/*
 	 * Fix the process wait semaphore's count for any absorbed wakeups.
@@ -1323,9 +1334,15 @@ LWLockConditionalAcquire(LWLock *lock, LWLockMode mode)
 	}
 	else
 	{
+#ifdef PGSPIDER
+		SPD_LOCK_TRY(&lwlock_mutex);
+#endif
 		/* Add lock to list of locks held by this backend */
 		held_lwlocks[num_held_lwlocks].lock = lock;
 		held_lwlocks[num_held_lwlocks++].mode = mode;
+#ifdef PGSPIDER
+		SPD_UNLOCK_CATCH(&lwlock_mutex);
+#endif
 		TRACE_POSTGRESQL_LWLOCK_CONDACQUIRE(T_NAME(lock), mode);
 	}
 	return !mustwait;
@@ -1451,9 +1468,15 @@ LWLockAcquireOrWait(LWLock *lock, LWLockMode mode)
 	else
 	{
 		LOG_LWDEBUG("LWLockAcquireOrWait", lock, "succeeded");
+#ifdef PGSPIDER
+		SPD_LOCK_TRY(&lwlock_mutex);
+#endif
 		/* Add lock to list of locks held by this backend */
 		held_lwlocks[num_held_lwlocks].lock = lock;
 		held_lwlocks[num_held_lwlocks++].mode = mode;
+#ifdef PGSPIDER
+		SPD_UNLOCK_CATCH(&lwlock_mutex);
+#endif
 		TRACE_POSTGRESQL_LWLOCK_ACQUIRE_OR_WAIT(T_NAME(lock), mode);
 	}
 
@@ -1730,6 +1753,9 @@ LWLockRelease(LWLock *lock)
 	bool		check_waiters;
 	int			i;
 
+#ifdef PGSPIDER
+	SPD_LOCK_TRY(&lwlock_mutex);
+#endif
 	/*
 	 * Remove lock from list of locks held.  Usually, but not always, it will
 	 * be the latest-acquired lock; so search array backwards.
@@ -1746,7 +1772,9 @@ LWLockRelease(LWLock *lock)
 	num_held_lwlocks--;
 	for (; i < num_held_lwlocks; i++)
 		held_lwlocks[i] = held_lwlocks[i + 1];
-
+#ifdef PGSPIDER
+	SPD_UNLOCK_CATCH(&lwlock_mutex);
+#endif
 	PRINT_LWDEBUG("LWLockRelease", lock, mode);
 
 	/*
