@@ -4467,28 +4467,30 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		scan_relid = 0;
 	}
 
-	/* For simple rel, calculate which condition should be filtered in core */
+	/* Calculate which condition should be filtered in core: when baserel is simple rel or when there is pseudoconstant (Example: WHERE false) */
+	scan_clauses = NIL;
+	if (fdw_private->baserestrictinfo && !push_scan_clauses)
+	{
+		/*
+		 * In this case, PGSpider should filter baserestrictinfo because
+		 * these are not passed to child fdw because of __spd_url
+		 */
+		foreach(lc, fdw_private->baserestrictinfo)
+		{
+			RestrictInfo *ri = lfirst_node(RestrictInfo, lc);
+
+			/* When there is pseudoconstant, need to filter in core (Example: WHERE false) */
+			if (IS_SIMPLE_REL(baserel) || ri->pseudoconstant)		
+				scan_clauses = lappend(scan_clauses, ri->clause);
+		}
+	}
+
+	/*
+	 * We collect local conditions each fdw did not push down to make
+	 * postgresql core execute that filter
+	 */
 	if (IS_SIMPLE_REL(baserel))
 	{
-		scan_clauses = NIL;
-		if (fdw_private->baserestrictinfo && !push_scan_clauses)
-		{
-			/*
-			 * In this case, PGSpider should filter baserestrictinfo because
-			 * these are not passed to child fdw because of __spd_url
-			 */
-			foreach(lc, fdw_private->baserestrictinfo)
-			{
-				RestrictInfo *ri = lfirst_node(RestrictInfo, lc);
-
-				scan_clauses = lappend(scan_clauses, ri->clause);
-			}
-		}
-
-		/*
-		 * We collect local conditions each fdw did not push down to make
-		 * postgresql core execute that filter
-		 */
 		for (i = 0; i < fdw_private->node_num; i++)
 		{
 			if (!childinfo[i].plan)
