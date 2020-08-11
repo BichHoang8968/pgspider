@@ -99,6 +99,9 @@ static void CatCachePrintStats(int code, Datum arg);
 #endif
 static void CatCacheRemoveCTup(CatCache *cache, CatCTup *ct);
 static void CatCacheRemoveCList(CatCache *cache, CatCList *cl);
+#ifdef PGSPIDER
+static void CatalogCacheInitializeCacheOrig(CatCache *cache);
+#endif
 static void CatalogCacheInitializeCache(CatCache *cache);
 static CatCTup *CatalogCacheCreateEntry(CatCache *cache, HeapTuple ntp,
 										Datum *arguments,
@@ -931,7 +934,11 @@ do { \
 #endif
 
 static void
+#ifdef PGSPIDER
+CatalogCacheInitializeCacheOrig(CatCache *cache)
+#else
 CatalogCacheInitializeCache(CatCache *cache)
+#endif
 {
 	Relation	relation;
 	MemoryContext oldcxt;
@@ -1029,6 +1036,16 @@ CatalogCacheInitializeCache(CatCache *cache)
 	 */
 	cache->cc_tupdesc = tupdesc;
 }
+
+#ifdef PGSPIDER
+static void
+CatalogCacheInitializeCache(CatCache *cache)
+{
+	SPD_LOCK_TRY(&catcache_mutex);
+	CatalogCacheInitializeCacheOrig(cache);
+	SPD_UNLOCK_CATCH(&catcache_mutex);
+}
+#endif
 
 /*
  * InitCatCachePhase2 -- external interface for CatalogCacheInitializeCache
