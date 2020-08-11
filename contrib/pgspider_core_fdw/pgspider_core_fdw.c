@@ -3887,22 +3887,20 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 									  grouped_rel->relids,
 									  NULL,
 									  NULL);
-			if (is_foreign_expr(root, grouped_rel, expr))
-			{
-				fpinfo->rinfo.remote_conds = lappend(fpinfo->rinfo.remote_conds, rinfo);
+			if (!is_foreign_expr(root, grouped_rel, expr))
+				return false;
 
-				/* Check qualifications whether can be passed to child nodes. */
-				if(is_having_safe((Node *) rinfo->clause))
-					fpinfo->having_quals = lappend(fpinfo->having_quals, rinfo->clause);
-			}
-			else
-				fpinfo->rinfo.local_conds = lappend(fpinfo->rinfo.local_conds, rinfo);
+			fpinfo->rinfo.remote_conds = lappend(fpinfo->rinfo.remote_conds, rinfo);
+
+			/* Check qualifications whether can be passed to child nodes. */
+			if(is_having_safe((Node *) rinfo->clause))
+				fpinfo->having_quals = lappend(fpinfo->having_quals, rinfo->clause);
 
 			/*
 			 * Filter operation for HAVING clause will be executed by SELECT query
 			 * for temptable with full root HAVING query.
 			 *
-			 * * Extract qualification to mapping list.
+			 * Extract qualification to mapping list.
 			 */
 			tlist = spd_add_to_flat_tlist(tlist,  rinfo->clause, &mapping_tlist,
 											&compress_child_tlist, 0, &upper_targets, false, true);

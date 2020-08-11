@@ -236,6 +236,18 @@ foreign_expr_walker(Node *node,
 				return false;
 			break;
 		}
+		case T_BoolExpr:
+		{
+			BoolExpr   *b = (BoolExpr *) node;
+
+			/*
+			 * Recurse to input subexpressions.
+			 */
+			if (!foreign_expr_walker((Node *) b->args,
+										glob_cxt, &inner_cxt))
+				return false;
+			break;
+		}
 		default:
 			break;
 	}
