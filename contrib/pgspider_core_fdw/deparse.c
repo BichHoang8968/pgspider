@@ -47,6 +47,7 @@ static bool having_clause_tree_walker(Node *node, void *param);
 /* Global function forward declarations */
 bool is_foreign_expr2(PlannerInfo *, RelOptInfo *, Expr *);
 bool is_having_safe(Node *node);
+bool is_sorted(Node *node);
 char *spd_deparse_type_name(Oid type_oid, int32 typemod);
 void spd_deparse_const(Const *node, StringInfo buf, int showtype);
 
@@ -375,7 +376,42 @@ bool is_having_safe(Node *node)
 {
 	return (!having_clause_tree_walker(node, NULL));
 }
+/*
+ * order_by_walker
+ *
+ * Check if HAVING expression is safe to pass to child fdws.
+ */
+static bool order_by_walker(Node *node, void *param)
+{
+	/* Need do nothing for empty subexpression. */
+	if (node == NULL)
+		return false;
 
+	switch (nodeTag(node))
+	{
+		case T_Aggref:
+		{
+			Aggref		*agg = (Aggref *) node;
+
+			if (agg->aggorder)
+				return true;
+			break;
+		}
+		default:
+			break;
+	}
+
+	return expression_tree_walker(node, order_by_walker, (void *) param);
+}
+/*
+ * is_sorted
+ *
+ * Check if expression contains aggregation with ORDER BY
+ */
+bool is_sorted(Node *node)
+{
+	return (order_by_walker(node, NULL));
+}
 
 /*
  *	Convert type OID + typmod info into a type name

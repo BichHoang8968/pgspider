@@ -451,6 +451,7 @@ extern void deparseStringLiteral(StringInfo buf, const char *val);
 extern bool is_foreign_expr2(PlannerInfo *root, RelOptInfo *baserel, Expr *expr);
 #define is_foreign_expr is_foreign_expr2
 extern bool is_having_safe(Node *node);
+extern bool is_sorted(Node *node);
 extern void spd_deparse_const(Const *node, StringInfo buf, int showtype);
 extern char *spd_deparse_type_name(Oid type_oid, int32 typemod);
 
@@ -3560,10 +3561,25 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				struct Path *tmp_path;
 				Query	   *query = root->parse;
 				AggClauseCosts dummy_aggcosts;
+				PathTarget *grouping_target = output_rel->reltarget;
+				AggStrategy aggStrategy = AGG_PLAIN;
 
 				MemSet(&dummy_aggcosts, 0, sizeof(AggClauseCosts));
 				tmp_path = entry->pathlist->head->data.ptr_value;
 
+				if (query->groupClause)
+					aggStrategy = AGG_HASHED;
+				foreach(lc, grouping_target->exprs)
+				{
+					Node * node = lfirst(lc);
+
+					/* If there is ORDER BY inside aggregate function, set AggStrategy to AGG_SORTED */
+					if (is_sorted(node))
+					{
+						aggStrategy = AGG_SORTED;
+						break;
+					}
+				}
 				/*
 				 * Pass dummy_aggcosts because create_agg_path requires
 				 * aggcosts in cases other than AGG_HASH
@@ -3572,7 +3588,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 																   dummy_output_rel,
 																   tmp_path,
 																   dummy_root_child->upper_targets[UPPERREL_GROUP_AGG],
-																   query->groupClause ? AGG_HASHED : AGG_PLAIN, AGGSPLIT_SIMPLE,
+																   aggStrategy, AGGSPLIT_SIMPLE,
 																   dummy_root_child->parse->groupClause, NULL, &dummy_aggcosts,
 																   1);
 
@@ -4223,6 +4239,68 @@ spd_checkurl_clauses(List *scan_clauses, PlannerInfo *root, List *baserestrictin
 	*push_scan_clauses = baserestrictinfo;
 }
 
+static Sort *
+spd_make_sort(Plan *lefttree, int numCols,
+		  AttrNumber *sortColIdx, Oid *sortOperators,
+		  Oid *collations, bool *nullsFirst)
+{
+	Sort	   *node = makeNode(Sort);
+	Plan	   *plan = &node->plan;
+
+	plan->targetlist = lefttree->targetlist;
+	plan->qual = NIL;
+	plan->lefttree = lefttree;
+	plan->righttree = NULL;
+	node->numCols = numCols;
+	node->sortColIdx = sortColIdx;
+	node->sortOperators = sortOperators;
+	node->collations = collations;
+	node->nullsFirst = nullsFirst;
+
+	return node;
+}
+
+static Sort *
+spd_make_sort_from_groupcols(List *groupcls,
+						 AttrNumber *grpColIdx,
+						 Plan *lefttree)
+{
+	List	   *sub_tlist = lefttree->targetlist;
+	ListCell   *l;
+	int			numsortkeys;
+	AttrNumber *sortColIdx;
+	Oid		   *sortOperators;
+	Oid		   *collations;
+	bool	   *nullsFirst;
+
+	/* Convert list-ish representation to arrays wanted by executor */
+	numsortkeys = list_length(groupcls);
+	sortColIdx = (AttrNumber *) palloc(numsortkeys * sizeof(AttrNumber));
+	sortOperators = (Oid *) palloc(numsortkeys * sizeof(Oid));
+	collations = (Oid *) palloc(numsortkeys * sizeof(Oid));
+	nullsFirst = (bool *) palloc(numsortkeys * sizeof(bool));
+
+	numsortkeys = 0;
+	foreach(l, groupcls)
+	{
+		SortGroupClause *grpcl = (SortGroupClause *) lfirst(l);
+		TargetEntry *tle = get_tle_by_resno(sub_tlist, grpColIdx[numsortkeys]);
+
+		if (!tle)
+			elog(ERROR, "could not retrieve tle for sort-from-groupcols");
+
+		sortColIdx[numsortkeys] = tle->resno;
+		sortOperators[numsortkeys] = grpcl->sortop;
+		collations[numsortkeys] = exprCollation((Node *) tle->expr);
+		nullsFirst[numsortkeys] = grpcl->nulls_first;
+		numsortkeys++;
+	}
+
+	return spd_make_sort(lefttree, numsortkeys,
+					 sortColIdx, sortOperators,
+					 collations, nullsFirst);
+}
+
 /**
  * spd_GetForeignPlan
  *
@@ -4413,6 +4491,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			List	   *child_tlist;
 			ListCell   *lc;
 			int			idx = 0;
+			Plan	   *sort_plan = NULL;
 
 			/*
 			 * If groupby has spdurl, spdurl will be removed from the target
@@ -4437,6 +4516,18 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			 * Create aggregation plan with foreign table scan.
 			 * extract_grouping_cols() requires targetlist of subplan.
 			 */
+			if (childinfo[i].aggpath->aggstrategy == AGG_SORTED)
+			{
+				AttrNumber *new_grpColIdx;
+
+				new_grpColIdx = extract_grouping_cols(childinfo[i].aggpath->groupClause,
+															   fsplan->scan.plan.targetlist);
+
+				sort_plan = (Plan *)
+					spd_make_sort_from_groupcols(childinfo[i].aggpath->groupClause,
+											 new_grpColIdx,
+											 (Plan *) fsplan);
+			}
 			childinfo[i].pAgg = make_agg(child_tlist,
 										 NULL,
 										 childinfo[i].aggpath->aggstrategy,
@@ -4450,7 +4541,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 										 root->parse->groupingSets,
 										 NIL,
 										 childinfo[i].aggpath->path.rows,
-										 (Plan *) fsplan);
+										 sort_plan!=NULL?sort_plan:(Plan *) fsplan);
 
 		}
 		childinfo[i].plan = (Plan *) fsplan;
@@ -5303,7 +5394,7 @@ emit_context_error(void* context)
 	if (strcmp(err->message, "cannot take square root of a negative number") == 0)
 		elog(ERROR, "%s", "Can not return value because of rounding problem from child node");
 	else
-		elog(ERROR, "%s", err->message);
+		elog(err->elevel, "%s", err->message);
 }
 
 /**
@@ -5379,7 +5470,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql)
 			Datum				datum;
 			Form_pg_attribute	attr = TupleDescAttr(SPI_tuptable->tupdesc, colid);
 			bool				isnull = false;
-			
+
 			if (extcells->is_having_qual)
 				continue;
 
@@ -5612,8 +5703,10 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 		}
 		case T_Aggref:
 		{
-			ListCell *extlc;
-			int id = 0;
+			ListCell	*extlc;
+			int			id = 0;
+			Aggref *	aggref = (Aggref *) node;
+			bool		has_Order_by = aggref->aggorder?true:false;
 
 			foreach(extlc, extcells->cells)
 			{
@@ -5631,21 +5724,32 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 					case AVG_FLAG:
 					{
 						/* Use CASE WHEN to avoid division by zero error */
-						appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 THEN NULL ELSE (SUM(col%d)/SUM(col%d))::float8 END)", cell->mapping[0], cell->mapping[1], cell->mapping[0]);
+						if (has_Order_by)
+							appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 THEN NULL ELSE (SUM(col%d ORDER BY col%d)/SUM(col%d))::float8 END)", cell->mapping[0], cell->mapping[1], cell->mapping[1], cell->mapping[0]);
+						else
+							appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 THEN NULL ELSE (SUM(col%d)/SUM(col%d))::float8 END)", cell->mapping[0], cell->mapping[1], cell->mapping[0]);
 						break;
 					}
 					case VAR_FLAG:
 					{
 						/* Use CASE WHEN to avoid division by zero error */
-						appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 OR SUM(col%d) = 1 THEN NULL ELSE ((SUM(col%d) - POWER(SUM(col%d), 2)/SUM(col%d))/(SUM(col%d) - 1))::float8 END)", 
-								cell->mapping[0], cell->mapping[0], cell->mapping[2], cell->mapping[1], cell->mapping[0], cell->mapping[0]);
+						if (has_Order_by)
+							appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 OR SUM(col%d) = 1 THEN NULL ELSE ((SUM(col%d ORDER BY col%d) - POWER(SUM(col%d ORDER BY col%d), 2)/SUM(col%d))/(SUM(col%d) - 1))::float8 END)", 
+									cell->mapping[0], cell->mapping[0], cell->mapping[2], cell->mapping[2], cell->mapping[1], cell->mapping[1], cell->mapping[0], cell->mapping[0]);
+						else
+							appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 OR SUM(col%d) = 1 THEN NULL ELSE ((SUM(col%d) - POWER(SUM(col%d), 2)/SUM(col%d))/(SUM(col%d) - 1))::float8 END)", 
+									cell->mapping[0], cell->mapping[0], cell->mapping[2], cell->mapping[1], cell->mapping[0], cell->mapping[0]);
 						break;
 					}
 					case DEV_FLAG:
 					{
 						/* Use CASE WHEN to avoid division by zero error */
-						appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 OR SUM(col%d) = 1 THEN NULL ELSE (sqrt((SUM(col%d) - POWER(SUM(col%d), 2)/SUM(col%d))/(SUM(col%d) - 1)))::float8 END)", 
-								cell->mapping[0], cell->mapping[0], cell->mapping[2], cell->mapping[1], cell->mapping[0], cell->mapping[0]);
+						if (has_Order_by)
+							appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 OR SUM(col%d) = 1 THEN NULL ELSE (sqrt((SUM(col%d ORDER BY col%d) - POWER(SUM(col%d ORDER BY col%d), 2)/SUM(col%d))/(SUM(col%d) - 1)))::float8 END)", 
+								cell->mapping[0], cell->mapping[0], cell->mapping[2], cell->mapping[2], cell->mapping[1], cell->mapping[1], cell->mapping[0], cell->mapping[0]);
+						else
+							appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 OR SUM(col%d) = 1 THEN NULL ELSE (sqrt((SUM(col%d) - POWER(SUM(col%d), 2)/SUM(col%d))/(SUM(col%d) - 1)))::float8 END)", 
+									cell->mapping[0], cell->mapping[0], cell->mapping[2], cell->mapping[1], cell->mapping[0], cell->mapping[0]);
 						break;
 					}
 					default:
@@ -5656,7 +5760,10 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 
 						/* If original aggregate function is count, change to sum to count all data from multiple nodes */
 						if (!pg_strcasecmp(agg_command, "SUM") || !pg_strcasecmp(agg_command, "COUNT"))
-							appendStringInfo(buf, "SUM(col%d)", mapping);
+							if (has_Order_by)
+								appendStringInfo(buf, "SUM(col%d ORDER BY col%d)", mapping, mapping);
+							else
+								appendStringInfo(buf, "SUM(col%d)", mapping);
 						else if (!pg_strcasecmp(agg_command, "MAX") || !pg_strcasecmp(agg_command, "MIN") ||
 								!pg_strcasecmp(agg_command, "BIT_OR") || !pg_strcasecmp(agg_command, "BIT_AND") ||
 								!pg_strcasecmp(agg_command, "BOOL_AND") || !pg_strcasecmp(agg_command, "BOOL_OR") ||
