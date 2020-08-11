@@ -3777,8 +3777,8 @@ select c2, c2 from ft1 where c2 > 6 group by 1, 2 order by sum(c1);
 --Testcase 186:
 explain (verbose, costs off)
 select c2, sum(c1) from ft2 group by c2 having avg(c1) < 500 and sum(c1) < 49800 order by c2;
-                                                     QUERY PLAN                                                      
----------------------------------------------------------------------------------------------------------------------
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
  Sort
    Output: c2, (sum(c1))
    Sort Key: ft2.c2
@@ -3787,7 +3787,7 @@ select c2, sum(c1) from ft2 group by c2 having avg(c1) < 500 and sum(c1) < 49800
          Node: postgres_srv / Status: Alive
            Agg push-down: yes
            Relations: Aggregate on (public.ft2__postgres_srv__0)
-           Remote SQL: SELECT c2, sum("C 1"), count("C 1") FROM "S 1"."T 1" GROUP BY 1 HAVING ((sum("C 1") < 49800))
+           Remote SQL: SELECT c2, sum("C 1"), count("C 1") FROM "S 1"."T 1" GROUP BY 1
 (9 rows)
 
 --Testcase 187:

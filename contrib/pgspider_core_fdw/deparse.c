@@ -332,27 +332,8 @@ static bool having_clause_tree_walker(Node *node, void *param)
 	{
 		case T_Aggref:
 		{
-			Aggref		*agg = (Aggref *) node;
-			char		*opername = NULL;
-			HeapTuple	tuple;
-
-			/* Get function name */
-			tuple = SearchSysCache1(PROCOID, ObjectIdGetDatum(agg->aggfnoid));
-			if (!HeapTupleIsValid(tuple))
-			{
-				elog(ERROR, "cache lookup failed for function %u", agg->aggfnoid);
-			}
-			opername = pstrdup(((Form_pg_proc) GETSTRUCT(tuple))->proname.data);
-			ReleaseSysCache(tuple);
-
-			/* These functions can not be passed to child FDW. */
-			if (strcmp(opername, "avg") == 0
-				|| strcmp(opername, "stddev") == 0
-				|| strcmp(opername, "variance") == 0)
-			{
-				return true;
-			}
-			break;
+			/* Do not pass to child fdw when HAVING clause contains aggregate functions */
+			return true;
 		}
 		case T_FuncExpr:
 		case T_OpExpr:
