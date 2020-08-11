@@ -5696,29 +5696,37 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 		}
 		case T_FuncExpr:
 		{
-			FuncExpr	*func = (FuncExpr *) node;
-			Oid			rettype = func->funcresulttype;
-			int32		coercedTypmod;
+			FuncExpr		*func = (FuncExpr *) node;
+			Oid				rettype = func->funcresulttype;
+			int32			coercedTypmod;
+			HeapTuple		proctup;
+			Form_pg_proc	procform;
 
 			/* To handle case user cast data type using "::" */
 			if (func->funcformat == COERCE_EXPLICIT_CAST)
 				appendStringInfoChar(buf, '(');
 
+			/* Get function name */
+			proctup = SearchSysCache1(PROCOID, ObjectIdGetDatum(func->funcid));
+			if (!HeapTupleIsValid(proctup))
+				elog(ERROR, "cache lookup failed for function %u", func->funcid);
+			procform = (Form_pg_proc) GETSTRUCT(proctup);
+
 			if(func->args)
+			{
+				/* Append function name when function is called directly */
+				if (func->funcformat == COERCE_EXPLICIT_CALL)
+					appendStringInfo(buf, "%s(", NameStr(procform->proname));
+
 				rebuild_target_expr((Node *)func->args, buf, extcells, cellid, groupby_target, isfirst);
+
+				if (func->funcformat == COERCE_EXPLICIT_CALL)
+					appendStringInfoChar(buf, ')');
+			}
 			else
 			{
 				/* When there is no arguments, only need to append function name and "()" */
-				HeapTuple		proctup;
-				Form_pg_proc	procform;
-
-				proctup = SearchSysCache1(PROCOID, ObjectIdGetDatum(func->funcid));
-				if (!HeapTupleIsValid(proctup))
-					elog(ERROR, "cache lookup failed for function %u", func->funcid);
-				procform = (Form_pg_proc) GETSTRUCT(proctup);
-
 				appendStringInfo(buf, "%s()", NameStr(procform->proname));
-				ReleaseSysCache(proctup);
 			}
 
 			/* To handle case user cast data type using "::" */
@@ -5731,6 +5739,7 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 						 spd_deparse_type_name(rettype, coercedTypmod));
 			}
 
+			ReleaseSysCache(proctup);
 			break;
 		}
 		case T_List:
