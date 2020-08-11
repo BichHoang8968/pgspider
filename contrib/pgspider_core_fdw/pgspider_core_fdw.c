@@ -2061,6 +2061,7 @@ RESCAN:
 	if (list_member_oid(fdw_private->pPseudoAggList, fssthrdInfo->serverId))
 	{
 		SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex);
+		fssthrdInfo->fsstate->ss.ps.state->es_param_exec_vals = fssthrdInfo->fsstate->ss.ps.ps_ExprContext->ecxt_param_exec_vals;
 		result = ExecInitNode((Plan *) fdw_private->childinfo[fssthrdInfo->childInfoIndex].pAgg, fssthrdInfo->fsstate->ss.ps.state, 0);
 		SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 	}
@@ -4834,7 +4835,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		 * If query has parameter, sub-plan needs to be initialized, so it needs to wait the core engine
 		 * initializes the sub-plan.
 		 */
-		fssThrdInfo[node_incr].requestStartScan = (list_length(fsplan->fdw_exprs) == 0);
+		fssThrdInfo[node_incr].requestStartScan = (node->ss.ps.state->es_subplanstates == NIL);
 		/* We save correspondence between fssThrdInfo and childinfo */
 		fssThrdInfo[node_incr].childInfoIndex = i;
 		childinfo[i].index_threadinfo = node_incr;
