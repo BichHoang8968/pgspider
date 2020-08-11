@@ -1425,7 +1425,7 @@ extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_
 					TargetEntry *tarexpr;
 					TargetEntry *oparg = (TargetEntry *) tempVar->args->head->data.ptr_value;
 					Var		   *opvar = (Var *) oparg->expr;
-					OpExpr	   *opexpr = (OpExpr *) &oparg->xpr;
+					OpExpr	   *opexpr = (OpExpr *) makeNode(OpExpr);
 					OpExpr	   *opexpr2 = copyObject(opexpr);
 
 					opexpr->xpr.type = T_OpExpr;
@@ -1452,6 +1452,7 @@ extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_
 											next_resno_temp,
 											NULL,
 											false);
+					tarexpr->ressortgroupref = oparg->ressortgroupref;
 					opexpr2 = (OpExpr *) tarexpr->expr;
 					opexpr2->opretset = false;
 					opexpr2->opcollid = 0;
@@ -3188,7 +3189,7 @@ spd_makedivtlist(Aggref *aggref, List *newList, SpdFdwPrivate * fdw_private)
 		TargetEntry *tarexpr;
 		TargetEntry *oparg = (TargetEntry *) tempVar->args->head->data.ptr_value;
 		Var		   *opvar = (Var *) oparg->expr;
-		OpExpr	   *opexpr = (OpExpr *) &oparg->xpr;
+		OpExpr	   *opexpr = (OpExpr *) makeNode(OpExpr);
 		OpExpr	   *opexpr2 = copyObject(opexpr);
 
 		opexpr->xpr.type = T_OpExpr;
@@ -3216,6 +3217,7 @@ spd_makedivtlist(Aggref *aggref, List *newList, SpdFdwPrivate * fdw_private)
 								  listn,
 								  NULL,
 								  false);
+		tarexpr->ressortgroupref = oparg->ressortgroupref;
 		opexpr2 = (OpExpr *) tarexpr->expr;
 		opexpr2->opretset = false;
 		opexpr2->opcollid = 0;
@@ -3861,7 +3863,6 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 						int			before_listnum = list_length(compress_child_tlist);
 
 						tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, sgref, &upper_targets, false, false);
-						i += list_length(compress_child_tlist) - before_listnum;
 						groupby_cursor += list_length(compress_child_tlist) - before_listnum;
 					}
 				}
