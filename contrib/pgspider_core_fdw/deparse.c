@@ -190,6 +190,18 @@ foreign_expr_walker(Node *node,
 				{
 					return false;
 				}
+
+				/*
+				 * The aggregate functions string_agg is not pushdown to FDW
+				 * when the delimiter is not a constant.
+				 */
+				if (strcmp(opername, "string_agg") == 0)
+				{
+					TargetEntry *tle = (TargetEntry *) lsecond(aggref->args);
+					Node	   *node = (Node *) tle->expr;
+					if (!IsA(node, Const))
+						return false;
+				}
 			}
 			break;
 		}
