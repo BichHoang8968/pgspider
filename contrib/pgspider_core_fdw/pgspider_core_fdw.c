@@ -5219,6 +5219,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 				k;
 	Query	   *query;
 	RangeTblEntry *rte;
+	TupleDesc	tupledesc_agg;
 
 	/*
 	 * Register callback to query memory context to reset normalize id hash
@@ -5294,11 +5295,33 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	node_incr = 0;
 	childinfo = fdw_private->childinfo;
 
+	if (fdw_private->agg_query)
+	{
+		/*
+			* Create child descriptor using child_tlist
+			*/
+		int			child_attr = 0; /* attribute number of child */
+		ListCell   *lc;
+
+		TupleDesc	desc = CreateTemplateTupleDesc(list_length(fdw_private->child_tlist));
+
+		foreach(lc, fdw_private->child_tlist)
+		{
+			TargetEntry *ent = (TargetEntry *) lfirst(lc);
+
+			TupleDescInitEntry(desc, child_attr + 1, NULL, exprType((Node *) ent->expr), -1, 0);
+			child_attr++;
+		}
+		/* Construct TupleDesc, and assign a local typmod. */
+		tupledesc_agg = BlessTupleDesc(desc);
+	}
+
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
 		Relation	rd;
 		int			natts;
 		TupleDesc	tupledesc;
+		TupleDesc	tupledesc_child;
 		bool		skiplast;
 
 		/*
@@ -5452,17 +5475,8 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			int			child_attr = 0; /* attribute number of child */
 			ListCell   *lc;
 
-			tupledesc = CreateTemplateTupleDesc(list_length(fdw_private->child_tlist));
-
-			foreach(lc, fdw_private->child_tlist)
-			{
-				TargetEntry *ent = (TargetEntry *) lfirst(lc);
-
-				TupleDescInitEntry(tupledesc, child_attr + 1, NULL, exprType((Node *) ent->expr), -1, 0);
-				child_attr++;
-			}
-			/* Construct TupleDesc, and assign a local typmod. */
-			tupledesc = BlessTupleDesc(tupledesc);
+			tupledesc = tupledesc_agg;
+			
 			if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
 			{
 				/*
@@ -5470,8 +5484,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 				 * list. This tuple is for ExecAgg and different from one used
 				 * in queue.
 				 */
-				fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
-					MakeSingleTupleTableSlot(ExecCleanTypeFromTL(fssThrdInfo[node_incr].fsstate->ss.ps.plan->targetlist), node->ss.ss_ScanTupleSlot->tts_ops);
+				tupledesc_child = ExecCleanTypeFromTL(fssThrdInfo[node_incr].fsstate->ss.ps.plan->targetlist);
 			}
 			else
 			{
@@ -5506,12 +5519,10 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 					}
 
 					/* Create child slots based on child target list. */
-					fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
-					MakeSingleTupleTableSlot(ExecCleanTypeFromTL(child_tlist), node->ss.ss_ScanTupleSlot->tts_ops);
+					tupledesc_child = ExecCleanTypeFromTL(child_tlist);
 				}
 				else
-					fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
-						MakeSingleTupleTableSlot(CreateTupleDescCopy(tupledesc), node->ss.ss_ScanTupleSlot->tts_ops);
+					tupledesc_child = CreateTupleDescCopy(tupledesc);
 			}
 
 		}
@@ -5524,9 +5535,10 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 			tupledesc = CreateTupleDescCopy(node->ss.ss_ScanTupleSlot->tts_tupleDescriptor);
 
-			fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
-				MakeSingleTupleTableSlot(tupledesc, node->ss.ss_ScanTupleSlot->tts_ops);
+			tupledesc_child = tupledesc;
 		}
+		fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot =
+			MakeSingleTupleTableSlot(tupledesc_child, node->ss.ss_ScanTupleSlot->tts_ops);
 
 		/*
 		 * For non-aggregate query, tupledesc we use for a queue has __spd_url
