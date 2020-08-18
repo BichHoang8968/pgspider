@@ -285,6 +285,7 @@ typedef struct ChildInfo
 	bool		in_flag;		/* using IN clause or NOT */
 	List	   *url_list;
 	AggPath    *aggpath;
+	FdwRoutine *fdwroutine;
 
 	/* USE IN BOTH PLANNING AND EXECUTION */
 	PlannerInfo *root;
@@ -3029,7 +3030,6 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel,
 					List *new_inurl, SpdFdwPrivate * fdw_private)
 {
 	RelOptInfo *entry_baserel;
-	FdwRoutine *fdwroutine;
 	Oid			oid_server;
 	int			i = 0;
 	ForeignServer *fs;
@@ -3051,7 +3051,7 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel,
 			continue;
 
 		oid_server = spd_spi_exec_datasource_oid(rel_oid);
-		fdwroutine = GetFdwRoutineByServerId(oid_server);
+		childinfo[i].fdwroutine = GetFdwRoutineByServerId(oid_server);
 
 		/*
 		 * Set up mostly-dummy planner state PlannerInfo can not deep copy
@@ -3149,7 +3149,7 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel,
 			/* Do child node's GetForeignRelSize */
 			PG_TRY();
 			{
-				fdwroutine->GetForeignRelSize(dummy_root, entry_baserel, rel_oid);
+				childinfo[i].fdwroutine->GetForeignRelSize(dummy_root, entry_baserel, rel_oid);
 				childinfo[i].root = dummy_root;
 			}
 			PG_CATCH();
@@ -3724,8 +3724,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	/* Call the child FDW's GetForeignUpperPaths */
 	if (in_fdw_private->childinfo != NULL)
 	{
-		Oid			oid_server;
-		FdwRoutine *fdwroutine;
 		int			i = 0;
 		ChildInfo  *childinfo = in_fdw_private->childinfo;
 
@@ -3758,9 +3756,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				continue;
 			}
 
-			oid_server = spd_spi_exec_datasource_oid(rel_oid);
-			fdwroutine = GetFdwRoutineByServerId(oid_server);
-			fs = GetForeignServer(oid_server);
+			fs = GetForeignServer(childinfo[i].server_oid);
 			fdw = GetForeignDataWrapper(fs->fdwid);
 			
 			/* If child node is not pgspider_fdw, don't pushdown aggregation if scan clauses have __spd_url */
@@ -3800,7 +3796,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			dummy_output_rel->reloptkind = RELOPT_UPPER_REL;
 			dummy_output_rel->relids = bms_copy(entry->relids);
 
-			if (fdwroutine->GetForeignUpperPaths != NULL)
+			if (childinfo[i].fdwroutine->GetForeignUpperPaths != NULL)
 			{
 				extra_having_quals = (Node *)copyObject(((GroupPathExtraData *)extra)->havingQual);
 
@@ -3845,7 +3841,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				/* Update path target from new target list without __spd_url */
 				dummy_root_child->upper_targets[UPPERREL_GROUP_AGG] = make_pathtarget_from_tlist(fdw_private->child_tlist);
 
-				if (fdwroutine->GetForeignUpperPaths != NULL)
+				if (childinfo[i].fdwroutine->GetForeignUpperPaths != NULL)
 				{
 					/* Remove __spd_url from target list*/
 					dummy_output_rel->reltarget->exprs = remove_spdurl_from_targets(dummy_output_rel->reltarget->exprs, root);
@@ -3875,9 +3871,9 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			dummy_root_child->upper_targets[UPPERREL_GROUP_AGG]->sortgrouprefs = sortgrouprefs;
 			dummy_output_rel->reltarget->sortgrouprefs = sortgrouprefs;
 			
-			if (fdwroutine->GetForeignUpperPaths != NULL)
+			if (childinfo[i].fdwroutine->GetForeignUpperPaths != NULL)
 			{
-				fdwroutine->GetForeignUpperPaths(dummy_root_child,
+				childinfo[i].fdwroutine->GetForeignUpperPaths(dummy_root_child,
 												 stage, entry,
 												 dummy_output_rel, extra);
 				/*
@@ -3936,7 +3932,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 																   dummy_root_child->parse->groupClause, NULL, &dummy_aggcosts,
 																   1);
 
-				fdw_private->pPseudoAggList = lappend_oid(fdw_private->pPseudoAggList, oid_server);
+				fdw_private->pPseudoAggList = lappend_oid(fdw_private->pPseudoAggList, childinfo[i].server_oid);
 
 			}
 		}
@@ -4380,8 +4376,6 @@ spd_ExplainForeignScan(ForeignScanState *node,
 static void
 spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 {
-	FdwRoutine *fdwroutine;
-	Oid			server_oid;
 	int			i;
 	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *) baserel->fdw_private;
 	Cost		startup_cost = 0;
@@ -4397,24 +4391,18 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 	childinfo = fdw_private->childinfo;
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
-		ForeignServer *fs;
-
 		/* skip to can not access child table at spd_GetForeignRelSize. */
 		if (childinfo[i].child_node_status != ServerStatusAlive)
 		{
 			continue;
 		}
-		server_oid = spd_spi_exec_datasource_oid(childinfo[i].oid);
-		fdwroutine = GetFdwRoutineByServerId(server_oid);
-		childinfo[i].server_oid = server_oid;
-		fs = GetForeignServer(server_oid);
 
 
 		PG_TRY();
 		{
 			Path	   *childpath;
 
-			fdwroutine->GetForeignPaths((PlannerInfo *) childinfo[i].root,
+			childinfo[i].fdwroutine->GetForeignPaths((PlannerInfo *) childinfo[i].root,
 										(RelOptInfo *) childinfo[i].baserel,
 										childinfo[i].oid);
 			/* Agg child node costs */
@@ -4437,7 +4425,10 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 			elog(WARNING, "Fdw GetForeignPaths error is occurred.");
 			FlushErrorState();
 			if (throwErrorIfDead)
+			{
+				ForeignServer *fs = GetForeignServer(childinfo[i].server_oid);
 				spd_aliveError(fs);
+			}
 		}
 		PG_END_TRY();
 	}
@@ -4655,10 +4646,9 @@ spd_make_sort_from_groupcols(List *groupcls,
 static void
 spd_GetForeignChildPlans(PlannerInfo *root, RelOptInfo *baserel,
 						 ForeignPath *best_path, List *ptemptlist, List **push_scan_clauses,
-						 Plan *outer_plan, ChildInfo *childinfo, Oid *oid)
+						 Plan *outer_plan, ChildInfo *childinfo)
 {
 	int			i;
-	FdwRoutine *fdwroutine;
 	Oid			server_oid;
 	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *) baserel->fdw_private;
 	ForeignServer *fs;
@@ -4680,9 +4670,7 @@ spd_GetForeignChildPlans(PlannerInfo *root, RelOptInfo *baserel,
 		/* get child node's oid. */
 		server_oid = childinfo[i].server_oid;
 
-		fdwroutine = GetFdwRoutineByServerId(server_oid);
 		fs = GetForeignServer(server_oid);
-		fdw = GetForeignDataWrapper(fs->fdwid);
 
 		PG_TRY();
 		{
@@ -4700,10 +4688,9 @@ spd_GetForeignChildPlans(PlannerInfo *root, RelOptInfo *baserel,
 				/* Pick any agg path */
 				child_path = lfirst(list_head(childinfo[i].grouped_rel_local->pathlist));
 				temptlist = PG_build_path_tlist((PlannerInfo *) childinfo[i].root, (Path *) child_path);
-
-				fsplan = fdwroutine->GetForeignPlan(childinfo[i].grouped_root_local,
+				fsplan = childinfo[i].fdwroutine->GetForeignPlan(childinfo[i].grouped_root_local,
 													childinfo[i].grouped_rel_local,
-													oid[i],
+													childinfo[i].oid,
 													(ForeignPath *) child_path,
 													temptlist,
 													*push_scan_clauses,
@@ -4715,6 +4702,8 @@ spd_GetForeignChildPlans(PlannerInfo *root, RelOptInfo *baserel,
 				 * For non agg query or not push down agg case, do same thing
 				 * as create_scan_plan() to generate target list
 				 */
+
+				ForeignDataWrapper *fdw = GetForeignDataWrapper(fs->fdwid);
 
 				/* Add all columns of the table */
 				if (IS_SIMPLE_REL(baserel) && ptemptlist != NULL)
@@ -4767,10 +4756,9 @@ spd_GetForeignChildPlans(PlannerInfo *root, RelOptInfo *baserel,
 				{
 					*push_scan_clauses = fdw_private->baserestrictinfo;
 				}
-
-				fsplan = fdwroutine->GetForeignPlan((PlannerInfo *) childinfo[i].root,
+				fsplan = childinfo[i].fdwroutine->GetForeignPlan((PlannerInfo *) childinfo[i].root,
 													(RelOptInfo *) childinfo[i].baserel,
-													oid[i],
+													childinfo[i].oid,
 													(ForeignPath *) best_path,
 													temptlist,
 													*push_scan_clauses,
@@ -4907,9 +4895,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				   ForeignPath *best_path, List *tlist, List *scan_clauses,
 				   Plan *outer_plan)
 {
-	int			nums;
 	int			i;
-	Oid		   *oid = NULL;
 	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *) baserel->fdw_private;
 	Index		scan_relid;
 	List	   *fdw_scan_tlist = NIL;	/* Need dummy tlist for pushdown case. */
@@ -4921,8 +4907,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
 	if (fdw_private == NULL)
 		elog(ERROR, "fdw_private is NULL");
-
-	spd_spi_exec_datasouce_num(foreigntableid, &nums, &oid);
 
 	fdw_scan_tlist = fdw_private->rinfo.grouped_tlist;
 
@@ -4951,7 +4935,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
 	/* Create Foreign plans for each child with function pushdown. */
 	spd_GetForeignChildPlans(root, baserel, best_path, ptemptlist, &push_scan_clauses,
-							 outer_plan, childinfo, oid);
+							 outer_plan, childinfo);
 
 	fdw_private->is_pushdown_tlist = false;
 	if (IS_SIMPLE_REL(baserel))
@@ -4989,7 +4973,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				{
 					/* Create Foreign plans for each child without function pushdown. */
 					spd_GetForeignChildPlans(root, baserel, best_path, NULL, &push_scan_clauses,
-											 outer_plan, childinfo, oid);
+											 outer_plan, childinfo);
 					exist_pushdown_child = false;
 					break;
 				}
