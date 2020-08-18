@@ -364,7 +364,6 @@ typedef struct SpdFdwPrivate
 	int			agg_num;		/* agg_values cursor */
 	Oid		   *agg_value_type; /* aggregation parameters */
 	Datum	   *ret_agg_values; /* result for groupby */
-	bool		is_drop_temp_table; /* drop temp table flag in aggregation */
 	int			temp_num_cols;	/* number of columns of temp table */
 	char	   *temp_table_name;	/* name of temp table */
 	bool		is_explain;		/* explain or not */
@@ -5113,7 +5112,7 @@ spd_end_child_node_thread(ForeignScanState *node, bool is_abort)
 	if (!fdw_private->is_explain)
 	{
 		/* Incase abort transaction, we no need to drop temp table, it will control by spi module */
-		if (fdw_private->is_drop_temp_table == false && fdw_private->temp_table_name != NULL && !is_abort)
+		if (fdw_private->temp_table_name != NULL && !is_abort)
 		{
 			spd_spi_ddl_table(psprintf("DROP TABLE IF EXISTS %s", fdw_private->temp_table_name), fdw_private);
 		}
@@ -6982,7 +6981,6 @@ spd_IterateForeignScan(ForeignScanState *node)
 	if (fdw_private == NULL)
 		fdw_private = spd_DeserializeSpdFdwPrivate(fsplan->fdw_private);
 
-	fdw_private->is_drop_temp_table = true;
 #ifdef GETPROGRESS_ENABLED
 	if (getResultFlag)
 		return NULL;
@@ -7030,7 +7028,6 @@ spd_IterateForeignScan(ForeignScanState *node)
 			spd_createtable_sql(create_sql, mapping_tlist,
 								fdw_private->temp_table_name, fdw_private);
 			spd_spi_ddl_table(create_sql->data, fdw_private);
-			fdw_private->is_drop_temp_table = false;
 
 			/*
 			 * run aggregation query for all data source threads and combine
@@ -7065,7 +7062,6 @@ spd_IterateForeignScan(ForeignScanState *node)
 			/* First time getting with pushdown from temp table */
 			tempSlot = node->ss.ss_ScanTupleSlot;
 			tempSlot = spd_spi_select_table(tempSlot, node, fdw_private);
-			fdw_private->isFirst = false;
 		}
 		else
 		{
@@ -7074,17 +7070,8 @@ spd_IterateForeignScan(ForeignScanState *node)
 			tempSlot = spd_select_return_aggslot(tempSlot, node, fdw_private);
 		}
 
-		/* Check tempSlot is empty or not */
-		if (TupIsNull(tempSlot))
-		{
-			/*
-			 * If all tuple getting is finished, then return NULL and drop
-			 * table
-			 */
-			spd_spi_ddl_table(psprintf("DROP TABLE %s", fdw_private->temp_table_name), fdw_private);
-			fdw_private->isFirst = true;
-			fdw_private->is_drop_temp_table = true;
-		}
+		fdw_private->isFirst = false;
+
 		return tempSlot;
 	}
 	else
