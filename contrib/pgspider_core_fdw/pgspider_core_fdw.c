@@ -5151,7 +5151,6 @@ spd_spi_ddl_table(char *query, SpdFdwPrivate *fdw_private)
 	SPI_finish();
 	SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 }
-
 /**
  * spd_spi_insert_table
  *
@@ -5174,10 +5173,9 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 	StringInfo	debugValues = makeStringInfo();
 
 	/* For execute query */
-	int nargs = MAX_SPLIT_NUM * list_length(fdw_private->mapping_tlist);
-	Oid* argtypes = palloc0(nargs * sizeof(Oid));
-	Datum* values = palloc0(nargs * sizeof(Datum));
-	char* nulls = palloc0(nargs * sizeof(char));
+	Oid* argtypes = palloc0(sizeof(Oid));
+	Datum* values = palloc0(sizeof(Datum));
+	char* nulls = palloc0(sizeof(char));
 
 	SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex);
 	ret = SPI_connect();
@@ -5208,6 +5206,13 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 				if (colid != mapcels->mapping[i])
 					continue;
 
+				/* Realloc memory when there are more than 1 column */
+				if (colid > 0)
+				{
+					argtypes = repalloc(argtypes, (colid + 1) * sizeof(Oid));
+					values = repalloc(values, (colid + 1) * sizeof(Datum));
+					nulls = repalloc(nulls, (colid + 1) * sizeof(char));
+				}
 				if (isfirst)
 					isfirst = false;
 				else
