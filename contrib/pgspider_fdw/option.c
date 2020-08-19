@@ -34,6 +34,9 @@ typedef struct PgFdwOption
 	bool		is_libpq_opt;	/* true if it's used in libpq */
 } PgFdwOption;
 
+/* We need to make pgspider_fdw_options variable initial one time */
+pthread_mutex_t pgspider_fdw_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 /*
  * Valid options for pgspider_fdw.
  * Allocated and filled in InitPgFdwOptions.
@@ -70,7 +73,9 @@ pgspider_fdw_validator(PG_FUNCTION_ARGS)
 	ListCell   *cell;
 
 	/* Build our options lists if we didn't yet. */
+	SPD_LOCK_TRY(&pgspider_fdw_mutex);
 	InitPgFdwOptions();
+	SPD_UNLOCK_CATCH(&pgspider_fdw_mutex);
 
 	/*
 	 * Check that only options supported by pgspider_fdw, and allowed for the
@@ -301,7 +306,9 @@ PGSpiderExtractConnectionOptions(List * defelems, const char **keywords,
 	int			i;
 
 	/* Build our options lists if we didn't yet. */
+	SPD_LOCK_TRY(&pgspider_fdw_mutex);
 	InitPgFdwOptions();
+	SPD_UNLOCK_CATCH(&pgspider_fdw_mutex);
 
 	i = 0;
 	foreach(lc, defelems)

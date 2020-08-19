@@ -34,7 +34,7 @@ extern void pgfdw_report_error(int elevel, PGresult *res, PGconn *conn,
 				   bool clear, const char *sql);
 
 /* in option.c */
-extern int ExtractConnectionOptions(List *defelems,
+extern int spdExtractConnectionOptions(List *defelems,
 						 const char **keywords,
 						 const char **values);
 

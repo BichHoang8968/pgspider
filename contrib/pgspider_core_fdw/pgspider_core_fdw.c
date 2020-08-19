@@ -123,6 +123,7 @@ PG_MODULE_MAGIC;
 #define MYSQL_FDW_NAME "mysql_fdw"
 #define FILE_FDW_NAME "file_fdw"
 #define AVRO_FDW_NAME "avro_fdw"
+#define POSTGRES_FDW_NAME "postgres_fdw"
 
 #define AGGTEMPTABLE "__spd__temptable"
 
@@ -437,6 +438,10 @@ static void spd_spi_ddl_table(char *query, SpdFdwPrivate *fdw_private);
 /* postgresql.conf paramater */
 static bool throwErrorIfDead;
 static bool isPrintError;
+
+/* We need to make postgres_fdw_options variable initial one time */
+static bool isPostgresFdwInit = false;
+pthread_mutex_t postgres_fdw_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* We need lock file_fdw when AllocateFile */
 pthread_mutex_t file_fdw_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -1973,6 +1978,14 @@ spd_ForeignScan_thread(void *arg)
 				fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
 														  fssthrdInfo->eflags);
 				SPD_UNLOCK_CATCH(&file_fdw_mutex);
+			} else if (strcmp(fssthrdInfo->fdw->fdwname, POSTGRES_FDW_NAME) == 0 && !isPostgresFdwInit)
+			{
+				/* We need to make postgres_fdw_options variable initial one time */
+				SPD_LOCK_TRY(&postgres_fdw_mutex);
+				fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
+														  fssthrdInfo->eflags);
+				isPostgresFdwInit = true;
+				SPD_UNLOCK_CATCH(&postgres_fdw_mutex);
 			}
 			else
 			{
@@ -2064,7 +2077,17 @@ RESCAN:
 	{
 		SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex);
 		fssthrdInfo->fsstate->ss.ps.state->es_param_exec_vals = fssthrdInfo->fsstate->ss.ps.ps_ExprContext->ecxt_param_exec_vals;
-		result = ExecInitNode((Plan *) fdw_private->childinfo[fssthrdInfo->childInfoIndex].pAgg, fssthrdInfo->fsstate->ss.ps.state, 0);
+		if (strcmp(fssthrdInfo->fdw->fdwname, POSTGRES_FDW_NAME) == 0 && !isPostgresFdwInit)
+		{
+			/* We need to make postgres_fdw_options variable initial one time */
+			SPD_LOCK_TRY(&postgres_fdw_mutex);
+			result = ExecInitNode((Plan *) fdw_private->childinfo[fssthrdInfo->childInfoIndex].pAgg, fssthrdInfo->fsstate->ss.ps.state, 0);
+			isPostgresFdwInit = true;
+			SPD_UNLOCK_CATCH(&postgres_fdw_mutex);
+		} else
+		{
+			result = ExecInitNode((Plan *) fdw_private->childinfo[fssthrdInfo->childInfoIndex].pAgg, fssthrdInfo->fsstate->ss.ps.state, 0);
+		}
 		SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 	}
 	PG_TRY();
