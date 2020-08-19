@@ -3302,10 +3302,11 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	fdw_private->childinfo = (ChildInfo *) palloc0(sizeof(ChildInfo) * nums);
 
 	for (i = 0; i < nums; i++)
+	{
 		fdw_private->childinfo[i].oid = oid[i];
-	/* Initialize all servers */
-	for (i = 0; i < nums; i++)
+		/* Initialize all child node status */
 		fdw_private->childinfo[i].child_node_status = ServerStatusDead;
+	}
 
 	Assert(IS_SIMPLE_REL(baserel));
 	r_entry = root->simple_rte_array[baserel->relid];
