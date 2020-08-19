@@ -4583,7 +4583,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
 	/* Calculate which condition should be filtered in core: when baserel is simple rel or when there is pseudoconstant (Example: WHERE false) */
 	scan_clauses = NIL;
-	if (fdw_private->baserestrictinfo && !push_scan_clauses)
+	if (fdw_private->baserestrictinfo )
 	{
 		/*
 		 * In this case, PGSpider should filter baserestrictinfo because
@@ -4594,7 +4594,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			RestrictInfo *ri = lfirst_node(RestrictInfo, lc);
 
 			/* When there is pseudoconstant, need to filter in core (Example: WHERE false) */
-			if (IS_SIMPLE_REL(baserel) || ri->pseudoconstant)		
+			if ((IS_SIMPLE_REL(baserel) && !push_scan_clauses) || ri->pseudoconstant)
 				scan_clauses = lappend(scan_clauses, ri->clause);
 		}
 	}
