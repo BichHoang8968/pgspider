@@ -1,6 +1,6 @@
 CREATE EXTENSION pgspider_core_fdw;
 CREATE EXTENSION pgspider_fdw;
-CREATE SERVER pgspider_core_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1',port '50849');
+CREATE SERVER pgspider_core_svr FOREIGN DATA WRAPPER pgspider_core_fdw;
 CREATE USER MAPPING FOR CURRENT_USER SERVER pgspider_core_svr;
 CREATE FOREIGN TABLE test1 (i int,__spd_url text) SERVER pgspider_core_svr;
 CREATE FOREIGN TABLE test2 (t text, t2 text, i int,__spd_url text) SERVER pgspider_core_svr;
