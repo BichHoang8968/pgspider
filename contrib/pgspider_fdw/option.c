@@ -130,7 +130,7 @@ pgspider_fdw_validator(PG_FUNCTION_ARGS)
 		else if (strcmp(def->defname, "extensions") == 0)
 		{
 			/* check list syntax, warn about uninstalled extensions */
-			(void) ExtractExtensionList(defGetString(def), true);
+			(void) PGSpiderExtractExtensionList(defGetString(def), true);
 		}
 		else if (strcmp(def->defname, "fetch_size") == 0)
 		{
@@ -294,7 +294,7 @@ is_libpq_option(const char *keyword)
  * allocated large-enough arrays.  Returns number of options found.
  */
 int
-ExtractConnectionOptions(List * defelems, const char **keywords,
+PGSpiderExtractConnectionOptions(List * defelems, const char **keywords,
 						 const char **values)
 {
 	ListCell   *lc;
@@ -325,7 +325,7 @@ ExtractConnectionOptions(List * defelems, const char **keywords,
  * ignore them.
  */
 List *
-ExtractExtensionList(const char *extensionsString, bool warnOnMissing)
+PGSpiderExtractExtensionList(const char *extensionsString, bool warnOnMissing)
 {
 	List	   *extensionOids = NIL;
 	List	   *extlist;

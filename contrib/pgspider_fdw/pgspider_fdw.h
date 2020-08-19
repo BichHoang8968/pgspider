@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------------
  *
  * pgspider_fdw.h
- *		  Foreign-data wrapper for remote PgspiderQL servers
+ *		  Foreign-data wrapper for remote PGSpiderQL servers
  *
  * Portions Copyright (c) 2012-2019, PostgreSQL Global Development Group
  *
@@ -27,7 +27,7 @@
  * pgspiderGetForeignJoinPaths creates it for a joinrel, and
  * pgspiderGetForeignUpperPaths creates it for an upperrel.
  */
-typedef struct PgFdwRelationInfo
+typedef struct PGSpiderFdwRelationInfo
 {
 	/*
 	 * True means that the relation can be pushed down. Always true for simple
@@ -120,52 +120,52 @@ typedef struct PgFdwRelationInfo
 	 * representing the relation.
 	 */
 	int			relation_index;
-}			PgFdwRelationInfo;
+}			PGSpiderFdwRelationInfo;
 
-/* in postgres_fdw.c */
-extern int	set_transmission_modes(void);
-extern void reset_transmission_modes(int nestlevel);
+/* in pgspider_fdw.c */
+extern int	pgspider_set_transmission_modes(void);
+extern void pgspider_reset_transmission_modes(int nestlevel);
 
 /* in connection.c */
-extern PGconn *GetConnection(UserMapping *user, bool will_prep_stmt);
-extern void ReleaseConnection(PGconn * conn);
-extern unsigned int GetCursorNumber(PGconn * conn);
-extern unsigned int GetPrepStmtNumber(PGconn * conn);
-extern PGresult * pgfdw_get_result(PGconn * conn, const char *query);
-extern PGresult * pgfdw_exec_query(PGconn * conn, const char *query);
-extern void pgfdw_report_error(int elevel, PGresult * res, PGconn * conn,
+extern PGconn *PGSpiderGetConnection(UserMapping *user, bool will_prep_stmt);
+extern void PGSpiderReleaseConnection(PGconn * conn);
+extern unsigned int PGSpiderGetCursorNumber(PGconn * conn);
+extern unsigned int PGSpiderGetPrepStmtNumber(PGconn * conn);
+extern PGresult * pgspiderfdw_get_result(PGconn * conn, const char *query);
+extern PGresult * pgspiderfdw_exec_query(PGconn * conn, const char *query);
+extern void pgspiderfdw_report_error(int elevel, PGresult * res, PGconn * conn,
 				   bool clear, const char *sql);
 
 /* in option.c */
-extern int ExtractConnectionOptions(List * defelems,
+extern int PGSpiderExtractConnectionOptions(List * defelems,
 						 const char **keywords,
 						 const char **values);
-extern List * ExtractExtensionList(const char *extensionsString,
+extern List * PGSpiderExtractExtensionList(const char *extensionsString,
 								   bool warnOnMissing);
 
 /* in deparse.c */
-extern void classifyConditions(PlannerInfo * root,
+extern void PGSpiderClassifyConditions(PlannerInfo * root,
 				   RelOptInfo * baserel,
 				   List * input_conds,
 				   List * *remote_conds,
 				   List * *local_conds);
-extern bool is_foreign_expr(PlannerInfo * root,
+extern bool pgspider_is_foreign_expr(PlannerInfo * root,
 				RelOptInfo * baserel,
 				Expr * expr);
-extern bool is_foreign_param(PlannerInfo *root,
+extern bool pgspider_is_foreign_param(PlannerInfo *root,
 				 RelOptInfo *baserel,
 				 Expr *expr);
-extern void deparseInsertSql(StringInfo buf, RangeTblEntry *rte,
+extern void PGSpiderDeparseInsertSql(StringInfo buf, RangeTblEntry *rte,
 							 Index rtindex, Relation rel,
 							 List *targetAttrs, bool doNothing,
 							 List *withCheckOptionList, List *returningList,
 							 List **retrieved_attrs);
-extern void deparseUpdateSql(StringInfo buf, RangeTblEntry *rte,
+extern void PGSpiderDeparseUpdateSql(StringInfo buf, RangeTblEntry *rte,
 							 Index rtindex, Relation rel,
 							 List *targetAttrs,
 							 List *withCheckOptionList, List *returningList,
 							 List **retrieved_attrs);
-extern void deparseDirectUpdateSql(StringInfo buf, PlannerInfo *root,
+extern void PGSpiderDeparseDirectUpdateSql(StringInfo buf, PlannerInfo *root,
 								   Index rtindex, Relation rel,
 								   RelOptInfo *foreignrel,
 								   List *targetlist,
@@ -174,36 +174,36 @@ extern void deparseDirectUpdateSql(StringInfo buf, PlannerInfo *root,
 								   List **params_list,
 								   List *returningList,
 								   List **retrieved_attrs);
-extern void deparseDeleteSql(StringInfo buf, RangeTblEntry *rte,
+extern void PGSpiderDeparseDeleteSql(StringInfo buf, RangeTblEntry *rte,
 				 Index rtindex, Relation rel,
 				 List * returningList,
 				 List * *retrieved_attrs);
-extern void deparseDirectDeleteSql(StringInfo buf, PlannerInfo * root,
+extern void PGSpiderDeparseDirectDeleteSql(StringInfo buf, PlannerInfo * root,
 					   Index rtindex, Relation rel,
 					   RelOptInfo *foreignrel,
 					   List * remote_conds,
 					   List * *params_list,
 					   List * returningList,
 					   List * *retrieved_attrs);
-extern void deparseAnalyzeSizeSql(StringInfo buf, Relation rel);
-extern void deparseAnalyzeSql(StringInfo buf, Relation rel,
+extern void PGSpiderDeparseAnalyzeSizeSql(StringInfo buf, Relation rel);
+extern void PGSpiderDeparseAnalyzeSql(StringInfo buf, Relation rel,
 				  List * *retrieved_attrs);
-extern void deparseStringLiteral(StringInfo buf, const char *val);
-extern Expr *find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel);
-extern Expr *find_em_expr_for_input_target(PlannerInfo *root,
+extern void PGSpiderDeparseStringLiteral(StringInfo buf, const char *val);
+extern Expr *pgspider_find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel);
+extern Expr *pgspider_find_em_expr_for_input_target(PlannerInfo *root,
 										   EquivalenceClass *ec,
 										   PathTarget *target);
-extern List *build_tlist_to_deparse(RelOptInfo *foreignrel);
-extern void deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root,
+extern List *pgspider_build_tlist_to_deparse(RelOptInfo *foreignrel);
+extern void PGSpiderDeparseSelectStmtForRel(StringInfo buf, PlannerInfo *root,
 									RelOptInfo *foreignrel, List *tlist,
 									List *remote_conds, List *pathkeys,
 									bool has_final_sort, bool has_limit,
 									bool is_subquery,
 									List **retrieved_attrs, List **params_list);
-extern const char *get_jointype_name(JoinType jointype);
+extern const char *pgspider_get_jointype_name(JoinType jointype);
 
 /* in shippable.c */
-extern bool is_builtin(Oid objectId);
-extern bool is_shippable(Oid objectId, Oid classId, PgFdwRelationInfo * fpinfo);
+extern bool pgspider_is_builtin(Oid objectId);
+extern bool pgspider_is_shippable(Oid objectId, Oid classId, PGSpiderFdwRelationInfo * fpinfo);
 
 #endif							/* PGSPIDER_FDW_H */
