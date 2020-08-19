@@ -240,6 +240,11 @@ typedef struct
 	}			desc;
 } AllocateDesc;
 
+#ifdef PGSPIDER
+/* Use mutex to avoid concurrent access to numAllocatedDescs, allocatedDescs variables */
+pthread_mutex_t fd_mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
+
 static int	numAllocatedDescs = 0;
 static int	maxAllocatedDescs = 0;
 static AllocateDesc *allocatedDescs = NULL;
@@ -2207,8 +2212,13 @@ reserveAllocatedDesc(void)
  *
  * Ideally this should be the *only* direct call of fopen() in the backend.
  */
+#ifdef PGSPIDER
+static FILE *
+AllocateFileOrg(const char *name, const char *mode)
+#else
 FILE *
 AllocateFile(const char *name, const char *mode)
+#endif
 {
 	FILE	   *file;
 
@@ -2253,6 +2263,18 @@ TryAgain:
 	return NULL;
 }
 
+#ifdef PGSPIDER
+FILE *
+AllocateFile(const char *name, const char *mode)
+{
+	FILE	*file;
+	SPD_LOCK_TRY(&fd_mutex);
+	file = AllocateFileOrg(name, mode);
+	SPD_UNLOCK_CATCH(&fd_mutex);
+	return	file;
+}
+#endif
+
 /*
  * Open a file with OpenTransientFilePerm() and pass default file mode for
  * the fileMode parameter.
@@ -2266,8 +2288,13 @@ OpenTransientFile(const char *fileName, int fileFlags)
 /*
  * Like AllocateFile, but returns an unbuffered fd like open(2)
  */
+#ifdef PGSPIDER
+static int
+OpenTransientFilePermOrg(const char *fileName, int fileFlags, mode_t fileMode)
+#else
 int
 OpenTransientFilePerm(const char *fileName, int fileFlags, mode_t fileMode)
+#endif
 {
 	int			fd;
 
@@ -2301,6 +2328,18 @@ OpenTransientFilePerm(const char *fileName, int fileFlags, mode_t fileMode)
 	return -1;					/* failure */
 }
 
+#ifdef PGSPIDER
+int
+OpenTransientFilePerm(const char *fileName, int fileFlags, mode_t fileMode)
+{
+	int	fd;
+	SPD_LOCK_TRY(&fd_mutex);
+	fd = OpenTransientFilePermOrg(fileName, fileFlags, fileMode);
+	SPD_UNLOCK_CATCH(&fd_mutex);
+	return	fd;
+}
+#endif
+
 /*
  * Routines that want to initiate a pipe stream should use OpenPipeStream
  * rather than plain popen().  This lets fd.c deal with freeing FDs if
@@ -2310,8 +2349,13 @@ OpenTransientFilePerm(const char *fileName, int fileFlags, mode_t fileMode)
  * SIGPIPE processing, rather than the SIG_IGN setting the backend normally
  * uses.  This ensures desirable response to, eg, closing a read pipe early.
  */
+#ifdef PGSPIDER
+static FILE *
+OpenPipeStreamOrg(const char *command, const char *mode)
+#else
 FILE *
 OpenPipeStream(const char *command, const char *mode)
+#endif
 {
 	FILE	   *file;
 	int			save_errno;
@@ -2362,13 +2406,29 @@ TryAgain:
 	return NULL;
 }
 
+#ifdef PGSPIDER
+FILE *
+OpenPipeStream(const char *command, const char *mode)
+{
+	FILE	*file;
+	SPD_LOCK_TRY(&fd_mutex);
+	file = OpenPipeStreamOrg(command, mode);
+	SPD_UNLOCK_CATCH(&fd_mutex);
+	return	file;
+}
+#endif
+
 /*
  * Free an AllocateDesc of any type.
  *
  * The argument *must* point into the allocatedDescs[] array.
  */
 static int
+#ifdef PGSPIDER
+FreeDescOrg(AllocateDesc *desc)
+#else
 FreeDesc(AllocateDesc *desc)
+#endif
 {
 	int			result;
 
@@ -2399,6 +2459,18 @@ FreeDesc(AllocateDesc *desc)
 
 	return result;
 }
+
+#ifdef PGSPIDER
+static int
+FreeDesc(AllocateDesc *desc)
+{
+	int	result;
+	SPD_LOCK_TRY(&fd_mutex);
+	result = FreeDescOrg(desc);
+	SPD_UNLOCK_CATCH(&fd_mutex);
+	return result;
+}
+#endif
 
 /*
  * Close a file returned by AllocateFile.
@@ -2468,8 +2540,13 @@ CloseTransientFile(int fd)
  *
  * Ideally this should be the *only* direct call of opendir() in the backend.
  */
+#ifdef PGSPIDER
+static DIR *
+AllocateDirOrg(const char *dirname)
+#else
 DIR *
 AllocateDir(const char *dirname)
+#endif
 {
 	DIR		   *dir;
 
@@ -2513,6 +2590,18 @@ TryAgain:
 
 	return NULL;
 }
+
+#ifdef PGSPIDER
+DIR *
+AllocateDir(const char *dirname)
+{
+	DIR	*dir;
+	SPD_LOCK_TRY(&fd_mutex);
+	dir = AllocateDirOrg(dirname);
+	SPD_UNLOCK_CATCH(&fd_mutex);
+	return  dir;
+}
+#endif
 
 /*
  * Read a directory opened with AllocateDir, ereport'ing any error.
