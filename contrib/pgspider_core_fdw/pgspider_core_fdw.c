@@ -2058,8 +2058,7 @@ RESCAN:
 		usleep(1);
 		if (fssthrdInfo->requestEndScan)
 		{
-			fssthrdInfo->state = SPD_FS_STATE_END;
-			goto THREAD_EXIT;
+			goto THREAD_END;
 		}
 		if (fssthrdInfo->requestRescan)
 		{
@@ -2260,6 +2259,7 @@ RESCAN:
 	if (fssthrdInfo->state == SPD_FS_STATE_ERROR)
 		goto THREAD_EXIT;
 
+THREAD_END:
 	PG_TRY();
 	{
 		while (1)
@@ -4952,7 +4952,17 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		 * If query has parameter, sub-plan needs to be initialized, so it needs to wait the core engine
 		 * initializes the sub-plan.
 		 */
-		fssThrdInfo[node_incr].requestStartScan = (node->ss.ps.state->es_subplanstates == NIL);
+		if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
+		{
+			/* Not push down aggregate to child fdw */
+			fssThrdInfo[node_incr].requestStartScan = (node->ss.ps.state->es_subplanstates == NIL);
+		}
+		else
+		{
+			/* Push down case */
+			fssThrdInfo[node_incr].requestStartScan = (fsplan->fdw_exprs == NIL);
+		}
+
 		/* We save correspondence between fssThrdInfo and childinfo */
 		fssThrdInfo[node_incr].childInfoIndex = i;
 		childinfo[i].index_threadinfo = node_incr;
