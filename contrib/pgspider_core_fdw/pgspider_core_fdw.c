@@ -3593,16 +3593,18 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				tmp_path = entry->pathlist->head->data.ptr_value;
 
 				if (query->groupClause)
-					aggStrategy = AGG_HASHED;
-				foreach(lc, grouping_target->exprs)
 				{
-					Node * node = lfirst(lc);
-
-					/* If there is ORDER BY inside aggregate function, set AggStrategy to AGG_SORTED */
-					if (is_sorted(node))
+					aggStrategy = AGG_HASHED;
+					foreach(lc, grouping_target->exprs)
 					{
-						aggStrategy = AGG_SORTED;
-						break;
+						Node * node = lfirst(lc);
+
+						/* If there is ORDER BY inside aggregate function, set AggStrategy to AGG_SORTED */
+						if (is_sorted(node))
+						{
+							aggStrategy = AGG_SORTED;
+							break;
+						}
 					}
 				}
 				/*
