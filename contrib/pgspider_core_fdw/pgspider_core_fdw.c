@@ -286,7 +286,6 @@ typedef struct ChildInfo
 	PlannerInfo *grouped_root_local;
 	RelOptInfo *grouped_rel_local;
 	int			scan_relid;
-	bool		in_flag;		/* using IN clause or NOT */
 	List	   *url_list;
 	AggPath    *aggpath;
 	FdwRoutine *fdwroutine;
@@ -335,7 +334,6 @@ typedef struct SpdFdwPrivate
 	int			nThreads;		/* Number of alive threads */
 	int			idx_url_tlist;	/* index of __spd_url in tlist. -1 if not used */
 
-	bool		in_flag;		/* using IN clause or NOT */
 	bool		agg_query;		/* aggregation flag */
 	bool		isFirst;		/* First time of iteration foreign scan with
 								 * aggregation query */
@@ -458,7 +456,7 @@ static TupleTableSlot *spd_queue_get(SpdTupleQueue * que, bool *is_finished);
 static void spd_queue_reset(SpdTupleQueue * que);
 static void spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, const TupleTableSlotOps *tts_ops, bool skipLast);
 static void spd_queue_notify_finish(SpdTupleQueue * que);
-static void spd_spi_ddl_table(char *query, SpdFdwPrivate *fdw_private);
+static void spd_spi_ddl_table(char *query, pthread_rwlock_t *scan_mutex);
 
 static List *spd_catalog_makedivtlist(Aggref *aggref, List *newList, enum Aggtype aggtype);
 
@@ -1945,7 +1943,7 @@ spd_spi_exec_child_relname(char *parentTableName, SpdFdwPrivate * fdw_private, O
 	MemoryContext oldcontext = CurrentMemoryContext;
 
 	/* get child server name from child's foreign table id */
-	if (fdw_private->in_flag == 0)
+	if (fdw_private->url_list == NIL)
 	{
 		sprintf(query, "SELECT oid from pg_class WHERE relname LIKE \
                 '%s\\_\\_\%%' ORDER BY relname;", parentTableName);
@@ -2525,10 +2523,10 @@ THREAD_EXIT:
  *  First URL "sample"  Throwing URL NULL
  *
  * @param[in] spd_url_list - URL
- * @param[out] fdw_private - store to parsing URL
+ * @return parsed URL
  */
-static void
-spd_ParseUrl(List *spd_url_list, SpdFdwPrivate * fdw_private)
+static List *
+spd_ParseUrl(List *spd_url_list)
 {
 	char	   *tp;
 	char	   *throw_tp;
@@ -2537,6 +2535,7 @@ spd_ParseUrl(List *spd_url_list, SpdFdwPrivate * fdw_private)
 	char	   *throwing_url = NULL;
 	int			original_len;
 	ListCell   *lc;
+	List *parsed_url = NIL;
 
 	foreach(lc, spd_url_list)
 	{
@@ -2548,10 +2547,10 @@ spd_ParseUrl(List *spd_url_list, SpdFdwPrivate * fdw_private)
 			elog(ERROR, "URL first character should set '/' ");
 		url_option++;
 		tp = strtok_r(url_option, "/", &next);
-		if (tp != NULL)
-			url_parse_list = lappend(url_parse_list, tp);	/* Original URL */
-		else
-			return;
+		if (tp == NULL)
+			break;
+
+		url_parse_list = lappend(url_parse_list, tp);	/* Original URL */
 
 		throw_tp = strtok_r(NULL, "/", &next);
 		if (throw_tp != NULL)
@@ -2561,8 +2560,9 @@ spd_ParseUrl(List *spd_url_list, SpdFdwPrivate * fdw_private)
 			if (strlen(throwing_url) != 1)
 				url_parse_list = lappend(url_parse_list, throwing_url);
 		}
-		fdw_private->url_list = lappend(fdw_private->url_list, url_parse_list);
+		parsed_url = lappend(parsed_url, url_parse_list);
 	}
+	return parsed_url;
 }
 
 
@@ -2585,7 +2585,7 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 	 * entry is first parsing word(/foo/bar/, then entry is "foo",entry2 is
 	 * "bar")
 	 */
-	spd_ParseUrl(r_entry->spd_url_list, fdw_private);
+	fdw_private->url_list = spd_ParseUrl(r_entry->spd_url_list);
 	if (fdw_private->url_list == NULL)
 		elog(ERROR, "IN Clause use but can not find url. Please set IN string.");
 
@@ -2636,7 +2636,6 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 					elog(ERROR, "Child node is not spd");
 				}
 				/* if child table fdw is spd, then execute operation */
-				fdw_private->in_flag = 1;
 				fdw_private->childinfo[i].url_list = lappend(fdw_private->childinfo[i].url_list, throwing_url);
 			}
 		}
@@ -3028,20 +3027,21 @@ groupby_has_spdurl(PlannerInfo *root)
  * @param[in] oid_nums - oid nums
  * @param[in] r_entry - Root entry
  * @param[in] new_inurl - new IN clause url
- * @param[inout] fdw_private - child table's base plan is saved
+ * @param[inout] childinfo - child table's base plan is saved
+ * @param[out] idx_url_tlist - index of __spd_url in tlist is stored
  */
 static void
 spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel,
 					Oid *oid, int oid_nums,
 					RangeTblEntry *r_entry,
-					List *new_inurl, SpdFdwPrivate * fdw_private)
+					List *new_inurl, ChildInfo *childinfo,
+					int *idx_url_tlist)
 {
 	RelOptInfo *entry_baserel;
 	Oid			oid_server;
 	int			i = 0;
 	ForeignServer *fs;
 	ForeignDataWrapper *fdw;
-	ChildInfo  *childinfo = fdw_private->childinfo;
 
 	for (i = 0; i < oid_nums; i++)
 	{
@@ -3332,7 +3332,8 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	}
 
 	/* Create base plan for each child tables and exec GetForeignRelSize */
-	spd_CreateDummyRoot(root, baserel, oid, nums, r_entry, new_inurl, fdw_private);
+	spd_CreateDummyRoot(root, baserel, oid, nums, r_entry, new_inurl,
+				 fdw_private->childinfo, &fdw_private->idx_url_tlist);
 
 	/*
 	 * Set the name of relation in fpinfo, while we are constructing it here.
@@ -3372,11 +3373,10 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
  *
  * @param[in] aggref - aggregation entry
  * @param[in,out] newList - list of new exprs
- * @param[in,out] fdw_private - fdw global data
  */
 
 static List *
-spd_makedivtlist(Aggref *aggref, List *newList, SpdFdwPrivate * fdw_private)
+spd_makedivtlist(Aggref *aggref, List *newList)
 {
 	/* Prepare SUM Query */
 	Aggref	   *tempCount = copyObject((Aggref *) aggref);
@@ -3675,7 +3675,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	fdw_private = spd_AllocatePrivate();
 	fdw_private->idx_url_tlist = -1;	/* -1: not have __spd_url */
 	fdw_private->node_num = in_fdw_private->node_num;
-	fdw_private->in_flag = in_fdw_private->in_flag;
+	fdw_private->url_list = in_fdw_private->url_list;
 	fdw_private->agg_query = true;
 	fdw_private->baserestrictinfo = copyObject(in_fdw_private->baserestrictinfo);
 	spd_root = in_fdw_private->spd_root;
@@ -3709,7 +3709,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 		aggref = (Aggref *) temp_expr;
 		listn++;
 		if (IS_SPLIT_AGG(aggref->aggfnoid))
-			newList = spd_makedivtlist(aggref, newList, fdw_private);
+			newList = spd_makedivtlist(aggref, newList);
 		else if (IsA(temp_expr, Aggref) && is_catalog_split_agg(aggref->aggfnoid, &aggtype))
 			newList = spd_catalog_makedivtlist(aggref, newList, aggtype);
 		else
@@ -5122,7 +5122,7 @@ spd_end_child_node_thread(ForeignScanState *node, bool is_abort)
 		/* Incase abort transaction, we no need to drop temp table, it will control by spi module */
 		if (fdw_private->temp_table_name != NULL && !is_abort)
 		{
-			spd_spi_ddl_table(psprintf("DROP TABLE IF EXISTS %s", fdw_private->temp_table_name), fdw_private);
+			spd_spi_ddl_table(psprintf("DROP TABLE IF EXISTS %s", fdw_private->temp_table_name), &fdw_private->scan_mutex);
 		}
 		for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 		{
@@ -5634,11 +5634,11 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
  */
 
 static void
-spd_spi_ddl_table(char *query, SpdFdwPrivate *fdw_private)
+spd_spi_ddl_table(char *query, pthread_rwlock_t *scan_mutex)
 {
 	int			ret;
 
-	SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex);
+	SPD_WRITE_LOCK_TRY(scan_mutex);
 	ret = SPI_connect();
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
@@ -5649,7 +5649,7 @@ spd_spi_ddl_table(char *query, SpdFdwPrivate *fdw_private)
 		elog(ERROR, "execute spi CREATE TEMP TABLE failed %d", ret);
 	}
 	SPI_finish();
-	SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
+	SPD_RWUNLOCK_CATCH(scan_mutex);
 }
 /**
  * spd_spi_insert_table
@@ -6650,11 +6650,11 @@ spd_select_return_aggslot(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPr
  * @param[out] create_sql
  * @param[in] mapping_tlist
  * @param[in] temp_table
- * @param[in] fdw_private
+ * @param[in] child_comp_tlist
  */
 static void
 spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
-					char *temp_table, SpdFdwPrivate * fdw_private)
+					char *temp_table, List *child_comp_tlist)
 {
 	ListCell   *lc;
 	int			colid = 0;
@@ -6681,8 +6681,8 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 					if (colid != 0)
 						appendStringInfo(create_sql, ",");
 					appendStringInfo(create_sql, "col%d ", colid);
-					typeid = exprType((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, colid))->expr);
-					typmod = exprTypmod((Node *) ((TargetEntry *) list_nth(fdw_private->child_comp_tlist, colid))->expr);
+					typeid = exprType((Node *) ((TargetEntry *) list_nth(child_comp_tlist, colid))->expr);
+					typmod = exprTypmod((Node *) ((TargetEntry *) list_nth(child_comp_tlist, colid))->expr);
 
 					/* append column name and column type */
 					appendStringInfo(create_sql, " %s", spd_deparse_type_name(typeid, typmod));
@@ -7033,8 +7033,8 @@ spd_IterateForeignScan(ForeignScanState *node)
 			MemoryContextSwitchTo(oldcontext);
 
 			spd_createtable_sql(create_sql, mapping_tlist,
-								fdw_private->temp_table_name, fdw_private);
-			spd_spi_ddl_table(create_sql->data, fdw_private);
+								fdw_private->temp_table_name, fdw_private->child_comp_tlist);
+			spd_spi_ddl_table(create_sql->data, &fdw_private->scan_mutex);
 
 			/*
 			 * run aggregation query for all data source threads and combine
@@ -7241,23 +7241,19 @@ spd_EndForeignScan(ForeignScanState *node)
  * Check and create url. If URL is nothing or can not find server
  * then return error.
  *
- * @param[in,out] fdw_private
  * @param[in] target_rte
+ * @return Created URL
  */
-static void
-spd_check_url_update(SpdFdwPrivate * fdw_private, RangeTblEntry *target_rte)
+static List *
+spd_check_url_update(RangeTblEntry *target_rte)
 {
 	if (target_rte->spd_url_list)
 	{
-		spd_ParseUrl(target_rte->spd_url_list, fdw_private);
-		if (fdw_private->url_list != NIL &&
-		    fdw_private->url_list->length > 0)
+		List *url_list = spd_ParseUrl(target_rte->spd_url_list);
+		if (list_length(url_list) > 0)
 		{
-			char	   *srvname = palloc0(sizeof(char) * (MAX_URL_LENGTH));
-
-			fdw_private->in_flag = true;
-			pfree(srvname);
-			return;
+			/* URL is acceptable */
+			return url_list;
 		}
 	}
 	elog(ERROR, "no URL is specified, INSERT/UPDATE/DELETE need to set URL");
@@ -7289,7 +7285,7 @@ spd_AddForeignUpdateTargets(Query *parsetree,
 	fdw_private = spd_AllocatePrivate();
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	/* Checking IN clause. */
-	spd_check_url_update(fdw_private, target_rte);
+	fdw_private->url_list = spd_check_url_update(target_rte);
 	spd_spi_exec_child_relname(RelationGetRelationName(target_relation), fdw_private, &oid);
 	if (fdw_private->node_num == 0)
 		ereport(ERROR, (errmsg("Cannot Find child datasources. ")));
@@ -7335,7 +7331,7 @@ spd_PlanForeignModify(PlannerInfo *root,
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	fdw_private = spd_AllocatePrivate();
 
-	spd_check_url_update(fdw_private, rte);
+	fdw_private->url_list = spd_check_url_update(rte);
 
 	spd_create_child_url(nums, rte, fdw_private);
 	rel = table_open(rte->relid, NoLock);
