@@ -7241,21 +7241,20 @@ spd_EndForeignScan(ForeignScanState *node)
 static void
 spd_check_url_update(SpdFdwPrivate * fdw_private, RangeTblEntry *target_rte)
 {
-
-	spd_ParseUrl(target_rte->spd_url_list, fdw_private);
-	if (fdw_private->url_list == NIL ||
-		fdw_private->url_list->length < 1)
+	if (target_rte->spd_url_list)
 	{
-		/* DO NOTHING */
-		elog(ERROR, "no URL is specified, INSERT/UPDATE/DELETE need to set URL");
-	}
-	else
-	{
-		char	   *srvname = palloc0(sizeof(char) * (MAX_URL_LENGTH));
+		spd_ParseUrl(target_rte->spd_url_list, fdw_private);
+		if (fdw_private->url_list != NIL &&
+		    fdw_private->url_list->length > 0)
+		{
+			char	   *srvname = palloc0(sizeof(char) * (MAX_URL_LENGTH));
 
-		fdw_private->in_flag = true;
-		pfree(srvname);
+			fdw_private->in_flag = true;
+			pfree(srvname);
+			return;
+		}
 	}
+	elog(ERROR, "no URL is specified, INSERT/UPDATE/DELETE need to set URL");
 }
 
 /**
@@ -7284,10 +7283,7 @@ spd_AddForeignUpdateTargets(Query *parsetree,
 	fdw_private = spd_AllocatePrivate();
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	/* Checking IN clause. */
-	if (target_rte->spd_url_list != NULL)
-		spd_check_url_update(fdw_private, target_rte);
-	else
-		elog(ERROR, "no URL is specified, INSERT/UPDATE/DELETE need to set URL");
+	spd_check_url_update(fdw_private, target_rte);
 	spd_spi_exec_child_relname(RelationGetRelationName(target_relation), fdw_private, &oid);
 	if (fdw_private->node_num == 0)
 		ereport(ERROR, (errmsg("Cannot Find child datasources. ")));
@@ -7333,10 +7329,7 @@ spd_PlanForeignModify(PlannerInfo *root,
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	fdw_private = spd_AllocatePrivate();
 
-	if (rte->spd_url_list != NULL)
-		spd_check_url_update(fdw_private, rte);
-	else
-		elog(ERROR, "no URL is specified, INSERT/UPDATE/DELETE need to set URL");
+	spd_check_url_update(fdw_private, rte);
 
 	spd_create_child_url(nums, rte, fdw_private);
 	rel = table_open(rte->relid, NoLock);
