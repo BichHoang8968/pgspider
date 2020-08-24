@@ -252,7 +252,7 @@ const enum Aggtype CatalogSplitAggType[] = {SPREAD_FLAG,
 #define AGG_SPLIT_COUNT	0
 #define AGG_SPLIT_SUM	1
 #define AGG_SPLIT_SUM_SQ	2
-/* The number of split agg elements */
+/* The number of split agg */
 #define MAX_SPLIT_NUM	3
 
 typedef struct Mappingcells
@@ -285,7 +285,6 @@ typedef struct ChildInfo
 	RelOptInfo *baserel;
 	PlannerInfo *grouped_root_local;
 	RelOptInfo *grouped_rel_local;
-	int			scan_relid;
 	List	   *url_list;
 	AggPath    *aggpath;
 	FdwRoutine *fdwroutine;
@@ -4771,8 +4770,6 @@ spd_GetForeignChildPlans(PlannerInfo *root, RelOptInfo *baserel,
 													*push_scan_clauses,
 													outer_plan);
 			}
-			childinfo[i].scan_relid = childinfo[i].baserel->relid;
-
 		}
 		PG_CATCH();
 		{
