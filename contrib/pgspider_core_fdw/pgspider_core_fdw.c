@@ -927,22 +927,23 @@ spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private)
 
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
-		fdw_private->childinfo[i].can_pushdown_agg = fdw_private->childinfo[i].aggpath ? false : true;
-		lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->childinfo[i].can_pushdown_agg));
+		ChildInfo *pChildInfo = &fdw_private->childinfo[i];
+		pChildInfo->can_pushdown_agg = pChildInfo->aggpath ? false : true;
+		lfdw_private = lappend(lfdw_private, makeInteger(pChildInfo->can_pushdown_agg));
 
-		lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->childinfo[i].child_node_status));
-		lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->childinfo[i].server_oid));
-		lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->childinfo[i].oid));
+		lfdw_private = lappend(lfdw_private, makeInteger(pChildInfo->child_node_status));
+		lfdw_private = lappend(lfdw_private, makeInteger(pChildInfo->server_oid));
+		lfdw_private = lappend(lfdw_private, makeInteger(pChildInfo->oid));
 
 		/* Plan */
-		lfdw_private = lappend(lfdw_private, copyObject(fdw_private->childinfo[i].plan));
+		lfdw_private = lappend(lfdw_private, copyObject(pChildInfo->plan));
 
 		/* Agg plan */
-		if (list_member_oid(fdw_private->pPseudoAggList, fdw_private->childinfo[i].server_oid))
-			lfdw_private = lappend(lfdw_private, copyObject(fdw_private->childinfo[i].pAgg));
+		if (list_member_oid(fdw_private->pPseudoAggList, pChildInfo->server_oid))
+			lfdw_private = lappend(lfdw_private, copyObject(pChildInfo->pAgg));
 
 		/* Root */
-		lfdw_private = lappend(lfdw_private, copyObject(fdw_private->childinfo[i].root->parse));
+		lfdw_private = lappend(lfdw_private, copyObject(pChildInfo->root->parse));
 
 	}
 
@@ -1059,32 +1060,34 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
 	fdw_private->childinfo = (ChildInfo *) palloc0(sizeof(ChildInfo) * fdw_private->node_num);
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
-		fdw_private->childinfo[i].can_pushdown_agg = intVal(lfirst(lc));
+		ChildInfo *pChildInfo = &fdw_private->childinfo[i];
+
+		pChildInfo->can_pushdown_agg = intVal(lfirst(lc));
 		lc = lnext(lfdw_private, lc);
 
-		fdw_private->childinfo[i].child_node_status = intVal(lfirst(lc));
+		pChildInfo->child_node_status = intVal(lfirst(lc));
 		lc = lnext(lfdw_private, lc);
 
-		fdw_private->childinfo[i].server_oid = intVal(lfirst(lc));
+		pChildInfo->server_oid = intVal(lfirst(lc));
 		lc = lnext(lfdw_private, lc);
 
-		fdw_private->childinfo[i].oid = intVal(lfirst(lc));
+		pChildInfo->oid = intVal(lfirst(lc));
 		lc = lnext(lfdw_private, lc);
 
 		/* Plan */
-		fdw_private->childinfo[i].plan = (Plan *) lfirst(lc);
+		pChildInfo->plan = (Plan *) lfirst(lc);
 		lc = lnext(lfdw_private, lc);
 
 		/* Agg plan */
-		if (list_member_oid(fdw_private->pPseudoAggList, fdw_private->childinfo[i].server_oid))
+		if (list_member_oid(fdw_private->pPseudoAggList, pChildInfo->server_oid))
 		{
-			fdw_private->childinfo[i].pAgg = (Agg *) lfirst(lc);
+			pChildInfo->pAgg = (Agg *) lfirst(lc);
 			lc = lnext(lfdw_private, lc);
 		}
 
 		/* Root */
-		fdw_private->childinfo[i].root = (PlannerInfo *) palloc0(sizeof(PlannerInfo));
-		fdw_private->childinfo[i].root->parse = (Query *) lfirst(lc);
+		pChildInfo->root = (PlannerInfo *) palloc0(sizeof(PlannerInfo));
+		pChildInfo->root->parse = (Query *) lfirst(lc);
 		lc = lnext(lfdw_private, lc);
 	}
 
@@ -3744,7 +3747,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 		/* Create path for each child node */
 		for (i = 0; i < fdw_private->node_num; i++)
 		{
-			Oid			rel_oid = childinfo[i].oid;
 			RelOptInfo *entry = childinfo[i].baserel;
 			PlannerInfo *dummy_root_child = childinfo[i].root;
 			RelOptInfo *dummy_output_rel;
@@ -5203,7 +5205,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 				k;
 	Query	   *query;
 	RangeTblEntry *rte;
-	TupleDesc	tupledesc_agg;
+	TupleDesc	tupledesc_agg = NULL;
 
 	/*
 	 * Register callback to query memory context to reset normalize id hash
@@ -5456,7 +5458,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			/*
 			 * Create child descriptor using child_tlist
 			 */
-			int			child_attr = 0; /* attribute number of child */
 			ListCell   *lc;
 
 			tupledesc = tupledesc_agg;
