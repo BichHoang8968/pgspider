@@ -2424,11 +2424,7 @@ OpenPipeStream(const char *command, const char *mode)
  * The argument *must* point into the allocatedDescs[] array.
  */
 static int
-#ifdef PGSPIDER
-FreeDescOrg(AllocateDesc *desc)
-#else
 FreeDesc(AllocateDesc *desc)
-#endif
 {
 	int			result;
 
@@ -2460,26 +2456,19 @@ FreeDesc(AllocateDesc *desc)
 	return result;
 }
 
-#ifdef PGSPIDER
-static int
-FreeDesc(AllocateDesc *desc)
-{
-	int	result;
-	SPD_LOCK_TRY(&fd_mutex);
-	result = FreeDescOrg(desc);
-	SPD_UNLOCK_CATCH(&fd_mutex);
-	return result;
-}
-#endif
-
 /*
  * Close a file returned by AllocateFile.
  *
  * Note we do not check fclose's return value --- it is up to the caller
  * to handle close errors.
  */
+#ifdef PGSPIDER
+static int
+FreeFileOrg(FILE *file)
+#else
 int
 FreeFile(FILE *file)
+#endif
 {
 	int			i;
 
@@ -2500,14 +2489,31 @@ FreeFile(FILE *file)
 	return fclose(file);
 }
 
+#ifdef PGSPIDER
+int
+FreeFile(FILE *file)
+{
+	int			i;
+	SPD_LOCK_TRY(&fd_mutex);
+	i = FreeFileOrg(file);
+	SPD_UNLOCK_CATCH(&fd_mutex);
+	return i;
+}
+#endif
+
 /*
  * Close a file returned by OpenTransientFile.
  *
  * Note we do not check close's return value --- it is up to the caller
  * to handle close errors.
  */
+#ifdef PGSPIDER
+static int
+CloseTransientFileOrg(int fd)
+#else
 int
 CloseTransientFile(int fd)
+#endif
 {
 	int			i;
 
@@ -2527,6 +2533,19 @@ CloseTransientFile(int fd)
 
 	return close(fd);
 }
+
+#ifdef PGSPIDER
+int
+CloseTransientFile(int fd)
+{
+	int     i;
+	SPD_LOCK_TRY(&fd_mutex);
+	i = CloseTransientFileOrg(fd);
+	SPD_UNLOCK_CATCH(&fd_mutex);
+	return i;
+}
+#endif
+
 
 /*
  * Routines that want to use <dirent.h> (ie, DIR*) should use AllocateDir
@@ -2675,8 +2694,13 @@ ReadDirExtended(DIR *dir, const char *dirname, int elevel)
  * Does nothing if dir == NULL; we assume that directory open failure was
  * already reported if desired.
  */
+#ifdef PGSPIDER
+static int
+FreeDirOrg(DIR *dir)
+#else
 int
 FreeDir(DIR *dir)
+#endif
 {
 	int			i;
 
@@ -2701,12 +2725,28 @@ FreeDir(DIR *dir)
 	return closedir(dir);
 }
 
+#ifdef PGSPIDER
+int
+FreeDir(DIR *dir)
+{
+	int	i;
+	SPD_LOCK_TRY(&fd_mutex);
+	i = FreeDirOrg(dir);
+	SPD_UNLOCK_CATCH(&fd_mutex);
+	return i;
+}
+#endif
 
 /*
  * Close a pipe stream returned by OpenPipeStream.
  */
+#ifdef PGSPIDER
+static int
+ClosePipeStreamOrg(FILE *file)
+#else
 int
 ClosePipeStream(FILE *file)
+#endif
 {
 	int			i;
 
@@ -2726,6 +2766,19 @@ ClosePipeStream(FILE *file)
 
 	return pclose(file);
 }
+
+#ifdef PGSPIDER
+int
+ClosePipeStream(FILE *file)
+{
+	int	i;
+	SPD_LOCK_TRY(&fd_mutex);
+	i = ClosePipeStreamOrg(file);
+	SPD_UNLOCK_CATCH(&fd_mutex);
+	return i;
+}
+#endif
+
 
 /*
  * closeAllVfds
@@ -2839,9 +2892,15 @@ GetNextTempTableSpace(void)
  * that the subtransaction may have opened.  At commit, we reassign the
  * files that were opened to the parent subtransaction.
  */
+#ifdef PGSPIDER
+static void
+AtEOSubXact_FilesOrg(bool isCommit, SubTransactionId mySubid,
+				  SubTransactionId parentSubid)
+#else
 void
 AtEOSubXact_Files(bool isCommit, SubTransactionId mySubid,
 				  SubTransactionId parentSubid)
+#endif
 {
 	Index		i;
 
@@ -2859,6 +2918,17 @@ AtEOSubXact_Files(bool isCommit, SubTransactionId mySubid,
 		}
 	}
 }
+
+#ifdef PGSPIDER
+void
+AtEOSubXact_Files(bool isCommit, SubTransactionId mySubid,
+				  SubTransactionId parentSubid)
+{
+	SPD_LOCK_TRY(&fd_mutex);
+	AtEOSubXact_FilesOrg(isCommit, mySubid, parentSubid);
+	SPD_UNLOCK_CATCH(&fd_mutex);
+}
+#endif
 
 /*
  * AtEOXact_Files
@@ -2905,7 +2975,11 @@ AtProcExit_Files(int code, Datum arg)
  * also clean up "allocated" stdio files, dirs and fds.
  */
 static void
+#ifdef PGSPIDER
+CleanupTempFilesOrg(bool isCommit, bool isProcExit)
+#else
 CleanupTempFiles(bool isCommit, bool isProcExit)
+#endif
 {
 	Index		i;
 
@@ -2955,6 +3029,15 @@ CleanupTempFiles(bool isCommit, bool isProcExit)
 		FreeDesc(&allocatedDescs[0]);
 }
 
+#ifdef PGSPIDER
+static void
+CleanupTempFiles(bool isCommit, bool isProcExit)
+{
+	SPD_LOCK_TRY(&fd_mutex);
+	CleanupTempFilesOrg(isCommit, isProcExit);
+	SPD_UNLOCK_CATCH(&fd_mutex);
+}
+#endif
 
 /*
  * Remove temporary and temporary relation files left over from a prior
