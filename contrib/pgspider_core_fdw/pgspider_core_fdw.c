@@ -130,8 +130,6 @@ PG_MODULE_MAGIC;
 #define FLOAT8MUL_OID 594
 #define FLOAT8MUL_FUNID 216
 #define DOUBLE_LENGTH 8
-#define MAX_SPLIT_NUM 3			/* STDDEV and VARIANCE div sum,count,sum(x^2),
-								 * so currentrly MAX is 3 */
 
 #define PGSPIDER_FDW_NAME "pgspider_fdw"
 #define MYSQL_FDW_NAME "mysql_fdw"
@@ -241,16 +239,22 @@ const char *CatalogSplitAggStr[] = {"SPREAD",
 const enum Aggtype CatalogSplitAggType[] = {SPREAD_FLAG,
 											NON_AGG_FLAG};
 
-
-
-/* 'mapping' store index of compressed tlist when splitting one agg into multiple agg.
- * mapping[0]:COUNT(x)
- * mapping[1]:SUM(x)
- * mapping[2]:SUM(x*sx)
+/*
+ * 'Mappingcells.mapping' stores index of compressed tlist when splitting one agg into multiple aggs.
+ * mapping[AGG_SPLIT_COUNT]  :COUNT(x)
+ * mapping[AGG_SPLIT_SUM]    :SUM(x)
+ * mapping[AGG_SPLIT_SUM_SQ] :SUM(x*x)
  *
- * mapping[0] is also used for non-agg target or non-split agg such as sum and count.
+ * mapping[AGG_SPLIT_NONE] is used for non-agg target or non-split agg such as sum and count.
  * Please see spd_add_to_flat_tlist about how we use this struct.
  */
+#define AGG_SPLIT_NONE	0
+#define AGG_SPLIT_COUNT	0
+#define AGG_SPLIT_SUM	1
+#define AGG_SPLIT_SUM_SQ	2
+/* The number of split agg elements */
+#define MAX_SPLIT_NUM	3
+
 typedef struct Mappingcells
 {
 
@@ -797,7 +801,7 @@ print_mapping_tlist(List *mapping_tlist, int loglevel)
 			Mappingcells *cells = lfirst(extlc);
 
 			elog(loglevel, "mapping_tlist (%d %d %d)/ original_attnum=%d  aggtype=\"%s\"",
-				cells->mapping[0], cells->mapping[1], cells->mapping[2],
+				cells->mapping[AGG_SPLIT_COUNT], cells->mapping[AGG_SPLIT_SUM], cells->mapping[AGG_SPLIT_SUM_SQ],
 				cells->original_attnum, AggtypeStr[cells->aggtype]);
 		}
 	}
@@ -908,9 +912,10 @@ spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private)
 			{
 				Mappingcells *cells = lfirst(tmplc);
 
-				lfdw_private = lappend(lfdw_private, makeInteger(cells->mapping[0]));
-				lfdw_private = lappend(lfdw_private, makeInteger(cells->mapping[1]));
-				lfdw_private = lappend(lfdw_private, makeInteger(cells->mapping[2]));
+				for (i = 0; i < MAX_SPLIT_NUM; i++)
+				{
+					lfdw_private = lappend(lfdw_private, makeInteger(cells->mapping[i]));
+				}
 				lfdw_private = lappend(lfdw_private, makeInteger(cells->aggtype));
 				lfdw_private = lappend(lfdw_private, makeString(cells->agg_command ? cells->agg_command->data : ""));
 				lfdw_private = lappend(lfdw_private, makeString(cells->agg_const ? cells->agg_const->data : ""));
@@ -1018,14 +1023,14 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
 
 			for (j = 0; j < ext_tlist_num; j++)
 			{
+				int k;
 				Mappingcells *cells = (Mappingcells *) palloc0(sizeof(Mappingcells));
 
-				cells->mapping[0] = intVal(lfirst(lc));
-				lc = lnext(lfdw_private, lc);
-				cells->mapping[1] = intVal(lfirst(lc));
-				lc = lnext(lfdw_private, lc);
-				cells->mapping[2] = intVal(lfirst(lc));
-				lc = lnext(lfdw_private, lc);
+				for (k = 0; k < MAX_SPLIT_NUM; k++)
+				{
+					cells->mapping[k] = intVal(lfirst(lc));
+					lc = lnext(lfdw_private, lc);
+				}
 				cells->aggtype = intVal(lfirst(lc));
 				lc = lnext(lfdw_private, lc);
 				cells->agg_command = makeStringInfo();
@@ -1227,11 +1232,11 @@ add_node_to_list(Expr *expr, List **tlist, Mappingcells **mapcells, List **compr
 	/* If allow duplicate, so need to change mapping to the last of compress_tlist */
 	if (allow_duplicate)
 	{
-		(*mapcells)->mapping[0] = list_length(*compress_tlist) - 1;
+		(*mapcells)->mapping[AGG_SPLIT_NONE] = list_length(*compress_tlist) - 1;
 	}
 	else
 	{
-		(*mapcells)->mapping[0] = target_num;
+		(*mapcells)->mapping[AGG_SPLIT_NONE] = target_num;
 	}
 }
 
@@ -1549,7 +1554,7 @@ extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_
 					*compress_tlist_tle = lappend(*compress_tlist_tle, tle_temp);
 					*compress_tlist = lappend(*compress_tlist, tempCount);
 				}
-				mapcells->mapping[0] = target_num;
+				mapcells->mapping[AGG_SPLIT_COUNT] = target_num;
 				/* sum */
 				if (!spd_tlist_member((Expr *) tempSum, *compress_tlist_tle, &target_num))
 				{
@@ -1560,7 +1565,7 @@ extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_
 					*compress_tlist_tle = lappend(*compress_tlist_tle, tle_temp);
 					*compress_tlist = lappend(*compress_tlist, tempSum);
 				}
-				mapcells->mapping[1] = target_num;
+				mapcells->mapping[AGG_SPLIT_SUM] = target_num;
 				(*extcells)->ext_num = (*extcells)->ext_num + 2;
 				/* variance(SUM(x*x)) */
 				if ((aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
@@ -1614,7 +1619,7 @@ extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_
 						*compress_tlist_tle = lappend(*compress_tlist_tle, tle_temp);
 						*compress_tlist = lappend(*compress_tlist, tle_temp);
 					}
-					mapcells->mapping[2] = target_num;
+					mapcells->mapping[AGG_SPLIT_SUM_SQ] = target_num;
 					(*extcells)->ext_num++;
 				}
 			}
@@ -6150,7 +6155,7 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 						continue;
 					}
 
-					mapping = cell->mapping[0];
+					mapping = cell->mapping[AGG_SPLIT_NONE];
 					/*
 					 * Ex: SUM(i)/2
 					 */
@@ -6226,9 +6231,9 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 					{
 						/* Use CASE WHEN to avoid division by zero error */
 						if (has_Order_by)
-							appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 THEN NULL ELSE (SUM(col%d ORDER BY col%d)/SUM(col%d))::float8 END)", cell->mapping[0], cell->mapping[1], cell->mapping[1], cell->mapping[0]);
+							appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 THEN NULL ELSE (SUM(col%d ORDER BY col%d)/SUM(col%d))::float8 END)", cell->mapping[AGG_SPLIT_COUNT], cell->mapping[AGG_SPLIT_SUM], cell->mapping[AGG_SPLIT_SUM], cell->mapping[AGG_SPLIT_COUNT]);
 						else
-							appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 THEN NULL ELSE (SUM(col%d)/SUM(col%d))::float8 END)", cell->mapping[0], cell->mapping[1], cell->mapping[0]);
+							appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 THEN NULL ELSE (SUM(col%d)/SUM(col%d))::float8 END)", cell->mapping[AGG_SPLIT_COUNT], cell->mapping[AGG_SPLIT_SUM], cell->mapping[AGG_SPLIT_COUNT]);
 						break;
 					}
 					case VAR_FLAG:
@@ -6236,10 +6241,10 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 						/* Use CASE WHEN to avoid division by zero error */
 						if (has_Order_by)
 							appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 OR SUM(col%d) = 1 THEN NULL ELSE ((SUM(col%d ORDER BY col%d) - POWER(SUM(col%d ORDER BY col%d), 2)/SUM(col%d))/(SUM(col%d) - 1))::float8 END)", 
-									cell->mapping[0], cell->mapping[0], cell->mapping[2], cell->mapping[2], cell->mapping[1], cell->mapping[1], cell->mapping[0], cell->mapping[0]);
+									cell->mapping[AGG_SPLIT_COUNT], cell->mapping[AGG_SPLIT_COUNT], cell->mapping[AGG_SPLIT_SUM_SQ], cell->mapping[AGG_SPLIT_SUM_SQ], cell->mapping[AGG_SPLIT_SUM], cell->mapping[AGG_SPLIT_SUM], cell->mapping[AGG_SPLIT_COUNT], cell->mapping[AGG_SPLIT_COUNT]);
 						else
 							appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 OR SUM(col%d) = 1 THEN NULL ELSE ((SUM(col%d) - POWER(SUM(col%d), 2)/SUM(col%d))/(SUM(col%d) - 1))::float8 END)", 
-									cell->mapping[0], cell->mapping[0], cell->mapping[2], cell->mapping[1], cell->mapping[0], cell->mapping[0]);
+									cell->mapping[AGG_SPLIT_COUNT], cell->mapping[AGG_SPLIT_COUNT], cell->mapping[AGG_SPLIT_SUM_SQ], cell->mapping[AGG_SPLIT_SUM], cell->mapping[AGG_SPLIT_COUNT], cell->mapping[AGG_SPLIT_COUNT]);
 						break;
 					}
 					case DEV_FLAG:
@@ -6247,22 +6252,22 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 						/* Use CASE WHEN to avoid division by zero error */
 						if (has_Order_by)
 							appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 OR SUM(col%d) = 1 THEN NULL ELSE (sqrt((SUM(col%d ORDER BY col%d) - POWER(SUM(col%d ORDER BY col%d), 2)/SUM(col%d))/(SUM(col%d) - 1)))::float8 END)", 
-								cell->mapping[0], cell->mapping[0], cell->mapping[2], cell->mapping[2], cell->mapping[1], cell->mapping[1], cell->mapping[0], cell->mapping[0]);
+								cell->mapping[AGG_SPLIT_COUNT], cell->mapping[AGG_SPLIT_COUNT], cell->mapping[AGG_SPLIT_SUM_SQ], cell->mapping[AGG_SPLIT_SUM_SQ], cell->mapping[AGG_SPLIT_SUM], cell->mapping[AGG_SPLIT_SUM], cell->mapping[AGG_SPLIT_COUNT], cell->mapping[AGG_SPLIT_COUNT]);
 						else
 							appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 OR SUM(col%d) = 1 THEN NULL ELSE (sqrt((SUM(col%d) - POWER(SUM(col%d), 2)/SUM(col%d))/(SUM(col%d) - 1)))::float8 END)", 
-									cell->mapping[0], cell->mapping[0], cell->mapping[2], cell->mapping[1], cell->mapping[0], cell->mapping[0]);
+									cell->mapping[AGG_SPLIT_COUNT], cell->mapping[AGG_SPLIT_COUNT], cell->mapping[AGG_SPLIT_SUM_SQ], cell->mapping[AGG_SPLIT_SUM], cell->mapping[AGG_SPLIT_COUNT], cell->mapping[AGG_SPLIT_COUNT]);
 						break;
 					}
 					case SPREAD_FLAG:
 					{
-						appendStringInfo(buf, "MAX(col%d) - MIN(col%d)", cell->mapping[1], cell->mapping[0]);
+						appendStringInfo(buf, "MAX(col%d) - MIN(col%d)", cell->mapping[AGG_SPLIT_SUM], cell->mapping[AGG_SPLIT_COUNT]);
 						break;
 					}
 					default:
 					{
 						char	   *agg_command = cell->agg_command->data;
 						char		*agg_const = cell->agg_const->data;		/* constant argument of function */
-						mapping = cell->mapping[0];
+						mapping = cell->mapping[AGG_SPLIT_NONE];
 
 						/* If original aggregate function is count, change to sum to count all data from multiple nodes */
 						if (!pg_strcasecmp(agg_command, "SUM") || !pg_strcasecmp(agg_command, "COUNT"))
@@ -6386,7 +6391,7 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 					continue;
 				}
 
-				mapping = cell->mapping[0];
+				mapping = cell->mapping[AGG_SPLIT_NONE];
 				/* Append var name */
 				appendStringInfo(buf, "col%d", mapping);
 				break;
@@ -6485,7 +6490,7 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 			agg_type = cells->aggtype;
 			agg_const = cells->agg_const->data;
 
-			mapping = cells->mapping[0];
+			mapping = cells->mapping[AGG_SPLIT_NONE];
 
 			if (isfirst)
 				isfirst = false;
