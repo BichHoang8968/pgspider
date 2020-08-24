@@ -1780,9 +1780,8 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
  * SPI_exec is used by main thread,  it is not need for lock.
  *
  * 1. spd_spi_exec_datasouce_num() - get child table nums and oids from foreigntableid
- * 2. spd_spi_exec_datasource_oid() - Get parent node oid from child node oid.
- * 3. spd_spi_exec_datasource_name() - Get child table's foreign server name from foreign table id(child table oid)
- * 4. spd_spi_exec_child_relname() - Get child Table oid's using parentTableName
+ * 2. spd_spi_exec_datasource_name() - Get child table's foreign server name from foreign table id(child table oid)
+ * 3. spd_spi_exec_child_relname() - Get child Table oid's using parentTableName
  */
 
 /**
@@ -1845,42 +1844,17 @@ spd_spi_exec_datasouce_num(Oid foreigntableid, int *nums, Oid **oid)
 }
 
 /**
- * Get parent node oid using child node oid.
+ * Get serverid of the foreign table from id.
  *
- * @param[in] Child node's foreigntableid
+ * @param[in] foreign table id
  *
- * @return Parent node's foreigntableid
+ * @return foreign server id
  */
 static Oid
-spd_spi_exec_datasource_oid(Oid foreigntableid)
+serverid_of_relation(Oid foreigntableid)
 {
-	char		query[QUERY_LENGTH];
-	int			ret;
-	bool		isnull;
-	Oid			oid = 0;
-
-	/*
-	 * child table name is "ParentTableName_NodeName_sequenceNum". This SQL
-	 * search child tables which name is "ParentTableName_xxx".
-	 */
-	sprintf(query, "SELECT oid,srvname FROM pg_foreign_server WHERE srvname=(SELECT foreign_server_name FROM information_schema._pg_foreign_tables WHERE foreign_table_name = (SELECT relname FROM pg_class WHERE oid = %d)) ORDER BY srvname;", (int) foreigntableid);
-	ret = SPI_connect();
-	if (ret < 0)
-		elog(ERROR, "SPI connect failure - returned %d", ret);
-	ret = SPI_execute(query, true, 0);
-	if (ret != SPI_OK_SELECT)
-	{
-		SPI_finish();
-		elog(ERROR, "error SPIexecute failure -returned - %d", ret);
-	}
-	if (SPI_processed != 1)
-	{
-		SPI_finish();
-		elog(ERROR, "error SPIexecute can not find datasource");
-	}
-	oid = DatumGetObjectId(SPI_getbinval(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1, &isnull));
-	SPI_finish();
-	return oid;
+	ForeignTable	*ft = GetForeignTable(foreigntableid);
+	return ft->serverid;
 }
 
 /**
@@ -3056,7 +3030,7 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel,
 		if (rel_oid == 0)
 			continue;
 
-		oid_server = spd_spi_exec_datasource_oid(rel_oid);
+		oid_server = serverid_of_relation(rel_oid);
 		childinfo[i].fdwroutine = GetFdwRoutineByServerId(oid_server);
 
 		/*
@@ -7289,7 +7263,7 @@ spd_AddForeignUpdateTargets(Query *parsetree,
 	MemoryContextSwitchTo(oldcontext);
 	if (oid[0] != 0)
 	{
-		oid_server = spd_spi_exec_datasource_oid(oid[0]);
+		oid_server = serverid_of_relation(oid[0]);
 		fdwroutine = GetFdwRoutineByServerId(oid_server);
 		fdwroutine->AddForeignUpdateTargets(parsetree, target_rte, target_relation);
 	}
@@ -7339,7 +7313,7 @@ spd_PlanForeignModify(PlannerInfo *root,
 	MemoryContextSwitchTo(oldcontext);
 	if (oid[0] != 0)
 	{
-		oid_server = spd_spi_exec_datasource_oid(oid[0]);
+		oid_server = serverid_of_relation(oid[0]);
 		fdwroutine = GetFdwRoutineByServerId(oid_server);
 		child_list = fdwroutine->PlanForeignModify(root, plan, resultRelation, subplan_index);
 	}
