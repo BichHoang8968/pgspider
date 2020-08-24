@@ -123,6 +123,7 @@ PG_MODULE_MAGIC;
 #define MYSQL_FDW_NAME "mysql_fdw"
 #define FILE_FDW_NAME "file_fdw"
 #define AVRO_FDW_NAME "avro_fdw"
+#define POSTGRES_FDW_NAME "postgres_fdw"
 
 #define AGGTEMPTABLE "__spd__temptable"
 
@@ -438,6 +439,10 @@ static void spd_spi_ddl_table(char *query, SpdFdwPrivate *fdw_private);
 static bool throwErrorIfDead;
 static bool isPrintError;
 
+/* We need to make postgres_fdw_options variable initial one time */
+static bool isPostgresFdwInit = false;
+pthread_mutex_t postgres_fdw_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 /* We need lock file_fdw when AllocateFile */
 pthread_mutex_t file_fdw_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -451,6 +456,7 @@ extern void deparseStringLiteral(StringInfo buf, const char *val);
 extern bool is_foreign_expr2(PlannerInfo *root, RelOptInfo *baserel, Expr *expr);
 #define is_foreign_expr is_foreign_expr2
 extern bool is_having_safe(Node *node);
+extern bool is_sorted(Node *node);
 extern void spd_deparse_const(Const *node, StringInfo buf, int showtype);
 extern char *spd_deparse_type_name(Oid type_oid, int32 typemod);
 
@@ -1424,7 +1430,7 @@ extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_
 					TargetEntry *tarexpr;
 					TargetEntry *oparg = (TargetEntry *) tempVar->args->head->data.ptr_value;
 					Var		   *opvar = (Var *) oparg->expr;
-					OpExpr	   *opexpr = (OpExpr *) &oparg->xpr;
+					OpExpr	   *opexpr = (OpExpr *) makeNode(OpExpr);
 					OpExpr	   *opexpr2 = copyObject(opexpr);
 
 					opexpr->xpr.type = T_OpExpr;
@@ -1451,6 +1457,7 @@ extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_
 											next_resno_temp,
 											NULL,
 											false);
+					tarexpr->ressortgroupref = oparg->ressortgroupref;
 					opexpr2 = (OpExpr *) tarexpr->expr;
 					opexpr2->opretset = false;
 					opexpr2->opcollid = 0;
@@ -1971,6 +1978,14 @@ spd_ForeignScan_thread(void *arg)
 				fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
 														  fssthrdInfo->eflags);
 				SPD_UNLOCK_CATCH(&file_fdw_mutex);
+			} else if (strcmp(fssthrdInfo->fdw->fdwname, POSTGRES_FDW_NAME) == 0 && !isPostgresFdwInit)
+			{
+				/* We need to make postgres_fdw_options variable initial one time */
+				SPD_LOCK_TRY(&postgres_fdw_mutex);
+				fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
+														  fssthrdInfo->eflags);
+				isPostgresFdwInit = true;
+				SPD_UNLOCK_CATCH(&postgres_fdw_mutex);
 			}
 			else
 			{
@@ -2043,8 +2058,7 @@ RESCAN:
 		usleep(1);
 		if (fssthrdInfo->requestEndScan)
 		{
-			fssthrdInfo->state = SPD_FS_STATE_END;
-			goto THREAD_EXIT;
+			goto THREAD_END;
 		}
 		if (fssthrdInfo->requestRescan)
 		{
@@ -2061,7 +2075,18 @@ RESCAN:
 	if (list_member_oid(fdw_private->pPseudoAggList, fssthrdInfo->serverId))
 	{
 		SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex);
-		result = ExecInitNode((Plan *) fdw_private->childinfo[fssthrdInfo->childInfoIndex].pAgg, fssthrdInfo->fsstate->ss.ps.state, 0);
+		fssthrdInfo->fsstate->ss.ps.state->es_param_exec_vals = fssthrdInfo->fsstate->ss.ps.ps_ExprContext->ecxt_param_exec_vals;
+		if (strcmp(fssthrdInfo->fdw->fdwname, POSTGRES_FDW_NAME) == 0 && !isPostgresFdwInit)
+		{
+			/* We need to make postgres_fdw_options variable initial one time */
+			SPD_LOCK_TRY(&postgres_fdw_mutex);
+			result = ExecInitNode((Plan *) fdw_private->childinfo[fssthrdInfo->childInfoIndex].pAgg, fssthrdInfo->fsstate->ss.ps.state, 0);
+			isPostgresFdwInit = true;
+			SPD_UNLOCK_CATCH(&postgres_fdw_mutex);
+		} else
+		{
+			result = ExecInitNode((Plan *) fdw_private->childinfo[fssthrdInfo->childInfoIndex].pAgg, fssthrdInfo->fsstate->ss.ps.state, 0);
+		}
 		SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 	}
 	PG_TRY();
@@ -2234,6 +2259,7 @@ RESCAN:
 	if (fssthrdInfo->state == SPD_FS_STATE_ERROR)
 		goto THREAD_EXIT;
 
+THREAD_END:
 	PG_TRY();
 	{
 		while (1)
@@ -3186,7 +3212,7 @@ spd_makedivtlist(Aggref *aggref, List *newList, SpdFdwPrivate * fdw_private)
 		TargetEntry *tarexpr;
 		TargetEntry *oparg = (TargetEntry *) tempVar->args->head->data.ptr_value;
 		Var		   *opvar = (Var *) oparg->expr;
-		OpExpr	   *opexpr = (OpExpr *) &oparg->xpr;
+		OpExpr	   *opexpr = (OpExpr *) makeNode(OpExpr);
 		OpExpr	   *opexpr2 = copyObject(opexpr);
 
 		opexpr->xpr.type = T_OpExpr;
@@ -3214,6 +3240,7 @@ spd_makedivtlist(Aggref *aggref, List *newList, SpdFdwPrivate * fdw_private)
 								  listn,
 								  NULL,
 								  false);
+		tarexpr->ressortgroupref = oparg->ressortgroupref;
 		opexpr2 = (OpExpr *) tarexpr->expr;
 		opexpr2->opretset = false;
 		opexpr2->opcollid = 0;
@@ -3559,10 +3586,27 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				struct Path *tmp_path;
 				Query	   *query = root->parse;
 				AggClauseCosts dummy_aggcosts;
+				PathTarget *grouping_target = output_rel->reltarget;
+				AggStrategy aggStrategy = AGG_PLAIN;
 
 				MemSet(&dummy_aggcosts, 0, sizeof(AggClauseCosts));
 				tmp_path = entry->pathlist->head->data.ptr_value;
 
+				if (query->groupClause)
+				{
+					aggStrategy = AGG_HASHED;
+					foreach(lc, grouping_target->exprs)
+					{
+						Node * node = lfirst(lc);
+
+						/* If there is ORDER BY inside aggregate function, set AggStrategy to AGG_SORTED */
+						if (is_sorted(node))
+						{
+							aggStrategy = AGG_SORTED;
+							break;
+						}
+					}
+				}
 				/*
 				 * Pass dummy_aggcosts because create_agg_path requires
 				 * aggcosts in cases other than AGG_HASH
@@ -3571,7 +3615,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 																   dummy_output_rel,
 																   tmp_path,
 																   dummy_root_child->upper_targets[UPPERREL_GROUP_AGG],
-																   query->groupClause ? AGG_HASHED : AGG_PLAIN, AGGSPLIT_SIMPLE,
+																   aggStrategy, AGGSPLIT_SIMPLE,
 																   dummy_root_child->parse->groupClause, NULL, &dummy_aggcosts,
 																   1);
 
@@ -3844,7 +3888,6 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 						int			before_listnum = list_length(compress_child_tlist);
 
 						tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, sgref, &upper_targets, false, false);
-						i += list_length(compress_child_tlist) - before_listnum;
 						groupby_cursor += list_length(compress_child_tlist) - before_listnum;
 					}
 				}
@@ -3887,22 +3930,20 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 									  grouped_rel->relids,
 									  NULL,
 									  NULL);
-			if (is_foreign_expr(root, grouped_rel, expr))
-			{
-				fpinfo->rinfo.remote_conds = lappend(fpinfo->rinfo.remote_conds, rinfo);
+			if (!is_foreign_expr(root, grouped_rel, expr))
+				return false;
 
-				/* Check qualifications whether can be passed to child nodes. */
-				if(is_having_safe((Node *) rinfo->clause))
-					fpinfo->having_quals = lappend(fpinfo->having_quals, rinfo->clause);
-			}
-			else
-				fpinfo->rinfo.local_conds = lappend(fpinfo->rinfo.local_conds, rinfo);
+			fpinfo->rinfo.remote_conds = lappend(fpinfo->rinfo.remote_conds, rinfo);
+
+			/* Check qualifications whether can be passed to child nodes. */
+			if(is_having_safe((Node *) rinfo->clause))
+				fpinfo->having_quals = lappend(fpinfo->having_quals, rinfo->clause);
 
 			/*
 			 * Filter operation for HAVING clause will be executed by SELECT query
 			 * for temptable with full root HAVING query.
 			 *
-			 * * Extract qualification to mapping list.
+			 * Extract qualification to mapping list.
 			 */
 			tlist = spd_add_to_flat_tlist(tlist,  rinfo->clause, &mapping_tlist,
 											&compress_child_tlist, 0, &upper_targets, false, true);
@@ -4224,6 +4265,68 @@ spd_checkurl_clauses(List *scan_clauses, PlannerInfo *root, List *baserestrictin
 	*push_scan_clauses = baserestrictinfo;
 }
 
+static Sort *
+spd_make_sort(Plan *lefttree, int numCols,
+		  AttrNumber *sortColIdx, Oid *sortOperators,
+		  Oid *collations, bool *nullsFirst)
+{
+	Sort	   *node = makeNode(Sort);
+	Plan	   *plan = &node->plan;
+
+	plan->targetlist = lefttree->targetlist;
+	plan->qual = NIL;
+	plan->lefttree = lefttree;
+	plan->righttree = NULL;
+	node->numCols = numCols;
+	node->sortColIdx = sortColIdx;
+	node->sortOperators = sortOperators;
+	node->collations = collations;
+	node->nullsFirst = nullsFirst;
+
+	return node;
+}
+
+static Sort *
+spd_make_sort_from_groupcols(List *groupcls,
+						 AttrNumber *grpColIdx,
+						 Plan *lefttree)
+{
+	List	   *sub_tlist = lefttree->targetlist;
+	ListCell   *l;
+	int			numsortkeys;
+	AttrNumber *sortColIdx;
+	Oid		   *sortOperators;
+	Oid		   *collations;
+	bool	   *nullsFirst;
+
+	/* Convert list-ish representation to arrays wanted by executor */
+	numsortkeys = list_length(groupcls);
+	sortColIdx = (AttrNumber *) palloc(numsortkeys * sizeof(AttrNumber));
+	sortOperators = (Oid *) palloc(numsortkeys * sizeof(Oid));
+	collations = (Oid *) palloc(numsortkeys * sizeof(Oid));
+	nullsFirst = (bool *) palloc(numsortkeys * sizeof(bool));
+
+	numsortkeys = 0;
+	foreach(l, groupcls)
+	{
+		SortGroupClause *grpcl = (SortGroupClause *) lfirst(l);
+		TargetEntry *tle = get_tle_by_resno(sub_tlist, grpColIdx[numsortkeys]);
+
+		if (!tle)
+			elog(ERROR, "could not retrieve tle for sort-from-groupcols");
+
+		sortColIdx[numsortkeys] = tle->resno;
+		sortOperators[numsortkeys] = grpcl->sortop;
+		collations[numsortkeys] = exprCollation((Node *) tle->expr);
+		nullsFirst[numsortkeys] = grpcl->nulls_first;
+		numsortkeys++;
+	}
+
+	return spd_make_sort(lefttree, numsortkeys,
+					 sortColIdx, sortOperators,
+					 collations, nullsFirst);
+}
+
 /**
  * spd_GetForeignPlan
  *
@@ -4414,6 +4517,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			List	   *child_tlist;
 			ListCell   *lc;
 			int			idx = 0;
+			Plan	   *sort_plan = NULL;
 
 			/*
 			 * If groupby has spdurl, spdurl will be removed from the target
@@ -4438,6 +4542,18 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			 * Create aggregation plan with foreign table scan.
 			 * extract_grouping_cols() requires targetlist of subplan.
 			 */
+			if (childinfo[i].aggpath->aggstrategy == AGG_SORTED)
+			{
+				AttrNumber *new_grpColIdx;
+
+				new_grpColIdx = extract_grouping_cols(childinfo[i].aggpath->groupClause,
+															   fsplan->scan.plan.targetlist);
+
+				sort_plan = (Plan *)
+					spd_make_sort_from_groupcols(childinfo[i].aggpath->groupClause,
+											 new_grpColIdx,
+											 (Plan *) fsplan);
+			}
 			childinfo[i].pAgg = make_agg(child_tlist,
 										 NULL,
 										 childinfo[i].aggpath->aggstrategy,
@@ -4451,7 +4567,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 										 root->parse->groupingSets,
 										 NIL,
 										 childinfo[i].aggpath->path.rows,
-										 (Plan *) fsplan);
+										 sort_plan!=NULL?sort_plan:(Plan *) fsplan);
 
 		}
 		childinfo[i].plan = (Plan *) fsplan;
@@ -4467,28 +4583,30 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		scan_relid = 0;
 	}
 
-	/* For simple rel, calculate which condition should be filtered in core */
+	/* Calculate which condition should be filtered in core: when baserel is simple rel or when there is pseudoconstant (Example: WHERE false) */
+	scan_clauses = NIL;
+	if (fdw_private->baserestrictinfo )
+	{
+		/*
+		 * In this case, PGSpider should filter baserestrictinfo because
+		 * these are not passed to child fdw because of __spd_url
+		 */
+		foreach(lc, fdw_private->baserestrictinfo)
+		{
+			RestrictInfo *ri = lfirst_node(RestrictInfo, lc);
+
+			/* When there is pseudoconstant, need to filter in core (Example: WHERE false) */
+			if ((IS_SIMPLE_REL(baserel) && !push_scan_clauses) || ri->pseudoconstant)
+				scan_clauses = lappend(scan_clauses, ri->clause);
+		}
+	}
+
+	/*
+	 * We collect local conditions each fdw did not push down to make
+	 * postgresql core execute that filter
+	 */
 	if (IS_SIMPLE_REL(baserel))
 	{
-		scan_clauses = NIL;
-		if (fdw_private->baserestrictinfo && !push_scan_clauses)
-		{
-			/*
-			 * In this case, PGSpider should filter baserestrictinfo because
-			 * these are not passed to child fdw because of __spd_url
-			 */
-			foreach(lc, fdw_private->baserestrictinfo)
-			{
-				RestrictInfo *ri = lfirst_node(RestrictInfo, lc);
-
-				scan_clauses = lappend(scan_clauses, ri->clause);
-			}
-		}
-
-		/*
-		 * We collect local conditions each fdw did not push down to make
-		 * postgresql core execute that filter
-		 */
 		for (i = 0; i < fdw_private->node_num; i++)
 		{
 			if (!childinfo[i].plan)
@@ -4834,7 +4952,17 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		 * If query has parameter, sub-plan needs to be initialized, so it needs to wait the core engine
 		 * initializes the sub-plan.
 		 */
-		fssThrdInfo[node_incr].requestStartScan = (list_length(fsplan->fdw_exprs) == 0);
+		if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
+		{
+			/* Not push down aggregate to child fdw */
+			fssThrdInfo[node_incr].requestStartScan = (node->ss.ps.state->es_subplanstates == NIL);
+		}
+		else
+		{
+			/* Push down case */
+			fssThrdInfo[node_incr].requestStartScan = (fsplan->fdw_exprs == NIL);
+		}
+
 		/* We save correspondence between fssThrdInfo and childinfo */
 		fssThrdInfo[node_incr].childInfoIndex = i;
 		childinfo[i].index_threadinfo = node_incr;
@@ -5058,7 +5186,6 @@ spd_spi_ddl_table(char *query, SpdFdwPrivate *fdw_private)
 	SPI_finish();
 	SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 }
-
 /**
  * spd_spi_insert_table
  *
@@ -5081,10 +5208,9 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 	StringInfo	debugValues = makeStringInfo();
 
 	/* For execute query */
-	int nargs = MAX_SPLIT_NUM * list_length(fdw_private->mapping_tlist);
-	Oid* argtypes = palloc0(nargs * sizeof(Oid));
-	Datum* values = palloc0(nargs * sizeof(Datum));
-	char* nulls = palloc0(nargs * sizeof(char));
+	Oid* argtypes = palloc0(sizeof(Oid));
+	Datum* values = palloc0(sizeof(Datum));
+	char* nulls = palloc0(sizeof(char));
 
 	SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex);
 	ret = SPI_connect();
@@ -5115,6 +5241,13 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 				if (colid != mapcels->mapping[i])
 					continue;
 
+				/* Realloc memory when there are more than 1 column */
+				if (colid > 0)
+				{
+					argtypes = repalloc(argtypes, (colid + 1) * sizeof(Oid));
+					values = repalloc(values, (colid + 1) * sizeof(Datum));
+					nulls = repalloc(nulls, (colid + 1) * sizeof(char));
+				}
 				if (isfirst)
 					isfirst = false;
 				else
@@ -5302,7 +5435,7 @@ emit_context_error(void* context)
 	if (strcmp(err->message, "cannot take square root of a negative number") == 0)
 		elog(ERROR, "%s", "Can not return value because of rounding problem from child node");
 	else
-		elog(ERROR, "%s", err->message);
+		elog(err->elevel, "%s", err->message);
 }
 
 /**
@@ -5378,7 +5511,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql)
 			Datum				datum;
 			Form_pg_attribute	attr = TupleDescAttr(SPI_tuptable->tupdesc, colid);
 			bool				isnull = false;
-			
+
 			if (extcells->is_having_qual)
 				continue;
 
@@ -5611,8 +5744,10 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 		}
 		case T_Aggref:
 		{
-			ListCell *extlc;
-			int id = 0;
+			ListCell	*extlc;
+			int			id = 0;
+			Aggref *	aggref = (Aggref *) node;
+			bool		has_Order_by = aggref->aggorder?true:false;
 
 			foreach(extlc, extcells->cells)
 			{
@@ -5630,21 +5765,32 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 					case AVG_FLAG:
 					{
 						/* Use CASE WHEN to avoid division by zero error */
-						appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 THEN NULL ELSE (SUM(col%d)/SUM(col%d))::float8 END)", cell->mapping[0], cell->mapping[1], cell->mapping[0]);
+						if (has_Order_by)
+							appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 THEN NULL ELSE (SUM(col%d ORDER BY col%d)/SUM(col%d))::float8 END)", cell->mapping[0], cell->mapping[1], cell->mapping[1], cell->mapping[0]);
+						else
+							appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 THEN NULL ELSE (SUM(col%d)/SUM(col%d))::float8 END)", cell->mapping[0], cell->mapping[1], cell->mapping[0]);
 						break;
 					}
 					case VAR_FLAG:
 					{
 						/* Use CASE WHEN to avoid division by zero error */
-						appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 OR SUM(col%d) = 1 THEN NULL ELSE ((SUM(col%d) - POWER(SUM(col%d), 2)/SUM(col%d))/(SUM(col%d) - 1))::float8 END)", 
-								cell->mapping[0], cell->mapping[0], cell->mapping[2], cell->mapping[1], cell->mapping[0], cell->mapping[0]);
+						if (has_Order_by)
+							appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 OR SUM(col%d) = 1 THEN NULL ELSE ((SUM(col%d ORDER BY col%d) - POWER(SUM(col%d ORDER BY col%d), 2)/SUM(col%d))/(SUM(col%d) - 1))::float8 END)", 
+									cell->mapping[0], cell->mapping[0], cell->mapping[2], cell->mapping[2], cell->mapping[1], cell->mapping[1], cell->mapping[0], cell->mapping[0]);
+						else
+							appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 OR SUM(col%d) = 1 THEN NULL ELSE ((SUM(col%d) - POWER(SUM(col%d), 2)/SUM(col%d))/(SUM(col%d) - 1))::float8 END)", 
+									cell->mapping[0], cell->mapping[0], cell->mapping[2], cell->mapping[1], cell->mapping[0], cell->mapping[0]);
 						break;
 					}
 					case DEV_FLAG:
 					{
 						/* Use CASE WHEN to avoid division by zero error */
-						appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 OR SUM(col%d) = 1 THEN NULL ELSE (sqrt((SUM(col%d) - POWER(SUM(col%d), 2)/SUM(col%d))/(SUM(col%d) - 1)))::float8 END)", 
-								cell->mapping[0], cell->mapping[0], cell->mapping[2], cell->mapping[1], cell->mapping[0], cell->mapping[0]);
+						if (has_Order_by)
+							appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 OR SUM(col%d) = 1 THEN NULL ELSE (sqrt((SUM(col%d ORDER BY col%d) - POWER(SUM(col%d ORDER BY col%d), 2)/SUM(col%d))/(SUM(col%d) - 1)))::float8 END)", 
+								cell->mapping[0], cell->mapping[0], cell->mapping[2], cell->mapping[2], cell->mapping[1], cell->mapping[1], cell->mapping[0], cell->mapping[0]);
+						else
+							appendStringInfo(buf, "(CASE WHEN SUM(col%d) = 0 OR SUM(col%d) = 1 THEN NULL ELSE (sqrt((SUM(col%d) - POWER(SUM(col%d), 2)/SUM(col%d))/(SUM(col%d) - 1)))::float8 END)", 
+									cell->mapping[0], cell->mapping[0], cell->mapping[2], cell->mapping[1], cell->mapping[0], cell->mapping[0]);
 						break;
 					}
 					default:
@@ -5655,7 +5801,10 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 
 						/* If original aggregate function is count, change to sum to count all data from multiple nodes */
 						if (!pg_strcasecmp(agg_command, "SUM") || !pg_strcasecmp(agg_command, "COUNT"))
-							appendStringInfo(buf, "SUM(col%d)", mapping);
+							if (has_Order_by)
+								appendStringInfo(buf, "SUM(col%d ORDER BY col%d)", mapping, mapping);
+							else
+								appendStringInfo(buf, "SUM(col%d)", mapping);
 						else if (!pg_strcasecmp(agg_command, "MAX") || !pg_strcasecmp(agg_command, "MIN") ||
 								!pg_strcasecmp(agg_command, "BIT_OR") || !pg_strcasecmp(agg_command, "BIT_AND") ||
 								!pg_strcasecmp(agg_command, "BOOL_AND") || !pg_strcasecmp(agg_command, "BOOL_OR") ||
@@ -5694,29 +5843,37 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 		}
 		case T_FuncExpr:
 		{
-			FuncExpr	*func = (FuncExpr *) node;
-			Oid			rettype = func->funcresulttype;
-			int32		coercedTypmod;
+			FuncExpr		*func = (FuncExpr *) node;
+			Oid				rettype = func->funcresulttype;
+			int32			coercedTypmod;
+			HeapTuple		proctup;
+			Form_pg_proc	procform;
 
 			/* To handle case user cast data type using "::" */
 			if (func->funcformat == COERCE_EXPLICIT_CAST)
 				appendStringInfoChar(buf, '(');
 
+			/* Get function name */
+			proctup = SearchSysCache1(PROCOID, ObjectIdGetDatum(func->funcid));
+			if (!HeapTupleIsValid(proctup))
+				elog(ERROR, "cache lookup failed for function %u", func->funcid);
+			procform = (Form_pg_proc) GETSTRUCT(proctup);
+
 			if(func->args)
+			{
+				/* Append function name when function is called directly */
+				if (func->funcformat == COERCE_EXPLICIT_CALL)
+					appendStringInfo(buf, "%s(", NameStr(procform->proname));
+
 				rebuild_target_expr((Node *)func->args, buf, extcells, cellid, groupby_target, isfirst);
+
+				if (func->funcformat == COERCE_EXPLICIT_CALL)
+					appendStringInfoChar(buf, ')');
+			}
 			else
 			{
 				/* When there is no arguments, only need to append function name and "()" */
-				HeapTuple		proctup;
-				Form_pg_proc	procform;
-
-				proctup = SearchSysCache1(PROCOID, ObjectIdGetDatum(func->funcid));
-				if (!HeapTupleIsValid(proctup))
-					elog(ERROR, "cache lookup failed for function %u", func->funcid);
-				procform = (Form_pg_proc) GETSTRUCT(proctup);
-
 				appendStringInfo(buf, "%s()", NameStr(procform->proname));
-				ReleaseSysCache(proctup);
 			}
 
 			/* To handle case user cast data type using "::" */
@@ -5729,6 +5886,7 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 						 spd_deparse_type_name(rettype, coercedTypmod));
 			}
 
+			ReleaseSysCache(proctup);
 			break;
 		}
 		case T_List:

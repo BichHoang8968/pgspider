@@ -203,7 +203,7 @@ static void get_relation_column_alias_ids(Var *node, RelOptInfo *foreignrel,
  *	- local_conds contains expressions that can't be evaluated remotely
  */
 void
-classifyConditions(PlannerInfo *root,
+PGSpiderClassifyConditions(PlannerInfo *root,
 				   RelOptInfo *baserel,
 				   List *input_conds,
 				   List **remote_conds,
@@ -218,7 +218,7 @@ classifyConditions(PlannerInfo *root,
 	{
 		RestrictInfo *ri = lfirst_node(RestrictInfo, lc);
 
-		if (is_foreign_expr(root, baserel, ri->clause))
+		if (pgspider_is_foreign_expr(root, baserel, ri->clause))
 			*remote_conds = lappend(*remote_conds, ri);
 		else
 			*local_conds = lappend(*local_conds, ri);
@@ -229,13 +229,13 @@ classifyConditions(PlannerInfo *root,
  * Returns true if given expr is safe to evaluate on the foreign server.
  */
 bool
-is_foreign_expr(PlannerInfo *root,
+pgspider_is_foreign_expr(PlannerInfo *root,
 				RelOptInfo *baserel,
 				Expr *expr)
 {
 	foreign_glob_cxt glob_cxt;
 	foreign_loc_cxt loc_cxt;
-	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) (baserel->fdw_private);
+	PGSpiderFdwRelationInfo *fpinfo = (PGSpiderFdwRelationInfo *) (baserel->fdw_private);
 
 	/*
 	 * Check that the expression consists of nodes that are safe to execute
@@ -298,7 +298,7 @@ foreign_expr_walker(Node *node,
 					foreign_loc_cxt *outer_cxt)
 {
 	bool		check_type = true;
-	PgFdwRelationInfo *fpinfo;
+	PGSpiderFdwRelationInfo *fpinfo;
 	foreign_loc_cxt inner_cxt;
 	Oid			collation;
 	FDWCollateState state;
@@ -308,7 +308,7 @@ foreign_expr_walker(Node *node,
 		return true;
 
 	/* May need server info from baserel's fdw_private struct */
-	fpinfo = (PgFdwRelationInfo *) (glob_cxt->foreignrel->fdw_private);
+	fpinfo = (PGSpiderFdwRelationInfo *) (glob_cxt->foreignrel->fdw_private);
 
 	/* Set up inner_cxt for possible recursion to child nodes */
 	inner_cxt.collation = InvalidOid;
@@ -451,7 +451,7 @@ foreign_expr_walker(Node *node,
 				 * can't be sent to remote because it might have incompatible
 				 * semantics on remote side.
 				 */
-				if (!is_shippable(fe->funcid, ProcedureRelationId, fpinfo))
+				if (!pgspider_is_shippable(fe->funcid, ProcedureRelationId, fpinfo))
 					return false;
 
 				/*
@@ -499,7 +499,7 @@ foreign_expr_walker(Node *node,
 				 * (If the operator is shippable, we assume its underlying
 				 * function is too.)
 				 */
-				if (!is_shippable(oe->opno, OperatorRelationId, fpinfo))
+				if (!pgspider_is_shippable(oe->opno, OperatorRelationId, fpinfo))
 					return false;
 
 				/*
@@ -539,7 +539,7 @@ foreign_expr_walker(Node *node,
 				/*
 				 * Again, only shippable operators can be sent to remote.
 				 */
-				if (!is_shippable(oe->opno, OperatorRelationId, fpinfo))
+				if (!pgspider_is_shippable(oe->opno, OperatorRelationId, fpinfo))
 					return false;
 
 				/*
@@ -690,7 +690,7 @@ foreign_expr_walker(Node *node,
 					return false;
 
 				/* As usual, it must be shippable. */
-				if (!is_shippable(agg->aggfnoid, ProcedureRelationId, fpinfo))
+				if (!pgspider_is_shippable(agg->aggfnoid, ProcedureRelationId, fpinfo))
 					return false;
 
 				/*
@@ -737,7 +737,7 @@ foreign_expr_walker(Node *node,
 						/* Check shippability of non-default sort operator. */
 						if (srt->sortop != typentry->lt_opr &&
 							srt->sortop != typentry->gt_opr &&
-							!is_shippable(srt->sortop, OperatorRelationId,
+							!pgspider_is_shippable(srt->sortop, OperatorRelationId,
 										  fpinfo))
 							return false;
 					}
@@ -789,7 +789,7 @@ foreign_expr_walker(Node *node,
 	 * If result type of given expression is not shippable, it can't be sent
 	 * to remote because it might have incompatible semantics on remote side.
 	 */
-	if (check_type && !is_shippable(exprType(node), TypeRelationId, fpinfo))
+	if (check_type && !pgspider_is_shippable(exprType(node), TypeRelationId, fpinfo))
 		return false;
 
 	/*
@@ -854,7 +854,7 @@ foreign_expr_walker(Node *node,
  * expression into).
  */
 bool
-is_foreign_param(PlannerInfo *root,
+pgspider_is_foreign_param(PlannerInfo *root,
 				 RelOptInfo *baserel,
 				 Expr *expr)
 {
@@ -867,7 +867,7 @@ is_foreign_param(PlannerInfo *root,
 			{
 				/* It would have to be sent unless it's a foreign Var */
 				Var		   *var = (Var *) expr;
-				PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) (baserel->fdw_private);
+				PGSpiderFdwRelationInfo *fpinfo = (PGSpiderFdwRelationInfo *) (baserel->fdw_private);
 				Relids		relids;
 
 				if (IS_UPPER_REL(baserel))
@@ -906,7 +906,7 @@ deparse_type_name(Oid type_oid, int32 typemod)
 {
 	bits16		flags = FORMAT_TYPE_TYPEMOD_GIVEN;
 
-	if (!is_builtin(type_oid))
+	if (!pgspider_is_builtin(type_oid))
 		flags |= FORMAT_TYPE_FORCE_QUALIFY;
 
 	return format_type_extended(type_oid, typemod, flags);
@@ -921,10 +921,10 @@ deparse_type_name(Oid type_oid, int32 typemod)
  * foreign server.
  */
 List *
-build_tlist_to_deparse(RelOptInfo *foreignrel)
+pgspider_build_tlist_to_deparse(RelOptInfo *foreignrel)
 {
 	List	   *tlist = NIL;
-	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) foreignrel->fdw_private;
+	PGSpiderFdwRelationInfo *fpinfo = (PGSpiderFdwRelationInfo *) foreignrel->fdw_private;
 	ListCell   *lc;
 
 	/*
@@ -978,13 +978,13 @@ build_tlist_to_deparse(RelOptInfo *foreignrel)
  * List of columns selected is returned in retrieved_attrs.
  */
 void
-deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
+PGSpiderDeparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
 						List *tlist, List *remote_conds, List *pathkeys,
 						bool has_final_sort, bool has_limit, bool is_subquery,
 						List **retrieved_attrs, List **params_list)
 {
 	deparse_expr_cxt context;
-	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) rel->fdw_private;
+	PGSpiderFdwRelationInfo *fpinfo = (PGSpiderFdwRelationInfo *) rel->fdw_private;
 	List	   *quals;
 
 	/*
@@ -1010,9 +1010,9 @@ deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
 	 */
 	if (IS_UPPER_REL(rel))
 	{
-		PgFdwRelationInfo *ofpinfo;
+		PGSpiderFdwRelationInfo *ofpinfo;
 
-		ofpinfo = (PgFdwRelationInfo *) fpinfo->outerrel->fdw_private;
+		ofpinfo = (PGSpiderFdwRelationInfo *) fpinfo->outerrel->fdw_private;
 		quals = ofpinfo->remote_conds;
 	}
 	else
@@ -1057,7 +1057,7 @@ deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
  *
  * tlist is the list of desired columns.  is_subquery is the flag to
  * indicate whether to deparse the specified relation as a subquery.
- * Read prologue of deparseSelectStmtForRel() for details.
+ * Read prologue of PGSpiderDeparseSelectStmtForRel() for details.
  */
 static void
 deparseSelectSql(List *tlist, bool is_subquery, List **retrieved_attrs,
@@ -1066,7 +1066,7 @@ deparseSelectSql(List *tlist, bool is_subquery, List **retrieved_attrs,
 	StringInfo	buf = context->buf;
 	RelOptInfo *foreignrel = context->foreignrel;
 	PlannerInfo *root = context->root;
-	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) foreignrel->fdw_private;
+	PGSpiderFdwRelationInfo *fpinfo = (PGSpiderFdwRelationInfo *) foreignrel->fdw_private;
 
 	/*
 	 * Construct SELECT list
@@ -1233,7 +1233,7 @@ deparseLockingClause(deparse_expr_cxt *context)
 	StringInfo	buf = context->buf;
 	PlannerInfo *root = context->root;
 	RelOptInfo *rel = context->scanrel;
-	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) rel->fdw_private;
+	PGSpiderFdwRelationInfo *fpinfo = (PGSpiderFdwRelationInfo *) rel->fdw_private;
 	int			relid = -1;
 
 	while ((relid = bms_next_member(rel->relids, relid)) >= 0)
@@ -1326,7 +1326,7 @@ appendConditions(List *exprs, deparse_expr_cxt *context)
 	StringInfo	buf = context->buf;
 
 	/* Make sure any constants in the exprs are printed portably */
-	nestlevel = set_transmission_modes();
+	nestlevel = pgspider_set_transmission_modes();
 
 	foreach(lc, exprs)
 	{
@@ -1347,12 +1347,12 @@ appendConditions(List *exprs, deparse_expr_cxt *context)
 		is_first = false;
 	}
 
-	reset_transmission_modes(nestlevel);
+	pgspider_reset_transmission_modes(nestlevel);
 }
 
 /* Output join name for given join type */
 const char *
-get_jointype_name(JoinType jointype)
+pgspider_get_jointype_name(JoinType jointype)
 {
 	switch (jointype)
 	{
@@ -1494,7 +1494,7 @@ deparseFromExprForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *foreignrel,
 					  bool use_alias, Index ignore_rel, List **ignore_conds,
 					  List **params_list)
 {
-	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) foreignrel->fdw_private;
+	PGSpiderFdwRelationInfo *fpinfo = (PGSpiderFdwRelationInfo *) foreignrel->fdw_private;
 	RangeTblEntry *r_entry = (RangeTblEntry *) list_nth(root->parse->rtable, 0);
 
 	if (IS_JOIN_REL(foreignrel))
@@ -1591,7 +1591,7 @@ deparseFromExprForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *foreignrel,
 		 * ((outer relation) <join type> (inner relation) ON (joinclauses))
 		 */
 		appendStringInfo(buf, "(%s %s JOIN %s ON ", join_sql_o.data,
-						 get_jointype_name(fpinfo->jointype), join_sql_i.data);
+						 pgspider_get_jointype_name(fpinfo->jointype), join_sql_i.data);
 
 		/* Append join clause; (TRUE) if no join clause */
 		if (fpinfo->joinclauses)
@@ -1648,7 +1648,7 @@ deparseRangeTblRef(StringInfo buf, PlannerInfo *root, RelOptInfo *foreignrel,
 				   bool make_subquery, Index ignore_rel, List **ignore_conds,
 				   List **params_list)
 {
-	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) foreignrel->fdw_private;
+	PGSpiderFdwRelationInfo *fpinfo = (PGSpiderFdwRelationInfo *) foreignrel->fdw_private;
 
 	/* Should only be called in these cases. */
 	Assert(IS_SIMPLE_REL(foreignrel) || IS_JOIN_REL(foreignrel));
@@ -1671,7 +1671,7 @@ deparseRangeTblRef(StringInfo buf, PlannerInfo *root, RelOptInfo *foreignrel,
 
 		/* Deparse the subquery representing the relation. */
 		appendStringInfoChar(buf, '(');
-		deparseSelectStmtForRel(buf, root, foreignrel, NIL,
+		PGSpiderDeparseSelectStmtForRel(buf, root, foreignrel, NIL,
 								fpinfo->remote_conds, NIL,
 								false, false, true,
 								&retrieved_attrs, params_list);
@@ -1715,7 +1715,7 @@ deparseRangeTblRef(StringInfo buf, PlannerInfo *root, RelOptInfo *foreignrel,
  * which is returned to *retrieved_attrs.
  */
 void
-deparseInsertSql(StringInfo buf, RangeTblEntry *rte,
+PGSpiderDeparseInsertSql(StringInfo buf, RangeTblEntry *rte,
 				 Index rtindex, Relation rel,
 				 List *targetAttrs, bool doNothing,
 				 List *withCheckOptionList, List *returningList,
@@ -1779,7 +1779,7 @@ deparseInsertSql(StringInfo buf, RangeTblEntry *rte,
  * which is returned to *retrieved_attrs.
  */
 void
-deparseUpdateSql(StringInfo buf, RangeTblEntry *rte,
+PGSpiderDeparseUpdateSql(StringInfo buf, RangeTblEntry *rte,
 				 Index rtindex, Relation rel,
 				 List *targetAttrs,
 				 List *withCheckOptionList, List *returningList,
@@ -1831,7 +1831,7 @@ deparseUpdateSql(StringInfo buf, RangeTblEntry *rte,
  *		by RETURNING (if any)
  */
 void
-deparseDirectUpdateSql(StringInfo buf, PlannerInfo *root,
+PGSpiderDeparseDirectUpdateSql(StringInfo buf, PlannerInfo *root,
 					   Index rtindex, Relation rel,
 					   RelOptInfo *foreignrel,
 					   List *targetlist,
@@ -1861,7 +1861,7 @@ deparseDirectUpdateSql(StringInfo buf, PlannerInfo *root,
 	appendStringInfoString(buf, " SET ");
 
 	/* Make sure any constants in the exprs are printed portably */
-	nestlevel = set_transmission_modes();
+	nestlevel = pgspider_set_transmission_modes();
 
 	first = true;
 	foreach(lc, targetAttrs)
@@ -1882,7 +1882,7 @@ deparseDirectUpdateSql(StringInfo buf, PlannerInfo *root,
 		deparseExpr((Expr *) tle->expr, &context);
 	}
 
-	reset_transmission_modes(nestlevel);
+	pgspider_reset_transmission_modes(nestlevel);
 
 	if (foreignrel->reloptkind == RELOPT_JOINREL)
 	{
@@ -1916,7 +1916,7 @@ deparseDirectUpdateSql(StringInfo buf, PlannerInfo *root,
  * to *retrieved_attrs.
  */
 void
-deparseDeleteSql(StringInfo buf, RangeTblEntry *rte,
+PGSpiderDeparseDeleteSql(StringInfo buf, RangeTblEntry *rte,
 				 Index rtindex, Relation rel,
 				 List *returningList,
 				 List **retrieved_attrs)
@@ -1945,7 +1945,7 @@ deparseDeleteSql(StringInfo buf, RangeTblEntry *rte,
  *		by RETURNING (if any)
  */
 void
-deparseDirectDeleteSql(StringInfo buf, PlannerInfo *root,
+PGSpiderDeparseDirectDeleteSql(StringInfo buf, PlannerInfo *root,
 					   Index rtindex, Relation rel,
 					   RelOptInfo *foreignrel,
 					   List *remote_conds,
@@ -2053,7 +2053,7 @@ deparseReturningList(StringInfo buf, RangeTblEntry *rte,
  * Note: pg_relation_size() exists in 8.1 and later.
  */
 void
-deparseAnalyzeSizeSql(StringInfo buf, Relation rel)
+PGSpiderDeparseAnalyzeSizeSql(StringInfo buf, Relation rel)
 {
 	StringInfoData relname;
 
@@ -2062,7 +2062,7 @@ deparseAnalyzeSizeSql(StringInfo buf, Relation rel)
 	deparseRelation(&relname, rel);
 
 	appendStringInfoString(buf, "SELECT pg_catalog.pg_relation_size(");
-	deparseStringLiteral(buf, relname.data);
+	PGSpiderDeparseStringLiteral(buf, relname.data);
 	appendStringInfo(buf, "::pg_catalog.regclass) / %d", BLCKSZ);
 }
 
@@ -2073,7 +2073,7 @@ deparseAnalyzeSizeSql(StringInfo buf, Relation rel)
  * is returned to *retrieved_attrs.
  */
 void
-deparseAnalyzeSql(StringInfo buf, Relation rel, List **retrieved_attrs)
+PGSpiderDeparseAnalyzeSql(StringInfo buf, Relation rel, List **retrieved_attrs)
 {
 	Oid			relid = RelationGetRelid(rel);
 	TupleDesc	tupdesc = RelationGetDescr(rel);
@@ -2302,7 +2302,7 @@ deparseRelation(StringInfo buf, Relation rel)
  * Append a SQL string literal representing "val" to buf.
  */
 void
-deparseStringLiteral(StringInfo buf, const char *val)
+PGSpiderDeparseStringLiteral(StringInfo buf, const char *val)
 {
 	const char *valptr;
 
@@ -2526,7 +2526,7 @@ deparseConst(Const *node, deparse_expr_cxt *context, int showtype)
 				appendStringInfoString(buf, "false");
 			break;
 		default:
-			deparseStringLiteral(buf, extval);
+			PGSpiderDeparseStringLiteral(buf, extval);
 			break;
 	}
 
@@ -3202,7 +3202,7 @@ appendOrderByClause(List *pathkeys, bool has_final_sort,
 	StringInfo	buf = context->buf;
 
 	/* Make sure any constants in the exprs are printed portably */
-	nestlevel = set_transmission_modes();
+	nestlevel = pgspider_set_transmission_modes();
 
 	appendStringInfoString(buf, " ORDER BY");
 	foreach(lcell, pathkeys)
@@ -3216,12 +3216,12 @@ appendOrderByClause(List *pathkeys, bool has_final_sort,
 			 * By construction, context->foreignrel is the input relation to
 			 * the final sort.
 			 */
-			em_expr = find_em_expr_for_input_target(context->root,
+			em_expr = pgspider_find_em_expr_for_input_target(context->root,
 													pathkey->pk_eclass,
 													context->foreignrel->reltarget);
 		}
 		else
-			em_expr = find_em_expr_for_rel(pathkey->pk_eclass, baserel);
+			em_expr = pgspider_find_em_expr_for_rel(pathkey->pk_eclass, baserel);
 
 		Assert(em_expr != NULL);
 
@@ -3239,7 +3239,7 @@ appendOrderByClause(List *pathkeys, bool has_final_sort,
 
 		delim = ", ";
 	}
-	reset_transmission_modes(nestlevel);
+	pgspider_reset_transmission_modes(nestlevel);
 }
 
 /*
@@ -3253,7 +3253,7 @@ appendLimitClause(deparse_expr_cxt *context)
 	int			nestlevel;
 
 	/* Make sure any constants in the exprs are printed portably */
-	nestlevel = set_transmission_modes();
+	nestlevel = pgspider_set_transmission_modes();
 
 	if (root->parse->limitCount)
 	{
@@ -3266,7 +3266,7 @@ appendLimitClause(deparse_expr_cxt *context)
 		deparseExpr((Expr *) root->parse->limitOffset, context);
 	}
 
-	reset_transmission_modes(nestlevel);
+	pgspider_reset_transmission_modes(nestlevel);
 }
 
 /*
@@ -3356,7 +3356,7 @@ deparseSortGroupClause(Index ref, List *tlist, bool force_colno,
 static bool
 is_subquery_var(Var *node, RelOptInfo *foreignrel, int *relno, int *colno)
 {
-	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) foreignrel->fdw_private;
+	PGSpiderFdwRelationInfo *fpinfo = (PGSpiderFdwRelationInfo *) foreignrel->fdw_private;
 	RelOptInfo *outerrel = fpinfo->outerrel;
 	RelOptInfo *innerrel = fpinfo->innerrel;
 
@@ -3419,7 +3419,7 @@ static void
 get_relation_column_alias_ids(Var *node, RelOptInfo *foreignrel,
 							  int *relno, int *colno)
 {
-	PgFdwRelationInfo *fpinfo = (PgFdwRelationInfo *) foreignrel->fdw_private;
+	PGSpiderFdwRelationInfo *fpinfo = (PGSpiderFdwRelationInfo *) foreignrel->fdw_private;
 	int			i;
 	ListCell   *lc;
 

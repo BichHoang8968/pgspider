@@ -34,6 +34,9 @@ typedef struct PgFdwOption
 	bool		is_libpq_opt;	/* true if it's used in libpq */
 } PgFdwOption;
 
+/* We need to make pgspider_fdw_options variable initial one time */
+pthread_mutex_t pgspider_fdw_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 /*
  * Valid options for pgspider_fdw.
  * Allocated and filled in InitPgFdwOptions.
@@ -70,7 +73,9 @@ pgspider_fdw_validator(PG_FUNCTION_ARGS)
 	ListCell   *cell;
 
 	/* Build our options lists if we didn't yet. */
+	SPD_LOCK_TRY(&pgspider_fdw_mutex);
 	InitPgFdwOptions();
+	SPD_UNLOCK_CATCH(&pgspider_fdw_mutex);
 
 	/*
 	 * Check that only options supported by pgspider_fdw, and allowed for the
@@ -130,7 +135,7 @@ pgspider_fdw_validator(PG_FUNCTION_ARGS)
 		else if (strcmp(def->defname, "extensions") == 0)
 		{
 			/* check list syntax, warn about uninstalled extensions */
-			(void) ExtractExtensionList(defGetString(def), true);
+			(void) PGSpiderExtractExtensionList(defGetString(def), true);
 		}
 		else if (strcmp(def->defname, "fetch_size") == 0)
 		{
@@ -294,14 +299,16 @@ is_libpq_option(const char *keyword)
  * allocated large-enough arrays.  Returns number of options found.
  */
 int
-ExtractConnectionOptions(List * defelems, const char **keywords,
+PGSpiderExtractConnectionOptions(List * defelems, const char **keywords,
 						 const char **values)
 {
 	ListCell   *lc;
 	int			i;
 
 	/* Build our options lists if we didn't yet. */
+	SPD_LOCK_TRY(&pgspider_fdw_mutex);
 	InitPgFdwOptions();
+	SPD_UNLOCK_CATCH(&pgspider_fdw_mutex);
 
 	i = 0;
 	foreach(lc, defelems)
@@ -325,7 +332,7 @@ ExtractConnectionOptions(List * defelems, const char **keywords,
  * ignore them.
  */
 List *
-ExtractExtensionList(const char *extensionsString, bool warnOnMissing)
+PGSpiderExtractExtensionList(const char *extensionsString, bool warnOnMissing)
 {
 	List	   *extensionOids = NIL;
 	List	   *extlist;

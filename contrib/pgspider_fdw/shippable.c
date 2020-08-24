@@ -116,7 +116,7 @@ InitializeShippableCache(void)
  * additionally have a whitelist of functions/operators declared one at a time.
  */
 static bool
-lookup_shippable(Oid objectId, Oid classId, PgFdwRelationInfo * fpinfo)
+lookup_shippable(Oid objectId, Oid classId, PGSpiderFdwRelationInfo * fpinfo)
 {
 	Oid			extensionOid;
 
@@ -152,23 +152,23 @@ lookup_shippable(Oid objectId, Oid classId, PgFdwRelationInfo * fpinfo)
  * track of that would be a huge exercise.
  */
 bool
-is_builtin(Oid objectId)
+pgspider_is_builtin(Oid objectId)
 {
 	return (objectId < FirstGenbkiObjectId);
 }
 
 /*
- * is_shippable
+ * pgspider_is_shippable
  *	   Is this object (function/operator/type) shippable to foreign server?
  */
 bool
-is_shippable(Oid objectId, Oid classId, PgFdwRelationInfo * fpinfo)
+pgspider_is_shippable(Oid objectId, Oid classId, PGSpiderFdwRelationInfo * fpinfo)
 {
 	ShippableCacheKey key;
 	ShippableCacheEntry *entry;
 
 	/* Built-in objects are presumed shippable. */
-	if (is_builtin(objectId))
+	if (pgspider_is_builtin(objectId))
 		return true;
 
 	/* Otherwise, give up if user hasn't specified any shippable extensions. */

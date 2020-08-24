@@ -314,7 +314,7 @@ is_libpq_option(const char *keyword)
  * allocated large-enough arrays.  Returns number of options found.
  */
 int
-ExtractConnectionOptions(List *defelems, const char **keywords,
+spdExtractConnectionOptions(List *defelems, const char **keywords,
 						 const char **values)
 {
 	ListCell   *lc;

@@ -102,6 +102,11 @@ char	   *localized_full_months[12];
 static bool CurrentLocaleConvValid = false;
 static bool CurrentLCTimeValid = false;
 
+#ifdef PGSPIDER
+/* Use mutex to avoid concurrent access to CurrentLocaleConvValid variable */
+pthread_mutex_t locale_mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
+
 /* Environment variable storage area */
 
 #define LC_ENV_BUFSIZE (NAMEDATALEN + 20)
@@ -497,9 +502,18 @@ PGLC_localeconv(void)
 	char	   *save_lc_ctype;
 #endif
 
+#ifdef PGSPIDER
+	pthread_mutex_lock(&locale_mutex);
+#endif
+
 	/* Did we do it already? */
 	if (CurrentLocaleConvValid)
+	{
+#ifdef PGSPIDER
+		pthread_mutex_unlock(&locale_mutex);
+#endif
 		return &CurrentLocaleConv;
+	}
 
 	/* Free any already-allocated storage */
 	if (CurrentLocaleConvAllocated)
@@ -525,12 +539,22 @@ PGLC_localeconv(void)
 	/* Save prevailing values of monetary and numeric locales */
 	save_lc_monetary = setlocale(LC_MONETARY, NULL);
 	if (!save_lc_monetary)
+	{
+#ifdef PGSPIDER
+		pthread_mutex_unlock(&locale_mutex);
+#endif
 		elog(ERROR, "setlocale(NULL) failed");
+	}
 	save_lc_monetary = pstrdup(save_lc_monetary);
 
 	save_lc_numeric = setlocale(LC_NUMERIC, NULL);
 	if (!save_lc_numeric)
+	{
+#ifdef PGSPIDER
+		pthread_mutex_unlock(&locale_mutex);
+#endif
 		elog(ERROR, "setlocale(NULL) failed");
+	}
 	save_lc_numeric = pstrdup(save_lc_numeric);
 
 #ifdef WIN32
@@ -552,7 +576,12 @@ PGLC_localeconv(void)
 	/* Save prevailing value of ctype locale */
 	save_lc_ctype = setlocale(LC_CTYPE, NULL);
 	if (!save_lc_ctype)
+	{
+#ifdef PGSPIDER
+		pthread_mutex_unlock(&locale_mutex);
+#endif
 		elog(ERROR, "setlocale(NULL) failed");
+	}
 	save_lc_ctype = pstrdup(save_lc_ctype);
 
 	/* Here begins the critical section where we must not throw error */
@@ -607,12 +636,27 @@ PGLC_localeconv(void)
 	 */
 #ifdef WIN32
 	if (!setlocale(LC_CTYPE, save_lc_ctype))
+	{
+#ifdef PGSPIDER
+		pthread_mutex_unlock(&locale_mutex);
+#endif
 		elog(FATAL, "failed to restore LC_CTYPE to \"%s\"", save_lc_ctype);
+	}
 #endif
 	if (!setlocale(LC_MONETARY, save_lc_monetary))
+	{
+#ifdef PGSPIDER
+		pthread_mutex_unlock(&locale_mutex);
+#endif
 		elog(FATAL, "failed to restore LC_MONETARY to \"%s\"", save_lc_monetary);
+	}
 	if (!setlocale(LC_NUMERIC, save_lc_numeric))
+	{
+#ifdef PGSPIDER
+		pthread_mutex_unlock(&locale_mutex);
+#endif
 		elog(FATAL, "failed to restore LC_NUMERIC to \"%s\"", save_lc_numeric);
+	}
 
 	/*
 	 * At this point we've done our best to clean up, and can call functions
@@ -666,6 +710,9 @@ PGLC_localeconv(void)
 	PG_CATCH();
 	{
 		free_struct_lconv(&worklconv);
+#ifdef PGSPIDER
+		pthread_mutex_unlock(&locale_mutex);
+#endif
 		PG_RE_THROW();
 	}
 	PG_END_TRY();
@@ -676,6 +723,9 @@ PGLC_localeconv(void)
 	CurrentLocaleConv = worklconv;
 	CurrentLocaleConvAllocated = true;
 	CurrentLocaleConvValid = true;
+#ifdef PGSPIDER
+	pthread_mutex_unlock(&locale_mutex);
+#endif
 	return &CurrentLocaleConv;
 }
 

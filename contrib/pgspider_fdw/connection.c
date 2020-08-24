@@ -105,7 +105,7 @@ static bool pgfdw_get_cleanup_result(PGconn *conn, TimestampTz endtime,
  * (not even on error), we need this flag to cue manual cleanup.
  */
 PGconn *
-GetConnection(UserMapping *user, bool will_prep_stmt)
+PGSpiderGetConnection(UserMapping *user, bool will_prep_stmt)
 {
 	bool		found;
 	ConnCacheEntry *entry;
@@ -137,7 +137,7 @@ GetConnection(UserMapping *user, bool will_prep_stmt)
 									  pgfdw_inval_callback, (Datum) 0);
 	}
 
-	/* Set flag that we did GetConnection during the current transaction */
+	/* Set flag that we did PGSpiderGetConnection during the current transaction */
 	xact_got_connection = true;
 
 	/* Create hash key for the entry.  Assume no pad bytes in key struct */
@@ -244,9 +244,9 @@ connect_pg_server(ForeignServer *server, UserMapping *user)
 		values = (const char **) palloc(n * sizeof(char *));
 
 		n = 0;
-		n += ExtractConnectionOptions(server->options,
+		n += PGSpiderExtractConnectionOptions(server->options,
 									  keywords + n, values + n);
-		n += ExtractConnectionOptions(user->options,
+		n += PGSpiderExtractConnectionOptions(user->options,
 									  keywords + n, values + n);
 
 		/* Use "pgspider_fdw" as fallback_application_name. */
@@ -376,7 +376,7 @@ configure_remote_session(PGconn *conn)
 
 	/*
 	 * Set values needed to ensure unambiguous data output from remote.  (This
-	 * logic should match what pg_dump does.  See also set_transmission_modes
+	 * logic should match what pg_dump does.  See also pgspider_set_transmission_modes
 	 * in pgspider_fdw.c.)
 	 */
 	do_sql_command(conn, "SET datestyle = ISO");
@@ -397,10 +397,10 @@ do_sql_command(PGconn *conn, const char *sql)
 	PGresult   *res;
 
 	if (!PQsendQuery(conn, sql))
-		pgfdw_report_error(ERROR, NULL, conn, false, sql);
-	res = pgfdw_get_result(conn, sql);
+		pgspiderfdw_report_error(ERROR, NULL, conn, false, sql);
+	res = pgspiderfdw_get_result(conn, sql);
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
-		pgfdw_report_error(ERROR, res, conn, true, sql);
+		pgspiderfdw_report_error(ERROR, res, conn, true, sql);
 	PQclear(res);
 }
 
@@ -455,10 +455,10 @@ begin_remote_xact(ConnCacheEntry *entry)
 }
 
 /*
- * Release connection reference count created by calling GetConnection.
+ * Release connection reference count created by calling PGSpiderGetConnection.
  */
 void
-ReleaseConnection(PGconn *conn)
+PGSpiderReleaseConnection(PGconn *conn)
 {
 	/*
 	 * Currently, we don't actually track connection references because all
@@ -479,7 +479,7 @@ ReleaseConnection(PGconn *conn)
  * collisions are highly improbable; just be sure to use %u not %d to print.
  */
 unsigned int
-GetCursorNumber(PGconn *conn)
+PGSpiderGetCursorNumber(PGconn *conn)
 {
 	return ++cursor_number;
 }
@@ -487,13 +487,13 @@ GetCursorNumber(PGconn *conn)
 /*
  * Assign a "unique" number for a prepared statement.
  *
- * This works much like GetCursorNumber, except that we never reset the counter
+ * This works much like PGSpiderGetCursorNumber, except that we never reset the counter
  * within a session.  That's because we can't be 100% sure we've gotten rid
  * of all prepared statements on all connections, and it's not really worth
  * increasing the risk of prepared-statement name collisions by resetting.
  */
 unsigned int
-GetPrepStmtNumber(PGconn *conn)
+PGSpiderGetPrepStmtNumber(PGconn *conn)
 {
 	return ++prep_stmt_number;
 }
@@ -506,17 +506,17 @@ GetPrepStmtNumber(PGconn *conn)
  * Caller is responsible for the error handling on the result.
  */
 PGresult *
-pgfdw_exec_query(PGconn *conn, const char *query)
+pgspiderfdw_exec_query(PGconn *conn, const char *query)
 {
 	/*
 	 * Submit a query.  Since we don't use non-blocking mode, this also can
 	 * block.  But its risk is relatively small, so we ignore that for now.
 	 */
 	if (!PQsendQuery(conn, query))
-		pgfdw_report_error(ERROR, NULL, conn, false, query);
+		pgspiderfdw_report_error(ERROR, NULL, conn, false, query);
 
 	/* Wait for the result. */
-	return pgfdw_get_result(conn, query);
+	return pgspiderfdw_get_result(conn, query);
 }
 
 /*
@@ -530,7 +530,7 @@ pgfdw_exec_query(PGconn *conn, const char *query)
  * Caller is responsible for the error handling on the result.
  */
 PGresult *
-pgfdw_get_result(PGconn *conn, const char *query)
+pgspiderfdw_get_result(PGconn *conn, const char *query)
 {
 	PGresult   *volatile last_res = NULL;
 
@@ -559,7 +559,7 @@ pgfdw_get_result(PGconn *conn, const char *query)
 				if (wc & WL_SOCKET_READABLE)
 				{
 					if (!PQconsumeInput(conn))
-						pgfdw_report_error(ERROR, NULL, conn, false, query);
+						pgspiderfdw_report_error(ERROR, NULL, conn, false, query);
 				}
 			}
 
@@ -595,7 +595,7 @@ pgfdw_get_result(PGconn *conn, const char *query)
  * marked with have_error = true.
  */
 void
-pgfdw_report_error(int elevel, PGresult *res, PGconn *conn,
+pgspiderfdw_report_error(int elevel, PGresult *res, PGconn *conn,
 				   bool clear, const char *sql)
 {
 	/* If requested, PGresult must be released before leaving this function. */
@@ -813,7 +813,7 @@ pgfdw_xact_callback(XactEvent event, void *arg)
 
 		/*
 		 * If the connection isn't in a good idle state, discard it to
-		 * recover. Next GetConnection will open a new connection.
+		 * recover. Next PGSpiderGetConnection will open a new connection.
 		 */
 		if (PQstatus(entry->conn) != CONNECTION_OK ||
 			PQtransactionStatus(entry->conn) != PQTRANS_IDLE ||
@@ -1089,7 +1089,7 @@ pgfdw_exec_cleanup_query(PGconn *conn, const char *query, bool ignore_errors)
 	 */
 	if (!PQsendQuery(conn, query))
 	{
-		pgfdw_report_error(WARNING, NULL, conn, false, query);
+		pgspiderfdw_report_error(WARNING, NULL, conn, false, query);
 		return false;
 	}
 
@@ -1100,7 +1100,7 @@ pgfdw_exec_cleanup_query(PGconn *conn, const char *query, bool ignore_errors)
 	/* Issue a warning if not successful. */
 	if (PQresultStatus(result) != PGRES_COMMAND_OK)
 	{
-		pgfdw_report_error(WARNING, result, conn, true, query);
+		pgspiderfdw_report_error(WARNING, result, conn, true, query);
 		return ignore_errors;
 	}
 	PQclear(result);

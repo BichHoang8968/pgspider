@@ -47,6 +47,7 @@ static bool having_clause_tree_walker(Node *node, void *param);
 /* Global function forward declarations */
 bool is_foreign_expr2(PlannerInfo *, RelOptInfo *, Expr *);
 bool is_having_safe(Node *node);
+bool is_sorted(Node *node);
 char *spd_deparse_type_name(Oid type_oid, int32 typemod);
 void spd_deparse_const(Const *node, StringInfo buf, int showtype);
 
@@ -190,6 +191,18 @@ foreign_expr_walker(Node *node,
 				{
 					return false;
 				}
+
+				/*
+				 * The aggregate functions string_agg is not pushdown to FDW
+				 * when the delimiter is not a constant.
+				 */
+				if (strcmp(opername, "string_agg") == 0)
+				{
+					TargetEntry *tle = (TargetEntry *) lsecond(aggref->args);
+					Node	   *node = (Node *) tle->expr;
+					if (!IsA(node, Const))
+						return false;
+				}
 			}
 			break;
 		}
@@ -233,6 +246,18 @@ foreign_expr_walker(Node *node,
 			Param	   *p = (Param *) node;
 			/* Check type of T_Param(Subquery Expressions) */
 			if (!is_valid_type(p->paramtype))
+				return false;
+			break;
+		}
+		case T_BoolExpr:
+		{
+			BoolExpr   *b = (BoolExpr *) node;
+
+			/*
+			 * Recurse to input subexpressions.
+			 */
+			if (!foreign_expr_walker((Node *) b->args,
+										glob_cxt, &inner_cxt))
 				return false;
 			break;
 		}
@@ -308,27 +333,8 @@ static bool having_clause_tree_walker(Node *node, void *param)
 	{
 		case T_Aggref:
 		{
-			Aggref		*agg = (Aggref *) node;
-			char		*opername = NULL;
-			HeapTuple	tuple;
-
-			/* Get function name */
-			tuple = SearchSysCache1(PROCOID, ObjectIdGetDatum(agg->aggfnoid));
-			if (!HeapTupleIsValid(tuple))
-			{
-				elog(ERROR, "cache lookup failed for function %u", agg->aggfnoid);
-			}
-			opername = pstrdup(((Form_pg_proc) GETSTRUCT(tuple))->proname.data);
-			ReleaseSysCache(tuple);
-
-			/* These functions can not be passed to child FDW. */
-			if (strcmp(opername, "avg") == 0
-				|| strcmp(opername, "stddev") == 0
-				|| strcmp(opername, "variance") == 0)
-			{
-				return true;
-			}
-			break;
+			/* Do not pass to child fdw when HAVING clause contains aggregate functions */
+			return true;
 		}
 		case T_FuncExpr:
 		case T_OpExpr:
@@ -370,7 +376,42 @@ bool is_having_safe(Node *node)
 {
 	return (!having_clause_tree_walker(node, NULL));
 }
+/*
+ * order_by_walker
+ *
+ * Check if HAVING expression is safe to pass to child fdws.
+ */
+static bool order_by_walker(Node *node, void *param)
+{
+	/* Need do nothing for empty subexpression. */
+	if (node == NULL)
+		return false;
 
+	switch (nodeTag(node))
+	{
+		case T_Aggref:
+		{
+			Aggref		*agg = (Aggref *) node;
+
+			if (agg->aggorder)
+				return true;
+			break;
+		}
+		default:
+			break;
+	}
+
+	return expression_tree_walker(node, order_by_walker, (void *) param);
+}
+/*
+ * is_sorted
+ *
+ * Check if expression contains aggregation with ORDER BY
+ */
+bool is_sorted(Node *node)
+{
+	return (order_by_walker(node, NULL));
+}
 
 /*
  *	Convert type OID + typmod info into a type name

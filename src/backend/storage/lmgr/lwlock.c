@@ -140,7 +140,7 @@ typedef struct LWLockHandle
 } LWLockHandle;
 
 #ifdef PGSPIDER
-/* Use mutex to avoid concurent access to num_held_lwlocks, held_lwlocks variables */
+/* Use mutex to avoid concurrent access to num_held_lwlocks, held_lwlocks variables */
 pthread_mutex_t lwlock_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
