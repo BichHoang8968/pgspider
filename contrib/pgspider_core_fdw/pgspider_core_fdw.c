@@ -1975,7 +1975,7 @@ spd_spi_exec_child_ip(char *serverName, char *ip)
 	if (ret < 0)
 		elog(ERROR, "SPI connect failure - returned %d", ret);
 
-	ret = SPI_execute(sql, false, 0);
+	ret = SPI_execute(sql, true, 0);
 	if (ret != SPI_OK_SELECT)
 	{
 		SPI_finish();
