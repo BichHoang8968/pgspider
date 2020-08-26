@@ -4708,13 +4708,6 @@ spd_GetForeignChildPlans(PlannerInfo *root, RelOptInfo *baserel,
 				}
 
 				/*
-				 * For can not aggregation pushdown FDW's. push down quals
-				 * when aggregation is occurred
-				 */
-				if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
-					*push_scan_clauses = fdw_private->baserestrictinfo;
-
-				/*
 				 * We pass "best_path" to child GetForeignPlan. This is the
 				 * path for parent fdw and not for child fdws. We should pass
 				 * correct child path, but now we pass at least fdw_private of
