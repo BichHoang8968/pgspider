@@ -1968,30 +1968,35 @@ spd_spi_exec_child_ip(char *serverName, char *ip)
 {
 	char		sql[NAMEDATALEN * 2] = {};
 	char	   *ipstr;
-	int			rtn;
+	int			ret;
 
 	sprintf(sql, "SELECT ip FROM pg_spd_node_info WHERE servername = '%s';", serverName);
-	SPI_connect();
-	PG_TRY();
-	{
-		rtn = SPI_execute(sql, false, 0);
-	}
-	PG_CATCH();
+	ret = SPI_connect();
+	if (ret < 0)
+		elog(ERROR, "SPI connect failure - returned %d", ret);
+
+	ret = SPI_execute(sql, false, 0);
+	if (ret != SPI_OK_SELECT)
 	{
 		SPI_finish();
-		return;
+		elog(ERROR, "error SPIexecute failure - returned - %d", ret);
 	}
-	PG_END_TRY();
+
 	/* Searching server ip from __spd_node_info */
-	if (rtn != SPI_OK_SELECT || SPI_processed != 1)
+	if (SPI_processed > 1)
 	{
+		int n = SPI_processed;
 		SPI_finish();
-		return;
+		elog(ERROR, "cannot get server IP correctly - returned - %d", n);
 	}
-	ipstr = SPI_getvalue(SPI_tuptable->vals[0],
-						 SPI_tuptable->tupdesc,
-						 1);
-	strcpy(ip, ipstr);
+
+	if (SPI_processed == 1)
+	{
+		ipstr = SPI_getvalue(SPI_tuptable->vals[0],
+								  SPI_tuptable->tupdesc,
+								   1);
+		strcpy(ip, ipstr);
+	}
 	SPI_finish();
 	return;
 }
