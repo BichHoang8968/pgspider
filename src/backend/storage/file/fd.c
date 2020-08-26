@@ -240,6 +240,11 @@ typedef struct
 	}			desc;
 } AllocateDesc;
 
+#ifdef PGSPIDER
+/* Use mutex to avoid concurrent access to numAllocatedDescs, allocatedDescs variables */
+pthread_mutex_t fd_mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
+
 static int	numAllocatedDescs = 0;
 static int	maxAllocatedDescs = 0;
 static AllocateDesc *allocatedDescs = NULL;
@@ -2207,8 +2212,13 @@ reserveAllocatedDesc(void)
  *
  * Ideally this should be the *only* direct call of fopen() in the backend.
  */
+#ifdef PGSPIDER
+static FILE *
+AllocateFileOrg(const char *name, const char *mode)
+#else
 FILE *
 AllocateFile(const char *name, const char *mode)
+#endif
 {
 	FILE	   *file;
 
@@ -2253,6 +2263,18 @@ TryAgain:
 	return NULL;
 }
 
+#ifdef PGSPIDER
+FILE *
+AllocateFile(const char *name, const char *mode)
+{
+	FILE	*file;
+	SPD_LOCK_TRY(&fd_mutex);
+	file = AllocateFileOrg(name, mode);
+	SPD_UNLOCK_CATCH(&fd_mutex);
+	return	file;
+}
+#endif
+
 /*
  * Open a file with OpenTransientFilePerm() and pass default file mode for
  * the fileMode parameter.
@@ -2266,8 +2288,13 @@ OpenTransientFile(const char *fileName, int fileFlags)
 /*
  * Like AllocateFile, but returns an unbuffered fd like open(2)
  */
+#ifdef PGSPIDER
+static int
+OpenTransientFilePermOrg(const char *fileName, int fileFlags, mode_t fileMode)
+#else
 int
 OpenTransientFilePerm(const char *fileName, int fileFlags, mode_t fileMode)
+#endif
 {
 	int			fd;
 
@@ -2301,6 +2328,18 @@ OpenTransientFilePerm(const char *fileName, int fileFlags, mode_t fileMode)
 	return -1;					/* failure */
 }
 
+#ifdef PGSPIDER
+int
+OpenTransientFilePerm(const char *fileName, int fileFlags, mode_t fileMode)
+{
+	int	fd;
+	SPD_LOCK_TRY(&fd_mutex);
+	fd = OpenTransientFilePermOrg(fileName, fileFlags, fileMode);
+	SPD_UNLOCK_CATCH(&fd_mutex);
+	return	fd;
+}
+#endif
+
 /*
  * Routines that want to initiate a pipe stream should use OpenPipeStream
  * rather than plain popen().  This lets fd.c deal with freeing FDs if
@@ -2310,8 +2349,13 @@ OpenTransientFilePerm(const char *fileName, int fileFlags, mode_t fileMode)
  * SIGPIPE processing, rather than the SIG_IGN setting the backend normally
  * uses.  This ensures desirable response to, eg, closing a read pipe early.
  */
+#ifdef PGSPIDER
+static FILE *
+OpenPipeStreamOrg(const char *command, const char *mode)
+#else
 FILE *
 OpenPipeStream(const char *command, const char *mode)
+#endif
 {
 	FILE	   *file;
 	int			save_errno;
@@ -2362,6 +2406,18 @@ TryAgain:
 	return NULL;
 }
 
+#ifdef PGSPIDER
+FILE *
+OpenPipeStream(const char *command, const char *mode)
+{
+	FILE	*file;
+	SPD_LOCK_TRY(&fd_mutex);
+	file = OpenPipeStreamOrg(command, mode);
+	SPD_UNLOCK_CATCH(&fd_mutex);
+	return	file;
+}
+#endif
+
 /*
  * Free an AllocateDesc of any type.
  *
@@ -2406,8 +2462,13 @@ FreeDesc(AllocateDesc *desc)
  * Note we do not check fclose's return value --- it is up to the caller
  * to handle close errors.
  */
+#ifdef PGSPIDER
+static int
+FreeFileOrg(FILE *file)
+#else
 int
 FreeFile(FILE *file)
+#endif
 {
 	int			i;
 
@@ -2428,14 +2489,31 @@ FreeFile(FILE *file)
 	return fclose(file);
 }
 
+#ifdef PGSPIDER
+int
+FreeFile(FILE *file)
+{
+	int			i;
+	SPD_LOCK_TRY(&fd_mutex);
+	i = FreeFileOrg(file);
+	SPD_UNLOCK_CATCH(&fd_mutex);
+	return i;
+}
+#endif
+
 /*
  * Close a file returned by OpenTransientFile.
  *
  * Note we do not check close's return value --- it is up to the caller
  * to handle close errors.
  */
+#ifdef PGSPIDER
+static int
+CloseTransientFileOrg(int fd)
+#else
 int
 CloseTransientFile(int fd)
+#endif
 {
 	int			i;
 
@@ -2456,6 +2534,19 @@ CloseTransientFile(int fd)
 	return close(fd);
 }
 
+#ifdef PGSPIDER
+int
+CloseTransientFile(int fd)
+{
+	int     i;
+	SPD_LOCK_TRY(&fd_mutex);
+	i = CloseTransientFileOrg(fd);
+	SPD_UNLOCK_CATCH(&fd_mutex);
+	return i;
+}
+#endif
+
+
 /*
  * Routines that want to use <dirent.h> (ie, DIR*) should use AllocateDir
  * rather than plain opendir().  This lets fd.c deal with freeing FDs if
@@ -2468,8 +2559,13 @@ CloseTransientFile(int fd)
  *
  * Ideally this should be the *only* direct call of opendir() in the backend.
  */
+#ifdef PGSPIDER
+static DIR *
+AllocateDirOrg(const char *dirname)
+#else
 DIR *
 AllocateDir(const char *dirname)
+#endif
 {
 	DIR		   *dir;
 
@@ -2513,6 +2609,18 @@ TryAgain:
 
 	return NULL;
 }
+
+#ifdef PGSPIDER
+DIR *
+AllocateDir(const char *dirname)
+{
+	DIR	*dir;
+	SPD_LOCK_TRY(&fd_mutex);
+	dir = AllocateDirOrg(dirname);
+	SPD_UNLOCK_CATCH(&fd_mutex);
+	return  dir;
+}
+#endif
 
 /*
  * Read a directory opened with AllocateDir, ereport'ing any error.
@@ -2586,8 +2694,13 @@ ReadDirExtended(DIR *dir, const char *dirname, int elevel)
  * Does nothing if dir == NULL; we assume that directory open failure was
  * already reported if desired.
  */
+#ifdef PGSPIDER
+static int
+FreeDirOrg(DIR *dir)
+#else
 int
 FreeDir(DIR *dir)
+#endif
 {
 	int			i;
 
@@ -2612,12 +2725,28 @@ FreeDir(DIR *dir)
 	return closedir(dir);
 }
 
+#ifdef PGSPIDER
+int
+FreeDir(DIR *dir)
+{
+	int	i;
+	SPD_LOCK_TRY(&fd_mutex);
+	i = FreeDirOrg(dir);
+	SPD_UNLOCK_CATCH(&fd_mutex);
+	return i;
+}
+#endif
 
 /*
  * Close a pipe stream returned by OpenPipeStream.
  */
+#ifdef PGSPIDER
+static int
+ClosePipeStreamOrg(FILE *file)
+#else
 int
 ClosePipeStream(FILE *file)
+#endif
 {
 	int			i;
 
@@ -2637,6 +2766,19 @@ ClosePipeStream(FILE *file)
 
 	return pclose(file);
 }
+
+#ifdef PGSPIDER
+int
+ClosePipeStream(FILE *file)
+{
+	int	i;
+	SPD_LOCK_TRY(&fd_mutex);
+	i = ClosePipeStreamOrg(file);
+	SPD_UNLOCK_CATCH(&fd_mutex);
+	return i;
+}
+#endif
+
 
 /*
  * closeAllVfds
@@ -2750,9 +2892,15 @@ GetNextTempTableSpace(void)
  * that the subtransaction may have opened.  At commit, we reassign the
  * files that were opened to the parent subtransaction.
  */
+#ifdef PGSPIDER
+static void
+AtEOSubXact_FilesOrg(bool isCommit, SubTransactionId mySubid,
+				  SubTransactionId parentSubid)
+#else
 void
 AtEOSubXact_Files(bool isCommit, SubTransactionId mySubid,
 				  SubTransactionId parentSubid)
+#endif
 {
 	Index		i;
 
@@ -2770,6 +2918,17 @@ AtEOSubXact_Files(bool isCommit, SubTransactionId mySubid,
 		}
 	}
 }
+
+#ifdef PGSPIDER
+void
+AtEOSubXact_Files(bool isCommit, SubTransactionId mySubid,
+				  SubTransactionId parentSubid)
+{
+	SPD_LOCK_TRY(&fd_mutex);
+	AtEOSubXact_FilesOrg(isCommit, mySubid, parentSubid);
+	SPD_UNLOCK_CATCH(&fd_mutex);
+}
+#endif
 
 /*
  * AtEOXact_Files
@@ -2816,7 +2975,11 @@ AtProcExit_Files(int code, Datum arg)
  * also clean up "allocated" stdio files, dirs and fds.
  */
 static void
+#ifdef PGSPIDER
+CleanupTempFilesOrg(bool isCommit, bool isProcExit)
+#else
 CleanupTempFiles(bool isCommit, bool isProcExit)
+#endif
 {
 	Index		i;
 
@@ -2866,6 +3029,15 @@ CleanupTempFiles(bool isCommit, bool isProcExit)
 		FreeDesc(&allocatedDescs[0]);
 }
 
+#ifdef PGSPIDER
+static void
+CleanupTempFiles(bool isCommit, bool isProcExit)
+{
+	SPD_LOCK_TRY(&fd_mutex);
+	CleanupTempFilesOrg(isCommit, isProcExit);
+	SPD_UNLOCK_CATCH(&fd_mutex);
+}
+#endif
 
 /*
  * Remove temporary and temporary relation files left over from a prior

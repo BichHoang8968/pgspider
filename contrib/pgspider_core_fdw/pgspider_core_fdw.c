@@ -443,9 +443,6 @@ static bool isPrintError;
 static bool isPostgresFdwInit = false;
 pthread_mutex_t postgres_fdw_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-/* We need lock file_fdw when AllocateFile */
-pthread_mutex_t file_fdw_mutex = PTHREAD_MUTEX_INITIALIZER;
-
 /* We write lock SPI function and read lock child fdw routines */
 pthread_mutex_t error_mutex = PTHREAD_MUTEX_INITIALIZER;
 static MemoryContext thread_top_contexts[NODES_MAX] = {NULL};
@@ -1971,14 +1968,7 @@ spd_ForeignScan_thread(void *arg)
 		 */
 		if (!list_member_oid(fdw_private->pPseudoAggList, fssthrdInfo->serverId))
 		{
-			if (strcmp(fssthrdInfo->fdw->fdwname, FILE_FDW_NAME) == 0)
-			{
-				/* File FDW need to allocate file in succession, not in thread parallel */
-				SPD_LOCK_TRY(&file_fdw_mutex);
-				fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
-														  fssthrdInfo->eflags);
-				SPD_UNLOCK_CATCH(&file_fdw_mutex);
-			} else if (strcmp(fssthrdInfo->fdw->fdwname, POSTGRES_FDW_NAME) == 0 && !isPostgresFdwInit)
+			if (strcmp(fssthrdInfo->fdw->fdwname, POSTGRES_FDW_NAME) == 0 && !isPostgresFdwInit)
 			{
 				/* We need to make postgres_fdw_options variable initial one time */
 				SPD_LOCK_TRY(&postgres_fdw_mutex);
@@ -2024,17 +2014,7 @@ RESCAN:
 		fssthrdInfo->state != SPD_FS_STATE_BEGIN)
 	{
 		SPD_READ_LOCK_TRY(&fdw_private->scan_mutex);
-		if (strcmp(fssthrdInfo->fdw->fdwname, FILE_FDW_NAME) == 0)
-		{
-			/* File FDW need to allocate file in succession, not in thread parallel */
-			SPD_LOCK_TRY(&file_fdw_mutex);
-			fssthrdInfo->fdwroutine->ReScanForeignScan(fssthrdInfo->fsstate);
-			SPD_UNLOCK_CATCH(&file_fdw_mutex);
-		}
-		else
-		{
-			fssthrdInfo->fdwroutine->ReScanForeignScan(fssthrdInfo->fsstate);
-		}
+		fssthrdInfo->fdwroutine->ReScanForeignScan(fssthrdInfo->fsstate);
 		SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 
 		fssthrdInfo->requestRescan = false;
@@ -2272,27 +2252,11 @@ THREAD_END:
 				if (!list_member_oid(fdw_private->pPseudoAggList,
 									 fssthrdInfo->serverId))
 				{
-					if (strcmp(fssthrdInfo->fdw->fdwname, FILE_FDW_NAME) == 0)
-					{
-						/* File FDW need to free file in succession, not in thread parallel */
-						SPD_LOCK_TRY(&file_fdw_mutex);
-						fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
-						SPD_UNLOCK_CATCH(&file_fdw_mutex);
-					}
-					else
-						fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
+					fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
 				}
 				else
 				{
-					if (strcmp(fssthrdInfo->fdw->fdwname, FILE_FDW_NAME) == 0)
-					{
-						/* File FDW need to free file in succession, not in thread parallel */
-						SPD_LOCK_TRY(&file_fdw_mutex);
-						ExecEndNode(result);
-						SPD_UNLOCK_CATCH(&file_fdw_mutex);
-					}
-					else
-						ExecEndNode(result);
+					ExecEndNode(result);
 				}
 
 
