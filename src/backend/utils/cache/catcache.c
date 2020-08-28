@@ -1556,8 +1556,13 @@ GetCatCacheHashValue(CatCache *cache,
  *		The caller must not modify the list object or the pointed-to tuples,
  *		and must call ReleaseCatCacheList() when done with the list.
  */
+#ifdef PGSPIDER
+static CatCList *
+SearchCatCacheListOrg(CatCache *cache,
+#else
 CatCList *
 SearchCatCacheList(CatCache *cache,
+#endif
 				   int nkeys,
 				   Datum v1,
 				   Datum v2,
@@ -1827,13 +1832,33 @@ SearchCatCacheList(CatCache *cache,
 	return cl;
 }
 
+#ifdef PGSPIDER
+CatCList *
+SearchCatCacheList(CatCache *cache,
+				   int nkeys,
+				   Datum v1,
+				   Datum v2,
+				   Datum v3)
+{
+	CatCList* sts;
+	SPD_LOCK_TRY(&catcache_mutex);
+	sts = SearchCatCacheListOrg(cache, nkeys, v1, v2, v3);
+	SPD_UNLOCK_CATCH(&catcache_mutex);
+	return sts;
+}
+#endif
 /*
  *	ReleaseCatCacheList
  *
  *	Decrement the reference count of a catcache list.
  */
+#ifdef PGSPIDER
+static void
+ReleaseCatCacheListOrg(CatCList *list)
+#else
 void
 ReleaseCatCacheList(CatCList *list)
+#endif
 {
 	/* Safety checks to ensure we were handed a cache entry */
 	Assert(list->cl_magic == CL_MAGIC);
@@ -1849,6 +1874,16 @@ ReleaseCatCacheList(CatCList *list)
 		CatCacheRemoveCList(list->my_cache, list);
 }
 
+
+#ifdef PGSPIDER
+void
+ReleaseCatCacheList(CatCList *list)
+{
+	SPD_LOCK_TRY(&catcache_mutex);
+	ReleaseCatCacheListOrg(list);
+	SPD_UNLOCK_CATCH(&catcache_mutex);
+}
+#endif
 
 /*
  * CatalogCacheCreateEntry
