@@ -3367,7 +3367,6 @@ spd_makedivtlist(Aggref *aggref, List *newList)
 	Aggref	   *tempCount = copyObject((Aggref *) aggref);
 	Aggref	   *tempSum;
 	Aggref	   *tempVar;
-	int			listn = 0;
 	TargetEntry *tle_temp;
 
 	tempSum = copyObject(tempCount);
@@ -3398,7 +3397,6 @@ spd_makedivtlist(Aggref *aggref, List *newList)
 		TargetEntry *oparg = (TargetEntry *) linitial(tempVar->args);
 		Var		   *opvar = (Var *) oparg->expr;
 		OpExpr	   *opexpr = (OpExpr *) makeNode(OpExpr);
-		OpExpr	   *opexpr2 = copyObject(opexpr);
 
 		opexpr->xpr.type = T_OpExpr;
 		opexpr->opretset = false;
@@ -3422,20 +3420,14 @@ spd_makedivtlist(Aggref *aggref, List *newList)
 		opexpr->args = lappend(opexpr->args, opvar);
 		/* Create var targetentry */
 		tarexpr = makeTargetEntry((Expr *) opexpr,	/* copy needed?? */
-								  listn,
+								  1,
 								  NULL,
 								  false);
 		tarexpr->ressortgroupref = oparg->ressortgroupref;
-		opexpr2 = (OpExpr *) tarexpr->expr;
-		opexpr2->opretset = false;
-		opexpr2->opcollid = 0;
-		opexpr2->inputcollid = 0;
-		opexpr2->location = 0;
-		tarexpr->resno = 1;
 		tempVar->args = lappend(tempVar->args, tarexpr);
 		tempVar->args = list_delete_first(tempVar->args);
 		tle_temp = makeTargetEntry((Expr *) tempVar,	/* copy needed?? */
-								   listn++,
+								   0,
 								   NULL,
 								   false);
 		newList = lappend(newList, tle_temp);
