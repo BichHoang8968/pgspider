@@ -1579,7 +1579,6 @@ extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_
 					TargetEntry *oparg = (TargetEntry *) linitial(tempVar->args);
 					Var		   *opvar = (Var *) oparg->expr;
 					OpExpr	   *opexpr = (OpExpr *) makeNode(OpExpr);
-					OpExpr	   *opexpr2 = copyObject(opexpr);
 
 					opexpr->xpr.type = T_OpExpr;
 					opexpr->opretset = false;
@@ -1602,16 +1601,10 @@ extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_
 					opexpr->args = lappend(opexpr->args, opvar);
 					/* Create var targetentry */
 					tarexpr = makeTargetEntry((Expr *) opexpr,
-											next_resno_temp,
+											1,
 											NULL,
 											false);
 					tarexpr->ressortgroupref = oparg->ressortgroupref;
-					opexpr2 = (OpExpr *) tarexpr->expr;
-					opexpr2->opretset = false;
-					opexpr2->opcollid = 0;
-					opexpr2->inputcollid = 0;
-					opexpr2->location = 0;
-					tarexpr->resno = 1;
 					tempVar->args = lappend(tempVar->args, tarexpr);
 					tempVar->args = list_delete_first(tempVar->args);
 					if (!spd_tlist_member((Expr *) tempVar, *compress_tlist_tle, &target_num))
