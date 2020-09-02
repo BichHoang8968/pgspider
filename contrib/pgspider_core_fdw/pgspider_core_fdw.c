@@ -239,6 +239,13 @@ const char *CatalogSplitAggStr[] = {"SPREAD",
 const enum Aggtype CatalogSplitAggType[] = {SPREAD_FLAG,
 											NON_AGG_FLAG};
 
+/* True if the command is non split aggregate function. */
+#define IS_NON_SPLIT_AGG(agg_command) \
+	(!pg_strcasecmp(agg_command, "MAX") || !pg_strcasecmp(agg_command, "MIN") || \
+	!pg_strcasecmp(agg_command, "BIT_OR") || !pg_strcasecmp(agg_command, "BIT_AND") || \
+	!pg_strcasecmp(agg_command, "BOOL_AND") || !pg_strcasecmp(agg_command, "BOOL_OR") || \
+	!pg_strcasecmp(agg_command, "EVERY") || !pg_strcasecmp(agg_command, "XMLAGG"))
+
 /*
  * 'Mappingcells.mapping' stores index of compressed tlist when splitting one agg into multiple aggs.
  * mapping[AGG_SPLIT_COUNT]  :COUNT(x)
@@ -6244,10 +6251,7 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 								appendStringInfo(buf, "SUM(col%d ORDER BY col%d)", mapping, mapping);
 							else
 								appendStringInfo(buf, "SUM(col%d)", mapping);
-						else if (!pg_strcasecmp(agg_command, "MAX") || !pg_strcasecmp(agg_command, "MIN") ||
-								!pg_strcasecmp(agg_command, "BIT_OR") || !pg_strcasecmp(agg_command, "BIT_AND") ||
-								!pg_strcasecmp(agg_command, "BOOL_AND") || !pg_strcasecmp(agg_command, "BOOL_OR") ||
-								!pg_strcasecmp(agg_command, "EVERY") || !pg_strcasecmp(agg_command, "XMLAGG"))
+						else if (IS_NON_SPLIT_AGG(agg_command))
 							appendStringInfo(buf, "%s(col%d)", agg_command, mapping);
 
 						/*
@@ -6487,10 +6491,7 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 					!pg_strcasecmp(agg_command, "STDDEV"))
 					appendStringInfo(sql, "SUM(col%d)", mapping);
 
-				else if (!pg_strcasecmp(agg_command, "MAX") || !pg_strcasecmp(agg_command, "MIN") ||
-						!pg_strcasecmp(agg_command, "BIT_OR") || !pg_strcasecmp(agg_command, "BIT_AND") ||
-						!pg_strcasecmp(agg_command, "BOOL_AND") || !pg_strcasecmp(agg_command, "BOOL_OR") ||
-						!pg_strcasecmp(agg_command, "EVERY") || !pg_strcasecmp(agg_command, "XMLAGG"))
+				else if (IS_NON_SPLIT_AGG(agg_command))
 					appendStringInfo(sql, "%s(col%d)", agg_command, mapping);
 				/*
 				 * This is for string_agg function. This function require delimiter to work
