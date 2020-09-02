@@ -1408,6 +1408,57 @@ add_nodes_to_list(Expr *aggref, List *exprs, List **tlist, Mappingcells **mapcel
 }
 
 /**
+ * createVarianceExpr
+ * Create an expression of variance.
+ * 
+ * @param[in,out] baseExpr - an expression is created by copying this base expression
+ * @param[in] making_div_list - true if this function is called from spd_makedivtlist(),
+ *                              false if called from extract_expr89.
+ * @return Created expression
+ */
+static Aggref *
+createVarianceExpr(Aggref *baseExpr, bool making_div_list)
+{
+	TargetEntry *tarexpr;
+	Aggref	   *tempVar = copyObject(baseExpr);
+	TargetEntry *oparg = (TargetEntry *) linitial(tempVar->args);
+	Var		   *opvar = (Var *) oparg->expr;
+	OpExpr	   *opexpr = (OpExpr *) makeNode(OpExpr);
+
+	opexpr->xpr.type = T_OpExpr;
+	opexpr->opretset = false;
+	opexpr->opcollid = 0;
+	opexpr->inputcollid = 0;
+	opexpr->location = 0;
+	opexpr->args = NULL;
+
+	tempVar->aggfnoid = VAR_OID;
+	
+	/* Create top targetentry */
+	if (tempVar->aggtype == NUMERICOID)
+	{
+		set_split_numeric_info(tempVar, opexpr);
+	}
+	else if (!making_div_list || tempVar->aggtype <= FLOAT8OID || tempVar->aggtype >= FLOAT4OID)
+	{
+		set_split_agg_info(tempVar, SUM_FLOAT8_OID, FLOAT8OID, FLOAT8OID);
+		set_split_op_info(opexpr, FLOAT8MUL_OID, FLOAT8MUL_FUNID, FLOAT8OID);
+	}
+	opexpr->args = lappend(opexpr->args, opvar);
+	opexpr->args = lappend(opexpr->args, opvar);
+	/* Create var targetentry */
+	tarexpr = makeTargetEntry((Expr *) opexpr,
+							1,
+							NULL,
+							false);
+	tarexpr->ressortgroupref = oparg->ressortgroupref;
+	tempVar->args = lappend(tempVar->args, tarexpr);
+	tempVar->args = list_delete_first(tempVar->args);
+
+	return tempVar;
+}
+
+/**
  * extract_expr
  * Extract an expression.
  * 
@@ -1497,11 +1548,7 @@ extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_
 			{
 				/* Prepare COUNT Query */
 				Aggref	   *tempCount = copyObject(aggref);
-				Aggref	   *tempSum;
-				Aggref	   *tempVar;
-
-				tempVar = copyObject(aggref);
-				tempSum = copyObject(aggref);
+				Aggref	   *tempSum = copyObject(aggref);
 
 				if (aggref->aggtype == FLOAT4OID || aggref->aggtype == FLOAT8OID)
 				{
@@ -1516,9 +1563,6 @@ extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_
 					set_split_agg_info(tempSum, SUM_INT4_OID, INT8OID, INT8OID);
 				}
 				set_split_agg_info(tempCount, COUNT_OID, INT8OID, INT8OID);
-
-				/* Prepare SUM Query */
-				tempVar->aggfnoid = VAR_OID;
 
 				/* add original mapping list to avg,var,stddev */
 				if (!spd_tlist_member((Expr*) aggref, *tlist, &target_num))
@@ -1575,38 +1619,8 @@ extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_
 				if ((aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
 					|| (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
 				{
-					TargetEntry *tarexpr;
-					TargetEntry *oparg = (TargetEntry *) linitial(tempVar->args);
-					Var		   *opvar = (Var *) oparg->expr;
-					OpExpr	   *opexpr = (OpExpr *) makeNode(OpExpr);
+					Aggref	   *tempVar = createVarianceExpr(aggref, false);
 
-					opexpr->xpr.type = T_OpExpr;
-					opexpr->opretset = false;
-					opexpr->opcollid = 0;
-					opexpr->inputcollid = 0;
-					opexpr->location = 0;
-					opexpr->args = NULL;
-
-					/* Create top targetentry */
-					if (tempVar->aggtype == NUMERICOID)
-					{
-						set_split_numeric_info(tempVar, opexpr);
-					}
-					else
-					{
-						set_split_agg_info(tempVar, SUM_FLOAT8_OID, FLOAT8OID, FLOAT8OID);
-						set_split_op_info(opexpr, FLOAT8MUL_OID, FLOAT8MUL_FUNID, FLOAT8OID);
-					}
-					opexpr->args = lappend(opexpr->args, opvar);
-					opexpr->args = lappend(opexpr->args, opvar);
-					/* Create var targetentry */
-					tarexpr = makeTargetEntry((Expr *) opexpr,
-											1,
-											NULL,
-											false);
-					tarexpr->ressortgroupref = oparg->ressortgroupref;
-					tempVar->args = lappend(tempVar->args, tarexpr);
-					tempVar->args = list_delete_first(tempVar->args);
 					if (!spd_tlist_member((Expr *) tempVar, *compress_tlist_tle, &target_num))
 					{
 						tle_temp = makeTargetEntry((Expr *) tempVar,
@@ -3359,7 +3373,6 @@ spd_makedivtlist(Aggref *aggref, List *newList)
 	/* Prepare SUM Query */
 	Aggref	   *tempCount = copyObject((Aggref *) aggref);
 	Aggref	   *tempSum;
-	Aggref	   *tempVar;
 	TargetEntry *tle_temp;
 
 	tempSum = copyObject(tempCount);
@@ -3377,48 +3390,13 @@ spd_makedivtlist(Aggref *aggref, List *newList)
 	}
 	set_split_agg_info(tempCount, COUNT_OID, INT8OID, INT8OID);
 
-	/* Prepare SUM Query */
-	tempVar = copyObject(tempCount);
-	tempVar->aggfnoid = VAR_OID;
-
 	newList = lappend(newList, tempCount);
 	newList = lappend(newList, tempSum);
 	if ((aggref->aggfnoid >= VAR_MIN_OID && aggref->aggfnoid <= VAR_MAX_OID)
 		|| (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
 	{
-		TargetEntry *tarexpr;
-		TargetEntry *oparg = (TargetEntry *) linitial(tempVar->args);
-		Var		   *opvar = (Var *) oparg->expr;
-		OpExpr	   *opexpr = (OpExpr *) makeNode(OpExpr);
+		Aggref	   *tempVar = createVarianceExpr(tempCount, true);
 
-		opexpr->xpr.type = T_OpExpr;
-		opexpr->opretset = false;
-		opexpr->opcollid = 0;
-		opexpr->inputcollid = 0;
-		opexpr->location = 0;
-		opexpr->args = NULL;
-
-		/* Create top targetentry */
-		if (tempVar->aggtype <= FLOAT8OID || tempVar->aggtype >= FLOAT4OID)
-		{
-			set_split_agg_info(tempVar, SUM_FLOAT8_OID, FLOAT8OID, FLOAT8OID);
-			set_split_op_info(opexpr, FLOAT8MUL_OID, FLOAT8MUL_FUNID, FLOAT8OID);
-		}
-		else if (tempVar->aggtype == NUMERICOID)
-		{
-			set_split_numeric_info(tempVar, opexpr);
-		}
-
-		opexpr->args = lappend(opexpr->args, opvar);
-		opexpr->args = lappend(opexpr->args, opvar);
-		/* Create var targetentry */
-		tarexpr = makeTargetEntry((Expr *) opexpr,	/* copy needed?? */
-								  1,
-								  NULL,
-								  false);
-		tarexpr->ressortgroupref = oparg->ressortgroupref;
-		tempVar->args = lappend(tempVar->args, tarexpr);
-		tempVar->args = list_delete_first(tempVar->args);
 		tle_temp = makeTargetEntry((Expr *) tempVar,	/* copy needed?? */
 								   0,
 								   NULL,
