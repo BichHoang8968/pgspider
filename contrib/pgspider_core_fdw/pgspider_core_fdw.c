@@ -7230,6 +7230,32 @@ spd_check_url_update(RangeTblEntry *target_rte)
 }
 
 /**
+ * getModifyingFdwRoutine
+ *
+ * Return serveroid of child node to be modified.
+ * If multiple child nodes are found, the 1st found node is used.
+ *
+ * @param[in] Relation parent relation 
+ * @return server oid of child node
+ */
+static Oid
+getModifyingFdwRoutine(Relation rel, SpdFdwPrivate *fdw_private)
+{
+	Oid		   *oid = NULL;
+	Oid			oid_server;
+
+	spd_spi_exec_child_relname(RelationGetRelationName(rel), fdw_private, &oid);
+	if (fdw_private->node_num == 0)
+		ereport(ERROR, (errmsg("Cannot Find child datasources.")));
+	if (oid[0] == 0)
+		ereport(ERROR, (errmsg("Child server oid is invalid: %d", oid[0])));
+
+	oid_server = serverid_of_relation(oid[0]);
+
+	return oid_server;
+}
+
+/**
  * spd_AddForeignUpdateTargets
  *
  * Add column(s) needed for update/delete on a foreign table,
@@ -7249,23 +7275,17 @@ spd_AddForeignUpdateTargets(Query *parsetree,
 	MemoryContext oldcontext;
 	FdwRoutine *fdwroutine;
 	SpdFdwPrivate *fdw_private;
-	Oid		   *oid = NULL;
 	Oid			oid_server = 0;
 
 	fdw_private = spd_AllocatePrivate();
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	/* Checking IN clause. */
 	fdw_private->url_list = spd_check_url_update(target_rte);
-	spd_spi_exec_child_relname(RelationGetRelationName(target_relation), fdw_private, &oid);
-	if (fdw_private->node_num == 0)
-		ereport(ERROR, (errmsg("Cannot Find child datasources. ")));
+	oid_server = getModifyingFdwRoutine(target_relation, fdw_private);
+	fdwroutine = GetFdwRoutineByServerId(oid_server);
+
 	MemoryContextSwitchTo(oldcontext);
-	if (oid[0] != 0)
-	{
-		oid_server = serverid_of_relation(oid[0]);
-		fdwroutine = GetFdwRoutineByServerId(oid_server);
-		fdwroutine->AddForeignUpdateTargets(parsetree, target_rte, target_relation);
-	}
+	fdwroutine->AddForeignUpdateTargets(parsetree, target_rte, target_relation);
 	return;
 }
 
@@ -7293,7 +7313,6 @@ spd_PlanForeignModify(PlannerInfo *root,
 	FdwRoutine *fdwroutine;
 	SpdFdwPrivate *fdw_private;
 	Relation	rel;
-	Oid		   *oid = NULL;
 	Oid			oid_server = 0;
 	List	   *child_list = NULL;
 	int			nums=0;
@@ -7304,18 +7323,14 @@ spd_PlanForeignModify(PlannerInfo *root,
 	fdw_private->url_list = spd_check_url_update(rte);
 
 	spd_create_child_url(nums, rte, fdw_private);
-	rel = table_open(rte->relid, NoLock);
 
-	spd_spi_exec_child_relname(RelationGetRelationName(rel), fdw_private, &oid);
-	if (fdw_private->node_num == 0)
-		ereport(ERROR, (errmsg("Cannot Find child datasources. ")));
+	rel = table_open(rte->relid, NoLock);
+	oid_server = getModifyingFdwRoutine(rel, fdw_private);
+	fdwroutine = GetFdwRoutineByServerId(oid_server);
+
 	MemoryContextSwitchTo(oldcontext);
-	if (oid[0] != 0)
-	{
-		oid_server = serverid_of_relation(oid[0]);
-		fdwroutine = GetFdwRoutineByServerId(oid_server);
-		child_list = fdwroutine->PlanForeignModify(root, plan, resultRelation, subplan_index);
-	}
+	child_list = fdwroutine->PlanForeignModify(root, plan, resultRelation, subplan_index);
+
 	table_close(rel, NoLock);
 	return list_make2(child_list, makeInteger(oid_server));
 }
