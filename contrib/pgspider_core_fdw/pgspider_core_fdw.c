@@ -1918,6 +1918,8 @@ spd_ForeignScan_thread(void *arg)
 	ErrorContextCallback errcallback;
 	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *) fssthrdInfo->private;
 	PlanState  *result = NULL;
+	/* Flag use for check whether mysql_fdw called BeginForeignScan or not */
+	bool		is_first = true;
 
 #ifdef GETPROGRESS_ENABLED
 	PGcancel   *cancel;
@@ -1976,6 +1978,23 @@ spd_ForeignScan_thread(void *arg)
 														  fssthrdInfo->eflags);
 				isPostgresFdwInit = true;
 				SPD_UNLOCK_CATCH(&postgres_fdw_mutex);
+			}
+			else if (strcmp(fssthrdInfo->fdw->fdwname, MYSQL_FDW_NAME) == 0)
+			{
+				/*
+				 * In case child node is mysql_fdw, the main query need to wait
+				 * sub-query finished before call BeginForeignScan.
+				 * If main query: requestStartScan flag is true.
+				 * If sub query: requestStartScan flag is false.
+				 * In case subquery, we will call BeginForeignScan immediately.
+				 * In case main query, we will wait subquery finished before call BeginForeignScan.
+				 */
+				if(is_first && fssthrdInfo->requestStartScan)
+				{
+					is_first = false;
+					fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
+															fssthrdInfo->eflags);
+				}
 			}
 			else
 			{
@@ -2044,6 +2063,25 @@ RESCAN:
 		{
 			fssthrdInfo->state = SPD_FS_STATE_ITERATE;
 			goto RESCAN;
+		}
+	}
+
+	/*
+	 * In case child node is mysql_fdw, the main query need to wait
+	 * sub-query finished before call BeginForeignScan.
+	 * If main query: requestStartScan flag is true.
+	 * If sub query: requestStartScan flag is false.
+	 * In case subquery, we will call BeginForeignScan immediately.
+	 * In case main query, we will wait subquery finished before call BeginForeignScan.
+	 */
+	if (!list_member_oid(fdw_private->pPseudoAggList, fssthrdInfo->serverId))
+	{
+		if (strcmp(fssthrdInfo->fdw->fdwname, MYSQL_FDW_NAME) == 0 &&
+					is_first && fssthrdInfo->requestStartScan)
+		{
+			is_first = false;
+			fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
+														fssthrdInfo->eflags);
 		}
 	}
 
