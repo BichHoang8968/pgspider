@@ -3728,7 +3728,6 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	if (in_fdw_private->childinfo != NULL)
 	{
 		int			i = 0;
-		ChildInfo  *childinfo = in_fdw_private->childinfo;
 
 		/* set flag if group by has __spd_url */
 		fdw_private->groupby_has_spdurl = groupby_has_spdurl(root);
@@ -3747,18 +3746,19 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 		/* Create path for each child node */
 		for (i = 0; i < fdw_private->node_num; i++)
 		{
-			RelOptInfo *entry = childinfo[i].baserel;
-			PlannerInfo *dummy_root_child = childinfo[i].root;
+			ChildInfo *pChildInfo = &in_fdw_private->childinfo[i];
+			RelOptInfo *entry = pChildInfo->baserel;
+			PlannerInfo *dummy_root_child = pChildInfo->root;
 			RelOptInfo *dummy_output_rel;
 			Index	   *sortgrouprefs=NULL;
 			Node	   *extra_having_quals = NULL;
 
-			if (childinfo[i].child_node_status != ServerStatusAlive)
+			if (pChildInfo->child_node_status != ServerStatusAlive)
 			{
 				continue;
 			}
 
-			fs = GetForeignServer(childinfo[i].server_oid);
+			fs = GetForeignServer(pChildInfo->server_oid);
 			fdw = GetForeignDataWrapper(fs->fdwid);
 			
 			/* If child node is not pgspider_fdw, don't pushdown aggregation if scan clauses have __spd_url */
@@ -3798,7 +3798,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			dummy_output_rel->reloptkind = RELOPT_UPPER_REL;
 			dummy_output_rel->relids = bms_copy(entry->relids);
 
-			if (childinfo[i].fdwroutine->GetForeignUpperPaths != NULL)
+			if (pChildInfo->fdwroutine->GetForeignUpperPaths != NULL)
 			{
 				extra_having_quals = (Node *)copyObject(((GroupPathExtraData *)extra)->havingQual);
 
@@ -3843,7 +3843,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				/* Update path target from new target list without __spd_url */
 				dummy_root_child->upper_targets[UPPERREL_GROUP_AGG] = make_pathtarget_from_tlist(fdw_private->child_tlist);
 
-				if (childinfo[i].fdwroutine->GetForeignUpperPaths != NULL)
+				if (pChildInfo->fdwroutine->GetForeignUpperPaths != NULL)
 				{
 					/* Remove __spd_url from target list*/
 					dummy_output_rel->reltarget->exprs = remove_spdurl_from_targets(dummy_output_rel->reltarget->exprs, root);
@@ -3873,9 +3873,9 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			dummy_root_child->upper_targets[UPPERREL_GROUP_AGG]->sortgrouprefs = sortgrouprefs;
 			dummy_output_rel->reltarget->sortgrouprefs = sortgrouprefs;
 			
-			if (childinfo[i].fdwroutine->GetForeignUpperPaths != NULL)
+			if (pChildInfo->fdwroutine->GetForeignUpperPaths != NULL)
 			{
-				childinfo[i].fdwroutine->GetForeignUpperPaths(dummy_root_child,
+				pChildInfo->fdwroutine->GetForeignUpperPaths(dummy_root_child,
 												 stage, entry,
 												 dummy_output_rel, extra);
 				/*
@@ -3887,8 +3887,8 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			if (dummy_output_rel->pathlist != NULL)
 			{
 				/* Push down aggregate case */
-				childinfo[i].grouped_root_local = dummy_root_child;
-				childinfo[i].grouped_rel_local = dummy_output_rel;
+				pChildInfo->grouped_root_local = dummy_root_child;
+				pChildInfo->grouped_rel_local = dummy_output_rel;
 
 				/*
 				 * if at least one child fdw pushdown aggregate, parent push down
@@ -3926,7 +3926,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				 * Pass dummy_aggcosts because create_agg_path requires
 				 * aggcosts in cases other than AGG_HASH
 				 */
-				childinfo[i].aggpath = (AggPath *) create_agg_path((PlannerInfo *) dummy_root_child,
+				pChildInfo->aggpath = (AggPath *) create_agg_path((PlannerInfo *) dummy_root_child,
 																   dummy_output_rel,
 																   tmp_path,
 																   dummy_root_child->upper_targets[UPPERREL_GROUP_AGG],
@@ -3934,7 +3934,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 																   dummy_root_child->parse->groupClause, NULL, &dummy_aggcosts,
 																   1);
 
-				fdw_private->pPseudoAggList = lappend_oid(fdw_private->pPseudoAggList, childinfo[i].server_oid);
+				fdw_private->pPseudoAggList = lappend_oid(fdw_private->pPseudoAggList, pChildInfo->server_oid);
 
 			}
 		}
