@@ -4299,7 +4299,6 @@ spd_ExplainForeignScan(ForeignScanState *node,
 {
 	FdwRoutine *fdwroutine;
 	int			i;
-	ChildInfo  *childinfo;
 	SpdFdwPrivate *fdw_private;
 	ForeignScanThreadInfo *fssThrdinfo = node->spd_fsstate;
 
@@ -4309,13 +4308,13 @@ spd_ExplainForeignScan(ForeignScanState *node,
 		elog(ERROR, "fdw_private is NULL");
 
 	/* Create Foreign paths using base_rel_list to each child node. */
-	childinfo = fdw_private->childinfo;
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
 		ForeignServer *fs;
+		ChildInfo *pChildInfo = &fdw_private->childinfo[i];
 
-		fs = GetForeignServer(childinfo[i].server_oid);
-		fdwroutine = GetFdwRoutineByServerId(childinfo[i].server_oid);
+		fs = GetForeignServer(pChildInfo->server_oid);
+		fdwroutine = GetFdwRoutineByServerId(pChildInfo->server_oid);
 
 		if (fdwroutine->ExplainForeignScan == NULL)
 			continue;
@@ -4326,10 +4325,10 @@ spd_ExplainForeignScan(ForeignScanState *node,
 			int			idx;
 
 			ExplainPropertyText(psprintf("Node: %s / Status", fs->servername),
-								SpdServerstatusStr[childinfo[i].child_node_status], es);
+								SpdServerstatusStr[pChildInfo->child_node_status], es);
 			es->indent++;
 
-			if (childinfo[i].child_node_status != ServerStatusAlive)
+			if (pChildInfo->child_node_status != ServerStatusAlive)
 				continue;
 
 			if (es->verbose)
@@ -4337,10 +4336,10 @@ spd_ExplainForeignScan(ForeignScanState *node,
 
 				if (fdw_private->agg_query)
 				{
-					ExplainPropertyText("Agg push-down", !childinfo[i].can_pushdown_agg ? "no" : "yes", es);
+					ExplainPropertyText("Agg push-down", !pChildInfo->can_pushdown_agg ? "no" : "yes", es);
 				}
 			}
-			idx = childinfo[i].index_threadinfo;
+			idx = pChildInfo->index_threadinfo;
 			fdwroutine->ExplainForeignScan(((ForeignScanThreadInfo *) node->spd_fsstate)[idx].fsstate, es);
 			es->indent--;
 
@@ -4351,7 +4350,7 @@ spd_ExplainForeignScan(ForeignScanState *node,
 			 * If fail to create foreign paths, then set
 			 * fdw_private->child_table_alive to FALSE
 			 */
-			childinfo[i].child_node_status = ServerStatusDead;
+			pChildInfo->child_node_status = ServerStatusDead;
 			elog(WARNING, "fdw ExplainForeignScan error is occurred.");
 			FlushErrorState();
 		}
@@ -4380,18 +4379,18 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 	Cost		startup_cost = 0;
 	Cost		total_cost = 0;
 	Cost		rows = 0;
-	ChildInfo  *childinfo;
 
 	if (fdw_private == NULL)
 	{
 		elog(ERROR, "fdw_private is NULL");
 	}
 	/* Create Foreign paths using base_rel_list to each child node. */
-	childinfo = fdw_private->childinfo;
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
+		ChildInfo *pChildInfo = &fdw_private->childinfo[i];
+
 		/* skip to can not access child table at spd_GetForeignRelSize. */
-		if (childinfo[i].child_node_status != ServerStatusAlive)
+		if (pChildInfo->child_node_status != ServerStatusAlive)
 		{
 			continue;
 		}
@@ -4401,13 +4400,13 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 		{
 			Path	   *childpath;
 
-			childinfo[i].fdwroutine->GetForeignPaths((PlannerInfo *) childinfo[i].root,
-										(RelOptInfo *) childinfo[i].baserel,
-										childinfo[i].oid);
+			pChildInfo->fdwroutine->GetForeignPaths((PlannerInfo *) pChildInfo->root,
+										(RelOptInfo *) pChildInfo->baserel,
+										pChildInfo->oid);
 			/* Agg child node costs */
-			if (childinfo[i].baserel->pathlist != NULL)
+			if (pChildInfo->baserel->pathlist != NULL)
 			{
-				childpath = (Path *) lfirst_node(ForeignPath, list_head(childinfo[i].baserel->pathlist));
+				childpath = (Path *) lfirst_node(ForeignPath, list_head(pChildInfo->baserel->pathlist));
 				startup_cost += childpath->startup_cost;
 				total_cost += childpath->total_cost;
 				rows += childpath->rows;
@@ -4419,13 +4418,13 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 			 * If fail to create foreign paths, then set
 			 * fdw_private->child_table_alive to FALSE
 			 */
-			childinfo[i].child_node_status = ServerStatusDead;
+			pChildInfo->child_node_status = ServerStatusDead;
 
 			elog(WARNING, "Fdw GetForeignPaths error is occurred.");
 			FlushErrorState();
 			if (throwErrorIfDead)
 			{
-				ForeignServer *fs = GetForeignServer(childinfo[i].server_oid);
+				ForeignServer *fs = GetForeignServer(pChildInfo->server_oid);
 				spd_aliveError(fs);
 			}
 		}
@@ -4659,25 +4658,26 @@ spd_GetForeignChildPlans(PlannerInfo *root, RelOptInfo *baserel,
 	{
 		ForeignScan *fsplan = NULL;
 		List	   *temptlist;
+		ChildInfo *pChildInfo = &childinfo[i];
 
 		/* skip to can not access child table at spd_GetForeignRelSize. */
-		if (childinfo[i].baserel == NULL)
+		if (pChildInfo->baserel == NULL)
 			break;
-		if (childinfo[i].child_node_status != ServerStatusAlive)
+		if (pChildInfo->child_node_status != ServerStatusAlive)
 			continue;
 
 		/* get child node's oid. */
-		server_oid = childinfo[i].server_oid;
+		server_oid = pChildInfo->server_oid;
 
 		fs = GetForeignServer(server_oid);
 
 		PG_TRY();
 		{
 			/* create plan */
-			if (childinfo[i].grouped_rel_local != NULL)
+			if (pChildInfo->grouped_rel_local != NULL)
 			{
 				/* agg push down path */
-				if (!childinfo[i].grouped_rel_local->pathlist)
+				if (!pChildInfo->grouped_rel_local->pathlist)
 					elog(ERROR, "Agg path is not found");
 
 				/* FDWs expect NULL scan clauses for UPPER REL */
@@ -4685,11 +4685,11 @@ spd_GetForeignChildPlans(PlannerInfo *root, RelOptInfo *baserel,
 				/* Pick any agg path */
 
 				/* Pick any agg path */
-				child_path = lfirst(list_head(childinfo[i].grouped_rel_local->pathlist));
-				temptlist = PG_build_path_tlist((PlannerInfo *) childinfo[i].root, (Path *) child_path);
-				fsplan = childinfo[i].fdwroutine->GetForeignPlan(childinfo[i].grouped_root_local,
-													childinfo[i].grouped_rel_local,
-													childinfo[i].oid,
+				child_path = lfirst(list_head(pChildInfo->grouped_rel_local->pathlist));
+				temptlist = PG_build_path_tlist((PlannerInfo *) pChildInfo->root, (Path *) child_path);
+				fsplan = pChildInfo->fdwroutine->GetForeignPlan(pChildInfo->grouped_root_local,
+													pChildInfo->grouped_rel_local,
+													pChildInfo->oid,
 													(ForeignPath *) child_path,
 													temptlist,
 													*push_scan_clauses,
@@ -4708,7 +4708,7 @@ spd_GetForeignChildPlans(PlannerInfo *root, RelOptInfo *baserel,
 				if (IS_SIMPLE_REL(baserel) && ptemptlist != NULL)
 					temptlist = list_copy(ptemptlist);
 				else
-					temptlist = (List *) build_physical_tlist(childinfo[i].root, childinfo[i].baserel);
+					temptlist = (List *) build_physical_tlist(pChildInfo->root, pChildInfo->baserel);
 
 				/*
 				 * Fill sortgrouprefs to temptlist. temptlist is non aggref
@@ -4732,7 +4732,7 @@ spd_GetForeignChildPlans(PlannerInfo *root, RelOptInfo *baserel,
 				 * correct child path, but now we pass at least fdw_private of
 				 * child path.
 				 */
-				child_path = lfirst(list_head(childinfo[i].baserel->pathlist));
+				child_path = lfirst(list_head(pChildInfo->baserel->pathlist));
 				best_path->fdw_private = child_path->fdw_private;
 
 				/*
@@ -4748,9 +4748,9 @@ spd_GetForeignChildPlans(PlannerInfo *root, RelOptInfo *baserel,
 				{
 					*push_scan_clauses = fdw_private->baserestrictinfo;
 				}
-				fsplan = childinfo[i].fdwroutine->GetForeignPlan((PlannerInfo *) childinfo[i].root,
+				fsplan = pChildInfo->fdwroutine->GetForeignPlan((PlannerInfo *) pChildInfo->root,
 													(RelOptInfo *) childinfo[i].baserel,
-													childinfo[i].oid,
+													pChildInfo->oid,
 													(ForeignPath *) best_path,
 													temptlist,
 													*push_scan_clauses,
@@ -4763,12 +4763,12 @@ spd_GetForeignChildPlans(PlannerInfo *root, RelOptInfo *baserel,
 			 * If fail to get foreign plan, then set
 			 * fdw_private->child_table_alive to FALSE
 			 */
-			childinfo[i].child_node_status = ServerStatusDead;
+			pChildInfo->child_node_status = ServerStatusDead;
 			elog(WARNING, "GetForeignPlan failed ");
 			FlushErrorState();
 			if (throwErrorIfDead)
 			{
-				fs = GetForeignServer(childinfo[i].server_oid);
+				fs = GetForeignServer(pChildInfo->server_oid);
 				spd_aliveError(fs);
 			}
 		}
@@ -4804,33 +4804,33 @@ spd_GetForeignChildPlans(PlannerInfo *root, RelOptInfo *baserel,
 			 * Create aggregation plan with foreign table scan.
 			 * extract_grouping_cols() requires targetlist of subplan.
 			 */
-			if (childinfo[i].aggpath->aggstrategy == AGG_SORTED)
+			if (pChildInfo->aggpath->aggstrategy == AGG_SORTED)
 			{
 				AttrNumber *new_grpColIdx;
 
-				new_grpColIdx = extract_grouping_cols(childinfo[i].aggpath->groupClause,
+				new_grpColIdx = extract_grouping_cols(pChildInfo->aggpath->groupClause,
 													  fsplan->scan.plan.targetlist);
 
 				sort_plan = (Plan *)
-					spd_make_sort_from_groupcols(childinfo[i].aggpath->groupClause,
+					spd_make_sort_from_groupcols(pChildInfo->aggpath->groupClause,
 												 new_grpColIdx,
 												 (Plan *) fsplan);
 			}
-			childinfo[i].pAgg = make_agg(child_tlist,
+			pChildInfo->pAgg = make_agg(child_tlist,
 										 NULL,
-										 childinfo[i].aggpath->aggstrategy,
-										 childinfo[i].aggpath->aggsplit,
-										 list_length(childinfo[i].aggpath->groupClause),
-										 extract_grouping_cols(childinfo[i].aggpath->groupClause, fsplan->scan.plan.targetlist),
-										 extract_grouping_ops(childinfo[i].aggpath->groupClause),
-										 extract_grouping_collations(childinfo[i].aggpath->groupClause, fsplan->scan.plan.targetlist),
+										 pChildInfo->aggpath->aggstrategy,
+										 pChildInfo->aggpath->aggsplit,
+										 list_length(pChildInfo->aggpath->groupClause),
+										 extract_grouping_cols(pChildInfo->aggpath->groupClause, fsplan->scan.plan.targetlist),
+										 extract_grouping_ops(pChildInfo->aggpath->groupClause),
+										 extract_grouping_collations(pChildInfo->aggpath->groupClause, fsplan->scan.plan.targetlist),
 										 root->parse->groupingSets,
 										 NIL,
-										 childinfo[i].aggpath->path.rows,
-										 childinfo[i].aggpath->transitionSpace,
+										 pChildInfo->aggpath->path.rows,
+										 pChildInfo->aggpath->transitionSpace,
 										 sort_plan!=NULL?sort_plan:(Plan *) fsplan);
 		}
-		childinfo[i].plan = (Plan *) fsplan;
+		pChildInfo->plan = (Plan *) fsplan;
 	}
 }
 
@@ -5297,18 +5297,19 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		TupleDesc	tupledesc;
 		TupleDesc	tupledesc_child;
 		bool		skiplast;
+		ChildInfo *pChildInfo = &fdw_private->childinfo[i];
 
 		/*
 		 * check child table node is dead or alive. Execute(Create child
 		 * thread) alive table node only. So, childinfo[i] and fssThrdInfo[i]
 		 * do not corresponds
 		 */
-		if (childinfo[i].child_node_status != ServerStatusAlive)
+		if (pChildInfo->child_node_status != ServerStatusAlive)
 		{
 			/* Not increment node_incr in this case */
 			continue;
 		}
-		server_oid = childinfo[i].server_oid;
+		server_oid = pChildInfo->server_oid;
 #ifdef GETPROGRESS_ENABLED
 		if (getResultFlag)
 			break;
@@ -5319,7 +5320,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
 		{
 			/* Not push down aggregate to child fdw */
-			fssThrdInfo[node_incr].fsstate->ss.ps.plan = copyObject(childinfo[i].plan);
+			fssThrdInfo[node_incr].fsstate->ss.ps.plan = copyObject(pChildInfo->plan);
 		}
 		else
 		{
@@ -5328,9 +5329,9 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			fssThrdInfo[node_incr].fsstate->ss.ps.plan = copyObject(node->ss.ps.plan);
 		}
 		fsplan = (ForeignScan *) fssThrdInfo[node_incr].fsstate->ss.ps.plan;
-		fsplan->scan.scanrelid = ((ForeignScan *)childinfo[i].plan)->scan.scanrelid;
-		fsplan->fdw_private = ((ForeignScan *) childinfo[i].plan)->fdw_private;
-		fsplan->fdw_exprs = ((ForeignScan *) childinfo[i].plan)->fdw_exprs;
+		fsplan->scan.scanrelid = ((ForeignScan *)pChildInfo->plan)->scan.scanrelid;
+		fsplan->fdw_private = ((ForeignScan *) pChildInfo->plan)->fdw_private;
+		fsplan->fdw_exprs = ((ForeignScan *) pChildInfo->plan)->fdw_exprs;
 
 		/* Create and initialize EState */
 		fssThrdInfo[node_incr].fsstate->ss.ps.state = CreateExecutorState();
@@ -5391,7 +5392,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		 * current relation ID gets from current server oid, it means
 		 * childinfo[i].oid
 		 */
-		rd = RelationIdGetRelation(childinfo[i].oid);
+		rd = RelationIdGetRelation(pChildInfo->oid);
 
 		/*
 		 * For prepared statement, dummy root is not created at the next execution, so we need to lock relation again.
@@ -5400,7 +5401,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		 */
 		if (!CheckRelationLockedByMe(rd, AccessShareLock, true))
 		{
-			LockRelationOid(childinfo[i].oid, AccessShareLock);
+			LockRelationOid(pChildInfo->oid, AccessShareLock);
 		}
 
 		fssThrdInfo[node_incr].fsstate->ss.ss_currentRelation = rd;
@@ -5466,12 +5467,12 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 				 * then we need to create more child slots for aggreate targets that
 				 * extracted from these local conditions.
 				 */
-				if (childinfo[i].plan->qual)
+				if (pChildInfo->plan->qual)
 				{
 					List *child_tlist = list_copy(fdw_private->child_tlist);
 					List *aggvars = NIL;
 
-					foreach(lc, childinfo[i].plan->qual)
+					foreach(lc, pChildInfo->plan->qual)
 					{
 						Expr *clause = (Expr *) lfirst(lc);
 
