@@ -2862,6 +2862,29 @@ check_basestrictinfo(PlannerInfo *root, ForeignDataWrapper *fdw, RelOptInfo *ent
 	entry_baserel->baserestrictinfo = restrictinfo;
 }
 
+/**
+ * var_is_spdurl
+ *
+ * Check if Var name is SPDURL or not.
+ *
+ * @param[in] var - Var expression
+ * @param[in] root
+ * @return True if it is SPDURL.
+ */
+static bool
+var_is_spdurl(Var *var, PlannerInfo *root)
+{
+	RangeTblEntry *rte;
+	char	   *colname;
+
+	rte = planner_rt_fetch(var->varno, root);
+	colname = get_attname(rte->relid, var->varattno, false);
+
+	if (strcmp(colname, SPDURL) == 0)
+		return true;
+	else
+		return false;
+}
 
 /**
  * remove_spdurl_from_targets
@@ -2878,8 +2901,6 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root)
 
 	foreach (lc, exprs)
 	{
-		RangeTblEntry *rte;
-		char	   *colname;
 		Node	   *node = (Node *) lfirst(lc);
 		Node	   *varnode;
 
@@ -2900,13 +2921,7 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root)
 			{
 				continue;
 			}
-			else
-			{
-				rte = planner_rt_fetch(var->varno, root);
-				colname = get_attname(rte->relid, var->varattno, false);
-			}
-
-			if (strcmp(colname, SPDURL) == 0)
+			if (var_is_spdurl(var, root))
 			{
 				exprs = foreach_delete_current(exprs, lc);
 			}
@@ -2998,13 +3013,7 @@ remove_spdurl_from_group_clause(PlannerInfo *root, List *tlist, List *groupClaus
 
 		if (IsA(tle->expr, Var))
 		{
-			Var		   *var = (Var *) tle->expr;
-			RangeTblEntry *rte;
-			char	   *colname;
-
-			rte = planner_rt_fetch(var->varno, root);
-			colname = get_attname(rte->relid, var->varattno, false);
-			if (strcmp(colname, SPDURL) == 0)
+			if (var_is_spdurl((Var *) tle->expr, root))
 			{
 				groupClause = foreach_delete_current(groupClause, lc);
 			}
@@ -3027,8 +3036,6 @@ groupby_has_spdurl(PlannerInfo *root)
 	List	   *target_list = root->parse->targetList;
 	List	   *group_clause = root->parse->groupClause;
 	ListCell   *lc;
-	char	   *colname;
-	RangeTblEntry *rte;
 
 	foreach(lc, group_clause)
 	{
@@ -3040,11 +3047,7 @@ groupby_has_spdurl(PlannerInfo *root)
 		/* Check __spd_url in the target entry */
 		if (IsA(te->expr, Var))
 		{
-			Var		   *var = (Var *) te->expr;
-
-			rte = planner_rt_fetch(var->varno, root);
-			colname = get_attname(rte->relid, var->varattno, false);
-			if (strcmp(colname, SPDURL) == 0)
+			if (var_is_spdurl((Var *) te->expr, root))
 				return true;
 		}
 	}
@@ -5298,6 +5301,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		TupleDesc	tupledesc_child;
 		bool		skiplast;
 		ChildInfo *pChildInfo = &fdw_private->childinfo[i];
+		ForeignScan *fsplan_child;
 
 		/*
 		 * check child table node is dead or alive. Execute(Create child
@@ -5320,18 +5324,18 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
 		{
 			/* Not push down aggregate to child fdw */
-			fssThrdInfo[node_incr].fsstate->ss.ps.plan = copyObject(pChildInfo->plan);
+			fsplan_child = (ForeignScan *) copyObject(pChildInfo->plan);
 		}
 		else
 		{
 			/* Push down case */
 			fssThrdInfo[node_incr].fsstate->ss = node->ss;
-			fssThrdInfo[node_incr].fsstate->ss.ps.plan = copyObject(node->ss.ps.plan);
+			fsplan_child = (ForeignScan *) copyObject(node->ss.ps.plan);
 		}
-		fsplan = (ForeignScan *) fssThrdInfo[node_incr].fsstate->ss.ps.plan;
-		fsplan->scan.scanrelid = ((ForeignScan *)pChildInfo->plan)->scan.scanrelid;
-		fsplan->fdw_private = ((ForeignScan *) pChildInfo->plan)->fdw_private;
-		fsplan->fdw_exprs = ((ForeignScan *) pChildInfo->plan)->fdw_exprs;
+		fsplan_child->scan.scanrelid = ((ForeignScan *)pChildInfo->plan)->scan.scanrelid;
+		fsplan_child->fdw_private = ((ForeignScan *) pChildInfo->plan)->fdw_private;
+		fsplan_child->fdw_exprs = ((ForeignScan *) pChildInfo->plan)->fdw_exprs;
+		fssThrdInfo[node_incr].fsstate->ss.ps.plan = (Plan *) fsplan_child;
 
 		/* Create and initialize EState */
 		fssThrdInfo[node_incr].fsstate->ss.ps.state = CreateExecutorState();
@@ -5421,7 +5425,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		else
 		{
 			/* Push down case */
-			fssThrdInfo[node_incr].requestStartScan = (fsplan->fdw_exprs == NIL);
+			fssThrdInfo[node_incr].requestStartScan = (fsplan_child->fdw_exprs == NIL);
 		}
 
 		/* We save correspondence between fssThrdInfo and childinfo */
