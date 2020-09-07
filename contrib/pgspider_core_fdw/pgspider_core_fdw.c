@@ -5598,11 +5598,9 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	/* Wait for state change */
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 	{
-		if (fssThrdInfo[node_incr].state == SPD_FS_STATE_INIT)
+		while (fssThrdInfo[node_incr].state == SPD_FS_STATE_INIT)
 		{
 			pthread_yield();
-			node_incr--;
-			continue;
 		}
 	}
 	fdw_private->isFirst = true;
