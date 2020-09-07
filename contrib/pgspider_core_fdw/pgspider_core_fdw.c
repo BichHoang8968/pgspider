@@ -22,9 +22,6 @@ PG_MODULE_MAGIC;
 #include <unistd.h>
 #include <pthread.h>
 #include <math.h>
-#include "access/htup_details.h"
-#include "access/transam.h"
-#include "access/sysattr.h"
 #include "access/table.h"
 #include "access/xact.h"
 #include "catalog/pg_type.h"
@@ -32,19 +29,9 @@ PG_MODULE_MAGIC;
 #include "catalog/pg_proc.h"
 #include "foreign/fdwapi.h"
 #include "foreign/foreign.h"
-#include "executor/tuptable.h"
-#include "executor/execdesc.h"
-#include "executor/executor.h"
 #include "executor/spi.h"
-#include "executor/nodeAgg.h"
-#include "executor/nodeSubplan.h"
 #include "miscadmin.h"
-#include "nodes/execnodes.h"
 #include "nodes/nodeFuncs.h"
-#include "nodes/nodes.h"
-#include "nodes/pg_list.h"
-#include "nodes/plannodes.h"
-#include "nodes/pathnodes.h"
 #include "nodes/makefuncs.h"
 #include "optimizer/pathnode.h"
 #include "optimizer/planmain.h"
@@ -52,31 +39,16 @@ PG_MODULE_MAGIC;
 #include "optimizer/restrictinfo.h"
 #include "optimizer/optimizer.h"
 #include "optimizer/tlist.h"
-#include "optimizer/cost.h"
-#include "optimizer/clauses.h"
 #include "parser/parsetree.h"
 #include "utils/guc.h"
-#include "utils/memutils.h"
-#include "utils/palloc.h"
-#include "utils/lsyscache.h"
 #include "utils/builtins.h"
-#include "utils/float.h"
 #include "utils/datum.h"
-#include "utils/rel.h"
-#include "utils/elog.h"
-#include "utils/selfuncs.h"
-#include "utils/numeric.h"
-#include "utils/hsearch.h"
 #include "utils/syscache.h"
 #include "utils/lsyscache.h"
-#include "utils/resowner.h"
 #include "storage/lmgr.h"
-#include "libpq-fe.h"
 #include "pgspider_core_fdw_defs.h"
 #include "funcapi.h"
-#include "postgres_fdw/postgres_fdw.h"
 #include "catalog/pg_operator.h"
-#include "parser/parse_agg.h"
 #ifndef WITHOUT_KEEPALIVE
 #include "pgspider_keepalive/pgspider_keepalive.h"
 #endif
@@ -311,6 +283,78 @@ typedef struct ChildInfo
 }			ChildInfo;
 
 /*
+ * FDW-specific planner information kept in RelOptInfo.fdw_private for a
+ * pgspider_core_fdw foreign table.  For a baserel, this struct is created by
+ * pgspiderGetForeignRelSize, although some fields are not filled till later.
+ * pgspiderGetForeignJoinPaths creates it for a joinrel, and
+ * pgspiderGetForeignUpperPaths creates it for an upperrel.
+ */
+typedef struct SpdRelationInfo
+{
+	/*
+	 * True means that the relation can be pushed down. Always true for simple
+	 * foreign scan.
+	 */
+	bool		pushdown_safe;
+
+	/*
+	 * Restriction clauses, divided into safe and unsafe to pushdown subsets.
+	 * All entries in these lists should have RestrictInfo wrappers; that
+	 * improves efficiency of selectivity and cost estimation.
+	 */
+	List	   *remote_conds;
+	List	   *local_conds;
+
+	/* Actual remote restriction clauses for scan (sans RestrictInfos) */
+	List	   *final_remote_exprs;
+
+	/* Estimated size and cost for a scan, join, or grouping/aggregation. */
+	double		rows;
+	int			width;
+	Cost		startup_cost;
+	Cost		total_cost;
+
+	/*
+	 * Estimated costs excluding costs for transferring those rows from the 
+	 * foreign server. These are only used by estimate_path_cost_size().
+	 */
+	Cost		rel_startup_cost;
+	Cost		rel_total_cost;
+
+	/* Cached catalog information. */
+	ForeignTable *table;
+	ForeignServer *server;
+	UserMapping *user;			/* only set in use_remote_estimate mode */
+
+	/*
+	 * Name of the relation while EXPLAINing ForeignScan. It is used for join
+	 * relations but is set for all relations. For join relation, the name
+	 * indicates which foreign tables are being joined and the join type used.
+	 */
+	StringInfo	relation_name;
+
+	/* Outer relation information */
+	RelOptInfo *outerrel;
+
+	/* Grouping information */
+	List	   *grouped_tlist;
+
+	/* Subquery information */
+	bool		make_outerrel_subquery; /* do we deparse outerrel as a
+										 * subquery? */
+	bool		make_innerrel_subquery; /* do we deparse innerrel as a
+										 * subquery? */
+	Relids		lower_subquery_rels;	/* all relids appearing in lower
+										 * subqueries */
+
+	/*
+	 * Index of the relation.  It is used to create an alias to a subquery
+	 * representing the relation.
+	 */
+	int			relation_index;
+}			SpdRelationInfo;
+
+/*
  * SpdFdwPrivate keep child node plan information for each child tables belonging to the parent table.
  * Spd create child table node plan from each spd_GetForeignRelSize(),spd_GetForeignPaths(),spd_GetForeignPlan().
  * SpdFdwPrivate is created at spd_GetForeignSize() using spd_AllocatePrivate().
@@ -332,7 +376,7 @@ typedef struct SpdFdwPrivate
 
 	PlannerInfo *spd_root;		/* Copy of root planner info. This is used by
 								 * aggregation pushdown. */
-	PgFdwRelationInfo rinfo;	/* pgspider relation info */
+	SpdRelationInfo rinfo;	/* pgspider relation info */
 	TupleDesc	child_comp_tupdesc; /* temporary tuple desc */
 
 	/* USE IN BOTH PLANNING AND EXECUTION */
