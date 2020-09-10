@@ -3650,18 +3650,20 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	bool		pushdown = false;
 	ForeignServer *fs;
 	ForeignDataWrapper *fdw;
+	int			i = 0;
 
 	/*
 	 * If input rel is not safe to pushdown, then simply return as we cannot
 	 * perform any post-join operations on the foreign server.
 	 */
-	if (!input_rel->fdw_private ||
-		!((SpdFdwPrivate *) input_rel->fdw_private)->rinfo.pushdown_safe)
+	in_fdw_private = (SpdFdwPrivate *) input_rel->fdw_private;
+	if (!in_fdw_private || !in_fdw_private->childinfo ||
+		!in_fdw_private->rinfo.pushdown_safe)
 		return;
+
 	/* Ignore stages we don't support; and skip any duplicate calls. */
 	if (stage != UPPERREL_GROUP_AGG || output_rel->fdw_private)
 		return;
-	in_fdw_private = (SpdFdwPrivate *) input_rel->fdw_private;
 
 	/*
 	 * Prepare SpdFdwPrivate for output RelOptInfo. spd_AllocatePrivate do
@@ -3724,221 +3726,216 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 		return;
 
 	spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = list_copy(newList);
-	/* Call the child FDW's GetForeignUpperPaths */
-	if (in_fdw_private->childinfo != NULL)
+
+	/* set flag if group by has __spd_url */
+	fdw_private->groupby_has_spdurl = groupby_has_spdurl(root);
+
+	/* 
+	 * get index of __spd_url in the target list 
+	 */
+	if (fdw_private->groupby_has_spdurl)
 	{
-		int			i = 0;
+		fdw_private->idx_url_tlist = get_index_spdurl_from_targets(fdw_private->child_comp_tlist, root);
+	}
 
-		/* set flag if group by has __spd_url */
-		fdw_private->groupby_has_spdurl = groupby_has_spdurl(root);
+	/* child_tlist will be used instead of child_comp_tlist, because we will remove __spd_url from child_tlist. */
+	fdw_private->child_tlist = list_copy(fdw_private->child_comp_tlist);
 
-		/* 
-		 * get index of __spd_url in the target list 
-		 */
-		if (fdw_private->groupby_has_spdurl)
+	/* Create path for each child node */
+	for (i = 0; i < fdw_private->node_num; i++)
+	{
+		ChildInfo *pChildInfo = &in_fdw_private->childinfo[i];
+		RelOptInfo *entry = pChildInfo->baserel;
+		PlannerInfo *dummy_root_child = pChildInfo->root;
+		RelOptInfo *dummy_output_rel;
+		Index	   *sortgrouprefs=NULL;
+		Node	   *extra_having_quals = NULL;
+
+		if (pChildInfo->child_node_status != ServerStatusAlive)
 		{
-			fdw_private->idx_url_tlist = get_index_spdurl_from_targets(fdw_private->child_comp_tlist, root);
+			continue;
 		}
 
-		/* child_tlist will be used instead of child_comp_tlist, because we will remove __spd_url from child_tlist. */
-		fdw_private->child_tlist = list_copy(fdw_private->child_comp_tlist);
-
-		/* Create path for each child node */
-		for (i = 0; i < fdw_private->node_num; i++)
+		fs = GetForeignServer(pChildInfo->server_oid);
+		fdw = GetForeignDataWrapper(fs->fdwid);
+		
+		/* If child node is not pgspider_fdw, don't pushdown aggregation if scan clauses have __spd_url */
+		if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
 		{
-			ChildInfo *pChildInfo = &in_fdw_private->childinfo[i];
-			RelOptInfo *entry = pChildInfo->baserel;
-			PlannerInfo *dummy_root_child = pChildInfo->root;
-			RelOptInfo *dummy_output_rel;
-			Index	   *sortgrouprefs=NULL;
-			Node	   *extra_having_quals = NULL;
+			if (spd_checkurl_clauses(root, fdw_private->baserestrictinfo))
+				return;
+		}
 
-			if (pChildInfo->child_node_status != ServerStatusAlive)
-			{
-				continue;
-			}
+		/* 
+		 * Update dummy child root 
+		 */
+		dummy_root_child->parse->groupClause = list_copy(root->parse->groupClause);
 
-			fs = GetForeignServer(pChildInfo->server_oid);
-			fdw = GetForeignDataWrapper(fs->fdwid);
-			
-			/* If child node is not pgspider_fdw, don't pushdown aggregation if scan clauses have __spd_url */
-			if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
-			{
-				if (spd_checkurl_clauses(root, fdw_private->baserestrictinfo))
-					return;
-			}
-
-			/* 
-			 * Update dummy child root 
+		if (fdw_private->having_quals != NIL)
+		{
+			/*
+			 * Set information about HAVING clause from pgspider_core_fdw
+			 * to GroupPathExtraData and dummy_root.
 			 */
-			dummy_root_child->parse->groupClause = list_copy(root->parse->groupClause);
+			dummy_root_child->parse->havingQual = (Node *)copyObject(fdw_private->having_quals);
+			dummy_root_child->hasHavingQual = true;
+		}
+		else
+		{
+			/* Does not let child node execute HAVING .*/
+			dummy_root_child->parse->havingQual = NULL;
+			dummy_root_child->hasHavingQual = false;
+		}
+
+		/* Currently dummy. @todo more better parsed object. */
+		dummy_root_child->parse->hasAggs = true;
+		
+		/* Call below FDW to check it is OK to pushdown or not. */
+		/* refer relnode.c fetch_upper_rel() */
+		dummy_output_rel = makeNode(RelOptInfo);
+		dummy_output_rel->reloptkind = RELOPT_UPPER_REL;
+		dummy_output_rel->relids = bms_copy(entry->relids);
+
+		if (pChildInfo->fdwroutine->GetForeignUpperPaths != NULL)
+		{
+			extra_having_quals = (Node *)copyObject(((GroupPathExtraData *)extra)->havingQual);
 
 			if (fdw_private->having_quals != NIL)
 			{
-				/*
-				 * Set information about HAVING clause from pgspider_core_fdw
-				 * to GroupPathExtraData and dummy_root.
-				 */
-				dummy_root_child->parse->havingQual = (Node *)copyObject(fdw_private->having_quals);
-				dummy_root_child->hasHavingQual = true;
+				((GroupPathExtraData *)extra)->havingQual = (Node *)copyObject(fdw_private->having_quals);
 			}
 			else
 			{
-				/* Does not let child node execute HAVING .*/
-				dummy_root_child->parse->havingQual = NULL;
-				dummy_root_child->hasHavingQual = false;
+				((GroupPathExtraData *)extra)->havingQual = NULL;
 			}
 
-			/* Currently dummy. @todo more better parsed object. */
-			dummy_root_child->parse->hasAggs = true;
-			
-			/* Call below FDW to check it is OK to pushdown or not. */
-			/* refer relnode.c fetch_upper_rel() */
-			dummy_output_rel = makeNode(RelOptInfo);
-			dummy_output_rel->reloptkind = RELOPT_UPPER_REL;
-			dummy_output_rel->relids = bms_copy(entry->relids);
+			dummy_output_rel->reltarget = copy_pathtarget(output_rel->reltarget);
+			dummy_output_rel->reltarget->exprs = list_copy(fdw_private->upper_targets);
+		}else
+		{
+			dummy_output_rel->reltarget = create_empty_pathtarget();
+		}
+
+		dummy_root_child->upper_rels[UPPERREL_GROUP_AGG] =
+			lappend(dummy_root_child->upper_rels[UPPERREL_GROUP_AGG],
+					dummy_output_rel);
+
+		dummy_root_child->upper_targets[UPPERREL_GROUP_AGG] =
+			make_pathtarget_from_tlist(fdw_private->child_comp_tlist);
+		dummy_root_child->upper_targets[UPPERREL_WINDOW] =
+			copy_pathtarget(spd_root->upper_targets[UPPERREL_WINDOW]);
+		dummy_root_child->upper_targets[UPPERREL_FINAL] =
+			copy_pathtarget(spd_root->upper_targets[UPPERREL_FINAL]);
+
+		/*
+		 * Remove __spd_url from target lists and group clause if a child is not pgspider_fdw
+		 */
+		if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0 && fdw_private->groupby_has_spdurl)
+		{
+			/* Remove __spd_url from group clause */
+			dummy_root_child->parse->groupClause = remove_spdurl_from_group_clause(root, fdw_private->child_comp_tlist, dummy_root_child->parse->groupClause);
+
+			/* Modify child tlist. We use child tlist for fetching data from child node. */
+			fdw_private->child_tlist = remove_spdurl_from_targets(fdw_private->child_tlist, root);
+
+			/* Update path target from new target list without __spd_url */
+			dummy_root_child->upper_targets[UPPERREL_GROUP_AGG] = make_pathtarget_from_tlist(fdw_private->child_tlist);
 
 			if (pChildInfo->fdwroutine->GetForeignUpperPaths != NULL)
 			{
-				extra_having_quals = (Node *)copyObject(((GroupPathExtraData *)extra)->havingQual);
-
-				if (fdw_private->having_quals != NIL)
-				{
-					((GroupPathExtraData *)extra)->havingQual = (Node *)copyObject(fdw_private->having_quals);
-				}
-				else
-				{
-					((GroupPathExtraData *)extra)->havingQual = NULL;
-				}
-
-				dummy_output_rel->reltarget = copy_pathtarget(output_rel->reltarget);
-				dummy_output_rel->reltarget->exprs = list_copy(fdw_private->upper_targets);
-			}else
-			{
-				dummy_output_rel->reltarget = create_empty_pathtarget();
-			}
-
-			dummy_root_child->upper_rels[UPPERREL_GROUP_AGG] =
-				lappend(dummy_root_child->upper_rels[UPPERREL_GROUP_AGG],
-						dummy_output_rel);
-
-			dummy_root_child->upper_targets[UPPERREL_GROUP_AGG] =
-				make_pathtarget_from_tlist(fdw_private->child_comp_tlist);
-			dummy_root_child->upper_targets[UPPERREL_WINDOW] =
-				copy_pathtarget(spd_root->upper_targets[UPPERREL_WINDOW]);
-			dummy_root_child->upper_targets[UPPERREL_FINAL] =
-				copy_pathtarget(spd_root->upper_targets[UPPERREL_FINAL]);
-
-			/*
-			 * Remove __spd_url from target lists and group clause if a child is not pgspider_fdw
-			 */
-			if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0 && fdw_private->groupby_has_spdurl)
-			{
-				/* Remove __spd_url from group clause */
-				dummy_root_child->parse->groupClause = remove_spdurl_from_group_clause(root, fdw_private->child_comp_tlist, dummy_root_child->parse->groupClause);
-
-				/* Modify child tlist. We use child tlist for fetching data from child node. */
-				fdw_private->child_tlist = remove_spdurl_from_targets(fdw_private->child_tlist, root);
-
-				/* Update path target from new target list without __spd_url */
-				dummy_root_child->upper_targets[UPPERREL_GROUP_AGG] = make_pathtarget_from_tlist(fdw_private->child_tlist);
-
-				if (pChildInfo->fdwroutine->GetForeignUpperPaths != NULL)
-				{
-					/* Remove __spd_url from target list*/
-					dummy_output_rel->reltarget->exprs = remove_spdurl_from_targets(dummy_output_rel->reltarget->exprs, root);
-				}
-				else
-				{
-					List * tempList;
-
-					/* Make tlist from path target */
-					tempList = make_tlist_from_pathtarget(fdw_private->rinfo.outerrel->reltarget);
-					/* Remove __spd_url */
-					tempList = remove_spdurl_from_targets(tempList, root);
-					/* Update path target */
-					fdw_private->rinfo.outerrel->reltarget = make_pathtarget_from_tlist(tempList);
-				}
-			}
-
-			/* Fill sortgrouprefs for child using child target entry list */
-			sortgrouprefs = palloc0(sizeof(Index) * list_length(fdw_private->child_tlist));
-			listn = 0;
-			foreach (lc, fdw_private->child_tlist)
-			{
-				TargetEntry *tmp_entry = (TargetEntry *)lfirst(lc);
-
-				sortgrouprefs[listn++] = tmp_entry->ressortgroupref;
-			}
-			dummy_root_child->upper_targets[UPPERREL_GROUP_AGG]->sortgrouprefs = sortgrouprefs;
-			dummy_output_rel->reltarget->sortgrouprefs = sortgrouprefs;
-			
-			if (pChildInfo->fdwroutine->GetForeignUpperPaths != NULL)
-			{
-				pChildInfo->fdwroutine->GetForeignUpperPaths(dummy_root_child,
-												 stage, entry,
-												 dummy_output_rel, extra);
-				/*
-				 * Give original HAVING qualifications for GroupPathExtra->havingQual.
-				 */
-				((GroupPathExtraData *)extra)->havingQual = extra_having_quals;
-			}
-
-			if (dummy_output_rel->pathlist != NULL)
-			{
-				/* Push down aggregate case */
-				pChildInfo->grouped_root_local = dummy_root_child;
-				pChildInfo->grouped_rel_local = dummy_output_rel;
-
-				/*
-				 * if at least one child fdw pushdown aggregate, parent push down
-				 */
-				pushdown = true;
+				/* Remove __spd_url from target list*/
+				dummy_output_rel->reltarget->exprs = remove_spdurl_from_targets(dummy_output_rel->reltarget->exprs, root);
 			}
 			else
 			{
-				/* Not Push Down case */
-				struct Path *tmp_path;
-				Query	   *query = root->parse;
-				AggClauseCosts dummy_aggcosts;
-				PathTarget *grouping_target = output_rel->reltarget;
-				AggStrategy aggStrategy = AGG_PLAIN;
+				List * tempList;
 
-				MemSet(&dummy_aggcosts, 0, sizeof(AggClauseCosts));
-				tmp_path = linitial(entry->pathlist);
-
-				if (query->groupClause)
-				{
-					aggStrategy = AGG_HASHED;
-					foreach(lc, grouping_target->exprs)
-					{
-						Node * node = lfirst(lc);
-
-						/* If there is ORDER BY inside aggregate function, set AggStrategy to AGG_SORTED */
-						if (is_sorted(node))
-						{
-							aggStrategy = AGG_SORTED;
-							break;
-						}
-					}
-				}
-				/*
-				 * Pass dummy_aggcosts because create_agg_path requires
-				 * aggcosts in cases other than AGG_HASH
-				 */
-				pChildInfo->aggpath = (AggPath *) create_agg_path((PlannerInfo *) dummy_root_child,
-																   dummy_output_rel,
-																   tmp_path,
-																   dummy_root_child->upper_targets[UPPERREL_GROUP_AGG],
-																   aggStrategy, AGGSPLIT_SIMPLE,
-																   dummy_root_child->parse->groupClause, NULL, &dummy_aggcosts,
-																   1);
-
-				fdw_private->pPseudoAggList = lappend_oid(fdw_private->pPseudoAggList, pChildInfo->server_oid);
-
+				/* Make tlist from path target */
+				tempList = make_tlist_from_pathtarget(fdw_private->rinfo.outerrel->reltarget);
+				/* Remove __spd_url */
+				tempList = remove_spdurl_from_targets(tempList, root);
+				/* Update path target */
+				fdw_private->rinfo.outerrel->reltarget = make_pathtarget_from_tlist(tempList);
 			}
 		}
+
+		/* Fill sortgrouprefs for child using child target entry list */
+		sortgrouprefs = palloc0(sizeof(Index) * list_length(fdw_private->child_tlist));
+		listn = 0;
+		foreach (lc, fdw_private->child_tlist)
+		{
+			TargetEntry *tmp_entry = (TargetEntry *)lfirst(lc);
+
+			sortgrouprefs[listn++] = tmp_entry->ressortgroupref;
+		}
+		dummy_root_child->upper_targets[UPPERREL_GROUP_AGG]->sortgrouprefs = sortgrouprefs;
+		dummy_output_rel->reltarget->sortgrouprefs = sortgrouprefs;
+		
+		if (pChildInfo->fdwroutine->GetForeignUpperPaths != NULL)
+		{
+			pChildInfo->fdwroutine->GetForeignUpperPaths(dummy_root_child,
+											 stage, entry,
+											 dummy_output_rel, extra);
+			/*
+			 * Give original HAVING qualifications for GroupPathExtra->havingQual.
+			 */
+			((GroupPathExtraData *)extra)->havingQual = extra_having_quals;
+		}
+
+		if (dummy_output_rel->pathlist != NULL)
+		{
+			/* Push down aggregate case */
+			pChildInfo->grouped_root_local = dummy_root_child;
+			pChildInfo->grouped_rel_local = dummy_output_rel;
+
+			/*
+			 * if at least one child fdw pushdown aggregate, parent push down
+			 */
+			pushdown = true;
+		}
+		else
+		{
+			/* Not Push Down case */
+			struct Path *tmp_path;
+			Query	   *query = root->parse;
+			AggClauseCosts dummy_aggcosts;
+			PathTarget *grouping_target = output_rel->reltarget;
+			AggStrategy aggStrategy = AGG_PLAIN;
+
+			MemSet(&dummy_aggcosts, 0, sizeof(AggClauseCosts));
+			tmp_path = linitial(entry->pathlist);
+
+			if (query->groupClause)
+			{
+				aggStrategy = AGG_HASHED;
+				foreach(lc, grouping_target->exprs)
+				{
+					Node * node = lfirst(lc);
+
+					/* If there is ORDER BY inside aggregate function, set AggStrategy to AGG_SORTED */
+					if (is_sorted(node))
+					{
+						aggStrategy = AGG_SORTED;
+						break;
+					}
+				}
+			}
+			/*
+			 * Pass dummy_aggcosts because create_agg_path requires
+			 * aggcosts in cases other than AGG_HASH
+			 */
+			pChildInfo->aggpath = (AggPath *) create_agg_path((PlannerInfo *) dummy_root_child,
+															   dummy_output_rel,
+															   tmp_path,
+															   dummy_root_child->upper_targets[UPPERREL_GROUP_AGG],
+															   aggStrategy, AGGSPLIT_SIMPLE,
+															   dummy_root_child->parse->groupClause, NULL, &dummy_aggcosts,
+															   1);
+
+			fdw_private->pPseudoAggList = lappend_oid(fdw_private->pPseudoAggList, pChildInfo->server_oid);
+		}
 	}
+
 	/* Add generated path into grouped_rel by add_path(). */
 	if (pushdown)
 		add_path(output_rel, path);
