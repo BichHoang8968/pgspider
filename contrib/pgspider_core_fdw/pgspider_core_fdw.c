@@ -2603,15 +2603,14 @@ spd_ParseUrl(List *spd_url_list)
 
 
 /**
- * Get URL from RangeTableEntry and create new URL with deleting first URL.
+ * Create new URL with deleting first node name from parent URL sring.
  *
- * @param[in] childnums - num of child tables
- * @param[in] r_entry - old URL
- * @param[out] fdw_private - store to parsing URL
- *
+ * @param[in] childnums The number of child tables
+ * @param[in] spd_url_list URL of parent
+ * @param[out] fdw_private Parsed URLs are stored
  */
 static void
-spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_private)
+spd_create_child_url(int childnums, List *spd_url_list, SpdFdwPrivate * fdw_private)
 {
 	char	   *original_url = NULL;
 	char	   *throwing_url = NULL;
@@ -2621,7 +2620,7 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 	 * entry is first parsing word(/foo/bar/, then entry is "foo",entry2 is
 	 * "bar")
 	 */
-	fdw_private->url_list = spd_ParseUrl(r_entry->spd_url_list);
+	fdw_private->url_list = spd_ParseUrl(spd_url_list);
 	if (fdw_private->url_list == NULL)
 		elog(ERROR, "IN clause is used but no URL found. Please specify URL.");
 
@@ -3359,7 +3358,7 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 
 	/* Check to IN clause and execute only IN URL server */
 	if (r_entry->spd_url_list != NULL)
-		spd_create_child_url(nums, r_entry, fdw_private);
+		spd_create_child_url(nums, r_entry->spd_url_list, fdw_private);
 	else
 	{
 		for (i = 0; i < nums; i++)
@@ -7336,7 +7335,7 @@ spd_PlanForeignModify(PlannerInfo *root,
 
 	fdw_private->url_list = spd_check_url_update(rte);
 
-	spd_create_child_url(nums, rte, fdw_private);
+	spd_create_child_url(nums, rte->spd_url_list, fdw_private);
 
 	rel = table_open(rte->relid, NoLock);
 	oid_server = getModifyingFdwRoutine(rel, fdw_private);
