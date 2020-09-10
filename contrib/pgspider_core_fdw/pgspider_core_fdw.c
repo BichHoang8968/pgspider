@@ -1862,7 +1862,7 @@ spd_spi_exec_datasouce_num(Oid foreigntableid, int *nums, Oid **oid)
 	oldcontext = CurrentMemoryContext;
 	ret = SPI_connect();
 	if (ret < 0)
-		elog(ERROR, "SPI connect failure - returned %d", ret);
+		elog(ERROR, "SPI_connect failed. Returned %d.", ret);
 
 	/*
 	 * child table name is "ParentTableName_NodeName_sequenceNum". This SQL
@@ -1880,7 +1880,7 @@ spd_spi_exec_datasouce_num(Oid foreigntableid, int *nums, Oid **oid)
 	if (ret != SPI_OK_SELECT)
 	{
 		SPI_finish();
-		elog(ERROR, "spi exec is failed. sql is %s", query);
+		elog(ERROR, "SPI_execute failed. Retrned %d. SQL is %s.", ret, query);
 	}
 	spi_temp = SPI_processed;
 	spicontext = MemoryContextSwitchTo(oldcontext);
@@ -1889,7 +1889,7 @@ spd_spi_exec_datasouce_num(Oid foreigntableid, int *nums, Oid **oid)
 	if (SPI_processed == 0)
 	{
 		SPI_finish();
-		elog(ERROR, "error SPIexecute can not find datasource");
+		elog(ERROR, "Can not find datasource.");
 	}
 	for (i = 0; i < SPI_processed; i++)
 	{
@@ -1933,7 +1933,7 @@ spd_spi_exec_datasource_name(Oid foreigntableid, char *srvname)
 
 	ret = SPI_connect();
 	if (ret < 0)
-		elog(ERROR, "SPI connect failure - returned %d", ret);
+		elog(ERROR, "SPI_connect failed. Returned %d.", ret);
 
 	/* get child server name from child's foreign table id */
 	sprintf(query, "SELECT foreign_server_name FROM information_schema._pg_foreign_tables WHERE foreign_table_name = (SELECT relname FROM pg_class WHERE oid = %d) ORDER BY foreign_server_name;", (int) foreigntableid);
@@ -1941,11 +1941,11 @@ spd_spi_exec_datasource_name(Oid foreigntableid, char *srvname)
 
 	ret = SPI_execute(query, true, 0);
 	if (ret != SPI_OK_SELECT)
-		elog(ERROR, "error %d", ret);
+		elog(ERROR, "SPI_execute failed. Retrned %d. SQL is %s.", ret, query);
 	if (SPI_processed != 1)
 	{
 		SPI_finish();
-		elog(ERROR, "error SPIexecute can not find datasource");
+		elog(ERROR, "Not found a child table of '%d'.", foreigntableid);
 	}
 	temp = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
 
@@ -1987,17 +1987,17 @@ spd_spi_exec_child_relname(char *parentTableName, SpdFdwPrivate * fdw_private, O
 	}
 	ret = SPI_connect();
 	if (ret < 0)
-		elog(ERROR, "SPI connect failure - returned %d", ret);
+		elog(ERROR, "SPI_connect failed. Returned %d.", ret);
 	ret = SPI_execute(query, true, 0);
 	if (ret != SPI_OK_SELECT)
 	{
 		SPI_finish();
-		elog(ERROR, "error SPIexecute failure - returned - %d", ret);
+		elog(ERROR, "SPI_execute failed. Retrned %d. SQL is %s.", ret, query);
 	}
 	if (SPI_processed < 1)
 	{
 		SPI_finish();
-		elog(ERROR, "error SPIexecute failure child table not found");
+		elog(ERROR, "Not found a child table of '%s'.", parentTableName);
 	}
 	*oid = MemoryContextAlloc(oldcontext, sizeof(Oid) * SPI_processed);
 	for (i = 0; i < SPI_processed; i++)
@@ -2435,7 +2435,7 @@ RESCAN:
 				spd_queue_notify_finish(&fssthrdInfo->tupleQueue);
 				cancel = PQgetCancel((PGconn *) fssthrdInfo->fsstate->conn);
 				if (!PQcancel(cancel, errbuf, BUFFERSIZE))
-					elog(WARNING, " Failed to PQgetCancel");
+					elog(WARNING, "Failed to PQgetCancel");
 				PQfreeCancel(cancel);
 				break;
 			}
@@ -2453,7 +2453,7 @@ RESCAN:
 		{
 			cancel = PQgetCancel((PGconn *) fssthrdInfo->fsstate->conn);
 			if (!PQcancel(cancel, errbuf, BUFFERSIZE))
-				elog(WARNING, " Failed to PQgetCancel");
+				elog(WARNING, "Failed to PQgetCancel");
 			PQfreeCancel(cancel);
 		}
 #endif
@@ -2580,7 +2580,7 @@ spd_ParseUrl(List *spd_url_list)
 
 		url_option = pstrdup(url_str);
 		if (url_option[0] != '/')
-			elog(ERROR, "URL first character should set '/' ");
+			elog(ERROR, "Failed t parse URL '%s' in IN clause. The first character should be '/'.", url_str);
 		url_option++;
 		tp = strtok_r(url_option, "/", &next);
 		if (tp == NULL)
@@ -2623,7 +2623,7 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 	 */
 	fdw_private->url_list = spd_ParseUrl(r_entry->spd_url_list);
 	if (fdw_private->url_list == NULL)
-		elog(ERROR, "IN Clause use but can not find url. Please set IN string.");
+		elog(ERROR, "IN clause is used but no URL found. Please specify URL.");
 
 	foreach(lc, fdw_private->url_list)
 	{
@@ -2647,7 +2647,7 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 
 			if (strcmp(original_url, srvname) != 0)
 			{
-				elog(DEBUG1, "Can not find URL");
+				elog(DEBUG1, "Can not find a child node of '%s'.", original_url);
 				/* for multi in node */
 				if (fdw_private->childinfo[i].child_node_status != ServerStatusAlive)
 					fdw_private->childinfo[i].child_node_status = ServerStatusIn;
@@ -2669,7 +2669,7 @@ spd_create_child_url(int childnums, RangeTblEntry *r_entry, SpdFdwPrivate * fdw_
 				temp_fdw = GetForeignDataWrapper(temp_server->fdwid);
 				if (strcmp(temp_fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
 				{
-					elog(ERROR, "Child node is not spd");
+					elog(ERROR, "Trying to pushdown IN clause. But child node is not %s.", PGSPIDER_FDW_NAME);
 				}
 				/* if child table fdw is spd, then execute operation */
 				fdw_private->childinfo[i].url_list = lappend(fdw_private->childinfo[i].url_list, throwing_url);
@@ -2719,7 +2719,7 @@ spd_basestrictinfo_tree_walker(Node *node, PlannerInfo *root)
 				colname = get_attname(rte->relid, expr->varattno, false);
 				if (strcmp(colname, SPDURL) == 0)
 				{
-					elog(DEBUG1, "find colname");
+					elog(DEBUG1, "%s column was found.", SPDURL);
 					return true;
 				}
 			}
@@ -2756,9 +2756,7 @@ spd_basestrictinfo_tree_walker(Node *node, PlannerInfo *root)
 				{
 					rtn = spd_basestrictinfo_tree_walker((Node *) lfirst(temp), root);
 					if (rtn == true)
-					{
 						return true;
-					}
 				}
 				return false;
 			}
@@ -3220,7 +3218,7 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel,
 				 * If error is occurred, child node fdw does not output Error.
 				 * It should be clear Error stack.
 				 */
-				elog(WARNING, "GetForeignRelSize failed");
+				elog(WARNING, "GetForeignRelSize of child[%d] failed.", i);
 				if (throwErrorIfDead)
 				{
 					spd_aliveError(fs);
@@ -3402,7 +3400,7 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	/* Init mutex.*/
 	SPD_RWLOCK_INIT(&fdw_private->scan_mutex, &rtn);
 	if (rtn != SPD_RWLOCK_INIT_OK)
-		elog(ERROR, "%s read-write lock object initialization error, error code %d", __func__, rtn);
+		elog(ERROR, "Failed to initialize a read-write lock object. Returned %d.", rtn);
 }
 
 /**
@@ -4351,7 +4349,7 @@ spd_ExplainForeignScan(ForeignScanState *node,
 			 * fdw_private->child_table_alive to FALSE
 			 */
 			pChildInfo->child_node_status = ServerStatusDead;
-			elog(WARNING, "fdw ExplainForeignScan error is occurred.");
+			elog(WARNING, "ExplainForeignScan of child[%d] failed.", i);
 			FlushErrorState();
 		}
 		PG_END_TRY();
@@ -4420,7 +4418,7 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 			 */
 			pChildInfo->child_node_status = ServerStatusDead;
 
-			elog(WARNING, "Fdw GetForeignPaths error is occurred.");
+			elog(WARNING, "GetForeignPaths of child[%d] failed.", i);
 			FlushErrorState();
 			if (throwErrorIfDead)
 			{
@@ -4678,7 +4676,7 @@ spd_GetForeignChildPlans(PlannerInfo *root, RelOptInfo *baserel,
 			{
 				/* agg push down path */
 				if (!pChildInfo->grouped_rel_local->pathlist)
-					elog(ERROR, "Agg path is not found");
+					elog(ERROR, "Agg path is not found.");
 
 				/* FDWs expect NULL scan clauses for UPPER REL */
 				*push_scan_clauses = NULL;
@@ -4764,7 +4762,7 @@ spd_GetForeignChildPlans(PlannerInfo *root, RelOptInfo *baserel,
 			 * fdw_private->child_table_alive to FALSE
 			 */
 			pChildInfo->child_node_status = ServerStatusDead;
-			elog(WARNING, "GetForeignPlan failed ");
+			elog(WARNING, "GetForeignPlan of child[%d] failed.", i);
 			FlushErrorState();
 			if (throwErrorIfDead)
 			{
@@ -5113,7 +5111,7 @@ spd_end_child_node_thread(ForeignScanState *node, bool is_abort)
 			/* Cleanup the thread-local structures */
 			rtn = pthread_join(fdw_private->foreign_scan_threads[node_incr], NULL);
 			if (rtn != 0)
-				elog(WARNING, "error is occurred, pthread_join fail in EndForeignScan. ");
+				elog(WARNING, "Failed to join thread in EndForeignScan of thread[%d]. Returned %d.", node_incr, rtn);
 		}
 	}
 }
@@ -5663,7 +5661,8 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 	SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex);
 	ret = SPI_connect();
 	if (ret < 0)
-		elog(ERROR, "SPI connect failure - returned %d", ret);
+		elog(ERROR, "SPI_connect failed. Returned %d.", ret);
+
 	appendStringInfo(sql, "INSERT INTO %s VALUES( ", fdw_private->temp_table_name);
 	colid = 0;
 	mapping_tlist = fdw_private->mapping_tlist;
@@ -5758,14 +5757,17 @@ spd_spi_insert_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 		}
 	}
 	appendStringInfo(sql, ")");
-	elog(DEBUG1, "insert into temp table: %s, values: %s", sql->data, debugValues->data);
+	elog(DEBUG1, "Inserting into temp table: %s, values: %s", sql->data, debugValues->data);
 	ret = SPI_execute_with_args(sql->data, colid, argtypes, values, nulls, false, 1);
 	if (ret != SPI_OK_INSERT)
-		elog(ERROR, "execute spi INSERT TEMP TABLE failed ");
+	{
+		SPI_finish();
+		elog(ERROR, "Failed to insert into temp table. Retrned %d. SQL is %s.", ret, sql->data);
+	}
+
 	SPI_finish();
 
 	SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
-
 }
 
 /**
@@ -5883,7 +5885,7 @@ emit_context_error(void* context)
 	if (strcmp(err->message, "cannot take square root of a negative number") == 0)
 		elog(ERROR, "%s", "Can not return value because of rounding problem from child node");
 	else
-		elog(err->elevel, "%s", err->message);
+		elog(err->elevel, "Can not return value because of rounding problem from child node.");
 }
 
 /**
@@ -5909,7 +5911,7 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql)
 	SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex);
 	ret = SPI_connect();
 	if (ret < 0)
-		elog(ERROR, "SPI connect failure - returned %d", ret);
+		elog(ERROR, "SPI_connect failed. Returned %d.", ret);
 
 	/* Set up callback to display error without CONTEXT information */
 	errcallback.callback = emit_context_error;
@@ -5920,7 +5922,11 @@ spd_spi_exec_select(SpdFdwPrivate * fdw_private, StringInfo sql)
 	ret = SPI_exec(sql->data, 0);
 
 	if (ret != SPI_OK_SELECT)
-		elog(ERROR, "execute spi SELECT TEMP TABLE failed ");
+	{
+		SPI_finish();
+		elog(ERROR, "Failed to select from temp table. Retrned %d. SQL is %s.", ret, sql->data);
+	}
+
 	if (SPI_processed == 0)
 	{
 		SPI_finish();
@@ -6110,7 +6116,7 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 			/* Retrieve information about the operator from system catalog. */
 			tuple = SearchSysCache1(OPEROID, ObjectIdGetDatum(ope->opno));
 			if (!HeapTupleIsValid(tuple))
-				elog(ERROR, "cache lookup failed for operator %u", ope->opno);
+				elog(ERROR, "cache lookup failed for operator %u.", ope->opno);
 			form = (Form_pg_operator) GETSTRUCT(tuple);
 			oprkind = form->oprkind;
 
@@ -6306,7 +6312,7 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 			/* Get function name */
 			proctup = SearchSysCache1(PROCOID, ObjectIdGetDatum(func->funcid));
 			if (!HeapTupleIsValid(proctup))
-				elog(ERROR, "cache lookup failed for function %u", func->funcid);
+				elog(ERROR, "cache lookup failed for function %u.", func->funcid);
 			procform = (Form_pg_proc) GETSTRUCT(proctup);
 
 			if(func->args)
@@ -6589,7 +6595,7 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 		}
 	}
 
-	elog(DEBUG1, "select from temp table: %s", sql->data);
+	elog(DEBUG1, "Selecting from temp table: %s.", sql->data);
 	/* Execute aggregate query to temp table */
 	spd_spi_exec_select(fdw_private, sql);
 	/* calc and set agg values */
@@ -6670,7 +6676,7 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
 		}
 	}
 	appendStringInfo(create_sql, ")");
-	elog(DEBUG1, "create temp table: %s", create_sql->data);
+	elog(DEBUG1, "Create temp table: %s.", create_sql->data);
 }
 
 /**
@@ -6837,7 +6843,7 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 					char	   *s;
 
 					if (isnull)
-						elog(ERROR, "PGSpider column name error. Child node Name is nothing.");
+						elog(ERROR, "Child node name is nothing. %s should return node name.", PGSPIDER_FDW_NAME);
 
 					s = TextDatumGetCString(col);
 
@@ -6857,7 +6863,7 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 				}
 
 				if (attr->atttypid != TEXTOID)
-					elog(ERROR, "__spd_url column is not text type");
+					elog(ERROR, "%s column must be text type. But type id is %d.", SPDURL, attr->atttypid);
 				replaces[i] = true;
 				nulls[i] = false;
 				values[i] = CStringGetTextDatum(value);
@@ -7233,7 +7239,7 @@ spd_check_url_update(RangeTblEntry *target_rte)
 			return url_list;
 		}
 	}
-	elog(ERROR, "no URL is specified, INSERT/UPDATE/DELETE need to set URL");
+	elog(ERROR, "No URL is specified. INSERT/UPDATE/DELETE requires URL.");
 }
 
 /**
