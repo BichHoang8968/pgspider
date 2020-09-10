@@ -4747,7 +4747,7 @@ spd_GetForeignChildPlans(PlannerInfo *root, RelOptInfo *baserel,
 					*push_scan_clauses = fdw_private->baserestrictinfo;
 				}
 				fsplan = pChildInfo->fdwroutine->GetForeignPlan((PlannerInfo *) pChildInfo->root,
-													(RelOptInfo *) childinfo[i].baserel,
+													(RelOptInfo *) pChildInfo->baserel,
 													pChildInfo->oid,
 													(ForeignPath *) best_path,
 													temptlist,
@@ -5011,10 +5011,11 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	{
 		for (i = 0; i < fdw_private->node_num; i++)
 		{
-			if (!childinfo[i].plan)
+			ChildInfo *pChildInfo = &fdw_private->childinfo[i];
+			if (!pChildInfo->plan)
 				continue;
 
-			foreach(lc, childinfo[i].plan->qual)
+			foreach(lc, pChildInfo->plan->qual)
 			{
 				Expr	   *expr = (Expr *) lfirst(lc);
 
