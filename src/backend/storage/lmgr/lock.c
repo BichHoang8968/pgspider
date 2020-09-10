@@ -49,6 +49,10 @@
 #include "utils/ps_status.h"
 #include "utils/resowner_private.h"
 
+#ifdef PGSPIDER
+/* Use mutex to avoid concurrent access to local lock */
+pthread_mutex_t lock_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+#endif
 
 /* This configuration variable is used to set the lock table size */
 int			max_locks_per_xact; /* set by guc.c */
@@ -728,8 +732,13 @@ LockAcquire(const LOCKTAG *locktag,
  * If locallockp isn't NULL, *locallockp receives a pointer to the LOCALLOCK
  * table entry if a lock is successfully acquired, or NULL if not.
  */
+#ifdef PGSPIDER
+static LockAcquireResult
+LockAcquireExtendedOrg(const LOCKTAG *locktag,
+#else
 LockAcquireResult
 LockAcquireExtended(const LOCKTAG *locktag,
+#endif
 					LOCKMODE lockmode,
 					bool sessionLock,
 					bool dontWait,
@@ -1105,6 +1114,28 @@ LockAcquireExtended(const LOCKTAG *locktag,
 	return LOCKACQUIRE_OK;
 }
 
+#ifdef PGSPIDER
+LockAcquireResult
+LockAcquireExtended(const LOCKTAG *locktag,
+					LOCKMODE lockmode,
+					bool sessionLock,
+					bool dontWait,
+					bool reportMemoryError,
+					LOCALLOCK **locallockp)
+{
+	LockAcquireResult ret;
+	SPD_LOCK_TRY(&lock_mutex);
+	ret = LockAcquireExtendedOrg(locktag,
+					lockmode,
+					sessionLock,
+					dontWait,
+					reportMemoryError,
+					locallockp);
+	SPD_UNLOCK_CATCH(&lock_mutex);
+	return ret;
+}
+#endif
+
 /*
  * Find or create LOCK and PROCLOCK objects as needed for a new lock
  * request.
@@ -1466,6 +1497,7 @@ LockCheckConflicts(LockMethod lockMethodTable,
 void
 GrantLock(LOCK *lock, PROCLOCK *proclock, LOCKMODE lockmode)
 {
+	SPD_LOCK_TRY(&lock_mutex);
 	lock->nGranted++;
 	lock->granted[lockmode]++;
 	lock->grantMask |= LOCKBIT_ON(lockmode);
@@ -1475,6 +1507,7 @@ GrantLock(LOCK *lock, PROCLOCK *proclock, LOCKMODE lockmode)
 	LOCK_PRINT("GrantLock", lock, lockmode);
 	Assert((lock->nGranted > 0) && (lock->granted[lockmode] > 0));
 	Assert(lock->nGranted <= lock->nRequested);
+	SPD_UNLOCK_CATCH(&lock_mutex);
 }
 
 /*
@@ -1499,6 +1532,7 @@ UnGrantLock(LOCK *lock, LOCKMODE lockmode,
 	/*
 	 * fix the general lock stats
 	 */
+	SPD_LOCK_TRY(&lock_mutex);
 	lock->nRequested--;
 	lock->requested[lockmode]--;
 	lock->nGranted--;
@@ -1529,6 +1563,7 @@ UnGrantLock(LOCK *lock, LOCKMODE lockmode,
 	 */
 	proclock->holdMask &= LOCKBIT_OFF(lockmode);
 	PROCLOCK_PRINT("UnGrantLock: updated", proclock);
+	SPD_UNLOCK_CATCH(&lock_mutex);
 
 	return wakeupNeeded;
 }
@@ -1548,6 +1583,7 @@ CleanUpLock(LOCK *lock, PROCLOCK *proclock,
 			LockMethod lockMethodTable, uint32 hashcode,
 			bool wakeupNeeded)
 {
+	SPD_LOCK_TRY(&lock_mutex);
 	/*
 	 * If this was my last hold on this lock, delete my entry in the proclock
 	 * table.
@@ -1588,6 +1624,7 @@ CleanUpLock(LOCK *lock, PROCLOCK *proclock,
 		/* There are waiters on this lock, so wake them up. */
 		ProcLockWakeup(lockMethodTable, lock);
 	}
+	SPD_UNLOCK_CATCH(&lock_mutex);
 }
 
 /*
@@ -1598,7 +1635,11 @@ CleanUpLock(LOCK *lock, PROCLOCK *proclock,
  * ResourceOwner entry.
  */
 static void
+#ifdef PGSPIDER
+GrantLockLocalOrg(LOCALLOCK *locallock, ResourceOwner owner)
+#else
 GrantLockLocal(LOCALLOCK *locallock, ResourceOwner owner)
+#endif
 {
 	LOCALLOCKOWNER *lockOwners = locallock->lockOwners;
 	int			i;
@@ -1621,6 +1662,16 @@ GrantLockLocal(LOCALLOCK *locallock, ResourceOwner owner)
 	if (owner != NULL)
 		ResourceOwnerRememberLock(owner, locallock);
 }
+
+#ifdef PGSPIDER
+static void
+GrantLockLocal(LOCALLOCK *locallock, ResourceOwner owner)
+{
+	SPD_LOCK_TRY(&lock_mutex);
+	GrantLockLocalOrg(locallock, owner);
+	SPD_UNLOCK_CATCH(&lock_mutex);
+}
+#endif
 
 /*
  * BeginStrongLockAcquire - inhibit use of fastpath for a given LOCALLOCK,
@@ -1880,8 +1931,13 @@ RemoveFromWaitQueue(PGPROC *proc, uint32 hashcode)
  *		the waking process and any new process to
  *		come along and request the lock.)
  */
+#ifdef PGSPIDER
+static bool
+LockReleaseOrg(const LOCKTAG *locktag, LOCKMODE lockmode, bool sessionLock)
+#else
 bool
 LockRelease(const LOCKTAG *locktag, LOCKMODE lockmode, bool sessionLock)
+#endif
 {
 	LOCKMETHODID lockmethodid = locktag->locktag_lockmethodid;
 	LockMethod	lockMethodTable;
@@ -2076,6 +2132,18 @@ LockRelease(const LOCKTAG *locktag, LOCKMODE lockmode, bool sessionLock)
 	RemoveLocalLock(locallock);
 	return true;
 }
+
+#ifdef PGSPIDER
+bool
+LockRelease(const LOCKTAG *locktag, LOCKMODE lockmode, bool sessionLock)
+{
+	bool ret;
+	SPD_LOCK_TRY(&lock_mutex);
+	ret = LockReleaseOrg(locktag, lockmode, sessionLock);
+	SPD_UNLOCK_CATCH(&lock_mutex);
+	return ret;
+}
+#endif
 
 /*
  * LockReleaseAll -- Release all locks of the specified lock method that
