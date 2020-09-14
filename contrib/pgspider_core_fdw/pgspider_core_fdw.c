@@ -281,7 +281,9 @@ typedef struct ChildInfo
 	Oid			oid;			/* child table's table oid */
 	Agg		   *pAgg;			/* "Aggref" for Disable of aggregation push
 								 * down servers */
-	bool		can_pushdown_agg;	/* support agg pushdown */
+	bool		pseudo_agg;		/* True if aggregate function is calcuated on pgspider_core.
+								 * It mean that it is not pushed down. This is a cache for
+								 * searching pPseudoAggList by server oid. */
 
 	/* USE ONLY IN EXECUTION */
 	int			index_threadinfo;	/* index for ForeignScanThreadInfo array */
@@ -383,6 +385,7 @@ typedef struct SpdFdwPrivate
 								 * aggregation pushdown. */
 	SpdRelationInfo rinfo;	/* pgspider relation info */
 	TupleDesc	child_comp_tupdesc; /* temporary tuple desc */
+	List	   *pPseudoAggList; /* List of server oids which aggregate function is not pushed down */
 
 	/* USE IN BOTH PLANNING AND EXECUTION */
 	int			node_num;		/* number of child tables */
@@ -396,8 +399,6 @@ typedef struct SpdFdwPrivate
 	bool		is_pushdown_tlist;	/* pushed down target list or not. For
 									 * aggregation, always false */
 
-	List	   *pPseudoAggList; /* Disable of aggregation push down server
-								 * list */
 	List	   *child_comp_tlist;	/* child complite target list */
 	List	   *child_tlist;	/* child target list without __spd_url */
 	List	   *mapping_tlist;	/* mapping list orig and pgspider */
@@ -943,7 +944,6 @@ spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private)
 	if (fdw_private->agg_query)
 	{
 		lfdw_private = lappend(lfdw_private, fdw_private->groupby_target);
-		lfdw_private = lappend(lfdw_private, fdw_private->pPseudoAggList);
 		lfdw_private = lappend(lfdw_private, fdw_private->child_comp_tlist);
 		lfdw_private = lappend(lfdw_private, fdw_private->child_tlist);
 
@@ -983,9 +983,7 @@ spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private)
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
 		ChildInfo *pChildInfo = &fdw_private->childinfo[i];
-		pChildInfo->can_pushdown_agg = pChildInfo->aggpath ? false : true;
-		lfdw_private = lappend(lfdw_private, makeInteger(pChildInfo->can_pushdown_agg));
-
+		lfdw_private = lappend(lfdw_private, makeInteger(pChildInfo->pseudo_agg));
 		lfdw_private = lappend(lfdw_private, makeInteger(pChildInfo->child_node_status));
 		lfdw_private = lappend(lfdw_private, makeInteger(pChildInfo->server_oid));
 		lfdw_private = lappend(lfdw_private, makeInteger(pChildInfo->oid));
@@ -994,7 +992,7 @@ spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private)
 		lfdw_private = lappend(lfdw_private, copyObject(pChildInfo->plan));
 
 		/* Agg plan */
-		if (list_member_oid(fdw_private->pPseudoAggList, pChildInfo->server_oid))
+		if (pChildInfo->pseudo_agg)
 			lfdw_private = lappend(lfdw_private, copyObject(pChildInfo->pAgg));
 
 		/* Root */
@@ -1047,9 +1045,6 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
 	if (fdw_private->agg_query)
 	{
 		fdw_private->groupby_target = (List *) lfirst(lc);
-		lc = lnext(lfdw_private, lc);
-
-		fdw_private->pPseudoAggList = (List *) lfirst(lc);
 		lc = lnext(lfdw_private, lc);
 
 		fdw_private->child_comp_tlist = (List *) lfirst(lc);
@@ -1117,7 +1112,7 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
 	{
 		ChildInfo *pChildInfo = &fdw_private->childinfo[i];
 
-		pChildInfo->can_pushdown_agg = intVal(lfirst(lc));
+		pChildInfo->pseudo_agg = intVal(lfirst(lc));
 		lc = lnext(lfdw_private, lc);
 
 		pChildInfo->child_node_status = intVal(lfirst(lc));
@@ -1134,7 +1129,7 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
 		lc = lnext(lfdw_private, lc);
 
 		/* Agg plan */
-		if (list_member_oid(fdw_private->pPseudoAggList, pChildInfo->server_oid))
+		if (pChildInfo->pseudo_agg)
 		{
 			pChildInfo->pAgg = (Agg *) lfirst(lc);
 			lc = lnext(lfdw_private, lc);
@@ -2117,6 +2112,7 @@ spd_ForeignScan_thread(void *arg)
 	ErrorContextCallback errcallback;
 	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *) fssthrdInfo->private;
 	PlanState  *result = NULL;
+	ChildInfo *pChildInfo = &fdw_private->childinfo[fssthrdInfo->childInfoIndex];
 	/* Flag use for check whether mysql_fdw called BeginForeignScan or not */
 	bool		is_first = true;
 
@@ -2167,7 +2163,7 @@ spd_ForeignScan_thread(void *arg)
 		 * If Aggregation does not push down, BeginForeignScan will be executed in
 		 * ExecInitNode.
 		 */
-		if (!list_member_oid(fdw_private->pPseudoAggList, fssthrdInfo->serverId))
+		if (!pChildInfo->pseudo_agg)
 		{
 			if (strcmp(fssthrdInfo->fdw->fdwname, POSTGRES_FDW_NAME) == 0 && !isPostgresFdwInit)
 			{
@@ -2272,7 +2268,7 @@ RESCAN:
 	 * In case subquery, we will call BeginForeignScan immediately.
 	 * In case main query, we will wait subquery finished before call BeginForeignScan.
 	 */
-	if (!list_member_oid(fdw_private->pPseudoAggList, fssthrdInfo->serverId))
+	if (!pChildInfo->pseudo_agg)
 	{
 		if (strcmp(fssthrdInfo->fdw->fdwname, MYSQL_FDW_NAME) == 0 &&
 					is_first && fssthrdInfo->requestStartScan)
@@ -2288,7 +2284,7 @@ RESCAN:
 
 	fssthrdInfo->state = SPD_FS_STATE_ITERATE;
 
-	if (list_member_oid(fdw_private->pPseudoAggList, fssthrdInfo->serverId))
+	if (pChildInfo->pseudo_agg)
 	{
 		SPD_WRITE_LOCK_TRY(&fdw_private->scan_mutex);
 		fssthrdInfo->fsstate->ss.ps.state->es_param_exec_vals = fssthrdInfo->fsstate->ss.ps.ps_ExprContext->ecxt_param_exec_vals;
@@ -2296,12 +2292,12 @@ RESCAN:
 		{
 			/* We need to make postgres_fdw_options variable initial one time */
 			SPD_LOCK_TRY(&postgres_fdw_mutex);
-			result = ExecInitNode((Plan *) fdw_private->childinfo[fssthrdInfo->childInfoIndex].pAgg, fssthrdInfo->fsstate->ss.ps.state, 0);
+			result = ExecInitNode((Plan *) pChildInfo->pAgg, fssthrdInfo->fsstate->ss.ps.state, 0);
 			isPostgresFdwInit = true;
 			SPD_UNLOCK_CATCH(&postgres_fdw_mutex);
 		} else
 		{
-			result = ExecInitNode((Plan *) fdw_private->childinfo[fssthrdInfo->childInfoIndex].pAgg, fssthrdInfo->fsstate->ss.ps.state, 0);
+			result = ExecInitNode((Plan *) pChildInfo->pAgg, fssthrdInfo->fsstate->ss.ps.state, 0);
 		}
 		SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 	}
@@ -2362,8 +2358,7 @@ RESCAN:
 				MemoryContextReset(tuplectx[ctx_idx]);
 				MemoryContextSwitchTo(tuplectx[ctx_idx]);
 			}
-			if (list_member_oid(fdw_private->pPseudoAggList,
-								fssthrdInfo->serverId))
+			if (pChildInfo->pseudo_agg)
 			{
 				/*
 				 * Retreives aggregated value tuple from inlying non pushdown
@@ -2484,8 +2479,7 @@ THREAD_END:
 				/* End of the ForeignScan */
 				fssthrdInfo->state = SPD_FS_STATE_END;
 				SPD_READ_LOCK_TRY(&fdw_private->scan_mutex);
-				if (!list_member_oid(fdw_private->pPseudoAggList,
-									 fssthrdInfo->serverId))
+				if (!pChildInfo->pseudo_agg)
 				{
 					fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
 				}
@@ -4319,7 +4313,7 @@ spd_ExplainForeignScan(ForeignScanState *node,
 
 				if (fdw_private->agg_query)
 				{
-					ExplainPropertyText("Agg push-down", !pChildInfo->can_pushdown_agg ? "no" : "yes", es);
+					ExplainPropertyText("Agg push-down", pChildInfo->pseudo_agg ? "no" : "yes", es);
 				}
 			}
 			idx = pChildInfo->index_threadinfo;
@@ -4650,6 +4644,15 @@ spd_GetForeignChildPlans(PlannerInfo *root, RelOptInfo *baserel,
 
 		fs = GetForeignServer(server_oid);
 
+		/*
+		 * Checking if aggregate function is pushed down or not by searching the list is costly.
+		 * So we cache the result into pseudo_agg.
+		 */
+		if (list_member_oid(fdw_private->pPseudoAggList, pChildInfo->server_oid))
+			pChildInfo->pseudo_agg = true;
+		else
+			pChildInfo->pseudo_agg = false;
+
 		PG_TRY();
 		{
 			/* Create plan. */
@@ -4751,7 +4754,7 @@ spd_GetForeignChildPlans(PlannerInfo *root, RelOptInfo *baserel,
 		}
 		PG_END_TRY();
 		/* For aggregation and can not pushdown fdw's */
-		if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
+		if (pChildInfo->pseudo_agg)
 		{
 			List	   *child_tlist;
 			ListCell   *lc;
@@ -5292,7 +5295,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		fssThrdInfo[node_incr].fsstate = makeNode(ForeignScanState);
 		memcpy(&fssThrdInfo[node_incr].fsstate->ss, &node->ss, sizeof(ScanState));
 		/* Copy Agg plan when psuedo aggregation case. */
-		if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
+		if (pChildInfo->pseudo_agg)
 		{
 			/* Not push down aggregate to child fdw */
 			fsplan_child = (ForeignScan *) copyObject(pChildInfo->plan);
@@ -5385,7 +5388,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		 * If query has parameter, sub-plan needs to be initialized, so it needs to wait the core engine
 		 * initializes the sub-plan.
 		 */
-		if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
+		if (pChildInfo->pseudo_agg)
 		{
 			/* Not push down aggregate to child fdw */
 			fssThrdInfo[node_incr].requestStartScan = (node->ss.ps.state->es_subplanstates == NIL);
@@ -5421,7 +5424,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 			tupledesc = tupledesc_agg;
 			
-			if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
+			if (pChildInfo->pseudo_agg)
 			{
 				/*
 				 * Create tuple slot based on *child* ForeignScan plan target
