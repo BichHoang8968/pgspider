@@ -52,9 +52,11 @@ static void reportErrorPosition(PQExpBuffer msg, const char *query,
 								int loc, int encoding);
 static int	build_startup_packet(const PGconn *conn, char *packet,
 								 const PQEnvironmentOption *options);
+#ifdef GETPROGRESS_ENABLED
 #define PROGRESS_STRING_LEN 9
 #define PROGRESS_VALUE_LEN	8
 #define DECIMAL 0
+#endif
 
 /*
  * parseInput: if appropriate, parse input data from backend

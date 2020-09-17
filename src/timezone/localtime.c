@@ -105,8 +105,11 @@ static bool typesequiv(struct state const *, int, int);
  *	objects: a broken-down time structure and an array of char.
  * Thanks to Paul Eggert for noting this.
  */
-
+#ifdef PGSPIDER
 static __thread struct pg_tm tm;
+#else
+static struct pg_tm tm;
+#endif
 
 /* Initialize *S to a value based on UTOFF, ISDST, and DESIGIDX.  */
 static void

@@ -600,7 +600,9 @@ typedef struct EState
 #ifdef GETPROGRESS_ENABLED
 	ProgressState *es_progressState;	/* Get progress operations */
 #endif
+#ifdef PGSPIDER
 	bool		agg_query;		/* To Indicate the type of the query,*/
+#endif
 	/* The per-query shared memory area to use for parallel execution. */
 	struct dsa_area *es_query_dsa;
 
@@ -1007,7 +1009,9 @@ typedef struct PlanState
 	 */
 	TupleDesc	scandesc;
 
+#ifdef PGSPIDER
 	void	   *spdAggQry;		/* Currently used to point to queryDesc */
+#endif
 
 	/*
 	 * Define the slot types for inner, outer and scanslots for expression
@@ -1815,9 +1819,11 @@ typedef struct ForeignScanState
 	/* use struct pointer to avoid including fdwapi.h here */
 	struct FdwRoutine *fdwroutine;
 	void	   *fdw_state;		/* foreign-data wrapper can keep state here */
+#ifdef PGSPIDER
 	void	   *spd_fsstate;    /* Store ForeignScanThreadInfo */
 	void	   *conn;			/* cast to PGconn. To refer ForeignServer
 								 * Connection, To use in PGcancel */
+#endif
 } ForeignScanState;
 
 /* ----------------

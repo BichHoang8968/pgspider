@@ -442,8 +442,10 @@ typedef struct ResTarget
 	List	   *indirection;	/* subscripts, field names, and '*', or NIL */
 	Node	   *val;			/* the value expression to compute or assign */
 	int			location;		/* token location, or -1 if unknown */
+#ifdef PGSPIDER
 	char	   *spd_url;			/* For UNDER clause */
 	List	   *spd_url_list;			/* For UNDER clause */
+#endif
 } ResTarget;
 
 /*
@@ -1125,8 +1127,10 @@ typedef struct RangeTblEntry
 	Bitmapset  *updatedCols;	/* columns needing UPDATE permission */
 	Bitmapset  *extraUpdatedCols;	/* generated columns being updated */
 	List	   *securityQuals;	/* security barrier quals to apply, if any */
+#ifdef PGSPIDER
 	char	   *spd_url;			/* For UNDER clause */
 	List	   *spd_url_list;			/* For UNDER clause */
+#endif
 } RangeTblEntry;
 
 /*

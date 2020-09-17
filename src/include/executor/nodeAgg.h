@@ -330,6 +330,8 @@ extern void ExecAggInitializeDSM(AggState *node, ParallelContext *pcxt);
 extern void ExecAggInitializeWorker(AggState *node, ParallelWorkerContext *pwcxt);
 extern void ExecAggRetrieveInstrumentation(AggState *node);
 
+#ifdef PGSPIDER
 extern TupleTableSlot *ExecRetreiveDirect(AggState *node);
 extern TupleTableSlot *ExecDirectAgg(AggState *node);
+#endif
 #endif							/* NODEAGG_H */
