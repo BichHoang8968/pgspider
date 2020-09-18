@@ -1943,11 +1943,15 @@ spd_spi_exec_datasource_name(Oid foreigntableid, char *srvname)
 
 	ret = SPI_execute(query, true, 0);
 	if (ret != SPI_OK_SELECT)
+	{
+		SPI_finish();
 		elog(ERROR, "SPI_execute failed. Retrned %d. SQL is %s.", ret, query);
+	}
+
 	if (SPI_processed != 1)
 	{
 		SPI_finish();
-		elog(ERROR, "Not found a child table of '%d'.", foreigntableid);
+		elog(ERROR, "Can not find datasource of which tableid is %d.", foreigntableid);
 	}
 	temp = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
 
@@ -2032,13 +2036,13 @@ spd_spi_exec_child_ip(char *serverName, char *ip)
 	sprintf(sql, "SELECT ip FROM pg_spd_node_info WHERE servername = '%s';", serverName);
 	ret = SPI_connect();
 	if (ret < 0)
-		elog(ERROR, "SPI connect failure - returned %d", ret);
+		elog(ERROR, "SPI_connect failed. Returned %d.", ret);
 
 	ret = SPI_execute(sql, true, 0);
 	if (ret != SPI_OK_SELECT)
 	{
 		SPI_finish();
-		elog(ERROR, "error SPIexecute failure - returned - %d", ret);
+		elog(ERROR, "SPI_execute failed. Retrned %d. SQL is %s.", ret, sql);
 	}
 
 	/* Search server ip from __spd_node_info. */
@@ -2046,7 +2050,7 @@ spd_spi_exec_child_ip(char *serverName, char *ip)
 	{
 		int n = SPI_processed;
 		SPI_finish();
-		elog(ERROR, "cannot get server IP correctly - returned - %d", n);
+		elog(ERROR, "Cannot get server IP correctly. Returned %d", n);
 	}
 
 	if (SPI_processed == 1)
@@ -2914,6 +2918,7 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root)
 			{
 				continue;
 			}
+
 			if (var_is_spdurl(var, root))
 			{
 				exprs = foreach_delete_current(exprs, lc);
@@ -3285,7 +3290,6 @@ spd_CopyRoot(PlannerInfo *root, RelOptInfo *baserel, SpdFdwPrivate * fdw_private
 	/* Memorize baserestrictinfo into fdw_private so that we can refer it later. */
 	fdw_private->baserestrictinfo = copyObject(baserel->baserestrictinfo);
 }
-
 
 /**
  * spd_GetForeignRelSize
@@ -4682,7 +4686,6 @@ spd_GetForeignChildPlans(PlannerInfo *root, RelOptInfo *baserel,
 				 * For non agg query or not push down agg case, do same thing
 				 * as create_scan_plan() to generate target list
 				 */
-
 				ForeignDataWrapper *fdw = GetForeignDataWrapper(fs->fdwid);
 
 				/* Add all columns of the table */
@@ -5515,7 +5518,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		/*
 		 * For explain case, call BeginForeignScan because some
 		 * fdws(ex:mysql_fdw) requires BeginForeignScan is already called when
-		 * ExplainForeignScan is called . For non explain case, child threads
+		 * ExplainForeignScan is called. For non explain case, child threads
 		 * call BeginForeignScan.
 		 */
 		if (eflags & EXEC_FLAG_EXPLAIN_ONLY)
@@ -5605,6 +5608,7 @@ spd_spi_ddl_table(char *query, pthread_rwlock_t *scan_mutex)
 	SPI_finish();
 	SPD_RWUNLOCK_CATCH(scan_mutex);
 }
+
 /**
  * spd_spi_insert_table
  *
@@ -5856,7 +5860,7 @@ emit_context_error(void* context)
 
 	/* Display error without displaying context */
 	if (strcmp(err->message, "cannot take square root of a negative number") == 0)
-		elog(ERROR, "%s", "Can not return value because of rounding problem from child node");
+		elog(ERROR, "Can not return value because of rounding problem from child node.");
 	else
 		elog(err->elevel, "Can not return value because of rounding problem from child node.");
 }
@@ -6412,7 +6416,6 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
  * @param[in] node
  * @param[in] fdw_private
  */
-
 static TupleTableSlot *
 spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate * fdw_private)
 {
@@ -6479,7 +6482,6 @@ spd_spi_select_table(TupleTableSlot *slot, ForeignScanState *node, SpdFdwPrivate
 					 * these results from child nodes, they needs to be merged by SUM(). 
 					 */
 					appendStringInfo(sql, "SUM(col%d)", mapping);
-
 				else if (IS_NON_SPLIT_AGG(agg_command))
 					appendStringInfo(sql, "%s(col%d)", agg_command, mapping);
 				/*
