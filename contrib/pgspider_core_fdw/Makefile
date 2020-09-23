@@ -2,6 +2,8 @@
 
 MODULE_big = pgspider_core_fdw
 OBJS = deparse.o pgspider_core_fdw.o pgspider_core_option.o $(WIN32RES)
+# Add file for S3
+OBJS += pgspider_core_s3.o
 PGFILEDESC = "pgspider_core_fdw - PGSpider core module"
 
 PG_CPPFLAGS = -I$(libpq_srcdir) -I../ -lpthread -lpq -lm -lpgspider_keepalive -z defs
