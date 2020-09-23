@@ -46,6 +46,7 @@ PG_MODULE_MAGIC;
 #include "utils/syscache.h"
 #include "utils/lsyscache.h"
 #include "storage/lmgr.h"
+#include "catalog/pg_foreign_table.h"
 #include "pgspider_core_fdw_defs.h"
 #include "funcapi.h"
 #include "catalog/pg_operator.h"
@@ -168,9 +169,17 @@ typedef struct ForeignScanThreadInfo
 	SpdForeignScanThreadState state;
 	pthread_t	me;
 	ResourceOwner thrd_ResourceOwner;
+	struct ForeignScanThreadInfo *childThreadsInfo;
 	void	   *private;
 
 }			ForeignScanThreadInfo;
+
+typedef struct ForeignScanChildThreadInfo
+{
+	int count;
+	ForeignScanThreadInfo *mainThreadsInfo;
+	ForeignScanThreadInfo *childThreadsInfo;
+} ForeignScanChildThreadInfo;
 
 enum SpdFdwModifyPrivateIndex
 {
@@ -515,6 +524,7 @@ static void spd_queue_notify_finish(SpdTupleQueue * que);
 static void spd_spi_ddl_table(char *query, pthread_rwlock_t *scan_mutex);
 
 static List *spd_catalog_makedivtlist(Aggref *aggref, List *newList, enum Aggtype aggtype);
+static TupleTableSlot *spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,int node_id, TupleTableSlot *node_slot, SpdFdwPrivate * fdw_private);
 
 /* postgresql.conf paramater */
 static bool throwErrorIfDead;
@@ -1929,35 +1939,19 @@ serverid_of_relation(Oid foreigntableid)
 static void
 spd_spi_exec_datasource_name(Oid foreigntableid, char *srvname)
 {
-	char		query[QUERY_LENGTH];
-	char	   *temp;
-	int			ret;
+	ForeignServer *server;
+	HeapTuple	tuple;
+	Form_pg_foreign_table fttableform;
 
-	ret = SPI_connect();
-	if (ret < 0)
-		elog(ERROR, "SPI_connect failed. Returned %d.", ret);
-
-	/* Get child server name from child's foreign table id. */
-	sprintf(query, "SELECT foreign_server_name FROM information_schema._pg_foreign_tables WHERE foreign_table_name = (SELECT relname FROM pg_class WHERE oid = %d) ORDER BY foreign_server_name;", (int) foreigntableid);
-
-
-	ret = SPI_execute(query, true, 0);
-	if (ret != SPI_OK_SELECT)
-	{
-		SPI_finish();
-		elog(ERROR, "SPI_execute failed. Retrned %d. SQL is %s.", ret, query);
-	}
-
-	if (SPI_processed != 1)
-	{
-		SPI_finish();
-		elog(ERROR, "Can not find datasource of which tableid is %d.", foreigntableid);
-	}
-	temp = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
-
-	strcpy(srvname, temp);
-	SPI_finish();
-	return;
+	/* First, determine FDW validator associated to the foreign table. */
+	tuple = SearchSysCache1(FOREIGNTABLEREL, foreigntableid);
+	if (!HeapTupleIsValid(tuple))
+		elog(ERROR, "cache lookup failed for function");
+	fttableform = (Form_pg_foreign_table) GETSTRUCT(tuple);
+	server = GetForeignServer(fttableform->ftserver);
+	ReleaseSysCache(tuple);
+	sprintf(srvname,"%d", server->serverid);
+	return ;
 }
 
 /**
@@ -2109,17 +2103,20 @@ spd_ErrorCb(void *arg)
 static void *
 spd_ForeignScan_thread(void *arg)
 {
-	ForeignScanThreadInfo *fssthrdInfo = (ForeignScanThreadInfo *) arg;
+    ForeignScanChildThreadInfo *fssthrdInfo_tmp = (ForeignScanThreadInfo *) arg;
+	ForeignScanThreadInfo *fssthrdInfo_main = fssthrdInfo_tmp->mainThreadsInfo;
+	int count=fssthrdInfo_tmp->count;
+	ForeignScanThreadInfo *fssthrdInfo = fssthrdInfo_tmp->childThreadsInfo;
 	MemoryContext tuplectx[2];
 	int			tuple_cnt = 0;
 
 	ErrorContextCallback errcallback;
 	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *) fssthrdInfo->private;
+	SpdFdwPrivate *fdw_private_main = (SpdFdwPrivate *) fssthrdInfo_main->private;
 	PlanState  *result = NULL;
 	ChildInfo *pChildInfo = &fdw_private->childinfo[fssthrdInfo->childInfoIndex];
 	/* Flag use for check whether mysql_fdw called BeginForeignScan or not */
 	bool		is_first = true;
-
 #ifdef GETPROGRESS_ENABLED
 	PGcancel   *cancel;
 	char		errbuf[BUFFERSIZE];
@@ -2409,6 +2406,10 @@ RESCAN:
 				spd_queue_notify_finish(&fssthrdInfo->tupleQueue);
 				break;
 			}
+			else{
+				slot = spd_AddSpdUrl(fssthrdInfo_main, fdw_private_main->child_comp_slot, count, slot, fdw_private_main);
+			}
+
 			while (1)
 			{
 
@@ -5164,6 +5165,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 {
 	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
 	ForeignScanThreadInfo *fssThrdInfo;
+	ForeignScanChildThreadInfo *fssThrdChildInfo;
 	EState	   *estate = node->ss.ps.state;
 	int			thread_create_err;
 	Oid			server_oid;
@@ -5246,6 +5248,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	node->ss.ps.state->agg_query = 0;
 	/* Get all the foreign nodes from conf file */
 	fssThrdInfo = (ForeignScanThreadInfo *) palloc0(sizeof(ForeignScanThreadInfo) * fdw_private->node_num);
+	fssThrdChildInfo = (ForeignScanChildThreadInfo *) palloc0(sizeof(ForeignScanChildThreadInfo) * fdw_private->node_num);
 	node->spd_fsstate = fssThrdInfo;
 
 	node_incr = 0;
@@ -5557,11 +5560,14 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 	for (i = 0; i < fdw_private->nThreads; i++)
 	{
+		fssThrdChildInfo[i].count = i;
+		fssThrdChildInfo[i].mainThreadsInfo = node->spd_fsstate;
+		fssThrdChildInfo[i].childThreadsInfo = &fssThrdInfo[i];
 		thread_create_err =
 			pthread_create(&fdw_private->foreign_scan_threads[i],
 						   NULL,
 						   &spd_ForeignScan_thread,
-						   (void *) &fssThrdInfo[i]);
+						   (void *) &fssThrdChildInfo[i]);
 		if (thread_create_err != 0)
 		{
 			ereport(ERROR, (errmsg("Cannot create thread! error=%d",
