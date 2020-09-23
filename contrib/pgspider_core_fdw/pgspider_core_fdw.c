@@ -110,6 +110,7 @@ PG_MODULE_MAGIC;
 #define FILE_FDW_NAME "file_fdw"
 #define AVRO_FDW_NAME "avro_fdw"
 #define POSTGRES_FDW_NAME "postgres_fdw"
+#define PARQUET_S3_FDW_NAME "parquet_s3_fdw"
 
 /* Temporary table name used for calculation of aggregate functions */
 #define AGGTEMPTABLE "__spd__temptable"
@@ -279,6 +280,9 @@ typedef struct ChildInfo
 	RelOptInfo *grouped_rel_local;
 	List	   *url_list;
 	AggPath    *aggpath;
+#ifndef OMITS3
+	Value	   *s3file;
+#endif
 	FdwRoutine *fdwroutine;
 
 	/* USE IN BOTH PLANNING AND EXECUTION */
@@ -444,6 +448,9 @@ typedef struct SpdFdwModifyState
 /* local function forward declarations */
 bool		spd_is_builtin(Oid objectId);
 void		_PG_init(void);
+#ifndef OMITS3
+void		_PG_fini(void);
+#endif
 static void spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel,
 					  Oid foreigntableid);
 static void spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel,
@@ -512,6 +519,9 @@ static List *spd_add_to_flat_tlist(List *tlist, Expr *exprs,
 static void spd_spi_exec_child_ip(char *serverName, char *ip);
 static bool spd_can_skip_deepcopy(char *fdwname);
 static bool spd_checkurl_clauses(PlannerInfo *root, List *baserestrictinfo);
+#ifndef OMITS3
+List *getS3FileList(Oid foreigntableid);
+#endif
 
 /* Queue functions */
 static bool spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy);
@@ -3181,6 +3191,10 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel,
 			entry_baserel->reltarget->exprs = remove_spdurl_from_targets(entry_baserel->reltarget->exprs, root);
 		}
 
+#ifndef OMITS3
+		entry_baserel->fdw_private = list_make1(list_make1(childinfo[i].s3file));
+#endif
+
 		/*
 		 * FDW uses basestrictinfo to check column type and number.
 		 * Delete SPDURL column info for child node
@@ -3326,6 +3340,12 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	int i;
 	int rtn = 0;
 	StringInfo relation_name = makeStringInfo();
+#ifndef OMITS3
+	int		s3num = 0;
+	bool   *isS3;
+	List	**s3filelist;
+	int		offset = 0;
+#endif
 
 	baserel->rows = 1000;
 	fdw_private = spd_AllocatePrivate();
@@ -3338,6 +3358,52 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	if (nums == 0)
 		ereport(ERROR, (errmsg("Cannot Find child datasources. ")));
 
+#ifndef OMITS3
+	isS3 = (bool *) palloc0(sizeof(bool) * nums);
+	s3filelist = (List **) palloc0(sizeof(List *) * nums);
+	for (i = 0; i < nums; i++)
+	{
+		Oid			temp_tableid = GetForeignServerIdByRelId(oid[i]);
+		ForeignServer *temp_server = GetForeignServer(temp_tableid);
+		ForeignDataWrapper *temp_fdw = GetForeignDataWrapper(temp_server->fdwid);
+		if (strcmp(temp_fdw->fdwname, PARQUET_S3_FDW_NAME) == 0)
+		{
+			isS3[i] = true;
+			s3filelist[i] = getS3FileList(oid[i]);
+			s3num += list_length(s3filelist[i]) - 1;
+		}
+		else
+			isS3[i] = false;
+	}
+
+	fdw_private->node_num = nums + s3num;
+	fdw_private->childinfo = (ChildInfo *) palloc0(sizeof(ChildInfo) * (nums + s3num));
+
+	for (i = 0; i < nums; i++)
+	{
+		fdw_private->childinfo[i].child_node_status = ServerStatusDead;
+		if (isS3[i])
+		{
+			int j;
+			for (j = 0; j < list_length(s3filelist[i]); j++)
+			{
+				if (j != 0) offset++;
+				fdw_private->childinfo[i + offset].oid = oid[i];
+				fdw_private->childinfo[i + offset].s3file = list_nth(s3filelist[i], j);
+			}
+		}
+		else
+		{
+			fdw_private->childinfo[i + offset].oid = oid[i];
+			fdw_private->childinfo[i + offset].s3file = NULL;
+		}
+	}
+	pfree(isS3);
+	pfree(s3filelist);
+
+	nums += s3num;
+
+#else
 	fdw_private->node_num = nums;
 	fdw_private->childinfo = (ChildInfo *) palloc0(sizeof(ChildInfo) * nums);
 
@@ -3347,6 +3413,7 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 		/* Initialize all child node status. */
 		fdw_private->childinfo[i].child_node_status = ServerStatusDead;
 	}
+#endif
 
 	Assert(IS_SIMPLE_REL(baserel));
 	r_entry = root->simple_rte_array[baserel->relid];
@@ -7467,6 +7534,10 @@ spd_EndForeignModify(EState *estate,
 	fdwroutine->EndForeignModify(estate, resultRelInfo);
 }
 
+#ifndef OMITS3
+void parquet_s3_init();
+void parquet_s3_shutdown();
+#endif
 
 
 void
@@ -7495,4 +7566,16 @@ _PG_init(void)
 							 NULL,
 							 NULL,
 							 NULL);
+#ifndef OMITS3
+	parquet_s3_init();
+#endif
 }
+
+#ifndef OMITS3
+void
+_PG_fini(void)
+{
+    parquet_s3_shutdown();
+}
+#endif
+
