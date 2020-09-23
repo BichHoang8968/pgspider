@@ -7054,9 +7054,6 @@ spd_IterateForeignScan(ForeignScanState *node)
 		fdw_private->isFirst = false;
 
 		slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count);
-		if (slot != NULL)
-			slot = spd_AddSpdUrl(fssThrdInfo, node->ss.ss_ScanTupleSlot,
-								 count, slot, fdw_private);
 	}
 
 	return slot;
