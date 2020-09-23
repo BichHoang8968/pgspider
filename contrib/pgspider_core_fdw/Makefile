@@ -6,6 +6,8 @@ PGFILEDESC = "pgspider_core_fdw - PGSpider core module"
 
 PG_CPPFLAGS = -I$(libpq_srcdir) -I../ -lpthread -lpq -lm -lpgspider_keepalive -z defs
 SHLIB_LINK = $(libpq)
+# Add libraries for S3
+SHLIB_LINK += -laws-cpp-sdk-core -laws-cpp-sdk-s3
 
 # Add files and flags for Parquet S3 FDW
 ifdef ENABLE_PARALLEL_S3
