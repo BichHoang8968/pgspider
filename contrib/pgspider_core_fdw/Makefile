@@ -8,6 +8,8 @@ PGFILEDESC = "pgspider_core_fdw - foreign data wrapper for PostgreSQL"
 
 PG_CPPFLAGS = -I$(libpq_srcdir) -I../  -lpostgres_fdw -lpthread -lpq -lm -lpgspider_keepalive -z defs
 SHLIB_LINK = $(libpq)
+# Add libraries for S3
+SHLIB_LINK += -laws-cpp-sdk-core -laws-cpp-sdk-s3
 
 #LIBS = -lpostgres_fdw
 
