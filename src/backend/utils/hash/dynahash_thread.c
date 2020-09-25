@@ -531,6 +531,24 @@ hash_search(HTAB *hashp,
 								foundPtr);
 	}
 
+	/* This cache shares entries with multi threads. An entry does not has normalized_id. */
+	if (strcmp(hashp->tabname, "parquet_fdw file reader cache") == 0)
+	{
+		pthread_mutex_lock(&hash_mutex);
+		hashp->keysize -= NORMALIZED_ID_SIZE;
+		hashp->hctl->entrysize -= NORMALIZED_ID_SIZE;
+		hashp->hctl->keysize -= NORMALIZED_ID_SIZE;
+		entry = hash_search_orig(hashp,
+								keyPtr,
+								action,
+								foundPtr);
+		hashp->keysize += NORMALIZED_ID_SIZE;
+		hashp->hctl->entrysize += NORMALIZED_ID_SIZE;
+		hashp->hctl->keysize += NORMALIZED_ID_SIZE;
+		pthread_mutex_unlock(&hash_mutex);
+		return entry;
+	}
+
 	PG_TRY();
 	{
 		pthread_mutex_lock(&hash_mutex);
