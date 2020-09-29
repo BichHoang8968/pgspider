@@ -732,9 +732,10 @@ spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy)
 		 * Skip copy of __spd_url at the last of tuple descriptor because it's
 		 * invalid
 		 */
+/*
 		if (que->skipLast)
 			natts--;
-
+*/
 		/*
 		 * Deep copy tts_values[i] if necessary
 		 */
@@ -1950,8 +1951,9 @@ spd_spi_exec_datasource_name(Oid foreigntableid, char *srvname)
 	fttableform = (Form_pg_foreign_table) GETSTRUCT(tuple);
 	server = GetForeignServer(fttableform->ftserver);
 	ReleaseSysCache(tuple);
-	sprintf(srvname,"%d", server->serverid);
-	return ;
+	sprintf(srvname,"%s", server->servername);
+	return;
+
 }
 
 /**
