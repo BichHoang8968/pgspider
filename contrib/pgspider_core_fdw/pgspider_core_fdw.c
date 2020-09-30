@@ -549,6 +549,8 @@ extern void spd_deparse_const(Const *node, StringInfo buf, int showtype);
 extern char *spd_deparse_type_name(Oid type_oid, int32 typemod);
 static bool check_spdurl_walker(Node *node, PlannerInfo *root);
 
+int getcount=0;
+
 static SpdFdwPrivate *
 spd_AllocatePrivate()
 {
@@ -6883,7 +6885,6 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 
 }
 
-
 /**
  * nextChildTuple
  *
@@ -6901,25 +6902,31 @@ nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId)
 	bool		all_thread_finished = true;
 	TupleTableSlot *slot;
 
-	for (count = 0;; count++)
+	for (count = getcount;; count++)
 	{
 		bool		is_finished=false;
-
-		if (count >= nThreads)
+		int real_count=(count+getcount)%nThreads;
+		if (count >= nThreads+getcount)
 		{
 			if (all_thread_finished)
 			{
 				return NULL;	/* There is no iterating thread. */
 			}
 			all_thread_finished = true;
-			count = 0;
+			count = getcount;
 			pthread_yield();
 		}
-		slot = spd_queue_get(&fssThrdInfo[count].tupleQueue, &is_finished);
+		slot = spd_queue_get(&fssThrdInfo[real_count].tupleQueue, &is_finished);
 		if (slot)
 		{
 			/* tuple found */
-			*nodeId = count;
+			*nodeId = real_count;
+			if(getcount > nThreads){
+				getcount=0;
+			}
+			else{
+				getcount++;
+			}
 			return slot;
 		}
 		else if (!is_finished)
