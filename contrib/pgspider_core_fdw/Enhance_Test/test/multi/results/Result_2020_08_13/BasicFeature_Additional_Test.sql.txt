@@ -1,0 +1,282 @@
+set timezone to +00;
+SET
+-- Testcase 1:
+explain (verbose, costs off) SELECT count(c1), count(c2), count(c3), count(c4) FROM tb_influx GROUP BY c1,c2 ORDER BY 1,2,3,4;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 2:
+SELECT count(c1), count(c2), count(c3), count(c4) FROM tb_influx GROUP BY c1,c2 ORDER BY 1,2,3,4;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 3:
+explain (verbose, costs off) SELECT max(c4), min(c5), avg(c4), count(c5), sum(c5), sum(c4) FROM tb_influx GROUP BY c1 ORDER BY 1,2,3,4,5,6;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 4:
+SELECT max(c4), min(c5), avg(c4), count(c5), sum(c5), sum(c4) FROM tb_influx GROUP BY c1 ORDER BY 1,2,3,4,5,6;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 5:
+SELECT min(c4), max(c5), avg(c4), count(c5), count(c2), count(c1) FROM tb_influx WHERE c4>0 AND c6=true OR c5>500 GROUP BY c1 ORDER BY 1,2,3,4,5,6;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 6:
+explain (verbose, costs off) SELECT count(distinct c4) FROM tb_influx GROUP BY c1 ORDER BY 1;
+psql:/tmp/tmp_query.txt:3: WARNING:  relcache reference leak: relation "tb_influx__influx2__0__pgspider2__0" not closed
+                                     QUERY PLAN                                      
+-------------------------------------------------------------------------------------
+ Sort
+   Output: (count(DISTINCT c4)), c1
+   Sort Key: (count(DISTINCT tb_influx.c4))
+   ->  GroupAggregate
+         Output: count(DISTINCT c4), c1
+         Group Key: tb_influx.c1
+         ->  Sort
+               Output: c1, c4
+               Sort Key: tb_influx.c1
+               ->  Foreign Scan on public.tb_influx
+                     Output: c1, c4
+                     Node: pgspider1 / Status: Alive
+                       Node: pgspider2 / Status: Alive
+                         Remote SQL: SELECT c1, c4 FROM public.tb_influx__influx1__0
+                     Node: pgspider2 / Status: Alive
+                       Remote SQL: SELECT c1, c4 FROM public.tb_influx__influx1__0
+                     Node: pgspider1 / Status: Alive
+                       Node: pgspider2 / Status: Alive
+                         Remote SQL: SELECT c1, c4 FROM public.tb_influx__influx2__0
+                     Node: pgspider2 / Status: Alive
+                       Remote SQL: SELECT c1, c4 FROM public.tb_influx__influx2__0
+                     Node: pgspider2 / Status: Alive
+                       Remote SQL: SELECT c1, c4 FROM public.tb_influx
+(23 rows)
+
+set timezone to +00;
+SET
+-- Testcase 7:
+SELECT count(distinct c4) FROM tb_influx GROUP BY c1 ORDER BY 1;
+ count 
+-------
+     1
+     2
+     2
+     2
+     3
+     3
+     3
+     4
+(8 rows)
+
+set timezone to +00;
+SET
+-- Testcase 8:
+explain (verbose, costs off) SELECT count(c2), bit_and(c4), bit_or(c4), bool_and(c6) FROM tb_influx GROUP BY c1 ORDER BY 1,2,3,4;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 9:
+SELECT count(c2), bit_and(c4), bit_or(c4), bool_and(c6) FROM tb_influx GROUP BY c1 ORDER BY 1,2,3,4;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 10:
+explain (verbose, costs off) SELECT count(c5) FROM tb_influx WHERE time > '2020-01-10 00:00:00' AND time < '2020-01-20 00:00:00' GROUP BY influx_time(time, interval '1d5h30m') ORDER BY 1;
+psql:/tmp/tmp_query.txt:3: ERROR:  function influx_time(timestamp with time zone, interval) does not exist
+LINE 1: ...:00:00' AND time < '2020-01-20 00:00:00' GROUP BY influx_tim...
+                                                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+set timezone to +00;
+SET
+-- Testcase 11:
+SELECT count(c5) FROM tb_influx WHERE time > '2020-01-10 00:00:00' AND time < '2020-01-20 00:00:00' GROUP BY influx_time(time, interval '1d5h30m') ORDER BY 1;
+psql:/tmp/tmp_query.txt:3: ERROR:  function influx_time(timestamp with time zone, interval) does not exist
+LINE 1: ...:00:00' AND time < '2020-01-20 00:00:00' GROUP BY influx_tim...
+                                                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+set timezone to +00;
+SET
+-- Testcase 12:
+explain (verbose, costs off) SELECT max(c4), min(c5), avg(c4), count(c1), sum(c5), sum(c4) FROM tb_influx WHERE time > '2020-01-10 00:00:00' AND time < '2020-01-15 00:00:00' GROUP BY influx_time(time, interval '1d5h30m') ORDER BY 1,2,3,4,5,6;
+psql:/tmp/tmp_query.txt:3: ERROR:  function influx_time(timestamp with time zone, interval) does not exist
+LINE 1: ...:00:00' AND time < '2020-01-15 00:00:00' GROUP BY influx_tim...
+                                                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+set timezone to +00;
+SET
+-- Testcase 13:
+SELECT max(c4), min(c5), avg(c4), count(c1), sum(c5), sum(c4) FROM tb_influx WHERE time > '2020-01-10 00:00:00' AND time < '2020-01-15 00:00:00' GROUP BY influx_time(time, interval '1d5h30m') ORDER BY 1,2,3,4,5,6;
+psql:/tmp/tmp_query.txt:3: ERROR:  function influx_time(timestamp with time zone, interval) does not exist
+LINE 1: ...:00:00' AND time < '2020-01-15 00:00:00' GROUP BY influx_tim...
+                                                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+set timezone to +00;
+SET
+-- Testcase 14:
+explain (verbose, costs off) SELECT avg(c5), max(c4), sum(c5) FROM tb_influx WHERE time > '2020-01-10 00:00:00' AND time < '2020-01-15 00:00:00' GROUP BY influx_time(time, interval '2d'), c1 ORDER BY 1,2,3;
+psql:/tmp/tmp_query.txt:3: ERROR:  function influx_time(timestamp with time zone, interval) does not exist
+LINE 1: ...:00:00' AND time < '2020-01-15 00:00:00' GROUP BY influx_tim...
+                                                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+set timezone to +00;
+SET
+-- Testcase 15:
+SELECT avg(c5), max(c4), sum(c5) FROM tb_influx WHERE time > '2020-01-10 00:00:00' AND time < '2020-01-15 00:00:00' GROUP BY influx_time(time, interval '2d'), c1 ORDER BY 1,2,3;
+psql:/tmp/tmp_query.txt:3: ERROR:  function influx_time(timestamp with time zone, interval) does not exist
+LINE 1: ...:00:00' AND time < '2020-01-15 00:00:00' GROUP BY influx_tim...
+                                                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+set timezone to +00;
+SET
+-- Testcase 16:
+SELECT count(c1), bit_and(c4) FROM tb_influx GROUP BY influx_time(time, interval '2d') ORDER BY 1;
+psql:/tmp/tmp_query.txt:3: ERROR:  function influx_time(timestamp with time zone, interval) does not exist
+LINE 1: ...CT count(c1), bit_and(c4) FROM tb_influx GROUP BY influx_tim...
+                                                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+set timezone to +00;
+SET
+-- Testcase 17:
+explain (verbose, costs off) SELECT max(c4), min(c5), avg(c4), sum(c5), count(c4) FROM tb_influx WHERE time > '2020-01-10 00:00:00' AND time < '2020-01-15 00:00:00' GROUP BY influx_time(time, interval '1d', interval '10h30m') ORDER BY 1,2,3,4,5;
+psql:/tmp/tmp_query.txt:3: ERROR:  function influx_time(timestamp with time zone, interval, interval) does not exist
+LINE 1: ...:00:00' AND time < '2020-01-15 00:00:00' GROUP BY influx_tim...
+                                                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+set timezone to +00;
+SET
+-- Testcase 18:
+SELECT max(c4), min(c5), avg(c4), sum(c5), count(c4) FROM tb_influx WHERE time > '2020-01-10 00:00:00' AND time < '2020-01-15 00:00:00' GROUP BY influx_time(time, interval '1d', interval '10h30m') ORDER BY 1,2,3,4,5;
+psql:/tmp/tmp_query.txt:3: ERROR:  function influx_time(timestamp with time zone, interval, interval) does not exist
+LINE 1: ...:00:00' AND time < '2020-01-15 00:00:00' GROUP BY influx_tim...
+                                                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+set timezone to +00;
+SET
+-- Testcase 19:
+explain (verbose, costs off) SELECT count(c4) FROM tb_influx GROUP BY time ORDER BY 1;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 20:
+SELECT count(c4) FROM tb_influx GROUP BY time ORDER BY 1;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 21:
+explain (verbose, costs off) SELECT count(c3) FROM tb_influx GROUP BY c4 ORDER BY 1;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 22:
+SELECT count(c3) FROM tb_influx GROUP BY c4 ORDER BY 1;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 23:
+explain (verbose, costs off) SELECT min(time), max(time), count(time) FROM tb_influx ORDER BY 1,2,3;
+psql:/tmp/tmp_query.txt:3: WARNING:  relcache reference leak: relation "tb_influx__influx2__0__pgspider2__0" not closed
+                                                QUERY PLAN                                                
+----------------------------------------------------------------------------------------------------------
+ Sort
+   Output: (min("time")), (max("time")), (count("time"))
+   Sort Key: (min(tb_influx."time")), (max(tb_influx."time")), (count(tb_influx."time"))
+   ->  Foreign Scan
+         Output: (min("time")), (max("time")), (count("time"))
+         Node: pgspider1 / Status: Alive
+           Agg push-down: yes
+           Node: pgspider2 / Status: Alive
+             Agg push-down: yes
+             Relations: Aggregate on (public.tb_influx__influx1__0__pgspider2__0)
+             Remote SQL: SELECT min("time"), max("time"), count("time") FROM public.tb_influx__influx1__0
+         Node: pgspider2 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.tb_influx__influx1__0__pgspider2__0)
+           Remote SQL: SELECT min("time"), max("time"), count("time") FROM public.tb_influx__influx1__0
+         Node: pgspider1 / Status: Alive
+           Agg push-down: yes
+           Node: pgspider2 / Status: Alive
+             Agg push-down: yes
+             Relations: Aggregate on (public.tb_influx__influx2__0__pgspider2__0)
+             Remote SQL: SELECT min("time"), max("time"), count("time") FROM public.tb_influx__influx2__0
+         Node: pgspider2 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.tb_influx__influx2__0__pgspider2__0)
+           Remote SQL: SELECT min("time"), max("time"), count("time") FROM public.tb_influx__influx2__0
+         Node: pgspider2 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.tb_influx__pgspider2__0)
+           Remote SQL: SELECT min("time"), max("time"), count("time") FROM public.tb_influx
+(29 rows)
+
+set timezone to +00;
+SET
+-- Testcase 24:
+SELECT min(time), max(time), count(time) FROM tb_influx ORDER BY 1,2,3;
+          min           |          max           | count 
+------------------------+------------------------+-------
+ 2020-01-08 01:00:00+00 | 2020-01-15 06:00:00+00 |    63
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 25:
+explain (verbose, costs off) SELECT min(time), max(time), count(time) FROM tb_influx GROUP BY c2 ORDER BY 1,2,3;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 26:
+SELECT min(time), max(time), count(time) FROM tb_influx GROUP BY c2 ORDER BY 1,2,3;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 27:
+SELECT min(time), max(time), count(time) FROM tb_influx GROUP BY c2 HAVING (c2!='HELLO' OR c2!='Canada' AND count(c2)>1) ORDER BY 1,2,3;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 28:
+SELECT min(time), max(time), count(time) FROM tb_influx GROUP BY c4 ORDER BY 1,2,3;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 29:
+explain (verbose, costs off) SELECT count(c3), avg(c4), sum(c5) FROM tb_influx GROUP BY c2 HAVING(avg(c4)<1000 AND sum(c5)<1000) ORDER BY 1,2,3;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 30:
+SELECT count(c3), avg(c4), sum(c5) FROM tb_influx GROUP BY c2 HAVING(avg(c4)<1000 AND sum(c5)<1000) ORDER BY 1,2,3;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 31:
+explain (verbose, costs off) SELECT count(c4), sum(c5), min(c4) FROM tb_influx GROUP BY c2 HAVING(c2!='Keywords' AND c2!='HELLO') ORDER BY 1,2,3;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 32:
+SELECT count(c4), sum(c5), min(c4) FROM tb_influx GROUP BY c2 HAVING(c2!='Keywords' AND c2!='HELLO') ORDER BY 1,2,3;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 33:
+explain (verbose, costs off) SELECT count(c3), max(c4), sum(c4) FROM tb_influx GROUP BY c1,c2 HAVING(max(c1)!='HELLO' and count(c2)>1) ORDER BY 1,2,3;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 34:
+SELECT count(c3), max(c4), sum(c4) FROM tb_influx GROUP BY c1,c2 HAVING(max(c1)!='HELLO' and count(c2)>1) ORDER BY 1,2,3;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 35:
+explain (verbose, costs off) SELECT count(c3), max(c4), sum(c4) FROM tb_influx GROUP BY c1,c2 HAVING(max(c1)<min(c2)) ORDER BY 1,2,3;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 36:
+SELECT count(c3), max(c4), sum(c4) FROM tb_influx GROUP BY c1,c2 HAVING(max(c1)<min(c2)) ORDER BY 1,2,3;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist

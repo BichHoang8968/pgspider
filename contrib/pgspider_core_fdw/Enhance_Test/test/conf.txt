@@ -1,0 +1,9 @@
+# Source PGSpider after checkout from Git
+PGSPIDER_FOLDER=/home/tsdv/GIT/port12/PGSpider
+
+# Source PGSpider after checkout from Git (branch pgspider_install) and make, ...
+SETUPCLUSTER_FOLDER=/home/tsdv/GIT/pgspider_install/PGSpider
+
+# Folder for setup server for test.
+# After test, Folder will empty.
+DESTINATION_FOLDER=/home/tsdv/pgspider_test
