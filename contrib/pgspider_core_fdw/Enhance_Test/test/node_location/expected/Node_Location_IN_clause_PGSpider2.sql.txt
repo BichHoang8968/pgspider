@@ -1,0 +1,150 @@
+set timezone to +00;
+SET
+-- Testcase 1:
+SELECT * FROM t3 WHERE __spd_url LIKE ANY (ARRAY['/mysql1%']) ORDER BY t3.* ASC;
+  c1  |   c2   |    c3    |    c4    |      c5      |    c6     |     c7     |    c8     |    c9     |    c10    | c11 |    c12     |   c13    |         c14         |         c15         | c16 |                  c17                   |                  c18                   |          c19           |                                       c20                                        |          c21           |                  c22                   |             c23              |                                       c24                                        | __spd_url 
+------+--------+----------+----------+--------------+-----------+------------+-----------+-----------+-----------+-----+------------+----------+---------------------+---------------------+-----+----------------------------------------+----------------------------------------+------------------------+----------------------------------------------------------------------------------+------------------------+----------------------------------------+------------------------------+----------------------------------------------------------------------------------+-----------
+ -128 | -16768 | -1088608 | -7483648 | -36854775808 |  -3.4e+20 | -1.79e+108 | -1.7e+108 | -10000001 | -10000001 | 0   | 1900-01-01 | 24:00:00 | 2100-01-01 00:00:00 | 1999-12-31 19:00:01 | `   | jumpsoverthelazydog                    | Which started out as a kind            | \x26a7a8a9aaabacadaeaf | 敷ヘカウ告政ヨハツヤ消70者32精楽ざ                                               | \xa7a7a8a9aaabacadae   | Thequickbrownfoxjumpsoverthelazydog    | \x2667a8a9889a65aaabacadaeaf | Thequickbrownfoxjumpsoverthelazydog                                              | /mysql1/
+ -127 | -16767 | -1088607 | -7483647 | -36854775807 |  -3.4e+20 | -1.78e+108 | -1.8e+108 |  30000001 |  12000001 | 0   | 2000-01-02 | 03:19:58 | 2200-01-01 00:00:01 | 1999-12-31 19:00:02 | /   | べ員葉コ番告7次ノヌ従援かやじり図安ヨ  | Ông là nhà văn hiện thực               | \x48a7a8a9aaabacadaeaf | ăâđêôơưdêđêdờenờíìờẹ                                                             | \xa9a7a8a9aaabacad     | べ員葉コ番告7次ノヌ従援かやじり図安ヨ  | \x4687a8a9889a65aaabacadae   | 敷ヘカウ告政ヨハツヤ消70者32精楽ざ                                               | /mysql1/
+   -5 |     -4 |      -50 |      -60 |           -3 |    -50.52 |    -50.998 |   -50.159 |  40000001 |  13000001 | 1   | 2014-12-31 | 04:29:57 | 2021-12-31 23:57:59 | 2021-03-18 23:14:07 | '   | ăâđêôơưdêđêdờenờíìờẹ                   | いろはにほへど　ちりぬるをわがよたれぞ | \x59a7a8a9aaabacadaeaf | いろはにほへど　ちりぬるをわがよたれぞ　つねならむうゐのおくやま　けふこえてあさ | \xaaa7a8a9aaabacadaeaf | いろはにほへど　ちりぬるをわがよたれぞ | \x5697a8a9889a65aaab         | べ員葉コ番告7次ノヌ従援かやじり図安ヨ                                            | /mysql1/
+   -4 |     -3 |      -40 |      -50 |           -2 |   -40.563 |    -40.847 |    -40.32 |  50000000 |  14000000 | 0   | 2015-12-31 | 05:39:56 | 2022-12-31 23:56:59 | 2022-04-18 23:14:07 | &   | いろはにほへど　ちりぬるをわがよたれぞ | ăâđêôơưdêđêdờenờíìờẹ                   | \x6aa7a8a9aaabacadaeaf | 色は匂へど 散りぬるを我が世誰ぞ 常ならむ有為の奥山 今日越えて浅き夢見            | \xaba7a8a9aaabacadaeaf | 友達と会うので遅刻した Ông là n        | \x66a7a8a9889a65aaabacad     | ăâđêôơưdêđêdờenờíìờẹ                                                             | /mysql1/
+   -3 |     -2 |      -30 |      -40 |           -1 |   -30.633 |    -30.552 |   -30.543 |  60000001 |  15000001 | 1   | 2016-12-31 | 06:49:55 | 2023-12-31 23:55:59 | 2023-05-18 23:14:07 | @   | 色は匂へど 散りぬるを我が世誰ぞ        | ซฌญฎฏฐฑฒณดตถทธนบปผภฮ                   | \x7ba7a8a9aaabacadaeaf | กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ                                                   | \xaca7a8a9aaab         | กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ         | \x76b7a8a9889a65aaabac       | いろはにほへど　ちりぬるをわがよたれぞ　つねならむうゐのおくやま　けふこえてあさ | /mysql1/
+   -2 |     -1 |      -20 |      -30 |            0 |    -20.12 |    -20.938 |   -20.545 |  70000001 |  16000001 | 0   | 2017-12-31 | 07:59:54 | 2024-12-31 23:54:59 | 2024-06-18 23:14:07 | h   | กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ         | `~!@#$%^&*()_+=-{}[]|:;<>?/.           | \x8ca7a8a9aaabacadaeaf | `~!@#$%^&*()_+=-{}[]|:;<>?/.                                                     | \xada7a8a9aaabacadaeaf | `~!@#$%^&*()_+=-{}[]|:;<>?/.           | \x86c7a8a9                   | 色は匂へど 散りぬるを我が世誰ぞ 常ならむ有為の奥山 今日越えて浅き夢見            | /mysql1/
+   -1 |      0 |      -10 |      -20 |            1 |   -10.653 |    -10.552 |   -10.222 |  80000000 |  17000000 | 1   | 2018-12-31 | 08:09:53 | 2025-12-31 23:53:59 | 2025-07-18 23:14:07 | i   | `~!@#$%^&*()_+=-{}[]|:;<>?/.           | In Bulgarian it is desirable           | \x9da7a8a9aaabacadaeaf | 0123456789                                                                       | \xaea7a8a9aaabac       | Ông là nhà văn hiện thực thế kỷ 20     | \x96d7a8a9889a65aaabacadae   | กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ                                                   | /mysql1/
+    0 |      1 |        0 |      -10 |            2 |     0.532 |       0.92 |     0.921 |  90000000 |  18000000 | 0   | 2019-12-31 | 09:19:52 | 2026-12-31 23:52:59 | 2026-08-18 23:14:07 | k   | 0123456789                             | Canada Denmark Turkey Yemen Tokyo      | \xaea7a8a9aaabacadaeaf | In Bulgarian it is desirable                                                     | \xafa7a8a9aaabacadaeaf | Change our locale from $ to ¥ in       | \xa6e7a8a9889a65aaabacadaeaf | Canada Denmark Turkey Yemen Tokyo                                                | /mysql1/
+    1 |      2 |       10 |        0 |            3 |    10.772 |     10.092 |    10.998 | 100000000 |  19000000 | 1   | 2020-12-31 | 10:29:51 | 2027-12-31 23:51:59 | 2027-09-18 23:14:07 | l   | In Bulgarian it is desirable           | Lao Peoples Democr                     | \xbfa7a8a9aaabacadaeaf | Which started out as a kind                                                      | \xb0a7a8a9aaabacadae   | Georgia Germany Micrones               | \xb6f7a8a9889a65aaabacad     | Change our locale from $ to ¥ in                                                 | /mysql1/
+    2 |      3 |       20 |       10 |            4 |    20.124 |     20.012 |    20.011 | 110000001 |  20000001 | 0   | 2021-12-31 | 11:39:50 | 2028-12-31 23:50:59 | 2028-10-18 23:14:07 | m   | Which started out as a kind            | Change our locale from $ to ¥ in       | \xc0a7a8a9aaabacadaeaf | Canada Denmark Turkey Yemen Tokyo                                                | \xb1a7a8a9aaabacadaeaf | Guinea-Bissau Honduras M               | \xc617a8a9889a65aaabacadaf   | Madagascar Malaysia Bosnia and                                                   | /mysql1/
+    3 |      4 |       30 |       20 |            5 |    30.899 |     30.298 |    30.733 | 120000001 |  21000001 | 1   | 2022-12-31 | 12:49:49 | 2029-12-31 23:49:59 | 2029-11-18 22:14:07 | n   | Canada Denmark Turkey Yemen Tokyo      | Thequickbrownfox                       | \xd1a7a8a9aaabacadaeaf | Change our locale from $ to ¥ in                                                 | \xb2a7a8a9aaabacadae   | Which started out as a kind            | \xd627a8a9889a65aaabacadaeaf | How you can configure that can                                                   | /mysql1/
+    4 |      5 |       40 |       30 |            6 |    40.157 |     40.731 |    40.992 | 130000001 |  22000001 | 0   | 2023-12-31 | 13:59:48 | 2030-12-31 23:48:59 | 2030-12-18 22:14:07 | o   | Change our locale from $ to ¥ in       | jumpsoverthelazydog                    | \xe2a7a8a9aaabacadaeaf | Ông là nhà văn hiện thực thế kỷ 20                                               | \xb3a7a8a9aaabacadaeaf | .                                      | \xe637a8a9889a65aaabacadae   | 0123456789                                                                       | /mysql1/
+    5 |      6 |       50 |       40 |            7 |    50.852 |     50.771 |    50.831 | 140000001 |  23000001 | 1   | 2024-12-31 | 14:59:47 | 2031-12-31 23:47:59 | 2031-01-18 22:14:07 | p   | Ông là nhà văn hiện thực thế kỷ 20     | abcdefghijklmnopqr                     | \xf3a7a8a9aaabacadaeaf | $                                                                                | \xb4a7a8a9aaabacadae   | Madagascar Malaysia Bosn               | \xf647a8a9889a65aaabacadaeaf | `~!@#$%^&*()_+=-{}[]|:;<>?/.                                                     | /mysql1/
+  126 |  16766 |  1088606 |  7483646 |  36854775806 | -1.17e-20 | -2.21e-108 | -2.4e-108 |  20000000 |  11000000 | 1   | 6999-12-30 | 02:09:59 | 3999-12-31 23:59:58 | 2030-01-18 22:14:06 | \   | 敷ヘカウ告政ヨハツヤ消70者32精楽ざ     | Canada Denmark Turkey                  | \x37a7a8a9aaabacadaeaf | べ員葉コ番告7次ノヌ従援かやじり図安ヨ                                            | \xa8a7a8a9aaabacadaeaf | ăâđêôơưdêđêdờenờíìờẹ                   | \x3677a8a9889a65aaabacad     | 友達と会うので遅刻した Ông là nhà văn                                            | /mysql1/
+  127 |  16767 |  1088607 |  7483647 |  36854775807 | -1.17e-20 | -2.22e-108 | -2.3e-108 |  10000000 |  10000000 | 1   | 5999-12-31 | 00:00:00 | 4999-12-31 23:59:59 | 2030-01-18 22:14:07 | "   | Thequickbrownfox                       | 0123456789                             | \x16a7a8a9aaabacadaeaf | Thequickbrownfoxjumpsoverthelazydog                                              | \xa6a7a8a9aaabacadaeaf | 敷ヘカウ告政ヨハツヤ消70者32精楽ざ     | \x1657a8a9889a65aaabacadae   | abcdefghijklmnopqrstuvwxyzABCD                                                   | /mysql1/
+(15 rows)
+
+
+set timezone to +00;
+SET
+-- Testcase 2:
+SELECT * FROM t3 WHERE __spd_url LIKE ANY (ARRAY['/tinybrace1%']) ORDER BY t3.* ASC;
+ c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 | c9 | c10 | c11 | c12 | c13 | c14 | c15 | c16 | c17 | c18 | c19 | c20 | c21 | c22 | c23 | c24 | __spd_url 
+----+----+----+----+----+----+----+----+----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----------
+(0 rows)
+
+
+set timezone to +00;
+SET
+-- Testcase 3:
+SELECT * FROM t3 WHERE __spd_url LIKE ANY (ARRAY['/tinybrace1%', '/tinybrace2%']) ORDER BY t3.* ASC;
+ c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 | c9 | c10 | c11 | c12 | c13 | c14 | c15 | c16 | c17 | c18 | c19 | c20 | c21 | c22 | c23 | c24 | __spd_url 
+----+----+----+----+----+----+----+----+----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----------
+(0 rows)
+
+
+set timezone to +00;
+SET
+-- Testcase 4:
+SELECT * FROM t3 WHERE __spd_url LIKE ANY (ARRAY['/mysql1%', '/tinybrace1%']) ORDER BY t3.* ASC;
+  c1  |   c2   |    c3    |    c4    |      c5      |    c6     |     c7     |    c8     |    c9     |    c10    | c11 |    c12     |   c13    |         c14         |         c15         | c16 |                  c17                   |                  c18                   |          c19           |                                       c20                                        |          c21           |                  c22                   |             c23              |                                       c24                                        | __spd_url 
+------+--------+----------+----------+--------------+-----------+------------+-----------+-----------+-----------+-----+------------+----------+---------------------+---------------------+-----+----------------------------------------+----------------------------------------+------------------------+----------------------------------------------------------------------------------+------------------------+----------------------------------------+------------------------------+----------------------------------------------------------------------------------+-----------
+ -128 | -16768 | -1088608 | -7483648 | -36854775808 |  -3.4e+20 | -1.79e+108 | -1.7e+108 | -10000001 | -10000001 | 0   | 1900-01-01 | 24:00:00 | 2100-01-01 00:00:00 | 1999-12-31 19:00:01 | `   | jumpsoverthelazydog                    | Which started out as a kind            | \x26a7a8a9aaabacadaeaf | 敷ヘカウ告政ヨハツヤ消70者32精楽ざ                                               | \xa7a7a8a9aaabacadae   | Thequickbrownfoxjumpsoverthelazydog    | \x2667a8a9889a65aaabacadaeaf | Thequickbrownfoxjumpsoverthelazydog                                              | /mysql1/
+ -127 | -16767 | -1088607 | -7483647 | -36854775807 |  -3.4e+20 | -1.78e+108 | -1.8e+108 |  30000001 |  12000001 | 0   | 2000-01-02 | 03:19:58 | 2200-01-01 00:00:01 | 1999-12-31 19:00:02 | /   | べ員葉コ番告7次ノヌ従援かやじり図安ヨ  | Ông là nhà văn hiện thực               | \x48a7a8a9aaabacadaeaf | ăâđêôơưdêđêdờenờíìờẹ                                                             | \xa9a7a8a9aaabacad     | べ員葉コ番告7次ノヌ従援かやじり図安ヨ  | \x4687a8a9889a65aaabacadae   | 敷ヘカウ告政ヨハツヤ消70者32精楽ざ                                               | /mysql1/
+   -5 |     -4 |      -50 |      -60 |           -3 |    -50.52 |    -50.998 |   -50.159 |  40000001 |  13000001 | 1   | 2014-12-31 | 04:29:57 | 2021-12-31 23:57:59 | 2021-03-18 23:14:07 | '   | ăâđêôơưdêđêdờenờíìờẹ                   | いろはにほへど　ちりぬるをわがよたれぞ | \x59a7a8a9aaabacadaeaf | いろはにほへど　ちりぬるをわがよたれぞ　つねならむうゐのおくやま　けふこえてあさ | \xaaa7a8a9aaabacadaeaf | いろはにほへど　ちりぬるをわがよたれぞ | \x5697a8a9889a65aaab         | べ員葉コ番告7次ノヌ従援かやじり図安ヨ                                            | /mysql1/
+   -4 |     -3 |      -40 |      -50 |           -2 |   -40.563 |    -40.847 |    -40.32 |  50000000 |  14000000 | 0   | 2015-12-31 | 05:39:56 | 2022-12-31 23:56:59 | 2022-04-18 23:14:07 | &   | いろはにほへど　ちりぬるをわがよたれぞ | ăâđêôơưdêđêdờenờíìờẹ                   | \x6aa7a8a9aaabacadaeaf | 色は匂へど 散りぬるを我が世誰ぞ 常ならむ有為の奥山 今日越えて浅き夢見            | \xaba7a8a9aaabacadaeaf | 友達と会うので遅刻した Ông là n        | \x66a7a8a9889a65aaabacad     | ăâđêôơưdêđêdờenờíìờẹ                                                             | /mysql1/
+   -3 |     -2 |      -30 |      -40 |           -1 |   -30.633 |    -30.552 |   -30.543 |  60000001 |  15000001 | 1   | 2016-12-31 | 06:49:55 | 2023-12-31 23:55:59 | 2023-05-18 23:14:07 | @   | 色は匂へど 散りぬるを我が世誰ぞ        | ซฌญฎฏฐฑฒณดตถทธนบปผภฮ                   | \x7ba7a8a9aaabacadaeaf | กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ                                                   | \xaca7a8a9aaab         | กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ         | \x76b7a8a9889a65aaabac       | いろはにほへど　ちりぬるをわがよたれぞ　つねならむうゐのおくやま　けふこえてあさ | /mysql1/
+   -2 |     -1 |      -20 |      -30 |            0 |    -20.12 |    -20.938 |   -20.545 |  70000001 |  16000001 | 0   | 2017-12-31 | 07:59:54 | 2024-12-31 23:54:59 | 2024-06-18 23:14:07 | h   | กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ         | `~!@#$%^&*()_+=-{}[]|:;<>?/.           | \x8ca7a8a9aaabacadaeaf | `~!@#$%^&*()_+=-{}[]|:;<>?/.                                                     | \xada7a8a9aaabacadaeaf | `~!@#$%^&*()_+=-{}[]|:;<>?/.           | \x86c7a8a9                   | 色は匂へど 散りぬるを我が世誰ぞ 常ならむ有為の奥山 今日越えて浅き夢見            | /mysql1/
+   -1 |      0 |      -10 |      -20 |            1 |   -10.653 |    -10.552 |   -10.222 |  80000000 |  17000000 | 1   | 2018-12-31 | 08:09:53 | 2025-12-31 23:53:59 | 2025-07-18 23:14:07 | i   | `~!@#$%^&*()_+=-{}[]|:;<>?/.           | In Bulgarian it is desirable           | \x9da7a8a9aaabacadaeaf | 0123456789                                                                       | \xaea7a8a9aaabac       | Ông là nhà văn hiện thực thế kỷ 20     | \x96d7a8a9889a65aaabacadae   | กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ                                                   | /mysql1/
+    0 |      1 |        0 |      -10 |            2 |     0.532 |       0.92 |     0.921 |  90000000 |  18000000 | 0   | 2019-12-31 | 09:19:52 | 2026-12-31 23:52:59 | 2026-08-18 23:14:07 | k   | 0123456789                             | Canada Denmark Turkey Yemen Tokyo      | \xaea7a8a9aaabacadaeaf | In Bulgarian it is desirable                                                     | \xafa7a8a9aaabacadaeaf | Change our locale from $ to ¥ in       | \xa6e7a8a9889a65aaabacadaeaf | Canada Denmark Turkey Yemen Tokyo                                                | /mysql1/
+    1 |      2 |       10 |        0 |            3 |    10.772 |     10.092 |    10.998 | 100000000 |  19000000 | 1   | 2020-12-31 | 10:29:51 | 2027-12-31 23:51:59 | 2027-09-18 23:14:07 | l   | In Bulgarian it is desirable           | Lao Peoples Democr                     | \xbfa7a8a9aaabacadaeaf | Which started out as a kind                                                      | \xb0a7a8a9aaabacadae   | Georgia Germany Micrones               | \xb6f7a8a9889a65aaabacad     | Change our locale from $ to ¥ in                                                 | /mysql1/
+    2 |      3 |       20 |       10 |            4 |    20.124 |     20.012 |    20.011 | 110000001 |  20000001 | 0   | 2021-12-31 | 11:39:50 | 2028-12-31 23:50:59 | 2028-10-18 23:14:07 | m   | Which started out as a kind            | Change our locale from $ to ¥ in       | \xc0a7a8a9aaabacadaeaf | Canada Denmark Turkey Yemen Tokyo                                                | \xb1a7a8a9aaabacadaeaf | Guinea-Bissau Honduras M               | \xc617a8a9889a65aaabacadaf   | Madagascar Malaysia Bosnia and                                                   | /mysql1/
+    3 |      4 |       30 |       20 |            5 |    30.899 |     30.298 |    30.733 | 120000001 |  21000001 | 1   | 2022-12-31 | 12:49:49 | 2029-12-31 23:49:59 | 2029-11-18 22:14:07 | n   | Canada Denmark Turkey Yemen Tokyo      | Thequickbrownfox                       | \xd1a7a8a9aaabacadaeaf | Change our locale from $ to ¥ in                                                 | \xb2a7a8a9aaabacadae   | Which started out as a kind            | \xd627a8a9889a65aaabacadaeaf | How you can configure that can                                                   | /mysql1/
+    4 |      5 |       40 |       30 |            6 |    40.157 |     40.731 |    40.992 | 130000001 |  22000001 | 0   | 2023-12-31 | 13:59:48 | 2030-12-31 23:48:59 | 2030-12-18 22:14:07 | o   | Change our locale from $ to ¥ in       | jumpsoverthelazydog                    | \xe2a7a8a9aaabacadaeaf | Ông là nhà văn hiện thực thế kỷ 20                                               | \xb3a7a8a9aaabacadaeaf | .                                      | \xe637a8a9889a65aaabacadae   | 0123456789                                                                       | /mysql1/
+    5 |      6 |       50 |       40 |            7 |    50.852 |     50.771 |    50.831 | 140000001 |  23000001 | 1   | 2024-12-31 | 14:59:47 | 2031-12-31 23:47:59 | 2031-01-18 22:14:07 | p   | Ông là nhà văn hiện thực thế kỷ 20     | abcdefghijklmnopqr                     | \xf3a7a8a9aaabacadaeaf | $                                                                                | \xb4a7a8a9aaabacadae   | Madagascar Malaysia Bosn               | \xf647a8a9889a65aaabacadaeaf | `~!@#$%^&*()_+=-{}[]|:;<>?/.                                                     | /mysql1/
+  126 |  16766 |  1088606 |  7483646 |  36854775806 | -1.17e-20 | -2.21e-108 | -2.4e-108 |  20000000 |  11000000 | 1   | 6999-12-30 | 02:09:59 | 3999-12-31 23:59:58 | 2030-01-18 22:14:06 | \   | 敷ヘカウ告政ヨハツヤ消70者32精楽ざ     | Canada Denmark Turkey                  | \x37a7a8a9aaabacadaeaf | べ員葉コ番告7次ノヌ従援かやじり図安ヨ                                            | \xa8a7a8a9aaabacadaeaf | ăâđêôơưdêđêdờenờíìờẹ                   | \x3677a8a9889a65aaabacad     | 友達と会うので遅刻した Ông là nhà văn                                            | /mysql1/
+  127 |  16767 |  1088607 |  7483647 |  36854775807 | -1.17e-20 | -2.22e-108 | -2.3e-108 |  10000000 |  10000000 | 1   | 5999-12-31 | 00:00:00 | 4999-12-31 23:59:59 | 2030-01-18 22:14:07 | "   | Thequickbrownfox                       | 0123456789                             | \x16a7a8a9aaabacadaeaf | Thequickbrownfoxjumpsoverthelazydog                                              | \xa6a7a8a9aaabacadaeaf | 敷ヘカウ告政ヨハツヤ消70者32精楽ざ     | \x1657a8a9889a65aaabacadae   | abcdefghijklmnopqrstuvwxyzABCD                                                   | /mysql1/
+(15 rows)
+
+
+set timezone to +00;
+SET
+-- Testcase 5:
+SELECT * FROM t3 WHERE __spd_url LIKE ANY (ARRAY['/grid1%', '/influx1%']) ORDER BY t3.* ASC;
+ c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 | c9 | c10 | c11 | c12 | c13 | c14 | c15 | c16 | c17 | c18 | c19 | c20 | c21 | c22 | c23 | c24 | __spd_url 
+----+----+----+----+----+----+----+----+----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----------
+(0 rows)
+
+
+set timezone to +00;
+SET
+-- Testcase 6:
+SELECT * FROM tmp_t15 WHERE __spd_url LIKE ANY (ARRAY['/mysql1%']) ORDER BY tmp_t15.* ASC;
+        time         |                       c2                       |   c3    |     c4      | __spd_url 
+---------------------+------------------------------------------------+---------+-------------+-----------
+ 2021-05-05 21:59:15 | 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |  500000 |  50000.9421 | /mysql1/
+ 2022-05-05 21:59:15 | Thequickbrownfoxjumpsoverthelazydog            | -550000 |  -55000.902 | /mysql1/
+ 2023-05-05 21:59:15 | 常ならむ有為の奥山今日越えて浅き夢見           |  600000 |   60000.902 | /mysql1/
+ 2024-05-05 21:59:15 | いろはにほへどちりぬるをわがよたれぞつねならむ | -650000 |  -65000.902 | /mysql1/
+ 2025-05-05 21:59:15 | живетезелоземляиижеикаколюди                   |   70000 | 70000.91023 | /mysql1/
+(5 rows)
+
+
+set timezone to +00;
+SET
+-- Testcase 7:
+SELECT * FROM tmp_t15 WHERE __spd_url LIKE ANY (ARRAY['/tinybrace1%']) ORDER BY tmp_t15.* ASC;
+        time         |                       c2                       |   c3    |      c4      |  __spd_url   
+---------------------+------------------------------------------------+---------+--------------+--------------
+ 2024-06-19 10:20:54 | 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |   10000 |   10000.3117 | /tinybrace1/
+ 2025-07-19 11:19:53 | живетезелоземляиижеикаколюди                   | -550000 | -550000.5457 | /tinybrace1/
+ 2026-08-19 12:18:52 | いろはにほへどちりぬるをわがよたれぞつねならむ |  600000 |  600000.8847 | /tinybrace1/
+ 2027-09-19 13:17:51 | Thequickbrownfoxjumpsoverthelazydog            | -650000 | -650000.9481 | /tinybrace1/
+ 2028-10-19 14:18:50 | 常ならむ有為の奥山今日越えて浅き夢見           |  700000 |  700000.9363 | /tinybrace1/
+(5 rows)
+
+
+set timezone to +00;
+SET
+-- Testcase 8:
+SELECT * FROM tmp_t15 WHERE __spd_url LIKE ANY (ARRAY['/tinybrace1%', '/tinybrace2%']) ORDER BY tmp_t15.* ASC;
+        time         |                       c2                       |   c3    |      c4      |  __spd_url   
+---------------------+------------------------------------------------+---------+--------------+--------------
+ 2024-06-19 10:20:54 | 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |   10000 |   10000.3117 | /tinybrace1/
+ 2025-07-19 11:19:53 | живетезелоземляиижеикаколюди                   | -550000 | -550000.5457 | /tinybrace1/
+ 2026-08-19 12:18:52 | いろはにほへどちりぬるをわがよたれぞつねならむ |  600000 |  600000.8847 | /tinybrace1/
+ 2027-09-19 13:17:51 | Thequickbrownfoxjumpsoverthelazydog            | -650000 | -650000.9481 | /tinybrace1/
+ 2028-10-19 14:18:50 | 常ならむ有為の奥山今日越えて浅き夢見           |  700000 |  700000.9363 | /tinybrace1/
+(5 rows)
+
+
+set timezone to +00;
+SET
+-- Testcase 9:
+SELECT * FROM tmp_t15 WHERE __spd_url LIKE ANY (ARRAY['/mysql1%', '/tinybrace1%']) ORDER BY tmp_t15.* ASC;
+        time         |                       c2                       |   c3    |      c4      |  __spd_url   
+---------------------+------------------------------------------------+---------+--------------+--------------
+ 2021-05-05 21:59:15 | 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |  500000 |   50000.9421 | /mysql1/
+ 2022-05-05 21:59:15 | Thequickbrownfoxjumpsoverthelazydog            | -550000 |   -55000.902 | /mysql1/
+ 2023-05-05 21:59:15 | 常ならむ有為の奥山今日越えて浅き夢見           |  600000 |    60000.902 | /mysql1/
+ 2024-05-05 21:59:15 | いろはにほへどちりぬるをわがよたれぞつねならむ | -650000 |   -65000.902 | /mysql1/
+ 2024-06-19 10:20:54 | 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |   10000 |   10000.3117 | /tinybrace1/
+ 2025-05-05 21:59:15 | живетезелоземляиижеикаколюди                   |   70000 |  70000.91023 | /mysql1/
+ 2025-07-19 11:19:53 | живетезелоземляиижеикаколюди                   | -550000 | -550000.5457 | /tinybrace1/
+ 2026-08-19 12:18:52 | いろはにほへどちりぬるをわがよたれぞつねならむ |  600000 |  600000.8847 | /tinybrace1/
+ 2027-09-19 13:17:51 | Thequickbrownfoxjumpsoverthelazydog            | -650000 | -650000.9481 | /tinybrace1/
+ 2028-10-19 14:18:50 | 常ならむ有為の奥山今日越えて浅き夢見           |  700000 |  700000.9363 | /tinybrace1/
+(10 rows)
+
+
+set timezone to +00;
+SET
+-- Testcase 10:
+SELECT * FROM tmp_t15 WHERE __spd_url LIKE ANY (ARRAY['/grid1%', '/influx1%']) ORDER BY tmp_t15.* ASC;
+        time         |                       c2                       |   c3   |     c4      | __spd_url 
+---------------------+------------------------------------------------+--------+-------------+-----------
+ 2020-01-02 01:00:00 | 常ならむ有為の奥山今日越えて浅き夢見           |  30000 |  30000.0562 | /influx1/
+ 2020-01-03 01:00:00 | Thequickbrownfoxjumpsoverthelazydog            | -35000 | -35000.1205 | /influx1/
+ 2020-01-04 01:00:00 | いろはにほへどちりぬるをわがよたれぞつねならむ |  40000 | 40000.05221 | /influx1/
+ 2020-01-05 01:00:00 | живетезелоземляиижеикаколюди                   | -45000 |  45000.1095 | /influx1/
+ 2020-01-06 01:00:00 | 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |  50000 |  50000.1054 | /influx1/
+(5 rows)
+
+

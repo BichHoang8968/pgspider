@@ -1,0 +1,1525 @@
+set timezone to +00;
+SET
+-- Testcase 1:
+SELECT * FROM griddb_max_range ORDER BY griddb_max_range.*;
+     c1      |  c2  |   c3   | c4 |          c5          |    c6     |     c7     |           c8            |    c9     |         c10         |             c11             |                       c12                       |                          c13                          |                    c14                    |                     c15                      |                                                c16                                                |     __spd_url     
+-------------+------+--------+----+----------------------+-----------+------------+-------------------------+-----------+---------------------+-----------------------------+-------------------------------------------------+-------------------------------------------------------+-------------------------------------------+----------------------------------------------+---------------------------------------------------------------------------------------------------+-------------------
+ -2147483648 | -128 | -32768 | f  | -9223372036854775808 |   3.4e+38 |  1.79e+308 | 9999-12-31 23:59:59     | {t,f,t,f} | {-127,126,-100,100} | {2000,-2000,2000,-2000}     | {40000,-40000,4000,-4000}                       | {9223372036854775806,-9223372036854775806,6000,-6000} | {-6000.231,6000.452,20000.121,-20000.322} | {-50.5,-51.5,-52.5,-53.5}                    | {"2020-01-07 01:00:00","2020-01-08 01:00:00","2020-01-07 01:00:00","2020-01-10 01:00:00"}         | /pgspider1/
+ -2147483648 | -128 | -32768 | f  | -9223372036854775808 |   3.4e+38 |  1.79e+308 | 9999-12-31 23:59:59     | {t,f,t,f} | {-127,126,-100,100} | {2000,-2000,2000,-2000}     | {40000,-40000,4000,-4000}                       | {9223372036854775806,-9223372036854775806,6000,-6000} | {-6000.231,6000.452,20000.121,-20000.322} | {-50.5,-51.5,-52.5,-53.5}                    | {"2020-01-07 01:00:00","2020-01-08 01:00:00","2020-01-07 01:00:00","2020-01-10 01:00:00"}         | /pgspider1/
+ -2147483648 | -128 | -32768 | f  | -9223372036854775808 |   3.4e+38 |  1.79e+308 | 9999-12-31 23:59:59     | {t,f,t,f} | {-127,126,-100,100} | {2000,-2000,2000,-2000}     | {40000,-40000,4000,-4000}                       | {9223372036854775806,-9223372036854775806,6000,-6000} | {-6000.231,6000.452,20000.121,-20000.322} | {-50.5,-51.5,-52.5,-53.5}                    | {"2020-01-07 01:00:00","2020-01-08 01:00:00","2020-01-07 01:00:00","2020-01-10 01:00:00"}         | /pgspider3/
+ -2147483648 | -128 | -32768 | f  | -9223372036854775808 |   3.4e+38 |  1.79e+308 | 9999-12-31 23:59:59     | {t,f,t,f} | {-127,126,-100,100} | {2000,-2000,2000,-2000}     | {40000,-40000,4000,-4000}                       | {9223372036854775806,-9223372036854775806,6000,-6000} | {-6000.231,6000.452,20000.121,-20000.322} | {-50.5,-51.5,-52.5,-53.5}                    | {"2020-01-07 01:00:00","2020-01-08 01:00:00","2020-01-07 01:00:00","2020-01-10 01:00:00"}         | /pgspider3/
+ -2147483648 | -128 | -32768 | f  | -9223372036854775808 |   3.4e+38 |  1.79e+308 | 9999-12-31 23:59:59     | {t,f,t,f} | {-127,126,-100,100} | {2000,-2000,2000,-2000}     | {40000,-40000,4000,-4000}                       | {9223372036854775806,-9223372036854775806,6000,-6000} | {-6000.231,6000.452,20000.121,-20000.322} | {-50.5,-51.5,-52.5,-53.5}                    | {"2020-01-07 01:00:00","2020-01-08 01:00:00","2020-01-07 01:00:00","2020-01-10 01:00:00"}         | /pgspider3/grid1/
+ -2147483648 | -128 | -32768 | f  | -9223372036854775808 |   3.4e+38 |  1.79e+308 | 9999-12-31 23:59:59     | {t,f,t,f} | {-127,126,-100,100} | {2000,-2000,2000,-2000}     | {40000,-40000,4000,-4000}                       | {9223372036854775806,-9223372036854775806,6000,-6000} | {-6000.231,6000.452,20000.121,-20000.322} | {-50.5,-51.5,-52.5,-53.5}                    | {"2020-01-07 01:00:00","2020-01-08 01:00:00","2020-01-07 01:00:00","2020-01-10 01:00:00"}         | /pgspider3/grid2/
+ -2147483647 | -127 | -32767 | f  | -9223372036854775807 | -3.39e+38 |  1.78e+308 | 9999-12-31 23:59:58.999 | {t,f,t,f} | {30,40,50,-60}      | {4000,-4000,4000,-4000}     | {50000,-50000,5000,-5000}                       | {70000,-70000,7000,-7000}                             | {-8000.525,8000.765,80000.51,-80000.53}   | {-30.5,-31.5,-32.5,-33.5}                    | {"2020-01-10 01:00:00","2020-01-08 01:00:00","2020-01-10 01:00:00","2020-01-10 01:00:00"}         | /pgspider1/
+ -2147483647 | -127 | -32767 | f  | -9223372036854775807 | -3.39e+38 |  1.78e+308 | 9999-12-31 23:59:58.999 | {t,f,t,f} | {30,40,50,-60}      | {4000,-4000,4000,-4000}     | {50000,-50000,5000,-5000}                       | {70000,-70000,7000,-7000}                             | {-8000.525,8000.765,80000.51,-80000.53}   | {-30.5,-31.5,-32.5,-33.5}                    | {"2020-01-10 01:00:00","2020-01-08 01:00:00","2020-01-10 01:00:00","2020-01-10 01:00:00"}         | /pgspider1/
+ -2147483647 | -127 | -32767 | f  | -9223372036854775807 | -3.39e+38 |  1.78e+308 | 9999-12-31 23:59:58.999 | {t,f,t,f} | {30,40,50,-60}      | {4000,-4000,4000,-4000}     | {50000,-50000,5000,-5000}                       | {70000,-70000,7000,-7000}                             | {-8000.525,8000.765,80000.51,-80000.53}   | {-30.5,-31.5,-32.5,-33.5}                    | {"2020-01-10 01:00:00","2020-01-08 01:00:00","2020-01-10 01:00:00","2020-01-10 01:00:00"}         | /pgspider3/
+ -2147483647 | -127 | -32767 | f  | -9223372036854775807 | -3.39e+38 |  1.78e+308 | 9999-12-31 23:59:58.999 | {t,f,t,f} | {30,40,50,-60}      | {4000,-4000,4000,-4000}     | {50000,-50000,5000,-5000}                       | {70000,-70000,7000,-7000}                             | {-8000.525,8000.765,80000.51,-80000.53}   | {-30.5,-31.5,-32.5,-33.5}                    | {"2020-01-10 01:00:00","2020-01-08 01:00:00","2020-01-10 01:00:00","2020-01-10 01:00:00"}         | /pgspider3/
+ -2147483647 | -127 | -32767 | f  | -9223372036854775807 | -3.39e+38 |  1.78e+308 | 9999-12-31 23:59:58.999 | {t,f,t,f} | {30,40,50,-60}      | {4000,-4000,4000,-4000}     | {50000,-50000,5000,-5000}                       | {70000,-70000,7000,-7000}                             | {-8000.525,8000.765,80000.51,-80000.53}   | {-30.5,-31.5,-32.5,-33.5}                    | {"2020-01-10 01:00:00","2020-01-08 01:00:00","2020-01-10 01:00:00","2020-01-10 01:00:00"}         | /pgspider3/grid1/
+ -2147483647 | -127 | -32767 | f  | -9223372036854775807 | -3.39e+38 |  1.78e+308 | 9999-12-31 23:59:58.999 | {t,f,t,f} | {30,40,50,-60}      | {4000,-4000,4000,-4000}     | {50000,-50000,5000,-5000}                       | {70000,-70000,7000,-7000}                             | {-8000.525,8000.765,80000.51,-80000.53}   | {-30.5,-31.5,-32.5,-33.5}                    | {"2020-01-10 01:00:00","2020-01-08 01:00:00","2020-01-10 01:00:00","2020-01-10 01:00:00"}         | /pgspider3/grid2/
+  2147483646 |  126 |  32766 | t  |  9223372036854775806 |  3.39e+38 | -1.78e+308 | 1970-01-01 00:00:00.001 | {t,f,t,f} | {20,30,40,-50}      | {3000,-3000,3000,-3000}     | {50000,-50000,5000,-5000}                       | {60000,-60000,6000,-6000}                             | {-7000.623,7000.456,70000.22,-70000.125}  | {-40.5,-41.5,-42.5,-43.5}                    | {"2020-01-08 01:00:00","2020-01-08 01:00:00","2020-01-08 01:00:00","2020-01-10 01:00:00"}         | /pgspider1/
+  2147483646 |  126 |  32766 | t  |  9223372036854775806 |  3.39e+38 | -1.78e+308 | 1970-01-01 00:00:00.001 | {t,f,t,f} | {20,30,40,-50}      | {3000,-3000,3000,-3000}     | {50000,-50000,5000,-5000}                       | {60000,-60000,6000,-6000}                             | {-7000.623,7000.456,70000.22,-70000.125}  | {-40.5,-41.5,-42.5,-43.5}                    | {"2020-01-08 01:00:00","2020-01-08 01:00:00","2020-01-08 01:00:00","2020-01-10 01:00:00"}         | /pgspider1/
+  2147483646 |  126 |  32766 | t  |  9223372036854775806 |  3.39e+38 | -1.78e+308 | 1970-01-01 00:00:00.001 | {t,f,t,f} | {20,30,40,-50}      | {3000,-3000,3000,-3000}     | {50000,-50000,5000,-5000}                       | {60000,-60000,6000,-6000}                             | {-7000.623,7000.456,70000.22,-70000.125}  | {-40.5,-41.5,-42.5,-43.5}                    | {"2020-01-08 01:00:00","2020-01-08 01:00:00","2020-01-08 01:00:00","2020-01-10 01:00:00"}         | /pgspider3/
+  2147483646 |  126 |  32766 | t  |  9223372036854775806 |  3.39e+38 | -1.78e+308 | 1970-01-01 00:00:00.001 | {t,f,t,f} | {20,30,40,-50}      | {3000,-3000,3000,-3000}     | {50000,-50000,5000,-5000}                       | {60000,-60000,6000,-6000}                             | {-7000.623,7000.456,70000.22,-70000.125}  | {-40.5,-41.5,-42.5,-43.5}                    | {"2020-01-08 01:00:00","2020-01-08 01:00:00","2020-01-08 01:00:00","2020-01-10 01:00:00"}         | /pgspider3/
+  2147483646 |  126 |  32766 | t  |  9223372036854775806 |  3.39e+38 | -1.78e+308 | 1970-01-01 00:00:00.001 | {t,f,t,f} | {20,30,40,-50}      | {3000,-3000,3000,-3000}     | {50000,-50000,5000,-5000}                       | {60000,-60000,6000,-6000}                             | {-7000.623,7000.456,70000.22,-70000.125}  | {-40.5,-41.5,-42.5,-43.5}                    | {"2020-01-08 01:00:00","2020-01-08 01:00:00","2020-01-08 01:00:00","2020-01-10 01:00:00"}         | /pgspider3/grid1/
+  2147483646 |  126 |  32766 | t  |  9223372036854775806 |  3.39e+38 | -1.78e+308 | 1970-01-01 00:00:00.001 | {t,f,t,f} | {20,30,40,-50}      | {3000,-3000,3000,-3000}     | {50000,-50000,5000,-5000}                       | {60000,-60000,6000,-6000}                             | {-7000.623,7000.456,70000.22,-70000.125}  | {-40.5,-41.5,-42.5,-43.5}                    | {"2020-01-08 01:00:00","2020-01-08 01:00:00","2020-01-08 01:00:00","2020-01-10 01:00:00"}         | /pgspider3/grid2/
+  2147483647 |  127 |  32767 | t  |  9223372036854775807 |  -3.4e+38 | -1.79e+308 | 1970-01-01 00:00:00     | {t,f,t,f} | {-128,127,-10,10}   | {32767,-32768,32766,-32767} | {2147483647,-2147483648,2147483646,-2147483647} | {9223372036854775807,-9223372036854775808,1,2}        | {3.4e+38,-3.4e+38,-3.39e+38,3.39e+38}     | {-1.79e+308,1.79e+308,-1.78e+308,-1.78e+308} | {"1970-01-01 00:00:00","9999-12-31 23:59:59","1970-01-01 00:00:00.001","9999-12-31 23:59:58.999"} | /pgspider1/
+  2147483647 |  127 |  32767 | t  |  9223372036854775807 |  -3.4e+38 | -1.79e+308 | 1970-01-01 00:00:00     | {t,f,t,f} | {-128,127,-10,10}   | {32767,-32768,32766,-32767} | {2147483647,-2147483648,2147483646,-2147483647} | {9223372036854775807,-9223372036854775808,1,2}        | {3.4e+38,-3.4e+38,-3.39e+38,3.39e+38}     | {-1.79e+308,1.79e+308,-1.78e+308,-1.78e+308} | {"1970-01-01 00:00:00","9999-12-31 23:59:59","1970-01-01 00:00:00.001","9999-12-31 23:59:58.999"} | /pgspider1/
+  2147483647 |  127 |  32767 | t  |  9223372036854775807 |  -3.4e+38 | -1.79e+308 | 1970-01-01 00:00:00     | {t,f,t,f} | {-128,127,-10,10}   | {32767,-32768,32766,-32767} | {2147483647,-2147483648,2147483646,-2147483647} | {9223372036854775807,-9223372036854775808,1,2}        | {3.4e+38,-3.4e+38,-3.39e+38,3.39e+38}     | {-1.79e+308,1.79e+308,-1.78e+308,-1.78e+308} | {"1970-01-01 00:00:00","9999-12-31 23:59:59","1970-01-01 00:00:00.001","9999-12-31 23:59:58.999"} | /pgspider3/
+  2147483647 |  127 |  32767 | t  |  9223372036854775807 |  -3.4e+38 | -1.79e+308 | 1970-01-01 00:00:00     | {t,f,t,f} | {-128,127,-10,10}   | {32767,-32768,32766,-32767} | {2147483647,-2147483648,2147483646,-2147483647} | {9223372036854775807,-9223372036854775808,1,2}        | {3.4e+38,-3.4e+38,-3.39e+38,3.39e+38}     | {-1.79e+308,1.79e+308,-1.78e+308,-1.78e+308} | {"1970-01-01 00:00:00","9999-12-31 23:59:59","1970-01-01 00:00:00.001","9999-12-31 23:59:58.999"} | /pgspider3/
+  2147483647 |  127 |  32767 | t  |  9223372036854775807 |  -3.4e+38 | -1.79e+308 | 1970-01-01 00:00:00     | {t,f,t,f} | {-128,127,-10,10}   | {32767,-32768,32766,-32767} | {2147483647,-2147483648,2147483646,-2147483647} | {9223372036854775807,-9223372036854775808,1,2}        | {3.4e+38,-3.4e+38,-3.39e+38,3.39e+38}     | {-1.79e+308,1.79e+308,-1.78e+308,-1.78e+308} | {"1970-01-01 00:00:00","9999-12-31 23:59:59","1970-01-01 00:00:00.001","9999-12-31 23:59:58.999"} | /pgspider3/grid1/
+  2147483647 |  127 |  32767 | t  |  9223372036854775807 |  -3.4e+38 | -1.79e+308 | 1970-01-01 00:00:00     | {t,f,t,f} | {-128,127,-10,10}   | {32767,-32768,32766,-32767} | {2147483647,-2147483648,2147483646,-2147483647} | {9223372036854775807,-9223372036854775808,1,2}        | {3.4e+38,-3.4e+38,-3.39e+38,3.39e+38}     | {-1.79e+308,1.79e+308,-1.78e+308,-1.78e+308} | {"1970-01-01 00:00:00","9999-12-31 23:59:59","1970-01-01 00:00:00.001","9999-12-31 23:59:58.999"} | /pgspider3/grid2/
+(24 rows)
+
+set timezone to +00;
+SET
+-- Testcase 2:
+SELECT c11, c12, c13, c14, __spd_url FROM griddb_max_range ORDER BY 1, 2, 3, 4, 5;
+             c11             |                       c12                       |                          c13                          |                    c14                    |     __spd_url     
+-----------------------------+-------------------------------------------------+-------------------------------------------------------+-------------------------------------------+-------------------
+ {2000,-2000,2000,-2000}     | {40000,-40000,4000,-4000}                       | {9223372036854775806,-9223372036854775806,6000,-6000} | {-6000.231,6000.452,20000.121,-20000.322} | /pgspider1/
+ {2000,-2000,2000,-2000}     | {40000,-40000,4000,-4000}                       | {9223372036854775806,-9223372036854775806,6000,-6000} | {-6000.231,6000.452,20000.121,-20000.322} | /pgspider1/
+ {2000,-2000,2000,-2000}     | {40000,-40000,4000,-4000}                       | {9223372036854775806,-9223372036854775806,6000,-6000} | {-6000.231,6000.452,20000.121,-20000.322} | /pgspider3/
+ {2000,-2000,2000,-2000}     | {40000,-40000,4000,-4000}                       | {9223372036854775806,-9223372036854775806,6000,-6000} | {-6000.231,6000.452,20000.121,-20000.322} | /pgspider3/
+ {2000,-2000,2000,-2000}     | {40000,-40000,4000,-4000}                       | {9223372036854775806,-9223372036854775806,6000,-6000} | {-6000.231,6000.452,20000.121,-20000.322} | /pgspider3/grid1/
+ {2000,-2000,2000,-2000}     | {40000,-40000,4000,-4000}                       | {9223372036854775806,-9223372036854775806,6000,-6000} | {-6000.231,6000.452,20000.121,-20000.322} | /pgspider3/grid2/
+ {3000,-3000,3000,-3000}     | {50000,-50000,5000,-5000}                       | {60000,-60000,6000,-6000}                             | {-7000.623,7000.456,70000.22,-70000.125}  | /pgspider1/
+ {3000,-3000,3000,-3000}     | {50000,-50000,5000,-5000}                       | {60000,-60000,6000,-6000}                             | {-7000.623,7000.456,70000.22,-70000.125}  | /pgspider1/
+ {3000,-3000,3000,-3000}     | {50000,-50000,5000,-5000}                       | {60000,-60000,6000,-6000}                             | {-7000.623,7000.456,70000.22,-70000.125}  | /pgspider3/
+ {3000,-3000,3000,-3000}     | {50000,-50000,5000,-5000}                       | {60000,-60000,6000,-6000}                             | {-7000.623,7000.456,70000.22,-70000.125}  | /pgspider3/
+ {3000,-3000,3000,-3000}     | {50000,-50000,5000,-5000}                       | {60000,-60000,6000,-6000}                             | {-7000.623,7000.456,70000.22,-70000.125}  | /pgspider3/grid1/
+ {3000,-3000,3000,-3000}     | {50000,-50000,5000,-5000}                       | {60000,-60000,6000,-6000}                             | {-7000.623,7000.456,70000.22,-70000.125}  | /pgspider3/grid2/
+ {4000,-4000,4000,-4000}     | {50000,-50000,5000,-5000}                       | {70000,-70000,7000,-7000}                             | {-8000.525,8000.765,80000.51,-80000.53}   | /pgspider1/
+ {4000,-4000,4000,-4000}     | {50000,-50000,5000,-5000}                       | {70000,-70000,7000,-7000}                             | {-8000.525,8000.765,80000.51,-80000.53}   | /pgspider1/
+ {4000,-4000,4000,-4000}     | {50000,-50000,5000,-5000}                       | {70000,-70000,7000,-7000}                             | {-8000.525,8000.765,80000.51,-80000.53}   | /pgspider3/
+ {4000,-4000,4000,-4000}     | {50000,-50000,5000,-5000}                       | {70000,-70000,7000,-7000}                             | {-8000.525,8000.765,80000.51,-80000.53}   | /pgspider3/
+ {4000,-4000,4000,-4000}     | {50000,-50000,5000,-5000}                       | {70000,-70000,7000,-7000}                             | {-8000.525,8000.765,80000.51,-80000.53}   | /pgspider3/grid1/
+ {4000,-4000,4000,-4000}     | {50000,-50000,5000,-5000}                       | {70000,-70000,7000,-7000}                             | {-8000.525,8000.765,80000.51,-80000.53}   | /pgspider3/grid2/
+ {32767,-32768,32766,-32767} | {2147483647,-2147483648,2147483646,-2147483647} | {9223372036854775807,-9223372036854775808,1,2}        | {3.4e+38,-3.4e+38,-3.39e+38,3.39e+38}     | /pgspider1/
+ {32767,-32768,32766,-32767} | {2147483647,-2147483648,2147483646,-2147483647} | {9223372036854775807,-9223372036854775808,1,2}        | {3.4e+38,-3.4e+38,-3.39e+38,3.39e+38}     | /pgspider1/
+ {32767,-32768,32766,-32767} | {2147483647,-2147483648,2147483646,-2147483647} | {9223372036854775807,-9223372036854775808,1,2}        | {3.4e+38,-3.4e+38,-3.39e+38,3.39e+38}     | /pgspider3/
+ {32767,-32768,32766,-32767} | {2147483647,-2147483648,2147483646,-2147483647} | {9223372036854775807,-9223372036854775808,1,2}        | {3.4e+38,-3.4e+38,-3.39e+38,3.39e+38}     | /pgspider3/
+ {32767,-32768,32766,-32767} | {2147483647,-2147483648,2147483646,-2147483647} | {9223372036854775807,-9223372036854775808,1,2}        | {3.4e+38,-3.4e+38,-3.39e+38,3.39e+38}     | /pgspider3/grid1/
+ {32767,-32768,32766,-32767} | {2147483647,-2147483648,2147483646,-2147483647} | {9223372036854775807,-9223372036854775808,1,2}        | {3.4e+38,-3.4e+38,-3.39e+38,3.39e+38}     | /pgspider3/grid2/
+(24 rows)
+
+set timezone to +00;
+SET
+-- Testcase 3:
+SELECT max(c10), max(c2)/2, max(c3)*2 FROM griddb_max_range;
+      max       | ?column? | ?column? 
+----------------+----------+----------
+ {30,40,50,-60} |       63 |    65534
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 4:
+SELECT min(c11), min(c7+0), min(c5) FROM griddb_max_range;
+psql:/tmp/tmp_query.txt:3: ERROR:  only temporary relations may be created in temporary schemas
+LINE 1: CREATE TEMP TABLE __spd__temptable_2(col0  smallint[],col1  ...
+         ^
+QUERY:  CREATE TEMP TABLE __spd__temptable_2(col0  smallint[],col1  double precision,col2  bigint)
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 5:
+SELECT sum(c2), sum(c3)-5, sum(c5*1) FROM griddb_max_range; 
+psql:/tmp/tmp_query.txt:3: ERROR:  catalog is missing 3 attribute(s) for relid 16891
+CONTEXT:  SQL statement "CREATE TEMP TABLE __spd__temptable_1(col0  bigint,col1  bigint,col2  numeric)"
+ERROR:  cannot DROP TABLE "__spd__temptable_2" because it is being used by active queries in this session
+CONTEXT:  SQL statement "DROP TABLE __spd__temptable_2"
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 6:
+SELECT avg(c1), avg(c2)/avg(c3), avg(c6)+avg(c5) FROM griddb_max_range; 
+psql:/tmp/tmp_query.txt:3: ERROR:  unrecognized node type: 16
+CONTEXT:  SQL statement "CREATE TEMP TABLE __spd__temptable_1(col0  bigint,col1  bigint,col2  bigint,col3  bigint,col4  bigint,col5  bigint,col6  bigint,col7  double precision,col8  bigint,col9  numeric)"
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 7:
+SELECT max(c6)-avg(c7), min(c3-0)+sum(c5/1) FROM griddb_max_range; 
+psql:/tmp/tmp_query.txt:3: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+psql:/tmp/tmp_query.txt:3: fatal: connection to server was lost
+set timezone to +00;
+SET
+-- Testcase 8:
+SELECT stddev(c3), array_agg(c6), every(c1!=3422) FROM griddb_max_range; 
+     stddev     |                                                                                                         array_agg                                                                                                         | every 
+----------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------
+ 33471.74729594 | {-3.4e+38,3.4e+38,3.39e+38,-3.39e+38,-3.4e+38,3.4e+38,3.39e+38,-3.39e+38,-3.4e+38,3.4e+38,3.39e+38,-3.39e+38,-3.4e+38,3.4e+38,3.39e+38,-3.39e+38,-3.4e+38,3.4e+38,3.39e+38,-3.39e+38,-3.4e+38,3.4e+38,3.39e+38,-3.39e+38} | t
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 9:
+SELECT bit_and(c3), bit_or(c2), bool_and(c1>0), bool_or(c1!=c2) FROM griddb_max_range; 
+ bit_and | bit_or | bool_and | bool_or 
+---------+--------+----------+---------
+       0 |     -1 | f        | t
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 10:
+SELECT c15, max(c5), count(*), exists (SELECT max(c5) FROM griddb_max_range WHERE c1!=c7) FROM griddb_max_range GROUP BY c15 ORDER BY 1, 2, 3; 
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 11:
+SELECT sum(c5) filter( WHERE c2<1000) FROM griddb_max_range; 
+ sum 
+-----
+ -12
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 12:
+SELECT '#%$#!12312fvdfs', c4,  c1*(random()<=1)::int, __spd_url, sqrt(abs(c5)) FROM griddb_max_range; 
+psql:/tmp/tmp_query.txt:3: WARNING:  error is occurred, pthread_join fail in EndForeignScan. 
+psql:/tmp/tmp_query.txt:3: WARNING:  error is occurred, pthread_join fail in EndForeignScan. 
+psql:/tmp/tmp_query.txt:3: ERROR:  bigint out of range
+server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+psql:/tmp/tmp_query.txt:3: fatal: connection to server was lost
+set timezone to +00;
+SET
+-- Testcase 13:
+SELECT min(c1*20) FROM griddb_max_range; 
+psql:/tmp/tmp_query.txt:3: ERROR:  integer out of range
+CONTEXT:  remote SQL command: SELECT min((c1 * 20)) FROM public.griddb_max_range__grid1__0
+ERROR:  integer out of range
+CONTEXT:  remote SQL command: SELECT min((c1 * 20)) FROM public.griddb_max_range__grid2__0
+ERROR:  integer out of range
+CONTEXT:  remote SQL command: SELECT min((c1 * 20)) FROM public.griddb_max_range__grid2__0
+ERROR:  integer out of range
+CONTEXT:  remote SQL command: SELECT min((c1 * 20)) FROM public.griddb_max_range__grid1__0
+PANIC:  XLogBeginInsert was already called
+CONTEXT:  SQL statement "CREATE TEMP TABLE __spd__temptable_1(col0  integer)"
+PANIC:  XLogBeginInsert was already called
+CONTEXT:  SQL statement "CREATE TEMP TABLE __spd__temptable_1(col0  integer)"
+server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+psql:/tmp/tmp_query.txt:3: fatal: connection to server was lost
+set timezone to +00;
+SET
+-- Testcase 14:
+SELECT avg(c3+c2+c5) FROM griddb_max_range; 
+set timezone to +00;
+SET
+-- Testcase 15:
+SELECT sum(c6*c3) FROM griddb_max_range; 
+          sum           
+------------------------
+ -3.972795424970344e+41
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 16:
+SELECT max(c8+'1 year'::interval) FROM griddb_max_range; 
+         max          
+----------------------
+ 10000-12-31 23:59:59
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 17:
+SELECT c7*c7 FROM griddb_max_range ORDER BY 1;
+psql:/tmp/tmp_query.txt:3: WARNING:  error is occurred, pthread_join fail in EndForeignScan. 
+psql:/tmp/tmp_query.txt:3: WARNING:  error is occurred, pthread_join fail in EndForeignScan. 
+psql:/tmp/tmp_query.txt:3: ERROR:  value out of range: overflow
+server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+psql:/tmp/tmp_query.txt:3: fatal: connection to server was lost
+set timezone to +00;
+SET
+-- Testcase 18:
+SELECT * FROM mysql_max_range ORDER BY mysql_max_range.*;
+psql:/tmp/tmp_query.txt:3: WARNING:  no connection to the server
+psql:/tmp/tmp_query.txt:3: WARNING:  no connection to the server
+psql:/tmp/tmp_query.txt:3: WARNING:  no connection to the server
+psql:/tmp/tmp_query.txt:3: ERROR:  server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+CONTEXT:  remote SQL command: FETCH 100 FROM c2
+ERROR:  server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+CONTEXT:  remote SQL command: DECLARE c3 CURSOR FOR
+SELECT c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, __spd_url FROM public.mysql_max_range
+ERROR:  server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+CONTEXT:  remote SQL command: FETCH 100 FROM c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 19:
+SELECT c1, c2, c3, c4, __spd_url FROM mysql_max_range ORDER BY 1, 2, 3, 4, 5;
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 20:
+SELECT max(c1), max(c2)-5, max(c3)*2 FROM mysql_max_range;
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 21:
+SELECT min(c6), min(c7)+ 5, min(c8)/2 FROM mysql_max_range;
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 22:
+SELECT sum(c1), sum(c4+0), sum(c5*1) FROM mysql_max_range; 
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 23:
+SELECT avg(c1), avg(c2)-avg(c3), avg(c4)+avg(c5) FROM mysql_max_range; 
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 24:
+SELECT max(c2)/avg(c2), min(c3)-sum(c4) FROM mysql_max_range; 
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 25:
+SELECT stddev(c3), array_agg(c4), every(c9 != '2022-03-14') FROM mysql_max_range; 
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 26:
+SELECT bit_and(c3), bit_or(c2), bool_and(c1>=0), bool_or(c1 != c2) FROM mysql_max_range; 
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 27:
+SELECT c10, max(c5), count(*), exists ( SELECT max(c5) FROM mysql_max_range WHERE c1 != c4) FROM mysql_max_range GROUP BY c10 ORDER BY 1, 2, 3; 
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 28:
+SELECT sum(c4) filter( WHERE c12>'2021-03-18 23:14:07' AND c4<1000) FROM mysql_max_range; 
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 29:
+SELECT c12, 'NEWYORK', c1* (random()<=1)::int, __spd_url, sqrt(abs(c5)) FROM mysql_max_range; 
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 30:
+SELECT max(c2*2) FROM mysql_max_range; 
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 31:
+SELECT avg(c3+c2) FROM mysql_max_range; 
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 32:
+SELECT sum(c4*c3) FROM mysql_max_range; 
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 33:
+SELECT min(c11+'1 year'::interval) FROM mysql_max_range; 
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 34:
+SELECT c1*c1, c2 FROM mysql_max_range ORDER BY 1, 2; 
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 35:
+SELECT * FROM tinybrace_max_range ORDER BY tinybrace_max_range.*;
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider2
+set timezone to +00;
+SET
+-- Testcase 36:
+SELECT c1, c2, __spd_url FROM tinybrace_max_range ORDER BY 1, 2, 3;
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider2
+set timezone to +00;
+SET
+-- Testcase 37:
+SELECT max(c1), max(c2)-50, max(c3)*3 FROM tinybrace_max_range;
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider2
+set timezone to +00;
+SET
+-- Testcase 38:
+SELECT min(c6), min(c7)+100, min(c8)/3 FROM tinybrace_max_range;
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider2
+set timezone to +00;
+SET
+-- Testcase 39:
+SELECT sum(c10), sum(c4+0), sum(c5*1) FROM tinybrace_max_range; 
+psql:/tmp/tmp_query.txt:3: ERROR:  TBC_execute failed 6
+
+CONTEXT:  remote SQL command: SELECT sum(c10), sum((c4 + 0)), sum((c5 * 1)) FROM public.tinybrace_max_range__tinybrace1__0
+ERROR:  TBC_execute failed 6
+
+CONTEXT:  remote SQL command: SELECT sum(c10), sum((c4 + 0)), sum((c5 * 1)) FROM public.tinybrace_max_range__tinybrace1__0
+ERROR:  PGSpider can not get data from child node : tinybrace1
+CONTEXT:  remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider2
+set timezone to +00;
+SET
+-- Testcase 40:
+SELECT avg(c1), avg(c2)-avg(c3), avg(c4)+avg(c5) FROM tinybrace_max_range; 
+psql:/tmp/tmp_query.txt:3: ERROR:  TBC_execute failed 6
+
+CONTEXT:  remote SQL command: SELECT count(c1), sum(c1), count(c2), sum(c2), count(c3), sum(c3), count(c4), sum(c4), count(c5), sum(c5) FROM public.tinybrace_max_range__tinybrace1__0
+ERROR:  TBC_execute failed 6
+
+CONTEXT:  remote SQL command: SELECT count(c1), sum(c1), count(c2), sum(c2), count(c3), sum(c3), count(c4), sum(c4), count(c5), sum(c5) FROM public.tinybrace_max_range__tinybrace1__0
+ERROR:  PGSpider can not get data from child node : tinybrace1
+CONTEXT:  remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider2
+set timezone to +00;
+SET
+-- Testcase 41:
+SELECT min(c9)/avg(c10), min(c3)-sum(c4) FROM tinybrace_max_range; 
+psql:/tmp/tmp_query.txt:3: WARNING:  error is occurred, pthread_join fail in EndForeignScan. 
+psql:/tmp/tmp_query.txt:3: WARNING:  error is occurred, pthread_join fail in EndForeignScan. 
+psql:/tmp/tmp_query.txt:3: ERROR:  value out of range: underflow
+set timezone to +00;
+SET
+-- Testcase 42:
+SELECT stddev(c3), array_agg(c4), every(c12 != '1022-01-04') FROM tinybrace_max_range; 
+     stddev     |                                                                                                                                                                                                                                                    array_agg                                                                                                                                                                                                                                                     | every 
+----------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------
+ 32877.89202119 | {8388607,-8388608,8388606,-8388607,8388607,-8388608,8388606,NULL,8388607,-8388608,8388606,-8388607,8388607,-8388608,8388606,-8388607,NULL,NULL,NULL,-8388607,-8388607,8388607,-8388608,8388606,-8388607,8388607,-8388608,8388606,NULL,8388607,-8388608,8388606,-8388607,8388607,-8388608,8388606,-8388607,NULL,NULL,NULL,-8388607,-8388607,8388607,-8388608,8388606,-8388607,8388607,-8388608,8388606,NULL,8388607,-8388608,8388606,-8388607,8388607,-8388608,8388606,-8388607,NULL,NULL,NULL,-8388607,-8388607} | t
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 43:
+SELECT bit_and(c3), bit_or(c2), bool_and(c1>46240), bool_or(c1 != c2) FROM tinybrace_max_range; 
+ bit_and | bit_or | bool_and | bool_or 
+---------+--------+----------+---------
+       0 |     -1 | f        | t
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 44:
+SELECT count (DISTINCT c9), c12, sum(c5), exists (SELECT avg(c5) FROM t5 WHERE c1 != c4) FROM tinybrace_max_range GROUP BY c12 ORDER BY 1, 2, 3; 
+ count |    c12     |          sum           | exists 
+-------+------------+------------------------+--------
+     1 | 0001-01-01 | -138350580552821637120 | t
+     1 | 0001-01-02 |  -83010348331692982263 | t
+     1 | 9999-12-30 |  110680464442257309672 | t
+     1 | 9999-12-31 |  110680464442257309684 | t
+     1 |            |  -27670116110564327421 | t
+(5 rows)
+
+set timezone to +00;
+SET
+-- Testcase 45:
+SELECT sum(c4) filter( WHERE c13 != '2021-03-18 23:14:07') FROM tinybrace_max_range; 
+    sum    
+-----------
+ -25165845
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 46:
+SELECT c11, '1235@#$', c1* (random()<=1)::int, sqrt(abs(c3)) FROM tinybrace_max_range GROUP BY c1, c3, c11 ORDER BY 1, 2, 3, 4; 
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 47:
+SELECT max(c2*3) FROM tinybrace_max_range; 
+ max 
+-----
+ 381
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 48:
+SELECT avg(c3-c2) FROM tinybrace_max_range; 
+ avg  
+------
+ 1920
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 49:
+SELECT sum(c7*c8) FROM tinybrace_max_range; 
+          sum           
+------------------------
+ 1.5030407071258546e+59
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 50:
+SELECT min(c12+'1 year'::interval) FROM tinybrace_max_range; 
+         min         
+---------------------
+ 0002-01-01 00:00:00
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 51:
+SELECT c2*c2, c7 FROM tinybrace_max_range ORDER BY 1, 2;
+ ?column? |          c7          
+----------+----------------------
+    15876 |  9223372036854775806
+    15876 |  9223372036854775806
+    15876 |  9223372036854775806
+    15876 |  9223372036854775806
+    15876 |  9223372036854775806
+    15876 |  9223372036854775806
+    15876 |  9223372036854775806
+    15876 |  9223372036854775806
+    15876 |  9223372036854775806
+    15876 |  9223372036854775806
+    15876 |  9223372036854775806
+    15876 |  9223372036854775806
+    15876 |                     
+    15876 |                     
+    15876 |                     
+    16129 | -9223372036854775807
+    16129 | -9223372036854775807
+    16129 | -9223372036854775807
+    16129 | -9223372036854775807
+    16129 | -9223372036854775807
+    16129 | -9223372036854775807
+    16129 | -9223372036854775807
+    16129 | -9223372036854775807
+    16129 | -9223372036854775807
+    16129 | -9223372036854775807
+    16129 | -9223372036854775807
+    16129 | -9223372036854775807
+    16129 |  9223372036854775807
+    16129 |  9223372036854775807
+    16129 |  9223372036854775807
+    16129 |  9223372036854775807
+    16129 |  9223372036854775807
+    16129 |  9223372036854775807
+    16129 |  9223372036854775807
+    16129 |  9223372036854775807
+    16129 |  9223372036854775807
+    16129 |  9223372036854775807
+    16129 |  9223372036854775807
+    16129 |  9223372036854775807
+    16129 |                     
+    16129 |                     
+    16129 |                     
+    16384 | -9223372036854775808
+    16384 | -9223372036854775808
+    16384 | -9223372036854775808
+    16384 | -9223372036854775808
+    16384 | -9223372036854775808
+    16384 | -9223372036854775808
+    16384 | -9223372036854775808
+    16384 | -9223372036854775808
+    16384 | -9223372036854775808
+    16384 |                     
+    16384 |                     
+    16384 |                     
+          | -9223372036854775808
+          | -9223372036854775808
+          | -9223372036854775808
+          | -9223372036854775807
+          | -9223372036854775807
+          | -9223372036854775807
+          | -9223372036854775807
+          | -9223372036854775807
+          | -9223372036854775807
+(63 rows)
+
+set timezone to +00;
+SET
+-- Testcase 52:
+SELECT * FROM influx_max_range ORDER BY influx_max_range.*;
+             time              |          c2          |     c3     | c4 |      __spd_url      
+-------------------------------+----------------------+------------+----+---------------------
+ 1677-09-21 00:12:43.145224+00 | -9223372036854775808 |  1.79e+308 | t  | /pgspider1/
+ 1677-09-21 00:12:43.145224+00 | -9223372036854775808 |  1.79e+308 | t  | /pgspider2/
+ 1677-09-21 00:12:43.145224+00 | -9223372036854775808 |  1.79e+308 | t  | /pgspider2/influx1/
+ 1677-09-21 00:12:43.145224+00 | -9223372036854775807 |  1.78e+308 | f  | /pgspider1/
+ 1677-09-21 00:12:43.145224+00 | -9223372036854775807 |  1.78e+308 | f  | /pgspider2/
+ 1677-09-21 00:12:43.145224+00 | -9223372036854775807 |  1.78e+308 | f  | /pgspider2/influx1/
+ 2262-04-11 23:47:16.854776+00 |  9223372036854775806 | -1.78e+308 | f  | /pgspider1/
+ 2262-04-11 23:47:16.854776+00 |  9223372036854775806 | -1.78e+308 | f  | /pgspider2/
+ 2262-04-11 23:47:16.854776+00 |  9223372036854775806 | -1.78e+308 | f  | /pgspider2/influx1/
+ 2262-04-11 23:47:16.854776+00 |  9223372036854775807 | -1.79e+308 | f  | /pgspider1/
+ 2262-04-11 23:47:16.854776+00 |  9223372036854775807 | -1.79e+308 | f  | /pgspider2/
+ 2262-04-11 23:47:16.854776+00 |  9223372036854775807 | -1.79e+308 | f  | /pgspider2/influx1/
+(12 rows)
+
+set timezone to +00;
+SET
+-- Testcase 53:
+SELECT __spd_url , c2 FROM influx_max_range ORDER BY 1, 2;
+      __spd_url      |          c2          
+---------------------+----------------------
+ /pgspider1/         | -9223372036854775808
+ /pgspider1/         | -9223372036854775807
+ /pgspider1/         |  9223372036854775806
+ /pgspider1/         |  9223372036854775807
+ /pgspider2/         | -9223372036854775808
+ /pgspider2/         | -9223372036854775807
+ /pgspider2/         |  9223372036854775806
+ /pgspider2/         |  9223372036854775807
+ /pgspider2/influx1/ | -9223372036854775808
+ /pgspider2/influx1/ | -9223372036854775807
+ /pgspider2/influx1/ |  9223372036854775806
+ /pgspider2/influx1/ |  9223372036854775807
+(12 rows)
+
+set timezone to +00;
+SET
+-- Testcase 54:
+SELECT max(c3)*4 , max(c2)+500, max(c2)  FROM influx_max_range;
+psql:/tmp/tmp_query.txt:3: WARNING:  error is occurred, pthread_join fail in EndForeignScan. 
+psql:/tmp/tmp_query.txt:3: WARNING:  error is occurred, pthread_join fail in EndForeignScan. 
+psql:/tmp/tmp_query.txt:3: ERROR:  value out of range: overflow
+set timezone to +00;
+SET
+-- Testcase 55:
+SELECT min(c3), min(c2)-1000, min(c2)/4 FROM influx_max_range;
+psql:/tmp/tmp_query.txt:3: WARNING:  error is occurred, pthread_join fail in EndForeignScan. 
+psql:/tmp/tmp_query.txt:3: WARNING:  error is occurred, pthread_join fail in EndForeignScan. 
+psql:/tmp/tmp_query.txt:3: ERROR:  bigint out of range
+set timezone to +00;
+SET
+-- Testcase 56:
+SELECT sum(c2+0), sum(c3*1) FROM influx_max_range; 
+psql:/tmp/tmp_query.txt:3: ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT sum((c2 + 0)), sum((c3 * 1::double precision)) FROM public.influx_max_range__influx1__0
+ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT sum((c2 + 0)), sum((c3 * 1::double precision)) FROM public.influx_max_range__influx1__0
+ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT sum((c2 + 0)), sum((c3 * 1::double precision)) FROM public.influx_max_range
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 57:
+SELECT avg(c2)-avg(c3), avg(c3)+avg(c2) FROM influx_max_range; 
+ ?column? | ?column? 
+----------+----------
+          |         
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 58:
+SELECT  sum(c2)-min(c3), avg(c3)/min(c2) FROM influx_max_range; 
+ ?column?  | ?column? 
+-----------+----------
+ 1.79e+308 |         
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 59:
+SELECT stddev(c2), array_agg(c3), every(c4 != FALSE) FROM influx_max_range; 
+       stddev        |                                                            array_agg                                                            | every 
+---------------------+---------------------------------------------------------------------------------------------------------------------------------+-------
+ 9633497905098057986 | {1.79e+308,1.78e+308,-1.78e+308,-1.79e+308,1.79e+308,1.78e+308,-1.78e+308,-1.79e+308,1.79e+308,1.78e+308,-1.78e+308,-1.79e+308} | f
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 60:
+SELECT bit_and(c2), bit_or(c2), bool_and(c3>136), bool_or(c3 != c2) FROM influx_max_range; 
+ bit_and | bit_or | bool_and | bool_or 
+---------+--------+----------+---------
+       0 |     -1 | f        | t
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 61:
+SELECT count (ALL c4), c2, avg(c3), exists (SELECT * FROM  influx_max_range WHERE c3<c2) FROM influx_max_range GROUP BY c2 ORDER BY 1, 2, 3; 
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 62:
+SELECT sum(c2) filter(WHERE c3>-651) FROM influx_max_range; 
+          sum          
+-----------------------
+ -55340232221128654845
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 63:
+SELECT sqrt(abs(c3)), '$g%DG', c2*(random()<=1)::int  FROM influx_max_range ORDER BY 1, 2, 3;  
+          sqrt           | ?column? |       ?column?       
+-------------------------+----------+----------------------
+ 1.3341664064126334e+154 | $g%DG    | -9223372036854775807
+ 1.3341664064126334e+154 | $g%DG    | -9223372036854775807
+ 1.3341664064126334e+154 | $g%DG    | -9223372036854775807
+ 1.3341664064126334e+154 | $g%DG    |  9223372036854775806
+ 1.3341664064126334e+154 | $g%DG    |  9223372036854775806
+ 1.3341664064126334e+154 | $g%DG    |  9223372036854775806
+ 1.3379088160259651e+154 | $g%DG    | -9223372036854775808
+ 1.3379088160259651e+154 | $g%DG    | -9223372036854775808
+ 1.3379088160259651e+154 | $g%DG    | -9223372036854775808
+ 1.3379088160259651e+154 | $g%DG    |  9223372036854775807
+ 1.3379088160259651e+154 | $g%DG    |  9223372036854775807
+ 1.3379088160259651e+154 | $g%DG    |  9223372036854775807
+(12 rows)
+
+set timezone to +00;
+SET
+-- Testcase 64:
+SELECT max(c2*3) FROM influx_max_range; 
+psql:/tmp/tmp_query.txt:3: ERROR:  bigint out of range
+CONTEXT:  remote SQL command: SELECT max((c2 * 3)) FROM public.influx_max_range__influx1__0
+ERROR:  bigint out of range
+CONTEXT:  remote SQL command: SELECT max((c2 * 3)) FROM public.influx_max_range
+ERROR:  bigint out of range
+CONTEXT:  remote SQL command: SELECT max((c2 * 3)) FROM public.influx_max_range__influx1__0
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 65:
+SELECT avg(c3-c2) FROM influx_max_range; 
+psql:/tmp/tmp_query.txt:3: ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT count((c3 - c2)), sum((c3 - c2)) FROM public.influx_max_range__influx1__0
+ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT count((c3 - c2)), sum((c3 - c2)) FROM public.influx_max_range
+ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT count((c3 - c2)), sum((c3 - c2)) FROM public.influx_max_range__influx1__0
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 66:
+SELECT sum(c2*c3) FROM influx_max_range; 
+psql:/tmp/tmp_query.txt:3: ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT sum((c2 * c3)) FROM public.influx_max_range__influx1__0
+ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT sum((c2 * c3)) FROM public.influx_max_range
+ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT sum((c2 * c3)) FROM public.influx_max_range__influx1__0
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 67:
+SELECT min(c2-5) FROM influx_max_range; 
+psql:/tmp/tmp_query.txt:3: ERROR:  bigint out of range
+CONTEXT:  remote SQL command: SELECT min((c2 - 5)) FROM public.influx_max_range__influx1__0
+ERROR:  bigint out of range
+CONTEXT:  remote SQL command: SELECT min((c2 - 5)) FROM public.influx_max_range__influx1__0
+ERROR:  bigint out of range
+CONTEXT:  remote SQL command: SELECT min((c2 - 5)) FROM public.influx_max_range
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 68:
+SELECT c3*c3, c4, time FROM influx_max_range;
+psql:/tmp/tmp_query.txt:3: WARNING:  error is occurred, pthread_join fail in EndForeignScan. 
+psql:/tmp/tmp_query.txt:3: WARNING:  error is occurred, pthread_join fail in EndForeignScan. 
+psql:/tmp/tmp_query.txt:3: ERROR:  value out of range: overflow
+set timezone to +00;
+SET
+-- Testcase 69:
+SELECT * FROM post_max_range ORDER BY post_max_range.*;
+          c1          |         c2          |     c3     |   c4    |     c5      |   c6   |   c7   |  c8   |     c9     |   c10    |      c11       |         c12         |          c13           |     __spd_url     
+----------------------+---------------------+------------+---------+-------------+--------+--------+-------+------------+----------+----------------+---------------------+------------------------+-------------------
+ -9223372036854775808 |                   1 | 9999-12-31 |  1e+308 | -2147483648 | -1e-37 | -32768 | 32767 | 2147483647 | 00:00:01 | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider1/
+ -9223372036854775808 |                   1 | 9999-12-31 |  1e+308 | -2147483648 | -1e-37 | -32768 | 32767 | 2147483647 | 00:00:01 | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider3/
+ -9223372036854775808 |                   1 | 9999-12-31 |  1e+308 | -2147483648 | -1e-37 | -32768 | 32767 | 2147483647 | 00:00:01 | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider3/post1/
+ -9223372036854775808 | 9223372036854775807 | 9999-12-31 |  1e+308 | -2147483648 | -1e-37 | -32768 | 32767 | 2147483647 | 00:00:01 | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider1/
+ -9223372036854775808 | 9223372036854775807 | 9999-12-31 |  1e+308 | -2147483648 | -1e-37 | -32768 | 32767 | 2147483647 | 00:00:01 | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider3/
+ -9223372036854775808 | 9223372036854775807 | 9999-12-31 |  1e+308 | -2147483648 | -1e-37 | -32768 | 32767 | 2147483647 | 00:00:01 | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider3/post1/
+ -9223372036854775808 | 9223372036854775807 | 9999-12-31 |  1e+308 | -2147483648 | -1e-37 | -32768 | 32767 | 2147483647 |          | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider1/
+ -9223372036854775808 | 9223372036854775807 | 9999-12-31 |  1e+308 | -2147483648 | -1e-37 | -32768 | 32767 | 2147483647 |          | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider3/
+ -9223372036854775808 | 9223372036854775807 | 9999-12-31 |  1e+308 | -2147483648 | -1e-37 | -32768 | 32767 | 2147483647 |          | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider3/post1/
+ -9223372036854775808 | 9223372036854775807 | 9999-12-31 |  1e+308 | -2147483648 |        | -32768 | 32767 | 2147483647 | 00:00:01 | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider1/
+ -9223372036854775808 | 9223372036854775807 | 9999-12-31 |  1e+308 | -2147483648 |        | -32768 | 32767 | 2147483647 | 00:00:01 | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider3/
+ -9223372036854775808 | 9223372036854775807 | 9999-12-31 |  1e+308 | -2147483648 |        | -32768 | 32767 | 2147483647 | 00:00:01 | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider3/post1/
+ -9223372036854775808 | 9223372036854775807 | 9999-12-31 |         | -2147483648 | -1e-37 | -32768 | 32767 | 2147483647 | 00:00:01 | 24:00:00-14:59 |                     | 9999-12-31 23:59:59+00 | /pgspider1/
+ -9223372036854775808 | 9223372036854775807 | 9999-12-31 |         | -2147483648 | -1e-37 | -32768 | 32767 | 2147483647 | 00:00:01 | 24:00:00-14:59 |                     | 9999-12-31 23:59:59+00 | /pgspider3/
+ -9223372036854775808 | 9223372036854775807 | 9999-12-31 |         | -2147483648 | -1e-37 | -32768 | 32767 | 2147483647 | 00:00:01 | 24:00:00-14:59 |                     | 9999-12-31 23:59:59+00 | /pgspider3/post1/
+ -9223372036854775807 | 9223372036854775806 | 0001-01-02 | -1e-307 |  2147483647 |  1e+37 |  32767 | 32766 | 2147483646 | 23:59:59 | 00:00:00+14:58 | 0001-01-01 00:00:01 | 0001-01-01 00:00:01+00 | /pgspider1/
+ -9223372036854775807 | 9223372036854775806 | 0001-01-02 | -1e-307 |  2147483647 |  1e+37 |  32767 | 32766 | 2147483646 | 23:59:59 | 00:00:00+14:58 | 0001-01-01 00:00:01 | 0001-01-01 00:00:01+00 | /pgspider3/
+ -9223372036854775807 | 9223372036854775806 | 0001-01-02 | -1e-307 |  2147483647 |  1e+37 |  32767 | 32766 | 2147483646 | 23:59:59 | 00:00:00+14:58 | 0001-01-01 00:00:01 | 0001-01-01 00:00:01+00 | /pgspider3/post1/
+ -9223372036854775807 | 9223372036854775806 | 0001-01-02 | -1e-307 |  2147483647 |  1e+37 |  32767 | 32766 | 2147483646 | 23:59:59 |                | 0001-01-01 00:00:01 | 0001-01-01 00:00:01+00 | /pgspider1/
+ -9223372036854775807 | 9223372036854775806 | 0001-01-02 | -1e-307 |  2147483647 |  1e+37 |  32767 | 32766 | 2147483646 | 23:59:59 |                | 0001-01-01 00:00:01 | 0001-01-01 00:00:01+00 | /pgspider3/
+ -9223372036854775807 | 9223372036854775806 | 0001-01-02 | -1e-307 |  2147483647 |  1e+37 |  32767 | 32766 | 2147483646 | 23:59:59 |                | 0001-01-01 00:00:01 | 0001-01-01 00:00:01+00 | /pgspider3/post1/
+ -9223372036854775807 | 9223372036854775806 | 0001-01-02 | -1e-307 |  2147483647 |  1e+37 |        | 32766 | 2147483646 | 23:59:59 | 00:00:00+14:58 | 0001-01-01 00:00:01 | 0001-01-01 00:00:01+00 | /pgspider1/
+ -9223372036854775807 | 9223372036854775806 | 0001-01-02 | -1e-307 |  2147483647 |  1e+37 |        | 32766 | 2147483646 | 23:59:59 | 00:00:00+14:58 | 0001-01-01 00:00:01 | 0001-01-01 00:00:01+00 | /pgspider3/
+ -9223372036854775807 | 9223372036854775806 | 0001-01-02 | -1e-307 |  2147483647 |  1e+37 |        | 32766 | 2147483646 | 23:59:59 | 00:00:00+14:58 | 0001-01-01 00:00:01 | 0001-01-01 00:00:01+00 | /pgspider3/post1/
+ -9223372036854775807 | 9223372036854775806 |            | -1e-307 |  2147483647 |  1e+37 |  32767 | 32766 | 2147483646 | 23:59:59 | 00:00:00+14:58 | 0001-01-01 00:00:01 | 0001-01-01 00:00:01+00 | /pgspider1/
+ -9223372036854775807 | 9223372036854775806 |            | -1e-307 |  2147483647 |  1e+37 |  32767 | 32766 | 2147483646 | 23:59:59 | 00:00:00+14:58 | 0001-01-01 00:00:01 | 0001-01-01 00:00:01+00 | /pgspider3/
+ -9223372036854775807 | 9223372036854775806 |            | -1e-307 |  2147483647 |  1e+37 |  32767 | 32766 | 2147483646 | 23:59:59 | 00:00:00+14:58 | 0001-01-01 00:00:01 | 0001-01-01 00:00:01+00 | /pgspider3/post1/
+  9223372036854775806 |                   2 | 9999-12-30 | -1e+308 |  2147483646 | -1e+37 |  32766 |     2 |          2 | 23:59:58 | 24:00:00-14:58 | 9999-12-31 23:59:58 | 9999-12-31 23:59:58+00 | /pgspider1/
+  9223372036854775806 |                   2 | 9999-12-30 | -1e+308 |  2147483646 | -1e+37 |  32766 |     2 |          2 | 23:59:58 | 24:00:00-14:58 | 9999-12-31 23:59:58 | 9999-12-31 23:59:58+00 | /pgspider3/
+  9223372036854775806 |                   2 | 9999-12-30 | -1e+308 |  2147483646 | -1e+37 |  32766 |     2 |          2 | 23:59:58 | 24:00:00-14:58 | 9999-12-31 23:59:58 | 9999-12-31 23:59:58+00 | /pgspider3/post1/
+  9223372036854775806 |                   2 | 9999-12-30 | -1e+308 |  2147483646 | -1e+37 |  32766 |     2 |          2 | 23:59:58 | 24:00:00-14:58 |                     | 9999-12-31 23:59:58+00 | /pgspider1/
+  9223372036854775806 |                   2 | 9999-12-30 | -1e+308 |  2147483646 | -1e+37 |  32766 |     2 |          2 | 23:59:58 | 24:00:00-14:58 |                     | 9999-12-31 23:59:58+00 | /pgspider3/
+  9223372036854775806 |                   2 | 9999-12-30 | -1e+308 |  2147483646 | -1e+37 |  32766 |     2 |          2 | 23:59:58 | 24:00:00-14:58 |                     | 9999-12-31 23:59:58+00 | /pgspider3/post1/
+  9223372036854775806 |                   2 | 9999-12-30 | -1e+308 |  2147483646 | -1e+37 |  32766 |  7866 |          2 | 23:59:58 | 24:00:00-14:58 | 9999-12-31 23:59:58 | 9999-12-31 23:59:58+00 | /pgspider1/
+  9223372036854775806 |                   2 | 9999-12-30 | -1e+308 |  2147483646 | -1e+37 |  32766 |  7866 |          2 | 23:59:58 | 24:00:00-14:58 | 9999-12-31 23:59:58 | 9999-12-31 23:59:58+00 | /pgspider3/
+  9223372036854775806 |                   2 | 9999-12-30 | -1e+308 |  2147483646 | -1e+37 |  32766 |  7866 |          2 | 23:59:58 | 24:00:00-14:58 | 9999-12-31 23:59:58 | 9999-12-31 23:59:58+00 | /pgspider3/post1/
+  9223372036854775806 |                   2 | 9999-12-30 |         |  2147483646 | -1e+37 |  32766 |     2 |          2 | 23:59:58 | 24:00:00-14:58 | 9999-12-31 23:59:58 | 9999-12-31 23:59:58+00 | /pgspider1/
+  9223372036854775806 |                   2 | 9999-12-30 |         |  2147483646 | -1e+37 |  32766 |     2 |          2 | 23:59:58 | 24:00:00-14:58 | 9999-12-31 23:59:58 | 9999-12-31 23:59:58+00 | /pgspider3/
+  9223372036854775806 |                   2 | 9999-12-30 |         |  2147483646 | -1e+37 |  32766 |     2 |          2 | 23:59:58 | 24:00:00-14:58 | 9999-12-31 23:59:58 | 9999-12-31 23:59:58+00 | /pgspider3/post1/
+  9223372036854775807 |                   1 | 0001-01-01 |  1e-307 | -2147483647 |  1e-37 | -32767 |     1 |          1 | 00:00:00 | 00:00:00+14:59 | 0001-01-01 00:00:00 | 0001-01-01 00:00:00+00 | /pgspider1/
+  9223372036854775807 |                   1 | 0001-01-01 |  1e-307 | -2147483647 |  1e-37 | -32767 |     1 |          1 | 00:00:00 | 00:00:00+14:59 | 0001-01-01 00:00:00 | 0001-01-01 00:00:00+00 | /pgspider3/
+  9223372036854775807 |                   1 | 0001-01-01 |  1e-307 | -2147483647 |  1e-37 | -32767 |     1 |          1 | 00:00:00 | 00:00:00+14:59 | 0001-01-01 00:00:00 | 0001-01-01 00:00:00+00 | /pgspider3/post1/
+  9223372036854775807 |                   1 | 0001-01-01 |  1e-307 | -2147483647 |  1e-37 | -32767 |     1 |       4554 | 00:00:00 | 00:00:00+14:59 | 0001-01-01 00:00:00 | 0001-01-01 00:00:00+00 | /pgspider1/
+  9223372036854775807 |                   1 | 0001-01-01 |  1e-307 | -2147483647 |  1e-37 | -32767 |     1 |       4554 | 00:00:00 | 00:00:00+14:59 | 0001-01-01 00:00:00 | 0001-01-01 00:00:00+00 | /pgspider3/
+  9223372036854775807 |                   1 | 0001-01-01 |  1e-307 | -2147483647 |  1e-37 | -32767 |     1 |       4554 | 00:00:00 | 00:00:00+14:59 | 0001-01-01 00:00:00 | 0001-01-01 00:00:00+00 | /pgspider3/post1/
+  9223372036854775807 |                   1 | 0001-01-01 |  1e-307 |             |  1e-37 | -32767 |     1 |          1 | 00:00:00 | 00:00:00+14:59 | 0001-01-01 00:00:00 | 0001-01-01 00:00:00+00 | /pgspider1/
+  9223372036854775807 |                   1 | 0001-01-01 |  1e-307 |             |  1e-37 | -32767 |     1 |          1 | 00:00:00 | 00:00:00+14:59 | 0001-01-01 00:00:00 | 0001-01-01 00:00:00+00 | /pgspider3/
+  9223372036854775807 |                   1 | 0001-01-01 |  1e-307 |             |  1e-37 | -32767 |     1 |          1 | 00:00:00 | 00:00:00+14:59 | 0001-01-01 00:00:00 | 0001-01-01 00:00:00+00 | /pgspider3/post1/
+  9223372036854775807 |                   1 |            |  1e-307 | -2147483647 |  1e-37 |        |     1 |          1 | 00:00:00 | 00:00:00+14:59 | 0001-01-01 00:00:00 |                        | /pgspider1/
+  9223372036854775807 |                   1 |            |  1e-307 | -2147483647 |  1e-37 |        |     1 |          1 | 00:00:00 | 00:00:00+14:59 | 0001-01-01 00:00:00 |                        | /pgspider3/
+  9223372036854775807 |                   1 |            |  1e-307 | -2147483647 |  1e-37 |        |     1 |          1 | 00:00:00 | 00:00:00+14:59 | 0001-01-01 00:00:00 |                        | /pgspider3/post1/
+                      |                   1 | 0001-01-01 |  1e-307 | -2147483647 |  1e-37 | -32767 |     1 |          1 | 00:00:00 | 00:00:00+14:59 | 0001-01-01 00:00:00 | 0001-01-01 00:00:00+00 | /pgspider1/
+                      |                   1 | 0001-01-01 |  1e-307 | -2147483647 |  1e-37 | -32767 |     1 |          1 | 00:00:00 | 00:00:00+14:59 | 0001-01-01 00:00:00 | 0001-01-01 00:00:00+00 | /pgspider3/
+                      |                   1 | 0001-01-01 |  1e-307 | -2147483647 |  1e-37 | -32767 |     1 |          1 | 00:00:00 | 00:00:00+14:59 | 0001-01-01 00:00:00 | 0001-01-01 00:00:00+00 | /pgspider3/post1/
+                      |                   2 | 9999-12-30 | -1e+308 |  2147483646 | -1e+37 |  32766 |  2342 |          2 |          | 24:00:00-14:58 | 9999-12-31 23:59:58 | 9999-12-31 23:59:58+00 | /pgspider1/
+                      |                   2 | 9999-12-30 | -1e+308 |  2147483646 | -1e+37 |  32766 |  2342 |          2 |          | 24:00:00-14:58 | 9999-12-31 23:59:58 | 9999-12-31 23:59:58+00 | /pgspider3/
+                      |                   2 | 9999-12-30 | -1e+308 |  2147483646 | -1e+37 |  32766 |  2342 |          2 |          | 24:00:00-14:58 | 9999-12-31 23:59:58 | 9999-12-31 23:59:58+00 | /pgspider3/post1/
+                      | 9223372036854775806 | 0001-01-02 | -1e-307 |             |  1e+37 |        | 32766 | 2147483646 | 23:59:59 | 00:00:00+14:58 |                     |                        | /pgspider1/
+                      | 9223372036854775806 | 0001-01-02 | -1e-307 |             |  1e+37 |        | 32766 | 2147483646 | 23:59:59 | 00:00:00+14:58 |                     |                        | /pgspider3/
+                      | 9223372036854775806 | 0001-01-02 | -1e-307 |             |  1e+37 |        | 32766 | 2147483646 | 23:59:59 | 00:00:00+14:58 |                     |                        | /pgspider3/post1/
+(60 rows)
+
+set timezone to +00;
+SET
+-- Testcase 70:
+SELECT max(c1), max(c2), max(c4), max(c5), max(c6), max(c7), max(c8), max(c9) FROM post_max_range;
+         max         |         max         |  max   |    max     |  max  |  max  |  max  |    max     
+---------------------+---------------------+--------+------------+-------+-------+-------+------------
+ 9223372036854775807 | 9223372036854775807 | 1e+308 | 2147483647 | 1e+37 | 32767 | 32767 | 2147483647
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 71:
+SELECT min(c1), min(c2), min(c4), min(c5), min(c6), min(c7), min(c8), min(c9) FROM post_max_range;
+         min          | min |   min   |     min     |  min   |  min   | min | min 
+----------------------+-----+---------+-------------+--------+--------+-----+-----
+ -9223372036854775808 |   1 | -1e+308 | -2147483648 | -1e+37 | -32768 |   1 |   1
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 72:
+SELECT max(c1), min(c2), min(c4), max(c5), max(c6), min(c7), max(c8), min(c9) FROM post_max_range;
+         max         | min |   min   |    max     |  max  |  min   |  max  | min 
+---------------------+-----+---------+------------+-------+--------+-------+-----
+ 9223372036854775807 |   1 | -1e+308 | 2147483647 | 1e+37 | -32768 | 32767 |   1
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 73:
+SELECT min(c1+c2) FROM post_max_range;
+psql:/tmp/tmp_query.txt:3: ERROR:  bigint out of range
+CONTEXT:  remote SQL command: SELECT min((c1 + c2)) FROM public.post_max_range__post1__0
+remote SQL command: SELECT c1, c2 FROM public.post_max_range WHERE (((c1 + c2) IS NOT NULL)) ORDER BY (c1 + c2) ASC NULLS LAST
+ERROR:  bigint out of range
+CONTEXT:  remote SQL command: SELECT min((c1 + c2)) FROM public.post_max_range__post1__0
+remote SQL command: SELECT c1, c2 FROM public.post_max_range WHERE (((c1 + c2) IS NOT NULL)) ORDER BY (c1 + c2) ASC NULLS LAST
+ERROR:  PGSpider can not get data from child node : post1
+CONTEXT:  remote SQL command: CLOSE c2
+ERROR:  PGSpider can not get data from child node : pgspider3
+ERROR:  PGSpider can not get data from child node : pgspider3
+set timezone to +00;
+SET
+-- Testcase 74:
+SELECT max(c4+c6) FROM post_max_range;
+  max   
+--------
+ 1e+308
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 75:
+SELECT sum(c9) FROM post_max_range;
+     sum     
+-------------
+ 64424523099
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 76:
+SELECT sum(c5), min(c6), max(c7) FROM post_max_range;
+ sum |  min   |  max  
+-----+--------+-------
+ -30 | -1e+37 | 32767
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 77:
+SELECT sum(c4+c7) FROM post_max_range;
+psql:/tmp/tmp_query.txt:3: ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT sum((c4 + c7)) FROM public.post_max_range__post1__0
+remote SQL command: SELECT sum((c4 + c7)) FROM public.post_max_range
+ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT sum((c4 + c7)) FROM public.post_max_range__post1__0
+remote SQL command: SELECT sum((c4 + c7)) FROM public.post_max_range
+ERROR:  PGSpider can not get data from child node : post1
+CONTEXT:  remote SQL command: CLOSE c3
+ERROR:  PGSpider can not get data from child node : pgspider3
+ERROR:  PGSpider can not get data from child node : pgspider3
+set timezone to +00;
+SET
+-- Testcase 78:
+SELECT avg(c5), avg(c6) FROM post_max_range;
+        avg         | avg 
+--------------------+-----
+ -0.555555555555556 |   0
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 79:
+SELECT count(c1), count(*), count(DISTINCT c4), count(ALL c5) FROM post_max_range;
+ count | count | count | count 
+-------+-------+-------+-------
+    51 |    60 |     4 |    54
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 80:
+SELECT stddev(c1), stddev(c2), stddev(c4+c7) FROM post_max_range;
+psql:/tmp/tmp_query.txt:3: ERROR:  bigint out of range
+CONTEXT:  remote SQL command: SELECT count(c1), sum(c1), sum((c1 * c1)), count(c2), sum(c2), sum((c2 * c2)), count((c4 + c7)), sum((c4 + c7)), sum(((c4 + c7) * (c4 + c7))) FROM public.post_max_range__post1__0
+remote SQL command: SELECT count(c1), sum(c1), sum((c1 * c1)), count(c2), sum(c2), sum((c2 * c2)), count((c4 + c7)), sum((c4 + c7)), sum(((c4 + c7) * (c4 + c7))) FROM public.post_max_range
+ERROR:  bigint out of range
+CONTEXT:  remote SQL command: SELECT count(c1), sum(c1), sum((c1 * c1)), count(c2), sum(c2), sum((c2 * c2)), count((c4 + c7)), sum((c4 + c7)), sum(((c4 + c7) * (c4 + c7))) FROM public.post_max_range__post1__0
+remote SQL command: SELECT count(c1), sum(c1), sum((c1 * c1)), count(c2), sum(c2), sum((c2 * c2)), count((c4 + c7)), sum((c4 + c7)), sum(((c4 + c7) * (c4 + c7))) FROM public.post_max_range
+ERROR:  PGSpider can not get data from child node : post1
+CONTEXT:  remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider3
+ERROR:  PGSpider can not get data from child node : pgspider3
+set timezone to +00;
+SET
+-- Testcase 81:
+SELECT array_agg(c5), array_agg(c6), array_agg(c7), array_agg(c8), array_agg(c9) FROM post_max_range;
+                                                                                                                                                                                                                                                                                                                                  array_agg                                                                                                                                                                                                                                                                                                                                   |                                                                                                                                                                                             array_agg                                                                                                                                                                                             |                                                                                                                                                                                          array_agg                                                                                                                                                                                          |                                                                                                                              array_agg                                                                                                                              |                                                                                                                                                                                                    array_agg                                                                                                                                                                                                     
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {-2147483647,-2147483648,2147483647,2147483646,-2147483647,-2147483648,2147483647,2147483646,NULL,-2147483648,2147483647,2147483646,-2147483647,-2147483648,2147483647,2147483646,-2147483647,-2147483648,NULL,2147483646,-2147483647,-2147483648,2147483647,2147483646,-2147483647,-2147483648,2147483647,2147483646,NULL,-2147483648,2147483647,2147483646,-2147483647,-2147483648,2147483647,2147483646,-2147483647,-2147483648,NULL,2147483646,-2147483647,-2147483648,2147483647,2147483646,-2147483647,-2147483648,2147483647,2147483646,NULL,-2147483648,2147483647,2147483646,-2147483647,-2147483648,2147483647,2147483646,-2147483647,-2147483648,NULL,2147483646} | {1e-37,-1e-37,1e+37,-1e+37,1e-37,-1e-37,1e+37,-1e+37,1e-37,NULL,1e+37,-1e+37,1e-37,-1e-37,1e+37,-1e+37,1e-37,-1e-37,1e+37,-1e+37,1e-37,-1e-37,1e+37,-1e+37,1e-37,-1e-37,1e+37,-1e+37,1e-37,NULL,1e+37,-1e+37,1e-37,-1e-37,1e+37,-1e+37,1e-37,-1e-37,1e+37,-1e+37,1e-37,-1e-37,1e+37,-1e+37,1e-37,-1e-37,1e+37,-1e+37,1e-37,NULL,1e+37,-1e+37,1e-37,-1e-37,1e+37,-1e+37,1e-37,-1e-37,1e+37,-1e+37} | {-32767,-32768,32767,32766,-32767,-32768,32767,32766,-32767,-32768,NULL,32766,-32767,-32768,32767,32766,NULL,-32768,NULL,32766,-32767,-32768,32767,32766,-32767,-32768,32767,32766,-32767,-32768,NULL,32766,-32767,-32768,32767,32766,NULL,-32768,NULL,32766,-32767,-32768,32767,32766,-32767,-32768,32767,32766,-32767,-32768,NULL,32766,-32767,-32768,32767,32766,NULL,-32768,NULL,32766} | {1,32767,32766,2,1,32767,32766,2,1,32767,32766,7866,1,32767,32766,2,1,32767,32766,2342,1,32767,32766,2,1,32767,32766,2,1,32767,32766,7866,1,32767,32766,2,1,32767,32766,2342,1,32767,32766,2,1,32767,32766,2,1,32767,32766,7866,1,32767,32766,2,1,32767,32766,2342} | {1,2147483647,2147483646,2,1,2147483647,2147483646,2,1,2147483647,2147483646,2,4554,2147483647,2147483646,2,1,2147483647,2147483646,2,1,2147483647,2147483646,2,1,2147483647,2147483646,2,1,2147483647,2147483646,2,4554,2147483647,2147483646,2,1,2147483647,2147483646,2,1,2147483647,2147483646,2,1,2147483647,2147483646,2,1,2147483647,2147483646,2,4554,2147483647,2147483646,2,1,2147483647,2147483646,2}
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 82:
+SELECT bit_and(c1), bit_or(c2), bit_and(c5), bit_or(c7) FROM post_max_range;
+ bit_and |       bit_or        | bit_and | bit_or 
+---------+---------------------+---------+--------
+       0 | 9223372036854775807 |       0 |     -1
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 83:
+SELECT bool_or(c1>0), bool_or(c2<=0), bool_and(c4<>0), bool_and(c5>=0) FROM post_max_range;
+ bool_or | bool_or | bool_and | bool_and 
+---------+---------+----------+----------
+ t       | f       | t        | f
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 84:
+SELECT sqrt(abs(c1)), sqrt(abs(c4)), sqrt(abs(c6)), sqrt(abs(c7+c8)) FROM post_max_range;
+psql:/tmp/tmp_query.txt:3: WARNING:  error is occurred, pthread_join fail in EndForeignScan. 
+psql:/tmp/tmp_query.txt:3: WARNING:  error is occurred, pthread_join fail in EndForeignScan. 
+psql:/tmp/tmp_query.txt:3: ERROR:  bigint out of range
+set timezone to +00;
+SET
+-- Testcase 85:
+SELECT * FROM tmp_file_max_range ORDER BY tmp_file_max_range.*;
+          c1          |     c2     |   c3    |     c4      |   c5   |   c6   |    c7    |       c8       |         c9          |          c10           |           __spd_url            
+----------------------+------------+---------+-------------+--------+--------+----------+----------------+---------------------+------------------------+--------------------------------
+ -9223372036854775808 | 9999-12-31 |  1e+308 | -2147483648 | -1e-37 | -32768 | 00:00:01 | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider1/
+ -9223372036854775808 | 9999-12-31 |  1e+308 | -2147483648 | -1e-37 | -32768 | 00:00:01 | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider3/
+ -9223372036854775808 | 9999-12-31 |  1e+308 | -2147483648 | -1e-37 | -32768 | 00:00:01 | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider3/tmp_file_max_range/
+ -9223372036854775808 | 9999-12-31 |  1e+308 | -2147483648 | -1e-37 | -32768 |          | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider1/
+ -9223372036854775808 | 9999-12-31 |  1e+308 | -2147483648 | -1e-37 | -32768 |          | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider3/
+ -9223372036854775808 | 9999-12-31 |  1e+308 | -2147483648 | -1e-37 | -32768 |          | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider3/tmp_file_max_range/
+ -9223372036854775808 | 9999-12-31 |  1e+308 | -2147483648 | -1e-37 |        | 00:00:01 | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider1/
+ -9223372036854775808 | 9999-12-31 |  1e+308 | -2147483648 | -1e-37 |        | 00:00:01 | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider3/
+ -9223372036854775808 | 9999-12-31 |  1e+308 | -2147483648 | -1e-37 |        | 00:00:01 | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider3/tmp_file_max_range/
+ -9223372036854775808 | 9999-12-31 |  1e+308 | -2147483648 |        | -32768 | 00:00:01 | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider1/
+ -9223372036854775808 | 9999-12-31 |  1e+308 | -2147483648 |        | -32768 | 00:00:01 | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider3/
+ -9223372036854775808 | 9999-12-31 |  1e+308 | -2147483648 |        | -32768 | 00:00:01 | 24:00:00-14:59 | 9999-12-31 23:59:59 | 9999-12-31 23:59:59+00 | /pgspider3/tmp_file_max_range/
+ -9223372036854775807 | 0001-01-02 | -1e-307 |  2147483647 |  1e+37 |  32767 | 23:59:59 | 00:00:00+14:58 | 1000-01-01 00:00:01 | 1000-01-01 00:00:01+00 | /pgspider1/
+ -9223372036854775807 | 0001-01-02 | -1e-307 |  2147483647 |  1e+37 |  32767 | 23:59:59 | 00:00:00+14:58 | 1000-01-01 00:00:01 | 1000-01-01 00:00:01+00 | /pgspider3/
+ -9223372036854775807 | 0001-01-02 | -1e-307 |  2147483647 |  1e+37 |  32767 | 23:59:59 | 00:00:00+14:58 | 1000-01-01 00:00:01 | 1000-01-01 00:00:01+00 | /pgspider3/tmp_file_max_range/
+ -9223372036854775807 | 0001-01-02 | -1e-307 |  2147483647 |  1e+37 |  32767 | 23:59:59 |                | 1000-01-01 00:00:01 | 1000-01-01 00:00:01+00 | /pgspider1/
+ -9223372036854775807 | 0001-01-02 | -1e-307 |  2147483647 |  1e+37 |  32767 | 23:59:59 |                | 1000-01-01 00:00:01 | 1000-01-01 00:00:01+00 | /pgspider3/
+ -9223372036854775807 | 0001-01-02 | -1e-307 |  2147483647 |  1e+37 |  32767 | 23:59:59 |                | 1000-01-01 00:00:01 | 1000-01-01 00:00:01+00 | /pgspider3/tmp_file_max_range/
+  9223372036854775806 | 9999-12-30 | -1e+308 |  2147483646 | -1e+37 |  32766 | 23:59:58 | 24:00:00-14:58 | 9999-12-31 23:59:58 | 9999-12-31 23:59:58+00 | /pgspider1/
+  9223372036854775806 | 9999-12-30 | -1e+308 |  2147483646 | -1e+37 |  32766 | 23:59:58 | 24:00:00-14:58 | 9999-12-31 23:59:58 | 9999-12-31 23:59:58+00 | /pgspider3/
+  9223372036854775806 | 9999-12-30 | -1e+308 |  2147483646 | -1e+37 |  32766 | 23:59:58 | 24:00:00-14:58 | 9999-12-31 23:59:58 | 9999-12-31 23:59:58+00 | /pgspider3/tmp_file_max_range/
+  9223372036854775806 | 9999-12-30 | -1e+308 |  2147483646 | -1e+37 |  32766 | 23:59:58 | 24:00:00-14:58 | 9999-12-31 23:59:58 |                        | /pgspider1/
+  9223372036854775806 | 9999-12-30 | -1e+308 |  2147483646 | -1e+37 |  32766 | 23:59:58 | 24:00:00-14:58 | 9999-12-31 23:59:58 |                        | /pgspider3/
+  9223372036854775806 | 9999-12-30 | -1e+308 |  2147483646 | -1e+37 |  32766 | 23:59:58 | 24:00:00-14:58 | 9999-12-31 23:59:58 |                        | /pgspider3/tmp_file_max_range/
+  9223372036854775806 | 9999-12-30 | -1e+308 |  2147483646 | -1e+37 |  32766 | 23:59:58 | 24:00:00-14:58 |                     | 9999-12-31 23:59:58+00 | /pgspider1/
+  9223372036854775806 | 9999-12-30 | -1e+308 |  2147483646 | -1e+37 |  32766 | 23:59:58 | 24:00:00-14:58 |                     | 9999-12-31 23:59:58+00 | /pgspider3/
+  9223372036854775806 | 9999-12-30 | -1e+308 |  2147483646 | -1e+37 |  32766 | 23:59:58 | 24:00:00-14:58 |                     | 9999-12-31 23:59:58+00 | /pgspider3/tmp_file_max_range/
+  9223372036854775806 | 9999-12-30 | -1e+308 |             | -1e+37 |        |          |                |                     | 9999-12-31 23:59:58+00 | /pgspider1/
+  9223372036854775806 | 9999-12-30 | -1e+308 |             | -1e+37 |        |          |                |                     | 9999-12-31 23:59:58+00 | /pgspider3/
+  9223372036854775806 | 9999-12-30 | -1e+308 |             | -1e+37 |        |          |                |                     | 9999-12-31 23:59:58+00 | /pgspider3/tmp_file_max_range/
+  9223372036854775806 |            | -1e+308 |  2147483646 | -1e+37 |        | 23:59:58 |                |                     | 9999-12-31 23:59:58+00 | /pgspider1/
+  9223372036854775806 |            | -1e+308 |  2147483646 | -1e+37 |        | 23:59:58 |                |                     | 9999-12-31 23:59:58+00 | /pgspider3/
+  9223372036854775806 |            | -1e+308 |  2147483646 | -1e+37 |        | 23:59:58 |                |                     | 9999-12-31 23:59:58+00 | /pgspider3/tmp_file_max_range/
+  9223372036854775807 | 0001-01-01 |  1e-307 | -2147483647 |  1e-37 | -32767 | 00:00:00 | 00:00:00+14:59 | 1000-01-01 00:00:00 | 1000-01-01 00:00:00+00 | /pgspider1/
+  9223372036854775807 | 0001-01-01 |  1e-307 | -2147483647 |  1e-37 | -32767 | 00:00:00 | 00:00:00+14:59 | 1000-01-01 00:00:00 | 1000-01-01 00:00:00+00 | /pgspider3/
+  9223372036854775807 | 0001-01-01 |  1e-307 | -2147483647 |  1e-37 | -32767 | 00:00:00 | 00:00:00+14:59 | 1000-01-01 00:00:00 | 1000-01-01 00:00:00+00 | /pgspider3/tmp_file_max_range/
+  9223372036854775807 | 0001-01-01 |  1e-307 |             |  1e-37 | -32767 | 00:00:00 | 00:00:00+14:59 | 1000-01-01 00:00:00 | 1000-01-01 00:00:00+00 | /pgspider1/
+  9223372036854775807 | 0001-01-01 |  1e-307 |             |  1e-37 | -32767 | 00:00:00 | 00:00:00+14:59 | 1000-01-01 00:00:00 | 1000-01-01 00:00:00+00 | /pgspider3/
+  9223372036854775807 | 0001-01-01 |  1e-307 |             |  1e-37 | -32767 | 00:00:00 | 00:00:00+14:59 | 1000-01-01 00:00:00 | 1000-01-01 00:00:00+00 | /pgspider3/tmp_file_max_range/
+  9223372036854775807 | 0001-01-01 |         | -2147483647 |  1e-37 | -32767 | 00:00:00 | 00:00:00+14:59 | 1000-01-01 00:00:00 | 1000-01-01 00:00:00+00 | /pgspider1/
+  9223372036854775807 | 0001-01-01 |         | -2147483647 |  1e-37 | -32767 | 00:00:00 | 00:00:00+14:59 | 1000-01-01 00:00:00 | 1000-01-01 00:00:00+00 | /pgspider3/
+  9223372036854775807 | 0001-01-01 |         | -2147483647 |  1e-37 | -32767 | 00:00:00 | 00:00:00+14:59 | 1000-01-01 00:00:00 | 1000-01-01 00:00:00+00 | /pgspider3/tmp_file_max_range/
+  9223372036854775807 |            |  1e-307 | -2147483647 |  1e-37 | -32767 | 00:00:00 | 00:00:00+14:59 | 1000-01-01 00:00:00 | 1000-01-01 00:00:00+00 | /pgspider1/
+  9223372036854775807 |            |  1e-307 | -2147483647 |  1e-37 | -32767 | 00:00:00 | 00:00:00+14:59 | 1000-01-01 00:00:00 | 1000-01-01 00:00:00+00 | /pgspider3/
+  9223372036854775807 |            |  1e-307 | -2147483647 |  1e-37 | -32767 | 00:00:00 | 00:00:00+14:59 | 1000-01-01 00:00:00 | 1000-01-01 00:00:00+00 | /pgspider3/tmp_file_max_range/
+                      | 0001-01-01 |  1e-307 | -2147483647 |  1e-37 | -32767 | 00:00:00 | 00:00:00+14:59 | 1000-01-01 00:00:00 | 1000-01-01 00:00:00+00 | /pgspider1/
+                      | 0001-01-01 |  1e-307 | -2147483647 |  1e-37 | -32767 | 00:00:00 | 00:00:00+14:59 | 1000-01-01 00:00:00 | 1000-01-01 00:00:00+00 | /pgspider3/
+                      | 0001-01-01 |  1e-307 | -2147483647 |  1e-37 | -32767 | 00:00:00 | 00:00:00+14:59 | 1000-01-01 00:00:00 | 1000-01-01 00:00:00+00 | /pgspider3/tmp_file_max_range/
+                      | 9999-12-30 | -1e+308 |             | -1e+37 |  32766 | 23:59:58 | 24:00:00-14:58 |                     | 9999-12-31 23:59:58+00 | /pgspider1/
+                      | 9999-12-30 | -1e+308 |             | -1e+37 |  32766 | 23:59:58 | 24:00:00-14:58 |                     | 9999-12-31 23:59:58+00 | /pgspider3/
+                      | 9999-12-30 | -1e+308 |             | -1e+37 |  32766 | 23:59:58 | 24:00:00-14:58 |                     | 9999-12-31 23:59:58+00 | /pgspider3/tmp_file_max_range/
+(51 rows)
+
+set timezone to +00;
+SET
+-- Testcase 86:
+SELECT max(c1), max(c3), max(c4), max(c5), max(c6) FROM tmp_file_max_range;
+         max         |  max   |    max     |  max  |  max  
+---------------------+--------+------------+-------+-------
+ 9223372036854775807 | 1e+308 | 2147483647 | 1e+37 | 32767
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 87:
+SELECT min(c1), min(c3), min(c4), min(c5), min(c6) FROM tmp_file_max_range;
+         min          |   min   |     min     |  min   |  min   
+----------------------+---------+-------------+--------+--------
+ -9223372036854775808 | -1e+308 | -2147483648 | -1e+37 | -32768
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 88:
+SELECT max(c1), min(c3), min(c4), max(c5), max(c6) FROM tmp_file_max_range;
+         max         |   min   |     min     |  max  |  max  
+---------------------+---------+-------------+-------+-------
+ 9223372036854775807 | -1e+308 | -2147483648 | 1e+37 | 32767
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 89:
+SELECT min(c5+c3) FROM tmp_file_max_range;
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider3"
+DETAIL:  could not connect to server: No such file or directory
+	Is the server running locally and accepting
+	connections on Unix domain socket "/tmp/.s.PGSQL.5432"?
+ERROR:  PGSpider can not get data from child node : pgspider3
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 90:
+SELECT max(c4+c1) FROM tmp_file_max_range;
+psql:/tmp/tmp_query.txt:3: ERROR:  bigint out of range
+CONTEXT:  remote SQL command: SELECT max((c4 + c1)) FROM public.tmp_file_max_range__file_max_range__0
+ERROR:  bigint out of range
+CONTEXT:  remote SQL command: SELECT max((c4 + c1)) FROM public.tmp_file_max_range__file_max_range__0
+ERROR:  bigint out of range
+CONTEXT:  remote SQL command: SELECT max((c4 + c1)) FROM public.tmp_file_max_range
+ERROR:  PGSpider can not get data from child node : pgspider3
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 91:
+SELECT sum(c6) FROM tmp_file_max_range;
+   sum   
+---------
+ -196623
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 92:
+SELECT sum(c5), min(c6), max(c1) FROM tmp_file_max_range;
+   sum    |  min   |         max         
+----------+--------+---------------------
+ -1.2e+38 | -32768 | 9223372036854775807
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 93:
+SELECT sum(c4+c3) FROM tmp_file_max_range;
+psql:/tmp/tmp_query.txt:3: ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT sum((c4 + c3)) FROM public.tmp_file_max_range__file_max_range__0
+ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT sum((c4 + c3)) FROM public.tmp_file_max_range__file_max_range__0
+ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT sum((c4 + c3)) FROM public.tmp_file_max_range
+ERROR:  PGSpider can not get data from child node : pgspider3
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 94:
+SELECT avg(c5), avg(c6) FROM tmp_file_max_range;
+   avg    |   avg   
+----------+---------
+ -2.5e+36 | -4681.5
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 95:
+SELECT count(c2), count(*), count(DISTINCT c4), count(ALL c9) FROM tmp_file_max_range;
+ count | count | count | count 
+-------+-------+-------+-------
+    45 |    51 |     4 |    39
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 96:
+SELECT stddev(c1), stddev(c3), stddev(c4+c6) FROM tmp_file_max_range;
+psql:/tmp/tmp_query.txt:3: ERROR:  integer out of range
+CONTEXT:  remote SQL command: SELECT count(c1), sum(c1), sum((c1 * c1)), count(c3), sum(c3), sum((c3 * c3)), count((c4 + c6)), sum((c4 + c6)), sum(((c4 + c6) * (c4 + c6))) FROM public.tmp_file_max_range__file_max_range__0
+ERROR:  integer out of range
+CONTEXT:  remote SQL command: SELECT count(c1), sum(c1), sum((c1 * c1)), count(c3), sum(c3), sum((c3 * c3)), count((c4 + c6)), sum((c4 + c6)), sum(((c4 + c6) * (c4 + c6))) FROM public.tmp_file_max_range__file_max_range__0
+ERROR:  integer out of range
+CONTEXT:  remote SQL command: SELECT count(c1), sum(c1), sum((c1 * c1)), count(c3), sum(c3), sum((c3 * c3)), count((c4 + c6)), sum((c4 + c6)), sum(((c4 + c6) * (c4 + c6))) FROM public.tmp_file_max_range
+ERROR:  PGSpider can not get data from child node : pgspider3
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 97:
+SELECT array_agg(c5), array_agg(c6), array_agg(c7), array_agg(c8), array_agg(c9) FROM tmp_file_max_range;
+                                                                                                                                                                  array_agg                                                                                                                                                                  |                                                                                                                                                             array_agg                                                                                                                                                              |                                                                                                                                                                                                                      array_agg                                                                                                                                                                                                                       |                                                                                                                                                                                                                                                                                                                                              array_agg                                                                                                                                                                                                                                                                                                                                               |                                                                                                                                                                                                                                                                                                                                                                                                                                                                        array_agg                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {1e-37,-1e-37,1e+37,-1e+37,1e-37,1e-37,1e-37,1e-37,NULL,-1e-37,-1e-37,1e+37,-1e+37,-1e+37,-1e+37,-1e+37,-1e+37,1e-37,-1e-37,1e+37,-1e+37,1e-37,1e-37,1e-37,1e-37,NULL,-1e-37,-1e-37,1e+37,-1e+37,-1e+37,-1e+37,-1e+37,-1e+37,1e-37,-1e-37,1e+37,-1e+37,1e-37,1e-37,1e-37,1e-37,NULL,-1e-37,-1e-37,1e+37,-1e+37,-1e+37,-1e+37,-1e+37,-1e+37} | {-32767,-32768,32767,32766,-32767,-32767,-32767,-32767,-32768,NULL,-32768,32767,32766,32766,32766,NULL,NULL,-32767,-32768,32767,32766,-32767,-32767,-32767,-32767,-32768,NULL,-32768,32767,32766,32766,32766,NULL,NULL,-32767,-32768,32767,32766,-32767,-32767,-32767,-32767,-32768,NULL,-32768,32767,32766,32766,32766,NULL,NULL} | {00:00:00,00:00:01,23:59:59,23:59:58,00:00:00,00:00:00,00:00:00,00:00:00,00:00:01,00:00:01,NULL,23:59:59,23:59:58,23:59:58,23:59:58,23:59:58,NULL,00:00:00,00:00:01,23:59:59,23:59:58,00:00:00,00:00:00,00:00:00,00:00:00,00:00:01,00:00:01,NULL,23:59:59,23:59:58,23:59:58,23:59:58,23:59:58,NULL,00:00:00,00:00:01,23:59:59,23:59:58,00:00:00,00:00:00,00:00:00,00:00:00,00:00:01,00:00:01,NULL,23:59:59,23:59:58,23:59:58,23:59:58,23:59:58,NULL} | {00:00:00+14:59,24:00:00-14:59,00:00:00+14:58,24:00:00-14:58,00:00:00+14:59,00:00:00+14:59,00:00:00+14:59,00:00:00+14:59,24:00:00-14:59,24:00:00-14:59,24:00:00-14:59,NULL,24:00:00-14:58,24:00:00-14:58,24:00:00-14:58,NULL,NULL,00:00:00+14:59,24:00:00-14:59,00:00:00+14:58,24:00:00-14:58,00:00:00+14:59,00:00:00+14:59,00:00:00+14:59,00:00:00+14:59,24:00:00-14:59,24:00:00-14:59,24:00:00-14:59,NULL,24:00:00-14:58,24:00:00-14:58,24:00:00-14:58,NULL,NULL,00:00:00+14:59,24:00:00-14:59,00:00:00+14:58,24:00:00-14:58,00:00:00+14:59,00:00:00+14:59,00:00:00+14:59,00:00:00+14:59,24:00:00-14:59,24:00:00-14:59,24:00:00-14:59,NULL,24:00:00-14:58,24:00:00-14:58,24:00:00-14:58,NULL,NULL} | {"1000-01-01 00:00:00","9999-12-31 23:59:59","1000-01-01 00:00:01","9999-12-31 23:59:58","1000-01-01 00:00:00","1000-01-01 00:00:00","1000-01-01 00:00:00","1000-01-01 00:00:00","9999-12-31 23:59:59","9999-12-31 23:59:59","9999-12-31 23:59:59","1000-01-01 00:00:01",NULL,"9999-12-31 23:59:58",NULL,NULL,NULL,"1000-01-01 00:00:00","9999-12-31 23:59:59","1000-01-01 00:00:01","9999-12-31 23:59:58","1000-01-01 00:00:00","1000-01-01 00:00:00","1000-01-01 00:00:00","1000-01-01 00:00:00","9999-12-31 23:59:59","9999-12-31 23:59:59","9999-12-31 23:59:59","1000-01-01 00:00:01",NULL,"9999-12-31 23:59:58",NULL,NULL,NULL,"1000-01-01 00:00:00","9999-12-31 23:59:59","1000-01-01 00:00:01","9999-12-31 23:59:58","1000-01-01 00:00:00","1000-01-01 00:00:00","1000-01-01 00:00:00","1000-01-01 00:00:00","9999-12-31 23:59:59","9999-12-31 23:59:59","9999-12-31 23:59:59","1000-01-01 00:00:01",NULL,"9999-12-31 23:59:58",NULL,NULL,NULL}
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 98:
+SELECT bit_and(c1), bit_or(c4), bit_and(c6) FROM tmp_file_max_range;
+ bit_and | bit_or | bit_and 
+---------+--------+---------
+       0 |     -1 |       0
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 99:
+SELECT bool_or(c1>0), bool_or(c3<=0), bool_and(c4<>0), bool_and(c5>=0) FROM tmp_file_max_range;
+ bool_or | bool_or | bool_and | bool_and 
+---------+---------+----------+----------
+ t       | t       | t        | f
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 100:
+SELECT sqrt(abs(c1)), sqrt(abs(c4)), sqrt(abs(c6)), sqrt(abs(c3+c5)) FROM tmp_file_max_range;
+psql:/tmp/tmp_query.txt:3: WARNING:  error is occurred, pthread_join fail in EndForeignScan. 
+psql:/tmp/tmp_query.txt:3: WARNING:  error is occurred, pthread_join fail in EndForeignScan. 
+psql:/tmp/tmp_query.txt:3: ERROR:  bigint out of range
+set timezone to +00;
+SET
+-- Testcase 101:
+SELECT * FROM _sqlite_max_range ORDER BY _sqlite_max_range.*;
+     c1      |  c2  |   c3   |    c4    |          c5          |         c6          |          c7          |    c8     |      c9       |      c10      |    c11     |    c12     |         c13         |      __spd_url      
+-------------+------+--------+----------+----------------------+---------------------+----------------------+-----------+---------------+---------------+------------+------------+---------------------+---------------------
+ -2147483648 | -128 | -32768 | -8388608 | -9223372036854775808 |                   0 | -9223372036854775808 |  -3.4e+38 | -1.79769e+308 | -1.79769e+308 | -1.79e+308 | 0001-01-01 | 0001-01-01 00:00:00 | /pgspider1/
+ -2147483648 | -128 | -32768 | -8388608 | -9223372036854775808 |                   0 | -9223372036854775808 |  -3.4e+38 | -1.79769e+308 | -1.79769e+308 | -1.79e+308 | 0001-01-01 | 0001-01-01 00:00:00 | /pgspider3/
+ -2147483648 | -128 | -32768 | -8388608 | -9223372036854775808 |                   0 | -9223372036854775808 |  -3.4e+38 | -1.79769e+308 | -1.79769e+308 | -1.79e+308 | 0001-01-01 | 0001-01-01 00:00:00 | /pgspider3/sqlite1/
+ -2147483648 | -128 | -32768 | -8388608 | -9223372036854775808 |                   0 | -9223372036854775808 |  -3.4e+38 | -1.79769e+308 |               | -1.79e+308 | 0001-01-01 | 0001-01-01 00:00:00 | /pgspider1/
+ -2147483648 | -128 | -32768 | -8388608 | -9223372036854775808 |                   0 | -9223372036854775808 |  -3.4e+38 | -1.79769e+308 |               | -1.79e+308 | 0001-01-01 | 0001-01-01 00:00:00 | /pgspider3/
+ -2147483648 | -128 | -32768 | -8388608 | -9223372036854775808 |                   0 | -9223372036854775808 |  -3.4e+38 | -1.79769e+308 |               | -1.79e+308 | 0001-01-01 | 0001-01-01 00:00:00 | /pgspider3/sqlite1/
+ -2147483648 | -128 | -32768 | -8388608 | -9223372036854775808 |                     | -9223372036854775808 |  -3.4e+38 | -1.79769e+308 | -1.79769e+308 | -1.79e+308 | 0001-01-01 | 0001-01-01 00:00:00 | /pgspider1/
+ -2147483648 | -128 | -32768 | -8388608 | -9223372036854775808 |                     | -9223372036854775808 |  -3.4e+38 | -1.79769e+308 | -1.79769e+308 | -1.79e+308 | 0001-01-01 | 0001-01-01 00:00:00 | /pgspider3/
+ -2147483648 | -128 | -32768 | -8388608 | -9223372036854775808 |                     | -9223372036854775808 |  -3.4e+38 | -1.79769e+308 | -1.79769e+308 | -1.79e+308 | 0001-01-01 | 0001-01-01 00:00:00 | /pgspider3/sqlite1/
+ -2147483648 | -128 | -32768 |          | -9223372036854775808 |                     |                      |  -3.4e+38 | -1.79769e+308 |               | -1.79e+308 | 0001-01-01 |                     | /pgspider1/
+ -2147483648 | -128 | -32768 |          | -9223372036854775808 |                     |                      |  -3.4e+38 | -1.79769e+308 |               | -1.79e+308 | 0001-01-01 |                     | /pgspider3/
+ -2147483648 | -128 | -32768 |          | -9223372036854775808 |                     |                      |  -3.4e+38 | -1.79769e+308 |               | -1.79e+308 | 0001-01-01 |                     | /pgspider3/sqlite1/
+ -2147483648 |      | -32768 | -8388608 | -9223372036854775808 |                   0 | -9223372036854775808 |  -3.4e+38 | -1.79769e+308 | -1.79769e+308 | -1.79e+308 | 0001-01-01 | 0001-01-01 00:00:00 | /pgspider1/
+ -2147483648 |      | -32768 | -8388608 | -9223372036854775808 |                   0 | -9223372036854775808 |  -3.4e+38 | -1.79769e+308 | -1.79769e+308 | -1.79e+308 | 0001-01-01 | 0001-01-01 00:00:00 | /pgspider3/
+ -2147483648 |      | -32768 | -8388608 | -9223372036854775808 |                   0 | -9223372036854775808 |  -3.4e+38 | -1.79769e+308 | -1.79769e+308 | -1.79e+308 | 0001-01-01 | 0001-01-01 00:00:00 | /pgspider3/sqlite1/
+ -2147483647 | -127 | -32767 | -8388607 | -9223372036854775807 |                   1 | -9223372036854775807 | -3.39e+38 | -1.79768e+308 | -1.79768e+308 | -1.78e+308 | 0001-01-02 | 0001-01-01 00:00:01 | /pgspider1/
+ -2147483647 | -127 | -32767 | -8388607 | -9223372036854775807 |                   1 | -9223372036854775807 | -3.39e+38 | -1.79768e+308 | -1.79768e+308 | -1.78e+308 | 0001-01-02 | 0001-01-01 00:00:01 | /pgspider3/
+ -2147483647 | -127 | -32767 | -8388607 | -9223372036854775807 |                   1 | -9223372036854775807 | -3.39e+38 | -1.79768e+308 | -1.79768e+308 | -1.78e+308 | 0001-01-02 | 0001-01-01 00:00:01 | /pgspider3/sqlite1/
+ -2147483647 | -127 | -32767 | -8388607 | -9223372036854775807 |                   1 | -9223372036854775807 | -3.39e+38 | -1.79768e+308 | -1.79768e+308 | -1.78e+308 |            | 0001-01-01 00:00:01 | /pgspider1/
+ -2147483647 | -127 | -32767 | -8388607 | -9223372036854775807 |                   1 | -9223372036854775807 | -3.39e+38 | -1.79768e+308 | -1.79768e+308 | -1.78e+308 |            | 0001-01-01 00:00:01 | /pgspider3/
+ -2147483647 | -127 | -32767 | -8388607 | -9223372036854775807 |                   1 | -9223372036854775807 | -3.39e+38 | -1.79768e+308 | -1.79768e+308 | -1.78e+308 |            | 0001-01-01 00:00:01 | /pgspider3/sqlite1/
+ -2147483647 | -127 | -32767 | -8388607 | -9223372036854775807 |                   1 | -9223372036854775807 |           | -1.79768e+308 | -1.79768e+308 | -1.78e+308 | 0001-01-02 | 0001-01-01 00:00:01 | /pgspider1/
+ -2147483647 | -127 | -32767 | -8388607 | -9223372036854775807 |                   1 | -9223372036854775807 |           | -1.79768e+308 | -1.79768e+308 | -1.78e+308 | 0001-01-02 | 0001-01-01 00:00:01 | /pgspider3/
+ -2147483647 | -127 | -32767 | -8388607 | -9223372036854775807 |                   1 | -9223372036854775807 |           | -1.79768e+308 | -1.79768e+308 | -1.78e+308 | 0001-01-02 | 0001-01-01 00:00:01 | /pgspider3/sqlite1/
+ -2147483647 | -127 | -32767 |          | -9223372036854775807 |                   1 | -9223372036854775807 | -3.39e+38 | -1.79768e+308 | -1.79768e+308 | -1.78e+308 | 0001-01-02 | 0001-01-01 00:00:01 | /pgspider1/
+ -2147483647 | -127 | -32767 |          | -9223372036854775807 |                   1 | -9223372036854775807 | -3.39e+38 | -1.79768e+308 | -1.79768e+308 | -1.78e+308 | 0001-01-02 | 0001-01-01 00:00:01 | /pgspider3/
+ -2147483647 | -127 | -32767 |          | -9223372036854775807 |                   1 | -9223372036854775807 | -3.39e+38 | -1.79768e+308 | -1.79768e+308 | -1.78e+308 | 0001-01-02 | 0001-01-01 00:00:01 | /pgspider3/sqlite1/
+ -2147483647 |      | -32767 | -8388607 |                      |                   1 | -9223372036854775807 | -3.39e+38 |               | -1.79768e+308 | -1.78e+308 |            | 0001-01-01 00:00:01 | /pgspider1/
+ -2147483647 |      | -32767 | -8388607 |                      |                   1 | -9223372036854775807 | -3.39e+38 |               | -1.79768e+308 | -1.78e+308 |            | 0001-01-01 00:00:01 | /pgspider3/
+ -2147483647 |      | -32767 | -8388607 |                      |                   1 | -9223372036854775807 | -3.39e+38 |               | -1.79768e+308 | -1.78e+308 |            | 0001-01-01 00:00:01 | /pgspider3/sqlite1/
+  2147483646 |  126 |  32766 |  8388606 |  9223372036854775806 | 9223372036854775807 |  9223372036854775806 |  3.39e+38 |  1.79768e+308 |  1.79768e+308 |  1.78e+308 | 9999-12-30 | 9999-12-31 23:59:58 | /pgspider1/
+  2147483646 |  126 |  32766 |  8388606 |  9223372036854775806 | 9223372036854775807 |  9223372036854775806 |  3.39e+38 |  1.79768e+308 |  1.79768e+308 |  1.78e+308 | 9999-12-30 | 9999-12-31 23:59:58 | /pgspider3/
+  2147483646 |  126 |  32766 |  8388606 |  9223372036854775806 | 9223372036854775807 |  9223372036854775806 |  3.39e+38 |  1.79768e+308 |  1.79768e+308 |  1.78e+308 | 9999-12-30 | 9999-12-31 23:59:58 | /pgspider3/sqlite1/
+  2147483646 |  126 |  32766 |  8388606 |  9223372036854775806 | 9223372036854775807 |  9223372036854775806 |  3.39e+38 |  1.79768e+308 |  1.79768e+308 |            | 9999-12-30 | 9999-12-31 23:59:58 | /pgspider1/
+  2147483646 |  126 |  32766 |  8388606 |  9223372036854775806 | 9223372036854775807 |  9223372036854775806 |  3.39e+38 |  1.79768e+308 |  1.79768e+308 |            | 9999-12-30 | 9999-12-31 23:59:58 | /pgspider3/
+  2147483646 |  126 |  32766 |  8388606 |  9223372036854775806 | 9223372036854775807 |  9223372036854775806 |  3.39e+38 |  1.79768e+308 |  1.79768e+308 |            | 9999-12-30 | 9999-12-31 23:59:58 | /pgspider3/sqlite1/
+  2147483646 |  126 |  32766 |  8388606 |  9223372036854775806 | 9223372036854775807 |                      |  3.39e+38 |  1.79768e+308 |  1.79768e+308 |  1.78e+308 | 9999-12-30 | 9999-12-31 23:59:58 | /pgspider1/
+  2147483646 |  126 |  32766 |  8388606 |  9223372036854775806 | 9223372036854775807 |                      |  3.39e+38 |  1.79768e+308 |  1.79768e+308 |  1.78e+308 | 9999-12-30 | 9999-12-31 23:59:58 | /pgspider3/
+  2147483646 |  126 |  32766 |  8388606 |  9223372036854775806 | 9223372036854775807 |                      |  3.39e+38 |  1.79768e+308 |  1.79768e+308 |  1.78e+308 | 9999-12-30 | 9999-12-31 23:59:58 | /pgspider3/sqlite1/
+  2147483646 |  126 |        |  8388606 |  9223372036854775806 | 9223372036854775807 |  9223372036854775806 |  3.39e+38 |  1.79768e+308 |  1.79768e+308 |  1.78e+308 | 9999-12-30 | 9999-12-31 23:59:58 | /pgspider1/
+  2147483646 |  126 |        |  8388606 |  9223372036854775806 | 9223372036854775807 |  9223372036854775806 |  3.39e+38 |  1.79768e+308 |  1.79768e+308 |  1.78e+308 | 9999-12-30 | 9999-12-31 23:59:58 | /pgspider3/
+  2147483646 |  126 |        |  8388606 |  9223372036854775806 | 9223372036854775807 |  9223372036854775806 |  3.39e+38 |  1.79768e+308 |  1.79768e+308 |  1.78e+308 | 9999-12-30 | 9999-12-31 23:59:58 | /pgspider3/sqlite1/
+  2147483647 |  127 |  32767 |  8388607 |  9223372036854775807 | 9223372036854775807 |  9223372036854775807 |   3.4e+38 |  1.79769e+308 |  1.79769e+308 |  1.79e+308 | 9999-12-31 | 9999-12-31 23:59:59 | /pgspider1/
+  2147483647 |  127 |  32767 |  8388607 |  9223372036854775807 | 9223372036854775807 |  9223372036854775807 |   3.4e+38 |  1.79769e+308 |  1.79769e+308 |  1.79e+308 | 9999-12-31 | 9999-12-31 23:59:59 | /pgspider3/
+  2147483647 |  127 |  32767 |  8388607 |  9223372036854775807 | 9223372036854775807 |  9223372036854775807 |   3.4e+38 |  1.79769e+308 |  1.79769e+308 |  1.79e+308 | 9999-12-31 | 9999-12-31 23:59:59 | /pgspider3/sqlite1/
+  2147483647 |  127 |  32767 |  8388607 |  9223372036854775807 | 9223372036854775807 |  9223372036854775807 |   3.4e+38 |               |  1.79769e+308 |  1.79e+308 | 9999-12-31 | 9999-12-31 23:59:59 | /pgspider1/
+  2147483647 |  127 |  32767 |  8388607 |  9223372036854775807 | 9223372036854775807 |  9223372036854775807 |   3.4e+38 |               |  1.79769e+308 |  1.79e+308 | 9999-12-31 | 9999-12-31 23:59:59 | /pgspider3/
+  2147483647 |  127 |  32767 |  8388607 |  9223372036854775807 | 9223372036854775807 |  9223372036854775807 |   3.4e+38 |               |  1.79769e+308 |  1.79e+308 | 9999-12-31 | 9999-12-31 23:59:59 | /pgspider3/sqlite1/
+  2147483647 |  127 |  32767 |  8388607 |                      | 9223372036854775807 |  9223372036854775807 |   3.4e+38 |  1.79769e+308 |  1.79769e+308 |  1.79e+308 | 9999-12-31 | 9999-12-31 23:59:59 | /pgspider1/
+  2147483647 |  127 |  32767 |  8388607 |                      | 9223372036854775807 |  9223372036854775807 |   3.4e+38 |  1.79769e+308 |  1.79769e+308 |  1.79e+308 | 9999-12-31 | 9999-12-31 23:59:59 | /pgspider3/
+  2147483647 |  127 |  32767 |  8388607 |                      | 9223372036854775807 |  9223372036854775807 |   3.4e+38 |  1.79769e+308 |  1.79769e+308 |  1.79e+308 | 9999-12-31 | 9999-12-31 23:59:59 | /pgspider3/sqlite1/
+  2147483647 |  127 |  32767 |          |  9223372036854775807 | 9223372036854775807 |                      |   3.4e+38 |               |  1.79769e+308 |            | 9999-12-31 |                     | /pgspider1/
+  2147483647 |  127 |  32767 |          |  9223372036854775807 | 9223372036854775807 |                      |   3.4e+38 |               |  1.79769e+308 |            | 9999-12-31 |                     | /pgspider3/
+  2147483647 |  127 |  32767 |          |  9223372036854775807 | 9223372036854775807 |                      |   3.4e+38 |               |  1.79769e+308 |            | 9999-12-31 |                     | /pgspider3/sqlite1/
+             |  126 |  32766 |          |                      |                     |  9223372036854775806 |           |               |  1.79768e+308 |            | 9999-12-30 |                     | /pgspider1/
+             |  126 |  32766 |          |                      |                     |  9223372036854775806 |           |               |  1.79768e+308 |            | 9999-12-30 |                     | /pgspider3/
+             |  126 |  32766 |          |                      |                     |  9223372036854775806 |           |               |  1.79768e+308 |            | 9999-12-30 |                     | /pgspider3/sqlite1/
+             |  127 |  32767 |  8388607 |  9223372036854775807 | 9223372036854775807 |  9223372036854775807 |   3.4e+38 |  1.79769e+308 |  1.79769e+308 |  1.79e+308 | 9999-12-31 | 9999-12-31 23:59:59 | /pgspider1/
+             |  127 |  32767 |  8388607 |  9223372036854775807 | 9223372036854775807 |  9223372036854775807 |   3.4e+38 |  1.79769e+308 |  1.79769e+308 |  1.79e+308 | 9999-12-31 | 9999-12-31 23:59:59 | /pgspider3/
+             |  127 |  32767 |  8388607 |  9223372036854775807 | 9223372036854775807 |  9223372036854775807 |   3.4e+38 |  1.79769e+308 |  1.79769e+308 |  1.79e+308 | 9999-12-31 | 9999-12-31 23:59:59 | /pgspider3/sqlite1/
+(60 rows)
+
+set timezone to +00;
+SET
+-- Testcase 102:
+SELECT max(c1), max(c2), max(c4), max(c5), max(c6), max(c7), max(c8), max(c9), max(c10), max(c11) FROM _sqlite_max_range;
+    max     | max |   max   |         max         |         max         |         max         |   max   |     max      |     max      |    max    
+------------+-----+---------+---------------------+---------------------+---------------------+---------+--------------+--------------+-----------
+ 2147483647 | 127 | 8388607 | 9223372036854775807 | 9223372036854775807 | 9223372036854775807 | 3.4e+38 | 1.79769e+308 | 1.79769e+308 | 1.79e+308
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 103:
+SELECT min(c1), min(c2), min(c4), min(c5), min(c6), min(c7), min(c8), min(c9), max(c10), max(c11) FROM _sqlite_max_range;
+     min     | min  |   min    |         min          | min |         min          |   min    |      min      |     max      |    max    
+-------------+------+----------+----------------------+-----+----------------------+----------+---------------+--------------+-----------
+ -2147483648 | -128 | -8388608 | -9223372036854775808 |   0 | -9223372036854775808 | -3.4e+38 | -1.79769e+308 | 1.79769e+308 | 1.79e+308
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 104:
+SELECT max(c1), min(c2), min(c4), max(c5), max(c6), min(c7), max(c8), min(c9), max(c10), min(c11) FROM _sqlite_max_range;
+    max     | min  |   min    |         max         |         max         |         min          |   max   |      min      |     max      |    min     
+------------+------+----------+---------------------+---------------------+----------------------+---------+---------------+--------------+------------
+ 2147483647 | -128 | -8388608 | 9223372036854775807 | 9223372036854775807 | -9223372036854775808 | 3.4e+38 | -1.79769e+308 | 1.79769e+308 | -1.79e+308
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 105:
+SELECT min(c1+c3), max(c2+c6), max(c4+c5), min(c7*c9), max(c11/c10) FROM _sqlite_max_range;
+psql:/tmp/tmp_query.txt:3: ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT min((c1 + c3)), max((c2 + c6)), max((c4 + c5)), min((c7 * c9)), max((c11 / c10)) FROM public._sqlite_max_range__sqlite1__0
+ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT min((c1 + c3)), max((c2 + c6)), max((c4 + c5)), min((c7 * c9)), max((c11 / c10)) FROM public._sqlite_max_range__sqlite1__0
+ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT min((c1 + c3)), max((c2 + c6)), max((c4 + c5)), min((c7 * c9)), max((c11 / c10)) FROM public._sqlite_max_range
+ERROR:  PGSpider can not get data from child node : pgspider3
+ERROR:  PGSpider can not get data from child node : pgspider3
+set timezone to +00;
+SET
+-- Testcase 106:
+SELECT sum(c9), sum(c1), sum(c11) FROM _sqlite_max_range;
+    sum    |     sum      |    sum    
+-----------+--------------+-----------
+ -Infinity | -12884901909 | -Infinity
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 107:
+SELECT sum(c5), min(c6), max(c7) FROM _sqlite_max_range;
+psql:/tmp/tmp_query.txt:3: ERROR:  failed to execute remote SQL: rc=1 integer overflow 
+   sql=SELECT sum(`c5`), min(`c6`), max(`c7`) FROM main."_sqlite_max_range"
+CONTEXT:  remote SQL command: SELECT sum(c5), min(c6), max(c7) FROM public._sqlite_max_range__sqlite1__0
+ERROR:  failed to execute remote SQL: rc=1 integer overflow 
+   sql=SELECT sum(`c5`), min(`c6`), max(`c7`) FROM main."_sqlite_max_range"
+CONTEXT:  remote SQL command: SELECT sum(c5), min(c6), max(c7) FROM public._sqlite_max_range__sqlite1__0
+ERROR:  PGSpider can not get data from child node : sqlite1
+CONTEXT:  remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider3
+ERROR:  PGSpider can not get data from child node : pgspider3
+set timezone to +00;
+SET
+-- Testcase 108:
+SELECT sum(c4+c7), sum(c1*c10), max(c2*c8), min(c3+c9)  FROM _sqlite_max_range;
+psql:/tmp/tmp_query.txt:3: ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT sum((c4 + c7)), sum((c1 * c10)), max((c2 * c8)), min((c3 + c9)) FROM public._sqlite_max_range__sqlite1__0
+ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT sum((c4 + c7)), sum((c1 * c10)), max((c2 * c8)), min((c3 + c9)) FROM public._sqlite_max_range__sqlite1__0
+ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT sum((c4 + c7)), sum((c1 * c10)), max((c2 * c8)), min((c3 + c9)) FROM public._sqlite_max_range
+ERROR:  PGSpider can not get data from child node : pgspider3
+ERROR:  PGSpider can not get data from child node : pgspider3
+set timezone to +00;
+SET
+-- Testcase 109:
+SELECT avg(c5), avg(c6+c9) FROM _sqlite_max_range;
+psql:/tmp/tmp_query.txt:3: ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT count(c5), sum(c5), count((c6 + c9)), sum((c6 + c9)) FROM public._sqlite_max_range
+ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT count(c5), sum(c5), count((c6 + c9)), sum((c6 + c9)) FROM public._sqlite_max_range__sqlite1__0
+ERROR:  value out of range: overflow
+CONTEXT:  remote SQL command: SELECT count(c5), sum(c5), count((c6 + c9)), sum((c6 + c9)) FROM public._sqlite_max_range__sqlite1__0
+ERROR:  PGSpider can not get data from child node : pgspider3
+ERROR:  PGSpider can not get data from child node : pgspider3
+set timezone to +00;
+SET
+-- Testcase 110:
+SELECT count(c1), count(*), count(DISTINCT c4), count(ALL c5) FROM _sqlite_max_range;
+ count | count | count | count 
+-------+-------+-------+-------
+    54 |    60 |     4 |    51
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 111:
+SELECT stddev(c1), stddev(c2), stddev(c4+c7) FROM _sqlite_max_range;
+psql:/tmp/tmp_query.txt:3: ERROR:  failed to execute remote SQL: rc=1 integer overflow 
+   sql=SELECT count(`c1`), sum(`c1`), sum((`c1` * `c1`)), count(`c2`), sum(`c2`), sum((`c2` * `c2`)), count((`c4` + `c7`)), sum((`c4` + `c7`)), sum(((`c4` + `c7`) * (`c4` + `c7`))) FROM main."_sqlite_max_range"
+CONTEXT:  remote SQL command: SELECT count(c1), sum(c1), sum((c1 * c1)), count(c2), sum(c2), sum((c2 * c2)), count((c4 + c7)), sum((c4 + c7)), sum(((c4 + c7) * (c4 + c7))) FROM public._sqlite_max_range__sqlite1__0
+ERROR:  failed to execute remote SQL: rc=1 integer overflow 
+   sql=SELECT count(`c1`), sum(`c1`), sum((`c1` * `c1`)), count(`c2`), sum(`c2`), sum((`c2` * `c2`)), count((`c4` + `c7`)), sum((`c4` + `c7`)), sum(((`c4` + `c7`) * (`c4` + `c7`))) FROM main."_sqlite_max_range"
+CONTEXT:  remote SQL command: SELECT count(c1), sum(c1), sum((c1 * c1)), count(c2), sum(c2), sum((c2 * c2)), count((c4 + c7)), sum((c4 + c7)), sum(((c4 + c7) * (c4 + c7))) FROM public._sqlite_max_range__sqlite1__0
+ERROR:  PGSpider can not get data from child node : sqlite1
+CONTEXT:  remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider3
+ERROR:  PGSpider can not get data from child node : pgspider3
+set timezone to +00;
+SET
+-- Testcase 112:
+SELECT array_agg(c5), array_agg(c6), array_agg(c11), array_agg(c8), array_agg(c9) FROM _sqlite_max_range;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               array_agg                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |                                                                                                                                                                                                                                                                                                                         array_agg                                                                                                                                                                                                                                                                                                                          |                                                                                                                                                                                                                                                                                                 array_agg                                                                                                                                                                                                                                                                                                  |                                                                                                                                                                                                                                                             array_agg                                                                                                                                                                                                                                                              |                                                                                                                                                                                                                                                                                                                                                                array_agg                                                                                                                                                                                                                                                                                                                                                                 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {9223372036854775807,-9223372036854775808,9223372036854775806,-9223372036854775807,9223372036854775807,-9223372036854775808,9223372036854775806,-9223372036854775807,NULL,-9223372036854775808,9223372036854775806,-9223372036854775807,9223372036854775807,-9223372036854775808,9223372036854775806,-9223372036854775807,9223372036854775807,-9223372036854775808,NULL,NULL,9223372036854775807,-9223372036854775808,9223372036854775806,-9223372036854775807,9223372036854775807,-9223372036854775808,9223372036854775806,-9223372036854775807,NULL,-9223372036854775808,9223372036854775806,-9223372036854775807,9223372036854775807,-9223372036854775808,9223372036854775806,-9223372036854775807,9223372036854775807,-9223372036854775808,NULL,NULL,9223372036854775807,-9223372036854775808,9223372036854775806,-9223372036854775807,9223372036854775807,-9223372036854775808,9223372036854775806,-9223372036854775807,NULL,-9223372036854775808,9223372036854775806,-9223372036854775807,9223372036854775807,-9223372036854775808,9223372036854775806,-9223372036854775807,9223372036854775807,-9223372036854775808,NULL,NULL} | {9223372036854775807,0,9223372036854775807,1,9223372036854775807,0,9223372036854775807,1,9223372036854775807,NULL,9223372036854775807,1,9223372036854775807,0,9223372036854775807,1,9223372036854775807,NULL,NULL,1,9223372036854775807,0,9223372036854775807,1,9223372036854775807,0,9223372036854775807,1,9223372036854775807,NULL,9223372036854775807,1,9223372036854775807,0,9223372036854775807,1,9223372036854775807,NULL,NULL,1,9223372036854775807,0,9223372036854775807,1,9223372036854775807,0,9223372036854775807,1,9223372036854775807,NULL,9223372036854775807,1,9223372036854775807,0,9223372036854775807,1,9223372036854775807,NULL,NULL,1} | {1.79e+308,-1.79e+308,1.78e+308,-1.78e+308,1.79e+308,-1.79e+308,1.78e+308,-1.78e+308,1.79e+308,-1.79e+308,1.78e+308,-1.78e+308,1.79e+308,-1.79e+308,NULL,-1.78e+308,NULL,-1.79e+308,NULL,-1.78e+308,1.79e+308,-1.79e+308,1.78e+308,-1.78e+308,1.79e+308,-1.79e+308,1.78e+308,-1.78e+308,1.79e+308,-1.79e+308,1.78e+308,-1.78e+308,1.79e+308,-1.79e+308,NULL,-1.78e+308,NULL,-1.79e+308,NULL,-1.78e+308,1.79e+308,-1.79e+308,1.78e+308,-1.78e+308,1.79e+308,-1.79e+308,1.78e+308,-1.78e+308,1.79e+308,-1.79e+308,1.78e+308,-1.78e+308,1.79e+308,-1.79e+308,NULL,-1.78e+308,NULL,-1.79e+308,NULL,-1.78e+308} | {3.4e+38,-3.4e+38,3.39e+38,-3.39e+38,3.4e+38,-3.4e+38,3.39e+38,-3.39e+38,3.4e+38,-3.4e+38,3.39e+38,NULL,3.4e+38,-3.4e+38,3.39e+38,-3.39e+38,3.4e+38,-3.4e+38,NULL,-3.39e+38,3.4e+38,-3.4e+38,3.39e+38,-3.39e+38,3.4e+38,-3.4e+38,3.39e+38,-3.39e+38,3.4e+38,-3.4e+38,3.39e+38,NULL,3.4e+38,-3.4e+38,3.39e+38,-3.39e+38,3.4e+38,-3.4e+38,NULL,-3.39e+38,3.4e+38,-3.4e+38,3.39e+38,-3.39e+38,3.4e+38,-3.4e+38,3.39e+38,-3.39e+38,3.4e+38,-3.4e+38,3.39e+38,NULL,3.4e+38,-3.4e+38,3.39e+38,-3.39e+38,3.4e+38,-3.4e+38,NULL,-3.39e+38} | {1.79769e+308,-1.79769e+308,1.79768e+308,-1.79768e+308,1.79769e+308,-1.79769e+308,1.79768e+308,-1.79768e+308,1.79769e+308,-1.79769e+308,1.79768e+308,-1.79768e+308,NULL,-1.79769e+308,1.79768e+308,-1.79768e+308,NULL,-1.79769e+308,NULL,NULL,1.79769e+308,-1.79769e+308,1.79768e+308,-1.79768e+308,1.79769e+308,-1.79769e+308,1.79768e+308,-1.79768e+308,1.79769e+308,-1.79769e+308,1.79768e+308,-1.79768e+308,NULL,-1.79769e+308,1.79768e+308,-1.79768e+308,NULL,-1.79769e+308,NULL,NULL,1.79769e+308,-1.79769e+308,1.79768e+308,-1.79768e+308,1.79769e+308,-1.79769e+308,1.79768e+308,-1.79768e+308,1.79769e+308,-1.79769e+308,1.79768e+308,-1.79768e+308,NULL,-1.79769e+308,1.79768e+308,-1.79768e+308,NULL,-1.79769e+308,NULL,NULL}
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 113:
+SELECT bit_or(c2), bit_and(c3), bit_and(c5), bit_or(c6), bit_or(c7) FROM _sqlite_max_range;
+ bit_or | bit_and | bit_and |       bit_or        | bit_or 
+--------+---------+---------+---------------------+--------
+     -1 |       0 |       0 | 9223372036854775807 |     -1
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 114:
+SELECT bool_or(c3>0), bool_or(c9<=0), bool_and(c4<>0), bool_and(c11>=0) FROM _sqlite_max_range;
+ bool_or | bool_or | bool_and | bool_and 
+---------+---------+----------+----------
+ t       | t       | t        | f
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 115:
+SELECT sqrt(abs(c10)), sqrt(abs(c4)), sqrt(abs(c6)), sqrt(abs(c7+c10)) FROM _sqlite_max_range ORDER BY 1, 2, 3, 4;
+          sqrt           |       sqrt        |       sqrt       |          sqrt           
+-------------------------+-------------------+------------------+-------------------------
+  1.340775894771382e+154 | 2896.309030473095 | 3037000499.97605 |  1.340775894771382e+154
+  1.340775894771382e+154 | 2896.309030473095 | 3037000499.97605 |  1.340775894771382e+154
+  1.340775894771382e+154 | 2896.309030473095 | 3037000499.97605 |  1.340775894771382e+154
+  1.340775894771382e+154 | 2896.309030473095 | 3037000499.97605 |  1.340775894771382e+154
+  1.340775894771382e+154 | 2896.309030473095 | 3037000499.97605 |  1.340775894771382e+154
+  1.340775894771382e+154 | 2896.309030473095 | 3037000499.97605 |  1.340775894771382e+154
+  1.340775894771382e+154 | 2896.309030473095 | 3037000499.97605 |  1.340775894771382e+154
+  1.340775894771382e+154 | 2896.309030473095 | 3037000499.97605 |  1.340775894771382e+154
+  1.340775894771382e+154 | 2896.309030473095 | 3037000499.97605 |  1.340775894771382e+154
+  1.340775894771382e+154 | 2896.309030473095 | 3037000499.97605 |                        
+  1.340775894771382e+154 | 2896.309030473095 | 3037000499.97605 |                        
+  1.340775894771382e+154 | 2896.309030473095 | 3037000499.97605 |                        
+  1.340775894771382e+154 | 2896.309203106602 |                1 |  1.340775894771382e+154
+  1.340775894771382e+154 | 2896.309203106602 |                1 |  1.340775894771382e+154
+  1.340775894771382e+154 | 2896.309203106602 |                1 |  1.340775894771382e+154
+  1.340775894771382e+154 | 2896.309203106602 |                1 |  1.340775894771382e+154
+  1.340775894771382e+154 | 2896.309203106602 |                1 |  1.340775894771382e+154
+  1.340775894771382e+154 | 2896.309203106602 |                1 |  1.340775894771382e+154
+  1.340775894771382e+154 | 2896.309203106602 |                1 |  1.340775894771382e+154
+  1.340775894771382e+154 | 2896.309203106602 |                1 |  1.340775894771382e+154
+  1.340775894771382e+154 | 2896.309203106602 |                1 |  1.340775894771382e+154
+  1.340775894771382e+154 | 2896.309203106602 |                1 |  1.340775894771382e+154
+  1.340775894771382e+154 | 2896.309203106602 |                1 |  1.340775894771382e+154
+  1.340775894771382e+154 | 2896.309203106602 |                1 |  1.340775894771382e+154
+  1.340775894771382e+154 |                   |                1 |  1.340775894771382e+154
+  1.340775894771382e+154 |                   |                1 |  1.340775894771382e+154
+  1.340775894771382e+154 |                   |                1 |  1.340775894771382e+154
+  1.340775894771382e+154 |                   |                  |  1.340775894771382e+154
+  1.340775894771382e+154 |                   |                  |  1.340775894771382e+154
+  1.340775894771382e+154 |                   |                  |  1.340775894771382e+154
+ 1.3407796239501852e+154 | 2896.309203106602 | 3037000499.97605 | 1.3407796239501852e+154
+ 1.3407796239501852e+154 | 2896.309203106602 | 3037000499.97605 | 1.3407796239501852e+154
+ 1.3407796239501852e+154 | 2896.309203106602 | 3037000499.97605 | 1.3407796239501852e+154
+ 1.3407796239501852e+154 | 2896.309203106602 | 3037000499.97605 | 1.3407796239501852e+154
+ 1.3407796239501852e+154 | 2896.309203106602 | 3037000499.97605 | 1.3407796239501852e+154
+ 1.3407796239501852e+154 | 2896.309203106602 | 3037000499.97605 | 1.3407796239501852e+154
+ 1.3407796239501852e+154 | 2896.309203106602 | 3037000499.97605 | 1.3407796239501852e+154
+ 1.3407796239501852e+154 | 2896.309203106602 | 3037000499.97605 | 1.3407796239501852e+154
+ 1.3407796239501852e+154 | 2896.309203106602 | 3037000499.97605 | 1.3407796239501852e+154
+ 1.3407796239501852e+154 | 2896.309203106602 | 3037000499.97605 | 1.3407796239501852e+154
+ 1.3407796239501852e+154 | 2896.309203106602 | 3037000499.97605 | 1.3407796239501852e+154
+ 1.3407796239501852e+154 | 2896.309203106602 | 3037000499.97605 | 1.3407796239501852e+154
+ 1.3407796239501852e+154 | 2896.309375740099 |                0 | 1.3407796239501852e+154
+ 1.3407796239501852e+154 | 2896.309375740099 |                0 | 1.3407796239501852e+154
+ 1.3407796239501852e+154 | 2896.309375740099 |                0 | 1.3407796239501852e+154
+ 1.3407796239501852e+154 | 2896.309375740099 |                0 | 1.3407796239501852e+154
+ 1.3407796239501852e+154 | 2896.309375740099 |                0 | 1.3407796239501852e+154
+ 1.3407796239501852e+154 | 2896.309375740099 |                0 | 1.3407796239501852e+154
+ 1.3407796239501852e+154 | 2896.309375740099 |                  | 1.3407796239501852e+154
+ 1.3407796239501852e+154 | 2896.309375740099 |                  | 1.3407796239501852e+154
+ 1.3407796239501852e+154 | 2896.309375740099 |                  | 1.3407796239501852e+154
+ 1.3407796239501852e+154 |                   | 3037000499.97605 |                        
+ 1.3407796239501852e+154 |                   | 3037000499.97605 |                        
+ 1.3407796239501852e+154 |                   | 3037000499.97605 |                        
+                         | 2896.309375740099 |                0 |                        
+                         | 2896.309375740099 |                0 |                        
+                         | 2896.309375740099 |                0 |                        
+                         |                   |                  |                        
+                         |                   |                  |                        
+                         |                   |                  |                        
+(60 rows)
+

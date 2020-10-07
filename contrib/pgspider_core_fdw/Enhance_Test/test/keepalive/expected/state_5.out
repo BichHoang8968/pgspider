@@ -1,0 +1,529 @@
+set timezone to +0;
+SET
+
+-- SELECT on GridDB
+-- SELECT col FROM table1 WHERE ...
+SELECT c1, c2, c3, c4, __spd_url FROM t1 WHERE c1<0 OR c4%2=1 ORDER BY 1,2,3,4,5;
+   c1    |                 c2                  |  c3  |   c4   |     __spd_url     
+---------+-------------------------------------+------+--------+-------------------
+ -483648 | 敷ヘカウ告政ヨハツヤ消70者32精楽ざ  | -128 | -16768 | /pgspider3/grid1/
+ -483648 | 敷ヘカウ告政ヨハツヤ消70者32精楽ざ  | -128 | -16768 | /pgspider3/grid2/
+ -483647 | ăâđêôơưdêđêdờenờíìờẹ                | -127 | -16767 | /pgspider3/grid1/
+ -483647 | ăâđêôơưdêđêdờenờíìờẹ                | -127 | -16767 | /pgspider3/grid2/
+      -5 | 7次ノヌ従援かや                     |   -5 |     -4 | /pgspider3/grid1/
+      -5 | 7次ノヌ従援かや                     |   -5 |     -4 | /pgspider3/grid2/
+      -4 | กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ      |   -4 |     -3 | /pgspider3/grid1/
+      -4 | กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ      |   -4 |     -3 | /pgspider3/grid2/
+      -3 | `~!@#$%                             |   -4 |     -3 | /pgspider3/grid1/
+      -3 | `~!@#$%                             |   -4 |     -3 | /pgspider3/grid2/
+      -2 | 0123456789                          |   -2 |     -1 | /pgspider3/grid1/
+      -2 | 0123456789                          |   -2 |     -1 | /pgspider3/grid2/
+      -1 | In Bulgarian it is desirable        |   -1 |      0 | /pgspider3/grid1/
+      -1 | In Bulgarian it is desirable        |   -1 |      0 | /pgspider3/grid2/
+       0 | Which started out as a kind         |    0 |      1 | /pgspider3/grid1/
+       0 | Which started out as a kind         |    0 |      1 | /pgspider3/grid2/
+       2 | Canada Denmark Turkey Yemen Tokyo   |    2 |      3 | /pgspider3/grid1/
+       2 | Canada Denmark Turkey Yemen Tokyo   |    2 |      3 | /pgspider3/grid2/
+  483647 | Thequickbrownfoxjumpsoverthelazydog |  127 |  16767 | /pgspider3/grid1/
+  483647 | Thequickbrownfoxjumpsoverthelazydog |  127 |  16767 | /pgspider3/grid2/
+(20 rows)
+
+-- SELECT max(), min()  FROM table1 IN (...)  WHERE …
+--SELECT max(c7), min(c8) FROM t1 IN ('/pgspider3/grid1/') WHERE c3+c4<0 ORDER BY 1,2;
+--SELECT max(c7), min(c8) FROM t1 IN ('/pgspider3/grid2/') WHERE c3+c4>0 ORDER BY 1,2;
+-- SELECT col  FROM table1 IN (...)  WHERE …
+SELECT c5, c6, c7, c8, c9, __spd_url FROM t1 IN ('/pgspider3/grid1/') WHERE c3!=(c4) AND c6>0 ORDER BY 1,2,3,4,5,6;
+ c5 |     c6      |    c7    |     c8     |         c9          |     __spd_url     
+----+-------------+----------+------------+---------------------+-------------------
+ f  |           1 |  -10.985 |     0.5678 | 2020-01-10 01:00:00 | /pgspider3/grid1/
+ f  |           3 |   10.874 |     20.552 | 2020-01-12 01:00:00 | /pgspider3/grid1/
+ f  |           5 |   30.774 |     40.721 | 2020-01-14 01:00:00 | /pgspider3/grid1/
+ t  |           1 |   40.663 |     50.872 | 2020-01-15 01:00:00 | /pgspider3/grid1/
+ t  |           2 |   -0.993 |     10.652 | 2020-01-11 01:00:00 | /pgspider3/grid1/
+ t  |           4 |   20.874 |     30.632 | 2020-01-13 01:00:00 | /pgspider3/grid1/
+ t  |           7 |   40.671 |      60.73 | 2020-01-16 01:00:00 | /pgspider3/grid1/
+ t  | 36854775806 | 3.39e+20 | -1.78e+108 | 2020-01-01 01:00:00 | /pgspider3/grid1/
+ t  | 36854775807 | -3.4e+20 | -1.79e+108 | 2020-01-17 01:00:00 | /pgspider3/grid1/
+(9 rows)
+
+SELECT c5, c6, c7, c8, c9, __spd_url FROM t1 IN ('/pgspider3/grid2/') WHERE c3!=(c4) AND c6<0 ORDER BY 1,2,3,4,5,6;
+ c5 |      c6      |    c7     |    c8     |           c9            |     __spd_url     
+----+--------------+-----------+-----------+-------------------------+-------------------
+ f  | -36854775808 |   3.4e+20 | 1.79e+108 | 2020-01-16 01:00:00     | /pgspider3/grid2/
+ f  | -36854775807 | -3.39e+20 | 1.78e+108 | 9999-12-31 23:59:58.999 | /pgspider3/grid2/
+ f  |           -2 |   -40.323 |   -30.874 | 2020-01-07 01:00:00     | /pgspider3/grid2/
+ f  |           -2 |   -40.323 |   -30.874 | 2020-01-07 01:00:00     | /pgspider3/grid2/
+ t  |           -3 |   -50.234 |   -40.763 | 2020-01-06 01:00:00     | /pgspider3/grid2/
+(5 rows)
+
+-- SELECT max(), min()  FROM table1 IN (...)  WHERE …
+--SELECT max(c7), min(c8) FROM t1 IN ('/pgspider3/grid1/') WHERE c9>'2020-01-01 12:00:00';
+--SELECT max(c8), min(c7) FROM t1 IN ('/pgspider3/grid2/') WHERE c9>'2020-01-01 12:00:00';
+-- SELECT col FROM table1, table2  WHERE ...
+SELECT t1.c1, t1.c2, t1.c3, t3.c1, t3.c2, t3.c3 FROM t1, t3 WHERE (t1.c1+t1.c3)<(t1.c3+t1.c4) AND t1.c1<0 AND (t3.c3+t3.c4 > 100) ORDER BY 1,2,3,4,5,6;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT c1, c2, c3, c4 FROM public.t3 WHERE (((c3 + c4) > 100))
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT max(), min() FROM table1, table2  WHERE ...
+SELECT max(t1.c3), min(t3.c4) FROM t1, t3  WHERE t1.c1!=t1.c3 AND t3.c3%2=0;
+ERROR:  another command is already in progress
+CONTEXT:  Remote SQL command: START TRANSACTION ISOLATION LEVEL REPEATABLE READ
+ERROR:  PGSpider can not get data from child node : pgspider3
+-- SELECT col FROM table1 IN(...), table2 IN(...)  WHERE ...
+SELECT t1.c5, t1.c6, t1.c7, t1.c8, t1.c9, t1.c10, t1.c11, t1.__spd_url, t3.c5, t3.__spd_url FROM t1 IN('/pgspider3/grid1/'), t3 IN('/pgspider2/mysql1/')  WHERE t1.c3>0 AND t3.c3%2=0 ORDER BY 1,2,3,4,5,6,7,8,9,10;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT c3, c5, __spd_url FROM public.t3 IN ('/mysql1/' )  WHERE (((c3 % 2) = 0))
+ERROR:  PGSpider can not get data from child node : pgspider2
+SELECT t1.c5, t1.c6, t1.c7, t1.c8, t1.c9, t1.c10, t1.c11, t1.__spd_url, t3.c5, t3.__spd_url FROM t1 IN('/pgspider3/grid2/'), t3 IN('/pgspider2/mysql2/')  WHERE t1.c3<0 AND t3.c3%2=1 ORDER BY 1,2,3,4,5,6,7,8,9,10;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT c3, c5, __spd_url FROM public.t3 IN ('/mysql2/' )  WHERE (((c3 % 2) = 1))
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT max(), min() FROM table1 IN(...), table2 IN(...)  WHERE ...
+SELECT max(t1.c6), min(t3.c7+t3.c8) FROM t1 IN('/pgspider3/grid1/'), t3 IN('/pgspider2/mysql1/') WHERE t1.c4 != t1.c6 AND t3.c6>0;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT c6, c7, c8 FROM public.t3 IN ('/mysql1/' )  WHERE ((c6 > 0::double precision))
+ERROR:  PGSpider can not get data from child node : pgspider2
+SELECT max(t1.c6), min(t3.c7+t3.c8) FROM t1 IN('/pgspider3/grid2/'), t3 IN('/pgspider2/mysql2/') WHERE t1.c4 != t1.c6 OR t3.c6<0;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT c6, c7, c8 FROM public.t3 IN ('/mysql2/' ) 
+ERROR:  PGSpider can not get data from child node : pgspider2
+
+-- SELECT on MYSQL
+-- SELECT col FROM table1 WHERE ...
+SELECT c1, c2, c3, c4 FROM t3 WHERE c1<0 OR c4%2=1 ORDER BY 1,2,3,4;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT c1, c2, c3, c4 FROM public.t3 WHERE (((c1 < 0) OR ((c4 % 2) = 1)))
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT max(), min()  FROM table1 IN (...)  WHERE …
+SELECT max(c7), min(c8) FROM t3 IN ('/pgspider2/mysql1/') WHERE c3+c4<0 ORDER BY 1,2;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT max(c7), min(c8) FROM public.t3 IN ('/mysql1/' )  WHERE (((c3 + c4) < 0))
+ERROR:  PGSpider can not get data from child node : pgspider2
+SELECT max(c7), min(c8) FROM t3 IN ('/pgspider2/mysql2/') WHERE c3+c4>0 ORDER BY 1,2;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT max(c7), min(c8) FROM public.t3 IN ('/mysql2/' )  WHERE (((c3 + c4) > 0))
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT col  FROM table1 IN (...)  WHERE …
+SELECT c5, c6, c7, c8, c9 FROM t3 IN ('/pgspider2/mysql1/') WHERE c8!=(c7) AND c5>0 ORDER BY 1,2,3,4,5;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT c5, c6, c7, c8, c9 FROM public.t3 IN ('/mysql1/' )  WHERE ((c8 <> c7)) AND ((c5 > 0))
+ERROR:  PGSpider can not get data from child node : pgspider2
+SELECT c5, c6, c7, c8, c9 FROM t3 IN ('/pgspider2/mysql2/') WHERE c8!=(c7) AND c5<0 ORDER BY 1,2,3,4,5;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT c5, c6, c7, c8, c9 FROM public.t3 IN ('/mysql2/' )  WHERE ((c8 <> c7)) AND ((c5 < 0))
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT max(), min()  FROM table1 IN (...)  WHERE …
+SELECT max(c7), min(c8) FROM t3 IN ('/pgspider2/mysql1/') WHERE c14>'2020-01-01 12:00:00';
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT max(c7), min(c8) FROM public.t3 IN ('/mysql1/' )  WHERE ((c14 > '2020-01-01 12:00:00'::timestamp without time zone))
+ERROR:  PGSpider can not get data from child node : pgspider2
+SELECT max(c8), min(c7) FROM t3 IN ('/pgspider2/mysql2/') WHERE c14>'2020-01-01 12:00:00';
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT max(c8), min(c7) FROM public.t3 IN ('/mysql2/' )  WHERE ((c14 > '2020-01-01 12:00:00'::timestamp without time zone))
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT col FROM table1, table2  WHERE ...
+SELECT t3.c1, t3.c2, t3.c3, t5.c1, t5.c2, t5.c3 FROM t3, t5 WHERE (t3.c1+t3.c3)<(t3.c2+t3.c4) AND (t5.c6+t5.c7 < 100) ORDER BY 1,2,3,4,5,6;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT c1, c2, c3, c4 FROM public.t3 WHERE (((c1 + c3) < (c2 + c4)))
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT max(), min() FROM table1, table2  WHERE ...
+SELECT max(t3.c9), min(t5.c7) FROM t3, t5  WHERE t3.c1!=t3.c2 AND t5.c3%2=0;
+ERROR:  PGSpider can not get data from child node : tinybrace1
+CONTEXT:  Remote SQL command: CLOSE c2
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT col FROM table1 IN(...), table2 IN(...)  WHERE ...
+SELECT t3.c5, t3.c6, t3.c7, t3.c8, t3.c9, t3.c10, t3.c11, t3.c12, t5.c5, t5.c6 FROM t3 IN('/pgspider2/mysql1/'), t5 IN('/pgspider2/tinybrace1/')  WHERE t3.c3>0 AND t5.c3%2=0 ORDER BY 1,2,3,4,5,6,7,8,9,10;
+ERROR:  PGSpider can not get data from child node : tinybrace1
+CONTEXT:  Remote SQL command: CLOSE c2
+ERROR:  PGSpider can not get data from child node : pgspider2
+SELECT t3.c5, t3.c6, t3.c7, t3.c8, t3.c9, t3.c10, t3.c11, t3.c12, t5.c5, t5.c6 FROM t3 IN('/pgspider2/mysql2/'), t5 IN('/pgspider2/tinybrace2/')  WHERE t3.c3<0 AND t5.c3%2=1 ORDER BY 1,2,3,4,5,6,7,8,9,10;
+ERROR:  PGSpider can not get data from child node : tinybrace1
+CONTEXT:  Remote SQL command: CLOSE c2
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT max(), min() FROM table1 IN(...), table2 IN(...)  WHERE ...
+SELECT max(t3.c6), min(t5.c1) FROM t3 IN('/pgspider2/mysql1/'), t5 IN('/pgspider2/tinybrace1/') WHERE t3.c7 != t5.c4 AND t5.c6>0;
+ERROR:  PGSpider can not get data from child node : tinybrace1
+CONTEXT:  Remote SQL command: CLOSE c2
+ERROR:  PGSpider can not get data from child node : pgspider2
+SELECT max(t3.c6), min(t5.c1) FROM t3 IN('/pgspider2/mysql2/'), t5 IN('/pgspider2/tinybrace2/') WHERE t3.c7 != t5.c4 OR t5.c6<0;
+ERROR:  PGSpider can not get data from child node : tinybrace1
+CONTEXT:  Remote SQL command: CLOSE c2
+ERROR:  PGSpider can not get data from child node : pgspider2
+
+-- SELECT on TinyBrace
+-- SELECT col FROM table1 WHERE ...
+SELECT c1, c2, c3, c4, __spd_url FROM t5 WHERE c1<0 OR c4%2=1 ORDER BY 1,2,3,4,5;
+ERROR:  PGSpider can not get data from child node : tinybrace1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT max(), min()  FROM table1 IN (...)  WHERE …
+SELECT max(c4), min(c5), count(*) FROM t5 IN ('/pgspider2/tinybrace1/') WHERE c3+c4<0 ORDER BY 1,2,3;
+ERROR:  PGSpider can not get data from child node : tinybrace1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+SELECT max(c5), min(c4), count(*) FROM t5 IN ('/pgspider2/tinybrace2/') WHERE c3+c4>0 ORDER BY 1,2,3;
+ERROR:  PGSpider can not get data from child node : tinybrace1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT col  FROM table1 IN (...)  WHERE …
+SELECT c5, c6, c7, c8, __spd_url FROM t5 IN ('/pgspider2/tinybrace1/') WHERE c6!=(c7) AND c5>0 ORDER BY 1,2,3,4,5;
+ERROR:  PGSpider can not get data from child node : tinybrace1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+SELECT c5, c6, c7, c8, __spd_url FROM t5 IN ('/pgspider2/tinybrace2/') WHERE c6!=(c7) AND c5<0 ORDER BY 1,2,3,4,5;
+ERROR:  PGSpider can not get data from child node : tinybrace1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT max(), min()  FROM table1 IN (...)  WHERE …
+SELECT max(c7), min(c4) FROM t5 IN ('/pgspider2/tinybrace1/') WHERE c1>0;
+ERROR:  PGSpider can not get data from child node : tinybrace1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+SELECT max(c2), min(c7) FROM t5 IN ('/pgspider2/tinybrace2/') WHERE c1>0;
+ERROR:  PGSpider can not get data from child node : tinybrace1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT col FROM table1, table2  WHERE ...
+SELECT t5.c1, t5.c2, t5.c3, t5.__spd_url, t7.c3, t7.c5 FROM t5, t7 WHERE (t5.c1+t5.c3)<0 AND t5.c2>50 AND (t7.c3+t7.c4 < 100) ORDER BY 1,2,3,4,5,6;
+ERROR:  PGSpider can not get data from child node : tinybrace1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT max(), min() FROM table1, table2  WHERE ...
+SELECT max(t5.c6), min(t7.c4) FROM t5, t7  WHERE t5.c1<t5.c2 AND t7.c3%2=0;
+ERROR:  PGSpider can not get data from child node : tinybrace1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT col FROM table1 IN(...), table2 IN(...)  WHERE ...
+SELECT t5.c5, t5.c6, t5.c7, t5.c8, t5.c9, t5.__spd_url, t7.c2, t7.c3, t7.c4, t7.__spd_url FROM t5 IN('/pgspider2/tinybrace1/'), t7 IN('/pgspider2/influx1/')  WHERE t5.c3>0 AND t7.c4<-1000 ORDER BY 1,2,3,4,5,6,7,8,9,10;
+ERROR:  PGSpider can not get data from child node : tinybrace1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+SELECT t5.c5, t5.c6, t5.c7, t5.c8, t5.c9, t5.__spd_url, t7.c2, t7.c3, t7.c4, t7.__spd_url FROM t5 IN('/pgspider2/tinybrace2/'), t7 IN('/pgspider2/influx2/')  WHERE t5.c3>0 AND t7.c4<-1000 ORDER BY 1,2,3,4,5,6,7,8,9,10;
+ERROR:  PGSpider can not get data from child node : tinybrace1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT max(), min() FROM table1 IN(...), table2 IN(...)  WHERE ...
+SELECT max(t5.c6), min(t7.c3) FROM t5 IN('/pgspider2/tinybrace1/'), t7 IN('/pgspider2/influx1/') WHERE t5.c7 != t5.c4 AND t7.c3>10000;
+ERROR:  PGSpider can not get data from child node : tinybrace1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+SELECT max(t5.c6), min(t7.c3) FROM t5 IN('/pgspider2/tinybrace1/'), t7 IN('/pgspider2/influx1/') WHERE t5.c6 != t5.c4 AND t7.c4>10000;
+ERROR:  PGSpider can not get data from child node : tinybrace1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+
+
+-- SELECT on InfluxDB
+-- SELECT col FROM table1 WHERE ...
+SELECT * FROM t7 WHERE c3<0 OR c4>100 ORDER BY 1,2,3,4,5,6;
+ERROR:  PGSpider can not get data from child node : influx1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT max(), min()  FROM table1 IN (...)  WHERE …
+SELECT max(c3), min(c4) FROM t7 IN ('/pgspider2/influx1/') WHERE c3+c4<0 ORDER BY 1,2;
+ERROR:  PGSpider can not get data from child node : influx1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+SELECT max(c4), min(c3) FROM t7 IN ('/pgspider2/influx2/') WHERE c3+c4>0 ORDER BY 1,2;
+ERROR:  PGSpider can not get data from child node : influx1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT col  FROM table1 IN (...)  WHERE …
+SELECT c3,c4,c5,__spd_url FROM t7 IN ('/pgspider2/influx1/') WHERE c3!=c4 AND c3>0 ORDER BY 1,2,3,4;
+ERROR:  PGSpider can not get data from child node : influx1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+SELECT c3,c4,c5,__spd_url FROM t7 IN ('/pgspider2/influx2/') WHERE c3!=c4 AND c4<0 ORDER BY 1,2,3,4;
+ERROR:  PGSpider can not get data from child node : influx1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT max(), min()  FROM table1 IN (...)  WHERE …
+SELECT max(c4), min(c3), count(*) FROM t7 IN ('/pgspider2/influx1/') WHERE time>'2020-01-01 12:00:00';
+ERROR:  PGSpider can not get data from child node : influx1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+SELECT max(c3), min(c3+c4), count(*) FROM t7 IN ('/pgspider2/influx2/') WHERE time>'2020-01-01 12:00:00';
+ERROR:  PGSpider can not get data from child node : influx1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT col FROM table1, table2  WHERE ...
+SELECT t7.c2, t7.c3, t7.c4, t7.c5, t9.c1, t9.c2 FROM t7, t9 WHERE (t7.c3+t7.c4)<(t7.c4+1000) AND (t9.c1+t9.c2 < 100) ORDER BY 1,2,3,4,5,6;
+ERROR:  PGSpider can not get data from child node : influx1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  another command is already in progress
+CONTEXT:  Remote SQL command: FETCH 100 FROM c2
+-- SELECT max(), min() FROM table1, table2  WHERE ...
+SELECT max(t7.c3+t7.c4), min(t9.c2) FROM t7, t9  WHERE t7.c3!=t7.c4 AND t9.c2>1000;
+ERROR:  PGSpider can not get data from child node : influx1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT col FROM table1 IN(...), table2 IN(...)  WHERE ...
+SELECT t7.c5, t7.c4, t7.c3, t9.c1, t9.c2, t9.c3, t9.c4, t9.c5, t9.c7, t9.c7, t7.__spd_url, t9.__spd_url FROM t7 IN('/pgspider2/influx1/'), t9 IN('/pgspider3/post1/')  WHERE t7.c3!=0 AND t9.c1<-10 ORDER BY 1,2,3,4,5,6,7,8,9,10,11,12;
+ERROR:  PGSpider can not get data from child node : influx1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+SELECT t7.c5, t7.c4, t7.c3, t9.c1, t9.c2, t9.c3, t9.c4, t9.c5, t9.c7, t9.c7, t7.__spd_url, t9.__spd_url FROM t7 IN('/pgspider2/influx2/'), t9 IN('/pgspider3/post2/')  WHERE t7.c3!=0 AND t9.c1<-10 ORDER BY 1,2,3,4,5,6,7,8,9,10,11,12;
+ERROR:  PGSpider can not get data from child node : influx1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT max(), min() FROM table1 IN(...), table2 IN(...)  WHERE ...
+SELECT max(t7.c3-t7.c4), min(t9.c1) FROM t7 IN('/pgspider2/influx1/'), t9 IN('/pgspider3/post1/') WHERE t7.c3 != t7.c4 AND t9.c1!=0;
+ERROR:  PGSpider can not get data from child node : influx1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+SELECT max(t7.c3+t7.c4), min(t9.c1+t9.c2) FROM t7 IN('/pgspider2/influx2/'), t9 IN('/pgspider3/post2/') WHERE t7.c3 != t7.c4 AND t9.c1!=0;
+ERROR:  PGSpider can not get data from child node : influx1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+
+-- SELECT on PostgreSQL
+-- SELECT col FROM table1 WHERE ...
+SELECT c1, c2, c3, c4, __spd_url FROM t9 WHERE c1<0 OR c2%2=1 ORDER BY 1,2,3,4,5;
+ERROR:  PGSpider can not get data from child node : post1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider3
+-- SELECT max(), min()  FROM table1 IN (...)  WHERE …
+SELECT max(c13), min(c29), count(*) FROM t9 IN ('/pgspider3/post1/') WHERE c1+c1<0 ORDER BY 1,2,3;
+ERROR:  PGSpider can not get data from child node : post1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider3
+SELECT max(c13), min(c29), count(*) FROM t9 IN ('/pgspider3/post2/') WHERE c1+c2>0 ORDER BY 1,2,3;
+ERROR:  PGSpider can not get data from child node : post1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider3
+-- SELECT col  FROM table1 IN (...)  WHERE …
+SELECT c5, c23, c7, c8, __spd_url FROM t9 IN ('/pgspider3/post1/') WHERE c1!=(c2) AND c13>0 ORDER BY 1,2,3,4,5;
+ERROR:  PGSpider can not get data from child node : post1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider3
+SELECT c5, c23, c7, c8, __spd_url FROM t9 IN ('/pgspider3/post2/') WHERE c1!=(c2) AND c13<0 ORDER BY 1,2,3,4,5;
+ERROR:  PGSpider can not get data from child node : post1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider3
+-- SELECT max(), min()  FROM table1 IN (...)  WHERE …
+SELECT max(c30), min(c31) FROM t9 IN ('/pgspider3/post1/') WHERE c33>'2020-01-01 12:00:00';
+ERROR:  PGSpider can not get data from child node : post1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider3
+SELECT max(c31), min(c30) FROM t9 IN ('/pgspider3/post2/') WHERE c33>'2020-01-01 12:00:00';
+ERROR:  PGSpider can not get data from child node : post1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider3
+-- SELECT col FROM table1, table2  WHERE ...
+SELECT t9.c1, t9.c2, t9.c3, t9.__spd_url, t13.c3, t13.c5 FROM t9, t13 WHERE (t9.c1+t9.c2)<0 AND t13.c2!=0 AND (t13.c3+t13.c4<0) ORDER BY 1,2,3,4,5,6;
+ERROR:  PGSpider can not get data from child node : post1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider3
+-- SELECT max(), min() FROM table1, table2  WHERE ...
+SELECT max(t9.c33), min(t13.c4) FROM t9, t13  WHERE t9.c1<t9.c2 AND t13.c3%2=0;
+ERROR:  PGSpider can not get data from child node : post1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider3
+-- SELECT col FROM table1 IN(...), table2 IN(...)  WHERE ...
+SELECT t9.c5, t9.c34, t9.c7, t9.c8, t9.c9, t9.__spd_url, t13.c2, t13.c3, t13.c4, t13.__spd_url FROM t9 IN('/pgspider3/post1/'), t13 IN('/pgspider3/sqlite1/')  WHERE t9.c1>0 AND t13.c2%2=0 ORDER BY 1,2,3,4,5,6,7,8,9,10;
+ERROR:  PGSpider can not get data from child node : post1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider3
+SELECT t9.c5, t9.c34, t9.c7, t9.c8, t9.c9, t9.__spd_url, t13.c2, t13.c3, t13.c4, t13.__spd_url FROM t9 IN('/pgspider3/post2/'), t13 IN('/pgspider3/sqlite2/')  WHERE t9.c1>0 AND t13.c2%2=1 ORDER BY 1,2,3,4,5,6,7,8,9,10;
+ERROR:  PGSpider can not get data from child node : post1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider3
+-- SELECT max(), min() FROM table1 IN(...), table2 IN(...)  WHERE ...
+SELECT max(t9.c31), min(t13.c17 + t13.c18) FROM t9 IN('/pgspider3/post1/'), t13 IN('/pgspider3/sqlite1/') WHERE t9.c1 != t9.c2 AND t13.c20>100;
+ERROR:  PGSpider can not get data from child node : post1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider3
+SELECT max(t9.c31), min(t13.c17 + t13.c18) FROM t9 IN('/pgspider3/post2/'), t13 IN('/pgspider3/sqlite2/') WHERE t9.c1 != t9.c2 AND t13.c20>100;
+ERROR:  PGSpider can not get data from child node : post1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider3
+
+---- SELECT on file_fdw
+---- SELECT col FROM table1 WHERE ...
+--SELECT c1, c2, c3, c4, __spd_url FROM tmp_t11 WHERE c1<0 OR c14%2=1 ORDER BY 1,2,3,4,5;
+---- SELECT max(), min()  FROM table1 IN (...)  WHERE …
+--SELECT max(c12), min(c30), count(*) FROM tmp_t11 IN ('/tmp_t11/') WHERE c1+c14<0 ORDER BY 1,2,3;
+---- SELECT col  FROM table1 IN (...)  WHERE …
+--SELECT c6, c11, c7, c8, __spd_url FROM tmp_t11 IN ('/tmp_t11/') WHERE c1!=0 AND c28>0 ORDER BY 1,2,3,4,5;
+---- SELECT max(), min()  FROM table1 IN (...)  WHERE …
+--SELECT max(c30), min(c31) FROM tmp_t11 IN ('/tmp_t11/') WHERE c30>'2020-01-01 12:00:00';
+---- SELECT col FROM table1, table2  WHERE ...
+--SELECT tmp_t11.c1, tmp_t11.c2, tmp_t11.c3, tmp_t11.__spd_url, t13.c3, t13.c5 FROM tmp_t11, t13 WHERE (tmp_t11.c1+tmp_t11.c12)>1000 AND t13.c2!=0 AND (t13.c3+t13.c4<0) ORDER BY 1,2,3,4,5,6;
+---- SELECT max(), min() FROM table1, table2  WHERE ...
+--SELECT max(tmp_t11.c13), min(t13.c4) FROM tmp_t11, t13  WHERE tmp_t11.c1<1000 AND t13.c3%2=0;
+---- SELECT col FROM table1 IN(...), table2 IN(...)  WHERE ...
+--SELECT tmp_t11.c1, tmp_t11.c34, tmp_t11.c7, tmp_t11.c8, tmp_t11.c9, tmp_t11.__spd_url, t13.c2, t13.c3, t13.c4, t13.__spd_url FROM tmp_t11 IN('/tmp_t11/'), t13 IN('/sqlite1/')  WHERE tmp_t11.c1>0 AND t13.c2=0 ORDER BY 1,2,3,4,5,6,7,8,9,10;
+---- SELECT max(), min() FROM table1 IN(...), table2 IN(...)  WHERE ...
+--SELECT max(tmp_t11.c31), min(t13.c17 + t13.c18) FROM tmp_t11 IN('/tmp_t11/'), t13 IN('/sqlite1/') WHERE tmp_t11.c1 != 0 AND t13.c20>100;
+
+-- SELECT on SQLite
+-- SELECT col FROM table1 WHERE ...
+SELECT c1, c2, c3, c4, __spd_url FROM t13 WHERE c1<0 OR c2%2=1 ORDER BY 1,2,3,4,5;
+   c1    |  c2  |   c3   |   c4    |      __spd_url      
+---------+------+--------+---------+---------------------
+ -583648 | -128 | -12768 | -388608 | /pgspider3/sqlite1/
+ -583648 | -128 | -12768 | -388608 | /pgspider3/sqlite2/
+ -583647 | -127 | -12767 | -388607 | /pgspider3/sqlite1/
+ -583647 | -127 | -12767 | -388607 | /pgspider3/sqlite2/
+      -5 |  -10 |  -8000 |    -130 | /pgspider3/sqlite1/
+      -5 |  -10 |  -8000 |    -130 | /pgspider3/sqlite2/
+      -4 |   -9 |  -7000 |    -120 | /pgspider3/sqlite1/
+      -4 |   -9 |  -7000 |    -120 | /pgspider3/sqlite2/
+      -3 |   -8 |  -6000 |    -110 | /pgspider3/sqlite1/
+      -3 |   -8 |  -6000 |    -110 | /pgspider3/sqlite2/
+      -2 |   -7 |  -5000 |    -100 | /pgspider3/sqlite1/
+      -2 |   -7 |  -5000 |    -100 | /pgspider3/sqlite2/
+      -1 |   -6 |  -4000 |     -90 | /pgspider3/sqlite1/
+      -1 |   -6 |  -4000 |     -90 | /pgspider3/sqlite2/
+       2 |    9 |   6000 |      60 | /pgspider3/sqlite1/
+       2 |    9 |   6000 |      60 | /pgspider3/sqlite2/
+       4 |    7 |   4000 |      40 | /pgspider3/sqlite1/
+       4 |    7 |   4000 |      40 | /pgspider3/sqlite2/
+  583647 |  127 |  12767 |  388607 | /pgspider3/sqlite1/
+  583647 |  127 |  12767 |  388607 | /pgspider3/sqlite2/
+(20 rows)
+
+-- SELECT max(), min()  FROM table1 IN (...)  WHERE …
+SELECT max(c17), min(c2), count(*) FROM t13 IN ('/pgspider3/sqlite1/') WHERE c1+c1<0 ORDER BY 1,2,3;
+    max     | min  | count 
+------------+------+-------
+ 13000.1245 | -128 |     7
+(1 row)
+
+SELECT max(c17), min(c2), count(*) FROM t13 IN ('/pgspider3/sqlite2/') WHERE c1+c2>0 ORDER BY 1,2,3;
+   max   | min | count 
+---------+-----+-------
+ 3.4e+18 |   6 |     7
+(1 row)
+
+-- SELECT col  FROM table1 IN (...)  WHERE …
+SELECT c5, c23, c7, c8, __spd_url FROM t13 IN ('/pgspider3/sqlite1/') WHERE c1!=(c2) AND c3>0 ORDER BY 1,2,3,4,5;
+      c5       |    c23     |      c7       |          c8          |      __spd_url      
+---------------+------------+---------------+----------------------+---------------------
+            11 | 2020-01-10 |         12000 | XinChàoBạn           | /pgspider3/sqlite1/
+            12 | 1020-01-11 |         31000 | シンチャオバンオバン | /pgspider3/sqlite1/
+            13 | 2020-01-12 |         14000 | a_1@à ン안ты         | /pgspider3/sqlite1/
+            14 | 3420-01-13 |         51000 | Bonjour vo           | /pgspider3/sqlite1/
+            15 | 2021-01-14 |         16000 | 안녕하세요안녕하세요 | /pgspider3/sqlite1/
+ 2036854775806 | 9999-12-30 | 2036854775806 | !@#$%^&*()           | /pgspider3/sqlite1/
+ 2036854775807 | 9999-12-31 | 2036854775807 | abcdefghij           | /pgspider3/sqlite1/
+(7 rows)
+
+SELECT c5, c23, c7, c8, __spd_url FROM t13 IN ('/pgspider3/sqlite2/') WHERE c1!=(c2) AND c3<0 ORDER BY 1,2,3,4,5;
+       c5       |    c23     |       c7       |     c8     |      __spd_url      
+----------------+------------+----------------+------------+---------------------
+ -2036854775808 | 1000-01-01 | -2036854775808 | 0123456789 | /pgspider3/sqlite2/
+ -2036854775807 | 1000-01-02 | -2036854775807 | Checkpoint | /pgspider3/sqlite2/
+            -15 | 2020-01-20 |        -130000 | สวัสดีคุณ     | /pgspider3/sqlite2/
+            -14 | 4020-01-19 |        -210000 | Добры дзен | /pgspider3/sqlite2/
+            -13 | 2020-01-18 |         -10000 | Բարև ձեզեզ | /pgspider3/sqlite2/
+            -12 | 7020-01-17 |         -91000 | ጤና ይስጥልኝልኝ | /pgspider3/sqlite2/
+            -11 | 3020-01-16 |         -18000 | Hallo  sie | /pgspider3/sqlite2/
+(7 rows)
+
+-- SELECT max(), min()  FROM table1 IN (...)  WHERE …
+SELECT max(c1), min(c2) FROM t13 IN ('/pgspider3/sqlite1/') WHERE c24>'2020-01-01 12:00:00';
+  max   | min 
+--------+-----
+ 583647 | -10
+(1 row)
+
+SELECT max(c2), min(c1) FROM t13 IN ('/pgspider3/sqlite2/') WHERE c24>'2020-01-01 12:00:00';
+ max | min 
+-----+-----
+ 127 |  -5
+(1 row)
+
+-- SELECT col FROM table1, table2  WHERE ...
+SELECT t13.c1, t13.c2, t13.c3, t13.__spd_url, t3.c3, t3.c5 FROM t13, t3 WHERE (t13.c1+t13.c2)<0 AND t3.c1!=0 AND (t3.c1<-100) ORDER BY 1,2,3,4,5,6;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT c1, c3, c5 FROM public.t3 WHERE ((c1 <> 0)) AND ((c1 < (-100)))
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT max(), min() FROM table1, table2  WHERE ...
+SELECT max(t13.c2), min(t3.c2) FROM t13, t3  WHERE t13.c2<-100 AND t3.c1=0;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT c1, c2 FROM public.t3 WHERE ((c1 = 0))
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT col FROM table1 IN(...), table2 IN(...)  WHERE ...
+SELECT t13.c5, t13.c4, t13.c7, t13.c8, t13.c9, t13.__spd_url, t3.c2, t3.c3, t3.c4, t3.__spd_url FROM t13 IN('/pgspider3/sqlite1/'), t3 IN('/pgspider2/mysql1/')  WHERE t13.c1>0 AND t3.c1<0 ORDER BY 1,2,3,4,5,6,7,8,9,10;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT c1, c2, c3, c4, __spd_url FROM public.t3 IN ('/mysql1/' )  WHERE ((c1 < 0))
+ERROR:  PGSpider can not get data from child node : pgspider2
+SELECT t13.c5, t13.c4, t13.c7, t13.c8, t13.c9, t13.__spd_url, t3.c2, t3.c3, t3.c4, t3.__spd_url FROM t13 IN('/pgspider3/sqlite2/'), t3 IN('/pgspider2/mysql2/')  WHERE t13.c1>0 AND t3.c1<0 ORDER BY 1,2,3,4,5,6,7,8,9,10;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT c1, c2, c3, c4, __spd_url FROM public.t3 IN ('/mysql2/' )  WHERE ((c1 < 0))
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT max(), min() FROM table1 IN(...), table2 IN(...)  WHERE ...
+SELECT max(t13.c1), min(t3.c1 + t3.c2) FROM t13 IN('/pgspider3/sqlite1/'), t3 IN('/pgspider2/mysql1/') WHERE t13.c1 != t13.c2 AND t3.c2>100;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT c1, c2 FROM public.t3 IN ('/mysql1/' )  WHERE ((c2 > 100))
+ERROR:  PGSpider can not get data from child node : pgspider2
+SELECT max(t13.c1), min(t3.c1 + t3.c2) FROM t13 IN('/pgspider3/sqlite2/'), t3 IN('/pgspider2/mysql2/') WHERE t13.c1 != t13.c2 AND t3.c2>100;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT c1, c2 FROM public.t3 IN ('/mysql2/' )  WHERE ((c2 > 100))
+ERROR:  PGSpider can not get data from child node : pgspider2
+
+-- SELECT on tmp_t15
+-- SELECT col FROM table1 WHERE ...
+SELECT * FROM tmp_t15 WHERE c3<0 OR c4<1 ORDER BY 1,2,3,4,5;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT "time", c2, c3, c4, __spd_url FROM public.tmp_t15 WHERE (((c3 < 0) OR (c4 < 1::double precision)))
+ERROR:  PGSpider can not get data from child node : post1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT max(), min()  FROM table1 IN (...)  WHERE …
+SELECT max(c3), min(c4), count(*) FROM tmp_t15 IN ('/pgspider3/') WHERE c3<0 ORDER BY 1,2,3;
+ERROR:  PGSpider can not get data from child node : post1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider3
+SELECT max(c4), min(c3), count(*) FROM tmp_t15 IN ('/pgspider2/') WHERE c4>0 ORDER BY 1,2,3;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT max(c4), min(c3), count(*) FROM public.tmp_t15 WHERE ((c4 > 0::double precision))
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT col  FROM table1 IN (...)  WHERE …
+SELECT time, c2, c3, c4, __spd_url FROM tmp_t15 IN ('/pgspider2/') WHERE c3>0 ORDER BY 1,2,3,4,5;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT "time", c2, c3, c4, __spd_url FROM public.tmp_t15 WHERE ((c3 > 0))
+ERROR:  PGSpider can not get data from child node : pgspider2
+SELECT time, c2, c3, c4, __spd_url FROM tmp_t15 IN ('/pgspider3/') WHERE c3<0 ORDER BY 1,2,3,4,5;
+ERROR:  could not connect to server "pgspider3"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT max(), min()  FROM table1 IN (...)  WHERE …
+SELECT max(c3), min(c4) FROM tmp_t15 IN ('/pgspider2') WHERE time>'2020-01-01 12:00:00';
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT max(c3), min(c4) FROM public.tmp_t15 WHERE (("time" > '2020-01-01 12:00:00'::timestamp without time zone))
+ERROR:  PGSpider can not get data from child node : pgspider2
+SELECT max(c3), min(c4) FROM tmp_t15 IN ('/pgspider3/') WHERE time>'2020-01-01 12:00:00';
+ERROR:  could not connect to server "pgspider3"
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT col FROM table1, table2  WHERE ...
+SELECT tmp_t15.c2, tmp_t15.c3, tmp_t15.__spd_url, t13.c3, t13.c5 FROM tmp_t15, t13 WHERE tmp_t15.c4<1000 AND t13.c1=0 ORDER BY 1,2,3,4,5;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT c2, c3, c4, __spd_url FROM public.tmp_t15 WHERE ((c4 < 1000::double precision))
+ERROR:  could not connect to server "pgspider3"
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT max(), min() FROM table1, table2  WHERE ...
+SELECT max(tmp_t15.c4), min(t13.c2) FROM tmp_t15, t13  WHERE tmp_t15.c4<1000 AND t13.c1=0;
+ERROR:  PGSpider can not get data from child node : mysql1
+CONTEXT:  Remote SQL command: SELECT c4 FROM public.tmp_t15 WHERE ((c4 < 1000::double precision))
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT col FROM table1 IN(...), table2 IN(...)  WHERE ...
+SELECT tmp_t15.time, tmp_t15.c2, tmp_t15.__spd_url, t13.c2, t13.c3, t13.__spd_url FROM tmp_t15 IN ('/pgspider3/'), t13 IN('/pgspider3/sqlite1/') WHERE tmp_t15.c4<10 AND t13.c1=1 ORDER BY 1,2,3,4,5,6;
+ERROR:  PGSpider can not get data from child node : post1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider3
+SELECT tmp_t15.time, tmp_t15.c2, tmp_t15.__spd_url, t13.c2, t13.c3, t13.__spd_url FROM tmp_t15 IN ('/pgspider2/'), t13 IN('/pgspider3/sqlite2/') WHERE tmp_t15.c4<10 AND t13.c1=1 ORDER BY 1,2,3,4,5,6;
+ERROR:  PGSpider can not get data from child node : influx1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+-- SELECT max(), min() FROM table1 IN(...), table2 IN(...)  WHERE ...
+SELECT max(tmp_t15.c3), min(t13.c1) FROM tmp_t15 IN ('/pgspider3/'), t13 IN('/pgspider3/sqlite1/') WHERE tmp_t15.c4<10 AND t13.c1!=0;
+ERROR:  PGSpider can not get data from child node : post1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider3
+SELECT max(tmp_t15.c4), min(t13.c1) FROM tmp_t15 IN ('/pgspider2/'), t13 IN('/pgspider3/sqlite2/') WHERE tmp_t15.c4<10 AND t13.c1!=1;
+ERROR:  PGSpider can not get data from child node : influx1
+CONTEXT:  Remote SQL command: CLOSE c1
+ERROR:  PGSpider can not get data from child node : pgspider2

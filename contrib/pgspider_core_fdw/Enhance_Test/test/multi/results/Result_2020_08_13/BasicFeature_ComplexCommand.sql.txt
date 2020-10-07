@@ -1,0 +1,1161 @@
+set timezone to +00;
+SET
+-- Testcase 1:
+SELECT DISTINCT t13.c1, bit_and(t13.c1), stddev(t13.c4) - 10, array_agg(t13.c1), count(t13.c8), 1000 - t13.c4 * (random() <= 1)::int  FROM (SELECT * FROM (SELECT * FROM t13 WHERE t13.c1 != t13.c2) AS t13) AS t13 WHERE  t13.c2 >0 GROUP BY c1, c4 ORDER BY 1 ASC, 2 DESC, 3, 4, 5, 6 LIMIT 50;
+   c1   | bit_and | ?column? |                  array_agg                  | count | ?column? 
+--------+---------+----------+---------------------------------------------+-------+----------
+      1 |       1 |      -10 | {1,1,1,1,1,1}                               |     6 |      930
+      2 |       2 |      -10 | {2,2,2,2,2,2}                               |     6 |      940
+      3 |       3 |      -10 | {3,3,3,3,3,3}                               |     6 |      950
+      4 |       4 |      -10 | {4,4,4,4,4,4}                               |     6 |      960
+      5 |       5 |      -10 | {5,5,5,5,5,5}                               |     6 |      970
+ 583646 |  583646 |      -10 | {583646,583646,583646,583646,583646,583646} |     6 |  -387606
+ 583647 |  583647 |      -10 | {583647,583647,583647,583647,583647,583647} |     6 |  -387607
+(7 rows)
+
+set timezone to +00;
+SET
+-- Testcase 2:
+SELECT max(t5.c1), max(t5.c2)+1, max(t5.c3)+2, max(t5.c4)*3 FROM t5 WHERE t5.c1 <> ( SELECT max(t7.c3) FROM t7 WHERE t7.c3 != t7.c4) GROUP BY t5.c1, t5.c17, t5.c14 HAVING t5.c1 != 3 OR SUM(t5.c17) <> 0 OR t5.c17 != 121234 ORDER BY 1, 2, 3, 4;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 3:
+SELECT SUM(t3.c4), count(ALL t3.c1) FROM (SELECT * FROM (SELECT * FROM t13 ORDER BY 1 DESC) AS t3 WHERE true) AS t3 WHERE t3.c1 <= ALL (SELECT max(t3.c2) FROM t3) GROUP BY t3.c1 ORDER BY 1, 2 LIMIT 1000;
+psql: error: could not connect to server: FATAL:  the database system is in recovery mode
+set timezone to +00;
+SET
+-- Testcase 5:
+SELECT * FROM (SELECT * FROM (SELECT count(*) FROM t9 WHERE c29>=0 OR c32 = 'abc123456789')  AS t9 WHERE true ) AS t9  FULL JOIN (SELECT c4 FROM t7 WHERE c3 between -50 AND 60)  AS t7 ON (TRUE) ORDER BY 1, 2 OFFSET 0 LIMIT 100;
+ count |   c4    
+-------+---------
+    48 | -50.232
+    48 | -50.232
+    48 | -50.232
+    48 | -50.232
+    48 | -50.232
+    48 | -50.232
+    48 | -40.652
+    48 | -40.652
+    48 | -40.652
+    48 | -40.652
+    48 | -40.652
+    48 | -40.652
+    48 | -30.756
+    48 | -30.756
+    48 | -30.756
+    48 | -30.756
+    48 | -30.756
+    48 | -30.756
+    48 |  -20.56
+    48 |  -20.56
+    48 |  -20.56
+    48 |  -20.56
+    48 |  -20.56
+    48 |  -20.56
+    48 | -10.746
+    48 | -10.746
+    48 | -10.746
+    48 | -10.746
+    48 | -10.746
+    48 | -10.746
+    48 |   0.774
+    48 |   0.774
+    48 |   0.774
+    48 |   0.774
+    48 |   0.774
+    48 |   0.774
+    48 |  10.746
+    48 |  10.746
+    48 |  10.746
+    48 |  10.746
+    48 |  10.746
+    48 |  10.746
+    48 |  20.312
+    48 |  20.312
+    48 |  20.312
+    48 |  20.312
+    48 |  20.312
+    48 |  20.312
+    48 |  30.631
+    48 |  30.631
+    48 |  30.631
+    48 |  30.631
+    48 |  30.631
+    48 |  30.631
+    48 |  40.772
+    48 |  40.772
+    48 |  40.772
+    48 |  40.772
+    48 |  40.772
+    48 |  40.772
+    48 |  50.188
+    48 |  50.188
+    48 |  50.188
+    48 |  50.188
+    48 |  50.188
+    48 |  50.188
+(66 rows)
+
+set timezone to +00;
+SET
+-- Testcase 6:
+SELECT t13.c1, t3.c1, t5.c1 FROM t13 INNER JOIN t3 ON (t13.c1 = t3.c4 AND t13.c1 between -1530 AND 69840) FULL JOIN t5 ON (t3.c1 = t5.c1) ORDER BY t13.c1, t3.c1, t5.c1 LIMIT 50;
+ c1 | c1 |    c1    
+----+----+----------
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+  0 |  1 |         
+    |    | -7483648
+    |    | -7483648
+    |    | -7483648
+    |    | -7483648
+    |    | -7483648
+    |    | -7483648
+    |    | -7483647
+    |    | -7483647
+    |    | -7483647
+    |    | -7483647
+    |    | -7483647
+    |    | -7483647
+    |    |   -12000
+    |    |   -12000
+(50 rows)
+
+set timezone to +00;
+SET
+-- Testcase 7:
+SELECT * FROM (SELECT t13.c1, t13.c3, t5.c7 FROM t13 JOIN t5 ON (t13.c1 != t5.c1)) AS t13 ORDER BY 1, 2, 3 OFFSET 100 LIMIT 50;
+   c1    |   c3   |    c7     
+---------+--------+-----------
+ -583648 | -12768 | -13000000
+ -583648 | -12768 | -13000000
+ -583648 | -12768 | -13000000
+ -583648 | -12768 | -13000000
+ -583648 | -12768 | -13000000
+ -583648 | -12768 | -13000000
+ -583648 | -12768 | -13000000
+ -583648 | -12768 | -13000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -12000000
+ -583648 | -12768 | -11000000
+ -583648 | -12768 | -11000000
+ -583648 | -12768 | -11000000
+ -583648 | -12768 | -11000000
+ -583648 | -12768 | -11000000
+ -583648 | -12768 | -11000000
+(50 rows)
+
+set timezone to +00;
+SET
+-- Testcase 8:
+SELECT count(*) FROM (SELECT c15, count(c1) FROM t9 GROUP BY t9.c15, SQRT(ABS(c29)) HAVING AVG(c1) <= 1 AND AVG(c1) < 500) AS t9;
+ count 
+-------
+     9
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 9:
+SELECT array_agg(distinct (t13.c1)%5 ORDER BY (t13.c1)%5) FROM t13 FULL JOIN t7 on (t13.c1 = t7.c3) WHERE t13.c1 < 20 or (t13.c1 is null AND t7.c3 < 5) GROUP BY (t7.c3)%3 ORDER BY 1;
+   array_agg   
+---------------
+ {-4,-1,NULL}
+ {-3,-2}
+ {-3,0,3,NULL}
+ {-2,0}
+ {0,2}
+ {1,4}
+(6 rows)
+
+set timezone to +00;
+SET
+-- Testcase 10:
+SELECT SUM(c1%3), SUM(distinct c1%3 ORDER BY c1%3) filter (where c1%3 < 2), c2 FROM t5 WHERE c14 NOT IN ('0123456789', '敷ヘカウ告政ヨハツヤ消70者32精楽ざ') GROUP BY c2 ORDER BY 1, 2, 3;
+ sum | sum |  c2  
+-----+-----+------
+ -12 |  -2 |  -80
+  -6 |  -1 | -128
+  -6 |  -1 | -100
+  -6 |  -1 |  -40
+   0 |   0 | -127
+   0 |   0 | -120
+   0 |   0 |  -60
+   0 |   0 |   30
+   0 |   0 |   90
+   0 |   0 |  127
+   6 |   1 |    0
+   6 |   1 |  130
+  12 |     |   50
+  12 |     |  110
+  12 |     |  126
+(15 rows)
+
+set timezone to +00;
+SET
+-- Testcase 11:
+SELECT count(*), SUM(t13.c1), AVG(t5.c1) FROM (SELECT c1 FROM t13 WHERE c1 between -61250 AND 6940) AS t13 FULL JOIN (SELECT c1 FROM t5 WHERE c1 between -8510 AND 69840) AS t5 on (t13.c1 = t5.c1);
+ count | sum |          avg          
+-------+-----+-----------------------
+   120 |   0 | 3333.3333333333333333
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 12:
+SELECT t13.c1, t3.c3 FROM t13 LEFT JOIN (SELECT * FROM t3 WHERE c3 < 10) AS t3 ON t13.c1 = t3.c3 WHERE t13.c1 < 10 ORDER BY 1,2;
+   c1    | c3 
+---------+----
+ -583648 |   
+ -583648 |   
+ -583648 |   
+ -583648 |   
+ -583648 |   
+ -583648 |   
+ -583647 |   
+ -583647 |   
+ -583647 |   
+ -583647 |   
+ -583647 |   
+ -583647 |   
+      -5 |   
+      -5 |   
+      -5 |   
+      -5 |   
+      -5 |   
+      -5 |   
+      -4 |   
+      -4 |   
+      -4 |   
+      -4 |   
+      -4 |   
+      -4 |   
+      -3 |   
+      -3 |   
+      -3 |   
+      -3 |   
+      -3 |   
+      -3 |   
+      -2 |   
+      -2 |   
+      -2 |   
+      -2 |   
+      -2 |   
+      -2 |   
+      -1 |   
+      -1 |   
+      -1 |   
+      -1 |   
+      -1 |   
+      -1 |   
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       0 |  0
+       1 |   
+       1 |   
+       1 |   
+       1 |   
+       1 |   
+       1 |   
+       2 |   
+       2 |   
+       2 |   
+       2 |   
+       2 |   
+       2 |   
+       3 |   
+       3 |   
+       3 |   
+       3 |   
+       3 |   
+       3 |   
+       4 |   
+       4 |   
+       4 |   
+       4 |   
+       4 |   
+       4 |   
+       5 |   
+       5 |   
+       5 |   
+       5 |   
+       5 |   
+       5 |   
+(108 rows)
+
+set timezone to +00;
+SET
+-- Testcase 13:
+SELECT t13.c1, t3.c3, t5.c5 FROM t13 INNER JOIN t5 ON (t13.c1 !=  1 AND t13.c1 between -51650 AND 68460) FULL JOIN t3 ON (t3.c3 = t5.c5) ORDER BY t13.c1, t3.c3, t5.c5 LIMIT 20;
+ c1 | c3 | c5 
+----+----+----
+ -5 |  0 |  0
+ -5 |  0 |  0
+ -5 |  0 |  0
+ -5 |  0 |  0
+ -5 |  0 |  0
+ -5 |  0 |  0
+ -5 |  0 |  0
+ -5 |  0 |  0
+ -5 |  0 |  0
+ -5 |  0 |  0
+ -5 |  0 |  0
+ -5 |  0 |  0
+ -5 |  0 |  0
+ -5 |  0 |  0
+ -5 |  0 |  0
+ -5 |  0 |  0
+ -5 |  0 |  0
+ -5 |  0 |  0
+ -5 |  0 |  0
+ -5 |  0 |  0
+(20 rows)
+
+set timezone to +00;
+SET
+-- Testcase 14:
+SELECT count(t5.c5) FROM (SELECT t5.c5, SUM(t5.c1) FROM t5 GROUP BY t5.c5 ORDER BY 1) AS t5 WHERE t5.c5 <>( SELECT max(t9.c1) FROM t9) HAVING AVG(t5.c5) * 2 <= 641100 AND AVG(t5.c5) > -65110;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 15:
+SELECT COUNT(*), (SELECT t13.c24 FROM tmp_t11 INNER JOIN t3 ON t3.c6=tmp_t11.c12 INNER JOIN t13 ON t13.c20=t3.c6 INNER JOIN t1 ON t1.c1=t3.c4 WHERE t3.c7=t1.c8 ORDER BY tmp_t11.c28 DESC, t13.c21 ASC LIMIT 10) AS t13_ FROM t1 INNER JOIN t3 ON t3.c6=t1.c7 INNER JOIN tmp_t11 ON tmp_t11.c22!=t3.c10 ORDER BY 1 DESC;
+ count | t13_ 
+-------+------
+  6480 | 
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 16:
+SELECT t.c1, t.c2, t.c3, t.c4, q.NumEntries FROM t1 t INNER JOIN (SELECT c1, c2, c3, COUNT(*) AS NumEntries FROM t1 GROUP BY c1, c2, c3 HAVING COUNT(*) > 1 /* Duplicates exist */) q ON t.c1 = q.c1 AND t.c2 = q.c2 AND t.c3 = q.c3 ORDER BY t.c1, t.c2, t.c3, t.c4, 5;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 17:
+SELECT * FROM t1 INNER JOIN t9 ON t1.c5 = t9.c5 LEFT OUTER JOIN t3 ON t1.c1 = t3.c4 ORDER BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,27,28,29,30,32,33,34,35,36,38,41,42,43,45,48,49,50,51,52,53,54,55,56,57,58,60,61,62,63,64,65,66,67,68,69,70, t3.__spd_url;
+psql:/tmp/tmp_query.txt:3: WARNING:  error is occurred, pthread_join fail in EndForeignScan. 
+psql:/tmp/tmp_query.txt:3: WARNING:  error is occurred, pthread_join fail in EndForeignScan. 
+psql: error: could not connect to server: FATAL:  the database system is in recovery mode
+set timezone to +00;
+SET
+-- Testcase 19:
+SELECT c5, c6, AVG(c1) FROM t1 GROUP BY c5, c6 HAVING AVG(c1) > (SELECT AVG(c1) FROM t1 WHERE t1.c7 >= t1.c8);
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 20:
+SELECT c1, c2, c3, MIN(c7) FROM t1 A WHERE c7 != ( SELECT MIN(c12) FROM tmp_t11 B WHERE B.c4 != A.c5) GROUP BY c1, c2, c3 HAVING MIN(c7) < 5 ORDER BY 1, 2, 3, 4;
+psql:/tmp/tmp_query.txt:3: ERROR:  ORDER/GROUP BY expression not found in targetlist
+set timezone to +00;
+SET
+-- Testcase 21:
+SELECT array_agg(c1 order by c1), avg(c1), bit_and(c1), bit_or(c1), bool_and(c5), bool_or(c5), count(*), count(c19), every(c1>0), json_agg(c1 order by c1), jsonb_agg(c1 order by c1), json_object_agg(c1,c2 order by c1,c2), jsonb_object_agg(c1,c2 order by c1,c2), max(c1), min(c1), string_agg(c2,';' order by c2), sum(c1), corr(c8,c7), covar_pop(c7,c8), covar_samp(c7,c8), regr_avgx(c8,c8), regr_avgy(c7,c7), regr_count(c7,c8), regr_intercept(c7,c8), regr_r2(c7,c8), regr_slope(c8,c8), regr_sxx(c7,c8), regr_sxy(c8,c7), regr_syy(c7,c8), stddev(c7), stddev_pop(c8), stddev_samp(c7), variance(c1), var_pop(c1), var_samp(c7) from t1 WHERE c1=1 OR c1=2;
+         array_agg         |        avg         | bit_and | bit_or | bool_and | bool_or | count | count | every |               json_agg               |              jsonb_agg               |                                                                                                                                                                                                                                                         json_object_agg                                                                                                                                                                                                                                                          |                                  jsonb_object_agg                                   | max | min |                                                                                                                                                                                                    string_agg                                                                                                                                                                                                     | sum |        corr        |     covar_pop      |     covar_samp     | regr_avgx |     regr_avgy      | regr_count |   regr_intercept   |      regr_r2       | regr_slope |     regr_sxx      |     regr_sxy      |     regr_syy      |      stddev       |    stddev_pop     |    stddev_samp    |        variance        |        var_pop         |     var_samp      
+---------------------------+--------------------+---------+--------+----------+---------+-------+-------+-------+--------------------------------------+--------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------+-----+-----+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----+--------------------+--------------------+--------------------+-----------+--------------------+------------+--------------------+--------------------+------------+-------------------+-------------------+-------------------+-------------------+-------------------+-------------------+------------------------+------------------------+-------------------
+ {1,1,1,1,1,1,2,2,2,2,2,2} | 1.5000000000000000 |       0 |      3 | f        | t       |    12 |    12 | t     | [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2] | [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2] | { "1" : "And to some extent the rendition", "1" : "And to some extent the rendition", "1" : "And to some extent the rendition", "1" : "And to some extent the rendition", "1" : "And to some extent the rendition", "1" : "And to some extent the rendition", "2" : "Canada Denmark Turkey Yemen Tokyo", "2" : "Canada Denmark Turkey Yemen Tokyo", "2" : "Canada Denmark Turkey Yemen Tokyo", "2" : "Canada Denmark Turkey Yemen Tokyo", "2" : "Canada Denmark Turkey Yemen Tokyo", "2" : "Canada Denmark Turkey Yemen Tokyo" } | {"1": "And to some extent the rendition", "2": "Canada Denmark Turkey Yemen Tokyo"} |   2 |   1 | And to some extent the rendition;And to some extent the rendition;And to some extent the rendition;And to some extent the rendition;And to some extent the rendition;And to some extent the rendition;Canada Denmark Turkey Yemen Tokyo;Canada Denmark Turkey Yemen Tokyo;Canada Denmark Turkey Yemen Tokyo;Canada Denmark Turkey Yemen Tokyo;Canada Denmark Turkey Yemen Tokyo;Canada Denmark Turkey Yemen Tokyo |  18 | 0.9999999999999998 | 25.200002403259276 | 27.490911712646483 |    25.592 | 15.874000072479248 |         12 | -9.514891237682756 | 0.9999999999999996 |          1 | 304.8192000000001 | 302.4000288391113 | 300.0000572204617 | 5.222330176711104 | 5.040000000000001 | 5.222330176711104 | 0.27272727272727272727 | 0.25000000000000000000 | 27.27273247458743
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 22:
+SELECT array_agg(c3 order by c3), bit_and(c3), bit_or(c3), bool_and(c5), bool_or(c5), every(c3>0), json_agg(c3 order by c3), jsonb_agg(c3 order by c3), json_object_agg(c3,c4 order by c3,c4), jsonb_object_agg(c3,c4 order by c3,c4), string_agg(c2,';' order by c2), corr(c4,c4), covar_pop(c4,c4), covar_samp(c4,c4), regr_avgx(c4,c4), regr_avgy(c4,c4), regr_count(c4,c4), regr_intercept(c4,c4), regr_r2(c4,c4), regr_slope(c4,c4), regr_sxx(c4,c4), regr_sxy(c4,c4), regr_syy(c4,c4), stddev_pop(c4), stddev_samp(c4), var_pop(c4), var_samp(c4) from t7 WHERE c3=1 OR c3=2;
+         array_agg         | bit_and | bit_or | bool_and | bool_or | every |               json_agg               |              jsonb_agg               |                                                                              json_object_agg                                                                               |      jsonb_object_agg      |                                                                                                                                                                                     string_agg                                                                                                                                                                                      | corr |     covar_pop     |     covar_samp     |     regr_avgx      |     regr_avgy      | regr_count | regr_intercept | regr_r2 | regr_slope |     regr_sxx      |     regr_sxy      |     regr_syy      |    stddev_pop     |    stddev_samp    |      var_pop      |      var_samp      
+---------------------------+---------+--------+----------+---------+-------+--------------------------------------+--------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+------+-------------------+--------------------+--------------------+--------------------+------------+----------------+---------+------------+-------------------+-------------------+-------------------+-------------------+-------------------+-------------------+--------------------
+ {1,1,1,1,1,1,2,2,2,2,2,2} |       0 |      3 | t        | t       | t     | [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2] | [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2] | { "1" : 10.746, "1" : 10.746, "1" : 10.746, "1" : 10.746, "1" : 10.746, "1" : 10.746, "2" : 20.312, "2" : 20.312, "2" : 20.312, "2" : 20.312, "2" : 20.312, "2" : 20.312 } | {"1": 10.746, "2": 20.312} | Canada Denmark Turkey Yemen Tokyo;Canada Denmark Turkey Yemen Tokyo;Canada Denmark Turkey Yemen Tokyo;Canada Denmark Turkey Yemen Tokyo;Canada Denmark Turkey Yemen Tokyo;Canada Denmark Turkey Yemen Tokyo;Which started out as a kind;Which started out as a kind;Which started out as a kind;Which started out as a kind;Which started out as a kind;Which started out as a kind |    1 | 22.87708900000001 | 24.956824363636372 | 15.529000000000002 | 15.529000000000002 |         12 |              0 |       1 |          1 | 274.5250680000001 | 274.5250680000001 | 274.5250680000001 | 4.783000000000001 | 4.995680570616617 | 22.87708900000001 | 24.956824363636372
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 23:
+SELECT array_agg(c1 order by c1), avg(c1), bit_and(c1), bit_or(c1), bool_and(c1>0), bool_or(c2<0), count(*), count(c19), every(c1>0), json_agg(c1 order by c1), jsonb_agg(c1 order by c1), json_object_agg(c1,c2 order by c1,c2), jsonb_object_agg(c1,c2 order by c1,c2), max(c1), min(c1), string_agg(c18,';' order by c18), sum(c1), corr(c8,c7), covar_pop(c7,c8), covar_samp(c7,c8), regr_avgx(c8,c8), regr_avgy(c7,c7), regr_count(c7,c8), regr_intercept(c7,c8), regr_r2(c7,c8), regr_slope(c8,c8), regr_sxx(c7,c8), regr_sxy(c8,c7), regr_syy(c7,c8), stddev(c7), stddev_pop(c8), stddev_samp(c7), variance(c1), var_pop(c1), var_samp(c7) from t3 WHERE c1=1 OR c1=2;
+psql:/tmp/tmp_query.txt:3: WARNING:  no connection to the server
+psql:/tmp/tmp_query.txt:3: WARNING:  no connection to the server
+psql:/tmp/tmp_query.txt:3: WARNING:  no connection to the server
+psql:/tmp/tmp_query.txt:3: WARNING:  no connection to the server
+psql:/tmp/tmp_query.txt:3: WARNING:  no connection to the server
+psql:/tmp/tmp_query.txt:3: ERROR:  server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+CONTEXT:  remote SQL command: FETCH 100 FROM c2
+ERROR:  server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+CONTEXT:  remote SQL command: FETCH 100 FROM c1
+ERROR:  server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+CONTEXT:  remote SQL command: DECLARE c5 CURSOR FOR
+SELECT c1, c2, c7, c8, c18, c19 FROM public.t3 WHERE (((c1 = 1) OR (c1 = 2)))
+ERROR:  server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+CONTEXT:  remote SQL command: FETCH 100 FROM c4
+ERROR:  server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+CONTEXT:  remote SQL command: FETCH 100 FROM c3
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 24:
+SELECT json_agg(c1 order by c1), jsonb_agg(c1 order by c1), json_object_agg(c1,c2 order by c1,c2), jsonb_object_agg(c1,c2 order by c1,c2), string_agg(c8,';' order by c8) from t9 WHERE c1=1 OR c1=2;
+               json_agg               |              jsonb_agg               |                                                                              json_object_agg                                                                               |      jsonb_object_agg      |                                                 string_agg                                                  
+--------------------------------------+--------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------+-------------------------------------------------------------------------------------------------------------
+ [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2] | [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2] | { "1" : 40000, "1" : 40000, "1" : 40000, "1" : 40000, "1" : 40000, "1" : 40000, "2" : 6000000, "2" : 6000000, "2" : 6000000, "2" : 6000000, "2" : 6000000, "2" : 6000000 } | {"1": 40000, "2": 6000000} | ^&*()_+=;^&*()_+=;^&*()_+=;^&*()_+=;^&*()_+=;^&*()_+=;01234567;01234567;01234567;01234567;01234567;01234567
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 25:
+SELECT array_agg(c1 order by c1), avg(c1), bit_and(c1), bit_or(c1), bool_and(c4), bool_or(c4), count(*), count(c19), every(c1>0), json_agg(c1 order by c1), jsonb_agg(c1 order by c1), json_object_agg(c1,c2 order by c1,c2), jsonb_object_agg(c1,c2 order by c1,c2), max(c1), min(c1), string_agg(c7,';' order by c7), sum(c1), corr(c12,c27), covar_pop(c27,c12), covar_samp(c27,c12), regr_avgx(c27,c12), regr_avgy(c27,c27), regr_count(c27,c12), regr_intercept(c27,c12), regr_r2(c27,c12), regr_slope(c12,c27), regr_sxx(c27,c12), regr_sxy(c12,c27), regr_syy(c27,c12), stddev(c27), stddev_pop(c12), stddev_samp(c27), variance(c1), var_pop(c1), var_samp(c27) from tmp_t11 WHERE c1=1 OR c1=2;
+         array_agg         |        avg         | bit_and | bit_or | bool_and | bool_or | count | count | every |               json_agg               |              jsonb_agg               |                                                                                                                  json_object_agg                                                                                                                   |            jsonb_object_agg            | max | min |                                                 string_agg                                                  | sum |        corr        |     covar_pop      |    covar_samp     | regr_avgx  |    regr_avgy    | regr_count |  regr_intercept   |      regr_r2       |      regr_slope      |     regr_sxx      |      regr_sxy      | regr_syy |      stddev       |     stddev_pop     |    stddev_samp    |        variance        |        var_pop         |      var_samp      
+---------------------------+--------------------+---------+--------+----------+---------+-------+-------+-------+--------------------------------------+--------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------+-----+-----+-------------------------------------------------------------------------------------------------------------+-----+--------------------+--------------------+-------------------+------------+-----------------+------------+-------------------+--------------------+----------------------+-------------------+--------------------+----------+-------------------+--------------------+-------------------+------------------------+------------------------+--------------------
+ {1,1,1,1,1,1,2,2,2,2,2,2} | 1.5000000000000000 |       0 |      3 | t        | t       |    12 |    12 | t     | [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2] | [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2] | { "1" : "1010110000", "1" : "1010110000", "1" : "1010110000", "1" : "1010110000", "1" : "1010110000", "1" : "1010110000", "2" : "1010110010", "2" : "1010110010", "2" : "1010110010", "2" : "1010110010", "2" : "1010110010", "2" : "1010110010" } | {"1": "1010110000", "2": "1010110010"} |   2 |   1 | ^&*()_+=;^&*()_+=;^&*()_+=;^&*()_+=;^&*()_+=;^&*()_+=;01234567;01234567;01234567;01234567;01234567;01234567 |  18 | 0.9999999999999998 | 10393.842000000002 | 11338.73672727273 | -60.595642 | -5000.123046875 |         12 | 829.8329982524859 | 0.9999999999999996 | 0.010393842000000002 | 1296.383418251569 | 124726.10400000002 | 12000000 | 1044.465935734187 | 10.393842000000005 | 1044.465935734187 | 0.27272727272727272727 | 0.25000000000000000000 | 1090909.0909090908
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 26:
+SELECT array_agg(c3 order by c3), bit_and(c3), bit_or(c3), bool_and(c5>0), bool_or(c5<10), every(c3>0), json_agg(c3 order by c3), jsonb_agg(c3 order by c3), json_object_agg(c3,c4 order by c3,c4), jsonb_object_agg(c3,c4 order by c3,c4), string_agg(c8,';' order by c8), corr(c4,c4), covar_pop(c4,c4), covar_samp(c4,c4), regr_avgx(c4,c4), regr_avgy(c4,c4), regr_count(c4,c4), regr_intercept(c4,c4), regr_r2(c4,c4), regr_slope(c4,c4), regr_sxx(c4,c4), regr_sxy(c4,c4), regr_syy(c4,c4), stddev_pop(c4), stddev_samp(c4), var_pop(c4), var_samp(c4) from t13 WHERE c5=1 OR c5=0;
+               array_agg               | bit_and | bit_or | bool_and | bool_or | every |                  json_agg                  |                 jsonb_agg                  |                                       json_object_agg                                        | jsonb_object_agg |                            string_agg                             | corr | covar_pop | covar_samp | regr_avgx | regr_avgy | regr_count | regr_intercept | regr_r2 | regr_slope | regr_sxx | regr_sxy | regr_syy | stddev_pop | stddev_samp | var_pop | var_samp 
+---------------------------------------+---------+--------+----------+---------+-------+--------------------------------------------+--------------------------------------------+----------------------------------------------------------------------------------------------+------------------+-------------------------------------------------------------------+------+-----------+------------+-----------+-----------+------------+----------------+---------+------------+----------+----------+----------+------------+-------------+---------+----------
+ {-3000,-3000,-3000,-3000,-3000,-3000} |   -3000 |  -3000 | t        | t       | f     | [-3000, -3000, -3000, -3000, -3000, -3000] | [-3000, -3000, -3000, -3000, -3000, -3000] | { "-3000" : -80, "-3000" : -80, "-3000" : -80, "-3000" : -80, "-3000" : -80, "-3000" : -80 } | {"-3000": -80}   | Привет  ты;Привет  ты;Привет  ты;Привет  ты;Привет  ты;Привет  ты |      |         0 |          0 |       -80 |       -80 |          6 |                |         |            |        0 |        0 |        0 |          0 |           0 |       0 |        0
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 27:
+SELECT avg(c3), count(*), count(c2), max(c3), min(c3), sum(c3), stddev(c4), variance(c4) from t7 WHERE c3=1 OR c3=2;
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  cache lookup failed for index 32773
+CONTEXT:  SQL statement "CREATE TEMP TABLE __spd__temptable_2(col0  bigint,col1  numeric,col2  bigint,col3  bigint,col4  bigint,col5  bigint,col6  bigint,col7  double precision,col8  double precision)"
+ERROR:  cannot DROP INDEX "pg_toast_32768_index" because it is being used by active queries in this session
+CONTEXT:  SQL statement "DROP TABLE __spd__temptable_1"
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 28:
+SELECT avg(c3), count(*), count(c2), max(c3), min(c3), sum(c3), stddev(c4), variance(c4) from t5 WHERE c3>0;
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider2
+set timezone to +00;
+SET
+-- Testcase 29:
+SELECT array_agg(c1 order by c1), avg(c1), bit_and(c1), bit_or(c1), bool_and(c5), bool_or(c5), count(*), count(c19), every(c1>0), max(c1), min(c1),  sum(c1), corr(c13,c28), covar_pop(c13,c28), covar_samp(c13,c28), regr_avgx(c13,c28), regr_avgy(c13,c28), regr_count(c28,c13), regr_intercept(c13,c28), regr_r2(c28,c13), regr_slope(c13,c28), regr_sxx(c28,c13), regr_sxy(c28,c13), regr_syy(c13,c28), stddev(c28), stddev_pop(c28), stddev_samp(c28), variance(c1), var_pop(c1), var_samp(c28) from t9 WHERE c1=1 OR c1=2;
+         array_agg         |        avg         | bit_and | bit_or | bool_and | bool_or | count | count | every | max | min | sum |        corr        |     covar_pop      |     covar_samp     |   regr_avgx    | regr_avgy  | regr_count |   regr_intercept   |      regr_r2       |      regr_slope      |     regr_sxx      |      regr_sxy      |     regr_syy      |       stddev       |  stddev_pop   |    stddev_samp     |        variance        |        var_pop         |      var_samp      
+---------------------------+--------------------+---------+--------+----------+---------+-------+-------+-------+-----+-----+-----+--------------------+--------------------+--------------------+----------------+------------+------------+--------------------+--------------------+----------------------+-------------------+--------------------+-------------------+--------------------+---------------+--------------------+------------------------+------------------------+--------------------
+ {1,1,1,1,1,1,2,2,2,2,2,2} | 1.5000000000000000 |       0 |      3 | t        | t       |    12 |    12 | t     |   2 |   1 |  18 | 0.9999999999999999 | 10391.629248480473 | 11336.322816524153 | -5000.40234375 | -60.595642 |         12 | -8.611183098687007 | 0.9999999999999999 | 0.010396055222693898 | 1296.383418251569 | 124699.55098176567 | 1296.383418251569 | 1044.2435787283373 | 999.787109375 | 1044.2435787283373 | 0.27272727272727272727 | 0.25000000000000000000 | 1090444.6517153652
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 30:
+SELECT avg(c3), count(*), count(c2), max(c3), min(c3), sum(c3), stddev(c4), variance(c4) from t13 WHERE c3>0;
+ avg  | count | count |  max  | min  |  sum   |      stddev      |     variance     
+------+-------+-------+-------+------+--------+------------------+------------------
+ 7219 |    42 |    42 | 12767 | 3000 | 303198 | 177659.672144432 | 31562959106.4669
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 31:
+SELECT array_agg(c1 order by c1), avg(c1+10)*2+100, bit_and(c1-10)-100, bit_or(c1+10)-55, bool_and(c5)=false, bool_or(c5)=false, count(*)+100, count(c19)-100, every(c1>0)=false, json_agg(c1 order by c1), jsonb_agg(c1 order by c1), json_object_agg(c1,c2 order by c1,c2), jsonb_object_agg(c1,c2 order by c1,c2), max(c1)+10.55, min(c1)-100.6, string_agg(c2,';' order by c2), sum(c1)+100, corr(c8,c7)-100, covar_pop(c7,c8)-100, covar_samp(c7,c8)+100, regr_avgx(c8,c8)-55, regr_avgy(c7,c7)-80, regr_count(c7,c8)-100, regr_intercept(c7,c8)+76.5, regr_r2(c7,c8)+10.5, regr_slope(c8,c8)*20+10, regr_sxx(c7,c8)-100, regr_sxy(c8,c7)-90, regr_syy(c7,c8)+10, stddev(c7)+50.6, stddev_pop(c8)-10, stddev_samp(c7)+10, variance(c1)+100, var_pop(c1)+10, var_samp(c7)*2+10 from t1 WHERE c1=1 OR c1=2;
+         array_agg         |       ?column?       | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? |               json_agg               |              jsonb_agg               |                                                                                                                                                                                                                                                         json_object_agg                                                                                                                                                                                                                                                          |                                  jsonb_object_agg                                   | ?column? | ?column? |                                                                                                                                                                                                    string_agg                                                                                                                                                                                                     | ?column? | ?column? |      ?column?      |      ?column?      | ?column? |      ?column?      | ?column? |     ?column?      | ?column? | ?column? |      ?column?      |      ?column?      |     ?column?      |      ?column?      |      ?column?      |      ?column?      |         ?column?         |        ?column?         |     ?column?      
+---------------------------+----------------------+----------+----------+----------+----------+----------+----------+----------+--------------------------------------+--------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------+----------+----------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------+----------+--------------------+--------------------+----------+--------------------+----------+-------------------+----------+----------+--------------------+--------------------+-------------------+--------------------+--------------------+--------------------+--------------------------+-------------------------+-------------------
+ {1,1,1,1,1,1,2,2,2,2,2,2} | 123.0000000000000000 |     -116 |      -40 | t        | f        |      112 |      -88 | f        | [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2] | [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2] | { "1" : "And to some extent the rendition", "1" : "And to some extent the rendition", "1" : "And to some extent the rendition", "1" : "And to some extent the rendition", "1" : "And to some extent the rendition", "1" : "And to some extent the rendition", "2" : "Canada Denmark Turkey Yemen Tokyo", "2" : "Canada Denmark Turkey Yemen Tokyo", "2" : "Canada Denmark Turkey Yemen Tokyo", "2" : "Canada Denmark Turkey Yemen Tokyo", "2" : "Canada Denmark Turkey Yemen Tokyo", "2" : "Canada Denmark Turkey Yemen Tokyo" } | {"1": "And to some extent the rendition", "2": "Canada Denmark Turkey Yemen Tokyo"} |    12.55 |    -99.6 | And to some extent the rendition;And to some extent the rendition;And to some extent the rendition;And to some extent the rendition;And to some extent the rendition;And to some extent the rendition;Canada Denmark Turkey Yemen Tokyo;Canada Denmark Turkey Yemen Tokyo;Canada Denmark Turkey Yemen Tokyo;Canada Denmark Turkey Yemen Tokyo;Canada Denmark Turkey Yemen Tokyo;Canada Denmark Turkey Yemen Tokyo |      118 |      -99 | -74.79999759674072 | 127.49091171264648 |  -29.408 | -64.12599992752075 |      -88 | 66.98510876231724 |     11.5 |       30 | 204.81920000000008 | 212.40002883911131 | 310.0000572204617 | 55.822330176711105 | -4.959999999999999 | 15.222330176711104 | 100.27272727272727272727 | 10.25000000000000000000 | 64.54546494917486
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 32:
+SELECT avg(c3)+10, count(*)*2+10, count(c2)-10, max(c3)+100, min(c3)/5, sum(c3)+19, stddev(c4)+20, variance(c4)*5+16.5 from t7 WHERE c3=1 OR c3=2;
+ ?column? | ?column? | ?column? | ?column? | ?column? | ?column? |      ?column?      |      ?column?      
+----------+----------+----------+----------+----------+----------+--------------------+--------------------
+     11.5 |       34 |        2 |      102 |        0 |       37 | 24.995680570616614 | 141.28412181818157
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 33:
+SELECT avg(c3*2)+10, count(*)-100, count(c2+90)+10, max(c3)/3+10, min(c3+9)-100, sum(c3)+100, stddev(c4)*6+100, variance(c4)-100 from t5 WHERE c3>0;
+psql:/tmp/tmp_query.txt:3: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+psql:/tmp/tmp_query.txt:3: fatal: connection to server was lost
+set timezone to +00;
+SET
+-- Testcase 34:
+SELECT array_agg(c1 order by c1), avg(c1)-10, bit_and(c1)+10, bit_or(c1-89)+90, bool_and(c5)=true, bool_or(c5)=false, count(*)-100, count(c19)*2, every(c1>0)=true, max(c1)-10, min(c1)/5,  sum(c1)+90, corr(c13,c28)*2, covar_pop(c13,c28)-100, covar_samp(c13,c28)*2+10, regr_avgx(c13,c28)-100, regr_avgy(c13,c28+10)+10, regr_count(c28,c13-c28)+100, regr_intercept(c13,c28-1)*29, regr_r2(c28,c13)-10, regr_slope(c13,c28)+190, regr_sxx(c28,c13)-100, regr_sxy(c28,c13)+100, regr_syy(c13,c28)/2, stddev(c28)*50, stddev_pop(c28)-100, stddev_samp(c28)+100, variance(c1)*5, var_pop(c1)/100, var_samp(c28)-100 from t9 WHERE c1=1 OR c1=2;
+         array_agg         |      ?column?       | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? |      ?column?      |      ?column?      |      ?column?      |    ?column?    |  ?column?  | ?column? |      ?column?      | ?column? |      ?column?      |     ?column?      |      ?column?      |     ?column?      |      ?column?      |   ?column?    |      ?column?      |        ?column?        |        ?column?        |      ?column?      
+---------------------------+---------------------+----------+----------+----------+----------+----------+----------+----------+----------+----------+----------+--------------------+--------------------+--------------------+----------------+------------+----------+--------------------+----------+--------------------+-------------------+--------------------+-------------------+--------------------+---------------+--------------------+------------------------+------------------------+--------------------
+ {1,1,1,1,1,1,2,2,2,2,2,2} | -8.5000000000000000 |       10 |        3 | t        | f        |      -88 |       24 | t        |       -8 |        0 |      108 | 1.9999999999999998 | 10291.629248480473 | 22682.645633048305 | -5100.40234375 | -50.595642 |      112 | -249.4228242604651 |       -9 | 190.01039605522269 | 1196.383418251569 | 124799.55098176567 | 648.1917091257845 | 52212.178936416865 | 899.787109375 | 1144.2435787283373 | 1.36363636363636363635 | 0.00250000000000000000 | 1090344.6517153652
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 35:
+SELECT array_agg(c1 order by c1), avg(c1+10)-10, bit_and(c1)+100, bit_or(c1)*2+100, bool_and(c4)=false, bool_or(c4)=true, count(*)*5, count(c19)+100, every(c1>0)=false, json_agg(c1 order by c1), jsonb_agg(c1 order by c1), json_object_agg(c1,c2 order by c1,c2), jsonb_object_agg(c1,c2 order by c1,c2), max(c1+10)*2-100, min(c1-1)+100, string_agg(c7,';' order by c7), sum(c1)-10, corr(c12,c27)*2+10, covar_pop(c27,c12)/50, covar_samp(c27,c12)+10, regr_avgx(c27,c12)-100, regr_avgy(c27,c27)+100, regr_count(c27,c12)-10, regr_intercept(c27,c12)*7+10, regr_r2(c27,c12)/3+10, regr_slope(c12,c27)-100, regr_sxx(c27,c12)*2+10, regr_sxy(c12,c27)-10, regr_syy(c27,c12)+90, stddev(c27)/2, stddev_pop(c12)*3, stddev_samp(c27)*5, variance(c1)/10, var_pop(c1)+100, var_samp(c27)/30 from tmp_t11 WHERE c1=1 OR c1=2;
+         array_agg         |      ?column?      | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? |               json_agg               |              jsonb_agg               |                                                                                                                  json_object_agg                                                                                                                   |            jsonb_object_agg            | ?column? | ?column? |                                                 string_agg                                                  | ?column? | ?column? |      ?column?      |     ?column?      |  ?column?   |    ?column?     | ?column? |     ?column?      |      ?column?      |   ?column?    |     ?column?      |      ?column?      | ?column? |     ?column?      |      ?column?      |     ?column?      |        ?column?        |         ?column?         |     ?column?      
+---------------------------+--------------------+----------+----------+----------+----------+----------+----------+----------+--------------------------------------+--------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------+----------+----------+-------------------------------------------------------------------------------------------------------------+----------+----------+--------------------+-------------------+-------------+-----------------+----------+-------------------+--------------------+---------------+-------------------+--------------------+----------+-------------------+--------------------+-------------------+------------------------+--------------------------+-------------------
+ {1,1,1,1,1,1,2,2,2,2,2,2} | 1.5000000000000000 |      100 |      106 | f        | t        |       60 |      112 | f        | [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2] | [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2] | { "1" : "1010110000", "1" : "1010110000", "1" : "1010110000", "1" : "1010110000", "1" : "1010110000", "1" : "1010110000", "2" : "1010110010", "2" : "1010110010", "2" : "1010110010", "2" : "1010110010", "2" : "1010110010", "2" : "1010110010" } | {"1": "1010110000", "2": "1010110010"} |      -76 |      100 | ^&*()_+=;^&*()_+=;^&*()_+=;^&*()_+=;^&*()_+=;^&*()_+=;01234567;01234567;01234567;01234567;01234567;01234567 |        8 |       12 | 207.87684000000004 | 11348.73672727273 | -160.595642 | -4900.123046875 |        2 | 5818.830987767402 | 10.333333333333334 | -99.989606158 | 2602.766836503138 | 124716.10400000002 | 12000090 | 522.2329678670935 | 31.181526000000012 | 5222.329678670935 | 0.02727272727272727273 | 100.25000000000000000000 | 36363.63636363636
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 36:
+SELECT avg(c3)*2, count(*)/3, count(c2)+10, max(c3)*2+10, min(c3)-100, sum(c3)*5+10, stddev(c4+10)+100, variance(c4/2)*2+90 from t13 WHERE c3>0;
+ ?column? | ?column? | ?column? | ?column? | ?column? | ?column? |     ?column?     |    ?column?     
+----------+----------+----------+----------+----------+----------+------------------+-----------------
+    14438 |       14 |       52 |    25544 |     2900 |  1516000 | 177759.672144432 | 15781439027.561
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 37:
+SELECT array_agg(c1 order by c1), avg(c1)*2+10, bit_and(c1*5)-100, bit_or(c1-90)+10, bool_and(c1>0)=true, bool_or(c2<0)=false, count(*)*2+89, count(c19)+100, every(c1>0)=true, json_agg(c1 order by c1), jsonb_agg(c1 order by c1), json_object_agg(c1,c2 order by c1,c2), jsonb_object_agg(c1,c2 order by c1,c2), max(c1*2)+100, min(c1-5)*2+89, string_agg(c18,';' order by c18), sum(c1)-100, corr(c8,c7-1)+100, covar_pop(c7,c8)-100, covar_samp(c7-c8,c8)+100, regr_avgx(c8,c8)-100, regr_avgy(c7,c7)-90, regr_count(c7,c8)*2, regr_intercept(c7,c8)/5, regr_r2(c7,c8)+900, regr_slope(c8,c8-c7)+100, regr_sxx(c7,c8)+100, regr_sxy(c8,c7)*34, regr_syy(c7,c8)-10, stddev(c7)+32, stddev_pop(c8)*2, stddev_samp(c7)-100, variance(c1+12)+10, var_pop(c1)-100, var_samp(c7)+90 from t3 WHERE c1=1 OR c1=2;
+psql:/tmp/tmp_query.txt:3: WARNING:  no connection to the server
+psql:/tmp/tmp_query.txt:3: WARNING:  no connection to the server
+psql:/tmp/tmp_query.txt:3: WARNING:  no connection to the server
+psql:/tmp/tmp_query.txt:3: WARNING:  no connection to the server
+psql:/tmp/tmp_query.txt:3: WARNING:  no connection to the server
+psql:/tmp/tmp_query.txt:3: ERROR:  server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+CONTEXT:  remote SQL command: FETCH 100 FROM c3
+ERROR:  server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+CONTEXT:  remote SQL command: DECLARE c4 CURSOR FOR
+SELECT c1, c2, c7, c8, c18, c19 FROM public.t3 WHERE (((c1 = 1) OR (c1 = 2)))
+ERROR:  server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+CONTEXT:  remote SQL command: FETCH 100 FROM c5
+ERROR:  server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+CONTEXT:  remote SQL command: FETCH 100 FROM c2
+ERROR:  server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+CONTEXT:  remote SQL command: FETCH 100 FROM c1
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 38:
+SELECT array_agg(c3 order by c3), bit_and(c3)-20, bit_or(c3)*2+10, bool_and(c5)=true, bool_or(c5)=true, every(c3>0)=false, json_agg(c3 order by c3), jsonb_agg(c3 order by c3), json_object_agg(c3,c4 order by c3,c4), jsonb_object_agg(c3,c4 order by c3,c4), string_agg(c2,';' order by c2), corr(c4,c4)+10, covar_pop(c4,c4)+20, covar_samp(c4,c4)/2, regr_avgx(c4,c4)*5, regr_avgy(c4,c4)-50.2, regr_count(c4,c4)+52, regr_intercept(c4,c4)-65, regr_r2(c4,c4)*50, regr_slope(c4,c4)*2+9, regr_sxx(c4,c4)-5+9, regr_sxy(c4,c4)+9, regr_syy(c4,c4)-5, stddev_pop(c4)+3, stddev_samp(c4+5)-5, var_pop(c4+6)-100, var_samp(c4-9)+10 from t7 WHERE c3=1 OR c3=2;
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 39:
+SELECT array_agg(c3 order by c3), bit_and(c3+10)+10, bit_or(c3)-100, bool_and(c5>0)=true, bool_or(c5<10)=false, every(c3>0)=false, json_agg(c3 order by c3), jsonb_agg(c3 order by c3), json_object_agg(c3,c4 order by c3,c4), jsonb_object_agg(c3,c4 order by c3,c4), string_agg(c8,';' order by c8), corr(c4,c4-10)-10, covar_pop(c4-10,c4)-100, covar_samp(c4,c4)*2+19, regr_avgx(c4-10,c4*2)-10, regr_avgy(c4+2,c4-100), regr_count(c4*2,c4)-100, regr_intercept(c4,c4)*2+10, regr_r2(c4,c4)/200, regr_slope(c4,c4)*36, abs(regr_sxx(c4,c4)-100), regr_sxy(c4,c4)-19+20*2, regr_syy(c4,c4)*2-9, stddev_pop(c4)-29, stddev_samp(c4)+92, var_pop(c4)*2-100, var_samp(c4/2)+100 from t5 WHERE c5=1 OR c5=0;
+psql:/tmp/tmp_query.txt:3: ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  could not connect to server "pgspider2"
+DETAIL:  FATAL:  the database system is in recovery mode
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider2
+ERROR:  PGSpider can not get data from child node : pgspider2
+set timezone to +00;
+SET
+-- Testcase 40:
+SELECT json_agg(c1+10 order by c1), jsonb_agg(c1-10 order by c1), json_object_agg(c1-c2,c2 order by c1,c2), jsonb_object_agg(c1*2,c2 order by c1,c2), string_agg(upper(c8),';' order by c8) from t9 WHERE c1=1 OR c1=2;
+                     json_agg                     |                    jsonb_agg                     |                                                                                                                  json_object_agg                                                                                                                   |      jsonb_object_agg      |                                                 string_agg                                                  
+--------------------------------------------------+--------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------+-------------------------------------------------------------------------------------------------------------
+ [11, 11, 11, 11, 11, 11, 12, 12, 12, 12, 12, 12] | [-9, -9, -9, -9, -9, -9, -8, -8, -8, -8, -8, -8] | { "-39999" : 40000, "-39999" : 40000, "-39999" : 40000, "-39999" : 40000, "-39999" : 40000, "-39999" : 40000, "-5999998" : 6000000, "-5999998" : 6000000, "-5999998" : 6000000, "-5999998" : 6000000, "-5999998" : 6000000, "-5999998" : 6000000 } | {"2": 40000, "4": 6000000} | ^&*()_+=;^&*()_+=;^&*()_+=;^&*()_+=;^&*()_+=;^&*()_+=;01234567;01234567;01234567;01234567;01234567;01234567
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 41:
+SELECT array_agg(c3 order by c3), bit_and(c3)+10, bit_or(c3)-10, bool_and(c5>0)=false, bool_or(c5<10)=true, every(c3>0)=false, json_agg(c3 order by c3), jsonb_agg(c3 order by c3), json_object_agg(c3,c4 order by c3,c4), jsonb_object_agg(c3,c4 order by c3,c4), string_agg(c8,';' order by c8), corr(c4,c4)-10, covar_pop(c4,c4)*2+10, covar_samp(c4,c4)*6+10, regr_avgx(c4,c4)/2, regr_avgy(c4,c4)+100, regr_count(c4,c4)-10, regr_intercept(c4,c4)*5, regr_r2(c4,c4)-100, regr_slope(c4,c4)*2-10, regr_sxx(c4,c4)+90, regr_sxy(c4+90,c4/2)+100, regr_syy(c4,c4)*5+10, stddev_pop(c4)*4+10, stddev_samp(c4)-100, var_pop(c4)+50, var_samp(c4*2+10)*2-10 from t13 WHERE c5=1 OR c5=0;
+               array_agg               | ?column? | ?column? | ?column? | ?column? | ?column? |                  json_agg                  |                 jsonb_agg                  |                                       json_object_agg                                        | jsonb_object_agg |                            string_agg                             | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? 
+---------------------------------------+----------+----------+----------+----------+----------+--------------------------------------------+--------------------------------------------+----------------------------------------------------------------------------------------------+------------------+-------------------------------------------------------------------+----------+----------+----------+----------+----------+----------+----------+----------+----------+----------+----------+----------+----------+----------+----------+----------
+ {-3000,-3000,-3000,-3000,-3000,-3000} |    -2990 |    -3010 | f        | t        | t        | [-3000, -3000, -3000, -3000, -3000, -3000] | [-3000, -3000, -3000, -3000, -3000, -3000] | { "-3000" : -80, "-3000" : -80, "-3000" : -80, "-3000" : -80, "-3000" : -80, "-3000" : -80 } | {"-3000": -80}   | Привет  ты;Привет  ты;Привет  ты;Привет  ты;Привет  ты;Привет  ты |          |       10 |       10 |      -40 |       20 |       -4 |          |          |          |       90 |      100 |       10 |       10 |     -100 |       50 |      -10
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 42:
+SELECT pg_typeof(max(c1)), pg_typeof(count(*)), pg_typeof(avg(c1)), pg_typeof(stddev(c1)), pg_typeof(max(__spd_url)), pg_typeof(sum(c1)) FROM t1;
+ pg_typeof | pg_typeof | pg_typeof | pg_typeof | pg_typeof | pg_typeof 
+-----------+-----------+-----------+-----------+-----------+-----------
+ integer   | bigint    | numeric   | numeric   | text      | bigint
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 43:
+SELECT pg_typeof(max(c1)), pg_typeof(count(*)), pg_typeof(avg(c1)), pg_typeof(stddev(c1)), pg_typeof(max(__spd_url)), pg_typeof(sum(c1)) FROM t3;
+ pg_typeof | pg_typeof | pg_typeof | pg_typeof | pg_typeof | pg_typeof 
+-----------+-----------+-----------+-----------+-----------+-----------
+ smallint  | bigint    | numeric   | numeric   | text      | bigint
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 44:
+SELECT pg_typeof(max(c1)), pg_typeof(count(*)), pg_typeof(avg(c1)), pg_typeof(stddev(c1)), pg_typeof(max(__spd_url)), pg_typeof(sum(c1)) FROM t5;
+ pg_typeof | pg_typeof | pg_typeof | pg_typeof | pg_typeof | pg_typeof 
+-----------+-----------+-----------+-----------+-----------+-----------
+ bigint    | bigint    | numeric   | numeric   | text      | numeric
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 45:
+SELECT pg_typeof(max(c4)), pg_typeof(count(*)), pg_typeof(avg(c3)), pg_typeof(stddev(c4)), pg_typeof(max(__spd_url)), pg_typeof(sum(c4)) FROM t7;
+    pg_typeof     | pg_typeof | pg_typeof |    pg_typeof     | pg_typeof |    pg_typeof     
+------------------+-----------+-----------+------------------+-----------+------------------
+ double precision | bigint    | numeric   | double precision | text      | double precision
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 46:
+SELECT pg_typeof(max(c1)), pg_typeof(count(*)), pg_typeof(avg(c1)), pg_typeof(stddev(c1)), pg_typeof(max(__spd_url)), pg_typeof(sum(c1)) FROM t9;
+ pg_typeof | pg_typeof | pg_typeof | pg_typeof | pg_typeof | pg_typeof 
+-----------+-----------+-----------+-----------+-----------+-----------
+ bigint    | bigint    | numeric   | numeric   | text      | numeric
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 47:
+SELECT pg_typeof(max(c1)), pg_typeof(count(*)), pg_typeof(avg(c1)), pg_typeof(stddev(c1)), pg_typeof(max(__spd_url)), pg_typeof(sum(c1)) FROM tmp_t11;
+ pg_typeof | pg_typeof | pg_typeof | pg_typeof | pg_typeof | pg_typeof 
+-----------+-----------+-----------+-----------+-----------+-----------
+ bigint    | bigint    | numeric   | numeric   | text      | numeric
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 48:
+SELECT pg_typeof(max(c1)), pg_typeof(count(*)), pg_typeof(avg(c1)), pg_typeof(stddev(c1)), pg_typeof(max(__spd_url)), pg_typeof(sum(c1)) FROM t13;
+ pg_typeof | pg_typeof | pg_typeof | pg_typeof | pg_typeof | pg_typeof 
+-----------+-----------+-----------+-----------+-----------+-----------
+ bigint    | bigint    | numeric   | numeric   | text      | numeric
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 49:
+SELECT sum(c1), sum(c1+10), sum(c1) FROM t1 ORDER BY 1, 2, 3;
+ sum | sum | sum 
+-----+-----+-----
+ -12 | 888 | -12
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 50:
+SELECT sum(c1), sum(c1+10), sum(c1) FROM t3 ORDER BY 1, 2, 3;
+ sum | sum | sum 
+-----+-----+-----
+ -12 | 888 | -12
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 51:
+SELECT sum(c1), sum(c1+10), sum(c1) FROM t5 ORDER BY 1, 2, 3;
+  sum  |  sum  |  sum  
+-------+-------+-------
+ 47988 | 48888 | 47988
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 52:
+SELECT sum(c3), sum(c3+10), sum(c3) FROM t7 ORDER BY 1, 2, 3;
+ sum | sum | sum 
+-----+-----+-----
+ -12 | 888 | -12
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 53:
+SELECT sum(c1), sum(c1+10), sum(c1) FROM t9 ORDER BY 1, 2, 3;
+ sum | sum | sum 
+-----+-----+-----
+ -12 | 888 | -12
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 54:
+SELECT sum(c1), sum(c1+10), sum(c1) FROM tmp_t11 ORDER BY 1, 2, 3;
+psql:/tmp/tmp_query.txt:3: ERROR:  unrecognized node type: 17
+CONTEXT:  SQL statement "CREATE TEMP TABLE __spd__temptable_2(col0  numeric,col1  numeric)"
+ERROR:  PGSpider can not get data from child node : pgspider1
+set timezone to +00;
+SET
+-- Testcase 55:
+SELECT sum(c1), sum(c1+10), sum(c1) FROM t13 ORDER BY 1, 2, 3;
+ sum | sum | sum 
+-----+-----+-----
+ -12 | 888 | -12
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 56:
+SELECT max(__spd_url), min(__spd_url), count(__spd_url) FROM t1;
+        max        |     min     | count 
+-------------------+-------------+-------
+ /pgspider3/grid2/ | /pgspider1/ |    90
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 57:
+SELECT max(__spd_url), min(__spd_url), count(__spd_url) FROM t3;
+        max         |     min     | count 
+--------------------+-------------+-------
+ /pgspider2/mysql2/ | /pgspider1/ |    90
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 58:
+SELECT max(__spd_url), min(__spd_url), count(__spd_url) FROM t5;
+          max           |     min     | count 
+------------------------+-------------+-------
+ /pgspider2/tinybrace2/ | /pgspider1/ |    90
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 59:
+SELECT max(__spd_url), min(__spd_url), count(__spd_url) FROM t7;
+         max         |     min     | count 
+---------------------+-------------+-------
+ /pgspider2/influx2/ | /pgspider1/ |    90
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 60:
+SELECT max(__spd_url), min(__spd_url), count(__spd_url) FROM t9;
+        max        |     min     | count 
+-------------------+-------------+-------
+ /pgspider3/post2/ | /pgspider1/ |    90
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 61:
+SELECT max(__spd_url), min(__spd_url), count(__spd_url) FROM tmp_t11;
+         max         |     min     | count 
+---------------------+-------------+-------
+ /pgspider3/tmp_t11/ | /pgspider1/ |    90
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 62:
+SELECT max(__spd_url), min(__spd_url), count(__spd_url) FROM t13;
+         max         |     min     | count 
+---------------------+-------------+-------
+ /pgspider3/sqlite2/ | /pgspider1/ |    90
+(1 row)
+
+set timezone to +00;
+SET
+-- Testcase 63:
+SELECT c1 FROM t1 WHERE c1 > 10.5 ORDER BY 1;
+   c1   
+--------
+ 483646
+ 483646
+ 483646
+ 483646
+ 483646
+ 483646
+ 483647
+ 483647
+ 483647
+ 483647
+ 483647
+ 483647
+(12 rows)
+
+set timezone to +00;
+SET
+-- Testcase 64:
+SELECT c1 FROM t3 WHERE c1 > 10.5 ORDER BY 1;
+ c1  
+-----
+ 126
+ 126
+ 126
+ 126
+ 126
+ 126
+ 127
+ 127
+ 127
+ 127
+ 127
+ 127
+(12 rows)
+
+set timezone to +00;
+SET
+-- Testcase 65:
+SELECT c1 FROM t5 WHERE c1 > 10.5 ORDER BY 1;
+   c1    
+---------
+    3000
+    3000
+    3000
+    3000
+    3000
+    3000
+    5000
+    5000
+    5000
+    5000
+    5000
+    5000
+    7000
+    7000
+    7000
+    7000
+    7000
+    7000
+    9000
+    9000
+    9000
+    9000
+    9000
+    9000
+   11000
+   11000
+   11000
+   11000
+   11000
+   11000
+   13000
+   13000
+   13000
+   13000
+   13000
+   13000
+ 7483646
+ 7483646
+ 7483646
+ 7483646
+ 7483646
+ 7483646
+ 7483647
+ 7483647
+ 7483647
+ 7483647
+ 7483647
+ 7483647
+(48 rows)
+
+set timezone to +00;
+SET
+-- Testcase 66:
+SELECT c3 FROM t7 WHERE c3 > 10.5 ORDER BY 1;
+     c3      
+-------------
+ 36854775806
+ 36854775806
+ 36854775806
+ 36854775806
+ 36854775806
+ 36854775806
+ 36854775807
+ 36854775807
+ 36854775807
+ 36854775807
+ 36854775807
+ 36854775807
+(12 rows)
+
+set timezone to +00;
+SET
+-- Testcase 67:
+SELECT c1 FROM t9 WHERE c1 > 10.5 ORDER BY 1;
+     c1      
+-------------
+ 36854775806
+ 36854775806
+ 36854775806
+ 36854775806
+ 36854775806
+ 36854775806
+ 36854775807
+ 36854775807
+ 36854775807
+ 36854775807
+ 36854775807
+ 36854775807
+(12 rows)
+
+set timezone to +00;
+SET
+-- Testcase 68:
+SELECT c1 FROM tmp_t11 WHERE c1 < 10.5 ORDER BY 1;
+ c1 
+----
+ -7
+ -7
+ -7
+ -7
+ -7
+ -7
+ -6
+ -6
+ -6
+ -6
+ -6
+ -6
+ -5
+ -5
+ -5
+ -5
+ -5
+ -5
+ -4
+ -4
+ -4
+ -4
+ -4
+ -4
+ -3
+ -3
+ -3
+ -3
+ -3
+ -3
+ -2
+ -2
+ -2
+ -2
+ -2
+ -2
+ -1
+ -1
+ -1
+ -1
+ -1
+ -1
+  0
+  0
+  0
+  0
+  0
+  0
+  1
+  1
+  1
+  1
+  1
+  1
+  2
+  2
+  2
+  2
+  2
+  2
+  3
+  3
+  3
+  3
+  3
+  3
+  4
+  4
+  4
+  4
+  4
+  4
+  5
+  5
+  5
+  5
+  5
+  5
+  6
+  6
+  6
+  6
+  6
+  6
+  7
+  7
+  7
+  7
+  7
+  7
+(90 rows)
+
+set timezone to +00;
+SET
+-- Testcase 69:
+SELECT c1 FROM t13 WHERE c1 > 10.5 ORDER BY 1 DESC;
+   c1   
+--------
+ 583647
+ 583647
+ 583647
+ 583647
+ 583647
+ 583647
+ 583646
+ 583646
+ 583646
+ 583646
+ 583646
+ 583646
+(12 rows)
+

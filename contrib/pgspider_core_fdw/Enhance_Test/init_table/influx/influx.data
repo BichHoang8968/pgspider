@@ -1,0 +1,90 @@
+# DDL
+DROP DATABASE influx1
+CREATE DATABASE influx1
+DROP DATABASE influx2
+CREATE DATABASE influx2
+
+# DML
+# CONTEXT-DATABASE: influx1
+
+t7 c2="Thequickbrownfoxjumpsoverthelazydog",c3=-36854775808i,c4=1.79E+68,c5=t -9223372036854775806
+t7 c2="敷ヘカウ告政ヨハツヤ消70者32精楽ざ",c3=36854775807i,c4=-1.79E+68,c5=F 9223372036854775806
+t7 c2="べ員葉コ番告7次ノヌ従援かやじり図安ヨ",c3=-36854775807i,c4=1.78E+68,c5=FALSE -9223372036854775805
+t7 c2="ăâđêôơưdêđêdờenờíìờẹ",c3=36854775806i,c4=-1.78E+68,c5=false 9223372036854775805
+t7 c2="いろはにほへど　ちりぬるをわがよたれぞ　つねならむうゐのおくやま　けふこえてあさ",c3=-5i,c4=-50.232,c5=TRUE 1578013200000000000
+t7 c2="色は匂へど 散りぬるを我が世誰ぞ 常ならむ有為の奥山 今日越えて浅き夢見",c3=-4i,c4=-40.652,c5=true 1578099600000000000
+t7 c2="กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ",c3=-3i,c4=-30.756,c5=true 1578186000000000000
+t7 c2="`~!@#$%^&*()_+=-{}[]|:;<>?/.",c3=-2i,c4=-20.56,c5=F 1578272400000000000
+t7 c2="0123456789",c3=-1i,c4=-10.746,c5=f 1578358800000000000
+t7 c2="In Bulgarian it is desirable",c3=0i,c4=0.774,c5=false 1578445200000000000
+t7 c2="Which started out as a kind",c3=1i,c4=10.746,c5=T 1578531600000000000
+t7 c2="Canada Denmark Turkey Yemen Tokyo",c3=2i,c4=20.312,c5=true 1578618000000000000
+t7 c2="Change our locale from $ to ¥ in",c3=3i,c4=30.631,c5=false 1578704400000000000
+t7 c2="Ông là nhà văn hiện thực thế kỷ 20",c3=4i,c4=40.772,c5=false 1578790800000000000
+t7 c2="$",c3=5i,c4=50.188,c5=false 1578877200000000000
+
+t8 c2="Brazil Canada Malaysia",c3=9223372036854775807i,c4=1000.01,c5=true 1577926800000000000
+t8 c2="Cuba Malaysia Iran Czech",c3=-9223372036854775807i,c4=-2000.01,c5=false 1578013200000000000
+t8 c2="Côte d'Ivoire Fiji",c3=10i,c4=3000.01,c5=true 1578099600000000000
+t8 c2="Georgia Germany Micronesia (Federated States of)",c3=-20i,c4=-4000.01,c5=false 1578186000000000000
+t8 c2="Guinea-Bissau Honduras Mexico",c3=30i,c4=5000.01,c5=true 1578272400000000000
+t8 c2="Ireland Iran (Islamic Republic of)",c3=-40i,c4=-6000.01,c5=false 1578358800000000000
+t8 c2="Lao People's Democratic Republic",c3=50i,c4=7000.01,c5=true 1578445200000000000
+
+tmp_t15 c2="常ならむ有為の奥山今日越えて浅き夢見",c3=30000i,c4=30000.0562 1577926800000000000
+tmp_t15 c2="Thequickbrownfoxjumpsoverthelazydog",c3=-35000i,c4=-35000.1205 1578013200000000000
+tmp_t15 c2="いろはにほへどちりぬるをわがよたれぞつねならむ",c3=40000i,c4=40000.05221 1578099600000000000
+tmp_t15 c2="живетезелоземляиижеикаколюди",c3=-45000i,c4=45000.1095 1578186000000000000
+tmp_t15 c2="豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿",c3=50000i,c4=50000.1054 1578272400000000000
+
+influx_max_range c2=-9223372036854775808i,c3=1.79E+308,c4=t -9223372036854775806
+influx_max_range c2=9223372036854775807i,c3=-1.79E+308,c4=F 9223372036854775806
+influx_max_range c2=-9223372036854775807i,c3=1.78E+308,c4=FALSE -9223372036854775805
+influx_max_range c2=9223372036854775806i,c3=-1.78E+308,c4=false 9223372036854775805
+
+tb_influx,c1=abcd,c2=HELLO c3="Cuba",c4=100i,c5=100.5,c6=true 1578445200000000000
+tb_influx,c1=string,c2=UNIQUE c3="Quick",c4=200i,c5=200.1,c6=false 1578448800000000000
+tb_influx,c1=online,c2=Keywords c3="Mexico",c4=300i,c5=300.5,c6=false 1578452400000000000
+tb_influx,c1=online,c2=Quick c3="Quick",c4=400i,c5=400.2,c6=false 1578456000000000000
+tb_influx,c1=World,c2=Keywords c3="Ireland",c4=500i,c5=500.2,c6=false 1578492000000000000
+tb_influx,c1=letters,c2=Republic c3="Quick",c4=600i,c5=600.5,c6=false 1578528000000000000
+tb_influx,c1=ask,c2=Keywords c3="Malaysia",c4=-700i,c5=-700.8,c6=true 1578564000000000000
+tb_influx,c1=abcd,c2=People c3="Quick",c4=-800i,c5=-900.5,c6=false 1578600000000000000
+tb_influx,c1=123456,c2=Canada c3="Honduras",c4=-900i,c5=-1200.5,c6=true 1578636000000000000
+tb_influx,c1=online,c2=Mexico c3="Honduras",c4=0i,c5=-0.5,c6=false 1578672000000000000
+
+# DML
+# CONTEXT-DATABASE: influx2
+
+t7 c2="Thequickbrownfoxjumpsoverthelazydog",c3=-36854775808i,c4=1.79E+68,c5=t -9223372036854775806
+t7 c2="敷ヘカウ告政ヨハツヤ消70者32精楽ざ",c3=36854775807i,c4=-1.79E+68,c5=F 9223372036854775806
+t7 c2="べ員葉コ番告7次ノヌ従援かやじり図安ヨ",c3=-36854775807i,c4=1.78E+68,c5=FALSE -9223372036854775805
+t7 c2="ăâđêôơưdêđêdờenờíìờẹ",c3=36854775806i,c4=-1.78E+68,c5=false 9223372036854775805
+t7 c2="いろはにほへど　ちりぬるをわがよたれぞ　つねならむうゐのおくやま　けふこえてあさ",c3=-5i,c4=-50.232,c5=true 1578013200000000000
+t7 c2="色は匂へど 散りぬるを我が世誰ぞ 常ならむ有為の奥山 今日越えて浅き夢見",c3=-4i,c4=-40.652,c5=true 1578099600000000000
+t7 c2="กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ",c3=-3i,c4=-30.756,c5=true 1578186000000000000
+t7 c2="`~!@#$%^&*()_+=-{}[]|:;<>?/.",c3=-2i,c4=-20.56,c5=false 1578272400000000000
+t7 c2="0123456789",c3=-1i,c4=-10.746,c5=false 1578358800000000000
+t7 c2="In Bulgarian it is desirable",c3=0i,c4=0.774,c5=false 1578445200000000000
+t7 c2="Which started out as a kind",c3=1i,c4=10.746,c5=true 1578531600000000000
+t7 c2="Canada Denmark Turkey Yemen Tokyo",c3=2i,c4=20.312,c5=true 1578618000000000000
+t7 c2="Change our locale from $ to ¥ in",c3=3i,c4=30.631,c5=false 1578704400000000000
+t7 c2="Ông là nhà văn hiện thực thế kỷ 20",c3=4i,c4=40.772,c5=false 1578790800000000000
+t7 c2="$",c3=5i,c4=50.188,c5=false 1578877200000000000
+
+t8 c2="Change our locale from $ to ¥ in",c3=3i 1578704400000000000
+t8 c2="Ông là nhà văn hiện thực thế kỷ 20",c3=4i 1578790800000000000
+t8 c2="$",c3=5i 1578877200000000000
+
+tb_influx,c1=abcd,c2=HELLO c3="Cuba",c4=100i,c5=101.5,c6=false 1578708000000000000
+tb_influx,c1=UNIQUE,c2=UNIQUE c3="Quick",c4=220i,c5=201.1,c6=true 1578744000000000000
+tb_influx,c1=UNIQUE,c2=Keywords c3="Mexico",c4=320i,c5=310.5,c6=false 1578780000000000000
+tb_influx,c1=online,c2=People c3="PIN code",c4=420i,c5=410.2,c6=true 1578816000000000000
+tb_influx,c1=World,c2=Keywords c3="foxjumpsov",c4=520i,c5=510.2,c6=false 1578852000000000000
+tb_influx,c1=letters,c2=Republic c3="Quick",c4=620i,c5=610.5,c6=false 1578888000000000000
+tb_influx,c1=ask,c2=Keywords c3="Malaysia",c4=-720i,c5=-710.8,c6=true 1578924000000000000
+tb_influx,c1=abcd,c2=People c3="Quick",c4=-820i,c5=-910.5,c6=true 1578960000000000000
+tb_influx,c1=123456,c2=Canada c3="Honduras",c4=-920i,c5=-1210.5,c6=true 1578996000000000000
+tb_influx,c1=letters,c2=Canada c3="Honduras",c4=8i,c5=-10.5,c6=false 1579032000000000000
+tb_influx,c1=World,c2=Republic c3="abcd",c4=4i,c5=-10.5,c6=false 1579068000000000000
+
