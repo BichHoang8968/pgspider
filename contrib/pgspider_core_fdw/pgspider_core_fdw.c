@@ -169,7 +169,6 @@ typedef struct ForeignScanThreadInfo
 	SpdForeignScanThreadState state;
 	pthread_t	me;
 	ResourceOwner thrd_ResourceOwner;
-	struct ForeignScanThreadInfo *childThreadsInfo;
 	void	   *private;
 
 }			ForeignScanThreadInfo;
@@ -405,8 +404,6 @@ typedef struct SpdFdwPrivate
 	bool		isFirst;		/* First time of iteration foreign scan with
 								 * aggregation query */
 	bool		groupby_has_spdurl; /* flag to check if __spd_url is in group clause */
-	bool		is_pushdown_tlist;	/* pushed down target list or not. For
-									 * aggregation, always false */
 
 	List	   *child_comp_tlist;	/* child complite target list */
 	List	   *child_tlist;	/* child target list without __spd_url */
@@ -524,7 +521,7 @@ static void spd_queue_notify_finish(SpdTupleQueue * que);
 static void spd_spi_ddl_table(char *query, pthread_rwlock_t *scan_mutex);
 
 static List *spd_catalog_makedivtlist(Aggref *aggref, List *newList, enum Aggtype aggtype);
-static TupleTableSlot *spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,int node_id, TupleTableSlot *node_slot, SpdFdwPrivate * fdw_private);
+static TupleTableSlot *spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,int node_id, TupleTableSlot *node_slot, SpdFdwPrivate * fdw_private, bool is_first_iterate);
 
 /* postgresql.conf paramater */
 static bool throwErrorIfDead;
@@ -952,7 +949,6 @@ spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private)
 	lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->agg_query));
 	lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->isFirst));
 	lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->groupby_has_spdurl));
-	lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->is_pushdown_tlist));
 
 	if (fdw_private->agg_query)
 	{
@@ -1050,9 +1046,6 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
 	lc = lnext(lfdw_private, lc);
 
 	fdw_private->groupby_has_spdurl = intVal(lfirst(lc)) ? true : false;
-	lc = lnext(lfdw_private, lc);
-
-	fdw_private->is_pushdown_tlist = intVal(lfirst(lc)) ? true : false;
 	lc = lnext(lfdw_private, lc);
 
 	if (fdw_private->agg_query)
@@ -2121,6 +2114,7 @@ spd_ForeignScan_thread(void *arg)
 	ChildInfo *pChildInfo = &fdw_private->childinfo[fssthrdInfo->childInfoIndex];
 	/* Flag use for check whether mysql_fdw called BeginForeignScan or not */
 	bool		is_first = true;
+	bool		is_first_iterate = true;
 #ifdef GETPROGRESS_ENABLED
 	PGcancel   *cancel;
 	char		errbuf[BUFFERSIZE];
@@ -2306,6 +2300,10 @@ RESCAN:
 		}
 		SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
 	}
+
+	/* Mask as it is first timeo of IterateForeignScan loop. */
+	is_first_iterate = true; 
+
 	PG_TRY();
 	{
 		TupleTableSlot *spdurl_slot = MakeSingleTupleTableSlot(fdw_private_main->child_comp_tupdesc, fssthrdInfo->fsstate->ss.ss_ScanTupleSlot->tts_ops);
@@ -2414,7 +2412,7 @@ RESCAN:
 			}
 			else{
 				ExecClearTuple(spdurl_slot);
-				slot = spd_AddSpdUrl(fssthrdInfo_main, spdurl_slot, count, slot, fdw_private_main);
+				slot = spd_AddSpdUrl(fssthrdInfo_main, spdurl_slot, count, slot, fdw_private_main, is_first_iterate);
 			}
 
 			while (1)
@@ -2450,7 +2448,7 @@ RESCAN:
 				break;
 			}
 #endif
-
+			is_first_iterate = false;
 		}
 	}
 	PG_CATCH();
@@ -4918,7 +4916,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	spd_GetForeignChildPlans(root, baserel, best_path, ptemptlist, &push_scan_clauses,
 							 outer_plan, childinfo);
 
-	fdw_private->is_pushdown_tlist = false;
 	if (IS_SIMPLE_REL(baserel))
 	{
 		ForeignScan *fsplan = NULL;
@@ -4964,7 +4961,6 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		{
 			fdw_scan_tlist = spd_merge_tlist(child_fdw_scan_tlist, ptemptlist, root);
 			fdw_private->idx_url_tlist = get_index_spdurl_from_targets(fdw_scan_tlist, root);
-			fdw_private->is_pushdown_tlist = true;
 		}
 		else
 		{
@@ -5511,7 +5507,6 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		 */
 		skiplast = false;
 		if (!fdw_private->agg_query &&
-			!fdw_private->is_pushdown_tlist &&
 			strcmp(fssThrdInfo[node_incr].fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
 			skiplast = true;
 
@@ -6690,7 +6685,8 @@ spd_createtable_sql(StringInfo create_sql, List *mapping_tlist,
  */
 static TupleTableSlot *
 spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
-			  int node_id, TupleTableSlot *node_slot, SpdFdwPrivate * fdw_private)
+			  int node_id, TupleTableSlot *node_slot, SpdFdwPrivate * fdw_private,
+			  bool is_first_iterate)
 {
 	Datum	   *values;
 	bool	   *nulls;
@@ -6813,6 +6809,22 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 		replaces = palloc0(sizeof(bool) * node_slot->tts_tupleDescriptor->natts);
 		tnum = -1;
 
+		/* Calculate the location of SPDURL at only 1st time of iteration of addSpdUrl. */
+		fdw_private->idx_url_tlist == -1;
+		if (is_first_iterate)
+		{
+			for (i = 0; i < node_slot->tts_tupleDescriptor->natts; i++)
+			{
+				char	   *value;
+				Form_pg_attribute attr = TupleDescAttr(node_slot->tts_tupleDescriptor, i);
+				if (strcmp(attr->attname.data, SPDURL) == 0)
+				{
+					fdw_private->idx_url_tlist = i;
+					break;
+				}
+			}
+		}
+
 		for (i = 0; i < natts; i++)
 		{
 			char	   *value;
@@ -6820,12 +6832,9 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 
 			/*
 			 * Check if i th attribute is SPDURL or not. If so, fill
-			 * SPDURL slot. In target list push down case,
-			 * tts_tupleDescriptor->attrs[i]->attname.data is NULL in some
-			 * cases such as UNION. So we will use idx_url_tlist instead.
+			 * SPDURL slot.
 			 */
-			if ((fdw_private->is_pushdown_tlist && i == fdw_private->idx_url_tlist) ||
-				strcmp(attr->attname.data, SPDURL) == 0)
+			if (i == fdw_private->idx_url_tlist)
 			{
 				bool		isnull;
 
