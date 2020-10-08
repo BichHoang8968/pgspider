@@ -196,8 +196,9 @@ CREATE FOREIGN TABLE ft6__postgres_srv2__0 (
 -- ===================================================================
 -- tests for validator
 -- ===================================================================
--- requiressl, krbsrvname and gsslib are omitted because they depend on
--- configure options
+-- skip, pgspider_core_fdw does not support these options
+-- requiressl and some other parameters are omitted because
+-- valid values for them depend on configure options
 --  ALTER SERVER pgspider_srv OPTIONS (
 -- 	use_remote_estimate 'false',
 -- 	updatable 'true',
@@ -222,10 +223,10 @@ CREATE FOREIGN TABLE ft6__postgres_srv2__0 (
 -- 	sslcert 'value',
 -- 	sslkey 'value',
 -- 	sslrootcert 'value',
--- 	sslcrl 'value'
+-- 	sslcrl 'value',
 -- 	--requirepeer 'value',
--- 	-- krbsrvname 'value',
--- 	-- gsslib 'value',
+-- 	krbsrvname 'value',
+-- 	gsslib 'value'
 -- 	--replication 'value'
 --);
 -- Error, invalid list syntax
@@ -235,6 +236,17 @@ CREATE FOREIGN TABLE ft6__postgres_srv2__0 (
 -- ALTER SERVER pgspider_srv OPTIONS (DROP extensions);
 ALTER USER MAPPING FOR public SERVER pgspider_srv
 	OPTIONS (DROP user, DROP password);
+-- Skip, pgspider_core_fdw does not support ssl
+-- Attempt to add a valid option that's not allowed in a user mapping
+--ALTER USER MAPPING FOR public SERVER pgspider_srv
+--	OPTIONS (ADD sslmode 'require');
+-- But we can add valid ones fine
+--ALTER USER MAPPING FOR public SERVER pgspider_srv
+--	OPTIONS (ADD sslpassword 'dummy');
+-- Ensure valid options we haven't used in a user mapping yet are
+-- permitted to check validation.
+--ALTER USER MAPPING FOR public SERVER pgspider_srv
+--	OPTIONS (ADD sslkey 'value', ADD sslcert 'value');
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c1 OPTIONS (column_name 'C 1');
 ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c1 OPTIONS (column_name 'C 1');
 ALTER FOREIGN TABLE ft2 ALTER COLUMN c1 OPTIONS (column_name 'C 1');
@@ -1056,8 +1068,24 @@ WHERE a.c2 = 6 AND b.c1 = a.c1 AND a.c8 = 'foo' AND b.c7 = upper(a.c7);
 (100 rows)
 
 -- bug before 9.3.5 due to sloppy handling of remote-estimate parameters
--- SELECT * FROM ft1 WHERE c1 = ANY (ARRAY(SELECT c1 FROM ft2 WHERE c1 < 5));
--- SELECT * FROM ft2 WHERE c1 = ANY (ARRAY(SELECT c1 FROM ft1 WHERE c1 < 5));
+SELECT * FROM ft1 WHERE c1 = ANY (ARRAY(SELECT c1 FROM ft2 WHERE c1 < 5));
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
+----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
+  1 |  1 | 00001 | Fri Jan 02 00:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
+  2 |  2 | 00002 | Sat Jan 03 00:00:00 1970 PST | Sat Jan 03 00:00:00 1970 | 2  | 2          | foo | /postgres_srv/
+  3 |  3 | 00003 | Sun Jan 04 00:00:00 1970 PST | Sun Jan 04 00:00:00 1970 | 3  | 3          | foo | /postgres_srv/
+  4 |  4 | 00004 | Mon Jan 05 00:00:00 1970 PST | Mon Jan 05 00:00:00 1970 | 4  | 4          | foo | /postgres_srv/
+(4 rows)
+
+SELECT * FROM ft2 WHERE c1 = ANY (ARRAY(SELECT c1 FROM ft1 WHERE c1 < 5));
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
+----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
+  1 |  1 | 00001 | Fri Jan 02 00:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
+  2 |  2 | 00002 | Sat Jan 03 00:00:00 1970 PST | Sat Jan 03 00:00:00 1970 | 2  | 2          | foo | /postgres_srv/
+  3 |  3 | 00003 | Sun Jan 04 00:00:00 1970 PST | Sun Jan 04 00:00:00 1970 | 3  | 3          | foo | /postgres_srv/
+  4 |  4 | 00004 | Mon Jan 05 00:00:00 1970 PST | Mon Jan 05 00:00:00 1970 | 4  | 4          | foo | /postgres_srv/
+(4 rows)
+
 -- we should not push order by clause with volatile expressions or unsafe
 -- collations
 --Testcase 54:
@@ -1110,7 +1138,7 @@ EXPLAIN (VERBOSE, COSTS OFF)
    Output: (count(c3))
    Node: postgres_srv / Status: Alive
      Agg push-down: yes
-     Relations: Aggregate on (public.ft1__postgres_srv__0)
+     Relations: Aggregate on (public.ft1 t1)
      Remote SQL: SELECT count(c3) FROM "S 1"."T 1" WHERE (("C 1" = abs(c2)))
 (6 rows)
 
@@ -1130,7 +1158,7 @@ EXPLAIN (VERBOSE, COSTS OFF)
    Output: (count(c3))
    Node: postgres_srv / Status: Alive
      Agg push-down: yes
-     Relations: Aggregate on (public.ft1__postgres_srv__0)
+     Relations: Aggregate on (public.ft1 t1)
      Remote SQL: SELECT count(c3) FROM "S 1"."T 1" WHERE (("C 1" = c2))
 (6 rows)
 
@@ -3495,7 +3523,7 @@ select count(c6), sum(c1), avg(c1), min(c2), max(c1), stddev(c2), sum(c1) * (ran
                Output: (count(c6)), (sum(c1)), (avg(c1)), (min(c2)), (max(c1)), (stddev(c2)), c2
                Node: postgres_srv / Status: Alive
                  Agg push-down: yes
-                 Relations: Aggregate on (public.ft1__postgres_srv__0)
+                 Relations: Aggregate on (public.ft1)
                  Remote SQL: SELECT count(c6), sum("C 1"), count("C 1"), min(c2), max("C 1"), count(c2), sum(c2), sum((c2 * c2)), c2 FROM "S 1"."T 1" WHERE ((c2 < 5)) GROUP BY 9
 (11 rows)
 
@@ -3526,7 +3554,7 @@ select count(c6), sum(c1), avg(c1), min(c2), max(c1), stddev(c2), sum(c1) * (ran
                      Output: (count(c6)), (sum(c1)), (avg(c1)), (min(c2)), (max(c1)), (stddev(c2)), c2
                      Node: postgres_srv / Status: Alive
                        Agg push-down: yes
-                       Relations: Aggregate on (public.ft1__postgres_srv__0)
+                       Relations: Aggregate on (public.ft1)
                        Remote SQL: SELECT count(c6), sum("C 1"), count("C 1"), min(c2), max("C 1"), count(c2), sum(c2), sum((c2 * c2)), c2 FROM "S 1"."T 1" WHERE ((c2 < 5)) GROUP BY 9
 (13 rows)
 
@@ -3621,7 +3649,7 @@ select c2/2, sum(c2) * (c2/2) from ft1 group by c2/2 order by c2/2;
          Output: ((c2 / 2)), ((sum(c2) * (c2 / 2)))
          Node: postgres_srv / Status: Alive
            Agg push-down: yes
-           Relations: Aggregate on (public.ft1__postgres_srv__0)
+           Relations: Aggregate on (public.ft1)
            Remote SQL: SELECT (c2 / 2), sum(c2) FROM "S 1"."T 1" GROUP BY 1
 (9 rows)
 
@@ -3676,7 +3704,7 @@ select c2 * (random() <= 1)::int as sum1, sum(c1) * c2 as sum2 from ft1 group by
          Output: ((c2 * ((random() <= '1'::double precision))::integer)), ((sum(c1) * c2)), c2
          Node: postgres_srv / Status: Alive
            Agg push-down: yes
-           Relations: Aggregate on (public.ft1__postgres_srv__0)
+           Relations: Aggregate on (public.ft1)
            Remote SQL: SELECT c2, sum("C 1") FROM "S 1"."T 1" GROUP BY 1
 (9 rows)
 
@@ -3709,7 +3737,7 @@ select c2 * (random() <= 1)::int as c2 from ft2 group by c2 * (random() <= 1)::i
          Output: ((c2 * ((random() <= '1'::double precision))::integer))
          Node: postgres_srv / Status: Alive
            Agg push-down: yes
-           Relations: Aggregate on (public.ft2__postgres_srv__0)
+           Relations: Aggregate on (public.ft2)
            Remote SQL: SELECT c2 FROM "S 1"."T 1" GROUP BY 1
 (9 rows)
 
@@ -3726,7 +3754,7 @@ select count(c2) w, c2 x, 5 y, 7.0 z from ft1 group by 2, y, 9.0::int order by 2
          Output: (count(c2)), c2, 5, 7.0, 9
          Node: postgres_srv / Status: Alive
            Agg push-down: yes
-           Relations: Aggregate on (public.ft1__postgres_srv__0)
+           Relations: Aggregate on (public.ft1)
            Remote SQL: SELECT count(c2), c2 FROM "S 1"."T 1" GROUP BY 2
 (9 rows)
 
@@ -3760,7 +3788,7 @@ select c2, c2 from ft1 where c2 > 6 group by 1, 2 order by sum(c1);
          Output: c2, c2, (sum(c1))
          Node: postgres_srv / Status: Alive
            Agg push-down: yes
-           Relations: Aggregate on (public.ft1__postgres_srv__0)
+           Relations: Aggregate on (public.ft1)
            Remote SQL: SELECT c2, c2, sum("C 1") FROM "S 1"."T 1" WHERE ((c2 > 6)) GROUP BY 1, 2
 (9 rows)
 
@@ -3786,7 +3814,7 @@ select c2, sum(c1) from ft2 group by c2 having avg(c1) < 500 and sum(c1) < 49800
          Output: c2, (sum(c1))
          Node: postgres_srv / Status: Alive
            Agg push-down: yes
-           Relations: Aggregate on (public.ft2__postgres_srv__0)
+           Relations: Aggregate on (public.ft2)
            Remote SQL: SELECT c2, sum("C 1"), count("C 1") FROM "S 1"."T 1" GROUP BY 1
 (9 rows)
 
@@ -3846,13 +3874,13 @@ select sum(c1) from ft1 group by c2 having avg(c1 * (random() <= 1)::int) > 100 
 --Testcase 190:
 explain (verbose, costs off)
 select exists(select 1 from pg_enum), sum(c1) from ft1;
-                        QUERY PLAN                         
------------------------------------------------------------
+                     QUERY PLAN                     
+----------------------------------------------------
  Foreign Scan
    Output: $0, (sum(ft1.c1))
    Node: postgres_srv / Status: Alive
      Agg push-down: yes
-     Relations: Aggregate on (public.ft1__postgres_srv__0)
+     Relations: Aggregate on (public.ft1)
      Remote SQL: SELECT sum("C 1") FROM "S 1"."T 1"
    InitPlan 1 (returns $0)
      ->  Seq Scan on pg_catalog.pg_enum
@@ -4088,7 +4116,7 @@ select sum(c1) filter (where c1 < 100 and c2 > 5) from ft1 group by c2 order by 
          Output: (sum(c1) FILTER (WHERE ((c1 < 100) AND (c2 > 5)))), c2
          Node: postgres_srv / Status: Alive
            Agg push-down: yes
-           Relations: Aggregate on (public.ft1__postgres_srv__0)
+           Relations: Aggregate on (public.ft1)
            Remote SQL: SELECT sum("C 1") FILTER (WHERE (("C 1" < 100) AND (c2 > 5))), c2 FROM "S 1"."T 1" GROUP BY 2
 (9 rows)
 
@@ -4145,7 +4173,7 @@ select distinct (select count(*) filter (where t2.c2 = 6 and t2.c1 < 10) from ft
                Output: ((SubPlan 1))
                Node: postgres_srv / Status: Alive
                  Agg push-down: yes
-                 Relations: Aggregate on (public.ft2__postgres_srv__0)
+                 Relations: Aggregate on (public.ft2 t2)
                  Remote SQL: SELECT count(*) FILTER (WHERE ((c2 = 6) AND ("C 1" < 10))) FROM "S 1"."T 1" WHERE (((c2 % 6) = 0))
 (11 rows)
 
@@ -4176,7 +4204,7 @@ select distinct (select count(t1.c1) filter (where t2.c2 = 6 and t2.c1 < 10) fro
                        Output: (count(t1.c1) FILTER (WHERE ((t2.c2 = 6) AND (t2.c1 < 10))))
                        Node: postgres_srv / Status: Alive
                          Agg push-down: yes
-                         Relations: Aggregate on (public.ft1__postgres_srv__0)
+                         Relations: Aggregate on (public.ft1 t1)
                          Remote SQL: SELECT count("C 1") FILTER (WHERE (($1::integer = 6) AND ($2::integer < 10))) FROM "S 1"."T 1" WHERE (("C 1" = 6))
 (16 rows)
 
@@ -4237,7 +4265,7 @@ select c2, rank('10'::varchar) within group (order by c6), percentile_cont(c2/10
          Output: c2, (rank('10'::character varying) WITHIN GROUP (ORDER BY c6)), (percentile_cont((((c2)::numeric / '10'::numeric))::double precision) WITHIN GROUP (ORDER BY ((c1)::double precision)))
          Node: postgres_srv / Status: Alive
            Agg push-down: yes
-           Relations: Aggregate on (public.ft1__postgres_srv__0)
+           Relations: Aggregate on (public.ft1)
            Remote SQL: SELECT c2, rank('10'::character varying) WITHIN GROUP (ORDER BY c6 ASC NULLS LAST), percentile_cont((c2 / 10::numeric)) WITHIN GROUP (ORDER BY ("C 1") ASC NULLS LAST) FROM "S 1"."T 1" WHERE ((c2 < 10)) GROUP BY 1
 (9 rows)
 
@@ -4262,7 +4290,7 @@ select c1, rank(c1, c2) within group (order by c1, c2) from ft1 group by c1, c2 
    Output: c1, (rank(c1, c2) WITHIN GROUP (ORDER BY c1, c2)), c2
    Node: postgres_srv / Status: Alive
      Agg push-down: yes
-     Relations: Aggregate on (public.ft1__postgres_srv__0)
+     Relations: Aggregate on (public.ft1)
      Remote SQL: SELECT "C 1", rank("C 1", c2) WITHIN GROUP (ORDER BY "C 1" ASC NULLS LAST, c2 ASC NULLS LAST), c2 FROM "S 1"."T 1" WHERE (("C 1" = 6)) GROUP BY 1, 3
 (6 rows)
 
@@ -4526,7 +4554,7 @@ select count(*), x.b from ft1, (select c2 a, sum(c1) b from ft1 group by c2) x w
                                        Output: ft1_1.c2, (sum(ft1_1.c1))
                                        Node: postgres_srv / Status: Alive
                                          Agg push-down: yes
-                                         Relations: Aggregate on (public.ft1__postgres_srv__0)
+                                         Relations: Aggregate on (public.ft1 ft1_1)
                                          Remote SQL: SELECT c2, sum("C 1") FROM "S 1"."T 1" GROUP BY 1
 (27 rows)
 
@@ -4632,7 +4660,7 @@ select sum(c2) * (random() <= 1)::int as sum from ft1 order by 1;
          Output: ((sum(c2) * ((random() <= '1'::double precision))::integer))
          Node: postgres_srv / Status: Alive
            Agg push-down: yes
-           Relations: Aggregate on (public.ft1__postgres_srv__0)
+           Relations: Aggregate on (public.ft1)
            Remote SQL: SELECT sum(c2) FROM "S 1"."T 1"
 (9 rows)
 
@@ -4665,7 +4693,7 @@ select c2, sum from "S 1"."T 1" t1, lateral (select sum(t2.c1 + t1."C 1") sum fr
                      Output: (sum((t2.c1 + t1."C 1"))), t2.c1
                      Node: postgres_srv / Status: Alive
                        Agg push-down: yes
-                       Relations: Aggregate on (public.ft2__postgres_srv__0)
+                       Relations: Aggregate on (public.ft2 t2)
                        Remote SQL: SELECT sum(("C 1" + $1::integer)), "C 1" FROM "S 1"."T 1" GROUP BY 2
 (17 rows)
 
@@ -4914,7 +4942,7 @@ select distinct sum(c1)/1000 s from ft2 where c2 < 6 group by c2 order by 1;
                Output: ((sum(c1) / 1000)), c2
                Node: postgres_srv / Status: Alive
                  Agg push-down: yes
-                 Relations: Aggregate on (public.ft2__postgres_srv__0)
+                 Relations: Aggregate on (public.ft2)
                  Remote SQL: SELECT sum("C 1"), c2 FROM "S 1"."T 1" WHERE ((c2 < 6)) GROUP BY 2
 (11 rows)
 
@@ -4943,7 +4971,7 @@ select c2, sum(c2), count(c2) over (partition by c2%2) from ft2 where c2 < 10 gr
                      Output: c2, ((c2 % 2)), (sum(c2))
                      Node: postgres_srv / Status: Alive
                        Agg push-down: yes
-                       Relations: Aggregate on (public.ft2__postgres_srv__0)
+                       Relations: Aggregate on (public.ft2)
                        Remote SQL: SELECT c2, (c2 % 2), sum(c2) FROM "S 1"."T 1" WHERE ((c2 < 10)) GROUP BY 1
 (14 rows)
 
@@ -4980,7 +5008,7 @@ select c2, array_agg(c2) over (partition by c2%2 order by c2 desc) from ft1 wher
                      Output: c2, ((c2 % 2))
                      Node: postgres_srv / Status: Alive
                        Agg push-down: yes
-                       Relations: Aggregate on (public.ft1__postgres_srv__0)
+                       Relations: Aggregate on (public.ft1)
                        Remote SQL: SELECT c2, (c2 % 2) FROM "S 1"."T 1" WHERE ((c2 < 10)) GROUP BY 1
 (14 rows)
 
@@ -5017,7 +5045,7 @@ select c2, array_agg(c2) over (partition by c2%2 order by c2 range between curre
                      Output: c2, ((c2 % 2))
                      Node: postgres_srv / Status: Alive
                        Agg push-down: yes
-                       Relations: Aggregate on (public.ft1__postgres_srv__0)
+                       Relations: Aggregate on (public.ft1)
                        Remote SQL: SELECT c2, (c2 % 2) FROM "S 1"."T 1" WHERE ((c2 < 10)) GROUP BY 1
 (14 rows)
 
@@ -6885,6 +6913,24 @@ DELETE FROM ft2__postgres_srv__0
 -- DELETE FROM ft2 WHERE ft2.c1 > 1200;
 --Testcase 332:
 DELETE FROM ft2__postgres_srv__0 WHERE ft2__postgres_srv__0.c1 > 1200;
+-- Test UPDATE with a MULTIEXPR sub-select
+-- (maybe someday this'll be remotely executable, but not today)
+--EXPLAIN (verbose, costs off)
+--UPDATE ft2 AS target SET (c2, c7) = (
+--    SELECT c2 * 10, c7
+--        FROM ft2 AS src
+--        WHERE target.c1 = src.c1
+--) WHERE c1 > 1100;
+UPDATE ft2__postgres_srv__0 AS target SET (c2, c7) = (
+    SELECT c2 * 10, c7
+        FROM ft2__postgres_srv__0 AS src
+        WHERE target.c1 = src.c1
+) WHERE c1 > 1100;
+UPDATE ft2__postgres_srv__0 AS target SET (c2) = (
+    SELECT c2 / 10
+        FROM ft2__postgres_srv__0 AS src
+        WHERE target.c1 = src.c1
+) WHERE c1 > 1100;
 -- Test UPDATE/DELETE with WHERE or JOIN/ON conditions containing
 -- user-defined operators/functions
 ALTER SERVER postgres_srv OPTIONS (DROP extensions);
@@ -7327,9 +7373,6 @@ select c2, count(*) from ft2__postgres_srv__0 where c2 < 500 group by 1 order by
 (13 rows)
 
 -- none of the above is committed yet remotely
--- if PGSPider support update, we need to change to use "S 1"."T 1"
--- in the original test data is stored temporally in ft2, so we can use
--- "S 1"."T 1" (same as ft2__postgres_srv__0) to check data.
 --Testcase 363:
 select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
  c2  | count 
@@ -7350,9 +7393,6 @@ select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
 (13 rows)
 
 commit;
--- After commit, obviously data will be pushed to remote database
--- So, using ft2 or "S 1"."T 1" (ft2__postgres_srv__0) results in the 
--- same result.
 --Testcase 364:
 select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
  c2  | count 
@@ -7504,7 +7544,7 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT count(*) FROM ft1 WHERE c2 < 0;
    Output: (count(*))
    Node: postgres_srv / Status: Alive
      Agg push-down: yes
-     Relations: Aggregate on (public.ft1__postgres_srv__0)
+     Relations: Aggregate on (public.ft1)
      Remote SQL: SELECT count(*) FROM "S 1"."T 1" WHERE ((c2 < 0))
 (6 rows)
 
@@ -7556,7 +7596,7 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT count(*) FROM ft1 WHERE c2 >= 0;
    Output: (count(*))
    Node: postgres_srv / Status: Alive
      Agg push-down: yes
-     Relations: Aggregate on (public.ft1__postgres_srv__0)
+     Relations: Aggregate on (public.ft1)
      Remote SQL: SELECT count(*) FROM "S 1"."T 1" WHERE ((c2 >= 0))
 (6 rows)
 
@@ -7899,6 +7939,36 @@ DROP TRIGGER trig_stmt_before ON rem1__postgres_srv__0;
 DROP TRIGGER trig_stmt_after ON rem1__postgres_srv__0;
 --Testcase 403:
 DELETE from rem1__postgres_srv__0;
+-- Test multiple AFTER ROW triggers on a foreign table
+CREATE TRIGGER trig_row_after1
+AFTER INSERT OR UPDATE OR DELETE ON rem1__postgres_srv__0
+FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
+CREATE TRIGGER trig_row_after2
+AFTER INSERT OR UPDATE OR DELETE ON rem1__postgres_srv__0
+FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
+insert into rem1__postgres_srv__0 values(1,'insert');
+NOTICE:  trig_row_after1(23, skidoo) AFTER ROW INSERT ON rem1__postgres_srv__0
+NOTICE:  NEW: (1,insert)
+NOTICE:  trig_row_after2(23, skidoo) AFTER ROW INSERT ON rem1__postgres_srv__0
+NOTICE:  NEW: (1,insert)
+update rem1__postgres_srv__0 set f2  = 'update' where f1 = 1;
+NOTICE:  trig_row_after1(23, skidoo) AFTER ROW UPDATE ON rem1__postgres_srv__0
+NOTICE:  OLD: (1,insert),NEW: (1,update)
+NOTICE:  trig_row_after2(23, skidoo) AFTER ROW UPDATE ON rem1__postgres_srv__0
+NOTICE:  OLD: (1,insert),NEW: (1,update)
+update rem1__postgres_srv__0 set f2 = f2 || f2;
+NOTICE:  trig_row_after1(23, skidoo) AFTER ROW UPDATE ON rem1__postgres_srv__0
+NOTICE:  OLD: (1,update),NEW: (1,updateupdate)
+NOTICE:  trig_row_after2(23, skidoo) AFTER ROW UPDATE ON rem1__postgres_srv__0
+NOTICE:  OLD: (1,update),NEW: (1,updateupdate)
+delete from rem1__postgres_srv__0;
+NOTICE:  trig_row_after1(23, skidoo) AFTER ROW DELETE ON rem1__postgres_srv__0
+NOTICE:  OLD: (1,updateupdate)
+NOTICE:  trig_row_after2(23, skidoo) AFTER ROW DELETE ON rem1__postgres_srv__0
+NOTICE:  OLD: (1,updateupdate)
+-- cleanup
+DROP TRIGGER trig_row_after1 ON rem1__postgres_srv__0;
+DROP TRIGGER trig_row_after2 ON rem1__postgres_srv__0;
 -- Test WHEN conditions
 CREATE TRIGGER trig_row_before_insupd
 BEFORE INSERT OR UPDATE ON rem1__postgres_srv__0
@@ -8170,7 +8240,7 @@ NOTICE:  trig_row_after(23, skidoo) AFTER ROW INSERT ON rem1__postgres_srv__0
 NOTICE:  NEW: (13,test)
   ctid  
 --------
- (0,29)
+ (0,32)
 (1 row)
 
 -- cleanup
@@ -8588,8 +8658,8 @@ insert into bar2__postgres_srv__0 values(7,77,77);
 --Testcase 496:
 explain (verbose, costs off)
 select * from bar where f1 in (select f1 from foo) for update;
-                                                                             QUERY PLAN                                                                              
----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                          QUERY PLAN                                          
+----------------------------------------------------------------------------------------------
  LockRows
    Output: bar.f1, bar.f2, bar.ctid, foo.ctid, bar.*, bar.tableoid, foo.*, foo.tableoid
    ->  Hash Join
@@ -8597,10 +8667,10 @@ select * from bar where f1 in (select f1 from foo) for update;
          Inner Unique: true
          Hash Cond: (bar.f1 = foo.f1)
          ->  Append
-               ->  Seq Scan on public.bar
-                     Output: bar.f1, bar.f2, bar.ctid, bar.*, bar.tableoid
-               ->  Foreign Scan on public.bar2__postgres_srv__0
-                     Output: bar2__postgres_srv__0.f1, bar2__postgres_srv__0.f2, bar2__postgres_srv__0.ctid, bar2__postgres_srv__0.*, bar2__postgres_srv__0.tableoid
+               ->  Seq Scan on public.bar bar_1
+                     Output: bar_1.f1, bar_1.f2, bar_1.ctid, bar_1.*, bar_1.tableoid
+               ->  Foreign Scan on public.bar2__postgres_srv__0 bar_2
+                     Output: bar_2.f1, bar_2.f2, bar_2.ctid, bar_2.*, bar_2.tableoid
                      Remote SQL: SELECT f1, f2, f3, ctid FROM public.loct2_1 FOR UPDATE
          ->  Hash
                Output: foo.ctid, foo.f1, foo.*, foo.tableoid
@@ -8608,10 +8678,10 @@ select * from bar where f1 in (select f1 from foo) for update;
                      Output: foo.ctid, foo.f1, foo.*, foo.tableoid
                      Group Key: foo.f1
                      ->  Append
-                           ->  Seq Scan on public.foo
-                                 Output: foo.ctid, foo.f1, foo.*, foo.tableoid
-                           ->  Foreign Scan on public.foo2__postgres_srv__0
-                                 Output: foo2__postgres_srv__0.ctid, foo2__postgres_srv__0.f1, foo2__postgres_srv__0.*, foo2__postgres_srv__0.tableoid
+                           ->  Seq Scan on public.foo foo_1
+                                 Output: foo_1.ctid, foo_1.f1, foo_1.*, foo_1.tableoid
+                           ->  Foreign Scan on public.foo2__postgres_srv__0 foo_2
+                                 Output: foo_2.ctid, foo_2.f1, foo_2.*, foo_2.tableoid
                                  Remote SQL: SELECT f1, f2, f3, ctid FROM public.loct1_1
 (23 rows)
 
@@ -8628,8 +8698,8 @@ select * from bar where f1 in (select f1 from foo) for update;
 --Testcase 498:
 explain (verbose, costs off)
 select * from bar where f1 in (select f1 from foo) for share;
-                                                                             QUERY PLAN                                                                              
----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                          QUERY PLAN                                          
+----------------------------------------------------------------------------------------------
  LockRows
    Output: bar.f1, bar.f2, bar.ctid, foo.ctid, bar.*, bar.tableoid, foo.*, foo.tableoid
    ->  Hash Join
@@ -8637,10 +8707,10 @@ select * from bar where f1 in (select f1 from foo) for share;
          Inner Unique: true
          Hash Cond: (bar.f1 = foo.f1)
          ->  Append
-               ->  Seq Scan on public.bar
-                     Output: bar.f1, bar.f2, bar.ctid, bar.*, bar.tableoid
-               ->  Foreign Scan on public.bar2__postgres_srv__0
-                     Output: bar2__postgres_srv__0.f1, bar2__postgres_srv__0.f2, bar2__postgres_srv__0.ctid, bar2__postgres_srv__0.*, bar2__postgres_srv__0.tableoid
+               ->  Seq Scan on public.bar bar_1
+                     Output: bar_1.f1, bar_1.f2, bar_1.ctid, bar_1.*, bar_1.tableoid
+               ->  Foreign Scan on public.bar2__postgres_srv__0 bar_2
+                     Output: bar_2.f1, bar_2.f2, bar_2.ctid, bar_2.*, bar_2.tableoid
                      Remote SQL: SELECT f1, f2, f3, ctid FROM public.loct2_1 FOR SHARE
          ->  Hash
                Output: foo.ctid, foo.f1, foo.*, foo.tableoid
@@ -8648,10 +8718,10 @@ select * from bar where f1 in (select f1 from foo) for share;
                      Output: foo.ctid, foo.f1, foo.*, foo.tableoid
                      Group Key: foo.f1
                      ->  Append
-                           ->  Seq Scan on public.foo
-                                 Output: foo.ctid, foo.f1, foo.*, foo.tableoid
-                           ->  Foreign Scan on public.foo2__postgres_srv__0
-                                 Output: foo2__postgres_srv__0.ctid, foo2__postgres_srv__0.f1, foo2__postgres_srv__0.*, foo2__postgres_srv__0.tableoid
+                           ->  Seq Scan on public.foo foo_1
+                                 Output: foo_1.ctid, foo_1.f1, foo_1.*, foo_1.tableoid
+                           ->  Foreign Scan on public.foo2__postgres_srv__0 foo_2
+                                 Output: foo_2.ctid, foo_2.f1, foo_2.*, foo_2.tableoid
                                  Remote SQL: SELECT f1, f2, f3, ctid FROM public.loct1_1
 (23 rows)
 
@@ -8669,11 +8739,11 @@ select * from bar where f1 in (select f1 from foo) for share;
 --Testcase 500:
 explain (verbose, costs off)
 update bar set f2 = f2 + 100 where f1 in (select f1 from foo);
-                                                                           QUERY PLAN                                                                            
------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                           QUERY PLAN                                            
+-------------------------------------------------------------------------------------------------
  Update on public.bar
    Update on public.bar
-   Foreign Update on public.bar2__postgres_srv__0
+   Foreign Update on public.bar2__postgres_srv__0 bar_1
      Remote SQL: UPDATE public.loct2_1 SET f2 = $2 WHERE ctid = $1
    ->  Hash Join
          Output: bar.f1, (bar.f2 + 100), bar.ctid, foo.ctid, foo.*, foo.tableoid
@@ -8687,17 +8757,17 @@ update bar set f2 = f2 + 100 where f1 in (select f1 from foo);
                      Output: foo.ctid, foo.f1, foo.*, foo.tableoid
                      Group Key: foo.f1
                      ->  Append
-                           ->  Seq Scan on public.foo
-                                 Output: foo.ctid, foo.f1, foo.*, foo.tableoid
-                           ->  Foreign Scan on public.foo2__postgres_srv__0
-                                 Output: foo2__postgres_srv__0.ctid, foo2__postgres_srv__0.f1, foo2__postgres_srv__0.*, foo2__postgres_srv__0.tableoid
+                           ->  Seq Scan on public.foo foo_1
+                                 Output: foo_1.ctid, foo_1.f1, foo_1.*, foo_1.tableoid
+                           ->  Foreign Scan on public.foo2__postgres_srv__0 foo_2
+                                 Output: foo_2.ctid, foo_2.f1, foo_2.*, foo_2.tableoid
                                  Remote SQL: SELECT f1, f2, f3, ctid FROM public.loct1_1
    ->  Hash Join
-         Output: bar2__postgres_srv__0.f1, (bar2__postgres_srv__0.f2 + 100), bar2__postgres_srv__0.f3, bar2__postgres_srv__0.ctid, foo.ctid, foo.*, foo.tableoid
+         Output: bar_1.f1, (bar_1.f2 + 100), bar_1.f3, bar_1.ctid, foo.ctid, foo.*, foo.tableoid
          Inner Unique: true
-         Hash Cond: (bar2__postgres_srv__0.f1 = foo.f1)
-         ->  Foreign Scan on public.bar2__postgres_srv__0
-               Output: bar2__postgres_srv__0.f1, bar2__postgres_srv__0.f2, bar2__postgres_srv__0.f3, bar2__postgres_srv__0.ctid
+         Hash Cond: (bar_1.f1 = foo.f1)
+         ->  Foreign Scan on public.bar2__postgres_srv__0 bar_1
+               Output: bar_1.f1, bar_1.f2, bar_1.f3, bar_1.ctid
                Remote SQL: SELECT f1, f2, f3, ctid FROM public.loct2_1 FOR UPDATE
          ->  Hash
                Output: foo.ctid, foo.f1, foo.*, foo.tableoid
@@ -8705,10 +8775,10 @@ update bar set f2 = f2 + 100 where f1 in (select f1 from foo);
                      Output: foo.ctid, foo.f1, foo.*, foo.tableoid
                      Group Key: foo.f1
                      ->  Append
-                           ->  Seq Scan on public.foo
-                                 Output: foo.ctid, foo.f1, foo.*, foo.tableoid
-                           ->  Foreign Scan on public.foo2__postgres_srv__0
-                                 Output: foo2__postgres_srv__0.ctid, foo2__postgres_srv__0.f1, foo2__postgres_srv__0.*, foo2__postgres_srv__0.tableoid
+                           ->  Seq Scan on public.foo foo_1
+                                 Output: foo_1.ctid, foo_1.f1, foo_1.*, foo_1.tableoid
+                           ->  Foreign Scan on public.foo2__postgres_srv__0 foo_2
+                                 Output: foo_2.ctid, foo_2.f1, foo_2.*, foo_2.tableoid
                                  Remote SQL: SELECT f1, f2, f3, ctid FROM public.loct1_1
 (39 rows)
 
@@ -8733,11 +8803,11 @@ update bar set f2 = f2 + 100
 from
   ( select f1 from foo union all select f1+3 from foo ) ss
 where bar.f1 = ss.f1;
-                                                                   QUERY PLAN                                                                    
--------------------------------------------------------------------------------------------------------------------------------------------------
+                                       QUERY PLAN                                       
+----------------------------------------------------------------------------------------
  Update on public.bar
    Update on public.bar
-   Foreign Update on public.bar2__postgres_srv__0
+   Foreign Update on public.bar2__postgres_srv__0 bar_1
      Remote SQL: UPDATE public.loct2_1 SET f2 = $2 WHERE ctid = $1
    ->  Hash Join
          Output: bar.f1, (bar.f2 + 100), bar.ctid, (ROW(foo.f1))
@@ -8745,26 +8815,26 @@ where bar.f1 = ss.f1;
          ->  Append
                ->  Seq Scan on public.foo
                      Output: ROW(foo.f1), foo.f1
-               ->  Foreign Scan on public.foo2__postgres_srv__0
-                     Output: ROW(foo2__postgres_srv__0.f1), foo2__postgres_srv__0.f1
+               ->  Foreign Scan on public.foo2__postgres_srv__0 foo_1
+                     Output: ROW(foo_1.f1), foo_1.f1
                      Remote SQL: SELECT f1 FROM public.loct1_1
-               ->  Seq Scan on public.foo foo_1
-                     Output: ROW((foo_1.f1 + 3)), (foo_1.f1 + 3)
-               ->  Foreign Scan on public.foo2__postgres_srv__0 foo2__postgres_srv__0_1
-                     Output: ROW((foo2__postgres_srv__0_1.f1 + 3)), (foo2__postgres_srv__0_1.f1 + 3)
+               ->  Seq Scan on public.foo foo_2
+                     Output: ROW((foo_2.f1 + 3)), (foo_2.f1 + 3)
+               ->  Foreign Scan on public.foo2__postgres_srv__0 foo_3
+                     Output: ROW((foo_3.f1 + 3)), (foo_3.f1 + 3)
                      Remote SQL: SELECT f1 FROM public.loct1_1
          ->  Hash
                Output: bar.f1, bar.f2, bar.ctid
                ->  Seq Scan on public.bar
                      Output: bar.f1, bar.f2, bar.ctid
    ->  Merge Join
-         Output: bar2__postgres_srv__0.f1, (bar2__postgres_srv__0.f2 + 100), bar2__postgres_srv__0.f3, bar2__postgres_srv__0.ctid, (ROW(foo.f1))
-         Merge Cond: (bar2__postgres_srv__0.f1 = foo.f1)
+         Output: bar_1.f1, (bar_1.f2 + 100), bar_1.f3, bar_1.ctid, (ROW(foo.f1))
+         Merge Cond: (bar_1.f1 = foo.f1)
          ->  Sort
-               Output: bar2__postgres_srv__0.f1, bar2__postgres_srv__0.f2, bar2__postgres_srv__0.f3, bar2__postgres_srv__0.ctid
-               Sort Key: bar2__postgres_srv__0.f1
-               ->  Foreign Scan on public.bar2__postgres_srv__0
-                     Output: bar2__postgres_srv__0.f1, bar2__postgres_srv__0.f2, bar2__postgres_srv__0.f3, bar2__postgres_srv__0.ctid
+               Output: bar_1.f1, bar_1.f2, bar_1.f3, bar_1.ctid
+               Sort Key: bar_1.f1
+               ->  Foreign Scan on public.bar2__postgres_srv__0 bar_1
+                     Output: bar_1.f1, bar_1.f2, bar_1.f3, bar_1.ctid
                      Remote SQL: SELECT f1, f2, f3, ctid FROM public.loct2_1 FOR UPDATE
          ->  Sort
                Output: (ROW(foo.f1)), foo.f1
@@ -8772,13 +8842,13 @@ where bar.f1 = ss.f1;
                ->  Append
                      ->  Seq Scan on public.foo
                            Output: ROW(foo.f1), foo.f1
-                     ->  Foreign Scan on public.foo2__postgres_srv__0
-                           Output: ROW(foo2__postgres_srv__0.f1), foo2__postgres_srv__0.f1
+                     ->  Foreign Scan on public.foo2__postgres_srv__0 foo_1
+                           Output: ROW(foo_1.f1), foo_1.f1
                            Remote SQL: SELECT f1 FROM public.loct1_1
-                     ->  Seq Scan on public.foo foo_1
-                           Output: ROW((foo_1.f1 + 3)), (foo_1.f1 + 3)
-                     ->  Foreign Scan on public.foo2__postgres_srv__0 foo2__postgres_srv__0_1
-                           Output: ROW((foo2__postgres_srv__0_1.f1 + 3)), (foo2__postgres_srv__0_1.f1 + 3)
+                     ->  Seq Scan on public.foo foo_2
+                           Output: ROW((foo_2.f1 + 3)), (foo_2.f1 + 3)
+                     ->  Foreign Scan on public.foo2__postgres_srv__0 foo_3
+                           Output: ROW((foo_3.f1 + 3)), (foo_3.f1 + 3)
                            Remote SQL: SELECT f1 FROM public.loct1_1
 (45 rows)
 
@@ -8817,8 +8887,8 @@ analyze foo;
 --Testcase 509:
 explain (verbose, costs off)
 	select foo.f1, foo2.f1 from foo join foo2 on (foo.f1 = foo2.f1) order by foo.f2 offset 10 limit 10;
-                                         QUERY PLAN                                         
---------------------------------------------------------------------------------------------
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
  Limit
    Output: foo.f1, foo2.f1, foo.f2
    ->  Sort
@@ -8831,10 +8901,10 @@ explain (verbose, costs off)
                      Output: foo.f1, foo.f2
                      Sort Key: foo.f1
                      ->  Append
-                           ->  Seq Scan on public.foo
-                                 Output: foo.f1, foo.f2
-                           ->  Foreign Scan on public.foo2__postgres_srv__0
-                                 Output: foo2__postgres_srv__0.f1, foo2__postgres_srv__0.f2
+                           ->  Seq Scan on public.foo foo_1
+                                 Output: foo_1.f1, foo_1.f2
+                           ->  Foreign Scan on public.foo2__postgres_srv__0 foo_2
+                                 Output: foo_2.f1, foo_2.f2
                                  Remote SQL: SELECT f1, f2 FROM public.loct1_1
                ->  Sort
                      Output: foo2.f1
@@ -8866,8 +8936,8 @@ select foo.f1, foo2.f1 from foo join foo2 on (foo.f1 = foo2.f1) order by foo.f2 
 --Testcase 511:
 explain (verbose, costs off)
 	select foo.f1, foo2.f1 from foo left join foo2 on (foo.f1 = foo2.f1) order by foo.f2 offset 10 limit 10;
-                                         QUERY PLAN                                         
---------------------------------------------------------------------------------------------
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
  Limit
    Output: foo.f1, foo2.f1, foo.f2
    ->  Sort
@@ -8880,10 +8950,10 @@ explain (verbose, costs off)
                      Output: foo.f1, foo.f2
                      Sort Key: foo.f1
                      ->  Append
-                           ->  Seq Scan on public.foo
-                                 Output: foo.f1, foo.f2
-                           ->  Foreign Scan on public.foo2__postgres_srv__0
-                                 Output: foo2__postgres_srv__0.f1, foo2__postgres_srv__0.f2
+                           ->  Seq Scan on public.foo foo_1
+                                 Output: foo_1.f1, foo_1.f2
+                           ->  Foreign Scan on public.foo2__postgres_srv__0 foo_2
+                                 Output: foo_2.f1, foo_2.f2
                                  Remote SQL: SELECT f1, f2 FROM public.loct1_1
                ->  Sort
                      Output: foo2.f1
@@ -8934,11 +9004,11 @@ delete from foo where f1 < 5 returning *;
  Delete on public.foo
    Output: foo.f1, foo.f2
    Delete on public.foo
-   Foreign Delete on public.foo2__postgres_srv__0
+   Foreign Delete on public.foo2__postgres_srv__0 foo_1
    ->  Seq Scan on public.foo
          Output: foo.ctid
          Filter: (foo.f1 < 5)
-   ->  Foreign Delete on public.foo2__postgres_srv__0
+   ->  Foreign Delete on public.foo2__postgres_srv__0 foo_1
          Remote SQL: DELETE FROM public.loct1_1 WHERE ((f1 < 5)) RETURNING f1, f2
 (9 rows)
 
@@ -8961,10 +9031,10 @@ update bar set f2 = f2 + 100 returning *;
  Update on public.bar
    Output: bar.f1, bar.f2
    Update on public.bar
-   Foreign Update on public.bar2__postgres_srv__0
+   Foreign Update on public.bar2__postgres_srv__0 bar_1
    ->  Seq Scan on public.bar
          Output: bar.f1, (bar.f2 + 100), bar.ctid
-   ->  Foreign Update on public.bar2__postgres_srv__0
+   ->  Foreign Update on public.bar2__postgres_srv__0 bar_1
          Remote SQL: UPDATE public.loct2_1 SET f2 = (f2 + 100) RETURNING f1, f2
 (8 rows)
 
@@ -8994,10 +9064,10 @@ update bar set f2 = f2 + 100;
 ---------------------------------------------------------------
  Update on public.bar
    Update on public.bar
-   Foreign Update on public.bar2__postgres_srv__0
+   Foreign Update on public.bar2__postgres_srv__0 bar_1
    ->  Seq Scan on public.bar
          Output: bar.f1, (bar.f2 + 100), bar.ctid
-   ->  Foreign Update on public.bar2__postgres_srv__0
+   ->  Foreign Update on public.bar2__postgres_srv__0 bar_1
          Remote SQL: UPDATE public.loct2_1 SET f2 = (f2 + 100)
 (7 rows)
 
@@ -9010,11 +9080,11 @@ delete from bar where f2 < 400;
 -------------------------------------------------------------------
  Delete on public.bar
    Delete on public.bar
-   Foreign Delete on public.bar2__postgres_srv__0
+   Foreign Delete on public.bar2__postgres_srv__0 bar_1
    ->  Seq Scan on public.bar
          Output: bar.ctid
          Filter: (bar.f2 < 400)
-   ->  Foreign Delete on public.bar2__postgres_srv__0
+   ->  Foreign Delete on public.bar2__postgres_srv__0 bar_1
          Remote SQL: DELETE FROM public.loct2_1 WHERE ((f2 < 400))
 (8 rows)
 
@@ -9048,12 +9118,12 @@ insert into remt2__postgres_srv__0 values (2, 'bar');
 --Testcase 527:
 explain (verbose, costs off)
 update parent set b = parent.b || remt2.b from remt2 where parent.a = remt2.a returning *;
-                                                                        QUERY PLAN                                                                        
-----------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                   QUERY PLAN                                                   
+----------------------------------------------------------------------------------------------------------------
  Update on public.parent
    Output: parent.a, parent.b, remt2.a, remt2.b, remt2.__spd_url
    Update on public.parent
-   Foreign Update on public.remt1__postgres_srv__0
+   Foreign Update on public.remt1__postgres_srv__0 parent_1
      Remote SQL: UPDATE public.loct1_2 SET b = $2 WHERE ctid = $1 RETURNING a, b
    ->  Hash Join
          Output: parent.a, (parent.b || remt2.b), parent.ctid, remt2.*, remt2.a, remt2.b, remt2.__spd_url
@@ -9067,13 +9137,13 @@ update parent set b = parent.b || remt2.b from remt2 where parent.a = remt2.a re
                ->  Seq Scan on public.parent
                      Output: parent.a, parent.b, parent.ctid
    ->  Merge Join
-         Output: remt1__postgres_srv__0.a, (remt1__postgres_srv__0.b || remt2.b), remt1__postgres_srv__0.ctid, remt2.*, remt2.a, remt2.b, remt2.__spd_url
-         Merge Cond: (remt1__postgres_srv__0.a = remt2.a)
+         Output: parent_1.a, (parent_1.b || remt2.b), parent_1.ctid, remt2.*, remt2.a, remt2.b, remt2.__spd_url
+         Merge Cond: (parent_1.a = remt2.a)
          ->  Sort
-               Output: remt1__postgres_srv__0.a, remt1__postgres_srv__0.b, remt1__postgres_srv__0.ctid
-               Sort Key: remt1__postgres_srv__0.a
-               ->  Foreign Scan on public.remt1__postgres_srv__0
-                     Output: remt1__postgres_srv__0.a, remt1__postgres_srv__0.b, remt1__postgres_srv__0.ctid
+               Output: parent_1.a, parent_1.b, parent_1.ctid
+               Sort Key: parent_1.a
+               ->  Foreign Scan on public.remt1__postgres_srv__0 parent_1
+                     Output: parent_1.a, parent_1.b, parent_1.ctid
                      Remote SQL: SELECT a, b, ctid FROM public.loct1_2 FOR UPDATE
          ->  Sort
                Output: remt2.b, remt2.*, remt2.a, remt2.__spd_url
@@ -9095,12 +9165,12 @@ update parent set b = parent.b || remt2.b from remt2 where parent.a = remt2.a re
 --Testcase 529:
 explain (verbose, costs off)
 delete from parent using remt2 where parent.a = remt2.a returning parent;
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
  Delete on public.parent
    Output: parent.*
    Delete on public.parent
-   Foreign Delete on public.remt1__postgres_srv__0
+   Foreign Delete on public.remt1__postgres_srv__0 parent_1
      Remote SQL: DELETE FROM public.loct1_2 WHERE ctid = $1 RETURNING a, b
    ->  Hash Join
          Output: parent.ctid, remt2.*
@@ -9114,13 +9184,13 @@ delete from parent using remt2 where parent.a = remt2.a returning parent;
                ->  Seq Scan on public.parent
                      Output: parent.ctid, parent.a
    ->  Merge Join
-         Output: remt1__postgres_srv__0.ctid, remt2.*
-         Merge Cond: (remt1__postgres_srv__0.a = remt2.a)
+         Output: parent_1.ctid, remt2.*
+         Merge Cond: (parent_1.a = remt2.a)
          ->  Sort
-               Output: remt1__postgres_srv__0.ctid, remt1__postgres_srv__0.a
-               Sort Key: remt1__postgres_srv__0.a
-               ->  Foreign Scan on public.remt1__postgres_srv__0
-                     Output: remt1__postgres_srv__0.ctid, remt1__postgres_srv__0.a
+               Output: parent_1.ctid, parent_1.a
+               Sort Key: parent_1.a
+               ->  Foreign Scan on public.remt1__postgres_srv__0 parent_1
+                     Output: parent_1.ctid, parent_1.a
                      Remote SQL: SELECT a, ctid FROM public.loct1_2 FOR UPDATE
          ->  Sort
                Output: remt2.*, remt2.a
@@ -9437,8 +9507,8 @@ select tableoid::regclass, * FROM locp;
 update utrtest__postgres_srv__0 set a = 2 where b = 'foo' returning *;
 ERROR:  new row for relation "loct_2" violates check constraint "loct_2_a_check"
 DETAIL:  Failing row contains (2, foo).
-CONTEXT:  remote SQL command: UPDATE public.utrtest SET a = 2 WHERE ((b = 'foo'::text)) RETURNING a, b
-remote SQL command: UPDATE public.loct_2 SET a = 2 WHERE ((b = 'foo'::text)) RETURNING a, b
+CONTEXT:  remote SQL command: UPDATE public.loct_2 SET a = 2 WHERE ((b = 'foo'::text)) RETURNING a, b
+remote SQL command: UPDATE public.utrtest SET a = 2 WHERE ((b = 'foo'::text)) RETURNING a, b
 -- But the reverse is allowed
 --Testcase 568:
 update utrtest__postgres_srv__0 set a = 1 where b = 'qux' returning *;
@@ -10270,14 +10340,14 @@ WARNING:  skipping "ftprt2_p2" --- cannot analyze this foreign table
 --Testcase 642:
 EXPLAIN (COSTS OFF)
 SELECT t1.a,t2.b,t3.c FROM fprt1 t1 INNER JOIN fprt2 t2 ON (t1.a = t2.b) INNER JOIN fprt1 t3 ON (t2.b = t3.a) WHERE t1.a % 25 =0 ORDER BY 1,2,3;
-                                                                           QUERY PLAN                                                                            
------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                    QUERY PLAN                                                                    
+--------------------------------------------------------------------------------------------------------------------------------------------------
  Merge Append
    Sort Key: t1.a, t3.c
    ->  Foreign Scan
-         Relations: ((public.ftprt1_p1__postgres_srv__0 t1) INNER JOIN (public.ftprt2_p1__postgres_srv__0 t2)) INNER JOIN (public.ftprt1_p1__postgres_srv__0 t3)
+         Relations: ((ftprt1_p1__postgres_srv__0 t1_1) INNER JOIN (ftprt2_p1__postgres_srv__0 t2_1)) INNER JOIN (ftprt1_p1__postgres_srv__0 t3_1)
    ->  Foreign Scan
-         Relations: ((public.ftprt1_p2__postgres_srv__0 t1) INNER JOIN (public.ftprt2_p2__postgres_srv__0 t2)) INNER JOIN (public.ftprt1_p2__postgres_srv__0 t3)
+         Relations: ((ftprt1_p2__postgres_srv__0 t1_2) INNER JOIN (ftprt2_p2__postgres_srv__0 t2_2)) INNER JOIN (ftprt1_p2__postgres_srv__0 t3_2)
 (6 rows)
 
 --Testcase 643:
@@ -10297,7 +10367,7 @@ SELECT t1.a,t2.b,t2.c FROM fprt1 t1 LEFT JOIN (SELECT * FROM fprt2 WHERE a < 10)
                                                                                                                      QUERY PLAN                                                                                                                     
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan
-   Output: t1.a, ftprt2_p1__postgres_srv__0.b, ftprt2_p1__postgres_srv__0.c
+   Output: t1.a, fprt2.b, fprt2.c
    Relations: (public.ftprt1_p1__postgres_srv__0 t1) LEFT JOIN (public.ftprt2_p1__postgres_srv__0 fprt2)
    Remote SQL: SELECT r5.a, r6.b, r6.c FROM (public.fprt1_p1 r5 LEFT JOIN public.fprt2_p1 r6 ON (((r5.a = r6.b)) AND ((r5.b = r6.a)) AND ((r6.a < 10)))) WHERE ((r5.a < 10)) ORDER BY r5.a ASC NULLS LAST, r6.b ASC NULLS LAST, r6.c ASC NULLS LAST
 (4 rows)
@@ -10324,12 +10394,12 @@ SELECT t1.wr, t2.wr FROM (SELECT t1 wr, a FROM fprt1 t1 WHERE t1.a % 25 = 0) t1 
    ->  Hash Full Join
          Hash Cond: (t2.b = t1.a)
          ->  Append
-               ->  Foreign Scan on ftprt2_p1__postgres_srv__0 t2
-               ->  Foreign Scan on ftprt2_p2__postgres_srv__0 t2_1
+               ->  Foreign Scan on ftprt2_p1__postgres_srv__0 t2_1
+               ->  Foreign Scan on ftprt2_p2__postgres_srv__0 t2_2
          ->  Hash
                ->  Append
-                     ->  Foreign Scan on ftprt1_p1__postgres_srv__0 t1
-                     ->  Foreign Scan on ftprt1_p2__postgres_srv__0 t1_1
+                     ->  Foreign Scan on ftprt1_p1__postgres_srv__0 t1_1
+                     ->  Foreign Scan on ftprt1_p2__postgres_srv__0 t1_2
 (11 rows)
 
 --Testcase 647:
@@ -10356,15 +10426,15 @@ SELECT t1.wr, t2.wr FROM (SELECT t1 wr, a FROM fprt1 t1 WHERE t1.a % 25 = 0) t1 
 --Testcase 648:
 EXPLAIN (COSTS OFF)
 SELECT t1.a,t1.b FROM fprt1 t1, LATERAL (SELECT t2.a, t2.b FROM fprt2 t2 WHERE t1.a = t2.b AND t1.b = t2.a) q WHERE t1.a%25 = 0 ORDER BY 1,2;
-                                                    QUERY PLAN                                                     
--------------------------------------------------------------------------------------------------------------------
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
  Sort
    Sort Key: t1.a, t1.b
    ->  Append
          ->  Foreign Scan
-               Relations: (public.ftprt1_p1__postgres_srv__0 t1) INNER JOIN (public.ftprt2_p1__postgres_srv__0 t2)
+               Relations: (ftprt1_p1__postgres_srv__0 t1_1) INNER JOIN (ftprt2_p1__postgres_srv__0 t2_1)
          ->  Foreign Scan
-               Relations: (public.ftprt1_p2__postgres_srv__0 t1) INNER JOIN (public.ftprt2_p2__postgres_srv__0 t2)
+               Relations: (ftprt1_p2__postgres_srv__0 t1_2) INNER JOIN (ftprt2_p2__postgres_srv__0 t2_2)
 (7 rows)
 
 --Testcase 649:
@@ -10381,21 +10451,21 @@ SELECT t1.a,t1.b FROM fprt1 t1, LATERAL (SELECT t2.a, t2.b FROM fprt2 t2 WHERE t
 --Testcase 650:
 EXPLAIN (COSTS OFF)
 SELECT t1.a, t1.phv, t2.b, t2.phv FROM (SELECT 't1_phv' phv, * FROM fprt1 WHERE a % 25 = 0) t1 FULL JOIN (SELECT 't2_phv' phv, * FROM fprt2 WHERE b % 25 = 0) t2 ON (t1.a = t2.b) ORDER BY t1.a, t2.b;
-                                       QUERY PLAN                                       
-----------------------------------------------------------------------------------------
+                                 QUERY PLAN                                 
+----------------------------------------------------------------------------
  Sort
-   Sort Key: ftprt1_p1__postgres_srv__0.a, ftprt2_p1__postgres_srv__0.b
+   Sort Key: fprt1.a, fprt2.b
    ->  Append
          ->  Hash Full Join
-               Hash Cond: (ftprt1_p1__postgres_srv__0.a = ftprt2_p1__postgres_srv__0.b)
-               ->  Foreign Scan on ftprt1_p1__postgres_srv__0
+               Hash Cond: (fprt1_1.a = fprt2_1.b)
+               ->  Foreign Scan on ftprt1_p1__postgres_srv__0 fprt1_1
                ->  Hash
-                     ->  Foreign Scan on ftprt2_p1__postgres_srv__0
+                     ->  Foreign Scan on ftprt2_p1__postgres_srv__0 fprt2_1
          ->  Hash Full Join
-               Hash Cond: (ftprt2_p2__postgres_srv__0.b = ftprt1_p2__postgres_srv__0.a)
-               ->  Foreign Scan on ftprt2_p2__postgres_srv__0
+               Hash Cond: (fprt2_2.b = fprt1_2.a)
+               ->  Foreign Scan on ftprt2_p2__postgres_srv__0 fprt2_2
                ->  Hash
-                     ->  Foreign Scan on ftprt1_p2__postgres_srv__0
+                     ->  Foreign Scan on ftprt1_p2__postgres_srv__0 fprt1_2
 (13 rows)
 
 --Testcase 651:
@@ -10430,12 +10500,12 @@ SELECT t1.a, t2.b FROM fprt1 t1 INNER JOIN fprt2 t2 ON (t1.a = t2.b) WHERE t1.a 
          ->  Hash Join
                Hash Cond: (t2.b = t1.a)
                ->  Append
-                     ->  Foreign Scan on ftprt2_p1__postgres_srv__0 t2
-                     ->  Foreign Scan on ftprt2_p2__postgres_srv__0 t2_1
+                     ->  Foreign Scan on ftprt2_p1__postgres_srv__0 t2_1
+                     ->  Foreign Scan on ftprt2_p2__postgres_srv__0 t2_2
                ->  Hash
                      ->  Append
-                           ->  Foreign Scan on ftprt1_p1__postgres_srv__0 t1
-                           ->  Foreign Scan on ftprt1_p2__postgres_srv__0 t1_1
+                           ->  Foreign Scan on ftprt1_p1__postgres_srv__0 t1_1
+                           ->  Foreign Scan on ftprt1_p2__postgres_srv__0 t1_2
 (12 rows)
 
 --Testcase 653:
@@ -10483,17 +10553,17 @@ SET enable_partitionwise_aggregate TO false;
 --Testcase 654:
 EXPLAIN (COSTS OFF)
 SELECT a, sum(b), min(b), count(*) FROM pagg_tab GROUP BY a HAVING avg(b) < 22 ORDER BY 1;
-                               QUERY PLAN                               
-------------------------------------------------------------------------
+                                 QUERY PLAN                                 
+----------------------------------------------------------------------------
  Sort
-   Sort Key: fpagg_tab_p1__postgres_srv__0.a
+   Sort Key: pagg_tab.a
    ->  HashAggregate
-         Group Key: fpagg_tab_p1__postgres_srv__0.a
-         Filter: (avg(fpagg_tab_p1__postgres_srv__0.b) < '22'::numeric)
+         Group Key: pagg_tab.a
+         Filter: (avg(pagg_tab.b) < '22'::numeric)
          ->  Append
-               ->  Foreign Scan on fpagg_tab_p1__postgres_srv__0
-               ->  Foreign Scan on fpagg_tab_p2__postgres_srv__0
-               ->  Foreign Scan on fpagg_tab_p3__postgres_srv__0
+               ->  Foreign Scan on fpagg_tab_p1__postgres_srv__0 pagg_tab_1
+               ->  Foreign Scan on fpagg_tab_p2__postgres_srv__0 pagg_tab_2
+               ->  Foreign Scan on fpagg_tab_p3__postgres_srv__0 pagg_tab_3
 (9 rows)
 
 -- Plan with partitionwise aggregates is enabled
@@ -10501,17 +10571,17 @@ SET enable_partitionwise_aggregate TO true;
 --Testcase 655:
 EXPLAIN (COSTS OFF)
 SELECT a, sum(b), min(b), count(*) FROM pagg_tab GROUP BY a HAVING avg(b) < 22 ORDER BY 1;
-                                      QUERY PLAN                                       
----------------------------------------------------------------------------------------
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
  Sort
-   Sort Key: fpagg_tab_p1__postgres_srv__0.a
+   Sort Key: pagg_tab.a
    ->  Append
          ->  Foreign Scan
-               Relations: Aggregate on (public.fpagg_tab_p1__postgres_srv__0 pagg_tab)
+               Relations: Aggregate on (fpagg_tab_p1__postgres_srv__0 pagg_tab)
          ->  Foreign Scan
-               Relations: Aggregate on (public.fpagg_tab_p2__postgres_srv__0 pagg_tab)
+               Relations: Aggregate on (fpagg_tab_p2__postgres_srv__0 pagg_tab_1)
          ->  Foreign Scan
-               Relations: Aggregate on (public.fpagg_tab_p3__postgres_srv__0 pagg_tab)
+               Relations: Aggregate on (fpagg_tab_p3__postgres_srv__0 pagg_tab_2)
 (9 rows)
 
 --Testcase 656:
@@ -10576,26 +10646,135 @@ SELECT a, count(t1) FROM pagg_tab t1 GROUP BY a HAVING avg(b) < 22 ORDER BY 1;
 --Testcase 659:
 EXPLAIN (COSTS OFF)
 SELECT b, avg(a), max(a), count(*) FROM pagg_tab GROUP BY b HAVING sum(a) < 700 ORDER BY 1;
-                              QUERY PLAN                               
------------------------------------------------------------------------
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
  Sort
-   Sort Key: fpagg_tab_p1__postgres_srv__0.b
+   Sort Key: pagg_tab.b
    ->  Finalize HashAggregate
-         Group Key: fpagg_tab_p1__postgres_srv__0.b
-         Filter: (sum(fpagg_tab_p1__postgres_srv__0.a) < 700)
+         Group Key: pagg_tab.b
+         Filter: (sum(pagg_tab.a) < 700)
          ->  Append
                ->  Partial HashAggregate
-                     Group Key: fpagg_tab_p1__postgres_srv__0.b
-                     ->  Foreign Scan on fpagg_tab_p1__postgres_srv__0
+                     Group Key: pagg_tab.b
+                     ->  Foreign Scan on fpagg_tab_p1__postgres_srv__0 pagg_tab
                ->  Partial HashAggregate
-                     Group Key: fpagg_tab_p2__postgres_srv__0.b
-                     ->  Foreign Scan on fpagg_tab_p2__postgres_srv__0
+                     Group Key: pagg_tab_1.b
+                     ->  Foreign Scan on fpagg_tab_p2__postgres_srv__0 pagg_tab_1
                ->  Partial HashAggregate
-                     Group Key: fpagg_tab_p3__postgres_srv__0.b
-                     ->  Foreign Scan on fpagg_tab_p3__postgres_srv__0
+                     Group Key: pagg_tab_2.b
+                     ->  Foreign Scan on fpagg_tab_p3__postgres_srv__0 pagg_tab_2
 (15 rows)
 
+-- ===================================================================
+-- skip this test, pgspider_core_fdw does not support ssl
+-- access rights and superuser
+-- ===================================================================
+/*
+-- Non-superuser cannot create a FDW without a password in the connstr
+CREATE ROLE regress_nosuper NOSUPERUSER;
+
+GRANT USAGE ON FOREIGN DATA WRAPPER postgres_fdw TO regress_nosuper;
+
+SET ROLE regress_nosuper;
+
+SHOW is_superuser;
+
+-- This will be OK, we can create the FDW
+DO $d$
+    BEGIN
+        EXECUTE $$CREATE SERVER loopback_nopw FOREIGN DATA WRAPPER postgres_fdw
+            OPTIONS (dbname '$$||current_database()||$$',
+                     port '$$||current_setting('port')||$$'
+            )$$;
+    END;
+$d$;
+
+-- But creation of user mappings for non-superusers should fail
+CREATE USER MAPPING FOR public SERVER loopback_nopw;
+CREATE USER MAPPING FOR CURRENT_USER SERVER loopback_nopw;
+
+CREATE FOREIGN TABLE ft1_nopw (
+	c1 int NOT NULL,
+	c2 int NOT NULL,
+	c3 text,
+	c4 timestamptz,
+	c5 timestamp,
+	c6 varchar(10),
+	c7 char(10) default 'ft1',
+	c8 user_enum
+) SERVER loopback_nopw OPTIONS (schema_name 'public', table_name 'ft1');
+
+SELECT * FROM ft1_nopw LIMIT 1;
+
+-- If we add a password to the connstr it'll fail, because we don't allow passwords
+-- in connstrs only in user mappings.
+
+DO $d$
+    BEGIN
+        EXECUTE $$ALTER SERVER loopback_nopw OPTIONS (ADD password 'dummypw')$$;
+    END;
+$d$;
+
+-- If we add a password for our user mapping instead, we should get a different
+-- error because the password wasn't actually *used* when we run with trust auth.
+--
+-- This won't work with installcheck, but neither will most of the FDW checks.
+
+ALTER USER MAPPING FOR CURRENT_USER SERVER loopback_nopw OPTIONS (ADD password 'dummypw');
+
+SELECT * FROM ft1_nopw LIMIT 1;
+
+-- Unpriv user cannot make the mapping passwordless
+ALTER USER MAPPING FOR CURRENT_USER SERVER loopback_nopw OPTIONS (ADD password_required 'false');
+
+
+SELECT * FROM ft1_nopw LIMIT 1;
+
+RESET ROLE;
+
+-- But the superuser can
+ALTER USER MAPPING FOR regress_nosuper SERVER loopback_nopw OPTIONS (ADD password_required 'false');
+
+SET ROLE regress_nosuper;
+
+-- Should finally work now
+SELECT * FROM ft1_nopw LIMIT 1;
+
+-- unpriv user also cannot set sslcert / sslkey on the user mapping
+-- first set password_required so we see the right error messages
+ALTER USER MAPPING FOR CURRENT_USER SERVER loopback_nopw OPTIONS (SET password_required 'true');
+ALTER USER MAPPING FOR CURRENT_USER SERVER loopback_nopw OPTIONS (ADD sslcert 'foo.crt');
+ALTER USER MAPPING FOR CURRENT_USER SERVER loopback_nopw OPTIONS (ADD sslkey 'foo.key');
+
+-- We're done with the role named after a specific user and need to check the
+-- changes to the public mapping.
+DROP USER MAPPING FOR CURRENT_USER SERVER loopback_nopw;
+
+-- This will fail again as it'll resolve the user mapping for public, which
+-- lacks password_required=false
+SELECT * FROM ft1_nopw LIMIT 1;
+
+RESET ROLE;
+
+-- The user mapping for public is passwordless and lacks the password_required=false
+-- mapping option, but will work because the current user is a superuser.
+SELECT * FROM ft1_nopw LIMIT 1;
+
+-- cleanup
+DROP USER MAPPING FOR public SERVER loopback_nopw;
+DROP OWNED BY regress_nosuper;
+DROP ROLE regress_nosuper;
+
 -- Clean-up
+RESET enable_partitionwise_aggregate;
+
+-- Two-phase transactions are not supported.
+BEGIN;
+SELECT count(*) FROM ft1;
+-- error here
+PREPARE TRANSACTION 'fdw_tpc';
+ROLLBACK;
+*/
 --Testcase 660:
 SELECT dblink_disconnect();
  dblink_disconnect 
@@ -10603,4 +10782,3 @@ SELECT dblink_disconnect();
  OK
 (1 row)
 
-RESET enable_partitionwise_aggregate;

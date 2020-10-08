@@ -65,24 +65,25 @@ INSERT INTO test_like_gen_3 (a) VALUES (1);
 SELECT * FROM test_like_gen_3;
 DROP TABLE test_like_gen_1, test_like_gen_2, test_like_gen_3;
 
-CREATE TABLE test_like_4 (a int, b int DEFAULT 42, c int GENERATED ALWAYS AS (a * 2) STORED);
+-- also test generated column with a "forward" reference (bug #16342)
+CREATE TABLE test_like_4 (b int DEFAULT 42, c int GENERATED ALWAYS AS (a * 2) STORED, a int);
 \d test_like_4
 CREATE TABLE test_like_4a (LIKE test_like_4);
 CREATE TABLE test_like_4b (LIKE test_like_4 INCLUDING DEFAULTS);
 CREATE TABLE test_like_4c (LIKE test_like_4 INCLUDING GENERATED);
 CREATE TABLE test_like_4d (LIKE test_like_4 INCLUDING DEFAULTS INCLUDING GENERATED);
 \d test_like_4a
-INSERT INTO test_like_4a VALUES(11);
-TABLE test_like_4a;
+INSERT INTO test_like_4a (a) VALUES(11);
+SELECT a, b, c FROM test_like_4a;
 \d test_like_4b
-INSERT INTO test_like_4b VALUES(11);
-TABLE test_like_4b;
+INSERT INTO test_like_4b (a) VALUES(11);
+SELECT a, b, c FROM test_like_4b;
 \d test_like_4c
-INSERT INTO test_like_4c VALUES(11);
-TABLE test_like_4c;
+INSERT INTO test_like_4c (a) VALUES(11);
+SELECT a, b, c FROM test_like_4c;
 \d test_like_4d
-INSERT INTO test_like_4d VALUES(11);
-TABLE test_like_4d;
+INSERT INTO test_like_4d (a) VALUES(11);
+SELECT a, b, c FROM test_like_4d;
 DROP TABLE test_like_4, test_like_4a, test_like_4b, test_like_4c, test_like_4d;
 
 CREATE TABLE inhg (x text, LIKE inhx INCLUDING INDEXES, y text); /* copies indexes */
@@ -150,6 +151,17 @@ CREATE TABLE inh_error1 () INHERITS (ctlt1, ctlt4);
 CREATE TABLE inh_error2 (LIKE ctlt4 INCLUDING STORAGE) INHERITS (ctlt1);
 
 DROP TABLE ctlt1, ctlt2, ctlt3, ctlt4, ctlt12_storage, ctlt12_comments, ctlt1_inh, ctlt13_inh, ctlt13_like, ctlt_all, ctla, ctlb CASCADE;
+
+-- LIKE must respect NO INHERIT property of constraints
+CREATE TABLE noinh_con_copy (a int CHECK (a > 0) NO INHERIT);
+CREATE TABLE noinh_con_copy1 (LIKE noinh_con_copy INCLUDING CONSTRAINTS);
+\d noinh_con_copy1
+
+-- fail, as partitioned tables don't allow NO INHERIT constraints
+CREATE TABLE noinh_con_copy1_parted (LIKE noinh_con_copy INCLUDING ALL)
+  PARTITION BY LIST (a);
+
+DROP TABLE noinh_con_copy, noinh_con_copy1;
 
 
 /* LIKE with other relation kinds */

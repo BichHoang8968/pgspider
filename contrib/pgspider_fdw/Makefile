@@ -1,8 +1,14 @@
 # contrib/pgspider_fdw/Makefile
 
 MODULE_big = pgspider_fdw
-OBJS = pgspider_fdw.o option.o deparse.o connection.o shippable.o $(WIN32RES)
-PGFILEDESC = "pgspider_fdw - foreign data wrapper for PgspiderQL"
+OBJS = \
+	$(WIN32RES) \
+	connection.o \
+	deparse.o \
+	option.o \
+	pgspider_fdw.o \
+	shippable.o
+PGFILEDESC = "pgspider_fdw - foreign data wrapper for PGSpider"
 
 PG_CPPFLAGS = -I$(libpq_srcdir)
 SHLIB_LINK_INTERNAL = $(libpq)

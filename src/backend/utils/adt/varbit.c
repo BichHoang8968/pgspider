@@ -20,7 +20,7 @@
  *
  * Code originally contributed by Adriaan Joubert.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2020, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -713,7 +713,7 @@ varbit_support(PG_FUNCTION_ARGS)
 
 		typmod = (Node *) lsecond(expr->args);
 
-		if (IsA(typmod, Const) &&!((Const *) typmod)->constisnull)
+		if (IsA(typmod, Const) && !((Const *) typmod)->constisnull)
 		{
 			Node	   *source = (Node *) linitial(expr->args);
 			int32		new_typmod = DatumGetInt32(((Const *) typmod)->constvalue);
@@ -1483,6 +1483,7 @@ bitshiftright(PG_FUNCTION_ARGS)
 		/* Special case: we can do a memcpy */
 		len = VARBITBYTES(arg) - byte_shift;
 		memcpy(r, p, len);
+		r += len;
 	}
 	else
 	{
@@ -1494,9 +1495,10 @@ bitshiftright(PG_FUNCTION_ARGS)
 			if ((++r) < VARBITEND(result))
 				*r = (*p << (BITS_PER_BYTE - ishift)) & BITMASK;
 		}
-		/* We may have shifted 1's into the pad bits, so fix that */
-		VARBIT_PAD_LAST(result, r);
 	}
+
+	/* We may have shifted 1's into the pad bits, so fix that */
+	VARBIT_PAD_LAST(result, r);
 
 	PG_RETURN_VARBIT_P(result);
 }

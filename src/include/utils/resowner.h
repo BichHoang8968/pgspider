@@ -9,7 +9,7 @@
  * See utils/resowner/README for more info.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2020, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/resowner.h
@@ -30,7 +30,11 @@ typedef struct ResourceOwnerData *ResourceOwner;
 /*
  * Globally known ResourceOwners
  */
+#ifdef PGSPIDER
 extern PGDLLIMPORT __thread ResourceOwner CurrentResourceOwner;
+#else
+extern PGDLLIMPORT ResourceOwner CurrentResourceOwner;
+#endif
 extern PGDLLIMPORT ResourceOwner CurTransactionResourceOwner;
 extern PGDLLIMPORT ResourceOwner TopTransactionResourceOwner;
 extern PGDLLIMPORT ResourceOwner AuxProcessResourceOwner;
@@ -71,6 +75,7 @@ extern void ResourceOwnerRelease(ResourceOwner owner,
 								 ResourceReleasePhase phase,
 								 bool isCommit,
 								 bool isTopLevel);
+extern void ResourceOwnerReleaseAllPlanCacheRefs(ResourceOwner owner);
 extern void ResourceOwnerDelete(ResourceOwner owner);
 extern ResourceOwner ResourceOwnerGetParent(ResourceOwner owner);
 extern void ResourceOwnerNewParent(ResourceOwner owner,
