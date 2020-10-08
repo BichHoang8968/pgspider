@@ -3,7 +3,7 @@
  *
  * pl_gram.y			- Parser for the PL/pgSQL procedural language
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2020, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -232,7 +232,7 @@ static	void			check_raise_parameters(PLpgSQL_stmt_raise *stmt);
  * Some of these are not directly referenced in this file, but they must be
  * here anyway.
  */
-%token <str>	IDENT FCONST SCONST BCONST XCONST Op
+%token <str>	IDENT UIDENT FCONST SCONST USCONST BCONST XCONST Op
 %token <ival>	ICONST PARAM
 %token			TYPECAST DOT_DOT COLON_EQUALS EQUALS_GREATER
 %token			LESS_EQUALS GREATER_EQUALS NOT_EQUALS
@@ -1725,7 +1725,7 @@ stmt_exit		: exit_type opt_label opt_exitcond
 						{
 							/*
 							 * No label, so make sure there is some loop (an
-							 * unlabelled EXIT does not match a block, so this
+							 * unlabeled EXIT does not match a block, so this
 							 * is the same test for both EXIT and CONTINUE)
 							 */
 							if (plpgsql_ns_find_nearest_loop(plpgsql_ns_top()) == NULL)
@@ -3695,7 +3695,7 @@ plpgsql_sql_error_callback(void *arg)
 			internalerrposition(myerrpos + errpos - cbarg->leaderlen - 1);
 	}
 
-	/* In any case, flush errposition --- we want internalerrpos only */
+	/* In any case, flush errposition --- we want internalerrposition only */
 	errposition(0);
 }
 
@@ -3749,7 +3749,7 @@ check_labels(const char *start_label, const char *end_label, int end_location)
 		if (!start_label)
 			ereport(ERROR,
 					(errcode(ERRCODE_SYNTAX_ERROR),
-					 errmsg("end label \"%s\" specified for unlabelled block",
+					 errmsg("end label \"%s\" specified for unlabeled block",
 							end_label),
 					 parser_errposition(end_location)));
 

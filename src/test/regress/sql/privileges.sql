@@ -136,7 +136,11 @@ CREATE TABLE atest12 as
   SELECT x AS a, 10001 - x AS b FROM generate_series(1,10000) x;
 CREATE INDEX ON atest12 (a);
 CREATE INDEX ON atest12 (abs(a));
+-- results below depend on having quite accurate stats for atest12, so...
+ALTER TABLE atest12 SET (autovacuum_enabled = off);
+SET default_statistics_target = 10000;
 VACUUM ANALYZE atest12;
+RESET default_statistics_target;
 
 CREATE FUNCTION leak(integer,integer) RETURNS boolean
   AS $$begin return $1 < $2; end$$
@@ -445,6 +449,26 @@ SELECT fx FROM atestp2; -- still ok
 SELECT fy FROM atestp2; -- ok
 SELECT atestp2 FROM atestp2; -- ok
 SELECT tableoid FROM atestp2; -- ok
+
+-- child's permissions do not apply when operating on parent
+SET SESSION AUTHORIZATION regress_priv_user1;
+REVOKE ALL ON atestc FROM regress_priv_user2;
+GRANT ALL ON atestp1 TO regress_priv_user2;
+SET SESSION AUTHORIZATION regress_priv_user2;
+SELECT f2 FROM atestp1; -- ok
+SELECT f2 FROM atestc; -- fail
+DELETE FROM atestp1; -- ok
+DELETE FROM atestc; -- fail
+UPDATE atestp1 SET f1 = 1; -- ok
+UPDATE atestc SET f1 = 1; -- fail
+TRUNCATE atestp1; -- ok
+TRUNCATE atestc; -- fail
+BEGIN;
+LOCK atestp1;
+END;
+BEGIN;
+LOCK atestc;
+END;
 
 -- privileges on functions, languages
 

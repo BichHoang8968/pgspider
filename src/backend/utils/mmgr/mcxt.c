@@ -9,7 +9,7 @@
  * context's MemoryContextMethods struct.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2020, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -35,14 +35,23 @@
  * CurrentMemoryContext
  *		Default memory context for allocations.
  */
+#ifdef PGSPIDER
 __thread MemoryContext CurrentMemoryContext = NULL;
+#else
+MemoryContext CurrentMemoryContext = NULL;
+#endif
 
 /*
  * Standard top-level contexts. For a description of the purpose of each
  * of these contexts, refer to src/backend/utils/mmgr/README
  */
+#ifdef PGSPIDER
 __thread MemoryContext TopMemoryContext = NULL;
 __thread MemoryContext ErrorContext = NULL;
+#else
+MemoryContext TopMemoryContext = NULL;
+MemoryContext ErrorContext = NULL;
+#endif
 MemoryContext PostmasterContext = NULL;
 MemoryContext CacheMemoryContext = NULL;
 MemoryContext MessageContext = NULL;
@@ -198,6 +207,7 @@ MemoryContextResetChildren(MemoryContext context)
 	}
 }
 
+#ifdef PGSPIDER
 /*
  * MemoryContextDeleteChildNode
  *		Delete a context and its descendants, and release all space
@@ -235,6 +245,7 @@ MemoryContextDeleteChildrenNodes(MemoryContext context)
 
 	MemoryContextDeleteNodes(context);
 }
+#endif
 
 /*
  * MemoryContextDelete
@@ -498,6 +509,30 @@ MemoryContextIsEmpty(MemoryContext context)
 		return false;
 	/* Otherwise use the type-specific inquiry */
 	return context->methods->is_empty(context);
+}
+
+/*
+ * Find the memory allocated to blocks for this memory context. If recurse is
+ * true, also include children.
+ */
+Size
+MemoryContextMemAllocated(MemoryContext context, bool recurse)
+{
+	Size		total = context->mem_allocated;
+
+	AssertArg(MemoryContextIsValid(context));
+
+	if (recurse)
+	{
+		MemoryContext child = context->firstchild;
+
+		for (child = context->firstchild;
+			 child != NULL;
+			 child = child->nextchild)
+			total += MemoryContextMemAllocated(child, true);
+	}
+
+	return total;
 }
 
 /*
@@ -774,6 +809,7 @@ MemoryContextCreate(MemoryContext node,
 	node->methods = methods;
 	node->parent = parent;
 	node->firstchild = NULL;
+	node->mem_allocated = 0;
 	node->prevchild = NULL;
 	node->name = name;
 	node->ident = NULL;

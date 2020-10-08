@@ -90,7 +90,7 @@ CREATE TABLE test_like_id_2 (LIKE test_like_id_1);
  b      | text   |           |          | 
 
 INSERT INTO test_like_id_2 (b) VALUES ('b2');
-ERROR:  null value in column "a" violates not-null constraint
+ERROR:  null value in column "a" of relation "test_like_id_2" violates not-null constraint
 DETAIL:  Failing row contains (null, b2).
 SELECT * FROM test_like_id_2;  -- identity was not copied
  a | b 
@@ -159,14 +159,15 @@ SELECT * FROM test_like_gen_3;
 (1 row)
 
 DROP TABLE test_like_gen_1, test_like_gen_2, test_like_gen_3;
-CREATE TABLE test_like_4 (a int, b int DEFAULT 42, c int GENERATED ALWAYS AS (a * 2) STORED);
+-- also test generated column with a "forward" reference (bug #16342)
+CREATE TABLE test_like_4 (b int DEFAULT 42, c int GENERATED ALWAYS AS (a * 2) STORED, a int);
 \d test_like_4
                           Table "public.test_like_4"
  Column |  Type   | Collation | Nullable |              Default               
 --------+---------+-----------+----------+------------------------------------
- a      | integer |           |          | 
  b      | integer |           |          | 42
  c      | integer |           |          | generated always as (a * 2) stored
+ a      | integer |           |          | 
 
 CREATE TABLE test_like_4a (LIKE test_like_4);
 CREATE TABLE test_like_4b (LIKE test_like_4 INCLUDING DEFAULTS);
@@ -176,12 +177,12 @@ CREATE TABLE test_like_4d (LIKE test_like_4 INCLUDING DEFAULTS INCLUDING GENERAT
             Table "public.test_like_4a"
  Column |  Type   | Collation | Nullable | Default 
 --------+---------+-----------+----------+---------
- a      | integer |           |          | 
  b      | integer |           |          | 
  c      | integer |           |          | 
+ a      | integer |           |          | 
 
-INSERT INTO test_like_4a VALUES(11);
-TABLE test_like_4a;
+INSERT INTO test_like_4a (a) VALUES(11);
+SELECT a, b, c FROM test_like_4a;
  a  | b | c 
 ----+---+---
  11 |   |  
@@ -191,12 +192,12 @@ TABLE test_like_4a;
             Table "public.test_like_4b"
  Column |  Type   | Collation | Nullable | Default 
 --------+---------+-----------+----------+---------
- a      | integer |           |          | 
  b      | integer |           |          | 42
  c      | integer |           |          | 
+ a      | integer |           |          | 
 
-INSERT INTO test_like_4b VALUES(11);
-TABLE test_like_4b;
+INSERT INTO test_like_4b (a) VALUES(11);
+SELECT a, b, c FROM test_like_4b;
  a  | b  | c 
 ----+----+---
  11 | 42 |  
@@ -206,12 +207,12 @@ TABLE test_like_4b;
                          Table "public.test_like_4c"
  Column |  Type   | Collation | Nullable |              Default               
 --------+---------+-----------+----------+------------------------------------
- a      | integer |           |          | 
  b      | integer |           |          | 
  c      | integer |           |          | generated always as (a * 2) stored
+ a      | integer |           |          | 
 
-INSERT INTO test_like_4c VALUES(11);
-TABLE test_like_4c;
+INSERT INTO test_like_4c (a) VALUES(11);
+SELECT a, b, c FROM test_like_4c;
  a  | b | c  
 ----+---+----
  11 |   | 22
@@ -221,12 +222,12 @@ TABLE test_like_4c;
                          Table "public.test_like_4d"
  Column |  Type   | Collation | Nullable |              Default               
 --------+---------+-----------+----------+------------------------------------
- a      | integer |           |          | 
  b      | integer |           |          | 42
  c      | integer |           |          | generated always as (a * 2) stored
+ a      | integer |           |          | 
 
-INSERT INTO test_like_4d VALUES(11);
-TABLE test_like_4d;
+INSERT INTO test_like_4d (a) VALUES(11);
+SELECT a, b, c FROM test_like_4d;
  a  | b  | c  
 ----+----+----
  11 | 42 | 22
@@ -388,6 +389,22 @@ ERROR:  column "a" has a storage parameter conflict
 DETAIL:  MAIN versus EXTENDED
 DROP TABLE ctlt1, ctlt2, ctlt3, ctlt4, ctlt12_storage, ctlt12_comments, ctlt1_inh, ctlt13_inh, ctlt13_like, ctlt_all, ctla, ctlb CASCADE;
 NOTICE:  drop cascades to table inhe
+-- LIKE must respect NO INHERIT property of constraints
+CREATE TABLE noinh_con_copy (a int CHECK (a > 0) NO INHERIT);
+CREATE TABLE noinh_con_copy1 (LIKE noinh_con_copy INCLUDING CONSTRAINTS);
+\d noinh_con_copy1
+          Table "public.noinh_con_copy1"
+ Column |  Type   | Collation | Nullable | Default 
+--------+---------+-----------+----------+---------
+ a      | integer |           |          | 
+Check constraints:
+    "noinh_con_copy_a_check" CHECK (a > 0) NO INHERIT
+
+-- fail, as partitioned tables don't allow NO INHERIT constraints
+CREATE TABLE noinh_con_copy1_parted (LIKE noinh_con_copy INCLUDING ALL)
+  PARTITION BY LIST (a);
+ERROR:  cannot add NO INHERIT constraint to partitioned table "noinh_con_copy1_parted"
+DROP TABLE noinh_con_copy, noinh_con_copy1;
 /* LIKE with other relation kinds */
 CREATE TABLE ctlt4 (a int, b text);
 CREATE SEQUENCE ctlseq1;

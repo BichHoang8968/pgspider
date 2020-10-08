@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------------
  *
  * deparse.c
- *		  Query deparser for postgres_fdw
+ *		  Query deparser for pgspider_fdw
  *
  * This file includes functions that examine query WHERE clauses to see
  * whether they're safe to send to the remote server for execution, as
@@ -24,16 +24,14 @@
  * with collations that match the remote table's columns, which we can
  * consider to be user error.
  *
- * Portions Copyright (c) 2012-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2012-2020, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		  contrib/postgres_fdw/deparse.c
+ *		  contrib/pgspider_fdw/deparse.c
  *
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
-
-#include "pgspider_fdw.h"
 
 #include "access/htup_details.h"
 #include "access/sysattr.h"
@@ -52,12 +50,12 @@
 #include "optimizer/prep.h"
 #include "optimizer/tlist.h"
 #include "parser/parsetree.h"
+#include "pgspider_fdw.h"
 #include "utils/builtins.h"
 #include "utils/lsyscache.h"
 #include "utils/rel.h"
 #include "utils/syscache.h"
 #include "utils/typcache.h"
-
 
 /*
  * Global context for foreign_expr_walker's search of an expression tree.
@@ -391,6 +389,22 @@ foreign_expr_walker(Node *node,
 		case T_Param:
 			{
 				Param	   *p = (Param *) node;
+
+				/*
+				 * If it's a MULTIEXPR Param, punt.  We can't tell from here
+				 * whether the referenced sublink/subplan contains any remote
+				 * Vars; if it does, handling that is too complicated to
+				 * consider supporting at present.  Fortunately, MULTIEXPR
+				 * Params are not reduced to plain PARAM_EXEC until the end of
+				 * planning, so we can easily detect this case.  (Normal
+				 * PARAM_EXEC Params are safe to ship because their values
+				 * come from somewhere else in the plan tree; but a MULTIEXPR
+				 * references a sub-select elsewhere in the same targetlist,
+				 * so we'd be on the hook to evaluate it somehow if we wanted
+				 * to handle such cases as direct foreign updates.)
+				 */
+				if (p->paramkind == PARAM_MULTIEXPR)
+					return false;
 
 				/*
 				 * Collation rule is same as for Consts and non-foreign Vars.
@@ -1522,7 +1536,7 @@ deparseFromExprForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *foreignrel,
 			if (fpinfo->jointype == JOIN_INNER)
 			{
 				*ignore_conds = list_concat(*ignore_conds,
-											list_copy(fpinfo->joinclauses));
+											fpinfo->joinclauses);
 				fpinfo->joinclauses = NIL;
 			}
 
@@ -1556,7 +1570,7 @@ deparseFromExprForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *foreignrel,
 			{
 				Assert(fpinfo->jointype == JOIN_INNER);
 				Assert(fpinfo->joinclauses == NIL);
-				appendStringInfo(buf, "%s", join_sql_o.data);
+				appendBinaryStringInfo(buf, join_sql_o.data, join_sql_o.len);
 				return;
 			}
 		}
@@ -1577,7 +1591,7 @@ deparseFromExprForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *foreignrel,
 			{
 				Assert(fpinfo->jointype == JOIN_INNER);
 				Assert(fpinfo->joinclauses == NIL);
-				appendStringInfo(buf, "%s", join_sql_i.data);
+				appendBinaryStringInfo(buf, join_sql_i.data, join_sql_i.len);
 				return;
 			}
 		}
@@ -1888,7 +1902,7 @@ PGSpiderDeparseDirectUpdateSql(StringInfo buf, PlannerInfo *root,
 	{
 		List	   *ignore_conds = NIL;
 
-		appendStringInfo(buf, " FROM ");
+		appendStringInfoString(buf, " FROM ");
 		deparseFromExprForRel(buf, root, foreignrel, true, rtindex,
 							  &ignore_conds, params_list);
 		remote_conds = list_concat(remote_conds, ignore_conds);
@@ -1971,7 +1985,7 @@ PGSpiderDeparseDirectDeleteSql(StringInfo buf, PlannerInfo *root,
 	{
 		List	   *ignore_conds = NIL;
 
-		appendStringInfo(buf, " USING ");
+		appendStringInfoString(buf, " USING ");
 		deparseFromExprForRel(buf, root, foreignrel, true, rtindex,
 							  &ignore_conds, params_list);
 		remote_conds = list_concat(remote_conds, ignore_conds);
@@ -2637,7 +2651,7 @@ deparseSubscriptingRef(SubscriptingRef *node, deparse_expr_cxt *context)
 		{
 			deparseExpr(lfirst(lowlist_item), context);
 			appendStringInfoChar(buf, ':');
-			lowlist_item = lnext(lowlist_item);
+			lowlist_item = lnext(node->reflowerindexpr, lowlist_item);
 		}
 		deparseExpr(lfirst(uplist_item), context);
 		appendStringInfoChar(buf, ']');
@@ -2700,7 +2714,7 @@ deparseFuncExpr(FuncExpr *node, deparse_expr_cxt *context)
 	{
 		if (!first)
 			appendStringInfoString(buf, ", ");
-		if (use_variadic && lnext(arg) == NULL)
+		if (use_variadic && lnext(node->args, arg) == NULL)
 			appendStringInfoString(buf, "VARIADIC ");
 		deparseExpr((Expr *) lfirst(arg), context);
 		first = false;
@@ -3028,7 +3042,7 @@ deparseAggref(Aggref *node, deparse_expr_cxt *context)
 				first = false;
 
 				/* Add VARIADIC */
-				if (use_variadic && lnext(arg) == NULL)
+				if (use_variadic && lnext(node->args, arg) == NULL)
 					appendStringInfoString(buf, "VARIADIC ");
 
 				deparseExpr((Expr *) n, context);
@@ -3221,7 +3235,7 @@ appendOrderByClause(List *pathkeys, bool has_final_sort,
 													context->foreignrel->reltarget);
 		}
 		else
-			em_expr = pgspider_find_em_expr_for_rel(pathkey->pk_eclass, baserel);
+			em_expr = find_em_expr_for_rel(pathkey->pk_eclass, baserel);
 
 		Assert(em_expr != NULL);
 

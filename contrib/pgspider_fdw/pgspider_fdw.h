@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
  *
  * pgspider_fdw.h
- *		  Foreign-data wrapper for remote PGSpiderQL servers
+ *		  Foreign-data wrapper for remote PGSpider servers
  *
- * Portions Copyright (c) 2012-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2012-2020, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  contrib/pgspider_fdw/pgspider_fdw.h
@@ -15,10 +15,9 @@
 
 #include "foreign/foreign.h"
 #include "lib/stringinfo.h"
+#include "libpq-fe.h"
 #include "nodes/pathnodes.h"
 #include "utils/relcache.h"
-
-#include "libpq-fe.h"
 
 /*
  * FDW-specific planner information kept in RelOptInfo.fdw_private for a
@@ -88,11 +87,14 @@ typedef struct PGSpiderFdwRelationInfo
 	int			fetch_size;		/* fetch size for this remote table */
 
 	/*
-	 * Name of the relation while EXPLAINing ForeignScan. It is used for join
-	 * relations but is set for all relations. For join relation, the name
-	 * indicates which foreign tables are being joined and the join type used.
+	 * Name of the relation, for use while EXPLAINing ForeignScan.  It is used
+	 * for join and upper relations but is set for all relations.  For a base
+	 * relation, this is really just the RT index as a string; we convert that
+	 * while producing EXPLAIN output.  For join and upper relations, the name
+	 * indicates which base foreign tables are included and the join type or
+	 * aggregation type used.
 	 */
-	StringInfo	relation_name;
+	char	   *relation_name;
 
 	/* Join information */
 	RelOptInfo *outerrel;
@@ -128,33 +130,33 @@ extern void pgspider_reset_transmission_modes(int nestlevel);
 
 /* in connection.c */
 extern PGconn *PGSpiderGetConnection(UserMapping *user, bool will_prep_stmt);
-extern void PGSpiderReleaseConnection(PGconn * conn);
-extern unsigned int PGSpiderGetCursorNumber(PGconn * conn);
-extern unsigned int PGSpiderGetPrepStmtNumber(PGconn * conn);
-extern PGresult * pgspiderfdw_get_result(PGconn * conn, const char *query);
-extern PGresult * pgspiderfdw_exec_query(PGconn * conn, const char *query);
-extern void pgspiderfdw_report_error(int elevel, PGresult * res, PGconn * conn,
-				   bool clear, const char *sql);
+extern void PGSpiderReleaseConnection(PGconn *conn);
+extern unsigned int PGSpiderGetCursorNumber(PGconn *conn);
+extern unsigned int PGSpiderGetPrepStmtNumber(PGconn *conn);
+extern PGresult * pgspiderfdw_get_result(PGconn *conn, const char *query);
+extern PGresult * pgspiderfdw_exec_query(PGconn *conn, const char *query);
+extern void pgspiderfdw_report_error(int elevel, PGresult *res, PGconn *conn,
+							   bool clear, const char *sql);
 
 /* in option.c */
-extern int PGSpiderExtractConnectionOptions(List * defelems,
-						 const char **keywords,
-						 const char **values);
-extern List * PGSpiderExtractExtensionList(const char *extensionsString,
-								   bool warnOnMissing);
+extern int	PGSpiderExtractConnectionOptions(List *defelems,
+									 const char **keywords,
+									 const char **values);
+extern List *PGSpiderExtractExtensionList(const char *extensionsString,
+								  bool warnOnMissing);
 
 /* in deparse.c */
-extern void PGSpiderClassifyConditions(PlannerInfo * root,
-				   RelOptInfo * baserel,
-				   List * input_conds,
-				   List * *remote_conds,
-				   List * *local_conds);
-extern bool pgspider_is_foreign_expr(PlannerInfo * root,
-				RelOptInfo * baserel,
-				Expr * expr);
+extern void PGSpiderClassifyConditions(PlannerInfo *root,
+							   RelOptInfo *baserel,
+							   List *input_conds,
+							   List **remote_conds,
+							   List **local_conds);
+extern bool pgspider_is_foreign_expr(PlannerInfo *root,
+							RelOptInfo *baserel,
+							Expr *expr);
 extern bool pgspider_is_foreign_param(PlannerInfo *root,
-				 RelOptInfo *baserel,
-				 Expr *expr);
+							 RelOptInfo *baserel,
+							 Expr *expr);
 extern void PGSpiderDeparseInsertSql(StringInfo buf, RangeTblEntry *rte,
 							 Index rtindex, Relation rel,
 							 List *targetAttrs, bool doNothing,
@@ -175,21 +177,21 @@ extern void PGSpiderDeparseDirectUpdateSql(StringInfo buf, PlannerInfo *root,
 								   List *returningList,
 								   List **retrieved_attrs);
 extern void PGSpiderDeparseDeleteSql(StringInfo buf, RangeTblEntry *rte,
-				 Index rtindex, Relation rel,
-				 List * returningList,
-				 List * *retrieved_attrs);
-extern void PGSpiderDeparseDirectDeleteSql(StringInfo buf, PlannerInfo * root,
-					   Index rtindex, Relation rel,
-					   RelOptInfo *foreignrel,
-					   List * remote_conds,
-					   List * *params_list,
-					   List * returningList,
-					   List * *retrieved_attrs);
+							 Index rtindex, Relation rel,
+							 List *returningList,
+							 List **retrieved_attrs);
+extern void PGSpiderDeparseDirectDeleteSql(StringInfo buf, PlannerInfo *root,
+								   Index rtindex, Relation rel,
+								   RelOptInfo *foreignrel,
+								   List *remote_conds,
+								   List **params_list,
+								   List *returningList,
+								   List **retrieved_attrs);
 extern void PGSpiderDeparseAnalyzeSizeSql(StringInfo buf, Relation rel);
 extern void PGSpiderDeparseAnalyzeSql(StringInfo buf, Relation rel,
-				  List * *retrieved_attrs);
+							  List **retrieved_attrs);
 extern void PGSpiderDeparseStringLiteral(StringInfo buf, const char *val);
-extern Expr *pgspider_find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel);
+extern Expr *find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel);
 extern Expr *pgspider_find_em_expr_for_input_target(PlannerInfo *root,
 										   EquivalenceClass *ec,
 										   PathTarget *target);

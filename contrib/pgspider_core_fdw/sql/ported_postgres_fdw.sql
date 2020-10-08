@@ -212,8 +212,9 @@ CREATE FOREIGN TABLE ft6__postgres_srv2__0 (
 -- ===================================================================
 -- tests for validator
 -- ===================================================================
--- requiressl, krbsrvname and gsslib are omitted because they depend on
--- configure options
+-- skip, pgspider_core_fdw does not support these options
+-- requiressl and some other parameters are omitted because
+-- valid values for them depend on configure options
 --  ALTER SERVER pgspider_srv OPTIONS (
 -- 	use_remote_estimate 'false',
 -- 	updatable 'true',
@@ -238,10 +239,10 @@ CREATE FOREIGN TABLE ft6__postgres_srv2__0 (
 -- 	sslcert 'value',
 -- 	sslkey 'value',
 -- 	sslrootcert 'value',
--- 	sslcrl 'value'
+-- 	sslcrl 'value',
 -- 	--requirepeer 'value',
--- 	-- krbsrvname 'value',
--- 	-- gsslib 'value',
+-- 	krbsrvname 'value',
+-- 	gsslib 'value'
 -- 	--replication 'value'
 --);
 -- Error, invalid list syntax
@@ -253,6 +254,20 @@ CREATE FOREIGN TABLE ft6__postgres_srv2__0 (
 
 ALTER USER MAPPING FOR public SERVER pgspider_srv
 	OPTIONS (DROP user, DROP password);
+
+-- Skip, pgspider_core_fdw does not support ssl
+-- Attempt to add a valid option that's not allowed in a user mapping
+--ALTER USER MAPPING FOR public SERVER pgspider_srv
+--	OPTIONS (ADD sslmode 'require');
+
+-- But we can add valid ones fine
+--ALTER USER MAPPING FOR public SERVER pgspider_srv
+--	OPTIONS (ADD sslpassword 'dummy');
+
+-- Ensure valid options we haven't used in a user mapping yet are
+-- permitted to check validation.
+--ALTER USER MAPPING FOR public SERVER pgspider_srv
+--	OPTIONS (ADD sslkey 'value', ADD sslcert 'value');
 
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c1 OPTIONS (column_name 'C 1');
 ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c1 OPTIONS (column_name 'C 1');
@@ -428,8 +443,8 @@ EXPLAIN (VERBOSE, COSTS OFF)
 SELECT * FROM ft2 a, ft2 b
 WHERE a.c2 = 6 AND b.c1 = a.c1 AND a.c8 = 'foo' AND b.c7 = upper(a.c7);
 -- bug before 9.3.5 due to sloppy handling of remote-estimate parameters
--- SELECT * FROM ft1 WHERE c1 = ANY (ARRAY(SELECT c1 FROM ft2 WHERE c1 < 5));
--- SELECT * FROM ft2 WHERE c1 = ANY (ARRAY(SELECT c1 FROM ft1 WHERE c1 < 5));
+SELECT * FROM ft1 WHERE c1 = ANY (ARRAY(SELECT c1 FROM ft2 WHERE c1 < 5));
+SELECT * FROM ft2 WHERE c1 = ANY (ARRAY(SELECT c1 FROM ft1 WHERE c1 < 5));
 -- we should not push order by clause with volatile expressions or unsafe
 -- collations
 --Testcase 54:
@@ -1580,6 +1595,26 @@ DELETE FROM ft2__postgres_srv__0
 --Testcase 332:
 DELETE FROM ft2__postgres_srv__0 WHERE ft2__postgres_srv__0.c1 > 1200;
 
+-- Test UPDATE with a MULTIEXPR sub-select
+-- (maybe someday this'll be remotely executable, but not today)
+--EXPLAIN (verbose, costs off)
+--UPDATE ft2 AS target SET (c2, c7) = (
+--    SELECT c2 * 10, c7
+--        FROM ft2 AS src
+--        WHERE target.c1 = src.c1
+--) WHERE c1 > 1100;
+UPDATE ft2__postgres_srv__0 AS target SET (c2, c7) = (
+    SELECT c2 * 10, c7
+        FROM ft2__postgres_srv__0 AS src
+        WHERE target.c1 = src.c1
+) WHERE c1 > 1100;
+
+UPDATE ft2__postgres_srv__0 AS target SET (c2) = (
+    SELECT c2 / 10
+        FROM ft2__postgres_srv__0 AS src
+        WHERE target.c1 = src.c1
+) WHERE c1 > 1100;
+
 -- Test UPDATE/DELETE with WHERE or JOIN/ON conditions containing
 -- user-defined operators/functions
 ALTER SERVER postgres_srv OPTIONS (DROP extensions);
@@ -1693,15 +1728,9 @@ release savepoint s3;
 --Testcase 362:
 select c2, count(*) from ft2__postgres_srv__0 where c2 < 500 group by 1 order by 1;
 -- none of the above is committed yet remotely
--- if PGSPider support update, we need to change to use "S 1"."T 1"
--- in the original test data is stored temporally in ft2, so we can use
--- "S 1"."T 1" (same as ft2__postgres_srv__0) to check data.
 --Testcase 363:
 select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
 commit;
--- After commit, obviously data will be pushed to remote database
--- So, using ft2 or "S 1"."T 1" (ft2__postgres_srv__0) results in the 
--- same result.
 --Testcase 364:
 select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
 --Testcase 365:
@@ -1974,6 +2003,23 @@ DROP TRIGGER trig_stmt_after ON rem1__postgres_srv__0;
 --Testcase 403:
 DELETE from rem1__postgres_srv__0;
 
+-- Test multiple AFTER ROW triggers on a foreign table
+CREATE TRIGGER trig_row_after1
+AFTER INSERT OR UPDATE OR DELETE ON rem1__postgres_srv__0
+FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
+
+CREATE TRIGGER trig_row_after2
+AFTER INSERT OR UPDATE OR DELETE ON rem1__postgres_srv__0
+FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
+
+insert into rem1__postgres_srv__0 values(1,'insert');
+update rem1__postgres_srv__0 set f2  = 'update' where f1 = 1;
+update rem1__postgres_srv__0 set f2 = f2 || f2;
+delete from rem1__postgres_srv__0;
+
+-- cleanup
+DROP TRIGGER trig_row_after1 ON rem1__postgres_srv__0;
+DROP TRIGGER trig_row_after2 ON rem1__postgres_srv__0;
 
 -- Test WHEN conditions
 
@@ -3272,8 +3318,115 @@ SELECT a, count(t1) FROM pagg_tab t1 GROUP BY a HAVING avg(b) < 22 ORDER BY 1;
 EXPLAIN (COSTS OFF)
 SELECT b, avg(a), max(a), count(*) FROM pagg_tab GROUP BY b HAVING sum(a) < 700 ORDER BY 1;
 
+-- ===================================================================
+-- skip this test, pgspider_core_fdw does not support ssl
+-- access rights and superuser
+-- ===================================================================
+/*
+-- Non-superuser cannot create a FDW without a password in the connstr
+CREATE ROLE regress_nosuper NOSUPERUSER;
+
+GRANT USAGE ON FOREIGN DATA WRAPPER postgres_fdw TO regress_nosuper;
+
+SET ROLE regress_nosuper;
+
+SHOW is_superuser;
+
+-- This will be OK, we can create the FDW
+DO $d$
+    BEGIN
+        EXECUTE $$CREATE SERVER loopback_nopw FOREIGN DATA WRAPPER postgres_fdw
+            OPTIONS (dbname '$$||current_database()||$$',
+                     port '$$||current_setting('port')||$$'
+            )$$;
+    END;
+$d$;
+
+-- But creation of user mappings for non-superusers should fail
+CREATE USER MAPPING FOR public SERVER loopback_nopw;
+CREATE USER MAPPING FOR CURRENT_USER SERVER loopback_nopw;
+
+CREATE FOREIGN TABLE ft1_nopw (
+	c1 int NOT NULL,
+	c2 int NOT NULL,
+	c3 text,
+	c4 timestamptz,
+	c5 timestamp,
+	c6 varchar(10),
+	c7 char(10) default 'ft1',
+	c8 user_enum
+) SERVER loopback_nopw OPTIONS (schema_name 'public', table_name 'ft1');
+
+SELECT * FROM ft1_nopw LIMIT 1;
+
+-- If we add a password to the connstr it'll fail, because we don't allow passwords
+-- in connstrs only in user mappings.
+
+DO $d$
+    BEGIN
+        EXECUTE $$ALTER SERVER loopback_nopw OPTIONS (ADD password 'dummypw')$$;
+    END;
+$d$;
+
+-- If we add a password for our user mapping instead, we should get a different
+-- error because the password wasn't actually *used* when we run with trust auth.
+--
+-- This won't work with installcheck, but neither will most of the FDW checks.
+
+ALTER USER MAPPING FOR CURRENT_USER SERVER loopback_nopw OPTIONS (ADD password 'dummypw');
+
+SELECT * FROM ft1_nopw LIMIT 1;
+
+-- Unpriv user cannot make the mapping passwordless
+ALTER USER MAPPING FOR CURRENT_USER SERVER loopback_nopw OPTIONS (ADD password_required 'false');
+
+
+SELECT * FROM ft1_nopw LIMIT 1;
+
+RESET ROLE;
+
+-- But the superuser can
+ALTER USER MAPPING FOR regress_nosuper SERVER loopback_nopw OPTIONS (ADD password_required 'false');
+
+SET ROLE regress_nosuper;
+
+-- Should finally work now
+SELECT * FROM ft1_nopw LIMIT 1;
+
+-- unpriv user also cannot set sslcert / sslkey on the user mapping
+-- first set password_required so we see the right error messages
+ALTER USER MAPPING FOR CURRENT_USER SERVER loopback_nopw OPTIONS (SET password_required 'true');
+ALTER USER MAPPING FOR CURRENT_USER SERVER loopback_nopw OPTIONS (ADD sslcert 'foo.crt');
+ALTER USER MAPPING FOR CURRENT_USER SERVER loopback_nopw OPTIONS (ADD sslkey 'foo.key');
+
+-- We're done with the role named after a specific user and need to check the
+-- changes to the public mapping.
+DROP USER MAPPING FOR CURRENT_USER SERVER loopback_nopw;
+
+-- This will fail again as it'll resolve the user mapping for public, which
+-- lacks password_required=false
+SELECT * FROM ft1_nopw LIMIT 1;
+
+RESET ROLE;
+
+-- The user mapping for public is passwordless and lacks the password_required=false
+-- mapping option, but will work because the current user is a superuser.
+SELECT * FROM ft1_nopw LIMIT 1;
+
+-- cleanup
+DROP USER MAPPING FOR public SERVER loopback_nopw;
+DROP OWNED BY regress_nosuper;
+DROP ROLE regress_nosuper;
 
 -- Clean-up
+RESET enable_partitionwise_aggregate;
+
+-- Two-phase transactions are not supported.
+BEGIN;
+SELECT count(*) FROM ft1;
+-- error here
+PREPARE TRANSACTION 'fdw_tpc';
+ROLLBACK;
+*/
 --Testcase 660:
 SELECT dblink_disconnect();
-RESET enable_partitionwise_aggregate;

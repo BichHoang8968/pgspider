@@ -3,7 +3,7 @@
  * execAmi.c
  *	  miscellaneous executor access method routines
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2020, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *	src/backend/executor/execAmi.c
@@ -28,9 +28,9 @@
 #include "executor/nodeGather.h"
 #include "executor/nodeGatherMerge.h"
 #include "executor/nodeGroup.h"
-#include "executor/nodeGroup.h"
 #include "executor/nodeHash.h"
 #include "executor/nodeHashjoin.h"
+#include "executor/nodeIncrementalSort.h"
 #include "executor/nodeIndexonlyscan.h"
 #include "executor/nodeIndexscan.h"
 #include "executor/nodeLimit.h"
@@ -61,7 +61,6 @@
 #include "nodes/pathnodes.h"
 #include "utils/rel.h"
 #include "utils/syscache.h"
-
 
 static bool IndexSupportsBackwardScan(Oid indexid);
 
@@ -252,6 +251,10 @@ ExecReScan(PlanState *node)
 
 		case T_SortState:
 			ExecReScanSort((SortState *) node);
+			break;
+
+		case T_IncrementalSortState:
+			ExecReScanIncrementalSort((IncrementalSortState *) node);
 			break;
 
 		case T_GroupState:
@@ -559,7 +562,16 @@ ExecSupportsBackwardScan(Plan *node)
 		case T_CteScan:
 		case T_Material:
 		case T_Sort:
+			/* these don't evaluate tlist */
 			return true;
+
+		case T_IncrementalSort:
+
+			/*
+			 * Unlike full sort, incremental sort keeps only a single group of
+			 * tuples in memory, so it can't scan backwards.
+			 */
+			return false;
 
 		case T_LockRows:
 		case T_Limit:

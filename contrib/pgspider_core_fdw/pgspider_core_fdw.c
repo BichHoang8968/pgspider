@@ -909,43 +909,43 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
 	SpdFdwPrivate *fdw_private = palloc0(sizeof(SpdFdwPrivate));
 
 	fdw_private->node_num = intVal(lfirst(lc));
-	lc = lnext(lc);
+	lc = lnext(lfdw_private, lc);
 
 	fdw_private->nThreads = intVal(lfirst(lc));
-	lc = lnext(lc);
+	lc = lnext(lfdw_private, lc);
 
 	fdw_private->idx_url_tlist = intVal(lfirst(lc));
-	lc = lnext(lc);
+	lc = lnext(lfdw_private, lc);
 
 	fdw_private->agg_query = intVal(lfirst(lc)) ? true : false;
-	lc = lnext(lc);
+	lc = lnext(lfdw_private, lc);
 
 	fdw_private->isFirst = intVal(lfirst(lc)) ? true : false;
-	lc = lnext(lc);
+	lc = lnext(lfdw_private, lc);
 
 	fdw_private->groupby_has_spdurl = intVal(lfirst(lc)) ? true : false;
-	lc = lnext(lc);
+	lc = lnext(lfdw_private, lc);
 
 	fdw_private->is_pushdown_tlist = intVal(lfirst(lc)) ? true : false;
-	lc = lnext(lc);
+	lc = lnext(lfdw_private, lc);
 
 	if (fdw_private->agg_query)
 	{
 		fdw_private->groupby_target = (List *) lfirst(lc);
-		lc = lnext(lc);
+		lc = lnext(lfdw_private, lc);
 
 		fdw_private->pPseudoAggList = (List *) lfirst(lc);
-		lc = lnext(lc);
+		lc = lnext(lfdw_private, lc);
 
 		fdw_private->child_comp_tlist = (List *) lfirst(lc);
-		lc = lnext(lc);
+		lc = lnext(lfdw_private, lc);
 
 		fdw_private->child_tlist = (List *) lfirst(lc);
-		lc = lnext(lc);
+		lc = lnext(lfdw_private, lc);
 
 		/* Get length of mapping_tlist */
 		mapping_tlist_len = intVal(lfirst(lc));
-		lc = lnext(lc);
+		lc = lnext(lfdw_private, lc);
 
 		fdw_private->mapping_tlist = NIL;
 		for (i = 0; i < mapping_tlist_len; i++)
@@ -954,82 +954,82 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
 			Extractcells	*extcells = (Extractcells *) palloc0(sizeof(Extractcells));
 
 			ext_tlist_num = intVal(lfirst(lc));
-			lc = lnext(lc);
+			lc = lnext(lfdw_private, lc);
 
 			for (j = 0; j < ext_tlist_num; j++)
 			{
 				Mappingcells *cells = (Mappingcells *) palloc0(sizeof(Mappingcells));
 
 				cells->mapping[0] = intVal(lfirst(lc));
-				lc = lnext(lc);
+				lc = lnext(lfdw_private, lc);
 				cells->mapping[1] = intVal(lfirst(lc));
-				lc = lnext(lc);
+				lc = lnext(lfdw_private, lc);
 				cells->mapping[2] = intVal(lfirst(lc));
-				lc = lnext(lc);
+				lc = lnext(lfdw_private, lc);
 				cells->aggtype = intVal(lfirst(lc));
-				lc = lnext(lc);
+				lc = lnext(lfdw_private, lc);
 				cells->agg_command = makeStringInfo();
 				appendStringInfoString(cells->agg_command, strVal(lfirst(lc)));
-				lc = lnext(lc);
+				lc = lnext(lfdw_private, lc);
 				cells->agg_const = makeStringInfo();
 				appendStringInfoString(cells->agg_const, strVal(lfirst(lc)));
-				lc = lnext(lc);
+				lc = lnext(lfdw_private, lc);
 				cells->original_attnum = intVal(lfirst(lc));
-				lc = lnext(lc);
+				lc = lnext(lfdw_private, lc);
 				extcells->cells = lappend(extcells->cells, cells);
 			}
 			extcells->expr = lfirst(lc);
-			lc = lnext(lc);
+			lc = lnext(lfdw_private, lc);
 			extcells->ext_num = intVal(lfirst(lc));
-			lc = lnext(lc);
+			lc = lnext(lfdw_private, lc);
 			extcells->is_truncated = (intVal(lfirst(lc))?true:false);
-			lc = lnext(lc);
+			lc = lnext(lfdw_private, lc);
 			extcells->is_having_qual = (intVal(lfirst(lc))?true:false);
-			lc = lnext(lc);
+			lc = lnext(lfdw_private, lc);
 			fdw_private->mapping_tlist = lappend(fdw_private->mapping_tlist, extcells);
 		}
 
 		fdw_private->child_comp_slot = (TupleTableSlot *) (lfirst(lc));
-		lc = lnext(lc);
+		lc = lnext(lfdw_private, lc);
 
 		fdw_private->groupby_string = makeStringInfo();
 		appendStringInfoString(fdw_private->groupby_string, strVal(lfirst(lc)));
-		lc = lnext(lc);
+		lc = lnext(lfdw_private, lc);
 
 		fdw_private->has_having_quals =(intVal(lfirst(lc))?true:false);
-		lc = lnext(lc);
+		lc = lnext(lfdw_private, lc);
 	}
 
 	fdw_private->childinfo = (ChildInfo *) palloc0(sizeof(ChildInfo) * fdw_private->node_num);
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
 		fdw_private->childinfo[i].can_pushdown_agg = intVal(lfirst(lc));
-		lc = lnext(lc);
+		lc = lnext(lfdw_private, lc);
 
 		fdw_private->childinfo[i].child_node_status = intVal(lfirst(lc));
-		lc = lnext(lc);
+		lc = lnext(lfdw_private, lc);
 
 		fdw_private->childinfo[i].server_oid = intVal(lfirst(lc));
-		lc = lnext(lc);
+		lc = lnext(lfdw_private, lc);
 
 		fdw_private->childinfo[i].oid = intVal(lfirst(lc));
-		lc = lnext(lc);
+		lc = lnext(lfdw_private, lc);
 
 		/* Plan */
 		fdw_private->childinfo[i].plan = (Plan *) lfirst(lc);
-		lc = lnext(lc);
+		lc = lnext(lfdw_private, lc);
 
 		/* Agg plan */
 		if (list_member_oid(fdw_private->pPseudoAggList, fdw_private->childinfo[i].server_oid))
 		{
 			fdw_private->childinfo[i].pAgg = (Agg *) lfirst(lc);
-			lc = lnext(lc);
+			lc = lnext(lfdw_private, lc);
 		}
 
 		/* Root */
 		fdw_private->childinfo[i].root = (PlannerInfo *) palloc0(sizeof(PlannerInfo));
 		fdw_private->childinfo[i].root->parse = (Query *) lfirst(lc);
-		lc = lnext(lc);
+		lc = lnext(lfdw_private, lc);
 	}
 
 	return fdw_private;
@@ -1212,7 +1212,7 @@ set_split_op_info(OpExpr *opexpr, Oid opno, Oid opfuncid, Oid opresulttype)
 static void
 set_split_numeric_info(Aggref *tempAgg, OpExpr *opexpr)
 {
-	Oid argoid = tempAgg->aggargtypes->head->data.oid_value;
+	Oid argoid = linitial_oid(tempAgg->aggargtypes);
 
 	/*
 	 * SUM will return bigint (INT8) for smallint (INT2) or int (INT4) arguments,
@@ -1425,7 +1425,7 @@ extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_
 					|| (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
 				{
 					TargetEntry *tarexpr;
-					TargetEntry *oparg = (TargetEntry *) tempVar->args->head->data.ptr_value;
+					TargetEntry *oparg = (TargetEntry *) linitial(tempVar->args);
 					Var		   *opvar = (Var *) oparg->expr;
 					OpExpr	   *opexpr = (OpExpr *) makeNode(OpExpr);
 					OpExpr	   *opexpr2 = copyObject(opexpr);
@@ -2687,8 +2687,7 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
 	int			i = 0;
 
 	*url_idx = -1;
-	/* Cannot use foreach because we modify exprs in the loop */
-	for ((lc) = list_head(exprs); (lc) != NULL;)
+	foreach (lc, exprs)
 	{
 		RangeTblEntry *rte;
 		char	   *colname;
@@ -2712,7 +2711,6 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
 			/* check whole row reference */
 			if (var->varattno == 0)
 			{
-				lc = lnext(lc);
 				continue;
 			}
 			else
@@ -2728,15 +2726,12 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
 					elog(ERROR, "Using __spd_url multiple times is not allowed");
 
 				*url_idx = i;
-				lc = lnext(lc);
-				exprs = list_delete_ptr(exprs, node);
-
-				continue;
+				exprs = foreach_delete_current(exprs, lc);
 			}
 		}
-		lc = lnext(lc);
 		i++;
 	}
+
 	return exprs;
 }
 
@@ -2772,12 +2767,12 @@ remove_spdurl_from_group_clause(PlannerInfo *root, List *tlist, List *groupClaus
 			colname = get_attname(rte->relid, var->varattno, false);
 			if (strcmp(colname, SPDURL) == 0)
 			{
-				lc = lnext(lc);
+				lc = lnext(groupClause, lc);
 				groupClause = list_delete_ptr(groupClause, sgc);
 				continue;
 			}
 		}
-		lc = lnext(lc);
+		lc = lnext(groupClause, lc);
 	}
 	return groupClause;
 }
@@ -3099,6 +3094,7 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	RangeTblEntry *rte;
 	int i;
 	int rtn = 0;
+	StringInfo relation_name = makeStringInfo();
 
 	baserel->rows = 1000;
 	fdw_private = spd_AllocatePrivate();
@@ -3144,16 +3140,17 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	 * not, so always schema-qualify the foreign table name.
 	 */
 	rte = planner_rt_fetch(baserel->relid, root);
-	fdw_private->rinfo.relation_name = makeStringInfo();
 	namespace = get_namespace_name(get_rel_namespace(foreigntableid));
 	relname = get_rel_name(foreigntableid);
 	refname = rte->eref->aliasname;
-	appendStringInfo(fdw_private->rinfo.relation_name, "%s.%s",
+	appendStringInfo(relation_name, "%s.%s",
 					 quote_identifier(namespace),
 					 quote_identifier(relname));
 	if (*refname && strcmp(refname, relname) != 0)
-		appendStringInfo(fdw_private->rinfo.relation_name, " %s",
+		appendStringInfo(relation_name, " %s",
 						 quote_identifier(rte->eref->aliasname));
+
+	fdw_private->rinfo.relation_name = pstrdup(relation_name->data);
 	spd_CopyRoot(root, baserel, fdw_private, foreigntableid);
 	/* No outer and inner relations. */
 	fdw_private->rinfo.make_outerrel_subquery = false;
@@ -3212,7 +3209,7 @@ spd_makedivtlist(Aggref *aggref, List *newList, SpdFdwPrivate * fdw_private)
 		|| (aggref->aggfnoid >= STD_MIN_OID && aggref->aggfnoid <= STD_MAX_OID))
 	{
 		TargetEntry *tarexpr;
-		TargetEntry *oparg = (TargetEntry *) tempVar->args->head->data.ptr_value;
+		TargetEntry *oparg = (TargetEntry *) linitial(tempVar->args);
 		Var		   *opvar = (Var *) oparg->expr;
 		OpExpr	   *opexpr = (OpExpr *) makeNode(OpExpr);
 		OpExpr	   *opexpr2 = copyObject(opexpr);
@@ -3592,7 +3589,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				AggStrategy aggStrategy = AGG_PLAIN;
 
 				MemSet(&dummy_aggcosts, 0, sizeof(AggClauseCosts));
-				tmp_path = entry->pathlist->head->data.ptr_value;
+				tmp_path = linitial(entry->pathlist);
 
 				if (query->groupClause)
 				{
@@ -3788,8 +3785,8 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 	 */
 	i = 0;
 	fpinfo->groupby_target = NULL;
-	/* Cannot use foreach because we modify exprs in the loop */
-	for ((lc) = list_head(grouping_target->exprs); (lc) != NULL;)
+
+	foreach(lc, grouping_target->exprs)
 	{
 		Expr	   *expr = (Expr *) lfirst(lc);
 		Index		sgref = get_pathtarget_sortgroupref(grouping_target, i);
@@ -3800,9 +3797,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 		if (IsA(expr, Const))
 		{
 			/* Not pushable Constant column */
-			lc = lnext(lc);
-			grouping_target->exprs = list_delete_ptr(grouping_target->exprs, expr);
-
+			grouping_target->exprs = foreach_delete_current(grouping_target->exprs, lc);
 			if (sgref && sgc)
 			{
 				query->groupClause = list_delete_ptr(query->groupClause, sgc);
@@ -3895,8 +3890,9 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 				}
 			}
 		}
+
+		/* Save the push down target list */
 		i++;
-		lc = lnext(lc);
 	}
 
 	/* mapping_tlist = NIL whether all target list is constant column, so not pushed down this query */
@@ -3973,9 +3969,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 	 * Set the string describing this grouped relation to be used in EXPLAIN
 	 * output of corresponding ForeignScan.
 	 */
-	fpinfo->rinfo.relation_name = makeStringInfo();
-	appendStringInfo(fpinfo->rinfo.relation_name, "Aggregate on (%s)",
-					 ofpinfo->rinfo.relation_name->data);
+	fpinfo->rinfo.relation_name = psprintf("Aggregate on (%s)", ofpinfo->rinfo.relation_name);
 	fpinfo->mapping_tlist = mapping_tlist;
 	fpinfo->child_comp_tlist = compress_child_tlist;
 	fpinfo->upper_targets = upper_targets;
@@ -4112,7 +4106,7 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 			/* Agg child node costs */
 			if (childinfo[i].baserel->pathlist != NULL)
 			{
-				childpath = (Path *) lfirst_node(ForeignPath, childinfo[i].baserel->pathlist->head);
+				childpath = (Path *) lfirst_node(ForeignPath, list_head(childinfo[i].baserel->pathlist));
 				startup_cost += childpath->startup_cost;
 				total_cost += childpath->total_cost;
 				rows += childpath->rows;
@@ -4569,6 +4563,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 										 root->parse->groupingSets,
 										 NIL,
 										 childinfo[i].aggpath->path.rows,
+										 childinfo[i].aggpath->transitionSpace,
 										 sort_plan!=NULL?sort_plan:(Plan *) fsplan);
 
 		}
@@ -4886,7 +4881,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 		/* This should be a new RTE list. coming from dummy rtable */
 		query = ((PlannerInfo *) childinfo[i].root)->parse;
 
-		rte = lfirst_node(RangeTblEntry, query->rtable->head);
+		rte = lfirst_node(RangeTblEntry, list_head(query->rtable));
 
 		if (query->rtable->length != estate->es_range_table->length)
 			for (k = query->rtable->length; k < estate->es_range_table->length; k++)
