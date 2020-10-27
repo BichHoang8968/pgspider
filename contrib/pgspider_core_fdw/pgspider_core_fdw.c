@@ -3300,7 +3300,10 @@ spd_GetForeignRelSizeChild(PlannerInfo *root, RelOptInfo *baserel,
 		child_baserel = spd_CreateChildBaserel(child_root, root, baserel, fdw->fdwname);
 
 #ifndef OMITS3
-		entry_baserel->fdw_private = list_make1(list_make1(childinfo[i].s3file));
+		if (strcmp(fdw->fdwname, PARQUET_S3_FDW_NAME) == 0)
+		{
+			entry_baserel->fdw_private = list_make1(list_make1(childinfo[i].s3file));
+		}
 #endif
 
 		/*
@@ -3418,6 +3421,74 @@ spd_CopyRoot(PlannerInfo *root, RelOptInfo *baserel, SpdFdwPrivate * fdw_private
 	fdw_private->baserestrictinfo = copyObject(baserel->baserestrictinfo);
 }
 
+#ifndef OMITS3
+static void
+spd_extractS3Nodes(int *nums, Oid **oid, SpdFdwPrivate *fdw_private)
+{
+	bool   *isS3;
+	List	**s3filelist;
+	Oid		*newoid;
+	int		idx = 0;
+	int 	num_orig = *nums;
+	Oid 	*oid_orig = *oid;
+	int		s3num = 0; /* additional node count for S3 */
+	int		i;
+
+	isS3 = (bool *) palloc0(sizeof(bool) * num_orig);
+	s3filelist = (List **) palloc0(sizeof(List *) * num_orig);
+
+	/* Determine whether each server is Parquet S3 FDW or not. */
+	for (i = 0; i < num_orig; i++)
+	{
+		Oid			temp_tableid = GetForeignServerIdByRelId(oid_orig[i]);
+		ForeignServer *temp_server = GetForeignServer(temp_tableid);
+		ForeignDataWrapper *temp_fdw = GetForeignDataWrapper(temp_server->fdwid);
+		if (strcmp(temp_fdw->fdwname, PARQUET_S3_FDW_NAME) == 0)
+		{
+			isS3[i] = true;
+			s3filelist[i] = getS3FileList(oid_orig[i]);
+			s3num += list_length(s3filelist[i]) - 1;
+		}
+		else
+			isS3[i] = false;
+	}
+
+	/* Create child info for additional S3 nodes. */
+	fdw_private->node_num = num_orig + s3num;
+	fdw_private->childinfo = (ChildInfo *) palloc0(sizeof(ChildInfo) * (fdw_private->node_num));
+	newoid = (Oid *) palloc0(sizeof(Oid) * (fdw_private->node_num));
+	for (i = 0; i < num_orig; i++)
+	{
+		fdw_private->childinfo[i].child_node_status = ServerStatusDead;
+		if (isS3[i])
+		{
+			int j;
+			for (j = 0; j < list_length(s3filelist[i]); j++)
+			{
+				fdw_private->childinfo[idx].oid = oid_orig[i];
+				fdw_private->childinfo[idx].s3file = list_nth(s3filelist[i], j);
+				newoid[idx] = oid_orig[i];
+				idx++;
+			}
+		}
+		else
+		{
+			fdw_private->childinfo[idx].oid = oid_orig[i];
+			fdw_private->childinfo[idx].s3file = NULL;
+			newoid[idx] = oid_orig[i];
+			idx++;
+		}
+	}
+	pfree(isS3);
+	pfree(s3filelist);
+
+	/* Set output variables. */
+	*nums += s3num;
+	pfree(*oid);
+	*oid = newoid;
+}
+#endif
+
 /**
  * spd_GetForeignRelSize
  *
@@ -3448,12 +3519,6 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	int i;
 	int rtn = 0;
 	StringInfo relation_name = makeStringInfo();
-#ifndef OMITS3
-	int		s3num = 0;
-	bool   *isS3;
-	List	**s3filelist;
-	int		offset = 0;
-#endif
 
 	baserel->rows = 1000;
 	fdw_private = spd_AllocatePrivate();
@@ -3467,50 +3532,7 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 		ereport(ERROR, (errmsg("Cannot Find child datasources. ")));
 
 #ifndef OMITS3
-	isS3 = (bool *) palloc0(sizeof(bool) * nums);
-	s3filelist = (List **) palloc0(sizeof(List *) * nums);
-	for (i = 0; i < nums; i++)
-	{
-		Oid			temp_tableid = GetForeignServerIdByRelId(oid[i]);
-		ForeignServer *temp_server = GetForeignServer(temp_tableid);
-		ForeignDataWrapper *temp_fdw = GetForeignDataWrapper(temp_server->fdwid);
-		if (strcmp(temp_fdw->fdwname, PARQUET_S3_FDW_NAME) == 0)
-		{
-			isS3[i] = true;
-			s3filelist[i] = getS3FileList(oid[i]);
-			s3num += list_length(s3filelist[i]) - 1;
-		}
-		else
-			isS3[i] = false;
-	}
-
-	fdw_private->node_num = nums + s3num;
-	fdw_private->childinfo = (ChildInfo *) palloc0(sizeof(ChildInfo) * (nums + s3num));
-
-	for (i = 0; i < nums; i++)
-	{
-		fdw_private->childinfo[i].child_node_status = ServerStatusDead;
-		if (isS3[i])
-		{
-			int j;
-			for (j = 0; j < list_length(s3filelist[i]); j++)
-			{
-				if (j != 0) offset++;
-				fdw_private->childinfo[i + offset].oid = oid[i];
-				fdw_private->childinfo[i + offset].s3file = list_nth(s3filelist[i], j);
-			}
-		}
-		else
-		{
-			fdw_private->childinfo[i + offset].oid = oid[i];
-			fdw_private->childinfo[i + offset].s3file = NULL;
-		}
-	}
-	pfree(isS3);
-	pfree(s3filelist);
-
-	nums += s3num;
-
+	spd_extractS3Nodes(&nums, &oid, fdw_private);
 #else
 	fdw_private->node_num = nums;
 	fdw_private->childinfo = (ChildInfo *) palloc0(sizeof(ChildInfo) * nums);
