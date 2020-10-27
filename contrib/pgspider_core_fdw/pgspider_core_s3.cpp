@@ -76,7 +76,6 @@ create_s3_connection(ForeignServer *server, UserMapping *user)
 		char *id = NULL;
 		char *password = NULL;
 		ListCell   *lc;
-		Aws::S3::S3Client *s3client;
 
 		n = list_length(user->options) + 1;
 		keywords = (const char **) palloc(n * sizeof(char *));
@@ -162,7 +161,7 @@ s3_client_open(const char *user, const char *password)
 #else
 	clientConfig.scheme = Aws::Http::Scheme::HTTPS;
 	clientConfig.region = Aws::Region::AP_NORTHEAST_1;
-	Aws::S3::S3Client *s3_client = new Aws::S3::S3Client(Aws::Auth::AWSCredentials(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY), clientConfig);
+	Aws::S3::S3Client *s3_client = new Aws::S3::S3Client(cred, clientConfig);
 #endif
 
 	return s3_client;
@@ -225,14 +224,20 @@ parquetGetS3ObjectList(Aws::S3::S3Client *s3_cli, const char *s3path)
 	auto outcome = s3_client.ListObjects(request);
 
 	if (!outcome.IsSuccess())
-		elog(ERROR, "parquet_fdw: failed to get object list on %s. %s", bucketName.substr(0, len).c_str(), outcome.GetError().GetMessage().c_str());
+		elog(ERROR, "pgspider_core_fdw: failed to get object list on %s. %s", bucketName.substr(0, len).c_str(), outcome.GetError().GetMessage().c_str());
 
 	Aws::Vector<Aws::S3::Model::Object> objects =
 		outcome.GetResult().GetContents();
 	for (Aws::S3::Model::Object& object : objects)
 	{
         Aws::String key = object.GetKey();
-        if (strncmp(key.c_str(), dir, strlen(dir)) == 0)
+        if (!dir)
+        {
+			char *fullpath = psprintf("s3://%s/%s", bucketName.substr(0, len).c_str(), key.c_str());
+		    objectlist = lappend(objectlist, makeString(fullpath));
+            elog(DEBUG1, "pgspider_core_fdw: accessing %s", fullpath);
+        }
+        else if (strncmp(key.c_str(), dir, strlen(dir)) == 0)
         {
             char *file = pstrdup((char*) key.substr(strlen(dir)).c_str());
             /* Don't register if the object is directory. */
@@ -240,12 +245,13 @@ parquetGetS3ObjectList(Aws::S3::S3Client *s3_cli, const char *s3path)
             {
                 char *fullpath = psprintf("%s%s", s3path, file);
 		        objectlist = lappend(objectlist, makeString(fullpath));
-                elog(DEBUG1, "parquet_fdw: accessing %s", fullpath);
+                elog(DEBUG1, "pgspider_core_fdw: accessing %s", fullpath);
             }
-			pfree(file);
+            else
+				pfree(file);
         }
         else
-            elog(DEBUG1, "parquet_fdw: skipping s3://%s/%s", bucketName.substr(0, len).c_str(), key.c_str());
+            elog(DEBUG1, "pgspider_core_fdw: skipping s3://%s/%s", bucketName.substr(0, len).c_str(), key.c_str());
 	}
 
 	return objectlist;
