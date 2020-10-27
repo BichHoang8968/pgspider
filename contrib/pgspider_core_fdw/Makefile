@@ -2,14 +2,18 @@
 
 MODULE_big = pgspider_core_fdw
 OBJS = deparse.o pgspider_core_fdw.o pgspider_core_option.o pgspider_core_util.o $(WIN32RES)
-# Add file for S3
-OBJS += pgspider_core_s3.o
 PGFILEDESC = "pgspider_core_fdw - foreign data wrapper for PostgreSQL"
 
 PG_CPPFLAGS = -I$(libpq_srcdir) -I../  -lpostgres_fdw -lpthread -lpq -lm -lpgspider_keepalive -z defs
 SHLIB_LINK = $(libpq)
-# Add libraries for S3
+
+# Add files for Parquet S3 FDW
+ifdef ENABLE_PARALLEL_S3
+OBJS += pgspider_core_s3.o
+PG_CPPFLAGS += -std=c++11
 SHLIB_LINK += -laws-cpp-sdk-core -laws-cpp-sdk-s3
+PG_CPPFLAGS += -DENABLE_PARALLEL_S3
+endif
 
 #LIBS = -lpostgres_fdw
 

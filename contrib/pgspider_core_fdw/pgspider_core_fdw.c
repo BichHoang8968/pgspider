@@ -280,7 +280,7 @@ typedef struct ChildInfo
 	RelOptInfo *grouped_rel_local;
 	List	   *url_list;
 	AggPath    *aggpath;
-#ifndef OMITS3
+#ifdef ENABLE_PARALLEL_S3
 	Value	   *s3file;
 #endif
 	FdwRoutine *fdwroutine;
@@ -448,7 +448,7 @@ typedef struct SpdFdwModifyState
 /* local function forward declarations */
 bool		spd_is_builtin(Oid objectId);
 void		_PG_init(void);
-#ifndef OMITS3
+#ifdef ENABLE_PARALLEL_S3
 void		_PG_fini(void);
 #endif
 static void spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel,
@@ -519,7 +519,7 @@ static List *spd_add_to_flat_tlist(List *tlist, Expr *exprs,
 static void spd_spi_exec_child_ip(char *serverName, char *ip);
 static bool spd_can_skip_deepcopy(char *fdwname);
 static bool spd_checkurl_clauses(PlannerInfo *root, List *baserestrictinfo);
-#ifndef OMITS3
+#ifdef ENABLE_PARALLEL_S3
 List *getS3FileList(Oid foreigntableid);
 #endif
 
@@ -3191,7 +3191,7 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel,
 			entry_baserel->reltarget->exprs = remove_spdurl_from_targets(entry_baserel->reltarget->exprs, root);
 		}
 
-#ifndef OMITS3
+#ifdef ENABLE_PARALLEL_S3
 		if (strcmp(fdw->fdwname, PARQUET_S3_FDW_NAME) == 0)
 		{
 			entry_baserel->fdw_private = list_make1(list_make1(childinfo[i].s3file));
@@ -3313,7 +3313,7 @@ spd_CopyRoot(PlannerInfo *root, RelOptInfo *baserel, SpdFdwPrivate * fdw_private
 	fdw_private->baserestrictinfo = copyObject(baserel->baserestrictinfo);
 }
 
-#ifndef OMITS3
+#ifdef ENABLE_PARALLEL_S3
 static void
 spd_extractS3Nodes(int *nums, Oid **oid, SpdFdwPrivate *fdw_private)
 {
@@ -3423,7 +3423,7 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	if (nums == 0)
 		ereport(ERROR, (errmsg("Cannot Find child datasources. ")));
 
-#ifndef OMITS3
+#ifdef ENABLE_PARALLEL_S3
 	spd_extractS3Nodes(&nums, &oid, fdw_private);
 #else
 	fdw_private->node_num = nums;
@@ -7556,7 +7556,7 @@ spd_EndForeignModify(EState *estate,
 	fdwroutine->EndForeignModify(estate, resultRelInfo);
 }
 
-#ifndef OMITS3
+#ifdef ENABLE_PARALLEL_S3
 void parquet_s3_init();
 void parquet_s3_shutdown();
 #endif
@@ -7588,12 +7588,12 @@ _PG_init(void)
 							 NULL,
 							 NULL,
 							 NULL);
-#ifndef OMITS3
+#ifdef ENABLE_PARALLEL_S3
 	parquet_s3_init();
 #endif
 }
 
-#ifndef OMITS3
+#ifdef ENABLE_PARALLEL_S3
 void
 _PG_fini(void)
 {
