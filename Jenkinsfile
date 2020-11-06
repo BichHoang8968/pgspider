@@ -1,82 +1,18 @@
 def NODE_NAME = 'AWS_Instance_CentOS'
-def MAIL_TO = '$DEFAULT_RECIPIENTS'
+def MAIL_TO = 'db-jenkins@swc.toshiba.co.jp'
 def BRANCH_NAME = 'Branch [' + env.BRANCH_NAME + ']'
 def BUILD_INFO = 'Jenkins job: ' + env.BUILD_URL + '\n'
-def MYSQL_FDW_URL = 'https://tccloud2.toshiba.co.jp/swc/gitlab/db/mysql_fdw.git'
-def SQLITE_FDW_URL = 'https://tccloud2.toshiba.co.jp/swc/gitlab/db/sqlite_fdw.git'
-def TINYBRACE_FDW_URL = 'https://tccloud2.toshiba.co.jp/swc/gitlab/db/tinybrace_fdw.git'
-def INFLUXDB_FDW_URL = 'https://tccloud2.toshiba.co.jp/swc/gitlab/db/influxdb_fdw.git'
-def GRIDDB_FDW_URL = 'https://tccloud2.toshiba.co.jp/swc/gitlab/db/griddb_fdw.git'
-def GIT_CREDENTIAL_ID = 'dac43358-2ffd-4a4b-b9c4-879554f2e1be'
-def GRIDDB_CLIENT_DIR = '/home/jenkins/GridDB/c_client_4.1.0/griddb'
-def PGSPIDER_1_DIR = '/home/jenkins/PGSpider/PGS1'
-def PGSPIDER_1_PORT = 5433
-def PGSPIDER_2_DIR = '/home/jenkins/PGSpider/PGS2'
-def PGSPIDER_2_PORT = 5434
-def PGSPIDER_INSTALL_DIR= '$(pwd)/install'
 
-def retrySh(String shCmd) {
-    def MAX_RETRY = 10
-    script {
-        int status = 1;
-        for (int i = 0; i < MAX_RETRY; i++) {
-            status = sh(returnStatus: true, script: shCmd)
-            if (status == 0) {
-                echo "SUCCESS: "+shCmd
-                break
-            } else {
-                echo "RETRY: "+shCmd
-                sleep 5
-            }
-        }
-        if (status != 0) {
-            sh(shCmd)
-        }
-    }
-}
+def PGSPIDER_DOCKER_PATH = '/home/jenkins/Docker/Server/PGSpider'
+def ENHANCE_TEST_DOCKER_PATH = '/home/jenkins/Docker'
+def TEST_TYPE = 'PGSPIDER'
 
-def install_pgspider(String install_dir, int port) {
-    sh install_dir + "/bin/pg_ctl -D " + install_dir + "/databases stop || true"
-    sh "rm -rf " + install_dir + " || true"
-    sh "mkdir " + install_dir + " || true"
-    sh "./configure --prefix=" + install_dir
-    sh '''
-        make install
-        cd contrib/file_fdw/
-        make install
-        cd ../postgres_fdw/
-        make install
-        cd ../pgspider_fdw/
-        make install
-        cd ../pgspider_core_fdw/
-        make install
-        cd ../sqlite_fdw/
-        make install
-        cd ../mysql_fdw/
-        make install
-        cd ../tinybrace_fdw/
-        make install
-        cd ../influxdb_fdw/
-        make install
-        cd ../griddb_fdw/
-        make install
-    '''
-    dir(install_dir + "/bin") {
-        sh './initdb ../databases'
-        sh "sed -i 's/#port = 5432.*/port = "+ port + "/' ../databases/postgresql.conf"
-        sh './pg_ctl -D ../databases -l logfile start'
-        sh './createdb -p ' + port
-    }
-}
 
 pipeline {
     agent {
         node {
             label NODE_NAME
         }
-    }
-    parameters {
-        string(name: 'BUILD_OPTIONS', defaultValue: '--enable-cassert --enable-debug CFLAGS="-ggdb -Og -g3 -fno-omit-frame-pointer"', description: '')
     }
     options {
         gitLabConnection('GitLabConnection')
@@ -94,53 +30,37 @@ pipeline {
         )
     }
     stages {
-        stage('Build') {
+        stage('Start_containers_Existed_Test') {
             steps {
                 script {
                     if (env.GIT_URL != null) {
                         BUILD_INFO = BUILD_INFO + "Git commit: " + env.GIT_URL.replace(".git", "/commit/") + env.GIT_COMMIT + "\n"
                     }
                 }
-                // Build PGSpider
-                sh """
-                    rm -rf install || true
-                    mkdir install || true
-                    ./configure --prefix=${PGSPIDER_INSTALL_DIR} ${params.BUILD_OPTIONS}
-                    make clean && make -j 4 && make install
-                """
-                // Build fdw
-                dir("contrib/") {
-                    // Build mysql_fdw
-                    sh 'rm -rf mysql_fdw || true && mkdir mysql_fdw'
-                    dir("mysql_fdw") {
-                        git credentialsId: GIT_CREDENTIAL_ID, url: MYSQL_FDW_URL, branch: 'master'
-                        sh 'make clean && make && make install'
-                    }
-                    // Build sqlite_fdw
-                    sh 'rm -rf sqlite_fdw || true && mkdir sqlite_fdw'
-                    dir("sqlite_fdw") {
-                        git credentialsId: GIT_CREDENTIAL_ID, url: SQLITE_FDW_URL, branch: 'master'
-                        sh 'make clean && make && make install'
-                    }
-                    // Build tinybrace_fdw
-                    sh 'rm -rf tinybrace_fdw || true && mkdir tinybrace_fdw'
-                    dir("tinybrace_fdw") {
-                        git credentialsId: GIT_CREDENTIAL_ID, url: TINYBRACE_FDW_URL, branch: 'master'
-                        sh 'make clean && make && make install'
-                    }
-                    // Build influxdb_fdw
-                    sh 'rm -rf influxdb_fdw || true && mkdir influxdb_fdw'
-                    dir("influxdb_fdw") {
-                        git credentialsId: GIT_CREDENTIAL_ID, url: INFLUXDB_FDW_URL, branch: 'master'
-                        sh 'make clean && make && make install'
-                    }
-                    // Build griddb_fdw
-                    sh 'rm -rf griddb_fdw || true && mkdir griddb_fdw'
-                    dir("griddb_fdw") {
-                        git credentialsId: GIT_CREDENTIAL_ID, url: GRIDDB_FDW_URL, branch: 'master'
-                        sh 'cp -a ' + GRIDDB_CLIENT_DIR + ' ./'
-                        sh 'make clean && make && make install'
-                    }
+                catchError() {
+                    sh """
+                        cd ${PGSPIDER_DOCKER_PATH}
+                        docker-compose up --build -d
+                    """
+                }
+            }
+            post {
+                failure {
+                    echo '** Start containers FAILED !!! NEXT STAGE WILL BE SKIPPED **'
+                    emailext subject: '[CI PGSpider] Start containers FAILED ' + BRANCH_NAME, body: BUILD_INFO + '${BUILD_LOG, maxLines=200, escapeHtml=false}', to: "${MAIL_TO}", attachLog: false
+                    updateGitlabCommitStatus name: 'Build', state: 'failed'
+                }
+                success {
+                    updateGitlabCommitStatus name: 'Build', state: 'success'
+                }
+            }
+        }
+        stage('Build_PGSpider1') {
+            steps {
+                catchError() {
+                    sh """
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test.sh ${env.GIT_BRANCH}" pgspider'
+                    """
                 }
             }
             post {
@@ -154,24 +74,21 @@ pipeline {
                 }
             }
         }
-        stage('make_check') {
+        stage('make_check_Existed_Test') {
             steps {
-                // Execute "make check" and output log to 'make_check.out'
                 catchError() {
-                    sh '''
-                        rm -rf make_check.out || true
-                        make check | tee make_check.out
-                    '''
+                    sh """
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test.sh --test_pgspider" pgspider'
+                        docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/make_check.out make_check.out
+                    """
                 }
-                // Check test result
                 script {
-                    // Check if 'make_check.out' contains 'All [0-9]* tests passed'
                     status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'make_check.out'")
                     if (status != 0) {
                         unstable(message: "Set UNSTABLE result")
-                        // Send mail
-                        emailext subject: '[CI PGSpider] "make check" Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
-                        sh 'cat src/test/regress/regression.diffs || true'
+                        emailext subject: '[CI PGSpider] make_check Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/src/test/regress/regression.diffs regression.diffs'
+                        sh 'cat regression.diffs || true'
                         updateGitlabCommitStatus name: 'make_check', state: 'failed'
                     } else {
                         updateGitlabCommitStatus name: 'make_check', state: 'success'
@@ -181,95 +98,185 @@ pipeline {
         }
         stage('pgspider_core_fdw.sql') {
             steps {
-                // Change working directory to 'contrib/pgspider_core_fdw/'
-                dir("contrib/pgspider_core_fdw/") {
-                    // Execute 'test.sh'
-                    catchError() {
-                        sh '''
-                            rm -rf make_check.out || true
-                            chmod +x ./*.sh
-                            chmod +x ./init/*.sh
-                            ./test.sh
-                        '''
-                    }
-                    script {
-                        // Check if 'make_check.out' contains 'All [0-9]* tests passed'
-                        status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'make_check.out'")
-                        if (status != 0) {
-                            unstable(message: "Set UNSTABLE result")
-                            // Send email
-                            emailext subject: '[CI PGSpider] pgspider_core_fdw Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
-                            sh 'cat regression.diffs || true'
-                            sh '''
-                                rm -rf results_core_fdw || true
-                                cp -R results results_core_fdw || true
-                            '''
-                            updateGitlabCommitStatus name: 'pgspider_core_fdw', state: 'failed'
-                        } else {
-                            updateGitlabCommitStatus name: 'pgspider_core_fdw', state: 'success'
-                        }
+                catchError() {
+                    sh """
+                        docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test_pgspider_multii.sh --test_core ${env.GIT_BRANCH}" postgres'
+                        docker exec mysqlserver_multi_existed_test /bin/bash -c '/tmp/start_existed_test_pgspider_multii.sh ${env.GIT_BRANCH}'
+                        docker exec tinybraceserver_multi_existed_test /bin/bash -c '/tmp/start_existed_test_pgspider_multii.sh ${env.GIT_BRANCH}'
+                        docker exec -d -w /usr/local/tinybrace tinybraceserver_multi_existed_test /bin/bash -c 'bin/tbserver &' 
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test.sh --test_core" pgspider'
+                        docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out make_check.out
+                    """
+                }
+                script {
+                    status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'make_check.out'")
+                    if (status != 0) {
+                        unstable(message: "Set UNSTABLE result")
+                        emailext subject: '[CI PGSpider] pgspider_core_fdw Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/regression.diffs regression.diffs'
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/results results_core_fdw'
+                        sh 'cat regression.diffs || true'
+                        updateGitlabCommitStatus name: 'pgspider_core_fdw', state: 'failed'
+                    } else {
+                        updateGitlabCommitStatus name: 'pgspider_core_fdw', state: 'success'
                     }
                 }
             }
         }
         stage('ported_postgres_fdw.sql') {
             steps {
-                dir("contrib/pgspider_core_fdw/") {
-                    catchError() {
-                        sh '''
-                            cd init
-                            chmod +x ./*.sh
-                            ./ported_postgres_setup.sh --start
-                            cd ..
-                            rm -rf make_check.out || true
-                            sed -i 's/REGRESS =.*/REGRESS = ported_postgres_fdw /' Makefile
-                            make clean && make && make check | tee make_check.out
-                        '''
-                    }
-                    script {
-                        status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'make_check.out'")
-                        if (status != 0) {
-                            unstable(message: "Set UNSTABLE result")
-                            // Send email
-                            emailext subject: '[CI PGSpider] ported_postgres_fdw Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
-                            sh 'cat regression.diffs || true'
-                            sh '''
-                                rm -rf results_ported_postgres_fdw || true
-                                cp -R results results_ported_postgres_fdw || true
-                            '''
-                            updateGitlabCommitStatus name: 'ported_postgres_fdw', state: 'failed'
-                        } else {
-                            updateGitlabCommitStatus name: 'ported_postgres_fdw', state: 'success'
-                        }
+                catchError() {
+                    sh """
+                        docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test_pgspider_multii.sh --test_ported ${env.GIT_BRANCH}" postgres'
+
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test.sh --test_ported" pgspider'
+                        docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out make_check.out
+                    """
+                }
+                script {
+                    status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'make_check.out'")
+                    if (status != 0) {
+                        unstable(message: "Set UNSTABLE result")
+                        emailext subject: '[CI PGSpider] ported_postgres_fdw Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/regression.diffs regression.diffs'
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/results results_ported_fdw '
+                        sh 'cat regression.diffs || true'
+                        updateGitlabCommitStatus name: 'ported_postgres_fdw', state: 'failed'
+                    } else {
+                        updateGitlabCommitStatus name: 'ported_postgres_fdw', state: 'success'
                     }
                 }
             }
         }
         stage('pgspider_core_fdw_multi.sql') {
             steps {
-                install_pgspider(PGSPIDER_1_DIR, PGSPIDER_1_PORT)
-                install_pgspider(PGSPIDER_2_DIR, PGSPIDER_2_PORT)
-                dir("contrib/pgspider_core_fdw") {
-                    sh '''
-                        chmod +x ./*.sh
-                        chmod +x ./init/*.sh
-                        ./test_multi.sh
-                    '''
-                    script {
-                        // Check if 'make_check.out' contains 'All [0-9]* tests passed'
-                        status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'make_check.out'")
-                        if (status != 0) {
-                            unstable(message: "Set UNSTABLE result")
-                            emailext subject: '[CI PGSpider] pgspider_core_fdw_multi Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
-                            sh 'cat regression.diffs || true'
-                            sh '''
-                                rm -rf results_core_multi || true
-                                cp -R results results_core_multi || true
-                            '''
-                            updateGitlabCommitStatus name: 'pgspider_core_fdw_multi', state: 'failed'
+                catchError() {
+                    sh """
+                        docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test_pgspider_multii.sh --test_multi ${env.GIT_BRANCH}" postgres'
+                        docker exec mysqlserver_multi_existed_test /bin/bash -c "/tmp/start_existed_test_pgspider_multii.sh ${env.GIT_BRANCH}"
+                        docker exec tinybraceserver_multi_existed_test /bin/bash -c "/tmp/start_existed_test_pgspider_multii.sh ${env.GIT_BRANCH}"
+                        docker exec -d -w /usr/local/tinybrace tinybraceserver_multi_existed_test /bin/bash -c 'bin/tbserver &' 
+                        docker exec -d influxserver_multi_existed_test /bin/bash -c "/tmp/start_existed_test_pgspider_multii.sh ${env.GIT_BRANCH}"
+                        docker exec -d gridserver_multi_existed_test /bin/bash -c "/tmp/start_existed_test_pgspider_multii.sh ${env.GIT_BRANCH}"
+                        docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test.sh ${env.GIT_BRANCH}" pgspider'
+                        docker exec pgspiderserver_multi3_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test.sh ${env.GIT_BRANCH}" pgspider'
+                        docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test_multi.sh --pgs2" pgspider'
+                        docker exec pgspiderserver_multi3_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test_multi.sh --pgs3" pgspider'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test.sh --test_multi" pgspider'
+                        docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out make_check.out
+                    """
+                }
+                script {
+                    status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'make_check.out'")
+                    if (status != 0) {
+                        unstable(message: "Set UNSTABLE result")
+                        emailext subject: '[CI PGSpider] pgspider_core_fdw_multi Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/regression.diffs regression.diffs'
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/results results_core_multi_fdw '
+                        sh 'cat regression.diffs || true'
+                        updateGitlabCommitStatus name: 'pgspider_core_fdw_multi', state: 'failed'
+                    } else {
+                        updateGitlabCommitStatus name: 'pgspider_core_fdw_multi', state: 'success'
+                    }
+                }
+            }
+        }
+        stage('Start_containers_Enhance_Test') {
+            steps {
+                catchError() {
+                    sh """
+                        cd ${ENHANCE_TEST_DOCKER_PATH}
+                        docker-compose up --build -d 
+                    """
+                }
+            }
+            post {
+                failure {
+                    echo '** Start containers Enhace_Test FAILED !!! NEXT STAGE WILL BE SKIPPED **'
+                    emailext subject: '[CI PGSpider] Start containers FAILED ' + BRANCH_NAME, body: BUILD_INFO + '${BUILD_LOG, maxLines=200, escapeHtml=false}', to: "${MAIL_TO}", attachLog: false
+                    updateGitlabCommitStatus name: 'Build', state: 'failed'
+                }
+                success {
+                    updateGitlabCommitStatus name: 'Build', state: 'success'
+                }
+            }
+        }
+        stage('Initialize_for_Enhance_Test') {
+            steps {
+                catchError() {
+                    sh """
+                        docker exec mysqlserver1_enhance_test /bin/bash -c '/tmp/start_enhance_test.sh'
+                        docker exec mysqlserver2_enhance_test /bin/bash -c '/tmp/start_enhance_test.sh'
+                        docker exec postgresserver1_enhance_test /bin/bash -c '/tmp/start_enhance_test_1.sh'
+                        docker exec postgresserver2_enhance_test /bin/bash -c '/tmp/start_enhance_test_2.sh'
+                        docker exec tinybraceserver1_enhance_test /bin/bash -c '/tmp/start_enhance_test_1.sh'
+                        docker exec -d -w /usr/local/tinybrace tinybraceserver1_enhance_test /bin/bash -c 'bin/tbserver &' 
+                        docker exec tinybraceserver2_enhance_test /bin/bash -c '/tmp/start_enhance_test_2.sh'
+                        docker exec -d -w /usr/local/tinybrace tinybraceserver2_enhance_test /bin/bash -c 'bin/tbserver &' 
+                        docker exec influxserver1_enhance_test /bin/bash -c '/tmp/start_enhance_test.sh'
+                        docker exec influxserver2_enhance_test /bin/bash -c '/tmp/start_enhance_test.sh'
+                        docker exec -d gridserver1_enhance_test /bin/bash -c '/tmp/start_enhance_test_1.sh'
+                        sleep 10
+                        docker exec -d gridserver2_enhance_test /bin/bash -c '/tmp/start_enhance_test_2.sh'
+                        sleep 10
+                        docker exec pgspiderserver1_enhance_test /bin/bash -c 'su -c "/tmp/start_enhance_test.sh ${env.GIT_BRANCH} ${TEST_TYPE}" pgspider'
+                    """
+                }
+            }
+            post {
+                failure {
+                    echo '** Init data for Enhance Test FAILED !!! NEXT STAGE WILL BE SKIPPED **'
+                    emailext subject: '[CI PGSpider] Init data for Enhance Test FAILED ' + BRANCH_NAME, body: BUILD_INFO + '${BUILD_LOG, maxLines=200, escapeHtml=false}', to: "${MAIL_TO}", attachLog: false
+                    updateGitlabCommitStatus name: 'Init_Data', state: 'failed'
+                }
+                success {
+                    updateGitlabCommitStatus name: 'Init_Data', state: 'success'
+                }
+            }
+        }
+        stage('make_check_Enhance_Test') {
+            steps {
+                catchError() {
+                    sh """
+                        rm -rf make_check.out regression.diffs Degrade_Bug.out Previous_TC_NG.out || true
+                        mv New_TC_NG.out Previous_TC_NG.out 
+                        rm -rf New_TC_NG.out || true
+                        docker exec -w /home/pgspider/GIT/PGSpider/contrib/pgspider_core_fdw pgspiderserver1_enhance_test /bin/bash -c 'su -c "chmod a+x *.sh" pgspider'
+                        docker exec -w /home/pgspider/GIT/PGSpider/contrib/pgspider_core_fdw pgspiderserver1_enhance_test /bin/bash -c 'su -c "./test_enhance.sh" pgspider'
+                        docker cp pgspiderserver1_enhance_test:/home/pgspider/GIT/PGSpider/contrib/pgspider_core_fdw/make_check.out make_check.out
+                    """
+                }
+                script {
+                    status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'make_check.out'")
+                    if (status != 0) {
+                        unstable(message: "Set UNSTABLE result")
+                        sh 'docker cp pgspiderserver1_enhance_test:/home/pgspider/GIT/PGSpider/contrib/pgspider_core_fdw/regression.diffs regression.diffs'
+                        sh 'cat regression.diffs || true'
+                        updateGitlabCommitStatus name: 'make_check', state: 'failed'
+                    } else {
+                        updateGitlabCommitStatus name: 'make_check', state: 'success'
+                    }
+                }
+            }
+        }
+        stage('Detect_Degrade_Bug') {
+             steps {
+                sh """
+                    python contrib/pgspider_core_fdw/init/detect_degrade_bug.py
+                """
+                script {
+                    def make_check_exists = fileExists 'make_check.out'
+                    def degrade_bug_exists = fileExists 'Degrade_Bug.out'
+                    if (make_check_exists) {
+                        unstable(message: "Set UNSTABLE result")
+                        if (degrade_bug_exists) {
+                            emailext subject: '[CI PGSpider] make_check Test and Detect Degrade Bug for Enhance Test FAILED ' + BRANCH_NAME, body: BUILD_INFO + '\n\nList of Degrade Test Case ID:' + '\n\n' + '${FILE,path="Degrade_Bug.out"}' + 'For detail results. Please refer below:' + '\n\n' + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
                         } else {
-                            updateGitlabCommitStatus name: 'pgspider_core_fdw_multi', state: 'success'
+                            emailext subject: '[CI PGSpider] make_check Test for Enhance Test FAILED ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="make_check.out"}', to: "${MAIL_TO}", attachLog: false
                         }
+                        updateGitlabCommitStatus name: 'Detect_Degrade_Bug', state: 'success'
+                    } else { 
+                        updateGitlabCommitStatus name: 'Detect_Degrade_Bug', state: 'failed'
                     }
                 }
             }
@@ -289,9 +296,12 @@ pipeline {
             }
         }
         always {
-            sh '''
-                rm -rf src install tmp_install || true
-            '''
+            sh """
+                cd ${PGSPIDER_DOCKER_PATH}
+                docker-compose down
+                cd ${ENHANCE_TEST_DOCKER_PATH}
+                docker-compose down
+            """
         }
     }
 }

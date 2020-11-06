@@ -1,0 +1,85 @@
+\! export DB_NAME=contrib_regression; init/enhance/setupcluster.sh > /dev/null 2>&1
+\det+
+                                                                List of foreign tables
+ Schema |                 Table                 |       Server       |                            FDW options                            | Description 
+--------+---------------------------------------+--------------------+-------------------------------------------------------------------+-------------
+ public | _sqlite_max_range                     | pgspider1          |                                                                   | 
+ public | _sqlite_max_range__sqlite1__0         | sqlite1            | ("table" '_sqlite_max_range')                                     | 
+ public | griddb_max_range                      | pgspider1          |                                                                   | 
+ public | griddb_max_range__grid1__0            | grid1              | (table_name 'griddb_max_range')                                   | 
+ public | griddb_max_range__grid2__0            | grid2              | (table_name 'griddb_max_range')                                   | 
+ public | influx_max_range                      | pgspider1          |                                                                   | 
+ public | influx_max_range__influx1__0          | influx1            | ("table" 'influx_max_range')                                      | 
+ public | mysql_max_range                       | pgspider1          |                                                                   | 
+ public | mysql_max_range__mysql1__0            | mysql1             | (dbname 'enhance_mysql_1', table_name 'mysql_max_range')          | 
+ public | post_max_range                        | pgspider1          |                                                                   | 
+ public | post_max_range__post1__0              | post1              | (schema_name 'public', table_name 'post_max_range')               | 
+ public | t1                                    | pgspider1          |                                                                   | 
+ public | t10                                   | pgspider1          |                                                                   | 
+ public | t10__post1__0                         | post1              | (schema_name 'public', table_name 't10')                          | 
+ public | t10__post2__0                         | post2              | (schema_name 'public', table_name 't10')                          | 
+ public | t13                                   | pgspider1          |                                                                   | 
+ public | t13__sqlite1__0                       | sqlite1            | ("table" 't13')                                                   | 
+ public | t13__sqlite2__0                       | sqlite2            | ("table" 't13')                                                   | 
+ public | t14                                   | pgspider1          |                                                                   | 
+ public | t14__sqlite1__0                       | sqlite1            | ("table" 't14')                                                   | 
+ public | t14__sqlite2__0                       | sqlite2            | ("table" 't14')                                                   | 
+ public | t1__grid1__0                          | grid1              | (table_name 't1')                                                 | 
+ public | t1__grid2__0                          | grid2              | (table_name 't1')                                                 | 
+ public | t2                                    | pgspider1          |                                                                   | 
+ public | t2__grid1__0                          | grid1              | (table_name 't2')                                                 | 
+ public | t2__grid2__0                          | grid2              | (table_name 't2')                                                 | 
+ public | t2__post1__0                          | post1              | (schema_name 'public', table_name 't2')                           | 
+ public | t3                                    | pgspider1          |                                                                   | 
+ public | t3__mysql1__0                         | mysql1             | (dbname 'enhance_mysql_1', table_name 't3')                       | 
+ public | t3__mysql2__0                         | mysql2             | (dbname 'enhance_mysql_2', table_name 't3')                       | 
+ public | t4                                    | pgspider1          |                                                                   | 
+ public | t4__mysql1__0                         | mysql1             | (dbname 'enhance_mysql_1', table_name 't4')                       | 
+ public | t4__mysql2__0                         | mysql2             | (dbname 'enhance_mysql_2', table_name 't4')                       | 
+ public | t5                                    | pgspider1          |                                                                   | 
+ public | t5__tinybrace1__0                     | tinybrace1         | (table_name 't5')                                                 | 
+ public | t5__tinybrace2__0                     | tinybrace2         | (table_name 't5')                                                 | 
+ public | t6                                    | pgspider1          |                                                                   | 
+ public | t6__tinybrace1__0                     | tinybrace1         | (table_name 't6')                                                 | 
+ public | t6__tinybrace2__0                     | tinybrace2         | (table_name 't6')                                                 | 
+ public | t7                                    | pgspider1          |                                                                   | 
+ public | t7__influx1__0                        | influx1            | ("table" 't7')                                                    | 
+ public | t7__influx2__0                        | influx2            | ("table" 't7')                                                    | 
+ public | t8                                    | pgspider1          |                                                                   | 
+ public | t8__influx1__0                        | influx1            | ("table" 't8')                                                    | 
+ public | t8__influx2__0                        | influx2            | ("table" 't8')                                                    | 
+ public | t9                                    | pgspider1          |                                                                   | 
+ public | t9__post1__0                          | post1              | (schema_name 'public', table_name 't9')                           | 
+ public | t9__post2__0                          | post2              | (schema_name 'public', table_name 't9')                           | 
+ public | tb_influx                             | pgspider1          |                                                                   | 
+ public | tb_influx__influx1__0                 | influx1            | ("table" 'tb_influx', tags 'c1,c2')                               | 
+ public | tb_influx__influx2__0                 | influx2            | ("table" 'tb_influx', tags 'c1,c2')                               | 
+ public | tinybrace_max_range                   | pgspider1          |                                                                   | 
+ public | tinybrace_max_range__tinybrace1__0    | tinybrace1         | (table_name 'tinybrace_max_range')                                | 
+ public | tmp_file_max_range                    | pgspider1          |                                                                   | 
+ public | tmp_file_max_range__file_max_range__0 | tmp_file_max_range | (filename '/tmp/file_max_range/file_max_range.csv', format 'csv') | 
+ public | tmp_t11                               | pgspider1          |                                                                   | 
+ public | tmp_t11__t11_sv1__0                   | tmp_t11            | (filename '/tmp/t11/t11_sv1.csv', format 'csv')                   | 
+ public | tmp_t11__t11_sv2__0                   | tmp_t11            | (filename '/tmp/t11/t11_sv2.csv', format 'csv')                   | 
+ public | tmp_t12                               | pgspider1          |                                                                   | 
+ public | tmp_t12__t12_sv1__0                   | tmp_t12            | (filename '/tmp/t12/t12_sv1.csv', format 'csv')                   | 
+ public | tmp_t12__t12_sv2__0                   | tmp_t12            | (filename '/tmp/t12/t12_sv2.csv', format 'csv')                   | 
+ public | tmp_t15                               | pgspider1          |                                                                   | 
+ public | tmp_t15__grid1__0                     | grid1              | (table_name 'tmp_t15')                                            | 
+ public | tmp_t15__grid2__0                     | grid2              | (table_name 'tmp_t15')                                            | 
+ public | tmp_t15__influx1__0                   | influx1            | ("table" 'tmp_t15')                                               | 
+ public | tmp_t15__mysql1__0                    | mysql1             | (dbname 'enhance_mysql_1', table_name 'tmp_t15')                  | 
+ public | tmp_t15__post1__0                     | post1              | (schema_name 'public', table_name 'tmp_t15')                      | 
+ public | tmp_t15__sqlite1__0                   | sqlite1            | ("table" 'tmp_t15')                                               | 
+ public | tmp_t15__t15__0                       | tmp_t15            | (filename '/tmp/t15/t15.csv', format 'csv')                       | 
+ public | tmp_t15__tinybrace1__0                | tinybrace1         | (table_name 'tmp_t15')                                            | 
+(70 rows)
+
+create view view_t1 as select * from t1 where(c1 != 88);
+create view view_t3 as select * from t3 where c1 != 198 or c17 != 'oop';
+create view view_t5 as select * from t5 where c1 != 10 or c2 > 50;
+create view view_t7 as select * from t7 where (c3 != 6789);
+create view view_t9 as select * from t9 where (c5 != 't');
+create view view_t11 as select * from tmp_t11 where (c29 >= 'vie');
+create view view_t13 as select * from t13 where c1 <> 0 and c5 > 1;
+create view view_t15 as select * from tmp_t15 where c2 != 'xyzt' and c4 != 5678;

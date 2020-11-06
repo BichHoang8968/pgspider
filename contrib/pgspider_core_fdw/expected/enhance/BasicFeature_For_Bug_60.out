@@ -1,0 +1,2574 @@
+------------------------------Change time setting-----------------------------
+SET datestyle TO "ISO, YMD";
+SET timezone TO +00;
+SET intervalstyle to "postgres";
+---------------------File query for bug 60---------------------
+--Testcase 1:
+SELECT count(*), sum(c1) from tmp_t11 GROUP BY c1 HAVING avg(c1+10)>-2 AND avg(c1)*2+100 < 100  ORDER BY 1,2;
+ count | sum 
+-------+-----
+     2 | -14
+     2 | -12
+     2 | -10
+     2 |  -8
+     2 |  -6
+     2 |  -4
+     2 |  -2
+(7 rows)
+
+--Testcase 2:
+SELECT count(c3), max(c22) from tmp_t11 GROUP BY c4 HAVING bool_and(c4)=true AND bool_and(c1*2>10)=false ORDER BY 1,2;
+ count | max 
+-------+-----
+    14 | 224
+(1 row)
+
+--Testcase 3:
+SELECT count(c3), max(c22) from tmp_t11 GROUP BY c14 HAVING bool_or(c1/(c14+10)<0)!=true AND bool_or(c1!=0)=true ORDER BY 1,2;
+ count |   max   
+-------+---------
+     2 | -140000
+     2 | -120000
+     2 | -100000
+     2 |  -80000
+     2 |  -60000
+     2 |  -20000
+     2 |     224
+     2 |   10000
+     2 |   30000
+     2 |   50000
+     2 |   70000
+     2 |   90000
+     2 |  110000
+     2 |  130000
+(14 rows)
+
+--Testcase 4:
+SELECT min(c27), max(c22) from tmp_t11 GROUP BY c14 HAVING bit_or(c1+c14)<0 OR bit_or(c28)>7 ORDER BY 1,2;
+    min    |  max   
+-----------+--------
+       -37 |    224
+       -37 |  10000
+        37 | -20000
+        37 |  30000
+  3000.123 |  50000
+  5000.123 |  70000
+  7000.123 |  90000
+  9000.123 | 110000
+ 11000.123 | 130000
+(9 rows)
+
+--Testcase 5:
+SELECT min(c27), max(c22) from tmp_t11 GROUP BY c29 HAVING count(c9)=4 OR max(c1)=0 ORDER BY 1,2;
+ min |  max   
+-----+--------
+ -37 | 130000
+   0 | -40000
+(2 rows)
+
+--Testcase 6:
+SELECT count(c26), max(c22) from tmp_t11 GROUP BY c1 HAVING count(c9)!=2 ORDER BY 1,2;
+ count | max 
+-------+-----
+(0 rows)
+
+--Testcase 7:
+SELECT count(c26), max(c22) from tmp_t11 GROUP BY c1 HAVING every(c1>0)=true AND every(c14<c28)=false AND every(c12*20<c27+100)=false ORDER BY 1,2;
+ count |   max   
+-------+---------
+     2 | -140000
+     2 | -120000
+     2 | -100000
+     2 |  -80000
+     2 |  -60000
+(5 rows)
+
+--Testcase 8:
+SELECT min(c21), max(c27) from tmp_t11 GROUP BY c27 HAVING stddev(c12*c22-c14/50)!=0 AND stddev(c14+c12/(c27+0.567)) < 10000 AND stddev(c22-c28-c14+99.998) > 1000 ORDER BY 1,2;
+             min             | max 
+-----------------------------+-----
+ -$92,233,720,368,547,758.08 |  37
+(1 row)
+
+--Testcase 9:
+SELECT min(c22), max(c27) from tmp_t11 GROUP BY c4 HAVING sum(c1)%2=0 AND (sum(c1*2+c14/2)-10)<-5000 AND sum(c14+c28)>-100000 ORDER BY 1,2;
+   min   | max 
+---------+-----
+ -120000 |  37
+(1 row)
+
+--Testcase 10:
+SELECT max(c1), sum(c14) from tmp_t11 GROUP BY c27 HAVING max(c1/(c1-23.4)*c14)>100 OR (max(c14-c22*c27)-0.567-max(c22)*2)<-1330275991 OR (max(c14*2-10)+max(c1))=10 ORDER BY 1,2;
+ max |  sum   
+-----+--------
+  -5 |     10
+   5 |    -10
+   6 | -47188
+   7 |   4386
+(4 rows)
+
+--Testcase 11:
+SELECT max(c1), min(c14) from tmp_t11 GROUP BY c2 HAVING (min(c14-c27*c12)+100+min(c1)*10)>100 OR (min(c28*2-c14)*2+100) IN (100,-15902,152, 44090,-39908) ORDER BY 1,2;
+ max |  min  
+-----+-------
+  -6 | -2147
+  -5 |     5
+   0 |     0
+   1 |     1
+   4 |     4
+   7 |    46
+(6 rows)
+
+--Testcase 12:
+SELECT count(c1), sum(c14) from tmp_t11 GROUP BY c3 HAVING (variance(c1+c14)/6+variance(c1))!=0 AND (variance(c27/(c1-2.566)))>1000 AND variance(c14*3)/1000 < 1000 ORDER BY 1, 2;
+ count | sum 
+-------+-----
+     4 |  -6
+     6 |  -8
+(2 rows)
+
+--Testcase 13:
+SELECT max(c27), sum(c14) from tmp_t11 GROUP BY c1, c14 HAVING sqrt(abs(c1*c14))+100 < 110 OR sqrt(abs(c1))<5 ORDER BY 1,2;
+    max     |  sum   
+------------+--------
+ -12000.123 |    -10
+ -10000.123 |      8
+  -8000.123 |      6
+  -6000.123 |      4
+  -4000.123 |      2
+        -37 | -42894
+        -37 |  -4294
+          0 |      0
+         37 |     92
+         37 |   4294
+   3000.123 |     -2
+   5000.123 |     -4
+   7000.123 |     -6
+   9000.123 |     -8
+  11000.123 |     10
+(15 rows)
+
+--Testcase 14:
+SELECT max(c27), sum(c14) from tmp_t11 GROUP BY c3 HAVING bool_and(c4 <> true)=true AND bool_and(c22 >= 10000)=true OR bool_and(c1 <> 1)=false ORDER BY 1, 2;
+    max    |  sum  
+-----------+-------
+ -4000.123 |     2
+       -37 | -4294
+  3000.123 |    -2
+ 11000.123 |    10
+(4 rows)
+
+--Testcase 15:
+SELECT min(c27), avg(c14) from tmp_t11 GROUP BY c3 HAVING bool_or(c12>0.1123)!=false AND bit_and((c1-1))<0 AND (variance(c14)*sum(c22)+stddev(c22)+10)<20 AND (max(c22)-avg(c1))>0 ORDER BY 1, 2;
+    min    |           avg           
+-----------+-------------------------
+       -37 |  -2147.0000000000000000
+  3000.123 | -1.00000000000000000000
+ 11000.123 |      5.0000000000000000
+(3 rows)
+
+--Testcase 16:
+SELECT min(c27), avg(c14) from tmp_t11 GROUP BY c3 HAVING (max(c27)/min(c14)/2)>0 AND (min(c1)-avg(c12)* sum(c1*2))>200 AND max(c8) != 'kwikdikwik' AND (count(*)*10* max(c1-100))<-1980 AND (variance (c1/2) + min(c1))<300 ORDER BY 1, 2;
+    min    |          avg           
+-----------+------------------------
+       -37 | -2147.0000000000000000
+        37 |  2147.0000000000000000
+ 11000.123 |     5.0000000000000000
+(3 rows)
+
+--Testcase 17:
+SELECT min(c27), max(c14), c12 from tmp_t11 GROUP BY c1, c12 HAVING (stddev(c14)+10* sqrt(abs(c12)))<100 AND (sum(c1)+sum(c12)-sum(c14))<10000 AND c1/2!=3 AND NOT c12/10-5 > 10 ORDER BY 1, 2, 3;
+    min    | max |    c12     
+-----------+-----+------------
+ -8000.123 |   3 |   -90.2894
+ -6000.123 |   2 | -70.989484
+ -4000.123 |   1 |   -50.2018
+         0 |   0 |      -30.2
+  3000.123 |  -1 |     40.216
+  5000.123 |  -2 |     60.298
+(6 rows)
+
+--Testcase 18:
+SELECT c4, c6, c12*10-5, c30, c31, c27/sum(c1+10) from  tmp_t11 GROUP BY c1, c4, c6, c12, c30, c27, c31 HAVING c1<c27 AND c27/sum(c1+10)>10 OR c4=(c12>c27) ORDER BY 1, 2, 3, 4, 5, 6;
+ c4 |           c6           |     ?column?      |   c30    |     c31     |      ?column?       
+----+------------------------+-------------------+----------+-------------+---------------------
+ f  | \x62686468686861617770 |            597.98 | 10:23:54 | 10:23:54+02 |    625.015380859375
+ f  | \x62686766636466727470 |             -3075 | 23:59:58 | 23:59:59+02 |   2.176470588235294
+ f  | \x696a7575737979717170 |           1196.51 | 10:23:54 | 10:23:54+02 |      2200.024609375
+ f  | \x696b6a6e686776626870 |            397.16 | 10:23:54 | 10:23:54+02 |   333.3470052083333
+ f  | \x6a696a69687967676170 |             -3075 | 23:59:58 | 23:59:59+02 |   2.176470588235294
+ f  | \x6d6e6276676873616170 |           1196.51 | 10:23:54 | 10:23:54+02 |      2200.024609375
+ f  | \x6e6b6a68676762767370 |          80564.84 | 10:23:54 | 10:23:54+02 |      1000.017578125
+ f  | \x6f6c6f7771737a786370 | 997.1299999999999 | 10:23:54 | 10:23:54+02 |     1500.0205078125
+ f  | \x706c7777717173646170 | 997.1299999999999 | 10:23:54 | 10:23:54+02 |     1500.0205078125
+ f  | \x756a6468676766666170 |          80564.84 | 10:23:54 | 10:23:54+02 |      1000.017578125
+ f  | \x79686774726664657770 |            597.98 | 10:23:54 | 10:23:54+02 |    625.015380859375
+ f  | \x7975696f706c6b6a6867 |            397.16 | 10:23:54 | 10:23:54+02 |   333.3470052083333
+ t  | \x626e6d6a6b6c6f697570 |          -507.018 | 10:23:54 | 10:23:54+02 | -363.64754971590907
+ t  | \x6b6c6d6e686766646370 |              3075 | 23:59:59 | 00:00:01+02 |  12.333333333333334
+ t  | \x6c6b7364626268676770 |          -1114.84 | 10:23:54 | 10:23:54+02 |  -714.2945033482143
+ t  | \x6e626867736276616170 |          -907.894 | 10:23:54 | 10:23:54+02 |  -615.3940805288462
+ t  | \x6f6c6b6a756879747770 |              3075 | 23:59:59 | 00:00:01+02 |  12.333333333333334
+ t  | \x706c6f69756a68677970 |        -714.89484 | 10:23:54 | 10:23:54+02 |    -500.01025390625
+ t  | \x706c6f69757771717270 |          -1114.84 | 10:23:54 | 10:23:54+02 |  -714.2945033482143
+ t  | \x706c7773777171737a70 |          -907.894 | 10:23:54 | 10:23:54+02 |  -615.3940805288462
+ t  | \x706f6c6b697579747870 |        -714.89484 | 10:23:54 | 10:23:54+02 |    -500.01025390625
+ t  | \x706f6c6b6a6975797470 |          -507.018 | 10:23:54 | 10:23:54+02 | -363.64754971590907
+(22 rows)
+
+--Testcase 19:
+SELECT min(c27), avg(c14) from tmp_t11 GROUP BY c3 HAVING min(c1*5)<>-5 AND (max(c14)+10)<>10 AND count(c3)>1 AND avg(c28+c1*2)<>23.0 AND stddev(c28)<6000 AND sum(c22)<>2000 AND bit_and(c1+c28)!=1 ORDER BY 1, 2;
+    min     |           avg           
+------------+-------------------------
+ -12000.123 |     -5.0000000000000000
+ -10000.123 |      4.0000000000000000
+  -8000.123 |      3.0000000000000000
+  -4000.123 |  1.00000000000000000000
+        -37 | -10700.5000000000000000
+        -37 |  -2147.0000000000000000
+  11000.123 |      5.0000000000000000
+(7 rows)
+
+--Testcase 20:
+SELECT c6,c2,c11,c32,c33 from tmp_t11 GROUP BY c6,c2,c11,c32,c33 HAVING c6=E'\\x706f6c6b6a6975797470' OR c2=B'1010110101' OR c11='1022-02-01' OR c32='2014-10-19 10:23:54' OR c33='2008-10-19 08:23:54+00' ORDER BY 1,2,3,4,5;
+           c6           |     c2     |    c11     |         c32         |          c33           
+------------------------+------------+------------+---------------------+------------------------
+ \x626e6d6a6b6c6f697570 | 1010110000 | 1022-02-01 | 2010-10-19 10:23:54 | 2010-10-19 08:23:54+00
+ \x6c6b6a68676664736170 | 1010101110 | 0120-07-31 | 0001-01-01 00:00:00 | 2008-10-19 08:23:54+00
+ \x6e626867736276616170 | 1010110100 | 3826-09-16 | 2014-10-19 10:23:54 | 2015-10-19 08:23:54+00
+ \x6f6c6f7771737a786370 | 1010110101 | 5527-10-02 | 2015-10-19 10:23:54 | 0001-01-01 00:00:01+00
+ \x706c7773777171737a70 | 1010110100 | 3826-09-16 | 2014-10-19 10:23:54 | 2015-10-19 08:23:54+00
+ \x706c7777717173646170 | 1010110101 | 5527-10-02 | 2015-10-19 10:23:54 | 0001-01-01 00:00:01+00
+ \x706f6c6b6a6975797470 | 1010110000 | 1022-02-01 | 2010-10-19 10:23:54 | 2010-10-19 08:23:54+00
+ \x7175797267686a757970 | 1010101110 | 0120-07-31 | 0001-01-01 00:00:00 | 2008-10-19 08:23:54+00
+(8 rows)
+
+--Testcase 21:
+SELECT max(c28), c1 FROM tmp_t11 GROUP BY c1 HAVING bit_or(c2)=B'1010110001' OR bit_and(c3)<>B'01101' ORDER BY 1,2;
+  max   | c1 
+--------+----
+ -12000 |  5
+ -10000 |  4
+  -8000 |  3
+  -4000 |  1
+   -328 | -6
+   -327 |  6
+      0 |  0
+     36 |  7
+     37 | -7
+   3000 | -1
+   5000 | -2
+   7000 | -3
+  11000 | -5
+(13 rows)
+
+--Testcase 22:
+SELECT c3, count(c2), min(c33) FROM tmp_t11 GROUP BY c3 HAVING avg(c28)=3000.0 OR avg(c28)=-145.5 OR stddev(c22)<>0.0 AND max(c32) <> '2017-10-19 10:23:54' ORDER BY 1,2,3;
+  c3   | count |          min           
+-------+-------+------------------------
+ 01010 |     2 | 2009-10-19 08:23:54+00
+ 01011 |     4 | 2008-10-19 08:23:54+00
+ 01101 |     6 | 0001-01-01 00:00:01+00
+ 10101 |     4 | 2004-10-19 08:23:54+00
+(4 rows)
+
+------------------------GridDB query for bug 60-----------------------------
+--Testcase 23:
+SELECT max(c1), count(c9) FROM t1 GROUP BY c13 HAVING (avg(c6*c1-c3)+17.55435 - avg(c4))>0 AND (avg(c6+c7)-10*avg(c4))>-20 AND (avg(c7+c4)-10000+avg(c1+c6)+1)<10 AND (avg(c1+c6)+9.998)<>11.998 AND (avg(c7+c7/c7)-1000)<100 ORDER BY 1, 2;
+ max | count 
+-----+-------
+  -3 |     4
+  -1 |     2
+   1 |     2
+   5 |     2
+(4 rows)
+
+--Testcase 24:
+SELECT max(c1), count(c9) FROM t1 GROUP BY c13 HAVING bool_and(c1/(c7-c1) >= 0)=true AND NOT bool_and(c8+c4*c7 <> 10)=false AND bool_and(c4/(c1+10.25)*c4 != 0)=true AND bool_and(c1/(c7+7548)-c4 < 1)=true ORDER BY 1, 2;
+  max   | count 
+--------+-------
+      0 |     2
+      1 |     2
+      4 |     2
+      5 |     2
+ 483646 |     2
+(5 rows)
+
+--Testcase 25:
+SELECT max(c1), min(c7) FROM t1 GROUP BY c13 HAVING (bool_or(c7*c8*c7*100>1) AND bool_or(c6+c6-c7 <= 1235))=true AND (bool_or(c6/(c4-c1-200)<=357.1))=true OR bool_or(c1*c6-c7 >= 0.5)=false ORDER BY 1, 2;
+   max   |    min    
+---------+-----------
+ -483648 |   3.4e+20
+      -1 |   -10.985
+       0 |    -0.993
+       1 |    10.874
+       3 | -3.39e+20
+       4 |    40.663
+       5 |    40.671
+  483646 |  3.39e+20
+(8 rows)
+
+--Testcase 26:
+SELECT min(c1), max(c7) FROM t1 GROUP BY c14 HAVING (bit_and(c1) +  bit_and(c3)*5)<>6 AND (bit_and(c4)-10 - 2* bit_and(c6)+10)<1000 AND bit_and(c6)!=0 ORDER BY 1, 2;
+  min   |   max    
+--------+----------
+     -5 |  -50.234
+     -4 |  -40.323
+     -1 |  -10.985
+      0 |   -0.993
+      2 |   30.774
+      4 |   40.663
+      5 |   40.671
+ 483646 | 3.39e+20
+ 483647 | -3.4e+20
+(9 rows)
+
+--Testcase 27:
+SELECT min(c1), max(c7) FROM t1 GROUP BY c1 HAVING ((bit_or(c1) +  bit_or(c3)*5) BETWEEN -300 AND 300) AND bit_or(c6)<>-2 OR bit_or(c6)%2=1 ORDER BY 1, 2;
+  min   |   max    
+--------+----------
+     -5 |  -50.234
+     -2 |  -20.872
+     -1 |  -10.985
+      0 |   -0.993
+      1 |   10.874
+      2 |   20.874
+      3 |   30.774
+      4 |   40.663
+      5 |   40.671
+ 483647 | -3.4e+20
+(10 rows)
+
+--Testcase 28:
+SELECT min(c1), max(c7) FROM t1 GROUP BY c13 HAVING (count(*)-10)!=0 AND (2/count(*)+max(c1))<>1 AND (count(c1)+count(c3))<10 AND (count(*)+avg(c1))<>6.0 ORDER BY 1, 2;
+   min   |   max    
+---------+----------
+ -483648 |  3.4e+20
+      -4 |  -40.323
+      -2 |  -20.872
+      -1 |  -10.985
+       1 |   10.874
+       5 |   40.671
+  483646 | 3.39e+20
+(7 rows)
+
+--Testcase 29:
+SELECT min(c1), max(c7) FROM t1 GROUP BY c7 HAVING count(c8*c1)<5 AND count(c6*c7+c6)-100 = -98 AND (count(*)+c7 BETWEEN -5 AND 50) AND count(c1-c6/(c4-20))*6 = 2*6 ORDER BY 1, 2;
+ min |  max   
+-----+--------
+   0 | -0.993
+   1 | 10.874
+   2 | 20.874
+   3 | 30.774
+   4 | 40.663
+   5 | 40.671
+(6 rows)
+
+--Testcase 30:
+SELECT min(c1), max(c7) FROM t1 GROUP BY c13 HAVING every(c1 != 1) AND every(c4+c3 < 100) AND every(c5=true)=false OR every(c8 < (c7*c6)) ORDER BY 1, 2;
+   min   |   max    
+---------+----------
+ -483648 |  3.4e+20
+ -483647 |   30.774
+      -4 |  -40.323
+      -2 |  -20.872
+      -1 |  -10.985
+       1 |   10.874
+       5 |   40.671
+  483646 | 3.39e+20
+(8 rows)
+
+--Testcase 31:
+SELECT min(c1), max(c7) FROM t1 GROUP BY c15 HAVING (stddev(c8-c1+c1)+17.55+stddev(c8+c6+c7))<1000 AND (stddev(c8-c6/(c7-1000))+100)>10 OR (stddev(c1+c6-c7)/100 BETWEEN 1 AND 5) AND (5*stddev(c1/(c7+c8))/0.567)>0 ORDER BY 1, 2;
+  min   |   max    
+--------+----------
+     -4 |  -40.323
+     -2 |  -20.872
+     -1 |  -10.985
+      0 |   -0.993
+      1 |   10.874
+      2 |   30.774
+      4 |   40.663
+      5 |   40.671
+ 483647 | -3.4e+20
+(9 rows)
+
+--Testcase 32:
+SELECT min(c1), max(c7) FROM t1 GROUP BY c17 HAVING (sum(c1)+-9.5)>-1000 AND (sum(c7)+avg(c1))<60 AND sum(c8*c4/4)<>0 AND (sum(c6*c1/0.457)+10+sum(c4))<>12.0 OR (7-sum(c4/(c7-2.5))-6)=1 ORDER BY 1, 2;
+   min   |    max    
+---------+-----------
+ -483648 |   3.4e+20
+ -483647 | -3.39e+20
+      -5 |   -50.234
+      -4 |   -40.323
+      -2 |   -20.872
+      -1 |   -10.985
+       1 |    10.874
+  483646 |  3.39e+20
+  483647 |  -3.4e+20
+(9 rows)
+
+--Testcase 33:
+SELECT count(c1), sum(c6) FROM t1 GROUP BY c8 HAVING max(c1)*2 < 10 AND (max(c8*c6)-10+0.5*c8)>-10 AND (max(c7-c1)-c8/2)>-200 AND max(c2)<>'0123456789' OR max(4)=0 ORDER BY 1, 2;
+ count | sum 
+-------+-----
+     2 |  -6
+     2 |   2
+     2 |   2
+     2 |   4
+     2 |   6
+     2 |   8
+     2 |  10
+     4 |  -8
+(8 rows)
+
+--Testcase 34:
+SELECT min(c1), c6, max(c6) FROM t1 GROUP BY c6 HAVING (min(c1*c6) BETWEEN -2 AND 100) AND min(c7*2)>-100 AND ((min(c7) - max(c4)) NOT BETWEEN 0 AND 30) AND min(c8/(c1+10))>-5 ORDER BY 1, 2,3;
+ min | c6 | max 
+-----+----+-----
+  -2 |  0 |   0
+  -1 |  1 |   1
+   0 |  2 |   2
+   5 |  7 |   7
+(4 rows)
+
+--Testcase 35:
+SELECT min(c1), max(c8) FROM t1 GROUP BY c15 HAVING (variance(c6*c8)+variance(c1))>0 AND (variance(c4+c1*c7)-1000)<9 AND (variance(c7-c1)/100)<10 AND variance(c4)>-1 ORDER BY 1, 2;
+ min |   max   
+-----+---------
+  -4 | -30.874
+   2 |  40.721
+(2 rows)
+
+--Testcase 36:
+SELECT max(c1), min(c7) FROM t1 GROUP BY c6, c4, c7, c8, c1 HAVING (sqrt(abs(c6/c7))-c1)<>2 AND c6>c4 AND (c7+c8*c4)<300 AND (c4*2+100*c1)<>104 ORDER BY 1, 2;
+  max   |   min    
+--------+----------
+     -5 |  -50.234
+     -4 |  -40.323
+     -3 |  -40.323
+     -1 |  -10.985
+      0 |   -0.993
+      2 |   20.874
+      3 |   30.774
+ 483646 | 3.39e+20
+ 483647 | -3.4e+20
+(9 rows)
+
+--Testcase 37:
+SELECT max(c1), min(c7) FROM t1 GROUP BY c13, c1 HAVING ((variance(c4)+sum(c4)-max(c1)) NOT BETWEEN 4 AND 7) AND (count(*)-min(c6))<>4 AND (sqrt(abs(c1))*sum(c4))<>0 AND (8*count(c1+c7)+c1+sqrt(abs(c1)))<>22 ORDER BY 1, 2;
+   max   |    min    
+---------+-----------
+ -483648 |   3.4e+20
+ -483647 | -3.39e+20
+      -5 |   -50.234
+      -2 |   -20.872
+       1 |    10.874
+  483646 |  3.39e+20
+  483647 |  -3.4e+20
+(7 rows)
+
+--Testcase 38:
+SELECT max(c1), min(c7) FROM t1 GROUP BY c6 HAVING every (c2 != '0123456789') AND (count(c6)+sum(c7)-count(*))>-50 AND length(max(c2))!=31 AND 5*min(c1)<>0 AND (max(c6)-min(c1))<>0 AND c6<>7 ORDER BY 1, 2;
+   max   |   min    
+---------+----------
+ -483648 |  3.4e+20
+       1 |   10.874
+       2 |   20.874
+       3 |   30.774
+  483646 | 3.39e+20
+(5 rows)
+
+--Testcase 39:
+SELECT max(c1), min(c7) FROM t1 GROUP BY c1, c6, c7 HAVING (c1/2*5+c6)<1000 AND (min(c4)*count(c4))<>2 AND (max(c6)+c6*0.5) NOT IN(1.5, 4.5, 10.5) AND c7/5 != c6 ORDER BY 1, 2;
+   max   |    min    
+---------+-----------
+ -483648 |   3.4e+20
+ -483647 | -3.39e+20
+      -5 |   -50.234
+      -4 |   -40.323
+      -3 |   -40.323
+      -2 |   -20.872
+       2 |    20.874
+       3 |    30.774
+(8 rows)
+
+--Testcase 40:
+SELECT max(c1), min(c7) FROM t1 GROUP BY c6 HAVING (c6/2+max(c4))>-5 AND (c6+sum(c6))<>0 AND (count(*)+count(c4))%2=0 AND (min(c8)/2+min(c7)*123)>-6000 ORDER BY 1, 2;
+ max |   min   
+-----+---------
+  -3 | -40.323
+   0 |  -0.993
+   1 |  10.874
+   2 |  20.874
+   3 |  30.774
+   4 | -10.985
+   5 |  40.671
+(7 rows)
+
+--Testcase 41:
+SELECT c1, min(c7) FROM t1 GROUP BY c1 HAVING sum(c6)<>0 AND (count(*)+count(c4))=4 AND (min(c8)/2+min(c7)*100)>-900 ORDER BY 1,2;
+   c1    |    min    
+---------+-----------
+ -483648 |   3.4e+20
+ -483647 | -3.39e+20
+       0 |    -0.993
+       1 |    10.874
+       2 |    20.874
+       3 |    30.774
+       4 |    40.663
+       5 |    40.671
+(8 rows)
+
+--Testcase 42:
+SELECT c2,c10, max(c9), min(c6), avg(c8) FROM t1 GROUP BY c10,c2 HAVING max(c9)='2020-01-16 01:00:00' OR min(c6)=-2 OR avg(c8)=-40.763 OR c2='0123456789' OR c10=E'\\x3030393938383737' ORDER BY 1,2,3,5,4;
+                 c2                 |          c10           |         max         |     min      |    avg    
+------------------------------------+------------------------+---------------------+--------------+-----------
+ `~!@#$%                            | \x796a6873676764666673 | 2020-01-07 01:00:00 |           -2 |   -30.874
+ .                                  | \x37797965757975686a68 | 2020-01-16 01:00:00 |            7 |     60.73
+ กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ     | \x796a6873676764666673 | 2020-01-07 01:00:00 |           -2 |   -30.874
+ 0123456789                         | \x6b                   | 2020-01-09 01:00:00 |            0 |   -10.627
+ 7次ノヌ従援かや                    | \x696a6b6c00           | 2020-01-06 01:00:00 |           -3 |   -40.763
+ Canada Denmark Turkey Yemen Tokyo  | \x3030393938383737     | 2020-01-13 01:00:00 |            4 |    30.632
+ 敷ヘカウ告政ヨハツヤ消70者32精楽ざ | \x616263646566676869   | 2020-01-16 01:00:00 | -36854775808 | 1.79e+108
+(7 rows)
+
+--Testcase 43:
+SELECT c9, max(c1), count(c2), min(c3) FROM t1 GROUP BY c9 HAVING sum(c3)=252 OR avg(c6)=-2.0 OR (min(c7)>30.774 AND  min(c7)<31) OR bit_and(c3)=20 ORDER BY 4,3,2,1;
+         c9          |  max   | count | min 
+---------------------+--------+-------+-----
+ 2020-01-07 01:00:00 |     -3 |     4 |  -4
+ 2020-01-14 01:00:00 |      3 |     2 |   3
+ 2020-01-15 01:00:00 |      4 |     2 |  20
+ 2020-01-01 01:00:00 | 483646 |     2 | 126
+(4 rows)
+
+--------------------------InfluxDB query for bug 60-------------------------------
+--Testcase 44:
+SELECT max(c3), min(c4) FROM t7 GROUP BY c2 HAVING (avg(c3-c4)-0.5-avg(c3))<>20.6 AND (avg(c4+c3/45)*avg(c3))<>40.624 AND (avg(c3-10.2)+10+avg(c4)*4.5)<150 AND (avg(c4)+100)<>49.768 ORDER BY 1,2;
+     max     |    min    
+-------------+-----------
+          -4 |   -40.652
+          -3 |   -30.756
+          -2 |    -20.56
+          -1 |   -10.746
+           0 |     0.774
+           1 |    10.746
+           3 |    30.631
+ 36854775806 | -1.78e+68
+ 36854775807 | -1.79e+68
+(9 rows)
+
+--Testcase 45:
+SELECT max(c4), min(c3) FROM t7 GROUP BY c3 HAVING bool_and(c3 <> 0) AND NOT bool_and(c2 != '0123456789') OR bool_and(c4>c3) ORDER BY 1,2;
+   max    |     min      
+----------+--------------
+  -10.746 |           -1
+    0.774 |            0
+   10.746 |            1
+   20.312 |            2
+   30.631 |            3
+   40.772 |            4
+   50.188 |            5
+ 1.78e+68 | -36854775807
+ 1.79e+68 | -36854775808
+(9 rows)
+
+--Testcase 46:
+SELECT max(c3), min(c4) FROM t7 GROUP BY c4 HAVING bool_or(c3 > c4)=false AND bool_or(c3%2=1) AND bool_or(c3+c4<=5.5) OR every(c5=true) ORDER BY 1,2;
+     max      |   min    
+--------------+----------
+ -36854775808 | 1.79e+68
+           -5 |  -50.232
+           -4 |  -40.652
+           -3 |  -30.756
+            1 |   10.746
+            2 |   20.312
+(6 rows)
+
+--Testcase 47:
+SELECT max(c4), min(c3) FROM t7 GROUP BY c4 HAVING bit_and(c3)<>0 AND bit_and(c3)-avg(c4) BETWEEN -50 AND 50 ORDER BY 1,2;
+   max   | min 
+---------+-----
+ -50.232 |  -5
+ -40.652 |  -4
+ -30.756 |  -3
+  -20.56 |  -2
+ -10.746 |  -1
+  10.746 |   1
+  20.312 |   2
+  30.631 |   3
+  40.772 |   4
+  50.188 |   5
+(10 rows)
+
+--Testcase 48:
+SELECT max(c3), min(c4) FROM t7 GROUP BY c2 HAVING (bit_or(c3)*2+100)>0 AND (sum(c3)+bit_or(c3))<>0 ORDER BY 1,2;
+     max     |    min    
+-------------+-----------
+          -5 |   -50.232
+          -4 |   -40.652
+          -3 |   -30.756
+          -2 |    -20.56
+          -1 |   -10.746
+           1 |    10.746
+           2 |    20.312
+           3 |    30.631
+           4 |    40.772
+           5 |    50.188
+ 36854775806 | -1.78e+68
+ 36854775807 | -1.79e+68
+(12 rows)
+
+--Testcase 49:
+SELECT max(c3), min(c4) FROM t7 GROUP BY c5 HAVING count(c3)-10=2 AND count(c4)+count(c2) > avg(c3) ORDER BY 1,2;
+ max |   min   
+-----+---------
+   2 | -50.232
+(1 row)
+
+--Testcase 50:
+SELECT max(c3), min(c4) FROM t7 GROUP BY c4 HAVING every(length(c2)>5) AND every(c4 <> 10) AND every(c3 > 5.6) OR every(c5=true) ORDER BY 1,2;
+     max      |    min    
+--------------+-----------
+ -36854775808 |  1.79e+68
+           -5 |   -50.232
+           -4 |   -40.652
+           -3 |   -30.756
+            1 |    10.746
+            2 |    20.312
+  36854775806 | -1.78e+68
+  36854775807 | -1.79e+68
+(8 rows)
+
+--Testcase 51:
+SELECT max(c3), min(c4) FROM t7 GROUP BY c3 HAVING ((stddev(c3*3-c3)*1000000-c3) BETWEEN -100 AND 100) AND (stddev(c3)-0.567)<0 AND stddev(c4/(c3-1.3))/6=0 AND (stddev(c3+c4/(c4-52.1))+1)=1 ORDER BY 1,2;
+ max |   min   
+-----+---------
+  -5 | -50.232
+  -4 | -40.652
+  -3 | -30.756
+  -2 |  -20.56
+  -1 | -10.746
+   0 |   0.774
+   1 |  10.746
+   2 |  20.312
+   3 |  30.631
+   4 |  40.772
+   5 |  50.188
+(11 rows)
+
+--Testcase 52:
+SELECT max(c3), min(c4) FROM t7 GROUP BY c2 HAVING (sum(c4-c3)-6*max(c3))>0 AND (sum(c3/(c4+99)-c3)*100)<>0 AND sum(c4-c4/(c4+11))*-9.5<2000 OR sum(c4-c3-c3)/17.55<-100 AND sum(c4+c3+c3)*6<>291.744 ORDER BY 1,2;
+     max      |    min    
+--------------+-----------
+ -36854775808 |  1.79e+68
+ -36854775807 |  1.78e+68
+            1 |    10.746
+            2 |    20.312
+            3 |    30.631
+            4 |    40.772
+            5 |    50.188
+  36854775806 | -1.78e+68
+  36854775807 | -1.79e+68
+(9 rows)
+
+--Testcase 53:
+SELECT max(c4), min(c3) FROM t7 GROUP BY c3 HAVING (sum(c4-c3)-6+sum(c3))<>94.376 AND sum(c3)<>0 AND (sum(c4)*sum(c3)) BETWEEN -1000 AND 1000 AND sum(c4+c3)/sum(c3+10)<>-2.82 ORDER BY 1,2;
+   max   | min 
+---------+-----
+ -40.652 |  -4
+ -30.756 |  -3
+ -10.746 |  -1
+  10.746 |   1
+  20.312 |   2
+  30.631 |   3
+  40.772 |   4
+(7 rows)
+
+--Testcase 54:
+SELECT max(c3), min(c4) FROM t7 GROUP BY c4 HAVING max(c3)%2=0 AND (max(c4)+c4-1)<500 AND (max(c4+c3)-min(c4)-3)<>0 AND (max(c3)+max(c4))>0 ORDER BY 1,2;
+ max |  min   
+-----+--------
+   0 |  0.774
+   2 | 20.312
+   4 | 40.772
+(3 rows)
+
+--Testcase 55:
+SELECT max(c3), min(c4) FROM t7 GROUP BY c3 HAVING (c3 BETWEEN -100 AND 100) AND min(c3)<>1 AND (min(c3)+c3)<>8 AND min(c4+c3)>-500 AND (min(c4)+min(c3))<>22.312 ORDER BY 1,2;
+ max |   min   
+-----+---------
+  -5 | -50.232
+  -4 | -40.652
+  -3 | -30.756
+  -2 |  -20.56
+  -1 | -10.746
+   0 |   0.774
+   3 |  30.631
+   5 |  50.188
+(8 rows)
+
+--Testcase 56:
+SELECT max(c3), min(c4) FROM t7 GROUP BY c3 HAVING variance(c3)<10 AND (variance(c4)+c3) IN (3,5,4,0,-4,-1) OR c3<-3 ORDER BY 1,2;
+     max      |   min    
+--------------+----------
+ -36854775808 | 1.79e+68
+ -36854775807 | 1.78e+68
+           -5 |  -50.232
+           -4 |  -40.652
+           -1 |  -10.746
+            0 |    0.774
+            3 |   30.631
+            4 |   40.772
+            5 |   50.188
+(9 rows)
+
+--Testcase 57:
+SELECT max(c3), min(c4) FROM t7 GROUP BY c4, c5 HAVING (sqrt(abs(c4)) BETWEEN 1 AND 4) OR (sqrt(abs(c4/10+max(c3))) BETWEEN 2 AND 5) ORDER BY 1,2;
+ max |   min   
+-----+---------
+  -5 | -50.232
+  -4 | -40.652
+  -3 | -30.756
+  -2 |  -20.56
+  -1 | -10.746
+   1 |  10.746
+   2 |  20.312
+   3 |  30.631
+   4 |  40.772
+   5 |  50.188
+(10 rows)
+
+--Testcase 58:
+SELECT max(c3), min(c4) FROM t7 GROUP BY c3 HAVING (max(c4)+min(c4+c3)+3)>0 AND (min(c4)+c3*2)<>60.188 AND (count(*)-count(c2)+2)=2 ORDER BY 1,2;
+     max      |   min    
+--------------+----------
+ -36854775808 | 1.79e+68
+ -36854775807 | 1.78e+68
+            0 |    0.774
+            1 |   10.746
+            2 |   20.312
+            3 |   30.631
+            4 |   40.772
+(7 rows)
+
+--Testcase 59:
+SELECT max(c3), min(c4) FROM t7 HAVING (variance(c4)-5*min(c4)-1)<10e135 AND NOT every(c5 <> true) AND (max(c4+4.56)*3-min(c3))>5e68 AND (count(c3)-4)=26 ORDER BY 1,2;
+     max     |    min    
+-------------+-----------
+ 36854775807 | -1.79e+68
+(1 row)
+
+--Testcase 60:
+SELECT c3,c4,c5 FROM t7 GROUP BY c3, c4, c5 HAVING (c3-30)<>-31 AND (c4-10)<>-30.56 AND ((sum(c4)/3-c3) BETWEEN 0 AND 50) OR (min(c4)+c4/4)=62.735 ORDER BY 1,2;
+ c3 |   c4   | c5 
+----+--------+----
+  0 |  0.774 | f
+  1 | 10.746 | t
+  2 | 20.312 | t
+  3 | 30.631 | f
+  4 | 40.772 | f
+  5 | 50.188 | f
+(6 rows)
+
+--Testcase 61:
+SELECT c2, min(c3), max(c4) from t7 GROUP BY c2 HAVING max(time)='2020-01-10 01:00:00+00' OR min(time)='2020-01-12 01:00:00+00' OR (avg(c4)>-50 AND avg(c4)<-10) AND stddev(c3)=0 ORDER BY 1,2,3;
+                                  c2                                   | min |   max   
+-----------------------------------------------------------------------+-----+---------
+ `~!@#$%^&*()_+=-{}[]|:;<>?/.                                          |  -2 |  -20.56
+ กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ                                        |  -3 | -30.756
+ 0123456789                                                            |  -1 | -10.746
+ Canada Denmark Turkey Yemen Tokyo                                     |   2 |  20.312
+ Ông là nhà văn hiện thực thế kỷ 20                                    |   4 |  40.772
+ 色は匂へど 散りぬるを我が世誰ぞ 常ならむ有為の奥山 今日越えて浅き夢見 |  -4 | -40.652
+(6 rows)
+
+--Testcase 62:
+SELECT c5, count(c2), max(c3) from t7 GROUP BY c5 HAVING avg(c4)>2.9e+67 AND avg(c4)<3.0e+67 AND stddev(c3)=14345702026 AND sum(c3)=-73709551634 ORDER BY 1,2,3;
+ c5 | count | max 
+----+-------+-----
+ t  |    12 |   2
+(1 row)
+
+----------------------------------MySQL query for bug 60--------------------------------------------------------------------------------------------
+--Testcase 63:
+SELECT max(c1), min(c12) FROM t3 GROUP BY c6 HAVING avg(c4)=-60.0 OR avg(c1+c2)=7.0 OR (avg(c8+c1*c6) + count(*)) BETWEEN 0 AND 200 ORDER BY 1,2;
+ max |    min     
+-----+------------
+  -5 | 2014-12-31
+  -4 | 2015-12-31
+  -3 | 2016-12-31
+  -2 | 2017-12-31
+  -1 | 2018-12-31
+   0 | 2019-12-31
+   1 | 2020-12-31
+   2 | 2021-12-31
+   3 | 2022-12-31
+ 127 | 5999-12-31
+(10 rows)
+
+--Testcase 64:
+SELECT max(c1), min(c12) FROM t3 GROUP BY c6 HAVING bool_and(c4>0.5) AND bool_or(c7<c8) AND bool_and(c1+c1*c9>99) ORDER BY 1,2;
+ max |    min     
+-----+------------
+   3 | 2022-12-31
+   4 | 2023-12-31
+   5 | 2024-12-31
+(3 rows)
+
+--Testcase 65:
+SELECT max(c4), min(c8) FROM t3 GROUP BY c5 HAVING (bit_and(c2)+0.567 + bit_or(c1)/6)>0 AND ((bit_and(c3)+0.567)/(-9.5) + bit_and(c2)) BETWEEN 0 AND 10 ORDER BY 1,2;
+ max |   min   
+-----+---------
+ -20 | -10.222
+ -10 |   0.921
+   0 |  10.998
+  10 |  20.011
+  20 |  30.733
+  30 |  40.992
+  40 |  50.831
+(7 rows)
+
+--Testcase 66:
+SELECT max(c9), min(c10) FROM t3 GROUP BY c5 HAVING every(c1 != 1) AND (every(c4 <> c3) AND every(c7 < 5.6)) AND (every(c8 <= 2) OR every(c4 != 0)) ORDER BY 1,2;
+    max    |    min    
+-----------+-----------
+ -10000001 | -10000001
+  10000000 |  10000000
+  20000000 |  11000000
+  30000001 |  12000001
+  40000001 |  13000001
+  50000000 |  14000000
+  60000001 |  15000001
+  70000001 |  16000001
+  80000000 |  17000000
+  90000000 |  18000000
+(10 rows)
+
+--Testcase 67:
+SELECT max(c9), min(c10) FROM t3 GROUP BY c6 HAVING stddev(c5)<>0 OR ((stddev(c5*c6/(c2+5))-9.5)*sum(c3/(c4+5)-c1)) IN (-95,-19,19,57,-57,38,110) ORDER BY 1,2;
+    max    |    min    
+-----------+-----------
+  20000000 |  10000000
+  30000001 | -10000001
+  40000001 |  13000001
+  60000001 |  15000001
+  80000000 |  17000000
+ 100000000 |  19000000
+ 110000001 |  20000001
+ 120000001 |  21000001
+ 130000001 |  22000001
+(9 rows)
+
+--Testcase 68:
+SELECT max(c9), min(c10) FROM t3 GROUP BY c1 HAVING min(c1)<3 OR (variance(c10+c5*c1)/6 - min(c4-c8*c10))=-7483647 ORDER BY 1,2;
+    max    |    min    
+-----------+-----------
+ -10000001 | -10000001
+  10000000 |  10000000
+  30000001 |  12000001
+  40000001 |  13000001
+  50000000 |  14000000
+  60000001 |  15000001
+  70000001 |  16000001
+  80000000 |  17000000
+  90000000 |  18000000
+ 100000000 |  19000000
+ 110000001 |  20000001
+(11 rows)
+
+--Testcase 69:
+SELECT max(c13), min(c12) FROM t3 GROUP BY c2,c1,c3 HAVING c1<c2 AND c2<c3 ORDER BY 1,2;
+   max    |    min     
+----------+------------
+ 00:00:00 | 5999-12-31
+ 02:09:59 | 6999-12-30
+ 10:29:51 | 2020-12-31
+ 11:39:50 | 2021-12-31
+ 12:49:49 | 2022-12-31
+ 13:59:48 | 2023-12-31
+ 14:59:47 | 2024-12-31
+(7 rows)
+
+--Testcase 70:
+SELECT max(c13), min(c12) FROM t3 GROUP BY c4 HAVING (count(c4*c6/10)+sum(c4))!=2 AND (stddev(c5)+avg(c7+c8))<100 ORDER BY 1,2;
+   max    |    min     
+----------+------------
+ 00:00:00 | 5999-12-31
+ 02:09:59 | 6999-12-30
+ 03:19:58 | 2000-01-02
+ 04:29:57 | 2014-12-31
+ 05:39:56 | 2015-12-31
+ 06:49:55 | 2016-12-31
+ 07:59:54 | 2017-12-31
+ 08:09:53 | 2018-12-31
+ 09:19:52 | 2019-12-31
+ 11:39:50 | 2021-12-31
+ 12:49:49 | 2022-12-31
+ 13:59:48 | 2023-12-31
+ 24:00:00 | 1900-01-01
+(13 rows)
+
+--Testcase 71:
+SELECT max(c13), min(c12) FROM t3 GROUP BY c5 HAVING length(string_agg(c22, ';'))>50 AND (count(c2*c8/(c4+200))+sum(c2+(c1*c5))*stddev(c5*c8+c7))<1000 OR (count(c2*c8) + sum(c2+(c1*c5))+stddev(c5*c8+c7)) IN (4, 60, 24) ORDER BY 1,2;
+   max    |    min     
+----------+------------
+ 04:29:57 | 2014-12-31
+ 06:49:55 | 2016-12-31
+ 07:59:54 | 2017-12-31
+ 08:09:53 | 2018-12-31
+ 09:19:52 | 2019-12-31
+ 11:39:50 | 2021-12-31
+ 12:49:49 | 2022-12-31
+ 13:59:48 | 2023-12-31
+ 24:00:00 | 1900-01-01
+(9 rows)
+
+--Testcase 72:
+SELECT max(c13), min(c12) FROM t3 GROUP BY c6 HAVING (c6+sum(c8))>-100 AND (count(*)+max(c4))<200 AND (min(c8)/2+min(c6)*123) < 5000 ORDER BY 1,2;
+   max    |    min     
+----------+------------
+ 06:49:55 | 2016-12-31
+ 07:59:54 | 2017-12-31
+ 08:09:53 | 2018-12-31
+ 09:19:52 | 2019-12-31
+ 10:29:51 | 2020-12-31
+ 11:39:50 | 2021-12-31
+ 12:49:49 | 2022-12-31
+ 13:59:48 | 2023-12-31
+(8 rows)
+
+--Testcase 73:
+SELECT max(c13), min(c12) FROM t3 GROUP BY c22, c20, c1 HAVING upper(c22) NOT LIKE 'THE%' OR every (c18 != 'aa') AND (c1 > 20) AND (max(c2/(c1+c6))*6 + min(c7/(c8-c5))-6)<0 ORDER BY 1,2;
+   max    |    min     
+----------+------------
+ 00:00:00 | 5999-12-31
+ 02:09:59 | 6999-12-30
+ 03:19:58 | 2000-01-02
+ 04:29:57 | 2014-12-31
+ 05:39:56 | 2015-12-31
+ 06:49:55 | 2016-12-31
+ 07:59:54 | 2017-12-31
+ 08:09:53 | 2018-12-31
+ 09:19:52 | 2019-12-31
+ 10:29:51 | 2020-12-31
+ 11:39:50 | 2021-12-31
+ 12:49:49 | 2022-12-31
+ 13:59:48 | 2023-12-31
+ 14:59:47 | 2024-12-31
+(14 rows)
+
+--Testcase 74:
+SELECT max(c13), min(c12) FROM t3 GROUP BY c6 HAVING (variance(c6+c6*c8)-23.456+variance(c1))<>-23.456 AND variance(c7/c6-c1)/100>0 AND (variance(c1+c2+c4)*2+1)=7.0 ORDER BY 1,2;
+   max    |    min     
+----------+------------
+ 02:09:59 | 5999-12-31
+ 24:00:00 | 1900-01-01
+(2 rows)
+
+--Testcase 75:
+SELECT max(c13), min(c12) FROM t3 GROUP BY c7, c1 HAVING (avg(c6*c8)-23+variance(c1))<>23.0 AND (variance(c7/c6-c1)/100+c7)<>0.92 AND (stddev(c1+c2+c4)+1+2*c1)<>7 ORDER BY 1,2;
+   max    |    min     
+----------+------------
+ 00:00:00 | 5999-12-31
+ 02:09:59 | 6999-12-30
+ 03:19:58 | 2000-01-02
+ 04:29:57 | 2014-12-31
+ 05:39:56 | 2015-12-31
+ 06:49:55 | 2016-12-31
+ 07:59:54 | 2017-12-31
+ 08:09:53 | 2018-12-31
+ 10:29:51 | 2020-12-31
+ 11:39:50 | 2021-12-31
+ 13:59:48 | 2023-12-31
+ 14:59:47 | 2024-12-31
+ 24:00:00 | 1900-01-01
+(13 rows)
+
+--Testcase 76:
+SELECT max(c9), min(c10) FROM t3 GROUP BY c3, c5, c6, c7 HAVING min(c1/(c8+0.25)) = 508 OR min(c1+c2/(c4-25))<>5 AND min(c8-c2+c7)/(min(c1)-0.5)>0 ORDER BY 1,2;
+    max    |    min    
+-----------+-----------
+ -10000001 | -10000001
+  10000000 |  10000000
+  30000001 |  12000001
+  40000001 |  13000001
+  50000000 |  14000000
+  60000001 |  15000001
+  70000001 |  16000001
+  80000000 |  17000000
+ 100000000 |  19000000
+ 110000001 |  20000001
+ 120000001 |  21000001
+(11 rows)
+
+--Testcase 77:
+SELECT max(c9), min(c10) FROM t3 GROUP BY c2, c6, c7 HAVING (sum(c1+c2)-min(c1+c6)/5)>-100 AND (max(c2*c7+c7)-(max(c1)*2))<100 AND (avg(c6*c4)-c6)>0 AND (stddev(c1*c7/4)-100+c2/2)<>-100 AND (count(c7*c1+3)+20)=22 ORDER BY 1,2;
+    max    |   min    
+-----------+----------
+  50000000 | 14000000
+  60000001 | 15000001
+ 110000001 | 20000001
+(3 rows)
+
+--Testcase 78:
+SELECT max(c8), min(c9) FROM t3 GROUP BY c1, c2, c5 HAVING (sqrt(abs(c1*5-c2*4)) + sqrt(abs(c5+c2))) > 3 AND (3*sqrt(abs(c5-c2))+max(c4))<1000 ORDER BY 1,2;
+    max    |    min    
+-----------+-----------
+ -1.8e+108 |  30000001
+ -1.7e+108 | -10000001
+   -50.159 |  40000001
+    -40.32 |  50000000
+   -30.543 |  60000001
+   -20.545 |  70000001
+   -10.222 |  80000000
+     0.921 |  90000000
+    10.998 | 100000000
+    20.011 | 110000001
+    30.733 | 120000001
+    40.992 | 130000001
+    50.831 | 140000001
+(13 rows)
+
+--Testcase 79:
+SELECT max(c8), min(c9) FROM t3 GROUP BY c6 HAVING (sum(c4)*min(c4))<>800 AND (count(c7)+stddev(c1))>1 AND min(c9) > max(c10) ORDER BY 1,2;
+   max   |    min    
+---------+-----------
+ -50.159 |  40000001
+  -40.32 |  50000000
+ -30.543 |  60000001
+ -20.545 |  70000001
+   0.921 |  90000000
+  10.998 | 100000000
+  20.011 | 110000001
+  40.992 | 130000001
+  50.831 | 140000001
+(9 rows)
+
+--Testcase 80:
+SELECT max(c8), min(c9) FROM t3 GROUP BY c6 HAVING (variance(c1)*stddev(c2)-1)=-1 AND every(c20 <> 'In Bulgarian it is desirable') AND (max(c3+4.56)*7+sum(c3))>-100 AND (count(c3)-5+avg(c6))<>-3 ORDER BY 1,2;
+   max   |    min    
+---------+-----------
+ -10.222 |  80000000
+  10.998 | 100000000
+  20.011 | 110000001
+  30.733 | 120000001
+  40.992 | 130000001
+  50.831 | 140000001
+(6 rows)
+
+--Testcase 81:
+SELECT max(c8), min(c9), stddev(c4) FROM t3 GROUP BY c11 HAVING bool_and(c2 <> -2) AND bool_and(c20 != 'Thequickbrownfoxjumpsoverthelazydog') AND bool_and(c3+c4 <=10)=false AND avg(c1) BETWEEN -37 and -36 AND count(*)=14 ORDER BY 1,2;
+  max   |    min    |    stddev    
+--------+-----------+--------------
+ 40.992 | -10000001 | 3508383.3738
+(1 row)
+
+--Testcase 82:
+SELECT c21, c23, c20, c18, count(*) FROM t3 GROUP BY c21, c23, c20, c18 HAVING c21=E'\\xaaa7a8a9aaabacadaeaf' OR c23=E'\\xb6f7a8a9889a65aaabacad' OR c20='0123456789' OR c18='Thequickbrownfox' ORDER BY 1,2,3,4,5;
+          c21           |             c23              |                                       c20                                        |                  c18                   | count 
+------------------------+------------------------------+----------------------------------------------------------------------------------+----------------------------------------+-------
+ \xaaa7a8a9aaabacadaeaf | \x5697a8a9889a65aaab         | いろはにほへど　ちりぬるをわがよたれぞ　つねならむうゐのおくやま　けふこえてあさ | いろはにほへど　ちりぬるをわがよたれぞ |     2
+ \xaea7a8a9aaabac       | \x96d7a8a9889a65aaabacadae   | 0123456789                                                                       | In Bulgarian it is desirable           |     2
+ \xb0a7a8a9aaabacadae   | \xb6f7a8a9889a65aaabacad     | Which started out as a kind                                                      | Lao Peoples Democr                     |     2
+ \xb2a7a8a9aaabacadae   | \xd627a8a9889a65aaabacadaeaf | Change our locale from $ to ¥ in                                                 | Thequickbrownfox                       |     2
+(4 rows)
+
+--Testcase 83:
+SELECT c6, max(c1), min(c4) FROM t3 GROUP BY c6 HAVING (bit_or(c11)=B'1' AND bit_and(c11)=B'1' AND stddev(c3)=0) OR (stddev(c3)>40 AND stddev(c3)<41) OR (stddev(c4)>40 AND stddev(c4)<41) OR (sum(c6) BETWEEN 80 AND 82) OR avg(c8)=0.921 ORDER BY 1,2;
+   c6    | max | min 
+---------+-----+-----
+  -50.52 |  -5 | -60
+ -30.633 |  -3 | -40
+ -10.653 |  -1 | -20
+   0.532 |   0 | -10
+  10.772 |   1 |   0
+  30.899 |   3 |  20
+  40.157 |   4 |  30
+  50.852 |   5 |  40
+(8 rows)
+
+--Testcase 84:
+SELECT c6, max(c13), min(c14), c20 FROM t3 GROUP BY c6, c20 HAVING (max(c13)='04:29:57' OR max(c13)='08:09:53') OR min(c14)='2022-12-31 23:56:59' OR c20='Thequickbrownfoxjumpsoverthelazydog' OR (c6>-3.5e+20 AND c6<-3.3e+20) ORDER BY 1,2,3,4;
+    c6     |   max    |         min         |                                       c20                                        
+-----------+----------+---------------------+----------------------------------------------------------------------------------
+  -3.4e+20 | 03:19:58 | 2200-01-01 00:00:01 | ăâđêôơưdêđêdờenờíìờẹ
+  -3.4e+20 | 24:00:00 | 2100-01-01 00:00:00 | 敷ヘカウ告政ヨハツヤ消70者32精楽ざ
+    -50.52 | 04:29:57 | 2021-12-31 23:57:59 | いろはにほへど　ちりぬるをわがよたれぞ　つねならむうゐのおくやま　けふこえてあさ
+   -40.563 | 05:39:56 | 2022-12-31 23:56:59 | 色は匂へど 散りぬるを我が世誰ぞ 常ならむ有為の奥山 今日越えて浅き夢見
+   -10.653 | 08:09:53 | 2025-12-31 23:53:59 | 0123456789
+ -1.17e-20 | 00:00:00 | 4999-12-31 23:59:59 | Thequickbrownfoxjumpsoverthelazydog
+(6 rows)
+
+----------------------------------PostgreSQL query for bug 60--------------------------------------------------------------------------------------------
+--Testcase 85:
+SELECT c1,c2,c3 from t9 group by c1,c2,c3 having avg(c15/c31-c31) < count(c22/c23*c13) AND min(c23) < min(c15) ORDER BY c1,c2,c3;
+      c1      |      c2       |     c3     
+--------------+---------------+------------
+ -36854775807 |    6854775806 | 1110101100
+            0 |           200 | 1010101110
+            1 |         40000 | 1100110000
+            2 |       6000000 | 0010110010
+            3 |     800000000 | 0010110100
+            4 |   10000000000 | 1010110110
+            5 | 3000000000000 | 1010111000
+(7 rows)
+
+--Testcase 86:
+SELECT c2,max(c1),c4 from t9 group by c1,c2,c4 having count(c15-c31-c28)/-9.5 < stddev(c2/(c28+c13))*100 OR count(c16*2)/-9.5 > 10  ORDER BY c2,c1,c4;
+      c2       |     max      |  c4   
+---------------+--------------+-------
+             1 |  36854775807 | 10101
+            10 |  36854775806 | 10101
+           200 |            0 | 01011
+          3000 |           -1 | 01010
+         40000 |            1 | 11011
+        500000 |           -2 | 01101
+       6000000 |            2 | 01101
+      70000000 |           -3 | 01011
+     800000000 |            3 | 10110
+    6854775806 | -36854775807 | 10100
+    6854775807 | -36854775808 | 11111
+    9000000000 |           -4 | 01101
+   10000000000 |            4 | 10111
+  200000000000 |           -5 | 01001
+ 3000000000000 |            5 | 10001
+(15 rows)
+
+--Testcase 87:
+SELECT count(c3),c4,c5 from t9 group by c3,c4,c5 having avg(c2+c31*c23)+0.567 <> avg(c13-c29+c15)/9999999999999.998  ORDER BY c3,c4,c5;
+ count |  c4   | c5 
+-------+-------+----
+     2 | 11111 | f
+     2 | 01101 | t
+     2 | 10110 | t
+     2 | 01101 | f
+     2 | 10101 | f
+     2 | 01011 | t
+     2 | 01011 | f
+     2 | 10111 | t
+     2 | 10001 | f
+     2 | 11011 | t
+     2 | 01101 | f
+     2 | 10100 | t
+     2 | 01010 | f
+     2 | 01001 | f
+     2 | 10101 | t
+(15 rows)
+
+--Testcase 88:
+SELECT c4,c5,min(c1) from t9 group by c4,c5,c1 having variance(c31-c31-c28)*-9.5 = -0  ORDER BY c4,c5,c1;
+  c4   | c5 |     min      
+-------+----+--------------
+ 01001 | f  |           -5
+ 01010 | f  |           -1
+ 01011 | f  |           -3
+ 01011 | t  |            0
+ 01101 | f  |           -4
+ 01101 | f  |           -2
+ 01101 | t  |            2
+ 10001 | f  |            5
+ 10100 | t  | -36854775807
+ 10101 | f  |  36854775806
+ 10101 | t  |  36854775807
+ 10110 | t  |            3
+ 10111 | t  |            4
+ 11011 | t  |            1
+ 11111 | f  | -36854775808
+(15 rows)
+
+--Testcase 89:
+SELECT max(c1),c2,c3 from t9 group by c1,c2,c3 having max(c23/55*c16)/1.55435 > max(1000/c2*c16)/101000  ORDER BY c1,c2,c3; 
+     max      |      c2      |     c3     
+--------------+--------------+------------
+ -36854775808 |   6854775807 | 0000000000
+ -36854775807 |   6854775806 | 1110101100
+           -5 | 200000000000 | 1110110111
+           -4 |   9000000000 | 0110110101
+           -3 |     70000000 | 1010110011
+           -2 |       500000 | 1100110001
+           -1 |         3000 | 1110101111
+(7 rows)
+
+--Testcase 90:
+SELECT max(c31),c7,c8 from t9 group by c7,c8,c31 having max(c9) >  min(c32) OR every(c8>'a') = true  ORDER BY c31,c7,c8;
+  max   |                  c7                  |     c8     
+--------+--------------------------------------+------------
+      1 | \xa7a8a9aaabacadaeaf                 | abcdEFGH  
+      2 | \x9416a61d32132b321c                 | stuvwxyz  
+     12 | \x16a51b651f651c651d                 | BCDEFGHJ  
+    103 | \x941231b65d15f16515                 | klmnopqr  
+    105 | \x841651e321d3a321cb                 | `~!@#$%^  
+    109 | \xc651b651e231d3c22a                 | Ireland   
+    110 | \x4616a513d21c21b32e                 | Democrat  
+    111 | \x351a3d132e132c1b32                 | Herzegov  
+    112 | \x8465a1d321c321b23e                 | Portugal  
+ 483646 | \x151354865131651321                 | IJKLMNOP  
+ 483647 | \x4b32313635313331363531333136313533 | QRSTUVWX  
+(11 rows)
+
+--Testcase 91:
+SELECT c7,c8,min(c9) from t9 group by c7,c8,c9 having bool_and(c5) = every(c30 <> 10) AND sum(c31*c1-c13)-1000000 < avg(c15)  ORDER BY c7,c8,c9;
+          c7          |     c8     |    min     
+----------------------+------------+------------
+ \x151354865131651321 | IJKLMNOP   | InBulgaria
+ \x155e13a312d1c321b2 | 01234567   | Germany MN
+ \x4616a513d21c21b32e | Democrat   | dIvoiFijit
+ \x6513213a321d321c23 | ^&*()_+=   | kwikdikwik
+ \x84165a132d13e21c23 | []|:;<>?   | []|:;<>?()
+ \x941231b65d15f16515 | klmnopqr   | GHIJKLMNOP
+ \x9416a61d32132b321c | stuvwxyz   | Federated
+(7 rows)
+
+--Testcase 92:
+SELECT c7,c8,min(c9) from t9 group by c7,c8,c9 having bool_and(c5) = every(c30 <> 10) AND sum(c31*c1-c13)-1000000 < avg(c15)  ORDER BY c7,c8,c9;
+          c7          |     c8     |    min     
+----------------------+------------+------------
+ \x151354865131651321 | IJKLMNOP   | InBulgaria
+ \x155e13a312d1c321b2 | 01234567   | Germany MN
+ \x4616a513d21c21b32e | Democrat   | dIvoiFijit
+ \x6513213a321d321c23 | ^&*()_+=   | kwikdikwik
+ \x84165a132d13e21c23 | []|:;<>?   | []|:;<>?()
+ \x941231b65d15f16515 | klmnopqr   | GHIJKLMNOP
+ \x9416a61d32132b321c | stuvwxyz   | Federated
+(7 rows)
+
+--Testcase 93:
+SELECT c9,c10,sum(c1) from t9 group by c1,c9,c10 having avg(c2/c23-c29)-9999999999999.998 > 999.9999 OR sum(c2/c30+c28) > 999.9999  ORDER BY c9,c10,c1;
+     c9     |       c10       |     sum      
+------------+-----------------+--------------
+ `~!@#$%^+= | 100.164.0.0/16  |           -6
+ []|:;<>?() | 110.223.0.0/16  |            6
+ 0123456789 | 120.0.0.0/8     |           -8
+ dIvoiFijit | 130.0.0.0/8     |            8
+ Eswatini I | 150.241.31.0/24 |           10
+ GHIJKLMNOP | 60.51.65.0/24   |           -2
+ InBulgaria | 30.31.94.0/24   | -73709551614
+ IrelandIRN | 80.214.0.0/16   |           -4
+ Ireland Li | 140.134.0.0/16  |          -10
+ kwikdikwik | 90.63.61.0/24   |            4
+ MalaysiaNY | 40.91.0.0/16    |  73709551612
+ Thequickbr | 20.16.0.0/16    | -73709551616
+(12 rows)
+
+--Testcase 94:
+SELECT count(c10),c31,c12 from t9 group by c10,c12,c31 having variance(c29-c13-c13)-1 < stddev(c13+c30+c28)- -9.5  ORDER BY c10,c31,c12;
+ count |  c31   |    c12     
+-------+--------+------------
+     2 |      1 | 0001-01-01
+     2 | 483647 | 9999-12-31
+     2 | 483646 | 0001-01-02
+     2 |     12 | 9999-12-30
+     2 |      2 | 0120-07-31
+     2 |    103 | 0221-08-30
+     2 |    104 | 1022-02-01
+     2 |    105 | 1123-01-05
+     2 |    106 | 2024-03-27
+     2 |    107 | 2825-04-19
+     2 |    108 | 3826-09-16
+     2 |    109 | 5527-10-02
+     2 |    110 | 4528-05-24
+     2 |    111 | 5429-11-09
+     2 |    112 | 8730-06-10
+(15 rows)
+
+--Testcase 95:
+SELECT c2,min(c12),c13 from t9 group by c2,c12,c13 having bit_and(c3) > bit_or(c3) AND stddev(c15-c28-c31) > 10   ORDER BY c2,c12,c13;
+ c2 | min | c13 
+----+-----+-----
+(0 rows)
+
+--Testcase 96:
+SELECT min(c12),max(c13),c14 from t9 group by c12,c13,c14 having avg(c2/c23-c29) < avg(c23/c2) AND sum(c2/c30+c28) > 1111111  ORDER BY c12,c13,c14;
+    min     |   max    |       c14       
+------------+----------+-----------------
+ 0001-01-02 |   1e+108 | 198.24.10.0
+ 2825-04-19 | 8056.984 | 192.168.10.0/24
+ 4528-05-24 | -110.984 | 192.168.13.0/24
+ 8730-06-10 | -130.684 | 192.168.15.0/24
+ 9999-12-30 |  -1e-107 | 198.10.0.0/8
+(5 rows)
+
+--Testcase 97:
+SELECT c13,c14,sum(c15) from t9 group by c13,c14,c15 having max(c9) <> min(c32) OR every(c8>'c') = false  ORDER BY c13,c14,c15;
+    c13     |       c14       |   sum   
+------------+-----------------+---------
+    -1e+108 | 198.24.10.0/24  | -967296
+   -130.684 | 192.168.15.0/24 |     -10
+   -110.984 | 192.168.13.0/24 |       8
+   -90.2894 | 192.168.11.0/24 |       6
+ -70.989484 | 192.168.9.0/24  |       4
+   -50.2018 | 192.168.7.0/24  |       2
+      -30.2 | 10.1.0.0/16     |       0
+    -1e-107 | 198.10.0.0/8    |  967292
+     1e-107 | 192.10.0.0/14   | -967294
+     40.216 | 192.168.6.0/24  |      -2
+     60.298 | 192.168.8.0/24  |      -4
+    100.213 | 192.168.12.0/24 |      -8
+    120.151 | 192.168.14.0/24 |      10
+   8056.984 | 192.168.10.0/24 |      -6
+     1e+108 | 198.24.10.0     |  967294
+(15 rows)
+
+--Testcase 98:
+SELECT c14,count(c15),min(c16) from t9 group by c1,c14,c15,c16 having sum(c16*2)/-9.5 < '01:24:12.631579' AND div(c1,2)+100000 > 10 ORDER BY c14,c15,c16;
+       c14       | count |              min               
+-----------------+-------+--------------------------------
+ 10.1.0.0/16     |     2 | 1 year 2 mons 3 days
+ 192.168.6.0/24  |     2 | 6 years 5 mons 4 days 03:02:01
+ 192.168.7.0/24  |     2 | 1 year -01:00:00
+ 192.168.8.0/24  |     2 | 10:20:00
+ 192.168.9.0/24  |     2 | 11:11:00
+ 192.168.10.0/24 |     2 | 12:02:00
+ 192.168.11.0/24 |     2 | 13:13:00
+ 192.168.12.0/24 |     2 | 14:24:00
+ 192.168.13.0/24 |     2 | 15:35:00
+ 192.168.14.0/24 |     2 | 16:46:00
+ 192.168.15.0/24 |     2 | 17:57:00
+(11 rows)
+
+--Testcase 99:
+SELECT c15,c16,sum(c1) from t9 group by c15,c16,c1 having variance(c29-c13-c13)-1 < 0 AND max(c23/c2*c16)*17.55435 > '-26 years -3 mons -29 days +17:57:19.89' ORDER BY c15,c16,c1;
+   c15   |              c16               |     sum      
+---------+--------------------------------+--------------
+ -483648 | 1 year 03:20:00                | -73709551616
+      -5 | 17:57:00                       |           10
+      -4 | 14:24:00                       |           -8
+      -3 | 12:02:00                       |           -6
+      -2 | 10:20:00                       |           -4
+      -1 | 6 years 5 mons 4 days 03:02:01 |           -2
+       2 | 11:11:00                       |            4
+       3 | 13:13:00                       |            6
+       4 | 15:35:00                       |            8
+       5 | 16:46:00                       |          -10
+  483647 | -03:20:00                      | -73709551614
+(11 rows)
+
+--Testcase 100:
+SELECT max(c16),c1,c18 from t9 group by c16,c1,c18 having avg(c15/c31-c31)*10000 <> '-4836480000.000000000000' OR min(c31) > sum(c2)  ORDER BY c16,c1,c18;
+              max               |      c1      |                                         c18                                          
+--------------------------------+--------------+--------------------------------------------------------------------------------------
+ -14 days                       |  36854775806 | {"name": "Hang paintings4", "tags": ["Improvements", "Officbe"], "finished": true}
+ -03:20:00                      | -36854775807 | {"name": "Hang paintings3", "tags": ["Improvements", "Officsee"], "finished": false}
+ 10:20:00                       |           -2 | {"name": "Hang paintings8", "tags": ["Improvements", "Officeg"], "finished": true}
+ 11:11:00                       |            2 | {"name": "Hang paintings9", "tags": ["Improvements", "Officeh"], "finished": false}
+ 12:02:00                       |           -3 | {"name": "Hang paintings10", "tags": ["Improvements", "Officej"], "finished": true}
+ 13:13:00                       |            3 | {"name": "Hang paintings11", "tags": ["Improvements", "Officek"], "finished": false}
+ 14:24:00                       |           -4 | {"name": "Hang paintings12", "tags": ["Improvements", "Officeu"], "finished": true}
+ 15:35:00                       |            4 | {"name": "Hang paintings13", "tags": ["Improvements", "Officei"], "finished": false}
+ 16:46:00                       |           -5 | {"name": "Hang paintings14", "tags": ["Improvements", "Officeo"], "finished": true}
+ 17:57:00                       |            5 | {"name": "Hang paintings15", "tags": ["Improvements", "Officep"], "finished": false}
+ 1 year -01:00:00               |            1 | {"name": "Hang paintings7", "tags": ["Improvements", "Officdfe"], "finished": false}
+ 1 year 2 mons 3 days           |            0 | {"name": "Hang paintings5", "tags": ["Improvements", "Officde"], "finished": false}
+ 6 years 5 mons 4 days 03:02:01 |           -1 | {"name": "Hang paintings6", "tags": ["Improvements", "Officve"], "finished": true}
+(13 rows)
+
+--Testcase 101:
+SELECT c1,c18,c9,c8,c9 from t9 group by c1,c2,c3,c18,c9,c8 having upper(c8) != 'ABCDEF' OR string_agg(c8,c9) > 'qwerty'  ORDER BY c1,c18,c9,c8,c9;
+      c1      |                                         c18                                          |     c9     |     c8     |     c9     
+--------------+--------------------------------------------------------------------------------------+------------+------------+------------
+ -36854775808 | {"name": "Hang paintings2", "tags": ["Improvements", "Officse"], "finished": true}   | Thequickbr | QRSTUVWX   | Thequickbr
+ -36854775807 | {"name": "Hang paintings3", "tags": ["Improvements", "Officsee"], "finished": false} | InBulgaria | IJKLMNOP   | InBulgaria
+           -5 | {"name": "Hang paintings14", "tags": ["Improvements", "Officeo"], "finished": true}  | Ireland Li | Herzegov   | Ireland Li
+           -4 | {"name": "Hang paintings12", "tags": ["Improvements", "Officeu"], "finished": true}  | 0123456789 | Ireland    | 0123456789
+           -3 | {"name": "Hang paintings10", "tags": ["Improvements", "Officej"], "finished": true}  | `~!@#$%^+= | -{}[]|:;   | `~!@#$%^+=
+           -2 | {"name": "Hang paintings8", "tags": ["Improvements", "Officeg"], "finished": true}   | IrelandIRN | `~!@#$%^   | IrelandIRN
+           -1 | {"name": "Hang paintings6", "tags": ["Improvements", "Officve"], "finished": true}   | GHIJKLMNOP | klmnopqr   | GHIJKLMNOP
+            0 | {"name": "Hang paintings5", "tags": ["Improvements", "Officde"], "finished": false}  | Federated  | stuvwxyz   | Federated
+            1 | {"name": "Hang paintings7", "tags": ["Improvements", "Officdfe"], "finished": false} | Germany MN | 01234567   | Germany MN
+            2 | {"name": "Hang paintings9", "tags": ["Improvements", "Officeh"], "finished": false}  | kwikdikwik | ^&*()_+=   | kwikdikwik
+            3 | {"name": "Hang paintings11", "tags": ["Improvements", "Officek"], "finished": false} | []|:;<>?() | []|:;<>?   | []|:;<>?()
+            4 | {"name": "Hang paintings13", "tags": ["Improvements", "Officei"], "finished": false} | dIvoiFijit | Democrat   | dIvoiFijit
+            5 | {"name": "Hang paintings15", "tags": ["Improvements", "Officep"], "finished": false} | Eswatini I | Portugal   | Eswatini I
+  36854775806 | {"name": "Hang paintings4", "tags": ["Improvements", "Officbe"], "finished": true}   | MalaysiaNY | BCDEFGHJ   | MalaysiaNY
+  36854775807 | {"name": "Hang paintings1", "tags": ["Improvements", "Officer"], "finished": false}  | 1234ABCDEK | abcdEFGH   | 1234ABCDEK
+(15 rows)
+
+--Testcase 102:
+SELECT c18,c29,min(c30) from t9 group by c18,c29,c30 having bit_and(c30)*min(c1)>0 AND min(c15) > sum(c2) ORDER BY c18,c29,c30;
+                                        c18                                         |  c29  | min 
+------------------------------------------------------------------------------------+-------+-----
+ {"name": "Hang paintings4", "tags": ["Improvements", "Officbe"], "finished": true} | 16766 |   2
+(1 row)
+
+--Testcase 103:
+SELECT c9,c4,count(c3) from t9 group by c4,c9,c3 having every(c28 < 0) AND bool_and(c5) OR bool_or(c15<0)  ORDER BY c9,c4,c3;
+     c9     |  c4   | count 
+------------+-------+-------
+ `~!@#$%^+= | 01011 |     2
+ []|:;<>?() | 10110 |     2
+ 0123456789 | 01101 |     2
+ 1234ABCDEK | 10101 |     2
+ dIvoiFijit | 10111 |     2
+ Eswatini I | 10001 |     2
+ Germany MN | 11011 |     2
+ GHIJKLMNOP | 01010 |     2
+ IrelandIRN | 01101 |     2
+ kwikdikwik | 01101 |     2
+ Thequickbr | 11111 |     2
+(11 rows)
+
+--Testcase 104:
+SELECT max(c2),count(c21),c3 from t9 group by c2,c21,c3 having variance(c1)*sum(c30)/(min(c30)-1000) = 0 AND bool_and(c5) != false  ORDER BY c2,c21,c3;
+ERROR:  bigint out of range
+CONTEXT:  remote SQL command: SELECT max(c2), count(c21), c3, c2, c21, count(c1), sum(c1), sum((c1 * c1)), sum(c30), min(c30), bool_and(c5) FROM public.t9 GROUP BY 4, 5, 3
+ERROR:  bigint out of range
+CONTEXT:  remote SQL command: SELECT max(c2), count(c21), c3, c2, c21, count(c1), sum(c1), sum((c1 * c1)), sum(c30), min(c30), bool_and(c5) FROM public.t9 GROUP BY 4, 5, 3
+ERROR:  PGSpider can not get data from child node : post1
+--Testcase 105:
+SELECT c7, max(c22), bit_and(c4), max(c12) from t9 GROUP BY c7 HAVING c7=E'\\x41e51d3a21c321b321' OR max(c22)='-$3720368547758.08' OR bit_and(c4)=B'01010' OR max(c12)='1022-02-01' OR (max(c12) > '9998-12-31') ORDER BY 1,2,3,4;
+                  c7                  |          max           | bit_and |    max     
+--------------------------------------+------------------------+---------+------------
+ \x151354865131651321                 | -$3,720,368,547,758.08 | 10100   | 0001-01-02
+ \x155e13a312d1c321b2                 |             -$6,000.00 | 11011   | 1022-02-01
+ \x16a51b651f651c651d                 |                  $0.00 | 10101   | 9999-12-30
+ \x41e51d3a21c321b321                 |             $90,000.00 | 01011   | 2825-04-19
+ \x4b32313635313331363531333136313533 | $93,720,368,547,757.00 | 11111   | 9999-12-31
+ \x941231b65d15f16515                 |              $5,000.00 | 01010   | 0221-08-30
+(6 rows)
+
+--Testcase 106:
+SELECT c1, avg(c31), stddev(c23), max(c33), min(c36) from t9 GROUP BY c1 HAVING (avg(c31)>107 AND avg(c31)<108.1 AND stddev(c23)=0) OR max(c33)='23:59:58' OR (min(c36)>'2008-10-18' AND min(c36)>'2008-10-20') ORDER BY 1,2,3,4,5;
+      c1      |  avg   | stddev |   max    |          min           
+--------------+--------+--------+----------+------------------------
+ -36854775808 | 483647 |      0 | 00:00:01 | 4999-12-31 14:59:58+00
+           -3 |    107 |      0 | 10:23:54 | 2014-10-19 08:23:54+00
+           -2 |    105 |      0 | 10:23:54 | 5999-12-31 21:59:59+00
+           -1 |    103 |      0 | 10:23:54 | 2009-10-19 08:23:54+00
+            1 |    104 |      0 | 10:23:54 | 2010-10-19 08:23:54+00
+            2 |    106 |      0 | 10:23:54 | 2013-10-19 08:23:54+00
+            3 |    108 |      0 | 10:23:54 | 2015-10-19 08:23:54+00
+            5 |    112 |      0 | 10:23:54 | 2019-10-19 08:23:54+00
+  36854775806 |     12 |      0 | 23:59:58 | 2007-10-19 08:23:54+00
+(9 rows)
+
+--Testcase 107:
+SELECT count(c2), stddev(c2), c32, sum(c23) from t9 GROUP BY c32 HAVING (count(c3)=2 AND sum(c23)=-40000) OR stddev(c2)<>0 OR c32='Pan Cái chảo' OR c32 like 'Ireland%';
+ERROR:  bigint out of range
+CONTEXT:  remote SQL command: SELECT count(c2), sum(c2), sum((c2 * c2)), c32, sum(c23), count(c3) FROM public.t9 GROUP BY 4
+ERROR:  bigint out of range
+CONTEXT:  remote SQL command: SELECT count(c2), sum(c2), sum((c2 * c2)), c32, sum(c23), count(c3) FROM public.t9 GROUP BY 4
+ERROR:  PGSpider can not get data from child node : post1
+----------------------------------TinyBrace query for bug 60-------------------------------------------------------------------------------------------------
+--Testcase 108:
+SELECT min(c1),c2,max(c3) from t5 group by c2,c3,c1 having avg(c7-c5-c7)*0.567 > avg(c19-c18+c1)+-9.5 AND min(c1) < min(c17) ORDER BY c1,c2,c3;
+   min   | c2  |  max   
+---------+-----+--------
+    3000 |  30 |  30000
+    5000 |  50 |  50000
+    7000 |   0 |      0
+    9000 |  90 | -90000
+   11000 | 110 | 110000
+   13000 | 130 | 130000
+ 7483646 | 126 |  17766
+ 7483647 | 127 |  17767
+(8 rows)
+
+--Testcase 109:
+SELECT c2,sum(c3),c4 from t5 group by c2,c3,c4 having sum(c1+c17/c4)*6 = 60120.00819 AND avg(c2) < sum(c18) ORDER BY c2,c3,c4;
+ c2 |  sum   | c4  
+----+--------+-----
+ 50 | 100000 | 500
+(1 row)
+
+--Testcase 110:
+SELECT min(c3),count(c4),c5 from t5 group by c3,c4,c5 having bit_and(c5) != bit_or(c3) AND avg(c2) < sum(c17) ORDER BY c3,c4,c5;
+  min   | count |      c5       
+--------+-------+---------------
+ -90000 |     2 |            67
+      0 |     2 |          4567
+  17766 |     2 | 2036854775806
+  17767 |     2 | 2036854775807
+  30000 |     2 |       1234567
+  50000 |     2 |        234567
+ 110000 |     2 |             0
+ 130000 |     2 |            12
+(8 rows)
+
+--Testcase 111:
+SELECT c4,sum(c5),c6 from t5 group by c4,c5,c6 having count(c4+c7+c5)/490 < 0 OR avg(c1) > sum(c19) ORDER BY c4,c5,c6;
+   c4    |      sum       |    c6     
+---------+----------------+-----------
+  -88608 | -4073709551616 |         0
+  -88607 | -4073709551614 |         1
+       3 |        2469134 |   3000000
+     500 |         469134 |     50000
+  700000 |           9134 |       700
+  900000 |            134 |         9
+ 1100000 |             24 | 130000000
+ 1400000 |              0 | 110000000
+(8 rows)
+
+--Testcase 112:
+SELECT c6,min(c7) from t5 group by c3,c6,c7,c19,c20 having max(c17/c1/c4)/0.567 < sqrt(abs(c19*c3+c20)) AND sum(c1) > sum(c2) ORDER BY c6,c7;
+      c6       |     min     
+---------------+-------------
+             9 |    -9000000
+           700 |      -70000
+         50000 |        -500
+       3000000 |          -3
+     110000000 |   -11000000
+     130000000 |   -13000000
+ 4073709551615 | 36854775806
+ 4073709551615 | 36854775807
+(8 rows)
+
+--Testcase 113:
+SELECT max(c6),c7,count(c8) from t5 group by c6,c7,c8,c17 having bit_or(c1)/sqrt(abs(c17)) > 0 OR every(c19<>0) = true AND bit_and(c4)=0  ORDER BY c6,c7,c8;
+      max      |     c7      | count 
+---------------+-------------+-------
+             9 |    -9000000 |     2
+           700 |      -70000 |     2
+         50000 |        -500 |     2
+       3000000 |          -3 |     2
+     110000000 |   -11000000 |     2
+     130000000 |   -13000000 |     2
+ 4073709551615 | 36854775806 |     2
+ 4073709551615 | 36854775807 |     2
+(8 rows)
+
+--Testcase 114:
+SELECT max(c7),c8,c9 from t5 group by c7,c8,c9 having upper(c8) like '%C%' AND length(string_agg(c14,c11)) < 100+1  ORDER BY c7,c8,c9;
+     max      |     c8     |           c9           
+--------------+------------+------------------------
+ -36854775808 | Côte- dIvo | 0123456789 abcdefghikl
+ -36854775807 | Brazil Can | Cuba Malaysia Iran hjj
+       -70000 | 345 abcdef | cLYwCuba Iran Malaysia
+         -500 | Crazil Aaa | iqzkCuba Malaysia Ibxy
+(4 rows)
+
+--Testcase 115:
+SELECT c8,c9,min(c10) from t5 group by c8,c9,c10 having max(c1*c17+c18)/6 < min(c20*c5+c1)  AND min(c8) <> max(c9) ORDER BY c8,c9,c10;
+          c8          |           c9            |               min                
+----------------------+-------------------------+----------------------------------
+ Bazil anad           | @84657hfyewf?yuegf      | Tạm biệt nhé
+ Brazil Can           | Cuba Malaysia Iran hjj  | さようなら さようなら さようなら
+ Côte- dIvo           | 0123456789 abcdefghikl  | `~!@#$%^&*()_+=-{}[]|:;<>?/.
+ Crazil Aaa           | iqzkCuba Malaysia Ibxy  | dma3S0FPUqgYb62sT97doLX72By6
+ How are yo           | Hello Hello hello       | Côte dIvoire Fiji Côte dIv a
+ qzk4Vyy9vG           | Thank you bạn           | 5_Do do #@><<
+ Tôi khỏe !           | Malaysia Malaysia Malay | hNASNVRAtZViYuWc3JX9gYb62keYf
+ 友達と会うので遅で遅 | Ông là nhà văn hiện th  | Ireland Iran (Islamic Re of)
+(8 rows)
+
+--Testcase 116:
+SELECT count(c9),c10,c11 from t5 group by c9,c10,c11 having max(c19*c17+c1)/6 < count(c2/(c5+2222)-c18)- -1000 AND min(c17*c4+c18)/6 < count(c2/(c5+2222)-c18)- -1000  ORDER BY c9,c10,c11;
+ count |             c10              |        c11         
+-------+------------------------------+--------------------
+     2 | TKuIHeGmzAX0Q4lbPGjmCsIwm3Xh | customary, or in s
+(1 row)
+
+--Testcase 117:
+SELECT c10,c11,max(c12) from t5 group by c10,c11,c12 having stddev(c20+c20+c7)/9999999999999.998 = 0 AND variance(c5+c6+c7)*1000000 = 0  ORDER BY c10,c11,c12;
+                       c10                        |             c11              |              max              
+--------------------------------------------------+------------------------------+-------------------------------
+ `~!@#$%^&*()_+=-{}[]|:;<>?/.                     | abcdefghijklmnopqr           | which started ou
+ さようなら さようなら さようなら                 | the lazy dog.huova           | Canada Denmark T
+ แล้วพบกันใหม่                                       | วันนี้เป็นวันที่ดี                   | เขาเป็นนักเขียน
+ またねまたねまたねまたねまたねまたねまたねまたね | &*()_+=-{}[]|:;<>?/          | oint files can be
+ 5_Do do #@><<                                    | むうゐのおくやま　けふこえて | garian it is desi
+ 6ZTI2ClcbYAMQm3AbjA4K4dL6seL                     | kyo Portugal Denmar          | ghijklmnopqrstuvw
+ c4Pzv2hbPGjmCsIpSN5D5o4KM4PQ                     |  stress test for UT          | Denmark @# YU
+ Côte dIvoire Fiji Côte dIv a                     | Hôm nay là 1 ngày tuyệt vời  | 今日は素晴らしい日です
+ dma3S0FPUqgYb62sT97doLX72By6                     | örä on maanteiden j          | Checkpoint files
+ hNASNVRAtZViYuWc3JX9gYb62keYf                    | x a jomp huova di l          | 0123456789 abcde
+ Ireland Iran (Islamic Re of)                     | 57384724718724757            | 내 노래를 불러 내 노래를 불러
+ See you again                                    | の奥山 今日越えて浅き夢      | Ông ấy là nhà văn
+ Tạm biệt nhé                                     | nen Felsquellwaſſer          | Спой мою песню
+ TKuIHeGmzAX0Q4lbPGjmCsIwm3Xh                     | customary, or in s           | some extent the n
+ Спой мою песню Спой мою песню                    | on of combining seq          | 6789 abcdefghikld
+(15 rows)
+
+--Testcase 118:
+SELECT min(c11),c12,c13 from t5 group by c11,c12,c13 having length(string_agg(c14,c12)) > -777 OR every(c13 > 'c') = true  ORDER BY c11,c12,c13;
+             min              |              c12              |             c13              
+------------------------------+-------------------------------+------------------------------
+ &*()_+=-{}[]|:;<>?/          | oint files can be             | Ông là nhà văn hiệ
+ むうゐのおくやま　けふこえて | garian it is desi             | t as a kind of str
+ วันนี้เป็นวันที่ดี                   | เขาเป็นนักเขียน                  | ร้องเพลงของฉัน
+ 57384724718724757            | 내 노래를 불러 내 노래를 불러 | Sing my song
+ abcdefghijklmnopqr           | which started ou              | kwik brong fox a
+ customary, or in s           | some extent the n             | urkey Yemen Tokyo 
+ Hôm nay là 1 ngày tuyệt vời  | 今日は素晴らしい日です        | fox jumps over the
+ kyo Portugal Denmar          | ghijklmnopqrstuvw             |  can be split and 
+ nen Felsquellwaſſer          | Спой мою песню                | が世誰ぞ 常ならむ有為の奥
+ on of combining seq          | 6789 abcdefghikld             | qrstuvwxyzABCDEFGH
+ örä on maanteiden j          | Checkpoint files              | 34364@#$#$%%
+  stress test for UT          | Denmark @# YU                 | fghikl`~!@#$%^&*()
+ the lazy dog.huova           | Canada Denmark T              | a, että polkupyörä
+ x a jomp huova di l          | 0123456789 abcde              | わがよたれぞ　つねならむうゐ
+ の奥山 今日越えて浅き夢      | Ông ấy là nhà văn             | 정말 고마워 정말 고마워
+(15 rows)
+
+--Testcase 119:
+SELECT c12,count(c13),max(c14) from t5 group by c12,c13,c14 having sum(c1+c17/c4)*6 > 0 AND sum(c2) < max(c19) ORDER BY c12,c13,c14;
+              c12              | count |           max            
+-------------------------------+-------+--------------------------
+ 내 노래를 불러 내 노래를 불러 |     2 |  Im finſteren Jagdſchloß
+ 今日は素晴らしい日です        |     2 | The quick brown fox jump
+(2 rows)
+
+--Testcase 120:
+SELECT min(c13),c14,count(c15) from t5 group by c13,c14,c15 having count(c2/(c5+2222)-c18)- -1000<1002 OR max(c19*c17+c1)/6<0   ORDER BY c13,c14,c15;
+             min              |                  c14                   | count 
+------------------------------+----------------------------------------+-------
+ 정말 고마워 정말 고마워      | And to some extent the$#%#             |     2
+ ร้องเพลงของฉัน                 | ขอบคุณมาก                               |     2
+ わがよたれぞ　つねならむうゐ | いろはにほへど　ちりぬるをわがよたれぞ |     2
+ 34364@#$#$%%                 | In Bulgarian it is desir               |     2
+  can be split and            | Checkpoint files can be                |     2
+ fghikl`~!@#$%^&*()           | 0123456789 abcdefghikl`~               |     2
+ Ông là nhà văn hiệ           | 友達と会うので遅刻した Ông là n        |     2
+ qrstuvwxyzABCDEFGH           | abcdefghijklmnopqrstuvwx               |     2
+ t as a kind of str           | 내 노래를 불러 내 노래를 불러          |     2
+ urkey Yemen Tokyo            | Canada Denmark Turkey Ye               |     2
+ が世誰ぞ 常ならむ有為の奥    | 色は匂へど 散りぬるを我が世誰ぞ 常     |     2
+(11 rows)
+
+--Testcase 121:
+SELECT min(c14),c15,count(c16) from t5 group by c14,c15,c16,c18 having bit_or(c5)-bit_and(c2)*sqrt(abs(c18)) > 1.42353654747  ORDER BY c14,c15,c16;
+                  min                   |                c15                | count 
+----------------------------------------+-----------------------------------+-------
+ 내 노래를 불러 내 노래를 불러          | 34364@#$#$%% 34364@#$#$%%         |     2
+ いろはにほへど　ちりぬるをわがよたれぞ | hNASNVRAsia IraNVRA Czec          |     2
+ abcdefghijklmnopqrstuvwx               | fghikl`~!@#$%^&*()                |     2
+ And to some extent the$#%#             | Спой мою песню Спой мою           |     2
+ Canada Denmark Turkey Ye               | TKuIHeGmsia IraHeGm Czec          |     2
+ Chruu, a kwik di kwik br               | Cảm ơn bạn rất nhiều              |     2
+ In Bulgarian it is desir               | dma3S0FPsia 52351vgđssh           |     2
+ On sangen hauskaa, että                | どうもありがとう どうもありがとう |     2
+ 友達と会うので遅刻した Ông là n        | Thank you so much                 |     2
+ 色は匂へど 散りぬるを我が世誰ぞ 常     | s9aLCsMAsia IraCsMA Czec          |     2
+(10 rows)
+
+--Testcase 122:
+SELECT count(c15),c16,sum(c17) from t5 group by c15,c16,c17 having avg(c5)/(bit_and(c4)+114)-sum(c20) < min(c5)-stddev(c20)*bit_or(c6)  ORDER BY c15,c16,c17;
+ count |           c16            |     sum      
+-------+--------------------------+--------------
+     2 | \x61626364656a6b6c6d6e6f |     6.78e+18
+     2 | \x66a6b6c6d6e6           | -12000.69024
+     2 | \x41424344454a4b4c4d4e4f |      6.8e+18
+     2 | \x010101010101           |   10000.6825
+     2 | \xbdefca                 |   6000.69024
+     2 | \xbdefca64626364         |   -8000.2469
+     2 | \x6762abcdef             |  14000.29046
+(7 rows)
+
+--Testcase 123:
+SELECT c16,min(c17),c18 from t5 group by c16,c17,c18 having string_agg(c11,c12) not like '%c' AND bool_and(c1>c2) = true  ORDER BY c16,c17,c18;
+           c16            |     min     |     c18      
+--------------------------+-------------+--------------
+ \x010101010101           |  5000.34125 |   50000.1234
+ \x0707                   | 13000.76545 |    130000.34
+ \x41424344454a4b4c4d4e4f |     3.4e+18 | 1.79769e+108
+ \x61626364656a6b6c6d6e6f |    3.39e+18 | 1.79768e+108
+ \x62                     |  9000.12345 |  54321.12345
+ \x6762abcdef             |  7000.14523 |         0.45
+ \xab626364656a6b6c       | 11000.88345 |  34242.12534
+ \xbdefca                 |  3000.34512 |      30000.1
+(8 rows)
+
+--Testcase 124:
+SELECT c17,c18,sum(c19) from t5 group by c17,c18,c19 having string_agg(c9,c12) like '%c%' AND sum(c17) > avg(c19) ORDER BY c17,c18,c19;
+    c17     |      c18      |          sum           
+------------+---------------+------------------------
+   -3.4e+18 | -1.79769e+108 | -3.595380000000001e+98
+ 3000.34512 |       30000.1 |            -2600001.56
+ 5000.34125 |    50000.1234 |             -1000000.2
+ 7000.14523 |          0.45 |             -1400401.8
+(4 rows)
+
+--Testcase 125:
+SELECT c18,count(c19),min(c20) from t5 group by c18,c19,c20 having avg(c5)/bit_and(c4)+variance(c2) > max(c7)+variance(c3)/(bit_or(c5)+1.111999) AND bool_or(c6>c3) = true  ORDER BY c18,c19,c20;
+      c18      | count |           min           
+---------------+-------+-------------------------
+ -1.79769e+108 |     2 | -1.7900000000000003e+98
+ -1.79768e+108 |     2 |               -1.78e+98
+ -120000.33374 |     2 |                 -1200.1
+ -100000.34512 |     2 |             -3434.12346
+          0.45 |     2 |                700.3743
+       30000.1 |     2 |                300.1222
+   34242.12534 |     2 |             -1100.12534
+   54321.12345 |     2 |              -900.22345
+    80000.2345 |     2 |              -800.32348
+     130000.34 |     2 |             -6475.12347
+(10 rows)
+
+--Testcase 126:
+SELECT c19,c20,max(c21) from t5 group by c19,c20,c21,c17 having min(c3)+sqrt(abs(c17))/max(c18)<-10 AND sum(c3) > min(c18) ORDER BY c19,c20,c21;
+           c19           |           c20           |    max     
+-------------------------+-------------------------+------------
+ -1.7976900000000004e+98 | -1.7900000000000003e+98 | 1000-01-01
+ -1.7976800000000002e+98 |               -1.78e+98 | 1000-01-02
+(2 rows)
+
+--Testcase 127:
+SELECT c20,min(c21),min(c22) from t5 group by c20,c21,c22 having bool_and(c1>c2) = true AND every(c19<c7) = true  ORDER BY c20,c21,c22;
+    c20    |    min     |         min         
+-----------+------------+---------------------
+  300.1222 | 2020-01-10 | 1020-01-10 01:10:59
+ 500.34512 | 2120-01-12 | 3020-01-12 03:10:59
+  700.3743 | 2040-01-14 | 2340-01-14 00:10:59
+(3 rows)
+
+--Testcase 128:
+SELECT avg(c2), stddev(c3), sum(c4), count(c20), min(c19) from t5 GROUP BY c17 HAVING avg(c2)=30 OR (avg(c2)>-41 AND avg(c2)<-39) OR stddev(c3)<>0 OR (sum(c4)>1800000-1 AND sum(c4)<1800000+1) OR sum(c4)-1000=0 OR min(c19)<-1300000.78 ORDER BY 1,2,3,4,5;
+ avg  | stddev |   sum   | count |           min           
+------+--------+---------+-------+-------------------------
+ -128 |      0 | -177216 |     2 | -1.7976900000000004e+98
+ -127 |      0 | -177214 |     2 | -1.7976800000000002e+98
+  -40 |      0 |     -80 |     2 |              400000.125
+   30 |      0 |       6 |     2 |             -1300000.78
+   50 |      0 |    1000 |     2 |               -500000.1
+   90 |      0 | 1800000 |     2 |               -9000.145
+(6 rows)
+
+--Testcase 129:
+SELECT max(c11), min(c12), max(c22), min(c21), min(c17), c4 from t5 GROUP BY c4 HAVING max(c11)='57384724718724757' OR min(c12)='Ông ấy là nhà văn' OR (max(c22)>'3020-01-11' AND max(c22)>'3020-01-13') OR max(c22)='2521-01-19 09:10:19' OR min(c21)='7020-01-18' OR min(c17)>11000.88345 OR c4=-6000 ORDER BY 1,2,3,4,5,6;
+             max              |              min              |         max         |    min     |     min      |    c4    
+------------------------------+-------------------------------+---------------------+------------+--------------+----------
+ &*()_+=-{}[]|:;<>?/          | oint files can be             | 2521-01-19 09:10:19 | 2083-01-19 | -12000.12378 |    -1300
+ むうゐのおくやま　けふこえて | garian it is desi             | 6720-01-13 04:10:56 | 3020-01-13 |  -6000.34512 |    -6000
+ วันนี้เป็นวันที่ดี                   | เขาเป็นนักเขียน                  | 2220-01-20 10:10:45 | 9020-01-20 |  13000.76545 |  1100000
+ 57384724718724757            | 내 노래를 불러 내 노래를 불러 | 9999-12-31 23:59:58 | 9999-12-30 |     3.39e+18 |    88606
+ customary, or in s           | some extent the n             | 5620-01-15 05:10:12 | 2020-01-15 |  -8000.12349 |   800000
+ Hôm nay là 1 ngày tuyệt vời  | 今日は素晴らしい日です        | 9999-12-31 23:59:59 | 9999-12-31 |      3.4e+18 |    88607
+ kyo Portugal Denmar          | ghijklmnopqrstuvw             | 2420-01-18 08:10:50 | 7020-01-18 |  11000.88345 |  1400000
+ on of combining seq          | 6789 abcdefghikld             | 9020-01-17 07:10:48 | 2060-01-17 | -93437.12348 | -1500000
+ の奥山 今日越えて浅き夢      | Ông ấy là nhà văn             | 2340-01-14 00:10:59 | 2040-01-14 |   7000.14523 |   700000
+(9 rows)
+
+---------------------------------SQLite query for bug 60-------------------------------------------------------------------------------------------------------------
+--Testcase 130:
+SELECT sum(c1),min(c2),max(c3) from t13 group by c1,c2,c3 having bit_and(c1+c3*c2) < bit_or(c4-c2+c7)/9999999999999.998 OR min(c8) < min(c11) ORDER BY c1,c2,c3;
+   sum    | min  |  max   
+----------+------+--------
+ -1167296 | -128 | -12768
+      -10 |  -10 |  -8000
+       -4 |   -7 |  -5000
+        0 |    0 |  -3000
+        2 |   10 |   7000
+        6 |    8 |   5000
+        8 |    7 |   4000
+       10 |    6 |   3000
+  1167292 |  126 |  12766
+  1167294 |  127 |  12767
+(10 rows)
+
+--Testcase 131:
+SELECT max(c2),c3,min(c4) from t13 group by c2,c3,c4 having count(*)/-6.35+999999 != count(c18*c3*c22)/0.567 AND every(c3-c17-c7 > 0) = false  ORDER BY c2,c3,c4;
+ max |  c3   |  min   
+-----+-------+--------
+  -8 | -6000 |   -110
+   0 | -3000 |    -80
+   6 |  3000 |     30
+   7 |  4000 |     40
+   8 |  5000 |     50
+   9 |  6000 |     60
+  10 |  7000 |     70
+ 126 | 12766 | 388606
+ 127 | 12767 | 388607
+(9 rows)
+
+--Testcase 132:
+SELECT count(c3),c4,max(c5) from t13 group by c3,c4,c5 having stddev(c1+c7-c2) =0 AND sum(c4-c20+c7)-100 > max(c3+c18-c3)+1   ORDER BY c3,c4,c5;
+ count |   c4    |      max       
+-------+---------+----------------
+     2 | -388608 | -2036854775808
+     2 | -388607 | -2036854775807
+     2 |     -80 |              1
+     2 |      40 |             12
+     2 |      60 |             14
+(5 rows)
+
+--Testcase 133:
+SELECT sum(c4),c5,count(c6) from t13 group by c4,c5,c6 having variance(c21/(c22+987654321)+c2)+-9.5 != stddev((c4/(c1+1001002)+c18)+c18)*9999999999999.998  ORDER BY c4,c5,c6;
+   sum   |       c5       | count 
+---------+----------------+-------
+ -777216 | -2036854775808 |     2
+ -777214 | -2036854775807 |     2
+    -260 |            -15 |     2
+    -240 |            -14 |     2
+    -220 |            -13 |     2
+    -200 |            -12 |     2
+    -180 |            -11 |     2
+    -160 |              1 |     2
+      60 |             11 |     2
+      80 |             12 |     2
+     100 |             13 |     2
+     120 |             14 |     2
+     140 |             15 |     2
+  777212 |  2036854775806 |     2
+  777214 |  2036854775807 |     2
+(15 rows)
+
+--Testcase 134:
+SELECT sum(c1),max(c2),max(c7) from t13 group by c1,c2,c7,c20 having sqrt(abs(c1+c7-c2))-100 <> sqrt(abs(c2*c20/(c7+9999999999)))*0.567 AND stddev(c17+c17-c19)*1 = -0  ORDER BY c2,c2,c7;
+   sum    | max  |      max       
+----------+------+----------------
+ -1167296 | -128 | -2036854775808
+ -1167294 | -127 | -2036854775807
+      -10 |  -10 |        -130000
+       -8 |   -9 |        -210000
+       -6 |   -8 |         -10000
+       -4 |   -7 |         -91000
+       -2 |   -6 |         -18000
+        0 |    0 |          71000
+       10 |    6 |          12000
+        8 |    7 |          31000
+        6 |    8 |          14000
+        4 |    9 |          51000
+        2 |   10 |          16000
+  1167292 |  126 |  2036854775806
+  1167294 |  127 |  2036854775807
+(15 rows)
+
+--Testcase 135:
+SELECT max(c6),c7,min(c8) from t13 group by c6,c7,c8 having length(string_agg(c14,c11)) < 100 AND min(c9) like '%alibabadigiaybata'  ORDER BY c6,c7,c8;
+ max | c7 | min 
+-----+----+-----
+(0 rows)
+
+--Testcase 136:
+SELECT c7,count(c8),max(c9) from t13 group by c7,c8,c9 having bool_and(c7/c3/c19 > 0) =true AND every(c1*c7/c3 <> 1000) = true  ORDER BY c7,c8,c9;
+      c7       | count |                max                
+---------------+-------+-----------------------------------
+       -210000 |     2 | a_1@à ン안ты a_1@à ン안ты
+        -91000 |     2 | Բարև ձեզեզ ձեզեզ ձեզեզ
+         31000 |     2 | Xin Chào  Các Bạn
+         51000 |     2 | 안녕하세요안녕하세요 요안녕하세요
+ 2036854775806 |     2 | !@#$%^&*(0-=
+ 2036854775807 |     2 | abcdefghijjhgfjfuafh
+(6 rows)
+
+--Testcase 137:
+SELECT min(c18),max(c20) from t13 group by c9,c10,c17,c18,c20 having sqrt(abs(c20+c17-c18))-1000000 < variance(c7*c18+c17)/17.55435 AND max(c1*c2+c21)/-1000 < max(c2)  ORDER BY c18,c20;
+     min      |    max     
+--------------+------------
+  -60000.1347 |   600.3455
+ -40000.12345 |   400.1234
+   30000.2345 |  -300.3456
+   50000.1235 |  -500.1466
+   70000.1234 |          0
+   90000.1235 |  -900.4456
+   110000.345 | -1100.6356
+   130000.123 |  1300.3456
+(8 rows)
+
+--Testcase 138:
+SELECT c9,c10,min(c11) from t13 group by c9,c10,c11 having bit_and(c1+c4/c3)-1 < avg(c2+c21*c19)*9999999999999.998 AND min(c12) < min(c13) ORDER BY c9,c10,c11;
+          c9          |           c10           |         min         
+----------------------+-------------------------+---------------------
+ abcdefghijjhgfjfuafh | Côte dIvoire Fijifoxju  | Hôm nay tôi rất vui
+ We are one. Hi       | The quick brown fox jum | 134263625372
+(2 rows)
+
+--Testcase 139:
+SELECT c10,max(c11),max(c12) from t13 group by c10,c11,c12 having avg(c1-c17+c22)*9999999999999.998 > max(c1) OR upper(c11) like '%今日はとても'  ORDER BY c10,c11,c12;
+             c10             |                    max                    |                    max                    
+-----------------------------+-------------------------------------------+-------------------------------------------
+ ~!@#$%^&*()_+=-{}[]|:;<>?/. | 今日はとても幸せです 今日はとても幸せです | 今日はとても幸せです 今日はとても幸せです
+ 0123456789 abcdefghikl`     | Привет  ты Привет  ты                     | extent the rendit$%^
+ Ireland Iran (Islamic R     | 常ならむ有為の奥山 今日越えて浅き夢見     | Thật HẠNH PHÚC
+ On sangen hauskaa, että     | polkupyörä on maanteiden j                | le, customary, or in
+ The quick brown fox jum     | 134263625372                              | Днес съм много щастлив
+ Днес съм много щастлив      | Bu gün çox xoşbəxtəm                      | Canada Denmark Turk
+(6 rows)
+
+--Testcase 140:
+SELECT c11,count(c12),length(c13) from t13 group by c9,c11,c12,c13 having length(string_agg(c9,c10)) > length(c9) OR lower(c13) like '%abc'  ORDER BY c11,c12,c13;
+                    c11                    | count | length 
+-------------------------------------------+-------+--------
+ ~!@#$%^&*()_+=-{}[]|:;<>?/.               |     2 |     32
+ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                     |     2 |     21
+ วันนี้ฉันมีความสุขมาก                           |     2 |     19
+ 134263625372                              |     2 |     32
+ Bu gün çox xoşbəxtəm                      |     2 |     29
+ Crable, customary, or in som              |     2 |     29
+ emen Tokyo Portugal Denmark               |     2 |     22
+ Hôm nay tôi rất vui                       |     2 |     21
+ I am happy today                          |     2 |     28
+ polkupyörä on maanteiden j                |     2 |     24
+ Днес съм много щастлив                    |     2 |     29
+ Привет  ты Привет  ты                     |     2 |     21
+ আমি আজ খুব খুশি আমি আজ খুব খুশি               |     2 |     28
+ 今日はとても幸せです 今日はとても幸せです |     2 |     16
+ 常ならむ有為の奥山 今日越えて浅き夢見     |     2 |     24
+(15 rows)
+
+--Testcase 141:
+SELECT c12,count(c13),max(c14) from t13 group by c12,c13,c14 having bool_and(c18 > c19) AND bool_or(c20 <> 9) AND bool_and(c3 < 0)  ORDER BY c12,c13,c14;
+                    c12                    | count |             max              
+-------------------------------------------+-------+------------------------------
+ ขอขอบคุณอย่างจริงใจ                          |     2 | วัสดีคุณ วัสดีคุณวัสดีคุณ
+ Canada Denmark Turk                       |     2 | Ô0123456789 abcdefghikl`~!@#
+ 今日はとても幸せです 今日はとても幸せです |     2 | ÔCheckpoint files can be spl
+(3 rows)
+
+--Testcase 142:
+SELECT min(c13),max(c14),length(c15) from t13 group by c13,c14,c15 having variance(c19)/min(c18)-sum(c19) < avg(c7)*min(c22)-variance(c7) AND bit_and(c4)*max(c18)/min(c17) > 1  ORDER BY c13,c14,c15;
+                    min                    |                     max                      | length 
+-------------------------------------------+----------------------------------------------+--------
+ ~!@#$%^&*()_+=-{}[]|:;<>?/.               | Im finſteren Jagdſchloß am  た               |     24
+ Chruu, a kwik di kwik b                   | In Bulgarian it is desirablた                |     21
+ Guinea-Bissau Honduras Mexico             | いろはにほへど　ちりぬるをわがよたれぞ　つた |     22
+ On sangen hauskaa, että                   | ÔnAnd to some extent the rend                |     24
+ 今日はとても幸せです 今日はとても幸せです | The quick brown fox jumps o                  |     24
+(5 rows)
+
+--Testcase 143:
+SELECT c14,min(c15),count(c16) from t13 group by c14,c15,c16 having  string_agg(c13,c9) like 'c%' OR min(c13) not like '%C'  ORDER BY c14,c15,c16;
+                     c14                      |                     min                      | count 
+----------------------------------------------+----------------------------------------------+-------
+ วัสดีคุณ วัสดีคุณวัสดีคุณ                             | มันสนุกมาก                                     |     2
+ いろはにほへど　ちりぬるをわがよたれぞ　つた | which started out as a                       |     2
+ Canada Denmark Turkey Yemen                  | いろはにほへど　ちりぬるをわがよたれぞ　つた |     2
+ Chruu, a kwik di kwik brongk                 | abcdefghijklmnopqrstuvwx                     |     2
+ Im finſteren Jagdſchloß am  た               | Cuba Malaysia Iran Czech                     |     2
+ In Bulgarian it is desirablた                | Canada Denmark Turkey                        |     2
+ Ô0123456789 abcdefghikl`~!@#                 | 0123456789 abcdefghikl                       |     2
+ ÔabcdefghijklmnopqrstuvwxyzA                 | abcdefghijklmnopqrstuv                       |     2
+ ÔCheckpoint files can be spl                 | Checkpoint files can b                       |     2
+ ÔnAnd to some extent the rend                | Cuba Malaysia Iran Czech                     |     2
+ ông ấy là nhà văn                            | 0123456789 abcdefghikl                       |     2
+ On sangen hauskaa, että polた                | Một ngày vui                                 |     2
+ Ô友達と会うので遅刻した Ông là nhà           | 友達と会うので遅刻した Ông là                |     2
+ Ô色は匂へど 散りぬるを我が世誰ぞ 常なら      | And to some $$extent the                     |     2
+ The quick brown fox jumps o                  | ABCDEFGHIJKLMNOPQRSTUVWX                     |     2
+(15 rows)
+
+--Testcase 144:
+SELECT c15,c16,count(c17) from t13 group by c15,c16,c17 having every(c3-c17-c7 > 0)= true  AND avg(c17) > sum(c19) ORDER BY c15,c16,c17;
+           c15            |           c16            | count 
+--------------------------+--------------------------+-------
+ มันสนุกมาก                 | \x61626364656a6b6c6d6e6f |     2
+ 0123456789 abcdefghikl   | \x61626364abcdef         |     2
+ abcdefghijklmnopqrstuvwx | \x51525354555a5b5c5d5e5f |     2
+ Một ngày vui             | \x61626364656a6b6c6d6e6f |     2
+(4 rows)
+
+--Testcase 145:
+SELECT sum(c17),count(c18) from t13 group by c16,c17,c18,c19 having length(string_agg(c14,c11)) <> 56 AND min(c1) < sqrt(abs(c18/(c19*1)/(c19/-2)))+17.55435  ORDER BY c17,c18;
+     sum     | count 
+-------------+-------
+    -6.8e+18 |     2
+   -6.78e+18 |     2
+   -24000.25 |     2
+ -20000.4696 |     2
+  -12000.246 |     2
+   6000.2469 |     2
+   8000.2509 |     2
+  10000.2468 |     2
+ 14000.44698 |     2
+    16000.24 |     2
+     18000.2 |     2
+  22000.6469 |     2
+   26000.249 |     2
+(13 rows)
+
+--Testcase 146:
+SELECT sum(c17),max(c18),c19 from t13 group by c17,c18,c19 having variance(c18)/min(c19)-sum(c18) > 100000 AND min(c19) > max(c21) ORDER BY c17,c18,c19;
+     sum     |      max      |      c19      
+-------------+---------------+---------------
+   -24000.25 |   -120000.125 | 1200000.12345
+ -20000.4696 | -100000.12346 | 1000000.12346
+  -12000.246 |   -60000.1347 |  600000.12715
+    16000.24 |   -80000.1245 |  800000.13345
+(4 rows)
+
+--Testcase 147:
+SELECT min(c18),count(c19),min(c20) from t13 group by c18,c19,c20 having avg(c7)*min(c22)/(bit_or(c1)+10) <> 100000000.000 AND max(c17) > min(c22) ORDER BY c18,c19,c20;
+     min      | count |    min     
+--------------+-------+------------
+  -120000.125 |     2 |  1200.4567
+  -80000.1245 |     2 |   800.3356
+  -60000.1347 |     2 |   600.3455
+ -40000.12345 |     2 |   400.1234
+   30000.2345 |     2 |  -300.3456
+   110000.345 |     2 | -1100.6356
+   130000.123 |     2 |  1300.3456
+ 1.79768e+108 |     2 |  1.78e+108
+ 1.79769e+108 |     2 |  1.79e+108
+(9 rows)
+
+--Testcase 148:
+SELECT c19,c20,min(c21) from t13 group by c19,c20,c21 having stddev(c7)+count(c3)-bit_or(c1) < 0 AND min(c18) > max(c22) ORDER BY c19,c20,c21;
+      c19      |    c20    | min  
+---------------+-----------+------
+ -500000.15345 | -500.1466 | 5000
+ -300000.12345 | -300.3456 | 3000
+   1.79768e+88 | 1.78e+108 | 1000
+   1.79769e+88 | 1.79e+108 | 1234
+(4 rows)
+
+--Testcase 149:
+SELECT max(c4),min(c14),c22 from t13 group by c4,c14,c22 having avg(c3)*sqrt(abs(c4))-max(c19) > stddev(c7)+count(c3)-bit_or(c1) AND bool_or(c20 > -209) = false OR bool_or(c3 < 9999) = false  ORDER BY c4,c14,c22;
+   max   |                     min                      |     c22      
+---------+----------------------------------------------+--------------
+ -388608 | Chruu, a kwik di kwik brongk                 | -99999.99999
+ -388607 | On sangen hauskaa, että polた                | -99998.99999
+    -110 | ÔCheckpoint files can be spl                 |        11000
+     -90 | Ô0123456789 abcdefghikl`~!@#                 |        90000
+      30 | いろはにほへど　ちりぬるをわがよたれぞ　つた |    1234.5678
+      50 | In Bulgarian it is desirablた                |        50000
+  388606 | Im finſteren Jagdſchloß am  た               |  99998.99999
+  388607 | The quick brown fox jumps o                  |  99999.99999
+(8 rows)
+
+--Testcase 150:
+SELECT count(c20),min(c22),max(c23) from t13 group by c20,c22,c23 having bit_and(c1)/count(*)+sum(c1) < sqrt(abs(c20))+bit_or(c1)*max(c1) AND bool_and(c12 like '%c%') = true AND every(c18 > -1000) = true  ORDER BY c20,c22,c23;
+ count |  min  |    max     
+-------+-------+------------
+     2 | 50000 | 2020-01-12
+(1 row)
+
+--Testcase 151:
+SELECT avg(c2), stddev(c3), sum(c4), count(c20), min(c19) from t13 GROUP BY c17 HAVING avg(c2)=-128 OR avg(c2)>126 OR stddev(c3)<>0 OR sum(c4)=-777216 OR count(c20)<>2 OR (min(c19)>=-1300000.11346 AND min(c19)<=-1100000.44345) ORDER BY 1,2,3,4,5;
+ avg  | stddev |   sum   | count |      min       
+------+--------+---------+-------+----------------
+ -128 |      0 | -777216 |     2 |   -1.79769e+88
+  -10 |      0 |    -260 |     2 | -1300000.11346
+   -8 |      0 |    -220 |     2 | -1100000.44345
+  127 |      0 |  777214 |     2 |    1.79769e+88
+(4 rows)
+
+--Testcase 152:
+SELECT max(c11), min(c12), max(c22), min(c21), min(c20), max(c23), max(c24) from t13 GROUP BY c19 HAVING max(c11)='134263625372' OR min(c12)='Hello' OR (max(c22)<60000 AND max(c22)>40000) OR min(c21)=3000 OR (min(c20)>400 AND min(c20)<800) OR max(c23)='7020-01-17' OR max(c24)='5620-01-18 08:10:23' OR max(c24)<'1620-01-16 06:10:59' ORDER BY 1,2,3,4,5,6,7;
+                    max                    |                    min                    |     max      |  min   |    min     |    max     |         max         
+-------------------------------------------+-------------------------------------------+--------------+--------+------------+------------+---------------------
+ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                     | Hello                                     |       -60000 |  -6000 |   600.3455 | 3420-01-13 | 2020-01-13 04:10:54
+ 134263625372                              | Днес съм много щастлив                    | -99998.99999 |  -2000 | -1.78e+108 | 1000-01-02 | 1000-01-01 00:00:01
+ Bu gün çox xoşbəxtəm                      | Canada Denmark Turk                       |        90000 |   9000 |  -900.4456 | 3020-01-16 | 1520-01-16 06:10:59
+ emen Tokyo Portugal Denmark               | 今日はとても幸せです 今日はとても幸せです |        11000 |  11000 | -1100.6356 | 2020-01-18 | 5620-01-18 08:10:23
+ polkupyörä on maanteiden j                | le, customary, or in                      |        50000 |   5000 |  -500.1466 | 2020-01-12 | 7342-01-12 03:10:59
+ Днес съм много щастлив                    | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ          |    1234.5678 |   3000 |  -300.3456 | 2020-01-10 | 2020-01-10 01:10:59
+ Привет  ты Привет  ты                     | extent the rendit$%^                      |            0 | -10000 |  1000.3451 | 7020-01-17 | 2020-01-17 07:10:19
+ আমি আজ খুব খুশি আমি আজ খুব খুশি               | Bu gün çox xoşbəxtəm                      |   -1234.5678 |  -4000 |   400.1234 | 1020-01-11 | 1320-01-11 02:10:12
+ 今日はとても幸せです 今日はとても幸せです | 今日はとても幸せです 今日はとても幸せです | -99999.99999 |  -1234 | -1.79e+108 | 1000-01-01 | 1000-01-01 00:00:00
+(9 rows)
+
+---------------------------------tmp_t15 query for bug 60---------------------------------------------------------------------------------------------------------------------------
+--Testcase 153:
+SELECT c2,c3,c4 from tmp_t15 group by c2,c3,c4 having array_agg(c3/(c3+9999)+c4) = '{-549999.5457,-549999.5457}' AND bool_or(c3-c3-c4 > 0) = true ORDER BY c2,c3,c4;
+              c2              |   c3    |      c4      
+------------------------------+---------+--------------
+ живетезелоземляиижеикаколюди | -550000 | -550000.5457
+(1 row)
+
+--Testcase 154:
+SELECT c2,max(c3),min(c4) from tmp_t15 group by c2 having bit_and(c3)+-9.5/34567 < stddev(c4*c3*c3)*9999999999999.998 AND every(c4*c3-c3 > c3) <> false  ORDER BY 1,2,3;
+                       c2                       |   max   |     min      
+------------------------------------------------+---------+--------------
+ いろはにほへど　ちりぬるをわがよたれぞ         | -250000 | -25000.50012
+ いろはにほへどちりぬるをわがよたれぞつねならむ |  600000 |   -65000.902
+ Thequickbrownfoxjumpsoverthelazydog            |   15000 | -650000.9481
+ сковородасковорода                             |  -45000 |   -45000.199
+ 常ならむ有為の奥山今日越えて浅き夢見           |  700000 |      70.9363
+(5 rows)
+
+--Testcase 155:
+SELECT time,c2,c3,c4 from tmp_t15 group by c2,c3,c4,time having sum(c3/(c3+1)+c4)+6 < max(c3/(c3-11)+c3)-17.55435 OR variance(c4-c4+c4)*17.55435 = 0 ORDER BY c2,c3,c4;
+        time         |                       c2                       |   c3    |      c4      
+---------------------+------------------------------------------------+---------+--------------
+ 2020-01-07 01:00:00 | いろはにほへど　ちりぬるをわがよたれぞ         | -250000 | -25000.50012
+ 2006-03-19 12:23:52 | いろはにほへどちりぬるをわがよたれぞつねならむ |  500000 |    6000.7623
+ 2020-01-08 01:00:00 | ăâđêôơưdêđêdờe                                 |   35000 |      35000.1
+ 2020-01-06 01:00:00 | Thequickbrownfoxjumpsoverthelazydog            |   15000 |   15000.2552
+ 2020-01-09 01:00:00 | сковородасковорода                             |  -45000 |   -45000.199
+ 2008-05-19 14:23:50 | 常ならむ有為の奥山今日越えて浅き夢見           |  600000 |    7000.9812
+ 2023-05-05 21:59:15 | 常ならむ有為の奥山今日越えて浅き夢見           |  600000 |    60000.902
+ 2020-01-10 01:00:00 | 色は匂へど 散りぬるを我が世誰ぞ 常ならむ       |       0 |      0.58371
+ 2004-01-19 10:23:54 | 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |  400000 |     5000.213
+ 2021-05-05 21:59:15 | 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |  500000 |   50000.9421
+(10 rows)
+
+--Testcase 156:
+SELECT count(c2),max(c4),c3 from tmp_t15 group by c3 having variance(c4*c3-c3)*-9.5 < min(c4-c3)/100 OR sqrt(abs(c3)+6753)+0.567 < min(c4) ORDER BY 1,2,3;
+ count |     max      |   c3    
+-------+--------------+---------
+     1 |     5000.213 |  400000
+     1 |   10000.3117 |   10000
+     1 |   30000.0562 |   30000
+     1 |  40000.05221 |   40000
+     1 |   50000.1054 |   50000
+     1 |  70000.91023 |   70000
+     2 | -25000.50012 | -250000
+     2 |   15000.2552 |   15000
+     2 |      35000.1 |   35000
+     2 |  700000.9363 |  700000
+     3 |   -65000.902 | -650000
+     3 |      0.58371 |       0
+     3 |   45000.1095 |  -45000
+     3 |  500000.3117 |  500000
+     4 |   -6500.7662 | -550000
+     4 |  600000.8847 |  600000
+(16 rows)
+
+--Testcase 157:
+SELECT max(c2),min(c3),c4 from tmp_t15 group by c2,c3,c4 having string_agg(c2,c2) = 'いろはにほへど　ちりぬるをわがよたれぞいろはにほへど　ちりぬるをわがよたれぞいろはにほへど　ちりぬるをわがよたれぞ' AND lower(c2) not like '%ma' ORDER BY c2,c3,c4;
+                  max                   |   min   |      c4      
+----------------------------------------+---------+--------------
+ いろはにほへど　ちりぬるをわがよたれぞ | -250000 | -25000.50012
+(1 row)
+
+--Testcase 158:
+SELECT c2,c3,c4 from tmp_t15 group by c2,c3,c4 having stddev(c3+c3+c3)*0.567 = stddev(c4+c3/(c4+9))/17.55435  ORDER BY c2,c3,c4;
+                       c2                       |   c3    |      c4      
+------------------------------------------------+---------+--------------
+ いろはにほへど　ちりぬるをわがよたれぞ         | -250000 | -25000.50012
+ いろはにほへどちりぬるをわがよたれぞつねならむ |  600000 |  600000.8847
+ ăâđêôơưdêđêdờe                                 |   35000 |      35000.1
+ Thequickbrownfoxjumpsoverthelazydog            | -650000 | -650000.9481
+ Thequickbrownfoxjumpsoverthelazydog            |   15000 |   15000.2552
+ живетезелоземляиижеикаколюди                   | -550000 | -550000.5457
+ сковородасковорода                             |  -45000 |   -45000.199
+ 常ならむ有為の奥山今日越えて浅き夢見           |  700000 |  700000.9363
+ 色は匂へど 散りぬるを我が世誰ぞ 常ならむ       |       0 |      0.58371
+(9 rows)
+
+--Testcase 159:
+SELECT c2,max(c3),min(c4) from tmp_t15 group by c2 having stddev(c4*2)*-1000 <> stddev(c3+c4)/5 ORDER BY 1,2,3;
+                       c2                       |  max   |     min      
+------------------------------------------------+--------+--------------
+ いろはにほへどちりぬるをわがよたれぞつねならむ | 600000 |   -65000.902
+ Thequickbrownfoxjumpsoverthelazydog            |  15000 | -650000.9481
+ живетезелоземляиижеикаколюди                   |  70000 | -550000.5457
+ 常ならむ有為の奥山今日越えて浅き夢見           | 700000 |      70.9363
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             | 500000 |       0.3117
+(5 rows)
+
+--Testcase 160:
+SELECT c2,c3,time,c4 from tmp_t15 group by c2,c3,c4,time having max(c3*c3+c4)+1 < min(c4-c4*c3)*-9.5 ORDER BY c2,c3,c4,time;
+                       c2                       |   c3    |        time         |      c4
+------------------------------------------------+---------+---------------------+--------------
+ いろはにほへどちりぬるをわがよたれぞつねならむ |      60 | 2016-03-19 12:18:52 |      60.8847
+ いろはにほへどちりぬるをわがよたれぞつねならむ |   40000 | 2020-01-04 01:00:00 |  40000.05221
+ いろはにほへどちりぬるをわがよたれぞつねならむ |  600000 | 2006-03-19 12:23:52 |  600000.8847
+ いろはにほへどちりぬるをわがよたれぞつねならむ |  600000 | 2026-08-19 12:18:52 |  600000.8847
+ ăâđêôơưdêđêdờe                                 |   35000 | 2020-01-08 01:00:00 |      35000.1
+ Thequickbrownfoxjumpsoverthelazydog            | -650000 | 2007-04-19 13:23:51 | -650000.9481
+ Thequickbrownfoxjumpsoverthelazydog            | -650000 | 2027-09-19 13:17:51 | -650000.9481
+ Thequickbrownfoxjumpsoverthelazydog            |  -35000 | 2020-01-03 01:00:00 |  -35000.1205
+ Thequickbrownfoxjumpsoverthelazydog            |     -65 | 2017-04-19 13:17:51 |     -65.9481
+ Thequickbrownfoxjumpsoverthelazydog            |   15000 | 2020-01-06 01:00:00 |   15000.2552
+ живетезелоземляиижеикаколюди                   | -550000 | 2005-02-19 11:23:53 | -550000.5457
+ живетезелоземляиижеикаколюди                   | -550000 | 2025-07-19 11:19:53 | -550000.5457
+ живетезелоземляиижеикаколюди                   |     -55 | 2015-02-19 11:19:53 |     -55.5457
+ живетезелоземляиижеикаколюди                   |   70000 | 2025-05-05 21:59:15 |  70000.91023
+ сковородасковорода                             |  -45000 | 2020-01-09 01:00:00 |   -45000.199
+ 常ならむ有為の奥山今日越えて浅き夢見           |      70 | 2018-05-19 14:18:50 |      70.9363
+ 常ならむ有為の奥山今日越えて浅き夢見           |   30000 | 2020-01-02 01:00:00 |   30000.0562
+ 常ならむ有為の奥山今日越えて浅き夢見           |  700000 | 2008-05-19 14:23:50 |  700000.9363
+ 常ならむ有為の奥山今日越えて浅き夢見           |  700000 | 2028-10-19 14:18:50 |  700000.9363
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |   10000 | 2024-06-19 10:20:54 |   10000.3117
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |   50000 | 2020-01-06 01:00:00 |   50000.1054
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |  500000 | 2004-01-19 10:23:54 |  500000.3117
+(22 rows)
+
+--Testcase 161:
+SELECT c2,c3,c4 from tmp_t15 group by c2,c3,c4 having every(c3-c4/(c3+-2) > c3) != false AND bool_and(c4 <c3) = false ORDER BY c2,c3,c4;
+                    c2                    |   c3   |     c4     
+------------------------------------------+--------+------------
+ живетезелоземляиижеикаколюди             | -45000 | 45000.1095
+ 色は匂へど 散りぬるを我が世誰ぞ 常ならむ |      0 |    0.58371
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿       |      0 |     0.3117
+(3 rows)
+
+--Testcase 162:
+SELECT min(c2),max(c3),c4 from tmp_t15 group by c2,c3,c4 having sqrt(abs(c4-c3*c3))+0.567 > variance(c4+c3+c3)/17.55435 OR bool_and(c3 < c4) != true ORDER BY c2,c3,c4;
+                      min                       |   max   |      c4      
+------------------------------------------------+---------+--------------
+ いろはにほへど　ちりぬるをわがよたれぞ         | -250000 | -25000.50012
+ いろはにほへどちりぬるをわがよたれぞつねならむ |  500000 |    6000.7623
+ いろはにほへどちりぬるをわがよたれぞつねならむ |  600000 |  600000.8847
+ ăâđêôơưdêđêdờe                                 |   35000 |      35000.1
+ Thequickbrownfoxjumpsoverthelazydog            | -650000 | -650000.9481
+ Thequickbrownfoxjumpsoverthelazydog            |  -35000 |  -35000.1205
+ Thequickbrownfoxjumpsoverthelazydog            |     -65 |     -65.9481
+ Thequickbrownfoxjumpsoverthelazydog            |   15000 |   15000.2552
+ живетезелоземляиижеикаколюди                   | -550000 | -550000.5457
+ живетезелоземляиижеикаколюди                   |     -55 |     -55.5457
+ сковородасковорода                             |  -45000 |   -45000.199
+ 常ならむ有為の奥山今日越えて浅き夢見           |  600000 |    7000.9812
+ 常ならむ有為の奥山今日越えて浅き夢見           |  600000 |    60000.902
+ 常ならむ有為の奥山今日越えて浅き夢見           |  700000 |  700000.9363
+ 色は匂へど 散りぬるを我が世誰ぞ 常ならむ       |       0 |      0.58371
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |  400000 |     5000.213
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |  500000 |   50000.9421
+(17 rows)
+
+--Testcase 163:
+SELECT c2,c3,c4 from tmp_t15 group by c2,c3,c4 having avg(c4)-sqrt(abs(c3))*min(c4) > bit_or(c3)*max(c4)-count(*) OR bit_and(c3)/count(*) < sqrt(abs(c4)) ORDER BY c2,c3,c4;
+                       c2                       |   c3    |      c4      
+------------------------------------------------+---------+--------------
+ いろはにほへど　ちりぬるをわがよたれぞ         | -250000 | -25000.50012
+ いろはにほへどちりぬるをわがよたれぞつねならむ | -650000 |   -65000.902
+ Thequickbrownfoxjumpsoverthelazydog            | -650000 | -650000.9481
+ Thequickbrownfoxjumpsoverthelazydog            | -550000 |   -55000.902
+ Thequickbrownfoxjumpsoverthelazydog            | -550000 |   -6500.7662
+ Thequickbrownfoxjumpsoverthelazydog            |  -35000 |  -35000.1205
+ Thequickbrownfoxjumpsoverthelazydog            |     -65 |     -65.9481
+ живетезелоземляиижеикаколюди                   | -550000 | -550000.5457
+ живетезелоземляиижеикаколюди                   | -450000 |    -5500.431
+ живетезелоземляиижеикаколюди                   |  -45000 |   45000.1095
+ живетезелоземляиижеикаколюди                   |     -55 |     -55.5457
+ сковородасковорода                             |  -45000 |   -45000.199
+ 色は匂へど 散りぬるを我が世誰ぞ 常ならむ       |       0 |      0.58371
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |       0 |       0.3117
+(14 rows)
+
+--Testcase 164:
+SELECT c2,time,c3,c4 from tmp_t15 group by time,c2,c3,c4 having bit_or(c3)/count(*)/(variance(c4)-6) > bit_and(c3)-bit_or(c3)/(avg(c4)+5) AND bit_or(c3) < sqrt(abs(c3))+variance(c4) ORDER BY c2,c3,c4;
+                   c2                   |        time         |   c3    |      c4      
+----------------------------------------+---------------------+---------+--------------
+ いろはにほへど　ちりぬるをわがよたれぞ | 2020-01-07 01:00:00 | -250000 | -25000.50012
+ сковородасковорода                     | 2020-01-09 01:00:00 |  -45000 |   -45000.199
+(2 rows)
+
+--Testcase 165:
+SELECT c2,count(c3),c4 from tmp_t15 group by c2,c3,c4 having bit_or(c3)/count(*)/(variance(c4)+1) > bit_and(c3)-bit_or(c3)/avg(c4) OR bit_or(c3) < sqrt(abs(c3))+variance(c4) ORDER BY c2,c3,c4;
+                   c2                   | count |      c4      
+----------------------------------------+-------+--------------
+ いろはにほへど　ちりぬるをわがよたれぞ |     2 | -25000.50012
+ Thequickbrownfoxjumpsoverthelazydog    |     2 | -650000.9481
+ живетезелоземляиижеикаколюди           |     2 | -550000.5457
+ сковородасковорода                     |     2 |   -45000.199
+(4 rows)
+
+--Testcase 166:
+SELECT c2,c3,count(c4) from tmp_t15 group by c2,c3,c4 having bool_and(c2 like 'janfjnaukehuavklanvkmvamv%') = true OR every(c2 not like '%c') AND max(c3)-bit_or(c3)/(avg(c3)+1) > avg(c4)+stddev(c4)-min(c3) ORDER BY c2,c3,c4;
+                       c2                       |   c3   | count 
+------------------------------------------------+--------+-------
+ いろはにほへどちりぬるをわがよたれぞつねならむ | 600000 |     2
+ ăâđêôơưdêđêdờe                                 |  35000 |     2
+ Thequickbrownfoxjumpsoverthelazydog            |  15000 |     2
+ 常ならむ有為の奥山今日越えて浅き夢見           | 700000 |     2
+(4 rows)
+
+--Testcase 167:
+SELECT count(c2),c3,min(c4) from tmp_t15 group by c3 having sqrt(abs(c3+c3)+6753)+0.567 > 260 ORDER BY 1,2,3;
+ count |   c3    |     min      
+-------+---------+--------------
+     1 | -450000 |    -5500.431
+     1 |  -35000 |  -35000.1205
+     1 |   40000 |  40000.05221
+     1 |   50000 |   50000.1054
+     1 |   70000 |  70000.91023
+     1 |  400000 |     5000.213
+     2 | -250000 | -25000.50012
+     2 |   35000 |      35000.1
+     2 |  700000 |  700000.9363
+     3 | -650000 | -650000.9481
+     3 |  -45000 |   -45000.199
+     3 |  500000 |    6000.7623
+     4 | -550000 | -550000.5457
+     4 |  600000 |    7000.9812
+(14 rows)
+
+--Testcase 168:
+SELECT c2,c3,time,c4 from tmp_t15 group by c2,c3,time,c4 having bool_or(c3-c3-c4 > 0) = true ORDER BY c2,c3,c4,time;
+                       c2                       |   c3    |        time         |      c4
+------------------------------------------------+---------+---------------------+--------------
+ いろはにほへど　ちりぬるをわがよたれぞ         | -250000 | 2020-01-07 01:00:00 | -25000.50012
+ いろはにほへどちりぬるをわがよたれぞつねならむ | -650000 | 2024-05-05 21:59:15 |   -65000.902
+ Thequickbrownfoxjumpsoverthelazydog            | -650000 | 2007-04-19 13:23:51 | -650000.9481
+ Thequickbrownfoxjumpsoverthelazydog            | -650000 | 2027-09-19 13:17:51 | -650000.9481
+ Thequickbrownfoxjumpsoverthelazydog            | -550000 | 2022-05-05 21:59:15 |   -55000.902
+ Thequickbrownfoxjumpsoverthelazydog            | -550000 | 2007-04-19 13:23:51 |   -6500.7662
+ Thequickbrownfoxjumpsoverthelazydog            |  -35000 | 2020-01-03 01:00:00 |  -35000.1205
+ Thequickbrownfoxjumpsoverthelazydog            |     -65 | 2017-04-19 13:17:51 |     -65.9481
+ живетезелоземляиижеикаколюди                   | -550000 | 2005-02-19 11:23:53 | -550000.5457
+ живетезелоземляиижеикаколюди                   | -550000 | 2025-07-19 11:19:53 | -550000.5457
+ живетезелоземляиижеикаколюди                   | -450000 | 2005-02-19 11:23:53 |    -5500.431
+ живетезелоземляиижеикаколюди                   |     -55 | 2015-02-19 11:19:53 |     -55.5457
+ сковородасковорода                             |  -45000 | 2020-01-09 01:00:00 |   -45000.199
+(13 rows)
+
+--Testcase 169:
+SELECT min(c2),count(c3),c4 from tmp_t15 group by c2,c3,c4 having max(c4)*bit_and(c3)+variance(c4) > variance(c4)/(avg(c3)-1)-sqrt(abs(c4)) ORDER BY c2,c3,c4;
+                      min                       | count |      c4      
+------------------------------------------------+-------+--------------
+ いろはにほへど　ちりぬるをわがよたれぞ         |     2 | -25000.50012
+ いろはにほへどちりぬるをわがよたれぞつねならむ |     2 |  600000.8847
+ ăâđêôơưdêđêdờe                                 |     2 |      35000.1
+ Thequickbrownfoxjumpsoverthelazydog            |     2 | -650000.9481
+ Thequickbrownfoxjumpsoverthelazydog            |     2 |   15000.2552
+ живетезелоземляиижеикаколюди                   |     2 | -550000.5457
+ сковородасковорода                             |     2 |   -45000.199
+ 常ならむ有為の奥山今日越えて浅き夢見           |     2 |  700000.9363
+ 色は匂へど 散りぬるを我が世誰ぞ 常ならむ       |     2 |      0.58371
+(9 rows)
+
+--Testcase 170:
+SELECT c2,c3,c4 from tmp_t15 group by c2,c3,c4 having array_agg(c3/(c3+9969)+c4) = '{40000.05221}' OR variance(c3)+count(c3)+sum(c3) = variance(c3)*stddev(c4)-bit_and(c3) ORDER BY c2,c3,c4;
+                       c2                       |  c3   |     c4      
+------------------------------------------------+-------+-------------
+ いろはにほへどちりぬるをわがよたれぞつねならむ | 40000 | 40000.05221
+(1 row)
+
+--Testcase 171:
+SELECT c2,c3,c4,time from tmp_t15 group by time,c2,c3,c4 having min(time) > '2008-05-19 14:23:50' ORDER BY c2,c3,c4;
+                       c2                       |   c3    |      c4      |        time         
+------------------------------------------------+---------+--------------+---------------------
+ いろはにほへど　ちりぬるをわがよたれぞ         | -250000 | -25000.50012 | 2020-01-07 01:00:00
+ いろはにほへどちりぬるをわがよたれぞつねならむ | -650000 |   -65000.902 | 2024-05-05 21:59:15
+ いろはにほへどちりぬるをわがよたれぞつねならむ |      60 |      60.8847 | 2016-03-19 12:18:52
+ いろはにほへどちりぬるをわがよたれぞつねならむ |   40000 |  40000.05221 | 2020-01-04 01:00:00
+ いろはにほへどちりぬるをわがよたれぞつねならむ |  600000 |  600000.8847 | 2026-08-19 12:18:52
+ ăâđêôơưdêđêdờe                                 |   35000 |      35000.1 | 2020-01-08 01:00:00
+ Thequickbrownfoxjumpsoverthelazydog            | -650000 | -650000.9481 | 2027-09-19 13:17:51
+ Thequickbrownfoxjumpsoverthelazydog            | -550000 |   -55000.902 | 2022-05-05 21:59:15
+ Thequickbrownfoxjumpsoverthelazydog            |  -35000 |  -35000.1205 | 2020-01-03 01:00:00
+ Thequickbrownfoxjumpsoverthelazydog            |     -65 |     -65.9481 | 2017-04-19 13:17:51
+ Thequickbrownfoxjumpsoverthelazydog            |   15000 |   15000.2552 | 2020-01-06 01:00:00
+ живетезелоземляиижеикаколюди                   | -550000 | -550000.5457 | 2025-07-19 11:19:53
+ живетезелоземляиижеикаколюди                   |  -45000 |   45000.1095 | 2020-01-05 01:00:00
+ живетезелоземляиижеикаколюди                   |     -55 |     -55.5457 | 2015-02-19 11:19:53
+ живетезелоземляиижеикаколюди                   |   70000 |  70000.91023 | 2025-05-05 21:59:15
+ сковородасковорода                             |  -45000 |   -45000.199 | 2020-01-09 01:00:00
+ 常ならむ有為の奥山今日越えて浅き夢見           |      70 |      70.9363 | 2018-05-19 14:18:50
+ 常ならむ有為の奥山今日越えて浅き夢見           |   30000 |   30000.0562 | 2020-01-02 01:00:00
+ 常ならむ有為の奥山今日越えて浅き夢見           |  600000 |    60000.902 | 2023-05-05 21:59:15
+ 常ならむ有為の奥山今日越えて浅き夢見           |  700000 |  700000.9363 | 2028-10-19 14:18:50
+ 色は匂へど 散りぬるを我が世誰ぞ 常ならむ       |       0 |      0.58371 | 2020-01-10 01:00:00
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |       0 |       0.3117 | 2014-01-19 10:20:54
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |   10000 |   10000.3117 | 2024-06-19 10:20:54
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |   50000 |   50000.1054 | 2020-01-06 01:00:00
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |  500000 |   50000.9421 | 2021-05-05 21:59:15
+(25 rows)
+
+--Testcase 172:
+SELECT c2,c3,c4,max(time) from tmp_t15 group by time,c2,c3,c4 having sqrt(abs(c4))/(max(c3)+3) < sqrt(abs(c4)) AND max(c4) > (sum(c3)+1)-bit_or(c3) ORDER BY time,c2,c3,c4;
+                       c2                       |   c3    |      c4      |         max         
+------------------------------------------------+---------+--------------+---------------------
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |  400000 |     5000.213 | 2004-01-19 10:23:54
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |  500000 |  500000.3117 | 2004-01-19 10:23:54
+ いろはにほへどちりぬるをわがよたれぞつねならむ |  500000 |    6000.7623 | 2006-03-19 12:23:52
+ いろはにほへどちりぬるをわがよたれぞつねならむ |  600000 |  600000.8847 | 2006-03-19 12:23:52
+ 常ならむ有為の奥山今日越えて浅き夢見           |  600000 |    7000.9812 | 2008-05-19 14:23:50
+ 常ならむ有為の奥山今日越えて浅き夢見           |  700000 |  700000.9363 | 2008-05-19 14:23:50
+ いろはにほへどちりぬるをわがよたれぞつねならむ |      60 |      60.8847 | 2016-03-19 12:18:52
+ 常ならむ有為の奥山今日越えて浅き夢見           |      70 |      70.9363 | 2018-05-19 14:18:50
+ 常ならむ有為の奥山今日越えて浅き夢見           |   30000 |   30000.0562 | 2020-01-02 01:00:00
+ いろはにほへどちりぬるをわがよたれぞつねならむ |   40000 |  40000.05221 | 2020-01-04 01:00:00
+ живетезелоземляиижеикаколюди                   |  -45000 |   45000.1095 | 2020-01-05 01:00:00
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |   50000 |   50000.1054 | 2020-01-06 01:00:00
+ いろはにほへど　ちりぬるをわがよたれぞ         | -250000 | -25000.50012 | 2020-01-07 01:00:00
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |  500000 |   50000.9421 | 2021-05-05 21:59:15
+ 常ならむ有為の奥山今日越えて浅き夢見           |  600000 |    60000.902 | 2023-05-05 21:59:15
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |   10000 |   10000.3117 | 2024-06-19 10:20:54
+ живетезелоземляиижеикаколюди                   |   70000 |  70000.91023 | 2025-05-05 21:59:15
+ いろはにほへどちりぬるをわがよたれぞつねならむ |  600000 |  600000.8847 | 2026-08-19 12:18:52
+ 常ならむ有為の奥山今日越えて浅き夢見           |  700000 |  700000.9363 | 2028-10-19 14:18:50
+(19 rows)
+
+--Testcase 173:
+SELECT c2,time,c3,c4,upper(c2) from tmp_t15 group by time,c2,c3,c4,time having max(time) <> '2006-03-19 12:23:52' ORDER BY time,c2,c3,c4;
+                       c2                       |        time         |   c3    |      c4      |                     upper                      
+------------------------------------------------+---------------------+---------+--------------+------------------------------------------------
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             | 2004-01-19 10:23:54 |  400000 |     5000.213 | 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             | 2004-01-19 10:23:54 |  500000 |  500000.3117 | 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿
+ живетезелоземляиижеикаколюди                   | 2005-02-19 11:23:53 | -550000 | -550000.5457 | ЖИВЕТЕЗЕЛОЗЕМЛЯИИЖЕИКАКОЛЮДИ
+ живетезелоземляиижеикаколюди                   | 2005-02-19 11:23:53 | -450000 |    -5500.431 | ЖИВЕТЕЗЕЛОЗЕМЛЯИИЖЕИКАКОЛЮДИ
+ Thequickbrownfoxjumpsoverthelazydog            | 2007-04-19 13:23:51 | -650000 | -650000.9481 | THEQUICKBROWNFOXJUMPSOVERTHELAZYDOG
+ Thequickbrownfoxjumpsoverthelazydog            | 2007-04-19 13:23:51 | -550000 |   -6500.7662 | THEQUICKBROWNFOXJUMPSOVERTHELAZYDOG
+ 常ならむ有為の奥山今日越えて浅き夢見           | 2008-05-19 14:23:50 |  600000 |    7000.9812 | 常ならむ有為の奥山今日越えて浅き夢見
+ 常ならむ有為の奥山今日越えて浅き夢見           | 2008-05-19 14:23:50 |  700000 |  700000.9363 | 常ならむ有為の奥山今日越えて浅き夢見
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             | 2014-01-19 10:20:54 |       0 |       0.3117 | 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿
+ живетезелоземляиижеикаколюди                   | 2015-02-19 11:19:53 |     -55 |     -55.5457 | ЖИВЕТЕЗЕЛОЗЕМЛЯИИЖЕИКАКОЛЮДИ
+ いろはにほへどちりぬるをわがよたれぞつねならむ | 2016-03-19 12:18:52 |      60 |      60.8847 | いろはにほへどちりぬるをわがよたれぞつねならむ
+ Thequickbrownfoxjumpsoverthelazydog            | 2017-04-19 13:17:51 |     -65 |     -65.9481 | THEQUICKBROWNFOXJUMPSOVERTHELAZYDOG
+ 常ならむ有為の奥山今日越えて浅き夢見           | 2018-05-19 14:18:50 |      70 |      70.9363 | 常ならむ有為の奥山今日越えて浅き夢見
+ 常ならむ有為の奥山今日越えて浅き夢見           | 2020-01-02 01:00:00 |   30000 |   30000.0562 | 常ならむ有為の奥山今日越えて浅き夢見
+ Thequickbrownfoxjumpsoverthelazydog            | 2020-01-03 01:00:00 |  -35000 |  -35000.1205 | THEQUICKBROWNFOXJUMPSOVERTHELAZYDOG
+ いろはにほへどちりぬるをわがよたれぞつねならむ | 2020-01-04 01:00:00 |   40000 |  40000.05221 | いろはにほへどちりぬるをわがよたれぞつねならむ
+ живетезелоземляиижеикаколюди                   | 2020-01-05 01:00:00 |  -45000 |   45000.1095 | ЖИВЕТЕЗЕЛОЗЕМЛЯИИЖЕИКАКОЛЮДИ
+ Thequickbrownfoxjumpsoverthelazydog            | 2020-01-06 01:00:00 |   15000 |   15000.2552 | THEQUICKBROWNFOXJUMPSOVERTHELAZYDOG
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             | 2020-01-06 01:00:00 |   50000 |   50000.1054 | 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿
+ いろはにほへど　ちりぬるをわがよたれぞ         | 2020-01-07 01:00:00 | -250000 | -25000.50012 | いろはにほへど　ちりぬるをわがよたれぞ
+ ăâđêôơưdêđêdờe                                 | 2020-01-08 01:00:00 |   35000 |      35000.1 | ĂÂĐÊÔƠƯDÊĐÊDỜE
+ сковородасковорода                             | 2020-01-09 01:00:00 |  -45000 |   -45000.199 | СКОВОРОДАСКОВОРОДА
+ 色は匂へど 散りぬるを我が世誰ぞ 常ならむ       | 2020-01-10 01:00:00 |       0 |      0.58371 | 色は匂へど 散りぬるを我が世誰ぞ 常ならむ
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             | 2021-05-05 21:59:15 |  500000 |   50000.9421 | 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿
+ Thequickbrownfoxjumpsoverthelazydog            | 2022-05-05 21:59:15 | -550000 |   -55000.902 | THEQUICKBROWNFOXJUMPSOVERTHELAZYDOG
+ 常ならむ有為の奥山今日越えて浅き夢見           | 2023-05-05 21:59:15 |  600000 |    60000.902 | 常ならむ有為の奥山今日越えて浅き夢見
+ いろはにほへどちりぬるをわがよたれぞつねならむ | 2024-05-05 21:59:15 | -650000 |   -65000.902 | いろはにほへどちりぬるをわがよたれぞつねならむ
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             | 2024-06-19 10:20:54 |   10000 |   10000.3117 | 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿
+ живетезелоземляиижеикаколюди                   | 2025-05-05 21:59:15 |   70000 |  70000.91023 | ЖИВЕТЕЗЕЛОЗЕМЛЯИИЖЕИКАКОЛЮДИ
+ живетезелоземляиижеикаколюди                   | 2025-07-19 11:19:53 | -550000 | -550000.5457 | ЖИВЕТЕЗЕЛОЗЕМЛЯИИЖЕИКАКОЛЮДИ
+ いろはにほへどちりぬるをわがよたれぞつねならむ | 2026-08-19 12:18:52 |  600000 |  600000.8847 | いろはにほへどちりぬるをわがよたれぞつねならむ
+ Thequickbrownfoxjumpsoverthelazydog            | 2027-09-19 13:17:51 | -650000 | -650000.9481 | THEQUICKBROWNFOXJUMPSOVERTHELAZYDOG
+ 常ならむ有為の奥山今日越えて浅き夢見           | 2028-10-19 14:18:50 |  700000 |  700000.9363 | 常ならむ有為の奥山今日越えて浅き夢見
+(33 rows)
+
+--Testcase 174:
+SELECT max(c3), count(c4), min(c4) FROM tmp_t15 GROUP BY c2 HAVING max(c3)=-45000 OR min(c4) BETWEEN 0 AND 100 AND count(c2)<>6 ORDER BY 1,2,3;
+  max   | count |    min     
+--------+-------+------------
+ -45000 |     2 | -45000.199
+      0 |     2 |    0.58371
+(2 rows)
+
+--Testcase 175:
+SELECT max(c4), count(c2), min(c3) FROM tmp_t15 GROUP BY c2 HAVING avg(c3)=0.0 OR avg(c3)=-250000.0 OR avg(c4)=0.58371 OR avg(c4)=35000.1 ORDER BY 1,2,3;
+     max      | count |   min   
+--------------+-------+---------
+ -25000.50012 |     2 | -250000
+      0.58371 |     2 |       0
+      35000.1 |     2 |   35000
+(3 rows)
+
+--Testcase 176:
+SELECT max(c4), count(c2), min(c3) FROM tmp_t15 GROUP BY c4 HAVING every(c3>0) AND count(*)>1 ORDER BY 1,2,3;
+     max     | count |  min   
+-------------+-------+--------
+  15000.2552 |     2 |  15000
+     35000.1 |     2 |  35000
+ 600000.8847 |     2 | 600000
+ 700000.9363 |     2 | 700000
+(4 rows)
+
+--Testcase 177:
+SELECT max(c4), count(c2), min(c3) FROM tmp_t15 GROUP BY c4 HAVING sum(c3)<sum(c4) OR avg(c3)<avg(c4) ORDER BY 1,2,3;
+     max      | count |   min   
+--------------+-------+---------
+   -65000.902 |     1 | -650000
+   -55000.902 |     1 | -550000
+ -25000.50012 |     2 | -250000
+   -6500.7662 |     1 | -550000
+    -5500.431 |     1 | -450000
+       0.3117 |     1 |       0
+      0.58371 |     2 |       0
+      60.8847 |     1 |      60
+      70.9363 |     1 |      70
+   10000.3117 |     1 |   10000
+   15000.2552 |     2 |   15000
+   30000.0562 |     1 |   30000
+      35000.1 |     2 |   35000
+  40000.05221 |     1 |   40000
+   45000.1095 |     1 |  -45000
+   50000.1054 |     1 |   50000
+  70000.91023 |     1 |   70000
+  500000.3117 |     1 |  500000
+  600000.8847 |     2 |  600000
+  700000.9363 |     2 |  700000
+(20 rows)
+
+--Testcase 178:
+SELECT max(c4), max(c3), count(c3) FROM tmp_t15 GROUP BY c4 HAVING sum(c3+c4)<avg(c4*2) AND max(c3)<count(c3) ORDER BY 1,2,3;
+     max      |   max   | count 
+--------------+---------+-------
+ -650000.9481 | -650000 |     2
+ -550000.5457 | -550000 |     2
+   -65000.902 | -650000 |     1
+   -55000.902 | -550000 |     1
+   -45000.199 |  -45000 |     2
+ -25000.50012 | -250000 |     2
+   -6500.7662 | -550000 |     1
+    -5500.431 | -450000 |     1
+       0.3117 |       0 |     1
+   45000.1095 |  -45000 |     1
+(10 rows)
+
+--Testcase 179:
+SELECT max(c4), min(c3), count(c3) FROM tmp_t15 GROUP BY c4 HAVING max(c4)>avg(c3) AND max(c3)=min(c3) AND min(c3)<>0 AND sum(c4)<1000.5 OR avg(c3)>avg(c4) ORDER BY 1,2,3;
+     max      |   min   | count 
+--------------+---------+-------
+ -650000.9481 | -650000 |     2
+ -550000.5457 | -550000 |     2
+   -65000.902 | -650000 |     1
+   -55000.902 | -550000 |     1
+   -45000.199 |  -45000 |     2
+  -35000.1205 |  -35000 |     1
+ -25000.50012 | -250000 |     2
+   -6500.7662 | -550000 |     1
+    -5500.431 | -450000 |     1
+     -65.9481 |     -65 |     1
+     -55.5457 |     -55 |     1
+      60.8847 |      60 |     1
+      70.9363 |      70 |     1
+     5000.213 |  400000 |     1
+    6000.7623 |  500000 |     1
+    7000.9812 |  600000 |     1
+   50000.9421 |  500000 |     1
+    60000.902 |  600000 |     1
+(18 rows)
+
+--Testcase 180:
+SELECT max(c4), min(c3), count(c3) FROM tmp_t15 GROUP BY c2 HAVING bit_and(c3)=4906 OR variance(c3)=100 OR bit_and(c3)=0 OR bit_or(c3)=07 OR bool_and(c3>0) OR length(string_agg(c2,'a'))=107 ORDER BY 1,2,3;
+     max     |   min   | count 
+-------------+---------+-------
+     0.58371 |       0 |     2
+     35000.1 |   35000 |     2
+ 500000.3117 |       0 |     6
+ 600000.8847 | -650000 |     6
+ 700000.9363 |      70 |     6
+(5 rows)
+
+--Testcase 181:
+SELECT max(c4), max(c3), count(c3) FROM tmp_t15 GROUP BY c3, c4 HAVING count(*)<max(c4) AND avg(c3)<>sum(c3) AND sum(c3)>avg(c4) AND sum(c4)>sum(c3) OR max(c3)>max(c4) ORDER BY 1,2,3;
+     max      |   max   | count 
+--------------+---------+-------
+ -650000.9481 | -650000 |     2
+ -550000.5457 | -550000 |     2
+   -45000.199 |  -45000 |     2
+  -35000.1205 |  -35000 |     1
+     -65.9481 |     -65 |     1
+     -55.5457 |     -55 |     1
+     5000.213 |  400000 |     1
+    6000.7623 |  500000 |     1
+    7000.9812 |  600000 |     1
+   15000.2552 |   15000 |     2
+      35000.1 |   35000 |     2
+   50000.9421 |  500000 |     1
+    60000.902 |  600000 |     1
+  600000.8847 |  600000 |     2
+  700000.9363 |  700000 |     2
+(15 rows)
+
+--Testcase 182:
+SELECT max(c4), min(c3), count(c3) FROM tmp_t15 GROUP BY c3 HAVING (count(c3+c4)*2+c3)=70002 OR (avg(c4+c3)*5+100)=102.4652 OR (sum(c3)+sum(c4))=-130.9481 OR stddev(c3)=0 AND every(c4>c3+10)=false OR ((min(c3+c4)+avg(c4/2+100)) BETWEEN -300 AND -200) OR (max(c3)+min(c4)-sum(c3/2)+avg(c4-100))=0264.8963 AND c3%2=0 ORDER BY 1,2,3;
+     max     |   min   | count 
+-------------+---------+-------
+  -65000.902 | -650000 |     3
+  -6500.7662 | -550000 |     4
+    -65.9481 |     -65 |     1
+     0.58371 |       0 |     3
+  15000.2552 |   15000 |     2
+     35000.1 |   35000 |     2
+  45000.1095 |  -45000 |     3
+ 70000.91023 |   70000 |     1
+ 500000.3117 |  500000 |     3
+ 600000.8847 |  600000 |     4
+ 700000.9363 |  700000 |     2
+(11 rows)
+
+--Testcase 183:
+SELECT max(c2), c3, min(c4), count(c4) from tmp_t15 group by c3 HAVING max(c2)='Thequickbrownfoxjumpsoverthelazydog' OR c3=-55 OR min(c4)=30000.0562 OR (max(c4) BETWEEN 0 AND 1000) OR count(c4)=3 ORDER BY 1,2,3,4;
+                      max                       |   c3    |     min      | count 
+------------------------------------------------+---------+--------------+-------
+ いろはにほへどちりぬるをわがよたれぞつねならむ |      60 |      60.8847 |     1
+ Thequickbrownfoxjumpsoverthelazydog            | -650000 | -650000.9481 |     3
+ Thequickbrownfoxjumpsoverthelazydog            |  -35000 |  -35000.1205 |     1
+ Thequickbrownfoxjumpsoverthelazydog            |     -65 |     -65.9481 |     1
+ Thequickbrownfoxjumpsoverthelazydog            |   15000 |   15000.2552 |     2
+ живетезелоземляиижеикаколюди                   |     -55 |     -55.5457 |     1
+ сковородасковорода                             |  -45000 |   -45000.199 |     3
+ 常ならむ有為の奥山今日越えて浅き夢見           |      70 |      70.9363 |     1
+ 常ならむ有為の奥山今日越えて浅き夢見           |   30000 |   30000.0562 |     1
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |       0 |       0.3117 |     3
+ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿             |  500000 |    6000.7623 |     3
+(11 rows)
+
+--Testcase 184:
+SELECT avg(c3), stddev(c4), sum(c3), min(c4) from tmp_t15 group by c2 HAVING (avg(c3)>181676 AND avg(c3)<348345.0) OR stddev(c4)>314126.12345 OR sum(c3)=-2405065 OR (min(c4)>0 AND min(c4)<10) ORDER BY 1,2,3,4;
+       avg        |       stddev       |   sum    |     min      
+------------------+--------------------+----------+--------------
+      -300633.125 |  296721.6002741166 | -2405065 | -650000.9481
+                0 |                  0 |        0 |      0.58371
+ 181676.666666667 |  314126.8724150831 |  1090060 |   -65000.902
+ 243333.333333333 | 196003.81359373196 |  1460000 |       0.3117
+           438345 |  349574.8708621297 |  2630070 |      70.9363
+(5 rows)
+
