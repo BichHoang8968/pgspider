@@ -1,13 +1,22 @@
+--Testcase 64:
 CREATE EXTENSION pgspider_core_fdw;
+--Testcase 65:
 CREATE EXTENSION pgspider_fdw;
+--Testcase 66:
 CREATE SERVER pgspider_core_svr FOREIGN DATA WRAPPER pgspider_core_fdw;
+--Testcase 67:
 CREATE USER MAPPING FOR CURRENT_USER SERVER pgspider_core_svr;
+--Testcase 68:
 CREATE FOREIGN TABLE test1 (i int,__spd_url text) SERVER pgspider_core_svr;
+--Testcase 69:
 CREATE FOREIGN TABLE test2 (t text, t2 text, i int,__spd_url text) SERVER pgspider_core_svr;
 --- PGSpider 1
+--Testcase 70:
 CREATE SERVER pgspider_srv_1 FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (host '127.0.0.1', port '5433', dbname 'postgres');
+--Testcase 71:
 CREATE USER MAPPING FOR CURRENT_USER SERVER pgspider_srv_1;
 -- pgspider_core_fdw table
+--Testcase 72:
 CREATE FOREIGN TABLE test1__pgspider_srv_1__test (i int,__spd_url text) SERVER pgspider_srv_1 OPTIONS (table_name 'test1');
 --Testcase 1:
 SELECT * FROM test1__pgspider_srv_1__test ORDER BY i, __spd_url;
@@ -100,6 +109,7 @@ SELECT __spd_url FROM test1 ORDER BY __spd_url;
 (9 rows)
 
 --
+--Testcase 73:
 CREATE FOREIGN TABLE test2__pgspider_srv_1__test2 (t text, t2 text, i int,__spd_url text) SERVER pgspider_srv_1 OPTIONS (table_name 'test2');
 --Testcase 7:
 SELECT * FROM test2__pgspider_srv_1__test2 ORDER BY i, t2, __spd_url;
@@ -260,9 +270,12 @@ SELECT * FROM test2 WHERE __spd_url = '/pgspider_srv_1/mysql_svr/' ORDER BY i, t
 (4 rows)
 
 --- PGSpider 2
+--Testcase 74:
 CREATE SERVER pgspider_srv_2 FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (host '127.0.0.1', port '5434', dbname 'postgres');
+--Testcase 75:
 CREATE USER MAPPING FOR CURRENT_USER SERVER pgspider_srv_2;
 -- pgspider_core_fdw table
+--Testcase 76:
 CREATE FOREIGN TABLE test1__pgspider_srv_2__test (i int,__spd_url text) SERVER pgspider_srv_2 OPTIONS (table_name 'test1');
 --Testcase 25:
 SELECT * FROM test1__pgspider_srv_2__test ORDER BY i, __spd_url;
@@ -376,6 +389,7 @@ SELECT __spd_url FROM test1 ORDER BY __spd_url;
 (17 rows)
 
 --
+--Testcase 77:
 CREATE FOREIGN TABLE test2__pgspider_srv_2__test2 (t text,t2 text,i int,__spd_url text) SERVER pgspider_srv_2 OPTIONS (table_name 'test2');
 --Testcase 31:
 SELECT * FROM test2__pgspider_srv_2__test2 ORDER BY i, t, t2, __spd_url;
@@ -614,7 +628,649 @@ SELECT * FROM test2 WHERE t2 IS NULL AND i < 1000 ORDER BY i, t, t2, __spd_url;
 (1 row)
 
 --SELECT MAX(i) FROM test2 WHERE i < 2002;
+-- GROUP BY with __spd_url tests
+--Testcase 78:
+EXPLAIN VERBOSE
+SELECT i, __spd_url FROM test2 GROUP BY i, __spd_url ORDER BY i;
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Sort  (cost=0.01..0.02 rows=0 width=36)
+   Output: i, __spd_url
+   Sort Key: test2.i
+   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=36)
+         Output: i, __spd_url
+         Node: pgspider_srv_1 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test2)
+           Remote SQL: SELECT i, __spd_url FROM public.test2 GROUP BY 1, 2
+         Node: pgspider_srv_2 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test2)
+           Remote SQL: SELECT i, __spd_url FROM public.test2 GROUP BY 1, 2
+(13 rows)
+
+--Testcase 79:
+SELECT i, __spd_url FROM test2 GROUP BY i, __spd_url ORDER BY i;
+  i   |           __spd_url           
+------+-------------------------------
+    1 | /pgspider_srv_1/mysql_svr/
+ 2101 | /pgspider_srv_2/influxdb_svr/
+ 2102 | /pgspider_srv_2/influxdb_svr/
+ 2103 | /pgspider_srv_2/influxdb_svr/
+(4 rows)
+
+--Testcase 80:
+EXPLAIN VERBOSE
+SELECT i, __spd_url FROM test2 GROUP BY __spd_url, i ORDER BY i;
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Sort  (cost=0.01..0.02 rows=0 width=36)
+   Output: i, __spd_url
+   Sort Key: test2.i
+   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=36)
+         Output: i, __spd_url
+         Node: pgspider_srv_1 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test2)
+           Remote SQL: SELECT i, __spd_url FROM public.test2 GROUP BY 1, 2
+         Node: pgspider_srv_2 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test2)
+           Remote SQL: SELECT i, __spd_url FROM public.test2 GROUP BY 1, 2
+(13 rows)
+
+--Testcase 81:
+SELECT i, __spd_url FROM test2 GROUP BY __spd_url, i ORDER BY i;
+  i   |           __spd_url           
+------+-------------------------------
+    1 | /pgspider_srv_1/mysql_svr/
+ 2101 | /pgspider_srv_2/influxdb_svr/
+ 2102 | /pgspider_srv_2/influxdb_svr/
+ 2103 | /pgspider_srv_2/influxdb_svr/
+(4 rows)
+
+--Testcase 82:
+EXPLAIN VERBOSE
+SELECT i, __spd_url, __spd_url FROM test2 GROUP BY __spd_url, i ORDER BY i;
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Sort  (cost=0.01..0.02 rows=0 width=68)
+   Output: i, __spd_url, __spd_url
+   Sort Key: test2.i
+   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=68)
+         Output: i, __spd_url, __spd_url
+         Node: pgspider_srv_1 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test2)
+           Remote SQL: SELECT i, __spd_url FROM public.test2 GROUP BY 1, 2
+         Node: pgspider_srv_2 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test2)
+           Remote SQL: SELECT i, __spd_url FROM public.test2 GROUP BY 1, 2
+(13 rows)
+
+--Testcase 83:
+SELECT i, __spd_url, __spd_url FROM test2 GROUP BY __spd_url, i ORDER BY i;
+  i   |           __spd_url           |           __spd_url           
+------+-------------------------------+-------------------------------
+    1 | /pgspider_srv_1/mysql_svr/    | /pgspider_srv_1/mysql_svr/
+ 2101 | /pgspider_srv_2/influxdb_svr/ | /pgspider_srv_2/influxdb_svr/
+ 2102 | /pgspider_srv_2/influxdb_svr/ | /pgspider_srv_2/influxdb_svr/
+ 2103 | /pgspider_srv_2/influxdb_svr/ | /pgspider_srv_2/influxdb_svr/
+(4 rows)
+
+--Testcase 84:
+EXPLAIN VERBOSE
+SELECT __spd_url, i FROM test2 GROUP BY __spd_url, i ORDER BY i;
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Sort  (cost=0.01..0.02 rows=0 width=36)
+   Output: __spd_url, i
+   Sort Key: test2.i
+   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=36)
+         Output: __spd_url, i
+         Node: pgspider_srv_1 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test2)
+           Remote SQL: SELECT __spd_url, i FROM public.test2 GROUP BY 2, 1
+         Node: pgspider_srv_2 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test2)
+           Remote SQL: SELECT __spd_url, i FROM public.test2 GROUP BY 2, 1
+(13 rows)
+
+--Testcase 85:
+SELECT __spd_url, i FROM test2 GROUP BY __spd_url, i ORDER BY i;
+           __spd_url           |  i   
+-------------------------------+------
+ /pgspider_srv_1/mysql_svr/    |    1
+ /pgspider_srv_2/influxdb_svr/ | 2101
+ /pgspider_srv_2/influxdb_svr/ | 2102
+ /pgspider_srv_2/influxdb_svr/ | 2103
+(4 rows)
+
+--Testcase 86:
+EXPLAIN VERBOSE
+SELECT __spd_url, i FROM test2 GROUP BY i, __spd_url ORDER BY i;
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Sort  (cost=0.01..0.02 rows=0 width=36)
+   Output: __spd_url, i
+   Sort Key: test2.i
+   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=36)
+         Output: __spd_url, i
+         Node: pgspider_srv_1 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test2)
+           Remote SQL: SELECT __spd_url, i FROM public.test2 GROUP BY 2, 1
+         Node: pgspider_srv_2 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test2)
+           Remote SQL: SELECT __spd_url, i FROM public.test2 GROUP BY 2, 1
+(13 rows)
+
+--Testcase 87:
+SELECT __spd_url, i FROM test2 GROUP BY i, __spd_url ORDER BY i;
+           __spd_url           |  i   
+-------------------------------+------
+ /pgspider_srv_1/mysql_svr/    |    1
+ /pgspider_srv_2/influxdb_svr/ | 2101
+ /pgspider_srv_2/influxdb_svr/ | 2102
+ /pgspider_srv_2/influxdb_svr/ | 2103
+(4 rows)
+
+--Testcase 88:
+EXPLAIN VERBOSE
+SELECT __spd_url, i, __spd_url FROM test2 GROUP BY i, __spd_url ORDER BY i;
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Sort  (cost=0.01..0.02 rows=0 width=68)
+   Output: __spd_url, i, __spd_url
+   Sort Key: test2.i
+   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=68)
+         Output: __spd_url, i, __spd_url
+         Node: pgspider_srv_1 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test2)
+           Remote SQL: SELECT __spd_url, i FROM public.test2 GROUP BY 2, 1
+         Node: pgspider_srv_2 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test2)
+           Remote SQL: SELECT __spd_url, i FROM public.test2 GROUP BY 2, 1
+(13 rows)
+
+--Testcase 89:
+SELECT __spd_url, i, __spd_url FROM test2 GROUP BY i, __spd_url ORDER BY i;
+           __spd_url           |  i   |           __spd_url           
+-------------------------------+------+-------------------------------
+ /pgspider_srv_1/mysql_svr/    |    1 | /pgspider_srv_1/mysql_svr/
+ /pgspider_srv_2/influxdb_svr/ | 2101 | /pgspider_srv_2/influxdb_svr/
+ /pgspider_srv_2/influxdb_svr/ | 2102 | /pgspider_srv_2/influxdb_svr/
+ /pgspider_srv_2/influxdb_svr/ | 2103 | /pgspider_srv_2/influxdb_svr/
+(4 rows)
+
+--Testcase 90:
+EXPLAIN VERBOSE
+SELECT avg(i), __spd_url FROM test2 GROUP BY __spd_url;
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
+ Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+   Output: (avg(i)), __spd_url
+   Node: pgspider_srv_1 / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.test2)
+     Remote SQL: SELECT count(i), sum(i), __spd_url FROM public.test2 GROUP BY 3
+   Node: pgspider_srv_2 / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.test2)
+     Remote SQL: SELECT count(i), sum(i), __spd_url FROM public.test2 GROUP BY 3
+(10 rows)
+
+--Testcase 91:
+SELECT avg(i), __spd_url FROM test2 GROUP BY __spd_url;
+ avg  |           __spd_url           
+------+-------------------------------
+    1 | /pgspider_srv_1/mysql_svr/
+ 2102 | /pgspider_srv_2/influxdb_svr/
+(2 rows)
+
+--Testcase 92:
+EXPLAIN VERBOSE
+SELECT avg(i), __spd_url, __spd_url FROM test2 GROUP BY __spd_url;
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
+ Foreign Scan  (cost=0.00..0.00 rows=1 width=96)
+   Output: (avg(i)), __spd_url, __spd_url
+   Node: pgspider_srv_1 / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.test2)
+     Remote SQL: SELECT count(i), sum(i), __spd_url FROM public.test2 GROUP BY 3
+   Node: pgspider_srv_2 / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.test2)
+     Remote SQL: SELECT count(i), sum(i), __spd_url FROM public.test2 GROUP BY 3
+(10 rows)
+
+--Testcase 93:
+SELECT avg(i), __spd_url, __spd_url FROM test2 GROUP BY __spd_url;
+ avg  |           __spd_url           |           __spd_url           
+------+-------------------------------+-------------------------------
+    1 | /pgspider_srv_1/mysql_svr/    | /pgspider_srv_1/mysql_svr/
+ 2102 | /pgspider_srv_2/influxdb_svr/ | /pgspider_srv_2/influxdb_svr/
+(2 rows)
+
+--Testcase 94:
+EXPLAIN VERBOSE
+SELECT __spd_url, avg(i) FROM test2 GROUP BY __spd_url;
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
+ Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+   Output: __spd_url, (avg(i))
+   Node: pgspider_srv_1 / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.test2)
+     Remote SQL: SELECT __spd_url, count(i), sum(i) FROM public.test2 GROUP BY 1
+   Node: pgspider_srv_2 / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.test2)
+     Remote SQL: SELECT __spd_url, count(i), sum(i) FROM public.test2 GROUP BY 1
+(10 rows)
+
+--Testcase 95:
+SELECT __spd_url, avg(i) FROM test2 GROUP BY __spd_url;
+           __spd_url           | avg  
+-------------------------------+------
+ /pgspider_srv_1/mysql_svr/    |    1
+ /pgspider_srv_2/influxdb_svr/ | 2102
+(2 rows)
+
+--Testcase 96:
+EXPLAIN VERBOSE
+SELECT __spd_url, avg(i), __spd_url FROM test2 GROUP BY __spd_url;
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
+ Foreign Scan  (cost=0.00..0.00 rows=1 width=96)
+   Output: __spd_url, (avg(i)), __spd_url
+   Node: pgspider_srv_1 / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.test2)
+     Remote SQL: SELECT __spd_url, count(i), sum(i) FROM public.test2 GROUP BY 1
+   Node: pgspider_srv_2 / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.test2)
+     Remote SQL: SELECT __spd_url, count(i), sum(i) FROM public.test2 GROUP BY 1
+(10 rows)
+
+--Testcase 97:
+SELECT __spd_url, avg(i), __spd_url FROM test2 GROUP BY __spd_url;
+           __spd_url           | avg  |           __spd_url           
+-------------------------------+------+-------------------------------
+ /pgspider_srv_1/mysql_svr/    |    1 | /pgspider_srv_1/mysql_svr/
+ /pgspider_srv_2/influxdb_svr/ | 2102 | /pgspider_srv_2/influxdb_svr/
+(2 rows)
+
+--Testcase 98:
+EXPLAIN VERBOSE
+SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Sort  (cost=0.01..0.02 rows=0 width=36)
+   Output: i, __spd_url
+   Sort Key: test1.i
+   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=36)
+         Output: i, __spd_url
+         Node: pgspider_srv_1 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test1)
+           Remote SQL: SELECT i, __spd_url FROM public.test1 GROUP BY 1, 2
+         Node: pgspider_srv_2 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test1)
+           Remote SQL: SELECT i, __spd_url FROM public.test1 GROUP BY 1, 2
+(13 rows)
+
+--Testcase 99:
+SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+   i   |           __spd_url           
+-------+-------------------------------
+     1 | /pgspider_srv_1/mysql_svr/
+     1 | /pgspider_srv_2/file_svr/
+     1 | /pgspider_srv_1/sqlite_svr/
+     1 | /pgspider_srv_1/tiny_svr/
+     2 | /pgspider_srv_2/file_svr/
+     3 | /pgspider_srv_2/file_svr/
+     4 | /pgspider_srv_2/file_svr/
+   777 | /pgspider_srv_1/mysql_svr/
+  1111 | /pgspider_srv_1/post_svr/
+  2001 | /pgspider_srv_2/influxdb_svr/
+  2002 | /pgspider_srv_2/influxdb_svr/
+  3001 | /pgspider_srv_2/griddb_svr/
+  3002 | /pgspider_srv_2/griddb_svr/
+ 22222 | /pgspider_srv_1/sqlite_svr/
+(14 rows)
+
+--Testcase 100:
+EXPLAIN VERBOSE
+SELECT i, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i;
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Sort  (cost=0.01..0.02 rows=0 width=36)
+   Output: i, __spd_url
+   Sort Key: test1.i
+   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=36)
+         Output: i, __spd_url
+         Node: pgspider_srv_1 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test1)
+           Remote SQL: SELECT i, __spd_url FROM public.test1 GROUP BY 1, 2
+         Node: pgspider_srv_2 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test1)
+           Remote SQL: SELECT i, __spd_url FROM public.test1 GROUP BY 1, 2
+(13 rows)
+
+--Testcase 101:
+SELECT i, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i;
+   i   |           __spd_url           
+-------+-------------------------------
+     1 | /pgspider_srv_1/mysql_svr/
+     1 | /pgspider_srv_2/file_svr/
+     1 | /pgspider_srv_1/sqlite_svr/
+     1 | /pgspider_srv_1/tiny_svr/
+     2 | /pgspider_srv_2/file_svr/
+     3 | /pgspider_srv_2/file_svr/
+     4 | /pgspider_srv_2/file_svr/
+   777 | /pgspider_srv_1/mysql_svr/
+  1111 | /pgspider_srv_1/post_svr/
+  2001 | /pgspider_srv_2/influxdb_svr/
+  2002 | /pgspider_srv_2/influxdb_svr/
+  3001 | /pgspider_srv_2/griddb_svr/
+  3002 | /pgspider_srv_2/griddb_svr/
+ 22222 | /pgspider_srv_1/sqlite_svr/
+(14 rows)
+
+--Testcase 102:
+EXPLAIN VERBOSE
+SELECT i, __spd_url, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i;
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Sort  (cost=0.01..0.02 rows=0 width=68)
+   Output: i, __spd_url, __spd_url
+   Sort Key: test1.i
+   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=68)
+         Output: i, __spd_url, __spd_url
+         Node: pgspider_srv_1 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test1)
+           Remote SQL: SELECT i, __spd_url FROM public.test1 GROUP BY 1, 2
+         Node: pgspider_srv_2 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test1)
+           Remote SQL: SELECT i, __spd_url FROM public.test1 GROUP BY 1, 2
+(13 rows)
+
+--Testcase 103:
+SELECT i, __spd_url, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i;
+   i   |           __spd_url           |           __spd_url           
+-------+-------------------------------+-------------------------------
+     1 | /pgspider_srv_1/mysql_svr/    | /pgspider_srv_1/mysql_svr/
+     1 | /pgspider_srv_2/file_svr/     | /pgspider_srv_2/file_svr/
+     1 | /pgspider_srv_1/sqlite_svr/   | /pgspider_srv_1/sqlite_svr/
+     1 | /pgspider_srv_1/tiny_svr/     | /pgspider_srv_1/tiny_svr/
+     2 | /pgspider_srv_2/file_svr/     | /pgspider_srv_2/file_svr/
+     3 | /pgspider_srv_2/file_svr/     | /pgspider_srv_2/file_svr/
+     4 | /pgspider_srv_2/file_svr/     | /pgspider_srv_2/file_svr/
+   777 | /pgspider_srv_1/mysql_svr/    | /pgspider_srv_1/mysql_svr/
+  1111 | /pgspider_srv_1/post_svr/     | /pgspider_srv_1/post_svr/
+  2001 | /pgspider_srv_2/influxdb_svr/ | /pgspider_srv_2/influxdb_svr/
+  2002 | /pgspider_srv_2/influxdb_svr/ | /pgspider_srv_2/influxdb_svr/
+  3001 | /pgspider_srv_2/griddb_svr/   | /pgspider_srv_2/griddb_svr/
+  3002 | /pgspider_srv_2/griddb_svr/   | /pgspider_srv_2/griddb_svr/
+ 22222 | /pgspider_srv_1/sqlite_svr/   | /pgspider_srv_1/sqlite_svr/
+(14 rows)
+
+--Testcase 104:
+EXPLAIN VERBOSE
+SELECT __spd_url, i FROM test1 GROUP BY __spd_url, i ORDER BY i;
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Sort  (cost=0.01..0.02 rows=0 width=36)
+   Output: __spd_url, i
+   Sort Key: test1.i
+   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=36)
+         Output: __spd_url, i
+         Node: pgspider_srv_1 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test1)
+           Remote SQL: SELECT __spd_url, i FROM public.test1 GROUP BY 2, 1
+         Node: pgspider_srv_2 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test1)
+           Remote SQL: SELECT __spd_url, i FROM public.test1 GROUP BY 2, 1
+(13 rows)
+
+--Testcase 105:
+SELECT __spd_url, i FROM test1 GROUP BY __spd_url, i ORDER BY i;
+           __spd_url           |   i   
+-------------------------------+-------
+ /pgspider_srv_1/mysql_svr/    |     1
+ /pgspider_srv_1/sqlite_svr/   |     1
+ /pgspider_srv_2/file_svr/     |     1
+ /pgspider_srv_1/tiny_svr/     |     1
+ /pgspider_srv_2/file_svr/     |     2
+ /pgspider_srv_2/file_svr/     |     3
+ /pgspider_srv_2/file_svr/     |     4
+ /pgspider_srv_1/mysql_svr/    |   777
+ /pgspider_srv_1/post_svr/     |  1111
+ /pgspider_srv_2/influxdb_svr/ |  2001
+ /pgspider_srv_2/influxdb_svr/ |  2002
+ /pgspider_srv_2/griddb_svr/   |  3001
+ /pgspider_srv_2/griddb_svr/   |  3002
+ /pgspider_srv_1/sqlite_svr/   | 22222
+(14 rows)
+
+--Testcase 106:
+EXPLAIN VERBOSE
+SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i;
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Sort  (cost=0.01..0.02 rows=0 width=36)
+   Output: __spd_url, i
+   Sort Key: test1.i
+   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=36)
+         Output: __spd_url, i
+         Node: pgspider_srv_1 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test1)
+           Remote SQL: SELECT __spd_url, i FROM public.test1 GROUP BY 2, 1
+         Node: pgspider_srv_2 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test1)
+           Remote SQL: SELECT __spd_url, i FROM public.test1 GROUP BY 2, 1
+(13 rows)
+
+--Testcase 107:
+SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i;
+           __spd_url           |   i   
+-------------------------------+-------
+ /pgspider_srv_1/mysql_svr/    |     1
+ /pgspider_srv_1/sqlite_svr/   |     1
+ /pgspider_srv_2/file_svr/     |     1
+ /pgspider_srv_1/tiny_svr/     |     1
+ /pgspider_srv_2/file_svr/     |     2
+ /pgspider_srv_2/file_svr/     |     3
+ /pgspider_srv_2/file_svr/     |     4
+ /pgspider_srv_1/mysql_svr/    |   777
+ /pgspider_srv_1/post_svr/     |  1111
+ /pgspider_srv_2/influxdb_svr/ |  2001
+ /pgspider_srv_2/influxdb_svr/ |  2002
+ /pgspider_srv_2/griddb_svr/   |  3001
+ /pgspider_srv_2/griddb_svr/   |  3002
+ /pgspider_srv_1/sqlite_svr/   | 22222
+(14 rows)
+
+--Testcase 108:
+EXPLAIN VERBOSE
+SELECT __spd_url, i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Sort  (cost=0.01..0.02 rows=0 width=68)
+   Output: __spd_url, i, __spd_url
+   Sort Key: test1.i
+   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=68)
+         Output: __spd_url, i, __spd_url
+         Node: pgspider_srv_1 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test1)
+           Remote SQL: SELECT __spd_url, i FROM public.test1 GROUP BY 2, 1
+         Node: pgspider_srv_2 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.test1)
+           Remote SQL: SELECT __spd_url, i FROM public.test1 GROUP BY 2, 1
+(13 rows)
+
+--Testcase 109:
+SELECT __spd_url, i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+           __spd_url           |   i   |           __spd_url           
+-------------------------------+-------+-------------------------------
+ /pgspider_srv_1/mysql_svr/    |     1 | /pgspider_srv_1/mysql_svr/
+ /pgspider_srv_1/sqlite_svr/   |     1 | /pgspider_srv_1/sqlite_svr/
+ /pgspider_srv_2/file_svr/     |     1 | /pgspider_srv_2/file_svr/
+ /pgspider_srv_1/tiny_svr/     |     1 | /pgspider_srv_1/tiny_svr/
+ /pgspider_srv_2/file_svr/     |     2 | /pgspider_srv_2/file_svr/
+ /pgspider_srv_2/file_svr/     |     3 | /pgspider_srv_2/file_svr/
+ /pgspider_srv_2/file_svr/     |     4 | /pgspider_srv_2/file_svr/
+ /pgspider_srv_1/mysql_svr/    |   777 | /pgspider_srv_1/mysql_svr/
+ /pgspider_srv_1/post_svr/     |  1111 | /pgspider_srv_1/post_svr/
+ /pgspider_srv_2/influxdb_svr/ |  2001 | /pgspider_srv_2/influxdb_svr/
+ /pgspider_srv_2/influxdb_svr/ |  2002 | /pgspider_srv_2/influxdb_svr/
+ /pgspider_srv_2/griddb_svr/   |  3001 | /pgspider_srv_2/griddb_svr/
+ /pgspider_srv_2/griddb_svr/   |  3002 | /pgspider_srv_2/griddb_svr/
+ /pgspider_srv_1/sqlite_svr/   | 22222 | /pgspider_srv_1/sqlite_svr/
+(14 rows)
+
+--Testcase 110:
+EXPLAIN VERBOSE
+SELECT avg(i), __spd_url FROM test1 GROUP BY __spd_url;
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
+ Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+   Output: (avg(i)), __spd_url
+   Node: pgspider_srv_1 / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.test1)
+     Remote SQL: SELECT count(i), sum(i), __spd_url FROM public.test1 GROUP BY 3
+   Node: pgspider_srv_2 / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.test1)
+     Remote SQL: SELECT count(i), sum(i), __spd_url FROM public.test1 GROUP BY 3
+(10 rows)
+
+--Testcase 111:
+SELECT avg(i), __spd_url FROM test1 GROUP BY __spd_url;
+   avg   |           __spd_url           
+---------+-------------------------------
+    1111 | /pgspider_srv_1/post_svr/
+       1 | /pgspider_srv_1/tiny_svr/
+  3001.5 | /pgspider_srv_2/griddb_svr/
+   621.8 | /pgspider_srv_1/mysql_svr/
+ 11111.5 | /pgspider_srv_1/sqlite_svr/
+  2001.5 | /pgspider_srv_2/influxdb_svr/
+     2.5 | /pgspider_srv_2/file_svr/
+(7 rows)
+
+--Testcase 112:
+EXPLAIN VERBOSE
+SELECT avg(i), __spd_url, __spd_url FROM test1 GROUP BY __spd_url;
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
+ Foreign Scan  (cost=0.00..0.00 rows=1 width=96)
+   Output: (avg(i)), __spd_url, __spd_url
+   Node: pgspider_srv_1 / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.test1)
+     Remote SQL: SELECT count(i), sum(i), __spd_url FROM public.test1 GROUP BY 3
+   Node: pgspider_srv_2 / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.test1)
+     Remote SQL: SELECT count(i), sum(i), __spd_url FROM public.test1 GROUP BY 3
+(10 rows)
+
+--Testcase 113:
+SELECT avg(i), __spd_url, __spd_url FROM test1 GROUP BY __spd_url;
+   avg   |           __spd_url           |           __spd_url           
+---------+-------------------------------+-------------------------------
+    1111 | /pgspider_srv_1/post_svr/     | /pgspider_srv_1/post_svr/
+       1 | /pgspider_srv_1/tiny_svr/     | /pgspider_srv_1/tiny_svr/
+  3001.5 | /pgspider_srv_2/griddb_svr/   | /pgspider_srv_2/griddb_svr/
+   621.8 | /pgspider_srv_1/mysql_svr/    | /pgspider_srv_1/mysql_svr/
+ 11111.5 | /pgspider_srv_1/sqlite_svr/   | /pgspider_srv_1/sqlite_svr/
+  2001.5 | /pgspider_srv_2/influxdb_svr/ | /pgspider_srv_2/influxdb_svr/
+     2.5 | /pgspider_srv_2/file_svr/     | /pgspider_srv_2/file_svr/
+(7 rows)
+
+--Testcase 114:
+EXPLAIN VERBOSE
+SELECT __spd_url, avg(i) FROM test1 GROUP BY __spd_url;
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
+ Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+   Output: __spd_url, (avg(i))
+   Node: pgspider_srv_1 / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.test1)
+     Remote SQL: SELECT __spd_url, count(i), sum(i) FROM public.test1 GROUP BY 1
+   Node: pgspider_srv_2 / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.test1)
+     Remote SQL: SELECT __spd_url, count(i), sum(i) FROM public.test1 GROUP BY 1
+(10 rows)
+
+--Testcase 115:
+SELECT __spd_url, avg(i) FROM test1 GROUP BY __spd_url;
+           __spd_url           |   avg   
+-------------------------------+---------
+ /pgspider_srv_1/post_svr/     |    1111
+ /pgspider_srv_1/tiny_svr/     |       1
+ /pgspider_srv_2/griddb_svr/   |  3001.5
+ /pgspider_srv_1/mysql_svr/    |   621.8
+ /pgspider_srv_1/sqlite_svr/   | 11111.5
+ /pgspider_srv_2/influxdb_svr/ |  2001.5
+ /pgspider_srv_2/file_svr/     |     2.5
+(7 rows)
+
+--Testcase 116:
+EXPLAIN VERBOSE
+SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY __spd_url;
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
+ Foreign Scan  (cost=0.00..0.00 rows=1 width=96)
+   Output: __spd_url, (avg(i)), __spd_url
+   Node: pgspider_srv_1 / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.test1)
+     Remote SQL: SELECT __spd_url, count(i), sum(i) FROM public.test1 GROUP BY 1
+   Node: pgspider_srv_2 / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.test1)
+     Remote SQL: SELECT __spd_url, count(i), sum(i) FROM public.test1 GROUP BY 1
+(10 rows)
+
+--Testcase 117:
+SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY __spd_url;
+           __spd_url           |   avg   |           __spd_url           
+-------------------------------+---------+-------------------------------
+ /pgspider_srv_1/post_svr/     |    1111 | /pgspider_srv_1/post_svr/
+ /pgspider_srv_1/tiny_svr/     |       1 | /pgspider_srv_1/tiny_svr/
+ /pgspider_srv_2/griddb_svr/   |  3001.5 | /pgspider_srv_2/griddb_svr/
+ /pgspider_srv_1/mysql_svr/    |   621.8 | /pgspider_srv_1/mysql_svr/
+ /pgspider_srv_1/sqlite_svr/   | 11111.5 | /pgspider_srv_1/sqlite_svr/
+ /pgspider_srv_2/influxdb_svr/ |  2001.5 | /pgspider_srv_2/influxdb_svr/
+ /pgspider_srv_2/file_svr/     |     2.5 | /pgspider_srv_2/file_svr/
+(7 rows)
+
 -- DROP FOREIGN TABLE
+--Testcase 118:
 DROP FOREIGN TABLE test1__pgspider_srv_2__test;
 --Testcase 57:
 SELECT * FROM test1__pgspider_srv_2__test;
@@ -649,6 +1305,7 @@ SELECT * FROM test1 WHERE i = 1 OR i = 777 ORDER BY i, __spd_url ;
  777 | /pgspider_srv_1/mysql_svr/
 (7 rows)
 
+--Testcase 119:
 DROP FOREIGN TABLE test1__pgspider_srv_1__test;
 --Testcase 60:
 SELECT * FROM test1__pgspider_srv_1__test;
@@ -658,6 +1315,7 @@ LINE 1: SELECT * FROM test1__pgspider_srv_1__test;
 --Testcase 61:
 SELECT * FROM test1 ORDER BY i, __spd_url;
 ERROR:  error SPIexecute can not find datasource
+--Testcase 120:
 DROP FOREIGN TABLE test2__pgspider_srv_1__test2;
 --Testcase 62:
 SELECT * FROM test2 ORDER BY i, t, t2, __spd_url;
@@ -668,18 +1326,29 @@ SELECT * FROM test2 ORDER BY i, t, t2, __spd_url;
  influx3a | influx3b | 2103 | /pgspider_srv_2/influxdb_svr/
 (3 rows)
 
+--Testcase 121:
 DROP FOREIGN TABLE test2__pgspider_srv_2__test2;
 --Testcase 63:
 SELECT * FROM test2 ORDER BY i, t, t2, __spd_url;
 ERROR:  error SPIexecute can not find datasource
 -- Clean up
+--Testcase 122:
 DROP USER MAPPING FOR CURRENT_USER SERVER pgspider_core_svr;
+--Testcase 123:
 DROP USER MAPPING FOR CURRENT_USER SERVER pgspider_srv_1;
+--Testcase 124:
 DROP USER MAPPING FOR CURRENT_USER SERVER pgspider_srv_2;
+--Testcase 125:
 DROP FOREIGN TABLE test1;
+--Testcase 126:
 DROP FOREIGN TABLE test2;
+--Testcase 127:
 DROP SERVER pgspider_srv_1;
+--Testcase 128:
 DROP SERVER pgspider_srv_2;
+--Testcase 129:
 DROP SERVER pgspider_core_svr;
+--Testcase 130:
 DROP EXTENSION pgspider_core_fdw;
+--Testcase 131:
 DROP EXTENSION pgspider_fdw;

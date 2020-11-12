@@ -313,14 +313,14 @@ typedef struct SpdFdwPrivate
 	bool		agg_query;		/* aggregation flag */
 	bool		isFirst;		/* First time of iteration foreign scan with
 								 * aggregation query */
-	bool		groupby_has_spdurl; /* groupby has spdurl flag */
+	bool		groupby_has_spdurl; /* flag to check if __spd_url is in group clause */
 	bool		is_pushdown_tlist;	/* pushed down target list or not. For
 									 * aggregation, always false */
 
 	List	   *pPseudoAggList; /* Disable of aggregation push down server
 								 * list */
 	List	   *child_comp_tlist;	/* child complite target list */
-	List	   *child_tlist;	/* child target list without spdurl */
+	List	   *child_tlist;	/* child target list without __spd_url */
 	List	   *mapping_tlist;	/* mapping list orig and pgspider */
 
 	List	   *groupby_target; /* group target tlist number */
@@ -425,6 +425,7 @@ static List *spd_add_to_flat_tlist(List *tlist, Expr *exprs,
 						List **upper_targets, bool allow_duplicate, bool is_having_qual);
 static void spd_spi_exec_child_ip(char *serverName, char *ip);
 static bool spd_can_skip_deepcopy(char *fdwname);
+static bool spd_checkurl_clauses(PlannerInfo *root, List *baserestrictinfo);
 
 /* Queue functions */
 static bool spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy);
@@ -584,7 +585,7 @@ spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy)
 
 	/*
 	 * Note: In some fdws, for instance, file_fdw, we need to check whether the heap tuple is not null or not.
-	 * If it is NULL, we cannot use copy_heap_tuple() because spdurl column attribute is not valid;
+	 * If it is NULL, we cannot use copy_heap_tuple() because __spd_url column attribute is not valid;
 	 */
 	if (TTS_IS_HEAPTUPLE(slot) && ((HeapTupleTableSlot*) slot)->tuple)
 	{
@@ -603,7 +604,7 @@ spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy)
 		memcpy(que->tuples[idx]->tts_isnull, slot->tts_isnull, natts * sizeof(bool));
 
 		/*
-		 * Skip copy of spdurl at the last of tuple descriptor because it's
+		 * Skip copy of __spd_url at the last of tuple descriptor because it's
 		 * invalid
 		 */
 		if (que->skipLast)
@@ -861,7 +862,6 @@ spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private)
 			lfdw_private = lappend(lfdw_private, makeInteger((extcells->is_truncated)?1:0));
 			lfdw_private = lappend(lfdw_private, makeInteger((extcells->is_having_qual)?1:0));
 		}
-		lfdw_private = lappend(lfdw_private, copyObject(fdw_private->child_comp_slot));
 		lfdw_private = lappend(lfdw_private, makeString(fdw_private->groupby_string ? fdw_private->groupby_string->data : ""));
 		lfdw_private = lappend(lfdw_private, makeInteger((fdw_private->has_having_quals)?1:0));
 	}
@@ -988,9 +988,6 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
 			lc = lnext(lfdw_private, lc);
 			fdw_private->mapping_tlist = lappend(fdw_private->mapping_tlist, extcells);
 		}
-
-		fdw_private->child_comp_slot = (TupleTableSlot *) (lfirst(lc));
-		lc = lnext(lfdw_private, lc);
 
 		fdw_private->groupby_string = makeStringInfo();
 		appendStringInfoString(fdw_private->groupby_string, strVal(lfirst(lc)));
@@ -2671,22 +2668,16 @@ check_basestrictinfo(PlannerInfo *root, ForeignDataWrapper *fdw, RelOptInfo *ent
 /**
  * remove_spdurl_from_targets
  *
- * Remove __spd_url from target list 'exprs' and if spd_url found,
- * save index to 'url_idx'.
- *
+ * Remove all __spd_url from target list 'exprs'
+ * 
  * @param[in,out] exprs - target list
  * @param[in] root
- * @param[in] is_target_entry - true if each expr is wrapped with TargetEntry
- * @param[out] url_idx - index of spd_url found
- */
+  */
 static List *
-remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
-						   bool is_target_entry, int *url_idx)
+remove_spdurl_from_targets(List *exprs, PlannerInfo *root)
 {
 	ListCell   *lc;
-	int			i = 0;
 
-	*url_idx = -1;
 	foreach (lc, exprs)
 	{
 		RangeTblEntry *rte;
@@ -2694,14 +2685,12 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
 		Node	   *node = (Node *) lfirst(lc);
 		Node	   *varnode;
 
-		if (is_target_entry)
+		if (IsA(node, TargetEntry))
 		{
-			Assert(IsA(node, TargetEntry));
 			varnode = (Node *) (((TargetEntry *) node)->expr);
 		}
 		else
 		{
-			Assert(!IsA(node, TargetEntry));
 			varnode = node;
 		}
 		if (IsA(varnode, Var))
@@ -2721,18 +2710,70 @@ remove_spdurl_from_targets(List *exprs, PlannerInfo *root,
 
 			if (strcmp(colname, SPDURL) == 0)
 			{
-				/* TODO: Allow multiple __spd_url */
-				if (*url_idx != -1)
-					elog(ERROR, "Using __spd_url multiple times is not allowed");
-
-				*url_idx = i;
 				exprs = foreach_delete_current(exprs, lc);
+			}
+		}
+	}
+
+	return exprs;
+}
+
+/**
+ * get_index_spdurl_from_targets
+ *
+ * Find __spd_url from target list 'exprs' and if the first __spd_url is found,
+ * return the index as 'url_idx'.
+ *
+ * @param[in] exprs - target list
+ * @param[in] root
+ */
+static int
+get_index_spdurl_from_targets(List *exprs, PlannerInfo *root)
+{
+	ListCell   *lc;
+	int			i = 0;
+
+	int url_idx = -1;
+	foreach (lc, exprs)
+	{
+		RangeTblEntry *rte;
+		char	   *colname;
+		Node	   *node = (Node *) lfirst(lc);
+		Node	   *varnode;
+
+		if (IsA(node, TargetEntry))
+		{
+			varnode = (Node *) (((TargetEntry *) node)->expr);
+		}
+		else
+		{
+			varnode = node;
+		}
+		if (IsA(varnode, Var))
+		{
+			Var		   *var = (Var *) varnode;
+
+			/* check whole row reference */
+			if (var->varattno == 0)
+			{
+				continue;
+			}
+			else
+			{
+				rte = planner_rt_fetch(var->varno, root);
+				colname = get_attname(rte->relid, var->varattno, false);
+			}
+
+			if (strcmp(colname, SPDURL) == 0)
+			{
+				url_idx = i;
+				return url_idx;
 			}
 		}
 		i++;
 	}
 
-	return exprs;
+	return url_idx;
 }
 
 /**
@@ -2752,7 +2793,7 @@ remove_spdurl_from_group_clause(PlannerInfo *root, List *tlist, List *groupClaus
 	if (groupClause == NULL)
 		return NULL;
 
-	for ((lc) = list_head(groupClause); (lc) != NULL;)
+	foreach (lc, groupClause)
 	{
 		SortGroupClause *sgc = (SortGroupClause *) lfirst(lc);
 		TargetEntry *tle = get_sortgroupclause_tle(sgc, tlist);
@@ -2767,12 +2808,9 @@ remove_spdurl_from_group_clause(PlannerInfo *root, List *tlist, List *groupClaus
 			colname = get_attname(rte->relid, var->varattno, false);
 			if (strcmp(colname, SPDURL) == 0)
 			{
-				lc = lnext(groupClause, lc);
-				groupClause = list_delete_ptr(groupClause, sgc);
-				continue;
+				groupClause = foreach_delete_current(groupClause, lc);
 			}
 		}
-		lc = lnext(groupClause, lc);
 	}
 	return groupClause;
 }
@@ -2780,7 +2818,7 @@ remove_spdurl_from_group_clause(PlannerInfo *root, List *tlist, List *groupClaus
 /**
  * groupby_has_spdurl
  *
- * Check whether SPDURL existing in GROUP BY
+ * Check whether __spd_url existing in GROUP BY
  *
  * @param[in] root - Root planner info
  *
@@ -2801,7 +2839,7 @@ groupby_has_spdurl(PlannerInfo *root)
 
 		if (te == NULL)
 			return false;
-		/* Check SPDURL in the target entry */
+		/* Check __spd_url in the target entry */
 		if (IsA(te->expr, Var))
 		{
 			Var		   *var = (Var *) te->expr;
@@ -2936,8 +2974,7 @@ spd_CreateDummyRoot(PlannerInfo *root, RelOptInfo *baserel,
 		/* Remove __spd_url from target lists if a child is not pgspider_fdw */
 		if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
 		{
-			entry_baserel->reltarget->exprs = remove_spdurl_from_targets(entry_baserel->reltarget->exprs,
-																		 root, false, &fdw_private->idx_url_tlist);
+			entry_baserel->reltarget->exprs = remove_spdurl_from_targets(entry_baserel->reltarget->exprs, root);
 		}
 
 		/*
@@ -3306,13 +3343,12 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	 * zero clear
 	 */
 	fdw_private = spd_AllocatePrivate();
+	fdw_private->idx_url_tlist = -1;	/* -1: not have __spd_url */
 	fdw_private->node_num = in_fdw_private->node_num;
 	fdw_private->in_flag = in_fdw_private->in_flag;
 	fdw_private->agg_query = true;
 	fdw_private->baserestrictinfo = copyObject(in_fdw_private->baserestrictinfo);
 	spd_root = in_fdw_private->spd_root;
-
-	/* Create child tlist */
 
 	/* Currently dummy. @todo more better parsed object. */
 	spd_root->parse->hasAggs = true;
@@ -3368,45 +3404,19 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 		int			i = 0;
 		ChildInfo  *childinfo = in_fdw_private->childinfo;
 
-		/* set flag if group by has spdurl */
+		/* set flag if group by has __spd_url */
 		fdw_private->groupby_has_spdurl = groupby_has_spdurl(root);
 
-		/* child_tlist will be used instead of child_comp_tlist */
-		fdw_private->child_tlist = list_copy(fdw_private->child_comp_tlist);
-
-		/* Remove spdurl from target list if groupby has spdurl */
+		/* 
+		 * get index of __spd_url in the target list 
+		 */
 		if (fdw_private->groupby_has_spdurl)
 		{
-			TupleDesc	tupledesc;
-
-			/*
-			 * Modify child tlist and save index of spdurl column. We use
-			 * child tlist for fetching data from child node. And use index of
-			 * spdurl to add data of spdurl back to parent node
-			 */
-			fdw_private->child_tlist = remove_spdurl_from_targets(fdw_private->child_tlist, root, true, &fdw_private->idx_url_tlist);
-
-			/*
-			 * When we add spdurl back to parent node, we need to create tuple
-			 * descriptor for parent slot according to child comp tlist. We
-			 * save to fdw_private->child_comp_tupdesc for later use.
-			 */
-			tupledesc = CreateTemplateTupleDesc(list_length(fdw_private->child_comp_tlist));
-			foreach(lc, fdw_private->child_comp_tlist)
-			{
-				TargetEntry *ent = (TargetEntry *) lfirst(lc);
-
-				TupleDescInitEntry(tupledesc, i + 1, NULL, exprType((Node *) ent->expr), -1, 0);
-				i++;
-
-			}
-			/* Construct TupleDesc, and assign a local typmod. */
-			tupledesc = BlessTupleDesc(tupledesc);
-			fdw_private->child_comp_tupdesc = CreateTupleDescCopy(tupledesc);
-
-			/* Init temporary slot for adding spdurl back */
-			fdw_private->child_comp_slot = MakeSingleTupleTableSlot(CreateTupleDescCopy(fdw_private->child_comp_tupdesc), &TTSOpsHeapTuple);
+			fdw_private->idx_url_tlist = get_index_spdurl_from_targets(fdw_private->child_comp_tlist, root);
 		}
+
+		/* child_tlist will be used instead of child_comp_tlist, because we will remove __spd_url from child_tlist. */
+		fdw_private->child_tlist = list_copy(fdw_private->child_comp_tlist);
 
 		/* Create path for each child node */
 		for (i = 0; i < fdw_private->node_num; i++)
@@ -3419,88 +3429,129 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 			Node	   *extra_having_quals = NULL;
 
 			if (childinfo[i].child_node_status != ServerStatusAlive)
+			{
 				continue;
-			dummy_root_child->parse->groupClause = list_copy(root->parse->groupClause);
+			}
+
 			oid_server = spd_spi_exec_datasource_oid(rel_oid);
 			fdwroutine = GetFdwRoutineByServerId(oid_server);
+			fs = GetForeignServer(oid_server);
+			fdw = GetForeignDataWrapper(fs->fdwid);
+			
+			/* If child node is not pgspider_fdw, don't pushdown aggregation if scan clauses have __spd_url */
+			if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
+			{
+				if (spd_checkurl_clauses(root, fdw_private->baserestrictinfo))
+					return;
+			}
+
+			/* 
+			 * Update dummy child root 
+			 */
+			dummy_root_child->parse->groupClause = list_copy(root->parse->groupClause);
+
+			if (fdw_private->having_quals != NIL)
+			{
+				/*
+				 * Set information about HAVING clause from pgspider_core_fdw
+				 * to GroupPathExtraData and dummy_root.
+				 */
+				dummy_root_child->parse->havingQual = (Node *)copyObject(fdw_private->having_quals);
+				dummy_root_child->hasHavingQual = true;
+			}
+			else
+			{
+				/* Does not let child node execute HAVING .*/
+				dummy_root_child->parse->havingQual = NULL;
+				dummy_root_child->hasHavingQual = false;
+			}
+
+			/* Currently dummy. @todo more better parsed object. */
+			dummy_root_child->parse->hasAggs = true;
+			
+			/* Call below FDW to check it is OK to pushdown or not. */
+			/* refer relnode.c fetch_upper_rel() */
+			dummy_output_rel = makeNode(RelOptInfo);
+			dummy_output_rel->reloptkind = RELOPT_UPPER_REL;
+			dummy_output_rel->relids = bms_copy(entry->relids);
+
 			if (fdwroutine->GetForeignUpperPaths != NULL)
 			{
-
-				if (childinfo[i].child_node_status != ServerStatusAlive)
-					continue;
-				dummy_root_child->parse->groupClause = list_copy(root->parse->groupClause);
-
 				extra_having_quals = (Node *)copyObject(((GroupPathExtraData *)extra)->havingQual);
 
 				if (fdw_private->having_quals != NIL)
 				{
-					/*
-					 * Set information about HAVING clause from pgspider_core_fdw
-					 * to GroupPathExtraData and dummy_root.
-					 */
 					((GroupPathExtraData *)extra)->havingQual = (Node *)copyObject(fdw_private->having_quals);
-					dummy_root_child->parse->havingQual = (Node *)copyObject(fdw_private->having_quals);
-					dummy_root_child->hasHavingQual = true;
 				}
 				else
 				{
-					/* Does not let child node execute HAVING .*/
 					((GroupPathExtraData *)extra)->havingQual = NULL;
-					dummy_root_child->parse->havingQual = NULL;
-					dummy_root_child->hasHavingQual = false;
 				}
 
-				/* Currently dummy. @todo more better parsed object. */
-				dummy_root_child->parse->hasAggs = true;
-				/* Call below FDW to check it is OK to pushdown or not. */
-
-				/* refer relnode.c fetch_upper_rel() */
-				dummy_output_rel = makeNode(RelOptInfo);
-				dummy_output_rel->reloptkind = RELOPT_UPPER_REL;
-				dummy_output_rel->relids = bms_copy(entry->relids);
 				dummy_output_rel->reltarget = copy_pathtarget(output_rel->reltarget);
 				dummy_output_rel->reltarget->exprs = list_copy(fdw_private->upper_targets);
+			}else
+			{
+				dummy_output_rel->reltarget = create_empty_pathtarget();
+			}
 
-				dummy_root_child->upper_rels[UPPERREL_GROUP_AGG] =
-					lappend(dummy_root_child->upper_rels[UPPERREL_GROUP_AGG],
-							dummy_output_rel);
+			dummy_root_child->upper_rels[UPPERREL_GROUP_AGG] =
+				lappend(dummy_root_child->upper_rels[UPPERREL_GROUP_AGG],
+						dummy_output_rel);
 
-				dummy_root_child->upper_targets[UPPERREL_GROUP_AGG] =
-					make_pathtarget_from_tlist(fdw_private->child_comp_tlist);
-				dummy_root_child->upper_targets[UPPERREL_WINDOW] =
-					copy_pathtarget(spd_root->upper_targets[UPPERREL_WINDOW]);
-				dummy_root_child->upper_targets[UPPERREL_FINAL] =
-					copy_pathtarget(spd_root->upper_targets[UPPERREL_FINAL]);
-				fs = GetForeignServer(oid_server);
-				fdw = GetForeignDataWrapper(fs->fdwid);
+			dummy_root_child->upper_targets[UPPERREL_GROUP_AGG] =
+				make_pathtarget_from_tlist(fdw_private->child_comp_tlist);
+			dummy_root_child->upper_targets[UPPERREL_WINDOW] =
+				copy_pathtarget(spd_root->upper_targets[UPPERREL_WINDOW]);
+			dummy_root_child->upper_targets[UPPERREL_FINAL] =
+				copy_pathtarget(spd_root->upper_targets[UPPERREL_FINAL]);
 
-				/*
-				 * Remove __spd_url from target lists and group clause if a
-				 * child is not pgspider_fdw
-				 */
-				if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0 && fdw_private->groupby_has_spdurl)
+			/*
+			 * Remove __spd_url from target lists and group clause if a child is not pgspider_fdw
+			 */
+			if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0 && fdw_private->groupby_has_spdurl)
+			{
+				/* Remove __spd_url from group clause */
+				dummy_root_child->parse->groupClause = remove_spdurl_from_group_clause(root, fdw_private->child_comp_tlist, dummy_root_child->parse->groupClause);
+
+				/* Modify child tlist. We use child tlist for fetching data from child node. */
+				fdw_private->child_tlist = remove_spdurl_from_targets(fdw_private->child_tlist, root);
+
+				/* Update path target from new target list without __spd_url */
+				dummy_root_child->upper_targets[UPPERREL_GROUP_AGG] = make_pathtarget_from_tlist(fdw_private->child_tlist);
+
+				if (fdwroutine->GetForeignUpperPaths != NULL)
 				{
-					/* Remove __spd_url from group clause */
-					dummy_root_child->parse->groupClause = remove_spdurl_from_group_clause(root, fdw_private->child_comp_tlist, dummy_root_child->parse->groupClause);
-
-					/*
-					 * Update path target from new target list without
-					 * __spd_url
-					 */
-					dummy_root_child->upper_targets[UPPERREL_GROUP_AGG] = make_pathtarget_from_tlist(fdw_private->child_tlist);
+					/* Remove __spd_url from target list*/
+					dummy_output_rel->reltarget->exprs = remove_spdurl_from_targets(dummy_output_rel->reltarget->exprs, root);
 				}
-
-				/* Fill sortgrouprefs for child using child target entry list */
-				sortgrouprefs = palloc(sizeof(Index) * list_length(fdw_private->child_comp_tlist));
-				listn = 0;
-				foreach(lc, fdw_private->child_comp_tlist)
+				else
 				{
-					TargetEntry *tmp_entry = (TargetEntry *) lfirst(lc);
+					List * tempList;
 
-					sortgrouprefs[listn++] = tmp_entry->ressortgroupref;
+					/* Make tlist from path target */
+					tempList = make_tlist_from_pathtarget(fdw_private->rinfo.outerrel->reltarget);
+					/* Remove __spd_url */
+					tempList = remove_spdurl_from_targets(tempList, root);
+					/* Update path target */
+					fdw_private->rinfo.outerrel->reltarget = make_pathtarget_from_tlist(tempList);
 				}
-				dummy_root_child->upper_targets[UPPERREL_GROUP_AGG]->sortgrouprefs = sortgrouprefs;
-				dummy_output_rel->reltarget->sortgrouprefs = sortgrouprefs;
+			}
+
+			/* Fill sortgrouprefs for child using child target entry list */
+			sortgrouprefs = palloc0(sizeof(Index) * list_length(fdw_private->child_tlist));
+			listn = 0;
+			foreach (lc, fdw_private->child_tlist)
+			{
+				TargetEntry *tmp_entry = (TargetEntry *)lfirst(lc);
+
+				sortgrouprefs[listn++] = tmp_entry->ressortgroupref;
+			}
+			dummy_root_child->upper_targets[UPPERREL_GROUP_AGG]->sortgrouprefs = sortgrouprefs;
+			dummy_output_rel->reltarget->sortgrouprefs = sortgrouprefs;
+			
+			if (fdwroutine->GetForeignUpperPaths != NULL)
+			{
 				fdwroutine->GetForeignUpperPaths(dummy_root_child,
 												 stage, entry,
 												 dummy_output_rel, extra);
@@ -3509,64 +3560,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				 */
 				((GroupPathExtraData *)extra)->havingQual = extra_having_quals;
 			}
-			else
-			{
 
-				if (childinfo[i].child_node_status != ServerStatusAlive)
-					continue;
-				dummy_root_child->parse->groupClause = list_copy(root->parse->groupClause);
-
-				if (fdw_private->having_quals != NIL)
-				{
-					/*
-					 * Set information about HAVING clause from pgspider_core_fdw
-					 * to dummy_root.
-					 */
-					dummy_root_child->parse->havingQual = (Node *)copyObject(fdw_private->having_quals);
-					dummy_root_child->hasHavingQual = true;
-				}
-				else
-				{
-					/* Does not let child node execute HAVING .*/
-					dummy_root_child->parse->havingQual = NULL;
-					dummy_root_child->hasHavingQual = false;
-				}
-
-				/* Currently dummy. @todo more better parsed object. */
-				dummy_root_child->parse->hasAggs = true;
-				/* Call below FDW to check it is OK to pushdown or not. */
-				/* refer relnode.c fetch_upper_rel() */
-				dummy_output_rel = makeNode(RelOptInfo);
-				dummy_output_rel->reloptkind = RELOPT_UPPER_REL;
-				dummy_output_rel->relids = bms_copy(entry->relids);
-				dummy_output_rel->reltarget = create_empty_pathtarget();
-
-				dummy_root_child->upper_rels[UPPERREL_GROUP_AGG] =
-					lappend(dummy_root_child->upper_rels[UPPERREL_GROUP_AGG],
-							dummy_output_rel);
-				/* make pathtarget */
-				dummy_root_child->upper_targets[UPPERREL_GROUP_AGG] =
-					make_pathtarget_from_tlist(fdw_private->child_comp_tlist);
-				dummy_root_child->upper_targets[UPPERREL_WINDOW] =
-					copy_pathtarget(spd_root->upper_targets[UPPERREL_WINDOW]);
-				dummy_root_child->upper_targets[UPPERREL_FINAL] =
-					copy_pathtarget(spd_root->upper_targets[UPPERREL_FINAL]);
-				fs = GetForeignServer(oid_server);
-				fdw = GetForeignDataWrapper(fs->fdwid);
-
-				if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0 && fdw_private->groupby_has_spdurl)
-				{
-					/* Remove __spd_url from group clause */
-					dummy_root_child->parse->groupClause = remove_spdurl_from_group_clause(root, fdw_private->child_comp_tlist, dummy_root_child->parse->groupClause);
-
-					/*
-					 * Update path target from new target list without
-					 * __spd_url
-					 */
-					dummy_root_child->upper_targets[UPPERREL_GROUP_AGG] = make_pathtarget_from_tlist(fdw_private->child_tlist);
-				}
-				dummy_output_rel->reltarget->sortgrouprefs = sortgrouprefs;
-			}
 			if (dummy_output_rel->pathlist != NULL)
 			{
 				/* Push down aggregate case */
@@ -3574,8 +3568,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 				childinfo[i].grouped_rel_local = dummy_output_rel;
 
 				/*
-				 * if at least one child fdw pushdown aggregate, parent push
-				 * down
+				 * if at least one child fdw pushdown aggregate, parent push down
 				 */
 				pushdown = true;
 			}
@@ -3746,10 +3739,6 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 	List	   *mapping_tlist = NIL;
 	List	   *compress_child_tlist = NIL;
 	List	   *upper_targets = NIL;
-
-	/* We don't push down GROUP BY and Aggregate function if having SPDURL */
-	if (groupby_has_spdurl(root))
-		return false;
 
 	/* Grouping Sets are not pushable */
 	if (query->groupingSets)
@@ -4239,14 +4228,13 @@ check_spdurl_walker(Node *node, PlannerInfo *root)
  * @param[in] scan_clauses
  * @param[in] root
  * @param[in] baserestrictinfo
- * @param[out] push_scan_clauses
  */
-static void
-spd_checkurl_clauses(List *scan_clauses, PlannerInfo *root, List *baserestrictinfo, List **push_scan_clauses)
+static bool
+spd_checkurl_clauses(PlannerInfo *root, List *baserestrictinfo)
 {
 	ListCell   *lc;
 
-	foreach(lc, scan_clauses)
+	foreach(lc, baserestrictinfo)
 	{
 		RestrictInfo *clause = (RestrictInfo *) lfirst(lc);
 		Expr	   *expr = (Expr *) clause->clause;
@@ -4254,11 +4242,10 @@ spd_checkurl_clauses(List *scan_clauses, PlannerInfo *root, List *baserestrictin
 		if (expression_tree_walker((Node *) expr, check_spdurl_walker, root))
 		{
 			/* don't pushdown *all* where caluses if spd_url is found */
-			*push_scan_clauses = NULL;
-			return;
+			return true;
 		}
 	}
-	*push_scan_clauses = baserestrictinfo;
+	return false;
 }
 
 static Sort *
@@ -4407,22 +4394,20 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
 		PG_TRY();
 		{
-
 			/* create plan */
 			if (childinfo[i].grouped_rel_local != NULL)
 			{
 				/* agg push down path */
-
-
 				if (!childinfo[i].grouped_rel_local->pathlist)
 					elog(ERROR, "Agg path is not found");
 
 				/* FDWs expect NULL scan clauses for UPPER REL */
 				push_scan_clauses = NULL;
-				/* Pick any agg path */
 
+				/* Pick any agg path */
 				child_path = lfirst(list_head(childinfo[i].grouped_rel_local->pathlist));
 				temptlist = PG_build_path_tlist((PlannerInfo *) childinfo[i].root, (Path *) child_path);
+
 				fsplan = fdwroutine->GetForeignPlan(childinfo[i].grouped_root_local,
 													childinfo[i].grouped_rel_local,
 													oid[i],
@@ -4446,16 +4431,14 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				 * target list, we should use non aggref pathtarget to apply.
 				 */
 				if (!IS_SIMPLE_REL(baserel) && root->parse->groupClause != NULL)
+				{
 					apply_pathtarget_labeling_to_tlist(temptlist, fdw_private->rinfo.outerrel->reltarget);
+				}
 
-				/*
-				 * Remove __spd_url from target lists if a child is not
-				 * pgspider_fdw
-				 */
+				/* Remove __spd_url from target lists if a child is not pgspider_fdw */
 				if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0 && IS_SIMPLE_REL(baserel))
 				{
-					temptlist = remove_spdurl_from_targets(list_copy(tlist), root,
-														   true, &fdw_private->idx_url_tlist);
+					temptlist = remove_spdurl_from_targets(list_copy(tlist), root);
 				}
 
 				/*
@@ -4479,7 +4462,15 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				 * "__spd_url" in WHERE clauses, then NOT pushdown all
 				 * caluses.
 				 */
-				spd_checkurl_clauses(scan_clauses, root, fdw_private->baserestrictinfo, &push_scan_clauses);
+				if (spd_checkurl_clauses(root, fdw_private->baserestrictinfo))
+				{
+					push_scan_clauses = NULL;
+				}
+				else
+				{
+					push_scan_clauses = fdw_private->baserestrictinfo;
+				}
+
 				fsplan = fdwroutine->GetForeignPlan((PlannerInfo *) childinfo[i].root,
 													(RelOptInfo *) childinfo[i].baserel,
 													oid[i],
@@ -4516,7 +4507,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			Plan	   *sort_plan = NULL;
 
 			/*
-			 * If groupby has spdurl, spdurl will be removed from the target
+			 * If groupby has __spd_url, __spd_url will be removed from the target
 			 * list. Before creating aggregation plan, re-indexing item by
 			 * resno for child target list. This helps SPI_execAgg puts data
 			 * to right position after calculation.
@@ -4555,11 +4546,9 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 										 childinfo[i].aggpath->aggstrategy,
 										 childinfo[i].aggpath->aggsplit,
 										 list_length(childinfo[i].aggpath->groupClause),
-										 extract_grouping_cols(childinfo[i].aggpath->groupClause,
-															   fsplan->scan.plan.targetlist),
+										 extract_grouping_cols(childinfo[i].aggpath->groupClause, fsplan->scan.plan.targetlist),
 										 extract_grouping_ops(childinfo[i].aggpath->groupClause),
-										 extract_grouping_collations(childinfo[i].aggpath->groupClause,
-												 fsplan->scan.plan.targetlist),
+										 extract_grouping_collations(childinfo[i].aggpath->groupClause, fsplan->scan.plan.targetlist),
 										 root->parse->groupingSets,
 										 NIL,
 										 childinfo[i].aggpath->path.rows,
@@ -4631,7 +4620,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
 	return make_foreignscan(tlist,
 							scan_clauses,	/* scan_clauses, */
-	/* NULL, */
+							/* NULL, */
 							scan_relid,
 							NIL,
 							lfdw_private,
@@ -4796,6 +4785,38 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 	/* Deserialize fdw_private list to SpdFdwPrivate object */
 	fdw_private = spd_DeserializeSpdFdwPrivate(fsplan->fdw_private);
+
+	/*
+	 * In case of Aggregation, a temptable will be created according to the child compress list.
+	 * Init an empty slot, it will be used to add __spd_url to temp table.
+	 */
+	if (fdw_private->groupby_has_spdurl)
+	{
+		TupleDesc	tupledesc;
+		ListCell 	*lc;
+		int 		i = 0;
+
+		/*
+		 * When we add __spd_url back to parent node, we need to create tuple
+		 * descriptor for parent slot according to child comp tlist.
+		 */
+		tupledesc = CreateTemplateTupleDesc(list_length(fdw_private->child_comp_tlist));
+		foreach(lc, fdw_private->child_comp_tlist)
+		{
+			TargetEntry *ent = (TargetEntry *) lfirst(lc);
+
+			TupleDescInitEntry(tupledesc, i + 1, NULL, exprType((Node *) ent->expr), -1, 0);
+			i++;
+
+		}
+
+		/* Construct TupleDesc, and assign a local typmod. */
+		tupledesc = BlessTupleDesc(tupledesc);
+		fdw_private->child_comp_tupdesc = CreateTupleDescCopy(tupledesc);
+
+		/* Init temporary slot for adding __spd_url back */
+		fdw_private->child_comp_slot = MakeSingleTupleTableSlot(CreateTupleDescCopy(fdw_private->child_comp_tupdesc), &TTSOpsHeapTuple);
+	}
 
 	/* Create temporary context */
 	fdw_private->es_query_cxt = estate->es_query_cxt;
@@ -6252,8 +6273,8 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 	HeapTuple	newtuple;
 
 	/*
-	 * Length of parent should be greater than or equal to length of child
-	 * slot If spdurl is not specified, length is same
+	 * Length of parent should be greater than or equal to length of 
+	 * child slot. If __spd_url is not specified, length is same
 	 */
 	Assert(parent_slot->tts_tupleDescriptor->natts >=
 		   node_slot->tts_tupleDescriptor->natts);
@@ -6264,13 +6285,13 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 	slot_getallattrs(node_slot);
 
 	/*
-	 * Insert spdurl column to slot. heap_modify_tuple will replace the
+	 * Insert __spd_url column to slot. heap_modify_tuple will replace the
 	 * existing column. To insert new column and its data, we also follow the
 	 * similar steps like heap_modify_tuple. First, deform tuple to get data
 	 * values, Second, modify data values (insert new columm). Then, form
 	 * tuple with new data values. Finally, copy identification info (if any)
 	 */
-	if (fdw_private->groupby_has_spdurl && (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0))
+	if (fdw_private->groupby_has_spdurl)
 	{
 		char	   *spdurl;
 		int			natts = parent_slot->tts_tupleDescriptor->natts;
@@ -6278,26 +6299,39 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 		/* Initialize new tuple buffer */
 		values = (Datum *) palloc0(sizeof(Datum) * natts);
 		nulls = (bool *) palloc0(sizeof(bool) * natts);
+		replaces = (bool *) palloc0(sizeof(bool) * natts);
 
 		if (TTS_IS_HEAPTUPLE(node_slot))
 		{
 			/* Extract data to values/isnulls */
 			heap_deform_tuple(node_slot->tts_ops->get_heap_tuple(node_slot), node_slot->tts_tupleDescriptor, values, nulls);
 
-			/* Insert spdurl to the array */
-			spdurl = psprintf("/%s/", fs->servername);
-			for (i = natts - 2; i >= fdw_private->idx_url_tlist; i--)
+			/* Insert __spd_url to the array */
+			if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
 			{
-				values[i + 1] = values[i];
-				nulls[i + 1] = nulls[i];
-			}
-			values[fdw_private->idx_url_tlist] = CStringGetTextDatum(spdurl);
-			nulls[fdw_private->idx_url_tlist] = false;
-
-			/* Form new tuple with new values */
-			newtuple = heap_form_tuple(parent_slot->tts_tupleDescriptor,
+				spdurl = psprintf("/%s/", fs->servername);
+				for (i = natts - 2; i >= fdw_private->idx_url_tlist; i--)
+				{
+					values[i + 1] = values[i];
+					nulls[i + 1] = nulls[i];
+				}
+				values[fdw_private->idx_url_tlist] = CStringGetTextDatum(spdurl);
+				nulls[fdw_private->idx_url_tlist] = false;
+				/* Form new tuple with new values */
+				newtuple = heap_form_tuple(parent_slot->tts_tupleDescriptor,
 									   values,
 									   nulls);
+			}
+			else
+			{
+				spdurl = psprintf("/%s%s", fs->servername, TextDatumGetCString(values[fdw_private->idx_url_tlist]));
+				values[fdw_private->idx_url_tlist] = CStringGetTextDatum(spdurl);
+				nulls[fdw_private->idx_url_tlist] = false;
+				replaces[fdw_private->idx_url_tlist] = true;
+				/* Modify tuple with new values */
+				newtuple = heap_modify_tuple(node_slot->tts_ops->get_heap_tuple(node_slot), node_slot->tts_tupleDescriptor,
+											 values, nulls, replaces);
+			}
 
 			/*
 			 * copy the identification info of the old tuple: t_ctid, t_self,
@@ -6340,7 +6374,7 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 		}
 		return parent_slot;
 	}
-	else						/* Modify spdurl column */
+	else						/* Modify __spd_url column */
 	{
 		/* Initialize new tuple buffer */
 		values = palloc0(sizeof(Datum) * node_slot->tts_tupleDescriptor->natts);
@@ -6560,14 +6594,14 @@ spd_IterateForeignScan(ForeignScanState *node)
 				if (slot != NULL)
 				{
 					/*
-					 * If groupby has spdurl, we need to add spdurl back after
+					 * If groupby has __spd_url, we need to add __spd_url back after
 					 * removing from target list
 					 */
 					if (fdw_private->groupby_has_spdurl)
 					{
 						/* Clear tuple slot */
 						ExecClearTuple(fdw_private->child_comp_slot);
-						/* Add spdurl */
+						/* Add __spd_url */
 						slot = spd_AddSpdUrl(fssThrdInfo, fdw_private->child_comp_slot, count, slot, fdw_private);
 					}
 					spd_spi_insert_table(slot, node, fdw_private);

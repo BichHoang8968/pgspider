@@ -19,6 +19,7 @@ typedef struct foreign_glob_cxt
 {
 	PlannerInfo *root;			/* global planner state */
 	RelOptInfo *foreignrel;		/* the foreign relation we are planning for */
+	bool	hasAggref;		/* this flag is used to detect if __spd_url is inside Aggref function */
 } foreign_glob_cxt;
 
 /*
@@ -114,8 +115,8 @@ foreign_expr_walker(Node *node,
 			rte = planner_rt_fetch(var->varno, glob_cxt->root);
 			colname = get_attname(rte->relid, var->varattno, false);
 
-			/* Don't pushed down __spd_url */
-			if (strcmp(colname, SPDURL) == 0)
+			/* Don't pushed down __spd_url if it is inside Aggref */
+			if (glob_cxt->hasAggref && strcmp(colname, SPDURL) == 0)
 			{
 				return false;
 			}
@@ -132,6 +133,9 @@ foreign_expr_walker(Node *node,
 			{
 				return false;
 			}
+
+			/* Set the flag if detected Aggref function */
+			glob_cxt->hasAggref = true;
 
 			/*
 			 * Recurse to input args.
@@ -150,8 +154,15 @@ foreign_expr_walker(Node *node,
 				}
 
 				if (!foreign_expr_walker(n, glob_cxt, &inner_cxt))
+				{
+					/* Reset the flag for next recursive check */
+					glob_cxt->hasAggref = false;
 					return false;
+				}
 			}
+
+			/* Reset the flag for next recursive check */
+			glob_cxt->hasAggref = false;
 
 			/* Get function name and schema */
 			tuple = SearchSysCache1(PROCOID, ObjectIdGetDatum(aggref->aggfnoid));
@@ -281,6 +292,7 @@ is_foreign_expr2(PlannerInfo *root, RelOptInfo *baserel, Expr *expr)
 	 */
 	glob_cxt.root = root;
 	glob_cxt.foreignrel = baserel;
+	glob_cxt.hasAggref = false;
 	loc_cxt.collation = InvalidOid;
 	loc_cxt.state = FDW_COLLATE_NONE;
 
