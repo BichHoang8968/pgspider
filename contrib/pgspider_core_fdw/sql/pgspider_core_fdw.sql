@@ -1,26 +1,41 @@
 --Testcase 1:
 DELETE FROM pg_spd_node_info;
 --SELECT pg_sleep(15);
+--Testcase 183:
 CREATE EXTENSION pgspider_core_fdw;
+--Testcase 184:
 CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1',port '50849');
+--Testcase 185:
 CREATE USER mapping for public server pgspider_svr OPTIONS(user 'postgres',password 'postgres');
+--Testcase 186:
 CREATE FOREIGN TABLE test1 (i int,__spd_url text) SERVER pgspider_svr;
+--Testcase 187:
 CREATE EXTENSION postgres_fdw;
+--Testcase 188:
 CREATE EXTENSION file_fdw;
+--Testcase 189:
 CREATE EXTENSION sqlite_fdw;
+--Testcase 190:
 CREATE EXTENSION tinybrace_fdw;
+--Testcase 191:
 CREATE EXTENSION mysql_fdw;
 
+--Testcase 192:
 CREATE SERVER file_svr FOREIGN DATA WRAPPER file_fdw;
+--Testcase 193:
 CREATE FOREIGN TABLE filetbl__file_svr__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
+--Testcase 194:
 CREATE FOREIGN TABLE filetbl (i int,__spd_url text) SERVER pgspider_svr;
 --Testcase 2:
 SELECT * FROM filetbl;
 
+--Testcase 195:
 CREATE SERVER filesvr2 FOREIGN DATA WRAPPER file_fdw;
+--Testcase 196:
 CREATE FOREIGN TABLE test1__file_svr__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
 --Testcase 3:
 SELECT * FROM test1;
+--Testcase 197:
 CREATE FOREIGN TABLE test1__filesvr2__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
 --Testcase 4:
 SELECT * FROM test1 order by i,__spd_url;
@@ -29,8 +44,11 @@ SELECT * FROM test1 IN ('/file_svr/') ORDER BY i,__spd_url;
 --Testcase 6:
 SELECT * FROM test1 IN ('/file_svr/') where i = 1;
 
+--Testcase 198:
 CREATE SERVER tiny_svr FOREIGN DATA WRAPPER tinybrace_fdw OPTIONS (host '127.0.0.1',port '5100', dbname 'test.db');
+--Testcase 199:
 CREATE USER mapping for public server tiny_svr OPTIONS(username 'user',password 'testuser');
+--Testcase 200:
 CREATE FOREIGN TABLE test1__tiny_svr__0 (i int) SERVER tiny_svr OPTIONS(table_name 'test1');
 --Testcase 7:
 SELECT * FROM test1__tiny_svr__0 ORDER BY i;
@@ -40,8 +58,11 @@ SELECT * FROM test1 ORDER BY i,__spd_url;
 SELECT * FROM test1 IN ('/tiny_svr/');
 --Testcase 10:
 SELECT * FROM test1 IN ('/tiny_svr/') where i = 1;
+--Testcase 201:
 CREATE SERVER post_svr FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1',port '15432');
+--Testcase 202:
 CREATE USER mapping for public server post_svr OPTIONS(user 'postgres',password 'postgres');
+--Testcase 203:
 CREATE FOREIGN TABLE test1__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test1');
 --Testcase 11:
 SELECT * FROM test1__post_svr__0 ORDER BY i;
@@ -51,7 +72,9 @@ SELECT * FROM test1 ORDER BY i,__spd_url;
 SELECT * FROM test1 IN ('/post_svr/') ORDER BY i,__spd_url;
 --Testcase 14:
 SELECT * FROM test1 IN ('/post_svr/') where i = 1 ORDER BY i,__spd_url;
+--Testcase 204:
 CREATE SERVER sqlite_svr FOREIGN DATA WRAPPER sqlite_fdw OPTIONS (database '/tmp/pgtest.db');
+--Testcase 205:
 CREATE FOREIGN TABLE test1__sqlite_svr__0 (i int) SERVER sqlite_svr OPTIONS(table 'test1');
 --Testcase 15:
 SELECT * FROM test1 ORDER BY i,__spd_url;
@@ -59,8 +82,11 @@ SELECT * FROM test1 ORDER BY i,__spd_url;
 SELECT * FROM test1 IN ('/sqlite_svr/') ORDER BY i,__spd_url;
 --Testcase 17:
 SELECT * FROM test1 IN ('/sqlite_svr/') where i = 4 ORDER BY i,__spd_url;
+--Testcase 206:
 CREATE SERVER mysql_svr FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
+--Testcase 207:
 CREATE USER mapping for public server mysql_svr OPTIONS(username 'root',password 'Mysql_1234');
+--Testcase 208:
 CREATE FOREIGN TABLE test1__mysql_svr__0 (i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test1');
 --Testcase 18:
 SELECT * FROM test1 ORDER BY i,__spd_url;
@@ -122,10 +148,15 @@ SELECT * FROM test1 IN ('/mysql_svr/') UNION ALL SELECT * FROM test1 IN ('/sqlit
 --Testcase 46:
 SELECT * FROM test1 IN ('/mysql_svr/', '/sqlite_svr/') UNION ALL SELECT * FROM test1 IN ('/mysql_svr/', '/sqlite_svr/') ORDER BY i,__spd_url;
 
+--Testcase 209:
 CREATE FOREIGN TABLE test1_1 (i int,__spd_url text) SERVER pgspider_svr;
+--Testcase 210:
 CREATE FOREIGN TABLE test1_1__tiny_svr__0 (i int) SERVER tiny_svr OPTIONS(table_name 'test1');
+--Testcase 211:
 CREATE FOREIGN TABLE test1_1__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test1');
+--Testcase 212:
 CREATE FOREIGN TABLE test1_1__sqlite_svr__0 (i int) SERVER sqlite_svr OPTIONS(table 'test1');
+--Testcase 213:
 CREATE FOREIGN TABLE test1_1__mysql_svr__0 (i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test1');
 
 --Testcase 47:
@@ -157,16 +188,51 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM test1 IN ('/post_svr/');
 --Testcase 57:
 SELECT __spd_url FROM test1 ORDER BY __spd_url;
 
+--Testcase 214:
+EXPLAIN VERBOSE
+SELECT i, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i;
+--Testcase 215:
+SELECT i, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i;
+
+--Testcase 216:
+EXPLAIN VERBOSE
+SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
 --Testcase 58:
 SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+
+--Testcase 217:
+EXPLAIN VERBOSE
+SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i;
 --Testcase 59:
 SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i;
+
+--Testcase 218:
+EXPLAIN VERBOSE
+SELECT avg(i), __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i;
+--Testcase 219:
+SELECT avg(i), __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i;
+
+--Testcase 220:
+EXPLAIN VERBOSE
+SELECT avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
 --Testcase 60:
 SELECT avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+
+--Testcase 221:
+EXPLAIN VERBOSE
+SELECT __spd_url, avg(i) FROM test1 GROUP BY i, __spd_url ORDER BY i;
 --Testcase 61:
 SELECT __spd_url, avg(i) FROM test1 GROUP BY i, __spd_url ORDER BY i;
+
+--Testcase 222:
+EXPLAIN VERBOSE
+SELECT __spd_url, sum(i) FROM test1 GROUP BY i, __spd_url ORDER BY i;
 --Testcase 62:
 SELECT __spd_url, sum(i) FROM test1 GROUP BY i, __spd_url ORDER BY i;
+
+--Testcase 223:
+EXPLAIN VERBOSE
+SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
 --Testcase 63:
 SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
 
@@ -204,13 +270,16 @@ EXECUTE stmt;
 DO $$
 BEGIN
    FOR counter IN 1..50 LOOP
+--Testcase 224:
    EXECUTE 'EXECUTE stmt;';
    END LOOP;
 END; $$;
 -- deallocate statement
 DEALLOCATE stmt;
 
+--Testcase 225:
 CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
+--Testcase 226:
 CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS(table_name 't1');
 --Testcase 76:
 SELECT * FROM t1;
@@ -245,22 +314,57 @@ SELECT avg(i), count(i) FROM t1 GROUP BY i ORDER BY i;
 --Testcase 90:
 SELECT t, avg(i), t FROM t1 GROUP BY i, t ORDER BY i;
 
+--Testcase 227:
+EXPLAIN VERBOSE
+SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t ORDER BY t;
 --Testcase 91:
 SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t ORDER BY t;
+
+--Testcase 228:
+EXPLAIN VERBOSE
+SELECT i, __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
 --Testcase 92:
 SELECT i, __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+
+--Testcase 229:
+EXPLAIN VERBOSE
+SELECT __spd_url, i FROM t1 GROUP BY __spd_url, i ORDER BY i;
 --Testcase 93:
 SELECT __spd_url, i FROM t1 GROUP BY __spd_url, i ORDER BY i;
+
+--Testcase 230:
+EXPLAIN VERBOSE
+SELECT avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
 --Testcase 94:
 SELECT avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+
+--Testcase 231:
+EXPLAIN VERBOSE
+SELECT __spd_url, avg(i) FROM t1 GROUP BY __spd_url, i ORDER BY i;
 --Testcase 95:
 SELECT __spd_url, avg(i) FROM t1 GROUP BY __spd_url, i ORDER BY i;
+
+--Testcase 232:
+EXPLAIN VERBOSE
+SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
 --Testcase 96:
 SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+
+--Testcase 233:
+EXPLAIN VERBOSE
+SELECT __spd_url, sum(i) FROM t1 GROUP BY __spd_url, i ORDER BY i;
 --Testcase 97:
 SELECT __spd_url, sum(i) FROM t1 GROUP BY __spd_url, i ORDER BY i;
+
+--Testcase 234:
+EXPLAIN VERBOSE
+SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
 --Testcase 98:
 SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+
+--Testcase 235:
+EXPLAIN VERBOSE
+SELECT __spd_url, avg(i), sum(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
 --Testcase 99:
 SELECT __spd_url, avg(i), sum(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
 
@@ -277,6 +381,7 @@ SELECT SUM(i) as aa, avg(i), i/2, SUM(i)/2 FROM t1 GROUP BY i, t;
 SELECT SUM(i) as aa, avg(i) FROM t1 GROUP BY i ORDER BY aa;
 
 -- query contains all constant
+--Testcase 236:
 SELECT 1, 2, 'asd$@' FROM t1 group by 1, 3, 2;
 
 -- allocate statement
@@ -289,6 +394,7 @@ EXECUTE stmt;
 DO $$
 BEGIN
    FOR counter IN 1..50 LOOP
+--Testcase 237:
    EXECUTE 'EXECUTE stmt;';
    END LOOP;
 END; $$;
@@ -298,7 +404,9 @@ DEALLOCATE stmt;
 --Testcase 107:
 EXPLAIN (VERBOSE, COSTS OFF) SELECT STDDEV(i) FROM t1;
 
+--Testcase 238:
 CREATE FOREIGN TABLE t3 (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
+--Testcase 239:
 CREATE FOREIGN TABLE t3__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
 
 --Testcase 108:
@@ -356,8 +464,11 @@ select t from t3 where i  = 1;
 
 -- error stack test
 Set pgspider_core_fdw.throw_error_ifdead to false;
+--Testcase 240:
 CREATE SERVER mysql_svr2 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
+--Testcase 241:
 CREATE USER mapping for public server mysql_svr2 OPTIONS(username 'root',password 'wrongpass');
+--Testcase 242:
 CREATE FOREIGN TABLE t3__mysql_svr2__0 (t text,t2 text,i int) SERVER mysql_svr2 OPTIONS(dbname 'test',table_name 'test3');
 --Testcase 125:
 SELECT count(t) FROM t3;
@@ -426,8 +537,11 @@ SELECT count(t) FROM t3;
 
 Set pgspider_core_fdw.throw_error_ifdead to true;
 
+--Testcase 243:
 DROP FOREIGN TABLE t3;
+--Testcase 244:
 DROP FOREIGN TABLE t3__mysql_svr__0;
+--Testcase 245:
 DROP FOREIGN TABLE t3__mysql_svr2__0;
 -- wrong result:
 -- SELECT sum(i),t  FROM t1 group by t having sum(i) > 2;
@@ -446,9 +560,13 @@ BEGIN
    END LOOP;
 END; $$;
 
+--Testcase 246:
 CREATE FOREIGN TABLE mysqlt (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
+--Testcase 247:
 CREATE FOREIGN TABLE mysqlt__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+--Testcase 248:
 CREATE FOREIGN TABLE mysqlt__mysql_svr__1 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+--Testcase 249:
 CREATE FOREIGN TABLE mysqlt__mysql_svqr__2 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
 
 DO $$
@@ -458,9 +576,13 @@ BEGIN
    END LOOP;
 END; $$;
 
+--Testcase 250:
 CREATE FOREIGN TABLE post_large (i int, t text,__spd_url text) SERVER pgspider_svr;
+--Testcase 251:
 CREATE FOREIGN TABLE post_large__post_svr__1 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
+--Testcase 252:
 CREATE FOREIGN TABLE post_large__post_svr__2 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
+--Testcase 253:
 CREATE FOREIGN TABLE post_large__post_svr__3 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
 
 --Testcase 157:
@@ -482,12 +604,17 @@ BEGIN
    END LOOP;
 END; $$;
 
+--Testcase 254:
 CREATE FOREIGN TABLE t2 (i int, t text, a text,__spd_url text) SERVER pgspider_svr;
+--Testcase 255:
 CREATE FOREIGN TABLE t2__post_svr__0 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 --Testcase 159:
 SELECT i,t,a FROM t2 ORDER BY i,__spd_url;
+--Testcase 256:
 CREATE FOREIGN TABLE t2__post_svr__1 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+--Testcase 257:
 CREATE FOREIGN TABLE t2__post_svr__2 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+--Testcase 258:
 CREATE FOREIGN TABLE t2__post_svr__3 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 
 -- random cannot be pushed down and i=2 is pushed down
@@ -506,8 +633,11 @@ SELECT a,i, __spd_url, t FROM t2 ORDER BY i,t,a,__spd_url;
 SELECT __spd_url,i FROM t2 WHERE __spd_url='/post_svr/' ORDER BY i LIMIT 1;
 
 -- Keep alive test
+--Testcase 259:
 CREATE SERVER post_svr2 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1',port '49503');
+--Testcase 260:
 CREATE USER mapping for public server post_svr2 OPTIONS(user 'postgres',password 'postgres');
+--Testcase 261:
 CREATE FOREIGN TABLE t2__post_svr2__0 (i int, t text,a text) SERVER post_svr2 OPTIONS(table_name 't2');
 --Testcase 165:
 INSERT INTO pg_spd_node_info VALUES(0,'post_svr','postgres_fdw','127.0.0.1');
@@ -530,8 +660,11 @@ SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
 SET pgspider_core_fdw.print_error_nodes to false;
 --Testcase 172:
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+--Testcase 262:
 CREATE SERVER post_svr3 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '192.168.11.12',port '15432');
+--Testcase 263:
 CREATE USER mapping for public server post_svr3 OPTIONS(user 'postgres',password 'postgres');
+--Testcase 264:
 CREATE FOREIGN TABLE t2__post_svr3__0 (i int, t text,a text) SERVER post_svr3 OPTIONS(table_name 't2');
 --Testcase 173:
 INSERT INTO pg_spd_node_info VALUES(0,'post_svr3','postgres_fdw','192.168.11.12');
@@ -561,8 +694,13 @@ SELECT pg_sleep(2);
 --Testcase 182:
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 */
+--Testcase 265:
 DROP FOREIGN TABLE test1;
+--Testcase 266:
 DROP FOREIGN TABLE t1;
+--Testcase 267:
 DROP FOREIGN TABLE t2;
+--Testcase 268:
 DROP SERVER pgspider_svr CASCADE;
+--Testcase 269:
 DROP EXTENSION pgspider_core_fdw CASCADE;
