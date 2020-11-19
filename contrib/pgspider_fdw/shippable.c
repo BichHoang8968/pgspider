@@ -29,6 +29,7 @@
 #include "utils/hsearch.h"
 #include "utils/inval.h"
 #include "utils/syscache.h"
+#include "utils/lsyscache.h"
 
 /* Hash table for caching the results of shippability lookups */
 static HTAB *ShippableCacheHash = NULL;
@@ -152,7 +153,10 @@ lookup_shippable(Oid objectId, Oid classId, PGSpiderFdwRelationInfo * fpinfo)
 bool
 pgspider_is_builtin(Oid objectId)
 {
-	return (objectId < FirstGenbkiObjectId);
+	/* In order to support function pushdown in target list, it is not limited to builtin functions. */
+	if (type_is_enum(objectId) && (objectId >= FirstGenbkiObjectId))
+		return false;
+	return true;
 }
 
 /*

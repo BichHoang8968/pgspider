@@ -14,7 +14,7 @@ PG_CPPFLAGS = -I$(libpq_srcdir)
 SHLIB_LINK_INTERNAL = $(libpq)
 
 EXTENSION = pgspider_fdw
-DATA = pgspider_fdw--1.0.sql
+DATA = pgspider_fdw--1.0.sql pgspider_fdw--1.1.sql
 
 REGRESS = pgspider_fdw
 

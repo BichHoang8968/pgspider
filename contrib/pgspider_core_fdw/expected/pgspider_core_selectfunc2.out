@@ -1,0 +1,1724 @@
+SET datestyle=ISO;
+SET timezone='Japan';
+--Testcase 1:
+CREATE EXTENSION pgspider_core_fdw;
+--Testcase 2:
+CREATE SERVER pgspider_core_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1');
+--Testcase 3:
+CREATE USER MAPPING FOR CURRENT_USER SERVER pgspider_core_svr;
+----------------------------------------------------------
+-- test structure
+-- PGSpider Top Node -> Child PGSpider Node -> Data source
+-- stub functions are provided by pgspider_fdw
+----------------------------------------------------------
+-- Data source: influxdb
+--Testcase 4:
+CREATE FOREIGN TABLE s3 (time timestamp with time zone, tag1 text, value1 float8, value2 bigint, value3 float8, value4 bigint, __spd_url text) SERVER pgspider_core_svr;
+--Testcase 5:
+CREATE EXTENSION pgspider_fdw;
+--Testcase 6:
+CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (host '127.0.0.1', port '5433', dbname 'postgres');
+--Testcase 7:
+CREATE USER MAPPING FOR CURRENT_USER SERVER pgspider_svr;
+--Testcase 8:
+CREATE FOREIGN TABLE s3__pgspider_svr__0 (time timestamp with time zone, tag1 text, value1 float8, value2 bigint, value3 float8, value4 bigint, __spd_url text) SERVER pgspider_svr OPTIONS (table_name 's3influx');
+-- s3 (value1,3 as float8, value2,4 as bigint)
+--Testcase 9:
+\d s3;
+                              Foreign table "public.s3"
+  Column   |           Type           | Collation | Nullable | Default | FDW options 
+-----------+--------------------------+-----------+----------+---------+-------------
+ time      | timestamp with time zone |           |          |         | 
+ tag1      | text                     |           |          |         | 
+ value1    | double precision         |           |          |         | 
+ value2    | bigint                   |           |          |         | 
+ value3    | double precision         |           |          |         | 
+ value4    | bigint                   |           |          |         | 
+ __spd_url | text                     |           |          |         | 
+Server: pgspider_core_svr
+
+--Testcase 10:
+SELECT * FROM s3 ORDER BY 1,2,3,4,5,6,7;
+          time          | tag1 | value1 | value2 | value3 | value4 |          __spd_url          
+------------------------+------+--------+--------+--------+--------+-----------------------------
+ 1970-01-01 09:00:00+09 | a    |    0.1 |    100 |   -0.1 |   -100 | /pgspider_svr/influxdb_svr/
+ 1970-01-01 09:00:01+09 | a    |    0.2 |    100 |   -0.2 |   -100 | /pgspider_svr/influxdb_svr/
+ 1970-01-01 09:00:02+09 | a    |    0.3 |    100 |   -0.3 |   -100 | /pgspider_svr/influxdb_svr/
+ 1970-01-01 09:00:03+09 | b    |    1.1 |    200 |   -1.1 |   -200 | /pgspider_svr/influxdb_svr/
+ 1970-01-01 09:00:04+09 | b    |    2.2 |    200 |   -2.2 |   -200 | /pgspider_svr/influxdb_svr/
+ 1970-01-01 09:00:05+09 | b    |    3.3 |    200 |   -3.3 |   -200 | /pgspider_svr/influxdb_svr/
+(6 rows)
+
+-- select float8() (not pushdown, remove float8, explain)
+--Testcase 11:
+EXPLAIN VERBOSE
+SELECT float8(value1), float8(value2), float8(value3), float8(value4) FROM s3;
+                                         QUERY PLAN                                         
+--------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=32)
+   Output: value1, (float8(value2)), value3, (float8(value4))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT value1, float8(value2), value3, float8(value4) FROM public.s3influx
+(4 rows)
+
+-- select float8() (not pushdown, remove float8, result)
+--Testcase 12:
+SELECT * FROM (
+SELECT float8(value1), float8(value2), float8(value3), float8(value4) FROM s3
+) AS t ORDER BY 1,2,3,4;
+ float8 | float8 | float8 | float8 
+--------+--------+--------+--------
+    0.1 |    100 |   -0.1 |   -100
+    0.2 |    100 |   -0.2 |   -100
+    0.3 |    100 |   -0.3 |   -100
+    1.1 |    200 |   -1.1 |   -200
+    2.2 |    200 |   -2.2 |   -200
+    3.3 |    200 |   -3.3 |   -200
+(6 rows)
+
+-- select sqrt (builtin function, explain)
+--Testcase 13:
+EXPLAIN VERBOSE
+SELECT sqrt(value1), sqrt(value2) FROM s3;
+                               QUERY PLAN                               
+------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..237.99 rows=3413 width=16)
+   Output: (sqrt(value1)), (sqrt((value2)::double precision))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT sqrt(value1), sqrt(value2) FROM public.s3influx
+(4 rows)
+
+-- select sqrt (buitin function, result)
+--Testcase 14:
+SELECT * FROM (
+SELECT sqrt(value1), sqrt(value2) FROM s3
+) AS t ORDER BY 1,2;
+        sqrt         |        sqrt        
+---------------------+--------------------
+ 0.31622776601683794 |                 10
+  0.4472135954999579 |                 10
+  0.5477225575051661 |                 10
+  1.0488088481701516 | 14.142135623730951
+  1.4832396974191326 | 14.142135623730951
+   1.816590212458495 | 14.142135623730951
+(6 rows)
+
+-- select sqrt (builtin function,, not pushdown constraints, explain)
+--Testcase 15:
+EXPLAIN VERBOSE
+SELECT sqrt(value1), sqrt(value2) FROM s3 WHERE to_hex(value2) != '64';
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..271.90 rows=3396 width=16)
+   Output: (sqrt(value1)), (sqrt((value2)::double precision))
+   Filter: (to_hex(s3.value2) <> '64'::text)
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT sqrt(value1), sqrt(value2), value2 FROM public.s3influx
+(5 rows)
+
+-- select sqrt (builtin function, not pushdown constraints, result)
+--Testcase 16:
+SELECT * FROM (
+SELECT sqrt(value1), sqrt(value2) FROM s3 WHERE to_hex(value2) != '64'
+) AS t ORDER BY 1,2;
+        sqrt        |        sqrt        
+--------------------+--------------------
+ 1.0488088481701516 | 14.142135623730951
+ 1.4832396974191326 | 14.142135623730951
+  1.816590212458495 | 14.142135623730951
+(3 rows)
+
+-- select sqrt (builtin function, pushdown constraints, explain)
+--Testcase 17:
+EXPLAIN VERBOSE
+SELECT sqrt(value1), sqrt(value2) FROM s3 WHERE value2 != 200;
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..254.54 rows=3396 width=16)
+   Output: (sqrt(value1)), (sqrt((value2)::double precision))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT sqrt(value1), sqrt(value2) FROM public.s3influx WHERE ((value2 <> 200))
+(4 rows)
+
+-- select sqrt (builtin function, pushdown constraints, result)
+--Testcase 18:
+SELECT * FROM (
+SELECT sqrt(value1), sqrt(value2) FROM s3 WHERE value2 != 200
+) AS t ORDER BY 1,2;
+        sqrt         | sqrt 
+---------------------+------
+ 0.31622776601683794 |   10
+  0.4472135954999579 |   10
+  0.5477225575051661 |   10
+(3 rows)
+
+-- select abs (builtin function, explain)
+--Testcase 19:
+EXPLAIN VERBOSE
+SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3;
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..246.52 rows=3413 width=32)
+   Output: (abs(value1)), (abs(value2)), (abs(value3)), (abs(value4))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM public.s3influx
+(4 rows)
+
+-- ABS() returns negative values if integer (https://github.com/influxdata/influxdb/issues/10261)
+-- select abs (buitin function, result)
+--Testcase 20:
+SELECT * FROM (
+SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3
+) AS t ORDER BY 1,2,3,4;
+ abs | abs | abs | abs 
+-----+-----+-----+-----
+ 0.1 | 100 | 0.1 | 100
+ 0.2 | 100 | 0.2 | 100
+ 0.3 | 100 | 0.3 | 100
+ 1.1 | 200 | 1.1 | 200
+ 2.2 | 200 | 2.2 | 200
+ 3.3 | 200 | 3.3 | 200
+(6 rows)
+
+-- select abs (builtin function, not pushdown constraints, explain)
+--Testcase 21:
+EXPLAIN VERBOSE
+SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE to_hex(value2) != '64';
+                                               QUERY PLAN                                               
+--------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..280.39 rows=3396 width=32)
+   Output: (abs(value1)), (abs(value2)), (abs(value3)), (abs(value4))
+   Filter: (to_hex(s3.value2) <> '64'::text)
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT abs(value1), abs(value2), abs(value3), abs(value4), value2 FROM public.s3influx
+(5 rows)
+
+-- select abs (builtin function, not pushdown constraints, result)
+--Testcase 22:
+SELECT * FROM (
+SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE to_hex(value2) != '64'
+) AS t ORDER BY 1,2,3,4;
+ abs | abs | abs | abs 
+-----+-----+-----+-----
+ 1.1 | 200 | 1.1 | 200
+ 2.2 | 200 | 2.2 | 200
+ 3.3 | 200 | 3.3 | 200
+(3 rows)
+
+-- select abs (builtin function, pushdown constraints, explain)
+--Testcase 23:
+EXPLAIN VERBOSE
+SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE value2 != 200;
+                                                       QUERY PLAN                                                       
+------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..263.03 rows=3396 width=32)
+   Output: (abs(value1)), (abs(value2)), (abs(value3)), (abs(value4))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM public.s3influx WHERE ((value2 <> 200))
+(4 rows)
+
+-- select abs (builtin function, pushdown constraints, result)
+--Testcase 24:
+SELECT * FROM (
+SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE value2 != 200
+) AS t ORDER BY 1,2,3,4;
+ abs | abs | abs | abs 
+-----+-----+-----+-----
+ 0.1 | 100 | 0.1 | 100
+ 0.2 | 100 | 0.2 | 100
+ 0.3 | 100 | 0.3 | 100
+(3 rows)
+
+-- select log (builtin function, need to swap arguments, numeric cast, explain)
+-- log_<base>(v) : postgresql (base, v), influxdb (v, base)
+--Testcase 25:
+EXPLAIN VERBOSE
+SELECT log(value1::numeric, value2::numeric) FROM s3 WHERE value1 != 1;
+                                                        QUERY PLAN                                                         
+---------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..254.54 rows=3396 width=32)
+   Output: (log((value1)::numeric, (value2)::numeric))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT log(value1::numeric, value2::numeric) FROM public.s3influx WHERE ((value1 <> 1::double precision))
+(4 rows)
+
+-- select log (builtin function, need to swap arguments, numeric cast, result)
+--Testcase 26:
+SELECT * FROM (
+SELECT log(value1::numeric, value2::numeric) FROM s3 WHERE value1 != 1
+) AS t ORDER BY 1;
+         log         
+---------------------
+  -3.824978578786397
+ -2.8613531161467867
+ -2.0000000000000004
+    4.43773989221174
+   6.719852756654074
+  55.590256753535286
+(6 rows)
+
+-- select log (stub function, need to swap arguments, float8, explain)
+--Testcase 27:
+EXPLAIN VERBOSE
+SELECT log(value1, 0.1) FROM s3 WHERE value1 != 1;
+                                                          QUERY PLAN                                                           
+-------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..1078.07 rows=3396 width=8)
+   Output: (log(value1, '0.1'::double precision))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT public.log(value1, 0.1::double precision) FROM public.s3influx WHERE ((value1 <> 1::double precision))
+(4 rows)
+
+-- select log (stub function, need to swap arguments, float8, result)
+--Testcase 28:
+SELECT * FROM (
+SELECT log(value1, 0.1) FROM s3 WHERE value1 != 1
+) AS t ORDER BY 1;
+         log         
+---------------------
+ -24.158857928096783
+   -2.92036730043365
+ -1.9285884584617043
+                   1
+   1.430676558073393
+   1.912489289393198
+(6 rows)
+
+-- select log (stub function, need to swap arguments, bigint, explain)
+--Testcase 29:
+EXPLAIN VERBOSE
+SELECT log(value2, 3) FROM s3 WHERE value1 != 1;
+                                                    QUERY PLAN                                                     
+-------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..1078.07 rows=3396 width=8)
+   Output: (log(value2, '3'::bigint))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT public.log(value2, 3::bigint) FROM public.s3influx WHERE ((value1 <> 1::double precision))
+(4 rows)
+
+-- select log (stub function, need to swap arguments, bigint, result)
+--Testcase 30:
+SELECT * FROM (
+SELECT log(value2, 3) FROM s3 WHERE value1 != 1
+) AS t ORDER BY 1;
+         log         
+---------------------
+  0.2073511669203535
+  0.2073511669203535
+  0.2073511669203535
+ 0.23856062735983116
+ 0.23856062735983116
+ 0.23856062735983116
+(6 rows)
+
+-- select log (stub function, need to swap arguments, mix type, explain)
+--Testcase 31:
+EXPLAIN VERBOSE
+SELECT log(value1, value2) FROM s3 WHERE value1 != 1;
+                                                   QUERY PLAN                                                   
+----------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..1086.56 rows=3396 width=8)
+   Output: (log(value1, (value2)::double precision))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT public.log(value1, value2) FROM public.s3influx WHERE ((value1 <> 1::double precision))
+(4 rows)
+
+-- select log (stub function, need to swap arguments, mix type, result)
+--Testcase 32:
+SELECT * FROM (
+SELECT log(value1, value2) FROM s3 WHERE value1 != 1
+) AS t ORDER BY 1;
+         log         
+---------------------
+  -3.824978578786397
+ -2.8613531161467867
+ -2.0000000000000004
+    4.43773989221174
+   6.719852756654074
+  55.590256753535286
+(6 rows)
+
+-- select log2 (stub function, explain)
+--Testcase 33:
+EXPLAIN VERBOSE
+SELECT log2(value1),log2(value2) FROM s3;
+                                      QUERY PLAN                                      
+--------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..1918.89 rows=3413 width=16)
+   Output: (log2(value1)), (log2(value2))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT public.log2(value1), public.log2(value2) FROM public.s3influx
+(4 rows)
+
+-- select log2 (stub function, result)
+--Testcase 34:
+SELECT * FROM (
+SELECT log2(value1),log2(value2) FROM s3
+) AS t ORDER BY 1,2;
+        log2         |       log2        
+---------------------+-------------------
+  -3.321928094887362 | 6.643856189774724
+  -2.321928094887362 | 6.643856189774724
+  -1.736965594166206 | 6.643856189774724
+ 0.13750352374993502 | 7.643856189774724
+  1.1375035237499351 | 7.643856189774724
+   1.722466024471091 | 7.643856189774724
+(6 rows)
+
+-- select spread (stub agg function, explain)
+--Testcase 35:
+EXPLAIN VERBOSE
+SELECT spread(value1),spread(value2),spread(value3),spread(value4) FROM s3;
+                                                                     QUERY PLAN                                                                     
+----------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+   Output: (spread(value1)), (spread(value2)), (spread(value3)), (spread(value4))
+   Node: pgspider_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.s3)
+     Remote SQL: SELECT min(value1), max(value1), min(value2), max(value2), min(value3), max(value3), min(value4), max(value4) FROM public.s3influx
+(6 rows)
+
+-- select spread (stub agg function, result)
+--Testcase 36:
+SELECT spread(value1),spread(value2),spread(value3),spread(value4) FROM s3;
+       spread       | spread |       spread       | spread 
+--------------------+--------+--------------------+--------
+ 3.1999999999999997 |    100 | 3.1999999999999997 |    100
+(1 row)
+
+-- select spread (stub agg function with numeric cast, explain)
+--Testcase 37:
+EXPLAIN VERBOSE
+SELECT spread(value1::numeric),spread(value2::numeric),spread(value3::numeric),spread(value4::numeric) FROM s3;
+                                                                                                         QUERY PLAN                                                                                                         
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+   Output: (spread(((value1)::numeric)::double precision)), (spread(((value2)::numeric)::double precision)), (spread(((value3)::numeric)::double precision)), (spread(((value4)::numeric)::double precision))
+   Node: pgspider_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.s3)
+     Remote SQL: SELECT min(value1::numeric), max(value1::numeric), min(value2::numeric), max(value2::numeric), min(value3::numeric), max(value3::numeric), min(value4::numeric), max(value4::numeric) FROM public.s3influx
+(6 rows)
+
+-- select spread (stub agg function with numeric cast, )
+--Testcase 38:
+SELECT spread(value1::numeric),spread(value2::numeric),spread(value3::numeric),spread(value4::numeric) FROM s3;
+       spread       | spread |       spread       | spread 
+--------------------+--------+--------------------+--------
+ 3.1999999999999997 |    100 | 3.1999999999999997 |    100
+(1 row)
+
+-- select abs as nest function with agg (pushdown, explain)
+--Testcase 39:
+EXPLAIN VERBOSE
+SELECT sum(value3),abs(sum(value3)) FROM s3;
+                       QUERY PLAN                        
+---------------------------------------------------------
+ Foreign Scan  (cost=0.00..0.00 rows=1 width=16)
+   Output: (sum(value3)), abs((sum(value3)))
+   Node: pgspider_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.s3)
+     Remote SQL: SELECT sum(value3) FROM public.s3influx
+(6 rows)
+
+-- select abs as nest function with agg (pushdown, result)
+--Testcase 40:
+SELECT sum(value3),abs(sum(value3)) FROM s3;
+        sum         |        abs        
+--------------------+-------------------
+ -7.199999999999999 | 7.199999999999999
+(1 row)
+
+-- select abs as nest with log2 (pushdown, explain)
+--Testcase 41:
+EXPLAIN VERBOSE
+SELECT abs(log2(value1)),abs(log2(1/value1)) FROM s3;
+                                                       QUERY PLAN                                                       
+------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..1944.49 rows=3413 width=16)
+   Output: (abs(log2(value1))), (abs(log2(('1'::double precision / value1))))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT abs(public.log2(value1)), abs(public.log2((1::double precision / value1))) FROM public.s3influx
+(4 rows)
+
+-- select abs as nest with log2 (pushdown, result)
+--Testcase 42:
+SELECT * FROM (
+SELECT abs(log2(value1)),abs(log2(1/value1)) FROM s3
+) AS t ORDER BY 1,2;
+         abs         |         abs         
+---------------------+---------------------
+ 0.13750352374993502 | 0.13750352374993496
+  1.1375035237499351 |   1.137503523749935
+   1.722466024471091 |   1.722466024471091
+   1.736965594166206 |   1.736965594166206
+   2.321928094887362 |   2.321928094887362
+   3.321928094887362 |   3.321928094887362
+(6 rows)
+
+-- select abs with non pushdown func and explicit constant (explain)
+--Testcase 43:
+EXPLAIN VERBOSE
+SELECT abs(value3), pi(), 4.1 FROM s3;
+                                            QUERY PLAN                                             
+---------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..220.92 rows=3413 width=48)
+   Output: (abs(value3)), '3.141592653589793'::double precision, 4.1
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT abs(value3), 3.141592653589793::double precision, 4.1 FROM public.s3influx
+(4 rows)
+
+-- select abs with non pushdown func and explicit constant (result)
+--Testcase 44:
+SELECT * FROM (
+SELECT abs(value3), pi(), 4.1 FROM s3
+) AS t ORDER BY 1,2,3;
+ abs |        pi         | ?column? 
+-----+-------------------+----------
+ 0.1 | 3.141592653589793 |      4.1
+ 0.2 | 3.141592653589793 |      4.1
+ 0.3 | 3.141592653589793 |      4.1
+ 1.1 | 3.141592653589793 |      4.1
+ 2.2 | 3.141592653589793 |      4.1
+ 3.3 | 3.141592653589793 |      4.1
+(6 rows)
+
+-- select sqrt as nest function with agg and explicit constant (pushdown, explain)
+--Testcase 45:
+EXPLAIN VERBOSE
+SELECT sqrt(count(value1)), pi(), 4.1 FROM s3;
+                                           QUERY PLAN                                            
+-------------------------------------------------------------------------------------------------
+ Foreign Scan  (cost=0.00..0.00 rows=1 width=48)
+   Output: sqrt(((count(value1)))::double precision), '3.141592653589793'::double precision, 4.1
+   Node: pgspider_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.s3)
+     Remote SQL: SELECT count(value1) FROM public.s3influx
+(6 rows)
+
+-- select sqrt as nest function with agg and explicit constant (pushdown, result)
+--Testcase 46:
+SELECT sqrt(count(value1)), pi(), 4.1 FROM s3;
+       sqrt        |        pi         | ?column? 
+-------------------+-------------------+----------
+ 2.449489742783178 | 3.141592653589793 |      4.1
+(1 row)
+
+-- select sqrt as nest function with agg and explicit constant and tag (error, explain)
+--Testcase 47:
+EXPLAIN VERBOSE
+SELECT sqrt(count(value1)), pi(), 4.1, tag1 FROM s3;
+ERROR:  column "s3.tag1" must appear in the GROUP BY clause or be used in an aggregate function
+LINE 2: SELECT sqrt(count(value1)), pi(), 4.1, tag1 FROM s3;
+                                               ^
+-- select spread (stub agg function and group by influx_time() and tag) (explain)
+--Testcase 48:
+EXPLAIN VERBOSE
+SELECT spread("value1"),influx_time(time, interval '1s'),tag1 FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
+                                                                                                        QUERY PLAN                                                                                                        
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=166.22..170.85 rows=1 width=48)
+   Output: spread(value1), (influx_time("time", '@ 1 sec'::interval)), tag1
+   Group Key: (influx_time(s3."time", '@ 1 sec'::interval)), s3.tag1
+   ->  Sort  (cost=166.22..166.26 rows=17 width=48)
+         Output: (influx_time("time", '@ 1 sec'::interval)), tag1, value1
+         Sort Key: (influx_time(s3."time", '@ 1 sec'::interval)), s3.tag1
+         ->  Foreign Scan on public.s3  (cost=100.00..165.87 rows=17 width=48)
+               Output: influx_time("time", '@ 1 sec'::interval), tag1, value1
+               Node: pgspider_svr / Status: Alive
+                 Remote SQL: SELECT "time", tag1, value1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09'::timestamp with time zone)) AND (("time" <= '1970-01-01 09:00:04+09'::timestamp with time zone))
+(10 rows)
+
+-- select spread (stub agg function and group by influx_time() and tag) (result)
+--Testcase 49:
+SELECT * FROM (
+SELECT spread("value1"),influx_time(time, interval '1s'),tag1 FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1
+) AS t ORDER BY 1,2,3;
+ERROR:  stub influx_time(timestamp with time zone, interval) is called
+CONTEXT:  PL/pgSQL function influx_time(timestamp with time zone,interval) line 3 at RAISE
+-- select spread (stub agg function and group by tag only) (result)
+--Testcase 50:
+SELECT * FROM (
+SELECT tag1,spread("value1") FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1
+) AS t ORDER BY 1,2;
+ tag1 |       spread        
+------+---------------------
+ a    | 0.19999999999999998
+ b    |                 1.1
+(2 rows)
+
+-- select spread (stub agg function and other aggs) (result)
+--Testcase 51:
+SELECT sum("value1"),spread("value1"),count("value1") FROM s3;
+        sum        |       spread       | count 
+-------------------+--------------------+-------
+ 7.199999999999999 | 3.1999999999999997 |     6
+(1 row)
+
+-- select abs with order by (explain)
+--Testcase 52:
+EXPLAIN VERBOSE
+SELECT value1, abs(1-value1) FROM s3 ORDER BY abs(1-value1);
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
+ Sort  (cost=429.74..438.28 rows=3413 width=16)
+   Output: value1, (abs(('1'::double precision - value1)))
+   Sort Key: (abs(('1'::double precision - s3.value1)))
+   ->  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=16)
+         Output: value1, (abs(('1'::double precision - value1)))
+         Node: pgspider_svr / Status: Alive
+           Remote SQL: SELECT value1, abs((1::double precision - value1)) FROM public.s3influx
+(7 rows)
+
+-- select abs with order by (result)
+--Testcase 53:
+SELECT value1, abs(1-value1) FROM s3 ORDER BY abs(1-value1);
+ value1 |         abs         
+--------+---------------------
+    1.1 | 0.10000000000000009
+    0.3 |                 0.7
+    0.2 |                 0.8
+    0.1 |                 0.9
+    2.2 |  1.2000000000000002
+    3.3 |                 2.3
+(6 rows)
+
+-- select abs with order by index (result)
+--Testcase 54:
+SELECT value1, abs(1-value1) FROM s3 ORDER BY 2,1;
+ value1 |         abs         
+--------+---------------------
+    1.1 | 0.10000000000000009
+    0.3 |                 0.7
+    0.2 |                 0.8
+    0.1 |                 0.9
+    2.2 |  1.2000000000000002
+    3.3 |                 2.3
+(6 rows)
+
+-- select abs with order by index (result)
+--Testcase 55:
+SELECT value1, abs(1-value1) FROM s3 ORDER BY 1,2;
+ value1 |         abs         
+--------+---------------------
+    0.1 |                 0.9
+    0.2 |                 0.8
+    0.3 |                 0.7
+    1.1 | 0.10000000000000009
+    2.2 |  1.2000000000000002
+    3.3 |                 2.3
+(6 rows)
+
+-- select abs and as
+--Testcase 56:
+SELECT * FROM (
+SELECT abs(value3) as abs1 FROM s3
+) AS t ORDER BY 1;
+ abs1 
+------
+  0.1
+  0.2
+  0.3
+  1.1
+  2.2
+  3.3
+(6 rows)
+
+-- select spread over join query (explain)
+--Testcase 57:
+EXPLAIN VERBOSE
+SELECT spread(t1.value1), spread(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
+                                                  QUERY PLAN                                                   
+---------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=454.24..454.25 rows=1 width=16)
+   Output: spread(t1.value1), spread(t2.value1)
+   ->  Nested Loop  (cost=200.00..309.74 rows=289 width=16)
+         Output: t1.value1, t2.value1
+         ->  Foreign Scan on public.s3 t1  (cost=100.00..153.04 rows=17 width=8)
+               Output: t1.value1
+               Node: pgspider_svr / Status: Alive
+                 Remote SQL: SELECT value1 FROM public.s3influx WHERE ((value1 = 0.1::double precision))
+         ->  Materialize  (cost=100.00..153.13 rows=17 width=8)
+               Output: t2.value1
+               ->  Foreign Scan on public.s3 t2  (cost=100.00..153.04 rows=17 width=8)
+                     Output: t2.value1
+                     Node: pgspider_svr / Status: Alive
+                       Remote SQL: SELECT value1 FROM public.s3influx WHERE ((value1 = 0.1::double precision))
+(14 rows)
+
+-- select spread over join query (result, stub call error)
+--Testcase 58:
+SELECT spread(t1.value1), spread(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
+ERROR:  stub spread_sfunc(double precision, float8) is called
+CONTEXT:  PL/pgSQL function spread_sfunc(double precision,double precision) line 3 at RAISE
+-- select spread with having (explain)
+--Testcase 59:
+EXPLAIN VERBOSE
+SELECT spread(value1) FROM s3 HAVING spread(value1) > 100;
+                              QUERY PLAN                              
+----------------------------------------------------------------------
+ Foreign Scan  (cost=0.00..0.00 rows=1 width=8)
+   Output: (spread(value1))
+   Node: pgspider_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.s3)
+     Remote SQL: SELECT min(value1), max(value1) FROM public.s3influx
+(6 rows)
+
+-- select spread with having (explain, cannot pushdown, stub call error)
+--Testcase 60:
+SELECT spread(value1) FROM s3 HAVING spread(value1) > 100;
+ spread 
+--------
+(0 rows)
+
+-- select abs with arithmetic and tag in the middle (explain)
+--Testcase 61:
+EXPLAIN VERBOSE
+SELECT abs(value1) + 1, value2, tag1, sqrt(value2) FROM s3;
+                                                 QUERY PLAN                                                  
+-------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..246.52 rows=3413 width=56)
+   Output: ((abs(value1) + '1'::double precision)), value2, tag1, (sqrt((value2)::double precision))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT (abs(value1) + 1::double precision), value2, tag1, sqrt(value2) FROM public.s3influx
+(4 rows)
+
+-- select abs with arithmetic and tag in the middle (result)
+--Testcase 62:
+SELECT * FROM (
+SELECT abs(value1) + 1, value2, tag1, sqrt(value2) FROM s3
+) AS t ORDER BY 1,2,3,4;
+ ?column? | value2 | tag1 |        sqrt        
+----------+--------+------+--------------------
+      1.1 |    100 | a    |                 10
+      1.2 |    100 | a    |                 10
+      1.3 |    100 | a    |                 10
+      2.1 |    200 | b    | 14.142135623730951
+      3.2 |    200 | b    | 14.142135623730951
+      4.3 |    200 | b    | 14.142135623730951
+(6 rows)
+
+-- select with order by limit (explain)
+--Testcase 63:
+EXPLAIN VERBOSE
+SELECT abs(value1), abs(value3), sqrt(value2) FROM s3 ORDER BY abs(value3) LIMIT 1;
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Limit  (cost=263.58..263.59 rows=1 width=24)
+   Output: (abs(value1)), (abs(value3)), (sqrt((value2)::double precision))
+   ->  Sort  (cost=263.58..272.12 rows=3413 width=24)
+         Output: (abs(value1)), (abs(value3)), (sqrt((value2)::double precision))
+         Sort Key: (abs(s3.value3))
+         ->  Foreign Scan on public.s3  (cost=100.00..246.52 rows=3413 width=24)
+               Output: (abs(value1)), (abs(value3)), (sqrt((value2)::double precision))
+               Node: pgspider_svr / Status: Alive
+                 Remote SQL: SELECT abs(value1), abs(value3), sqrt(value2) FROM public.s3influx
+(9 rows)
+
+-- select with order by limit (explain)
+--Testcase 64:
+SELECT abs(value1), abs(value3), sqrt(value2) FROM s3 ORDER BY abs(value3) LIMIT 1;
+ abs | abs | sqrt 
+-----+-----+------
+ 0.1 | 0.1 |   10
+(1 row)
+
+-- select mixing with non pushdown func (all not pushdown, explain)
+--Testcase 65:
+EXPLAIN VERBOSE
+SELECT abs(value1), sqrt(value2), upper(tag1) FROM s3;
+                                     QUERY PLAN                                     
+------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..246.52 rows=3413 width=48)
+   Output: (abs(value1)), (sqrt((value2)::double precision)), (upper(tag1))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT abs(value1), sqrt(value2), upper(tag1) FROM public.s3influx
+(4 rows)
+
+-- select mixing with non pushdown func (result)
+--Testcase 66:
+SELECT * FROM (
+SELECT abs(value1), sqrt(value2), upper(tag1) FROM s3
+) AS t ORDER BY 1,2,3;
+ abs |        sqrt        | upper 
+-----+--------------------+-------
+ 0.1 |                 10 | A
+ 0.2 |                 10 | A
+ 0.3 |                 10 | A
+ 1.1 | 14.142135623730951 | B
+ 2.2 | 14.142135623730951 | B
+ 3.3 | 14.142135623730951 | B
+(6 rows)
+
+--Testcase 67:
+DROP FOREIGN TABLE s3__pgspider_svr__0;
+--Testcase 68:
+DROP USER MAPPING FOR CURRENT_USER SERVER pgspider_svr;
+--Testcase 69:
+DROP SERVER pgspider_svr;
+--Testcase 70:
+DROP EXTENSION pgspider_fdw;
+--Testcase 71:
+DROP FOREIGN TABLE s3;
+----------------------------------------------------------
+-- Data source: sqlite
+--Testcase 72:
+CREATE FOREIGN TABLE s3 (id text, time timestamp, tag1 text, value1 float, value2 int, value3 float, value4 int, str1 text, str2 text, __spd_url text) SERVER pgspider_core_svr;
+--Testcase 73:
+CREATE EXTENSION pgspider_fdw;
+--Testcase 74:
+CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (host '127.0.0.1', port '5433', dbname 'postgres');
+--Testcase 75:
+CREATE USER MAPPING FOR CURRENT_USER SERVER pgspider_svr;
+--Testcase 76:
+CREATE FOREIGN TABLE s3__pgspider_svr__0 (id text, time timestamp, tag1 text, value1 float, value2 int, value3 float, value4 int, str1 text, str2 text, __spd_url text) SERVER pgspider_svr OPTIONS(table_name 's3sqlite');
+-- s3 (value1 as float8, value2 as bigint)
+--Testcase 77:
+\d s3;
+                               Foreign table "public.s3"
+  Column   |            Type             | Collation | Nullable | Default | FDW options 
+-----------+-----------------------------+-----------+----------+---------+-------------
+ id        | text                        |           |          |         | 
+ time      | timestamp without time zone |           |          |         | 
+ tag1      | text                        |           |          |         | 
+ value1    | double precision            |           |          |         | 
+ value2    | integer                     |           |          |         | 
+ value3    | double precision            |           |          |         | 
+ value4    | integer                     |           |          |         | 
+ str1      | text                        |           |          |         | 
+ str2      | text                        |           |          |         | 
+ __spd_url | text                        |           |          |         | 
+Server: pgspider_core_svr
+
+--Testcase 78:
+SELECT * FROM s3 ORDER BY 1,2,3,4,5,6,7,8,9,10;
+ id |        time         | tag1 | value1 | value2 | value3 | value4 |   str1    |   str2    |         __spd_url         
+----+---------------------+------+--------+--------+--------+--------+-----------+-----------+---------------------------
+ 0  | 1970-01-01 00:00:00 | a    |    0.1 |    100 |   -0.1 |   -100 | ---XYZ--- |    XYZ    | /pgspider_svr/sqlite_svr/
+ 1  | 1970-01-01 00:00:01 | a    |    0.2 |    100 |   -0.2 |   -100 | ---XYZ--- |    XYZ    | /pgspider_svr/sqlite_svr/
+ 2  | 1970-01-01 00:00:02 | a    |    0.3 |    100 |   -0.3 |   -100 | ---XYZ--- |    XYZ    | /pgspider_svr/sqlite_svr/
+ 3  | 1970-01-01 00:00:03 | b    |    1.1 |    200 |   -1.1 |   -200 | ---XYZ--- |    XYZ    | /pgspider_svr/sqlite_svr/
+ 4  | 1970-01-01 00:00:04 | b    |    2.2 |    200 |   -2.2 |   -200 | ---XYZ--- |    XYZ    | /pgspider_svr/sqlite_svr/
+ 5  | 1970-01-01 00:00:05 | b    |    3.3 |    200 |   -3.3 |   -200 | ---XYZ--- |    XYZ    | /pgspider_svr/sqlite_svr/
+(6 rows)
+
+-- select abs (builtin function, explain)
+--Testcase 79:
+EXPLAIN VERBOSE
+SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3;
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..246.52 rows=3413 width=24)
+   Output: (abs(value1)), (abs(value2)), (abs(value3)), (abs(value4))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM public.s3sqlite
+(4 rows)
+
+-- select abs (buitin function, result)
+--Testcase 80:
+SELECT * FROM (
+SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3
+) AS t ORDER BY 1,2,3,4;
+ abs | abs | abs | abs 
+-----+-----+-----+-----
+ 0.1 | 100 | 0.1 | 100
+ 0.2 | 100 | 0.2 | 100
+ 0.3 | 100 | 0.3 | 100
+ 1.1 | 200 | 1.1 | 200
+ 2.2 | 200 | 2.2 | 200
+ 3.3 | 200 | 3.3 | 200
+(6 rows)
+
+-- select abs (builtin function, not pushdown constraints, explain)
+--Testcase 81:
+EXPLAIN VERBOSE
+SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE to_hex(value2) != '64';
+                                               QUERY PLAN                                               
+--------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..280.39 rows=3396 width=24)
+   Output: (abs(value1)), (abs(value2)), (abs(value3)), (abs(value4))
+   Filter: (to_hex(s3.value2) <> '64'::text)
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT abs(value1), abs(value2), abs(value3), abs(value4), value2 FROM public.s3sqlite
+(5 rows)
+
+-- select abs (builtin function, not pushdown constraints, result)
+--Testcase 82:
+SELECT * FROM (
+SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE to_hex(value2) != '64'
+) AS t ORDER BY 1,2,3,4;
+ abs | abs | abs | abs 
+-----+-----+-----+-----
+ 1.1 | 200 | 1.1 | 200
+ 2.2 | 200 | 2.2 | 200
+ 3.3 | 200 | 3.3 | 200
+(3 rows)
+
+-- select abs (builtin function, pushdown constraints, explain)
+--Testcase 83:
+EXPLAIN VERBOSE
+SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE value2 != 200;
+                                                       QUERY PLAN                                                       
+------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..263.03 rows=3396 width=24)
+   Output: (abs(value1)), (abs(value2)), (abs(value3)), (abs(value4))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM public.s3sqlite WHERE ((value2 <> 200))
+(4 rows)
+
+-- select abs (builtin function, pushdown constraints, result)
+--Testcase 84:
+SELECT * FROM (
+SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE value2 != 200
+) AS t ORDER BY 1,2,3,4;
+ abs | abs | abs | abs 
+-----+-----+-----+-----
+ 0.1 | 100 | 0.1 | 100
+ 0.2 | 100 | 0.2 | 100
+ 0.3 | 100 | 0.3 | 100
+(3 rows)
+
+-- select abs as nest function with agg (pushdown, explain)
+--Testcase 85:
+EXPLAIN VERBOSE
+SELECT sum(value3),abs(sum(value3)) FROM s3;
+                       QUERY PLAN                        
+---------------------------------------------------------
+ Foreign Scan  (cost=0.00..0.00 rows=1 width=16)
+   Output: (sum(value3)), abs((sum(value3)))
+   Node: pgspider_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.s3)
+     Remote SQL: SELECT sum(value3) FROM public.s3sqlite
+(6 rows)
+
+-- select abs as nest function with agg (pushdown, result)
+--Testcase 86:
+SELECT sum(value3),abs(sum(value3)) FROM s3;
+ sum  | abs 
+------+-----
+ -7.2 | 7.2
+(1 row)
+
+-- select abs with non pushdown func and explicit constant (explain)
+--Testcase 87:
+EXPLAIN VERBOSE
+SELECT abs(value3), pi(), 4.1 FROM s3;
+                                            QUERY PLAN                                             
+---------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..220.92 rows=3413 width=48)
+   Output: (abs(value3)), '3.141592653589793'::double precision, 4.1
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT abs(value3), 3.141592653589793::double precision, 4.1 FROM public.s3sqlite
+(4 rows)
+
+-- select abs with non pushdown func and explicit constant (result)
+--Testcase 88:
+SELECT * FROM (
+SELECT abs(value3), pi(), 4.1 FROM s3
+) AS t ORDER BY 1,2,3;
+ abs |        pi         | ?column? 
+-----+-------------------+----------
+ 0.1 | 3.141592653589793 |      4.1
+ 0.2 | 3.141592653589793 |      4.1
+ 0.3 | 3.141592653589793 |      4.1
+ 1.1 | 3.141592653589793 |      4.1
+ 2.2 | 3.141592653589793 |      4.1
+ 3.3 | 3.141592653589793 |      4.1
+(6 rows)
+
+-- select abs with order by (explain)
+--Testcase 89:
+EXPLAIN VERBOSE
+SELECT value1, abs(1-value1) FROM s3 ORDER BY abs(1-value1);
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
+ Sort  (cost=429.74..438.28 rows=3413 width=16)
+   Output: value1, (abs(('1'::double precision - value1)))
+   Sort Key: (abs(('1'::double precision - s3.value1)))
+   ->  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=16)
+         Output: value1, (abs(('1'::double precision - value1)))
+         Node: pgspider_svr / Status: Alive
+           Remote SQL: SELECT value1, abs((1::double precision - value1)) FROM public.s3sqlite
+(7 rows)
+
+-- select abs with order by (result)
+--Testcase 90:
+SELECT value1, abs(1-value1) FROM s3 ORDER BY abs(1-value1);
+ value1 |         abs         
+--------+---------------------
+    1.1 | 0.10000000000000009
+    0.3 |                 0.7
+    0.2 |                 0.8
+    0.1 |                 0.9
+    2.2 |  1.2000000000000002
+    3.3 |                 2.3
+(6 rows)
+
+-- select abs with order by index (result)
+--Testcase 91:
+SELECT value1, abs(1-value1) FROM s3 ORDER BY 2,1;
+ value1 |         abs         
+--------+---------------------
+    1.1 | 0.10000000000000009
+    0.3 |                 0.7
+    0.2 |                 0.8
+    0.1 |                 0.9
+    2.2 |  1.2000000000000002
+    3.3 |                 2.3
+(6 rows)
+
+-- select abs with order by index (result)
+--Testcase 92:
+SELECT value1, abs(1-value1) FROM s3 ORDER BY 1,2;
+ value1 |         abs         
+--------+---------------------
+    0.1 |                 0.9
+    0.2 |                 0.8
+    0.3 |                 0.7
+    1.1 | 0.10000000000000009
+    2.2 |  1.2000000000000002
+    3.3 |                 2.3
+(6 rows)
+
+-- select abs and as
+--Testcase 93:
+SELECT * FROM (
+SELECT abs(value3) as abs1 FROM s3
+) AS t ORDER BY 1;
+ abs1 
+------
+  0.1
+  0.2
+  0.3
+  1.1
+  2.2
+  3.3
+(6 rows)
+
+-- select abs with arithmetic and tag in the middle (explain)
+--Testcase 94:
+EXPLAIN VERBOSE
+SELECT abs(value1) + 1, value2, tag1, sqrt(value2) FROM s3;
+                                                 QUERY PLAN                                                  
+-------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..246.52 rows=3413 width=52)
+   Output: ((abs(value1) + '1'::double precision)), value2, tag1, (sqrt((value2)::double precision))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT (abs(value1) + 1::double precision), value2, tag1, sqrt(value2) FROM public.s3sqlite
+(4 rows)
+
+-- select abs with arithmetic and tag in the middle (result)
+--Testcase 95:
+SELECT * FROM (
+SELECT abs(value1) + 1, value2, tag1, sqrt(value2) FROM s3
+) AS t ORDER BY 1,2,3,4;
+ ?column? | value2 | tag1 |        sqrt        
+----------+--------+------+--------------------
+      1.1 |    100 | a    |                 10
+      1.2 |    100 | a    |                 10
+      1.3 |    100 | a    |                 10
+      2.1 |    200 | b    | 14.142135623730951
+      3.2 |    200 | b    | 14.142135623730951
+      4.3 |    200 | b    | 14.142135623730951
+(6 rows)
+
+-- select with order by limit (explain)
+--Testcase 96:
+EXPLAIN VERBOSE
+SELECT abs(value1), abs(value3), sqrt(value2) FROM s3 ORDER BY abs(value3) LIMIT 1;
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Limit  (cost=263.58..263.59 rows=1 width=24)
+   Output: (abs(value1)), (abs(value3)), (sqrt((value2)::double precision))
+   ->  Sort  (cost=263.58..272.12 rows=3413 width=24)
+         Output: (abs(value1)), (abs(value3)), (sqrt((value2)::double precision))
+         Sort Key: (abs(s3.value3))
+         ->  Foreign Scan on public.s3  (cost=100.00..246.52 rows=3413 width=24)
+               Output: (abs(value1)), (abs(value3)), (sqrt((value2)::double precision))
+               Node: pgspider_svr / Status: Alive
+                 Remote SQL: SELECT abs(value1), abs(value3), sqrt(value2) FROM public.s3sqlite
+(9 rows)
+
+-- select with order by limit (explain)
+--Testcase 97:
+SELECT abs(value1), abs(value3), sqrt(value2) FROM s3 ORDER BY abs(value3) LIMIT 1;
+ abs | abs | sqrt 
+-----+-----+------
+ 0.1 | 0.1 |   10
+(1 row)
+
+-- select mixing with non pushdown func (all not pushdown, explain)
+--Testcase 98:
+EXPLAIN VERBOSE
+SELECT abs(value1), sqrt(value2), upper(tag1) FROM s3;
+                                     QUERY PLAN                                     
+------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..246.52 rows=3413 width=48)
+   Output: (abs(value1)), (sqrt((value2)::double precision)), (upper(tag1))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT abs(value1), sqrt(value2), upper(tag1) FROM public.s3sqlite
+(4 rows)
+
+-- select mixing with non pushdown func (result)
+--Testcase 99:
+SELECT * FROM (
+SELECT abs(value1), sqrt(value2), upper(tag1) FROM s3
+) AS t ORDER BY 1,2,3;
+ abs |        sqrt        | upper 
+-----+--------------------+-------
+ 0.1 |                 10 | A
+ 0.2 |                 10 | A
+ 0.3 |                 10 | A
+ 1.1 | 14.142135623730951 | B
+ 2.2 | 14.142135623730951 | B
+ 3.3 | 14.142135623730951 | B
+(6 rows)
+
+-- sqlite pushdown supported functions (explain)
+--Testcase 100:
+EXPLAIN VERBOSE
+SELECT abs(value3), length(tag1), lower(str1), ltrim(str2), ltrim(str1, '-'), replace(str1, 'XYZ', 'ABC'), round(value3), rtrim(str1, '-'), rtrim(str2), substr(str1, 4), substr(str1, 4, 3) FROM s3;
+                                                                                                                        QUERY PLAN                                                                                                                         
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..306.25 rows=3413 width=276)
+   Output: (abs(value3)), (length(tag1)), (lower(str1)), (ltrim(str2)), (ltrim(str1, '-'::text)), (replace(str1, 'XYZ'::text, 'ABC'::text)), (round(value3)), (rtrim(str1, '-'::text)), (rtrim(str2)), (substr(str1, 4)), (substr(str1, 4, 3))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT abs(value3), length(tag1), lower(str1), ltrim(str2), ltrim(str1, '-'::text), replace(str1, 'XYZ'::text, 'ABC'::text), round(value3), rtrim(str1, '-'::text), rtrim(str2), substr(str1, 4), substr(str1, 4, 3) FROM public.s3sqlite
+(4 rows)
+
+-- sqlite pushdown supported functions (result)
+--Testcase 101:
+SELECT * FROM (
+SELECT abs(value3), length(tag1), lower(str1), ltrim(str2), ltrim(str1, '-'), replace(str1, 'XYZ', 'ABC'), round(value3), rtrim(str1, '-'), rtrim(str2), substr(str1, 4), substr(str1, 4, 3) FROM s3
+) AS t ORDER BY 1,2,3,4,5,6,7,8,9,10,11;
+ abs | length |   lower   | ltrim  | ltrim  |  replace  | round | rtrim  | rtrim  | substr | substr 
+-----+--------+-----------+--------+--------+-----------+-------+--------+--------+--------+--------
+ 0.1 |      1 | ---xyz--- | XYZ    | XYZ--- | ---ABC--- |     0 | ---XYZ |    XYZ | XYZ--- | XYZ
+ 0.2 |      1 | ---xyz--- | XYZ    | XYZ--- | ---ABC--- |     0 | ---XYZ |    XYZ | XYZ--- | XYZ
+ 0.3 |      1 | ---xyz--- | XYZ    | XYZ--- | ---ABC--- |     0 | ---XYZ |    XYZ | XYZ--- | XYZ
+ 1.1 |      1 | ---xyz--- | XYZ    | XYZ--- | ---ABC--- |    -1 | ---XYZ |    XYZ | XYZ--- | XYZ
+ 2.2 |      1 | ---xyz--- | XYZ    | XYZ--- | ---ABC--- |    -2 | ---XYZ |    XYZ | XYZ--- | XYZ
+ 3.3 |      1 | ---xyz--- | XYZ    | XYZ--- | ---ABC--- |    -3 | ---XYZ |    XYZ | XYZ--- | XYZ
+(6 rows)
+
+--Testcase 102:
+DROP FOREIGN TABLE s3__pgspider_svr__0;
+--Testcase 103:
+DROP USER MAPPING FOR CURRENT_USER SERVER pgspider_svr;
+--Testcase 104:
+DROP SERVER pgspider_svr;
+--Testcase 105:
+DROP EXTENSION pgspider_fdw;
+--Testcase 106:
+DROP FOREIGN TABLE s3;
+----------------------------------------------------------
+-- Data source: mysql
+--Testcase 107:
+CREATE FOREIGN TABLE s3 (id int, tag1 text, value1 float, value2 int, value3 float, value4 int, str1 text, str2 text, __spd_url text) SERVER pgspider_core_svr;
+--Testcase 108:
+CREATE FOREIGN TABLE ftextsearch (id int, content text, __spd_url text) SERVER pgspider_core_svr;
+--Testcase 109:
+CREATE EXTENSION pgspider_fdw;
+--Testcase 110:
+CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (host '127.0.0.1', port '5433', dbname 'postgres');
+--Testcase 111:
+CREATE USER MAPPING FOR CURRENT_USER SERVER pgspider_svr;
+--Testcase 112:
+CREATE FOREIGN TABLE s3__pgspider_svr__0 (id int, tag1 text, value1 float, value2 int, value3 float, value4 int, str1 text, str2 text, __spd_url text) SERVER pgspider_svr OPTIONS (table_name 's3mysql');
+--Testcase 113:
+CREATE FOREIGN TABLE ftextsearch__pgspider_svr__0 (id int, content text) SERVER pgspider_svr OPTIONS (table_name 'ftextsearch');
+-- s3 (value1 as float8, value2 as bigint)
+--Testcase 114:
+\d s3;
+                          Foreign table "public.s3"
+  Column   |       Type       | Collation | Nullable | Default | FDW options 
+-----------+------------------+-----------+----------+---------+-------------
+ id        | integer          |           |          |         | 
+ tag1      | text             |           |          |         | 
+ value1    | double precision |           |          |         | 
+ value2    | integer          |           |          |         | 
+ value3    | double precision |           |          |         | 
+ value4    | integer          |           |          |         | 
+ str1      | text             |           |          |         | 
+ str2      | text             |           |          |         | 
+ __spd_url | text             |           |          |         | 
+Server: pgspider_core_svr
+
+--Testcase 115:
+SELECT * FROM s3 ORDER BY 1,2,3,4,5,6,7,8,9;
+ id | tag1 | value1 | value2 | value3 | value4 |   str1    |   str2    |        __spd_url         
+----+------+--------+--------+--------+--------+-----------+-----------+--------------------------
+  0 | a    |    0.1 |    100 |   -0.1 |   -100 | ---XYZ--- |    XYZ    | /pgspider_svr/mysql_svr/
+  1 | a    |    0.2 |    100 |   -0.2 |   -100 | ---XYZ--- |    XYZ    | /pgspider_svr/mysql_svr/
+  2 | a    |    0.3 |    100 |   -0.3 |   -100 | ---XYZ--- |    XYZ    | /pgspider_svr/mysql_svr/
+  3 | b    |    1.1 |    200 |   -1.1 |   -200 | ---XYZ--- |    XYZ    | /pgspider_svr/mysql_svr/
+  4 | b    |    2.2 |    200 |   -2.2 |   -200 | ---XYZ--- |    XYZ    | /pgspider_svr/mysql_svr/
+  5 | b    |    3.3 |    200 |   -3.3 |   -200 | ---XYZ--- |    XYZ    | /pgspider_svr/mysql_svr/
+(6 rows)
+
+-- select float8() (not pushdown, remove float8, explain)
+--Testcase 116:
+EXPLAIN VERBOSE
+SELECT float8(value1), float8(value2), float8(value3), float8(value4) FROM s3;
+                                        QUERY PLAN                                         
+-------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=32)
+   Output: value1, (float8(value2)), value3, (float8(value4))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT value1, float8(value2), value3, float8(value4) FROM public.s3mysql
+(4 rows)
+
+-- select float8() (not pushdown, remove float8, result)
+--Testcase 117:
+SELECT * FROM (
+SELECT float8(value1), float8(value2), float8(value3), float8(value4) FROM s3
+) AS t ORDER BY 1,2,3,4;
+ float8 | float8 | float8 | float8 
+--------+--------+--------+--------
+    0.1 |    100 |   -0.1 |   -100
+    0.2 |    100 |   -0.2 |   -100
+    0.3 |    100 |   -0.3 |   -100
+    1.1 |    200 |   -1.1 |   -200
+    2.2 |    200 |   -2.2 |   -200
+    3.3 |    200 |   -3.3 |   -200
+(6 rows)
+
+-- select sqrt (builtin function, explain)
+--Testcase 118:
+EXPLAIN VERBOSE
+SELECT sqrt(value1), sqrt(value2) FROM s3;
+                              QUERY PLAN                               
+-----------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..237.99 rows=3413 width=16)
+   Output: (sqrt(value1)), (sqrt((value2)::double precision))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT sqrt(value1), sqrt(value2) FROM public.s3mysql
+(4 rows)
+
+-- select sqrt (buitin function, result)
+--Testcase 119:
+SELECT * FROM (
+SELECT sqrt(value1), sqrt(value2) FROM s3
+) AS t ORDER BY 1,2;
+        sqrt        |        sqrt        
+--------------------+--------------------
+ 0.3162277683729184 |                 10
+ 0.4472135988319589 |                 10
+ 0.5477225683874355 |                 10
+ 1.0488088595363112 | 14.142135623730951
+ 1.4832397134933097 | 14.142135623730951
+ 1.8165901993339841 | 14.142135623730951
+(6 rows)
+
+-- select sqrt (builtin function,, not pushdown constraints, explain)
+--Testcase 120:
+EXPLAIN VERBOSE
+SELECT sqrt(value1), sqrt(value2) FROM s3 WHERE to_hex(value2) != '64';
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..271.90 rows=3396 width=16)
+   Output: (sqrt(value1)), (sqrt((value2)::double precision))
+   Filter: (to_hex(s3.value2) <> '64'::text)
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT sqrt(value1), sqrt(value2), value2 FROM public.s3mysql
+(5 rows)
+
+-- select sqrt (builtin function, not pushdown constraints, result)
+--Testcase 121:
+SELECT * FROM (
+SELECT sqrt(value1), sqrt(value2) FROM s3 WHERE to_hex(value2) != '64'
+) AS t ORDER BY 1,2;
+        sqrt        |        sqrt        
+--------------------+--------------------
+ 1.0488088595363112 | 14.142135623730951
+ 1.4832397134933097 | 14.142135623730951
+ 1.8165901993339841 | 14.142135623730951
+(3 rows)
+
+-- select sqrt (builtin function, pushdown constraints, explain)
+--Testcase 122:
+EXPLAIN VERBOSE
+SELECT sqrt(value1), sqrt(value2) FROM s3 WHERE value2 != 200;
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..254.54 rows=3396 width=16)
+   Output: (sqrt(value1)), (sqrt((value2)::double precision))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT sqrt(value1), sqrt(value2) FROM public.s3mysql WHERE ((value2 <> 200))
+(4 rows)
+
+-- select sqrt (builtin function, pushdown constraints, result)
+--Testcase 123:
+SELECT * FROM (
+SELECT sqrt(value1), sqrt(value2) FROM s3 WHERE value2 != 200
+) AS t ORDER BY 1,2;
+        sqrt        | sqrt 
+--------------------+------
+ 0.3162277683729184 |   10
+ 0.4472135988319589 |   10
+ 0.5477225683874355 |   10
+(3 rows)
+
+-- select abs (builtin function, explain)
+--Testcase 124:
+EXPLAIN VERBOSE
+SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3;
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..246.52 rows=3413 width=24)
+   Output: (abs(value1)), (abs(value2)), (abs(value3)), (abs(value4))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM public.s3mysql
+(4 rows)
+
+-- ABS() returns negative values if integer (https://github.com/influxdata/influxdb/issues/10261)
+-- select abs (buitin function, result)
+--Testcase 125:
+SELECT * FROM (
+SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3
+) AS t ORDER BY 1,2,3,4;
+         abs         | abs |         abs         | abs 
+---------------------+-----+---------------------+-----
+ 0.10000000149011612 | 100 | 0.10000000149011612 | 100
+ 0.20000000298023224 | 100 | 0.20000000298023224 | 100
+ 0.30000001192092896 | 100 | 0.30000001192092896 | 100
+   1.100000023841858 | 200 |   1.100000023841858 | 200
+   2.200000047683716 | 200 |   2.200000047683716 | 200
+   3.299999952316284 | 200 |   3.299999952316284 | 200
+(6 rows)
+
+-- select abs (builtin function, not pushdown constraints, explain)
+--Testcase 126:
+EXPLAIN VERBOSE
+SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE to_hex(value2) != '64';
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..280.39 rows=3396 width=24)
+   Output: (abs(value1)), (abs(value2)), (abs(value3)), (abs(value4))
+   Filter: (to_hex(s3.value2) <> '64'::text)
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT abs(value1), abs(value2), abs(value3), abs(value4), value2 FROM public.s3mysql
+(5 rows)
+
+-- select abs (builtin function, not pushdown constraints, result)
+--Testcase 127:
+SELECT * FROM (
+SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE to_hex(value2) != '64'
+) AS t ORDER BY 1,2,3,4;
+        abs        | abs |        abs        | abs 
+-------------------+-----+-------------------+-----
+ 1.100000023841858 | 200 | 1.100000023841858 | 200
+ 2.200000047683716 | 200 | 2.200000047683716 | 200
+ 3.299999952316284 | 200 | 3.299999952316284 | 200
+(3 rows)
+
+-- select abs (builtin function, pushdown constraints, explain)
+--Testcase 128:
+EXPLAIN VERBOSE
+SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE value2 != 200;
+                                                      QUERY PLAN                                                       
+-----------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..263.03 rows=3396 width=24)
+   Output: (abs(value1)), (abs(value2)), (abs(value3)), (abs(value4))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM public.s3mysql WHERE ((value2 <> 200))
+(4 rows)
+
+-- select abs (builtin function, pushdown constraints, result)
+--Testcase 129:
+SELECT * FROM (
+SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE value2 != 200
+) AS t ORDER BY 1,2,3,4;
+         abs         | abs |         abs         | abs 
+---------------------+-----+---------------------+-----
+ 0.10000000149011612 | 100 | 0.10000000149011612 | 100
+ 0.20000000298023224 | 100 | 0.20000000298023224 | 100
+ 0.30000001192092896 | 100 | 0.30000001192092896 | 100
+(3 rows)
+
+-- select log (builtin function, need to swap arguments, numeric cast, explain)
+-- log_<base>(v) : postgresql (base, v), influxdb (v, base), mysql (base, v)
+--Testcase 130:
+EXPLAIN VERBOSE
+SELECT log(value1::numeric, value2::numeric) FROM s3 WHERE value1 != 1;
+                                                        QUERY PLAN                                                        
+--------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..254.54 rows=3396 width=32)
+   Output: (log((value1)::numeric, (value2)::numeric))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT log(value1::numeric, value2::numeric) FROM public.s3mysql WHERE ((value1 <> 1::double precision))
+(4 rows)
+
+-- select log (builtin function, need to swap arguments, numeric cast, result)
+--Testcase 131:
+SELECT * FROM (
+SELECT log(value1::numeric, value2::numeric) FROM s3 WHERE value1 != 1
+) AS t ORDER BY 1;
+         log         
+---------------------
+  -3.824978705027617
+  -2.861353142638945
+ -2.0000000129429845
+   4.437739945920098
+   6.719852571927687
+  55.590244111799876
+(6 rows)
+
+-- select log (stub function, need to swap arguments, float8, explain)
+--Testcase 132:
+EXPLAIN VERBOSE
+SELECT log(value1, 0.1) FROM s3 WHERE value1 != 1;
+                                                          QUERY PLAN                                                          
+------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..1078.07 rows=3396 width=8)
+   Output: (log(value1, '0.1'::double precision))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT public.log(value1, 0.1::double precision) FROM public.s3mysql WHERE ((value1 <> 1::double precision))
+(4 rows)
+
+-- select log (stub function, need to swap arguments, float8, result)
+--Testcase 133:
+SELECT * FROM (
+SELECT log(value1, 0.1) FROM s3 WHERE value1 != 1
+) AS t ORDER BY 1;
+         log         
+---------------------
+ -24.158852434150408
+ -2.9203672201537807
+ -1.9285884818027121
+   1.000000006471492
+   1.430676571319472
+   1.912489352513808
+(6 rows)
+
+-- select log (stub function, need to swap arguments, bigint, explain)
+--Testcase 134:
+EXPLAIN VERBOSE
+SELECT log(value2, 3) FROM s3 WHERE value1 != 1;
+                                                         QUERY PLAN                                                         
+----------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..1086.56 rows=3396 width=8)
+   Output: (log((value2)::double precision, '3'::double precision))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT public.log(value2, 3::double precision) FROM public.s3mysql WHERE ((value1 <> 1::double precision))
+(4 rows)
+
+-- select log (stub function, need to swap arguments, bigint, result)
+--Testcase 135:
+SELECT * FROM (
+SELECT log(value2, 3) FROM s3 WHERE value1 != 1
+) AS t ORDER BY 1;
+         log         
+---------------------
+ 0.20735116692035352
+ 0.20735116692035352
+ 0.20735116692035352
+ 0.23856062735983122
+ 0.23856062735983122
+ 0.23856062735983122
+(6 rows)
+
+-- select log (stub function, need to swap arguments, mix type, explain)
+--Testcase 136:
+EXPLAIN VERBOSE
+SELECT log(value1, value2) FROM s3 WHERE value1 != 1;
+                                                  QUERY PLAN                                                   
+---------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..1086.56 rows=3396 width=8)
+   Output: (log(value1, (value2)::double precision))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT public.log(value1, value2) FROM public.s3mysql WHERE ((value1 <> 1::double precision))
+(4 rows)
+
+-- select log (stub function, need to swap arguments, mix type, result)
+--Testcase 137:
+SELECT * FROM (
+SELECT log(value1, value2) FROM s3 WHERE value1 != 1
+) AS t ORDER BY 1;
+         log         
+---------------------
+  -3.824978705027617
+  -2.861353142638945
+ -2.0000000129429845
+   4.437739945920098
+   6.719852571927687
+  55.590244111799876
+(6 rows)
+
+-- select abs as nest function with agg (pushdown, explain)
+--Testcase 138:
+EXPLAIN VERBOSE
+SELECT sum(value3),abs(sum(value3)) FROM s3;
+                       QUERY PLAN                       
+--------------------------------------------------------
+ Foreign Scan  (cost=0.00..0.00 rows=1 width=16)
+   Output: (sum(value3)), abs((sum(value3)))
+   Node: pgspider_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.s3)
+     Remote SQL: SELECT sum(value3) FROM public.s3mysql
+(6 rows)
+
+-- select abs as nest function with agg (pushdown, result)
+--Testcase 139:
+SELECT sum(value3),abs(sum(value3)) FROM s3;
+ sum  | abs 
+------+-----
+ -7.2 | 7.2
+(1 row)
+
+-- select abs with non pushdown func and explicit constant (explain)
+--Testcase 140:
+EXPLAIN VERBOSE
+SELECT abs(value3), pi(), 4.1 FROM s3;
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..220.92 rows=3413 width=48)
+   Output: (abs(value3)), '3.141592653589793'::double precision, 4.1
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT abs(value3), 3.141592653589793::double precision, 4.1 FROM public.s3mysql
+(4 rows)
+
+-- select abs with non pushdown func and explicit constant (result)
+--Testcase 141:
+SELECT * FROM (
+SELECT abs(value3), pi(), 4.1 FROM s3
+) AS t ORDER BY 1,2,3;
+         abs         |        pi         | ?column? 
+---------------------+-------------------+----------
+ 0.10000000149011612 | 3.141592653589793 |      4.1
+ 0.20000000298023224 | 3.141592653589793 |      4.1
+ 0.30000001192092896 | 3.141592653589793 |      4.1
+   1.100000023841858 | 3.141592653589793 |      4.1
+   2.200000047683716 | 3.141592653589793 |      4.1
+   3.299999952316284 | 3.141592653589793 |      4.1
+(6 rows)
+
+-- select sqrt as nest function with agg and explicit constant (pushdown, explain)
+--Testcase 142:
+EXPLAIN VERBOSE
+SELECT sqrt(count(value1)), pi(), 4.1 FROM s3;
+                                           QUERY PLAN                                            
+-------------------------------------------------------------------------------------------------
+ Foreign Scan  (cost=0.00..0.00 rows=1 width=48)
+   Output: sqrt(((count(value1)))::double precision), '3.141592653589793'::double precision, 4.1
+   Node: pgspider_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.s3)
+     Remote SQL: SELECT count(value1) FROM public.s3mysql
+(6 rows)
+
+-- select sqrt as nest function with agg and explicit constant (pushdown, result)
+--Testcase 143:
+SELECT sqrt(count(value1)), pi(), 4.1 FROM s3;
+       sqrt        |        pi         | ?column? 
+-------------------+-------------------+----------
+ 2.449489742783178 | 3.141592653589793 |      4.1
+(1 row)
+
+-- select sqrt as nest function with agg and explicit constant and tag (error, explain)
+--Testcase 144:
+EXPLAIN VERBOSE
+SELECT sqrt(count(value1)), pi(), 4.1, tag1 FROM s3;
+ERROR:  column "s3.tag1" must appear in the GROUP BY clause or be used in an aggregate function
+LINE 2: SELECT sqrt(count(value1)), pi(), 4.1, tag1 FROM s3;
+                                               ^
+-- select abs with order by (explain)
+--Testcase 145:
+EXPLAIN VERBOSE
+SELECT value1, abs(1-value1) FROM s3 ORDER BY abs(1-value1);
+                                          QUERY PLAN                                          
+----------------------------------------------------------------------------------------------
+ Sort  (cost=429.74..438.28 rows=3413 width=16)
+   Output: value1, (abs(('1'::double precision - value1)))
+   Sort Key: (abs(('1'::double precision - s3.value1)))
+   ->  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=16)
+         Output: value1, (abs(('1'::double precision - value1)))
+         Node: pgspider_svr / Status: Alive
+           Remote SQL: SELECT value1, abs((1::double precision - value1)) FROM public.s3mysql
+(7 rows)
+
+-- select abs with order by (result)
+--Testcase 146:
+SELECT value1, abs(1-value1) FROM s3 ORDER BY abs(1-value1);
+ value1 |         abs         
+--------+---------------------
+    1.1 | 0.10000002384185791
+    0.3 |   0.699999988079071
+    0.2 |  0.7999999970197678
+    0.1 |  0.8999999985098839
+    2.2 |  1.2000000476837158
+    3.3 |   2.299999952316284
+(6 rows)
+
+-- select abs with order by index (result)
+--Testcase 147:
+SELECT value1, abs(1-value1) FROM s3 ORDER BY 2,1;
+ value1 |         abs         
+--------+---------------------
+    1.1 | 0.10000002384185791
+    0.3 |   0.699999988079071
+    0.2 |  0.7999999970197678
+    0.1 |  0.8999999985098839
+    2.2 |  1.2000000476837158
+    3.3 |   2.299999952316284
+(6 rows)
+
+-- select abs with order by index (result)
+--Testcase 148:
+SELECT value1, abs(1-value1) FROM s3 ORDER BY 1,2;
+ value1 |         abs         
+--------+---------------------
+    0.1 |  0.8999999985098839
+    0.2 |  0.7999999970197678
+    0.3 |   0.699999988079071
+    1.1 | 0.10000002384185791
+    2.2 |  1.2000000476837158
+    3.3 |   2.299999952316284
+(6 rows)
+
+-- select abs and as
+--Testcase 149:
+SELECT * FROM (
+SELECT abs(value3) as abs1 FROM s3
+) AS t ORDER BY 1;
+        abs1         
+---------------------
+ 0.10000000149011612
+ 0.20000000298023224
+ 0.30000001192092896
+   1.100000023841858
+   2.200000047683716
+   3.299999952316284
+(6 rows)
+
+-- select abs with arithmetic and tag in the middle (explain)
+--Testcase 150:
+EXPLAIN VERBOSE
+SELECT abs(value1) + 1, value2, tag1, sqrt(value2) FROM s3;
+                                                 QUERY PLAN                                                 
+------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..246.52 rows=3413 width=52)
+   Output: ((abs(value1) + '1'::double precision)), value2, tag1, (sqrt((value2)::double precision))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT (abs(value1) + 1::double precision), value2, tag1, sqrt(value2) FROM public.s3mysql
+(4 rows)
+
+-- select abs with arithmetic and tag in the middle (result)
+--Testcase 151:
+SELECT * FROM (
+SELECT abs(value1) + 1, value2, tag1, sqrt(value2) FROM s3
+) AS t ORDER BY 1,2,3,4;
+      ?column?      | value2 | tag1 |        sqrt        
+--------------------+--------+------+--------------------
+ 1.1000000014901161 |    100 | a    |                 10
+ 1.2000000029802322 |    100 | a    |                 10
+  1.300000011920929 |    100 | a    |                 10
+  2.100000023841858 |    200 | b    | 14.142135623730951
+  3.200000047683716 |    200 | b    | 14.142135623730951
+  4.299999952316284 |    200 | b    | 14.142135623730951
+(6 rows)
+
+-- select with order by limit (explain)
+--Testcase 152:
+EXPLAIN VERBOSE
+SELECT abs(value1), abs(value3), sqrt(value2) FROM s3 ORDER BY abs(value3) LIMIT 1;
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
+ Limit  (cost=263.58..263.59 rows=1 width=24)
+   Output: (abs(value1)), (abs(value3)), (sqrt((value2)::double precision))
+   ->  Sort  (cost=263.58..272.12 rows=3413 width=24)
+         Output: (abs(value1)), (abs(value3)), (sqrt((value2)::double precision))
+         Sort Key: (abs(s3.value3))
+         ->  Foreign Scan on public.s3  (cost=100.00..246.52 rows=3413 width=24)
+               Output: (abs(value1)), (abs(value3)), (sqrt((value2)::double precision))
+               Node: pgspider_svr / Status: Alive
+                 Remote SQL: SELECT abs(value1), abs(value3), sqrt(value2) FROM public.s3mysql
+(9 rows)
+
+-- select with order by limit (explain)
+--Testcase 153:
+SELECT * FROM (
+SELECT abs(value1), abs(value3), sqrt(value2) FROM s3 ORDER BY abs(value3) LIMIT 1
+) AS t ORDER BY 1,2,3;
+         abs         |         abs         | sqrt 
+---------------------+---------------------+------
+ 0.10000000149011612 | 0.10000000149011612 |   10
+(1 row)
+
+-- select mixing with non pushdown func (all not pushdown, explain)
+--Testcase 154:
+EXPLAIN VERBOSE
+SELECT abs(value1), sqrt(value2), chr(id+40) FROM s3;
+                                      QUERY PLAN                                      
+--------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..255.05 rows=3413 width=48)
+   Output: (abs(value1)), (sqrt((value2)::double precision)), (chr((id + 40)))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT abs(value1), sqrt(value2), chr((id + 40)) FROM public.s3mysql
+(4 rows)
+
+-- select mixing with non pushdown func (result)
+--Testcase 155:
+SELECT * FROM (
+SELECT abs(value1), sqrt(value2), chr(id+40) FROM s3
+) AS t ORDER BY 1,2,3;
+ abs |        sqrt        | chr 
+-----+--------------------+-----
+ 0.1 |                 10 | (
+ 0.2 |                 10 | )
+ 0.3 |                 10 | *
+ 1.1 | 14.142135623730951 | +
+ 2.2 | 14.142135623730951 | ,
+ 3.3 | 14.142135623730951 | -
+(6 rows)
+
+-- full text search table
+-- text search (pushdown, explain)
+--Testcase 156:
+EXPLAIN VERBOSE
+SELECT MATCH_AGAINST(ARRAY[content, 'success catches']) AS score, content FROM ftextsearch WHERE MATCH_AGAINST(ARRAY[content, 'success catches','IN BOOLEAN MODE']) != 0;
+                                                                                                                  QUERY PLAN                                                                                                                   
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.ftextsearch  (cost=100.00..2780.32 rows=3396 width=40)
+   Output: (match_against(ARRAY[content, 'success catches'::text])), content
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT public.match_against(ARRAY[content, 'success catches'::text]), content FROM public.ftextsearch WHERE ((public.match_against(ARRAY[content, 'success catches'::text, 'IN BOOLEAN MODE'::text]) <> 0::double precision))
+(4 rows)
+
+-- text search (pushdown, result)
+--Testcase 157:
+SELECT content FROM (
+SELECT MATCH_AGAINST(ARRAY[content, 'success catches']) AS score, content FROM ftextsearch WHERE MATCH_AGAINST(ARRAY[content, 'success catches','IN BOOLEAN MODE']) != 0
+       ) AS t ORDER BY 1;
+             content              
+----------------------------------
+ Failure teaches success.
+ The early bird catches the worm.
+(2 rows)
+
+--Testcase 158:
+DROP FOREIGN TABLE ftextsearch__pgspider_svr__0;
+--Testcase 159:
+DROP FOREIGN TABLE s3__pgspider_svr__0;
+--Testcase 160:
+DROP USER MAPPING FOR CURRENT_USER SERVER pgspider_svr;
+--Testcase 161:
+DROP SERVER pgspider_svr;
+--Testcase 162:
+DROP EXTENSION pgspider_fdw;
+--Testcase 163:
+DROP FOREIGN TABLE ftextsearch;
+--Testcase 164:
+DROP FOREIGN TABLE s3;
+--Testcase 165:
+DROP USER MAPPING FOR CURRENT_USER SERVER pgspider_core_svr;
+--Testcase 166:
+DROP SERVER pgspider_core_svr;
+--Testcase 167:
+DROP EXTENSION pgspider_core_fdw;
