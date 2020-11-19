@@ -105,6 +105,20 @@ PG_MODULE_MAGIC;
 #define SUM_FLOAT8_OID 2111
 #define SUM_NUMERI_OID 2114
 
+#define MIN_BIGINT_OID 2131
+#define MIN_INT4_OID  2132
+#define MIN_INT2_OID  2133
+#define MIN_FLOAT4_OID 2135
+#define MIN_FLOAT8_OID 2136
+#define MIN_NUMERI_OID 2146
+
+#define MAX_BIGINT_OID 2115
+#define MAX_INT4_OID  2116
+#define MAX_INT2_OID  2117
+#define MAX_FLOAT4_OID 2119
+#define MAX_FLOAT8_OID 2120
+#define MAX_NUMERI_OID 2130
+
 #define OPEXPER_INT4_OID 514
 #define OPEXPER_INT4_FUNCID 141
 #define OPEXPER_INT2_OID 526
@@ -217,8 +231,15 @@ enum Aggtype
 	AVG_FLAG,
 	VAR_FLAG,
 	DEV_FLAG,
+	SPREAD_FLAG,
 };
 
+/* split agg names for searching on catalog (last must be "") */
+const char *CatalogSplitAggStr[] = {"SPREAD",
+									""};
+
+const enum Aggtype CatalogSplitAggType[] = {SPREAD_FLAG,
+											NON_AGG_FLAG};
 
 
 
@@ -435,6 +456,7 @@ static void spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, const Tuple
 static void spd_queue_notify_finish(SpdTupleQueue * que);
 static void spd_spi_ddl_table(char *query, SpdFdwPrivate *fdw_private);
 
+static List *spd_catalog_makedivtlist(Aggref *aggref, List *newList, enum Aggtype aggtype);
 
 /* postgresql.conf paramater */
 static bool throwErrorIfDead;
@@ -457,6 +479,7 @@ extern bool is_having_safe(Node *node);
 extern bool is_sorted(Node *node);
 extern void spd_deparse_const(Const *node, StringInfo buf, int showtype);
 extern char *spd_deparse_type_name(Oid type_oid, int32 typemod);
+static bool check_spdurl_walker(Node *node, PlannerInfo *root);
 
 static SpdFdwPrivate *
 spd_AllocatePrivate()
@@ -509,6 +532,42 @@ pgspider_core_fdw_handler(PG_FUNCTION_ARGS)
 
 	PG_RETURN_POINTER(fdwroutine);
 }
+
+/**
+ * Return true if the oid is for split agg functions except avg, var and stddev
+ */
+static bool
+is_catalog_split_agg(Oid oid, enum Aggtype *type)
+{
+	HeapTuple	proctup;
+	Form_pg_proc procform;
+	const char *proname;
+	int i;
+	bool result = false;
+
+	proctup = SearchSysCache1(PROCOID, ObjectIdGetDatum(oid));
+	if (!HeapTupleIsValid(proctup))
+		elog(ERROR, "cache lookup failed for function %u", oid);
+	procform = (Form_pg_proc) GETSTRUCT(proctup);
+	proname = NameStr(procform->proname);
+
+	for (i = 0; CatalogSplitAggStr[i][0] != '\0'; i++)
+	{
+		if (!pg_strcasecmp(proname, CatalogSplitAggStr[i]))
+		{
+			result = true;
+
+			if (type)
+				*type = CatalogSplitAggType[i];
+			break;
+		}
+	}
+
+	ReleaseSysCache(proctup);
+
+	return result;
+}
+
 
 /*
  * spd_can_skip_deepcopy
@@ -1254,6 +1313,88 @@ set_split_numeric_info(Aggref *tempAgg, OpExpr *opexpr)
 	}
 }
 
+/*
+ * add_nodes_to_list
+ *
+ * This function is used to add multiple nodes to tlist, compress_tlist_tle and compress_tlist.
+ * It also set data for mapcell.
+ *
+ * @param[in] expr - the original expression
+ * @param[in] exprs - the expression list to add
+ * @param[in,out] tlist - flattened tlist
+ * @param[in,out] mapcells - the mapping cell which is corresponding to the expr
+ * @param[in,out] compress_tlist_tle - compressed child tlist with target entry
+ * @param[in,out] compress_tlist - compressed child tlist without target entry
+ * @param[in] is_agg_ope - true if combination of aggregate function and operators
+ * @param[in] allow_duplicate - allow or not allow a target can be duplicated in grouping target list
+ */
+static void
+add_nodes_to_list(Expr *aggref, List *exprs, List **tlist, Mappingcells **mapcells, List **compress_tlist_tle, List **compress_tlist, bool is_agg_ope, bool allow_duplicate)
+{
+	/* Non-agg group by target or non-split agg such as sum or count */
+	TargetEntry	*tle_temp;
+	TargetEntry	*tle;
+	int			target_num = 0;
+	int			next_resno = list_length(*tlist) + 1;
+	int			next_resno_temp = list_length(*compress_tlist_tle) + 1;
+	ListCell	*lc;
+	int         i = 0;
+
+	tle = spd_tlist_member(aggref, *tlist, &target_num);
+	/* original */
+	if (allow_duplicate || !tle)
+	{
+		if (allow_duplicate)
+			target_num = list_length(*tlist);
+
+		/* When expression is a combination of operator and aggregate function,
+		 * no need to add to tlist because the whole expression has been added in spd_add_to_flat_tlist
+		 */
+		if (is_agg_ope == false)
+		{
+			tle = makeTargetEntry(copyObject(aggref),
+								  next_resno++,
+								  NULL,
+								  false);
+			*tlist = lappend(*tlist, tle);
+		}
+		else
+			target_num = list_length(*tlist) - 1;
+	}
+	else if (tle)
+	{
+		target_num = list_length(*tlist) - 1;
+	}
+
+	(*mapcells)->original_attnum = target_num;
+
+	foreach(lc, exprs)
+	{
+		Expr *expr = (Expr *) lfirst(lc);
+		
+		tle_temp = spd_tlist_member(expr, *compress_tlist_tle, &target_num);
+		if (allow_duplicate || !tle_temp)
+		{
+			tle_temp = makeTargetEntry(copyObject(expr),
+									   next_resno_temp++,
+									   NULL,
+									   false);
+			*compress_tlist_tle = lappend(*compress_tlist_tle, tle_temp);
+			*compress_tlist = lappend(*compress_tlist, expr);
+		}
+		/* If allow duplicate, so need to change mapping to the last of compress_tlist */
+		if (allow_duplicate)
+		{
+			(*mapcells)->mapping[i] = list_length(*compress_tlist) - 1;
+		}
+		else
+		{
+			(*mapcells)->mapping[i] = target_num;
+		}
+		i++;
+	}
+}
+
 /**
  * extract_expr
  * Extract an expression.
@@ -1334,6 +1475,7 @@ extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_
 			int				next_resno = list_length(*tlist) + 1;
 			int				next_resno_temp = list_length(*compress_tlist_tle) + 1;
 			Mappingcells 	*mapcells;
+			enum Aggtype    aggtype;
 
 			/* Initialize mapcells */
 			init_mappingcell(&mapcells);
@@ -1471,6 +1613,19 @@ extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_
 					}
 					mapcells->mapping[2] = target_num;
 					(*extcells)->ext_num++;
+				}
+			}
+			else if (IsA(node, Aggref) && is_catalog_split_agg(aggref->aggfnoid, &aggtype))
+			{
+				List   *exprs = NULL;
+
+				exprs = spd_catalog_makedivtlist(aggref, exprs, aggtype);
+				if (exprs != NULL)
+				{
+					add_nodes_to_list((Expr *) node, exprs, tlist, &mapcells, compress_tlist_tle, compress_tlist, is_agg_ope, false);
+					mapcells->aggtype = aggtype;
+					appendStringInfoString(mapcells->agg_command, CatalogSplitAggStr[aggtype]);
+					(*extcells)->ext_num += list_length(exprs);
 				}
 			}
 			else
@@ -3135,6 +3290,7 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 
 	baserel->rows = 1000;
 	fdw_private = spd_AllocatePrivate();
+	fdw_private->idx_url_tlist = -1;	/* -1: not have __spd_url */
 	fdw_private->rinfo.pushdown_safe = true;
 	baserel->fdw_private = (void *) fdw_private;
 
@@ -3297,6 +3453,172 @@ spd_makedivtlist(Aggref *aggref, List *newList, SpdFdwPrivate * fdw_private)
 }
 
 /**
+ * spd_catalog_makedivtlist
+ *
+ * Splitting one aggref into multiple aggref (catalogue version)
+ *
+ * @param[in] aggref - aggregation entry
+ * @param[in,out] list - list of new exprs
+ * @param[in] type - agg type in CatalogSplitAggType
+ */
+
+static List *
+spd_catalog_makedivtlist(Aggref *aggref, List *newList, enum Aggtype aggtype)
+{
+	switch (aggtype)
+	{
+	case SPREAD_FLAG:
+	{
+		Aggref *tempMin = copyObject(aggref);
+		Aggref *tempMax;
+		Oid    maxoid;
+
+		if (aggref->aggtype == FLOAT4OID || aggref->aggtype == FLOAT8OID)
+		{
+			tempMin->aggfnoid = MIN_FLOAT8_OID;
+			tempMin->aggtype = FLOAT8OID;
+			tempMin->aggtranstype = FLOAT8OID;
+			maxoid = MAX_FLOAT8_OID;
+		}
+		else
+		{
+			tempMin->aggfnoid = MIN_BIGINT_OID;
+			tempMin->aggtype = INT8OID;
+			tempMin->aggtranstype = INT8OID;
+			maxoid = MAX_BIGINT_OID;
+		}
+		tempMax = copyObject(tempMin);
+		tempMax->aggfnoid = maxoid;
+
+		newList = lappend(newList, tempMin);
+		newList = lappend(newList, tempMax);
+		break;
+	}
+	default:
+		break;
+	}
+
+	return newList;
+}
+
+
+/**
+ * spd_make_tlist_for_baserel
+ *
+ * Making tlist for basrel with some checking
+ *
+ * @param[in,out] original tlits - list of target exprs
+ * @param[in] root - base planner information
+ */
+
+static List *
+spd_make_tlist_for_baserel(List *tlist, PlannerInfo *root)
+{
+	ListCell	*lc;
+	List		*new_tlist = NIL;
+	Var			*spdurl_var = NULL;
+
+	foreach(lc, tlist)
+	{
+		TargetEntry *ent = (TargetEntry *) lfirst(lc);
+		Node *node = (Node *)ent->expr;
+
+		if (IsA(node, FuncExpr))
+		{
+			FuncExpr	*func = (FuncExpr *) node;
+			char		*opername = NULL;
+			HeapTuple 	tuple;
+
+			/* Get function name and schema */
+			tuple = SearchSysCache1(PROCOID, ObjectIdGetDatum(func->funcid));
+			if (!HeapTupleIsValid(tuple))
+			{
+				elog(ERROR, "cache lookup failed for function %u", func->funcid);
+			}
+			opername = pstrdup(((Form_pg_proc) GETSTRUCT(tuple))->proname.data);
+			ReleaseSysCache(tuple);
+
+			/* influx_time() should be used with group by, so it is removed from tlist in baserel. */
+			if (strcmp(opername, "influx_time") == 0)
+				continue;
+
+			/* If there is __spd_url in function's argument, remove the function and add vars instead. */
+			if (expression_tree_walker((Node *) func->args, check_spdurl_walker, root))
+			{
+				ListCell *vars_lc;
+
+				foreach(vars_lc, pull_var_clause((Node *) func->args, PVC_RECURSE_PLACEHOLDERS))
+				{
+					Var	*var = (Var *) lfirst(vars_lc);
+					RangeTblEntry *rte;
+					char	   *colname;
+
+					rte = planner_rt_fetch(var->varno, root);
+					colname = get_attname(rte->relid, var->varattno, false);
+					if (strcmp(colname, SPDURL) == 0)
+						spdurl_var = var;
+					else
+						new_tlist = add_to_flat_tlist(new_tlist, list_make1(var));
+				}
+				continue;
+			}
+		}
+
+		new_tlist = add_to_flat_tlist(new_tlist, list_make1(node));
+	}
+
+	/* Place __spd_url into the last of tlist */
+	if (spdurl_var)
+		new_tlist = add_to_flat_tlist(new_tlist, list_make1(spdurl_var));
+
+	return new_tlist;
+}
+
+/**
+ * spd_merge_tlist
+ *
+ * Merge tlist into base tlist
+ *
+ * @param[in,out] base tlits - list of target exprs
+ * @param[in] tlits to be merged - list of target exprs
+ * @param[in] root - base planner infromation
+ */
+
+static List *
+spd_merge_tlist(List *base_tlist, List *tlist, PlannerInfo *root)
+{
+	ListCell	*lc;
+	Var			*spdurl_var = NULL;
+
+	foreach(lc, tlist)
+	{
+		TargetEntry *tle = (TargetEntry *) lfirst(lc);
+		Node *node = (Node *)tle->expr;
+		Var	*var = (Var *) tle->expr;
+		RangeTblEntry *rte;
+		char	   *colname;
+
+		if (IsA(node, Var))
+		{
+			rte = planner_rt_fetch(var->varno, root);
+			colname = get_attname(rte->relid, var->varattno, false);
+			if (strcmp(colname, SPDURL) == 0)
+			{
+				spdurl_var = var;
+				continue;
+			}
+		}
+		base_tlist = add_to_flat_tlist(base_tlist, list_make1(node));
+	}
+
+	/* Place __spd_url into the last of tlist */
+	if (spdurl_var)
+		base_tlist = add_to_flat_tlist(base_tlist, list_make1(spdurl_var));
+
+	return base_tlist;
+}
+
+/**
  * spd_GetForeignUpperPaths
  *
  * Add paths for post-join operations like aggregation, grouping etc. if
@@ -3373,12 +3695,15 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	{
 		Aggref	   *aggref;
 		Expr	   *temp_expr;
+		enum Aggtype    aggtype;
 
 		temp_expr = lfirst(lc);
 		aggref = (Aggref *) temp_expr;
 		listn++;
 		if (IS_SPLIT_AGG(aggref->aggfnoid))
 			newList = spd_makedivtlist(aggref, newList, fdw_private);
+		else if (IsA(temp_expr, Aggref) && is_catalog_split_agg(aggref->aggfnoid, &aggtype))
+			newList = spd_catalog_makedivtlist(aggref, newList, aggtype);
 		else
 			newList = lappend(newList, temp_expr);
 	}
@@ -4311,7 +4636,7 @@ spd_make_sort_from_groupcols(List *groupcls,
 }
 
 /**
- * spd_GetForeignPlan
+ * spd_GetForeignChildPlans
  *
  * Build foreign plan for each child tables using fdws.
  * saving each foreign plan into  base rel list
@@ -4320,60 +4645,27 @@ spd_make_sort_from_groupcols(List *groupcls,
  * @param[in] baserel - base relation option
  * @param[in] foreigntableid - Parent foreing table id
  * @param[in] ForeignPath *best_path - path of
- * @param[in] List *tlist - target_list
- * @param[in] List *scan_clauses where
- * @param[in] Plan *outer_plan outer_plan
+ * @param[in] List *ptemptlist - target_list of pgspider core
+ * @param[in] List **push_scan_clauses - where scan clauses
+ * @param[in] Plan *outer_plan - outer plan
+ * @param[in] ChildInfo *childinfo - each child information
+ * @param[in] Oid *oid - oid array of each foreign table
  *
  */
-static ForeignScan *
-spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
-				   ForeignPath *best_path, List *tlist, List *scan_clauses,
-				   Plan *outer_plan)
+static void
+spd_GetForeignChildPlans(PlannerInfo *root, RelOptInfo *baserel,
+						 ForeignPath *best_path, List *ptemptlist, List **push_scan_clauses,
+						 Plan *outer_plan, ChildInfo *childinfo, Oid *oid)
 {
-	FdwRoutine *fdwroutine;
-	int			nums;
 	int			i;
-	Oid		   *oid = NULL;
+	FdwRoutine *fdwroutine;
 	Oid			server_oid;
 	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *) baserel->fdw_private;
-	Index		scan_relid;
-	List	   *fdw_scan_tlist = NIL;	/* Need dummy tlist for pushdown case. */
-	List	   *push_scan_clauses = scan_clauses;
-	ListCell   *lc;
-	ChildInfo  *childinfo;
 	ForeignServer *fs;
 	ForeignDataWrapper *fdw;
-	List	   *lfdw_private = NIL;
 	ForeignPath *child_path;
 
-	if (fdw_private == NULL)
-		elog(ERROR, "fdw_private is NULL");
-
-	spd_spi_exec_datasouce_num(foreigntableid, &nums, &oid);
-
-	fdw_scan_tlist = fdw_private->rinfo.grouped_tlist;
-
-	/* Create "GROUP BY" string */
-	if (root->parse->groupClause != NULL)
-	{
-		bool		first = true;
-
-		fdw_private->groupby_string = makeStringInfo();
-		appendStringInfo(fdw_private->groupby_string, "GROUP BY ");
-		foreach(lc, fdw_private->groupby_target)
-		{
-			int			cl = lfirst_int(lc);
-
-			if (!first)
-				appendStringInfoString(fdw_private->groupby_string, ", ");
-			first = false;
-
-			appendStringInfo(fdw_private->groupby_string, "col%d", cl);
-		}
-	}
-	childinfo = fdw_private->childinfo;
-
-	/* Create Foreign Plans using base_rel_list to each child. */
+	/* Create Foreign plans for each child. */
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
 		ForeignScan *fsplan = NULL;
@@ -4402,7 +4694,8 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 					elog(ERROR, "Agg path is not found");
 
 				/* FDWs expect NULL scan clauses for UPPER REL */
-				push_scan_clauses = NULL;
+				*push_scan_clauses = NULL;
+				/* Pick any agg path */
 
 				/* Pick any agg path */
 				child_path = lfirst(list_head(childinfo[i].grouped_rel_local->pathlist));
@@ -4413,7 +4706,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 													oid[i],
 													(ForeignPath *) child_path,
 													temptlist,
-													push_scan_clauses,
+													*push_scan_clauses,
 													outer_plan);
 			}
 			else
@@ -4424,7 +4717,10 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				 */
 
 				/* Add all columns of the table */
-				temptlist = (List *) build_physical_tlist(childinfo[i].root, childinfo[i].baserel);
+				if (IS_SIMPLE_REL(baserel) && ptemptlist != NULL)
+					temptlist = list_copy(ptemptlist);
+				else
+					temptlist = (List *) build_physical_tlist(childinfo[i].root, childinfo[i].baserel);
 
 				/*
 				 * Fill sortgrouprefs to temptlist. temptlist is non aggref
@@ -4438,7 +4734,8 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				/* Remove __spd_url from target lists if a child is not pgspider_fdw */
 				if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0 && IS_SIMPLE_REL(baserel))
 				{
-					temptlist = remove_spdurl_from_targets(list_copy(tlist), root);
+					temptlist = remove_spdurl_from_targets(temptlist, root);
+					// fixme: update fdw_private->idx_url_tlist
 				}
 
 				/*
@@ -4446,7 +4743,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				 * when aggregation is occurred
 				 */
 				if (list_member_oid(fdw_private->pPseudoAggList, server_oid))
-					push_scan_clauses = fdw_private->baserestrictinfo;
+					*push_scan_clauses = fdw_private->baserestrictinfo;
 
 				/*
 				 * We pass "best_path" to child GetForeignPlan. This is the
@@ -4464,11 +4761,11 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				 */
 				if (spd_checkurl_clauses(root, fdw_private->baserestrictinfo))
 				{
-					push_scan_clauses = NULL;
+					*push_scan_clauses = NULL;
 				}
 				else
 				{
-					push_scan_clauses = fdw_private->baserestrictinfo;
+					*push_scan_clauses = fdw_private->baserestrictinfo;
 				}
 
 				fsplan = fdwroutine->GetForeignPlan((PlannerInfo *) childinfo[i].root,
@@ -4476,7 +4773,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 													oid[i],
 													(ForeignPath *) best_path,
 													temptlist,
-													push_scan_clauses,
+													*push_scan_clauses,
 													outer_plan);
 			}
 			childinfo[i].scan_relid = childinfo[i].baserel->relid;
@@ -4534,12 +4831,12 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				AttrNumber *new_grpColIdx;
 
 				new_grpColIdx = extract_grouping_cols(childinfo[i].aggpath->groupClause,
-															   fsplan->scan.plan.targetlist);
+													  fsplan->scan.plan.targetlist);
 
 				sort_plan = (Plan *)
 					spd_make_sort_from_groupcols(childinfo[i].aggpath->groupClause,
-											 new_grpColIdx,
-											 (Plan *) fsplan);
+												 new_grpColIdx,
+												 (Plan *) fsplan);
 			}
 			childinfo[i].pAgg = make_agg(child_tlist,
 										 NULL,
@@ -4554,13 +4851,160 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 										 childinfo[i].aggpath->path.rows,
 										 childinfo[i].aggpath->transitionSpace,
 										 sort_plan!=NULL?sort_plan:(Plan *) fsplan);
-
 		}
 		childinfo[i].plan = (Plan *) fsplan;
 	}
+}
 
+/**
+ * spd_CompareTargetList
+ *
+ * Compare two given target lists.
+ * Return true if it is same list.
+ *
+ * @param[in] List *tlist1 - target_list
+ * @param[in] List *tlist2 - target_list
+ *
+ */
+static bool
+spd_CompareTargetList(List *tlist1, List *tlist2)
+{
+	ListCell   *lc1;
+	ListCell   *lc2;
+
+	if (list_length(tlist1) != list_length(tlist2))
+		return false;
+
+	forboth(lc1, tlist1, lc2, tlist2)
+	{
+		TargetEntry *ent1 = (TargetEntry *) lfirst(lc1);
+		TargetEntry *ent2 = (TargetEntry *) lfirst(lc2);
+
+		if (!equal(ent1->expr, ent2->expr))
+			return false;
+	}
+
+	return true;
+}
+
+/**
+ * spd_GetForeignPlan
+ *
+ * Build foreign plan for each child tables using fdws.
+ * saving each foreign plan into  base rel list
+ *
+ * @param[in] root - base planner infromation
+ * @param[in] baserel - base relation option
+ * @param[in] foreigntableid - Parent foreing table id
+ * @param[in] ForeignPath *best_path - path of
+ * @param[in] List *tlist - target_list
+ * @param[in] List *scan_clauses where
+ * @param[in] Plan *outer_plan outer_plan
+ *
+ */
+static ForeignScan *
+spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
+				   ForeignPath *best_path, List *tlist, List *scan_clauses,
+				   Plan *outer_plan)
+{
+	int			nums;
+	int			i;
+	Oid		   *oid = NULL;
+	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *) baserel->fdw_private;
+	Index		scan_relid;
+	List	   *fdw_scan_tlist = NIL;	/* Need dummy tlist for pushdown case. */
+	List	   *push_scan_clauses = scan_clauses;
+	ListCell   *lc;
+	ChildInfo  *childinfo;
+	List	   *lfdw_private = NIL;
+	List	   *ptemptlist;
+
+	if (fdw_private == NULL)
+		elog(ERROR, "fdw_private is NULL");
+
+	spd_spi_exec_datasouce_num(foreigntableid, &nums, &oid);
+
+	fdw_scan_tlist = fdw_private->rinfo.grouped_tlist;
+
+	/* Create "GROUP BY" string */
+	if (root->parse->groupClause != NULL)
+	{
+		bool		first = true;
+
+		fdw_private->groupby_string = makeStringInfo();
+		appendStringInfo(fdw_private->groupby_string, "GROUP BY ");
+		foreach(lc, fdw_private->groupby_target)
+		{
+			int			cl = lfirst_int(lc);
+
+			if (!first)
+				appendStringInfoString(fdw_private->groupby_string, ", ");
+			first = false;
+
+			appendStringInfo(fdw_private->groupby_string, "col%d", cl);
+		}
+	}
+	childinfo = fdw_private->childinfo;
+
+	/* Prepare parent temp tlist */
+	ptemptlist = spd_make_tlist_for_baserel(tlist, root);
+
+	/* Create Foreign plans for each child with function pushdown. */
+	spd_GetForeignChildPlans(root, baserel, best_path, ptemptlist, &push_scan_clauses,
+							 outer_plan, childinfo, oid);
+
+	fdw_private->is_pushdown_tlist = false;
 	if (IS_SIMPLE_REL(baserel))
 	{
+		ForeignScan *fsplan = NULL;
+		bool exist_pushdown_child = false;
+		bool exist_non_pushdown_child = false;
+		bool different_pushdown = false;
+		List *child_fdw_scan_tlist = NIL;
+
+		for (i = 0; i < fdw_private->node_num; i++)
+		{
+			fsplan = (ForeignScan *) childinfo[i].plan;
+
+			/* By IN clause, childinfo has NULL fsplan, ignore it. */
+			if (fsplan != NULL)
+			{
+				if (fsplan->fdw_scan_tlist == NULL)
+					exist_non_pushdown_child = true;
+				else if (exist_pushdown_child == false)
+				{
+					exist_pushdown_child = true;
+					child_fdw_scan_tlist = fsplan->fdw_scan_tlist;
+				}
+				else if (child_fdw_scan_tlist != NULL)
+				{
+					if (!spd_CompareTargetList(child_fdw_scan_tlist, fsplan->fdw_scan_tlist))
+						different_pushdown = true;
+				}
+
+				/* Check mix use of pushdown / non-pushdown */
+				if (different_pushdown ||
+					(fsplan->fdw_scan_tlist == NULL && exist_pushdown_child) ||
+					(fsplan->fdw_scan_tlist != NULL && exist_non_pushdown_child))
+				{
+					/* Create Foreign plans for each child without function pushdown. */
+					spd_GetForeignChildPlans(root, baserel, best_path, NULL, &push_scan_clauses,
+											 outer_plan, childinfo, oid);
+					exist_pushdown_child = false;
+					break;
+				}
+			}
+		}
+		if (exist_pushdown_child)
+		{
+			fdw_scan_tlist = spd_merge_tlist(child_fdw_scan_tlist, ptemptlist, root);
+			fdw_private->idx_url_tlist = get_index_spdurl_from_targets(fdw_scan_tlist, root);
+			fdw_private->is_pushdown_tlist = true;
+		}
+		else
+		{
+			fdw_scan_tlist = NULL;
+		}
 		scan_relid = baserel->relid;
 	}
 	else
@@ -4887,6 +5331,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			fssThrdInfo[node_incr].fsstate->ss.ps.plan = copyObject(node->ss.ps.plan);
 		}
 		fsplan = (ForeignScan *) fssThrdInfo[node_incr].fsstate->ss.ps.plan;
+		fsplan->scan.scanrelid = ((ForeignScan *)childinfo[i].plan)->scan.scanrelid;
 		fsplan->fdw_private = ((ForeignScan *) childinfo[i].plan)->fdw_private;
 		fsplan->fdw_exprs = ((ForeignScan *) childinfo[i].plan)->fdw_exprs;
 
@@ -5811,6 +6256,11 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 									cell->mapping[0], cell->mapping[0], cell->mapping[2], cell->mapping[1], cell->mapping[0], cell->mapping[0]);
 						break;
 					}
+					case SPREAD_FLAG:
+					{
+						appendStringInfo(buf, "MAX(col%d) - MIN(col%d)", cell->mapping[1], cell->mapping[0]);
+						break;
+					}
 					default:
 					{
 						char	   *agg_command = cell->agg_command->data;
@@ -6376,13 +6826,15 @@ spd_AddSpdUrl(ForeignScanThreadInfo * fssThrdInfo, TupleTableSlot *parent_slot,
 	}
 	else						/* Modify __spd_url column */
 	{
+		int natts = node_slot->tts_tupleDescriptor->natts;
+
 		/* Initialize new tuple buffer */
 		values = palloc0(sizeof(Datum) * node_slot->tts_tupleDescriptor->natts);
 		nulls = palloc0(sizeof(bool) * node_slot->tts_tupleDescriptor->natts);
 		replaces = palloc0(sizeof(bool) * node_slot->tts_tupleDescriptor->natts);
 		tnum = -1;
 
-		for (i = 0; i < node_slot->tts_tupleDescriptor->natts; i++)
+		for (i = 0; i < natts; i++)
 		{
 			char	   *value;
 			Form_pg_attribute attr = TupleDescAttr(node_slot->tts_tupleDescriptor, i);

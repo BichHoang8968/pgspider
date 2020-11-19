@@ -122,6 +122,9 @@ typedef struct PGSpiderFdwRelationInfo
 	 * representing the relation.
 	 */
 	int			relation_index;
+
+	/* Function pushdown surppot in target list */
+	bool		is_tlist_func_pushdown;
 }			PGSpiderFdwRelationInfo;
 
 /* in pgspider_fdw.c */
@@ -207,5 +210,9 @@ extern const char *pgspider_get_jointype_name(JoinType jointype);
 /* in shippable.c */
 extern bool pgspider_is_builtin(Oid objectId);
 extern bool pgspider_is_shippable(Oid objectId, Oid classId, PGSpiderFdwRelationInfo * fpinfo);
+
+extern bool pgspider_is_foreign_function_tlist(PlannerInfo *root,
+											   RelOptInfo *baserel,
+											   List *tlist);
 
 #endif							/* PGSPIDER_FDW_H */

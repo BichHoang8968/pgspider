@@ -1884,13 +1884,13 @@ SELECT * FROM t3;
 --Testcase 112:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT abs(-i*2), i+1, i, i FROM t3;
-                    QUERY PLAN                    
---------------------------------------------------
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
  Foreign Scan on public.t3
-   Output: abs(((- i) * 2)), (i + 1), i, i
+   Output: (abs(((- i) * 2))), ((i + 1)), i, i
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
-     Remote query: SELECT `i` FROM `test`.`test3`
+     Remote query: SELECT abs(((- `i`) * 2)), (`i` + 1), `i` FROM `test`.`test3`
 (5 rows)
 
 --Testcase 113:
@@ -1937,8 +1937,8 @@ SELECT abs(A.i) FROM t3 A, t3 B LIMIT 3;
 --Testcase 116:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT abs(i) c1 FROM t3 UNION SELECT abs(i+1) FROM t3 ORDER BY c1;
-                             QUERY PLAN                             
---------------------------------------------------------------------
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
  Sort
    Output: (abs(t3.i))
    Sort Key: (abs(t3.i))
@@ -1947,15 +1947,15 @@ SELECT abs(i) c1 FROM t3 UNION SELECT abs(i+1) FROM t3 ORDER BY c1;
          Group Key: (abs(t3.i))
          ->  Append
                ->  Foreign Scan on public.t3
-                     Output: abs(t3.i)
+                     Output: (abs(t3.i))
                      Node: mysql_svr / Status: Alive
                        Local server startup cost: 10
-                       Remote query: SELECT `i` FROM `test`.`test3`
+                       Remote query: SELECT abs(`i`) FROM `test`.`test3`
                ->  Foreign Scan on public.t3 t3_1
-                     Output: abs((t3_1.i + 1))
+                     Output: (abs((t3_1.i + 1)))
                      Node: mysql_svr / Status: Alive
                        Local server startup cost: 10
-                       Remote query: SELECT `i` FROM `test`.`test3`
+                       Remote query: SELECT abs((`i` + 1)) FROM `test`.`test3`
 (17 rows)
 
 --Testcase 117:

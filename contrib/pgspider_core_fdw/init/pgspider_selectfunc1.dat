@@ -1,0 +1,46 @@
+DROP EXTENSION IF EXISTS pgspider_core_fdw CASCADE;
+DROP EXTENSION IF EXISTS pgspider_fdw CASCADE;
+DROP EXTENSION IF EXISTS influxdb_fdw CASCADE;
+DROP EXTENSION IF EXISTS tinybrace_fdw CASCADE;
+DROP EXTENSION IF EXISTS postgres_fdw CASCADE;
+DROP EXTENSION IF EXISTS griddb_fdw CASCADE;
+DROP EXTENSION IF EXISTS mysql_fdw CASCADE;
+DROP EXTENSION IF EXISTS sqlite_fdw CASCADE;
+CREATE EXTENSION pgspider_core_fdw;
+CREATE EXTENSION sqlite_fdw;
+CREATE EXTENSION influxdb_fdw;
+CREATE EXTENSION mysql_fdw;
+
+-- pgspider_core_fdw
+CREATE SERVER pgspider_core_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1');
+CREATE USER MAPPING FOR CURRENT_USER SERVER pgspider_core_svr;
+CREATE FOREIGN TABLE s3influx (time timestamp with time zone, tag1 text, value1 float8, value2 bigint, value3 float8, value4 bigint, __spd_url text) SERVER pgspider_core_svr;
+CREATE FOREIGN TABLE s31influx (time timestamp with time zone, tag1 text, value1 float8, value2 bigint, value3 float8, value4 bigint, __spd_url text) SERVER pgspider_core_svr;
+CREATE FOREIGN TABLE s3sqlite (id text, time timestamp with time zone, tag1 text, value1 float8, value2 bigint, value3 float8, value4 bigint, str1 text, str2 text, __spd_url text) SERVER pgspider_core_svr;
+CREATE FOREIGN TABLE s31sqlite (id text, time timestamp with time zone, tag1 text, value1 float8, value2 bigint, value3 float8, value4 bigint, str1 text, str2 text, __spd_url text) SERVER pgspider_core_svr;
+CREATE FOREIGN TABLE s3mysql (id int, tag1 text, value1 float8, value2 bigint, value3 float8, value4 bigint, str1 text, str2 text, __spd_url text) SERVER pgspider_core_svr;
+CREATE FOREIGN TABLE s31mysql (id int, tag1 text, value1 float8, value2 bigint, value3 float8, value4 bigint, str1 text, str2 text, __spd_url text) SERVER pgspider_core_svr;
+
+CREATE FOREIGN TABLE s31mysql (id int, tag1 text, value1 float8, value2 bigint, value3 float8, value4 bigint, str1 text, str2 text, __spd_url text) SERVER pgspider_core_svr;
+CREATE FOREIGN TABLE ftextsearch (id int, content text, __spd_url text) SERVER pgspider_core_svr;
+CREATE FOREIGN TABLE ftextsearch1 (id int, content text, __spd_url text) SERVER pgspider_core_svr;
+
+
+-- influxdb_fdw
+CREATE SERVER influxdb_svr FOREIGN DATA WRAPPER influxdb_fdw OPTIONS (dbname 'selectfunc_db', host 'http://localhost', port '8086');
+CREATE USER MAPPING FOR CURRENT_USER SERVER influxdb_svr OPTIONS (user 'user', password 'pass');
+CREATE FOREIGN TABLE s3influx__influxdb_svr__0 (time timestamp with time zone, tag1 text, value1 float8, value2 bigint, value3 float8, value4 bigint) SERVER influxdb_svr OPTIONS (table 's3', tags 'tag1');
+CREATE FOREIGN TABLE s31influx__influxdb_svr__0 (time timestamp with time zone, tag1 text, value1 float8, value2 bigint, value3 float8, value4 bigint) SERVER influxdb_svr OPTIONS (table 's31', tags 'tag1');
+
+-- sqlite_fdw
+CREATE SERVER sqlite_svr FOREIGN DATA WRAPPER sqlite_fdw OPTIONS (database '/tmp/pgtest.db');
+CREATE FOREIGN TABLE s3sqlite__sqlite_svr__0 (id text OPTIONS (key 'true'), time timestamp, tag1 text, value1 float, value2 int, value3 float, value4 int, str1 text, str2 text) SERVER sqlite_svr OPTIONS (table 's3');
+CREATE FOREIGN TABLE s31sqlite__sqlite_svr__0 (id text OPTIONS (key 'true'), time timestamp, tag1 text, value1 float, value2 int, value3 float, value4 int, str1 text, str2 text) SERVER sqlite_svr OPTIONS (table 's31');
+
+-- mysql_fdw
+CREATE SERVER mysql_svr FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
+CREATE USER MAPPING FOR CURRENT_USER SERVER mysql_svr OPTIONS(username 'root',password 'Mysql_1234');
+CREATE FOREIGN TABLE s3mysql__mysql_svr__0 (id int, tag1 text, value1 float, value2 int, value3 float, value4 int, str1 text, str2 text) SERVER mysql_svr OPTIONS(dbname 'test', table_name 's3');
+CREATE FOREIGN TABLE s31mysql__mysql_svr__0 (id int, tag1 text, value1 float, value2 int, value3 float, value4 int, str1 text, str2 text) SERVER mysql_svr OPTIONS(dbname 'test', table_name 's31');
+CREATE FOREIGN TABLE ftextsearch__mysql_svr__0 (id int, content text) SERVER mysql_svr OPTIONS(dbname 'test', table_name 'ftextsearch');
+CREATE FOREIGN TABLE ftextsearch1__mysql_svr__0 (id int, content text) SERVER mysql_svr OPTIONS(dbname 'test', table_name 'ftextsearch1');

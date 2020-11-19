@@ -1191,6 +1191,9 @@ pgspiderGetForeignPlan(PlannerInfo *root,
 	bool		has_limit = false;
 	ListCell   *lc;
 
+	/* Decide to execute function pushdown support in the target list. */
+	fpinfo->is_tlist_func_pushdown = pgspider_is_foreign_function_tlist(root, foreignrel, tlist);
+
 	/*
 	 * Get FDW private data created by pgspiderGetForeignUpperPaths(), if any.
 	 */
@@ -1202,7 +1205,7 @@ pgspiderGetForeignPlan(PlannerInfo *root,
 									FdwPathPrivateHasLimit));
 	}
 
-	if (IS_SIMPLE_REL(foreignrel))
+	if (IS_SIMPLE_REL(foreignrel) && fpinfo->is_tlist_func_pushdown == false)
 	{
 		/*
 		 * For base relations, set scan_relid as the relid of the relation.
@@ -1264,7 +1267,10 @@ pgspiderGetForeignPlan(PlannerInfo *root,
 		 * parameterization right now, so there should be no scan_clauses for
 		 * a joinrel or an upper rel either.
 		 */
-		Assert(!scan_clauses);
+		if (fpinfo->is_tlist_func_pushdown == false)
+		{
+			Assert(!scan_clauses);
+		}
 
 		/*
 		 * Instead we get the conditions to apply from the fdw_private
@@ -1285,7 +1291,22 @@ pgspiderGetForeignPlan(PlannerInfo *root,
 		 */
 
 		/* Build the list of columns to be fetched from the foreign server. */
-		fdw_scan_tlist = pgspider_build_tlist_to_deparse(foreignrel);
+		if (fpinfo->is_tlist_func_pushdown == true)
+		{
+			fdw_scan_tlist = copyObject(tlist);
+			foreach(lc, fpinfo->local_conds)
+			{
+				RestrictInfo *rinfo = lfirst_node(RestrictInfo, lc);
+
+				fdw_scan_tlist = add_to_flat_tlist(fdw_scan_tlist,
+												   pull_var_clause((Node *) rinfo->clause,
+																   PVC_RECURSE_PLACEHOLDERS));
+			}
+		}
+		else
+		{
+			fdw_scan_tlist = pgspider_build_tlist_to_deparse(foreignrel);
+		}
 
 		/*
 		 * Ensure that the outer plan produces a tuple whose descriptor
