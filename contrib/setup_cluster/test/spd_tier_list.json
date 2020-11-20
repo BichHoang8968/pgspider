@@ -1,0 +1,13 @@
+{
+    "Nodename":"db1",
+    "Nodes":[
+        {
+            "Nodename":"db2",
+            "Nodes":[
+                {
+                    "Nodename":"db5"
+                }
+            ]
+        }
+    ]
+}
