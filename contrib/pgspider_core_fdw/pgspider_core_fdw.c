@@ -2308,6 +2308,8 @@ RESCAN:
 	}
 	PG_TRY();
 	{
+		TupleTableSlot *spdurl_slot = MakeSingleTupleTableSlot(fdw_private_main->child_comp_tupdesc, fssthrdInfo->fsstate->ss.ss_ScanTupleSlot->tts_ops);
+
 		while (1)
 		{
 			bool		success;
@@ -2411,7 +2413,8 @@ RESCAN:
 				break;
 			}
 			else{
-				slot = spd_AddSpdUrl(fssthrdInfo_main, fdw_private_main->child_comp_slot, count, slot, fdw_private_main);
+				ExecClearTuple(spdurl_slot);
+				slot = spd_AddSpdUrl(fssthrdInfo_main, spdurl_slot, count, slot, fdw_private_main);
 			}
 
 			while (1)
