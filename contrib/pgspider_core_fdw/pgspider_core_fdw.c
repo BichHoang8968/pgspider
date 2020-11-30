@@ -5515,7 +5515,10 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 			strcmp(fssThrdInfo[node_incr].fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
 			skiplast = true;
 
-		spd_queue_init(&fssThrdInfo[node_incr].tupleQueue, tupledesc, node->ss.ss_ScanTupleSlot->tts_ops, skiplast);
+		if (fdw_private->groupby_has_spdurl)
+			spd_queue_init(&fssThrdInfo[node_incr].tupleQueue, fdw_private->child_comp_tupdesc, node->ss.ss_ScanTupleSlot->tts_ops, skiplast);
+		else
+			spd_queue_init(&fssThrdInfo[node_incr].tupleQueue, tupledesc, node->ss.ss_ScanTupleSlot->tts_ops, skiplast);
 
 		natts = fssThrdInfo[node_incr].fsstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor->natts;
 
@@ -7022,23 +7025,10 @@ spd_IterateForeignScan(ForeignScanState *node)
 			for (;;)
 			{
 				slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count);
-				if (slot != NULL)
-				{
-					/*
-					 * If groupby has SPDURL, we need to add SPDURL back after
-					 * removing from target list.
-					 */
-					if (fdw_private->groupby_has_spdurl)
-					{
-						/* Clear tuple slot. */
-						ExecClearTuple(fdw_private->child_comp_slot);
-						/* Add SPDURL value. */
-						slot = spd_AddSpdUrl(fssThrdInfo, fdw_private->child_comp_slot, count, slot, fdw_private);
-					}
-					spd_spi_insert_table(slot, node, fdw_private);
-				}
-				else
+				if (slot == NULL)
 					break;
+
+				spd_spi_insert_table(slot, node, fdw_private);
 
 #ifdef GETPROGRESS_ENABLED
 				if (getResultFlag)
