@@ -11,13 +11,14 @@ extern "C"
 #include "foreign/foreign.h"
 #include "foreign/fdwapi.h"
 #include "miscadmin.h"
+#include "parquet_fdw_s3.h"
 }
 
 static Aws::SDKOptions *aws_sdk_options;
 
 static void check_conn_params(const char **keywords, const char **values, UserMapping *user);
 
-static Aws::S3::S3Client *s3_client_open(const char *user, const char *password);
+static Aws::S3::S3Client *s3_client_open(const char *user, const char *password, bool use_minio);
 static void s3_client_close(Aws::S3::S3Client *s3_client);
 
 extern "C" void
@@ -61,7 +62,7 @@ ExtractConnectionOptions(List *defelems, const char **keywords,
  * Connect to remote server using specified server and user mapping properties.
  */
 static Aws::S3::S3Client *
-create_s3_connection(ForeignServer *server, UserMapping *user)
+create_s3_connection(ForeignServer *server, UserMapping *user, bool use_minio)
 {
 	Aws::S3::S3Client	   *volatile conn = NULL;
 
@@ -100,7 +101,7 @@ create_s3_connection(ForeignServer *server, UserMapping *user)
 				password = defGetString(def);
 		}
 
-		conn = s3_client_open(id, password);
+		conn = s3_client_open(id, password, use_minio);
 		if (!conn)
 			ereport(ERROR,
 					(errcode(ERRCODE_SQLCLIENT_UNABLE_TO_ESTABLISH_SQLCONNECTION),
@@ -143,26 +144,29 @@ check_conn_params(const char **keywords, const char **values, UserMapping *user)
 			 errdetail("Non-superusers must provide a password in the user mapping.")));
 }
 
-#define OMIT_MINIO
 static Aws::S3::S3Client*
-s3_client_open(const char *user, const char *password)
+s3_client_open(const char *user, const char *password, bool use_minio)
 {
     const Aws::String access_key_id = user;
     const Aws::String secret_access_key = password;
 	Aws::Auth::AWSCredentials cred = Aws::Auth::AWSCredentials(access_key_id, secret_access_key);
 	Aws::Client::ClientConfiguration clientConfig;
-#ifndef OMIT_MINIO
-	// Minioを利用する場合
-	const Aws::String endpoint = "127.0.0.1:9000";
-	clientConfig.scheme = Aws::Http::Scheme::HTTP;
-	clientConfig.endpointOverride = endpoint;
-	Aws::S3::S3Client *s3_client = new Aws::S3::S3Client(cred, clientConfig,
-			Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false);
-#else
-	clientConfig.scheme = Aws::Http::Scheme::HTTPS;
-	clientConfig.region = Aws::Region::AP_NORTHEAST_1;
-	Aws::S3::S3Client *s3_client = new Aws::S3::S3Client(cred, clientConfig);
-#endif
+	Aws::S3::S3Client *s3_client;
+
+	if (use_minio)
+	{
+		const Aws::String endpoint = "127.0.0.1:9000";
+		clientConfig.scheme = Aws::Http::Scheme::HTTP;
+		clientConfig.endpointOverride = endpoint;
+		s3_client = new Aws::S3::S3Client(cred, clientConfig,
+				Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false);
+	}
+	else
+	{
+		clientConfig.scheme = Aws::Http::Scheme::HTTPS;
+		clientConfig.region = Aws::Region::AP_NORTHEAST_1;
+		s3_client = new Aws::S3::S3Client(cred, clientConfig);
+	}
 
 	return s3_client;
 }
@@ -186,8 +190,9 @@ parquetGetConnectionByTableid(Oid foreigntableid)
         ForeignTable  *ftable = GetForeignTable(foreigntableid);
         ForeignServer *fserver = GetForeignServer(ftable->serverid);
         UserMapping   *user = GetUserMapping(GetUserId(), fserver->serverid);
+        parquet_s3_server_opt *options = parquet_s3_get_options(foreigntableid);
 
-        s3client = create_s3_connection(fserver, user);
+        s3client = create_s3_connection(fserver, user, options->use_minio);
     }
     return s3client;
 }
