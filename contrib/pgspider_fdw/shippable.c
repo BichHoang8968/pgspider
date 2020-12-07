@@ -25,6 +25,7 @@
 
 #include "access/transam.h"
 #include "catalog/dependency.h"
+#include "catalog/pg_proc.h"
 #include "pgspider_fdw.h"
 #include "utils/hsearch.h"
 #include "utils/inval.h"
@@ -151,10 +152,10 @@ lookup_shippable(Oid objectId, Oid classId, PGSpiderFdwRelationInfo * fpinfo)
  * track of that would be a huge exercise.
  */
 bool
-pgspider_is_builtin(Oid objectId)
+pgspider_is_builtin(Oid objectId, Oid classId)
 {
 	/* In order to support function pushdown in target list, it is not limited to builtin functions. */
-	if (type_is_enum(objectId) && (objectId >= FirstGenbkiObjectId))
+	if ((classId != ProcedureRelationId || type_is_enum(objectId)) && (objectId >= FirstGenbkiObjectId))
 		return false;
 	return true;
 }
@@ -170,7 +171,7 @@ pgspider_is_shippable(Oid objectId, Oid classId, PGSpiderFdwRelationInfo * fpinf
 	ShippableCacheEntry *entry;
 
 	/* Built-in objects are presumed shippable. */
-	if (pgspider_is_builtin(objectId))
+	if (pgspider_is_builtin(objectId, classId))
 		return true;
 
 	/* Otherwise, give up if user hasn't specified any shippable extensions. */
