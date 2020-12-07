@@ -5873,7 +5873,7 @@ emit_context_error(void* context)
 	if (strcmp(err->message, "cannot take square root of a negative number") == 0)
 		elog(ERROR, "Can not return value because of rounding problem from child node.");
 	else
-		elog(err->elevel, "Can not return value because of rounding problem from child node.");
+		elog(err->elevel, "%s", err->message);
 }
 
 /**
