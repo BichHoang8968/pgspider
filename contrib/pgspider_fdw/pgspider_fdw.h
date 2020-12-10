@@ -208,7 +208,7 @@ extern void PGSpiderDeparseSelectStmtForRel(StringInfo buf, PlannerInfo *root,
 extern const char *pgspider_get_jointype_name(JoinType jointype);
 
 /* in shippable.c */
-extern bool pgspider_is_builtin(Oid objectId);
+extern bool pgspider_is_builtin(Oid objectId, Oid classId);
 extern bool pgspider_is_shippable(Oid objectId, Oid classId, PGSpiderFdwRelationInfo * fpinfo);
 
 extern bool pgspider_is_foreign_function_tlist(PlannerInfo *root,
