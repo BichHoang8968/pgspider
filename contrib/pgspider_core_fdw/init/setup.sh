@@ -1,5 +1,5 @@
 TINYBRACE_HOME=/usr/local/tinybrace
-POSTGRES_HOME=/home/jenkins/Postgres/pgsql
+POSTGRES_HOME=/home/jenkins/Postgres/postgresql-13.0/pgbuild
 CURR_PATH=$(pwd)
 
 if [[ "--start" == $1 ]]
@@ -61,7 +61,7 @@ mysql -uroot -pMysql_1234 < mysql.dat
 # postgres should be already started with port=15432
 # pg_ctl -o "-p 15432" start -D data
 
-psql -p 15432 postgres -c "create user postgres with encrypted password 'postgres';"
-psql -p 15432 postgres -c "grant all privileges on database postgres to postgres;"
-psql -p 15432 postgres -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
-psql postgres -p 15432  -U postgres < post.dat
+$POSTGRES_HOME/bin/psql -p 15432 postgres -c "create user postgres with encrypted password 'postgres';"
+$POSTGRES_HOME/bin/psql -p 15432 postgres -c "grant all privileges on database postgres to postgres;"
+$POSTGRES_HOME/bin/psql -p 15432 postgres -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
+$POSTGRES_HOME/bin/psql postgres -p 15432  -U postgres < post.dat

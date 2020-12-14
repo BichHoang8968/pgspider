@@ -31,7 +31,7 @@ setup_pgspider(){
   rm -Rf ../databases
   ./initdb ../databases
   cd $DESTPGSPIDER/$FOLDER/databases
-  sed -i "s/#port = 5432.*/port = $PORT/" postgresql.conf
+  sed -i "s/#port = 4813.*/port = $PORT/" postgresql.conf
   sed -i 's/max_connections = .*/max_connections = 1000/' postgresql.conf
   
   cd $DESTPGSPIDER/$FOLDER/bin

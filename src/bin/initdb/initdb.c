@@ -1098,9 +1098,9 @@ setup_config(void)
 	conflines = replace_token(conflines, "#unix_socket_directories = '/tmp'",
 							  repltok);
 
-#if DEF_PGPORT != 5432
+#if DEF_PGPORT != 4813
 	snprintf(repltok, sizeof(repltok), "#port = %d", DEF_PGPORT);
-	conflines = replace_token(conflines, "#port = 5432", repltok);
+	conflines = replace_token(conflines, "#port = 4813", repltok);
 #endif
 
 	/* set default max_wal_size and min_wal_size */
@@ -2422,7 +2422,7 @@ setup_bin_paths(const char *argv0)
 {
 	int			ret;
 
-	if ((ret = find_other_exec(argv0, "postgres", PG_BACKEND_VERSIONSTR,
+	if ((ret = find_other_exec(argv0, "pgspider", PG_BACKEND_VERSIONSTR,
 							   backend_exec)) < 0)
 	{
 		char		full_path[MAXPGPATH];

@@ -1,12 +1,14 @@
-PGS1_DIR=/home/jenkins/PGSpider/PGS1/
+PGS1_DIR=/home/jenkins/PGSpider/PGS/
 PGS1_PORT=5433
-PGS2_DIR=/home/jenkins/PGSpider/PGS2/
+PGS1_DB=pg1db
+PGS2_DIR=/home/jenkins/PGSpider/PGS/
 PGS2_PORT=5434
+PGS2_DB=pg2db
 DB_NAME=postgres
 TINYBRACE_HOME=/usr/local/tinybrace
-GRIDDB_CLIENT=/home/jenkins/GridDB/c_client_4.1.0/griddb
-GRIDDB_HOME=/home/jenkins/GridDB/griddb_nosql-4.1.0/
-POSTGRES_HOME=/home/jenkins/Postgres/pgsql
+POSTGRES_HOME=/home/jenkins/Postgres/postgresql-13.0/pgbuild
+GRIDDB_CLIENT=/home/jenkins/GridDB/griddb
+GRIDDB_HOME=/home/jenkins/GridDB/griddb-4.5.0
 CURR_PATH=$(pwd)
 
 if [[ "--start" == $1 ]]
@@ -27,7 +29,39 @@ then
     ./pg_ctl -D ../databases start
     sleep 2
   fi
+  #Start PGS1
+  cd ${PGS1_DIR}/bin/
+  if ! [ -d "../${PGS1_DB}" ];
+  then
+    ./initdb ../${PGS1_DB}
+    sed -i "s~#port = 4813.*~port = $PGS1_PORT~g" ../${PGS1_DB}/postgresql.conf
+    ./pg_ctl -D ../${PGS1_DB} start #-l ../log.pg1
+    sleep 2
+    ./createdb -p $PGS1_PORT postgres
+  fi
+  if ! ./pg_isready -p $PGS1_PORT
+  then
+    echo "Start PG1"
+    ./pg_ctl -D ../${PGS1_DB} start #-l ../log.pg1
+    sleep 2
+  fi
+  #Start PGS2
+  if ! [ -d "../${PGS2_DB}" ];
+  then
+    ./initdb ../${PGS2_DB}
+    sed -i "s~#port = 4813.*~port = $PGS2_PORT~g" ../${PGS2_DB}/postgresql.conf
+    ./pg_ctl -D ../${PGS2_DB} start #-l ../log.pg2
+    sleep 2
+    ./createdb -p $PGS2_PORT postgres
+  fi
+  if ! ./pg_isready -p $PGS2_PORT
+  then
+    echo "Start PG2"
+    ./pg_ctl -D ../${PGS2_DB} start #-l ../log.pg2
+    sleep 2
+  fi
   cd $CURR_PATH
+
   # Start MySQL
   if ! [[ $(systemctl status mysqld.service) == *"active (running)"* ]]
   then
@@ -35,6 +69,7 @@ then
     systemctl start mysqld.service
     sleep 2
   fi
+
   # Start InfluxDB server
   if ! [[ $(systemctl status influxdb) == *"active (running)"* ]]
   then
@@ -42,6 +77,7 @@ then
     systemctl start influxdb
     sleep 2
   fi
+
   # Start GridDB server
   if [[ ! -d "${GRIDDB_HOME}" ]];
   then
@@ -62,6 +98,7 @@ then
   echo "Starting GridDB server..."
   ${GRIDDB_HOME}/bin/gs_startnode -w -u admin/testadmin
   ${GRIDDB_HOME}/bin/gs_joincluster -w -c griddbfdwTestCluster -u admin/testadmin
+
   # Stop TinyBrace Server
   if pgrep -x "tbserver" > /dev/null
   then
@@ -69,8 +106,10 @@ then
     pkill -9 tbserver
     sleep 2
   fi
+
   # Initialize data for TinyBrace Server
   $TINYBRACE_HOME/bin/tbeshell $TINYBRACE_HOME/databases/test.db < tiny.dat
+
   # Start TinyBrace Server
   echo "Start TinyBrace Server"
   cd $TINYBRACE_HOME
@@ -83,11 +122,9 @@ else
 fi
 
 cd $CURR_PATH
-
 # Initialize data for GridDB
 cp -a griddb*.data /tmp/
-cp -a $GRIDDB_CLIENT ./
-gcc griddb_init.c -o griddb_init -Igriddb/client/c/include -Lgriddb/bin -lgridstore
+gcc griddb_init.c -o griddb_init -I${GRIDDB_CLIENT}/client/c/include -L${GRIDDB_CLIENT}/bin -lgridstore
 ./griddb_init 239.0.0.1 31999 griddbfdwTestCluster admin testadmin
 
 ## Setup CSV
@@ -106,12 +143,12 @@ influx -import -path=./influx.data -precision=ns
 
 # postgres should be already started with port=15432
 # pg_ctl -o "-p 15432" start -D data
-
-psql -p 15432 postgres -c "create user postgres with encrypted password 'postgres';"
-psql -p 15432 postgres -c "grant all privileges on database postgres to postgres;"
-psql -p 15432 postgres -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
-psql postgres -p 15432  -U postgres < post.dat
+${POSTGRES_HOME}/bin/psql -p 15432 postgres -c "create user postgres with encrypted password 'postgres';"
+${POSTGRES_HOME}/bin/psql -p 15432 postgres -c "grant all privileges on database postgres to postgres;"
+${POSTGRES_HOME}/bin/psql -p 15432 postgres -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
+${POSTGRES_HOME}/bin/psql postgres -p 15432  -U postgres < post.dat
 
 # Setup PGSPider1 and PGSpider2
 $PGS1_DIR/bin/psql -p $PGS1_PORT $DB_NAME < pgspider1.dat
 $PGS2_DIR/bin/psql -p $PGS2_PORT $DB_NAME < pgspider2.dat
+

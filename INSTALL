@@ -1343,25 +1343,6 @@ for another process. Like many other parts of AIX, the paging space
 allocation method and out-of-memory kill is configurable on a system- or
 process-wide basis if this becomes a problem.
 
-References and Resources
-
-"Large Program Support". _AIX Documentation: General Programming
-Concepts: Writing and Debugging Programs_.
-
-"Program Address Space Overview". _AIX Documentation: General
-Programming Concepts: Writing and Debugging Programs_.
-
-"Performance Overview of the Virtual Memory Manager (VMM)". _AIX
-Documentation: Performance Management Guide_.
-
-"Page Space Allocation". _AIX Documentation: Performance Management
-Guide_.
-
-"Paging-space thresholds tuning". _AIX Documentation: Performance
-Management Guide_.
-
-_Developing and Porting C and C++ Applications on AIX_. IBM Redbook.
-
 ------------------------------------------------------------------------
 
 Cygwin

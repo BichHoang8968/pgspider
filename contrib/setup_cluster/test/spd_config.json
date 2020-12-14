@@ -3,7 +3,7 @@
         "FDW":"pgspider",
         "Name":"db1",
         "IP":"127.0.0.1",
-        "Port":"5432",
+        "Port":"4813",
         "user":"lx_user",
         "password":"postgres",
         "dbname":"postgres"

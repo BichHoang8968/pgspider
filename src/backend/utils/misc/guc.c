@@ -996,11 +996,11 @@ static struct config_bool ConfigureNamesBool[] =
 		NULL, NULL, NULL
 	},
 	{
-		{"enable_incrementalsort", PGC_USERSET, QUERY_TUNING_METHOD,
+		{"enable_incremental_sort", PGC_USERSET, QUERY_TUNING_METHOD,
 			gettext_noop("Enables the planner's use of incremental sort steps."),
 			NULL
 		},
-		&enable_incrementalsort,
+		&enable_incremental_sort,
 		true,
 		NULL, NULL, NULL
 	},
@@ -1012,16 +1012,6 @@ static struct config_bool ConfigureNamesBool[] =
 		},
 		&enable_hashagg,
 		true,
-		NULL, NULL, NULL
-	},
-	{
-		{"hashagg_avoid_disk_plan", PGC_USERSET, QUERY_TUNING_METHOD,
-			gettext_noop("Causes the planner to avoid hashed aggregation plans that are expected to use the disk."),
-			NULL,
-			GUC_EXPLAIN
-		},
-		&hashagg_avoid_disk_plan,
-		false,
 		NULL, NULL, NULL
 	},
 	{
@@ -2644,12 +2634,13 @@ static struct config_int ConfigureNamesInt[] =
 	},
 
 	{
-		{"wal_keep_segments", PGC_SIGHUP, REPLICATION_SENDING,
-			gettext_noop("Sets the number of WAL files held for standby servers."),
-			NULL
+		{"wal_keep_size", PGC_SIGHUP, REPLICATION_SENDING,
+			gettext_noop("Sets the size of WAL files held for standby servers."),
+			NULL,
+			GUC_UNIT_MB
 		},
-		&wal_keep_segments,
-		0, 0, INT_MAX,
+		&wal_keep_size_mb,
+		0, 0, MAX_KILOBYTES,
 		NULL, NULL, NULL
 	},
 
@@ -2843,7 +2834,7 @@ static struct config_int ConfigureNamesInt[] =
 			gettext_noop("Sets the minimum execution time above which "
 						 "a sample of statements will be logged."
 						 " Sampling is determined by log_statement_sample_rate."),
-			gettext_noop("Zero log a sample of all queries. -1 turns this feature off."),
+			gettext_noop("Zero logs a sample of all queries. -1 turns this feature off."),
 			GUC_UNIT_MS
 		},
 		&log_min_duration_sample,
@@ -3146,7 +3137,7 @@ static struct config_int ConfigureNamesInt[] =
 	},
 	{
 		{"autovacuum_vacuum_insert_threshold", PGC_SIGHUP, AUTOVACUUM,
-			gettext_noop("Minimum number of tuple inserts prior to vacuum, or -1 to disable insert vacuums"),
+			gettext_noop("Minimum number of tuple inserts prior to vacuum, or -1 to disable insert vacuums."),
 			NULL
 		},
 		&autovacuum_vac_ins_thresh,
@@ -3549,6 +3540,17 @@ static struct config_real ConfigureNamesReal[] =
 	},
 
 	{
+		{"hash_mem_multiplier", PGC_USERSET, RESOURCES_MEM,
+			gettext_noop("Multiple of work_mem to use for hash tables."),
+			NULL,
+			GUC_EXPLAIN
+		},
+		&hash_mem_multiplier,
+		1.0, 1.0, 1000.0,
+		NULL, NULL, NULL
+	},
+
+	{
 		{"bgwriter_lru_multiplier", PGC_SIGHUP, RESOURCES_BGWRITER,
 			gettext_noop("Multiple of the average buffer usage to free per round."),
 			NULL
@@ -3684,7 +3686,7 @@ static struct config_string ConfigureNamesString[] =
 
 	{
 		{"restore_command", PGC_POSTMASTER, WAL_ARCHIVE_RECOVERY,
-			gettext_noop("Sets the shell command that will retrieve an archived WAL file."),
+			gettext_noop("Sets the shell command that will be called to retrieve an archived WAL file."),
 			NULL
 		},
 		&recoveryRestoreCommand,

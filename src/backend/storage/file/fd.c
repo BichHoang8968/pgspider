@@ -269,8 +269,10 @@ static int	numExternalFDs = 0;
 static long tempFileCounter = 0;
 
 /*
- * Array of OIDs of temp tablespaces.  When numTempTableSpaces is -1,
- * this has not been set in the current transaction.
+ * Array of OIDs of temp tablespaces.  (Some entries may be InvalidOid,
+ * indicating that the current database's default tablespace should be used.)
+ * When numTempTableSpaces is -1, this has not been set in the current
+ * transaction.
  */
 static Oid *tempTableSpaces = NULL;
 static int	numTempTableSpaces = -1;
@@ -1084,12 +1086,12 @@ AcquireExternalFD(void)
 void
 ReserveExternalFD(void)
 {
-#ifdef PGSPIDER
 	/*
 	 * Release VFDs if needed to stay safe.  Because we do this before
 	 * incrementing numExternalFDs, the final state will be as desired, i.e.,
 	 * nfile + numAllocatedDescs + numExternalFDs <= max_safe_fds.
 	 */
+#ifdef PGSPIDER
 	SPD_LOCK_TRY(&fd_mutex);
 #endif
 	ReleaseLruFiles();
@@ -2933,6 +2935,9 @@ closeAllVfds(void)
  * unless this function is called again before then.  It is caller's
  * responsibility that the passed-in array has adequate lifespan (typically
  * it'd be allocated in TopTransactionContext).
+ *
+ * Some entries of the array may be InvalidOid, indicating that the current
+ * database's default tablespace should be used.
  */
 void
 SetTempTablespaces(Oid *tableSpaces, int numSpaces)
@@ -2972,7 +2977,10 @@ TempTablespacesAreSet(void)
  * GetTempTablespaces
  *
  * Populate an array with the OIDs of the tablespaces that should be used for
- * temporary files.  Return the number that were copied into the output array.
+ * temporary files.  (Some entries may be InvalidOid, indicating that the
+ * current database's default tablespace should be used.)  At most numSpaces
+ * entries will be filled.
+ * Returns the number of OIDs that were copied into the output array.
  */
 int
 GetTempTablespaces(Oid *tableSpaces, int numSpaces)

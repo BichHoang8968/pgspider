@@ -4354,8 +4354,8 @@ PostgresMain(int argc, char *argv[],
 		 * errors encountered in "idle" state don't provoke skip.
 		 */
 		doing_extended_query_message = false;
-		/* set the flag to false in the begining of the Query */
 #ifdef GETPROGRESS_ENABLED
+		/* set the flag to false in the begining of the Query */
 		getResultFlag = false;
 #endif
 
@@ -4816,8 +4816,8 @@ PostgresMain(int argc, char *argv[],
 								firstchar)));
 		}
 	}							/* end of input-reading loop */
-	/* Deleting Progress Context */
 #ifdef GETPROGRESS_ENABLED
+	/* Deleting Progress Context */
 	MemoryContextDelete(ProgressMemoryContext);
 #endif
 }

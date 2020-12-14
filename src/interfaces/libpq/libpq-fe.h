@@ -28,6 +28,7 @@ extern "C"
 #include <unistd.h>
 #endif
 #endif
+
 /*
  * postgres_ext.h defines the backend's externally visible types,
  * such as Oid.
@@ -41,7 +42,6 @@ extern "C"
 #define PG_COPYRES_TUPLES		  0x02	/* Implies PG_COPYRES_ATTRS */
 #define PG_COPYRES_EVENTS		  0x04
 #define PG_COPYRES_NOTICEHOOKS	  0x08
-
 
 /* Application-visible enum types */
 

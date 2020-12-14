@@ -224,11 +224,13 @@ typedef enum
 	PGASYNC_READY,				/* result ready for PQgetResult */
 	PGASYNC_COPY_IN,			/* Copy In data transfer in progress */
 	PGASYNC_COPY_OUT,			/* Copy Out data transfer in progress */
-	PGASYNC_COPY_BOTH,			/* Copy In/Out data transfer in progress */
 #ifdef GETPROGRESS_ENABLED
+	PGASYNC_COPY_BOTH,			/* Copy In/Out data transfer in progress */
 	PGASYNC_PROGRESS_OUT,		/* Received progress message */
 	PGASYNC_PROGRESS_IDLE,		/* Idle state while processing progress */
 	PGASYNC_PROGRESS_READY		/* ready to read result */
+#else
+	PGASYNC_COPY_BOTH			/* Copy In/Out data transfer in progress */
 #endif
 } PGAsyncStatusType;
 

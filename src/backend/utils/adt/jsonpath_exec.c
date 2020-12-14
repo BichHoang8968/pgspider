@@ -35,7 +35,7 @@
  * executeItemOptUnwrapTarget() function have 'unwrap' argument, which indicates
  * whether unwrapping of array is needed.  When unwrap == true, each of array
  * members is passed to executeItemOptUnwrapTarget() again but with unwrap == false
- * in order to evade subsequent array unwrapping.
+ * in order to avoid subsequent array unwrapping.
  *
  * All boolean expressions (predicates) are evaluated by executeBoolItem()
  * function, which returns tri-state JsonPathBool.  When error is occurred
@@ -1044,18 +1044,19 @@ executeItemOptUnwrapTarget(JsonPathExecContext *cxt, JsonPathItem *jsp,
 				{
 					char	   *tmp = DatumGetCString(DirectFunctionCall1(numeric_out,
 																		  NumericGetDatum(jb->val.numeric)));
+					double		val;
 					bool		have_error = false;
 
-					(void) float8in_internal_opt_error(tmp,
-													   NULL,
-													   "double precision",
-													   tmp,
-													   &have_error);
+					val = float8in_internal_opt_error(tmp,
+													  NULL,
+													  "double precision",
+													  tmp,
+													  &have_error);
 
-					if (have_error)
+					if (have_error || isinf(val) || isnan(val))
 						RETURN_ERROR(ereport(ERROR,
 											 (errcode(ERRCODE_NON_NUMERIC_SQL_JSON_ITEM),
-											  errmsg("jsonpath item method .%s() can only be applied to a numeric value",
+											  errmsg("numeric argument of jsonpath item method .%s() is out of range for type double precision",
 													 jspOperationName(jsp->type)))));
 					res = jperOk;
 				}
@@ -1073,10 +1074,10 @@ executeItemOptUnwrapTarget(JsonPathExecContext *cxt, JsonPathItem *jsp,
 													  tmp,
 													  &have_error);
 
-					if (have_error || isinf(val))
+					if (have_error || isinf(val) || isnan(val))
 						RETURN_ERROR(ereport(ERROR,
 											 (errcode(ERRCODE_NON_NUMERIC_SQL_JSON_ITEM),
-											  errmsg("jsonpath item method .%s() can only be applied to a numeric value",
+											  errmsg("string argument of jsonpath item method .%s() is not a valid representation of a double precision number",
 													 jspOperationName(jsp->type)))));
 
 					jb = &jbv;
@@ -2586,9 +2587,9 @@ checkTimezoneIsUsedForCast(bool useTz, const char *type1, const char *type2)
 	if (!useTz)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("cannot convert value from %s to %s without timezone usage",
+				 errmsg("cannot convert value from %s to %s without time zone usage",
 						type1, type2),
-				 errhint("Use *_tz() function for timezone support.")));
+				 errhint("Use *_tz() function for time zone support.")));
 }
 
 /* Convert time datum to timetz datum */

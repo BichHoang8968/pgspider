@@ -1,4 +1,4 @@
-POSTGRES_HOME=/home/jenkins/Postgres/pgsql
+POSTGRES_HOME=/home/jenkins/Postgres/postgresql-13.0/pgbuild
 HOME_DIR=$(pwd)
 if [[ "--start" == $1 ]]
 then

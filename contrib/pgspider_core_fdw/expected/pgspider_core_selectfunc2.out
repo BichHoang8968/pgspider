@@ -520,7 +520,7 @@ EXPLAIN VERBOSE
 SELECT spread("value1"),influx_time(time, interval '1s'),tag1 FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                         QUERY PLAN                                                                                                        
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- GroupAggregate  (cost=166.22..170.85 rows=1 width=48)
+ GroupAggregate  (cost=166.22..174.75 rows=16 width=48)
    Output: spread(value1), (influx_time("time", '@ 1 sec'::interval)), tag1
    Group Key: (influx_time(s3."time", '@ 1 sec'::interval)), s3.tag1
    ->  Sort  (cost=166.22..166.26 rows=17 width=48)
