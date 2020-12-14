@@ -1,7 +1,7 @@
 {
     "SPD_SETTING":{
         "SPD_IP" : "127.0.0.1",
-        "SPD_PORT" : "5432",
+        "SPD_PORT" : "4813",
         "SPD_USER" : "postgres",
         "SPD_PASS" : "postgres",
         "SPD_DBNAME" : "postgres",

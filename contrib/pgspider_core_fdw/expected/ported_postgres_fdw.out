@@ -1430,9 +1430,10 @@ SELECT t1.c1, t2.c1 FROM ft4 t1 LEFT JOIN ft5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.
 --------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c1
-   ->  Sort
+   ->  Incremental Sort
          Output: t1.c1, t2.c1
          Sort Key: t1.c1, t2.c1
+         Presorted Key: t1.c1
          ->  Merge Left Join
                Output: t1.c1, t2.c1
                Merge Cond: (t1.c1 = t2.c1)
@@ -1450,7 +1451,7 @@ SELECT t1.c1, t2.c1 FROM ft4 t1 LEFT JOIN ft5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.
                            Output: t2.c1
                            Node: postgres_srv / Status: Alive
                              Remote SQL: SELECT c1 FROM "S 1"."T 4"
-(22 rows)
+(23 rows)
 
 --Testcase 77:
 SELECT t1.c1, t2.c1 FROM ft4 t1 LEFT JOIN ft5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t2.c1 OFFSET 10 LIMIT 10;
@@ -1600,9 +1601,10 @@ SELECT t1.c1, t2.c1 FROM ft5 t1 RIGHT JOIN ft4 t2 ON (t1.c1 = t2.c1) ORDER BY t2
 --------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c1
-   ->  Sort
+   ->  Incremental Sort
          Output: t1.c1, t2.c1
          Sort Key: t2.c1, t1.c1
+         Presorted Key: t2.c1
          ->  Merge Left Join
                Output: t1.c1, t2.c1
                Merge Cond: (t2.c1 = t1.c1)
@@ -1620,7 +1622,7 @@ SELECT t1.c1, t2.c1 FROM ft5 t1 RIGHT JOIN ft4 t2 ON (t1.c1 = t2.c1) ORDER BY t2
                            Output: t1.c1
                            Node: postgres_srv / Status: Alive
                              Remote SQL: SELECT c1 FROM "S 1"."T 4"
-(22 rows)
+(23 rows)
 
 --Testcase 85:
 SELECT t1.c1, t2.c1 FROM ft5 t1 RIGHT JOIN ft4 t2 ON (t1.c1 = t2.c1) ORDER BY t2.c1, t1.c1 OFFSET 10 LIMIT 10;
@@ -3326,9 +3328,10 @@ SELECT t1.c1, t2.c2 FROM v4 t1 LEFT JOIN v5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1
 ------------------------------------------------------------------------
  Limit
    Output: ft4.c1, ft5.c2, ft5.c1
-   ->  Sort
+   ->  Incremental Sort
          Output: ft4.c1, ft5.c2, ft5.c1
          Sort Key: ft4.c1, ft5.c1
+         Presorted Key: ft4.c1
          ->  Merge Left Join
                Output: ft4.c1, ft5.c2, ft5.c1
                Merge Cond: (ft4.c1 = ft5.c1)
@@ -3346,7 +3349,7 @@ SELECT t1.c1, t2.c2 FROM v4 t1 LEFT JOIN v5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1
                            Output: ft5.c2, ft5.c1
                            Node: postgres_srv / Status: Alive
                              Remote SQL: SELECT c1, c2 FROM "S 1"."T 4"
-(22 rows)
+(23 rows)
 
 --Testcase 160:
 SELECT t1.c1, t2.c2 FROM v4 t1 LEFT JOIN v5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t2.c1 OFFSET 10 LIMIT 10;
@@ -3372,9 +3375,10 @@ SELECT t1.c1, t2.c2 FROM v4 t1 LEFT JOIN v5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1
 ------------------------------------------------------------------------
  Limit
    Output: ft4.c1, ft5.c2, ft5.c1
-   ->  Sort
+   ->  Incremental Sort
          Output: ft4.c1, ft5.c2, ft5.c1
          Sort Key: ft4.c1, ft5.c1
+         Presorted Key: ft4.c1
          ->  Merge Left Join
                Output: ft4.c1, ft5.c2, ft5.c1
                Merge Cond: (ft4.c1 = ft5.c1)
@@ -3392,7 +3396,7 @@ SELECT t1.c1, t2.c2 FROM v4 t1 LEFT JOIN v5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1
                            Output: ft5.c2, ft5.c1
                            Node: postgres_srv / Status: Alive
                              Remote SQL: SELECT c1, c2 FROM "S 1"."T 4"
-(22 rows)
+(23 rows)
 
 --Testcase 162:
 SELECT t1.c1, t2.c2 FROM v4 t1 LEFT JOIN v5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t2.c1 OFFSET 10 LIMIT 10;
@@ -3417,9 +3421,10 @@ SELECT t1.c1, t2.c2 FROM v4 t1 LEFT JOIN ft5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c
 ------------------------------------------------------------------------
  Limit
    Output: ft4.c1, t2.c2, t2.c1
-   ->  Sort
+   ->  Incremental Sort
          Output: ft4.c1, t2.c2, t2.c1
          Sort Key: ft4.c1, t2.c1
+         Presorted Key: ft4.c1
          ->  Merge Left Join
                Output: ft4.c1, t2.c2, t2.c1
                Merge Cond: (ft4.c1 = t2.c1)
@@ -3437,7 +3442,7 @@ SELECT t1.c1, t2.c2 FROM v4 t1 LEFT JOIN ft5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c
                            Output: t2.c2, t2.c1
                            Node: postgres_srv / Status: Alive
                              Remote SQL: SELECT c1, c2 FROM "S 1"."T 4"
-(22 rows)
+(23 rows)
 
 --Testcase 164:
 SELECT t1.c1, t2.c2 FROM v4 t1 LEFT JOIN ft5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t2.c1 OFFSET 10 LIMIT 10;
@@ -3463,9 +3468,10 @@ SELECT t1.c1, t2.c2 FROM v4 t1 LEFT JOIN ft5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c
 ------------------------------------------------------------------------
  Limit
    Output: ft4.c1, t2.c2, t2.c1
-   ->  Sort
+   ->  Incremental Sort
          Output: ft4.c1, t2.c2, t2.c1
          Sort Key: ft4.c1, t2.c1
+         Presorted Key: ft4.c1
          ->  Merge Left Join
                Output: ft4.c1, t2.c2, t2.c1
                Merge Cond: (ft4.c1 = t2.c1)
@@ -3483,7 +3489,7 @@ SELECT t1.c1, t2.c2 FROM v4 t1 LEFT JOIN ft5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c
                            Output: t2.c2, t2.c1
                            Node: postgres_srv / Status: Alive
                              Remote SQL: SELECT c1, c2 FROM "S 1"."T 4"
-(22 rows)
+(23 rows)
 
 --Testcase 166:
 SELECT t1.c1, t2.c2 FROM v4 t1 LEFT JOIN ft5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t2.c1 OFFSET 10 LIMIT 10;
@@ -5113,9 +5119,8 @@ EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st2(10, 20);
  Sort
    Output: t1.c1, t1.c2, t1.c3, t1.c4, t1.c5, t1.c6, t1.c7, t1.c8, t1.__spd_url
    Sort Key: t1.c1
-   ->  Hash Join
+   ->  Hash Semi Join
          Output: t1.c1, t1.c2, t1.c3, t1.c4, t1.c5, t1.c6, t1.c7, t1.c8, t1.__spd_url
-         Inner Unique: true
          Hash Cond: (t1.c3 = t2.c3)
          ->  Foreign Scan on public.ft1 t1
                Output: t1.c1, t1.c2, t1.c3, t1.c4, t1.c5, t1.c6, t1.c7, t1.c8, t1.__spd_url
@@ -5123,15 +5128,12 @@ EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st2(10, 20);
                  Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" < 20))
          ->  Hash
                Output: t2.c3
-               ->  HashAggregate
+               ->  Foreign Scan on public.ft2 t2
                      Output: t2.c3
-                     Group Key: t2.c3
-                     ->  Foreign Scan on public.ft2 t2
-                           Output: t2.c3
-                           Filter: (date(t2.c4) = '01-17-1970'::date)
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT "C 1", c3, c4 FROM "S 1"."T 1" WHERE (("C 1" > 10))
-(21 rows)
+                     Filter: (date(t2.c4) = '01-17-1970'::date)
+                     Node: postgres_srv / Status: Alive
+                       Remote SQL: SELECT "C 1", c3, c4 FROM "S 1"."T 1" WHERE (("C 1" > 10))
+(17 rows)
 
 --Testcase 261:
 EXECUTE st2(10, 20);
@@ -5152,14 +5154,13 @@ EXECUTE st2(101, 121);
 PREPARE st3(int) AS SELECT * FROM ft1 t1 WHERE t1.c1 < $2 AND t1.c3 IN (SELECT c3 FROM ft2 t2 WHERE c1 > $1 AND date(c5) = '1970-01-17'::date) ORDER BY c1;
 --Testcase 264:
 EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st3(10, 20);
-                                                                QUERY PLAN                                                                
-------------------------------------------------------------------------------------------------------------------------------------------
+                                                             QUERY PLAN                                                             
+------------------------------------------------------------------------------------------------------------------------------------
  Sort
    Output: t1.c1, t1.c2, t1.c3, t1.c4, t1.c5, t1.c6, t1.c7, t1.c8, t1.__spd_url
    Sort Key: t1.c1
-   ->  Hash Join
+   ->  Hash Semi Join
          Output: t1.c1, t1.c2, t1.c3, t1.c4, t1.c5, t1.c6, t1.c7, t1.c8, t1.__spd_url
-         Inner Unique: true
          Hash Cond: (t1.c3 = t2.c3)
          ->  Foreign Scan on public.ft1 t1
                Output: t1.c1, t1.c2, t1.c3, t1.c4, t1.c5, t1.c6, t1.c7, t1.c8, t1.__spd_url
@@ -5167,14 +5168,11 @@ EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st3(10, 20);
                  Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" < 20))
          ->  Hash
                Output: t2.c3
-               ->  HashAggregate
+               ->  Foreign Scan on public.ft2 t2
                      Output: t2.c3
-                     Group Key: t2.c3
-                     ->  Foreign Scan on public.ft2 t2
-                           Output: t2.c3
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT "C 1", c3, c5 FROM "S 1"."T 1" WHERE (("C 1" > 10)) AND ((date(c5) = '1970-01-17'::date))
-(20 rows)
+                     Node: postgres_srv / Status: Alive
+                       Remote SQL: SELECT "C 1", c3, c5 FROM "S 1"."T 1" WHERE (("C 1" > 10)) AND ((date(c5) = '1970-01-17'::date))
+(16 rows)
 
 --Testcase 265:
 EXECUTE st3(10, 20);

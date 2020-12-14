@@ -1585,7 +1585,9 @@ LockCheckConflicts(LockMethod lockMethodTable,
 void
 GrantLock(LOCK *lock, PROCLOCK *proclock, LOCKMODE lockmode)
 {
+#ifdef PGSPIDER
 	SPD_LOCK_TRY(&lock_mutex);
+#endif
 	lock->nGranted++;
 	lock->granted[lockmode]++;
 	lock->grantMask |= LOCKBIT_ON(lockmode);
@@ -1595,7 +1597,9 @@ GrantLock(LOCK *lock, PROCLOCK *proclock, LOCKMODE lockmode)
 	LOCK_PRINT("GrantLock", lock, lockmode);
 	Assert((lock->nGranted > 0) && (lock->granted[lockmode] > 0));
 	Assert(lock->nGranted <= lock->nRequested);
+#ifdef PGSPIDER
 	SPD_UNLOCK_CATCH(&lock_mutex);
+#endif
 }
 
 /*
@@ -1620,7 +1624,9 @@ UnGrantLock(LOCK *lock, LOCKMODE lockmode,
 	/*
 	 * fix the general lock stats
 	 */
+#ifdef PGSPIDER
 	SPD_LOCK_TRY(&lock_mutex);
+#endif
 	lock->nRequested--;
 	lock->requested[lockmode]--;
 	lock->nGranted--;
@@ -1651,7 +1657,9 @@ UnGrantLock(LOCK *lock, LOCKMODE lockmode,
 	 */
 	proclock->holdMask &= LOCKBIT_OFF(lockmode);
 	PROCLOCK_PRINT("UnGrantLock: updated", proclock);
+#ifdef PGSPIDER
 	SPD_UNLOCK_CATCH(&lock_mutex);
+#endif
 
 	return wakeupNeeded;
 }
@@ -1671,7 +1679,9 @@ CleanUpLock(LOCK *lock, PROCLOCK *proclock,
 			LockMethod lockMethodTable, uint32 hashcode,
 			bool wakeupNeeded)
 {
+#ifdef PGSPIDER
 	SPD_LOCK_TRY(&lock_mutex);
+#endif
 	/*
 	 * If this was my last hold on this lock, delete my entry in the proclock
 	 * table.
@@ -1712,7 +1722,9 @@ CleanUpLock(LOCK *lock, PROCLOCK *proclock,
 		/* There are waiters on this lock, so wake them up. */
 		ProcLockWakeup(lockMethodTable, lock);
 	}
+#ifdef PGSPIDER
 	SPD_UNLOCK_CATCH(&lock_mutex);
+#endif
 }
 
 /*

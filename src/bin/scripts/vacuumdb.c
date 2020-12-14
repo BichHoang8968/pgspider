@@ -15,9 +15,9 @@
 #include "catalog/pg_class_d.h"
 
 #include "common.h"
+#include "common/connect.h"
 #include "common/logging.h"
 #include "fe_utils/cancel.h"
-#include "fe_utils/connect.h"
 #include "fe_utils/simple_list.h"
 #include "fe_utils/string_utils.h"
 #include "scripts_parallel.h"
@@ -281,7 +281,7 @@ main(int argc, char *argv[])
 		}
 		if (vacopts.full)
 		{
-			pg_log_error("cannot use the \"%s\" option when performing full",
+			pg_log_error("cannot use the \"%s\" option when performing full vacuum",
 						 "parallel");
 			exit(1);
 		}

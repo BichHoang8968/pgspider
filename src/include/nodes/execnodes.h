@@ -600,7 +600,9 @@ typedef struct EState
 #ifdef GETPROGRESS_ENABLED
 	ProgressState *es_progressState;	/* Get progress operations */
 #endif
+#ifdef PGSPIDER
 	bool		agg_query;		/* To Indicate the type of the query,*/
+#endif
 	/* The per-query shared memory area to use for parallel execution. */
 	struct dsa_area *es_query_dsa;
 
@@ -883,6 +885,8 @@ typedef struct SubPlanState
 	MemoryContext hashtablecxt; /* memory context containing hash tables */
 	MemoryContext hashtempcxt;	/* temp memory context for hash tables */
 	ExprContext *innerecontext; /* econtext for computing inner tuples */
+	int			numCols;		/* number of columns being hashed */
+	/* each of the remaining fields is an array of length numCols: */
 	AttrNumber *keyColIdx;		/* control data for hash tables */
 	Oid		   *tab_eq_funcoids;	/* equality func oids for table
 									 * datatype(s) */
@@ -1006,9 +1010,9 @@ typedef struct PlanState
 	 * descriptor, without encoding knowledge about all executor nodes.
 	 */
 	TupleDesc	scandesc;
-
+#ifdef PGSPIDER
 	void	   *spdAggQry;		/* Currently used to point to queryDesc */
-
+#endif
 	/*
 	 * Define the slot types for inner, outer and scanslots for expression
 	 * contexts with this state as a parent.  If *opsset is set, then
@@ -1815,9 +1819,11 @@ typedef struct ForeignScanState
 	/* use struct pointer to avoid including fdwapi.h here */
 	struct FdwRoutine *fdwroutine;
 	void	   *fdw_state;		/* foreign-data wrapper can keep state here */
+#ifdef PGSPIDER
 	void	   *spd_fsstate;    /* Store ForeignScanThreadInfo */
 	void	   *conn;			/* cast to PGconn. To refer ForeignServer
 								 * Connection, To use in PGcancel */
+#endif
 } ForeignScanState;
 
 /* ----------------
@@ -2053,10 +2059,10 @@ typedef struct SortState
 typedef struct IncrementalSortGroupInfo
 {
 	int64		groupCount;
-	long		maxDiskSpaceUsed;
-	long		totalDiskSpaceUsed;
-	long		maxMemorySpaceUsed;
-	long		totalMemorySpaceUsed;
+	int64		maxDiskSpaceUsed;
+	int64		totalDiskSpaceUsed;
+	int64		maxMemorySpaceUsed;
+	int64		totalMemorySpaceUsed;
 	bits32		sortMethods;	/* bitmask of TuplesortMethod */
 } IncrementalSortGroupInfo;
 
@@ -2190,6 +2196,9 @@ typedef struct AggState
 	int			current_set;	/* The current grouping set being evaluated */
 	Bitmapset  *grouped_cols;	/* grouped cols in current projection */
 	List	   *all_grouped_cols;	/* list of all grouped cols in DESC order */
+	Bitmapset  *colnos_needed;	/* all columns needed from the outer plan */
+	int			max_colno_needed;	/* highest colno needed from outer plan */
+	bool		all_cols_needed;	/* are all cols from outer plan needed? */
 	/* These fields are for grouping set phase data */
 	int			maxsets;		/* The max number of sets in any phase */
 	AggStatePerPhase phases;	/* array of all phases */
@@ -2207,7 +2216,8 @@ typedef struct AggState
 	struct HashTapeInfo *hash_tapeinfo; /* metadata for spill tapes */
 	struct HashAggSpill *hash_spills;	/* HashAggSpill for each grouping set,
 										 * exists only during first pass */
-	TupleTableSlot *hash_spill_slot;	/* slot for reading from spill files */
+	TupleTableSlot *hash_spill_rslot;	/* for reading spill files */
+	TupleTableSlot *hash_spill_wslot;	/* for writing spill files */
 	List	   *hash_batches;	/* hash batches remaining to be processed */
 	bool		hash_ever_spilled;	/* ever spilled during this execution? */
 	bool		hash_spill_mode;	/* we hit a limit during the current batch
@@ -2228,7 +2238,7 @@ typedef struct AggState
 										 * per-group pointers */
 
 	/* support for evaluation of agg input expressions: */
-#define FIELDNO_AGGSTATE_ALL_PERGROUPS 49
+#define FIELDNO_AGGSTATE_ALL_PERGROUPS 53
 	AggStatePerGroup *all_pergroups;	/* array of first ->pergroups, than
 										 * ->hash_pergroup */
 	ProjectionInfo *combinedproj;	/* projection machinery */

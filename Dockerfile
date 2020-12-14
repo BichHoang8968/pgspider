@@ -3,7 +3,7 @@
 FROM ubuntu:latest
 MAINTAINER swc <tinybrace@swc.toshiba.co.jp>
 
-EXPOSE 5432
+EXPOSE 4813
 ENV http_proxy http://proxy-jp.toshiba.co.jp:8080
 ENV https_proxy http://proxy-jp.toshiba.co.jp:8080
 RUN mkdir -p /tmp/ddsfw

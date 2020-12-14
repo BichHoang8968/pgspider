@@ -2425,7 +2425,7 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 		 */
 		header(_("starting postmaster"));
 		snprintf(buf, sizeof(buf),
-				 "\"%s%spostgres\" -D \"%s/data\" -F%s "
+				 "\"%s%spgspider\" -D \"%s/data\" -F%s "
 				 "-c \"listen_addresses=%s\" -k \"%s\" "
 				 "> \"%s/log/postmaster.log\" 2>&1",
 				 bindir ? bindir : "",

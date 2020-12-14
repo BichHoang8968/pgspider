@@ -52,7 +52,6 @@ lib*.pc
 /contrib/pgspider_core_fdw/log
 /contrib/pgspider_fdw/tmp_check/
 /contrib/pgspider_fdw/log/
-/contrib/tinybrace_fdw/
 *.svn-base
 .svn/*
 *.BAK

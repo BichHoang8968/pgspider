@@ -311,7 +311,7 @@ init_ps_display(const char *fixed_part)
 	 */
 #define PROGRAM_NAME_PREFIX ""
 #else
-#define PROGRAM_NAME_PREFIX "postgres: "
+#define PROGRAM_NAME_PREFIX "pgspider: "
 #endif
 
 	if (*cluster_name == '\0')

@@ -143,7 +143,11 @@ static void write_eventlog(int level, const char *line, int len);
 #endif
 
 /* We provide a small stack of ErrorData records for re-entrant cases */
+#ifdef PGSPIDER
 #define ERRORDATA_STACK_SIZE  40
+#else
+#define ERRORDATA_STACK_SIZE  5
+#endif
 
 #ifdef PGSPIDER
 static ErrorData __thread errordata[ERRORDATA_STACK_SIZE];
@@ -2958,13 +2962,6 @@ send_message_to_server_log(ErrorData *edata)
 			append_with_tabs(&buf, edata->context);
 			appendStringInfoChar(&buf, '\n');
 		}
-		if (edata->backtrace)
-		{
-			log_line_prefix(&buf, edata);
-			appendStringInfoString(&buf, _("BACKTRACE:  "));
-			append_with_tabs(&buf, edata->backtrace);
-			appendStringInfoChar(&buf, '\n');
-		}
 		if (Log_error_verbosity >= PGERROR_VERBOSE)
 		{
 			/* assume no newlines in funcname or filename... */
@@ -2981,6 +2978,13 @@ send_message_to_server_log(ErrorData *edata)
 				appendStringInfo(&buf, _("LOCATION:  %s:%d\n"),
 								 edata->filename, edata->lineno);
 			}
+		}
+		if (edata->backtrace)
+		{
+			log_line_prefix(&buf, edata);
+			appendStringInfoString(&buf, _("BACKTRACE:  "));
+			append_with_tabs(&buf, edata->backtrace);
+			appendStringInfoChar(&buf, '\n');
 		}
 	}
 

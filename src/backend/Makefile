@@ -56,13 +56,13 @@ endif
 
 ##########################################################################
 
-all: submake-libpgport submake-catalog-headers submake-utils-headers postgres $(POSTGRES_IMP)
+all: submake-libpgport submake-catalog-headers submake-utils-headers pgspider $(POSTGRES_IMP)
 
 ifneq ($(PORTNAME), cygwin)
 ifneq ($(PORTNAME), win32)
 ifneq ($(PORTNAME), aix)
 
-postgres: $(OBJS)
+pgspider: $(OBJS)
 	$(CC) $(CFLAGS) $(call expand_subsys,$^) $(LDFLAGS) $(LDFLAGS_EX) $(export_dynamic) $(LIBS) -o $@
 
 endif
@@ -71,12 +71,12 @@ endif
 
 ifeq ($(PORTNAME), cygwin)
 
-postgres: $(OBJS)
+pgspider: $(OBJS)
 	$(CC) $(CFLAGS) $(call expand_subsys,$^) $(LDFLAGS) $(LDFLAGS_EX) $(export_dynamic) -Wl,--stack,$(WIN32_STACK_RLIMIT) -Wl,--export-all-symbols -Wl,--out-implib=libpostgres.a $(LIBS) -o $@
 
 # libpostgres.a is actually built in the preceding rule, but we need this to
 # ensure it's newer than postgres; see notes in src/backend/parser/Makefile
-libpostgres.a: postgres
+libpostgres.a: pgspider
 	touch $@
 
 endif # cygwin
@@ -84,28 +84,28 @@ endif # cygwin
 ifeq ($(PORTNAME), win32)
 LIBS += -lsecur32
 
-postgres: $(OBJS) $(WIN32RES)
+pgspider: $(OBJS) $(WIN32RES)
 	$(CC) $(CFLAGS) $(call expand_subsys,$(OBJS)) $(WIN32RES) $(LDFLAGS) $(LDFLAGS_EX) -Wl,--stack=$(WIN32_STACK_RLIMIT) -Wl,--export-all-symbols -Wl,--out-implib=libpostgres.a $(LIBS) -o $@$(X)
 
 # libpostgres.a is actually built in the preceding rule, but we need this to
 # ensure it's newer than postgres; see notes in src/backend/parser/Makefile
-libpostgres.a: postgres
+libpostgres.a: pgspider
 	touch $@
 
 endif # win32
 
 ifeq ($(PORTNAME), aix)
 
-postgres: $(POSTGRES_IMP)
+pgspider: $(POSTGRES_IMP)
 	$(CC) $(CFLAGS) $(call expand_subsys,$(OBJS)) $(LDFLAGS) $(LDFLAGS_EX) -Wl,-bE:$(top_builddir)/src/backend/$(POSTGRES_IMP) $(LIBS) -Wl,-brtllib -o $@
 
 $(POSTGRES_IMP): $(OBJS)
 	$(LD) $(LDREL) $(LDOUT) SUBSYS.o $(call expand_subsys,$^)
 ifeq ($(host_os), aix3.2.5)
-	$(MKLDEXPORT) SUBSYS.o $(bindir)/postgres > $@
+	$(MKLDEXPORT) SUBSYS.o $(bindir)/pgspider > $@
 else
 ifneq (,$(findstring aix4.1, $(host_os)))
-	$(MKLDEXPORT) SUBSYS.o $(bindir)/postgres > $@
+	$(MKLDEXPORT) SUBSYS.o $(bindir)/pgspider > $@
 else
 	$(MKLDEXPORT) SUBSYS.o . > $@
 endif
@@ -217,16 +217,16 @@ ifeq ($(with_llvm), yes)
 install-bin: install-postgres-bitcode
 
 install-postgres-bitcode: $(OBJS) all
-	$(call install_llvm_module,postgres,$(call expand_subsys, $(filter-out $(top_builddir)/src/timezone/objfiles.txt, $(SUBDIROBJS))))
+	$(call install_llvm_module,pgspider,$(call expand_subsys, $(filter-out $(top_builddir)/src/timezone/objfiles.txt, $(SUBDIROBJS))))
 endif
 
-install-bin: postgres $(POSTGRES_IMP) installdirs
-	$(INSTALL_PROGRAM) postgres$(X) '$(DESTDIR)$(bindir)/postgres$(X)'
+install-bin: pgspider $(POSTGRES_IMP) installdirs
+	$(INSTALL_PROGRAM) pgspider$(X) '$(DESTDIR)$(bindir)/pgspider$(X)'
 ifneq ($(PORTNAME), win32)
 	@rm -f '$(DESTDIR)$(bindir)/postmaster$(X)'
-	ln -s postgres$(X) '$(DESTDIR)$(bindir)/postmaster$(X)'
+	ln -s pgspider$(X) '$(DESTDIR)$(bindir)/postmaster$(X)'
 else
-	$(INSTALL_PROGRAM) postgres$(X) '$(DESTDIR)$(bindir)/postmaster$(X)'
+	$(INSTALL_PROGRAM) pgspider$(X) '$(DESTDIR)$(bindir)/postmaster$(X)'
 endif
 ifeq ($(MAKE_EXPORTS), true)
 	$(INSTALL_DATA) $(POSTGRES_IMP) '$(DESTDIR)$(pkglibdir)/$(POSTGRES_IMP)'
@@ -256,7 +256,7 @@ endif
 ##########################################################################
 
 uninstall:
-	rm -f '$(DESTDIR)$(bindir)/postgres$(X)' '$(DESTDIR)$(bindir)/postmaster'
+	rm -f '$(DESTDIR)$(bindir)/pgspider$(X)' '$(DESTDIR)$(bindir)/postmaster'
 ifeq ($(MAKE_EXPORTS), true)
 	rm -f '$(DESTDIR)$(pkglibdir)/$(POSTGRES_IMP)'
 	rm -f '$(DESTDIR)$(pgxsdir)/$(MKLDEXPORT_DIR)/mkldexport.sh'
@@ -278,14 +278,14 @@ endif
 	      '$(DESTDIR)$(datadir)/pg_ident.conf.sample' \
 	      '$(DESTDIR)$(datadir)/postgresql.conf.sample'
 ifeq ($(with_llvm), yes)
-	$(call uninstall_llvm_module,postgres)
+	$(call uninstall_llvm_module,pgspider)
 endif
 
 
 ##########################################################################
 
 clean:
-	rm -f $(LOCALOBJS) postgres$(X) $(POSTGRES_IMP)
+	rm -f $(LOCALOBJS) pgspider$(X) $(POSTGRES_IMP)
 ifeq ($(PORTNAME), cygwin)
 	rm -f postgres.dll libpostgres.a
 endif
@@ -324,4 +324,4 @@ maintainer-clean: distclean
 # are up to date.  It saves the time of doing all the submakes.
 .PHONY: quick
 quick: $(OBJS)
-	$(CC) $(CFLAGS) $(call expand_subsys,$^) $(LDFLAGS) $(LDFLAGS_EX) $(export_dynamic) $(LIBS) -o postgres
+	$(CC) $(CFLAGS) $(call expand_subsys,$^) $(LDFLAGS) $(LDFLAGS_EX) $(export_dynamic) $(LIBS) -o pgspider
