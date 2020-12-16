@@ -1,8 +1,9 @@
-set -x
-PGS1_DIR=/home/jenkins/PGSpider/PGS1/
+PGS1_DIR=/home/jenkins/PGSpider/PGS
 PGS1_PORT=5433
-PGS2_DIR=/home/jenkins/PGSpider/PGS2/
+PGS1_DB=pg1db
+PGS2_DIR=/home/jenkins/PGSpider/PGS
 PGS2_PORT=5434
+PGS2_DB=pg2db
 DB_NAME=postgres
 CURR_PATH=$(pwd)
 
