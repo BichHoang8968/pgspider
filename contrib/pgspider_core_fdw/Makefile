@@ -1,13 +1,11 @@
-# contrib/pgspider_fdw/Makefile
+# contrib/pgspider_core_fdw/Makefile
 
 MODULE_big = pgspider_core_fdw
-OBJS = deparse.o pgspider_core_fdw.o pgspider_core_option.o pgspider_core_util.o $(WIN32RES)
-PGFILEDESC = "pgspider_core_fdw - foreign data wrapper for PostgreSQL"
+OBJS = deparse.o pgspider_core_fdw.o pgspider_core_option.o $(WIN32RES)
+PGFILEDESC = "pgspider_core_fdw - PGSpider core module"
 
-PG_CPPFLAGS = -I$(libpq_srcdir) -I../  -lpostgres_fdw -lpthread -lpq -lm -lpgspider_keepalive -z defs
+PG_CPPFLAGS = -I$(libpq_srcdir) -I../ -lpthread -lpq -lm -lpgspider_keepalive -z defs
 SHLIB_LINK = $(libpq)
-
-#LIBS = -lpostgres_fdw
 
 EXTENSION = pgspider_core_fdw
 DATA = pgspider_core_fdw--1.0.sql

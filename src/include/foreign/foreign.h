@@ -15,15 +15,6 @@
 
 #include "nodes/parsenodes.h"
 
-#ifdef PGSPIDER
-#include "lib/stringinfo.h"
-#include "utils/resowner.h"
-#include <pthread.h>
-#endif
-
-#ifdef PGSPIDER
-#define MAX_CHAR 1024
-#endif
 
 /* Helper for obtaining username for user mapping */
 #define MappingUserName(userid) \

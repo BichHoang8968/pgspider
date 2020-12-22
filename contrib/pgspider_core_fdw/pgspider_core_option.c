@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
  *
- * option.c
+ * pgspider_core_option.c
  *		  FDW option handling for pgspider_core_fdw
  *
- * Portions Copyright (c) 2012-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2018-2020, TOSHIBA CORPORATION
  *
  * IDENTIFICATION
- *		  contrib/pgspider_core_fdw/option.c
+ *		  contrib/pgspider_core_fdw/pgspider_core_option.c
  *
  *-------------------------------------------------------------------------
  */
@@ -22,6 +22,8 @@
 #include "executor/spi.h"
 #include "fmgr.h"
 #include "utils/hsearch.h"
+
+#include "libpq-fe.h"
 
 
 void
