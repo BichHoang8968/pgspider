@@ -46,7 +46,9 @@
 #include "c.h"
 #include "utils/elog.h"
 #include "utils/palloc.h"
+#ifdef PGSPIDER
 #include <pthread.h>
+#endif
 
 /* ----------------------------------------------------------------
  *				Section 1:	variable-length datatypes (TOAST support)
@@ -771,6 +773,7 @@ extern Datum Float8GetDatum(float8 X);
 #endif
 
 
+#ifdef PGSPIDER
 /* Macro for ensuring mutex is unlocked when error occurs */
 #define SPD_LOCK_INIT_OK 0
 #define SPD_LOCK_INIT(mutex, rtn) *rtn = (int)pthread_mutex_init(mutex, NULL);
@@ -793,5 +796,7 @@ extern Datum Float8GetDatum(float8 X);
 		PG_RE_THROW();\
 	} PG_END_TRY();\
   	    pthread_rwlock_unlock(mutex);
+
+#endif /* PGSPIDER */
 
 #endif							/* POSTGRES_H */

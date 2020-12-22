@@ -1,41 +1,35 @@
 /*-------------------------------------------------------------------------
  *
- * spd_fdw.h
- *		  Foreign-data wrapper for remote PostgreSQL servers
+ * pgspider_core_fdw.h
+ *		  Header file of pgspider_core_fdw
  *
- * Portions Copyright (c) 2012-2015, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2018-2020, TOSHIBA CORPORATION
  *
  * IDENTIFICATION
- *		  contrib/spd_fdw/spd_fdw.h
+ *		  contrib/pgspider_core_fdw/pgspider_core_fdw.h
  *
  *-------------------------------------------------------------------------
  */
-#ifndef SPD_FDW_H
-#define SPD_FDW_H
+#ifndef PGSPIDER_CORE_FDW_H
+#define PGSPIDER_CORE_FDW_H
 
 #include "foreign/foreign.h"
 #include "lib/stringinfo.h"
 #include "nodes/pathnodes.h"
 #include "utils/relcache.h"
 
-#include "libpq-fe.h"
 
-/* in spd_fdw.c */
-extern int	spd_set_transmission_modes(void);
-extern void spd_reset_transmission_modes(int nestlevel);
+ /* in pgspider_core_deparse.c */
+extern bool spd_is_foreign_expr(PlannerInfo*, RelOptInfo*, Expr*);
+extern bool spd_is_having_safe(Node* node);
+extern bool spd_is_sorted(Node* node);
+extern void spd_deparse_const(Const* node, StringInfo buf, int showtype);
+extern char* spd_deparse_type_name(Oid type_oid, int32 typemod);
+extern void spd_deparse_string_literal(StringInfo buf, const char* val);
 
-/* in connection.c */
-extern PGconn *GetConnection(ForeignServer *server, UserMapping *user,
-			  bool will_prep_stmt);
-extern void ReleaseConnection(PGconn *conn);
-extern unsigned int GetCursorNumber(PGconn *conn);
-extern unsigned int GetPrepStmtNumber(PGconn *conn);
-extern void pgfdw_report_error(int elevel, PGresult *res, PGconn *conn,
-				   bool clear, const char *sql);
-
-/* in option.c */
+ /* in pgspider_core_option.c */
 extern int spdExtractConnectionOptions(List *defelems,
 						 const char **keywords,
 						 const char **values);
 
-#endif							/* SPD_FDW_H */
+#endif							/* PGSPIDER_CORE_FDW_H */

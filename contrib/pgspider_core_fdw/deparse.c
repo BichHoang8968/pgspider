@@ -1,3 +1,15 @@
+/*-------------------------------------------------------------------------
+ *
+ * pgspider_core_option.c
+ *		  FDW deparsing module for pgspider_core_fdw
+ *
+ * Portions Copyright (c) TOSHIBA CORPORATION, TOSHIBA CORPERATION
+ *
+ * IDENTIFICATION
+ *		  contrib/pgspider_core_fdw/pgspider_core_option.c
+ *
+ *-------------------------------------------------------------------------
+ */
 #include "postgres.h"
 #include "postgres_fdw/postgres_fdw.h"
 #include "stdbool.h"
@@ -11,6 +23,7 @@
 #include "catalog/pg_type.h"
 #include "nodes/nodeFuncs.h"
 #include "utils/builtins.h"
+#include "pgspider_core_fdw.h"
 
 /*
  * Global context for foreign_expr_walker's search of an expression tree.
@@ -44,13 +57,6 @@ typedef struct foreign_loc_cxt
 
 /* Local function forward declarations */
 static bool having_clause_tree_walker(Node *node, void *param);
-
-/* Global function forward declarations */
-bool is_foreign_expr2(PlannerInfo *, RelOptInfo *, Expr *);
-bool is_having_safe(Node *node);
-bool is_sorted(Node *node);
-char *spd_deparse_type_name(Oid type_oid, int32 typemod);
-void spd_deparse_const(Const *node, StringInfo buf, int showtype);
 
 /*
  * Prevent push down of T_Param(Subquery Expressions) which PGSpider cannot bind
@@ -281,7 +287,7 @@ foreign_expr_walker(Node *node,
 }
 
 bool
-is_foreign_expr2(PlannerInfo *root, RelOptInfo *baserel, Expr *expr)
+spd_is_foreign_expr(PlannerInfo *root, RelOptInfo *baserel, Expr *expr)
 {
 	foreign_glob_cxt glob_cxt;
 	foreign_loc_cxt loc_cxt;
@@ -306,7 +312,7 @@ is_foreign_expr2(PlannerInfo *root, RelOptInfo *baserel, Expr *expr)
  * Append a SQL string literal representing "val" to buf.
  */
 void
-deparseStringLiteral(StringInfo buf, const char *val)
+spd_deparse_string_literal(StringInfo buf, const char *val)
 {
 	const char *valptr;
 
@@ -379,12 +385,12 @@ static bool having_clause_tree_walker(Node *node, void *param)
 }
 
 /*
- * is_having_safe
+ * spd_is_having_safe
  *
  * Check every conditions whether expression
  * is safe to pass to child FDW or not.
  */
-bool is_having_safe(Node *node)
+bool spd_is_having_safe(Node *node)
 {
 	return (!having_clause_tree_walker(node, NULL));
 }
@@ -416,11 +422,11 @@ static bool order_by_walker(Node *node, void *param)
 	return expression_tree_walker(node, order_by_walker, (void *) param);
 }
 /*
- * is_sorted
+ * spd_is_sorted
  *
  * Check if expression contains aggregation with ORDER BY
  */
-bool is_sorted(Node *node)
+bool spd_is_sorted(Node *node)
 {
 	return (order_by_walker(node, NULL));
 }
@@ -504,7 +510,7 @@ void spd_deparse_const(Const *node, StringInfo buf, int showtype)
 				appendStringInfoString(buf, "false");
 			break;
 		default:
-			deparseStringLiteral(buf, extval);
+			spd_deparse_string_literal(buf, extval);
 			break;
 	}
 

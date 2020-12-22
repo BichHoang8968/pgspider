@@ -20,8 +20,8 @@ extern "C"
 {
 #endif
 
-#ifdef GETPROGRESS_ENABLED 
 #include <stdio.h>
+#ifdef GETPROGRESS_ENABLED 
 #ifdef WIN32
 #include "win32.h"
 #else

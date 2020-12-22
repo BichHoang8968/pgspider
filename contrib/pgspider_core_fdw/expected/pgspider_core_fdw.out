@@ -794,17 +794,17 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT sum(i), avg(i) FROM test1;
 -- only post_svr is alive
 --Testcase 56:
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM test1 IN ('/post_svr/');
-                       QUERY PLAN                       
---------------------------------------------------------
+                    QUERY PLAN                    
+--------------------------------------------------
  Foreign Scan on public.test1
    Output: i, __spd_url
    Node: file_svr / Status: Not specified by IN
-     Node: file_svr / Status: Not specified by IN
-       Node: mysql_svr / Status: Not specified by IN
-         Node: post_svr / Status: Alive
-           Remote SQL: SELECT i FROM public.test1
-         Node: sqlite_svr / Status: Not specified by IN
-           Node: tiny_svr / Status: Not specified by IN
+   Node: file_svr / Status: Not specified by IN
+   Node: mysql_svr / Status: Not specified by IN
+   Node: post_svr / Status: Alive
+     Remote SQL: SELECT i FROM public.test1
+   Node: sqlite_svr / Status: Not specified by IN
+   Node: tiny_svr / Status: Not specified by IN
 (9 rows)
 
 -- only __spd_url target list is OK
