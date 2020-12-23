@@ -7020,6 +7020,13 @@ spd_AddSpdUrlForGroupby(ForeignScanThreadInfo *pFssThrdInfo, TupleTableSlot *par
 	char	   *spdurl;
 	int			natts;
 
+	/*
+	 * Length of parent should be greater than or equal to length of 
+	 * child slot. If SPDURL is not specified, length is same.
+	 */
+	Assert(parent_slot->tts_tupleDescriptor->natts >=
+		   node_slot->tts_tupleDescriptor->natts);
+
 	fs = pFssThrdInfo->foreignServer;
 	fdw = pFssThrdInfo->fdw;
 
@@ -7141,13 +7148,6 @@ spd_AddSpdUrl(ForeignScanThreadInfo *pFssThrdInfo, TupleTableSlot *parent_slot,
 	int			i;
 	int			tnum = 0;
 	int			natts;
-
-	/*
-	 * Length of parent should be greater than or equal to length of 
-	 * child slot. If SPDURL is not specified, length is same.
-	 */
-	Assert(parent_slot->tts_tupleDescriptor->natts >=
-		   node_slot->tts_tupleDescriptor->natts);
 
 	/* Make tts_values and tts_nulls valid. */
 	slot_getallattrs(node_slot);
