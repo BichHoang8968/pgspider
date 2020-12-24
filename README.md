@@ -26,7 +26,7 @@ git clone https://tosspedia.swc.toshiba.co.jp/gitlab/database/pgspider/pgspider.
 
 Build and install PGSpider and extensions.
 <pre>
-cd PGSpider
+cd pgspider
 ./configure
 make
 sudo make install
