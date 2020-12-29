@@ -1,0 +1,381 @@
+-- create pgspider_svr
+DELETE FROM pg_spd_node_info;
+CREATE EXTENSION pgspider_core_fdw;
+CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1',port '50849');
+CREATE USER mapping for public server pgspider_svr OPTIONS(user 'postgres',password 'postgres');
+CREATE FOREIGN TABLE test1 (
+    timestamp timestamp, 
+    col1 text, 
+    col2 bigint, 
+    col3 double precision, 
+    __spd_url text) 
+SERVER pgspider_svr;
+-- create parquet_s3_fdw extension
+SET datestyle = 'ISO';
+SET client_min_messages = WARNING;
+SET log_statement TO 'none';
+CREATE EXTENSION parquet_s3_fdw;
+CREATE SERVER parquet_s3_svr FOREIGN DATA WRAPPER parquet_s3_fdw OPTIONS (use_minio 'true');
+CREATE USER MAPPING FOR public SERVER parquet_s3_svr OPTIONS (user 'minioadmin', password 'minioadmin');
+-- **********************************************
+-- Foreign table using 'filename' option
+-- **********************************************
+-- File under bucket
+CREATE FOREIGN TABLE test1__parquet_s3_svr__0 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (filename 's3://test-bucket/file0.parquet');
+SELECT * FROM test1__parquet_s3_svr__0;
+      timestamp      | col1  | col2 | col3 
+---------------------+-------+------+------
+ 2020-08-14 11:11:11 | file0 |    1 |  0.1
+ 2020-08-14 12:12:12 | file0 |    2 |  0.2
+(2 rows)
+
+SELECT * FROM test1 ORDER BY timestamp, col3;
+      timestamp      | col1  | col2 | col3 |    __spd_url     
+---------------------+-------+------+------+------------------
+ 2020-08-14 11:11:11 | file0 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0 |    2 |  0.2 | /parquet_s3_svr/
+(2 rows)
+
+-- File in directory
+CREATE FOREIGN TABLE test1__parquet_s3_svr__1 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (filename 's3://test-bucket/file0.parquet');
+SELECT * FROM test1__parquet_s3_svr__0;
+      timestamp      | col1  | col2 | col3 
+---------------------+-------+------+------
+ 2020-08-14 11:11:11 | file0 |    1 |  0.1
+ 2020-08-14 12:12:12 | file0 |    2 |  0.2
+(2 rows)
+
+SELECT * FROM test1 ORDER BY timestamp, col3;
+      timestamp      | col1  | col2 | col3 |    __spd_url     
+---------------------+-------+------+------+------------------
+ 2020-08-14 11:11:11 | file0 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 11:11:11 | file0 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0 |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0 |    2 |  0.2 | /parquet_s3_svr/
+(4 rows)
+
+-- File in sub directory
+CREATE FOREIGN TABLE test1__parquet_s3_svr__2 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (filename 's3://test-bucket/dir1/dir11/file111.parquet');
+SELECT * FROM test1__parquet_s3_svr__2;
+      timestamp      |  col1   | col2 | col3 
+---------------------+---------+------+------
+ 2020-08-16 16:16:16 | file111 |    1 |  0.1
+(1 row)
+
+SELECT * FROM test1 ORDER BY timestamp, col3;
+      timestamp      |  col1   | col2 | col3 |    __spd_url     
+---------------------+---------+------+------+------------------
+ 2020-08-14 11:11:11 | file0   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 11:11:11 | file0   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-16 16:16:16 | file111 |    1 |  0.1 | /parquet_s3_svr/
+(5 rows)
+
+-- Multiple files in the same directory
+CREATE FOREIGN TABLE test1__parquet_s3_svr__3 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (filename 's3://test-bucket/dir2/file21.parquet s3://test-bucket/dir2/file22.parquet s3://test-bucket/dir2/file23.parquet');
+SELECT * FROM test1__parquet_s3_svr__3;
+      timestamp      |  col1  | col2 | col3 
+---------------------+--------+------+------
+ 2020-08-01 00:00:01 | file21 |    2 |  0.2
+ 2020-08-01 00:00:02 | file21 |    1 |  0.1
+ 2020-08-02 00:00:01 | file22 |    1 |  0.1
+ 2020-08-03 00:00:02 | file22 |    2 |  0.2
+ 2020-08-02 00:00:03 | file22 |    3 |  0.3
+ 2020-08-03 00:00:04 | file22 |    4 |  0.4
+ 2020-08-03 00:00:01 | file22 |    1 |  0.1
+ 2020-08-01 00:00:02 | file23 |    2 |  0.2
+(8 rows)
+
+SELECT * FROM test1 ORDER BY timestamp, col3;
+      timestamp      |  col1   | col2 | col3 |    __spd_url     
+---------------------+---------+------+------+------------------
+ 2020-08-01 00:00:01 | file21  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-01 00:00:02 | file21  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-01 00:00:02 | file23  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-02 00:00:01 | file22  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-02 00:00:03 | file22  |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-03 00:00:01 | file22  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-03 00:00:02 | file22  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-03 00:00:04 | file22  |    4 |  0.4 | /parquet_s3_svr/
+ 2020-08-14 11:11:11 | file0   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 11:11:11 | file0   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-16 16:16:16 | file111 |    1 |  0.1 | /parquet_s3_svr/
+(13 rows)
+
+-- Multiple files in some directories
+CREATE FOREIGN TABLE test1__parquet_s3_svr__4 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (filename 's3://test-bucket/file0.parquet s3://test-bucket/dir1/dir12/file121.parquet');
+SELECT * FROM test1__parquet_s3_svr__4;
+      timestamp      |  col1   | col2 | col3 
+---------------------+---------+------+------
+ 2020-08-14 11:11:11 | file0   |    1 |  0.1
+ 2020-08-14 12:12:12 | file0   |    2 |  0.2
+ 2020-08-10 20:20:20 | file112 |    3 |  0.3
+ 2020-08-20 20:20:20 | file112 |    2 |  0.2
+ 2020-08-30 20:20:20 | file112 |    1 |  0.1
+(5 rows)
+
+SELECT * FROM test1 ORDER BY timestamp, col3;
+      timestamp      |  col1   | col2 | col3 |    __spd_url     
+---------------------+---------+------+------+------------------
+ 2020-08-01 00:00:01 | file21  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-01 00:00:02 | file21  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-01 00:00:02 | file23  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-02 00:00:01 | file22  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-02 00:00:03 | file22  |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-03 00:00:01 | file22  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-03 00:00:02 | file22  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-03 00:00:04 | file22  |    4 |  0.4 | /parquet_s3_svr/
+ 2020-08-10 20:20:20 | file112 |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-14 11:11:11 | file0   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 11:11:11 | file0   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 11:11:11 | file0   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-16 16:16:16 | file111 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-20 20:20:20 | file112 |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-30 20:20:20 | file112 |    1 |  0.1 | /parquet_s3_svr/
+(18 rows)
+
+-- **********************************************
+-- Foreign table using 'dirname' option
+-- **********************************************
+-- Only bucket name
+CREATE FOREIGN TABLE test1__parquet_s3_svr__5 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (dirname 's3://test-bucket');
+SELECT * FROM test1__parquet_s3_svr__5;
+      timestamp      |  col1   | col2 | col3 
+---------------------+---------+------+------
+ 2020-08-16 16:16:16 | file111 |    1 |  0.1
+ 2020-08-17 19:19:19 | file112 |    3 |  0.3
+ 2020-08-17 18:18:18 | file112 |    2 |  0.2
+ 2020-08-17 17:17:17 | file112 |    1 |  0.1
+ 2020-08-10 20:20:20 | file112 |    3 |  0.3
+ 2020-08-20 20:20:20 | file112 |    2 |  0.2
+ 2020-08-30 20:20:20 | file112 |    1 |  0.1
+ 2020-08-15 13:13:13 | file1   |    1 |  0.1
+ 2020-08-15 14:14:14 | file1   |    2 |  0.2
+ 2020-08-15 15:15:15 | file1   |    3 |  0.3
+ 2020-08-01 00:00:01 | file21  |    2 |  0.2
+ 2020-08-01 00:00:02 | file21  |    1 |  0.1
+ 2020-08-02 00:00:01 | file22  |    1 |  0.1
+ 2020-08-03 00:00:02 | file22  |    2 |  0.2
+ 2020-08-02 00:00:03 | file22  |    3 |  0.3
+ 2020-08-03 00:00:04 | file22  |    4 |  0.4
+ 2020-08-03 00:00:01 | file22  |    1 |  0.1
+ 2020-08-01 00:00:02 | file23  |    2 |  0.2
+ 2020-08-14 11:11:11 | file0   |    1 |  0.1
+ 2020-08-14 12:12:12 | file0   |    2 |  0.2
+(20 rows)
+
+SELECT * FROM test1 ORDER BY timestamp, col3;
+      timestamp      |  col1   | col2 | col3 |    __spd_url     
+---------------------+---------+------+------+------------------
+ 2020-08-01 00:00:01 | file21  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-01 00:00:01 | file21  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-01 00:00:02 | file21  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-01 00:00:02 | file21  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-01 00:00:02 | file23  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-01 00:00:02 | file23  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-02 00:00:01 | file22  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-02 00:00:01 | file22  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-02 00:00:03 | file22  |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-02 00:00:03 | file22  |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-03 00:00:01 | file22  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-03 00:00:01 | file22  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-03 00:00:02 | file22  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-03 00:00:02 | file22  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-03 00:00:04 | file22  |    4 |  0.4 | /parquet_s3_svr/
+ 2020-08-03 00:00:04 | file22  |    4 |  0.4 | /parquet_s3_svr/
+ 2020-08-10 20:20:20 | file112 |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-10 20:20:20 | file112 |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-14 11:11:11 | file0   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 11:11:11 | file0   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 11:11:11 | file0   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 11:11:11 | file0   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-15 13:13:13 | file1   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-15 14:14:14 | file1   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-15 15:15:15 | file1   |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-16 16:16:16 | file111 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-16 16:16:16 | file111 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-17 17:17:17 | file112 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-17 18:18:18 | file112 |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-17 19:19:19 | file112 |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-20 20:20:20 | file112 |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-20 20:20:20 | file112 |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-30 20:20:20 | file112 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-30 20:20:20 | file112 |    1 |  0.1 | /parquet_s3_svr/
+(38 rows)
+
+-- Directory
+CREATE FOREIGN TABLE test1__parquet_s3_svr__6 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (dirname 's3://test-bucket/dir1');
+SELECT * FROM test1__parquet_s3_svr__6;
+      timestamp      |  col1   | col2 | col3 
+---------------------+---------+------+------
+ 2020-08-16 16:16:16 | file111 |    1 |  0.1
+ 2020-08-17 19:19:19 | file112 |    3 |  0.3
+ 2020-08-17 18:18:18 | file112 |    2 |  0.2
+ 2020-08-17 17:17:17 | file112 |    1 |  0.1
+ 2020-08-10 20:20:20 | file112 |    3 |  0.3
+ 2020-08-20 20:20:20 | file112 |    2 |  0.2
+ 2020-08-30 20:20:20 | file112 |    1 |  0.1
+ 2020-08-15 13:13:13 | file1   |    1 |  0.1
+ 2020-08-15 14:14:14 | file1   |    2 |  0.2
+ 2020-08-15 15:15:15 | file1   |    3 |  0.3
+(10 rows)
+
+SELECT * FROM test1 ORDER BY timestamp, col3;
+      timestamp      |  col1   | col2 | col3 |    __spd_url     
+---------------------+---------+------+------+------------------
+ 2020-08-01 00:00:01 | file21  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-01 00:00:01 | file21  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-01 00:00:02 | file21  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-01 00:00:02 | file21  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-01 00:00:02 | file23  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-01 00:00:02 | file23  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-02 00:00:01 | file22  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-02 00:00:01 | file22  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-02 00:00:03 | file22  |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-02 00:00:03 | file22  |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-03 00:00:01 | file22  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-03 00:00:01 | file22  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-03 00:00:02 | file22  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-03 00:00:02 | file22  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-03 00:00:04 | file22  |    4 |  0.4 | /parquet_s3_svr/
+ 2020-08-03 00:00:04 | file22  |    4 |  0.4 | /parquet_s3_svr/
+ 2020-08-10 20:20:20 | file112 |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-10 20:20:20 | file112 |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-10 20:20:20 | file112 |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-14 11:11:11 | file0   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 11:11:11 | file0   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 11:11:11 | file0   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 11:11:11 | file0   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-15 13:13:13 | file1   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-15 13:13:13 | file1   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-15 14:14:14 | file1   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-15 14:14:14 | file1   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-15 15:15:15 | file1   |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-15 15:15:15 | file1   |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-16 16:16:16 | file111 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-16 16:16:16 | file111 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-16 16:16:16 | file111 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-17 17:17:17 | file112 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-17 17:17:17 | file112 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-17 18:18:18 | file112 |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-17 18:18:18 | file112 |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-17 19:19:19 | file112 |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-17 19:19:19 | file112 |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-20 20:20:20 | file112 |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-20 20:20:20 | file112 |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-20 20:20:20 | file112 |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-30 20:20:20 | file112 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-30 20:20:20 | file112 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-30 20:20:20 | file112 |    1 |  0.1 | /parquet_s3_svr/
+(48 rows)
+
+-- Sub directory
+CREATE FOREIGN TABLE test1__parquet_s3_svr__7 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (dirname 's3://test-bucket/dir1/dir11');
+SELECT * FROM test1__parquet_s3_svr__7;
+      timestamp      |  col1   | col2 | col3 
+---------------------+---------+------+------
+ 2020-08-16 16:16:16 | file111 |    1 |  0.1
+ 2020-08-17 19:19:19 | file112 |    3 |  0.3
+ 2020-08-17 18:18:18 | file112 |    2 |  0.2
+ 2020-08-17 17:17:17 | file112 |    1 |  0.1
+(4 rows)
+
+SELECT * FROM test1 ORDER BY timestamp, col3;
+      timestamp      |  col1   | col2 | col3 |    __spd_url     
+---------------------+---------+------+------+------------------
+ 2020-08-01 00:00:01 | file21  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-01 00:00:01 | file21  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-01 00:00:02 | file21  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-01 00:00:02 | file21  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-01 00:00:02 | file23  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-01 00:00:02 | file23  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-02 00:00:01 | file22  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-02 00:00:01 | file22  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-02 00:00:03 | file22  |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-02 00:00:03 | file22  |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-03 00:00:01 | file22  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-03 00:00:01 | file22  |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-03 00:00:02 | file22  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-03 00:00:02 | file22  |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-03 00:00:04 | file22  |    4 |  0.4 | /parquet_s3_svr/
+ 2020-08-03 00:00:04 | file22  |    4 |  0.4 | /parquet_s3_svr/
+ 2020-08-10 20:20:20 | file112 |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-10 20:20:20 | file112 |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-10 20:20:20 | file112 |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-14 11:11:11 | file0   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 11:11:11 | file0   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 11:11:11 | file0   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 11:11:11 | file0   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-14 12:12:12 | file0   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-15 13:13:13 | file1   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-15 13:13:13 | file1   |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-15 14:14:14 | file1   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-15 14:14:14 | file1   |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-15 15:15:15 | file1   |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-15 15:15:15 | file1   |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-16 16:16:16 | file111 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-16 16:16:16 | file111 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-16 16:16:16 | file111 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-16 16:16:16 | file111 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-17 17:17:17 | file112 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-17 17:17:17 | file112 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-17 17:17:17 | file112 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-17 18:18:18 | file112 |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-17 18:18:18 | file112 |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-17 18:18:18 | file112 |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-17 19:19:19 | file112 |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-17 19:19:19 | file112 |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-17 19:19:19 | file112 |    3 |  0.3 | /parquet_s3_svr/
+ 2020-08-20 20:20:20 | file112 |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-20 20:20:20 | file112 |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-20 20:20:20 | file112 |    2 |  0.2 | /parquet_s3_svr/
+ 2020-08-30 20:20:20 | file112 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-30 20:20:20 | file112 |    1 |  0.1 | /parquet_s3_svr/
+ 2020-08-30 20:20:20 | file112 |    1 |  0.1 | /parquet_s3_svr/
+(52 rows)
+
+-- **********************************************
+-- Error cases
+-- **********************************************
+-- File does not exist
+CREATE FOREIGN TABLE test1__parquet_s3_svr__8 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (filename 's3://test-bucket/dummy-file.parquet');
+SELECT * FROM test1__parquet_s3_svr__8;
+ERROR:  parquet_fdw: failed to exctract row groups from Parquet file: failed to open Parquet file HeadObject failed
+-- Bucket does not exist
+CREATE FOREIGN TABLE test1__parquet_s3_svr__9 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (dirname 's3://dummy-bucket');
+SELECT * FROM test1__parquet_s3_svr__8;
+ERROR:  parquet_fdw: failed to exctract row groups from Parquet file: failed to open Parquet file HeadObject failed
+-- Directory does not exist
+CREATE FOREIGN TABLE test1__parquet_s3_svr__10 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (dirname 's3://test-bucket/dummy-dir');
+SELECT * FROM test1__parquet_s3_svr__8;
+ERROR:  parquet_fdw: failed to exctract row groups from Parquet file: failed to open Parquet file HeadObject failed
+-- Use both options 'filename' and 'dirname'
+CREATE FOREIGN TABLE test1__parquet_s3_svr__11 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (filename 's3://test-bucket/dir1/file1.parquet', dirname 's3://test-bucket/dir1');
+ERROR:  parquet_fdw: ether filename or dirname can be specified
+-- Specify both local file and S3 file
+CREATE FOREIGN TABLE test1__parquet_s3_svr__12 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (filename 's3://test-bucket/dir1/file1.parquet /tmp/file2.parquet');
+ERROR:  Cannot specify the mix of local file and S3 file
+-- **********************************************
+-- Cleanup
+-- **********************************************
+DROP EXTENSION parquet_s3_fdw CASCADE;
+DROP FOREIGN TABLE test1;
+DROP SERVER pgspider_svr CASCADE;
+DROP EXTENSION pgspider_core_fdw CASCADE;

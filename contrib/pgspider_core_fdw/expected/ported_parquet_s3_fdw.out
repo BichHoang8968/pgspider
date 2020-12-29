@@ -1,0 +1,655 @@
+-- create pgspider_svr
+DELETE FROM pg_spd_node_info;
+CREATE EXTENSION pgspider_core_fdw;
+CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1',port '50849');
+CREATE USER mapping for public server pgspider_svr OPTIONS(user 'postgres',password 'postgres');
+CREATE FOREIGN TABLE test1 (
+    one     INT8,
+    two     INT8[],
+    three   TEXT,
+    four    TIMESTAMP,
+    five    DATE,
+    six     BOOL,
+    seven   FLOAT8,
+    __spd_url text) 
+SERVER pgspider_svr;
+-- create parquet_s3_fdw extension
+SET datestyle = 'ISO';
+SET client_min_messages = WARNING;
+SET log_statement TO 'none';
+CREATE EXTENSION parquet_s3_fdw;
+CREATE SERVER parquet_s3_svr FOREIGN DATA WRAPPER parquet_s3_fdw OPTIONS (use_minio 'true');
+CREATE USER MAPPING FOR public SERVER parquet_s3_svr OPTIONS (user 'minioadmin', password 'minioadmin');
+-- create multi-tenant
+CREATE FOREIGN TABLE test1__parquet_s3_svr__0 (
+    one     INT8,
+    two     INT8[],
+    three   TEXT,
+    four    TIMESTAMP,
+    five    DATE,
+    six     BOOL,
+    seven   FLOAT8)
+SERVER parquet_s3_svr
+OPTIONS (filename 's3://ported/ported_1.parquet', sorted 'one');
+SELECT * FROM test1 ORDER BY one;
+     one     |    two     | three |        four         |    five    | six | seven |    __spd_url     
+-------------+------------+-------+---------------------+------------+-----+-------+------------------
+ -2147483648 | {1,2,3}    | foo   | 2018-01-01 00:00:00 | 1975-06-18 | t   |   0.5 | /parquet_s3_svr/
+           0 | {NULL,5,6} | bar   | 2018-01-02 00:00:00 | 1980-01-02 | f   |       | /parquet_s3_svr/
+           1 | {7,8,9}    | baz   | 2018-01-03 00:00:00 | 1999-05-03 | t   |     1 | /parquet_s3_svr/
+           2 | {10,11,12} | uno   | 2018-01-04 00:00:00 | 2018-01-04 | f   |   0.5 | /parquet_s3_svr/
+(4 rows)
+
+CREATE FOREIGN TABLE test1__parquet_s3_svr__1 (
+    one     INT8,
+    two     INT8[],
+    three   TEXT,
+    four    TIMESTAMP,
+    five    DATE,
+    six     BOOL,
+    seven   FLOAT8)
+SERVER parquet_s3_svr
+OPTIONS (filename 's3://ported/ported_2.parquet', sorted 'one');
+SELECT * FROM test1 ORDER BY one;
+     one     |           two           |   three   |        four         |    five    | six |   seven    |    __spd_url     
+-------------+-------------------------+-----------+---------------------+------------+-----+------------+------------------
+ -2147483648 | {1,2,3}                 | foo       | 2018-01-01 00:00:00 | 1975-06-18 | t   |        0.5 | /parquet_s3_svr/
+           0 | {NULL,5,6}              | bar       | 2018-01-02 00:00:00 | 1980-01-02 | f   |            | /parquet_s3_svr/
+           1 | {7,8,9}                 | baz       | 2018-01-03 00:00:00 | 1999-05-03 | t   |          1 | /parquet_s3_svr/
+           2 | {10,11,12}              | uno       | 2018-01-04 00:00:00 | 2018-01-04 | f   |        0.5 | /parquet_s3_svr/
+           3 | {13,14,15}              | dos       | 2018-01-05 00:00:00 | 2018-01-05 | f   |            | /parquet_s3_svr/
+           4 | {16,17,18}              | tres      | 2018-01-06 00:00:00 | 2018-01-06 | f   |          1 | /parquet_s3_svr/
+           5 | {-2147483648,2,9989878} | ~!@#$%^&* | 1970-01-01 23:59:59 | 2018-01-07 | f   | -2266.2468 | /parquet_s3_svr/
+(7 rows)
+
+CREATE FOREIGN TABLE test1__parquet_s3_svr__2 (
+    one     INT8,
+    two     INT8[],
+    three   TEXT,
+    four    TIMESTAMP,
+    five    DATE,
+    six     BOOL,
+    seven   FLOAT8)
+SERVER parquet_s3_svr
+OPTIONS (filename 's3://ported/ported_3.parquet', sorted 'one');
+SELECT * FROM test1 ORDER BY one;
+     one     |           two            |                    three                    |        four         |    five    | six |       seven       |    __spd_url     
+-------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------------+------------------
+ -2147483648 | {1,2,3}                  | foo                                         | 2018-01-01 00:00:00 | 1975-06-18 | t   |               0.5 | /parquet_s3_svr/
+           0 | {NULL,5,6}               | bar                                         | 2018-01-02 00:00:00 | 1980-01-02 | f   |                   | /parquet_s3_svr/
+           1 | {7,8,9}                  | baz                                         | 2018-01-03 00:00:00 | 1999-05-03 | t   |                 1 | /parquet_s3_svr/
+           2 | {10,11,12}               | uno                                         | 2018-01-04 00:00:00 | 2018-01-04 | f   |               0.5 | /parquet_s3_svr/
+           3 | {13,14,15}               | dos                                         | 2018-01-05 00:00:00 | 2018-01-05 | f   |                   | /parquet_s3_svr/
+           4 | {16,17,18}               | tres                                        | 2018-01-06 00:00:00 | 2018-01-06 | f   |                 1 | /parquet_s3_svr/
+           5 | {-2147483648,2,9989878}  | ~!@#$%^&*                                   | 1970-01-01 23:59:59 | 2018-01-07 | f   |        -2266.2468 | /parquet_s3_svr/
+           6 | {-4478,37671,2147483648} | beAty&日本人はとても勤勉で真面目です@@human | 1999-01-01 23:00:59 | 2020-02-20 | t   |          -0.00015 | /parquet_s3_svr/
+      100000 | {0,2,1000}               | MANGA&  &ANIME**日本が大好きです* *VIETNAM  | 2049-01-01 00:00:00 | 2100-02-20 | t   |       5464.554455 | /parquet_s3_svr/
+  2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN                           | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263 | /parquet_s3_svr/
+(10 rows)
+
+SELECT * FROM test1 IN ('/parquet_s3_svr/') ORDER BY one,seven,__spd_url;
+     one     |           two            |                    three                    |        four         |    five    | six |       seven       |    __spd_url     
+-------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------------+------------------
+ -2147483648 | {1,2,3}                  | foo                                         | 2018-01-01 00:00:00 | 1975-06-18 | t   |               0.5 | /parquet_s3_svr/
+           0 | {NULL,5,6}               | bar                                         | 2018-01-02 00:00:00 | 1980-01-02 | f   |                   | /parquet_s3_svr/
+           1 | {7,8,9}                  | baz                                         | 2018-01-03 00:00:00 | 1999-05-03 | t   |                 1 | /parquet_s3_svr/
+           2 | {10,11,12}               | uno                                         | 2018-01-04 00:00:00 | 2018-01-04 | f   |               0.5 | /parquet_s3_svr/
+           3 | {13,14,15}               | dos                                         | 2018-01-05 00:00:00 | 2018-01-05 | f   |                   | /parquet_s3_svr/
+           4 | {16,17,18}               | tres                                        | 2018-01-06 00:00:00 | 2018-01-06 | f   |                 1 | /parquet_s3_svr/
+           5 | {-2147483648,2,9989878}  | ~!@#$%^&*                                   | 1970-01-01 23:59:59 | 2018-01-07 | f   |        -2266.2468 | /parquet_s3_svr/
+           6 | {-4478,37671,2147483648} | beAty&日本人はとても勤勉で真面目です@@human | 1999-01-01 23:00:59 | 2020-02-20 | t   |          -0.00015 | /parquet_s3_svr/
+      100000 | {0,2,1000}               | MANGA&  &ANIME**日本が大好きです* *VIETNAM  | 2049-01-01 00:00:00 | 2100-02-20 | t   |       5464.554455 | /parquet_s3_svr/
+  2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN                           | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263 | /parquet_s3_svr/
+(10 rows)
+
+-- no explicit columns mentions
+SELECT 1 as x FROM test1;
+ x 
+---
+ 1
+ 1
+ 1
+ 1
+ 1
+ 1
+ 1
+ 1
+ 1
+ 1
+(10 rows)
+
+SELECT count(*) as count FROM test1;
+ count 
+-------
+    10
+(1 row)
+
+-- sorting
+EXPLAIN (COSTS OFF) SELECT * FROM test1 ORDER BY one;
+                  QUERY PLAN                  
+----------------------------------------------
+ Sort
+   Sort Key: one
+   ->  Foreign Scan on test1
+         Node: parquet_s3_svr / Status: Alive
+           Reader: Single File
+           Row groups: 1
+         Node: parquet_s3_svr / Status: Alive
+           Reader: Single File
+           Row groups: 1
+         Node: parquet_s3_svr / Status: Alive
+           Reader: Single File
+           Row groups: 1
+(12 rows)
+
+EXPLAIN (COSTS OFF) SELECT * FROM test1 ORDER BY three;
+                  QUERY PLAN                  
+----------------------------------------------
+ Sort
+   Sort Key: three
+   ->  Foreign Scan on test1
+         Node: parquet_s3_svr / Status: Alive
+           Reader: Single File
+           Row groups: 1
+         Node: parquet_s3_svr / Status: Alive
+           Reader: Single File
+           Row groups: 1
+         Node: parquet_s3_svr / Status: Alive
+           Reader: Single File
+           Row groups: 1
+(12 rows)
+
+-- filtering
+SET client_min_messages = DEBUG1;
+SELECT * FROM test1 WHERE one < 1 ORDER BY one;
+DEBUG:  parquet_fdw: skip rowgroup 1
+DEBUG:  parquet_fdw: skip rowgroup 1
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+     one     |    two     | three |        four         |    five    | six | seven |    __spd_url     
+-------------+------------+-------+---------------------+------------+-----+-------+------------------
+ -2147483648 | {1,2,3}    | foo   | 2018-01-01 00:00:00 | 1975-06-18 | t   |   0.5 | /parquet_s3_svr/
+           0 | {NULL,5,6} | bar   | 2018-01-02 00:00:00 | 1980-01-02 | f   |       | /parquet_s3_svr/
+(2 rows)
+
+SELECT * FROM test1 WHERE one <= 1 ORDER BY one;
+DEBUG:  parquet_fdw: skip rowgroup 1
+DEBUG:  parquet_fdw: skip rowgroup 1
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+     one     |    two     | three |        four         |    five    | six | seven |    __spd_url     
+-------------+------------+-------+---------------------+------------+-----+-------+------------------
+ -2147483648 | {1,2,3}    | foo   | 2018-01-01 00:00:00 | 1975-06-18 | t   |   0.5 | /parquet_s3_svr/
+           0 | {NULL,5,6} | bar   | 2018-01-02 00:00:00 | 1980-01-02 | f   |       | /parquet_s3_svr/
+           1 | {7,8,9}    | baz   | 2018-01-03 00:00:00 | 1999-05-03 | t   |     1 | /parquet_s3_svr/
+(3 rows)
+
+SELECT * FROM test1 WHERE one > 6 ORDER BY one;
+DEBUG:  parquet_fdw: skip rowgroup 1
+DEBUG:  parquet_fdw: skip rowgroup 1
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+    one     |           two            |                   three                    |        four         |    five    | six |       seven       |    __spd_url     
+------------+--------------------------+--------------------------------------------+---------------------+------------+-----+-------------------+------------------
+     100000 | {0,2,1000}               | MANGA&  &ANIME**日本が大好きです* *VIETNAM | 2049-01-01 00:00:00 | 2100-02-20 | t   |       5464.554455 | /parquet_s3_svr/
+ 2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN                          | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263 | /parquet_s3_svr/
+(2 rows)
+
+SELECT * FROM test1 WHERE one >= 6 ORDER BY one;
+DEBUG:  parquet_fdw: skip rowgroup 1
+DEBUG:  parquet_fdw: skip rowgroup 1
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+    one     |           two            |                    three                    |        four         |    five    | six |       seven       |    __spd_url     
+------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------------+------------------
+          6 | {-4478,37671,2147483648} | beAty&日本人はとても勤勉で真面目です@@human | 1999-01-01 23:00:59 | 2020-02-20 | t   |          -0.00015 | /parquet_s3_svr/
+     100000 | {0,2,1000}               | MANGA&  &ANIME**日本が大好きです* *VIETNAM  | 2049-01-01 00:00:00 | 2100-02-20 | t   |       5464.554455 | /parquet_s3_svr/
+ 2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN                           | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263 | /parquet_s3_svr/
+(3 rows)
+
+SELECT * FROM test1 WHERE one = 2 ORDER BY one;
+DEBUG:  parquet_fdw: skip rowgroup 1
+DEBUG:  parquet_fdw: skip rowgroup 1
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+ one |    two     | three |        four         |    five    | six | seven |    __spd_url     
+-----+------------+-------+---------------------+------------+-----+-------+------------------
+   2 | {10,11,12} | uno   | 2018-01-04 00:00:00 | 2018-01-04 | f   |   0.5 | /parquet_s3_svr/
+(1 row)
+
+SELECT * FROM test1 WHERE one = 7 ORDER BY one;
+DEBUG:  parquet_fdw: skip rowgroup 1
+DEBUG:  parquet_fdw: skip rowgroup 1
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+ one | two | three | four | five | six | seven | __spd_url 
+-----+-----+-------+------+------+-----+-------+-----------
+(0 rows)
+
+SELECT * FROM test1 WHERE six = true ORDER BY one;
+DEBUG:  parquet_fdw: skip rowgroup 1
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+     one     |           two            |                    three                    |        four         |    five    | six |    seven    |    __spd_url     
+-------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------+------------------
+ -2147483648 | {1,2,3}                  | foo                                         | 2018-01-01 00:00:00 | 1975-06-18 | t   |         0.5 | /parquet_s3_svr/
+           1 | {7,8,9}                  | baz                                         | 2018-01-03 00:00:00 | 1999-05-03 | t   |           1 | /parquet_s3_svr/
+           6 | {-4478,37671,2147483648} | beAty&日本人はとても勤勉で真面目です@@human | 1999-01-01 23:00:59 | 2020-02-20 | t   |    -0.00015 | /parquet_s3_svr/
+      100000 | {0,2,1000}               | MANGA&  &ANIME**日本が大好きです* *VIETNAM  | 2049-01-01 00:00:00 | 2100-02-20 | t   | 5464.554455 | /parquet_s3_svr/
+(4 rows)
+
+SELECT * FROM test1 WHERE six = false ORDER BY one;
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+    one     |           two            |       three       |        four         |    five    | six |       seven       |    __spd_url     
+------------+--------------------------+-------------------+---------------------+------------+-----+-------------------+------------------
+          0 | {NULL,5,6}               | bar               | 2018-01-02 00:00:00 | 1980-01-02 | f   |                   | /parquet_s3_svr/
+          2 | {10,11,12}               | uno               | 2018-01-04 00:00:00 | 2018-01-04 | f   |               0.5 | /parquet_s3_svr/
+          3 | {13,14,15}               | dos               | 2018-01-05 00:00:00 | 2018-01-05 | f   |                   | /parquet_s3_svr/
+          4 | {16,17,18}               | tres              | 2018-01-06 00:00:00 | 2018-01-06 | f   |                 1 | /parquet_s3_svr/
+          5 | {-2147483648,2,9989878}  | ~!@#$%^&*         | 1970-01-01 23:59:59 | 2018-01-07 | f   |        -2266.2468 | /parquet_s3_svr/
+ 2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263 | /parquet_s3_svr/
+(6 rows)
+
+SELECT * FROM test1 WHERE seven < 0.9 ORDER BY one;
+DEBUG:  parquet_fdw: skip rowgroup 1
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+     one     |           two            |                    three                    |        four         |    five    | six |  seven   |    __spd_url     
+-------------+--------------------------+---------------------------------------------+---------------------+------------+-----+----------+------------------
+ -2147483648 | {1,2,3}                  | foo                                         | 2018-01-01 00:00:00 | 1975-06-18 | t   |      0.5 | /parquet_s3_svr/
+           2 | {10,11,12}               | uno                                         | 2018-01-04 00:00:00 | 2018-01-04 | f   |      0.5 | /parquet_s3_svr/
+           6 | {-4478,37671,2147483648} | beAty&日本人はとても勤勉で真面目です@@human | 1999-01-01 23:00:59 | 2020-02-20 | t   | -0.00015 | /parquet_s3_svr/
+(3 rows)
+
+SELECT * FROM test1 WHERE seven IS NULL ORDER BY one;
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+ one |    two     | three |        four         |    five    | six | seven |    __spd_url     
+-----+------------+-------+---------------------+------------+-----+-------+------------------
+   0 | {NULL,5,6} | bar   | 2018-01-02 00:00:00 | 1980-01-02 | f   |       | /parquet_s3_svr/
+   3 | {13,14,15} | dos   | 2018-01-05 00:00:00 | 2018-01-05 | f   |       | /parquet_s3_svr/
+(2 rows)
+
+-- prepared statements
+prepare prep(date) as select * from test1 where five < $1;
+execute prep('2018-01-03');
+DEBUG:  parquet_fdw: skip rowgroup 1
+DEBUG:  parquet_fdw: skip rowgroup 1
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+     one     |    two     | three |        four         |    five    | six | seven |    __spd_url     
+-------------+------------+-------+---------------------+------------+-----+-------+------------------
+ -2147483648 | {1,2,3}    | foo   | 2018-01-01 00:00:00 | 1975-06-18 | t   |   0.5 | /parquet_s3_svr/
+           0 | {NULL,5,6} | bar   | 2018-01-02 00:00:00 | 1980-01-02 | f   |       | /parquet_s3_svr/
+           1 | {7,8,9}    | baz   | 2018-01-03 00:00:00 | 1999-05-03 | t   |     1 | /parquet_s3_svr/
+(3 rows)
+
+execute prep('2018-01-01');
+DEBUG:  parquet_fdw: skip rowgroup 1
+DEBUG:  parquet_fdw: skip rowgroup 1
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_1.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_2.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+DEBUG:  parquet_fdw: open Parquet file on S3. portedported_3.parquet
+     one     |    two     | three |        four         |    five    | six | seven |    __spd_url     
+-------------+------------+-------+---------------------+------------+-----+-------+------------------
+ -2147483648 | {1,2,3}    | foo   | 2018-01-01 00:00:00 | 1975-06-18 | t   |   0.5 | /parquet_s3_svr/
+           0 | {NULL,5,6} | bar   | 2018-01-02 00:00:00 | 1980-01-02 | f   |       | /parquet_s3_svr/
+           1 | {7,8,9}    | baz   | 2018-01-03 00:00:00 | 1999-05-03 | t   |     1 | /parquet_s3_svr/
+(3 rows)
+
+-- invalid options
+SET client_min_messages = WARNING;
+CREATE FOREIGN TABLE test1__parquet_s3_svr__3 (
+    one     INT8,
+    two     INT8[],
+    three   TEXT,
+    four    TIMESTAMP,
+    five    DATE,
+    six     BOOL,
+    seven   FLOAT8)
+SERVER parquet_s3_svr;
+ERROR:  parquet_fdw: filename is required
+CREATE FOREIGN TABLE test1__parquet_s3_svr__3 (
+    one     INT8,
+    two     INT8[],
+    three   TEXT,
+    four    TIMESTAMP,
+    five    DATE,
+    six     BOOL,
+    seven   FLOAT8)
+SERVER parquet_s3_svr
+OPTIONS (filename 'nonexistent.parquet', some_option '123');
+ERROR:  parquet_fdw: No such file or directory
+CREATE FOREIGN TABLE test1__parquet_s3_svr__3 (
+    one     INT8,
+    two     INT8[],
+    three   TEXT,
+    four    TIMESTAMP,
+    five    DATE,
+    six     BOOL,
+    seven   FLOAT8)
+SERVER parquet_s3_svr
+OPTIONS (filename 's3://ported/ported_2.parquet', some_option '123');
+ERROR:  parquet_fdw: invalid option "some_option"
+-- type mismatch
+CREATE FOREIGN TABLE test1__parquet_s3_svr__4 (one INT8[], two INT8, three TEXT)
+SERVER parquet_s3_svr
+OPTIONS (filename 's3://ported/ported_2.parquet', sorted 'one');
+SELECT one FROM test1__parquet_s3_svr__4;
+ERROR:  parquet_fdw: incompatible types in column "one"; parquet column is of scalar type while postgres type is array
+SELECT two FROM test1__parquet_s3_svr__4;
+ERROR:  parquet_fdw: incompatible types in column "two"; parquet column is of type list while postgres type is scalar
+-- sequential multifile reader
+CREATE FOREIGN TABLE test2 (
+    one     INT8,
+    two     INT8[],
+    three   TEXT,
+    four    TIMESTAMP,
+    five    DATE,
+    six     BOOL,
+    seven   FLOAT8,
+    __spd_url text) 
+SERVER pgspider_svr;
+CREATE FOREIGN TABLE test2__parquet_s3_svr__0 (
+    one     INT8,
+    two     INT8[],
+    three   TEXT,
+    four    TIMESTAMP,
+    five    DATE,
+    six     BOOL,
+    seven   FLOAT8)
+SERVER parquet_s3_svr
+OPTIONS (filename 's3://ported/ported_3.parquet s3://ported/ported_2.parquet s3://ported/ported_1.parquet', sorted 'one');
+EXPLAIN SELECT * FROM test2;
+                         QUERY PLAN                         
+------------------------------------------------------------
+ Foreign Scan on test2  (cost=0.00..0.10 rows=10 width=125)
+   Node: parquet_s3_svr / Status: Alive
+     Reader: Multifile
+     Row groups: 
+       ported_3.parquet: 1
+       ported_2.parquet: 1
+       ported_1.parquet: 1
+(7 rows)
+
+SELECT * FROM test2;
+     one     |           two            |                    three                    |        four         |    five    | six |       seven       |    __spd_url     
+-------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------------+------------------
+           6 | {-4478,37671,2147483648} | beAty&日本人はとても勤勉で真面目です@@human | 1999-01-01 23:00:59 | 2020-02-20 | t   |          -0.00015 | /parquet_s3_svr/
+      100000 | {0,2,1000}               | MANGA&  &ANIME**日本が大好きです* *VIETNAM  | 2049-01-01 00:00:00 | 2100-02-20 | t   |       5464.554455 | /parquet_s3_svr/
+  2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN                           | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263 | /parquet_s3_svr/
+           3 | {13,14,15}               | dos                                         | 2018-01-05 00:00:00 | 2018-01-05 | f   |                   | /parquet_s3_svr/
+           4 | {16,17,18}               | tres                                        | 2018-01-06 00:00:00 | 2018-01-06 | f   |                 1 | /parquet_s3_svr/
+           5 | {-2147483648,2,9989878}  | ~!@#$%^&*                                   | 1970-01-01 23:59:59 | 2018-01-07 | f   |        -2266.2468 | /parquet_s3_svr/
+ -2147483648 | {1,2,3}                  | foo                                         | 2018-01-01 00:00:00 | 1975-06-18 | t   |               0.5 | /parquet_s3_svr/
+           0 | {NULL,5,6}               | bar                                         | 2018-01-02 00:00:00 | 1980-01-02 | f   |                   | /parquet_s3_svr/
+           1 | {7,8,9}                  | baz                                         | 2018-01-03 00:00:00 | 1999-05-03 | t   |                 1 | /parquet_s3_svr/
+           2 | {10,11,12}               | uno                                         | 2018-01-04 00:00:00 | 2018-01-04 | f   |               0.5 | /parquet_s3_svr/
+(10 rows)
+
+-- multifile merge reader
+CREATE FOREIGN TABLE test3 (
+    one     INT8,
+    two     INT8[],
+    three   TEXT,
+    four    TIMESTAMP,
+    five    DATE,
+    six     BOOL,
+    seven   FLOAT8,
+    __spd_url text) 
+SERVER pgspider_svr;
+CREATE FOREIGN TABLE test3__parquet_s3_svr__0 (
+    one     INT8,
+    two     INT8[],
+    three   TEXT,
+    four    TIMESTAMP,
+    five    DATE,
+    six     BOOL,
+    seven   FLOAT8)
+SERVER parquet_s3_svr
+OPTIONS (filename 's3://ported/ported_3.parquet s3://ported/ported_2.parquet s3://ported/ported_1.parquet', sorted 'one');
+EXPLAIN (COSTS OFF) SELECT * FROM test3 ORDER BY one;
+                  QUERY PLAN                  
+----------------------------------------------
+ Sort
+   Sort Key: one
+   ->  Foreign Scan on test3
+         Node: parquet_s3_svr / Status: Alive
+           Reader: Multifile
+           Row groups: 
+             ported_3.parquet: 1
+             ported_2.parquet: 1
+             ported_1.parquet: 1
+(9 rows)
+
+SELECT * FROM test3 ORDER BY one;
+     one     |           two            |                    three                    |        four         |    five    | six |       seven       |    __spd_url     
+-------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------------+------------------
+ -2147483648 | {1,2,3}                  | foo                                         | 2018-01-01 00:00:00 | 1975-06-18 | t   |               0.5 | /parquet_s3_svr/
+           0 | {NULL,5,6}               | bar                                         | 2018-01-02 00:00:00 | 1980-01-02 | f   |                   | /parquet_s3_svr/
+           1 | {7,8,9}                  | baz                                         | 2018-01-03 00:00:00 | 1999-05-03 | t   |                 1 | /parquet_s3_svr/
+           2 | {10,11,12}               | uno                                         | 2018-01-04 00:00:00 | 2018-01-04 | f   |               0.5 | /parquet_s3_svr/
+           3 | {13,14,15}               | dos                                         | 2018-01-05 00:00:00 | 2018-01-05 | f   |                   | /parquet_s3_svr/
+           4 | {16,17,18}               | tres                                        | 2018-01-06 00:00:00 | 2018-01-06 | f   |                 1 | /parquet_s3_svr/
+           5 | {-2147483648,2,9989878}  | ~!@#$%^&*                                   | 1970-01-01 23:59:59 | 2018-01-07 | f   |        -2266.2468 | /parquet_s3_svr/
+           6 | {-4478,37671,2147483648} | beAty&日本人はとても勤勉で真面目です@@human | 1999-01-01 23:00:59 | 2020-02-20 | t   |          -0.00015 | /parquet_s3_svr/
+      100000 | {0,2,1000}               | MANGA&  &ANIME**日本が大好きです* *VIETNAM  | 2049-01-01 00:00:00 | 2100-02-20 | t   |       5464.554455 | /parquet_s3_svr/
+  2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN                           | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263 | /parquet_s3_svr/
+(10 rows)
+
+-- parallel execution
+SET parallel_setup_cost = 0;
+SET parallel_tuple_cost = 0.001;
+SET cpu_operator_cost = 0.000025;
+ANALYZE test2;
+WARNING:  skipping "test2" --- cannot analyze this foreign table
+ANALYZE test3;
+WARNING:  skipping "test3" --- cannot analyze this foreign table
+EXPLAIN (COSTS OFF) SELECT * FROM test2;
+               QUERY PLAN               
+----------------------------------------
+ Foreign Scan on test2
+   Node: parquet_s3_svr / Status: Alive
+     Reader: Multifile
+     Row groups: 
+       ported_3.parquet: 1
+       ported_2.parquet: 1
+       ported_1.parquet: 1
+(7 rows)
+
+EXPLAIN (COSTS OFF) SELECT * FROM test2 ORDER BY one;
+                  QUERY PLAN                  
+----------------------------------------------
+ Sort
+   Sort Key: one
+   ->  Foreign Scan on test2
+         Node: parquet_s3_svr / Status: Alive
+           Reader: Multifile
+           Row groups: 
+             ported_3.parquet: 1
+             ported_2.parquet: 1
+             ported_1.parquet: 1
+(9 rows)
+
+EXPLAIN (COSTS OFF) SELECT * FROM test2 ORDER BY two;
+                  QUERY PLAN                  
+----------------------------------------------
+ Sort
+   Sort Key: two
+   ->  Foreign Scan on test2
+         Node: parquet_s3_svr / Status: Alive
+           Reader: Multifile
+           Row groups: 
+             ported_3.parquet: 1
+             ported_2.parquet: 1
+             ported_1.parquet: 1
+(9 rows)
+
+EXPLAIN (COSTS OFF) SELECT * FROM test3;
+               QUERY PLAN               
+----------------------------------------
+ Foreign Scan on test3
+   Node: parquet_s3_svr / Status: Alive
+     Reader: Multifile
+     Row groups: 
+       ported_3.parquet: 1
+       ported_2.parquet: 1
+       ported_1.parquet: 1
+(7 rows)
+
+EXPLAIN (COSTS OFF) SELECT * FROM test3 ORDER BY one;
+                  QUERY PLAN                  
+----------------------------------------------
+ Sort
+   Sort Key: one
+   ->  Foreign Scan on test3
+         Node: parquet_s3_svr / Status: Alive
+           Reader: Multifile
+           Row groups: 
+             ported_3.parquet: 1
+             ported_2.parquet: 1
+             ported_1.parquet: 1
+(9 rows)
+
+EXPLAIN (COSTS OFF) SELECT * FROM test3 ORDER BY two;
+                  QUERY PLAN                  
+----------------------------------------------
+ Sort
+   Sort Key: two
+   ->  Foreign Scan on test3
+         Node: parquet_s3_svr / Status: Alive
+           Reader: Multifile
+           Row groups: 
+             ported_3.parquet: 1
+             ported_2.parquet: 1
+             ported_1.parquet: 1
+(9 rows)
+
+-- multiple sorting keys
+CREATE FOREIGN TABLE test4 (
+    one     INT8,
+    two     INT8[],
+    three   TEXT,
+    four    TIMESTAMP,
+    five    DATE,
+    six     BOOL,
+    seven   FLOAT8,
+    __spd_url text) 
+SERVER pgspider_svr;
+CREATE FOREIGN TABLE test4__parquet_s3_svr__0 (
+    one     INT8,
+    two     INT8[],
+    three   TEXT,
+    four    TIMESTAMP,
+    five    DATE,
+    six     BOOL,
+    seven   FLOAT8)
+SERVER parquet_s3_svr
+OPTIONS (filename 's3://ported/ported_1.parquet', sorted 'one five');
+CREATE FOREIGN TABLE test4__parquet_s3_svr__1 (
+    one     INT8,
+    two     INT8[],
+    three   TEXT,
+    four    TIMESTAMP,
+    five    DATE,
+    six     BOOL,
+    seven   FLOAT8)
+SERVER parquet_s3_svr
+OPTIONS (filename 's3://ported/ported_2.parquet', sorted 'one five');
+CREATE FOREIGN TABLE test4__parquet_s3_svr__2 (
+    one     INT8,
+    two     INT8[],
+    three   TEXT,
+    four    TIMESTAMP,
+    five    DATE,
+    six     BOOL,
+    seven   FLOAT8)
+SERVER parquet_s3_svr
+OPTIONS (filename 's3://ported/ported_3.parquet', sorted 'one five');
+EXPLAIN (COSTS OFF) SELECT * FROM test4 ORDER BY one, five;
+                  QUERY PLAN                  
+----------------------------------------------
+ Sort
+   Sort Key: one, five
+   ->  Foreign Scan on test4
+         Node: parquet_s3_svr / Status: Alive
+           Reader: Single File
+           Row groups: 1
+         Node: parquet_s3_svr / Status: Alive
+           Reader: Single File
+           Row groups: 1
+         Node: parquet_s3_svr / Status: Alive
+           Reader: Single File
+           Row groups: 1
+(12 rows)
+
+SELECT * FROM test4 ORDER BY one, five;
+     one     |           two            |                    three                    |        four         |    five    | six |       seven       |    __spd_url     
+-------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------------+------------------
+ -2147483648 | {1,2,3}                  | foo                                         | 2018-01-01 00:00:00 | 1975-06-18 | t   |               0.5 | /parquet_s3_svr/
+           0 | {NULL,5,6}               | bar                                         | 2018-01-02 00:00:00 | 1980-01-02 | f   |                   | /parquet_s3_svr/
+           1 | {7,8,9}                  | baz                                         | 2018-01-03 00:00:00 | 1999-05-03 | t   |                 1 | /parquet_s3_svr/
+           2 | {10,11,12}               | uno                                         | 2018-01-04 00:00:00 | 2018-01-04 | f   |               0.5 | /parquet_s3_svr/
+           3 | {13,14,15}               | dos                                         | 2018-01-05 00:00:00 | 2018-01-05 | f   |                   | /parquet_s3_svr/
+           4 | {16,17,18}               | tres                                        | 2018-01-06 00:00:00 | 2018-01-06 | f   |                 1 | /parquet_s3_svr/
+           5 | {-2147483648,2,9989878}  | ~!@#$%^&*                                   | 1970-01-01 23:59:59 | 2018-01-07 | f   |        -2266.2468 | /parquet_s3_svr/
+           6 | {-4478,37671,2147483648} | beAty&日本人はとても勤勉で真面目です@@human | 1999-01-01 23:00:59 | 2020-02-20 | t   |          -0.00015 | /parquet_s3_svr/
+      100000 | {0,2,1000}               | MANGA&  &ANIME**日本が大好きです* *VIETNAM  | 2049-01-01 00:00:00 | 2100-02-20 | t   |       5464.554455 | /parquet_s3_svr/
+  2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN                           | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263 | /parquet_s3_svr/
+(10 rows)
+
+DROP EXTENSION parquet_s3_fdw CASCADE;
+DROP FOREIGN TABLE test1;
+DROP FOREIGN TABLE test2;
+DROP FOREIGN TABLE test3;
+DROP FOREIGN TABLE test4;
+DROP SERVER pgspider_svr CASCADE;
+DROP EXTENSION pgspider_core_fdw CASCADE;
