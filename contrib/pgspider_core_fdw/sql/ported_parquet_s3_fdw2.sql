@@ -25,27 +25,27 @@ CREATE USER MAPPING FOR public SERVER parquet_s3_svr OPTIONS (user 'minioadmin',
 -- File under bucket
 CREATE FOREIGN TABLE test1__parquet_s3_svr__0 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (filename 's3://test-bucket/file0.parquet');
 SELECT * FROM test1__parquet_s3_svr__0;
-SELECT * FROM test1;
+SELECT * FROM test1 ORDER BY timestamp, col3;
 
 -- File in directory
 CREATE FOREIGN TABLE test1__parquet_s3_svr__1 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (filename 's3://test-bucket/file0.parquet');
 SELECT * FROM test1__parquet_s3_svr__0;
-SELECT * FROM test1;
+SELECT * FROM test1 ORDER BY timestamp, col3;
 
 -- File in sub directory
 CREATE FOREIGN TABLE test1__parquet_s3_svr__2 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (filename 's3://test-bucket/dir1/dir11/file111.parquet');
 SELECT * FROM test1__parquet_s3_svr__2;
-SELECT * FROM test1;
+SELECT * FROM test1 ORDER BY timestamp, col3;
 
 -- Multiple files in the same directory
 CREATE FOREIGN TABLE test1__parquet_s3_svr__3 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (filename 's3://test-bucket/dir2/file21.parquet s3://test-bucket/dir2/file22.parquet s3://test-bucket/dir2/file23.parquet');
 SELECT * FROM test1__parquet_s3_svr__3;
-SELECT * FROM test1;
+SELECT * FROM test1 ORDER BY timestamp, col3;
 
 -- Multiple files in some directories
 CREATE FOREIGN TABLE test1__parquet_s3_svr__4 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (filename 's3://test-bucket/file0.parquet s3://test-bucket/dir1/dir12/file121.parquet');
 SELECT * FROM test1__parquet_s3_svr__4;
-SELECT * FROM test1;
+SELECT * FROM test1 ORDER BY timestamp, col3;
 
 
 -- **********************************************
@@ -54,17 +54,17 @@ SELECT * FROM test1;
 -- Only bucket name
 CREATE FOREIGN TABLE test1__parquet_s3_svr__5 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (dirname 's3://test-bucket');
 SELECT * FROM test1__parquet_s3_svr__5;
-SELECT * FROM test1;
+SELECT * FROM test1 ORDER BY timestamp, col3;
 
 -- Directory
 CREATE FOREIGN TABLE test1__parquet_s3_svr__6 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (dirname 's3://test-bucket/dir1');
 SELECT * FROM test1__parquet_s3_svr__6;
-SELECT * FROM test1;
+SELECT * FROM test1 ORDER BY timestamp, col3;
 
 -- Sub directory
 CREATE FOREIGN TABLE test1__parquet_s3_svr__7 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (dirname 's3://test-bucket/dir1/dir11');
 SELECT * FROM test1__parquet_s3_svr__7;
-SELECT * FROM test1;
+SELECT * FROM test1 ORDER BY timestamp, col3;
 
 
 -- **********************************************
