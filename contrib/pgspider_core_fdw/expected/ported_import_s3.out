@@ -21,7 +21,7 @@ CREATE EXTENSION parquet_s3_fdw;
 CREATE SERVER parquet_s3_svr FOREIGN DATA WRAPPER parquet_s3_fdw OPTIONS (use_minio 'true');
 CREATE USER MAPPING FOR public SERVER parquet_s3_svr OPTIONS (user 'minioadmin', password 'minioadmin');
 -- import foreign schema
-IMPORT FOREIGN SCHEMA "s3://ported"
+IMPORT FOREIGN SCHEMA "s3://parquets3"
 FROM SERVER parquet_s3_svr
 INTO public
 OPTIONS (sorted 'one');
@@ -148,7 +148,7 @@ $$
     select array[args->>'dir' || '/ported_1.parquet', args->>'dir' || '/ported_3.parquet']::text[];
 $$
 language sql;
-select import_parquet_s3('test1__parquet_s3_svr__3', 'public', 'parquet_s3_svr', 'list_parquet_s3_files', '{"dir": "s3://ported"}', '{"sorted": "one"}');
+select import_parquet_s3('test1__parquet_s3_svr__3', 'public', 'parquet_s3_svr', 'list_parquet_s3_files', '{"dir": "s3://parquets3"}', '{"sorted": "one"}');
  import_parquet_s3 
 -------------------
  
@@ -188,7 +188,7 @@ SELECT * FROM test1 ORDER BY one;
   2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN                           | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263 | /parquet_s3_svr/
 (17 rows)
 
-select import_parquet_s3_explicit('test1__parquet_s3_svr__4', 'public', 'parquet_s3_svr', array['one', 'three', 'six'], array['int8', 'text', 'bool']::regtype[], 'list_parquet_s3_files', '{"dir": "s3://ported"}', '{"sorted": "one"}');
+select import_parquet_s3_explicit('test1__parquet_s3_svr__4', 'public', 'parquet_s3_svr', array['one', 'three', 'six'], array['int8', 'text', 'bool']::regtype[], 'list_parquet_s3_files', '{"dir": "s3://parquets3"}', '{"sorted": "one"}');
  import_parquet_s3_explicit 
 ----------------------------
  

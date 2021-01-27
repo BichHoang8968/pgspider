@@ -23,7 +23,7 @@ CREATE SERVER parquet_s3_svr FOREIGN DATA WRAPPER parquet_s3_fdw OPTIONS (use_mi
 CREATE USER MAPPING FOR public SERVER parquet_s3_svr OPTIONS (user 'minioadmin', password 'minioadmin');
 
 -- import foreign schema
-IMPORT FOREIGN SCHEMA "s3://ported"
+IMPORT FOREIGN SCHEMA "s3://parquets3"
 FROM SERVER parquet_s3_svr
 INTO public
 OPTIONS (sorted 'one');
@@ -81,11 +81,11 @@ $$
 $$
 language sql;
 
-select import_parquet_s3('test1__parquet_s3_svr__3', 'public', 'parquet_s3_svr', 'list_parquet_s3_files', '{"dir": "s3://ported"}', '{"sorted": "one"}');
+select import_parquet_s3('test1__parquet_s3_svr__3', 'public', 'parquet_s3_svr', 'list_parquet_s3_files', '{"dir": "s3://parquets3"}', '{"sorted": "one"}');
 SELECT * FROM test1__parquet_s3_svr__3 ORDER BY one, three;
 SELECT * FROM test1 ORDER BY one;
 
-select import_parquet_s3_explicit('test1__parquet_s3_svr__4', 'public', 'parquet_s3_svr', array['one', 'three', 'six'], array['int8', 'text', 'bool']::regtype[], 'list_parquet_s3_files', '{"dir": "s3://ported"}', '{"sorted": "one"}');
+select import_parquet_s3_explicit('test1__parquet_s3_svr__4', 'public', 'parquet_s3_svr', array['one', 'three', 'six'], array['int8', 'text', 'bool']::regtype[], 'list_parquet_s3_files', '{"dir": "s3://parquets3"}', '{"sorted": "one"}');
 SELECT * FROM test1__parquet_s3_svr__4;
 SELECT * FROM test1 ORDER BY one;
 
