@@ -1,32 +1,32 @@
-PGS1_DIR=/home/tsdv/minhla/A/PGSpider/PGS
+PGS1_DIR=/home/jenkins/PGSpider/PGS/
 PGS1_PORT=5433
 PGS1_DB=pg1db
-PGS2_DIR=/home/tsdv/minhla/A/PGSpider/PGS
+PGS2_DIR=/home/jenkins/PGSpider/PGS/
 PGS2_PORT=5434
 PGS2_DB=pg2db
 DB_NAME=postgres
 TINYBRACE_HOME=/usr/local/tinybrace
-POSTGRES_HOME=/home/tsdv/minhla/postgresql-13.0/PGS
-GRIDDB_CLIENT=/home/tsdv/workplace/griddb
-GRIDDB_HOME=/home/tsdv/workplace/griddb-4.1.0
+POSTGRES_HOME=/home/jenkins/Postgres/postgresql-13.0/pgbuild
+GRIDDB_CLIENT=/home/jenkins/GridDB/griddb
+GRIDDB_HOME=/home/jenkins/GridDB/griddb-4.5.0
 CURR_PATH=$(pwd)
 
 if [[ "--start" == $1 ]]
 then
   # Start PostgreSQL
   cd ${POSTGRES_HOME}/bin/
-  if ! [ -d "../databases1" ];
+  if ! [ -d "../databases" ];
   then
-    ./initdb ../databases1
-    sed -i 's/#port = 5432.*/port = 15432/' ../databases1/postgresql.conf
-    ./pg_ctl -D ../databases1 start
+    ./initdb ../databases
+    sed -i 's/#port = 5432.*/port = 15432/' ../databases/postgresql.conf
+    ./pg_ctl -D ../databases start
     sleep 2
     ./createdb -p 15432 postgres
   fi
   if ! ./pg_isready -p 15432
   then
     echo "Start PostgreSQL"
-    ./pg_ctl -D ../databases1 start
+    ./pg_ctl -D ../databases start
     sleep 2
   fi
   #Start PGS1
@@ -151,4 +151,3 @@ ${POSTGRES_HOME}/bin/psql postgres -p 15432  -U postgres < post.dat
 # Setup PGSPider1 and PGSpider2
 $PGS1_DIR/bin/psql -p $PGS1_PORT $DB_NAME < pgspider1.dat
 $PGS2_DIR/bin/psql -p $PGS2_PORT $DB_NAME < pgspider2.dat
-
