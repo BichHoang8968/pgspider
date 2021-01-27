@@ -42,7 +42,7 @@ CREATE FOREIGN TABLE test1__parquet_s3_svr__0 (
     six     BOOL,
     seven   FLOAT8)
 SERVER parquet_s3_svr
-OPTIONS (filename 's3://ported/ported_1.parquet', sorted 'one');
+OPTIONS (filename 's3://parquets3/ported_1.parquet', sorted 'one');
 
 SELECT * FROM test1 ORDER BY one;
 
@@ -55,7 +55,7 @@ CREATE FOREIGN TABLE test1__parquet_s3_svr__1 (
     six     BOOL,
     seven   FLOAT8)
 SERVER parquet_s3_svr
-OPTIONS (filename 's3://ported/ported_2.parquet', sorted 'one');
+OPTIONS (filename 's3://parquets3/ported_2.parquet', sorted 'one');
 
 SELECT * FROM test1 ORDER BY one;
 
@@ -68,7 +68,7 @@ CREATE FOREIGN TABLE test1__parquet_s3_svr__2 (
     six     BOOL,
     seven   FLOAT8)
 SERVER parquet_s3_svr
-OPTIONS (filename 's3://ported/ported_3.parquet', sorted 'one');
+OPTIONS (filename 's3://parquets3/ported_3.parquet', sorted 'one');
 
 SELECT * FROM test1 ORDER BY one;
 SELECT * FROM test1 IN ('/parquet_s3_svr/') ORDER BY three,__spd_url;
@@ -97,7 +97,7 @@ CREATE FOREIGN TABLE parquets3tbl__parquet_s3_svr__0 (
     five    DATE,
     six     BOOL,
     seven   FLOAT8) 
-SERVER parquet_s3_svr options(filename 's3://ported/ported_3.parquet', sorted 'one');
+SERVER parquet_s3_svr options(filename 's3://parquets3/ported_3.parquet', sorted 'one');
 SELECT * FROM parquets3tbl__parquet_s3_svr__0;
 
 CREATE FOREIGN TABLE parquets3tbl (
