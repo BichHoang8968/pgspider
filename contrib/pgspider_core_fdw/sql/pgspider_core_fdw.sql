@@ -190,51 +190,51 @@ SELECT __spd_url FROM test1 ORDER BY __spd_url;
 
 --Testcase 214:
 EXPLAIN VERBOSE
-SELECT i, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i;
+SELECT i, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
 --Testcase 215:
-SELECT i, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i;
+SELECT i, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
 
 --Testcase 216:
 EXPLAIN VERBOSE
-SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
 --Testcase 58:
-SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
 
 --Testcase 217:
 EXPLAIN VERBOSE
-SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
 --Testcase 59:
-SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
 
 --Testcase 218:
 EXPLAIN VERBOSE
-SELECT avg(i), __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i;
+SELECT avg(i), __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
 --Testcase 219:
-SELECT avg(i), __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i;
+SELECT avg(i), __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
 
 --Testcase 220:
 EXPLAIN VERBOSE
-SELECT avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
 --Testcase 60:
-SELECT avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
 
 --Testcase 221:
 EXPLAIN VERBOSE
-SELECT __spd_url, avg(i) FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT __spd_url, avg(i) FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
 --Testcase 61:
-SELECT __spd_url, avg(i) FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT __spd_url, avg(i) FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
 
 --Testcase 222:
 EXPLAIN VERBOSE
-SELECT __spd_url, sum(i) FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT __spd_url, sum(i) FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
 --Testcase 62:
-SELECT __spd_url, sum(i) FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT __spd_url, sum(i) FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
 
 --Testcase 223:
 EXPLAIN VERBOSE
-SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
 --Testcase 63:
-SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
+SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
 
 --Testcase 64:
 SELECT sum(i) FROM test1;
@@ -316,57 +316,57 @@ SELECT t, avg(i), t FROM t1 GROUP BY i, t ORDER BY i;
 
 --Testcase 227:
 EXPLAIN VERBOSE
-SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t ORDER BY t;
+SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t ORDER BY t,__spd_url;
 --Testcase 91:
-SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t ORDER BY t;
+SELECT t, __spd_url FROM t1 GROUP BY __spd_url, t ORDER BY t,__spd_url;
 
 --Testcase 228:
 EXPLAIN VERBOSE
-SELECT i, __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT i, __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
 --Testcase 92:
-SELECT i, __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT i, __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
 
 --Testcase 229:
 EXPLAIN VERBOSE
-SELECT __spd_url, i FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, i FROM t1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
 --Testcase 93:
-SELECT __spd_url, i FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, i FROM t1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
 
 --Testcase 230:
 EXPLAIN VERBOSE
-SELECT avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
 --Testcase 94:
-SELECT avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
 
 --Testcase 231:
 EXPLAIN VERBOSE
-SELECT __spd_url, avg(i) FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, avg(i) FROM t1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
 --Testcase 95:
-SELECT __spd_url, avg(i) FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, avg(i) FROM t1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
 
 --Testcase 232:
 EXPLAIN VERBOSE
-SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
 --Testcase 96:
-SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
 
 --Testcase 233:
 EXPLAIN VERBOSE
-SELECT __spd_url, sum(i) FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, sum(i) FROM t1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
 --Testcase 97:
-SELECT __spd_url, sum(i) FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, sum(i) FROM t1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
 
 --Testcase 234:
 EXPLAIN VERBOSE
-SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
 --Testcase 98:
-SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, avg(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
 
 --Testcase 235:
 EXPLAIN VERBOSE
-SELECT __spd_url, avg(i), sum(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, avg(i), sum(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
 --Testcase 99:
-SELECT __spd_url, avg(i), sum(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i;
+SELECT __spd_url, avg(i), sum(i), __spd_url FROM t1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
 
 --Testcase 100:
 SELECT * FROM (SELECT sum(i) FROM t1) A,(SELECT count(i) FROM t1) B;
