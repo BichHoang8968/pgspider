@@ -33,9 +33,9 @@ OUTFILES=$(FILES:%=$(DSTDIR)/%)
 
 check: temp-install
 
-temp-install: EXTRA_INSTALL+=contrib/postgres_fdw contrib/pgspider_core_fdw contrib/file_fdw contrib/tinybrace_fdw contrib/sqlite_fdw contrib/mysql_fdw contrib/pgspider_keepalive contrib/pgspider_fdw
+temp-install: EXTRA_INSTALL+=contrib/postgres_fdw contrib/pgspider_core_fdw contrib/file_fdw contrib/parquet_s3_fdw contrib/tinybrace_fdw contrib/sqlite_fdw contrib/mysql_fdw contrib/pgspider_keepalive contrib/pgspider_fdw
 
-checkprep: EXTRA_INSTALL+=contrib/postgres_fdw contrib/pgspider_core_fdw contrib/file_fdw contrib/tinybrace_fdw contrib/sqlite_fdw contrib/mysql_fdw contrib/pgspider_keepalive contrib/pgspider_fdw contrib/influxdb_fdw contrib/dblink
+checkprep: EXTRA_INSTALL+=contrib/postgres_fdw contrib/pgspider_core_fdw contrib/file_fdw contrib/parquet_s3_fdw contrib/tinybrace_fdw contrib/sqlite_fdw contrib/mysql_fdw contrib/pgspider_keepalive contrib/pgspider_fdw contrib/influxdb_fdw contrib/dblink
 
 #check: copyfdw
 copyfdw:

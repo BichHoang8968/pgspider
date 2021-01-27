@@ -485,94 +485,18 @@ SELECT * FROM test3 ORDER BY one;
   2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN                           | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263 | /parquet_s3_svr/
 (10 rows)
 
--- parallel execution
-SET parallel_setup_cost = 0;
-SET parallel_tuple_cost = 0.001;
-SET cpu_operator_cost = 0.000025;
-ANALYZE test2;
-WARNING:  skipping "test2" --- cannot analyze this foreign table
-ANALYZE test3;
-WARNING:  skipping "test3" --- cannot analyze this foreign table
-EXPLAIN (COSTS OFF) SELECT * FROM test2;
-               QUERY PLAN               
-----------------------------------------
- Foreign Scan on test2
-   Node: parquet_s3_svr / Status: Alive
-     Reader: Multifile
-     Row groups: 
-       ported_3.parquet: 1
-       ported_2.parquet: 1
-       ported_1.parquet: 1
-(7 rows)
-
-EXPLAIN (COSTS OFF) SELECT * FROM test2 ORDER BY one;
-                  QUERY PLAN                  
-----------------------------------------------
- Sort
-   Sort Key: one
-   ->  Foreign Scan on test2
-         Node: parquet_s3_svr / Status: Alive
-           Reader: Multifile
-           Row groups: 
-             ported_3.parquet: 1
-             ported_2.parquet: 1
-             ported_1.parquet: 1
-(9 rows)
-
-EXPLAIN (COSTS OFF) SELECT * FROM test2 ORDER BY two;
-                  QUERY PLAN                  
-----------------------------------------------
- Sort
-   Sort Key: two
-   ->  Foreign Scan on test2
-         Node: parquet_s3_svr / Status: Alive
-           Reader: Multifile
-           Row groups: 
-             ported_3.parquet: 1
-             ported_2.parquet: 1
-             ported_1.parquet: 1
-(9 rows)
-
-EXPLAIN (COSTS OFF) SELECT * FROM test3;
-               QUERY PLAN               
-----------------------------------------
- Foreign Scan on test3
-   Node: parquet_s3_svr / Status: Alive
-     Reader: Multifile
-     Row groups: 
-       ported_3.parquet: 1
-       ported_2.parquet: 1
-       ported_1.parquet: 1
-(7 rows)
-
-EXPLAIN (COSTS OFF) SELECT * FROM test3 ORDER BY one;
-                  QUERY PLAN                  
-----------------------------------------------
- Sort
-   Sort Key: one
-   ->  Foreign Scan on test3
-         Node: parquet_s3_svr / Status: Alive
-           Reader: Multifile
-           Row groups: 
-             ported_3.parquet: 1
-             ported_2.parquet: 1
-             ported_1.parquet: 1
-(9 rows)
-
-EXPLAIN (COSTS OFF) SELECT * FROM test3 ORDER BY two;
-                  QUERY PLAN                  
-----------------------------------------------
- Sort
-   Sort Key: two
-   ->  Foreign Scan on test3
-         Node: parquet_s3_svr / Status: Alive
-           Reader: Multifile
-           Row groups: 
-             ported_3.parquet: 1
-             ported_2.parquet: 1
-             ported_1.parquet: 1
-(9 rows)
-
+---- parallel execution
+--SET parallel_setup_cost = 0;
+--SET parallel_tuple_cost = 0.001;
+--SET cpu_operator_cost = 0.000025;
+--ANALYZE test2;
+--ANALYZE test3;
+--EXPLAIN (COSTS OFF) SELECT * FROM test2;
+--EXPLAIN (COSTS OFF) SELECT * FROM test2 ORDER BY one;
+--EXPLAIN (COSTS OFF) SELECT * FROM test2 ORDER BY two;
+--EXPLAIN (COSTS OFF) SELECT * FROM test3;
+--EXPLAIN (COSTS OFF) SELECT * FROM test3 ORDER BY one;
+--EXPLAIN (COSTS OFF) SELECT * FROM test3 ORDER BY two;
 -- multiple sorting keys
 CREATE FOREIGN TABLE test4 (
     one     INT8,

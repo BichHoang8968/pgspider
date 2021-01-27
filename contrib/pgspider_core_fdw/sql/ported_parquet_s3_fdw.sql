@@ -178,18 +178,18 @@ OPTIONS (filename 's3://ported/ported_3.parquet s3://ported/ported_2.parquet s3:
 EXPLAIN (COSTS OFF) SELECT * FROM test3 ORDER BY one;
 SELECT * FROM test3 ORDER BY one;
 
--- parallel execution
-SET parallel_setup_cost = 0;
-SET parallel_tuple_cost = 0.001;
-SET cpu_operator_cost = 0.000025;
-ANALYZE test2;
-ANALYZE test3;
-EXPLAIN (COSTS OFF) SELECT * FROM test2;
-EXPLAIN (COSTS OFF) SELECT * FROM test2 ORDER BY one;
-EXPLAIN (COSTS OFF) SELECT * FROM test2 ORDER BY two;
-EXPLAIN (COSTS OFF) SELECT * FROM test3;
-EXPLAIN (COSTS OFF) SELECT * FROM test3 ORDER BY one;
-EXPLAIN (COSTS OFF) SELECT * FROM test3 ORDER BY two;
+---- parallel execution
+--SET parallel_setup_cost = 0;
+--SET parallel_tuple_cost = 0.001;
+--SET cpu_operator_cost = 0.000025;
+--ANALYZE test2;
+--ANALYZE test3;
+--EXPLAIN (COSTS OFF) SELECT * FROM test2;
+--EXPLAIN (COSTS OFF) SELECT * FROM test2 ORDER BY one;
+--EXPLAIN (COSTS OFF) SELECT * FROM test2 ORDER BY two;
+--EXPLAIN (COSTS OFF) SELECT * FROM test3;
+--EXPLAIN (COSTS OFF) SELECT * FROM test3 ORDER BY one;
+--EXPLAIN (COSTS OFF) SELECT * FROM test3 ORDER BY two;
 
 -- multiple sorting keys
 CREATE FOREIGN TABLE test4 (
