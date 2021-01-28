@@ -10,7 +10,7 @@ SHLIB_LINK = $(libpq)
 EXTENSION = pgspider_core_fdw
 DATA = pgspider_core_fdw--1.0.sql
 
-REGRESS = pgspider_core_fdw
+REGRESS = pgspider_core_fdw ported_import_s3 ported_parquet_s3_fdw ported_parquet_s3_fdw2 
 
 EXTRA_INSTALL = contrib/pgspider_keepalive
 
