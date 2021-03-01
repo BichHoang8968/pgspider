@@ -1,8 +1,13 @@
 -- create pgspider_svr
+--Testcase 1:
 DELETE FROM pg_spd_node_info;
+--Testcase 2:
 CREATE EXTENSION pgspider_core_fdw;
+--Testcase 3:
 CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1',port '50849');
+--Testcase 4:
 CREATE USER mapping for public server pgspider_svr OPTIONS(user 'postgres',password 'postgres');
+--Testcase 5:
 CREATE FOREIGN TABLE test1 (
     one     INT8,
     two     INT8[],
@@ -17,14 +22,18 @@ SERVER pgspider_svr;
 SET datestyle = 'ISO';
 SET client_min_messages = WARNING;
 SET log_statement TO 'none';
+--Testcase 6:
 CREATE EXTENSION parquet_s3_fdw;
+--Testcase 7:
 CREATE SERVER parquet_s3_svr FOREIGN DATA WRAPPER parquet_s3_fdw OPTIONS (use_minio 'true');
+--Testcase 8:
 CREATE USER MAPPING FOR public SERVER parquet_s3_svr OPTIONS (user 'minioadmin', password 'minioadmin');
 -- import foreign schema
 IMPORT FOREIGN SCHEMA "s3://parquets3"
 FROM SERVER parquet_s3_svr
 INTO public
 OPTIONS (sorted 'one');
+--Testcase 9:
 \d
              List of relations
  Schema |   Name   |     Type      | Owner 
@@ -35,6 +44,7 @@ OPTIONS (sorted 'one');
  public | test1    | foreign table | tsdv
 (4 rows)
 
+--Testcase 10:
 SELECT * FROM ported_1;
      one     |    two     | three |        four         |    five    | six | seven 
 -------------+------------+-------+---------------------+------------+-----+-------
@@ -44,6 +54,7 @@ SELECT * FROM ported_1;
            2 | {10,11,12} | uno   | 2018-01-04 00:00:00 | 2018-01-04 | f   |   0.5
 (4 rows)
 
+--Testcase 11:
 SELECT * FROM ported_2;
  one |           two           |   three   |        four         |    five    | six |   seven    
 -----+-------------------------+-----------+---------------------+------------+-----+------------
@@ -52,6 +63,7 @@ SELECT * FROM ported_2;
    5 | {-2147483648,2,9989878} | ~!@#$%^&* | 1970-01-01 23:59:59 | 2018-01-07 | f   | -2266.2468
 (3 rows)
 
+--Testcase 12:
 SELECT * FROM ported_3;
     one     |           two            |                    three                    |        four         |    five    | six |       seven       
 ------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------------
@@ -60,6 +72,7 @@ SELECT * FROM ported_3;
  2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN                           | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263
 (3 rows)
 
+--Testcase 13:
 CREATE FOREIGN TABLE test1__parquet_s3_svr__0 (
     one     INT8,
     two     INT8[],
@@ -70,6 +83,7 @@ CREATE FOREIGN TABLE test1__parquet_s3_svr__0 (
     seven   FLOAT8)
 SERVER parquet_s3_svr
 OPTIONS (filename 's3://parquets3/ported_1.parquet', sorted 'one');
+--Testcase 14:
 SELECT * FROM test1 ORDER BY one;
      one     |    two     | three |        four         |    five    | six | seven |    __spd_url     
 -------------+------------+-------+---------------------+------------+-----+-------+------------------
@@ -79,6 +93,7 @@ SELECT * FROM test1 ORDER BY one;
            2 | {10,11,12} | uno   | 2018-01-04 00:00:00 | 2018-01-04 | f   |   0.5 | /parquet_s3_svr/
 (4 rows)
 
+--Testcase 15:
 CREATE FOREIGN TABLE test1__parquet_s3_svr__1 (
     one     INT8,
     two     INT8[],
@@ -89,6 +104,7 @@ CREATE FOREIGN TABLE test1__parquet_s3_svr__1 (
     seven   FLOAT8)
 SERVER parquet_s3_svr
 OPTIONS (filename 's3://parquets3/ported_2.parquet', sorted 'one');
+--Testcase 16:
 SELECT * FROM test1 ORDER BY one;
      one     |           two           |   three   |        four         |    five    | six |   seven    |    __spd_url     
 -------------+-------------------------+-----------+---------------------+------------+-----+------------+------------------
@@ -101,6 +117,7 @@ SELECT * FROM test1 ORDER BY one;
            5 | {-2147483648,2,9989878} | ~!@#$%^&* | 1970-01-01 23:59:59 | 2018-01-07 | f   | -2266.2468 | /parquet_s3_svr/
 (7 rows)
 
+--Testcase 17:
 CREATE FOREIGN TABLE test1__parquet_s3_svr__2 (
     one     INT8,
     two     INT8[],
@@ -111,6 +128,7 @@ CREATE FOREIGN TABLE test1__parquet_s3_svr__2 (
     seven   FLOAT8)
 SERVER parquet_s3_svr
 OPTIONS (filename 's3://parquets3/ported_3.parquet', sorted 'one');
+--Testcase 18:
 SELECT * FROM test1 ORDER BY one;
      one     |           two            |                    three                    |        four         |    five    | six |       seven       |    __spd_url     
 -------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------------+------------------
@@ -126,6 +144,7 @@ SELECT * FROM test1 ORDER BY one;
   2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN                           | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263 | /parquet_s3_svr/
 (10 rows)
 
+--Testcase 19:
 SELECT * FROM test1 IN ('/parquet_s3_svr/') ORDER BY three,__spd_url;
      one     |           two            |                    three                    |        four         |    five    | six |       seven       |    __spd_url     
 -------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------------+------------------
@@ -142,18 +161,21 @@ SELECT * FROM test1 IN ('/parquet_s3_svr/') ORDER BY three,__spd_url;
 (10 rows)
 
 -- import_parquet
+--Testcase 20:
 create function list_parquet_s3_files(args jsonb)
 returns text[] as
 $$
     select array[args->>'dir' || '/ported_1.parquet', args->>'dir' || '/ported_3.parquet']::text[];
 $$
 language sql;
+--Testcase 21:
 select import_parquet_s3('test1__parquet_s3_svr__3', 'public', 'parquet_s3_svr', 'list_parquet_s3_files', '{"dir": "s3://parquets3"}', '{"sorted": "one"}');
  import_parquet_s3 
 -------------------
  
 (1 row)
 
+--Testcase 22:
 SELECT * FROM test1__parquet_s3_svr__3 ORDER BY one, three;
      one     |           two            |                    three                    |        four         |    five    | six |       seven       
 -------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------------
@@ -166,6 +188,7 @@ SELECT * FROM test1__parquet_s3_svr__3 ORDER BY one, three;
   2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN                           | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263
 (7 rows)
 
+--Testcase 23:
 SELECT * FROM test1 ORDER BY one;
      one     |           two            |                    three                    |        four         |    five    | six |       seven       |    __spd_url     
 -------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------------+------------------
@@ -188,12 +211,14 @@ SELECT * FROM test1 ORDER BY one;
   2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN                           | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263 | /parquet_s3_svr/
 (17 rows)
 
+--Testcase 24:
 select import_parquet_s3_explicit('test1__parquet_s3_svr__4', 'public', 'parquet_s3_svr', array['one', 'three', 'six'], array['int8', 'text', 'bool']::regtype[], 'list_parquet_s3_files', '{"dir": "s3://parquets3"}', '{"sorted": "one"}');
  import_parquet_s3_explicit 
 ----------------------------
  
 (1 row)
 
+--Testcase 25:
 SELECT * FROM test1__parquet_s3_svr__4;
      one     |                    three                    | six 
 -------------+---------------------------------------------+-----
@@ -206,6 +231,7 @@ SELECT * FROM test1__parquet_s3_svr__4;
   2147483648 | love$%^&*J ap  AN                           | f
 (7 rows)
 
+--Testcase 26:
 SELECT * FROM test1 ORDER BY one;
      one     |           two            |                    three                    |        four         |    five    | six |       seven       |    __spd_url     
 -------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------------+------------------
@@ -235,6 +261,7 @@ SELECT * FROM test1 ORDER BY one;
   2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN                           | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263 | /parquet_s3_svr/
 (24 rows)
 
+--Testcase 27:
 CREATE FOREIGN TABLE parquets3tbl__parquet_s3_svr__0 (
     one     INT8,
     two     INT8[],
@@ -244,6 +271,7 @@ CREATE FOREIGN TABLE parquets3tbl__parquet_s3_svr__0 (
     six     BOOL,
     seven   FLOAT8) 
 SERVER parquet_s3_svr options(filename 's3://parquets3/ported_3.parquet', sorted 'one');
+--Testcase 28:
 SELECT * FROM parquets3tbl__parquet_s3_svr__0;
     one     |           two            |                    three                    |        four         |    five    | six |       seven       
 ------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------------
@@ -252,6 +280,7 @@ SELECT * FROM parquets3tbl__parquet_s3_svr__0;
  2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN                           | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263
 (3 rows)
 
+--Testcase 29:
 CREATE FOREIGN TABLE parquets3tbl (
     one     INT8,
     two     INT8[],
@@ -262,6 +291,7 @@ CREATE FOREIGN TABLE parquets3tbl (
     seven   FLOAT8,
     __spd_url text) 
 SERVER pgspider_svr;
+--Testcase 30:
 SELECT * FROM parquets3tbl;
     one     |           two            |                    three                    |        four         |    five    | six |       seven       |    __spd_url     
 ------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------------+------------------
@@ -270,6 +300,7 @@ SELECT * FROM parquets3tbl;
  2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN                           | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263 | /parquet_s3_svr/
 (3 rows)
 
+--Testcase 31:
 SELECT * FROM test1 IN ('/parquet_s3_svr/') where one < 1 ORDER BY one;; 
      one     |    two     | three |        four         |    five    | six | seven |    __spd_url     
 -------------+------------+-------+---------------------+------------+-----+-------+------------------
@@ -281,8 +312,13 @@ SELECT * FROM test1 IN ('/parquet_s3_svr/') where one < 1 ORDER BY one;;
            0 | {NULL,5,6} | bar   | 2018-01-02 00:00:00 | 1980-01-02 | f   |       | /parquet_s3_svr/
 (6 rows)
 
+--Testcase 32:
 DROP FUNCTION list_parquet_s3_files;
+--Testcase 33:
 DROP EXTENSION parquet_s3_fdw CASCADE;
+--Testcase 34:
 DROP FOREIGN TABLE test1;
+--Testcase 35:
 DROP SERVER pgspider_svr CASCADE;
+--Testcase 36:
 DROP EXTENSION pgspider_core_fdw CASCADE;

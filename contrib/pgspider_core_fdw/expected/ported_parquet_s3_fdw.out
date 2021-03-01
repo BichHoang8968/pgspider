@@ -1,8 +1,13 @@
 -- create pgspider_svr
+--Testcase 1:
 DELETE FROM pg_spd_node_info;
+--Testcase 2:
 CREATE EXTENSION pgspider_core_fdw;
+--Testcase 3:
 CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1',port '50849');
+--Testcase 4:
 CREATE USER mapping for public server pgspider_svr OPTIONS(user 'postgres',password 'postgres');
+--Testcase 5:
 CREATE FOREIGN TABLE test1 (
     one     INT8,
     two     INT8[],
@@ -17,10 +22,14 @@ SERVER pgspider_svr;
 SET datestyle = 'ISO';
 SET client_min_messages = WARNING;
 SET log_statement TO 'none';
+--Testcase 6:
 CREATE EXTENSION parquet_s3_fdw;
+--Testcase 7:
 CREATE SERVER parquet_s3_svr FOREIGN DATA WRAPPER parquet_s3_fdw OPTIONS (use_minio 'true');
+--Testcase 8:
 CREATE USER MAPPING FOR public SERVER parquet_s3_svr OPTIONS (user 'minioadmin', password 'minioadmin');
 -- create multi-tenant
+--Testcase 9:
 CREATE FOREIGN TABLE test1__parquet_s3_svr__0 (
     one     INT8,
     two     INT8[],
@@ -31,6 +40,7 @@ CREATE FOREIGN TABLE test1__parquet_s3_svr__0 (
     seven   FLOAT8)
 SERVER parquet_s3_svr
 OPTIONS (filename 's3://parquets3/ported_1.parquet', sorted 'one');
+--Testcase 10:
 SELECT * FROM test1 ORDER BY one;
      one     |    two     | three |        four         |    five    | six | seven |    __spd_url     
 -------------+------------+-------+---------------------+------------+-----+-------+------------------
@@ -40,6 +50,7 @@ SELECT * FROM test1 ORDER BY one;
            2 | {10,11,12} | uno   | 2018-01-04 00:00:00 | 2018-01-04 | f   |   0.5 | /parquet_s3_svr/
 (4 rows)
 
+--Testcase 11:
 CREATE FOREIGN TABLE test1__parquet_s3_svr__1 (
     one     INT8,
     two     INT8[],
@@ -50,6 +61,7 @@ CREATE FOREIGN TABLE test1__parquet_s3_svr__1 (
     seven   FLOAT8)
 SERVER parquet_s3_svr
 OPTIONS (filename 's3://parquets3/ported_2.parquet', sorted 'one');
+--Testcase 12:
 SELECT * FROM test1 ORDER BY one;
      one     |           two           |   three   |        four         |    five    | six |   seven    |    __spd_url     
 -------------+-------------------------+-----------+---------------------+------------+-----+------------+------------------
@@ -62,6 +74,7 @@ SELECT * FROM test1 ORDER BY one;
            5 | {-2147483648,2,9989878} | ~!@#$%^&* | 1970-01-01 23:59:59 | 2018-01-07 | f   | -2266.2468 | /parquet_s3_svr/
 (7 rows)
 
+--Testcase 13:
 CREATE FOREIGN TABLE test1__parquet_s3_svr__2 (
     one     INT8,
     two     INT8[],
@@ -72,6 +85,7 @@ CREATE FOREIGN TABLE test1__parquet_s3_svr__2 (
     seven   FLOAT8)
 SERVER parquet_s3_svr
 OPTIONS (filename 's3://parquets3/ported_3.parquet', sorted 'one');
+--Testcase 14:
 SELECT * FROM test1 ORDER BY one;
      one     |           two            |                    three                    |        four         |    five    | six |       seven       |    __spd_url     
 -------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------------+------------------
@@ -87,6 +101,7 @@ SELECT * FROM test1 ORDER BY one;
   2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN                           | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263 | /parquet_s3_svr/
 (10 rows)
 
+--Testcase 15:
 SELECT * FROM test1 IN ('/parquet_s3_svr/') ORDER BY one,seven,__spd_url;
      one     |           two            |                    three                    |        four         |    five    | six |       seven       |    __spd_url     
 -------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------------+------------------
@@ -103,6 +118,7 @@ SELECT * FROM test1 IN ('/parquet_s3_svr/') ORDER BY one,seven,__spd_url;
 (10 rows)
 
 -- no explicit columns mentions
+--Testcase 16:
 SELECT 1 as x FROM test1;
  x 
 ---
@@ -118,6 +134,7 @@ SELECT 1 as x FROM test1;
  1
 (10 rows)
 
+--Testcase 17:
 SELECT count(*) as count FROM test1;
  count 
 -------
@@ -125,6 +142,7 @@ SELECT count(*) as count FROM test1;
 (1 row)
 
 -- sorting
+--Testcase 18:
 EXPLAIN (COSTS OFF) SELECT * FROM test1 ORDER BY one;
                   QUERY PLAN                  
 ----------------------------------------------
@@ -142,6 +160,7 @@ EXPLAIN (COSTS OFF) SELECT * FROM test1 ORDER BY one;
            Row groups: 1
 (12 rows)
 
+--Testcase 19:
 EXPLAIN (COSTS OFF) SELECT * FROM test1 ORDER BY three;
                   QUERY PLAN                  
 ----------------------------------------------
@@ -161,6 +180,7 @@ EXPLAIN (COSTS OFF) SELECT * FROM test1 ORDER BY three;
 
 -- filtering
 SET client_min_messages = DEBUG1;
+--Testcase 20:
 SELECT * FROM test1 WHERE one < 1 ORDER BY one;
 DEBUG:  parquet_fdw: skip rowgroup 1
 DEBUG:  parquet_fdw: skip rowgroup 1
@@ -176,6 +196,7 @@ DEBUG:  parquet_fdw: open Parquet file on S3. parquets3ported_3.parquet
            0 | {NULL,5,6} | bar   | 2018-01-02 00:00:00 | 1980-01-02 | f   |       | /parquet_s3_svr/
 (2 rows)
 
+--Testcase 21:
 SELECT * FROM test1 WHERE one <= 1 ORDER BY one;
 DEBUG:  parquet_fdw: skip rowgroup 1
 DEBUG:  parquet_fdw: skip rowgroup 1
@@ -192,6 +213,7 @@ DEBUG:  parquet_fdw: open Parquet file on S3. parquets3ported_3.parquet
            1 | {7,8,9}    | baz   | 2018-01-03 00:00:00 | 1999-05-03 | t   |     1 | /parquet_s3_svr/
 (3 rows)
 
+--Testcase 22:
 SELECT * FROM test1 WHERE one > 6 ORDER BY one;
 DEBUG:  parquet_fdw: skip rowgroup 1
 DEBUG:  parquet_fdw: skip rowgroup 1
@@ -207,6 +229,7 @@ DEBUG:  parquet_fdw: open Parquet file on S3. parquets3ported_3.parquet
  2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN                          | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263 | /parquet_s3_svr/
 (2 rows)
 
+--Testcase 23:
 SELECT * FROM test1 WHERE one >= 6 ORDER BY one;
 DEBUG:  parquet_fdw: skip rowgroup 1
 DEBUG:  parquet_fdw: skip rowgroup 1
@@ -223,6 +246,7 @@ DEBUG:  parquet_fdw: open Parquet file on S3. parquets3ported_3.parquet
  2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN                           | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263 | /parquet_s3_svr/
 (3 rows)
 
+--Testcase 24:
 SELECT * FROM test1 WHERE one = 2 ORDER BY one;
 DEBUG:  parquet_fdw: skip rowgroup 1
 DEBUG:  parquet_fdw: skip rowgroup 1
@@ -237,6 +261,7 @@ DEBUG:  parquet_fdw: open Parquet file on S3. parquets3ported_3.parquet
    2 | {10,11,12} | uno   | 2018-01-04 00:00:00 | 2018-01-04 | f   |   0.5 | /parquet_s3_svr/
 (1 row)
 
+--Testcase 25:
 SELECT * FROM test1 WHERE one = 7 ORDER BY one;
 DEBUG:  parquet_fdw: skip rowgroup 1
 DEBUG:  parquet_fdw: skip rowgroup 1
@@ -250,6 +275,7 @@ DEBUG:  parquet_fdw: open Parquet file on S3. parquets3ported_3.parquet
 -----+-----+-------+------+------+-----+-------+-----------
 (0 rows)
 
+--Testcase 26:
 SELECT * FROM test1 WHERE six = true ORDER BY one;
 DEBUG:  parquet_fdw: skip rowgroup 1
 DEBUG:  parquet_fdw: open Parquet file on S3. parquets3ported_1.parquet
@@ -266,6 +292,7 @@ DEBUG:  parquet_fdw: open Parquet file on S3. parquets3ported_3.parquet
       100000 | {0,2,1000}               | MANGA&  &ANIME**日本が大好きです* *VIETNAM  | 2049-01-01 00:00:00 | 2100-02-20 | t   | 5464.554455 | /parquet_s3_svr/
 (4 rows)
 
+--Testcase 27:
 SELECT * FROM test1 WHERE six = false ORDER BY one;
 DEBUG:  parquet_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_fdw: open Parquet file on S3. parquets3ported_1.parquet
@@ -283,6 +310,7 @@ DEBUG:  parquet_fdw: open Parquet file on S3. parquets3ported_3.parquet
  2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263 | /parquet_s3_svr/
 (6 rows)
 
+--Testcase 28:
 SELECT * FROM test1 WHERE seven < 0.9 ORDER BY one;
 DEBUG:  parquet_fdw: skip rowgroup 1
 DEBUG:  parquet_fdw: open Parquet file on S3. parquets3ported_1.parquet
@@ -298,6 +326,7 @@ DEBUG:  parquet_fdw: open Parquet file on S3. parquets3ported_3.parquet
            6 | {-4478,37671,2147483648} | beAty&日本人はとても勤勉で真面目です@@human | 1999-01-01 23:00:59 | 2020-02-20 | t   | -0.00015 | /parquet_s3_svr/
 (3 rows)
 
+--Testcase 29:
 SELECT * FROM test1 WHERE seven IS NULL ORDER BY one;
 DEBUG:  parquet_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_fdw: open Parquet file on S3. parquets3ported_1.parquet
@@ -312,7 +341,9 @@ DEBUG:  parquet_fdw: open Parquet file on S3. parquets3ported_3.parquet
 (2 rows)
 
 -- prepared statements
+--Testcase 30:
 prepare prep(date) as select * from test1 where five < $1;
+--Testcase 31:
 execute prep('2018-01-03');
 DEBUG:  parquet_fdw: skip rowgroup 1
 DEBUG:  parquet_fdw: skip rowgroup 1
@@ -329,6 +360,7 @@ DEBUG:  parquet_fdw: open Parquet file on S3. parquets3ported_3.parquet
            1 | {7,8,9}    | baz   | 2018-01-03 00:00:00 | 1999-05-03 | t   |     1 | /parquet_s3_svr/
 (3 rows)
 
+--Testcase 32:
 execute prep('2018-01-01');
 DEBUG:  parquet_fdw: skip rowgroup 1
 DEBUG:  parquet_fdw: skip rowgroup 1
@@ -347,6 +379,7 @@ DEBUG:  parquet_fdw: open Parquet file on S3. parquets3ported_3.parquet
 
 -- invalid options
 SET client_min_messages = WARNING;
+--Testcase 33:
 CREATE FOREIGN TABLE test1__parquet_s3_svr__3 (
     one     INT8,
     two     INT8[],
@@ -357,6 +390,7 @@ CREATE FOREIGN TABLE test1__parquet_s3_svr__3 (
     seven   FLOAT8)
 SERVER parquet_s3_svr;
 ERROR:  parquet_fdw: filename is required
+--Testcase 34:
 CREATE FOREIGN TABLE test1__parquet_s3_svr__3 (
     one     INT8,
     two     INT8[],
@@ -368,6 +402,7 @@ CREATE FOREIGN TABLE test1__parquet_s3_svr__3 (
 SERVER parquet_s3_svr
 OPTIONS (filename 'nonexistent.parquet', some_option '123');
 ERROR:  parquet_fdw: No such file or directory
+--Testcase 35:
 CREATE FOREIGN TABLE test1__parquet_s3_svr__3 (
     one     INT8,
     two     INT8[],
@@ -380,14 +415,18 @@ SERVER parquet_s3_svr
 OPTIONS (filename 's3://parquets3/ported_2.parquet', some_option '123');
 ERROR:  parquet_fdw: invalid option "some_option"
 -- type mismatch
+--Testcase 36:
 CREATE FOREIGN TABLE test1__parquet_s3_svr__4 (one INT8[], two INT8, three TEXT)
 SERVER parquet_s3_svr
 OPTIONS (filename 's3://parquets3/ported_2.parquet', sorted 'one');
+--Testcase 37:
 SELECT one FROM test1__parquet_s3_svr__4;
 ERROR:  parquet_fdw: incompatible types in column "one"; parquet column is of scalar type while postgres type is array
+--Testcase 38:
 SELECT two FROM test1__parquet_s3_svr__4;
 ERROR:  parquet_fdw: incompatible types in column "two"; parquet column is of type list while postgres type is scalar
 -- sequential multifile reader
+--Testcase 39:
 CREATE FOREIGN TABLE test2 (
     one     INT8,
     two     INT8[],
@@ -398,6 +437,7 @@ CREATE FOREIGN TABLE test2 (
     seven   FLOAT8,
     __spd_url text) 
 SERVER pgspider_svr;
+--Testcase 40:
 CREATE FOREIGN TABLE test2__parquet_s3_svr__0 (
     one     INT8,
     two     INT8[],
@@ -408,6 +448,7 @@ CREATE FOREIGN TABLE test2__parquet_s3_svr__0 (
     seven   FLOAT8)
 SERVER parquet_s3_svr
 OPTIONS (filename 's3://parquets3/ported_3.parquet s3://parquets3/ported_2.parquet s3://parquets3/ported_1.parquet', sorted 'one');
+--Testcase 41:
 EXPLAIN SELECT * FROM test2;
                          QUERY PLAN                         
 ------------------------------------------------------------
@@ -420,6 +461,7 @@ EXPLAIN SELECT * FROM test2;
        ported_1.parquet: 1
 (7 rows)
 
+--Testcase 42:
 SELECT * FROM test2;
      one     |           two            |                    three                    |        four         |    five    | six |       seven       |    __spd_url     
 -------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------------+------------------
@@ -436,6 +478,7 @@ SELECT * FROM test2;
 (10 rows)
 
 -- multifile merge reader
+--Testcase 43:
 CREATE FOREIGN TABLE test3 (
     one     INT8,
     two     INT8[],
@@ -446,6 +489,7 @@ CREATE FOREIGN TABLE test3 (
     seven   FLOAT8,
     __spd_url text) 
 SERVER pgspider_svr;
+--Testcase 44:
 CREATE FOREIGN TABLE test3__parquet_s3_svr__0 (
     one     INT8,
     two     INT8[],
@@ -456,6 +500,7 @@ CREATE FOREIGN TABLE test3__parquet_s3_svr__0 (
     seven   FLOAT8)
 SERVER parquet_s3_svr
 OPTIONS (filename 's3://parquets3/ported_3.parquet s3://parquets3/ported_2.parquet s3://parquets3/ported_1.parquet', sorted 'one');
+--Testcase 45:
 EXPLAIN (COSTS OFF) SELECT * FROM test3 ORDER BY one;
                   QUERY PLAN                  
 ----------------------------------------------
@@ -470,6 +515,7 @@ EXPLAIN (COSTS OFF) SELECT * FROM test3 ORDER BY one;
              ported_1.parquet: 1
 (9 rows)
 
+--Testcase 46:
 SELECT * FROM test3 ORDER BY one;
      one     |           two            |                    three                    |        four         |    five    | six |       seven       |    __spd_url     
 -------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------------+------------------
@@ -498,6 +544,7 @@ SELECT * FROM test3 ORDER BY one;
 --EXPLAIN (COSTS OFF) SELECT * FROM test3 ORDER BY one;
 --EXPLAIN (COSTS OFF) SELECT * FROM test3 ORDER BY two;
 -- multiple sorting keys
+--Testcase 47:
 CREATE FOREIGN TABLE test4 (
     one     INT8,
     two     INT8[],
@@ -508,6 +555,7 @@ CREATE FOREIGN TABLE test4 (
     seven   FLOAT8,
     __spd_url text) 
 SERVER pgspider_svr;
+--Testcase 48:
 CREATE FOREIGN TABLE test4__parquet_s3_svr__0 (
     one     INT8,
     two     INT8[],
@@ -518,6 +566,7 @@ CREATE FOREIGN TABLE test4__parquet_s3_svr__0 (
     seven   FLOAT8)
 SERVER parquet_s3_svr
 OPTIONS (filename 's3://parquets3/ported_1.parquet', sorted 'one five');
+--Testcase 49:
 CREATE FOREIGN TABLE test4__parquet_s3_svr__1 (
     one     INT8,
     two     INT8[],
@@ -528,6 +577,7 @@ CREATE FOREIGN TABLE test4__parquet_s3_svr__1 (
     seven   FLOAT8)
 SERVER parquet_s3_svr
 OPTIONS (filename 's3://parquets3/ported_2.parquet', sorted 'one five');
+--Testcase 50:
 CREATE FOREIGN TABLE test4__parquet_s3_svr__2 (
     one     INT8,
     two     INT8[],
@@ -538,6 +588,7 @@ CREATE FOREIGN TABLE test4__parquet_s3_svr__2 (
     seven   FLOAT8)
 SERVER parquet_s3_svr
 OPTIONS (filename 's3://parquets3/ported_3.parquet', sorted 'one five');
+--Testcase 51:
 EXPLAIN (COSTS OFF) SELECT * FROM test4 ORDER BY one, five;
                   QUERY PLAN                  
 ----------------------------------------------
@@ -555,6 +606,7 @@ EXPLAIN (COSTS OFF) SELECT * FROM test4 ORDER BY one, five;
            Row groups: 1
 (12 rows)
 
+--Testcase 52:
 SELECT * FROM test4 ORDER BY one, five;
      one     |           two            |                    three                    |        four         |    five    | six |       seven       |    __spd_url     
 -------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------------+------------------
@@ -570,10 +622,17 @@ SELECT * FROM test4 ORDER BY one, five;
   2147483648 | {-567271,2309,123456789} | love$%^&*J ap  AN                           | 2222-01-01 00:59:59 | 2500-02-20 | f   | 82470548.49874263 | /parquet_s3_svr/
 (10 rows)
 
+--Testcase 53:
 DROP EXTENSION parquet_s3_fdw CASCADE;
+--Testcase 54:
 DROP FOREIGN TABLE test1;
+--Testcase 55:
 DROP FOREIGN TABLE test2;
+--Testcase 56:
 DROP FOREIGN TABLE test3;
+--Testcase 57:
 DROP FOREIGN TABLE test4;
+--Testcase 58:
 DROP SERVER pgspider_svr CASCADE;
+--Testcase 59:
 DROP EXTENSION pgspider_core_fdw CASCADE;
