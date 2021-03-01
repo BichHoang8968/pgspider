@@ -4545,8 +4545,8 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 
 			/*
 			 * The ECs need to reached canonical state. Otherwise, pathkeys of
-			 * parquet_s3_fdw could be rendered non-canonical
-			*/
+			 * parquet_s3_fdw could be rendered non-canonical.
+			 */
 			if (strcmp(fdw->fdwname, PARQUET_S3_FDW) == 0)
 				pChildInfo->root->ec_merging_done = root->ec_merging_done;
 
