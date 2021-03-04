@@ -114,6 +114,7 @@ PG_MODULE_MAGIC;
 #define FILE_FDW_NAME "file_fdw"
 #define AVRO_FDW_NAME "avro_fdw"
 #define POSTGRES_FDW_NAME "postgres_fdw"
+#define PARQUET_S3_FDW "parquet_s3_fdw"
 
 /* Temporary table name used for calculation of aggregate functions */
 #define AGGTEMPTABLE "__spd__temptable"
@@ -4534,6 +4535,20 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 		PG_TRY();
 		{
 			Path	   *childpath;
+			Oid			oid_server;
+			ForeignServer *fs;
+			ForeignDataWrapper *fdw;
+
+			oid_server = serverid_of_relation(pChildInfo->oid);
+			fs = GetForeignServer(oid_server);
+			fdw = GetForeignDataWrapper(fs->fdwid);
+
+			/*
+			 * The ECs need to reached canonical state. Otherwise, pathkeys of
+			 * parquet_s3_fdw could be rendered non-canonical.
+			 */
+			if (strcmp(fdw->fdwname, PARQUET_S3_FDW) == 0)
+				pChildInfo->root->ec_merging_done = root->ec_merging_done;
 
 			pChildInfo->fdwroutine->GetForeignPaths((PlannerInfo *) pChildInfo->root,
 										(RelOptInfo *) pChildInfo->baserel,

@@ -704,3 +704,15 @@ DROP FOREIGN TABLE t2;
 DROP SERVER pgspider_svr CASCADE;
 --Testcase 269:
 DROP EXTENSION pgspider_core_fdw CASCADE;
+
+--Clean
+--Testcase 270:
+DROP EXTENSION postgres_fdw CASCADE;
+--Testcase 271:
+DROP EXTENSION file_fdw CASCADE;
+--Testcase 272:
+DROP EXTENSION sqlite_fdw CASCADE;
+--Testcase 273:
+DROP EXTENSION tinybrace_fdw CASCADE;
+--Testcase 274:
+DROP EXTENSION mysql_fdw CASCADE;

@@ -2694,3 +2694,58 @@ drop cascades to foreign table mysqlt
 drop cascades to foreign table post_large
 --Testcase 269:
 DROP EXTENSION pgspider_core_fdw CASCADE;
+--Clean
+--Testcase 270:
+DROP EXTENSION postgres_fdw CASCADE;
+NOTICE:  drop cascades to 18 other objects
+DETAIL:  drop cascades to server post_svr
+drop cascades to user mapping for public on server post_svr
+drop cascades to foreign table test1__post_svr__0
+drop cascades to foreign table test1_1__post_svr__0
+drop cascades to foreign table t1__post_svr__0
+drop cascades to foreign table post_large__post_svr__1
+drop cascades to foreign table post_large__post_svr__2
+drop cascades to foreign table post_large__post_svr__3
+drop cascades to foreign table t2__post_svr__0
+drop cascades to foreign table t2__post_svr__1
+drop cascades to foreign table t2__post_svr__2
+drop cascades to foreign table t2__post_svr__3
+drop cascades to server post_svr2
+drop cascades to user mapping for public on server post_svr2
+drop cascades to foreign table t2__post_svr2__0
+drop cascades to server post_svr3
+drop cascades to user mapping for public on server post_svr3
+drop cascades to foreign table t2__post_svr3__0
+--Testcase 271:
+DROP EXTENSION file_fdw CASCADE;
+NOTICE:  drop cascades to 5 other objects
+DETAIL:  drop cascades to server file_svr
+drop cascades to foreign table filetbl__file_svr__0
+drop cascades to foreign table test1__file_svr__0
+drop cascades to foreign table test1__filesvr2__0
+drop cascades to server filesvr2
+--Testcase 272:
+DROP EXTENSION sqlite_fdw CASCADE;
+NOTICE:  drop cascades to 3 other objects
+DETAIL:  drop cascades to server sqlite_svr
+drop cascades to foreign table test1__sqlite_svr__0
+drop cascades to foreign table test1_1__sqlite_svr__0
+--Testcase 273:
+DROP EXTENSION tinybrace_fdw CASCADE;
+NOTICE:  drop cascades to 4 other objects
+DETAIL:  drop cascades to server tiny_svr
+drop cascades to user mapping for public on server tiny_svr
+drop cascades to foreign table test1__tiny_svr__0
+drop cascades to foreign table test1_1__tiny_svr__0
+--Testcase 274:
+DROP EXTENSION mysql_fdw CASCADE;
+NOTICE:  drop cascades to 9 other objects
+DETAIL:  drop cascades to server mysql_svr
+drop cascades to user mapping for public on server mysql_svr
+drop cascades to foreign table test1__mysql_svr__0
+drop cascades to foreign table test1_1__mysql_svr__0
+drop cascades to foreign table mysqlt__mysql_svr__0
+drop cascades to foreign table mysqlt__mysql_svr__1
+drop cascades to foreign table mysqlt__mysql_svqr__2
+drop cascades to server mysql_svr2
+drop cascades to user mapping for public on server mysql_svr2

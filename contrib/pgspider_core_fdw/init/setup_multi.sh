@@ -151,4 +151,3 @@ ${POSTGRES_HOME}/bin/psql postgres -p 15432  -U postgres < post.dat
 # Setup PGSPider1 and PGSpider2
 $PGS1_DIR/bin/psql -p $PGS1_PORT $DB_NAME < pgspider1.dat
 $PGS2_DIR/bin/psql -p $PGS2_PORT $DB_NAME < pgspider2.dat
-
