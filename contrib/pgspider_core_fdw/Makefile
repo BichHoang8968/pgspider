@@ -9,7 +9,7 @@ SHLIB_LINK = $(libpq)
 
 # Add files and flags for Parquet S3 FDW
 ifdef ENABLE_PARALLEL_S3
-OBJS += pgspider_core_s3.o
+OBJS += pgspider_core_s3.o parquet_s3_fdw_server_option.o
 SHLIB_LINK += -laws-cpp-sdk-core -laws-cpp-sdk-s3
 PG_CPPFLAGS += -std=c++11 -DENABLE_PARALLEL_S3
 endif
