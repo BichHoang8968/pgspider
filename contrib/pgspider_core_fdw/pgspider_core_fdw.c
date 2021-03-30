@@ -43,6 +43,7 @@ PG_MODULE_MAGIC;
 #include "optimizer/optimizer.h"
 #include "optimizer/tlist.h"
 #include "parser/parsetree.h"
+#include "storage/ipc.h"
 #include "utils/guc.h"
 #include "utils/builtins.h"
 #include "utils/datum.h"
@@ -450,9 +451,7 @@ typedef struct SpdFdwModifyState
 
 /* local function forward declarations */
 void		_PG_init(void);
-#ifdef ENABLE_PARALLEL_S3
-void		_PG_fini(void);
-#endif
+
 static void spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel,
 					  Oid foreigntableid);
 static void spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel,
@@ -7935,6 +7934,14 @@ void parquet_s3_shutdown();
 #endif
 
 
+static void
+spd_fini(int code, Datum arg)
+{
+#ifdef ENABLE_PARALLEL_S3
+    parquet_s3_shutdown();
+#endif
+}
+
 void
 _PG_init(void)
 {
@@ -7964,13 +7971,6 @@ _PG_init(void)
 #ifdef ENABLE_PARALLEL_S3
 	parquet_s3_init();
 #endif
+	on_proc_exit(&spd_fini, 0);
 }
-
-#ifdef ENABLE_PARALLEL_S3
-void
-_PG_fini(void)
-{
-    parquet_s3_shutdown();
-}
-#endif
 
