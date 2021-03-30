@@ -3302,7 +3302,7 @@ spd_GetForeignRelSizeChild(PlannerInfo *root, RelOptInfo *baserel,
 #ifdef ENABLE_PARALLEL_S3
 		if (strcmp(fdw->fdwname, PARQUET_S3_FDW_NAME) == 0)
 		{
-			entry_baserel->fdw_private = list_make1(list_make1(childinfo[i].s3file));
+			child_baserel->fdw_private = list_make1(list_make1(childinfo[i].s3file));
 		}
 #endif
 
