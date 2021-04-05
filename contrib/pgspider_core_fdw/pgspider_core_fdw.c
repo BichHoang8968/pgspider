@@ -3299,7 +3299,7 @@ spd_GetForeignRelSizeChild(PlannerInfo *root, RelOptInfo *baserel,
 		child_baserel = spd_CreateChildBaserel(child_root, root, baserel, fdw->fdwname);
 
 #ifdef ENABLE_PARALLEL_S3
-		if (strcmp(fdw->fdwname, PARQUET_S3_FDW_NAME) == 0)
+		if (strcmp(fdw->fdwname, PARQUET_S3_FDW_NAME) == 0 && childinfo[i].s3file != NULL)
 		{
 			child_baserel->fdw_private = list_make1(list_make1(childinfo[i].s3file));
 		}
@@ -3446,7 +3446,12 @@ spd_extractS3Nodes(int *nums, Oid **oid, SpdFdwPrivate *fdw_private)
 		{
 			isS3[i] = true;
 			s3filelist[i] = getS3FileList(oid_orig[i]);
-			s3num += list_length(s3filelist[i]) - 1;
+			if (s3filelist[i] != NIL)
+			{
+				s3num += list_length(s3filelist[i]) - 1;
+			}
+			else
+				isS3[i] = false;
 		}
 		else
 			isS3[i] = false;
