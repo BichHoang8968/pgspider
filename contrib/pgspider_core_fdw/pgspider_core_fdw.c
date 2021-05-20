@@ -7151,7 +7151,7 @@ spd_AddSpdUrlForGroupby(ForeignScanThreadInfo *pFssThrdInfo, TupleTableSlot *par
 	* tuple with new data values. Finally, copy identification info (if any).
 	*/
 
-	if (TTS_IS_HEAPTUPLE(node_slot))
+	if (TTS_IS_HEAPTUPLE(node_slot) && ((HeapTupleTableSlot*) node_slot)->tuple)
 	{
 		HeapTuple	newtuple;
 
