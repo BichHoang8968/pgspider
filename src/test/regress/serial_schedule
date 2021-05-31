@@ -201,3 +201,8 @@ test: explain
 test: event_trigger
 test: fast_default
 test: stats
+
+# ----------
+# Test version information returning by server binary file and sql client.
+# ----------
+test: version
