@@ -5472,7 +5472,7 @@ main(int argc, char **argv)
 		}
 		if (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-V") == 0)
 		{
-			puts("pgbench (PostgreSQL) " PG_VERSION);
+			puts("pgbench (PGSpider) " PG_VERSION);
 			exit(0);
 		}
 	}

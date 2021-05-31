@@ -580,10 +580,10 @@ MFLAGS=
 MAKEFLAGS=
 
 # Identity of this package.
-PACKAGE_NAME='PostgreSQL'
-PACKAGE_TARNAME='postgresql'
+PACKAGE_NAME='PGSpider'
+PACKAGE_TARNAME='pgspider'
 PACKAGE_VERSION='13.0'
-PACKAGE_STRING='PostgreSQL 13.0'
+PACKAGE_STRING='PGSpider 13.0'
 PACKAGE_BUGREPORT='pgsql-bugs@lists.postgresql.org'
 PACKAGE_URL='https://www.postgresql.org/'
 
@@ -19069,7 +19069,7 @@ fi
 
 
 cat >>confdefs.h <<_ACEOF
-#define PG_VERSION_STR "PostgreSQL $PG_VERSION on $host, compiled by $cc_string, `expr $ac_cv_sizeof_void_p \* 8`-bit"
+#define PG_VERSION_STR "PGSpider $PG_VERSION on $host, compiled by $cc_string, `expr $ac_cv_sizeof_void_p \* 8`-bit"
 _ACEOF
 
 
