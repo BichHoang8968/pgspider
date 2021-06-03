@@ -37,6 +37,8 @@ SUBDIRS = \
 		pg_trgm		\
 		pgcrypto	\
 		pgrowlocks	\
+		pgspider_fdw	\
+		pgspider_core_fdw	\
 		pgstattuple	\
 		pg_visibility	\
 		postgres_fdw	\
