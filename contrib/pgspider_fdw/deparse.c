@@ -86,6 +86,7 @@ typedef struct foreign_loc_cxt
 {
 	Oid			collation;		/* OID of current collation, if any */
 	FDWCollateState state;		/* state of current collation choice */
+	bool		can_pushdown_stable;	/* true if query contains stable function with star or regex */
 } foreign_loc_cxt;
 
 /*
@@ -101,6 +102,11 @@ typedef struct deparse_expr_cxt
 	StringInfo	buf;			/* output buffer to append to */
 	List	  **params_list;	/* exprs that will become remote Params */
 } deparse_expr_cxt;
+
+typedef struct pull_func_clause_context
+{
+	List	   *funclist;
+} pull_func_clause_context;
 
 #define REL_ALIAS_PREFIX	"r"
 /* Handy macro to add relation name qualification */
@@ -193,8 +199,9 @@ static bool is_subquery_var(Var *node, RelOptInfo *foreignrel,
 static void get_relation_column_alias_ids(Var *node, RelOptInfo *foreignrel,
 										  int *relno, int *colno);
 
-static bool pgspider_contain_immutable_functions_walker(Node *node, void *context);
-
+static bool pgspider_contain_immutable_stable_functions_walker(Node *node, void *context);
+static bool pgspider_contain_immutable_stable_functions(Node *clause);
+static bool pgspider_is_regex_argument(Const* node, char **extval);
 
 /*
  * Examine each qual clause in input_conds, and classify them into two groups,
@@ -255,6 +262,7 @@ pgspider_is_foreign_expr(PlannerInfo *root,
 		glob_cxt.relids = baserel->relids;
 	loc_cxt.collation = InvalidOid;
 	loc_cxt.state = FDW_COLLATE_NONE;
+	loc_cxt.can_pushdown_stable = false;
 	if (!foreign_expr_walker((Node *) expr, &glob_cxt, &loc_cxt))
 		return false;
 
@@ -272,11 +280,85 @@ pgspider_is_foreign_expr(PlannerInfo *root,
 	 * be able to make this choice with more granularity.  (We check this last
 	 * because it requires a lot of expensive catalog lookups.)
 	 */
-	if (contain_mutable_functions((Node *) expr))
-		return false;
+
+	if (expr != NULL && !IsA(expr, FieldSelect))
+	{
+		if (loc_cxt.can_pushdown_stable == true)
+		{
+			if (contain_volatile_functions((Node *) expr))
+					return false;
+		}
+		else
+		{
+			if (contain_mutable_functions((Node *) expr))
+				return false;
+		}
+	}
 
 	/* OK to evaluate on the remote server */
 	return true;
+}
+
+/*
+ * pull_func_clause_walker
+ *
+ * Recursively search for functions within a clause.
+ */
+static bool
+pgspider_pull_func_clause_walker(Node *node, pull_func_clause_context *context)
+{
+	if (node == NULL)
+		return false;
+	if (IsA(node, FuncExpr))
+	{
+		context->funclist = lappend(context->funclist, node);
+		return false;
+	}
+
+	return expression_tree_walker(node, pgspider_pull_func_clause_walker,
+								  (void *) context);
+}
+
+/*
+ * pull_func_clause
+ *
+ * Pull out function from a clause and then add to target list
+ */
+List *
+pgspider_pull_func_clause(Node *node)
+{
+	pull_func_clause_context context;
+	context.funclist = NIL;
+
+	pgspider_pull_func_clause_walker(node, &context);
+
+	return context.funclist;
+}
+
+/*
+ * pgspider_is_regex_argument
+ *
+ * Return true if argument of function is regular expression for InfluxDB
+ */
+static bool
+pgspider_is_regex_argument(Const* node, char **extval)
+{
+	Oid			typoutput;
+	bool		typIsVarlena;
+	const char *first;
+	const char *last;
+
+	getTypeOutputInfo(node->consttype,
+		&typoutput, &typIsVarlena);
+
+	(*extval) = OidOutputFunctionCall(typoutput, node->constvalue);
+	first = *extval;
+	last = *extval + strlen(*extval) - 1;
+	/* Append regex */
+	if (*first == '/' && *last == '/')
+		return true;
+	else
+		return false;
 }
 
 /*
@@ -313,6 +395,7 @@ foreign_expr_walker(Node *node,
 	/* Set up inner_cxt for possible recursion to child nodes */
 	inner_cxt.collation = InvalidOid;
 	inner_cxt.state = FDW_COLLATE_NONE;
+	inner_cxt.can_pushdown_stable = false;
 
 	switch (nodeTag(node))
 	{
@@ -373,6 +456,26 @@ foreign_expr_walker(Node *node,
 		case T_Const:
 			{
 				Const	   *c = (Const *) node;
+				HeapTuple	tuple;
+
+				/*
+				 * Get type name based on the const value.
+				 * If the type name is "griddb_time_unit", allow it to push down to remote.
+				 */
+				tuple = SearchSysCache1(TYPEOID, ObjectIdGetDatum(c->consttype));
+				if (HeapTupleIsValid(tuple))
+				{
+					Form_pg_type type;
+					char*	type_name;
+
+					type = (Form_pg_type) GETSTRUCT(tuple);
+					type_name = (char*) type->typname.data;
+
+					if (strcmp(type_name, "griddb_time_unit") == 0)
+						check_type = false;
+
+					ReleaseSysCache(tuple);
+				}
 
 				/*
 				 * If the constant has nondefault collation, either it's of a
@@ -458,9 +561,24 @@ foreign_expr_walker(Node *node,
 					state = FDW_COLLATE_UNSAFE;
 			}
 			break;
+		case T_FieldSelect:	/* Allow pushdown FieldSelect to support accessing value of record of star and regex functions */
+			{
+				if (!(glob_cxt->foreignrel->reloptkind == RELOPT_BASEREL ||
+					 glob_cxt->foreignrel->reloptkind == RELOPT_OTHER_MEMBER_REL))
+					  return false;
+
+				collation = InvalidOid;
+				state = FDW_COLLATE_NONE;
+				check_type = false;
+			}
+			break;
 		case T_FuncExpr:
 			{
 				FuncExpr   *fe = (FuncExpr *) node;
+				bool		is_regex_format = false;
+				bool		is_regex_func = false;
+				HeapTuple 	tuple;
+				char 		*opername = NULL;
 
 				/*
 				 * If function used by the expression is not shippable, it
@@ -471,38 +589,102 @@ foreign_expr_walker(Node *node,
 					return false;
 
 				/*
+				 * Allow to push down stub function which has volatility stable and immutable.
+				 */
+				if (fe->funcid >= FirstBootstrapObjectId
+					&& (pgspider_contain_immutable_stable_functions((Node *) fe)))
+					outer_cxt->can_pushdown_stable = true;
+
+				/*
 				 * Recurse to input subexpressions.
 				 */
 				if (!foreign_expr_walker((Node *) fe->args,
 										 glob_cxt, &inner_cxt))
 					return false;
 
-				/*
-				 * If function's input collation is not derived from a foreign
-				 * Var, it can't be sent to remote.
-				 */
-				if (fe->inputcollid == InvalidOid)
-					 /* OK, inputs are all noncollatable */ ;
-				else if (inner_cxt.state != FDW_COLLATE_SAFE ||
-						 fe->inputcollid != inner_cxt.collation)
-					return false;
+				if (list_length(fe->args) > 0)
+				{
+					ListCell   *funclc;
+					Node	   *firstArg;
 
-				/*
-				 * Detect whether node is introducing a collation not derived
-				 * from a foreign Var.  (If so, we just mark it unsafe for now
-				 * rather than immediately returning false, since the parent
-				 * node might not care.)
-				 */
-				collation = fe->funccollid;
-				if (collation == InvalidOid)
+					funclc = list_head(fe->args);
+					firstArg = (Node *) lfirst(funclc);
+
+					if (IsA(firstArg, Const))
+					{
+						Const		*arg = (Const *) firstArg;
+						char		*extval;
+
+						if (arg->consttype == TEXTOID)
+							is_regex_format = pgspider_is_regex_argument(arg, &extval);
+					}
+				}
+
+				/* Get function name and schema */
+				tuple = SearchSysCache1(PROCOID, ObjectIdGetDatum(fe->funcid));
+				if (!HeapTupleIsValid(tuple))
+				{
+					elog(ERROR, "cache lookup failed for function %u", fe->funcid);
+				}
+				opername = pstrdup(((Form_pg_proc) GETSTRUCT(tuple))->proname.data);
+				ReleaseSysCache(tuple);
+
+				if (strcmp(opername, "percentile") == 0
+					|| strcmp(opername, "sample") == 0
+					|| strcmp(opername, "top") == 0
+					|| strcmp(opername, "cumulative_sum") == 0
+					|| strcmp(opername, "derivative") == 0
+					|| strcmp(opername, "difference") == 0
+					|| strcmp(opername, "elapsed") == 0
+					|| strcmp(opername, "moving_average") == 0
+					|| strcmp(opername, "non_negative_derivative") == 0
+					|| strcmp(opername, "non_negative_difference") == 0
+					|| strcmp(opername, "chande_momentum_oscillator") == 0
+					|| strcmp(opername, "exponential_moving_average") == 0
+					|| strcmp(opername, "double_exponential_moving_average") == 0
+					|| strcmp(opername, "kaufmans_efficiency_ratio") == 0
+					|| strcmp(opername, "kaufmans_adaptive_moving_average") == 0
+					|| strcmp(opername, "triple_exponential_moving_average") == 0
+					|| strcmp(opername, "triple_exponential_derivative") == 0
+					|| strcmp(opername, "relative_strength_index") == 0)
+					is_regex_func = true;
+
+				if (is_regex_func && is_regex_format)
+				{
+					collation = InvalidOid;
 					state = FDW_COLLATE_NONE;
-				else if (inner_cxt.state == FDW_COLLATE_SAFE &&
-						 collation == inner_cxt.collation)
-					state = FDW_COLLATE_SAFE;
-				else if (collation == DEFAULT_COLLATION_OID)
-					state = FDW_COLLATE_NONE;
+					check_type = false;
+					outer_cxt->can_pushdown_stable = true;
+				}
 				else
-					state = FDW_COLLATE_UNSAFE;
+				{
+					/*
+					* If function's input collation is not derived from a foreign
+					* Var, it can't be sent to remote.
+					*/
+					if (fe->inputcollid == InvalidOid)
+						/* OK, inputs are all noncollatable */ ;
+					else if (inner_cxt.state != FDW_COLLATE_SAFE ||
+							fe->inputcollid != inner_cxt.collation)
+						return false;
+
+					/*
+					* Detect whether node is introducing a collation not derived
+					* from a foreign Var.  (If so, we just mark it unsafe for now
+					* rather than immediately returning false, since the parent
+					* node might not care.)
+					*/
+					collation = fe->funccollid;
+					if (collation == InvalidOid)
+						state = FDW_COLLATE_NONE;
+					else if (inner_cxt.state == FDW_COLLATE_SAFE &&
+							collation == inner_cxt.collation)
+						state = FDW_COLLATE_SAFE;
+					else if (collation == DEFAULT_COLLATION_OID)
+						state = FDW_COLLATE_NONE;
+					else
+						state = FDW_COLLATE_UNSAFE;
+				}
 			}
 			break;
 		case T_OpExpr:
@@ -525,27 +707,36 @@ foreign_expr_walker(Node *node,
 										 glob_cxt, &inner_cxt))
 					return false;
 
-				/*
-				 * If operator's input collation is not derived from a foreign
-				 * Var, it can't be sent to remote.
-				 */
-				if (oe->inputcollid == InvalidOid)
-					 /* OK, inputs are all noncollatable */ ;
-				else if (inner_cxt.state != FDW_COLLATE_SAFE ||
-						 oe->inputcollid != inner_cxt.collation)
-					return false;
-
-				/* Result-collation handling is same as for functions */
-				collation = oe->opcollid;
-				if (collation == InvalidOid)
+				if (inner_cxt.can_pushdown_stable == true)
+				{
+					outer_cxt->can_pushdown_stable = true;
 					state = FDW_COLLATE_NONE;
-				else if (inner_cxt.state == FDW_COLLATE_SAFE &&
-						 collation == inner_cxt.collation)
-					state = FDW_COLLATE_SAFE;
-				else if (collation == DEFAULT_COLLATION_OID)
-					state = FDW_COLLATE_NONE;
+					collation = oe->opcollid;
+				}
 				else
-					state = FDW_COLLATE_UNSAFE;
+				{
+					/*
+					* If operator's input collation is not derived from a foreign
+					* Var, it can't be sent to remote.
+					*/
+					if (oe->inputcollid == InvalidOid)
+						/* OK, inputs are all noncollatable */ ;
+					else if (inner_cxt.state != FDW_COLLATE_SAFE ||
+							oe->inputcollid != inner_cxt.collation)
+						return false;
+
+					/* Result-collation handling is same as for functions */
+					collation = oe->opcollid;
+					if (collation == InvalidOid)
+						state = FDW_COLLATE_NONE;
+					else if (inner_cxt.state == FDW_COLLATE_SAFE &&
+							collation == inner_cxt.collation)
+						state = FDW_COLLATE_SAFE;
+					else if (collation == DEFAULT_COLLATION_OID)
+						state = FDW_COLLATE_NONE;
+					else
+						state = FDW_COLLATE_UNSAFE;
+				}
 			}
 			break;
 		case T_ScalarArrayOpExpr:
@@ -671,6 +862,8 @@ foreign_expr_walker(Node *node,
 				List	   *l = (List *) node;
 				ListCell   *lc;
 
+				inner_cxt.can_pushdown_stable = outer_cxt->can_pushdown_stable;
+
 				/*
 				 * Recurse to component subexpressions.
 				 */
@@ -680,6 +873,9 @@ foreign_expr_walker(Node *node,
 											 glob_cxt, &inner_cxt))
 						return false;
 				}
+
+				if (inner_cxt.can_pushdown_stable == true)
+					outer_cxt->can_pushdown_stable = true;
 
 				/*
 				 * When processing a list, collation state just bubbles up
@@ -696,6 +892,10 @@ foreign_expr_walker(Node *node,
 			{
 				Aggref	   *agg = (Aggref *) node;
 				ListCell   *lc;
+				bool		is_regex_format = false;
+				bool		is_regex_func = false;
+				HeapTuple 	tuple;
+				char 		*opername = NULL;
 
 				/* Not safe to pushdown when not in grouping context */
 				if (!IS_UPPER_REL(glob_cxt->foreignrel))
@@ -724,11 +924,45 @@ foreign_expr_walker(Node *node,
 						TargetEntry *tle = (TargetEntry *) n;
 
 						n = (Node *) tle->expr;
+
+						if (IsA(n, Const))
+						{
+							Const		*arg = (Const *) n;
+							char		*extval;
+
+							if (arg->consttype == TEXTOID)
+							{
+								is_regex_format = pgspider_is_regex_argument(arg, &extval);
+							}
+						}
 					}
 
 					if (!foreign_expr_walker(n, glob_cxt, &inner_cxt))
 						return false;
 				}
+
+				/* Get function name and schema */
+				tuple = SearchSysCache1(PROCOID, ObjectIdGetDatum(agg->aggfnoid));
+				if (!HeapTupleIsValid(tuple))
+				{
+					elog(ERROR, "cache lookup failed for function %u", agg->aggfnoid);
+				}
+				opername = pstrdup(((Form_pg_proc) GETSTRUCT(tuple))->proname.data);
+				ReleaseSysCache(tuple);
+
+				if (strcmp(opername, "influx_count") == 0
+					|| strcmp(opername, "integral") == 0
+					|| strcmp(opername, "mean") == 0
+					|| strcmp(opername, "median") == 0
+					|| strcmp(opername, "influx_mode") == 0
+					|| strcmp(opername, "spread") == 0
+					|| strcmp(opername, "stddev") == 0
+					|| strcmp(opername, "influx_sum") == 0
+					|| strcmp(opername, "first") == 0
+					|| strcmp(opername, "last") == 0
+					|| strcmp(opername, "influx_max") == 0
+					|| strcmp(opername, "influx_min") == 0)
+					is_regex_func = true;
 
 				/*
 				 * For aggorder elements, check whether the sort operator, if
@@ -764,32 +998,37 @@ foreign_expr_walker(Node *node,
 										 glob_cxt, &inner_cxt))
 					return false;
 
-				/*
-				 * If aggregate's input collation is not derived from a
-				 * foreign Var, it can't be sent to remote.
-				 */
-				if (agg->inputcollid == InvalidOid)
-					 /* OK, inputs are all noncollatable */ ;
-				else if (inner_cxt.state != FDW_COLLATE_SAFE ||
-						 agg->inputcollid != inner_cxt.collation)
-					return false;
-
-				/*
-				 * Detect whether node is introducing a collation not derived
-				 * from a foreign Var.  (If so, we just mark it unsafe for now
-				 * rather than immediately returning false, since the parent
-				 * node might not care.)
-				 */
-				collation = agg->aggcollid;
-				if (collation == InvalidOid)
-					state = FDW_COLLATE_NONE;
-				else if (inner_cxt.state == FDW_COLLATE_SAFE &&
-						 collation == inner_cxt.collation)
-					state = FDW_COLLATE_SAFE;
-				else if (collation == DEFAULT_COLLATION_OID)
-					state = FDW_COLLATE_NONE;
+				if (is_regex_format && is_regex_func)
+					check_type = false;
 				else
-					state = FDW_COLLATE_UNSAFE;
+				{
+					/*
+					* If aggregate's input collation is not derived from a
+					* foreign Var, it can't be sent to remote.
+					*/
+					if (agg->inputcollid == InvalidOid)
+						/* OK, inputs are all noncollatable */ ;
+					else if (inner_cxt.state != FDW_COLLATE_SAFE ||
+							agg->inputcollid != inner_cxt.collation)
+						return false;
+
+					/*
+					* Detect whether node is introducing a collation not derived
+					* from a foreign Var.  (If so, we just mark it unsafe for now
+					* rather than immediately returning false, since the parent
+					* node might not care.)
+					*/
+					collation = agg->aggcollid;
+					if (collation == InvalidOid)
+						state = FDW_COLLATE_NONE;
+					else if (inner_cxt.state == FDW_COLLATE_SAFE &&
+							collation == inner_cxt.collation)
+						state = FDW_COLLATE_SAFE;
+					else if (collation == DEFAULT_COLLATION_OID)
+						state = FDW_COLLATE_NONE;
+					else
+						state = FDW_COLLATE_UNSAFE;
+				}
 			}
 			break;
 		default:
@@ -3473,13 +3712,13 @@ get_relation_column_alias_ids(Var *node, RelOptInfo *foreignrel,
  * We will recursively look into TargetEntry exprs.
  */
 static bool
-pgspider_contain_immutable_functions(Node *clause)
+pgspider_contain_immutable_stable_functions(Node *clause)
 {
-	return pgspider_contain_immutable_functions_walker(clause, NULL);
+	return pgspider_contain_immutable_stable_functions_walker(clause, NULL);
 }
 
 static bool
-pgspider_contain_immutable_functions_walker(Node *node, void *context)
+pgspider_contain_immutable_stable_functions_walker(Node *node, void *context)
 {
 	if (node == NULL)
 		return false;
@@ -3487,7 +3726,8 @@ pgspider_contain_immutable_functions_walker(Node *node, void *context)
 	if (nodeTag(node) == T_FuncExpr)
 	{
 		FuncExpr *expr = (FuncExpr *) node;
-		if (func_volatile(expr->funcid) == PROVOLATILE_IMMUTABLE)
+		if (func_volatile(expr->funcid) == PROVOLATILE_IMMUTABLE ||
+			func_volatile(expr->funcid) == PROVOLATILE_STABLE)
 			return true;
 	}
 
@@ -3506,10 +3746,10 @@ pgspider_contain_immutable_functions_walker(Node *node, void *context)
 	{
 		/* Recurse into subselects */
 		return query_tree_walker((Query *) node,
-								 pgspider_contain_immutable_functions_walker,
+								 pgspider_contain_immutable_stable_functions_walker,
 								 context, 0);
 	}
-	return expression_tree_walker(node, pgspider_contain_immutable_functions_walker,
+	return expression_tree_walker(node, pgspider_contain_immutable_stable_functions_walker,
 								  context);
 }
 
@@ -3537,7 +3777,7 @@ bool pgspider_is_foreign_function_tlist(PlannerInfo *root,
 	{
 		TargetEntry *tle = lfirst_node(TargetEntry, lc);
 
-		if (pgspider_contain_immutable_functions((Node *) tle->expr))
+		if (pgspider_contain_immutable_stable_functions((Node *) tle->expr))
 		{
 			is_contain_function = true;
 			break;
@@ -3560,6 +3800,7 @@ bool pgspider_is_foreign_function_tlist(PlannerInfo *root,
 		glob_cxt.relids = baserel->relids;
 		loc_cxt.collation = InvalidOid;
 		loc_cxt.state = FDW_COLLATE_NONE;
+		loc_cxt.can_pushdown_stable = false;
 
 		if (!foreign_expr_walker((Node *) tle->expr, &glob_cxt, &loc_cxt))
 			return false;
@@ -3578,8 +3819,19 @@ bool pgspider_is_foreign_function_tlist(PlannerInfo *root,
 		 * be able to make this choice with more granularity.  (We check this last
 		 * because it requires a lot of expensive catalog lookups.)
 		 */
-		if (contain_mutable_functions((Node *) tle->expr))
-			return false;
+		if (!IsA(tle->expr, FieldSelect))
+		{
+			if (loc_cxt.can_pushdown_stable == true)
+			{
+				if (contain_volatile_functions((Node *) tle->expr))
+						return false;
+			}
+			else
+			{
+				if (contain_mutable_functions((Node *) tle->expr))
+					return false;
+			}
+		}
 	}
 
 	/* OK for the target list with functions to evaluate on the remote server */

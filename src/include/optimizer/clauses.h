@@ -24,6 +24,9 @@ typedef struct
 	List	  **windowFuncs;	/* lists of WindowFuncs for each winref */
 } WindowFuncLists;
 
+#ifdef PGSPIDER
+extern bool contain_not_builtin_stable_function(Node *clause);
+#endif
 extern bool contain_agg_clause(Node *clause);
 extern void get_agg_clause_costs(PlannerInfo *root, Node *clause,
 								 AggSplit aggsplit, AggClauseCosts *costs);

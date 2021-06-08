@@ -85,7 +85,12 @@
  *		global variables
  * ----------------
  */
+#ifdef PGSPIDER
+__thread const char *debug_query_string; /* client-supplied query string */
+bool is_child_thread_running = false;
+#else
 const char *debug_query_string; /* client-supplied query string */
+#endif
 
 /* Note: whereToSendOutput is initialized for the bootstrap/standalone case */
 CommandDest whereToSendOutput = DestDebug;
@@ -208,6 +213,9 @@ static void drop_unnamed_stmt(void);
 static void log_disconnections(int code, Datum arg);
 static void enable_statement_timeout(void);
 static void disable_statement_timeout(void);
+#ifdef PGSPIDER
+void skip_memory_checking(bool);
+#endif
 
 #ifdef GETPROGRESS_ENABLED
 MemoryContext ProgressMemoryContext = NULL;
@@ -2729,6 +2737,12 @@ finish_xact_command(void)
 	}
 }
 
+#ifdef PGSPIDER
+void skip_memory_checking(bool flag)
+{
+	is_child_thread_running = flag;
+}
+#endif
 
 /*
  * Convenience routines for checking whether a statement is one of the

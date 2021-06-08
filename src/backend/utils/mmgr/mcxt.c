@@ -67,7 +67,7 @@ static void MemoryContextStatsInternal(MemoryContext context, int level,
 									   MemoryContextCounters *totals);
 static void MemoryContextStatsPrint(MemoryContext context, void *passthru,
 									const char *stats_string);
-
+extern bool is_child_thread_running;
 /*
  * You should not do memory allocations within a critical section, because
  * an out-of-memory error will be escalated to a PANIC. To enforce that
@@ -719,7 +719,20 @@ MemoryContextCheck(MemoryContext context)
 
 	AssertArg(MemoryContextIsValid(context));
 
+#ifdef PGSPIDER
+	/* Skip checking memory context when child thread is running and context is created from pgspider_core_fdw */
+	if (is_child_thread_running &&
+		(strcmp(context->name, "thread tuple contxt1") == 0 ||
+		strcmp(context->name, "thread tuple contxt2") == 0 ||
+		strcmp(context->name, "Thread ErrorContext") == 0 ||
+		strcmp(context->name, "thread top memory context") == 0 ||
+		strcmp(context->name, "thread memory context") == 0 ||
+		strcmp(context->name, "thread es_query_cxt") == 0))
+		return;
+#endif
+
 	context->methods->check(context);
+
 	for (child = context->firstchild; child != NULL; child = child->nextchild)
 		MemoryContextCheck(child);
 }

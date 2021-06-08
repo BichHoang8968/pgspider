@@ -73,7 +73,9 @@
 #include "utils/syscache.h"
 #include "utils/typcache.h"
 
-
+#ifdef PGSPIDER
+static pthread_mutex_t hash_mtx = PTHREAD_MUTEX_INITIALIZER;
+#endif
 /* The main type cache hashtable searched by lookup_type_cache */
 static HTAB *TypeCacheHash = NULL;
 
@@ -1849,12 +1851,14 @@ assign_record_type_typmod(TupleDesc tupDesc)
 		RecordCacheHash = hash_create("Record information cache", 64,
 									  &ctl,
 									  HASH_ELEM | HASH_FUNCTION | HASH_COMPARE);
-
 		/* Also make sure CacheMemoryContext exists */
 		if (!CacheMemoryContext)
 			CreateCacheMemoryContext();
 	}
 
+#ifdef PGSPIDER
+	SPD_LOCK_TRY(&hash_mtx);
+#endif
 	/* Find or create a hashtable entry for this tuple descriptor */
 	recentry = (RecordCacheEntry *) hash_search(RecordCacheHash,
 												(void *) &tupDesc,
@@ -1862,33 +1866,37 @@ assign_record_type_typmod(TupleDesc tupDesc)
 	if (found && recentry->tupdesc != NULL)
 	{
 		tupDesc->tdtypmod = recentry->tupdesc->tdtypmod;
-		return;
 	}
-
-	/* Not present, so need to manufacture an entry */
-	recentry->tupdesc = NULL;
-	oldcxt = MemoryContextSwitchTo(CacheMemoryContext);
-
-	/* Look in the SharedRecordTypmodRegistry, if attached */
-	entDesc = find_or_make_matching_shared_tupledesc(tupDesc);
-	if (entDesc == NULL)
+	else
 	{
-		/* Reference-counted local cache only. */
-		entDesc = CreateTupleDescCopy(tupDesc);
-		entDesc->tdrefcount = 1;
-		entDesc->tdtypmod = NextRecordTypmod++;
+		/* Not present, so need to manufacture an entry */
+		recentry->tupdesc = NULL;
+		oldcxt = MemoryContextSwitchTo(CacheMemoryContext);
+
+		/* Look in the SharedRecordTypmodRegistry, if attached */
+		entDesc = find_or_make_matching_shared_tupledesc(tupDesc);
+		if (entDesc == NULL)
+		{
+			/* Reference-counted local cache only. */
+			entDesc = CreateTupleDescCopy(tupDesc);
+			entDesc->tdrefcount = 1;
+			entDesc->tdtypmod = NextRecordTypmod++;
+		}
+		ensure_record_cache_typmod_slot_exists(entDesc->tdtypmod);
+		RecordCacheArray[entDesc->tdtypmod] = entDesc;
+		recentry->tupdesc = entDesc;
+
+		/* Assign a unique tupdesc identifier, too. */
+		RecordIdentifierArray[entDesc->tdtypmod] = ++tupledesc_id_counter;
+
+		/* Update the caller's tuple descriptor. */
+		tupDesc->tdtypmod = entDesc->tdtypmod;
+
+		MemoryContextSwitchTo(oldcxt);
 	}
-	ensure_record_cache_typmod_slot_exists(entDesc->tdtypmod);
-	RecordCacheArray[entDesc->tdtypmod] = entDesc;
-	recentry->tupdesc = entDesc;
-
-	/* Assign a unique tupdesc identifier, too. */
-	RecordIdentifierArray[entDesc->tdtypmod] = ++tupledesc_id_counter;
-
-	/* Update the caller's tuple descriptor. */
-	tupDesc->tdtypmod = entDesc->tdtypmod;
-
-	MemoryContextSwitchTo(oldcxt);
+#ifdef PGSPIDER
+	SPD_UNLOCK_CATCH(&hash_mtx);
+#endif
 }
 
 /*

@@ -236,19 +236,33 @@ SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i,
 --Testcase 63:
 SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
 
+--Aggregate and function with __spd_url
+--Testcase 276:
+EXPLAIN VERBOSE
+SELECT max(__spd_url), min(__spd_url) from test1;
+--Testcase 277:
+SELECT max(__spd_url), min(__spd_url) from test1;
+--Testcase 278:
+EXPLAIN VERBOSE
+SELECT lower(__spd_url), upper(__spd_url) from test1 ORDER BY 1, 2;
+--Testcase 279:
+SELECT lower(__spd_url), upper(__spd_url) from test1  ORDER BY 1, 2;
+--Testcase 280:
+EXPLAIN VERBOSE
+SELECT pg_typeof(max(i)), pg_typeof(count(*)), pg_typeof(max(__spd_url)) FROM test1;
+--Testcase 281:
+SELECT pg_typeof(max(i)), pg_typeof(count(*)), pg_typeof(max(__spd_url)) FROM test1;
+
 --Testcase 64:
 SELECT sum(i) FROM test1;
-
 --Testcase 65:
 SELECT avg(i) FROM test1;
 --Testcase 66:
 SELECT avg(i),i FROM test1 group by i order by i;
 --Testcase 67:
 SELECT sum(i),count(i),i FROM test1 group by i order by i;
-
 --Testcase 68:
 SELECT avg(i), count(i) FROM test1 group by i;
-
 --Testcase 69:
 SELECT SUM(i) as aa, avg(i) FROM test1 GROUP BY i;
 --Testcase 70:
@@ -259,6 +273,23 @@ SELECT SUM(i) as aa, avg(i) FROM test1 GROUP BY i ORDER BY aa;
 SELECT sum(i), avg(i) FROM test1 GROUP BY i ORDER BY 1;
 --Testcase 73:
 SELECT i, avg(i) FROM test1 GROUP BY i ORDER BY 1;
+
+--Test extract expression when target contains Var which exists in GROUP BY
+--Testcase 270:
+EXPLAIN VERBOSE
+SELECT i/2, i/4 FROM test1 GROUP BY i ORDER BY 1;
+--Testcase 271:
+SELECT i/2, i/4 FROM test1 GROUP BY i ORDER BY 1;
+--Testcase 272:
+EXPLAIN VERBOSE
+SELECT i/4, avg(i) FROM test1 GROUP BY i ORDER BY 1;
+--Testcase 273:
+SELECT i/4, avg(i) FROM test1 GROUP BY i ORDER BY 1;
+--Testcase 274:
+EXPLAIN VERBOSE
+SELECT i, i*i FROM test1 GROUP BY i ORDER BY 1;
+--Testcase 275:
+SELECT i, i*i FROM test1 GROUP BY i ORDER BY 1;
 
 -- allocate statement
 --Testcase 74:
