@@ -1293,7 +1293,21 @@ pgspiderGetForeignPlan(PlannerInfo *root,
 		/* Build the list of columns to be fetched from the foreign server. */
 		if (fpinfo->is_tlist_func_pushdown == true)
 		{
-			fdw_scan_tlist = copyObject(tlist);
+			foreach(lc, tlist)
+			{
+				TargetEntry *tle = lfirst_node(TargetEntry, lc);
+
+				/* Pull out function from FieldSelect clause and add to fdw_scan_tlist to push down function portion only */
+				if (fpinfo->is_tlist_func_pushdown == true && IsA((Node *) tle->expr, FieldSelect))
+				{
+					fdw_scan_tlist = add_to_flat_tlist(fdw_scan_tlist,
+													pgspider_pull_func_clause((Node *) tle->expr));
+				}
+				else
+				{
+					fdw_scan_tlist = lappend(fdw_scan_tlist, tle);
+				}
+			}
 			foreach(lc, fpinfo->local_conds)
 			{
 				RestrictInfo *rinfo = lfirst_node(RestrictInfo, lc);

@@ -26,7 +26,11 @@
 #define STACK_DEPTH_SLOP (512 * 1024L)
 
 extern CommandDest whereToSendOutput;
+#ifdef PGSPIDER
+extern __thread PGDLLIMPORT const char *debug_query_string;
+#else
 extern PGDLLIMPORT const char *debug_query_string;
+#endif
 extern int	max_stack_depth;
 extern int	PostAuthDelay;
 

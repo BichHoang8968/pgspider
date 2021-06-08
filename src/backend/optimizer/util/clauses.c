@@ -97,6 +97,11 @@ typedef struct
 	List	   *safe_param_ids; /* PARAM_EXEC Param IDs to treat as safe */
 } max_parallel_hazard_context;
 
+#ifdef PGSPIDER
+static bool contain_not_builtin_stable_function_walker(Node *node, void *context);
+static bool is_builtin(Oid objectId);
+static bool is_stable_function(Oid func_id);
+#endif
 static bool contain_agg_clause_walker(Node *node, void *context);
 static bool get_agg_clause_costs_walker(Node *node,
 										get_agg_clause_costs_context *context);
@@ -157,6 +162,74 @@ static Query *substitute_actual_srf_parameters(Query *expr,
 static Node *substitute_actual_srf_parameters_mutator(Node *node,
 													  substitute_actual_srf_parameters_context *context);
 
+
+#ifdef PGSPIDER
+/*****************************************************************************
+ *		Stable not built-in-function clause manipulation
+ *****************************************************************************/
+
+/*
+ * contain_not_builtin_stable_function
+ *	  Recursively search for FuncExpr nodes within a clause.
+ *
+ *	  Returns true if any stable function, which is not built-in function found.
+ *
+ */
+bool
+contain_not_builtin_stable_function(Node *clause)
+{
+	return contain_not_builtin_stable_function_walker(clause, NULL);
+}
+
+static bool
+contain_not_builtin_stable_function_walker(Node *node, void *context)
+{
+	if (node == NULL)
+		return false;
+	if (IsA(node, FuncExpr))
+	{
+		Oid			func_oid = ((FuncExpr *) node)->funcid;
+
+		/* Check function is stable function and not built-in function? */
+		if (!is_builtin(func_oid) && is_stable_function(func_oid))
+			return true;		/* abort the tree traversal and return true */
+	}
+	return expression_tree_walker(node, contain_not_builtin_stable_function_walker, context);
+}
+
+/*
+ * Return true if given object is one of PostgreSQL's built-in objects.
+ *
+ * We use FirstBootstrapObjectId as the cutoff, so that we only consider
+ * objects with hand-assigned OIDs to be "built in", not for instance any
+ * function or type defined in the information_schema.
+ *
+ * Our constraints for dealing with types are tighter than they are for
+ * functions or operators: we want to accept only types that are in pg_catalog,
+ * else format_type might incorrectly fail to schema-qualify their names.
+ * (This could be fixed with some changes to format_type, but for now there's
+ * no need.)  Thus we must exclude information_schema types.
+ *
+ * XXX there is a problem with this, which is that the set of built-in
+ * objects expands over time.  Something that is built-in to us might not
+ * be known to the remote server, if it's of an older version.  But keeping
+ * track of that would be a huge exercise.
+ */
+static bool
+is_builtin(Oid objectId)
+{
+	return (objectId < FirstBootstrapObjectId);
+}
+
+/*
+ * Return true if given object is stable function.
+ */
+static bool
+is_stable_function(Oid func_id)
+{
+	return (func_volatile(func_id) == PROVOLATILE_STABLE);
+}
+#endif
 
 /*****************************************************************************
  *		Aggregate-function clause manipulation

@@ -125,7 +125,8 @@ cd $CURR_PATH
 # Initialize data for GridDB
 cp -a griddb*.data /tmp/
 gcc griddb_init.c -o griddb_init -I${GRIDDB_CLIENT}/client/c/include -L${GRIDDB_CLIENT}/bin -lgridstore
-./griddb_init 239.0.0.1 31999 griddbfdwTestCluster admin testadmin
+#use 0 for multi test, use 1 for selectfunc test
+./griddb_init 239.0.0.1 31999 griddbfdwTestCluster admin testadmin 0
 
 ## Setup CSV
 rm -rf /tmp/pgtest.csv
@@ -151,3 +152,4 @@ ${POSTGRES_HOME}/bin/psql postgres -p 15432  -U postgres < post.dat
 # Setup PGSPider1 and PGSpider2
 $PGS1_DIR/bin/psql -p $PGS1_PORT $DB_NAME < pgspider1.dat
 $PGS2_DIR/bin/psql -p $PGS2_PORT $DB_NAME < pgspider2.dat
+

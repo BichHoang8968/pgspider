@@ -5,6 +5,9 @@ PGS2_DIR=/home/jenkins/PGSpider/PGS
 PGS2_PORT=5434
 PGS2_DB=pg2db
 DB_NAME=postgres
+GRIDDB_CLIENT=/home/jenkins/c_client-4.5.1/
+GRIDDB_HOME=/home/jenkins/griddb-4.5.3/
+
 CURR_PATH=$(pwd)
 
 if [[ "--start" == $1 ]]
@@ -54,9 +57,38 @@ then
     systemctl start influxdb
     sleep 2
   fi
+  # Start GridDB server
+  if [[ ! -d "${GRIDDB_HOME}" ]];
+  then
+    echo "GRIDDB_HOME environment variable not set"
+    exit 1
+  fi
+  export GS_HOME=${GRIDDB_HOME}
+  export GS_LOG=${GRIDDB_HOME}/log
+  export no_proxy=127.0.0.1
+  if pgrep -x "gsserver" > /dev/null
+  then
+    ${GRIDDB_HOME}/bin/gs_leavecluster -w -f -u admin/testadmin
+    ${GRIDDB_HOME}/bin/gs_stopnode -w -u admin/testadmin
+    sleep 1
+  fi
+  rm -rf ${GS_HOME}/data/* ${GS_LOG}/*
+  sed -i 's/\"clusterName\":.*/\"clusterName\":\"griddbfdwTestCluster\",/' ${GRIDDB_HOME}/conf/gs_cluster.json
+  echo "Starting GridDB server..."
+  ${GRIDDB_HOME}/bin/gs_startnode -w -u admin/testadmin
+  ${GRIDDB_HOME}/bin/gs_joincluster -w -c griddbfdwTestCluster -u admin/testadmin
 fi
 
 cd $CURR_PATH
+
+# Setup GridDB
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${GRIDDB_CLIENT}/bin
+cp -a griddb_selectfunc.dat /tmp/
+cp -a griddb_selectfunc1.dat /tmp/
+cp -a griddb_selectfunc2.dat /tmp/
+gcc griddb_init.c -o griddb_init -I${GRIDDB_CLIENT}/client/c/include -L${GRIDDB_CLIENT}/bin -lgridstore
+# use 0 for multi test, use 1 for selectfunc test
+./griddb_init 239.0.0.1 31999 griddbfdwTestCluster admin testadmin 1
 
 # Setup SQLite
 rm /tmp/pgtest.db

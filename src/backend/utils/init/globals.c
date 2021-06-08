@@ -33,11 +33,12 @@ volatile sig_atomic_t ProcDiePending = false;
 volatile sig_atomic_t ClientConnectionLost = false;
 volatile sig_atomic_t IdleInTransactionSessionTimeoutPending = false;
 volatile sig_atomic_t ProcSignalBarrierPending = false;
-volatile uint32 QueryCancelHoldoffCount = 0;
 #ifdef PGSPIDER
+__thread volatile uint32 QueryCancelHoldoffCount = 0;
 __thread volatile uint32 InterruptHoldoffCount = 0;
 __thread volatile uint32 CritSectionCount = 0;
 #else
+volatile uint32 QueryCancelHoldoffCount = 0;
 volatile uint32 InterruptHoldoffCount = 0;
 volatile uint32 CritSectionCount = 0;
 #endif

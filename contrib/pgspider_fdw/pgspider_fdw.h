@@ -214,5 +214,5 @@ extern bool pgspider_is_shippable(Oid objectId, Oid classId, PGSpiderFdwRelation
 extern bool pgspider_is_foreign_function_tlist(PlannerInfo *root,
 											   RelOptInfo *baserel,
 											   List *tlist);
-
+extern List *pgspider_pull_func_clause(Node *node);
 #endif							/* PGSPIDER_FDW_H */

@@ -227,7 +227,6 @@ ExecInitForeignScan(ForeignScan *node, EState *estate, int eflags)
 		fdwroutine->BeginDirectModify(scanstate, eflags);
 	else
 		fdwroutine->BeginForeignScan(scanstate, eflags);
-
 	return scanstate;
 }
 
