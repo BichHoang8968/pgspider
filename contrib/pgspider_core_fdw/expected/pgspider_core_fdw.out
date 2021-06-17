@@ -2164,23 +2164,16 @@ SELECT abs(-i*2), i+1, i, i FROM t3;
 --Testcase 114:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT abs(A.i) FROM t3 A, t3 B LIMIT 3;
-                             QUERY PLAN                              
----------------------------------------------------------------------
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
  Limit
    Output: (abs(a.i))
-   ->  Nested Loop
+   ->  Foreign Scan
          Output: abs(a.i)
-         ->  Foreign Scan on public.t3 a
-               Output: a.i
-               Node: mysql_svr / Status: Alive
-                 Local server startup cost: 10
-                 Remote query: SELECT `i` FROM `test`.`test3`
-         ->  Materialize
-               ->  Foreign Scan on public.t3 b
-                     Node: mysql_svr / Status: Alive
-                       Local server startup cost: 10
-                       Remote query: SELECT NULL FROM `test`.`test3`
-(14 rows)
+         Node: mysql_svr / Status: Alive
+           Local server startup cost: 10
+           Remote query: SELECT r1.`i` FROM (`test`.`test3` r1 INNER JOIN `test`.`test3` r2 ON (TRUE))
+(7 rows)
 
 --Testcase 115:
 SELECT abs(A.i) FROM t3 A, t3 B LIMIT 3;

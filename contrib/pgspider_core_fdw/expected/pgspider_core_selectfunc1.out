@@ -11069,7 +11069,7 @@ EXPLAIN VERBOSE
 SELECT sqrt(value1), sqrt(value2) FROM s3 WHERE to_hex(value2) != '64';
                                      QUERY PLAN                                     
 ------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..271.57 rows=3396 width=16)
+ Foreign Scan on public.s3  (cost=100.00..254.59 rows=3396 width=16)
    Output: (sqrt(value1)), (sqrt((value2)::double precision))
    Filter: (to_hex(s3.value2) <> '64'::text)
    Node: mysql_svr / Status: Alive
@@ -11095,7 +11095,7 @@ EXPLAIN VERBOSE
 SELECT sqrt(value1), sqrt(value2) FROM s3 WHERE value2 != 200;
                                              QUERY PLAN                                             
 ----------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..254.54 rows=3396 width=16)
+ Foreign Scan on public.s3  (cost=100.00..246.05 rows=3396 width=16)
    Output: (sqrt(value1)), (sqrt((value2)::double precision))
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
@@ -11149,7 +11149,7 @@ EXPLAIN VERBOSE
 SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE to_hex(value2) != '64';
                                                    QUERY PLAN                                                   
 ----------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..280.06 rows=3396 width=24)
+ Foreign Scan on public.s3  (cost=100.00..263.07 rows=3396 width=24)
    Output: (abs(value1)), (abs(value2)), (abs(value3)), (abs(value4))
    Filter: (to_hex(s3.value2) <> '64'::text)
    Node: mysql_svr / Status: Alive
@@ -11175,7 +11175,7 @@ EXPLAIN VERBOSE
 SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE value2 != 200;
                                                            QUERY PLAN                                                           
 --------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..263.03 rows=3396 width=24)
+ Foreign Scan on public.s3  (cost=100.00..254.54 rows=3396 width=24)
    Output: (abs(value1)), (abs(value2)), (abs(value3)), (abs(value4))
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
@@ -11201,7 +11201,7 @@ EXPLAIN VERBOSE
 SELECT log(value1::numeric, value2::numeric) FROM s3 WHERE value1 != 1;
                                         QUERY PLAN                                         
 -------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..254.54 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..246.05 rows=3396 width=32)
    Output: (log((value1)::numeric, (value2)::numeric))
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
@@ -11229,7 +11229,7 @@ EXPLAIN VERBOSE
 SELECT log(value1, 0.1) FROM s3 WHERE value1 != 1;
                                       QUERY PLAN                                      
 --------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1078.07 rows=3396 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1069.58 rows=3396 width=8)
    Output: (log(value1, '0.1'::double precision))
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
@@ -11257,7 +11257,7 @@ EXPLAIN VERBOSE
 SELECT log(value2, 3) FROM s3 WHERE value1 != 1;
                                      QUERY PLAN                                     
 ------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1086.56 rows=3396 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1078.07 rows=3396 width=8)
    Output: (log((value2)::double precision, '3'::double precision))
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
@@ -11285,7 +11285,7 @@ EXPLAIN VERBOSE
 SELECT log(value1, value2) FROM s3 WHERE value1 != 1;
                                         QUERY PLAN                                         
 -------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1086.56 rows=3396 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1078.07 rows=3396 width=8)
    Output: (log(value1, (value2)::double precision))
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
@@ -11547,7 +11547,7 @@ EXPLAIN VERBOSE
 SELECT MATCH_AGAINST(ARRAY[content, 'success catches']) AS score, content FROM ftextsearch WHERE MATCH_AGAINST(ARRAY[content, 'success catches','IN BOOLEAN MODE']) != 0;
                                                                                          QUERY PLAN                                                                                          
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.ftextsearch  (cost=100.00..2780.32 rows=3396 width=40)
+ Foreign Scan on public.ftextsearch  (cost=100.00..1922.83 rows=3396 width=40)
    Output: (match_against(ARRAY[content, 'success catches'::text])), content
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10

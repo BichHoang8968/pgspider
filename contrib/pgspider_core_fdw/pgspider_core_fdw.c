@@ -37,6 +37,7 @@ PG_MODULE_MAGIC;
 #include "nodes/nodeFuncs.h"
 #include "nodes/makefuncs.h"
 #include "optimizer/pathnode.h"
+#include "optimizer/paths.h"
 #include "optimizer/planmain.h"
 #include "optimizer/plancat.h"
 #include "optimizer/restrictinfo.h"
@@ -288,6 +289,7 @@ typedef struct ChildInfo
 #ifdef ENABLE_PARALLEL_S3
 	Value	   *s3file;
 #endif
+	RelOptInfo	*joinrel;	/* Child relation info for join pushdown */
 	FdwRoutine *fdwroutine;
 
 	/* USE IN BOTH PLANNING AND EXECUTION */
@@ -403,6 +405,7 @@ typedef struct SpdFdwPrivate
 	SpdRelationInfo rinfo;	/* pgspider relation info */
 	TupleDesc	child_comp_tupdesc; /* temporary tuple desc */
 	List	   *pPseudoAggList; /* List of server oids which aggregate function is not pushed down */
+	RelOptInfo *joinrel_child;	/* Child join relation. */
 
 	/* USE IN BOTH PLANNING AND EXECUTION */
 	int			node_num;		/* number of child tables */
@@ -452,6 +455,18 @@ typedef struct SpdFdwModifyState
 	Oid			modify_server_oid;
 }			SpdFdwModifyState;
 
+typedef struct SpdurlWalkerContext
+{
+	PlannerInfo	   *root;
+	List		   *target_exprs;
+}		SpdurlWalkerContext;
+
+/* Refer spd_GetChildRoot. */
+typedef struct SpdChildRootId {
+	Oid serveroid;
+	int childid;
+} SpdChildRootId;
+
 /* local function forward declarations */
 void		_PG_init(void);
 
@@ -471,6 +486,12 @@ static void spd_GetForeignUpperPaths(PlannerInfo *root,
 						 UpperRelationKind stage,
 						 RelOptInfo *input_rel,
 						 RelOptInfo *output_rel, void *extra);
+static void spd_GetForeignJoinPaths(PlannerInfo *root,
+											  RelOptInfo *joinrel,
+											  RelOptInfo *outerrel,
+											  RelOptInfo *innerrel,
+											  JoinType jointype,
+											  JoinPathExtraData *extra);
 
 /*
  * Helper functions
@@ -517,7 +538,6 @@ static void spd_EndForeignModify(EState *estate,
 
 static bool spd_can_skip_deepcopy(char *fdwname);
 static bool spd_checkurl_clauses(PlannerInfo *root, List *baserestrictinfo);
-static bool check_spdurl_walker(Node *node, PlannerInfo *root);
 static void rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells,
 								int *cellid, List *groupby_target, bool isfirst);
 #ifdef ENABLE_PARALLEL_S3
@@ -564,6 +584,9 @@ static List	*spd_update_scan_tlist(List *tlist, List *child_scan_tlist, PlannerI
 static TargetEntry *spd_tlist_member_match_var(Var *var, List *targetlist);
 static TargetEntry *spd_tlist_member(Expr *node, List *targetlist, int *target_num);
 static void spd_apply_pathtarget_labeling_to_tlist(List *tlist, PathTarget *target);
+
+static bool spd_expr_has_spdurl(PlannerInfo *root, Node *expr, List **target_exprs);
+static bool check_spdurl_walker(Node *node, SpdurlWalkerContext *ctx);
 
 
 /************************************************************
@@ -773,6 +796,7 @@ pgspider_core_fdw_handler(PG_FUNCTION_ARGS)
 	fdwroutine->ReScanForeignScan = spd_ReScanForeignScan;
 	fdwroutine->EndForeignScan = spd_EndForeignScan;
 	fdwroutine->GetForeignUpperPaths = spd_GetForeignUpperPaths;
+	fdwroutine->GetForeignJoinPaths = spd_GetForeignJoinPaths;
 	fdwroutine->ExplainForeignScan = spd_ExplainForeignScan;
 
 	fdwroutine->AddForeignUpdateTargets = spd_AddForeignUpdateTargets;
@@ -2180,17 +2204,17 @@ spd_calculate_datasouce_count(Oid foreigntableid, int *nums, Oid **oid)
 	spicontext = MemoryContextSwitchTo(oldcontext);
 	*oid = (Oid *) palloc0(sizeof(Oid) * spi_temp);
 	MemoryContextSwitchTo(spicontext);
-	if (SPI_processed == 0)
-	{
-		SPI_finish();
-		elog(ERROR, "Can not find datasource.");
-	}
-	for (i = 0; i < SPI_processed; i++)
-	{
-		bool		isnull;
 
-		oid[0][i] = DatumGetObjectId(SPI_getbinval(SPI_tuptable->vals[i], SPI_tuptable->tupdesc, 1, &isnull));
+	if (SPI_processed > 0)
+	{
+		for (i = 0; i < SPI_processed; i++)
+		{
+			bool		isnull;
+
+			oid[0][i] = DatumGetObjectId(SPI_getbinval(SPI_tuptable->vals[i], SPI_tuptable->tupdesc, 1, &isnull));
+		}
 	}
+
 	*nums = SPI_processed;
 	SPI_finish();
 }
@@ -3048,145 +3072,6 @@ spd_create_child_url(int childnums, List *spd_url_list, SpdFdwPrivate * fdw_priv
 }
 
 /**
- * spd_basestrictinfo_tree_walker
- *
- * Get URL from RangeTableEntry and create new URL with deleting first URL.
- *
- * @param[in,out] node Node information
- * @param[in] root Root node planer info
- * @return True if the node has SPDURL expression
- */
-static bool
-spd_basestrictinfo_tree_walker(Node *node, PlannerInfo *root)
-{
-	ListCell   *temp;
-	bool		rtn;
-
-	/*
-	 * The walker has already visited the current node, and so we need only
-	 * recurse into any sub-nodes it has.
-	 *
-	 * We assume that the walker is not interested in List nodes per se, so
-	 * when we expect a List we just recurse directly to self without
-	 * bothering to call the walker.
-	 */
-	if (node == NULL)
-		return false;
-
-	/* Guard against stack overflow due to overly complex expressions */
-	check_stack_depth();
-	switch (nodeTag(node))
-	{
-		case T_Var:
-			{
-				Var		   *expr = (Var *) node;
-
-				char	   *colname;
-				RangeTblEntry *rte;
-
-				rte = planner_rt_fetch(expr->varno, root);
-				colname = get_attname(rte->relid, expr->varattno, false);
-				if (strcmp(colname, SPDURL) == 0)
-				{
-					elog(DEBUG1, "%s column was found.", SPDURL);
-					return true;
-				}
-			}
-		case T_Const:
-		case T_Param:
-		case T_CaseTestExpr:
-		case T_SQLValueFunction:
-		case T_CoerceToDomainValue:
-		case T_SetToDefault:
-		case T_CurrentOfExpr:
-		case T_NextValueExpr:
-		case T_RangeTblRef:
-		case T_SortGroupClause:
-		case T_WithCheckOption:
-			break;
-		case T_Aggref:
-			{
-				Aggref	   *expr = (Aggref *) node;
-
-				return spd_basestrictinfo_tree_walker((Node *) expr->args, root);
-			}
-			break;
-		case T_GroupingFunc:
-		case T_WindowFunc:
-		case T_SubscriptingRef:
-		case T_FuncExpr:
-		case T_NamedArgExpr:
-			break;
-		case T_OpExpr:
-			{
-				OpExpr	   *expr = (OpExpr *) node;
-
-				foreach(temp, (List *) expr->args)
-				{
-					rtn = spd_basestrictinfo_tree_walker((Node *) lfirst(temp), root);
-					if (rtn == true)
-						return true;
-				}
-				return false;
-			}
-		case T_DistinctExpr:	/* struct-equivalent to OpExpr */
-		case T_NullIfExpr:		/* struct-equivalent to OpExpr */
-		case T_ScalarArrayOpExpr:
-		case T_BoolExpr:
-		case T_SubLink:
-		case T_SubPlan:
-		case T_AlternativeSubPlan:
-		case T_FieldSelect:
-		case T_FieldStore:
-		case T_RelabelType:
-		case T_CoerceViaIO:
-		case T_ArrayCoerceExpr:
-		case T_ConvertRowtypeExpr:
-		case T_CollateExpr:
-		case T_CaseExpr:
-		case T_ArrayExpr:
-		case T_RowExpr:
-		case T_RowCompareExpr:
-		case T_CoalesceExpr:
-		case T_MinMaxExpr:
-		case T_XmlExpr:
-		case T_NullTest:
-		case T_BooleanTest:
-		case T_CoerceToDomain:
-			break;
-		case T_TargetEntry:
-			return spd_basestrictinfo_tree_walker((Node *) ((TargetEntry *) node)->expr, root);
-		case T_Query:
-		case T_WindowClause:
-		case T_CommonTableExpr:
-		case T_List:
-			foreach(temp, (List *) node)
-			{
-				if (spd_basestrictinfo_tree_walker((Node *) lfirst(temp), root))
-					return true;
-			}
-			break;
-		case T_FromExpr:
-		case T_OnConflictExpr:
-		case T_JoinExpr:
-		case T_SetOperationStmt:
-		case T_PlaceHolderVar:
-		case T_InferenceElem:
-		case T_AppendRelInfo:
-		case T_PlaceHolderInfo:
-		case T_RangeTblFunction:
-		case T_TableSampleClause:
-		case T_TableFunc:
-			break;
-		default:
-			elog(ERROR, "unrecognized node type: %d",
-				 (int) nodeTag(node));
-			break;
-	}
-	return false;
-}
-
-/**
  * check_basestrictinfo
  *
  * Create a base plan for each child table and save into entry_baserel.
@@ -3208,7 +3093,7 @@ check_basestrictinfo(PlannerInfo *root, ForeignDataWrapper *fdw, RelOptInfo *ent
 			RestrictInfo *clause = (RestrictInfo *) lfirst(lc);
 			Expr	   *expr = (Expr *) clause->clause;
 
-			if (spd_basestrictinfo_tree_walker((Node *) expr, root))
+			if (spd_expr_has_spdurl(root, (Node *) expr, NULL))
 				entry_baserel->baserestrictinfo = NULL;
 		}
 	}
@@ -3217,10 +3102,11 @@ check_basestrictinfo(PlannerInfo *root, ForeignDataWrapper *fdw, RelOptInfo *ent
 	{
 		RestrictInfo *clause = (RestrictInfo *) lfirst(lc);
 		Expr	   *expr = (Expr *) clause->clause;
+		List	   *target_exprs = NIL;
 
-		if (spd_basestrictinfo_tree_walker((Node *) expr, root) != true)
+		if (spd_expr_has_spdurl(root, (Node *) expr, &target_exprs) != true)
 		{
-			entry_baserel->reltarget->exprs = lappend(entry_baserel->reltarget->exprs, expr);
+			entry_baserel->reltarget->exprs = list_concat(entry_baserel->reltarget->exprs, target_exprs);
 			/* If it does not contaon SPDURL, we append it to new restrictinfo list. */
 			restrictinfo = lappend(restrictinfo, clause);
 		}
@@ -3420,53 +3306,25 @@ groupby_has_spdurl(PlannerInfo *root)
 }
 
 /*
- * spd_CreateChildRoot
- *
- * Create PlannerInfo for child node.
- *
- * @param[in] tableOid OID of child table
- * @param[in] relid
+ * spd_makeRangeTableEntry
+ * 
+ * Create new range table entry.
+ * 
+ * @param[in] relid Relation OID
+ * @param[in] relkind relation kind (see pg_class.relkind)
  * @param[in] spd_url_list URL list
- *
+ * @return Created range table entry
  */
-static PlannerInfo *
-spd_CreateChildRoot(PlannerInfo *root, Oid tableOid, Index relid, List *spd_url_list)
+static RangeTblEntry *
+spd_makeRangeTableEntry(Oid relid, char relkind, List *spd_url_list)
 {
-	PlannerInfo *child_root;
-	Query *query;
-	PlannerGlobal *glob;
-	RangeTblEntry *rte;
-	int			i;
-
-	/*
-	 * Set up mostly-dummy planner state PlannerInfo can not deep copy
-	 * with copyObject(). But it should create dummy PlannerInfo for each
-	 * child table. Following code is copied from plan_cluster_use_sort(),
-	 * it create simple PlannerInfo.
-	 */
-	query = makeNode(Query);
-	query->commandType = CMD_SELECT;
-	glob = makeNode(PlannerGlobal);
-
-	child_root = makeNode(PlannerInfo);
-	child_root->parse = query;
-	child_root->glob = glob;
-	child_root->query_level = 1;
-	child_root->planner_cxt = CurrentMemoryContext;
-	child_root->wt_param_id = -1;
-
-	/*
-	 * Use placeholder list only for child node's GetForeignRelSize in this routine.
-	 * PlaceHolderVar in relation target list will be checked against PlaceHolder List
-	 * in root planner info.
-	 */
-	child_root->placeholder_list = copyObject(root->placeholder_list);
+	RangeTblEntry  *rte;
 
 	/* Build a minimal RTE for the rel. */
 	rte = makeNode(RangeTblEntry);
 	rte->rtekind = RTE_RELATION;
-	rte->relid = tableOid;
-	rte->relkind = RELKIND_RELATION;	/* Don't be too picky. */
+	rte->relid = relid;
+	rte->relkind = relkind;
 	rte->eref = makeNode(Alias);
 	rte->eref->aliasname = pstrdup("");
 	rte->lateral = false;
@@ -3479,26 +3337,210 @@ spd_CreateChildRoot(PlannerInfo *root, Oid tableOid, Index relid, List *spd_url_
 	 * If child node is pgspider_fdw and IN clause is used, then should set new IN
 	 * clause URL at child node planner URL.
 	 */
-	if (spd_url_list != NULL)
-	{
+	if (spd_url_list != NIL)
 		rte->spd_url_list = list_copy(spd_url_list);
-	}
 
-	/* Create child range table. */
-	query->rtable = list_make1(rte);
-	for (i = 1; i < relid; i++)
-	{
-		query->rtable = lappend(query->rtable, rte);
-	}
+	return rte;
+}
+
+/*
+ * spd_CreateRoot
+ * 
+ * Create new PlannerInfo.
+ * 
+ * @param[in] root Root base planner infromation
+ * @param[in] rtable Range table
+ * @return Created PlannerInfo
+ */
+static PlannerInfo *
+spd_CreateRoot(PlannerInfo *root, List *rtable)
+{
+	PlannerInfo	   *new_root;
+	Query		   *query;
+	PlannerGlobal  *glob;
+
+	/*
+	 * Set up mostly-dummy planner state PlannerInfo can not deep copy
+	 * with copyObject(). But it should create dummy PlannerInfo for each
+	 * child table. Following code is copied from plan_cluster_use_sort(),
+	 * it create simple PlannerInfo.
+	 */
+	query = makeNode(Query);
+	query->commandType = CMD_SELECT;
+	glob = makeNode(PlannerGlobal);
+
+	new_root = makeNode(PlannerInfo);
+	new_root->parse = query;
+	new_root->glob = glob;
+	new_root->query_level = 1;
+	new_root->planner_cxt = CurrentMemoryContext;
+	new_root->wt_param_id = -1;
+
+	/*
+	 * Use placeholder list only for child node's GetForeignRelSize in this routine.
+	 * PlaceHolderVar in relation target list will be checked against PlaceHolder List
+	 * in root planner info.
+	 */
+	new_root->placeholder_list = copyObject(root->placeholder_list);
+
+	/* Set a range table. */
+	query->rtable = rtable;
 
 	/* Set up RTE/RelOptInfo arrays. */
-	setup_simple_rel_arrays(child_root);
+	setup_simple_rel_arrays(new_root);
+
+	return new_root;
+}
+
+/*
+ * spd_calculate_datasource_tableoid
+ *
+ * Calculate child_server's child table oid belonging to parent table.
+ *
+ * @param[in] parent_table OID of parent table
+ * @param[in] child_server OID of child table
+ */
+static Oid
+spd_calculate_datasource_tableoid(Oid parent_table, Oid child_server)
+{
+	Oid	   *oids = NULL;
+	int		nums;
+	int		i;
+	Oid tableoid = 0;
+
+	spd_calculate_datasouce_count(parent_table, &nums, &oids);
+
+	/* Search the oid of which foreign server is a target. */
+	for (i = 0; i < nums; i++)
+	{
+		Oid oid_server = serverid_of_relation(oids[i]);
+		if (oid_server == child_server)
+		{
+			tableoid = oids[i];
+			break;
+		}
+	}
+
+	/* Not found */
+	if (oids)
+		pfree(oids);
+
+	return tableoid;
+}
+
+/*
+ * spd_CreateChildRoot
+ *
+ * Create new child PlannerInfo. Range table in PlannerInfo also needs to be created.
+ * When creating a range table, we set rte->relid for child to relation id of child table.
+ * So we need to calculate child table OID from parent table OID.
+ *
+ * @param[in] root Root base planner infromation
+ * @param[in] relid Index in range table
+ * @param[in] tableOid OID of child table
+ * @param[in] oid_server OID of child node
+ * @param[in] spd_url_list URL list
+ * @return Created PlannerInfo
+ */
+static PlannerInfo *
+spd_CreateChildRoot(PlannerInfo *root, Index relid, Oid tableOid, Oid oid_server,
+					List *spd_url_list)
+{
+	PlannerInfo	   *child_root;
+	List		   *rtable = NIL;
+	ListCell	   *lc;
+	Index			i = 1;
+
+	/* Create a child range table. */
+	foreach(lc, root->parse->rtable)
+	{
+		RangeTblEntry *rte = (RangeTblEntry *) lfirst(lc);
+		RangeTblEntry *child_rte;
+		Oid child_relid;
+
+		/*
+		 * Get a child table oid corresponding to the parent table oid. That of the 
+		 * current target table is already calculated. So we use it. Otherwise, we
+		 * get it by querying the system table by spd_calculate_datasource_tableoid.
+		 */
+		if (i == relid)
+			child_relid = tableOid;
+		else if (rte->relid != 0)
+			child_relid = spd_calculate_datasource_tableoid(rte->relid, oid_server);
+		else
+			child_relid  = 0;
+
+		/* Create a range table entry. */
+		child_rte = spd_makeRangeTableEntry(child_relid, rte->relkind, spd_url_list);
+
+		rtable = lappend(rtable, child_rte);
+
+		i++;
+	}
+
+	/* Create a child root. */
+	child_root = spd_CreateRoot(root, rtable);
+
+	return child_root;
+}
+
+/*
+ * spd_GetChildRoot
+ *
+ * Get a child PlannerInfo. If it already exists, we use it, otherwise we create new.
+ * We memorize a child root in the parent's root->child_root. In case of use of multiple
+ * tables such as join, the same root is used for table. If the child root is already
+ * created, we refer it. SpdChildRootId is a structure to store an identifier for
+ * detecting that a child root is already created or not.
+ * Parent PlannerInfo needs to store multiple child PlannerInfo for child nodes. In
+ * order to distinct them, server OID is stored in child_root->child_root.
+ * 
+ * @param[in] root Root base planner infromation
+ * @param[in] relid Index in range table
+ * @param[in] tableoid OID of child table
+ * @param[in] oid_server OID of child node
+ * @param[in] spd_url_list URL list
+ * @return Child PlannerInfo
+ */
+static PlannerInfo *
+spd_GetChildRoot(PlannerInfo *root, Index relid, Oid child_tableoid, Oid oid_server,
+				 List *spd_url_list, int i_child)
+{
+	ListCell *lc;
+	PlannerInfo *child_root = NULL;
+	SpdChildRootId *child_root_id;
+
+	foreach(lc, root->child_root)
+	{
+		PlannerInfo *child = lfirst(lc);
+
+		child_root_id = (SpdChildRootId *) linitial(child->child_root);
+		if (child_root_id->serveroid == oid_server &&
+			child_root_id->childid == i_child)
+		{
+			child_root = child;
+			break;
+		}
+	}
+
+	if (child_root == NULL)
+	{
+		child_root = spd_CreateChildRoot(root, relid, child_tableoid, oid_server, 
+										 spd_url_list);
+	
+		child_root_id = palloc0(sizeof(SpdChildRootId));
+		child_root_id->serveroid = oid_server;
+		child_root_id->childid = i_child;
+
+		child_root->child_root = lappend(child_root->child_root, child_root_id);
+		root->child_root = lappend(root->child_root, child_root);
+	}
 
 	/*
 	 * Because in build_simple_rel() function, it assumes that a relation was already locked before open.
 	 * So, we need to lock relation by id in dummy root in advance.
 	 */
-	LockRelationOid(rte->relid, rte->rellockmode);
+	LockRelationOid(child_tableoid, AccessShareLock);
 
 	return child_root;
 }
@@ -3519,6 +3561,10 @@ spd_CreateChildBaserel(PlannerInfo *child_root, PlannerInfo *root, RelOptInfo *b
 {
 	RelOptInfo *child_baserel;
 
+	/* If it already exists, we use it. */
+	if (child_root->simple_rel_array[baserel->relid])
+		return child_root->simple_rel_array[baserel->relid];
+		
 	/*
 	 * Build RelOptInfo Build simple relation and copy target list and
 	 * strict info from root information.
@@ -3526,6 +3572,16 @@ spd_CreateChildBaserel(PlannerInfo *child_root, PlannerInfo *root, RelOptInfo *b
 	child_baserel = build_simple_rel(child_root, baserel->relid, RELOPT_BASEREL);
 	child_baserel->reltarget->exprs = copyObject(baserel->reltarget->exprs);
 	child_baserel->baserestrictinfo = copyObject(baserel->baserestrictinfo);
+
+	/*
+	 * Copy attr_needed from parent. the array size in baserel is
+	 * "max_attr - min_attr + 1" which includes SPDURL. Sothe size
+	 * of child attr_needed is max_attr - min_attr.
+	 */
+	memcpy(child_baserel->attr_needed, baserel->attr_needed,
+		   sizeof(Relids) * (baserel->max_attr - baserel->min_attr));
+	memcpy(child_baserel->attr_widths, baserel->attr_widths,
+		   sizeof(int32) * (baserel->max_attr - baserel->min_attr));
 
 	/* Remove SPDURL from target lists if a child is not pgspider_fdw. */
 	if (strcmp(fdwname, PGSPIDER_FDW_NAME) != 0)
@@ -3577,8 +3633,9 @@ spd_GetForeignRelSizeChild(PlannerInfo *root, RelOptInfo *baserel,
 		childinfo[i].server_oid = oid_server;
 		childinfo[i].fdwroutine = GetFdwRoutineByServerId(oid_server);
 
-		/* Create child planner info. */
-		child_root = spd_CreateChildRoot(root, rel_oid, baserel->relid, childinfo[i].url_list);
+		/* Get child planner info. */
+		child_root = spd_GetChildRoot(root, baserel->relid, rel_oid, oid_server,
+											  childinfo[i].url_list, i);
 
 		fs = GetForeignServer(oid_server);
 		fdw = GetForeignDataWrapper(fs->fdwid);
@@ -3586,12 +3643,15 @@ spd_GetForeignRelSizeChild(PlannerInfo *root, RelOptInfo *baserel,
 		/* Create child base relation. */
 		child_baserel = spd_CreateChildBaserel(child_root, root, baserel, fdw->fdwname);
 
-#ifdef ENABLE_PARALLEL_S3
-		if (strcmp(fdw->fdwname, PARQUET_S3_FDW_NAME) == 0 && childinfo[i].s3file != NULL)
+		if (strcmp(fdw->fdwname, PARQUET_S3_FDW_NAME) == 0)
 		{
-			child_baserel->fdw_private = list_make1(list_make1(childinfo[i].s3file));
-		}
+#ifdef ENABLE_PARALLEL_S3
+			if (childinfo[i].s3file != NULL)
+				child_baserel->fdw_private = list_make1(list_make1(childinfo[i].s3file));
+			else
 #endif
+			child_baserel->fdw_private = NIL;
+		}
 
 		/*
 		 * FDW uses basestrictinfo to check column type and number.
@@ -3665,44 +3725,27 @@ spd_GetForeignRelSizeChild(PlannerInfo *root, RelOptInfo *baserel,
  * @param[in] relid Relation id
  */
 static void
-spd_CopyRoot(PlannerInfo *root, RelOptInfo *baserel, SpdFdwPrivate * fdw_private, Oid relid)
+spd_CopyRoot(PlannerInfo *root, RelOptInfo *baserel, SpdFdwPrivate *fdw_private, Oid relid)
 {
-	Query	   *query;
-	PlannerGlobal *glob;
-	RangeTblEntry *rte;
-	int			k;
+	List *rtable = NIL;
+	ListCell	   *lc;
 
-	query = makeNode(Query);
-	query->commandType = CMD_SELECT;
-	glob = makeNode(PlannerGlobal);
 	fdw_private->isFirst = true;
-	fdw_private->spd_root = makeNode(PlannerInfo);
-	fdw_private->spd_root->parse = query;
-	fdw_private->spd_root->glob = glob;
-	fdw_private->spd_root->query_level = 1;
-	fdw_private->spd_root->planner_cxt = CurrentMemoryContext;
-	fdw_private->spd_root->wt_param_id = -1;
 
-	/* Build a minimal RTE for the rel. */
-	rte = makeNode(RangeTblEntry);
-	rte->rtekind = RTE_RELATION;
-	rte->relkind = RELKIND_RELATION;	/* Don't be too picky. */
-	rte->eref = makeNode(Alias);
-	rte->relid = relid;
-	rte->eref->aliasname = pstrdup("");
-	rte->lateral = false;
-	rte->inh = false;
-	rte->inFromCl = true;
-	rte->eref = makeAlias(pstrdup(""), NIL);
-
-	/* Create child range table. */
-	query->rtable = list_make1(rte);
-	for (k = 1; k < baserel->relid; k++)
+	/* Create a range table. */
+	foreach(lc, root->parse->rtable)
 	{
-		query->rtable = lappend(query->rtable, rte);
+		RangeTblEntry *rte = (RangeTblEntry *) lfirst(lc);
+		RangeTblEntry *new_rte;
+
+		/* Create a range table entry. */
+		new_rte = spd_makeRangeTableEntry(rte->relid, rte->relkind, NULL);
+
+		rtable = lappend(rtable, new_rte);
 	}
-	/* Set up RTE/RelOptInfo arrays. */
-	setup_simple_rel_arrays(fdw_private->spd_root);
+
+	/* Create new root. */
+	fdw_private->spd_root = spd_CreateRoot(root, rtable);
 
 	/* Memorize baserestrictinfo into fdw_private so that we can refer it later. */
 	fdw_private->baserestrictinfo = copyObject(baserel->baserestrictinfo);
@@ -3821,7 +3864,7 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	/* Get child datasouce oids and counts. */
 	spd_calculate_datasouce_count(foreigntableid, &nums, &oid);
 	if (nums == 0)
-		ereport(ERROR, (errmsg("Cannot Find child datasources. ")));
+		ereport(ERROR, (errmsg("Cannot Find child datasources.")));
 
 #ifdef ENABLE_PARALLEL_S3
 	spd_extractS3Nodes(&nums, &oid, fdw_private);
@@ -4027,7 +4070,7 @@ spd_make_tlist_for_baserel(List *tlist, PlannerInfo *root, bool include_field_se
 				continue;
 
 			/* If there is __spd_url in function's argument, remove the function and add vars instead. */
-			if (expression_tree_walker((Node *) func->args, check_spdurl_walker, root))
+			if (spd_expr_has_spdurl(root, (Node *) func->args, NULL))
 			{
 				ListCell *vars_lc;
 
@@ -4905,6 +4948,316 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 }
 
 
+/*
+ * spd_CreateChildJoinRel
+ *
+ * Create child join relation.
+ * Refer make_join_rel() in joinrels.c.
+ */
+static RelOptInfo *
+spd_CreateChildJoinRel(PlannerInfo *root_child, RelOptInfo *rel1, RelOptInfo *rel2)
+{
+	Relids		joinrelids;
+	SpecialJoinInfo *sjinfo;
+	bool		reversed;
+	SpecialJoinInfo sjinfo_data;
+	RelOptInfo *joinrel_child;
+	List	   *restrictlist;
+
+	/* Construct Relids set that identifies the joinrel. */
+	joinrelids = bms_union(rel1->relids, rel2->relids);
+
+	/* Check validity and determine join type. */
+	if (!spd_join_is_legal(root_child, rel1, rel2, joinrelids,
+					   &sjinfo, &reversed))
+	{
+		/* invalid join path */
+		bms_free(joinrelids);
+		return NULL;
+	}
+
+	/* Swap rels if needed to match the join info. */
+	if (reversed)
+	{
+		RelOptInfo *trel = rel1;
+
+		rel1 = rel2;
+		rel2 = trel;
+	}
+
+	/*
+	 * If it's a plain inner join, then we won't have found anything in
+	 * join_info_list.  Make up a SpecialJoinInfo so that selectivity
+	 * estimation functions will know what's being joined.
+	 */
+	if (sjinfo == NULL)
+	{
+		sjinfo = &sjinfo_data;
+		sjinfo->type = T_SpecialJoinInfo;
+		sjinfo->min_lefthand = rel1->relids;
+		sjinfo->min_righthand = rel2->relids;
+		sjinfo->syn_lefthand = rel1->relids;
+		sjinfo->syn_righthand = rel2->relids;
+		sjinfo->jointype = JOIN_INNER;
+		/* we don't bother trying to make the remaining fields valid */
+		sjinfo->lhs_strict = false;
+		sjinfo->delay_upper_joins = false;
+		sjinfo->semi_can_btree = false;
+		sjinfo->semi_can_hash = false;
+		sjinfo->semi_operators = NIL;
+		sjinfo->semi_rhs_exprs = NIL;
+	}
+
+	/*
+	 * Find or build the join RelOptInfo, and compute the restrictlist that
+	 * goes with this particular joining.
+	 */
+	joinrel_child = build_join_rel(root_child, joinrelids, rel1, rel2, sjinfo,
+										  &restrictlist);
+
+	bms_free(joinrelids);
+
+	return joinrel_child;
+}
+
+static bool
+spd_JoinPushable(SpdFdwPrivate *fdw_private_outer,
+					  SpdFdwPrivate *fdw_private_inner)
+{
+	ChildInfo *pChildInfo_outer = &fdw_private_outer->childinfo[0];
+	ChildInfo *pChildInfo_inner = &fdw_private_inner->childinfo[0];
+
+	/* We cannot pushdown join if there are multiple nodes. */
+	if (fdw_private_outer->node_num != 1 || fdw_private_inner->node_num != 1)
+		return false;
+
+	/* We cannot pushdown join if inner relation and outer relation are different nodes. */
+	if (pChildInfo_outer->server_oid != pChildInfo_inner->server_oid)
+		return false;
+
+	if (pChildInfo_outer->fdwroutine->GetForeignJoinPaths == NULL ||
+		 pChildInfo_inner->fdwroutine->GetForeignJoinPaths == NULL)
+		return false;
+
+	return true;
+}
+
+/**
+ * Return true if there is SPDURL in expressions.
+ *
+ * @param[in] root Base planner infromation
+ * @param[in] expr Expression to be searched
+ * @param[out] target_exprs Var expressions are stored here if SPDURL
+ *             is not used.
+ */
+static bool
+spd_expr_has_spdurl(PlannerInfo *root, Node *expr, List **target_exprs)
+{
+	SpdurlWalkerContext ctx = {0};
+	bool		has_spdurl;
+
+	ctx.root = root;
+	has_spdurl = check_spdurl_walker(expr, &ctx);
+	
+	if (target_exprs)
+		*target_exprs = ctx.target_exprs;
+	else
+		list_free(ctx.target_exprs);
+
+	if (has_spdurl)
+		return true;
+	else
+		return false;
+}
+
+/**
+ * Return true if there is at least one SPDURL in expressions list.
+ *
+ * @param[in] root Base planner infromation
+ * @param[in] exprs Expression list to be searched
+ */
+static bool
+spd_exprs_has_spdurl(PlannerInfo *root, List *exprs)
+{
+	ListCell   *lc;
+
+	foreach(lc, exprs)
+	{
+		Expr	   *expr = (Expr *) lfirst(lc);
+		bool		has_spdurl;
+
+		has_spdurl = spd_expr_has_spdurl(root, (Node *) expr, NULL);
+		if (has_spdurl)
+			return true;
+	}
+	return false;
+}
+
+static RelOptInfo *
+spd_GetForeignJoinPathsChild(SpdFdwPrivate *fdw_private_outer,
+									 SpdFdwPrivate *fdw_private_inner,
+									 PlannerInfo *root,
+									 RelOptInfo *joinrel,
+									 RelOptInfo *outerrel,
+									 RelOptInfo *innerrel,
+									 JoinType jointype,
+									 JoinPathExtraData *extra)
+{
+	ChildInfo *pChildInfo_inner = &fdw_private_inner->childinfo[0];
+	PlannerInfo *root_child = linitial(root->child_root);
+	RelOptInfo *outerrel_child;
+	RelOptInfo *innerrel_child;
+	RelOptInfo *joinrel_child;
+
+	/* Create child base relations of inner and outer relation. */
+	if (outerrel->reloptkind == RELOPT_JOINREL)
+		outerrel_child = fdw_private_outer->joinrel_child;
+	else
+		outerrel_child = root_child->simple_rel_array[outerrel->relid];
+
+	if (innerrel->reloptkind == RELOPT_JOINREL)
+		innerrel_child = fdw_private_inner->joinrel_child;
+	else
+		innerrel_child = root_child->simple_rel_array[innerrel->relid];
+
+	/* Create child join relation. */
+	joinrel_child = spd_CreateChildJoinRel(root_child, outerrel_child, innerrel_child);
+	if (!joinrel_child)
+		return NULL;
+
+	pChildInfo_inner->fdwroutine->GetForeignJoinPaths(root_child, joinrel_child,
+							  								 outerrel_child, innerrel_child,
+															 jointype, extra);
+
+	if (!joinrel_child->pathlist)
+		return NULL;
+	
+	return joinrel_child;
+}
+
+/*
+ * postgresGetForeignJoinPaths
+ *		Add possible ForeignPath to joinrel, if join is safe to push down.
+ */
+static void
+spd_GetForeignJoinPaths(PlannerInfo *root,
+							  RelOptInfo *joinrel,
+							  RelOptInfo *outerrel,
+							  RelOptInfo *innerrel,
+							  JoinType jointype,
+							  JoinPathExtraData *extra)
+{
+	SpdFdwPrivate *fdw_private;
+	SpdFdwPrivate *fdw_private_outer = outerrel->fdw_private;
+	SpdFdwPrivate *fdw_private_inner = innerrel->fdw_private;
+	RelOptInfo	*joinrel_child;
+	ForeignPath *joinpath;
+	double		rows;
+	Cost		startup_cost;
+	Cost		total_cost;
+	Path	   *epq_path;		/* Path to create plan to be executed when
+								 * EvalPlanQual gets triggered. */
+
+	/*
+	 * Skip if this join combination has been considered already.
+	 */
+	if (joinrel->fdw_private)
+		return;
+
+	/*
+	 * This code does not work for joins with lateral references, since those
+	 * must have parameterized paths, which we don't generate yet.
+	 */
+	if (!bms_is_empty(joinrel->lateral_relids))
+		return;
+
+	if (!fdw_private_outer || !fdw_private_inner)
+		return;
+
+	/* Check if we can pushdow join. */
+	if (!spd_JoinPushable(fdw_private_outer, fdw_private_inner))
+		return;
+
+	/* Now we don't support to pushdown join if SPDURL is used. */
+	if (spd_exprs_has_spdurl(root, joinrel->reltarget->exprs))
+		return;
+
+	/* Create path for child node. */
+	joinrel_child = spd_GetForeignJoinPathsChild(fdw_private_outer, fdw_private_inner, root, joinrel, outerrel, innerrel, jointype, extra);
+	if (!joinrel_child)
+		return;
+
+	/*
+	 * Create unfinished PgFdwRelationInfo entry which is used to indicate
+	 * that the join relation is already considered, so that we won't waste
+	 * time in judging safety of join pushdown and adding the same paths again
+	 * if found safe. Once we know that this join can be pushed down, we fill
+	 * the entry.
+	 */
+	fdw_private = spd_AllocatePrivate();
+	fdw_private->idx_url_tlist = -1;	/* -1: not have SPDURL */
+	fdw_private->node_num = 1;
+	fdw_private->childinfo = fdw_private_inner->childinfo;
+	fdw_private->joinrel_child = joinrel_child;
+	/*
+	 * Refering postgres_fdw.c @ postgresGetForeignPlan()
+	 * For a join rel, baserestrictinfo is NIL
+	 */
+	fdw_private->baserestrictinfo = NIL;
+	joinrel->fdw_private = fdw_private;
+
+	/*
+	 * If there is a possibility that EvalPlanQual will be executed, we need
+	 * to be able to reconstruct the row using scans of the base relations.
+	 * GetExistingLocalJoinPath will find a suitable path for this purpose in
+	 * the path list of the joinrel, if one exists.  We must be careful to
+	 * call it before adding any ForeignPath, since the ForeignPath might
+	 * dominate the only suitable local path available.  We also do it before
+	 * calling foreign_join_ok(), since that function updates fpinfo and marks
+	 * it as pushable if the join is found to be pushable.
+	 */
+	if (root->parse->commandType == CMD_DELETE ||
+		root->parse->commandType == CMD_UPDATE ||
+		root->rowMarks)
+	{
+		epq_path = GetExistingLocalJoinPath(joinrel);
+		if (!epq_path)
+		{
+			elog(DEBUG3, "could not push down foreign join because a local path suitable for EPQ checks was not found");
+			return;
+		}
+	}
+	else
+		epq_path = NULL;
+
+	/* Set estimated rows and costs. */
+	rows = joinrel_child->rows;
+	startup_cost = 0;
+	total_cost = 0;
+	joinrel->rows = rows;
+	joinrel->reltarget->width = joinrel_child->reltarget->width;
+	fdw_private->rinfo.startup_cost = startup_cost;
+	fdw_private->rinfo.total_cost = total_cost;
+
+	/*
+	 * Create a new join path and add it to the joinrel which represents a
+	 * join between foreign tables.
+	 */
+	joinpath = create_foreign_join_path(root,
+										joinrel,
+										NULL,	/* default pathtarget */
+										rows,
+										startup_cost,
+										total_cost,
+										NIL,	/* no pathkeys */
+										joinrel->lateral_relids,
+										epq_path,
+										NIL);	/* no fdw_private */
+
+	/* Add generated path into joinrel by add_path(). */
+	add_path(joinrel, (Path *) joinpath);
+}
+
 /**
  * Produce extra output for EXPLAIN of a ForeignScan on a foreign table
  *
@@ -5132,7 +5485,7 @@ spd_createPushDownPlan(List *tlist)
  * @param[in] root Root planner info
  */
 static bool
-check_spdurl_walker(Node *node, PlannerInfo *root)
+check_spdurl_walker(Node *node, SpdurlWalkerContext *ctx)
 {
 	if (node == NULL)
 		return false;
@@ -5140,8 +5493,13 @@ check_spdurl_walker(Node *node, PlannerInfo *root)
 	if (IsA(node, Var))
 	{
 		Var		   *var = (Var *) node;
+		PlannerInfo *root = ctx->root;
 		char	   *colname;
 		RangeTblEntry *rte;
+
+		/* The case of whole row. */
+		if (var->varattno == 0)
+			return true;
 
 		rte = planner_rt_fetch(var->varno, root);
 		colname = get_attname(rte->relid, var->varattno, false);
@@ -5151,9 +5509,12 @@ check_spdurl_walker(Node *node, PlannerInfo *root)
 			return true;
 		}
 		else
+		{
+			ctx->target_exprs = lappend(ctx->target_exprs, node);
 			return false;
+		}
 	}
-	return expression_tree_walker(node, check_spdurl_walker, (void *) root);
+	return expression_tree_walker(node, check_spdurl_walker, (void *) ctx);
 }
 
 /**
@@ -5176,7 +5537,7 @@ spd_checkurl_clauses(PlannerInfo *root, List *baserestrictinfo)
 		RestrictInfo *clause = (RestrictInfo *) lfirst(lc);
 		Expr	   *expr = (Expr *) clause->clause;
 
-		if (expression_tree_walker((Node *) expr, check_spdurl_walker, root))
+		if (spd_expr_has_spdurl(root, (Node *) expr, NULL))
 		{
 			/* don't pushdown *all* where caluses if spd_url is found */
 			return true;
@@ -5392,24 +5753,51 @@ spd_GetForeignPlansChild(PlannerInfo *root, RelOptInfo *baserel,
 			}
 			else
 			{
+				ForeignServer *fs;
+				ForeignDataWrapper *fdw;
+				RelOptInfo *rel_child;
+				Oid oid_child;
+
+				if (IS_JOIN_REL(baserel))
+				{
+					rel_child = fdw_private->joinrel_child;
+					/*
+					 * Because reltarget created by GetForeignJoinPaths is modified in
+					 * postgres core, we re-create it for child relation based on parent.
+					 */
+					rel_child->reltarget = copy_pathtarget(baserel->reltarget);
+					rel_child->reltarget->exprs = list_copy(baserel->reltarget->exprs);
+					oid_child = 0;
+				}
+				else
+				{
+					rel_child = pChildInfo->baserel;
+					oid_child = pChildInfo->oid;
+				}
+
 				/*
 				 * For non agg query or not push down agg case, do same thing
 				 * as create_scan_plan() to generate target list
 				 */
-				ForeignServer *fs = GetForeignServer(pChildInfo->server_oid);
-				ForeignDataWrapper *fdw = GetForeignDataWrapper(fs->fdwid);
+				fs = GetForeignServer(pChildInfo->server_oid);
+				fdw = GetForeignDataWrapper(fs->fdwid);
 
 				/* Add all columns of the table */
 				if (IS_SIMPLE_REL(baserel) && ptemptlist != NULL)
 					temptlist = list_copy(ptemptlist);
+				else if (IS_JOIN_REL(baserel))
+				{
+					child_path = lfirst(list_head(rel_child->pathlist));
+					temptlist = PG_build_path_tlist(pChildInfo->root, (Path *) child_path);
+				}
 				else
-					temptlist = (List *) build_physical_tlist(pChildInfo->root, pChildInfo->baserel);
+					temptlist = (List *) build_physical_tlist(pChildInfo->root, rel_child);
 
 				/*
 				 * Fill sortgrouprefs to temptlist. temptlist is non aggref
 				 * target list, we should use non aggref pathtarget to apply.
 				 */
-				if (!IS_SIMPLE_REL(baserel) && root->parse->groupClause != NULL)
+				if (IS_UPPER_REL(baserel) && root->parse->groupClause != NULL)
 				{
 					apply_pathtarget_labeling_to_tlist(temptlist, fdw_private->rinfo.outerrel->reltarget);
 				}
@@ -5427,7 +5815,7 @@ spd_GetForeignPlansChild(PlannerInfo *root, RelOptInfo *baserel,
 				 * correct child path, but now we pass at least fdw_private of
 				 * child path.
 				 */
-				child_path = lfirst(list_head(pChildInfo->baserel->pathlist));
+				child_path = lfirst(list_head(rel_child->pathlist));
 				best_path->fdw_private = child_path->fdw_private;
 
 				/*
@@ -5443,8 +5831,8 @@ spd_GetForeignPlansChild(PlannerInfo *root, RelOptInfo *baserel,
 					*push_scan_clauses = fdw_private->baserestrictinfo;
 				}
 				fsplan = pChildInfo->fdwroutine->GetForeignPlan((PlannerInfo *) pChildInfo->root,
-													(RelOptInfo *) pChildInfo->baserel,
-													pChildInfo->oid,
+													rel_child,
+													oid_child,
 													(ForeignPath *) best_path,
 													temptlist,
 													*push_scan_clauses,
@@ -5589,7 +5977,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	spd_GetForeignPlansChild(root, baserel, best_path, ptemptlist, &push_scan_clauses,
 							 outer_plan, childinfo);
 
-	if (IS_SIMPLE_REL(baserel))
+	if (IS_SIMPLE_REL(baserel) || IS_JOIN_REL(baserel))
 	{
 		ForeignScan *fsplan = NULL;
 		bool exist_pushdown_child = false;
@@ -5645,14 +6033,27 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			if (is_record_func(child_fdw_scan_tlist))
 				fdw_private->record_function = true;
 
-			fdw_scan_tlist = spd_merge_tlist(child_fdw_scan_tlist, ptemptlist, root);
+			if (IS_JOIN_REL(baserel))
+			{
+				/*
+				 * For a join relation, the target list is same as that of child node.
+				 * ptemptlist is unnecessary because it is created from base relation
+				 * by spd_make_tlist_for_baserel().
+				 */
+				fdw_scan_tlist = child_fdw_scan_tlist;
+			}
+			else
+				fdw_scan_tlist = spd_merge_tlist(child_fdw_scan_tlist, ptemptlist, root);
 			fdw_private->idx_url_tlist = get_index_spdurl_from_targets(fdw_scan_tlist, root);
 		}
 		else
 		{
 			fdw_scan_tlist = NULL;
 		}
-		scan_relid = baserel->relid;
+		if (IS_JOIN_REL(baserel))
+			scan_relid = 0;
+		else
+			scan_relid = baserel->relid;
 	}
 	else
 	{
@@ -5702,7 +6103,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	 * We collect local conditions which are pushed down by child node
 	 * in order to make postgresql core execute that filter.
 	 */
-	if (IS_SIMPLE_REL(baserel))
+	if (IS_SIMPLE_REL(baserel) || IS_JOIN_REL(baserel))
 	{
 		for (i = 0; i < fdw_private->node_num; i++)
 		{
@@ -8486,4 +8887,5 @@ _PG_init(void)
 #endif
 	on_proc_exit(&spd_fini, 0);
 }
+
 
