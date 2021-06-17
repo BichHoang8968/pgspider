@@ -109,6 +109,11 @@ extern bool have_dangerous_phv(PlannerInfo *root,
 							   Relids outer_relids, Relids inner_params);
 extern void mark_dummy_rel(RelOptInfo *rel);
 
+#ifdef PGSPIDER
+extern bool spd_join_is_legal(PlannerInfo *root, RelOptInfo *rel1, RelOptInfo *rel2,
+					   Relids joinrelids, SpecialJoinInfo **sjinfo_p, bool *reversed_p);
+#endif
+
 /*
  * equivclass.c
  *	  routines for managing EquivalenceClasses

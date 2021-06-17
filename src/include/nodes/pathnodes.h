@@ -362,6 +362,15 @@ struct PlannerInfo
 
 	/* Does this query modify any partition key columns? */
 	bool		partColsUpdated;
+
+#ifdef PGSPIDER
+	/*
+	 * Store PlannerInfo of child nodes if this PlannerInfo is parent.
+	 * Store server OID if this PlannerInfo is child (the list length
+	 * is always 1).
+	 */
+	List	   *child_root;
+#endif
 };
 
 

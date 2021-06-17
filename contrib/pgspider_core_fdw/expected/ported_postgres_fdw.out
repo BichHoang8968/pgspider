@@ -623,39 +623,37 @@ SELECT t1.c1, t2."C 1" FROM ft2 t1 LEFT JOIN "S 1"."T 1" t2 ON (t1.c1 = t2."C 1"
 --Testcase 32:
 EXPLAIN (VERBOSE, COSTS OFF)
 	SELECT t1."C 1" FROM "S 1"."T 1" t1 left join ft1 t2 join ft2 t3 on (t2.c1 = t3.c1) on (t3.c1 = t1."C 1") OFFSET 100 LIMIT 10;
-                                 QUERY PLAN                                  
------------------------------------------------------------------------------
+                              QUERY PLAN                               
+-----------------------------------------------------------------------
  Limit
    Output: t1."C 1"
-   ->  Merge Left Join
+   ->  Merge Right Join
          Output: t1."C 1"
-         Merge Cond: (t1."C 1" = t3.c1)
+         Merge Cond: (t3.c1 = t1."C 1")
+         ->  Merge Join
+               Output: t3.c1
+               Merge Cond: (t2.c1 = t3.c1)
+               ->  Sort
+                     Output: t2.c1
+                     Sort Key: t2.c1
+                     ->  Foreign Scan on public.ft1 t2
+                           Output: t2.c1
+                           Node: postgres_srv / Status: Alive
+                             Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
+               ->  Sort
+                     Output: t3.c1
+                     Sort Key: t3.c1
+                     ->  Foreign Scan on public.ft2 t3
+                           Output: t3.c1
+                           Node: postgres_srv / Status: Alive
+                             Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
          ->  Sort
                Output: t1."C 1"
                Sort Key: t1."C 1"
                ->  Foreign Scan on "S 1"."T 1" t1
                      Output: t1."C 1"
                      Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-         ->  Materialize
-               Output: t3.c1
-               ->  Merge Join
-                     Output: t3.c1
-                     Merge Cond: (t2.c1 = t3.c1)
-                     ->  Sort
-                           Output: t2.c1
-                           Sort Key: t2.c1
-                           ->  Foreign Scan on public.ft1 t2
-                                 Output: t2.c1
-                                 Node: postgres_srv / Status: Alive
-                                   Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-                     ->  Sort
-                           Output: t3.c1
-                           Sort Key: t3.c1
-                           ->  Foreign Scan on public.ft2 t3
-                                 Output: t3.c1
-                                 Node: postgres_srv / Status: Alive
-                                   Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-(30 rows)
+(28 rows)
 
 --Testcase 33:
 SELECT t1."C 1" FROM "S 1"."T 1" t1 left join ft1 t2 join ft2 t3 on (t2.c1 = t3.c1) on (t3.c1 = t1."C 1") OFFSET 100 LIMIT 10;
@@ -679,39 +677,37 @@ SELECT t1."C 1" FROM "S 1"."T 1" t1 left join ft1 t2 join ft2 t3 on (t2.c1 = t3.
 --Testcase 34:
 EXPLAIN (VERBOSE, COSTS OFF)
 	SELECT t1."C 1", t2.c1, t3.c1 FROM "S 1"."T 1" t1 left join ft1 t2 full join ft2 t3 on (t2.c1 = t3.c1) on (t3.c1 = t1."C 1") OFFSET 100 LIMIT 10;
-                                 QUERY PLAN                                  
------------------------------------------------------------------------------
+                              QUERY PLAN                               
+-----------------------------------------------------------------------
  Limit
    Output: t1."C 1", t2.c1, t3.c1
-   ->  Merge Left Join
+   ->  Merge Right Join
          Output: t1."C 1", t2.c1, t3.c1
-         Merge Cond: (t1."C 1" = t3.c1)
+         Merge Cond: (t3.c1 = t1."C 1")
+         ->  Merge Left Join
+               Output: t3.c1, t2.c1
+               Merge Cond: (t3.c1 = t2.c1)
+               ->  Sort
+                     Output: t3.c1
+                     Sort Key: t3.c1
+                     ->  Foreign Scan on public.ft2 t3
+                           Output: t3.c1
+                           Node: postgres_srv / Status: Alive
+                             Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
+               ->  Sort
+                     Output: t2.c1
+                     Sort Key: t2.c1
+                     ->  Foreign Scan on public.ft1 t2
+                           Output: t2.c1
+                           Node: postgres_srv / Status: Alive
+                             Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
          ->  Sort
                Output: t1."C 1"
                Sort Key: t1."C 1"
                ->  Foreign Scan on "S 1"."T 1" t1
                      Output: t1."C 1"
                      Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-         ->  Materialize
-               Output: t3.c1, t2.c1
-               ->  Merge Left Join
-                     Output: t3.c1, t2.c1
-                     Merge Cond: (t3.c1 = t2.c1)
-                     ->  Sort
-                           Output: t3.c1
-                           Sort Key: t3.c1
-                           ->  Foreign Scan on public.ft2 t3
-                                 Output: t3.c1
-                                 Node: postgres_srv / Status: Alive
-                                   Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-                     ->  Sort
-                           Output: t2.c1
-                           Sort Key: t2.c1
-                           ->  Foreign Scan on public.ft1 t2
-                                 Output: t2.c1
-                                 Node: postgres_srv / Status: Alive
-                                   Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-(30 rows)
+(28 rows)
 
 --Testcase 35:
 SELECT t1."C 1", t2.c1, t3.c1 FROM "S 1"."T 1" t1 left join ft1 t2 full join ft2 t3 on (t2.c1 = t3.c1) on (t3.c1 = t1."C 1") OFFSET 100 LIMIT 10;
@@ -733,8 +729,8 @@ SELECT t1."C 1", t2.c1, t3.c1 FROM "S 1"."T 1" t1 left join ft1 t2 full join ft2
 --Testcase 36:
 EXPLAIN (VERBOSE, COSTS OFF)
 	SELECT t1."C 1", t2.c1, t3.c1 FROM "S 1"."T 1" t1 full join ft1 t2 full join ft2 t3 on (t2.c1 = t3.c1) on (t3.c1 = t1."C 1") OFFSET 100 LIMIT 10;
-                                 QUERY PLAN                                  
------------------------------------------------------------------------------
+                                                                  QUERY PLAN                                                                   
+-----------------------------------------------------------------------------------------------------------------------------------------------
  Limit
    Output: t1."C 1", t2.c1, t3.c1
    ->  Merge Full Join
@@ -746,27 +742,17 @@ EXPLAIN (VERBOSE, COSTS OFF)
                ->  Foreign Scan on "S 1"."T 1" t1
                      Output: t1."C 1"
                      Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-         ->  Sort
+         ->  Materialize
                Output: t2.c1, t3.c1
-               Sort Key: t3.c1
-               ->  Merge Full Join
+               ->  Sort
                      Output: t2.c1, t3.c1
-                     Merge Cond: (t2.c1 = t3.c1)
-                     ->  Sort
-                           Output: t2.c1
-                           Sort Key: t2.c1
-                           ->  Foreign Scan on public.ft1 t2
-                                 Output: t2.c1
-                                 Node: postgres_srv / Status: Alive
-                                   Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-                     ->  Sort
-                           Output: t3.c1
-                           Sort Key: t3.c1
-                           ->  Foreign Scan on public.ft2 t3
-                                 Output: t3.c1
-                                 Node: postgres_srv / Status: Alive
-                                   Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-(31 rows)
+                     Sort Key: t3.c1
+                     ->  Foreign Scan
+                           Output: t2.c1, t3.c1
+                           Node: postgres_srv / Status: Alive
+                             Relations: (public.ft1 t2) FULL JOIN (public.ft2 t3)
+                             Remote SQL: SELECT r2."C 1", r3."C 1" FROM ("S 1"."T 1" r2 FULL JOIN "S 1"."T 1" r3 ON (((r2."C 1" = r3."C 1"))))
+(21 rows)
 
 --Testcase 37:
 SELECT t1."C 1", t2.c1, t3.c1 FROM "S 1"."T 1" t1 full join ft1 t2 full join ft2 t3 on (t2.c1 = t3.c1) on (t3.c1 = t1."C 1") OFFSET 100 LIMIT 10;
@@ -1322,31 +1308,19 @@ WARNING:  skipping "ft5" --- cannot analyze this foreign table
 --Testcase 72:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
-                                QUERY PLAN                                 
----------------------------------------------------------------------------
+                                                                QUERY PLAN                                                                 
+-------------------------------------------------------------------------------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c1, t1.c3
    ->  Sort
          Output: t1.c1, t2.c1, t1.c3
          Sort Key: t1.c3, t1.c1
-         ->  Merge Join
+         ->  Foreign Scan
                Output: t1.c1, t2.c1, t1.c3
-               Merge Cond: (t1.c1 = t2.c1)
-               ->  Sort
-                     Output: t1.c1, t1.c3
-                     Sort Key: t1.c1
-                     ->  Foreign Scan on public.ft1 t1
-                           Output: t1.c1, t1.c3
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT "C 1", c3 FROM "S 1"."T 1"
-               ->  Sort
-                     Output: t2.c1
-                     Sort Key: t2.c1
-                     ->  Foreign Scan on public.ft2 t2
-                           Output: t2.c1
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-(22 rows)
+               Node: postgres_srv / Status: Alive
+                 Relations: (public.ft1 t1) INNER JOIN (public.ft2 t2)
+                 Remote SQL: SELECT r1."C 1", r2."C 1", r1.c3 FROM ("S 1"."T 1" r1 INNER JOIN "S 1"."T 1" r2 ON (((r1."C 1" = r2."C 1"))))
+(10 rows)
 
 --Testcase 73:
 SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
@@ -1368,43 +1342,19 @@ SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t
 --Testcase 74:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c2, t3.c3 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) JOIN ft4 t3 ON (t3.c1 = t1.c1) ORDER BY t1.c3, t1.c1 OFFSET 10 LIMIT 10;
-                                      QUERY PLAN                                       
----------------------------------------------------------------------------------------
+                                                                                             QUERY PLAN                                                                                              
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c2, t3.c3, t1.c3
    ->  Sort
          Output: t1.c1, t2.c2, t3.c3, t1.c3
          Sort Key: t1.c3, t1.c1
-         ->  Merge Join
+         ->  Foreign Scan
                Output: t1.c1, t2.c2, t3.c3, t1.c3
-               Merge Cond: (t3.c1 = t1.c1)
-               ->  Sort
-                     Output: t3.c3, t3.c1
-                     Sort Key: t3.c1
-                     ->  Foreign Scan on public.ft4 t3
-                           Output: t3.c3, t3.c1
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT c1, c3 FROM "S 1"."T 3"
-               ->  Materialize
-                     Output: t1.c1, t1.c3, t2.c2, t2.c1
-                     ->  Merge Join
-                           Output: t1.c1, t1.c3, t2.c2, t2.c1
-                           Merge Cond: (t1.c1 = t2.c1)
-                           ->  Sort
-                                 Output: t1.c1, t1.c3
-                                 Sort Key: t1.c1
-                                 ->  Foreign Scan on public.ft1 t1
-                                       Output: t1.c1, t1.c3
-                                       Node: postgres_srv / Status: Alive
-                                         Remote SQL: SELECT "C 1", c3 FROM "S 1"."T 1"
-                           ->  Sort
-                                 Output: t2.c2, t2.c1
-                                 Sort Key: t2.c1
-                                 ->  Foreign Scan on public.ft2 t2
-                                       Output: t2.c2, t2.c1
-                                       Node: postgres_srv / Status: Alive
-                                         Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1"
-(34 rows)
+               Node: postgres_srv / Status: Alive
+                 Relations: ((public.ft1 t1) INNER JOIN (public.ft2 t2)) INNER JOIN (public.ft4 t3)
+                 Remote SQL: SELECT r1."C 1", r2.c2, r4.c3, r1.c3 FROM (("S 1"."T 1" r1 INNER JOIN "S 1"."T 1" r2 ON (((r1."C 1" = r2."C 1")))) INNER JOIN "S 1"."T 3" r4 ON (((r1."C 1" = r4.c1))))
+(10 rows)
 
 --Testcase 75:
 SELECT t1.c1, t2.c2, t3.c3 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) JOIN ft4 t3 ON (t3.c1 = t1.c1) ORDER BY t1.c3, t1.c1 OFFSET 10 LIMIT 10;
@@ -1473,33 +1423,16 @@ SELECT t1.c1, t2.c1 FROM ft4 t1 LEFT JOIN ft5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.
 --Testcase 78:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 LEFT JOIN ft2 t2 ON (t1.c1 = t2.c1) LEFT JOIN ft4 t3 ON (t2.c1 = t3.c1) OFFSET 10 LIMIT 10;
-                                QUERY PLAN                                 
----------------------------------------------------------------------------
+                                                                                      QUERY PLAN                                                                                      
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c2, t3.c3
-   ->  Nested Loop Left Join
+   ->  Foreign Scan
          Output: t1.c1, t2.c2, t3.c3
-         Join Filter: (t2.c1 = t3.c1)
-         ->  Nested Loop Left Join
-               Output: t1.c1, t2.c2, t2.c1
-               Join Filter: (t1.c1 = t2.c1)
-               ->  Foreign Scan on public.ft2 t1
-                     Output: t1.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-               ->  Materialize
-                     Output: t2.c2, t2.c1
-                     ->  Foreign Scan on public.ft2 t2
-                           Output: t2.c2, t2.c1
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1"
-         ->  Materialize
-               Output: t3.c3, t3.c1
-               ->  Foreign Scan on public.ft4 t3
-                     Output: t3.c3, t3.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT c1, c3 FROM "S 1"."T 3"
-(24 rows)
+         Node: postgres_srv / Status: Alive
+           Relations: ((public.ft2 t1) LEFT JOIN (public.ft2 t2)) LEFT JOIN (public.ft4 t3)
+           Remote SQL: SELECT r1."C 1", r2.c2, r4.c3 FROM (("S 1"."T 1" r1 LEFT JOIN "S 1"."T 1" r2 ON (((r1."C 1" = r2."C 1")))) LEFT JOIN "S 1"."T 3" r4 ON (((r2."C 1" = r4.c1))))
+(7 rows)
 
 --Testcase 79:
 SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 LEFT JOIN ft2 t2 ON (t1.c1 = t2.c1) LEFT JOIN ft4 t3 ON (t2.c1 = t3.c1) OFFSET 10 LIMIT 10;
@@ -1523,26 +1456,14 @@ SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 LEFT JOIN ft2 t2 ON (t1.c1 = t2.c1) LEFT 
 --Testcase 80:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t1.c2, t2.c1, t2.c2 FROM ft4 t1 LEFT JOIN (SELECT * FROM ft5 WHERE c1 < 10) t2 ON (t1.c1 = t2.c1) WHERE t1.c1 < 10;
-                                  QUERY PLAN                                  
-------------------------------------------------------------------------------
- Merge Left Join
+                                                                           QUERY PLAN                                                                            
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan
    Output: t1.c1, t1.c2, ft5.c1, ft5.c2
-   Merge Cond: (t1.c1 = ft5.c1)
-   ->  Sort
-         Output: t1.c1, t1.c2
-         Sort Key: t1.c1
-         ->  Foreign Scan on public.ft4 t1
-               Output: t1.c1, t1.c2
-               Node: postgres_srv / Status: Alive
-                 Remote SQL: SELECT c1, c2 FROM "S 1"."T 3" WHERE ((c1 < 10))
-   ->  Sort
-         Output: ft5.c1, ft5.c2
-         Sort Key: ft5.c1
-         ->  Foreign Scan on public.ft5
-               Output: ft5.c1, ft5.c2
-               Node: postgres_srv / Status: Alive
-                 Remote SQL: SELECT c1, c2 FROM "S 1"."T 4" WHERE ((c1 < 10))
-(17 rows)
+   Node: postgres_srv / Status: Alive
+     Relations: (public.ft4 t1) LEFT JOIN (public.ft5)
+     Remote SQL: SELECT r1.c1, r1.c2, r4.c1, r4.c2 FROM ("S 1"."T 3" r1 LEFT JOIN "S 1"."T 4" r4 ON (((r1.c1 = r4.c1)) AND ((r4.c1 < 10)))) WHERE ((r1.c1 < 10))
+(5 rows)
 
 --Testcase 81:
 SELECT t1.c1, t1.c2, t2.c1, t2.c2 FROM ft4 t1 LEFT JOIN (SELECT * FROM ft5 WHERE c1 < 10) t2 ON (t1.c1 = t2.c1) WHERE t1.c1 < 10;
@@ -1560,27 +1481,14 @@ SELECT t1.c1, t1.c2, t2.c1, t2.c2 FROM ft4 t1 LEFT JOIN (SELECT * FROM ft5 WHERE
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t1.c2, t2.c1, t2.c2 FROM ft4 t1 LEFT JOIN (SELECT * FROM ft5 WHERE c1 < 10) t2 ON (t1.c1 = t2.c1)
 			WHERE (t2.c1 < 10 OR t2.c1 IS NULL) AND t1.c1 < 10;
-                                  QUERY PLAN                                  
-------------------------------------------------------------------------------
- Merge Left Join
+                                                                                               QUERY PLAN                                                                                                
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan
    Output: t1.c1, t1.c2, ft5.c1, ft5.c2
-   Merge Cond: (t1.c1 = ft5.c1)
-   Filter: ((ft5.c1 < 10) OR (ft5.c1 IS NULL))
-   ->  Sort
-         Output: t1.c1, t1.c2
-         Sort Key: t1.c1
-         ->  Foreign Scan on public.ft4 t1
-               Output: t1.c1, t1.c2
-               Node: postgres_srv / Status: Alive
-                 Remote SQL: SELECT c1, c2 FROM "S 1"."T 3" WHERE ((c1 < 10))
-   ->  Sort
-         Output: ft5.c1, ft5.c2
-         Sort Key: ft5.c1
-         ->  Foreign Scan on public.ft5
-               Output: ft5.c1, ft5.c2
-               Node: postgres_srv / Status: Alive
-                 Remote SQL: SELECT c1, c2 FROM "S 1"."T 4" WHERE ((c1 < 10))
-(18 rows)
+   Node: postgres_srv / Status: Alive
+     Relations: (public.ft4 t1) LEFT JOIN (public.ft5)
+     Remote SQL: SELECT r1.c1, r1.c2, r4.c1, r4.c2 FROM ("S 1"."T 3" r1 LEFT JOIN "S 1"."T 4" r4 ON (((r1.c1 = r4.c1)) AND ((r4.c1 < 10)))) WHERE (((r4.c1 < 10) OR (r4.c1 IS NULL))) AND ((r1.c1 < 10))
+(5 rows)
 
 --Testcase 83:
 SELECT t1.c1, t1.c2, t2.c1, t2.c2 FROM ft4 t1 LEFT JOIN (SELECT * FROM ft5 WHERE c1 < 10) t2 ON (t1.c1 = t2.c1)
@@ -1644,33 +1552,16 @@ SELECT t1.c1, t2.c1 FROM ft5 t1 RIGHT JOIN ft4 t2 ON (t1.c1 = t2.c1) ORDER BY t2
 --Testcase 86:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 RIGHT JOIN ft2 t2 ON (t1.c1 = t2.c1) RIGHT JOIN ft4 t3 ON (t2.c1 = t3.c1) OFFSET 10 LIMIT 10;
-                                QUERY PLAN                                 
----------------------------------------------------------------------------
+                                                                                      QUERY PLAN                                                                                      
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c2, t3.c3
-   ->  Nested Loop Left Join
+   ->  Foreign Scan
          Output: t1.c1, t2.c2, t3.c3
-         Join Filter: (t1.c1 = t2.c1)
-         ->  Nested Loop Left Join
-               Output: t3.c3, t2.c2, t2.c1
-               Join Filter: (t2.c1 = t3.c1)
-               ->  Foreign Scan on public.ft4 t3
-                     Output: t3.c3, t3.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT c1, c3 FROM "S 1"."T 3"
-               ->  Materialize
-                     Output: t2.c2, t2.c1
-                     ->  Foreign Scan on public.ft2 t2
-                           Output: t2.c2, t2.c1
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1"
-         ->  Materialize
-               Output: t1.c1
-               ->  Foreign Scan on public.ft2 t1
-                     Output: t1.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-(24 rows)
+         Node: postgres_srv / Status: Alive
+           Relations: ((public.ft4 t3) LEFT JOIN (public.ft2 t2)) LEFT JOIN (public.ft2 t1)
+           Remote SQL: SELECT r1."C 1", r2.c2, r4.c3 FROM (("S 1"."T 3" r4 LEFT JOIN "S 1"."T 1" r2 ON (((r2."C 1" = r4.c1)))) LEFT JOIN "S 1"."T 1" r1 ON (((r1."C 1" = r2."C 1"))))
+(7 rows)
 
 --Testcase 87:
 SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 RIGHT JOIN ft2 t2 ON (t1.c1 = t2.c1) RIGHT JOIN ft4 t3 ON (t2.c1 = t3.c1) OFFSET 10 LIMIT 10;
@@ -1692,31 +1583,19 @@ SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 RIGHT JOIN ft2 t2 ON (t1.c1 = t2.c1) RIGH
 --Testcase 88:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c1 FROM ft4 t1 FULL JOIN ft5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t2.c1 OFFSET 45 LIMIT 10;
-                             QUERY PLAN                             
---------------------------------------------------------------------
+                                                      QUERY PLAN                                                       
+-----------------------------------------------------------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c1
    ->  Sort
          Output: t1.c1, t2.c1
          Sort Key: t1.c1, t2.c1
-         ->  Merge Full Join
+         ->  Foreign Scan
                Output: t1.c1, t2.c1
-               Merge Cond: (t1.c1 = t2.c1)
-               ->  Sort
-                     Output: t1.c1
-                     Sort Key: t1.c1
-                     ->  Foreign Scan on public.ft4 t1
-                           Output: t1.c1
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT c1 FROM "S 1"."T 3"
-               ->  Sort
-                     Output: t2.c1
-                     Sort Key: t2.c1
-                     ->  Foreign Scan on public.ft5 t2
-                           Output: t2.c1
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT c1 FROM "S 1"."T 4"
-(22 rows)
+               Node: postgres_srv / Status: Alive
+                 Relations: (public.ft4 t1) FULL JOIN (public.ft5 t2)
+                 Remote SQL: SELECT r1.c1, r2.c1 FROM ("S 1"."T 3" r1 FULL JOIN "S 1"."T 4" r2 ON (((r1.c1 = r2.c1))))
+(10 rows)
 
 --Testcase 89:
 SELECT t1.c1, t2.c1 FROM ft4 t1 FULL JOIN ft5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t2.c1 OFFSET 45 LIMIT 10;
@@ -1739,25 +1618,17 @@ SELECT t1.c1, t2.c1 FROM ft4 t1 FULL JOIN ft5 t2 ON (t1.c1 = t2.c1) ORDER BY t1.
 --Testcase 90:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c1 FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t1 FULL JOIN (SELECT c1 FROM ft5 WHERE c1 between 50 and 60) t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t2.c1;
-                                            QUERY PLAN                                            
---------------------------------------------------------------------------------------------------
+                                                                                                                            QUERY PLAN                                                                                                                             
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Sort
    Output: ft4.c1, ft5.c1
    Sort Key: ft4.c1, ft5.c1
-   ->  Hash Full Join
+   ->  Foreign Scan
          Output: ft4.c1, ft5.c1
-         Hash Cond: (ft4.c1 = ft5.c1)
-         ->  Foreign Scan on public.ft4
-               Output: ft4.c1
-               Node: postgres_srv / Status: Alive
-                 Remote SQL: SELECT c1 FROM "S 1"."T 3" WHERE ((c1 >= 50)) AND ((c1 <= 60))
-         ->  Hash
-               Output: ft5.c1
-               ->  Foreign Scan on public.ft5
-                     Output: ft5.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT c1 FROM "S 1"."T 4" WHERE ((c1 >= 50)) AND ((c1 <= 60))
-(16 rows)
+         Node: postgres_srv / Status: Alive
+           Relations: (public.ft4) FULL JOIN (public.ft5)
+           Remote SQL: SELECT s4.c1, s5.c1 FROM ((SELECT c1, c1, c1 FROM "S 1"."T 3" WHERE ((c1 >= 50)) AND ((c1 <= 60))) s4(c1, c2, c3) FULL JOIN (SELECT c1, c1, c1 FROM "S 1"."T 4" WHERE ((c1 >= 50)) AND ((c1 <= 60))) s5(c1, c2, c3) ON (((s4.c1 = s5.c1))))
+(8 rows)
 
 --Testcase 91:
 SELECT t1.c1, t2.c1 FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t1 FULL JOIN (SELECT c1 FROM ft5 WHERE c1 between 50 and 60) t2 ON (t1.c1 = t2.c1) ORDER BY t1.c1, t2.c1;
@@ -1776,20 +1647,16 @@ SELECT t1.c1, t2.c1 FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t1 FULL
 --Testcase 92:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT 1 FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t1 FULL JOIN (SELECT c1 FROM ft5 WHERE c1 between 50 and 60) t2 ON (TRUE) OFFSET 10 LIMIT 10;
-                                            QUERY PLAN                                            
---------------------------------------------------------------------------------------------------
+                                                                                                          QUERY PLAN                                                                                                          
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit
    Output: 1
-   ->  Merge Full Join
+   ->  Foreign Scan
          Output: 1
-         ->  Foreign Scan on public.ft4
-               Node: postgres_srv / Status: Alive
-                 Remote SQL: SELECT c1 FROM "S 1"."T 3" WHERE ((c1 >= 50)) AND ((c1 <= 60))
-         ->  Materialize
-               ->  Foreign Scan on public.ft5
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT c1 FROM "S 1"."T 4" WHERE ((c1 >= 50)) AND ((c1 <= 60))
-(11 rows)
+         Node: postgres_srv / Status: Alive
+           Relations: (public.ft4) FULL JOIN (public.ft5)
+           Remote SQL: SELECT NULL FROM ((SELECT c1, c1 FROM "S 1"."T 3" WHERE ((c1 >= 50)) AND ((c1 <= 60))) s4(c1, c2) FULL JOIN (SELECT c1, c1 FROM "S 1"."T 4" WHERE ((c1 >= 50)) AND ((c1 <= 60))) s5(c1, c2) ON (TRUE))
+(7 rows)
 
 --Testcase 93:
 SELECT 1 FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t1 FULL JOIN (SELECT c1 FROM ft5 WHERE c1 between 50 and 60) t2 ON (TRUE) OFFSET 10 LIMIT 10;
@@ -1812,34 +1679,17 @@ SELECT 1 FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t1 FULL JOIN (SELE
 --Testcase 94:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, ss.a, ss.b FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t1 FULL JOIN (SELECT t2.c1, t3.c1 FROM ft4 t2 LEFT JOIN ft5 t3 ON (t2.c1 = t3.c1) WHERE (t2.c1 between 50 and 60)) ss(a, b) ON (t1.c1 = ss.a) ORDER BY t1.c1, ss.a, ss.b;
-                                               QUERY PLAN                                               
---------------------------------------------------------------------------------------------------------
+                                                                                                                                                                       QUERY PLAN                                                                                                                                                                        
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Sort
    Output: ft4.c1, t2.c1, t3.c1
    Sort Key: ft4.c1, t2.c1, t3.c1
-   ->  Hash Full Join
+   ->  Foreign Scan
          Output: ft4.c1, t2.c1, t3.c1
-         Hash Cond: (t2.c1 = ft4.c1)
-         ->  Hash Right Join
-               Output: t2.c1, t3.c1
-               Hash Cond: (t3.c1 = t2.c1)
-               ->  Foreign Scan on public.ft5 t3
-                     Output: t3.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT c1 FROM "S 1"."T 4"
-               ->  Hash
-                     Output: t2.c1
-                     ->  Foreign Scan on public.ft4 t2
-                           Output: t2.c1
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT c1 FROM "S 1"."T 3" WHERE ((c1 >= 50)) AND ((c1 <= 60))
-         ->  Hash
-               Output: ft4.c1
-               ->  Foreign Scan on public.ft4
-                     Output: ft4.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT c1 FROM "S 1"."T 3" WHERE ((c1 >= 50)) AND ((c1 <= 60))
-(25 rows)
+         Node: postgres_srv / Status: Alive
+           Relations: (public.ft4) FULL JOIN ((public.ft4 t2) LEFT JOIN (public.ft5 t3))
+           Remote SQL: SELECT s4.c1, s8.c1, s8.c4 FROM ((SELECT c1, c1, c1 FROM "S 1"."T 3" WHERE ((c1 >= 50)) AND ((c1 <= 60))) s4(c1, c2, c3) FULL JOIN (SELECT r5.c1, r5.c1, r5.c1, r6.c1 FROM ("S 1"."T 3" r5 LEFT JOIN "S 1"."T 4" r6 ON (((r5.c1 = r6.c1)))) WHERE ((r5.c1 >= 50)) AND ((r5.c1 <= 60))) s8(c1, c2, c3, c4) ON (((s4.c1 = s8.c1))))
+(8 rows)
 
 --Testcase 95:
 SELECT t1.c1, ss.a, ss.b FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t1 FULL JOIN (SELECT t2.c1, t3.c1 FROM ft4 t2 LEFT JOIN ft5 t3 ON (t2.c1 = t3.c1) WHERE (t2.c1 between 50 and 60)) ss(a, b) ON (t1.c1 = ss.a) ORDER BY t1.c1, ss.a, ss.b;
@@ -1857,35 +1707,17 @@ SELECT t1.c1, ss.a, ss.b FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t1
 --Testcase 96:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, ss.a, ss.b FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t1 FULL JOIN (SELECT t2.c1, t3.c1 FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t2 FULL JOIN (SELECT c1 FROM ft5 WHERE c1 between 50 and 60) t3 ON (t2.c1 = t3.c1) WHERE t2.c1 IS NULL OR t2.c1 IS NOT NULL) ss(a, b) ON (t1.c1 = ss.a) ORDER BY t1.c1, ss.a, ss.b;
-                                               QUERY PLAN                                               
---------------------------------------------------------------------------------------------------------
+                                                                                                                                                                                                                                                                 QUERY PLAN                                                                                                                                                                                                                                                                 
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Sort
    Output: ft4.c1, ft4_1.c1, ft5.c1
    Sort Key: ft4.c1, ft4_1.c1, ft5.c1
-   ->  Hash Full Join
+   ->  Foreign Scan
          Output: ft4.c1, ft4_1.c1, ft5.c1
-         Hash Cond: (ft4_1.c1 = ft4.c1)
-         ->  Hash Full Join
-               Output: ft4_1.c1, ft5.c1
-               Hash Cond: (ft4_1.c1 = ft5.c1)
-               Filter: ((ft4_1.c1 IS NULL) OR (ft4_1.c1 IS NOT NULL))
-               ->  Foreign Scan on public.ft4 ft4_1
-                     Output: ft4_1.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT c1 FROM "S 1"."T 3" WHERE ((c1 >= 50)) AND ((c1 <= 60))
-               ->  Hash
-                     Output: ft5.c1
-                     ->  Foreign Scan on public.ft5
-                           Output: ft5.c1
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT c1 FROM "S 1"."T 4" WHERE ((c1 >= 50)) AND ((c1 <= 60))
-         ->  Hash
-               Output: ft4.c1
-               ->  Foreign Scan on public.ft4
-                     Output: ft4.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT c1 FROM "S 1"."T 3" WHERE ((c1 >= 50)) AND ((c1 <= 60))
-(26 rows)
+         Node: postgres_srv / Status: Alive
+           Relations: (public.ft4) FULL JOIN ((public.ft4 ft4_1) FULL JOIN (public.ft5))
+           Remote SQL: SELECT s4.c1, s10.c1, s10.c4 FROM ((SELECT c1, c1, c1 FROM "S 1"."T 3" WHERE ((c1 >= 50)) AND ((c1 <= 60))) s4(c1, c2, c3) FULL JOIN (SELECT s8.c1, s8.c1, s8.c1, s9.c1, s9.c1, s9.c1 FROM ((SELECT c1, c1, c1 FROM "S 1"."T 3" WHERE ((c1 >= 50)) AND ((c1 <= 60))) s8(c1, c2, c3) FULL JOIN (SELECT c1, c1, c1 FROM "S 1"."T 4" WHERE ((c1 >= 50)) AND ((c1 <= 60))) s9(c1, c2, c3) ON (((s8.c1 = s9.c1)))) WHERE (((s8.c1 IS NULL) OR (s8.c1 IS NOT NULL)))) s10(c1, c2, c3, c4, c5, c6) ON (((s4.c1 = s10.c1))))
+(8 rows)
 
 --Testcase 97:
 SELECT t1.c1, ss.a, ss.b FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t1 FULL JOIN (SELECT t2.c1, t3.c1 FROM (SELECT c1 FROM ft4 WHERE c1 between 50 and 60) t2 FULL JOIN (SELECT c1 FROM ft5 WHERE c1 between 50 and 60) t3 ON (t2.c1 = t3.c1) WHERE t2.c1 IS NULL OR t2.c1 IS NOT NULL) ss(a, b) ON (t1.c1 = ss.a) ORDER BY t1.c1, ss.a, ss.b;
@@ -1951,36 +1783,19 @@ SELECT t1.c1, ss.a, ss.b FROM (SELECT c1 FROM "S 1"."T 3" WHERE c1 = 50) t1 INNE
 --Testcase 100:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c1, t3.c1 FROM ft4 t1 INNER JOIN ft5 t2 ON (t1.c1 = t2.c1 + 1 and t1.c1 between 50 and 60) FULL JOIN ft4 t3 ON (t2.c1 = t3.c1) ORDER BY t1.c1, t2.c1, t3.c1 LIMIT 10;
-                                                     QUERY PLAN                                                     
---------------------------------------------------------------------------------------------------------------------
+                                                                                                          QUERY PLAN                                                                                                           
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c1, t3.c1
    ->  Sort
          Output: t1.c1, t2.c1, t3.c1
          Sort Key: t1.c1, t2.c1, t3.c1
-         ->  Hash Full Join
+         ->  Foreign Scan
                Output: t1.c1, t2.c1, t3.c1
-               Hash Cond: (t3.c1 = t2.c1)
-               ->  Foreign Scan on public.ft4 t3
-                     Output: t3.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT c1 FROM "S 1"."T 3"
-               ->  Hash
-                     Output: t1.c1, t2.c1
-                     ->  Hash Join
-                           Output: t1.c1, t2.c1
-                           Hash Cond: ((t2.c1 + 1) = t1.c1)
-                           ->  Foreign Scan on public.ft5 t2
-                                 Output: t2.c1
-                                 Node: postgres_srv / Status: Alive
-                                   Remote SQL: SELECT c1 FROM "S 1"."T 4"
-                           ->  Hash
-                                 Output: t1.c1
-                                 ->  Foreign Scan on public.ft4 t1
-                                       Output: t1.c1
-                                       Node: postgres_srv / Status: Alive
-                                         Remote SQL: SELECT c1 FROM "S 1"."T 3" WHERE ((c1 >= 50)) AND ((c1 <= 60))
-(27 rows)
+               Node: postgres_srv / Status: Alive
+                 Relations: ((public.ft4 t1) INNER JOIN (public.ft5 t2)) FULL JOIN (public.ft4 t3)
+                 Remote SQL: SELECT r1.c1, r2.c1, r4.c1 FROM (("S 1"."T 3" r1 INNER JOIN "S 1"."T 4" r2 ON (((r1.c1 = (r2.c1 + 1))) AND ((r1.c1 >= 50)) AND ((r1.c1 <= 60)))) FULL JOIN "S 1"."T 3" r4 ON (((r2.c1 = r4.c1))))
+(10 rows)
 
 --Testcase 101:
 SELECT t1.c1, t2.c1, t3.c1 FROM ft4 t1 INNER JOIN ft5 t2 ON (t1.c1 = t2.c1 + 1 and t1.c1 between 50 and 60) FULL JOIN ft4 t3 ON (t2.c1 = t3.c1) ORDER BY t1.c1, t2.c1, t3.c1 LIMIT 10;
@@ -2001,37 +1816,23 @@ SELECT t1.c1, t2.c1, t3.c1 FROM ft4 t1 INNER JOIN ft5 t2 ON (t1.c1 = t2.c1 + 1 a
 -- full outer join three tables
 --Testcase 102:
 EXPLAIN (VERBOSE, COSTS OFF)
-SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 FULL JOIN ft2 t2 ON (t1.c1 = t2.c1) FULL JOIN ft4 t3 ON (t2.c1 = t3.c1) OFFSET 10 LIMIT 10;
-                                QUERY PLAN                                 
----------------------------------------------------------------------------
+SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 FULL JOIN ft2 t2 ON (t1.c1 = t2.c1) FULL JOIN ft4 t3 ON (t2.c1 = t3.c1) ORDER BY t1.c1 OFFSET 10 LIMIT 10;
+                                                                                         QUERY PLAN                                                                                         
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c2, t3.c3
-   ->  Hash Full Join
+   ->  Sort
          Output: t1.c1, t2.c2, t3.c3
-         Hash Cond: (t2.c1 = t3.c1)
-         ->  Hash Full Join
-               Output: t1.c1, t2.c2, t2.c1
-               Hash Cond: (t1.c1 = t2.c1)
-               ->  Foreign Scan on public.ft2 t1
-                     Output: t1.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-               ->  Hash
-                     Output: t2.c2, t2.c1
-                     ->  Foreign Scan on public.ft2 t2
-                           Output: t2.c2, t2.c1
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1"
-         ->  Hash
-               Output: t3.c3, t3.c1
-               ->  Foreign Scan on public.ft4 t3
-                     Output: t3.c3, t3.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT c1, c3 FROM "S 1"."T 3"
-(24 rows)
+         Sort Key: t1.c1
+         ->  Foreign Scan
+               Output: t1.c1, t2.c2, t3.c3
+               Node: postgres_srv / Status: Alive
+                 Relations: ((public.ft2 t1) FULL JOIN (public.ft2 t2)) FULL JOIN (public.ft4 t3)
+                 Remote SQL: SELECT r1."C 1", r2.c2, r4.c3 FROM (("S 1"."T 1" r1 FULL JOIN "S 1"."T 1" r2 ON (((r1."C 1" = r2."C 1")))) FULL JOIN "S 1"."T 3" r4 ON (((r2."C 1" = r4.c1))))
+(10 rows)
 
 --Testcase 103:
-SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 FULL JOIN ft2 t2 ON (t1.c1 = t2.c1) FULL JOIN ft4 t3 ON (t2.c1 = t3.c1) OFFSET 10 LIMIT 10;
+SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 FULL JOIN ft2 t2 ON (t1.c1 = t2.c1) FULL JOIN ft4 t3 ON (t2.c1 = t3.c1) ORDER BY t1.c1 OFFSET 10 LIMIT 10;
  c1 | c2 |   c3   
 ----+----+--------
  11 |  1 | 
@@ -2050,33 +1851,16 @@ SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 FULL JOIN ft2 t2 ON (t1.c1 = t2.c1) FULL 
 --Testcase 104:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 FULL JOIN ft2 t2 ON (t1.c1 = t2.c1) RIGHT JOIN ft4 t3 ON (t2.c1 = t3.c1) OFFSET 10 LIMIT 10;
-                                QUERY PLAN                                 
----------------------------------------------------------------------------
+                                                                                      QUERY PLAN                                                                                      
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c2, t3.c3
-   ->  Nested Loop Left Join
+   ->  Foreign Scan
          Output: t1.c1, t2.c2, t3.c3
-         Join Filter: (t1.c1 = t2.c1)
-         ->  Nested Loop Left Join
-               Output: t3.c3, t2.c2, t2.c1
-               Join Filter: (t2.c1 = t3.c1)
-               ->  Foreign Scan on public.ft4 t3
-                     Output: t3.c3, t3.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT c1, c3 FROM "S 1"."T 3"
-               ->  Materialize
-                     Output: t2.c2, t2.c1
-                     ->  Foreign Scan on public.ft2 t2
-                           Output: t2.c2, t2.c1
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1"
-         ->  Materialize
-               Output: t1.c1
-               ->  Foreign Scan on public.ft2 t1
-                     Output: t1.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-(24 rows)
+         Node: postgres_srv / Status: Alive
+           Relations: ((public.ft4 t3) LEFT JOIN (public.ft2 t2)) LEFT JOIN (public.ft2 t1)
+           Remote SQL: SELECT r1."C 1", r2.c2, r4.c3 FROM (("S 1"."T 3" r4 LEFT JOIN "S 1"."T 1" r2 ON (((r2."C 1" = r4.c1)))) LEFT JOIN "S 1"."T 1" r1 ON (((r1."C 1" = r2."C 1"))))
+(7 rows)
 
 --Testcase 105:
 SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 FULL JOIN ft2 t2 ON (t1.c1 = t2.c1) RIGHT JOIN ft4 t3 ON (t2.c1 = t3.c1) OFFSET 10 LIMIT 10;
@@ -2098,33 +1882,16 @@ SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 FULL JOIN ft2 t2 ON (t1.c1 = t2.c1) RIGHT
 --Testcase 106:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 RIGHT JOIN ft2 t2 ON (t1.c1 = t2.c1) FULL JOIN ft4 t3 ON (t2.c1 = t3.c1) OFFSET 10 LIMIT 10;
-                              QUERY PLAN                               
------------------------------------------------------------------------
+                                                                                      QUERY PLAN                                                                                      
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c2, t3.c3
-   ->  Hash Full Join
+   ->  Foreign Scan
          Output: t1.c1, t2.c2, t3.c3
-         Hash Cond: (t2.c1 = t3.c1)
-         ->  Nested Loop Left Join
-               Output: t2.c2, t2.c1, t1.c1
-               Join Filter: (t1.c1 = t2.c1)
-               ->  Foreign Scan on public.ft2 t2
-                     Output: t2.c2, t2.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1"
-               ->  Materialize
-                     Output: t1.c1
-                     ->  Foreign Scan on public.ft2 t1
-                           Output: t1.c1
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-         ->  Hash
-               Output: t3.c3, t3.c1
-               ->  Foreign Scan on public.ft4 t3
-                     Output: t3.c3, t3.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT c1, c3 FROM "S 1"."T 3"
-(24 rows)
+         Node: postgres_srv / Status: Alive
+           Relations: ((public.ft2 t2) LEFT JOIN (public.ft2 t1)) FULL JOIN (public.ft4 t3)
+           Remote SQL: SELECT r1."C 1", r2.c2, r4.c3 FROM (("S 1"."T 1" r2 LEFT JOIN "S 1"."T 1" r1 ON (((r1."C 1" = r2."C 1")))) FULL JOIN "S 1"."T 3" r4 ON (((r2."C 1" = r4.c1))))
+(7 rows)
 
 --Testcase 107:
 SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 RIGHT JOIN ft2 t2 ON (t1.c1 = t2.c1) FULL JOIN ft4 t3 ON (t2.c1 = t3.c1) OFFSET 10 LIMIT 10;
@@ -2146,33 +1913,16 @@ SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 RIGHT JOIN ft2 t2 ON (t1.c1 = t2.c1) FULL
 --Testcase 108:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 FULL JOIN ft2 t2 ON (t1.c1 = t2.c1) LEFT JOIN ft4 t3 ON (t2.c1 = t3.c1) OFFSET 10 LIMIT 10;
-                                QUERY PLAN                                 
----------------------------------------------------------------------------
+                                                                                      QUERY PLAN                                                                                      
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c2, t3.c3
-   ->  Nested Loop Left Join
+   ->  Foreign Scan
          Output: t1.c1, t2.c2, t3.c3
-         Join Filter: (t2.c1 = t3.c1)
-         ->  Hash Full Join
-               Output: t1.c1, t2.c2, t2.c1
-               Hash Cond: (t1.c1 = t2.c1)
-               ->  Foreign Scan on public.ft2 t1
-                     Output: t1.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-               ->  Hash
-                     Output: t2.c2, t2.c1
-                     ->  Foreign Scan on public.ft2 t2
-                           Output: t2.c2, t2.c1
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1"
-         ->  Materialize
-               Output: t3.c3, t3.c1
-               ->  Foreign Scan on public.ft4 t3
-                     Output: t3.c3, t3.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT c1, c3 FROM "S 1"."T 3"
-(24 rows)
+         Node: postgres_srv / Status: Alive
+           Relations: ((public.ft2 t1) FULL JOIN (public.ft2 t2)) LEFT JOIN (public.ft4 t3)
+           Remote SQL: SELECT r1."C 1", r2.c2, r4.c3 FROM (("S 1"."T 1" r1 FULL JOIN "S 1"."T 1" r2 ON (((r1."C 1" = r2."C 1")))) LEFT JOIN "S 1"."T 3" r4 ON (((r2."C 1" = r4.c1))))
+(7 rows)
 
 --Testcase 109:
 SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 FULL JOIN ft2 t2 ON (t1.c1 = t2.c1) LEFT JOIN ft4 t3 ON (t2.c1 = t3.c1) OFFSET 10 LIMIT 10;
@@ -2194,81 +1944,47 @@ SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 FULL JOIN ft2 t2 ON (t1.c1 = t2.c1) LEFT 
 --Testcase 110:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 LEFT JOIN ft2 t2 ON (t1.c1 = t2.c1) FULL JOIN ft4 t3 ON (t2.c1 = t3.c1) OFFSET 10 LIMIT 10;
-                                QUERY PLAN                                 
----------------------------------------------------------------------------
+                                                                                      QUERY PLAN                                                                                      
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c2, t3.c3
-   ->  Hash Full Join
+   ->  Foreign Scan
          Output: t1.c1, t2.c2, t3.c3
-         Hash Cond: (t2.c1 = t3.c1)
-         ->  Nested Loop Left Join
-               Output: t1.c1, t2.c2, t2.c1
-               Join Filter: (t1.c1 = t2.c1)
-               ->  Foreign Scan on public.ft2 t1
-                     Output: t1.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-               ->  Materialize
-                     Output: t2.c2, t2.c1
-                     ->  Foreign Scan on public.ft2 t2
-                           Output: t2.c2, t2.c1
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1"
-         ->  Hash
-               Output: t3.c3, t3.c1
-               ->  Foreign Scan on public.ft4 t3
-                     Output: t3.c3, t3.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT c1, c3 FROM "S 1"."T 3"
-(24 rows)
+         Node: postgres_srv / Status: Alive
+           Relations: ((public.ft2 t1) LEFT JOIN (public.ft2 t2)) FULL JOIN (public.ft4 t3)
+           Remote SQL: SELECT r1."C 1", r2.c2, r4.c3 FROM (("S 1"."T 1" r1 LEFT JOIN "S 1"."T 1" r2 ON (((r1."C 1" = r2."C 1")))) FULL JOIN "S 1"."T 3" r4 ON (((r2."C 1" = r4.c1))))
+(7 rows)
 
 --Testcase 111:
 SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 LEFT JOIN ft2 t2 ON (t1.c1 = t2.c1) FULL JOIN ft4 t3 ON (t2.c1 = t3.c1) OFFSET 10 LIMIT 10;
  c1 | c2 |   c3   
 ----+----+--------
- 11 |  1 | 
- 12 |  2 | AAA012
- 13 |  3 | 
- 14 |  4 | AAA014
- 15 |  5 | 
- 16 |  6 | AAA016
- 17 |  7 | 
- 18 |  8 | AAA018
- 19 |  9 | 
- 20 |  0 | AAA020
+ 22 |  2 | AAA022
+ 24 |  4 | AAA024
+ 26 |  6 | AAA026
+ 28 |  8 | AAA028
+ 30 |  0 | AAA030
+ 32 |  2 | AAA032
+ 34 |  4 | AAA034
+ 36 |  6 | AAA036
+ 38 |  8 | AAA038
+ 40 |  0 | AAA040
 (10 rows)
 
 -- right outer join + left outer join
 --Testcase 112:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 RIGHT JOIN ft2 t2 ON (t1.c1 = t2.c1) LEFT JOIN ft4 t3 ON (t2.c1 = t3.c1) OFFSET 10 LIMIT 10;
-                              QUERY PLAN                               
------------------------------------------------------------------------
+                                                                                      QUERY PLAN                                                                                      
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c2, t3.c3
-   ->  Nested Loop Left Join
+   ->  Foreign Scan
          Output: t1.c1, t2.c2, t3.c3
-         Join Filter: (t2.c1 = t3.c1)
-         ->  Nested Loop Left Join
-               Output: t2.c2, t2.c1, t1.c1
-               Join Filter: (t1.c1 = t2.c1)
-               ->  Foreign Scan on public.ft2 t2
-                     Output: t2.c2, t2.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1"
-               ->  Materialize
-                     Output: t1.c1
-                     ->  Foreign Scan on public.ft2 t1
-                           Output: t1.c1
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-         ->  Materialize
-               Output: t3.c3, t3.c1
-               ->  Foreign Scan on public.ft4 t3
-                     Output: t3.c3, t3.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT c1, c3 FROM "S 1"."T 3"
-(24 rows)
+         Node: postgres_srv / Status: Alive
+           Relations: ((public.ft2 t2) LEFT JOIN (public.ft2 t1)) LEFT JOIN (public.ft4 t3)
+           Remote SQL: SELECT r1."C 1", r2.c2, r4.c3 FROM (("S 1"."T 1" r2 LEFT JOIN "S 1"."T 1" r1 ON (((r1."C 1" = r2."C 1")))) LEFT JOIN "S 1"."T 3" r4 ON (((r2."C 1" = r4.c1))))
+(7 rows)
 
 --Testcase 113:
 SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 RIGHT JOIN ft2 t2 ON (t1.c1 = t2.c1) LEFT JOIN ft4 t3 ON (t2.c1 = t3.c1) OFFSET 10 LIMIT 10;
@@ -2290,33 +2006,16 @@ SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 RIGHT JOIN ft2 t2 ON (t1.c1 = t2.c1) LEFT
 --Testcase 114:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 LEFT JOIN ft2 t2 ON (t1.c1 = t2.c1) RIGHT JOIN ft4 t3 ON (t2.c1 = t3.c1) OFFSET 10 LIMIT 10;
-                                QUERY PLAN                                 
----------------------------------------------------------------------------
+                                                                                      QUERY PLAN                                                                                       
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c2, t3.c3
-   ->  Hash Right Join
+   ->  Foreign Scan
          Output: t1.c1, t2.c2, t3.c3
-         Hash Cond: (t2.c1 = t3.c1)
-         ->  Nested Loop
-               Output: t1.c1, t2.c2, t2.c1
-               Join Filter: (t1.c1 = t2.c1)
-               ->  Foreign Scan on public.ft2 t1
-                     Output: t1.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-               ->  Materialize
-                     Output: t2.c2, t2.c1
-                     ->  Foreign Scan on public.ft2 t2
-                           Output: t2.c2, t2.c1
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1"
-         ->  Hash
-               Output: t3.c3, t3.c1
-               ->  Foreign Scan on public.ft4 t3
-                     Output: t3.c3, t3.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT c1, c3 FROM "S 1"."T 3"
-(24 rows)
+         Node: postgres_srv / Status: Alive
+           Relations: (public.ft4 t3) LEFT JOIN ((public.ft2 t1) INNER JOIN (public.ft2 t2))
+           Remote SQL: SELECT r1."C 1", r2.c2, r4.c3 FROM ("S 1"."T 3" r4 LEFT JOIN ("S 1"."T 1" r1 INNER JOIN "S 1"."T 1" r2 ON (((r1."C 1" = r2."C 1")))) ON (((r2."C 1" = r4.c1))))
+(7 rows)
 
 --Testcase 115:
 SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 LEFT JOIN ft2 t2 ON (t1.c1 = t2.c1) RIGHT JOIN ft4 t3 ON (t2.c1 = t3.c1) OFFSET 10 LIMIT 10;
@@ -2338,32 +2037,19 @@ SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 LEFT JOIN ft2 t2 ON (t1.c1 = t2.c1) RIGHT
 --Testcase 116:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c1 FROM ft4 t1 FULL JOIN ft5 t2 ON (t1.c1 = t2.c1) WHERE (t1.c1 = t2.c1 OR t1.c1 IS NULL) ORDER BY t1.c1, t2.c1 OFFSET 10 LIMIT 10;
-                             QUERY PLAN                             
---------------------------------------------------------------------
+                                                                             QUERY PLAN                                                                             
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c1
    ->  Sort
          Output: t1.c1, t2.c1
          Sort Key: t1.c1, t2.c1
-         ->  Merge Full Join
+         ->  Foreign Scan
                Output: t1.c1, t2.c1
-               Merge Cond: (t1.c1 = t2.c1)
-               Filter: ((t1.c1 = t2.c1) OR (t1.c1 IS NULL))
-               ->  Sort
-                     Output: t1.c1
-                     Sort Key: t1.c1
-                     ->  Foreign Scan on public.ft4 t1
-                           Output: t1.c1
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT c1 FROM "S 1"."T 3"
-               ->  Sort
-                     Output: t2.c1
-                     Sort Key: t2.c1
-                     ->  Foreign Scan on public.ft5 t2
-                           Output: t2.c1
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT c1 FROM "S 1"."T 4"
-(23 rows)
+               Node: postgres_srv / Status: Alive
+                 Relations: (public.ft4 t1) FULL JOIN (public.ft5 t2)
+                 Remote SQL: SELECT r1.c1, r2.c1 FROM ("S 1"."T 3" r1 FULL JOIN "S 1"."T 4" r2 ON (((r1.c1 = r2.c1)))) WHERE (((r1.c1 = r2.c1) OR (r1.c1 IS NULL)))
+(10 rows)
 
 --Testcase 117:
 SELECT t1.c1, t2.c1 FROM ft4 t1 FULL JOIN ft5 t2 ON (t1.c1 = t2.c1) WHERE (t1.c1 = t2.c1 OR t1.c1 IS NULL) ORDER BY t1.c1, t2.c1 OFFSET 10 LIMIT 10;
@@ -2385,50 +2071,34 @@ SELECT t1.c1, t2.c1 FROM ft4 t1 FULL JOIN ft5 t2 ON (t1.c1 = t2.c1) WHERE (t1.c1
 --Testcase 118:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c2, t1.c3 FROM ft1 t1 FULL JOIN ft2 t2 ON (t1.c1 = t2.c1) WHERE postgres_fdw_abs(t1.c1) > 0 OFFSET 10 LIMIT 10;
-                             QUERY PLAN                              
----------------------------------------------------------------------
+                                                           QUERY PLAN                                                            
+---------------------------------------------------------------------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c2, t1.c3
-   ->  Hash Full Join
+   ->  Foreign Scan
          Output: t1.c1, t2.c2, t1.c3
-         Hash Cond: (t1.c1 = t2.c1)
          Filter: (postgres_fdw_abs(t1.c1) > 0)
-         ->  Foreign Scan on public.ft1 t1
-               Output: t1.c1, t1.c3
-               Node: postgres_srv / Status: Alive
-                 Remote SQL: SELECT "C 1", c3 FROM "S 1"."T 1"
-         ->  Hash
-               Output: t2.c2, t2.c1
-               ->  Foreign Scan on public.ft2 t2
-                     Output: t2.c2, t2.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1"
-(16 rows)
+         Node: postgres_srv / Status: Alive
+           Relations: (public.ft1 t1) FULL JOIN (public.ft2 t2)
+           Remote SQL: SELECT r1."C 1", r2.c2, r1.c3 FROM ("S 1"."T 1" r1 FULL JOIN "S 1"."T 1" r2 ON (((r1."C 1" = r2."C 1"))))
+(8 rows)
 
 ALTER SERVER postgres_srv OPTIONS (DROP extensions);
 -- full outer join + WHERE clause with shippable extensions not set
 --Testcase 119:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c2, t1.c3 FROM ft1 t1 FULL JOIN ft2 t2 ON (t1.c1 = t2.c1) WHERE postgres_fdw_abs(t1.c1) > 0 OFFSET 10 LIMIT 10;
-                             QUERY PLAN                              
----------------------------------------------------------------------
+                                                           QUERY PLAN                                                            
+---------------------------------------------------------------------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c2, t1.c3
-   ->  Hash Full Join
+   ->  Foreign Scan
          Output: t1.c1, t2.c2, t1.c3
-         Hash Cond: (t1.c1 = t2.c1)
          Filter: (postgres_fdw_abs(t1.c1) > 0)
-         ->  Foreign Scan on public.ft1 t1
-               Output: t1.c1, t1.c3
-               Node: postgres_srv / Status: Alive
-                 Remote SQL: SELECT "C 1", c3 FROM "S 1"."T 1"
-         ->  Hash
-               Output: t2.c2, t2.c1
-               ->  Foreign Scan on public.ft2 t2
-                     Output: t2.c2, t2.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1"
-(16 rows)
+         Node: postgres_srv / Status: Alive
+           Relations: (public.ft1 t1) FULL JOIN (public.ft2 t2)
+           Remote SQL: SELECT r1."C 1", r2.c2, r1.c3 FROM ("S 1"."T 1" r1 FULL JOIN "S 1"."T 1" r2 ON (((r1."C 1" = r2."C 1"))))
+(8 rows)
 
 ALTER SERVER postgres_srv OPTIONS (ADD extensions 'postgres_fdw');
 -- join two tables with FOR UPDATE clause
@@ -2626,34 +2296,22 @@ SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) ORDER BY t1.c3, t
 --Testcase 128:
 EXPLAIN (VERBOSE, COSTS OFF)
 WITH t (c1_1, c1_3, c2_1) AS MATERIALIZED (SELECT t1.c1, t1.c3, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1)) SELECT c1_1, c2_1 FROM t ORDER BY c1_3, c1_1 OFFSET 100 LIMIT 10;
-                              QUERY PLAN                               
------------------------------------------------------------------------
+                                                              QUERY PLAN                                                               
+---------------------------------------------------------------------------------------------------------------------------------------
  Limit
    Output: t.c1_1, t.c2_1, t.c1_3
    CTE t
-     ->  Merge Join
+     ->  Foreign Scan
            Output: t1.c1, t1.c3, t2.c1
-           Merge Cond: (t1.c1 = t2.c1)
-           ->  Sort
-                 Output: t1.c1, t1.c3
-                 Sort Key: t1.c1
-                 ->  Foreign Scan on public.ft1 t1
-                       Output: t1.c1, t1.c3
-                       Node: postgres_srv / Status: Alive
-                         Remote SQL: SELECT "C 1", c3 FROM "S 1"."T 1"
-           ->  Sort
-                 Output: t2.c1
-                 Sort Key: t2.c1
-                 ->  Foreign Scan on public.ft2 t2
-                       Output: t2.c1
-                       Node: postgres_srv / Status: Alive
-                         Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
+           Node: postgres_srv / Status: Alive
+             Relations: (public.ft1 t1) INNER JOIN (public.ft2 t2)
+             Remote SQL: SELECT r1."C 1", r1.c3, r2."C 1" FROM ("S 1"."T 1" r1 INNER JOIN "S 1"."T 1" r2 ON (((r1."C 1" = r2."C 1"))))
    ->  Sort
          Output: t.c1_1, t.c2_1, t.c1_3
          Sort Key: t.c1_3, t.c1_1
          ->  CTE Scan on t
                Output: t.c1_1, t.c2_1, t.c1_3
-(25 rows)
+(13 rows)
 
 --Testcase 129:
 WITH t (c1_1, c1_3, c2_1) AS MATERIALIZED (SELECT t1.c1, t1.c3, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1)) SELECT c1_1, c2_1 FROM t ORDER BY c1_3, c1_1 OFFSET 100 LIMIT 10;
@@ -2793,26 +2451,19 @@ SELECT t1.c1 FROM ft1 t1 WHERE NOT EXISTS (SELECT 1 FROM ft2 t2 WHERE t1.c1 = t2
 --Testcase 135:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c1 FROM ft1 t1 CROSS JOIN ft2 t2 ORDER BY t1.c1, t2.c1 OFFSET 100 LIMIT 10;
-                              QUERY PLAN                               
------------------------------------------------------------------------
+                                                   QUERY PLAN                                                    
+-----------------------------------------------------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c1
    ->  Sort
          Output: t1.c1, t2.c1
          Sort Key: t1.c1, t2.c1
-         ->  Nested Loop
+         ->  Foreign Scan
                Output: t1.c1, t2.c1
-               ->  Foreign Scan on public.ft1 t1
-                     Output: t1.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-               ->  Materialize
-                     Output: t2.c1
-                     ->  Foreign Scan on public.ft2 t2
-                           Output: t2.c1
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-(17 rows)
+               Node: postgres_srv / Status: Alive
+                 Relations: (public.ft1 t1) INNER JOIN (public.ft2 t2)
+                 Remote SQL: SELECT r1."C 1", r2."C 1" FROM ("S 1"."T 1" r1 INNER JOIN "S 1"."T 1" r2 ON (TRUE))
+(10 rows)
 
 --Testcase 136:
 SELECT t1.c1, t2.c1 FROM ft1 t1 CROSS JOIN ft2 t2 ORDER BY t1.c1, t2.c1 OFFSET 100 LIMIT 10;
@@ -2960,31 +2611,20 @@ SELECT t1.c1, t2.c1 FROM ft1 t1 LEFT JOIN ft2 t2 ON (t1.c1 = t2.c1) WHERE t1.c8 
 --Testcase 143:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) WHERE t1.c8 = t2.c8 ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
-                                  QUERY PLAN                                   
--------------------------------------------------------------------------------
+                                                                       QUERY PLAN                                                                        
+---------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit
    Output: t1.c1, t2.c1, t1.c3
    ->  Sort
          Output: t1.c1, t2.c1, t1.c3
          Sort Key: t1.c3, t1.c1
-         ->  Merge Join
+         ->  Foreign Scan
                Output: t1.c1, t2.c1, t1.c3
-               Merge Cond: ((t1.c1 = t2.c1) AND (t1.c8 = t2.c8))
-               ->  Sort
-                     Output: t1.c1, t1.c3, t1.c8
-                     Sort Key: t1.c1, t1.c8
-                     ->  Foreign Scan on public.ft1 t1
-                           Output: t1.c1, t1.c3, t1.c8
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT "C 1", c3, c8 FROM "S 1"."T 1"
-               ->  Sort
-                     Output: t2.c1, t2.c8
-                     Sort Key: t2.c1, t2.c8
-                     ->  Foreign Scan on public.ft2 t2
-                           Output: t2.c1, t2.c8
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT "C 1", c8 FROM "S 1"."T 1"
-(22 rows)
+               Filter: (t1.c8 = t2.c8)
+               Node: postgres_srv / Status: Alive
+                 Relations: (public.ft1 t1) INNER JOIN (public.ft2 t2)
+                 Remote SQL: SELECT r1."C 1", r2."C 1", r1.c3, r1.c8, r2.c8 FROM ("S 1"."T 1" r1 INNER JOIN "S 1"."T 1" r2 ON (((r1."C 1" = r2."C 1"))))
+(11 rows)
 
 --Testcase 144:
 SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) WHERE t1.c8 = t2.c8 ORDER BY t1.c3, t1.c1 OFFSET 100 LIMIT 10;
@@ -3006,55 +2646,30 @@ SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) WHERE t1.c8 = t2.
 --Testcase 145:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1c1, avg(t1c1 + t2c1) FROM (SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) UNION SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1)) AS t (t1c1, t2c1) GROUP BY t1c1 ORDER BY t1c1 OFFSET 100 LIMIT 10;
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
+                                                                      QUERY PLAN                                                                      
+------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit
    Output: t1.c1, (avg((t1.c1 + t2.c1)))
-   ->  Sort
-         Output: t1.c1, (avg((t1.c1 + t2.c1)))
-         Sort Key: t1.c1
-         ->  HashAggregate
-               Output: t1.c1, avg((t1.c1 + t2.c1))
-               Group Key: t1.c1
-               ->  HashAggregate
+   ->  GroupAggregate
+         Output: t1.c1, avg((t1.c1 + t2.c1))
+         Group Key: t1.c1
+         ->  Unique
+               Output: t1.c1, t2.c1
+               ->  Sort
                      Output: t1.c1, t2.c1
-                     Group Key: t1.c1, t2.c1
+                     Sort Key: t1.c1, t2.c1
                      ->  Append
-                           ->  Merge Join
+                           ->  Foreign Scan
                                  Output: t1.c1, t2.c1
-                                 Merge Cond: (t1.c1 = t2.c1)
-                                 ->  Sort
-                                       Output: t1.c1
-                                       Sort Key: t1.c1
-                                       ->  Foreign Scan on public.ft1 t1
-                                             Output: t1.c1
-                                             Node: postgres_srv / Status: Alive
-                                               Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-                                 ->  Sort
-                                       Output: t2.c1
-                                       Sort Key: t2.c1
-                                       ->  Foreign Scan on public.ft2 t2
-                                             Output: t2.c1
-                                             Node: postgres_srv / Status: Alive
-                                               Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-                           ->  Merge Join
+                                 Node: postgres_srv / Status: Alive
+                                   Relations: (public.ft1 t1) INNER JOIN (public.ft2 t2)
+                                   Remote SQL: SELECT r1."C 1", r2."C 1" FROM ("S 1"."T 1" r1 INNER JOIN "S 1"."T 1" r2 ON (((r1."C 1" = r2."C 1"))))
+                           ->  Foreign Scan
                                  Output: t1_1.c1, t2_1.c1
-                                 Merge Cond: (t1_1.c1 = t2_1.c1)
-                                 ->  Sort
-                                       Output: t1_1.c1
-                                       Sort Key: t1_1.c1
-                                       ->  Foreign Scan on public.ft1 t1_1
-                                             Output: t1_1.c1
-                                             Node: postgres_srv / Status: Alive
-                                               Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-                                 ->  Sort
-                                       Output: t2_1.c1
-                                       Sort Key: t2_1.c1
-                                       ->  Foreign Scan on public.ft2 t2_1
-                                             Output: t2_1.c1
-                                             Node: postgres_srv / Status: Alive
-                                               Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-(46 rows)
+                                 Node: postgres_srv / Status: Alive
+                                   Relations: (public.ft1 t1_1) INNER JOIN (public.ft2 t2_1)
+                                   Remote SQL: SELECT r1."C 1", r2."C 1" FROM ("S 1"."T 1" r1 INNER JOIN "S 1"."T 1" r2 ON (((r1."C 1" = r2."C 1"))))
+(21 rows)
 
 --Testcase 146:
 SELECT t1c1, avg(t1c1 + t2c1) FROM (SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1) UNION SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 ON (t1.c1 = t2.c1)) AS t (t1c1, t2c1) GROUP BY t1c1 ORDER BY t1c1 OFFSET 100 LIMIT 10;
@@ -3076,8 +2691,8 @@ SELECT t1c1, avg(t1c1 + t2c1) FROM (SELECT t1.c1, t2.c1 FROM ft1 t1 JOIN ft2 t2 
 --Testcase 147:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT t1."C 1" FROM "S 1"."T 1" t1, LATERAL (SELECT DISTINCT t2.c1, t3.c1 FROM ft1 t2, ft2 t3 WHERE t2.c1 = t3.c1 AND t2.c2 = t1.c2) q ORDER BY t1."C 1" OFFSET 10 LIMIT 10;
-                                                 QUERY PLAN                                                 
-------------------------------------------------------------------------------------------------------------
+                                                                              QUERY PLAN                                                                              
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit
    Output: t1."C 1"
    ->  Nested Loop
@@ -3088,20 +2703,12 @@ SELECT t1."C 1" FROM "S 1"."T 1" t1, LATERAL (SELECT DISTINCT t2.c1, t3.c1 FROM 
          ->  HashAggregate
                Output: t2.c1, t3.c1
                Group Key: t2.c1, t3.c1
-               ->  Hash Join
+               ->  Foreign Scan
                      Output: t2.c1, t3.c1
-                     Hash Cond: (t3.c1 = t2.c1)
-                     ->  Foreign Scan on public.ft2 t3
-                           Output: t3.c1
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT "C 1" FROM "S 1"."T 1"
-                     ->  Hash
-                           Output: t2.c1
-                           ->  Foreign Scan on public.ft1 t2
-                                 Output: t2.c1
-                                 Node: postgres_srv / Status: Alive
-                                   Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1" WHERE ((c2 = $1::integer))
-(23 rows)
+                     Node: postgres_srv / Status: Alive
+                       Relations: (public.ft1 t2) INNER JOIN (public.ft2 t3)
+                       Remote SQL: SELECT r1."C 1", r2."C 1" FROM ("S 1"."T 1" r1 INNER JOIN "S 1"."T 1" r2 ON (((r1."C 1" = r2."C 1")) AND ((r1.c2 = $1::integer))))
+(15 rows)
 
 --Testcase 148:
 SELECT t1."C 1" FROM "S 1"."T 1" t1, LATERAL (SELECT DISTINCT t2.c1, t3.c1 FROM ft1 t2, ft2 t3 WHERE t2.c1 = t3.c1 AND t2.c2 = t1.c2) q ORDER BY t1."C 1" OFFSET 10 LIMIT 10;
@@ -3158,30 +2765,23 @@ SELECT q.a, ft2.c1 FROM (SELECT 13 FROM ft1 WHERE c1 = 13) q(a) RIGHT JOIN ft2 O
 --Testcase 151:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT ft4.c1, q.* FROM ft4 LEFT JOIN (SELECT 13, ft1.c1, ft2.c1 FROM ft1 RIGHT JOIN ft2 ON (ft1.c1 = ft2.c1) WHERE ft1.c1 = 12) q(a, b, c) ON (ft4.c1 = q.b) WHERE ft4.c1 BETWEEN 10 AND 15;
-                                         QUERY PLAN                                         
---------------------------------------------------------------------------------------------
+                                                                  QUERY PLAN                                                                  
+----------------------------------------------------------------------------------------------------------------------------------------------
  Hash Right Join
    Output: ft4.c1, (13), ft1.c1, ft2.c1
    Hash Cond: (ft1.c1 = ft4.c1)
-   ->  Nested Loop
+   ->  Foreign Scan
          Output: ft1.c1, ft2.c1, 13
-         ->  Foreign Scan on public.ft1
-               Output: ft1.c1
-               Node: postgres_srv / Status: Alive
-                 Remote SQL: SELECT "C 1" FROM "S 1"."T 1" WHERE (("C 1" = 12))
-         ->  Materialize
-               Output: ft2.c1
-               ->  Foreign Scan on public.ft2
-                     Output: ft2.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT "C 1" FROM "S 1"."T 1" WHERE (("C 1" = 12))
+         Node: postgres_srv / Status: Alive
+           Relations: (public.ft1) INNER JOIN (public.ft2)
+           Remote SQL: SELECT r4."C 1", r5."C 1" FROM ("S 1"."T 1" r4 INNER JOIN "S 1"."T 1" r5 ON (((r5."C 1" = 12)) AND ((r4."C 1" = 12))))
    ->  Hash
          Output: ft4.c1
          ->  Foreign Scan on public.ft4
                Output: ft4.c1
                Node: postgres_srv / Status: Alive
                  Remote SQL: SELECT c1 FROM "S 1"."T 3" WHERE ((c1 >= 10)) AND ((c1 <= 15))
-(21 rows)
+(14 rows)
 
 --Testcase 152:
 SELECT ft4.c1, q.* FROM ft4 LEFT JOIN (SELECT 13, ft1.c1, ft2.c1 FROM ft1 RIGHT JOIN ft2 ON (ft1.c1 = ft2.c1) WHERE ft1.c1 = 12) q(a, b, c) ON (ft4.c1 = q.b) WHERE ft4.c1 BETWEEN 10 AND 15;
@@ -3589,23 +3189,16 @@ select sum(c1 * (random() <= 1)::int) as sum, avg(c1) from ft1;
 --Testcase 172:
 explain (verbose, costs off)
 select count(*), sum(t1.c1), avg(t2.c1) from ft1 t1 inner join ft1 t2 on (t1.c2 = t2.c2) where t1.c2 = 6;
-                                      QUERY PLAN                                      
---------------------------------------------------------------------------------------
+                                                              QUERY PLAN                                                              
+--------------------------------------------------------------------------------------------------------------------------------------
  Aggregate
    Output: count(*), sum(t1.c1), avg(t2.c1)
-   ->  Nested Loop
+   ->  Foreign Scan
          Output: t1.c1, t2.c1
-         ->  Foreign Scan on public.ft1 t1
-               Output: t1.c1, t1.c2
-               Node: postgres_srv / Status: Alive
-                 Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1" WHERE ((c2 = 6))
-         ->  Materialize
-               Output: t2.c1, t2.c2
-               ->  Foreign Scan on public.ft1 t2
-                     Output: t2.c1, t2.c2
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1" WHERE ((c2 = 6))
-(14 rows)
+         Node: postgres_srv / Status: Alive
+           Relations: (public.ft1 t1) INNER JOIN (public.ft1 t2)
+           Remote SQL: SELECT r1."C 1", r2."C 1" FROM ("S 1"."T 1" r1 INNER JOIN "S 1"."T 1" r2 ON (((r2.c2 = 6)) AND ((r1.c2 = 6))))
+(7 rows)
 
 --Testcase 173:
 select count(*), sum(t1.c1), avg(t2.c1) from ft1 t1 inner join ft1 t2 on (t1.c2 = t2.c2) where t1.c2 = 6;
@@ -4590,8 +4183,8 @@ select count(*), x.b from ft1, (select c2 a, sum(c1) b from ft1 group by c2) x w
 --Testcase 229:
 explain (verbose, costs off)
 select avg(t1.c1), sum(t2.c1) from ft4 t1 full join ft5 t2 on (t1.c1 = t2.c1) group by t2.c1 having (avg(t1.c1) is null and sum(t2.c1) < 10) or sum(t2.c1) is null order by 1 nulls last, 2;
-                                       QUERY PLAN                                       
-----------------------------------------------------------------------------------------
+                                                      QUERY PLAN                                                       
+-----------------------------------------------------------------------------------------------------------------------
  Sort
    Output: (avg(t1.c1)), (sum(t2.c1)), t2.c1
    Sort Key: (avg(t1.c1)), (sum(t2.c1))
@@ -4599,24 +4192,12 @@ select avg(t1.c1), sum(t2.c1) from ft4 t1 full join ft5 t2 on (t1.c1 = t2.c1) gr
          Output: avg(t1.c1), sum(t2.c1), t2.c1
          Group Key: t2.c1
          Filter: (((avg(t1.c1) IS NULL) AND (sum(t2.c1) < 10)) OR (sum(t2.c1) IS NULL))
-         ->  Merge Full Join
+         ->  Foreign Scan
                Output: t2.c1, t1.c1
-               Merge Cond: (t1.c1 = t2.c1)
-               ->  Sort
-                     Output: t1.c1
-                     Sort Key: t1.c1
-                     ->  Foreign Scan on public.ft4 t1
-                           Output: t1.c1
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT c1 FROM "S 1"."T 3"
-               ->  Sort
-                     Output: t2.c1
-                     Sort Key: t2.c1
-                     ->  Foreign Scan on public.ft5 t2
-                           Output: t2.c1
-                           Node: postgres_srv / Status: Alive
-                             Remote SQL: SELECT c1 FROM "S 1"."T 4"
-(24 rows)
+               Node: postgres_srv / Status: Alive
+                 Relations: (public.ft4 t1) FULL JOIN (public.ft5 t2)
+                 Remote SQL: SELECT r2.c1, r1.c1 FROM ("S 1"."T 3" r1 FULL JOIN "S 1"."T 4" r2 ON (((r1.c1 = r2.c1))))
+(12 rows)
 
 --Testcase 230:
 select avg(t1.c1), sum(t2.c1) from ft4 t1 full join ft5 t2 on (t1.c1 = t2.c1) group by t2.c1 having (avg(t1.c1) is null and sum(t2.c1) < 10) or sum(t2.c1) is null order by 1 nulls last, 2;
@@ -4632,24 +4213,16 @@ select avg(t1.c1), sum(t2.c1) from ft4 t1 full join ft5 t2 on (t1.c1 = t2.c1) gr
 --Testcase 231:
 explain (verbose, costs off)
 select count(*), sum(t1.c1), avg(t2.c1) from (select c1 from ft4 where c1 between 50 and 60) t1 full join (select c1 from ft5 where c1 between 50 and 60) t2 on (t1.c1 = t2.c1);
-                                            QUERY PLAN                                            
---------------------------------------------------------------------------------------------------
+                                                                                                                            QUERY PLAN                                                                                                                             
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Aggregate
    Output: count(*), sum(ft4.c1), avg(ft5.c1)
-   ->  Hash Full Join
+   ->  Foreign Scan
          Output: ft4.c1, ft5.c1
-         Hash Cond: (ft4.c1 = ft5.c1)
-         ->  Foreign Scan on public.ft4
-               Output: ft4.c1
-               Node: postgres_srv / Status: Alive
-                 Remote SQL: SELECT c1 FROM "S 1"."T 3" WHERE ((c1 >= 50)) AND ((c1 <= 60))
-         ->  Hash
-               Output: ft5.c1
-               ->  Foreign Scan on public.ft5
-                     Output: ft5.c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT c1 FROM "S 1"."T 4" WHERE ((c1 >= 50)) AND ((c1 <= 60))
-(15 rows)
+         Node: postgres_srv / Status: Alive
+           Relations: (public.ft4) FULL JOIN (public.ft5)
+           Remote SQL: SELECT s4.c1, s5.c1 FROM ((SELECT c1, c1, c1 FROM "S 1"."T 3" WHERE ((c1 >= 50)) AND ((c1 <= 60))) s4(c1, c2, c3) FULL JOIN (SELECT c1, c1, c1 FROM "S 1"."T 4" WHERE ((c1 >= 50)) AND ((c1 <= 60))) s5(c1, c2, c3) ON (((s4.c1 = s5.c1))))
+(7 rows)
 
 --Testcase 232:
 select count(*), sum(t1.c1), avg(t2.c1) from (select c1 from ft4 where c1 between 50 and 60) t1 full join (select c1 from ft5 where c1 between 50 and 60) t2 on (t1.c1 = t2.c1);
@@ -5085,21 +4658,14 @@ select c2, array_agg(c2) over (partition by c2%2 order by c2 range between curre
 PREPARE st1(int, int) AS SELECT t1.c3, t2.c3 FROM ft1 t1, ft2 t2 WHERE t1.c1 = $1 AND t2.c1 = $2;
 --Testcase 256:
 EXPLAIN (VERBOSE, COSTS OFF) EXECUTE st1(1, 2);
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Nested Loop
+                                                           QUERY PLAN                                                           
+--------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan
    Output: t1.c3, t2.c3
-   ->  Foreign Scan on public.ft1 t1
-         Output: t1.c3
-         Node: postgres_srv / Status: Alive
-           Remote SQL: SELECT "C 1", c3 FROM "S 1"."T 1" WHERE (("C 1" = 1))
-   ->  Materialize
-         Output: t2.c3
-         ->  Foreign Scan on public.ft2 t2
-               Output: t2.c3
-               Node: postgres_srv / Status: Alive
-                 Remote SQL: SELECT "C 1", c3 FROM "S 1"."T 1" WHERE (("C 1" = 2))
-(12 rows)
+   Node: postgres_srv / Status: Alive
+     Relations: (public.ft1 t1) INNER JOIN (public.ft2 t2)
+     Remote SQL: SELECT r1.c3, r2.c3 FROM ("S 1"."T 1" r1 INNER JOIN "S 1"."T 1" r2 ON (((r2."C 1" = 2)) AND ((r1."C 1" = 1))))
+(5 rows)
 
 --Testcase 257:
 EXECUTE st1(1, 1);

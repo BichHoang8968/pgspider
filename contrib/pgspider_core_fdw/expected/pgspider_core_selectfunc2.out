@@ -107,7 +107,7 @@ EXPLAIN VERBOSE
 SELECT sqrt(value1), sqrt(value2) FROM s3 WHERE to_hex(value2) != '64';
                                    QUERY PLAN                                   
 --------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..271.90 rows=3396 width=16)
+ Foreign Scan on public.s3  (cost=100.00..254.92 rows=3396 width=16)
    Output: (sqrt(value1)), (sqrt((value2)::double precision))
    Filter: (to_hex(s3.value2) <> '64'::text)
    Node: pgspider_svr / Status: Alive
@@ -130,7 +130,7 @@ EXPLAIN VERBOSE
 SELECT sqrt(value1), sqrt(value2) FROM s3 WHERE value2 != 200;
                                            QUERY PLAN                                           
 ------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..254.54 rows=3396 width=16)
+ Foreign Scan on public.s3  (cost=100.00..246.05 rows=3396 width=16)
    Output: (sqrt(value1)), (sqrt((value2)::double precision))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT sqrt(value1), sqrt(value2) FROM public.s3influx WHERE ((value2 <> 200))
@@ -229,7 +229,7 @@ EXPLAIN VERBOSE
 SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE to_hex(value2) != '64';
                                                QUERY PLAN                                               
 --------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..280.39 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..263.41 rows=3396 width=32)
    Output: (abs(value1)), (abs(value2)), (abs(value3)), (abs(value4))
    Filter: (to_hex(s3.value2) <> '64'::text)
    Node: pgspider_svr / Status: Alive
@@ -252,7 +252,7 @@ EXPLAIN VERBOSE
 SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE value2 != 200;
                                                        QUERY PLAN                                                       
 ------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..263.03 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..254.54 rows=3396 width=32)
    Output: (abs(value1)), (abs(value2)), (abs(value3)), (abs(value4))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM public.s3influx WHERE ((value2 <> 200))
@@ -275,7 +275,7 @@ EXPLAIN VERBOSE
 SELECT log(value1::numeric, value2::numeric) FROM s3 WHERE value1 != 1;
                                                         QUERY PLAN                                                         
 ---------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..254.54 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..246.05 rows=3396 width=32)
    Output: (log((value1)::numeric, (value2)::numeric))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT log(value1::numeric, value2::numeric) FROM public.s3influx WHERE ((value1 <> 1::double precision))
@@ -300,7 +300,7 @@ EXPLAIN VERBOSE
 SELECT log(value1, 0.1) FROM s3 WHERE value1 != 1;
                                                           QUERY PLAN                                                           
 -------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1078.07 rows=3396 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1069.58 rows=3396 width=8)
    Output: (log(value1, '0.1'::double precision))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT public.log(value1, 0.1::double precision) FROM public.s3influx WHERE ((value1 <> 1::double precision))
@@ -325,7 +325,7 @@ EXPLAIN VERBOSE
 SELECT log(value2, 3) FROM s3 WHERE value1 != 1;
                                                     QUERY PLAN                                                     
 -------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1078.07 rows=3396 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1069.58 rows=3396 width=8)
    Output: (log(value2, '3'::bigint))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT public.log(value2, 3::bigint) FROM public.s3influx WHERE ((value1 <> 1::double precision))
@@ -350,7 +350,7 @@ EXPLAIN VERBOSE
 SELECT log(value1, value2) FROM s3 WHERE value1 != 1;
                                                    QUERY PLAN                                                   
 ----------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1086.56 rows=3396 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1078.07 rows=3396 width=8)
    Output: (log(value1, (value2)::double precision))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT public.log(value1, value2) FROM public.s3influx WHERE ((value1 <> 1::double precision))
@@ -936,23 +936,16 @@ SELECT (abs_all()::s3).* from s3;
 --Testcase 74:
 EXPLAIN VERBOSE
 SELECT spread(t1.value1), spread(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-                                                  QUERY PLAN                                                   
----------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=454.24..454.25 rows=1 width=16)
+                                                                                           QUERY PLAN                                                                                           
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=144.50..144.51 rows=1 width=16)
    Output: spread(t1.value1), spread(t2.value1)
-   ->  Nested Loop  (cost=200.00..309.74 rows=289 width=16)
+   ->  Foreign Scan  (cost=0.00..0.00 rows=289 width=32)
          Output: t1.value1, t2.value1
-         ->  Foreign Scan on public.s3 t1  (cost=100.00..153.04 rows=17 width=8)
-               Output: t1.value1
-               Node: pgspider_svr / Status: Alive
-                 Remote SQL: SELECT value1 FROM public.s3influx WHERE ((value1 = 0.1::double precision))
-         ->  Materialize  (cost=100.00..153.13 rows=17 width=8)
-               Output: t2.value1
-               ->  Foreign Scan on public.s3 t2  (cost=100.00..153.04 rows=17 width=8)
-                     Output: t2.value1
-                     Node: pgspider_svr / Status: Alive
-                       Remote SQL: SELECT value1 FROM public.s3influx WHERE ((value1 = 0.1::double precision))
-(14 rows)
+         Node: pgspider_svr / Status: Alive
+           Relations: (public.s3 t1) INNER JOIN (public.s3 t2)
+           Remote SQL: SELECT r1.value1, r2.value1 FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+(7 rows)
 
 -- select spread over join query (result, stub call error)
 --Testcase 75:
@@ -4496,23 +4489,16 @@ SELECT sum("value1"),integral("value1", interval '1s'),count("value1") FROM s3;
 --Testcase 317:
 EXPLAIN VERBOSE
 SELECT integral(t1.value1), integral(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-                                                  QUERY PLAN                                                   
----------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=454.24..454.25 rows=1 width=16)
+                                                                                           QUERY PLAN                                                                                           
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=144.50..144.51 rows=1 width=16)
    Output: integral(t1.value1), integral(t2.value1)
-   ->  Nested Loop  (cost=200.00..309.74 rows=289 width=16)
+   ->  Foreign Scan  (cost=0.00..0.00 rows=289 width=32)
          Output: t1.value1, t2.value1
-         ->  Foreign Scan on public.s3 t1  (cost=100.00..153.04 rows=17 width=8)
-               Output: t1.value1
-               Node: pgspider_svr / Status: Alive
-                 Remote SQL: SELECT value1 FROM public.s3influx WHERE ((value1 = 0.1::double precision))
-         ->  Materialize  (cost=100.00..153.13 rows=17 width=8)
-               Output: t2.value1
-               ->  Foreign Scan on public.s3 t2  (cost=100.00..153.04 rows=17 width=8)
-                     Output: t2.value1
-                     Node: pgspider_svr / Status: Alive
-                       Remote SQL: SELECT value1 FROM public.s3influx WHERE ((value1 = 0.1::double precision))
-(14 rows)
+         Node: pgspider_svr / Status: Alive
+           Relations: (public.s3 t1) INNER JOIN (public.s3 t2)
+           Remote SQL: SELECT r1.value1, r2.value1 FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+(7 rows)
 
 -- select integral over join query (result, stub call error)
 --Testcase 318:
@@ -4523,23 +4509,16 @@ CONTEXT:  PL/pgSQL function integral_sfunc(double precision,double precision) li
 --Testcase 319:
 EXPLAIN VERBOSE
 SELECT integral(t1.value1, interval '1s'), integral(t2.value1, interval '1s') FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-                                                  QUERY PLAN                                                   
----------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=454.24..454.25 rows=1 width=16)
+                                                                                           QUERY PLAN                                                                                           
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=144.50..144.51 rows=1 width=16)
    Output: integral(t1.value1, '@ 1 sec'::interval), integral(t2.value1, '@ 1 sec'::interval)
-   ->  Nested Loop  (cost=200.00..309.74 rows=289 width=16)
+   ->  Foreign Scan  (cost=0.00..0.00 rows=289 width=32)
          Output: t1.value1, t2.value1
-         ->  Foreign Scan on public.s3 t1  (cost=100.00..153.04 rows=17 width=8)
-               Output: t1.value1
-               Node: pgspider_svr / Status: Alive
-                 Remote SQL: SELECT value1 FROM public.s3influx WHERE ((value1 = 0.1::double precision))
-         ->  Materialize  (cost=100.00..153.13 rows=17 width=8)
-               Output: t2.value1
-               ->  Foreign Scan on public.s3 t2  (cost=100.00..153.04 rows=17 width=8)
-                     Output: t2.value1
-                     Node: pgspider_svr / Status: Alive
-                       Remote SQL: SELECT value1 FROM public.s3influx WHERE ((value1 = 0.1::double precision))
-(14 rows)
+         Node: pgspider_svr / Status: Alive
+           Relations: (public.s3 t1) INNER JOIN (public.s3 t2)
+           Remote SQL: SELECT r1.value1, r2.value1 FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+(7 rows)
 
 -- select integral over join query (result, stub call error)
 --Testcase 320:
@@ -4853,23 +4832,16 @@ SELECT sum("value1"),mean("value1"),count("value1") FROM s3;
 --Testcase 348:
 EXPLAIN VERBOSE
 SELECT mean(t1.value1), mean(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-                                                  QUERY PLAN                                                   
----------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=454.24..454.25 rows=1 width=16)
+                                                                                           QUERY PLAN                                                                                           
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=144.50..144.51 rows=1 width=16)
    Output: mean(t1.value1), mean(t2.value1)
-   ->  Nested Loop  (cost=200.00..309.74 rows=289 width=16)
+   ->  Foreign Scan  (cost=0.00..0.00 rows=289 width=32)
          Output: t1.value1, t2.value1
-         ->  Foreign Scan on public.s3 t1  (cost=100.00..153.04 rows=17 width=8)
-               Output: t1.value1
-               Node: pgspider_svr / Status: Alive
-                 Remote SQL: SELECT value1 FROM public.s3influx WHERE ((value1 = 0.1::double precision))
-         ->  Materialize  (cost=100.00..153.13 rows=17 width=8)
-               Output: t2.value1
-               ->  Foreign Scan on public.s3 t2  (cost=100.00..153.04 rows=17 width=8)
-                     Output: t2.value1
-                     Node: pgspider_svr / Status: Alive
-                       Remote SQL: SELECT value1 FROM public.s3influx WHERE ((value1 = 0.1::double precision))
-(14 rows)
+         Node: pgspider_svr / Status: Alive
+           Relations: (public.s3 t1) INNER JOIN (public.s3 t2)
+           Remote SQL: SELECT r1.value1, r2.value1 FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+(7 rows)
 
 -- select mean over join query (result, stub call error)
 --Testcase 349:
@@ -5175,23 +5147,16 @@ SELECT sum("value1"),median("value1"),count("value1") FROM s3;
 --Testcase 375:
 EXPLAIN VERBOSE
 SELECT median(t1.value1), median(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-                                                  QUERY PLAN                                                   
----------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=454.24..454.25 rows=1 width=16)
+                                                                                           QUERY PLAN                                                                                           
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=144.50..144.51 rows=1 width=16)
    Output: median(t1.value1), median(t2.value1)
-   ->  Nested Loop  (cost=200.00..309.74 rows=289 width=16)
+   ->  Foreign Scan  (cost=0.00..0.00 rows=289 width=32)
          Output: t1.value1, t2.value1
-         ->  Foreign Scan on public.s3 t1  (cost=100.00..153.04 rows=17 width=8)
-               Output: t1.value1
-               Node: pgspider_svr / Status: Alive
-                 Remote SQL: SELECT value1 FROM public.s3influx WHERE ((value1 = 0.1::double precision))
-         ->  Materialize  (cost=100.00..153.13 rows=17 width=8)
-               Output: t2.value1
-               ->  Foreign Scan on public.s3 t2  (cost=100.00..153.04 rows=17 width=8)
-                     Output: t2.value1
-                     Node: pgspider_svr / Status: Alive
-                       Remote SQL: SELECT value1 FROM public.s3influx WHERE ((value1 = 0.1::double precision))
-(14 rows)
+         Node: pgspider_svr / Status: Alive
+           Relations: (public.s3 t1) INNER JOIN (public.s3 t2)
+           Remote SQL: SELECT r1.value1, r2.value1 FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+(7 rows)
 
 -- select median over join query (result, stub call error)
 --Testcase 376:
@@ -5497,23 +5462,16 @@ SELECT sum("value1"),influx_mode("value1"),count("value1") FROM s3;
 --Testcase 402:
 EXPLAIN VERBOSE
 SELECT influx_mode(t1.value1), influx_mode(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-                                                  QUERY PLAN                                                   
----------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=454.24..454.25 rows=1 width=16)
+                                                                                           QUERY PLAN                                                                                           
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=144.50..144.51 rows=1 width=16)
    Output: influx_mode(t1.value1), influx_mode(t2.value1)
-   ->  Nested Loop  (cost=200.00..309.74 rows=289 width=16)
+   ->  Foreign Scan  (cost=0.00..0.00 rows=289 width=32)
          Output: t1.value1, t2.value1
-         ->  Foreign Scan on public.s3 t1  (cost=100.00..153.04 rows=17 width=8)
-               Output: t1.value1
-               Node: pgspider_svr / Status: Alive
-                 Remote SQL: SELECT value1 FROM public.s3influx WHERE ((value1 = 0.1::double precision))
-         ->  Materialize  (cost=100.00..153.13 rows=17 width=8)
-               Output: t2.value1
-               ->  Foreign Scan on public.s3 t2  (cost=100.00..153.04 rows=17 width=8)
-                     Output: t2.value1
-                     Node: pgspider_svr / Status: Alive
-                       Remote SQL: SELECT value1 FROM public.s3influx WHERE ((value1 = 0.1::double precision))
-(14 rows)
+         Node: pgspider_svr / Status: Alive
+           Relations: (public.s3 t1) INNER JOIN (public.s3 t2)
+           Remote SQL: SELECT r1.value1, r2.value1 FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+(7 rows)
 
 -- select influx_mode over join query (result, stub call error)
 --Testcase 403:
@@ -7017,7 +6975,7 @@ EXPLAIN VERBOSE
 SELECT acos(value1), acos(value2), acos(value3), acos(value4) FROM s3 WHERE to_hex(value2) = '64';
                                                         QUERY PLAN                                                        
 --------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..237.87 rows=17 width=32)
+ Foreign Scan on public.s3  (cost=100.00..237.78 rows=17 width=32)
    Output: (acos(value1)), (acos(value2)), (acos(value3)), (acos(value4))
    Filter: (to_hex(s3.value2) = '64'::text)
    Node: pgspider_svr / Status: Alive
@@ -7040,7 +6998,7 @@ EXPLAIN VERBOSE
 SELECT acos(value1), acos(value2), acos(value3), acos(value4) FROM s3 WHERE value2 != 200;
                                                                 QUERY PLAN                                                                
 ------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1944.05 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1935.56 rows=3396 width=32)
    Output: (acos(value1)), (acos(value2)), (acos(value3)), (acos(value4))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT acos(value1), public.acos(value2), acos(value3), public.acos(value4) FROM public.s3influx WHERE ((value2 <> 200))
@@ -7302,7 +7260,7 @@ EXPLAIN VERBOSE
 SELECT asin(value1), asin(value2), asin(value3), asin(value4) FROM s3 WHERE to_hex(value2) = '64';
                                                         QUERY PLAN                                                        
 --------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..237.87 rows=17 width=32)
+ Foreign Scan on public.s3  (cost=100.00..237.78 rows=17 width=32)
    Output: (asin(value1)), (asin(value2)), (asin(value3)), (asin(value4))
    Filter: (to_hex(s3.value2) = '64'::text)
    Node: pgspider_svr / Status: Alive
@@ -7325,7 +7283,7 @@ EXPLAIN VERBOSE
 SELECT asin(value1), asin(value2), asin(value3), asin(value4) FROM s3 WHERE value2 != 200;
                                                                 QUERY PLAN                                                                
 ------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1944.05 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1935.56 rows=3396 width=32)
    Output: (asin(value1)), (asin(value2)), (asin(value3)), (asin(value4))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT asin(value1), public.asin(value2), asin(value3), public.asin(value4) FROM public.s3influx WHERE ((value2 <> 200))
@@ -7587,7 +7545,7 @@ EXPLAIN VERBOSE
 SELECT atan(value1), atan(value2), atan(value3), atan(value4) FROM s3 WHERE to_hex(value2) != '64';
                                                         QUERY PLAN                                                        
 --------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1961.41 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1944.43 rows=3396 width=32)
    Output: (atan(value1)), (atan(value2)), (atan(value3)), (atan(value4))
    Filter: (to_hex(s3.value2) <> '64'::text)
    Node: pgspider_svr / Status: Alive
@@ -7610,7 +7568,7 @@ EXPLAIN VERBOSE
 SELECT atan(value1), atan(value2), atan(value3), atan(value4) FROM s3 WHERE value2 != 200;
                                                                 QUERY PLAN                                                                
 ------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1944.05 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1935.56 rows=3396 width=32)
    Output: (atan(value1)), (atan(value2)), (atan(value3)), (atan(value4))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT atan(value1), public.atan(value2), atan(value3), public.atan(value4) FROM public.s3influx WHERE ((value2 <> 200))
@@ -7866,7 +7824,7 @@ EXPLAIN VERBOSE
 SELECT atan2(value1, value2), atan2(value2, value3), atan2(value3, value4), atan2(value4, value1) FROM s3 WHERE to_hex(value2) != '64';
                                                                                  QUERY PLAN                                                                                 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..3642.43 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..3625.45 rows=3396 width=32)
    Output: (atan2(value1, value2)), (atan2(value2, value3)), (atan2(value3, value4)), (atan2(value4, value1))
    Filter: (to_hex(s3.value2) <> '64'::text)
    Node: pgspider_svr / Status: Alive
@@ -7889,7 +7847,7 @@ EXPLAIN VERBOSE
 SELECT atan2(value1, value2), atan2(value2, value3), atan2(value3, value4), atan2(value4, value1) FROM s3 WHERE value2 != 200;
                                                                                          QUERY PLAN                                                                                         
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..3625.07 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..3616.58 rows=3396 width=32)
    Output: (atan2(value1, value2)), (atan2(value2, value3)), (atan2(value3, value4)), (atan2(value4, value1))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT public.atan2(value1, value2), public.atan2(value2, value3), public.atan2(value3, value4), public.atan2(value4, value1) FROM public.s3influx WHERE ((value2 <> 200))
@@ -8100,7 +8058,7 @@ EXPLAIN VERBOSE
 SELECT ceil(value1), ceil(value2), ceil(value3), ceil(value4) FROM s3 WHERE to_hex(value2) != '64';
                                                         QUERY PLAN                                                        
 --------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1961.41 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1944.43 rows=3396 width=32)
    Output: (ceil(value1)), (ceil(value2)), (ceil(value3)), (ceil(value4))
    Filter: (to_hex(s3.value2) <> '64'::text)
    Node: pgspider_svr / Status: Alive
@@ -8123,7 +8081,7 @@ EXPLAIN VERBOSE
 SELECT ceil(value1), ceil(value2), ceil(value3), ceil(value4) FROM s3 WHERE value2 != 200;
                                                                 QUERY PLAN                                                                
 ------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1944.05 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1935.56 rows=3396 width=32)
    Output: (ceil(value1)), (ceil(value2)), (ceil(value3)), (ceil(value4))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT ceil(value1), public.ceil(value2), ceil(value3), public.ceil(value4) FROM public.s3influx WHERE ((value2 <> 200))
@@ -8385,7 +8343,7 @@ EXPLAIN VERBOSE
 SELECT cos(value1), cos(value2), cos(value3), cos(value4) FROM s3 WHERE to_hex(value2) != '64';
                                                       QUERY PLAN                                                      
 ----------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1961.41 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1944.43 rows=3396 width=32)
    Output: (cos(value1)), (cos(value2)), (cos(value3)), (cos(value4))
    Filter: (to_hex(s3.value2) <> '64'::text)
    Node: pgspider_svr / Status: Alive
@@ -8408,7 +8366,7 @@ EXPLAIN VERBOSE
 SELECT cos(value1), cos(value2), cos(value3), cos(value4) FROM s3 WHERE value2 != 200;
                                                               QUERY PLAN                                                              
 --------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1944.05 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1935.56 rows=3396 width=32)
    Output: (cos(value1)), (cos(value2)), (cos(value3)), (cos(value4))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT cos(value1), public.cos(value2), cos(value3), public.cos(value4) FROM public.s3influx WHERE ((value2 <> 200))
@@ -8645,7 +8603,7 @@ EXPLAIN VERBOSE
 SELECT exp(value1), exp(value2), exp(value3), exp(value4) FROM s3 WHERE to_hex(value2) != '64';
                                                       QUERY PLAN                                                      
 ----------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1961.41 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1944.43 rows=3396 width=32)
    Output: (exp(value1)), (exp(value2)), (exp(value3)), (exp(value4))
    Filter: (to_hex(s3.value2) <> '64'::text)
    Node: pgspider_svr / Status: Alive
@@ -8668,7 +8626,7 @@ EXPLAIN VERBOSE
 SELECT exp(value1), exp(value2), exp(value3), exp(value4) FROM s3 WHERE value2 != 200;
                                                               QUERY PLAN                                                              
 --------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1944.05 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1935.56 rows=3396 width=32)
    Output: (exp(value1)), (exp(value2)), (exp(value3)), (exp(value4))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT exp(value1), public.exp(value2), exp(value3), public.exp(value4) FROM public.s3influx WHERE ((value2 <> 200))
@@ -8912,7 +8870,7 @@ EXPLAIN VERBOSE
 SELECT floor(value1), floor(value2), floor(value3), floor(value4) FROM s3 WHERE to_hex(value2) != '64';
                                                           QUERY PLAN                                                          
 ------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1961.41 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1944.43 rows=3396 width=32)
    Output: (floor(value1)), (floor(value2)), (floor(value3)), (floor(value4))
    Filter: (to_hex(s3.value2) <> '64'::text)
    Node: pgspider_svr / Status: Alive
@@ -8935,7 +8893,7 @@ EXPLAIN VERBOSE
 SELECT floor(value1), floor(value2), floor(value3), floor(value4) FROM s3 WHERE value2 != 200;
                                                                   QUERY PLAN                                                                  
 ----------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1944.05 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1935.56 rows=3396 width=32)
    Output: (floor(value1)), (floor(value2)), (floor(value3)), (floor(value4))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT floor(value1), public.floor(value2), floor(value3), public.floor(value4) FROM public.s3influx WHERE ((value2 <> 200))
@@ -9197,7 +9155,7 @@ EXPLAIN VERBOSE
 SELECT ln(value1), ln(value2), ln(value3), ln(value4) FROM s3 WHERE to_hex(value2) != '64';
                                                     QUERY PLAN                                                    
 ------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1961.41 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1944.43 rows=3396 width=32)
    Output: (ln(value1)), (ln(value2)), (ln(value3)), (ln(value4))
    Filter: (to_hex(s3.value2) <> '64'::text)
    Node: pgspider_svr / Status: Alive
@@ -9220,7 +9178,7 @@ EXPLAIN VERBOSE
 SELECT ln(value1), ln(value2), ln(value3), ln(value4) FROM s3 WHERE value2 != 200;
                                                             QUERY PLAN                                                            
 ----------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1944.05 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1935.56 rows=3396 width=32)
    Output: (ln(value1)), (ln(value2)), (ln(value3)), (ln(value4))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT ln(value1), public.ln(value2), ln(value3), public.ln(value4) FROM public.s3influx WHERE ((value2 <> 200))
@@ -9464,7 +9422,7 @@ EXPLAIN VERBOSE
 SELECT pow(value1, 2), pow(value2, 2), pow(value3, 2), pow(value4, 2) FROM s3 WHERE to_hex(value2) != '64';
                                                                    QUERY PLAN                                                                   
 ------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..3642.43 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..3625.45 rows=3396 width=32)
    Output: (pow(value1, 2)), (pow(value2, 2)), (pow(value3, 2)), (pow(value4, 2))
    Filter: (to_hex(s3.value2) <> '64'::text)
    Node: pgspider_svr / Status: Alive
@@ -9487,7 +9445,7 @@ EXPLAIN VERBOSE
 SELECT pow(value1, 2), pow(value2, 2), pow(value3, 2), pow(value4, 2) FROM s3 WHERE value2 != 200;
                                                                            QUERY PLAN                                                                           
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..3625.07 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..3616.58 rows=3396 width=32)
    Output: (pow(value1, 2)), (pow(value2, 2)), (pow(value3, 2)), (pow(value4, 2))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT public.pow(value1, 2), public.pow(value2, 2), public.pow(value3, 2), public.pow(value4, 2) FROM public.s3influx WHERE ((value2 <> 200))
@@ -9749,7 +9707,7 @@ EXPLAIN VERBOSE
 SELECT round(value1), round(value2), round(value3), round(value4) FROM s3 WHERE to_hex(value2) != '64';
                                                           QUERY PLAN                                                          
 ------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1961.41 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1944.43 rows=3396 width=32)
    Output: (round(value1)), (round(value2)), (round(value3)), (round(value4))
    Filter: (to_hex(s3.value2) <> '64'::text)
    Node: pgspider_svr / Status: Alive
@@ -9772,7 +9730,7 @@ EXPLAIN VERBOSE
 SELECT round(value1), round(value2), round(value3), round(value4) FROM s3 WHERE value2 != 200;
                                                                   QUERY PLAN                                                                  
 ----------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1944.05 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1935.56 rows=3396 width=32)
    Output: (round(value1)), (round(value2)), (round(value3)), (round(value4))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT round(value1), public.round(value2), round(value3), public.round(value4) FROM public.s3influx WHERE ((value2 <> 200))
@@ -10034,7 +9992,7 @@ EXPLAIN VERBOSE
 SELECT sin(value1), sin(value2), sin(value3), sin(value4) FROM s3 WHERE to_hex(value2) != '64';
                                                       QUERY PLAN                                                      
 ----------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1961.41 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1944.43 rows=3396 width=32)
    Output: (sin(value1)), (sin(value2)), (sin(value3)), (sin(value4))
    Filter: (to_hex(s3.value2) <> '64'::text)
    Node: pgspider_svr / Status: Alive
@@ -10057,7 +10015,7 @@ EXPLAIN VERBOSE
 SELECT sin(value1), sin(value2), sin(value3), sin(value4) FROM s3 WHERE value2 != 200;
                                                               QUERY PLAN                                                              
 --------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1944.05 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1935.56 rows=3396 width=32)
    Output: (sin(value1)), (sin(value2)), (sin(value3)), (sin(value4))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT sin(value1), public.sin(value2), sin(value3), public.sin(value4) FROM public.s3influx WHERE ((value2 <> 200))
@@ -10294,7 +10252,7 @@ EXPLAIN VERBOSE
 SELECT tan(value1), tan(value2), tan(value3), tan(value4) FROM s3 WHERE to_hex(value2) != '64';
                                                       QUERY PLAN                                                      
 ----------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1961.41 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1944.43 rows=3396 width=32)
    Output: (tan(value1)), (tan(value2)), (tan(value3)), (tan(value4))
    Filter: (to_hex(s3.value2) <> '64'::text)
    Node: pgspider_svr / Status: Alive
@@ -10317,7 +10275,7 @@ EXPLAIN VERBOSE
 SELECT tan(value1), tan(value2), tan(value3), tan(value4) FROM s3 WHERE value2 != 200;
                                                               QUERY PLAN                                                              
 --------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1944.05 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1935.56 rows=3396 width=32)
    Output: (tan(value1)), (tan(value2)), (tan(value3)), (tan(value4))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT tan(value1), public.tan(value2), tan(value3), public.tan(value4) FROM public.s3influx WHERE ((value2 <> 200))
@@ -10667,22 +10625,15 @@ SELECT influx_count_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_
 --Testcase 796:
 EXPLAIN VERBOSE
 SELECT influx_count_all(*) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-                                                  QUERY PLAN                                                   
----------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=381.99..382.00 rows=1 width=32)
+                                                                                   QUERY PLAN                                                                                   
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=72.25..72.26 rows=1 width=32)
    Output: influx_count_all(*)
-   ->  Nested Loop  (cost=200.00..309.74 rows=289 width=0)
-         ->  Foreign Scan on public.s3 t1  (cost=100.00..153.04 rows=17 width=8)
-               Output: t1.value1
-               Node: pgspider_svr / Status: Alive
-                 Remote SQL: SELECT value1 FROM public.s3influx WHERE ((value1 = 0.1::double precision))
-         ->  Materialize  (cost=100.00..153.13 rows=17 width=8)
-               Output: t2.value1
-               ->  Foreign Scan on public.s3 t2  (cost=100.00..153.04 rows=17 width=8)
-                     Output: t2.value1
-                     Node: pgspider_svr / Status: Alive
-                       Remote SQL: SELECT value1 FROM public.s3influx WHERE ((value1 = 0.1::double precision))
-(13 rows)
+   ->  Foreign Scan  (cost=0.00..0.00 rows=289 width=0)
+         Node: pgspider_svr / Status: Alive
+           Relations: (public.s3 t1) INNER JOIN (public.s3 t2)
+           Remote SQL: SELECT NULL FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+(6 rows)
 
 -- select count(*) function of InfluxDB over join query (result, stub call error)
 --Testcase 797:
@@ -10769,23 +10720,16 @@ SELECT influx_distinct(value2) FROM s3 WHERE time >= to_timestamp(0) and time <=
 --Testcase 804:
 EXPLAIN VERBOSE
 SELECT influx_distinct(t1.value2) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-                                                   QUERY PLAN                                                    
------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=381.99..382.00 rows=1 width=8)
+                                                                                     QUERY PLAN                                                                                      
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=72.25..72.26 rows=1 width=8)
    Output: influx_distinct(t1.value2)
-   ->  Nested Loop  (cost=200.00..309.74 rows=289 width=8)
+   ->  Foreign Scan  (cost=0.00..0.00 rows=289 width=8)
          Output: t1.value2
-         ->  Foreign Scan on public.s3 t1  (cost=100.00..153.04 rows=17 width=16)
-               Output: t1.value2, t1.value1
-               Node: pgspider_svr / Status: Alive
-                 Remote SQL: SELECT value1, value2 FROM public.s3influx WHERE ((value1 = 0.1::double precision))
-         ->  Materialize  (cost=100.00..153.13 rows=17 width=8)
-               Output: t2.value1
-               ->  Foreign Scan on public.s3 t2  (cost=100.00..153.04 rows=17 width=8)
-                     Output: t2.value1
-                     Node: pgspider_svr / Status: Alive
-                       Remote SQL: SELECT value1 FROM public.s3influx WHERE ((value1 = 0.1::double precision))
-(14 rows)
+         Node: pgspider_svr / Status: Alive
+           Relations: (public.s3 t1) INNER JOIN (public.s3 t2)
+           Remote SQL: SELECT r1.value2 FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+(7 rows)
 
 -- select distinct over join query (result, stub call error)
 --Testcase 805:
@@ -10900,7 +10844,7 @@ EXPLAIN VERBOSE
 SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE to_hex(value2) != '64';
                                                QUERY PLAN                                               
 --------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..280.39 rows=3396 width=24)
+ Foreign Scan on public.s3  (cost=100.00..263.41 rows=3396 width=24)
    Output: (abs(value1)), (abs(value2)), (abs(value3)), (abs(value4))
    Filter: (to_hex(s3.value2) <> '64'::text)
    Node: pgspider_svr / Status: Alive
@@ -10925,7 +10869,7 @@ EXPLAIN VERBOSE
 SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE value2 != 200;
                                                        QUERY PLAN                                                       
 ------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..263.03 rows=3396 width=24)
+ Foreign Scan on public.s3  (cost=100.00..254.54 rows=3396 width=24)
    Output: (abs(value1)), (abs(value2)), (abs(value3)), (abs(value4))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM public.s3sqlite WHERE ((value2 <> 200))
@@ -11282,7 +11226,7 @@ EXPLAIN VERBOSE
 SELECT sqrt(value1), sqrt(value2) FROM s3 WHERE to_hex(value2) != '64';
                                   QUERY PLAN                                   
 -------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..271.90 rows=3396 width=16)
+ Foreign Scan on public.s3  (cost=100.00..254.92 rows=3396 width=16)
    Output: (sqrt(value1)), (sqrt((value2)::double precision))
    Filter: (to_hex(s3.value2) <> '64'::text)
    Node: pgspider_svr / Status: Alive
@@ -11307,7 +11251,7 @@ EXPLAIN VERBOSE
 SELECT sqrt(value1), sqrt(value2) FROM s3 WHERE value2 != 200;
                                           QUERY PLAN                                           
 -----------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..254.54 rows=3396 width=16)
+ Foreign Scan on public.s3  (cost=100.00..246.05 rows=3396 width=16)
    Output: (sqrt(value1)), (sqrt((value2)::double precision))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT sqrt(value1), sqrt(value2) FROM public.s3mysql WHERE ((value2 <> 200))
@@ -11359,7 +11303,7 @@ EXPLAIN VERBOSE
 SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE to_hex(value2) != '64';
                                               QUERY PLAN                                               
 -------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..280.39 rows=3396 width=24)
+ Foreign Scan on public.s3  (cost=100.00..263.41 rows=3396 width=24)
    Output: (abs(value1)), (abs(value2)), (abs(value3)), (abs(value4))
    Filter: (to_hex(s3.value2) <> '64'::text)
    Node: pgspider_svr / Status: Alive
@@ -11384,7 +11328,7 @@ EXPLAIN VERBOSE
 SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE value2 != 200;
                                                       QUERY PLAN                                                       
 -----------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..263.03 rows=3396 width=24)
+ Foreign Scan on public.s3  (cost=100.00..254.54 rows=3396 width=24)
    Output: (abs(value1)), (abs(value2)), (abs(value3)), (abs(value4))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM public.s3mysql WHERE ((value2 <> 200))
@@ -11409,7 +11353,7 @@ EXPLAIN VERBOSE
 SELECT log(value1::numeric, value2::numeric) FROM s3 WHERE value1 != 1;
                                                         QUERY PLAN                                                        
 --------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..254.54 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..246.05 rows=3396 width=32)
    Output: (log((value1)::numeric, (value2)::numeric))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT log(value1::numeric, value2::numeric) FROM public.s3mysql WHERE ((value1 <> 1::double precision))
@@ -11436,7 +11380,7 @@ EXPLAIN VERBOSE
 SELECT log(value1, 0.1) FROM s3 WHERE value1 != 1;
                                                           QUERY PLAN                                                          
 ------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1078.07 rows=3396 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1069.58 rows=3396 width=8)
    Output: (log(value1, '0.1'::double precision))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT public.log(value1, 0.1::double precision) FROM public.s3mysql WHERE ((value1 <> 1::double precision))
@@ -11463,7 +11407,7 @@ EXPLAIN VERBOSE
 SELECT log(value2, 3) FROM s3 WHERE value1 != 1;
                                                          QUERY PLAN                                                         
 ----------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1086.56 rows=3396 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1078.07 rows=3396 width=8)
    Output: (log((value2)::double precision, '3'::double precision))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT public.log(value2, 3::double precision) FROM public.s3mysql WHERE ((value1 <> 1::double precision))
@@ -11490,7 +11434,7 @@ EXPLAIN VERBOSE
 SELECT log(value1, value2) FROM s3 WHERE value1 != 1;
                                                   QUERY PLAN                                                   
 ---------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1086.56 rows=3396 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1078.07 rows=3396 width=8)
    Output: (log(value1, (value2)::double precision))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT public.log(value1, value2) FROM public.s3mysql WHERE ((value1 <> 1::double precision))
@@ -11744,7 +11688,7 @@ EXPLAIN VERBOSE
 SELECT MATCH_AGAINST(ARRAY[content, 'success catches']) AS score, content FROM ftextsearch WHERE MATCH_AGAINST(ARRAY[content, 'success catches','IN BOOLEAN MODE']) != 0;
                                                                                                                   QUERY PLAN                                                                                                                   
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.ftextsearch  (cost=100.00..2780.32 rows=3396 width=40)
+ Foreign Scan on public.ftextsearch  (cost=100.00..1922.83 rows=3396 width=40)
    Output: (match_against(ARRAY[content, 'success catches'::text])), content
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT public.match_against(ARRAY[content, 'success catches'::text]), content FROM public.ftextsearch WHERE ((public.match_against(ARRAY[content, 'success catches'::text, 'IN BOOLEAN MODE'::text]) <> 0::double precision))
@@ -11921,7 +11865,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE char_length(name) > 4 ;
                                                                                                                                                                          QUERY PLAN                                                                                                                                                                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..189.64 rows=1138 width=525)
+ Foreign Scan on public.s3  (cost=100.00..183.95 rows=1138 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url FROM public.s3griddb WHERE ((char_length(name) > 4))
@@ -11957,7 +11901,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE char_length(name) < 6 ;
                                                                                                                                                                          QUERY PLAN                                                                                                                                                                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..189.64 rows=1138 width=525)
+ Foreign Scan on public.s3  (cost=100.00..183.95 rows=1138 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url FROM public.s3griddb WHERE ((char_length(name) < 6))
@@ -11987,7 +11931,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE concat(name,' and george') = 'fred and george';
                                                                                                                                                          QUERY PLAN                                                                                                                                                         
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..229.28 rows=17 width=525)
+ Foreign Scan on public.s3  (cost=100.00..229.19 rows=17 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Filter: (concat(s3.name, ' and george') = 'fred and george'::text)
    Node: pgspider_svr / Status: Alive
@@ -12007,7 +11951,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE substr(name,2,3) = 'red';
                                                                                                                                                                               QUERY PLAN                                                                                                                                                                               
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..161.62 rows=17 width=525)
+ Foreign Scan on public.s3  (cost=100.00..161.53 rows=17 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url FROM public.s3griddb WHERE ((substr(name, 2, 3) = 'red'::text))
@@ -12025,7 +11969,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE substr(name,1,3) <> 'fre';
                                                                                                                                                                                QUERY PLAN                                                                                                                                                                               
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..246.10 rows=3396 width=525)
+ Foreign Scan on public.s3  (cost=100.00..229.12 rows=3396 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url FROM public.s3griddb WHERE ((substr(name, 1, 3) <> 'fre'::text))
@@ -12067,7 +12011,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE upper(name) = 'FRED';
                                                                                                                                                                            QUERY PLAN                                                                                                                                                                            
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..161.62 rows=17 width=525)
+ Foreign Scan on public.s3  (cost=100.00..161.53 rows=17 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url FROM public.s3griddb WHERE ((upper(name) = 'FRED'::text))
@@ -12085,7 +12029,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE upper(name) <> 'FRED';
                                                                                                                                                                             QUERY PLAN                                                                                                                                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..246.10 rows=3396 width=525)
+ Foreign Scan on public.s3  (cost=100.00..229.12 rows=3396 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url FROM public.s3griddb WHERE ((upper(name) <> 'FRED'::text))
@@ -12127,7 +12071,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE lower(name) = 'george';
                                                                                                                                                                             QUERY PLAN                                                                                                                                                                             
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..161.62 rows=17 width=525)
+ Foreign Scan on public.s3  (cost=100.00..161.53 rows=17 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url FROM public.s3griddb WHERE ((lower(name) = 'george'::text))
@@ -12145,7 +12089,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE lower(name) <> 'bob';
                                                                                                                                                                            QUERY PLAN                                                                                                                                                                            
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..246.10 rows=3396 width=525)
+ Foreign Scan on public.s3  (cost=100.00..229.12 rows=3396 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url FROM public.s3griddb WHERE ((lower(name) <> 'bob'::text))
@@ -12187,7 +12131,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE round(gpa) > 3.5;
                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..189.64 rows=1138 width=525)
+ Foreign Scan on public.s3  (cost=100.00..183.95 rows=1138 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url FROM public.s3griddb WHERE ((round(gpa) > 3.5::double precision))
@@ -12227,7 +12171,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE round(gpa) <= 3;
                                                                                                                                                                                QUERY PLAN                                                                                                                                                                               
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..189.64 rows=1138 width=525)
+ Foreign Scan on public.s3  (cost=100.00..183.95 rows=1138 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url FROM public.s3griddb WHERE ((round(gpa) <= 3::double precision))
@@ -12247,7 +12191,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE floor(gpa) = 3;
                                                                                                                                                                               QUERY PLAN                                                                                                                                                                               
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..161.62 rows=17 width=525)
+ Foreign Scan on public.s3  (cost=100.00..161.53 rows=17 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url FROM public.s3griddb WHERE ((floor(gpa) = 3::double precision))
@@ -12288,7 +12232,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE floor(gpa) < 2;
                                                                                                                                                                               QUERY PLAN                                                                                                                                                                               
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..189.64 rows=1138 width=525)
+ Foreign Scan on public.s3  (cost=100.00..183.95 rows=1138 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url FROM public.s3griddb WHERE ((floor(gpa) < 2::double precision))
@@ -12307,7 +12251,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE ceiling(gpa) >= 3;
                                                                                                                                                                                 QUERY PLAN                                                                                                                                                                                
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..189.64 rows=1138 width=525)
+ Foreign Scan on public.s3  (cost=100.00..183.95 rows=1138 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url FROM public.s3griddb WHERE ((ceiling(gpa) >= 3::double precision))
@@ -12349,7 +12293,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE ceiling(gpa) = 4;
                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..161.62 rows=17 width=525)
+ Foreign Scan on public.s3  (cost=100.00..161.53 rows=17 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url FROM public.s3griddb WHERE ((ceiling(gpa) = 4::double precision))
@@ -12394,7 +12338,7 @@ EXPLAIN VERBOSE
 SELECT date, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol FROM s3 WHERE griddb_timestamp(strcol) > '2020-01-05 21:00:00';
                                                                                                           QUERY PLAN                                                                                                          
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=69)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=69)
    Output: date, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol FROM public.s3griddb WHERE ((public.griddb_timestamp(strcol) > '2020-01-05 21:00:00'::timestamp without time zone))
@@ -12411,7 +12355,7 @@ EXPLAIN VERBOSE
 SELECT date, strcol FROM s3 WHERE date < griddb_timestamp(strcol);
                                                 QUERY PLAN                                                 
 -----------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=40)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=40)
    Output: date, strcol
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date, strcol FROM public.s3griddb WHERE ((date < public.griddb_timestamp(strcol)))
@@ -12460,7 +12404,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('YEAR', date1, -1) > '2019-12-29 05:00:00';
                                                                                      QUERY PLAN                                                                                     
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1 FROM public.s3griddb WHERE ((public.timestampadd('YEAR'::public.griddb_time_unit, date1, (-1)) > '2019-12-29 05:00:00'::timestamp without time zone))
@@ -12500,7 +12444,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('YEAR', date1, 5) >= '2025-12-29 04:50:00';
                                                                                     QUERY PLAN                                                                                    
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1 FROM public.s3griddb WHERE ((public.timestampadd('YEAR'::public.griddb_time_unit, date1, 5) >= '2025-12-29 04:50:00'::timestamp without time zone))
@@ -12541,7 +12485,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('YEAR', date1, 5) >= '2025-12-29';
                                                                                     QUERY PLAN                                                                                    
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1 FROM public.s3griddb WHERE ((public.timestampadd('YEAR'::public.griddb_time_unit, date1, 5) >= '2025-12-29 00:00:00'::timestamp without time zone))
@@ -12584,7 +12528,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('MONTH', date1, -3) > '2020-06-29 05:00:00';
                                                                                      QUERY PLAN                                                                                      
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1 FROM public.s3griddb WHERE ((public.timestampadd('MONTH'::public.griddb_time_unit, date1, (-3)) > '2020-06-29 05:00:00'::timestamp without time zone))
@@ -12626,7 +12570,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('MONTH', date1, 3) = '2021-03-29 05:00:30';
                                                                                     QUERY PLAN                                                                                    
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1010.54 rows=17 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1006.25 rows=17 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1 FROM public.s3griddb WHERE ((public.timestampadd('MONTH'::public.griddb_time_unit, date1, 3) = '2021-03-29 05:00:30'::timestamp without time zone))
@@ -12644,7 +12588,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('MONTH', date1, 3) >= '2021-03-29';
                                                                                     QUERY PLAN                                                                                     
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1 FROM public.s3griddb WHERE ((public.timestampadd('MONTH'::public.griddb_time_unit, date1, 3) >= '2021-03-29 00:00:00'::timestamp without time zone))
@@ -12687,7 +12631,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('DAY', date1, -3) > '2020-06-29 05:00:00';
                                                                                     QUERY PLAN                                                                                     
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1 FROM public.s3griddb WHERE ((public.timestampadd('DAY'::public.griddb_time_unit, date1, (-3)) > '2020-06-29 05:00:00'::timestamp without time zone))
@@ -12729,7 +12673,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('DAY', date1, 3) = '2021-01-01 05:00:30';
                                                                                    QUERY PLAN                                                                                   
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1010.54 rows=17 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1006.25 rows=17 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1 FROM public.s3griddb WHERE ((public.timestampadd('DAY'::public.griddb_time_unit, date1, 3) = '2021-01-01 05:00:30'::timestamp without time zone))
@@ -12747,7 +12691,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('DAY', date1, 3) >= '2021-01-01';
                                                                                    QUERY PLAN                                                                                    
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1 FROM public.s3griddb WHERE ((public.timestampadd('DAY'::public.griddb_time_unit, date1, 3) >= '2021-01-01 00:00:00'::timestamp without time zone))
@@ -12790,7 +12734,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('HOUR', date1, -1) > '2020-12-29 04:00:00';
                                                                                      QUERY PLAN                                                                                     
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1 FROM public.s3griddb WHERE ((public.timestampadd('HOUR'::public.griddb_time_unit, date1, (-1)) > '2020-12-29 04:00:00'::timestamp without time zone))
@@ -12830,7 +12774,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('HOUR', date1, 2) >= '2020-12-29 06:50:00';
                                                                                     QUERY PLAN                                                                                    
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1 FROM public.s3griddb WHERE ((public.timestampadd('HOUR'::public.griddb_time_unit, date1, 2) >= '2020-12-29 06:50:00'::timestamp without time zone))
@@ -12872,7 +12816,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('MINUTE', date1, 20) = '2020-12-29 05:00:00';
                                                                                      QUERY PLAN                                                                                     
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1010.54 rows=17 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1006.25 rows=17 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1 FROM public.s3griddb WHERE ((public.timestampadd('MINUTE'::public.griddb_time_unit, date1, 20) = '2020-12-29 05:00:00'::timestamp without time zone))
@@ -12890,7 +12834,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('MINUTE', date1, -50) <= '2020-12-29 04:00:00';
                                                                                        QUERY PLAN                                                                                       
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1 FROM public.s3griddb WHERE ((public.timestampadd('MINUTE'::public.griddb_time_unit, date1, (-50)) <= '2020-12-29 04:00:00'::timestamp without time zone))
@@ -12910,7 +12854,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('SECOND', date1, 25) >= '2020-12-29 04:40:30';
                                                                                      QUERY PLAN                                                                                      
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1 FROM public.s3griddb WHERE ((public.timestampadd('SECOND'::public.griddb_time_unit, date1, 25) >= '2020-12-29 04:40:30'::timestamp without time zone))
@@ -12951,7 +12895,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('SECOND', date1, -50) <= '2020-12-29 04:00:00';
                                                                                        QUERY PLAN                                                                                       
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1 FROM public.s3griddb WHERE ((public.timestampadd('SECOND'::public.griddb_time_unit, date1, (-50)) <= '2020-12-29 04:00:00'::timestamp without time zone))
@@ -12970,7 +12914,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('MILLISECOND', date1, 300) = '2020-12-29 05:10:00.420';
                                                                                          QUERY PLAN                                                                                          
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1010.54 rows=17 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1006.25 rows=17 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1 FROM public.s3griddb WHERE ((public.timestampadd('MILLISECOND'::public.griddb_time_unit, date1, 300) = '2020-12-29 05:10:00.42'::timestamp without time zone))
@@ -12988,7 +12932,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('MILLISECOND', date1, -55) = '2020-12-29 05:10:00.065';
                                                                                            QUERY PLAN                                                                                           
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1010.54 rows=17 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1006.25 rows=17 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1 FROM public.s3griddb WHERE ((public.timestampadd('MILLISECOND'::public.griddb_time_unit, date1, (-55)) = '2020-12-29 05:10:00.065'::timestamp without time zone))
@@ -13015,7 +12959,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampdiff('YEAR', date1, '2018-01-04 08:48:00') > 0;
                                                                                              QUERY PLAN                                                                                             
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1 FROM public.s3griddb WHERE ((public.timestampdiff('YEAR'::public.griddb_time_unit, date1, '2018-01-04 08:48:00'::timestamp without time zone) > 0::double precision))
@@ -13057,7 +13001,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('YEAR', '2015-07-15 08:48:00', date2) < 5;
                                                                                              QUERY PLAN                                                                                             
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date2
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date2 FROM public.s3griddb WHERE ((public.timestampdiff('YEAR'::public.griddb_time_unit, '2015-07-15 08:48:00'::timestamp without time zone, date2) < 5::double precision))
@@ -13098,7 +13042,7 @@ EXPLAIN VERBOSE
 SELECT date1, date2 FROM s3 WHERE timestampdiff('YEAR', date1, date2) > 10;
                                                                           QUERY PLAN                                                                           
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=16)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=16)
    Output: date1, date2
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1, date2 FROM public.s3griddb WHERE ((public.timestampdiff('YEAR'::public.griddb_time_unit, date1, date2) > 10::double precision))
@@ -13117,7 +13061,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampdiff('MONTH', date1, '2020-11-04 08:48:00') = 1;
                                                                                              QUERY PLAN                                                                                              
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1010.54 rows=17 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1006.25 rows=17 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1 FROM public.s3griddb WHERE ((public.timestampdiff('MONTH'::public.griddb_time_unit, date1, '2020-11-04 08:48:00'::timestamp without time zone) = 1::double precision))
@@ -13159,7 +13103,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('YEAR', '2020-02-15 08:48:00', date2) < 5;
                                                                                              QUERY PLAN                                                                                             
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date2
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date2 FROM public.s3griddb WHERE ((public.timestampdiff('YEAR'::public.griddb_time_unit, '2020-02-15 08:48:00'::timestamp without time zone, date2) < 5::double precision))
@@ -13200,7 +13144,7 @@ EXPLAIN VERBOSE
 SELECT date1, date2 FROM s3 WHERE timestampdiff('MONTH', date1, date2) < 10;
                                                                            QUERY PLAN                                                                           
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=16)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=16)
    Output: date1, date2
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1, date2 FROM public.s3griddb WHERE ((public.timestampdiff('MONTH'::public.griddb_time_unit, date1, date2) < 10::double precision))
@@ -13242,7 +13186,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('DAY', date2, '2020-12-04 08:48:00') > 20;
                                                                                              QUERY PLAN                                                                                             
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date2
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date2 FROM public.s3griddb WHERE ((public.timestampdiff('DAY'::public.griddb_time_unit, date2, '2020-12-04 08:48:00'::timestamp without time zone) > 20::double precision))
@@ -13281,7 +13225,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('DAY', '2020-02-15 08:48:00', date2) < 5;
                                                                                             QUERY PLAN                                                                                             
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date2
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date2 FROM public.s3griddb WHERE ((public.timestampdiff('DAY'::public.griddb_time_unit, '2020-02-15 08:48:00'::timestamp without time zone, date2) < 5::double precision))
@@ -13322,7 +13266,7 @@ EXPLAIN VERBOSE
 SELECT date1, date2 FROM s3 WHERE timestampdiff('DAY', date1, date2) > 10;
                                                                           QUERY PLAN                                                                          
 --------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=16)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=16)
    Output: date1, date2
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1, date2 FROM public.s3griddb WHERE ((public.timestampdiff('DAY'::public.griddb_time_unit, date1, date2) > 10::double precision))
@@ -13343,7 +13287,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampdiff('HOUR', date1, '2020-12-29 07:40:00') < 0;
                                                                                              QUERY PLAN                                                                                             
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1 FROM public.s3griddb WHERE ((public.timestampdiff('HOUR'::public.griddb_time_unit, date1, '2020-12-29 07:40:00'::timestamp without time zone) < 0::double precision))
@@ -13372,7 +13316,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('HOUR', '2020-12-15 08:48:00', date2) > 3.5;
                                                                                               QUERY PLAN                                                                                              
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date2
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date2 FROM public.s3griddb WHERE ((public.timestampdiff('HOUR'::public.griddb_time_unit, '2020-12-15 08:48:00'::timestamp without time zone, date2) > 3.5::double precision))
@@ -13392,7 +13336,7 @@ EXPLAIN VERBOSE
 SELECT date1, date2 FROM s3 WHERE timestampdiff('HOUR', date1, date2) > 10;
                                                                           QUERY PLAN                                                                           
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=16)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=16)
    Output: date1, date2
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1, date2 FROM public.s3griddb WHERE ((public.timestampdiff('HOUR'::public.griddb_time_unit, date1, date2) > 10::double precision))
@@ -13413,7 +13357,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('MINUTE', date2, '2020-12-04 08:48:00') > 20;
                                                                                               QUERY PLAN                                                                                               
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date2
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date2 FROM public.s3griddb WHERE ((public.timestampdiff('MINUTE'::public.griddb_time_unit, date2, '2020-12-04 08:48:00'::timestamp without time zone) > 20::double precision))
@@ -13453,7 +13397,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('MINUTE', '2020-02-15 08:48:00', date2) < 5;
                                                                                               QUERY PLAN                                                                                              
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date2
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date2 FROM public.s3griddb WHERE ((public.timestampdiff('MINUTE'::public.griddb_time_unit, '2020-02-15 08:48:00'::timestamp without time zone, date2) < 5::double precision))
@@ -13494,7 +13438,7 @@ EXPLAIN VERBOSE
 SELECT date1, date2 FROM s3 WHERE timestampdiff('MINUTE', date1, date2) > 10;
                                                                            QUERY PLAN                                                                            
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=16)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=16)
    Output: date1, date2
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1, date2 FROM public.s3griddb WHERE ((public.timestampdiff('MINUTE'::public.griddb_time_unit, date1, date2) > 10::double precision))
@@ -13517,7 +13461,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('SECOND', date2, '2020-12-04 08:48:00') > 1000;
                                                                                                QUERY PLAN                                                                                                
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date2
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date2 FROM public.s3griddb WHERE ((public.timestampdiff('SECOND'::public.griddb_time_unit, date2, '2020-12-04 08:48:00'::timestamp without time zone) > 1000::double precision))
@@ -13557,7 +13501,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('SECOND', '2020-03-17 04:50:00', date2) < 100;
                                                                                                QUERY PLAN                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date2
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date2 FROM public.s3griddb WHERE ((public.timestampdiff('SECOND'::public.griddb_time_unit, '2020-03-17 04:50:00'::timestamp without time zone, date2) < 100::double precision))
@@ -13597,7 +13541,7 @@ EXPLAIN VERBOSE
 SELECT date1, date2 FROM s3 WHERE timestampdiff('SECOND', date1, date2) > 1600000;
                                                                               QUERY PLAN                                                                              
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=16)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=16)
    Output: date1, date2
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1, date2 FROM public.s3griddb WHERE ((public.timestampdiff('SECOND'::public.griddb_time_unit, date1, date2) > 1600000::double precision))
@@ -13617,7 +13561,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('MILLISECOND', date2, '2020-12-04 08:48:00') > 200;
                                                                                                  QUERY PLAN                                                                                                  
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date2
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date2 FROM public.s3griddb WHERE ((public.timestampdiff('MILLISECOND'::public.griddb_time_unit, date2, '2020-12-04 08:48:00'::timestamp without time zone) > 200::double precision))
@@ -13657,7 +13601,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('MILLISECOND', '2020-03-17 08:48:00', date2) < 0;
                                                                                                 QUERY PLAN                                                                                                 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date2
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date2 FROM public.s3griddb WHERE ((public.timestampdiff('MILLISECOND'::public.griddb_time_unit, '2020-03-17 08:48:00'::timestamp without time zone, date2) < 0::double precision))
@@ -13697,7 +13641,7 @@ EXPLAIN VERBOSE
 SELECT date1, date2 FROM s3 WHERE timestampdiff('MILLISECOND', date1, date2) = -443;
                                                                                 QUERY PLAN                                                                                
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1010.54 rows=17 width=16)
+ Foreign Scan on public.s3  (cost=100.00..1006.25 rows=17 width=16)
    Output: date1, date2
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1, date2 FROM public.s3griddb WHERE ((public.timestampdiff('MILLISECOND'::public.griddb_time_unit, date1, date2) = (-443)::double precision))
@@ -13736,7 +13680,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE to_timestamp_ms(intcol) > '1970-01-01 1:00:00';
                                                                        QUERY PLAN                                                                        
 ---------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1327.40 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1037.21 rows=1138 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1, intcol FROM public.s3griddb WHERE ((public.to_timestamp_ms(intcol) > '1970-01-01 01:00:00'::timestamp without time zone))
@@ -13763,7 +13707,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE intcol < to_epoch_ms(date1);
                                                QUERY PLAN                                               
 --------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date1, intcol FROM public.s3griddb WHERE ((intcol < public.to_epoch_ms(date1)))
@@ -13805,7 +13749,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE to_epoch_ms(date2) < 1000000000000;
                                                   QUERY PLAN                                                   
 ---------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=8)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=8)
    Output: date2
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date2 FROM public.s3griddb WHERE ((public.to_epoch_ms(date2) < 1000000000000::bigint))
@@ -13820,7 +13764,7 @@ EXPLAIN VERBOSE
 SELECT boolarray FROM s3 WHERE array_length(boolarray) = 3;
                                              QUERY PLAN                                             
 ----------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1010.54 rows=17 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1006.25 rows=17 width=32)
    Output: boolarray
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT boolarray FROM public.s3griddb WHERE ((public.array_length(boolarray) = 3))
@@ -13861,7 +13805,7 @@ EXPLAIN VERBOSE
 SELECT stringarray FROM s3 WHERE array_length(stringarray) = 3;
                                                QUERY PLAN                                               
 --------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1010.54 rows=17 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1006.25 rows=17 width=32)
    Output: stringarray
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT stringarray FROM public.s3griddb WHERE ((public.array_length(stringarray) = 3))
@@ -13903,7 +13847,7 @@ EXPLAIN VERBOSE
 SELECT bytearray, shortarray FROM s3 WHERE array_length(bytearray) > array_length(shortarray);
                                                                   QUERY PLAN                                                                  
 ----------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..2453.77 rows=1138 width=64)
+ Foreign Scan on public.s3  (cost=100.00..1881.92 rows=1138 width=64)
    Output: bytearray, shortarray
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT bytearray, shortarray FROM public.s3griddb WHERE ((public.array_length(bytearray) > public.array_length(shortarray)))
@@ -13944,7 +13888,7 @@ EXPLAIN VERBOSE
 SELECT integerarray, longarray FROM s3 WHERE array_length(integerarray) = array_length(longarray);
                                                                     QUERY PLAN                                                                    
 --------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1868.05 rows=17 width=64)
+ Foreign Scan on public.s3  (cost=100.00..1859.50 rows=17 width=64)
    Output: integerarray, longarray
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT integerarray, longarray FROM public.s3griddb WHERE ((public.array_length(integerarray) = public.array_length(longarray)))
@@ -13986,7 +13930,7 @@ EXPLAIN VERBOSE
 SELECT floatarray, doublearray FROM s3 WHERE array_length(floatarray) - array_length(doublearray) = 0;
                                                                        QUERY PLAN                                                                       
 --------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1876.62 rows=17 width=64)
+ Foreign Scan on public.s3  (cost=100.00..1868.04 rows=17 width=64)
    Output: floatarray, doublearray
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT floatarray, doublearray FROM public.s3griddb WHERE (((public.array_length(floatarray) - public.array_length(doublearray)) = 0))
@@ -14028,7 +13972,7 @@ EXPLAIN VERBOSE
 SELECT timestamparray FROM s3 WHERE array_length(timestamparray) < 3;
                                                   QUERY PLAN                                                  
 --------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=32)
    Output: timestamparray
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT timestamparray FROM public.s3griddb WHERE ((public.array_length(timestamparray) < 3))
@@ -14070,7 +14014,7 @@ EXPLAIN VERBOSE
 SELECT boolarray FROM s3 WHERE element(1, boolarray) = 'f';
                                             QUERY PLAN                                            
 --------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1611.63 rows=2275 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1042.88 rows=2275 width=32)
    Output: boolarray
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT boolarray FROM public.s3griddb WHERE ((NOT public.element(1, boolarray)))
@@ -14112,7 +14056,7 @@ EXPLAIN VERBOSE
 SELECT stringarray FROM s3 WHERE element(1, stringarray) != 'bbb';
                                                    QUERY PLAN                                                    
 -----------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1931.32 rows=3396 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1073.83 rows=3396 width=32)
    Output: stringarray
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT stringarray FROM public.s3griddb WHERE ((public.element(1, stringarray) <> 'bbb'::text))
@@ -14131,7 +14075,7 @@ EXPLAIN VERBOSE
 SELECT bytearray, shortarray FROM s3 WHERE element(0, bytearray) = element(0, shortarray);
                                                                 QUERY PLAN                                                                
 ------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1868.05 rows=17 width=64)
+ Foreign Scan on public.s3  (cost=100.00..1859.50 rows=17 width=64)
    Output: bytearray, shortarray
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT bytearray, shortarray FROM public.s3griddb WHERE ((public.element(0, bytearray) = public.element(0, shortarray)))
@@ -14171,7 +14115,7 @@ EXPLAIN VERBOSE
 SELECT integerarray, longarray FROM s3 WHERE element(0, integerarray)*100+44 = element(0,longarray);
                                                                          QUERY PLAN                                                                          
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1885.20 rows=17 width=64)
+ Foreign Scan on public.s3  (cost=100.00..1876.57 rows=17 width=64)
    Output: integerarray, longarray
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT integerarray, longarray FROM public.s3griddb WHERE ((((public.element(0, integerarray) * 100) + 44) = public.element(0, longarray)))
@@ -14190,7 +14134,7 @@ EXPLAIN VERBOSE
 SELECT floatarray, doublearray FROM s3 WHERE element(2, floatarray)*10 < element(0,doublearray);
                                                                               QUERY PLAN                                                                               
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..2465.15 rows=1138 width=64)
+ Foreign Scan on public.s3  (cost=100.00..1890.46 rows=1138 width=64)
    Output: floatarray, doublearray
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT floatarray, doublearray FROM public.s3griddb WHERE (((public.element(2, floatarray) * 10::double precision) < public.element(0, doublearray)))
@@ -14213,7 +14157,7 @@ EXPLAIN VERBOSE
 SELECT timestamparray FROM s3 WHERE element(1,timestamparray) > '2020-12-29 04:00:00';
                                                                          QUERY PLAN                                                                          
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=32)
    Output: timestamparray
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT timestamparray FROM public.s3griddb WHERE ((public.element(1, timestamparray) > '2020-12-29 04:00:00'::timestamp without time zone))
@@ -14255,7 +14199,7 @@ EXPLAIN VERBOSE
 SELECT timestamparray FROM s3 WHERE element(2,timestamparray) > '2020-12-29 04:00:00';
                                                                          QUERY PLAN                                                                          
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1316.02 rows=1138 width=32)
+ Foreign Scan on public.s3  (cost=100.00..1028.67 rows=1138 width=32)
    Output: timestamparray
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT timestamparray FROM public.s3griddb WHERE ((public.element(2, timestamparray) > '2020-12-29 04:00:00'::timestamp without time zone))
@@ -16396,10 +16340,10 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE time_next('2018-12-01 10:00:00') = '"2020-01-05 21:00:00,{t,f,t}"';
                                                                                                                                                             QUERY PLAN                                                                                                                                                            
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Result  (cost=100.25..1074.43 rows=3413 width=525)
+ Result  (cost=100.25..212.64 rows=3413 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    One-Time Filter: (time_next('2018-12-01 10:00:00'::timestamp without time zone) = '"2020-01-05 21:00:00,{t,f,t}"'::text)
-   ->  Foreign Scan on public.s3  (cost=100.25..1074.43 rows=3413 width=525)
+   ->  Foreign Scan on public.s3  (cost=100.25..212.64 rows=3413 width=525)
          Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
          Filter: (time_next('2018-12-01 10:00:00'::timestamp without time zone) = '"2020-01-05 21:00:00,{t,f,t}"'::text)
          Node: pgspider_svr / Status: Alive
@@ -16424,10 +16368,10 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE time_prev('2018-12-01 10:00:00') = '"2020-01-05 21:00:00,{t,f,t}"';
                                                                                                                                                             QUERY PLAN                                                                                                                                                            
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Result  (cost=100.25..1074.43 rows=3413 width=525)
+ Result  (cost=100.25..212.64 rows=3413 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    One-Time Filter: (time_prev('2018-12-01 10:00:00'::timestamp without time zone) = '"2020-01-05 21:00:00,{t,f,t}"'::text)
-   ->  Foreign Scan on public.s3  (cost=100.25..1074.43 rows=3413 width=525)
+   ->  Foreign Scan on public.s3  (cost=100.25..212.64 rows=3413 width=525)
          Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
          Filter: (time_prev('2018-12-01 10:00:00'::timestamp without time zone) = '"2020-01-05 21:00:00,{t,f,t}"'::text)
          Node: pgspider_svr / Status: Alive
@@ -16452,7 +16396,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE max_rows(date) = min_rows(value2);
                                                                                                                                                                                       QUERY PLAN                                                                                                                                                                                      
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1868.05 rows=17 width=525)
+ Foreign Scan on public.s3  (cost=100.00..1859.50 rows=17 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url FROM public.s3griddb WHERE ((public.max_rows(date) = public.min_rows(value2)))

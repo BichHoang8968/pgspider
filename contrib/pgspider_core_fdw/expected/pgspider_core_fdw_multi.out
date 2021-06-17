@@ -1314,7 +1314,7 @@ LINE 1: SELECT * FROM test1__pgspider_srv_1__test;
                       ^
 --Testcase 61:
 SELECT * FROM test1 ORDER BY i, __spd_url;
-ERROR:  Can not find datasource.
+ERROR:  Cannot Find child datasources.
 --Testcase 120:
 DROP FOREIGN TABLE test2__pgspider_srv_1__test2;
 --Testcase 62:
@@ -1330,7 +1330,7 @@ SELECT * FROM test2 ORDER BY i, t, t2, __spd_url;
 DROP FOREIGN TABLE test2__pgspider_srv_2__test2;
 --Testcase 63:
 SELECT * FROM test2 ORDER BY i, t, t2, __spd_url;
-ERROR:  Can not find datasource.
+ERROR:  Cannot Find child datasources.
 -- Clean up
 --Testcase 122:
 DROP USER MAPPING FOR CURRENT_USER SERVER pgspider_core_svr;
