@@ -3375,6 +3375,7 @@ spd_CreateRoot(PlannerInfo *root, List *rtable)
 	new_root->query_level = 1;
 	new_root->planner_cxt = CurrentMemoryContext;
 	new_root->wt_param_id = -1;
+	new_root->ec_merging_done = root->ec_merging_done;
 
 	/*
 	 * Use placeholder list only for child node's GetForeignRelSize in this routine.
