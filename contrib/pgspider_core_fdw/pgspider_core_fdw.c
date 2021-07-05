@@ -3575,14 +3575,13 @@ spd_CreateChildBaserel(PlannerInfo *child_root, PlannerInfo *root, RelOptInfo *b
 	child_baserel->baserestrictinfo = copyObject(baserel->baserestrictinfo);
 
 	/*
-	 * Copy attr_needed from parent. the array size in baserel is
-	 * "max_attr - min_attr + 1" which includes SPDURL. Sothe size
-	 * of child attr_needed is max_attr - min_attr.
+	 * Copy attr_needed from parent. The aray size is defined in
+	 * get_relation_info() called by build_simple_rel().
 	 */
 	memcpy(child_baserel->attr_needed, baserel->attr_needed,
-		   sizeof(Relids) * (baserel->max_attr - baserel->min_attr));
+		   sizeof(Relids) * (child_baserel->max_attr - child_baserel->min_attr + 1));
 	memcpy(child_baserel->attr_widths, baserel->attr_widths,
-		   sizeof(int32) * (baserel->max_attr - baserel->min_attr));
+		   sizeof(int32) * (child_baserel->max_attr - child_baserel->min_attr + 1));
 
 	/* Remove SPDURL from target lists if a child is not pgspider_fdw. */
 	if (strcmp(fdwname, PGSPIDER_FDW_NAME) != 0)
