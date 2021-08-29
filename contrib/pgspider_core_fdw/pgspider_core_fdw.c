@@ -6413,6 +6413,7 @@ spd_makeChildTupleSlotAndQueue(ForeignScanState *node, ChildInfo *pChildInfo,
 	TupleDesc	tupledesc;
 	TupleDesc	tupledesc_child;
 	bool		skiplast = false;
+	MemoryContext oldContext;
 
 	if (fdw_private->agg_query)
 	{
@@ -6482,6 +6483,7 @@ spd_makeChildTupleSlotAndQueue(ForeignScanState *node, ChildInfo *pChildInfo,
 		tupledesc_child = tupledesc;
 	}
 
+	oldContext = MemoryContextSwitchTo(pFssThrdInfo->threadMemoryContext);
 	pFssThrdInfo->fsstate->ss.ss_ScanTupleSlot =
 		MakeSingleTupleTableSlot(tupledesc_child, node->ss.ss_ScanTupleSlot->tts_ops);
 
@@ -6502,6 +6504,7 @@ spd_makeChildTupleSlotAndQueue(ForeignScanState *node, ChildInfo *pChildInfo,
 		spd_queue_init(&pFssThrdInfo->tupleQueue, fdw_private->child_comp_tupdesc, node->ss.ss_ScanTupleSlot->tts_ops, skiplast);
 	else
 		spd_queue_init(&pFssThrdInfo->tupleQueue, tupledesc, node->ss.ss_ScanTupleSlot->tts_ops, skiplast);
+	MemoryContextSwitchTo(oldContext);
 }
 
 /*
@@ -6557,9 +6560,6 @@ spd_setThreadInfo(ForeignScanState *node, SpdFdwPrivate *fdw_private, ChildInfo 
 	pFssThrdInfo->thrd_ResourceOwner =
 		ResourceOwnerCreate(CurrentResourceOwner, "thread resource owner");
 	pFssThrdInfo->private = fdw_private;
-
-	/* Create child tuple slot and initialize queue. */
-	spd_makeChildTupleSlotAndQueue(node, pChildInfo, fdw_private, tupledesc_agg, pFssThrdInfo);
 }
 
 /*
@@ -6768,6 +6768,9 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 		/* Settings of memory context for child node. */
 		spd_ConfigureChildMemoryContext(fssThrdInfo, node_incr, estate->es_query_cxt);
+
+		/* Create child tuple slot and initialize queue. */
+		spd_makeChildTupleSlotAndQueue(node, pChildInfo, fdw_private, tupledesc_agg, &fssThrdInfo[node_incr]);
 
 		/* We save correspondence between fssThrdInfo and childinfo. */
 		fssThrdInfo[node_incr].childInfoIndex = i;
@@ -8028,7 +8031,7 @@ spd_AddSpdUrlForGroupby(ForeignScanThreadInfo *pFssThrdInfo, TupleTableSlot *par
 	* tuple with new data values. Finally, copy identification info (if any).
 	*/
 
-	if (TTS_IS_HEAPTUPLE(node_slot) && ((HeapTupleTableSlot*) node_slot)->tuple)
+	if (TTS_IS_HEAPTUPLE(node_slot))
 	{
 		HeapTuple	newtuple;
 
