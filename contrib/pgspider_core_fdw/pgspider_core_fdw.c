@@ -579,7 +579,6 @@ static List *spd_add_to_flat_tlist(List *tlist, Expr *exprs, List **mapping_tlis
 								   bool allow_duplicate, bool is_having_qual, bool is_contain_group_by, SpdFdwPrivate * fdw_private);
 static bool	is_field_selection(List *tlist);
 static bool	is_cast_function(List *tlist);
-static bool	is_record_func(List *tlist);
 static List	*spd_update_scan_tlist(List *tlist, List *child_scan_tlist, PlannerInfo *root);
 static TargetEntry *spd_tlist_member_match_var(Var *var, List *targetlist);
 static TargetEntry *spd_tlist_member(Expr *node, List *targetlist, int *target_num);
@@ -846,40 +845,6 @@ static bool is_cast_function(List *tlist)
 	return true;
 }
 
-/*
- * Return true if all elements are FuncExpr or Aggref node
- * which has return type text
- */
-static bool is_record_func(List *tlist)
-{
-	ListCell *lc;
-
-	foreach(lc, tlist)
-	{
-		TargetEntry	*tle = lfirst_node(TargetEntry, lc);
-		Oid			funcid;
-		Oid			returntype;
-
-		if (IsA((Node *) tle->expr, FuncExpr))
-		{
-			funcid = ((FuncExpr *) tle->expr)->funcid;
-			returntype = ((FuncExpr *) tle->expr)->funcresulttype;
-		}
-		else if (IsA((Node *) tle->expr, Aggref))
-		{
-			funcid = ((Aggref *) tle->expr)->aggfnoid;
-			returntype = ((Aggref *) tle->expr)->aggtype;
-		}
-		else
-			return false;
-
-		if ((funcid >= FirstBootstrapObjectId && returntype == TEXTOID))
-			return true;
-	}
-
-	return false;
-}
-
 /**
  * Return true if the oid is for split agg functions except avg, var and stddev
  */
@@ -906,7 +871,6 @@ is_catalog_split_agg(Oid oid, enum Aggtype *type)
 
 	return result;
 }
-
 
 /*
  * spd_can_skip_deepcopy
@@ -6030,7 +5994,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				ptemptlist = spd_make_tlist_for_baserel(tlist, root, false);
 			}
 
-			if (is_record_func(child_fdw_scan_tlist))
+			if (spd_is_record_func(child_fdw_scan_tlist))
 				fdw_private->record_function = true;
 
 			if (IS_JOIN_REL(baserel))
@@ -6071,7 +6035,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 			fdw_private->child_tlist = list_copy(fsplan->fdw_scan_tlist);
 			fdw_private->child_comp_tlist = list_copy(fdw_scan_tlist);
 
-			if (is_record_func(fdw_scan_tlist))
+			if (spd_is_record_func(fdw_scan_tlist))
 				fdw_private->record_function = true;
 
 			/* Update new index of __spd_url if any */
@@ -8235,7 +8199,13 @@ spd_AddSpdUrl(ForeignScanThreadInfo *pFssThrdInfo, TupleTableSlot *parent_slot,
 			replaces[i] = true;
 			nulls[i] = false;
 			if (attr->atttypid == TEXTOID)
+			{
 				values[i] = spd_AddSpdUrlForRecord(node_slot->tts_values[i], fs->servername);
+			}
+			else
+			{
+				values[i] = node_slot->tts_values[i];
+			}
 			tnum = i;
 		}
 

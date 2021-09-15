@@ -86,7 +86,8 @@ typedef struct foreign_loc_cxt
 {
 	Oid			collation;		/* OID of current collation, if any */
 	FDWCollateState state;		/* state of current collation choice */
-	bool		can_pushdown_stable;	/* true if query contains stable function with star or regex */
+	bool		can_pushdown_stable;	/* true if query contains stable function can be pushed down */
+	bool		can_pushdown_volatile;	/* true if query contains volatile function can be pushed down */
 } foreign_loc_cxt;
 
 /*
@@ -114,6 +115,205 @@ typedef struct pull_func_clause_context
 		appendStringInfo((buf), "%s%d.", REL_ALIAS_PREFIX, (varno))
 #define SUBQUERY_REL_ALIAS_PREFIX	"s"
 #define SUBQUERY_COL_ALIAS_PREFIX	"c"
+
+/* List of stable function with regular expression argument of InfluxDB */
+static const char *InfluxDBStableRegexFunction[] = {
+	"percentile",
+	"sample",
+	"top",
+	"cumulative_sum",
+	"derivative",
+	"difference",
+	"elapsed",
+	"moving_average",
+	"non_negative_derivative",
+	"non_negative_difference",
+	"chande_momentum_oscillator",
+	"exponential_moving_average",
+	"double_exponential_moving_average",
+	"kaufmans_efficiency_ratio",
+	"kaufmans_adaptive_moving_average",
+	"triple_exponential_moving_average",
+	"triple_exponential_derivative",
+	"relative_strength_index",
+	NULL};
+
+/* List of stable agg function with regular expression argument of InfluxDB */
+static const char *InfluxDBStableRegexAgg[] = {
+	"influx_count",
+	"influx_max",
+	"influx_min",
+	"influx_mode",
+	"influx_sum",
+	"integral",
+	"mean",
+	"median",
+	"spread",
+	"stddev",
+	"first",
+	"last",
+	NULL};
+
+/* List of unique numeric functions for MySQL */
+static const char *MysqlUniqueNumericFunction[] = {
+	"atan",
+	"conv",
+	"crc32",
+	"log2",
+	"match_against",
+	"mysql_pi",
+	"rand",
+	"truncate",
+	NULL};
+
+/* List of unique json functions for MySQL */
+static const char *MysqlUniqueJsonFunction[] = {
+	/* json functions */
+	"json_array_append",
+	"json_array_insert",
+	"json_build_array",
+	"json_contains",
+	"json_contains_path",
+	"json_depth",
+	"json_extract",
+	"json_insert",
+	"json_keys",
+	"json_length",
+	"json_merge",
+	"json_merge_patch",
+	"json_merge_preserve",
+	"json_overlaps",
+	"json_pretty",
+	"json_quote",
+	"json_remove",
+	"json_replace",
+	"json_schema_valid",
+	"json_schema_validation_report",
+	"json_search",
+	"json_set",
+	"json_storage_free",
+	"json_storage_size",
+	"mysql_json_table",
+	"json_type",
+	"json_unquote",
+	"json_valid",
+	"json_value",
+	"member_of",
+	"json_extract_numeric",
+	"json_extract_text",
+	"json_extract_json",
+	"json_extract_bool",
+	NULL};
+
+/* List of unique Cast functions for MySQL */
+static const char *MysqlUniqueCastFunction[] = {
+	"convert",
+	NULL};
+
+/* List of unique date/time function for MySQL */
+static const char *MysqlUniqueDateTimeFunction[] = {
+	"adddate",
+	"addtime",
+	"convert_tz",
+	"curdate",
+	"mysql_current_date",
+	"curtime",
+	"mysql_current_time",
+	"mysql_current_timestamp",
+	"date_add",
+	"date_format",
+	"date_sub",
+	"datediff",
+	"day",
+	"dayname",
+	"dayofmonth",
+	"dayofweek",
+	"dayofyear",
+	"mysql_extract",
+	"from_days",
+	"from_unixtime",
+	"get_format",
+	"hour",
+	"last_day",
+	"mysql_localtime",
+	"mysql_localtimestamp",
+	"makedate",
+	"maketime",
+	"microsecond",
+	"minute",
+	"month",
+	"monthname",
+	"mysql_now",
+	"period_add",
+	"period_diff",
+	"quarter",
+	"sec_to_time",
+	"second",
+	"str_to_date",
+	"subdate",
+	"subtime",
+	"sysdate",
+	"mysql_time",
+	"time_format",
+	"time_to_sec",
+	"timediff",
+	"mysql_timestamp",
+	"timestampadd",
+	"timestampdiff",
+	"to_days",
+	"to_seconds",
+	"unix_timestamp",
+	"utc_date",
+	"utc_time",
+	"utc_timestamp",
+	"week",
+	"weekday",
+	"weekofyear",
+	"year",
+	"yearweek",
+	NULL};
+
+/* List of unique string function for MySQL */
+static const char *MysqlUniqueStringFunction[] = {
+	"bin",
+	"mysql_char",
+	"elt",
+	"export_set",
+	"field",
+	"find_in_set",
+	"format",
+	"from_base64",
+	"hex",
+	"insert",
+	"instr",
+	"lcase",
+	"locate",
+	"make_set",
+	"mid",
+	"oct",
+	"ord",
+	"quote",
+	"regexp_instr",
+	"regexp_like",
+	"regexp_replace",
+	"regexp_substr",
+	"space",
+	"strcmp",
+	"substring_index",
+	"to_base64",
+	"ucase",
+	"unhex",
+	"weight_string",
+	NULL};
+
+/* List of unique aggregate function for MySQL */
+static const char *MysqlUniqueAggregationFunction[] = {
+	"bit_xor",
+	"group_concat",
+	"json_arrayagg",
+	"json_objectagg",
+	"std",
+	NULL};
 
 /*
  * Functions to determine whether an expression can be evaluated safely on
@@ -184,6 +384,8 @@ static void deparseRangeTblRef(StringInfo buf, PlannerInfo *root,
 							   RelOptInfo *foreignrel, bool make_subquery,
 							   Index ignore_rel, List **ignore_conds, List **params_list);
 static void deparseAggref(Aggref *node, deparse_expr_cxt *context);
+static void deparseRowExpr(RowExpr *node, deparse_expr_cxt *context);
+static void deparseCoerceViaIO(CoerceViaIO *node, deparse_expr_cxt *context);
 static void appendGroupByClause(List *tlist, deparse_expr_cxt *context);
 static void appendAggOrderBy(List *orderList, List *targetList,
 							 deparse_expr_cxt *context);
@@ -199,9 +401,12 @@ static bool is_subquery_var(Var *node, RelOptInfo *foreignrel,
 static void get_relation_column_alias_ids(Var *node, RelOptInfo *foreignrel,
 										  int *relno, int *colno);
 
-static bool pgspider_contain_immutable_stable_functions_walker(Node *node, void *context);
 static bool pgspider_contain_immutable_stable_functions(Node *clause);
+static bool pgspider_contain_immutable_stable_functions_walker(Node *node, void *context);
+static bool pgspider_contain_functions(Node *clause);
+static bool pgspider_contain_functions_walker(Node *node, void *context);
 static bool pgspider_is_regex_argument(Const* node, char **extval);
+static bool exist_in_function_list(char *funcname, const char **funclist);
 
 /*
  * Examine each qual clause in input_conds, and classify them into two groups,
@@ -263,6 +468,7 @@ pgspider_is_foreign_expr(PlannerInfo *root,
 	loc_cxt.collation = InvalidOid;
 	loc_cxt.state = FDW_COLLATE_NONE;
 	loc_cxt.can_pushdown_stable = false;
+	loc_cxt.can_pushdown_volatile = false;
 	if (!foreign_expr_walker((Node *) expr, &glob_cxt, &loc_cxt))
 		return false;
 
@@ -280,8 +486,11 @@ pgspider_is_foreign_expr(PlannerInfo *root,
 	 * be able to make this choice with more granularity.  (We check this last
 	 * because it requires a lot of expensive catalog lookups.)
 	 */
-
-	if (expr != NULL && !IsA(expr, FieldSelect))
+	if (loc_cxt.can_pushdown_volatile == true)
+	{
+		/* Does not perform additional check to push down griddb_now() */
+	}
+	else if (expr != NULL && !IsA(expr, FieldSelect))
 	{
 		if (loc_cxt.can_pushdown_stable == true)
 		{
@@ -396,6 +605,7 @@ foreign_expr_walker(Node *node,
 	inner_cxt.collation = InvalidOid;
 	inner_cxt.state = FDW_COLLATE_NONE;
 	inner_cxt.can_pushdown_stable = false;
+	inner_cxt.can_pushdown_volatile = false;
 
 	switch (nodeTag(node))
 	{
@@ -455,27 +665,19 @@ foreign_expr_walker(Node *node,
 			break;
 		case T_Const:
 			{
-				Const	   *c = (Const *) node;
-				HeapTuple	tuple;
+				Const		*c = (Const *) node;
+				char		*type_name;
 
 				/*
 				 * Get type name based on the const value.
-				 * If the type name is "griddb_time_unit", allow it to push down to remote.
+				 * If the type name is "time_unit" or "mysql_string_type", 
+				 * allow it to push down to remote.
 				 */
-				tuple = SearchSysCache1(TYPEOID, ObjectIdGetDatum(c->consttype));
-				if (HeapTupleIsValid(tuple))
-				{
-					Form_pg_type type;
-					char*	type_name;
-
-					type = (Form_pg_type) GETSTRUCT(tuple);
-					type_name = (char*) type->typname.data;
-
-					if (strcmp(type_name, "griddb_time_unit") == 0)
-						check_type = false;
-
-					ReleaseSysCache(tuple);
-				}
+				type_name = deparse_type_name(c->consttype, c->consttypmod);
+				if (strcmp(type_name, "public.time_unit") == 0 ||
+					strcmp(type_name, "public.mysql_string_type") == 0 ||
+					strcmp(type_name, "public.path_value[]") == 0)
+					check_type = false;
 
 				/*
 				 * If the constant has nondefault collation, either it's of a
@@ -577,8 +779,7 @@ foreign_expr_walker(Node *node,
 				FuncExpr   *fe = (FuncExpr *) node;
 				bool		is_regex_format = false;
 				bool		is_regex_func = false;
-				HeapTuple 	tuple;
-				char 		*opername = NULL;
+				char 	   *opername = NULL;
 
 				/*
 				 * If function used by the expression is not shippable, it
@@ -602,6 +803,10 @@ foreign_expr_walker(Node *node,
 										 glob_cxt, &inner_cxt))
 					return false;
 
+				/* Transfer the can_pushdown_volatile in the composition T_Func->T_List->T_Func */
+				if (inner_cxt.can_pushdown_volatile == true)
+					outer_cxt->can_pushdown_volatile = true;
+
 				if (list_length(fe->args) > 0)
 				{
 					ListCell   *funclc;
@@ -620,34 +825,25 @@ foreign_expr_walker(Node *node,
 					}
 				}
 
-				/* Get function name and schema */
-				tuple = SearchSysCache1(PROCOID, ObjectIdGetDatum(fe->funcid));
-				if (!HeapTupleIsValid(tuple))
-				{
-					elog(ERROR, "cache lookup failed for function %u", fe->funcid);
-				}
-				opername = pstrdup(((Form_pg_proc) GETSTRUCT(tuple))->proname.data);
-				ReleaseSysCache(tuple);
+				/* Get function name */
+				opername = get_func_name(fe->funcid);
 
-				if (strcmp(opername, "percentile") == 0
-					|| strcmp(opername, "sample") == 0
-					|| strcmp(opername, "top") == 0
-					|| strcmp(opername, "cumulative_sum") == 0
-					|| strcmp(opername, "derivative") == 0
-					|| strcmp(opername, "difference") == 0
-					|| strcmp(opername, "elapsed") == 0
-					|| strcmp(opername, "moving_average") == 0
-					|| strcmp(opername, "non_negative_derivative") == 0
-					|| strcmp(opername, "non_negative_difference") == 0
-					|| strcmp(opername, "chande_momentum_oscillator") == 0
-					|| strcmp(opername, "exponential_moving_average") == 0
-					|| strcmp(opername, "double_exponential_moving_average") == 0
-					|| strcmp(opername, "kaufmans_efficiency_ratio") == 0
-					|| strcmp(opername, "kaufmans_adaptive_moving_average") == 0
-					|| strcmp(opername, "triple_exponential_moving_average") == 0
-					|| strcmp(opername, "triple_exponential_derivative") == 0
-					|| strcmp(opername, "relative_strength_index") == 0)
+				if (exist_in_function_list(opername, InfluxDBStableRegexFunction))
 					is_regex_func = true;
+
+				/* Allow push down griddb_now/timestampdiff/timestampadd function even though volatility is volatile */
+				if (strcmp(opername, "griddb_now") == 0 ||
+					strcmp(opername, "timestampdiff") == 0 ||
+					strcmp(opername, "timestampadd") == 0)
+					outer_cxt->can_pushdown_volatile = true;
+
+				/* Allow push down mysql unique function even though volatility is volatile */
+				if (exist_in_function_list(opername, MysqlUniqueNumericFunction) ||
+					exist_in_function_list(opername, MysqlUniqueStringFunction) ||
+					exist_in_function_list(opername, MysqlUniqueDateTimeFunction) ||
+					exist_in_function_list(opername, MysqlUniqueJsonFunction) ||
+					exist_in_function_list(opername, MysqlUniqueCastFunction))
+					outer_cxt->can_pushdown_volatile = true;
 
 				if (is_regex_func && is_regex_format)
 				{
@@ -655,6 +851,12 @@ foreign_expr_walker(Node *node,
 					state = FDW_COLLATE_NONE;
 					check_type = false;
 					outer_cxt->can_pushdown_stable = true;
+				}
+				else if (outer_cxt->can_pushdown_volatile)
+				{
+					collation = InvalidOid;
+					state = FDW_COLLATE_NONE;
+					check_type = false;
 				}
 				else
 				{
@@ -707,13 +909,22 @@ foreign_expr_walker(Node *node,
 										 glob_cxt, &inner_cxt))
 					return false;
 
+				if (inner_cxt.can_pushdown_volatile == true)
+				{
+					outer_cxt->can_pushdown_volatile = true;
+					state = FDW_COLLATE_NONE;
+					collation = oe->opcollid;
+				}
+
 				if (inner_cxt.can_pushdown_stable == true)
 				{
 					outer_cxt->can_pushdown_stable = true;
 					state = FDW_COLLATE_NONE;
 					collation = oe->opcollid;
 				}
-				else
+
+				if (!inner_cxt.can_pushdown_volatile &&
+					!inner_cxt.can_pushdown_stable)
 				{
 					/*
 					* If operator's input collation is not derived from a foreign
@@ -809,6 +1020,9 @@ foreign_expr_walker(Node *node,
 										 glob_cxt, &inner_cxt))
 					return false;
 
+				/* Allow push down griddb_now in boolean condition */
+				if (inner_cxt.can_pushdown_volatile == true)
+					outer_cxt->can_pushdown_volatile = true;
 				/* Output is always boolean and so noncollatable. */
 				collation = InvalidOid;
 				state = FDW_COLLATE_NONE;
@@ -825,6 +1039,9 @@ foreign_expr_walker(Node *node,
 										 glob_cxt, &inner_cxt))
 					return false;
 
+				/* Allow push down griddb_now with NULL test */
+				if (inner_cxt.can_pushdown_volatile == true)
+					outer_cxt->can_pushdown_volatile = true;
 				/* Output is always boolean and so noncollatable. */
 				collation = InvalidOid;
 				state = FDW_COLLATE_NONE;
@@ -863,6 +1080,7 @@ foreign_expr_walker(Node *node,
 				ListCell   *lc;
 
 				inner_cxt.can_pushdown_stable = outer_cxt->can_pushdown_stable;
+				inner_cxt.can_pushdown_volatile = outer_cxt->can_pushdown_volatile;
 
 				/*
 				 * Recurse to component subexpressions.
@@ -876,6 +1094,9 @@ foreign_expr_walker(Node *node,
 
 				if (inner_cxt.can_pushdown_stable == true)
 					outer_cxt->can_pushdown_stable = true;
+
+				if (inner_cxt.can_pushdown_volatile == true)
+					outer_cxt->can_pushdown_volatile = true;
 
 				/*
 				 * When processing a list, collation state just bubbles up
@@ -894,8 +1115,7 @@ foreign_expr_walker(Node *node,
 				ListCell   *lc;
 				bool		is_regex_format = false;
 				bool		is_regex_func = false;
-				HeapTuple 	tuple;
-				char 		*opername = NULL;
+				char 		*funcname = NULL;
 
 				/* Not safe to pushdown when not in grouping context */
 				if (!IS_UPPER_REL(glob_cxt->foreignrel))
@@ -905,9 +1125,22 @@ foreign_expr_walker(Node *node,
 				if (agg->aggsplit != AGGSPLIT_SIMPLE)
 					return false;
 
-				/* As usual, it must be shippable. */
-				if (!pgspider_is_shippable(agg->aggfnoid, ProcedureRelationId, fpinfo))
+				/* Get function name */
+				funcname = get_func_name(agg->aggfnoid);
+
+				/*
+				* As usual, it must be shippable.
+				* Or it is unique aggregate function of fdw
+				*/
+				if (pgspider_is_shippable(agg->aggfnoid, ProcedureRelationId, fpinfo)
+					|| exist_in_function_list(funcname, MysqlUniqueAggregationFunction))
+				{
+					/* Do nothing to accept push down for those case */
+				}
+				else
+				{
 					return false;
+				}
 
 				/*
 				 * Recurse to input args. aggdirectargs, aggorder and
@@ -941,27 +1174,7 @@ foreign_expr_walker(Node *node,
 						return false;
 				}
 
-				/* Get function name and schema */
-				tuple = SearchSysCache1(PROCOID, ObjectIdGetDatum(agg->aggfnoid));
-				if (!HeapTupleIsValid(tuple))
-				{
-					elog(ERROR, "cache lookup failed for function %u", agg->aggfnoid);
-				}
-				opername = pstrdup(((Form_pg_proc) GETSTRUCT(tuple))->proname.data);
-				ReleaseSysCache(tuple);
-
-				if (strcmp(opername, "influx_count") == 0
-					|| strcmp(opername, "integral") == 0
-					|| strcmp(opername, "mean") == 0
-					|| strcmp(opername, "median") == 0
-					|| strcmp(opername, "influx_mode") == 0
-					|| strcmp(opername, "spread") == 0
-					|| strcmp(opername, "stddev") == 0
-					|| strcmp(opername, "influx_sum") == 0
-					|| strcmp(opername, "first") == 0
-					|| strcmp(opername, "last") == 0
-					|| strcmp(opername, "influx_max") == 0
-					|| strcmp(opername, "influx_min") == 0)
+				if (exist_in_function_list(funcname, InfluxDBStableRegexAgg))
 					is_regex_func = true;
 
 				/*
@@ -1031,6 +1244,49 @@ foreign_expr_walker(Node *node,
 				}
 			}
 			break;
+		case T_RowExpr:
+			/* Enable to support agg_func(expr, [expr]) in mysql */
+			{
+				collation = InvalidOid;
+				state = FDW_COLLATE_NONE;
+			}
+			break;
+		case T_CoerceViaIO:
+			{
+				/* Accept cast function outer of json_extract and json_value */
+				CoerceViaIO	   *c = (CoerceViaIO *) node;
+
+				if (IsA(c->arg, FuncExpr))
+				{
+					FuncExpr   *fe = (FuncExpr *) c->arg;
+					char	   *opername;
+
+					opername = get_func_name(fe->funcid);
+
+					if (!(strcmp(opername, "json_extract") == 0 ||
+						  strcmp(opername, "json_value") == 0 ||
+						  strcmp(opername, "json_unquote") == 0 ||
+						  strcmp(opername, "convert") == 0))
+						return false;
+
+					if (!foreign_expr_walker((Node *) c->arg,
+											glob_cxt, &inner_cxt))
+						return false;
+
+					if (inner_cxt.can_pushdown_volatile == true)
+						outer_cxt->can_pushdown_volatile = true;
+				}
+				else
+				{
+					return false;
+				}
+
+				/* Output is always boolean and so noncollatable. */
+				collation = InvalidOid;
+				state = FDW_COLLATE_NONE;
+
+				break;
+			}
 		default:
 
 			/*
@@ -2639,6 +2895,12 @@ deparseExpr(Expr *node, deparse_expr_cxt *context)
 		case T_Aggref:
 			deparseAggref((Aggref *) node, context);
 			break;
+		case T_RowExpr:
+			deparseRowExpr((RowExpr *) node, context);
+			break;
+		case T_CoerceViaIO:
+			deparseCoerceViaIO((CoerceViaIO *) node, context);
+			break;
 		default:
 			elog(ERROR, "unsupported expression type for deparse: %d",
 				 (int) nodeTag(node));
@@ -3310,6 +3572,57 @@ deparseAggref(Aggref *node, deparse_expr_cxt *context)
 }
 
 /*
+ * Deparse a RowExpr node.
+ *
+ * Mysql support Row() Expr to support multiple target in custom format
+ */
+static void
+deparseRowExpr(RowExpr *node, deparse_expr_cxt *context)
+{
+	StringInfo	buf = context->buf;
+	bool		first = true;
+	ListCell   *lc;
+	Expr	   *expr;
+
+	appendStringInfoString(buf, "ROW(");
+	foreach(lc, node->args)
+	{
+		if (!first)
+			appendStringInfoString(buf, ", ");
+		expr = (Expr *) lfirst(lc);
+		deparseExpr(expr, context);
+		first = false;
+	}
+	appendStringInfoChar(buf, ')');
+}
+
+/*
+ * Deparse an CoerceViaIO node.
+ */
+static void
+deparseCoerceViaIO(CoerceViaIO *node, deparse_expr_cxt *context)
+{
+	StringInfo	buf = context->buf;
+
+	deparseExpr(node->arg, context);
+	/*
+	 * plus an explicit cast operation.
+	 */
+	if (node->coerceformat == COERCE_EXPLICIT_CAST)
+	{
+		Oid			rettype = node->resulttype;
+		int32		coercedTypmod;
+
+		/* Get the typmod if this is a length-coercion function */
+		(void) exprIsLengthCoercion((Node *) node, &coercedTypmod);
+
+		appendStringInfo(buf, "::%s",
+						 deparse_type_name(rettype, coercedTypmod));
+		return;
+	}
+}
+
+/*
  * Append ORDER BY within aggregate function.
  */
 static void
@@ -3699,15 +4012,15 @@ get_relation_column_alias_ids(Var *node, RelOptInfo *foreignrel,
 }
 
 /*****************************************************************************
- *		Check clauses for immutable functions
+ *		Check clauses for immutable or stable functions
  *****************************************************************************/
 
 /*
- * contain_immutable_functions
- *	  Recursively search for immutable functions within a clause.
+ * pgspider_contain_immutable_stable_functions
+ *	  Recursively search for immutable or stable functions within a clause.
  *
- * Returns true if any immutable function (or operator implemented by a
- * immutable function) is found.
+ * Returns true if any immutable or stable function (or operator implemented by
+ * immutable or stable function) is found.
  *
  * We will recursively look into TargetEntry exprs.
  */
@@ -3722,7 +4035,7 @@ pgspider_contain_immutable_stable_functions_walker(Node *node, void *context)
 {
 	if (node == NULL)
 		return false;
-	/* Check for mutable functions in node itself */
+	/* Check for immutable or stable functions in node itself */
 	if (nodeTag(node) == T_FuncExpr)
 	{
 		FuncExpr *expr = (FuncExpr *) node;
@@ -3754,6 +4067,51 @@ pgspider_contain_immutable_stable_functions_walker(Node *node, void *context)
 }
 
 /*
+ * pgspider_contain_functions
+ *	  Recursively search for functions within a clause.
+ *
+ * Returns true if any function (or operator implemented by a function) is found.
+ *
+ * We will recursively look into TargetEntry exprs.
+ */
+static bool
+pgspider_contain_functions(Node *clause)
+{
+	return pgspider_contain_functions_walker(clause, NULL);
+}
+
+static bool
+pgspider_contain_functions_walker(Node *node, void *context)
+{
+	if (node == NULL)
+		return false;
+	/* Check for functions in node itself */
+	if (nodeTag(node) == T_FuncExpr)
+		return true;
+
+	/*
+	 * It should be safe to treat MinMaxExpr as immutable, because it will
+	 * depend on a non-cross-type btree comparison function, and those should
+	 * always be immutable.  Treating XmlExpr as immutable is more dubious,
+	 * and treating CoerceToDomain as immutable is outright dangerous.  But we
+	 * have done so historically, and changing this would probably cause more
+	 * problems than it would fix.  In practice, if you have a non-immutable
+	 * domain constraint you are in for pain anyhow.
+	 */
+
+	/* Recurse to check arguments */
+	if (IsA(node, Query))
+	{
+		/* Recurse into subselects */
+		return query_tree_walker((Query *) node,
+								 pgspider_contain_functions_walker,
+								 context, 0);
+	}
+	return expression_tree_walker(node, pgspider_contain_functions_walker,
+								  context);
+}
+
+/*
  * Returns true if given tlist is safe to evaluate on the foreign server.
  */
 bool pgspider_is_foreign_function_tlist(PlannerInfo *root,
@@ -3777,7 +4135,7 @@ bool pgspider_is_foreign_function_tlist(PlannerInfo *root,
 	{
 		TargetEntry *tle = lfirst_node(TargetEntry, lc);
 
-		if (pgspider_contain_immutable_stable_functions((Node *) tle->expr))
+		if (pgspider_contain_functions((Node *) tle->expr))
 		{
 			is_contain_function = true;
 			break;
@@ -3801,6 +4159,7 @@ bool pgspider_is_foreign_function_tlist(PlannerInfo *root,
 		loc_cxt.collation = InvalidOid;
 		loc_cxt.state = FDW_COLLATE_NONE;
 		loc_cxt.can_pushdown_stable = false;
+		loc_cxt.can_pushdown_volatile = false;
 
 		if (!foreign_expr_walker((Node *) tle->expr, &glob_cxt, &loc_cxt))
 			return false;
@@ -3821,19 +4180,38 @@ bool pgspider_is_foreign_function_tlist(PlannerInfo *root,
 		 */
 		if (!IsA(tle->expr, FieldSelect))
 		{
-			if (loc_cxt.can_pushdown_stable == true)
+			if (!loc_cxt.can_pushdown_volatile)
 			{
-				if (contain_volatile_functions((Node *) tle->expr))
+				if (loc_cxt.can_pushdown_stable)
+				{
+					if (contain_volatile_functions((Node *) tle->expr))
+							return false;
+				}
+				else
+				{
+					if (contain_mutable_functions((Node *) tle->expr))
 						return false;
-			}
-			else
-			{
-				if (contain_mutable_functions((Node *) tle->expr))
-					return false;
+				}
 			}
 		}
 	}
 
 	/* OK for the target list with functions to evaluate on the remote server */
 	return true;
+}
+
+/*
+ * Return true if function name existed in list of function
+ */
+static bool
+exist_in_function_list(char *funcname, const char **funclist)
+{
+	int		i;
+
+	for (i = 0; funclist[i]; i++)
+	{
+		if (strcmp(funcname, funclist[i]) == 0)
+			return true;
+	}
+	return false;
 }

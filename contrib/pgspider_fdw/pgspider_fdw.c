@@ -302,10 +302,24 @@ typedef struct
 } ec_member_foreign_arg;
 
 /*
+ * Struct for path_value custom type
+ */
+typedef struct PathValue
+{
+	int32		vl_len_;		/* length of path_value type */
+	char	   *path;
+	char	   *value;
+	bool		is_text_value;
+}			PathValue;
+
+/*
  * SQL functions
  */
 PG_FUNCTION_INFO_V1(pgspider_fdw_handler);
 
+/* In out function for path_value type */
+PG_FUNCTION_INFO_V1(path_value_in);
+PG_FUNCTION_INFO_V1(path_value_out);
 /*
  * FDW callback routines
  */
@@ -6620,4 +6634,140 @@ pgspider_find_em_expr_for_input_target(PlannerInfo *root,
 
 	elog(ERROR, "could not find pathkey item to sort");
 	return NULL;				/* keep compiler quiet */
+}
+
+/* add escape char for single quote ' --> \' */
+static char*
+escape_single_quote(char *str)
+{
+	int			i;
+	int			len = strlen(str);
+	char	   *buf = palloc0(2 * len + 1);
+	int			pos = 0;
+
+	for (i = 0; i < len; i++)
+	{
+		char		ch = str[i];
+
+		if (ch == '\'')
+		{
+			buf[pos] = '\\';
+			pos++;
+		}
+		buf[pos] = ch;
+		pos++;
+	}
+
+	return buf;
+}
+
+/*
+ * Input function for path_value type
+ * parse textual presentation to PathValue struct
+ */
+Datum
+path_value_in(PG_FUNCTION_ARGS)
+{
+	char	   *str = PG_GETARG_CSTRING(0);
+	PathValue  *result;
+	char	   *ptr = NULL;
+	char	   *back;
+	int			i = 0;
+	bool		is_inside_string = false;
+
+	/* find the first comma outside the string value */
+	if (str[0] == '\"')
+		is_inside_string = true;
+
+	for (i = 1; str[i]; i++)
+	{
+		if (str[i] == '\"' && str[i - 1] != '\\')
+		{
+			is_inside_string = !is_inside_string;
+			continue;
+		}
+
+		if (is_inside_string == false && str[i] == ',')
+		{
+			/* founded */
+			ptr = &str[i];
+			break;
+		}
+	}
+
+	/* path and value is sepreated by a comma */
+	if (ptr == NULL)
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
+				 errmsg("invalid input syntax for type %s: \"%s\"",
+						"path_value", str)));
+
+	result = (PathValue *) palloc0(sizeof(PathValue) + 1);
+	result->path = (char *) palloc0(sizeof(char) * (ptr - str) + 1);
+	result->value = (char *) palloc0(sizeof(char) * strlen(ptr) + 1);
+
+	/* set size for custom type */
+	SET_VARSIZE(result, sizeof(PathValue) + 1);
+
+	/* get path and value from textual presentation */
+	memcpy(result->path, str, ptr - str);
+	memcpy(result->value, ptr + 1, strlen(ptr + 1));
+
+	/* left trim */
+	while(isspace(*result->path)) result->path++;
+	while(isspace(*result->value)) result->value++;
+
+	/* right trim */
+	back = result->path + strlen(result->path);
+	while(isspace(*--back));
+	*(back + 1) = '\0';
+
+	back = result->value + strlen(result->value);
+	while(isspace(*--back));
+	*(back + 1) = '\0';
+
+	/* remove outer quote of path */
+	back = result->path + strlen(result->path) - 1;
+	while ((*(result->path) == '\"' && *back == '\"') ||
+		(*(result->path) == '\'' && *back == '\''))
+	{
+		result->path++;
+		*back = '\0';
+		--back;
+	}
+	/*
+	 * Text value is inner quote,
+	 * remove this and add singer quote when print output.
+	 */
+	back = result->value + strlen(result->value) - 1;
+	while ((*(result->value) == '\"' && *back == '\"') ||
+		(*(result->value) == '\'' && *back == '\''))
+	{
+		result->value++;
+		*back = '\0';
+		back--;
+		result->is_text_value = true;
+	}
+
+	PG_RETURN_POINTER(result);
+}
+
+/*
+ * Output function for path_value type.
+ * make textual presentation from PathValue struct
+ */
+Datum
+path_value_out(PG_FUNCTION_ARGS)
+{
+	PathValue  *path_value = (PathValue *) PG_GETARG_POINTER(0);
+	char	   *result;
+	char	   *path = path_value->path;
+	char	   *value = path_value->value;
+
+	if (path_value->is_text_value == true)
+		/* add single quote for text value */
+		result = psprintf("'%s', '%s'", escape_single_quote(path), escape_single_quote(value));
+	else
+		result = psprintf("'%s', %s", escape_single_quote(path), escape_single_quote(value));
+	PG_RETURN_CSTRING(result);
 }

@@ -28,6 +28,7 @@ extern char* spd_deparse_type_name(Oid type_oid, int32 typemod);
 extern void spd_deparse_string_literal(StringInfo buf, const char* val);
 extern void spd_deparse_operator_name(StringInfo buf, Form_pg_operator opform);
 extern bool spd_is_stub_star_regex_function(Expr *expr);
+extern bool spd_is_record_func(List *tlist);
 
  /* in pgspider_core_option.c */
 extern int spdExtractConnectionOptions(List *defelems,

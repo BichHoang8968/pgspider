@@ -96,6 +96,7 @@ sqlite3 /tmp/pgtest.db < sqlite_selectfunc.dat
 
 # Setup Mysql
 mysql -uroot -pMysql_1234 < mysql_selectfunc.dat
+mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -uroot -pMysql_1234 mysql
 
 # Setup InfluxDB
 influx -import -path=./influx_selectfunc.data -precision=ns
