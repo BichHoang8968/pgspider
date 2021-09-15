@@ -1,4 +1,4 @@
-/* contrib/pgspider_fdw/pgspider_fdw--1.0.sql */
+/* contrib/pgspider_fdw/pgspider_fdw--1.1.sql */
 
 -- complain if script is sourced in psql, rather than via CREATE EXTENSION
 \echo Use "CREATE EXTENSION pgspider_fdw" to load this file. \quit

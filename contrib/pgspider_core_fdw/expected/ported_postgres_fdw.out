@@ -3523,22 +3523,18 @@ select exists(select 1 from pg_enum), sum(c1) from ft1 group by 1;
 --Testcase 194:
 explain (verbose, costs off)
 select array_agg(c1 order by c1) from ft1 where c1 < 100 group by c2 order by 1;
-                                        QUERY PLAN                                         
--------------------------------------------------------------------------------------------
+                                                            QUERY PLAN                                                             
+-----------------------------------------------------------------------------------------------------------------------------------
  Sort
    Output: (array_agg(c1 ORDER BY c1)), c2
    Sort Key: (array_agg(ft1.c1 ORDER BY ft1.c1))
-   ->  GroupAggregate
-         Output: array_agg(c1 ORDER BY c1), c2
-         Group Key: ft1.c2
-         ->  Sort
-               Output: c2, c1
-               Sort Key: ft1.c2
-               ->  Foreign Scan on public.ft1
-                     Output: c2, c1
-                     Node: postgres_srv / Status: Alive
-                       Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1" WHERE (("C 1" < 100))
-(13 rows)
+   ->  Foreign Scan
+         Output: (array_agg(c1 ORDER BY c1)), c2
+         Node: postgres_srv / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.ft1)
+           Remote SQL: SELECT array_agg("C 1" ORDER BY "C 1" ASC NULLS LAST), c2 FROM "S 1"."T 1" WHERE (("C 1" < 100)) GROUP BY 2
+(9 rows)
 
 --Testcase 195:
 select array_agg(c1 order by c1) from ft1 where c1 < 100 group by c2 order by 1;
@@ -3560,14 +3556,14 @@ select array_agg(c1 order by c1) from ft1 where c1 < 100 group by c2 order by 1;
 --Testcase 196:
 explain (verbose, costs off)
 select array_agg(c5 order by c1 desc) from ft2 where c2 = 6 and c1 < 50;
-                                           QUERY PLAN                                            
--------------------------------------------------------------------------------------------------
- Aggregate
-   Output: array_agg(c5 ORDER BY c1 DESC)
-   ->  Foreign Scan on public.ft2
-         Output: c5, c1
-         Node: postgres_srv / Status: Alive
-           Remote SQL: SELECT "C 1", c2, c5 FROM "S 1"."T 1" WHERE (("C 1" < 50)) AND ((c2 = 6))
+                                                        QUERY PLAN                                                         
+---------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan
+   Output: (array_agg(c5 ORDER BY c1 DESC))
+   Node: postgres_srv / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.ft2)
+     Remote SQL: SELECT array_agg(c5 ORDER BY "C 1" DESC NULLS FIRST) FROM "S 1"."T 1" WHERE (("C 1" < 50)) AND ((c2 = 6))
 (6 rows)
 
 --Testcase 197:
@@ -5127,7 +5123,7 @@ CONTEXT:  column "c8" of foreign table "ft1__postgres_srv__0"
 ERROR:  PGSpider can not get data from child node : postgres_srv
 SELECT  ft1.c1,  ft2.c2, ft1 FROM ft1, ft2 WHERE ft1.c1 = ft2.c1 AND ft1.c1 = 1; -- ERROR
 ERROR:  invalid input syntax for type integer: "foo"
-CONTEXT:  column "c8" of foreign table "ft1__postgres_srv__0"
+CONTEXT:  processing expression at position 2 in select list
 ERROR:  PGSpider can not get data from child node : postgres_srv
 SELECT sum(c2), array_agg(c8) FROM ft1 GROUP BY c8; -- ERROR
 ERROR:  invalid input syntax for type integer: "foo"
