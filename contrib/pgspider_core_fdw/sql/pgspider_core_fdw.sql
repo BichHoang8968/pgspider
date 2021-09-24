@@ -725,6 +725,21 @@ SELECT pg_sleep(2);
 --Testcase 182:
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 */
+
+-- Test CoerceViaIO type
+--Testcase 282:
+CREATE FOREIGN TABLE tbl01 (c1 timestamp without time zone, c2 timestamp with time zone) SERVER pgspider_svr;
+--Testcase 283:
+CREATE FOREIGN TABLE tbl01__sqlite_svr__0 (c1 timestamp without time zone, c2 timestamp with time zone) SERVER sqlite_svr OPTIONS(table 'tbl01');
+--Testcase 284:
+SELECT * FROM tbl01;
+--Testcase 285:
+SELECT c1 || 'time1', c2 || 'time2' FROM tbl01 GROUP BY c1, c2;
+--Testcase 286:
+DROP FOREIGN TABLE tbl01__sqlite_svr__0;
+--Testcase 287:
+DROP FOREIGN TABLE tbl01;
+
 --Testcase 265:
 DROP FOREIGN TABLE test1;
 --Testcase 266:

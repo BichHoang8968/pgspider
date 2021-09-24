@@ -1,5 +1,5 @@
 def NODE_NAME = 'AWS_Instance_CentOS'
-def MAIL_TO = 'bich1.hoangthi@toshiba.co.jp'
+def MAIL_TO = '$DEFAULT_RECIPIENTS'
 def BRANCH_NAME = 'Branch [' + env.BRANCH_NAME + ']'
 def BUILD_INFO = 'Jenkins job: ' + env.BUILD_URL + '\n'
 
@@ -7,11 +7,11 @@ def PGSPIDER_DOCKER_PATH = '/home/jenkins/Docker/Server/PGSpider'
 def ENHANCE_TEST_DOCKER_PATH = '/home/jenkins/Docker'
 
 def BRANCH_PGSPIDER = env.BRANCH_NAME
-def BRANCH_TINYBRACE_FDW = 'unimplemented_21A'
-def BRANCH_MYSQL_FDW = 'unimplemented_21A'
+def BRANCH_TINYBRACE_FDW = 'master'
+def BRANCH_MYSQL_FDW = 'master'
 def BRANCH_SQLITE_FDW = 'unimplemented_21A'
-def BRANCH_GRIDDB_FDW = 'unimplemented_21A'
-def BRANCH_INFLUXDB_FDW = 'unimplemented_21A'
+def BRANCH_GRIDDB_FDW = 'master'
+def BRANCH_INFLUXDB_FDW = 'master'
 def BRANCH_PARQUET_S3_FDW = 'master'
 
 pipeline {
@@ -181,7 +181,7 @@ pipeline {
                 }
             }
         }
-        stage('ported_postgres_fdw.sql') {
+       /* stage('ported_postgres_fdw.sql') {
             steps {
                 catchError() {
                     sh """
@@ -268,7 +268,7 @@ pipeline {
                 }
             }
         }
-        /* stage('Start_containers_Enhance_Test') {
+          stage('Start_containers_Enhance_Test') {
             steps {
                 catchError() {
                     sh """
