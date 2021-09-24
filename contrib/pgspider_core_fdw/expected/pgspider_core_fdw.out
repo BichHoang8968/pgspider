@@ -2928,6 +2928,45 @@ SELECT pg_sleep(2);
 --Testcase 182:
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 */
+-- Test CoerceViaIO type
+--Testcase 282:
+CREATE FOREIGN TABLE tbl01 (c1 timestamp without time zone, c2 timestamp with time zone) SERVER pgspider_svr;
+--Testcase 283:
+CREATE FOREIGN TABLE tbl01__sqlite_svr__0 (c1 timestamp without time zone, c2 timestamp with time zone) SERVER sqlite_svr OPTIONS(table 'tbl01');
+--Testcase 284:
+SELECT * FROM tbl01;
+            c1            |               c2                
+--------------------------+---------------------------------
+ Sat Jan 01 00:00:00 2000 | Fri Dec 31 14:00:00 1999 PST
+ Mon Jan 01 00:00:00 0001 | Sun Dec 31 11:00:00 0001 PST BC
+ Mon Oct 19 10:23:54 2015 | Sun Oct 18 20:23:54 2015 PDT
+ Sat Jan 01 04:30:00 2000 | Fri Dec 31 10:30:00 1999 PST
+ Sun May 13 00:00:00 2001 | Sun May 13 00:00:00 2001 PDT
+ Tue Oct 19 10:23:54 2004 | Mon Oct 18 22:23:54 2004 PDT
+ Sat Oct 19 15:20:54 2019 | Sat Oct 19 10:20:54 2019 PDT
+ Fri Oct 29 10:25:56 2004 | Fri Oct 29 00:25:56 2004 PDT
+ Mon Jan 01 00:00:00 2001 | Mon Jan 01 00:00:00 2001 PST
+(9 rows)
+
+--Testcase 285:
+SELECT c1 || 'time1', c2 || 'time2' FROM tbl01 GROUP BY c1, c2;
+           ?column?            |               ?column?               
+-------------------------------+--------------------------------------
+ Mon Jan 01 00:00:00 0001time1 | Sun Dec 31 11:00:00 0001 PST BCtime2
+ Sat Jan 01 00:00:00 2000time1 | Fri Dec 31 14:00:00 1999 PSTtime2
+ Sat Jan 01 04:30:00 2000time1 | Fri Dec 31 10:30:00 1999 PSTtime2
+ Mon Jan 01 00:00:00 2001time1 | Mon Jan 01 00:00:00 2001 PSTtime2
+ Sun May 13 00:00:00 2001time1 | Sun May 13 00:00:00 2001 PDTtime2
+ Tue Oct 19 10:23:54 2004time1 | Mon Oct 18 22:23:54 2004 PDTtime2
+ Fri Oct 29 10:25:56 2004time1 | Fri Oct 29 00:25:56 2004 PDTtime2
+ Mon Oct 19 10:23:54 2015time1 | Sun Oct 18 20:23:54 2015 PDTtime2
+ Sat Oct 19 15:20:54 2019time1 | Sat Oct 19 10:20:54 2019 PDTtime2
+(9 rows)
+
+--Testcase 286:
+DROP FOREIGN TABLE tbl01__sqlite_svr__0;
+--Testcase 287:
+DROP FOREIGN TABLE tbl01;
 --Testcase 265:
 DROP FOREIGN TABLE test1;
 --Testcase 266:

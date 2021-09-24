@@ -1978,6 +1978,14 @@ extract_expr(Node *node, Extractcells **extcells, List **tlist, List **compress_
 		case T_Var:
 			extract_expr_Var(node, extcells, tlist, compress_tlist_tle, compress_tlist, sgref, is_agg_ope);
 			break;
+		case T_CoerceViaIO:
+		{
+			CoerceViaIO *cio = (CoerceViaIO *) node;
+
+			if (cio->arg)
+				extract_expr((Node *)cio->arg, extcells, tlist, compress_tlist_tle, compress_tlist, sgref, is_agg_ope);
+			break;
+		}
 		default:
 			break;
 	}
@@ -7663,6 +7671,16 @@ rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells, int *cel
 			appendStringInfoChar(buf, ')');
 
 			ReleaseSysCache(tuple);
+			break;
+		}
+		case T_CoerceViaIO:
+		{
+			CoerceViaIO *cio = (CoerceViaIO *) node;
+
+			if (cio->arg)
+				rebuild_target_expr((Node *) cio->arg, buf, extcells, cellid, groupby_target, true);
+
+			break;
 		}
 		default:
 			break;
