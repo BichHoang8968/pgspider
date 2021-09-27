@@ -144,7 +144,11 @@ static int	PqRecvLength;		/* End of data available in PqRecvBuffer */
 /*
  * Message status
  */
+#ifdef PGSPIDER
+pthread_mutex_t pgspider_send_mutex = PTHREAD_MUTEX_INITIALIZER;	/* mutex for sending data to client */
+#else
 static bool PqCommBusy;			/* busy sending data to the client */
+#endif
 static bool PqCommReadingMsg;	/* in the middle of reading a message */
 static bool DoingCopyOut;		/* in old-protocol COPY OUT processing */
 
@@ -195,7 +199,9 @@ pq_init(void)
 	PqSendBufferSize = PQ_SEND_BUFFER_SIZE;
 	PqSendBuffer = MemoryContextAlloc(TopMemoryContext, PqSendBufferSize);
 	PqSendPointer = PqSendStart = PqRecvPointer = PqRecvLength = 0;
+#ifndef PGSPIDER
 	PqCommBusy = false;
+#endif
 	PqCommReadingMsg = false;
 	DoingCopyOut = false;
 
@@ -236,8 +242,10 @@ pq_init(void)
 static void
 socket_comm_reset(void)
 {
+#ifndef PGSPIDER
 	/* Do not throw away pending data, but do reset the busy flag */
 	PqCommBusy = false;
+#endif
 	/* We can abort any old-style COPY OUT, too */
 	pq_endcopyout(true);
 }
@@ -1343,12 +1351,20 @@ pq_putbytes(const char *s, size_t len)
 
 	/* Should only be called by old-style COPY OUT */
 	Assert(DoingCopyOut);
+#ifdef PGSPIDER
+	pthread_mutex_lock(&pgspider_send_mutex);
+#else
 	/* No-op if reentrant call */
 	if (PqCommBusy)
 		return 0;
 	PqCommBusy = true;
+#endif
 	res = internal_putbytes(s, len);
+#ifdef PGSPIDER
+	pthread_mutex_unlock(&pgspider_send_mutex);
+#else
 	PqCommBusy = false;
+#endif
 	return res;
 }
 
@@ -1388,13 +1404,21 @@ socket_flush(void)
 {
 	int			res;
 
+#ifdef PGSPIDER
+	pthread_mutex_lock(&pgspider_send_mutex);
+#else
 	/* No-op if reentrant call */
 	if (PqCommBusy)
 		return 0;
 	PqCommBusy = true;
+#endif
 	socket_set_nonblocking(false);
 	res = internal_flush();
+#ifdef PGSPIDER
+	pthread_mutex_unlock(&pgspider_send_mutex);
+#else
 	PqCommBusy = false;
+#endif
 	return res;
 }
 
@@ -1487,16 +1511,26 @@ socket_flush_if_writable(void)
 	if (PqSendPointer == PqSendStart)
 		return 0;
 
+#ifdef PGSPIDER
+	pthread_mutex_lock(&pgspider_send_mutex);
+#else
 	/* No-op if reentrant call */
 	if (PqCommBusy)
 		return 0;
+#endif
 
 	/* Temporarily put the socket into non-blocking mode */
 	socket_set_nonblocking(true);
 
+#ifndef PGSPIDER
 	PqCommBusy = true;
+#endif
 	res = internal_flush();
+#ifdef PGSPIDER
+	pthread_mutex_unlock(&pgspider_send_mutex);
+#else
 	PqCommBusy = false;
+#endif
 	return res;
 }
 
@@ -1534,11 +1568,16 @@ socket_is_send_pending(void)
  *		then; dropping them is annoying, but at least they will still appear
  *		in the postmaster log.)
  *
- *		We also suppress messages generated while pqcomm.c is busy.  This
- *		avoids any possibility of messages being inserted within other
+ *		For PostgreSQL, we also suppress messages generated while pqcomm.c is busy.
+ *		This avoids any possibility of messages being inserted within other
  *		messages.  The only known trouble case arises if SIGQUIT occurs
  *		during a pqcomm.c routine --- quickdie() will try to send a warning
  *		message, and the most reasonable approach seems to be to drop it.
+ *
+ *		For PGSpider, because of multi threads, the cases multiple messages are
+ *		going to send at the same time happens frequently. We use mutex lock to
+ *		make the new message wait until the previous message finishes putting
+ *		into Send Buffer to avoid missing message.
  *
  *		returns 0 if OK, EOF if trouble
  * --------------------------------
@@ -1546,9 +1585,15 @@ socket_is_send_pending(void)
 static int
 socket_putmessage(char msgtype, const char *s, size_t len)
 {
+#ifdef PGSPIDER
+	if (DoingCopyOut)
+		return 0;
+	pthread_mutex_lock(&pgspider_send_mutex);
+#else
 	if (DoingCopyOut || PqCommBusy)
 		return 0;
 	PqCommBusy = true;
+#endif
 	if (msgtype)
 		if (internal_putbytes(&msgtype, 1))
 			goto fail;
@@ -1562,11 +1607,19 @@ socket_putmessage(char msgtype, const char *s, size_t len)
 	}
 	if (internal_putbytes(s, len))
 		goto fail;
+#ifdef PGSPIDER
+	pthread_mutex_unlock(&pgspider_send_mutex);
+#else
 	PqCommBusy = false;
+#endif
 	return 0;
 
 fail:
+#ifdef PGSPIDER
+	pthread_mutex_unlock(&pgspider_send_mutex);
+#else
 	PqCommBusy = false;
+#endif
 	return EOF;
 }
 
