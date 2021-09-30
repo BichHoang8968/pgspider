@@ -273,7 +273,7 @@ static void *AllocSetRealloc(MemoryContext context, void *pointer, Size size);
 static void AllocSetReset(MemoryContext context);
 static void AllocSetDelete(MemoryContext context);
 #ifdef PGSPIDER
-static void AllocSetDeleteChild(MemoryContext context);
+static void AllocSetFreeContextList(void);
 #endif
 static Size AllocSetGetChunkSpace(MemoryContext context, void *pointer);
 static bool AllocSetIsEmpty(MemoryContext context);
@@ -295,7 +295,7 @@ static const MemoryContextMethods AllocSetMethods = {
 	AllocSetReset,
 	AllocSetDelete,
 #ifdef PGSPIDER
-	AllocSetDeleteChild,
+	AllocSetFreeContextList,
 #endif
 	AllocSetGetChunkSpace,
 	AllocSetIsEmpty,
@@ -712,19 +712,18 @@ AllocSetDelete(MemoryContext context)
 	/* Finally, free the context header, including the keeper block */
 	free(set);
 }
+
 #ifdef PGSPIDER
 /*
- * AllocSetDeleteChild
+ * AllocSetFreeContextList
  *
  * This function is used by PGSpider child threads.
  * Delete child free-list.
- * PGSpider child threads do not have Memory context free list.
- * PGSpider child threads create and finish there context in every query.
- * It is occurred memory leak for every query.
+ * This function avoids memory leak for every query.
  *
  */
 static void
-AllocSetDeleteChild(MemoryContext context)
+AllocSetFreeContextList(void)
 {
 	int freeListIndex=0;
 	/*
