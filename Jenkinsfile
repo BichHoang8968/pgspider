@@ -181,7 +181,7 @@ pipeline {
                 }
             }
         }
-       /* stage('ported_postgres_fdw.sql') {
+       stage('ported_postgres_fdw.sql') {
             steps {
                 catchError() {
                     sh """
@@ -268,7 +268,7 @@ pipeline {
                 }
             }
         }
-          stage('Start_containers_Enhance_Test') {
+         /* stage('Start_containers_Enhance_Test') {
             steps {
                 catchError() {
                     sh """

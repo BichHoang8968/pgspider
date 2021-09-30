@@ -6080,10 +6080,15 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
 			/* When there is pseudoconstant, need to filter in core (Example: WHERE false) */
 			if ((IS_SIMPLE_REL(baserel) && !push_scan_clauses) || ri->pseudoconstant)
+			{
 				scan_clauses = lappend(scan_clauses, ri->clause);
+				if (fdw_scan_tlist != NIL)
+					fdw_scan_tlist = add_to_flat_tlist(fdw_scan_tlist,
+												   pull_var_clause((Node *) ri->clause,
+																   PVC_RECURSE_PLACEHOLDERS));
+			}
 		}
 	}
-
 
 	/*
 	 * We collect local conditions which are pushed down by child node
@@ -6102,8 +6107,15 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 				Expr	   *expr = (Expr *) lfirst(lc);
 
 				scan_clauses = list_append_unique_ptr(scan_clauses, expr);
+
+				if (fdw_scan_tlist != NIL)
+					fdw_scan_tlist = add_to_flat_tlist(fdw_scan_tlist,
+												   pull_var_clause((Node *) expr,
+																   PVC_RECURSE_PLACEHOLDERS));
 			}
 		}
+		if (fdw_scan_tlist != NIL)
+			fdw_private->idx_url_tlist = get_index_spdurl_from_targets(fdw_scan_tlist, root);
 	}
 	else
 	{
@@ -6111,8 +6123,20 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		 * For single node, in case of grouping with having, we need to update having quals to scan clauses
 		 */
 		if (fdw_private->node_num == SPD_SINGLE_NODE && fdw_private->has_having_quals)
+		{
 			scan_clauses= extract_actual_clauses(fdw_private->rinfo.remote_conds, false);
+			if (fdw_scan_tlist != NIL)
+			{
+				foreach(lc, scan_clauses)
+				{
+					Expr	   *expr = (Expr *) lfirst(lc);
 
+					fdw_scan_tlist = add_to_flat_tlist(fdw_scan_tlist,
+														pull_var_clause((Node *) expr,
+																		PVC_RECURSE_AGGREGATES));
+				}
+			}
+		}
 	}
 	/* for debug */
 	if (log_min_messages <= DEBUG1 || client_min_messages <= DEBUG1)
