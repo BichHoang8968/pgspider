@@ -740,6 +740,22 @@ DROP FOREIGN TABLE tbl01__sqlite_svr__0;
 --Testcase 287:
 DROP FOREIGN TABLE tbl01;
 
+-- Test select operator expressions which contain different data type, with WHERE clause contains __spd_url
+--Testcase 288:
+CREATE FOREIGN TABLE tbl02 (c1 double precision, c2 integer, c3 real, c4 smallint, c5 bigint, c6 numeric,__spd_url text) SERVER pgspider_svr;
+--Testcase 289:
+CREATE FOREIGN TABLE tbl02__sqlite_svr__0 (c1 double precision, c2 integer, c3 real, c4 smallint, c5 bigint, c6 numeric) SERVER sqlite_svr OPTIONS(table 'tbl02');
+--Testcase 290:
+SELECT * FROM tbl02;
+--Testcase 291:
+EXPLAIN VERBOSE
+SELECT c1-c2, c2-c3, c3-c4, c3-c5, c5-c6 FROM tbl02 WHERE __spd_url != '$';
+--Testcase 292:
+SELECT c1-c2, c2-c3, c3-c4, c3-c5, c5-c6 FROM tbl02 WHERE __spd_url != '$';
+--Testcase 293:
+DROP FOREIGN TABLE tbl02__sqlite_svr__0;
+--Testcase 294:
+DROP FOREIGN TABLE tbl02;
 --Testcase 265:
 DROP FOREIGN TABLE test1;
 --Testcase 266:
