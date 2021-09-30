@@ -569,7 +569,15 @@ pthread_mutex_t postgres_fdw_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* We write lock SPI function and read lock child fdw routines */
 pthread_mutex_t error_mutex = PTHREAD_MUTEX_INITIALIZER;
-static MemoryContext thread_top_contexts[NODES_MAX] = {NULL};
+/*
+ * g_node_offset shows child node offset into list_thread_top_contexts array.
+ * In a query execution, a single child node may have multiple child threads
+ * when there are multiple scannings, so each child threads must have its own
+ * child thread top memory context to avoid corrupt child top memory by threads
+ * concurrency.
+ */
+static int g_node_offset = 0;
+static List *list_thread_top_contexts = NIL;
 static int64 temp_table_id = 0;
 static bool registered_reset_callback = false;
 
@@ -3827,6 +3835,9 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	int rtn = 0;
 	StringInfo relation_name = makeStringInfo();
 
+	/* Reset child node offset to 0 for new query execution. */
+	g_node_offset = 0;
+
 	baserel->rows = 1000;
 	fdw_private = spd_AllocatePrivate();
 	fdw_private->idx_url_tlist = -1;	/* -1: not have __spd_url */
@@ -5245,6 +5256,9 @@ spd_ExplainForeignScan(ForeignScanState *node,
 	SpdFdwPrivate *fdw_private;
 	ForeignScanThreadInfo *fssThrdinfo = node->spd_fsstate;
 
+	/* Reset child node offset to 0 for new query execution. */
+	g_node_offset = 0;
+
 	fdw_private = (SpdFdwPrivate *) fssThrdinfo[0].private;
 
 	if (fdw_private == NULL)
@@ -6203,6 +6217,9 @@ spd_end_child_node_thread(ForeignScanState *node, bool is_abort)
 static void
 spd_abort_transaction_callback(void *arg)
 {
+	/* Reset child node offset to 0 for new query execution. */
+	g_node_offset = 0;
+
 	AssertArg(arg);
 
 	if (IsA(arg, ForeignScanState))
@@ -6358,7 +6375,7 @@ spd_CreateChildFsstate(ForeignScanState *node, ChildInfo *pChildInfo, int eflags
  * spd_ConfigureChildMemoryContext
  *
  * @param[in,out] fssThrdInfo Thread information
- * @param[in] nodeId Node ID. This is used for determining the position of fssThrdInfo and thread_top_contexts.
+ * @param[in] nodeId Node ID. This is used for determining the position of fssThrdInfo and list_thread_top_contexts.
  * @param[in] es_query_cxt Query context of parent node
  */
 static void
@@ -6366,16 +6383,25 @@ spd_ConfigureChildMemoryContext(ForeignScanThreadInfo *fssThrdInfo, int nodeId, 
 {
 	ForeignScanThreadInfo *pFssThrdInfo = &fssThrdInfo[nodeId];
 
-	/* Allocate top memory context for each thread to avoid race condtion */
-	if (thread_top_contexts[nodeId] == NULL)
+	/* Allocate top memory context for each thread to avoid race condition */
+	if (g_node_offset + nodeId >= list_length(list_thread_top_contexts))
 	{
-		thread_top_contexts[nodeId] = AllocSetContextCreate(TopMemoryContext,
+		MemoryContext oldcontext;
+
+		pFssThrdInfo->threadTopMemoryContext = AllocSetContextCreate(TopMemoryContext,
 			"thread top memory context",
 			ALLOCSET_DEFAULT_MINSIZE,
 			ALLOCSET_DEFAULT_INITSIZE,
 			ALLOCSET_DEFAULT_MAXSIZE);
+
+		oldcontext = MemoryContextSwitchTo(TopMemoryContext);
+		list_thread_top_contexts = lappend(list_thread_top_contexts, pFssThrdInfo->threadTopMemoryContext);
+		MemoryContextSwitchTo(oldcontext);
 	}
-	pFssThrdInfo->threadTopMemoryContext = thread_top_contexts[nodeId];
+	else
+	{
+		pFssThrdInfo->threadTopMemoryContext = (MemoryContext) list_nth(list_thread_top_contexts, g_node_offset + nodeId);
+	}
 
 	/*
 	* memory context tree: paraent es_query_cxt -> threadMemoryContext ->
@@ -6792,6 +6818,9 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	}
 
 	fdw_private->nThreads = node_incr;
+
+	/* Increasing node offset by number of child nodes. */
+	g_node_offset += fdw_private->node_num;
 
 	/* Skip thread creation in explain case. */
 	if (eflags & EXEC_FLAG_EXPLAIN_ONLY)
@@ -8501,6 +8530,9 @@ spd_EndForeignScan(ForeignScanState *node)
 	int			node_incr;
 	ForeignScanThreadInfo *fssThrdInfo = node->spd_fsstate;
 	SpdFdwPrivate *fdw_private;
+
+	/* Reset child node offset to 0 for new query execution. */
+	g_node_offset = 0;
 
 	if (!fssThrdInfo)
 		return;

@@ -230,6 +230,9 @@ do { \
 			 (RELATION)->rd_id); \
 } while(0)
 
+#ifdef PGSPIDER
+static pthread_mutex_t relcache_mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 /*
  * Special cache for opclass-related information
@@ -2075,10 +2078,14 @@ RelationIdGetRelation(Oid relationId)
 void
 RelationIncrementReferenceCount(Relation rel)
 {
+	SPD_LOCK_TRY(&relcache_mutex);
+
 	ResourceOwnerEnlargeRelationRefs(CurrentResourceOwner);
 	rel->rd_refcnt += 1;
 	if (!IsBootstrapProcessingMode())
 		ResourceOwnerRememberRelationRef(CurrentResourceOwner, rel);
+
+	SPD_UNLOCK_CATCH(&relcache_mutex);
 }
 
 /*
@@ -2088,10 +2095,14 @@ RelationIncrementReferenceCount(Relation rel)
 void
 RelationDecrementReferenceCount(Relation rel)
 {
+	SPD_LOCK_TRY(&relcache_mutex);
+
 	Assert(rel->rd_refcnt > 0);
 	rel->rd_refcnt -= 1;
 	if (!IsBootstrapProcessingMode())
 		ResourceOwnerForgetRelationRef(CurrentResourceOwner, rel);
+
+	SPD_UNLOCK_CATCH(&relcache_mutex);
 }
 
 /*
