@@ -2414,6 +2414,19 @@ spd_setThreadContext(ForeignScanThreadInfo *fssthrdInfo, ErrorContextCallback *p
 }
 
 /*
+ *	spd_freeThreadContextList
+ *
+ * 	context_freelists is the thread local variable used in each child thread.
+ * 	It is used to save memory context which is allocated/deleted for re-use if any.
+ * 	Free all items in the list before thread exit to avoid memory leak.
+ */
+static void
+spd_freeThreadContextList(void)
+{
+	MemoryContextFreeContextList();
+}
+
+/*
  * spd_BeginForeignScanChild
  *
  * BeginForeignScan for child node.
@@ -2910,6 +2923,8 @@ THREAD_END:
 	fssthrdInfo->state = SPD_FS_STATE_FINISH;
 THREAD_EXIT:
 	spd_queue_notify_finish(&fssthrdInfo->tupleQueue);
+
+	spd_freeThreadContextList();
 
 #ifdef MEASURE_TIME
 	gettimeofday(&e, NULL);
@@ -8588,7 +8603,6 @@ spd_EndForeignScan(ForeignScanState *node)
 		ResourceOwnerRelease(fssThrdInfo[node_incr].thrd_ResourceOwner,
 							 RESOURCE_RELEASE_AFTER_LOCKS, false, false);
 		ResourceOwnerDelete(fssThrdInfo[node_incr].thrd_ResourceOwner);
-		MemoryContextDeleteNodes(fssThrdInfo[node_incr].threadMemoryContext);
 	}
 
 	if (fdw_private->is_explain)

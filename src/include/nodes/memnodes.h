@@ -63,7 +63,7 @@ typedef struct MemoryContextMethods
 	void		(*reset) (MemoryContext context);
 	void		(*delete_context) (MemoryContext context);
 #ifdef PGSPIDER
-	void		(*delete_context_child) (MemoryContext context);
+	void		(*free_context_list) (void);
 #endif
 	Size		(*get_chunk_space) (MemoryContext context, void *pointer);
 	bool		(*is_empty) (MemoryContext context);

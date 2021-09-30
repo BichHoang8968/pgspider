@@ -209,41 +209,15 @@ MemoryContextResetChildren(MemoryContext context)
 
 #ifdef PGSPIDER
 /*
- * MemoryContextDeleteChildNode
- *		Delete a context and its descendants, and release all space
- *		allocated therein.
- *
- * The type-specific delete routine removes all storage for the context,
- * but we have to recurse to handle the children.
- * We must also delink the context from its parent, if it has one.
+ * MemoryContextFreeContextList
+ *		Free memory for all contexts in the context list.
  */
 void
-MemoryContextDeleteNodes(MemoryContext context)
+MemoryContextFreeContextList(void)
 {
-	context->methods->delete_context_child(context);
+	MemoryContext context = CurrentMemoryContext;
 
-	VALGRIND_DESTROY_MEMPOOL(context);
-}
-
-
-/*
- * MemoryContextDeleteChildrenNode
- *		Delete all the descendants of the named context and release all
- *		space allocated therein.  The named context itself is not touched.
- */
-void
-MemoryContextDeleteChildrenNodes(MemoryContext context)
-{
-	AssertArg(MemoryContextIsValid(context));
-
-	/*
-	 * MemoryContextDelete will delink the child from me, so just iterate as
-	 * long as there is a child.
-	 */
-	while (context->firstchild != NULL)
-		MemoryContextDelete(context->firstchild);
-
-	MemoryContextDeleteNodes(context);
+	context->methods->free_context_list();
 }
 #endif
 

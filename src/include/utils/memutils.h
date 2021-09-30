@@ -93,8 +93,7 @@ extern void MemoryContextStatsDetail(MemoryContext context, int max_children);
 extern void MemoryContextAllowInCriticalSection(MemoryContext context,
 												bool allow);
 #ifdef PGSPIDER
-extern void MemoryContextDeleteNodes(MemoryContext context);
-extern void MemoryContextDeleteChildrenNodes(MemoryContext context);
+extern void MemoryContextFreeContextList(void);
 #endif
 
 #ifdef MEMORY_CONTEXT_CHECKING
