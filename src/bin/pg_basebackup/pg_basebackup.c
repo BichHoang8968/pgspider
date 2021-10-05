@@ -4,7 +4,7 @@
  *
  * Author: Magnus Hagander <magnus@hagander.net>
  *
- * Portions Copyright (c) 1996-2020, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  src/bin/pg_basebackup/pg_basebackup.c
@@ -62,7 +62,7 @@ typedef struct WriteTarState
 	int			tablespacenum;
 	char		filename[MAXPGPATH];
 	FILE	   *tarfile;
-	char		tarhdr[512];
+	char		tarhdr[TAR_BLOCK_SIZE];
 	bool		basetablespace;
 	bool		in_tarhdr;
 	bool		skip_file;
@@ -1038,7 +1038,7 @@ writeTarData(WriteTarState *state, char *buf, int r)
 static void
 ReceiveTarFile(PGconn *conn, PGresult *res, int rownum)
 {
-	char		zerobuf[1024];
+	char		zerobuf[TAR_BLOCK_SIZE * 2];
 	WriteTarState state;
 
 	memset(&state, 0, sizeof(state));
@@ -1183,7 +1183,7 @@ ReceiveTarFile(PGconn *conn, PGresult *res, int rownum)
 
 	if (state.basetablespace && writerecoveryconf)
 	{
-		char		header[512];
+		char		header[TAR_BLOCK_SIZE];
 
 		/*
 		 * If postgresql.auto.conf has not been found in the streamed data,
@@ -1202,7 +1202,7 @@ ReceiveTarFile(PGconn *conn, PGresult *res, int rownum)
 							pg_file_create_mode, 04000, 02000,
 							time(NULL));
 
-			padding = ((recoveryconfcontents->len + 511) & ~511) - recoveryconfcontents->len;
+			padding = tarPaddingBytesRequired(recoveryconfcontents->len);
 
 			writeTarData(&state, header, sizeof(header));
 			writeTarData(&state, recoveryconfcontents->data,
@@ -1238,7 +1238,7 @@ ReceiveTarFile(PGconn *conn, PGresult *res, int rownum)
 	 */
 	if (strcmp(basedir, "-") == 0 && manifest)
 	{
-		char		header[512];
+		char		header[TAR_BLOCK_SIZE];
 		PQExpBufferData buf;
 
 		initPQExpBuffer(&buf);
@@ -1256,7 +1256,7 @@ ReceiveTarFile(PGconn *conn, PGresult *res, int rownum)
 		termPQExpBuffer(&buf);
 	}
 
-	/* 2 * 512 bytes empty data at end of file */
+	/* 2 * TAR_BLOCK_SIZE bytes empty data at end of file */
 	writeTarData(&state, zerobuf, sizeof(zerobuf));
 
 #ifdef HAVE_LIBZ
@@ -1317,9 +1317,9 @@ ReceiveTarCopyChunk(size_t r, char *copybuf, void *callback_data)
 		 *
 		 * To do this, we have to process the individual files inside the TAR
 		 * stream. The stream consists of a header and zero or more chunks,
-		 * all 512 bytes long. The stream from the server is broken up into
-		 * smaller pieces, so we have to track the size of the files to find
-		 * the next header structure.
+		 * each with a length equal to TAR_BLOCK_SIZE. The stream from the
+		 * server is broken up into smaller pieces, so we have to track the
+		 * size of the files to find the next header structure.
 		 */
 		int			rr = r;
 		int			pos = 0;
@@ -1332,17 +1332,17 @@ ReceiveTarCopyChunk(size_t r, char *copybuf, void *callback_data)
 				 * We're currently reading a header structure inside the TAR
 				 * stream, i.e. the file metadata.
 				 */
-				if (state->tarhdrsz < 512)
+				if (state->tarhdrsz < TAR_BLOCK_SIZE)
 				{
 					/*
 					 * Copy the header structure into tarhdr in case the
-					 * header is not aligned to 512 bytes or it's not returned
-					 * in whole by the last PQgetCopyData call.
+					 * header is not aligned properly or it's not returned in
+					 * whole by the last PQgetCopyData call.
 					 */
 					int			hdrleft;
 					int			bytes2copy;
 
-					hdrleft = 512 - state->tarhdrsz;
+					hdrleft = TAR_BLOCK_SIZE - state->tarhdrsz;
 					bytes2copy = (rr > hdrleft ? hdrleft : rr);
 
 					memcpy(&state->tarhdr[state->tarhdrsz], copybuf + pos,
@@ -1375,14 +1375,14 @@ ReceiveTarCopyChunk(size_t r, char *copybuf, void *callback_data)
 
 					state->filesz = read_tar_number(&state->tarhdr[124], 12);
 					state->file_padding_len =
-						((state->filesz + 511) & ~511) - state->filesz;
+						tarPaddingBytesRequired(state->filesz);
 
 					if (state->is_recovery_guc_supported &&
 						state->is_postgresql_auto_conf &&
 						writerecoveryconf)
 					{
 						/* replace tar header */
-						char		header[512];
+						char		header[TAR_BLOCK_SIZE];
 
 						tarCreateHeader(header, "postgresql.auto.conf", NULL,
 										state->filesz + recoveryconfcontents->len,
@@ -1402,7 +1402,7 @@ ReceiveTarCopyChunk(size_t r, char *copybuf, void *callback_data)
 							 * If we're not skipping the file, write the tar
 							 * header unmodified.
 							 */
-							writeTarData(state, state->tarhdr, 512);
+							writeTarData(state, state->tarhdr, TAR_BLOCK_SIZE);
 						}
 					}
 
@@ -1439,15 +1439,15 @@ ReceiveTarCopyChunk(size_t r, char *copybuf, void *callback_data)
 					int			padding;
 					int			tailsize;
 
-					tailsize = (512 - state->file_padding_len) + recoveryconfcontents->len;
-					padding = ((tailsize + 511) & ~511) - tailsize;
+					tailsize = (TAR_BLOCK_SIZE - state->file_padding_len) + recoveryconfcontents->len;
+					padding = tarPaddingBytesRequired(tailsize);
 
 					writeTarData(state, recoveryconfcontents->data,
 								 recoveryconfcontents->len);
 
 					if (padding)
 					{
-						char		zerobuf[512];
+						char		zerobuf[TAR_BLOCK_SIZE];
 
 						MemSet(zerobuf, 0, sizeof(zerobuf));
 						writeTarData(state, zerobuf, padding);
@@ -1565,12 +1565,12 @@ ReceiveTarAndUnpackCopyChunk(size_t r, char *copybuf, void *callback_data)
 		/*
 		 * No current file, so this must be the header for a new file
 		 */
-		if (r != 512)
+		if (r != TAR_BLOCK_SIZE)
 		{
 			pg_log_error("invalid tar block header size: %zu", r);
 			exit(1);
 		}
-		totaldone += 512;
+		totaldone += TAR_BLOCK_SIZE;
 
 		state->current_len_left = read_tar_number(&copybuf[124], 12);
 
@@ -1580,10 +1580,10 @@ ReceiveTarAndUnpackCopyChunk(size_t r, char *copybuf, void *callback_data)
 #endif
 
 		/*
-		 * All files are padded up to 512 bytes
+		 * All files are padded up to a multiple of TAR_BLOCK_SIZE
 		 */
 		state->current_padding =
-			((state->current_len_left + 511) & ~511) - state->current_len_left;
+			tarPaddingBytesRequired(state->current_len_left);
 
 		/*
 		 * First part of header is zero terminated filename
@@ -2523,7 +2523,8 @@ main(int argc, char **argv)
 
 		if (no_slot)
 		{
-			pg_log_error("--create-slot and --no-slot are incompatible options");
+			pg_log_error("%s and %s are incompatible options",
+						 "--create-slot", "--no-slot");
 			fprintf(stderr, _("Try \"%s --help\" for more information.\n"),
 					progname);
 			exit(1);
@@ -2561,7 +2562,8 @@ main(int argc, char **argv)
 
 	if (showprogress && !estimatesize)
 	{
-		pg_log_error("--progress and --no-estimate-size are incompatible options");
+		pg_log_error("%s and %s are incompatible options",
+					 "--progress", "--no-estimate-size");
 		fprintf(stderr, _("Try \"%s --help\" for more information.\n"),
 				progname);
 		exit(1);
@@ -2569,7 +2571,8 @@ main(int argc, char **argv)
 
 	if (!manifest && manifest_checksums != NULL)
 	{
-		pg_log_error("--no-manifest and --manifest-checksums are incompatible options");
+		pg_log_error("%s and %s are incompatible options",
+					 "--no-manifest", "--manifest-checksums");
 		fprintf(stderr, _("Try \"%s --help\" for more information.\n"),
 				progname);
 		exit(1);
@@ -2577,7 +2580,8 @@ main(int argc, char **argv)
 
 	if (!manifest && manifest_force_encode)
 	{
-		pg_log_error("--no-manifest and --manifest-force-encode are incompatible options");
+		pg_log_error("%s and %s are incompatible options",
+					 "--no-manifest", "--manifest-force-encode");
 		fprintf(stderr, _("Try \"%s --help\" for more information.\n"),
 				progname);
 		exit(1);

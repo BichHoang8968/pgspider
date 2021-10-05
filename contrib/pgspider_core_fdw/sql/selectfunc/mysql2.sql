@@ -14986,10 +14986,10 @@ SELECT tag1, bit_xor(value5) FROM s7a GROUP BY tag1;
 -- select bit_xor with group by having (explain)
 --Testcase 3421:
 EXPLAIN VERBOSE
-SELECT id, bit_xor(value5) FROM s7a GROUP BY id, str1 HAVING bit_xor(value5) > 0;
+SELECT id, bit_xor(value5) FROM s7a GROUP BY id, str1 HAVING bit_xor(value5) > 0::bit;
 -- select bit_xor with group by having (result)
 --Testcase 3422:
-SELECT id, bit_xor(value5) FROM s7a GROUP BY id, str1 HAVING bit_xor(value5) > 0;
+SELECT id, bit_xor(value5) FROM s7a GROUP BY id, str1 HAVING bit_xor(value5) > 0::bit;
 
 -- ===================================================================
 -- test GROUP_CONCAT()

@@ -39,7 +39,6 @@
 \! reindexdb \-\-version
 \! vacuumdb \-\-version
 \! $PWD/../../../contrib/oid2name/oid2name \-\-version
-\! $PWD/../../../contrib/pg_standby/pg_standby \-\-version
 \! $PWD/../../../contrib/vacuumlo/vacuumlo \-\-version
 \! ./pg_regress \-\-version
 -- src/test/isolation/isolationtester not support --version option
@@ -84,7 +83,6 @@
 \! reindexdb \-V
 \! vacuumdb \-V
 \! $PWD/../../../contrib/oid2name/oid2name \-V
-\! $PWD/../../../contrib/pg_standby/pg_standby \-V
 \! $PWD/../../../contrib/vacuumlo/vacuumlo \-V
 \! ./pg_regress \-V
 \! $PWD/../isolation/isolationtester \-V

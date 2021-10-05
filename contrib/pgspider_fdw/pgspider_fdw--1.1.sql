@@ -17,6 +17,22 @@ CREATE FOREIGN DATA WRAPPER pgspider_fdw
   HANDLER pgspider_fdw_handler
   VALIDATOR pgspider_fdw_validator;
 
+CREATE FUNCTION pgspider_fdw_get_connections (OUT server_name text,
+    OUT valid boolean)
+RETURNS SETOF record
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT PARALLEL RESTRICTED;
+
+CREATE FUNCTION pgspider_fdw_disconnect (text)
+RETURNS bool
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT PARALLEL RESTRICTED;
+
+CREATE FUNCTION pgspider_fdw_disconnect_all ()
+RETURNS bool
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT PARALLEL RESTRICTED;
+
 CREATE PROCEDURE pgspider_create_or_replace_stub(func_type text, name_arg text, return_type regtype) AS $$
 DECLARE
   proname_raw text := split_part(name_arg, '(', 1);

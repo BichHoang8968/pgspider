@@ -750,7 +750,6 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM test1;
    Node: file_svr / Status: Alive
      Foreign File: /tmp/pgtest.csv
    Node: mysql_svr / Status: Alive
-     Local server startup cost: 10
      Remote query: SELECT `i` FROM `test`.`test1`
    Node: post_svr / Status: Alive
      Remote SQL: SELECT i FROM public.test1
@@ -759,7 +758,7 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM test1;
    Node: tiny_svr / Status: Alive
      TinyBrace query: SELECT `i` FROM "test1"
      TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
-(16 rows)
+(15 rows)
 
 -- some fdw push down and some fdw not 
 --Testcase 55:
@@ -776,7 +775,6 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT sum(i), avg(i) FROM test1;
      Foreign File: /tmp/pgtest.csv
    Node: mysql_svr / Status: Alive
      Agg push-down: yes
-     Local server startup cost: 10
      Remote query: SELECT sum(`i`), count(`i`) FROM `test`.`test1`
    Node: post_svr / Status: Alive
      Agg push-down: yes
@@ -789,7 +787,7 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT sum(i), avg(i) FROM test1;
      Agg push-down: yes
      TinyBrace query: SELECT sum(`i`), count(`i`) FROM "test1"
      TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
-(23 rows)
+(22 rows)
 
 -- only post_svr is alive
 --Testcase 56:
@@ -2146,9 +2144,8 @@ SELECT abs(-i*2), i+1, i, i FROM t3;
  Foreign Scan on public.t3
    Output: (abs(((- i) * 2))), ((i + 1)), i, i
    Node: mysql_svr / Status: Alive
-     Local server startup cost: 10
      Remote query: SELECT abs(((- `i`) * 2)), (`i` + 1), `i` FROM `test`.`test3`
-(5 rows)
+(4 rows)
 
 --Testcase 113:
 SELECT abs(-i*2), i+1, i, i FROM t3;
@@ -2171,7 +2168,7 @@ SELECT abs(A.i) FROM t3 A, t3 B LIMIT 3;
    ->  Foreign Scan
          Output: abs(a.i)
          Node: mysql_svr / Status: Alive
-           Local server startup cost: 10
+           Relations: (test.t3__mysql_svr__0) INNER JOIN (test.t3__mysql_svr__0)
            Remote query: SELECT r1.`i` FROM (`test`.`test3` r1 INNER JOIN `test`.`test3` r2 ON (TRUE))
 (7 rows)
 
@@ -2199,14 +2196,12 @@ SELECT abs(i) c1 FROM t3 UNION SELECT abs(i+1) FROM t3 ORDER BY c1;
                ->  Foreign Scan on public.t3
                      Output: (abs(t3.i))
                      Node: mysql_svr / Status: Alive
-                       Local server startup cost: 10
                        Remote query: SELECT abs(`i`) FROM `test`.`test3`
                ->  Foreign Scan on public.t3 t3_1
                      Output: (abs((t3_1.i + 1)))
                      Node: mysql_svr / Status: Alive
-                       Local server startup cost: 10
                        Remote query: SELECT abs((`i` + 1)) FROM `test`.`test3`
-(17 rows)
+(15 rows)
 
 --Testcase 117:
 SELECT abs(i) c1 FROM t3 UNION SELECT abs(i+1) FROM t3 ORDER BY c1;
@@ -2262,7 +2257,6 @@ SELECT i+1,__spd_url FROM test1 ORDER BY __spd_url, i;
          Node: file_svr / Status: Alive
            Foreign File: /tmp/pgtest.csv
          Node: mysql_svr / Status: Alive
-           Local server startup cost: 10
            Remote query: SELECT `i` FROM `test`.`test1`
          Node: post_svr / Status: Alive
            Remote SQL: SELECT i FROM public.test1
@@ -2271,7 +2265,7 @@ SELECT i+1,__spd_url FROM test1 ORDER BY __spd_url, i;
          Node: tiny_svr / Status: Alive
            TinyBrace query: SELECT `i` FROM "test1"
            TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
-(19 rows)
+(18 rows)
 
 --Testcase 122:
 SELECT i+1,__spd_url FROM test1  ORDER BY __spd_url, i;
@@ -2816,9 +2810,8 @@ SET pgspider_core_fdw.throw_error_ifdead to true;
 --Testcase 169:
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
 ERROR:  could not connect to server "post_svr2"
-DETAIL:  could not connect to server: Connection refused
-	Is the server running on host "127.0.0.1" and accepting
-	TCP/IP connections on port 49503?
+DETAIL:  connection to server at "127.0.0.1", port 49503 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
 ERROR:  PGSpider can not get data from child node : post_svr2
 SET pgspider_core_fdw.throw_error_ifdead to false;
 --Testcase 170:

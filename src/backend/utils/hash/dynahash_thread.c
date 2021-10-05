@@ -33,14 +33,15 @@ typedef int64 normalized_id_t;
 #define SUPPORT_MULTITHREAD(option, hashfunc)  ((option & HASH_BLOBS || (option & HASH_FUNCTION && hashfunc==tag_hash)) && \
 						!(option & HASH_SHARED_MEM) && (option & HASH_ELEM))
 #endif
+
  /*
-  * In PGSPider, if hash create with same name we will return the existed hash.
-  * But with some case can create new hash with same name. All of it will list
-  * in the array bellow.
+  * In PGSPider, if hash create with same name we will return the existed
+  * hash. But with some case can create new hash with same name. All of it
+  * will list in the array bellow.
   */
 static const char fdw_tabname_allow_dupplicate_array[][HASH_TABLE_NAME_LEN] = {
-		"griddb_fdw containers" ,
-		""							/* empty string for end of array */
+	"griddb_fdw containers",
+	""							/* empty string for end of array */
 };
 
  /*
@@ -50,97 +51,106 @@ static const char fdw_tabname_allow_dupplicate_array[][HASH_TABLE_NAME_LEN] = {
   * contrib/pgspider_core_fdw/tools/extract_hashname.sh
   */
 static const char tabname_array[][HASH_TABLE_NAME_LEN] = {
-		"Analyzed elements table" ,
-		"Analyzed lexemes table" ,
-		"Array distinct element count table" ,
-		"Attopt cache" ,
-		"Btree proof lookup cache" ,
-		"bucket ctids" ,
-		"CFuncHash" ,
-		"Collation cache" ,
-		"Combo CIDs" ,
-		"CompactCheckpointerRequestQueue" ,
-		"crosstab hash" ,
-		"Databases hash" ,
-		"db hash" ,
-		"Enum value blacklist" ,
-		"Event Trigger Cache" ,
-		"find_all_inheritors temporary table" ,
-		"Function stat entries" ,
-		"gistbuild parent map" ,
-		"gistbuildbuffers" ,
-		"JoinRelHashTable" ,
-		"json object hashtable" ,
-		"keep alive" ,
-		"Local Buffer Lookup Table" ,
-		"Local predicate lock" ,
-		"LOCALLOCK hash" ,
-		"LOCK hash" ,
-		"logical replication output relation cache" ,
-		"Logical replication table sync worker start times" ,
-		"Logical rewrite mapping" ,
-		"logicalrep relation map cache" ,
-		"logicalrep type map cache" ,
-		"lwlock stats" ,
-		"Operator class cache" ,
-		"Operator lookup cache" ,
-		"partition directory" ,
-		"PartitionTupleRouting table" ,
-		"Pending Ops Table" ,
-		"Per-database function" ,
-		"Per-database table" ,
-		"pgstat TabStatusArray lookup hash table" ,
-		"pg_stat_statements hash" ,
-		"PL/Perl interpreters" ,
-		"PL/Perl procedures" ,
-		"PL/Perl queries" ,
-		"PL/Python procedures" ,
-		"PL/Python SPI exceptions" ,
-		"PL/Tcl functions" ,
-		"PL/Tcl interpreters" ,
-		"PLpgSQL cast cache" ,
-		"PLpgSQL function hash" ,
-		"PLpgSQL private cast cache" ,
-		"Portal hash" ,
-		"PREDICATELOCK hash" ,
-		"PREDICATELOCKTARGET hash" ,
-		"Prepared Queries" ,
-		"PrivateRefCount" ,
-		"PROCLOCK hash" ,
-		"Record information cache" ,
-		"RecoveryLockLists" ,
-		"Relcache by OID" ,
-		"RelfilenodeMap cache" ,
-		"Remote Con hash" ,
-		"Rendezvous variable hash" ,
-		"ReorderBufferByXid" ,
-		"ReorderBufferToastHash" ,
-		"ReorderBufferTupleCid" ,
-		"Rewrite / Old to new tid map" ,
-		"Rewrite / Unresolved ctids" ,
-		"RI compare cache" ,
-		"RI constraint cache" ,
-		"RI query cache" ,
-		"Sequence values" ,
-		"SERIALIZABLEXID hash" ,
-		"set_rtable_names names" ,
-		"Shared Buffer Lookup Table" ,
-		"ShmemIndex" ,
-		"smgr relation table" ,
-		"TableSpace cache" ,
-		"Temporary table of OIDs" ,
-		"Timezones" ,
-		"TOAST to main relid map" ,
-		"Trigram NFA" ,
-		"Tsearch configuration cache" ,
-		"Tsearch dictionary cache" ,
-		"Tsearch parser cache" ,
-		"Type information cache" ,
-		"unlogged hash" ,
-		"XLOG invalid-page table" ,
-		"pgspider hash fdw tabname table" ,
-		"pgspider hash fdw tabname allow dupplicate table" ,
-		""							/* empty string for end of array */
+	"Analyzed elements table",
+	"Analyzed lexemes table",
+	"Array distinct element count table",
+	"Attopt cache",
+	"Btree proof lookup cache",
+	"bucket ctids",
+	"CFuncHash",
+	"Collation cache",
+	"Combo CIDs",
+	"CompactCheckpointerRequestQueue",
+	"crosstab hash",
+	"Databases hash",
+	"db hash",
+	"Event Trigger Cache",
+	"find_all_inheritors temporary table",
+	"Function stat entries",
+	"gistbuild parent map",
+	"gistbuildbuffers",
+	"JoinRelHashTable",
+	"json object hashtable",
+	"keep alive",
+	"Local Buffer Lookup Table",
+	"Local predicate lock",
+	"LOCALLOCK hash",
+	"LOCK hash",
+	"logical replication output relation cache",
+	"Logical replication table sync worker start times",
+	"Logical rewrite mapping",
+	"logicalrep partition map cache",
+	"logicalrep relation map cache",
+	"logicalrep type map cache",
+	"lwlock stats",
+	"ModifyTable target hash",
+	"Operator class cache",
+	"Operator lookup cache",
+	"partition directory",
+	"Pending Notifies",
+	"Pending Ops Table",
+	"pending sync hash",
+	"Per-database function",
+	"Per-database table",
+	"pgstat TabStatusArray lookup hash table",
+	"pg_stat_statements hash",
+	"PL/Perl interpreters",
+	"PL/Perl procedures",
+	"PL/Perl queries",
+	"PL/Python procedures",
+	"PL/Python SPI exceptions",
+	"PL/Tcl functions",
+	"PL/Tcl interpreters",
+	"PLpgSQL cast cache",
+	"PLpgSQL function hash",
+	"PLpgSQL private cast cache",
+	"Portal hash",
+	"PREDICATELOCK hash",
+	"PREDICATELOCKTARGET hash",
+	"Prepared Queries",
+	"PrivateRefCount",
+	"PROCLOCK hash",
+	"Record information cache",
+	"RecoveryLockLists",
+	"Relcache by OID",
+	"RelfilenodeMap cache",
+	"Remote Con hash",
+	"Rendezvous variable hash",
+	"ReorderBufferByXid",
+	"ReorderBufferToastHash",
+	"ReorderBufferTupleCid",
+	"Replication slots hash",
+	"Rewrite / Old to new tid map",
+	"Rewrite / Unresolved ctids",
+	"RI compare cache",
+	"RI constraint cache",
+	"RI query cache",
+	"Sequence values",
+	"SERIALIZABLEXID hash",
+	"set_rtable_names names",
+	"Shared Buffer Lookup Table",
+	"ShmemIndex",
+	"smgr relation table",
+	"StreamXidHash",
+	"TableSpace cache",
+	"Temporary table of OIDs",
+	"Timezones",
+	"tmp relfilenodes",
+	"TOAST to main relid map",
+	"Trigram NFA",
+	"TRUNCATE for Foreign Tables",
+	"Tsearch configuration cache",
+	"Tsearch dictionary cache",
+	"Tsearch parser cache",
+	"Type information cache",
+	"Uncommitted enums",
+	"unlogged relation OIDs",
+	"XLOG invalid-page table",
+	"pgspider hash fdw tabname table",
+	"pgspider hash fdw tabname allow dupplicate table",
+	"pgspider hash table name",
+	"pgspider normalized id tables",
+	""							/* empty string for end of array */
 };
 
 /* normalized thread id of the current thread */
@@ -157,13 +167,13 @@ static List *normalized_tables = NULL;
 
 typedef struct FdwTabNameHtabEntry
 {
-	char key[HASH_TABLE_NAME_LEN]; /* Tabname */
-	HTAB *htab;
-} FdwTabNameHtabEntry;
+	char		key[HASH_TABLE_NAME_LEN];	/* Tabname */
+	HTAB	   *htab;
+}			FdwTabNameHtabEntry;
 
 /* Pgspider hash table of fdw tabname array */
-static HTAB* fdw_tabname_htab = NULL;
-static HTAB* fdw_tabname_allow_dupplicate_htab = NULL;
+static HTAB *fdw_tabname_htab = NULL;
+static HTAB *fdw_tabname_allow_dupplicate_htab = NULL;
 
 /* hash table of tabname_array */
 static HTAB *tabname_htab = NULL;
@@ -178,7 +188,7 @@ static void *get_key_with_id(HTAB *hashp, const void *keyPtr);
  *
  * @return hash table
  */
-static HTAB*
+static HTAB *
 hash_fdw_tabname_htab_init()
 {
 	HASHCTL		ctl;
@@ -189,7 +199,7 @@ hash_fdw_tabname_htab_init()
 	ctl.entrysize = sizeof(FdwTabNameHtabEntry);
 	ctl.hcxt = TopMemoryContext;
 
-	htab = hash_create_orig("pgspider hash fdw tabname table", 32, &ctl, HASH_ELEM);
+	htab = hash_create_orig("pgspider hash fdw tabname table", 32, &ctl, HASH_ELEM | HASH_STRINGS);
 	return htab;
 }
 
@@ -210,7 +220,7 @@ hash_tabname_allow_dupplicate_init()
 	ctl.entrysize = HASH_TABLE_NAME_LEN;
 	ctl.hcxt = TopMemoryContext;
 
-	htab = hash_create_orig("pgspider hash fdw tabname allow dupplicate table", 32, &ctl, HASH_ELEM);
+	htab = hash_create_orig("pgspider hash fdw tabname allow dupplicate table", 32, &ctl, HASH_ELEM | HASH_STRINGS);
 
 	for (i = 0; fdw_tabname_allow_dupplicate_array[i][0] != '\0'; i++)
 	{
@@ -242,7 +252,7 @@ hash_tabname_init()
 	ctl.entrysize = HASH_TABLE_NAME_LEN;
 	ctl.hcxt = TopMemoryContext;
 
-	htab = hash_create_orig("pgspider hash table name", 32, &ctl, HASH_ELEM);
+	htab = hash_create_orig("pgspider hash table name", 32, &ctl, HASH_ELEM | HASH_STRINGS);
 
 	for (i = 0; tabname_array[i][0] != '\0'; i++)
 	{
@@ -318,17 +328,18 @@ hash_create(const char *tabname, long nelem, HASHCTL *info, int flags)
 #endif
 		if (isfdw)
 		{
-			FdwTabNameHtabEntry* hvalue;
+			FdwTabNameHtabEntry *hvalue;
+
 			/* Expand size to store normalized id */
 			info->keysize += NORMALIZED_ID_SIZE;
 			info->entrysize += NORMALIZED_ID_SIZE;
 
 			/*
-			 * Find the tabname from fdw_tabname_htab
-			 * If found return the exist htab.
-			 * If not found, create new fdw_tabname_htab which key is tabname
+			 * Find the tabname from fdw_tabname_htab If found return the
+			 * exist htab. If not found, create new fdw_tabname_htab which key
+			 * is tabname
 			 */
-			hvalue = (FdwTabNameHtabEntry*)hash_search_orig(fdw_tabname_htab, tabname, HASH_FIND, &found);
+			hvalue = (FdwTabNameHtabEntry *) hash_search_orig(fdw_tabname_htab, tabname, HASH_FIND, &found);
 			hash_search_orig(fdw_tabname_allow_dupplicate_htab, tabname, HASH_FIND, &is_allow_found);
 
 			if (found && !is_allow_found)
@@ -352,8 +363,8 @@ hash_create(const char *tabname, long nelem, HASHCTL *info, int flags)
 				ctl.entrysize = ctl.keysize + NORMALIZED_ID_SIZE;
 				ctl.hcxt = TopMemoryContext;
 				id_htab = hash_create_orig("pgspider normalized id tables", 8,
-										&ctl,
-										HASH_ELEM | HASH_BLOBS | HASH_CONTEXT);
+										   &ctl,
+										   HASH_ELEM | HASH_BLOBS | HASH_CONTEXT);
 
 				htab->nomralized_id_htab = id_htab;
 				old = MemoryContextSwitchTo(TopMemoryContext);
@@ -361,9 +372,9 @@ hash_create(const char *tabname, long nelem, HASHCTL *info, int flags)
 				MemoryContextSwitchTo(old);
 
 				/* Save tabname as key to fdw_tabname_htab */
-				if(!is_allow_found)
+				if (!is_allow_found)
 				{
-					hvalue = (FdwTabNameHtabEntry*)hash_search(fdw_tabname_htab, tabname, HASH_ENTER, &found);
+					hvalue = (FdwTabNameHtabEntry *) hash_search(fdw_tabname_htab, tabname, HASH_ENTER, &found);
 					Assert(!found);
 					hvalue->htab = htab;
 				}
@@ -531,7 +542,10 @@ hash_search(HTAB *hashp,
 								foundPtr);
 	}
 
-	/* This cache shares entries with multi threads. An entry does not has normalized_id. */
+	/*
+	 * This cache shares entries with multi threads. An entry does not has
+	 * normalized_id.
+	 */
 	if (strcmp(hashp->tabname, "parquet_fdw file reader cache") == 0)
 	{
 		pthread_mutex_lock(&hash_mutex);
@@ -539,9 +553,9 @@ hash_search(HTAB *hashp,
 		hashp->hctl->entrysize -= NORMALIZED_ID_SIZE;
 		hashp->hctl->keysize -= NORMALIZED_ID_SIZE;
 		entry = hash_search_orig(hashp,
-								keyPtr,
-								action,
-								foundPtr);
+								 keyPtr,
+								 action,
+								 foundPtr);
 		hashp->keysize += NORMALIZED_ID_SIZE;
 		hashp->hctl->entrysize += NORMALIZED_ID_SIZE;
 		hashp->hctl->keysize += NORMALIZED_ID_SIZE;
@@ -616,7 +630,8 @@ hash_seq_search(HASH_SEQ_STATUS *status)
 void
 hash_destroy(HTAB *hashp)
 {
-	bool	is_allow_found = true;
+	bool		is_allow_found = true;
+
 	if (hashp != NULL)
 	{
 		if (!hashp->isfdw)
@@ -629,7 +644,7 @@ hash_destroy(HTAB *hashp)
 
 		/* Remove fdw tabname hashtab from fdw_tabname_htab */
 		hash_search_orig(fdw_tabname_allow_dupplicate_htab, hashp->tabname, HASH_FIND, &is_allow_found);
-		if(!is_allow_found)
+		if (!is_allow_found)
 		{
 			Assert(fdw_tabname_htab);
 			hash_search_orig(fdw_tabname_htab, hashp->tabname, HASH_REMOVE, NULL);

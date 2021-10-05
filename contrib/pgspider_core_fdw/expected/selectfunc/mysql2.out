@@ -18055,7 +18055,7 @@ SELECT position('XYZ' IN str1), position('XYZ' IN str2) FROM s3;
                                                QUERY PLAN                                                
 ---------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=8)
-   Output: ("position"(str1, 'XYZ'::text)), ("position"(str2, 'XYZ'::text))
+   Output: (POSITION(('XYZ'::text) IN (str1))), (POSITION(('XYZ'::text) IN (str2)))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT "position"(str1, 'XYZ'::text), "position"(str2, 'XYZ'::text) FROM public.s3mysql
 (4 rows)
@@ -18080,7 +18080,7 @@ SELECT value1, position('XYZ' IN str1) FROM s3 WHERE to_hex(value2) = '64';
                                         QUERY PLAN                                        
 ------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..229.24 rows=17 width=12)
-   Output: value1, ("position"(str1, 'XYZ'::text))
+   Output: value1, (POSITION(('XYZ'::text) IN (str1)))
    Filter: (to_hex(s3.value2) = '64'::text)
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT value1, "position"(str1, 'XYZ'::text), value2 FROM public.s3mysql
@@ -18103,7 +18103,7 @@ SELECT value1, position('XYZ' IN str1) FROM s3 WHERE value2 != 200;
                                                 QUERY PLAN                                                
 ----------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..229.07 rows=3396 width=12)
-   Output: value1, ("position"(str1, 'XYZ'::text))
+   Output: value1, (POSITION(('XYZ'::text) IN (str1)))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT value1, "position"(str1, 'XYZ'::text) FROM public.s3mysql WHERE ((value2 <> 200))
 (4 rows)
@@ -18125,7 +18125,7 @@ SELECT position('XYZ' IN str1), pi(), 4.1 FROM s3;
                                                      QUERY PLAN                                                     
 --------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..220.92 rows=3413 width=44)
-   Output: ("position"(str1, 'XYZ'::text)), '3.141592653589793'::double precision, 4.1
+   Output: (POSITION(('XYZ'::text) IN (str1))), '3.141592653589793'::double precision, 4.1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT "position"(str1, 'XYZ'::text), 3.141592653589793::double precision, 4.1 FROM public.s3mysql
 (4 rows)
@@ -18150,10 +18150,10 @@ SELECT value1, position('XYZ' IN str1) FROM s3 ORDER BY position('XYZ' IN str1);
                                        QUERY PLAN                                       
 ----------------------------------------------------------------------------------------
  Sort  (cost=421.21..429.74 rows=3413 width=12)
-   Output: value1, ("position"(str1, 'XYZ'::text))
-   Sort Key: ("position"(s3.str1, 'XYZ'::text))
+   Output: value1, (POSITION(('XYZ'::text) IN (str1)))
+   Sort Key: (POSITION(('XYZ'::text) IN (s3.str1)))
    ->  Foreign Scan on public.s3  (cost=100.00..220.92 rows=3413 width=12)
-         Output: value1, ("position"(str1, 'XYZ'::text))
+         Output: value1, (POSITION(('XYZ'::text) IN (str1)))
          Node: pgspider_svr / Status: Alive
            Remote SQL: SELECT value1, "position"(str1, 'XYZ'::text) FROM public.s3mysql
 (7 rows)
@@ -18204,7 +18204,7 @@ SELECT count(value1), position('XYZ' IN str1) FROM s3 GROUP BY position('XYZ' IN
                                              QUERY PLAN                                             
 ----------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=0.00..0.00 rows=1 width=12)
-   Output: (count(value1)), ("position"(str1, 'XYZ'::text))
+   Output: (count(value1)), (POSITION(('XYZ'::text) IN (str1)))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
@@ -18239,7 +18239,7 @@ SELECT count(value1), position('XYZ' IN str1) FROM s3 GROUP BY position('XYZ' IN
                                                                            QUERY PLAN                                                                            
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=0.00..0.00 rows=1 width=44)
-   Output: (count(value1)), ("position"(str1, 'XYZ'::text)), str1
+   Output: (count(value1)), (POSITION(('XYZ'::text) IN (str1))), str1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
@@ -21729,7 +21729,7 @@ SELECT substring(str1 FROM 3), substring(str2 FROM 3 FOR 4) FROM s3;
                                         QUERY PLAN                                        
 ------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=64)
-   Output: ("substring"(str1, 3)), ("substring"(str2, 3, 4))
+   Output: (SUBSTRING(str1 FROM 3)), (SUBSTRING(str2 FROM 3 FOR 4))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT "substring"(str1, 3), "substring"(str2, 3, 4) FROM public.s3mysql
 (4 rows)
@@ -21777,7 +21777,7 @@ SELECT value1, substring(str2 FROM 3 FOR 4) FROM s3 WHERE value2 != 200;
                                              QUERY PLAN                                             
 ----------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..229.07 rows=3396 width=40)
-   Output: value1, ("substring"(str2, 3, 4))
+   Output: value1, (SUBSTRING(str2 FROM 3 FOR 4))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT value1, "substring"(str2, 3, 4) FROM public.s3mysql WHERE ((value2 <> 200))
 (4 rows)
@@ -21799,7 +21799,7 @@ SELECT substring(str2 FROM 3 FOR 4), pi(), 4.1 FROM s3;
                                                   QUERY PLAN                                                  
 --------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..220.92 rows=3413 width=72)
-   Output: ("substring"(str2, 3, 4)), '3.141592653589793'::double precision, 4.1
+   Output: (SUBSTRING(str2 FROM 3 FOR 4)), '3.141592653589793'::double precision, 4.1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT "substring"(str2, 3, 4), 3.141592653589793::double precision, 4.1 FROM public.s3mysql
 (4 rows)
@@ -21824,10 +21824,10 @@ SELECT value1, substring(str2 FROM 3 FOR 4) FROM s3 ORDER BY substring(str2 FROM
                                     QUERY PLAN                                    
 ----------------------------------------------------------------------------------
  Sort  (cost=421.21..429.74 rows=3413 width=40)
-   Output: value1, ("substring"(str2, 3, 4))
-   Sort Key: ("substring"(s3.str2, 3, 4))
+   Output: value1, (SUBSTRING(str2 FROM 3 FOR 4))
+   Sort Key: (SUBSTRING(s3.str2 FROM 3 FOR 4))
    ->  Foreign Scan on public.s3  (cost=100.00..220.92 rows=3413 width=40)
-         Output: value1, ("substring"(str2, 3, 4))
+         Output: value1, (SUBSTRING(str2 FROM 3 FOR 4))
          Node: pgspider_svr / Status: Alive
            Remote SQL: SELECT value1, "substring"(str2, 3, 4) FROM public.s3mysql
 (7 rows)
@@ -22388,7 +22388,7 @@ SELECT trim(str1), trim(str2) FROM s3;
                              QUERY PLAN                              
 ---------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=64)
-   Output: (btrim(str1)), (btrim(str2))
+   Output: (TRIM(BOTH FROM str1)), (TRIM(BOTH FROM str2))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT btrim(str1), btrim(str2) FROM public.s3mysql
 (4 rows)
@@ -22413,7 +22413,7 @@ SELECT trim(LEADING '-' FROM str1), trim(LEADING ' ' FROM str2) FROM s3;
                                         QUERY PLAN                                         
 -------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=64)
-   Output: (ltrim(str1, '-'::text)), (ltrim(str2, ' '::text))
+   Output: (TRIM(LEADING '-'::text FROM str1)), (TRIM(LEADING ' '::text FROM str2))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT ltrim(str1, '-'::text), ltrim(str2, ' '::text) FROM public.s3mysql
 (4 rows)
@@ -22438,7 +22438,7 @@ SELECT trim(BOTH '-' FROM str1), trim(BOTH ' ' FROM str2) FROM s3;
                                         QUERY PLAN                                         
 -------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=64)
-   Output: (btrim(str1, '-'::text)), (btrim(str2, ' '::text))
+   Output: (TRIM(BOTH '-'::text FROM str1)), (TRIM(BOTH ' '::text FROM str2))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT btrim(str1, '-'::text), btrim(str2, ' '::text) FROM public.s3mysql
 (4 rows)
@@ -22463,7 +22463,7 @@ SELECT trim(TRAILING '-' FROM str1), trim(TRAILING ' ' FROM str2) FROM s3;
                                         QUERY PLAN                                         
 -------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=64)
-   Output: (rtrim(str1, '-'::text)), (rtrim(str2, ' '::text))
+   Output: (TRIM(TRAILING '-'::text FROM str1)), (TRIM(TRAILING ' '::text FROM str2))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT rtrim(str1, '-'::text), rtrim(str2, ' '::text) FROM public.s3mysql
 (4 rows)
@@ -22488,7 +22488,7 @@ SELECT trim('-' FROM str1), trim(' ' FROM str2) FROM s3;
                                         QUERY PLAN                                         
 -------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=64)
-   Output: (btrim(str1, '-'::text)), (btrim(str2, ' '::text))
+   Output: (TRIM(BOTH '-'::text FROM str1)), (TRIM(BOTH ' '::text FROM str2))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT btrim(str1, '-'::text), btrim(str2, ' '::text) FROM public.s3mysql
 (4 rows)
@@ -22513,7 +22513,7 @@ SELECT value1, trim('-' FROM str1) FROM s3 WHERE to_hex(value2) = '64';
                                     QUERY PLAN                                     
 -----------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..229.24 rows=17 width=40)
-   Output: value1, (btrim(str1, '-'::text))
+   Output: value1, (TRIM(BOTH '-'::text FROM str1))
    Filter: (to_hex(s3.value2) = '64'::text)
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT value1, btrim(str1, '-'::text), value2 FROM public.s3mysql
@@ -22536,7 +22536,7 @@ SELECT value1, trim(TRAILING '-' FROM str1) FROM s3 WHERE value2 != 200;
                                             QUERY PLAN                                             
 ---------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..229.07 rows=3396 width=40)
-   Output: value1, (rtrim(str1, '-'::text))
+   Output: value1, (TRIM(TRAILING '-'::text FROM str1))
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT value1, rtrim(str1, '-'::text) FROM public.s3mysql WHERE ((value2 <> 200))
 (4 rows)
@@ -22558,7 +22558,7 @@ SELECT trim(TRAILING '-' FROM str1), pi(), 4.1 FROM s3;
                                                  QUERY PLAN                                                  
 -------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..220.92 rows=3413 width=72)
-   Output: (rtrim(str1, '-'::text)), '3.141592653589793'::double precision, 4.1
+   Output: (TRIM(TRAILING '-'::text FROM str1)), '3.141592653589793'::double precision, 4.1
    Node: pgspider_svr / Status: Alive
      Remote SQL: SELECT rtrim(str1, '-'::text), 3.141592653589793::double precision, 4.1 FROM public.s3mysql
 (4 rows)
@@ -22583,10 +22583,10 @@ SELECT value1, trim(TRAILING '-' FROM str1) FROM s3 ORDER BY trim(TRAILING '-' F
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
  Sort  (cost=421.21..429.74 rows=3413 width=40)
-   Output: value1, (rtrim(str1, '-'::text))
-   Sort Key: (rtrim(s3.str1, '-'::text))
+   Output: value1, (TRIM(TRAILING '-'::text FROM str1))
+   Sort Key: (TRIM(TRAILING '-'::text FROM s3.str1))
    ->  Foreign Scan on public.s3  (cost=100.00..220.92 rows=3413 width=40)
-         Output: value1, (rtrim(str1, '-'::text))
+         Output: value1, (TRIM(TRAILING '-'::text FROM str1))
          Node: pgspider_svr / Status: Alive
            Remote SQL: SELECT value1, rtrim(str1, '-'::text) FROM public.s3mysql
 (7 rows)
@@ -22637,7 +22637,7 @@ SELECT count(value1), trim('-' FROM str1) FROM s3 GROUP BY trim('-' FROM str1);
                                          QUERY PLAN                                          
 ---------------------------------------------------------------------------------------------
  Foreign Scan  (cost=0.00..0.00 rows=1 width=40)
-   Output: (count(value1)), (btrim(str1, '-'::text))
+   Output: (count(value1)), (TRIM(BOTH '-'::text FROM str1))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
@@ -22672,7 +22672,7 @@ SELECT count(value1), trim('-' FROM str1) FROM s3 GROUP BY trim('-' FROM str1) ,
                                                                     QUERY PLAN                                                                     
 ---------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
-   Output: (count(value1)), (btrim(str1, '-'::text)), str1
+   Output: (count(value1)), (TRIM(BOTH '-'::text FROM str1)), str1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
@@ -41791,72 +41791,72 @@ SELECT * FROM s7a;
 --Testcase 3417:
 EXPLAIN VERBOSE
 SELECT bit_xor(id), bit_xor(tag1), bit_xor(value1), bit_xor(value2), bit_xor(value3), bit_xor(value4), bit_xor(value5), bit_xor(str1) FROM s7a;
-                                                                                                             QUERY PLAN                                                                                                             
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=256)
+                                                                                               QUERY PLAN                                                                                               
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan  (cost=0.00..0.00 rows=1 width=172)
    Output: (bit_xor(id)), (bit_xor(tag1)), (bit_xor(value1)), (bit_xor(value2)), (bit_xor(value3)), (bit_xor(value4)), (bit_xor(value5)), (bit_xor(str1))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s7a)
-     Remote SQL: SELECT public.bit_xor(id), public.bit_xor(tag1), public.bit_xor(value1), public.bit_xor(value2), public.bit_xor(value3), public.bit_xor(value4), public.bit_xor(value5), public.bit_xor(str1) FROM public.s7amysql
+     Remote SQL: SELECT bit_xor(id), public.bit_xor(tag1), public.bit_xor(value1), bit_xor(value2), public.bit_xor(value3), bit_xor(value4), bit_xor(value5), public.bit_xor(str1) FROM public.s7amysql
 (6 rows)
 
 -- select bit_xor (result)
 --Testcase 3418:
 SELECT bit_xor(id), bit_xor(tag1), bit_xor(value1), bit_xor(value2), bit_xor(value3), bit_xor(value4), bit_xor(value5), bit_xor(str1) FROM s7a;
- bit_xor | bit_xor | bit_xor | bit_xor |       bit_xor        | bit_xor | bit_xor | bit_xor 
----------+---------+---------+---------+----------------------+---------+---------+---------
-       1 |       0 |       0 |     172 | 18446744073709551612 |     175 |   28980 |       0
+ bit_xor | bit_xor | bit_xor | bit_xor |       bit_xor        | bit_xor |     bit_xor     | bit_xor 
+---------+---------+---------+---------+----------------------+---------+-----------------+---------
+       1 |       0 |       0 |     172 | 18446744073709551612 |     175 | 111000100110100 |       0
 (1 row)
 
 -- select bit_xor with group by (explain)
 --Testcase 3419:
 EXPLAIN VERBOSE
 SELECT tag1, bit_xor(value5) FROM s7a GROUP BY tag1;
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
  Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
    Output: tag1, (bit_xor(value5))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s7a)
-     Remote SQL: SELECT tag1, public.bit_xor(value5) FROM public.s7amysql GROUP BY 1
+     Remote SQL: SELECT tag1, bit_xor(value5) FROM public.s7amysql GROUP BY 1
 (6 rows)
 
 -- select bit_xor with group by (result)
 --Testcase 3420:
 SELECT tag1, bit_xor(value5) FROM s7a GROUP BY tag1;
- tag1 | bit_xor 
-------+---------
- a    |   60672
- b    |   39988
+ tag1 |     bit_xor      
+------+------------------
+ a    | 1110110100000000
+ b    | 1001110000110100
 (2 rows)
 
 -- select bit_xor with group by having (explain)
 --Testcase 3421:
 EXPLAIN VERBOSE
-SELECT id, bit_xor(value5) FROM s7a GROUP BY id, str1 HAVING bit_xor(value5) > 0;
-                                         QUERY PLAN                                         
---------------------------------------------------------------------------------------------
+SELECT id, bit_xor(value5) FROM s7a GROUP BY id, str1 HAVING bit_xor(value5) > 0::bit;
+                                     QUERY PLAN                                      
+-------------------------------------------------------------------------------------
  Foreign Scan  (cost=0.00..0.00 rows=1 width=68)
    Output: id, (bit_xor(value5)), str1
-   Filter: ((bit_xor(s7a.value5)) > '0'::numeric)
+   Filter: ((bit_xor(s7a.value5)) > '0'::bit(1))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s7a)
-     Remote SQL: SELECT id, public.bit_xor(value5), str1 FROM public.s7amysql GROUP BY 1, 3
+     Remote SQL: SELECT id, bit_xor(value5), str1 FROM public.s7amysql GROUP BY 1, 3
 (7 rows)
 
 -- select bit_xor with group by having (result)
 --Testcase 3422:
-SELECT id, bit_xor(value5) FROM s7a GROUP BY id, str1 HAVING bit_xor(value5) > 0;
- id | bit_xor 
-----+---------
-  0 |    4660
-  1 |   65332
-  3 |   64052
-  4 |   52532
-  5 |   43828
+SELECT id, bit_xor(value5) FROM s7a GROUP BY id, str1 HAVING bit_xor(value5) > 0::bit;
+ id |     bit_xor      
+----+------------------
+  0 | 1001000110100
+  1 | 1111111100110100
+  3 | 1111101000110100
+  4 | 1100110100110100
+  5 | 1010101100110100
 (5 rows)
 
 -- ===================================================================
@@ -42625,7 +42625,7 @@ EXPLAIN VERBOSE
 SELECT tag1, json_agg(value3) FROM s7a GROUP BY 1, value1 HAVING json_agg(value3) IS NOT NULL;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- HashAggregate  (cost=246.52..249.52 rows=199 width=72)
+ HashAggregate  (cost=237.99..240.49 rows=199 width=72)
    Output: tag1, json_agg(value3), value1
    Group Key: s7a.tag1, s7a.value1
    Filter: (json_agg(s7a.value3) IS NOT NULL)
@@ -42654,7 +42654,7 @@ EXPLAIN VERBOSE
 SELECT tag1, json_agg(value3 + 1) FROM s7a GROUP BY 1, value1 HAVING json_agg(value3 + 1) IS NOT NULL;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- HashAggregate  (cost=263.58..266.58 rows=199 width=72)
+ HashAggregate  (cost=246.52..249.02 rows=199 width=72)
    Output: tag1, json_agg((value3 + '1'::double precision)), value1
    Group Key: s7a.tag1, s7a.value1
    Filter: (json_agg((s7a.value3 + '1'::double precision)) IS NOT NULL)
@@ -42683,7 +42683,7 @@ EXPLAIN VERBOSE
 SELECT tag1, json_agg(abs(value3)) FROM s7a GROUP BY 1, value1 HAVING json_agg(abs(value3)) IS NOT NULL;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- HashAggregate  (cost=263.58..266.58 rows=199 width=72)
+ HashAggregate  (cost=246.52..249.02 rows=199 width=72)
    Output: tag1, json_agg(abs(value3)), value1
    Group Key: s7a.tag1, s7a.value1
    Filter: (json_agg(abs(s7a.value3)) IS NOT NULL)
@@ -42821,7 +42821,7 @@ EXPLAIN VERBOSE
 SELECT id, json_object_agg(tag1, str1) FROM s7a GROUP BY 1, value1 HAVING json_object_agg(tag1, str1) IS NOT NULL;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- HashAggregate  (cost=246.52..249.52 rows=199 width=44)
+ HashAggregate  (cost=237.99..240.49 rows=199 width=44)
    Output: id, json_object_agg(tag1, str1), value1
    Group Key: s7a.id, s7a.value1
    Filter: (json_object_agg(s7a.tag1, s7a.str1) IS NOT NULL)

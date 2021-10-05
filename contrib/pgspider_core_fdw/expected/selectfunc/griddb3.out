@@ -3706,7 +3706,7 @@ SELECT timestamparray FROM s3 WHERE element(2,timestamparray) > '2020-12-29 04:0
 
 --Testcase 194:
 SELECT timestamparray FROM s3 WHERE element(2,timestamparray) > '2020-12-29 04:00:00' ORDER BY 1;
-ERROR:  GridDB-API is failed by 152009 at griddb_fdw.c: 4398
+ERROR:  GridDB-API is failed by 152009
   [152009:TQ_CONSTRAINT_ARRAY_OUT_OF_RANGE] Specified index is out of range. (address=127.0.0.1:10001, partition=43)
   [152009:TQ_CONSTRAINT_ARRAY_OUT_OF_RANGE] Specified index is out of range.
 
@@ -3882,7 +3882,7 @@ SELECT element(1, timestamparray) FROM s3 ORDER BY 1;
 
 --Testcase 202:
 SELECT element(1, timestamparray) FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152502 at griddb_fdw.c: 4398
+ERROR:  GridDB-API is failed by 152502
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 
@@ -4152,7 +4152,7 @@ SELECT griddb_timestamp(strcol) FROM s3 ORDER BY 1;
 
 --Testcase 214:
 SELECT griddb_timestamp(strcol) FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152502 at griddb_fdw.c: 4398
+ERROR:  GridDB-API is failed by 152502
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 
@@ -4177,7 +4177,7 @@ SELECT timestampadd('YEAR', date1, -1) FROM s3 ORDER BY 1;
 
 --Testcase 216:
 SELECT timestampadd('YEAR', date1, -1) FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152502 at griddb_fdw.c: 4398
+ERROR:  GridDB-API is failed by 152502
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 
@@ -4202,7 +4202,7 @@ SELECT timestampdiff('YEAR', date1, '2018-01-04 08:48:00') FROM s3 ORDER BY 1;
 
 --Testcase 218:
 SELECT timestampdiff('YEAR', date1, '2018-01-04 08:48:00') FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152502 at griddb_fdw.c: 4398
+ERROR:  GridDB-API is failed by 152502
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 
@@ -4227,7 +4227,7 @@ SELECT to_timestamp_ms(intcol) FROM s3 ORDER BY 1;
 
 --Testcase 220:
 SELECT to_timestamp_ms(intcol) FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152502 at griddb_fdw.c: 4398
+ERROR:  GridDB-API is failed by 152502
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 
@@ -4252,7 +4252,7 @@ SELECT to_epoch_ms(date1) FROM s3 ORDER BY 1;
 
 --Testcase 222:
 SELECT to_epoch_ms(date1) FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152502 at griddb_fdw.c: 4398
+ERROR:  GridDB-API is failed by 152502
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 
@@ -4277,7 +4277,7 @@ SELECT array_length(boolarray) FROM s3 ORDER BY 1;
 
 --Testcase 224:
 SELECT array_length(boolarray) FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152502 at griddb_fdw.c: 4398
+ERROR:  GridDB-API is failed by 152502
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 
@@ -4302,7 +4302,7 @@ SELECT element(1, stringarray) FROM s3 ORDER BY 1;
 
 --Testcase 226:
 SELECT element(1, stringarray) FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152502 at griddb_fdw.c: 4398
+ERROR:  GridDB-API is failed by 152502
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 
@@ -6821,7 +6821,7 @@ SELECT time_sampling(value1, '2018-12-07 10:00:00.100', '2018-12-07 10:00:00.140
 
 --Testcase 293:
 SELECT time_sampling(value1, '2018-12-07 10:00:00.100', '2018-12-07 10:00:00.140', 20, 'MILLISECOND') FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152010 at griddb_fdw.c: 4398
+ERROR:  GridDB-API is failed by 152010
   [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.140ZZ (address=127.0.0.1:10001, partition=43)
   [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.140ZZ
 
@@ -6878,7 +6878,7 @@ SELECT time_sampling(value1, '2018-12-07 10:00:00.100', '2018-12-07 10:00:00.150
 
 --Testcase 297:
 SELECT time_sampling(value1, '2018-12-07 10:00:00.100', '2018-12-07 10:00:00.150', 5, 'MILLISECOND') FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152010 at griddb_fdw.c: 4398
+ERROR:  GridDB-API is failed by 152010
   [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.150ZZ (address=127.0.0.1:10001, partition=43)
   [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.150ZZ
 
@@ -6904,7 +6904,7 @@ SELECT time_sampling(value1, '2018-12-07 10:00:00.002', '2018-12-07 10:00:00.500
 
 --Testcase 299:
 SELECT time_sampling(value1, '2018-12-07 10:00:00.002', '2018-12-07 10:00:00.500', 20, 'MILLISECOND') FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152010 at griddb_fdw.c: 4398
+ERROR:  GridDB-API is failed by 152010
   [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.502ZZ (address=127.0.0.1:10001, partition=43)
   [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.502ZZ
 
@@ -7104,7 +7104,7 @@ SELECT * FROM s3 WHERE max_rows(date) = min_rows(value2) ORDER BY 1;
 
 --Testcase 317:
 SELECT * FROM s3 WHERE max_rows(date) = min_rows(value2) ORDER BY 1;
-ERROR:  GridDB-API is failed by 150014 at griddb_fdw.c: 4398
+ERROR:  GridDB-API is failed by 150014
   [150014:TQ_FUNCTION_NOT_FOUND] No such function : MAX_ROWS (address=127.0.0.1:10001, partition=43)
   [150014:TQ_FUNCTION_NOT_FOUND] No such function : MAX_ROWS
 

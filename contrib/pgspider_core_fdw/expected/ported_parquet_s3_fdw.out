@@ -294,12 +294,12 @@ DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 
 --Testcase 27:
 SELECT * FROM test1 WHERE six = false ORDER BY one;
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
     one     |           two            |       three       |        four         |    five    | six |       seven       |    __spd_url     
 ------------+--------------------------+-------------------+---------------------+------------+-----+-------------------+------------------
           0 | {NULL,5,6}               | bar               | 2018-01-02 00:00:00 | 1980-01-02 | f   |                   | /parquet_s3_svr/
@@ -314,10 +314,10 @@ DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 SELECT * FROM test1 WHERE seven < 0.9 ORDER BY one;
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
      one     |           two            |                    three                    |        four         |    five    | six |   seven    |    __spd_url     
 -------------+--------------------------+---------------------------------------------+---------------------+------------+-----+------------+------------------
  -2147483648 | {1,2,3}                  | foo                                         | 2018-01-01 00:00:00 | 1975-06-18 | t   |        0.5 | /parquet_s3_svr/
@@ -347,12 +347,12 @@ prepare prep(date) as select * from test1 where five < $1;
 execute prep('2018-01-03');
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
      one     |    two     | three |        four         |    five    | six | seven |    __spd_url     
 -------------+------------+-------+---------------------+------------+-----+-------+------------------
  -2147483648 | {1,2,3}    | foo   | 2018-01-01 00:00:00 | 1975-06-18 | t   |   0.5 | /parquet_s3_svr/
@@ -450,9 +450,9 @@ SERVER parquet_s3_svr
 OPTIONS (filename 's3://parquets3/ported_3.parquet s3://parquets3/ported_2.parquet s3://parquets3/ported_1.parquet', sorted 'one');
 --Testcase 41:
 EXPLAIN SELECT * FROM test2;
-                         QUERY PLAN                         
-------------------------------------------------------------
- Foreign Scan on test2  (cost=0.00..0.10 rows=10 width=125)
+                         QUERY PLAN                          
+-------------------------------------------------------------
+ Foreign Scan on test2  (cost=0.00..-0.01 rows=-1 width=125)
    Node: parquet_s3_svr / Status: Alive
      Reader: Multifile
      Row groups: 

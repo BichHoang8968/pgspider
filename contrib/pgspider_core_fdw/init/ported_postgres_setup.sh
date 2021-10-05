@@ -1,5 +1,10 @@
-POSTGRES_HOME=/home/jenkins/Postgres/postgresql-13.0/pgbuild
+POSTGRES_HOME=/home/jenkins/Postgres/postgresql-14beta2/pgbuild
 HOME_DIR=$(pwd)
+
+# Install postgres_fdw extension
+cd $POSTGRES_HOME/../contrib/postgres_fdw
+make && make install
+
 if [[ "--start" == $1 ]]
 then
   # Start PostgreSQL

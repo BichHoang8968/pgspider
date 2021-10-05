@@ -23,7 +23,6 @@ objfiles.txt
 *.gcov
 *.gcov.out
 lcov*.info
-lcov.info
 coverage/
 coverage-html-stamp
 *.vcproj

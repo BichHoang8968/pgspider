@@ -3,7 +3,7 @@
  * pgspider_fdw.c
  *		  Foreign-data wrapper for remote PGSpider servers
  *
- * Portions Copyright (c) 2012-2020, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2012-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  contrib/pgspider_fdw/pgspider_fdw.c
@@ -21,21 +21,25 @@
 #include "commands/defrem.h"
 #include "commands/explain.h"
 #include "commands/vacuum.h"
+#include "executor/execAsync.h"
 #include "foreign/fdwapi.h"
 #include "funcapi.h"
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
 #include "nodes/nodeFuncs.h"
+#include "optimizer/appendinfo.h"
 #include "optimizer/clauses.h"
 #include "optimizer/cost.h"
 #include "optimizer/optimizer.h"
 #include "optimizer/pathnode.h"
 #include "optimizer/paths.h"
 #include "optimizer/planmain.h"
+#include "optimizer/prep.h"
 #include "optimizer/restrictinfo.h"
 #include "optimizer/tlist.h"
 #include "parser/parsetree.h"
 #include "pgspider_fdw.h"
+#include "storage/latch.h"
 #include "utils/builtins.h"
 #include "utils/float.h"
 #include "utils/guc.h"
@@ -86,8 +90,10 @@ enum FdwScanPrivateIndex
  * 1) INSERT/UPDATE/DELETE statement text to be sent to the remote server
  * 2) Integer list of target attribute numbers for INSERT/UPDATE
  *	  (NIL for a DELETE)
- * 3) Boolean flag showing if the remote query has a RETURNING clause
- * 4) Integer list of attribute numbers retrieved by RETURNING, if any
+ * 3) Length till the end of VALUES clause for INSERT
+ *	  (-1 for a DELETE/UPDATE)
+ * 4) Boolean flag showing if the remote query has a RETURNING clause
+ * 5) Integer list of attribute numbers retrieved by RETURNING, if any
  */
 enum FdwModifyPrivateIndex
 {
@@ -95,6 +101,8 @@ enum FdwModifyPrivateIndex
 	FdwModifyPrivateUpdateSql,
 	/* Integer list of target attribute numbers for INSERT/UPDATE */
 	FdwModifyPrivateTargetAttnums,
+	/* Length till the end of VALUES clause (as an integer Value node) */
+	FdwModifyPrivateLen,
 	/* has-returning flag (as an integer Value node) */
 	FdwModifyPrivateHasReturning,
 	/* Integer list of attribute numbers retrieved by RETURNING */
@@ -125,7 +133,7 @@ enum FdwDirectModifyPrivateIndex
 /*
  * Execution state of a foreign scan using pgspider_fdw.
  */
-typedef struct PgFdwScanState
+typedef struct PGSpiderFdwScanState
 {
 	Relation	rel;			/* relcache entry for the foreign table. NULL
 								 * for a foreign join scan. */
@@ -138,6 +146,7 @@ typedef struct PgFdwScanState
 
 	/* for remote query execution */
 	PGconn	   *conn;			/* connection for the scan */
+	PGSpiderFdwConnState *conn_state;	/* extra per-connection state */
 	unsigned int cursor_number; /* quasi-unique ID for my cursor */
 	bool		cursor_exists;	/* have we created the cursor? */
 	int			numParams;		/* number of parameters passed to query */
@@ -154,28 +163,35 @@ typedef struct PgFdwScanState
 	int			fetch_ct_2;		/* Min(# of fetches done, 2) */
 	bool		eof_reached;	/* true if last fetch reached EOF */
 
+	/* for asynchronous execution */
+	bool		async_capable;	/* engage asynchronous-capable logic? */
+
 	/* working memory contexts */
 	MemoryContext batch_cxt;	/* context holding current batch of tuples */
 	MemoryContext temp_cxt;		/* context for per-tuple temporary data */
 
 	int			fetch_size;		/* number of tuples per fetch */
-} PgFdwScanState;
+}			PGSpiderFdwScanState;
 
 /*
  * Execution state of a foreign insert/update/delete operation.
  */
-typedef struct PgFdwModifyState
+typedef struct PGSpiderFdwModifyState
 {
 	Relation	rel;			/* relcache entry for the foreign table */
 	AttInMetadata *attinmeta;	/* attribute datatype conversion metadata */
 
 	/* for remote query execution */
 	PGconn	   *conn;			/* connection for the scan */
+	PGSpiderFdwConnState *conn_state;	/* extra per-connection state */
 	char	   *p_name;			/* name of prepared statement, if created */
 
 	/* extracted fdw_private data */
 	char	   *query;			/* text of INSERT/UPDATE/DELETE command */
+	char	   *orig_query;		/* original text of INSERT command */
 	List	   *target_attrs;	/* list of target attribute numbers */
+	int			values_end;		/* length up to the end of VALUES */
+	int			batch_size;		/* value of FDW option "batch_size" */
 	bool		has_returning;	/* is there a RETURNING clause? */
 	List	   *retrieved_attrs;	/* attr numbers retrieved by RETURNING */
 
@@ -184,18 +200,21 @@ typedef struct PgFdwModifyState
 	int			p_nums;			/* number of parameters to transmit */
 	FmgrInfo   *p_flinfo;		/* output conversion functions for them */
 
+	/* batch operation stuff */
+	int			num_slots;		/* number of slots to insert */
+
 	/* working memory context */
 	MemoryContext temp_cxt;		/* context for per-tuple temporary data */
 
 	/* for update row movement if subplan result rel */
-	struct PgFdwModifyState *aux_fmstate;	/* foreign-insert state, if
-											 * created */
-} PgFdwModifyState;
+	struct PGSpiderFdwModifyState *aux_fmstate; /* foreign-insert state, if
+												 * created */
+}			PGSpiderFdwModifyState;
 
 /*
  * Execution state of a foreign scan that modifies a foreign table directly.
  */
-typedef struct PgFdwDirectModifyState
+typedef struct PGSpiderFdwDirectModifyState
 {
 	Relation	rel;			/* relcache entry for the foreign table */
 	AttInMetadata *attinmeta;	/* attribute datatype conversion metadata */
@@ -208,6 +227,7 @@ typedef struct PgFdwDirectModifyState
 
 	/* for remote query execution */
 	PGconn	   *conn;			/* connection for the update */
+	PGSpiderFdwConnState *conn_state;	/* extra per-connection state */
 	int			numParams;		/* number of parameters passed to query */
 	FmgrInfo   *param_flinfo;	/* output conversion functions for them */
 	List	   *param_exprs;	/* executable expressions for param values */
@@ -225,12 +245,12 @@ typedef struct PgFdwDirectModifyState
 
 	/* working memory context */
 	MemoryContext temp_cxt;		/* context for per-tuple temporary data */
-} PgFdwDirectModifyState;
+}			PGSpiderFdwDirectModifyState;
 
 /*
  * Workspace for analyzing a foreign table.
  */
-typedef struct PgFdwAnalyzeState
+typedef struct PGSpiderFdwAnalyzeState
 {
 	Relation	rel;			/* relcache entry for the foreign table */
 	AttInMetadata *attinmeta;	/* attribute datatype conversion metadata */
@@ -249,7 +269,7 @@ typedef struct PgFdwAnalyzeState
 	/* working memory contexts */
 	MemoryContext anl_cxt;		/* context for per-analyze lifespan data */
 	MemoryContext temp_cxt;		/* context for per-tuple temporary data */
-} PgFdwAnalyzeState;
+}			PGSpiderFdwAnalyzeState;
 
 /*
  * This enum describes what's kept in the fdw_private list for a ForeignPath.
@@ -275,7 +295,7 @@ typedef struct
 	double		limit_tuples;
 	int64		count_est;
 	int64		offset_est;
-} PgFdwPathExtraData;
+}			PGSpiderFdwPathExtraData;
 
 /*
  * Identify the attribute where data conversion fails.
@@ -340,7 +360,8 @@ static void pgspiderBeginForeignScan(ForeignScanState *node, int eflags);
 static TupleTableSlot *pgspiderIterateForeignScan(ForeignScanState *node);
 static void pgspiderReScanForeignScan(ForeignScanState *node);
 static void pgspiderEndForeignScan(ForeignScanState *node);
-static void pgspiderAddForeignUpdateTargets(Query *parsetree,
+static void pgspiderAddForeignUpdateTargets(PlannerInfo *root,
+											Index rtindex,
 											RangeTblEntry *target_rte,
 											Relation target_relation);
 static List *pgspiderPlanForeignModify(PlannerInfo *root,
@@ -356,6 +377,12 @@ static TupleTableSlot *pgspiderExecForeignInsert(EState *estate,
 												 ResultRelInfo *resultRelInfo,
 												 TupleTableSlot *slot,
 												 TupleTableSlot *planSlot);
+static TupleTableSlot **pgspiderExecForeignBatchInsert(EState *estate,
+													   ResultRelInfo *resultRelInfo,
+													   TupleTableSlot **slots,
+													   TupleTableSlot **planSlots,
+													   int *numSlots);
+static int	pgspiderGetForeignModifyBatchSize(ResultRelInfo *resultRelInfo);
 static TupleTableSlot *pgspiderExecForeignUpdate(EState *estate,
 												 ResultRelInfo *resultRelInfo,
 												 TupleTableSlot *slot,
@@ -387,6 +414,9 @@ static void pgspiderExplainForeignModify(ModifyTableState *mtstate,
 										 ExplainState *es);
 static void pgspiderExplainDirectModify(ForeignScanState *node,
 										ExplainState *es);
+static void pgspiderExecForeignTruncate(List *rels,
+										DropBehavior behavior,
+										bool restart_seqs);
 static bool pgspiderAnalyzeForeignTable(Relation relation,
 										AcquireSampleRowsFunc *func,
 										BlockNumber *totalpages);
@@ -405,6 +435,10 @@ static void pgspiderGetForeignUpperPaths(PlannerInfo *root,
 										 RelOptInfo *input_rel,
 										 RelOptInfo *output_rel,
 										 void *extra);
+static bool pgspiderIsForeignPathAsyncCapable(ForeignPath *path);
+static void pgspiderForeignAsyncRequest(AsyncRequest *areq);
+static void pgspiderForeignAsyncConfigureWait(AsyncRequest *areq);
+static void pgspiderForeignAsyncNotify(AsyncRequest *areq);
 
 /*
  * Helper functions
@@ -413,7 +447,7 @@ static void estimate_path_cost_size(PlannerInfo *root,
 									RelOptInfo *foreignrel,
 									List *param_join_conds,
 									List *pathkeys,
-									PgFdwPathExtraData *fpextra,
+									PGSpiderFdwPathExtraData * fpextra,
 									double *p_rows, int *p_width,
 									Cost *p_startup_cost, Cost *p_total_cost);
 static void get_remote_estimate(const char *sql,
@@ -434,37 +468,43 @@ static bool ec_member_matches_foreign(PlannerInfo *root, RelOptInfo *rel,
 									  void *arg);
 static void create_cursor(ForeignScanState *node);
 static void fetch_more_data(ForeignScanState *node);
-static void close_cursor(PGconn *conn, unsigned int cursor_number);
-static PgFdwModifyState *create_foreign_modify(EState *estate,
-											   RangeTblEntry *rte,
+static void close_cursor(PGconn *conn, unsigned int cursor_number,
+						 PGSpiderFdwConnState * conn_state);
+static PGSpiderFdwModifyState * create_foreign_modify(EState *estate,
+													  RangeTblEntry *rte,
+													  ResultRelInfo *resultRelInfo,
+													  CmdType operation,
+													  Plan *subplan,
+													  char *query,
+													  List *target_attrs,
+													  int len,
+													  bool has_returning,
+													  List *retrieved_attrs);
+static TupleTableSlot **execute_foreign_modify(EState *estate,
 											   ResultRelInfo *resultRelInfo,
 											   CmdType operation,
-											   Plan *subplan,
-											   char *query,
-											   List *target_attrs,
-											   bool has_returning,
-											   List *retrieved_attrs);
-static TupleTableSlot *execute_foreign_modify(EState *estate,
-											  ResultRelInfo *resultRelInfo,
-											  CmdType operation,
-											  TupleTableSlot *slot,
-											  TupleTableSlot *planSlot);
-static void prepare_foreign_modify(PgFdwModifyState *fmstate);
-static const char **convert_prep_stmt_params(PgFdwModifyState *fmstate,
+											   TupleTableSlot **slots,
+											   TupleTableSlot **planSlots,
+											   int *numSlots);
+static void prepare_foreign_modify(PGSpiderFdwModifyState * fmstate);
+static const char **convert_prep_stmt_params(PGSpiderFdwModifyState * fmstate,
 											 ItemPointer tupleid,
-											 TupleTableSlot *slot);
-static void store_returning_result(PgFdwModifyState *fmstate,
+											 TupleTableSlot **slots,
+											 int numSlots);
+static void store_returning_result(PGSpiderFdwModifyState * fmstate,
 								   TupleTableSlot *slot, PGresult *res);
-static void finish_foreign_modify(PgFdwModifyState *fmstate);
+static void finish_foreign_modify(PGSpiderFdwModifyState * fmstate);
+static void deallocate_query(PGSpiderFdwModifyState * fmstate);
 static List *build_remote_returning(Index rtindex, Relation rel,
 									List *returningList);
 static void rebuild_fdw_scan_tlist(ForeignScan *fscan, List *tlist);
 static void execute_dml_stmt(ForeignScanState *node);
 static TupleTableSlot *get_returning_data(ForeignScanState *node);
-static void init_returning_filter(PgFdwDirectModifyState *dmstate,
+static void init_returning_filter(PGSpiderFdwDirectModifyState * dmstate,
 								  List *fdw_scan_tlist,
 								  Index rtindex);
-static TupleTableSlot *apply_returning_filter(PgFdwDirectModifyState *dmstate,
+static TupleTableSlot *apply_returning_filter(PGSpiderFdwDirectModifyState * dmstate,
+											  ResultRelInfo *resultRelInfo,
 											  TupleTableSlot *slot,
 											  EState *estate);
 static void prepare_query_params(PlanState *node,
@@ -477,12 +517,14 @@ static void process_query_params(ExprContext *econtext,
 								 FmgrInfo *param_flinfo,
 								 List *param_exprs,
 								 const char **param_values);
-static int pgspiderAcquireSampleRowsFunc(Relation relation, int elevel,
+static int	pgspiderAcquireSampleRowsFunc(Relation relation, int elevel,
 										  HeapTuple *rows, int targrows,
 										  double *totalrows,
 										  double *totaldeadrows);
 static void analyze_row_processor(PGresult *res, int row,
-								  PgFdwAnalyzeState *astate);
+								  PGSpiderFdwAnalyzeState * astate);
+static void produce_tuple_asynchronously(AsyncRequest *areq, bool fetch);
+static void fetch_more_data_begin(AsyncRequest *areq);
 static HeapTuple make_tuple_from_result_row(PGresult *res,
 											int row,
 											Relation rel,
@@ -512,11 +554,12 @@ static void add_foreign_final_paths(PlannerInfo *root,
 									RelOptInfo *input_rel,
 									RelOptInfo *final_rel,
 									FinalPathExtraData *extra);
-static void apply_server_options(PGSpiderFdwRelationInfo *fpinfo);
-static void apply_table_options(PGSpiderFdwRelationInfo *fpinfo);
-static void merge_fdw_options(PGSpiderFdwRelationInfo *fpinfo,
-				  const PGSpiderFdwRelationInfo *fpinfo_o,
-				  const PGSpiderFdwRelationInfo *fpinfo_i);
+static void apply_server_options(PGSpiderFdwRelationInfo * fpinfo);
+static void apply_table_options(PGSpiderFdwRelationInfo * fpinfo);
+static void merge_fdw_options(PGSpiderFdwRelationInfo * fpinfo,
+							  const PGSpiderFdwRelationInfo * fpinfo_o,
+							  const PGSpiderFdwRelationInfo * fpinfo_i);
+static int	get_batch_size_option(Relation rel);
 
 
 /*
@@ -542,6 +585,8 @@ pgspider_fdw_handler(PG_FUNCTION_ARGS)
 	routine->PlanForeignModify = pgspiderPlanForeignModify;
 	routine->BeginForeignModify = pgspiderBeginForeignModify;
 	routine->ExecForeignInsert = pgspiderExecForeignInsert;
+	routine->ExecForeignBatchInsert = pgspiderExecForeignBatchInsert;
+	routine->GetForeignModifyBatchSize = pgspiderGetForeignModifyBatchSize;
 	routine->ExecForeignUpdate = pgspiderExecForeignUpdate;
 	routine->ExecForeignDelete = pgspiderExecForeignDelete;
 	routine->EndForeignModify = pgspiderEndForeignModify;
@@ -560,6 +605,9 @@ pgspider_fdw_handler(PG_FUNCTION_ARGS)
 	routine->ExplainForeignModify = pgspiderExplainForeignModify;
 	routine->ExplainDirectModify = pgspiderExplainDirectModify;
 
+	/* Support function for TRUNCATE */
+	routine->ExecForeignTruncate = pgspiderExecForeignTruncate;
+
 	/* Support functions for ANALYZE */
 	routine->AnalyzeForeignTable = pgspiderAnalyzeForeignTable;
 
@@ -571,6 +619,12 @@ pgspider_fdw_handler(PG_FUNCTION_ARGS)
 
 	/* Support functions for upper relation push-down */
 	routine->GetForeignUpperPaths = pgspiderGetForeignUpperPaths;
+
+	/* Support functions for asynchronous execution */
+	routine->IsForeignPathAsyncCapable = pgspiderIsForeignPathAsyncCapable;
+	routine->ForeignAsyncRequest = pgspiderForeignAsyncRequest;
+	routine->ForeignAsyncConfigureWait = pgspiderForeignAsyncConfigureWait;
+	routine->ForeignAsyncNotify = pgspiderForeignAsyncNotify;
 
 	PG_RETURN_POINTER(routine);
 }
@@ -592,8 +646,8 @@ pgspiderGetForeignRelSize(PlannerInfo *root,
 	RangeTblEntry *rte = planner_rt_fetch(baserel->relid, root);
 
 	/*
-	 * We use PGSpiderFdwRelationInfo to pass various information to subsequent
-	 * functions.
+	 * We use PGSpiderFdwRelationInfo to pass various information to
+	 * subsequent functions.
 	 */
 	fpinfo = (PGSpiderFdwRelationInfo *) palloc0(sizeof(PGSpiderFdwRelationInfo));
 	baserel->fdw_private = (void *) fpinfo;
@@ -606,14 +660,16 @@ pgspiderGetForeignRelSize(PlannerInfo *root,
 	fpinfo->server = GetForeignServer(fpinfo->table->serverid);
 
 	/*
-	 * Extract user-settable option values.  Note that per-table setting of
-	 * use_remote_estimate overrides per-server setting.
+	 * Extract user-settable option values.  Note that per-table settings of
+	 * use_remote_estimate, fetch_size and async_capable override per-server
+	 * settings of them, respectively.
 	 */
 	fpinfo->use_remote_estimate = false;
 	fpinfo->fdw_startup_cost = DEFAULT_FDW_STARTUP_COST;
 	fpinfo->fdw_tuple_cost = DEFAULT_FDW_TUPLE_COST;
 	fpinfo->shippable_extensions = NIL;
 	fpinfo->fetch_size = 100;
+	fpinfo->async_capable = false;
 
 	apply_server_options(fpinfo);
 	apply_table_options(fpinfo);
@@ -638,7 +694,7 @@ pgspiderGetForeignRelSize(PlannerInfo *root,
 	 * server and which can't.
 	 */
 	PGSpiderClassifyConditions(root, baserel, baserel->baserestrictinfo,
-					   &fpinfo->remote_conds, &fpinfo->local_conds);
+							   &fpinfo->remote_conds, &fpinfo->local_conds);
 
 	/*
 	 * Identify which attributes will need to be retrieved from the remote
@@ -706,15 +762,14 @@ pgspiderGetForeignRelSize(PlannerInfo *root,
 	else
 	{
 		/*
-		 * If the foreign table has never been ANALYZEd, it will have relpages
-		 * and reltuples equal to zero, which most likely has nothing to do
-		 * with reality.  We can't do a whole lot about that if we're not
+		 * If the foreign table has never been ANALYZEd, it will have
+		 * reltuples < 0, meaning "unknown".  We can't do much if we're not
 		 * allowed to consult the remote server, but we can use a hack similar
 		 * to plancat.c's treatment of empty relations: use a minimum size
 		 * estimate of 10 pages, and divide by the column-datatype-based width
 		 * estimate to get the corresponding number of tuples.
 		 */
-		if (baserel->pages == 0 && baserel->tuples == 0)
+		if (baserel->tuples < 0)
 		{
 			baserel->pages = 10;
 			baserel->tuples =
@@ -893,8 +948,8 @@ get_useful_pathkeys_for_relation(PlannerInfo *root, RelOptInfo *rel)
 			 * end up resorting the entire data set.  So, unless we can push
 			 * down all of the query pathkeys, forget it.
 			 *
-			 * pgspider_is_foreign_expr would detect volatile expressions as well, but
-			 * checking ec_has_volatile here saves some cycles.
+			 * pgspider_is_foreign_expr would detect volatile expressions as
+			 * well, but checking ec_has_volatile here saves some cycles.
 			 */
 			if (pathkey_ec->ec_has_volatile ||
 				!(em_expr = find_em_expr_for_rel(pathkey_ec, rel)) ||
@@ -1231,10 +1286,10 @@ pgspiderGetForeignPlan(PlannerInfo *root,
 		 *
 		 * Separate the scan_clauses into those that can be executed remotely
 		 * and those that can't.  baserestrictinfo clauses that were
-		 * previously determined to be safe or unsafe by PGSpiderClassifyConditions
-		 * are found in fpinfo->remote_conds and fpinfo->local_conds. Anything
-		 * else in the scan_clauses list will be a join clause, which we have
-		 * to check for remote-safety.
+		 * previously determined to be safe or unsafe by
+		 * PGSpiderClassifyConditions are found in fpinfo->remote_conds and
+		 * fpinfo->local_conds. Anything else in the scan_clauses list will be
+		 * a join clause, which we have to check for remote-safety.
 		 *
 		 * Note: the join clauses we see here should be the exact same ones
 		 * previously examined by pgspiderGetForeignPaths.  Possibly it'd be
@@ -1311,11 +1366,14 @@ pgspiderGetForeignPlan(PlannerInfo *root,
 			{
 				TargetEntry *tle = lfirst_node(TargetEntry, lc);
 
-				/* Pull out function from FieldSelect clause and add to fdw_scan_tlist to push down function portion only */
+				/*
+				 * Pull out function from FieldSelect clause and add to
+				 * fdw_scan_tlist to push down function portion only
+				 */
 				if (fpinfo->is_tlist_func_pushdown == true && IsA((Node *) tle->expr, FieldSelect))
 				{
 					fdw_scan_tlist = add_to_flat_tlist(fdw_scan_tlist,
-													pgspider_pull_func_clause((Node *) tle->expr));
+													   pgspider_pull_func_clause((Node *) tle->expr));
 				}
 				else
 				{
@@ -1398,9 +1456,9 @@ pgspiderGetForeignPlan(PlannerInfo *root,
 	 */
 	initStringInfo(&sql);
 	PGSpiderDeparseSelectStmtForRel(&sql, root, foreignrel, fdw_scan_tlist,
-							remote_exprs, best_path->path.pathkeys,
-							has_final_sort, has_limit, false,
-							&retrieved_attrs, &params_list);
+									remote_exprs, best_path->path.pathkeys,
+									has_final_sort, has_limit, false,
+									&retrieved_attrs, &params_list);
 
 	/* Remember remote_exprs for possible use by pgspiderPlanDirectModify */
 	fpinfo->final_remote_exprs = remote_exprs;
@@ -1434,6 +1492,57 @@ pgspiderGetForeignPlan(PlannerInfo *root,
 }
 
 /*
+ * Construct a tuple descriptor for the scan tuples handled by a foreign join.
+ */
+static TupleDesc
+get_tupdesc_for_join_scan_tuples(ForeignScanState *node)
+{
+	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
+	EState	   *estate = node->ss.ps.state;
+	TupleDesc	tupdesc;
+
+	/*
+	 * The core code has already set up a scan tuple slot based on
+	 * fsplan->fdw_scan_tlist, and this slot's tupdesc is mostly good enough,
+	 * but there's one case where it isn't.  If we have any whole-row row
+	 * identifier Vars, they may have vartype RECORD, and we need to replace
+	 * that with the associated table's actual composite type.  This ensures
+	 * that when we read those ROW() expression values from the remote server,
+	 * we can convert them to a composite type the local server knows.
+	 */
+	tupdesc = CreateTupleDescCopy(node->ss.ss_ScanTupleSlot->tts_tupleDescriptor);
+	for (int i = 0; i < tupdesc->natts; i++)
+	{
+		Form_pg_attribute att = TupleDescAttr(tupdesc, i);
+		Var		   *var;
+		RangeTblEntry *rte;
+		Oid			reltype;
+
+		/* Nothing to do if it's not a generic RECORD attribute */
+		if (att->atttypid != RECORDOID || att->atttypmod >= 0)
+			continue;
+
+		/*
+		 * If we can't identify the referenced table, do nothing.  This'll
+		 * likely lead to failure later, but perhaps we can muddle through.
+		 */
+		var = (Var *) list_nth_node(TargetEntry, fsplan->fdw_scan_tlist,
+									i)->expr;
+		if (!IsA(var, Var) || var->varattno != 0)
+			continue;
+		rte = list_nth(estate->es_range_table, var->varno - 1);
+		if (rte->rtekind != RTE_RELATION)
+			continue;
+		reltype = get_rel_type_id(rte->relid);
+		if (!OidIsValid(reltype))
+			continue;
+		att->atttypid = reltype;
+		/* shouldn't need to change anything else */
+	}
+	return tupdesc;
+}
+
+/*
  * pgspiderBeginForeignScan
  *		Initiate an executor scan of a foreign PGSpider table.
  */
@@ -1442,7 +1551,7 @@ pgspiderBeginForeignScan(ForeignScanState *node, int eflags)
 {
 	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
 	EState	   *estate = node->ss.ps.state;
-	PgFdwScanState *fsstate;
+	PGSpiderFdwScanState *fsstate;
 	RangeTblEntry *rte;
 	Oid			userid;
 	ForeignTable *table;
@@ -1459,7 +1568,7 @@ pgspiderBeginForeignScan(ForeignScanState *node, int eflags)
 	/*
 	 * We'll save private state in node->fdw_state.
 	 */
-	fsstate = (PgFdwScanState *) palloc0(sizeof(PgFdwScanState));
+	fsstate = (PGSpiderFdwScanState *) palloc0(sizeof(PGSpiderFdwScanState));
 	node->fdw_state = (void *) fsstate;
 
 	/*
@@ -1483,7 +1592,7 @@ pgspiderBeginForeignScan(ForeignScanState *node, int eflags)
 	 * Get connection to the foreign server.  Connection manager will
 	 * establish new connection if necessary.
 	 */
-	fsstate->conn = PGSpiderGetConnection(user, false);
+	fsstate->conn = PGSpiderGetConnection(user, false, &fsstate->conn_state);
 
 	/* Assign a unique ID for my cursor */
 	fsstate->cursor_number = PGSpiderGetCursorNumber(fsstate->conn);
@@ -1517,7 +1626,7 @@ pgspiderBeginForeignScan(ForeignScanState *node, int eflags)
 	else
 	{
 		fsstate->rel = NULL;
-		fsstate->tupdesc = node->ss.ss_ScanTupleSlot->tts_tupleDescriptor;
+		fsstate->tupdesc = get_tupdesc_for_join_scan_tuples(node);
 	}
 
 	fsstate->attinmeta = TupleDescGetAttInMetadata(fsstate->tupdesc);
@@ -1534,6 +1643,9 @@ pgspiderBeginForeignScan(ForeignScanState *node, int eflags)
 							 &fsstate->param_flinfo,
 							 &fsstate->param_exprs,
 							 &fsstate->param_values);
+
+	/* Set the async-capable flag */
+	fsstate->async_capable = node->ss.ps.async_capable;
 }
 
 /*
@@ -1544,12 +1656,14 @@ pgspiderBeginForeignScan(ForeignScanState *node, int eflags)
 static TupleTableSlot *
 pgspiderIterateForeignScan(ForeignScanState *node)
 {
-	PgFdwScanState *fsstate = (PgFdwScanState *) node->fdw_state;
+	PGSpiderFdwScanState *fsstate = (PGSpiderFdwScanState *) node->fdw_state;
 	TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
 
 	/*
-	 * If this is the first call after Begin or ReScan, we need to create the
-	 * cursor on the remote side.
+	 * In sync mode, if this is the first call after Begin or ReScan, we need
+	 * to create the cursor on the remote side.  In async mode, we would have
+	 * already created the cursor before we get here, even if this is the
+	 * first call after Begin or ReScan.
 	 */
 	if (!fsstate->cursor_exists)
 		create_cursor(node);
@@ -1559,6 +1673,9 @@ pgspiderIterateForeignScan(ForeignScanState *node)
 	 */
 	if (fsstate->next_tuple >= fsstate->num_tuples)
 	{
+		/* In async mode, just clear tuple slot. */
+		if (fsstate->async_capable)
+			return ExecClearTuple(slot);
 		/* No point in another fetch if we already detected EOF, though. */
 		if (!fsstate->eof_reached)
 			fetch_more_data(node);
@@ -1584,7 +1701,7 @@ pgspiderIterateForeignScan(ForeignScanState *node)
 static void
 pgspiderReScanForeignScan(ForeignScanState *node)
 {
-	PgFdwScanState *fsstate = (PgFdwScanState *) node->fdw_state;
+	PGSpiderFdwScanState *fsstate = (PGSpiderFdwScanState *) node->fdw_state;
 	char		sql[64];
 	PGresult   *res;
 
@@ -1620,7 +1737,7 @@ pgspiderReScanForeignScan(ForeignScanState *node)
 	 * We don't use a PG_TRY block here, so be careful not to throw error
 	 * without releasing the PGresult.
 	 */
-	res = pgspiderfdw_exec_query(fsstate->conn, sql);
+	res = pgspiderfdw_exec_query(fsstate->conn, sql, fsstate->conn_state);
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
 		pgspiderfdw_report_error(ERROR, res, fsstate->conn, true, sql);
 	PQclear(res);
@@ -1640,7 +1757,7 @@ pgspiderReScanForeignScan(ForeignScanState *node)
 static void
 pgspiderEndForeignScan(ForeignScanState *node)
 {
-	PgFdwScanState *fsstate = (PgFdwScanState *) node->fdw_state;
+	PGSpiderFdwScanState *fsstate = (PGSpiderFdwScanState *) node->fdw_state;
 
 	/* if fsstate is NULL, we are in EXPLAIN; nothing to do */
 	if (fsstate == NULL)
@@ -1648,7 +1765,8 @@ pgspiderEndForeignScan(ForeignScanState *node)
 
 	/* Close the cursor if open, to prevent accumulation of cursors */
 	if (fsstate->cursor_exists)
-		close_cursor(fsstate->conn, fsstate->cursor_number);
+		close_cursor(fsstate->conn, fsstate->cursor_number,
+					 fsstate->conn_state);
 
 	/* Release remote connection */
 	PGSpiderReleaseConnection(fsstate->conn);
@@ -1662,36 +1780,27 @@ pgspiderEndForeignScan(ForeignScanState *node)
  *		Add resjunk column(s) needed for update/delete on a foreign table
  */
 static void
-pgspiderAddForeignUpdateTargets(Query *parsetree,
+pgspiderAddForeignUpdateTargets(PlannerInfo *root,
+								Index rtindex,
 								RangeTblEntry *target_rte,
 								Relation target_relation)
 {
 	Var		   *var;
-	const char *attrname;
-	TargetEntry *tle;
 
 	/*
 	 * In pgspider_fdw, what we need is the ctid, same as for a regular table.
 	 */
 
 	/* Make a Var representing the desired value */
-	var = makeVar(parsetree->resultRelation,
+	var = makeVar(rtindex,
 				  SelfItemPointerAttributeNumber,
 				  TIDOID,
 				  -1,
 				  InvalidOid,
 				  0);
 
-	/* Wrap it in a resjunk TLE with the right name ... */
-	attrname = "ctid";
-
-	tle = makeTargetEntry((Expr *) var,
-						  list_length(parsetree->targetList) + 1,
-						  pstrdup(attrname),
-						  true);
-
-	/* ... and add it to the query's targetlist */
-	parsetree->targetList = lappend(parsetree->targetList, tle);
+	/* Register it as a row-identity column needed by this target rel */
+	add_row_identity_var(root, var, rtindex, "ctid");
 }
 
 /*
@@ -1713,6 +1822,7 @@ pgspiderPlanForeignModify(PlannerInfo *root,
 	List	   *returningList = NIL;
 	List	   *retrieved_attrs = NIL;
 	bool		doNothing = false;
+	int			values_end_len = -1;
 
 	initStringInfo(&sql);
 
@@ -1798,20 +1908,20 @@ pgspiderPlanForeignModify(PlannerInfo *root,
 	{
 		case CMD_INSERT:
 			PGSpiderDeparseInsertSql(&sql, rte, resultRelation, rel,
-							 targetAttrs, doNothing,
-							 withCheckOptionList, returningList,
-							 &retrieved_attrs);
+									 targetAttrs, doNothing,
+									 withCheckOptionList, returningList,
+									 &retrieved_attrs, &values_end_len);
 			break;
 		case CMD_UPDATE:
 			PGSpiderDeparseUpdateSql(&sql, rte, resultRelation, rel,
-							 targetAttrs,
-							 withCheckOptionList, returningList,
-							 &retrieved_attrs);
+									 targetAttrs,
+									 withCheckOptionList, returningList,
+									 &retrieved_attrs);
 			break;
 		case CMD_DELETE:
 			PGSpiderDeparseDeleteSql(&sql, rte, resultRelation, rel,
-							 returningList,
-							 &retrieved_attrs);
+									 returningList,
+									 &retrieved_attrs);
 			break;
 		default:
 			elog(ERROR, "unexpected operation: %d", (int) operation);
@@ -1824,8 +1934,9 @@ pgspiderPlanForeignModify(PlannerInfo *root,
 	 * Build the fdw_private list that will be available to the executor.
 	 * Items in the list must match enum FdwModifyPrivateIndex, above.
 	 */
-	return list_make4(makeString(sql.data),
+	return list_make5(makeString(sql.data),
 					  targetAttrs,
+					  makeInteger(values_end_len),
 					  makeInteger((retrieved_attrs != NIL)),
 					  retrieved_attrs);
 }
@@ -1841,10 +1952,11 @@ pgspiderBeginForeignModify(ModifyTableState *mtstate,
 						   int subplan_index,
 						   int eflags)
 {
-	PgFdwModifyState *fmstate;
+	PGSpiderFdwModifyState *fmstate;
 	char	   *query;
 	List	   *target_attrs;
 	bool		has_returning;
+	int			values_end_len;
 	List	   *retrieved_attrs;
 	RangeTblEntry *rte;
 
@@ -1860,6 +1972,8 @@ pgspiderBeginForeignModify(ModifyTableState *mtstate,
 							FdwModifyPrivateUpdateSql));
 	target_attrs = (List *) list_nth(fdw_private,
 									 FdwModifyPrivateTargetAttnums);
+	values_end_len = intVal(list_nth(fdw_private,
+									 FdwModifyPrivateLen));
 	has_returning = intVal(list_nth(fdw_private,
 									FdwModifyPrivateHasReturning));
 	retrieved_attrs = (List *) list_nth(fdw_private,
@@ -1874,9 +1988,10 @@ pgspiderBeginForeignModify(ModifyTableState *mtstate,
 									rte,
 									resultRelInfo,
 									mtstate->operation,
-									mtstate->mt_plans[subplan_index]->plan,
+									outerPlanState(mtstate)->plan,
 									query,
 									target_attrs,
+									values_end_len,
 									has_returning,
 									retrieved_attrs);
 
@@ -1893,8 +2008,9 @@ pgspiderExecForeignInsert(EState *estate,
 						  TupleTableSlot *slot,
 						  TupleTableSlot *planSlot)
 {
-	PgFdwModifyState *fmstate = (PgFdwModifyState *) resultRelInfo->ri_FdwState;
-	TupleTableSlot *rslot;
+	PGSpiderFdwModifyState *fmstate = (PGSpiderFdwModifyState *) resultRelInfo->ri_FdwState;
+	TupleTableSlot **rslot;
+	int			numSlots = 1;
 
 	/*
 	 * If the fmstate has aux_fmstate set, use the aux_fmstate (see
@@ -1903,12 +2019,93 @@ pgspiderExecForeignInsert(EState *estate,
 	if (fmstate->aux_fmstate)
 		resultRelInfo->ri_FdwState = fmstate->aux_fmstate;
 	rslot = execute_foreign_modify(estate, resultRelInfo, CMD_INSERT,
-								   slot, planSlot);
+								   &slot, &planSlot, &numSlots);
+	/* Revert that change */
+	if (fmstate->aux_fmstate)
+		resultRelInfo->ri_FdwState = fmstate;
+
+	return rslot ? *rslot : NULL;
+}
+
+/*
+ * pgspiderExecForeignBatchInsert
+ *		Insert multiple rows into a foreign table
+ */
+static TupleTableSlot **
+pgspiderExecForeignBatchInsert(EState *estate,
+							   ResultRelInfo *resultRelInfo,
+							   TupleTableSlot **slots,
+							   TupleTableSlot **planSlots,
+							   int *numSlots)
+{
+	PGSpiderFdwModifyState *fmstate = (PGSpiderFdwModifyState *) resultRelInfo->ri_FdwState;
+	TupleTableSlot **rslot;
+
+	/*
+	 * If the fmstate has aux_fmstate set, use the aux_fmstate (see
+	 * pgspiderBeginForeignInsert())
+	 */
+	if (fmstate->aux_fmstate)
+		resultRelInfo->ri_FdwState = fmstate->aux_fmstate;
+	rslot = execute_foreign_modify(estate, resultRelInfo, CMD_INSERT,
+								   slots, planSlots, numSlots);
 	/* Revert that change */
 	if (fmstate->aux_fmstate)
 		resultRelInfo->ri_FdwState = fmstate;
 
 	return rslot;
+}
+
+/*
+ * pgspiderGetForeignModifyBatchSize
+ *		Determine the maximum number of tuples that can be inserted in bulk
+ *
+ * Returns the batch size specified for server or table. When batching is not
+ * allowed (e.g. for tables with AFTER ROW triggers or with RETURNING clause),
+ * returns 1.
+ */
+static int
+pgspiderGetForeignModifyBatchSize(ResultRelInfo *resultRelInfo)
+{
+	int			batch_size;
+	PGSpiderFdwModifyState *fmstate = resultRelInfo->ri_FdwState ?
+	(PGSpiderFdwModifyState *) resultRelInfo->ri_FdwState :
+	NULL;
+
+	/* should be called only once */
+	Assert(resultRelInfo->ri_BatchSize == 0);
+
+	/*
+	 * Should never get called when the insert is being performed as part of a
+	 * row movement operation.
+	 */
+	Assert(fmstate == NULL || fmstate->aux_fmstate == NULL);
+
+	/*
+	 * In EXPLAIN without ANALYZE, ri_FdwState is NULL, so we have to lookup
+	 * the option directly in server/table options. Otherwise just use the
+	 * value we determined earlier.
+	 */
+	if (fmstate)
+		batch_size = fmstate->batch_size;
+	else
+		batch_size = get_batch_size_option(resultRelInfo->ri_RelationDesc);
+
+	/* Disable batching when we have to use RETURNING. */
+	if (resultRelInfo->ri_projectReturning != NULL ||
+		(resultRelInfo->ri_TrigDesc &&
+		 resultRelInfo->ri_TrigDesc->trig_insert_after_row))
+		return 1;
+
+	/*
+	 * Otherwise use the batch size specified for server/table. The number of
+	 * parameters in a batch is limited to 65535 (uint16), so make sure we
+	 * don't exceed this limit by using the maximum batch_size possible.
+	 */
+	if (fmstate && fmstate->p_nums > 0)
+		batch_size = Min(batch_size, PQ_QUERY_PARAM_MAX_LIMIT / fmstate->p_nums);
+
+	return batch_size;
 }
 
 /*
@@ -1921,8 +2118,13 @@ pgspiderExecForeignUpdate(EState *estate,
 						  TupleTableSlot *slot,
 						  TupleTableSlot *planSlot)
 {
-	return execute_foreign_modify(estate, resultRelInfo, CMD_UPDATE,
-								  slot, planSlot);
+	TupleTableSlot **rslot;
+	int			numSlots = 1;
+
+	rslot = execute_foreign_modify(estate, resultRelInfo, CMD_UPDATE,
+								   &slot, &planSlot, &numSlots);
+
+	return rslot ? rslot[0] : NULL;
 }
 
 /*
@@ -1935,8 +2137,13 @@ pgspiderExecForeignDelete(EState *estate,
 						  TupleTableSlot *slot,
 						  TupleTableSlot *planSlot)
 {
-	return execute_foreign_modify(estate, resultRelInfo, CMD_DELETE,
-								  slot, planSlot);
+	TupleTableSlot **rslot;
+	int			numSlots = 1;
+
+	rslot = execute_foreign_modify(estate, resultRelInfo, CMD_DELETE,
+								   &slot, &planSlot, &numSlots);
+
+	return rslot ? rslot[0] : NULL;
 }
 
 /*
@@ -1947,7 +2154,7 @@ static void
 pgspiderEndForeignModify(EState *estate,
 						 ResultRelInfo *resultRelInfo)
 {
-	PgFdwModifyState *fmstate = (PgFdwModifyState *) resultRelInfo->ri_FdwState;
+	PGSpiderFdwModifyState *fmstate = (PGSpiderFdwModifyState *) resultRelInfo->ri_FdwState;
 
 	/* If fmstate is NULL, we are in EXPLAIN; nothing to do */
 	if (fmstate == NULL)
@@ -1964,15 +2171,16 @@ pgspiderEndForeignModify(EState *estate,
 static void
 pgspiderBeginForeignInsert(ModifyTableState *mtstate,
 						   ResultRelInfo *resultRelInfo)
-	{
-	PgFdwModifyState *fmstate;
+{
+	PGSpiderFdwModifyState *fmstate;
 	ModifyTable *plan = castNode(ModifyTable, mtstate->ps.plan);
 	EState	   *estate = mtstate->ps.state;
-	Index		resultRelation = resultRelInfo->ri_RangeTableIndex;
+	Index		resultRelation;
 	Relation	rel = resultRelInfo->ri_RelationDesc;
 	RangeTblEntry *rte;
 	TupleDesc	tupdesc = RelationGetDescr(rel);
 	int			attnum;
+	int			values_end_len;
 	StringInfoData sql;
 	List	   *targetAttrs = NIL;
 	List	   *retrieved_attrs = NIL;
@@ -1987,8 +2195,7 @@ pgspiderBeginForeignInsert(ModifyTableState *mtstate,
 	 */
 	if (plan && plan->operation == CMD_UPDATE &&
 		(resultRelInfo->ri_usesFdwDirectModify ||
-		 resultRelInfo->ri_FdwState) &&
-		resultRelInfo > mtstate->resultRelInfo + mtstate->mt_whichplan)
+		 resultRelInfo->ri_FdwState))
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("cannot route tuples into foreign table to be updated \"%s\"",
@@ -2019,17 +2226,20 @@ pgspiderBeginForeignInsert(ModifyTableState *mtstate,
 	}
 
 	/*
-	 * If the foreign table is a partition, we need to create a new RTE
-	 * describing the foreign table for use by PGSpiderDeparseInsertSql and
-	 * create_foreign_modify() below, after first copying the parent's RTE and
-	 * modifying some fields to describe the foreign partition to work on.
-	 * However, if this is invoked by UPDATE, the existing RTE may already
-	 * correspond to this partition if it is one of the UPDATE subplan target
-	 * rels; in that case, we can just use the existing RTE as-is.
+	 * If the foreign table is a partition that doesn't have a corresponding
+	 * RTE entry, we need to create a new RTE describing the foreign table for
+	 * use by PGSpiderDeparseInsertSql and create_foreign_modify() below,
+	 * after first copying the parent's RTE and modifying some fields to
+	 * describe the foreign partition to work on. However, if this is invoked
+	 * by UPDATE, the existing RTE may already correspond to this partition if
+	 * it is one of the UPDATE subplan target rels; in that case, we can just
+	 * use the existing RTE as-is.
 	 */
-	rte = exec_rt_fetch(resultRelation, estate);
-	if (rte->relid != RelationGetRelid(rel))
+	if (resultRelInfo->ri_RangeTableIndex == 0)
 	{
+		ResultRelInfo *rootResultRelInfo = resultRelInfo->ri_RootResultRelInfo;
+
+		rte = exec_rt_fetch(rootResultRelInfo->ri_RangeTableIndex, estate);
 		rte = copyObject(rte);
 		rte->relid = RelationGetRelid(rel);
 		rte->relkind = RELKIND_FOREIGN_TABLE;
@@ -2041,15 +2251,22 @@ pgspiderBeginForeignInsert(ModifyTableState *mtstate,
 		 * Vars contained in those expressions.
 		 */
 		if (plan && plan->operation == CMD_UPDATE &&
-			resultRelation == plan->rootRelation)
+			rootResultRelInfo->ri_RangeTableIndex == plan->rootRelation)
 			resultRelation = mtstate->resultRelInfo[0].ri_RangeTableIndex;
+		else
+			resultRelation = rootResultRelInfo->ri_RangeTableIndex;
+	}
+	else
+	{
+		resultRelation = resultRelInfo->ri_RangeTableIndex;
+		rte = exec_rt_fetch(resultRelation, estate);
 	}
 
 	/* Construct the SQL command string. */
 	PGSpiderDeparseInsertSql(&sql, rte, resultRelation, rel, targetAttrs, doNothing,
-					 resultRelInfo->ri_WithCheckOptions,
-					 resultRelInfo->ri_returningList,
-					 &retrieved_attrs);
+							 resultRelInfo->ri_WithCheckOptions,
+							 resultRelInfo->ri_returningList,
+							 &retrieved_attrs, &values_end_len);
 
 	/* Construct an execution state. */
 	fmstate = create_foreign_modify(mtstate->ps.state,
@@ -2059,19 +2276,21 @@ pgspiderBeginForeignInsert(ModifyTableState *mtstate,
 									NULL,
 									sql.data,
 									targetAttrs,
+									values_end_len,
 									retrieved_attrs != NIL,
 									retrieved_attrs);
 
 	/*
-	 * If the given resultRelInfo already has PgFdwModifyState set, it means
-	 * the foreign table is an UPDATE subplan result rel; in which case, store
-	 * the resulting state into the aux_fmstate of the PgFdwModifyState.
+	 * If the given resultRelInfo already has PGSpiderFdwModifyState set, it
+	 * means the foreign table is an UPDATE subplan result rel; in which case,
+	 * store the resulting state into the aux_fmstate of the
+	 * PGSpiderFdwModifyState.
 	 */
 	if (resultRelInfo->ri_FdwState)
 	{
 		Assert(plan && plan->operation == CMD_UPDATE);
 		Assert(resultRelInfo->ri_usesFdwDirectModify == false);
-		((PgFdwModifyState *) resultRelInfo->ri_FdwState)->aux_fmstate = fmstate;
+		((PGSpiderFdwModifyState *) resultRelInfo->ri_FdwState)->aux_fmstate = fmstate;
 	}
 	else
 		resultRelInfo->ri_FdwState = fmstate;
@@ -2085,7 +2304,7 @@ static void
 pgspiderEndForeignInsert(EState *estate,
 						 ResultRelInfo *resultRelInfo)
 {
-	PgFdwModifyState *fmstate = (PgFdwModifyState *) resultRelInfo->ri_FdwState;
+	PGSpiderFdwModifyState *fmstate = (PGSpiderFdwModifyState *) resultRelInfo->ri_FdwState;
 
 	Assert(fmstate != NULL);
 
@@ -2174,6 +2393,65 @@ pgspiderRecheckForeignScan(ForeignScanState *node, TupleTableSlot *slot)
 }
 
 /*
+ * find_modifytable_subplan
+ *		Helper routine for pgspiderPlanDirectModify to find the
+ *		ModifyTable subplan node that scans the specified RTI.
+ *
+ * Returns NULL if the subplan couldn't be identified.  That's not a fatal
+ * error condition, we just abandon trying to do the update directly.
+ */
+static ForeignScan *
+find_modifytable_subplan(PlannerInfo *root,
+						 ModifyTable *plan,
+						 Index rtindex,
+						 int subplan_index)
+{
+	Plan	   *subplan = outerPlan(plan);
+
+	/*
+	 * The cases we support are (1) the desired ForeignScan is the immediate
+	 * child of ModifyTable, or (2) it is the subplan_index'th child of an
+	 * Append node that is the immediate child of ModifyTable.  There is no
+	 * point in looking further down, as that would mean that local joins are
+	 * involved, so we can't do the update directly.
+	 *
+	 * There could be a Result atop the Append too, acting to compute the
+	 * UPDATE targetlist values.  We ignore that here; the tlist will be
+	 * checked by our caller.
+	 *
+	 * In principle we could examine all the children of the Append, but it's
+	 * currently unlikely that the core planner would generate such a plan
+	 * with the children out-of-order.  Moreover, such a search risks costing
+	 * O(N^2) time when there are a lot of children.
+	 */
+	if (IsA(subplan, Append))
+	{
+		Append	   *appendplan = (Append *) subplan;
+
+		if (subplan_index < list_length(appendplan->appendplans))
+			subplan = (Plan *) list_nth(appendplan->appendplans, subplan_index);
+	}
+	else if (IsA(subplan, Result) && IsA(outerPlan(subplan), Append))
+	{
+		Append	   *appendplan = (Append *) outerPlan(subplan);
+
+		if (subplan_index < list_length(appendplan->appendplans))
+			subplan = (Plan *) list_nth(appendplan->appendplans, subplan_index);
+	}
+
+	/* Now, have we got a ForeignScan on the desired rel? */
+	if (IsA(subplan, ForeignScan))
+	{
+		ForeignScan *fscan = (ForeignScan *) subplan;
+
+		if (bms_is_member(rtindex, fscan->fs_relids))
+			return fscan;
+	}
+
+	return NULL;
+}
+
+/*
  * pgspiderPlanDirectModify
  *		Consider a direct foreign table modification
  *
@@ -2187,13 +2465,13 @@ pgspiderPlanDirectModify(PlannerInfo *root,
 						 int subplan_index)
 {
 	CmdType		operation = plan->operation;
-	Plan	   *subplan;
 	RelOptInfo *foreignrel;
 	RangeTblEntry *rte;
 	PGSpiderFdwRelationInfo *fpinfo;
 	Relation	rel;
 	StringInfoData sql;
 	ForeignScan *fscan;
+	List	   *processed_tlist = NIL;
 	List	   *targetAttrs = NIL;
 	List	   *remote_exprs;
 	List	   *params_list = NIL;
@@ -2211,19 +2489,17 @@ pgspiderPlanDirectModify(PlannerInfo *root,
 		return false;
 
 	/*
-	 * It's unsafe to modify a foreign table directly if there are any local
-	 * joins needed.
+	 * Try to locate the ForeignScan subplan that's scanning resultRelation.
 	 */
-	subplan = (Plan *) list_nth(plan->plans, subplan_index);
-	if (!IsA(subplan, ForeignScan))
+	fscan = find_modifytable_subplan(root, plan, resultRelation, subplan_index);
+	if (!fscan)
 		return false;
-	fscan = (ForeignScan *) subplan;
 
 	/*
 	 * It's unsafe to modify a foreign table directly if there are any quals
 	 * that should be evaluated locally.
 	 */
-	if (subplan->qual != NIL)
+	if (fscan->scan.plan.qual != NIL)
 		return false;
 
 	/* Safe to fetch data about the target foreign rel */
@@ -2244,32 +2520,28 @@ pgspiderPlanDirectModify(PlannerInfo *root,
 	 */
 	if (operation == CMD_UPDATE)
 	{
-		int			col;
+		ListCell   *lc,
+				   *lc2;
 
 		/*
-		 * We transmit only columns that were explicitly targets of the
-		 * UPDATE, so as to avoid unnecessary data transmission.
+		 * The expressions of concern are the first N columns of the processed
+		 * targetlist, where N is the length of the rel's update_colnos.
 		 */
-		col = -1;
-		while ((col = bms_next_member(rte->updatedCols, col)) >= 0)
+		get_translated_update_targetlist(root, resultRelation,
+										 &processed_tlist, &targetAttrs);
+		forboth(lc, processed_tlist, lc2, targetAttrs)
 		{
-			/* bit numbers are offset by FirstLowInvalidHeapAttributeNumber */
-			AttrNumber	attno = col + FirstLowInvalidHeapAttributeNumber;
-			TargetEntry *tle;
+			TargetEntry *tle = lfirst_node(TargetEntry, lc);
+			AttrNumber	attno = lfirst_int(lc2);
+
+			/* update's new-value expressions shouldn't be resjunk */
+			Assert(!tle->resjunk);
 
 			if (attno <= InvalidAttrNumber) /* shouldn't happen */
 				elog(ERROR, "system-column update is not supported");
 
-			tle = get_tle_by_resno(subplan->targetlist, attno);
-
-			if (!tle)
-				elog(ERROR, "attribute number %d not found in subplan targetlist",
-					 attno);
-
 			if (!pgspider_is_foreign_expr(root, foreignrel, (Expr *) tle->expr))
 				return false;
-
-			targetAttrs = lappend_int(targetAttrs, attno);
 		}
 	}
 
@@ -2319,17 +2591,17 @@ pgspiderPlanDirectModify(PlannerInfo *root,
 	{
 		case CMD_UPDATE:
 			PGSpiderDeparseDirectUpdateSql(&sql, root, resultRelation, rel,
-								   foreignrel,
-								   ((Plan *) fscan)->targetlist,
-								   targetAttrs,
-								   remote_exprs, &params_list,
-								   returningList, &retrieved_attrs);
+										   foreignrel,
+										   processed_tlist,
+										   targetAttrs,
+										   remote_exprs, &params_list,
+										   returningList, &retrieved_attrs);
 			break;
 		case CMD_DELETE:
 			PGSpiderDeparseDirectDeleteSql(&sql, root, resultRelation, rel,
-								   foreignrel,
-								   remote_exprs, &params_list,
-								   returningList, &retrieved_attrs);
+										   foreignrel,
+										   remote_exprs, &params_list,
+										   returningList, &retrieved_attrs);
 			break;
 		default:
 			elog(ERROR, "unexpected operation: %d", (int) operation);
@@ -2337,9 +2609,10 @@ pgspiderPlanDirectModify(PlannerInfo *root,
 	}
 
 	/*
-	 * Update the operation info.
+	 * Update the operation and target relation info.
 	 */
 	fscan->operation = operation;
+	fscan->resultRelation = resultRelation;
 
 	/*
 	 * Update the fdw_exprs list that will be available to the executor.
@@ -2368,6 +2641,13 @@ pgspiderPlanDirectModify(PlannerInfo *root,
 			rebuild_fdw_scan_tlist(fscan, returningList);
 	}
 
+	/*
+	 * Finally, unset the async-capable flag if it is set, as we currently
+	 * don't support asynchronous execution of direct modifications.
+	 */
+	if (fscan->scan.plan.async_capable)
+		fscan->scan.plan.async_capable = false;
+
 	table_close(rel, NoLock);
 	return true;
 }
@@ -2381,7 +2661,7 @@ pgspiderBeginDirectModify(ForeignScanState *node, int eflags)
 {
 	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
 	EState	   *estate = node->ss.ps.state;
-	PgFdwDirectModifyState *dmstate;
+	PGSpiderFdwDirectModifyState *dmstate;
 	Index		rtindex;
 	RangeTblEntry *rte;
 	Oid			userid;
@@ -2398,14 +2678,14 @@ pgspiderBeginDirectModify(ForeignScanState *node, int eflags)
 	/*
 	 * We'll save private state in node->fdw_state.
 	 */
-	dmstate = (PgFdwDirectModifyState *) palloc0(sizeof(PgFdwDirectModifyState));
+	dmstate = (PGSpiderFdwDirectModifyState *) palloc0(sizeof(PGSpiderFdwDirectModifyState));
 	node->fdw_state = (void *) dmstate;
 
 	/*
 	 * Identify which user to do the remote access as.  This should match what
 	 * ExecCheckRTEPerms() does.
 	 */
-	rtindex = estate->es_result_relation_info->ri_RangeTableIndex;
+	rtindex = node->resultRelInfo->ri_RangeTableIndex;
 	rte = exec_rt_fetch(rtindex, estate);
 	userid = rte->checkAsUser ? rte->checkAsUser : GetUserId();
 
@@ -2421,7 +2701,7 @@ pgspiderBeginDirectModify(ForeignScanState *node, int eflags)
 	 * Get connection to the foreign server.  Connection manager will
 	 * establish new connection if necessary.
 	 */
-	dmstate->conn = PGSpiderGetConnection(user, false);
+	dmstate->conn = PGSpiderGetConnection(user, false, &dmstate->conn_state);
 
 	/* Update the foreign-join-related fields. */
 	if (fsplan->scan.scanrelid == 0)
@@ -2462,7 +2742,7 @@ pgspiderBeginDirectModify(ForeignScanState *node, int eflags)
 		TupleDesc	tupdesc;
 
 		if (fsplan->scan.scanrelid == 0)
-			tupdesc = node->ss.ss_ScanTupleSlot->tts_tupleDescriptor;
+			tupdesc = get_tupdesc_for_join_scan_tuples(node);
 		else
 			tupdesc = RelationGetDescr(dmstate->rel);
 
@@ -2498,9 +2778,9 @@ pgspiderBeginDirectModify(ForeignScanState *node, int eflags)
 static TupleTableSlot *
 pgspiderIterateDirectModify(ForeignScanState *node)
 {
-	PgFdwDirectModifyState *dmstate = (PgFdwDirectModifyState *) node->fdw_state;
+	PGSpiderFdwDirectModifyState *dmstate = (PGSpiderFdwDirectModifyState *) node->fdw_state;
 	EState	   *estate = node->ss.ps.state;
-	ResultRelInfo *resultRelInfo = estate->es_result_relation_info;
+	ResultRelInfo *resultRelInfo = node->resultRelInfo;
 
 	/*
 	 * If this is the first call after Begin, execute the statement.
@@ -2542,7 +2822,7 @@ pgspiderIterateDirectModify(ForeignScanState *node)
 static void
 pgspiderEndDirectModify(ForeignScanState *node)
 {
-	PgFdwDirectModifyState *dmstate = (PgFdwDirectModifyState *) node->fdw_state;
+	PGSpiderFdwDirectModifyState *dmstate = (PGSpiderFdwDirectModifyState *) node->fdw_state;
 
 	/* if dmstate is NULL, we are in EXPLAIN; nothing to do */
 	if (dmstate == NULL)
@@ -2639,8 +2919,8 @@ pgspiderExplainForeignScan(ForeignScanState *node, ExplainState *es)
 									 quote_identifier(relname));
 				}
 				else
-					appendStringInfo(relations, "%s",
-									 quote_identifier(relname));
+					appendStringInfoString(relations,
+										   quote_identifier(relname));
 				refname = (char *) list_nth(es->rtable_names, rti - 1);
 				if (refname == NULL)
 					refname = rte->eref->aliasname;
@@ -2683,6 +2963,13 @@ pgspiderExplainForeignModify(ModifyTableState *mtstate,
 										  FdwModifyPrivateUpdateSql));
 
 		ExplainPropertyText("Remote SQL", sql, es);
+
+		/*
+		 * For INSERT we should always have batch size >= 1, but UPDATE and
+		 * DELETE don't support batching so don't show the property.
+		 */
+		if (rinfo->ri_BatchSize > 0)
+			ExplainPropertyInteger("Batch Size", NULL, rinfo->ri_BatchSize, es);
 	}
 }
 
@@ -2705,6 +2992,101 @@ pgspiderExplainDirectModify(ForeignScanState *node, ExplainState *es)
 	}
 }
 
+/*
+ * pgspiderExecForeignTruncate
+ *		Truncate one or more foreign tables
+ */
+static void
+pgspiderExecForeignTruncate(List *rels,
+							DropBehavior behavior,
+							bool restart_seqs)
+{
+	Oid			serverid = InvalidOid;
+	UserMapping *user = NULL;
+	PGconn	   *conn = NULL;
+	StringInfoData sql;
+	ListCell   *lc;
+	bool		server_truncatable = true;
+
+	/*
+	 * By default, all pgspider_fdw foreign tables are assumed truncatable.
+	 * This can be overridden by a per-server setting, which in turn can be
+	 * overridden by a per-table setting.
+	 */
+	foreach(lc, rels)
+	{
+		ForeignServer *server = NULL;
+		Relation	rel = lfirst(lc);
+		ForeignTable *table = GetForeignTable(RelationGetRelid(rel));
+		ListCell   *cell;
+		bool		truncatable;
+
+		/*
+		 * First time through, determine whether the foreign server allows
+		 * truncates. Since all specified foreign tables are assumed to belong
+		 * to the same foreign server, this result can be used for other
+		 * foreign tables.
+		 */
+		if (!OidIsValid(serverid))
+		{
+			serverid = table->serverid;
+			server = GetForeignServer(serverid);
+
+			foreach(cell, server->options)
+			{
+				DefElem    *defel = (DefElem *) lfirst(cell);
+
+				if (strcmp(defel->defname, "truncatable") == 0)
+				{
+					server_truncatable = defGetBoolean(defel);
+					break;
+				}
+			}
+		}
+
+		/*
+		 * Confirm that all specified foreign tables belong to the same
+		 * foreign server.
+		 */
+		Assert(table->serverid == serverid);
+
+		/* Determine whether this foreign table allows truncations */
+		truncatable = server_truncatable;
+		foreach(cell, table->options)
+		{
+			DefElem    *defel = (DefElem *) lfirst(cell);
+
+			if (strcmp(defel->defname, "truncatable") == 0)
+			{
+				truncatable = defGetBoolean(defel);
+				break;
+			}
+		}
+
+		if (!truncatable)
+			ereport(ERROR,
+					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+					 errmsg("foreign table \"%s\" does not allow truncates",
+							RelationGetRelationName(rel))));
+	}
+	Assert(OidIsValid(serverid));
+
+	/*
+	 * Get connection to the foreign server.  Connection manager will
+	 * establish new connection if necessary.
+	 */
+	user = GetUserMapping(GetUserId(), serverid);
+	conn = PGSpiderGetConnection(user, false, NULL);
+
+	/* Construct the TRUNCATE command string */
+	initStringInfo(&sql);
+	PGSpiderDeparseTruncateSql(&sql, rels, behavior, restart_seqs);
+
+	/* Issue the TRUNCATE command to remote server */
+	do_sql_command(conn, sql.data);
+
+	pfree(sql.data);
+}
 
 /*
  * estimate_path_cost_size
@@ -2725,7 +3107,7 @@ estimate_path_cost_size(PlannerInfo *root,
 						RelOptInfo *foreignrel,
 						List *param_join_conds,
 						List *pathkeys,
-						PgFdwPathExtraData *fpextra,
+						PGSpiderFdwPathExtraData * fpextra,
 						double *p_rows, int *p_width,
 						Cost *p_startup_cost, Cost *p_total_cost)
 {
@@ -2765,7 +3147,7 @@ estimate_path_cost_size(PlannerInfo *root,
 		 * across, and clauses that aren't.
 		 */
 		PGSpiderClassifyConditions(root, foreignrel, param_join_conds,
-						   &remote_param_join_conds, &local_param_join_conds);
+								   &remote_param_join_conds, &local_param_join_conds);
 
 		/* Build the list of columns to be fetched from the foreign server. */
 		if (IS_JOIN_REL(foreignrel) || IS_UPPER_REL(foreignrel))
@@ -2789,13 +3171,13 @@ estimate_path_cost_size(PlannerInfo *root,
 		initStringInfo(&sql);
 		appendStringInfoString(&sql, "EXPLAIN ");
 		PGSpiderDeparseSelectStmtForRel(&sql, root, foreignrel, fdw_scan_tlist,
-								remote_conds, pathkeys,
-								fpextra ? fpextra->has_final_sort : false,
-								fpextra ? fpextra->has_limit : false,
-								false, &retrieved_attrs, NULL);
+										remote_conds, pathkeys,
+										fpextra ? fpextra->has_final_sort : false,
+										fpextra ? fpextra->has_limit : false,
+										false, &retrieved_attrs, NULL);
 
 		/* Get the remote estimate */
-		conn = PGSpiderGetConnection(fpinfo->user, false);
+		conn = PGSpiderGetConnection(fpinfo->user, false, NULL);
 		get_remote_estimate(sql.data, conn, &rows, &width,
 							&startup_cost, &total_cost);
 		PGSpiderReleaseConnection(conn);
@@ -2856,7 +3238,7 @@ estimate_path_cost_size(PlannerInfo *root,
 		 */
 		if (fpinfo->rel_startup_cost >= 0 && fpinfo->rel_total_cost >= 0)
 		{
-			Assert(fpinfo->retrieved_rows >= 1);
+			Assert(fpinfo->retrieved_rows >= 0);
 
 			rows = fpinfo->rows;
 			retrieved_rows = fpinfo->retrieved_rows;
@@ -2992,16 +3374,7 @@ estimate_path_cost_size(PlannerInfo *root,
 			MemSet(&aggcosts, 0, sizeof(AggClauseCosts));
 			if (root->parse->hasAggs)
 			{
-				get_agg_clause_costs(root, (Node *) fpinfo->grouped_tlist,
-									 AGGSPLIT_SIMPLE, &aggcosts);
-
-				/*
-				 * The cost of aggregates in the HAVING qual will be the same
-				 * for each child as it is for the parent, so there's no need
-				 * to use a translated version of havingQual.
-				 */
-				get_agg_clause_costs(root, (Node *) root->parse->havingQual,
-									 AGGSPLIT_SIMPLE, &aggcosts);
+				get_agg_clause_costs(root, AGGSPLIT_SIMPLE, &aggcosts);
 			}
 
 			/* Get number of grouping columns and possible number of groups */
@@ -3009,7 +3382,7 @@ estimate_path_cost_size(PlannerInfo *root,
 			numGroups = estimate_num_groups(root,
 											get_sortgrouplist_exprs(root->parse->groupClause,
 																	fpinfo->grouped_tlist),
-											input_rows, NULL);
+											input_rows, NULL, NULL);
 
 			/*
 			 * Get the retrieved_rows and rows estimates.  If there are HAVING
@@ -3250,7 +3623,7 @@ get_remote_estimate(const char *sql, PGconn *conn,
 		/*
 		 * Execute EXPLAIN remotely.
 		 */
-		res = pgspiderfdw_exec_query(conn, sql);
+		res = pgspiderfdw_exec_query(conn, sql, NULL);
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
 			pgspiderfdw_report_error(ERROR, res, conn, false, sql);
 
@@ -3366,13 +3739,17 @@ ec_member_matches_foreign(PlannerInfo *root, RelOptInfo *rel,
 static void
 create_cursor(ForeignScanState *node)
 {
-	PgFdwScanState *fsstate = (PgFdwScanState *) node->fdw_state;
+	PGSpiderFdwScanState *fsstate = (PGSpiderFdwScanState *) node->fdw_state;
 	ExprContext *econtext = node->ss.ps.ps_ExprContext;
 	int			numParams = fsstate->numParams;
 	const char **values = fsstate->param_values;
 	PGconn	   *conn = fsstate->conn;
 	StringInfoData buf;
 	PGresult   *res;
+
+	/* First, process a pending asynchronous request, if any. */
+	if (fsstate->conn_state->pendingAreq)
+		pgspider_process_pending_request(fsstate->conn_state->pendingAreq);
 
 	/*
 	 * Construct array of query parameter values in text format.  We do the
@@ -3438,7 +3815,7 @@ create_cursor(ForeignScanState *node)
 static void
 fetch_more_data(ForeignScanState *node)
 {
-	PgFdwScanState *fsstate = (PgFdwScanState *) node->fdw_state;
+	PGSpiderFdwScanState *fsstate = (PGSpiderFdwScanState *) node->fdw_state;
 	PGresult   *volatile res = NULL;
 	MemoryContext oldcontext;
 
@@ -3454,17 +3831,38 @@ fetch_more_data(ForeignScanState *node)
 	PG_TRY();
 	{
 		PGconn	   *conn = fsstate->conn;
-		char		sql[64];
 		int			numrows;
 		int			i;
 
-		snprintf(sql, sizeof(sql), "FETCH %d FROM c%u",
-				 fsstate->fetch_size, fsstate->cursor_number);
+		if (fsstate->async_capable)
+		{
+			Assert(fsstate->conn_state->pendingAreq);
 
-		res = pgspiderfdw_exec_query(conn, sql);
-		/* On error, report the original query, not the FETCH. */
-		if (PQresultStatus(res) != PGRES_TUPLES_OK)
-			pgspiderfdw_report_error(ERROR, res, conn, false, fsstate->query);
+			/*
+			 * The query was already sent by an earlier call to
+			 * fetch_more_data_begin.  So now we just fetch the result.
+			 */
+			res = pgspiderfdw_get_result(conn, fsstate->query);
+			/* On error, report the original query, not the FETCH. */
+			if (PQresultStatus(res) != PGRES_TUPLES_OK)
+				pgspiderfdw_report_error(ERROR, res, conn, false, fsstate->query);
+
+			/* Reset per-connection state */
+			fsstate->conn_state->pendingAreq = NULL;
+		}
+		else
+		{
+			char		sql[64];
+
+			/* This is a regular synchronous fetch. */
+			snprintf(sql, sizeof(sql), "FETCH %d FROM c%u",
+					 fsstate->fetch_size, fsstate->cursor_number);
+
+			res = pgspiderfdw_exec_query(conn, sql, fsstate->conn_state);
+			/* On error, report the original query, not the FETCH. */
+			if (PQresultStatus(res) != PGRES_TUPLES_OK)
+				pgspiderfdw_report_error(ERROR, res, conn, false, fsstate->query);
+		}
 
 		/* Convert the data into HeapTuples */
 		numrows = PQntuples(res);
@@ -3556,7 +3954,8 @@ pgspider_reset_transmission_modes(int nestlevel)
  * Utility routine to close a cursor.
  */
 static void
-close_cursor(PGconn *conn, unsigned int cursor_number)
+close_cursor(PGconn *conn, unsigned int cursor_number,
+			 PGSpiderFdwConnState * conn_state)
 {
 	char		sql[64];
 	PGresult   *res;
@@ -3567,7 +3966,7 @@ close_cursor(PGconn *conn, unsigned int cursor_number)
 	 * We don't use a PG_TRY block here, so be careful not to throw error
 	 * without releasing the PGresult.
 	 */
-	res = pgspiderfdw_exec_query(conn, sql);
+	res = pgspiderfdw_exec_query(conn, sql, conn_state);
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
 		pgspiderfdw_report_error(ERROR, res, conn, true, sql);
 	PQclear(res);
@@ -3578,7 +3977,7 @@ close_cursor(PGconn *conn, unsigned int cursor_number)
  *		Construct an execution state of a foreign insert/update/delete
  *		operation
  */
-static PgFdwModifyState *
+static PGSpiderFdwModifyState *
 create_foreign_modify(EState *estate,
 					  RangeTblEntry *rte,
 					  ResultRelInfo *resultRelInfo,
@@ -3586,10 +3985,11 @@ create_foreign_modify(EState *estate,
 					  Plan *subplan,
 					  char *query,
 					  List *target_attrs,
+					  int values_end,
 					  bool has_returning,
 					  List *retrieved_attrs)
 {
-	PgFdwModifyState *fmstate;
+	PGSpiderFdwModifyState *fmstate;
 	Relation	rel = resultRelInfo->ri_RelationDesc;
 	TupleDesc	tupdesc = RelationGetDescr(rel);
 	Oid			userid;
@@ -3600,8 +4000,8 @@ create_foreign_modify(EState *estate,
 	bool		isvarlena;
 	ListCell   *lc;
 
-	/* Begin constructing PgFdwModifyState. */
-	fmstate = (PgFdwModifyState *) palloc0(sizeof(PgFdwModifyState));
+	/* Begin constructing PGSpiderFdwModifyState. */
+	fmstate = (PGSpiderFdwModifyState *) palloc0(sizeof(PGSpiderFdwModifyState));
 	fmstate->rel = rel;
 
 	/*
@@ -3615,12 +4015,18 @@ create_foreign_modify(EState *estate,
 	user = GetUserMapping(userid, table->serverid);
 
 	/* Open connection; report that we'll create a prepared statement. */
-	fmstate->conn = PGSpiderGetConnection(user, true);
+	fmstate->conn = PGSpiderGetConnection(user, true, &fmstate->conn_state);
 	fmstate->p_name = NULL;		/* prepared statement not made yet */
 
 	/* Set up remote query information. */
 	fmstate->query = query;
+	if (operation == CMD_INSERT)
+	{
+		fmstate->query = pstrdup(fmstate->query);
+		fmstate->orig_query = pstrdup(fmstate->query);
+	}
 	fmstate->target_attrs = target_attrs;
+	fmstate->values_end = values_end;
 	fmstate->has_returning = has_returning;
 	fmstate->retrieved_attrs = retrieved_attrs;
 
@@ -3672,6 +4078,12 @@ create_foreign_modify(EState *estate,
 
 	Assert(fmstate->p_nums <= n_params);
 
+	/* Set batch_size from foreign server/table options. */
+	if (operation == CMD_INSERT)
+		fmstate->batch_size = get_batch_size_option(rel);
+
+	fmstate->num_slots = 1;
+
 	/* Initialize auxiliary state */
 	fmstate->aux_fmstate = NULL;
 
@@ -3682,25 +4094,51 @@ create_foreign_modify(EState *estate,
  * execute_foreign_modify
  *		Perform foreign-table modification as required, and fetch RETURNING
  *		result if any.  (This is the shared guts of pgspiderExecForeignInsert,
- *		pgspiderExecForeignUpdate, and pgspiderExecForeignDelete.)
+ *		pgspiderExecForeignBatchInsert, pgspiderExecForeignUpdate, and
+ *		pgspiderExecForeignDelete.)
  */
-static TupleTableSlot *
+static TupleTableSlot **
 execute_foreign_modify(EState *estate,
 					   ResultRelInfo *resultRelInfo,
 					   CmdType operation,
-					   TupleTableSlot *slot,
-					   TupleTableSlot *planSlot)
+					   TupleTableSlot **slots,
+					   TupleTableSlot **planSlots,
+					   int *numSlots)
 {
-	PgFdwModifyState *fmstate = (PgFdwModifyState *) resultRelInfo->ri_FdwState;
+	PGSpiderFdwModifyState *fmstate = (PGSpiderFdwModifyState *) resultRelInfo->ri_FdwState;
 	ItemPointer ctid = NULL;
 	const char **p_values;
 	PGresult   *res;
 	int			n_rows;
+	StringInfoData sql;
 
 	/* The operation should be INSERT, UPDATE, or DELETE */
 	Assert(operation == CMD_INSERT ||
 		   operation == CMD_UPDATE ||
 		   operation == CMD_DELETE);
+
+	/* First, process a pending asynchronous request, if any. */
+	if (fmstate->conn_state->pendingAreq)
+		pgspider_process_pending_request(fmstate->conn_state->pendingAreq);
+
+	/*
+	 * If the existing query was deparsed and prepared for a different number
+	 * of rows, rebuild it for the proper number.
+	 */
+	if (operation == CMD_INSERT && fmstate->num_slots != *numSlots)
+	{
+		/* Destroy the prepared statement created previously */
+		if (fmstate->p_name)
+			deallocate_query(fmstate);
+
+		/* Build INSERT string with numSlots records in its VALUES clause. */
+		initStringInfo(&sql);
+		PGSpiderRebuildInsertSql(&sql, fmstate->orig_query, fmstate->values_end,
+								 fmstate->p_nums, *numSlots - 1);
+		pfree(fmstate->query);
+		fmstate->query = sql.data;
+		fmstate->num_slots = *numSlots;
+	}
 
 	/* Set up the prepared statement on the remote server, if we didn't yet */
 	if (!fmstate->p_name)
@@ -3714,7 +4152,7 @@ execute_foreign_modify(EState *estate,
 		Datum		datum;
 		bool		isNull;
 
-		datum = ExecGetJunkAttribute(planSlot,
+		datum = ExecGetJunkAttribute(planSlots[0],
 									 fmstate->ctidAttno,
 									 &isNull);
 		/* shouldn't ever get a null result... */
@@ -3724,14 +4162,14 @@ execute_foreign_modify(EState *estate,
 	}
 
 	/* Convert parameters needed by prepared statement to text form */
-	p_values = convert_prep_stmt_params(fmstate, ctid, slot);
+	p_values = convert_prep_stmt_params(fmstate, ctid, slots, *numSlots);
 
 	/*
 	 * Execute the prepared statement.
 	 */
 	if (!PQsendQueryPrepared(fmstate->conn,
 							 fmstate->p_name,
-							 fmstate->p_nums,
+							 fmstate->p_nums * (*numSlots),
 							 p_values,
 							 NULL,
 							 NULL,
@@ -3752,9 +4190,10 @@ execute_foreign_modify(EState *estate,
 	/* Check number of rows affected, and fetch RETURNING tuple if any */
 	if (fmstate->has_returning)
 	{
+		Assert(*numSlots == 1);
 		n_rows = PQntuples(res);
 		if (n_rows > 0)
-			store_returning_result(fmstate, slot, res);
+			store_returning_result(fmstate, slots[0], res);
 	}
 	else
 		n_rows = atoi(PQcmdTuples(res));
@@ -3764,10 +4203,12 @@ execute_foreign_modify(EState *estate,
 
 	MemoryContextReset(fmstate->temp_cxt);
 
+	*numSlots = n_rows;
+
 	/*
 	 * Return NULL if nothing was inserted/updated/deleted on the remote end
 	 */
-	return (n_rows > 0) ? slot : NULL;
+	return (n_rows > 0) ? slots : NULL;
 }
 
 /*
@@ -3775,11 +4216,16 @@ execute_foreign_modify(EState *estate,
  *		Establish a prepared statement for execution of INSERT/UPDATE/DELETE
  */
 static void
-prepare_foreign_modify(PgFdwModifyState *fmstate)
+prepare_foreign_modify(PGSpiderFdwModifyState * fmstate)
 {
 	char		prep_name[NAMEDATALEN];
 	char	   *p_name;
 	PGresult   *res;
+
+	/*
+	 * The caller would already have processed a pending asynchronous request
+	 * if any, so no need to do it here.
+	 */
 
 	/* Construct name we'll use for the prepared statement. */
 	snprintf(prep_name, sizeof(prep_name), "pgsql_fdw_prep_%u",
@@ -3825,54 +4271,66 @@ prepare_foreign_modify(PgFdwModifyState *fmstate)
  * Data is constructed in temp_cxt; caller should reset that after use.
  */
 static const char **
-convert_prep_stmt_params(PgFdwModifyState *fmstate,
+convert_prep_stmt_params(PGSpiderFdwModifyState * fmstate,
 						 ItemPointer tupleid,
-						 TupleTableSlot *slot)
+						 TupleTableSlot **slots,
+						 int numSlots)
 {
 	const char **p_values;
+	int			i;
+	int			j;
 	int			pindex = 0;
 	MemoryContext oldcontext;
 
 	oldcontext = MemoryContextSwitchTo(fmstate->temp_cxt);
 
-	p_values = (const char **) palloc(sizeof(char *) * fmstate->p_nums);
+	p_values = (const char **) palloc(sizeof(char *) * fmstate->p_nums * numSlots);
+
+	/* ctid is provided only for UPDATE/DELETE, which don't allow batching */
+	Assert(!(tupleid != NULL && numSlots > 1));
 
 	/* 1st parameter should be ctid, if it's in use */
 	if (tupleid != NULL)
 	{
+		Assert(numSlots == 1);
 		/* don't need pgspider_set_transmission_modes for TID output */
 		p_values[pindex] = OutputFunctionCall(&fmstate->p_flinfo[pindex],
 											  PointerGetDatum(tupleid));
 		pindex++;
 	}
 
-	/* get following parameters from slot */
-	if (slot != NULL && fmstate->target_attrs != NIL)
+	/* get following parameters from slots */
+	if (slots != NULL && fmstate->target_attrs != NIL)
 	{
 		int			nestlevel;
 		ListCell   *lc;
 
 		nestlevel = pgspider_set_transmission_modes();
 
-		foreach(lc, fmstate->target_attrs)
+		for (i = 0; i < numSlots; i++)
 		{
-			int			attnum = lfirst_int(lc);
-			Datum		value;
-			bool		isnull;
+			j = (tupleid != NULL) ? 1 : 0;
+			foreach(lc, fmstate->target_attrs)
+			{
+				int			attnum = lfirst_int(lc);
+				Datum		value;
+				bool		isnull;
 
-			value = slot_getattr(slot, attnum, &isnull);
-			if (isnull)
-				p_values[pindex] = NULL;
-			else
-				p_values[pindex] = OutputFunctionCall(&fmstate->p_flinfo[pindex],
-													  value);
-			pindex++;
+				value = slot_getattr(slots[i], attnum, &isnull);
+				if (isnull)
+					p_values[pindex] = NULL;
+				else
+					p_values[pindex] = OutputFunctionCall(&fmstate->p_flinfo[j],
+														  value);
+				pindex++;
+				j++;
+			}
 		}
 
 		pgspider_reset_transmission_modes(nestlevel);
 	}
 
-	Assert(pindex == fmstate->p_nums);
+	Assert(pindex == fmstate->p_nums * numSlots);
 
 	MemoryContextSwitchTo(oldcontext);
 
@@ -3887,7 +4345,7 @@ convert_prep_stmt_params(PgFdwModifyState *fmstate,
  * have PG_TRY blocks to ensure this happens.
  */
 static void
-store_returning_result(PgFdwModifyState *fmstate,
+store_returning_result(PGSpiderFdwModifyState * fmstate,
 					   TupleTableSlot *slot, PGresult *res)
 {
 	PG_TRY();
@@ -3921,32 +4379,45 @@ store_returning_result(PgFdwModifyState *fmstate,
  *		Release resources for a foreign insert/update/delete operation
  */
 static void
-finish_foreign_modify(PgFdwModifyState *fmstate)
+finish_foreign_modify(PGSpiderFdwModifyState * fmstate)
 {
 	Assert(fmstate != NULL);
 
 	/* If we created a prepared statement, destroy it */
-	if (fmstate->p_name)
-	{
-		char		sql[64];
-		PGresult   *res;
-
-		snprintf(sql, sizeof(sql), "DEALLOCATE %s", fmstate->p_name);
-
-		/*
-		 * We don't use a PG_TRY block here, so be careful not to throw error
-		 * without releasing the PGresult.
-		 */
-		res = pgspiderfdw_exec_query(fmstate->conn, sql);
-		if (PQresultStatus(res) != PGRES_COMMAND_OK)
-			pgspiderfdw_report_error(ERROR, res, fmstate->conn, true, sql);
-		PQclear(res);
-		fmstate->p_name = NULL;
-	}
+	deallocate_query(fmstate);
 
 	/* Release remote connection */
 	PGSpiderReleaseConnection(fmstate->conn);
 	fmstate->conn = NULL;
+}
+
+/*
+ * deallocate_query
+ *		Deallocate a prepared statement for a foreign insert/update/delete
+ *		operation
+ */
+static void
+deallocate_query(PGSpiderFdwModifyState * fmstate)
+{
+	char		sql[64];
+	PGresult   *res;
+
+	/* do nothing if the query is not allocated */
+	if (!fmstate->p_name)
+		return;
+
+	snprintf(sql, sizeof(sql), "DEALLOCATE %s", fmstate->p_name);
+
+	/*
+	 * We don't use a PG_TRY block here, so be careful not to throw error
+	 * without releasing the PGresult.
+	 */
+	res = pgspiderfdw_exec_query(fmstate->conn, sql, fmstate->conn_state);
+	if (PQresultStatus(res) != PGRES_COMMAND_OK)
+		pgspiderfdw_report_error(ERROR, res, fmstate->conn, true, sql);
+	PQclear(res);
+	pfree(fmstate->p_name);
+	fmstate->p_name = NULL;
 }
 
 /*
@@ -4084,10 +4555,14 @@ rebuild_fdw_scan_tlist(ForeignScan *fscan, List *tlist)
 static void
 execute_dml_stmt(ForeignScanState *node)
 {
-	PgFdwDirectModifyState *dmstate = (PgFdwDirectModifyState *) node->fdw_state;
+	PGSpiderFdwDirectModifyState *dmstate = (PGSpiderFdwDirectModifyState *) node->fdw_state;
 	ExprContext *econtext = node->ss.ps.ps_ExprContext;
 	int			numParams = dmstate->numParams;
 	const char **values = dmstate->param_values;
+
+	/* First, process a pending asynchronous request, if any. */
+	if (dmstate->conn_state->pendingAreq)
+		pgspider_process_pending_request(dmstate->conn_state->pendingAreq);
 
 	/*
 	 * Construct array of query parameter values in text format.
@@ -4119,7 +4594,7 @@ execute_dml_stmt(ForeignScanState *node)
 	if (PQresultStatus(dmstate->result) !=
 		(dmstate->has_returning ? PGRES_TUPLES_OK : PGRES_COMMAND_OK))
 		pgspiderfdw_report_error(ERROR, dmstate->result, dmstate->conn, true,
-						   dmstate->query);
+								 dmstate->query);
 
 	/* Get the number of rows affected. */
 	if (dmstate->has_returning)
@@ -4134,9 +4609,9 @@ execute_dml_stmt(ForeignScanState *node)
 static TupleTableSlot *
 get_returning_data(ForeignScanState *node)
 {
-	PgFdwDirectModifyState *dmstate = (PgFdwDirectModifyState *) node->fdw_state;
+	PGSpiderFdwDirectModifyState *dmstate = (PGSpiderFdwDirectModifyState *) node->fdw_state;
 	EState	   *estate = node->ss.ps.state;
-	ResultRelInfo *resultRelInfo = estate->es_result_relation_info;
+	ResultRelInfo *resultRelInfo = node->resultRelInfo;
 	TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
 	TupleTableSlot *resultSlot;
 
@@ -4191,7 +4666,7 @@ get_returning_data(ForeignScanState *node)
 		if (dmstate->rel)
 			resultSlot = slot;
 		else
-			resultSlot = apply_returning_filter(dmstate, slot, estate);
+			resultSlot = apply_returning_filter(dmstate, resultRelInfo, slot, estate);
 	}
 	dmstate->next_tuple++;
 
@@ -4206,7 +4681,7 @@ get_returning_data(ForeignScanState *node)
  * Initialize a filter to extract an updated/deleted tuple from a scan tuple.
  */
 static void
-init_returning_filter(PgFdwDirectModifyState *dmstate,
+init_returning_filter(PGSpiderFdwDirectModifyState * dmstate,
 					  List *fdw_scan_tlist,
 					  Index rtindex)
 {
@@ -4279,11 +4754,11 @@ init_returning_filter(PgFdwDirectModifyState *dmstate,
  * Extract and return an updated/deleted tuple from a scan tuple.
  */
 static TupleTableSlot *
-apply_returning_filter(PgFdwDirectModifyState *dmstate,
+apply_returning_filter(PGSpiderFdwDirectModifyState * dmstate,
+					   ResultRelInfo *resultRelInfo,
 					   TupleTableSlot *slot,
 					   EState *estate)
 {
-	ResultRelInfo *relInfo = estate->es_result_relation_info;
 	TupleDesc	resultTupType = RelationGetDescr(dmstate->resultRel);
 	TupleTableSlot *resultSlot;
 	Datum	   *values;
@@ -4295,7 +4770,7 @@ apply_returning_filter(PgFdwDirectModifyState *dmstate,
 	/*
 	 * Use the return tuple slot as a place to store the result tuple.
 	 */
-	resultSlot = ExecGetReturningSlot(estate, relInfo);
+	resultSlot = ExecGetReturningSlot(estate, resultRelInfo);
 
 	/*
 	 * Extract all the values of the scan tuple.
@@ -4490,7 +4965,7 @@ pgspiderAnalyzeForeignTable(Relation relation,
 	 */
 	table = GetForeignTable(RelationGetRelid(relation));
 	user = GetUserMapping(relation->rd_rel->relowner, table->serverid);
-	conn = PGSpiderGetConnection(user, false);
+	conn = PGSpiderGetConnection(user, false, NULL);
 
 	/*
 	 * Construct command to get page count for relation.
@@ -4501,7 +4976,7 @@ pgspiderAnalyzeForeignTable(Relation relation,
 	/* In what follows, do not risk leaking any PGresults. */
 	PG_TRY();
 	{
-		res = pgspiderfdw_exec_query(conn, sql.data);
+		res = pgspiderfdw_exec_query(conn, sql.data, NULL);
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
 			pgspiderfdw_report_error(ERROR, res, conn, false, sql.data);
 
@@ -4543,7 +5018,7 @@ pgspiderAcquireSampleRowsFunc(Relation relation, int elevel,
 							  double *totalrows,
 							  double *totaldeadrows)
 {
-	PgFdwAnalyzeState astate;
+	PGSpiderFdwAnalyzeState astate;
 	ForeignTable *table;
 	ForeignServer *server;
 	UserMapping *user;
@@ -4576,7 +5051,7 @@ pgspiderAcquireSampleRowsFunc(Relation relation, int elevel,
 	table = GetForeignTable(RelationGetRelid(relation));
 	server = GetForeignServer(table->serverid);
 	user = GetUserMapping(relation->rd_rel->relowner, table->serverid);
-	conn = PGSpiderGetConnection(user, false);
+	conn = PGSpiderGetConnection(user, false, NULL);
 
 	/*
 	 * Construct cursor that retrieves whole rows from remote.
@@ -4593,7 +5068,7 @@ pgspiderAcquireSampleRowsFunc(Relation relation, int elevel,
 		int			fetch_size;
 		ListCell   *lc;
 
-		res = pgspiderfdw_exec_query(conn, sql.data);
+		res = pgspiderfdw_exec_query(conn, sql.data, NULL);
 		if (PQresultStatus(res) != PGRES_COMMAND_OK)
 			pgspiderfdw_report_error(ERROR, res, conn, false, sql.data);
 		PQclear(res);
@@ -4645,7 +5120,7 @@ pgspiderAcquireSampleRowsFunc(Relation relation, int elevel,
 			 */
 
 			/* Fetch some rows */
-			res = pgspiderfdw_exec_query(conn, fetch_sql);
+			res = pgspiderfdw_exec_query(conn, fetch_sql, NULL);
 			/* On error, report the original query, not the FETCH. */
 			if (PQresultStatus(res) != PGRES_TUPLES_OK)
 				pgspiderfdw_report_error(ERROR, res, conn, false, sql.data);
@@ -4664,7 +5139,7 @@ pgspiderAcquireSampleRowsFunc(Relation relation, int elevel,
 		}
 
 		/* Close the cursor, just to be tidy. */
-		close_cursor(conn, cursor_number);
+		close_cursor(conn, cursor_number, NULL);
 	}
 	PG_CATCH();
 	{
@@ -4699,7 +5174,7 @@ pgspiderAcquireSampleRowsFunc(Relation relation, int elevel,
  *	 - Subsequently, replace already-sampled tuples randomly.
  */
 static void
-analyze_row_processor(PGresult *res, int row, PgFdwAnalyzeState *astate)
+analyze_row_processor(PGresult *res, int row, PGSpiderFdwAnalyzeState * astate)
 {
 	int			targrows = astate->targrows;
 	int			pos;			/* array index to store tuple in */
@@ -4804,7 +5279,7 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 	 */
 	server = GetForeignServer(serverOid);
 	mapping = GetUserMapping(GetUserId(), server->serverid);
-	conn = PGSpiderGetConnection(mapping, false);
+	conn = PGSpiderGetConnection(mapping, false, NULL);
 
 	/* Don't attempt to import collation if remote server hasn't got it */
 	if (PQserverVersion(conn) < 90100)
@@ -4820,7 +5295,7 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 		appendStringInfoString(&buf, "SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname = ");
 		PGSpiderDeparseStringLiteral(&buf, stmt->remote_schema);
 
-		res = pgspiderfdw_exec_query(conn, buf.data);
+		res = pgspiderfdw_exec_query(conn, buf.data, NULL);
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
 			pgspiderfdw_report_error(ERROR, res, conn, false, buf.data);
 
@@ -4842,9 +5317,11 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 		 * should save a few cycles to not process excluded tables in the
 		 * first place.)
 		 *
-		 * Ignore table data for partitions and only include the definitions
-		 * of the root partitioned tables to allow access to the complete
-		 * remote data set locally in the schema imported.
+		 * Import table data for partitions only when they are explicitly
+		 * specified in LIMIT TO clause. Otherwise ignore them and only
+		 * include the definitions of the root partitioned tables to allow
+		 * access to the complete remote data set locally in the schema
+		 * imported.
 		 *
 		 * Note: because we run the connection with search_path restricted to
 		 * pg_catalog, the format_type() and pg_get_expr() outputs will always
@@ -4900,7 +5377,8 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 		PGSpiderDeparseStringLiteral(&buf, stmt->remote_schema);
 
 		/* Partitions are supported since Postgres 10 */
-		if (PQserverVersion(conn) >= 100000)
+		if (PQserverVersion(conn) >= 100000 &&
+			stmt->list_type != FDW_IMPORT_SCHEMA_LIMIT_TO)
 			appendStringInfoString(&buf, " AND NOT c.relispartition ");
 
 		/* Apply restrictions for LIMIT TO and EXCEPT */
@@ -4932,7 +5410,7 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 		appendStringInfoString(&buf, " ORDER BY c.relname, a.attnum");
 
 		/* Fetch the data */
-		res = pgspiderfdw_exec_query(conn, buf.data);
+		res = pgspiderfdw_exec_query(conn, buf.data, NULL);
 		if (PQresultStatus(res) != PGRES_TUPLES_OK)
 			pgspiderfdw_report_error(ERROR, res, conn, false, buf.data);
 
@@ -5111,7 +5589,7 @@ foreign_join_ok(PlannerInfo *root, RelOptInfo *joinrel, JoinType jointype,
 	{
 		RestrictInfo *rinfo = lfirst_node(RestrictInfo, lc);
 		bool		is_remote_clause = pgspider_is_foreign_expr(root, joinrel,
-													   rinfo->clause);
+																rinfo->clause);
 
 		if (IS_OUTER_JOIN(jointype) &&
 			!RINFO_IS_PUSHED_DOWN(rinfo, joinrel->relids))
@@ -5373,7 +5851,7 @@ add_paths_with_pathkeys_for_rel(PlannerInfo *root, RelOptInfo *rel,
  * New options might also require tweaking merge_fdw_options().
  */
 static void
-apply_server_options(PGSpiderFdwRelationInfo *fpinfo)
+apply_server_options(PGSpiderFdwRelationInfo * fpinfo)
 {
 	ListCell   *lc;
 
@@ -5392,6 +5870,8 @@ apply_server_options(PGSpiderFdwRelationInfo *fpinfo)
 				PGSpiderExtractExtensionList(defGetString(def), false);
 		else if (strcmp(def->defname, "fetch_size") == 0)
 			fpinfo->fetch_size = strtol(defGetString(def), NULL, 10);
+		else if (strcmp(def->defname, "async_capable") == 0)
+			fpinfo->async_capable = defGetBoolean(def);
 	}
 }
 
@@ -5401,7 +5881,7 @@ apply_server_options(PGSpiderFdwRelationInfo *fpinfo)
  * New options might also require tweaking merge_fdw_options().
  */
 static void
-apply_table_options(PGSpiderFdwRelationInfo *fpinfo)
+apply_table_options(PGSpiderFdwRelationInfo * fpinfo)
 {
 	ListCell   *lc;
 
@@ -5413,6 +5893,8 @@ apply_table_options(PGSpiderFdwRelationInfo *fpinfo)
 			fpinfo->use_remote_estimate = defGetBoolean(def);
 		else if (strcmp(def->defname, "fetch_size") == 0)
 			fpinfo->fetch_size = strtol(defGetString(def), NULL, 10);
+		else if (strcmp(def->defname, "async_capable") == 0)
+			fpinfo->async_capable = defGetBoolean(def);
 	}
 }
 
@@ -5426,9 +5908,9 @@ apply_table_options(PGSpiderFdwRelationInfo *fpinfo)
  * expected to NULL.
  */
 static void
-merge_fdw_options(PGSpiderFdwRelationInfo *fpinfo,
-				  const PGSpiderFdwRelationInfo *fpinfo_o,
-				  const PGSpiderFdwRelationInfo *fpinfo_i)
+merge_fdw_options(PGSpiderFdwRelationInfo * fpinfo,
+				  const PGSpiderFdwRelationInfo * fpinfo_o,
+				  const PGSpiderFdwRelationInfo * fpinfo_i)
 {
 	/* We must always have fpinfo_o. */
 	Assert(fpinfo_o);
@@ -5447,6 +5929,7 @@ merge_fdw_options(PGSpiderFdwRelationInfo *fpinfo,
 	fpinfo->shippable_extensions = fpinfo_o->shippable_extensions;
 	fpinfo->use_remote_estimate = fpinfo_o->use_remote_estimate;
 	fpinfo->fetch_size = fpinfo_o->fetch_size;
+	fpinfo->async_capable = fpinfo_o->async_capable;
 
 	/* Merge the table level options from either side of the join. */
 	if (fpinfo_i)
@@ -5468,6 +5951,16 @@ merge_fdw_options(PGSpiderFdwRelationInfo *fpinfo,
 		 * relation sizes.
 		 */
 		fpinfo->fetch_size = Max(fpinfo_o->fetch_size, fpinfo_i->fetch_size);
+
+		/*
+		 * We'll prefer to consider this join async-capable if any table from
+		 * either side of the join is considered async-capable.  This would be
+		 * reasonable because in that case the foreign server would have its
+		 * own resources to scan that table asynchronously, and the join could
+		 * also be computed asynchronously using the resources.
+		 */
+		fpinfo->async_capable = fpinfo_o->async_capable ||
+			fpinfo_i->async_capable;
 	}
 }
 
@@ -5506,11 +5999,11 @@ pgspiderGetForeignJoinPaths(PlannerInfo *root,
 		return;
 
 	/*
-	 * Create unfinished PGSpiderFdwRelationInfo entry which is used to indicate
-	 * that the join relation is already considered, so that we won't waste
-	 * time in judging safety of join pushdown and adding the same paths again
-	 * if found safe. Once we know that this join can be pushed down, we fill
-	 * the entry.
+	 * Create unfinished PGSpiderFdwRelationInfo entry which is used to
+	 * indicate that the join relation is already considered, so that we won't
+	 * waste time in judging safety of join pushdown and adding the same paths
+	 * again if found safe. Once we know that this join can be pushed down, we
+	 * fill the entry.
 	 */
 	fpinfo = (PGSpiderFdwRelationInfo *) palloc0(sizeof(PGSpiderFdwRelationInfo));
 	fpinfo->pushdown_safe = false;
@@ -5718,8 +6211,8 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel,
 				/*
 				 * If any aggregate expression is not shippable, then we
 				 * cannot push down aggregation to the foreign server.  (We
-				 * don't have to check pgspider_is_foreign_param, since that certainly
-				 * won't return true for any such expression.)
+				 * don't have to check pgspider_is_foreign_param, since that
+				 * certainly won't return true for any such expression.)
 				 */
 				if (!pgspider_is_foreign_expr(root, grouped_rel, (Expr *) aggvars))
 					return false;
@@ -5765,7 +6258,8 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel,
 			 * RestrictInfos, so we must make our own.
 			 */
 			Assert(!IsA(expr, RestrictInfo));
-			rinfo = make_restrictinfo(expr,
+			rinfo = make_restrictinfo(root,
+									  expr,
 									  true,
 									  false,
 									  false,
@@ -6004,7 +6498,7 @@ add_foreign_ordered_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	Query	   *parse = root->parse;
 	PGSpiderFdwRelationInfo *ifpinfo = input_rel->fdw_private;
 	PGSpiderFdwRelationInfo *fpinfo = ordered_rel->fdw_private;
-	PgFdwPathExtraData *fpextra;
+	PGSpiderFdwPathExtraData *fpextra;
 	double		rows;
 	int			width;
 	Cost		startup_cost;
@@ -6068,16 +6562,16 @@ add_foreign_ordered_paths(PlannerInfo *root, RelOptInfo *input_rel,
 		Expr	   *sort_expr;
 
 		/*
-		 * pgspider_is_foreign_expr would detect volatile expressions as well, but
-		 * checking ec_has_volatile here saves some cycles.
+		 * pgspider_is_foreign_expr would detect volatile expressions as well,
+		 * but checking ec_has_volatile here saves some cycles.
 		 */
 		if (pathkey_ec->ec_has_volatile)
 			return;
 
 		/* Get the sort expression for the pathkey_ec */
 		sort_expr = pgspider_find_em_expr_for_input_target(root,
-												  pathkey_ec,
-												  input_rel->reltarget);
+														   pathkey_ec,
+														   input_rel->reltarget);
 
 		/* If it's unsafe to remote, we cannot push down the final sort */
 		if (!pgspider_is_foreign_expr(root, input_rel, sort_expr))
@@ -6087,8 +6581,8 @@ add_foreign_ordered_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	/* Safe to push down */
 	fpinfo->pushdown_safe = true;
 
-	/* Construct PgFdwPathExtraData */
-	fpextra = (PgFdwPathExtraData *) palloc0(sizeof(PgFdwPathExtraData));
+	/* Construct PGSpiderFdwPathExtraData */
+	fpextra = (PGSpiderFdwPathExtraData *) palloc0(sizeof(PGSpiderFdwPathExtraData));
 	fpextra->target = root->upper_targets[UPPERREL_ORDERED];
 	fpextra->has_final_sort = true;
 
@@ -6134,7 +6628,7 @@ add_foreign_final_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	PGSpiderFdwRelationInfo *fpinfo = (PGSpiderFdwRelationInfo *) final_rel->fdw_private;
 	bool		has_final_sort = false;
 	List	   *pathkeys = NIL;
-	PgFdwPathExtraData *fpextra;
+	PGSpiderFdwPathExtraData *fpextra;
 	bool		save_use_remote_estimate = false;
 	double		rows;
 	int			width;
@@ -6299,8 +6793,8 @@ add_foreign_final_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	/* Safe to push down */
 	fpinfo->pushdown_safe = true;
 
-	/* Construct PgFdwPathExtraData */
-	fpextra = (PgFdwPathExtraData *) palloc0(sizeof(PgFdwPathExtraData));
+	/* Construct PGSpiderFdwPathExtraData */
+	fpextra = (PGSpiderFdwPathExtraData *) palloc0(sizeof(PGSpiderFdwPathExtraData));
 	fpextra->target = root->upper_targets[UPPERREL_FINAL];
 	fpextra->has_final_sort = has_final_sort;
 	fpextra->has_limit = extra->limit_needed;
@@ -6350,6 +6844,244 @@ add_foreign_final_paths(PlannerInfo *root, RelOptInfo *input_rel,
 
 	/* and add it to the final_rel */
 	add_path(final_rel, (Path *) final_path);
+}
+
+/*
+ * pgspiderIsForeignPathAsyncCapable
+ *		Check whether a given ForeignPath node is async-capable.
+ */
+static bool
+pgspiderIsForeignPathAsyncCapable(ForeignPath *path)
+{
+	RelOptInfo *rel = ((Path *) path)->parent;
+	PGSpiderFdwRelationInfo *fpinfo = (PGSpiderFdwRelationInfo *) rel->fdw_private;
+
+	return fpinfo->async_capable;
+}
+
+/*
+ * pgspiderForeignAsyncRequest
+ *		Asynchronously request next tuple from a foreign PGSpider table.
+ */
+static void
+pgspiderForeignAsyncRequest(AsyncRequest *areq)
+{
+	produce_tuple_asynchronously(areq, true);
+}
+
+/*
+ * pgspiderForeignAsyncConfigureWait
+ *		Configure a file descriptor event for which we wish to wait.
+ */
+static void
+pgspiderForeignAsyncConfigureWait(AsyncRequest *areq)
+{
+	ForeignScanState *node = (ForeignScanState *) areq->requestee;
+	PGSpiderFdwScanState *fsstate = (PGSpiderFdwScanState *) node->fdw_state;
+	AsyncRequest *pendingAreq = fsstate->conn_state->pendingAreq;
+	AppendState *requestor = (AppendState *) areq->requestor;
+	WaitEventSet *set = requestor->as_eventset;
+
+	/* This should not be called unless callback_pending */
+	Assert(areq->callback_pending);
+
+	/* The core code would have registered postmaster death event */
+	Assert(GetNumRegisteredWaitEvents(set) >= 1);
+
+	/* Begin an asynchronous data fetch if not already done */
+	if (!pendingAreq)
+		fetch_more_data_begin(areq);
+	else if (pendingAreq->requestor != areq->requestor)
+	{
+		/*
+		 * This is the case when the in-process request was made by another
+		 * Append.  Note that it might be useless to process the request,
+		 * because the query might not need tuples from that Append anymore.
+		 * Skip the given request if there are any configured events other
+		 * than the postmaster death event; otherwise process the request,
+		 * then begin a fetch to configure the event below, because otherwise
+		 * we might end up with no configured events other than the postmaster
+		 * death event.
+		 */
+		if (GetNumRegisteredWaitEvents(set) > 1)
+			return;
+		pgspider_process_pending_request(pendingAreq);
+		fetch_more_data_begin(areq);
+	}
+	else if (pendingAreq->requestee != areq->requestee)
+	{
+		/*
+		 * This is the case when the in-process request was made by the same
+		 * parent but for a different child.  Since we configure only the
+		 * event for the request made for that child, skip the given request.
+		 */
+		return;
+	}
+	else
+		Assert(pendingAreq == areq);
+
+	AddWaitEventToSet(set, WL_SOCKET_READABLE, PQsocket(fsstate->conn),
+					  NULL, areq);
+}
+
+/*
+ * pgspiderForeignAsyncNotify
+ *		Fetch some more tuples from a file descriptor that becomes ready,
+ *		requesting next tuple.
+ */
+static void
+pgspiderForeignAsyncNotify(AsyncRequest *areq)
+{
+	ForeignScanState *node = (ForeignScanState *) areq->requestee;
+	PGSpiderFdwScanState *fsstate = (PGSpiderFdwScanState *) node->fdw_state;
+
+	/* The request should be currently in-process */
+	Assert(fsstate->conn_state->pendingAreq == areq);
+
+	/* The core code would have initialized the callback_pending flag */
+	Assert(!areq->callback_pending);
+
+	/* On error, report the original query, not the FETCH. */
+	if (!PQconsumeInput(fsstate->conn))
+		pgspiderfdw_report_error(ERROR, NULL, fsstate->conn, false, fsstate->query);
+
+	fetch_more_data(node);
+
+	produce_tuple_asynchronously(areq, true);
+}
+
+/*
+ * Asynchronously produce next tuple from a foreign PGSpider table.
+ */
+static void
+produce_tuple_asynchronously(AsyncRequest *areq, bool fetch)
+{
+	ForeignScanState *node = (ForeignScanState *) areq->requestee;
+	PGSpiderFdwScanState *fsstate = (PGSpiderFdwScanState *) node->fdw_state;
+	AsyncRequest *pendingAreq = fsstate->conn_state->pendingAreq;
+	TupleTableSlot *result;
+
+	/* This should not be called if the request is currently in-process */
+	Assert(areq != pendingAreq);
+
+	/* Fetch some more tuples, if we've run out */
+	if (fsstate->next_tuple >= fsstate->num_tuples)
+	{
+		/* No point in another fetch if we already detected EOF, though */
+		if (!fsstate->eof_reached)
+		{
+			/* Mark the request as pending for a callback */
+			ExecAsyncRequestPending(areq);
+			/* Begin another fetch if requested and if no pending request */
+			if (fetch && !pendingAreq)
+				fetch_more_data_begin(areq);
+		}
+		else
+		{
+			/* There's nothing more to do; just return a NULL pointer */
+			result = NULL;
+			/* Mark the request as complete */
+			ExecAsyncRequestDone(areq, result);
+		}
+		return;
+	}
+
+	/* Get a tuple from the ForeignScan node */
+	result = areq->requestee->ExecProcNodeReal(areq->requestee);
+	if (!TupIsNull(result))
+	{
+		/* Mark the request as complete */
+		ExecAsyncRequestDone(areq, result);
+		return;
+	}
+	Assert(fsstate->next_tuple >= fsstate->num_tuples);
+
+	/* Fetch some more tuples, if we've not detected EOF yet */
+	if (!fsstate->eof_reached)
+	{
+		/* Mark the request as pending for a callback */
+		ExecAsyncRequestPending(areq);
+		/* Begin another fetch if requested and if no pending request */
+		if (fetch && !pendingAreq)
+			fetch_more_data_begin(areq);
+	}
+	else
+	{
+		/* There's nothing more to do; just return a NULL pointer */
+		result = NULL;
+		/* Mark the request as complete */
+		ExecAsyncRequestDone(areq, result);
+	}
+}
+
+/*
+ * Begin an asynchronous data fetch.
+ *
+ * Note: this function assumes there is no currently-in-progress asynchronous
+ * data fetch.
+ *
+ * Note: fetch_more_data must be called to fetch the result.
+ */
+static void
+fetch_more_data_begin(AsyncRequest *areq)
+{
+	ForeignScanState *node = (ForeignScanState *) areq->requestee;
+	PGSpiderFdwScanState *fsstate = (PGSpiderFdwScanState *) node->fdw_state;
+	char		sql[64];
+
+	Assert(!fsstate->conn_state->pendingAreq);
+
+	/* Create the cursor synchronously. */
+	if (!fsstate->cursor_exists)
+		create_cursor(node);
+
+	/* We will send this query, but not wait for the response. */
+	snprintf(sql, sizeof(sql), "FETCH %d FROM c%u",
+			 fsstate->fetch_size, fsstate->cursor_number);
+
+	if (PQsendQuery(fsstate->conn, sql) < 0)
+		pgspiderfdw_report_error(ERROR, NULL, fsstate->conn, false, fsstate->query);
+
+	/* Remember that the request is in process */
+	fsstate->conn_state->pendingAreq = areq;
+}
+
+/*
+ * Process a pending asynchronous request.
+ */
+void
+pgspider_process_pending_request(AsyncRequest *areq)
+{
+	ForeignScanState *node = (ForeignScanState *) areq->requestee;
+	PGSpiderFdwScanState *fsstate PG_USED_FOR_ASSERTS_ONLY = (PGSpiderFdwScanState *) node->fdw_state;
+	EState	   *estate = node->ss.ps.state;
+	MemoryContext oldcontext;
+
+	/* The request should be currently in-process */
+	Assert(fsstate->conn_state->pendingAreq == areq);
+
+	oldcontext = MemoryContextSwitchTo(estate->es_query_cxt);
+
+	/* The request would have been pending for a callback */
+	Assert(areq->callback_pending);
+
+	/* Unlike AsyncNotify, we unset callback_pending ourselves */
+	areq->callback_pending = false;
+
+	fetch_more_data(node);
+
+	/* We need to send a new query afterwards; don't fetch */
+	produce_tuple_asynchronously(areq, false);
+
+	/* Unlike AsyncNotify, we call ExecAsyncResponse ourselves */
+	ExecAsyncResponse(areq);
+
+	/* Also, we do instrumentation ourselves, if required */
+	if (areq->requestee->instrument)
+		InstrUpdateTupleCount(areq->requestee->instrument,
+							  TupIsNull(areq->result) ? 0.0 : 1.0);
+
+	MemoryContextSwitchTo(oldcontext);
 }
 
 /*
@@ -6580,8 +7312,8 @@ conversion_error_callback(void *arg)
  */
 Expr *
 pgspider_find_em_expr_for_input_target(PlannerInfo *root,
-							  EquivalenceClass *ec,
-							  PathTarget *target)
+									   EquivalenceClass *ec,
+									   PathTarget *target)
 {
 	ListCell   *lc1;
 	int			i;
@@ -6770,4 +7502,43 @@ path_value_out(PG_FUNCTION_ARGS)
 	else
 		result = psprintf("'%s', %s", escape_single_quote(path), escape_single_quote(value));
 	PG_RETURN_CSTRING(result);
+}
+/*
+ * Determine batch size for a given foreign table. The option specified for
+ * a table has precedence.
+ */
+static int
+get_batch_size_option(Relation rel)
+{
+	Oid			foreigntableid = RelationGetRelid(rel);
+	ForeignTable *table;
+	ForeignServer *server;
+	List	   *options;
+	ListCell   *lc;
+
+	/* we use 1 by default, which means "no batching" */
+	int			batch_size = 1;
+
+	/*
+	 * Load options for table and server. We append server options after table
+	 * options, because table options take precedence.
+	 */
+	table = GetForeignTable(foreigntableid);
+	server = GetForeignServer(table->serverid);
+
+	options = NIL;
+	options = list_concat(options, table->options);
+	options = list_concat(options, server->options);
+
+	/* See if either table or server specifies batch_size. */
+	foreach(lc, options)
+	{
+		DefElem    *def = (DefElem *) lfirst(lc);
+
+		if (strcmp(def->defname, "batch_size") == 0)
+		{
+			batch_size = strtol(defGetString(def), NULL, 10);
+		}
+	}
+	return batch_size;
 }

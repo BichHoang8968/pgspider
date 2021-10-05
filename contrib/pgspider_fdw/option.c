@@ -3,7 +3,7 @@
  * option.c
  *		  FDW option handling for pgspider_fdw
  *
- * Portions Copyright (c) 2012-2020, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2012-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  contrib/pgspider_fdw/option.c
@@ -39,7 +39,7 @@ pthread_mutex_t pgspider_fdw_mutex = PTHREAD_MUTEX_INITIALIZER;
  * Valid options for pgspider_fdw.
  * Allocated and filled in InitPgFdwOptions.
  */
-static PgFdwOption * pgspider_fdw_options;
+static PgFdwOption *pgspider_fdw_options;
 
 /*
  * Valid options for libpq.
@@ -58,7 +58,7 @@ static bool is_libpq_option(const char *keyword);
 
 /*
  * Validate the generic options given to a FOREIGN DATA WRAPPER, SERVER,
- * USER MAPPING or FOREIGN TABLE that uses postgres_fdw.
+ * USER MAPPING or FOREIGN TABLE that uses pgspider_fdw.
  *
  * Raise an ERROR if the option or its value is considered invalid.
  */
@@ -112,7 +112,10 @@ pgspider_fdw_validator(PG_FUNCTION_ARGS)
 		 * Validate option value, when we can do so without any context.
 		 */
 		if (strcmp(def->defname, "use_remote_estimate") == 0 ||
-			strcmp(def->defname, "updatable") == 0)
+			strcmp(def->defname, "updatable") == 0 ||
+			strcmp(def->defname, "truncatable") == 0 ||
+			strcmp(def->defname, "async_capable") == 0 ||
+			strcmp(def->defname, "keep_connections") == 0)
 		{
 			/* these accept only boolean values */
 			(void) defGetBoolean(def);
@@ -142,6 +145,17 @@ pgspider_fdw_validator(PG_FUNCTION_ARGS)
 
 			fetch_size = strtol(defGetString(def), NULL, 10);
 			if (fetch_size <= 0)
+				ereport(ERROR,
+						(errcode(ERRCODE_SYNTAX_ERROR),
+						 errmsg("%s requires a non-negative integer value",
+								def->defname)));
+		}
+		else if (strcmp(def->defname, "batch_size") == 0)
+		{
+			int			batch_size;
+
+			batch_size = strtol(defGetString(def), NULL, 10);
+			if (batch_size <= 0)
 				ereport(ERROR,
 						(errcode(ERRCODE_SYNTAX_ERROR),
 						 errmsg("%s requires a non-negative integer value",
@@ -205,9 +219,19 @@ InitPgFdwOptions(void)
 		/* updatable is available on both server and table */
 		{"updatable", ForeignServerRelationId, false},
 		{"updatable", ForeignTableRelationId, false},
+		/* truncatable is available on both server and table */
+		{"truncatable", ForeignServerRelationId, false},
+		{"truncatable", ForeignTableRelationId, false},
 		/* fetch_size is available on both server and table */
 		{"fetch_size", ForeignServerRelationId, false},
 		{"fetch_size", ForeignTableRelationId, false},
+		/* batch_size is available on both server and table */
+		{"batch_size", ForeignServerRelationId, false},
+		{"batch_size", ForeignTableRelationId, false},
+		/* async_capable is available on both server and table */
+		{"async_capable", ForeignServerRelationId, false},
+		{"async_capable", ForeignTableRelationId, false},
+		{"keep_connections", ForeignServerRelationId, false},
 		{"password_required", UserMappingRelationId, false},
 
 		/*
@@ -335,8 +359,8 @@ is_libpq_option(const char *keyword)
  * allocated large-enough arrays.  Returns number of options found.
  */
 int
-PGSpiderExtractConnectionOptions(List * defelems, const char **keywords,
-						 const char **values)
+PGSpiderExtractConnectionOptions(List *defelems, const char **keywords,
+								 const char **values)
 {
 	ListCell   *lc;
 	int			i;

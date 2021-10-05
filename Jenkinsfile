@@ -2,17 +2,16 @@ def NODE_NAME = 'AWS_Instance_CentOS'
 def MAIL_TO = '$DEFAULT_RECIPIENTS'
 def BRANCH_NAME = 'Branch [' + env.BRANCH_NAME + ']'
 def BUILD_INFO = 'Jenkins job: ' + env.BUILD_URL + '\n'
-
-def PGSPIDER_DOCKER_PATH = '/home/jenkins/Docker/Server/PGSpider'
-def ENHANCE_TEST_DOCKER_PATH = '/home/jenkins/Docker'
+def PGSPIDER_DOCKER_PATH = '/home/tsdv/jenkins/Docker/Server/PGSpider'
+def ENHANCE_TEST_DOCKER_PATH = '/home/tsdv/jenkins/Docker'
 
 def BRANCH_PGSPIDER = env.BRANCH_NAME
-def BRANCH_TINYBRACE_FDW = 'master'
-def BRANCH_MYSQL_FDW = 'master'
-def BRANCH_SQLITE_FDW = 'unimplemented_21A'
-def BRANCH_GRIDDB_FDW = 'master'
-def BRANCH_INFLUXDB_FDW = 'master'
-def BRANCH_PARQUET_S3_FDW = 'master'
+def BRANCH_TINYBRACE_FDW = 'port14beta2'
+def BRANCH_MYSQL_FDW = 'port14beta2'
+def BRANCH_SQLITE_FDW = 'port14beta2'
+def BRANCH_GRIDDB_FDW = 'port14beta2'
+def BRANCH_INFLUXDB_FDW = 'port14beta2'
+def BRANCH_PARQUET_S3_FDW = 'port14beta2'
 
 pipeline {
     agent {
@@ -108,7 +107,7 @@ pipeline {
                 }
             }
         }
-     stage('pgspider_fdw') {
+        stage('pgspider_fdw') {
             steps {
                 catchError() {
                     sh """
@@ -153,7 +152,7 @@ pipeline {
                     }
                 }
             }
-        } 
+        }
         stage('pgspider_core_fdw.sql') {
             steps {
                 catchError() {
@@ -268,7 +267,7 @@ pipeline {
                 }
             }
         }
-         /* stage('Start_containers_Enhance_Test') {
+        /*stage('Start_containers_Enhance_Test') {
             steps {
                 catchError() {
                     sh """
@@ -361,7 +360,7 @@ pipeline {
                     updateGitlabCommitStatus name: 'Build', state: 'success'
                 }
             }
-        } */
+        }*/
     }
     post {
         success {

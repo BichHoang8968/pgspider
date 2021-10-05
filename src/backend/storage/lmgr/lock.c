@@ -3,7 +3,7 @@
  * lock.c
  *	  POSTGRES primary lock mechanism
  *
- * Portions Copyright (c) 1996-2020, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -423,7 +423,6 @@ InitLocks(void)
 	 * Allocate hash table for LOCK structs.  This stores per-locked-object
 	 * information.
 	 */
-	MemSet(&info, 0, sizeof(info));
 	info.keysize = sizeof(LOCKTAG);
 	info.entrysize = sizeof(LOCK);
 	info.num_partitions = NUM_LOCK_PARTITIONS;
@@ -1175,13 +1174,14 @@ LockAcquireExtended(const LOCKTAG *locktag,
 					LOCALLOCK **locallockp)
 {
 	LockAcquireResult ret;
+
 	SPD_LOCK_TRY(&lock_mutex);
 	ret = LockAcquireExtendedOrg(locktag,
-					lockmode,
-					sessionLock,
-					dontWait,
-					reportMemoryError,
-					locallockp);
+								 lockmode,
+								 sessionLock,
+								 dontWait,
+								 reportMemoryError,
+								 locallockp);
 	SPD_UNLOCK_CATCH(&lock_mutex);
 	return ret;
 }
@@ -1682,6 +1682,7 @@ CleanUpLock(LOCK *lock, PROCLOCK *proclock,
 #ifdef PGSPIDER
 	SPD_LOCK_TRY(&lock_mutex);
 #endif
+
 	/*
 	 * If this was my last hold on this lock, delete my entry in the proclock
 	 * table.
@@ -1919,7 +1920,7 @@ WaitOnLock(LOCALLOCK *locallock, ResourceOwner owner)
 	 */
 	PG_TRY();
 	{
-		if (ProcSleep(locallock, lockMethodTable) != STATUS_OK)
+		if (ProcSleep(locallock, lockMethodTable) != PROC_WAIT_STATUS_OK)
 		{
 			/*
 			 * We failed as a result of a deadlock, see CheckDeadLock(). Quit
@@ -1970,7 +1971,7 @@ WaitOnLock(LOCALLOCK *locallock, ResourceOwner owner)
 /*
  * Remove a proc from the wait-queue it is on (caller must know it is on one).
  * This is only used when the proc has failed to get the lock, so we set its
- * waitStatus to STATUS_ERROR.
+ * waitStatus to PROC_WAIT_STATUS_ERROR.
  *
  * Appropriate partition lock must be held by caller.  Also, caller is
  * responsible for signaling the proc if needed.
@@ -1986,7 +1987,7 @@ RemoveFromWaitQueue(PGPROC *proc, uint32 hashcode)
 	LOCKMETHODID lockmethodid = LOCK_LOCKMETHOD(*waitLock);
 
 	/* Make sure proc is waiting */
-	Assert(proc->waitStatus == STATUS_WAITING);
+	Assert(proc->waitStatus == PROC_WAIT_STATUS_WAITING);
 	Assert(proc->links.next != NULL);
 	Assert(waitLock);
 	Assert(waitLock->waitProcs.size > 0);
@@ -2009,7 +2010,7 @@ RemoveFromWaitQueue(PGPROC *proc, uint32 hashcode)
 	/* Clean up the proc's own state, and pass it the ok/fail signal */
 	proc->waitLock = NULL;
 	proc->waitProcLock = NULL;
-	proc->waitStatus = STATUS_ERROR;
+	proc->waitStatus = PROC_WAIT_STATUS_ERROR;
 
 	/*
 	 * Delete the proclock immediately if it represents no already-held locks.
@@ -2240,7 +2241,8 @@ LockRelease(const LOCKTAG *locktag, LOCKMODE lockmode, bool sessionLock)
 bool
 LockRelease(const LOCKTAG *locktag, LOCKMODE lockmode, bool sessionLock)
 {
-	bool ret;
+	bool		ret;
+
 	SPD_LOCK_TRY(&lock_mutex);
 	ret = LockReleaseOrg(locktag, lockmode, sessionLock);
 	SPD_UNLOCK_CATCH(&lock_mutex);
@@ -2984,9 +2986,7 @@ FastPathGetRelationLockEntry(LOCALLOCK *locallock)
  * so use of this function has to be thought about carefully.
  *
  * Note we never include the current xact's vxid in the result array,
- * since an xact never blocks itself.  Also, prepared transactions are
- * ignored, which is a bit more debatable but is appropriate for current
- * uses of the result.
+ * since an xact never blocks itself.
  */
 VirtualTransactionId *
 GetLockConflicts(const LOCKTAG *locktag, LOCKMODE lockmode, int *countp)
@@ -3011,19 +3011,21 @@ GetLockConflicts(const LOCKTAG *locktag, LOCKMODE lockmode, int *countp)
 
 	/*
 	 * Allocate memory to store results, and fill with InvalidVXID.  We only
-	 * need enough space for MaxBackends + a terminator, since prepared xacts
-	 * don't count. InHotStandby allocate once in TopMemoryContext.
+	 * need enough space for MaxBackends + max_prepared_xacts + a terminator.
+	 * InHotStandby allocate once in TopMemoryContext.
 	 */
 	if (InHotStandby)
 	{
 		if (vxids == NULL)
 			vxids = (VirtualTransactionId *)
 				MemoryContextAlloc(TopMemoryContext,
-								   sizeof(VirtualTransactionId) * (MaxBackends + 1));
+								   sizeof(VirtualTransactionId) *
+								   (MaxBackends + max_prepared_xacts + 1));
 	}
 	else
 		vxids = (VirtualTransactionId *)
-			palloc0(sizeof(VirtualTransactionId) * (MaxBackends + 1));
+			palloc0(sizeof(VirtualTransactionId) *
+					(MaxBackends + max_prepared_xacts + 1));
 
 	/* Compute hash code and partition lock, and look up conflicting modes. */
 	hashcode = LockTagHashCode(locktag);
@@ -3098,13 +3100,9 @@ GetLockConflicts(const LOCKTAG *locktag, LOCKMODE lockmode, int *countp)
 				/* Conflict! */
 				GET_VXID_FROM_PGPROC(vxid, *proc);
 
-				/*
-				 * If we see an invalid VXID, then either the xact has already
-				 * committed (or aborted), or it's a prepared xact.  In either
-				 * case we may ignore it.
-				 */
 				if (VirtualTransactionIdIsValid(vxid))
 					vxids[count++] = vxid;
+				/* else, xact already committed or aborted */
 
 				/* No need to examine remaining slots. */
 				break;
@@ -3163,11 +3161,6 @@ GetLockConflicts(const LOCKTAG *locktag, LOCKMODE lockmode, int *countp)
 
 				GET_VXID_FROM_PGPROC(vxid, *proc);
 
-				/*
-				 * If we see an invalid VXID, then either the xact has already
-				 * committed (or aborted), or it's a prepared xact.  In either
-				 * case we may ignore it.
-				 */
 				if (VirtualTransactionIdIsValid(vxid))
 				{
 					int			i;
@@ -3179,6 +3172,7 @@ GetLockConflicts(const LOCKTAG *locktag, LOCKMODE lockmode, int *countp)
 					if (i >= fast_count)
 						vxids[count++] = vxid;
 				}
+				/* else, xact already committed or aborted */
 			}
 		}
 
@@ -3188,7 +3182,7 @@ GetLockConflicts(const LOCKTAG *locktag, LOCKMODE lockmode, int *countp)
 
 	LWLockRelease(partitionLock);
 
-	if (count > MaxBackends)	/* should never happen */
+	if (count > MaxBackends + max_prepared_xacts)	/* should never happen */
 		elog(PANIC, "too many conflicting locks found");
 
 	vxids[count].backendId = InvalidBackendId;
@@ -3708,6 +3702,12 @@ GetLockStatusData(void)
 			instance->leaderPid = proc->pid;
 			instance->fastpath = true;
 
+			/*
+			 * Successfully taking fast path lock means there were no
+			 * conflicting locks.
+			 */
+			instance->waitStart = 0;
+
 			el++;
 		}
 
@@ -3735,6 +3735,7 @@ GetLockStatusData(void)
 			instance->pid = proc->pid;
 			instance->leaderPid = proc->pid;
 			instance->fastpath = true;
+			instance->waitStart = 0;
 
 			el++;
 		}
@@ -3787,6 +3788,7 @@ GetLockStatusData(void)
 		instance->pid = proc->pid;
 		instance->leaderPid = proclock->groupLeader->pid;
 		instance->fastpath = false;
+		instance->waitStart = (TimestampTz) pg_atomic_read_u64(&proc->waitStart);
 
 		el++;
 	}
@@ -4054,9 +4056,8 @@ GetRunningTransactionLocks(int *nlocks)
 			proclock->tag.myLock->tag.locktag_type == LOCKTAG_RELATION)
 		{
 			PGPROC	   *proc = proclock->tag.myProc;
-			PGXACT	   *pgxact = &ProcGlobal->allPgXact[proc->pgprocno];
 			LOCK	   *lock = proclock->tag.myLock;
-			TransactionId xid = pgxact->xid;
+			TransactionId xid = proc->xid;
 
 			/*
 			 * Don't record locks for transactions if we know they have
@@ -4545,6 +4546,21 @@ VirtualXactLock(VirtualTransactionId vxid, bool wait)
 	PGPROC	   *proc;
 
 	Assert(VirtualTransactionIdIsValid(vxid));
+
+	if (VirtualTransactionIdIsPreparedXact(vxid))
+	{
+		LockAcquireResult lar;
+
+		/*
+		 * Prepared transactions don't hold vxid locks.  The
+		 * LocalTransactionId is always a normal, locked XID.
+		 */
+		SET_LOCKTAG_TRANSACTION(tag, vxid.localTransactionId);
+		lar = LockAcquire(&tag, ShareLock, false, !wait);
+		if (lar != LOCKACQUIRE_NOT_AVAIL)
+			LockRelease(&tag, ShareLock, false);
+		return lar != LOCKACQUIRE_NOT_AVAIL;
+	}
 
 	SET_LOCKTAG_VIRTUALTRANSACTION(tag, vxid);
 

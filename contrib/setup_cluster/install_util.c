@@ -43,7 +43,7 @@ create_connection(PGconn **conn, nodes * node)
 		);
 	if (PQstatus(*conn) == CONNECTION_BAD)
 	{
-	    ERROR( "Error:%s\n", PQerrorMessage(*conn));
+		ERROR("Error:%s\n", PQerrorMessage(*conn));
 		exit(1);
 	}
 }
@@ -82,7 +82,7 @@ query_execute(PGconn *conn, char *query)
 #endif
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
 	{
-	    ERROR("%s failed :%s\n", query, PQerrorMessage(conn));
+		ERROR("%s failed :%s\n", query, PQerrorMessage(conn));
 		exit_error(conn);
 	}
 }
