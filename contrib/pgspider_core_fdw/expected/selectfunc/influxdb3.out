@@ -1295,10 +1295,10 @@ EXPLAIN VERBOSE
 SELECT (spread_all(*)::s3).* from s3 ORDER BY 1;
                                                                                                                 QUERY PLAN                                                                                                                 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=15570.94..15570.95 rows=1 width=104)
+ Sort  (cost=5331.94..5331.95 rows=1 width=104)
    Output: (((spread_all(*))::s3)."time"), (((spread_all(*))::s3).tag1), (((spread_all(*))::s3).value1), (((spread_all(*))::s3).value2), (((spread_all(*))::s3).value3), (((spread_all(*))::s3).value4), (((spread_all(*))::s3).__spd_url)
    Sort Key: (((spread_all(*))::s3)."time")
-   ->  Aggregate  (cost=15570.89..15570.93 rows=1 width=104)
+   ->  Aggregate  (cost=5331.89..5331.93 rows=1 width=104)
          Output: ((spread_all(*))::s3)."time", ((spread_all(*))::s3).tag1, ((spread_all(*))::s3).value1, ((spread_all(*))::s3).value2, ((spread_all(*))::s3).value3, ((spread_all(*))::s3).value4, ((spread_all(*))::s3).__spd_url
          ->  Foreign Scan on public.s3  (cost=110.00..3625.39 rows=6826 width=0)
                Node: influxdb_svr / Status: Alive
@@ -1397,10 +1397,10 @@ EXPLAIN VERBOSE
 SELECT (spread('/value[1,4]/')::s3).* from s3 ORDER BY 1;
                                                                                                                                                                      QUERY PLAN                                                                                                                                                                     
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=15570.94..15570.95 rows=1 width=104)
+ Sort  (cost=5331.94..5331.95 rows=1 width=104)
    Output: (((spread('/value[1,4]/'::text))::s3)."time"), (((spread('/value[1,4]/'::text))::s3).tag1), (((spread('/value[1,4]/'::text))::s3).value1), (((spread('/value[1,4]/'::text))::s3).value2), (((spread('/value[1,4]/'::text))::s3).value3), (((spread('/value[1,4]/'::text))::s3).value4), (((spread('/value[1,4]/'::text))::s3).__spd_url)
    Sort Key: (((spread('/value[1,4]/'::text))::s3)."time")
-   ->  Aggregate  (cost=15570.89..15570.93 rows=1 width=104)
+   ->  Aggregate  (cost=5331.89..5331.93 rows=1 width=104)
          Output: ((spread('/value[1,4]/'::text))::s3)."time", ((spread('/value[1,4]/'::text))::s3).tag1, ((spread('/value[1,4]/'::text))::s3).value1, ((spread('/value[1,4]/'::text))::s3).value2, ((spread('/value[1,4]/'::text))::s3).value3, ((spread('/value[1,4]/'::text))::s3).value4, ((spread('/value[1,4]/'::text))::s3).__spd_url
          ->  Foreign Scan on public.s3  (cost=110.00..3625.39 rows=6826 width=0)
                Node: influxdb_svr / Status: Alive
@@ -1633,10 +1633,10 @@ EXPLAIN VERBOSE
 SELECT (first_all(*)::s3).* from s3 ORDER BY 1;
                                                                                                              QUERY PLAN                                                                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=15570.94..15570.95 rows=1 width=104)
+ Sort  (cost=5331.94..5331.95 rows=1 width=104)
    Output: (((first_all(*))::s3)."time"), (((first_all(*))::s3).tag1), (((first_all(*))::s3).value1), (((first_all(*))::s3).value2), (((first_all(*))::s3).value3), (((first_all(*))::s3).value4), (((first_all(*))::s3).__spd_url)
    Sort Key: (((first_all(*))::s3)."time")
-   ->  Aggregate  (cost=15570.89..15570.93 rows=1 width=104)
+   ->  Aggregate  (cost=5331.89..5331.93 rows=1 width=104)
          Output: ((first_all(*))::s3)."time", ((first_all(*))::s3).tag1, ((first_all(*))::s3).value1, ((first_all(*))::s3).value2, ((first_all(*))::s3).value3, ((first_all(*))::s3).value4, ((first_all(*))::s3).__spd_url
          ->  Foreign Scan on public.s3  (cost=110.00..3625.39 rows=6826 width=0)
                Node: influxdb_svr / Status: Alive
@@ -1737,10 +1737,10 @@ EXPLAIN VERBOSE
 SELECT (first('/value[1,4]/')::s3).* from s3 ORDER BY 1;
                                                                                                                                                                  QUERY PLAN                                                                                                                                                                  
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=15570.94..15570.95 rows=1 width=104)
+ Sort  (cost=5331.94..5331.95 rows=1 width=104)
    Output: (((first('/value[1,4]/'::text))::s3)."time"), (((first('/value[1,4]/'::text))::s3).tag1), (((first('/value[1,4]/'::text))::s3).value1), (((first('/value[1,4]/'::text))::s3).value2), (((first('/value[1,4]/'::text))::s3).value3), (((first('/value[1,4]/'::text))::s3).value4), (((first('/value[1,4]/'::text))::s3).__spd_url)
    Sort Key: (((first('/value[1,4]/'::text))::s3)."time")
-   ->  Aggregate  (cost=15570.89..15570.93 rows=1 width=104)
+   ->  Aggregate  (cost=5331.89..5331.93 rows=1 width=104)
          Output: ((first('/value[1,4]/'::text))::s3)."time", ((first('/value[1,4]/'::text))::s3).tag1, ((first('/value[1,4]/'::text))::s3).value1, ((first('/value[1,4]/'::text))::s3).value2, ((first('/value[1,4]/'::text))::s3).value3, ((first('/value[1,4]/'::text))::s3).value4, ((first('/value[1,4]/'::text))::s3).__spd_url
          ->  Foreign Scan on public.s3  (cost=110.00..3625.39 rows=6826 width=0)
                Node: influxdb_svr / Status: Alive
@@ -1846,10 +1846,10 @@ EXPLAIN VERBOSE
 SELECT (last_all(*)::s3).* from s3 ORDER BY 1;
                                                                                                          QUERY PLAN                                                                                                          
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=15570.94..15570.95 rows=1 width=104)
+ Sort  (cost=5331.94..5331.95 rows=1 width=104)
    Output: (((last_all(*))::s3)."time"), (((last_all(*))::s3).tag1), (((last_all(*))::s3).value1), (((last_all(*))::s3).value2), (((last_all(*))::s3).value3), (((last_all(*))::s3).value4), (((last_all(*))::s3).__spd_url)
    Sort Key: (((last_all(*))::s3)."time")
-   ->  Aggregate  (cost=15570.89..15570.93 rows=1 width=104)
+   ->  Aggregate  (cost=5331.89..5331.93 rows=1 width=104)
          Output: ((last_all(*))::s3)."time", ((last_all(*))::s3).tag1, ((last_all(*))::s3).value1, ((last_all(*))::s3).value2, ((last_all(*))::s3).value3, ((last_all(*))::s3).value4, ((last_all(*))::s3).__spd_url
          ->  Foreign Scan on public.s3  (cost=110.00..3625.39 rows=6826 width=0)
                Node: influxdb_svr / Status: Alive
@@ -1950,10 +1950,10 @@ EXPLAIN VERBOSE
 SELECT (last('/value[1,4]/')::s3).* from s3 ORDER BY 1;
                                                                                                                                                               QUERY PLAN                                                                                                                                                              
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=15570.94..15570.95 rows=1 width=104)
+ Sort  (cost=5331.94..5331.95 rows=1 width=104)
    Output: (((last('/value[1,4]/'::text))::s3)."time"), (((last('/value[1,4]/'::text))::s3).tag1), (((last('/value[1,4]/'::text))::s3).value1), (((last('/value[1,4]/'::text))::s3).value2), (((last('/value[1,4]/'::text))::s3).value3), (((last('/value[1,4]/'::text))::s3).value4), (((last('/value[1,4]/'::text))::s3).__spd_url)
    Sort Key: (((last('/value[1,4]/'::text))::s3)."time")
-   ->  Aggregate  (cost=15570.89..15570.93 rows=1 width=104)
+   ->  Aggregate  (cost=5331.89..5331.93 rows=1 width=104)
          Output: ((last('/value[1,4]/'::text))::s3)."time", ((last('/value[1,4]/'::text))::s3).tag1, ((last('/value[1,4]/'::text))::s3).value1, ((last('/value[1,4]/'::text))::s3).value2, ((last('/value[1,4]/'::text))::s3).value3, ((last('/value[1,4]/'::text))::s3).value4, ((last('/value[1,4]/'::text))::s3).__spd_url
          ->  Foreign Scan on public.s3  (cost=110.00..3625.39 rows=6826 width=0)
                Node: influxdb_svr / Status: Alive
@@ -5559,10 +5559,10 @@ EXPLAIN VERBOSE
 SELECT (integral_all(*)::s3).* from s3 ORDER BY 1;
                                                                                                                        QUERY PLAN                                                                                                                        
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=15570.94..15570.95 rows=1 width=104)
+ Sort  (cost=5331.94..5331.95 rows=1 width=104)
    Output: (((integral_all(*))::s3)."time"), (((integral_all(*))::s3).tag1), (((integral_all(*))::s3).value1), (((integral_all(*))::s3).value2), (((integral_all(*))::s3).value3), (((integral_all(*))::s3).value4), (((integral_all(*))::s3).__spd_url)
    Sort Key: (((integral_all(*))::s3)."time")
-   ->  Aggregate  (cost=15570.89..15570.93 rows=1 width=104)
+   ->  Aggregate  (cost=5331.89..5331.93 rows=1 width=104)
          Output: ((integral_all(*))::s3)."time", ((integral_all(*))::s3).tag1, ((integral_all(*))::s3).value1, ((integral_all(*))::s3).value2, ((integral_all(*))::s3).value3, ((integral_all(*))::s3).value4, ((integral_all(*))::s3).__spd_url
          ->  Foreign Scan on public.s3  (cost=110.00..3625.39 rows=6826 width=0)
                Node: influxdb_svr / Status: Alive
@@ -5655,10 +5655,10 @@ EXPLAIN VERBOSE
 SELECT (integral('/value[1,4]/')::s3).* from s3 ORDER BY 1;
                                                                                                                                                                             QUERY PLAN                                                                                                                                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=15570.94..15570.95 rows=1 width=104)
+ Sort  (cost=5331.94..5331.95 rows=1 width=104)
    Output: (((integral('/value[1,4]/'::text))::s3)."time"), (((integral('/value[1,4]/'::text))::s3).tag1), (((integral('/value[1,4]/'::text))::s3).value1), (((integral('/value[1,4]/'::text))::s3).value2), (((integral('/value[1,4]/'::text))::s3).value3), (((integral('/value[1,4]/'::text))::s3).value4), (((integral('/value[1,4]/'::text))::s3).__spd_url)
    Sort Key: (((integral('/value[1,4]/'::text))::s3)."time")
-   ->  Aggregate  (cost=15570.89..15570.93 rows=1 width=104)
+   ->  Aggregate  (cost=5331.89..5331.93 rows=1 width=104)
          Output: ((integral('/value[1,4]/'::text))::s3)."time", ((integral('/value[1,4]/'::text))::s3).tag1, ((integral('/value[1,4]/'::text))::s3).value1, ((integral('/value[1,4]/'::text))::s3).value2, ((integral('/value[1,4]/'::text))::s3).value3, ((integral('/value[1,4]/'::text))::s3).value4, ((integral('/value[1,4]/'::text))::s3).__spd_url
          ->  Foreign Scan on public.s3  (cost=110.00..3625.39 rows=6826 width=0)
                Node: influxdb_svr / Status: Alive
@@ -5893,10 +5893,10 @@ EXPLAIN VERBOSE
 SELECT (mean_all(*)::s3).* from s3 ORDER BY 1;
                                                                                                          QUERY PLAN                                                                                                          
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=15570.94..15570.95 rows=1 width=104)
+ Sort  (cost=5331.94..5331.95 rows=1 width=104)
    Output: (((mean_all(*))::s3)."time"), (((mean_all(*))::s3).tag1), (((mean_all(*))::s3).value1), (((mean_all(*))::s3).value2), (((mean_all(*))::s3).value3), (((mean_all(*))::s3).value4), (((mean_all(*))::s3).__spd_url)
    Sort Key: (((mean_all(*))::s3)."time")
-   ->  Aggregate  (cost=15570.89..15570.93 rows=1 width=104)
+   ->  Aggregate  (cost=5331.89..5331.93 rows=1 width=104)
          Output: ((mean_all(*))::s3)."time", ((mean_all(*))::s3).tag1, ((mean_all(*))::s3).value1, ((mean_all(*))::s3).value2, ((mean_all(*))::s3).value3, ((mean_all(*))::s3).value4, ((mean_all(*))::s3).__spd_url
          ->  Foreign Scan on public.s3  (cost=110.00..3625.39 rows=6826 width=0)
                Node: influxdb_svr / Status: Alive
@@ -5995,10 +5995,10 @@ EXPLAIN VERBOSE
 SELECT (mean('/value[1,4]/')::s3).* from s3 ORDER BY 1;
                                                                                                                                                               QUERY PLAN                                                                                                                                                              
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=15570.94..15570.95 rows=1 width=104)
+ Sort  (cost=5331.94..5331.95 rows=1 width=104)
    Output: (((mean('/value[1,4]/'::text))::s3)."time"), (((mean('/value[1,4]/'::text))::s3).tag1), (((mean('/value[1,4]/'::text))::s3).value1), (((mean('/value[1,4]/'::text))::s3).value2), (((mean('/value[1,4]/'::text))::s3).value3), (((mean('/value[1,4]/'::text))::s3).value4), (((mean('/value[1,4]/'::text))::s3).__spd_url)
    Sort Key: (((mean('/value[1,4]/'::text))::s3)."time")
-   ->  Aggregate  (cost=15570.89..15570.93 rows=1 width=104)
+   ->  Aggregate  (cost=5331.89..5331.93 rows=1 width=104)
          Output: ((mean('/value[1,4]/'::text))::s3)."time", ((mean('/value[1,4]/'::text))::s3).tag1, ((mean('/value[1,4]/'::text))::s3).value1, ((mean('/value[1,4]/'::text))::s3).value2, ((mean('/value[1,4]/'::text))::s3).value3, ((mean('/value[1,4]/'::text))::s3).value4, ((mean('/value[1,4]/'::text))::s3).__spd_url
          ->  Foreign Scan on public.s3  (cost=110.00..3625.39 rows=6826 width=0)
                Node: influxdb_svr / Status: Alive
@@ -6233,10 +6233,10 @@ EXPLAIN VERBOSE
 SELECT (median_all(*)::s3).* from s3 ORDER BY 1;
                                                                                                                 QUERY PLAN                                                                                                                 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=15570.94..15570.95 rows=1 width=104)
+ Sort  (cost=5331.94..5331.95 rows=1 width=104)
    Output: (((median_all(*))::s3)."time"), (((median_all(*))::s3).tag1), (((median_all(*))::s3).value1), (((median_all(*))::s3).value2), (((median_all(*))::s3).value3), (((median_all(*))::s3).value4), (((median_all(*))::s3).__spd_url)
    Sort Key: (((median_all(*))::s3)."time")
-   ->  Aggregate  (cost=15570.89..15570.93 rows=1 width=104)
+   ->  Aggregate  (cost=5331.89..5331.93 rows=1 width=104)
          Output: ((median_all(*))::s3)."time", ((median_all(*))::s3).tag1, ((median_all(*))::s3).value1, ((median_all(*))::s3).value2, ((median_all(*))::s3).value3, ((median_all(*))::s3).value4, ((median_all(*))::s3).__spd_url
          ->  Foreign Scan on public.s3  (cost=110.00..3625.39 rows=6826 width=0)
                Node: influxdb_svr / Status: Alive
@@ -6335,10 +6335,10 @@ EXPLAIN VERBOSE
 SELECT (median('/value[1,4]/')::s3).* from s3 ORDER BY 1;
                                                                                                                                                                      QUERY PLAN                                                                                                                                                                     
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=15570.94..15570.95 rows=1 width=104)
+ Sort  (cost=5331.94..5331.95 rows=1 width=104)
    Output: (((median('/value[1,4]/'::text))::s3)."time"), (((median('/value[1,4]/'::text))::s3).tag1), (((median('/value[1,4]/'::text))::s3).value1), (((median('/value[1,4]/'::text))::s3).value2), (((median('/value[1,4]/'::text))::s3).value3), (((median('/value[1,4]/'::text))::s3).value4), (((median('/value[1,4]/'::text))::s3).__spd_url)
    Sort Key: (((median('/value[1,4]/'::text))::s3)."time")
-   ->  Aggregate  (cost=15570.89..15570.93 rows=1 width=104)
+   ->  Aggregate  (cost=5331.89..5331.93 rows=1 width=104)
          Output: ((median('/value[1,4]/'::text))::s3)."time", ((median('/value[1,4]/'::text))::s3).tag1, ((median('/value[1,4]/'::text))::s3).value1, ((median('/value[1,4]/'::text))::s3).value2, ((median('/value[1,4]/'::text))::s3).value3, ((median('/value[1,4]/'::text))::s3).value4, ((median('/value[1,4]/'::text))::s3).__spd_url
          ->  Foreign Scan on public.s3  (cost=110.00..3625.39 rows=6826 width=0)
                Node: influxdb_svr / Status: Alive
@@ -6573,10 +6573,10 @@ EXPLAIN VERBOSE
 SELECT (influx_mode_all(*)::s3).* from s3 ORDER BY 1;
                                                                                                                                   QUERY PLAN                                                                                                                                  
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=15570.94..15570.95 rows=1 width=104)
+ Sort  (cost=5331.94..5331.95 rows=1 width=104)
    Output: (((influx_mode_all(*))::s3)."time"), (((influx_mode_all(*))::s3).tag1), (((influx_mode_all(*))::s3).value1), (((influx_mode_all(*))::s3).value2), (((influx_mode_all(*))::s3).value3), (((influx_mode_all(*))::s3).value4), (((influx_mode_all(*))::s3).__spd_url)
    Sort Key: (((influx_mode_all(*))::s3)."time")
-   ->  Aggregate  (cost=15570.89..15570.93 rows=1 width=104)
+   ->  Aggregate  (cost=5331.89..5331.93 rows=1 width=104)
          Output: ((influx_mode_all(*))::s3)."time", ((influx_mode_all(*))::s3).tag1, ((influx_mode_all(*))::s3).value1, ((influx_mode_all(*))::s3).value2, ((influx_mode_all(*))::s3).value3, ((influx_mode_all(*))::s3).value4, ((influx_mode_all(*))::s3).__spd_url
          ->  Foreign Scan on public.s3  (cost=110.00..3625.39 rows=6826 width=0)
                Node: influxdb_svr / Status: Alive
@@ -6675,10 +6675,10 @@ EXPLAIN VERBOSE
 SELECT (influx_mode('/value[1,4]/')::s3).* from s3 ORDER BY 1;
                                                                                                                                                                                       QUERY PLAN                                                                                                                                                                                       
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=15570.94..15570.95 rows=1 width=104)
+ Sort  (cost=5331.94..5331.95 rows=1 width=104)
    Output: (((influx_mode('/value[1,4]/'::text))::s3)."time"), (((influx_mode('/value[1,4]/'::text))::s3).tag1), (((influx_mode('/value[1,4]/'::text))::s3).value1), (((influx_mode('/value[1,4]/'::text))::s3).value2), (((influx_mode('/value[1,4]/'::text))::s3).value3), (((influx_mode('/value[1,4]/'::text))::s3).value4), (((influx_mode('/value[1,4]/'::text))::s3).__spd_url)
    Sort Key: (((influx_mode('/value[1,4]/'::text))::s3)."time")
-   ->  Aggregate  (cost=15570.89..15570.93 rows=1 width=104)
+   ->  Aggregate  (cost=5331.89..5331.93 rows=1 width=104)
          Output: ((influx_mode('/value[1,4]/'::text))::s3)."time", ((influx_mode('/value[1,4]/'::text))::s3).tag1, ((influx_mode('/value[1,4]/'::text))::s3).value1, ((influx_mode('/value[1,4]/'::text))::s3).value2, ((influx_mode('/value[1,4]/'::text))::s3).value3, ((influx_mode('/value[1,4]/'::text))::s3).value4, ((influx_mode('/value[1,4]/'::text))::s3).__spd_url
          ->  Foreign Scan on public.s3  (cost=110.00..3625.39 rows=6826 width=0)
                Node: influxdb_svr / Status: Alive
@@ -7008,10 +7008,10 @@ EXPLAIN VERBOSE
 SELECT (influx_sum_all(*)::s3).* from s3 ORDER BY 1;
                                                                                                                               QUERY PLAN                                                                                                                               
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=15570.94..15570.95 rows=1 width=104)
+ Sort  (cost=5331.94..5331.95 rows=1 width=104)
    Output: (((influx_sum_all(*))::s3)."time"), (((influx_sum_all(*))::s3).tag1), (((influx_sum_all(*))::s3).value1), (((influx_sum_all(*))::s3).value2), (((influx_sum_all(*))::s3).value3), (((influx_sum_all(*))::s3).value4), (((influx_sum_all(*))::s3).__spd_url)
    Sort Key: (((influx_sum_all(*))::s3)."time")
-   ->  Aggregate  (cost=15570.89..15570.93 rows=1 width=104)
+   ->  Aggregate  (cost=5331.89..5331.93 rows=1 width=104)
          Output: ((influx_sum_all(*))::s3)."time", ((influx_sum_all(*))::s3).tag1, ((influx_sum_all(*))::s3).value1, ((influx_sum_all(*))::s3).value2, ((influx_sum_all(*))::s3).value3, ((influx_sum_all(*))::s3).value4, ((influx_sum_all(*))::s3).__spd_url
          ->  Foreign Scan on public.s3  (cost=110.00..3625.39 rows=6826 width=0)
                Node: influxdb_svr / Status: Alive
@@ -7110,10 +7110,10 @@ EXPLAIN VERBOSE
 SELECT (influx_sum('/value[1,4]/')::s3).* from s3 ORDER BY 1;
                                                                                                                                                                                    QUERY PLAN                                                                                                                                                                                   
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=15570.94..15570.95 rows=1 width=104)
+ Sort  (cost=5331.94..5331.95 rows=1 width=104)
    Output: (((influx_sum('/value[1,4]/'::text))::s3)."time"), (((influx_sum('/value[1,4]/'::text))::s3).tag1), (((influx_sum('/value[1,4]/'::text))::s3).value1), (((influx_sum('/value[1,4]/'::text))::s3).value2), (((influx_sum('/value[1,4]/'::text))::s3).value3), (((influx_sum('/value[1,4]/'::text))::s3).value4), (((influx_sum('/value[1,4]/'::text))::s3).__spd_url)
    Sort Key: (((influx_sum('/value[1,4]/'::text))::s3)."time")
-   ->  Aggregate  (cost=15570.89..15570.93 rows=1 width=104)
+   ->  Aggregate  (cost=5331.89..5331.93 rows=1 width=104)
          Output: ((influx_sum('/value[1,4]/'::text))::s3)."time", ((influx_sum('/value[1,4]/'::text))::s3).tag1, ((influx_sum('/value[1,4]/'::text))::s3).value1, ((influx_sum('/value[1,4]/'::text))::s3).value2, ((influx_sum('/value[1,4]/'::text))::s3).value3, ((influx_sum('/value[1,4]/'::text))::s3).value4, ((influx_sum('/value[1,4]/'::text))::s3).__spd_url
          ->  Foreign Scan on public.s3  (cost=110.00..3625.39 rows=6826 width=0)
                Node: influxdb_svr / Status: Alive
@@ -7262,10 +7262,10 @@ EXPLAIN VERBOSE
 SELECT (influx_max_all(*)::s3).* from s3 ORDER BY 1;
                                                                                                                               QUERY PLAN                                                                                                                               
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=15570.94..15570.95 rows=1 width=104)
+ Sort  (cost=5331.94..5331.95 rows=1 width=104)
    Output: (((influx_max_all(*))::s3)."time"), (((influx_max_all(*))::s3).tag1), (((influx_max_all(*))::s3).value1), (((influx_max_all(*))::s3).value2), (((influx_max_all(*))::s3).value3), (((influx_max_all(*))::s3).value4), (((influx_max_all(*))::s3).__spd_url)
    Sort Key: (((influx_max_all(*))::s3)."time")
-   ->  Aggregate  (cost=15570.89..15570.93 rows=1 width=104)
+   ->  Aggregate  (cost=5331.89..5331.93 rows=1 width=104)
          Output: ((influx_max_all(*))::s3)."time", ((influx_max_all(*))::s3).tag1, ((influx_max_all(*))::s3).value1, ((influx_max_all(*))::s3).value2, ((influx_max_all(*))::s3).value3, ((influx_max_all(*))::s3).value4, ((influx_max_all(*))::s3).__spd_url
          ->  Foreign Scan on public.s3  (cost=110.00..3625.39 rows=6826 width=0)
                Node: influxdb_svr / Status: Alive
@@ -7364,10 +7364,10 @@ EXPLAIN VERBOSE
 SELECT (influx_max('/value[1,4]/')::s3).* from s3 ORDER BY 1;
                                                                                                                                                                                    QUERY PLAN                                                                                                                                                                                   
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=15570.94..15570.95 rows=1 width=104)
+ Sort  (cost=5331.94..5331.95 rows=1 width=104)
    Output: (((influx_max('/value[1,4]/'::text))::s3)."time"), (((influx_max('/value[1,4]/'::text))::s3).tag1), (((influx_max('/value[1,4]/'::text))::s3).value1), (((influx_max('/value[1,4]/'::text))::s3).value2), (((influx_max('/value[1,4]/'::text))::s3).value3), (((influx_max('/value[1,4]/'::text))::s3).value4), (((influx_max('/value[1,4]/'::text))::s3).__spd_url)
    Sort Key: (((influx_max('/value[1,4]/'::text))::s3)."time")
-   ->  Aggregate  (cost=15570.89..15570.93 rows=1 width=104)
+   ->  Aggregate  (cost=5331.89..5331.93 rows=1 width=104)
          Output: ((influx_max('/value[1,4]/'::text))::s3)."time", ((influx_max('/value[1,4]/'::text))::s3).tag1, ((influx_max('/value[1,4]/'::text))::s3).value1, ((influx_max('/value[1,4]/'::text))::s3).value2, ((influx_max('/value[1,4]/'::text))::s3).value3, ((influx_max('/value[1,4]/'::text))::s3).value4, ((influx_max('/value[1,4]/'::text))::s3).__spd_url
          ->  Foreign Scan on public.s3  (cost=110.00..3625.39 rows=6826 width=0)
                Node: influxdb_svr / Status: Alive
@@ -7466,10 +7466,10 @@ EXPLAIN VERBOSE
 SELECT (influx_min_all(*)::s3).* from s3 ORDER BY 1;
                                                                                                                               QUERY PLAN                                                                                                                               
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=15570.94..15570.95 rows=1 width=104)
+ Sort  (cost=5331.94..5331.95 rows=1 width=104)
    Output: (((influx_min_all(*))::s3)."time"), (((influx_min_all(*))::s3).tag1), (((influx_min_all(*))::s3).value1), (((influx_min_all(*))::s3).value2), (((influx_min_all(*))::s3).value3), (((influx_min_all(*))::s3).value4), (((influx_min_all(*))::s3).__spd_url)
    Sort Key: (((influx_min_all(*))::s3)."time")
-   ->  Aggregate  (cost=15570.89..15570.93 rows=1 width=104)
+   ->  Aggregate  (cost=5331.89..5331.93 rows=1 width=104)
          Output: ((influx_min_all(*))::s3)."time", ((influx_min_all(*))::s3).tag1, ((influx_min_all(*))::s3).value1, ((influx_min_all(*))::s3).value2, ((influx_min_all(*))::s3).value3, ((influx_min_all(*))::s3).value4, ((influx_min_all(*))::s3).__spd_url
          ->  Foreign Scan on public.s3  (cost=110.00..3625.39 rows=6826 width=0)
                Node: influxdb_svr / Status: Alive
@@ -7568,10 +7568,10 @@ EXPLAIN VERBOSE
 SELECT (influx_min('/value[1,4]/')::s3).* from s3 ORDER BY 1;
                                                                                                                                                                                    QUERY PLAN                                                                                                                                                                                   
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=15570.94..15570.95 rows=1 width=104)
+ Sort  (cost=5331.94..5331.95 rows=1 width=104)
    Output: (((influx_min('/value[1,4]/'::text))::s3)."time"), (((influx_min('/value[1,4]/'::text))::s3).tag1), (((influx_min('/value[1,4]/'::text))::s3).value1), (((influx_min('/value[1,4]/'::text))::s3).value2), (((influx_min('/value[1,4]/'::text))::s3).value3), (((influx_min('/value[1,4]/'::text))::s3).value4), (((influx_min('/value[1,4]/'::text))::s3).__spd_url)
    Sort Key: (((influx_min('/value[1,4]/'::text))::s3)."time")
-   ->  Aggregate  (cost=15570.89..15570.93 rows=1 width=104)
+   ->  Aggregate  (cost=5331.89..5331.93 rows=1 width=104)
          Output: ((influx_min('/value[1,4]/'::text))::s3)."time", ((influx_min('/value[1,4]/'::text))::s3).tag1, ((influx_min('/value[1,4]/'::text))::s3).value1, ((influx_min('/value[1,4]/'::text))::s3).value2, ((influx_min('/value[1,4]/'::text))::s3).value3, ((influx_min('/value[1,4]/'::text))::s3).value4, ((influx_min('/value[1,4]/'::text))::s3).__spd_url
          ->  Foreign Scan on public.s3  (cost=110.00..3625.39 rows=6826 width=0)
                Node: influxdb_svr / Status: Alive

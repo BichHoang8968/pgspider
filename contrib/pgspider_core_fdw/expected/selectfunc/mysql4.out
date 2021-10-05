@@ -20219,7 +20219,7 @@ SELECT position('XYZ' IN str1), position('XYZ' IN str2) FROM s3;
                                                 QUERY PLAN                                                
 ----------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..458.91 rows=6826 width=8)
-   Output: ("position"(str1, 'XYZ'::text)), ("position"(str2, 'XYZ'::text))
+   Output: (POSITION(('XYZ'::text) IN (str1))), (POSITION(('XYZ'::text) IN (str2)))
    Node: pgspider_svr1 / Status: Alive
      Remote SQL: SELECT "position"(str1, 'XYZ'::text), "position"(str2, 'XYZ'::text) FROM public.s31mysql
    Node: pgspider_svr2 / Status: Alive
@@ -20246,7 +20246,7 @@ SELECT value1, position('XYZ' IN str1) FROM s3 WHERE to_hex(value2) = '64';
                                         QUERY PLAN                                         
 -------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..458.47 rows=34 width=12)
-   Output: value1, ("position"(str1, 'XYZ'::text))
+   Output: value1, (POSITION(('XYZ'::text) IN (str1)))
    Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
    Node: pgspider_svr1 / Status: Alive
      Remote SQL: SELECT value1, "position"(str1, 'XYZ'::text), value2 FROM public.s31mysql
@@ -20271,7 +20271,7 @@ SELECT value1, position('XYZ' IN str1) FROM s3 WHERE value2 != 200;
                                                 QUERY PLAN                                                 
 -----------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..458.15 rows=6792 width=12)
-   Output: value1, ("position"(str1, 'XYZ'::text))
+   Output: value1, (POSITION(('XYZ'::text) IN (str1)))
    Node: pgspider_svr1 / Status: Alive
      Remote SQL: SELECT value1, "position"(str1, 'XYZ'::text) FROM public.s31mysql WHERE ((value2 <> 200))
    Node: pgspider_svr2 / Status: Alive
@@ -20295,7 +20295,7 @@ SELECT position('XYZ' IN str1), pi(), 4.1 FROM s3;
                                                      QUERY PLAN                                                      
 ---------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..441.84 rows=6826 width=44)
-   Output: ("position"(str1, 'XYZ'::text)), '3.141592653589793'::double precision, 4.1
+   Output: (POSITION(('XYZ'::text) IN (str1))), '3.141592653589793'::double precision, 4.1
    Node: pgspider_svr1 / Status: Alive
      Remote SQL: SELECT "position"(str1, 'XYZ'::text), 3.141592653589793::double precision, 4.1 FROM public.s31mysql
    Node: pgspider_svr2 / Status: Alive
@@ -20322,10 +20322,10 @@ SELECT value1, position('XYZ' IN str1) FROM s3 ORDER BY value1, position('XYZ' I
                                        QUERY PLAN                                        
 -----------------------------------------------------------------------------------------
  Sort  (cost=876.55..893.62 rows=6826 width=12)
-   Output: value1, ("position"(str1, 'XYZ'::text))
-   Sort Key: s3.value1, ("position"(s3.str1, 'XYZ'::text))
+   Output: value1, (POSITION(('XYZ'::text) IN (str1)))
+   Sort Key: s3.value1, (POSITION(('XYZ'::text) IN (s3.str1)))
    ->  Foreign Scan on public.s3  (cost=200.00..441.84 rows=6826 width=12)
-         Output: value1, ("position"(str1, 'XYZ'::text))
+         Output: value1, (POSITION(('XYZ'::text) IN (str1)))
          Node: pgspider_svr1 / Status: Alive
            Remote SQL: SELECT value1, "position"(str1, 'XYZ'::text) FROM public.s31mysql
          Node: pgspider_svr2 / Status: Alive
@@ -20375,21 +20375,22 @@ SELECT value1, position('XYZ' IN str1) FROM s3 ORDER BY 1,2;
 --Testcase 1496:
 EXPLAIN VERBOSE
 SELECT count(value1), position('XYZ' IN str1) FROM s3 GROUP BY position('XYZ' IN str1) ORDER BY 1,2;
-                                          QUERY PLAN                                           
------------------------------------------------------------------------------------------------
- Sort  (cost=486.12..486.62 rows=200 width=12)
-   Output: (count(value1)), ("position"(str1, 'XYZ'::text))
-   Sort Key: (count(s3.value1)), ("position"(s3.str1, 'XYZ'::text))
-   ->  HashAggregate  (cost=475.97..478.47 rows=200 width=12)
-         Output: count(value1), ("position"(str1, 'XYZ'::text))
-         Group Key: ("position"(s3.str1, 'XYZ'::text))
-         ->  Foreign Scan on public.s3  (cost=200.00..441.84 rows=6826 width=12)
-               Output: ("position"(str1, 'XYZ'::text)), value1
-               Node: pgspider_svr1 / Status: Alive
-                 Remote SQL: SELECT "position"(str1, 'XYZ'::text), value1 FROM public.s31mysql
-               Node: pgspider_svr2 / Status: Alive
-                 Remote SQL: SELECT "position"(str1, 'XYZ'::text), value1 FROM public.s32mysql
-(12 rows)
+                                                QUERY PLAN                                                 
+-----------------------------------------------------------------------------------------------------------
+ Sort  (cost=0.01..0.02 rows=1 width=12)
+   Output: (count(value1)), (POSITION(('XYZ'::text) IN (str1)))
+   Sort Key: (count(s3.value1)), (POSITION(('XYZ'::text) IN (s3.str1)))
+   ->  Foreign Scan  (cost=0.00..0.00 rows=1 width=12)
+         Output: (count(value1)), (POSITION(('XYZ'::text) IN (str1)))
+         Node: pgspider_svr1 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.s3)
+           Remote SQL: SELECT count(value1), "position"(str1, 'XYZ'::text) FROM public.s31mysql GROUP BY 2
+         Node: pgspider_svr2 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.s3)
+           Remote SQL: SELECT count(value1), "position"(str1, 'XYZ'::text) FROM public.s32mysql GROUP BY 2
+(13 rows)
 
 -- select position with group by (result)
 --Testcase 1497:
@@ -20416,21 +20417,22 @@ SELECT value1, position('XYZ' IN str1) FROM s3 GROUP BY 2,1 ORDER BY 1,2;
 --Testcase 1499:
 EXPLAIN VERBOSE
 SELECT count(value1), position('XYZ' IN str1) FROM s3 GROUP BY position('XYZ' IN str1), str1 HAVING position('XYZ' IN str1) IS NOT NULL ORDER BY 1,2;
-                                                                       QUERY PLAN                                                                        
----------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=519.23..519.73 rows=200 width=44)
-   Output: (count(value1)), ("position"(str1, 'XYZ'::text)), str1
-   Sort Key: (count(s3.value1)), ("position"(s3.str1, 'XYZ'::text))
-   ->  HashAggregate  (cost=509.09..511.59 rows=200 width=44)
-         Output: count(value1), ("position"(str1, 'XYZ'::text)), str1
-         Group Key: ("position"(s3.str1, 'XYZ'::text)), s3.str1
-         ->  Foreign Scan on public.s3  (cost=200.00..458.15 rows=6792 width=44)
-               Output: ("position"(str1, 'XYZ'::text)), str1, value1
-               Node: pgspider_svr1 / Status: Alive
-                 Remote SQL: SELECT "position"(str1, 'XYZ'::text), str1, value1 FROM public.s31mysql WHERE (("position"(str1, 'XYZ'::text) IS NOT NULL))
-               Node: pgspider_svr2 / Status: Alive
-                 Remote SQL: SELECT "position"(str1, 'XYZ'::text), str1, value1 FROM public.s32mysql WHERE (("position"(str1, 'XYZ'::text) IS NOT NULL))
-(12 rows)
+                                                                               QUERY PLAN                                                                               
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=0.01..0.02 rows=1 width=44)
+   Output: (count(value1)), (POSITION(('XYZ'::text) IN (str1))), str1
+   Sort Key: (count(s3.value1)), (POSITION(('XYZ'::text) IN (s3.str1)))
+   ->  Foreign Scan  (cost=0.00..0.00 rows=1 width=44)
+         Output: (count(value1)), (POSITION(('XYZ'::text) IN (str1))), str1
+         Node: pgspider_svr1 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.s3)
+           Remote SQL: SELECT count(value1), "position"(str1, 'XYZ'::text), str1 FROM public.s31mysql WHERE (("position"(str1, 'XYZ'::text) IS NOT NULL)) GROUP BY 2, 3
+         Node: pgspider_svr2 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.s3)
+           Remote SQL: SELECT count(value1), "position"(str1, 'XYZ'::text), str1 FROM public.s32mysql WHERE (("position"(str1, 'XYZ'::text) IS NOT NULL)) GROUP BY 2, 3
+(13 rows)
 
 -- select position with group by having (result)
 --Testcase 1500:
@@ -24252,7 +24254,7 @@ SELECT substring(str1 FROM 3), substring(str2 FROM 3 FOR 4) FROM s3;
                                         QUERY PLAN                                         
 -------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..458.91 rows=6826 width=64)
-   Output: ("substring"(str1, 3)), ("substring"(str2, 3, 4))
+   Output: (SUBSTRING(str1 FROM 3)), (SUBSTRING(str2 FROM 3 FOR 4))
    Node: pgspider_svr1 / Status: Alive
      Remote SQL: SELECT "substring"(str1, 3), "substring"(str2, 3, 4) FROM public.s31mysql
    Node: pgspider_svr2 / Status: Alive
@@ -24304,7 +24306,7 @@ SELECT value1, substring(str2 FROM 3 FOR 4) FROM s3 WHERE value2 != 200;
                                              QUERY PLAN                                              
 -----------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..458.15 rows=6792 width=40)
-   Output: value1, ("substring"(str2, 3, 4))
+   Output: value1, (SUBSTRING(str2 FROM 3 FOR 4))
    Node: pgspider_svr1 / Status: Alive
      Remote SQL: SELECT value1, "substring"(str2, 3, 4) FROM public.s31mysql WHERE ((value2 <> 200))
    Node: pgspider_svr2 / Status: Alive
@@ -24328,7 +24330,7 @@ SELECT substring(str2 FROM 3 FOR 4), pi(), 4.1 FROM s3;
                                                   QUERY PLAN                                                   
 ---------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..441.84 rows=6826 width=72)
-   Output: ("substring"(str2, 3, 4)), '3.141592653589793'::double precision, 4.1
+   Output: (SUBSTRING(str2 FROM 3 FOR 4)), '3.141592653589793'::double precision, 4.1
    Node: pgspider_svr1 / Status: Alive
      Remote SQL: SELECT "substring"(str2, 3, 4), 3.141592653589793::double precision, 4.1 FROM public.s31mysql
    Node: pgspider_svr2 / Status: Alive
@@ -24355,10 +24357,10 @@ SELECT value1, substring(str2 FROM 3 FOR 4) FROM s3 ORDER BY value1, substring(s
                                     QUERY PLAN                                     
 -----------------------------------------------------------------------------------
  Sort  (cost=876.55..893.62 rows=6826 width=40)
-   Output: value1, ("substring"(str2, 3, 4))
-   Sort Key: s3.value1, ("substring"(s3.str2, 3, 4))
+   Output: value1, (SUBSTRING(str2 FROM 3 FOR 4))
+   Sort Key: s3.value1, (SUBSTRING(s3.str2 FROM 3 FOR 4))
    ->  Foreign Scan on public.s3  (cost=200.00..441.84 rows=6826 width=40)
-         Output: value1, ("substring"(str2, 3, 4))
+         Output: value1, (SUBSTRING(str2 FROM 3 FOR 4))
          Node: pgspider_svr1 / Status: Alive
            Remote SQL: SELECT value1, "substring"(str2, 3, 4) FROM public.s31mysql
          Node: pgspider_svr2 / Status: Alive
@@ -24980,7 +24982,7 @@ SELECT trim(str1), trim(str2) FROM s3;
                               QUERY PLAN                              
 ----------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..458.91 rows=6826 width=64)
-   Output: (btrim(str1)), (btrim(str2))
+   Output: (TRIM(BOTH FROM str1)), (TRIM(BOTH FROM str2))
    Node: pgspider_svr1 / Status: Alive
      Remote SQL: SELECT btrim(str1), btrim(str2) FROM public.s31mysql
    Node: pgspider_svr2 / Status: Alive
@@ -25007,7 +25009,7 @@ SELECT trim(LEADING '-' FROM str1), trim(LEADING ' ' FROM str2) FROM s3;
                                          QUERY PLAN                                         
 --------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..458.91 rows=6826 width=64)
-   Output: (ltrim(str1, '-'::text)), (ltrim(str2, ' '::text))
+   Output: (TRIM(LEADING '-'::text FROM str1)), (TRIM(LEADING ' '::text FROM str2))
    Node: pgspider_svr1 / Status: Alive
      Remote SQL: SELECT ltrim(str1, '-'::text), ltrim(str2, ' '::text) FROM public.s31mysql
    Node: pgspider_svr2 / Status: Alive
@@ -25034,7 +25036,7 @@ SELECT trim(BOTH '-' FROM str1), trim(BOTH ' ' FROM str2) FROM s3;
                                          QUERY PLAN                                         
 --------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..458.91 rows=6826 width=64)
-   Output: (btrim(str1, '-'::text)), (btrim(str2, ' '::text))
+   Output: (TRIM(BOTH '-'::text FROM str1)), (TRIM(BOTH ' '::text FROM str2))
    Node: pgspider_svr1 / Status: Alive
      Remote SQL: SELECT btrim(str1, '-'::text), btrim(str2, ' '::text) FROM public.s31mysql
    Node: pgspider_svr2 / Status: Alive
@@ -25061,7 +25063,7 @@ SELECT trim(TRAILING '-' FROM str1), trim(TRAILING ' ' FROM str2) FROM s3;
                                          QUERY PLAN                                         
 --------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..458.91 rows=6826 width=64)
-   Output: (rtrim(str1, '-'::text)), (rtrim(str2, ' '::text))
+   Output: (TRIM(TRAILING '-'::text FROM str1)), (TRIM(TRAILING ' '::text FROM str2))
    Node: pgspider_svr1 / Status: Alive
      Remote SQL: SELECT rtrim(str1, '-'::text), rtrim(str2, ' '::text) FROM public.s31mysql
    Node: pgspider_svr2 / Status: Alive
@@ -25088,7 +25090,7 @@ SELECT trim('-' FROM str1), trim(' ' FROM str2) FROM s3;
                                          QUERY PLAN                                         
 --------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..458.91 rows=6826 width=64)
-   Output: (btrim(str1, '-'::text)), (btrim(str2, ' '::text))
+   Output: (TRIM(BOTH '-'::text FROM str1)), (TRIM(BOTH ' '::text FROM str2))
    Node: pgspider_svr1 / Status: Alive
      Remote SQL: SELECT btrim(str1, '-'::text), btrim(str2, ' '::text) FROM public.s31mysql
    Node: pgspider_svr2 / Status: Alive
@@ -25115,7 +25117,7 @@ SELECT value1, trim('-' FROM str1) FROM s3 WHERE to_hex(value2) = '64';
                                      QUERY PLAN                                     
 ------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..458.47 rows=34 width=40)
-   Output: value1, (btrim(str1, '-'::text))
+   Output: value1, (TRIM(BOTH '-'::text FROM str1))
    Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
    Node: pgspider_svr1 / Status: Alive
      Remote SQL: SELECT value1, btrim(str1, '-'::text), value2 FROM public.s31mysql
@@ -25140,7 +25142,7 @@ SELECT value1, trim(TRAILING '-' FROM str1) FROM s3 WHERE value2 != 200;
                                              QUERY PLAN                                             
 ----------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..458.15 rows=6792 width=40)
-   Output: value1, (rtrim(str1, '-'::text))
+   Output: value1, (TRIM(TRAILING '-'::text FROM str1))
    Node: pgspider_svr1 / Status: Alive
      Remote SQL: SELECT value1, rtrim(str1, '-'::text) FROM public.s31mysql WHERE ((value2 <> 200))
    Node: pgspider_svr2 / Status: Alive
@@ -25164,7 +25166,7 @@ SELECT trim(TRAILING '-' FROM str1), pi(), 4.1 FROM s3;
                                                   QUERY PLAN                                                  
 --------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..441.84 rows=6826 width=72)
-   Output: (rtrim(str1, '-'::text)), '3.141592653589793'::double precision, 4.1
+   Output: (TRIM(TRAILING '-'::text FROM str1)), '3.141592653589793'::double precision, 4.1
    Node: pgspider_svr1 / Status: Alive
      Remote SQL: SELECT rtrim(str1, '-'::text), 3.141592653589793::double precision, 4.1 FROM public.s31mysql
    Node: pgspider_svr2 / Status: Alive
@@ -25191,10 +25193,10 @@ SELECT value1, trim(TRAILING '-' FROM str1) FROM s3 ORDER BY value1, trim(TRAILI
                                     QUERY PLAN                                    
 ----------------------------------------------------------------------------------
  Sort  (cost=876.55..893.62 rows=6826 width=40)
-   Output: value1, (rtrim(str1, '-'::text))
-   Sort Key: s3.value1, (rtrim(s3.str1, '-'::text))
+   Output: value1, (TRIM(TRAILING '-'::text FROM str1))
+   Sort Key: s3.value1, (TRIM(TRAILING '-'::text FROM s3.str1))
    ->  Foreign Scan on public.s3  (cost=200.00..441.84 rows=6826 width=40)
-         Output: value1, (rtrim(str1, '-'::text))
+         Output: value1, (TRIM(TRAILING '-'::text FROM str1))
          Node: pgspider_svr1 / Status: Alive
            Remote SQL: SELECT value1, rtrim(str1, '-'::text) FROM public.s31mysql
          Node: pgspider_svr2 / Status: Alive
@@ -25244,21 +25246,22 @@ SELECT value1, trim('-' FROM str1) FROM s3 ORDER BY 1,2;
 --Testcase 1858:
 EXPLAIN VERBOSE
 SELECT count(value1), trim('-' FROM str1) FROM s3 GROUP BY trim('-' FROM str1) ORDER BY 1,2;
-                                       QUERY PLAN                                       
-----------------------------------------------------------------------------------------
- Sort  (cost=486.12..486.62 rows=200 width=40)
-   Output: (count(value1)), (btrim(str1, '-'::text))
-   Sort Key: (count(s3.value1)), (btrim(s3.str1, '-'::text))
-   ->  HashAggregate  (cost=475.97..478.47 rows=200 width=40)
-         Output: count(value1), (btrim(str1, '-'::text))
-         Group Key: (btrim(s3.str1, '-'::text))
-         ->  Foreign Scan on public.s3  (cost=200.00..441.84 rows=6826 width=40)
-               Output: (btrim(str1, '-'::text)), value1
-               Node: pgspider_svr1 / Status: Alive
-                 Remote SQL: SELECT btrim(str1, '-'::text), value1 FROM public.s31mysql
-               Node: pgspider_svr2 / Status: Alive
-                 Remote SQL: SELECT btrim(str1, '-'::text), value1 FROM public.s32mysql
-(12 rows)
+                                             QUERY PLAN                                             
+----------------------------------------------------------------------------------------------------
+ Sort  (cost=0.01..0.02 rows=1 width=40)
+   Output: (count(value1)), (TRIM(BOTH '-'::text FROM str1))
+   Sort Key: (count(s3.value1)), (TRIM(BOTH '-'::text FROM s3.str1))
+   ->  Foreign Scan  (cost=0.00..0.00 rows=1 width=40)
+         Output: (count(value1)), (TRIM(BOTH '-'::text FROM str1))
+         Node: pgspider_svr1 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.s3)
+           Remote SQL: SELECT count(value1), btrim(str1, '-'::text) FROM public.s31mysql GROUP BY 2
+         Node: pgspider_svr2 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.s3)
+           Remote SQL: SELECT count(value1), btrim(str1, '-'::text) FROM public.s32mysql GROUP BY 2
+(13 rows)
 
 -- select trim with group by (result)
 --Testcase 1859:
@@ -25285,21 +25288,22 @@ SELECT value1, trim('-' FROM str1) FROM s3 GROUP BY 2,1 ORDER BY 1,2;
 --Testcase 1861:
 EXPLAIN VERBOSE
 SELECT count(value1), trim('-' FROM str1) FROM s3 GROUP BY trim('-' FROM str1) , str1 HAVING trim('-' FROM str1) IS NOT NULL ORDER BY 1,2;
-                                                                QUERY PLAN                                                                 
--------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=519.23..519.73 rows=200 width=72)
-   Output: (count(value1)), (btrim(str1, '-'::text)), str1
-   Sort Key: (count(s3.value1)), (btrim(s3.str1, '-'::text))
-   ->  HashAggregate  (cost=509.09..511.59 rows=200 width=72)
-         Output: count(value1), (btrim(str1, '-'::text)), str1
-         Group Key: (btrim(s3.str1, '-'::text)), s3.str1
-         ->  Foreign Scan on public.s3  (cost=200.00..458.15 rows=6792 width=72)
-               Output: (btrim(str1, '-'::text)), str1, value1
-               Node: pgspider_svr1 / Status: Alive
-                 Remote SQL: SELECT btrim(str1, '-'::text), str1, value1 FROM public.s31mysql WHERE ((btrim(str1, '-'::text) IS NOT NULL))
-               Node: pgspider_svr2 / Status: Alive
-                 Remote SQL: SELECT btrim(str1, '-'::text), str1, value1 FROM public.s32mysql WHERE ((btrim(str1, '-'::text) IS NOT NULL))
-(12 rows)
+                                                                        QUERY PLAN                                                                        
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=0.01..0.02 rows=1 width=72)
+   Output: (count(value1)), (TRIM(BOTH '-'::text FROM str1)), str1
+   Sort Key: (count(s3.value1)), (TRIM(BOTH '-'::text FROM s3.str1))
+   ->  Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+         Output: (count(value1)), (TRIM(BOTH '-'::text FROM str1)), str1
+         Node: pgspider_svr1 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.s3)
+           Remote SQL: SELECT count(value1), btrim(str1, '-'::text), str1 FROM public.s31mysql WHERE ((btrim(str1, '-'::text) IS NOT NULL)) GROUP BY 2, 3
+         Node: pgspider_svr2 / Status: Alive
+           Agg push-down: yes
+           Relations: Aggregate on (public.s3)
+           Remote SQL: SELECT count(value1), btrim(str1, '-'::text), str1 FROM public.s32mysql WHERE ((btrim(str1, '-'::text) IS NOT NULL)) GROUP BY 2, 3
+(13 rows)
 
 -- select trim with group by having (result)
 --Testcase 1862:
@@ -47582,7 +47586,7 @@ EXPLAIN VERBOSE
 SELECT bit_xor(id), bit_xor(tag1), bit_xor(value1), bit_xor(value2), bit_xor(value3), bit_xor(value4), bit_xor(value5), bit_xor(str1) FROM s7a;
                                                                 QUERY PLAN                                                                
 ------------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=14076.78..14076.79 rows=1 width=256)
+ Aggregate  (cost=7319.04..7319.05 rows=1 width=172)
    Output: bit_xor(id), bit_xor(tag1), bit_xor(value1), bit_xor(value2), bit_xor(value3), bit_xor(value4), bit_xor(value5), bit_xor(str1)
    ->  Foreign Scan on public.s7a  (cost=200.00..424.78 rows=6826 width=101)
          Output: id, tag1, value1, value2, value3, value4, value5, str1
@@ -47603,7 +47607,7 @@ EXPLAIN VERBOSE
 SELECT tag1, bit_xor(value5) FROM s7a GROUP BY tag1;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- HashAggregate  (cost=2148.34..2150.34 rows=200 width=64)
+ HashAggregate  (cost=458.91..460.91 rows=200 width=64)
    Output: tag1, bit_xor(value5)
    Group Key: s7a.tag1
    ->  Foreign Scan on public.s7a  (cost=200.00..424.78 rows=6826 width=41)
@@ -47617,18 +47621,17 @@ SELECT tag1, bit_xor(value5) FROM s7a GROUP BY tag1;
 -- select bit_xor with group by (result)
 --Testcase 3426:
 SELECT tag1, bit_xor(value5) FROM s7a GROUP BY tag1;
-ERROR:  stub bit_xor_sfunc(numeric, anyelement) is called
-CONTEXT:  PL/pgSQL function bit_xor_sfunc(numeric,anyelement) line 3 at RAISE
+ERROR:  cannot XOR bit strings of different sizes
 -- select bit_xor with group by having (explain)
 --Testcase 3427:
 EXPLAIN VERBOSE
-SELECT id, bit_xor(value5) FROM s7a GROUP BY id, str1 HAVING bit_xor(value5) > 0;
+SELECT id, bit_xor(value5) FROM s7a GROUP BY id, str1 HAVING bit_xor(value5) > 0::bit;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- HashAggregate  (cost=3871.91..3874.41 rows=67 width=68)
+ HashAggregate  (cost=475.97..478.47 rows=67 width=68)
    Output: id, bit_xor(value5), str1
    Group Key: s7a.id, s7a.str1
-   Filter: (bit_xor(s7a.value5) > '0'::numeric)
+   Filter: (bit_xor(s7a.value5) > '0'::bit(1))
    ->  Foreign Scan on public.s7a  (cost=200.00..424.78 rows=6826 width=45)
          Output: id, str1, value5
          Node: pgspider_svr1 / Status: Alive
@@ -47639,9 +47642,16 @@ SELECT id, bit_xor(value5) FROM s7a GROUP BY id, str1 HAVING bit_xor(value5) > 0
 
 -- select bit_xor with group by having (result)
 --Testcase 3428:
-SELECT id, bit_xor(value5) FROM s7a GROUP BY id, str1 HAVING bit_xor(value5) > 0;
-ERROR:  stub bit_xor_sfunc(numeric, anyelement) is called
-CONTEXT:  PL/pgSQL function bit_xor_sfunc(numeric,anyelement) line 3 at RAISE
+SELECT id, bit_xor(value5) FROM s7a GROUP BY id, str1 HAVING bit_xor(value5) > 0::bit;
+ id |     bit_xor      
+----+------------------
+  1 | 1111111100110100
+  4 | 1100110100110100
+  3 | 1111101000110100
+  0 | 1001000110100
+  5 | 1010101100110100
+(5 rows)
+
 -- ===================================================================
 -- test GROUP_CONCAT()
 -- ===================================================================
@@ -47737,7 +47747,7 @@ EXPLAIN VERBOSE
 SELECT id, group_concat(value3) FROM s7a GROUP BY 1, value1 HAVING group_concat(value3) IS NOT NULL;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- HashAggregate  (cost=3871.91..3873.91 rows=199 width=44)
+ HashAggregate  (cost=2165.41..2167.41 rows=199 width=44)
    Output: id, group_concat(value3), value1
    Group Key: s7a.id, s7a.value1
    Filter: (group_concat(s7a.value3) IS NOT NULL)
@@ -48041,7 +48051,7 @@ EXPLAIN VERBOSE
 SELECT id, group_concat(DISTINCT value3) FROM s7a GROUP BY 1, value1 HAVING group_concat(DISTINCT value3) IS NOT NULL;
                                     QUERY PLAN                                    
 ----------------------------------------------------------------------------------
- GroupAggregate  (cost=859.49..4325.68 rows=199 width=44)
+ GroupAggregate  (cost=859.49..2619.18 rows=199 width=44)
    Output: id, group_concat(DISTINCT value3), value1
    Group Key: s7a.id, s7a.value1
    Filter: (group_concat(DISTINCT s7a.value3) IS NOT NULL)
@@ -48382,7 +48392,7 @@ EXPLAIN VERBOSE
 SELECT tag1, json_agg(value3) FROM s7a GROUP BY 1, value1 HAVING json_agg(value3) IS NOT NULL;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- HashAggregate  (cost=493.04..496.04 rows=199 width=72)
+ HashAggregate  (cost=475.97..478.47 rows=199 width=72)
    Output: tag1, json_agg(value3), value1
    Group Key: s7a.tag1, s7a.value1
    Filter: (json_agg(s7a.value3) IS NOT NULL)
@@ -48413,7 +48423,7 @@ EXPLAIN VERBOSE
 SELECT tag1, json_agg(value3 + 1) FROM s7a GROUP BY 1, value1 HAVING json_agg(value3 + 1) IS NOT NULL;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- HashAggregate  (cost=527.17..530.17 rows=199 width=72)
+ HashAggregate  (cost=493.04..495.54 rows=199 width=72)
    Output: tag1, json_agg((value3 + '1'::double precision)), value1
    Group Key: s7a.tag1, s7a.value1
    Filter: (json_agg((s7a.value3 + '1'::double precision)) IS NOT NULL)
@@ -48444,7 +48454,7 @@ EXPLAIN VERBOSE
 SELECT tag1, json_agg(abs(value3)) FROM s7a GROUP BY 1, value1 HAVING json_agg(abs(value3)) IS NOT NULL;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- HashAggregate  (cost=527.17..530.17 rows=199 width=72)
+ HashAggregate  (cost=493.04..495.54 rows=199 width=72)
    Output: tag1, json_agg(abs(value3)), value1
    Group Key: s7a.tag1, s7a.value1
    Filter: (json_agg(abs(s7a.value3)) IS NOT NULL)
@@ -48601,7 +48611,7 @@ EXPLAIN VERBOSE
 SELECT id, json_object_agg(tag1, str1) FROM s7a GROUP BY 1, value1 HAVING json_object_agg(tag1, str1) IS NOT NULL;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- HashAggregate  (cost=493.04..496.04 rows=199 width=44)
+ HashAggregate  (cost=475.97..478.47 rows=199 width=44)
    Output: id, json_object_agg(tag1, str1), value1
    Group Key: s7a.id, s7a.value1
    Filter: (json_object_agg(s7a.tag1, s7a.str1) IS NOT NULL)
@@ -48753,7 +48763,7 @@ EXPLAIN VERBOSE
 SELECT tag1, std(value4) FROM s7a GROUP BY tag1 HAVING  std(value4) > 0;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- HashAggregate  (cost=3854.84..3857.34 rows=67 width=40)
+ HashAggregate  (cost=2148.34..2150.84 rows=67 width=40)
    Output: tag1, std(value4)
    Group Key: s7a.tag1
    Filter: (std(s7a.value4) > '0'::double precision)
@@ -50321,7 +50331,7 @@ EXPLAIN VERBOSE
 SELECT count(c2), json_contains(c1, '1', '$.a') FROM s8 group by json_contains(c1, '1', '$.a') HAVING count(c2) > 0;
                                                QUERY PLAN                                               
 --------------------------------------------------------------------------------------------------------
- HashAggregate  (cost=2182.47..2201.72 rows=67 width=12)
+ HashAggregate  (cost=2165.41..2184.66 rows=67 width=12)
    Output: count(c2), (json_contains(c1, '1'::json, '$.a'::text))
    Group Key: (json_contains(s8.c1, '1'::json, '$.a'::text))
    Filter: (count(s8.c2) > 0)
@@ -50668,7 +50678,7 @@ EXPLAIN VERBOSE
 SELECT count(c2), json_contains_path(c1, 'one', '$.a', '$.e') FROM s8 group by json_contains_path(c1, 'one', '$.a', '$.e') HAVING count(c2) > 0;
                                                       QUERY PLAN                                                       
 -----------------------------------------------------------------------------------------------------------------------
- HashAggregate  (cost=2182.47..2201.72 rows=67 width=12)
+ HashAggregate  (cost=2165.41..2184.66 rows=67 width=12)
    Output: count(c2), (json_contains_path(c1, VARIADIC '{one,$.a,$.e}'::text[]))
    Group Key: (json_contains_path(s8.c1, VARIADIC '{one,$.a,$.e}'::text[]))
    Filter: (count(s8.c2) > 0)
@@ -50995,7 +51005,7 @@ EXPLAIN VERBOSE
 SELECT count(c2), json_depth(c1) FROM s8 group by json_depth(c1) HAVING count(c2) > 0;
                                  QUERY PLAN                                  
 -----------------------------------------------------------------------------
- HashAggregate  (cost=2182.47..2201.72 rows=67 width=12)
+ HashAggregate  (cost=2165.41..2184.66 rows=67 width=12)
    Output: count(c2), (json_depth(c1))
    Group Key: (json_depth(s8.c1))
    Filter: (count(s8.c2) > 0)
@@ -51432,7 +51442,7 @@ EXPLAIN VERBOSE
 SELECT count(c2), json_extract(c1, '$[1]') FROM s8 group by json_extract(c1, '$[1]') HAVING count(c2) > 0;
                                                 QUERY PLAN                                                
 ----------------------------------------------------------------------------------------------------------
- HashAggregate  (cost=2182.47..2201.72 rows=67 width=40)
+ HashAggregate  (cost=2165.41..2184.66 rows=67 width=40)
    Output: count(c2), (json_extract(c1, VARIADIC '{$[1]}'::text[]))
    Group Key: (json_extract(s8.c1, VARIADIC '{$[1]}'::text[]))
    Filter: (count(s8.c2) > 0)
@@ -52246,7 +52256,7 @@ EXPLAIN VERBOSE
 SELECT count(c2), json_length(json_keys(c1)) FROM s8 group by json_length(json_keys(c1)) HAVING count(c2) > 0;
                                            QUERY PLAN                                           
 ------------------------------------------------------------------------------------------------
- HashAggregate  (cost=3888.97..3924.97 rows=67 width=12)
+ HashAggregate  (cost=3871.91..3907.91 rows=67 width=12)
    Output: count(c2), (json_length(json_keys(c1)))
    Group Key: (json_length(json_keys(s8.c1)))
    Filter: (count(s8.c2) > 0)
@@ -52598,7 +52608,7 @@ EXPLAIN VERBOSE
 SELECT count(c2), json_length(c1) FROM s8 group by json_length(c1) HAVING count(c2) > 0;
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
- HashAggregate  (cost=2182.47..2201.72 rows=67 width=12)
+ HashAggregate  (cost=2165.41..2184.66 rows=67 width=12)
    Output: count(c2), (json_length(c1))
    Group Key: (json_length(s8.c1))
    Filter: (count(s8.c2) > 0)
@@ -52951,7 +52961,7 @@ EXPLAIN VERBOSE
 SELECT count(c2), json_length(json_merge(c1, '[1, 2]')) FROM s8 group by json_length(json_merge(c1, '[1, 2]')) HAVING count(c2) > 0;
                                                            QUERY PLAN                                                            
 ---------------------------------------------------------------------------------------------------------------------------------
- HashAggregate  (cost=3888.97..3924.97 rows=67 width=12)
+ HashAggregate  (cost=3871.91..3907.91 rows=67 width=12)
    Output: count(c2), (json_length(json_merge(VARIADIC ARRAY[c1, '[1, 2]'::json])))
    Group Key: (json_length(json_merge(VARIADIC ARRAY[s8.c1, '[1, 2]'::json])))
    Filter: (count(s8.c2) > 0)
@@ -53302,7 +53312,7 @@ EXPLAIN VERBOSE
 SELECT count(c2), json_length(json_merge_patch(c1, '[1, 2]')) FROM s8 group by json_length(json_merge_patch(c1, '[1, 2]')) HAVING count(c2) > 0;
                                                               QUERY PLAN                                                               
 ---------------------------------------------------------------------------------------------------------------------------------------
- HashAggregate  (cost=3888.97..3924.97 rows=67 width=12)
+ HashAggregate  (cost=3871.91..3907.91 rows=67 width=12)
    Output: count(c2), (json_length(json_merge_patch(VARIADIC ARRAY[c1, '[1, 2]'::json])))
    Group Key: (json_length(json_merge_patch(VARIADIC ARRAY[s8.c1, '[1, 2]'::json])))
    Filter: (count(s8.c2) > 0)
@@ -53651,7 +53661,7 @@ EXPLAIN VERBOSE
 SELECT count(c2), json_length(json_merge_preserve(c1, '[1, 2]')) FROM s8 group by json_length(json_merge_preserve(c1, '[1, 2]')) HAVING count(c2) > 0;
                                                                 QUERY PLAN                                                                
 ------------------------------------------------------------------------------------------------------------------------------------------
- HashAggregate  (cost=3888.97..3924.97 rows=67 width=12)
+ HashAggregate  (cost=3871.91..3907.91 rows=67 width=12)
    Output: count(c2), (json_length(json_merge_preserve(VARIADIC ARRAY[c1, '[1, 2]'::json])))
    Group Key: (json_length(json_merge_preserve(VARIADIC ARRAY[s8.c1, '[1, 2]'::json])))
    Filter: (count(s8.c2) > 0)
@@ -54301,7 +54311,7 @@ EXPLAIN VERBOSE
 SELECT count(c2), json_overlaps(c1, '[[1, 2], [3, 4], 5]') FROM s8 group by json_overlaps(c1, '[[1, 2], [3, 4], 5]') HAVING count(c2) > 0;
                                                  QUERY PLAN                                                  
 -------------------------------------------------------------------------------------------------------------
- HashAggregate  (cost=2182.47..2201.72 rows=67 width=12)
+ HashAggregate  (cost=2165.41..2184.66 rows=67 width=12)
    Output: count(c2), (json_overlaps(c1, '[[1, 2], [3, 4], 5]'::json))
    Group Key: (json_overlaps(s8.c1, '[[1, 2], [3, 4], 5]'::json))
    Filter: (count(s8.c2) > 0)
@@ -55082,7 +55092,7 @@ EXPLAIN VERBOSE
 SELECT count(c2), json_length(json_pretty(c1)) FROM s8 group by json_length(json_pretty(c1)) HAVING count(c2) > 0;
                                             QUERY PLAN                                            
 --------------------------------------------------------------------------------------------------
- HashAggregate  (cost=3888.97..3924.97 rows=67 width=12)
+ HashAggregate  (cost=3871.91..3907.91 rows=67 width=12)
    Output: count(c2), (json_length(json_pretty(c1)))
    Group Key: (json_length(json_pretty(s8.c1)))
    Filter: (count(s8.c2) > 0)
@@ -55456,7 +55466,7 @@ EXPLAIN VERBOSE
 SELECT count(c2), json_length(json_quote(c3)) FROM s8 group by json_length(json_quote(c3)) HAVING count(c2) > 0;
                                            QUERY PLAN                                            
 -------------------------------------------------------------------------------------------------
- HashAggregate  (cost=3888.97..3924.97 rows=67 width=12)
+ HashAggregate  (cost=3871.91..3907.91 rows=67 width=12)
    Output: count(c2), (json_length(json_quote(c3)))
    Group Key: (json_length(json_quote(s8.c3)))
    Filter: (count(s8.c2) > 0)
@@ -55804,7 +55814,7 @@ EXPLAIN VERBOSE
 SELECT count(c2), json_length(json_remove(c1, '$[1]')) FROM s8 group by json_length(json_remove(c1, '$[1]')) HAVING count(c2) > 0;
                                                          QUERY PLAN                                                          
 -----------------------------------------------------------------------------------------------------------------------------
- HashAggregate  (cost=3888.97..3924.97 rows=67 width=12)
+ HashAggregate  (cost=3871.91..3907.91 rows=67 width=12)
    Output: count(c2), (json_length(json_remove(c1, VARIADIC '{$[1]}'::text[])))
    Group Key: (json_length(json_remove(s8.c1, VARIADIC '{$[1]}'::text[])))
    Filter: (count(s8.c2) > 0)
@@ -56578,7 +56588,7 @@ EXPLAIN VERBOSE
 SELECT count(id), json_schema_valid(c1, '{"latitude": 63.444697,"longitude": 10.445118}'::json) FROM s9 group by json_schema_valid(c1, '{"latitude": 63.444697,"longitude": 10.445118}'::json) HAVING count(id) > 0;
                                                                  QUERY PLAN                                                                 
 --------------------------------------------------------------------------------------------------------------------------------------------
- HashAggregate  (cost=2182.47..2201.72 rows=67 width=12)
+ HashAggregate  (cost=2165.41..2184.66 rows=67 width=12)
    Output: count(id), (json_schema_valid(c1, '{"latitude": 63.444697,"longitude": 10.445118}'::json))
    Group Key: (json_schema_valid(s9.c1, '{"latitude": 63.444697,"longitude": 10.445118}'::json))
    Filter: (count(s9.id) > 0)
@@ -56880,7 +56890,7 @@ EXPLAIN VERBOSE
 SELECT count(id), json_length(json_schema_validation_report(c1, '{"latitude": 63.444697,"longitude": 10.445118}')) FROM s9 group by json_length(json_schema_validation_report(c1, '{"latitude": 63.444697,"longitude": 10.445118}')) HAVING count(id) > 0;
                                                                                  QUERY PLAN                                                                                 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- HashAggregate  (cost=3888.97..3924.97 rows=67 width=12)
+ HashAggregate  (cost=3871.91..3907.91 rows=67 width=12)
    Output: count(id), (json_length(json_schema_validation_report(c1, '{"latitude": 63.444697,"longitude": 10.445118}'::json)))
    Group Key: (json_length(json_schema_validation_report(s9.c1, '{"latitude": 63.444697,"longitude": 10.445118}'::json)))
    Filter: (count(s9.id) > 0)
@@ -57213,7 +57223,7 @@ EXPLAIN VERBOSE
 SELECT count(c2), json_search(c1, 'one', 'abc') FROM s8 group by json_search(c1, 'one', 'abc') HAVING count(c2) > 0;
                                                QUERY PLAN                                               
 --------------------------------------------------------------------------------------------------------
- HashAggregate  (cost=2182.47..2201.72 rows=67 width=40)
+ HashAggregate  (cost=2165.41..2184.66 rows=67 width=40)
    Output: count(c2), (json_search(c1, 'one'::text, 'abc'::text))
    Group Key: (json_search(s8.c1, 'one'::text, 'abc'::text))
    Filter: (count(s8.c2) > 0)
@@ -58131,7 +58141,7 @@ EXPLAIN VERBOSE
 SELECT count(c2), json_storage_size(c1) FROM s8 group by json_storage_size(c1) HAVING count(c2) > 0;
                                      QUERY PLAN                                     
 ------------------------------------------------------------------------------------
- HashAggregate  (cost=2182.47..2201.72 rows=67 width=12)
+ HashAggregate  (cost=2165.41..2184.66 rows=67 width=12)
    Output: count(c2), (json_storage_size(c1))
    Group Key: (json_storage_size(s8.c1))
    Filter: (count(s8.c2) > 0)
@@ -58701,7 +58711,7 @@ EXPLAIN VERBOSE
 SELECT count(c2), json_type(c1) FROM s8 group by json_type(c1) HAVING count(c2) > 0;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- HashAggregate  (cost=2182.47..2201.72 rows=67 width=40)
+ HashAggregate  (cost=2165.41..2184.66 rows=67 width=40)
    Output: count(c2), (json_type(c1))
    Group Key: (json_type(s8.c1))
    Filter: (count(s8.c2) > 0)
@@ -59082,7 +59092,7 @@ EXPLAIN VERBOSE
 SELECT count(c2), json_unquote(c3) FROM s8 group by json_unquote(c3) HAVING count(c2) > 0;
                                   QUERY PLAN                                   
 -------------------------------------------------------------------------------
- HashAggregate  (cost=2182.47..2201.72 rows=67 width=40)
+ HashAggregate  (cost=2165.41..2184.66 rows=67 width=40)
    Output: count(c2), (json_unquote(c3))
    Group Key: (json_unquote(s8.c3))
    Filter: (count(s8.c2) > 0)
@@ -59431,7 +59441,7 @@ EXPLAIN VERBOSE
 SELECT count(c2), json_valid(c1) FROM s8 group by json_valid(c1) HAVING count(c2) > 0;
                                  QUERY PLAN                                  
 -----------------------------------------------------------------------------
- HashAggregate  (cost=2182.47..2201.72 rows=67 width=12)
+ HashAggregate  (cost=2165.41..2184.66 rows=67 width=12)
    Output: count(c2), (json_valid(c1))
    Group Key: (json_valid(s8.c1))
    Filter: (count(s8.c2) > 0)
@@ -59916,7 +59926,7 @@ EXPLAIN VERBOSE
 SELECT count(c2), json_value(c1, '$.a') FROM s8 group by json_value(c1, '$.a') HAVING count(c2) > 0;
                                         QUERY PLAN                                        
 ------------------------------------------------------------------------------------------
- HashAggregate  (cost=2182.47..2201.72 rows=67 width=40)
+ HashAggregate  (cost=2165.41..2184.66 rows=67 width=40)
    Output: count(c2), (json_value(c1, '$.a'::text))
    Group Key: (json_value(s8.c1, '$.a'::text))
    Filter: (count(s8.c2) > 0)
@@ -60262,7 +60272,7 @@ EXPLAIN VERBOSE
 SELECT count(c2), member_of(5, c1) FROM s8 group by member_of(5, c1) HAVING count(c2) > 0;
                                   QUERY PLAN                                   
 -------------------------------------------------------------------------------
- HashAggregate  (cost=2182.47..2201.72 rows=67 width=12)
+ HashAggregate  (cost=2165.41..2184.66 rows=67 width=12)
    Output: count(c2), (member_of(5, c1))
    Group Key: (member_of(5, s8.c1))
    Filter: (count(s8.c2) > 0)

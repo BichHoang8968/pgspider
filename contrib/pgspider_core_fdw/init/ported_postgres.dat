@@ -73,7 +73,6 @@ CREATE TABLE "S 1"."T 4" (
 );
 
 
-
 -- Disable autovacuum for these tables to avoid unexpected effects of that
 
 ALTER TABLE "S 1"."T 1" SET (autovacuum_enabled = 'false');
@@ -84,6 +83,12 @@ ALTER TABLE "S 1"."T 3" SET (autovacuum_enabled = 'false');
 
 ALTER TABLE "S 1"."T 4" SET (autovacuum_enabled = 'false');
 
+
+-- ===================================================================
+-- simple queries
+-- ===================================================================
+
+CREATE TABLE ft_empty (c1 int NOT NULL, c2 text);
 
 -- ==================================================================
 
@@ -134,9 +139,7 @@ $$ LANGUAGE plpgsql;
 
 -- ===================================================================
 
-create table loct3_1 (f1 text collate "C" unique, f2 text, f3 varchar(10) unique);
-
-
+create table loct3 (f1 text collate "C" unique, f2 text, f3 varchar(10) unique);
 
 -- ===================================================================
 
@@ -213,6 +216,10 @@ create table bar (f1 int, f2 int);
 
 alter table bar set (autovacuum_enabled = 'false');
 
+-- Now check SELECT FOR UPDATE/SHARE with an inherited source table,
+-- where the parent is itself a foreign table
+
+create table loct4 (f1 int, f2 int, f3 int);
 
 
 -- Test pushing down UPDATE/DELETE joins to the remote server
@@ -317,6 +324,23 @@ CREATE TYPE "Colors" AS ENUM ('red', 'green', 'blue');
 
 
 -- ===================================================================
+-- test for TRUNCATE
+-- ===================================================================
+
+CREATE TABLE tru_rtable0 (id int primary key);
+
+CREATE TABLE tru_ptable__p0 (id int);
+CREATE TABLE tru_rtable1 (id int primary key);
+
+CREATE TABLE tru_pk_table(id int primary key);
+CREATE TABLE tru_fk_table(fkey int references tru_pk_table(id));
+
+CREATE TABLE tru_rtable_parent (id int);
+CREATE TABLE tru_rtable_child (id int);
+
+CREATE TABLE tru_rtable0_child () INHERITS (tru_rtable0);
+
+-- ===================================================================
 
 -- test partitionwise joins
 
@@ -372,5 +396,19 @@ INSERT INTO pagg_tab_p1 SELECT i % 30, i % 50, to_char(i/30, 'FM0000') FROM gene
 INSERT INTO pagg_tab_p2 SELECT i % 30, i % 50, to_char(i/30, 'FM0000') FROM generate_series(1, 3000) i WHERE (i % 30) < 20 and (i % 30) >= 10;
 
 INSERT INTO pagg_tab_p3 SELECT i % 30, i % 50, to_char(i/30, 'FM0000') FROM generate_series(1, 3000) i WHERE (i % 30) < 30 and (i % 30) >= 20;
+
+-- ===================================================================
+-- batch insert
+-- ===================================================================
+
+CREATE TABLE batch_table ( x int );
+
+CREATE TABLE batch_table_p0 ( x int );
+CREATE TABLE batch_table_p1 ( x int );
+
+CREATE TABLE batch_cp_upd_test1 (a int);
+
+CREATE TABLE batch_table_p2 ( x int, field1 text, field2 text);
+CREATE TABLE batch_table_p3 ( x int, field1 text, field2 text);
 
 \q

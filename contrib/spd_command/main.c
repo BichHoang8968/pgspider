@@ -8,7 +8,7 @@
 #define ARG_INVALID(...) (fprintf(stderr, __VA_ARGS__))
 
 int
-pqexe_wrp(PGconn * conn, char *sql)
+pqexe_wrp(PGconn *conn, char *sql)
 {
 	PGresult   *res;
 
@@ -69,7 +69,7 @@ print_usage()
 }
 
 int
-pqexe_wrp_nocheck(PGconn * conn, char *sql, char *option[])
+pqexe_wrp_nocheck(PGconn *conn, char *sql, char *option[])
 {
 	PGresult   *res;
 
@@ -89,7 +89,7 @@ pqexe_wrp_nocheck(PGconn * conn, char *sql, char *option[])
 
 
 int
-create_connection(PGconn * *conn, char *option[])
+create_connection(PGconn **conn, char *option[])
 {
 	*conn = PQsetdbLogin(
 						 option[0],
@@ -109,7 +109,7 @@ create_connection(PGconn * *conn, char *option[])
 }
 
 int
-node_get(char *option[], PGconn * conn, int option_length)
+node_get(char *option[], PGconn *conn, int option_length)
 {
 	PGresult   *resp;
 	char		sql[1024];
@@ -148,7 +148,7 @@ node_get(char *option[], PGconn * conn, int option_length)
 
 
 int
-node_set_spd(char *option[], PGconn * conn, int option_length)
+node_set_spd(char *option[], PGconn *conn, int option_length)
 {
 	char		sql[1024];
 	int			rtn;
@@ -175,7 +175,7 @@ node_set_spd(char *option[], PGconn * conn, int option_length)
 
 
 int
-node_set_tb(char *option[], PGconn * conn, int option_length)
+node_set_tb(char *option[], PGconn *conn, int option_length)
 {
 	char		sql[1024];
 	int			rtn;
@@ -203,7 +203,7 @@ node_set_tb(char *option[], PGconn * conn, int option_length)
 }
 
 int
-node_set_my(char *option[], PGconn * conn, int option_length)
+node_set_my(char *option[], PGconn *conn, int option_length)
 {
 	char		sql[1024];
 	int			rtn = 0;
@@ -229,7 +229,7 @@ node_set_my(char *option[], PGconn * conn, int option_length)
 }
 
 int
-node_set_pg(char *option[], PGconn * conn, int option_length)
+node_set_pg(char *option[], PGconn *conn, int option_length)
 {
 	char		sql[1024];
 	int			rtn = 0;
@@ -256,7 +256,7 @@ node_set_pg(char *option[], PGconn * conn, int option_length)
 }
 
 int
-node_set_sl(char *option[], PGconn * conn, int option_length)
+node_set_sl(char *option[], PGconn *conn, int option_length)
 {
 	char		sql[1024];
 	int			rtn = 0;
@@ -280,7 +280,7 @@ node_set_sl(char *option[], PGconn * conn, int option_length)
 }
 
 int
-node_set_file(char *option[], PGconn * conn, int option_length)
+node_set_file(char *option[], PGconn *conn, int option_length)
 {
 	char		sql[1024];
 	int			rtn = 0;
@@ -304,7 +304,7 @@ node_set_file(char *option[], PGconn * conn, int option_length)
 }
 
 int
-node_set_griddb(char *option[], PGconn * conn, int option_length)
+node_set_griddb(char *option[], PGconn *conn, int option_length)
 {
 	char		sql[1024];
 	int			rtn;
@@ -334,7 +334,7 @@ node_set_griddb(char *option[], PGconn * conn, int option_length)
 
 
 int
-node_set(char *option[], PGconn * conn, int option_length)
+node_set(char *option[], PGconn *conn, int option_length)
 {
 
 	int			rtn = 0;
@@ -391,7 +391,7 @@ node_set(char *option[], PGconn * conn, int option_length)
 }
 
 int
-node_del(char *option[], PGconn * conn, int option_length)
+node_del(char *option[], PGconn *conn, int option_length)
 {
 	PGresult   *res;
 	char		sql[1024];
@@ -418,7 +418,7 @@ node_del(char *option[], PGconn * conn, int option_length)
 }
 
 int
-table_get(char *option[], PGconn * conn, int option_length)
+table_get(char *option[], PGconn *conn, int option_length)
 {
 	PGresult   *resp;
 	PGresult   *resp_column;
@@ -480,7 +480,7 @@ table_get(char *option[], PGconn * conn, int option_length)
 }
 
 int
-table_set(char *option[], PGconn * conn, int option_length)
+table_set(char *option[], PGconn *conn, int option_length)
 {
 	char		sql[1024];
 	int			rtn = 0;
@@ -502,7 +502,7 @@ table_set(char *option[], PGconn * conn, int option_length)
 }
 
 int
-table_del(char *option[], PGconn * conn, int option_length)
+table_del(char *option[], PGconn *conn, int option_length)
 {
 	PGresult   *resp;
 	char		sql[1024];
@@ -551,7 +551,7 @@ table_del(char *option[], PGconn * conn, int option_length)
 }
 
 int
-get_mapping_nums(PGconn * conn, char *option[])
+get_mapping_nums(PGconn *conn, char *option[])
 {
 	PGresult   *res;
 	char		sql[1024];
@@ -572,7 +572,7 @@ get_mapping_nums(PGconn * conn, char *option[])
 }
 
 int
-mapping_set_spd(char *option[], PGconn * conn, int option_length, char *table_name)
+mapping_set_spd(char *option[], PGconn *conn, int option_length, char *table_name)
 {
 	PGresult   *res;
 	char		sql[1024];
@@ -597,7 +597,7 @@ mapping_set_spd(char *option[], PGconn * conn, int option_length, char *table_na
 }
 
 int
-mapping_set_tb(char *option[], PGconn * conn, int option_length, char *table_name)
+mapping_set_tb(char *option[], PGconn *conn, int option_length, char *table_name)
 {
 	char		sql[1024];
 	int			resp_cnt = 0;
@@ -622,7 +622,7 @@ mapping_set_tb(char *option[], PGconn * conn, int option_length, char *table_nam
 }
 
 int
-mapping_set_my(char *option[], PGconn * conn, int option_length, char *table_name)
+mapping_set_my(char *option[], PGconn *conn, int option_length, char *table_name)
 {
 	char		sql[1024];
 	int			resp_cnt = 0;
@@ -647,7 +647,7 @@ mapping_set_my(char *option[], PGconn * conn, int option_length, char *table_nam
 }
 
 int
-mapping_set_pg(char *option[], PGconn * conn, int option_length, char *table_name)
+mapping_set_pg(char *option[], PGconn *conn, int option_length, char *table_name)
 {
 	char		sql[1024];
 	int			resp_cnt = 0;
@@ -672,7 +672,7 @@ mapping_set_pg(char *option[], PGconn * conn, int option_length, char *table_nam
 }
 
 int
-mapping_set_sl(char *option[], PGconn * conn, int option_length, char *table_name)
+mapping_set_sl(char *option[], PGconn *conn, int option_length, char *table_name)
 {
 	char		sql[1024];
 	int			resp_cnt = 0;
@@ -697,7 +697,7 @@ mapping_set_sl(char *option[], PGconn * conn, int option_length, char *table_nam
 }
 
 int
-mapping_set_file(char *option[], PGconn * conn, int option_length, char *table_name)
+mapping_set_file(char *option[], PGconn *conn, int option_length, char *table_name)
 {
 	char		sql[1024];
 	int			resp_cnt = 0;
@@ -718,7 +718,7 @@ mapping_set_file(char *option[], PGconn * conn, int option_length, char *table_n
 }
 
 int
-mapping_set_griddb(char *option[], PGconn * conn, int option_length, char *table_name)
+mapping_set_griddb(char *option[], PGconn *conn, int option_length, char *table_name)
 {
 	char		sql[1024];
 	int			resp_cnt = 0;
@@ -745,7 +745,7 @@ mapping_set_griddb(char *option[], PGconn * conn, int option_length, char *table
 
 /* compare mapping table column to parent table column */
 int
-check_column(char *option[], PGconn * conn, char *table_name)
+check_column(char *option[], PGconn *conn, char *table_name)
 {
 	PGresult   *res_par;
 	PGresult   *res_chi;
@@ -780,7 +780,7 @@ check_column(char *option[], PGconn * conn, char *table_name)
 }
 
 int
-mapping_quick_drop(PGconn * conn, char *table_name)
+mapping_quick_drop(PGconn *conn, char *table_name)
 {
 	char		sql[1024];
 	int			rtn = 0;
@@ -791,7 +791,7 @@ mapping_quick_drop(PGconn * conn, char *table_name)
 }
 
 int
-mapping_set(char *option[], PGconn * conn, int option_length)
+mapping_set(char *option[], PGconn *conn, int option_length)
 {
 	PGresult   *res;
 	char		sql[1024];
@@ -896,7 +896,7 @@ mapping_set(char *option[], PGconn * conn, int option_length)
 }
 
 int
-mapping_del(char *option[], PGconn * conn, int option_length)
+mapping_del(char *option[], PGconn *conn, int option_length)
 {
 	PGresult   *resp;
 	char		sql[1024];

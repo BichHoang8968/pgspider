@@ -130,6 +130,26 @@ PG_MODULE_MAGIC;
 /* For checking single node or multiple node */
 #define SPD_SINGLE_NODE	1
 
+/*
+ * Same as COMPARE_SCALAR_FIELD of equalfuncs.c
+ * Compare a simple scalar field (int, float, bool, enum, etc).
+ */
+#define SPD_COMPARE_SCALAR_FIELD(fldname) \
+	do { \
+		if (a->fldname != b->fldname) \
+			return false; \
+	} while (0)
+
+/*
+ * Same as COMPARE_NODE_FIELD of equalfuncs.c
+ * Compare a field that is a pointer to some kind of Node or Node tree
+ */
+#define SPD_COMPARE_NODE_FIELD(fldname) \
+	do { \
+		if (!spd_equal(a->fldname, b->fldname)) \
+			return false; \
+	} while (0)
+
 typedef enum
 {
 	SPD_FS_STATE_INIT,
@@ -165,7 +185,7 @@ typedef struct ForeignScanThreadInfo
 	Oid			serverId;		/* use it for server id */
 	ForeignServer *foreignServer;	/* cache this for performance */
 	ForeignDataWrapper *fdw;	/* cache this for performance */
-	bool		requestEndScan; /* main thread request endForeingScan to child
+	bool		requestEndScan; /* main thread request endForeignScan to child
 								 * thread */
 	bool		requestRescan;	/* main thread request rescan to child thread */
 	bool		requestStartScan; /* main thread request startscan to child thread */
@@ -481,6 +501,7 @@ static ForeignScan *spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel,
 static void spd_BeginForeignScan(ForeignScanState *node, int eflags);
 static TupleTableSlot *spd_IterateForeignScan(ForeignScanState *node);
 static void spd_ReScanForeignScan(ForeignScanState *node);
+static void spd_ShutdownForeignScan(ForeignScanState *node);
 static void spd_EndForeignScan(ForeignScanState *node);
 static void spd_GetForeignUpperPaths(PlannerInfo *root,
 						 UpperRelationKind stage,
@@ -501,10 +522,10 @@ static Path *get_foreign_grouping_paths(PlannerInfo *root,
 						   RelOptInfo *input_rel,
 						   RelOptInfo *grouped_rel);
 
-static void spd_AddForeignUpdateTargets(Query *parsetree,
-							RangeTblEntry *target_rte,
-							Relation target_relation);
-
+static void spd_AddForeignUpdateTargets(PlannerInfo *root,
+										Index rtindex,
+										RangeTblEntry *target_rte,
+										Relation target_relation);
 static List *spd_PlanForeignModify(PlannerInfo *root,
 					  ModifyTable *plan,
 					  Index resultRelation,
@@ -588,13 +609,16 @@ static List *spd_add_to_flat_tlist(List *tlist, Expr *exprs, List **mapping_tlis
 static bool	is_field_selection(List *tlist);
 static bool	is_cast_function(List *tlist);
 static List	*spd_update_scan_tlist(List *tlist, List *child_scan_tlist, PlannerInfo *root);
-static TargetEntry *spd_tlist_member_match_var(Var *var, List *targetlist);
-static TargetEntry *spd_tlist_member(Expr *node, List *targetlist, int *target_num);
+static bool	spd_equal(const void *a, const void *b);
+static bool	spd_equal_aggref(const Aggref *a, const Aggref *b);
+static TargetEntry	*spd_tlist_member_match_var(Var *var, List *targetlist);
+static TargetEntry	*spd_tlist_member(Expr *node, List *targetlist, int *target_num);
 static void spd_apply_pathtarget_labeling_to_tlist(List *tlist, PathTarget *target);
 
 static bool spd_expr_has_spdurl(PlannerInfo *root, Node *expr, List **target_exprs);
 static bool check_spdurl_walker(Node *node, SpdurlWalkerContext *ctx);
 
+static void spd_update_aggref_info(List *tlist);
 
 /************************************************************
  *                                                          *
@@ -621,6 +645,105 @@ spd_get_node_num(RelOptInfo *baserel)
  *                  STATIC FUNCTION                         *
  *                                                          *
  ***********************************************************/
+
+/*
+ * spd_update_aggref_info
+ *
+ * aggno and aggtransno are introduced in Aggref node from version 14.
+ * When making the compress tlist, some aggregation functions split out,
+ * for example, avg becomes count and sum. So, the index of aggno and aggtransno
+ * are the same, it will cause wrong result of SPI_execAgg on pseudo aggregation node.
+ */
+static void
+spd_update_aggref_info(List *tlist)
+{
+	ListCell	*lc;
+	int	aggref_count = 0;
+
+	foreach(lc, tlist)
+	{
+		TargetEntry	*tle = lfirst_node(TargetEntry, lc);
+
+		if (IsA((Node*)tle->expr, Aggref))
+		{
+			Aggref *aggref = (Aggref*) tle->expr;
+
+			aggref->aggno = aggref->aggtransno = aggref_count;
+			aggref_count++;
+		}
+	}
+}
+
+/*
+ * spd_equal_aggref
+ *
+ * Modified version of _equalAggref in equalfuncs.c.
+ * Ignore comparison of aggno, aggtransno and location.
+ */
+static bool
+spd_equal_aggref(const Aggref *a, const Aggref *b)
+{
+	SPD_COMPARE_SCALAR_FIELD(aggfnoid);
+	SPD_COMPARE_SCALAR_FIELD(aggtype);
+	SPD_COMPARE_SCALAR_FIELD(aggcollid);
+	SPD_COMPARE_SCALAR_FIELD(inputcollid);
+	/* ignore aggtranstype since it might not be set yet */
+	SPD_COMPARE_NODE_FIELD(aggargtypes);
+	SPD_COMPARE_NODE_FIELD(aggdirectargs);
+	SPD_COMPARE_NODE_FIELD(args);
+	SPD_COMPARE_NODE_FIELD(aggorder);
+	SPD_COMPARE_NODE_FIELD(aggdistinct);
+	SPD_COMPARE_NODE_FIELD(aggfilter);
+	SPD_COMPARE_SCALAR_FIELD(aggstar);
+	SPD_COMPARE_SCALAR_FIELD(aggvariadic);
+	SPD_COMPARE_SCALAR_FIELD(aggkind);
+	SPD_COMPARE_SCALAR_FIELD(agglevelsup);
+	SPD_COMPARE_SCALAR_FIELD(aggsplit);
+
+	return true;
+}
+
+/*
+ * spd_equal
+ *
+ * Modified version of equal in equalfuncs.c
+ * returns whether two nodes are equal
+ */
+static bool
+spd_equal(const void *a, const void *b)
+{
+	bool		retval = false;
+
+	if (a == b)
+		return true;
+
+	/*
+	 * note that a!=b, so only one of them can be NULL
+	 */
+	if (a == NULL || b == NULL)
+		return false;
+
+	/*
+	 * are they the same type of nodes?
+	 */
+	if (nodeTag(a) != nodeTag(b))
+		return false;
+
+	/* Guard against stack overflow due to overly complex expressions */
+	check_stack_depth();
+
+	switch (nodeTag(a))
+	{
+		case T_Aggref:
+			retval = spd_equal_aggref(a, b);
+			break;
+		default:
+			retval = equal(a,b);
+			break;
+	}
+
+	return retval;
+}
 
 /*
  * spd_tlist_member_match_var
@@ -672,7 +795,7 @@ spd_tlist_member(Expr *node, List *targetlist, int *target_num)
 	{
 		TargetEntry *tlentry = (TargetEntry *) lfirst(temp);
 
-		if (equal(node, tlentry->expr))
+		if (spd_equal(node, tlentry->expr))
 			return tlentry;
 		*target_num += 1;
 	}
@@ -801,6 +924,7 @@ pgspider_core_fdw_handler(PG_FUNCTION_ARGS)
 	fdwroutine->BeginForeignScan = spd_BeginForeignScan;
 	fdwroutine->IterateForeignScan = spd_IterateForeignScan;
 	fdwroutine->ReScanForeignScan = spd_ReScanForeignScan;
+	fdwroutine->ShutdownForeignScan = spd_ShutdownForeignScan;
 	fdwroutine->EndForeignScan = spd_EndForeignScan;
 	fdwroutine->GetForeignUpperPaths = spd_GetForeignUpperPaths;
 	fdwroutine->GetForeignJoinPaths = spd_GetForeignJoinPaths;
@@ -2367,8 +2491,23 @@ spd_ErrorCb(void *arg)
 {
 	if (throwErrorIfDead)
 	{
+		ErrorData *err;
+		MemoryContext oldcontext;
+
+		oldcontext = MemoryContextSwitchTo(arg);
+		err = CopyErrorData();
+		MemoryContextSwitchTo(oldcontext);
+
 		pthread_mutex_lock(&error_mutex);
 		EmitErrorReport();
+		/*
+		 * Set value of is_child_thread_error flag to true to
+		 * notify PGSpider core that there is error in child
+		 * thread. Only need to notify when error level is from ERROR.
+		 */
+		if (err->elevel >= ERROR)
+			notify_child_thread_error(true);
+		FreeErrorData(err);
 		pthread_mutex_unlock(&error_mutex);
 	}
 }
@@ -2408,7 +2547,7 @@ spd_setThreadContext(ForeignScanThreadInfo *fssthrdInfo, ErrorContextCallback *p
 	/* Declare ereport/elog jump is not available. */
 	PG_exception_stack = NULL;
 	pErrcallback->callback = spd_ErrorCb;
-	pErrcallback->arg = NULL;
+	pErrcallback->arg = fssthrdInfo->threadMemoryContext;
 	pErrcallback->previous = NULL;
 	error_context_stack = pErrcallback;
 }
@@ -2625,8 +2764,8 @@ spd_IterateForeignScanChildLoop(ForeignScanThreadInfo *fssthrdInfo, ChildInfo *p
 				 */
 				fssthrdInfo->fsstate->ss.ps.ps_ExprContext->ecxt_per_tuple_memory = tuplectx[ctx_idx];
 				slot = fssthrdInfo->fdwroutine->IterateForeignScan(fssthrdInfo->fsstate);
-				SPD_RWUNLOCK_CATCH(scan_mutex);
 
+				SPD_RWUNLOCK_CATCH(scan_mutex);
 				deepcopy = true;
 
 				/*
@@ -2827,6 +2966,8 @@ spd_ForeignScan_thread(void *arg)
 	ChildInfo *pChildInfo = &fdw_private->childinfo[fssthrdInfo->childInfoIndex];
 	/* Flag use for check whether mysql_fdw called BeginForeignScan or not */
 	bool		is_first = true;
+	Latch	LocalLatchData;
+
 #ifdef GETPROGRESS_ENABLED
 	PGcancel   *cancel;
 	char		errbuf[BUFFERSIZE];
@@ -2838,6 +2979,13 @@ spd_ForeignScan_thread(void *arg)
 
 	gettimeofday(&s, NULL);
 #endif
+
+	/*
+	 * MyLatch is the thread local variable, when creating child thread 
+	 * we need to init it for use in child thread.
+	 */
+	MyLatch = &LocalLatchData;
+	InitLatch(MyLatch);
 
 	/* Configuration for context of error handling and memory context. */
 	spd_setThreadContext(fssthrdInfo, &errcallback, tuplectx);
@@ -4694,8 +4842,10 @@ is_shippable_grouping_target(PlannerInfo *root, RelOptInfo *grouped_rel, SpdFdwP
 			 * When expr is already in compress_child_tlist, add as duplicated will cause
 			 * wrong query when rebuilding query on temp table. No need to add as duplicated.
 			 */
-			if (!spd_tlist_member(expr, mapping_tlist, &target_num) && spd_tlist_member(expr, compress_child_tlist, &target_num))
+			if (!spd_tlist_member(expr, mapping_tlist, &target_num) &&
+				spd_tlist_member(expr, compress_child_tlist, &target_num))
 				allow_duplicate = false;
+
 			tlist = spd_add_to_flat_tlist(tlist, expr, &mapping_tlist, &compress_child_tlist, sgref, &upper_targets, allow_duplicate, false, false, fpinfo);
 			groupby_cursor += list_length(compress_child_tlist) - before_listnum;
 			/*
@@ -4864,8 +5014,15 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 			 * RestrictInfos, so we must make our own.
 			 */
 			Assert(!IsA(expr, RestrictInfo));
-			rinfo = make_restrictinfo(expr, true, false, false, root->qual_security_level,
-									  grouped_rel->relids, NULL, NULL);
+			rinfo = make_restrictinfo(root,
+									  expr,
+									  true,
+									  false,
+									  false,
+									  root->qual_security_level,
+									  grouped_rel->relids,
+									  NULL,
+									  NULL);
 			if (!spd_is_foreign_expr(root, grouped_rel, expr))
 				return false;
 
@@ -5633,6 +5790,12 @@ spd_CreateAggNodeForPseudoAgg(ChildInfo *pChildInfo, bool groupby_has_spdurl,
 	Plan *sort_plan = NULL;
 
 	/*
+	 * Update aggno and aggtransno for child tlist to avoid wrong result
+	 * of SPI_execAgg afterwards.
+	 */
+	spd_update_aggref_info(child_tlist);
+
+	/*
 	 * If groupby has SPDURL, SPDURL will be removed from the target
 	 * list. Before creating aggregation plan, re-indexing item by
 	 * resno for child target list. This helps SPI_execAgg puts data
@@ -6205,7 +6368,7 @@ spd_PrintError(int childnums, ChildInfo * childinfo)
  * @param[in] node
  */
 static void
-spd_end_child_node_thread(ForeignScanState *node, bool is_abort)
+spd_end_child_node_thread(ForeignScanState *node)
 {
 	int						node_incr;
 	int						rtn;
@@ -6232,11 +6395,6 @@ spd_end_child_node_thread(ForeignScanState *node, bool is_abort)
 
 	if (!fdw_private->is_explain)
 	{
-		/* In case of abort transaction, we don't need to drop temp table, it will control by spi module. */
-		if (fdw_private->temp_table_name != NULL && !is_abort)
-		{
-			spd_execute_local_query(psprintf("DROP TABLE IF EXISTS %s", fdw_private->temp_table_name), &fdw_private->scan_mutex);
-		}
 		for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 		{
 			fssThrdInfo[node_incr].requestEndScan = true;
@@ -6263,12 +6421,15 @@ spd_abort_transaction_callback(void *arg)
 
 	if (IsA(arg, ForeignScanState))
 	{
-		spd_end_child_node_thread((ForeignScanState *)arg, true);
+		spd_end_child_node_thread((ForeignScanState *)arg);
 		/*
 		 * Call this function to allow backend to check memory context size as usual
 		 * because the child threads finished running.
 		 */
 		skip_memory_checking(false);
+
+		/* Reset value of is_child_thread_error flag. */
+		notify_child_thread_error(false);
 	}
 }
 
@@ -8020,6 +8181,18 @@ spd_create_temp_table_sql(StringInfo create_sql, List *mapping_tlist,
 	elog(DEBUG1, "Create temp table: %s.", create_sql->data);
 }
 
+/**
+ * spd_drop_temp_table
+ *
+ * Drop temp table
+ */
+static void spd_drop_temp_table(SpdFdwPrivate * fdw_private)
+{
+	char *drop_table_sql = psprintf("DROP TABLE IF EXISTS %s", fdw_private->temp_table_name);
+
+	spd_execute_local_query(drop_table_sql, &fdw_private->scan_mutex);
+}
+
 /*
  * Add SPDURL value to the last position of a record value.
  * For example, given a record (1, a). New record will be (1, a, spdurl).
@@ -8389,6 +8562,7 @@ static TupleTableSlot *
 spd_IterateForeignScan(ForeignScanState *node)
 {
 	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
+	EState	   *estate = node->ss.ps.state;
 	int			count = 0;
 	ForeignScanThreadInfo *fssThrdInfo = node->spd_fsstate;
 	TupleTableSlot *slot = NULL,
@@ -8473,6 +8647,9 @@ spd_IterateForeignScan(ForeignScanState *node)
 			/* First time getting with pushdown from temp table. */
 			tempSlot = node->ss.ss_ScanTupleSlot;
 			tempSlot = spd_select_from_temp_table(tempSlot, node, fdw_private);
+
+			/* Mark to drop temp table by ShutdownForeignScan*/
+			estate->es_drop_table = true;
 		}
 		else
 		{
@@ -8518,6 +8695,12 @@ spd_ReScanForeignScan(ForeignScanState *node)
 		return;
 
 	/*
+	 * If rescan, a new temp table is created, we need to drop the old temp table
+	 */
+	if (fdw_private->temp_table_name != NULL)
+		spd_drop_temp_table(fdw_private);
+
+	/*
 	 * Number of child threads is only alive threads. Firstly, check to number
 	 * of aliving child threads.
 	 */
@@ -8557,6 +8740,37 @@ spd_ReScanForeignScan(ForeignScanState *node)
 }
 
 /**
+ * spd_ShutdownForeignScan
+ *
+ * Drop temp table.
+ *
+ * @param[in] node
+ */
+static void
+spd_ShutdownForeignScan(ForeignScanState *node)
+{
+	ForeignScanThreadInfo *fssThrdInfo = node->spd_fsstate;
+	EState *estate = node->ss.ps.state;
+	SpdFdwPrivate *fdw_private;
+
+	if (!estate->es_drop_table)
+		return;
+
+	if (!fssThrdInfo)
+		return;
+
+	fdw_private = (SpdFdwPrivate *) fssThrdInfo[0].private;
+	if (!fdw_private)
+		return;
+
+	if (estate->es_drop_table && fdw_private->temp_table_name != NULL)
+	{
+		spd_drop_temp_table(fdw_private);
+		estate->es_drop_table = false;
+	}
+}
+
+/**
  * spd_EndForeignScan
  *
  * spd_EndForeignScan ends the spd plan (i.e. does nothing).
@@ -8580,13 +8794,16 @@ spd_EndForeignScan(ForeignScanState *node)
 	if (!fdw_private)
 		return;
 
-	spd_end_child_node_thread((ForeignScanState *)node, false);
+	spd_end_child_node_thread((ForeignScanState *)node);
 
 	/*
 	 * Call this function to allow backend to check memory context size as usual
 	 * because the child threads finished running.
 	 */
 	skip_memory_checking(false);
+
+	/* Reset value of is_child_thread_error flag. */
+	notify_child_thread_error(false);
 
 	/* Wait until all the remote connections get closed. */
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
@@ -8703,12 +8920,14 @@ getModifyingFdwRoutine(Relation rel, SpdFdwPrivate *fdw_private)
  * list.
  * And check IN clause. Currently, IN must be used.
  *
- * @param[in] Query *parsetree,
- * @param[in] RangeTblEntry *target_rte
- * @param[in] Relation target_relation
+ * @param root *root
+ * @param rtindex rtindex
+ * @param target_rte *target_rte
+ * @param target_relation target_relation
  */
 static void
-spd_AddForeignUpdateTargets(Query *parsetree,
+spd_AddForeignUpdateTargets(PlannerInfo *root,
+							Index rtindex,
 							RangeTblEntry *target_rte,
 							Relation target_relation)
 {
@@ -8725,7 +8944,7 @@ spd_AddForeignUpdateTargets(Query *parsetree,
 	fdwroutine = GetFdwRoutineByServerId(oid_server);
 
 	MemoryContextSwitchTo(oldcontext);
-	fdwroutine->AddForeignUpdateTargets(parsetree, target_rte, target_relation);
+	fdwroutine->AddForeignUpdateTargets(root, rtindex, target_rte, target_relation);
 	return;
 }
 

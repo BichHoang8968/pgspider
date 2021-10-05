@@ -66,7 +66,7 @@ set_child_ip(PGconn *conn, nodes * node_data)
 
 	if (node_data->ip == NULL)
 		sprintf(query, "INSERT INTO pg_spd_node_info VALUES(0,'%s','%s','127.0.0.1');", node_data->name, node_data->fdw);
-	else if(strcmp(node_data->fdw,"influxdb_fdw")==0)
+	else if (strcmp(node_data->fdw, "influxdb_fdw") == 0)
 		sprintf(query, "INSERT INTO pg_spd_node_info VALUES(0,'%s','%s','127.0.0.1');", node_data->name, node_data->fdw);
 	else
 		sprintf(query, "INSERT INTO pg_spd_node_info VALUES(0,'%s','%s','%s');", node_data->name, node_data->fdw, node_data->ip);
@@ -86,25 +86,26 @@ replace_sla(char *str)
 	char	   *result;
 	char	   *p;
 	int			len;
-	int         start=0,end=0;
+	int			start = 0,
+				end = 0;
 
-	if(str==NULL)
+	if (str == NULL)
 		exit(1);
-	len=strlen(str) + 1;
+	len = strlen(str) + 1;
 	result = malloc(sizeof(char) * len);
 	if (result == NULL)
 		exit(1);
-	if(str[0]=='/')
-		start=1;
-	if(str[len-2]=='/')
-		end=1;
-	strncpy(result, str+start,len - 1 - start- end);
-	result[len - 1-start- end]='\0';
+	if (str[0] == '/')
+		start = 1;
+	if (str[len - 2] == '/')
+		end = 1;
+	strncpy(result, str + start, len - 1 - start - end);
+	result[len - 1 - start - end] = '\0';
 	p = strchr(result, '/');
 	while (p)
 	{
 		*p = '_';
-		p = strchr(p+1, '/');
+		p = strchr(p + 1, '/');
 	}
 	return result;
 }
@@ -118,7 +119,7 @@ replace_sla(char *str)
  * @return none
  */
 static void
-import_schema(PGconn *conn, nodes *node_data)
+import_schema(PGconn *conn, nodes * node_data)
 {
 	char		query[QUERY_LEN] = {0};
 
@@ -126,8 +127,8 @@ import_schema(PGconn *conn, nodes *node_data)
 	query_execute(conn, query);
 	sprintf(query, "CREATE SCHEMA temp_schema;");
 	query_execute(conn, query);
-	if(strcmp(node_data->fdw,"mysql_fdw")==0)
-		sprintf(query, "IMPORT FOREIGN SCHEMA %s FROM server %s INTO temp_schema;",node_data->dbname, node_data->name);
+	if (strcmp(node_data->fdw, "mysql_fdw") == 0)
+		sprintf(query, "IMPORT FOREIGN SCHEMA %s FROM server %s INTO temp_schema;", node_data->dbname, node_data->name);
 	else
 		sprintf(query, "IMPORT FOREIGN SCHEMA public FROM server %s INTO temp_schema;", node_data->name);
 
@@ -154,12 +155,12 @@ import_schema(PGconn *conn, nodes *node_data)
 static void
 load_filefdw(PGconn *conn, nodes * node_data, char *parent_server)
 {
-	DIR		   *dirp={0};
-	struct dirent *p={0};
+	DIR		   *dirp = {0};
+	struct dirent *p = {0};
 	char		query[QUERY_LEN];
 	char		filename[QUERY_LEN];
 	char		tablename[QUERY_LEN];
-	char	   *dotp=NULL;
+	char	   *dotp = NULL;
 
 	if ((dirp = opendir(node_data->dirpath)) == NULL)
 	{
@@ -178,12 +179,14 @@ load_filefdw(PGconn *conn, nodes * node_data, char *parent_server)
 			p = readdir(dirp);
 			continue;
 		}
-		if(dirp == NULL) break;
+		if (dirp == NULL)
+			break;
 		strcpy(filename, p->d_name);
 		dotp = strchr(p->d_name, '.');
-		if(dotp==NULL)
+		if (dotp == NULL)
 			strcpy(tablename, p->d_name);
-		else{
+		else
+		{
 			strncpy(tablename, p->d_name, (dotp - p->d_name));
 			tablename[dotp - p->d_name] = '\0';
 		}
@@ -199,7 +202,7 @@ load_filefdw(PGconn *conn, nodes * node_data, char *parent_server)
 	}
 	if (closedir(dirp) != 0)
 	{
-		ERROR( "Error:Can't close directory %s\n", node_data->dirpath);
+		ERROR("Error:Can't close directory %s\n", node_data->dirpath);
 		exit_error(conn);
 	}
 }
@@ -230,10 +233,10 @@ rename_foreign_table(PGconn *conn, char *server_name, char *fdw, char *parent_no
 	res = PQexec(conn, query);
 	if (PQresultStatus(res) != PGRES_TUPLES_OK)
 	{
-		ERROR( "Can not find child tables %s \n%s \n%s\n",
-			   query,
-				PQresStatus(PQresultStatus(res)),
-				PQerrorMessage(conn));
+		ERROR("Can not find child tables %s \n%s \n%s\n",
+			  query,
+			  PQresStatus(PQresultStatus(res)),
+			  PQerrorMessage(conn));
 		exit_error(conn);
 	}
 
@@ -251,29 +254,30 @@ rename_foreign_table(PGconn *conn, char *server_name, char *fdw, char *parent_no
 		sprintf(newtable, "%s__%s__0", PQgetvalue(res, i, 0), server_name);
 		sprintf(select_column_query, "SELECT c.oid,n.nspname,c.relname FROM pg_catalog.pg_class c LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace WHERE c.relname OPERATOR(pg_catalog.~) '^(%s)$' AND n.nspname OPERATOR(pg_catalog.~) '^(temp_schema)$' ORDER BY 2, 3;", PQgetvalue(res, i, 0));
 #ifdef PRINT_DEBUG
-		printf("select=%s \n",select_column_query);
+		printf("select=%s \n", select_column_query);
 #endif
 		select_column_res_tmp = PQexec(conn, select_column_query);
 		if (PQresultStatus(select_column_res_tmp) != PGRES_TUPLES_OK)
 		{
-		    ERROR("%s\n", PQerrorMessage(conn));
+			ERROR("%s\n", PQerrorMessage(conn));
 			exit_error(conn);
 		}
 		sprintf(select_column_query, "SELECT a.attname,pg_catalog.format_type(a.atttypid, a.atttypmod) FROM pg_catalog.pg_attribute a WHERE a.attrelid = '%s' AND a.attnum > 0 AND NOT a.attisdropped ORDER BY a.attnum;", PQgetvalue(select_column_res_tmp, 0, 0));
 		select_column_res = PQexec(conn, select_column_query);
 		if (PQresultStatus(select_column_res_tmp) != PGRES_TUPLES_OK)
 		{
-		    ERROR("%s\n", PQerrorMessage(conn));
+			ERROR("%s\n", PQerrorMessage(conn));
 			exit_error(conn);
 		}
-		
+
 		sprintf(alter_query, "ALTER TABLE temp_schema.%s RENAME TO %s;", PQgetvalue(res, i, 0), newtable);
 		query_execute(conn, alter_query);
 		sprintf(alter_query, "ALTER TABLE temp_schema.%s SET schema public;", newtable);
 		query_execute(conn, alter_query);
 		/* griddb fdw does not add table name option. we add here. */
-		if(strcmp(fdw,"griddb_fdw")==0){
-			sprintf(alter_query, "ALTER FOREIGN TABLE %s OPTIONS (table_name '%s');",newtable,PQgetvalue(res, i, 0));
+		if (strcmp(fdw, "griddb_fdw") == 0)
+		{
+			sprintf(alter_query, "ALTER FOREIGN TABLE %s OPTIONS (table_name '%s');", newtable, PQgetvalue(res, i, 0));
 			query_execute(conn, alter_query);
 		}
 
@@ -281,10 +285,12 @@ rename_foreign_table(PGconn *conn, char *server_name, char *fdw, char *parent_no
 		sprintf(create_query, "CREATE FOREIGN TABLE IF NOT EXISTS %s(", PQgetvalue(res, i, 0));
 		for (k = 0; k < PQntuples(select_column_res); k++)
 		{
-			if (strcmp(PQgetvalue(select_column_res, k, 0), "__spd_url") == 0){
+			if (strcmp(PQgetvalue(select_column_res, k, 0), "__spd_url") == 0)
+			{
 				spd_flag = 1;
 			}
-			else{
+			else
+			{
 				if (k != 0)
 					strcat(create_query, ",");
 				strcat(create_query, PQgetvalue(select_column_res, k, 0));
@@ -317,7 +323,7 @@ malloc_nodedata(const char *value)
 
 	if (data == NULL)
 	{
-		ERROR( "Error: out of memory\n");
+		ERROR("Error: out of memory\n");
 		exit(1);
 	}
 	strcpy(data, value);
@@ -342,7 +348,7 @@ static nodes * search_nodes(char *nodename, nodes * node)
 			return tempnode;
 		tempnode = tempnode->next;
 	}
-	ERROR( "Error:Can not find \"%s\" in %s. Please check node name in %s.\n", nodename,INFOFILENAME,STRFILENAME);
+	ERROR("Error:Can not find \"%s\" in %s. Please check node name in %s.\n", nodename, INFOFILENAME, STRFILENAME);
 	exit(1);
 }
 
@@ -396,10 +402,11 @@ free_childnode(child_node_list * child_node)
 	int			i;
 
 	p = child_node->children;
-	for (i = 0; i < child_node->child_nums; i++){
-		if(p[i].children)
+	for (i = 0; i < child_node->child_nums; i++)
+	{
+		if (p[i].children)
 			free_childnode(&p[i]);
-		printf("free %s\n",p[i].node_name);
+		printf("free %s\n", p[i].node_name);
 		free(p[i].node_name);
 	}
 	free(p);
@@ -429,7 +436,7 @@ parse_conf(const char *name, json_t * element, nodes * nodes_data, int *numconf)
 			{
 				if (json_string_value(value) == NULL)
 				{
-					ERROR( "error: %s is NULL parameter. \n", key);
+					ERROR("error: %s is NULL parameter. \n", key);
 					exit(1);
 				}
 				if (strcasecmp(key, "fdw") == 0)
@@ -458,7 +465,7 @@ parse_conf(const char *name, json_t * element, nodes * nodes_data, int *numconf)
 					nodes_data->notification_member = malloc_nodedata(json_string_value(value));
 				else
 				{
-					ERROR( "Error: %s is not fdw parameter. \n", key);
+					ERROR("Error: %s is not fdw parameter. \n", key);
 					exit(1);
 				}
 			}
@@ -466,7 +473,7 @@ parse_conf(const char *name, json_t * element, nodes * nodes_data, int *numconf)
 			*(numconf) += 1;
 			break;
 		default:
-			ERROR( "Error: Json format is wrong. Only object appear here. \n");
+			ERROR("Error: Json format is wrong. Only object appear here. \n");
 			exit(1);
 	}
 }
@@ -497,10 +504,10 @@ load_nodedata(json_t * element, nodes * nodes_data, int *numconf)
 			json_object_foreach(element, key, value)
 			{
 				new_data = malloc(sizeof(nodes));
-				memset(new_data,0,sizeof(nodes));
+				memset(new_data, 0, sizeof(nodes));
 				if (!new_data)
 				{
-					ERROR( "Error: out of memory\n");
+					ERROR("Error: out of memory\n");
 					exit(1);
 				}
 				p->next = new_data;
@@ -514,7 +521,7 @@ load_nodedata(json_t * element, nodes * nodes_data, int *numconf)
 		case JSON_STRING:
 			break;
 		default:
-			ERROR( "error: Json File is broken.\n");
+			ERROR("error: Json File is broken.\n");
 			exit(1);
 	}
 }
@@ -541,9 +548,11 @@ set_pgspider_node(nodes * nodes_data, child_node_list * child_node)
 	int			i;
 
 	parent_node = search_nodes(child_node->node_name, nodes_data);
-	if (strcmp(parent_node->fdw, "pgspider_fdw") != 0){
-		if(child_node->child_nums!=0){
-			ERROR("root node %s is not pgspider fdw, %s\n",child_node->node_name,parent_node->fdw);
+	if (strcmp(parent_node->fdw, "pgspider_fdw") != 0)
+	{
+		if (child_node->child_nums != 0)
+		{
+			ERROR("root node %s is not pgspider fdw, %s\n", child_node->node_name, parent_node->fdw);
 			exit(1);
 		}
 		return;
@@ -557,6 +566,7 @@ set_pgspider_node(nodes * nodes_data, child_node_list * child_node)
 
 	/* set foreign server in parent node  */
 	node_set_spdcore(parent_node, conn);
+
 	/*
 	 * Set child node foreign server and import child schema. This routine
 	 * include create parent foreign table.
@@ -567,7 +577,7 @@ set_pgspider_node(nodes * nodes_data, child_node_list * child_node)
 		child_node_data = search_nodes(p[i].node_name, nodes_data);
 		if (child_node_data->fdw == NULL)
 		{
-			ERROR( "Error: Invalid JSON text. Can not find 'FDW'\n");
+			ERROR("Error: Invalid JSON text. Can not find 'FDW'\n");
 			query_execute(conn, "ROLLBACK;");
 			exit(1);
 		}
@@ -683,10 +693,10 @@ load_tier_json(json_t * element, child_node_list * node_list)
 				 * TAG. There are child node setting.
 				 */
 				new_child_node_list = malloc(sizeof(child_node_list) * json_array_size(value));
-				memset(new_child_node_list,0,sizeof(child_node_list) * json_array_size(value));
+				memset(new_child_node_list, 0, sizeof(child_node_list) * json_array_size(value));
 				if (new_child_node_list == NULL)
 				{
-					ERROR( "Error: out of memory\n");
+					ERROR("Error: out of memory\n");
 					exit(1);
 				}
 				node_list->children = new_child_node_list;
@@ -706,12 +716,12 @@ load_tier_json(json_t * element, child_node_list * node_list)
 				{
 					nodename = (char *) json_string_value(value);
 					node_list->node_name = malloc(sizeof(char) * strlen(nodename) + 1);
-					if(node_list==NULL)
+					if (node_list == NULL)
 					{
-							ERROR( "Error : malloc error \n");
-							exit(1);
+						ERROR("Error : malloc error \n");
+						exit(1);
 					}
-						strcpy(node_list->node_name, nodename);
+					strcpy(node_list->node_name, nodename);
 				}
 				/* firstly, create child node list with recursive call */
 				else if (strcasecmp(key, NODES) == 0)
@@ -720,12 +730,12 @@ load_tier_json(json_t * element, child_node_list * node_list)
 				}
 				else
 				{
-					ERROR( "Error:JSON format is wrong. Invalid TAG is %s.\n Only \"Nodename\" or \"Nodes\" are allowed.\n", key);
+					ERROR("Error:JSON format is wrong. Invalid TAG is %s.\n Only \"Nodename\" or \"Nodes\" are allowed.\n", key);
 					exit(1);
 				}
 				break;
 			default:
-				ERROR( "Error : Json format is wrong. \n");
+				ERROR("Error : Json format is wrong. \n");
 				exit(1);
 		}
 	}
@@ -753,7 +763,7 @@ print_struct(child_node_list * node_list, int tier)
 		for (i = 0; i < node_list->child_nums; i++)
 		{
 			print_struct(&p[i], tier + 1);
-    	}
+		}
 	}
 }
 
@@ -773,12 +783,12 @@ main(int argc, char **argv)
 	fd = open(INFOFILENAME, O_RDONLY);
 	if (fd == 0)
 	{
-		ERROR( "Error : Can not open file %s\n", INFOFILENAME);
+		ERROR("Error : Can not open file %s\n", INFOFILENAME);
 		exit(1);
 	}
 	if (read(fd, buf, READBUF_REN - 1) == 0)
 	{
-		ERROR( "Error : Can not read file %s \n", INFOFILENAME);
+		ERROR("Error : Can not read file %s \n", INFOFILENAME);
 		close(fd);
 		exit(1);
 	}
@@ -786,18 +796,18 @@ main(int argc, char **argv)
 	root = json_loads(buf, 0, &error);
 	if (root == NULL)
 	{
-		ERROR( "Error : %s is invalid json file \n", INFOFILENAME);
+		ERROR("Error : %s is invalid json file \n", INFOFILENAME);
 		close(fd);
 		exit(1);
 	}
 	nodes_data = malloc(sizeof(nodes));
 	if (nodes_data == NULL)
 	{
-		ERROR( "Error : malloc error \n");
+		ERROR("Error : malloc error \n");
 		close(fd);
 		exit(1);
 	}
-	memset(nodes_data,0,sizeof(nodes));
+	memset(nodes_data, 0, sizeof(nodes));
 	load_nodedata(root, nodes_data, &numconf);
 	json_decref(root);
 	close(fd);
@@ -806,7 +816,7 @@ main(int argc, char **argv)
 	fd = open(STRFILENAME, O_RDONLY);
 	if (fd == 0)
 	{
-		ERROR( "Error : Can not open file %s \n", STRFILENAME);
+		ERROR("Error : Can not open file %s \n", STRFILENAME);
 		exit(1);
 	}
 
@@ -814,7 +824,7 @@ main(int argc, char **argv)
 	read(fd, buf, READBUF_REN - 1);
 	if (read(fd, buf, READBUF_REN - 1))
 	{
-		ERROR( "Error : Can not read file %s \n", STRFILENAME);
+		ERROR("Error : Can not read file %s \n", STRFILENAME);
 		close(fd);
 		exit(1);
 	}
@@ -822,14 +832,14 @@ main(int argc, char **argv)
 	root2 = json_loads(buf, 0, &error);
 	if (root2 == NULL)
 	{
-		ERROR( "Error : %s is invalid json file \n", STRFILENAME);
+		ERROR("Error : %s is invalid json file \n", STRFILENAME);
 		close(fd);
 		exit(1);
 	}
 	node_list = malloc(sizeof(child_node_list));
 	if (node_list == NULL)
 	{
-		ERROR( "Error: out of memory\n");
+		ERROR("Error: out of memory\n");
 		exit(1);
 	}
 	load_tier_json(root2, node_list);

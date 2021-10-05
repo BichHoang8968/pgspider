@@ -24,7 +24,7 @@
  * with collations that match the remote table's columns, which we can
  * consider to be user error.
  *
- * Portions Copyright (c) 2012-2020, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2012-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  contrib/pgspider_fdw/deparse.c
@@ -56,6 +56,7 @@
 #include "utils/rel.h"
 #include "utils/syscache.h"
 #include "utils/typcache.h"
+#include "commands/tablecmds.h"
 
 /*
  * Global context for foreign_expr_walker's search of an expression tree.
@@ -107,7 +108,7 @@ typedef struct deparse_expr_cxt
 typedef struct pull_func_clause_context
 {
 	List	   *funclist;
-} pull_func_clause_context;
+}			pull_func_clause_context;
 
 #define REL_ALIAS_PREFIX	"r"
 /* Handy macro to add relation name qualification */
@@ -416,10 +417,10 @@ static bool exist_in_function_list(char *funcname, const char **funclist);
  */
 void
 PGSpiderClassifyConditions(PlannerInfo *root,
-				   RelOptInfo *baserel,
-				   List *input_conds,
-				   List **remote_conds,
-				   List **local_conds)
+						   RelOptInfo *baserel,
+						   List *input_conds,
+						   List **remote_conds,
+						   List **local_conds)
 {
 	ListCell   *lc;
 
@@ -442,8 +443,8 @@ PGSpiderClassifyConditions(PlannerInfo *root,
  */
 bool
 pgspider_is_foreign_expr(PlannerInfo *root,
-				RelOptInfo *baserel,
-				Expr *expr)
+						 RelOptInfo *baserel,
+						 Expr *expr)
 {
 	foreign_glob_cxt glob_cxt;
 	foreign_loc_cxt loc_cxt;
@@ -495,7 +496,7 @@ pgspider_is_foreign_expr(PlannerInfo *root,
 		if (loc_cxt.can_pushdown_stable == true)
 		{
 			if (contain_volatile_functions((Node *) expr))
-					return false;
+				return false;
 		}
 		else
 		{
@@ -514,7 +515,7 @@ pgspider_is_foreign_expr(PlannerInfo *root,
  * Recursively search for functions within a clause.
  */
 static bool
-pgspider_pull_func_clause_walker(Node *node, pull_func_clause_context *context)
+pgspider_pull_func_clause_walker(Node *node, pull_func_clause_context * context)
 {
 	if (node == NULL)
 		return false;
@@ -537,6 +538,7 @@ List *
 pgspider_pull_func_clause(Node *node)
 {
 	pull_func_clause_context context;
+
 	context.funclist = NIL;
 
 	pgspider_pull_func_clause_walker(node, &context);
@@ -550,7 +552,7 @@ pgspider_pull_func_clause(Node *node)
  * Return true if argument of function is regular expression for InfluxDB
  */
 static bool
-pgspider_is_regex_argument(Const* node, char **extval)
+pgspider_is_regex_argument(Const *node, char **extval)
 {
 	Oid			typoutput;
 	bool		typIsVarlena;
@@ -558,7 +560,7 @@ pgspider_is_regex_argument(Const* node, char **extval)
 	const char *last;
 
 	getTypeOutputInfo(node->consttype,
-		&typoutput, &typIsVarlena);
+					  &typoutput, &typIsVarlena);
 
 	(*extval) = OidOutputFunctionCall(typoutput, node->constvalue);
 	first = *extval;
@@ -670,7 +672,7 @@ foreign_expr_walker(Node *node,
 
 				/*
 				 * Get type name based on the const value.
-				 * If the type name is "time_unit" or "mysql_string_type", 
+				 * If the type name is "time_unit" or "mysql_string_type",
 				 * allow it to push down to remote.
 				 */
 				type_name = deparse_type_name(c->consttype, c->consttypmod);
@@ -733,23 +735,28 @@ foreign_expr_walker(Node *node,
 					return false;
 
 				/*
-				 * Recurse to remaining subexpressions.  Since the container
-				 * subscripts must yield (noncollatable) integers, they won't
-				 * affect the inner_cxt state.
+				 * Recurse into the remaining subexpressions.  The container
+				 * subscripts will not affect collation of the SubscriptingRef
+				 * result, so do those first and reset inner_cxt afterwards.
 				 */
 				if (!foreign_expr_walker((Node *) sr->refupperindexpr,
 										 glob_cxt, &inner_cxt))
 					return false;
+				inner_cxt.collation = InvalidOid;
+				inner_cxt.state = FDW_COLLATE_NONE;
 				if (!foreign_expr_walker((Node *) sr->reflowerindexpr,
 										 glob_cxt, &inner_cxt))
 					return false;
+				inner_cxt.collation = InvalidOid;
+				inner_cxt.state = FDW_COLLATE_NONE;
 				if (!foreign_expr_walker((Node *) sr->refexpr,
 										 glob_cxt, &inner_cxt))
 					return false;
 
 				/*
-				 * Container subscripting should yield same collation as
-				 * input, but for safety use same logic as for function nodes.
+				 * Container subscripting typically yields same collation as
+				 * refexpr's, but in case it doesn't, use same logic as for
+				 * function nodes.
 				 */
 				collation = sr->refcollid;
 				if (collation == InvalidOid)
@@ -763,11 +770,13 @@ foreign_expr_walker(Node *node,
 					state = FDW_COLLATE_UNSAFE;
 			}
 			break;
-		case T_FieldSelect:	/* Allow pushdown FieldSelect to support accessing value of record of star and regex functions */
+		case T_FieldSelect:		/* Allow pushdown FieldSelect to support
+								 * accessing value of record of star and regex
+								 * functions */
 			{
 				if (!(glob_cxt->foreignrel->reloptkind == RELOPT_BASEREL ||
-					 glob_cxt->foreignrel->reloptkind == RELOPT_OTHER_MEMBER_REL))
-					  return false;
+					  glob_cxt->foreignrel->reloptkind == RELOPT_OTHER_MEMBER_REL))
+					return false;
 
 				collation = InvalidOid;
 				state = FDW_COLLATE_NONE;
@@ -790,7 +799,8 @@ foreign_expr_walker(Node *node,
 					return false;
 
 				/*
-				 * Allow to push down stub function which has volatility stable and immutable.
+				 * Allow to push down stub function which has volatility
+				 * stable and immutable.
 				 */
 				if (fe->funcid >= FirstBootstrapObjectId
 					&& (pgspider_contain_immutable_stable_functions((Node *) fe)))
@@ -817,8 +827,8 @@ foreign_expr_walker(Node *node,
 
 					if (IsA(firstArg, Const))
 					{
-						Const		*arg = (Const *) firstArg;
-						char		*extval;
+						Const	   *arg = (Const *) firstArg;
+						char	   *extval;
 
 						if (arg->consttype == TEXTOID)
 							is_regex_format = pgspider_is_regex_argument(arg, &extval);
@@ -861,26 +871,26 @@ foreign_expr_walker(Node *node,
 				else
 				{
 					/*
-					* If function's input collation is not derived from a foreign
-					* Var, it can't be sent to remote.
-					*/
+					 * If function's input collation is not derived from a
+					 * foreign Var, it can't be sent to remote.
+					 */
 					if (fe->inputcollid == InvalidOid)
-						/* OK, inputs are all noncollatable */ ;
+						 /* OK, inputs are all noncollatable */ ;
 					else if (inner_cxt.state != FDW_COLLATE_SAFE ||
-							fe->inputcollid != inner_cxt.collation)
+							 fe->inputcollid != inner_cxt.collation)
 						return false;
 
 					/*
-					* Detect whether node is introducing a collation not derived
-					* from a foreign Var.  (If so, we just mark it unsafe for now
-					* rather than immediately returning false, since the parent
-					* node might not care.)
-					*/
+					 * Detect whether node is introducing a collation not
+					 * derived from a foreign Var.  (If so, we just mark it
+					 * unsafe for now rather than immediately returning false,
+					 * since the parent node might not care.)
+					 */
 					collation = fe->funccollid;
 					if (collation == InvalidOid)
 						state = FDW_COLLATE_NONE;
 					else if (inner_cxt.state == FDW_COLLATE_SAFE &&
-							collation == inner_cxt.collation)
+							 collation == inner_cxt.collation)
 						state = FDW_COLLATE_SAFE;
 					else if (collation == DEFAULT_COLLATION_OID)
 						state = FDW_COLLATE_NONE;
@@ -927,13 +937,13 @@ foreign_expr_walker(Node *node,
 					!inner_cxt.can_pushdown_stable)
 				{
 					/*
-					* If operator's input collation is not derived from a foreign
-					* Var, it can't be sent to remote.
-					*/
+					 * If operator's input collation is not derived from a
+					 * foreign Var, it can't be sent to remote.
+					 */
 					if (oe->inputcollid == InvalidOid)
-						/* OK, inputs are all noncollatable */ ;
+						 /* OK, inputs are all noncollatable */ ;
 					else if (inner_cxt.state != FDW_COLLATE_SAFE ||
-							oe->inputcollid != inner_cxt.collation)
+							 oe->inputcollid != inner_cxt.collation)
 						return false;
 
 					/* Result-collation handling is same as for functions */
@@ -941,7 +951,7 @@ foreign_expr_walker(Node *node,
 					if (collation == InvalidOid)
 						state = FDW_COLLATE_NONE;
 					else if (inner_cxt.state == FDW_COLLATE_SAFE &&
-							collation == inner_cxt.collation)
+							 collation == inner_cxt.collation)
 						state = FDW_COLLATE_SAFE;
 					else if (collation == DEFAULT_COLLATION_OID)
 						state = FDW_COLLATE_NONE;
@@ -1160,8 +1170,8 @@ foreign_expr_walker(Node *node,
 
 						if (IsA(n, Const))
 						{
-							Const		*arg = (Const *) n;
-							char		*extval;
+							Const	   *arg = (Const *) n;
+							char	   *extval;
 
 							if (arg->consttype == TEXTOID)
 							{
@@ -1201,7 +1211,7 @@ foreign_expr_walker(Node *node,
 						if (srt->sortop != typentry->lt_opr &&
 							srt->sortop != typentry->gt_opr &&
 							!pgspider_is_shippable(srt->sortop, OperatorRelationId,
-										  fpinfo))
+												   fpinfo))
 							return false;
 					}
 				}
@@ -1216,26 +1226,26 @@ foreign_expr_walker(Node *node,
 				else
 				{
 					/*
-					* If aggregate's input collation is not derived from a
-					* foreign Var, it can't be sent to remote.
-					*/
+					 * If aggregate's input collation is not derived from a
+					 * foreign Var, it can't be sent to remote.
+					 */
 					if (agg->inputcollid == InvalidOid)
-						/* OK, inputs are all noncollatable */ ;
+						 /* OK, inputs are all noncollatable */ ;
 					else if (inner_cxt.state != FDW_COLLATE_SAFE ||
-							agg->inputcollid != inner_cxt.collation)
+							 agg->inputcollid != inner_cxt.collation)
 						return false;
 
 					/*
-					* Detect whether node is introducing a collation not derived
-					* from a foreign Var.  (If so, we just mark it unsafe for now
-					* rather than immediately returning false, since the parent
-					* node might not care.)
-					*/
+					 * Detect whether node is introducing a collation not
+					 * derived from a foreign Var.  (If so, we just mark it
+					 * unsafe for now rather than immediately returning false,
+					 * since the parent node might not care.)
+					 */
 					collation = agg->aggcollid;
 					if (collation == InvalidOid)
 						state = FDW_COLLATE_NONE;
 					else if (inner_cxt.state == FDW_COLLATE_SAFE &&
-							collation == inner_cxt.collation)
+							 collation == inner_cxt.collation)
 						state = FDW_COLLATE_SAFE;
 					else if (collation == DEFAULT_COLLATION_OID)
 						state = FDW_COLLATE_NONE;
@@ -1366,8 +1376,8 @@ foreign_expr_walker(Node *node,
  */
 bool
 pgspider_is_foreign_param(PlannerInfo *root,
-				 RelOptInfo *baserel,
-				 Expr *expr)
+						  RelOptInfo *baserel,
+						  Expr *expr)
 {
 	if (expr == NULL)
 		return false;
@@ -1490,9 +1500,9 @@ pgspider_build_tlist_to_deparse(RelOptInfo *foreignrel)
  */
 void
 PGSpiderDeparseSelectStmtForRel(StringInfo buf, PlannerInfo *root, RelOptInfo *rel,
-						List *tlist, List *remote_conds, List *pathkeys,
-						bool has_final_sort, bool has_limit, bool is_subquery,
-						List **retrieved_attrs, List **params_list)
+								List *tlist, List *remote_conds, List *pathkeys,
+								bool has_final_sort, bool has_limit, bool is_subquery,
+								List **retrieved_attrs, List **params_list)
 {
 	deparse_expr_cxt context;
 	PGSpiderFdwRelationInfo *fpinfo = (PGSpiderFdwRelationInfo *) rel->fdw_private;
@@ -1768,7 +1778,7 @@ deparseLockingClause(deparse_expr_cxt *context)
 		 * that DECLARE CURSOR ... FOR UPDATE is supported, which it isn't
 		 * before 8.3.
 		 */
-		if (relid == root->parse->resultRelation &&
+		if (bms_is_member(relid, root->all_result_relids) &&
 			(root->parse->commandType == CMD_UPDATE ||
 			 root->parse->commandType == CMD_DELETE))
 		{
@@ -2184,9 +2194,9 @@ deparseRangeTblRef(StringInfo buf, PlannerInfo *root, RelOptInfo *foreignrel,
 		/* Deparse the subquery representing the relation. */
 		appendStringInfoChar(buf, '(');
 		PGSpiderDeparseSelectStmtForRel(buf, root, foreignrel, NIL,
-								fpinfo->remote_conds, NIL,
-								false, false, true,
-								&retrieved_attrs, params_list);
+										fpinfo->remote_conds, NIL,
+										false, false, true,
+										&retrieved_attrs, params_list);
 		appendStringInfoChar(buf, ')');
 
 		/* Append the relation alias. */
@@ -2225,13 +2235,16 @@ deparseRangeTblRef(StringInfo buf, PlannerInfo *root, RelOptInfo *foreignrel,
  * The statement text is appended to buf, and we also create an integer List
  * of the columns being retrieved by WITH CHECK OPTION or RETURNING (if any),
  * which is returned to *retrieved_attrs.
+ *
+ * This also stores end position of the VALUES clause, so that we can rebuild
+ * an INSERT for a batch of rows later.
  */
 void
 PGSpiderDeparseInsertSql(StringInfo buf, RangeTblEntry *rte,
-				 Index rtindex, Relation rel,
-				 List *targetAttrs, bool doNothing,
-				 List *withCheckOptionList, List *returningList,
-				 List **retrieved_attrs)
+						 Index rtindex, Relation rel,
+						 List *targetAttrs, bool doNothing,
+						 List *withCheckOptionList, List *returningList,
+						 List **retrieved_attrs, int *values_end_len)
 {
 	AttrNumber	pindex;
 	bool		first;
@@ -2274,6 +2287,7 @@ PGSpiderDeparseInsertSql(StringInfo buf, RangeTblEntry *rte,
 	}
 	else
 		appendStringInfoString(buf, " DEFAULT VALUES");
+	*values_end_len = buf->len;
 
 	if (doNothing)
 		appendStringInfoString(buf, " ON CONFLICT DO NOTHING");
@@ -2281,6 +2295,55 @@ PGSpiderDeparseInsertSql(StringInfo buf, RangeTblEntry *rte,
 	deparseReturningList(buf, rte, rtindex, rel,
 						 rel->trigdesc && rel->trigdesc->trig_insert_after_row,
 						 withCheckOptionList, returningList, retrieved_attrs);
+}
+
+/*
+ * rebuild remote INSERT statement
+ *
+ * Provided a number of rows in a batch, builds INSERT statement with the
+ * right number of parameters.
+ */
+void
+PGSpiderRebuildInsertSql(StringInfo buf, char *orig_query,
+						 int values_end_len, int num_cols,
+						 int num_rows)
+{
+	int			i,
+				j;
+	int			pindex;
+	bool		first;
+
+	/* Make sure the values_end_len is sensible */
+	Assert((values_end_len > 0) && (values_end_len <= strlen(orig_query)));
+
+	/* Copy up to the end of the first record from the original query */
+	appendBinaryStringInfo(buf, orig_query, values_end_len);
+
+	/*
+	 * Add records to VALUES clause (we already have parameters for the first
+	 * row, so start at the right offset).
+	 */
+	pindex = num_cols + 1;
+	for (i = 0; i < num_rows; i++)
+	{
+		appendStringInfoString(buf, ", (");
+
+		first = true;
+		for (j = 0; j < num_cols; j++)
+		{
+			if (!first)
+				appendStringInfoString(buf, ", ");
+			first = false;
+
+			appendStringInfo(buf, "$%d", pindex);
+			pindex++;
+		}
+
+		appendStringInfoChar(buf, ')');
+	}
+
+	/* Copy stuff after VALUES clause from the original query */
+	appendStringInfoString(buf, orig_query + values_end_len);
 }
 
 /*
@@ -2292,10 +2355,10 @@ PGSpiderDeparseInsertSql(StringInfo buf, RangeTblEntry *rte,
  */
 void
 PGSpiderDeparseUpdateSql(StringInfo buf, RangeTblEntry *rte,
-				 Index rtindex, Relation rel,
-				 List *targetAttrs,
-				 List *withCheckOptionList, List *returningList,
-				 List **retrieved_attrs)
+						 Index rtindex, Relation rel,
+						 List *targetAttrs,
+						 List *withCheckOptionList, List *returningList,
+						 List **retrieved_attrs)
 {
 	AttrNumber	pindex;
 	bool		first;
@@ -2335,6 +2398,7 @@ PGSpiderDeparseUpdateSql(StringInfo buf, RangeTblEntry *rte,
  * 'foreignrel' is the RelOptInfo for the target relation or the join relation
  *		containing all base relations in the query
  * 'targetlist' is the tlist of the underlying foreign-scan plan node
+ *		(note that this only contains new-value expressions and junk attrs)
  * 'targetAttrs' is the target columns of the UPDATE
  * 'remote_conds' is the qual clauses that must be evaluated remotely
  * '*params_list' is an output list of exprs that will become remote Params
@@ -2344,20 +2408,21 @@ PGSpiderDeparseUpdateSql(StringInfo buf, RangeTblEntry *rte,
  */
 void
 PGSpiderDeparseDirectUpdateSql(StringInfo buf, PlannerInfo *root,
-					   Index rtindex, Relation rel,
-					   RelOptInfo *foreignrel,
-					   List *targetlist,
-					   List *targetAttrs,
-					   List *remote_conds,
-					   List **params_list,
-					   List *returningList,
-					   List **retrieved_attrs)
+							   Index rtindex, Relation rel,
+							   RelOptInfo *foreignrel,
+							   List *targetlist,
+							   List *targetAttrs,
+							   List *remote_conds,
+							   List **params_list,
+							   List *returningList,
+							   List **retrieved_attrs)
 {
 	deparse_expr_cxt context;
 	int			nestlevel;
 	bool		first;
-	ListCell   *lc;
 	RangeTblEntry *rte = planner_rt_fetch(rtindex, root);
+	ListCell   *lc,
+			   *lc2;
 
 	/* Set up context struct for recursion */
 	context.root = root;
@@ -2376,14 +2441,13 @@ PGSpiderDeparseDirectUpdateSql(StringInfo buf, PlannerInfo *root,
 	nestlevel = pgspider_set_transmission_modes();
 
 	first = true;
-	foreach(lc, targetAttrs)
+	forboth(lc, targetlist, lc2, targetAttrs)
 	{
-		int			attnum = lfirst_int(lc);
-		TargetEntry *tle = get_tle_by_resno(targetlist, attnum);
+		TargetEntry *tle = lfirst_node(TargetEntry, lc);
+		int			attnum = lfirst_int(lc2);
 
-		if (!tle)
-			elog(ERROR, "attribute number %d not found in UPDATE targetlist",
-				 attnum);
+		/* update's new-value expressions shouldn't be resjunk */
+		Assert(!tle->resjunk);
 
 		if (!first)
 			appendStringInfoString(buf, ", ");
@@ -2429,9 +2493,9 @@ PGSpiderDeparseDirectUpdateSql(StringInfo buf, PlannerInfo *root,
  */
 void
 PGSpiderDeparseDeleteSql(StringInfo buf, RangeTblEntry *rte,
-				 Index rtindex, Relation rel,
-				 List *returningList,
-				 List **retrieved_attrs)
+						 Index rtindex, Relation rel,
+						 List *returningList,
+						 List **retrieved_attrs)
 {
 	appendStringInfoString(buf, "DELETE FROM ");
 	deparseRelation(buf, rel);
@@ -2458,12 +2522,12 @@ PGSpiderDeparseDeleteSql(StringInfo buf, RangeTblEntry *rte,
  */
 void
 PGSpiderDeparseDirectDeleteSql(StringInfo buf, PlannerInfo *root,
-					   Index rtindex, Relation rel,
-					   RelOptInfo *foreignrel,
-					   List *remote_conds,
-					   List **params_list,
-					   List *returningList,
-					   List **retrieved_attrs)
+							   Index rtindex, Relation rel,
+							   RelOptInfo *foreignrel,
+							   List *remote_conds,
+							   List **params_list,
+							   List *returningList,
+							   List **retrieved_attrs)
 {
 	deparse_expr_cxt context;
 
@@ -2637,6 +2701,38 @@ PGSpiderDeparseAnalyzeSql(StringInfo buf, Relation rel, List **retrieved_attrs)
 	 */
 	appendStringInfoString(buf, " FROM ");
 	deparseRelation(buf, rel);
+}
+
+/*
+ * Construct a simple "TRUNCATE rel" statement
+ */
+void
+PGSpiderDeparseTruncateSql(StringInfo buf,
+						   List *rels,
+						   DropBehavior behavior,
+						   bool restart_seqs)
+{
+	ListCell   *cell;
+
+	appendStringInfoString(buf, "TRUNCATE ");
+
+	foreach(cell, rels)
+	{
+		Relation	rel = lfirst(cell);
+
+		if (cell != list_head(rels))
+			appendStringInfoString(buf, ", ");
+
+		deparseRelation(buf, rel);
+	}
+
+	appendStringInfo(buf, " %s IDENTITY",
+					 restart_seqs ? "RESTART" : "CONTINUE");
+
+	if (behavior == DROP_RESTRICT)
+		appendStringInfoString(buf, " RESTRICT");
+	else if (behavior == DROP_CASCADE)
+		appendStringInfoString(buf, " CASCADE");
 }
 
 /*
@@ -3237,7 +3333,6 @@ deparseOpExpr(OpExpr *node, deparse_expr_cxt *context)
 	HeapTuple	tuple;
 	Form_pg_operator form;
 	char		oprkind;
-	ListCell   *arg;
 
 	/* Retrieve information about the operator from system catalog. */
 	tuple = SearchSysCache1(OPEROID, ObjectIdGetDatum(node->opno));
@@ -3247,18 +3342,16 @@ deparseOpExpr(OpExpr *node, deparse_expr_cxt *context)
 	oprkind = form->oprkind;
 
 	/* Sanity check. */
-	Assert((oprkind == 'r' && list_length(node->args) == 1) ||
-		   (oprkind == 'l' && list_length(node->args) == 1) ||
+	Assert((oprkind == 'l' && list_length(node->args) == 1) ||
 		   (oprkind == 'b' && list_length(node->args) == 2));
 
 	/* Always parenthesize the expression. */
 	appendStringInfoChar(buf, '(');
 
-	/* Deparse left operand. */
-	if (oprkind == 'r' || oprkind == 'b')
+	/* Deparse left operand, if any. */
+	if (oprkind == 'b')
 	{
-		arg = list_head(node->args);
-		deparseExpr(lfirst(arg), context);
+		deparseExpr(linitial(node->args), context);
 		appendStringInfoChar(buf, ' ');
 	}
 
@@ -3266,12 +3359,8 @@ deparseOpExpr(OpExpr *node, deparse_expr_cxt *context)
 	deparseOperatorName(buf, form);
 
 	/* Deparse right operand. */
-	if (oprkind == 'l' || oprkind == 'b')
-	{
-		arg = list_tail(node->args);
-		appendStringInfoChar(buf, ' ');
-		deparseExpr(lfirst(arg), context);
-	}
+	appendStringInfoChar(buf, ' ');
+	deparseExpr(llast(node->args), context);
 
 	appendStringInfoChar(buf, ')');
 
@@ -3786,8 +3875,8 @@ appendOrderByClause(List *pathkeys, bool has_final_sort,
 			 * the final sort.
 			 */
 			em_expr = pgspider_find_em_expr_for_input_target(context->root,
-													pathkey->pk_eclass,
-													context->foreignrel->reltarget);
+															 pathkey->pk_eclass,
+															 context->foreignrel->reltarget);
 		}
 		else
 			em_expr = find_em_expr_for_rel(pathkey->pk_eclass, baserel);
@@ -4038,7 +4127,8 @@ pgspider_contain_immutable_stable_functions_walker(Node *node, void *context)
 	/* Check for immutable or stable functions in node itself */
 	if (nodeTag(node) == T_FuncExpr)
 	{
-		FuncExpr *expr = (FuncExpr *) node;
+		FuncExpr   *expr = (FuncExpr *) node;
+
 		if (func_volatile(expr->funcid) == PROVOLATILE_IMMUTABLE ||
 			func_volatile(expr->funcid) == PROVOLATILE_STABLE)
 			return true;
@@ -4114,14 +4204,15 @@ pgspider_contain_functions_walker(Node *node, void *context)
 /*
  * Returns true if given tlist is safe to evaluate on the foreign server.
  */
-bool pgspider_is_foreign_function_tlist(PlannerInfo *root,
-										RelOptInfo *baserel,
-										List *tlist)
+bool
+pgspider_is_foreign_function_tlist(PlannerInfo *root,
+								   RelOptInfo *baserel,
+								   List *tlist)
 {
 	foreign_glob_cxt glob_cxt;
-	foreign_loc_cxt  loc_cxt;
-	ListCell        *lc;
-	bool             is_contain_function;
+	foreign_loc_cxt loc_cxt;
+	ListCell   *lc;
+	bool		is_contain_function;
 
 	if (!(baserel->reloptkind == RELOPT_BASEREL ||
 		  baserel->reloptkind == RELOPT_OTHER_MEMBER_REL))
@@ -4172,11 +4263,12 @@ bool pgspider_is_foreign_function_tlist(PlannerInfo *root,
 			return false;
 
 		/*
-		 * An expression which includes any mutable functions can't be sent over
-		 * because its result is not stable.  For example, sending now() remote
-		 * side could cause confusion from clock offsets.  Future versions might
-		 * be able to make this choice with more granularity.  (We check this last
-		 * because it requires a lot of expensive catalog lookups.)
+		 * An expression which includes any mutable functions can't be sent
+		 * over because its result is not stable.  For example, sending now()
+		 * remote side could cause confusion from clock offsets.  Future
+		 * versions might be able to make this choice with more granularity.
+		 * (We check this last because it requires a lot of expensive catalog
+		 * lookups.)
 		 */
 		if (!IsA(tle->expr, FieldSelect))
 		{

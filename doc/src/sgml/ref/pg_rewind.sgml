@@ -25,7 +25,7 @@ PostgreSQL documentation
    <arg rep="repeat"><replaceable>option</replaceable></arg>
    <group choice="plain">
     <group choice="req">
-     <arg choice="plain"><option>-D </option></arg>
+     <arg choice="plain"><option>-D</option></arg>
      <arg choice="plain"><option>--target-pgdata</option></arg>
     </group>
     <replaceable> directory</replaceable>
@@ -43,8 +43,8 @@ PostgreSQL documentation
   <para>
    <application>pg_rewind</application> is a tool for synchronizing a PostgreSQL cluster
    with another copy of the same cluster, after the clusters' timelines have
-   diverged. A typical scenario is to bring an old master server back online
-   after failover as a standby that follows the new master.
+   diverged. A typical scenario is to bring an old primary server back online
+   after failover as a standby that follows the new primary.
   </para>
 
   <para>
@@ -74,7 +74,7 @@ PostgreSQL documentation
    <application>pg_rewind</application> with the <literal>-c</literal> option to
    automatically retrieve them from the WAL archive. The use of
    <application>pg_rewind</application> is not limited to failover, e.g.,  a standby
-   server can be promoted, run some write transactions, and then rewinded
+   server can be promoted, run some write transactions, and then rewound
    to become a standby again.
   </para>
 
@@ -173,7 +173,7 @@ PostgreSQL documentation
         with a role having sufficient permissions to execute the functions
         used by <application>pg_rewind</application> on the source server
         (see Notes section for details) or a superuser role.  This option
-        requires the source server to be running and not in recovery mode.
+        requires the source server to be running and accepting connections.
        </para>
       </listitem>
      </varlistentry>

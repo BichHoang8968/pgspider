@@ -131,8 +131,8 @@ pgspider_check_childnnode(void *arg)
 	nodeinfotag key = {{0}};
 
 	ErrorContext = AllocSetContextCreate(TopMemoryContext,
-										"Pgspider keep alive ErrorContext",
-										ALLOCSET_DEFAULT_SIZES);
+										 "Pgspider keep alive ErrorContext",
+										 ALLOCSET_DEFAULT_SIZES);
 	MemoryContextAllowInCriticalSection(ErrorContext, true);
 
 	strcpy(key.nodeName, nodeInfo->tag.nodeName);
@@ -438,11 +438,12 @@ freenodeInfos(int curSvrNum, char **curFdwName, NODEINFO * curNodeInfo)
 {
 	int			i;
 
-	if(curFdwName != NULL){
+	if (curFdwName != NULL)
+	{
 		for (i = 0; i < curSvrNum; i++)
 		{
-		        if(curFdwName[i] != NULL)
-			        pfree(curFdwName[i]);
+			if (curFdwName[i] != NULL)
+				pfree(curFdwName[i]);
 		}
 		if (curFdwName != NULL)
 			pfree(curFdwName);
@@ -532,11 +533,11 @@ worker_pgspider_keepalive(Datum main_arg)
 	/*
 	 * Main loop: do this until the SIGTERM handler tells us to terminate
 	 */
-	
+
 	/* Init ErrorContext for each child thread */
 	ErrorContext = AllocSetContextCreate(TopMemoryContext,
-										"Pgspider keep alive ErrorContext",
-										ALLOCSET_DEFAULT_SIZES);
+										 "Pgspider keep alive ErrorContext",
+										 ALLOCSET_DEFAULT_SIZES);
 	MemoryContextAllowInCriticalSection(ErrorContext, true);
 
 	while (!got_sigterm)
@@ -569,7 +570,8 @@ worker_pgspider_keepalive(Datum main_arg)
 		check_server_info(nodeInfo, fdwName, numThreads, threads, svrnum);
 
 		/* initialize */
-		if (fdwName != NULL){
+		if (fdwName != NULL)
+		{
 			for (i = 0; i < svrnum; i++)
 			{
 				pfree(fdwName[i]);

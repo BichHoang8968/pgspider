@@ -7,7 +7,7 @@
  * type.
  *
  *
- * Portions Copyright (c) 1996-2020, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -279,7 +279,8 @@ static Size AllocSetGetChunkSpace(MemoryContext context, void *pointer);
 static bool AllocSetIsEmpty(MemoryContext context);
 static void AllocSetStats(MemoryContext context,
 						  MemoryStatsPrintFunc printfunc, void *passthru,
-						  MemoryContextCounters *totals);
+						  MemoryContextCounters *totals,
+						  bool print_to_stderr);
 
 #ifdef MEMORY_CONTEXT_CHECKING
 static void AllocSetCheck(MemoryContext context);
@@ -712,6 +713,45 @@ AllocSetDelete(MemoryContext context)
 	/* Finally, free the context header, including the keeper block */
 	free(set);
 }
+#ifdef PGSPIDER
+/*
+ * AllocSetDeleteChild
+ *
+ * This function is used by PGSpider child threads.
+ * Delete child free-list.
+ * PGSpider child threads do not have Memory context free list.
+ * PGSpider child threads create and finish there context in every query.
+ * It is occurred memory leak for every query.
+ *
+ */
+static void
+AllocSetDeleteChild(MemoryContext context)
+{
+	int freeListIndex=0;
+	/*
+	 * If the context is a candidate for a freelist, put it into that freelist
+	 * instead of destroying it.
+	 */
+	for (freeListIndex=0; freeListIndex<ALLOCSET_NUM_FREELISTS; freeListIndex++)
+	{
+		AllocSetFreeList *freelist = &context_freelists[freeListIndex];
+		/*
+		 * Delete all free list
+		 */
+		while (freelist->first_free != NULL)
+		{
+			AllocSetContext *oldset = freelist->first_free;
+
+			freelist->first_free = (AllocSetContext *) oldset->header.nextchild;
+			freelist->num_free--;
+			/* All that remains is to free the header/initial block */
+			free(oldset);
+		}
+		freelist->first_free=NULL;
+		return;
+	}
+}
+#endif
 
 #ifdef PGSPIDER
 /*
@@ -724,13 +764,14 @@ AllocSetDelete(MemoryContext context)
  */
 static void
 AllocSetFreeContextList(void)
+
 {
-	int freeListIndex=0;
+	int			freeListIndex = 0;
 	/*
 	 * If the context is a candidate for a freelist, put it into that freelist
 	 * instead of destroying it.
 	 */
-	for (freeListIndex=0; freeListIndex<ALLOCSET_NUM_FREELISTS; freeListIndex++)
+	for (freeListIndex = 0; freeListIndex < ALLOCSET_NUM_FREELISTS; freeListIndex++)
 	{
 		AllocSetFreeList *freelist = &context_freelists[freeListIndex];
 		/*
@@ -1384,11 +1425,12 @@ AllocSetIsEmpty(MemoryContext context)
  * printfunc: if not NULL, pass a human-readable stats string to this.
  * passthru: pass this pointer through to printfunc.
  * totals: if not NULL, add stats about this context into *totals.
+ * print_to_stderr: print stats to stderr if true, elog otherwise.
  */
 static void
 AllocSetStats(MemoryContext context,
 			  MemoryStatsPrintFunc printfunc, void *passthru,
-			  MemoryContextCounters *totals)
+			  MemoryContextCounters *totals, bool print_to_stderr)
 {
 	AllocSet	set = (AllocSet) context;
 	Size		nblocks = 0;
@@ -1427,7 +1469,7 @@ AllocSetStats(MemoryContext context,
 				 "%zu total in %zd blocks; %zu free (%zd chunks); %zu used",
 				 totalspace, nblocks, freespace, freechunks,
 				 totalspace - freespace);
-		printfunc(context, passthru, stats_string);
+		printfunc(context, passthru, stats_string, print_to_stderr);
 	}
 
 	if (totals)

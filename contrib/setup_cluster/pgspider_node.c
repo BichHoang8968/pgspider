@@ -13,7 +13,7 @@
 #include "pgspider_node.h"
 
 static void
-tinybrace_fdw(nodes * option, PGconn *conn);
+			tinybrace_fdw(nodes * option, PGconn *conn);
 
 static void file_fdw(nodes * option, PGconn *conn);
 static void pgspider_fdw(nodes * option, PGconn *conn);
@@ -23,19 +23,19 @@ static void mysql_fdw(nodes * option, PGconn *conn);
 static void griddb_fdw(nodes * option, PGconn *conn);
 static void influxdb_fdw(nodes * option, PGconn *conn);
 
-const spd_function spd_func[] = {
+const		spd_function spd_func[] = {
 	{"file_fdw", file_fdw},
-    {"pgspider_fdw",pgspider_fdw},
-    {"postgres_fdw",postgres_fdw},
-    {"sqlite_fdw",sqlite_fdw},
-    {"tinybrace_fdw",tinybrace_fdw},
-    {"mysql_fdw",mysql_fdw},
-    {"griddb_fdw",griddb_fdw},
-    {"influxdb_fdw",influxdb_fdw},
-    {"pgspider_core_fdw",node_set_spdcore}
+	{"pgspider_fdw", pgspider_fdw},
+	{"postgres_fdw", postgres_fdw},
+	{"sqlite_fdw", sqlite_fdw},
+	{"tinybrace_fdw", tinybrace_fdw},
+	{"mysql_fdw", mysql_fdw},
+	{"griddb_fdw", griddb_fdw},
+	{"influxdb_fdw", influxdb_fdw},
+	{"pgspider_core_fdw", node_set_spdcore}
 };
 
-const int extension_size = sizeof(spd_func) / sizeof(*spd_func);
+const int	extension_size = sizeof(spd_func) / sizeof(*spd_func);
 
 void
 node_set_spdcore(nodes * option, PGconn *conn)
@@ -178,10 +178,11 @@ void
 node_set(nodes * option, PGconn *conn)
 {
 	int			i;
-	for (i = 0; i <  extension_size; i++)
+
+	for (i = 0; i < extension_size; i++)
 	{
 		if (strcasecmp(spd_func[i].name, option->fdw) == 0)
-		    (*spd_func[i].func) (option, conn);
+			(*spd_func[i].func) (option, conn);
 	}
 }
 
@@ -191,7 +192,7 @@ mapping_set_file(nodes * option, PGconn *conn, char *table_name)
 	char		sql[QUERY_LEN];
 	char		table_path[512];
 
-	if(option->dirpath[strlen(option->dirpath)-1]=='/')
+	if (option->dirpath[strlen(option->dirpath) - 1] == '/')
 		sprintf(table_path, "%s%s", option->dirpath, table_name);
 	else
 		sprintf(table_path, "%s/%s", option->dirpath, table_name);

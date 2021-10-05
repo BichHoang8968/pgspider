@@ -4,7 +4,7 @@
  *	  prototypes for clauses.c.
  *
  *
- * Portions Copyright (c) 1996-2020, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/optimizer/clauses.h
@@ -14,7 +14,6 @@
 #ifndef CLAUSES_H
 #define CLAUSES_H
 
-#include "access/htup.h"
 #include "nodes/pathnodes.h"
 
 typedef struct
@@ -28,8 +27,6 @@ typedef struct
 extern bool contain_not_builtin_stable_function(Node *clause);
 #endif
 extern bool contain_agg_clause(Node *clause);
-extern void get_agg_clause_costs(PlannerInfo *root, Node *clause,
-								 AggSplit aggsplit, AggClauseCosts *costs);
 
 extern bool contain_window_function(Node *clause);
 extern WindowFuncLists *find_window_functions(Node *clause, Index maxWinRef);
@@ -52,7 +49,7 @@ extern Var *find_forced_null_var(Node *clause);
 extern bool is_pseudo_constant_clause(Node *clause);
 extern bool is_pseudo_constant_clause_relids(Node *clause, Relids relids);
 
-extern int	NumRelids(Node *clause);
+extern int	NumRelids(PlannerInfo *root, Node *clause);
 
 extern void CommuteOpExpr(OpExpr *clause);
 
