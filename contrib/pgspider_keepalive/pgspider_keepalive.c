@@ -134,7 +134,14 @@ pgspider_check_childnnode(void *arg)
 	int			ret;
 	int			i;
 	nodeinfotag key = {{0}};
+	Latch	LocalLatchData;
 
+	/*
+	 * MyLatch is the thread local variable, when creating child thread
+	 * we need to init it for use in child thread.
+	 */
+	MyLatch = &LocalLatchData;
+	InitLatch(MyLatch);
 	ErrorContext = AllocSetContextCreate(TopMemoryContext,
 										 "Pgspider keep alive ErrorContext",
 										 ALLOCSET_DEFAULT_SIZES);
