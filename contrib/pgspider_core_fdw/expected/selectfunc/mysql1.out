@@ -46200,7 +46200,7 @@ SELECT sum(id),json_extract(json_build_array('{"id": 1, "b": {"c": 30}}', sum(id
 --Testcase 3693:
 SELECT json_extract(c1, '$.a')::int FROM s8;  -- should fail
 ERROR:  invalid input syntax for type integer: ""10""
-ERROR:  PGSpider can not get data from child node : mysql_svr
+ERROR:  PGSpider fail to iterate tuple from child thread
 -- select json_extract with normal cast
 --Testcase 3694:
 SELECT json_extract('{"a": "2000-01-01"}', '$.a')::timestamp, json_extract('{"a": "2000-01-01"}', '$.a')::date , json_extract('{"a": 1234}', '$.a')::bigint, json_extract('{"a": "b"}', '$.a')::text FROM s8;
@@ -53752,7 +53752,7 @@ SELECT json_value(c1, '$.a')::date FROM s8;
 --Testcase 4275:
 SELECT json_value(c1, '$.a')::date FROM s8; -- should fail
 ERROR:  invalid input syntax for type date: "10"
-ERROR:  PGSpider can not get data from child node : mysql_svr
+ERROR:  PGSpider fail to iterate tuple from child thread
 -- select json_value (stub function, abnormal cast, explain)
 --Testcase 4276:
 EXPLAIN VERBOSE
@@ -53797,7 +53797,7 @@ SELECT json_value(c1, '$.a', 'returning date', 'error on error')::date FROM s8;
 SELECT json_value(c1, '$.a', 'returning date', 'error on error')::date FROM s8; -- should fail
 ERROR:  failed to execute the MySQL query: 
 DATE value is out of range in 'json_value'
-ERROR:  PGSpider can not get data from child node : mysql_svr
+ERROR:  PGSpider fail to iterate tuple from child thread
 -- select json_value with normal cast
 --Testcase 4280:
 SELECT json_value('{"a": "2000-01-01"}', '$.a')::timestamp, json_value('{"a": "2000-01-01"}', '$.a')::date , json_value('{"a": 1234}', '$.a')::bigint, json_value('{"a": "b"}', '$.a')::text FROM s8;

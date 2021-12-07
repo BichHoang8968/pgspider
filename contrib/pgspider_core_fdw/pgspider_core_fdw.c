@@ -160,6 +160,12 @@ typedef enum
 	SPD_FS_STATE_ERROR,
 }			SpdForeignScanThreadState;
 
+typedef enum
+{
+	SPD_QUEUE_OK,		/* normal state, caller can get tuple from queue */
+	SPD_QUEUE_FINISH,	/* finish event has been notified on queue, caller can get this state after cosuming all pending tuple on queue if any */
+	SPD_QUEUE_ERROR,	/* child thread meet ERROR during execution */
+}	SpdQueueState;
 
 /*
  * This structure stores tuples of child thread for passing to parent.
@@ -168,11 +174,11 @@ typedef enum
 typedef struct SpdTupleQueue
 {
 	struct TupleTableSlot *tuples[SPD_TUPLE_QUEUE_LEN];
-	int			start;			/* index of the first element */
-	int			len;			/* number of the elements */
-	int			isFinished;		/* true if scan is finished */
-	bool		skipLast;		/* true if skip last value copy */
-	pthread_mutex_t qmutex;		/* mutex */
+	int			start;				/* index of the first element */
+	int			len;				/* number of the elements */
+	SpdQueueState	queue_state;	/* state of queue and coresponding child thread */
+	bool		skipLast;			/* true if skip last value copy */
+	pthread_mutex_t qmutex;			/* mutex */
 }			SpdTupleQueue;
 
 /* This structure stores child thread information. */
@@ -561,6 +567,9 @@ static bool spd_can_skip_deepcopy(char *fdwname);
 static bool spd_checkurl_clauses(PlannerInfo *root, List *baserestrictinfo);
 static void rebuild_target_expr(Node* node, StringInfo buf, Extractcells *extcells,
 								int *cellid, List *groupby_target, bool isfirst);
+
+static void notify_error_to_child_threads(ForeignScanThreadInfo *fssThrdInfo, int nThreads);
+static TupleTableSlot *nextChildTuple(ForeignScanThreadInfo *fssThrdInfo, int nThreads, int *nodeId, int *startNodeId);
 #ifdef ENABLE_PARALLEL_S3
 List *getS3FileList(Oid foreigntableid);
 #endif
@@ -569,10 +578,11 @@ static bool is_target_contain_group_by(PathTarget *grouping_target, List *groupC
 
 /* Queue functions */
 static bool spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy);
-static TupleTableSlot *spd_queue_get(SpdTupleQueue * que, bool *is_finished);
+static TupleTableSlot *spd_queue_get(SpdTupleQueue * que, SpdQueueState *queue_state);
 static void spd_queue_reset(SpdTupleQueue * que);
 static void spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, const TupleTableSlotOps *tts_ops, bool skipLast);
 static void spd_queue_notify_finish(SpdTupleQueue * que);
+static void spd_queue_notify_error(SpdTupleQueue * que);
 static void spd_execute_local_query(char *query, pthread_rwlock_t *scan_mutex);
 
 static List *spd_catalog_makedivtlist(Aggref *aggref, List *newList, enum Aggtype aggtype);
@@ -1031,10 +1041,25 @@ static void
 spd_queue_notify_finish(SpdTupleQueue * que)
 {
 	pthread_mutex_lock(&que->qmutex);
-	que->isFinished = true;
+	if (que->queue_state == SPD_QUEUE_OK)
+		que->queue_state = SPD_QUEUE_FINISH;
 	pthread_mutex_unlock(&que->qmutex);
 }
 
+/**
+ * spd_queue_notify_error
+ *
+ * Notify parent thread that child fdw scan is finished.
+ *
+ * @param[in,out] que Tuple queue
+ */
+static void
+spd_queue_notify_error(SpdTupleQueue * que)
+{
+	pthread_mutex_lock(&que->qmutex);
+	que->queue_state = SPD_QUEUE_ERROR;
+	pthread_mutex_unlock(&que->qmutex);
+}
 /*
  * spd_queue_add
  *
@@ -1132,10 +1157,10 @@ spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy)
  * Return tuple slot if exist else NULL if queue is empty.
  *
  * @param[in,out] que Tuple queue
- * @param[out] is_finished True will be set if queue is empty and child foreign scan is finished.
+ * @param[out] queue_state State of queue and child scanning thread
  */
 static TupleTableSlot *
-spd_queue_get(SpdTupleQueue * que, bool *is_finished)
+spd_queue_get(SpdTupleQueue * que, SpdQueueState *queue_state)
 {
 	TupleTableSlot *temp;
 
@@ -1143,7 +1168,7 @@ spd_queue_get(SpdTupleQueue * que, bool *is_finished)
 	if (que->len == 0)
 	{
 		/* Update only when queue is empty */
-		*is_finished = que->isFinished;
+		*queue_state = que->queue_state;
 		pthread_mutex_unlock(&que->qmutex);
 		return NULL;
 	}
@@ -1170,7 +1195,7 @@ spd_queue_reset(SpdTupleQueue * que)
 {
 	que->len = 0;
 	que->start = 0;
-	que->isFinished = false;
+	que->queue_state = SPD_QUEUE_OK;
 }
 
 /*
@@ -2980,6 +3005,10 @@ spd_ForeignScan_thread(void *arg)
 	gettimeofday(&s, NULL);
 #endif
 
+	/* If thread has been notified ERROR, shut down immediately */
+	if (fssthrdInfo->state == SPD_FS_STATE_ERROR)
+		goto THREAD_EXIT;
+
 	/*
 	 * MyLatch is the thread local variable, when creating child thread 
 	 * we need to init it for use in child thread.
@@ -3070,7 +3099,10 @@ THREAD_END:
 
 	fssthrdInfo->state = SPD_FS_STATE_FINISH;
 THREAD_EXIT:
-	spd_queue_notify_finish(&fssthrdInfo->tupleQueue);
+	if (fssthrdInfo->state == SPD_FS_STATE_ERROR)
+		spd_queue_notify_error(&fssthrdInfo->tupleQueue);
+	else
+		spd_queue_notify_finish(&fssthrdInfo->tupleQueue);
 
 	spd_freeThreadContextList();
 
@@ -8496,15 +8528,35 @@ spd_AddSpdUrl(ForeignScanThreadInfo *pFssThrdInfo, TupleTableSlot *parent_slot,
 	return node_slot;
 }
 
-/**
+/*
+ * notify_error_to_child_threads
+ *
+ * Notify error to all child thread and stop the iteration
+ *
+ * @param[in] fssThrdInfo
+ * @param[in] nThreads
+ */
+static void notify_error_to_child_threads(ForeignScanThreadInfo *fssThrdInfo, int nThreads)
+{
+	int idx=0;
+	for (idx = 0; idx < nThreads; ++idx)
+	{
+		/* Set state ERROR for each thread and request end scan to terminite iterating */
+		fssThrdInfo[idx].state = SPD_FS_STATE_ERROR ;
+		fssThrdInfo[idx].requestEndScan = true;
+	}
+}
+
+/*
  * nextChildTuple
  *
  * Return slot and node id of child fdw which returns the slot if available.
  * Return NULL if all threads are finished.
+ * If ERROR status is detected, stop all child thread execution and set ERROR state.
  *
  * @param[in] fssThrdInfo
  * @param[in] nThreads
- * @param[out] nodeId
+ * @param[out] startNodeId
  */
 static TupleTableSlot *
 nextChildTuple(ForeignScanThreadInfo *fssThrdInfo, int nThreads, int *nodeId, int *startNodeId)
@@ -8516,8 +8568,8 @@ nextChildTuple(ForeignScanThreadInfo *fssThrdInfo, int nThreads, int *nodeId, in
 
 	for (count = start;; count++)
 	{
-		bool		is_finished = false;
-		int real_count = count % nThreads;
+		SpdQueueState	queue_state = SPD_QUEUE_OK;
+		int thread_idx = count % nThreads;
 		if (count >= nThreads+start)
 		{
 			if (all_thread_finished)
@@ -8528,11 +8580,16 @@ nextChildTuple(ForeignScanThreadInfo *fssThrdInfo, int nThreads, int *nodeId, in
 			count = start;
 			pthread_yield();
 		}
-		slot = spd_queue_get(&fssThrdInfo[real_count].tupleQueue, &is_finished);
+		slot = spd_queue_get(&fssThrdInfo[thread_idx].tupleQueue, &queue_state);
+		if (queue_state == SPD_QUEUE_ERROR)
+		{
+			notify_error_to_child_threads(fssThrdInfo, nThreads);
+			elog(ERROR, "PGSpider fail to iterate tuple from child thread");
+		}
 		if (slot)
 		{
 			/* tuple found */
-			*nodeId = real_count;
+			*nodeId = thread_idx;
 			if(start >= nThreads){
 				*startNodeId = 0;
 			}
@@ -8541,7 +8598,7 @@ nextChildTuple(ForeignScanThreadInfo *fssThrdInfo, int nThreads, int *nodeId, in
 			}
 			return slot;
 		}
-		else if (!is_finished)
+		else if (queue_state != SPD_QUEUE_FINISH)
 		{
 			/* No tuple yet, but the thread is running. */
 			all_thread_finished = false;

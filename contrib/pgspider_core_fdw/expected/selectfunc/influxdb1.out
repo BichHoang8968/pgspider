@@ -6057,7 +6057,7 @@ SELECT bottom(value1, 1), bottom(value2, 1), bottom(value3, 1), bottom(value4, 1
 --Testcase 531:
 SELECT bottom(value1, 1), bottom(value2, 1), bottom(value3, 1), bottom(value4, 1) FROM s3;
 ERROR:  influxdb_fdw : selector function bottom() cannot be combined with other functions
-ERROR:  PGSpider can not get data from child node : influxdb_svr
+ERROR:  PGSpider fail to iterate tuple from child thread
 -- select influx_max(*) (stub agg function, explain)
 --Testcase 532:
 EXPLAIN VERBOSE
@@ -6826,7 +6826,7 @@ SELECT top(value1, 1), top(value2, 1), top(value3, 1), top(value4, 1) FROM s3;
 --Testcase 599:
 SELECT top(value1, 1), top(value2, 1), top(value3, 1), top(value4, 1) FROM s3;
 ERROR:  influxdb_fdw : selector function top() cannot be combined with other functions
-ERROR:  PGSpider can not get data from child node : influxdb_svr
+ERROR:  PGSpider fail to iterate tuple from child thread
 -- select acos (builtin function, explain)
 --Testcase 600:
 EXPLAIN VERBOSE

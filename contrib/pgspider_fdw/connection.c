@@ -786,10 +786,8 @@ pgspiderfdw_report_error(int elevel, PGresult *res, PGconn *conn,
 	PG_TRY();
 	{
 		char	   *diag_sqlstate = PQresultErrorField(res, PG_DIAG_SQLSTATE);
-		char	   *message_primary = PQresultErrorField(res, PG_DIAG_MESSAGE_PRIMARY);
-		char	   *message_detail = PQresultErrorField(res, PG_DIAG_MESSAGE_DETAIL);
-		char	   *message_hint = PQresultErrorField(res, PG_DIAG_MESSAGE_HINT);
-		char	   *message_context = PQresultErrorField(res, PG_DIAG_CONTEXT);
+		/* Get the cumulative ERROR from connection for all ERROR messages from child process */
+		char	   *message_primary = NULL;
 		int			sqlstate;
 
 		if (diag_sqlstate)
@@ -801,22 +799,20 @@ pgspiderfdw_report_error(int elevel, PGresult *res, PGconn *conn,
 		else
 			sqlstate = ERRCODE_CONNECTION_FAILURE;
 
-		/*
-		 * If we don't get a message from the PGresult, try the PGconn.  This
-		 * is needed because for connection-level failures, PQexec may just
-		 * return NULL, not a PGresult at all.
-		 */
-		if (message_primary == NULL)
-			message_primary = pchomp(PQerrorMessage(conn));
+		/* Get the ERROR from connection for all message */
+		message_primary = pchomp(PQerrorMessage(conn));
 
 		ereport(elevel,
 				(errcode(sqlstate),
-				 message_primary ? errmsg_internal("%s", message_primary) :
+				 message_primary ? errmsg_internal("pgspider_fdw fail to get tuples from child process\n" \
+				 "{\n"\
+				 "%s"\
+				 "\n}", message_primary) :
 				 errmsg("could not obtain message string for remote error"),
-				 message_detail ? errdetail_internal("%s", message_detail) : 0,
-				 message_hint ? errhint("%s", message_hint) : 0,
-				 message_context ? errcontext("%s", message_context) : 0,
-				 sql ? errcontext("remote SQL command: %s", sql) : 0));
+				 NULL,
+				 NULL,
+				 NULL,
+				 sql ? errcontext("remote SQL command: %s\n", sql) : 0));
 	}
 	PG_FINALLY();
 	{

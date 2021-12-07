@@ -3703,7 +3703,28 @@ SELECT timestamparray FROM s3 WHERE element(2,timestamparray) > '2020-12-29 04:0
            Remote SQL: SELECT timestamparray FROM public.s32griddb WHERE ((public.element(2, timestamparray) > '2020-12-29 04:00:00'::timestamp without time zone))
 (9 rows)
 
---SELECT timestamparray FROM s3 WHERE element(2,timestamparray) > '2020-12-29 04:00:00' ORDER BY 1;
+SELECT timestamparray FROM s3 WHERE element(2,timestamparray) > '2020-12-29 04:00:00' ORDER BY 1;
+ERROR:  pgspider_fdw fail to get tuples from child process
+{
+ERROR:  GridDB-API is failed by 152009
+  [152009:TQ_CONSTRAINT_ARRAY_OUT_OF_RANGE] Specified index is out of range. (address=127.0.0.1:10001, partition=17)
+  [152009:TQ_CONSTRAINT_ARRAY_OUT_OF_RANGE] Specified index is out of range.
+
+ERROR:  PGSpider fail to iterate tuple from child thread
+}
+CONTEXT:  remote SQL command: SELECT timestamparray FROM public.s31griddb WHERE ((public.element(2, timestamparray) > '2020-12-29 04:00:00'::timestamp without time zone))
+
+ERROR:  PGSpider fail to iterate tuple from child thread
+ERROR:  pgspider_fdw fail to get tuples from child process
+{
+ERROR:  GridDB-API is failed by 152009
+  [152009:TQ_CONSTRAINT_ARRAY_OUT_OF_RANGE] Specified index is out of range. (address=127.0.0.1:10001, partition=43)
+  [152009:TQ_CONSTRAINT_ARRAY_OUT_OF_RANGE] Specified index is out of range.
+
+ERROR:  PGSpider fail to iterate tuple from child thread
+}
+CONTEXT:  remote SQL command: SELECT timestamparray FROM public.s32griddb WHERE ((public.element(2, timestamparray) > '2020-12-29 04:00:00'::timestamp without time zone))
+
 --
 --if user selects non-unique functions which Griddb only supports in WHERE clause => do not push down
 --if user selects unique functions which Griddb only supports in WHERE clause => still push down, return error of Griddb
@@ -6813,7 +6834,28 @@ SELECT time_sampling(value1, '2018-12-07 10:00:00.002', '2018-12-07 10:00:00.500
            Remote SQL: SELECT public.time_sampling(value1, '2018-12-07 10:00:00.002'::timestamp without time zone, '2018-12-07 10:00:00.5'::timestamp without time zone, 20, 'MILLISECOND'::public.time_unit) FROM public.s32griddb
 (9 rows)
 
---SELECT time_sampling(value1, '2018-12-07 10:00:00.002', '2018-12-07 10:00:00.500', 20, 'MILLISECOND') FROM s3 ORDER BY 1;
+SELECT time_sampling(value1, '2018-12-07 10:00:00.002', '2018-12-07 10:00:00.500', 20, 'MILLISECOND') FROM s3 ORDER BY 1;
+ERROR:  pgspider_fdw fail to get tuples from child process
+{
+ERROR:  GridDB-API is failed by 152010
+  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.502ZZ (address=127.0.0.1:10001, partition=17)
+  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.502ZZ
+
+ERROR:  PGSpider fail to iterate tuple from child thread
+}
+CONTEXT:  remote SQL command: SELECT public.time_sampling(value1, '2018-12-07 10:00:00.002'::timestamp without time zone, '2018-12-07 10:00:00.5'::timestamp without time zone, 20, 'MILLISECOND'::public.time_unit) FROM public.s31griddb
+
+ERROR:  PGSpider fail to iterate tuple from child thread
+ERROR:  pgspider_fdw fail to get tuples from child process
+{
+ERROR:  GridDB-API is failed by 152010
+  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.502ZZ (address=127.0.0.1:10001, partition=43)
+  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.502ZZ
+
+ERROR:  PGSpider fail to iterate tuple from child thread
+}
+CONTEXT:  remote SQL command: SELECT public.time_sampling(value1, '2018-12-07 10:00:00.002'::timestamp without time zone, '2018-12-07 10:00:00.5'::timestamp without time zone, 20, 'MILLISECOND'::public.time_unit) FROM public.s32griddb
+
 --if the first parameter is not set, * will be added as the first parameter.
 --When specified time does not exist, all columns (except timestamp key column) will be equal to the values of rows previous to the specified time.
 --DELETE FROM time_series__griddb_svr__0 WHERE value1 = 4;
