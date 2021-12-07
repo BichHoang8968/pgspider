@@ -660,7 +660,7 @@ SELECT timestamparray FROM s3 WHERE element(1,timestamparray) > '2020-12-29 04:0
 --Testcase 192:
 EXPLAIN VERBOSE
 SELECT timestamparray FROM s3 WHERE element(2,timestamparray) > '2020-12-29 04:00:00' ORDER BY 1;
---SELECT timestamparray FROM s3 WHERE element(2,timestamparray) > '2020-12-29 04:00:00' ORDER BY 1;
+SELECT timestamparray FROM s3 WHERE element(2,timestamparray) > '2020-12-29 04:00:00' ORDER BY 1;
 
 --
 --if user selects non-unique functions which Griddb only supports in WHERE clause => do not push down
@@ -1010,7 +1010,7 @@ SELECT time_sampling(value1, '2018-12-07 10:00:00.100', '2018-12-07 10:00:00.150
 --Testcase 286:
 EXPLAIN VERBOSE
 SELECT time_sampling(value1, '2018-12-07 10:00:00.002', '2018-12-07 10:00:00.500', 20, 'MILLISECOND') FROM s3 ORDER BY 1;
---SELECT time_sampling(value1, '2018-12-07 10:00:00.002', '2018-12-07 10:00:00.500', 20, 'MILLISECOND') FROM s3 ORDER BY 1;
+SELECT time_sampling(value1, '2018-12-07 10:00:00.002', '2018-12-07 10:00:00.500', 20, 'MILLISECOND') FROM s3 ORDER BY 1;
 --if the first parameter is not set, * will be added as the first parameter.
 --When specified time does not exist, all columns (except timestamp key column) will be equal to the values of rows previous to the specified time.
 --DELETE FROM time_series__griddb_svr__0 WHERE value1 = 4;

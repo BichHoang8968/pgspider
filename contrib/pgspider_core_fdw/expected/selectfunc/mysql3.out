@@ -52627,7 +52627,7 @@ CONTEXT:  PL/pgSQL function json_extract(json,text[]) line 3 at RAISE
 --Testcase 3707:
 SELECT json_extract(c1, '$.a')::int FROM s8;  -- should fail
 ERROR:  invalid input syntax for type integer: ""10""
-ERROR:  PGSpider can not get data from child node : mysql_svr
+ERROR:  PGSpider fail to iterate tuple from child thread
 -- select json_extract with normal cast
 --Testcase 3708:
 SELECT * FROM (
@@ -61236,7 +61236,7 @@ SELECT json_value(c1, '$.a')::date FROM s8;
 --Testcase 4289:
 SELECT json_value(c1, '$.a')::date FROM s8; -- should fail
 ERROR:  invalid input syntax for type date: "10"
-ERROR:  PGSpider can not get data from child node : mysql_svr
+ERROR:  PGSpider fail to iterate tuple from child thread
 -- select json_value (stub function, abnormal cast, explain)
 --Testcase 4290:
 EXPLAIN VERBOSE
@@ -61285,7 +61285,7 @@ SELECT json_value(c1, '$.a', 'returning date', 'error on error')::date FROM s8;
 SELECT json_value(c1, '$.a', 'returning date', 'error on error')::date FROM s8; -- should fail
 ERROR:  failed to execute the MySQL query: 
 DATE value is out of range in 'json_value'
-ERROR:  PGSpider can not get data from child node : mysql_svr
+ERROR:  PGSpider fail to iterate tuple from child thread
 -- select json_value with normal cast
 --Testcase 4294:
 SELECT json_value('{"a": "2000-01-01"}', '$.a')::timestamp, json_value('{"a": "2000-01-01"}', '$.a')::date , json_value('{"a": 1234}', '$.a')::bigint, json_value('{"a": "b"}', '$.a')::text FROM s8;

@@ -33151,10 +33151,14 @@ SELECT datediff(sysdate(), sysdate()), to_hex(id), 4 FROM time_tbl;
 -- select sysdate with non pushdown func and explicit constant (result)
 --Testcase 2706:
 SELECT datediff(sysdate(), sysdate()), to_hex(id), 4 FROM time_tbl;
+ERROR:  pgspider_fdw fail to get tuples from child process
+{
 ERROR:  stub sysdate() is called
 CONTEXT:  PL/pgSQL function public.sysdate() line 3 at RAISE
-remote SQL command: SELECT public.datediff(public.sysdate(), public.sysdate()), to_hex(id), 4 FROM public.time_tblmysql
-ERROR:  PGSpider can not get data from child node : pgspider_svr
+}
+CONTEXT:  remote SQL command: SELECT public.datediff(public.sysdate(), public.sysdate()), to_hex(id), 4 FROM public.time_tblmysql
+
+ERROR:  PGSpider fail to iterate tuple from child thread
 -- select sysdate with order by (explain)
 --Testcase 2707:
 EXPLAIN VERBOSE
@@ -45119,9 +45123,14 @@ SELECT sum(id),json_extract(json_build_array('{"id": 1, "b": {"c": 30}}', sum(id
 -- select json_extract with abnormal cast
 --Testcase 3695:
 SELECT json_extract(c1, '$.a')::int FROM s8;  -- should fail
-ERROR:  PGSpider can not get data from child node : mysql_svr
-CONTEXT:  remote SQL command: CLOSE c1
-ERROR:  PGSpider can not get data from child node : pgspider_svr
+ERROR:  pgspider_fdw fail to get tuples from child process
+{
+ERROR:  invalid input syntax for type integer: ""10""
+ERROR:  PGSpider fail to iterate tuple from child thread
+}
+CONTEXT:  remote SQL command: SELECT public.json_extract(c1, VARIADIC '{$.a}'::text[])::integer FROM public.s8mysql
+
+ERROR:  PGSpider fail to iterate tuple from child thread
 -- select json_extract with normal cast
 --Testcase 3696:
 SELECT json_extract('{"a": "2000-01-01"}', '$.a')::timestamp, json_extract('{"a": "2000-01-01"}', '$.a')::date , json_extract('{"a": 1234}', '$.a')::bigint, json_extract('{"a": "b"}', '$.a')::text FROM s8;
@@ -52528,9 +52537,14 @@ SELECT json_value(c1, '$.a')::date FROM s8;
 -- select json_value (stub function, abnormal cast, result)
 --Testcase 4285:
 SELECT json_value(c1, '$.a')::date FROM s8; -- should fail
-ERROR:  PGSpider can not get data from child node : mysql_svr
-CONTEXT:  remote SQL command: CLOSE c1
-ERROR:  PGSpider can not get data from child node : pgspider_svr
+ERROR:  pgspider_fdw fail to get tuples from child process
+{
+ERROR:  invalid input syntax for type date: "10"
+ERROR:  PGSpider fail to iterate tuple from child thread
+}
+CONTEXT:  remote SQL command: SELECT public.json_value(c1, '$.a'::text)::date FROM public.s8mysql
+
+ERROR:  PGSpider fail to iterate tuple from child thread
 -- select json_value (stub function, abnormal cast, explain)
 --Testcase 4286:
 EXPLAIN VERBOSE
@@ -52571,9 +52585,15 @@ SELECT json_value(c1, '$.a', 'returning date', 'error on error')::date FROM s8;
 -- select json_value (stub function, abnormal cast, result)
 --Testcase 4289:
 SELECT json_value(c1, '$.a', 'returning date', 'error on error')::date FROM s8; -- should fail
-ERROR:  PGSpider can not get data from child node : mysql_svr
-CONTEXT:  remote SQL command: CLOSE c1
-ERROR:  PGSpider can not get data from child node : pgspider_svr
+ERROR:  pgspider_fdw fail to get tuples from child process
+{
+ERROR:  failed to execute the MySQL query: 
+DATE value is out of range in 'json_value'
+ERROR:  PGSpider fail to iterate tuple from child thread
+}
+CONTEXT:  remote SQL command: SELECT public.json_value(c1, '$.a'::text, 'returning date'::text, 'error on error'::text)::date FROM public.s8mysql
+
+ERROR:  PGSpider fail to iterate tuple from child thread
 -- select json_value with normal cast
 --Testcase 4290:
 SELECT json_value('{"a": "2000-01-01"}', '$.a')::timestamp, json_value('{"a": "2000-01-01"}', '$.a')::date , json_value('{"a": 1234}', '$.a')::bigint, json_value('{"a": "b"}', '$.a')::text FROM s8;

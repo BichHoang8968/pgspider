@@ -2407,10 +2407,14 @@ SELECT (cumulative_sum_all()::s3).*, (cumulative_sum('/value[1,4]/')::s3).* from
 -- select cumulative_sum(*), cumulative_sum(regex) (stub function, expose data, result)
 --Testcase 179:
 SELECT (cumulative_sum_all()::s3).*, (cumulative_sum('/value[1,4]/')::s3).* from s3 ORDER BY 1;
+ERROR:  pgspider_fdw fail to get tuples from child process
+{
 ERROR:  stub cumulative_sum_all() is called
 CONTEXT:  PL/pgSQL function public.cumulative_sum_all() line 3 at RAISE
-remote SQL command: SELECT public.cumulative_sum_all(), public.cumulative_sum('/value[1,4]/'::text) FROM public.s31influx
-ERROR:  PGSpider can not get data from child node : pgspider_svr
+}
+CONTEXT:  remote SQL command: SELECT public.cumulative_sum_all(), public.cumulative_sum('/value[1,4]/'::text) FROM public.s31influx
+
+ERROR:  PGSpider fail to iterate tuple from child thread
 --Testcase 180:
 EXPLAIN VERBOSE
 SELECT derivative(value1),derivative(value2),derivative(value3),derivative(value4) FROM s3 ORDER BY 1;
@@ -7174,9 +7178,14 @@ SELECT bottom(value1, 1), bottom(value2, 1), bottom(value3, 1), bottom(value4, 1
 --Testcase 531:
 SELECT bottom(value1, 1), bottom(value2, 1), bottom(value3, 1), bottom(value4, 1) FROM s3 ORDER BY 1;
 ERROR:  influxdb_fdw : selector function bottom() cannot be combined with other functions
-ERROR:  PGSpider can not get data from child node : influxdb_svr
-CONTEXT:  remote SQL command: CLOSE c1
-ERROR:  PGSpider can not get data from child node : influxdb_svr
+ERROR:  PGSpider fail to iterate tuple from child thread
+ERROR:  pgspider_fdw fail to get tuples from child process
+{
+ERROR:  influxdb_fdw : selector function bottom() cannot be combined with other functions
+ERROR:  PGSpider fail to iterate tuple from child thread
+}
+CONTEXT:  remote SQL command: SELECT public.bottom(value1, 1), public.bottom(value2, 1), public.bottom(value3, 1), public.bottom(value4, 1) FROM public.s31influx
+
 -- select influx_max(*) (stub agg function, explain)
 --Testcase 532:
 EXPLAIN VERBOSE
@@ -8075,9 +8084,14 @@ SELECT top(value1, 1), top(value2, 1), top(value3, 1), top(value4, 1) FROM s3 OR
 --Testcase 599:
 SELECT top(value1, 1), top(value2, 1), top(value3, 1), top(value4, 1) FROM s3 ORDER BY 1;
 ERROR:  influxdb_fdw : selector function top() cannot be combined with other functions
-ERROR:  PGSpider can not get data from child node : influxdb_svr
-CONTEXT:  remote SQL command: CLOSE c1
-ERROR:  PGSpider can not get data from child node : influxdb_svr
+ERROR:  PGSpider fail to iterate tuple from child thread
+ERROR:  pgspider_fdw fail to get tuples from child process
+{
+ERROR:  influxdb_fdw : selector function top() cannot be combined with other functions
+ERROR:  PGSpider fail to iterate tuple from child thread
+}
+CONTEXT:  remote SQL command: SELECT public.top(value1, 1), public.top(value2, 1), public.top(value3, 1), public.top(value4, 1) FROM public.s31influx
+
 -- select acos (builtin function, explain)
 --Testcase 600:
 EXPLAIN VERBOSE
