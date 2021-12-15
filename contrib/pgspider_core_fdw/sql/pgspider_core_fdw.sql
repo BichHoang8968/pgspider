@@ -29,6 +29,14 @@ CREATE FOREIGN TABLE filetbl (i int,__spd_url text) SERVER pgspider_svr;
 --Testcase 2:
 SELECT * FROM filetbl;
 
+--get version
+--Testcase 295:
+\df pgspider_core*
+--Testcase 296:
+SELECT * FROM public.pgspider_core_fdw_version();
+--Testcase 297:
+SELECT pgspider_core_fdw_version();
+
 --Testcase 195:
 CREATE SERVER filesvr2 FOREIGN DATA WRAPPER file_fdw;
 --Testcase 196:
