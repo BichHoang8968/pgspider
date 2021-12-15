@@ -35,6 +35,31 @@ SELECT * FROM filetbl;
  4 | /file_svr/
 (4 rows)
 
+--get version
+--Testcase 295:
+\df pgspider_core*
+                                  List of functions
+ Schema |            Name             | Result data type | Argument data types | Type 
+--------+-----------------------------+------------------+---------------------+------
+ public | pgspider_core_fdw_handler   | fdw_handler      |                     | func
+ public | pgspider_core_fdw_validator | void             | text[], oid         | func
+ public | pgspider_core_fdw_version   | integer          |                     | func
+(3 rows)
+
+--Testcase 296:
+SELECT * FROM public.pgspider_core_fdw_version();
+ pgspider_core_fdw_version 
+---------------------------
+                     20000
+(1 row)
+
+--Testcase 297:
+SELECT pgspider_core_fdw_version();
+ pgspider_core_fdw_version 
+---------------------------
+                     20000
+(1 row)
+
 --Testcase 195:
 CREATE SERVER filesvr2 FOREIGN DATA WRAPPER file_fdw;
 --Testcase 196:

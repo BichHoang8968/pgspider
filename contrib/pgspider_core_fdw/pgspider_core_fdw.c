@@ -130,6 +130,9 @@ PG_MODULE_MAGIC;
 /* For checking single node or multiple node */
 #define SPD_SINGLE_NODE	1
 
+/* Code version is updated at new release. */
+#define CODE_VERSION   20000
+
 /*
  * Same as COMPARE_SCALAR_FIELD of equalfuncs.c
  * Compare a simple scalar field (int, float, bool, enum, etc).
@@ -918,6 +921,7 @@ spd_AllocatePrivate()
 
 /* Declaration for dynamic loading. */
 PG_FUNCTION_INFO_V1(pgspider_core_fdw_handler);
+PG_FUNCTION_INFO_V1(pgspider_core_fdw_version);
 
 /*
  * pgspider_fdw_handler populates a FdwRoutine with pointers to the functions
@@ -949,6 +953,12 @@ pgspider_core_fdw_handler(PG_FUNCTION_ARGS)
 	fdwroutine->EndForeignModify = spd_EndForeignModify;
 
 	PG_RETURN_POINTER(fdwroutine);
+}
+
+Datum
+pgspider_core_fdw_version(PG_FUNCTION_ARGS)
+{
+	PG_RETURN_INT32(CODE_VERSION);
 }
 
 /*
