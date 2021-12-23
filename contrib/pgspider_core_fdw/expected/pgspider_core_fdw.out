@@ -2837,7 +2837,7 @@ SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
 ERROR:  could not connect to server "post_svr2"
 DETAIL:  connection to server at "127.0.0.1", port 49503 failed: Connection refused
 	Is the server running on that host and accepting TCP/IP connections?
-ERROR:  PGSpider can not get data from child node : post_svr2
+ERROR:  PGSpider fail to iterate tuple from child thread
 SET pgspider_core_fdw.throw_error_ifdead to false;
 --Testcase 170:
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;

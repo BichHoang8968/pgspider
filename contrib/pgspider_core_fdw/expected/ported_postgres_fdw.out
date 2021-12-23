@@ -321,7 +321,7 @@ ALTER SERVER postgres_srv OPTIONS (SET dbname 'no such database');
 --Testcase 42:
 SELECT c3, c4 FROM ft1 ORDER BY c3, c1 LIMIT 1;  -- should fail
 ERROR:  could not connect to server "postgres_srv"
-ERROR:  PGSpider can not get data from child node : postgres_srv
+ERROR:  PGSpider fail to iterate tuple from child thread
 DO $d$
     BEGIN
         EXECUTE $$ALTER SERVER postgres_srv
@@ -5290,22 +5290,22 @@ ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c8 TYPE int;
 SELECT * FROM ft1 WHERE c1 = 1;  -- ERROR
 ERROR:  invalid input syntax for type integer: "foo"
 CONTEXT:  column "c8" of foreign table "ft1__postgres_srv__0"
-ERROR:  PGSpider can not get data from child node : postgres_srv
+ERROR:  PGSpider fail to iterate tuple from child thread
 --Testcase 433:
 SELECT  ft1.c1,  ft2.c2, ft1.c8 FROM ft1, ft2 WHERE ft1.c1 = ft2.c1 AND ft1.c1 = 1; -- ERROR
 ERROR:  invalid input syntax for type integer: "foo"
 CONTEXT:  column "c8" of foreign table "ft1__postgres_srv__0"
-ERROR:  PGSpider can not get data from child node : postgres_srv
+ERROR:  PGSpider fail to iterate tuple from child thread
 --Testcase 434:
 SELECT  ft1.c1,  ft2.c2, ft1 FROM ft1, ft2 WHERE ft1.c1 = ft2.c1 AND ft1.c1 = 1; -- ERROR
 ERROR:  invalid input syntax for type integer: "foo"
 CONTEXT:  column "c8" of foreign table "ft1__postgres_srv__0"
-ERROR:  PGSpider can not get data from child node : postgres_srv
+ERROR:  PGSpider fail to iterate tuple from child thread
 --Testcase 435:
 SELECT sum(c2), array_agg(c8) FROM ft1 GROUP BY c8; -- ERROR
 ERROR:  invalid input syntax for type integer: "foo"
 CONTEXT:  processing expression at position 2 in select list
-ERROR:  PGSpider can not get data from child node : postgres_srv
+ERROR:  PGSpider fail to iterate tuple from child thread
 --Testcase 436:
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE user_enum;
 --Testcase 437:
@@ -5341,7 +5341,7 @@ SAVEPOINT s;
 SELECT * FROM ft1 WHERE 1 / (c1 - 1) > 0;  -- ERROR
 ERROR:  division by zero
 CONTEXT:  remote SQL command: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (((1 / ("C 1" - 1)) > 0))
-ERROR:  PGSpider can not get data from child node : postgres_srv
+ERROR:  PGSpider fail to iterate tuple from child thread
 ROLLBACK TO s;
 --Testcase 441:
 FETCH c;
