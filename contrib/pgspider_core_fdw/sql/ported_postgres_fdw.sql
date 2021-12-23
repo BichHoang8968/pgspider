@@ -12,7 +12,7 @@ CREATE EXTENSION dblink;
 -- we use dblink to support insert data during test is in progress in some test cases
 --Testcase 4:
 select dblink_connect('dbname=postdb host=127.0.0.1
-	port=15432 user=postgres password=postgres');
+  port=15432 user=postgres password=postgres');
 
 --Testcase 5:
 CREATE SERVER pgspider_srv FOREIGN DATA WRAPPER pgspider_core_fdw;
@@ -38,16 +38,16 @@ $d$;
 
 --Testcase 6:
 CREATE USER MAPPING FOR public SERVER pgspider_srv
-	OPTIONS (user 'postgres', password 'postgres');
+  OPTIONS (user 'postgres', password 'postgres');
 --Testcase 7:
 CREATE USER MAPPING FOR public SERVER postgres_srv
-	OPTIONS (user 'postgres', password 'postgres');
+  OPTIONS (user 'postgres', password 'postgres');
 --Testcase 8:
 CREATE USER MAPPING FOR public SERVER postgres_srv2
-	OPTIONS (user 'postgres', password 'postgres');
+  OPTIONS (user 'postgres', password 'postgres');
 --Testcase 9:
 CREATE USER MAPPING FOR public SERVER postgres_srv3
-	OPTIONS (user 'postgres', password 'postgres');
+  OPTIONS (user 'postgres', password 'postgres');
 
 -- ===================================================================
 -- create objects used through PostgreSQL FDW server
@@ -56,40 +56,40 @@ CREATE USER MAPPING FOR public SERVER postgres_srv3
 CREATE TYPE user_enum AS ENUM ('foo', 'bar', 'buz');
 --Testcase 11:
 CREATE SCHEMA "S 1";
----CREATE TABLE "S 1"."T 1" (
----	"C 1" int NOT NULL,
----	c2 int NOT NULL,
----	c3 text,
----	c4 timestamptz,
----	c5 timestamp,
----	c6 varchar(10),
----	c7 char(10),
----	c8 user_enum,
----	CONSTRAINT t1_pkey PRIMARY KEY ("C 1")
----);
----CREATE TABLE "S 1"."T 2" (
----	c1 int NOT NULL,
----	c2 text,
----	CONSTRAINT t2_pkey PRIMARY KEY (c1)
----);
----CREATE TABLE "S 1"."T 3" (
----	c1 int NOT NULL,
----	c2 int NOT NULL,
----	c3 text,
----	CONSTRAINT t3_pkey PRIMARY KEY (c1)
----);
----CREATE TABLE "S 1"."T 4" (
----	c1 int NOT NULL,
----	c2 int NOT NULL,
----	c3 text,
----	CONSTRAINT t4_pkey PRIMARY KEY (c1)
----);
+--CREATE TABLE "S 1"."T 1" (
+--	"C 1" int NOT NULL,
+--	c2 int NOT NULL,
+--	c3 text,
+--	c4 timestamptz,
+--	c5 timestamp,
+--	c6 varchar(10),
+--	c7 char(10),
+--	c8 user_enum,
+--	CONSTRAINT t1_pkey PRIMARY KEY ("C 1")
+--);
+--CREATE TABLE "S 1"."T 2" (
+--	c1 int NOT NULL,
+--	c2 text,
+--	CONSTRAINT t2_pkey PRIMARY KEY (c1)
+--);
+--CREATE TABLE "S 1"."T 3" (
+--	c1 int NOT NULL,
+--	c2 int NOT NULL,
+--	c3 text,
+--	CONSTRAINT t3_pkey PRIMARY KEY (c1)
+--);
+--CREATE TABLE "S 1"."T 4" (
+--	c1 int NOT NULL,
+--	c2 int NOT NULL,
+--	c3 text,
+--	CONSTRAINT t4_pkey PRIMARY KEY (c1)
+--);
 
 -- Disable autovacuum for these tables to avoid unexpected effects of that
----ALTER TABLE "S 1"."T 1" SET (autovacuum_enabled = 'false');
----ALTER TABLE "S 1"."T 2" SET (autovacuum_enabled = 'false');
----ALTER TABLE "S 1"."T 3" SET (autovacuum_enabled = 'false');
----ALTER TABLE "S 1"."T 4" SET (autovacuum_enabled = 'false');
+--ALTER TABLE "S 1"."T 1" SET (autovacuum_enabled = 'false');
+--ALTER TABLE "S 1"."T 2" SET (autovacuum_enabled = 'false');
+--ALTER TABLE "S 1"."T 3" SET (autovacuum_enabled = 'false');
+--ALTER TABLE "S 1"."T 4" SET (autovacuum_enabled = 'false');
 
 IMPORT FOREIGN SCHEMA "S 1" FROM SERVER postgres_srv INTO "S 1";
 
@@ -721,7 +721,7 @@ SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 LEFT JOIN ft2 t2 ON (t1.c1 = t2.c1) FULL 
 --Testcase 161:
 SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 LEFT JOIN ft2 t2 ON (t1.c1 = t2.c1) FULL JOIN ft4 t3 ON (t2.c1 = t3.c1) ORDER BY t1.c1 OFFSET 10 LIMIT 10;
 --Testcase 162:
-SET enable_resultcache TO off;
+SET enable_memoize TO off;
 -- right outer join + left outer join
 --Testcase 163:
 EXPLAIN (VERBOSE, COSTS OFF)
@@ -729,7 +729,7 @@ SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 RIGHT JOIN ft2 t2 ON (t1.c1 = t2.c1) LEFT
 --Testcase 164:
 SELECT t1.c1, t2.c2, t3.c3 FROM ft2 t1 RIGHT JOIN ft2 t2 ON (t1.c1 = t2.c1) LEFT JOIN ft4 t3 ON (t2.c1 = t3.c1) OFFSET 10 LIMIT 10;
 --Testcase 165:
-RESET enable_resultcache;
+RESET enable_memoize;
 -- left outer join + right outer join
 --Testcase 166:
 EXPLAIN (VERBOSE, COSTS OFF)
@@ -1619,11 +1619,13 @@ ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE int;
 --Testcase 431:
 ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c8 TYPE int;
 --Testcase 432:
-SELECT * FROM ft1 WHERE c1 = 1;  -- ERROR
+SELECT * FROM ft1 ftx(x1,x2,x3,x4,x5,x6,x7,x8) WHERE x1 = 1;  -- ERROR
 --Testcase 433:
-SELECT  ft1.c1,  ft2.c2, ft1.c8 FROM ft1, ft2 WHERE ft1.c1 = ft2.c1 AND ft1.c1 = 1; -- ERROR
+SELECT ftx.x1, ft2.c2, ftx.x8 FROM ft1 ftx(x1,x2,x3,x4,x5,x6,x7,x8), ft2
+  WHERE ftx.x1 = ft2.c1 AND ftx.x1 = 1; -- ERROR
 --Testcase 434:
-SELECT  ft1.c1,  ft2.c2, ft1 FROM ft1, ft2 WHERE ft1.c1 = ft2.c1 AND ft1.c1 = 1; -- ERROR
+SELECT ftx.x1, ft2.c2, ftx FROM ft1 ftx(x1,x2,x3,x4,x5,x6,x7,x8), ft2
+  WHERE ftx.x1 = ft2.c1 AND ftx.x1 = 1; -- ERROR
 --Testcase 435:
 SELECT sum(c2), array_agg(c8) FROM ft1 GROUP BY c8; -- ERROR
 --Testcase 436:
@@ -2146,11 +2148,36 @@ create foreign table grem1__postgres_srv__0 (
   b int generated always as (a * 2) stored)
   server postgres_srv options(table_name 'gloc1');
 --Testcase 588:
+explain (verbose, costs off)
+insert into grem1__postgres_srv__0 (a) values (1), (2);
 insert into grem1__postgres_srv__0 (a) values (1), (2);
 --Testcase 589:
+explain (verbose, costs off)
+update grem1__postgres_srv__0 set a = 22 where a = 2;
 update grem1__postgres_srv__0 set a = 22 where a = 2;
 --Testcase 590:
 select * from grem1;
+select * from grem1__postgres_srv__0;
+delete from grem1__postgres_srv__0;
+
+-- test copy from
+copy grem1__postgres_srv__0 from stdin;
+1
+2
+\.
+select * from grem1;
+select * from grem1__postgres_srv__0;
+delete from grem1__postgres_srv__0;
+
+-- test batch insert
+alter server postgres_srv options (add batch_size '10');
+explain (verbose, costs off)
+insert into grem1__postgres_srv__0 (a) values (1), (2);
+insert into grem1__postgres_srv__0 (a) values (1), (2);
+select * from grem1;
+select * from grem1__postgres_srv__0;
+delete from grem1__postgres_srv__0;
+alter server postgres_srv options (drop batch_size);
 
 -- ===================================================================
 -- test local triggers
@@ -2479,6 +2506,10 @@ DROP TRIGGER trig_local_before ON rem1__postgres_srv__0;
 
 
 -- Test direct foreign table modification functionality
+EXPLAIN (verbose, costs off)
+DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
+EXPLAIN (verbose, costs off)
+DELETE FROM rem1__postgres_srv__0 WHERE false;     -- currently can't be pushed down
 
 -- Test with statement-level triggers
 --Testcase 673:
@@ -3661,7 +3692,7 @@ IMPORT FOREIGN SCHEMA import_source FROM SERVER postgres_srv INTO import_dest2
 --Testcase 1036:
 CREATE SCHEMA import_dest3;
 IMPORT FOREIGN SCHEMA import_source FROM SERVER postgres_srv INTO import_dest3
-  OPTIONS (import_collate 'false', import_not_null 'false');
+  OPTIONS (import_collate 'false', import_generated 'false', import_not_null 'false');
 --Testcase 1037:
 \det+ import_dest3.*
 --Testcase 1038:
@@ -3952,7 +3983,7 @@ CREATE FOREIGN TABLE ft1_nopw (
 	c8 user_enum
 ) SERVER loopback_nopw OPTIONS (schema_name 'public', table_name 'ft1');
 
-SELECT * FROM ft1_nopw LIMIT 1;
+SELECT 1 FROM ft1_nopw LIMIT 1;
 
 -- If we add a password to the connstr it'll fail, because we don't allow passwords
 -- in connstrs only in user mappings.
@@ -3970,13 +4001,13 @@ $d$;
 
 ALTER USER MAPPING FOR CURRENT_USER SERVER loopback_nopw OPTIONS (ADD password 'dummypw');
 
-SELECT * FROM ft1_nopw LIMIT 1;
+SELECT 1 FROM ft1_nopw LIMIT 1;
 
 -- Unpriv user cannot make the mapping passwordless
 ALTER USER MAPPING FOR CURRENT_USER SERVER loopback_nopw OPTIONS (ADD password_required 'false');
 
 
-SELECT * FROM ft1_nopw LIMIT 1;
+SELECT 1 FROM ft1_nopw LIMIT 1;
 
 RESET ROLE;
 
@@ -3986,7 +4017,7 @@ ALTER USER MAPPING FOR regress_nosuper SERVER loopback_nopw OPTIONS (ADD passwor
 SET ROLE regress_nosuper;
 
 -- Should finally work now
-SELECT * FROM ft1_nopw LIMIT 1;
+SELECT 1 FROM ft1_nopw LIMIT 1;
 
 -- unpriv user also cannot set sslcert / sslkey on the user mapping
 -- first set password_required so we see the right error messages
@@ -4000,13 +4031,13 @@ DROP USER MAPPING FOR CURRENT_USER SERVER loopback_nopw;
 
 -- This will fail again as it'll resolve the user mapping for public, which
 -- lacks password_required=false
-SELECT * FROM ft1_nopw LIMIT 1;
+SELECT 1 FROM ft1_nopw LIMIT 1;
 
 RESET ROLE;
 
 -- The user mapping for public is passwordless and lacks the password_required=false
 -- mapping option, but will work because the current user is a superuser.
-SELECT * FROM ft1_nopw LIMIT 1;
+SELECT 1 FROM ft1_nopw LIMIT 1;
 
 -- cleanup
 DROP USER MAPPING FOR public SERVER loopback_nopw;
@@ -4033,11 +4064,11 @@ ROLLBACK;
 -- so that we can easily terminate the connection later.
 ALTER SERVER loopback OPTIONS (application_name 'fdw_retry_check');
 
--- If debug_invalidate_system_caches_always is active, it results in
+-- If debug_discard_caches is active, it results in
 -- dropping remote connections after every transaction, making it
 -- impossible to test termination meaningfully.  So turn that off
 -- for this test.
-SET debug_invalidate_system_caches_always = 0;
+SET debug_discard_caches = 0;
 
 -- Make sure we have a remote connection.
 SELECT 1 FROM ft1 LIMIT 1;
@@ -4063,7 +4094,7 @@ SELECT 1 FROM ft1 LIMIT 1;    -- should fail
 \set VERBOSITY default
 COMMIT;
 
-RESET debug_invalidate_system_caches_always;
+RESET debug_discard_caches;
 
 -- =============================================================================
 -- test connection invalidation cases and postgres_fdw_get_connections function
@@ -4522,6 +4553,16 @@ EXPLAIN (VERBOSE, COSTS OFF)
 SELECT * FROM async_pt t1, async_p2 t2 WHERE t1.a = t2.a AND t1.b === 505;
 SELECT * FROM async_pt t1, async_p2 t2 WHERE t1.a = t2.a AND t1.b === 505;
 
+CREATE TABLE local_tbl (a int, b int, c text);
+INSERT INTO local_tbl VALUES (1505, 505, 'foo');
+ANALYZE local_tbl;
+
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM local_tbl t1 LEFT JOIN (SELECT *, (SELECT count(*) FROM async_pt WHERE a < 3000) FROM async_pt WHERE a < 3000) t2 ON t1.a = t2.a;
+EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
+SELECT * FROM local_tbl t1 LEFT JOIN (SELECT *, (SELECT count(*) FROM async_pt WHERE a < 3000) FROM async_pt WHERE a < 3000) t2 ON t1.a = t2.a;
+SELECT * FROM local_tbl t1 LEFT JOIN (SELECT *, (SELECT count(*) FROM async_pt WHERE a < 3000) FROM async_pt WHERE a < 3000) t2 ON t1.a = t2.a;
+
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT * FROM async_pt t1 WHERE t1.b === 505 LIMIT 1;
 EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF, TIMING OFF)
@@ -4529,9 +4570,6 @@ SELECT * FROM async_pt t1 WHERE t1.b === 505 LIMIT 1;
 SELECT * FROM async_pt t1 WHERE t1.b === 505 LIMIT 1;
 
 -- Check with foreign modify
-CREATE TABLE local_tbl (a int, b int, c text);
-INSERT INTO local_tbl VALUES (1505, 505, 'foo');
-
 CREATE TABLE base_tbl3 (a int, b int, c text);
 CREATE FOREIGN TABLE remote_tbl (a int, b int, c text)
   SERVER loopback OPTIONS (table_name 'base_tbl3');
@@ -4592,6 +4630,22 @@ DROP TABLE join_tbl;
 ALTER SERVER loopback OPTIONS (DROP async_capable);
 ALTER SERVER loopback2 OPTIONS (DROP async_capable);
 */
+
+-- ===================================================================
+-- test invalid server and foreign table options
+-- ===================================================================
+-- Invalid fdw_startup_cost option
+CREATE SERVER inv_scst FOREIGN DATA WRAPPER postgres_fdw
+	OPTIONS(fdw_startup_cost '100$%$#$#');
+-- Invalid fdw_tuple_cost option
+CREATE SERVER inv_scst FOREIGN DATA WRAPPER postgres_fdw
+	OPTIONS(fdw_tuple_cost '100$%$#$#');
+-- Invalid fetch_size option
+CREATE FOREIGN TABLE inv_fsz (c1 int )
+	SERVER postgres_srv OPTIONS (fetch_size '100$%$#$#');
+-- Invalid batch_size option
+CREATE FOREIGN TABLE inv_bsz (c1 int )
+	SERVER postgres_srv OPTIONS (batch_size '100$%$#$#');
 
 --Testcase 1146:
 SELECT dblink_disconnect();

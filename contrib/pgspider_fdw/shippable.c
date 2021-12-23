@@ -14,6 +14,7 @@
  * need not be accounted for here.
  *
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2018-2021, TOSHIBA CORPORATION
  *
  * IDENTIFICATION
  *	  contrib/pgspider_fdw/shippable.c

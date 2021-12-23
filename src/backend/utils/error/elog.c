@@ -366,14 +366,15 @@ errstart(int elevel, const char *domain)
 	{
 #ifdef PGSPIDER
 		/*
-		 * Check reasons for treating FATAL as ERROR in PGSpider:
-		 * If the FALTAL error occurred in child node thread, we treat
-		 * it as ERROR, and notify ERROR to backend later.
+		 * Check reasons for treating FATAL as ERROR in PGSpider: If the
+		 * FALTAL error occurred in child node thread, we treat it as ERROR,
+		 * and notify ERROR to backend later.
 		 */
-		if (!pg_strcasecmp(ErrorContext->name,"Thread ErrorContext") &&
+		if (!pg_strcasecmp(ErrorContext->name, "Thread ErrorContext") &&
 			elevel == FATAL)
 			elevel = ERROR;
 #endif
+
 		/*
 		 * If we are inside a critical section, all errors become PANIC
 		 * errors.  See miscadmin.h.

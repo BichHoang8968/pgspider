@@ -1,4 +1,4 @@
-# pg_promoter/Makefile
+# contrib/pgspider_keepalive/Makefile
 
 MODULE_big = pgspider_keepalive
 OBJS = pgspider_keepalive.o

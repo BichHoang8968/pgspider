@@ -367,6 +367,10 @@ struct PlannerInfo
 	Relids		curOuterRels;	/* outer rels above current node */
 	List	   *curOuterParams; /* not-yet-assigned NestLoopParams */
 
+	/* These fields are workspace for setrefs.c */
+	bool	   *isAltSubplan;	/* array corresponding to glob->subplans */
+	bool	   *isUsedSubplan;	/* array corresponding to glob->subplans */
+
 	/* optional private data for join_search_hook, e.g., GEQO */
 	void	   *join_search_private;
 
@@ -374,10 +378,10 @@ struct PlannerInfo
 	bool		partColsUpdated;
 
 #ifdef PGSPIDER
+
 	/*
-	 * Store PlannerInfo of child nodes if this PlannerInfo is parent.
-	 * Store server OID if this PlannerInfo is child (the list length
-	 * is always 1).
+	 * Store PlannerInfo of child nodes if this PlannerInfo is parent. Store
+	 * server OID if this PlannerInfo is child (the list length is always 1).
 	 */
 	List	   *child_root;
 #endif
@@ -1504,11 +1508,11 @@ typedef struct MaterialPath
 } MaterialPath;
 
 /*
- * ResultCachePath represents a ResultCache plan node, i.e., a cache that
- * caches tuples from parameterized paths to save the underlying node from
- * having to be rescanned for parameter values which are already cached.
+ * MemoizePath represents a Memoize plan node, i.e., a cache that caches
+ * tuples from parameterized paths to save the underlying node from having to
+ * be rescanned for parameter values which are already cached.
  */
-typedef struct ResultCachePath
+typedef struct MemoizePath
 {
 	Path		path;
 	Path	   *subpath;		/* outerpath to cache tuples from */
@@ -1520,7 +1524,7 @@ typedef struct ResultCachePath
 	uint32		est_entries;	/* The maximum number of entries that the
 								 * planner expects will fit in the cache, or 0
 								 * if unknown */
-} ResultCachePath;
+} MemoizePath;
 
 /*
  * UniquePath represents elimination of distinct rows from the output of
@@ -2120,7 +2124,7 @@ typedef struct RestrictInfo
 	Selectivity left_mcvfreq;	/* left side's most common val's freq */
 	Selectivity right_mcvfreq;	/* right side's most common val's freq */
 
-	/* hash equality operator used for result cache, else InvalidOid */
+	/* hash equality operator used for memoize nodes, else InvalidOid */
 	Oid			hasheqoperator;
 } RestrictInfo;
 

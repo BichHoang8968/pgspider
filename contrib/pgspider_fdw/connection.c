@@ -4,6 +4,7 @@
  *		  Connection management functions for pgspider_fdw
  *
  * Portions Copyright (c) 2012-2021, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2018-2021, TOSHIBA CORPORATION
  *
  * IDENTIFICATION
  *		  contrib/pgspider_fdw/connection.c
@@ -786,7 +787,11 @@ pgspiderfdw_report_error(int elevel, PGresult *res, PGconn *conn,
 	PG_TRY();
 	{
 		char	   *diag_sqlstate = PQresultErrorField(res, PG_DIAG_SQLSTATE);
-		/* Get the cumulative ERROR from connection for all ERROR messages from child process */
+
+		/*
+		 * Get the cumulative ERROR from connection for all ERROR messages
+		 * from child process
+		 */
 		char	   *message_primary = NULL;
 		int			sqlstate;
 
@@ -805,9 +810,9 @@ pgspiderfdw_report_error(int elevel, PGresult *res, PGconn *conn,
 		ereport(elevel,
 				(errcode(sqlstate),
 				 message_primary ? errmsg_internal("pgspider_fdw fail to get tuples from child process\n" \
-				 "{\n"\
-				 "%s"\
-				 "\n}", message_primary) :
+												   "{\n" \
+												   "%s" \
+												   "\n}", message_primary) :
 				 errmsg("could not obtain message string for remote error"),
 				 NULL,
 				 NULL,
@@ -1410,7 +1415,7 @@ exit:	;
 Datum
 pgspider_fdw_get_connections(PG_FUNCTION_ARGS)
 {
-#define pgspider_fdw_GET_CONNECTIONS_COLS	2
+#define PGSPIDER_FDW_GET_CONNECTIONS_COLS	2
 	ReturnSetInfo *rsinfo = (ReturnSetInfo *) fcinfo->resultinfo;
 	TupleDesc	tupdesc;
 	Tuplestorestate *tupstore;
@@ -1457,8 +1462,8 @@ pgspider_fdw_get_connections(PG_FUNCTION_ARGS)
 	while ((entry = (ConnCacheEntry *) hash_seq_search(&scan)))
 	{
 		ForeignServer *server;
-		Datum		values[pgspider_fdw_GET_CONNECTIONS_COLS];
-		bool		nulls[pgspider_fdw_GET_CONNECTIONS_COLS];
+		Datum		values[PGSPIDER_FDW_GET_CONNECTIONS_COLS];
+		bool		nulls[PGSPIDER_FDW_GET_CONNECTIONS_COLS];
 
 		/* We only look for open remote connections */
 		if (!entry->conn)

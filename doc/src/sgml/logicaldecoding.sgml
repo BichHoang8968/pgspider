@@ -1097,16 +1097,18 @@ OutputPluginWrite(ctx, true);
 
     <para>
      In synchronous replication setup, a deadlock can happen, if the transaction
-     has locked [user] catalog tables exclusively. This is because logical decoding of
-     transactions can lock catalog tables to access them. To avoid this users
-     must refrain from taking an exclusive lock on [user] catalog tables. This can
-     happen in the following ways:
+     has locked [user] catalog tables exclusively. See
+     <xref linkend="logicaldecoding-capabilities"/> for information on user
+     catalog tables. This is because logical decoding of transactions can lock
+     catalog tables to access them. To avoid this users must refrain from taking
+     an exclusive lock on [user] catalog tables. This can happen in the following
+     ways:
 
      <itemizedlist>
       <listitem>
        <para>
         Issuing an explicit <command>LOCK</command> on <structname>pg_class</structname>
-        (or any other catalog table) in a transaction.
+        in a transaction.
        </para>
       </listitem>
 
@@ -1141,6 +1143,10 @@ OutputPluginWrite(ctx, true);
        </para>
       </listitem>
      </itemizedlist>
+
+     Note that these commands that can cause deadlock apply to not only explicitly
+     indicated system catalog tables above but also to any other [user] catalog
+     table.
     </para>
    </sect2>
   </sect1>
@@ -1173,7 +1179,7 @@ OutputPluginWrite(ctx, true);
     (<function>stream_start_cb</function>, <function>stream_stop_cb</function>,
     <function>stream_abort_cb</function>, <function>stream_commit_cb</function>
     and <function>stream_change_cb</function>) and two optional callbacks
-    (<function>stream_message_cb</function>) and (<function>stream_truncate_cb</function>).
+    (<function>stream_message_cb</function> and <function>stream_truncate_cb</function>).
    </para>
 
    <para>
@@ -1226,7 +1232,7 @@ stream_commit_cb(...);  &lt;-- commit of the streamed transaction
     Similar to spill-to-disk behavior, streaming is triggered when the total
     amount of changes decoded from the WAL (for all in-progress transactions)
     exceeds the limit defined by <varname>logical_decoding_work_mem</varname> setting.
-    At that point, the largest toplevel transaction (measured by the amount of memory
+    At that point, the largest top-level transaction (measured by the amount of memory
     currently used for decoded changes) is selected and streamed.  However, in
     some cases we still have to spill to disk even if streaming is enabled
     because we exceed the memory threshold but still have not decoded the
@@ -1242,7 +1248,7 @@ stream_commit_cb(...);  &lt;-- commit of the streamed transaction
   </sect1>
 
   <sect1 id="logicaldecoding-two-phase-commits">
-   <title>Two-phase commit support for Logical Decoding</title>
+   <title>Two-phase Commit Support for Logical Decoding</title>
 
    <para>
     With the basic output plugin callbacks (eg., <function>begin_cb</function>,
@@ -1311,7 +1317,7 @@ stream_commit_cb(...);  &lt;-- commit of the streamed transaction
        [user] catalog tables exclusively. To avoid this users must refrain from
        having locks on catalog tables (e.g. explicit <command>LOCK</command> command)
        in such transactions.
-       (See <xref linkend="logicaldecoding-synchronous-caveats"/> for the details.)
+       See <xref linkend="logicaldecoding-synchronous-caveats"/> for the details.
       </para>
      </listitem>
     </itemizedlist>

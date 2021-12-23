@@ -273,7 +273,11 @@ extern PGDLLIMPORT int pgstat_track_activity_query_size;
  * Other global variables
  * ----------
  */
+#ifdef PGSPIDER
+extern PGDLLIMPORT __thread PgBackendStatus *MyBEEntry;
+#else
 extern PGDLLIMPORT PgBackendStatus *MyBEEntry;
+#endif
 
 
 /* ----------

@@ -1,10 +1,15 @@
-/* -------------------------------------------------------------------------
+/*-------------------------------------------------------------------------
  *
  * pgspider_keepalive.c
- * Copyright (c) 2019, TOSHIBA
  *
- * -------------------------------------------------------------------------
+ * Portions Copyright (c) 2018-2021, TOSHIBA CORPORATION
+ *
+ * IDENTIFICATION
+ *		  contrib/pgspider_keepalive/pgspider_keepalive.c
+ *
+ *-------------------------------------------------------------------------
  */
+
 #include "postgres.h"
 #include "pgspider_keepalive.h"
 

@@ -46,8 +46,12 @@ bool		pgstat_track_activities = false;
 int			pgstat_track_activity_query_size = 1024;
 
 
-/* exposed so that progress.c can access it */
+/* exposed so that backend_progress.c can access it */
+#ifdef PGSPIDER
+__thread PgBackendStatus *MyBEEntry = NULL;
+#else
 PgBackendStatus *MyBEEntry = NULL;
+#endif
 
 
 static PgBackendStatus *BackendStatusArray = NULL;
@@ -469,6 +473,9 @@ pgstat_beshutdown_hook(int code, Datum arg)
 	beentry->st_procpid = 0;	/* mark invalid */
 
 	PGSTAT_END_WRITE_ACTIVITY(beentry);
+
+	/* so that functions can check if backend_status.c is up via MyBEEntry */
+	MyBEEntry = NULL;
 }
 
 /*
@@ -587,9 +594,9 @@ pgstat_report_activity(BackendState state, const char *cmd_str)
 
 		if (beentry->st_state == STATE_RUNNING ||
 			beentry->st_state == STATE_FASTPATH)
-			pgstat_count_conn_active_time(secs * 1000000 + usecs);
+			pgstat_count_conn_active_time((PgStat_Counter) secs * 1000000 + usecs);
 		else
-			pgstat_count_conn_txn_idle_time(secs * 1000000 + usecs);
+			pgstat_count_conn_txn_idle_time((PgStat_Counter) secs * 1000000 + usecs);
 	}
 
 	/*

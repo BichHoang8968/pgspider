@@ -6,10 +6,11 @@
  * This file is for using FDW safely in multithread by appending normalized thread id
  * to connection cache hashtable key in FDW without changes to FDW.
  *
- * Portions Copyright (c) 2019, TOSHIBA CORPERATION
+ * Portions Copyright (c) 2018-2021, TOSHIBA CORPORATION
  *
  *-------------------------------------------------------------------------
  */
+
 #include <pthread.h>
 #include "utils/formatting.h"
 #include "catalog/pg_collation.h"
@@ -21,11 +22,11 @@ typedef int64 normalized_id_t;
 /* Advance key or entry pointer to hide normalized id from caller */
 #define ADJUST_KEY_OFFSET(keyptr) (keyptr += NORMALIZED_ID_SIZE)
 
- /*
-  * True if appending thread id to key is OK for option and hashfunc. We
-  * cannot suport hashfunc and compare func users provide because we append
-  * integer id to key
-  */
+/*
+ * True if appending thread id to key is OK for option and hashfunc. We
+ * cannot suport hashfunc and compare func users provide because we append
+ * integer id to key
+ */
 #ifdef PGSPIDER
 #define SUPPORT_MULTITHREAD(option, hashfunc)  ((option & HASH_BLOBS || (option & HASH_FUNCTION && hashfunc==tag_hash)) && \
 						!(option & HASH_SHARED_MEM) && (option & HASH_ELEM) && !(option & HASH_COMPARE))
@@ -58,6 +59,7 @@ static const char tabname_array[][HASH_TABLE_NAME_LEN] = {
 	"Btree proof lookup cache",
 	"bucket ctids",
 	"CFuncHash",
+	"CheckForSessionAndXactLocks table",
 	"Collation cache",
 	"Combo CIDs",
 	"CompactCheckpointerRequestQueue",
@@ -81,7 +83,6 @@ static const char tabname_array[][HASH_TABLE_NAME_LEN] = {
 	"Logical rewrite mapping",
 	"logicalrep partition map cache",
 	"logicalrep relation map cache",
-	"logicalrep type map cache",
 	"lwlock stats",
 	"ModifyTable target hash",
 	"Operator class cache",

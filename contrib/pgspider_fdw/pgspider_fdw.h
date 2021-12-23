@@ -4,6 +4,7 @@
  *		  Foreign-data wrapper for remote PGSpider servers
  *
  * Portions Copyright (c) 2012-2021, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2018-2021, TOSHIBA CORPORATION
  *
  * IDENTIFICATION
  *		  contrib/pgspider_fdw/pgspider_fdw.h
@@ -182,8 +183,9 @@ extern void PGSpiderDeparseInsertSql(StringInfo buf, RangeTblEntry *rte,
 									 List *returningList,
 									 List **retrieved_attrs,
 									 int *values_end_len);
-extern void PGSpiderRebuildInsertSql(StringInfo buf, char *orig_query,
-									 int values_end_len, int num_cols,
+extern void PGSpiderRebuildInsertSql(StringInfo buf, Relation rel,
+									 char *orig_query, List *target_attrs,
+									 int values_end_len, int num_params,
 									 int num_rows);
 extern void PGSpiderDeparseUpdateSql(StringInfo buf, RangeTblEntry *rte,
 									 Index rtindex, Relation rel,

@@ -217,9 +217,7 @@ Installation Procedure
         make all
 
     (Remember to use GNU make.) The build will take a few minutes
-    depending on your hardware. The last line displayed should be:
-
-        All of PostgreSQL successfully made. Ready to install.
+    depending on your hardware.
 
     If you want to build everything that can be built, including the
     documentation (HTML and man pages), and the additional modules
@@ -227,9 +225,11 @@ Installation Procedure
 
         make world
 
-    The last line displayed should be:
+    If you want to build everything that can be built, including the
+    additional modules ("contrib"), but without the documentation, type
+    instead:
 
-        PostgreSQL, contrib, and documentation successfully made. Ready to install.
+        make world-bin
 
     If you want to invoke the build from another makefile rather than
     manually, you must unset MAKELEVEL or set it to zero, for instance
@@ -281,6 +281,11 @@ Installation Procedure
         make install-world
 
     This also installs the documentation.
+
+    If you built the world without the documentation above, type
+    instead:
+
+        make install-world-bin
 
     You can use make install-strip instead of make install to strip the
     executable files and libraries as they are installed. This will save

@@ -28,7 +28,6 @@
 #include "fe-auth.h"
 #include "libpq-fe.h"
 #include "libpq-int.h"
-#include "lib/stringinfo.h"
 #include "mb/pg_wchar.h"
 #include "pg_config_paths.h"
 #include "port/pg_bswap.h"
@@ -3659,6 +3658,13 @@ keep_going:						/* We will come back to here until there is
 				/* We can release the address list now. */
 				release_conn_addrinfo(conn);
 
+				/*
+				 * Contents of conn->errorMessage are no longer interesting
+				 * (and it seems some clients expect it to be empty after a
+				 * successful connection).
+				 */
+				resetPQExpBuffer(&conn->errorMessage);
+
 				/* We are open for business! */
 				conn->status = CONNECTION_OK;
 				return PGRES_POLLING_OK;
@@ -5163,7 +5169,7 @@ parseServiceFile(const char *serviceFile,
 				i;
 	FILE	   *f;
 	char	   *line;
-	StringInfoData linebuf;
+	char		buf[1024];
 
 	*group_found = false;
 
@@ -5175,18 +5181,26 @@ parseServiceFile(const char *serviceFile,
 		return 1;
 	}
 
-	initStringInfo(&linebuf);
-
-	while (pg_get_line_buf(f, &linebuf))
+	while ((line = fgets(buf, sizeof(buf), f)) != NULL)
 	{
+		int			len;
+
 		linenr++;
 
-		/* ignore whitespace at end of line, especially the newline */
-		while (linebuf.len > 0 &&
-			   isspace((unsigned char) linebuf.data[linebuf.len - 1]))
-			linebuf.data[--linebuf.len] = '\0';
+		if (strlen(line) >= sizeof(buf) - 1)
+		{
+			appendPQExpBuffer(errorMessage,
+							  libpq_gettext("line %d too long in service file \"%s\"\n"),
+							  linenr,
+							  serviceFile);
+			result = 2;
+			goto exit;
+		}
 
-		line = linebuf.data;
+		/* ignore whitespace at end of line, especially the newline */
+		len = strlen(line);
+		while (len > 0 && isspace((unsigned char) line[len - 1]))
+			line[--len] = '\0';
 
 		/* ignore leading whitespace too */
 		while (*line && isspace((unsigned char) line[0]))
@@ -5303,7 +5317,6 @@ parseServiceFile(const char *serviceFile,
 
 exit:
 	fclose(f);
-	pfree(linebuf.data);
 
 	return result;
 }
@@ -6736,6 +6749,14 @@ PQerrorMessage(const PGconn *conn)
 {
 	if (!conn)
 		return libpq_gettext("connection pointer is NULL\n");
+
+	/*
+	 * The errorMessage buffer might be marked "broken" due to having
+	 * previously failed to allocate enough memory for the message.  In that
+	 * case, tell the application we ran out of memory.
+	 */
+	if (PQExpBufferBroken(&conn->errorMessage))
+		return libpq_gettext("out of memory\n");
 
 	return conn->errorMessage.data;
 }
