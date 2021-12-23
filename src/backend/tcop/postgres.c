@@ -89,7 +89,6 @@
 #ifdef PGSPIDER
 __thread const char *debug_query_string;	/* client-supplied query string */
 bool		is_child_thread_running = false;	/* Flag to mark child thread is running of PGSpider */
-bool		is_child_thread_error = false;		/* Flag to mark error in child thread of PGSpider */
 #else
 const char *debug_query_string; /* client-supplied query string */
 #endif
@@ -2803,11 +2802,6 @@ void
 skip_memory_checking(bool flag)
 {
 	is_child_thread_running = flag;
-}
-void
-notify_child_thread_error(bool flag)
-{
-	is_child_thread_error = flag;
 }
 #endif
 

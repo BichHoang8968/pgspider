@@ -841,7 +841,6 @@ extern Datum Float8GetDatum(float8 X);
 	} PG_END_TRY();\
   	    pthread_rwlock_unlock(mutex);
 extern void skip_memory_checking(bool flag);
-extern void notify_child_thread_error(bool flag);
 #endif							/* PGSPIDER */
 
 #endif							/* POSTGRES_H */

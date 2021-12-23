@@ -29,9 +29,6 @@ static void printtup_startup(DestReceiver *self, int operation,
 static bool printtup(TupleTableSlot *slot, DestReceiver *self);
 static void printtup_shutdown(DestReceiver *self);
 static void printtup_destroy(DestReceiver *self);
-#ifdef PGSPIDER
-extern bool is_child_thread_error;
-#endif
 /* ----------------------------------------------------------------
  *		printtup / debugtup support
  * ----------------------------------------------------------------
@@ -371,16 +368,7 @@ printtup(TupleTableSlot *slot, DestReceiver *self)
 		}
 	}
 
-#ifdef PGSPIDER
-	/*
-	 * Do not send 'D' message when there is error in child thread of PGSpider.
-	 * Keep sending data will make client receives wrong message.
-	 */
-	if (!is_child_thread_error)
-		pq_endmessage_reuse(buf);
-#else
 	pq_endmessage_reuse(buf);
-#endif
 
 	/* Return to caller's context, and flush row's temporary memory */
 	MemoryContextSwitchTo(oldcontext);

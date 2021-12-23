@@ -1051,8 +1051,7 @@ static void
 spd_queue_notify_finish(SpdTupleQueue * que)
 {
 	pthread_mutex_lock(&que->qmutex);
-	if (que->queue_state == SPD_QUEUE_OK)
-		que->queue_state = SPD_QUEUE_FINISH;
+	que->queue_state = SPD_QUEUE_FINISH;
 	pthread_mutex_unlock(&que->qmutex);
 }
 
@@ -2535,13 +2534,6 @@ spd_ErrorCb(void *arg)
 
 		pthread_mutex_lock(&error_mutex);
 		EmitErrorReport();
-		/*
-		 * Set value of is_child_thread_error flag to true to
-		 * notify PGSpider core that there is error in child
-		 * thread. Only need to notify when error level is from ERROR.
-		 */
-		if (err->elevel >= ERROR)
-			notify_child_thread_error(true);
 		FreeErrorData(err);
 		pthread_mutex_unlock(&error_mutex);
 	}
@@ -6469,9 +6461,6 @@ spd_abort_transaction_callback(void *arg)
 		 * because the child threads finished running.
 		 */
 		skip_memory_checking(false);
-
-		/* Reset value of is_child_thread_error flag. */
-		notify_child_thread_error(false);
 	}
 }
 
@@ -8593,8 +8582,17 @@ nextChildTuple(ForeignScanThreadInfo *fssThrdInfo, int nThreads, int *nodeId, in
 		slot = spd_queue_get(&fssThrdInfo[thread_idx].tupleQueue, &queue_state);
 		if (queue_state == SPD_QUEUE_ERROR)
 		{
-			notify_error_to_child_threads(fssThrdInfo, nThreads);
-			elog(ERROR, "PGSpider fail to iterate tuple from child thread");
+			if (throwErrorIfDead)
+			{
+				/* If throwErrorIfDead is true, handle the ERROR and stop iteration */
+				notify_error_to_child_threads(fssThrdInfo, nThreads);
+				elog(ERROR, "PGSpider fail to iterate tuple from child thread");
+			}
+			else
+			{
+				/* If throwErrorIfDead is false, do not handle the ERROR, continue to get data from other node */
+				spd_queue_notify_finish(&fssThrdInfo[thread_idx].tupleQueue);
+			}
 		}
 		if (slot)
 		{
@@ -8868,9 +8866,6 @@ spd_EndForeignScan(ForeignScanState *node)
 	 * because the child threads finished running.
 	 */
 	skip_memory_checking(false);
-
-	/* Reset value of is_child_thread_error flag. */
-	notify_child_thread_error(false);
 
 	/* Wait until all the remote connections get closed. */
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
