@@ -25,6 +25,7 @@
  * consider to be user error.
  *
  * Portions Copyright (c) 2012-2021, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2018-2021, TOSHIBA CORPORATION
  *
  * IDENTIFICATION
  *		  contrib/pgspider_fdw/deparse.c
@@ -87,8 +88,10 @@ typedef struct foreign_loc_cxt
 {
 	Oid			collation;		/* OID of current collation, if any */
 	FDWCollateState state;		/* state of current collation choice */
-	bool		can_pushdown_stable;	/* true if query contains stable function can be pushed down */
-	bool		can_pushdown_volatile;	/* true if query contains volatile function can be pushed down */
+	bool		can_pushdown_stable;	/* true if query contains stable
+										 * function can be pushed down */
+	bool		can_pushdown_volatile;	/* true if query contains volatile
+										 * function can be pushed down */
 } foreign_loc_cxt;
 
 /*
@@ -137,7 +140,8 @@ static const char *InfluxDBStableRegexFunction[] = {
 	"triple_exponential_moving_average",
 	"triple_exponential_derivative",
 	"relative_strength_index",
-	NULL};
+	NULL
+};
 
 /* List of stable agg function with regular expression argument of InfluxDB */
 static const char *InfluxDBStableRegexAgg[] = {
@@ -153,7 +157,8 @@ static const char *InfluxDBStableRegexAgg[] = {
 	"stddev",
 	"first",
 	"last",
-	NULL};
+	NULL
+};
 
 /* List of unique numeric functions for MySQL */
 static const char *MysqlUniqueNumericFunction[] = {
@@ -165,7 +170,8 @@ static const char *MysqlUniqueNumericFunction[] = {
 	"mysql_pi",
 	"rand",
 	"truncate",
-	NULL};
+	NULL
+};
 
 /* List of unique json functions for MySQL */
 static const char *MysqlUniqueJsonFunction[] = {
@@ -204,12 +210,14 @@ static const char *MysqlUniqueJsonFunction[] = {
 	"json_extract_text",
 	"json_extract_json",
 	"json_extract_bool",
-	NULL};
+	NULL
+};
 
 /* List of unique Cast functions for MySQL */
 static const char *MysqlUniqueCastFunction[] = {
 	"convert",
-	NULL};
+	NULL
+};
 
 /* List of unique date/time function for MySQL */
 static const char *MysqlUniqueDateTimeFunction[] = {
@@ -272,7 +280,8 @@ static const char *MysqlUniqueDateTimeFunction[] = {
 	"weekofyear",
 	"year",
 	"yearweek",
-	NULL};
+	NULL
+};
 
 /* List of unique string function for MySQL */
 static const char *MysqlUniqueStringFunction[] = {
@@ -305,7 +314,8 @@ static const char *MysqlUniqueStringFunction[] = {
 	"ucase",
 	"unhex",
 	"weight_string",
-	NULL};
+	NULL
+};
 
 /* List of unique aggregate function for MySQL */
 static const char *MysqlUniqueAggregationFunction[] = {
@@ -314,7 +324,8 @@ static const char *MysqlUniqueAggregationFunction[] = {
 	"json_arrayagg",
 	"json_objectagg",
 	"std",
-	NULL};
+	NULL
+};
 
 /*
  * Functions to determine whether an expression can be evaluated safely on
@@ -406,7 +417,7 @@ static bool pgspider_contain_immutable_stable_functions(Node *clause);
 static bool pgspider_contain_immutable_stable_functions_walker(Node *node, void *context);
 static bool pgspider_contain_functions(Node *clause);
 static bool pgspider_contain_functions_walker(Node *node, void *context);
-static bool pgspider_is_regex_argument(Const* node, char **extval);
+static bool pgspider_is_regex_argument(Const *node, char **extval);
 static bool exist_in_function_list(char *funcname, const char **funclist);
 
 /*
@@ -667,13 +678,13 @@ foreign_expr_walker(Node *node,
 			break;
 		case T_Const:
 			{
-				Const		*c = (Const *) node;
-				char		*type_name;
+				Const	   *c = (Const *) node;
+				char	   *type_name;
 
 				/*
-				 * Get type name based on the const value.
-				 * If the type name is "time_unit" or "mysql_string_type",
-				 * allow it to push down to remote.
+				 * Get type name based on the const value. If the type name is
+				 * "time_unit" or "mysql_string_type", allow it to push down
+				 * to remote.
 				 */
 				type_name = deparse_type_name(c->consttype, c->consttypmod);
 				if (strcmp(type_name, "public.time_unit") == 0 ||
@@ -788,7 +799,7 @@ foreign_expr_walker(Node *node,
 				FuncExpr   *fe = (FuncExpr *) node;
 				bool		is_regex_format = false;
 				bool		is_regex_func = false;
-				char 	   *opername = NULL;
+				char	   *opername = NULL;
 
 				/*
 				 * If function used by the expression is not shippable, it
@@ -813,7 +824,10 @@ foreign_expr_walker(Node *node,
 										 glob_cxt, &inner_cxt))
 					return false;
 
-				/* Transfer the can_pushdown_volatile in the composition T_Func->T_List->T_Func */
+				/*
+				 * Transfer the can_pushdown_volatile in the composition
+				 * T_Func->T_List->T_Func
+				 */
 				if (inner_cxt.can_pushdown_volatile == true)
 					outer_cxt->can_pushdown_volatile = true;
 
@@ -841,13 +855,19 @@ foreign_expr_walker(Node *node,
 				if (exist_in_function_list(opername, InfluxDBStableRegexFunction))
 					is_regex_func = true;
 
-				/* Allow push down griddb_now/timestampdiff/timestampadd function even though volatility is volatile */
+				/*
+				 * Allow push down griddb_now/timestampdiff/timestampadd
+				 * function even though volatility is volatile
+				 */
 				if (strcmp(opername, "griddb_now") == 0 ||
 					strcmp(opername, "timestampdiff") == 0 ||
 					strcmp(opername, "timestampadd") == 0)
 					outer_cxt->can_pushdown_volatile = true;
 
-				/* Allow push down mysql unique function even though volatility is volatile */
+				/*
+				 * Allow push down mysql unique function even though
+				 * volatility is volatile
+				 */
 				if (exist_in_function_list(opername, MysqlUniqueNumericFunction) ||
 					exist_in_function_list(opername, MysqlUniqueStringFunction) ||
 					exist_in_function_list(opername, MysqlUniqueDateTimeFunction) ||
@@ -1125,7 +1145,7 @@ foreign_expr_walker(Node *node,
 				ListCell   *lc;
 				bool		is_regex_format = false;
 				bool		is_regex_func = false;
-				char 		*funcname = NULL;
+				char	   *funcname = NULL;
 
 				/* Not safe to pushdown when not in grouping context */
 				if (!IS_UPPER_REL(glob_cxt->foreignrel))
@@ -1139,9 +1159,9 @@ foreign_expr_walker(Node *node,
 				funcname = get_func_name(agg->aggfnoid);
 
 				/*
-				* As usual, it must be shippable.
-				* Or it is unique aggregate function of fdw
-				*/
+				 * As usual, it must be shippable. Or it is unique aggregate
+				 * function of fdw
+				 */
 				if (pgspider_is_shippable(agg->aggfnoid, ProcedureRelationId, fpinfo)
 					|| exist_in_function_list(funcname, MysqlUniqueAggregationFunction))
 				{
@@ -1264,7 +1284,7 @@ foreign_expr_walker(Node *node,
 		case T_CoerceViaIO:
 			{
 				/* Accept cast function outer of json_extract and json_value */
-				CoerceViaIO	   *c = (CoerceViaIO *) node;
+				CoerceViaIO *c = (CoerceViaIO *) node;
 
 				if (IsA(c->arg, FuncExpr))
 				{
@@ -1280,7 +1300,7 @@ foreign_expr_walker(Node *node,
 						return false;
 
 					if (!foreign_expr_walker((Node *) c->arg,
-											glob_cxt, &inner_cxt))
+											 glob_cxt, &inner_cxt))
 						return false;
 
 					if (inner_cxt.can_pushdown_volatile == true)
@@ -2246,6 +2266,7 @@ PGSpiderDeparseInsertSql(StringInfo buf, RangeTblEntry *rte,
 						 List *withCheckOptionList, List *returningList,
 						 List **retrieved_attrs, int *values_end_len)
 {
+	TupleDesc	tupdesc = RelationGetDescr(rel);
 	AttrNumber	pindex;
 	bool		first;
 	ListCell   *lc;
@@ -2275,12 +2296,20 @@ PGSpiderDeparseInsertSql(StringInfo buf, RangeTblEntry *rte,
 		first = true;
 		foreach(lc, targetAttrs)
 		{
+			int			attnum = lfirst_int(lc);
+			Form_pg_attribute attr = TupleDescAttr(tupdesc, attnum - 1);
+
 			if (!first)
 				appendStringInfoString(buf, ", ");
 			first = false;
 
-			appendStringInfo(buf, "$%d", pindex);
-			pindex++;
+			if (attr->attgenerated)
+				appendStringInfoString(buf, "DEFAULT");
+			else
+			{
+				appendStringInfo(buf, "$%d", pindex);
+				pindex++;
+			}
 		}
 
 		appendStringInfoChar(buf, ')');
@@ -2304,14 +2333,16 @@ PGSpiderDeparseInsertSql(StringInfo buf, RangeTblEntry *rte,
  * right number of parameters.
  */
 void
-PGSpiderRebuildInsertSql(StringInfo buf, char *orig_query,
-						 int values_end_len, int num_cols,
+PGSpiderRebuildInsertSql(StringInfo buf, Relation rel,
+						 char *orig_query, List *target_attrs,
+						 int values_end_len, int num_params,
 						 int num_rows)
 {
-	int			i,
-				j;
+	TupleDesc	tupdesc = RelationGetDescr(rel);
+	int			i;
 	int			pindex;
 	bool		first;
+	ListCell   *lc;
 
 	/* Make sure the values_end_len is sensible */
 	Assert((values_end_len > 0) && (values_end_len <= strlen(orig_query)));
@@ -2323,20 +2354,28 @@ PGSpiderRebuildInsertSql(StringInfo buf, char *orig_query,
 	 * Add records to VALUES clause (we already have parameters for the first
 	 * row, so start at the right offset).
 	 */
-	pindex = num_cols + 1;
+	pindex = num_params + 1;
 	for (i = 0; i < num_rows; i++)
 	{
 		appendStringInfoString(buf, ", (");
 
 		first = true;
-		for (j = 0; j < num_cols; j++)
+		foreach(lc, target_attrs)
 		{
+			int			attnum = lfirst_int(lc);
+			Form_pg_attribute attr = TupleDescAttr(tupdesc, attnum - 1);
+
 			if (!first)
 				appendStringInfoString(buf, ", ");
 			first = false;
 
-			appendStringInfo(buf, "$%d", pindex);
-			pindex++;
+			if (attr->attgenerated)
+				appendStringInfoString(buf, "DEFAULT");
+			else
+			{
+				appendStringInfo(buf, "$%d", pindex);
+				pindex++;
+			}
 		}
 
 		appendStringInfoChar(buf, ')');
@@ -2360,6 +2399,7 @@ PGSpiderDeparseUpdateSql(StringInfo buf, RangeTblEntry *rte,
 						 List *withCheckOptionList, List *returningList,
 						 List **retrieved_attrs)
 {
+	TupleDesc	tupdesc = RelationGetDescr(rel);
 	AttrNumber	pindex;
 	bool		first;
 	ListCell   *lc;
@@ -2373,14 +2413,20 @@ PGSpiderDeparseUpdateSql(StringInfo buf, RangeTblEntry *rte,
 	foreach(lc, targetAttrs)
 	{
 		int			attnum = lfirst_int(lc);
+		Form_pg_attribute attr = TupleDescAttr(tupdesc, attnum - 1);
 
 		if (!first)
 			appendStringInfoString(buf, ", ");
 		first = false;
 
 		deparseColumnRef(buf, rtindex, attnum, rte, false);
-		appendStringInfo(buf, " = $%d", pindex);
-		pindex++;
+		if (attr->attgenerated)
+			appendStringInfoString(buf, " = DEFAULT");
+		else
+		{
+			appendStringInfo(buf, " = $%d", pindex);
+			pindex++;
+		}
 	}
 	appendStringInfoString(buf, " WHERE ctid = $1");
 
@@ -3694,6 +3740,7 @@ deparseCoerceViaIO(CoerceViaIO *node, deparse_expr_cxt *context)
 	StringInfo	buf = context->buf;
 
 	deparseExpr(node->arg, context);
+
 	/*
 	 * plus an explicit cast operation.
 	 */
@@ -4277,7 +4324,7 @@ pgspider_is_foreign_function_tlist(PlannerInfo *root,
 				if (loc_cxt.can_pushdown_stable)
 				{
 					if (contain_volatile_functions((Node *) tle->expr))
-							return false;
+						return false;
 				}
 				else
 				{
@@ -4298,7 +4345,7 @@ pgspider_is_foreign_function_tlist(PlannerInfo *root,
 static bool
 exist_in_function_list(char *funcname, const char **funclist)
 {
-	int		i;
+	int			i;
 
 	for (i = 0; funclist[i]; i++)
 	{

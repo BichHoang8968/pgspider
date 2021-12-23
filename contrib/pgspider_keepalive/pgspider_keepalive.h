@@ -1,3 +1,15 @@
+/*-------------------------------------------------------------------------
+ *
+ * pgspider_keepalive.h
+ *
+ * Portions Copyright (c) 2018-2021, TOSHIBA CORPORATION
+ *
+ * IDENTIFICATION
+ *		  contrib/pgspider_keepalive/pgspider_keepalive.h
+ *
+ *-------------------------------------------------------------------------
+ */
+
 #ifndef SPD_FDW_H
 #define SPD_FDW_H
 

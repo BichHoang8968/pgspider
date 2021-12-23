@@ -27,6 +27,7 @@ coverage/
 coverage-html-stamp
 *.vcproj
 *.vcxproj
+.vscode
 win32ver.rc
 *.exe
 lib*dll.def

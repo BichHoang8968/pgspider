@@ -2,16 +2,16 @@ def NODE_NAME = 'AWS_Instance_CentOS'
 def MAIL_TO = '$DEFAULT_RECIPIENTS'
 def BRANCH_NAME = 'Branch [' + env.BRANCH_NAME + ']'
 def BUILD_INFO = 'Jenkins job: ' + env.BUILD_URL + '\n'
-def PGSPIDER_DOCKER_PATH = '/home/tsdv/jenkins/Docker/Server/PGSpider'
-def ENHANCE_TEST_DOCKER_PATH = '/home/tsdv/jenkins/Docker'
+def PGSPIDER_DOCKER_PATH = '/home/jenkins/Docker/Server/PGSpider'
+def ENHANCE_TEST_DOCKER_PATH = '/home/jenkins/Docker'
 
-def BRANCH_PGSPIDER = env.BRANCH_NAME
-def BRANCH_TINYBRACE_FDW = 'port14beta2'
-def BRANCH_MYSQL_FDW = 'port14beta2'
-def BRANCH_SQLITE_FDW = 'port14beta2'
-def BRANCH_GRIDDB_FDW = 'port14beta2'
-def BRANCH_INFLUXDB_FDW = 'port14beta2'
-def BRANCH_PARQUET_S3_FDW = 'port14beta2'
+def BRANCH_PGSPIDER = 'port14.0'
+def BRANCH_TINYBRACE_FDW = 'port14.0'
+def BRANCH_MYSQL_FDW = 'porting_14.0'
+def BRANCH_SQLITE_FDW = 'port14.0'
+def BRANCH_GRIDDB_FDW = 'port14.0'
+def BRANCH_INFLUXDB_FDW = 'port14.0'
+def BRANCH_PARQUET_S3_FDW = 'port14.0'
 
 pipeline {
     agent {
@@ -68,7 +68,7 @@ pipeline {
             steps {
                 catchError() {
                     sh """
-                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW}" pgspider'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW}" pgspider'
                     """
                 }
             }
@@ -88,7 +88,7 @@ pipeline {
                 catchError() {
                     sh """
                         rm -rf pgspider_make_check.out || true
-                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test.sh --test_makecheck" pgspider'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_makecheck" pgspider'
                         docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/make_check.out pgspider_make_check.out
                     """
                 }
@@ -111,7 +111,7 @@ pipeline {
             steps {
                 catchError() {
                     sh """
-                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test.sh --test_pgspider_fdw" pgspider'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_pgspider_fdw" pgspider'
                         docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_fdw/make_check.out pgspider_fdw_make_check.out
                     """
                 }
@@ -134,7 +134,7 @@ pipeline {
             steps {
                 catchError() {
                     sh """
-                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test.sh --test_postgres_fdw" pgspider'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_postgres_fdw" pgspider'
                         docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/postgres_fdw/make_check.out postgres_fdw_make_check.out
                     """
                 }
@@ -157,11 +157,11 @@ pipeline {
             steps {
                 catchError() {
                     sh """
-                        docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test_pgspider_multii.sh --test_core ${BRANCH_PGSPIDER}" postgres'
-                        docker exec mysqlserver_multi_existed_test /bin/bash -c '/tmp/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}'
-                        docker exec tinybraceserver_multi_existed_test /bin/bash -c '/tmp/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}'
+                        docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_pgspider_multii.sh --test_core ${BRANCH_PGSPIDER}" postgres'
+                        docker exec mysqlserver_multi_existed_test /bin/bash -c '/home/test/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}'
+                        docker exec tinybraceserver_multi_existed_test /bin/bash -c '/home/test/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}'
                         docker exec -w /usr/local/tinybrace tinybraceserver_multi_existed_test /bin/bash -c 'bin/tbserver &'
-                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test.sh --test_core" pgspider'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_core" pgspider'
                         docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_core_fdw_make_check.out
                     """
                 }
@@ -184,8 +184,8 @@ pipeline {
             steps {
                 catchError() {
                     sh """
-                        docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test_pgspider_multii.sh --test_ported ${BRANCH_PGSPIDER}" postgres'
-                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test.sh --test_ported" pgspider'
+                        docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_pgspider_multii.sh --test_ported ${BRANCH_PGSPIDER}" postgres'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_ported" pgspider'
                         docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_ported_postgres_fdw_make_check.out
                     """
                 }
@@ -208,17 +208,19 @@ pipeline {
             steps {
                 catchError() {
                     sh """
-                        docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test_pgspider_multii.sh --test_multi ${BRANCH_PGSPIDER}" postgres'
-                        docker exec mysqlserver_multi_existed_test /bin/bash -c "/tmp/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}"
-                        docker exec tinybraceserver_multi_existed_test /bin/bash -c "/tmp/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}"
+                        docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_pgspider_multii.sh --test_multi ${BRANCH_PGSPIDER}" postgres'
+                        docker exec mysqlserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}"
+                        docker exec tinybraceserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}"
                         docker exec -w /usr/local/tinybrace tinybraceserver_multi_existed_test /bin/bash -c 'bin/tbserver &'
-                        docker exec influxserver_multi_existed_test /bin/bash -c "/tmp/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}"
-                        docker exec gridserver_multi_existed_test /bin/bash -c "/tmp/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}"
-                        docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW}" pgspider'
-                        docker exec pgspiderserver_multi3_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW}" pgspider'
-                        docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test_multi.sh --pgs2" pgspider'
-                        docker exec pgspiderserver_multi3_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test_multi.sh --pgs3" pgspider'
-                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test.sh --test_multi" pgspider'
+                        docker exec influxserver_multi_existed_test /bin/bash -c 'systemctl stop influxd'  
+                        docker exec -d influxserver_multi_existed_test /bin/bash -c 'influxd -config /etc/influxdb/influxdb.conf'
+                        docker exec influxserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}"
+                        docker exec gridserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}"
+                        docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW}" pgspider'
+                        docker exec pgspiderserver_multi3_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW}" pgspider'
+                        docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_multi.sh --pgs2" pgspider'
+                        docker exec pgspiderserver_multi3_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_multi.sh --pgs3" pgspider'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_multi" pgspider'
                         docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_core_fdw_multi_make_check.out
                     """
                 }
@@ -241,14 +243,16 @@ pipeline {
             steps {
                 catchError() {
                     sh """
-                        docker exec mysqlserver_multi_existed_test /bin/bash -c "/tmp/start_existed_test_pgspider_selectfunc.sh ${BRANCH_PGSPIDER}"
-                        docker exec influxserver_multi_existed_test /bin/bash -c "/tmp/start_existed_test_pgspider_selectfunc.sh ${BRANCH_PGSPIDER}"
-                        docker exec gridserver_multi_existed_test /bin/bash -c "/tmp/start_existed_test_pgspider_selectfunc.sh ${BRANCH_PGSPIDER}"
-                        docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW}" pgspider'
-                        docker exec pgspiderserver_multi3_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW}" pgspider'
-                        docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test_selectfunc.sh --pgs2" pgspider'
-                        docker exec pgspiderserver_multi3_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test_selectfunc.sh --pgs3" pgspider'
-                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/tmp/start_existed_test.sh --test_selectfunc" pgspider'
+                        docker exec mysqlserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_selectfunc.sh ${BRANCH_PGSPIDER}"
+                        docker exec influxserver_multi_existed_test /bin/bash -c 'systemctl stop influxd'  
+                        docker exec -d influxserver_multi_existed_test /bin/bash -c 'influxd -config /etc/influxdb/influxdb.conf'
+                        docker exec influxserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_selectfunc.sh ${BRANCH_PGSPIDER}"
+                        docker exec gridserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_selectfunc.sh ${BRANCH_PGSPIDER}"
+                        docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW}" pgspider'
+                        docker exec pgspiderserver_multi3_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW}" pgspider'
+                        docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_selectfunc.sh --pgs2" pgspider'
+                        docker exec pgspiderserver_multi3_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_selectfunc.sh --pgs3" pgspider'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_selectfunc" pgspider'
                         docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_core_fdw_selectfunc_make_check.out
                     """
                 }
@@ -291,19 +295,19 @@ pipeline {
             steps {
                 catchError() {
                     sh """
-                        docker exec mysqlserver1_enhance_test /bin/bash -c '/tmp/start_enhance_test.sh'
-                        docker exec mysqlserver2_enhance_test /bin/bash -c '/tmp/start_enhance_test.sh'
-                        docker exec postgresserver1_enhance_test /bin/bash -c '/tmp/start_enhance_test_1.sh'
-                        docker exec postgresserver2_enhance_test /bin/bash -c '/tmp/start_enhance_test_2.sh'
-                        docker exec tinybraceserver1_enhance_test /bin/bash -c '/tmp/start_enhance_test_1.sh'
+                        docker exec mysqlserver1_enhance_test /bin/bash -c '/home/test/start_enhance_test.sh'
+                        docker exec mysqlserver2_enhance_test /bin/bash -c '/home/test/start_enhance_test.sh'
+                        docker exec postgresserver1_enhance_test /bin/bash -c '/home/test/start_enhance_test_1.sh'
+                        docker exec postgresserver2_enhance_test /bin/bash -c '/home/test/start_enhance_test_2.sh'
+                        docker exec tinybraceserver1_enhance_test /bin/bash -c '/home/test/start_enhance_test_1.sh'
                         docker exec -w /usr/local/tinybrace tinybraceserver1_enhance_test /bin/bash -c 'bin/tbserver &'
-                        docker exec tinybraceserver2_enhance_test /bin/bash -c '/tmp/start_enhance_test_2.sh'
+                        docker exec tinybraceserver2_enhance_test /bin/bash -c '/home/test/start_enhance_test_2.sh'
                         docker exec -w /usr/local/tinybrace tinybraceserver2_enhance_test /bin/bash -c 'bin/tbserver &'
-                        docker exec influxserver1_enhance_test /bin/bash -c '/tmp/start_enhance_test.sh'
-                        docker exec influxserver2_enhance_test /bin/bash -c '/tmp/start_enhance_test.sh'
-                        docker exec gridserver1_enhance_test /bin/bash -c '/tmp/start_enhance_test_1.sh'
-                        docker exec gridserver2_enhance_test /bin/bash -c '/tmp/start_enhance_test_2.sh'
-                        docker exec pgspiderserver1_enhance_test /bin/bash -c 'su -c "/tmp/start_enhance_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW}" pgspider'
+                        docker exec influxserver1_enhance_test /bin/bash -c '/home/test/start_enhance_test.sh'
+                        docker exec influxserver2_enhance_test /bin/bash -c '/home/test/start_enhance_test.sh'
+                        docker exec gridserver1_enhance_test /bin/bash -c '/home/test/start_enhance_test_1.sh'
+                        docker exec gridserver2_enhance_test /bin/bash -c '/home/test/start_enhance_test_2.sh'
+                        docker exec pgspiderserver1_enhance_test /bin/bash -c 'su -c "/home/test/start_enhance_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW}" pgspider'
                     """
                 }
             }
@@ -322,7 +326,7 @@ pipeline {
             steps {
                 catchError() {
                     sh """
-                        docker exec pgspiderserver1_enhance_test /bin/bash -c 'su -c "/tmp/start_enhance_test.sh --test_enhance" pgspider'
+                        docker exec pgspiderserver1_enhance_test /bin/bash -c 'su -c "/home/test/start_enhance_test.sh --test_enhance" pgspider'
                         docker cp pgspiderserver1_enhance_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out make_check_enhancetest.out
                     """
                 }

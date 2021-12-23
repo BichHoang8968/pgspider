@@ -134,7 +134,8 @@ static int	PqRecvLength;		/* End of data available in PqRecvBuffer */
  * Message status
  */
 #ifdef PGSPIDER
-pthread_mutex_t pgspider_send_mutex = PTHREAD_MUTEX_INITIALIZER;	/* mutex for sending data to client */
+pthread_mutex_t pgspider_send_mutex = PTHREAD_MUTEX_INITIALIZER;	/* mutex for sending
+																	 * data to client */
 #else
 static bool PqCommBusy;			/* busy sending data to the client */
 #endif

@@ -3,7 +3,7 @@
  * pgspider_core_option.c
  *		  FDW option handling for pgspider_core_fdw
  *
- * Portions Copyright (c) 2018-2020, TOSHIBA CORPORATION
+ * Portions Copyright (c) 2018-2021, TOSHIBA CORPORATION
  *
  * IDENTIFICATION
  *		  contrib/pgspider_core_fdw/pgspider_core_option.c
@@ -317,7 +317,7 @@ is_libpq_option(const char *keyword)
  */
 int
 spdExtractConnectionOptions(List *defelems, const char **keywords,
-						 const char **values)
+							const char **values)
 {
 	ListCell   *lc;
 	int			i;

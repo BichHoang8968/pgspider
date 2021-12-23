@@ -29,6 +29,7 @@ static void printtup_startup(DestReceiver *self, int operation,
 static bool printtup(TupleTableSlot *slot, DestReceiver *self);
 static void printtup_shutdown(DestReceiver *self);
 static void printtup_destroy(DestReceiver *self);
+
 /* ----------------------------------------------------------------
  *		printtup / debugtup support
  * ----------------------------------------------------------------

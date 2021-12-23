@@ -75,9 +75,9 @@ static inline HeapTuple SearchCatCacheInternal(CatCache *cache,
 
 #ifdef PGSPIDER
 static inline HeapTuple SearchCatCacheInternalOrig(CatCache *cache,
-					   int nkeys,
-					   Datum v1, Datum v2,
-					   Datum v3, Datum v4);
+												   int nkeys,
+												   Datum v1, Datum v2,
+												   Datum v3, Datum v4);
 #endif
 static pg_noinline HeapTuple SearchCatCacheMiss(CatCache *cache,
 												int nkeys,
@@ -1226,7 +1226,7 @@ SearchCatCache4(CatCache *cache,
  */
 static inline HeapTuple
 #ifdef PGSPIDER
-SearchCatCacheInternalOrig(CatCache *cache,
+			SearchCatCacheInternalOrig(CatCache *cache,
 #else
 SearchCatCacheInternal(CatCache *cache,
 #endif
@@ -1341,7 +1341,8 @@ SearchCatCacheInternal(CatCache *cache,
 					   Datum v3,
 					   Datum v4)
 {
-	HeapTuple tuple;
+	HeapTuple	tuple;
+
 	SPD_LOCK_TRY(&catcache_mutex);
 	tuple = SearchCatCacheInternalOrig(cache, nkeys, v1, v2, v3, v4);
 	SPD_UNLOCK_CATCH(&catcache_mutex);
@@ -1559,8 +1560,7 @@ GetCatCacheHashValue(CatCache *cache,
  *		and must call ReleaseCatCacheList() when done with the list.
  */
 #ifdef PGSPIDER
-static CatCList *
-SearchCatCacheListOrg(CatCache *cache,
+static CatCList *SearchCatCacheListOrg(CatCache *cache,
 #else
 CatCList *
 SearchCatCacheList(CatCache *cache,
@@ -1842,7 +1842,8 @@ SearchCatCacheList(CatCache *cache,
 				   Datum v2,
 				   Datum v3)
 {
-	CatCList* sts;
+	CatCList   *sts;
+
 	SPD_LOCK_TRY(&catcache_mutex);
 	sts = SearchCatCacheListOrg(cache, nkeys, v1, v2, v3);
 	SPD_UNLOCK_CATCH(&catcache_mutex);

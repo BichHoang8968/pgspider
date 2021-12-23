@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
  *
- * pgspider_core_option.c
+ * deparse.c
  *		  FDW deparsing module for pgspider_core_fdw
  *
- * Portions Copyright (c) TOSHIBA CORPORATION, TOSHIBA CORPERATION
+ * Portions Copyright (c) 2018-2021, TOSHIBA CORPORATION
  *
  * IDENTIFICATION
- *		  contrib/pgspider_core_fdw/pgspider_core_option.c
+ *		  contrib/pgspider_core_fdw/deparse.c
  *
  *-------------------------------------------------------------------------
  */
@@ -74,7 +74,8 @@ static const char *InfluxDBStableStarFunction[] = {
 	"triple_exponential_moving_average_all",
 	"triple_exponential_derivative_all",
 	"relative_strength_index_all",
-	NULL};
+	NULL
+};
 
 /* List of stable function with regular expression argument of InfluxDB */
 static const char *InfluxDBStableRegexFunction[] = {
@@ -96,7 +97,8 @@ static const char *InfluxDBStableRegexFunction[] = {
 	"triple_exponential_moving_average",
 	"triple_exponential_derivative",
 	"relative_strength_index",
-	NULL};
+	NULL
+};
 
 /* List of stable agg function with regular expression argument of InfluxDB */
 static const char *InfluxDBStableRegexAgg[] = {
@@ -112,7 +114,8 @@ static const char *InfluxDBStableRegexAgg[] = {
 	"stddev",
 	"first",
 	"last",
-	NULL};
+	NULL
+};
 
 /* List of stable function with constant argument of GridDB */
 static const char *GridDBStableConstArgFunction[] = {
@@ -120,26 +123,29 @@ static const char *GridDBStableConstArgFunction[] = {
 	"time_next_only",
 	"time_prev",
 	"time_prev_only",
-	NULL};
+	NULL
+};
 
 /* List of functions return record of griddb */
 static const char *GridDBReturnRecordFunctions[] = {
-    "time_next",
-    "time_next_only",
-    "time_prev",
-    "time_prev_only",
-    "time_interpolated",
-    "max_rows",
-    "min_rows",
-    "time_sampling",
-    NULL};
+	"time_next",
+	"time_next_only",
+	"time_prev",
+	"time_prev_only",
+	"time_interpolated",
+	"max_rows",
+	"min_rows",
+	"time_sampling",
+	NULL
+};
 
 /* List mysql aggregation stub function */
 static const char *MysqlAggregateStubFunction[] = {
 	"bit_xor",
 	"group_concat",
 	"std",
-	NULL};
+	NULL
+};
 
 /*
  * Global context for foreign_expr_walker's search of an expression tree.
@@ -148,8 +154,9 @@ typedef struct foreign_glob_cxt
 {
 	PlannerInfo *root;			/* global planner state */
 	RelOptInfo *foreignrel;		/* the foreign relation we are planning for */
-	bool	hasAggref;		/* this flag is used to detect if __spd_url is inside Aggref function */
-	int		node_num;		/* number of child node */
+	bool		hasAggref;		/* this flag is used to detect if __spd_url is
+								 * inside Aggref function */
+	int			node_num;		/* number of child node */
 } foreign_glob_cxt;
 
 /*
@@ -258,204 +265,214 @@ foreign_expr_walker(Node *node,
 	switch (nodeTag(node))
 	{
 		case T_Var:
-		{
-			Var             *var = (Var *) node;
-			char            *colname;
-			RangeTblEntry   *rte;
+			{
+				Var		   *var = (Var *) node;
+				char	   *colname;
+				RangeTblEntry *rte;
 
-			rte = planner_rt_fetch(var->varno, glob_cxt->root);
-			colname = get_attname(rte->relid, var->varattno, false);
+				rte = planner_rt_fetch(var->varno, glob_cxt->root);
+				colname = get_attname(rte->relid, var->varattno, false);
 
-			/* Don't pushed down __spd_url if it is inside Aggref */
-			if (glob_cxt->hasAggref && strcmp(colname, SPDURL) == 0)
-				return false;
-			break;
-		}
+				/* Don't pushed down __spd_url if it is inside Aggref */
+				if (glob_cxt->hasAggref && strcmp(colname, SPDURL) == 0)
+					return false;
+				break;
+			}
 		case T_Aggref:
-		{
-			Aggref 		*aggref = (Aggref*) node;
-			char 		*funcname = NULL;
-			ListCell   *lc;
-
-			/* Get function name */
-			funcname = get_func_name(aggref->aggfnoid);
-
-			/* Pushdown DISTINCT inside aggregate in single node model for mysql stub aggregate function */
-			if (aggref->aggdistinct != NIL)
 			{
-				if (glob_cxt->node_num > 1)
-				{
-					return false;
-				}
-				else if (strcmp(funcname, "count") && !exist_in_function_list(funcname, MysqlAggregateStubFunction))
-				{
-					return false;
-				}
-			}
+				Aggref	   *aggref = (Aggref *) node;
+				char	   *funcname = NULL;
+				ListCell   *lc;
 
-			/* Set the flag if detected Aggref function */
-			glob_cxt->hasAggref = true;
-
-			/*
-			 * Recurse to input args.
-			 * Don't pushed down __spd_url.
-			 */
-			foreach(lc, aggref->args)
-			{
-				Node	   *n = (Node *) lfirst(lc);
-
-				/* If TargetEntry, extract the expression from it */
-				if (IsA(n, TargetEntry))
-				{
-					TargetEntry *tle = (TargetEntry *) n;
-
-					n = (Node *) tle->expr;
-				}
-
-				if (!foreign_expr_walker(n, glob_cxt, &inner_cxt))
-				{
-					/* Reset the flag for next recursive check */
-					glob_cxt->hasAggref = false;
-					return false;
-				}
-			}
-
-			/* Reset the flag for next recursive check */
-			glob_cxt->hasAggref = false;
-
-			/*
-			 * The aggregate functions array_agg, json_agg, jsonb_agg, json_object_agg,
-			 * jsonb_object_agg, as well as similar user-defined
-			 * aggregate functions, produce meaningfully different result values depending
-			 * on the order of the input values. It is hard to control the order of input
-			 * value in PGSpider temp table. So, we change there aggregate functions to
-			 * not pushdown to FDW
-			 */
-			if (strcmp(funcname, "array_agg") == 0 ||
-				strcmp(funcname, "json_agg") == 0 ||
-				strcmp(funcname, "jsonb_agg") == 0 ||
-				strcmp(funcname, "json_object_agg") == 0 ||
-				strcmp(funcname, "jsonb_object_agg") == 0)
-			{
-				if (glob_cxt->node_num > 1)
-					return false;
-			}
-			if (strcmp(funcname, "string_agg") == 0 ||
-				strcmp(funcname, "xmlagg") == 0)
-			{
-				/*
-				 * The aggregate functions string_agg, and xmlagg, are not pushdown to FDW
-				 * when has ORDER BY
-				 */
-				if (aggref->aggorder != NIL)
-					return false;
+				/* Get function name */
+				funcname = get_func_name(aggref->aggfnoid);
 
 				/*
-				 * The aggregate functions string_agg is not pushdown to FDW
-				 * when the delimiter is not a constant.
+				 * Pushdown DISTINCT inside aggregate in single node model for
+				 * mysql stub aggregate function
 				 */
-				if (strcmp(funcname, "string_agg") == 0)
+				if (aggref->aggdistinct != NIL)
 				{
-					TargetEntry *tle = (TargetEntry *) lsecond(aggref->args);
-					Node	   *node = (Node *) tle->expr;
-					if (!IsA(node, Const))
+					if (glob_cxt->node_num > 1)
+					{
+						return false;
+					}
+					else if (strcmp(funcname, "count") && !exist_in_function_list(funcname, MysqlAggregateStubFunction))
+					{
+						return false;
+					}
+				}
+
+				/* Set the flag if detected Aggref function */
+				glob_cxt->hasAggref = true;
+
+				/*
+				 * Recurse to input args. Don't pushed down __spd_url.
+				 */
+				foreach(lc, aggref->args)
+				{
+					Node	   *n = (Node *) lfirst(lc);
+
+					/* If TargetEntry, extract the expression from it */
+					if (IsA(n, TargetEntry))
+					{
+						TargetEntry *tle = (TargetEntry *) n;
+
+						n = (Node *) tle->expr;
+					}
+
+					if (!foreign_expr_walker(n, glob_cxt, &inner_cxt))
+					{
+						/* Reset the flag for next recursive check */
+						glob_cxt->hasAggref = false;
+						return false;
+					}
+				}
+
+				/* Reset the flag for next recursive check */
+				glob_cxt->hasAggref = false;
+
+				/*
+				 * The aggregate functions array_agg, json_agg, jsonb_agg,
+				 * json_object_agg, jsonb_object_agg, as well as similar
+				 * user-defined aggregate functions, produce meaningfully
+				 * different result values depending on the order of the input
+				 * values. It is hard to control the order of input value in
+				 * PGSpider temp table. So, we change there aggregate
+				 * functions to not pushdown to FDW
+				 */
+				if (strcmp(funcname, "array_agg") == 0 ||
+					strcmp(funcname, "json_agg") == 0 ||
+					strcmp(funcname, "jsonb_agg") == 0 ||
+					strcmp(funcname, "json_object_agg") == 0 ||
+					strcmp(funcname, "jsonb_object_agg") == 0)
+				{
+					if (glob_cxt->node_num > 1)
 						return false;
 				}
+				if (strcmp(funcname, "string_agg") == 0 ||
+					strcmp(funcname, "xmlagg") == 0)
+				{
+					/*
+					 * The aggregate functions string_agg, and xmlagg, are not
+					 * pushdown to FDW when has ORDER BY
+					 */
+					if (aggref->aggorder != NIL)
+						return false;
+
+					/*
+					 * The aggregate functions string_agg is not pushdown to
+					 * FDW when the delimiter is not a constant.
+					 */
+					if (strcmp(funcname, "string_agg") == 0)
+					{
+						TargetEntry *tle = (TargetEntry *) lsecond(aggref->args);
+						Node	   *node = (Node *) tle->expr;
+
+						if (!IsA(node, Const))
+							return false;
+					}
+				}
+				if (glob_cxt->node_num > 1)
+				{
+					/*
+					 * Do not push down specific stub aggregate function for
+					 * mysql remote
+					 */
+					if (exist_in_function_list(funcname, MysqlAggregateStubFunction))
+						return false;
+
+					/*
+					 * Do not push down star regex function of InfluxDB when
+					 * there are multiple nodes
+					 */
+					if (spd_is_stub_star_regex_function((Expr *) node))
+						return false;
+				}
+				break;
 			}
-			if (glob_cxt->node_num > 1)
-			{
-				/* Do not push down specific stub aggregate function for mysql remote */
-				if (exist_in_function_list(funcname, MysqlAggregateStubFunction))
-					return false;
-				/*
-				 * Do not push down star regex function of InfluxDB when there are multiple nodes
-				 */
-				if (spd_is_stub_star_regex_function((Expr *)node))
-					return false;
-			}
-			break;
-		}
 		case T_List:
-		{
-			List	   *l = (List *) node;
-			ListCell   *lc;
-
-			/*
-			 * Recurse to component subexpressions.
-			 */
-			foreach(lc, l)
 			{
-				if (!foreign_expr_walker((Node *) lfirst(lc), glob_cxt, &inner_cxt))
-					return false;
+				List	   *l = (List *) node;
+				ListCell   *lc;
+
+				/*
+				 * Recurse to component subexpressions.
+				 */
+				foreach(lc, l)
+				{
+					if (!foreign_expr_walker((Node *) lfirst(lc), glob_cxt, &inner_cxt))
+						return false;
+				}
+				break;
 			}
-			break;
-		}
 		case T_FuncExpr:
-		{
-			FuncExpr   *func = (FuncExpr *) node;
-
-			/*
-			 * If having a single node, pushdown function expression.
-			 * If it is regular expression function or star function of InfluxDB,
-			 * pushdown function expression.
-			 * Otherwise not pushdown.
-			 */
-			if ((func->funcformat == COERCE_EXPLICIT_CALL) && (glob_cxt->node_num > 1))
 			{
-				if (!spd_is_stub_star_regex_function((Expr *)node))
+				FuncExpr   *func = (FuncExpr *) node;
+
+				/*
+				 * If having a single node, pushdown function expression. If
+				 * it is regular expression function or star function of
+				 * InfluxDB, pushdown function expression. Otherwise not
+				 * pushdown.
+				 */
+				if ((func->funcformat == COERCE_EXPLICIT_CALL) && (glob_cxt->node_num > 1))
+				{
+					if (!spd_is_stub_star_regex_function((Expr *) node))
+						return false;
+				}
+
+				if (!foreign_expr_walker((Node *) func->args, glob_cxt, &inner_cxt))
 					return false;
+				break;
 			}
-
-			if (!foreign_expr_walker((Node *)func->args, glob_cxt, &inner_cxt))
-				return false;
-			break;
-		}
 		case T_OpExpr:
-		{
-			OpExpr	   *oe = (OpExpr *) node;
+			{
+				OpExpr	   *oe = (OpExpr *) node;
 
-			/*
-			 * Recurse to input subexpressions.
-			 */
-			if (!foreign_expr_walker((Node *) oe->args, glob_cxt, &inner_cxt))
-				return false;
-			break;
-		}
+				/*
+				 * Recurse to input subexpressions.
+				 */
+				if (!foreign_expr_walker((Node *) oe->args, glob_cxt, &inner_cxt))
+					return false;
+				break;
+			}
 		case T_Param:
-		{
-			Param	   *p = (Param *) node;
-			/* Check type of T_Param(Subquery Expressions) */
-			if (!is_valid_type(p->paramtype))
-				return false;
-			break;
-		}
-		case T_BoolExpr:
-		{
-			BoolExpr   *b = (BoolExpr *) node;
+			{
+				Param	   *p = (Param *) node;
 
-			/*
-			 * Recurse to input subexpressions.
-			 */
-			if (!foreign_expr_walker((Node *) b->args, glob_cxt, &inner_cxt))
-				return false;
-			break;
-		}
+				/* Check type of T_Param(Subquery Expressions) */
+				if (!is_valid_type(p->paramtype))
+					return false;
+				break;
+			}
+		case T_BoolExpr:
+			{
+				BoolExpr   *b = (BoolExpr *) node;
+
+				/*
+				 * Recurse to input subexpressions.
+				 */
+				if (!foreign_expr_walker((Node *) b->args, glob_cxt, &inner_cxt))
+					return false;
+				break;
+			}
 		case T_FieldSelect:
-		{
-			/*
-			 * Do not allow to push down when there are multiple nodes
-			 */
-			if (glob_cxt->node_num > 1)
-				return false;
-			break;
-		}
+			{
+				/*
+				 * Do not allow to push down when there are multiple nodes
+				 */
+				if (glob_cxt->node_num > 1)
+					return false;
+				break;
+			}
 		case T_RowExpr:
-		{
-			/*
-			 * Enable to support push down on Mysql
-			 */
-			break;
-		}
+			{
+				/*
+				 * Enable to support push down on Mysql
+				 */
+				break;
+			}
 		default:
 			break;
 	}
@@ -520,7 +537,8 @@ spd_deparse_string_literal(StringInfo buf, const char *val)
  *
  * Check if HAVING expression is safe to pass to child fdws.
  */
-static bool having_clause_tree_walker(Node *node, void *param)
+static bool
+having_clause_tree_walker(Node *node, void *param)
 {
 	/* Need do nothing for empty subexpression. */
 	if (node == NULL)
@@ -529,33 +547,36 @@ static bool having_clause_tree_walker(Node *node, void *param)
 	switch (nodeTag(node))
 	{
 		case T_Aggref:
-		{
-			/* Do not pass to child fdw when HAVING clause contains aggregate functions */
-			return true;
-		}
+			{
+				/*
+				 * Do not pass to child fdw when HAVING clause contains
+				 * aggregate functions
+				 */
+				return true;
+			}
 		case T_FuncExpr:
 		case T_OpExpr:
-		{
-			List		*args = NIL;
-			ListCell	*lc;
-
-			if (IsA(node, FuncExpr))
-				args = ((FuncExpr *) node)->args;
-			else
-				args = ((OpExpr *) node)->args;
-
-			foreach(lc, args)
 			{
-				Expr *arg = (Expr *)lfirst(lc);
+				List	   *args = NIL;
+				ListCell   *lc;
 
-				if (!(IsA(arg, BoolExpr) || IsA(arg, FuncExpr) || IsA(arg, List)))
+				if (IsA(node, FuncExpr))
+					args = ((FuncExpr *) node)->args;
+				else
+					args = ((OpExpr *) node)->args;
+
+				foreach(lc, args)
 				{
-					if (!(IsA(arg, Aggref) || IsA(arg, Var) || IsA(arg, Const)))
-						return true;
+					Expr	   *arg = (Expr *) lfirst(lc);
+
+					if (!(IsA(arg, BoolExpr) || IsA(arg, FuncExpr) || IsA(arg, List)))
+					{
+						if (!(IsA(arg, Aggref) || IsA(arg, Var) || IsA(arg, Const)))
+							return true;
+					}
 				}
+				break;
 			}
-			break;
-		}
 		default:
 			break;
 	}
@@ -569,16 +590,19 @@ static bool having_clause_tree_walker(Node *node, void *param)
  * Check every conditions whether expression
  * is safe to pass to child FDW or not.
  */
-bool spd_is_having_safe(Node *node)
+bool
+spd_is_having_safe(Node *node)
 {
 	return (!having_clause_tree_walker(node, NULL));
 }
+
 /*
  * order_by_walker
  *
  * Check if HAVING expression is safe to pass to child fdws.
  */
-static bool order_by_walker(Node *node, void *param)
+static bool
+order_by_walker(Node *node, void *param)
 {
 	/* Need do nothing for empty subexpression. */
 	if (node == NULL)
@@ -587,25 +611,27 @@ static bool order_by_walker(Node *node, void *param)
 	switch (nodeTag(node))
 	{
 		case T_Aggref:
-		{
-			Aggref		*agg = (Aggref *) node;
+			{
+				Aggref	   *agg = (Aggref *) node;
 
-			if (agg->aggorder)
-				return true;
-			break;
-		}
+				if (agg->aggorder)
+					return true;
+				break;
+			}
 		default:
 			break;
 	}
 
 	return expression_tree_walker(node, order_by_walker, (void *) param);
 }
+
 /*
  * spd_is_sorted
  *
  * Check if expression contains aggregation with ORDER BY
  */
-bool spd_is_sorted(Node *node)
+bool
+spd_is_sorted(Node *node)
 {
 	return (order_by_walker(node, NULL));
 }
@@ -613,7 +639,8 @@ bool spd_is_sorted(Node *node)
 /*
  *	Convert type OID + typmod info into a type name
  */
-char *spd_deparse_type_name(Oid type_oid, int32 typemod)
+char *
+spd_deparse_type_name(Oid type_oid, int32 typemod)
 {
 	bits16		flags = FORMAT_TYPE_TYPEMOD_GIVEN;
 
@@ -629,11 +656,12 @@ char *spd_deparse_type_name(Oid type_oid, int32 typemod)
  * or +1 to always show it, or 0 to show it only if the constant wouldn't be assumed
  * to be the right type by default.
  */
-void spd_deparse_const(Const *node, StringInfo buf, int showtype)
+void
+spd_deparse_const(Const *node, StringInfo buf, int showtype)
 {
 	Oid			typoutput;
 	bool		typIsVarlena;
-	char		*extval;
+	char	   *extval;
 	bool		isfloat = false;
 	bool		needlabel;
 
@@ -643,7 +671,7 @@ void spd_deparse_const(Const *node, StringInfo buf, int showtype)
 		if (showtype >= 0)
 			appendStringInfo(buf, "::%s",
 							 spd_deparse_type_name(node->consttype,
-											   node->consttypmod));
+												   node->consttypmod));
 		return;
 	}
 
@@ -722,13 +750,14 @@ void spd_deparse_const(Const *node, StringInfo buf, int showtype)
 	if (needlabel || showtype > 0)
 		appendStringInfo(buf, "::%s",
 						 spd_deparse_type_name(node->consttype,
-										   node->consttypmod));
+											   node->consttypmod));
 }
 
 /*
  * Print the name of an operator.
  */
-void spd_deparse_operator_name(StringInfo buf, Form_pg_operator opform)
+void
+spd_deparse_operator_name(StringInfo buf, Form_pg_operator opform)
 {
 	char	   *opname;
 
@@ -758,7 +787,7 @@ void spd_deparse_operator_name(StringInfo buf, Form_pg_operator opform)
 static bool
 exist_in_function_list(char *funcname, const char **funclist)
 {
-	int		i;
+	int			i;
 
 	for (i = 0; funclist[i]; i++)
 	{
@@ -773,7 +802,8 @@ exist_in_function_list(char *funcname, const char **funclist)
  *
  * Return true if function is regular expression function or star function
  */
-bool spd_is_stub_star_regex_function(Expr *expr)
+bool
+spd_is_stub_star_regex_function(Expr *expr)
 {
 	char	   *opername = NULL;
 	ListCell   *lc;
@@ -785,79 +815,79 @@ bool spd_is_stub_star_regex_function(Expr *expr)
 	switch (nodeTag(expr))
 	{
 		case T_Aggref:
-		{
-			Aggref	   *agg = (Aggref *) expr;
-
-			/* Get function name */
-			opername = get_func_name(agg->aggfnoid);
-
-			if((strlen(opername) > 4) &&
-			   (strcmp(opername + strlen(opername) - 4, "_all") == 0))
 			{
-				/* Check stable function with star argument of InfluxDB */
-				if (exist_in_function_list(opername, InfluxDBStableStarFunction))
-					return true;
-			}
+				Aggref	   *agg = (Aggref *) expr;
 
-			foreach(lc, agg->args)
-			{
-				Node	   *n = (Node *) lfirst(lc);
+				/* Get function name */
+				opername = get_func_name(agg->aggfnoid);
 
-				/* If TargetEntry, extract the expression from it */
-				if (IsA(n, TargetEntry))
+				if ((strlen(opername) > 4) &&
+					(strcmp(opername + strlen(opername) - 4, "_all") == 0))
 				{
-					TargetEntry *tle = (TargetEntry *) n;
+					/* Check stable function with star argument of InfluxDB */
+					if (exist_in_function_list(opername, InfluxDBStableStarFunction))
+						return true;
+				}
 
-					n = (Node *) tle->expr;
+				foreach(lc, agg->args)
+				{
+					Node	   *n = (Node *) lfirst(lc);
 
-					if (IsA(n, Const))
+					/* If TargetEntry, extract the expression from it */
+					if (IsA(n, TargetEntry))
 					{
-						Const		*arg = (Const *) n;
+						TargetEntry *tle = (TargetEntry *) n;
 
-						if (arg->consttype == TEXTOID && spd_is_regex_argument(arg))
-							return exist_in_function_list(opername, InfluxDBStableRegexAgg);
+						n = (Node *) tle->expr;
+
+						if (IsA(n, Const))
+						{
+							Const	   *arg = (Const *) n;
+
+							if (arg->consttype == TEXTOID && spd_is_regex_argument(arg))
+								return exist_in_function_list(opername, InfluxDBStableRegexAgg);
+						}
 					}
 				}
+				break;
 			}
-			break;
-		}
 		case T_FuncExpr:
-		{
-			FuncExpr   *fe = (FuncExpr *) expr;
-
-			/* Get function name */
-			opername = get_func_name(fe->funcid);
-
-			if((strlen(opername) > 4) &&
-			   (strcmp(opername + strlen(opername) - 4, "_all") == 0))
 			{
-				/* Check stable function with star argument of InfluxDB */
-				if (exist_in_function_list(opername, InfluxDBStableStarFunction))
-					return true;
-			}
+				FuncExpr   *fe = (FuncExpr *) expr;
 
-			/* Check stable function with constant argument of GridDB */
-			if(exist_in_function_list(opername, GridDBStableConstArgFunction))
-				return true;
+				/* Get function name */
+				opername = get_func_name(fe->funcid);
 
-			if (list_length(fe->args) > 0)
-			{
-				ListCell   *funclc;
-				Node	   *firstArg;
-
-				funclc = list_head(fe->args);
-				firstArg = (Node *) lfirst(funclc);
-
-				if (IsA(firstArg, Const))
+				if ((strlen(opername) > 4) &&
+					(strcmp(opername + strlen(opername) - 4, "_all") == 0))
 				{
-					Const		*arg = (Const *) firstArg;
-
-					if (arg->consttype == TEXTOID && spd_is_regex_argument(arg))
-						return exist_in_function_list(opername, InfluxDBStableRegexFunction);
+					/* Check stable function with star argument of InfluxDB */
+					if (exist_in_function_list(opername, InfluxDBStableStarFunction))
+						return true;
 				}
+
+				/* Check stable function with constant argument of GridDB */
+				if (exist_in_function_list(opername, GridDBStableConstArgFunction))
+					return true;
+
+				if (list_length(fe->args) > 0)
+				{
+					ListCell   *funclc;
+					Node	   *firstArg;
+
+					funclc = list_head(fe->args);
+					firstArg = (Node *) lfirst(funclc);
+
+					if (IsA(firstArg, Const))
+					{
+						Const	   *arg = (Const *) firstArg;
+
+						if (arg->consttype == TEXTOID && spd_is_regex_argument(arg))
+							return exist_in_function_list(opername, InfluxDBStableRegexFunction);
+					}
+				}
+				break;
 			}
-			break;
-		}
 		default:
 			break;
 	}
@@ -868,71 +898,72 @@ bool spd_is_stub_star_regex_function(Expr *expr)
 /*
  * Return true if tlist has star or regex function
  */
-bool spd_is_record_func(List *tlist)
+bool
+spd_is_record_func(List *tlist)
 {
-    ListCell   *lc;
- 
-    foreach(lc, tlist)
-    {
-        TargetEntry	*tle = lfirst_node(TargetEntry, lc);
-        Oid			funcid;
-        Oid			returntype;
-        List		*args;
-        char		*opername;
- 
-        if (IsA((Node *) tle->expr, FuncExpr))
-        {
-            funcid = ((FuncExpr *) tle->expr)->funcid;
-            returntype = ((FuncExpr *) tle->expr)->funcresulttype;
-            args = ((FuncExpr *) tle->expr)->args;
-        }
-        else if (IsA((Node *) tle->expr, Aggref))
-        {
-            funcid = ((Aggref *) tle->expr)->aggfnoid;
-            returntype = ((Aggref *) tle->expr)->aggtype;
-            args = ((Aggref *) tle->expr)->args;
-        }
-        else
-            return false;
- 
-        if ((funcid >= FirstBootstrapObjectId && returntype == TEXTOID))
-        {
-            ListCell   *funclc;
-            Node       *firstArg;
- 
-            opername = get_func_name(funcid);
- 
-            /* Check stable function return record of GridDB */
-            if (exist_in_function_list(opername, GridDBReturnRecordFunctions))
-                return true;
- 
-            /* check stable agg with regex argument of InfluxDB */
-            if (exist_in_function_list(opername, InfluxDBStableRegexAgg))
-                return true;
- 
-            if (list_length(args) > 0)
-            {
-                funclc = list_head(args);
-                firstArg = (Node *) lfirst(funclc);
-                /* Check stable function with regex argument of InfluxDB */
-                if (IsA(firstArg, Const))
-                {
-                    Const       *arg = (Const *) firstArg;
- 
-                    if (spd_is_regex_argument(arg))
-                        return exist_in_function_list(opername, InfluxDBStableRegexFunction);
-                }
-            }
- 
-            if ((strlen(opername) > 4) &&
-                (strcmp(opername + strlen(opername) - 4, "_all") == 0))
-            {
-                /* Check stable function with star argument of InfluxDB */
-                if (exist_in_function_list(opername, InfluxDBStableStarFunction))
-                    return true;
-            }
-        }
-    }
+	ListCell   *lc;
 
-    return false;
+	foreach(lc, tlist)
+	{
+		TargetEntry *tle = lfirst_node(TargetEntry, lc);
+		Oid			funcid;
+		Oid			returntype;
+		List	   *args;
+		char	   *opername;
+
+		if (IsA((Node *) tle->expr, FuncExpr))
+		{
+			funcid = ((FuncExpr *) tle->expr)->funcid;
+			returntype = ((FuncExpr *) tle->expr)->funcresulttype;
+			args = ((FuncExpr *) tle->expr)->args;
+		}
+		else if (IsA((Node *) tle->expr, Aggref))
+		{
+			funcid = ((Aggref *) tle->expr)->aggfnoid;
+			returntype = ((Aggref *) tle->expr)->aggtype;
+			args = ((Aggref *) tle->expr)->args;
+		}
+		else
+			return false;
+
+		if ((funcid >= FirstBootstrapObjectId && returntype == TEXTOID))
+		{
+			ListCell   *funclc;
+			Node	   *firstArg;
+
+			opername = get_func_name(funcid);
+
+			/* Check stable function return record of GridDB */
+			if (exist_in_function_list(opername, GridDBReturnRecordFunctions))
+				return true;
+
+			/* check stable agg with regex argument of InfluxDB */
+			if (exist_in_function_list(opername, InfluxDBStableRegexAgg))
+				return true;
+
+			if (list_length(args) > 0)
+			{
+				funclc = list_head(args);
+				firstArg = (Node *) lfirst(funclc);
+				/* Check stable function with regex argument of InfluxDB */
+				if (IsA(firstArg, Const))
+				{
+					Const	   *arg = (Const *) firstArg;
+
+					if (spd_is_regex_argument(arg))
+						return exist_in_function_list(opername, InfluxDBStableRegexFunction);
+				}
+			}
+
+			if ((strlen(opername) > 4) &&
+				(strcmp(opername + strlen(opername) - 4, "_all") == 0))
+			{
+				/* Check stable function with star argument of InfluxDB */
+				if (exist_in_function_list(opername, InfluxDBStableStarFunction))
+					return true;
+			}
+		}
+	}
+
+	return false;
 }

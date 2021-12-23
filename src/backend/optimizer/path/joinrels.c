@@ -1784,8 +1784,8 @@ get_matching_part_pairs(PlannerInfo *root, RelOptInfo *joinrel,
 #ifdef PGSPIDER
 bool
 spd_join_is_legal(PlannerInfo *root, RelOptInfo *rel1, RelOptInfo *rel2,
-					   Relids joinrelids,
-					   SpecialJoinInfo **sjinfo_p, bool *reversed_p)
+				  Relids joinrelids,
+				  SpecialJoinInfo **sjinfo_p, bool *reversed_p)
 {
 	return join_is_legal(root, rel1, rel2, joinrelids, sjinfo_p, reversed_p);
 }

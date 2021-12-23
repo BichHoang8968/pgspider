@@ -4,6 +4,7 @@
  *		  Foreign-data wrapper for remote PGSpider servers
  *
  * Portions Copyright (c) 2012-2021, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2018-2021, TOSHIBA CORPORATION
  *
  * IDENTIFICATION
  *		  contrib/pgspider_fdw/pgspider_fdw.c
@@ -302,16 +303,8 @@ typedef struct
  */
 typedef struct ConversionLocation
 {
-	Relation	rel;			/* foreign table's relcache entry. */
 	AttrNumber	cur_attno;		/* attribute number being processed, or 0 */
-
-	/*
-	 * In case of foreign join push down, fdw_scan_tlist is used to identify
-	 * the Var node corresponding to the error location and
-	 * fsstate->ss.ps.state gives access to the RTEs of corresponding relation
-	 * to get the relation name and attribute name.
-	 */
-	ForeignScanState *fsstate;
+	ForeignScanState *fsstate;	/* plan node being processed */
 } ConversionLocation;
 
 /* Callback argument for ec_member_matches_foreign */
@@ -525,6 +518,7 @@ static void analyze_row_processor(PGresult *res, int row,
 								  PGSpiderFdwAnalyzeState * astate);
 static void produce_tuple_asynchronously(AsyncRequest *areq, bool fetch);
 static void fetch_more_data_begin(AsyncRequest *areq);
+static void complete_pending_request(AsyncRequest *areq);
 static HeapTuple make_tuple_from_result_row(PGresult *res,
 											int row,
 											Relation rel,
@@ -2431,7 +2425,9 @@ find_modifytable_subplan(PlannerInfo *root,
 		if (subplan_index < list_length(appendplan->appendplans))
 			subplan = (Plan *) list_nth(appendplan->appendplans, subplan_index);
 	}
-	else if (IsA(subplan, Result) && IsA(outerPlan(subplan), Append))
+	else if (IsA(subplan, Result) &&
+			 outerPlan(subplan) != NULL &&
+			 IsA(outerPlan(subplan), Append))
 	{
 		Append	   *appendplan = (Append *) outerPlan(subplan);
 
@@ -4070,6 +4066,9 @@ create_foreign_modify(EState *estate,
 
 			Assert(!attr->attisdropped);
 
+			/* Ignore generated columns; they are set to DEFAULT */
+			if (attr->attgenerated)
+				continue;
 			getTypeOutputInfo(attr->atttypid, &typefnoid, &isvarlena);
 			fmgr_info(typefnoid, &fmstate->p_flinfo[fmstate->p_nums]);
 			fmstate->p_nums++;
@@ -4133,8 +4132,10 @@ execute_foreign_modify(EState *estate,
 
 		/* Build INSERT string with numSlots records in its VALUES clause. */
 		initStringInfo(&sql);
-		PGSpiderRebuildInsertSql(&sql, fmstate->orig_query, fmstate->values_end,
-								 fmstate->p_nums, *numSlots - 1);
+		PGSpiderRebuildInsertSql(&sql, fmstate->rel,
+								 fmstate->orig_query, fmstate->target_attrs,
+								 fmstate->values_end, fmstate->p_nums,
+								 *numSlots - 1);
 		pfree(fmstate->query);
 		fmstate->query = sql.data;
 		fmstate->num_slots = *numSlots;
@@ -4302,6 +4303,7 @@ convert_prep_stmt_params(PGSpiderFdwModifyState * fmstate,
 	/* get following parameters from slots */
 	if (slots != NULL && fmstate->target_attrs != NIL)
 	{
+		TupleDesc	tupdesc = RelationGetDescr(fmstate->rel);
 		int			nestlevel;
 		ListCell   *lc;
 
@@ -4313,9 +4315,13 @@ convert_prep_stmt_params(PGSpiderFdwModifyState * fmstate,
 			foreach(lc, fmstate->target_attrs)
 			{
 				int			attnum = lfirst_int(lc);
+				Form_pg_attribute attr = TupleDescAttr(tupdesc, attnum - 1);
 				Datum		value;
 				bool		isnull;
 
+				/* Ignore generated columns; they are set to DEFAULT */
+				if (attr->attgenerated)
+					continue;
 				value = slot_getattr(slots[i], attnum, &isnull);
 				if (isnull)
 					p_values[pindex] = NULL;
@@ -5085,7 +5091,7 @@ pgspiderAcquireSampleRowsFunc(Relation relation, int elevel,
 
 			if (strcmp(def->defname, "fetch_size") == 0)
 			{
-				fetch_size = strtol(defGetString(def), NULL, 10);
+				(void) parse_int(defGetString(def), &fetch_size, 0, NULL);
 				break;
 			}
 		}
@@ -5095,7 +5101,7 @@ pgspiderAcquireSampleRowsFunc(Relation relation, int elevel,
 
 			if (strcmp(def->defname, "fetch_size") == 0)
 			{
-				fetch_size = strtol(defGetString(def), NULL, 10);
+				(void) parse_int(defGetString(def), &fetch_size, 0, NULL);
 				break;
 			}
 		}
@@ -5246,6 +5252,7 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 	List	   *commands = NIL;
 	bool		import_collate = true;
 	bool		import_default = false;
+	bool		import_generated = true;
 	bool		import_not_null = true;
 	ForeignServer *server;
 	UserMapping *mapping;
@@ -5265,6 +5272,8 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 			import_collate = defGetBoolean(def);
 		else if (strcmp(def->defname, "import_default") == 0)
 			import_default = defGetBoolean(def);
+		else if (strcmp(def->defname, "import_generated") == 0)
+			import_generated = defGetBoolean(def);
 		else if (strcmp(def->defname, "import_not_null") == 0)
 			import_not_null = defGetBoolean(def);
 		else
@@ -5328,13 +5337,24 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 		 * include a schema name for types/functions in other schemas, which
 		 * is what we want.
 		 */
+		appendStringInfoString(&buf,
+							   "SELECT relname, "
+							   "  attname, "
+							   "  format_type(atttypid, atttypmod), "
+							   "  attnotnull, ");
+
+		/* Generated columns are supported since Postgres 12 */
+		if (PQserverVersion(conn) >= 120000)
+			appendStringInfoString(&buf,
+								   "  attgenerated, "
+								   "  pg_get_expr(adbin, adrelid), ");
+		else
+			appendStringInfoString(&buf,
+								   "  NULL, "
+								   "  pg_get_expr(adbin, adrelid), ");
+
 		if (import_collate)
 			appendStringInfoString(&buf,
-								   "SELECT relname, "
-								   "  attname, "
-								   "  format_type(atttypid, atttypmod), "
-								   "  attnotnull, "
-								   "  pg_get_expr(adbin, adrelid), "
 								   "  collname, "
 								   "  collnsp.nspname "
 								   "FROM pg_class c "
@@ -5351,11 +5371,6 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 								   "    collnsp.oid = collnamespace ");
 		else
 			appendStringInfoString(&buf,
-								   "SELECT relname, "
-								   "  attname, "
-								   "  format_type(atttypid, atttypmod), "
-								   "  attnotnull, "
-								   "  pg_get_expr(adbin, adrelid), "
 								   "  NULL, NULL "
 								   "FROM pg_class c "
 								   "  JOIN pg_namespace n ON "
@@ -5432,6 +5447,7 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 				char	   *attname;
 				char	   *typename;
 				char	   *attnotnull;
+				char	   *attgenerated;
 				char	   *attdefault;
 				char	   *collname;
 				char	   *collnamespace;
@@ -5443,12 +5459,14 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 				attname = PQgetvalue(res, i, 1);
 				typename = PQgetvalue(res, i, 2);
 				attnotnull = PQgetvalue(res, i, 3);
-				attdefault = PQgetisnull(res, i, 4) ? (char *) NULL :
+				attgenerated = PQgetisnull(res, i, 4) ? (char *) NULL :
 					PQgetvalue(res, i, 4);
-				collname = PQgetisnull(res, i, 5) ? (char *) NULL :
+				attdefault = PQgetisnull(res, i, 5) ? (char *) NULL :
 					PQgetvalue(res, i, 5);
-				collnamespace = PQgetisnull(res, i, 6) ? (char *) NULL :
+				collname = PQgetisnull(res, i, 6) ? (char *) NULL :
 					PQgetvalue(res, i, 6);
+				collnamespace = PQgetisnull(res, i, 7) ? (char *) NULL :
+					PQgetvalue(res, i, 7);
 
 				if (first_item)
 					first_item = false;
@@ -5476,8 +5494,19 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 									 quote_identifier(collname));
 
 				/* Add DEFAULT if needed */
-				if (import_default && attdefault != NULL)
+				if (import_default && attdefault != NULL &&
+					(!attgenerated || !attgenerated[0]))
 					appendStringInfo(&buf, " DEFAULT %s", attdefault);
+
+				/* Add GENERATED if needed */
+				if (import_generated && attgenerated != NULL &&
+					attgenerated[0] == ATTRIBUTE_GENERATED_STORED)
+				{
+					Assert(attdefault != NULL);
+					appendStringInfo(&buf,
+									 " GENERATED ALWAYS AS (%s) STORED",
+									 attdefault);
+				}
 
 				/* Add NOT NULL if needed */
 				if (import_not_null && attnotnull[0] == 't')
@@ -5862,14 +5891,16 @@ apply_server_options(PGSpiderFdwRelationInfo * fpinfo)
 		if (strcmp(def->defname, "use_remote_estimate") == 0)
 			fpinfo->use_remote_estimate = defGetBoolean(def);
 		else if (strcmp(def->defname, "fdw_startup_cost") == 0)
-			fpinfo->fdw_startup_cost = strtod(defGetString(def), NULL);
+			(void) parse_real(defGetString(def), &fpinfo->fdw_startup_cost, 0,
+							  NULL);
 		else if (strcmp(def->defname, "fdw_tuple_cost") == 0)
-			fpinfo->fdw_tuple_cost = strtod(defGetString(def), NULL);
+			(void) parse_real(defGetString(def), &fpinfo->fdw_tuple_cost, 0,
+							  NULL);
 		else if (strcmp(def->defname, "extensions") == 0)
 			fpinfo->shippable_extensions =
 				PGSpiderExtractExtensionList(defGetString(def), false);
 		else if (strcmp(def->defname, "fetch_size") == 0)
-			fpinfo->fetch_size = strtol(defGetString(def), NULL, 10);
+			(void) parse_int(defGetString(def), &fpinfo->fetch_size, 0, NULL);
 		else if (strcmp(def->defname, "async_capable") == 0)
 			fpinfo->async_capable = defGetBoolean(def);
 	}
@@ -5892,7 +5923,7 @@ apply_table_options(PGSpiderFdwRelationInfo * fpinfo)
 		if (strcmp(def->defname, "use_remote_estimate") == 0)
 			fpinfo->use_remote_estimate = defGetBoolean(def);
 		else if (strcmp(def->defname, "fetch_size") == 0)
-			fpinfo->fetch_size = strtol(defGetString(def), NULL, 10);
+			(void) parse_int(defGetString(def), &fpinfo->fetch_size, 0, NULL);
 		else if (strcmp(def->defname, "async_capable") == 0)
 			fpinfo->async_capable = defGetBoolean(def);
 	}
@@ -6885,6 +6916,22 @@ pgspiderForeignAsyncConfigureWait(AsyncRequest *areq)
 	/* This should not be called unless callback_pending */
 	Assert(areq->callback_pending);
 
+	/*
+	 * If process_pending_request() has been invoked on the given request
+	 * before we get here, we might have some tuples already; in which case
+	 * complete the request
+	 */
+	if (fsstate->next_tuple < fsstate->num_tuples)
+	{
+		complete_pending_request(areq);
+		if (areq->request_complete)
+			return;
+		Assert(areq->callback_pending);
+	}
+
+	/* We must have run out of tuples */
+	Assert(fsstate->next_tuple >= fsstate->num_tuples);
+
 	/* The core code would have registered postmaster death event */
 	Assert(GetNumRegisteredWaitEvents(set) >= 1);
 
@@ -6897,12 +6944,15 @@ pgspiderForeignAsyncConfigureWait(AsyncRequest *areq)
 		 * This is the case when the in-process request was made by another
 		 * Append.  Note that it might be useless to process the request,
 		 * because the query might not need tuples from that Append anymore.
-		 * Skip the given request if there are any configured events other
-		 * than the postmaster death event; otherwise process the request,
-		 * then begin a fetch to configure the event below, because otherwise
-		 * we might end up with no configured events other than the postmaster
-		 * death event.
+		 * If there are any child subplans of the same parent that are ready
+		 * for new requests, skip the given request.  Likewise, if there are
+		 * any configured events other than the postmaster death event, skip
+		 * it.  Otherwise, process the in-process request, then begin a fetch
+		 * to configure the event below, because we might otherwise end up
+		 * with no configured events other than the postmaster death event.
 		 */
+		if (!bms_is_empty(requestor->as_needrequest))
+			return;
 		if (GetNumRegisteredWaitEvents(set) > 1)
 			return;
 		pgspider_process_pending_request(pendingAreq);
@@ -6935,11 +6985,25 @@ pgspiderForeignAsyncNotify(AsyncRequest *areq)
 	ForeignScanState *node = (ForeignScanState *) areq->requestee;
 	PGSpiderFdwScanState *fsstate = (PGSpiderFdwScanState *) node->fdw_state;
 
-	/* The request should be currently in-process */
-	Assert(fsstate->conn_state->pendingAreq == areq);
-
 	/* The core code would have initialized the callback_pending flag */
 	Assert(!areq->callback_pending);
+
+	/*
+	 * If process_pending_request() has been invoked on the given request
+	 * before we get here, we might have some tuples already; in which case
+	 * produce the next tuple
+	 */
+	if (fsstate->next_tuple < fsstate->num_tuples)
+	{
+		produce_tuple_asynchronously(areq, true);
+		return;
+	}
+
+	/* We must have run out of tuples */
+	Assert(fsstate->next_tuple >= fsstate->num_tuples);
+
+	/* The request should be currently in-process */
+	Assert(fsstate->conn_state->pendingAreq == areq);
 
 	/* On error, report the original query, not the FETCH. */
 	if (!PQconsumeInput(fsstate->conn))
@@ -7054,23 +7118,44 @@ pgspider_process_pending_request(AsyncRequest *areq)
 {
 	ForeignScanState *node = (ForeignScanState *) areq->requestee;
 	PGSpiderFdwScanState *fsstate PG_USED_FOR_ASSERTS_ONLY = (PGSpiderFdwScanState *) node->fdw_state;
-	EState	   *estate = node->ss.ps.state;
-	MemoryContext oldcontext;
+
+	/* The request would have been pending for a callback */
+	Assert(areq->callback_pending);
 
 	/* The request should be currently in-process */
 	Assert(fsstate->conn_state->pendingAreq == areq);
 
-	oldcontext = MemoryContextSwitchTo(estate->es_query_cxt);
+	fetch_more_data(node);
 
+	/*
+	 * If we didn't get any tuples, must be end of data; complete the request
+	 * now.  Otherwise, we postpone completing the request until we are called
+	 * from postgresForeignAsyncConfigureWait()/postgresForeignAsyncNotify().
+	 */
+	if (fsstate->next_tuple >= fsstate->num_tuples)
+	{
+		/* Unlike AsyncNotify, we unset callback_pending ourselves */
+		areq->callback_pending = false;
+		/* Mark the request as complete */
+		ExecAsyncRequestDone(areq, NULL);
+		/* Unlike AsyncNotify, we call ExecAsyncResponse ourselves */
+		ExecAsyncResponse(areq);
+	}
+}
+
+/*
+ * Complete a pending asynchronous request.
+ */
+static void
+complete_pending_request(AsyncRequest *areq)
+{
 	/* The request would have been pending for a callback */
 	Assert(areq->callback_pending);
 
 	/* Unlike AsyncNotify, we unset callback_pending ourselves */
 	areq->callback_pending = false;
 
-	fetch_more_data(node);
-
-	/* We need to send a new query afterwards; don't fetch */
+	/* We begin a fetch afterwards if necessary; don't fetch */
 	produce_tuple_asynchronously(areq, false);
 
 	/* Unlike AsyncNotify, we call ExecAsyncResponse ourselves */
@@ -7080,8 +7165,6 @@ pgspider_process_pending_request(AsyncRequest *areq)
 	if (areq->requestee->instrument)
 		InstrUpdateTupleCount(areq->requestee->instrument,
 							  TupIsNull(areq->result) ? 0.0 : 1.0);
-
-	MemoryContextSwitchTo(oldcontext);
 }
 
 /*
@@ -7137,7 +7220,6 @@ make_tuple_from_result_row(PGresult *res,
 	/*
 	 * Set up and install callback to report where conversion error occurs.
 	 */
-	errpos.rel = rel;
 	errpos.cur_attno = 0;
 	errpos.fsstate = fsstate;
 	errcallback.callback = conversion_error_callback;
@@ -7240,34 +7322,32 @@ make_tuple_from_result_row(PGresult *res,
 /*
  * Callback function which is called when error occurs during column value
  * conversion.  Print names of column and relation.
+ *
+ * Note that this function mustn't do any catalog lookups, since we are in
+ * an already-failed transaction.  Fortunately, we can get the needed info
+ * from the query's rangetable instead.
  */
 static void
 conversion_error_callback(void *arg)
 {
+	ConversionLocation *errpos = (ConversionLocation *) arg;
+	ForeignScanState *fsstate = errpos->fsstate;
+	ForeignScan *fsplan = castNode(ForeignScan, fsstate->ss.ps.plan);
+	int			varno = 0;
+	AttrNumber	colno = 0;
 	const char *attname = NULL;
 	const char *relname = NULL;
 	bool		is_wholerow = false;
-	ConversionLocation *errpos = (ConversionLocation *) arg;
 
-	if (errpos->rel)
+	if (fsplan->scan.scanrelid > 0)
 	{
 		/* error occurred in a scan against a foreign table */
-		TupleDesc	tupdesc = RelationGetDescr(errpos->rel);
-		Form_pg_attribute attr = TupleDescAttr(tupdesc, errpos->cur_attno - 1);
-
-		if (errpos->cur_attno > 0 && errpos->cur_attno <= tupdesc->natts)
-			attname = NameStr(attr->attname);
-		else if (errpos->cur_attno == SelfItemPointerAttributeNumber)
-			attname = "ctid";
-
-		relname = RelationGetRelationName(errpos->rel);
+		varno = fsplan->scan.scanrelid;
+		colno = errpos->cur_attno;
 	}
 	else
 	{
 		/* error occurred in a scan against a foreign join */
-		ForeignScanState *fsstate = errpos->fsstate;
-		ForeignScan *fsplan = castNode(ForeignScan, fsstate->ss.ps.plan);
-		EState	   *estate = fsstate->ss.ps.state;
 		TargetEntry *tle;
 
 		tle = list_nth_node(TargetEntry, fsplan->fdw_scan_tlist,
@@ -7275,35 +7355,40 @@ conversion_error_callback(void *arg)
 
 		/*
 		 * Target list can have Vars and expressions.  For Vars, we can get
-		 * its relation, however for expressions we can't.  Thus for
+		 * some information, however for expressions we can't.  Thus for
 		 * expressions, just show generic context message.
 		 */
 		if (IsA(tle->expr, Var))
 		{
-			RangeTblEntry *rte;
 			Var		   *var = (Var *) tle->expr;
 
-			rte = exec_rt_fetch(var->varno, estate);
-
-			if (var->varattno == 0)
-				is_wholerow = true;
-			else
-				attname = get_attname(rte->relid, var->varattno, false);
-
-			relname = get_rel_name(rte->relid);
+			varno = var->varno;
+			colno = var->varattno;
 		}
-		else
-			errcontext("processing expression at position %d in select list",
-					   errpos->cur_attno);
 	}
 
-	if (relname)
+	if (varno > 0)
 	{
-		if (is_wholerow)
-			errcontext("whole-row reference to foreign table \"%s\"", relname);
-		else if (attname)
-			errcontext("column \"%s\" of foreign table \"%s\"", attname, relname);
+		EState	   *estate = fsstate->ss.ps.state;
+		RangeTblEntry *rte = exec_rt_fetch(varno, estate);
+
+		relname = rte->eref->aliasname;
+
+		if (colno == 0)
+			is_wholerow = true;
+		else if (colno > 0 && colno <= list_length(rte->eref->colnames))
+			attname = strVal(list_nth(rte->eref->colnames, colno - 1));
+		else if (colno == SelfItemPointerAttributeNumber)
+			attname = "ctid";
 	}
+
+	if (relname && is_wholerow)
+		errcontext("whole-row reference to foreign table \"%s\"", relname);
+	else if (relname && attname)
+		errcontext("column \"%s\" of foreign table \"%s\"", attname, relname);
+	else
+		errcontext("processing expression at position %d in select list",
+				   errpos->cur_attno);
 }
 
 /*
@@ -7368,8 +7453,50 @@ pgspider_find_em_expr_for_input_target(PlannerInfo *root,
 	return NULL;				/* keep compiler quiet */
 }
 
+/*
+ * Determine batch size for a given foreign table. The option specified for
+ * a table has precedence.
+ */
+static int
+get_batch_size_option(Relation rel)
+{
+	Oid			foreigntableid = RelationGetRelid(rel);
+	ForeignTable *table;
+	ForeignServer *server;
+	List	   *options;
+	ListCell   *lc;
+
+	/* we use 1 by default, which means "no batching" */
+	int			batch_size = 1;
+
+	/*
+	 * Load options for table and server. We append server options after table
+	 * options, because table options take precedence.
+	 */
+	table = GetForeignTable(foreigntableid);
+	server = GetForeignServer(table->serverid);
+
+	options = NIL;
+	options = list_concat(options, table->options);
+	options = list_concat(options, server->options);
+
+	/* See if either table or server specifies batch_size. */
+	foreach(lc, options)
+	{
+		DefElem    *def = (DefElem *) lfirst(lc);
+
+		if (strcmp(def->defname, "batch_size") == 0)
+		{
+			(void) parse_int(defGetString(def), &batch_size, 0, NULL);
+			break;
+		}
+	}
+
+	return batch_size;
+}
+
 /* add escape char for single quote ' --> \' */
-static char*
+static char *
 escape_single_quote(char *str)
 {
 	int			i;
@@ -7446,34 +7573,37 @@ path_value_in(PG_FUNCTION_ARGS)
 	memcpy(result->value, ptr + 1, strlen(ptr + 1));
 
 	/* left trim */
-	while(isspace(*result->path)) result->path++;
-	while(isspace(*result->value)) result->value++;
+	while (isspace(*result->path))
+		result->path++;
+	while (isspace(*result->value))
+		result->value++;
 
 	/* right trim */
 	back = result->path + strlen(result->path);
-	while(isspace(*--back));
+	while (isspace(*--back));
 	*(back + 1) = '\0';
 
 	back = result->value + strlen(result->value);
-	while(isspace(*--back));
+	while (isspace(*--back));
 	*(back + 1) = '\0';
 
 	/* remove outer quote of path */
 	back = result->path + strlen(result->path) - 1;
 	while ((*(result->path) == '\"' && *back == '\"') ||
-		(*(result->path) == '\'' && *back == '\''))
+		   (*(result->path) == '\'' && *back == '\''))
 	{
 		result->path++;
 		*back = '\0';
 		--back;
 	}
+
 	/*
-	 * Text value is inner quote,
-	 * remove this and add singer quote when print output.
+	 * Text value is inner quote, remove this and add singer quote when print
+	 * output.
 	 */
 	back = result->value + strlen(result->value) - 1;
 	while ((*(result->value) == '\"' && *back == '\"') ||
-		(*(result->value) == '\'' && *back == '\''))
+		   (*(result->value) == '\'' && *back == '\''))
 	{
 		result->value++;
 		*back = '\0';
@@ -7502,43 +7632,4 @@ path_value_out(PG_FUNCTION_ARGS)
 	else
 		result = psprintf("'%s', %s", escape_single_quote(path), escape_single_quote(value));
 	PG_RETURN_CSTRING(result);
-}
-/*
- * Determine batch size for a given foreign table. The option specified for
- * a table has precedence.
- */
-static int
-get_batch_size_option(Relation rel)
-{
-	Oid			foreigntableid = RelationGetRelid(rel);
-	ForeignTable *table;
-	ForeignServer *server;
-	List	   *options;
-	ListCell   *lc;
-
-	/* we use 1 by default, which means "no batching" */
-	int			batch_size = 1;
-
-	/*
-	 * Load options for table and server. We append server options after table
-	 * options, because table options take precedence.
-	 */
-	table = GetForeignTable(foreigntableid);
-	server = GetForeignServer(table->serverid);
-
-	options = NIL;
-	options = list_concat(options, table->options);
-	options = list_concat(options, server->options);
-
-	/* See if either table or server specifies batch_size. */
-	foreach(lc, options)
-	{
-		DefElem    *def = (DefElem *) lfirst(lc);
-
-		if (strcmp(def->defname, "batch_size") == 0)
-		{
-			batch_size = strtol(defGetString(def), NULL, 10);
-		}
-	}
-	return batch_size;
 }

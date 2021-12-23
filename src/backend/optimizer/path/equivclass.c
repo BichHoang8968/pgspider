@@ -736,11 +736,12 @@ get_eclass_for_sort_expr(PlannerInfo *root,
 			expression_returns_set((Node *) expr) ||
 			contain_agg_clause((Node *) expr) ||
 #ifdef PGSPIDER
-			/*
-			 * In PGSpider, function which is stable and not built in function,
-			 * could appear in sort expressions, so we have to check whether
-			 * its const-marking was correct.
-			 */
+
+		/*
+		 * In PGSpider, function which is stable and not built in function,
+		 * could appear in sort expressions, so we have to check whether its
+		 * const-marking was correct.
+		 */
 			contain_not_builtin_stable_function((Node *) expr) ||
 #endif
 			contain_window_function((Node *) expr))

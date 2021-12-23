@@ -4,9 +4,9 @@
  *	  definition of the system "shared dependency" relation (pg_spd_node_info)
  *	  along with the relation's initial contents.
  *
- *
  * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
+ * Portions Copyright (c) 2018-2021, TOSHIBA CORPORATION
  *
  * src/include/catalog/pg_spd_node_info.h
  *
@@ -16,6 +16,7 @@
  *
  *-------------------------------------------------------------------------
  */
+
 #ifndef PG_SPD_NODE_INFO_H
 #define PG_SPD_NODE_INFO_H
 

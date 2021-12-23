@@ -713,6 +713,7 @@ AllocSetDelete(MemoryContext context)
 	/* Finally, free the context header, including the keeper block */
 	free(set);
 }
+
 #ifdef PGSPIDER
 /*
  * AllocSetDeleteChild
@@ -727,14 +728,16 @@ AllocSetDelete(MemoryContext context)
 static void
 AllocSetDeleteChild(MemoryContext context)
 {
-	int freeListIndex=0;
+	int			freeListIndex = 0;
+
 	/*
 	 * If the context is a candidate for a freelist, put it into that freelist
 	 * instead of destroying it.
 	 */
-	for (freeListIndex=0; freeListIndex<ALLOCSET_NUM_FREELISTS; freeListIndex++)
+	for (freeListIndex = 0; freeListIndex < ALLOCSET_NUM_FREELISTS; freeListIndex++)
 	{
 		AllocSetFreeList *freelist = &context_freelists[freeListIndex];
+
 		/*
 		 * Delete all free list
 		 */
@@ -747,7 +750,7 @@ AllocSetDeleteChild(MemoryContext context)
 			/* All that remains is to free the header/initial block */
 			free(oldset);
 		}
-		freelist->first_free=NULL;
+		freelist->first_free = NULL;
 		return;
 	}
 }
@@ -767,6 +770,7 @@ AllocSetFreeContextList(void)
 
 {
 	int			freeListIndex = 0;
+
 	/*
 	 * If the context is a candidate for a freelist, put it into that freelist
 	 * instead of destroying it.
@@ -774,6 +778,7 @@ AllocSetFreeContextList(void)
 	for (freeListIndex = 0; freeListIndex < ALLOCSET_NUM_FREELISTS; freeListIndex++)
 	{
 		AllocSetFreeList *freelist = &context_freelists[freeListIndex];
+
 		/*
 		 * Delete all free list
 		 */
@@ -786,7 +791,7 @@ AllocSetFreeContextList(void)
 			/* All that remains is to free the header/initial block */
 			free(oldset);
 		}
-		freelist->first_free=NULL;
+		freelist->first_free = NULL;
 		return;
 	}
 }

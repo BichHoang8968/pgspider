@@ -1541,6 +1541,7 @@ ExecutePlan(EState *estate,
 	estate->es_direction = direction;
 
 #ifdef PGSPIDER
+
 	/*
 	 * Set default value.
 	 */

@@ -6,9 +6,9 @@ PGS2_PORT=5434
 PGS2_DB=pg2db
 DB_NAME=postgres
 TINYBRACE_HOME=/usr/local/tinybrace
-POSTGRES_HOME=/home/jenkins/Postgres/postgresql-14beta2/pgbuild
+POSTGRES_HOME=/home/jenkins/postgres/postgresql-14.0/pgbuild
 GRIDDB_CLIENT=/home/jenkins/src/griddb
-GRIDDB_HOME=/home/jenkins/src/griddb-4.6.0
+GRIDDB_HOME=/home/jenkins/src/griddb-4.6.1
 CURR_PATH=$(pwd)
 
 if [[ "--start" == $1 ]]

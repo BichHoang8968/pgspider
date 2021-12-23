@@ -1,5 +1,5 @@
 TINYBRACE_HOME=/usr/local/tinybrace
-POSTGRES_HOME=/home/jenkins/Postgres/postgresql-14beta2/pgbuild
+POSTGRES_HOME=/home/jenkins/postgres/postgresql-14.0/pgbuild
 CURR_PATH=$(pwd)
 
 if [[ "--start" == $1 ]]

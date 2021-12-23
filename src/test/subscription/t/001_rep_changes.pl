@@ -51,8 +51,11 @@ $node_publisher->safe_psql('postgres',
 	"ALTER TABLE tab_nothing REPLICA IDENTITY NOTHING");
 
 # Replicate the changes without replica identity index
-$node_publisher->safe_psql('postgres', "CREATE TABLE tab_no_replidentity_index(c1 int)");
-$node_publisher->safe_psql('postgres', "CREATE INDEX idx_no_replidentity_index ON tab_no_replidentity_index(c1)");
+$node_publisher->safe_psql('postgres',
+	"CREATE TABLE tab_no_replidentity_index(c1 int)");
+$node_publisher->safe_psql('postgres',
+	"CREATE INDEX idx_no_replidentity_index ON tab_no_replidentity_index(c1)"
+);
 
 # Setup structure on subscriber
 $node_subscriber->safe_psql('postgres', "CREATE TABLE tab_notrep (a int)");
@@ -78,8 +81,11 @@ $node_subscriber->safe_psql('postgres',
 );
 
 # replication of the table without replica identity index
-$node_subscriber->safe_psql('postgres', "CREATE TABLE tab_no_replidentity_index(c1 int)");
-$node_subscriber->safe_psql('postgres', "CREATE INDEX idx_no_replidentity_index ON tab_no_replidentity_index(c1)");
+$node_subscriber->safe_psql('postgres',
+	"CREATE TABLE tab_no_replidentity_index(c1 int)");
+$node_subscriber->safe_psql('postgres',
+	"CREATE INDEX idx_no_replidentity_index ON tab_no_replidentity_index(c1)"
+);
 
 # Setup logical replication
 my $publisher_connstr = $node_publisher->connstr . ' dbname=postgres';
@@ -137,7 +143,8 @@ $node_publisher->safe_psql('postgres',
 	"DELETE FROM tab_include WHERE a > 20");
 $node_publisher->safe_psql('postgres', "UPDATE tab_include SET a = -a");
 
-$node_publisher->safe_psql('postgres', "INSERT INTO tab_no_replidentity_index VALUES(1)");
+$node_publisher->safe_psql('postgres',
+	"INSERT INTO tab_no_replidentity_index VALUES(1)");
 
 $node_publisher->wait_for_catchup('tap_sub');
 
@@ -162,8 +169,10 @@ $result = $node_subscriber->safe_psql('postgres',
 is($result, qq(20|-20|-1),
 	'check replicated changes with primary key index with included columns');
 
-is($node_subscriber->safe_psql('postgres', q(SELECT c1 FROM tab_no_replidentity_index)),
-   1, "value replicated to subscriber without replica identity index");
+is( $node_subscriber->safe_psql(
+		'postgres', q(SELECT c1 FROM tab_no_replidentity_index)),
+	1,
+	"value replicated to subscriber without replica identity index");
 
 # insert some duplicate rows
 $node_publisher->safe_psql('postgres',
@@ -405,28 +414,30 @@ is( $result, qq(11.11|baz|1
 	'update works with dropped subscriber column');
 
 # check that change of connection string and/or publication list causes
-# restart of subscription workers. Not all of these are registered as tests
-# as we need to poll for a change but the test suite will fail none the less
-# when something goes wrong.
+# restart of subscription workers. We check the state along with
+# application_name to ensure that the walsender is (re)started.
+#
+# Not all of these are registered as tests as we need to poll for a change
+# but the test suite will fail none the less when something goes wrong.
 my $oldpid = $node_publisher->safe_psql('postgres',
-	"SELECT pid FROM pg_stat_replication WHERE application_name = 'tap_sub';"
+	"SELECT pid FROM pg_stat_replication WHERE application_name = 'tap_sub' AND state = 'streaming';"
 );
 $node_subscriber->safe_psql('postgres',
 	"ALTER SUBSCRIPTION tap_sub CONNECTION '$publisher_connstr sslmode=disable'"
 );
 $node_publisher->poll_query_until('postgres',
-	"SELECT pid != $oldpid FROM pg_stat_replication WHERE application_name = 'tap_sub';"
-) or die "Timed out while waiting for apply to restart";
+	"SELECT pid != $oldpid FROM pg_stat_replication WHERE application_name = 'tap_sub' AND state = 'streaming';"
+) or die "Timed out while waiting for apply to restart after changing CONNECTION";
 
 $oldpid = $node_publisher->safe_psql('postgres',
-	"SELECT pid FROM pg_stat_replication WHERE application_name = 'tap_sub';"
+	"SELECT pid FROM pg_stat_replication WHERE application_name = 'tap_sub' AND state = 'streaming';"
 );
 $node_subscriber->safe_psql('postgres',
 	"ALTER SUBSCRIPTION tap_sub SET PUBLICATION tap_pub_ins_only WITH (copy_data = false)"
 );
 $node_publisher->poll_query_until('postgres',
-	"SELECT pid != $oldpid FROM pg_stat_replication WHERE application_name = 'tap_sub';"
-) or die "Timed out while waiting for apply to restart";
+	"SELECT pid != $oldpid FROM pg_stat_replication WHERE application_name = 'tap_sub' AND state = 'streaming';"
+) or die "Timed out while waiting for apply to restart after changing PUBLICATION";
 
 $node_publisher->safe_psql('postgres',
 	"INSERT INTO tab_ins SELECT generate_series(1001,1100)");
@@ -474,13 +485,13 @@ is($result, qq(21|0|100), 'check replicated insert after alter publication');
 
 # check restart on rename
 $oldpid = $node_publisher->safe_psql('postgres',
-	"SELECT pid FROM pg_stat_replication WHERE application_name = 'tap_sub';"
+	"SELECT pid FROM pg_stat_replication WHERE application_name = 'tap_sub' AND state = 'streaming';"
 );
 $node_subscriber->safe_psql('postgres',
 	"ALTER SUBSCRIPTION tap_sub RENAME TO tap_sub_renamed");
 $node_publisher->poll_query_until('postgres',
-	"SELECT pid != $oldpid FROM pg_stat_replication WHERE application_name = 'tap_sub_renamed';"
-) or die "Timed out while waiting for apply to restart";
+	"SELECT pid != $oldpid FROM pg_stat_replication WHERE application_name = 'tap_sub_renamed' AND state = 'streaming';"
+) or die "Timed out while waiting for apply to restart after renaming SUBSCRIPTION";
 
 # check all the cleanup
 $node_subscriber->safe_psql('postgres', "DROP SUBSCRIPTION tap_sub_renamed");

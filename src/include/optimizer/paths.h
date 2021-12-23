@@ -112,7 +112,7 @@ extern void mark_dummy_rel(RelOptInfo *rel);
 
 #ifdef PGSPIDER
 extern bool spd_join_is_legal(PlannerInfo *root, RelOptInfo *rel1, RelOptInfo *rel2,
-					   Relids joinrelids, SpecialJoinInfo **sjinfo_p, bool *reversed_p);
+							  Relids joinrelids, SpecialJoinInfo **sjinfo_p, bool *reversed_p);
 #endif
 
 /*

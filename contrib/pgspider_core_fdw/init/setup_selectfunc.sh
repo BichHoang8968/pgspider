@@ -6,7 +6,7 @@ PGS2_PORT=5434
 PGS2_DB=pg2db
 DB_NAME=postgres
 GRIDDB_CLIENT=/home/jenkins/src/griddb
-GRIDDB_HOME=/home/jenkins/src/griddb-4.6.0/
+GRIDDB_HOME=/home/jenkins/src/griddb-4.6.1
 
 CURR_PATH=$(pwd)
 
