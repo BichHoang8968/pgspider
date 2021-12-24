@@ -1,4 +1,0 @@
-CREATE TABLE avgreal (i real);
-INSERT INTO avgreal VALUES (3.4E14);
-INSERT INTO avgreal VALUES (4.5E15);
-INSERT INTO avgreal VALUES (5.6E16);

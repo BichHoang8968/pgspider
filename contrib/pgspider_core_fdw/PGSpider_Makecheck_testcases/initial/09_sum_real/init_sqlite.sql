@@ -1,5 +1,0 @@
-CREATE TABLE sumreal (i real);
-INSERT INTO sumreal VALUES (6.7E17);
-INSERT INTO sumreal VALUES (7.8E18);
-INSERT INTO sumreal VALUES (8.9E19); 
-INSERT INTO sumreal VALUES (9.1E20);

@@ -1,3 +1,0 @@
-CREATE TABLE bitandint (i int);
-INSERT INTO bitandint VALUES (1543503871);
-INSERT INTO bitandint VALUES (1073725311);

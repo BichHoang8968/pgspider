@@ -1,5 +1,0 @@
-CREATE TABLE maxreal (i real);
-INSERT INTO maxreal VALUES (6.7E17);
-INSERT INTO maxreal VALUES (7.8E18);
-INSERT INTO maxreal VALUES (8.9E19); 
-INSERT INTO maxreal VALUES (9.1E20);
