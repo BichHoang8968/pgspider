@@ -1,3 +1,0 @@
-CREATE TABLE countbigint (i bigint);
-INSERT INTO countbigint VALUES (127087881097000);
-INSERT INTO countbigint VALUES (-101567597359932144);

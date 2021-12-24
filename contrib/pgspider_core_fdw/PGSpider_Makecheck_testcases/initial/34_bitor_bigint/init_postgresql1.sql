@@ -1,3 +1,0 @@
-CREATE TABLE bitorbigint (i bigint);
-INSERT INTO bitorbigint VALUES (236346534);
-INSERT INTO bitorbigint VALUES (8123562037427035667);
