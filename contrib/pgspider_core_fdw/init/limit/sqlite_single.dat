@@ -1,0 +1,11 @@
+DROP TABLE IF EXISTS tbl01;
+CREATE TABLE tbl01 (c1 character(30), c2 nchar(30), c3 varchar(255), c4 bigint, c5 float, c6 int, c7 character varying (255), c8 bigint, c9 double precision, c10 smallint, c11 timestamp);
+INSERT INTO tbl01 VALUES ('I am happy today', 'abcdefghij', '今日はとても幸せです 今日はとても幸せです', 573709551615, 12.0313, 45, 'Côte dIvoire Fijifoxju', 5464646, 1.79E+108, 212, '9999-12-31 23:59:59');
+INSERT INTO tbl01 VALUES ('XinChàoBạn', 'extent the rendit$%^', 'Днес съм много щастлив', 35643654, 2232.3, 1, 'Côte dIvoire Fijifoxju', 5464646, 1.79E+108, 212, '9999-12-31 23:59:59');
+INSERT INTO tbl01 VALUES ('Checkpoint', 'And to some extent', '色は匂へど 散りぬるを我が世誰ぞ 常なら', 898756, -12.0313, 3, 'Côte dIvoire Fijifoxju', 5464646, 1.79E+108, 212, '9999-12-31 23:59:59');
+INSERT INTO tbl01 VALUES ('On sangen hauskaa, että', 'abcdefghij', '~!@#$%^&*()_+=-{}[]|:;<>?/.', 6595, -13, 0, 'Côte dIvoire Fijifoxju', 5464646, 1.79E+108, 212, '9999-12-31 23:59:59');
+INSERT INTO tbl01 VALUES ('ABCDEF', 'some extent', 'Guinea-Bissau Honduras Mexico', 0, -12.0313, 4, 'Côte dIvoire Fijifoxju', 5464646, 1.79E+108, 212, '9999-12-31 23:59:59');
+INSERT INTO tbl01 VALUES ('~!@#$%^&*()', '-{}[]|:;<>?/.', 'ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ', 61614987891, 6612.0313, 12, 'Côte dIvoire Fijifoxju', 5464646, 1.79E+108, 212, '9999-12-31 23:59:59');
+INSERT INTO tbl01 VALUES ('a kwik di kwik', 'Một ngày vui vẻ', 'ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ', 9223372036854775808, 133.2212, 127, 'Côte dIvoire Fijifoxju', 5464646, 1.79E+108, 212, '9999-12-31 23:59:59');
+INSERT INTO tbl01 VALUES ('съм много', 'Im finſteren', 'ขอขอบคุณอย่างจริงใจ', 654545,  3260.245, -45, 'Côte dIvoire Fijifoxju', 5464646, 1.79E+108, 212, '9999-12-31 23:59:59');
+INSERT INTO tbl01 VALUES ('Canada Denmark', 'brown fox', 'いろはにほへど　ちりぬるをわがよたれぞ　つた', 573709551615, 12.0313, -5, 'Côte dIvoire Fijifoxju', 5464646, 1.79E+108, 212, '9999-12-31 23:59:59');

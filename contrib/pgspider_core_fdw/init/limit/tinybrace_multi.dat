@@ -1,0 +1,12 @@
+DROP TABLE IF EXISTS tbl01;
+
+CREATE TABLE tbl01 (c1 character(30), c2 nchar(30), c3 varchar(255), c4 bigint, c5 float, c6 tinyint, c7 character varying (255), c8 bigint, c9 double precision, c10 smallint, c11 datetime);
+INSERT INTO tbl01 VALUES ('I character', 'sfsef', '色は匂へど 散りぬるを我が世誰ぞ 常', 2989896, 56.454, -56, '내 노래를 불러 내 노래를 불러', 5198198, 1.79E+108, 212, '2220-1-20 10:10:00');
+INSERT INTO tbl01 VALUES ('Yemen Tokyo', '34364@#$#$%%', '정말 고마워 정말 고마워', 819898, 550.54, -5, 'Denmark @# YU', 298898, 1.765608, 2, '2220-1-20 10:10:00');
+INSERT INTO tbl01 VALUES ('garian it is desi', '@#$#$%%', 'Спой мою песню Спой мою песню', 222, 550.54, -5, 'Im finſteren Jagdſchloß', 6555, 17656.08, 2, '2220-1-20 10:10:00');
+INSERT INTO tbl01 VALUES ('素晴らしい日', '#$%%', 'TKuIHeGmsia IraHeGm Czec', 0, 550.54, 1, '41424344454a4b4c4d4e4f', -56465, 55.8, 2, '2521-1-19 09:10:19');
+INSERT INTO tbl01 VALUES ('วันนี้เป็นวันที่ดี', 'วันนี้เป็นวันที่ดี', 'qrstuvwxyzABCDEFGH', 6565, 550.54, 0, 'How are yo', -1238912, 0.608, 2, '2521-1-19 09:10:19');
+INSERT INTO tbl01 VALUES ('fghikl`~!@#$%^&*()', 'abcdefghikl`~', '6ZTI2Clcsia Ira2Clc Czec', 616516565, 550.54, 5, 'Hello Hello hello', 0, 665608, 2, '2521-1-19 09:10:19');
+INSERT INTO tbl01 VALUES ('it is desir', 'ghijklmnopqrstuvw%', 'さようなら さようなら さようなら', 92233, 550.54, 4, 'Thank you bạn ', -1230, -765608, 2, '1000-01-01 00:00:00');
+INSERT INTO tbl01 VALUES ('またねまたねまた', 'hNASNVRAsia', 'Спой мою песню Спой мою песню', -12656, 550.54, 2, '5_Do do #@><<', 54654, -508, 2, '1000-01-01 00:00:00');
+INSERT INTO tbl01 VALUES ('Tokyo', 'Cảm ơn bạn', 'Ireland Iran (Islamic Re of)', -656565, 550.54, 11, 'dma3S0FPUqgYb62sT97doLX72By6', 12312, -0.765608, 2, '2120-1-11 02:10:34');

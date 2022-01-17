@@ -1,0 +1,14 @@
+DROP TABLE IF EXISTS tbl01;
+
+CREATE TABLE tbl01 (c1 text, c2 text, c3 char(255), c4 int, c5 float8, c6 int, c7 varchar(255), c8 bigint, c9 double precision, c10 smallint, c11 timestamp);
+
+INSERT INTO tbl01 VALUES ('Hang paintings', 'Improvements', 'มีวันที่ดี', 43123,  -656233.25, 33, '友達と会うので遅刻した', 9223372036854775807, 165232.212, 5, '0001-01-01 00:00:00');
+INSERT INTO tbl01 VALUES ('txid_snapshot', 'сковорода', '<town>Toronto</town>', 4656,  -65.25, 33, '{"name":"b!WX4IJ%"}', 6131213, 1E+18, 1, '0001-01-01 00:00:00');
+INSERT INTO tbl01 VALUES ('ハンサム', 'Improvements', 'items": {"product": "Beerd","qty": 4}', 0,  45364.25, 33, '{"name":"9a1b5b13a5d5"}', 4534534, 1120.2, 5, '3999-12-31 23:59:58');
+INSERT INTO tbl01 VALUES ('ごきげんよう', 'Officep', '{"name": "Hang paintings1", "tags": ["Improvements", "Officer"], "finished": false}', -565,  -656233.25, 33, '格納用のドキュメント', -45625342, -13.52, 0, '2004-10-19 10:23:54');
+INSERT INTO tbl01 VALUES ('fat20 & (rat21 | cat22)', 'Officep', '\\1132165131651316153', -62,  9678.65, 33, '2f404849-f62c-4234-b0c8-e230bd694045', 5353, -543.545, 2, '2004-10-19 10:23:54');
+INSERT INTO tbl01 VALUES ('Hang paintings', 'J%kwe93-2i30', 'interval ''14 hours 24 minutes''', -5695,  0.0, 33, '((-99999,999999),(1,1))', 3453453, 645263.65263, 6, '0001-01-01 00:00:00');
+INSERT INTO tbl01 VALUES ('กระทะ сковорода', 'J%kwe93-2i30', 'this is sample string', 454,  0, 33, 'Ông là nhà văn', 7569, 623.6163, 7, '2008-10-19 10:23:54');
+INSERT INTO tbl01 VALUES ('กระทะ сковорода', '格納用のドキュメント', '%$&*%!$*!#^%)!#&%', 76786, 55634.453, 33, 'сковорода', -59549, 212.03123, 8, '2008-10-19 10:23:54');
+INSERT INTO tbl01 VALUES ('красивый Đẹp trai', '格納用のドキュメント', 'que tenga un lindo día', 86786,  3.25, 33, '友達と会うので遅刻した', 0, 10.25, 0, '2019-10-19 10:23:54');
+INSERT INTO tbl01 VALUES ('красивый Đẹp trai', 'Improvements', 'システム設計検討資料チャート作成', 43123,  -656233.25, 33, '友達と会うので遅刻した', 6569, 3.212, 5, '2019-10-19 10:23:54');

@@ -184,10 +184,10 @@ SET client_min_messages = DEBUG1;
 SELECT * FROM test1 WHERE one < 1 ORDER BY one;
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
      one     |    two     | three |        four         |    five    | six | seven |    __spd_url     
@@ -200,12 +200,12 @@ DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 SELECT * FROM test1 WHERE one <= 1 ORDER BY one;
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
      one     |    two     | three |        four         |    five    | six | seven |    __spd_url     
 -------------+------------+-------+---------------------+------------+-----+-------+------------------
  -2147483648 | {1,2,3}    | foo   | 2018-01-01 00:00:00 | 1975-06-18 | t   |   0.5 | /parquet_s3_svr/
@@ -217,12 +217,12 @@ DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 SELECT * FROM test1 WHERE one > 6 ORDER BY one;
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
     one     |           two            |                   three                    |        four         |    five    | six |       seven       |    __spd_url     
 ------------+--------------------------+--------------------------------------------+---------------------+------------+-----+-------------------+------------------
      100000 | {0,2,1000}               | MANGA&  &ANIME**日本が大好きです* *VIETNAM | 2049-01-01 00:00:00 | 2100-02-20 | t   |       5464.554455 | /parquet_s3_svr/
@@ -280,10 +280,10 @@ SELECT * FROM test1 WHERE six = true ORDER BY one;
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
      one     |           two            |                    three                    |        four         |    five    | six |    seven    |    __spd_url     
 -------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------+------------------
  -2147483648 | {1,2,3}                  | foo                                         | 2018-01-01 00:00:00 | 1975-06-18 | t   |         0.5 | /parquet_s3_svr/
@@ -294,10 +294,10 @@ DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 
 --Testcase 27:
 SELECT * FROM test1 WHERE six = false ORDER BY one;
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
     one     |           two            |       three       |        four         |    five    | six |       seven       |    __spd_url     
@@ -314,10 +314,10 @@ DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
 SELECT * FROM test1 WHERE seven < 0.9 ORDER BY one;
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
      one     |           two            |                    three                    |        four         |    five    | six |   seven    |    __spd_url     
 -------------+--------------------------+---------------------------------------------+---------------------+------------+-----+------------+------------------
  -2147483648 | {1,2,3}                  | foo                                         | 2018-01-01 00:00:00 | 1975-06-18 | t   |        0.5 | /parquet_s3_svr/
@@ -330,10 +330,10 @@ DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 SELECT * FROM test1 WHERE seven IS NULL ORDER BY one;
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
  one |    two     | three |        four         |    five    | six | seven |    __spd_url     
 -----+------------+-------+---------------------+------------+-----+-------+------------------
    0 | {NULL,5,6} | bar   | 2018-01-02 00:00:00 | 1980-01-02 | f   |       | /parquet_s3_svr/
@@ -347,12 +347,12 @@ prepare prep(date) as select * from test1 where five < $1;
 execute prep('2018-01-03');
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
      one     |    two     | three |        four         |    five    | six | seven |    __spd_url     
 -------------+------------+-------+---------------------+------------+-----+-------+------------------
  -2147483648 | {1,2,3}    | foo   | 2018-01-01 00:00:00 | 1975-06-18 | t   |   0.5 | /parquet_s3_svr/
@@ -366,10 +366,10 @@ DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
+DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
      one     |    two     | three |        four         |    five    | six | seven |    __spd_url     
 -------------+------------+-------+---------------------+------------+-----+-------+------------------
  -2147483648 | {1,2,3}    | foo   | 2018-01-01 00:00:00 | 1975-06-18 | t   |   0.5 | /parquet_s3_svr/
@@ -447,7 +447,7 @@ CREATE FOREIGN TABLE test2__parquet_s3_svr__0 (
     six     BOOL,
     seven   FLOAT8)
 SERVER parquet_s3_svr
-OPTIONS (filename 's3://parquets3/ported_3.parquet s3://parquets3/ported_2.parquet s3://parquets3/ported_1.parquet', sorted 'one');
+OPTIONS (filename 's3://parquets3/ported_3.parquet s3://parquets3/ported_2.parquet s3://parquets3/ported_1.parquet');
 --Testcase 41:
 EXPLAIN SELECT * FROM test2;
                          QUERY PLAN                          
@@ -502,18 +502,16 @@ SERVER parquet_s3_svr
 OPTIONS (filename 's3://parquets3/ported_3.parquet s3://parquets3/ported_2.parquet s3://parquets3/ported_1.parquet', sorted 'one');
 --Testcase 45:
 EXPLAIN (COSTS OFF) SELECT * FROM test3 ORDER BY one;
-                  QUERY PLAN                  
-----------------------------------------------
- Sort
-   Sort Key: one
-   ->  Foreign Scan on test3
-         Node: parquet_s3_svr / Status: Alive
-           Reader: Multifile
-           Row groups: 
-             ported_3.parquet: 1
-             ported_2.parquet: 1
-             ported_1.parquet: 1
-(9 rows)
+               QUERY PLAN               
+----------------------------------------
+ Foreign Scan on test3
+   Node: parquet_s3_svr / Status: Alive
+     Reader: Multifile Merge
+     Row groups: 
+       ported_3.parquet: 1
+       ported_2.parquet: 1
+       ported_1.parquet: 1
+(7 rows)
 
 --Testcase 46:
 SELECT * FROM test3 ORDER BY one;

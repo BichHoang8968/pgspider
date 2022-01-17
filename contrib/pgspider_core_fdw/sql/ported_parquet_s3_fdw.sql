@@ -189,7 +189,7 @@ CREATE FOREIGN TABLE test2__parquet_s3_svr__0 (
     six     BOOL,
     seven   FLOAT8)
 SERVER parquet_s3_svr
-OPTIONS (filename 's3://parquets3/ported_3.parquet s3://parquets3/ported_2.parquet s3://parquets3/ported_1.parquet', sorted 'one');
+OPTIONS (filename 's3://parquets3/ported_3.parquet s3://parquets3/ported_2.parquet s3://parquets3/ported_1.parquet');
 --Testcase 41:
 EXPLAIN SELECT * FROM test2;
 --Testcase 42:

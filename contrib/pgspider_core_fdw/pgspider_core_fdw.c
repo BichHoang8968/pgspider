@@ -127,8 +127,6 @@ PG_MODULE_MAGIC;
 #define SPD_TUPLE_QUEUE_LEN 5000
 /* Index of the last element removed */
 #define SPD_LAST_GET_IDX(QUEUE) ((QUEUE)->start - 1)
-/* For checking single node or multiple node */
-#define SPD_SINGLE_NODE	1
 
 /* Code version is updated at new release. */
 #define CODE_VERSION   20000
@@ -318,13 +316,22 @@ typedef struct Extractcells
 										 * which existed in GROUP BY */
 }			Extractcells;
 
+/* This structure stores child pushdown information about child path. */
+typedef struct ChildPushdownInfo
+{
+	RelOptKind	relkind;			/* Child relation kind. */
+	Path		*path;				/* The best child path for child GetForeignPlan. */
+
+	bool		orderby_pushdown;	/* True if child node can pushdown ORDER BY to remote server. */
+	bool		limit_pushdown;		/* True if child node can pushdown LIMIT/OFFSET to remote server. */
+}			ChildPushdownInfo;
+
 /* This structure stores child information about plan. */
 typedef struct ChildInfo
 {
 	/* USE ONLY IN PLANNING */
 	RelOptInfo *baserel;
-	PlannerInfo *grouped_root_local;
-	RelOptInfo *grouped_rel_local;
+	RelOptInfo *input_rel_local;	/* Child input relation for creating child upper paths. */
 	List	   *url_list;
 	AggPath    *aggpath;
 #ifdef ENABLE_PARALLEL_S3
@@ -332,6 +339,8 @@ typedef struct ChildInfo
 #endif
 	RelOptInfo *joinrel;		/* Child relation info for join pushdown */
 	FdwRoutine *fdwroutine;
+
+	ChildPushdownInfo pushdown_info;	/* Child pushdown information */
 
 	/* USE IN BOTH PLANNING AND EXECUTION */
 	PlannerInfo *root;
@@ -375,6 +384,12 @@ typedef struct SpdRelationInfo
 
 	/* Actual remote restriction clauses for scan (sans RestrictInfos) */
 	List	   *final_remote_exprs;
+
+	/* True means that the ORDER BY is safe to push down */
+	bool		orderby_is_pushdown_safe;
+
+	/* True means that ORDER BY is given to child node */
+	bool		child_orderby_needed;
 
 	/* Estimated size and cost for a scan, join, or grouping/aggregation. */
 	double		rows;
@@ -420,6 +435,9 @@ typedef struct SpdRelationInfo
 	 * representing the relation.
 	 */
 	int			relation_index;
+
+	/* Upper relation information */
+	UpperRelationKind stage;
 }			SpdRelationInfo;
 
 /*
@@ -438,7 +456,8 @@ typedef struct SpdRelationInfo
 typedef struct SpdFdwPrivate
 {
 	/* USE ONLY IN PLANNING */
-	List	   *baserestrictinfo;	/* root node base strict info */
+	List	   *base_remote_conds;	/* Base restrict conditions are given to child */
+	List	   *base_local_conds;	/* Base restrict conditions are not given to child */
 	List	   *upper_targets;
 	List	   *url_list;		/* IN clause for SELECT */
 
@@ -479,6 +498,9 @@ typedef struct SpdFdwPrivate
 	bool		has_stub_star_regex_function;	/* mark if query has stub star
 												 * regex function */
 	bool		record_function;	/* mark if function return record type */
+
+	bool		orderby_query;	/* ORDER BY flag */
+	bool		limit_query;	/* LIMIT/OFFSET flag */
 
 	/* USE ONLY IN EXECUTION */
 	pthread_t	foreign_scan_threads[NODES_MAX];	/* child node thread  */
@@ -550,6 +572,15 @@ static bool foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel);
 static Path *get_foreign_grouping_paths(PlannerInfo *root,
 										RelOptInfo *input_rel,
 										RelOptInfo *grouped_rel);
+static Path *get_foreign_ordered_paths(PlannerInfo *root,
+										RelOptInfo *input_rel,
+										RelOptInfo *ordered_rel,
+										int node_num);
+static Path *get_foreign_final_paths(PlannerInfo *root,
+										RelOptInfo *input_rel,
+										RelOptInfo *final_rel,
+										FinalPathExtraData *extra,
+										int node_num);
 
 static void spd_AddForeignUpdateTargets(PlannerInfo *root,
 										Index rtindex,
@@ -612,6 +643,23 @@ static List *spd_catalog_makedivtlist(Aggref *aggref, List *newList, enum Aggtyp
 static TupleTableSlot *spd_AddSpdUrl(ForeignScanThreadInfo * pFssThrdInfo, TupleTableSlot *parent_slot, TupleTableSlot *node_slot, SpdFdwPrivate * fdw_private, bool is_first_iterate);
 static TupleTableSlot *spd_AddSpdUrlForGroupby(ForeignScanThreadInfo * pFssThrdInfo, TupleTableSlot *parent_slot, TupleTableSlot *node_slot, SpdFdwPrivate * fdw_private);
 static Datum spd_AddSpdUrlForRecord(Datum record, char *spdurl);
+static void spd_add_paths_with_pathkeys_for_rel(PlannerInfo *root, RelOptInfo *rel,
+									Cost startup_cost,
+									Cost total_cost,
+									double rows,
+									Path *epq_path);
+static Expr *spd_find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel);
+static Expr *spd_find_em_expr_for_input_target(PlannerInfo *root,
+												EquivalenceClass *ec,
+												PathTarget *target);
+static bool spd_is_orderby_pushdown_safe(PlannerInfo *root, RelOptInfo *rel, bool *child_orderby_needed);
+static void spd_update_base_rel_target(ChildInfo *pChildInfo, PlannerInfo *root, RelOptInfo *input_rel);
+static void spd_UpdateChildPushdownInfo(RelOptKind relkind,
+										 Path *child_path,
+										 bool has_final_sort,
+										 bool has_limit,
+										 ChildPushdownInfo *child_pushdown_info);
+static void spd_GetRootQueryPathkeys(PlannerInfo *root, PlannerInfo *root_child);
 
 /* postgresql.conf paramater */
 static bool throwErrorIfDead;
@@ -649,8 +697,7 @@ static TargetEntry *spd_tlist_member_match_var(Var *var, List *targetlist);
 static TargetEntry *spd_tlist_member(Expr *node, List *targetlist, int *target_num);
 static void spd_apply_pathtarget_labeling_to_tlist(List *tlist, PathTarget *target);
 
-static bool spd_expr_has_spdurl(PlannerInfo *root, Node *expr, List **target_exprs);
-static bool check_spdurl_walker(Node *node, SpdurlWalkerContext * ctx);
+static bool check_spdurl_walker(Node *node, SpdurlWalkerContext *ctx);
 
 static void spd_update_aggref_info(List *tlist);
 
@@ -1372,11 +1419,16 @@ spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private)
 		lfdw_private = lappend(lfdw_private, makeInteger((fdw_private->has_having_quals) ? 1 : 0));
 	}
 
+	lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->orderby_query));
+	lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->limit_query));
+
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
 		ChildInfo  *pChildInfo = &fdw_private->childinfo[i];
 
 		lfdw_private = lappend(lfdw_private, makeInteger(pChildInfo->pseudo_agg));
+		lfdw_private = lappend(lfdw_private, makeInteger(pChildInfo->pushdown_info.orderby_pushdown));
+		lfdw_private = lappend(lfdw_private, makeInteger(pChildInfo->pushdown_info.limit_pushdown));
 		lfdw_private = lappend(lfdw_private, makeInteger(pChildInfo->child_node_status));
 		lfdw_private = lappend(lfdw_private, makeInteger(pChildInfo->server_oid));
 		lfdw_private = lappend(lfdw_private, makeInteger(pChildInfo->oid));
@@ -1505,12 +1557,24 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
 		lc = lnext(lfdw_private, lc);
 	}
 
+	fdw_private->orderby_query = intVal(lfirst(lc)) ? true : false;
+	lc = lnext(lfdw_private, lc);
+
+	fdw_private->limit_query = intVal(lfirst(lc)) ? true : false;
+	lc = lnext(lfdw_private, lc);
+
 	fdw_private->childinfo = (ChildInfo *) palloc0(sizeof(ChildInfo) * fdw_private->node_num);
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
 		ChildInfo  *pChildInfo = &fdw_private->childinfo[i];
 
 		pChildInfo->pseudo_agg = intVal(lfirst(lc));
+		lc = lnext(lfdw_private, lc);
+
+		pChildInfo->pushdown_info.orderby_pushdown = intVal(lfirst(lc));
+		lc = lnext(lfdw_private, lc);
+
+		pChildInfo->pushdown_info.limit_pushdown = intVal(lfirst(lc));
 		lc = lnext(lfdw_private, lc);
 
 		pChildInfo->child_node_status = intVal(lfirst(lc));
@@ -2251,7 +2315,7 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 	extcells->is_having_qual = is_having_qual;
 	extcells->is_contain_group_by = is_contain_group_by;
 
-	if (fdw_private->node_num == SPD_SINGLE_NODE)
+	if (!IS_SPD_MULTI_NODES(fdw_private->node_num))
 	{
 		Mappingcells *mapcells;
 
@@ -3313,41 +3377,36 @@ spd_create_child_url(int childnums, List *spd_url_list, SpdFdwPrivate * fdw_priv
  * @param[in,out] entry_baserel Child table's restrictinfo is saved
  */
 static void
-check_basestrictinfo(PlannerInfo *root, ForeignDataWrapper *fdw, RelOptInfo *entry_baserel)
+check_basestrictinfo(PlannerInfo *root, RelOptInfo *baserel, ForeignDataWrapper *fdw, RelOptInfo *entry_baserel)
 {
+	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *)baserel->fdw_private;
+	List	   *restrict_clauses;
 	ListCell   *lc;
-	List	   *restrictinfo = NIL; /* new restrictinfo after removing SPDURL */
 
+	/*
+	 * We require columns specified in entry_baserel->reltarget->exprs and those
+	 * required for evaluating the local conditions.
+	 */
 	if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) == 0)
+		restrict_clauses = fdw_private->rinfo.local_conds;
+	else
+		restrict_clauses = fdw_private->rinfo.remote_conds;
+
+	foreach(lc, restrict_clauses)
 	{
-		foreach(lc, entry_baserel->baserestrictinfo)
-		{
-			RestrictInfo *clause = (RestrictInfo *) lfirst(lc);
-			Expr	   *expr = (Expr *) clause->clause;
+		RestrictInfo *rinfo = lfirst_node(RestrictInfo, lc);
 
-			if (spd_expr_has_spdurl(root, (Node *) expr, NULL))
-				entry_baserel->baserestrictinfo = NULL;
-		}
+		entry_baserel->reltarget->exprs = list_concat(entry_baserel->reltarget->exprs,
+														pull_var_clause((Node *) rinfo->clause,
+														PVC_RECURSE_PLACEHOLDERS));
 	}
-	/* Create new restrictinfo. */
-	foreach(lc, entry_baserel->baserestrictinfo)
-	{
-		RestrictInfo *clause = (RestrictInfo *) lfirst(lc);
-		Expr	   *expr = (Expr *) clause->clause;
-		List	   *target_exprs = NIL;
 
-		if (spd_expr_has_spdurl(root, (Node *) expr, &target_exprs) != true)
-		{
-			entry_baserel->reltarget->exprs = list_concat(entry_baserel->reltarget->exprs, target_exprs);
-
-			/*
-			 * If it does not contaon SPDURL, we append it to new restrictinfo
-			 * list.
-			 */
-			restrictinfo = lappend(restrictinfo, clause);
-		}
-	}
-	entry_baserel->baserestrictinfo = restrictinfo;
+	/*
+	 * In spd_classifyConditions(), we classified base restrictions
+	 * in remote and local condition.
+	 * FDW uses remote condition as child baserestricinfo.
+	 */
+	entry_baserel->baserestrictinfo = fdw_private->rinfo.remote_conds;
 }
 
 /**
@@ -3592,9 +3651,9 @@ spd_makeRangeTableEntry(Oid relid, char relkind, List *spd_url_list)
 static PlannerInfo *
 spd_CreateRoot(PlannerInfo *root, List *rtable)
 {
-	PlannerInfo *new_root;
-	Query	   *query;
-	PlannerGlobal *glob;
+	PlannerInfo	   *new_root;
+	Query		   *query;
+	PlannerGlobal  *glob;
 
 	/*
 	 * Set up mostly-dummy planner state PlannerInfo can not deep copy with
@@ -3613,6 +3672,7 @@ spd_CreateRoot(PlannerInfo *root, List *rtable)
 	new_root->planner_cxt = CurrentMemoryContext;
 	new_root->wt_param_id = -1;
 	new_root->ec_merging_done = root->ec_merging_done;
+
 
 	/*
 	 * Use placeholder list only for child node's GetForeignRelSize in this
@@ -3852,6 +3912,7 @@ spd_GetForeignRelSizeChild(PlannerInfo *root, RelOptInfo *baserel,
 						   List *new_inurl, ChildInfo * childinfo,
 						   int *idx_url_tlist)
 {
+	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *) baserel->fdw_private;
 	int			i = 0;
 
 	for (i = 0; i < oid_nums; i++)
@@ -3876,6 +3937,10 @@ spd_GetForeignRelSizeChild(PlannerInfo *root, RelOptInfo *baserel,
 		child_root = spd_GetChildRoot(root, baserel->relid, rel_oid, oid_server,
 									  childinfo[i].url_list, i);
 
+		/* Give ORDER BY and pathkeys information to child. */
+		if (fdw_private->rinfo.child_orderby_needed)
+			spd_GetRootQueryPathkeys(root, child_root);
+
 		fs = GetForeignServer(oid_server);
 		fdw = GetForeignDataWrapper(fs->fdwid);
 
@@ -3897,7 +3962,7 @@ spd_GetForeignRelSizeChild(PlannerInfo *root, RelOptInfo *baserel,
 		 * SPDURL column info for child node baserel's basestrictinfo.
 		 * (PGSpider FDW uses parent basestrictinfo)
 		 */
-		check_basestrictinfo(root, fdw, child_baserel);
+		check_basestrictinfo(root, baserel, fdw, child_baserel);
 		spd_ip_from_server_name(fs->servername, ip);
 
 		/* Check server name and ip. */
@@ -3987,10 +4052,11 @@ spd_CopyRoot(PlannerInfo *root, RelOptInfo *baserel, SpdFdwPrivate * fdw_private
 	fdw_private->spd_root = spd_CreateRoot(root, rtable);
 
 	/*
-	 * Memorize baserestrictinfo into fdw_private so that we can refer it
+	 * Memorize remote and local restrictinfo into fdw_private so that we can refer it
 	 * later.
 	 */
-	fdw_private->baserestrictinfo = copyObject(baserel->baserestrictinfo);
+	fdw_private->base_remote_conds = copyObject(fdw_private->rinfo.remote_conds);
+	fdw_private->base_local_conds = copyObject(fdw_private->rinfo.local_conds);
 }
 
 #ifdef ENABLE_PARALLEL_S3
@@ -4126,6 +4192,21 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 		fdw_private->childinfo[i].child_node_status = ServerStatusDead;
 	}
 #endif
+
+	/*
+	 * Identify which baserestrictinfo clauses can be sent to the remote
+	 * server and which can't.
+	 */
+	spd_classifyConditions(root, baserel, baserel->baserestrictinfo,
+							&fdw_private->rinfo.remote_conds, &fdw_private->rinfo.local_conds);
+
+	/*
+	 * Determine whether ORDER BY is safe to pushdown by pgspider_core_fdw or not,
+	 * if it is safe, we add ForeignScan paths with pathkeys on spd_GetForeignPaths().
+	 * Also we determine whether query pathkeys are safe to pass to childs.
+	 */
+	fdw_private->rinfo.orderby_is_pushdown_safe = spd_is_orderby_pushdown_safe(root, baserel,
+													&fdw_private->rinfo.child_orderby_needed);
 
 	Assert(IS_SIMPLE_REL(baserel));
 	r_entry = root->simple_rte_array[baserel->relid];
@@ -4399,11 +4480,11 @@ spd_merge_tlist(List *base_tlist, List *tlist, PlannerInfo *root)
 }
 
 /**
- * spd_GetForeignUpperPathsChild
+ * spd_GetForeignGroupingPathsChild
  *
  * Create upper paths for child node. This function creates PlannerInfo and RelOptInfo
  * for child node and call child GetForeignUpperPaths().
- * If pgspider_core cannot pushdown aggregation, this function returns false.
+ * If pgspider_core_fdw cannot pushdown aggregation, this function returns false.
  *
  * @param[in] pChildInfo Child information
  * @param[in] fdw_private
@@ -4416,7 +4497,7 @@ spd_merge_tlist(List *base_tlist, List *tlist, PlannerInfo *root)
  *						Otherwise, dont't update this variable.
  */
 static bool
-spd_GetForeignUpperPathsChild(ChildInfo * pChildInfo, SpdFdwPrivate * fdw_private, PlannerInfo *root,
+spd_GetForeignGroupingPathsChild(ChildInfo *pChildInfo, SpdFdwPrivate *fdw_private, PlannerInfo *root,
 							  UpperRelationKind stage, RelOptInfo *output_rel, void *extra,
 							  PlannerInfo *spd_root, bool *pushdown)
 {
@@ -4424,7 +4505,7 @@ spd_GetForeignUpperPathsChild(ChildInfo * pChildInfo, SpdFdwPrivate * fdw_privat
 	ForeignServer *fs;
 	ForeignDataWrapper *fdw;
 	PlannerInfo *root_child = pChildInfo->root;
-	RelOptInfo *baserel_child = pChildInfo->baserel;
+	RelOptInfo *input_rel_child = (pChildInfo->joinrel) ? pChildInfo->joinrel : pChildInfo->baserel;
 	RelOptInfo *output_rel_child;
 	Index	   *sortgrouprefs = NULL;
 	Node	   *extra_having_quals = NULL;
@@ -4432,16 +4513,6 @@ spd_GetForeignUpperPathsChild(ChildInfo * pChildInfo, SpdFdwPrivate * fdw_privat
 
 	fs = GetForeignServer(pChildInfo->server_oid);
 	fdw = GetForeignDataWrapper(fs->fdwid);
-
-	/*
-	 * If child node is not pgspider_fdw, don't pushdown aggregation if scan
-	 * clauses have SPDURL.
-	 */
-	if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
-	{
-		if (spd_checkurl_clauses(root, fdw_private->baserestrictinfo))
-			return false;
-	}
 
 	/* pdate dummy child root */
 	root_child->parse->groupClause = list_copy(root->parse->groupClause);
@@ -4465,11 +4536,14 @@ spd_GetForeignUpperPathsChild(ChildInfo * pChildInfo, SpdFdwPrivate * fdw_privat
 	/* Currently dummy. @todo more better parsed object. */
 	root_child->parse->hasAggs = true;
 
-	/* Call below FDW to check it is OK to pushdown or not. */
-	/* refer relnode.c fetch_upper_rel() */
+	/*
+	 * Call below FDW to check it is OK to pushdown or not.
+	 *
+	 * refer relnode.c fetch_upper_rel().
+	 */
 	output_rel_child = makeNode(RelOptInfo);
 	output_rel_child->reloptkind = RELOPT_UPPER_REL;
-	output_rel_child->relids = bms_copy(baserel_child->relids);
+	output_rel_child->relids = bms_copy(input_rel_child->relids);
 
 	if (pChildInfo->fdwroutine->GetForeignUpperPaths != NULL)
 	{
@@ -4550,22 +4624,34 @@ spd_GetForeignUpperPathsChild(ChildInfo * pChildInfo, SpdFdwPrivate * fdw_privat
 	if (pChildInfo->fdwroutine->GetForeignUpperPaths != NULL)
 	{
 		pChildInfo->fdwroutine->GetForeignUpperPaths(root_child,
-													 stage, baserel_child, output_rel_child, extra);
+													 stage, input_rel_child, output_rel_child, extra);
 		/* Give original HAVING qualifications for GroupPathExtra->havingQual. */
 		((GroupPathExtraData *) extra)->havingQual = extra_having_quals;
 	}
 
+	pChildInfo->input_rel_local = output_rel_child;
+
 	if (output_rel_child->pathlist != NULL)
 	{
-		/* Push down aggregate case */
-		pChildInfo->grouped_root_local = root_child;
-		pChildInfo->grouped_rel_local = output_rel_child;
+		Path *child_path = lfirst(list_head(output_rel_child->pathlist));
+
+		/*
+		 * Push down aggregate case.
+		 * We consider new child grouping path as current child best path,
+		 * therefore, update child best path to new child path.
+		 */
+		spd_UpdateChildPushdownInfo(RELOPT_UPPER_REL, child_path, false, false,
+									 &pChildInfo->pushdown_info);
 
 		/*
 		 * If at least one child fdw pushdown aggregate, parent also pushdown
 		 * it.
 		 */
 		*pushdown = true;
+
+		/* Obtain parent cost estimation from child. */
+		fdw_private->rinfo.startup_cost += child_path->startup_cost;
+		fdw_private->rinfo.total_cost += child_path->total_cost;
 	}
 	else
 	{
@@ -4577,7 +4663,7 @@ spd_GetForeignUpperPathsChild(ChildInfo * pChildInfo, SpdFdwPrivate * fdw_privat
 		AggStrategy aggStrategy = AGG_PLAIN;
 
 		MemSet(&aggcosts_child, 0, sizeof(AggClauseCosts));
-		tmp_path = linitial(baserel_child->pathlist);
+		tmp_path = linitial(input_rel_child->pathlist);
 
 		if (query->groupClause)
 		{
@@ -4615,6 +4701,335 @@ spd_GetForeignUpperPathsChild(ChildInfo * pChildInfo, SpdFdwPrivate * fdw_privat
 	return true;
 }
 
+/*
+ * spd_GetForeignOrderedPathsChild
+ *
+ * Create upper paths for child node. This function creates PlannerInfo and RelOptInfo
+ * for child node and call child GetForeignUpperPaths().
+ * If pgspider_core_fdw cannot pushdown aggregation, this function returns false.
+ *
+ * @param[in] pChildInfo Child information
+ * @param[in] fdw_private
+ * @param[in] root Parent PlannerInfo
+ * @param[in] stage
+ * @param[in] output_rel Parent outer relation
+ * @param[in] extra Extra argument given to parent GetForeignUpperPaths
+ * @param[out] pushdown It is set to True if child node pushdown the aggregation.
+ *						Otherwise, dont't update this variable.
+ */
+static bool
+spd_GetForeignOrderedPathsChild(ChildInfo *pChildInfo, SpdFdwPrivate *fdw_private, PlannerInfo *root,
+									UpperRelationKind stage, RelOptInfo *output_rel, void *extra,
+									bool *pushdown)
+{
+	PlannerInfo *root_child = pChildInfo->root;
+	RelOptInfo *input_rel_child = (pChildInfo->joinrel) ? pChildInfo->joinrel : pChildInfo->baserel;
+	RelOptInfo *output_rel_child;
+
+	if (!fdw_private->rinfo.child_orderby_needed)
+	{
+		/* Does not need to execute child GetForeignUpperPaths. */
+		return false;
+	}
+
+	/* Give ORDER BY and pathkeys information to child. */
+	spd_GetRootQueryPathkeys(root, root_child);
+
+	if (pChildInfo->input_rel_local)
+		input_rel_child = pChildInfo->input_rel_local;
+
+	/*
+	 * Call below FDW to check it is OK to pushdown or not.
+	 *
+	 * refer relnode.c fetch_upper_rel().
+	 */
+	output_rel_child = makeNode(RelOptInfo);
+	output_rel_child->reloptkind = RELOPT_UPPER_REL;
+	output_rel_child->relids = bms_copy(input_rel_child->relids);
+
+	if (pChildInfo->fdwroutine->GetForeignUpperPaths != NULL)
+	{
+		output_rel_child->reltarget = copy_pathtarget(output_rel->reltarget);
+		output_rel_child->reltarget->exprs = list_copy(fdw_private->upper_targets);
+	}
+	else
+	{
+		output_rel_child->reltarget = create_empty_pathtarget();
+	}
+
+	root_child->upper_rels[UPPERREL_ORDERED] =
+		lappend(root_child->upper_rels[UPPERREL_ORDERED],
+				output_rel_child);
+
+	root_child->parse->hasTargetSRFs = root->parse->hasTargetSRFs;
+	root_child->upper_targets[UPPERREL_ORDERED] =
+				copy_pathtarget(root->upper_targets[UPPERREL_ORDERED]);
+
+	if (pChildInfo->fdwroutine->GetForeignUpperPaths != NULL)
+	{
+		pChildInfo->fdwroutine->GetForeignUpperPaths(root_child,
+			stage, input_rel_child, output_rel_child, extra);
+	}
+
+	pChildInfo->input_rel_local = output_rel_child;
+
+	if (output_rel_child->pathlist != NULL)
+	{
+		Path *child_path = lfirst(list_head(output_rel_child->pathlist));
+
+		/*
+		 * Push down ORDER BY case.
+		 * We consider new child ordered path as current child best path,
+		 * therefore, update child best path to new child path.
+		 */
+		spd_UpdateChildPushdownInfo(RELOPT_UPPER_REL, child_path, true, false,
+									 &pChildInfo->pushdown_info);
+
+		/*
+		 * In multi node, parent does not pushdown ORDER BY.
+		 * In single node, if child node pushdown, parent also pushdown.
+		 */
+		*pushdown = true;
+
+		/* Obtain parent cost estimation from child. */
+		fdw_private->rinfo.startup_cost += child_path->startup_cost;
+		fdw_private->rinfo.total_cost += child_path->total_cost;
+	}
+
+	return true;
+}
+
+/*
+ * spd_GetForeignFinalPathsChild
+ *
+ * Create upper paths for child node. This function creates PlannerInfo and RelOptInfo
+ * for child node and call child GetForeignUpperPaths().
+ * If pgspider_core_fdw cannot pushdown aggregation, this function returns false.
+ *
+ * @param[in] pChildInfo Child information
+ * @param[in] fdw_private
+ * @param[in] root Parent PlannerInfo
+ * @param[in] stage
+ * @param[in] output_rel Parent outer relation
+ * @param[in] extra Extra argument given to parent GetForeignUpperPaths
+ * @param[out] pushdown It is set to True if child node pushdown the aggregation.
+ *						Otherwise, dont't update this variable.
+ */
+static bool
+spd_GetForeignFinalPathsChild(ChildInfo *pChildInfo, SpdFdwPrivate *fdw_private, PlannerInfo *root,
+									UpperRelationKind stage, RelOptInfo *output_rel, void *extra,
+									bool *pushdown)
+{
+	PlannerInfo *root_child = pChildInfo->root;
+	RelOptInfo *input_rel_child = (pChildInfo->joinrel) ? pChildInfo->joinrel : pChildInfo->baserel;
+	RelOptInfo *output_rel_child;
+	FinalPathExtraData *fextra = (FinalPathExtraData *) extra;
+
+	if (pChildInfo->input_rel_local)
+		input_rel_child = pChildInfo->input_rel_local;
+
+	/*
+	 * Call below FDW to check it is OK to pushdown or not.
+	 *
+	 * refer relnode.c fetch_upper_rel().
+	 */
+	output_rel_child = makeNode(RelOptInfo);
+	output_rel_child->reloptkind = RELOPT_UPPER_REL;
+	output_rel_child->relids = bms_copy(input_rel_child->relids);
+
+	if (pChildInfo->fdwroutine->GetForeignUpperPaths != NULL)
+	{
+		output_rel_child->reltarget = copy_pathtarget(output_rel->reltarget);
+		output_rel_child->reltarget->exprs = list_copy(fdw_private->upper_targets);
+	}
+	else
+	{
+		output_rel_child->reltarget = create_empty_pathtarget();
+	}
+
+	root_child->upper_rels[UPPERREL_FINAL] =
+		lappend(root_child->upper_rels[UPPERREL_FINAL],
+				output_rel_child);
+
+	root_child->parse->commandType = root->parse->commandType;
+	root_child->parse->rowMarks = list_copy(root->parse->rowMarks);
+	root_child->parse->hasTargetSRFs = root->parse->hasTargetSRFs;
+	root_child->parse->limitCount = (Node *)copyObject(root->parse->limitCount);
+	root_child->parse->limitOffset = (Node *)copyObject(root->parse->limitOffset);
+
+	root_child->upper_targets[UPPERREL_FINAL] =
+				copy_pathtarget(root->upper_targets[UPPERREL_FINAL]);
+
+	if (pChildInfo->fdwroutine->GetForeignUpperPaths != NULL)
+	{
+		pChildInfo->fdwroutine->GetForeignUpperPaths(root_child,
+			stage, input_rel_child, output_rel_child, fextra);
+	}
+
+	if (output_rel_child->pathlist != NULL)
+	{
+		Path *child_path = lfirst(list_head(output_rel_child->pathlist));
+		bool has_final_sort = false;
+
+		/* If final_path has pathkeys, it means child can sort remotely. */
+		has_final_sort = (child_path->pathkeys) ? true : false;
+
+		/*
+		 * Push down LIMIT/OFFSET case.
+		 * We consider new child final path as current child best path,
+		 * therefore, update child best path to new child path.
+		 */
+		spd_UpdateChildPushdownInfo(RELOPT_UPPER_REL, child_path, has_final_sort,
+									 fextra->limit_needed, &pChildInfo->pushdown_info);
+
+		/*
+		 * In multi node, parent does not pushdown LIMIT/OFFSET.
+		 * In single node, if child node pushdown, parent also pushdown.
+		 */
+		*pushdown = true;
+
+		/* Obtain parent cost estimation from child. */
+		fdw_private->rinfo.startup_cost += child_path->startup_cost;
+		fdw_private->rinfo.total_cost += child_path->total_cost;
+	}
+	else
+	{
+		Path *child_path = pChildInfo->pushdown_info.path;
+
+		/*
+		 * Not pushdown case.
+		 * In multi nodes, ORDER BY and LIMIT are present in query:
+		 * If child pushdown ORDER BY, the child pushdown path is updated
+		 * in ChildPushdownInfo (which is checked by pathkeys). Then if child
+		 * does not use or pushdown LIMIT, the child pushdown path is not
+		 * updated and set to be NULL value. It means that the child best
+		 * path does not contain query pathkeys and sorting is not executed
+		 * in remote server.
+		 */
+		if (IS_SPD_MULTI_NODES(fdw_private->node_num) &&
+			child_path && child_path->pathkeys)
+		{
+			spd_UpdateChildPushdownInfo(RELOPT_BASEREL, NULL, false, false,
+									 &pChildInfo->pushdown_info);
+		}
+	}
+
+	pChildInfo->input_rel_local = NULL;
+
+	return true;
+}
+
+/**
+ * spd_add_foreign_upper_paths
+ *
+ * If parent already created new upper path, and this new path must become
+ * the best path of parent, we remove all existed paths in parent pathlist.
+ * The removing make sure that the new path is not competed with existed paths
+ * to become the dominated path in pathlist - new path pushed down grouping,
+ * aggregation, ordered and limit.
+ */
+static void
+spd_add_foreign_upper_paths(RelOptInfo *output_rel, Path *new_path)
+{
+	SpdFdwPrivate *fdw_private = (SpdFdwPrivate  *)output_rel->fdw_private;
+
+	/* Set costs are estimated from childs. */
+	new_path->startup_cost = fdw_private->rinfo.startup_cost;
+	new_path->total_cost = fdw_private->rinfo.total_cost;
+
+	/* Remove all existed paths */
+	list_free(output_rel->pathlist);
+	output_rel->pathlist = NIL;
+
+	/* Add new path to pathlist. */
+	add_path(output_rel, new_path);
+}
+
+/**
+ * spd_update_fdw_private_agg
+ *
+ * Update aggregate information in fdw_private of grouping path.
+ */
+static void
+spd_update_fdw_private_grouping_paths(PlannerInfo *root, SpdFdwPrivate *fdw_private)
+{
+	/* Set flag if group by has SPDURL. */
+	fdw_private->groupby_has_spdurl = groupby_has_spdurl(root);
+
+	/* Get index of SPDURL in the target list. */
+	if (fdw_private->groupby_has_spdurl)
+		fdw_private->idx_url_tlist = get_index_spdurl_from_targets(fdw_private->child_comp_tlist, root);
+
+	/*
+	 * child_tlist will be used instead of child_comp_tlist, because we will
+	 * remove __spd_url from child_tlist.
+	 */
+	fdw_private->child_tlist = list_copy(fdw_private->child_comp_tlist);
+}
+
+/**
+ * spd_copy_agg_root_planner_info
+ *
+ * Copy root PlannerInfor for aggregation pushdown.
+ */
+static PlannerInfo *
+spd_copy_agg_root_planner_info(PlannerInfo *root, SpdFdwPrivate *in_fdw_private, int node_num)
+{
+	PlannerInfo *spd_root;
+	RelOptInfo *dummy_output_rel;
+	List	   *newList = NIL;
+
+	/* refer relnode.c fetch_upper_rel() */
+	dummy_output_rel = makeNode(RelOptInfo);
+	dummy_output_rel->reloptkind = RELOPT_UPPER_REL;
+	dummy_output_rel->reltarget = create_empty_pathtarget();
+
+	spd_root = in_fdw_private->spd_root;
+
+	/* Currently dummy. @todo more better parsed object. */
+	spd_root->parse->hasAggs = true;
+
+	spd_root->upper_rels[UPPERREL_GROUP_AGG] =
+		lappend(spd_root->upper_rels[UPPERREL_GROUP_AGG],
+				dummy_output_rel);
+	/* make pathtarget */
+	spd_root->upper_targets[UPPERREL_GROUP_AGG] =
+		copy_pathtarget(root->upper_targets[UPPERREL_GROUP_AGG]);
+	spd_root->upper_targets[UPPERREL_WINDOW] =
+		copy_pathtarget(root->upper_targets[UPPERREL_WINDOW]);
+	spd_root->upper_targets[UPPERREL_FINAL] =
+		copy_pathtarget(root->upper_targets[UPPERREL_FINAL]);
+
+	if (IS_SPD_MULTI_NODES(node_num))
+	{
+		ListCell   *lc;
+
+		/* Divide split-agg into multiple non-split agg */
+		foreach (lc, spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs)
+		{
+			Aggref *aggref;
+			Expr *temp_expr;
+			enum Aggtype aggtype;
+
+			temp_expr = lfirst(lc);
+			aggref = (Aggref *)temp_expr;
+
+			if (IS_SPLIT_AGG(aggref->aggfnoid))
+				newList = spd_makedivtlist(aggref, newList);
+			else if (IsA(temp_expr, Aggref) && is_catalog_split_agg(aggref->aggfnoid, &aggtype))
+				newList = spd_catalog_makedivtlist(aggref, newList, aggtype);
+			else
+				newList = lappend(newList, temp_expr);
+		}
+		spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = list_copy(newList);
+	}
+
+	if (IS_SPD_MULTI_NODES(node_num))
+		spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = list_copy(newList);
+
+	return spd_root;
+}
+
 /**
  * spd_GetForeignUpperPaths
  *
@@ -4635,11 +5050,7 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 {
 	SpdFdwPrivate *fdw_private,
 			   *in_fdw_private;
-	List	   *newList = NIL;
-	ListCell   *lc;
 	PlannerInfo *spd_root;
-	int			listn = 0;
-	RelOptInfo *dummy_output_rel;
 	Path	   *path;
 	bool		pushdown = false;
 	int			i = 0;
@@ -4654,7 +5065,10 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 		return;
 
 	/* Ignore stages we don't support and skip any duplicate calls. */
-	if (stage != UPPERREL_GROUP_AGG || output_rel->fdw_private)
+	if ((stage != UPPERREL_GROUP_AGG &&
+		 stage != UPPERREL_ORDERED &&
+		 stage != UPPERREL_FINAL) ||
+		 output_rel->fdw_private)
 		return;
 
 	/*
@@ -4665,79 +5079,56 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 	fdw_private->idx_url_tlist = -1;	/* -1: not have __spd_url */
 	fdw_private->node_num = in_fdw_private->node_num;
 	fdw_private->url_list = in_fdw_private->url_list;
-	fdw_private->agg_query = true;
-	fdw_private->baserestrictinfo = copyObject(in_fdw_private->baserestrictinfo);
-	spd_root = in_fdw_private->spd_root;
+	fdw_private->base_remote_conds = copyObject(in_fdw_private->base_remote_conds);
+	fdw_private->base_local_conds = copyObject(in_fdw_private->base_local_conds);
 
-	/* Currently dummy. @todo more better parsed object. */
-	spd_root->parse->hasAggs = true;
 	/* Call below FDW to check it is OK to pushdown or not. */
-	/* refer relnode.c fetch_upper_rel() */
-	dummy_output_rel = makeNode(RelOptInfo);
-	dummy_output_rel->reloptkind = RELOPT_UPPER_REL;
-	dummy_output_rel->reltarget = create_empty_pathtarget();
-	spd_root->upper_rels[UPPERREL_GROUP_AGG] =
-		lappend(spd_root->upper_rels[UPPERREL_GROUP_AGG],
-				dummy_output_rel);
-	/* make pathtarget */
-	spd_root->upper_targets[UPPERREL_GROUP_AGG] =
-		copy_pathtarget(root->upper_targets[UPPERREL_GROUP_AGG]);
-	spd_root->upper_targets[UPPERREL_WINDOW] =
-		copy_pathtarget(root->upper_targets[UPPERREL_WINDOW]);
-	spd_root->upper_targets[UPPERREL_FINAL] =
-		copy_pathtarget(root->upper_targets[UPPERREL_FINAL]);
-
-	if (fdw_private->node_num > SPD_SINGLE_NODE)
-	{
-		/* Divide split-agg into multiple non-split agg */
-		foreach(lc, spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs)
-		{
-			Aggref	   *aggref;
-			Expr	   *temp_expr;
-			enum Aggtype aggtype;
-
-			temp_expr = lfirst(lc);
-			aggref = (Aggref *) temp_expr;
-			listn++;
-			if (IS_SPLIT_AGG(aggref->aggfnoid))
-				newList = spd_makedivtlist(aggref, newList);
-			else if (IsA(temp_expr, Aggref) &&
-					 is_catalog_split_agg(aggref->aggfnoid, &aggtype))
-				newList = spd_catalog_makedivtlist(aggref, newList, aggtype);
-			else
-				newList = lappend(newList, temp_expr);
-		}
-		spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = list_copy(newList);
-
-	}
-
 	fdw_private->childinfo = in_fdw_private->childinfo;
 	fdw_private->rinfo.pushdown_safe = false;
 	fdw_private->having_quals = NIL;
 	fdw_private->has_having_quals = false;
+	fdw_private->rinfo.stage = stage;
+	fdw_private->rinfo.child_orderby_needed = in_fdw_private->rinfo.child_orderby_needed;
 	output_rel->fdw_private = fdw_private;
 	output_rel->relid = input_rel->relid;
 
-	/* Get parent agg path and create mapping_tlist. */
-	path = get_foreign_grouping_paths(root, input_rel, output_rel);
-	if (path == NULL)
-		return;
+	switch (stage)
+	{
+		case UPPERREL_GROUP_AGG:
+		{
+			/* Set flag of aggregation query */
+			fdw_private->agg_query = true;
 
-	if (fdw_private->node_num > SPD_SINGLE_NODE)
-		spd_root->upper_targets[UPPERREL_GROUP_AGG]->exprs = list_copy(newList);
+			/* Copy root PlannerInfor for aggregation pushdown. */
+			spd_root = spd_copy_agg_root_planner_info(root, in_fdw_private, fdw_private->node_num);
 
-	/* Set flag if group by has SPDURL. */
-	fdw_private->groupby_has_spdurl = groupby_has_spdurl(root);
+			/* Get parent agg path and create mapping_tlist. */
+			path = get_foreign_grouping_paths(root, input_rel, output_rel);
+			if (path == NULL)
+				return;
 
-	/* Get index of SPDURL in the target list. */
-	if (fdw_private->groupby_has_spdurl)
-		fdw_private->idx_url_tlist = get_index_spdurl_from_targets(fdw_private->child_comp_tlist, root);
-
-	/*
-	 * child_tlist will be used instead of child_comp_tlist, because we will
-	 * remove __spd_url from child_tlist.
-	 */
-	fdw_private->child_tlist = list_copy(fdw_private->child_comp_tlist);
+			/* Update aggregate information in fdw_private of grouping path. */
+			spd_update_fdw_private_grouping_paths(root, fdw_private);
+		}
+			break;
+		case UPPERREL_ORDERED:
+		{
+			path = get_foreign_ordered_paths(root, input_rel, output_rel, fdw_private->node_num);
+			if (path == NULL && !fdw_private->rinfo.child_orderby_needed)
+				return;
+		}
+			break;
+		case UPPERREL_FINAL:
+		{
+			path = get_foreign_final_paths(root, input_rel, output_rel, (FinalPathExtraData *) extra, fdw_private->node_num);
+			if (path == NULL)
+				return;
+		}
+			break;
+		default:
+			elog(ERROR, "unexpected upper relation: %d", (int) stage);
+			break;
+	}
 
 	/* Create path for each child node. */
 	for (i = 0; i < fdw_private->node_num; i++)
@@ -4747,13 +5138,41 @@ spd_GetForeignUpperPaths(PlannerInfo *root, UpperRelationKind stage,
 		if (pChildInfo->child_node_status != ServerStatusAlive)
 			continue;
 
-		if (!spd_GetForeignUpperPathsChild(pChildInfo, fdw_private, root, stage, output_rel, extra, spd_root, &pushdown))
-			return;
+		/*
+		 * If the input_rel is a base or join relation, we already have updated
+		 * the the rel's target to be the final (with SRFs) scan/join target.
+		 * This updating has been done by apply_scanjoin_target_to_paths().
+		 *
+		 * Now we need to update target for child base rel, and removing SPDURL
+		 * if it existed.
+		 */
+		spd_update_base_rel_target(pChildInfo, root, input_rel);
+
+		switch(stage)
+		{
+			case UPPERREL_GROUP_AGG:
+				if (!spd_GetForeignGroupingPathsChild(pChildInfo, fdw_private, root, stage, output_rel, extra, spd_root, &pushdown))
+					return;
+				break;
+			case UPPERREL_ORDERED:
+				if (!spd_GetForeignOrderedPathsChild(pChildInfo, fdw_private, root, stage, output_rel, extra, &pushdown))
+					return;
+				break;
+			case UPPERREL_FINAL:
+				if (!spd_GetForeignFinalPathsChild(pChildInfo, fdw_private, root, stage, output_rel, extra, &pushdown))
+					return;
+				break;
+			default:
+				elog(ERROR, "unexpected upper relation: %d", (int) stage);
+				break;
+		}
 	}
 
-	/* Add generated path into grouped_rel by add_path(). */
-	if (pushdown)
-		add_path(output_rel, path);
+	/* Add generated path into upper relation's pathlist by add_path(). */
+	if (path && pushdown &&
+		(stage == UPPERREL_GROUP_AGG ||
+		(!IS_SPD_MULTI_NODES(fdw_private->node_num) && (stage == UPPERREL_ORDERED || stage == UPPERREL_FINAL))))
+		spd_add_foreign_upper_paths(output_rel, path);
 }
 
 /**
@@ -4826,6 +5245,12 @@ get_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 		rows = 0;
 	}
 
+	/*
+	 * Set costs of grouping path.
+	 *
+	 * Here, we initially set estimation cost by zeros, because the cost
+	 * will be estimated by accumulating child's estimation cost.
+	 */
 	width = 0;
 	startup_cost = 0;
 	total_cost = 0;
@@ -4847,6 +5272,319 @@ get_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 										  NULL, /* no fdw_outerpath */
 										  NIL); /* no fdw_private */
 	return (Path *) grouppath;
+}
+
+/*
+ * get_foreign_ordered_paths
+ *		Add foreign paths for performing the final sort remotely.
+ *
+ * Given input_rel contains the source-data Paths.  The paths are added to the
+ * given ordered_rel.
+ *
+ * @param[in] root Base planner information
+ * @param[in] input_rel Input RelOptInfo
+ * @param[in] ordered_rel Order relation RelOptInfo
+ * @param[in] node_num Number of child tables
+ */
+static Path *
+get_foreign_ordered_paths(PlannerInfo *root, RelOptInfo *input_rel,
+						  RelOptInfo *ordered_rel, int node_num)
+{
+	Query	   *parse = root->parse;
+	SpdFdwPrivate *ifpinfo = (SpdFdwPrivate *) input_rel->fdw_private;
+	SpdFdwPrivate *fpinfo = (SpdFdwPrivate *) ordered_rel->fdw_private;
+	double		rows;
+	Cost		startup_cost;
+	Cost		total_cost;
+	List	   *fdw_private;
+	ForeignPath *ordered_path;
+	ListCell   *lc;
+
+	/* Shouldn't get here unless the query has ORDER BY */
+	Assert(parse->sortClause);
+
+	/* We don't support cases where there are any SRFs in the targetlist */
+	if (parse->hasTargetSRFs)
+		return NULL;
+
+	/* Save the input_rel as outerrel in fpinfo */
+	fpinfo->rinfo.outerrel = input_rel;
+
+	/*
+	 * Copy foreign table, foreign server, user mapping, FDW options etc.
+	 * details from the input relation's fpinfo.
+	 */
+	fpinfo->rinfo.table = ifpinfo->rinfo.table;
+	fpinfo->rinfo.server = ifpinfo->rinfo.server;
+	fpinfo->rinfo.user = ifpinfo->rinfo.user;
+
+	/*
+	 * If the input_rel is a base or join relation, we would already have
+	 * considered pushing down the final sort to the remote server when
+	 * creating pre-sorted foreign paths for that relation, because the
+	 * query_pathkeys is set to the root->sort_pathkeys in that case (see
+	 * standard_qp_callback()).
+	 */
+	if (input_rel->reloptkind == RELOPT_BASEREL ||
+		input_rel->reloptkind == RELOPT_JOINREL)
+	{
+		Assert(root->query_pathkeys == root->sort_pathkeys);
+
+		/*
+		 * Safe to push down if the query_pathkeys is safe to push down to child.
+		 * We don't set pushdown_safe from orderby_is_pushdown_safe, because in
+		 * some cases, ORDER BY and LIMIT are given to childs.
+		 *
+		 * For example, in multi nodes with Non-Aggregate query and ORDER BY
+		 * and LIMIT are present, refer spd_is_orderby_pushdown_safe(), child_orderby_needed
+		 * is true, but orderby_is_pushdown_safe is false, so we use child_orderby_needed's
+		 * value, to make ORDER BY is safe, and then information of ORDER BY and LIMIT
+		 * can be given to childs.
+		 */
+		fpinfo->rinfo.pushdown_safe = ifpinfo->rinfo.child_orderby_needed;
+
+		return NULL;
+	}
+
+	/* The input_rel should be a grouping relation */
+	Assert(input_rel->reloptkind == RELOPT_UPPER_REL &&
+		   ifpinfo->rinfo.stage == UPPERREL_GROUP_AGG);
+
+	/* If Grouping/Aggregate query in multi nodes, does not pushdown ORDER BY. */
+	if (IS_SPD_MULTI_NODES(node_num))
+	{
+		fpinfo->rinfo.pushdown_safe = false;
+		fpinfo->rinfo.child_orderby_needed = false;
+		return NULL;
+	}
+
+	/*
+	 * We try to create a path below by extending a simple foreign path for
+	 * the underlying grouping relation to perform the final sort remotely,
+	 * which is stored into the fdw_private list of the resulting path.
+	 */
+
+	/* Assess if it is safe to push down the final sort */
+	foreach(lc, root->sort_pathkeys)
+	{
+		PathKey    *pathkey = (PathKey *) lfirst(lc);
+		EquivalenceClass *pathkey_ec = pathkey->pk_eclass;
+		Expr	   *sort_expr;
+
+		/* Get the sort expression for the pathkey_ec */
+		sort_expr = spd_find_em_expr_for_input_target(root,
+												  pathkey_ec,
+												  input_rel->reltarget);
+
+		/*
+		 * For Function Expression, spd_is_foreign_expr would detect
+		 * volatile expressions.
+		 * For Non-Function Expression, spd_is_foreign_expr would detect
+		 * as well, but checking ec_has_volatile here saves some cycles.
+		 */
+		if (!(IsA(sort_expr, FuncExpr)) && pathkey_ec->ec_has_volatile)
+			return NULL;
+
+		/* If it's unsafe to remote, we cannot push down the final sort */
+		if (spd_expr_has_spdurl(root, (Node *) sort_expr, NULL) ||
+			!spd_is_foreign_expr(root, input_rel, sort_expr))
+			return NULL;
+	}
+
+	/* Safe to push down */
+	fpinfo->rinfo.pushdown_safe = true;
+	fpinfo->rinfo.child_orderby_needed = true;
+
+	/*
+	 * Set costs of ordered path.
+	 *
+	 * Here, we initially set estimation cost by zeros, because the cost
+	 * will be estimated by accumulating child's estimation cost.
+	 */
+	rows = 0;
+	startup_cost = 0;
+	total_cost = 0;
+
+	/* Now update this information in the fpinfo. */
+	fpinfo->rinfo.rows = rows;
+	fpinfo->rinfo.width = 0;
+	fpinfo->rinfo.startup_cost = startup_cost;
+	fpinfo->rinfo.total_cost = total_cost;
+
+	/*
+	 * Build the fdw_private list that will be used by spd_GetForeignPlan.
+	 * Items in the list must match order in enum FdwPathPrivateIndex.
+	 */
+	fdw_private = list_make2(makeInteger(true), makeInteger(false));
+
+	/* Create foreign ordering path */
+	ordered_path = create_foreign_upper_path(root,
+											 input_rel,
+											 root->upper_targets[UPPERREL_ORDERED],
+											 rows,
+											 startup_cost,
+											 total_cost,
+											 root->sort_pathkeys,
+											 NULL,	/* no extra plan */
+											 fdw_private);
+
+	return (Path *) ordered_path;
+}
+
+/**
+ * get_foreign_final_paths
+ *		Add foreign paths for performing the final processing remotely.
+ *
+ * Given input_rel contains the source-data Paths.  The paths are added to the
+ * given final_rel.
+ *
+ * @param[in] root Base planner information
+ * @param[in] input_rel Input RelOptInfo
+ * @param[in] final_rel Final relation RelOptInfo
+ * @param[in] extra Extra LIMIT informatioin given to parent GetForeignUpperPaths
+ * @param[in] node_num Number of child tables
+ */
+static Path *
+get_foreign_final_paths(PlannerInfo *root, RelOptInfo *input_rel,
+						   RelOptInfo *final_rel, FinalPathExtraData *extra, int node_num)
+{
+	Query	   *parse = root->parse;
+	SpdFdwPrivate *ifpinfo = (SpdFdwPrivate *) input_rel->fdw_private;
+	SpdFdwPrivate *fpinfo = (SpdFdwPrivate *) final_rel->fdw_private;
+	bool		has_final_sort = false;
+	List	   *pathkeys = NIL;
+	double		rows;
+	int			width;
+	Cost		startup_cost;
+	Cost		total_cost;
+	List	   *fdw_private;
+	ForeignPath *final_path = NULL;
+
+	/*
+	 * Currently, we only support this for SELECT commands
+	 */
+	if (parse->commandType != CMD_SELECT)
+		return NULL;
+
+	/*
+	 * We do not support LIMIT with FOR UPDATE/SHARE.
+	 * Also, if there is no FOR UPDATE/SHARE clause and
+	 * there is no LIMIT, don't need to add Foreign final path.
+	 */
+	if (parse->rowMarks || !extra->limit_needed)
+		return NULL;
+
+	/* We don't support cases where there are any SRFs in the targetlist */
+	if (parse->hasTargetSRFs)
+		return NULL;
+
+	/* Save the input_rel as outerrel in fpinfo */
+	fpinfo->rinfo.outerrel = input_rel;
+
+	/*
+	 * Copy foreign table, foreign server, user mapping, FDW options etc.
+	 * details from the input relation's fpinfo.
+	 */
+	fpinfo->rinfo.table = ifpinfo->rinfo.table;
+	fpinfo->rinfo.server = ifpinfo->rinfo.server;
+	fpinfo->rinfo.user = ifpinfo->rinfo.user;
+
+	Assert(extra->limit_needed);
+
+	/*
+	 * If the input_rel is an ordered relation, replace the input_rel with its
+	 * input relation
+	 */
+	if (input_rel->reloptkind == RELOPT_UPPER_REL &&
+		ifpinfo->rinfo.stage == UPPERREL_ORDERED)
+	{
+		input_rel = ifpinfo->rinfo.outerrel;
+		ifpinfo = (SpdFdwPrivate *) input_rel->fdw_private;
+		has_final_sort = true;
+		pathkeys = root->sort_pathkeys;
+	}
+
+	/* The input_rel should be a base, join, or grouping relation */
+	Assert(input_rel->reloptkind == RELOPT_BASEREL ||
+		   input_rel->reloptkind == RELOPT_JOINREL ||
+		   (input_rel->reloptkind == RELOPT_UPPER_REL &&
+			ifpinfo->rinfo.stage == UPPERREL_GROUP_AGG));
+
+	/*
+	 * We try to create a path below by extending a simple foreign path for
+	 * the underlying base, join, or grouping relation to perform the final
+	 * sort (if has_final_sort) and the LIMIT restriction remotely, which is
+	 * stored into the fdw_private list of the resulting path.  (We
+	 * re-estimate the costs of sorting the underlying relation, if
+	 * has_final_sort.)
+	 */
+
+	/*
+	 * Assess if it is safe to push down the LIMIT and OFFSET to the remote
+	 * server
+	 */
+
+	/*
+	 * If the underlying relation has any local conditions, the LIMIT/OFFSET
+	 * cannot be pushed down.
+	 */
+	if (ifpinfo->rinfo.local_conds)
+		return NULL;
+
+	/* We don't support cases where limit is needed and existing OFFSET clause in multi nodes */
+	if (IS_SPD_MULTI_NODES(node_num) && parse->limitOffset)
+		return NULL;
+
+	/*
+	 * Also, the LIMIT/OFFSET cannot be pushed down, if their expressions are
+	 * not safe to remote.
+	 */
+	if (!spd_is_foreign_expr(root, input_rel, (Expr *) parse->limitOffset) ||
+		!spd_is_foreign_expr(root, input_rel, (Expr *) parse->limitCount))
+		return NULL;
+
+	/* Safe to push down */
+	fpinfo->rinfo.pushdown_safe = true;
+
+	/*
+	 * Build the fdw_private list that will be used by spd_GetForeignPlan.
+	 * Items in the list must match order in enum FdwPathPrivateIndex.
+	 */
+	fdw_private = list_make2(makeInteger(has_final_sort),
+							 makeInteger(extra->limit_needed));
+
+	/*
+	 * Set costs of final path.
+	 *
+	 * Here, we initially set estimation cost by zeros, because the cost
+	 * will be estimated by accumulating child's estimation cost.
+	 */
+	rows = 0;
+	width = 0;
+	startup_cost = 0;
+	total_cost = 0;
+
+	/* Now update this information in the fpinfo. */
+	fpinfo->rinfo.rows = rows;
+	fpinfo->rinfo.width = width;
+	fpinfo->rinfo.startup_cost = startup_cost;
+	fpinfo->rinfo.total_cost = total_cost;
+
+	/*
+	 * Create foreign final path; this gets rid of a no-longer-needed outer
+	 * plan (if any), which makes the EXPLAIN output look cleaner
+	 */
+	final_path = create_foreign_upper_path(root,
+										   input_rel,
+										   root->upper_targets[UPPERREL_FINAL],
+										   rows,
+										   startup_cost,
+										   total_cost,
+										   pathkeys,
+										   NULL,	/* no extra plan */
+										   fdw_private);
+
+	return (Path *) final_path;
 }
 
 /**
@@ -4873,28 +5611,24 @@ is_target_contain_group_by(PathTarget *grouping_target, List *groupClause, Expr 
 		if (sgref && sgc)
 		{
 			/*
-			 * Only need to continue if the expression is different from GROUP
-			 * BY target. It is safe to push down if the expression is
-			 * completely equal to GROUP target. Example: SELECT c1/4 FROM tbl
-			 * GROUP BY c1/4; => safe to push down, no need to extract.
+			 * Only need to continue if the expression is different from GROUP BY target.
+			 * It is safe to push down if the expression is completely equal to GROUP target.
+			 * Example: SELECT c1/4 FROM tbl GROUP BY c1/4; => safe to push down, no need to extract.
 			 */
 			if (!equal(expr, groupByExpr))
 			{
-				List	   *aggvars;
-				ListCell   *lc2;
+				List		*aggvars;
+				ListCell	*lc2;
 
 				/* Pull out all Var and Aggref from the expression */
 				aggvars = pull_var_clause((Node *) expr,
-										  PVC_INCLUDE_AGGREGATES);
+								PVC_INCLUDE_AGGREGATES);
 
 				foreach(lc2, aggvars)
 				{
-					Expr	   *v = (Expr *) lfirst(lc2);
+					Expr	*v = (Expr *) lfirst(lc2);
 
-					/*
-					 * If the Var in GROUP BY matches with the Var in
-					 * expression, need to extract
-					 */
+					/* If the Var in GROUP BY matches with the Var in expression, need to extract */
 					if (IsA(v, Var) && equal(groupByExpr, v))
 						return true;
 				}
@@ -4938,7 +5672,7 @@ is_shippable_grouping_target(PlannerInfo *root, RelOptInfo *grouped_rel, SpdFdwP
 		SortGroupClause *sgc = get_sortgroupref_clause_noerr(sgref, query->groupClause);
 
 		/* Check whether this expression is constant column */
-		if (IsA(expr, Const) && fpinfo->node_num > SPD_SINGLE_NODE)
+		if (IsA(expr, Const) && IS_SPD_MULTI_NODES(fpinfo->node_num))
 		{
 			/* Constant column is not pushable. */
 			grouping_target->exprs = foreach_delete_current(grouping_target->exprs, lc);
@@ -5162,7 +5896,11 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 			if (!spd_is_foreign_expr(root, grouped_rel, expr))
 				return false;
 
-			fpinfo->rinfo.remote_conds = lappend(fpinfo->rinfo.remote_conds, rinfo);
+			/*
+			 * Currently, all qualification that is applied to groups is not
+			 * pushded down to child, so we add qualifications to local_conds.
+			 */
+			fpinfo->rinfo.local_conds = lappend(fpinfo->rinfo.local_conds, rinfo);
 
 			/* Check qualifications whether can be passed to child nodes. */
 			if (spd_is_having_safe((Node *) rinfo->clause))
@@ -5174,7 +5912,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 			 *
 			 * Extract qualification to mapping list.
 			 */
-			if (fpinfo->node_num > SPD_SINGLE_NODE)
+			if (IS_SPD_MULTI_NODES(fpinfo->node_num))
 			{
 				tlist = spd_add_to_flat_tlist(tlist, rinfo->clause, &mapping_tlist,
 											  &compress_child_tlist, 0, &upper_targets, false, true, false, fpinfo);
@@ -5203,7 +5941,7 @@ foreign_grouping_ok(PlannerInfo *root, RelOptInfo *grouped_rel)
 	 * After building new tlist, we need to set ressortgroupref according to
 	 * the original order in the group by clause.
 	 */
-	if (fpinfo->node_num == SPD_SINGLE_NODE)
+	if (!IS_SPD_MULTI_NODES(fpinfo->node_num))
 	{
 		spd_apply_pathtarget_labeling_to_tlist(compress_child_tlist, grouping_target);
 		spd_apply_pathtarget_labeling_to_tlist(tlist, grouping_target);
@@ -5312,14 +6050,24 @@ spd_CreateChildJoinRel(PlannerInfo *root_child, RelOptInfo *rel1, RelOptInfo *re
 }
 
 static bool
-spd_JoinPushable(SpdFdwPrivate * fdw_private_outer,
-				 SpdFdwPrivate * fdw_private_inner)
+spd_JoinPushable(PlannerInfo *root, SpdFdwPrivate *fdw_private,
+					  SpdFdwPrivate *fdw_private_outer, SpdFdwPrivate *fdw_private_inner,
+					  JoinType jointype, JoinPathExtraData *extra)
 {
 	ChildInfo  *pChildInfo_outer = &fdw_private_outer->childinfo[0];
 	ChildInfo  *pChildInfo_inner = &fdw_private_inner->childinfo[0];
 
+	/*
+	 * We support pushing down INNER, LEFT, RIGHT and FULL OUTER joins.
+	 * Constructing queries representing SEMI and ANTI joins is hard, hence
+	 * not considered right now.
+	 */
+	if (jointype != JOIN_INNER && jointype != JOIN_LEFT &&
+		jointype != JOIN_RIGHT && jointype != JOIN_FULL)
+		return false;
+
 	/* We cannot pushdown join if there are multiple nodes. */
-	if (fdw_private_outer->node_num != 1 || fdw_private_inner->node_num != 1)
+	if (IS_SPD_MULTI_NODES(fdw_private_outer->node_num) || IS_SPD_MULTI_NODES(fdw_private_inner->node_num))
 		return false;
 
 	/*
@@ -5329,9 +6077,42 @@ spd_JoinPushable(SpdFdwPrivate * fdw_private_outer,
 	if (pChildInfo_outer->server_oid != pChildInfo_inner->server_oid)
 		return false;
 
+	/*
+	 * If either of the joining relations is marked as unsafe to pushdown, the
+	 * join can not be pushed down.
+	 */
+	if (!fdw_private_outer->rinfo.pushdown_safe ||
+		!fdw_private_inner->rinfo.pushdown_safe)
+		return false;
+
+	/*
+	 * If joining relations have local conditions, those conditions are
+	 * required to be applied before joining the relations. Hence the join can
+	 * not be pushed down.
+	 */
+	if (fdw_private_outer->rinfo.local_conds || fdw_private_inner->rinfo.local_conds)
+		return false;
+
+	/*
+	 * If restrict list contains __spd_url column, the join can not pushdown.
+	 */
+	if (spd_checkurl_clauses(root, extra->restrictlist))
+		return false;
+
 	if (pChildInfo_outer->fdwroutine->GetForeignJoinPaths == NULL ||
 		pChildInfo_inner->fdwroutine->GetForeignJoinPaths == NULL)
 		return false;
+
+	/*
+	 * Set the string describing this join relation to be used in EXPLAIN
+	 * output of corresponding ForeignScan.  Note that the decoration we add
+	 * to the base relation names mustn't include any digits, or it'll confuse
+	 * spd_ExplainForeignScan.
+	 */
+	fdw_private->rinfo.relation_name = psprintf("(%s) %s JOIN (%s)",
+									 fdw_private_outer->rinfo.relation_name,
+									 spd_get_jointype_name(jointype),
+									 fdw_private_inner->rinfo.relation_name);
 
 	return true;
 }
@@ -5344,7 +6125,7 @@ spd_JoinPushable(SpdFdwPrivate * fdw_private_outer,
  * @param[out] target_exprs Var expressions are stored here if SPDURL
  *             is not used.
  */
-static bool
+bool
 spd_expr_has_spdurl(PlannerInfo *root, Node *expr, List **target_exprs)
 {
 	SpdurlWalkerContext ctx = {0};
@@ -5397,6 +6178,7 @@ spd_GetForeignJoinPathsChild(SpdFdwPrivate * fdw_private_outer,
 							 JoinType jointype,
 							 JoinPathExtraData *extra)
 {
+	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *)joinrel->fdw_private;
 	ChildInfo  *pChildInfo_inner = &fdw_private_inner->childinfo[0];
 	PlannerInfo *root_child = linitial(root->child_root);
 	RelOptInfo *outerrel_child;
@@ -5418,6 +6200,18 @@ spd_GetForeignJoinPathsChild(SpdFdwPrivate * fdw_private_outer,
 	joinrel_child = spd_CreateChildJoinRel(root_child, outerrel_child, innerrel_child);
 	if (!joinrel_child)
 		return NULL;
+
+	/*
+	 * Give ORDER BY and pathkeys information to child.
+	 *
+	 * root_child is created by spd_GetForeignRelSize() may not contain information
+	 * about query pathkeys, since it is a root PlannerInfo for each of outer and
+	 * inner relation but not main join relation. However, query pathkeys can refer
+	 * to both those sub-relations, so the child root PlannerInfo for child join
+	 * relation must have fully query pathkeys.
+	 */
+	if (fdw_private->rinfo.child_orderby_needed)
+		spd_GetRootQueryPathkeys(root, root_child);
 
 	pChildInfo_inner->fdwroutine->GetForeignJoinPaths(root_child, joinrel_child,
 													  outerrel_child, innerrel_child,
@@ -5451,6 +6245,8 @@ spd_GetForeignJoinPaths(PlannerInfo *root,
 	Cost		total_cost;
 	Path	   *epq_path;		/* Path to create plan to be executed when
 								 * EvalPlanQual gets triggered. */
+	ChildInfo  *pChildInfo = NULL;
+	bool		is_child_sorted = false;
 
 	/*
 	 * Skip if this join combination has been considered already.
@@ -5465,22 +6261,6 @@ spd_GetForeignJoinPaths(PlannerInfo *root,
 	if (!bms_is_empty(joinrel->lateral_relids))
 		return;
 
-	if (!fdw_private_outer || !fdw_private_inner)
-		return;
-
-	/* Check if we can pushdow join. */
-	if (!spd_JoinPushable(fdw_private_outer, fdw_private_inner))
-		return;
-
-	/* Now we don't support to pushdown join if SPDURL is used. */
-	if (spd_exprs_has_spdurl(root, joinrel->reltarget->exprs))
-		return;
-
-	/* Create path for child node. */
-	joinrel_child = spd_GetForeignJoinPathsChild(fdw_private_outer, fdw_private_inner, root, joinrel, outerrel, innerrel, jointype, extra);
-	if (!joinrel_child)
-		return;
-
 	/*
 	 * Create unfinished PgFdwRelationInfo entry which is used to indicate
 	 * that the join relation is already considered, so that we won't waste
@@ -5492,14 +6272,42 @@ spd_GetForeignJoinPaths(PlannerInfo *root,
 	fdw_private->idx_url_tlist = -1;	/* -1: not have SPDURL */
 	fdw_private->node_num = 1;
 	fdw_private->childinfo = fdw_private_inner->childinfo;
-	fdw_private->joinrel_child = joinrel_child;
+	fdw_private->rinfo.pushdown_safe = false;
 
 	/*
 	 * Refering postgres_fdw.c @ postgresGetForeignPlan() For a join rel,
 	 * baserestrictinfo is NIL
 	 */
-	fdw_private->baserestrictinfo = NIL;
+	fdw_private->base_remote_conds = NIL;
+	fdw_private->base_local_conds = NIL;
 	joinrel->fdw_private = fdw_private;
+
+	if (!fdw_private_outer || !fdw_private_inner)
+		return;
+
+	/* Check if we can pushdow join. */
+	if (!spd_JoinPushable(root, fdw_private, fdw_private_outer, fdw_private_inner, jointype, extra))
+		return;
+
+	/* Now we don't support to pushdown join if SPDURL is used. */
+	if (spd_exprs_has_spdurl(root, joinrel->reltarget->exprs))
+		return;
+
+	/*
+	 * Determine whether ORDER BY is safe to pushdown by pgspider_core_fdw or not,
+	 * if it is safe, we add Join Foreign paths with pathkeys.
+	 * Also we determine whether query pathkeys are safe to pass to childs. This
+	 * checking is different with the checking in spd_GetForeignRelSize(), since here
+	 * we determine for join relation, but in spd_GetForeignRelSize() we determined
+	 * for joining sub-relations.
+	 */
+	fdw_private->rinfo.orderby_is_pushdown_safe = spd_is_orderby_pushdown_safe(root, joinrel,
+													&fdw_private->rinfo.child_orderby_needed);
+
+	/* Create path for child node. */
+	joinrel_child = spd_GetForeignJoinPathsChild(fdw_private_outer, fdw_private_inner, root, joinrel, outerrel, innerrel, jointype, extra);
+	if (!joinrel_child)
+		return;
 
 	/*
 	 * If there is a possibility that EvalPlanQual will be executed, we need
@@ -5526,13 +6334,45 @@ spd_GetForeignJoinPaths(PlannerInfo *root,
 		epq_path = NULL;
 
 	/* Set estimated rows and costs. */
-	rows = joinrel_child->rows;
+	rows = 0 ;
 	startup_cost = 0;
 	total_cost = 0;
 	joinrel->rows = rows;
 	joinrel->reltarget->width = joinrel_child->reltarget->width;
 	fdw_private->rinfo.startup_cost = startup_cost;
 	fdw_private->rinfo.total_cost = total_cost;
+
+	/* Mark that this join can be pushed down safely */
+	fdw_private->rinfo.pushdown_safe = true;
+
+	fdw_private->joinrel_child = joinrel_child;
+	pChildInfo = &fdw_private->childinfo[0];
+	pChildInfo->joinrel = joinrel_child;
+
+	/* Add child pushdown information */
+	if (joinrel_child->pathlist != NULL)
+	{
+		Path	   *input_path = NULL;
+		ListCell	*lc;
+
+		foreach(lc, joinrel_child->pathlist)
+		{
+			input_path = (Path *) lfirst(lc);
+
+			/* Check whether child ForeignScan Path has pathkeys */
+			if (input_path->pathkeys)
+			{
+				is_child_sorted = true;
+				break;
+			}
+		}
+
+		if (input_path)
+			spd_UpdateChildPushdownInfo(RELOPT_JOINREL, input_path, is_child_sorted, false, &pChildInfo->pushdown_info);
+	}
+
+	/* Create new root. */
+	fdw_private->spd_root = spd_CreateRoot(root, root->parse->rtable);
 
 	/*
 	 * Create a new join path and add it to the joinrel which represents a
@@ -5551,6 +6391,10 @@ spd_GetForeignJoinPaths(PlannerInfo *root,
 
 	/* Add generated path into joinrel by add_path(). */
 	add_path(joinrel, (Path *) joinpath);
+
+	/* Consider pathkeys for the join relation */
+	if (fdw_private->rinfo.orderby_is_pushdown_safe && is_child_sorted)
+		spd_add_paths_with_pathkeys_for_rel(root, joinrel, 0, 0, 0, epq_path);
 }
 
 /**
@@ -5600,6 +6444,12 @@ spd_ExplainForeignScan(ForeignScanState *node,
 		{
 			int			idx = pChildInfo->index_threadinfo;
 
+			if (es->verbose && fdw_private->limit_query)
+				ExplainPropertyText("Limit push-down", pChildInfo->pushdown_info.limit_pushdown ? "yes" : "no", es);
+
+			if (es->verbose && fdw_private->orderby_query)
+				ExplainPropertyText("Sort push-down", pChildInfo->pushdown_info.orderby_pushdown ? "yes" : "no", es);
+
 			if (es->verbose && fdw_private->agg_query)
 				ExplainPropertyText("Agg push-down", pChildInfo->pseudo_agg ? "no" : "yes", es);
 
@@ -5638,9 +6488,11 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 {
 	int			i;
 	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *) baserel->fdw_private;
-	Cost		startup_cost = 0;
-	Cost		total_cost = 0;
-	Cost		rows = 0;
+	Cost		startup_cost = 0, qp_startup_cost = 0;
+	Cost		total_cost = 0, qp_total_cost = 0;
+	Cost		rows = 0, qp_rows = 0;
+	bool		is_child_sorted = false;
+	int			child_path_num = 0;
 
 	if (fdw_private == NULL)
 	{
@@ -5660,7 +6512,6 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 
 		PG_TRY();
 		{
-			Path	   *childpath;
 			Oid			oid_server;
 			ForeignServer *fs;
 			ForeignDataWrapper *fdw;
@@ -5679,13 +6530,60 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 			pChildInfo->fdwroutine->GetForeignPaths((PlannerInfo *) pChildInfo->root,
 													(RelOptInfo *) pChildInfo->baserel,
 													pChildInfo->oid);
-			/* Add child node costs. */
+
+			/* Add child pushdown information */
 			if (pChildInfo->baserel->pathlist != NULL)
 			{
-				childpath = (Path *) lfirst_node(ForeignPath, list_head(pChildInfo->baserel->pathlist));
-				startup_cost += childpath->startup_cost;
-				total_cost += childpath->total_cost;
-				rows += childpath->rows;
+				ListCell	*lc;
+
+				child_path_num = list_length(pChildInfo->baserel->pathlist);
+
+				foreach(lc, pChildInfo->baserel->pathlist)
+				{
+					Path	   *input_path = (Path *) lfirst(lc);
+
+					/*
+					 * Check whether child node can sort remotely by determining if child
+					 * ForeignPath has pathkeys.
+					 */
+					if (input_path->pathkeys)
+					{
+						is_child_sorted = true;
+
+						/*
+						 * We consider child ForeignPath with pathkey as child best path at this stage,
+						 * add this path to child pushdown information.
+						 */
+						spd_UpdateChildPushdownInfo(RELOPT_BASEREL, input_path, true, false, &pChildInfo->pushdown_info);
+
+						/*
+						 * Set costs of parent ForeignPath with pathkeys.
+						 *
+						 * We expected that estimation costs are set by zeros as lowest costs, this will
+						 * make a potential path when adding the path to pathlist. However, in some cases,
+						 * zero costs are not suitable when PGSpider Core picked up another path as best
+						 * path which does not pushdown stub-function in query pathkeys, then PGSpider Core
+						 * must calculate these functions. But these function are not builtin functions in
+						 * PGSpider Core, so it cannot calculate function and then raise the error likes
+						 * 'ERROR: stub {function_name}() is called'. By adjusting estimation costs, we set
+						 * startup_cost and total_cost by 0, and rows by 1, the ForeignPath with pathkeys
+						 * is set as best path, then stub-function is pushded down and calculated in remote
+						 * server, this avoids the error above. The adjusting estimation costs are based on
+						 * compare_path_costs_fuzzily() function where startup_cost and total_costs are used
+						 * to compare paths.
+						 */
+						qp_startup_cost = 0;
+						qp_total_cost = 0;
+						qp_rows = 1;
+					}
+					else
+					{
+						/* Calculate costs of parent ForeignPath without pathkeys */
+						startup_cost += input_path->startup_cost;
+						total_cost += input_path->total_cost;
+						rows += input_path->rows;
+					}
+				}
 			}
 		}
 		PG_CATCH();
@@ -5707,17 +6605,43 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 		}
 		PG_END_TRY();
 	}
-	baserel->rows = rows;
 
-	add_path(baserel, (Path *) create_foreignscan_path(root, baserel,
-													   NULL,
-													   baserel->rows,
-													   startup_cost,
-													   total_cost,
-													   NIL, /* no pathkeys */
-													   baserel->lateral_relids,
-													   NULL,	/* no outerpath */
-													   NULL));
+	/*
+	 * In case single node and child node can pushdown ORDER BY, and the
+	 * child's ForeignPath without pathkey is removed from its child pathlist,
+	 * it means that child only has ForeignPath with pathkey, then parent
+	 * must only has ForeignPath with pathkey also. Therefor, we do not create
+	 * the ForeignPath without pathkey for parent.
+	 */
+	if (!(fdw_private->rinfo.orderby_is_pushdown_safe && is_child_sorted &&
+			child_path_num == 1))
+	{
+		baserel->rows = rows;
+
+		add_path(baserel, (Path *) create_foreignscan_path(root, baserel,
+												NULL,
+												baserel->rows,
+												startup_cost,
+												total_cost,
+												NIL,	/* no pathkeys*/
+												baserel->lateral_relids,
+												NULL,	/* no outerpath*/
+												NULL));
+	}
+
+	/*
+	 * Add paths with pathkeys.
+	 * When pgspider_core_fdw can sort remotely, we add paths with
+	 * pathkeys to make PGSpider Core does not need to calculate any
+	 * sorting.
+	 */
+	if (fdw_private->rinfo.orderby_is_pushdown_safe && is_child_sorted)
+	{
+		if (child_path_num == 1)
+			baserel->rows = qp_rows;
+
+		spd_add_paths_with_pathkeys_for_rel(root, baserel, qp_startup_cost, qp_total_cost, qp_rows, NULL);
+	}
 }
 
 
@@ -6001,11 +6925,12 @@ spd_CreateAggNodeForPseudoAgg(ChildInfo * pChildInfo, bool groupby_has_spdurl,
  * @param[in] push_scan_clauses Where scan clauses
  * @param[in] outer_plan Outer plan
  * @param[in] childinfo Child information
+ * @param[in] re_plan_needed replanning to execute child Foreign plan without function pushdown
  */
 static void
 spd_GetForeignPlansChild(PlannerInfo *root, RelOptInfo *baserel,
 						 ForeignPath *best_path, List *ptemptlist, List **push_scan_clauses,
-						 Plan *outer_plan, ChildInfo * childinfo)
+						 Plan *outer_plan, ChildInfo *childinfo, bool re_plan_needed)
 {
 	int			i;
 	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *) baserel->fdw_private;
@@ -6014,9 +6939,11 @@ spd_GetForeignPlansChild(PlannerInfo *root, RelOptInfo *baserel,
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
 		ForeignPath *child_path;
+		ForeignPath *child_best_path;
 		ForeignScan *fsplan = NULL;
 		List	   *temptlist;
 		ChildInfo  *pChildInfo = &childinfo[i];
+		RelOptInfo *rel_child;
 
 		/* Skip dead node. */
 		if (pChildInfo->baserel == NULL)
@@ -6035,32 +6962,72 @@ spd_GetForeignPlansChild(PlannerInfo *root, RelOptInfo *baserel,
 
 		PG_TRY();
 		{
+			ForeignServer *fs;
+			ForeignDataWrapper *fdw;
+
+			fs = GetForeignServer(pChildInfo->server_oid);
+			fdw = GetForeignDataWrapper(fs->fdwid);
+
 			/* Create plan. */
-			if (pChildInfo->grouped_rel_local != NULL)
+			if (pChildInfo->pushdown_info.relkind == RELOPT_UPPER_REL)
 			{
-				/* Check if pathlist of aggregate push down. */
-				if (!pChildInfo->grouped_rel_local->pathlist)
-					elog(ERROR, "Agg path is not found.");
+				/*
+				 * Pushdown case for Grouping/Aggregate, ORDER BY or LIMIT/OFFSET query.
+				 */
+				if (pChildInfo->pushdown_info.path == NULL)
+					elog(ERROR, "Upper path is not found.");
 
 				/* FDWs expect NULL scan clauses for UPPER REL. */
 				*push_scan_clauses = NULL;
 
-				/* Pick any agg path */
-				child_path = lfirst(list_head(pChildInfo->grouped_rel_local->pathlist));
-				temptlist = PG_build_path_tlist((PlannerInfo *) pChildInfo->root, (Path *) child_path);
-				fsplan = pChildInfo->fdwroutine->GetForeignPlan(pChildInfo->grouped_root_local,
-																pChildInfo->grouped_rel_local,
-																pChildInfo->oid,
-																(ForeignPath *) child_path,
-																temptlist,
-																*push_scan_clauses,
-																outer_plan);
+				/* Create child ForeignScan Plan. */
+				child_best_path = (ForeignPath *) pChildInfo->pushdown_info.path;
+				temptlist = PG_build_path_tlist((PlannerInfo *) pChildInfo->root, (Path *) child_best_path);
+				rel_child = ((Path *) child_best_path)->parent;
+
+				if (IS_SIMPLE_REL(rel_child))
+				{
+					/* Remove SPDURL from target lists if a child is not pgspider_fdw. */
+					if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0 && IS_SIMPLE_REL(baserel))
+					{
+						temptlist = remove_spdurl_from_targets(temptlist, root);
+					}
+
+					/*
+					 * For base child relation, when re-planning child for each child
+					 * without function pushdown is needed, child plans including
+					 * function pushdown are not exactly same, the target list for
+					 * child is list of columns that to be fetched on foreign server.
+					 */
+					if (re_plan_needed == true)
+						temptlist = NULL;
+
+					/*
+					 * scan_clauses includes clauses that is given to child.
+					 */
+					*push_scan_clauses = fdw_private->base_remote_conds;
+				}
+				else if (IS_JOIN_REL(rel_child))
+				{
+					/*
+					 * Because reltarget created by GetForeignJoinPaths is modified in
+					 * postgres core, we re-create it for child relation based on parent.
+					 */
+					rel_child->reltarget = copy_pathtarget(baserel->reltarget);
+					rel_child->reltarget->exprs = list_copy(baserel->reltarget->exprs);
+				}
+
+				/* Create child plan. */
+				fsplan = pChildInfo->fdwroutine->GetForeignPlan((PlannerInfo *) pChildInfo->root,
+																 rel_child,
+																 pChildInfo->oid,
+																 (ForeignPath *) child_best_path,
+																 temptlist,
+																 *push_scan_clauses,
+																 outer_plan);
 			}
 			else
 			{
-				ForeignServer *fs;
-				ForeignDataWrapper *fdw;
-				RelOptInfo *rel_child;
 				Oid			oid_child;
 
 				if (IS_JOIN_REL(baserel))
@@ -6086,8 +7053,6 @@ spd_GetForeignPlansChild(PlannerInfo *root, RelOptInfo *baserel,
 				 * For non agg query or not push down agg case, do same thing
 				 * as create_scan_plan() to generate target list
 				 */
-				fs = GetForeignServer(pChildInfo->server_oid);
-				fdw = GetForeignDataWrapper(fs->fdwid);
 
 				/* Add all columns of the table */
 				if (IS_SIMPLE_REL(baserel) && ptemptlist != NULL)
@@ -6128,22 +7093,22 @@ spd_GetForeignPlansChild(PlannerInfo *root, RelOptInfo *baserel,
 				child_path = lfirst(list_head(rel_child->pathlist));
 				best_path->fdw_private = child_path->fdw_private;
 
+				child_best_path = best_path;
+
 				/*
-				 * Check whether scan_clauses include SPDURL. If it includes
-				 * SPDURL in WHERE clauses, then NOT pushdown all caluses.
+				 * If child ForeignScan Path has pathkeys, we use this path as child's best path.
 				 */
-				if (spd_checkurl_clauses(root, fdw_private->baserestrictinfo))
-				{
-					*push_scan_clauses = NULL;
-				}
-				else
-				{
-					*push_scan_clauses = fdw_private->baserestrictinfo;
-				}
+				if (pChildInfo->pushdown_info.path)
+					child_best_path = (ForeignPath*) pChildInfo->pushdown_info.path;
+
+				/*
+				 * scan_clauses includes clauses that is given to child.
+				 */
+				*push_scan_clauses = fdw_private->base_remote_conds;
 				fsplan = pChildInfo->fdwroutine->GetForeignPlan((PlannerInfo *) pChildInfo->root,
 																rel_child,
 																oid_child,
-																(ForeignPath *) best_path,
+																(ForeignPath *) child_best_path,
 																temptlist,
 																*push_scan_clauses,
 																outer_plan);
@@ -6279,6 +7244,14 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	if (root->parse->groupClause != NULL)
 		fdw_private->groupby_string = spd_CreateGroupbyString(fdw_private->groupby_target);
 
+	/*
+	 * Check whether query has ORDER BY, LIMIT/OFFSET:
+	 * orderby_query and limit_query variables are used by spd_ExplainForeignScan
+	 * to show child node pushability for ORDER BY and LIMIT/OFFSET.
+	 */
+	fdw_private->orderby_query = (root->parse->sortClause) ? true : false;
+	fdw_private->limit_query = limit_needed(root->parse);
+
 	childinfo = fdw_private->childinfo;
 
 	/* Prepare parent temp tlist */
@@ -6286,7 +7259,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 
 	/* Create Foreign plans for each child with function pushdown. */
 	spd_GetForeignPlansChild(root, baserel, best_path, ptemptlist, &push_scan_clauses,
-							 outer_plan, childinfo);
+							 outer_plan, childinfo, false);
 
 	if (IS_SIMPLE_REL(baserel) || IS_JOIN_REL(baserel))
 	{
@@ -6326,7 +7299,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 					 * pushdown.
 					 */
 					spd_GetForeignPlansChild(root, baserel, best_path, NULL, &push_scan_clauses,
-											 outer_plan, childinfo);
+											 outer_plan, childinfo, true);
 					exist_pushdown_child = false;
 					break;
 				}
@@ -6376,7 +7349,7 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		/* Aggregate push down */
 		scan_relid = 0;
 
-		if (fdw_private->node_num == SPD_SINGLE_NODE)
+		if (!IS_SPD_MULTI_NODES(fdw_private->node_num))
 		{
 			ForeignScan *fsplan = NULL;
 
@@ -6401,29 +7374,31 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 	 * simple rel or when there is pseudoconstant (Example: WHERE false)
 	 */
 	scan_clauses = NIL;
-	if (fdw_private->baserestrictinfo)
+	if (IS_SIMPLE_REL(baserel))
 	{
 		/*
 		 * In this case, PGSpider should filter baserestrictinfo because these
 		 * are not passed to child fdw because of SPDURL.
 		 */
-		foreach(lc, fdw_private->baserestrictinfo)
+		foreach(lc, fdw_private->base_local_conds)
 		{
 			RestrictInfo *ri = lfirst_node(RestrictInfo, lc);
 
-			/*
-			 * When there is pseudoconstant, need to filter in core (Example:
-			 * WHERE false)
-			 */
-			if ((IS_SIMPLE_REL(baserel) && !push_scan_clauses) || ri->pseudoconstant)
-			{
-				scan_clauses = lappend(scan_clauses, ri->clause);
-				if (fdw_scan_tlist != NIL)
-					fdw_scan_tlist = add_to_flat_tlist(fdw_scan_tlist,
-													   pull_var_clause((Node *) ri->clause,
-																	   PVC_RECURSE_PLACEHOLDERS));
-			}
+			scan_clauses = lappend(scan_clauses, ri->clause);
+			if (fdw_scan_tlist != NIL)
+				fdw_scan_tlist = add_to_flat_tlist(fdw_scan_tlist,
+												pull_var_clause((Node *) ri->clause,
+																PVC_RECURSE_PLACEHOLDERS));
 		}
+	}
+
+	foreach(lc, fdw_private->base_remote_conds)
+	{
+		RestrictInfo *ri = lfirst_node(RestrictInfo, lc);
+
+		/* When there is pseudoconstant, need to filter in core (Example: WHERE false, WHERE NULL::boolean) */
+		if (ri->pseudoconstant)
+			scan_clauses = lappend(scan_clauses, ri->clause);
 	}
 
 	/*
@@ -6460,9 +7435,9 @@ spd_GetForeignPlan(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid,
 		 * For single node, in case of grouping with having, we need to update
 		 * having quals to scan clauses
 		 */
-		if (fdw_private->node_num == SPD_SINGLE_NODE && fdw_private->has_having_quals)
+		if (!IS_SPD_MULTI_NODES(fdw_private->node_num) && fdw_private->has_having_quals)
 		{
-			scan_clauses = extract_actual_clauses(fdw_private->rinfo.remote_conds, false);
+			scan_clauses = extract_actual_clauses(fdw_private->rinfo.local_conds, false);
 			if (fdw_scan_tlist != NIL)
 			{
 				foreach(lc, scan_clauses)
@@ -8858,7 +9833,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 		}
 	}
 
-	if (fdw_private->agg_query && fdw_private->node_num > 1)
+	if (fdw_private->agg_query && IS_SPD_MULTI_NODES(fdw_private->node_num))
 	{
 		/* Create temp table if it is the 1st time. */
 		if (fdw_private->isFirst)
@@ -9429,4 +10404,324 @@ _PG_init(void)
 	parquet_s3_init();
 #endif
 	on_proc_exit(&spd_fini, 0);
+}
+
+/*
+ * Add paths with pathkeys for relation.
+ */
+static void
+spd_add_paths_with_pathkeys_for_rel(PlannerInfo *root, RelOptInfo *rel,
+									Cost startup_cost,
+									Cost total_cost,
+									double rows,
+									Path *epq_path)
+{
+	List	   *useful_pathkeys_list = NIL; /* List of all pathkeys */
+	ListCell   *lc;
+
+	/*
+	 * The root->query_pathkeys is already checked to be safe and useful
+	 * by spd_is_orderby_pushdown_safe() in spd_GetForeignRelSize(), so we copy it directly.
+	 */
+	useful_pathkeys_list = list_make1(list_copy(root->query_pathkeys));
+
+	/* Create one path for each set of pathkeys we found above. */
+	foreach(lc, useful_pathkeys_list)
+	{
+		List	   *useful_pathkeys = lfirst(lc);
+		Path	   *sorted_epq_path;
+
+		/*
+		 * The EPQ path must be at least as well sorted as the path itself, in
+		 * case it gets used as input to a mergejoin.
+		 */
+		sorted_epq_path = epq_path;
+		if (sorted_epq_path != NULL &&
+			!pathkeys_contained_in(useful_pathkeys,
+								   sorted_epq_path->pathkeys))
+			sorted_epq_path = (Path *)
+				create_sort_path(root,
+								 rel,
+								 sorted_epq_path,
+								 useful_pathkeys,
+								 -1.0);
+
+		if (IS_SIMPLE_REL(rel))
+			add_path(rel, (Path *)
+					 create_foreignscan_path(root, rel,
+											 NULL,
+											 rows,
+											 startup_cost,
+											 total_cost,
+											 useful_pathkeys,
+											 rel->lateral_relids,
+											 sorted_epq_path,
+											 NIL));
+		else
+			add_path(rel, (Path *)
+					 create_foreign_join_path(root, rel,
+											  NULL,
+											  rows,
+											  startup_cost,
+											  total_cost,
+											  useful_pathkeys,
+											  rel->lateral_relids,
+											  sorted_epq_path,
+											  NIL));
+	}
+}
+
+/*
+ * Find an equivalence class member expression, all of whose Vars, come from
+ * the indicated relation.
+ */
+static Expr *
+spd_find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel)
+{
+	ListCell   *lc_em;
+
+	foreach(lc_em, ec->ec_members)
+	{
+		EquivalenceMember *em = lfirst(lc_em);
+
+		/* Ignore checking equivalence class member for stub function */
+		if (IsA(em->em_expr, FuncExpr))
+			return em->em_expr;
+
+		if (bms_is_subset(em->em_relids, rel->relids) &&
+			!bms_is_empty(em->em_relids))
+		{
+			/*
+			 * If there is more than one equivalence member whose Vars are
+			 * taken entirely from this relation, we'll be content to choose
+			 * any one of those.
+			 */
+			return em->em_expr;
+		}
+	}
+
+	/* We didn't find any suitable equivalence class expression */
+	return NULL;
+}
+
+/*
+ * Find an equivalence class member expression to be computed as a sort column
+ * in the given target.
+ */
+static Expr *
+spd_find_em_expr_for_input_target(PlannerInfo *root,
+									EquivalenceClass *ec,
+									PathTarget *target)
+{
+	ListCell   *lc1;
+	int			i;
+
+	i = 0;
+	foreach(lc1, target->exprs)
+	{
+		Expr	   *expr = (Expr *) lfirst(lc1);
+		Index		sgref = get_pathtarget_sortgroupref(target, i);
+		ListCell   *lc2;
+
+		/* Ignore non-sort expressions */
+		if (sgref == 0 ||
+			get_sortgroupref_clause_noerr(sgref,
+										  root->parse->sortClause) == NULL)
+		{
+			i++;
+			continue;
+		}
+
+		/* We ignore binary-compatible relabeling on both ends */
+		while (expr && IsA(expr, RelabelType))
+			expr = ((RelabelType *) expr)->arg;
+
+		/* Locate an EquivalenceClass member matching this expr, if any */
+		foreach(lc2, ec->ec_members)
+		{
+			EquivalenceMember *em = (EquivalenceMember *) lfirst(lc2);
+			Expr	   *em_expr;
+
+			/* Don't match constants */
+			if (em->em_is_const)
+				continue;
+
+			/* Ignore child members */
+			if (em->em_is_child)
+				continue;
+
+			/* Match if same expression (after stripping relabel) */
+			em_expr = em->em_expr;
+			while (em_expr && IsA(em_expr, RelabelType))
+				em_expr = ((RelabelType *) em_expr)->arg;
+
+			if (equal(em_expr, expr))
+				return em->em_expr;
+		}
+
+		i++;
+	}
+
+	elog(ERROR, "could not find pathkey item to sort");
+	return NULL;				/* keep compiler quiet */
+}
+
+/*
+ * spd_is_orderby_pushdown_safe.
+ *
+ * Determine ORDER BY safety: whether pgspider_core_fdw can pushdown ORDER BY or not.
+ *    If ORDER BY is safe, pgspider_core can create a foreign path with pathkeys.
+ * Determine whether pgspider_core_fdw should gives ORDER BY information to child or not.
+ */
+static bool
+spd_is_orderby_pushdown_safe(PlannerInfo *root, RelOptInfo *rel, bool *child_orderby_needed)
+{
+	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *)rel->fdw_private;
+	ListCell   *lc;
+
+	*child_orderby_needed = false;
+
+	if (!root->query_pathkeys)
+		return false;
+
+	/*
+	 * Check whether query_pathkeys include SPDURL. If it includes
+	 * SPDURL in query_pathkeys, then NOT pushdown all clause.
+	 */
+	foreach(lc, root->query_pathkeys)
+	{
+		PathKey    *pathkey = (PathKey *) lfirst(lc);
+		EquivalenceClass *pathkey_ec = pathkey->pk_eclass;
+		Expr	   *em_expr;
+
+		/* Get the equivalence class member expression for the pathkey_ec */
+		em_expr = spd_find_em_expr_for_rel(pathkey_ec, rel);
+
+		/*
+		 * The planner and executor don't have any clever strategy for
+		 * taking data sorted by a prefix of the query's pathkeys and
+		 * getting it to be sorted by all of those pathkeys. We'll just
+		 * end up resorting the entire data set.  So, unless we can push
+		 * down all of the query pathkeys, forget it.
+		 *
+		 * For Function Expression, spd_is_foreign_expr would detect
+		 * volatile expressions.
+		 * For Non-Function Expression, spd_is_foreign_expr would detect
+		 * as well, but checking ec_has_volatile here saves some cycles.
+		 *
+		 * spd_expr_has_spdurl detect whether having SPDURL expression.
+		 */
+		if (!(em_expr) ||
+			(!IsA(em_expr, FuncExpr) && pathkey_ec->ec_has_volatile) ||
+			spd_expr_has_spdurl(root, (Node *) em_expr, NULL) ||
+			!spd_is_foreign_expr(root, rel, em_expr))
+		{
+			return false;
+		}
+	}
+
+	/* We cannot pushdown ORDER BY without LIMIT if there are multi nodes. */
+	if (IS_SPD_MULTI_NODES(fdw_private->node_num))
+	{
+		Query	   *parse = root->parse;
+		bool		have_grouping_agg;
+
+		/*
+		 * On multi node and Non-Grouping/Aggregation query:
+		 * If ORDER BY with only LIMIT is needed, pgspider_core_fdw give
+		 * ORDER BY and LIMIT information to child fdws, but it does not
+		 * pushdown ORDER BY and LIMIT.
+		 */
+		have_grouping_agg = (parse->groupClause || parse->groupingSets ||
+						 parse->hasAggs || (root->hasHavingQual && parse->havingQual));
+
+		if (!have_grouping_agg && !parse->limitOffset && limit_needed(parse))
+		{
+			/* Give ORDER BY information to child nodes. */
+			*child_orderby_needed = true;
+		}
+
+		return false;
+	}
+
+	/* Give ORDER BY information to child nodes. */
+	*child_orderby_needed = true;
+
+	return true;
+}
+
+/*
+ * spd_update_base_rel_target
+ *
+ * Removing SPDURL if existed.
+ * Update PathTarget for child base relation.
+ */
+static void
+spd_update_base_rel_target(ChildInfo *pChildInfo, PlannerInfo *root, RelOptInfo *input_rel)
+{
+	RelOptInfo *baserel_child = (pChildInfo->joinrel) ? pChildInfo->joinrel : pChildInfo->baserel;
+
+	if (!input_rel->reloptkind == RELOPT_BASEREL &&
+		!input_rel->reloptkind == RELOPT_JOINREL)
+		return;
+
+	/*
+	 * If child base rel's target has not updated before, the sortgrouprefs
+	 * should be NULL then we can update target.
+	 */
+	if (baserel_child->reltarget->sortgrouprefs == NULL)
+	{
+		ForeignServer *fs;
+		ForeignDataWrapper *fdw;
+		List * tempList;
+
+		fs = GetForeignServer(pChildInfo->server_oid);
+		fdw = GetForeignDataWrapper(fs->fdwid);
+
+		/* Make tlist from path target. */
+		tempList = make_tlist_from_pathtarget(input_rel->reltarget);
+
+		/* Remove SPDURL from target lists if a child is not pgspider_fdw. */
+		if (strcmp(fdw->fdwname, PGSPIDER_FDW_NAME) != 0)
+		{
+			/* Remove SPDURL. */
+			tempList = remove_spdurl_from_targets(tempList, root);
+		}
+
+		/* Update path target */
+		baserel_child->reltarget = make_pathtarget_from_tlist(tempList);
+	}
+}
+
+/*
+ * Update child pushdown information.
+ */
+static void
+spd_UpdateChildPushdownInfo(RelOptKind relkind, Path *child_path, bool has_final_sort, bool has_limit, ChildPushdownInfo *child_pushdown_info)
+{
+	child_pushdown_info->relkind = relkind;
+	child_pushdown_info->path = child_path;
+	child_pushdown_info->orderby_pushdown = has_final_sort;
+	child_pushdown_info->limit_pushdown = has_limit;
+}
+
+/*
+ * Get root Planner query pathkeys.
+ */
+static void
+spd_GetRootQueryPathkeys(PlannerInfo *root, PlannerInfo *root_child)
+{
+	root_child->parse->sortClause = root->parse->sortClause;
+
+	/*
+	 * From standard_qp_callback.
+	 * pathkeys can represent grouping, ordering, sorting for
+	 * the first window if we have window function or sortable
+	 * DISTINCT clause. So we need to give these information to child.
+	 */
+	root_child->group_pathkeys = root->group_pathkeys;
+	root_child->window_pathkeys = root->window_pathkeys;
+	root_child->distinct_pathkeys = root->distinct_pathkeys;
+	root_child->sort_pathkeys = root->sort_pathkeys;
+	root_child->query_pathkeys = root->query_pathkeys;
 }

@@ -221,7 +221,7 @@ extern void PGSpiderDeparseTruncateSql(StringInfo buf,
 									   DropBehavior behavior,
 									   bool restart_seqs);
 extern void PGSpiderDeparseStringLiteral(StringInfo buf, const char *val);
-extern Expr *find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel);
+extern Expr *pgspider_find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel);
 extern Expr *pgspider_find_em_expr_for_input_target(PlannerInfo *root,
 													EquivalenceClass *ec,
 													PathTarget *target);

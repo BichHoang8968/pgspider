@@ -3926,7 +3926,7 @@ appendOrderByClause(List *pathkeys, bool has_final_sort,
 															 context->foreignrel->reltarget);
 		}
 		else
-			em_expr = find_em_expr_for_rel(pathkey->pk_eclass, baserel);
+			em_expr = pgspider_find_em_expr_for_rel(pathkey->pk_eclass, baserel);
 
 		Assert(em_expr != NULL);
 

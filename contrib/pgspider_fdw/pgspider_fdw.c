@@ -935,6 +935,9 @@ get_useful_pathkeys_for_relation(PlannerInfo *root, RelOptInfo *rel)
 			EquivalenceClass *pathkey_ec = pathkey->pk_eclass;
 			Expr	   *em_expr;
 
+			/* Get the equivalence class member expression for the pathkey_ec */
+			em_expr = pgspider_find_em_expr_for_rel(pathkey_ec, rel);
+
 			/*
 			 * The planner and executor don't have any clever strategy for
 			 * taking data sorted by a prefix of the query's pathkeys and
@@ -942,11 +945,13 @@ get_useful_pathkeys_for_relation(PlannerInfo *root, RelOptInfo *rel)
 			 * end up resorting the entire data set.  So, unless we can push
 			 * down all of the query pathkeys, forget it.
 			 *
-			 * pgspider_is_foreign_expr would detect volatile expressions as
-			 * well, but checking ec_has_volatile here saves some cycles.
+			 * For Function Expression, pgspider_is_foreign_expr would detect
+			 * volatile expressions.
+			 * For Non-Function Expression, pgspider_is_foreign_expr would detect
+			 * as well, but checking ec_has_volatile here saves some cycles.
 			 */
-			if (pathkey_ec->ec_has_volatile ||
-				!(em_expr = find_em_expr_for_rel(pathkey_ec, rel)) ||
+			if (!(em_expr) ||
+				(!IsA(em_expr, FuncExpr) && pathkey_ec->ec_has_volatile) ||
 				!pgspider_is_foreign_expr(root, rel, em_expr))
 			{
 				query_pathkeys_ok = false;
@@ -1002,7 +1007,7 @@ get_useful_pathkeys_for_relation(PlannerInfo *root, RelOptInfo *rel)
 			continue;
 
 		/* If no pushable expression for this rel, skip it. */
-		em_expr = find_em_expr_for_rel(cur_ec, rel);
+		em_expr = pgspider_find_em_expr_for_rel(cur_ec, rel);
 		if (em_expr == NULL || !pgspider_is_foreign_expr(root, rel, em_expr))
 			continue;
 
@@ -6592,17 +6597,19 @@ add_foreign_ordered_paths(PlannerInfo *root, RelOptInfo *input_rel,
 		EquivalenceClass *pathkey_ec = pathkey->pk_eclass;
 		Expr	   *sort_expr;
 
-		/*
-		 * pgspider_is_foreign_expr would detect volatile expressions as well,
-		 * but checking ec_has_volatile here saves some cycles.
-		 */
-		if (pathkey_ec->ec_has_volatile)
-			return;
-
 		/* Get the sort expression for the pathkey_ec */
 		sort_expr = pgspider_find_em_expr_for_input_target(root,
 														   pathkey_ec,
 														   input_rel->reltarget);
+
+		/*
+		 * For Function Expression, pgspider_is_foreign_expr would detect
+		 * volatile expressions.
+		 * For Non-Function Expression, pgspider_is_foreign_expr would detect
+		 * as well, but checking ec_has_volatile here saves some cycles.
+		 */
+		if (!(IsA(sort_expr, FuncExpr)) && pathkey_ec->ec_has_volatile)
+			return;
 
 		/* If it's unsafe to remote, we cannot push down the final sort */
 		if (!pgspider_is_foreign_expr(root, input_rel, sort_expr))
@@ -7389,6 +7396,39 @@ conversion_error_callback(void *arg)
 	else
 		errcontext("processing expression at position %d in select list",
 				   errpos->cur_attno);
+}
+
+/*
+ * Find an equivalence class member expression, all of whose Vars, come from
+ * the indicated relation.
+ */
+Expr *
+pgspider_find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel)
+{
+	ListCell   *lc_em;
+
+	foreach(lc_em, ec->ec_members)
+	{
+		EquivalenceMember *em = lfirst(lc_em);
+
+		/* Ignore checking equivalence class member for stub function */
+		if (IsA(em->em_expr, FuncExpr))
+			return em->em_expr;
+
+		if (bms_is_subset(em->em_relids, rel->relids) &&
+			!bms_is_empty(em->em_relids))
+		{
+			/*
+			 * If there is more than one equivalence member whose Vars are
+			 * taken entirely from this relation, we'll be content to choose
+			 * any one of those.
+			 */
+			return em->em_expr;
+		}
+	}
+
+	/* We didn't find any suitable equivalence class expression */
+	return NULL;
 }
 
 /*
