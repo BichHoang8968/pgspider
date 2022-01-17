@@ -1,0 +1,13 @@
+DROP TABLE IF EXISTS tbl01;
+CREATE TABLE tbl01 (c1 text, c2 text, c3 char(255), c4 int, c5 float8, c6 int, c7 varchar(255), c8 bigint, c9 double precision, c10 smallint, c11 timestamp);
+
+INSERT INTO tbl01 VALUES ('比迪吉吾艾儿', 'qkwjoqw', 'ăâđêôơưdêđêdờenờíìờẹ53412', 54545, -32767.98, 23, 'Côte d''Ivoire', 9223372036854775807, -1E-37, 2, '0001-01-01 00:00:00');
+INSERT INTO tbl01 VALUES ('живетезелоз', '\\xa7a8a9aaabacadaeaf', 'Canada Denmark Turkey', 0, -500000.3117, 21, 'ฆงจฉชซฌญฎฏฐฑ', 9223372036854775807, 3656.27, 1, '9999-12-31 23:59:59');
+INSERT INTO tbl01 VALUES ('いろはにたれぞつねならむ', 'a:1A fat:2B,4C cat:5D', '`~!@#$%^&*()_+=-{}[]|:;<>?/.', 2, -550000.5457, 23, 'ăâđêôơưdêđêdờenờíìờẹ', 9223372036854775807, -6546.4545, 123, '2031-12-31 23:47:59');
+INSERT INTO tbl01 VALUES ('Thequickerthelazydog', '8 - (Federated Stat', '色は匂へど 散りぬるを我が世誰ぞ 常ならむ有為の奥山 今日越えて浅き夢見', -6623, 600000.8847, NULL, 'いろはにほへど　ちりぬるをわがよたれぞ　つねならむうゐのおくやま　けふこえてあさ', 9223372036854775807, -54.24494, 453, '2031-12-31 23:47:59');
+INSERT INTO tbl01 VALUES ('常ならむき夢見', '9 - FGHIJKLMNOPQRST', '敷ヘカウ告政ヨハツヤ消70者32精楽ざ', 156, -32767.98, NULL, 'NULL', 9223372036854775807, -212.216, 894, '0001-01-01 00:00:00');
+INSERT INTO tbl01 VALUES ('{"name": "Hang paintings1"}', '10 - uvwxyzABCDEFGHI', '豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿', NULL, -650000.9481, 453, 'Thequickbrownfoxjumpsoverthelazydog', 9223372036854775807, 0.2154547, 453, '2029-11-19 03:14:07');
+INSERT INTO tbl01 VALUES ('{"product": "Beerx","qty": 2}', 'Guinea-Bissau Honduras Mexico ', 'Which started out as a kind', 6569, 0, 894, '員葉コ番告7次ノヌ従援', 9223372036854775807, 0.0, -2, '2029-11-19 03:14:07');
+INSERT INTO tbl01 VALUES ('["Improvements", "Officde"]', 'Ireland Iran', '散りぬるを我が世誰ぞ', 21321, 0.0, 894, '員葉コ番告7次ノヌ従援', 9223372036854775807, -6545644.212, 453, '2023-05-19 03:14:07');
+INSERT INTO tbl01 VALUES ('fat5 & rat6 & ! cat7', '`~!@#$%^&*()_+=-{}[]|:;<>?/.', '7次ノヌ従援かやじり図安', 2, 600000.8847, 23, 'живетезелоземляиижеикаколюди', 9223372036854775807, 214546, 12, '0001-01-01 00:00:00');
+INSERT INTO tbl01 VALUES ('べ員葉コ番告', 'ฒณดตถทธนบปผภฮ', 'abcdefghijklmnopqrstuvwxyzABCD', 42, -32767.98, NULL, 'In Bulgarian it is', 9223372036854775807, -7, 0, '2023-05-19 03:14:07');

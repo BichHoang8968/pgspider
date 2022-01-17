@@ -634,20 +634,22 @@ EXPLAIN VERBOSE
 SELECT i, __spd_url FROM test2 GROUP BY i, __spd_url ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=0.01..0.02 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: i, __spd_url
    Sort Key: test2.i
-   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=36)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
          Output: i, __spd_url
          Node: pgspider_srv_1 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test2)
            Remote SQL: SELECT i, __spd_url FROM public.test2 GROUP BY 1, 2
          Node: pgspider_srv_2 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test2)
            Remote SQL: SELECT i, __spd_url FROM public.test2 GROUP BY 1, 2
-(13 rows)
+(15 rows)
 
 --Testcase 79:
 SELECT i, __spd_url FROM test2 GROUP BY i, __spd_url ORDER BY i;
@@ -664,20 +666,22 @@ EXPLAIN VERBOSE
 SELECT i, __spd_url FROM test2 GROUP BY __spd_url, i ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=0.01..0.02 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: i, __spd_url
    Sort Key: test2.i
-   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=36)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
          Output: i, __spd_url
          Node: pgspider_srv_1 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test2)
            Remote SQL: SELECT i, __spd_url FROM public.test2 GROUP BY 1, 2
          Node: pgspider_srv_2 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test2)
            Remote SQL: SELECT i, __spd_url FROM public.test2 GROUP BY 1, 2
-(13 rows)
+(15 rows)
 
 --Testcase 81:
 SELECT i, __spd_url FROM test2 GROUP BY __spd_url, i ORDER BY i;
@@ -694,20 +698,22 @@ EXPLAIN VERBOSE
 SELECT i, __spd_url, __spd_url FROM test2 GROUP BY __spd_url, i ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=0.01..0.02 rows=0 width=68)
+ Sort  (cost=342.86..342.87 rows=0 width=68)
    Output: i, __spd_url, __spd_url
    Sort Key: test2.i
-   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=68)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=68)
          Output: i, __spd_url, __spd_url
          Node: pgspider_srv_1 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test2)
            Remote SQL: SELECT i, __spd_url FROM public.test2 GROUP BY 1, 2
          Node: pgspider_srv_2 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test2)
            Remote SQL: SELECT i, __spd_url FROM public.test2 GROUP BY 1, 2
-(13 rows)
+(15 rows)
 
 --Testcase 83:
 SELECT i, __spd_url, __spd_url FROM test2 GROUP BY __spd_url, i ORDER BY i;
@@ -724,20 +730,22 @@ EXPLAIN VERBOSE
 SELECT __spd_url, i FROM test2 GROUP BY __spd_url, i ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=0.01..0.02 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: __spd_url, i
    Sort Key: test2.i
-   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=36)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
          Output: __spd_url, i
          Node: pgspider_srv_1 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test2)
            Remote SQL: SELECT __spd_url, i FROM public.test2 GROUP BY 2, 1
          Node: pgspider_srv_2 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test2)
            Remote SQL: SELECT __spd_url, i FROM public.test2 GROUP BY 2, 1
-(13 rows)
+(15 rows)
 
 --Testcase 85:
 SELECT __spd_url, i FROM test2 GROUP BY __spd_url, i ORDER BY i;
@@ -754,20 +762,22 @@ EXPLAIN VERBOSE
 SELECT __spd_url, i FROM test2 GROUP BY i, __spd_url ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=0.01..0.02 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: __spd_url, i
    Sort Key: test2.i
-   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=36)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
          Output: __spd_url, i
          Node: pgspider_srv_1 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test2)
            Remote SQL: SELECT __spd_url, i FROM public.test2 GROUP BY 2, 1
          Node: pgspider_srv_2 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test2)
            Remote SQL: SELECT __spd_url, i FROM public.test2 GROUP BY 2, 1
-(13 rows)
+(15 rows)
 
 --Testcase 87:
 SELECT __spd_url, i FROM test2 GROUP BY i, __spd_url ORDER BY i;
@@ -784,20 +794,22 @@ EXPLAIN VERBOSE
 SELECT __spd_url, i, __spd_url FROM test2 GROUP BY i, __spd_url ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=0.01..0.02 rows=0 width=68)
+ Sort  (cost=342.86..342.87 rows=0 width=68)
    Output: __spd_url, i, __spd_url
    Sort Key: test2.i
-   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=68)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=68)
          Output: __spd_url, i, __spd_url
          Node: pgspider_srv_1 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test2)
            Remote SQL: SELECT __spd_url, i FROM public.test2 GROUP BY 2, 1
          Node: pgspider_srv_2 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test2)
            Remote SQL: SELECT __spd_url, i FROM public.test2 GROUP BY 2, 1
-(13 rows)
+(15 rows)
 
 --Testcase 89:
 SELECT __spd_url, i, __spd_url FROM test2 GROUP BY i, __spd_url ORDER BY i;
@@ -814,7 +826,7 @@ EXPLAIN VERBOSE
 SELECT avg(i), __spd_url FROM test2 GROUP BY __spd_url;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=217.06..317.32 rows=1 width=64)
    Output: (avg(i)), __spd_url
    Node: pgspider_srv_1 / Status: Alive
      Agg push-down: yes
@@ -839,7 +851,7 @@ EXPLAIN VERBOSE
 SELECT avg(i), __spd_url, __spd_url FROM test2 GROUP BY __spd_url;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=96)
+ Foreign Scan  (cost=217.06..317.32 rows=1 width=96)
    Output: (avg(i)), __spd_url, __spd_url
    Node: pgspider_srv_1 / Status: Alive
      Agg push-down: yes
@@ -864,7 +876,7 @@ EXPLAIN VERBOSE
 SELECT __spd_url, avg(i) FROM test2 GROUP BY __spd_url;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=217.06..317.32 rows=1 width=64)
    Output: __spd_url, (avg(i))
    Node: pgspider_srv_1 / Status: Alive
      Agg push-down: yes
@@ -889,7 +901,7 @@ EXPLAIN VERBOSE
 SELECT __spd_url, avg(i), __spd_url FROM test2 GROUP BY __spd_url;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=96)
+ Foreign Scan  (cost=217.06..317.32 rows=1 width=96)
    Output: __spd_url, (avg(i)), __spd_url
    Node: pgspider_srv_1 / Status: Alive
      Agg push-down: yes
@@ -914,20 +926,22 @@ EXPLAIN VERBOSE
 SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=0.01..0.02 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: i, __spd_url
    Sort Key: test1.i
-   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=36)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
          Output: i, __spd_url
          Node: pgspider_srv_1 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test1)
            Remote SQL: SELECT i, __spd_url FROM public.test1 GROUP BY 1, 2
          Node: pgspider_srv_2 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test1)
            Remote SQL: SELECT i, __spd_url FROM public.test1 GROUP BY 1, 2
-(13 rows)
+(15 rows)
 
 --Testcase 99:
 SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
@@ -954,20 +968,22 @@ EXPLAIN VERBOSE
 SELECT i, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=0.01..0.02 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: i, __spd_url
    Sort Key: test1.i
-   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=36)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
          Output: i, __spd_url
          Node: pgspider_srv_1 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test1)
            Remote SQL: SELECT i, __spd_url FROM public.test1 GROUP BY 1, 2
          Node: pgspider_srv_2 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test1)
            Remote SQL: SELECT i, __spd_url FROM public.test1 GROUP BY 1, 2
-(13 rows)
+(15 rows)
 
 --Testcase 101:
 SELECT i, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i;
@@ -994,20 +1010,22 @@ EXPLAIN VERBOSE
 SELECT i, __spd_url, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=0.01..0.02 rows=0 width=68)
+ Sort  (cost=342.86..342.87 rows=0 width=68)
    Output: i, __spd_url, __spd_url
    Sort Key: test1.i
-   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=68)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=68)
          Output: i, __spd_url, __spd_url
          Node: pgspider_srv_1 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test1)
            Remote SQL: SELECT i, __spd_url FROM public.test1 GROUP BY 1, 2
          Node: pgspider_srv_2 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test1)
            Remote SQL: SELECT i, __spd_url FROM public.test1 GROUP BY 1, 2
-(13 rows)
+(15 rows)
 
 --Testcase 103:
 SELECT i, __spd_url, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i;
@@ -1034,20 +1052,22 @@ EXPLAIN VERBOSE
 SELECT __spd_url, i FROM test1 GROUP BY __spd_url, i ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=0.01..0.02 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: __spd_url, i
    Sort Key: test1.i
-   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=36)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
          Output: __spd_url, i
          Node: pgspider_srv_1 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test1)
            Remote SQL: SELECT __spd_url, i FROM public.test1 GROUP BY 2, 1
          Node: pgspider_srv_2 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test1)
            Remote SQL: SELECT __spd_url, i FROM public.test1 GROUP BY 2, 1
-(13 rows)
+(15 rows)
 
 --Testcase 105:
 SELECT __spd_url, i FROM test1 GROUP BY __spd_url, i ORDER BY i;
@@ -1074,20 +1094,22 @@ EXPLAIN VERBOSE
 SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=0.01..0.02 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: __spd_url, i
    Sort Key: test1.i
-   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=36)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
          Output: __spd_url, i
          Node: pgspider_srv_1 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test1)
            Remote SQL: SELECT __spd_url, i FROM public.test1 GROUP BY 2, 1
          Node: pgspider_srv_2 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test1)
            Remote SQL: SELECT __spd_url, i FROM public.test1 GROUP BY 2, 1
-(13 rows)
+(15 rows)
 
 --Testcase 107:
 SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i;
@@ -1114,20 +1136,22 @@ EXPLAIN VERBOSE
 SELECT __spd_url, i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=0.01..0.02 rows=0 width=68)
+ Sort  (cost=342.86..342.87 rows=0 width=68)
    Output: __spd_url, i, __spd_url
    Sort Key: test1.i
-   ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=68)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=68)
          Output: __spd_url, i, __spd_url
          Node: pgspider_srv_1 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test1)
            Remote SQL: SELECT __spd_url, i FROM public.test1 GROUP BY 2, 1
          Node: pgspider_srv_2 / Status: Alive
+           Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.test1)
            Remote SQL: SELECT __spd_url, i FROM public.test1 GROUP BY 2, 1
-(13 rows)
+(15 rows)
 
 --Testcase 109:
 SELECT __spd_url, i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
@@ -1154,7 +1178,7 @@ EXPLAIN VERBOSE
 SELECT avg(i), __spd_url FROM test1 GROUP BY __spd_url;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=217.06..317.32 rows=1 width=64)
    Output: (avg(i)), __spd_url
    Node: pgspider_srv_1 / Status: Alive
      Agg push-down: yes
@@ -1184,7 +1208,7 @@ EXPLAIN VERBOSE
 SELECT avg(i), __spd_url, __spd_url FROM test1 GROUP BY __spd_url;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=96)
+ Foreign Scan  (cost=217.06..317.32 rows=1 width=96)
    Output: (avg(i)), __spd_url, __spd_url
    Node: pgspider_srv_1 / Status: Alive
      Agg push-down: yes
@@ -1214,7 +1238,7 @@ EXPLAIN VERBOSE
 SELECT __spd_url, avg(i) FROM test1 GROUP BY __spd_url;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=217.06..317.32 rows=1 width=64)
    Output: __spd_url, (avg(i))
    Node: pgspider_srv_1 / Status: Alive
      Agg push-down: yes
@@ -1244,7 +1268,7 @@ EXPLAIN VERBOSE
 SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY __spd_url;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=96)
+ Foreign Scan  (cost=217.06..317.32 rows=1 width=96)
    Output: __spd_url, (avg(i)), __spd_url
    Node: pgspider_srv_1 / Status: Alive
      Agg push-down: yes

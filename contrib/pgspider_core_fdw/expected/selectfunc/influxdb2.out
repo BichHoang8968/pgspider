@@ -177,7 +177,7 @@ EXPLAIN VERBOSE
 SELECT sqrt_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                          QUERY PLAN                                                                                                         
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (sqrt_all()), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -425,7 +425,7 @@ EXPLAIN VERBOSE
 SELECT log_all(50) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                   QUERY PLAN                                                                                                                   
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (log_all('50'::double precision)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -512,7 +512,7 @@ EXPLAIN VERBOSE
 SELECT log2_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                          QUERY PLAN                                                                                                         
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (log2_all()), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -588,7 +588,7 @@ EXPLAIN VERBOSE
 SELECT log10_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                          QUERY PLAN                                                                                                          
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (log10_all()), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -625,7 +625,7 @@ EXPLAIN VERBOSE
 SELECT spread(value1),spread(value2),spread(value3),spread(value4) FROM s3;
                                                                QUERY PLAN                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (spread(value1)), (spread(value2)), (spread(value3)), (spread(value4))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -658,7 +658,7 @@ EXPLAIN VERBOSE
 SELECT sum(value3),abs(sum(value3)) FROM s3;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=16)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=16)
    Output: (sum(value3)), (abs(sum(value3)))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -730,7 +730,7 @@ EXPLAIN VERBOSE
 SELECT sqrt(count(value1)), pi(), 4.1 FROM s3;
                                                 QUERY PLAN                                                 
 -----------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=48)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=48)
    Output: (sqrt((count(value1))::double precision)), '3.141592653589793'::double precision, 4.1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -759,7 +759,7 @@ EXPLAIN VERBOSE
 SELECT spread("value1"),influx_time(time, interval '1s'),tag1 FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                      QUERY PLAN                                                                                                                                     
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=48)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=48)
    Output: (spread(value1)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -805,16 +805,14 @@ SELECT sum("value1"),spread("value1"),count("value1") FROM s3;
 --Testcase 75:
 EXPLAIN VERBOSE
 SELECT value1, abs(1-value1) FROM s3 order by abs(1-value1);
-                                          QUERY PLAN                                           
------------------------------------------------------------------------------------------------
- Sort  (cost=429.74..438.28 rows=3413 width=16)
+                                                                     QUERY PLAN                                                                      
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=0.00..0.01 rows=1 width=16)
    Output: value1, (abs(('1'::double precision - value1)))
-   Sort Key: (abs(('1'::double precision - s3.value1)))
-   ->  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=16)
-         Output: value1, (abs(('1'::double precision - value1)))
-         Node: pgspider_svr / Status: Alive
-           Remote SQL: SELECT value1, abs((1::double precision - value1)) FROM public.s3influx
-(7 rows)
+   Node: pgspider_svr / Status: Alive
+     Sort push-down: yes
+     Remote SQL: SELECT value1, abs((1::double precision - value1)) FROM public.s3influx ORDER BY abs((1::double precision - value1)) ASC NULLS LAST
+(5 rows)
 
 -- select abs with order by (result)
 --Testcase 76:
@@ -899,7 +897,7 @@ EXPLAIN VERBOSE
 SELECT abs_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                         QUERY PLAN                                                                                                         
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (abs_all()), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -948,29 +946,34 @@ SELECT (abs_all()::s3).* from s3;
 --Testcase 86:
 EXPLAIN VERBOSE
 SELECT spread(t1.value1), spread(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-                                                                                           QUERY PLAN                                                                                           
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=144.50..144.51 rows=1 width=16)
-   Output: spread(t1.value1), spread(t2.value1)
-   ->  Foreign Scan  (cost=0.00..0.00 rows=289 width=32)
-         Output: t1.value1, t2.value1
-         Node: pgspider_svr / Status: Alive
-           Relations: (public.s3 t1) INNER JOIN (public.s3 t2)
-           Remote SQL: SELECT r1.value1, r2.value1 FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
-(7 rows)
+                                                                                                       QUERY PLAN                                                                                                       
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan  (cost=100.00..206.80 rows=1 width=16)
+   Output: (spread(t1.value1)), (spread(t2.value1))
+   Node: pgspider_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on ((public.s3 t1) INNER JOIN (public.s3 t2))
+     Remote SQL: SELECT public.spread(r1.value1), public.spread(r2.value1) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+(6 rows)
 
 -- select spread over join query (result, stub call error)
 --Testcase 87:
 SELECT spread(t1.value1), spread(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
+ERROR:  pgspider_fdw fail to get tuples from child process
+{
 ERROR:  stub spread_sfunc(double precision, float8) is called
-CONTEXT:  PL/pgSQL function spread_sfunc(double precision,double precision) line 3 at RAISE
+CONTEXT:  PL/pgSQL function public.spread_sfunc(double precision,double precision) line 3 at RAISE
+}
+CONTEXT:  remote SQL command: SELECT public.spread(r1.value1), public.spread(r2.value1) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+
+ERROR:  PGSpider fail to iterate tuple from child thread
 -- select spread with having (explain)
 --Testcase 88:
 EXPLAIN VERBOSE
 SELECT spread(value1) FROM s3 HAVING spread(value1) > 100;
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=8)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=8)
    Output: (spread(value1))
    Filter: ((spread(s3.value1)) > '100'::double precision)
    Node: pgspider_svr / Status: Alive
@@ -992,7 +995,7 @@ EXPLAIN VERBOSE
 SELECT spread_all(*) from s3;
                             QUERY PLAN                            
 ------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (spread_all(*))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1014,7 +1017,7 @@ EXPLAIN VERBOSE
 SELECT spread_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                     QUERY PLAN                                                                                                                                     
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (spread_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1045,7 +1048,7 @@ EXPLAIN VERBOSE
 SELECT spread_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                           QUERY PLAN                                                                                                           
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=100.04..161.72 rows=1 width=64)
    Output: (spread_all(*)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1068,7 +1071,7 @@ EXPLAIN VERBOSE
 SELECT (spread_all(*)::s3).* from s3;
                                                                                                                 QUERY PLAN                                                                                                                 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=104)
+ Foreign Scan  (cost=100.00..144.19 rows=1 width=104)
    Output: (((spread_all(*)))::s3)."time", (((spread_all(*)))::s3).tag1, (((spread_all(*)))::s3).value1, (((spread_all(*)))::s3).value2, (((spread_all(*)))::s3).value3, (((spread_all(*)))::s3).value4, (((spread_all(*)))::s3).__spd_url
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1090,7 +1093,7 @@ EXPLAIN VERBOSE
 SELECT spread('/value[1,4]/') from s3;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (spread('/value[1,4]/'::text))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1112,7 +1115,7 @@ EXPLAIN VERBOSE
 SELECT spread('/^v.*/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                          QUERY PLAN                                                                                                                                         
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (spread('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1143,7 +1146,7 @@ EXPLAIN VERBOSE
 SELECT spread('/value[1,4]/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                   QUERY PLAN                                                                                                                  
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=100.04..161.72 rows=1 width=64)
    Output: (spread('/value[1,4]/'::text)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1166,7 +1169,7 @@ EXPLAIN VERBOSE
 SELECT (spread('/value[1,4]/')::s3).* from s3;
                                                                                                                                                                      QUERY PLAN                                                                                                                                                                     
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=104)
+ Foreign Scan  (cost=100.00..144.19 rows=1 width=104)
    Output: (((spread('/value[1,4]/'::text)))::s3)."time", (((spread('/value[1,4]/'::text)))::s3).tag1, (((spread('/value[1,4]/'::text)))::s3).value1, (((spread('/value[1,4]/'::text)))::s3).value2, (((spread('/value[1,4]/'::text)))::s3).value3, (((spread('/value[1,4]/'::text)))::s3).value4, (((spread('/value[1,4]/'::text)))::s3).__spd_url
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1211,18 +1214,15 @@ SELECT abs(value1) + 1, value2, tag1, sqrt(value2) FROM s3;
 --Testcase 108:
 EXPLAIN VERBOSE
 SELECT abs(value1), abs(value3), sqrt(value2) FROM s3 ORDER BY abs(value3) LIMIT 1;
-                                           QUERY PLAN                                           
-------------------------------------------------------------------------------------------------
- Limit  (cost=263.58..263.59 rows=1 width=24)
+                                                               QUERY PLAN                                                               
+----------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..100.04 rows=0 width=24)
    Output: (abs(value1)), (abs(value3)), (sqrt((value2)::double precision))
-   ->  Sort  (cost=263.58..272.12 rows=3413 width=24)
-         Output: (abs(value1)), (abs(value3)), (sqrt((value2)::double precision))
-         Sort Key: (abs(s3.value3))
-         ->  Foreign Scan on public.s3  (cost=100.00..246.52 rows=3413 width=24)
-               Output: (abs(value1)), (abs(value3)), (sqrt((value2)::double precision))
-               Node: pgspider_svr / Status: Alive
-                 Remote SQL: SELECT abs(value1), abs(value3), sqrt(value2) FROM public.s3influx
-(9 rows)
+   Node: pgspider_svr / Status: Alive
+     Limit push-down: yes
+     Sort push-down: yes
+     Remote SQL: SELECT abs(value1), abs(value3), sqrt(value2) FROM public.s3influx ORDER BY abs(value3) ASC NULLS LAST LIMIT 1::bigint
+(6 rows)
 
 -- select with order by limit (result)
 --Testcase 109:
@@ -1261,18 +1261,16 @@ SELECT abs(value1), sqrt(value2), upper(tag1) FROM s3;
 --Testcase 112:
 EXPLAIN VERBOSE
 SELECT sqrt(abs(value3)),min(value1) FROM s3 GROUP BY value3 HAVING sqrt(abs(value3)) > 0 ORDER BY 1,2;
-                                                                      QUERY PLAN                                                                       
--------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=0.01..0.02 rows=1 width=24)
+                                                                                                      QUERY PLAN                                                                                                       
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan  (cost=183.22..187.72 rows=0 width=24)
    Output: (sqrt(abs(value3))), (min(value1)), value3
-   Sort Key: (sqrt(abs(s3.value3))), (min(s3.value1))
-   ->  Foreign Scan  (cost=0.00..0.00 rows=1 width=24)
-         Output: (sqrt(abs(value3))), (min(value1)), value3
-         Node: pgspider_svr / Status: Alive
-           Agg push-down: yes
-           Relations: Aggregate on (public.s3)
-           Remote SQL: SELECT sqrt(abs(value3)), min(value1), value3 FROM public.s3influx WHERE ((sqrt(abs(value3)) > 0::double precision)) GROUP BY 3
-(9 rows)
+   Node: pgspider_svr / Status: Alive
+     Sort push-down: yes
+     Agg push-down: yes
+     Relations: Aggregate on (public.s3)
+     Remote SQL: SELECT sqrt(abs(value3)), min(value1), value3 FROM public.s3influx WHERE ((sqrt(abs(value3)) > 0::double precision)) GROUP BY 3 ORDER BY sqrt(abs(value3)) ASC NULLS LAST, min(value1) ASC NULLS LAST
+(7 rows)
 
 -- nested function in where clause (result)
 --Testcase 113:
@@ -1292,7 +1290,7 @@ EXPLAIN VERBOSE
 SELECT first(time, value1), first(time, value2), first(time, value3), first(time, value4) FROM s3;
                                                                              QUERY PLAN                                                                             
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (first("time", value1)), (first("time", value2)), (first("time", value3)), (first("time", value4))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1313,7 +1311,7 @@ EXPLAIN VERBOSE
 SELECT first_all(*) from s3;
                            QUERY PLAN                            
 -----------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (first_all(*))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1335,7 +1333,7 @@ EXPLAIN VERBOSE
 SELECT first_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                     QUERY PLAN                                                                                                                                    
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (first_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1371,7 +1369,7 @@ EXPLAIN VERBOSE
 SELECT (first_all(*)::s3).* from s3;
                                                                                                              QUERY PLAN                                                                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=104)
+ Foreign Scan  (cost=100.00..144.19 rows=1 width=104)
    Output: (((first_all(*)))::s3)."time", (((first_all(*)))::s3).tag1, (((first_all(*)))::s3).value1, (((first_all(*)))::s3).value2, (((first_all(*)))::s3).value3, (((first_all(*)))::s3).value4, (((first_all(*)))::s3).__spd_url
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1393,7 +1391,7 @@ EXPLAIN VERBOSE
 SELECT first('/value[1,4]/') from s3;
                                    QUERY PLAN                                   
 --------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (first('/value[1,4]/'::text))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1415,7 +1413,7 @@ EXPLAIN VERBOSE
 SELECT first('/value[1,4]/'), first('/^v.*/') from s3;
                                                   QUERY PLAN                                                  
 --------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=64)
    Output: (first('/value[1,4]/'::text)), (first('/^v.*/'::text))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1440,7 +1438,7 @@ EXPLAIN VERBOSE
 SELECT first('/^v.*/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                         QUERY PLAN                                                                                                                                         
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (first('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1476,7 +1474,7 @@ EXPLAIN VERBOSE
 SELECT (first('/value[1,4]/')::s3).* from s3;
                                                                                                                                                                  QUERY PLAN                                                                                                                                                                  
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=104)
+ Foreign Scan  (cost=100.00..144.19 rows=1 width=104)
    Output: (((first('/value[1,4]/'::text)))::s3)."time", (((first('/value[1,4]/'::text)))::s3).tag1, (((first('/value[1,4]/'::text)))::s3).value1, (((first('/value[1,4]/'::text)))::s3).value2, (((first('/value[1,4]/'::text)))::s3).value3, (((first('/value[1,4]/'::text)))::s3).value4, (((first('/value[1,4]/'::text)))::s3).__spd_url
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1497,7 +1495,7 @@ EXPLAIN VERBOSE
 SELECT last(time, value1), last(time, value2), last(time, value3), last(time, value4) FROM s3;
                                                                            QUERY PLAN                                                                           
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (last("time", value1)), (last("time", value2)), (last("time", value3)), (last("time", value4))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1518,7 +1516,7 @@ EXPLAIN VERBOSE
 SELECT last_all(*) from s3;
                            QUERY PLAN                           
 ----------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (last_all(*))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1540,7 +1538,7 @@ EXPLAIN VERBOSE
 SELECT last_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                    QUERY PLAN                                                                                                                                    
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (last_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1576,7 +1574,7 @@ EXPLAIN VERBOSE
 SELECT (last_all(*)::s3).* from s3;
                                                                                                          QUERY PLAN                                                                                                          
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=104)
+ Foreign Scan  (cost=100.00..144.19 rows=1 width=104)
    Output: (((last_all(*)))::s3)."time", (((last_all(*)))::s3).tag1, (((last_all(*)))::s3).value1, (((last_all(*)))::s3).value2, (((last_all(*)))::s3).value3, (((last_all(*)))::s3).value4, (((last_all(*)))::s3).__spd_url
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1598,7 +1596,7 @@ EXPLAIN VERBOSE
 SELECT last('/value[1,4]/') from s3;
                                   QUERY PLAN                                   
 -------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (last('/value[1,4]/'::text))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1620,7 +1618,7 @@ EXPLAIN VERBOSE
 SELECT first('/value[1,4]/'), first('/^v.*/') from s3;
                                                   QUERY PLAN                                                  
 --------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=64)
    Output: (first('/value[1,4]/'::text)), (first('/^v.*/'::text))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1645,7 +1643,7 @@ EXPLAIN VERBOSE
 SELECT last('/^v.*/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                         QUERY PLAN                                                                                                                                        
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (last('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1681,7 +1679,7 @@ EXPLAIN VERBOSE
 SELECT (last('/value[1,4]/')::s3).* from s3;
                                                                                                                                                               QUERY PLAN                                                                                                                                                              
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=104)
+ Foreign Scan  (cost=100.00..144.19 rows=1 width=104)
    Output: (((last('/value[1,4]/'::text)))::s3)."time", (((last('/value[1,4]/'::text)))::s3).tag1, (((last('/value[1,4]/'::text)))::s3).value1, (((last('/value[1,4]/'::text)))::s3).value2, (((last('/value[1,4]/'::text)))::s3).value3, (((last('/value[1,4]/'::text)))::s3).value4, (((last('/value[1,4]/'::text)))::s3).__spd_url
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1702,7 +1700,7 @@ EXPLAIN VERBOSE
 SELECT sample(value2, 3) FROM s3 WHERE value2 < 200;
                                          QUERY PLAN                                          
 ---------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=8)
+ Foreign Scan  (cost=100.00..152.69 rows=1 width=8)
    Output: (sample(value2, 3))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1724,7 +1722,7 @@ EXPLAIN VERBOSE
 SELECT sample(value2, 1) FROM s3 WHERE time >= to_timestamp(0) AND time <= to_timestamp(5) GROUP BY influx_time(time, interval '3s');
                                                                                                                                   QUERY PLAN                                                                                                                                   
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=16)
+ Foreign Scan  (cost=100.04..165.72 rows=1 width=16)
    Output: (sample(value2, 1)), (influx_time("time", '@ 3 secs'::interval))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1771,7 +1769,7 @@ EXPLAIN VERBOSE
 SELECT sample_all(50) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                      QUERY PLAN                                                                                                                                     
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=72)
+ Foreign Scan  (cost=100.08..170.29 rows=0 width=72)
    Output: (sample_all(50)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -1852,7 +1850,7 @@ EXPLAIN VERBOSE
 SELECT sample('/^v.*/', 50) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                            QUERY PLAN                                                                                                                                           
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=72)
+ Foreign Scan  (cost=100.08..170.29 rows=0 width=72)
    Output: (sample('/^v.*/'::text, 50)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -2005,7 +2003,7 @@ EXPLAIN VERBOSE
 SELECT cumulative_sum_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                               QUERY PLAN                                                                                                              
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (cumulative_sum_all()), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -2031,7 +2029,7 @@ EXPLAIN VERBOSE
 SELECT cumulative_sum('/value[1,4]/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                       QUERY PLAN                                                                                                                      
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (cumulative_sum('/value[1,4]/'::text)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -2195,7 +2193,7 @@ EXPLAIN VERBOSE
 SELECT derivative_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                             QUERY PLAN                                                                                                            
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (derivative_all()), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -2219,7 +2217,7 @@ EXPLAIN VERBOSE
 SELECT derivative('/value[1,4]/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                     QUERY PLAN                                                                                                                    
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (derivative('/value[1,4]/'::text)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -2383,7 +2381,7 @@ EXPLAIN VERBOSE
 SELECT non_negative_derivative_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                   QUERY PLAN                                                                                                                   
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (non_negative_derivative_all()), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -2407,7 +2405,7 @@ EXPLAIN VERBOSE
 SELECT non_negative_derivative('/value[1,4]/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                           QUERY PLAN                                                                                                                           
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (non_negative_derivative('/value[1,4]/'::text)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -2549,7 +2547,7 @@ EXPLAIN VERBOSE
 SELECT difference_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                             QUERY PLAN                                                                                                            
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (difference_all()), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -2573,7 +2571,7 @@ EXPLAIN VERBOSE
 SELECT difference('/value[1,4]/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                     QUERY PLAN                                                                                                                    
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (difference('/value[1,4]/'::text)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -2715,7 +2713,7 @@ EXPLAIN VERBOSE
 SELECT non_negative_difference_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                   QUERY PLAN                                                                                                                   
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (non_negative_difference_all()), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -2739,7 +2737,7 @@ EXPLAIN VERBOSE
 SELECT non_negative_difference('/value[1,4]/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                           QUERY PLAN                                                                                                                           
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (non_negative_difference('/value[1,4]/'::text)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -2903,7 +2901,7 @@ EXPLAIN VERBOSE
 SELECT elapsed_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                           QUERY PLAN                                                                                                           
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (elapsed_all()), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -2927,7 +2925,7 @@ EXPLAIN VERBOSE
 SELECT elapsed('/value[1,4]/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                   QUERY PLAN                                                                                                                   
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (elapsed('/value[1,4]/'::text)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -3069,7 +3067,7 @@ EXPLAIN VERBOSE
 SELECT moving_average_all(2) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                               QUERY PLAN                                                                                                               
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (moving_average_all(2)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -3093,7 +3091,7 @@ EXPLAIN VERBOSE
 SELECT moving_average('/value[1,4]/', 2) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                        QUERY PLAN                                                                                                                        
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (moving_average('/value[1,4]/'::text, 2)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -3256,7 +3254,7 @@ EXPLAIN VERBOSE
 SELECT chande_momentum_oscillator_all(2) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                     QUERY PLAN                                                                                                                     
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (chande_momentum_oscillator_all(2)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -3280,7 +3278,7 @@ EXPLAIN VERBOSE
 SELECT chande_momentum_oscillator('/value[1,4]/',2) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                              QUERY PLAN                                                                                                                              
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (chande_momentum_oscillator('/value[1,4]/'::text, 2)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -3443,7 +3441,7 @@ EXPLAIN VERBOSE
 SELECT exponential_moving_average_all(2) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                     QUERY PLAN                                                                                                                     
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (exponential_moving_average_all(2)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -3467,7 +3465,7 @@ EXPLAIN VERBOSE
 SELECT exponential_moving_average('/value[1,4]/',2) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                              QUERY PLAN                                                                                                                              
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (exponential_moving_average('/value[1,4]/'::text, 2)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -3582,7 +3580,7 @@ EXPLAIN VERBOSE
 SELECT double_exponential_moving_average_all(2) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                         QUERY PLAN                                                                                                                        
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (double_exponential_moving_average_all(2)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -3606,7 +3604,7 @@ EXPLAIN VERBOSE
 SELECT double_exponential_moving_average('/value[1,4]/',2) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                                  QUERY PLAN                                                                                                                                 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (double_exponential_moving_average('/value[1,4]/'::text, 2)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -3718,7 +3716,7 @@ EXPLAIN VERBOSE
 SELECT kaufmans_efficiency_ratio_all(2) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                     QUERY PLAN                                                                                                                    
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (kaufmans_efficiency_ratio_all(2)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -3740,7 +3738,7 @@ EXPLAIN VERBOSE
 SELECT kaufmans_efficiency_ratio('/value[1,4]/',2) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                              QUERY PLAN                                                                                                                             
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (kaufmans_efficiency_ratio('/value[1,4]/'::text, 2)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -3896,7 +3894,7 @@ EXPLAIN VERBOSE
 SELECT kaufmans_adaptive_moving_average_all(2) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                        QUERY PLAN                                                                                                                        
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (kaufmans_adaptive_moving_average_all(2)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -3918,7 +3916,7 @@ EXPLAIN VERBOSE
 SELECT kaufmans_adaptive_moving_average('/value[1,4]/',2) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                                 QUERY PLAN                                                                                                                                 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (kaufmans_adaptive_moving_average('/value[1,4]/'::text, 2)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4031,7 +4029,7 @@ EXPLAIN VERBOSE
 SELECT triple_exponential_moving_average_all(2) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                         QUERY PLAN                                                                                                                        
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (triple_exponential_moving_average_all(2)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4055,7 +4053,7 @@ EXPLAIN VERBOSE
 SELECT triple_exponential_moving_average('/value[1,4]/',2) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                                  QUERY PLAN                                                                                                                                 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (triple_exponential_moving_average('/value[1,4]/'::text, 2)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4167,7 +4165,7 @@ EXPLAIN VERBOSE
 SELECT triple_exponential_derivative_all(2) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                       QUERY PLAN                                                                                                                      
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (triple_exponential_derivative_all(2)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4189,7 +4187,7 @@ EXPLAIN VERBOSE
 SELECT triple_exponential_derivative('/value[1,4]/',2) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                                QUERY PLAN                                                                                                                               
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (triple_exponential_derivative('/value[1,4]/'::text, 2)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4299,7 +4297,7 @@ EXPLAIN VERBOSE
 SELECT relative_strength_index_all(2) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                    QUERY PLAN                                                                                                                   
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (relative_strength_index_all(2)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4321,7 +4319,7 @@ EXPLAIN VERBOSE
 SELECT relative_strength_index('/value[1,4]/',2) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                             QUERY PLAN                                                                                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (relative_strength_index('/value[1,4]/'::text, 2)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4389,7 +4387,7 @@ EXPLAIN VERBOSE
 SELECT integral(value1),integral(value2),integral(value3),integral(value4) FROM s3;
                                                                    QUERY PLAN                                                                   
 ------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (integral(value1)), (integral(value2)), (integral(value3)), (integral(value4))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4410,7 +4408,7 @@ EXPLAIN VERBOSE
 SELECT integral(value1, interval '1s'),integral(value2, interval '1s'),integral(value3, interval '1s'),integral(value4, interval '1s') FROM s3;
                                                                                                              QUERY PLAN                                                                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (integral(value1, '@ 1 sec'::interval)), (integral(value2, '@ 1 sec'::interval)), (integral(value3, '@ 1 sec'::interval)), (integral(value4, '@ 1 sec'::interval))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4443,7 +4441,7 @@ EXPLAIN VERBOSE
 SELECT integral("value1"),influx_time(time, interval '1s'),tag1 FROM s3 GROUP BY influx_time(time, interval '1s'), tag1;
                                                                 QUERY PLAN                                                                
 ------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=48)
+ Foreign Scan  (cost=117.06..256.68 rows=1 width=48)
    Output: (integral(value1)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4468,7 +4466,7 @@ EXPLAIN VERBOSE
 SELECT integral("value1", interval '1s'),influx_time(time, interval '1s'),tag1 FROM s3 GROUP BY influx_time(time, interval '1s'), tag1;
                                                                           QUERY PLAN                                                                           
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=48)
+ Foreign Scan  (cost=117.06..256.68 rows=1 width=48)
    Output: (integral(value1, '@ 1 sec'::interval)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4525,49 +4523,59 @@ SELECT sum("value1"),integral("value1", interval '1s'),count("value1") FROM s3;
 --Testcase 389:
 EXPLAIN VERBOSE
 SELECT integral(t1.value1), integral(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-                                                                                           QUERY PLAN                                                                                           
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=144.50..144.51 rows=1 width=16)
-   Output: integral(t1.value1), integral(t2.value1)
-   ->  Foreign Scan  (cost=0.00..0.00 rows=289 width=32)
-         Output: t1.value1, t2.value1
-         Node: pgspider_svr / Status: Alive
-           Relations: (public.s3 t1) INNER JOIN (public.s3 t2)
-           Remote SQL: SELECT r1.value1, r2.value1 FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
-(7 rows)
+                                                                                                         QUERY PLAN                                                                                                         
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan  (cost=100.00..206.80 rows=1 width=16)
+   Output: (integral(t1.value1)), (integral(t2.value1))
+   Node: pgspider_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on ((public.s3 t1) INNER JOIN (public.s3 t2))
+     Remote SQL: SELECT public.integral(r1.value1), public.integral(r2.value1) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+(6 rows)
 
 -- select integral over join query (result, stub call error)
 --Testcase 390:
 SELECT integral(t1.value1), integral(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
+ERROR:  pgspider_fdw fail to get tuples from child process
+{
 ERROR:  stub integral_sfunc(double precision, float8) is called
-CONTEXT:  PL/pgSQL function integral_sfunc(double precision,double precision) line 3 at RAISE
+CONTEXT:  PL/pgSQL function public.integral_sfunc(double precision,double precision) line 3 at RAISE
+}
+CONTEXT:  remote SQL command: SELECT public.integral(r1.value1), public.integral(r2.value1) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+
+ERROR:  PGSpider fail to iterate tuple from child thread
 -- select integral over join query (explain)
 --Testcase 391:
 EXPLAIN VERBOSE
 SELECT integral(t1.value1, interval '1s'), integral(t2.value1, interval '1s') FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-                                                                                           QUERY PLAN                                                                                           
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=144.50..144.51 rows=1 width=16)
-   Output: integral(t1.value1, '@ 1 sec'::interval), integral(t2.value1, '@ 1 sec'::interval)
-   ->  Foreign Scan  (cost=0.00..0.00 rows=289 width=32)
-         Output: t1.value1, t2.value1
-         Node: pgspider_svr / Status: Alive
-           Relations: (public.s3 t1) INNER JOIN (public.s3 t2)
-           Remote SQL: SELECT r1.value1, r2.value1 FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
-(7 rows)
+                                                                                                                              QUERY PLAN                                                                                                                              
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan  (cost=100.00..206.80 rows=1 width=16)
+   Output: (integral(t1.value1, '@ 1 sec'::interval)), (integral(t2.value1, '@ 1 sec'::interval))
+   Node: pgspider_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on ((public.s3 t1) INNER JOIN (public.s3 t2))
+     Remote SQL: SELECT public.integral(r1.value1, '@ 1 sec'::interval), public.integral(r2.value1, '@ 1 sec'::interval) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+(6 rows)
 
 -- select integral over join query (result, stub call error)
 --Testcase 392:
 SELECT integral(t1.value1, interval '1s'), integral(t2.value1, interval '1s') FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
+ERROR:  pgspider_fdw fail to get tuples from child process
+{
 ERROR:  stub integral_sfunc(double precision, float8, interval) is called
-CONTEXT:  PL/pgSQL function integral_sfunc(double precision,double precision,interval) line 3 at RAISE
+CONTEXT:  PL/pgSQL function public.integral_sfunc(double precision,double precision,interval) line 3 at RAISE
+}
+CONTEXT:  remote SQL command: SELECT public.integral(r1.value1, '@ 1 sec'::interval), public.integral(r2.value1, '@ 1 sec'::interval) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+
+ERROR:  PGSpider fail to iterate tuple from child thread
 -- select integral with having (explain)
 --Testcase 393:
 EXPLAIN VERBOSE
 SELECT integral(value1) FROM s3 HAVING integral(value1) > 100;
                              QUERY PLAN                              
 ---------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=8)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=8)
    Output: (integral(value1))
    Filter: ((integral(s3.value1)) > '100'::double precision)
    Node: pgspider_svr / Status: Alive
@@ -4589,7 +4597,7 @@ EXPLAIN VERBOSE
 SELECT integral(value1, interval '1s') FROM s3 HAVING integral(value1, interval '1s') > 100;
                                         QUERY PLAN                                        
 ------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=8)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=8)
    Output: (integral(value1, '@ 1 sec'::interval))
    Filter: ((integral(s3.value1, '@ 1 sec'::interval)) > '100'::double precision)
    Node: pgspider_svr / Status: Alive
@@ -4611,7 +4619,7 @@ EXPLAIN VERBOSE
 SELECT integral_all(*) from s3;
                              QUERY PLAN                             
 --------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (integral_all(*))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4633,7 +4641,7 @@ EXPLAIN VERBOSE
 SELECT integral_all(*) FROM s3 GROUP BY influx_time(time, interval '1s'), tag1;
                                                                QUERY PLAN                                                                
 -----------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=117.06..256.68 rows=1 width=72)
    Output: (integral_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4658,7 +4666,7 @@ EXPLAIN VERBOSE
 SELECT integral_all(*) FROM s3 WHERE value1 > 0.3 GROUP BY tag1;
                                                           QUERY PLAN                                                          
 ------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=102.84..161.51 rows=1 width=64)
    Output: (integral_all(*)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4680,7 +4688,7 @@ EXPLAIN VERBOSE
 SELECT (integral_all(*)::s3).* from s3;
                                                                                                                        QUERY PLAN                                                                                                                        
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=104)
+ Foreign Scan  (cost=100.00..144.19 rows=1 width=104)
    Output: (((integral_all(*)))::s3)."time", (((integral_all(*)))::s3).tag1, (((integral_all(*)))::s3).value1, (((integral_all(*)))::s3).value2, (((integral_all(*)))::s3).value3, (((integral_all(*)))::s3).value4, (((integral_all(*)))::s3).__spd_url
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4702,7 +4710,7 @@ EXPLAIN VERBOSE
 SELECT integral('/value[1,4]/') from s3;
                                     QUERY PLAN                                     
 -----------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (integral('/value[1,4]/'::text))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4724,7 +4732,7 @@ EXPLAIN VERBOSE
 SELECT integral('/^v.*/') FROM s3 GROUP BY influx_time(time, interval '1s'), tag1;
                                                                     QUERY PLAN                                                                    
 --------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=117.06..256.68 rows=1 width=72)
    Output: (integral('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4749,7 +4757,7 @@ EXPLAIN VERBOSE
 SELECT integral('/value[1,4]/') FROM s3 WHERE value1 > 0.3 GROUP BY tag1;
                                                                  QUERY PLAN                                                                  
 ---------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=102.84..161.51 rows=1 width=64)
    Output: (integral('/value[1,4]/'::text)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4771,7 +4779,7 @@ EXPLAIN VERBOSE
 SELECT (integral('/value[1,4]/')::s3).* from s3;
                                                                                                                                                                             QUERY PLAN                                                                                                                                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=104)
+ Foreign Scan  (cost=100.00..144.19 rows=1 width=104)
    Output: (((integral('/value[1,4]/'::text)))::s3)."time", (((integral('/value[1,4]/'::text)))::s3).tag1, (((integral('/value[1,4]/'::text)))::s3).value1, (((integral('/value[1,4]/'::text)))::s3).value2, (((integral('/value[1,4]/'::text)))::s3).value3, (((integral('/value[1,4]/'::text)))::s3).value4, (((integral('/value[1,4]/'::text)))::s3).__spd_url
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4793,7 +4801,7 @@ EXPLAIN VERBOSE
 SELECT mean(value1),mean(value2),mean(value3),mean(value4) FROM s3;
                                                            QUERY PLAN                                                           
 --------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (mean(value1)), (mean(value2)), (mean(value3)), (mean(value4))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4826,7 +4834,7 @@ EXPLAIN VERBOSE
 SELECT mean("value1"),influx_time(time, interval '1s'),tag1 FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                     QUERY PLAN                                                                                                                                    
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=48)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=48)
    Output: (mean(value1)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4872,29 +4880,34 @@ SELECT sum("value1"),mean("value1"),count("value1") FROM s3;
 --Testcase 420:
 EXPLAIN VERBOSE
 SELECT mean(t1.value1), mean(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-                                                                                           QUERY PLAN                                                                                           
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=144.50..144.51 rows=1 width=16)
-   Output: mean(t1.value1), mean(t2.value1)
-   ->  Foreign Scan  (cost=0.00..0.00 rows=289 width=32)
-         Output: t1.value1, t2.value1
-         Node: pgspider_svr / Status: Alive
-           Relations: (public.s3 t1) INNER JOIN (public.s3 t2)
-           Remote SQL: SELECT r1.value1, r2.value1 FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
-(7 rows)
+                                                                                                     QUERY PLAN                                                                                                     
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan  (cost=100.00..206.80 rows=1 width=16)
+   Output: (mean(t1.value1)), (mean(t2.value1))
+   Node: pgspider_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on ((public.s3 t1) INNER JOIN (public.s3 t2))
+     Remote SQL: SELECT public.mean(r1.value1), public.mean(r2.value1) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+(6 rows)
 
 -- select mean over join query (result, stub call error)
 --Testcase 421:
 SELECT mean(t1.value1), mean(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
+ERROR:  pgspider_fdw fail to get tuples from child process
+{
 ERROR:  stub mean_sfunc(double precision, float8) is called
-CONTEXT:  PL/pgSQL function mean_sfunc(double precision,double precision) line 3 at RAISE
+CONTEXT:  PL/pgSQL function public.mean_sfunc(double precision,double precision) line 3 at RAISE
+}
+CONTEXT:  remote SQL command: SELECT public.mean(r1.value1), public.mean(r2.value1) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+
+ERROR:  PGSpider fail to iterate tuple from child thread
 -- select mean with having (explain)
 --Testcase 422:
 EXPLAIN VERBOSE
 SELECT mean(value1) FROM s3 HAVING mean(value1) > 100;
                            QUERY PLAN                            
 -----------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=8)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=8)
    Output: (mean(value1))
    Filter: ((mean(s3.value1)) > '100'::double precision)
    Node: pgspider_svr / Status: Alive
@@ -4916,7 +4929,7 @@ EXPLAIN VERBOSE
 SELECT mean_all(*) from s3;
                            QUERY PLAN                           
 ----------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (mean_all(*))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4938,7 +4951,7 @@ EXPLAIN VERBOSE
 SELECT mean_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                    QUERY PLAN                                                                                                                                    
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (mean_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4969,7 +4982,7 @@ EXPLAIN VERBOSE
 SELECT mean_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                          QUERY PLAN                                                                                                          
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=100.04..161.72 rows=1 width=64)
    Output: (mean_all(*)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -4992,7 +5005,7 @@ EXPLAIN VERBOSE
 SELECT (mean_all(*)::s3).* from s3;
                                                                                                          QUERY PLAN                                                                                                          
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=104)
+ Foreign Scan  (cost=100.00..144.19 rows=1 width=104)
    Output: (((mean_all(*)))::s3)."time", (((mean_all(*)))::s3).tag1, (((mean_all(*)))::s3).value1, (((mean_all(*)))::s3).value2, (((mean_all(*)))::s3).value3, (((mean_all(*)))::s3).value4, (((mean_all(*)))::s3).__spd_url
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5014,7 +5027,7 @@ EXPLAIN VERBOSE
 SELECT mean('/value[1,4]/') from s3;
                                   QUERY PLAN                                   
 -------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (mean('/value[1,4]/'::text))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5036,7 +5049,7 @@ EXPLAIN VERBOSE
 SELECT mean('/^v.*/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                         QUERY PLAN                                                                                                                                        
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (mean('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5067,7 +5080,7 @@ EXPLAIN VERBOSE
 SELECT mean('/value[1,4]/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                  QUERY PLAN                                                                                                                 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=100.04..161.72 rows=1 width=64)
    Output: (mean('/value[1,4]/'::text)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5090,7 +5103,7 @@ EXPLAIN VERBOSE
 SELECT (mean('/value[1,4]/')::s3).* from s3;
                                                                                                                                                               QUERY PLAN                                                                                                                                                              
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=104)
+ Foreign Scan  (cost=100.00..144.19 rows=1 width=104)
    Output: (((mean('/value[1,4]/'::text)))::s3)."time", (((mean('/value[1,4]/'::text)))::s3).tag1, (((mean('/value[1,4]/'::text)))::s3).value1, (((mean('/value[1,4]/'::text)))::s3).value2, (((mean('/value[1,4]/'::text)))::s3).value3, (((mean('/value[1,4]/'::text)))::s3).value4, (((mean('/value[1,4]/'::text)))::s3).__spd_url
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5112,7 +5125,7 @@ EXPLAIN VERBOSE
 SELECT median(value1),median(value2),median(value3),median(value4) FROM s3;
                                                                QUERY PLAN                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (median(value1)), (median(value2)), (median(value3)), (median(value4))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5145,7 +5158,7 @@ EXPLAIN VERBOSE
 SELECT median("value1"),influx_time(time, interval '1s'),tag1 FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                      QUERY PLAN                                                                                                                                     
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=48)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=48)
    Output: (median(value1)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5191,29 +5204,34 @@ SELECT sum("value1"),median("value1"),count("value1") FROM s3;
 --Testcase 447:
 EXPLAIN VERBOSE
 SELECT median(t1.value1), median(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-                                                                                           QUERY PLAN                                                                                           
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=144.50..144.51 rows=1 width=16)
-   Output: median(t1.value1), median(t2.value1)
-   ->  Foreign Scan  (cost=0.00..0.00 rows=289 width=32)
-         Output: t1.value1, t2.value1
-         Node: pgspider_svr / Status: Alive
-           Relations: (public.s3 t1) INNER JOIN (public.s3 t2)
-           Remote SQL: SELECT r1.value1, r2.value1 FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
-(7 rows)
+                                                                                                       QUERY PLAN                                                                                                       
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan  (cost=100.00..206.80 rows=1 width=16)
+   Output: (median(t1.value1)), (median(t2.value1))
+   Node: pgspider_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on ((public.s3 t1) INNER JOIN (public.s3 t2))
+     Remote SQL: SELECT public.median(r1.value1), public.median(r2.value1) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+(6 rows)
 
 -- select median over join query (result, stub call error)
 --Testcase 448:
 SELECT median(t1.value1), median(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
+ERROR:  pgspider_fdw fail to get tuples from child process
+{
 ERROR:  stub median_sfunc(double precision, float8) is called
-CONTEXT:  PL/pgSQL function median_sfunc(double precision,double precision) line 3 at RAISE
+CONTEXT:  PL/pgSQL function public.median_sfunc(double precision,double precision) line 3 at RAISE
+}
+CONTEXT:  remote SQL command: SELECT public.median(r1.value1), public.median(r2.value1) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+
+ERROR:  PGSpider fail to iterate tuple from child thread
 -- select median with having (explain)
 --Testcase 449:
 EXPLAIN VERBOSE
 SELECT median(value1) FROM s3 HAVING median(value1) > 100;
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=8)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=8)
    Output: (median(value1))
    Filter: ((median(s3.value1)) > '100'::double precision)
    Node: pgspider_svr / Status: Alive
@@ -5235,7 +5253,7 @@ EXPLAIN VERBOSE
 SELECT median_all(*) from s3;
                             QUERY PLAN                            
 ------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (median_all(*))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5257,7 +5275,7 @@ EXPLAIN VERBOSE
 SELECT median_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                     QUERY PLAN                                                                                                                                     
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (median_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5288,7 +5306,7 @@ EXPLAIN VERBOSE
 SELECT median_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                           QUERY PLAN                                                                                                           
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=100.04..161.72 rows=1 width=64)
    Output: (median_all(*)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5311,7 +5329,7 @@ EXPLAIN VERBOSE
 SELECT (median_all(*)::s3).* from s3;
                                                                                                                 QUERY PLAN                                                                                                                 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=104)
+ Foreign Scan  (cost=100.00..144.19 rows=1 width=104)
    Output: (((median_all(*)))::s3)."time", (((median_all(*)))::s3).tag1, (((median_all(*)))::s3).value1, (((median_all(*)))::s3).value2, (((median_all(*)))::s3).value3, (((median_all(*)))::s3).value4, (((median_all(*)))::s3).__spd_url
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5333,7 +5351,7 @@ EXPLAIN VERBOSE
 SELECT median('/^v.*/') from s3;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (median('/^v.*/'::text))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5355,7 +5373,7 @@ EXPLAIN VERBOSE
 SELECT median('/^v.*/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                          QUERY PLAN                                                                                                                                         
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (median('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5386,7 +5404,7 @@ EXPLAIN VERBOSE
 SELECT median('/value[1,4]/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                   QUERY PLAN                                                                                                                  
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=100.04..161.72 rows=1 width=64)
    Output: (median('/value[1,4]/'::text)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5409,7 +5427,7 @@ EXPLAIN VERBOSE
 SELECT (median('/value[1,4]/')::s3).* from s3;
                                                                                                                                                                      QUERY PLAN                                                                                                                                                                     
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=104)
+ Foreign Scan  (cost=100.00..144.19 rows=1 width=104)
    Output: (((median('/value[1,4]/'::text)))::s3)."time", (((median('/value[1,4]/'::text)))::s3).tag1, (((median('/value[1,4]/'::text)))::s3).value1, (((median('/value[1,4]/'::text)))::s3).value2, (((median('/value[1,4]/'::text)))::s3).value3, (((median('/value[1,4]/'::text)))::s3).value4, (((median('/value[1,4]/'::text)))::s3).__spd_url
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5431,7 +5449,7 @@ EXPLAIN VERBOSE
 SELECT influx_mode(value1),influx_mode(value2),influx_mode(value3),influx_mode(value4) FROM s3;
                                                                          QUERY PLAN                                                                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (influx_mode(value1)), (influx_mode(value2)), (influx_mode(value3)), (influx_mode(value4))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5464,7 +5482,7 @@ EXPLAIN VERBOSE
 SELECT influx_mode("value1"),influx_time(time, interval '1s'),tag1 FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                        QUERY PLAN                                                                                                                                        
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=48)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=48)
    Output: (influx_mode(value1)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5510,29 +5528,34 @@ SELECT sum("value1"),influx_mode("value1"),count("value1") FROM s3;
 --Testcase 474:
 EXPLAIN VERBOSE
 SELECT influx_mode(t1.value1), influx_mode(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-                                                                                           QUERY PLAN                                                                                           
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=144.50..144.51 rows=1 width=16)
-   Output: influx_mode(t1.value1), influx_mode(t2.value1)
-   ->  Foreign Scan  (cost=0.00..0.00 rows=289 width=32)
-         Output: t1.value1, t2.value1
-         Node: pgspider_svr / Status: Alive
-           Relations: (public.s3 t1) INNER JOIN (public.s3 t2)
-           Remote SQL: SELECT r1.value1, r2.value1 FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
-(7 rows)
+                                                                                                            QUERY PLAN                                                                                                            
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan  (cost=100.00..206.80 rows=1 width=16)
+   Output: (influx_mode(t1.value1)), (influx_mode(t2.value1))
+   Node: pgspider_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on ((public.s3 t1) INNER JOIN (public.s3 t2))
+     Remote SQL: SELECT public.influx_mode(r1.value1), public.influx_mode(r2.value1) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+(6 rows)
 
 -- select influx_mode over join query (result, stub call error)
 --Testcase 475:
 SELECT influx_mode(t1.value1), influx_mode(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
+ERROR:  pgspider_fdw fail to get tuples from child process
+{
 ERROR:  stub influx_mode_sfunc(anyelement, anyelement) is called
-CONTEXT:  PL/pgSQL function influx_mode_sfunc(anyelement,anyelement) line 3 at RAISE
+CONTEXT:  PL/pgSQL function public.influx_mode_sfunc(anyelement,anyelement) line 3 at RAISE
+}
+CONTEXT:  remote SQL command: SELECT public.influx_mode(r1.value1), public.influx_mode(r2.value1) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+
+ERROR:  PGSpider fail to iterate tuple from child thread
 -- select influx_mode with having (explain)
 --Testcase 476:
 EXPLAIN VERBOSE
 SELECT influx_mode(value1) FROM s3 HAVING influx_mode(value1) > 100;
                                QUERY PLAN                               
 ------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=8)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=8)
    Output: (influx_mode(value1))
    Filter: ((influx_mode(s3.value1)) > '100'::double precision)
    Node: pgspider_svr / Status: Alive
@@ -5554,7 +5577,7 @@ EXPLAIN VERBOSE
 SELECT influx_mode_all(*) from s3;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (influx_mode_all(*))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5576,7 +5599,7 @@ EXPLAIN VERBOSE
 SELECT influx_mode_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                        QUERY PLAN                                                                                                                                       
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (influx_mode_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5607,7 +5630,7 @@ EXPLAIN VERBOSE
 SELECT influx_mode_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                              QUERY PLAN                                                                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=100.04..161.72 rows=1 width=64)
    Output: (influx_mode_all(*)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5630,7 +5653,7 @@ EXPLAIN VERBOSE
 SELECT (influx_mode_all(*)::s3).* from s3;
                                                                                                                                   QUERY PLAN                                                                                                                                  
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=104)
+ Foreign Scan  (cost=100.00..144.19 rows=1 width=104)
    Output: (((influx_mode_all(*)))::s3)."time", (((influx_mode_all(*)))::s3).tag1, (((influx_mode_all(*)))::s3).value1, (((influx_mode_all(*)))::s3).value2, (((influx_mode_all(*)))::s3).value3, (((influx_mode_all(*)))::s3).value4, (((influx_mode_all(*)))::s3).__spd_url
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5652,7 +5675,7 @@ EXPLAIN VERBOSE
 SELECT influx_mode('/value[1,4]/') from s3;
                                       QUERY PLAN                                      
 --------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (influx_mode('/value[1,4]/'::text))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5674,7 +5697,7 @@ EXPLAIN VERBOSE
 SELECT influx_mode('/^v.*/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                            QUERY PLAN                                                                                                                                            
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (influx_mode('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5705,7 +5728,7 @@ EXPLAIN VERBOSE
 SELECT influx_mode('/value[1,4]/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                     QUERY PLAN                                                                                                                     
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=100.04..161.72 rows=1 width=64)
    Output: (influx_mode('/value[1,4]/'::text)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5728,7 +5751,7 @@ EXPLAIN VERBOSE
 SELECT (influx_mode('/value[1,4]/')::s3).* from s3;
                                                                                                                                                                                       QUERY PLAN                                                                                                                                                                                       
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=104)
+ Foreign Scan  (cost=100.00..144.19 rows=1 width=104)
    Output: (((influx_mode('/value[1,4]/'::text)))::s3)."time", (((influx_mode('/value[1,4]/'::text)))::s3).tag1, (((influx_mode('/value[1,4]/'::text)))::s3).value1, (((influx_mode('/value[1,4]/'::text)))::s3).value2, (((influx_mode('/value[1,4]/'::text)))::s3).value3, (((influx_mode('/value[1,4]/'::text)))::s3).value4, (((influx_mode('/value[1,4]/'::text)))::s3).__spd_url
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5750,7 +5773,7 @@ EXPLAIN VERBOSE
 SELECT stddev(value1),stddev(value2),stddev(value3),stddev(value4) FROM s3;
                                                  QUERY PLAN                                                 
 ------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=80)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=80)
    Output: (stddev(value1)), (stddev(value2)), (stddev(value3)), (stddev(value4))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5772,7 +5795,7 @@ EXPLAIN VERBOSE
 SELECT stddev("value1"),influx_time(time, interval '1s'),tag1 FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                  QUERY PLAN                                                                                                                                  
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=48)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=48)
    Output: (stddev(value1)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5820,7 +5843,7 @@ EXPLAIN VERBOSE
 SELECT stddev_all(*) from s3;
                             QUERY PLAN                            
 ------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (stddev_all(*))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5842,7 +5865,7 @@ EXPLAIN VERBOSE
 SELECT stddev_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                     QUERY PLAN                                                                                                                                     
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (stddev_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5873,7 +5896,7 @@ EXPLAIN VERBOSE
 SELECT stddev_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                           QUERY PLAN                                                                                                           
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=100.04..161.72 rows=1 width=64)
    Output: (stddev_all(*)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5896,7 +5919,7 @@ EXPLAIN VERBOSE
 SELECT stddev('/value[1,4]/') from s3;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (stddev('/value[1,4]/'::text))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5918,7 +5941,7 @@ EXPLAIN VERBOSE
 SELECT stddev('/^v.*/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                          QUERY PLAN                                                                                                                                         
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (stddev('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5949,7 +5972,7 @@ EXPLAIN VERBOSE
 SELECT stddev('/value[1,4]/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                   QUERY PLAN                                                                                                                  
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=100.04..161.72 rows=1 width=64)
    Output: (stddev('/value[1,4]/'::text)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5972,7 +5995,7 @@ EXPLAIN VERBOSE
 SELECT influx_sum_all(*) from s3;
                               QUERY PLAN                              
 ----------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (influx_sum_all(*))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -5994,7 +6017,7 @@ EXPLAIN VERBOSE
 SELECT influx_sum_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                       QUERY PLAN                                                                                                                                       
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (influx_sum_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6025,7 +6048,7 @@ EXPLAIN VERBOSE
 SELECT influx_sum_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                             QUERY PLAN                                                                                                             
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=100.04..161.72 rows=1 width=64)
    Output: (influx_sum_all(*)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6048,7 +6071,7 @@ EXPLAIN VERBOSE
 SELECT (influx_sum_all(*)::s3).* from s3;
                                                                                                                               QUERY PLAN                                                                                                                               
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=104)
+ Foreign Scan  (cost=100.00..144.19 rows=1 width=104)
    Output: (((influx_sum_all(*)))::s3)."time", (((influx_sum_all(*)))::s3).tag1, (((influx_sum_all(*)))::s3).value1, (((influx_sum_all(*)))::s3).value2, (((influx_sum_all(*)))::s3).value3, (((influx_sum_all(*)))::s3).value4, (((influx_sum_all(*)))::s3).__spd_url
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6070,7 +6093,7 @@ EXPLAIN VERBOSE
 SELECT influx_sum('/value[1,4]/') from s3;
                                      QUERY PLAN                                      
 -------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (influx_sum('/value[1,4]/'::text))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6092,7 +6115,7 @@ EXPLAIN VERBOSE
 SELECT influx_sum('/^v.*/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                            QUERY PLAN                                                                                                                                           
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (influx_sum('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6123,7 +6146,7 @@ EXPLAIN VERBOSE
 SELECT influx_sum('/value[1,4]/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                     QUERY PLAN                                                                                                                    
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=100.04..161.72 rows=1 width=64)
    Output: (influx_sum('/value[1,4]/'::text)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6146,7 +6169,7 @@ EXPLAIN VERBOSE
 SELECT (influx_sum('/value[1,4]/')::s3).* from s3;
                                                                                                                                                                                    QUERY PLAN                                                                                                                                                                                   
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=104)
+ Foreign Scan  (cost=100.00..144.19 rows=1 width=104)
    Output: (((influx_sum('/value[1,4]/'::text)))::s3)."time", (((influx_sum('/value[1,4]/'::text)))::s3).tag1, (((influx_sum('/value[1,4]/'::text)))::s3).value1, (((influx_sum('/value[1,4]/'::text)))::s3).value2, (((influx_sum('/value[1,4]/'::text)))::s3).value3, (((influx_sum('/value[1,4]/'::text)))::s3).value4, (((influx_sum('/value[1,4]/'::text)))::s3).__spd_url
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6211,7 +6234,7 @@ EXPLAIN VERBOSE
 SELECT influx_max_all(*) from s3;
                               QUERY PLAN                              
 ----------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (influx_max_all(*))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6233,7 +6256,7 @@ EXPLAIN VERBOSE
 SELECT influx_max_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                       QUERY PLAN                                                                                                                                       
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (influx_max_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6264,7 +6287,7 @@ EXPLAIN VERBOSE
 SELECT influx_max_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                             QUERY PLAN                                                                                                             
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=100.04..161.72 rows=1 width=64)
    Output: (influx_max_all(*)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6287,7 +6310,7 @@ EXPLAIN VERBOSE
 SELECT (influx_max_all(*)::s3).* from s3;
                                                                                                                               QUERY PLAN                                                                                                                               
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=104)
+ Foreign Scan  (cost=100.00..144.19 rows=1 width=104)
    Output: (((influx_max_all(*)))::s3)."time", (((influx_max_all(*)))::s3).tag1, (((influx_max_all(*)))::s3).value1, (((influx_max_all(*)))::s3).value2, (((influx_max_all(*)))::s3).value3, (((influx_max_all(*)))::s3).value4, (((influx_max_all(*)))::s3).__spd_url
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6309,7 +6332,7 @@ EXPLAIN VERBOSE
 SELECT influx_max('/value[1,4]/') from s3;
                                      QUERY PLAN                                      
 -------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (influx_max('/value[1,4]/'::text))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6331,7 +6354,7 @@ EXPLAIN VERBOSE
 SELECT influx_max('/^v.*/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                            QUERY PLAN                                                                                                                                           
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (influx_max('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6362,7 +6385,7 @@ EXPLAIN VERBOSE
 SELECT influx_max('/value[1,4]/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                     QUERY PLAN                                                                                                                    
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=100.04..161.72 rows=1 width=64)
    Output: (influx_max('/value[1,4]/'::text)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6385,7 +6408,7 @@ EXPLAIN VERBOSE
 SELECT (influx_max('/value[1,4]/')::s3).* from s3;
                                                                                                                                                                                    QUERY PLAN                                                                                                                                                                                   
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=104)
+ Foreign Scan  (cost=100.00..144.19 rows=1 width=104)
    Output: (((influx_max('/value[1,4]/'::text)))::s3)."time", (((influx_max('/value[1,4]/'::text)))::s3).tag1, (((influx_max('/value[1,4]/'::text)))::s3).value1, (((influx_max('/value[1,4]/'::text)))::s3).value2, (((influx_max('/value[1,4]/'::text)))::s3).value3, (((influx_max('/value[1,4]/'::text)))::s3).value4, (((influx_max('/value[1,4]/'::text)))::s3).__spd_url
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6407,7 +6430,7 @@ EXPLAIN VERBOSE
 SELECT influx_min_all(*) from s3;
                               QUERY PLAN                              
 ----------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (influx_min_all(*))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6429,7 +6452,7 @@ EXPLAIN VERBOSE
 SELECT influx_min_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                       QUERY PLAN                                                                                                                                       
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (influx_min_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6460,7 +6483,7 @@ EXPLAIN VERBOSE
 SELECT influx_min_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                             QUERY PLAN                                                                                                             
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=100.04..161.72 rows=1 width=64)
    Output: (influx_min_all(*)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6483,7 +6506,7 @@ EXPLAIN VERBOSE
 SELECT (influx_min_all(*)::s3).* from s3;
                                                                                                                               QUERY PLAN                                                                                                                               
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=104)
+ Foreign Scan  (cost=100.00..144.19 rows=1 width=104)
    Output: (((influx_min_all(*)))::s3)."time", (((influx_min_all(*)))::s3).tag1, (((influx_min_all(*)))::s3).value1, (((influx_min_all(*)))::s3).value2, (((influx_min_all(*)))::s3).value3, (((influx_min_all(*)))::s3).value4, (((influx_min_all(*)))::s3).__spd_url
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6505,7 +6528,7 @@ EXPLAIN VERBOSE
 SELECT influx_min('/value[1,4]/') from s3;
                                      QUERY PLAN                                      
 -------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (influx_min('/value[1,4]/'::text))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6527,7 +6550,7 @@ EXPLAIN VERBOSE
 SELECT influx_min('/^v.*/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                            QUERY PLAN                                                                                                                                           
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (influx_min('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6558,7 +6581,7 @@ EXPLAIN VERBOSE
 SELECT influx_min('/value[1,4]/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                     QUERY PLAN                                                                                                                    
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=100.04..161.72 rows=1 width=64)
    Output: (influx_min('/value[1,4]/'::text)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6581,7 +6604,7 @@ EXPLAIN VERBOSE
 SELECT (influx_min('/value[1,4]/')::s3).* from s3;
                                                                                                                                                                                    QUERY PLAN                                                                                                                                                                                   
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=104)
+ Foreign Scan  (cost=100.00..144.19 rows=1 width=104)
    Output: (((influx_min('/value[1,4]/'::text)))::s3)."time", (((influx_min('/value[1,4]/'::text)))::s3).tag1, (((influx_min('/value[1,4]/'::text)))::s3).value1, (((influx_min('/value[1,4]/'::text)))::s3).value2, (((influx_min('/value[1,4]/'::text)))::s3).value3, (((influx_min('/value[1,4]/'::text)))::s3).value4, (((influx_min('/value[1,4]/'::text)))::s3).__spd_url
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6683,7 +6706,7 @@ EXPLAIN VERBOSE
 SELECT percentile_all(50) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                        QUERY PLAN                                                                                                                                       
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=72)
+ Foreign Scan  (cost=100.08..170.29 rows=0 width=72)
    Output: (percentile_all(50)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6714,7 +6737,7 @@ EXPLAIN VERBOSE
 SELECT percentile_all(70.5) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                                  QUERY PLAN                                                                                                                                                 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=72)
+ Foreign Scan  (cost=100.08..170.29 rows=0 width=72)
    Output: (percentile_all('70.5'::double precision)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6745,7 +6768,7 @@ EXPLAIN VERBOSE
 SELECT percentile_all(50) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                              QUERY PLAN                                                                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (percentile_all(50)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6768,7 +6791,7 @@ EXPLAIN VERBOSE
 SELECT percentile_all(70.5) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                        QUERY PLAN                                                                                                                       
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (percentile_all('70.5'::double precision)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6851,7 +6874,7 @@ EXPLAIN VERBOSE
 SELECT percentile('/^v.*/', 50) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                              QUERY PLAN                                                                                                                                             
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=72)
+ Foreign Scan  (cost=100.08..170.29 rows=0 width=72)
    Output: (percentile('/^v.*/'::text, 50)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -6882,7 +6905,7 @@ EXPLAIN VERBOSE
 SELECT percentile('/value[1,4]/', 70.5) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                                 QUERY PLAN                                                                                                                                
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (percentile('/value[1,4]/'::text, '70.5'::double precision)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -7078,7 +7101,7 @@ EXPLAIN VERBOSE
 SELECT sum(value3),acos(sum(value3)) FROM s3;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=16)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=16)
    Output: (sum(value3)), (acos(sum(value3)))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -7148,16 +7171,14 @@ SELECT acos(value3), pi(), 4.1 FROM s3;
 --Testcase 612:
 EXPLAIN VERBOSE
 SELECT value1, acos(1-value1) FROM s3 order by acos(1-value1);
-                                           QUERY PLAN                                           
-------------------------------------------------------------------------------------------------
- Sort  (cost=429.74..438.28 rows=3413 width=16)
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=0.00..0.01 rows=1 width=16)
    Output: value1, (acos(('1'::double precision - value1)))
-   Sort Key: (acos(('1'::double precision - s3.value1)))
-   ->  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=16)
-         Output: value1, (acos(('1'::double precision - value1)))
-         Node: pgspider_svr / Status: Alive
-           Remote SQL: SELECT value1, acos((1::double precision - value1)) FROM public.s3influx
-(7 rows)
+   Node: pgspider_svr / Status: Alive
+     Sort push-down: yes
+     Remote SQL: SELECT value1, acos((1::double precision - value1)) FROM public.s3influx ORDER BY acos((1::double precision - value1)) ASC NULLS LAST
+(5 rows)
 
 -- select acos with order by (result)
 --Testcase 613:
@@ -7242,7 +7263,7 @@ EXPLAIN VERBOSE
 SELECT acos_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                          QUERY PLAN                                                                                                         
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (acos_all()), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -7363,7 +7384,7 @@ EXPLAIN VERBOSE
 SELECT sum(value3),asin(sum(value3)) FROM s3;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=16)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=16)
    Output: (sum(value3)), (asin(sum(value3)))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -7433,16 +7454,14 @@ SELECT asin(value3), pi(), 4.1 FROM s3;
 --Testcase 635:
 EXPLAIN VERBOSE
 SELECT value1, asin(1-value1) FROM s3 order by asin(1-value1);
-                                           QUERY PLAN                                           
-------------------------------------------------------------------------------------------------
- Sort  (cost=429.74..438.28 rows=3413 width=16)
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=0.00..0.01 rows=1 width=16)
    Output: value1, (asin(('1'::double precision - value1)))
-   Sort Key: (asin(('1'::double precision - s3.value1)))
-   ->  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=16)
-         Output: value1, (asin(('1'::double precision - value1)))
-         Node: pgspider_svr / Status: Alive
-           Remote SQL: SELECT value1, asin((1::double precision - value1)) FROM public.s3influx
-(7 rows)
+   Node: pgspider_svr / Status: Alive
+     Sort push-down: yes
+     Remote SQL: SELECT value1, asin((1::double precision - value1)) FROM public.s3influx ORDER BY asin((1::double precision - value1)) ASC NULLS LAST
+(5 rows)
 
 -- select asin with order by (result)
 --Testcase 636:
@@ -7527,7 +7546,7 @@ EXPLAIN VERBOSE
 SELECT asin_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                          QUERY PLAN                                                                                                         
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (asin_all()), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -7648,7 +7667,7 @@ EXPLAIN VERBOSE
 SELECT sum(value3),atan(sum(value3)) FROM s3;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=16)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=16)
    Output: (sum(value3)), (atan(sum(value3)))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -7718,16 +7737,14 @@ SELECT atan(value3), pi(), 4.1 FROM s3;
 --Testcase 658:
 EXPLAIN VERBOSE
 SELECT value1, atan(1-value1) FROM s3 order by atan(1-value1);
-                                           QUERY PLAN                                           
-------------------------------------------------------------------------------------------------
- Sort  (cost=429.74..438.28 rows=3413 width=16)
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=0.00..0.01 rows=1 width=16)
    Output: value1, (atan(('1'::double precision - value1)))
-   Sort Key: (atan(('1'::double precision - s3.value1)))
-   ->  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=16)
-         Output: value1, (atan(('1'::double precision - value1)))
-         Node: pgspider_svr / Status: Alive
-           Remote SQL: SELECT value1, atan((1::double precision - value1)) FROM public.s3influx
-(7 rows)
+   Node: pgspider_svr / Status: Alive
+     Sort push-down: yes
+     Remote SQL: SELECT value1, atan((1::double precision - value1)) FROM public.s3influx ORDER BY atan((1::double precision - value1)) ASC NULLS LAST
+(5 rows)
 
 -- select atan with order by (result)
 --Testcase 659:
@@ -7812,7 +7829,7 @@ EXPLAIN VERBOSE
 SELECT atan_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                          QUERY PLAN                                                                                                         
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (atan_all()), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -7931,7 +7948,7 @@ EXPLAIN VERBOSE
 SELECT sum(value3), sum(value4),atan2(sum(value3), sum(value3)) FROM s3;
                                               QUERY PLAN                                               
 -------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=48)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=48)
    Output: (sum(value3)), (sum(value4)), (atan2(sum(value3), sum(value3)))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -8001,16 +8018,14 @@ SELECT atan2(value3, value4), pi(), 4.1 FROM s3;
 --Testcase 681:
 EXPLAIN VERBOSE
 SELECT value1, atan2(1-value1, 1-value2) FROM s3 order by atan2(1-value1, 1-value2);
-                                                  QUERY PLAN                                                   
----------------------------------------------------------------------------------------------------------------
- Sort  (cost=446.81..455.34 rows=3413 width=16)
+                                                                                     QUERY PLAN                                                                                      
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=0.00..0.01 rows=1 width=16)
    Output: value1, (atan2(('1'::double precision - value1), ((1 - value2))::double precision))
-   Sort Key: (atan2(('1'::double precision - s3.value1), ((1 - s3.value2))::double precision))
-   ->  Foreign Scan on public.s3  (cost=100.00..246.52 rows=3413 width=16)
-         Output: value1, (atan2(('1'::double precision - value1), ((1 - value2))::double precision))
-         Node: pgspider_svr / Status: Alive
-           Remote SQL: SELECT value1, atan2((1::double precision - value1), (1 - value2)) FROM public.s3influx
-(7 rows)
+   Node: pgspider_svr / Status: Alive
+     Sort push-down: yes
+     Remote SQL: SELECT value1, atan2((1::double precision - value1), (1 - value2)) FROM public.s3influx ORDER BY atan2((1::double precision - value1), (1 - value2)) ASC NULLS LAST
+(5 rows)
 
 -- select atan2 with order by (result)
 --Testcase 682:
@@ -8165,7 +8180,7 @@ EXPLAIN VERBOSE
 SELECT sum(value3),ceil(sum(value3)) FROM s3;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=16)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=16)
    Output: (sum(value3)), (ceil(sum(value3)))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -8235,16 +8250,14 @@ SELECT ceil(value3), pi(), 4.1 FROM s3;
 --Testcase 700:
 EXPLAIN VERBOSE
 SELECT value1, ceil(1-value1) FROM s3 order by ceil(1-value1);
-                                           QUERY PLAN                                           
-------------------------------------------------------------------------------------------------
- Sort  (cost=429.74..438.28 rows=3413 width=16)
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=0.00..0.01 rows=1 width=16)
    Output: value1, (ceil(('1'::double precision - value1)))
-   Sort Key: (ceil(('1'::double precision - s3.value1)))
-   ->  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=16)
-         Output: value1, (ceil(('1'::double precision - value1)))
-         Node: pgspider_svr / Status: Alive
-           Remote SQL: SELECT value1, ceil((1::double precision - value1)) FROM public.s3influx
-(7 rows)
+   Node: pgspider_svr / Status: Alive
+     Sort push-down: yes
+     Remote SQL: SELECT value1, ceil((1::double precision - value1)) FROM public.s3influx ORDER BY ceil((1::double precision - value1)) ASC NULLS LAST
+(5 rows)
 
 -- select ceil with order by (result)
 --Testcase 701:
@@ -8329,7 +8342,7 @@ EXPLAIN VERBOSE
 SELECT ceil_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                          QUERY PLAN                                                                                                         
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (ceil_all()), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -8450,7 +8463,7 @@ EXPLAIN VERBOSE
 SELECT sum(value3),cos(sum(value3)) FROM s3;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=16)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=16)
    Output: (sum(value3)), (cos(sum(value3)))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -8520,16 +8533,14 @@ SELECT cos(value3), pi(), 4.1 FROM s3;
 --Testcase 723:
 EXPLAIN VERBOSE
 SELECT value1, cos(1-value1) FROM s3 order by cos(1-value1);
-                                          QUERY PLAN                                           
------------------------------------------------------------------------------------------------
- Sort  (cost=429.74..438.28 rows=3413 width=16)
+                                                                     QUERY PLAN                                                                      
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=0.00..0.01 rows=1 width=16)
    Output: value1, (cos(('1'::double precision - value1)))
-   Sort Key: (cos(('1'::double precision - s3.value1)))
-   ->  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=16)
-         Output: value1, (cos(('1'::double precision - value1)))
-         Node: pgspider_svr / Status: Alive
-           Remote SQL: SELECT value1, cos((1::double precision - value1)) FROM public.s3influx
-(7 rows)
+   Node: pgspider_svr / Status: Alive
+     Sort push-down: yes
+     Remote SQL: SELECT value1, cos((1::double precision - value1)) FROM public.s3influx ORDER BY cos((1::double precision - value1)) ASC NULLS LAST
+(5 rows)
 
 -- select cos with order by (result)
 --Testcase 724:
@@ -8614,7 +8625,7 @@ EXPLAIN VERBOSE
 SELECT cos_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                         QUERY PLAN                                                                                                         
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (cos_all()), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -8710,7 +8721,7 @@ EXPLAIN VERBOSE
 SELECT sum(value3),exp(sum(value3)) FROM s3;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=16)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=16)
    Output: (sum(value3)), (exp(sum(value3)))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -8780,16 +8791,14 @@ SELECT exp(value3), pi(), 4.1 FROM s3;
 --Testcase 744:
 EXPLAIN VERBOSE
 SELECT value1, exp(1-value1) FROM s3 order by exp(1-value1);
-                                          QUERY PLAN                                           
------------------------------------------------------------------------------------------------
- Sort  (cost=429.74..438.28 rows=3413 width=16)
+                                                                     QUERY PLAN                                                                      
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=0.00..0.01 rows=1 width=16)
    Output: value1, (exp(('1'::double precision - value1)))
-   Sort Key: (exp(('1'::double precision - s3.value1)))
-   ->  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=16)
-         Output: value1, (exp(('1'::double precision - value1)))
-         Node: pgspider_svr / Status: Alive
-           Remote SQL: SELECT value1, exp((1::double precision - value1)) FROM public.s3influx
-(7 rows)
+   Node: pgspider_svr / Status: Alive
+     Sort push-down: yes
+     Remote SQL: SELECT value1, exp((1::double precision - value1)) FROM public.s3influx ORDER BY exp((1::double precision - value1)) ASC NULLS LAST
+(5 rows)
 
 -- select exp with order by (result)
 --Testcase 745:
@@ -8874,7 +8883,7 @@ EXPLAIN VERBOSE
 SELECT exp_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                         QUERY PLAN                                                                                                         
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (exp_all()), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -8981,7 +8990,7 @@ EXPLAIN VERBOSE
 SELECT sum(value3),floor(sum(value3)) FROM s3;
                                  QUERY PLAN                                  
 -----------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=16)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=16)
    Output: (sum(value3)), (floor(sum(value3)))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -9051,16 +9060,14 @@ SELECT floor(value3), pi(), 4.1 FROM s3;
 --Testcase 766:
 EXPLAIN VERBOSE
 SELECT value1, floor(1-value1) FROM s3 order by floor(1-value1);
-                                           QUERY PLAN                                            
--------------------------------------------------------------------------------------------------
- Sort  (cost=429.74..438.28 rows=3413 width=16)
+                                                                       QUERY PLAN                                                                        
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=0.00..0.01 rows=1 width=16)
    Output: value1, (floor(('1'::double precision - value1)))
-   Sort Key: (floor(('1'::double precision - s3.value1)))
-   ->  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=16)
-         Output: value1, (floor(('1'::double precision - value1)))
-         Node: pgspider_svr / Status: Alive
-           Remote SQL: SELECT value1, floor((1::double precision - value1)) FROM public.s3influx
-(7 rows)
+   Node: pgspider_svr / Status: Alive
+     Sort push-down: yes
+     Remote SQL: SELECT value1, floor((1::double precision - value1)) FROM public.s3influx ORDER BY floor((1::double precision - value1)) ASC NULLS LAST
+(5 rows)
 
 -- select floor with order by (result)
 --Testcase 767:
@@ -9145,7 +9152,7 @@ EXPLAIN VERBOSE
 SELECT floor_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                          QUERY PLAN                                                                                                          
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (floor_all()), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -9266,7 +9273,7 @@ EXPLAIN VERBOSE
 SELECT sum(value3),ln(sum(value3)) FROM s3;
                                 QUERY PLAN                                
 --------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=16)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=16)
    Output: (sum(value3)), (ln(sum(value3)))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -9336,16 +9343,14 @@ SELECT ln(value3), pi(), 4.1 FROM s3;
 --Testcase 789:
 EXPLAIN VERBOSE
 SELECT value1, ln(1-value1) FROM s3 order by ln(1-value1);
-                                          QUERY PLAN                                          
-----------------------------------------------------------------------------------------------
- Sort  (cost=429.74..438.28 rows=3413 width=16)
+                                                                    QUERY PLAN                                                                     
+---------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=0.00..0.01 rows=1 width=16)
    Output: value1, (ln(('1'::double precision - value1)))
-   Sort Key: (ln(('1'::double precision - s3.value1)))
-   ->  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=16)
-         Output: value1, (ln(('1'::double precision - value1)))
-         Node: pgspider_svr / Status: Alive
-           Remote SQL: SELECT value1, ln((1::double precision - value1)) FROM public.s3influx
-(7 rows)
+   Node: pgspider_svr / Status: Alive
+     Sort push-down: yes
+     Remote SQL: SELECT value1, ln((1::double precision - value1)) FROM public.s3influx ORDER BY ln((1::double precision - value1)) ASC NULLS LAST
+(5 rows)
 
 -- select ln with order by (result)
 --Testcase 790:
@@ -9430,7 +9435,7 @@ EXPLAIN VERBOSE
 SELECT ln_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                         QUERY PLAN                                                                                                        
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (ln_all()), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -9537,7 +9542,7 @@ EXPLAIN VERBOSE
 SELECT sum(value3),pow(sum(value3), 2) FROM s3;
                                            QUERY PLAN                                           
 ------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=16)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=16)
    Output: (sum(value3)), (pow(sum(value3), '2'::double precision))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -9607,16 +9612,14 @@ SELECT pow(value3, 2), pi(), 4.1 FROM s3;
 --Testcase 811:
 EXPLAIN VERBOSE
 SELECT value1, pow(1-value1, 2) FROM s3 order by pow(1-value1, 2);
-                                                     QUERY PLAN                                                     
---------------------------------------------------------------------------------------------------------------------
- Sort  (cost=429.74..438.28 rows=3413 width=16)
+                                                                                          QUERY PLAN                                                                                           
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=0.00..0.01 rows=1 width=16)
    Output: value1, (pow(('1'::double precision - value1), '2'::double precision))
-   Sort Key: (pow(('1'::double precision - s3.value1), '2'::double precision))
-   ->  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=16)
-         Output: value1, (pow(('1'::double precision - value1), '2'::double precision))
-         Node: pgspider_svr / Status: Alive
-           Remote SQL: SELECT value1, pow((1::double precision - value1), 2::double precision) FROM public.s3influx
-(7 rows)
+   Node: pgspider_svr / Status: Alive
+     Sort push-down: yes
+     Remote SQL: SELECT value1, pow((1::double precision - value1), 2::double precision) FROM public.s3influx ORDER BY pow((1::double precision - value1), 2::double precision) ASC NULLS LAST
+(5 rows)
 
 -- select pow with order by (result)
 --Testcase 812:
@@ -9701,7 +9704,7 @@ EXPLAIN VERBOSE
 SELECT pow_all(2) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                          QUERY PLAN                                                                                                         
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (pow_all(2)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -9822,7 +9825,7 @@ EXPLAIN VERBOSE
 SELECT sum(value3),round(sum(value3)) FROM s3;
                                  QUERY PLAN                                  
 -----------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=16)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=16)
    Output: (sum(value3)), (round(sum(value3)))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -9892,16 +9895,14 @@ SELECT round(value3), pi(), 4.1 FROM s3;
 --Testcase 834:
 EXPLAIN VERBOSE
 SELECT value1, round(1-value1) FROM s3 order by round(1-value1);
-                                           QUERY PLAN                                            
--------------------------------------------------------------------------------------------------
- Sort  (cost=429.74..438.28 rows=3413 width=16)
+                                                                       QUERY PLAN                                                                        
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=0.00..0.01 rows=1 width=16)
    Output: value1, (round(('1'::double precision - value1)))
-   Sort Key: (round(('1'::double precision - s3.value1)))
-   ->  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=16)
-         Output: value1, (round(('1'::double precision - value1)))
-         Node: pgspider_svr / Status: Alive
-           Remote SQL: SELECT value1, round((1::double precision - value1)) FROM public.s3influx
-(7 rows)
+   Node: pgspider_svr / Status: Alive
+     Sort push-down: yes
+     Remote SQL: SELECT value1, round((1::double precision - value1)) FROM public.s3influx ORDER BY round((1::double precision - value1)) ASC NULLS LAST
+(5 rows)
 
 -- select round with order by (result)
 --Testcase 835:
@@ -9986,7 +9987,7 @@ EXPLAIN VERBOSE
 SELECT round_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                          QUERY PLAN                                                                                                          
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (round_all()), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -10107,7 +10108,7 @@ EXPLAIN VERBOSE
 SELECT sum(value3),sin(sum(value3)) FROM s3;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=16)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=16)
    Output: (sum(value3)), (sin(sum(value3)))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -10177,16 +10178,14 @@ SELECT sin(value3), pi(), 4.1 FROM s3;
 --Testcase 857:
 EXPLAIN VERBOSE
 SELECT value1, sin(1-value1) FROM s3 order by sin(1-value1);
-                                          QUERY PLAN                                           
------------------------------------------------------------------------------------------------
- Sort  (cost=429.74..438.28 rows=3413 width=16)
+                                                                     QUERY PLAN                                                                      
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=0.00..0.01 rows=1 width=16)
    Output: value1, (sin(('1'::double precision - value1)))
-   Sort Key: (sin(('1'::double precision - s3.value1)))
-   ->  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=16)
-         Output: value1, (sin(('1'::double precision - value1)))
-         Node: pgspider_svr / Status: Alive
-           Remote SQL: SELECT value1, sin((1::double precision - value1)) FROM public.s3influx
-(7 rows)
+   Node: pgspider_svr / Status: Alive
+     Sort push-down: yes
+     Remote SQL: SELECT value1, sin((1::double precision - value1)) FROM public.s3influx ORDER BY sin((1::double precision - value1)) ASC NULLS LAST
+(5 rows)
 
 -- select sin with order by (result)
 --Testcase 858:
@@ -10271,7 +10270,7 @@ EXPLAIN VERBOSE
 SELECT sin_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                         QUERY PLAN                                                                                                         
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (sin_all()), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -10367,7 +10366,7 @@ EXPLAIN VERBOSE
 SELECT sum(value3),tan(sum(value3)) FROM s3;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=16)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=16)
    Output: (sum(value3)), (tan(sum(value3)))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -10437,16 +10436,14 @@ SELECT tan(value3), pi(), 4.1 FROM s3;
 --Testcase 878:
 EXPLAIN VERBOSE
 SELECT value1, tan(1-value1) FROM s3 order by tan(1-value1);
-                                          QUERY PLAN                                           
------------------------------------------------------------------------------------------------
- Sort  (cost=429.74..438.28 rows=3413 width=16)
+                                                                     QUERY PLAN                                                                      
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=0.00..0.01 rows=1 width=16)
    Output: value1, (tan(('1'::double precision - value1)))
-   Sort Key: (tan(('1'::double precision - s3.value1)))
-   ->  Foreign Scan on public.s3  (cost=100.00..229.45 rows=3413 width=16)
-         Output: value1, (tan(('1'::double precision - value1)))
-         Node: pgspider_svr / Status: Alive
-           Remote SQL: SELECT value1, tan((1::double precision - value1)) FROM public.s3influx
-(7 rows)
+   Node: pgspider_svr / Status: Alive
+     Sort push-down: yes
+     Remote SQL: SELECT value1, tan((1::double precision - value1)) FROM public.s3influx ORDER BY tan((1::double precision - value1)) ASC NULLS LAST
+(5 rows)
 
 -- select tan with order by (result)
 --Testcase 879:
@@ -10531,7 +10528,7 @@ EXPLAIN VERBOSE
 SELECT tan_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                         QUERY PLAN                                                                                                         
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=0 width=64)
+ Foreign Scan  (cost=100.04..165.72 rows=0 width=64)
    Output: (tan_all()), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -10568,7 +10565,7 @@ EXPLAIN VERBOSE
 SELECT holt_winters(min(value1), 5, 1) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s');
                                                                                                                                          QUERY PLAN                                                                                                                                         
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=16)
+ Foreign Scan  (cost=100.04..169.72 rows=1 width=16)
    Output: (holt_winters(min(value1), 5, 1)), (influx_time("time", '@ 1 sec'::interval))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -10594,7 +10591,7 @@ EXPLAIN VERBOSE
 SELECT holt_winters_with_fit(min(value1), 5, 1) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s');
                                                                                                                                              QUERY PLAN                                                                                                                                              
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=16)
+ Foreign Scan  (cost=100.04..169.72 rows=1 width=16)
    Output: (holt_winters_with_fit(min(value1), 5, 1)), (influx_time("time", '@ 1 sec'::interval))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -10625,7 +10622,7 @@ EXPLAIN VERBOSE
 SELECT influx_count_all(*) FROM s3;
                                QUERY PLAN                               
 ------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=32)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (influx_count_all(*))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -10647,7 +10644,7 @@ EXPLAIN VERBOSE
 SELECT influx_count_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                        QUERY PLAN                                                                                                                                        
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=72)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (influx_count_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -10678,7 +10675,7 @@ EXPLAIN VERBOSE
 SELECT influx_count_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                              QUERY PLAN                                                                                                              
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=64)
+ Foreign Scan  (cost=100.04..161.72 rows=1 width=64)
    Output: (influx_count_all(*)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -10699,28 +10696,34 @@ SELECT influx_count_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_
 --Testcase 898:
 EXPLAIN VERBOSE
 SELECT influx_count_all(*) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-                                                                                   QUERY PLAN                                                                                   
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=72.25..72.26 rows=1 width=32)
-   Output: influx_count_all(*)
-   ->  Foreign Scan  (cost=0.00..0.00 rows=289 width=0)
-         Node: pgspider_svr / Status: Alive
-           Relations: (public.s3 t1) INNER JOIN (public.s3 t2)
-           Remote SQL: SELECT NULL FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+                                                                                           QUERY PLAN                                                                                           
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan  (cost=100.00..206.80 rows=1 width=32)
+   Output: (influx_count_all(*))
+   Node: pgspider_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on ((public.s3 t1) INNER JOIN (public.s3 t2))
+     Remote SQL: SELECT public.influx_count_all(*) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
 (6 rows)
 
 -- select count(*) function of InfluxDB over join query (result, stub call error)
 --Testcase 899:
 SELECT influx_count_all(*) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
+ERROR:  pgspider_fdw fail to get tuples from child process
+{
 ERROR:  stub influx_count_all_sfunc(text) is called
-CONTEXT:  PL/pgSQL function influx_count_all_sfunc(text) line 3 at RAISE
+CONTEXT:  PL/pgSQL function public.influx_count_all_sfunc(text) line 3 at RAISE
+}
+CONTEXT:  remote SQL command: SELECT public.influx_count_all(*) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+
+ERROR:  PGSpider fail to iterate tuple from child thread
 -- select distinct (stub agg function, explain)
 --Testcase 900:
 EXPLAIN VERBOSE
 SELECT influx_distinct(value1) FROM s3;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=8)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=8)
    Output: (influx_distinct(value1))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -10747,7 +10750,7 @@ EXPLAIN VERBOSE
 SELECT influx_distinct(value1), influx_time(time, interval '1s'),tag1 FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
                                                                                                                                          QUERY PLAN                                                                                                                                          
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=48)
+ Foreign Scan  (cost=100.08..166.04 rows=1 width=48)
    Output: (influx_distinct(value1)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -10773,7 +10776,7 @@ EXPLAIN VERBOSE
 SELECT influx_distinct(value2) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY tag1;
                                                                                                                QUERY PLAN                                                                                                                
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=40)
+ Foreign Scan  (cost=100.04..161.72 rows=1 width=40)
    Output: (influx_distinct(value2)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
@@ -10794,29 +10797,34 @@ SELECT influx_distinct(value2) FROM s3 WHERE time >= to_timestamp(0) and time <=
 --Testcase 906:
 EXPLAIN VERBOSE
 SELECT influx_distinct(t1.value2) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-                                                                                     QUERY PLAN                                                                                      
--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=72.25..72.26 rows=1 width=8)
-   Output: influx_distinct(t1.value2)
-   ->  Foreign Scan  (cost=0.00..0.00 rows=289 width=8)
-         Output: t1.value2
-         Node: pgspider_svr / Status: Alive
-           Relations: (public.s3 t1) INNER JOIN (public.s3 t2)
-           Remote SQL: SELECT r1.value2 FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
-(7 rows)
+                                                                                              QUERY PLAN                                                                                               
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan  (cost=100.00..206.80 rows=1 width=8)
+   Output: (influx_distinct(t1.value2))
+   Node: pgspider_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on ((public.s3 t1) INNER JOIN (public.s3 t2))
+     Remote SQL: SELECT public.influx_distinct(r1.value2) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+(6 rows)
 
 -- select distinct over join query (result, stub call error)
 --Testcase 907:
 SELECT influx_distinct(t1.value2) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
+ERROR:  pgspider_fdw fail to get tuples from child process
+{
 ERROR:  stub influx_distinct_sfunc(anyelement, anyelement) is called
-CONTEXT:  PL/pgSQL function influx_distinct_sfunc(anyelement,anyelement) line 3 at RAISE
+CONTEXT:  PL/pgSQL function public.influx_distinct_sfunc(anyelement,anyelement) line 3 at RAISE
+}
+CONTEXT:  remote SQL command: SELECT public.influx_distinct(r1.value2) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+
+ERROR:  PGSpider fail to iterate tuple from child thread
 -- select distinct with having (explain)
 --Testcase 908:
 EXPLAIN VERBOSE
 SELECT influx_distinct(value2) FROM s3 HAVING influx_distinct(value2) > 100;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- Foreign Scan  (cost=0.00..0.00 rows=1 width=8)
+ Foreign Scan  (cost=100.00..144.16 rows=1 width=8)
    Output: (influx_distinct(value2))
    Filter: ((influx_distinct(s3.value2)) > 100)
    Node: pgspider_svr / Status: Alive

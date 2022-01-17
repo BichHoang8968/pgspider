@@ -1,0 +1,19 @@
+DROP DATABASE IF EXISTS limit_orderby;
+CREATE DATABASE limit_orderby;
+USE limit_orderby;
+SET time_zone ='+00:00';
+
+DROP TABLE IF EXISTS tbl01;
+
+CREATE TABLE tbl01 (c1 mediumtext, c2 text, c3 longtext, c4 int, c5 float, c6 tinyint, c7 varchar(255), c8 bigint, c9 double, c10 tinyint, c11 timestamp);
+INSERT INTO tbl01 VALUES ('敷ヘカウ告政ヨハツヤ消70者32精楽ざ', '0123456789', 'abcdefghijklmnopqrstuvwxyzABCD', 16767, 10000000.12345, 0, '"' , 7483647, -2.22E-108 , -127, '2030-01-19 03:14:07');
+INSERT INTO tbl01 VALUES ('5697a8a9889a65aaab', 'いろはにほへど', 'べ員葉コ番告7次ノヌ従援かやじり図安ヨ', 16, 332.12345, 1, '\''' , 23891212, -2.23E-10 , -1, '1979-01-01 00:00:01');
+INSERT INTO tbl01 VALUES ('66a7a8a9889a65aaabacad', 'ぬるをわがよたれぞ', 'กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ', 0, 2535.12345, 0, '\''' , 91282, -1.7E+108 , 0, '1980-01-01 00:00:01');
+INSERT INTO tbl01 VALUES ('友達と会うので遅刻した Ông là n', 'กขฃคฅฆงจฉชซฌ', '`~!@#$%^&*()_+=-{}[]|:;<>?/.', 22, 1565.12345, 20, '@' , -1298912839, 46545 , -12, '2021-05-06 01:59:15');
+INSERT INTO tbl01 VALUES ('`~!@#$%^&*()_+=-{}[]|:;<>?/.', 'ญฎฏฐฑฒณ', '常ならむ有為の奥山今日越えて浅き夢見', 2, 43523.3, 22, '\\' , -129123, 0 , 65, '2022-05-06 01:59:15');
+INSERT INTO tbl01 VALUES ('Guinea-Bissau Honduras M', '`~!@#$%^&*()_+=-{}[]|', 'живетезелоземляиижеикаколюди', -12, 23.35235235, 0, 'べ員葉コ番告7次ノヌ従援かやじり図安ヨ' , 0, 24545 , 2, '2023-05-06 01:59:15');
+INSERT INTO tbl01 VALUES ('Madagascar Malaysia Bosn', ':;<>?/.', 'Côte d''Ivoire Fiji', -22, 0.22223, 0, 'Which' , 12, -2.22E-108 , 15, '2023-05-06 01:59:15');
+INSERT INTO tbl01 VALUES ('Change our locale from $ to ¥ in', '従援かやじり図安', 'Ireland Iran (Islamic Republic', -27, 13123.122, 0, 'いろはにほへど　ちりぬるをわがよたれぞ' , 0, 245 ,21, '2024-05-06 01:59:15');
+INSERT INTO tbl01 VALUES ('Georgia Germany Micrones', 'jumpsoverthelazydog', 'Canada Denmark Turkey Yemen Tokyo', 222212, -10000000.12345, 0, 'from $ to ¥' , 1232, -0.2 , 1, '2025-05-06 01:59:15');
+INSERT INTO tbl01 VALUES ('d627a8a9889a65aaabacadaeaf', 'ăâđêôơư', 'In Bulgarian it is desirable', 16713, -1293.1, 0, '$' , 12, -1.08 , 27, '2030-01-19 03:14:07');
+INSERT INTO tbl01 VALUES ('abcdefghijklmnopqr', 'đêdờenờíìờẹ', 'Which started out as a kind', 21231, 10023.123, 0, 'out as a kind' , 132312, -28 , -4, '2030-01-19 03:14:07');

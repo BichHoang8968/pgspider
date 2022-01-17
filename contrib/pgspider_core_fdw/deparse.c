@@ -270,6 +270,10 @@ foreign_expr_walker(Node *node,
 				char	   *colname;
 				RangeTblEntry *rte;
 
+				/* The case of whole row. */
+				if (var->varattno == 0)
+					return false;
+
 				rte = planner_rt_fetch(var->varno, glob_cxt->root);
 				colname = get_attname(rte->relid, var->varattno, false);
 
@@ -293,7 +297,7 @@ foreign_expr_walker(Node *node,
 				 */
 				if (aggref->aggdistinct != NIL)
 				{
-					if (glob_cxt->node_num > 1)
+					if (IS_SPD_MULTI_NODES(glob_cxt->node_num))
 					{
 						return false;
 					}
@@ -347,7 +351,7 @@ foreign_expr_walker(Node *node,
 					strcmp(funcname, "json_object_agg") == 0 ||
 					strcmp(funcname, "jsonb_object_agg") == 0)
 				{
-					if (glob_cxt->node_num > 1)
+					if (IS_SPD_MULTI_NODES(glob_cxt->node_num))
 						return false;
 				}
 				if (strcmp(funcname, "string_agg") == 0 ||
@@ -373,7 +377,7 @@ foreign_expr_walker(Node *node,
 							return false;
 					}
 				}
-				if (glob_cxt->node_num > 1)
+				if (IS_SPD_MULTI_NODES(glob_cxt->node_num))
 				{
 					/*
 					 * Do not push down specific stub aggregate function for
@@ -416,7 +420,7 @@ foreign_expr_walker(Node *node,
 				 * InfluxDB, pushdown function expression. Otherwise not
 				 * pushdown.
 				 */
-				if ((func->funcformat == COERCE_EXPLICIT_CALL) && (glob_cxt->node_num > 1))
+				if ((func->funcformat == COERCE_EXPLICIT_CALL) && IS_SPD_MULTI_NODES(glob_cxt->node_num))
 				{
 					if (!spd_is_stub_star_regex_function((Expr *) node))
 						return false;
@@ -462,7 +466,7 @@ foreign_expr_walker(Node *node,
 				/*
 				 * Do not allow to push down when there are multiple nodes
 				 */
-				if (glob_cxt->node_num > 1)
+				if (IS_SPD_MULTI_NODES(glob_cxt->node_num))
 					return false;
 				break;
 			}
@@ -966,4 +970,69 @@ spd_is_record_func(List *tlist)
 	}
 
 	return false;
+}
+
+/* Examine each qual clause in input_conds, and classify them into two groups,
+ * which are returned as two lists:
+ *	- remote_conds contains expressions that can be evaluated remotely
+ *	- local_conds contains expressions that can't be evaluated remotely
+ */
+void
+spd_classifyConditions(PlannerInfo *root,
+						RelOptInfo *baserel,
+						List *input_conds,
+						List **remote_conds,
+						List **local_conds)
+{
+	ListCell   *lc;
+
+	*remote_conds = NIL;
+	*local_conds = NIL;
+
+	foreach(lc, input_conds)
+	{
+		RestrictInfo *clause = (RestrictInfo *) lfirst(lc);
+		Expr	   *expr = (Expr *) clause->clause;
+
+		if (spd_expr_has_spdurl(root, (Node *) expr, NULL))
+		{
+			/*
+			 * If it contains SPDURL, we append it to local_conds list.
+			 * upper relation uses local_conds will be used to check whether it is safe or not.
+			 */
+			*local_conds = lappend(*local_conds, clause);
+		}
+		else
+		{
+			/* If it does not contain SPDURL, we append it to remote_conds list. */
+			*remote_conds = lappend(*remote_conds, clause);
+		}
+	}
+}
+
+/* Output join name for given join type */
+const char *
+spd_get_jointype_name(JoinType jointype)
+{
+	switch (jointype)
+	{
+		case JOIN_INNER:
+			return "INNER";
+
+		case JOIN_LEFT:
+			return "LEFT";
+
+		case JOIN_RIGHT:
+			return "RIGHT";
+
+		case JOIN_FULL:
+			return "FULL";
+
+		default:
+			/* Shouldn't come here, but protect from buggy code. */
+			elog(ERROR, "unsupported join type %d", jointype);
+	}
+
+	/* Keep compiler happy */
+	return NULL;
 }
