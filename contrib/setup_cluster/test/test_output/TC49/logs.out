@@ -1,0 +1,5 @@
+File:install_main.c Function:main L:1636 Msg:Error: Can not open file ./node_structure.json 
+Config directory: ./
+Node information file: node_information.json
+Node structure file: node_structure.json
+Timeout: 0

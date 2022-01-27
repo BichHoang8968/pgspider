@@ -1,0 +1,2 @@
+./setup_cluster: option requires an argument -- 'd'
+File:config.c Function:analyze_arguments L:83 Msg:Error : Invalid argument '?'

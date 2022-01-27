@@ -1,0 +1,32 @@
+ERROR:  relation "tbl_postgre" does not exist
+LINE 1: select * from tbl_postgre;
+                      ^
+ERROR:  relation "tmp_test_setcluster" does not exist
+LINE 1: select * from tmp_test_setcluster;
+                      ^
+ERROR:  relation "tbl_grid" does not exist
+LINE 1: select * from tbl_grid;
+                      ^
+ERROR:  relation "tbl_influx" does not exist
+LINE 1: select * from tbl_influx;
+                      ^
+        c1        |   c2   |     c3      | __spd_url 
+------------------+--------+-------------+-----------
+ my1              |   4352 |     2563.54 | /db2/
+ my2              |  57672 | -9563.21514 | /db2/
+ 友達と会う my3   | 942322 |      443.87 | /db2/
+ simple my 4      |  -9322 |       963.8 | /db2/
+ nothing my5      |   4839 |        97.2 | /db2/
+ my6              |  -4892 |      7442.8 | /db2/
+ ごきげんよう my7 |   8124 |    5653.884 | /db2/
+ сковорода my8    |     75 |   -763.5465 | /db2/
+ ハンサム my9     |   1095 |       434.2 | /db2/
+ MalaysiaNY my10  |   1645 |      2343.9 | /db2/
+(10 rows)
+
+ERROR:  relation "tbl_sqlite" does not exist
+LINE 1: select * from tbl_sqlite;
+                      ^
+ERROR:  relation "tbl_tiny" does not exist
+LINE 1: select * from tbl_tiny;
+                      ^

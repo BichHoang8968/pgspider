@@ -2,9 +2,38 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <time.h>
 #include "libpq-fe.h"
 #include "install_util.h"
+#include "error_codes.h"
 
+#ifdef _MSC_VER
+#include <Windows.h>
+
+static double
+calc_time_diff(LARGE_INTEGER start, LARGE_INTEGER end)
+{
+	LARGE_INTEGER freq;
+
+	QueryPerformanceFrequency(&freq);
+	return (double) (end.QuadPart - start.QuadPart) / freq.QuadPart;
+}
+
+typedef LARGE_INTEGER MyTimer;
+#define PerformanceCounter(value) \
+	QueryPerformanceCounter(value)
+#define PerformanceTime(start, end) \
+	calc_time_diff(start, end)
+#else
+typedef struct timespec MyTimer;
+#define PerformanceCounter(value) \
+	clock_gettime(CLOCK_REALTIME, value)
+#define PerformanceTime(start, end) \
+	(end.tv_sec - start.tv_sec)
+#endif
+
+void
+err_msg(const char *file, const char *function, int line, const char *fmt,...) __attribute__ ((format (printf, 4, 5)));
 
 void
 err_msg(const char *file, const char *function, int line, const char *fmt,...)
@@ -21,45 +50,80 @@ err_msg(const char *file, const char *function, int line, const char *fmt,...)
 }
 
 /*
- * execute query
+ * Create connections for PGSpider
  *
  * @param[in,out] conn - Connection for pgspider
  * @param[in] node - Information of connection node
+ * @param[in] timeout - Tineout time when retrying to connect
  *
  * @return none
  */
-
-void
-create_connection(PGconn **conn, nodes * node)
+ReturnCode
+create_connection(PGconn **pConn, nodes * node, char isAdmin, int timeout)
 {
-	*conn = PQsetdbLogin(
-						 node->ip,
-						 node->port,
-						 NULL,
-						 NULL,
-						 node->dbname,
-						 node->user,
-						 node->pass
-		);
-	if (PQstatus(*conn) == CONNECTION_BAD)
+	PGconn	   *conn;
+	MyTimer		ts_start;
+	char	   *user;
+	char	   *pass;
+	char	   *item_name;
+
+	if (isAdmin == 0)
 	{
-		ERROR("Error:%s\n", PQerrorMessage(*conn));
-		exit(1);
+		user = node->user;
+		pass = node->pass;
+		item_name = "username";
 	}
-}
+	else
+	{
+		user = node->user_admin;
+		pass = node->pass_admin;
+		item_name = "username_admin";
+	}
 
-/*
- * Close connection and exit
- *
- * @param[in] conn - Connection for pgspider
- *
- * @return none
- */
-void
-exit_error(PGconn *conn)
-{
-	PQfinish(conn);
-	exit(1);
+	if (user == NULL)
+	{
+		PRINT_ERROR("Error: user name is not specified. Please confirm \'%s\' in pgspider node information\n", item_name);
+		return SETUP_INVALID_CONTENT;
+	}
+
+	PerformanceCounter(&ts_start);
+
+	do
+	{
+		MyTimer		ts_now;
+
+		conn = PQsetdbLogin(
+							node->ip,
+							node->port,
+							NULL,
+							NULL,
+							node->dbname,
+							user,
+							pass
+			);
+
+		if (PQstatus(conn) == CONNECTION_OK)
+		{
+			break;
+		}
+
+		PerformanceCounter(&ts_now);
+
+		/* Jedge whether we should retry. */
+		if (timeout == 0 || (timeout > 0 && PerformanceTime(ts_now, ts_start) > timeout))
+		{
+			PRINT_ERROR("Error:%s\n", PQerrorMessage(conn));
+			return SETUP_CANNOT_CONNECT;
+		}
+		else
+		{
+			MY_SLEEP(RETRY_INTERVAL);
+		}
+	} while (1);
+
+	*pConn = conn;
+
+	return SETUP_OK;
 }
 
 /*
@@ -70,8 +134,7 @@ exit_error(PGconn *conn)
  *
  * @return none
  */
-
-void
+ReturnCode
 query_execute(PGconn *conn, char *query)
 {
 	PGresult   *res;
@@ -82,7 +145,8 @@ query_execute(PGconn *conn, char *query)
 #endif
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
 	{
-		ERROR("%s failed :%s\n", query, PQerrorMessage(conn));
-		exit_error(conn);
+		PRINT_ERROR("%s failed :%s\n", query, PQerrorMessage(conn));
+		return SETUP_QUERY_FAILED;
 	}
+	return SETUP_OK;
 }

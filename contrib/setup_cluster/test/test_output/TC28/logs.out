@@ -1,0 +1,18 @@
+NOTICE:  extension "file_fdw" does not exist, skipping
+NOTICE:  extension "pgspider_fdw" does not exist, skipping
+NOTICE:  extension "postgres_fdw" does not exist, skipping
+NOTICE:  extension "sqlite_fdw" does not exist, skipping
+NOTICE:  extension "tinybrace_fdw" does not exist, skipping
+NOTICE:  extension "mysql_fdw" does not exist, skipping
+NOTICE:  extension "griddb_fdw" does not exist, skipping
+NOTICE:  extension "influxdb_fdw" does not exist, skipping
+NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
+NOTICE:  schema "temp_schema" does not exist, skipping
+File:install_util.c Function:query_execute L:148 Msg:IMPORT FOREIGN SCHEMA public FROM server db2 INTO temp_schema; failed :ERROR:  could not connect to server "db2"
+DETAIL:  invalid integer value "abcd" for connection option "port"
+
+Config directory: ./
+Node information file: node_information.json
+Node structure file: node_structure.json
+Timeout: 0
+free db2

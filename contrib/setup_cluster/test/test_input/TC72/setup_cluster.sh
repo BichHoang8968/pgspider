@@ -1,0 +1,1 @@
+./setup_cluster -s not_exist_file.json

@@ -1,0 +1,1 @@
+./setup_cluster -t 1200

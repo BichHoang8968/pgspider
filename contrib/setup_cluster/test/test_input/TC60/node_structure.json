@@ -1,0 +1,18 @@
+{
+    "Nodename":"db1",
+    "Nodes":[
+        {"Nodename":"db2"},
+        {"Nodename":"db3",
+		"Nodes":[
+			{"Nodename":"db5"},
+			{"Nodename":"db6"},
+			{"Nodename":"db7"}
+		]
+	},
+	{"Nodename":"db4",
+        "Nodes":[
+		{"Nodename":"db_loop"}
+           ]
+	}
+    ]
+}

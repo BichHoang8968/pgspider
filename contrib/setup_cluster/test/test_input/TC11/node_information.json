@@ -1,0 +1,22 @@
+[
+	{
+		"nodename": "db1",
+		"fdw": "pgspider_fdw",
+		"ip": "127.0.0.1",
+		"port": 14813,
+		"username": "pgspider",
+		"password": "pgspider",
+		"username_admin": "pgspider2",
+		"password_admin": "pgspider2",
+		"dbname": "pgspider"
+	},
+	{
+		"nodename": "db2",
+		"fdw": "tinybrace_fdw",
+		"ip": "127.0.0.1",
+		"port": 5100,
+		"username": "user",
+		"password": "testuser",
+		"dbname": "test_setcluster.db"
+	}
+]

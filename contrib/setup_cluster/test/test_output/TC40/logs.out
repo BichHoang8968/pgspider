@@ -1,0 +1,16 @@
+NOTICE:  extension "file_fdw" does not exist, skipping
+NOTICE:  extension "pgspider_fdw" does not exist, skipping
+NOTICE:  extension "postgres_fdw" does not exist, skipping
+NOTICE:  extension "sqlite_fdw" does not exist, skipping
+NOTICE:  extension "tinybrace_fdw" does not exist, skipping
+NOTICE:  extension "mysql_fdw" does not exist, skipping
+NOTICE:  extension "griddb_fdw" does not exist, skipping
+NOTICE:  extension "influxdb_fdw" does not exist, skipping
+NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
+File:install_util.c Function:create_connection L:115 Msg:Error:connection to server at "127.0.0.1", port 14813 failed: fe_sendauth: no password supplied
+
+Config directory: ./
+Node information file: node_information.json
+Node structure file: node_structure.json
+Timeout: 0
+free db2

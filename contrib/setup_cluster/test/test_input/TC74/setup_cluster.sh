@@ -1,0 +1,1 @@
+./setup_cluster -d /home/not_exist_folder

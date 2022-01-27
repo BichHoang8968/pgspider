@@ -1,0 +1,32 @@
+ERROR:  relation "tbl_postgre" does not exist
+LINE 1: select * from tbl_postgre;
+                      ^
+ERROR:  relation "tmp_test_setcluster" does not exist
+LINE 1: select * from tmp_test_setcluster;
+                      ^
+ERROR:  relation "tbl_grid" does not exist
+LINE 1: select * from tbl_grid;
+                      ^
+                time                 |    c1    |      c2      |      c3      | __spd_url 
+-------------------------------------+----------+--------------+--------------+-----------
+ 1709-05-31 09:06:03.145224+07:06:40 | influx5  |           33 |   -6000.1894 | /db2/
+ 2008-10-07 16:33:56.854776+07       | influx6  |        32321 |    7000.1984 | /db2/
+ 2016-11-10 22:13:20+07              | influx2  | -36854775808 |    435.12123 | /db2/
+ 2019-12-20 04:26:40+07              | influx4  |       -10812 |    5000.1651 | /db2/
+ 2020-01-12 05:13:20+07              | influx8  |        -4781 |   9000.32184 | /db2/
+ 2020-01-13 11:46:40+07              | influx7  |        42112 |   -8000.6871 | /db2/
+ 2051-09-20 09:46:40+07              | influx1  |    854775807 |  453.1212312 | /db2/
+ 2083-05-29 11:33:20+07              | influx3  |          123 | -4000.614353 | /db2/
+ 2224-04-02 09:27:16.854776+07       | influx10 |          123 |       634.32 | /db2/
+ 2255-12-10 11:13:56.854776+07       | influx9  |        52713 |   -3234.9213 | /db2/
+(10 rows)
+
+ERROR:  relation "tbl_mysql" does not exist
+LINE 1: select * from tbl_mysql;
+                      ^
+ERROR:  relation "tbl_sqlite" does not exist
+LINE 1: select * from tbl_sqlite;
+                      ^
+ERROR:  relation "tbl_tiny" does not exist
+LINE 1: select * from tbl_tiny;
+                      ^

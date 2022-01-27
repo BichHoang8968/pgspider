@@ -1,0 +1,6 @@
+File:install_main.c Function:set_pgspider_node_admin L:1145 Msg:Error: root node db1 is not pgspider fdw, postgres_fdw
+Config directory: ./
+Node information file: node_information.json
+Node structure file: node_structure.json
+Timeout: 0
+free db2
