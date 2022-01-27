@@ -1,0 +1,6 @@
+File:install_main.c Function:detect_loop L:1019 Msg:Error: There is a loop in structure.
+Config directory: ./
+Node information file: node_information.json
+Node structure file: node_structure.json
+Timeout: 0
+free db1

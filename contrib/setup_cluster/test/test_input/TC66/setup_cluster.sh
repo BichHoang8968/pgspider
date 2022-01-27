@@ -1,0 +1,2 @@
+export SPD_SETUP_NODE_STRUCT=not_exist_file.json
+./setup_cluster

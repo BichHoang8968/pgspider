@@ -8,20 +8,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <libpq-fe.h>
 #include "pgspider_node.h"
+#include "error_codes.h"
 
-static void
-			tinybrace_fdw(nodes * option, PGconn *conn);
-
-static void file_fdw(nodes * option, PGconn *conn);
-static void pgspider_fdw(nodes * option, PGconn *conn);
-static void postgres_fdw(nodes * option, PGconn *conn);
-static void sqlite_fdw(nodes * option, PGconn *conn);
-static void mysql_fdw(nodes * option, PGconn *conn);
-static void griddb_fdw(nodes * option, PGconn *conn);
-static void influxdb_fdw(nodes * option, PGconn *conn);
+static ReturnCode tinybrace_fdw(nodes * option, PGconn *conn);
+static ReturnCode file_fdw(nodes * option, PGconn *conn);
+static ReturnCode pgspider_fdw(nodes * option, PGconn *conn);
+static ReturnCode postgres_fdw(nodes * option, PGconn *conn);
+static ReturnCode sqlite_fdw(nodes * option, PGconn *conn);
+static ReturnCode mysql_fdw(nodes * option, PGconn *conn);
+static ReturnCode griddb_fdw(nodes * option, PGconn *conn);
+static ReturnCode influxdb_fdw(nodes * option, PGconn *conn);
 
 const		spd_function spd_func[] = {
 	{"file_fdw", file_fdw},
@@ -37,114 +35,138 @@ const		spd_function spd_func[] = {
 
 const int	extension_size = sizeof(spd_func) / sizeof(*spd_func);
 
-void
+ReturnCode
 node_set_spdcore(nodes * option, PGconn *conn)
 {
+	ReturnCode	rc;
 	char		sql[QUERY_LEN];
-
-	sprintf(sql, "CREATE EXTENSION IF NOT EXISTS pgspider_core_fdw;");
-	query_execute(conn, sql);
 
 	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s');\n", option->name, "pgspider_core_fdw", option->ip, option->port);
-	query_execute(conn, sql);
+	rc = query_execute(conn, sql);
+	if (rc != SETUP_OK)
+		return rc;
 
 	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(user '%s',password '%s');\n", option->name, option->user, option->pass);
-	query_execute(conn, sql);
+	rc = query_execute(conn, sql);
+	if (rc != SETUP_OK)
+		return rc;
+
+	return SETUP_OK;
 }
 
 
-static void
+static ReturnCode
 tinybrace_fdw(nodes * option, PGconn *conn)
 {
+	ReturnCode	rc;
 	char		sql[QUERY_LEN];
-
-
-	sprintf(sql, "CREATE EXTENSION IF NOT EXISTS tinybrace_fdw;");
-	query_execute(conn, sql);
 
 	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s');\n", option->name, "tinybrace_fdw", option->ip, option->port, option->dbname);
-	query_execute(conn, sql);
+	rc = query_execute(conn, sql);
+	if (rc != SETUP_OK)
+		return rc;
 
 	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(username '%s',password '%s');\n", option->name, option->user, option->pass);
-	query_execute(conn, sql);
+	rc = query_execute(conn, sql);
+	if (rc != SETUP_OK)
+		return rc;
+
+	return SETUP_OK;
 }
 
-static void
+static ReturnCode
 mysql_fdw(nodes * option, PGconn *conn)
 {
+	ReturnCode	rc;
 	char		sql[QUERY_LEN];
-
-	sprintf(sql, "CREATE EXTENSION IF NOT EXISTS mysql_fdw;");
-	query_execute(conn, sql);
 
 	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s');\n", option->name, "mysql_fdw", option->ip, option->port);
-	query_execute(conn, sql);
+	rc = query_execute(conn, sql);
+	if (rc != SETUP_OK)
+		return rc;
+
 	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(username '%s',password '%s');\n", option->name, option->user, option->pass);
-	query_execute(conn, sql);
+	rc = query_execute(conn, sql);
+	if (rc != SETUP_OK)
+		return rc;
+
+	return SETUP_OK;
 }
 
-static void
+static ReturnCode
 postgres_fdw(nodes * option, PGconn *conn)
 {
+	ReturnCode	rc;
 	char		sql[QUERY_LEN];
-
-	sprintf(sql, "CREATE EXTENSION IF NOT EXISTS postgres_fdw;");
-	query_execute(conn, sql);
 
 	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s',dbname '%s');\n", option->name, "postgres_fdw", option->ip, option->port, option->dbname);
-	query_execute(conn, sql);
+	rc = query_execute(conn, sql);
+	if (rc != SETUP_OK)
+		return rc;
 
 	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(user '%s',password '%s');\n", option->name, option->user, option->pass);
-	query_execute(conn, sql);
+	rc = query_execute(conn, sql);
+	if (rc != SETUP_OK)
+		return rc;
+
+	return SETUP_OK;
 }
 
-static void
+static ReturnCode
 pgspider_fdw(nodes * option, PGconn *conn)
 {
+	ReturnCode	rc;
 	char		sql[QUERY_LEN];
-
-	sprintf(sql, "CREATE EXTENSION IF NOT EXISTS pgspider_fdw;");
-	query_execute(conn, sql);
 
 	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s');\n", option->name, "pgspider_fdw", option->ip, option->port, option->dbname);
-	query_execute(conn, sql);
+	rc = query_execute(conn, sql);
+	if (rc != SETUP_OK)
+		return rc;
 
 	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(user '%s',password '%s');\n", option->name, option->user, option->pass);
-	query_execute(conn, sql);
+	rc = query_execute(conn, sql);
+	if (rc != SETUP_OK)
+		return rc;
+
+	return SETUP_OK;
 }
 
-static void
+static ReturnCode
 sqlite_fdw(nodes * option, PGconn *conn)
 {
+	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE EXTENSION IF NOT EXISTS sqlite_fdw;");
-	query_execute(conn, sql);
 	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(database '%s');\n", option->name, "sqlite_fdw", option->dbname);
-	query_execute(conn, sql);
+	rc = query_execute(conn, sql);
+	if (rc != SETUP_OK)
+		return rc;
+
+	return SETUP_OK;
 }
 
-static void
+static ReturnCode
 file_fdw(nodes * option, PGconn *conn)
 {
+	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE EXTENSION IF NOT EXISTS file_fdw;");
-	query_execute(conn, sql);
 	sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s;", option->nodename, "file_fdw");
 	printf("file %s\n", sql);
-	query_execute(conn, sql);
+	rc = query_execute(conn, sql);
+	if (rc != SETUP_OK)
+		return rc;
+
+	return SETUP_OK;
 }
 
-static void
+static ReturnCode
 griddb_fdw(nodes * option, PGconn *conn)
 {
+	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-
-	sprintf(sql, "CREATE EXTENSION IF NOT EXISTS griddb_fdw;");
-	query_execute(conn, sql);
-	if (option->notification_member == NULL)
+	if (option->notification_member == NULL || strcmp(option->notification_member, "") == 0)
 		sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER griddb_fdw OPTIONS(host '%s',port '%s', clustername '%s'", option->name, option->ip, option->port, option->clustername);
 	else
 		sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER griddb_fdw OPTIONS(notification_member '%s', clustername '%s'", option->name, option->notification_member, option->clustername);
@@ -153,28 +175,40 @@ griddb_fdw(nodes * option, PGconn *conn)
 		sprintf(sql, "%s);", sql);
 	else
 		sprintf(sql, "%s,dbname '%s');", sql, option->dbname);
-	query_execute(conn, sql);
+	rc = query_execute(conn, sql);
+	if (rc != SETUP_OK)
+		return rc;
+
 	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(username '%s',password '%s');\n", option->name, option->user, option->pass);
-	query_execute(conn, sql);
+	rc = query_execute(conn, sql);
+	if (rc != SETUP_OK)
+		return rc;
+
+	return SETUP_OK;
 }
 
 
-static void
+static ReturnCode
 influxdb_fdw(nodes * option, PGconn *conn)
 {
+	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE EXTENSION IF NOT EXISTS influxdb_fdw;");
-	query_execute(conn, sql);
-
 	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s');\n", option->name, "influxdb_fdw", option->ip, option->port, option->dbname);
-	query_execute(conn, sql);
+	rc = query_execute(conn, sql);
+	if (rc != SETUP_OK)
+		return rc;
+
 	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(user '%s',password '%s');\n",
 			option->name, option->user, option->pass);
-	query_execute(conn, sql);
+	rc = query_execute(conn, sql);
+	if (rc != SETUP_OK)
+		return rc;
+
+	return SETUP_OK;
 }
 
-void
+ReturnCode
 node_set(nodes * option, PGconn *conn)
 {
 	int			i;
@@ -182,11 +216,18 @@ node_set(nodes * option, PGconn *conn)
 	for (i = 0; i < extension_size; i++)
 	{
 		if (strcasecmp(spd_func[i].name, option->fdw) == 0)
-			(*spd_func[i].func) (option, conn);
+		{
+			ReturnCode	rc = (*spd_func[i].func) (option, conn);
+
+			if (rc != SETUP_OK)
+				return rc;
+		}
 	}
+
+	return SETUP_OK;
 }
 
-void
+ReturnCode
 mapping_set_file(nodes * option, PGconn *conn, char *table_name)
 {
 	char		sql[QUERY_LEN];
@@ -200,5 +241,5 @@ mapping_set_file(nodes * option, PGconn *conn, char *table_name)
 			option->nodename, option->name, option->column, option->nodename, table_path);
 	/* sprintf(table_name, "%s__%s__%d", option->fdw, option[6], resp_cnt); */
 	printf("mapping set file %s\n", sql);
-	query_execute(conn, sql);
+	return query_execute(conn, sql);
 }

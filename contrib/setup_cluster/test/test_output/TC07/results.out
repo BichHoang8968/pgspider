@@ -1,0 +1,32 @@
+ERROR:  relation "tbl_postgre" does not exist
+LINE 1: select * from tbl_postgre;
+                      ^
+ERROR:  relation "tmp_test_setcluster" does not exist
+LINE 1: select * from tmp_test_setcluster;
+                      ^
+        c1         |     c2      |     c3     | __spd_url 
+-------------------+-------------+------------+-----------
+ Cáichảogrid1      | 19337203807 |  21292.121 | /db2/
+ กระทะgrid2        | -5720385808 |   19212.03 | /db2/
+ 友達と会うgrid3   |        5123 |    -4000.6 | /db2/
+ simplegrid4       |     -292312 |   5000.151 | /db2/
+ nothinggrid5      |        6123 |    -6000.4 | /db2/
+ oneonegrid6       |     8472321 |    7000.14 | /db2/
+ 0YJ_gG7l000grid7  |        3412 |   -8000.61 | /db2/
+ ごきげんようgrid8 |      -84781 |   95000.32 | /db2/
+ сковородаgrid9    |       13213 | -19500.922 | /db2/
+ ハンサムgrid10    |       12523 |  80123.125 | /db2/
+(10 rows)
+
+ERROR:  relation "tbl_influx" does not exist
+LINE 1: select * from tbl_influx;
+                      ^
+ERROR:  relation "tbl_mysql" does not exist
+LINE 1: select * from tbl_mysql;
+                      ^
+ERROR:  relation "tbl_sqlite" does not exist
+LINE 1: select * from tbl_sqlite;
+                      ^
+ERROR:  relation "tbl_tiny" does not exist
+LINE 1: select * from tbl_tiny;
+                      ^

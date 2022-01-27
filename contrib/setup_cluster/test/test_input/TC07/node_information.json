@@ -1,0 +1,23 @@
+[
+	{
+		"nodename": "db1",
+		"fdw": "pgspider_fdw",
+		"ip": "127.0.0.1",
+		"port": 14813,
+		"username": "pgspider",
+		"password": "pgspider",
+		"username_admin": "pgspider2",
+		"password_admin": "pgspider2",
+		"dbname": "pgspider"
+	},
+	{
+		"nodename": "db2",
+		"fdw": "griddb_fdw",
+		"ip": "239.0.0.1",
+		"port": 31999,
+		"username": "admin",
+		"password": "testadmin",
+		"clustername": "griddbfdwTestSetcluster",
+		"notification_member": ""
+	}
+]

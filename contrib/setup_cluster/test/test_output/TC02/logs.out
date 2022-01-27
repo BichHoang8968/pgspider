@@ -1,0 +1,26 @@
+NOTICE:  extension "file_fdw" does not exist, skipping
+NOTICE:  extension "pgspider_fdw" does not exist, skipping
+NOTICE:  extension "postgres_fdw" does not exist, skipping
+NOTICE:  extension "sqlite_fdw" does not exist, skipping
+NOTICE:  extension "tinybrace_fdw" does not exist, skipping
+NOTICE:  extension "mysql_fdw" does not exist, skipping
+NOTICE:  extension "griddb_fdw" does not exist, skipping
+NOTICE:  extension "influxdb_fdw" does not exist, skipping
+NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
+NOTICE:  schema "temp_schema" does not exist, skipping
+Config directory: /home/tsdv/release_FDW/PGSpider/contrib/setup_cluster/test/test_input/TC02
+Node information file: node_information.json
+Node structure file: node_structure.json
+Timeout: 0
+file CREATE SERVER IF NOT EXISTS tmp_test_setcluster FOREIGN DATA WRAPPER file_fdw;
+mapping set file CREATE FOREIGN TABLE tmp_test_setcluster__tbl_file__0(c1 text, c2 bigint, c3 float8) SERVER tmp_test_setcluster OPTIONS(filename '/tmp/test_setcluster/tbl_file.csv', format 'csv');
+
+FINISH db1 
+free db2
+free db3
+free db4
+free db5
+free db6
+free db7
+free db8
+Success to create pgspider tables.

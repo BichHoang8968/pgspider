@@ -1,0 +1,20 @@
+[
+	{
+		"nodename": "db1",
+		"fdw": "postgres_fdw",
+		"ip": "127.0.0.1",
+		"port": 15444,
+		"username": "postgres",
+		"password": "postgres",
+		"dbname": "postgres"
+	},
+	{
+		"nodename": "db2",
+		"fdw": "postgres_fdw",
+		"ip": "127.0.0.1",
+		"port": 15445,
+		"username": "postgres",
+		"password": "postgres",
+		"dbname": "postgres"
+	}
+]

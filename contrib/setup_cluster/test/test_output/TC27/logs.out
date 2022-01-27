@@ -1,0 +1,5 @@
+File:install_main.c Function:verify_nodename L:892 Msg:Error: Node data is not existed
+Config directory: ./
+Node information file: node_information.json
+Node structure file: node_structure.json
+Timeout: 0

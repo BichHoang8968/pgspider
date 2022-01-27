@@ -1,0 +1,1 @@
+./setup_cluster -d $TEST_INPUT_PATH/TC10
