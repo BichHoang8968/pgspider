@@ -4480,7 +4480,24 @@ spd_merge_tlist(List *base_tlist, List *tlist, PlannerInfo *root)
 }
 
 /**
- * spd_GetForeignGroupingPathsChild
+ * spd_expr_has_aggs
+ *
+ * Return true if there is aggregate function in expressions.
+ */
+static bool
+spd_expr_has_aggs(Node *node, void *param)
+{
+	if (node == NULL)
+		return false;
+
+	if (IsA(node, Aggref))
+		return true;
+
+	return expression_tree_walker(node, spd_expr_has_aggs, (void *) param);
+}
+
+/*
+ * spd_GetForeignUpperPathsChild
  *
  * Create upper paths for child node. This function creates PlannerInfo and RelOptInfo
  * for child node and call child GetForeignUpperPaths().
@@ -4510,6 +4527,7 @@ spd_GetForeignGroupingPathsChild(ChildInfo *pChildInfo, SpdFdwPrivate *fdw_priva
 	Index	   *sortgrouprefs = NULL;
 	Node	   *extra_having_quals = NULL;
 	int			listn = 0;
+	bool		have_grouping;
 
 	fs = GetForeignServer(pChildInfo->server_oid);
 	fdw = GetForeignDataWrapper(fs->fdwid);
@@ -4534,7 +4552,7 @@ spd_GetForeignGroupingPathsChild(ChildInfo *pChildInfo, SpdFdwPrivate *fdw_priva
 	}
 
 	/* Currently dummy. @todo more better parsed object. */
-	root_child->parse->hasAggs = true;
+	root_child->parse->hasAggs = false;
 
 	/*
 	 * Call below FDW to check it is OK to pushdown or not.
@@ -4608,6 +4626,30 @@ spd_GetForeignGroupingPathsChild(ChildInfo *pChildInfo, SpdFdwPrivate *fdw_priva
 			fdw_private->rinfo.outerrel->reltarget = make_pathtarget_from_tlist(tempList);
 		}
 	}
+
+	/*
+	 * Because of removing SPDURL from target list and GROUP BY, determine whether having
+	 * aggregate functions in target list and havingQual.
+	 * Right now, havingQual is not always given to child, so it is unnecessary to check
+	 * aggregate function in havingQual.
+	 */
+	foreach(lc, output_rel_child->reltarget->exprs)
+	{
+		Node	   *node = (Node *) lfirst(lc);
+
+		if (spd_expr_has_aggs(node, NULL))
+		{
+			root_child->parse->hasAggs = true;
+			break;
+		}
+	}
+
+	/* If we have no grouping or aggregation applied to child - single node, don't pushdown aggregation. */
+	have_grouping = (root_child->parse->groupClause || root_child->parse->groupingSets ||
+					 root_child->parse->hasAggs || root_child->hasHavingQual);
+
+	if (!have_grouping && !IS_SPD_MULTI_NODES(fdw_private->node_num))
+		return false;
 
 	/* Fill sortgrouprefs for child using child target entry list */
 	sortgrouprefs = palloc0(sizeof(Index) * list_length(fdw_private->child_tlist));
