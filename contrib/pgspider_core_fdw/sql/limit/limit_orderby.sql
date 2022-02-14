@@ -659,3 +659,8 @@ EXPLAIN VERBOSE SELECT lower(c1), c2 || c3, string_agg(c3, c7) FROM tbl01 WHERE 
 --Testcase 310:
 SELECT lower(c1), c2 || c3, string_agg(c3, c7) FROM tbl01 WHERE c8-c9 != 0 GROUP BY c1, c2, c3, c4, c5 HAVING c4 - c5 > 0 ORDER BY c1, c2, c3;
 
+-- The aggregation is not pushed down in single node if SPDURL is selected and grouped.
+--Testcase 311:
+EXPLAIN VERBOSE SELECT __spd_url FROM tbl01 GROUP BY __spd_url;
+--Testcase 312:
+SELECT __spd_url FROM tbl01 GROUP BY __spd_url;

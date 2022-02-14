@@ -3931,6 +3931,27 @@ SELECT lower(c1), c2 || c3, string_agg(c3, c7) FROM tbl01 WHERE c8-c9 != 0 GROUP
 (9 rows)
 
 
+-- The aggregation is not pushed down in single node if SPDURL is selected and grouped.
+--Testcase 311:
+EXPLAIN VERBOSE SELECT __spd_url FROM tbl01 GROUP BY __spd_url;
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
+ HashAggregate  (cost=3421.53..3423.53 rows=200 width=32)
+   Output: __spd_url
+   Group Key: tbl01.__spd_url
+   ->  Foreign Scan on public.tbl01  (cost=10.00..3413.00 rows=3413 width=32)
+         Output: __spd_url
+         Node: sqlite_svr / Status: Alive
+           SQLite query: SELECT NULL FROM main."tbl01"
+(7 rows)
+
+--Testcase 312:
+SELECT __spd_url FROM tbl01 GROUP BY __spd_url;
+  __spd_url   
+--------------
+ /sqlite_svr/
+(1 row)
+
 DROP FOREIGN TABLE tbl01__sqlite_svr__0;
 DROP FOREIGN TABLE tbl01;
 DROP SERVER sqlite_svr;

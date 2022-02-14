@@ -8027,6 +8027,42 @@ SELECT lower(c1), c2 || c3, string_agg(c3, c7) FROM tbl01 WHERE c8-c9 != 0 GROUP
 (19 rows)
 
 
+-- The aggregation is not pushed down in single node if SPDURL is selected and grouped.
+--Testcase 311:
+EXPLAIN VERBOSE SELECT __spd_url FROM tbl01 GROUP BY __spd_url;
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
+ HashAggregate  (cost=7301.65..7303.65 rows=200 width=32)
+   Output: __spd_url
+   Group Key: tbl01.__spd_url
+   ->  Foreign Scan on public.tbl01  (cost=220.00..7267.38 rows=13708 width=32)
+         Output: __spd_url
+         Node: file_svr / Status: Alive
+           Foreign File: /tmp/file_fdw_multi.csv
+           Foreign File Size: 1346 b
+         Node: influx_svr / Status: Alive
+           InfluxDB query: SELECT * FROM "tbl01"
+         Node: mysql_svr / Status: Alive
+           Local server startup cost: 10
+           Remote query: SELECT NULL FROM `limit_orderby`.`tbl01`
+         Node: postgres_svr / Status: Alive
+           Remote SQL: SELECT NULL FROM public.tbl01
+         Node: tinybrace_svr / Status: Alive
+           TinyBrace query: SELECT NULL FROM "tbl01"
+           TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
+(18 rows)
+
+--Testcase 312:
+SELECT __spd_url FROM tbl01 GROUP BY __spd_url;
+    __spd_url    
+-----------------
+ /file_svr/
+ /tinybrace_svr/
+ /postgres_svr/
+ /influx_svr/
+ /mysql_svr/
+(5 rows)
+
 DROP FOREIGN TABLE tbl01__postgres_svr__0;
 DROP FOREIGN TABLE tbl01__file_svr__0;
 DROP FOREIGN TABLE tbl01__mysql_svr__0;
