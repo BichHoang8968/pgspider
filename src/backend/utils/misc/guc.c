@@ -7307,6 +7307,9 @@ set_config_option(const char *name, const char *value,
 	bool		prohibitValueChange = false;
 	bool		makeDefault;
 
+#ifdef PGSPIDER
+	SPD_LOCK_TRY(&guc_mutex);
+#endif
 	if (elevel == 0)
 	{
 		if (source == PGC_S_DEFAULT || source == PGC_S_FILE)
@@ -8044,6 +8047,10 @@ set_config_option(const char *name, const char *value,
 		record->status |= GUC_NEEDS_REPORT;
 		report_needed = true;
 	}
+	
+#ifdef PGSPIDER
+	SPD_UNLOCK_CATCH(&guc_mutex);
+#endif
 
 	return changeVal ? 1 : -1;
 }
