@@ -629,6 +629,7 @@ List	   *getS3FileList(Oid foreigntableid);
 #endif
 static bool is_target_contain_group_by(PathTarget *grouping_target, List *groupClause,
 									   Expr *expr, ListCell *lc, int index);
+static void block_handle_signals(bool block);
 
 /* Queue functions */
 static bool spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy);
@@ -3135,6 +3136,9 @@ spd_ForeignScan_thread(void *arg)
 	 */
 	MyLatch = &LocalLatchData;
 	InitLatch(MyLatch);
+
+	/* After creating child thread, unblock signal to catch signals */
+	block_handle_signals(false);
 
 	/* Configuration for context of error handling and memory context. */
 	spd_setThreadContext(fssthrdInfo, &errcallback, tuplectx);
@@ -5682,6 +5686,34 @@ is_target_contain_group_by(PathTarget *grouping_target, List *groupClause, Expr 
 	return false;
 }
 
+/* Block/Unblock handle signals: SIGTERM, SIGQUIT, SIGALRM */
+static void
+block_handle_signals(bool block)
+{
+	int			err;
+	sigset_t	mask;
+
+	sigemptyset(&mask);
+	sigaddset(&mask, SIGTERM);
+	sigaddset(&mask, SIGQUIT);
+	sigaddset(&mask, SIGALRM);
+
+	if (block)
+	{
+		/* Block signal */
+		err = pthread_sigmask(SIG_BLOCK, &mask, NULL);
+		if (err != 0)
+			ereport(ERROR, (errmsg("Cannot block signal! error=%d", err)));
+	}
+	else
+	{
+		/* Unblock signal */
+		err = pthread_sigmask(SIG_UNBLOCK, &mask, NULL);
+		if (err != 0)
+			ereport(FATAL, (errmsg("Cannot unblock signal! error=%d", err)));
+	}
+}
+
 /*
  * is_shippable_grouping_target
  *
@@ -8018,22 +8050,23 @@ sdp_CreateChildThreads(SpdFdwPrivate * fdw_private, ForeignScanThreadInfo * fssT
 
 	for (i = 0; i < nThreads; i++)
 	{
-		int			thread_create_err;
+		int			err;
+
+		/* Block signal when creating child thread for safety */
+		block_handle_signals(true);
 
 		fssThrdChildInfo[i].mainThreadsInfo = fssThrdInfo;
 		fssThrdChildInfo[i].childThreadsInfo = &fssThrdInfoChild[i];
-		thread_create_err =
-			pthread_create(&fdw_private->foreign_scan_threads[i],
-						   NULL,
-						   &spd_ForeignScan_thread,
-						   (void *) &fssThrdChildInfo[i]);
-		if (thread_create_err != 0)
-		{
-			ereport(ERROR, (errmsg("Cannot create thread! error=%d",
-								   thread_create_err)));
-		}
-	}
+		err = pthread_create(&fdw_private->foreign_scan_threads[i],
+							 NULL,
+							 &spd_ForeignScan_thread,
+							 (void *) &fssThrdChildInfo[i]);
+		if (err != 0)
+			ereport(ERROR, (errmsg("Cannot create thread! error=%d", err)));
 
+		/* After creating child thread, unblock signal to catch signals */
+		block_handle_signals(false);
+	}
 
 	/* Wait for state change. */
 	for (i = 0; i < nThreads; i++)

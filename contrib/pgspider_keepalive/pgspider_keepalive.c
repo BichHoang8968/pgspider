@@ -12,7 +12,7 @@
 
 #include "postgres.h"
 #include "pgspider_keepalive.h"
-
+#include "utils/timeout.h"
 
 /* These are always necessary for a bgworker */
 #include "miscadmin.h"
@@ -533,6 +533,23 @@ worker_pgspider_keepalive(Datum main_arg)
 	/* Establish signal handlers before unblocking signals. */
 	pqsignal(SIGHUP, pgspider_keepalive_sighup);
 	pqsignal(SIGTERM, pgspider_keepalive_sigterm);
+
+	/* Initialize process-local latch support */
+	InitializeLatchSupport();
+
+	/* Re initialize timeout module to clean installed hanlder from main process for safety only */
+	InitializeTimeouts();
+
+	/*
+	 * Reset some signals that are accepted by postmaster but not here
+	 */
+	pqsignal(SIGALRM, SIG_IGN);	/* Alarm clock (POSIX).  */
+	pqsignal(SIGUSR1, SIG_IGN);	/* User-defined signal 1 (POSIX).  */
+	pqsignal(SIGUSR2, SIG_IGN);	/* User-defined signal 2 (POSIX).  */
+	pqsignal(SIGINT, SIG_IGN);	/* Interrupt (ANSI).  */
+	pqsignal(SIGFPE, SIG_IGN);	/* Floating-point exception (ANSI).  */
+	pqsignal(SIGPIPE, SIG_IGN);	/* Broken pipe (POSIX).  */
+	pqsignal(SIGCHLD, SIG_DFL);	/* Child status has changed (POSIX).  */
 
 	/* We're now ready to receive signals */
 	BackgroundWorkerUnblockSignals();
