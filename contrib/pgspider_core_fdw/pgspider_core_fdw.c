@@ -184,6 +184,10 @@ typedef struct SpdTupleQueue
 								 * thread */
 	bool		skipLast;		/* true if skip last value copy */
 	pthread_mutex_t qmutex;		/* mutex */
+	int			main_process_idx;	/* The index of queue slot that the
+									 * main thread is processing */
+	bool		safe_to_clear;		/* The boolean variable to determine
+									 * if it is safe to clear queue slot */
 }			SpdTupleQueue;
 
 /* This structure stores child thread information. */
@@ -518,6 +522,8 @@ typedef struct SpdFdwPrivate
 	pthread_rwlock_t scan_mutex;
 	int			startNodeId;	/* Node ID to start checking child slot for
 								 * round robin */
+	int			lastThreadId;	/* The index of the last thread that we get
+								 * the slot from */
 }			SpdFdwPrivate;
 
 typedef struct SpdFdwModifyState
@@ -623,7 +629,7 @@ static void rebuild_target_expr(Node *node, StringInfo buf, Extractcells * extce
 								int *cellid, List *groupby_target, bool isfirst);
 
 static void notify_error_to_child_threads(ForeignScanThreadInfo * fssThrdInfo, int nThreads);
-static TupleTableSlot *nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId, int *startNodeId);
+static TupleTableSlot *nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId, int *startNodeId, int *lastThreadId);
 #ifdef ENABLE_PARALLEL_S3
 List	   *getS3FileList(Oid foreigntableid);
 #endif
@@ -1177,6 +1183,18 @@ spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy)
 		return false;
 	}
 
+	/*
+	 * If child thread is trying to clear and add slot into the position that
+	 * the main thread is processing, delay the clear, wait until it is safe to
+	 * clear. For other position, it is safe to clear.
+	 */
+	if (idx == que->main_process_idx)
+	{
+		while (!que->safe_to_clear)
+		{
+			usleep(1);
+		}
+	}
 	/* Clear slot before storing new data */
 	ExecClearTuple(que->tuples[idx]);
 
@@ -1256,17 +1274,19 @@ spd_queue_get(SpdTupleQueue * que, SpdQueueState * queue_state)
 	}
 
 	temp = que->tuples[que->start];
+	/* Save the index of slot that the main thread will process */
+	que->main_process_idx = que->start;
 	que->start = (que->start + 1) % SPD_TUPLE_QUEUE_LEN;
 	que->len--;
-
+	/* Main is processing this slot, not safe to clear */
+	que->safe_to_clear = false;
 	pthread_mutex_unlock(&que->qmutex);
-
 
 	return temp;
 }
 
 /**
- * spd_queue_get
+ * spd_queue_reset
  *
  * Reset queue.
  *
@@ -1277,6 +1297,8 @@ spd_queue_reset(SpdTupleQueue * que)
 {
 	que->len = 0;
 	que->start = 0;
+	que->main_process_idx = -1;
+	que->safe_to_clear = true;
 	que->queue_state = SPD_QUEUE_OK;
 }
 
@@ -8269,6 +8291,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 	fdw_private->isFirst = true;
 	fdw_private->startNodeId = 0;
+	fdw_private->lastThreadId = -1;
 	return;
 }
 
@@ -9792,12 +9815,18 @@ notify_error_to_child_threads(ForeignScanThreadInfo * fssThrdInfo, int nThreads)
  * @param[out] startNodeId
  */
 static TupleTableSlot *
-nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId, int *startNodeId)
+nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId, int *startNodeId, int *lastThreadId)
 {
 	int			count = 0;
 	int			start = *startNodeId;
 	bool		all_thread_finished = true;
 	TupleTableSlot *slot;
+
+	/* Set flag to allow child thread clear the slot */
+	if (*lastThreadId != -1)
+	{
+		fssThrdInfo[*lastThreadId].tupleQueue.safe_to_clear = true;
+	}
 
 	for (count = start;; count++)
 	{
@@ -9839,6 +9868,8 @@ nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId, i
 		{
 			/* tuple found */
 			*nodeId = thread_idx;
+			/* Save the last thread index to clear slot in the next spd_IterateForeignScan */
+			*lastThreadId = thread_idx;
 			if (start >= nThreads)
 			{
 				*startNodeId = 0;
@@ -9942,7 +9973,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 			 */
 			for (;;)
 			{
-				slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count, &fdw_private->startNodeId);
+				slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count, &fdw_private->startNodeId, &fdw_private->lastThreadId);
 				if (slot == NULL)
 					break;
 
@@ -9979,7 +10010,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 		 */
 		fdw_private->isFirst = false;
 
-		slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count, &fdw_private->startNodeId);
+		slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count, &fdw_private->startNodeId, &fdw_private->lastThreadId);
 	}
 
 	return slot;
