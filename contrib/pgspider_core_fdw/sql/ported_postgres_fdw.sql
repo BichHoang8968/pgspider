@@ -1657,6 +1657,105 @@ SELECT * FROM ft1 ORDER BY c1 LIMIT 1;
 COMMIT;
 
 -- ===================================================================
+-- enhanced for transaction/subtransaction
+-- ===================================================================
+--Testcase 1147:
+BEGIN;
+--Testcase 1148:
+DECLARE c CURSOR FOR SELECT * FROM ft1;
+--Testcase 1149:
+FETCH c;
+--Testcase 1150:
+SAVEPOINT s;
+--Testcase 1151:
+ERROR OUT;          -- ERROR
+--Testcase 1152:
+ROLLBACK TO s;
+--Testcase 1153:
+FETCH c;
+--Testcase 1154:
+SAVEPOINT s;
+--Testcase 1155:
+COMMIT;
+
+--Testcase 1156:
+BEGIN;
+--Testcase 1157:
+SAVEPOINT s;
+--Testcase 1158:
+DECLARE c1 CURSOR FOR SELECT * FROM ft1 t1;
+--Testcase 1159:
+ROLLBACK TO s;
+--Testcase 1160:
+COMMIT;
+
+--Testcase 1161:
+BEGIN;
+--Testcase 1162:
+SAVEPOINT s;
+--Testcase 1163:
+DECLARE c1 CURSOR FOR SELECT * FROM ft1 t1;
+--Testcase 1164:
+COMMIT;
+
+--Testcase 1165:
+BEGIN;
+--Testcase 1166:
+DECLARE c CURSOR FOR SELECT * FROM ft1 t1;
+--Testcase 1167:
+SAVEPOINT s;
+--Testcase 1168:
+DECLARE c1 CURSOR FOR SELECT * FROM ft1 t1;
+--Testcase 1169:
+SAVEPOINT s2;
+--Testcase 1170:
+DECLARE c2 CURSOR FOR SELECT * FROM ft1 t1;
+--Testcase 1171:
+FETCH c1;
+--Testcase 1172:
+ERROR OUT;          -- ERROR
+--Testcase 1173:
+ROLLBACK TO s2;
+--Testcase 1174:
+FETCH c1;
+--Testcase 1175:
+ERROR OUT;          -- ERROR
+--Testcase 1176:
+ROLLBACK TO s;
+--Testcase 1177:
+FETCH c;
+--Testcase 1178:
+COMMIT;
+
+-- test for timeout handler
+-- enable timeout
+set statement_timeout = 1000;
+--Testcase 1179:
+BEGIN;
+--Testcase 1180:
+DECLARE c1 CURSOR FOR SELECT * FROM ft1 t1;
+--Testcase 1181:
+SAVEPOINT s;
+--Testcase 1182:
+ERROR OUT;
+
+-- wait to timeout
+-- can not call postgres fucntion such as pg_sleep() when transaction abort
+-- -> call the shell script
+\! sleep 2
+
+--Testcase 1183:
+ROLLBACK TO s;
+--Testcase 1184:
+-- this case can has non-stable result because c1 CURSOR can be done before has any pending request.
+FETCH 1000 FROM c1; -- should fail
+--Testcase 1185:
+FETCH c1; -- should fail
+COMMIT;
+-- disable timeout
+set statement_timeout = 0;
+
+-- ===================================================================
 -- test handling of collations
 -- ===================================================================
 --Testcase 443:

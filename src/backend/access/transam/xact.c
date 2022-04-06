@@ -317,16 +317,15 @@ static SubXactCallbackItem *SubXact_callbacks = NULL;
 /*
  * List of add-on start- and end-of-abort transaction callbacks
  */
-typedef struct AbortTransactionCallbackItem
+typedef struct spdTransactionCallbackItem
 {
-	struct AbortTransactionCallbackItem *next;
-	AbortTransactionCallback callback;
+	struct spdTransactionCallbackItem *next;
+	spdTransactionCallback callback;
 	void	   *arg;
-}			AbortTransactionCallbackItem;
+}			spdTransactionCallbackItem;
 
-static AbortTransactionCallbackItem * AbortTransaction_callbacks = NULL;
+static spdTransactionCallbackItem * spd_transaction_callbacks = NULL;
 #endif
-
 
 /* local function prototypes */
 static void AssignTransactionId(TransactionState s);
@@ -2106,6 +2105,11 @@ CommitTransaction(void)
 			 TransStateAsString(s->state));
 	Assert(s->parent == NULL);
 
+#ifdef PGSPIDER
+	/* At commit transaction, PGSpider call the callback to end all child thread */
+	SpdAtCommitTransaction();
+#endif
+
 	/*
 	 * Do pre-commit processing that involves calling user-defined code, such
 	 * as triggers.  SECURITY_RESTRICTED_OPERATION contexts must not queue an
@@ -2638,7 +2642,7 @@ AbortTransaction(void)
 	 * transaction callback to quit all threads avoid thread access to free
 	 * memory zone and Transaction State.
 	 */
-	AtAbortTransaction();
+	SpdAtAbortTransaction();
 #endif
 
 	/* Prevent cancel/die interrupt while cleaning up */
@@ -4965,6 +4969,14 @@ AbortSubTransaction(void)
 	/* Prevent cancel/die interrupt while cleaning up */
 	HOLD_INTERRUPTS();
 
+#ifdef PGSPIDER
+	/*
+	 * PGSpider need kill all child thread start in aborted transaction
+	 * and all other will pending.
+	 */
+	SpdAtAbortSubTransaction();
+#endif
+
 	/* Make sure we have a valid memory context and resource owner */
 	AtSubAbort_Memory();
 	AtSubAbort_ResourceOwner();
@@ -5150,6 +5162,10 @@ PushTransaction(void)
 	TransactionState p = CurrentTransactionState;
 	TransactionState s;
 
+#ifdef PGSPIDER
+	/* PGSpider need pending all child thread during new transaction is initialized */
+	SpdAtMakeNewTransaction();
+#endif
 	/*
 	 * We keep subtransaction state nodes in TopTransactionContext.
 	 */
@@ -6167,42 +6183,43 @@ MarkSubTransactionAssigned(void)
 
 #ifdef PGSPIDER
 /*
- * RegisterAbortTransactionCallback
- * Register a function to be called before AbortTransaction.
+ * RegisterSpdTransactionCallback
+ * Register a function to be called before AbortTransaction,
+ * AbortSubTransaction and PushTransaction.
  * Such callbacks will be called in reverse order of registration.
  *
  * The implement of this function is same with RegisterXactCallback
- * but access to AbortTransaction_callbacks variable to save all call
+ * but access to spd_transaction_callbacks variable to save all call
  * back which call before AbortTransaction.
  */
 void
-RegisterAbortTransactionCallback(AbortTransactionCallback callback, void *arg)
+RegisterSpdTransactionCallback(spdTransactionCallback callback, void *arg)
 {
-	AbortTransactionCallbackItem *item;
+	spdTransactionCallbackItem *item;
 
-	item = (AbortTransactionCallbackItem *)
-		MemoryContextAlloc(TopMemoryContext, sizeof(AbortTransactionCallbackItem));
+	item = (spdTransactionCallbackItem *)
+		MemoryContextAlloc(TopMemoryContext, sizeof(spdTransactionCallbackItem));
 	item->callback = callback;
 	item->arg = arg;
-	item->next = AbortTransaction_callbacks;
-	AbortTransaction_callbacks = item;
+	item->next = spd_transaction_callbacks;
+	spd_transaction_callbacks = item;
 }
 
 void
-UnregisterAbortTransactionCallback(AbortTransactionCallback callback, void *arg)
+UnregisterSpdTransactionCallback(spdTransactionCallback callback, void *arg)
 {
-	AbortTransactionCallbackItem *item,
-			   *prev;
+	spdTransactionCallbackItem *item,
+			   				   *prev;
 
 	prev = NULL;
-	for (item = AbortTransaction_callbacks; item; prev = item, item = item->next)
+	for (item = spd_transaction_callbacks; item; prev = item, item = item->next)
 	{
 		if (item->callback == callback && item->arg == arg)
 		{
 			if (prev)
 				prev->next = item->next;
 			else
-				AbortTransaction_callbacks = item->next;
+				spd_transaction_callbacks = item->next;
 			pfree(item);
 			break;
 		}
@@ -6210,45 +6227,70 @@ UnregisterAbortTransactionCallback(AbortTransactionCallback callback, void *arg)
 }
 
 /*
- * AtAbortTransaction
+ * SpdAtAbortTransaction
  * In case AbortTransaction call all abort callback.
  */
 void
-AtAbortTransaction(void)
+SpdAtAbortTransaction(void)
 {
-	AbortTransactionCallbackItem *item;
+	spdTransactionCallbackItem *item;
 
 	/* In case sub transaction we do not need to call abort callback */
 	if (IsSubTransaction())
 		return;
 
-	item = AbortTransaction_callbacks;
-	while (item != NULL)
+	item = spd_transaction_callbacks;
+	for (item = spd_transaction_callbacks; item;item = item->next)
 	{
-		AbortTransaction_callbacks = item->next;
-		UnregisterAbortTransactionCallback(item->callback, item->arg);
-		item->callback(item->arg);
-		pfree(item);
-		item = AbortTransaction_callbacks;
+		item->callback(SPD_EVENT_ABORT_TRANSACTION, item->arg);
 	}
 }
 
 /*
- * AtFinishTransaction
- * When finish transaction, unregister all abort transaction callback.
+ * SpdAtAbortSubTransaction
+ * In case AbortSubTransaction call abort callback.
  */
 void
-AtFinishTransaction(void)
+SpdAtAbortSubTransaction(void)
 {
-	AbortTransactionCallbackItem *item;
+	spdTransactionCallbackItem *item;
 
-	item = AbortTransaction_callbacks;
-	while (item != NULL)
+	item = spd_transaction_callbacks;
+	for (item = spd_transaction_callbacks; item;item = item->next)
 	{
-		AbortTransaction_callbacks = item->next;
-		UnregisterAbortTransactionCallback(item->callback, item->arg);
-		pfree(item);
-		item = AbortTransaction_callbacks;
+		item->callback(SPD_EVENT_ABORT_SUB_TRANSACTION, item->arg);
+	}
+}
+
+/*
+ * SpdAtMakeNewTransaction
+ * In case make a new Transaction call spd callback.
+ */
+void
+SpdAtMakeNewTransaction(void)
+{
+	spdTransactionCallbackItem *item;
+
+	item = spd_transaction_callbacks;
+	for (item = spd_transaction_callbacks; item;item = item->next)
+	{
+		item->callback(SPD_EVENT_NEW_TRANSACTION, item->arg);
+	}
+}
+
+/*
+ * SpdAtCommitTransaction
+ * In case CommitTransaction call all abort callback.
+ */
+void
+SpdAtCommitTransaction(void)
+{
+	spdTransactionCallbackItem *item;
+
+	item = spd_transaction_callbacks;
+	for (item = spd_transaction_callbacks; item;item = item->next)
+	{
+		item->callback(SPD_EVENT_COMMIT_TRANSACTION, item->arg);
 	}
 }
 #endif
