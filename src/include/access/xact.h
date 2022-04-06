@@ -136,7 +136,14 @@ typedef void (*SubXactCallback) (SubXactEvent event, SubTransactionId mySubid,
 								 SubTransactionId parentSubid, void *arg);
 
 #ifdef PGSPIDER
-typedef void (*AbortTransactionCallback) (void *arg);
+typedef enum
+{
+	SPD_EVENT_NEW_TRANSACTION,
+	SPD_EVENT_ABORT_TRANSACTION,
+	SPD_EVENT_COMMIT_TRANSACTION,
+	SPD_EVENT_ABORT_SUB_TRANSACTION
+} spdEvent;
+typedef void (*spdTransactionCallback) (spdEvent event, void *arg);
 #endif
 
 /* ----------------
@@ -471,10 +478,12 @@ extern void ExitParallelMode(void);
 extern bool IsInParallelMode(void);
 
 #ifdef PGSPIDER
-extern void AtAbortTransaction(void);
-extern void AtFinishTransaction(void);
-extern void RegisterAbortTransactionCallback(AbortTransactionCallback callback, void *arg);
-extern void UnregisterAbortTransactionCallback(AbortTransactionCallback callback, void *arg);
+extern void SpdAtAbortTransaction(void);
+extern void SpdAtAbortSubTransaction(void);
+extern void SpdAtMakeNewTransaction(void);
+extern void SpdAtCommitTransaction(void);
+extern void RegisterSpdTransactionCallback(spdTransactionCallback callback, void *arg);
+extern void UnregisterSpdTransactionCallback(spdTransactionCallback callback, void *arg);
 #endif
 
 #endif							/* XACT_H */

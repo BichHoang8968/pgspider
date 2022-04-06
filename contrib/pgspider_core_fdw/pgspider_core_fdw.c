@@ -25,6 +25,7 @@ PG_MODULE_MAGIC;
 #include <unistd.h>
 #include <pthread.h>
 #include <math.h>
+#include <time.h>
 #include "access/table.h"
 #include "access/xact.h"
 #include "catalog/pg_type.h"
@@ -50,6 +51,7 @@ PG_MODULE_MAGIC;
 #include "utils/datum.h"
 #include "utils/syscache.h"
 #include "utils/lsyscache.h"
+#include "utils/timeout.h"
 #include "storage/lmgr.h"
 #include "catalog/pg_foreign_table.h"
 #include "pgspider_core_fdw_defs.h"
@@ -156,9 +158,11 @@ typedef enum
 	SPD_FS_STATE_INIT,
 	SPD_FS_STATE_BEGIN,
 	SPD_FS_STATE_ITERATE,
+	SPD_FS_STATE_PRE_END,
 	SPD_FS_STATE_END,
 	SPD_FS_STATE_FINISH,
 	SPD_FS_STATE_ERROR,
+	SPD_FS_STATE_PENDING
 }			SpdForeignScanThreadState;
 
 typedef enum
@@ -170,6 +174,13 @@ typedef enum
 								 * all pending tuple on queue if any */
 	SPD_QUEUE_ERROR,			/* child thread meet ERROR during execution */
 }			SpdQueueState;
+
+typedef enum
+{
+	SPD_WAKE_UP,	/* wake up request for child thread and
+					 * default for runing state */
+	SPD_PENDING		/* pending request for child thread */
+}			SpdPendingRequest;
 
 /*
  * This structure stores tuples of child thread for passing to parent.
@@ -215,7 +226,8 @@ typedef struct ForeignScanThreadInfo
 	pthread_t	me;
 	ResourceOwner thrd_ResourceOwner;
 	void	   *private;
-
+	int			transaction_level;
+	bool		is_joined;
 }			ForeignScanThreadInfo;
 
 typedef struct ForeignScanThreadArg
@@ -524,6 +536,9 @@ typedef struct SpdFdwPrivate
 								 * round robin */
 	int			lastThreadId;	/* The index of the last thread that we get
 								 * the slot from */
+	SpdPendingRequest requestPendingChildThread;			/* pending request for all child thread */
+	pthread_mutex_t	thread_pending_mutex;	/* mutex for pending condition */
+	pthread_cond_t	thread_pending_cond;	/* pending condition */
 }			SpdFdwPrivate;
 
 typedef struct SpdFdwModifyState
@@ -636,6 +651,10 @@ List	   *getS3FileList(Oid foreigntableid);
 static bool is_target_contain_group_by(PathTarget *grouping_target, List *groupClause,
 									   Expr *expr, ListCell *lc, int index);
 static void block_handle_signals(bool block);
+static void spd_request_child_thread_pending(ForeignScanThreadInfo *threadInfo, SpdPendingRequest thread_pending_request);
+static void spd_wait_transaction_thread_safe(ForeignScanThreadInfo *fssThrdInfo);
+static void spd_check_pending_request(ForeignScanThreadInfo *threadInfo);
+static void spd_request_end_all_child_thread(void *arg);
 
 /* Queue functions */
 static bool spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy);
@@ -679,6 +698,16 @@ pthread_mutex_t postgres_fdw_mutex = PTHREAD_MUTEX_INITIALIZER;
 /* We write lock SPI function and read lock child fdw routines */
 pthread_mutex_t error_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+pthread_mutex_t thread_running_mutex = PTHREAD_MUTEX_INITIALIZER;
+static size_t			num_child_thread_running = 0;
+
+typedef struct CallbackList
+{
+	SubXactCallback					commit_subtransaction_callback;
+	spdTransactionCallback			spd_transaction_callback;
+	void			   			   *arg; /* All the callback use the same arg */
+} CallbackList;
+
 /*
  * g_node_offset shows child node offset into list_thread_top_contexts array.
  * In a query execution, a single child node may have multiple child threads
@@ -689,7 +718,6 @@ pthread_mutex_t error_mutex = PTHREAD_MUTEX_INITIALIZER;
 static int	g_node_offset = 0;
 static List *list_thread_top_contexts = NIL;
 static int64 temp_table_id = 0;
-static bool registered_reset_callback = false;
 
 /* Utility functions for target list */
 static List *spd_add_to_flat_tlist(List *tlist, Expr *exprs, List **mapping_tlist,
@@ -2957,6 +2985,8 @@ spd_IterateForeignScanChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo *
 
 			while (1)
 			{
+				/* Check pending request from main thread */
+				spd_check_pending_request(fssthrdInfo);
 				success = spd_queue_add(&fssthrdInfo->tupleQueue, slot, deepcopy);
 				if (success)
 					break;
@@ -3108,6 +3138,85 @@ spd_RescanForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, pthread_rwlock_t
 	}
 }
 
+/*
+ * spd_check_pending_request:
+ * Thread pending if has request: requestPendingChildThread = SPD_PENDING
+ * - The child-thread will wait until woken up by the main thread or timeout.
+ * - If timeout occur, an error will returned to child thread
+ * - Timeout is enable if statement_timeout is set by non-rezo
+ * 	 e.g. set statement_timeout = 1000; -- set time out by 1 second
+ */
+static void spd_check_pending_request(ForeignScanThreadInfo *threadInfo)
+{
+	SpdForeignScanThreadState old_state = threadInfo->state;
+	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *)threadInfo->private;
+	pthread_mutex_t *thread_pending_mutex = &fdw_private->thread_pending_mutex;
+	pthread_cond_t	*thread_pending_cond = &fdw_private->thread_pending_cond;
+
+	pthread_mutex_lock(thread_pending_mutex);
+	while(fdw_private->requestPendingChildThread == SPD_PENDING)
+	{
+		threadInfo->state = SPD_FS_STATE_PENDING;
+		if (StatementTimeout == 0)
+		{
+			/* Time out is disable */
+			pthread_cond_wait(thread_pending_cond, thread_pending_mutex);
+		}
+		else
+		{
+			struct timespec t;
+			int rt;
+
+			/* get system time */
+			rt = clock_gettime(CLOCK_REALTIME, &t);
+			if (rt == -1)
+			{
+				pthread_mutex_unlock(thread_pending_mutex);
+				elog(ERROR, "Can not get system time by clock_gettime.");
+			}
+
+			/* Get timeout in second */
+			t.tv_sec += StatementTimeout / 1000;					/* millisecond to second */
+			/* Get remain timeout in nanosecond */
+			t.tv_nsec += (StatementTimeout % 1000) * 1000 * 1000;	/* remain millisecond to nanosecond */
+			/* Update if tv_nsec is bigger than 1 second */
+			t.tv_sec += t.tv_nsec / (1000 * 1000 * 1000);
+			t.tv_nsec %= (1000 * 1000 * 1000);
+
+			/* Timed wait */
+			rt = pthread_cond_timedwait(thread_pending_cond, thread_pending_mutex, &t);
+			if (rt != 0)
+			{
+				/* Timeout */
+				pthread_mutex_unlock(thread_pending_mutex);
+				if (rt == ETIMEDOUT)
+					elog(ERROR, "Child thread pending timeout.");
+				else
+					elog(ERROR, "Conditional timed wait, failed. Returned %d", rt);
+			}
+		}
+	}
+	threadInfo->state = old_state;
+	pthread_mutex_unlock(thread_pending_mutex);
+}
+
+/*
+ * spd_request_child_thread_pending:
+ * - create pending requet to child thread
+ */
+static void spd_request_child_thread_pending(ForeignScanThreadInfo *threadInfo, SpdPendingRequest thread_pending_request)
+{
+	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *)threadInfo->private;
+	pthread_mutex_t *thread_pending_mutex = &fdw_private->thread_pending_mutex;
+	pthread_cond_t	*thread_pending_cond = &fdw_private->thread_pending_cond;
+
+	pthread_mutex_lock(thread_pending_mutex);
+	fdw_private->requestPendingChildThread = thread_pending_request;
+	if (thread_pending_request == SPD_WAKE_UP)
+		pthread_cond_broadcast(thread_pending_cond); /* wake up all child thread in this query */
+	pthread_mutex_unlock(thread_pending_mutex);
+}
+
 /**
  * spd_ForeignScan_thread
  *
@@ -3147,6 +3256,11 @@ spd_ForeignScan_thread(void *arg)
 
 	gettimeofday(&s, NULL);
 #endif
+
+	/* increase num_child_thread_running when start a child thread */
+	pthread_mutex_lock(&thread_running_mutex);
+	num_child_thread_running++;
+	pthread_mutex_unlock(&thread_running_mutex);
 
 	/* If thread has been notified ERROR, shut down immediately */
 	if (fssthrdInfo->state == SPD_FS_STATE_ERROR)
@@ -3236,6 +3350,7 @@ RESCAN:
 
 THREAD_END:
 	/* Waiting for the timing to call End Foreign Scan. */
+	fssthrdInfo->state = SPD_FS_STATE_PRE_END;
 	spd_EndForeignScanChild(fssthrdInfo, pChildInfo, &fdw_private->scan_mutex, agg_result, tuplectx);
 
 	if (fssthrdInfo->state == SPD_FS_STATE_ERROR)
@@ -3257,6 +3372,14 @@ THREAD_EXIT:
 	gettimeofday(&e, NULL);
 	elog(DEBUG1, "thread%d all time = %lf", fssthrdInfo->serverId, (e.tv_sec - s.tv_sec) + (e.tv_usec - s.tv_usec) * 1.0E-6);
 #endif
+
+	/* decrease num_child_thread_running when start a child thread */
+	pthread_mutex_lock(&thread_running_mutex);
+	num_child_thread_running--;
+	pthread_mutex_unlock(&thread_running_mutex);
+
+	/* Notify that child thread already joined or dead */
+	fssthrdInfo->is_joined = true;
 	pthread_exit(NULL);
 }
 
@@ -7613,6 +7736,9 @@ spd_end_child_node_thread(ForeignScanState *node)
 	if (!fdw_private)
 		return;
 
+	/* wake up all child thread */
+	spd_request_child_thread_pending(&fssThrdInfo[0], SPD_WAKE_UP);
+
 	/* Print error nodes. */
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 	{
@@ -7628,6 +7754,10 @@ spd_end_child_node_thread(ForeignScanState *node)
 	{
 		for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 		{
+			/* If thread is joined or dead before, do not join it again */
+			if (fssThrdInfo[node_incr].is_joined == true)
+				continue;
+
 			fssThrdInfo[node_incr].requestEndScan = true;
 			/* Cleanup the thread-local structures. */
 			rtn = pthread_join(fdw_private->foreign_scan_threads[node_incr], NULL);
@@ -7638,12 +7768,13 @@ spd_end_child_node_thread(ForeignScanState *node)
 }
 
 /**
- * Callback function to be called before abort transaction.
+ * spd_request_end_all_child_thread:
+ * - End all child node thread.
  *
  * @param[in] arg ForeignScanState
  */
 static void
-spd_abort_transaction_callback(void *arg)
+spd_request_end_all_child_thread(void *arg)
 {
 	/* Reset child node offset to 0 for new query execution. */
 	g_node_offset = 0;
@@ -7658,22 +7789,269 @@ spd_abort_transaction_callback(void *arg)
 		 * Call this function to allow backend to check memory context size as
 		 * usual because the child threads finished running.
 		 */
-		skip_memory_checking(false);
+		pthread_mutex_lock(&thread_running_mutex);
+		if (num_child_thread_running == 0)
+			skip_memory_checking(false);
+		pthread_mutex_unlock(&thread_running_mutex);
+	}
+}
+
+/**
+ * spd_end_child_node_thread_explicit
+ *  - end a explixit child thread by node_incr and its information
+ *
+ * @param fssThrdInfo
+ * @param fdw_private
+ * @param node_incr
+ */
+static void
+spd_end_child_node_thread_explicit(ForeignScanThreadInfo *fssThrdInfo, SpdFdwPrivate *fdw_private, int node_incr)
+{
+	int rtn;
+
+	if (!fdw_private)
+		return;
+
+	/* Print error nodes. */
+	if (fssThrdInfo->state == SPD_FS_STATE_ERROR)
+	{
+		fdw_private->childinfo[fssThrdInfo->childInfoIndex].child_node_status = ServerStatusDead;
+	}
+
+	if (isPrintError)
+		spd_PrintError(fdw_private->node_num, fdw_private->childinfo);
+
+	if (!fdw_private->is_explain)
+	{
+		elog(DEBUG1, "End thread %d, xact depth: %d", node_incr, fssThrdInfo->transaction_level);
+		/* just send end request, child thread can be in pending */
+		fssThrdInfo->requestEndScan = true;
+		rtn = pthread_join(fdw_private->foreign_scan_threads[node_incr], NULL);
+		if (rtn != 0)
+			elog(WARNING, "Failed to join thread in EndForeignScan of thread[%d]. Returned %d.", node_incr, rtn);
+	}
+}
+
+/**
+ * There are three states of child threads that the local transaction state can not be changed:
+ *	* SPD_FS_STATE_INIT state: Child thread is just before calling child BeginForeignScan.
+ *	* SPD_FS_STATE_BEGIN state: Child thread is in child BeginForeignScan for creating foreign transaction.
+ *		In two above states, foreign transaction must be created before local transaction state changed.
+ *	* SPD_FS_STATE_ITERATE state: Child thread is in child IterateForeignScan to fetch data.
+ *		In this state, child thread is pended for changing states in local transaction
+ *
+ *  spd_wait_transaction_thread_safe: wait child thread state is safe with local transaction state changing
+ *
+ * @param[in] fssThrdInfo
+ */
+static void
+spd_wait_transaction_thread_safe(ForeignScanThreadInfo *fssThrdInfo)
+{
+	int				node_incr;
+	SpdFdwPrivate  *fdw_private = (SpdFdwPrivate *) fssThrdInfo[0].private;
+
+	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
+	{
+		while (fssThrdInfo[node_incr].state <= SPD_FS_STATE_ITERATE)
+		{
+			pthread_yield();
+		}
+	}
+}
+
+/**
+ * spd_at_abort_subtransaction:
+ *  - Kill all child thread started in aborted transaction
+ *  - Pending all chil thread started in parent transaction
+ *
+ * @param[in] arg ForeignScanState
+ */
+static void
+spd_at_abort_subtransaction(void *arg)
+{
+	AssertArg(arg);
+
+	elog(DEBUG1, "At %s", __func__);
+
+	if (IsA(arg, ForeignScanState))
+	{
+		ForeignScanState *fsstate = (ForeignScanState *)arg;
+		ForeignScanThreadInfo *fssThrdInfo = fsstate->spd_fsstate;
+		SpdFdwPrivate  *fdw_private;
+		int				node_incr;
+		int				curlevel = GetCurrentTransactionNestLevel();
+
+		if (!fssThrdInfo)
+			return;
+
+		fdw_private = (SpdFdwPrivate *) fssThrdInfo[0].private;
+		if (!fdw_private)
+			return;
+
+		/* Wake up all */
+		spd_request_child_thread_pending(&fssThrdInfo[0], SPD_WAKE_UP);
+
+		for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
+		{
+			/* If thread is joined or dead before, do not join it again */
+			if (fssThrdInfo[node_incr].is_joined == true)
+				continue;
+
+			/* Kill all child thread in aborted transaction */
+			if (fssThrdInfo[node_incr].transaction_level >= curlevel)
+			{
+				elog(DEBUG1, "End thread %d, xact depth: %d, curlevel: %d", node_incr, fssThrdInfo[node_incr].transaction_level, curlevel);
+				spd_end_child_node_thread_explicit(&fssThrdInfo[node_incr], fdw_private, node_incr);
+			}
+		}
+
+		/* Request pending all other */
+		spd_request_child_thread_pending(&fssThrdInfo[0], SPD_PENDING);
+		/* wait child thread state is safe with local transaction state changing */
+		spd_wait_transaction_thread_safe(fssThrdInfo);
+	}
+}
+
+/**
+ * spd_pending_all_child_thread:
+ *  - pending all child thread of the query
+ *
+ * @param[in] arg ForeignScanState
+ */
+static void spd_pending_all_child_thread(void *arg)
+{
+	AssertArg(arg);
+
+	elog(DEBUG1, "At %s", __func__);
+
+	if (IsA(arg, ForeignScanState))
+	{
+		ForeignScanState *fsstate = (ForeignScanState *)arg;
+		ForeignScanThreadInfo *fssThrdInfo = fsstate->spd_fsstate;
+		SpdFdwPrivate  *fdw_private;
+
+		if (!fssThrdInfo)
+			return;
+
+		fdw_private = (SpdFdwPrivate *) fssThrdInfo[0].private;
+		if (!fdw_private)
+			return;
+
+		/* request pending all child thread */
+		spd_request_child_thread_pending(&fssThrdInfo[0], SPD_PENDING);
+		/* wait child thread state is safe with local transaction state changing */
+		spd_wait_transaction_thread_safe(fssThrdInfo);
+	}
+}
+
+/**
+ *  Callback function to be called before
+ * 		- abort transaction.
+ * 		- abort sub-transaction.
+ * 		- commit transaction.
+ *		- make new subtransaction
+ *
+ * @param event
+ * @param arg ForeignScanState
+ */
+static void
+spd_transaction_callback(spdEvent event, void *arg)
+{
+	elog(DEBUG1, "At %s", __func__);
+
+	switch (event)
+	{
+		case SPD_EVENT_NEW_TRANSACTION:
+		{
+			/* Before make a new transaction, all child thread must be in pending */
+			spd_pending_all_child_thread(arg);
+			break;
+		}
+		case SPD_EVENT_ABORT_TRANSACTION:
+		case SPD_EVENT_COMMIT_TRANSACTION:
+		{
+			/* Before abort/commit transaction, all child thread must be ended */
+			spd_request_end_all_child_thread(arg);
+			break;
+		}
+		case SPD_EVENT_ABORT_SUB_TRANSACTION:
+		{
+			/* Before abort sub-transaction, all child thread of this
+			 * sub-transaction must be ended, all other in pending.
+			 */
+			spd_at_abort_subtransaction(arg);
+			break;
+		}
+	}
+}
+
+/**
+ * spd_sub_xact_callback:
+ *  - cleanup at subtransaction end.
+ *  - wake up child thread at subtransaction start.
+ *
+ * @param[in] event
+ * @param[in] mySubid
+ * @param[in] parentSubid
+ * @param[in] arg ForeignScanState
+ */
+static void
+spd_sub_xact_callback(SubXactEvent event, SubTransactionId mySubid,
+					   SubTransactionId parentSubid, void *arg)
+{
+	ForeignScanState *fsstate;
+	ForeignScanThreadInfo *fssThrdInfo;
+
+	elog(DEBUG1, "At %s", __func__);
+
+	AssertArg(arg);
+
+	switch (event)
+	{
+		case SUBXACT_EVENT_COMMIT_SUB:
+		case SUBXACT_EVENT_ABORT_SUB:
+			/* Nothing to do */
+			break;
+		case SUBXACT_EVENT_PRE_COMMIT_SUB:
+		{
+			/* Behavior same as abort sub-transaction */
+			spd_at_abort_subtransaction(arg);
+		}
+		case SUBXACT_EVENT_START_SUB:
+		{
+			if (!IsA(arg, ForeignScanState))
+				return;
+
+			fsstate = (ForeignScanState *)arg;
+			fssThrdInfo = fsstate->spd_fsstate;
+			if (!fssThrdInfo)
+				return;
+
+			/* wake up all child thread */
+			spd_request_child_thread_pending(&fssThrdInfo[0], SPD_WAKE_UP);
+			break;
+		}
 	}
 }
 
 /**
  * Callback function to be called when context reset/delete.
  * Reset error context stack and re-enable register reset
- * callback flag and unregister all abort callback.
+ * callback flag and unregister spdTransaction callbacl and SubXactCallback
+ * created in this context.
  *
  * @param[in] arg
  */
 static void
 spd_reset_callback(void *arg)
 {
-	registered_reset_callback = false;
-	AtFinishTransaction();
+	if (arg)
+	{
+		CallbackList *callback_list = (CallbackList*) arg;
+
+		UnregisterSpdTransactionCallback(callback_list->spd_transaction_callback, callback_list->arg);
+		UnregisterSubXactCallback(callback_list->commit_subtransaction_callback, callback_list->arg);
+	}
 }
 
 /**
@@ -7682,18 +8060,14 @@ spd_reset_callback(void *arg)
  * @param[in] query_context MemoryContext
  */
 static void
-spd_register_reset_callback(MemoryContext query_context)
+spd_register_reset_callback(MemoryContext query_context, CallbackList *callback_list)
 {
-	if (!registered_reset_callback)
-	{
-		MemoryContextCallback *cb = MemoryContextAlloc(query_context, sizeof(MemoryContextCallback));
 
-		registered_reset_callback = true;
+	MemoryContextCallback *cb = MemoryContextAlloc(query_context, sizeof(MemoryContextCallback));
 
-		cb->arg = NULL;
-		cb->func = spd_reset_callback;
-		MemoryContextRegisterResetCallback(query_context, cb);
-	}
+	cb->arg = callback_list;
+	cb->func = spd_reset_callback;
+	MemoryContextRegisterResetCallback(query_context, cb);
 }
 
 /**
@@ -7986,7 +8360,8 @@ spd_setThreadInfo(ForeignScanState *node, SpdFdwPrivate * fdw_private, ChildInfo
 	pFssThrdInfo->eflags = eflags;
 	pFssThrdInfo->requestEndScan = false;
 	pFssThrdInfo->requestRescan = false;
-
+	pFssThrdInfo->transaction_level = GetCurrentTransactionNestLevel();
+	pFssThrdInfo->is_joined = false;
 	/*
 	 * If query has no parameter, it can be executed immediately for improving
 	 * the performance. If query has parameter, sub-plan needs to be
@@ -8122,6 +8497,7 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	int			i;
 	Query	   *query;
 	TupleDesc	tupledesc_agg = NULL;
+	CallbackList *callback_list;
 
 	/*
 	 * Register callback to query memory context to reset normalize id hash
@@ -8142,6 +8518,11 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 
 	/* Create temporary context */
 	fdw_private->es_query_cxt = estate->es_query_cxt;
+
+	/* Init pending request and pending condition */
+	fdw_private->requestPendingChildThread = SPD_WAKE_UP;
+	pthread_mutex_init(&fdw_private->thread_pending_mutex, NULL);
+	pthread_cond_init(&fdw_private->thread_pending_cond, NULL);
 
 	/*
 	 * Not return from this function unlike usual fdw BeginForeignScan
@@ -8265,20 +8646,24 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	}
 
 	/*
-	 * PGSpider needs to notify all childs node thread to quit before memory
-	 * context of thread is release and avoid child node thread access to
-	 * Transaction State. We register abort transaction call back for each
-	 * node. In case error, backend call AbortTransaction, we will call abort
-	 * transaction callback to quit all threads avoid thread access to free
-	 * memory zone and Transaction State.
+	 * PGSpider needs to notify all childs node thread to quit or pending
+	 * when transaction state changing. It handle by spd_transaction_callback
+	 * and spd_sub_xact_callback.
 	 */
-	RegisterAbortTransactionCallback(spd_abort_transaction_callback, (void *) node);
+	RegisterSpdTransactionCallback(spd_transaction_callback, (void *) node);
+	RegisterSubXactCallback(spd_sub_xact_callback, (void *) node);
+
+	/* Save these callback and their argument to unregister after */
+	callback_list = (CallbackList*) palloc0(sizeof(CallbackList));
+	callback_list->spd_transaction_callback = spd_transaction_callback;
+	callback_list->commit_subtransaction_callback = spd_sub_xact_callback;
+	callback_list->arg = (void *)node;
 
 	/*
-	 * We register ResetCallback for es_query_cxt to unregister abort
-	 * transaction call back when finish transaction.
+	 * We register ResetCallback for es_query_cxt to unregister transaction
+	 * callback when finish query.
 	 */
-	spd_register_reset_callback(estate->es_query_cxt);
+	spd_register_reset_callback(estate->es_query_cxt, callback_list);
 
 	/*
 	 * Call this function to prevent backend from checking memory context
@@ -10142,9 +10527,13 @@ spd_EndForeignScan(ForeignScanState *node)
 
 	/*
 	 * Call this function to allow backend to check memory context size as
-	 * usual because the child threads finished running.
+	 * usual because the child threads finished running. Use num_child_thread_running
+	 * to make sure that there is no thread in running.
 	 */
-	skip_memory_checking(false);
+	pthread_mutex_lock(&thread_running_mutex);
+	if (num_child_thread_running == 0)
+		skip_memory_checking(false);
+	pthread_mutex_unlock(&thread_running_mutex);
 
 	/* Wait until all the remote connections get closed. */
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
