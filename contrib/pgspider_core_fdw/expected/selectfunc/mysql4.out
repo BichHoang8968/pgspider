@@ -49587,7 +49587,7 @@ SELECT day(c2) as day1, day(c3) as day2, day('2021-01-01'::date) as day3, day('1
 -- Stub aggregate function for mysql fdw
 -- ============================================================================
 --Testcase 3418:
-CREATE FOREIGN TABLE s7a (id int, tag1 text, value1 float, value2 int, value3 float, value4 int, value5 bit, str1 text, str2 text, __spd_url text) SERVER pgspider_core_svr;
+CREATE FOREIGN TABLE s7a (id int, tag1 text, value1 float, value2 int, value3 float, value4 int, value5 bit(16), str1 text, str2 text, __spd_url text) SERVER pgspider_core_svr;
 --Testcase 3419:
 CREATE FOREIGN TABLE s7a__pgspider_svr1__0 (id int, tag1 text, value1 float, value2 int, value3 float, value4 int, value5 bit varying (16), str1 text, str2 text, __spd_url text) SERVER pgspider_svr1 OPTIONS (table_name 's7a1mysql');
 --Testcase 3420:
@@ -49603,7 +49603,7 @@ CREATE FOREIGN TABLE s7a__pgspider_svr2__0 (id int, tag1 text, value1 float, val
  value2    | integer          |           |          |         | 
  value3    | double precision |           |          |         | 
  value4    | integer          |           |          |         | 
- value5    | bit(1)           |           |          |         | 
+ value5    | bit(16)          |           |          |         | 
  str1      | text             |           |          |         | 
  str2      | text             |           |          |         | 
  __spd_url | text             |           |          |         | 
@@ -49613,7 +49613,7 @@ Server: pgspider_core_svr
 SELECT * FROM s7a ORDER BY id;
  id | tag1 | value1 | value2 | value3 | value4 |      value5      |   str1    |   str2    |         __spd_url         
 ----+------+--------+--------+--------+--------+------------------+-----------+-----------+---------------------------
-  0 | a    |    0.1 |    100 |   -0.1 |   -100 | 1001000110100    | ---XYZ--- |    XYZ    | /pgspider_svr1/mysql_svr/
+  0 | a    |    0.1 |    100 |   -0.1 |   -100 | 0001001000110100 | ---XYZ--- |    XYZ    | /pgspider_svr1/mysql_svr/
   1 | a    |    0.2 |    100 |   -0.2 |   -101 | 1111111100110100 | ---XYZ--- |    XYZ    | /pgspider_svr1/mysql_svr/
   2 | a    |    0.3 |    100 |   -0.3 |   -102 |                  | ---XYZ--- |    XYZ    | /pgspider_svr1/mysql_svr/
   3 | b    |    1.1 |    200 |   -1.1 |   -200 | 1111101000110100 | ---XYZ--- |    XYZ    | /pgspider_svr2/mysql_svr/
@@ -49632,7 +49632,7 @@ SELECT bit_xor(id), bit_xor(tag1), bit_xor(value1), bit_xor(value2), bit_xor(val
 ------------------------------------------------------------------------------------------------------------------------------------------
  Aggregate  (cost=7319.04..7319.05 rows=1 width=172)
    Output: bit_xor(id), bit_xor(tag1), bit_xor(value1), bit_xor(value2), bit_xor(value3), bit_xor(value4), bit_xor(value5), bit_xor(str1)
-   ->  Foreign Scan on public.s7a  (cost=200.00..424.78 rows=6826 width=101)
+   ->  Foreign Scan on public.s7a  (cost=200.00..424.78 rows=6826 width=102)
          Output: id, tag1, value1, value2, value3, value4, value5, str1
          Node: pgspider_svr1 / Status: Alive
            Remote SQL: SELECT id, tag1, value1, value2, value3, value4, value5, str1 FROM public.s7a1mysql
@@ -49654,7 +49654,7 @@ SELECT tag1, bit_xor(value5) FROM s7a GROUP BY tag1;
  HashAggregate  (cost=458.91..460.91 rows=200 width=64)
    Output: tag1, bit_xor(value5)
    Group Key: s7a.tag1
-   ->  Foreign Scan on public.s7a  (cost=200.00..424.78 rows=6826 width=41)
+   ->  Foreign Scan on public.s7a  (cost=200.00..424.78 rows=6826 width=42)
          Output: tag1, value5
          Node: pgspider_svr1 / Status: Alive
            Remote SQL: SELECT tag1, value5 FROM public.s7a1mysql
@@ -49665,7 +49665,12 @@ SELECT tag1, bit_xor(value5) FROM s7a GROUP BY tag1;
 -- select bit_xor with group by (result)
 --Testcase 3426:
 SELECT tag1, bit_xor(value5) FROM s7a GROUP BY tag1;
-ERROR:  cannot XOR bit strings of different sizes
+ tag1 |     bit_xor      
+------+------------------
+ a    | 1110110100000000
+ b    | 1001110000110100
+(2 rows)
+
 -- select bit_xor with group by having (explain)
 --Testcase 3427:
 EXPLAIN VERBOSE
@@ -49676,7 +49681,7 @@ SELECT id, bit_xor(value5) FROM s7a GROUP BY id, str1 HAVING bit_xor(value5) > 0
    Output: id, bit_xor(value5), str1
    Group Key: s7a.id, s7a.str1
    Filter: (bit_xor(s7a.value5) > '0'::bit(1))
-   ->  Foreign Scan on public.s7a  (cost=200.00..424.78 rows=6826 width=45)
+   ->  Foreign Scan on public.s7a  (cost=200.00..424.78 rows=6826 width=46)
          Output: id, str1, value5
          Node: pgspider_svr1 / Status: Alive
            Remote SQL: SELECT id, value5, str1 FROM public.s7a1mysql
@@ -49692,7 +49697,7 @@ SELECT id, bit_xor(value5) FROM s7a GROUP BY id, str1 HAVING bit_xor(value5) > 0
   1 | 1111111100110100
   4 | 1100110100110100
   3 | 1111101000110100
-  0 | 1001000110100
+  0 | 0001001000110100
   5 | 1010101100110100
 (5 rows)
 
@@ -49862,7 +49867,7 @@ SELECT group_concat((id, tag1, value2, str1, value5)) FROM s7a;
 -----------------------------------------------------------------------------------
  Aggregate  (cost=2131.28..2131.29 rows=1 width=32)
    Output: group_concat(ROW(id, tag1, value2, str1, value5))
-   ->  Foreign Scan on public.s7a  (cost=200.00..424.78 rows=6826 width=81)
+   ->  Foreign Scan on public.s7a  (cost=200.00..424.78 rows=6826 width=82)
          Output: id, tag1, value2, str1, value5
          Node: pgspider_svr1 / Status: Alive
            Remote SQL: SELECT id, tag1, value2, value5, str1 FROM public.s7a1mysql
@@ -49883,7 +49888,7 @@ SELECT group_concat((id, tag1, value2, str1, value5)) FROM s7a GROUP BY value2;
  HashAggregate  (cost=2148.34..2150.34 rows=200 width=36)
    Output: group_concat(ROW(id, tag1, value2, str1, value5)), value2
    Group Key: s7a.value2
-   ->  Foreign Scan on public.s7a  (cost=200.00..424.78 rows=6826 width=81)
+   ->  Foreign Scan on public.s7a  (cost=200.00..424.78 rows=6826 width=82)
          Output: value2, id, tag1, str1, value5
          Node: pgspider_svr1 / Status: Alive
            Remote SQL: SELECT id, tag1, value2, value5, str1 FROM public.s7a1mysql
@@ -49966,7 +49971,7 @@ SELECT group_concat(DISTINCT id), group_concat(DISTINCT tag1), group_concat(DIST
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Aggregate  (cost=12370.28..12370.29 rows=1 width=224)
    Output: group_concat(DISTINCT id), group_concat(DISTINCT tag1), group_concat(DISTINCT value1), group_concat(DISTINCT value2), group_concat(DISTINCT value3), group_concat(DISTINCT value5), group_concat(DISTINCT str2)
-   ->  Foreign Scan on public.s7a  (cost=200.00..424.78 rows=6826 width=97)
+   ->  Foreign Scan on public.s7a  (cost=200.00..424.78 rows=6826 width=98)
          Output: id, tag1, value1, value2, value3, value5, str2
          Node: pgspider_svr1 / Status: Alive
            Remote SQL: SELECT id, tag1, value1, value2, value3, value5, str2 FROM public.s7a1mysql
@@ -50033,7 +50038,7 @@ SELECT group_concat(DISTINCT (id, tag1, value2, str1, value5)) FROM s7a;
 -----------------------------------------------------------------------------------
  Aggregate  (cost=2131.28..2131.29 rows=1 width=32)
    Output: group_concat(DISTINCT ROW(id, tag1, value2, str1, value5))
-   ->  Foreign Scan on public.s7a  (cost=200.00..424.78 rows=6826 width=81)
+   ->  Foreign Scan on public.s7a  (cost=200.00..424.78 rows=6826 width=82)
          Output: id, tag1, value2, str1, value5
          Node: pgspider_svr1 / Status: Alive
            Remote SQL: SELECT id, tag1, value2, value5, str1 FROM public.s7a1mysql
@@ -50278,7 +50283,7 @@ SELECT COUNT(DISTINCT (id, tag1, value2, str1, value5)) FROM s7a;
 -----------------------------------------------------------------------------------
  Aggregate  (cost=441.84..441.85 rows=1 width=8)
    Output: count(DISTINCT ROW(id, tag1, value2, str1, value5))
-   ->  Foreign Scan on public.s7a  (cost=200.00..424.78 rows=6826 width=81)
+   ->  Foreign Scan on public.s7a  (cost=200.00..424.78 rows=6826 width=82)
          Output: id, tag1, value2, str1, value5
          Node: pgspider_svr1 / Status: Alive
            Remote SQL: SELECT id, tag1, value2, value5, str1 FROM public.s7a1mysql
@@ -50328,10 +50333,10 @@ SELECT id, json_agg(id), json_agg(tag1), json_agg(value1), json_agg(value2), jso
  GroupAggregate  (cost=859.49..1018.57 rows=200 width=228)
    Output: id, json_agg(id), json_agg(tag1), json_agg(value1), json_agg(value2), json_agg(value3), json_agg(value5), json_agg(str1)
    Group Key: s7a.id
-   ->  Sort  (cost=859.49..876.55 rows=6826 width=97)
+   ->  Sort  (cost=859.49..876.55 rows=6826 width=98)
          Output: id, tag1, value1, value2, value3, value5, str1
          Sort Key: s7a.id
-         ->  Foreign Scan on public.s7a  (cost=200.00..424.78 rows=6826 width=97)
+         ->  Foreign Scan on public.s7a  (cost=200.00..424.78 rows=6826 width=98)
                Output: id, tag1, value1, value2, value3, value5, str1
                Node: pgspider_svr1 / Status: Alive
                  Sort push-down: no
@@ -50346,7 +50351,7 @@ SELECT id, json_agg(id), json_agg(tag1), json_agg(value1), json_agg(value2), jso
 SELECT id, json_agg(id), json_agg(tag1), json_agg(value1), json_agg(value2), json_agg(value3), json_agg(value5), json_agg(str1) FROM s7a GROUP BY id ORDER BY id;
  id | json_agg | json_agg | json_agg | json_agg | json_agg |       json_agg       |   json_agg    
 ----+----------+----------+----------+----------+----------+----------------------+---------------
-  0 | [0]      | ["a"]    | [0.1]    | [100]    | [-0.1]   | ["1001000110100"]    | ["---XYZ---"]
+  0 | [0]      | ["a"]    | [0.1]    | [100]    | [-0.1]   | ["0001001000110100"] | ["---XYZ---"]
   1 | [1]      | ["a"]    | [0.2]    | [100]    | [-0.2]   | ["1111111100110100"] | ["---XYZ---"]
   2 | [2]      | ["a"]    | [0.3]    | [100]    | [-0.3]   | [null]               | ["---XYZ---"]
   3 | [3]      | ["b"]    | [1.1]    | [200]    | [-1.1]   | ["1111101000110100"] | ["---XYZ---"]

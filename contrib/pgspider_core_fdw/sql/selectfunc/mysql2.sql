@@ -14958,7 +14958,7 @@ SELECT day(c2) as day1, day(c3) as day2, day('2021-01-01'::date) as day3, day('1
 -- ============================================================================
 
 --Testcase 3414:
-CREATE FOREIGN TABLE s7a (id int, tag1 text, value1 float, value2 int, value3 float, value4 int, value5 bit, str1 text, str2 text, __spd_url text) SERVER pgspider_core_svr;
+CREATE FOREIGN TABLE s7a (id int, tag1 text, value1 float, value2 int, value3 float, value4 int, value5 bit(16), str1 text, str2 text, __spd_url text) SERVER pgspider_core_svr;
 --Testcase 3415:
 CREATE FOREIGN TABLE s7a__pgspider_svr__0 (id int, tag1 text, value1 float, value2 int, value3 float, value4 int, value5 bit varying (16), str1 text, str2 text, __spd_url text) SERVER pgspider_svr OPTIONS (table_name 's7amysql');
 

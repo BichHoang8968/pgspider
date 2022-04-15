@@ -14988,11 +14988,11 @@ DROP FOREIGN TABLE time_tbl__mysql_svr__0;
 -- ============================================================================
 
 --Testcase 3422:
-CREATE FOREIGN TABLE s7a (id int, tag1 text, value1 float, value2 int, value3 float, value4 int, value5 bit, str1 text, str2 text, __spd_url text) SERVER pgspider_core_svr;
+CREATE FOREIGN TABLE s7a (id int, tag1 text, value1 float, value2 int, value3 float, value4 int, value5 bit(16), str1 text, str2 text, __spd_url text) SERVER pgspider_core_svr;
 --Testcase 3423:
 CREATE FOREIGN TABLE s7a__pgspider_svr__0 (id int, tag1 text, value1 float, value2 int, value3 float, value4 int, value5 bit varying (16), str1 text, str2 text, __spd_url text) SERVER pgspider_svr OPTIONS (table_name 's7a1mysql');
 --Testcase 3424:
-CREATE FOREIGN TABLE s7a__mysql_svr__0 (id int, tag1 text, value1 float, value2 int, value3 float, value4 int, value5 bit, str1 text, str2 text) SERVER mysql_svr OPTIONS(dbname 'test', table_name 's7a2');
+CREATE FOREIGN TABLE s7a__mysql_svr__0 (id int, tag1 text, value1 float, value2 int, value3 float, value4 int, value5 bit(16), str1 text, str2 text) SERVER mysql_svr OPTIONS(dbname 'test', table_name 's7a2');
 
 --Testcase 3425:
 \d s7a;

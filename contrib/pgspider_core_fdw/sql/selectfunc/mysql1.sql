@@ -14958,9 +14958,9 @@ SELECT day(c2) as day1, day(c3) as day2, day('2021-01-01'::date) as day3, day('1
 -- Stub aggregate function for mysql fdw
 -- ============================================================================
 --Testcase 3413:
-CREATE FOREIGN TABLE s7a(id int, tag1 text, value1 float, value2 int, value3 float, value4 int, value5 bit, str1 text, str2 text, __spd_url text) SERVER pgspider_core_svr;
+CREATE FOREIGN TABLE s7a(id int, tag1 text, value1 float, value2 int, value3 float, value4 int, value5 bit(16), str1 text, str2 text, __spd_url text) SERVER pgspider_core_svr;
 --Testcase 3414:
-CREATE FOREIGN TABLE s7a__mysql_svr__0 (id int, tag1 text, value1 float, value2 int, value3 float, value4 int, value5 bit, str1 text, str2 text) SERVER mysql_svr OPTIONS(dbname 'test', table_name 's7a');
+CREATE FOREIGN TABLE s7a__mysql_svr__0 (id int, tag1 text, value1 float, value2 int, value3 float, value4 int, value5 bit(16), str1 text, str2 text) SERVER mysql_svr OPTIONS(dbname 'test', table_name 's7a');
 
 --Testcase 3415:
 SELECT * FROM s7a;

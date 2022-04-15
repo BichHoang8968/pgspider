@@ -3930,7 +3930,6 @@ SELECT lower(c1), c2 || c3, string_agg(c3, c7) FROM tbl01 WHERE c8-c9 != 0 GROUP
  съм много               | Im finſterenขอขอบคุณอย่างจริงใจ                             | ขอขอบคุณอย่างจริงใจ
 (9 rows)
 
-
 -- The aggregation is not pushed down in single node if SPDURL is selected and grouped.
 --Testcase 311:
 EXPLAIN VERBOSE SELECT __spd_url FROM tbl01 GROUP BY __spd_url;
